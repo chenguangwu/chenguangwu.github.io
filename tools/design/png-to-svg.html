@@ -240,22 +240,28 @@
 </div>
 <script>
 let lastSVG = '';
-function __pngReset(){
+let __pngGen = 0;   // 生成代次：换图 / 改参数 / 重新生成时自增，使在途异步回调失效
+function __pngEn(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+function __pngInvalidate(){
+  __pngGen++;
   lastSVG = '';
   const _c = document.getElementById('svgCode');
   if(_c) _c.value = '';
+  const _p = document.getElementById('preview');
+  if(_p) _p.textContent = __pngEn() ? 'Upload an image' : '请上传图片';
 }
 function __pngBindReset(){
-  try{ const f=document.getElementById('fileInput'); if(f&&f.addEventListener) f.addEventListener('change', __pngReset); }catch(e){}
-  try{ const b=document.getElementById('blockSize'); if(b&&b.addEventListener) b.addEventListener('change', __pngReset); }catch(e){}
-  try{ const a=document.getElementById('alphaTh'); if(a&&a.addEventListener) a.addEventListener('change', __pngReset); }catch(e){}
+  try{ const f=document.getElementById('fileInput'); if(f&&f.addEventListener) f.addEventListener('change', __pngInvalidate); }catch(e){}
+  try{ const b=document.getElementById('blockSize'); if(b&&b.addEventListener) b.addEventListener('change', __pngInvalidate); }catch(e){}
+  try{ const a=document.getElementById('alphaTh'); if(a&&a.addEventListener) a.addEventListener('change', __pngInvalidate); }catch(e){}
 }
 __pngBindReset();
 function generate(){
   const file = document.getElementById('fileInput').files[0];
   const preview = document.getElementById('preview');
-  if(!file){ preview.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Upload an image":"请上传图片"); return; }
-  lastSVG = '';
+  if(!file){ __pngInvalidate(); return; }  // 清空输入同样使在途任务失效
+  __pngInvalidate();                       // 重新生成：旧在途任务全部作废，清结果 / 面板
+  const myGen = __pngGen;                  // 捕获本次代次
   const blockRaw = parseInt(document.getElementById('blockSize').value, 10);
   const block = Number.isNaN(blockRaw) ? 8 : Math.min(40, Math.max(1, blockRaw));
   const alphaRaw = parseInt(document.getElementById('alphaTh').value, 10);
@@ -264,8 +270,10 @@ function generate(){
   if(alphaRaw !== alphaTh){ const _a = document.getElementById('alphaTh'); if(_a) _a.value = alphaTh; }
   const reader = new FileReader();
   reader.onload = (e) => {
+    if(myGen !== __pngGen) return;         // 过期 FileReader 回调丢弃
     const img = new Image();
     img.onload = () => {
+      if(myGen !== __pngGen) return;       // 过期 Image 回调丢弃（换图 / 改参数 / 重新生成）
       const w = Math.max(1, Math.floor(img.width / block));
       const h = Math.max(1, Math.floor(img.height / block));
       const canvas = document.createElement('canvas');
@@ -333,7 +341,7 @@ function __png_to_svgSnap(){
     for(var i=0;i<els.length;i++){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
-        if(t==='button'||t==='submit'||t==='hidden') continue;
+        if(t==='button'||t==='submit'||t==='hidden'||t==='file') continue;  // file input 不可程序赋值，不入快照
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
@@ -379,6 +387,7 @@ function __png_to_svgRender(keys,rk,en){
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
+                    if(t==='file') continue;  // 跳过 file input，避免赋值抛 InvalidStateError 中断回放
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }

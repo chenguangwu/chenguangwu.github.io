@@ -315,6 +315,26 @@ function wrap(){
   const indent = document.getElementById('indent').checked;
   const hanging = document.getElementById('hanging').checked;
 
+  // 第205批：prefixFor 固定 2 空格缩进，缩进计入可用宽度。宽度被缩进占满时（如 width=2 且
+  // 勾选首行/悬挂缩进）不能再用 Math.max(1, width-indent) 强取字符、静默输出长度 3 的超宽行。
+  // 此时明确提示并停止折行，四种模式统一生效；单个码点自身超过可用宽度的情形由 takeByLen
+  // 整字输出、不拆码点、也不会无进展（见 takeByLen 的 i===0 兜底），同属「无法容纳字符」边界。
+  const __indentW = (indent || hanging) ? 2 : 0;
+  if(width <= __indentW){
+    result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())
+      ? "⚠ Width is too small to fit the 2-space indent and any character; a single code point wider than the width is kept whole (never split). Increase the width or turn off indentation."
+      : "⚠ 宽度不足以容纳 2 空格缩进及任意字符；单个码点自身超过宽度时整字输出、不拆分码点。请增大宽度或取消首行/悬挂缩进。");
+    return;
+  }
+
+  // 第205批：宽度能容纳缩进、但单个码点自身宽于「可用宽度」时，takeByLen 的 i===0 兜底会整码点
+  // 输出（不拆代理项、且推进 rest 不会无进展），该行必然超宽。此时不能静默，须单独说明。
+  const __availMax = width - __indentW;
+  let __overwide = false;
+  for(const __ch of text){
+    if(visualLen(__ch) > __availMax){ __overwide = true; break; }
+  }
+
   const paragraphs = keepExisting ? text.split('\n') : [text.replace(/\n/g, ' ')];
   const out = [];
 
@@ -377,7 +397,11 @@ function wrap(){
       flush();
     }
   });
-  result.textContent = out.join('\n');
+  result.textContent = out.join('\n') + (__overwide
+    ? ('\n' + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())
+        ? '⚠ Note: a single code point is wider than the available width; it is kept whole (never split), so that line may still exceed the set width.'
+        : '⚠ 说明：存在单个码点宽于可用宽度，已整字输出（不拆分码点），该行可能仍超过设定宽度。'))
+    : '');
 }
 
 function copyResult(ev){
@@ -435,9 +459,17 @@ function __word_wrapFullResText(){
     return t;
 }
 function __word_wrapScore(t){
-    var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+    // 第205批/第113批：按真实控件状态判定，绝不解析用户输入全文——折行工具输入可为任意文本，
+    // 其中的「无效/失败/Failed/Invalid」等词不应污染历史结论；旧全文词表会把这些正常输入误记未通过。
+    var inp=document.getElementById('input');
+    var raw=inp?String(inp.value==null?'':inp.value):'';
+    if(!raw.trim()) return NaN;                 // 空输入：等待态，MANUAL（无结论）
+    var wEl=document.getElementById('width');
+    var w=parseInt(wEl?String(wEl.value):'20',10); if(!isFinite(w)) w=20; w=Math.max(1,w);
+    var ind=document.getElementById('indent'),han=document.getElementById('hanging');
+    var indentW=((ind&&ind.checked)||(han&&han.checked))?2:0;
+    if(w<=indentW) return 0;                    // 宽度容纳不下 2 空格缩进：拒绝态（第205批）
+    return 1;                                   // 成功折行（含单码点整字输出的边界说明）
 }
 function __word_wrapTime(t){
     var d=new Date(t);

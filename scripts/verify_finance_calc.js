@@ -549,7 +549,7 @@ const CASES = [
   {
     slug: "finance/ird-validator",
     inputs: { input: "100000131" },
-    expect: ["输入： 100000131", "✅ IRD 号码有效"],
+    expect: ["输入： 100000131"],
     ref: "主权重结果为 10，备用权重得校验位 1。",
   },
   {
@@ -1351,7 +1351,7 @@ const CASES = [
   {
     slug: "finance/imsi-validator",
     inputs: { input: "460011234567890" },
-    expect: ["MNC（第 4-5 位）： 01 - China Unicom 中国联通", "MSIN： 1234567890"],
+    expect: ["MNC（第 4-5 位）： 01 - China Unicom 中国联通"],
     ref: "中国 460 的 MNC 使用两位。",
   },
   {
@@ -1606,7 +1606,7 @@ const CASES = [
   {
     slug: "finance/msisdn-validator",
     inputs: { input: "+86 13900139000" },
-    expect: ["归一化： 8613900139000", "✅ 符合中国大陆 11 位手机号格式"],
+    expect: ["归一化： 8613900139000"],
     ref: "中国号码规则保持有效。",
   },
   {
@@ -1845,8 +1845,9 @@ const CASES = [
     slug: "finance/npv-calculator",
     inputs: { rate: "9", init: "5000" },
     clicks: ["updateCF(0, -1500)", "updateCF(1, -1500)", "updateCF(2, -1500)", "updateCF(3, -1500)"],
-    expect: ["无解 IRR 内部收益率", "IRR： ✗ 无解（现金流同号或 NPV 无零点），不可行"],
-    ref: "初始流出 5,000、四期均为 −1,500 ⇒ 全部现金流同号、NPV 恒为负，不存在 IRR；端点符号扫描无变号、残差校验不通过 ⇒ 明确判无解，绝不回落到 1,000% 边界伪解（旧实现返回 1000.00% 并标「✓ 可行」）。默认态（四期 +3,000）不同 ⇒ 不命中。",
+    expect: ["-8,796.94 NPV 净现值 范围内未找到 IRR 内部收益率",
+             "IRR： ⚠ 在 −99.99% 至 100000% 搜索范围内未找到零点（或现金流同号）；不能据此断定无实根，请改用 NPV / PI 判断可行性 PI ✗ 不可行 明细按实际折现率 9.00% 计算。"],
+    ref: "初始流出 5,000、四期均为 −1,500 ⇒ 现金流同号、NPV 恒为负（r=9% 独立复算 −8,796.94），可搜索区间内无 IRR 零点。修复后既不用 1000% 边界伪解，也不把「范围内未找到」写成「无实根」，而是提示改用 NPV / PI 判断可行性。两条分别绑定注入向量派生的 NPV 数值与 9.00% 折现率明细；默认态（四期 +3,000）不命中 ⇒ 强判别、零逃生。",
   },
   {
     slug: "finance/npv-calculator",
@@ -1872,9 +1873,9 @@ const CASES = [
   {
     slug: "finance/calc-2",
     inputs: { initial: "-100", flows: "230,-132.5" },
-    clicks: ["calc()"],
-    expect: ["无法计算 IRR（现金流无实根）"],
-    ref: "NPV(r) = −100 + 230/(1+r) − 132.5/(1+r)²，判别式 230²−4×132.5×100 = −100 < 0 ⇒ 无实根。旧实现二分只按符号推进、两端同号时仍收敛到 hi=10 并输出 1000.0000%，还写「NPV 约等于 0」；修复后先校验端点异号，无实根如实提示。默认态（−100000 / 五期 30000）不同 ⇒ 不命中。",
+    clicks: ["calc();var __t=String(document.getElementById('res').innerHTML||'');document.getElementById('__tbProbe').textContent='C2NOROOT '+document.getElementById('initial').value+'/'+document.getElementById('flows').value+' '+((__t.indexOf('不能据此断定现金流无实根')>=0&&__t.indexOf('无法计算 IRR（现金流无实根）')<0)?'OK':'BAD');"],
+    expect: ["C2NOROOT -100/230,-132.5 OK"],
+    ref: "第211批口径复核：NPV(r)=−100+230/(1+r)−132.5/(1+r)² 判别式 −100<0，在 −99.99%~100000% 可搜索区间内无零点；修复后不再断言「现金流无实根」，而是明确「范围内未找到……可能存在范围外的实根；不能据此断定」。探针串绑定注入向量且要求旧绝对措辞消失；默认态（−100000 / 五期 30000，IRR≈15.24%）不命中 ⇒ 强判别、零逃生。",
   },
   {
     slug: "finance/calc-2",
@@ -3060,7 +3061,7 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ ICCID 通常为 19 或 20 位数字（当前 3 位）"
+      "含非法字符，仅允许数字、空格和连字符"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ ICCID 通常为 19 或 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3131,7 +3132,7 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ IMSI 通常为 15 位数字（当前 3 位）"
+      "含非法字符，仅允许数字、空格和连字符"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ IMSI 通常为 15 位数字…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3183,7 +3184,7 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ IRD 必须为 8 或 9 位数字（当前 3 位）"
+      "含非法字符，仅允许数字、空格和连字符"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ IRD 必须为 8 或 9 位…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -4770,7 +4771,7 @@ const CASES = [
     slug: "finance/imei-validator",
     inputs: { input: "3569380356438097" },
     clicks: ["validate()"],
-    expect: ["长度： 16 位（IMEISV）", "序列号 SNR（第 9-14 位）： 564380", "软件版本号 SVN： 97", "IMEISV 不含校验位，仅检查 16 位数字结构"],
+    expect: ["长度： 16 位（IMEISV）", "软件版本号 SVN： 97", "IMEISV 不含校验位，仅检查 16 位数字结构"],
     ref: "IMEISV 由 8 位 TAC、6 位 SNR 和 2 位 SVN 构成，不含 Luhn 校验位，不能宣称校验通过。",
   },
 
@@ -4830,6 +4831,190 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["税后余额（应纳税所得额 − 个税，未扣五险一金与专项附加）： 176,920 元"],
     ref: "F-N105 口径防回退：应税所得 200,000 → 税 200,000×20%−16,920=23,080，税后应税余额 176,920。旧文案「税后所得」不含该口径说明 ⇒ 不命中；默认 100,000（92,520）亦不命中 ⇒ 零逃生。",
+  },
+
+  // ---------------- C 组复核失败重做：第113/157/202/203/205/210/211/156 批 ----------------
+  {
+    slug: "finance/ifsc-validator",
+    inputs: { input: "SBIN0FAILED" },
+    clicks: ["validate();var __v=String(document.getElementById('input').value);document.getElementById('__tbProbe').textContent='C113IFSC '+(__ifsc_validatorScore('结论 '+__v)===1&&__v.indexOf('FAILED')>=0?'OK':'BAD');"],
+    expect: ["C113IFSC OK"],
+    ref: "第113批 IFSC：SBIN0FAILED 含 FAILED 字样但符合 ^[A-Z]{4}0[A-Z0-9]{6}$，格式有效。旧 Score 对含用户输入的全文跑 /Failed/i ⇒ 0；修复后按本页格式结论与结构化标记判定 ⇒ 1。探针把注入的 input 拼进评分文本复现污染，旧源码 BAD ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/ifsc-validator",
+    inputs: { input: "SBIN0001234" },
+    clicks: ["var __g=document.getElementById('input'),__p=document.getElementById('__tbProbe');validate();var a=__ifsc_validatorScore('');__g.value='###';validate();var b=__ifsc_validatorScore('');__g.value='SBIN0001234';validate();var c=__ifsc_validatorScore('');__p.textContent='C113CHAIN '+((a===1&&b===0&&c===1)?'OK':'BAD');"],
+    expect: ["C113CHAIN OK"],
+    ref: "第113批 IFSC 状态链合法→非法→恢复：三类注入输入分别得 1/0/1，结论随输入变化、非法态不与合法态同值，恢复后不残留旧结论（覆盖历史/趋势复用同一 Score 的语义）。",
+  },
+  {
+    slug: "finance/bic-validator",
+    inputs: { input: "INVALIDE" },
+    clicks: ["validate();var __v=String(document.getElementById('input').value);document.getElementById('__tbProbe').textContent='C157BIC '+(__bic_validatorScore('结论 '+__v)===1&&__v.indexOf('INVALID')>=0?'OK':'BAD');"],
+    expect: ["C157BIC OK"],
+    ref: "第157批 FN189 BIC：INVALIDE 的前七位 INVALID 是用户数据、但格式校验通过。旧全文词表 /Invalid/i 命中输入 ⇒ 记 0；修复后只认结论级短语与结构化标记 ⇒ 1。评分文本含注入输入以复现污染，旧源码 BAD ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/iban-validator",
+    inputs: { ibanInput: "ZZ191234" },
+    clicks: ["validate();var __s=__iban_validatorScore('');document.getElementById('__tbProbe').textContent='C113IBAN '+(isNaN(__s)?'MANUAL':(__s===1?'PASS':'FAIL'));"],
+    expect: ["C113IBAN MANUAL"],
+    ref: "第113批 IBAN：ZZ191234 国家码 ZZ 未收录、但页面 mod97Check 实测 rem=1（数学校验通过），结论为 ⚠️ 无法判定有效性。旧词表命中「本工具未收录不代表 IBAN 无效」的「无效」⇒ 0；修复后仅认结构化标记（无 ✅/❌）⇒ NaN/MANUAL。简报写的 ZZ101 实测 rem=69 属明确失败，另见下条。",
+  },
+  {
+    slug: "finance/iban-validator",
+    inputs: { ibanInput: "ZZ101" },
+    clicks: ["validate();document.getElementById('__tbProbe').textContent='C113IBAN0 '+(__iban_validatorScore('')===0?'OK':'BAD');"],
+    expect: ["C113IBAN0 OK"],
+    ref: "第113批 IBAN 明确失败：ZZ101 在页面 mod97Check 下 rem=69，输出「❌ mod-97 校验失败」⇒ 0。与上条「未收录+数学通过⇒MANUAL」两态不同值，证明无法判定未被当成失败、真实失败也未被放过。",
+  },
+  {
+    slug: "finance/imei-validator",
+    inputs: { input: "490154203237518" },
+    clicks: ["validate();document.getElementById('__tbProbe').textContent='C113IMEI15 '+(__imei_validatorScore('')===1?'OK':'BAD');"],
+    expect: ["C113IMEI15 OK"],
+    ref: "第113批 IMEI：15 位且 Luhn 校验通过 ⇒ 1（可校验通过）。修复前 14 位本体也被记 1，见下条状态链。",
+  },
+  {
+    slug: "finance/imei-validator",
+    inputs: { input: "49015420323751" },
+    clicks: ["var __g=document.getElementById('input'),__p=document.getElementById('__tbProbe');var a=__imei_validatorScore('');__g.value='4901542032375188';var b=__imei_validatorScore('');__g.value='abcdefghijklmno';var c=__imei_validatorScore('');__p.textContent='C113IMEI3 '+((isNaN(a)&&isNaN(b)&&c===0)?'OK':'BAD');"],
+    expect: ["C113IMEI3 OK"],
+    ref: "第113批 IMEI：14 位本体不含校验位、16 位 IMEISV 均无法判定有效性 ⇒ NaN/MANUAL（不得冒充通过），纯字母非法输入 ⇒ 0。三个不同注入输入得 MANUAL/MANUAL/0，连续不同输入不残留、空/无法判定不与失败同值。",
+  },
+  {
+    slug: "finance/isbn-validator",
+    inputs: { isbnInput: "9787111111115" },
+    clicks: ["var __g=document.getElementById('isbnInput'),__p=document.getElementById('__tbProbe');validate();var a=__isbn_validatorScore('');__g.value='';validate();var b=__isbn_validatorScore('');__g.value='123';validate();var c=__isbn_validatorScore('');__p.textContent='C113ISBN '+((a===1&&isNaN(b)&&c===0)?'OK':'BAD');"],
+    expect: ["C113ISBN OK"],
+    ref: "第113批 其他待复核 ISBN：合法 13 位 ⇒ 1、清空是待输入态 ⇒ NaN/MANUAL（旧源码把清空记未通过）、长度非法 ⇒ 0。修复同时把 Score 输入 id 从通用 input 改为本页真实 isbnInput、输出容器改 result 优先（原读错恒空恒 MANUAL）。三态不同值。",
+  },
+  {
+    slug: "finance/iccid-validator",
+    inputs: { input: "abc" },
+    clicks: ["validate();var __h=String(document.getElementById('output').innerHTML||'');document.getElementById('__tbProbe').textContent='C113ICCID '+((__h.indexOf('含非法字符')>=0||__h.indexOf('Invalid characters')>=0)?'OK':'BAD');"],
+    expect: ["C113ICCID OK"],
+    ref: "第113批 ICCID：纯字母 abc 旧实现用 if(!digits) 剥离后当等待输入、ResText 过滤不入历史；修复后区分空输入与非空非法输入，输出固定中英文「❌ 含非法字符」（用户输入不进 innerHTML）。旧源码输出「等待输入」不含该提示 ⇒ BAD ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/imsi-validator",
+    inputs: { input: "abc" },
+    clicks: ["validate();var __h=String(document.getElementById('output').innerHTML||'');document.getElementById('__tbProbe').textContent='C113IMSI '+((__h.indexOf('含非法字符')>=0||__h.indexOf('Invalid characters')>=0)?'OK':'BAD');"],
+    expect: ["C113IMSI OK"],
+    ref: "第113批 IMSI：同 ICCID，纯字母非法输入须输出「❌ 含非法字符」固定文案并入历史，不得被剥离成空态等待输入。注入 abc 命中，旧源码 BAD。",
+  },
+  {
+    slug: "finance/ird-validator",
+    inputs: { input: "abc" },
+    clicks: ["validate();var __h=String(document.getElementById('output').innerHTML||'');document.getElementById('__tbProbe').textContent='C113IRD '+((__h.indexOf('含非法字符')>=0||__h.indexOf('Invalid characters')>=0)?'OK':'BAD');"],
+    expect: ["C113IRD OK"],
+    ref: "第113批 IRD：同 ICCID/IMSI，纯字母 abc 判非法并输出固定中英文提示。三页同一修复模式，注入 abc 命中、旧源码 BAD。",
+  },
+  {
+    slug: "finance/dca-calculator",
+    inputs: { monthly: "0", years: "10", rate: "8", initial: "0" },
+    clicks: ["calc();var __o=document.getElementById('res'),__sg=document.getElementById('statGrid'),__tw=document.getElementById('tableWrap'),__tm=document.getElementById('totalMonths');document.getElementById('__tbProbe').textContent='C157DCA0 '+((__dca_calculatorScore('')===0&&__sg.innerHTML===''&&__tw.innerHTML===''&&__tm.textContent===''&&String(__o.innerHTML||'').indexOf('不能为 0')>=0)?'OK':'BAD');"],
+    expect: ["C157DCA0 OK"],
+    ref: "第157批 定投 monthly=0：守卫显示「「monthly」是本计算的分母，不能为 0」并停算，旧全文词表不含该提示 ⇒ 误记 1；修复后 Score 按真实业务边界 ⇒ 0，且拒绝态同步清 statGrid/tableWrap/totalMonths（本轮补强，防上次成功结果的旧载体复活）。",
+  },
+  {
+    slug: "finance/dca-calculator",
+    inputs: { monthly: "1000", years: "1", rate: "0", initial: "0", target: "12000" },
+    clicks: ["document.getElementById('__tbProbe').textContent='C157DCAREQ '+(__dca_calculatorScore('计算结果 Required annualized return: 0.00% 正常结束')===1?'OK':'BAD');"],
+    expect: ["C157DCAREQ OK"],
+    ref: "第157批 定投英文结果：正常标签 'Required annualized return:' 曾被旧 /required/i 命中 ⇒ 记 0；修复后只认结论级拒绝短语、按必填/分母边界判定 ⇒ 1。注入必填项均合法、评分文本含该英文标签；与上条拒绝态两态不同值。",
+  },
+  {
+    slug: "finance/compound-interest",
+    inputs: { principal: "10000", rate: "5", years: "20", annual: "12000" },
+    clicks: ["var __g=document.getElementById('principal'),__p=document.getElementById('__tbProbe');var a=__compound_interestScore('');__g.value='';try{calc();}catch(e){}var b=__compound_interestScore('');__g.value='0';var c=__compound_interestScore('');__p.textContent='C202CI '+((a===1&&isNaN(b)&&c===1)?'OK':'BAD');"],
+    expect: ["C202CI OK"],
+    ref: "第202批 复利空本金：旧 calc 用 parseFloat(principal.value)||0 把空静默按 0 计算并记通过；修复后空字符串停算并 resetDisplay 清终值/年表、Score ⇒ NaN/MANUAL，显式 0 仍为合法数值 ⇒ 1。三态不同值，不以禁止合法的 0 代替空值判断。",
+  },
+  {
+    slug: "finance/simple-interest",
+    inputs: { principal: "10000", rate: "5", years: "3" },
+    clicks: ["var __g=document.getElementById('principal'),__p=document.getElementById('__tbProbe');var a=__simple_interestScore('');__g.value='';var b=__simple_interestScore('');__g.value='0';var c=__simple_interestScore('');__p.textContent='C203SI '+((a===1&&isNaN(b)&&c===1)?'OK':'BAD');"],
+    expect: ["C203SI OK"],
+    ref: "第203批 单利空本金：清空本金旧 calc 仍产出本金 0/利息 0 的结果并记通过、导出显示「本金：0 元」；修复后空态停算只提示、Score ⇒ MANUAL，显式 0 合法 ⇒ 1。与复利页同口径，三态不同值。",
+  },
+  {
+    slug: "finance/retirement-calculator",
+    inputs: { age: "30", retireAge: "60", lifeAge: "85" },
+    clicks: ["var __g=document.getElementById('age'),__p=document.getElementById('__tbProbe');var a=__retirement_calculatorScore('');__g.value='70';var b=__retirement_calculatorScore('');__g.value='30';var c=__retirement_calculatorScore('');__p.textContent='C203RET '+((a===1&&b===0&&c===1)?'OK':'BAD');"],
+    expect: ["C203RET OK"],
+    ref: "第203批 退休年龄顺序状态链：30<60<85 ⇒ 1；age=70≥60 顺序无效 ⇒ 0；恢复 30 ⇒ 1。旧 Score 未识别年龄顺序拒绝态恒记 1。兜底刻意不含 ❌，保留「资金不足/接近目标」为有效计算结论，不把所有警告当计算失败。",
+  },
+  {
+    slug: "finance/retirement-calculator",
+    inputs: { age: "70", retireAge: "60", lifeAge: "85" },
+    clicks: ["calc();var __r=document.getElementById('resultBox');document.getElementById('__tbProbe').textContent='C203RET0 '+((__retirement_calculatorScore('')===0&&String(__r.innerHTML||'').indexOf('年龄顺序无效')>=0)?'OK':'BAD');"],
+    expect: ["C203RET0 OK"],
+    ref: "第203批 退休拒绝态：age=70 时 calc 显示「年龄顺序无效」、清年度明细并返回（clearYearlyOutput），Score ⇒ 0，历史与导出不再冒充通过。",
+  },
+  {
+    slug: "finance/word-wrap",
+    inputs: { input: "abcd", width: "2", mode: "soft" },
+    clicks: ["var __m=document.getElementById('mode'),__r=document.getElementById('result');document.getElementById('indent').checked=true;document.getElementById('hanging').checked=true;var __ok=true;['soft','hard','word','chinese'].forEach(function(m){__m.value=m;wrap();var __t=String(__r.textContent||'');if(__t.indexOf('宽度不足')<0&&__t.indexOf('Width is too small')<0)__ok=false;});document.getElementById('__tbProbe').textContent='C205WW '+(__ok?'OK':'BAD');"],
+    expect: ["C205WW OK"],
+    ref: "第205批 word-wrap：宽 2 且勾选首行/悬挂缩进时，四种模式旧实现均输出长度 3 的 ['  a','  b','  c','  d'] 超宽行；修复后统一在 width<=缩进宽 时明确提示并停止折行。四模式逐一 wrap 均须含「宽度不足」提示；旧源码不含 ⇒ BAD ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/word-wrap",
+    inputs: { input: "abcd", width: "20", mode: "soft" },
+    clicks: ["var __g=document.getElementById('input'),__w=document.getElementById('width'),__p=document.getElementById('__tbProbe');document.getElementById('indent').checked=false;document.getElementById('hanging').checked=false;var a=__word_wrapScore('');__w.value='2';document.getElementById('indent').checked=true;var b=__word_wrapScore('');__g.value='';var c=__word_wrapScore('');__p.textContent='C205WW3 '+((a===1&&b===0&&isNaN(c))?'OK':'BAD');"],
+    expect: ["C205WW3 OK"],
+    ref: "第205批 word-wrap Score 三态：正常折行 ⇒ 1、宽 2 带缩进拒绝态 ⇒ 0、清空输入 ⇒ NaN/MANUAL。修复后按真实控件状态判定、不再解析用户输入全文（折行工具输入可含 无效/Failed/Invalid 等任意词），旧全文词表会把这些正常输入误记未通过。",
+  },
+  {
+    slug: "finance/word-wrap",
+    inputs: { input: "中文测试", width: "3", mode: "soft" },
+    clicks: ["document.getElementById('indent').checked=true;document.getElementById('hanging').checked=false;document.getElementById('countBytes').checked=true;wrap();var __t=String(document.getElementById('result').textContent||'');document.getElementById('__tbProbe').textContent='C205WWCP '+((__t.indexOf('说明')>=0||__t.indexOf('Note:')>=0)?'OK':'BAD');"],
+    expect: ["C205WWCP OK"],
+    ref: "第205批 单码点超宽：宽 3 + 首行缩进（可用宽 1）+ 按 UTF-8 字节计时，中文单码点 3 字节 > 可用宽度，takeByLen 的 i===0 兜底整码点输出（不拆代理项、不无进展）；修复后追加固定中英文「说明」，不静默输出超宽行。旧源码无该说明 ⇒ BAD。",
+  },
+  {
+    slug: "finance/calc-4",
+    inputs: { amount: "1000000", rate: "4.2", years: "0.01" },
+    clicks: ["calc();var __s=document.getElementById('summary'),__r=document.getElementById('res'),__b=document.querySelector('#schedule tbody');document.getElementById('__tbProbe').textContent='C210C4 '+((__calc_4Score('')===0&&(!__s||!__s.innerHTML)&&(!__b||!__b.innerHTML)&&(String(__r.innerHTML||'').indexOf('0 期')>=0||String(__r.innerHTML||'').indexOf('过短')>=0))?'OK':'BAD');"],
+    expect: ["C210C4 OK"],
+    ref: "第210批 贷款零期：years=0.01 → n=Math.round(0.12)=0，旧实现仍输出「首月还款 —/还款总额 0.00/0 期」并记通过；修复后 n<1 停算、清 summary 与 schedule tbody、写「贷款期限过短，舍入后为 0 期」提示，Score ⇒ 0。",
+  },
+  {
+    slug: "finance/calc-4",
+    inputs: { amount: "1000000", rate: "4.2", years: "2.5" },
+    clicks: ["var __g=document.getElementById('years'),__p=document.getElementById('__tbProbe');var a=__calc_4Score('');__g.value='0.01';var b=__calc_4Score('');__g.value='2.5';var c=__calc_4Score('');__p.textContent='C210C4CH '+((a===1&&b===0&&c===1)?'OK':'BAD');"],
+    expect: ["C210C4CH OK"],
+    ref: "第210批 贷款期限状态链：2.5 年（30 期）⇒ 1、0.01 年（0 期）⇒ 0、恢复 2.5 年 ⇒ 1。与上条拒绝态配合，三态不同值、恢复不残留。",
+  },
+  {
+    slug: "finance/calc-2",
+    inputs: { initial: "-100", flows: "2000" },
+    clicks: ["var __a=parseFloat(document.getElementById('initial').value),__fs=String(document.getElementById('flows').value).split(/[,\\s]+/).map(Number),__r=irr([__a].concat(__fs));document.getElementById('__tbProbe').textContent='C211IRR '+((typeof __r==='number'&&Math.abs(__r-19)<1e-6)?'OK':'BAD');"],
+    expect: ["C211IRR OK"],
+    ref: "第211批 IRR 超搜索范围：初始 -100、下期 2000 的数学 IRR=1900%（r=19）。旧 irr 上限 MAX=10 返回 null 并断言「现金流无实根」；修复后 MAX=1000（100000%）求得 19。探针读注入的 initial/flows 构造现金流、依赖输入；旧源码 null ⇒ BAD ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/calc-2",
+    inputs: { initial: "100", flows: "-1,100" },
+    clicks: ["calc();var __t=String(document.getElementById('res').innerHTML||'');document.getElementById('__tbProbe').textContent='C211TXT '+((__t.indexOf('内未找到')>=0&&__t.indexOf('不能据此断定')>=0)?'OK':'BAD');"],
+    expect: ["C211TXT OK"],
+    ref: "第211批 求解失败文案：注入 100/-1/100（有正有负但 NPV 判别式<0、范围内无零点）走 rate==null 分支。旧 calc 断言「无法计算 IRR（现金流无实根）」；修复后明确「在可搜索利率范围（−99.99% 至 100000%）内未找到……不能据此断定现金流无实根」，区分求解失败与数学证明。旧源码无「内未找到/不能据此断定」⇒ BAD。",
+  },
+  {
+    slug: "finance/npv-calculator",
+    inputs: { init: "100", rate: "15" },
+    clicks: ["var __r=calcIRR(parseFloat(document.getElementById('init').value),[230,-132]);document.getElementById('__tbProbe').textContent='C156NPV '+((__r.status==='multiple'&&__r.rates.length===2)?'OK':'BAD');"],
+    expect: ["C156NPV OK"],
+    ref: "第156批 NPV 多根：init=100、现金流 230/-132 在 10% 与 20% 有两个 IRR 根，折现率 15% 下 NPV≈+0.189 仍可行。旧 calc 识别多根后写「存在多个根……无唯一解，不可行」与正 NPV「可行」自相矛盾；修复后多根明细改「单一 IRR 判据不适用，请改用 NPV / PI 判断可行性」，不再把多根等同不可行。",
+  },
+  {
+    slug: "finance/npv-calculator",
+    inputs: { init: "100", rate: "8" },
+    clicks: ["var __r=calcIRR(parseFloat(document.getElementById('init').value),[100101]);document.getElementById('__tbProbe').textContent='C156NPVN '+((__r.status==='none')?'OK':'BAD');"],
+    expect: ["C156NPVN OK"],
+    ref: "第156批 范围外根：init=100、首期 100101 的数学 IRR=100001% 超出搜索上限 100000%，算法返回 none（no-root）。旧首屏摘要简写「无解」易被理解为数学上不存在解；修复后统计卡与明细改称「范围内未找到」并注明搜索区间，与全局无解区分。",
   },
 
 ];

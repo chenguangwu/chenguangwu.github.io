@@ -230,6 +230,17 @@ function calc(){
     return;
   }
   const n = Math.round(years * 12);
+  // 第210批：小于半个月的正年限会被舍入成 0 期，不能输出「0 期 / 还款总额 0.00」的无效结论。
+  if(n < 1){
+    const __en4 = (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+    $('summary').innerHTML = '';
+    const __tb4 = $('schedule') && $('schedule').querySelector('tbody');
+    if(__tb4) __tb4.innerHTML = '';
+    $('res').innerHTML = __en4
+      ? '<p style="color:var(--danger);">⚠ Loan term too short: it rounds to 0 periods. Use at least half a month (about 0.042 years). Calculation stopped.</p>'
+      : '<p style="color:var(--danger);">⚠ 贷款期限过短，舍入后为 0 期；请至少输入半个月（约 0.042 年）以上。计算已停止。</p>';
+    return;
+  }
   const type = $('type').value;
   let totalPayment=0, totalInterest=0, firstMonth=0, lastMonth=0;
   let schedule=[];
@@ -304,10 +315,12 @@ function __calc_4FullResText(){
     return t;
 }
 function __calc_4Score(t){
+    var __fs=String(t||'');
+    if(/❌|校验失败|含非法字符|请填写「|后再计算|格式不符|长度必须|不能为 0|不能全为 0|年龄顺序无效|校验和失败|mod-97 校验失败|Luhn 校验失败|Waiting|Please enter|must be/.test(__fs)) return 0;
+    // 第210批：Math.round(years*12) 舍入后不足 1 期（如 0.01 年）属无效期限，不得记为通过。
     var a=parseFloat(document.getElementById('amount').value),r=parseFloat(document.getElementById('rate').value),y=parseFloat(document.getElementById('years').value);
-    if(!isFinite(a)||a<=0||!isFinite(r)||r<0||!isFinite(y)||y<=0) return 0;
-    var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(!isFinite(a)||a<=0||!isFinite(r)||r<0||!isFinite(y)||y<=0||y>100) return 0;
+    if(Math.round(y*12)<1) return 0;                       // 零期 → 拒绝
     return 1;
 }
 function __calc_4Time(t){

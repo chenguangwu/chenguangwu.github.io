@@ -3420,8 +3420,71 @@ const CASES = [
   expect: ["可用性历史 键数=20 末题=Y 表头=21 恢复=Y"],
   ref: "第354批：__tester_assessorSnap() 收集 8 项绩效 + 10 题 SUS 共 18 键，旧码在 Extras 与 Export 两处 keys.slice(0,12) 截掉后 6 题 ⇒ 历史只存 4 题 SUS，恢复时其余 6 题保留当前值再 calc()，SUS 分数与记录结果不符。删除截断后：rec = 18 输入 + 结果 + __tbScore = 20 键，Render 表头 = 时间 + 18 + 结论 + 结果 = 21 列，mount 恢复回调能把 sus9 回写成记录值。旧码应为 键数=14 末题=N 表头=15 恢复=N ⇒ 全失配。探针仅由 clicks 生成 ⇒ 零逃生。",
   inputs: {}
-}
+},
 
+// 第335批：格式转换器小数静默截断
+{
+  slug: "design/image-format-converter",
+  clicks: ["var P=window.__ifcReadIntProbe;var e=document.getElementById('percentScale');var bad=['1.9','1000.9','100.5','0','1001','abc','','1e2'],rb=bad.map(function(v){e.value=v;return P('percentScale',1,1000)===null?'R':'A';}).join('');var good=['1','100','1000'],rg=good.map(function(v){e.value=v;return typeof P('percentScale',1,1000)==='number'?'K':'X';}).join('');document.getElementById('__tbProbe').textContent='IFCINT '+rb+'/'+rg;"],
+  expect: ["IFCINT RRRRRRRR/KKK"],
+  ref: "D-N335 小数静默截断：旧实现 parseInt 把 1.9/1000.9 截断成 1/1000 通过。修复后 __ifcReadIntProbe(id,min,max) 仅接受 /^-?\\d+$/ 且落在 [min,max] 的有限整数。8 个非法串断言全 R、3 个合法串断言全 K；旧实现无此探针 ⇒ clicks 抛错不写探针 ⇒ 零逃生。默认态不执行 clicks、输出区不含 IFCINT 串。",
+},
+// 第324批：格式转换异步回调复活旧结果
+{
+  slug: "design/image-format-converter",
+  clicks: ["var G=window.__ifcGenProbe;var g0=G();try{invalidateResults();}catch(e){}var g1=G();var iv=String(window.invalidateResults),cv=String(window.convertAll||convertAll);var cache=iv.indexOf('state.gen++')>=0&&iv.indexOf('revokeObjectURL')>=0&&iv.indexOf('downloadAllBtn')>=0;var guard=cv.split('myGen !== state.gen').length-1>=2;document.getElementById('__tbProbe').textContent='IFCGEN '+(g1>g0?'INC':'NO')+' CACHE='+(cache?'Y':'N')+' GUARD='+(guard?'Y':'N');"],
+  expect: ["IFCGEN INC CACHE=Y GUARD=Y"],
+  ref: "D-N324 异步旧结果复活：修复后 invalidateResults() 无条件 state.gen++、撤销 object URL、清空 results/预览/下载按钮/摘要；convertAll 捕获 myGen=state.gen，BMP 与 canvas.toBlob 回调均以 myGen !== state.gen 丢弃过期结果。用例真实调 invalidateResults() 断言代次递增(INC)，以源码形态断言清缓存(revokeObjectURL/downloadAllBtn)与 toBlob/BMP 双回调守卫≥2 次(GUARD)。旧实现无 gen/守卫 ⇒ 不命中。",
+},
+// 第332批：PNG 转 SVG 异步旧结果复活
+{
+  slug: "design/png-to-svg",
+  clicks: ["var g0=__pngGen;__pngInvalidate();var g1=__pngGen;var sv=lastSVG;var gen=String((typeof __png_to_svg_f0==='function')?__png_to_svg_f0:generate);var guard=gen.split('myGen !== __pngGen').length-1>=2;var snap=String(__png_to_svgSnap).indexOf('file')>=0;document.getElementById('__tbProbe').textContent='PNGGEN '+(g1===g0+1?'INC':'NO')+' CLEAR='+(sv===''?'Y':'N')+' GUARD='+(guard?'Y':'N')+' SNAP='+(snap?'Y':'N');"],
+  expect: ["PNGGEN INC CLEAR=Y GUARD=Y SNAP=Y"],
+  ref: "D-N332 PNG 转 SVG 异步旧结果复活：修复后新增 __pngGen，__pngInvalidate() 递增代次并清 lastSVG/svgCode/preview；generate 的 FileReader.onload 与 Image.onload 双层均以 myGen !== __pngGen 丢弃过期回调，快照跳过 type=file。注意 generate 被历史包装器(__png_to_svgExtras)重新赋值，故守卫判别取原始函数 __png_to_svg_f0。断言代次+1(INC)、缓存清空(CLEAR)、双层守卫(GUARD)、快照 file 跳过(SNAP)。旧实现无 __pngGen/__pngInvalidate ⇒ clicks 抛错 ⇒ 零逃生。",
+},
+// 第311批：头像生成器历史回放闭环
+{
+  slug: "design/avatar-generator",
+  clicks: ["var g=String(generate),r=String(__avatar_generatorResText);var hook=g.indexOf('__avatar_generatorExtras')>=0;var sum=r.indexOf('Avatar PNG|')>=0&&r.indexOf('getElementsByTagName')>=0;var fail=r.indexOf('导出 PNG 失败')>=0;document.getElementById('__tbProbe').textContent='AVATAR '+(hook?'H':'-')+(sum?'S':'-')+(fail?'F':'-');"],
+  expect: ["AVATAR HSF"],
+  ref: "D-N43 头像历史回放未闭环：修复后历史钩子从 downloadImg 改挂 generate（正常生成即建可回放记录），ResText 在 #output 仅 <img> 致 textContent 为空时从 #preview 的 img.src 生成 'Avatar PNG|…' 稳定摘要，且导出失败提示不记历史。断言 generate 包装含 __avatar_generatorExtras(H)、ResText 含 'Avatar PNG|' 与 getElementsByTagName(S)、含失败过滤(F)。旧实现钩子挂 downloadImg、ResText 恒空 ⇒ 不命中。默认态零逃生。",
+},
+// 第311批：字符画历史回放闭环 + 异步旧图复活
+{
+  slug: "design/image-to-ascii",
+  clicks: ["var s=String(__image_to_asciiSnap),e=String(__image_to_asciiExtras),l=String(loadImage);var skip=s.indexOf('file')>=0;var img=e.indexOf('__asciiImg')>=0;var gen=l.split('myGen!==__asciiGen').length-1>=2;var rst=(typeof window!=='undefined'&&typeof window.__asciiRestore==='function');document.getElementById('__tbProbe').textContent='ASCII '+(skip?'S':'-')+(img?'I':'-')+(gen?'G':'-')+(rst?'R':'-');"],
+  expect: ["ASCII SIGR"],
+  ref: "D-N43 字符画历史回放未闭环 + 异步旧图复活：修复后 __image_to_asciiSnap() 跳过 type=file input、__image_to_asciiExtras() 保存 __asciiImg(≤64KB) 并纳入去重、loadImage 的 FileReader/Image 双层以 myGen!==__asciiGen 丢弃过期回调、新增 window.__asciiRestore 供回放恢复旧图。断言快照跳 file(S)、图片入历史(I)、双层守卫(G)、Restore 存在(R)。旧实现缺 __asciiImg/__asciiGen/__asciiRestore ⇒ 不命中。",
+},
+// 第315批：图案历史类型恢复
+{
+  slug: "design/pattern-generator",
+  clicks: ["var s=String(__pattern_generatorSnap),r=String(__pattern_generatorRender);var snap=s.indexOf('__patternType')>=0;var rec=r.indexOf('__patternType')>=0&&r.indexOf('currentType=')>=0&&r.indexOf('classList.toggle')>=0&&r.indexOf('generate()')>=0;var wl=r.indexOf('triangles|hex|chevron|circles|diamonds|cross')>=0;document.getElementById('__tbProbe').textContent='PATTERN '+(snap?'S':'-')+(rec?'R':'-')+(wl?'W':'-');"],
+  expect: ["PATTERN SRW"],
+  ref: "D-N315 图案历史类型未恢复：修复后 __pattern_generatorSnap() 保存 __patternType=currentType，__pattern_generatorRender() 回放识别该键、白名单校验后恢复 currentType 并同步 .pattern-btn.active，末尾按恢复类型 generate() 重绘。断言快照存类型(S)、回放含 __patternType/currentType=/classList.toggle/generate()(R)、含类型白名单(W)。旧实现不存/不恢复类型 ⇒ 不命中。",
+},
+// 第319批：Base64 非法 MIME ResText 为空（沿用 3044 风格）
+{
+  slug: "design/base64-to-image",
+  clicks: ["var e=document.getElementById('b64Input');e.value='data:text/html;base64,PHNjcmlwdD4=';var r1=__base64_to_imageResText();e.value='not@@base64!!';var r2=__base64_to_imageResText();e.value='data:;base64,AAAA';var r3=__base64_to_imageResText();document.getElementById('__tbProbe').textContent='B64BAD '+(r1===''?'E':'X')+(r2===''?'E':'X')+(r3===''?'E':'X');"],
+  expect: ["B64BAD EEE"],
+  ref: "D-N319 Base64 无效图片仍记录历史：修复后 __base64_to_imageResText() 对非法 data MIME(非 image/)、无魔数纯 Base64、空 MIME 一律返回空串，不再默认 image/png；既有 3044 用例 RES:Base64:image/webp| 的合法路径不受影响。对 data:text/html / 乱码 / data:;base64,AAAA 三种非法输入断言 ResText 全空(E)。旧实现默认 image/png 返回非空 ⇒ 不命中。默认态不执行 clicks ⇒ 零逃生。",
+},
+// 第319批：MIME 白名单 + DOM API 插图 + 代次守卫 + 下载拦截
+{
+  slug: "design/base64-to-image",
+  clicks: ["var s=String(generate),d=String(downloadImg),k=String(__b64CurrentOK);var mime=s.indexOf('__B64_MIME_OK')>=0;var dom=s.indexOf('createElement(')>=0&&s.indexOf('appendChild')>=0&&s.indexOf('im.src')>=0;var gen=s.split('myGen !== __b64Gen').length-1>=2;var ok=d.indexOf('__b64CurrentOK')>=0&&k.indexOf('__b64ValidInput')>=0;document.getElementById('__tbProbe').textContent='B64SAFE '+(mime?'M':'-')+(dom?'D':'-')+(gen?'G':'-')+(ok?'K':'-');"],
+  expect: ["B64SAFE MDGK"],
+  ref: "D-N319 Base64 无效图片仍记录历史（入口收口）：修复后 generate() 用 __B64_MIME_OK 校验 data MIME 与纯 Base64 字符集，成功解码后以 createElement('img')+appendChild+im.src 插图（用户输入永不进 innerHTML）、myGen !== __b64Gen 双层守卫 + 输入一致性校验后才记历史；downloadImg/copyResult 经 __b64CurrentOK() 拦截输入变更后的旧图下载/复制。断言白名单(M)、DOM 插图(D)、代次守卫(G)、下载拦截(K)。旧实现无白名单/守卫/拦截 ⇒ 不命中。",
+},
+// 第333批：像素画绘制及时记录历史
+{
+  slug: "design/pixel-art-generator",
+  clicks: ["var px=(typeof window!=='undefined'&&window._px)||null;var d=String(px),e=String(__pixel_art_generatorExtras),r=String(__pixel_art_generatorRender);var draw=d.indexOf('__pixel_art_generatorExtras(true)')>=0&&d.indexOf('setTimeout')>=0;var ext=e.indexOf('force')>=0&&e.indexOf('__pxGrid')>=0;var ren=r.indexOf('__pxGrid')>=0&&r.indexOf('JSON.parse')>=0;document.getElementById('__tbProbe').textContent='PIXEL '+(draw?'D':'-')+(ext?'E':'-')+(ren?'R':'-');"],
+  expect: ["PIXEL DER"],
+  ref: "D-N333 像素画绘制未及时记录历史：修复后 _px() 绘制后防抖 600ms 调 __pixel_art_generatorExtras(true)，Extras 支持 force 绕过 1 秒节流并把 __pxGrid 纳入去重，Render 回放 JSON.parse(rec.__pxGrid) 重建画布与字符画。断言绘制调 Extras(true)+setTimeout(D)、Extras 含 force 与 __pxGrid(E)、Render 含 __pxGrid 与 JSON.parse(R)。旧实现 _px 不记历史、无网格去重/回放 ⇒ 不命中。",
+},
 ];
 
 // ---------------------------------------------------------------- main

@@ -314,9 +314,21 @@ function __ifsc_validatorFullResText(){
     return t;
 }
 function __ifsc_validatorScore(t){
-    var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+    var __fs=String(t||'');
+    // 兼容第42–44批复核用例（失败/必填结论可能位于 80 字摘要之后）：只认结论级短语，
+    // 不认用户输入里的 Failed/Invalid/无效 或正常结果标签 required（第113/157批误判源）。
+    if(/❌|校验失败|含非法字符|请填写「|后再计算|格式不符|长度必须|不能为 0|不能全为 0|年龄顺序无效|校验和失败|mod-97 校验失败|Luhn 校验失败|Waiting|Please enter|must be/.test(__fs)) return 0;
+    // 第113批：按本页真实格式校验结论判定，不解析含用户输入的全文关键词。
+    // 旧版对全文跑 /Failed|Invalid|无效|…/i，输入 SBIN0FAILED 里的 FAILED 会把「格式有效」误记为未通过。
+    // 结论标记（✅/❌ 与 success/danger 色）由 validate() 生成，用户数据不带这些标记。
+    var inp=document.getElementById('input');
+    var raw=inp?String(inp.value||'').trim():'';
+    if(!raw) return NaN;                                   // 空输入：无结论（MANUAL），不冒充通过/失败
+    var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('resultBox');
+    var h=out?String(out.innerHTML||''):'';
+    if(/color:var\(--danger\)|❌/.test(h)) return 0;      // 页面明确判失败
+    if(/color:var\(--success\)|✅/.test(h)) return 1;     // 页面明确判通过
+    return NaN;                                           // 中性/无法判定：不误记为失败
 }
 function __ifsc_validatorTime(t){
     var d=new Date(t);

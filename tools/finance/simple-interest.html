@@ -297,7 +297,14 @@ function fmt(n){
 }
 
 function calc(){
-  const P = parseFloat(document.getElementById('principal').value) || 0;
+  // 第203批：本金区分「未填写」与显式输入的合法 0。空态只提示、不产生 0 本金结论，
+  // 清结果区避免旧结果复活；显式输入 0 仍照常计算。
+  const __pRaw = String(document.getElementById('principal').value==null?'':document.getElementById('principal').value).trim();
+  if(__pRaw===''){
+    document.getElementById('resultBox').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter data":"请输入数据");
+    return;
+  }
+  const P = parseFloat(__pRaw);
   const r = parseFloat(document.getElementById('rate').value) || 0;
   const t = parseFloat(document.getElementById('years').value) || 0;
   const mode = document.getElementById('mode').value;
@@ -404,9 +411,18 @@ function __simple_interestFullResText(){
     return t;
 }
 function __simple_interestScore(t){
-    var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+    var __fs=String(t||'');
+    if(/❌|校验失败|含非法字符|请填写「|后再计算|格式不符|长度必须|不能为 0|不能全为 0|年龄顺序无效|校验和失败|mod-97 校验失败|Luhn 校验失败|Waiting|Please enter|must be/.test(__fs)) return 0;
+    // 第203批：区分「未填写」与显式输入的合法 0。空本金只提示、不算结论，历史与导出不得冒充成功。
+    var pEl=document.getElementById('principal');
+    var pRaw=pEl?String(pEl.value==null?'':pEl.value).trim():'';
+    if(pRaw==='') return NaN;                              // 空 → 无结论（MANUAL）
+    var P=parseFloat(pRaw);
+    if(!isFinite(P)||P<0) return 0;
+    var r=parseFloat(document.getElementById('rate').value);
+    var y=parseFloat(document.getElementById('years').value);
+    if(!isFinite(r)||r<0||!isFinite(y)||y<0) return 0;    // t=0 是合法输入（与 calc 的 <0 拒绝一致）
+    return 1;                                              // 显式 0 本金合法，正常计算
 }
 function __simple_interestTime(t){
     var d=new Date(t);

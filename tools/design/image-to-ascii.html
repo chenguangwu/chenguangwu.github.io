@@ -303,6 +303,8 @@ const CHARSETS={
 };
 let charset='detailed';
 let img=null;
+var __asciiImgSrc='';   // 当前已加载图片的 data URL（供历史保存 / 恢复）
+var __asciiGen=0;       // 加载代次：换图 / 清空时自增，使在途 FileReader / Image 回调失效
 
 function setCharset(el){
   document.querySelectorAll('.charset-btn').forEach(b=>b.classList.remove('active'));
@@ -332,11 +334,16 @@ dropArea.addEventListener('drop',e=>{
 function loadImage(){
   const file=document.getElementById('fileInput').files[0];
   if(!file)return;
+  __asciiGen++;                 // 换图：旧在途任务失效
+  const myGen=__asciiGen;
   const reader=new FileReader();
   reader.onload=e=>{
+    if(myGen!==__asciiGen) return;   // 过期 FileReader 回调丢弃
     const tmp=new Image();
     tmp.onload=()=>{
+      if(myGen!==__asciiGen) return; // 过期 Image 回调丢弃（换图 / 清空后旧图不复活）
       img=tmp;
+      __asciiImgSrc=e.target.result;
       document.getElementById('preview').src=e.target.result;
       document.getElementById('preview').style.display='block';
       dropArea.classList.add('has-img');
@@ -414,7 +421,9 @@ function downloadResult(){
 }
 
 function clearAll(){
+  __asciiGen++;            // 清空：使在途加载回调失效，防旧图复活
   img=null;
+  __asciiImgSrc='';
   document.getElementById('fileInput').value='';
   document.getElementById('preview').style.display='none';
   document.getElementById('preview').src='';
@@ -422,6 +431,24 @@ function clearAll(){
   const __h1='<p>📁 点击选择图片，或拖拽图片到这里</p><p style="font-size:12px;margin-top:6px;">支持 JPG / PNG / GIF / WebP / BMP</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){dropArea.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}dropArea.innerHTML=__h1;
   document.getElementById('output').textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"ASCII art will appear after uploading an image...":"上传图片后会显示 ASCII 字符画...");
 }
+// 历史回放：有图片数据则恢复旧图后按旧参数重绘；无图片数据时按当前图重绘（可恢复边界）。
+window.__asciiRestore=function(dataUrl){
+  if(!dataUrl){ convert(); return; }
+  __asciiGen++;
+  var myGen=__asciiGen;
+  var im=new Image();
+  im.onload=()=>{
+    if(myGen!==__asciiGen) return;
+    img=im;
+    __asciiImgSrc=dataUrl;
+    var pv=document.getElementById('preview');
+    if(pv){ pv.src=dataUrl; pv.style.display='block'; }
+    dropArea.classList.add('has-img');
+    convert();
+  };
+  im.onerror=()=>{ convert(); };
+  im.src=dataUrl;
+};
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
@@ -440,7 +467,7 @@ function __image_to_asciiSnap(){
     for(var i=0;i<els.length;i++){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
-        if(t==='button'||t==='submit'||t==='hidden') continue;
+        if(t==='button'||t==='submit'||t==='hidden'||t==='file') continue;  // file input 不入快照
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
@@ -488,14 +515,20 @@ function __image_to_asciiRender(keys,rk,en){
                     if(!Object.prototype.hasOwnProperty.call(rec,__cbs[__ci].id)) __cbs[__ci].checked=false;
                 }
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='__asciiImg') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
+                    if(t==='file') continue;  // file input 不可程序赋值，跳过避免 InvalidStateError 中断回放
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                convert(); // D-N57: 恢复历史须按旧参数重绘；原 downloadResult() 会下载当前旧结果且不刷新输出
+                // D-N57: 按旧参数重绘；有图片数据则恢复旧图后重绘，否则按当前图重绘（可恢复边界）
+                if(typeof window!=='undefined' && window.__asciiRestore){
+                    window.__asciiRestore(rec.__asciiImg||'');
+                } else {
+                    convert();
+                }
             }catch(e2){}
             __image_to_ascii_skip=false;
         });
@@ -518,6 +551,12 @@ function __image_to_asciiExtras(){
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__image_to_asciiResText();
     if(!res) return;
+    if(/上传图片后会显示|ASCII art will appear/i.test(res)) return;  // 占位态不记历史
+    // 把图片内容纳入记录（≤64KB 才持久化，超出则仅恢复参数，明确可恢复边界）
+    var data={};
+    if(typeof __asciiImgSrc!=='undefined' && __asciiImgSrc && __asciiImgSrc.length<=65536){
+        data.__asciiImg=__asciiImgSrc;
+    }
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
@@ -529,11 +568,13 @@ function __image_to_asciiExtras(){
         for(var i=0;i<keys.length;i++){
             if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
         }
-        if(same&&String(last[rk])===String(res)) return;
+        if(same && String(last[rk])===String(res) && String(last.__asciiImg||'')===String(data.__asciiImg||'')) return;
     }
     __image_to_ascii_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    var dk=Object.keys(data);
+    for(var i=0;i<dk.length;i++) rec[dk[i]]=data[dk[i]];
     rec[rk]=res;
     rec.__tbScore=__image_to_asciiScore(res);
     TBKit.history.record(rec);

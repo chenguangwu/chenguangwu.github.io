@@ -238,6 +238,18 @@
 </div>
 <script>
 let lastURL = '';
+var __B64_MIME_OK = /^image\/(png|jpeg|jpg|gif|webp|bmp|svg\+xml|x-icon|vnd\.microsoft\.icon|avif|apng|tiff)$/i;
+var __b64Gen = 0;            // 解码代次：改输入 / 重新转换时自增，使在途 Image 回调失效
+var __b64ValidInput = '';    // 最近一次成功解码对应的原始输入
+var __b64ValidURL = '';      // 最近一次成功解码的 data URL
+function __b64En(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+function __b64Msg(zh,en){ return __b64En()?en:zh; }
+function __b64Invalidate(){
+  __b64Gen++;
+  lastURL = '';
+  __b64ValidInput = '';
+  __b64ValidURL = '';
+}
 function sniffMime(b64){
   try{
     const bin = atob(b64.replace(/\s+/g,'').slice(0,64));
@@ -247,25 +259,71 @@ function sniffMime(b64){
     if(bin.startsWith('RIFF') && bin.slice(8,12)==='WEBP') return 'image/webp';
     if(/^<svg|^<?xml/i.test(bin.trim())) return 'image/svg+xml';
   }catch(e){}
-  return 'image/png';
+  return '';   // 无法识别为图片：不再默认 image/png（拒绝而非静默兜底）
 }
 function generate(){
-  let b64 = document.getElementById('b64Input').value.trim();
+  const el = document.getElementById('b64Input');
+  const raw = String(el.value||'').trim();
   const preview = document.getElementById('preview');
-  if(!b64){ preview.textContent = '请粘贴 Base64 字符串'; lastURL=''; return; }
-  if(!b64.startsWith('data:')){
-    b64 = 'data:' + sniffMime(b64) + ';base64,' + b64.replace(/\s+/g,'');
+  __b64Invalidate();                 // 使在途解码失效 + 清 lastURL / 结果缓存态
+  if(!raw){ preview.textContent = __b64Msg('请粘贴 Base64 字符串','Paste a Base64 string'); return; }
+
+  let b64, mime;
+  if(/^data:/i.test(raw)){
+    // 明确拒绝非法 / 非图片 data MIME：必须是 data:<图片MIME>;... ,<payload>
+    const m=/^data:([a-z0-9.+-]+\/[a-z0-9.+-]+)(;[^,]*)?,/i.exec(raw);
+    if(!m || !__B64_MIME_OK.test(m[1])){
+      preview.textContent = __b64Msg('无效的 Base64 数据','Invalid Base64 data');
+      return;
+    }
+    mime=m[1]; b64=raw;
+  } else {
+    const clean=raw.replace(/\s+/g,'');
+    if(!clean || !/^[A-Za-z0-9+/]+={0,2}$/.test(clean)){
+      preview.textContent = __b64Msg('无效的 Base64 数据','Invalid Base64 data');
+      return;
+    }
+    mime=sniffMime(clean);
+    if(!mime || !__B64_MIME_OK.test(mime)){
+      preview.textContent = __b64Msg('无效的 Base64 数据','Invalid Base64 data');
+      return;
+    }
+    b64='data:'+mime+';base64,'+clean;
   }
+
+  if(preview.querySelector('img')) preview.textContent = '';  // 清掉上一张结果图，防旧结果残留
+  const myGen = __b64Gen;
   const img = new Image();
   img.onload = () => {
+    if(myGen !== __b64Gen) return;                       // 过期回调丢弃
+    if(String(el.value||'').trim() !== raw) return;      // 输入已变，丢弃
     lastURL = b64;
-    const __h0='<img src="'+b64+'" alt="转换结果">';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h0;
+    __b64ValidInput = raw;
+    __b64ValidURL = b64;
+    // 用户输入只作 img.src 属性赋值，绝不拼进 innerHTML
+    preview.innerHTML = '';
+    const im = document.createElement('img');
+    im.src = b64;
+    im.alt = __b64Msg('转换结果','Converted image');
+    preview.appendChild(im);
+    // 仅在图片成功解码且对应当前输入时记录有效历史
+    try{ if(typeof __base64_to_imageExtras==='function') __base64_to_imageExtras(); }catch(e){}
   };
-  img.onerror = () => { preview.textContent = '无效的 Base64 数据'; lastURL = ''; };
+  img.onerror = () => {
+    if(myGen !== __b64Gen) return;
+    lastURL = '';
+    __b64ValidInput = '';
+    __b64ValidURL = '';
+    preview.textContent = __b64Msg('无效的 Base64 数据','Invalid Base64 data');
+  };
   img.src = b64;
 }
+function __b64CurrentOK(){
+  var el=document.getElementById('b64Input');
+  return !!lastURL && !!__b64ValidInput && String(el.value||'').trim()===__b64ValidInput;
+}
 function downloadImg(){
-  if(!lastURL){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Convert first":"请先转换")); return; }
+  if(!lastURL || !__b64CurrentOK()){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Convert first":"请先转换")); return; }
   const a = document.createElement('a');
   a.href = lastURL;
   const ext = ((lastURL.split(';')[0].split('/')[1] || 'png').replace('+xml', ''));
@@ -273,7 +331,7 @@ function downloadImg(){
   a.click();
 }
 function copyResult(){
-  if(!lastURL){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Nothing to copy":"无内容可复制")); return; }
+  if(!lastURL || !__b64CurrentOK()){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Nothing to copy":"无内容可复制")); return; }
   navigator.clipboard.writeText(lastURL).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied Data URL":"已复制 Data URL")));
 }
 function toggleToolTheme(){
@@ -325,11 +383,20 @@ function __base64_to_imageResText(){
     var e=document.getElementById('b64Input');
     var raw=e?String(e.value||'').trim():'';
     if(!raw) return '';
-    var m=/^data:([^;,]+)/i.exec(raw);
-    var mime=m?m[1]:'image/png';
-    if(!/^[a-z0-9.+-]+\/[a-z0-9.+-]+$/i.test(mime)) return '';
+    var mime='';
+    if(/^data:/i.test(raw)){
+        // 明确拒绝无法匹配 MIME 的 data: 输入（不再默认 image/png）与非图片 MIME
+        var m=/^data:([a-z0-9.+-]+\/[a-z0-9.+-]+)(;[^,]*)?,/i.exec(raw);
+        if(!m || !/^image\//i.test(m[1])) return '';
+        mime=m[1];
+    } else {
+        // 纯 Base64：仅当能识别出合法图片魔数时才给摘要
+        if(typeof sniffMime==='function') mime=sniffMime(raw.replace(/\s+/g,''));
+        if(!mime || !/^image\//i.test(mime)) return '';
+    }
     var len=raw.replace(/\s+/g,'').length;
-    return ('Base64:'+mime+'|'+len+'字符').slice(0,80);
+    var en=false; try{ en=(typeof TBKit!=='undefined'&&TBKit.util.isEn()); }catch(e2){}
+    return ('Base64:'+mime+'|'+len+(en?' chars':'字符')).slice(0,80);
 }
 function __base64_to_imageScore(t){
     var s=String(t||'');
@@ -426,10 +493,8 @@ function __base64_to_imageExport(){
 function __base64_to_imagePresets(){
     if (typeof TBKit === 'undefined') return;
 }
-var __base64_to_image_f0=(typeof generate==='function')?generate:null;
-if(__base64_to_image_f0){
-    generate=function(){ var __r=__base64_to_image_f0.apply(null,arguments); try{ __base64_to_imageExtras(); }catch(e){} return __r; };
-}
+// 历史记录改由 generate() 内 img.onload「解码成功且对应当前输入」后触发；
+// generate 同步返回时不再记录，避免无效输入 / 解码失败进入历史。
 function __base64_to_imageBoot(){ try{ __base64_to_imagePresets(); }catch(e){} try{ if(typeof generate==='function') generate(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __base64_to_imageBoot();
 else document.addEventListener('DOMContentLoaded', __base64_to_imageBoot);
