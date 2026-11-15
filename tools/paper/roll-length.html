@@ -265,8 +265,12 @@ function calcLen() {
 
 function calcDia() {
   var L = parseFloat(document.getElementById('targetLen').value) || 0;
-  var d = parseFloat(document.getElementById('coreDia2').value) || 0;
+  var d = parseFloat(document.getElementById('coreDia2').value);
   var t = parseFloat(document.getElementById('paperThk2').value) || 0;
+  if (!isFinite(d) || d < 0) {
+    ToolBox.setResult('diaResult', '<p style="color:var(--danger);">纸芯内径需为 ≥0 的数值</p>');
+    return;
+  }
   if (t <= 0 || L <= 0) {
     ToolBox.setResult('diaResult', '<p style="color:var(--danger);">长度和厚度需大于 0</p>');
     return;
@@ -288,13 +292,21 @@ function copyResult() {
     var D = parseFloat(document.getElementById('outerDia').value) || 0;
     var d = parseFloat(document.getElementById('coreDia').value) || 0;
     var t = parseFloat(document.getElementById('paperThk').value) || 0;
-    var L = t > 0 ? (Math.PI * (D*D - d*d) / (4 * t) / 1000).toFixed(2) : '0';
+    if (!(t > 0) || !(D > d) || d < 0) {
+      ToolBox.showToast('请检查输入：厚度需>0，外径需>纸芯内径', 'warning');
+      return;
+    }
+    var L = (Math.PI * (D*D - d*d) / (4 * t) / 1000).toFixed(2);
     text = '纸卷长度: ' + L + ' m (外径' + D + 'mm, 纸芯' + d + 'mm, 厚度' + t + 'mm)';
   } else {
     var L2 = parseFloat(document.getElementById('targetLen').value) || 0;
-    var d2 = parseFloat(document.getElementById('coreDia2').value) || 0;
+    var d2 = parseFloat(document.getElementById('coreDia2').value);
     var t2 = parseFloat(document.getElementById('paperThk2').value) || 0;
-    var D2 = t2 > 0 ? Math.sqrt((4 * t2 * L2 * 1000) / Math.PI + d2 * d2).toFixed(1) : '0';
+    if (!(t2 > 0) || !(L2 > 0) || !isFinite(d2) || d2 < 0) {
+      ToolBox.showToast('请检查输入：长度与厚度需>0，纸芯内径需≥0', 'warning');
+      return;
+    }
+    var D2 = Math.sqrt((4 * t2 * L2 * 1000) / Math.PI + d2 * d2).toFixed(1);
     text = '纸卷外径: ' + D2 + ' mm (长度' + L2 + 'm, 纸芯' + d2 + 'mm, 厚度' + t2 + 'mm)';
   }
   ToolBox.copyText(text, i18nText('msg600'));

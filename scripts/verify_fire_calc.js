@@ -143,6 +143,12 @@ const CASES = [
     "3/8"
   ],
   "ref": "updateStats() 把 currentStep + '/' + currentScenario.steps.length 写进 #progress；默认态（currentStep=0、currentScenario=null）不渲染该串。currentScenario 必须先显式赋 scenarios[0]，否则 updateStats() 里 null.steps 抛错。6 个场景步数不等，故只锚分母确定的 scenarios[0]（办公楼火灾，8 步）→「3/8」，规避 Math.random 选景偶发失败（旧锚「火灾」是 6 个场景名的公共子串，属默认态必命中的弱判别，已弃；旧锚「拨打119报警」仅 5/6 场景含）。"
+},
+{
+  "slug": "fire/hydrant-pressure",
+  "inputs": { "ld": "-25" },
+  "expect": ["请检查输入：长度、压力与流量需 ≥0，管径与管材系数需 >0。"],
+  "ref": "12-K7：负水带长度旧实现令 Hd 为负、总压力 39.34 m 低于默认 41.47 m 且无提示；现在拒绝。默认 ld=25 合法不出现该文案。"
 }
 ];
 async function main() {
