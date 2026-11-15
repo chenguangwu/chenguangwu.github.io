@@ -251,9 +251,13 @@ function pct(n){
   return n.toFixed(2)+'%';
 }
 
-function val(id){ return parseFloat(document.getElementById(id).value)||0; }
+function val(id){ var e=document.getElementById(id); if(!e) return NaN; var s=String(e.value==null?'':e.value).trim(); if(s==='') return NaN; var v=parseFloat(s); return isFinite(v)?v:NaN; }
+function div(a,b){ return (isFinite(a)&&isFinite(b)&&b>0)?a/b:NaN; }
+function fmtR(x,d){ return isFinite(x)?x.toFixed(d):'—'; }
+function pctV(x){ return isFinite(x)?pct(x*100):'—'; }
 
 function grade(ratio, goodMin, warnMin, higherBetter){
+  if(!isFinite(ratio)) return {cls:'na',label:'N/A'};
   if(higherBetter!==false){
     if(ratio>=goodMin) return {cls:'good',label:'良好'};
     if(ratio>=warnMin) return {cls:'warn',label:'一般'};
@@ -266,77 +270,81 @@ function grade(ratio, goodMin, warnMin, higherBetter){
 }
 
 function ratioCard(name,value,unit,desc,g,barPct,color){
+  var tagCls = g.cls==='good'?'grade-excellent':(g.cls==='bad'?'grade-fail':'grade-pass');
   return '<div class="ratio-card">'+
-    '<div class="r-head"><span class="r-name">'+name+'</span><span class="r-val '+g.cls+'">'+value+unit+' <span style="font-size:12px;" class="grade-tag '+(g.cls==='good'?'grade-excellent':g.cls==='warn'?'grade-pass':'grade-fail')+'">'+g.label+'</span></span></div>'+
+    '<div class="r-head"><span class="r-name">'+name+'</span><span class="r-val '+g.cls+'">'+value+unit+' <span style="font-size:12px;" class="grade-tag '+tagCls+'">'+g.label+'</span></span></div>'+
     '<div class="r-desc">'+desc+'</div>'+
-    '<div class="r-bar"><div class="r-fill" style="width:'+Math.min(barPct,100)+'%;background:'+color+';"></div></div>'+
+    '<div class="r-bar"><div class="r-fill" style="width:'+Math.min(isFinite(barPct)?barPct:0,100)+'%;background:'+color+';"></div></div>'+
   '</div>';
 }
+
+var __raLast=null;   // 最近一次计算的同一份结果，供复制报告复用（T-N12）
 
 function calc(){
   var ca=val('curAssets'), inv=val('inventory'), cl=val('curLiab');
   var ta=val('totalAssets'), tl=val('totalLiab'), eq=val('equity');
   var rev=val('revenue'), cogs=val('cogs'), np=val('netProfit');
 
-  var current=cl>0?ca/cl:0;
-  var quick=cl>0?(ca-inv)/cl:0;
-  var debt=ta>0?tl/ta:0;
-  var equityMult=eq>0?ta/eq:0;
-  var debtToEquity=eq>0?tl/eq:0;
+  var current=div(ca,cl);
+  var quick=div(ca-inv,cl);
+  var debt=div(tl,ta);
+  var equityMult=div(ta,eq);
+  var debtToEquity=div(tl,eq);
 
-  var inventoryTurn=inv>0?cogs/inv:0;
-  var inventoryDays=inventoryTurn>0?365/inventoryTurn:0;
-  var assetTurn=ta>0?rev/ta:0;
+  var inventoryTurn=div(cogs,inv);
+  var inventoryDays=(isFinite(inventoryTurn)&&inventoryTurn>0)?365/inventoryTurn:NaN;
+  var assetTurn=div(rev,ta);
 
-  var grossMargin=rev>0?(rev-cogs)/rev:0;
-  var netMargin=rev>0?np/rev:0;
-  var roa=ta>0?np/ta:0;
-  var roe=eq>0?np/eq:0;
+  var grossMargin=div(rev-cogs,rev);
+  var netMargin=div(np,rev);
+  var roa=div(np,ta);
+  var roe=div(np,eq);
 
   var g;
   var solHtml='';
   g=grade(current,2,1.5,true);
-  solHtml+=ratioCard('流动比率',current.toFixed(2),': 1','流动资产/流动负债，衡量短期偿债能力，一般认为2:1较稳健',g,current/3*100,'#FF6B35');
+  solHtml+=ratioCard('流动比率',fmtR(current,2),isFinite(current)?': 1':'','流动资产/流动负债，衡量短期偿债能力，一般认为2:1较稳健',g,isFinite(current)?current/3*100:0,'#FF6B35');
   g=grade(quick,1,0.8,true);
-  solHtml+=ratioCard('速动比率',quick.toFixed(2),': 1','(流动资产-存货)/流动负债，剔除存货后的短期偿债能力，1:1为宜',g,quick/2*100,'#7C3AED');
+  solHtml+=ratioCard('速动比率',fmtR(quick,2),isFinite(quick)?': 1':'','(流动资产-存货)/流动负债，剔除存货后的短期偿债能力，1:1为宜',g,isFinite(quick)?quick/2*100:0,'#7C3AED');
   g=grade(debt,0.5,0.7,false);
-  solHtml+=ratioCard('资产负债率',pct(debt*100),'','总负债/总资产，衡量长期偿债能力与财务风险，50%以下较稳健',g,debt*100,'#00C9A7');
+  solHtml+=ratioCard('资产负债率',pctV(debt),'','总负债/总资产，衡量长期偿债能力与财务风险，50%以下较稳健',g,isFinite(debt)?debt*100:0,'#00C9A7');
   g=grade(equityMult,1.5,2.5,false);
-  solHtml+=ratioCard('权益乘数',equityMult.toFixed(2),'倍','总资产/股东权益，反映财务杠杆程度，越高杠杆越大',g,equityMult/4*100,'#F59E0B');
+  solHtml+=ratioCard('权益乘数',fmtR(equityMult,2),isFinite(equityMult)?'倍':'','总资产/股东权益，反映财务杠杆程度，越高杠杆越大',g,isFinite(equityMult)?equityMult/4*100:0,'#F59E0B');
   g=grade(debtToEquity,1,1.5,false);
-  solHtml+=ratioCard('产权比率',debtToEquity.toFixed(2),'倍','总负债/股东权益，衡量负债与权益的结构比例，1:1 以下较稳健',g,debtToEquity/2*100,'#3B82F6');
+  solHtml+=ratioCard('产权比率',fmtR(debtToEquity,2),isFinite(debtToEquity)?'倍':'','总负债/股东权益，衡量负债与权益的结构比例，1:1 以下较稳健',g,isFinite(debtToEquity)?debtToEquity/2*100:0,'#3B82F6');
   const __g1=solHtml;document.getElementById('solvency').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
   var opHtml='';
   g=grade(inventoryTurn,4,2,true);
-  opHtml+=ratioCard('存货周转率',inventoryTurn.toFixed(2),'次','营业成本/平均存货，反映存货变现速度，越高越好',g,inventoryTurn/8*100,'#FF6B35');
+  opHtml+=ratioCard('存货周转率',fmtR(inventoryTurn,2),isFinite(inventoryTurn)?'次':'','营业成本/平均存货，反映存货变现速度，越高越好',g,isFinite(inventoryTurn)?inventoryTurn/8*100:0,'#FF6B35');
   g=grade(inventoryDays,90,120,false);
-  opHtml+=ratioCard('存货周转天数',inventoryDays.toFixed(0),'天','365/存货周转率，存货从入库到售出平均天数',g,100-inventoryDays/180*50+50,'#7C3AED');
+  opHtml+=ratioCard('存货周转天数',fmtR(inventoryDays,0),isFinite(inventoryDays)?'天':'','365/存货周转率，存货从入库到售出平均天数',g,isFinite(inventoryDays)?100-inventoryDays/180*50+50:0,'#7C3AED');
   g=grade(assetTurn,0.8,0.5,true);
-  opHtml+=ratioCard('总资产周转率',assetTurn.toFixed(2),'次','营业收入/总资产，反映资产利用效率',g,assetTurn/2*100,'#00C9A7');
+  opHtml+=ratioCard('总资产周转率',fmtR(assetTurn,2),isFinite(assetTurn)?'次':'','营业收入/总资产，反映资产利用效率',g,isFinite(assetTurn)?assetTurn/2*100:0,'#00C9A7');
   const __g2=opHtml;document.getElementById('operational').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
   var profHtml='';
   g=grade(grossMargin,0.4,0.25,true);
-  profHtml+=ratioCard('毛利率',pct(grossMargin*100),'','(营收-成本)/营收，反映产品基础盈利能力',g,grossMargin*100,'#FF6B35');
+  profHtml+=ratioCard('毛利率',pctV(grossMargin),'','(营收-成本)/营收，反映产品基础盈利能力',g,isFinite(grossMargin)?grossMargin*100:0,'#FF6B35');
   g=grade(netMargin,0.15,0.08,true);
-  profHtml+=ratioCard('净利率',pct(netMargin*100),'','净利润/营业收入，反映最终盈利水平',g,netMargin*100,'#7C3AED');
+  profHtml+=ratioCard('净利率',pctV(netMargin),'','净利润/营业收入，反映最终盈利水平',g,isFinite(netMargin)?netMargin*100:0,'#7C3AED');
   g=grade(roa,0.1,0.05,true);
-  profHtml+=ratioCard('总资产收益率(ROA)',pct(roa*100),'','净利润/总资产，反映资产整体盈利能力',g,roa*100,'#00C9A7');
+  profHtml+=ratioCard('总资产收益率(ROA)',pctV(roa),'','净利润/总资产，反映资产整体盈利能力',g,isFinite(roa)?roa*100:0,'#00C9A7');
   g=grade(roe,0.15,0.1,true);
-  profHtml+=ratioCard('净资产收益率(ROE)',pct(roe*100),'','净利润/股东权益，反映股东投资回报率',g,roe*100,'#F59E0B');
+  profHtml+=ratioCard('净资产收益率(ROE)',pctV(roe),'','净利润/股东权益，反映股东投资回报率',g,isFinite(roe)?roe*100:0,'#F59E0B');
   const __g3=profHtml;document.getElementById('profitability').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
-  var score=0;
-  if(current>=2) score+=2; else if(current>=1.5) score+=1;
-  if(quick>=1) score+=2; else if(quick>=0.8) score+=1;
-  if(debt<=0.5) score+=2; else if(debt<=0.7) score+=1;
-  if(netMargin>=0.15) score+=2; else if(netMargin>=0.08) score+=1;
-  if(roe>=0.15) score+=2; else if(roe>=0.1) score+=1;
-  var overall=score>=8?'财务状况良好':score>=5?'财务状况一般，需关注部分指标':'财务状况偏弱，建议改善';
-  var overallCls=score>=8?'good':score>=5?'warn':'bad';
+  var score=0, validN=0;
+  if(isFinite(current)){ validN++; if(current>=2) score+=2; else if(current>=1.5) score+=1; }
+  if(isFinite(quick)){ validN++; if(quick>=1) score+=2; else if(quick>=0.8) score+=1; }
+  if(isFinite(debt)){ validN++; if(debt<=0.5) score+=2; else if(debt<=0.7) score+=1; }
+  if(isFinite(netMargin)){ validN++; if(netMargin>=0.15) score+=2; else if(netMargin>=0.08) score+=1; }
+  if(isFinite(roe)){ validN++; if(roe>=0.15) score+=2; else if(roe>=0.1) score+=1; }
+  var overall=validN<3?'有效指标不足，无法综合评价':(score>=8?'财务状况良好':score>=5?'财务状况一般，需关注部分指标':'财务状况偏弱，建议改善');
+  var overallCls=validN<3?'warn':(score>=8?'good':score>=5?'warn':'bad');
   const __g4='<p>综合评价：<strong class="'+overallCls+'" style="font-size:16px;">'+overall+'</strong></p>'+
-    '<p style="font-size:12px;color:var(--text-muted);">综合得分：'+score+' / 10（基于流动比率、速动比率、资产负债率、净利率、ROE）</p>';document.getElementById('summary').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+    '<p style="font-size:12px;color:var(--text-muted);">综合得分：'+score+' / '+(validN*2)+'（有效指标 '+validN+' / 5 项；N/A 表示分母缺失或为 0，不参与评分）</p>';document.getElementById('summary').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  __raLast={current:current,quick:quick,debt:debt,netMargin:netMargin,roe:roe,validN:validN,score:score};
 }
 
 function loadDemo(){
@@ -345,13 +353,21 @@ function loadDemo(){
   calc();
 }
 
-function copyReport(){
+function reportText(){
+  if(!__raLast || __raLast.validN<1) return '';
+  var R=__raLast;
   var txt='财务比率分析报告\n';
-  txt+='流动比率: '+(val('curAssets')/(val('curLiab')||1)).toFixed(2)+'\n';
-  txt+='速动比率: '+((val('curAssets')-val('inventory'))/(val('curLiab')||1)).toFixed(2)+'\n';
-  txt+='资产负债率: '+(val('totalLiab')/(val('totalAssets')||1)*100).toFixed(2)+'%\n';
-  txt+='净利率: '+(val('netProfit')/(val('revenue')||1)*100).toFixed(2)+'%\n';
-  txt+='ROE: '+(val('netProfit')/(val('equity')||1)*100).toFixed(2)+'%';
+  txt+='流动比率: '+(isFinite(R.current)?R.current.toFixed(2):'N/A（流动负债缺失或为 0）')+'\n';
+  txt+='速动比率: '+(isFinite(R.quick)?R.quick.toFixed(2):'N/A（流动负债缺失或为 0）')+'\n';
+  txt+='资产负债率: '+(isFinite(R.debt)?(R.debt*100).toFixed(2)+'%':'N/A（总资产缺失或为 0）')+'\n';
+  txt+='净利率: '+(isFinite(R.netMargin)?(R.netMargin*100).toFixed(2)+'%':'N/A（营业收入缺失或为 0）')+'\n';
+  txt+='ROE: '+(isFinite(R.roe)?(R.roe*100).toFixed(2)+'%':'N/A（股东权益缺失或为 0）')+'\n';
+  txt+='综合得分: '+R.score+' / '+(R.validN*2)+'（有效指标 '+R.validN+' / 5 项）';
+  return txt;
+}
+function copyReport(){
+  var txt=reportText();
+  if(!txt){ ToolBox.copyText('请先填入至少一项有效数据并计算后再复制报告。', i18nText('msg354')); return; }
   ToolBox.copyText(txt, i18nText('msg354'));
 }
 

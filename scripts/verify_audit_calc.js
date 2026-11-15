@@ -55,6 +55,30 @@ const CASES = [
      + "评级词「良好」与「10 / 10」两态同现，亦不锚。",
   },
 {
+  "slug": "audit/ratio-analysis",
+  "clicks": [
+    "document.getElementById('curLiab').value='0';calc();var s=document.getElementById('solvency').innerHTML;document.getElementById('__tbProbe').textContent='RAZERO '+((s.indexOf('N/A')>=0&&s.indexOf('0.00: 1')===-1)?'OK':'BAD');"
+  ],
+  "expect": ["RAZERO OK"],
+  "ref": "T-N12：流动负债 0 时分母无效，流动比率/速动比率不再显示 0.00:1「偏低」，改为 — + N/A；探针读取 #solvency 动态 HTML。默认 demo 流动负债 280000，不出现 N/A。"
+},
+{
+  "slug": "audit/ratio-analysis",
+  "clicks": [
+    "['curAssets','inventory','curLiab','totalAssets','totalLiab','equity','revenue','cogs','netProfit'].forEach(function(k){document.getElementById(k).value='';});calc();var s=document.getElementById('summary').innerHTML;document.getElementById('__tbProbe').textContent='RAEMPTY '+((s.indexOf('有效指标不足')>=0&&s.indexOf('N/A')>=0)?'OK':'BAD');"
+  ],
+  "expect": ["RAEMPTY OK"],
+  "ref": "T-N12：全部清空后 val() 返回 NaN，各比率不再当 0 评「良好」，综合区提示「有效指标不足，无法综合评价」并注明 N/A 不参与评分。默认 demo 五项有效，不命中。"
+},
+{
+  "slug": "audit/ratio-analysis",
+  "clicks": [
+    "document.getElementById('curLiab').value='0';calc();var t=reportText();document.getElementById('__tbProbe').textContent='RACAP '+((t.indexOf('N/A（流动负债缺失或为 0）')>=0&&t.indexOf('流动比率: 2.43')===-1)?'OK':'BAD');"
+  ],
+  "expect": ["RACAP OK"],
+  "ref": "T-N12：复制报告拆出 reportText() 并复用 calc() 的同一结果对象，流动负债 0 时输出「N/A（流动负债缺失或为 0）」，不再用 ||1 兜底成 680000.00 与页面卡片冲突。默认 demo 有流动负债，文本不含该串。"
+},
+{
   "slug": "audit/audit-sample",
   "inputs": {
     "reliance": "98",
