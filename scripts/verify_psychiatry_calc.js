@@ -315,6 +315,22 @@ const CASES = [
   "ref": "AQ-50 五十项逐项点选（FWD 项选「完全同意」j=0、其余选「稍微不同意」j=2）：FWD 24 项 + 非 FWD 26 项各得 1 分 ⇒ AQ 总分 50/50 ⇒ 落 total>31 分支「临床显著」；五个维度分卡 社交技巧/注意力转换/注意细节/沟通/想象力 均 10/10（各维度均为 10 项，全得分）。默认（未作答）只渲染「已作答 0/50 项」提示，与注入态零交集。in-clicks 通道：via=click"
 },
 {
+  "slug": "psychiatry/aq-autism",
+  "clicks": [
+    "var B=__aqBands();var L=B[B.length-1]||{};var M=B[1]||{};document.getElementById('__tbProbe').textContent='AQBAND '+((L.label&&L.label.zh==='临床显著'&&L.color==='#EF4444'&&M.label&&M.label.zh==='广泛自闭症表型'&&M.color==='#F59E0B')?'OK':'BAD');"
+  ],
+  "expect": ["AQBAND OK"],
+  "ref": "M-N7：标尺原只有两段（0–26 低、26+ 广泛表型），与 __aqSev 三档（≤25 低、26–31 广泛、≥32 临床显著）不一致；现补 26–32 广泛表型橙、≥32 临床显著红。"
+},
+{
+  "slug": "psychiatry/aq-autism",
+  "clicks": [
+    "applyAqPreset('clinical');resetQuiz();var rb=document.getElementById('resultRefBar');document.getElementById('__tbProbe').textContent='AQRESET '+(rb&&rb.innerHTML===''?'OK':'BAD');"
+  ],
+  "expect": ["AQRESET OK"],
+  "ref": "M-N7：重置只清 #result 未清 #resultRefBar，标尺残留在已清空的结果下方。现 resetQuiz 同步清空标尺容器；默认页未渲染标尺，不命中。"
+},
+{
   "slug": "psychiatry/asrs-adhd",
   "clicks": [ "pick(0,4)", "pick(1,4)", "pick(2,4)", "pick(3,4)", "pick(4,4)", "pick(5,4)"],
   "expect": [
