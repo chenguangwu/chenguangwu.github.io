@@ -273,7 +273,9 @@ var subAlpha = 'ₐₑₕᵢⱼₖₗₘₙₒₚᵣₛₜᵤᵥₓ';
 var subDigits = '₀₁₂₃₄₅₆₇₈₉';
 var subSym = '₊₋₌₍₎';
 
-for(var i=0;i<26;i++) superMap[String.fromCharCode(97+i)] = superAlpha[i] || String.fromCharCode(97+i);
+// U+107A5 占两个 UTF-16 码元，必须按码点建表，否则 q 之后整体错位（BS-N77）
+var superChars = Array.from(superAlpha);
+for(var i=0;i<26;i++) superMap[String.fromCharCode(97+i)] = superChars[i] || String.fromCharCode(97+i);
 for(var i=0;i<10;i++) superMap[String(i)] = superDigits[i];
 superMap['+']='⁺'; superMap['-']='⁻'; superMap['=']='⁼'; superMap['(']='⁽'; superMap[')']='⁾';
 
@@ -325,17 +327,18 @@ function convert(){
     lastSub = toSubscript(input);
     output = '上标:\n' + lastSuper + '\n\n下标:\n' + lastSub;
   } else if(mode === 'super-all'){
+    // 单向模式只输出对应段落（BS-N78）
     lastSuper = toSuperscript(input);
     lastSub = toSubscript(input);
-    output = '上标:\n' + lastSuper + '\n\n下标:\n' + lastSub;
+    output = '上标:\n' + lastSuper;
   } else if(mode === 'sub-all'){
     lastSuper = toSuperscript(input);
     lastSub = toSubscript(input);
-    output = '上标:\n' + lastSuper + '\n\n下标:\n' + lastSub;
+    output = '下标:\n' + lastSub;
   } else if(mode === 'sub-digits'){
     lastSuper = autoDigits(input, toSuperscript, toSubscript);
     lastSub = input.replace(/\d+/g, function(m){ return toSubscript(m); });
-    output = '上标（自动数字）:\n' + lastSuper + '\n\n下标（数字转下标）:\n' + lastSub;
+    output = '下标（数字转下标）:\n' + lastSub;
   } else {
     lastSuper = toSuperscript(input);
     lastSub = toSubscript(input);

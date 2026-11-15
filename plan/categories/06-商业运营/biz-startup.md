@@ -586,7 +586,7 @@
 - 是否假工具：否（随机抽取主逻辑真实）
 - 方案：新增关键词/风格输入并参与筛选（或给每条名言打标签），否则删除相关宣传与 FAQ 表述，并把「专注」示例改为实际类别。
 
-### BS-N76 行顺序反转：仅一行且同时勾「保留首行/末行」，结果重复两遍（中，确认缺陷）
+### BS-N76 行顺序反转：仅一行且同时勾「保留首行/末行」，结果重复两遍 — 2026-11-15 已修复（574 批：单行且首末行全勾时只保留一次）
 - 页面：`tools/biz/text-reverse-lines.html`
 - 问题：`firstLine` 与 `lastLine` 在 `lines.length === 1` 时指向同一行；`toReverse = lines.slice(1, 0)` 为空，末尾先把该行 push 为首行、再 push 为末行，输出两份。
 - 证据：`tools/biz/text-reverse-lines.html:287-293`（首末行取值与切片）、`:320-327`（两次 push）。
@@ -595,7 +595,7 @@
 - 是否假工具：否
 - 方案：`if (lines.length === 1) { firstLine = lines[0]; lastLine = null; }`，或在 UI 上把两开关设为互斥。
 
-### BS-N77 上标文字：非 BMP 的 `𐞥` 使 UTF-16 索引整体错位，s–z 全错、q/r 产生孤立代理（高，确认缺陷）
+### BS-N77 上标文字：非 BMP 的 `𐞥` 使 UTF-16 索引整体错位，s–z 全错、q/r 产生孤立代理 — 2026-11-15 已修复（574 批：按码点建上标映射表）
 - 页面：`tools/biz/superscript-text.html`
 - 问题：`superAlpha` 含非 BMP 字符 `𐞥`（U+107A5，UTF-16 占 2 个码元），但建表循环按 `superAlpha[i]`（码元索引）取 26 个字母；从 `q` 起整体错位：`q`→高代理、`r`→低代理、`s`→`ʳ`、…、`z`→`ʸ`，真正的 `ᶻ` 永远取不到。
 - 证据：`tools/biz/superscript-text.html:280`（`superAlpha` 定义）、`:287`（`for(var i=0;i<26;i++) superMap[...] = superAlpha[i]`）。
@@ -604,7 +604,7 @@
 - 是否假工具：否
 - 方案：改用码点数组 `const arr=[...superAlpha]` 建表，或直接显式写 `superMap.q='𐞥'; superMap.r='ʳ'; …`；补一条 q–z 全字母校验用例。
 
-### BS-N78 上标文字：`super-all` / `sub-all` 与 `auto-all` 分支完全相同，单向模式仍输出上下两段（中，确认缺陷）
+### BS-N78 上标文字：`super-all` / `sub-all` 与 `auto-all` 分支完全相同，单向模式仍输出上下两段 — 2026-11-15 已修复（574 批：super-all/sub-all/sub-digits 只输出对应段）
 - 页面：`tools/biz/superscript-text.html`
 - 问题：公式说明写「super-all / sub-all 仅单向全量」，但三个分支都执行 `lastSuper = toSuperscript(input); lastSub = toSubscript(input)`，并输出「上标:…\n\n下标:…」；选「全文上标」照样显示下标段。
 - 证据：`tools/biz/superscript-text.html:155`（五种模式说明）、`:189-190`（选项文案）、`:334-345`（三个分支同体）。
@@ -646,7 +646,7 @@
 
 ## V 批 · 商业文本 B（2026-11-04）
 
-### BS-N81 Unicode 规范化：清空后复制按钮仍复制旧值，历史回填也不重算（中，确认缺陷）
+### BS-N81 Unicode 规范化：清空后复制按钮仍复制旧值，历史回填也不重算 — 2026-11-15 已修复（574 批：清空同步清缓存，历史回填后重算）
 - 页面：`tools/biz/unicode-normalize.html`
 - 问题：`normalize()` 遇空输入提前 `return`，未重置 `results`；`clearAll()` 只清 textarea，四个「复制」按钮仍按上次结果复制。历史回填只写 `input`，末尾调用的是无参 `copyResult()`，既不重算也不复制当前输入。
 - 证据：`tools/biz/unicode-normalize.html:300-311`（空输入提前返回）、`:313-316`（results 赋值）、`:330-333`（复制读 results）、`:339-342`（clearAll 不清 results）、`:394-408`（回填循环，`:405` 无参调用 `copyResult()`）。
@@ -654,7 +654,7 @@
 - 影响：复制内容与页面所见不一致；历史回填后结果区停留在旧值。假工具：否。
 - 方案：空输入分支同时把 `results` 四键置空；`clearAll()` 与历史回填末尾改为调用 `normalize()`。
 
-### BS-N82 Unicode 规范化：「导出明细 CSV」首次点击无任何反应（中，确认缺陷）
+### BS-N82 Unicode 规范化：「导出明细 CSV」首次点击无任何反应 — 2026-11-15 已修复（574 批：导出直接用当前四范式结果）
 - 页面：`tools/biz/unicode-normalize.html`
 - 问题：导出读 `#unicode_normalizeTable`，该表仅由 `__unicode_normalizeRender` 在历史记录后填充，而历史只在 `copyResult` 之后记录；页面初次打开表为空，`exportTable` 遇到 0 行直接 `return false`，按钮无任何提示。
 - 证据：`:166`（导出按钮）、`:448-451`（导出仅调 exportTable）、`:392`（表格由 render 填充）、`:455-458`（extras 仅挂在 copyResult）、`:217`（空表容器）；`js/tool-kit.js:221-236`（无 `tr` 即返回 false）。
@@ -662,7 +662,7 @@
 - 影响：导出在默认交互路径下是不可用状态。假工具：否（局部功能失效）。
 - 方案：导出直接输出当前 4 种范式结果（文本 + 长度），不依赖历史表；或在无数据时提示「请先复制/记录一次」。
 
-### BS-N83 按行过滤：正则非法时静默返回 0 行（中，确认缺陷）
+### BS-N83 按行过滤：正则非法时静默返回 0 行 — 2026-11-15 已修复（574 批：非法正则明确报错并中止，不受反选影响）
 - 页面：`tools/biz/text-filter-lines.html`
 - 问题：`new RegExp(kw,...)` 抛异常被 `catch` 吞掉并置 `matched=false`，无错误提示；勾选「反选结果」后同一非法正则会变成全量输出。用户无法区分「确实无匹配」与「正则写错」。
 - 证据：`tools/biz/text-filter-lines.html:347-349`（catch 内 `matched=false`）、`:353`（`invert` 反转）、`:209`（结果区默认文案）。
@@ -670,7 +670,7 @@
 - 影响：批量日志清洗会误判为「没有匹配行」。假工具：否。
 - 方案：catch 中把错误写入结果区/统计条并中止本次过滤；反选只在匹配成功时应用。
 
-### BS-N84 按行过滤：「原始 N 行」在 trim/去空之后统计（中，确认缺陷）
+### BS-N84 按行过滤：「原始 N 行」在 trim/去空之后统计 — 2026-11-15 已修复（574 批：原始行数按输入原文统计）
 - 页面：`tools/biz/text-filter-lines.html`
 - 问题：`origCount = lines.length` 取自已执行 trim 与 removeEmpty 的数组，标签仍写「原始」；默认「跳过空行」勾选时普遍少计，页内「保留 + 排除 = 总行数」的互补口径也随之不成立。
 - 证据：`:328-331`（trim/去空后才算 origCount）、`:194-197`（「原始: N 行」）、`:273-275`（互补口径声明）。

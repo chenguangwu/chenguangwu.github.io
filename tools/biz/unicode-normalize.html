@@ -287,6 +287,8 @@ var results = { nfc: '', nfd: '', nfkc: '', nfkd: '' };
 function normalize(){
   var input = document.getElementById('input').value;
   if(!input){
+    // 清空时同步清掉缓存，复制按钮不应再复制旧值（BS-N81）
+    results.nfc = ''; results.nfd = ''; results.nfkc = ''; results.nfkd = '';
     document.getElementById('nfc').textContent = '-';
     document.getElementById('nfd').textContent = '-';
     document.getElementById('nfkc').textContent = '-';
@@ -399,6 +401,7 @@ function __unicode_normalizeRender(keys,rk,en){
                     else{e.value=rec[k];}
                 }
                 copyResult();
+                normalize();
             }catch(e2){}
             __unicode_normalize_skip=false;
         });
@@ -447,10 +450,18 @@ function __unicode_normalizeExport(){
     try{
         var box=document.querySelector('#unicode_normalizeTable');
         if(!box||!box.querySelector('tr')){
-            var snap=__unicode_normalizeSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __unicode_normalizeRender(keys,en?'Result':'结果',en);
+            // 首次点击直接导出当前四种范式结果，不依赖历史表（BS-N82）
+            var en=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?true:false;
+            var names=[['nfc','NFC'],['nfd','NFD'],['nfkc','NFKC'],['nfkd','NFKD']];
+            var trs='';
+            names.forEach(function(p){
+                var txt=(document.getElementById(p[0]).textContent||'').trim();
+                if(txt===''||txt==='-') return;
+                trs+='<tr><td>'+p[1]+'</td><td>'+txt+'</td><td>'+txt.length+'</td></tr>';
+            });
+            if(trs){
+                box.innerHTML='<table><thead><tr><th>'+(en?'Form':'范式')+'</th><th>'+(en?'Result':'结果')+'</th><th>'+(en?'Length':'长度')+'</th></tr></thead><tbody>'+trs+'</tbody></table>';
+            }
         }
     }catch(e){}
     try { TBKit.util.exportTable('#unicode_normalizeTable','unicode-normalize.csv'); } catch(e){}

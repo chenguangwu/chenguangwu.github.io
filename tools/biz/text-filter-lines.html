@@ -314,14 +314,28 @@ function filter(){
   const result = document.getElementById('result');
   if(!text){ result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Please enter text...":"请输入文本..."); updateStats(0, 0); return; }
 
-  let lines = text.split('\n');
+  const normalized = text.replace(/\r\n?/g, '\n');
+  let lines = normalized.split('\n');
+  // 「原始行数」按输入原文统计，不受 trim/去空影响（BS-N84）
+  const origCount = lines.length;
   if(document.getElementById('trimEach').checked) lines = lines.map(l => l.trim());
   if(document.getElementById('removeEmpty').checked) lines = lines.filter(l => l !== '');
-  const origCount = lines.length;
 
   const kw = document.getElementById('keyword').value;
   const ci = document.getElementById('caseInsensitive').checked;
   const invert = document.getElementById('invert').checked;
+
+  // 非法正则直接提示并中止，不再静默返回 0 行（BS-N83）
+  let rx = null;
+  if(currentMode === 'regex'){
+    try{
+      rx = new RegExp(kw, ci ? 'i' : '');
+    }catch(e){
+      result.textContent = '⚠ 正则表达式无效：' + e.message;
+      updateStats(origCount, 0);
+      return;
+    }
+  }
 
   let out = lines.filter(line => {
     let matched = false;
@@ -333,9 +347,7 @@ function filter(){
       case 'starts': matched = target.startsWith(keyword); break;
       case 'ends': matched = target.endsWith(keyword); break;
       case 'exact': matched = target === keyword; break;
-      case 'regex':
-        try { matched = new RegExp(kw, ci ? 'i' : '').test(line); } catch(e){ matched = false; }
-        break;
+      case 'regex': matched = rx.test(line); break;
       case 'length-gt': matched = line.length > (parseInt(kw) || 0); break;
       case 'length-lt': matched = line.length < (parseInt(kw) || 0); break;
     }
