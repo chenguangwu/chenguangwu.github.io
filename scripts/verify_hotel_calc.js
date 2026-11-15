@@ -88,6 +88,18 @@ const CASES = [
   },
   "expect": ["11\nleisure\nm\n0\n17.5 建议总重量（kg） 12.6 托运行李（kg） 4.9 手提行李（kg） 11 旅行天数 出行类型： 休闲旅游 打包建议： 符合国内经济舱托运限额，建议托运 1 件 超过 10 天建议途中洗衣，避免携带过多衣物"],
   "ref": "auto-restore"
+},
+{
+  "slug": "hotel/occupancy-revpar",
+  "inputs": { "days": "0" },
+  "expect": ["统计天数需在 1–366 天之间"],
+  "ref": "12-M4：days 0 原先被 `parseInt(...)||1` 静默按 1 天计算而输入框仍显示 0；现在明确拒绝。默认天数 30 合法不出现该文案。"
+},
+{
+  "slug": "hotel/occupancy-revpar",
+  "inputs": { "revenue": "-38400" },
+  "expect": ["客房收入不能为负数"],
+  "ref": "12-M4：负收入原先仍按 OCC 80% 判「优秀」并输出 ADR ¥-400、RevPAR ¥-320；现在拒绝。默认收入为正，不出现该文案。"
 }
 ];
 async function main() {
