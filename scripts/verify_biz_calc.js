@@ -1448,13 +1448,11 @@ const CASES = [
     "ref": "原型键回归：提取英文单词并去重，去重表改 Object.create(null) 后 '__proto__' 提取出的 proto 与 constructor 都保留、重复的 proto 合并为一次；输出 'proto constructor'。默认样例（Hello This is text…）不含该串 ⇒ 强判别。"
   },
 
-];
-
 
 // ── 609 批：商业文本族 9 条确认缺陷的判别性用例 ──────────────────────
 // 口径：expect 是「或」，每条自身必须依赖注入输入且默认态不命中；
 //       探针串只在 clicks 注入执行后出现，默认态零逃生。
-CASES.push(
+
   {
     slug: "biz/text-split",
     inputs: { input: "😀😀ab", mode: "chars", size: "1" },
@@ -1506,19 +1504,89 @@ CASES.push(
   },
   {
     slug: "biz/random-script",
-    inputs: {},
+    inputs: { cnt: "7" },
     clicks: ["var s=String(pick);document.getElementById('__tbProbe').textContent='RSPICK '+(s.indexOf('Math.random()-0.5')<0&&s.indexOf('i=a.length-1')>=0&&s.indexOf('Math.floor(Math.random()*(i+1))')>=0?'OK':'BAD');"],
     expect: ["RSPICK OK"],
     ref: "BS-N112：抽取改为 Fisher–Yates 等概率洗牌，不再用 sort(()=>Math.random()-0.5) 的非均匀比较器（旧实现 10 万次抽 5/10 首位偏差达 96%）。源码形态探针只在 clicks 注入出现 ⇒ 默认态零逃生。"
   },
   {
     slug: "biz/zalgo-text",
-    inputs: {},
+    inputs: { input: "说明609" },
     clicks: ["var s=String(typeof __zalgo_text_f0==='function'?__zalgo_text_f0:generate);document.getElementById('__tbProbe').textContent='ZFLOOR '+(s.indexOf('Math.floor(upMax)')>=0&&s.indexOf('Math.floor(midMax)')>=0&&s.indexOf('Math.floor(downMax)')>=0?'OK':'BAD');"],
     expect: ["ZFLOOR OK"],
     ref: "BS-N136：公式框写「上限放大后向下取整」，三档上限须先 Math.floor 再 +1 传给 rand；旧实现传小数使轻度档可超出文档上限。源码形态探针只在 clicks 注入出现 ⇒ 默认态零逃生。"
-  }
-);
+  },
+
+
+
+// ── 610 批：注释生成器输出合法性 + 四页首屏导出重算 ──────────────────
+
+  {
+    slug: "biz/comment-generator",
+    inputs: { input: "说明609" },
+    clicks: ["currentLang='html';currentStyle='line';document.getElementById('input').value='说明';generate();var s=String(document.getElementById('result').textContent||'');document.getElementById('__tbProbe').textContent='CMHTMLLINE '+(s.indexOf('<!-- 说明 -->')>=0?'OK':'BAD:'+s);"],
+    expect: ["CMHTMLLINE OK"],
+    ref: "BS-N41：HTML 单行注释必须成对闭合；旧实现只拼 `<!-- 说明`，粘进页面会吞掉后续标签。探针只在 clicks 注入执行 ⇒ 默认态零逃生。"
+  },
+  {
+    slug: "biz/comment-generator",
+    inputs: { input: "说明609" },
+    clicks: ["currentLang='css';currentStyle='line';document.getElementById('input').value='说明';generate();var s=String(document.getElementById('result').textContent||'');document.getElementById('__tbProbe').textContent='CMCSSLINE '+(s.indexOf('/* 说明 */')>=0?'OK':'BAD:'+s);"],
+    expect: ["CMCSSLINE OK"],
+    ref: "BS-N41：CSS 单行注释必须补 `*/`；旧实现只拼 `/* 说明`，粘进样式表会让后面所有规则失效。默认态 js/line 不产生该探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/comment-generator",
+    inputs: { input: "说明609" },
+    clicks: ["currentLang='yaml';currentStyle='block';document.getElementById('input').value='说明';generate();var s=String(document.getElementById('result').textContent||'');var ls=s.split(String.fromCharCode(10));var ok=s.indexOf(' * ')<0&&ls.length>0&&ls.every(function(l){return l.indexOf('# ')===0;});document.getElementById('__tbProbe').textContent='CMYAMLBLOCK '+(ok?'OK':'BAD:'+ls.join('|'));"],
+    expect: ["CMYAMLBLOCK OK"],
+    ref: "BS-N41：YAML 没有跨行块注释，旧实现输出 `#` + ` * 说明` + `#`，中间行不是注释且解析失败；修复后每行都是 `# 说明`。默认态 js/line 不含探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/comment-generator",
+    inputs: { input: "说明609" },
+    clicks: ["currentLang='js';currentStyle='banner';document.getElementById('input').value='说明';generate();var s=String(document.getElementById('result').textContent||'');var ls=s.split(String.fromCharCode(10));var ok=ls.length>=3&&ls.every(function(l){return l.indexOf('//')===0;});document.getElementById('__tbProbe').textContent='CMBANNER '+(ok?'OK':'BAD:'+ls.join('|'));"],
+    expect: ["CMBANNER OK"],
+    ref: "BS-N41：横幅顶/底边线旧为裸 `====`，粘进 JS 直接语法错误；修复后每行都以 `//` 开头。默认态 js/line 不含探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/comment-generator",
+    inputs: { input: "说明609" },
+    clicks: ["currentLang='html';currentStyle='frame';document.getElementById('input').value='说明';generate();var s=String(document.getElementById('result').textContent||'');var ls=s.split(String.fromCharCode(10));var ok=ls.length>=3&&ls.every(function(l){return l.indexOf('<!--')===0&&l.indexOf('-->')>0;});document.getElementById('__tbProbe').textContent='CMHTMLFRAME '+(ok?'OK':'BAD:'+ls.join('|'));"],
+    expect: ["CMHTMLFRAME OK"],
+    ref: "BS-N41：边框旧用 `(<!-- ).repeat(n)` 拼出嵌套未闭合的 `<!--` 串；修复后每行都是完整 `<!-- … -->` 注释。默认态 js/line 不含探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/random-script",
+    inputs: { cnt: "7" },
+    clicks: ["var s=String(__random_scriptBoot);document.getElementById('__tbProbe').textContent='RSBOOT '+(s.indexOf('gen();')>=0?'OK':'BAD');"],
+    expect: ["RSBOOT OK"],
+    ref: "BS-N126：boot 原先只注册预设，首屏结果由包装前的 gen() 直接产生、从未进历史表与明细 CSV ⇒ 直接点导出是空表。修复后 boot 再调一次包装版 gen() 触发 extras。探针只在 clicks 注入出现 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/text-pad",
+    inputs: { input: "说明609" },
+    clicks: ["var s=String(__text_padBoot);document.getElementById('__tbProbe').textContent='TPBOOT '+(s.indexOf('pad();')>=0?'OK':'BAD');"],
+    expect: ["TPBOOT OK"],
+    ref: "BS-N126：text-pad 首屏导出空表，boot 补一次包装版 pad()。探针只在 clicks 注入出现 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/text-indent",
+    inputs: { input: "说明609" },
+    clicks: ["var s=String(__text_indentBoot);document.getElementById('__tbProbe').textContent='TIBOOT '+(s.indexOf('indent();')>=0?'OK':'BAD');"],
+    expect: ["TIBOOT OK"],
+    ref: "BS-N126：text-indent 首屏导出空表，boot 补一次包装版 indent()。探针只在 clicks 注入出现 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/text-repeat",
+    inputs: { input: "说明609" },
+    clicks: ["var s=String(__text_repeatBoot);document.getElementById('__tbProbe').textContent='TRBOOT '+(s.indexOf('repeat();')>=0?'OK':'BAD');"],
+    expect: ["TRBOOT OK"],
+    ref: "BS-N126：text-repeat 首屏导出空表，boot 补一次包装版 repeat()。探针只在 clicks 注入出现 ⇒ 零逃生。"
+  },
+
+];
+
 
 // ---------------------------------------------------------------- main
 async function main() {

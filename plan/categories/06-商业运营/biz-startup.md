@@ -105,13 +105,6 @@
 
 ## T 批 商业文本工具覆盖（2026-11-04）
 
-### BS-N41 注释生成器：HTML/CSS 单行注释不闭合、横幅边框不是注释、YAML 块注释非法（中，确认缺陷）
-- 问题：① `line` 配置对 html 是 `<!--`、css 是 `/*`，单行模式只拼 `前缀 + 内容`，永不补 `-->` / `*/`；② banner 顶/底边线是裸 `=` 串；③ 非 html/python/ruby 的块注释统一加 `' * '`，YAML 的注释符是 `#`，混入 ` * ` 行即非法。
-- 证据：`tools/biz/comment-generator.html:324-325`（html/css 的 `line`）、`:358-359`（line 分支不闭合）、`:376-385`（banner 的 `sep = '='.repeat(...)`）、`:329` + `:365-367`（YAML `#` 却走 ` * ` 分支）。
-- 复现：HTML 选「单行注释」输入「说明」→ 生成 `<!-- 说明`（无 `-->`）；CSS 同理 `/* 说明`（无 `*/`），粘进样式表会吞掉后续规则；JS 选「横幅注释」→ `===================\n//  说明  //\n===================`（node 复算），首尾行是裸 `====` 语法错误；YAML 选「块注释」→ `#\n * 说明\n#`，中间行不构成注释。
-- 影响：生成结果直接复制即破坏目标文件（CSS 整段失效、JS 语法报错、YAML 解析失败），属于"生成器输出不可用"。
-- 方案：单行模式按语言给出成对包裹（`<!-- … -->`、`/* … */`）；banner 边线改用 `(cfg.line+' ').repeat(n)` 或行内 `//`/`#` 包裹；块注释分支按语言白名单（html/python/ruby/bash/yaml 各自单独处理），YAML 统一走 `#` 行注释。
-
 ### T 批覆盖清单（8 页）
 - `tools/biz/text-replace-advanced.html`：**未发现 XSS**：替换结果走 `textContent`，匹配列表的 `match/groups` 已 `escapeHtml`。另记（未单列，低）：非正则模式下替换串仍按 `$&`/`$$` 解释，替换"原文含 `$&`"会变成插入整个匹配；复制按钮回调引用全局 `event`，Firefox 下无「已复制」反馈。
 - `tools/biz/text-extract-html-tags.html`：2 条（BS-N31、BS-N32，均中）。另记（未单列，低）：清空输入时只重置 `count`，`uniqueCount` 保留上一次数字；FAQ 所称「仅正文标签」过滤与简介所称「指定标签」入口均不存在。
@@ -119,7 +112,6 @@
 - `tools/biz/text-sort-advanced.html`：2 条（BS-N35、BS-N36，均中）。`random`/`reverse`/`natural` 与长度模式实算正常；`lex-zh` 不响应「忽略大小写」（低，未单列）。
 - `tools/biz/text-merge.html`：**未发现中/高**。骨架正确：`\n` 分隔符特判、`custom` 空值回退、`skipEmpty` 为显式选项。仅记低优：`prefix`/`suffix` 输入框没有 `oninput`，改后需手动点「合并」才刷新，与同页其它输入不一致；`var currentMode` 是死变量。
 - `tools/biz/text-split.html`：1 条（BS-N29 高）。`result.innerHTML` 对每段做 `escapeHtml`，未见注入；正则分隔符编译失败已 try/catch 提示。
-- `tools/biz/comment-generator.html`：1 条（BS-N41，中）。12 种语言 × 5 种样式均按配置表生成；`result.textContent` 输出，无 XSS。
 
 - 说明：本轮为**只读**审计，结论来自逐行阅读源码 + `node` 在 `/tmp` 复刻关键函数实算（脚本 `/tmp/tb_repro.js`、`/tmp/tb_repro2.js`）；**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做线上验证**，未修改任何工具页或构建产物。新增 13 条（高 1 / 中 12）。
 
@@ -379,22 +371,14 @@
 - 影响：用户按描述找不到关键词/卖点输入，也拿不到释义、可注册性提示或 slogan；搜索摘要与实际能力不一致。假工具：否（随机命名本体可用）。
 - 方案：补齐关键词/卖点输入与释义/slogan 输出，或把三处描述收敛为「按类别随机组合词库」。
 
-### BS-N126 四页「导出明细 CSV」首屏直接点击为空表、静默无文件（中，确认缺陷）
-- 页面：`tools/biz/random-script.html`、`tools/biz/text-pad.html`、`tools/biz/text-indent.html`、`tools/biz/text-repeat.html`
-- 问题：四页首屏结果都由脚本末尾直接调用计算（`gen()`/`pad()`/`indent()`/`repeat()`），而「记录历史 + 渲染 `#xxxTable`」的 extras 包装写在其后；boot 只注册预设、不重算，因此首屏结果从未进表。导出函数只 `try{ TBKit.util.exportTable(...) }catch(e){}`，而空表时 `exportTable` 返回 `false`（无任何提示）。
-- 证据：`tools/biz/random-script.html:232`、`:403`、`:392-394`、`:407`；`tools/biz/text-pad.html:364`、`:479-481`、`:468-470`、`:483`；`tools/biz/text-indent.html:420`、`:535-537`、`:524-526`、`:539`；`tools/biz/text-repeat.html:357`、`:472-474`、`:461-463`、`:476`；`js/tool-kit.js:221-235`（空表 `return false`）。
-- 复现：打开任一页（默认文本已算出并显示）→ 直接点「导出明细 CSV」→ 无文件、无 toast；先点一次「生成/填充/缩进/重复」后再导出才有内容。
-- 影响：默认路径下导出不可用，用户以为浏览器拦截下载；假工具：否。
-- 方案：boot 里在预设注册后重算一次（触发 extras），或导出时直接读取 `#result` 文本拼 CSV。
-
 ### W 批覆盖清单（8 页）
 - `tools/biz/app-name-generator.html`：1 条（BS-N109 中）+ 共享 BS-N115。词库拼接、随机源 `crypto.getRandomValues`、转义输出主体正确。
-- `tools/biz/random-script.html`：1 条（BS-N111 中）+ 共享 BS-N126。单次抽取不重复、数量 1–50 钳制正确，库容不足已有明确提示。
+- `tools/biz/random-script.html`：1 条（BS-N111 中）。单次抽取不重复、数量 1–50 钳制正确，库容不足已有明确提示。
 - `tools/biz/brand-name-generator.html`：1 条（BS-N113 高）+ 共享 BS-N115。首字母大写/全小写、短名开关逻辑正确。
 - `tools/biz/product-name-generator.html`：1 条（BS-N114 中）+ 共享 BS-N115。A+空格+B 拼接与公式一致。
-- `tools/biz/text-pad.html`：共享 BS-N126；本页独立缺陷 0 条。左右/居中填充、按字节 2 字节模型、奇数余数分配逐例复算均达标，未发现高/中优缺陷。
+- `tools/biz/text-pad.html`：本页独立缺陷 0 条。左右/居中填充、按字节 2 字节模型、奇数余数分配逐例复算均达标，未发现高/中优缺陷。
 - `tools/biz/text-indent.html`：3 条（BS-N116/117/118 中）。缩进字符切换、闭合括号开关主体正确。
-- `tools/biz/text-repeat.html`：2 条（BS-N119/120 中）+ 共享 BS-N126。正/倒序编号、`padStart` 位数、`\n` 分隔符转换正确。
+- `tools/biz/text-repeat.html`：2 条（BS-N119/120 中）。正/倒序编号、`padStart` 位数、`\n` 分隔符转换正确。
 - `tools/biz/presentation-timer.html`：5 条（BS-N121 高、BS-N122/123/124 中、BS-N125 安全）。均分余数、逐页 70%/90% 配色、历史写入主体可运行。
 
 - **本批合计 18 条：高 3（BS-N110、BS-N113、BS-N121）/ 中 14 / 安全 1（BS-N125）。假工具 0 个。**
@@ -428,14 +412,6 @@
 - 影响：长文档排版的核心承诺落空，且输出对专有名词是错的；假工具：否。
 - 方案：加专有名词/全大写缩写保留规则（或删掉「保留专有名词」文案）。
 
-### BS-N132 高级大小写：「交替 / 交替反」两张卡的示例与真实输出正好对调（中，说明与实现相反）
-- 页面：`tools/biz/text-case-advanced.html`
-- 问题：「交替」卡示例写 `hElLo`，实现初值 `up=false`，首个字母即转大写 → 实际 `HeLlO`；「交替反」示例写 `HeLlO`，实现初值 `up=true`，首字母转小写 → 实际 `hElLo`。两卡示例互为对方的输出。
-- 证据：`tools/biz/text-case-advanced.html:192`（交替示例 `hElLo`）、`:193`（交替反示例 `HeLlO`）、`:335-341`（`let up = false`）、`:343-349`（`let up = true`）。
-- 复现：输入 `hello` 点「交替」→ `HeLlO`；点「交替反」→ `hElLo`，与卡片示例相反。
-- 影响：用户按示例选模式会得到与预览不符的结果；假工具：否。
-- 方案：交换两处示例文案，或把两个模式的初值对调。
-
 ### BS-N135 颠倒文字：深解算例「oʅʅǝɥ」与实现输出「ollǝɥ」不符（中，算例错误）
 - 页面：`tools/biz/upside-down-text.html`
 - 问题：深解写「输入 hello，倒置输出 oʅʅǝɥ」，但映射表把 `l` 映射为 `l`（恒等），实际结果为 `ollǝɥ`；文档比实现多两个 `ʅ`。
@@ -447,7 +423,7 @@
 ### X 批覆盖清单（商业文本收尾 5 页）
 - `tools/biz/strawberry-text.html`：2 条（BS-N128/130 中）。复核通过项：包夹/前后/跳过空白三模式与公式一致、清空与复制接线正常。
 - `tools/biz/fancy-text.html`：1 条（BS-N127 中）。复核通过项：14 张映射表 `src/dst` 长度全部相等（`/tmp` 逐表校验，无 `undefined` 空洞）、未命中保留原字符、中文/emoji 按码点安全。
-- `tools/biz/text-case-advanced.html`：2 条（BS-N131/132 中）。复核通过项：22 个模式中 camel/pascal/snake/kebab/constant/dot/path 分词与取词正确，`sentence` 句首规则正确。
+- `tools/biz/text-case-advanced.html`：1 条（BS-N131 中）。复核通过项：22 个模式中 camel/pascal/snake/kebab/constant/dot/path 分词与取词正确，`sentence` 句首规则正确。
 - `tools/biz/upside-down-text.html`：1 条（BS-N135 中）。复核通过项：映射覆盖 a–z/A–Z/0–9/常用标点，未命中保留原字符，空格映射恒等。
 
 - **X 批合计 10 条：高 0 / 中 10 / 安全 0。假工具 0 个。**
