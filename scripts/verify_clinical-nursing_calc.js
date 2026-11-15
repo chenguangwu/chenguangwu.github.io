@@ -563,6 +563,16 @@ const CASES = [
   "ref": "W1-B 回归：年龄选择必须真正改变区间。clicks 切儿童（80–100 mmHg）后 110 mmHg 属过高；旧实现儿童 100–150 ⇒ 判「在安全范围内」，本串不命中。输入 110 非默认（150）。"
 },
 {
+  "slug": "clinical-nursing/suction-pressure",
+  "clicks": [
+    "selectAge('child',{classList:{add:function(){}}});selectAge();document.getElementById('currentPressure').value='110';checkPressure()"
+  ],
+  "expect": [
+    "过高（超过安全上限 100 mmHg）"
+  ],
+  "ref": "预设按钮走 selectAge() 无参回调：旧实现直接把 currentAge 置为 undefined 并在 btn.classList 抛错，之后任何压力输入在 ranges[undefined].min 处崩溃、结果不再刷新；修复后无参调用沿用当前类别（儿童），并靠 data-age 回填高亮。clicks 先切儿童、再模拟预设无参调用，写 110 mmHg ⇒ 必须仍落儿童上限 100 mmHg 的「过高」文案；崩溃时该文案不出现。"
+},
+{
   "slug": "clinical-nursing/surgical-position-risk",
   "clicks": [
     "selectPosition(\"lithotomy\",{classList:{add:function(){}}})"
