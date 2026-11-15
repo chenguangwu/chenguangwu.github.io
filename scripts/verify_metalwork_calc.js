@@ -232,6 +232,18 @@ const CASES = [
   },
   {
     slug: "metalwork/recorder-9",
+    clicks: ["createJob();document.getElementById('targetTemp').value='900';syncTargetTemp();document.getElementById('__tbProbe').textContent='TGT '+current.target;"],
+    expect: ["TGT 900"],
+    ref: "目标温度编辑同步：createJob 后 current.target=850，把输入改为 900 再触发 syncTargetTemp ⇒ current.target 应为 900；旧实现 oninput 只调 renderCurrent，current.target 仍 850 ⇒ 探针『TGT 850』不命中。"
+  },
+  {
+    slug: "metalwork/recorder-9",
+    clicks: ["createJob();document.getElementById('logTemp').value='';addReading();document.getElementById('__tbProbe').textContent='READ '+current.readings.length;"],
+    expect: ["READ 0"],
+    ref: "测温值空输入拒绝：清空 logTemp 后 addReading 应提示并不落记录 ⇒ readings 长度 0；旧实现一元 `+''`=0 且 `!t&&t!==0` 对 0 放行，读数为 0℃ 入表 ⇒ 探针『READ 1』不命中。"
+  },
+  {
+    slug: "metalwork/recorder-9",
     inputs: { thickness: "100" },
     expect: ["保温时间：200 分钟"],
     ref: "注入非默认(默认 thickness=50→保温时间：100 分钟)：退火保温时间随厚度线性 ⇒ 100mm→200 分钟（约 3.3 小时）。默认态 50mm→100 分钟不命中 200。页面 renderReadings/drawCurve 在 harness 下读 null 报错但输出区已含 soak 信息，expect 在 input 事件早返回命中。"

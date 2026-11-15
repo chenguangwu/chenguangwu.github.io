@@ -376,7 +376,12 @@ function onTypeChange(){
 function addComponent(){
   var t=document.getElementById('compType').value;
   var name=document.getElementById('compName').value.trim();
-  var cycle=+document.getElementById('compCycle').value||1;
+  var cycleRaw=document.getElementById('compCycle').value.trim();
+  var cycle=Number(cycleRaw);
+  var badCycle=cycleRaw===''||!isFinite(cycle)||cycle<1||Math.floor(cycle)!==cycle;
+  var elCycle=document.getElementById('compCycle');
+  if(elCycle.classList)elCycle.classList.toggle('input-error',badCycle);
+  if(badCycle){ToolBox.showToast(i18nText('周期须为 ≥1 的整数天'),'error');return;}
   var last=document.getElementById('compLast').value;
   if(!name){ToolBox.showToast(i18nText(), 'error');return;}
   if(!last){ToolBox.showToast(i18nText(), 'error');return;}
@@ -447,7 +452,7 @@ function render(){
     h+='<div class="task-item '+t.state+'">'+
       '<div class="task-icon">'+c.icon+'</div>'+
       '<div class="task-main"><div class="tn">'+ToolBox.escHtml(c.name)+'</div>'+
-      '<div class="td">'+c.type+' · 周期 '+c.cycle+'天 · 上次 '+c.last+' · 到期 '+fmtDate(t.due)+'</div></div>'+
+      '<div class="td">'+c.type+' · 周期 '+c.cycle+'天 · 上次 '+c.last+' · 到期 '+fmtDate(t.due)+((c.log&&c.log.length)?(' · 已记录 '+c.log.length+' 次维护'):'')+'</div></div>'+
       '<span class="badge '+badge+'">'+blbl+'</span>'+
       '<button class="btn" onclick="openChecklist('+t.i+')">检查清单</button>'+
       '<button class="btn success" onclick="quickDone('+t.i+')">标记完成</button>'+
@@ -474,12 +479,27 @@ function closeChecklist(){document.getElementById('checklistCard').style.display
 
 function markDone(){
   if(checklistIdx<0)return;
-  components[checklistIdx].last=todayStr();
+  var c=components[checklistIdx];
+  var done=[];
+  c.checks.forEach(function(item,idx){
+    var el=document.getElementById('chk'+idx);
+    if(el&&el.checked)done.push(item);
+  });
+  if(!done.length){ToolBox.showToast(i18nText('请至少勾选一项已完成检查'),'error');return;}
+  var note=(document.getElementById('maintNote')||{}).value||'';
+  c.log=c.log||[];
+  c.log.unshift({date:todayStr(),done:done,note:note.trim()});
+  if(c.log.length>20)c.log.length=20;
+  c.last=todayStr();
   persist();render();closeChecklist();
-  ToolBox.showToast(i18nText());
+  ToolBox.showToast(i18nText('已记录 '+done.length+' 项维护'));
 }
 function quickDone(i){
-  components[i].last=todayStr();
+  var c=components[i];
+  c.last=todayStr();
+  c.log=c.log||[];
+  c.log.unshift({date:c.last,done:[],note:i18nText('快速标记完成')});
+  if(c.log.length>20)c.log.length=20;
   persist();render();
   ToolBox.showToast(i18nText());
 }
