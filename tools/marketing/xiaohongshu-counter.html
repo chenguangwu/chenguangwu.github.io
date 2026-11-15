@@ -110,13 +110,16 @@
 <div class="formula-box">
   
   
-<div class="formula-eq">小红书字数统计：字符数 = 文本长度、行数 = 非空行数、话题数 = # 标签个数；剩余额度 = 上限 − 字符数，超出即提示。</div></div>
+<div class="formula-eq">小红书字数统计：标题与正文分别按字素簇计数（1 个 emoji 记 1 个字），标题上限 20 字、正文默认上限 1000 字；行数 = 非空行数、话题数 = # 或 ＃ 标签个数；剩余额度 = 上限 − 字符数，超出即提示。</div></div>
 
     <div data-tb="preset" data-tb-presets='[{"label":"目标上限1000","labelEn":"limit=1000","values":{"limit":"1000"}}]'></div>
-<label>输入内容</label>
+<label>标题（20 字上限）</label>
+    <input id="title" type="text" oninput="calc()" placeholder="输入笔记标题...">
+
+<label>正文</label>
     <textarea id="text" rows="12" oninput="calc()" placeholder="输入你的文案..."></textarea>
 
-    <label>目标上限</label>
+    <label>正文字数上限</label>
     <input id="limit" type="number" value="1000" min="1" oninput="calc()" placeholder="如 1000">
 
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__xiaohongshu_counterExport()">导出明细 CSV</button></div><div class="result-box" id="stats"></div> <div id="xiaohongshu_counterTable"></div> <div id="xiaohongshu_counterDiff"></div> <div id="xiaohongshu_counterChart"></div> <div id="xiaohongshu_counterHist"></div>
@@ -185,24 +188,48 @@
   </div>
 </div>
 <script>
+function graphemes(s){
+  if(typeof Intl!=='undefined'&&Intl.Segmenter){
+    try{ return Array.from(new Intl.Segmenter('zh',{granularity:'grapheme'}).segment(s)).length; }catch(e){}
+  }
+  return Array.from(s).length;
+}
 function calc() {
+  var en=false;
+  try{ en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()); }catch(e){}
+  const title = document.getElementById('title').value || '';
   const text = document.getElementById('text').value || '';
-  const lines = text.split(/\n/).filter(Boolean);
-  const chars = text.length;
+  const limitRaw = document.getElementById('limit').value.trim();
+  const limit = Number(limitRaw);
+  if (limitRaw === '' || !isFinite(limit) || limit <= 0) {
+    document.getElementById('stats').innerHTML = '<p style="color:var(--danger);font-weight:600;">' + (en ? 'Please enter a body character limit greater than 0.' : '请输入大于 0 的正文字数上限。') + '</p>';
+    return;
+  }
+  const titleChars = graphemes(title);
+  const bodyChars = graphemes(text);
+  const utf16 = text.length;
+  const lines = text.split(/\n/).filter(function (l) { return l.trim(); });
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-  const hashtags = (text.match(/#[^#\s]+/g) || []).length;
-  const limit = Number(document.getElementById('limit').value) || 1000;
-  const left = limit - chars;
-
-  const state = left >= 0 ? '正常' : '超出 ' + Math.abs(left);
-  const color = left >= 0 ? 'var(--success)' : 'var(--danger)';
+  const hashtags = (text.match(/[#＃][^#＃\s]+/g) || []).length;
+  const titleLeft = 20 - titleChars;
+  const bodyLeft = limit - bodyChars;
+  const over = [];
+  if (titleLeft < 0) over.push(en ? 'title over by ' + (-titleLeft) : '标题超出 ' + (-titleLeft) + ' 字');
+  if (bodyLeft < 0) over.push(en ? 'body over by ' + (-bodyLeft) : '正文超出 ' + (-bodyLeft) + ' 字');
+  const color = over.length ? 'var(--danger)' : 'var(--success)';
+  const state = over.length ? (en ? 'Over — ' + over.join(', ') : '超出：' + over.join('；')) : (en ? 'OK' : '正常');
+  function leftText(left) {
+    return left >= 0 ? (en ? ' (left ' + left + ')' : '（剩余 ' + left + '）') : (en ? ' (over ' + (-left) + ')' : '（超出 ' + (-left) + '）');
+  }
 
   const __g1=[
-    '<p>字符数：<strong>' + chars + '</strong> / ' + limit + '</p>',
-    '<p>行数：<strong>' + lines.length + '</strong></p>',
-    '<p>词数：<strong>' + words + '</strong></p>',
-    '<p>话题标签：<strong>' + hashtags + '</strong></p>',
-    '<p>状态：<strong style="color:' + color + '">' + state + '</strong></p>'
+    '<p>' + (en ? 'Title length: ' : '标题字数：') + '<strong>' + titleChars + '</strong> / 20' + leftText(titleLeft) + '</p>',
+    '<p>' + (en ? 'Body characters: ' : '正文字符数：') + '<strong>' + bodyChars + '</strong> / ' + limit + leftText(bodyLeft) + '</p>',
+    '<p>' + (en ? 'UTF-16 code units: ' : 'UTF-16 技术计数：') + '<strong>' + utf16 + '</strong></p>',
+    '<p>' + (en ? 'Lines: ' : '行数：') + '<strong>' + lines.length + '</strong></p>',
+    '<p>' + (en ? 'Words: ' : '词数：') + '<strong>' + words + '</strong></p>',
+    '<p>' + (en ? 'Hashtags: ' : '话题标签：') + '<strong>' + hashtags + '</strong>' + (en ? ' (# and ＃ both count)' : '（# 与 ＃ 均计入）') + '</p>',
+    '<p>' + (en ? 'Status: ' : '状态：') + '<strong style="color:' + color + '">' + state + '</strong></p>'
   ].join('');document.getElementById('stats').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -211,11 +238,14 @@ function copyTextResult() {
 }
 
 function clearAll() {
+  document.getElementById('title').value = '';
   document.getElementById('text').value = '';
   calc();
 }
 
 calc();
+window.addEventListener('toolbox:langchange',function(){try{calc();}catch(e){}});
+document.addEventListener('DOMContentLoaded',function(){try{calc();}catch(e){}});
 
 var __xiaohongshu_counter_last=0,__xiaohongshu_counter_skip=false;
 function __xiaohongshu_counterSnap(){
@@ -333,9 +363,9 @@ function __xiaohongshu_counterExport(){
 function __xiaohongshu_counterPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#xiaohongshu_counterPresets',[{label:'默认参数',labelEn:'Default',values:{'limit':'1000'}},
-  {"label":"短文案 60 字","labelEn":"Short post about 60 chars","values":{"text":"秋日穿搭分享｜三件基础款搞定通勤 look，显瘦又显高，附搭配思路～","limit":1000}},
-  {"label":"限 500 字 精简版","labelEn":"500-char limited version","values":{"text":"周末探店｜这家咖啡馆的手冲很稳，豆子新鲜，环境安静适合办公。","limit":500}},
-  {"label":"长文案 900 字","labelEn":"Long post about 900 chars","values":{"text":"秋冬护肤全流程分享｜早C晚A进阶版：早上用维C精华打底再叠加防晒，晚上用低浓度A醇配合修护面霜。第一周隔天使用建立耐受，第二周开始可以连续使用。注意事项：A醇期间避免叠加酸类，白天必须做好防晒，如出现脱皮泛红需停用并加强保湿。洁面建议用氨基酸温和型，水温不超过35度。爽肤水可以湿敷3分钟提升吸收。精华顺序为水→精华→乳→霜，油皮可省略面霜。每周一次清洁面膜，两次补水面膜。坚持8周可见毛孔细腻度提升，肤色更均匀。","limit":1000}}],function(){ calc(); });
+  {"label":"短文案 60 字","labelEn":"Short post about 60 chars","values":{"title":"秋日通勤穿搭｜三件基础款","text":"秋日穿搭分享｜三件基础款搞定通勤 look，显瘦又显高，附搭配思路～","limit":1000}},
+  {"label":"限 500 字 精简版","labelEn":"500-char limited version","values":{"title":"周末探店｜安静咖啡馆","text":"周末探店｜这家咖啡馆的手冲很稳，豆子新鲜，环境安静适合办公。","limit":500}},
+  {"label":"长文案 900 字","labelEn":"Long post about 900 chars","values":{"title":"秋冬护肤全流程｜早C晚A进阶","text":"秋冬护肤全流程分享｜早C晚A进阶版：早上用维C精华打底再叠加防晒，晚上用低浓度A醇配合修护面霜。第一周隔天使用建立耐受，第二周开始可以连续使用。注意事项：A醇期间避免叠加酸类，白天必须做好防晒，如出现脱皮泛红需停用并加强保湿。洁面建议用氨基酸温和型，水温不超过35度。爽肤水可以湿敷3分钟提升吸收。精华顺序为水→精华→乳→霜，油皮可省略面霜。每周一次清洁面膜，两次补水面膜。坚持8周可见毛孔细腻度提升，肤色更均匀。","limit":1000}}],function(){ calc(); });
 }
 var __xiaohongshu_counter_f0=(typeof calc==='function')?calc:null;
 if(__xiaohongshu_counter_f0){
@@ -364,19 +394,20 @@ else document.addEventListener('DOMContentLoaded', __xiaohongshu_counterBoot);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：小红书数据计数</h2>
+<h2>📚 深度解析：小红书文案计数</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>录入多篇笔记的赞/藏/评/粉，汇总与算均值。</li>
-<li>对比不同选题的平均互动找爆款方向。</li>
-<li>跟踪账号粉丝增长与单篇表现。</li>
+<li>发布前检查标题是否超过 20 字、正文是否接近 1000 字上限。</li>
+<li>统计正文里的<a class="term-link" href="/tools/marketing/hashtag-generator.html">话题标签</a>数量（# 与全角 ＃ 均计入），避免标签过多或漏加。</li>
+<li>含 emoji 的文案按字素簇计数，避免按 UTF-16 码元把表情算成多个字而误报超限。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">多笔记汇总</div><div class="dd-ex-body">录入 30 篇笔记：赞藏合计 45000、评论 6000、粉丝净增 8000 → 篇均互动 1700，爆款 3 篇占 30% 流量，应复盘其选题。</div></div>
-<div class="dd-example"><div class="dd-ex-title">单篇对标</div><div class="dd-ex-body">某篇赞 3000、粉 10000 → 赞粉比 30%，高于账号均值 17%，内容质量跑赢大盘。</div></div>
+<div class="dd-example"><div class="dd-ex-title">单篇文案计数</div><div class="dd-ex-body">标题「秋日通勤穿搭｜三件基础款」12 字 → 标题剩余 8 字；正文 620 字、上限 1000 → 正文剩余 380 字；正文 10 行、含 5 个话题标签，状态「正常」。把上限改成 500，同一篇正文即提示「正文超出 120 字」。</div></div>
+<div class="dd-example"><div class="dd-ex-title">emoji 按 1 个字计</div><div class="dd-ex-body">「👨‍👩‍👧‍👦」是 4 个表情用零宽连接符组合，UTF-16 长度为 11；按字素簇只计 1 个字。3 个这样的表情正文计 3 字，而 UTF-16 技术计数显示 33，两者对照可解释平台侧字数差异。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>计数能替代平台后台吗？</dt><dd>不能。本工具是手动/导出汇总辅助，以平台官方数据为准，适合做跨笔记对比。</dd>
-<dt>赞粉比有什么用？</dt><dd>粗略看内容撬动新粉效率，比值高说明内容破圈拉新强，低则说明多为老粉互动。</dd>
+<dt>计数能替代平台后台吗？</dt><dd>不能。平台编辑器有自己的字数口径，本工具按字素簇给出接近用户感知的估算，发布前仍以编辑器提示为准。</dd>
+<dt>话题标签怎么计？</dt><dd>半角 # 与全角 ＃ 都会识别，重复标签按出现次数累计；标签中间的 # 会作为分隔。</dd>
+<dt>emoji 为什么按 1 个字算？</dt><dd>一个表情可能由多个码元与零宽连接符组成，按字素簇计数更接近「肉眼看到几个字」；结果区同时保留 UTF-16 技术计数，便于排查平台差异。</dd>
 </dl>
 </div>
 </section>
