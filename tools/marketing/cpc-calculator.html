@@ -206,7 +206,7 @@
         </div>
       </div>
 
-      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__cpc_calculatorExport()">导出明细 CSV</button></div><div class="result-box">
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__cpc_calculatorExport()">导出明细 CSV</button></div><div id="convertError" style="display:none;color:var(--danger);font-size:13px;margin:0 0 8px;"></div><div class="result-box">
         <div class="calc-grid">
           <div class="calc-item"><div class="ci-label">CPC 点击成本</div><div class="ci-value" id="resCpc">¥2.00</div></div>
           <div class="calc-item"><div class="ci-label">CPM 千次展示</div><div class="ci-value" id="resCpm">¥80.00</div></div>
@@ -233,6 +233,7 @@
       </div>
       <div class="budget-channels" id="channelList"></div>
 
+      <div id="budgetError" style="display:none;color:var(--danger);font-size:13px;margin-bottom:8px;"></div>
       <div class="result-box" id="budgetResult"></div>
     </div>
 
@@ -250,6 +251,7 @@
         <div><label>毛利率（%）</label><input type="number" id="estMargin" value="40" step="0.1" oninput="calcEstimate()" placeholder="如 40"></div>
       </div>
 
+      <div id="estimateError" style="display:none;color:var(--danger);font-size:13px;margin-bottom:8px;"></div>
       <div class="estimate-card">
         <h4>📊 预期效果估算</h4>
         <div class="est-grid">
@@ -385,11 +387,37 @@ function setMode(mode){
   calcConvert();
 }
 
+function setFieldError(id, msg){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.textContent = msg || '';
+  el.style.display = msg ? 'block' : 'none';
+}
+
+function clearResultFields(ids){
+  ids.forEach(function(id){
+    const el = document.getElementById(id);
+    if(el) el.textContent = '—';
+  });
+}
+
 function calcConvert(){
-  const budget = parseFloat(document.getElementById('budget').value)||0;
-  const unitPrice = parseFloat(document.getElementById('unitPrice').value)||0;
-  const ctr = parseFloat(document.getElementById('ctr').value)||0;
-  const cvr = parseFloat(document.getElementById('cvr').value)||0;
+  const budget = parseFloat(document.getElementById('budget').value);
+  const unitPrice = parseFloat(document.getElementById('unitPrice').value);
+  const ctr = parseFloat(document.getElementById('ctr').value);
+  const cvr = parseFloat(document.getElementById('cvr').value);
+
+  const errs = [];
+  if(!isFinite(budget) || budget <= 0) errs.push('总预算须大于 0');
+  if(!isFinite(unitPrice) || unitPrice <= 0) errs.push('单价须大于 0');
+  if(!isFinite(ctr) || ctr <= 0 || ctr > 100) errs.push('CTR 须在 0–100% 之间（不含 0）');
+  if(!isFinite(cvr) || cvr <= 0 || cvr > 100) errs.push('CVR 须在 0–100% 之间（不含 0）');
+  if(errs.length){
+    setFieldError('convertError', errs.join('；'));
+    clearResultFields(['resCpc','resCpm','resCpa','resImp','resClick','resConv']);
+    return;
+  }
+  setFieldError('convertError', '');
 
   let cpc, cpm, cpa, impressions, clicks, conversions;
 
@@ -460,16 +488,35 @@ function updateChannel(i, key, val){
 }
 
 function calcBudget(){
-  const totalBudget = parseFloat(document.getElementById('totalBudget').value)||0;
+  const totalBudget = parseFloat(document.getElementById('totalBudget').value);
   const el = document.getElementById('budgetResult');
+  const errs = [];
+  if(!isFinite(totalBudget)) errs.push('总预算须为有效数字');
+  else if(totalBudget < 0) errs.push('总预算不能为负数');
+  channels.forEach(function(c, i){
+    if(!isFinite(c.ratio) || c.ratio < 0 || c.ratio > 100) errs.push('渠道' + (i+1) + '占比须在 0–100% 之间');
+    if(!isFinite(c.cpc) || c.cpc <= 0) errs.push('渠道' + (i+1) + ' CPC 须大于 0');
+    if(!isFinite(c.cvr) || c.cvr < 0 || c.cvr > 100) errs.push('渠道' + (i+1) + ' CVR 须在 0–100% 之间');
+  });
   let totalRatio = 0;
   channels.forEach(c=>totalRatio += c.ratio);
-  
-  let html = '<table><thead><tr><th>渠道</th><th>占比</th><th>预算</th><th>CPC</th><th>点击量</th><th>转化量</th><th>CPA</th></tr></thead><tbody>';
+  if(!errs.length && totalRatio <= 0) errs.push('渠道占比合计须大于 0');
+  if(errs.length){
+    setFieldError('budgetError', errs.join('；'));
+    el.innerHTML = '';
+    return;
+  }
+  setFieldError('budgetError', '');
+  const normWarn = Math.abs(totalRatio - 100) > 0.01
+    ? '<p style="color:#ff9800;font-size:13px;margin:0 0 8px;">⚠ 输入占比合计 ' + totalRatio + '%，与 100% 相差 ' + (totalRatio - 100).toFixed(1) + '%，已按比例归一；下表「占比」为归一后的实际占比。</p>'
+    : '';
+
+  let html = normWarn + '<table><thead><tr><th>渠道</th><th>占比</th><th>预算</th><th>CPC</th><th>点击量</th><th>转化量</th><th>CPA</th></tr></thead><tbody>';
   let totalClick = 0, totalConv = 0;
-  
+
   channels.forEach(c=>{
-    const budget = totalRatio>0 ? totalBudget*c.ratio/totalRatio : 0;
+    const budget = totalBudget*c.ratio/totalRatio;
+    const share = c.ratio/totalRatio*100;
     const clicks = c.cpc>0 ? budget/c.cpc : 0;
     const conv = clicks * c.cvr/100;
     const cpa = conv>0 ? budget/conv : 0;
@@ -477,7 +524,7 @@ function calcBudget(){
     totalConv += conv;
     html += `<tr>
       <td>${ToolBox.escHtml(c.name)}</td>
-      <td>${c.ratio}%</td>
+      <td>${share.toFixed(1)}%</td>
       <td>¥${ToolBox.formatNumber(budget,0)}</td>
       <td>¥${c.cpc.toFixed(2)}</td>
       <td>${ToolBox.formatNumber(Math.round(clicks),0)}</td>
@@ -485,11 +532,11 @@ function calcBudget(){
       <td>¥${cpa.toFixed(2)}</td>
     </tr>`;
   });
-  
+
   const totalCpa = totalConv>0 ? totalBudget/totalConv : 0;
   html += `<tr style="font-weight:600;background:var(--result-bg);">
     <td>合计</td>
-    <td>${totalRatio}%</td>
+    <td>100.0%</td>
     <td>¥${ToolBox.formatNumber(totalBudget,0)}</td>
     <td>-</td>
     <td>${ToolBox.formatNumber(Math.round(totalClick),0)}</td>
@@ -501,12 +548,26 @@ function calcBudget(){
 }
 
 function calcEstimate(){
-  const targetConv = parseFloat(document.getElementById('targetConv').value)||0;
-  const estCpa = parseFloat(document.getElementById('estCpa').value)||0;
-  const estCtr = parseFloat(document.getElementById('estCtr').value)||0;
-  const estCvr = parseFloat(document.getElementById('estCvr').value)||0;
-  const estPrice = parseFloat(document.getElementById('estPrice').value)||0;
-  const estMargin = parseFloat(document.getElementById('estMargin').value)||0;
+  const targetConv = parseFloat(document.getElementById('targetConv').value);
+  const estCpa = parseFloat(document.getElementById('estCpa').value);
+  const estCtr = parseFloat(document.getElementById('estCtr').value);
+  const estCvr = parseFloat(document.getElementById('estCvr').value);
+  const estPrice = parseFloat(document.getElementById('estPrice').value);
+  const estMargin = parseFloat(document.getElementById('estMargin').value);
+
+  const errs = [];
+  if(!isFinite(targetConv) || targetConv <= 0) errs.push('目标转化量须大于 0');
+  if(!isFinite(estCpa) || estCpa <= 0) errs.push('预估 CPA 须大于 0');
+  if(!isFinite(estCtr) || estCtr <= 0 || estCtr > 100) errs.push('预估 CTR 须在 0–100% 之间（不含 0）');
+  if(!isFinite(estCvr) || estCvr <= 0 || estCvr > 100) errs.push('预估 CVR 须在 0–100% 之间（不含 0）');
+  if(!isFinite(estPrice) || estPrice <= 0) errs.push('客单价须大于 0');
+  if(!isFinite(estMargin) || estMargin < 0 || estMargin > 100) errs.push('毛利率须在 0–100% 之间');
+  if(errs.length){
+    setFieldError('estimateError', errs.join('；'));
+    clearResultFields(['estBudget','estRevenue','estProfit','estImp','estClick','estRoi']);
+    return;
+  }
+  setFieldError('estimateError', '');
 
   const budget = targetConv * estCpa;
   const revenue = targetConv * estPrice;
@@ -530,6 +591,10 @@ function formatBigNum(n){
 }
 
 function saveConvertHistory(){
+  if(document.getElementById('convertError').style.display !== 'none'){
+    ToolBox.showToast('请先修正输入');
+    return;
+  }
   const data = {
     type: '费用换算',
     mode: currentMode.toUpperCase(),
@@ -541,6 +606,10 @@ function saveConvertHistory(){
 }
 
 function saveEstimateHistory(){
+  if(document.getElementById('estimateError').style.display !== 'none'){
+    ToolBox.showToast('请先修正输入');
+    return;
+  }
   const data = {
     type: '效果估算',
     mode: '预估',
