@@ -416,7 +416,8 @@
 - 影响：同页；可选字段实际为必填，功能说明与实现相反。
 - 方案：体重空值按 0 处理并隐藏「总生物量」卡片，或单独判定 `weightRaw.trim()===''` 时跳过体重校验。
 
-### 10-50 水肥配比页注肥泵比例无上限，可输出 150%–180% 的物理不可能值（中，确认缺陷）
+### 10-50 水肥配比页注肥泵比例无上限，可输出 150%–180% 的物理不可能值（已修，732 批）
+- 现状（2026-11-16 复核）：`tools/agriculture/ratio-10.html` 已在 `contribution>iv.fertEC` 时输出红色警示「母液 EC 不足…注肥泵比例将超过 100%（物理上不可能执行）」，`lastResult` 只保留目标/水源/原液 EC 与所需最小母液 EC，`return` 前不渲染任何 >100% 的卡片或复制文本。另：`fertigation-ratio.html`（另一页的 EC 配比模型）本批补了母液容积守卫——`stockWaterVolume = 母液体积 − 肥料体积` 不为正时提示「目标 EC 过高：所需肥料已超过母液体积」并阻断，避免输出负的母液加水量；门禁用例 12/0.5/200 倍。
 - 问题：`contribution=targetEC-waterEC`、`dilutionRatio=contribution/fertEC`、`injectionPct=dilutionRatio*100`（`:210-212`），只处理了 `contribution<=0`（`:216`），未校验 `contribution>fertEC`；此时注肥比例 >100%，`dilutionFactor` 变成 <1 的「倍」（`:213`），仍正常渲染（`:232-234`）。
 - 证据：`tools/agriculture/ratio-10.html:125-126,210-213,216-218,230-234`。
 - 复现：目标 EC 5.0、水源 EC 0.5、原液 EC 2.5 → 注肥泵比例 **180.00%**、稀释比例 1.8、稀释倍数 0.6 倍；目标 2.0/水源 0.5/原液 1.0 → **150.00%**、0.67 倍。
