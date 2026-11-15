@@ -21,6 +21,20 @@ const CASES = [
   "ref": "门诊记录：头低脚高位 4 + 时长>4h 4 + 消瘦(BMI<18.5) 3 + 高龄(>70) 3 + 糖尿病 2 + 水肿 2 = 18 分 ⇒ ≥10 高风险；该体位重点受压部位为肩部/背部。D-N63：时长因子改为「手术时长>4h（5h）」，阈值 4h 与实际 5h 不再混写；旧实现输出「手术时长>5h」。默认态仰卧位（1 分）、无勾选 ⇒ 评分远低于 10、分级低风险，与本用例零交集。"
 },
 {
+  "slug": "clinical-nursing/assessor-pressure-risk",
+  "inputs": {
+    "position": "3",
+    "duration": "2",
+    "bmi": "0",
+    "age": "50"
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "BMI 须在 10–60 之间"
+  ],
+  "ref": "D-N62 范围守卫：BMI 0 旧实现落 `bmi<18.5` 加 3 分并判中风险；修复后三项范围校验拦截并提示。默认 BMI 空同样拦截，但本用例注入 0 与合法时长/年龄，只命中 BMI 一条。"
+},
+{
   "slug": "clinical-nursing/assessor-rater-risk",
   "inputs": {
     "m1": "25",
