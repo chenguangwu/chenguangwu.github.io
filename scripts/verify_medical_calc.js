@@ -98,6 +98,54 @@ const CASES = [
   "ref": "D-N8 首次切换实况：240 mL/4 h/60 kg，滴系数 20 ⇒ 60.0 mL/h；切换 3%NaCl 后默认浓度 0.51 mEq/mL ⇒ 30.6 mEq/h ÷ 60 kg = 0.510 mEq/kg/h，超过 0.5 限值应判超限。旧实现 onchange 先 calc（用旧浓度 0.4）再 toggle 改浓度 ⇒ 首次算得 0.400 并误判安全；默认态 drug=none 无该速率串 ⇒ 判别力成立（注入 conc 会掩盖该缺陷，故不注入）。",
 },
 {
+  "slug": "medical/calculator-calc-infusion",
+  "inputs": {
+    "vol": "100",
+    "dur": "24",
+    "drug": "kcl",
+    "conc": "2.0",
+    "w": "60"
+  },
+  "expect": ["浓度超过外周静脉上限"],
+  "ref": "D-N9 浓度硬上限：100 mL/24 h ⇒ 4.17 mL/h × 2.0 mEq/mL = 8.33 mEq/h（≤20 旧实现判安全），但浓度 2.0 是外周上限 0.4 的 5 倍 ⇒ 须判超限并提示中心静脉/心电监护。drug 先于 conc 注入，避免 toggleDrugRow 把浓度改回默认 0.4。",
+},
+{
+  "slug": "medical/calculator-calc-infusion",
+  "inputs": {
+    "vol": "100",
+    "dur": "1",
+    "drug": "kcl",
+    "conc": "0.4",
+    "w": "20"
+  },
+  "expect": ["取较小值 ≤10.0 mEq/h"],
+  "ref": "D-N9 体重上限：100 mL/1 h ⇒ 100 mL/h × 0.4 = 40 mEq/h；20 kg 按 0.5 mEq/kg/h = 10 mEq/h，与成人 20 取较小值 ⇒ 10.0，应判超限。旧实现只比 20 ⇒ 40 > 20 也超，但 20 kg 的 10 mEq/h 门槛完全未体现；56 kg 以上时 0.5×w ≥ 20，成人口径不变。",
+},
+{
+  "slug": "medical/calculator-calc-infusion",
+  "inputs": {
+    "vol": "100",
+    "dur": "1",
+    "drug": "kcl",
+    "conc": "0.2",
+    "w": "60"
+  },
+  "expect": ["✓ 当前 KCl 输注速率 = 20.00 mEq/h"],
+  "ref": "D-N9 边界放行：100 mL/h × 0.2 mEq/mL = 20.00 mEq/h，等于成人上限、浓度 0.2 ≤0.4 ⇒ 应判安全（✓），防止把 ≤ 误写成 <。默认态 drug=none 不含该串。",
+},
+{
+  "slug": "medical/calculator-calc-infusion",
+  "inputs": {
+    "vol": "100",
+    "dur": "1",
+    "drug": "kcl",
+    "conc": "0",
+    "w": "60"
+  },
+  "expect": ["请输入有效的 KCl 浓度"],
+  "ref": "D-N9 浓度空/零守卫：conc=0 时速率恒 0 会被误判安全，须拒绝并提示输入有效浓度。",
+},
+{
   "slug": "medical/clinical-tools",
   "inputs": {
     "meld_bili": "2.0",
