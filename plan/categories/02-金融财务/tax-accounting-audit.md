@@ -46,44 +46,8 @@
 
 ## 2026-11-03 续查：抵免、折旧、现金周期与净现值
 
-### T-N1 双倍余额折旧与所声明的后两年直线法不符（高，确认源码缺陷）
-- 证据：`tools/accounting/depreciation-declining.html:177-180,224-233,381-385` 声明最后两年平均分摊，代码却仅在最后一年调整残值。原值 1000000、残值 100000、5 年时第 4/5 年分别算 86400/29600；按照页面声明，应各为 58000。
-- 影响：`tools/accounting/depreciation-declining.html`；年度折旧及利润测算与声明口径不同。
-- 方案：明确所采用的会计政策，若保留现有说明则实现后两年平均分摊；展示逐年折旧、累计金额与切换点。
-
-### T-N3 未超限时出现负的「超出限额部分」（中，确认源码缺陷）
-- 证据：`tools/tax/foreign-tax-credit.html:224-232,247-254,310-311` 已纳税 1200、限额 1500 时输出超出部分 -300，而说明称无结转。
-- 影响：`tools/tax/foreign-tax-credit.html`；负超额与税务概念矛盾，负金额也能产生负抵免。
-- 方案：验证金额非负；超额为 `max(已纳税-限额,0)`，另列未使用限额并解释适用口径。
-
-### T-N4 折旧错误输入产生负折旧或错误历史（中，确认源码缺陷）
-- 证据：`tools/accounting/depreciation-declining.html:221-233,260-266,310-337` 第 3.5 年被向下取整为第 3 年却按 3.5 年标记；原值 100、残值 200、5 年、第 1 年计算为折旧 -100；年限 0 的错误文本未被关键词过滤，局部桩显示进入历史。
-- 影响：`tools/accounting/depreciation-declining.html`；账面及历史结果可能错误，实际浏览器持久化待核验。
-- 方案：校验年限及计算年为支持范围内整数、残值不高于原值；使用显式成功状态控制历史和导出，导出逐年明细而非误称历史表为明细。
-
-### T-N5 营业周期为零时构造伪比例（中，确认源码缺陷）
-- 证据：`tools/accounting/cash-conversion-cycle.html:221-227,281-287` 用 `(DSO+DIO||1)` 作分母；DSO=0、DIO=0、DPO=30 时现金周期 -30 天本身可计算，但显示无定义的应付占营业周期比 3000%。
-- 影响：`tools/accounting/cash-conversion-cycle.html`；伪造比例误导分析。
-- 方案：分母为零时标为不可计算；区分空值并校验非负天数，允许有业务意义的负现金周期。
-
-### T-N6 净现值对无效折现率与期数仍给出结论（高，确认源码缺陷）
-- 2026-11-06 基线 `0781ef7e61` 独立 Chrome 复核：默认数据下折现率 -150% 输出 NPV -630,000、未来现金流现值 -530,000；-100% 显示 NPV `--` 但仍显示 ROI 60%；清空折现率则被当作 0%，输出 NPV 60,000。该补证不新增重复问题。
-- 证据：`tools/audit/npv-discount.html:136-160,303,308-334` 折现率 -200%、初始投资 100、第一期流入 100 时折现因子 -1、NPV -200；-100% 时分母为零而非输入错误。年金期数 0 被 `||1` 替换为 1，空利率被视为 0%。
-- 影响：`tools/audit/npv-discount.html`；非法参数输出看似可用于投资决策的数值。
-- 方案：折现率限定大于 -100%，期数为有合理上限的正整数，区分空值与零；错误阻止结果和导出，并列逐期折现与累计值。
-
-### T-N7 净现值自定义现金流和模式无法由保存机制恢复（中，确认源码路径）
-- 证据：`tools/audit/npv-discount.html:147-149,292-306,457-485` 动态现金流和模式控件无 id，持久化代码跳过无 id 控件；刷新行为未真机验证。
-- 影响：`tools/audit/npv-discount.html`；已输入的自定义方案可能丢失，无法可靠复现。
-- 方案：结构化保存模式和完整现金流数组，恢复后重算；可提供带输入与结果的本地历史及明细导出。
-
-### T-N8 净现值说明示例与实际公式不一致（低，确认数值差异）
-- 证据：`tools/audit/npv-discount.html:222,327-334` 说明示例现值 112312、NPV 12312；按页面逐期公式约为 112315.00、12315.00。
-- 影响：`tools/audit/npv-discount.html`；用户无法用内置案例精确核对结果。
-- 方案：使用同一公式与舍入规则生成示例并标注精度。
-
 ### 续查覆盖
-- 新抽查 `tools/tax/foreign-tax-credit.html`、`tools/accounting/depreciation-declining.html`、`tools/accounting/cash-conversion-cycle.html`、`tools/audit/npv-discount.html` 4 页；新增 8 条，其中 3 条高优；基于源码及数值执行，未做浏览器、线上或门禁验证。
+- 新抽查 `tools/tax/foreign-tax-credit.html`、`tools/accounting/depreciation-declining.html`、`tools/accounting/cash-conversion-cycle.html`、`tools/audit/npv-discount.html` 4 页；T-N1～T-N8 均已修复并回归。
 
 ## 2026-11-03 续查（并行批 G）
 
