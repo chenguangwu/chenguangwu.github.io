@@ -411,47 +411,47 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 
+function __drEn(){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
+function __drT(zh,en){return __drEn()?en:zh;}
+function __drNum(id){var el=document.getElementById(id);if(!el)return NaN;var s=String(el.value).trim();if(s==='')return NaN;return parseFloat(s);}
+function __drError(){
+  if(currentMode==='percent'){
+    var a=__drNum('origPrice'),b=__drNum('discountPct');
+    if(!isFinite(a)||!isFinite(b))return __drT('请填写原价与折扣率','Please fill in original price and discount rate.');
+    if(a<=0)return __drT('请输入有效数值','Please enter a valid value.');
+    if(b<0||b>100)return __drT('折扣率须在 0–100% 之间，请修正后再计算。','Discount rate must be between 0% and 100%.');
+  }else if(currentMode==='price'){
+    var a2=__drNum('origPrice2'),b2=__drNum('salePrice2');
+    if(!isFinite(a2)||!isFinite(b2))return __drT('请填写原价与折后价','Please fill in original price and sale price.');
+    if(a2<=0||b2<0)return __drT('请输入有效数值','Please enter a valid value.');
+    if(b2>a2)return __drT('折后价不能高于原价（否则折扣率为负），请核对两个价格。','Sale price cannot be higher than original price.');
+  }else{
+    var a3=__drNum('origPrice3'),b3=__drNum('saveAmount');
+    if(!isFinite(a3)||!isFinite(b3))return __drT('请填写原价与优惠金额','Please fill in original price and savings.');
+    if(a3<=0||b3<0)return __drT('请输入有效数值','Please enter a valid value.');
+    if(b3>a3)return __drT('优惠金额不能大于原价，否则折后价为负。','Savings cannot be greater than original price.');
+  }
+  return '';
+}
 function calc() {
   const r = document.getElementById('result');
+  const __err = __drError();
+  if (__err) { r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">'+__err+'</p></div>'; return; }
   let origPrice = 0, discountPct = 0, salePrice = 0, saveAmount = 0;
 
   if (currentMode === 'percent') {
-    origPrice = parseFloat(document.getElementById('origPrice').value) || 0;
-    discountPct = parseFloat(document.getElementById('discountPct').value) || 0;
-    if (origPrice <= 0) {
-      r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';
-      return;
-    }
-    if (discountPct < 0 || discountPct > 100) {
-      r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">折扣率须在 0–100% 之间，请修正后再计算。</p></div>';
-      return;
-    }
+    origPrice = __drNum('origPrice');
+    discountPct = __drNum('discountPct');
     salePrice = origPrice * (1 - discountPct / 100);
     saveAmount = origPrice - salePrice;
   } else if (currentMode === 'price') {
-    origPrice = parseFloat(document.getElementById('origPrice2').value) || 0;
-    salePrice = parseFloat(document.getElementById('salePrice2').value) || 0;
-    if (origPrice <= 0 || salePrice < 0) {
-      r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';
-      return;
-    }
-    if (salePrice > origPrice) {
-      r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">折后价不能高于原价（否则折扣率为负），请核对两个价格。</p></div>';
-      return;
-    }
+    origPrice = __drNum('origPrice2');
+    salePrice = __drNum('salePrice2');
     discountPct = origPrice > 0 ? ((1 - salePrice / origPrice) * 100) : 0;
     saveAmount = origPrice - salePrice;
   } else {
-    origPrice = parseFloat(document.getElementById('origPrice3').value) || 0;
-    saveAmount = parseFloat(document.getElementById('saveAmount').value) || 0;
-    if (origPrice <= 0 || saveAmount < 0) {
-      r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';
-      return;
-    }
-    if (saveAmount > origPrice) {
-      r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">优惠金额不能大于原价，否则折后价为负。</p></div>';
-      return;
-    }
+    origPrice = __drNum('origPrice3');
+    saveAmount = __drNum('saveAmount');
     discountPct = origPrice > 0 ? (saveAmount / origPrice) * 100 : 0;
     salePrice = origPrice - saveAmount;
   }
@@ -518,21 +518,22 @@ function calc() {
 }
 
 function saveHistory() {
+  if (__drError()) { ToolBox.showToast(i18nText(),'error'); return; }
   let origPrice = 0, discountPct = 0, salePrice = 0, saveAmount = 0;
 
   if (currentMode === 'percent') {
-    origPrice = parseFloat(document.getElementById('origPrice').value) || 0;
-    discountPct = parseFloat(document.getElementById('discountPct').value) || 0;
+    origPrice = __drNum('origPrice');
+    discountPct = __drNum('discountPct');
     salePrice = origPrice * (1 - discountPct / 100);
     saveAmount = origPrice - salePrice;
   } else if (currentMode === 'price') {
-    origPrice = parseFloat(document.getElementById('origPrice2').value) || 0;
-    salePrice = parseFloat(document.getElementById('salePrice2').value) || 0;
+    origPrice = __drNum('origPrice2');
+    salePrice = __drNum('salePrice2');
     discountPct = origPrice > 0 ? ((1 - salePrice / origPrice) * 100) : 0;
     saveAmount = origPrice - salePrice;
   } else {
-    origPrice = parseFloat(document.getElementById('origPrice3').value) || 0;
-    saveAmount = parseFloat(document.getElementById('saveAmount').value) || 0;
+    origPrice = __drNum('origPrice3');
+    saveAmount = __drNum('saveAmount');
     discountPct = origPrice > 0 ? (saveAmount / origPrice) * 100 : 0;
     salePrice = origPrice - saveAmount;
   }

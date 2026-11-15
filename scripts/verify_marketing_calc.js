@@ -1344,6 +1344,19 @@ const CASES = [
     expect: ["点赞、评论、分享、收藏与曝光量须为非负数"],
     ref: "点赞为负时旧实现总互动 −10、互动率 −0.10%；现拦截。默认点赞 1200 ⇒ 注入失败不命中。",
   }
+,
+  {
+    slug: "marketing/marketing-discount-rate",
+    inputs: { origPrice: "200", discountPct: "" },
+    expect: ["请填写原价与折扣率"],
+    ref: "折扣率清空 ⇒ 旧实现 parseFloat('')||0 按 0% 无折扣输出 200.00；现提示补录。默认 30% ⇒ 不命中。",
+  },
+  {
+    slug: "marketing/marketing-keyword-density",
+    inputs: { keyword: "a", content: "!!!" },
+    expect: ["正文不含可统计字符"],
+    ref: "正文仅标点 ⇒ 清洗后总字符 0，旧实现密度 0/0 仍给密度建议；现提示无可统计内容。默认 content 为空走另一提示 ⇒ 不命中。",
+  }
 
 ];
 

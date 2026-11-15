@@ -4,8 +4,6 @@
 
 ## 2026-11-06 公关评估和流程静态续审
 
-- `tools/pr/assessor-58.html:223-239,253-259`：合作费和曝光单位均为万，CPM 应为 `cost/expo*1000`，现乘 10000，高 10 倍；默认 5 万元/100 万次应 50 元，页面为 500 元并提示偏高。曝光为 0 时 CPM 和单粉成本都显示 0，后者虽有粉丝分母却错误依赖曝光；清空必填项只改结果文本，旧 `dataset.copyValue` 仍可被复制。
-- `tools/pr/assessor-59.html:173-185`：报道、核心报道和曝光空值按 0，无核心报道不超过总报道的校验；总报道 10、核心 20 显示占比 200%，总报道 0 时占比强行显示 0%。评分本身只用三个下拉项。
 - `tools/pr/press-conference.html:278-285,288-312,315-378,406`：`renderSteps()` 与 `render()` 都写 `flowList`，初始化及添加环节后前者的编辑表单立刻被后者覆盖，正常路径无法编辑、删除或排序环节；开始时间清空后又按 14:00 排程。模板切换会覆盖原步骤且无确认。
 - `tools/pr/media-invite.html:252-267,283-303,369-383`：名单仅存于内存，加载示例和清空直接覆盖现有名单；导出前无持久化。名称和联系人渲染使用转义；未验证实际导出。
 - `tools/pr/assessor-56.html:123,169-184`、`assessor-57.html:124,170-185`、`assessor-manager-2.html:124,170-189`、`assessor-risk.html:128,174-192`：下拉变化触发分数或风险矩阵重算，默认分别取各选项首项并立即显示结论；风险页默认全部最低风险不等于已完成评估。均为静态分析，未运行浏览器。
@@ -323,8 +321,7 @@
 ## 2026-11-06 静态续审：营销工具第 424–429 页
 
 - **历史结论状态更新**：MS-J4（期末超过期初加新增）、MS-J5（转化超过访问）、MS-J7（折后价或优惠超原价）、MS-M1（零折及越界）、MS-N3（点击超过展示）和 MS-J2（新增客户超过点击及毛利率越界）原述计算路径已分别加入校验；`marketing-coupon-discount.html:380-398` 区分空值与零值并由计算和保存共用校验。上述结论仅按源码更新，未做运行回归；优惠券按订单减一次仍是现行计算，公式框须另对照。
-- **保存历史绕过计算校验**：`marketing-churn-rate.html:393-401,475-487`、`marketing-conversion-rate-calculator.html:398-405,491-502`、`marketing-cpa-calculator.html:429-439,567-580`、`marketing-cpm-calculator.html:402-405,490-500`、`marketing-discount-rate.html:436-465,531-554` 的保存路径均缺少部分计算约束。例如期初 100、期末 150、新增 0 在流失页显示口径错误，但历史仍可存流失率 -50%；折后价高于原价也可存负折扣。应让保存与计算共用同一校验。
-- **折扣页清空数值被当成 0**：`marketing-discount-rate.html:429-431,442-444,455-457` 对折扣率、折后价、优惠额使用 `parseFloat(...) || 0`；清空折后价会直接得到 0 元和 100% 优惠，清空折扣率则得到无折扣结果。应区分空串与合法 0，在缺失时停止结果和历史保存。
+- **保存历史绕过计算校验**：`marketing-churn-rate.html:393-401,475-487`、`marketing-conversion-rate-calculator.html:398-405,491-502`、`marketing-cpa-calculator.html:429-439,567-580`、`marketing-cpm-calculator.html:402-405,490-500` 的保存路径均缺少部分计算约束。例如期初 100、期末 150、新增 0 在流失页显示口径错误，但历史仍可存流失率 -50%。应让保存与计算共用同一校验。
 - **零转化历史 CPA 与当前结果不一致**：`marketing-conversion-rate-calculator.html:407-411,426-430,533-545` 对零转化显示 CPA 不可计算，但历史列表仍将花费除以零并把 `Infinity` 替换为 `—`，未附不可计算原因；且花费大于 0、收入为 0 时 ROI 卡被隐藏，不能呈现零收入对应的亏损。应区分输入缺失与真实零收入并统一结果与历史口径。
 - **零花费边界处理有缺口**：`marketing-cpm-calculator.html:398-400` 把 0 花费当无效，尽管展示量非零时 CPM 为 0；`marketing-cpa-calculator.html:449-450,464-485` 对 0 花费强制 ROI 为 0，并在客单和毛利均正时显示 `+0.0%`，而该 ROI 的分母为 0。应分别保留可算的零成本与标注不可计算的比率。
 - 本批共阅读 `marketing-churn-rate`、`marketing-conversion-rate-calculator`、`marketing-coupon-discount`、`marketing-cpa-calculator`、`marketing-cpm-calculator`、`marketing-discount-rate` 6 页；仅源码分析，未运行浏览器，不计双跑。
@@ -332,7 +329,6 @@
 ## 2026-11-06 静态续审：营销工具第 430–435 页
 
 - **历史结论状态更新**：MS-N78 所述互动数负值现由 `marketing-engagement-rate.html:245-247` 拦截；MS-M3 的包邮毛利率缺失及越界现由 `marketing-free-shipping-threshold.html:244-255` 拦截；MS-F8 的 LTV 零值路径现被拒绝，回本周期已标明按 36 个月分摊（`marketing-ltv-cac-ratio.html:422-424,456`）。仅按源码确认，未做运行回归。Google 广告负数输入、达人报价参数缺校验、关键词混排口径的既有关键路径仍在。
-- **关键词正文只有标点时仍给密度结论**：`marketing-keyword-density.html:243-260` 仅判断内容非空，标点正文经清洗后 `totalWords=0`；例如正文 `!!!`、关键词 `a`，密度为 `0/0`，展示时替换成 `—`，但比较 NaN 均不成立，最终建议“密度过高”。应在分母为零时说明缺少可统计内容，不输出评价。
 - **互动数清空被当作零**：`marketing-engagement-rate.html:233-249` 的点赞、评论、分享通过 `parseFloat(...) || 0` 处理；清空这三个字段仍按零生成总互动及互动率。展示量标为可选，其他字段若为必填应区分空串与合法 0，避免缺失数据被解释为零互动。
 - **目标日点击为 0 时 ROAS 无定义**：`marketing-google-ads-budget.html:244-263` 允许日点击为 0，日预算与收入均为 0，`0/0` 被替换为 `—x` 而没有说明。应保留零预算及零收入，并明确 ROAS 不可计算；负值和转化率越界的既有问题见历史记录。
 - 本批共阅读 `marketing-engagement-rate`、`marketing-free-shipping-threshold`、`marketing-google-ads-budget`、`marketing-influencer-pricing`、`marketing-keyword-density`、`marketing-ltv-cac-ratio` 6 页；仅源码分析，未运行浏览器，不计双跑。
