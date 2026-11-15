@@ -188,6 +188,12 @@ const CASES = [
     "clicks": ["document.getElementById('__tbProbe').textContent='INVITEGUARD '+(typeof undoOverwrite==='function'&&/undoMedias/.test(String(loadSample))&&/medias.length===0/.test(String(__media_inviteBoot))&&/saveMedias/.test(String(renderList))?'OK':'BAD');"],
     "expect": ["INVITEGUARD OK"],
     "ref": "源码形态判定：名单持久化（renderList 调 saveMedias）、示例/清空覆盖前留存 undoMedias 且可撤销、启动时已有名单不再被示例覆盖。默认态不设置探针 ⇒ 零逃生。"
+  },
+{
+    "slug": "pr/press-conference",
+    "clicks": ["document.getElementById('__tbProbe').textContent='FLOWEDIT '+(typeof toggleStepEdit==='function'&&/flowEditor/.test(String(renderSteps))&&!/flowEditor/.test(String(render))&&/editingSteps/.test(String(renderSteps))?'OK':'BAD');"],
+    "expect": ["FLOWEDIT OK"],
+    "ref": "源码形态判定：环节编辑表单改由 flowEditor 承载且默认收起（editingSteps=false 时不渲染内联 oninput 表单），时间表仍由 render 写 flowList，不再互相覆盖。默认态不设置探针 ⇒ 零逃生。"
   }
 ];
 async function main() {
