@@ -97,7 +97,22 @@ const CASES = [
     "inputs": { "komi": "0.5", "blackTerritory": "0", "blackCaptures": "5", "whiteTerritory": "40", "whiteCaptures": "2" },
     "expect": ["5.0 黑方总目"],
     "ref": "0 合法字段回归：显式输入 blackTerritory=0 ⇒ 黑方总目 = 0+5 = 5.0（不当作未填写，仍出结果）；与空态提示互斥。",
-  }
+  },
+
+  // 有局加倍/再加倍宕墩阶梯：首墩 200、后续每墩 300（再加倍 ×2）
+  {
+    slug: "chess/bridge-scoring",
+    inputs: { level: "4", tricks: "8", doubled: "1", vulnerable: "1" },
+    expect: ["-500"],
+    ref: "有局加倍 4 阶定约需 10 墩，实得 8 墩 ⇒ 宕 2 墩；罚分 = 200（首墩）+300（第二墩）= 500。旧实现按 200/墩 得 400 ⇒ 不命中。默认 3 阶 9 墩完成 ⇒ +110 不含 -500 ⇒ 强判别。"
+  },
+  {
+    slug: "chess/bridge-scoring",
+    inputs: { level: "4", tricks: "8", doubled: "2", vulnerable: "1" },
+    expect: ["-1000"],
+    ref: "再加倍把加倍阶梯翻倍：宕 2 墩 = (200+300)×2 = 1000。旧实现按 200/墩×2 得 800 ⇒ 不命中。默认态 +110 ⇒ 强判别。"
+  },
+
 ];
 async function main() {
   const only = process.argv.slice(2);
