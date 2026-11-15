@@ -194,8 +194,9 @@
 
 > 范围：本轮人工阅读 8 个用药/剂量/给药类页面（`tools/healthcare` 4 页、`tools/clinical-nursing` 3 页、`tools/medical` 1 页）：`tools/healthcare/bsa-calculator.html`、`tools/healthcare/egfr-calculator.html`、`tools/healthcare/egfr.html`、`tools/healthcare/ibw.html`、`tools/clinical-nursing/cvc-maintenance.html`、`tools/clinical-nursing/bag-valve-mask.html`、`tools/clinical-nursing/gastric-tube-depth.html`、`tools/medical/convert-glucose.html`。仅源码逐行阅读 + node 内存复算（复刻页面表达式与 `toFixed`/`Math.round` 口径），未开浏览器、未验证英文态/移动端/门禁。临床剂量与阈值条目均需药师/医师复核。
 
-### D-N25 eGFR（CKD-EPI）：种族系数填 0 时 eGFR 直接为 0 并判 CKD 5 期（高，确认缺陷）
-- 描述：`race` 是自由数值输入，直接作为乘数参与公式；0 是用户最容易用来表示「非非裔、无需调整」的值，但会把整个 eGFR 归零。守卫只把 `scr` 当分母/负值项，`race=0` 不拦截，结果区照常输出「eGFR 0.0」与「CKD 分期 5 期」。同页引据写 CKD-EPI 2021，而实现是含 1.159 种族系数的 2009 版，两处口径也不一致。
+### D-N25 eGFR（CKD-EPI）：种族系数填 0 时 eGFR 直接为 0 并判 CKD 5 期（已核销，752 批）
+- 现状（2026-11-16 复核）：`tools/healthcare/egfr.html` 的种族系数已按 `race<=0 → 1` 处理（注释明确「0 或空值一律按 1，避免结果被归零」）；标题/简介/公式框/引据统一标注 CKD-EPI 2009 并说明 2021 版取消种族系数；门禁：120 µmol/L/65 岁/男/race=0 ⇒ 54.3、G3a。
+- 原描述：`race` 是自由数值输入，直接作为乘数参与公式；0 是用户最容易用来表示「非非裔、无需调整」的值，但会把整个 eGFR 归零。守卫只把 `scr` 当分母/负值项，`race=0` 不拦截，结果区照常输出「eGFR 0.0」与「CKD 分期 5 期」。同页引据写 CKD-EPI 2021，而实现是含 1.159 种族系数的 2009 版，两处口径也不一致。
 - 证据：`tools/healthcare/egfr.html:125`（种族系数输入，`step="any"` 无枚举）、`:240`（race 列入必填）、`:262`/`:274`（仅 `scr` 进分母/负值守卫）、`:309`（`...*race` 直接相乘）、`:311-312`（分期按 eGFR 五档）、`:140`（公式含 1.159）、`:160`（引据 CKD-EPI 2021）。
 - 复现：血肌酐 80 µmol/L、年龄 50、性别 1、种族系数 **0** → **eGFR 0.0 mL/min/1.73m²、CKD 5 期**；同输入 race=1 应为 **98.6、1 期**。race 留空会被必填守卫拦住，说明「0 可通过」是真实路径。
 - 影响：一次「0=不调整」的误填即得到终末期肾病结论；若据此做肾剂量调整，会错误地大幅减量或停药。属临床安全风险。
@@ -223,8 +224,9 @@
 - 现状（2026-11-16）：`tools/healthcare/bsa-calculator.html` 的儿童判定改为 `age >= 0 && age < 18`，0 岁走 Haycock 并保留「1 岁以下误差较大」提示。门禁：8 kg/70 cm/0 岁 ⇒「BSA： 0.400」「所用公式： Haycock」。
 - 原描述：`tools/healthcare/bsa-calculator.html:308-316` 的儿童分支要求 `age > 0 && age < 18`；输入年龄 0、体重 8 kg、身高 70 cm 时实际使用 DuBois 并标注「成人，≥18 岁」，与页面所述「＜18 岁用 Haycock」不一致。
 
-### D-N31 eGFR 计算器（MDRD）：标题宣称 CKD-EPI+分期、实际只有 MDRD 且无分期；结果单位漏写 /1.73m²（中，确认缺陷）
-- 描述：H2 写「CKD-EPI and MDRD」、英文简介写「read the matching kidney function stage」，实际 `calc()` 只有 MDRD 175 式且只输出一个 eGFR 数值，没有 CKD 分期。引据表出处又写「CKD-EPI 2021 creatinine equation」。结果单位写成 `mL/min`，而 MDRD 结果是按 1.73 m² 归一化的，直接当绝对清除率用于肾剂量换算会偏差。肌酐仅支持 mg/dL，与同站 µmol/L 版并存。
+### D-N31 eGFR 计算器（MDRD）：标题宣称 CKD-EPI+分期、实际只有 MDRD 且无分期；结果单位漏写 /1.73m²（已核销，752 批）
+- 现状（2026-11-16 复核）：`tools/healthcare/egfr-calculator.html` 标题/简介/公式框/引据统一为 MDRD 175；新增 mg/dL / µmol/L 单位选择（÷88.4）；结果单位 `mL/min/1.73m²` 并输出 G1–G5 分期；年龄 18–120、Scr 上限守卫。门禁：120 µmol/L/65 岁/女 ⇒ 39.1、G3b、mL/min/1.73m²。
+- 原描述：H2 写「CKD-EPI and MDRD」、英文简介写「read the matching kidney function stage」，实际 `calc()` 只有 MDRD 175 式且只输出一个 eGFR 数值，没有 CKD 分期。引据表出处又写「CKD-EPI 2021 creatinine equation」。结果单位写成 `mL/min`，而 MDRD 结果是按 1.73 m² 归一化的，直接当绝对清除率用于肾剂量换算会偏差。肌酐仅支持 mg/dL，与同站 µmol/L 版并存。
 - 证据：`tools/healthcare/egfr-calculator.html:120-121`（标题/简介宣称 CKD-EPI 与分期）、`:139`（公式框仅 MDRD）、`:307-308`（calc 单值、单位 mL/min）、`:159`（引据 CKD-EPI 2021）。
 - 复现：血肌酐 1.0 mg/dL、年龄 50、男 → **eGFR 79.1 mL/min**（无分期；按 KDIGO 应为 G2，且单位应为 **mL/min/1.73m²**）。把检验单的 80 µmol/L 直接填进 mg/dL 框 → **0.5**（换算后 0.905 mg/dL 应为 **88.8**）。
 - 影响：单位口径错误会影响「按 eGFR 减量」的肾剂量决策；宣称未实现的 CKD-EPI/分期功能削弱可信度；µmol/L 误填会得到近 0 的荒谬值且无警示。

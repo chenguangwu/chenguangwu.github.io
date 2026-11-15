@@ -281,7 +281,13 @@ const CASES = [
     slug: "healthcare/egfr-calculator",
     inputs: { scr: "1.2", age: "60", sex: "2" },
     expect: ["45.8"],
-    ref: "MDRD（女）= 175 × 1.2^(−1.154) × 60^(−0.203) × 0.742 = 175 × 0.81033 × 0.43550 × 0.742 = 45.83 → 45.8 mL/min",
+    ref: "MDRD（女）= 175 × 1.2^(−1.154) × 60^(−0.203) × 0.742 = 175 × 0.81033 × 0.43550 × 0.742 = 45.83 → 45.8 mL/min/1.73m²",
+  },
+  {
+    slug: "healthcare/egfr-calculator",
+    inputs: { scr: "120", age: "65", sex: "2", scrUnit: "umol" },
+    expect: ["39.1", "G3b", "mL/min/1.73m²"],
+    ref: "D-N31 µmol/L + 分期：120 µmol/L ÷ 88.4 = 1.3575 mg/dL；女 65 岁 ⇒ 175×1.3575^(−1.154)×65^(−0.203)×0.742 = 39.13 → 39.1，落在 30–44 ⇒ G3b。修复前无单位切换（120 被当 mg/dL ⇒ 0.9）、无分期、单位漏写 /1.73m²。默认 1.0/40/男 ⇒ 79.1/G2，不命中。",
   },
   {
     slug: "healthcare/gfr-cockcroft",
