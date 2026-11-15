@@ -333,6 +333,32 @@ const CASES = [
 {
   "slug": "cardiology/pericardial-effusion",
   "inputs": {
+    "depth": "8", "distribution": "circum"
+  },
+  "clicks": [
+    "var b=document.getElementById('result').innerHTML;var m=/分级：<strong[^>]*>([^<]+)</.exec(b);document.getElementById('result').innerHTML=(m&&m[1]==='微量')?'__PE8_OK__':'__PE8_FAIL__'+(m?m[1]:b)"
+  ],
+  "expect": [
+    "__PE8_OK__"
+  ],
+  "ref": "D-N102 预设标签：8mm 在五档表内属「微量（<10mm）」，原预设名却写「少量局限性积液」；已改名并补门禁用例。clicks 从结果区读回分级文本比对「微量」，默认 22mm 为「中量」，不会误命中。"
+},
+{
+  "slug": "cardiology/pericardial-effusion",
+  "inputs": {
+    "depth": "30", "distribution": "circum"
+  },
+  "clicks": [
+    "var b=document.getElementById('result').innerHTML;var m=/分级：<strong[^>]*>([^<]+)</.exec(b);document.getElementById('result').innerHTML=(m&&m[1]==='中量')?'__PE30_OK__':'__PE30_FAIL__'+(m?m[1]:b)"
+  ],
+  "expect": [
+    "__PE30_OK__"
+  ],
+  "ref": "D-N103 边界：同页表格「中量 20–30mm、大量 >30mm」，30mm 整应判中量；旧实现 `depth<30` 把 30 判成大量并给出 1000–2000mL。默认 22mm 为中量，但本用例真实注入 30 后比对分级文本，边界写错即 FAIL。"
+},
+{
+  "slug": "cardiology/pericardial-effusion",
+  "inputs": {
     "depth": "33", "distribution": "circum"
   },
   "expect": [
