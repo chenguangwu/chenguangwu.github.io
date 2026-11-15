@@ -480,6 +480,34 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "medical/estimate-metabolism",
+  "inputs": {
+    "weight": "70",
+    "height": "170",
+    "age": "30",
+    "bf": "80"
+  },
+  "expect": [
+    "两式平均 RMR"
+  ],
+  "ref": "D-N73/D-N74：体脂 80% 越界，旧实现只加红框仍按 Katch-McArdle 计算并显示「三式平均」；修复后越界体脂按缺失处理，标注为「两式平均 RMR」。默认体脂留空同样显示两式，但本用例注入 80 后若仍参与 Katch 会输出「三式」，不命中。"
+},
+{
+  "slug": "medical/estimate-metabolism",
+  "inputs": {
+    "sex": "m",
+    "weight": "120",
+    "height": "190",
+    "age": "25",
+    "activity": "1.9",
+    "bf": ""
+  },
+  "expect": [
+    "超过建议的 300–500 kcal 上限"
+  ],
+  "ref": "D-N75 缺口上限：120kg/190cm/25 岁/1.9 ⇒ TDEE≈4308、-20% 缺口≈862 kcal > 500，应提示下调；旧实现只比较减脂热量是否低于 RMR，本例 3447>2268 会静默通过。默认 65/170/30/1.2 缺口约 376 kcal，不触发。"
+},
+{
   "slug": "medical/medical-calculator",
   "inputs": {
     "dose_weight": "90",
