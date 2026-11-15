@@ -338,9 +338,20 @@ const CASES = [
       "pondLastClean": "abc123测试"
     },
     "expect": [
-      "🐟 abc123测试 低风险 面积： 42 亩 水深： 42 米 密度： 42 尾/亩 投饵率： 42% 日投饵量： 370.4 kg 月有机质累积： 3334.0 kg 月浓度增量： 2.83 mg/L 上次清淤： "
+      "🐟 abc123测试 低风险 面积： 42 亩 水深： 42 米 密度： 42 尾/亩 投饵率： 42% 日投饵量： 370.4 kg 月有机质累积： 3334.0 kg 月单位面积负荷： 0.119 kg/m² 上次清淤： "
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"pondName\":\"abc123测试\",\"pondArea\":\"42\",\"pondDepth\":\"42\",\"pondDensity\":\"42\",\"pondFeed\":\"42\",\"pondLastClean\":\"abc123测试\"}，输出区含「🐟 abc123测试 低风险 面积： 42 亩 水深： 42 米 密度： 42…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pondName\":\"abc123测试\",\"pondArea\":\"42\",\"pondDepth\":\"42\",\"pondDensity\":\"42\",\"pondFeed\":\"42\",\"pondLastClean\":\"abc123测试\"}，输出区含「🐟 abc123测试 低风险 面积： 42 亩 水深： 42 米 密度： 42…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。月负荷 = 370.44×30×0.3 ÷ (42×667) = 3333.96/28014 ≈ 0.119 kg/m²。"
+  },
+  {
+    "slug": "fishery/cycle-6",
+    "inputs": {},
+    "clicks": [
+      "var p=calcParams({area:5,depth:1.5,density:800,feedRate:1.5});document.getElementById('__tbProbe').textContent='CY6 '+((Math.abs(p.monthlyLoad-0.081)<0.001&&Math.abs(p.cycleMonths-43.2)<0.2)?'OK':'BAD');"
+    ],
+    "expect": [
+      "CY6 OK"
+    ],
+    "ref": "精养塘预设（5 亩/1.5 m/800 尾/1.5%）：月残留 800×0.5×1.5%×5×30×0.3=270 kg，塘底 3335 m² ⇒ 0.081 kg/m²/月，按 3.5 kg/m² 判据得 43.2 个月（约 3.6 年）。旧模型按水体浓度 15 mg/L 反推仅 0.28 个月（8 天），与常规清淤量级不符。"
   },
   {
     "slug": "fishery/drug-withdrawal-fish",
