@@ -539,6 +539,12 @@ const CASES = [
   "ref": "PHQ-9 九项全选「几乎每天」j=3 ⇒ 总分 27/27 ⇒ 落 total>19 分支「重度抑郁」；症状条目(≥2) = 9 ⇒ DSM-5 重性抑郁发作筛查「符合」；第 9 题自伤念头得分 ⇒ 追加危机提示。默认态为「已作答 0/9 项」提示，零交集。via=click"
 },
 {
+  "slug": "psychiatry/phq9-depression",
+  "clicks": ["applyQuizPreset(2)"],
+  "expect": ["中度抑郁 总分 14 / 27"],
+  "ref": "M-N37：中度预设原为 9 项全取 2 ⇒ 18 分，落 15–19「中重度」，与按钮「中度」矛盾。现改为前 7 项取 2、其余 0 ⇒ 14 分，恰在 10–14 中度上界；按钮文案同步为「7 项一半天数」。默认未作答，零交集。"
+},
+{
   "slug": "psychiatry/panss-schizophrenia",
   "clicks": ["applyPanssPreset('moderate')"],
   "expect": ["90/210", "中度"],

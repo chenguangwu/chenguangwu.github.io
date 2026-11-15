@@ -202,12 +202,13 @@
 - 方案：改正末段 label/color；补一条 91 分边界的渲染断言。
 - 现状（2026-11-16，810 批）：标尺配置抽为 `__lsasBands()`，末段改为 `{"lo":91,"hi":null,"label":{"zh":"极重度","en":"Very severe"},"color":"#EF4444"}`，与 `__lsasSev` 的 >90「极重度」一致；门禁直接断言末段 label/color（`LSASBAND OK`）。
 
-### M-N37 phq9-depression 预设「中度（一半天数）」实得 18 分判中重度（高，阈值与标签矛盾）
+### M-N37 phq9-depression 预设「中度（一半天数）」实得 18 分判中重度（已修，813 批）
 - 问题：按钮「🟠 中度（一半天数）」调用 `applyQuizPreset(2)`，把 9 项全部置 2；9×2=18，按页面分级为「中重度抑郁」，与按钮标签「中度」不一致。
 - 证据：`tools/psychiatry/phq9-depression.html:144`（按钮文案与 `applyQuizPreset(2)`）、`:307-310`（`A=A.map(function(){return j;})` 全项同值）、`:283-284`（≤14 中度、≤19 中重度）。
 - 复现：点击该预设 → 9 项均为「一半以上天数」→ 总分 18（`node -e` 9×2=18）→ 结果「中重度抑郁」；期望按钮标「中重度（一半天数）」，或预设改为 1/2 混合使总分落在 10–14。
 - 影响：`tools/psychiatry/phq9-depression.html`；预设名称与产出等级不符，演示/教学时会被当成分级错误。
 - 方案：改按钮文案为「中重度」，或给 10–14 单独设计一组混合分值；预设与分级表共用同一常量。
+- 现状（2026-11-16，813 批）：中度预设改为前 7 项取 2 分、其余 0 ⇒ 14 分，落在 10–14 中度上界；按钮文案改为「7 项一半天数」。门禁新增 `applyQuizPreset(2)` ⇒「中度抑郁 总分 14 / 27」。
 
 ## T 批 psychiatry 覆盖（2026-11-04）
 - 本轮审计 12 页：`tools/psychiatry/rater-24.html`、`tools/psychiatry/cdrisc-resilience.html`、`tools/psychiatry/cage-substance.html`、`tools/psychiatry/lsas-social.html`、`tools/psychiatry/phq9-depression.html`、`tools/psychiatry/rater-23.html`、`tools/psychiatry/les-stress.html`、`tools/psychiatry/self-assess-4.html`、`tools/psychiatry/assessor-risk-5.html`、`tools/psychiatry/mmpi2-personality.html`、`tools/psychiatry/calc-1.html`、`tools/psychiatry/panss-schizophrenia.html`。
