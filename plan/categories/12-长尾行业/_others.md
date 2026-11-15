@@ -2099,14 +2099,6 @@
 
 ## V 批 · 冶金/皮革/园艺（2026-11-04）
 
-### 12-N206 gardening/balcony-sunlight：三个下拉全无 option，朝向/楼层/季节实际不可选，永远输出「南向·春 6.0h」（高，确认源码缺陷/半假工具）
-- 问题：`<select id="dir">`、`floor`、`season` 均为空标签（`:120`、`:124`、`:128`），全文件 **0 个 `<option>`**，也没有任何 JS 填充；`calcTool` 与附加表格分别回退 `'south'`/`'mid'`/`'spring'`（`:262`、`:306`）。预设 `:339-343` 的「默认/示例 2×/示例 0.5×」`values` 全部为空，点击不改变任何输入。
-- 证据：`tools/gardening/balcony-sunlight.html:120`、`:124`、`:128`、`:262`、`:306`、`:339-343`
-- 复现（静态核对 + node 复算）：打开页面三个下拉均空白；`dir.value=''` → 走兜底 south，`season=''` → spring，`floorAdj=0` → 恒 **6.0 小时 / 全日照 / 南向·春**。北向冬季应为 0.5 h（北向低层冬被 `Math.max(0.5,…)` 夹到 0.5），页面无法进入该分支。`scripts/verify_gardening_calc.js:13` 注释称「option 由 JS 填充」，与源码不符，该用例靠给空 `<select>` 赋 `.value` 在真实浏览器中不会命中。
-- 影响：`tools/gardening/balcony-sunlight.html` 的核心三维度输入形同虚设，北向/西晒/冬季等全部场景无法评估，结果恒定且推荐植物恒定；页面属半假工具。
-- 方案：在 HTML 或 boot 中填充 options（south/east/west/north；low/mid/high；spring/summer/autumn/winter），并给三个预设填真实 `values`；同步修正 verify 用例。
-- 严重度：高；是否假工具：是（半假：核心选择器全空）
-
 ### 12-N207 gardening/pot-capacity：meta/公式框主推「圆台（上口/下底）」但无圆台形状与下底直径输入（中，承诺未实现）
 - 问题：meta description 与 og/twitter 均写「输入花盆上口、下底直径与高度，按圆台体积公式估算」（`:10`、`:15`、`:70`），公式框首行也是圆台公式（`:163`）；但 `SHAPES` 只有圆柱/方盆/长方盆（`:327-355`），圆柱仅一个「花盆内径」字段（`:333`），形状按钮同样只有三种（`:169-177`），没有下底直径。
 - 证据：`tools/gardening/pot-capacity.html:10`、`:163`、`:167-178`、`:327-355`
@@ -2150,9 +2142,9 @@
 ### 覆盖清单（V 批 长尾行业，2026-11-04）
 - 审计页数：8（`tools/metallurgy/analysis-price-1.html`、`decarburization.html`、`convert-hardness.html`、`solidification-time.html`、`tools/leather/strength-8.html`、`area-20.html`、`tools/gardening/balcony-sunlight.html`、`pot-capacity.html`），覆盖 3 个目录。
 - 新增条数：13 条，编号 12-N199–12-N211（高 3 / 中 10）。
-- 高优：N200（`erfInv` /π 误写致脱碳层低估 4.6 倍）、N201（HV→HBW 用 ÷0.9544 与同页公式相反，三路径互差 10%）、N206（阳台三个下拉全无 option，三维度输入不可用，恒出南向·春）。
+- 高优：N200（`erfInv` /π 误写致脱碳层低估 4.6 倍）、N201（HV→HBW 用 ÷0.9544 与同页公式相反，三路径互差 10%）、N206（阳台三个下拉原有选项缺失，已于早期 fake-tools Batch 6-1 补齐，2026-11-16 第 678 批复核销账）。
 - 中优集中模式：非法/空值兜底仍出数（N202/N208/N211；N199 已于 2026-11-16 第 675 批修复）、同页公式与代码/文案两套口径（N209/N210；N204 已于第 677 批修复）、承诺未实现（N207/N209；N203 已于第 676 批修复）、参数联动失效（N205）。
-- 无缺陷页：`tools/leather/strength-8.html` 的抗张（负荷/宽×厚，240N/10×1.5→16.00 MPa）与撕裂（45N/1.5→30.00 N/mm）复算与页面公式一致，仅空值兜底为 0 并加红框（同类问题未单列）；`tools/metallurgy/analysis-price-1.html` 的总体标准差 25.2042、CV 50.92%、区间 [24.30,74.70] 与算例一致，输入解析问题（N199）已修；`tools/gardening/balcony-sunlight.html` 的查表/楼层修正/分级逻辑本身正确（南向春 6.0、北向高冬 1.0），问题在控件为空（N206）。
+- 无缺陷页：`tools/leather/strength-8.html` 的抗张（负荷/宽×厚，240N/10×1.5→16.00 MPa）与撕裂（45N/1.5→30.00 N/mm）复算与页面公式一致，仅空值兜底为 0 并加红框（同类问题未单列）；`tools/metallurgy/analysis-price-1.html` 的总体标准差 25.2042、CV 50.92%、区间 [24.30,74.70] 与算例一致，输入解析问题（N199）已修；`tools/gardening/balcony-sunlight.html` 的查表/楼层修正/分级逻辑本身正确（南向春 6.0、北向高冬 0.5），控件缺失问题（N206）已复核修复。
 - 模板预设残留（已修）：`analysis-price-1` 空预设已补三组行情序列；`convert-hardness` 的 HRC 15 改为 HRC 20/30/55（均在 20–67）；`decarburization` 的 1650/2200℃ 改为 1300/1400℃（在 500–1400 内）。均于 2026-11-16 第 676 批处理。
 - 局限：初审计仅逐行读源码 + `node` 在 `/tmp` 复算；N199 已于 2026-11-16 第 675 批修复（千分位识别、严格数字校验、拒绝项列出、价格 >0）、N203 与三处预设残留已于第 676 批修复（深解重写为三标尺拟合与实际适用范围、预设改有效值）、N204 已于第 677 批修复（深解系数表统一为 min/cm² 的 2.0/2.5/1.8 与 0.8/1.0/0.6），并通过 `_build.py` 与 `_test_static.py`。英文态/繁体页/移动端仍未实测；专业复核：硬度换算（ASTM E140）、脱碳扩散模型与 Chvorinov 系数量纲均需材料专业确认，本批结论不构成工艺指令。
 
