@@ -22,7 +22,6 @@
 - `tools/science/science-pressure-converter.html:447-464,495-508`：清空输入后直接返回，旧结果仍可复制与保存，既有记录仍适用。
 - `tools/science/torque-converter.html:410-425`：清空数值按 0 计算并保存为有效结果（SMS-155 CSV 单位后缀写死已于 625 批修，见复核记录）。
 - `tools/science/voltage-divider-calculator.html:389-424`：旧 SMS-36～37 的升压与目标空值兜底关键代码已改为校验并清结果，待运行回归；正向输入仍以 `||0` 处理空值，清空 Vin/R1/R2 可能产生看似有效的零结果。
-- `tools/science/wavelength-to-rgb.html:408-415,450-452`：清空数字框时仍调用 `calc()`，从滑块读出旧值并回填；范围外数字亦被钳位后回写。旧 SMS-156～157 的参考表与算法不一致路径仍在。
 - `tools/science/wire-gauge-converter.html:369,379-385,459-467`：历史按线径反算时可保存小数 AWG，但恢复用 `parseInt` 截断，结果与保存值不同；无效输入直接返回并保留旧结果。SMS-158 电阻量级错误已于 625 批修正（主结果/参考表/导出同源 ×1000）。电气计算有安全风险，须专业复核。
 
 ## 2026-11-06 数学工具静态续审
@@ -439,8 +438,8 @@
 | tools/science/tide-height-estimator.html | ~~【中】默认日期用 UTC~~ **已修（626 批）**：新增 `__tideLocalDate()` 用 `getFullYear/getMonth/getDate` 拼本地日期，初始与「今天」按钮两处均改用它，东八区凌晨不再取到前一天。原证据：:287-289、:295-296 | SMS-153 |
 | tools/science/tide-height-estimator.html | ~~【中】纬度越界无校验~~ **已修（626 批）**：主算加 `!isFinite(lat)||Math.abs(lat)>90` 守卫，越界/空值停算提示「纬度必须在 −90° 至 90° 之间」，不再出现负纬度修正。原证据：:136、:357、:389、:405-407 | SMS-154 |
 | tools/science/torque-converter.html | 【中】导出 CSV 单位后缀写死：`__torqueExport` 对全部 8 行都追加「 N·m」，lb·ft、lb·in、kgf·m、gf·cm、ozf·in、dyn·m 行均被标成 N·m（数值本身正确）。:488-490 | SMS-155 |
-| tools/science/wavelength-to-rgb.html | 【中】参考表 RGB 与本页算法不一致：405 nm 表 #8B00FF vs 算法 #8200C8；500 nm 表 #00FFFF vs #00FF92；532 nm 表 #00FF00 vs #65FF00；700 nm 表 #8B0000 vs #FF0000；用户按表核对会得到两套值。:283-295、:418-429 | SMS-156 |
-| tools/science/wavelength-to-rgb.html | 【中】深挖算例与算法不符：示例称「520 nm→rgb(0,255,0)；450 nm→rgb(0,0,255)」，实际 `wlToRgb` 给 520 nm #36FF00（54,255,0）、450 nm #0046FF（0,70,255）。:350、:418-429 | SMS-157 |
+| tools/science/wavelength-to-rgb.html | 【中】参考表 RGB 与本页算法不一致：405 nm 表 #8B00FF vs 算法 #8200C8；500 nm 表 #00FFFF vs #00FF92；532 nm 表 #00FF00 vs #65FF00；700 nm 表 #8B0000 vs #FF0000；用户按表核对会得到两套值。:283-295、:418-429 ｜ **628 批已修**：表头改「本页算法 RGB」，12 行（新增 780 nm 衰减行）逐行改为 wlToRgb 输出，色块同步；保真脚本用独立 Python 复算逐行比对。 | SMS-156 |
+| tools/science/wavelength-to-rgb.html | 【中】深挖算例与算法不符：示例称「520 nm→rgb(0,255,0)；450 nm→rgb(0,0,255)」，实际 `wlToRgb` 给 520 nm #36FF00（54,255,0）、450 nm #0046FF（0,70,255）。:350、:418-429 ｜ **628 批已修**：示例改为算法真值并注明「含亮度因子与 γ=0.8 校正」；页面 + content_deepdive 源 + en map 三源同步。 | SMS-157 |
 | tools/science/wire-gauge-converter.html | 【高】铜电阻量纲错 1000 倍：`res_km=rho/area_mm2` 实为 Ω/m，却标成「Ω/km」（:403、:409），AWG 24 显示 0.08 Ω/km（真值 84.01）、AWG 20 显示 0.03（真值 33.23）、AWG 0 因 `toFixed(2)` 直接成 0.00；由它派生的「Ω/1000ft」（`res_km×0.3048`，:419）与「100m 压降」（`res_km/1000×100`，:421）同样小 1000 倍（AWG 24 显示 0.0084 V，应 8.40 V）。:403、:409、:418-421、:436 | SMS-158 |
 | tools/science/wire-gauge-converter.html | 【中】深挖载流示例与自身口径矛盾：示例写「AWG 20 载流约 5 A」，而同页 5 A/mm² 规则与对照表给 AWG 20（0.5176 mm²）2.59 A，差约 2 倍。:314、:420、:436 | SMS-159 |
 | tools/science/work-done.html | 【中】预设倍率标签与结果不符：「示例 2×」把 F 50→100、d 10→20，做功 500→2000 J（4×）；「示例 0.5×」把 F→25、d→5，做功→125 J（0.25×），标签的 2×/0.5× 均未实现。:258-261 | SMS-160 |
