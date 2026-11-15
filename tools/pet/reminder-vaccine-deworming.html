@@ -351,7 +351,8 @@ function latestRecord(pet, type, key){
   return recs.reduce(function(a,b){ return parseDate(a.date) >= parseDate(b.date) ? a : b; });
 }
 function vaccineDone(pet, key){
-  return pet.records.some(function(r){ return r.type === 'vaccine' && r.key === key; });
+  var t = today();
+  return pet.records.some(function(r){ var d = parseDate(r.date); return r.type === 'vaccine' && r.key === key && d && d <= t; });
 }
 
 // 计算所有待办项
@@ -434,6 +435,7 @@ function addPet(){
   var weight = parseFloat(document.getElementById('petWeight').value) || 0;
   if(!name){ ToolBox.showToast(i18nText(), 'error'); return; }
   if(!birth){ ToolBox.showToast(i18nText(), 'error'); return; }
+  if(parseDate(birth) > today()){ ToolBox.showToast(i18nText('出生日期不能晚于今天'), 'error'); return; }
   pets.push({ id:uid(), name:name, species:species, birthDate:birth, weight:weight, records:[] });
   save();
   document.getElementById('petName').value=''; document.getElementById('petWeight').value='0'; document.getElementById('petBirth').value='';
@@ -472,6 +474,7 @@ function addCustomRecord(petId){
   var date = document.getElementById('recDate_'+petId).value;
   var notes = document.getElementById('recNotes_'+petId).value.trim();
   if(!date){ ToolBox.showToast(i18nText(), 'error'); return; }
+  if(parseDate(date) > today()){ ToolBox.showToast(i18nText('记录日期不能晚于今天'), 'error'); return; }
   var key, name;
   if(type.indexOf('deworm')===0){
     key = type === 'dewormIn' ? 'internal' : 'external';

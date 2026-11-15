@@ -126,6 +126,26 @@ const CASES = [
 },
 {
   "slug": "pet/reminder-vaccine-deworming",
+  "clicks": [
+    "var d=new Date();d.setDate(d.getDate()+1);var p2=function(n){return (n<10?'0':'')+n;};var tomorrow=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());document.getElementById('petName').value='甲';document.getElementById('petSpecies').value='cat';document.getElementById('petBirth').value='2020-01-01';addPet();var h=String(document.getElementById('petList').innerHTML);var i=h.indexOf('recDate_');var pid=i>=0?h.slice(i+8).split(String.fromCharCode(34))[0]:'';document.getElementById('recDate_'+pid).value=tomorrow;addCustomRecord(pid);document.getElementById('__tbProbe').textContent='FUT '+((pid&&document.getElementById('logCard').style.display==='none')?'0':'1');"
+  ],
+  "expect": [
+    "FUT 0"
+  ],
+  "ref": "未来日期记录拒绝：先用 addPet 建一只猫档案，从 #petList 渲染串取回 recDate_<id> 输入并把补录日期设为明天，再调用 addCustomRecord ⇒ 不应写入任何记录（记录日志卡保持 display:none，探针 FUT 0）；旧实现无日期上限，明天日期会入库并让 renderLog 显示日志卡（探针 FUT 1）。默认态（不执行 clicks）无探针串 ⇒ 零逃生。"
+},
+{
+  "slug": "pet/reminder-vaccine-deworming",
+  "clicks": [
+    "var d=new Date();d.setDate(d.getDate()+5);var p2=function(n){return (n<10?'0':'')+n;};document.getElementById('petName').value='乙';document.getElementById('petBirth').value=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());addPet();document.getElementById('__tbProbe').textContent='BIRTH '+((String(document.getElementById('petList').innerHTML).indexOf('暂无宠物档案')>=0)?'0':'1');"
+  ],
+  "expect": [
+    "BIRTH 0"
+  ],
+  "ref": "未来出生日期拒绝：出生日期设为 5 天后调用 addPet ⇒ 不应新增宠物（#petList 仍为「暂无宠物档案」，探针 BIRTH 0）；旧实现只校验非空，未来出生日期会入库并据此推算全部免疫到期日（探针 BIRTH 1）。默认态无探针串 ⇒ 零逃生。"
+},
+{
+  "slug": "pet/reminder-vaccine-deworming",
   "inputs": {
     "petWeight": "0",
     "recDate_'+p.id+'": "'+fmtDate(today())+'",
