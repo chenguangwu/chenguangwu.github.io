@@ -154,6 +154,14 @@ const CASES = [
   "inputs": { "targetLen": "600", "coreDia2": "100", "paperThk2": "0.15" },
   "expect": ["353.0 mm"],
   "ref": "12-K6 回归（避开默认 500/76/0.1）：D=√(4×0.15×600000/π+100²)=√124591.56=353.0 mm。"
+},
+{
+  "slug": "paper/paper-grade",
+  "clicks": [
+    "var seen=[],orig=document.querySelectorAll;document.querySelectorAll=function(sel){seen.push(String(sel));return [];};filterTable();document.querySelectorAll=orig;document.getElementById('__tbProbe').textContent='PGF='+((seen.join('|').indexOf('#table1 tbody tr')>=0&&seen.join('|').indexOf('#table4 tbody tr')>=0)?'OK':'BAD');"
+  ],
+  "expect": ["PGF=OK"],
+  "ref": "修复前 filterTable 用全局 'tbody tr'，会把不属于等级表的白度明细行一起隐藏；现只遍历 #table1~#table4 的等级表 tbody。用 querySelectorAll 捕获实际选择器，默认态无该探针串。"
 }
 ];
 async function main() {

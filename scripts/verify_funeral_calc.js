@@ -77,6 +77,14 @@ const CASES = [
       "，请在上方添加。\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"sName\":\"abc123测试\",\"sDate\":\"abc123测试\",\"lName\":\"abc123测试\",\"lYear\":\"42\",\"lMonth\":\"2\"}，输出区含「，请在上方添加。\n⚠ 计算结果含无效值，请检查输入是否为有效正数。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "funeral/ceremony-timeline",
+    "clicks": [
+      "steps=[{id:1,time:'23:30',name:'签到',dur:20,desc:''},{id:2,time:'00:15',name:'告别',dur:30,desc:''}];render();var h=String(document.getElementById('timeline').innerHTML),s=String(document.getElementById('summary').innerHTML);document.getElementById('__tbProbe').textContent='CER='+((h.indexOf('23:30')>=0&&h.indexOf('23:30')<h.indexOf('00:15（次日）'))?'OK':'BAD')+' END='+(s.indexOf('00:45（次日）')>=0?'Y':'N');"
+    ],
+    "expect": ["CER=OK END=Y"],
+    "ref": "修复前 render() 每次先用开始时间 09:00 覆盖手输时间、再按 HH:mm 字符串排序，跨午夜时次日 00:15 排到前一日 23:30 之前、结束时间也不带日偏移；现 render 不再覆盖手输时间，按录入顺序折算绝对分钟排序并标「（次日）」，末环节 23:30+20+30=次日 00:45。默认态无该探针串。"
   }
 
 ];

@@ -91,6 +91,30 @@ const CASES = [
     "发票开具咨询"
   ],
   "ref": "顶层数组 tickets 注入 3 条：score = urgency × importance ⇒ 支付页面报错 5×4 = 20（并列最高、排序取其先）、账号无法登录 4×5 = 20、发票开具咨询 2×3 = 6。默认态为源码内置 6 条工单（系统宕机 5/5、25 分），三串均不命中。"
+},
+{
+  "slug": "service/response-time",
+  "clicks": [
+    "document.getElementById('slaTarget').value='0';calc();document.getElementById('__tbProbe').textContent='RTSLA='+((String(document.getElementById('stats').innerHTML).indexOf('SLA目标需为正数')>=0)?'Y':'N');"
+  ],
+  "expect": ["RTSLA=Y"],
+  "ref": "修复前 SLA 目标清空或填 0 被静默按 30 分钟兜底；现判定目标无效，SLA 卡显示「--」并标注「SLA目标需为正数」，不再给出误导性的达标率。默认 30 不出现该文案。"
+},
+{
+  "slug": "service/response-time",
+  "clicks": [
+    "tickets=[{id:'A',resp:5,solve:0,status:'resolved'},{id:'B',resp:10,solve:0,status:'pending'}];renderList();calc();document.getElementById('__tbProbe').textContent='RTRATE='+String(document.getElementById('stats').innerHTML).match(/([\\d.]+)%<\\/div><div class=\"lbl\">解决率/)[1];"
+  ],
+  "expect": ["RTRATE=50.0"],
+  "ref": "修复前解决率分子只数 solve>0 的已解决工单，已解决但解决时间为 0 的被漏掉（本例得 0.0%）；现按状态统计已解决占比 1/2=50.0%。默认 8 条工单为 87.5%，不命中也无该探针串。"
+},
+{
+  "slug": "service/response-time",
+  "clicks": [
+    "tickets=[{id:'A',resp:null,solve:60,status:'resolved'},{id:'B',resp:20,solve:60,status:'resolved'}];renderList();calc();document.getElementById('__tbProbe').textContent='RTEMPTY='+(String(document.getElementById('stats').innerHTML).indexOf('20.0分')>=0?'Y':'N');"
+  ],
+  "expect": ["RTEMPTY=Y"],
+  "ref": "修复前空响应时间被当成 0 计入均值（两条得 10.0 分）；现未填写的响应时间不参与均值/分位数统计，仅 B 的 20.0 分入样。默认态无 RTEMPTY 探针串。"
 }
 ];
 async function main() {

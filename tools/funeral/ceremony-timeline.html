@@ -136,7 +136,7 @@
     <div class="input-grid">
       <div>
         <label>仪式开始时间</label>
-        <input type="time" id="startTime" value="09:00" onchange="calc()">
+        <input type="time" id="startTime" value="09:00" onchange="applyStart()">
       </div>
       <div>
         <label>告别厅规模</label>
@@ -343,6 +343,11 @@ function calc(){
   render();
 }
 
+function applyStart(){
+  autoTime();
+  render();
+}
+
 function autoTime(){
   // 按开始时间和各环节时长自动排列
   var start = document.getElementById('startTime').value;
@@ -360,23 +365,34 @@ function autoTime(){
 }
 
 function render(){
-  autoTime();
-  steps.sort(function(a,b){ return a.time < b.time ? -1 : 1; });
+  // 按录入先后推断跨日顺序，用绝对分钟排序，避免次日 00 点排到前一日 23 点之前
+  var dayOffset = 0, prevMin = -1;
+  steps.forEach(function(s){
+    var p = String(s.time || '00:00').split(':');
+    var m = (parseInt(p[0]) || 0) * 60 + (parseInt(p[1]) || 0);
+    if(prevMin >= 0 && m < prevMin) dayOffset += 1440;
+    s.__abs = m + dayOffset;
+    prevMin = m;
+  });
+  steps.sort(function(a,b){ return a.__abs - b.__abs; });
+
+  function hhmm(abs){
+    var x = ((abs % 1440) + 1440) % 1440;
+    var h = Math.floor(x / 60), m = x % 60;
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  }
 
   var totalDur = steps.reduce(function(s,st){return s + st.dur;}, 0);
-  var endH, endM;
+  var endAbs = 0;
   if(steps.length > 0){
-    var lastParts = steps[steps.length-1].time.split(':');
-    endH = parseInt(lastParts[0]);
-    endM = parseInt(lastParts[1]) + steps[steps.length-1].dur;
-    while(endM >= 60){ endM -= 60; endH++; }
-    if(endH >= 24) endH -= 24;
+    endAbs = steps[steps.length-1].__abs + (parseInt(steps[steps.length-1].dur) || 0);
   }
+  var endLabel = steps.length > 0 ? (hhmm(endAbs) + (endAbs >= 1440 ? '（次日）' : '')) : '--';
 
   const __g1='<div class="summary-card"><div class="v">' + steps.length + '</div><div class="l">环节数量</div></div>' +
     '<div class="summary-card"><div class="v">' + totalDur + ' 分钟</div><div class="l">总时长</div></div>' +
-    '<div class="summary-card"><div class="v">' + (steps.length > 0 ? steps[0].time : '--') + '</div><div class="l">开始时间</div></div>' +
-    '<div class="summary-card"><div class="v">' + (steps.length > 0 ? (endH < 10 ? '0' : '') + endH + ':' + (endM < 10 ? '0' : '') + endM : '--') + '</div><div class="l">结束时间</div></div>';document.getElementById('summary').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    '<div class="summary-card"><div class="v">' + (steps.length > 0 ? hhmm(steps[0].__abs) : '--') + '</div><div class="l">开始时间</div></div>' +
+    '<div class="summary-card"><div class="v">' + endLabel + '</div><div class="l">结束时间</div></div>';document.getElementById('summary').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
   if(steps.length === 0){
     document.getElementById('timeline').innerHTML='<p style="color:var(--text-muted);font-size:13px;padding:12px 0;">暂无环节，请添加或载入标准流程</p>';
@@ -387,7 +403,7 @@ function render(){
   steps.forEach(function(s){
     html += '<div class="tl-item">' +
       '<span class="tl-del" onclick="delStep(' + s.id + ')">✕</span>' +
-      '<div class="tl-time">' + s.time + '</div>' +
+      '<div class="tl-time">' + s.time + (s.__abs >= 1440 ? '（次日）' : '') + '</div>' +
       '<div class="tl-name">' + ToolBox.escHtml(s.name) + '</div>' +
       '<div class="tl-dur">时长 ' + s.dur + ' 分钟</div>' +
       (s.desc ? '<div class="tl-desc">' + ToolBox.escHtml(s.desc) + '</div>' : '') +

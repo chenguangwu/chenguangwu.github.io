@@ -244,8 +244,8 @@ function renderList(){
   const __g1=tickets.map(function(t,i){
     return '<div class="ticket-row">'+
       '<input type="text" value="'+ToolBox.escHtml(t.id)+'" placeholder="工单号" oninput="updateTicket('+i+',\'id\',this.value)">'+
-      '<input type="number" value="'+t.resp+'" step="any" min="0" placeholder="响应(分)" oninput="updateTicket('+i+',\'resp\',this.value)" title="响应时间(分钟)">'+
-      '<input type="number" value="'+t.solve+'" step="any" min="0" placeholder="解决(分)" oninput="updateTicket('+i+',\'solve\',this.value)" title="解决时间(分钟)">'+
+      '<input type="number" value="'+(t.resp==null?'':t.resp)+'" step="any" min="0" placeholder="响应(分)" oninput="updateTicket('+i+',\'resp\',this.value)" title="响应时间(分钟)">'+
+      '<input type="number" value="'+(t.solve==null?'':t.solve)+'" step="any" min="0" placeholder="解决(分)" oninput="updateTicket('+i+',\'solve\',this.value)" title="解决时间(分钟)">'+
       '<select onchange="updateTicket('+i+',\'status\',this.value)">'+
         '<option value="resolved"'+(t.status==='resolved'?' selected':'')+'>已解决</option>'+
         '<option value="pending"'+(t.status==='pending'?' selected':'')+'>处理中</option>'+
@@ -256,11 +256,14 @@ function renderList(){
 }
 
 function updateTicket(i,field,val){
-  if(field==='resp'||field==='solve') val=parseFloat(val)||0;
+  if(field==='resp'||field==='solve'){
+    var n=val===''?null:parseFloat(val);
+    val=(n!=null && isFinite(n) && n>=0)?n:null;
+  }
   tickets[i][field]=val;
   calc();
 }
-function addTicket(){ tickets.push({id:'T'+String(tickets.length+1).padStart(3,'0'),resp:0,solve:0,status:'resolved'}); renderList(); calc(); }
+function addTicket(){ tickets.push({id:'T'+String(tickets.length+1).padStart(3,'0'),resp:null,solve:null,status:'resolved'}); renderList(); calc(); }
 function removeTicket(i){ tickets.splice(i,1); renderList(); calc(); }
 function clearTickets(){ tickets=[]; renderList(); calc(); }
 function loadDemo(){
@@ -287,25 +290,27 @@ function percentile(arr,p){
 }
 
 function calc(){
-  var sla=parseFloat(document.getElementById('slaTarget').value)||30;
-  var respTimes=tickets.map(function(t){return t.resp;});
-  var solveTimes=tickets.filter(function(t){return t.status==='resolved' && t.solve>0;}).map(function(t){return t.solve;});
+  var slaRaw=parseFloat(document.getElementById('slaTarget').value);
+  var slaValid=isFinite(slaRaw)&&slaRaw>0;
+  var sla=slaValid?slaRaw:null;
+  var respTimes=tickets.filter(function(t){return t.resp!=null && isFinite(t.resp) && t.resp>=0;}).map(function(t){return t.resp;});
+  var solveTimes=tickets.filter(function(t){return t.status==='resolved' && t.solve!=null && isFinite(t.solve) && t.solve>0;}).map(function(t){return t.solve;});
   var total=tickets.length;
-  var resolved=solveTimes.length;
+  var resolved=tickets.filter(function(t){return t.status==='resolved';}).length;
   var resolveRate=total>0?resolved/total:0;
   var avgResp=respTimes.length?respTimes.reduce(function(a,b){return a+b;},0)/respTimes.length:0;
   var avgSolve=solveTimes.length?solveTimes.reduce(function(a,b){return a+b;},0)/solveTimes.length:0;
-  var metSla=respTimes.filter(function(t){return t<=sla;}).length;
-  var slaRate=total>0?metSla/total:0;
+  var metSla=slaValid?respTimes.filter(function(t){return t<=sla;}).length:0;
+  var slaRate=(slaValid && respTimes.length)?metSla/respTimes.length:null;
 
-  const __g2='<div class="stat-card"><div class="val" style="color:var(--primary);">'+fmt(avgResp)+'分</div><div class="lbl">平均响应时间</div></div>'+
+  const __g2='<div class="stat-card"><div class="val" style="color:var(--primary);">'+(respTimes.length?fmt(avgResp):'--')+'分</div><div class="lbl">平均响应时间</div></div>'+
     '<div class="stat-card"><div class="val">'+(resolveRate*100).toFixed(1)+'%</div><div class="lbl">解决率</div></div>'+
-    '<div class="stat-card"><div class="val" style="color:'+(slaRate>=0.9?'var(--success)':'var(--danger)')+';">'+(slaRate*100).toFixed(1)+'%</div><div class="lbl">SLA达标率</div></div>'+
+    '<div class="stat-card"><div class="val" style="color:'+(slaRate==null?'var(--text-muted)':(slaRate>=0.9?'var(--success)':'var(--danger)'))+';">'+(slaRate==null?'--':(slaRate*100).toFixed(1)+'%')+'</div><div class="lbl">'+(slaValid?'SLA达标率':'SLA目标需为正数')+'</div></div>'+
     '<div class="stat-card"><div class="val">'+total+'</div><div class="lbl">工单总数</div></div>'+
-    '<div class="stat-card"><div class="val p50">'+fmt(percentile(respTimes,0.5))+'分</div><div class="lbl">P50响应</div></div>'+
-    '<div class="stat-card"><div class="val p90">'+fmt(percentile(respTimes,0.9))+'分</div><div class="lbl">P90响应</div></div>'+
-    '<div class="stat-card"><div class="val p99">'+fmt(percentile(respTimes,0.99))+'分</div><div class="lbl">P99响应</div></div>'+
-    '<div class="stat-card"><div class="val">'+fmt(avgSolve)+'分</div><div class="lbl">平均解决时间</div></div>';document.getElementById('stats').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    '<div class="stat-card"><div class="val p50">'+(respTimes.length?fmt(percentile(respTimes,0.5)):'--')+'分</div><div class="lbl">P50响应</div></div>'+
+    '<div class="stat-card"><div class="val p90">'+(respTimes.length?fmt(percentile(respTimes,0.9)):'--')+'分</div><div class="lbl">P90响应</div></div>'+
+    '<div class="stat-card"><div class="val p99">'+(respTimes.length?fmt(percentile(respTimes,0.99)):'--')+'分</div><div class="lbl">P99响应</div></div>'+
+    '<div class="stat-card"><div class="val">'+(solveTimes.length?fmt(avgSolve):'--')+'分</div><div class="lbl">平均解决时间</div></div>';document.getElementById('stats').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
   var bins=[{label:'0-5分',min:0,max:5},{label:'5-15分',min:5,max:15},{label:'15-30分',min:15,max:30},{label:'30-60分',min:30,max:60},{label:'60分+',min:60,max:Infinity}];
   var counts=bins.map(function(b){
@@ -322,8 +327,8 @@ function calc(){
 
   var body=document.getElementById('detailBody');
   const __g4=tickets.map(function(t){
-    var ok=t.resp<=sla;
-    return '<tr><td>'+ToolBox.escHtml(t.id)+'</td><td>'+fmt(t.resp)+'</td><td>'+(t.solve>0?fmt(t.solve):'-')+'</td><td>'+(t.status==='resolved'?'已解决':'处理中')+'</td><td style="color:'+(ok?'var(--success)':'var(--danger)')+';">'+(ok?'达标':'超标')+'</td></tr>';
+    var ok=slaValid && t.resp!=null && t.resp<=sla;
+    return '<tr><td>'+ToolBox.escHtml(t.id)+'</td><td>'+(t.resp!=null?fmt(t.resp):'-')+'</td><td>'+(t.solve!=null&&t.solve>0?fmt(t.solve):'-')+'</td><td>'+(t.status==='resolved'?'已解决':'处理中')+'</td><td style="color:'+(slaValid?(ok?'var(--success)':'var(--danger)'):'var(--text-muted)')+';">'+(slaValid?(ok?'达标':'超标'):'-')+'</td></tr>';
   }).join('');body.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 
