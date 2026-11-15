@@ -158,7 +158,9 @@ ToolBox 文本工具
       <label><input type="checkbox" id="keepSpace"> 保留空格位置</label>
       <label><input type="checkbox" id="keepPunc"> 保留标点位置</label>
       <label><input type="checkbox" id="seeded"> 使用固定种子（可复现）</label>
+      <label>种子 <input type="number" id="seed" value="12345" min="1" max="9999999" style="width:100px;" oninput="shuffle()"></label>
     </div>
+    <p id="seedUsed" style="font-size:13px;color:var(--text-muted);margin:4px 0 0;" data-zh="未启用固定种子（每次结果不同）">Randomly reorder lines or character sequences for draws, random sampling and classroom demos, with a repeatable shuffle in the browser.</p>
     <div class="toolbar">
       <div id="text_shufflePresets"></div>
       <button type="button" class="btn primary" onclick="shuffle()">打乱</button>
@@ -305,13 +307,16 @@ function shuffle(){
   const keepSpace = document.getElementById('keepSpace').checked;
   const keepPunc = document.getElementById('keepPunc').checked;
   const seeded = document.getElementById('seeded').checked;
-  if(seeded) seedState = 12345;
+  // BS-N97：种子可编辑并回显，不再固定 12345
+  const seedInput = document.getElementById('seed');
+  const seedVal = Math.abs(parseInt(seedInput.value, 10)) || 12345;
+  if(seeded){ seedState = seedVal; }
 
   let out = text;
   if(mode === 'chars'){
     if(keepSpace || keepPunc){
       const arr = text.split('');
-      const positions = arr.map((ch, i) => ({ch, i, keep: (keepSpace && /\s/.test(ch)) || (keepPunc && /[，。！？；：、,.!?;:'"()\[\]<>]/.test(ch))}));
+      const positions = arr.map((ch, i) => ({ch, i, keep: (keepSpace && /\s/.test(ch)) || (keepPunc && /\p{P}/u.test(ch))}));
       const toShuffle = positions.filter(p => !p.keep).map(p => p.ch);
       const shuffled = shuffleArr(toShuffle, seeded);
       let idx = 0;
@@ -320,7 +325,8 @@ function shuffle(){
       out = shuffleArr(text.split(''), seeded).join('');
     }
   }else if(mode === 'words'){
-    out = shuffleArr(text.split(/(\s+)/), seeded).join('');
+    // 仅打乱词，词间统一单空格，空白不参与洗牌（BS-N95）
+    out = shuffleArr(text.split(/\s+/).filter(Boolean), seeded).join(' ');
   }else if(mode === 'lines'){
     out = shuffleArr(text.split('\n'), seeded).join('\n');
   }else if(mode === 'charsInLine'){
@@ -330,9 +336,11 @@ function shuffle(){
     }).join('\n');
   }else if(mode === 'wordsInLine'){
     out = text.split('\n').map(line => {
-      return shuffleArr(line.split(/(\s+)/), seeded).join('');
+      return shuffleArr(line.split(/\s+/).filter(Boolean), seeded).join(' ');
     }).join('\n');
   }
+  const seedUsed = document.getElementById('seedUsed');
+  if(seedUsed) seedUsed.textContent = seeded ? ('本次种子：' + seedVal) : '未启用固定种子（每次结果不同）';
   result.textContent = out;
 }
 

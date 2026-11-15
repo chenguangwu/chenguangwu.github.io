@@ -178,6 +178,7 @@
       <label><input type="checkbox" id="sentenceVar" checked> 句长随机变化</label>
     </div>
     <div class="toolbar">
+      <div id="lorem_ipsum_advancedPresets"></div>
       <button type="button" class="btn primary" onclick="generate()">生成</button>
       <button type="button" class="btn success" onclick="copyResult(event)">复制结果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
@@ -326,18 +327,17 @@ function generate(){
 
   let out = '';
   if(currentMode === 'paragraphs'){
-    const arr = [];
+    const raw = [];
     for(let i = 0; i < count; i++){
-      const p = generateParagraph(lang, classicStart && i === 0);
-      // 注意：段落标签用字符串拼接而非字面量——构建脚本的英文 intro 预渲染
-      // 取首个 p 元素，若此处出现字面量会抢先命中（内容无中文被跳过），
-      // 导致下方真正的中文简介段落拿不到 data-zh，英文首抓丢失正文。
-      arr.push(html ? '<' + 'p>' + p + '</' + 'p>' : p);
+      raw.push(generateParagraph(lang, classicStart && i === 0));
     }
+    // 勾「第一段作为标题」时把首段提升为标题并从正文移除，总块数仍为 count（BS-N106）
+    let title = null;
+    if(addTitle && raw.length) title = raw.shift();
+    const arr = raw.map(p => html ? '<' + 'p>' + p + '</' + 'p>' : p);
     out = arr.join('\n\n');
-    if(addTitle){
-      const title = generateSentence(lang, classicStart);
-      out = (html ? '<h2>' + title + '</h2>' : '# ' + title) + '\n\n' + out;
+    if(title){
+      out = (html ? '<h2>' + title + '</h2>' : '# ' + title) + (out ? '\n\n' + out : '');
     }
   }else if(currentMode === 'sentences'){
     const arr = [];
@@ -496,10 +496,20 @@ function __lorem_ipsum_advancedExport(){
     try{
         var box=document.querySelector('#lorem_ipsum_advancedTable');
         if(!box||!box.querySelector('tr')){
-            var snap=__lorem_ipsum_advancedSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __lorem_ipsum_advancedRender(keys,en?'Result':'结果',en);
+            var res=(document.getElementById('result').textContent||'').trim();
+            if(res && res.indexOf('请点击') !== 0){
+                // 直接导出当前结果，首次打开也能导出（BS-N108）
+                var esc=function(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+                var en0=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?true:false;
+                box.innerHTML='<table><thead><tr><th>'+(en0?'Field':'项目')+'</th><th>'+(en0?'Value':'内容')+'</th></tr></thead><tbody>'+
+                    '<tr><td>'+(en0?'Mode':'模式')+'</td><td>'+esc(currentMode)+'</td></tr>'+
+                    '<tr><td>'+(en0?'Result':'结果')+'</td><td>'+esc(res)+'</td></tr></tbody></table>';
+            }else{
+                var snap=__lorem_ipsum_advancedSnap(); var keys=Object.keys(snap);
+                if(keys.length>12) keys=keys.slice(0,12);
+                var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+                __lorem_ipsum_advancedRender(keys,en?'Result':'结果',en);
+            }
         }
     }catch(e){}
     try { TBKit.util.exportTable('#lorem_ipsum_advancedTable','lorem-ipsum-advanced.csv'); } catch(e){}
@@ -509,11 +519,16 @@ function __lorem_ipsum_advancedPresets(){
     TBKit.preset.bar('#lorem_ipsum_advancedPresets',[{label:'默认参数',labelEn:'Default',values:{count:'3', lang:'latin', classicStart:'1'}},
   {'label':'中文3段','labelEn':'Chinese x3','values':{'count':'3','html':'','addTitle':'','sentenceVar':'','lang':'zh','classicStart':'0'}},
   {'label':'拉丁带标题','labelEn':'Latin Titled','values':{'count':'5','html':'true','addTitle':'true','sentenceVar':'','lang':'latin','classicStart':'1'}},
-  {'label':'中英混合','labelEn':'Mixed','values':{'count':'4','html':'','addTitle':'','sentenceVar':'true','lang':'mixed','classicStart':'0'}}],function(){ setMode(); });
+  {'label':'中英混合','labelEn':'Mixed','values':{'count':'4','html':'','addTitle':'','sentenceVar':'true','lang':'mixed','classicStart':'0'}}],function(){ generate(); });
 }
 var __lorem_ipsum_advanced_f0=(typeof setMode==='function')?setMode:null;
 if(__lorem_ipsum_advanced_f0){
     setMode=function(){ var __r=__lorem_ipsum_advanced_f0.apply(null,arguments); try{ __lorem_ipsum_advancedExtras(); }catch(e){} return __r; };
+}
+// 生成后同步数据表/历史，默认路径导出不再为空（BS-N108）
+var __lorem_ipsum_advanced_g0=(typeof generate==='function')?generate:null;
+if(__lorem_ipsum_advanced_g0){
+    generate=function(){ var __r=__lorem_ipsum_advanced_g0.apply(null,arguments); try{ __lorem_ipsum_advancedExtras(); }catch(e){} return __r; };
 }
 function __lorem_ipsum_advancedBoot(){ try{ __lorem_ipsum_advancedPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __lorem_ipsum_advancedBoot();

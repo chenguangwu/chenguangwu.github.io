@@ -771,7 +771,7 @@
 - 影响：繁转简输出仍是繁体或异体，不可直接发布。假工具：否。
 - 方案：独立维护 t2s 对照表（或采用标准简繁字表），禁止用 s2t 反转；反转时剔除恒等与异体条目。
 
-### BS-N95 文本打乱：单词级把空白当元素洗牌，空格丢失/前导（中，确认缺陷）
+### BS-N95 文本打乱：单词级把空白当元素洗牌，空格丢失/前导 — 2026-11-15 已修复（578 批：仅洗词，词间统一单空格）
 - 页面：`tools/biz/text-shuffle.html`
 - 问题：`words` 与 `wordsInLine` 用 `text.split(/(\s+)/)` 把空白 token 一起洗牌，词间空格位置随机。
 - 证据：`tools/biz/text-shuffle.html:334`、`:344`（`split(/(\s+)/)`）、`:301-308`（洗牌）。
@@ -779,7 +779,7 @@
 - 影响：打乱后的名单/句子出现粘连词，复制即错。假工具：否。
 - 方案：按 `\s+` 分词、仅洗词数组、再以单空格/原分隔符连接。
 
-### BS-N96 文本打乱：保留标点只覆盖少量 ASCII/中文标点（中，确认缺陷）
+### BS-N96 文本打乱：保留标点只覆盖少量 ASCII/中文标点 — 2026-11-15 已修复（578 批：保留标点改用 \p{P}）
 - 页面：`tools/biz/text-shuffle.html`
 - 问题：`keepPunc` 正则只有 `[，。！？；：、,.!?;:'"()\[\]<>]`，缺 `“”‘’「」『』—…《》【】（）`。
 - 证据：`tools/biz/text-shuffle.html:325`。
@@ -787,7 +787,7 @@
 - 影响：中文排版标点被打散，结果不可读。假工具：否。
 - 方案：改用 `\p{P}`（`u` 标志）或补齐中文标点集合。
 
-### BS-N97 文本打乱：固定种子无输入/展示，承诺的「记住种子」不可执行（中，承诺未实现）
+### BS-N97 文本打乱：固定种子无输入/展示，承诺的「记住种子」不可执行 — 2026-11-15 已修复（578 批：新增可编辑种子并回显本次种子）
 - 页面：`tools/biz/text-shuffle.html`
 - 问题：`seedState` 恒为 12345 且每次 `shuffle()` 重置；页面无种子输入框、无 seed 展示，但 FAQ 与 deep-dive 均写「记下种子」。
 - 证据：`tools/biz/text-shuffle.html:296`（固定初值）、`:301-308`（`seedRand`）、`:319`（每次重置）、`:170-171`（仅 keepPunc/seeded 两个复选框，无 seed 输入）、`:227`（承诺「记下种子」）。
@@ -859,7 +859,7 @@
 - 影响：清洗结果残留全角数字与中文引号。假工具：否。
 - 方案：数字改 `\p{Nd}`（`u` 标志），补引号码位与扩展 A/B 范围。
 
-### BS-N106 高级 Lorem：勾「第一段作为标题」实际新增标题，段数 +1（中，确认缺陷）
+### BS-N106 高级 Lorem：勾「第一段作为标题」实际新增标题，段数 +1 — 2026-11-15 已修复（578 批：首段提升为标题并移出正文，总块数不变）
 - 页面：`tools/biz/lorem-ipsum-advanced.html`
 - 问题：`generate()` 在 `addTitle` 时新生成一条 title 并前置，既未把第一段提升为标题，也未移除第一段。
 - 证据：`tools/biz/lorem-ipsum-advanced.html:349-352`（新生成 title 并拼接）、`:339-348`（仍输出完整 count 段）。
@@ -867,7 +867,7 @@
 - 影响：复制到页面后多出一段，版式预览段数不符合设置。假工具：否。
 - 方案：取 `arr[0]` 作 title、`arr.shift()` 后再拼接。
 
-### BS-N107 高级 Lorem：预设容器不存在，回调调用 setMode 缺参抛错（中，确认缺陷）
+### BS-N107 高级 Lorem：预设容器不存在，回调调用 setMode 缺参抛错 — 2026-11-15 已修复（578 批：补预设容器，回调改 generate）
 - 页面：`tools/biz/lorem-ipsum-advanced.html`
 - 问题：`__lorem_ipsum_advancedPresets()` 调用 `TBKit.preset.bar('#lorem_ipsum_advancedPresets', …)`，但页面没有该 id（仅有 `data-tb="preset"` 容器），预设按钮不渲染；回调 `function(){ setMode(); }` 缺 `btn`，`setMode` 内 `btn.classList` 抛 TypeError。
 - 证据：`tools/biz/lorem-ipsum-advanced.html:495-500`（预设注册与回调）、`:155`（实际容器）、`:286-291`（`setMode(btn)` 使用 `btn`）。
@@ -875,7 +875,7 @@
 - 影响：预设功能整体不可用。假工具：否。
 - 方案：容器改为实际 id（或删除自建 bar，改用 `data-tb` 内置机制）；回调改调 `generate()`。
 
-### BS-N108 高级 Lorem：generate 未挂 extras，数据表/历史/导出默认空（中，确认缺陷）
+### BS-N108 高级 Lorem：generate 未挂 extras，数据表/历史/导出默认空 — 2026-11-15 已修复（578 批：generate 包装写历史；首次导出回退当前结果）
 - 页面：`tools/biz/lorem-ipsum-advanced.html`
 - 问题：`__lorem_ipsum_advancedExtras` 只包装了 `setMode`；页面加载与「生成」按钮都直接调 `generate`，不写历史/表格，`exportTable` 静默返回。
 - 证据：`tools/biz/lorem-ipsum-advanced.html:387`（加载即 `generate()`）、`:192`（生成按钮）、`:206`（导出按钮）、`:491-493`（导出读表）、`:502-505`（仅包装 `setMode`）。
