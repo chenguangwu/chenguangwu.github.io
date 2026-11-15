@@ -103,53 +103,6 @@
 - 影响：`tools/chess/elo-rating.html`；概率区误导用户，尤其对和棋常见的棋类。
 - 方案：改标「预期得分率」并说明含和棋；或引入可输入的历史和棋率再拆分胜/和/负，删除或启用 `drawProb`。
 
-### FE-N6 和弦解析把 `Cmaj`/`Cmajor` 判成小三和弦（高，原报函数缺陷 → **2026-11-07 复核：历史快照误报，当前源码已正确**）
-- 原描述：后缀匹配在归一化之前用 `suffix.startsWith(s)`，`maj`/`major` 先命中单字符 `m`（小三），永远走不到 `maj→M` 的归一化分支；`Cmaj` 输出 C–D♯–G。
-- 原证据：`tools/music/chord-notes.html:478-512`（类型表）、`:593-600`（首轮前缀匹配）、`:602-616`（归一化仅在未匹配时执行）。
-- 复核结论（2026-11-07）：当前源码 `parseChord`（行 592-621）**首轮即 `suffix === s` 全等匹配**（无 `startsWith` 前缀误判），未命中才走归一化分支 `maj→M`/`min→m` 并再次全等匹配；`Cmaj` → type=`M` → 类型标签「`CM · 大三和弦`」（C-E-G），`Cm` → type=`m` →「`Cm · 小三和弦`」。原 `startsWith` 缺陷不复存在。
-- 实证：在 `scripts/verify_fun_calc.js` 新增 2 条 discriminating 锁定用例（注入 `Cmaj`→期望 `CM · 大三和弦`；`Cm`→期望 `Cm · 小三和弦`），`discriminate_check.js` 全量 28/28 正确变红、0 逃生项（默认 `chordInput=C` 渲染「`C · 大三和弦`」，不命中本锚 ⇒ 零逃生）。
-
-### FE-N9 FEN 历史回填调用无参 `loadPreset()`，输入框被写成字符串 `undefined`（高，**2026-11-07 复核：历史快照误报，当前源码已正确**）
-- 描述（原）：历史「恢复」回调末尾调用 `loadPreset()` 而不传记录中的 FEN，`presets[undefined]` 为 `undefined`，被写进输入框并渲染为无效局面。
-- 证据（原）：`tools/fun/chess-fen-viewer.html:405-418`、`tools/fun/chess-fen-viewer.html:329-332`、`tools/fun/chess-fen-viewer.html:270-274`。
-- **复核结论（2026-11-07）**：当前提交 HEAD 已无此缺陷，属历史快照误报。
-  1. 历史「恢复」回调（`:408-422`）已改为**直接读 `rec[k]` 回填各输入**（`e.value=rec[k]`）后 `render(document.getElementById('fen').value)`，**不再调用 `loadPreset()`**，无 `undefined` 写入路径。`git show HEAD:tools/fun/chess-fen-viewer.html` 已确认。
-  2. `loadPreset(k)`（`:329-335`）已加守卫：`var v = (k && presets[k]) ? presets[k] : document.getElementById('fen').value;` —— 即使无参调用也回退当前输入框值，不会写 `undefined`。
-  3. 预设条 `function(){ loadPreset(); }` 亦正确：`js/tool-kit.js:preset.bar`（`:1048-1053`）在调用 `after()` **之前**已对每项 `p.values` 执行 `setValue('#'+k, p.values[k])`（即把预设 FEN 写进 `#fen` 并派发 `input`/`change` → `render`），故 `loadPreset()` 无参读到的是刚写入的预设 FEN，预设按钮行为正确。
-  4. 已修复该问题的提交：`6a13067673`（"FEN历史回填"）、`44df5bf8a0`（"修复 FEN 回填"）。
-- 处置：仅复核，**未改源码、未加 harness 锁**（该历史恢复路径属 harness 盲区，且现行源码 déjà 正确，加锁无判别增益）。
-- 遗留可查（非本次范围）：无。
-
-### FE-N11 五子棋禁手判定顺序错误，三三/四四分支忽略连子数（高，**2026-11-07 复核：历史快照误报，当前源码已正确**）
-- 描述（原）：`three_three`/`four_four` 分支只看 `liveCount`，完全不读 `stoneCount`，长连与五连被误判；`custom` 分支又要求 `stones===5 && live<2` 才判五连，导致「恰好五连同时含活三」被判禁手。
-- 证据（原）：`tools/chess/gomoku-forbidden.html:287-296`、`:304-309`、`:315-316`。
-- **复核结论（2026-11-07）**：当前提交 HEAD 已无此缺陷，属历史快照误报。原 `three_three`/`four_four`/`stoneCount`/`liveCount`/`custom` 分支已不存在，整页 `analyzePoint`（`:377-411`）重构为 `runLen`/`hasFour`/`hasLiveThree`/`hasOpenFour` 实现，优先级为「五连胜利（`five>0`）→ 长连（`over>=6`）→ 四四（`fours>=2`）→ 三三（`threes>=2`）→ 合法」，且 `five`/`over` 直接读 `runLen` 实际连子数，不再忽略连子数。
-- **验证（`scripts/_verify_fun_batch_fe_n11.mjs` JSDOM 真机四态）**：
-  - 六连（点 (7,0) 接 (7,1-5)）→ 实得 **长连禁手**（长连优先于三三）；
-  - 恰好五连（点 (7,5) 接 (7,1-4)）→ 实得 **五连胜利**（五连优先于禁手）；
-  - 双四（(7,4-6)+(4-6,7) 接 (7,7)）→ 实得 **四四禁手**；
-  - 双活三（(7,5-6)+(5-6,7) 接 (7,7)）→ 实得 **三三禁手**。
-  - 4/4 通过，证明现行实现分类与优先级正确，原「五连/长连被误判」不成立。
-- 处置：仅复核，**未改源码**；以 `_verify_fun_batch_fe_n11.mjs` 作为回归锁（harness 对棋盘 2D 数组落子属盲区，JSDOM 真机更准确）。
-- 遗留可查（非本次范围）：无。
-
-### FE-N12 五子棋禁手页宣称自动识别活三/冲四/连五，实际无棋盘与落子输入（中，**2026-11-07 复核：历史快照误报，当前源码已正确**）
-- 复核结论：台账旧描述所引「只有 select + 两个 number 输入、预设 liveCount:'6' 越界」在当前源码**已不存在**。当前 `tools/chess/gomoku-forbidden.html` 已有完整实现：15×15 棋盘 `#goBoard`（`:154`）、坐标输入 `#goCol/#goRow` + `analyzeCoordinate()`（`:413`）、`loadBoardInput()` 粘贴 15 行局面（`:421`）、`loadPreset(0/1/2)` 三三/长连/五连示例（`:439`）、`analyzePoint()` 四方向扫描（`:377`）。全文 `grep liveCount` 无命中。
-- 判别力实测：`scripts/_verify_fun_batch_fe_n12.mjs` JSDOM 真机：loadPreset(0)→三三禁手、loadPreset(1)→长连禁手、loadPreset(2)→五连胜利，3/3 通过。FE-N11 脚本亦已证明 analyzePoint 优先级正确。
-- 处置：**未改源码**，仅加 JSDOM 回归锁 + 台账对账。
-
-### FE-N15 象棋残局「一步杀」5 条中 4 条含两步红方着法（中，**2026-11-07 复核：历史快照误报，当前源码已正确**）
-- 复核结论：台账旧描述所引「one 列表含红方着法序列、4/5 条 >1 着」在当前源码**已不存在**。当前 `tools/chess/xiangqi-endgame.html` 的 `ENDGAMES`（`var ENDGAMES={...}` 行 248）每条只有 `title/desc/keys`（成杀条件/要点/注意），**无任何 move/steps/solution 着法序列字段**；`grep moves\|steps\|solution\|红方着法` 仅在页面说明性文案命中（行 130/132/133/170/197/199/202），均明示「不提供具体着法 / 不含棋盘输入与着法推演 / 卡片为教学要点不是棋谱」。说明区（行 132-133、170、197、199、202）反复声明本页为「成杀条件速查」而非杀法求解器。
-- 判别力：源码结构复核 + grep 全量无着法序列字段 → 不存在「一步杀含两步红方着法」的数据结构。
-- 处置：**未改源码**，仅台账对账（历史快照误报）。
-- 影响：`tools/chess/xiangqi-endgame.html`；训练分类失真，用户按「一步杀」练习会得到两步杀题。
-- 方案：把这 4 条迁入「两步杀」或改写为真正的单着绝杀；渲染前按红方着法数断言分类。
-
-### FE-N16 残局页面称「输入某残局并判一步杀」，实际只有静态题库；查阅频次按卡片标题串统计（中，**2026-11-07 部分修复**）
-- **①「输入并判一步杀」宣称**：复核为**历史快照误报**。当前 `tools/chess/xiangqi-endgame.html` 无输入控件（无 `<input>`/判定逻辑），且页面多处明示「不含棋盘输入与着法推演 / 不提供具体着法 / 卡片为教学要点不是棋谱」（行 130/132/133/170/197/199/202），meta 仅称「成杀条件与要点速查」。原台账所引 `:199`（输入并判定描述）与 `:137-152`（无 input）属旧版。
-- **②查阅频次按拼接串统计（真实行为 → 已修复）**：原 `__tbn`（行 387-417）取所有 `.endgame-card.open` 标题 join 为 `A + B` 记录，频次图按拼接串计数、不可解释。修复：`__tbn(tab,idx)` 只记录刚被点开的**单个**残局标题（卡片含 `open` 类才记），`toggleCard` 包装器把 `tab/idx` 透传给 `__tbn`；频次按单项去重计数。
-- 判别力：源码逻辑复核（无拼接记录）；当前页面无 input/判定，故①认定历史快照误报、未改文案。
-
 ### 留存优化
 - `tools/chess/elo-rating.html`：本地保存常用「我的分/对手分/K/局数」组合与最近对局序列，便于赛后连续估算；仅存本机、可一键清空。
 - `tools/music/chord-notes.html`：复用已有本地历史，增加「收藏和弦清单/最近 10 个和弦」与一键生成和弦卡文本，方便练习复盘。
@@ -161,12 +114,6 @@
 - 已覆盖页与既有记录不重复：本文件前述已查 `typing-rhythm`、`coin-toss-streak`、`bingo-generator`、`bridge-scoring`、`go-territory`、`beat-subdivision`、`freq-note-converter`，本批未重复审计。
 
 ## T 批 文娱游戏覆盖（2026-11-04）
-
-### FE-N17 五子棋 AI 评分跨空格累加，「隔一空点」被当成四连，实测弃堵活三（高，**2026-11-07 复核：历史快照误报，当前源码已正确**）
-- 复核结论：台账旧描述所引「`score()` 遇空格/对方不 break、跨空格累加」在当前源码**已不存在**。`tools/fun/gomoku-ai.html` 现有 `lineScore(r,c,color)`（行 312-342）方向扫描逻辑为：`if (board[nr][nc]===color){count++;k++;continue;} if (board[nr][nc]===EMPTY){openA=true;} break;` —— **非同色立即 break、不跨空格累加**；且按连续 `count` 与两端开口 `bothOpen/openA||openB` 分档（活四 100000 / 冲四 10000 / 活三 5000 / 眠三 50 等），行 311 注释明文「不跨空格累加」。
-- AI 落子 `aiMove()`（行 350-369）用 `lineScore(r,c,WHITE)*1.0 + lineScore(r,c,BLACK)*1.15`：同时评估「己方落此的进攻值」与「对方落此的威胁值」（防守权重更高），**会主动堵对方活三/活四**。台账所引 `:342` 的 `score(WHITE)*1.6+score(BLACK)*0.8` 为旧版权重与旧函数名，已重构。
-- 判别力：源码逻辑复核 + 评分函数结构（连续计数 + 两端开放分档 + 双色评估）证明当前实现正确。
-- 处置：**未改源码**，仅台账对账（历史快照误报，同 N6/N9/N11/N12/N15）。
 
 ### FE-N19 对战战绩历史永不落库：记录回调引用未定义变量，异常被空 catch 吞掉（中，确认源码缺陷）
 - 问题：`place` 的包装器用无参 `function () {}`，内部直接引用 `r`/`c`/`color`，这三个名字只存在于原 `place(r,c,color)` 的局部作用域，包装器执行时抛 `ReferenceError`，被 `catch (e) {}` 静默吞掉，`__tbHistSave` 从未被调用。

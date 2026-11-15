@@ -26,16 +26,11 @@
 - 备注：原型属性词频 bug（`wordFreq={}` 遇 constructor 得 NaN）已于第282批改 `Object.create(null)` 真机验证并销账，verify 强锁 1689/1689；本条仅余总词数口径一项。
 
 ### 历史结论状态
-- Unicode 查询 IT-N554–N556 已于第212批真机验证并销账：U+/0x 码点检索、1342 条标准名称表、`data-code` 复制均在位。
 - 原文本统计 IT-N39 已于第243批销账：字素簇统计 + 码点数分列、句号保护小数与缩写、裸 CR 切行均已真机回归。本批另阅读 SQL、SQLite、tmux 速查及字符串混淆主要交互，未穷举内容正确性或运行页面。
-- 正则转义 IT-N58 已于第246批真机复核销账：非法/越界转义校验后保留字面、不抛异常。IT-N59（额外元字符集合 + 风格下拉绑定）已于第295批修复销账：VERBOSE_META 集合确认正确，#flavor 补 onchange 并真机验证。
 - Rust 转义 IT-N338 旧字节串非法 `\u{}` 路径已变化，当前 `tools/it/rust-escape.html:287-295` 明确拒绝非 ASCII；未运行编译回归，不正式销账。本批另阅读 REST、Ruby、Rust 速查搜索、分类和复制，未穷举语法正确性或运行页面。
 - 番茄钟 IT-N480、N481 已改为时间戳计时与跳过不落账并销账（第181批）；Redis IT-N543、N544 的原示例尚需独立复核（正则速查 IT-D30 已独立复核并修复，第170批）。本批另阅读 PostgreSQL、Python、Redis、正则速查的搜索、分类与复制，不把源码阅读当作运行通过。
-- 密码强度 IT-N536–N538 已于第214批真机验证并销账：三档破解速率标签与除数一致（10亿/1000亿/1万亿 与 seconds、/100、/1000 同步）、熵判读按 <40/<60/<120 阈值单列且与清单等级并存、弱点清单（常见片段/重复/序列）提示到位；MySQL、Nginx、PHP 速查历史示例正确性仍待单独复核。
-- IT-N288/N289/N290 已于第211批真机回归并销账：XSS 防护（escAttr + safeUrl 协议白名单）与 GFM 任务清单复选框均在位，`#` 已改渲染 h1。
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423 的数据范围问题仍在（N308/N309 已于第242批销账：country-flag 引据改 ISO 3166-1 口径 + 空结果双语提示）。
-- IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
 - IT-N170–N173 第217批销账（`calc-3`）、IT-N174–N177 第218批（`matrix-transpose`）、IT-N178–N180 第219批（`http-cookies` 与 4 个 HTTP 页过期示例）、IT-N181–N184 第220批（`text-to-ascii`）、IT-N185–N190 第221批（`shell-script-formatter`）、IT-N191–N195 第222批（`unit-converter-advanced`）、IT-N196–N198 第223批（`html-entities-encode`）、IT-N199–N201 第224批（`json-to-toml`）、IT-N202–N206 第225批（`plist-parser` 与 `char-encoder`）、IT-N207–N211 第226批（`char-encoder` 实体补全与 `basic-auth-generator` 冒号/charset）、IT-N212–N216 第227批（`nanoid-generator` 与 `markdown-table-generator`）、IT-N217–N221 第228批（`markdown-table-generator` CSV 解析与 `wifi-qr-generator` 改名），详见下方覆盖行；IT-N222–N226 第229批（`phone-screen-sizes` 页签默认态/DPR 列/描述去重、`rabbit` RFC 4503 全量对齐与 32 hex 密钥语义）；IT-N227 与 IT-N230–N232 第230批（`rabbit` 严格 IV/解密格式、`sms-qr` 真实 QR 补证据与号码校验/NaN 守卫移除）；IT-N228/N229 与 IT-N233–N235 第231批（MySQL 8.0 语法纠偏、hypothesis-test 单尾效能与远尾 p 精度），详见移交档。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
@@ -54,11 +49,9 @@
 
 ## 进度
 - 🟢 批次 2026-10-26：I1 耗时实测、I2 toml-formatter 严格校验、I3 barcode PNG 导出均已落地。
-- 🔴 待开发：S4 分享卡。（注：QR 中心 logo、纠错级别对比、S6 正则速查输入联想均已落地/销案，见上方已修复归档）
+- 🔴 待开发：S4 分享卡。
 
 ## 2026-11-03 审计补充（按工作树静态核查）
-
-- `toml-formatter`：IT-N1 验证/格式化/转换已统一走严格 `parseToml`（TOML 1.0 语法子集），裸值 `a = nope`、重复键 `a=1/a=2` 一律抛错并显示行号，三条入口（validateToml / formatToml / tomlToJson）一致拒绝、不再静默把非法内容"修"成合法；三引号多行字符串完整保留行间换行。源码已由其他 Agent 修好，清单漏销账，第213批补真机证据 13/13，缺陷态注入（换回宽松逐行解析）2/13（11 项红）。本批未改源码。
 
 ### 覆盖
 - 本轮人工查看 `tools/it/toml-formatter.html`、`tools/it/ast-viewer.html`、`tools/it/jwt-parser.html` 共 3 页，TOML 执行原函数取证；未逐页审计其余 IT 页面，未做真实浏览器测试或重跑门禁。
@@ -72,11 +65,8 @@
 
 ### 留存优化
 - `tools/it/list-converter.html:262`：裸 CR 切分已支持（第260批补真机证据）；`map(trim).filter(Boolean)` 仍静默丢弃空项与行首/行尾缩进，需补「保留空项/缩进」开关。
-- `properties-parser.html`：\uXXXX 不解码问题已于第299批修复销账（unescapeKey/Val 统一 __ppUni，占位符保护字面反斜杠）。
-- `properties-parser.html`：行尾双字面反斜杠被误当续行符问题已于第301批修复销账（按行尾连续反斜杠奇偶判定：偶数不续行、奇数才续行；真机双态验证偶数不吞行、奇数仍续行）。
 - `url-parser.html` 构造器端口范围：host 为空生成 `https:///path` 已于第303批修复（空 host 显示双语提示并返回空串、copyBuiltUrl 不复制）。端口子问题——`b-port` 为 `type=number`，真机原生已挡非数字输入；但 1-65535 范围未校验，脚本注入超范围值仍可构造畸形端口，是否加范围校验待裁断。
 - `slugify.html`：拼音表「音频」拼写错误已于第298批修复销账（yinpinyin→yinpin）；297 的 15 字长键因贪心上限 8（324）永远匹配不到，属冗余数据（清理性质，未处理）。
-- `text-truncate.html`：chars 模式 `fromEnd` 忽略 `wordBoundary` 的不对称问题已于第302批修复销账（反向对称地把词中间起点推进到下一词首，真机四态验证且不超预算）。
 - `case-converter.html:384` `toSentenceCase` 先整体小写，专有名词与缩写（NASA、iOS）会被降格，如需保留应改为逐句首字母处理。
 
 ### 续查覆盖
@@ -86,9 +76,6 @@
 ## 2026-11-03 续查（并行批 J）
 
 ### 留存优化
-- `tools/it/text-cleaner.html`：空输入残留问题已于第296批修复销账（清空结果与统计）。
-- `tools/it/text-cleaner.html`：swapText 统计不同步已于第296批修复销账（四项统计全量重算）。
-- `tools/it/whitespace.html`：空文本输出单个换行问题已于第297批修复销账（top_trail 加非空守卫）。
 - `tools/it/text-diff.html:412-421`：没有换行符统一选项，但 352 的 FAQ 建议“先统一换行符再比对”，本页无法完成该前置步骤；`renderUnifiedDiff:552-554` 的相同行只渲染旧文本，忽略大小写/空白时展示与右侧不一致。
 - `tools/it/text-diff.html:304`：统计卡宣称算法为 Myers，实际实现是 LCS 动态规划，文案与实现不一致。
 - `tools/it/line-ending-converter.html`：`clearLe` 未清空 `#leViz` 子问题经第303批真机复核确认已由早前批次修复（清空后回「等待输入」、无残留 mark），销账；`299-305` 主换行符并列时固定优先报 CRLF 仍需裁断口径，保留。
@@ -182,23 +169,11 @@
 
 - 留存建议（bacon-cipher）：①映射表补 A/B 大写列（当前只展示 a/b 与 0/1，与 upper 模式不一致）；②24 版解码遇 IJ/UV 当前统一显示为 I/U，可考虑提示「I 或 J」「U 或 V」歧义。
 
-- 留存建议（hill-cipher）：①LN 算例、②矩阵元素 mod 26 与整数校验、③删除 3×3 承诺并显示规范化矩阵，均已于第258批完成。
-- 留存建议（hill-cipher）：①修正 LN 算例；②矩阵元素统一 mod 26 并校验整数；③补 3×3 或删掉该承诺，同时在“矩阵信息”里显示规范化后的矩阵。
-
 - 留存建议（rail-fence-cipher）：“保留空格”旁注明空白也参与置换、解密后位置会改变。
 
 - 备注：`adfgvx-cipher`、`affine-cipher`、`hill-cipher`、`rail-fence-cipher`、`bacon-cipher` 的“复制结果”仍依赖 Chrome 专有全局 `event`（Firefox/程序化调用会失效），与 IT-N31 同模式，未重复计数；8 页的 TBKit `*ResText()` 均读 `textarea` 的 `textContent`（恒空）导致数据表/趋势图/CSV 恒空，与 IT-N140 同类模板缺陷，已在 IT-N140 统一记录，本批不重复编号。
 
 - 覆盖小结：本轮实读 8 页（adfgvx-cipher、affine-cipher、atbash-cipher、bacon-cipher、hill-cipher、playfair-cipher、rail-fence-cipher、vigenere-visualizer），新增 24 条（高 3 / 中 14 / 低 7），编号 IT-N143~IT-N166。未覆盖：本分区其余约 257 页（含全部编码/哈希/格式化/HTTP/Git/Docker 生成器与速查表）；未做浏览器、英文态、繁体、移动端、门禁与线上部署验证。
-
-- `calc-3`（颜色值转换器）：IT-N170–N173 已于第217批真修并销账——三路输入统一钳制（r/g/b 0–255、`h=((h%360)+360)%360`、s/l 0–100，越界回写规范化串，同屏 HEX/RGB/HSL 不再矛盾）；预设同时写 `hexInput` 使统一 `fromHex()` 回调生效（红/蓝/绿由页内 hslToRgb+rgbToHex 反算，往返一致）；删声明式 preset div 并显式放 `#calc_3Presets` 宿主，只留一组 4 条；HEX 支持 3/4/6/8 位（简写按位扩展、4/8 位带 alpha 并展示）、`maxlength` 7→9；公式说明与格式说明中英三源同步。JSDOM `scripts/_verify_it_batch217.mjs` 修好版 22/22、旧源码 3/22；verify 1554/1554 未改。
-- `matrix-transpose`（矩阵转置）：IT-N174–N177 已于第218批真机验证并销账。N174/N176/N177 源码已由其他 Agent 修好（`calculate()` 单元格数不符自动 `build()` 保留旧值、`readDims()` 整数+1–6 校验、`getM()` 空/非数抛错并标红、失败分支清空 `__lastTranspose`、`__matrix_transposeExport()` 现场生成 Aᵀ CSV），清单漏销账，本批补证据；N175 残留缺陷真修——`fmt()` 的 `toPrecision(12)` 会把 15 位大整数静默抹成 `123456789012000`，改为整数原样 `String()`、超安全整数走指数表示、非整数才用 12 位有效数字消浮点噪声。JSDOM `scripts/_verify_it_batch218.mjs` 修好版 33/33、缺陷态注入（换回旧 fmt）31/33（大数两项精确变红）；verify 1554/1554。
-- `http-cookies`（HTTP Cookie 速查）：IT-N178–N180 已于第219批销账。N178 英文简介已由其他 Agent 改为 "as a searchable quick reference"（不再宣称 Parse and build），与页面仅有搜索+静态速查的能力一致，属漏销账补证据；N179 真修——`Expires=Wed, 21 Oct 2025` 星期错（实算周二）且已过期，全站同类 11 处（http-cookies 1 / http-headers 2 / http-response-headers 3 / http-cache 5）统一换为 `Thu, 21 Oct 2027 07:28:00 GMT`（实算周四、未过期）；刻意保留星期正确的历史示例（1970 epoch 删 Cookie、2015 RFC 原文、2026 条件请求）；N180 真修——`Max-Age` desc/params 补「0 或负数立即删除」语义（中英 en JSON 同步），明细表 `th1` 按 `en` 切换 `Attribute/属性`。JSDOM `scripts/_verify_it_batch219.mjs` 修好版 19/19、旧源码差分 9/19（10 项红）；verify 1554/1554、deepdive sync 0 不一致。
-- `text-to-ascii`（文本转 ASCII）：IT-N181–N184 已于第220批真修并销账。N181 参照表错的 TAB 行 `9(制表)|57|39` 改为数字 `9|57|39`、删重复 A 行（补 `Z=90/5A`），控制字符 TAB/LF/CR 单列成表（data-zh 双语）；N182 `for(const c of s)` + `codePointAt(0)` 按码点遍历，1 个 emoji 只跳过 1 次；N183 十六进制 `padStart(2,'0')`，换行 10 由 `0xA` 改 `0x0A`，公式说明中英同步；N184 导出改为现场生成逐字符四列 CSV（字符/十进制/十六进制/二进制，含 CSV 转义），不再导历史表，空输入清空结果缓存避免导出旧表。改输出格式同批同步 `scripts/verify_it_calc.js` 的 `0xA`→`0x0A` expect（新页+旧 expect 实测 1553/1554 红，证明必须同步）。JSDOM `scripts/_verify_it_batch220.mjs` 修好版 24/24、旧源码差分 9/20；verify 1554/1554、deepdive sync 0 不一致。
-- `shell-script-formatter`（Shell 脚本格式化）：IT-N185–N190 已于第221批收口。N185 进批真机探测发现 `minifyShell()` 已由其他 Agent 改为「逐行 trim + 删空行、保留换行、heredoc 正文原样」、不再插入 `; `，属清单漏销账（`&&` 续行 / else / case / heredoc 四组输出交 `bash -n` 均通过）；本批顺带加固 heredoc 探测——改在 `shellCode()` 剥离引号/注释后的代码上判定，字符串字面量 `"a <<EOF"` 不再误触发。N186–N189 真修 `formatShell()`：新增 `shellCode()` 统一剥离引号、转义与行内注释；case 分支模式收紧为「仅 case 块内 + 行首到 `)` 无空白/引号/括号且 `)` 是行尾」（`echo $(date)`、`arr=(1 2 3)` 不再漂移）；单独成行的 `then`/`do` 与 `else`/`elif` 只回落本行、不再额外开层；`}` 与 `fi/done/esac`、`;;` 一律本行减级；heredoc 起始行参与当前缩进、body 原样保留。N190 真修 `doValidate()`：按剥离后代码统计关键字与括号、跳过 heredoc 正文，统计写入状态栏（`white-space:pre-line` + 通过态 `err ok` 绿色）且绝不覆盖 `#output`。公式说明中英三源同步。JSDOM `scripts/_verify_it_batch221.mjs` 修好版 44/44（含 `bash -n` 实算与历史/表格/CSV 全链路、状态链），旧源码差分 23/44（21 项红，N185 压缩主断言在旧页仍全过 ⇒ 印证漏销账）；verify 新增 3 条强锁 1557/1557、判别逃生 1 + 跳过 1 为基线、audit 0 僵尸、deepdive sync 0 不一致。
-- `unit-converter-advanced`（高级单位转换器）：IT-N191–N195 已于第222批收口。进批探测：N193（`ucFmtNum` 已有科学计数分支）与 N195（`nm:1e-9` / `nmi:1852`）已由其他 Agent 修好，属漏销账；但 N193 只留 3 位有效数字（`1.16e-10`），本批提到 6 位（`1.164153e-10`），并把 ≥1e15 的大值也纳入科学计数（旧 `toFixed(6)` 会把 1 J→eV 输出成 19 位伪精度整数 `6241509074460763136`，违反「禁 ≥15 位有效数字」）；N195 本批补 `um:1e-6`。N191 真修：`normTempUnit()` 把 ℃ / °C / ℉ / °F / 小写统一归一到 C/F/K，预设「温度 ℃」从被拒变为 100℃ → 212.00°F / 373.15K，归一后的 from 参与目标卡去重。N192 真修：补 `pressure`（pa/kpa/mpa/bar/psi/atm/torr/mmhg）与 `energy`（j/kj/mj/cal/kcal/wh/kwh/btu/ev）两张因子表 + 两个下拉项，因子取国际约定 / 2019 SI 定义值（1 atm = 101325 Pa、1 psi = 6894.757293168 Pa、1 Torr = 101325/760 Pa、1 cal = 4.184 J、1 BTU_IT = 1055.05585262 J、1 eV = 1.602176634e-19 J），`js/tool-i18n-en.js` GEN_UI_MAP 补「压强」英译。N194 真修：`val` 空/非有限值不再 `isNaN?0` 静默换算，改为提示「请输入有效数值」；新增 `escTxt()` 让 `cat`/`from` 进结果区前转义（修掉裸 `<img onerror>` 注入），并用 `hasOwnProperty` 挡住 `__proto__` 原型链键；`</div` 未闭合已由其他 Agent 修好，补证据。三条动态结果串与 result-title 共用 `isEn` 双语，EN 态零 CJK；公式说明中英三源同步。JSDOM `scripts/_verify_it_batch222.mjs` 修好版 39/39（含 lbf/in²、cal、BTU 独立复算，输出→历史→表格→CSV 全链路，状态链，EN 态），旧源码差分 9/39（30 项红，N193/N195 核心断言旧页仍过 ⇒ 印证漏销账）；verify 新增 7 条强锁 1564/1564、判别逃生 1 + 跳过 1 为基线、audit 0 僵尸、deepdive sync 0 不一致。
-- `html-entities-encode`（HTML 实体编解码）：IT-N196–N198 已于第223批收口。进批探测：N196（`fromCp` 已校验 0–0x10FFFF 且排除代理区）与 N197（已改纯文本替换、不再用 `div.innerHTML`）均由其他 Agent 修好，属漏销账，本批补真机证据；N198 真修——旧实现用「文本里是否含带分号实体」做总开关，仅有 `&amp` / `&#65` 时一个都不解、混合写法结果依赖上下文，改为单次纯文本扫描 `/&(?:#(\d+)|#x([0-9a-fA-F]+)|([a-zA-Z]+))(;?)/g` 统一出口：带分号一律解，无分号数字实体按 HTML5 解、无分号命名实体只解 legacy 子集（amp/lt/gt/quot/nbsp/copy/reg），表外实体与 `AT&T` 原样保留；单次 replace 杜绝 `&amp;lt;` 二次解码。顺带修「真实入口漏包装」：`dec()` 原先未接历史/明细表/趋势/CSV（只包装了 `enc`），现同型包装。公式说明补解码规则并中英三源同步。JSDOM `scripts/_verify_it_batch223.mjs` 修好版 35/35、旧源码差分 23/35（12 项红，N196/N197 旧页全过 ⇒ 印证漏销账）；verify 新增 4 条强锁 1568/1568、判别逃生 1 + 跳过 1 为基线、audit 0 僵尸、deepdive 0 不一致。注：工具名/meta 的「完整编解码」与 `NAMED` 仅 39 条属 Q 批专项承诺条目，改动牵涉 SEO 标题/JSON-LD/面包屑，本批未动、仍留在「承诺 vs 实际」专项段。
-- `json-to-toml`（JSON 转 TOML）：IT-N199–N201 已于第224批收口。进批探测：N199 键名引用（`tomlKey()` 按 `[A-Za-z0-9_-]+` 判裸键，否则 `JSON.stringify`）与 N201 的 null / 对象标量混排数组报错均已由其他 Agent 修好，属漏销账，本批补真机证据。N200 真修：`toToml(v, prefix, depth, unit)` 接收缩进串并逐层 `unit.repeat(depth)`，2 空格 / 4 空格 / Tab 三档产出不同、Tab 为真 0x09，表数组 `[[...]]` 与压缩转换同样生效，缩进只改排版不改语义；顺带删掉重复注入的一组同名函数（`getIndent`/`setOut`/`setErr`/`clearAll`/`loadSample` 各留一份），修掉「成功提示也被标红」——`setErr` 成功/空态给 `err ok` 绿、失败态给 `err` 红。N201 真修：新增 `tomlDateLiteral()`，严格 ISO 8601 的 date / datetime / time 按 TOML 原生日期类型输出裸值（保留小数秒与偏移、空格分隔归一为 T、月日与时分秒先做范围校验），不合格与普通字符串仍双引号转义，兑现页面「支持 ISO 日期字符串」的宣称。公式说明中英三源同步（键名引用 / 缩进 / ISO 日期）。JSDOM `scripts/_verify_it_batch224.mjs` 修好版 36/36、旧源码差分 18/36（18 项红，N199 与 null/混排数组旧页全过 ⇒ 印证漏销账）；verify 新增 4 条强锁 1572/1572、判别逃生 1 + 跳过 1 为基线、audit 0 僵尸、deepdive 0 不一致。**踩坑**：该页 en JSON 有两个同前缀「递归转换」中文键（短 151 字 / 长 215 字），用短键做子串替换会把页面长公式污染成「新文案 + 旧后半段」；正确做法是从 `git show HEAD:` 恢复 map 顺序、只替换长键并把 formula-eq 整块设为纯新文案，短键原样保留。
 
 ### 承诺 vs 实际（Q 批专项）
 - `tools/it/ksuid-generator.html:479`：英文简介"20-byte random payload"，实现 16 字节（281-282）；同段"27-character"但 hex 选项输出 40 字符（170、267-269）。
@@ -216,10 +191,6 @@
 - 新增 32 条（高 2 / 中 18 / 低 12），编号 IT-N167~IT-N198。
 - 未覆盖说明：只审计主流程、边界与文档口径，未逐条核对 FAQ/JSON-LD 文案，未检查同模板其它 IT 页；`html-entities-encode` 的"完整实体覆盖"仅按 `NAMED` 表条目数与解码行为核对，未穷举 2000+ HTML5 命名实体。
 - 未做验证：未开浏览器（结论均为源码静态分析 + `node -e` 内存复算，Shell 压缩另用 `bash -n` 校验）、未验证英文态 `?lang=en-US`/繁体/移动端、未跑 `_test_static.py`/`_audit_links.py`/`_audit_assets.py`/`run_gates.py` 等门禁，未触发 `_build.py` 或任何 git 写操作。
-- 第225批销账：IT-N202–N206（`plist-parser` real/date/data 保型与超安全整数与大整数往返与控制字符剔除、`char-encoder` ASCII 行按码点与清空清字节视图），详见下方覆盖行。
-- 第226批销账：IT-N207–N211（`char-encoder` 常用 HTML 实体补全、`basic-auth-generator` 冒号校验与 UTF-8 charset 提示；N210 历史不写密码与 N211 复制提示已由其他 Agent 修好补证据），详见下方覆盖行。
-- 第227批销账：IT-N212–N216（`nanoid-generator` 大字母表拒绝采样/emoji 码点/历史取值、`markdown-table-generator` 反斜杠转义与编辑期不写回），详见下方覆盖行。
-- 第228批销账：IT-N217–N221（`markdown-table-generator` CSV 双引号逗号解析、`wifi-qr-generator` 改名「配网字符串生成器」；N218/N219 转义与字段顺序、N221 残缺 div 已由其他 Agent 修好补证据），详见下方覆盖行。
 
 ### 承诺 vs 实际（Q 批专项）
 - `tools/it/json-to-toml.html:10`、`:20`：宣称支持"ISO 日期字符串"，实际 `:271` 对所有字符串加引号，日期不会输出为 TOML 日期（见 N201）。
@@ -258,19 +229,9 @@
 - 未覆盖说明：只审计主流程、参数边界与文档口径，未逐条穷举 MySQL/Go 语法（仅抽检 GRANT、`INT[(M)]`/`ZEROFILL`、`VALUES()`、`--`、`...`）；Rabbit 未做官方向量比对（缺 RFC 4503 期望值，只证明了"进位/密钥装入偏离本页说明"）；sms-qr 未实际扫码；binomial 参数域抽样到 n=20000；rest-api/mysql 内容准确性对照 RFC 9110/9457 与 MySQL 8.0 手册，非逐条穷举。
 - 未做验证：未开浏览器、未构建、未跑门禁、未 git 写；全部结论为源码静态分析 + `node` 内存复算（临时脚本在 `/tmp`，未落仓库），未验证英文态 `?lang=en-US`/繁体/移动端。
 
-- `regex`：IT-N253 分享链接 base64url 对称修复（写入 +→- /→/ 去尾=，读取逆变换并兼容旧标准 base64 的空格化 +、补 padding，catch 加 console.warn），中文/换行 payload 往返正确，第200批销账；verify 无用例（页面依赖原生 location.hash + btoa/atob，harness stub DOM 不适用），由 JSDOM 真机 12/12 vs 旧5/12 覆盖。IT-N252（ReDoS 超时 + flags 双绑定）已于第201批整条销账。 IT-N254（替换页尊重用户 flags，非 g 只替首个且 count 按命中数、copyMatches global 跟随 flags 防 1001 条重复）第202批销账；真机 14/14 vs 旧 6/14（8 项变红）。
-
 - `device-info`：IT-N255 item() 加第4参 raw（仅内部可信 badge 串跳过转义），在线状态/网络状态两处 status-badge 不再显示为裸标签，第203批销账；普通/外部值仍走 escapeHtml 不回退安全。verify 无用例（依赖 navigator/screen 原生对象），真机 8/8 vs 旧 1/8。 IT-N256（__v 从恒定核心数改视口面积，趋势/对比有真实变化，新增「视口」字段+字典英译）、IT-N257（复制全部改为逐条 label: value 换行、UA 单独成块）第204批销账；真机 9/9 vs 旧 2/9。
 
-- `qrcode`：IT-N258 中文/emoji UTF-8 编码（generate() 切 qrcode.stringToBytes 到 UTF-8、__qrBytes 按 UTF-8 计字节含 emoji 代理对）源码已在 HEAD（其他 Agent 修复），清单漏销账，第205批补证据销账；真机 13/13（库编码对照标准 UTF-8、__qrBytes 一致、中文/ASCII 矩阵不同、缺陷态对照切换项变红），verify 无用例。N259（宣称识别但无解码）等仍留清单。
-
-- `qrcode`：IT-N259 SEO 宣称口径（title/h1/keywords/meta/JSON-LD/intro 全部只宣称「生成」无「识别/解析/上传图片解析」，无 file input/解码入口）源码已在 HEAD（其他 Agent 修复），清单漏销账，第206批补证据销账；真机 14/14（缺陷态注入旧宣称 11/14），verify 无用例。N260（容量图只到v10）等仍留清单。
-
-- `qrcode`：IT-N260 容量表 QR_BYTE_CAP 补到 v40（用本页 js/qrcode.js 二分实测各版字节容量，与库实际编码口径一致，v40 L=2953 与表注吻合），超限标 41=超出v40 不再错误压成10；第207批销账；真机 19/19 vs 旧 4/15项红（300/900字节各级别版本与库实际生成一致），verify 无用例。后续条目仍留清单。
-
 - `hex-encode`：IT-N261 解码改为先剥分隔符、再全局 `replace(/0x/gi,'')`（每行/每字节 0x 的 hexdump 都能解，大小写 0X 兼容），编码侧勾选 prefix 时按字节加（`0x48 0x69`）；IT-N262 历史读取 F-N189 全站修复已覆盖（`#output` 是 textarea，现读 `r.value`），本批删掉 `__hex_encodeScore` 关键词判 0 启发式（恒 1，与 N246 同型，避免 "Error 404"/严格解码告警被误判无效）；IT-N263 改严格 UTF-8（`fatal:true,ignoreBOM:true`）+ 非法字节计数/Latin-1 对照/原始 hex 字节列表，`dec` 也包进 extras 并写「模式=编码/解码」，历史回放按方向选 `enc()`/`dec()`；第208批销账；真机 25/25 vs 旧 9/25（16 项红），verify 无用例（依赖 TextEncoder/TextDecoder 原生对象）。后续条目仍留清单。
-
-- `xml-to-yaml`：IT-N264（textarea 初值塞深潜 CSS/被吞 `</body>`）与 IT-N265（数组套对象输出 `[object Object]`）源码已由其他 Agent 修好且在 HEAD，清单漏销账，本批补真机证据（初值 187 字符/10 行、无 CSS、深潜容器在 textarea 外、首屏干净 YAML；嵌套数组递归输出 `d: "1"` 无 `[object Object]`）；IT-N266 真修：属性正则补单引号 `(?:"([^"]*)"|'([^']*)')`、标签头 `>` 查找加 findGt 跳过引号内字符、以 @/# 开头的键过 `yKey()` 加双引号（YAML 1.2 保留指示符/注释，加引号不影响 XML 往返）；顺带修 indent 承诺（dumpYaml 加 unit 参数，root 传空前缀、每层递增 unit，2 空格→首层 2 空格，4 空格/tab 同样对齐）。同页 en JSON 更新两条中文键/英译并清理 N264 遗留的旧深潜示例键。第209批销账；真机 22/22 vs 旧 10/22（12 项红；N264/N265 共 5 项旧态已绿如实记录），verify 无用例。承诺 vs 实际段其余项仍留清单。
 
 - `json-schema-generator`：IT-N267 required 不再无条件收键——null 字段跳过（否则「必填且只能为 null」让任何真实响应校验失败），数组元素的多个对象取共有键（mergeSchemas 顺带保留 required），说明文案改为「单样本推断、多样本需人工合并」；IT-N268「描述注释」勾选框从死控件变成真输出 `description: 'The <key> field.'`（保留预设「描述+极值+标题」的承诺）；IT-N269 混合类型不再退化空 schema，输出去重后的 `anyOf` 且树视图同步展示；顺带修 `isIPv4` 逐段 0-255 + 拒前导零（999/256/01 段不再误标 ipv4）。en JSON required 说明键/英译同步。第210批销账；真机 21/21 vs 旧 6/21（15 项红），verify 无用例。承诺 vs 实际段其余项仍留清单。
 
@@ -293,10 +254,7 @@
 - 未覆盖说明：只审计主流程、边界与文档口径，未逐条穷举 8 页全部输入域（binary/hex 只测分隔符、长度、非法 UTF-8/BOM 与 `0x` 前缀；regex 只测 ReDoS 计时、分享链接往返、强制 g 与 1000 条上限，未逐条验证所有 flag 组合与 `u`/`v` 语义；qrcode 只验证编码字节、容量估算与导出参数，未实际扫码；xml 用页面自身函数跑 6 组用例，未覆盖命名空间/CDATA 嵌套；schema 只验证 required/anyOf/描述/ipv4/验证按钮）。姓名池统计已全量（两池各 100 项），但未统计真实重名率（跨批不查重）。
 - 未做验证：未开浏览器、未构建、未跑门禁、未 git 写；结论为源码静态分析 + `node` 内存复算（临时脚本 `/tmp/audit_xml.js`、`/tmp/audit_name.js`，未落仓库）；未验证英文态 `?lang=en-US`、繁体与移动端；`IT-N251`（toast 文案）与 `device-info` 的 iPad/触摸两项标为待验证。
 
-- `markdown-editor`：IT-N288 属性注入 XSS 与 IT-N289 GFM 任务清单源码已修好（`escAttr` + `safeUrl` 协议白名单、`- [x]` → 禁用复选框），清单及开头待办漏销账，本批补真机安全回归证据（alt 引号不闭合属性、`javascript:`/`data:text/html` 拦截、`data:image` 与正常链接放行、任务清单 checked 语义）；IT-N290 真修：`#` 由 `<h2>` 改为 `<h1>`（CommonMark 一级标题语义，`##`/`###`/`####` 不变），工作原理公式说明与 en JSON 中文键/英译同步。第211批销账；真机 16/16 vs 旧 13/16（3 项红均为 N290，N288/N289 旧态已绿如实记录），verify 4 条相关用例均不依赖 h2、无需改 expect。
-
 ### 承诺 vs 实际（S 批专项）
-- `tools/it/gitignore-generator.html:172`、`:382`：承诺忽略/输出 `.env`，8 个模板 29 条规则中无 `.env`（N270，**已于第269批修复**：8 模板统一追加 .env/.env.*/!.env.example）；`:111` 写"按语言、框架与编辑器选择模板"，实现 `:217-226` 只有 8 个语言/IDE 栈，无任何框架模板；`:344` 的"默认参数"实际全选 8 项（N271）。
 - `tools/it/phone-qr.html:201`、`:197`：承诺"使用标准 tel: URI，主流扫码器均支持/扫码唤起拨号"，实际生成随机噪点图、无数据编码与纠错（N273）；`:158` 承诺剥离全部空白，实际仅在补 `tel:` 时剥离（N274）。
 - `tools/it/protobuf-parser.html:161`、`:204-205`：承诺解析二进制结构与抓包排查 gRPC，实现只有 `.proto` 文本转 JSON（N278）；`:415` 的"校验"只数括号（N277）；`:290-305` 不支持 `map<...>`（N276）；`:12` 的 meta 口径（.proto→JSON）与正文自相矛盾。
 - `tools/it/hmac-generator.html:219`：FAQ 把"编码不一致"列为签名失败主因，实际密钥固定按 UTF-8 文本编码、输出只有 hex（N280）；`:151` 的"输出长度=摘要长度"描述正确，无问题。
@@ -407,14 +365,9 @@
 - 假工具：否
 
 ### 覆盖清单（V 批 IT 生成/校验/计算）
-- `css-properties`：无高优/中优缺陷（属性值/初始值/继承性抽查正确；IT-N436 vertical-align 重复条目已于第310批修复销账）。
-- `meta-tags-generator`：IT-N428/429/430 已于第316批修复销账。
 - `sqlite-cheatsheet`：无高优/中优缺陷（命令语法、`.mode`/JSON1/窗口函数示例与版本注记抽查正确；Chart/Table 双视图与检索联动正常）。
 - `standard-deviation`：IT-N433（中）；无高优缺陷（sample/population 公式与 32/7≈4.57、s≈2.138 复算一致）。
-- `tiny-url`：无高优/中优缺陷（随机短码生成与历史去重逻辑正常；IT-N432 复制拼接已于第310批修复销账）。
 - `css-minify`：IT-N431（高）。
-- `caa-record-generator`：IT-N434 已于第316批修复销账；无高优缺陷（CAA 记录语法、flag 128 关键位、iodef mailto 形式正确）。
-- `captcha-generator`：IT-N435 已于第316批修复销账；无高优缺陷（四种类型出题、数学答案校验、大小写归一逻辑正确）。
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数实算（`minify`、`parseData/calculate`、`PROPERTIES` 去重）并给出「输入 → 实际 / 期望」；**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。IT-N430 的引号未转义依据 HTML 文本节点序列化规则判定（`& < >` 转义、引号不转义），未做真机粘贴验证；两处 `</div`（缺 `>`，`meta-tags-generator.html:124`、`css-minify.html:127`）会吞掉紧随的 `<div class="toolbar">` 开标签，属结构/布局问题，未计入本批条目。
 
 ## V 批 · IT 编辑器/安全/编码（2026-11-04）
@@ -539,10 +492,8 @@
 ### 覆盖清单（V 批 IT 编辑器/安全/编码）
 - `rich-text-editor`：IT-N437（高，安全待修）；IT-N438、IT-N439 已于第316批修复销账。
 - `morse-decode-advanced`：IT-N440（高，假工具）；IT-N441、IT-N442、IT-N443（中）。
-- `string-obfuscator`：IT-N444 已于第316批修复销账（split("")→Array.from 按码点反转）；无高优缺陷（全角/ROT13/Base64/`\x` 十六进制/HTML 实体主路径往返核对正确，十六进制对 emoji 按 UTF-8 字节输出无截断）。
 - `code-line-counter`：IT-N445（高待修）；IT-N447 已于第316批修复销账。IT-N446 块注释重复计数已于第310批修复销账。
 - `code-highlighter`：IT-N448、IT-N449（中）；无高优缺陷（token 渲染统一走 `esc()`，`<`/`>`/`&`/`"` 已转义，未发现注入）。
-- `emoji-picker`：IT-N450 已于第316批修复销账（数据去重）；无高优缺陷（字符/中文关键词/英文名过滤逻辑本身正确，复制路径无注入）。
 - `code-runner`：IT-N451（高，安全）；IT-N452、IT-N453（中）。
 - `benchmark-builder`：IT-N454、IT-N455（中）；无高优缺陷（五种负载的循环体与吞吐公式本身可算，评级阈值仅为经验值）。
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数实算（`calcTool` 行数统计、`enc/dec`、`prettyHtml`、emoji 数组去重、`split('')` 反转）并给出「输入 → 实际 / 期望」；**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。IT-N437 的事件属性执行、IT-N451 的沙箱逃逸依据 HTML 规范（`innerHTML` 插入的 `onerror` 会触发；`allow-scripts` + `allow-same-origin` 不提供来源隔离）判定，未做真机复现。
@@ -664,7 +615,6 @@
 
 - `tools/it/text-qr.html`：2 条（IT-N550 高、IT-N551 中）。页面能画出定位图形，但数据区是伪随机噪声，text 只当种子，不是二维码编码；承诺的尺寸/容错/配色与 PNG/SVG 下载均无控件。
 - `tools/it/tmux-cheatsheet.html`：2 条（IT-N552、IT-N553 中）。39 条速查与搜索/分类/图表均可用；问题在示例与参数说明的可复制性。
-- `unicode-lookup`：IT-N554 码点/名称检索、IT-N555 内置 1342 条标准名称表、IT-N556 复制按钮走 `data-code` 均由其他 Agent 修好且在 HEAD，清单漏销账，第212批补真机证据销账：U+2603/0x1F600 各出 1 张卡、`snowman` 名称命中、1342 条名称表、表外 CJK 推导与未收录标注、引号/emoji 按字符本体复制；缺陷态注入对照 4/14（10 项红）。本批未改源码。
 - `tools/it/username-generator.html`：1 条（IT-N557 中）。词根随机组合、数字/下划线/Leet/前缀与长度截断可运行，输出经 `escapeHtml`；「风格」承诺无对应控件。
 - `tools/it/xxtea.html`：2 条（IT-N558 高、IT-N559 中）。加解密算法本体正确（node 复刻 1–255 字节逐长度往返一致）；缺陷在长度字只取低 8 位导致长文本解密截断，以及超长密钥静默丢弃。
 
@@ -725,7 +675,7 @@
 **统计**
 - 页数：10（QR 族 5 + 条码族 5）。
 - 新增问题：8 条——高 1（IT-D01）/ 中 7（IT-D02–IT-D08）；编号区间 IT-D01–IT-D08，连续、无重号，与既有 IT-N 系列不混号。
-- 复核既有：伪实现 3 页（IT-N520/N521/N550，高）；Code39 IT-N507–IT-N509；MSI IT-N510–IT-N512；qrcode IT-N260。另确认 IT-N258（UTF-8 编码）、IT-N73/N84（长度/校验位校验）、UPC IT-N127–IT-N129 与 Code128 IT-N125 均已修复销账，勿按旧结论返工。
+- 复核既有：伪实现 3 页（IT-N520/N521/N550，高）；Code39 IT-N507–IT-N509；MSI IT-N510–IT-N512；qrcode IT-N260。
 - 假工具：3 个（`email-qr`、`location-qr`、`text-qr`），均沿用既有高优编号，不重复计数。
 - 安全条目：0 条——10 页无 `eval`/`new Function`/`allow-same-origin`/明文存密/第三方外传；用户文本均经 `escapeHtml`（`qr-decoder.html:249`、`email-qr.html:293`、`text-qr.html:280`、`barcode-msi.html:286`、`barcode-code39.html:323`），仅存主题/表单偏好于 localStorage（无敏感值）。`qrcode.html:473` 把 `e.message` 直接写入 innerHTML，但库异常文案为静态常量，不可控，未计入。
 - 方法：逐页通读 HTML 与全部内联 JS；`node -e` 验证 EAN G 表为标准 G 的反码（`reverse(L)` vs `EAN_G`）、Code39 `0` 为 15 元素/25 模块（标准 9/15）、`unescape('%E4%B8%AD')` 为 `ä¸­`、Code128 表 107 项且 Stop 13 模块；未开浏览器、未跑构建/门禁、未执行 git、未修改任何 `tools/**` 或构建产物。
