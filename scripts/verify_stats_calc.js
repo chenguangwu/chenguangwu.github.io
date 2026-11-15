@@ -54,6 +54,19 @@ const CASES = [
     "-1.6413"
   ],
   "ref": "默认样本 12…38：n=10、均值 25.5、s=8.6700、SE=2.7417；μ₀=30 ⇒ t=(25.5−30)/2.7417=−1.6413（页面 toFixed(4)）。改动 μ₀ 后由 input 事件即时重算（此前必须点按钮，直接改输入结果区不变）。μ₀ 默认 20 ⇒ t=2.0061，不命中；原用例 one-data 带 '_X' 且 expect 为输入回显（恒绿）已替换。"
+},
+{
+  "slug": "stats/regression-analysis",
+  "inputs": { "x-data": "1,2", "y-data": "3,5" },
+  "expect": ["样本数至少为 3 组"],
+  "ref": "12-M7：n=2 时旧实现 ssRes/(n−2)=0/0 得 NaN，标准误、t、区间全为 NaN 仍渲染；现在要求 ≥3 组并提示。"
+},
+{
+  "slug": "stats/regression-analysis",
+  "inputs": { "x-data": "1,2,3", "y-data": "2,4,6" },
+  "clicks": ["document.getElementById('equation').textContent='TC='+tCrit95(18)"],
+  "expect": ["TC=2.101"],
+  "ref": "12-M7：t 临界值由固定 2.306（仅 df=8）改为按 df 查表；df=18（n=20）应为 2.101。默认 n=10 ⇒ df=8 ⇒ 2.306，不命中。"
 }
 ];
 async function main() {

@@ -256,12 +256,23 @@ textarea{font-family:'SF Mono','Courier New',monospace;min-height:120px;}
 <script>
 let model = null;
 
+// α=0.05 双侧 t 临界值：df 1–30 查表，30 以上按常用分档近似
+function tCrit95(df){
+ const T=[12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+ if(df>=1&&df<=30) return T[df-1];
+ if(df<=40) return 2.021;
+ if(df<=60) return 2.000;
+ if(df<=120) return 1.980;
+ return 1.960;
+}
+
 function parseNum(s){ return s.split(/[,\s\n]+/).map(x => +x).filter(x => !isNaN(x)); }
 
 function calc(){
  const xs = parseNum(document.getElementById('x-data').value);
  const ys = parseNum(document.getElementById('y-data').value);
- if(xs.length !== ys.length || xs.length < 2){
+ if(xs.length !== ys.length || xs.length < 3){
+  document.getElementById('equation').textContent='样本数至少为 3 组，且 x、y 需成对。';
   ToolBox.showToast(i18nText(), 'warn');
   return;
  }
@@ -271,6 +282,11 @@ function calc(){
  const sxx = xs.reduce((s,x)=>s+(x-mx)**2,0);
  const sxy = xs.reduce((s,x,i)=>s+(x-mx)*(ys[i]-my),0);
  const syy = ys.reduce((s,y)=>s+(y-my)**2,0);
+ if(sxx<=0 || syy<=0){
+  document.getElementById('equation').textContent='x 值或 y 值不能全部相同，否则无法拟合斜率。';
+  ToolBox.showToast(i18nText(), 'warn');
+  return;
+ }
  const b = sxy / sxx;
  const a = my - b * mx;
  // 拟合值与残差
@@ -284,7 +300,7 @@ function calc(){
  // 斜率标准误
  const seB = se / Math.sqrt(sxx);
  const tStat = b / seB;
- const tCrit = 2.306; // df=n-2=8, α=0.05 双侧近似
+ const tCrit = tCrit95(n - 2); // 按 df=n-2 取 α=0.05 双侧临界值
  const ci95Lower = b - tCrit * seB;
  const ci95Upper = b + tCrit * seB;
 
