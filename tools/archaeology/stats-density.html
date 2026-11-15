@@ -205,21 +205,22 @@ function calc(){
   var txt=document.getElementById('data').value.trim();
   if(!txt){document.getElementById('res').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter excavation unit data</p>":"<p>请输入探方数据</p>");return;}
   var lines=txt.split(/[\n;；]+/).map(function(s){return s.trim();}).filter(Boolean);
-  var rows=[],totC=0,totA=0,bad=false;
-  lines.forEach(function(ln){
-    var p=ln.split(/[,，\s]+/).map(function(x){return parseFloat(x);});
-    if(p.length<2||isNaN(p[0])||isNaN(p[1])||p[1]<=0){bad=true;return;}
-    var c=p[0],a=p[1];
+  var rows=[],totC=0,totA=0,rejects=[];
+  lines.forEach(function(ln,idx){
+    var parts=ln.split(/[,，\s]+/).filter(Boolean);
+    var c=Number(parts[0]),a=Number(parts[1]);
+    var ok=parts.length===2 && /^\d+$/.test(parts[0]) && /^\d+(\.\d+)?$/.test(parts[1]) && isFinite(c) && isFinite(a) && c>=0 && a>0;
+    if(!ok){rejects.push(idx+1);return;}
     rows.push({c:c,a:a,d:c/a});totC+=c;totA+=a;
   });
-  if(!rows.length){document.getElementById('res').innerHTML='<p style="color:var(--danger);">未识别到有效行（每行需：件数, 面积㎡）</p>';return;}
+  if(!rows.length){document.getElementById('res').innerHTML='<p style="color:var(--danger);">未识别到有效行（每行需：件数, 面积㎡；件数须为≥0整数、面积须为正数）'+(rejects.length?'，已拒绝第 '+rejects.join('、')+' 行':'')+'</p>';return;}
   var totalD=totA>0?totC/totA:0;
   var html='';
   rows.forEach(function(r){
     html+='<p>'+fmt(r.a,0)+' ㎡ 出土 '+fmt(r.c,0)+' 件 → 密度 <strong style="color:var(--primary);">'+fmt(r.d,2)+' 件/㎡</strong></p>';
   });
   html+='<p style="margin-top:6px;">合计：'+fmt(totC,0)+' 件 / '+fmt(totA,0)+' ㎡ → 总密度 <strong style="color:var(--danger);">'+fmt(totalD,2)+' 件/㎡</strong></p>';
-  if(bad)html+='<p style="font-size:12px;color:var(--text-muted);">注：已跳过无法识别的行（需「件数, 面积」且面积&gt;0）。</p>';
+  if(rejects.length)html+='<p style="font-size:12px;color:var(--danger);">注：第 '+rejects.join('、')+' 行格式无效已拒绝（件数须为≥0整数，面积须为正数，且每行仅两列）。</p>';
   const __g3=html;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}

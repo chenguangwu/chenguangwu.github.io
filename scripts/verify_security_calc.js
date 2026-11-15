@@ -140,6 +140,36 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "security/typhoon-scale",
+  "inputs": {
+    "windInput": "60"
+  },
+  "expect": [
+    "（对应：超强台风）"
+  ],
+  "ref": "修复前 ≥51.0 m/s 的「超强台风」以 ≥ 开头，parseFloat 得 NaN，两个分支都不命中；现提取首个数值作下限，60 m/s 归入超强台风。默认 45 m/s 输出 162.0 km/h，且静态卡片无「（对应：…）」串。"
+},
+{
+  "slug": "security/typhoon-scale",
+  "inputs": {
+    "windInput": ""
+  },
+  "expect": [
+    "请输入 ≥0 的风速"
+  ],
+  "ref": "修复前风速清空或负数直接 return，结果区保留上一次换算与风级，易误读；现清空并提示，默认 45 m/s 正常出结果、不出现该文案。"
+},
+{
+  "slug": "security/typhoon-scale",
+  "clicks": [
+    "document.getElementById('__tbProbe').textContent='BFUNIT='+(String(document.getElementById('beaufortList').innerHTML).indexOf('≥64 节')>=0?'OK':'BAD');"
+  ],
+  "expect": [
+    "BFUNIT=OK"
+  ],
+  "ref": "修复前蒲福表 speed（节数范围）被标成 m/s 与「级」；现标注为「节」并附中值 m/s，12 级行为「≥64 节」。探针串仅 clicks 注入后出现。"
+},
+{
   "slug": "security/virtual-safe",
   "inputs": {},
   "clicks": [

@@ -114,7 +114,7 @@
 - 影响：`tools/manufacturing/capacity-planning.html`。严重超载时利用率与缺口口径不一致（百分比封顶、缺口却继续增大），工作日被替换后用户无法察觉。
 - 方案：取消 200% 封顶（或超 100% 单独标红并显示真实值）；`workDays` 为 0/空时提示而非兜底 22；结果区注明采用的工作日。
 
-### MM-H7 不良率页工序数为负时 DPMO 变负，直接判 6σ「卓越」（高，确认）
+### MM-H7 不良率页工序数为负时 DPMO 变负，直接判 6σ「卓越」（高，确认）【2026-11-15 复核销账：现有 t/d/p 正整数与 d∈[0,t] 校验，负工序、负不良即红字拒绝】
 - 描述：`processes` 只做 `||1` 兜底，负数原样进入 `dpmo=(d/t)*1e6/p`，得负 DPMO；`dpmoToSigma` 首个分支 `dpmo<=0.002` 命中，返回 6.0σ，CPK 也被抬到 2.00、等级「卓越」。
 - 证据：`tools/manufacturing/defect-rate.html:294-298`（`p=...||1`，无 `p>=1` 校验）、`:303`（`dpmo=.../p`）、`:280-291`（`dpmoToSigma` 阶梯）、`:305-313`（sigma/cpk/level）、`:341-352`（结果卡）。node 复算 total=10000、defects=50、processes=-2 → DPMO `-2500`、sigma `6.0`、CPK `2.00`、等级 `卓越`。
 - 影响：`tools/manufacturing/defect-rate.html`。一个明显非法的工序数会产出「世界级质量」结论，可能被直接用于质量汇报。

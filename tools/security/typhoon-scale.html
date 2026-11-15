@@ -413,8 +413,8 @@
         + '<div class="bf-level bf-' + b.level + '">' + b.level + '</div>'
         + '<div><div class="bf-name">' + b.level + '级 · ' + ToolBox.escHtml(b.name) + '</div>'
         + '<div class="bf-desc">陆地：' + ToolBox.escHtml(b.land) + '<br>海上：' + ToolBox.escHtml(b.sea) + '</div></div>'
-        + '<div class="bf-speed">' + ToolBox.escHtml(b.speed) + ' m/s</div>'
-        + '<div class="bf-desc">风速范围 ' + ToolBox.escHtml(b.speed) + ' 级</div>'
+        + '<div class="bf-speed">' + ToolBox.escHtml(b.speed) + ' 节</div>'
+        + '<div class="bf-desc">风速范围 ' + ToolBox.escHtml(b.speed) + ' 节（约 ' + b.ms + ' m/s）</div>'
         + '</div>';
     });
     const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('beaufortList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('beaufortList').innerHTML=__h0;
@@ -441,7 +441,11 @@
 
   window.convertWind = function(){
     var val = parseFloat(document.getElementById('windInput').value);
-    if(isNaN(val) || val < 0){ return; }
+    if(isNaN(val) || val < 0){
+      document.getElementById('convResult').innerHTML='<p style="color:var(--danger)">请输入 ≥0 的风速</p>';
+      document.getElementById('beaufortResult').innerHTML='';
+      return;
+    }
     var unit = document.getElementById('windUnit').value;
     var ms;
     if(unit === 'ms') ms = val;
@@ -472,12 +476,10 @@
 
     var typhoonInfo = '';
     TYPHOONS.forEach(function(t){
-      var parts = t.ms.split('-');
-      var min = parseFloat(parts[0]);
-      var max = parts[1] ? parseFloat(parts[1]) : 999;
-      if(ms >= min && ms <= max){
-        typhoonInfo = '（对应：' + t.name + '）';
-      } else if(t.ms.indexOf('≥') !== -1 && ms >= min){
+      var mm = String(t.ms).match(/[\d.]+/);
+      var min = mm ? parseFloat(mm[0]) : NaN;
+      var max = String(t.ms).indexOf('-') !== -1 ? parseFloat(String(t.ms).split('-')[1]) : 999;
+      if(isFinite(min) && ms >= min && ms <= max){
         typhoonInfo = '（对应：' + t.name + '）';
       }
     });

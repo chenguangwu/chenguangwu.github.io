@@ -66,6 +66,26 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "archaeology/stats-density",
+  "inputs": {
+    "data": "10abc,10\n20,5"
+  },
+  "expect": [
+    "第 1 行格式无效已拒绝"
+  ],
+  "ref": "修复前 parseFloat('10abc')=10 被当有效；现件数须为≥0整数、面积须正数，逐行拒绝并报行号。第 2 行 20/5=4.00 件/㎡ 正常参与合计。"
+},
+{
+  "slug": "archaeology/stats-density",
+  "inputs": {
+    "data": "-10,10"
+  },
+  "expect": [
+    "件数须为≥0整数"
+  ],
+  "ref": "修复前 -10 件/10 ㎡ 得 -1 件/㎡；现整行拒绝并提示格式要求（默认合法数据不含该文案）。"
+},
+{
   "slug": "archaeology/stratum-identify",
   "inputs": {
     "ageFilter": "geo"
