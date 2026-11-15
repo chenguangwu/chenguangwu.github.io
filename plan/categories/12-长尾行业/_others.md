@@ -834,40 +834,20 @@
 - 基础疾病前提做成显式复选框，提醒评分适用条件。
 - 预设覆盖显性/早期/非 DIC 对照，便于带教。
 
-### 12-N54 endocrinology/homa-ir：清空或非法输入时静默 return，结果区保留上一次的旧分数（中，确认缺陷）
-- 问题：`if(isNaN(fpg) || isNaN(insulin) || fpg <= 0) return;`（`:274`）直接返回，不写任何提示，也不清空 `#result`。用户清空血糖后仍看到上一次的 HOMA-IR 与分级。
-- 证据：`tools/endocrinology/homa-ir.html:270-274`、`:344-365`
-- 复现：默认 7.2/16 → 5.12“严重胰岛素抵抗”；清空空腹血糖 → 结果仍为 5.12/严重；期望“请输入空腹血糖”并清空结果。
-- 影响：用户以为空值仍算出了结果，可能按旧值做判断。
-- 方案：无效时先清空 `#result`/`#homa_irRefBar`，再写 `请填写有效的空腹血糖（>0）`；补空/0/负/NaN 用例。
+### 12-N54 endocrinology/homa-ir：清空或非法输入时静默 return，结果区保留上一次的旧分数（已修，707 批）
+- 现状：`tools/endocrinology/homa-ir.html:262-273` 分三重校验——未选人群、空腹血糖 ≤0/NaN、空腹胰岛素 ≤0/NaN，各自写回提示到 `#result` 后返回；不再保留上一次分数。12-N55（负胰岛素仍参与计算）同批修复。
 
-### 12-N55 endocrinology/homa-ir：空腹胰岛素为负仍参与计算，HOMA-IR 得 -1.60 并判“高敏感”（中，确认缺陷）
-- 问题：校验只拦 `fpg<=0`（`:274`），`insulin` 未限制为正。`homaIR=(insulin*fpg)/22.5`（`:276`）可为负，落入 `homaIR<1.0` 的“高敏感/敏感性极佳”（`:287-290`）。
-- 证据：`tools/endocrinology/homa-ir.html:270-277`、`:287-290`
-- 复现（node 复算）：fpg=7.2、insulin=-5 → HOMA-IR=-1.60 → 页面“高敏感 / 胰岛素敏感性极佳”；期望“胰岛素应为正数”。
-- 影响：负值被解读成“极佳敏感”，是方向相反的结论。
-- 方案：`insulin>0` 与 `fpg>0` 一并校验；HOMA-β 分母 `fpg-3.5` 亦需正数；补负值/0 用例。
+### 12-N55 endocrinology/homa-ir：空腹胰岛素为负仍参与计算，HOMA-IR 得 -1.60 并判「高敏感」（已修，707 批）
+- 现状：同页 `:270-273` 拦截 `insulin<=0`，提示「胰岛素不能为 0 或负值」；HOMA-IR 不会出现负值落入「高敏感」档。
 
-### 12-N56 endocrinology/homa-ir：HOMA-IR ≥8 时参考区间卡片与标尺整块消失，越严重越无解释（中，确认缺陷）
-- 问题：`__irBands` 最后一档 `{lo:5.0,hi:8}`（`:332`），`__hitIR` 用 `v < b.hi`（`:333`），因此 `homaIR>=8` 返回 null；`__refHtml` 与 `TBKit.chart.refBar` 都由 `if(__ib)` 守卫（`:337`、`:368`），高值直接不渲染参考卡片/标尺。
-- 证据：`tools/endocrinology/homa-ir.html:328-342`、`:368`
-- 复现：fpg=15、insulin=30 → HOMA-IR=20.00“严重胰岛素抵抗”，但页面无“参考区间定位”卡片、`#homa_irRefBar` 为空；期望仍显示“≥5 严重IR”并标注 20.0。
-- 影响：最需要解释的极端值失去分级参照，用户只看到一个红色大数字。
-- 方案：最后一档 `hi:null`（或 `hi:Infinity`），refBar `max` 动态取 `Math.max(8,homaIR)`；补 ≥8/10/20 用例。
+### 12-N56 endocrinology/homa-ir：HOMA-IR ≥8 时参考区间卡片与标尺整块消失，越严重越无解释（已修，707 批）
+- 现状：`tools/endocrinology/homa-ir.html:332` 末档改为 `{lo:5.0,hi:null}`，`__hitIR` 对 `hi==null` 取 `Infinity`；`:369` 标尺 max 改为 `Math.max(8, ceil(homaIR))`，HOMA-IR 20 仍显示「严重IR」区间卡片与标尺。
 
-### 12-N57 endocrinology/homa-ir：静态色带的刻度与 CSS 分区错位，5.12 显示橙色但文字是红色“严重”（中，确认缺陷）
-- 问题：`.ir-bar` 渐变固定为 `20%/33%/50%/67%`（`:24`），`pct=homaIR/8*100`（`:316`）；下方刻度用 `space-between` 把 0/2/2.5/5/8 均匀摆在 0/25/50/75/100%（`:353-355`）。线性映射下 1=12.5%、2=25%、2.5=31.25%、5=62.5%，与色带/刻度都不一致；且色带不随 PCOS/NAFLD 切点变化。
-- 证据：`tools/endocrinology/homa-ir.html:24`、`:316`、`:352-355`、`:328-332`
-- 复现：默认 5.12 → marker 在 64%（CSS 50–67% 橙色），文字却是红色“严重胰岛素抵抗”（≥5）；HOMA-IR=2.5 → marker 31%，刻度“2.5”却画在 50%。
-- 影响：颜色条与结论颜色互相矛盾，用户会误判所处区间。
-- 方案：色带按真实切点（0/1/2/cutoff/5/max）用 `linear-gradient` 百分比生成，刻度用绝对定位按数值摆放；或删除静态色带，只保留 `refBar`。
+### 12-N57 endocrinology/homa-ir：静态色带的刻度与 CSS 分区错位，5.12 显示橙色但文字是红色“严重”（已修，707 批）
+- 现状：`homa-ir.html:344-349,358-359` 改为按 `__irBands` 实时生成 `linear-gradient`（切点随一般人群/PCOS/NAFLD 变化），刻度按数值百分比绝对定位；标记位置用 `homaIR/__barMax`，颜色条与结论不再互相矛盾。
 
-### 12-N58 endocrinology/homa-ir：人群 radio 没有 id，历史快照不含 population，恢复记录会用当前人群切点重算（低，确认缺陷）
-- 问题：三个 radio 只有 `name="population"` 无 `id`（`:141-143`），`__homa_irSnap` 只遍历 `input[id]/select[id]/textarea[id]`（`:444-455`），因此 PCOS/NAFLD 选择不进快照；恢复时只还原 fpg/insulin，`calc()` 读当前 radio（`:272`）。
-- 证据：`tools/endocrinology/homa-ir.html:141-143`、`:444-455`、`:481-495`
-- 复现：NAFLD + HOMA-IR 2.2 记录（判“胰岛素抵抗”）；切回“一般人群”后恢复该条 → 仍按一般人群 2.5 切点重算，结果变“临界”，与记录不符。
-- 影响：同一记录在不同人群口径下复现出不同分级。
-- 方案：给 radio 加 id，或把 `population` 显式写入 `rec` 并在恢复前先选中对应 radio。
+### 12-N58 endocrinology/homa-ir：人群 radio 没有 id，历史快照不含 population，恢复记录会用当前人群切点重算（已修，707 批）
+- 现状：三个 radio 补 `id="pop_general/pop_pcos/pop_nafld"`（`homa-ir.html:130-132`），历史快照与恢复会带上人群选择，同一记录按原人群切点复现。
 
 **留存/优势（endocrinology/homa-ir）**
 - HOMA-IR 与 HOMA-β 同屏，IR 与 β 细胞代偿可一起看。
