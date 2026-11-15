@@ -294,6 +294,16 @@ const CASES = [
   "ref": "B2 回归：清空实测 NEX 时不得把空值当 0 或默认 77 混算。旧实现 182×0.2+0=36 cm；修正后身高估算 182×0.25+10=55.5 → 56 cm。默认态 53 cm，零交集。"
 },
 {
+  "slug": "clinical-nursing/fall-emergency-flow",
+  "clicks": [
+    "window.__fallSnap=[0,1,2,4,7]; window.__fallEmr()"
+  ],
+  "expect": [
+    "已完成 5/8 关键步骤"
+  ],
+  "ref": "门诊记录：clicks 注入 window.__fallSnap=[0,1,2,4,7]（完成的步骤索引）后 window.__fallEmr() 渲染『已完成 5/8 关键步骤 + 步骤序号 1,2,3,5,8』。__fallEmr 渲染后 delete window.__fallSnap，兜底循环即便调用也 return；默认态无 __fallSnap → 无任何门诊记录块，零交集。"
+},
+{
   "slug": "clinical-nursing/gastric-tube-depth",
   "inputs": {
     "height": "200",
@@ -545,6 +555,19 @@ const CASES = [
     "分泌物评估：大量分泌物 · 换药间隔：每 4 小时"
   ],
   "ref": "双态零交集：expect 锚定注入的分级 heavy（大量分泌物）。判别器清空 clicks（默认 currentLevel=minimal → 微量分泌物）→ 不命中 ⇒ 非逃生项。不抓 new Date() 动态时刻，只锚分级/间隔/次数。"
+},
+{
+  "slug": "clinical-nursing/tracheostomy-dressing",
+  "inputs": {
+    "firstDressing": "08:00"
+  },
+  "clicks": ["currentLevel='heavy'; calc();"],
+  "expect": [
+    "08:00",
+    "第1次换药（首次）",
+    "第6次换药"
+  ],
+  "ref": "D-N45 排程完整性：大量（4h）从首次 08:00 起应列 6 次（08/12/16/20/00/04），旧实现从 start+interval 开始且循环 break 少算，首末次均缺失。默认微量 8h ⇒ 3 次，不命中「第6次」；首次时间注入为非默认 08:00。"
 }
   ,{
     "slug": "clinical-nursing/braden-score",
