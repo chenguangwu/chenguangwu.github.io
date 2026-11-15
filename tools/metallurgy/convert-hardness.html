@@ -102,8 +102,8 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="布氏/洛氏/维氏硬度换算表在线工具">Convert Hardness - convert values in-browser instantly with local processing.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">HBW = 0.0469·HRC² + 4.87·HRC + 108（HRC→布氏硬度拟合式，适用 HRC 20~67）；输入制式为 HBW 时改由求根公式 (−b+√(b²−4ac)) ÷ (2a) 反解 HRC，无实根或越界记 NaN；输入制式为 HV 时 HBW = HV ÷ 0.9544（近似换算）。校验：数值缺省按 0。判据：反解 HRC 限定落在 [20,67]，超出即判无效。</div>
-  <div class="formula-eq">HV = 0.1865·HRC² − 1.455·HRC + 156.7（HRC→维氏硬度拟合式，适用 HRC 20~67）；输入制式为 HV 时由求根公式 (−b+√(b²−4ac)) ÷ (2a) 反解 HRC，成功后再正向回代刷新 HV，反解失败则 HV 保留原输入值。校验：数值缺省按 0。判据：反解 HRC 须落在 [20,67]，越界记 NaN，HRC/HBW/HV 三值同步输出。</div>
+  <div class="formula-eq">HBW = 0.0469·HRC² + 4.87·HRC + 108（HRC→布氏硬度拟合式，适用 HRC 20~67）；输入制式为 HBW 时改由求根公式 (−b+√(b²−4ac)) ÷ (2a) 反解 HRC，无实根或越界不输出数值；输入制式为 HV 时 HBW = 0.9544·HV（近似换算）。判据：反解 HRC 超出 [20,67] 显示「超出拟合区间」，HRC 输入须落在 20~67。</div>
+  <div class="formula-eq">HV = 0.1865·HRC² − 1.455·HRC + 156.7（HRC→维氏硬度拟合式，适用 HRC 20~67）；输入制式为 HV 时由求根公式 (−b+√(b²−4ac)) ÷ (2a) 反解 HRC，HV 输出即输入值；输入制式为 HBW 时 HV = HBW ÷ 0.9544。判据：反解 HRC 超出 [20,67] 显示「超出拟合区间」，不再输出 NaN。</div>
   <p class="formula-desc">经验多项式（基于 ASTM E140 数据回归，20–67 HRC）；HB↔HV 取 HB = 0.9544·HV。仅供快速估算，精确值请查对照表。</p>
 </div>
 <div class="input-row"><div><label>硬度值</label><input type="number" id="val" value="30" step="any" oninput="calc()" placeholder="如 30"></div>
@@ -191,10 +191,12 @@ function hvFromHrc(x){return 0.1865*x*x-1.455*x+156.7;}
 function hrcFromHb(hb){const a=0.0469,b=4.87,c=108-hb;const d=b*b-4*a*c;if(d<0)return NaN;const r=(-b+Math.sqrt(d))/(2*a);return (r>=20&&r<=67)?r:NaN;}
 function hrcFromHv(hv){const a=0.1865,b=-1.455,c=156.7-hv;const d=b*b-4*a*c;if(d<0)return NaN;const r=(-b+Math.sqrt(d))/(2*a);return (r>=20&&r<=67)?r:NaN;}
 let hrc,hb,hv;
+if(!(v>0)||(s==="hrc"&&(v<20||v>67))){document.getElementById("res").innerHTML='<p style="color:var(--danger)">请输入有效硬度值'+(s==="hrc"?"（HRC 适用范围 20–67）":"（须 &gt; 0）")+'</p>';return;}
 if(s==="hrc"){hrc=v;hb=hbFromHrc(v);hv=hvFromHrc(v);}
-else if(s==="hb"){hb=v;hrc=hrcFromHb(v);hv=isNaN(hrc)?NaN:hvFromHrc(hrc);}
-else{hv=v;hb=v/0.9544;hrc=hrcFromHv(v);hv=isNaN(hrc)?v:hvFromHrc(hrc);}
-const out="HRC = "+hrc.toFixed(2)+"\nHBW = "+hb.toFixed(2)+"\nHV = "+hv.toFixed(2);
+else if(s==="hb"){hb=v;hrc=hrcFromHb(v);hv=v/0.9544;}
+else{hv=v;hb=v*0.9544;hrc=hrcFromHv(v);}
+const fmtHrc=isFinite(hrc)?hrc.toFixed(2):"—（超出 HRC 20–67 拟合区间）";
+const out="HRC = "+fmtHrc+"\nHBW = "+hb.toFixed(2)+"\nHV = "+hv.toFixed(2);
 const el=document.getElementById("res");el.innerHTML='<p style="font-size:18px;color:var(--primary);white-space:pre-line;">'+out.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p>';}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
