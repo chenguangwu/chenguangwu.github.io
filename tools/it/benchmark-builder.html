@@ -300,8 +300,26 @@ function run(){
     running=false;btn.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"▶ Start test":"▶ 开始测试");btn.disabled=false;
   },30);
 }
+function workloadSnippet(type){
+  // 与 run() 的 switch 负载逐字对应；改负载时两处须同步。
+  switch(type){
+    case 'int': return 'var s=0;for(var i=0;i<500;i++)s+=i*i;';
+    case 'float': return 'var f=0;for(var j=0;j<500;j++)f+=Math.sin(j)*Math.cos(j)+Math.sqrt(j+1);';
+    case 'str': return "var t='';for(var k=0;k<100;k++)t+='str'+k;var len=t.length;";
+    case 'array': return 'var a=[];for(var m=0;m<200;m++)a.push(m);a.sort(function(x,y){return y-x;});';
+    case 'object': return "var o={};for(var n=0;n<200;n++)o['k'+n]=n;var keys=Object.keys(o).length;";
+    default: return '// 未知负载类型';
+  }
+}
 function copyCode(){
-  var code='// Benchmark 测试片段（'+document.getElementById('type').value+'）\nvar start=performance.now(),ops=0;\nwhile(performance.now()-start<1000){\n  // 在此放入被测代码\n  ops++;\n}\nconsole.log(ops+" ops/sec");';
+  var type=document.getElementById('type').value;
+  var duration=parseInt(document.getElementById('ms').value)||1000;
+  var code='// Benchmark 测试片段（'+type+' / '+duration+'ms）\n'
+    +'var start=performance.now(),ops=0;\n'
+    +'while(performance.now()-start<'+duration+'){\n'
+    +'  '+workloadSnippet(type)+'\n'
+    +'  ops++;\n}\n'
+    +'console.log(ops+" ops / "+(performance.now()-start).toFixed(0)+"ms");';
   ToolBox.copyText(code);if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg208'));
 }
 

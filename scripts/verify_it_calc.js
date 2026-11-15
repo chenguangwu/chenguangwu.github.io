@@ -13979,6 +13979,20 @@ const CASES = [
     expect: ['3 总行数 3 代码行 0 注释行 0 空行 100.0% 代码占比'],
     ref: "IT-N445 字符串内 /*：旧实现直接 indexOf('/*') 命中字面量并置 inBlock ⇒ 后两行被吞成注释（1 代码/2 注释）；新实现先遮蔽字符串内容 ⇒ 3 行全代码、占比 100.0%。默认示例分配不同 ⇒ 不命中。",
   },
+  {
+    slug: "it/code-highlighter",
+    inputs: { codeInput: 'const a = 1;', langSelect: 'javascript', editorTheme: 'light' },
+    clicks: ["document.getElementById('__tbProbe').textContent='HLCOPY '+(/<style>/.test(String(copyHighlightedHTML))&&/hl-keyword/.test(String(copyHighlightedHTML))&&/dark-editor/.test(String(copyHighlightedHTML))?'OK':'BAD');"],
+    expect: ["HLCOPY OK"],
+    ref: "IT-N449 源码形态判定：复制函数须拼 <style> 前缀、含 .hl-* 颜色兜底、并按主题给容器加 dark-editor 类；旧实现三者皆无 ⇒ BAD。探针串只在注入该页且函数已改造时出现 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/benchmark-builder",
+    inputs: { type: 'array', ms: '5000' },
+    clicks: ["var cap='';var old=ToolBox.copyText;ToolBox.copyText=function(s){cap=String(s);};copyCode();ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='BMCOPY '+(cap.indexOf('<5000')>=0&&cap.indexOf('a.sort')>=0&&cap.indexOf('array / 5000ms')>=0?'OK':'BAD '+cap.slice(0,120));"],
+    expect: ["BMCOPY OK"],
+    ref: "IT-N455 真实链路：捕获 copyText 参数，断言复制代码写入所选负载 array 的排序循环、时长 5000ms 与类型注释；旧 copyCode 写死 1000ms 与空循环体 ⇒ BAD。探针串只在注入 array + 5000 时出现 ⇒ 零逃生。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
