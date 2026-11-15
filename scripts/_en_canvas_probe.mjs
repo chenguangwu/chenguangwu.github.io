@@ -17,6 +17,7 @@
  * 退出码：0 全部 PASS；1 存在 FAIL。
  */
 import fs from 'fs';
+import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import puppeteer from 'puppeteer-core';
@@ -63,6 +64,11 @@ async function triggerCalc(page) {
   // 先清空日志：部分页面靠 canvas.width 重置画布而非 clearRect，历史帧会残留在日志里
   await page.evaluate(() => { window.__fillLog = []; });
   await page.evaluate(() => {
+    // 先填示例值：部分页面默认输入为空，calc() 会被输入守卫直接拦掉
+    for (const n of Object.keys(window)) {
+      if (!/Presets$/.test(n)) continue;
+      try { if (typeof window[n] === 'function') window[n](); } catch (e) { /* ignore */ }
+    }
     // 通用触发：调用页面内所有 calc*/draw*/render*/compute*/update*/refresh* 无参函数
     const re = /^(calc|draw|render|compute|update|refresh)/i;
     for (const n of Object.keys(window)) {
@@ -78,6 +84,21 @@ const browser = await puppeteer.launch({
   args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
 });
 
+// 用本地静态服务代替 file://：部分页面依赖 ToolBox，且 i18n 字典 fetch 在 file:// 下被 CORS 拦掉
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon' };
+const server = http.createServer((req, res) => {
+  let rel = decodeURIComponent(req.url.split('?')[0]);
+  if (rel.endsWith('/')) rel += 'index.html';
+  const abs = path.join(ROOT, rel);
+  if (!abs.startsWith(ROOT) || !fs.existsSync(abs) || fs.statSync(abs).isDirectory()) {
+    res.writeHead(404); res.end('not found'); return;
+  }
+  res.writeHead(200, { 'Content-Type': MIME[path.extname(abs)] || 'application/octet-stream' });
+  fs.createReadStream(abs).pipe(res);
+});
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+const PORT = server.address().port;
+
 const arg = process.argv[2];
 if (!arg) {
   console.error('usage: node scripts/_en_canvas_probe.mjs <industry|industry/slug|--all>');
@@ -86,23 +107,20 @@ if (!arg) {
 
 const files = pagesFor(arg);
 const results = [];
+// 复用同一个标签页：逐页 newPage 在上百页规模下会偶发 Target.createTarget 会话崩溃
+const page = await browser.newPage();
+await page.evaluateOnNewDocument(() => {
+  window.__fillLog = [];
+  const proto = CanvasRenderingContext2D.prototype;
+  // 只记录 fillText；不靠 clearRect 重置日志——多画布页面后画的图会把先前内容一起清掉
+  const origFill = proto.fillText;
+  proto.fillText = function (text, ...rest) {
+    try { if (text != null) window.__fillLog.push(String(text)); } catch (e) { /* ignore */ }
+    return origFill.call(this, text, ...rest);
+  };
+});
 for (const rel of files) {
-  const page = await browser.newPage();
-  await page.evaluateOnNewDocument(() => {
-    window.__fillLog = [];
-    const proto = CanvasRenderingContext2D.prototype;
-    const origFill = proto.fillText;
-    proto.fillText = function (text, ...rest) {
-      try { if (text != null) window.__fillLog.push(String(text)); } catch (e) { /* ignore */ }
-      return origFill.call(this, text, ...rest);
-    };
-    const origClear = proto.clearRect;
-    proto.clearRect = function (...a) {
-      window.__fillLog = [];
-      return origClear.apply(this, a);
-    };
-  });
-  const url = 'file://' + path.join(ROOT, rel) + '?lang=en-US';
+  const url = `http://127.0.0.1:${PORT}/${rel}?lang=en-US`;
   let rec = { rel, en1: '', zh: '', en2: '', err: '' };
   try {
     await page.goto(url, { waitUntil: 'load', timeout: 30000 });
@@ -121,7 +139,6 @@ for (const rel of files) {
   } catch (e) {
     rec.err = String(e && e.message || e);
   }
-  await page.close();
   if (!rec.en1 && !rec.zh && !rec.en2 && !rec.err) {
     results.push({ ...rec, status: 'SKIP' });
     continue;
@@ -137,6 +154,7 @@ for (const rel of files) {
 }
 
 await browser.close();
+server.close();
 
 let fail = 0;
 for (const r of results) {

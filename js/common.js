@@ -2328,6 +2328,10 @@ function initResultViz(){
         var max = parseFloat(box.getAttribute('data-max'));
         var unit = box.getAttribute('data-unit') || '';
         var labels = (box.getAttribute('data-labels') || '').split(',').filter(Boolean);
+        // data-labels 是中文静态属性，不参与 DOM i18n；英文态按工具字典逐条翻译（无键保留原文）
+        if(/^en/i.test(document.documentElement.lang || '') && window.__tbEnLookup){
+          labels = labels.map(function(l){ try { return window.__tbEnLookup(l) || l; } catch(e){ return l; } });
+        }
         if(type === 'gauge'){
           canvas.setAttribute('data-chart-cfg', JSON.stringify({
             value: nums[0],
@@ -2361,6 +2365,10 @@ function ensureCharts(){
   initResultViz();
 }
 document.addEventListener('DOMContentLoaded', ensureCharts);
+// 语言切换 / 工具字典异步就绪后重跑自动图表：data-labels 由中文字面量查字典翻译
+['toolbox:langchange', 'toolbox:dictready'].forEach(function(ev){
+  window.addEventListener(ev, function(){ try { initResultViz(); } catch(e){} });
+});
 
 // 收藏 + 最近使用（与首页 app.js 共享 favTools / recentTools 两个 localStorage key，数组存相对 URL）
 function getToolUrl(){

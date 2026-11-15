@@ -446,6 +446,7 @@ var data = getYearData();
 }
 
 function drawChart(data){
+  var en = /^en/i.test(document.documentElement.lang || '');
   var canvas = document.getElementById('chart');
   var dpr = window.devicePixelRatio || 1;
   var rect = canvas.getBoundingClientRect();
@@ -492,7 +493,7 @@ function drawChart(data){
     var idx = Math.round((data.length - 1) * (j / xSteps));
     var x = pad.left + (cw / (data.length - 1)) * idx;
     ctx.textAlign = 'center';
-    ctx.fillText('第' + data[idx].year + '年', x, h - pad.bottom + 20);
+    ctx.fillText(en ? 'Year ' + data[idx].year : '第' + data[idx].year + '年', x, h - pad.bottom + 20);
   }
 
   function drawLine(key, color, fillColor){
@@ -535,9 +536,20 @@ function drawChart(data){
   ctx.beginPath();
   ctx.arc(lx, ly, 4, 0, Math.PI * 2);
   ctx.fill();
+  window.__tbRedraw = function(){ if(typeof calc==='function') calc(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 function formatShort(n){
+  if(/^en/i.test(document.documentElement.lang || '')){
+    if(n >= 1e9) return (n/1e9).toFixed(1) + 'B';
+    if(n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+    if(n >= 1000) return (n/1000).toFixed(1) + 'k';
+    return n.toFixed(0);
+  }
   if(n >= 100000000) return (n/100000000).toFixed(1) + '亿';
   if(n >= 10000) return (n/10000).toFixed(1) + '万';
   if(n >= 1000) return (n/1000).toFixed(1) + 'k';

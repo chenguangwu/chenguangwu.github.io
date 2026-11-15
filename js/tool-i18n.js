@@ -782,6 +782,7 @@
           if (!d || !d.map) return;
           EN_DICT = d.map;
           if (isEnglish()) applyChrome();   // 重跑全流程 ⇒ 第三层依旧最后落地
+          try { window.dispatchEvent(new Event('toolbox:dictready')); } catch (e) {}
         })
         .catch(function () { /* 字典缺失：忽略，回退既有机制 */ });
     });
@@ -819,6 +820,8 @@
     if (BODY_PHRASE_MAP && BODY_PHRASE_MAP.hasOwnProperty(key)) return BODY_PHRASE_MAP[key];
     return null;
   }
+  // 供 canvas / data-labels 等非 DOM 文本复用同一套字典（未加载或未命中返回 null）
+  window.__tbEnLookup = pickEn;
 
   // ---- 纯中文标点节点：字符级转换 ----
   // 中文标点常以「孤立文本节点」出现（如 <b>加密</b>：<code>x</code> 的「：」、<code>x</code>。</p> 的「。」），

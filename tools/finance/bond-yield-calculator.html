@@ -813,6 +813,7 @@ function renderResult(r){
 }
 
 function drawChart(r){
+  var en = __bondEn();
   var canvas = document.getElementById('chart');
   if(!canvas) return;
   var ctx = canvas.getContext('2d');
@@ -884,7 +885,7 @@ function drawChart(r){
     ctx.fillStyle = textColor;
     ctx.font = '14px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('请输入有效参数后查看现金流图', w / 2, h / 2);
+    ctx.fillText(en ? 'Enter valid inputs to view cash flows' : '请输入有效参数后查看现金流图', w / 2, h / 2);
     return;
   }
   
@@ -914,11 +915,11 @@ function drawChart(r){
   ctx.fillStyle = textColor;
   ctx.font = '12px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('年份', w/2, h - 10);
+  ctx.fillText(en ? 'Year' : '年份', w/2, h - 10);
   ctx.save();
   ctx.translate(12, h/2);
   ctx.rotate(-Math.PI/2);
-  ctx.fillText('现金流 (元)', 0, 0);
+  ctx.fillText(en ? 'Cash flow (CNY)' : '现金流 (元)', 0, 0);
   ctx.restore();
   
   var barW = Math.min(40, chartW / cashflows.length * 0.6);
@@ -936,11 +937,16 @@ function drawChart(r){
     ctx.fillStyle = textColor;
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('第' + cf.year + '年', x, padding.top + chartH + 16);
+    ctx.fillText(en ? 'Year ' + cf.year : '第' + cf.year + '年', x, padding.top + chartH + 16);
     
     ctx.fillStyle = primary;
     ctx.fillText('¥' + ToolBox.formatNumber(cf.amount, 0), x, y - 5);
   });
+  window.__tbRedraw = function(){ if(typeof calc==='function') calc(); else drawChart(currentResult); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 function saveHistory(){
