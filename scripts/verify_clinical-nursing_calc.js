@@ -81,6 +81,16 @@ const CASES = [
 {
   "slug": "clinical-nursing/braden-score",
   "clicks": [
+    "selectScore('sensory',3);selectScore('moisture',2);selectScore('activity',1);selectScore('mobility',2);selectScore('nutrition',2);selectScore('friction',2)"
+  ],
+  "expect": [
+    "每2小时翻身，气垫床，局部减压，加强营养"
+  ],
+  "ref": "D-N118 示例回归：感知 3 + 潮湿 2 + 活动 1 + 移动 2 + 营养 2 + 摩擦 2 = 12 分，落「10–12 高度风险」（旧深解示例称 12 分判极高危）；该 desc 串为高度风险分支独有。默认 23 分无风险、13 分走中度风险（每2小时翻身一次…），均不含本串。"
+},
+{
+  "slug": "clinical-nursing/braden-score",
+  "clicks": [
     "selectScore('sensory',2);selectScore('moisture',2);selectScore('activity',2);selectScore('mobility',2);selectScore('nutrition',2);selectScore('friction',3)"
   ],
   "expect": [
