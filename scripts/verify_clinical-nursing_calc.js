@@ -449,12 +449,12 @@ const CASES = [
 {
   "slug": "clinical-nursing/morse-score",
   "clicks": [
-    "selectScore('history',25);selectScore('gait',20)"
+    "selectScore('history',25);selectScore('gait',20);var __lb=document.getElementById('totalLabel').textContent;document.getElementById('totalLabel').textContent=(__lb==='高度跌倒风险')?'__MORSE45_OK__':'__MORSE45_FAIL__'+__lb"
   ],
   "expect": [
-    "45"
+    "__MORSE45_OK__"
   ],
-  "ref": "Morse 1989 原版切点 ≥45 为高度风险：25+20=45 必须落「高度跌倒风险」；旧实现以 >50 为高危会把 45 误判为低危。锚定 totalNum=45（注入失败时默认 0 或兜底 NaN→—，均不含 45），与高危 desc 的 NaN 兜底不可分，故不用 desc。"
+  "ref": "D-N115 阈值回归：Morse 原版切点 ≥45 高度风险；25+20=45 必须落「高度跌倒风险」（旧实现 >50 才高危，45 会落「低度跌倒风险」）。clicks 读取 totalLabel 并比对后再写标记，注入失败/兜底 NaN 都输出 FAIL 串。"
 },
 {
   "slug": "clinical-nursing/ostomy-bag-timing",
