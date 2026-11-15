@@ -212,19 +212,17 @@ function calc(){
   var fMist=1.3;
   var life=baseLife*fTemp*fRpm*fMist;
   var lifeDays=life/24;
-  var oilChangeInt=Math.max(500,Math.round(life*0.8));
-  // 油雾生成量估算(mg/h)
-  var mistGen=rpm*temp/100000*0.5;
+  var oilChangeInt=Math.round(life*0.8);
   var advice;
   if(temp>100){advice='温度过高，建议改用高温合成油或加装冷却';}
   else if(temp>80){advice='温度偏高，注意监测油雾浓度';}
   else if(rpm>8000){advice='转速极高，建议使用油雾抑制添加剂';}
   else{advice='工况正常，低油雾设计效果良好';}
+  if(life<500){advice+='；润滑寿命不足 500h，建议缩短换油/补油周期并按状态监测';}
   const __g2='<div class="data-grid">'+
     '<div class="data-card"><div class="num" style="color:#00C9A7;">'+life.toFixed(0)+'</div><div class="label">润滑寿命 (h)</div></div>'+
     '<div class="data-card"><div class="num">'+lifeDays.toFixed(1)+'</div><div class="label">润滑寿命 (天)</div></div>'+
     '<div class="data-card"><div class="num">'+oilChangeInt+'</div><div class="label">建议换油间隔 (h)</div></div>'+
-    '<div class="data-card"><div class="num">'+mistGen.toFixed(2)+'</div><div class="label">油雾生成量 (mg/h)</div></div>'+
     '</div>'+
     '<div class="data-grid" style="margin-top:8px;">'+
     '<div class="data-card"><div class="num">'+fTemp.toFixed(3)+'</div><div class="label">温度因子</div></div>'+
@@ -233,7 +231,7 @@ function calc(){
     '<div class="data-card"><div class="num" style="font-size:14px;">'+advice+'</div><div class="label">评估</div></div>'+
     '</div>';try{ if(typeof temp==='number'&&isFinite(temp)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:temp,unit:'°C',bands:[{"lo":null,"hi":100,"label":{"zh":"温度可控","en":"Temperature OK"},"color":"#10B981"},{"lo":100,"hi":null,"label":{"zh":"温度过高","en":"Overheating"},"color":"#EF4444"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  lastResult='低油雾寿命计算\n油品:'+od.name+', 温度='+temp+'℃, 转速='+rpm+'rpm\n润滑寿命: '+life.toFixed(0)+' h ('+lifeDays.toFixed(1)+'天)\n建议换油间隔: '+oilChangeInt+'h\n油雾生成量: '+mistGen.toFixed(2)+'mg/h\n温度因子: '+fTemp.toFixed(3)+'\n转速因子: '+fRpm.toFixed(3)+'\n'+advice;
+  lastResult='低油雾寿命计算\n油品:'+od.name+', 温度='+temp+'℃, 转速='+rpm+'rpm\n润滑寿命: '+life.toFixed(0)+' h ('+lifeDays.toFixed(1)+'天)\n建议换油间隔: '+oilChangeInt+'h\n温度因子: '+fTemp.toFixed(3)+'\n转速因子: '+fRpm.toFixed(3)+'\n'+advice;
 }
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
 function resetAll(){
@@ -409,11 +407,11 @@ else document.addEventListener('DOMContentLoaded', __lifespan_23Boot);
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>换油周期制定：按油品、温度与转速估算润滑油使用寿命</li>
-<li>油雾控制：估算油雾生成量，评估是否需要抑制措施</li>
+<li>油雾控制：评估低油雾配方带来的寿命增益（统一按 1.3 倍修正）</li>
 <li>工况对比：评估降温或降速对寿命的延长效果</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：基准寿命按油品取（矿物油 2000h、合成油 PAO 4000h、酯类油 6000h、硅油 5000h）；温度因子 = 0.5^((温度−60)/10)，低于 60℃ 时 = 1+(60−温度)/100；转速因子 ≤3000rpm 时 = 1+0.1×(1−转速/3000)，&gt;3000rpm 时 = max(0.1, 0.85^((转速−3000)/1000))；低油雾设计因子固定 1.3；润滑寿命 = 基准×温度因子×转速因子×1.3；天数 = 寿命/24；建议换油间隔 = max(500, round(寿命×0.8))；油雾生成量 = 转速×温度/100000×0.5（mg/h）。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：矿物油、70℃、3000rpm → 温度因子 0.5、转速因子 1、寿命 1300h（54.2 天）、换油间隔 1040h、油雾生成 1.05mg/h，评估「工况正常，低油雾设计效果良好」。改合成油（PAO，基准 4000h）、90℃、6000rpm → 温度因子 0.125、转速因子 0.6141、寿命 399.2h（16.6 天）、换油间隔取下限 500h、油雾 2.7mg/h，提示「温度偏高，注意监测油雾浓度」。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：基准寿命按油品取（矿物油 2000h、合成油 PAO 4000h、酯类油 6000h、硅油 5000h）；温度因子 = 0.5^((温度−60)/10)，低于 60℃ 时 = 1+(60−温度)/100；转速因子 ≤3000rpm 时 = 1+0.1×(1−转速/3000)，&gt;3000rpm 时 = max(0.1, 0.85^((转速−3000)/1000))；低油雾设计因子固定 1.3；润滑寿命 = 基准×温度因子×转速因子×1.3；天数 = 寿命/24；建议换油间隔 = round(寿命×0.8)，寿命不足 500h 时提示缩短周期并按状态监测。本页不估算油雾生成量。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：矿物油、70℃、3000rpm → 温度因子 0.5、转速因子 1、寿命 1300h（54.2 天）、换油间隔 1040h，评估「工况正常，低油雾设计效果良好」。改合成油（PAO，基准 4000h）、90℃、6000rpm → 温度因子 0.125、转速因子 0.6141、寿命 399.2h（16.6 天）、换油间隔 319h，提示「温度偏高，注意监测油雾浓度」并追加「润滑寿命不足 500h，建议缩短换油/补油周期」。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>温度每升高 10℃ 寿命减半的依据？</dt><dd>是按 Arrhenius 方程对氧化反应速率的常用工程近似：温度每升 10℃，油品氧化速率约翻倍、寿命减半。合成油抗氧化性更好，实际衰减慢于该规律。</dd>
