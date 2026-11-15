@@ -210,8 +210,9 @@
 - 影响：77 cm 可能置入十二指肠/空肠，34 cm 多停在食管下段，均增加位置错误、误吸与喂养风险；结果以大号数字呈现且无范围警示。
 - 方案：改用与本页参考区间自洽的身高公式（如身高×0.2 + 10 cm，或机构核定式），输出后与 45–55 cm 比对给红/黄提示；`noseXiphoid` 改为必填，缺失即拒绝；儿童/新生儿另设分支。临床口径由护理/医师复核。
 
-### D-N27 深静脉置管冲封管：切到「透析导管」仍沿用生理盐水，肝素总量显示 0；1000 U/mL 档位不存在（高，确认缺陷）
-- 描述：`typeConfig.dialysis.heparinConc='1000 U/mL'` 只用于文案，既不驱动封管液下拉，也不参与 `heparinU` 计算；`selectType` 只重置 `cathVol`，不改 `flushType`。默认生理盐水下切到透析导管，结果卡直接显示「肝素总量 0」、EMR 写「不含肝素」，而同页信息框要求透析导管用 1000–5000 U/mL。下拉最高仅 100 U/mL，与其自述的 1000 U/mL 相差 10 倍。
+### D-N27 深静脉置管冲封管：切到「透析导管」仍沿用生理盐水，肝素总量显示 0；1000 U/mL 档位不存在（已核销，754 批）
+- 现状（2026-11-16 复核）：封管液下拉已补 1000/5000 U/mL；`selectType()` 同步写入各类型 `lockFluid`（PORT 100、透析 1000）；`calc()` 用 `LOCK_CONC` 计算肝素量，且透析导管强制 `heparin1000` 并在 EMR/额外说明中标注「已按规范自动切换」；门禁：透析导管 + 注入生理盐水 ⇒ 封管液 1000 U/mL、肝素总量 4,800 U。
+- 原描述：`typeConfig.dialysis.heparinConc='1000 U/mL'` 只用于文案，既不驱动封管液下拉，也不参与 `heparinU` 计算；`selectType` 只重置 `cathVol`，不改 `flushType`。默认生理盐水下切到透析导管，结果卡直接显示「肝素总量 0」、EMR 写「不含肝素」，而同页信息框要求透析导管用 1000–5000 U/mL。下拉最高仅 100 U/mL，与其自述的 1000 U/mL 相差 10 倍。
 - 证据：`tools/clinical-nursing/cvc-maintenance.html:288-291`（dialysis `heparinConc:'1000 U/mL'`）、`:295-302`（只改 cathVol）、`:316-318`（heparinU 仅按下拉 10/100 乘）、`:200-202`（信息框 1000–5000 U/mL）、`:381`（EMR 固定写「透析导管 1000 U/mL」）。
 - 复现：选「透析导管」（封管液保持默认生理盐水）→ 导管容积 2.0、附加 2 → 每腔冲管 **4.0 mL**、总封管 **2.4 mL**、**肝素总量 0**；改双腔仍为 0。切换「肝素 100 U/mL」、双腔 → 肝素 **480 U**（按其自述 1000 U/mL 应为 **4800 U**）。
 - 影响：透析导管按生理盐水封管或肝素量仅 1/10，堵管/血栓风险；护理记录与计算结果同步错误。
@@ -256,12 +257,13 @@
 
 > 范围：本轮人工阅读 8 个用药/剂量/给药/监护类页面（`tools/healthcare` 4 页、`tools/clinical-nursing` 3 页、`tools/medical` 1 页）：`tools/healthcare/qtc.html`、`tools/healthcare/map.html`、`tools/healthcare/ideal-weight.html`、`tools/healthcare/healthcare-5.html`、`tools/clinical-nursing/suction-pressure.html`、`tools/clinical-nursing/chest-compression-depth.html`、`tools/clinical-nursing/restraint-duration.html`、`tools/medical/clinical-tools.html`。仅源码逐行阅读 + node 内存复算（复刻页面表达式与 `toFixed`/`Math.round`/`parseInt` 口径），未开浏览器、未验证英文态/移动端/门禁。临床剂量与阈值条目均需药师/医师复核。
 
-### D-N34 MAP 显著偏高仍显示正常（中，确认缺陷）
-- `tools/healthcare/map.html:238-263` 将 MAP ≥70 一律标记「正常」；收缩压 180、舒张压 120 时 MAP 为 140 mmHg，仍显示正常。心率字段也未参与计算。
-- 影响：偏高结果可能被误解为正常。应明确高值提示或调整结论表述，临床阈值需医师复核；心率字段应明确用途。
+### D-N34 MAP 显著偏高仍显示正常（已修，754 批）
+- 现状（2026-11-16）：`tools/healthcare/map.html` 分级改为 MAP ≥100「偏高（需排查）」、70–99 正常、65–69 临界、<65 偏低；心率字段在结果区展示并注明「仅记录，不参与 MAP 计算」；公式框同步分级口径。门禁：180/120 ⇒ 140.0 + 偏高；90/40 ⇒ 56.7 + 偏低 + 心率 110；舒张压 > 收缩压 ⇒ 拒绝。
+- 原描述：`tools/healthcare/map.html:238-263` 将 MAP ≥70 一律标记「正常」；收缩压 180、舒张压 120 时 MAP 为 140 mmHg，仍显示正常。心率字段也未参与计算。
 
-### D-N35 理想体重 Devine：性别只有填 1 才算男，0/空/其它值静默按女性；年龄字段读入不用；简介承诺的三种公式与体重对比均未实现（中，确认缺陷）
-- 描述：`(sex===1?50:45.5)` 使任何非 1 值（0、空、3）都走女性分支且无提示；`age` 在 calc 内被读取后从未参与任何算式，属死字段；英文简介写「Hamwi, Miller and Robinson variants … compare your current weight」，页面只有 Devine 一条、也没有当前体重输入。
+### D-N35 理想体重 Devine：性别只有填 1 才算男，0/空/其它值静默按女性；年龄字段读入不用；简介承诺的三种公式与体重对比均未实现（已核销，754 批）
+- 现状（2026-11-16 复核）：`tools/healthcare/ideal-weight.html` 已并列 Devine/Hamwi/Miller/Robinson 四式，性别仅 1 为男、其余按女并配 select；身高 <152.4 cm 直接拒绝并提示改用儿科/专用公式；年龄字段已从计算路径移除，简介与公式框口径一致；门禁：180 cm/女 ⇒ Devine 70.5；150 cm ⇒ 拒绝文案。
+- 原描述：`(sex===1?50:45.5)` 使任何非 1 值（0、空、3）都走女性分支且无提示；`age` 在 calc 内被读取后从未参与任何算式，属死字段；英文简介写「Hamwi, Miller and Robinson variants … compare your current weight」，页面只有 Devine 一条、也没有当前体重输入。
 - 证据：`tools/healthcare/ideal-weight.html:122-124`（身高/性别/年龄输入）、`:236-238`（三项读入）、`:240`（性别二分，age 未使用）、`:121`（简介承诺多公式与体重对比）、`:139`（公式框仅 Devine）
 - 复现：身高 170 cm、性别 **3** → **61.4 kg**，与性别 2 完全相同且无报错（应拒绝非法性别）；年龄 30 改 80 → 结果恒 **65.9 kg**（零变化）；身高 **0**（或清空）→ **−88.0 kg**（男）/ **−92.5 kg**（女）。
 - 影响：性别误填不会报错却输出女性 IBW，按 IBW 折算给药/通气量会系统性偏低；年龄字段让人误以为已做年龄校正；简介与实现不符削弱可信度。负体重问题与 D-N28（`ibw.html`）同类，但页面不同、成因含性别/年龄分支。

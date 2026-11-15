@@ -222,6 +222,36 @@ const CASES = [
     ref: "Devine（男）= 50 + 0.91×(175−152.4) = 50 + 20.566 = 70.6 kg；上限 ×1.1 = 77.6；下限 ×0.9 = 63.5",
   },
   {
+    slug: "healthcare/map",
+    inputs: { sbp: "180", dbp: "120", hr: "90" },
+    expect: ["MAP： 140.0", "偏高（需排查）"],
+    ref: "D-N34 高值分级：MAP = 120 + (180−120)/3 = 140.0；旧实现 m≥70 一律「正常」，现 ≥100 判「偏高（需排查）」。默认 120/80 ⇒ 93.3 正常，不命中。",
+  },
+  {
+    slug: "healthcare/map",
+    inputs: { sbp: "90", dbp: "40", hr: "110" },
+    expect: ["MAP： 56.7", "偏低", "心率： 110 次/分"],
+    ref: "D-N34 低值 + 心率展示：90/40 ⇒ MAP = 40 + 50/3 = 56.7、脉压 50.0 ⇒ 偏低；心率 110 仅记录不参与公式，避免字段读入后成为死输入。",
+  },
+  {
+    slug: "healthcare/map",
+    inputs: { sbp: "80", dbp: "120" },
+    expect: ["舒张压不得高于收缩压"],
+    ref: "D-N34 顺序守卫：舒张压 120 > 收缩压 80 ⇒ 拒绝计算，不输出负脉压与错误分级。",
+  },
+  {
+    slug: "healthcare/ideal-weight",
+    inputs: { height: "180", sex: "0" },
+    expect: ["70.5"],
+    ref: "D-N35 Devine（女 180 cm）= 45.5 + 2.3×(180/2.54−60) = 45.5 + 2.3×10.866 = 70.5 kg；默认 170/男 ⇒ 65.9，不命中。",
+  },
+  {
+    slug: "healthcare/ideal-weight",
+    inputs: { height: "150", sex: "1" },
+    expect: ["身高需 ≥ 152.4 cm"],
+    ref: "D-N35 身高守卫：150 cm 低于 5 英尺 ⇒ 拒绝并提示改用儿科/专用公式；旧实现输出 Devine 50+2.3×(−0.94)=47.8 并继续渲染。",
+  },
+  {
     slug: "healthcare/ibw",
     inputs: { height: "100", sex: "0" },
     expect: ["公式不适用于此身高范围"],
