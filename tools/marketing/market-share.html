@@ -277,10 +277,23 @@ function calc(){
   }
   var sorted = comps.slice().sort(function(a,b){return b.value-a.value;});
   var shares = sorted.map(function(c){return {name:c.name||'—', value:c.value, pct:c.value/total*100};});
+  // 「其他 / Other」是合并口径，不能当作单一企业参与集中度计算，否则 HHI/CR4 被系统性高估
+  var isOther = function(n){ return /^\s*(其他|其它|other)\s*$/i.test(String(n||'').trim()); };
+  var named = shares.filter(function(sr){ return !isOther(sr.name); });
+  var otherPct = shares.filter(function(sr){ return isOther(sr.name); })
+    .reduce(function(s,sr){ return s+sr.pct; }, 0);
+  if(!named.length){
+    document.getElementById('tipBox').innerHTML='<p style="color:var(--danger);">请至少填写一家具名企业；「其他」为合并口径，不能单独用于集中度测算。</p>';
+    document.getElementById('hhiBox').innerHTML='';
+    document.getElementById('shareBars').innerHTML='';
+    document.getElementById('resultTable').innerHTML='';
+    return;
+  }
   // HHI（份额用百分比平方求和，标准 HHI 用 0-1 比例平方×10000）
-  var hhi = shares.reduce(function(s,sr){return s+Math.pow(sr.pct,2);},0);
-  // CR4 前4名集中度
-  var cr4 = shares.slice(0,4).reduce(function(s,sr){return s+sr.pct;},0);
+  var hhi = named.reduce(function(s,sr){return s+Math.pow(sr.pct,2);},0);
+  // CR4 前4名集中度（仅具名企业）
+  var cr4 = named.slice(0,4).reduce(function(s,sr){return s+sr.pct;},0);
+  var otherNote = otherPct>0 ? '　·　「其他」占 '+otherPct.toFixed(1)+'%（视为分散，未计入）' : '';
 
   // 集中度判定
   var level, levelColor;
@@ -290,7 +303,7 @@ function calc(){
   else { level='高度寡占'; levelColor='#EF4444'; }
 
   const __g3='<div class="v" style="color:'+levelColor+';">'+Math.round(hhi).toLocaleString('zh-CN')+'</div>'+
-    '<div class="l" style="font-size:13px;color:var(--text-muted);">HHI 指数　·　'+level+'　·　CR4 集中度 '+cr4.toFixed(1)+'%</div>';document.getElementById('hhiBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+    '<div class="l" style="font-size:13px;color:var(--text-muted);">HHI 指数　·　'+level+'　·　CR4 集中度 '+cr4.toFixed(1)+'%'+otherNote+'</div>';document.getElementById('hhiBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   // 份额条
   var barsHtml = '<h3 style="margin-top:16px;">市场份额</h3>';
