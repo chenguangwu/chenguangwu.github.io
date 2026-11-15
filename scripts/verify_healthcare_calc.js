@@ -90,6 +90,12 @@ const CASES = [
     ref: "D-N6（0 值分支）：成人剂量填 0 时旧实现输出「按体重剂量 0.00 / 受限剂量 0.00 mg」，既无意义又静默；修复后拒绝计算并提示。默认 500 mg 正常，不含该串 ⇒ 零命中。",
   },
   {
+    slug: "healthcare/bsa-calculator",
+    inputs: { weight: "8", height: "70", age: "0" },
+    expect: ["BSA： 0.400", "所用公式： Haycock"],
+    ref: "D-N30 0 岁分支：Haycock = 0.024265×8^0.5378×70^0.3964 = 0.400 m²；旧条件 age>0 把 0 岁排除，走 DuBois 0.007184×8^0.425×70^0.725 = 0.386 并标「成人，≥18 岁」。默认 65kg/170cm/30 岁 ⇒ 1.754/DuBois，不命中。",
+  },
+  {
     slug: "healthcare/weight-dosage",
     inputs: { weight: "18", mgkg: "12", freq: "3" },
     expect: ["216.0", "72.0"],
@@ -214,6 +220,18 @@ const CASES = [
     inputs: { height: "175", sex: "1" },
     expect: ["70.6", "77.6", "63.5"],
     ref: "Devine（男）= 50 + 0.91×(175−152.4) = 50 + 20.566 = 70.6 kg；上限 ×1.1 = 77.6；下限 ×0.9 = 63.5",
+  },
+  {
+    slug: "healthcare/ibw",
+    inputs: { height: "100", sex: "0" },
+    expect: ["公式不适用于此身高范围"],
+    ref: "D-N28 负值守卫：女性 100 cm ⇒ 45.5 + 0.91×(100−152.4) = −2.2 kg；旧实现输出 IBW −2.2、上限 −2.4、下限 −2.0。修复后拒绝并提示公式不适用。默认 170/男 ⇒ 66.0 kg 正常，不含该串。",
+  },
+  {
+    slug: "healthcare/ibw",
+    inputs: { height: "148", sex: "1" },
+    expect: ["身高低于 150 cm"],
+    ref: "D-N28 低身高提示：男 148 cm ⇒ 50 + 0.91×(148−152.4) = 46.0 kg（正值但偏低），追加 Devine 适用范围提示；默认 170 cm 不命中。",
   },
   {
     slug: "healthcare/ibw",
