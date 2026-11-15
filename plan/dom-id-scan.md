@@ -18,7 +18,7 @@
 | 已修页数 | **1**（`tools/finance/stock-profit-calculator.html`） |
 
 > 说明：13 条「必然为 null」里 12 条已有守卫 / 属未调用死函数，运行时不会触碰 null；只有 stock 页
-> 的 `modeTag` 是无守卫的直接赋值，已修复。
+> 的 `modeTag` 是无守卫的直接赋值，已修复（`tools/finance/stock-profit-calculator.html`）。
 
 ## 必然为 null 清单（13 条，含前 20 全量）
 
