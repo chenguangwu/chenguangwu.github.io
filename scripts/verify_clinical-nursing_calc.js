@@ -91,6 +91,21 @@ const CASES = [
 {
   "slug": "clinical-nursing/calc-rater-risk",
   "inputs": {
+    "b1": "4",
+    "b2": "3",
+    "b3": "2",
+    "b4": "3",
+    "b5": "3",
+    "b6": "2"
+  },
+  "expect": [
+    "【Braden 压疮风险评估（6 维度 · 满分 23）】 结果：Braden 总分 17/23 → 分级：低度风险"
+  ],
+  "ref": "D-N120 分层回归：4+3+2+3+3+2 = 17 落「15–18 低度风险」；同页深解示例曾称 17 分判高危，已同步为低度。默认 21/23 走「当前为默认评分」提示、不输出分级，零交集。"
+},
+{
+  "slug": "clinical-nursing/calc-rater-risk",
+  "inputs": {
     "b1": "1",
     "b2": "1",
     "b3": "1",
