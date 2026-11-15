@@ -2058,6 +2058,35 @@ const CASES = [
     "clicks": ["calc()"],
     "expect": ["#DB0000", "416.67", "1.72"],
     "ref": "628 批衰减区一致：λ=720 nm 时亮度因子 f=0.3+0.7·(780−720)/80=0.825，R=round(255·0.825^0.8)=219 ⇒ HEX #DB0000；频率 3e8/720e-9=416.67 THz、光子能量 1240/720=1.72 eV。三项独立可手算复算，参考表新增的 720 nm 行与本算法同源；默认 550 nm 输出 #A3FF00/545.45/2.25 不含这些串 ⇒ 判别有效。"
+  },
+  {
+    "slug": "science/wire-gauge-converter",
+    "inputs": { "awg": "12.5" },
+    "clicks": ["calcFromAwg()"],
+    "expect": ["1.937"],
+    "ref": "629 批小数线规：AWG 12.5 ⇒ d=0.127·92^((36−12.5)/39)=1.937 mm（页面 resDmm toFixed(3) 与明细表 toFixed(4) 均以 1.937 开头）。旧实现对输入用 parseInt，12.5 被截断成 12 ⇒ 2.053 mm，与本用例期望不同 ⇒ 判别有效。默认 awg=24 ⇒ 0.511 mm，不出现 1.937。"
+  },
+  {
+    "slug": "science/wire-gauge-converter",
+    "inputs": { "awg": "" },
+    "clicks": ["calcFromAwg()"],
+    "expect": ["请输入 AWG 线规号（0–40）"],
+    "ref": "629 批空值守卫：清空 AWG 输入框后调用计算，页面不再静默 return 保留上一次结果，而是清空各结果字段并提示「请输入 AWG 线规号（0–40）」。默认 awg=24 正常出结果，不含该提示 ⇒ 判别有效。"
+  },
+  {
+    "slug": "science/wire-gauge-converter",
+    "inputs": { "mm": "0" },
+    "clicks": ["calcFromMm()"],
+    "expect": ["请输入大于 0 的线径（mm）"],
+    "ref": "629 批零线径守卫：线径填 0 后计算，页面不再静默 return 保留旧值，而是清空结果并提示「请输入大于 0 的线径（mm）」（d≤0 时 mmToAwg 对数为 −∞，结果无意义）。默认 awg=24 模式不含该提示 ⇒ 判别有效。"
+  },
+  {
+    "afterLoad": true,
+    "slug": "science/torque-converter",
+    "inputs": { "val": "", "from": "lbft" },
+    "clicks": ["convert()"],
+    "expect": ["请输入有效的扭矩数值"],
+    "ref": "629 批空值守卫：扭矩值清空后调用换算，页面不再用 parseFloat(...)||0 把空值当 0 算出一整列 0 并写入历史，而是清空结果并提示「请输入有效的扭矩数值」。注入 val=20 等正常值时不出现该提示 ⇒ 判别有效。"
   }
 ];
 

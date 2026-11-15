@@ -20,9 +20,7 @@
 - `tools/science/quadratic-equation.html:302-305,376-407,517`：旧 SMS-136 的绝对阈值与小数归零代码已改为相对阈值及科学计数，旧例不再支持该结论，待运行回归；SMS-137 的负 a 共轭根符号问题仍在，结果趋势仍解析以 `Δ` 开头的文本。
 - `tools/science/science-flow-rate.html:569-608,669-718`：旧 SMS-143～145 的历史不恢复输入、内径单位写死和无效值保留旧结果路径仍在。
 - `tools/science/science-pressure-converter.html:447-464,495-508`：清空输入后直接返回，旧结果仍可复制与保存，既有记录仍适用。
-- `tools/science/torque-converter.html:410-425`：清空数值按 0 计算并保存为有效结果（SMS-155 CSV 单位后缀写死已于 625 批修，见复核记录）。
 - `tools/science/voltage-divider-calculator.html:389-424`：旧 SMS-36～37 的升压与目标空值兜底关键代码已改为校验并清结果，待运行回归；正向输入仍以 `||0` 处理空值，清空 Vin/R1/R2 可能产生看似有效的零结果。
-- `tools/science/wire-gauge-converter.html:369,379-385,459-467`：历史按线径反算时可保存小数 AWG，但恢复用 `parseInt` 截断，结果与保存值不同；无效输入直接返回并保留旧结果。SMS-158 电阻量级错误已于 625 批修正（主结果/参考表/导出同源 ×1000）。电气计算有安全风险，须专业复核。
 
 ## 2026-11-06 数学工具静态续审
 
@@ -441,7 +439,7 @@
 | tools/science/wavelength-to-rgb.html | 【中】参考表 RGB 与本页算法不一致：405 nm 表 #8B00FF vs 算法 #8200C8；500 nm 表 #00FFFF vs #00FF92；532 nm 表 #00FF00 vs #65FF00；700 nm 表 #8B0000 vs #FF0000；用户按表核对会得到两套值。:283-295、:418-429 ｜ **628 批已修**：表头改「本页算法 RGB」，12 行（新增 780 nm 衰减行）逐行改为 wlToRgb 输出，色块同步；保真脚本用独立 Python 复算逐行比对。 | SMS-156 |
 | tools/science/wavelength-to-rgb.html | 【中】深挖算例与算法不符：示例称「520 nm→rgb(0,255,0)；450 nm→rgb(0,0,255)」，实际 `wlToRgb` 给 520 nm #36FF00（54,255,0）、450 nm #0046FF（0,70,255）。:350、:418-429 ｜ **628 批已修**：示例改为算法真值并注明「含亮度因子与 γ=0.8 校正」；页面 + content_deepdive 源 + en map 三源同步。 | SMS-157 |
 | tools/science/wire-gauge-converter.html | 【高】铜电阻量纲错 1000 倍：`res_km=rho/area_mm2` 实为 Ω/m，却标成「Ω/km」（:403、:409），AWG 24 显示 0.08 Ω/km（真值 84.01）、AWG 20 显示 0.03（真值 33.23）、AWG 0 因 `toFixed(2)` 直接成 0.00；由它派生的「Ω/1000ft」（`res_km×0.3048`，:419）与「100m 压降」（`res_km/1000×100`，:421）同样小 1000 倍（AWG 24 显示 0.0084 V，应 8.40 V）。:403、:409、:418-421、:436 | SMS-158 |
-| tools/science/wire-gauge-converter.html | 【中】深挖载流示例与自身口径矛盾：示例写「AWG 20 载流约 5 A」，而同页 5 A/mm² 规则与对照表给 AWG 20（0.5176 mm²）2.59 A，差约 2 倍。:314、:420、:436 | SMS-159 |
+| tools/science/wire-gauge-converter.html | 【中】深挖载流示例与自身口径矛盾：示例写「AWG 20 载流约 5 A」，而同页 5 A/mm² 规则与对照表给 AWG 20（0.5176 mm²）2.59 A，差约 2 倍。:314、:420、:436 ｜ **629 批已修**：示例改为「截面积 ≈0.518 mm²，按本页 5 A/mm² 估算载流约 2.6 A，每千米铜电阻约 33.2 Ω」，与对照表/结果区同源；页面 + content_deepdive + en map 三源同步。 | SMS-159 |
 | tools/science/work-done.html | 【中】预设倍率标签与结果不符：「示例 2×」把 F 50→100、d 10→20，做功 500→2000 J（4×）；「示例 0.5×」把 F→25、d→5，做功→125 J（0.25×），标签的 2×/0.5× 均未实现。:258-261 | SMS-160 |
 | tools/science/xianxingfangchengzuqiujie-2yuan-3yuan.html | ~~【高】历史为假恢复~~ **已修（627 批）**：`restoreHistory(idx)` 按索引读 `list[idx].vals` 逐字段回填，不再写死默认；三元签名显示实际系数；`saveHistory` 改 600ms 防抖 + 与最新一条去重，杜绝按键中间态塞满 5 条。原证据：:273、:294、:312-314 | SMS-161 |
 | tools/science/xianxingfangchengzuqiujie-2yuan-3yuan.html | ~~【中】预设不切换元数且默认预设不完整~~ **已修（627 批）**：预设 values 加 `__xhMode`（隐藏 input 承载），after 回读取值调 `setMode` 真正切 2/3 元；「默认参数」补全 c2_3/d2_3/a3_3/b3_3/c3_3/d3_3 六项至 12 项。原证据：:421-424 | SMS-162 |
