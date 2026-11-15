@@ -195,9 +195,24 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const mode=document.getElementById("mode").value;const v=+document.getElementById("val").value||0;let out;if(mode==="f2o"){let f=21+4*v;if(f>100)f=100;out="FiO2 ≈ "+f.toFixed(1)+"%（流量 "+v+" L/min）";}else{let f=(v-21)/4;if(f<0)f=0;out="氧流量 ≈ "+f.toFixed(2)+" L/min（FiO2 "+v+"%）";}var _d="";if(mode==="f2o"){var _f=Math.min(21+4*v,100);if(_f>60){_d="\n警示：FiO₂ 超过 60% 持续吸氧超过 24 小时有氧中毒风险，应尽早下调浓度";}_d+="\n较空气（21%）增氧 = "+(_f-21).toFixed(1)+" 个百分点";_d+="\n提示：普通鼻导管建议流量不超过 6 L/min，更高流量需改用面罩湿化给氧";if(v>60){_d+="\n警示：FiO₂ 超过 60% 持续吸氧超过 24 小时有氧中毒风险，应尽早下调浓度";}}else{_d+="\n较空气（21%）增氧 = "+(v-21).toFixed(1)+" 个百分点";}
+function calc(){const mode=document.getElementById("mode").value;const v=+document.getElementById("val").value||0;const el=document.getElementById("res");let out="";let _d="";
+if(mode==="f2o"){
+  if(!(v>=0)||v>15){el.innerHTML='<p style="font-size:16px;color:var(--danger)">⚠ 鼻导管流量须在 0–15 L/min 之间；更高流量请改用面罩湿化给氧。</p>';window.__EMR_SUM={mode:mode,v:v,out:"",extra:""};return;}
+  var _f=Math.min(21+4*v,100);
+  out="FiO2 ≈ "+_f.toFixed(1)+"%（流量 "+v+" L/min）";
+  if(_f>60){_d="\n警示：FiO₂ 超过 60% 持续吸氧超过 24 小时有氧中毒风险，应尽早下调浓度";}
+  _d+="\n较空气（21%）增氧 = "+(_f-21).toFixed(1)+" 个百分点";
+  _d+="\n提示：普通鼻导管建议流量不超过 6 L/min，更高流量需改用面罩湿化给氧";
+}else{
+  if(!(v>=21)||v>100){el.innerHTML='<p style="font-size:16px;color:var(--danger)">⚠ FiO₂ 须在 21%–100% 之间（空气为 21%）。</p>';window.__EMR_SUM={mode:mode,v:v,out:"",extra:""};return;}
+  var _flow=(v-21)/4;
+  out="氧流量 ≈ "+_flow.toFixed(2)+" L/min（FiO2 "+v+"%）";
+  _d+="\n较空气（21%）增氧 = "+(v-21).toFixed(1)+" 个百分点";
+  if(_flow>15){_d+="\n警示：所需流量 >15 L/min，鼻导管无法提供，请改用面罩/储氧面罩。";}
+  else if(_flow>6){_d+="\n提示：流量 >6 L/min 已超鼻导管舒适范围，建议改面罩湿化给氧。";}
+}
 window.__EMR_SUM={mode:mode,v:v,out:out,extra:_d};
-const el=document.getElementById("res");el.innerHTML='<p style="font-size:18px;color:var(--primary);white-space:pre-line;">'+(out+_d).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p>';}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+el.innerHTML='<p style="font-size:18px;color:var(--primary);white-space:pre-line;">'+(out+_d).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p>';}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 
 /* —— 门诊记录（EMR note）：把计算结果整理成可直接粘进护理记录/病历的文本 —— */
 function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
@@ -297,9 +312,9 @@ try{ __emrData(); }catch(e){}
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>按吸氧装置与流量估算 FiO2，辅助氧疗处方核对与方案选择。</p>
+    <p>按鼻导管流量估算 FiO₂，或由 FiO₂ 反推鼻导管流量，辅助氧疗处方核对；文丘里/面罩/HFNC 请按装置标称值另行核对。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
-    <ul class="intro-features"><li>鼻导管 FiO2≈21+4×流量</li><li>文丘里/面罩标称 FiO2</li><li>HFNC 参数校准</li></ul>
+    <ul class="intro-features"><li>鼻导管 FiO2≈21+4×流量（0–15 L/min 限界）</li><li>FiO₂ 反推流量并对 >6 / >15 L/min 提示改用面罩</li><li>未覆盖文丘里/面罩/HFNC 的装置曲线，需按装置标称值核对</li></ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
     <ul class="intro-scenes"><li>鼻导管 1–6 L/min 估算</li><li>文丘里面罩选 FiO2</li><li>目标 SpO2 回推流量</li></ul>
     </div>

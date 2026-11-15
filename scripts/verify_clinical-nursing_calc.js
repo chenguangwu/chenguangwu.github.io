@@ -179,6 +179,24 @@ const CASES = [
   "ref": "去默认化：FiO2 40% ⇒ 流量 = (40−21)/4 = 4.75 L/min。默认态不命中。"
 },
 {
+  "slug": "clinical-nursing/convert-flow-concentration",
+  "inputs": { "mode": "o2f", "val": "120" },
+  "expect": ["FiO₂ 须在 21%–100% 之间"],
+  "ref": "D-N18（2026-11-16）：反推方向旧实现只把负值钳到 0，FiO₂=120% 得 24.75 L/min 且无警示。现要求 21–100，越界直接拦截。默认 40% ⇒ 不命中。"
+},
+{
+  "slug": "clinical-nursing/convert-flow-concentration",
+  "inputs": { "mode": "o2f", "val": "100" },
+  "expect": ["氧流量 ≈ 19.75 L/min", "警示：所需流量 >15 L/min"],
+  "ref": "D-N18：FiO₂ 100% ⇒ (100−21)/4 = 19.75 L/min，超过页面自述 15 L/min 上限；现追加「鼻导管无法提供，请改用面罩/储氧面罩」。默认 40% ⇒ 4.75，两锚均失配。"
+},
+{
+  "slug": "clinical-nursing/convert-flow-concentration",
+  "inputs": { "mode": "f2o", "val": "20" },
+  "expect": ["鼻导管流量须在 0–15 L/min 之间"],
+  "ref": "D-N19（2026-11-16）：正向旧实现 20 L/min 直接封顶 100% 且无提示；现限制 0–15 并提示改用面罩。默认 2 L/min ⇒ 不命中。"
+},
+{
   "slug": "clinical-nursing/cvc-maintenance",
   "inputs": {
     "lumens": "3",
