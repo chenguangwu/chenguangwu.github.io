@@ -19,7 +19,7 @@ window.INDUSTRY_INFO = {
   'text'                 : { name: '文本处理', icon: '📝', hot: 1090731 },
   'hotel'                : { name: '酒店管理', icon: '🏨', hot: 1048471 },
   'agriculture'          : { name: '农业种植', icon: '🌾', hot: 731967 },
-  'statistics'           : { name: '统计学', icon: '📊', hot: 713152 },
+  'statistics'           : { name: '统计学', icon: '📊', hot: 713154 },
   'machinery'            : { name: '机械制造', icon: '⚙️', hot: 706592 },
   'sports'               : { name: '体育竞技', icon: '⚽', hot: 705691 },
   'hydraulic'            : { name: '水利工程', icon: '💧', hot: 605469 },

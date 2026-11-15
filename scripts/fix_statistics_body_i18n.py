@@ -97,7 +97,7 @@ INTRO = {
     'geometric-mean': 'Enter a set of positive numbers to compute the geometric mean as the n-th root of their product, suited to growth rates and ratio-type data.',
     'harmonic-mean': 'Enter a set of numbers to compute the harmonic mean as the reciprocal of the arithmetic mean of reciprocals, suited to rates and unit prices.',
     'independent-t-test': 'Enter two independent samples (means, standard deviations and sizes) to compute the t value and p value and test whether the two population means differ significantly.',
-    'iqr': 'Enter a data set (or count, minimum, Q1, median, Q3 and maximum) to compute Q1, Q2, Q3 and the interquartile range, and mark outlier bounds by the 1.5 x IQR rule for box plots.',
+    'iqr': 'Enter the five-number summary (count, minimum, Q1, median, Q3 and maximum) to compute the interquartile range, and mark outlier bounds by the 1.5 x IQR rule for box plots.',
     'linear-regression': 'Enter paired (x, y) data to fit the best-fit line by least squares and get the slope, intercept and R-squared, for trend prediction and variable-relationship modelling.',
     'mean-absolute-deviation': 'Enter a series of values to compute the mean absolute deviation MAD = sum|x - xbar| / n, measuring average dispersion for forecast error and robustness checks.',
     'normal-cdf': 'Enter the mean, standard deviation and a value x, or a standard score z, to compute the standard normal cumulative probability P(X <= x) for probability and quantile estimates.',
