@@ -64,6 +64,22 @@ const CASES = [
   "ref": "extent=descOnly（仅降主动脉）→ Stanford B 型 / DeBakey IIIa；malPerf=脏器灌注不良 → complicated → 紧急 TEVAR 腔内修复"
 },
 {
+  "slug": "cardiology/aortic-dissection",
+  "radios": {
+    "extent": "ascDesc"
+  },
+  "checkIds": [
+    "htn"
+  ],
+  "clicks": [
+    "var b=document.getElementById('result').innerHTML;document.getElementById('result').innerHTML=(/A型[\\s\\S]{0,12}累及升主动脉/.test(b)&&/I型/.test(b))?'__AD_A_OK__':'__AD_A_FAIL__'+b"
+  ],
+  "expect": [
+    "__AD_A_OK__"
+  ],
+  "ref": "D-N94 示例回归：深解示例为「升+降全程 + 仅高血压 ⇒ Stanford A / DeBakey I / 急诊」，页面默认不预选范围（首屏显示「请选择夹层累及范围」）。clicks 读取结果区同时校验 Stanford A 与 DeBakey I，不选范围或分型错误均输出 FAIL。"
+},
+{
   // 出血增量公式 + 50–59 岁个体化分支
   "slug": "cardiology/aspirin-prevention",
   "inputs": {
