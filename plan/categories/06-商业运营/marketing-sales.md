@@ -104,13 +104,13 @@
 - 影响：`tools/sales/price-calculator.html`。零毛利场景给出错误的保本结论；负售价可被直接抄进报价单。
 - 方案：`fixedCost=0` 分支改为按 `grossProfit` 判定：`>0` 才说「1 件即可盈利」，`=0` 说「不盈不亏」，`<0` 说「每卖一件亏损，无法保本」。偏差率补 `-100 ≤ deviation` 下限。
 
-### MS-F7 目标利润率 ≥ 毛利率时目标 ROAS 静默消失；无效提示指向错误字段（中，确认）
+### MS-F7 目标利润率 ≥ 毛利率时目标 ROAS 静默消失；无效提示指向错误字段（中，确认）— 2026-11-15 已修复（560 批）
 - 描述：`targetRoas` 只在 `0 < targetProfit < margin` 时计算，其余情况整块卡片不渲染、无任何说明；毛利率输入合法但售价为空/非法时，统一提示「请输入有效数值（毛利率0-100之间）」，指错字段。
 - 证据：`tools/marketing/marketing-break-even-roas.html:386-389`（仅校验 price/margin 的 `isNaN`，提示文案只提毛利率）、`:396-399`（`targetProfit>0 && targetProfit<margin` 才赋值）、`:425-431`（`targetRoas` 为空则整卡不渲染）。node 复算：毛利率 40、目标利润率 50（或 40）→ `targetRoas = null`；毛利率 40、当前 ROAS 3 → 净利率 `6.67%`，与页面展示口径一致。
 - 影响：`tools/marketing/marketing-break-even-roas.html`。用户以为「填了目标利润率没生效」，实际是数学上不可达，页面未告知。
 - 方案：`targetProfit ≥ margin` 时渲染占位说明「目标利润率须低于毛利率（当前毛利率 40%）」；错误提示按具体空字段分别给出，售价为空时提示「请输入产品客单价」。
 
-### MS-F8 LTV 为 0 时仍输出 0:1、-100% ROI 与破折号回本周期；回本周期硬编码 36 个月（中，LTV 校验确认 / 寿命假设待验证）
+### MS-F8 LTV 为 0 时仍输出 0:1、-100% ROI 与破折号回本周期；回本周期硬编码 36 个月（中，LTV 校验确认 / 寿命假设待验证）— 2026-11-15 已修复（560 批）
 - 描述：`calc()` 只拒绝 `cac<=0`，`ltv=0` 照常进入计算：比率 0.00:1、ROI -100%、`paybackMonths = cac/(ltv/36) = Infinity`，经全局 `Infinity→—` 替换后显示「— 个月」。此外回本周期以 `LTV/36`（隐含 36 个月生命周期、月净贡献均摊）推算，但页面无寿命输入、也未声明该假设。
 - 证据：`tools/marketing/marketing-ltv-cac-ratio.html:418-430`（仅 `cac<=0` 拦截；`paybackMonths = cac/(ltv/36)`）、`:456`（`${paybackMonths.toFixed(1)} 个月`）、`:485`（结果串 `replace(/Infinity|NaN/g,'—')`）。node 复算：LTV 0、CAC 500 → ratio `0.00`、ROI `-100.0%`、payback `Infinity`（渲染为「— 个月」）；LTV 3000、CAC 500 → 回本 `6.0` 个月（= 500÷(3000/36)，即假定 3000 元分 36 个月回收）。
 - 影响：`tools/marketing/marketing-ltv-cac-ratio.html`。零 LTV 是明显无效输入却给出完整结论卡；回本周期在寿命≠36 个月时系统性偏离（如 12 个月寿命应为 2 个月）。

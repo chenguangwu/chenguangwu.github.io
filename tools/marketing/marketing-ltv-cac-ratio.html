@@ -190,6 +190,11 @@
           <input type="number" id="cac" value="500" min="0" oninput="calc()" placeholder="如 500">
           <div class="input-hint">获取一个新客户的成本</div>
         </div>
+        <div class="input-group">
+          <label>客户生命周期（月）</label>
+          <input type="number" id="lifeMonths" value="36" min="1" oninput="calc()" placeholder="如 36">
+          <div class="input-hint">LTV 的分摊周期，默认 36 个月</div>
+        </div>
       </div>
 
       <div class="toolbar">
@@ -412,17 +417,23 @@ function calc() {
 var __tbT=document.getElementById('marketing_ltv_cac_ratioTable');if(__tbT)__tbT.innerHTML='';/*__tbClearDetailStart*/
   const ltv = parseFloat(document.getElementById('ltv').value);
   const cac = parseFloat(document.getElementById('cac').value);
+  const lifeMonths = parseFloat(document.getElementById('lifeMonths').value);
   const r = document.getElementById('result');
 
   if (isNaN(ltv) || isNaN(cac) || ltv <= 0 || cac <= 0) {
     r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值（LTV 与 CAC 均需大于 0）</p></div>';
     return;
   }
+  if (!isFinite(lifeMonths) || lifeMonths <= 0) {
+    r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入客户生命周期（月，须大于 0）</p></div>';
+    return;
+  }
 
   const ratio = ltv / cac;
   const profit = ltv - cac;
   const roi = (profit / cac) * 100;
-  const paybackMonths = cac / (ltv / 36);
+  const paybackMonths = cac / (ltv / lifeMonths);
+  const paybackNote = paybackMonths > lifeMonths ? '（超过生命周期，难以回本）' : '';
 
   let status, statusColor;
   if (ratio >= 3) { status = '健康'; statusColor = '#4caf50'; }
@@ -448,7 +459,7 @@ var __tbT=document.getElementById('marketing_ltv_cac_ratioTable');if(__tbT)__tbT
         <tr><td style="padding:4px 0;color:var(--text-light);">客户获取成本CAC</td><td style="text-align:right;font-weight:600;">¥${ToolBox.formatNumber(cac, 2)}</td></tr>
         <tr><td style="padding:4px 0;color:var(--text-light);">客户净价值</td><td style="text-align:right;font-weight:600;color:${profit >= 0 ? '#4caf50' : '#f44336'};">¥${ToolBox.formatNumber(profit, 2)}</td></tr>
         <tr><td style="padding:4px 0;color:var(--text-light);">投资回报率</td><td style="text-align:right;font-weight:600;">${roi.toFixed(1)}%</td></tr>
-        <tr><td style="padding:4px 0;color:var(--text-light);">回本周期（按 36 个月分摊 LTV 估算）</td><td style="text-align:right;font-weight:600;">${paybackMonths.toFixed(1)} 个月</td></tr>
+        <tr><td style="padding:4px 0;color:var(--text-light);">回本周期（按 ${lifeMonths} 个月分摊 LTV 估算）</td><td style="text-align:right;font-weight:600;">${paybackMonths.toFixed(1)} 个月${paybackNote}</td></tr>
       </table>
     </div>
 
@@ -469,7 +480,7 @@ var __tbT=document.getElementById('marketing_ltv_cac_ratioTable');if(__tbT)__tbT
         </div>
         <div class="related-metric">
           <div class="val">${paybackMonths.toFixed(1)}月</div>
-          <div class="lbl">回本周期</div>
+          <div class="lbl">回本周期（${lifeMonths}个月寿命）</div>
         </div>
       </div>
     </div>
@@ -569,6 +580,7 @@ function clearHistory() {
 function resetForm() {
   document.getElementById('ltv').value = 3000;
   document.getElementById('cac').value = 500;
+  document.getElementById('lifeMonths').value = 36;
   calc();
 }
 
