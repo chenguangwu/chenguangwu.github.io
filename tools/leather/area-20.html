@@ -112,7 +112,7 @@ input[type="number"],input[type="text"],select{font-size:16px;}
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入原皮厚度与面积，按行业标准自动判定厚度等级、面积等级及综合定级">Area 20 - online utility on ToolBox.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">按厚度分级：不低于 3.5 mm 为头层厚皮（鞋面、皮带等高强度用途）、1.2 至 3.5 mm 为头层常规（箱包、鞋面通用）、0.8 至 1.2 mm 为薄头层或二层（服装手套、内衬）、低于 0.8 mm 为薄型（内衬与装饰）；按面积分级：不超过 1.0 m² 为小张、1.0 至 2.0 m² 为中张、超过 2.0 m² 为大张；综合定级取厚度与面积中较低等级，平整度与伤残度作为附加扣分项。</div>
+      <div class="formula-eq">按厚度分级：不低于 3.5 mm 为头层厚皮（鞋面、皮带等高强度用途）、1.2 至 3.5 mm 为头层常规（箱包、鞋面通用）、0.8 至 1.2 mm 为薄头层或二层（服装手套、内衬）、低于 0.8 mm 为薄型（内衬与装饰）；按面积分级（ft²）：≥25 为大皮、15~25 为中皮、8~15 为小皮、&lt;8 为碎皮；综合定级 = 层位（厚度 ≥0.8 mm 为头层，否则二层）+ 面积等级。校验：厚度与面积均须大于 0，否则标红并中止。</div>
   
 </div>
 
@@ -185,9 +185,12 @@ function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory(
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 function calc(){
-  var t=num('thickness'),a=num('area');
-  setInvalid(document.getElementById('thickness'),t<=0);
-  setInvalid(document.getElementById('area'),a<=0);
+  var tEl=document.getElementById('thickness'),aEl=document.getElementById('area');
+  var tRaw=tEl.value.trim(),aRaw=aEl.value.trim();
+  var t=parseFloat(tRaw),a=parseFloat(aRaw);
+  var tBad=!(tRaw!==''&&isFinite(t)&&t>0),aBad=!(aRaw!==''&&isFinite(a)&&a>0);
+  setInvalid(tEl,tBad);setInvalid(aEl,aBad);
+  if(tBad||aBad){lastResult='';document.getElementById('res').innerHTML='<p style="text-align:center;color:var(--text-muted);">请填写有效的厚度与面积（均需大于 0）</p>';return;}
   var tGrade,tDesc;
   if(t>=3.5){tGrade='头层厚皮';tDesc='厚度≥3.5mm，适合鞋面、皮带等高强度用途';}
   else if(t>=1.2){tGrade='头层常规';tDesc='1.2~3.5mm，通用面料、箱包、鞋面';}
