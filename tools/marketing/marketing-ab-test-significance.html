@@ -197,12 +197,14 @@
 <li>决定要不要全量推胜出版本，还是继续放量收集数据。</li>
 <li>避免把随机波动误当成「显著提升」过早下结论。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">两比例 z 检验</div><div class="dd-ex-body">A 组 200/2000=10%，B 组 260/2000=13%，两比例 z≈2.45，双侧 p≈0.014&lt;0.05 → 95% 置信下差异显著，可全量推 B。</div></div>
+<div class="dd-example"><div class="dd-ex-title">两比例 z 检验</div><div class="dd-ex-body">A 组 200/2000=10%，B 组 260/2000=13%，合并率 p̂=(200+260)/4000=11.5%，标准误 ≈0.01009，z≈2.974，双侧 p≈0.003&lt;0.05 → 95% 置信下差异显著，可全量推 B。</div></div>
+<div class="dd-example"><div class="dd-ex-title">A 组 0 转化</div><div class="dd-ex-body">A 组 0/1000、B 组 20/1000：合并率 1%，标准误 ≈0.00445，z≈4.49，双侧 p&lt;0.0001，差异显著；相对提升因 A 组基线为 0 显示「不适用」，改看 B 组绝对提升 2 个百分点。</div></div>
 <div class="dd-example"><div class="dd-ex-title">不显著的处理</div><div class="dd-ex-body">若 p&gt;0.05（如只差 0.5 个百分点且样本小），结论为「尚不显著」，应继续收集数据或扩大样本，不可贸然全量。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>p&lt;0.05 就一定该推吗？</dt><dd>p&lt;0.05 只说明差异不太可能由随机造成，还要看提升幅度与业务成本，微小显著也可能不划算。</dd>
 <dt>样本不够怎么办？</dt><dd>按期望提升与基线算出所需<a class="term-link" href="/tools/stats/sample-size.html">样本量</a>再开测，中途看「趋势」停测容易误判。</dd>
+<dt>A 组 0 转化还能计算吗？</dt><dd>可以。0 转化是合法观测，z 检验照常输出；只有相对提升因基线为 0 而显示「不适用」。合并<a class="term-link" href="/tools/marketing/marketing-conversion-rate-calculator.html">转化率</a>为 0% 或 100% 时标准误为 0，页面会提示无法进行检验。</dd>
 </dl>
 </div>
 </section>
@@ -247,8 +249,8 @@ function __tbInputGuardCore(_ids,_labels){
     if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
     return __msg;
   }
-  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"conversionsA": "conversionsA"};
+  // 分母项：__D 记录真正不能为 0 的字段；转化数为 0 是合法观测，不在此列
+  var __D={};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -289,26 +291,41 @@ function normCdf(x){
   const vB = parseFloat(document.getElementById('visitorsB').value);
   const cB = parseFloat(document.getElementById('conversionsB').value);
   const r = document.getElementById('result');
+  const en = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   if(isNaN(vA)||isNaN(cA)||isNaN(vB)||isNaN(cB)||vA<=0||vB<=0){
     r.innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter a valid number</p>":"<p>请输入有效数值</p>");
     return;
   }
+  if(cA<0||cA>vA||cB<0||cB>vB){
+    r.innerHTML='<p style="color:var(--danger)">'+(en?'Conversions must be between 0 and the matching visitor count.':'转化数须介于 0 与对应访客数之间，请检查输入。')+'</p>';
+    return;
+  }
   const pA = cA/vA, pB = cB/vB, pPool = (cA+cB)/(vA+vB);
   const se = Math.sqrt(pPool*(1-pPool)*(1/vA+1/vB));
+  if(!isFinite(se)||se===0){
+    r.innerHTML='<p style="color:var(--warning)">'+(en?'The pooled conversion rate is 0% or 100%, so the standard error is 0 and the z test is undefined; both groups have the same rate.':'两组合并转化率为 0% 或 100%，标准误为 0，无法进行 z 检验（两组转化率相同）。')+'</p>';
+    return;
+  }
   const z = (pB-pA)/se;
   const pValue = 2*(1-normCdf(Math.abs(z)));
   const sig95 = pValue < 0.05;
-  const lift = ((pB-pA)/pA)*100;
+  const lift = pA===0 ? null : ((pB-pA)/pA)*100;
+  const pText = pValue < 0.0001 ? '<0.0001' : pValue.toFixed(4);
+  const liftText = lift===null
+    ? (en?'n/a (group A conversion rate is 0)':'不适用（A 组转化率为 0）')
+    : (lift >= 0 ? '+' : '')+lift.toFixed(2)+'%';
   const __g3=`
-    <p><strong>A组转化率：${(pA*100).toFixed(2)}%</strong></p>
-    <p><strong>B组转化率：${(pB*100).toFixed(2)}%</strong></p>
-    <p>相对提升：${lift >= 0 ? '+' : ''}${lift.toFixed(2)}%</p>
-    <p>P值：${pValue.toFixed(4)}</p>
-    <p style="margin-top:8px;font-size:14px;font-weight:600;color:${sig95?'var(--success)':'var(--warning)'||'#ff9800'};">${sig95?'✅ 结果统计显著（95%置信度）':'⚠️ 结果尚不显著，建议继续收集数据'}</p>
+    <p><strong>${en?'Group A conversion rate: ':'A组转化率：'}${(pA*100).toFixed(2)}%</strong></p>
+    <p><strong>${en?'Group B conversion rate: ':'B组转化率：'}${(pB*100).toFixed(2)}%</strong></p>
+    <p>${en?'Relative lift: ':'相对提升：'}${liftText}</p>
+    <p>${en?'z value: ':'z 值：'}${isFinite(z)?z.toFixed(3):'—'}</p>
+    <p>${en?'p value: ':'P值：'}${pText}</p>
+    <p style="margin-top:8px;font-size:14px;font-weight:600;color:${sig95?'var(--success)':'var(--warning)'||'#ff9800'};">${sig95?(en?'✅ Statistically significant at 95% confidence':'✅ 结果统计显著（95%置信度）'):(en?'⚠️ Not significant yet — keep collecting data':'⚠️ 结果尚不显著，建议继续收集数据')}</p>
   `;r.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
 }
 document.addEventListener('DOMContentLoaded', calc);
+window.addEventListener('toolbox:langchange', calc);
 document.querySelectorAll('input,textarea').forEach(el => {
   el.addEventListener('input', calc);
 });
