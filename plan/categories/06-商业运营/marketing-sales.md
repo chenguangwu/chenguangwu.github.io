@@ -264,28 +264,28 @@
 
 > 范围：本轮阅读 3 页（`tools/marketing/marketing-cpm-calculator.html`、`tools/marketing/marketing-markup-margin.html`、`tools/marketing/marketing-sales-funnel.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### MS-N1 加价率→利润率换算公式数量级错误，且利润率输入被完全忽略（高，确认）
+### MS-N1 加价率→利润率换算公式数量级错误，且利润率输入被完全忽略（高，确认）— 2026-11-15 已复核（543/544 批：公式与双向换算已正确）
 - 描述：换算模式把加价率 m 代入 `marginRate = m/(1+m/100)*100`，正确应为 `m/(100+m)*100`，默认 50% 加价率被算成 3333.33% 利润率。同时 `convMargin`（g）读入后只做 isNaN 校验，从未进入任何结果；用户按利润率反算时输入被静默丢弃，预设还会把 convMargin=33.33 回填，进一步掩盖问题。
 - 证据：`tools/marketing/marketing-markup-margin.html:443-453`（读取与公式，`:450` 为错误表达式）、`:235-240`（convMarkup/convMargin 输入）、`:581`（预设回填 convMargin）
 - 复现：换算模式 m=50、g=33.33 → 实际利润率 3333.33%、售价 150.00、利润 50.00（期望利润率 33.33%）；m=0、g=50 → 实际利润率 0.00%、售价 100.00（期望按 50% 利润率反算加价率 100%、售价 200.00）（node 复算）。
 - 影响：`tools/marketing/marketing-markup-margin.html`。定价页核心换算错两个数量级，“双向换算”实际单向；用户照结果定价会得到荒谬利润率。
 - 方案：利润率改为 `m/(100+m)*100`；实现真正双向——输入 g 时 `m = g/(100-g)*100`（要求 `0 ≤ g < 100`），并在换算模式标明以哪个输入为准。
 
-### MS-N2 加价/利润率换算页无区间校验，负值可得 -10000% 利润率（中，确认）
+### MS-N2 加价/利润率换算页无区间校验，负值可得 -10000% 利润率（中，确认）— 2026-11-15 已复核（544 批：负值与 ≥100% 已拦截）
 - 描述：两个换算输入只判 NaN，没有 `m ≥ 0`、`0 ≤ g < 100` 约束；负加价率进入换算公式会得到 -10000% 利润率，m=-100 时除零；负利润率同样放行但不参与计算。
 - 证据：`tools/marketing/marketing-markup-margin.html:235-240`（仅前端 min/max）、`:443-453`（无区间校验）、`:450`（除零风险）
 - 复现：换算模式 m=-50、g=33.33 → 利润率 -10000.00%、售价 50.00、利润 -50.00；m=-100 → 利润率 Infinity（结果区显示“—”）；g=-50 通过校验但结果完全不使用 g（node 复算）。
 - 影响：`tools/marketing/marketing-markup-margin.html`。误带负号即可产出极端利润率或“—”，页面无任何错误提示，结果可被复制进报价单。
 - 方案：要求 `m ≥ 0`、`0 ≤ g < 100` 且为有限数；越界字段标红并停止渲染结果。
 
-### MS-N3 CPM 页点击量可超展示量，CTR 500% 无拦截（中，确认）
+### MS-N3 CPM 页点击量可超展示量，CTR 500% 无拦截（中，确认）— 2026-11-15 已复核（544 批：clicks≤impressions 守卫在位）
 - 描述：`hasClicks` 只判断 `clicks > 0`，没有 `clicks ≤ impressions` 上界；点击量大于展示量时 CTR>100%、每点击展示数 <1 仍正常展示。负点击被同一判断静默忽略，联动指标整块隐藏且无输入错误提示。
 - 证据：`tools/marketing/marketing-cpm-calculator.html:204`（点击输入）、`:395,404-406`（读取与 CTR）、`:439,447`（结果展示）
 - 复现：花费 2000、展示 1000、点击 5000 → CTR 500.00%、CPC ¥0.40、每点击展示数 0（期望拦截“点击量不能大于展示量”）；点击 -100 → 联动卡消失且无提示（node 复算）。
 - 影响：`tools/marketing/marketing-cpm-calculator.html`。异常埋点或手误即可产出“500% 点击率”并当作投放结论；负值则被静默吞掉。
 - 方案：要求 `0 ≤ clicks ≤ impressions`，越界提示并停止计算；负值标红而非静默隐藏。
 
-### MS-N4 销售漏斗页成交客户数可超商机数，末级转化 6000%（中，确认）
+### MS-N4 销售漏斗页成交客户数可超商机数，末级转化 6000%（中，确认）— 2026-11-15 已复核（544 批：阶段单调守卫在位）
 - 描述：5 个输入只做“非空 + visitors>0”守卫，未校验各阶段人数单调不增；成交客户大于商机时末级转化率 >100%，整体转化率也可 >100%；负值同样放行。
 - 证据：`tools/marketing/marketing-sales-funnel.html:156`（成交输入）、`:293`（守卫）、`:314`（阶段转化）、`:322-323`（整体转化）
 - 复现：访客 100、线索 10、合格 5、商机 2、成交 120 → 成交阶段转化率 6000.0%、整体转化率 120.000%（期望“成交数不能大于商机数”）；成交 -50 → 整体 -50.000%（node 复算）。
@@ -305,7 +305,7 @@
 
 > 范围：本轮阅读 3 页（`tools/marketing/marketing-cpc-calculator.html`、`tools/marketing/marketing-roi.html`、`tools/marketing/utm-builder.html`）。仅源码 + `node -e` 内存复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### MS-N6 投资 ROI 页“最终价值”被年化回写覆盖，字段无法编辑（高，确认）
+### MS-N6 投资 ROI 页“最终价值”被年化回写覆盖，字段无法编辑（高，确认）— 2026-11-15 已复核（544 批：onFinalEdit 清空年化，双口径互斥）
 - 问题：`calcInvestment()` 用“年化收益率输入框是否有值”当模式开关。首次计算走 else 分支，把算出的年化写回 `i_annual`（`:505`）；此后任何对“最终价值”的输入都会命中 `annualRate` 分支，用旧年化反算 `finalValue` 并回写“最终价值”输入框（`:500`）。该字段因此变成只读/自回归，且每次回写带浮点漂移。
 - 证据：`tools/marketing/marketing-roi.html:243`（最终价值 `oninput="calcInvestment()"`）、`:247`（年化输入）、`:493-506`（模式判断与回写）、`:500`（覆盖用户输入）
 - 复现：默认 本金 100000 / 最终价值 135000 / 期限 3 年 → 首次年化 10.52%；把“最终价值”改为 200000 → 输入被立即回写为 134,996.54，总 ROI 仍 35.00%（期望最终价值 200000、ROI 100.00%）；改期限为 5 年则最终价值被改成 164,893.82（node 复算）。
@@ -326,7 +326,7 @@
 - 影响：`tools/marketing/marketing-roi.html`。异常 CTR/CVR 或误带负号会产出与事实相反的 ROI，并可直接保存进历史记录。
 - 方案：要求 `0 ≤ ctr,cvr,repeat ≤ 100`，曝光/投入/客单价 `≥ 0`；越界字段标红并停止渲染结果。
 
-### MS-N9 CPC 页点击量可大于展示量，CTR 500% 无拦截（中，确认）
+### MS-N9 CPC 页点击量可大于展示量，CTR 500% 无拦截（中，确认）— 2026-11-15 已修复（544 批）
 - 问题：`hasImpressions` 只判 `impressions > 0`，未校验 `clicks ≤ impressions`；点击量高于展示量时 CTR>100%、每千次展示成本异常放大，页面仍按正常指标卡展示。
 - 证据：`tools/marketing/marketing-cpc-calculator.html:199`（点击输入）、`:401-403`（CTR/CPM 计算）、`:434-442`（展示）
 - 复现：花费 3000、点击 5000、展示 1000 → CPC ¥0.60、CTR 500.00%、CPM ¥3,000.00（期望提示“点击量不能大于展示量”）（node 复算）。
@@ -340,21 +340,21 @@
 - 影响：`tools/marketing/marketing-cpc-calculator.html`。同一数字在不同行业语义完全不同，易被当成行业对标结论。
 - 方案：改为“相对 ¥5 基准水平”（并注明基准值），或按所选行业的区间中值计算；否则删除该指标。
 
-### MS-N11 UTM 基础 URL 含 `#` 片段时，追踪参数被拼进 fragment（高，确认）
+### MS-N11 UTM 基础 URL 含 `#` 片段时，追踪参数被拼进 fragment（高，确认）— 2026-11-15 已复核（544 批：hash 分离与同名 UTM 覆盖在位）
 - 问题：追加参数只用 `url.includes('?') ? '&' : '?'` 判断，未处理 `#`。URL 带锚点时 `utm_*` 被拼到 `#` 之后，成为 fragment 的一部分；fragment 不会发送给服务器，渠道归因全部失效，但复制出来的链接外观正常。
 - 证据：`tools/marketing/utm-builder.html:446-447`（单个生成）、`:512-513`（批量）、`:533-534`（复制全部）、`:548-549`（CSV）
 - 复现：`https://shop.com/p#sku` → `https://shop.com/p#sku?utm_source=baidu`；`https://shop.com/p?x=1#sku` → `https://shop.com/p?x=1#sku&utm_source=baidu`（node 字符串复算），两种形态参数都在 `#` 之后（期望 `https://shop.com/p?utm_source=baidu#sku`）。
 - 影响：`tools/marketing/utm-builder.html`。带锚点的落地页（商品 SKU、章节导航、单页应用路由很常见）投放后全部归因为 direct/none，而工具四条出口（单个/批量/复制/CSV）一致出错，用户极难自查。
 - 方案：先按 `#` 切分 `base` 与 `fragment`，只在 `base` 上按 `?`/`&` 追加参数，最后再拼回 `#fragment`；对含多个 `#` 的异常 URL 给出提示。
 
-### MS-N12 UTM 历史记录回填调用 `switchTab()` 无参，工具区变成空白（中，确认）
+### MS-N12 UTM 历史记录回填调用 `switchTab()` 无参，工具区变成空白（中，确认）— 2026-11-15 已复核（544 批：已传 'single'）
 - 问题：TBKit 历史面板的回填回调末尾调用 `switchTab();`（无参数）。`switchTab` 先把所有 `.tab-content` 的 `active` 移除，再执行 `document.getElementById('tab-' + undefined)` → null → `.classList.add()` 抛 TypeError；异常被外层 `try/catch` 吞掉，页面停在“所有面板都不显示”的状态。
 - 证据：`tools/marketing/utm-builder.html:679`（无参调用）、`:407-412`（先清空再取 `tab-undefined`）、`:668-682`（回调 try/catch 吞异常）
 - 复现：生成任意链接并触发一次历史记录后，在历史面板点该记录 → 四个 tab 全部取消高亮、工具卡内容区空白（期望回到“单个生成”并回填参数）；控制台可见 `Cannot read properties of null` 被吞。
 - 影响：`tools/marketing/utm-builder.html`。历史回填是留存主路径，点击后页面像“坏了”，用户只能刷新。
 - 方案：改为 `switchTab('single')`，并给 `switchTab` 加 `if(!tab) return;` 与 `getElementById` 空值保护。
 
-### MS-N13 批量导出 CSV 未做字段转义，含逗号即错列（低，确认）
+### MS-N13 批量导出 CSV 未做字段转义，含逗号即错列（低，确认）— 2026-11-15 已复核（544 批：双引号转义 + 公式前缀防护在位）
 - 问题：CSV 用模板字符串直接拼 `${item.source},${item.medium},${item.campaign},${url}`，没有引号包裹与 `"` 转义。`utm_*` 值经 `URLSearchParams` 编码（逗号变 `%2C`）是安全的，但第 4 列的 baseUrl 原样插入，域名/路径/查询里含逗号时列数错位。
 - 证据：`tools/marketing/utm-builder.html:542`（表头）、`:548-550`（拼行，baseUrl 原样）
 - 复现：baseUrl=`https://x.com/p?a=1,2`、source=`baidu` → 输出 `baidu,feed,campaign,https://x.com/p?a=1,2&utm_source=baidu`，该行被解析成 5 列（期望 4 列，含逗号的 URL 在引号内）（node 字符串复算）。
@@ -372,14 +372,14 @@
 
 > 范围：本轮阅读 3 页（`tools/marketing/marketing-ctr-calculator.html`、`tools/marketing/marketing-ltv-calculator.html`、`tools/marketing/marketing-google-ads-budget.html`）。仅源码 + `node -e` 内存复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### MS-N14 CTR 页点击量可超展示量、转化数可超点击量，CTR 500%/CVR 250% 无拦截（高，确认）
+### MS-N14 CTR 页点击量可超展示量、转化数可超点击量，CTR 500%/CVR 250% 无拦截（高，确认）— 2026-11-15 已复核（544 批：两级上限守卫在位）
 - 问题：`calc()` 只校验展示量非 NaN 且 `imp>0`，对点击量与转化数既无非负校验，也没有“点击 ≤ 展示”“转化 ≤ 点击”的单调约束；`ctr=(clk/imp)*100`、`cvr=(conv/clk)*100` 直接输出，等级判定还把 500% 判成“优秀”。
 - 证据：`tools/marketing/marketing-ctr-calculator.html:385`（唯一守卫）、`:390`（CTR）、`:393`（CVR）、`:397`（`ctr>=5` 判“优秀”）、`:436`（展示 `clk/imp`）
 - 复现：展示 1000、点击 5000、花费 500、转化 10 → CTR 500.00%、等级“优秀”、CPC ¥0.10、CPM ¥500.00；点击 200、转化 500 → CVR 250.00%（期望提示“点击不能大于展示”“转化不能大于点击”并停止渲染）（node 复算）。
 - 影响：`tools/marketing/marketing-ctr-calculator.html`。埋点异常或手误即得“500% 点击率/250% 转化率”，页面却按“优秀”正反馈，指标卡与等级结论都会误导投放复盘。
 - 方案：加 `0 ≤ clk ≤ imp`、`0 ≤ conv ≤ clk`（有展示/点击时），越界字段标红并停止计算；等级判定前先确认 CTR 落在 0–100 区间。
 
-### MS-N15 CTR 页负数点击照算，负 CTR 判“偏低”且 CPC 被静默归零（中，确认）
+### MS-N15 CTR 页负数点击照算，负 CTR 判“偏低”且 CPC 被静默归零（中，确认）— 2026-11-15 已复核（544 批：负数统一拦截）
 - 问题：输入框写了 `min="0"`，但 `min` 只参与表单校验，不阻止键入，`calc()` 也不读；点击为负时 `ctr` 为负、`level` 落到 `else` 分支显示“偏低”，而 `cpc` 因 `clk>0` 为假被置 0，真实值应为 `cost/clk`（负），两处口径同时失真。
 - 证据：`:194-211`（四个 `min="0"` 输入）、`:379-400`（读取/计算/等级，无 `<0` 判断）、`:392`（`clk>0` 才给 CPC）
 - 复现：展示 10000、点击 -200、花费 500 → CTR -2.00%、等级“偏低”、CPC 显示 ¥0.00（真实 -¥2.50）、CPM ¥50.00，结果卡仍写“-200次点击 / 10000次展示”（期望拦截负数）（node 复算）。
@@ -407,14 +407,14 @@
 - 影响：`tools/marketing/marketing-ltv-calculator.html`。负数与超 100% 毛利率会给出负 LTV 或“LTV 大于客户毛收入”的物理不可能值，但页面照常给健康度结论。
 - 方案：`freq>0 && lifespan>0 && 0≤margin≤100`，detail 追加 `0<churn≤100`；越界标红并停止渲染。
 
-### MS-N19 Google Ads 预算页只有 CPC>0 校验，负点击出负预算却配正 ROAS，转化率 150% 照算（高，确认）
+### MS-N19 Google Ads 预算页只有 CPC>0 校验，负点击出负预算却配正 ROAS，转化率 150% 照算（高，确认）— 2026-11-15 已修复（544 批）
 - 问题：`if(...||cpc<=0)` 是唯一约束，`targetClicksDay`、`convRate`、`avgOrderValue` 均无 min/max 属性也无 JS 校验，更没有 `0≤cr≤100`。日预算、转化数、收入、ROAS 全部由原始值直乘，末尾只替换 `Infinity/NaN`，负数不处理。
 - 证据：`tools/marketing/marketing-google-ads-budget.html:152-155`（四个输入无约束）、`:244`（唯一守卫）、`:248-253`（预算/转化/收入/ROAS 直算）
 - 复现：CPC ¥3、目标日点击 -50、转化率 3%、客单价 ¥300 → 日预算 ¥-150、月预算 ¥-4,500、日转化 -1.5、日收入 ¥-450，ROAS 仍显示 **3.00x**（负÷负得正）；改点击 50、转化率 150 → 日转化 75（大于 50 次点击）、ROAS 150.00x（期望拦截“转化率 0–100、点击为非负”）（node 复算）。
 - 影响：`tools/marketing/marketing-google-ads-budget.html`。负数预算与 150x ROAS 会直接出现在“日预算/月预算/ROAS”四张主卡上，误填一个负号就让亏损方案看起来“预算为负、回报 3 倍”，比直接报错更危险。
 - 方案：四输入统一非负，且 `0≤convRate≤100`；`cpc>0`、`targetClicksDay>0`、`avgOrderValue>0` 才算有效；越界标红并停止渲染，不要只依赖 HTML `min`。
 
-### MS-N20 Ads 页标题/公式承诺“目标转化量、转化成本/CPA”，实际无对应输入与输出；结果卡“日订单数”实为转化数（中，确认）
+### MS-N20 Ads 页标题/公式承诺“目标转化量、转化成本/CPA”，实际无对应输入与输出；结果卡“日订单数”实为转化数（中，确认）— 2026-11-15 已修复（544 批）
 - 问题：meta/og/twitter 写“输入目标转化量、预期CPC或转化成本”，实际四个输入是 CPC/目标日点击/转化率/客单价；`formula-eq` 写“CPA = 花费 ÷ 转化数”，代码从未计算 CPA，结果区也没有 CPA 卡。`dailyConv` 本质是转化数（可为小数），标签却叫“日订单数”。
 - 证据：`:10`（meta）、`:149`（公式含 CPA）、`:152-155`（实际输入）、`:248-259`（只输出预算/转化/收入/ROAS）、`:258`（“日订单数”）
 - 复现：默认参数（CPC 3、点击 50、转化率 3%、客单价 300）→ 页面“日订单数 1.5”，且全页找不到 CPA（期望 CPA=150/1.5=¥100，或按“目标转化量 ÷ 转化率”反推所需点击）（源码检查）。

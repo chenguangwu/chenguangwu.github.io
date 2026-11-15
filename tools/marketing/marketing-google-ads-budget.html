@@ -230,8 +230,8 @@ function calc(){
   const cr = parseFloat(document.getElementById('convRate').value);
   const aov = parseFloat(document.getElementById('avgOrderValue').value);
   const r = document.getElementById('result');
-  if(isNaN(cpc)||isNaN(clicksDay)||isNaN(cr)||isNaN(aov)||cpc<=0){
-    r.innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter a valid number</p>":"<p>请输入有效数值</p>");
+  if(isNaN(cpc)||isNaN(clicksDay)||isNaN(cr)||isNaN(aov)||cpc<=0||clicksDay<=0||cr<0||cr>100||aov<0){
+    r.innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter valid values: CPC and daily clicks must be &gt; 0, conversion rate 0–100%, average order value ≥ 0.</p>":"<p>请输入有效数值：CPC 与目标日点击须大于 0，转化率 0–100，客单价不可为负。</p>");
     return;
   }
   const dailyBudget = cpc * clicksDay;
@@ -239,16 +239,20 @@ function calc(){
   const dailyConv = clicksDay * cr / 100;
   const dailyRev = dailyConv * aov;
   const monthlyRev = dailyRev * 30;
-  const roas = dailyRev / dailyBudget;
+  const roas = dailyBudget > 0 ? dailyRev / dailyBudget : 0;
+  const cpa = dailyConv > 0 ? dailyBudget / dailyConv : NaN;
+  const en = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
   const __g2=`
     <div class="stat-grid">
-      <div class="stat-card"><div class="val">¥${ToolBox.formatNumber(dailyBudget,0)}</div><div class="lbl">日预算</div></div>
-      <div class="stat-card"><div class="val">¥${ToolBox.formatNumber(monthlyBudget,0)}</div><div class="lbl">月预算</div></div>
-      <div class="stat-card"><div class="val">${dailyConv.toFixed(1)}</div><div class="lbl">日订单数</div></div>
-      <div class="stat-card"><div class="val">${roas.toFixed(2)}x</div><div class="lbl">预估ROAS</div></div>
+      <div class="stat-card"><div class="val">¥${ToolBox.formatNumber(dailyBudget,0)}</div><div class="lbl">${en?'Daily budget':'日预算'}</div></div>
+      <div class="stat-card"><div class="val">¥${ToolBox.formatNumber(monthlyBudget,0)}</div><div class="lbl">${en?'Monthly budget':'月预算'}</div></div>
+      <div class="stat-card"><div class="val">${dailyConv.toFixed(1)}</div><div class="lbl">${en?'Daily conversions':'日转化数'}</div></div>
+      <div class="stat-card"><div class="val">${isFinite(cpa)?'¥'+ToolBox.formatNumber(cpa,2):'—'}</div><div class="lbl">${en?'CPA per conversion':'CPA 单次转化成本'}</div></div>
+      <div class="stat-card"><div class="val">${(dailyConv*30).toFixed(1)}</div><div class="lbl">${en?'Monthly conversions':'月转化数'}</div></div>
+      <div class="stat-card"><div class="val">${roas.toFixed(2)}x</div><div class="lbl">${en?'Estimated ROAS':'预估ROAS'}</div></div>
     </div>
-    <p style="margin-top:8px;">日预估收入：¥${ToolBox.formatNumber(dailyRev,0)}</p>
-    <p>月预估收入：¥${ToolBox.formatNumber(monthlyRev,0)}</p>
+    <p style="margin-top:8px;">${en?'Estimated daily revenue':'日预估收入'}：¥${ToolBox.formatNumber(dailyRev,0)}</p>
+    <p>${en?'Estimated monthly revenue':'月预估收入'}：¥${ToolBox.formatNumber(monthlyRev,0)}</p>
   `;r.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
 }
