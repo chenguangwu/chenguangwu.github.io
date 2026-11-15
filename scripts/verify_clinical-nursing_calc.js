@@ -744,6 +744,16 @@ const CASES = [
   "ref": "D-N58 时长参与：新增预计手术时长输入，5 h ⇒ 结果区提示「≥4 小时按压力性损伤高危管理」；默认 2 h 只显示「＞2 小时属重点预防对象」，不含该串。旧实现全页无时长输入、等级固定。"
 },
 {
+  "slug": "clinical-nursing/surgical-position-risk",
+  "clicks": [
+    "window.TBKit={util:{isEn:function(){return true;}},history:{record:function(){},mount:function(){}},matrix:{table:function(){}}};selectPosition('supine',{classList:{add:function(){}}})"
+  ],
+  "expect": [
+    "position Supine position; 5 pressure points (high 3, moderate 2, low 0)"
+  ],
+  "ref": "D-N60 英文态：把 TBKit.util.isEn 置为 true 后选仰卧位，门诊记录 Result 行与压力点名称/措施均走英文映射。旧实现英文态结果行仍输出「体位 仰卧位压力点评估」，压力点名称与防护措施全为中文。"
+},
+{
   "slug": "clinical-nursing/tracheostomy-dressing",
   "inputs": {
     "firstDressing": "08:00"

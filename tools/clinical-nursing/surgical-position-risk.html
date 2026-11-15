@@ -304,6 +304,38 @@ var positions = {
   }
 };
 var riskLabels = { high:'高度风险', medium:'中度风险', low:'低度风险' };
+var riskLabelsEn = { high:'High risk', medium:'Medium risk', low:'Low risk' };
+var posEn = { '仰卧位压力点评估':'Supine position', '俯卧位压力点评估':'Prone position', '侧卧位压力点评估':'Lateral decubitus', '截石位压力点评估':'Lithotomy position', '坐位压力点评估':'Sitting position' };
+var pointEn = { '枕后部':'Occiput', '肩胛部':'Scapula', '肘部':'Elbows', '骶尾部':'Sacrum/coccyx', '足跟部':'Heels', '前额/面部':'Forehead/face', '胸部/女性乳房':'Chest/breasts', '髂前上棘':'ASIS', '膝部':'Knees', '足背':'Dorsum of feet', '耳廓':'Ear helix', '肩峰':'Acromion', '大转子':'Greater trochanter', '膝关节内外侧':'Medial/lateral knee', '外踝':'Lateral malleolus', '腘窝':'Popliteal fossa', '小腿腓肠肌':'Calf', '手部':'Hands', '肩部':'Shoulders', '坐骨结节':'Ischial tuberosities', '足部':'Feet' };
+var measureEn = {
+ '使用头枕或软垫保护，每2h适当调整头位':'Pillow or soft pad; reposition head every 2 h',
+ '肩胛区垫凝胶垫，避免直接接触床面':'Gel pad under scapula; avoid direct contact with table',
+ '肘部垫软垫，双上肢妥善固定于身体两侧':'Pad elbows; secure arms at sides',
+ '骶尾部是仰卧位最易受压部位，使用减压床垫/凝胶垫':'Sacrum is the highest-risk point; use pressure-relieving mattress or gel pad',
+ '足跟悬空或垫足跟保护垫，避免跟腱受压':'Float heels or use heel protectors; avoid Achilles pressure',
+ '使用专用头架保护面部，眼球避免受压，注意气管插管位置':'Use face cradle; protect eyes and secure airway',
+ '胸部垫枕使腹部悬空，避免乳房受压':'Chest bolster to free abdomen; avoid breast pressure',
+ '髂棘处垫软垫，分散骨盆压力':'Pad iliac crests to distribute pelvic pressure',
+ '膝部垫软垫，避免髌骨受压':'Pad knees; avoid patellar pressure',
+ '足背悬空，避免足背动脉受压':'Keep dorsum of feet free; avoid arterial compression',
+ '头枕合适，避免耳廓折叠受压':'Fit head support; avoid folding the ear',
+ '腋下垫软枕，避免臂丛神经受压':'Axillary roll; avoid brachial plexus compression',
+ '髂骨与大转子间垫凝胶垫，分散髋部压力':'Gel pad between ilium and trochanter',
+ '双膝间垫枕，避免膝关节直接接触':'Pillow between knees',
+ '外踝处垫软垫保护':'Pad lateral malleolus',
+ '截石位骶尾部压力集中，需使用减压垫':'Sacral pressure is concentrated; use pressure-relieving pad',
+ '腘窝血管神经丰富，避免腿架直接压迫':'Protect popliteal vessels and nerves from leg holder',
+ '注意预防深静脉血栓，适当使用弹力袜':'Prevent DVT; consider compression stockings',
+ '双手妥善固定，避免手指被床板夹伤':'Secure hands; avoid finger pinch',
+ '头部固定架需合适，避免头皮受压过久':'Fit head frame; avoid prolonged scalp pressure',
+ '双上肢妥善支撑，避免肩关节过度牵拉':'Support both arms; avoid shoulder traction',
+ '臀部坐骨结节处使用减压坐垫':'Use pressure-relieving seat cushion',
+ '双足平放，避免悬空':'Feet flat on support'
+};
+function __posIsEn(){ return typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn(); }
+function __posTitle(t){ return __posIsEn()?(posEn[t]||t):t; }
+function __posName(n){ return __posIsEn()?(pointEn[n]||n):n; }
+function __posMeasure(m){ return __posIsEn()?(measureEn[m]||m):m; }
 var currentPos = 'supine';
 
 function selectPosition(pos, btn){
@@ -312,23 +344,24 @@ function selectPosition(pos, btn){
   document.querySelectorAll('.position-tab button').forEach(function(b){ b.classList.remove('active'); });
   if(btn&&btn.classList) btn.classList.add('active');
   var p = positions[pos];
-  document.getElementById('posTitle').textContent = p.title;
+  var en = __posIsEn();
+  document.getElementById('posTitle').textContent = __posTitle(p.title);
   var html = '';
   p.points.forEach(function(pt){
     html += '<div class="pressure-point">';
     html += '<div class="pp-icon">' + pt.icon + '</div>';
     html += '<div class="pp-content">';
-    html += '<div class="pp-name"><span class="pp-label">' + pt.name + '</span><span class="risk-badge ' + pt.risk + '">' + riskLabels[pt.risk] + '</span></div>';
-    html += '<div class="pp-risk risk-' + pt.risk + '">风险等级：' + riskLabels[pt.risk] + '</div>';
-    html += '<div class="pp-measure">防护措施：' + pt.measure + '</div>';
+    html += '<div class="pp-name"><span class="pp-label">' + __posName(pt.name) + '</span><span class="risk-badge ' + pt.risk + '">' + (en?riskLabelsEn[pt.risk]:riskLabels[pt.risk]) + '</span></div>';
+    html += '<div class="pp-risk risk-' + pt.risk + '">' + (en?'Risk level: ':'风险等级：') + (en?riskLabelsEn[pt.risk]:riskLabels[pt.risk]) + '</div>';
+    html += '<div class="pp-measure">' + (en?'Measure: ':'防护措施：') + __posMeasure(pt.measure) + '</div>';
     html += '</div></div>';
   });
   var durEl=document.getElementById('opDuration');
   var dur=durEl?parseFloat(durEl.value):NaN;
   if(isFinite(dur)&&dur>0){
     var dCls=dur>=4?'high':(dur>=2?'medium':'low');
-    var dTxt=dur>=4?'≥4 小时按压力性损伤高危管理，术中每 2 小时评估皮肤与受压部位。':(dur>=2?'＞2 小时属重点预防对象，落实体位垫与定时减压。':'时长较短，仍按部位防护并术毕检查皮肤。');
-    html += '<div class="pp-risk risk-'+dCls+'" style="margin-top:10px;">⏱ 预计手术时长 '+dur+' h：'+dTxt+'</div>';
+    var dTxt=en?(dur>=4?'≥4 h: manage as high risk; assess skin and pressure points every 2 h.':(dur>=2?'>2 h: key prevention group; use positioning pads and scheduled relief.':'Short duration; still protect by site and check skin after surgery.')):(dur>=4?'≥4 小时按压力性损伤高危管理，术中每 2 小时评估皮肤与受压部位。':(dur>=2?'＞2 小时属重点预防对象，落实体位垫与定时减压。':'时长较短，仍按部位防护并术毕检查皮肤。'));
+    html += '<div class="pp-risk risk-'+dCls+'" style="margin-top:10px;">⏱ '+(en?'Estimated OR time ':'预计手术时长 ')+dur+(en?' h: ':' h：')+dTxt+'</div>';
   }
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('pointsList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('pointsList').innerHTML=__h0;
 }
@@ -352,9 +385,9 @@ function __posExport(){
       if(pt.risk==='high')high++;
       else if(pt.risk==='medium')med++;
       else low++;
-      rows.push([pt.name, en?(riskEn[pt.risk]||pt.risk):riskLabels[pt.risk], pt.measure, '']);
+      rows.push([en?(pointEn[pt.name]||pt.name):pt.name, en?(riskEn[pt.risk]||pt.risk):riskLabels[pt.risk], en?(measureEn[pt.measure]||pt.measure):pt.measure, '']);
     });
-    rows.push([en?'Position':'体位', p.title, '', '']);
+    rows.push([en?'Position':'体位', en?(posEn[p.title]||p.title):p.title, '', '']);
     rows.push([en?'Pressure points':'压力点数', p.points.length, '', '']);
     rows.push([en?'High / Medium / Low risk':'高度/中度/低度风险', high+' / '+med+' / '+low, '', '']);
     var tb=document.querySelector('#posTable tbody');
@@ -379,9 +412,9 @@ function __posMatrix(){
         if(pt.risk==='high')high++;
         else if(pt.risk==='medium')med++;
         else low++;
-        if(pt.risk==='high'&&!top) top=pt.name+'：'+pt.measure;
+        if(pt.risk==='high'&&!top) top=(en?__posName(pt.name):pt.name)+(en?': ':'：')+(en?__posMeasure(pt.measure):pt.measure);
       });
-      rows.push([p.title, p.points.length, high, med, low, top]);
+      rows.push([en?__posTitle(p.title):p.title, p.points.length, high, med, low, top]);
     });
     TBKit.matrix.table('#posMatrix', {head:head, rows:rows});
   }catch(e){}
@@ -414,11 +447,12 @@ function __posMountHist(){
 function copyResult(){
   var title = document.getElementById('posTitle').textContent;
   var points = document.querySelectorAll('.pressure-point');
+  var en = __posIsEn();
   var text = title + '\n';
   points.forEach(function(pt){
     var name = pt.querySelector('.pp-label') ? pt.querySelector('.pp-label').textContent.trim() : pt.querySelector('.pp-name').textContent.trim().split(/\s/)[0];
-    var measure = pt.querySelector('.pp-measure').textContent.replace('防护措施：','');
-    text += name + '：' + measure + '\n';
+    var measure = pt.querySelector('.pp-measure').textContent.replace(en?'Measure: ':'防护措施：','');
+    text += name + (en?': ':'：') + measure + '\n';
   });
   ToolBox.copyText(text, i18nText('msg604'));
 }
@@ -436,7 +470,7 @@ function __emrNote(cfg){
   if(!cfg) return;
   var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
   var en=__emrEn(), sep=en?'; ':'；', L=[];
-  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i+' '+p.t):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
   L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
   L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
   if(!cfg.noPos){
@@ -471,7 +505,7 @@ var __emrData=function(){
   for(var i=0;i<p.points.length;i++){
     var pt=p.points[i];
     if(pt.risk==='high') hi++; else if(pt.risk==='medium') me++; else lo++;
-    list.push({i:i+1,t:pt.name+'（'+(en?riskEn[pt.risk]:riskLabels[pt.risk])+'）',o:pt.measure});
+    list.push({i:i+1,t:en?((pointEn[pt.name]||pt.name)+' ('+riskEn[pt.risk]+')'):(pt.name+'（'+riskLabels[pt.risk]+'）'),o:(en?(measureEn[pt.measure]||pt.measure):pt.measure)});
   }
   var hz,he;
   if(hi>=3){ hz='高危压力点 '+hi+' 处：必须使用凝胶垫/体位垫对骨突处减压，术中间隔不超过 2 小时评估一次皮肤与受压部位，必要时微调体位；预计手术时长超过 4 小时按压力性损伤高危管理。';
@@ -482,7 +516,7 @@ var __emrData=function(){
     he='No high-risk pressure points: follow routine positioning care, keep linen flat and dry, and check skin integrity after surgery.'; }
   __emrNote({boxId:'result', name:'手术体位压力点风险评估', nameEn:'Surgical Position Pressure-Point Risk',
     result:'体位 '+(en?p.title:p.title)+' · 压力点共 '+p.points.length+' 处（高 '+hi+' / 中 '+me+' / 低 '+lo+'）',
-    resultEn:'position '+p.title+'; '+p.points.length+' pressure points (high '+hi+', moderate '+me+', low '+lo+')',
+    resultEn:'position '+(posEn[p.title]||p.title)+'; '+p.points.length+' pressure points (high '+hi+', moderate '+me+', low '+lo+')',
     pos:list,
     hintZh:hz, hintEn:he,
     extra:'风险分级口径：高度=骨突处直接承重且易致压力性损伤、中度=需垫软枕分散、低度=注意固定与避免夹伤；体位摆放后须双人核对接点与管路',

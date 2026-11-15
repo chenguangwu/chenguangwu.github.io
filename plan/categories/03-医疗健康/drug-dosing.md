@@ -480,12 +480,13 @@
 - 影响：粘贴到护理记录时名称与等级粘连，语义不清；与 CSV 导出（名称、等级分列）不一致。
 - 方案：改用 `pp-name.firstChild.textContent.trim()` 取纯名称，再显式拼风险等级；复制与 CSV 共用同一格式化函数。
 
-### D-N60 手术体位压力点：英文态 CSV/门诊记录只翻译标签，体位名、压力点名与措施仍是中文（低，待验证）
+### D-N60 手术体位压力点：英文态 CSV/门诊记录只翻译标签，体位名、压力点名与措施仍是中文（已修，799 批）
 - 问题：`__posExport` 的 `en` 分支只翻风险等级和表头，`pt.name`、`pt.measure`、`p.title` 未翻；`__emrData` 的 `resultEn` 直接拼 `p.title`，`pos` 列表也用中文名与中文措施。
 - 证据：`tools/clinical-nursing/surgical-position-risk.html:348`（CSV 仍用 `pt.name`/`pt.measure`）、`:350`（`p.title`）、`:467`（列表中文名）、`:477-479`（`resultEn` 拼中文 title）。
 - 复现：`?lang=en-US` 选仰卧位导出 CSV → 行如「枕后部, High risk, 使用头枕或软垫保护…」；EMR 显示「position 仰卧位压力点评估; …」并附中文措施。期望英文名/措施或标注仅中文。
 - 影响：英文态导出物不可直接使用，中英混杂；未做浏览器英文态实测，结论基于源码。
 - 方案：为每个 pressure point 增加 `nameEn`/`measureEn`，体位增加 `titleEn`，en 分支统一取英文字段；缺英文数据时禁用导出并提示。
+- 现状（2026-11-16，799 批）：新增 `posEn/pointEn/measureEn` 三张映射表与 `__posIsEn()/__posTitle()/__posName()/__posMeasure()` 辅助函数；结果区标题、`.pp-label`、`.pp-measure`、风险徽标与等级行、时长提示均按语言切换；CSV 导出的名称/风险/措施/体位行、五体位矩阵「重点防护」列、复制结果与门诊记录 `resultEn` 与压力点列表统一取英文映射。门禁新增英文态用例（置 `TBKit.util.isEn=true` 后断言 `position Supine position; 5 pressure points (high 3, moderate 2, low 0)`），`verify_clinical-nursing_calc.js` 3/3。
 
 ### D-N61 术中压力性损伤评估：深度解析示例（侧卧、120min、BMI 28）按代码只得 3 分低风险，示例却称高危并建议每 30 分钟减压（已修，798 批）
 - 现状（2026-11-16）：深解示例改为「侧卧 300 分钟 / BMI 29 / 75 岁 ⇒ 3+4+2+3=12 分高风险」，建议与页面「每 2 小时（条件允许时）调整体位」一致，不再出现 30 分钟减压。
