@@ -2110,20 +2110,11 @@
 
 ## W 批 · 化工/营养/工艺/运输（2026-11-04）
 
-### 12-N221 process/tolerance-worst-case、tolerance-rss：空值与负公差校验（历史条目，部分源码已变）
-- 2026-11-06 静态复核：两页 `:221-236` 现已对空值和非有限输入提示，旧文「空值按 0 参与主计算」已过时；负公差仍被直接求和（`:237-241`），旧负数示例仍适用。空值时 extras 因非有限值直接返回（`:251-255,281-282`），旧表是否可继续导出需运行验证。
-- 问题：两页 `num()` 对空值/非数字一律返回 0（worst-case `:221`、rss `:221`），`calcTool()` 不做必填或 `t≥0` 校验，直接求和/方和根（worst-case `:224-229`、rss `:224-229`）；`__*Extras()` 只在明细表/历史处用 `isFinite` 拦截，结果区已先渲染。
-- 证据：`tools/process/tolerance-worst-case.html:221`、`:224-229`；`tools/process/tolerance-rss.html:221`、`:224-229`
-- 复现（node 复算）：清空 t₁ → 最差页显示「总公差 0.350」（期望提示缺项），RSS 页显示「总公差(RSS) 0.250」；输入 t₁=−0.2、t₂=0.15、t₃=0.2 → 最差页「总公差 0.150」（期望按绝对值 0.55 或拒绝），RSS 页「线性叠加总公差 0.150、RSS 占比 **213.44%**」。
-- 影响：`tools/process/tolerance-worst-case.html`、`tools/process/tolerance-rss.html` 缺项或把下偏差当负公差输入时，总公差被算小甚至为负，装配间隙/可装配性判断偏乐观。
-- 方案：`num()` 区分空值与 0，任一输入为空/非数字/负数时清空结果并提示「请填写各组成环公差（正数）」；若允许负向偏差，取绝对值参与叠加并在结果中注明。
-- 严重度：中；是否假工具：否
-
 ### 覆盖清单（W 批 化工/营养/工艺/运输，2026-11-04）
 - 审计页数：8（`tools/chemical/convert-capacity-tank.html`、`mixture-ratio.html`、`tools/nutrition/food-calorie-lookup.html`、`generator-nutrition-label.html`、`tools/process/tolerance-worst-case.html`、`tolerance-rss.html`、`tools/transport/convert-fuel-oil.html`、`calculator-calc-tire.html`），覆盖 4 个目录。
 - 新增条数：10 条，编号 12-N212–12-N221（高 3 / 中 7）。
 - 高优：N217（燃油同单位换算输出倒数，已于第 683 批核验并新增 UK 用例）。N212 已于 2026-11-16 第 682 批修复（补卧式圆柱弓形面积、容积→液位二分反算、满罐容积与充装率）；N213/N214 已于第 681 批修复；N215/N216 已于第 683 批核验销账（现为逐项输入 + Atwater 17/37/17/8 kJ + NRV% 表格）；N218 已于第 683 批补「加仑制式 US/UK」与 282.4809 常数。
-- 中优集中模式：空值/负值兜底仍出数（N221）；N214 已于第 681 批修复，N216/N218 已于第 683 批修复，N219/N220 已于第 684 批修复（导出改指向可见速查表、深解数值与表内数据对齐）。
+- 中优集中模式：空值/负值兜底仍出数（N221，已于 2026-11-16 第 685 批补负公差拦截并销账）；N214 已于第 681 批修复，N216/N218 已于第 683 批修复，N219/N220 已于第 684 批修复（导出改指向可见速查表、深解数值与表内数据对齐）。
 - 无缺陷页：`tools/transport/calculator-calc-tire.html` 复算 225/45R17→634.3 mm、225/50R17→656.8 mm（+22.5 mm / +3.55%）、235/40R18→645.2 mm（+1.72%），外径差/间隙变化/表显 100 实际车速与公式一致，仅规格串正则不接受带载重/速度级别（如 225/45R17 91W），页面已明示该格式限制。
 - 未单列：`convert-capacity-tank.html` 公式行重复两遍已于第 682 批去重并按新能力重写；`mixture-ratio.html` 的 formula-desc 模板占位串已于第 681 批改为酒精降度公式说明；`convert-fuel-oil.html` 的多余 `</div>` 已于第 683 批修正（「到」下拉与结果区回到卡片内）；`food-calorie-lookup.html` 的 `<table>` 内嵌 `<div>` 已于第 684 批移出（导出按钮与历史容器回到表格之后，不再触发 foster-parent）。
 - 局限：仅逐行读源码 + `node` 在 `/tmp` 复算，**未开浏览器、未跑 `_build.py`/`run_gates.py`/`_test_static.py`、未做 git 或线上验证**；英文态/繁体页/移动端未实测。营养条目（N215/N216/N220）的营养素值、NRV 与能量口径**需临床复核**，本批结论不构成膳食或标签合规指令。

@@ -255,6 +255,18 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "process/tolerance-worst-case",
+  "inputs": { "t1": "-0.2", "t2": "0.15", "t3": "0.2" },
+  "expect": ["公差须为非负数"],
+  "ref": "负公差拦截（685 批）：t₁=-0.2 时旧版得总公差 0.150（比单项还小），现应提示去掉负号；默认 0.1/0.15/0.2 不含该文案"
+},
+{
+  "slug": "process/tolerance-rss",
+  "inputs": { "t1": "-0.2", "t2": "0.15", "t3": "0.2" },
+  "expect": ["公差须为非负数"],
+  "ref": "负公差拦截（685 批）：旧版线性叠加 0.150 且 RSS 占比 213.44%，现应提示绝对值；默认态不含该文案"
+},
+{
   "slug": "process/xbar-control-limits",
   "inputs": {
     "mean": "75",
