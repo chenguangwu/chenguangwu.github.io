@@ -484,6 +484,7 @@ function updateGoalContent(calories,w,macros,goal,rate,tdee){
 }
 
 function drawCalorieChart(bmr,tdee,act){
+  const en=/^en/i.test(document.documentElement.lang||'');
   const canvas=document.getElementById('calorieChart');
   const ctx=canvas.getContext('2d');
   const dpr=window.devicePixelRatio||1;
@@ -504,9 +505,9 @@ function drawCalorieChart(bmr,tdee,act){
   const neat=tdee-bmr-tef;
 
   const data=[
-    {label:'基础代谢',value:bmr,color:'#667eea'},
-    {label:'食物热效应',value:tef,color:'#66bb6a'},
-    {label:'活动消耗',value:neat,color:'#ff9800'}
+    {label:en?'BMR':'基础代谢',value:bmr,color:'#667eea'},
+    {label:en?'TEF':'食物热效应',value:tef,color:'#66bb6a'},
+    {label:en?'Activity':'活动消耗',value:neat,color:'#ff9800'}
   ];
 
   let startAngle=-Math.PI/2;
@@ -532,7 +533,7 @@ function drawCalorieChart(bmr,tdee,act){
   ctx.fillText(tdee,cx,cy+2);
   ctx.font='11px sans-serif';
   ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--text-muted');
-  ctx.fillText('TDEE kcal/日',cx,cy+18);
+  ctx.fillText(en?'TDEE kcal/day':'TDEE kcal/日',cx,cy+18);
 
   const legendX=cx+r+30;
   let legendY=cy-40;
@@ -621,6 +622,7 @@ function drawMacroChart(macros){
 }
 
 function updateWeightPred(tdee,w,goal){
+  const en=/^en/i.test(document.documentElement.lang||'');
   let html='';
   let weeklyChange,monthlyChange,targetCal,color;
 
@@ -732,12 +734,17 @@ function updateWeightPred(tdee,w,goal){
 
       ctx.fillStyle=color;
       ctx.textAlign='center';
-      ctx.fillText('第'+wk+'周',p.x,ch-10);
+      ctx.fillText(en?'Week '+wk:'第'+wk+'周',p.x,ch-10);
     });
 
     ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--text-light');
     ctx.textAlign='left';
-    ctx.fillText('体重 (kg)',6,14);
+    ctx.fillText(en?'Weight (kg)':'体重 (kg)',6,14);
+    window.__tbRedraw=function(){ if(typeof calc==='function') calc(); };
+    if(!window.__tbLangBound){
+      window.__tbLangBound=1;
+      window.addEventListener('toolbox:langchange',function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+    }
   },50);
 }
 

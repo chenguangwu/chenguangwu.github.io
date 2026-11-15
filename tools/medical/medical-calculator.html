@@ -603,6 +603,7 @@ function renderTempRecords() {
 function drawTempChart() {
   var canvas = document.getElementById('tempCanvas');
   if (!canvas) return;
+  var en = /^en/i.test(document.documentElement.lang || '');
   var ctx = canvas.getContext('2d');
   var records = getTempRecords();
   // 高清绘制
@@ -661,7 +662,7 @@ function drawTempChart() {
   ctx.fillStyle = 'rgba(16,185,129,0.6)';
   ctx.font = '10px sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('正常 36.0-37.2\u2103', padL + 4, yNormalHigh + 12);
+  ctx.fillText(en ? 'Normal 36.0-37.2\u2103' : '正常 36.0-37.2\u2103', padL + 4, yNormalHigh + 12);
 
   // 发热线 37.3
   var yFever = padT + chartH - (37.3 - minT) / (maxT - minT) * chartH;
@@ -675,13 +676,13 @@ function drawTempChart() {
   ctx.setLineDash([]);
   ctx.fillStyle = 'rgba(239,68,68,0.6)';
   ctx.font = '10px sans-serif';
-  ctx.fillText('发热 37.3\u2103', padL + 4, yFever - 6);
+  ctx.fillText(en ? 'Fever 37.3\u2103' : '发热 37.3\u2103', padL + 4, yFever - 6);
 
   if (records.length === 0) {
     ctx.fillStyle = mutedColor;
     ctx.font = '14px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('暂无体温数据，请添加记录', w / 2, h / 2);
+    ctx.fillText(en ? 'No temperature records yet — add one first' : '暂无体温数据，请添加记录', w / 2, h / 2);
     return;
   }
 
@@ -753,6 +754,11 @@ function drawTempChart() {
       ctx.font = '9px sans-serif';
       ctx.fillText(p.time, p.x, padT + chartH + 14);
     }
+  }
+  window.__tbRedraw = function(){ if(typeof renderTempRecords==='function') renderTempRecords(); else drawTempChart(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
   }
 }
 

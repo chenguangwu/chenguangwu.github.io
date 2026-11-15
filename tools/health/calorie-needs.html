@@ -570,6 +570,7 @@ function updateBreakdown(bmr,tdee,targetCal,activity){
 
 function drawTimeline(w,weeklyRate,targetCal){
   const canvas=document.getElementById('timelineChart');
+  const en=/^en/i.test(document.documentElement.lang||'');
   const ctx=canvas.getContext('2d');
   const dpr=window.devicePixelRatio||1;
   const rect=canvas.getBoundingClientRect();
@@ -671,12 +672,12 @@ function drawTimeline(w,weeklyRate,targetCal){
   ctx.font='11px sans-serif';
   xLabels.forEach(wk=>{
     const p=points[Math.min(wk,points.length-1)];
-    ctx.fillText('第'+wk+'周',p.x,ch-25);
+    ctx.fillText(en?'Week '+wk:'第'+wk+'周',p.x,ch-25);
   });
 
   ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--text-light');
   ctx.textAlign='left';
-  ctx.fillText('体重 (kg)',6,14);
+  ctx.fillText(en?'Weight (kg)':'体重 (kg)',6,14);
 
   if(currentGoal!=='maintain'&&Math.abs(weeklyRate)>0){
     const totalChange=weeklyRate*weeks;
@@ -684,7 +685,12 @@ function drawTimeline(w,weeklyRate,targetCal){
     ctx.fillStyle=color;
     ctx.textAlign='right';
     ctx.font='11px sans-serif';
-    ctx.fillText((totalChange>0?'+':'')+totalChange.toFixed(1)+'kg / '+weeks+'周（约'+months+'个月）',cw-pad.right,pad.top-6);
+    ctx.fillText((totalChange>0?'+':'')+totalChange.toFixed(1)+'kg / '+(en?weeks+' wk (~'+months+' mo)':weeks+'周（约'+months+'个月）'),cw-pad.right,pad.top-6);
+  }
+  window.__tbRedraw = function(){ if(typeof calc==='function') calc(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
   }
 }
 

@@ -2332,6 +2332,7 @@ function initResultViz(){
         if(/^en/i.test(document.documentElement.lang || '') && window.__tbEnLookup){
           labels = labels.map(function(l){ try { return window.__tbEnLookup(l) || l; } catch(e){ return l; } });
         }
+        var enViz = /^en/i.test(document.documentElement.lang || '');
         if(type === 'gauge'){
           canvas.setAttribute('data-chart-cfg', JSON.stringify({
             value: nums[0],
@@ -2341,7 +2342,7 @@ function initResultViz(){
           }));
         } else if(type === 'bar'){
           canvas.setAttribute('data-chart-cfg', JSON.stringify({
-            labels: labels.length ? labels : nums.map(function(_,i){ return '值'+(i+1); }),
+            labels: labels.length ? labels : nums.map(function(_,i){ return (enViz ? 'Value ' : '值')+(i+1); }),
             values: nums
           }));
         } else if(type === 'line'){

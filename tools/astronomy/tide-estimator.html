@@ -605,6 +605,7 @@ function calc(){
 
 /* ===== Canvas 绘制 ===== */
 function drawChart(r){
+  var en = /^en/i.test(document.documentElement.lang || '');
   if(!r) return;
   var canvas = document.getElementById('tideChart');
   var ctx = canvas.getContext('2d');
@@ -670,7 +671,7 @@ function drawChart(r){
   // 平均海平面标注
   var y0 = yOf(0);
   ctx.fillStyle = cSea; ctx.textAlign = 'left';
-  ctx.fillText('平均海平面', padL + 6, y0 - 5);
+  ctx.fillText(en ? 'Mean sea level' : '平均海平面', padL + 6, y0 - 5);
 
   // 填充区域
   var grad = ctx.createLinearGradient(0, padT, 0, padT + plotH);
@@ -701,9 +702,14 @@ function drawChart(r){
     ctx.fillStyle = '#fff';
     ctx.beginPath(); ctx.arc(x, y, 1.6, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = cText; ctx.textAlign = 'center';
-    var label = (e.type === 'high' ? '高 ' : '低 ') + fmtTime(e.t);
+    var label = (e.type === 'high' ? (en ? 'High ' : '高 ') : (en ? 'Low ' : '低 ')) + fmtTime(e.t);
     ctx.fillText(label, x, e.type === 'high' ? y - 9 : y + 16);
   });
+  window.__tbRedraw = function(){ if(typeof calc==='function') calc(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 /* ===== 复制结果 ===== */

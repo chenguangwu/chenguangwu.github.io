@@ -331,6 +331,13 @@ function calc(){
 }
 
 function drawChart(rows,nextMa){
+  var en = /^en/i.test(document.documentElement.lang || '');
+  var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function monthLabel(m){
+    if(!en) return m;
+    var n = parseInt(m, 10);
+    return (n >= 1 && n <= 12) ? MON[n-1] : m;
+  }
   var canvas=document.getElementById('chart');
   var ctx=canvas.getContext('2d');
   var dpr=window.devicePixelRatio||1;
@@ -395,23 +402,28 @@ function drawChart(rows,nextMa){
     ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill();
     ctx.textAlign='center';
     ctx.fillStyle=accent;
-    ctx.fillText('预测',x,y-8);
+    ctx.fillText(en ? 'Forecast' : '预测',x,y-8);
   }
 
   ctx.textAlign='center';
   ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--text-muted');
   for(var i=0;i<rows.length;i++){
     var x=padL+step*i+step/2;
-    ctx.fillText(rows[i].month,x,h-padB+16);
+    ctx.fillText(monthLabel(rows[i].month),x,h-padB+16);
   }
 
   ctx.textAlign='left'; ctx.font='11px sans-serif';
   ctx.fillStyle=primary; ctx.fillRect(padL,4,12,3);
-  ctx.fillText('实际',padL+16,10);
+  ctx.fillText(en ? 'Actual' : '实际',padL+16,10);
   ctx.fillStyle=secondary; ctx.fillRect(padL+60,4,12,3);
-  ctx.fillText('移动平均',padL+76,10);
+  ctx.fillText(en ? 'Moving average' : '移动平均',padL+76,10);
   ctx.fillStyle=accent; ctx.beginPath(); ctx.arc(padL+170,6,3,0,Math.PI*2); ctx.fill();
-  ctx.fillText('预测',padL+180,10);
+  ctx.fillText(en ? 'Forecast' : '预测',padL+180,10);
+  window.__tbRedraw = function(){ if(typeof calc==='function') calc(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 renderList();

@@ -340,6 +340,7 @@ function calc(){
 }
 
 function drawCurve(){
+  var en = /^en/i.test(document.documentElement.lang || '');
   var canvas=document.getElementById('tgCanvas');
   if(!canvas)return;
   var ctx=canvas.getContext('2d');
@@ -384,8 +385,8 @@ function drawCurve(){
 
   // Axis labels
   ctx.fillStyle=textColor;ctx.textAlign='center';
-  ctx.fillText('时间 (min)',w/2,h-2);
-  ctx.save();ctx.translate(12,h/2);ctx.rotate(-Math.PI/2);ctx.fillText('凝血酶 (nM)',0,0);ctx.restore();
+  ctx.fillText(en ? 'Time (min)' : '时间 (min)',w/2,h-2);
+  ctx.save();ctx.translate(12,h/2);ctx.rotate(-Math.PI/2);ctx.fillText(en ? 'Thrombin (nM)' : '凝血酶 (nM)',0,0);ctx.restore();
 
   // Draw curve
   var points=[];
@@ -427,20 +428,20 @@ function drawCurve(){
   var lagX=pad.left+cw*(lag/maxTime);
   ctx.strokeStyle='#7C3AED';ctx.setLineDash([4,4]);
   ctx.beginPath();ctx.moveTo(lagX,pad.top);ctx.lineTo(lagX,pad.top+ch);ctx.stroke();ctx.setLineDash([]);
-  ctx.fillStyle='#7C3AED';ctx.textAlign='center';ctx.fillText('Lag',lagX,pad.top-4);
+  ctx.fillStyle='#7C3AED';ctx.textAlign='center';ctx.fillText(en ? 'Lag' : '滞后',lagX,pad.top-4);
 
   // Peak
   var peakX=pad.left+cw*(ttPeak/maxTime);
   var peakY=pad.top+ch*(1-peak/maxThrombin);
   ctx.beginPath();ctx.arc(peakX,peakY,5,0,Math.PI*2);ctx.fillStyle=primaryColor;ctx.fill();
   ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
-  ctx.fillStyle=primaryColor;ctx.fillText('Peak '+peak,peakX,peakY-10);
+  ctx.fillStyle=primaryColor;ctx.fillText((en ? 'Peak ' : '峰值 ') + peak,peakX,peakY-10);
 
   // Start tail
   var tailX=pad.left+cw*(tail/maxTime);
   ctx.strokeStyle='#00C9A7';ctx.setLineDash([4,4]);
   ctx.beginPath();ctx.moveTo(tailX,pad.top);ctx.lineTo(tailX,pad.top+ch);ctx.stroke();ctx.setLineDash([]);
-  ctx.fillStyle='#00C9A7';ctx.fillText('Tail',tailX,pad.top-4);
+  ctx.fillStyle='#00C9A7';ctx.fillText(en ? 'Tail' : '尾段',tailX,pad.top-4);
 
   const __g3='<div class="ref-card"><h4>曲线解读</h4>'+
     '<p>Lag Time = '+lag+' min（凝血酶开始生成时间）</p>'+
@@ -448,6 +449,11 @@ function drawCurve(){
     '<p>ttPeak = '+ttPeak+' min（达峰时间）</p>'+
     '<p>ETP = '+etp+' nM·min（曲线下面积，总凝血酶生成量）</p>'+
     '<p>Start Tail = '+tail+' min（凝血酶生成终止时间）</p></div>';document.getElementById('curveResult').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  window.__tbRedraw = function(){ if(typeof calc==='function') calc(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 function copyResult(){

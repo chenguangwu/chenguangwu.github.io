@@ -403,6 +403,7 @@ function exportData(){
 
 function drawChart(){
   var cv = document.getElementById('trendCanvas');
+  var en = /^en/i.test(document.documentElement.lang || '');
   var ctx = cv.getContext('2d');
   // 适配高分屏
   var w = cv.clientWidth, h = 260;
@@ -418,7 +419,7 @@ function drawChart(){
     ctx.fillStyle = '#9CA3AF';
     ctx.font = '14px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('暂无数据，请先记录', w / 2, h / 2);
+    ctx.fillText(en ? 'No data yet — add a record first' : '暂无数据，请先记录', w / 2, h / 2);
     renderChartStats([]);
     return;
   }
@@ -429,7 +430,7 @@ function drawChart(){
     series.push(data.map(function(r){ return r.sys; }));
     series.push(data.map(function(r){ return r.dia; }));
     colors = ['#EF4444', '#3B82F6'];
-    labels = ['收缩压', '舒张压'];
+    labels = en ? ['Systolic', 'Diastolic'] : ['收缩压', '舒张压'];
     yMax = Math.max(180, Math.max.apply(null, series[0]) + 10);
     yMin = Math.min(40, Math.min.apply(null, series[1]) - 10);
     refLines = [{ y:140, c:'rgba(239,68,68,.3)' }, { y:90, c:'rgba(59,130,246,.3)' }];
@@ -437,7 +438,7 @@ function drawChart(){
     var gluVals = data.map(function(r){ return r.glu === null ? null : r.glu; });
     series.push(gluVals);
     colors = ['#F59E0B'];
-    labels = ['血糖'];
+    labels = en ? ['Blood glucose'] : ['血糖'];
     var valid = gluVals.filter(function(v){ return v !== null; });
     yMax = Math.max(15, valid.length ? Math.max.apply(null, valid) + 2 : 15);
     yMin = Math.min(3, valid.length ? Math.min.apply(null, valid) - 2 : 3);
@@ -446,7 +447,7 @@ function drawChart(){
     var hrVals = data.map(function(r){ return r.hr === null ? null : r.hr; });
     series.push(hrVals);
     colors = ['#10B981'];
-    labels = ['心率'];
+    labels = en ? ['Heart rate'] : ['心率'];
     var hv = hrVals.filter(function(v){ return v !== null; });
     yMax = Math.max(120, hv.length ? Math.max.apply(null, hv) + 10 : 120);
     yMin = Math.min(40, hv.length ? Math.min.apply(null, hv) - 10 : 40);
@@ -522,6 +523,11 @@ function drawChart(){
   });
 
   renderChartStats(data);
+  window.__tbRedraw = function(){ drawChart(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 function renderChartStats(data){

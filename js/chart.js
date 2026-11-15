@@ -170,6 +170,11 @@
   function fmt(v) {
     if (v === null || v === undefined || isNaN(v)) return '-';
     var a = Math.abs(v);
+    if (/^en/i.test(document.documentElement.lang || '')) {
+      if (a >= 1e9) return (v / 1e9).toFixed(1) + 'B';
+      if (a >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+      if (a >= 1e3) return v.toLocaleString('en-US');
+    }
     if (a >= 1e8) return (v / 1e8).toFixed(1) + '亿';
     if (a >= 1e4) return (v / 1e4).toFixed(1) + '万';
     if (a >= 1000) return v.toLocaleString('zh-CN');

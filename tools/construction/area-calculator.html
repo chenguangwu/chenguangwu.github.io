@@ -330,14 +330,17 @@ $('chartWrap').style.display='block';drawChart(innerArea,sharedArea);
 }
 function getRateText(r){if(r>=85)return '（非常高，多层无电梯）';if(r>=80)return '（优秀，小高层）';if(r>=75)return '（正常，高层住宅）';if(r>=70)return '（一般，超高层）';return '（偏低，请注意公摊）';}
 function drawChart(inner,shared){
+var en=/^en/i.test(document.documentElement.lang||'');
 var cv=$('chart'),ctx=cv.getContext('2d'),ct=cv.parentElement;cv.width=ct.clientWidth;cv.height=ct.clientHeight;
 var W=cv.width,H=cv.height;ctx.clearRect(0,0,W,H);var pad={top:30,right:20,bottom:40,left:60},cw=W-pad.left-pad.right,ch=H-pad.top-pad.bottom;
 var tot=inner+shared;if(tot<=0)return;var cx=pad.left+cw/2,cy=pad.top+ch/2,radius=Math.max(5,Math.min(cw,ch)/2-30);
-var colors=['var(--primary)','#ff9800'];var names=['套内面积','公摊面积'];var vals=[inner,shared];
+var colors=['var(--primary)','#ff9800'];var names=en?['Interior area','Shared area']:['套内面积','公摊面积'];var vals=[inner,shared];
 var start=-Math.PI/2;vals.forEach(function(v,i){var angle=v/tot*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,radius,start,start+angle);ctx.closePath();ctx.fillStyle=colors[i];ctx.fill();start+=angle;});
 ctx.fillStyle=resolveCanvasColor('var(--card-bg)','#FFFFFF');ctx.beginPath();ctx.arc(cx,cy,radius*0.6,0,Math.PI*2);ctx.fill();
 ctx.textAlign='center';ctx.fillStyle=resolveCanvasColor('var(--text)','#1F2937');ctx.font='bold 16px sans-serif';ctx.fillText(tot.toFixed(1)+'m²',cx,cy+5);
-ctx.font='11px sans-serif';ctx.textAlign='left';var ly=pad.top;vals.forEach(function(v,i){ctx.fillStyle=colors[i];ctx.fillRect(pad.left,ly,10,10);ctx.fillStyle=resolveCanvasColor('var(--text-light)','#9CA3AF');ctx.fillText(names[i]+' '+(v/tot*100).toFixed(1)+'%',pad.left+16,ly+9);ly+=18;});
+ctx.font='11px sans-serif';ctx.textAlign='left';var ly=pad.top;vals.forEach(function(v,i){ctx.fillStyle=colors[i];ctx.fillRect(pad.left,ly,10,10);ctx.fillStyle=resolveCanvasColor('var(--text-light)','#9CA3AF');ctx.fillText(names[i]+' '+(v/tot*100).toFixed(1)+'%',pad.left+16,ly+9);/*LEGEND*/ly+=18;});
+window.__tbRedraw=function(){if(typeof calc==='function')calc();};
+if(!window.__tbLangBound){window.__tbLangBound=1;window.addEventListener('toolbox:langchange',function(){if(window.__tbRedraw)window.__tbRedraw();});}
 }
 function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),shape:SHAPES[curShape].name,total:0,rate:100-(parseFloat($('shared').value)||0)};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
 function getHistory(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch(e){return[];}}
