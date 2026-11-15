@@ -133,7 +133,7 @@
     <div class="result-box" id="result"></div> <div id="seafood_cold_storageTable"></div> <div id="seafood_cold_storageDiff"></div> <div id="seafood_cold_storageChart"></div> <div id="seafood_cold_storageHist"></div>
 
     <div class="tip-box tip-info">
-      <strong>计算依据：</strong>保质期=t_ref×Q10^((T_ref-T)/10)，温度每升高10℃变质速率变为Q10倍。参考保质期为标准储藏温度下数值（鲜鱼0℃约7天、冻鱼-18℃约180天等）。实际还受初始鲜度、卫生影响。
+      <strong>计算依据：</strong>保质期=t_ref×Q10^((T_ref-T)/10)，温度每升高10℃变质速率变为Q10倍。参考保质期为标准储藏温度下数值（鲜鱼0℃约7天、冻鱼-18℃约180天等）。Q10 模型只在参考温度附近可靠，温差超过 15℃ 时结果仅作外推参考；实际还受初始鲜度、卫生影响。
     </div>
 
     <h3 style="margin-top:16px;">常见水产品冷藏参考</h3>
@@ -144,6 +144,7 @@
       <tr><td>贝类</td><td>2-4℃</td><td>5-7天</td><td>保持存活</td></tr>
       <tr><td>冻鱼</td><td>-18℃</td><td>180天</td><td>避免反复冻融</td></tr>
       <tr><td>干制水产品</td><td>常温干燥</td><td>180-365天</td><td>防潮</td></tr>
+      <tr><td>鱼糜制品</td><td>-18℃</td><td>约90天</td><td>需全程冻藏，避免反复冻融</td></tr>
     </table>
   </div>
 
@@ -228,20 +229,30 @@ function calc(){
   const p=PROD[document.getElementById('product').value];
   const T=+document.getElementById('temp').value;
   const q10=+document.getElementById('q10').value;
-  if([T,q10].some(isNaN)||q10<=0){ToolBox.showToast(i18nText('toast.msg721'),'error');return;}
+  if(!isFinite(T)||T<-30||T>30||!isFinite(q10)||q10<=0){
+    lastResult='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请检查输入：储藏温度需在 −30~30℃，Q10 系数须 &gt;0；留空或越界时不计算。</p>';
+    ToolBox.showToast(i18nText('toast.msg721'),'error');
+    return;
+  }
   const days=p.refDays*Math.pow(q10,(p.refTemp-T)/10);
   const daysClamped=Math.max(0.1,days);
   let unit='天',val=daysClamped;
   if(daysClamped<1){val=daysClamped*24;unit='小时';}
   else if(daysClamped>365){val=daysClamped/365;unit='年';}
+  let cls=daysClamped<3?'error':daysClamped<14?'warn':'success';
+  let txt=daysClamped<3?'🔴 保质期极短，尽快食用':daysClamped<14?'🟡 限期食用，注意鲜度':'🟢 保质期较长';
+  // Q10 模型只在参考温度附近可靠；与参考温度相差超过 15℃ 时仅作外推参考
+  const dTemp=Math.abs(T-p.refTemp);
+  const outOfRange=dTemp>15;
+  if(outOfRange){cls='warn';txt='🟠 与参考温度相差 '+dTemp.toFixed(0)+'℃，已超出 Q10 模型适用范围，结果仅供参考';}
+  const rangeNote=outOfRange?'（超出 Q10 模型适用范围，仅作外推参考，实际应以保质期试验/产品标准为准）':'';
   lastResult=`水产品冷藏保质期查询
 ====================
 种类：${p.name}
 储藏温度：${T}℃
 参考：${p.refTemp}℃下 ${p.refDays}天，Q10=${q10}
-预计保质期：${val.toFixed(1)} ${unit}`;
-  let cls=daysClamped<3?'error':daysClamped<14?'warn':'success';
-  let txt=daysClamped<3?'🔴 保质期极短，尽快食用':daysClamped<14?'🟡 限期食用，注意鲜度':'🟢 保质期较长';
+预计保质期：${val.toFixed(1)} ${unit}${rangeNote}`;
   const __g1=`
     <div class="tip-box tip-${cls}" style="text-align:center;">
       <div style="font-size:28px;font-weight:700;">${val.toFixed(1)} ${unit}</div>
@@ -254,7 +265,7 @@ function calc(){
       <div class="stat-card"><div class="val">${T}℃</div><div class="lbl">储藏温度</div></div>
     </div>
     <div class="step-line">${p.name}在 ${p.refTemp}℃ 下保质期 ${p.refDays} 天</div>
-    <div class="step-line">储藏于 ${T}℃，按 Q10=${q10} 修正后保质期 <strong>${val.toFixed(1)} ${unit}</strong></div>`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    <div class="step-line">储藏于 ${T}℃，按 Q10=${q10} 修正后保质期 <strong>${val.toFixed(1)} ${unit}</strong>${rangeNote}</div>`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){if(!lastResult){ToolBox.showToast(i18nText('toast.msg635'),'warning');return;}ToolBox.copyText(lastResult);}
 calc();

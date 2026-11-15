@@ -117,7 +117,7 @@
     </div>
     <div class="input-row">
       <div><label>COD 产生系数 (kgCOD/kg饵)</label><input type="number" id="codFactor" value="0.35" step="0.05" oninput="calc()" placeholder="如 0.35"></div>
-      <div><label>排放标准 (mg/L)</label><input type="number" id="limit" value="30" step="1" oninput="calc()" placeholder="如 30"></div>
+      <div><label>排放标准 (mg/L)</label><input type="number" id="limit" value="25" step="1" oninput="calc()" placeholder="如 25"></div>
     </div>
 
     <div class="toolbar">
@@ -128,7 +128,7 @@
     <div class="result-box" id="result"></div> <div id="wastewater_codTable"></div> <div id="wastewater_codDiff"></div> <div id="wastewater_codChart"></div> <div id="wastewater_codHist"></div>
 
     <div class="tip-box tip-info">
-      <strong>计算依据：</strong>每千克饲料约产生 0.3-0.4 kg COD（残饵+粪便，可按系数调整）；COD负荷=投饵量×COD系数；浓度=负荷÷排水量。对照《淡水池塘养殖水排放要求》等标准（COD限值约30 mg/L）评估是否超标。
+      <strong>计算依据：</strong>每千克饲料约产生 0.3-0.4 kg COD（残饵+粪便，可按系数调整）；COD负荷=投饵量×COD系数；浓度=负荷÷排水量。对照《淡水池塘养殖水排放要求》（SC/T 9103-2007）评估，一级 COD≤25 mg/L；部分地区执行 30 mg/L，请在输入框按当地标准填写。
     </div>
   </div>
 
@@ -158,10 +158,10 @@
 <li>处理工艺负荷与达标方案选型</li>
 <li>稀释水量与减排核算</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">日投饵 50 kg 的排放核算</div><div class="dd-ex-body">日投饵 50 kg（COD 产生系数 0.35）→ COD 负荷 17.5 kg/天；排水 200 m³/天 → 估算 COD 87.5 mg/L，超过 30 mg/L 标准 2.92 倍，需处理或增加约 383 m³ 稀释水量达标。</div></div>
+<div class="dd-example"><div class="dd-ex-title">日投饵 50 kg 的排放核算</div><div class="dd-ex-body">日投饵 50 kg（COD 产生系数 0.35）→ COD 负荷 17.5 kg/天；排水 200 m³/天 → 估算 COD 87.5 mg/L，超过 SC/T 9103-2007 一级标准 25 mg/L 的 3.50 倍，需处理或增加约 500 m³ 稀释水量达标（若当地执行 30 mg/L，则为 2.92 倍、约 383 m³）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>养殖废水 COD 标准多少？</dt><dd>常见淡水养殖排放要求 COD 不超过 30 mg/L（一级），具体以当地排放标准为准；超标须处理或稀释后排放。</dd>
+<dt>养殖废水 COD 标准多少？</dt><dd>常见淡水养殖排放要求 COD 不超过 25 mg/L（SC/T 9103-2007 一级），部分地区按 30 mg/L 执行；具体以当地排放标准为准，超标须处理或稀释后排放。</dd>
 <dt>怎么降低 COD？</dt><dd>源头减料控残饵、增设沉淀/生态塘/曝气生物处理，或尾水循环；关键在减少饲料残留与提高水体交换。</dd>
 </dl>
 </div>
@@ -265,8 +265,14 @@ const feed=+document.getElementById('feed').value;
   const discharge=+document.getElementById('discharge').value;
   const factor=+document.getElementById('codFactor').value;
   const limit=+document.getElementById('limit').value;
-  if([feed,fcr,discharge,factor,limit].some(isNaN)||feed<=0||discharge<=0){ToolBox.showToast(i18nText('toast.msg721'),'error');return;}
+  if([feed,fcr,discharge,factor,limit].some(isNaN)||feed<=0||fcr<=0||discharge<=0||factor<=0||limit<=0){
+    lastResult='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请检查输入：投饵量、FCR、排水量、COD 产生系数、排放标准均须 &gt;0；留空或为 0 时不计算。</p>';
+    ToolBox.showToast(i18nText('toast.msg721'),'error');
+    return;
+  }
   const codLoad=feed*factor; // kg/天
+  const codPerKg=codLoad/(feed/fcr); // kg COD / kg 鱼（按 FCR 折算产量）
   const conc=codLoad*1000000/discharge; // mg/L  (kg*1e6mg / m³*1000L = kg*1e3/m³; 实际 mg/L=kg*1e6/mg / (m³*1000L)=codLoad*1000/discharge) 
   const concMg=codLoad*1000/discharge; // mg/L
   const ratio=concMg/limit;
@@ -279,6 +285,7 @@ const feed=+document.getElementById('feed').value;
 投饵量：${feed} kg/天  FCR：${fcr}  排水量：${discharge} m³/天
 COD产生系数：${factor} kg/kg
 COD负荷：${codLoad.toFixed(2)} kg/天
+单位产量COD：${codPerKg.toFixed(2)} kg COD/kg 鱼（按 FCR ${fcr} 折算）
 估算COD浓度：${concMg.toFixed(1)} mg/L
 排放标准：${limit} mg/L
 ${txt}`;
@@ -289,11 +296,12 @@ ${txt}`;
     </div>
     <div class="stat-grid">
       <div class="stat-card"><div class="val">${codLoad.toFixed(2)}</div><div class="lbl">COD负荷(kg/天)</div></div>
+      <div class="stat-card"><div class="val">${codPerKg.toFixed(2)}</div><div class="lbl">单位产量COD(kg/kg鱼)</div></div>
       <div class="stat-card"><div class="val">${ratio.toFixed(2)}</div><div class="lbl">超标倍数</div></div>
       <div class="stat-card"><div class="val">${limit}</div><div class="lbl">标准(mg/L)</div></div>
       <div class="stat-card"><div class="val">${treatNeeded.toFixed(0)}</div><div class="lbl">需处理量(m³)</div></div>
     </div>
-    <div class="step-line">日投饵 ${feed}kg，COD产生系数 ${factor}，COD负荷 ${codLoad.toFixed(2)} kg/天</div>
+    <div class="step-line">日投饵 ${feed}kg，COD产生系数 ${factor}，COD负荷 ${codLoad.toFixed(2)} kg/天；按 FCR ${fcr} 折合每公斤鱼 ${codPerKg.toFixed(2)} kg COD</div>
     <div class="step-line">排水 ${discharge} m³/天，估算 COD <strong>${concMg.toFixed(1)} mg/L</strong></div>
     <div class="step-line">标准 ${limit} mg/L，${ratio>1?`超标 ${ratio.toFixed(2)} 倍，需处理或稀释`:'达标排放'}</div>
     ${ratio>1?`<div class="tip-box tip-warn">建议：沉淀/生态净化处理，或增加 ${treatNeeded.toFixed(0)} m³ 稀释水量使达标。</div>`:''}`;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
@@ -489,10 +497,10 @@ function __wastewater_codExport(){
 }
 function __wastewater_codPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#wastewater_codPresets',[{label:'默认参数',labelEn:'Default',values:{'feed':'50', 'fcr':'1.5', 'discharge':'200', 'codFactor':'0.35', 'limit':'30'}},
-  {"label":"50kg 饲料 排放200m³","labelEn":"50kg feed, 200 m3 discharge","values":{"feed":50,"fcr":1.5,"discharge":200,"codFactor":0.35,"limit":30}},
-  {"label":"200kg 饲料 1000m³","labelEn":"200kg feed, 1000 m3 discharge","values":{"feed":200,"fcr":1.4,"discharge":1000,"codFactor":0.35,"limit":30}},
-  {"label":"20kg 小塘 50m³ 超标","labelEn":"20kg feed, 50 m3 over limit","values":{"feed":20,"fcr":1.2,"discharge":50,"codFactor":0.45,"limit":30}}],function(){ calc(); });
+    TBKit.preset.bar('#wastewater_codPresets',[{label:'默认参数',labelEn:'Default',values:{'feed':'50', 'fcr':'1.5', 'discharge':'200', 'codFactor':'0.35', 'limit':'25'}},
+  {"label":"50kg 饲料 排放200m³","labelEn":"50kg feed, 200 m3 discharge","values":{"feed":50,"fcr":1.5,"discharge":200,"codFactor":0.35,"limit":25}},
+  {"label":"200kg 饲料 1000m³","labelEn":"200kg feed, 1000 m3 discharge","values":{"feed":200,"fcr":1.4,"discharge":1000,"codFactor":0.35,"limit":25}},
+  {"label":"20kg 小塘 50m³ 超标","labelEn":"20kg feed, 50 m3 over limit","values":{"feed":20,"fcr":1.2,"discharge":50,"codFactor":0.45,"limit":25}}],function(){ calc(); });
 }
 var __wastewater_cod_f0=(typeof calc==='function')?calc:null;
 if(__wastewater_cod_f0){
