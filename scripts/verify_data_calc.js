@@ -382,6 +382,58 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n错误: Unexpected non-whitespace char…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
 
+  /* ---------- 2026-11-16（694 批）：YAML 解析与序列化修复 ---------- */
+  {
+    slug: "data/yaml-json",
+    clicks: [
+      "setDir('y2j');document.getElementById('input').value='list:\\n  - name: Tom\\n    age: 3';convert();"
+    ],
+    expect: ['"age": 3', '"name": "Tom"'],
+    ref: "I-6 列表项多键对象：`- name: Tom` 后的同级缩进键 age 必须并入同一对象。旧实现在列表项命中 key 后遇到更深缩进直接 break ⇒ 输出仅 {\"list\":[{\"name\":\"Tom\"}]}，无 \"age\": 3。默认方向 j2y、默认输入为 JSON ⇒ 不命中。"
+  },
+  {
+    slug: "data/yaml-json",
+    clicks: [
+      "setDir('y2j');document.getElementById('input').value='host: localhost # 注释';convert();"
+    ],
+    expect: ['"host": "localhost"'],
+    ref: "I-7 行尾注释：引号外且 `#` 前有空白的注释应剥离。旧实现只跳过整行注释 ⇒ 值变成 \"localhost # 注释\"，不含 \"host\": \"localhost\"。"
+  },
+  {
+    slug: "data/yaml-json",
+    clicks: [
+      "setDir('y2j');document.getElementById('input').value='msg: |\\n  hello\\n  world';convert();"
+    ],
+    expect: ['"msg": "hello\\nworld\\n"'],
+    ref: "I-7 块标量：`|` 保留换行、默认 clip 单个结尾换行 ⇒ JSON 值 hello\\\\nworld\\\\n。旧实现把 `|` 当嵌套对象入口、正文行无冒号被跳过 ⇒ \"msg\": null。"
+  },
+  {
+    slug: "data/yaml-json",
+    clicks: [
+      "setDir('y2j');document.getElementById('input').value='- \"a:b\"';convert();"
+    ],
+    expect: ['"a:b"'],
+    ref: "I-7 引号内冒号：`- \"a:b\"` 是标量而不是键值对。旧实现按第一个冒号切分 ⇒ [{\"\\\"a\":\"b\\\"\"}]；新增按引号状态找分隔冒号 ⇒ [\"a:b\"]。"
+  },
+  {
+    slug: "data/yaml-json",
+    inputs: { input: "{\"a: b\":1}" },
+    expect: ['"a: b": 1'],
+    ref: "I-8 JSON→YAML 键转义：含冒号空格的键必须加引号。旧实现键原样输出 `a: b: 1`（非法 YAML）；现键走 yamlString ⇒ `\"a: b\": 1`。"
+  },
+  {
+    slug: "data/yaml-json",
+    inputs: { input: "{\"k\":\"it's \\\"x\\\"\"}" },
+    expect: ["k: \"it's \\\"x\\\"\""],
+    ref: "I-8 混合引号：值同时含单双引号时统一用双引号 + JSON 转义。旧实现走单引号包裹且不转义内部单引号 ⇒ `k: 'it's \"x\"'`（非法）。"
+  },
+  {
+    slug: "data/yaml-json",
+    inputs: { input: "{\"version\":\"1.0.0\",\"port\":8080}" },
+    expect: ['version: "1.0.0"', "port: 8080"],
+    ref: "序列化回归：形似版本的字符串需保持字符串语义（加引号），整数仍裸写；此前 1.0.0 不加引号、回读时无法与字符串区分。"
+  },
+
 
 ];
 async function main() {

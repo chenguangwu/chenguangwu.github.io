@@ -1,5 +1,6 @@
 # 编码/通信/安全/数据 · tools/{encode,telecom,security,data}（合计 ~100 页）
 
+> 2026-11-16（694 批已修并核销）：YAML→JSON 列表项多键/行尾注释/块标量/引号内冒号、JSON→YAML 键与引号转义、方向切换到高亮；紧急联系人列表与导出转义；虚拟保险箱 UTF-8 往返（v2 前缀，兼容旧记录）。另核实 path-loss 功率单位、subnet-planner 零地址、data-no-persist 三项早已修复。
 > 2026-11-16（692 批已修并核销）：Base32 含/无填充长度与换行口径、CSV→JSON 重复表头/超列/未闭合引号/大整数与前导零、历史恢复模式与清空输入缓存。
 > 2026-11-16（693 批已修并核销）：数据透视表合计语义/引号 CSV/HTML 转义/重复表头、CSV 分析多行字段与错列提示。
 
@@ -25,14 +26,12 @@
 ### 覆盖
 - 本轮人工核查编码 1 页 `tools/encode/convert-4.html`；通信 2 页 `tools/telecom/subnet-planner.html`、`tools/telecom/bandwidth-calculator.html`；安全 2 页 `tools/security/virtual-safe.html`、`tools/security/passphrase-generator.html`；数据 2 页 `tools/data/csv-analyzer.html`、`tools/data/csv-to-markdown.html`。仅抽样 7 页，未逐页覆盖其余页面；旧「全部收口」属于历史报告，未独立复验。
 
-### 通信：零地址被拒及输出可带走（中，确认缺陷 + 优化）
-- 问题：`tools/telecom/subnet-planner.html:238-255` 将解析结果 0 判为无效，使合法网络地址 `0.0.0.0` 无法按 `/0` 划分；错误地址的空段及非整数也未严格拒绝。
-- 方案：严格校验四段十进制整数并区分 `null` 和 0；添加 `0.0.0.0/0`、空段、浮点数测试。
+### 通信：零地址被拒及输出可带走（已修，2026-11-04 651ce51c27）
+- 现状：`tools/telecom/subnet-planner.html:229-256` 改为严格四段十进制校验（`ipToInt` 返回 `null` 而非 0），`0.0.0.0/0` 可正常划分，空段/浮点/超 255 均拒绝；前缀用 `^\d{1,2}$` 且限定 0–32。
 - 留存优化：该页 `:297-312` 已显示最多 1024 条子网但复制仅带摘要；增加带截断标记的完整清单导出和 `/31`、`/32` 用途说明。移动端表格可用性尚未实测。
 
-### 安全：保险箱文本往返损坏（高，确认缺陷）
-- 问题：`tools/security/virtual-safe.html:430-465,579,645` 对部分字符先编码再统一 `decodeURIComponent`，改变明文；代理对源码提取的原函数做内存 Node 执行，`%41` 加解密变 `A`，`😀` 加密抛 `URIError`。用户保存或读取文本时可能损坏或无法保存；尚未做页面交互验证。
-- 方案：使用标准 UTF-8 编码和可靠的加密/解密实现，保证 `%`、中日韩和 emoji 原样往返；对于现存加密记录先提供明确可验证的读取和迁移路径，防止升级后旧数据不可读取。该工具本身声明教学级简化加密，不把该声明等同专业安全保证。
+### 安全：保险箱文本往返损坏（已修，694 批）
+- 现状：`tools/security/virtual-safe.html:421-487` 改为标准 UTF-8 字节加解密（`TextEncoder`/`TextDecoder`，缺失时手写编解码），密文带 `v2:` 前缀；无前缀的旧记录仍按原 `encodeURIComponent` 口径解析，历史数据可读。门禁用例 `security/virtual-safe`：新建保险箱存入「%41 中文 😀」后 `revealItem` 解出逐字符一致。
 - 留存优化：该页 `:228-250` 已有加密备份与明文 CSV 导出；增加显式的明文风险提示和备份恢复验证，避免用户误导出敏感内容。
 
 ### 数据：CSV 多行字段解析错误（已修，693 批）
@@ -40,23 +39,17 @@
 
 ## 2026-11-03 续查：编码、通信、安全与数据
 
-### 紧急联系人用户内容拼入 HTML 与内联脚本（高，确认源码注入路径；浏览器待验证）
-- 证据：`tools/security/emergency-contacts.html:453-468,520-530,544-566` 将联系人电话经 `ToolBox.escHtml` 后拼进单引号包围的内联事件，`js/common.js:2022-2025` 的转义是 HTML 文本转义而非 JS 字符串转义；CSV 导出把姓名、电话和备注原样拼进 `innerHTML` 后插入文档。
-- 影响：`tools/security/emergency-contacts.html`；恶意联系人内容可能在站点同源上下文执行，触发及浏览器实际表现待验证，不能断言已发生数据外传。
-- 方案：用 DOM 节点 `textContent` 和事件监听器生成列表及导出表，不拼 HTML 或事件代码；限制电话格式并分别测试引号、标签、导出及拨打路径。
+### 紧急联系人用户内容拼入 HTML 与内联脚本（已修，694 批）
+- 现状：`tools/security/emergency-contacts.html:501-533` 的 `renderCustom()` 改为 `createElement` + `textContent` + `addEventListener`，不再把用户内容拼进 `innerHTML` 或 `onclick="callCustom('…')"`；`:557-565` 导出表对四列统一 `escHtml`。门禁用例 `security/emergency-contacts` 注入带单引号与 JS 的电话，断言列表 HTML 不含 `onclick`/`callCustom` 且联系人确实渲染。
 
-### 紧急联系人清除后字段可能残留（中，确认源码路径；浏览器待验证）
-- 证据：`tools/security/emergency-contacts.html:453-481` 添加和删除仅清空 DOM 或联系人记录；`js/tool-ux.js:24-30,205-245` 对非密码输入和 textarea 的 input/change 单独持久化。程序直接赋值不触发 input；删除后字段缓存可能留在本地。
-- 影响：`tools/security/emergency-contacts.html`；姓名、电话和备注可能在共享设备残留，不代表上传。
-- 方案：敏感字段默认排除通用缓存；添加、删除和清空时同步清除相关缓存，注明本地留存并测试刷新。
+### 紧急联系人清除后字段可能残留（已修，早于本轮）
+- 现状：`tools/security/emergency-contacts.html:143` 的 `<body data-no-persist>` 已退出通用输入持久化（`js/tool-ux.js:84,268-272`），共享设备上不再残留姓名/电话/备注。
 
 ### Base32 长度与填充、换行计算不符（已修，692 批）
 - 现状：`tools/encode/base32.html:248-284` 已按「是否含填充」分别输出 ⌈n/5⌉×8 与 ⌈n×8/5⌉，换行只计行间 LF 并分列 CRLF 开销；负字节数/非 0-1 填充/负行宽均拦截且不输出长度。门禁用例 `encode/base32` ×5 覆盖。
 
-### 无线接收功率显示为零（中，确认源码缺陷）
-- 证据：`tools/telecom/path-loss.html:253-264` 默认 2400 MHz、1 km、20 dBm、两端各 2 dBi 时约 -76.04 dBm，即约 2.49×10⁻⁸ mW；固定四位小数显示 `0.0000 mW`。
-- 影响：`tools/telecom/path-loss.html`；非零功率被读作零。
-- 方案：按量级采用科学计数法或自动切换 µW/nW/pW，保留有效数字和 dBm，支持对比不同距离。
+### 无线接收功率显示为零（已修，2026-11-04 651ce51c27）
+- 现状：`tools/telecom/path-loss.html:265-276` 新增 `fmtPowerW()` 自动切换 W/mW/µW/nW/pW；默认 2400 MHz/1 km 显示 24.9 pW 而非 0.0000 mW。门禁用例 `telecom/path-loss` 锁定 3600 MHz ⇒ 11.1 pW。
 
 ### CSV 转 JSON 静默丢列和大整数精度（已修，692 批）
 - 现状：`tools/data/csv-json.html:345-450` 重复表头、行内超列、未闭合引号均明确提示并停止转换；前导零与超出 Number.MAX_SAFE_INTEGER 的整数保留字符串。门禁用例 `data/csv-json` 覆盖重复/超列/大整数/未闭合四条。
@@ -100,29 +93,17 @@
 - 影响：布点密度参考值偏差约 36%，与同页公式自相矛盾。
 - 方案：把 76 m 更正为 55.9 m（同步直径），或补充 76 m 采用的额外假设；增加“按公式复核算例”的校验。
 
-### I-6 YAML→JSON 对“列表项多键对象”静默丢键（高，确认）
-- 描述：解析 `- key: value` 后只前进一步，随后遇到更深缩进的同级键即 `break`，导致 `- name: Tom` 后面的 `age: 3` 被丢弃且不报错。
-- 证据：`tools/data/yaml-json.html:329-390`（343 行 `lineIndent !== indent && !startsWith('-')` 直接 break）；输入 `list:\n  - name: Tom\n    age: 3` → `{"list":[{"name":"Tom"}]}`（node 抽取源码执行）。
-- 影响：K8s/CI 常见的“列表内多键对象”转换后缺字段，下游直接消费会丢配置。
-- 方案：列表项命中 `key:` 后以该项缩进为基准继续收集同级键，直到缩进回退；增加“列表项含 2+ 键”和嵌套列表用例，丢键时显式报错。
+### I-6 YAML→JSON 对“列表项多键对象”静默丢键（已修，694 批）
+- 现状：`tools/data/yaml-json.html:386-454` 重写为按缩进递归的解析器：列表项命中 `key:` 后把该行改写成更深一级的映射首行再递归，后续同级键自然并入同一对象。门禁用例 `data/yaml-json` 注入 `list:\n  - name: Tom\n    age: 3` 断言输出含 `"age": 3`。
 
-### I-7 YAML→JSON 的行尾注释、块标量与带引号键值被误解析（中，确认）
-- 描述：只跳过整行注释，行尾 `# …` 并入标量；`|`/`>` 走嵌套对象分支，正文行无冒号被跳过，块内容变 `null`；数组项按第一个 `:` 切分，引号内冒号被当作键值分隔。
-- 证据：`tools/data/yaml-json.html:339,375-379,346-361`；`host: localhost # note` → `"localhost # note"`；`msg: |\n  hello` → `{"msg":null}`；`- "a:b"` → `{"\"a":"b\""}`（node 抽取源码执行）。
-- 影响：含注释、多行脚本、URL/时间的 YAML 会被静默改值或丢段。
-- 方案：按 YAML 1.2 处理引号外的行尾注释、实现 `|`/`>` 块标量、先识别引号再找分隔冒号；无法支持时提示“不支持该语法”而非静默转换。
+### I-7 YAML→JSON 的行尾注释、块标量与带引号键值被误解析（已修，694 批）
+- 现状：同页 `:335-385` 新增 `__yamlStripComment`（引号外、`#` 前有空白的注释）、`__yamlFindColon`（引号/方括号外且冒号后为空白才算分隔符）、`:455-488` 实现 `|`/`>` 块标量（含 `-`/`+` chomping）。门禁用例三条：行尾注释、`msg: |` 块、`- "a:b"`。
 
-### I-8 JSON→YAML 不转义特殊字符键，混合引号时生成非法 YAML（中，确认）
-- 描述：对象键原样输出；值同时含 `'` 与 `"` 时走单引号包裹但未把内部 `'` 翻倍。
-- 证据：`tools/data/yaml-json.html:301-312,316-322`；`{"a: b":1}` → `a: b: 1`；`{"k":"it's \"x\""}` → `k: 'it's "x"'`（node 复算），两者均非合法 YAML。
-- 影响：从 JSON 生成的 YAML 交给解析器会报错，用户难以定位是键还是引号问题。
-- 方案：键也走 `yamlString()`；单引号风格时把内部 `'` 替换为 `''`，或统一双引号并转义；补特殊键与混合引号用例。
+### I-8 JSON→YAML 不转义特殊字符键，混合引号时生成非法 YAML（已修，694 批）
+- 现状：同页 `:293-314` 对象键统一走 `yamlString()`；需要引号时一律用 JSON 双引号转义（`\\`、`\"`、`\n`、`\uXXXX` 均为合法 YAML），不再产出不转义内部单引号的单引号风格。门禁用例：`{"a: b":1}` 与 `it's "x"` 混合引号。
 
-### I-9 YAML/JSON 方向切换高亮错按钮（低，确认）
-- 描述：`setDir()` 用 `.dir-tabs button` 的下标判断，但该容器第 2 个按钮是“导出明细 CSV”，因此切到 YAML→JSON 时高亮的是导出按钮，“YAML → JSON”永不高亮。
-- 证据：`tools/data/yaml-json.html:156-159,269-275`（`(d === 'y2j' && i === 1)`）。
-- 影响：用户无法从高亮判断当前方向，易在错误方向粘贴数据。
-- 方案：给两个方向按钮加独立 id 或 `data-dir`，按属性切换 `active`，不要用下标。
+### I-9 YAML/JSON 方向切换高亮错按钮（已修，694 批）
+- 现状：同页 `:145-148` 给两个方向按钮加 `data-dir`，`:258-263` 的 `setDir()` 按属性切换 `active`，不再依赖 `.dir-tabs button` 下标（该容器第 2 个按钮是导出 CSV）。
 
 ### I-10 数据透视表把单元格内容直接拼入 innerHTML（已修，693 批）
 - 现状：`tools/data/pivot-table.html:295-299,353-375` 新增 `escPivot()`，表头、行/列分组值与聚合名统一转义后再拼入表格；门禁用例注入 `<img onerror>` 断言输出为实体。

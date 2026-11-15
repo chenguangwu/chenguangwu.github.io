@@ -74,6 +74,31 @@ const CASES = [
   "ref": "去默认化（原 expect「400-161-9995」＝核心应急联系人卡片恒显号码，注入失败仍命中 → 逃生项）：inputs 填自定义联系人姓名/电话后 clicks 调 addCustom()（window 全局，读输入框并写 localStorage+渲染 customList），customList 新增「测试王医生 / 13800000000」；默认 customList 为「暂无自定义联系人」，不含「测试王医生」，注入失败即不命中。"
 },
 {
+  "slug": "security/emergency-contacts",
+  "inputs": {
+    "customName": "A",
+    "customPhone": "');globalThis.__ecPwn=1;//",
+    "customNote": "<img src=x onerror=alert(1)>"
+  },
+  "clicks": [
+    "addCustom();var h=String(document.getElementById('customList').innerHTML);document.getElementById('__tbProbe').textContent='ECINJ '+((h.indexOf('A')>=0&&h.indexOf('onclick')<0&&h.indexOf('callCustom')<0)?'OK':'BAD');"
+  ],
+  "expect": [
+    "ECINJ OK"
+  ],
+  "ref": "2026-11-16（694 批）紧急联系人用户内容不得进入内联事件：电话带单引号+JS 时，旧实现把 escHtml 结果拼进 onclick=\"callCustom('…')\"（HTML 转义不转义 JS 字符串）⇒ 生成的列表 HTML 含 onclick 与 callCustom。现 renderCustom 用 createElement + textContent + addEventListener ⇒ 列表 HTML 无内联事件，且姓名 A 确实渲染证明 addCustom 分支执行。默认无自定义联系人 ⇒ 探针串不出现。"
+},
+{
+  "slug": "security/virtual-safe",
+  "clicks": [
+    "document.getElementById('masterPwd').value='TestPass123456';unlockVault();document.getElementById('itemTitle').value='T';document.getElementById('itemContent').value='%41 中文 😀';addItem();var k=null;for(var i=0;i<localStorage.length;i++){var kk=localStorage.key(i);if(String(localStorage.getItem(kk)||'').indexOf('\"salt\"')>=0){k=kk;break;}}var arr=k?JSON.parse(localStorage.getItem(k)):[],bid=arr.length?'body_'+arr[0].id:'';if(bid)revealItem(arr[0].id);var txt=bid?String(document.getElementById(bid).textContent):'';document.getElementById('__tbProbe').textContent='ECRT '+((txt==='%41 中文 😀')?'OK':'BAD')+' N='+arr.length;"
+  ],
+  "expect": [
+    "ECRT OK N=1"
+  ],
+  "ref": "2026-11-16（694 批）保险箱文本往返：新建保险箱后存入「%41 中文 😀」，revealItem 解出的明文必须逐字符一致。旧实现对 >255 的字符先 encodeURIComponent 再统一 decodeURIComponent ⇒ 明文里的 %41 被还原成 A；emoji 因 charAt 拆成孤立代理项直接抛 URIError。现按标准 UTF-8 字节加解密（密文带 v2: 前缀），旧记录仍按原口径解析，保证历史数据可读。"
+},
+{
   "slug": "security/first-aid-kit",
   "inputs": {},
   "clicks": [

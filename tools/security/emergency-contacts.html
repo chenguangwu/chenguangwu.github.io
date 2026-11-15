@@ -502,25 +502,34 @@
     try { __ecChart(); } catch(e) {}
     var list = getCustom();
     var container = document.getElementById('customList');
+    if(!container) return;
+    container.innerHTML = '';
     if(list.length === 0){
-      const __h1='<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">暂无自定义联系人</div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h1;
+      var empty = document.createElement('div');
+      empty.style.cssText = 'text-align:center;padding:20px;color:var(--text-muted);font-size:13px;';
+      empty.textContent = '暂无自定义联系人';
+      container.appendChild(empty);
       return;
     }
-    var html = '';
+    // 用 DOM 节点 + textContent 渲染：联系人姓名/电话/备注来自用户输入，
+    // 拼 innerHTML 再写入内联 onclick 会让内容跳出字符串边界（旧实现缺陷）。
     list.forEach(function(c){
-      html += '<div class="custom-contact">'
-        + '<div class="cc-icon bg-custom">📌</div>'
-        + '<div class="cc-body">'
-        + '<div class="cc-name">' + ToolBox.escHtml(c.name) + '</div>'
-        + '<div class="cc-desc">' + ToolBox.escHtml(c.phone) + (c.note ? ' · ' + ToolBox.escHtml(c.note) : '') + '</div>'
-        + '</div>'
-        + '<div class="cc-actions">'
-        + '<button type="button" class="btn primary" onclick="callCustom(\'' + ToolBox.escHtml(c.phone) + '\')">拨打</button>'
-        + '<button type="button" class="btn danger" onclick="deleteCustom(\'' + c.id + '\')">删除</button>'
-        + '</div>'
-        + '</div>';
+      var row = document.createElement('div'); row.className = 'custom-contact';
+      var icon = document.createElement('div'); icon.className = 'cc-icon bg-custom'; icon.textContent = '📌';
+      var body = document.createElement('div'); body.className = 'cc-body';
+      var nm = document.createElement('div'); nm.className = 'cc-name'; nm.textContent = c.name || '';
+      var desc = document.createElement('div'); desc.className = 'cc-desc';
+      desc.textContent = (c.phone || '') + (c.note ? ' · ' + c.note : '');
+      body.appendChild(nm); body.appendChild(desc);
+      var actions = document.createElement('div'); actions.className = 'cc-actions';
+      var callBtn = document.createElement('button'); callBtn.type = 'button'; callBtn.className = 'btn primary'; callBtn.textContent = '拨打';
+      callBtn.addEventListener('click', function(){ window.callCustom(c.phone); });
+      var delBtn = document.createElement('button'); delBtn.type = 'button'; delBtn.className = 'btn danger'; delBtn.textContent = '删除';
+      delBtn.addEventListener('click', function(){ window.deleteCustom(c.id); });
+      actions.appendChild(callBtn); actions.appendChild(delBtn);
+      row.appendChild(icon); row.appendChild(body); row.appendChild(actions);
+      container.appendChild(row);
     });
-    const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h2;
   }
 
   renderContacts(CORE_CONTACTS, 'coreContacts');
@@ -547,8 +556,12 @@
     });
     var html='<table id="ecHidden" style="display:none"><thead><tr>'
       +'<th>'+(en?'Category':'类别')+'</th><th>'+(en?'Name':'名称')+'</th><th>'+(en?'Phone':'电话')+'</th><th>'+(en?'Note':'说明')+'</th></tr></thead><tbody>';
+    // 自定义联系人是用户输入：导出表同样要转义，否则姓名/备注里的标签会被当成 DOM 解析
+    var esc = (typeof ToolBox !== 'undefined' && ToolBox.escHtml) ? ToolBox.escHtml : function(x){
+      return String(x == null ? '' : x).replace(/[&<>"']/g, function(ch){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]; });
+    };
     rows.slice(1).forEach(function(r){
-      html+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>';
+      html+='<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td><td>'+esc(r[3])+'</td></tr>';
     });
     html+='</tbody></table>';
     var host=document.createElement('div');host.innerHTML=html;document.body.appendChild(host);

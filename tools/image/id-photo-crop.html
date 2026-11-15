@@ -105,7 +105,7 @@
 <div class="container">
   <div class="card">
     <h2 data-zh="🪪 证件照裁剪器">ID Photo Cropper</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="上传照片后按规格导出 PNG，支持背景色替换和尺寸预览。">Crop and prepare portrait images for ID-photo standard sizes.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="上传照片后按规格导出 PNG：一键居中裁剪，或完整留白并用底色填充四周，附尺寸预览。">Crop and prepare portrait images for ID-photo standard sizes.</p>
 
     <label>上传照片</label>
     <input id="file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onchange="loadImage(event)">
@@ -120,7 +120,14 @@
 
     <div class="input-row">
       <div>
-        <label>背景色</label>
+        <label>适配方式</label>
+        <select id="fitMode" onchange="render()">
+          <option value="cover">裁剪填满</option>
+          <option value="contain">完整留白</option>
+        </select>
+      </div>
+      <div>
+        <label>底色（留白填充）</label>
         <input id="bgColor" type="color" value="#ffffff" oninput="render()">
       </div>
       <div>
@@ -241,9 +248,20 @@ function parsePreset(v) {
   return { w: Number(w), h: Number(h), text };
 }
 
-function drawCropped(ctx, img, w, h, bg) {
+function drawCropped(ctx, img, w, h, bg, fit) {
   const sw = img.width;
   const sh = img.height;
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+  // 完整留白：整张照片缩放进规格框，四周由背景色填充（此时底色才真正可见）
+  if (fit === 'contain') {
+    const s = Math.min(w / sw, h / sh);
+    const dw = sw * s;
+    const dh = sh * s;
+    ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    return;
+  }
+  // 裁剪填满（默认）：按目标比例居中裁切，不透明照片会盖满整框
   const srcRatio = sw / sh;
   const dstRatio = w / h;
 
@@ -256,9 +274,11 @@ function drawCropped(ctx, img, w, h, bg) {
     sy = (sh - shCrop) / 2;
   }
 
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, w, h);
   ctx.drawImage(img, sx, sy, swCrop, shCrop, 0, 0, w, h);
+}
+function getFitMode() {
+  const el = document.getElementById('fitMode');
+  return el && el.value === 'contain' ? 'contain' : 'cover';
 }
 
 function render() {
@@ -287,13 +307,15 @@ function render() {
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  drawCropped(ctx, srcImg, dw, dh, document.getElementById('bgColor').value);
+  drawCropped(ctx, srcImg, dw, dh, document.getElementById('bgColor').value, getFitMode());
 
   const ratioText = (outW / outH).toFixed(2);
+  const fitText = getFitMode() === 'contain' ? '完整留白（底色填充四周）' : '裁剪填满';
   const __h1=`
     <p>输出规格：${preset.text}</p>
     <p>像素：${outW} × ${outH}</p>
     <p>宽高比：${ratioText}</p>
+    <p>适配方式：${fitText}</p>
     <p>预览：${dw} × ${dh}</p>
   `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){meta.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}meta.innerHTML=__h1;
 }
@@ -308,7 +330,7 @@ function download() {
   c.width = preset.w;
   c.height = preset.h;
   const ctx = c.getContext('2d');
-  drawCropped(ctx, srcImg, preset.w, preset.h, document.getElementById('bgColor').value);
+  drawCropped(ctx, srcImg, preset.w, preset.h, document.getElementById('bgColor').value, getFitMode());
   // 文件名安全化：剔除路径分隔符/控制字符等非法字符，扩展名固定为实际编码格式 PNG
   const rawName = document.getElementById('filename').value.trim() || 'id-photo';
   const safeName = rawName
@@ -499,10 +521,10 @@ else document.addEventListener('DOMContentLoaded', __id_photo_cropBoot);
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>简历、签证、考试报名需要合规证件照尺寸，手动裁容易不达标。</li>
-<li>换底色（红/蓝/白）又不想重拍，用工具替换背景色。</li>
+<li>照片比例与规格不一致时，用「完整留白」把整张照片放进规格框，四周填充指定的红/蓝/白底色。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">一寸照 258×335</div><div class="dd-ex-body">选「一寸」预设，画布锁定 258×335px（25×35mm @300DPI），换白底导出 id-photo.png，约 35KB。</div></div>
-<div class="dd-example"><div class="dd-ex-title">护照照 354×472</div><div class="dd-ex-body">选「护照」预设 354×472px（33×48mm @300DPI），蓝底导出，文件约 48KB。</div></div>
+<div class="dd-example"><div class="dd-ex-title">一寸照 258×335</div><div class="dd-ex-body">选「一寸」预设，按 258×335px（25×35mm @300DPI）居中裁剪导出 id-photo.png，约 35KB。</div></div>
+<div class="dd-example"><div class="dd-ex-title">护照照 354×472</div><div class="dd-ex-body">选「护照」预设 354×472px（33×48mm @300DPI），完整留白 + 蓝底导出，文件约 48KB。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>300DPI 下尺寸怎么换算？</dt><dd>像素 = 毫米 ÷ 25.4 × 300。如 25mm 宽 = 25÷25.4×300 ≈ 295px，一寸标称 258 为实际裁切留白后的常用值。</dd>
