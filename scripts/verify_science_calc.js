@@ -1986,8 +1986,52 @@ const CASES = [
     inputs: { val: "", from: "N", to: "lbf" },
     expect: ["请输入要转换的数值"],
     ref: "空态守卫（2026-11-05）：清空数值后 `+''` 得 0（不是 NaN）⇒ 旧输出「0 N = 0 lbf」凭空给零值结论；改为先判原始空串再判 NaN。⚠ 数值 0 本身合法（0 N = 0 lbf 照常计算），只判空串。默认 val=1 ⇒ 提示串不出现；注入 1 N 用例断「0.224809」⇒ 两态互斥。",
-  }
+  },
 
+  // ---- 624 批：科学计算守卫组（SMS-15/16/23/27）----
+  {
+    slug: "science/effect-size-calculator",
+    inputs: { m1b: "85", sd1b: "10", n1b: "30.5", m2b: "78", sd2b: "12", n2b: "30" },
+    clicks: ["setMode(1);calculate();"],
+    expect: ["样本量 n 必须是 ≥2 的整数"],
+    ref: "SMS-15：双样本 n₁=30.5 非整数。旧 parseInt('30.5')→30 静默截断后仍算 sdPooled=√[(29×100+29×144)/58]=√122≈11.045、d=7/11.045≈0.6338 并给出等级结论；修复后严格整数校验停算。判别性：默认页签 mode0 不读 n1b，且默认 n=30 为整数 ⇒ 该提示默认态零命中。",
+  },
+  {
+    slug: "science/sample-size-calculator",
+    inputs: { N: "50.5", conf: "0.95", e: "5", p: "0.5" },
+    expect: ["总体大小 N 必须是正整数"],
+    ref: "SMS-16 残留一：N=50.5 非整数。旧 parseInt('50.5')→50 静默按有限总体修正得 n₀=384.16、n=384.16/(1+383.16/50)=44.3→45；修复后停算提示。判别性：默认 N 为空（无限总体）⇒ 该提示默认态零命中。",
+  },
+  {
+    slug: "science/sample-size-calculator",
+    inputs: { N: "0", conf: "0.95", e: "5", p: "0.5" },
+    expect: ["总体大小 N 必须是正整数"],
+    ref: "SMS-16 残留二：N=0 非正数。旧 `if(!isNaN(N)&&N>0)` 判假 ⇒ 当作无限总体静默给 n=385；修复后 N 非空即要求正整数。判别性：默认 N 为空 ⇒ 该提示默认态零命中；与上条同为错误分支但触发值不同（小数 vs 零），互为交叉验证。",
+  },
+  {
+    slug: "science/mode-calculator",
+    inputs: { data: "1,bad,1,2" },
+    expect: ["第 2 项数据无效"],
+    ref: "SMS-23：第 2 项 'bad' 非法。旧 parseFloat+filter(NaN) 静默丢弃后按 3 项算得众数 1（占 66.67%）；修复后逐项严格解析并在第 2 项停算。判别性：默认数据 1,2,2,3,3,3,4,4,5 全合法 ⇒ 该提示默认态零命中。",
+  },
+  {
+    slug: "science/mode-calculator",
+    inputs: { data: "1,1abc,2" },
+    expect: ["第 2 项数据无效"],
+    ref: "SMS-23 扩展：'1abc' 是部分数字前缀。旧 parseFloat('1abc')→1 被接受为合法观测，得出错误频数（1 出现 2 次判众数）；新正则 ^[+-]?( digits | .digits )(e...)?$ 拒绝整 token。判别性：默认数据无非法前缀 ⇒ 零命中。",
+  },
+  {
+    slug: "science/variance-calculator",
+    inputs: { dtype: "sample", data: "1,bad,2,3" },
+    expect: ["第 2 项数据无效"],
+    ref: "SMS-27 残留二：'bad' 非法。旧 parseFloat+filter 静默当 3 项算样本方差；修复后严格校验停算并清四面板。判别性：默认数据全合法 ⇒ 零命中。",
+  },
+  {
+    slug: "science/variance-calculator",
+    inputs: { dtype: "sample", data: "100000000,100000001" },
+    expect: ["浮点消减误差", "请以主结果为准"],
+    ref: "SMS-27 残留一：两值仅差 1、量级 1e8。主算 s²=0.5（偏差 ±0.5 → SS=0.5 → /(n-1)=0.5）；替代公式 E(X²)−[E(X)]² 在双精度下消减为 0 并曾无条件标「与上方一致」。修复后按相对误差 relGap=|v2−variance|/max(|variance|,1e-300)>1e-6 判定并改述。判别性：默认数据 2,4,4,4,5,5,7,9 量级小、替代值一致 ⇒ 新提示默认态零命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
