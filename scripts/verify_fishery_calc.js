@@ -66,8 +66,8 @@ const CASES = [
   {
     slug: "fishery/mesh-size-guide",
     inputs: { mesh: "60", length: "32" },
-    expect: ["网目 60mm，L50≈3.0cm", "对应体重 1 g"],
-    ref: "注入非默认(默认 50/25)：网目 60mm ⇒ L50 ≈ 3.0 cm（经验系数按品种取值），按 W = 0.0223·L^3.01 换算对应体重 1 g。默认态为 50mm 档的一对值，两条均不命中。"
+    expect: ["网目 60mm，L50≈30.0cm", "对应体重 623 g"],
+    ref: "注入非默认(默认 50/25)：网目 60mm ⇒ L50 ≈ 30.0 cm（L50(cm)=k×网目(mm)，鲤 k=0.50），按 W = 0.0223·L^3.01 换算对应体重 623 g。默认态为 50mm 档的一对值，两条均不命中。"
   },
   {
     slug: "fishery/stocking-density",
@@ -477,7 +477,7 @@ const CASES = [
       "mode": "bySize"
     },
     "expect": [
-      "bySize\ngrass\n42\n42 目标体长(cm) 1533 对应体重(g) 808 建议网目(mm) 草鱼：目标体长 42cm，体重 1533g 建议网目 808 mm （L50=体长）\n42"
+      "bySize\ngrass\n42\n42 目标体长(cm) 1533 对应体重(g) 81 建议网目(mm) 草鱼：目标体长 42cm，体重 1533g 建议网目 81 mm （L50=体长）\n42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"mesh\":\"42\",\"length\":\"42\",\"species\":\"grass\",\"mode\":\"bySize\"}，输出区含「bySize\ngrass\n42\n42 目标体长(cm) 1533 对应体重(g)…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
