@@ -408,6 +408,19 @@ const CASES = [
   "ref": "双态零交集：expect 锚定注入的造口类型/内容物/状态组合（leak→间隔立即）。判别器清空 inputs（默认 colostomy/formed/intact → 间隔 7 天）→ 不命中 ⇒ 非逃生项。不抓 new Date() 动态倒计时。"
 },
 {
+  "slug": "clinical-nursing/ostomy-bag-timing",
+  "inputs": {
+    "stomaType": "ileostomy",
+    "outputType": "semi",
+    "baseStatus": "intact"
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "造口类型：回肠造口 · 内容物：半成形便 · 当前状态：完好 · 建议更换间隔：4 天"
+  ],
+  "ref": "D-N46 间隔口径：回肠造口软便基础间隔 4 天（页面公式框/引据统一为回肠 3–5 天、结肠 4–7 天，旧实现 3/7 天并与深解 2–4 天冲突）；默认 结肠/成形便/完好 ⇒ 7 天，不命中。"
+},
+{
   "slug": "clinical-nursing/oxygen-concentration",
   "inputs": {
     "flowRate": "5"
