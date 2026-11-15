@@ -709,6 +709,19 @@ const CASES = [
   "ref": "门诊记录：clicks 调 selectPosition('lithotomy', 哑 btn)（第二参需 classList 否则抛错），REC 内 typeof pos==='string' 守卫，输出截石位 4 个压力点的高/中/低分布。默认 supine ⇒「仰卧位压力点评估 · 压力点共 5 处（高 3 / 中 2 / 低 0）」，零交集。"
 },
 {
+  "slug": "clinical-nursing/surgical-position-risk",
+  "inputs": {
+    "opDuration": "5"
+  },
+  "clicks": [
+    "selectPosition('lithotomy',{classList:{add:function(){}}})"
+  ],
+  "expect": [
+    "≥4 小时按压力性损伤高危管理"
+  ],
+  "ref": "D-N58 时长参与：新增预计手术时长输入，5 h ⇒ 结果区提示「≥4 小时按压力性损伤高危管理」；默认 2 h 只显示「＞2 小时属重点预防对象」，不含该串。旧实现全页无时长输入、等级固定。"
+},
+{
   "slug": "clinical-nursing/tracheostomy-dressing",
   "inputs": {
     "firstDressing": "08:00"

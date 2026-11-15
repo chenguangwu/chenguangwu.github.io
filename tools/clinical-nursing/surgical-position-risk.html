@@ -135,6 +135,12 @@
       <button onclick="selectPosition('lithotomy',this)">截石位</button>
       <button onclick="selectPosition('sitting',this)">坐位</button>
     </div>
+    <div class="input-row">
+      <div>
+        <label>预计手术时长（小时）</label>
+        <input type="number" id="opDuration" value="2" min="0" max="24" step="0.5" onchange="refreshPosition()" placeholder="如 4（≥2h 重点预防，≥4h 按高危管理）">
+      </div>
+    </div>
     <div class="result-box" id="result">
       <h3 id="posTitle">仰卧位压力点评估</h3>
       <div id="pointsList"></div>
@@ -186,7 +192,7 @@
 <li>侧卧位评估耳廓、股骨大转子、外踝。</li>
 <li>截石位评估腘窝、小腿。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核截石位风险</div><div class="dd-ex-body">输入体位=截石、时长 90min，工具标腘窝高危并建议垫软枕，与体位护理一致。</div></div>
+<div class="dd-example"><div class="dd-ex-title">复核截石位 5 小时手术</div><div class="dd-ex-body">输入体位=截石、预计时长 5 h：工具标出腘窝、骶尾等高危压力点并提示「≥4 小时按压力性损伤高危管理」，术中每 2 小时评估皮肤与受压部位，与手术室体位护理一致。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>能替代手术压疮评估？</dt><dd>不能。</dd>
@@ -304,7 +310,7 @@ function selectPosition(pos, btn){
   if(typeof pos==='string'&&positions[pos]) __EMR_S={pos:pos};
   currentPos = pos;
   document.querySelectorAll('.position-tab button').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
+  if(btn&&btn.classList) btn.classList.add('active');
   var p = positions[pos];
   document.getElementById('posTitle').textContent = p.title;
   var html = '';
@@ -317,7 +323,19 @@ function selectPosition(pos, btn){
     html += '<div class="pp-measure">防护措施：' + pt.measure + '</div>';
     html += '</div></div>';
   });
+  var durEl=document.getElementById('opDuration');
+  var dur=durEl?parseFloat(durEl.value):NaN;
+  if(isFinite(dur)&&dur>0){
+    var dCls=dur>=4?'high':(dur>=2?'medium':'low');
+    var dTxt=dur>=4?'≥4 小时按压力性损伤高危管理，术中每 2 小时评估皮肤与受压部位。':(dur>=2?'＞2 小时属重点预防对象，落实体位垫与定时减压。':'时长较短，仍按部位防护并术毕检查皮肤。');
+    html += '<div class="pp-risk risk-'+dCls+'" style="margin-top:10px;">⏱ 预计手术时长 '+dur+' h：'+dTxt+'</div>';
+  }
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('pointsList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('pointsList').innerHTML=__h0;
+}
+
+function refreshPosition(){
+  var b=document.querySelector('.position-tab button.active');
+  if(b) selectPosition(currentPos||'supine', b);
 }
 
 function __posExport(){
