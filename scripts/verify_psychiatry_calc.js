@@ -210,6 +210,14 @@ const CASES = [
   "ref": "门诊记录：10 项 2 分 + 5 项 1 分 = 25 >14 落「高」；全部 15 项均 ≥1 分 ⇒ 受累 15/15。未作答态零交集。via=click"
 },
 {
+  "slug": "psychiatry/lsas-social",
+  "clicks": [
+    "applyLsasPreset('severe');var B=__lsasBands();var L=B[B.length-1]||{};document.getElementById('__tbProbe').textContent='LSASBAND '+((L.label&&L.label.zh==='极重度'&&L.color==='#EF4444')?'OK':'BAD');"
+  ],
+  "expect": ["LSASBAND OK"],
+  "ref": "M-N29：24 情境全选 3 ⇒ 总分 144，结果文字为「极重度」，标尺末段原本仍标「无/轻度」绿色；修正后末段为「极重度」#EF4444。默认（未作答）不渲染标尺，零交集。"
+},
+{
   "slug": "psychiatry/phq9-depression",
   "clicks": [
     "pick(0,1)",
