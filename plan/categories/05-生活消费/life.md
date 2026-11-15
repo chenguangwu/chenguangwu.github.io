@@ -764,11 +764,10 @@
 
 范围：只读重读 `radiation-converter`、`density-converter`、`magnet-converter`、`pressure-converter`、`assessor-target`、`generator-price`、`countdown` 共 7 页当前工作树源码（含内联 JS、公式框、FAQ、引据表），关键数值用 `node -e` 复算。未开浏览器、未做英文态/移动端/门禁验证。
 
-### LF-V2 辐射权重因子被写成组织权重因子，Gy↔Sv 仍无条件并列（原 LF-N108，仍成立）
-- 复核结论：未修复；概念错位与 1:1 并列仍在页面上。
-- 证据：`tools/life/radiation-converter.html:227`（「组织权重 1 时≈1 Sv」）、`:230-231`（「乘组织权重」）、`:541`（「Sv = Gy×组织权重因子」）、`:312-316`（任意源单位都并列 7 单位，含另一类量）。
-- 复算：输入 1 Gy → 结果行同时给出「希沃特 (当量剂量)：1 Sv」；按 α 粒子 w_R=20 应为 20 Sv。`types` 表（`:290-291`）只标类别、未参与换算。
-- 建议：沿用旧方案——改「辐射权重因子 w_R」、加射线类型选择或在结果区显著提示「仅按 w_R=1」。
+### LF-V2 辐射权重因子被写成组织权重因子，Gy↔Sv 仍无条件并列（已修，723 批）
+- 现状（2026-11-16 复核）：页面深解、结果解读、指南统一改为「辐射权重因子 w_R」；`convert()` 输出末尾固定追加「跨类换算（Gy ↔ Sv）按 w_R = 1 处理，仅适用于 X 射线/γ 射线；α 粒子 w_R = 20、中子 5–20」。
+- 同步：`i18n/tools/content_deepdive.json` 的 `life/radiation-converter`（算例 + 两条 FAQ）、`guides/radiation-converter-guide.html`（FAQ 与 FAQPage JSON-LD）。
+- 原证据：`tools/life/radiation-converter.html` 曾写「组织权重 1 时≈1 Sv」「乘组织权重」「Sv = Gy×组织权重因子」。
 
 ### LF-V3 密度/磁场/辐射 FAQ 承诺「支持复制」，工具栏仍无复制按钮（原 LF-N109，仍成立）
 - 复核结论：三页均未补复制按钮，承诺文案原样保留。
@@ -1004,7 +1003,8 @@
 - 未做：浏览器交互与截图（LF-N148 需真机复核）、`?lang=en-US` 英文态、移动端、`run_gates.py` 门禁与线上抽样；`world-clock` 非法时区为 node ICU 校验结果（与 Chrome 同用 ICU/CLDR，结论可直接复现）。
 - 最高优先：`world-clock.html:360-437`（6 个非法时区 id）、`length-converter.html:328-344`（目标单位未参与换算）、`temperature-converter.html:428-441`（键入即重写，需真机确认）；其次 `date-diff.html:146`/`:272`（排除周末无效）与 `TOOLBOX-TTZZ` 第三方脚本。
 
-### 逐项账单分摊：同名参与人与舍入差额（待修）
+### 逐项账单分摊：同名参与人与舍入差额（已修，723 批）
 - 页面：`tools/life/bill-splitter.html` 的 `calcAdvanced()`；人员金额以姓名为对象键，同名参与者会合并到同一行。应使用稳定的人员标识分别计算和展示。
 - 各人金额直接 `toFixed(2)`；例如 100 元由 3 人平分时显示 33.33×3 = 99.99，与总额差 0.01 元。应按分计算并分配余数，确保合计闭合。
 - 两项是在本轮修复无人参与漏账时发现的独立遗留问题；尚未修复，需补充针对性验证。
+- 现状（2026-11-16 复核）：`calcAdvanced()` 以 `advPersons` 索引记录参与人（`involved` 存索引），同名各自成行；新增 `__advSplitAmounts()` 按分向下取整 + 最大余数补差，合计严格闭合。门禁用例 `ADV 33.34/33.33/33.33 | 38.34/38.33/38.33`（100 元 3 人、含 15% 小费两态）。

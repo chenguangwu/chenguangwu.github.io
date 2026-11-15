@@ -1269,6 +1269,12 @@ const CASES = [
     ref: 'v=5 from=Gy: 拉德=5/0.01=500 rad'
   },
   {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "2" },
+    expect: ["跨类换算（Gy ↔ Sv）按辐射权重因子 w_R = 1 处理"],
+    ref: "概念口径（2026-11-16）：旧文案把 Sv 说成「Gy×组织权重」，且 7 个单位并列换算易被误读为任意射线 1 Gy=1 Sv。现结果区固定追加 w_R=1 适用范围说明（X 射线/γ 射线），深解与指南同步改为辐射权重因子。该提示只在计算后出现，默认空态 resultBox 为「请输入数值进行换算」，注入失败即失配。"
+  },
+  {
     slug: "life/ring-size-converter",
     inputs: { inputVal: "50" },
     expect: ["中国港码： 10"],
@@ -2207,6 +2213,14 @@ const CASES = [
     ],
     ref: "LF-N2 导出：CSV 不再只导历史表，而是导当前分摊明细（姓名,份数,应付）+ 合计 + 分摊规则行；100 元 3 人时第 1 人承担余 1 分 ⇒ 甲 33.34。"
       + "clicks 把 CSV 文本写回结果区以采样（仅验证构建产物，不影响页面导出按钮）。默认 1000 元 4 人无 CSV 文本 ⇒ 注入失败即失配。",
+  },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["var a=__advSplitAmounts([{amount:100,involved:[0,1,2]}],3,1,10000);var b=__advSplitAmounts([{amount:100,involved:[0,1,2]}],3,1.15,11500);document.getElementById('adv-result').textContent='ADV '+a.join('/')+' | '+b.join('/');"],
+    expect: ["ADV 33.34/33.33/33.33 | 38.34/38.33/38.33"],
+    ref: "逐项分摊按分配平（2026-11-16 核销 plan「同名参与人 + 舍入差额」）：__advSplitAmounts 以人员索引累积、按分向下取整后用最大余数补差，"
+      + "100 元 3 人 ⇒ 3333×3=9999 分，余 1 分给首位 ⇒ 33.34/33.33/33.33；含 15% 小费 115 元 ⇒ 3833×3=11499，余 1 分给首位 ⇒ 38.34/38.33/38.33，两者合计分别严格等于 100.00/115.00。"
+      + "同名参与者不再合并：calcAdvanced 用 advPersons 索引（而非姓名）记录参与人，advPersons[i] 逐行渲染，同名两人各出一行。默认态结果区为「总消费： ¥0.00…」以外的页面初始文案，不含 ADV 前缀 ⇒ 注入失败即失配。",
   },
 
   // ── 日期加减：月末钳制（加月/加年/负月数）──────────────────────
