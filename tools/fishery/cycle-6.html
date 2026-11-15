@@ -255,7 +255,8 @@ function getNextCleanDate(pond) {
   var p = calcParams(pond);
   var lastClean = pond.lastClean ? new Date(pond.lastClean) : new Date(pond.createdAt);
   var next = new Date(lastClean);
-  next.setMonth(next.getMonth() + Math.round(p.cycleMonths));
+  // 按天推进（周期不足 1 个月时 Math.round 会取成 0，导致下次清淤=上次日期）
+  next.setDate(next.getDate() + Math.max(1, Math.round(p.cycleMonths * 30.44)));
   return next;
 }
 
@@ -385,8 +386,15 @@ function applyPondPreset(kind){
           kind==='large'?{n:'2号粗养塘',a:20,d:2.0,den:300,f:2.0}:
           kind==='high'?{n:'3号高密度塘',a:8,d:1.8,den:2000,f:3.5}:null;
   if(!sc)return;
-  ponds=[{id:Date.now(),name:sc.n,area:sc.a,depth:sc.d,density:sc.den,feedRate:sc.f,lastClean:today,createdAt:Date.now()}];
+  var exist=null;
+  for(var i=0;i<ponds.length;i++){if(ponds[i].name===sc.n){exist=ponds[i];break;}}
+  if(exist){
+    exist.area=sc.a;exist.depth=sc.d;exist.density=sc.den;exist.feedRate=sc.f;
+  }else{
+    ponds.push({id:Date.now(),name:sc.n,area:sc.a,depth:sc.d,density:sc.den,feedRate:sc.f,lastClean:today,createdAt:Date.now()});
+  }
   save();render();
+  ToolBox.showToast(exist?'已更新预设池塘：'+sc.n:'已添加预设池塘：'+sc.n,'success');
 }
 load();
 render();
