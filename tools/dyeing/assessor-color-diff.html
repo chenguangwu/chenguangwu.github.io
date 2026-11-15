@@ -112,7 +112,7 @@
     <h2 data-zh="📋 色差 ΔE(CMC) 评估">Assessor Color Diff</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">CMC(l:c) 色差：ΔE_CMC = √((ΔL ÷ (l·S_L))² + (ΔC ÷ (c·S_C))² + (ΔH ÷ S_H)²)，其中 ΔL、ΔC、ΔH 为明度差、彩度差与色相差，S_L、S_C、S_H 为对应权重（由标样 Lab 值计算）；常用参数 l:c = 2:1（对明度差更宽容，适用纺织印染）或 1:1（对彩度差更严格，适用涂料）；ΔE_CMC 不超过容差（常见 1.0 或 1.5）判合格。</div>
+      <div class="formula-eq">CMC(l:c) 色差：ΔE_CMC = √((ΔL ÷ (l·S_L))² + (ΔC ÷ (c·S_C))² + (ΔH ÷ S_H)²)，其中 ΔL、ΔC、ΔH 为明度差、彩度差与色相差；S_L、S_C、S_H 均由标样（参考样）Lab 值计算：S_L = 0.040975·L₁/(1+0.01765·L₁)（L₁&lt;16 时取 0.511），S_C = 0.0638·C₁/(1+0.0131·C₁)+0.638，S_H = S_C·(F·T+1−F)，F = √(C₁⁴/(C₁⁴+1900))，T = 0.56+|0.2cos(h₁+168°)|（164°≤h₁≤345°）否则 0.36+|0.4cos(h₁+35°)|；常用参数 l:c = 2:1（对明度差更宽容，适用纺织印染）或 1:1（对彩度差更严格，适用涂料）；ΔE_CMC 不超过容差（常见 1.0 或 1.5）判合格。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="依据 CMC(l:c) 色差公式计算标准样与批次样之间的色差，常用于纺织印染的色差合格判定。默认 CMC(2:1)，明度容差 l=2、彩度容差 c=1。">Assessor Color Diff</p>
 
@@ -156,7 +156,7 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="CMC 色差">CMC ΔE</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ΔE=sqrt((ΔL/l·SL)²+(ΔC/c·SC)²+(ΔH/c·SH)²)">ΔE=sqrt((ΔL/l·SL)²+(ΔC/c·SC)²+(ΔH/c·SH)²)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ΔE=sqrt((ΔL/l·SL)²+(ΔC/c·SC)²+(ΔH/SH)²)，SH=SC·(F·T+1−F)">ΔE=sqrt((ΔL/l·SL)²+(ΔC/c·SC)²+(ΔH/SH)²), SH=SC·(F·T+1−F)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">CMC(l:c) 1984</td>
         </tr>
         <tr>
@@ -253,15 +253,14 @@ var L1=+document.getElementById('L1').value,a1=+document.getElementById('a1').va
   var dC=C2-C1;
   var dH2=da*da+db*db-dC*dC;
   var dH=dH2>0?Math.sqrt(dH2):0;
-  var Cab=(C1+C2)/2;
-  var G=(Cab*Cab*Cab*Cab)/((Cab*Cab*Cab*Cab)+1900);
+  var F=Math.sqrt(Math.pow(C1,4)/(Math.pow(C1,4)+1900));   // CMC 的 F_CMC，取标样彩度 C1
   var h1=Math.atan2(b1,a1)*180/Math.PI; if(h1<0) h1+=360;
   var T;
   if(h1>=164&&h1<=345){ T=0.56+Math.abs(0.2*Math.cos((h1+168)*Math.PI/180)); }
   else { T=0.36+Math.abs(0.4*Math.cos((h1+35)*Math.PI/180)); }
   var SL = L1>=16 ? 0.040975*L1/(1+0.01765*L1) : 0.511;
-  var SC = 0.0638*Cab/(1+0.0131*Cab)+0.638;
-  var SH = SC*(G*T+1);
+  var SC = 0.0638*C1/(1+0.0131*C1)+0.638;
+  var SH = SC*(F*T+1-F);
   var dE=Math.sqrt(Math.pow(dL/(l*SL),2)+Math.pow(dC/(c*SC),2)+Math.pow(dH/SH,2));
   var level,color,advice;
   if(dE<=tol*0.4){ level='极接近'; color='var(--success)'; advice='色差几乎不可察觉，配色优良，可直接放行。'; }
@@ -320,7 +319,7 @@ calc();
 <li>配色打样多方案视觉一致性比对：同一标样多个配方打样，量化色光差异择优。</li>
 <li>染料配方调整后色光偏移归因：由 ΔL/ΔC/ΔH 分量判断偏深偏浅、偏艳偏暗或偏相。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">活性黑浸染批次色差复核</div><div class="dd-ex-body">标样与批次 L*a*b* 分别为 (25.1,0.3,-0.2) 与 (26.4,0.1,-0.5)，按 CMC(2:1) 得 ΔEcmc=1.4，小于客户容差 2.0 判为可接受；ΔL=+1.3 偏深、ΔH 略偏蓝，可微调染液浓度与色光。</div></div>
+<div class="dd-example"><div class="dd-ex-title">活性黑浸染批次色差复核</div><div class="dd-ex-body">标样与批次 L*a*b* 分别为 (25.1,0.3,-0.2) 与 (26.4,0.1,-0.5)，按 CMC(2:1) 得 ΔEcmc=1.06，小于客户容差 2.0 判为可接受；ΔL=+1.3 偏深、ΔH 略偏蓝，可微调染液浓度与色光。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>CMC(l:c) 与 CIELAB ΔE*ab 有何区别？</dt><dd>ΔE*ab 对各方向等权，与人眼视觉不一致；CMC(l:c) 对明度、彩度、色相分别加权（常用 l=2,c=1），更接近实际目视宽容度，是纺织行业主推的色差判定标准。</dd>

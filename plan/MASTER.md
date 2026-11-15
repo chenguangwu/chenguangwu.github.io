@@ -22,7 +22,7 @@
 
 | 文件 | 主题 | 状态 |
 |---|---|---|
-| G01-公式与计算正确性裁量项.md | 16 批精度审计后仍待老板裁定的口径/阈值/条目结构 | 🟡 A1–A3 经复核已落地（parkland 8h 半量 / qtc 按性别 450·460 / gfr-cockcroft 身高输入+DuBois）；A4 页面已不存在（vo2-max-calculator）；A5 阿莫西林儿童 25→13 mg/kg/次（20–40 mg/kg/日 分 3 次口径）；A7 hp-dob 13C/14C 阈值分列（14C 按 100/200/500 DPM 分档）；A8 kupperman/vanderbilt/asrs 已按官方计分收口（含 vanderbilt 结果区覆盖 bug）；A6 EAT-26 反向计分改为官方唯一反向项；余项 C1/C6 为需来源裁断 |
+| G01-公式与计算正确性裁量项.md | 16 批精度审计后仍待老板裁定的口径/阈值/条目结构 | 🟡 A1–A3 经复核已落地（parkland 8h 半量 / qtc 按性别 450·460 / gfr-cockcroft 身高输入+DuBois）；A4 页面已不存在（vo2-max-calculator）；A5 阿莫西林儿童 25→13 mg/kg/次（20–40 mg/kg/日 分 3 次口径）；A7 hp-dob 13C/14C 阈值分列（14C 按 100/200/500 DPM 分档）；A8 kupperman/vanderbilt/asrs 已按官方计分收口（含 vanderbilt 结果区覆盖 bug）；A6 EAT-26 反向计分改为官方唯一反向项；C1 CMC(l:c) S_H 改按 ISO 105-J03；余项 C6 为需来源裁断 |
 | G02-重定向存根清理与索引合规.md | 超期存根删除 + 死链提交流程 | 🟡 530 批已补登记 29 个超期存根（`_redirect_stubs_todo.md`）；物理删除待带部署窗口的批次一次性闭环 |
 | G03-构建数据源还原坑.md | HTML 手改被 _build.py 冲掉（json/i18n 源未改） | 🔴 待办（仅开发期提示增强，无页面缺陷） |
 | G04-verify用例与判别力债务.md | 逃生项/弱用例/坏用例存量与补强规则 | 🟡 规则固化；7731 与 4970 的时间及统计口径差异待核实 |
