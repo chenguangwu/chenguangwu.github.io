@@ -2094,6 +2094,20 @@ const CASES = [
     "clicks": ["calculate()"],
     "expect": ["θ = 0°"],
     "ref": "SMS-166 相对零判定：A=(1e-13,0,0) 是非零向量（最大分量 1e-13≠0），与 B=(1,0,0) 同向 ⇒ cosθ=1 ⇒ θ=0°。旧实现用绝对阈值 mA<1e-12 把 A 误判为零向量并提示「零向量无法计算夹角」。现判据为 |A| ≤ max|分量|·1e-12（此处 1e-13 > 1e-25）⇒ 正常计算。默认 op=add 不出现该角度串 ⇒ 判别有效。"
+  },
+  {
+    "slug": "science/matrix-calculator",
+    "inputs": { "size": "2", "op": "rank", "a0": "1e-13", "a1": "0", "a2": "0", "a3": "1e-13" },
+    "clicks": ["calculate()"],
+    "expect": ["rank(A) = 2"],
+    "ref": "SMS-167 相对容差：A=[[1e-13,0],[0,1e-13]] 两列线性无关 ⇒ rank=2。旧实现用绝对阈值 Math.abs(m[pivot][col])<1e-12 直接 continue，主元 1e-13 被当 0 ⇒ rank=0。现判据为 max|元素|·1e-12=1e-25，主元 1e-13 > 1e-25 正常累加。默认 3×3 单位阵 rank=3，不出现 'rank(A) = 2'。"
+  },
+  {
+    "slug": "science/matrix-calculator",
+    "inputs": { "size": "2", "op": "power", "scalar": "1.5", "a0": "1", "a1": "2", "a2": "3", "a3": "4" },
+    "clicks": ["calculate()"],
+    "expect": ["幂次必须是整数"],
+    "ref": "631 批幂次严格整数：scalar=1.5 时页面不再用 parseInt 静默截断成 1 并给出 A^1，而是停算提示「幂次必须是整数（不接受小数或非数字）」。默认 scalar=2（整数）⇒ 输出 A^2，不含该提示串。"
   }
 ];
 

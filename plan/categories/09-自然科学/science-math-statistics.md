@@ -458,7 +458,7 @@
 
 | 页面 | 实现方式 | 可逆或可验证 | 结论 |
 |---|---|---|---|
-| `tools/science/matrix-calculator` | 自写 det（Laplace）、mul、inverse（高斯-若当）、rank、矩阵快速幂 | 可验证 | A=[[4,7],[2,6]] det=10、A·A⁻¹≈I、A⁻²≈inv(A)² 均正确；2026-11-06 复核 SMS-107 的 0 输入已修，小数截断仍在；SMS-108/109 仍在 |
+| `tools/science/matrix-calculator` | 自写 det（Laplace）、mul、inverse（高斯-若当）、rank、矩阵快速幂 | 可验证 | A=[[4,7],[2,6]] det=10、A·A⁻¹≈I、A⁻²≈inv(A)² 均正确；2026-11-06 复核 SMS-107 的 0 输入已修 ｜ **631 批已修**：相对容差统一（SMS-108 的 2e-7·I 不再误判奇异）、幂次小数不再截断（改整数校验）；SMS-109 的 `check` 死代码仍待清理（无功能影响）。 |
 | `tools/math/determinant-2x2` | 自写闭式 det=ad−bc | 可验证 | 默认 −2 正确；显示精度与奇异判定自相矛盾 |
 | `tools/science/vector-calculator` | 自写 dot/cross/mag/proj/angle/scale | 可验证 | 2026-11-06 复核：k=0 和零向量夹角的原例已修；极小非零向量会被绝对阈值误认为零向量 |
 | `tools/design/data-matrix` | 伪实现：32 位哈希→LCG 随机格 + 外观边框，无 ECC200 编码/纠错（`:258-294`） | 不可验证（自述不可扫码） | 装饰图案，非 Data Matrix |
@@ -470,7 +470,6 @@
 
 ### 逐页结论
 
-- **matrix-calculator**：默认 3×3、add、A=B=I → 2I 正确（boot `:736` 自动计算）；`:430` rank 用绝对 1e-12 阈值，[[1e-13,0],[0,1e-13]] 可逆却 rank=0（SMS-167）；2026-11-06 复核：SMS-107 的 0 输入已修，小数幂被截断仍在；SMS-108（绝对 1e-12 误杀 2e-7I）、SMS-109（`check` 死代码）源码仍在。
 - **data-matrix**：默认 text=Data Matrix、size=14，输出确定性伪随机格 + 左/下实线、上/右交替边框（`:276-281`），与「装饰图案」自述一致；无 ECC200 编码。
 
 ### 问题清单（新增）
@@ -479,7 +478,7 @@
 |---|---|---|---|
 | SMS-163 | `tools/math/determinant-2x2.html:241,243,264-266` | 高 | 展示用 `det.toFixed(2)`、判定用 `det===0`：[[0.1,0.3],[0.3,0.9]]（ad=bc，数学奇异）node 复算 det=1.38e-17 → 页面「行列式 0.00」+「非奇异（可逆）」自相矛盾。期望以 `Math.abs(det)<eps`（如 1e-12）判定并与显示精度统一 ｜ **630 批已修**：新增 `__det2x2Judge`，判据 |det| ≤ 1e-12·max(|ad|,|bc|)；残差非零时展示 toExponential(2)（1.39e-17）并标注「ad 与 bc 在双精度下仅差…」，卡片/明细表/公式框三源同源且 EN 态同步。 |
 | SMS-166 | `tools/science/vector-calculator.html:352-365` | 中 | 2026-11-06 复核：零向量夹角已提示「零向量无法计算夹角」，Node 执行实际 `calculate()` 确认原例已修。残留：判断采用绝对阈值 `mA<1e-12 &#124;&#124; mB<1e-12`，A=(1e-13,0)、B=(1,0) 等非零向量仍被误判为零，投影分支对 B 同样适用该阈值。 ｜ **630 批已修**：新增 `__isZeroVec(v)`（|v| ≤ max|分量|·1e-12 或最大分量恰为 0 才算零向量），夹角/投影/单位向量/绘图四处判定 + fmt 展示统一，1e-13 级非零向量不再误判，非零极小值改科学计数。 |
-| SMS-167 | `tools/science/matrix-calculator.html:430` | 中 | rank 主元阈值同为绝对 1e-12：[[1e-13,0],[0,1e-13]] 可逆却 rank=0（应 2）；与既有 SMS-108 同根，修复时并入该条 |
+| SMS-167 | `tools/science/matrix-calculator.html:430` | 中 | rank 主元阈值同为绝对 1e-12：[[1e-13,0],[0,1e-13]] 可逆却 rank=0（应 2）；与既有 SMS-108 同根，修复时并入该条 ｜ **631 批已修**：新增 __matScale/__matEps，det/inverse/rank 三处判定统一用 max|元素|·1e-12 相对容差，det 提示文案同源；[[1e-13,0],[0,1e-13]] rank=2、2e-7·I 可逆（5e6·I）；幂次改 Number+isInteger 严格整数。 |
 | SMS-168 | `tools/design/data-matrix.html:164,235` | 中 | 尺寸输入 8–24 与引据表「模块数自 10×10 起、四档」矛盾；D-N138 的「4px 示例、formula-desc 称 RS」已删除，仅此子项仍成立 |
 
 ### 统计

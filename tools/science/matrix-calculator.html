@@ -349,6 +349,14 @@ function transpose(a){
   }
   return r;
 }
+/* 相对容差：以矩阵元素绝对值的最大者为尺度，避免绝对 1e-12 把 1e-13 级
+   但完全合法的矩阵误判为奇异（SMS-108 / SMS-167）。 */
+function __matScale(m){
+  let mx=0;
+  for(let i=0;i<m.length;i++){for(let j=0;j<m[i].length;j++){const t=Math.abs(m[i][j]);if(t>mx)mx=t;}}
+  return mx;
+}
+function __matEps(m){const s=__matScale(m);return s>0?s*1e-12:1e-12;}
 function det(a){
   const n=a.length;
   if(n===1) return a[0][0];
@@ -377,7 +385,8 @@ function identity(n){
 function inverse(a){
   const n=a.length;
   const d = det(a);
-  if(Math.abs(d)<1e-12) return null;
+  const __eps=__matEps(a);
+  if(Math.abs(d)<__eps) return null;
   const aug = [];
   for(let i=0;i<n;i++){
     aug.push([]);
@@ -389,7 +398,7 @@ function inverse(a){
     for(let k=i+1;k<n;k++){
       if(Math.abs(aug[k][i])>Math.abs(aug[maxRow][i])) maxRow=k;
     }
-    if(Math.abs(aug[maxRow][i])<1e-12) return null;
+    if(Math.abs(aug[maxRow][i])<__eps) return null;
     [aug[i], aug[maxRow]] = [aug[maxRow], aug[i]];
     const pivot = aug[i][i];
     for(let j=0;j<2*n;j++) aug[i][j] /= pivot;
@@ -410,13 +419,14 @@ function rank(a){
   const m = a.map(r => [...r]);
   const rows = m.length;
   const cols = m[0].length;
+  const __eps=__matEps(a);
   let r = 0;
   for(let col=0; col<cols && r<rows; col++){
     let pivot = r;
     for(let i=r+1;i<rows;i++){
       if(Math.abs(m[i][col])>Math.abs(m[pivot][col])) pivot=i;
     }
-    if(Math.abs(m[pivot][col])<1e-12) continue;
+    if(Math.abs(m[pivot][col])<__eps) continue;
     [m[r], m[pivot]] = [m[pivot], m[r]];
     const div = m[r][col];
     for(let j=col;j<cols;j++) m[r][j] /= div;
@@ -503,7 +513,8 @@ function calculate(){
     html += '<div class="big-result">|A| = '+fmt(d)+'</div>';
     steps = '<div class="step-line"><strong>行列式计算：</strong>按第一行展开（拉普拉斯展开）</div>';
     steps += '<div class="step-line">det(A) = Σ a₁ⱼ · (-1)^(1+j) · M₁ⱼ</div>';
-    if(d===0) steps += '<div class="step-line" style="color:var(--danger);">注意：行列式为 0，矩阵不可逆（奇异矩阵）</div>';
+    const __singD=Math.abs(d)<=__matEps(A);
+    if(__singD) steps += '<div class="step-line" style="color:var(--danger);">注意：行列式在相对容差内为 0（|A| = '+fmt(d)+'），矩阵不可逆（奇异矩阵）</div>';
     saveHistory('det(A)', n, A, null, null, d);
   } else if(op==='inv'){
     const d = det(A);
@@ -529,7 +540,11 @@ function calculate(){
     saveHistory('rank(A)', n, A, null, null, r);
   } else if(op==='power'){
     const __rawP = document.getElementById('scalar').value.trim();
-    const p = (__rawP === '' || isNaN(parseInt(__rawP, 10))) ? 1 : parseInt(__rawP, 10);
+    const __pNum = Number(__rawP);
+    if(__rawP !== '' && !Number.isInteger(__pNum)){
+      html = '<p style="color:var(--danger);">幂次必须是整数（不接受小数或非数字）</p>';
+    } else {
+    const p = (__rawP === '') ? 1 : __pNum;
     const result = matrixPower(A, p);
     if(!result){
       html = '<p style="color:var(--danger);">负幂需要可逆矩阵，当前矩阵不可逆</p>';
@@ -539,6 +554,7 @@ function calculate(){
       steps = '<div class="step-line"><strong>矩阵幂运算：</strong>Aⁿ = A × A × ... × A（n个A相乘）</div>';
       steps += '<div class="step-line"><strong>快速方法：</strong>快速幂算法（二进制分解，O(log n) 次乘法）</div>';
       saveHistory('A^'+p, n, A, null, result, null);
+    }
     }
   }
   html += steps;
