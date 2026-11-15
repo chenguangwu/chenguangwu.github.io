@@ -164,6 +164,18 @@ const CASES = [
     "日不均匀系数"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "gas/load-1",
+  "inputs": { "stove": "-2" },
+  "expect": ["台数需为非负整数"],
+  "ref": "12-K8：负灶具台数旧实现照算 10.4 kW / 1.04 m³/h 并推荐 DN15；现在拒绝。默认 2 台合法不出现该文案。"
+},
+{
+  "slug": "gas/load-1",
+  "inputs": { "factor": "2" },
+  "expect": ["同时工作系数需在 0（不含）到 1 之间"],
+  "ref": "12-K8：同时系数 2 旧实现照算 54 kW / 5.40 m³/h 并推荐 DN25；现在拒绝。默认 0.8 合法不出现该文案。"
 }
 ];
 async function main() {

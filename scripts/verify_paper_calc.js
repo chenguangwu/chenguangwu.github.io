@@ -151,9 +151,9 @@ const CASES = [
 },
 {
   "slug": "paper/roll-length",
-  "inputs": { "targetLen": "500", "coreDia2": "76", "paperThk2": "0.1" },
-  "expect": ["263.5 mm"],
-  "ref": "12-K6 回归：正常纸芯 76 mm、目标 500 m、厚 0.1 mm ⇒ D=√(4×0.1×500000/π+76²)=263.5 mm。默认目标 100 m 不含该值。"
+  "inputs": { "targetLen": "600", "coreDia2": "100", "paperThk2": "0.15" },
+  "expect": ["353.0 mm"],
+  "ref": "12-K6 回归（避开默认 500/76/0.1）：D=√(4×0.15×600000/π+100²)=√124591.56=353.0 mm。"
 }
 ];
 async function main() {

@@ -95,6 +95,13 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "security/flood-level",
+  "inputs": { "depthSlider": "7" },
+  "clicks": ["applyFloodPreset('red')"],
+  "expect": ["红色预警（≥200cm）"],
+  "ref": "12-K9：红色预设旧值 250 落入紫色 ≥250cm 档，按钮文案却写「红色250cm」；现将红色预设改为 200，与 LEVELS/标尺一致。先注入 7cm 非默认值再点预设，默认态不出现该文案。"
+},
+{
   "slug": "security/smoke-alarm-test",
   "inputs": {
     "alarmLocation": "卧室"
