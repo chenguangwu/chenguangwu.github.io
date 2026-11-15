@@ -92,6 +92,14 @@ const CASES = [
     ref: "12.5×9/5+32 = 54.50°F；12.5+273.15 = 285.65K；体感 <15°C → 凉爽"
        + "（默认 25°C → 77.00°F / 298.15K / 舒适，注入失败即不命中）",
   },
+  {
+    slug: "life/temperature-converter",
+    clicks: ["var oe=document.activeElement;document.activeElement={id:'celsius'};document.getElementById('celsius').value='12.5';updateAll(12.5);var keep=document.getElementById('celsius').value==='12.5';var f=document.getElementById('fahrenheit').value;document.activeElement=oe;document.getElementById('__tbProbe').textContent='TEMP148 '+((keep&&f==='54.50')?'OK':'BAD');"],
+    expect: ["TEMP148 OK"],
+    ref: "LF-N148：键入中的摄氏框不得被回写（否则 12.5 会被 toFixed(2) 重排、多位数被吞）；"
+       + "模拟 activeElement=celsius 后调用 updateAll(12.5)，要求 celsius 原样保留且华氏更新为 54.50。"
+       + "旧实现无条件写回所有框 ⇒ celsius 变 12.50 ⇒ BAD；默认态无探针 ⇒ 零逃生。",
+  },
   // ── 每日热量（Mifflin-St Jeor 男式）──────────────────────────
   {
     slug: "life/daily-calorie-needs",
@@ -706,6 +714,19 @@ const CASES = [
     inputs: { inputVal: "175", fromUnit: "cm" },
     expect: ["基准： 175 厘米 = 1.75 米 1,750 毫米"],
     ref: '修复判别：175cm 换算后毫米应为 1750（旧模板拼成 175000 → 实际: 1750）；锚定基准行与首个结果行紧邻形态，旧输出在中间插入 175000 故不命中'
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "1", fromUnit: "m", toUnit: "km" },
+    expect: ["目标单位： 0.001 千米"],
+    ref: "LF-N147：目标单位下拉原为死控件（convert 只读 fromUnit）；现置顶输出所选目标。"
+       + "默认目标 cm ⇒ 1 m 时显示「目标单位： 100 厘米」，不含 0.001 千米，注入 km 后即命中。",
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "2.5", fromUnit: "m", toUnit: "in" },
+    expect: ["目标单位： 98.42519685 英寸"],
+    ref: "LF-N147：2.5 m ÷ 0.0254 = 98.42519685 英寸（非默认 km/cm 目标），验证目标下拉参与实际换算而非仅回显。",
   },
   {
     slug: "life/weight-converter",
@@ -2234,6 +2255,14 @@ const CASES = [
     inputs: { date1: "2023-12-30", date2: "2024-01-02" },
     expect: ["4 天", "2 工作日", "2 周末天数"],
     ref: "跨年+闰年前夕：2023-12-30（周六）至 2024-01-02（周二）含首尾 4 天 ⇒ 工作日 2（周一、周二）、周末 2（周六、周日）。",
+  },
+  {
+    slug: "life/date-diff",
+    inputs: { date1: "2024-01-01", date2: "2024-01-07" },
+    checkIds: ["excludeWeekend"],
+    expect: ["5 天", "已排除周末，仅计工作日 5 天"],
+    ref: "LF-N149：勾选「排除周末（只算工作日）」后主结果须为工作日 5 天（2024-01-01 周一至 01-07 周日）；"
+       + "旧实现主天数恒为自然日 7，只把工作日写进说明 ⇒「5 天」与「仅计工作日 5 天」不同时成立。未勾选时主结果为 7 天，不命中本条。",
   },
 
   // ── 年龄页：非法日期校验与生日当天分支（LF-N5）──────────────────
