@@ -11,8 +11,6 @@
 ## 2026-11-06 公关工具静态续审
 
 - `tools/pr/analysis-6.html:206-238`：词典逐项匹配，不处理否定及上下文；例如「不推荐」仍命中正向「推荐」，结果为正面倾向。应明确标注词典统计局限，不宜作为可靠情感判断。
-- `tools/pr/analysis-assessor.html:203-232`：输入行中权益名 `r.n` 未转义即拼入表格和最高权益的 `innerHTML`，存在 HTML 注入风险，未实际执行注入；无效行被静默丢弃，零或负投入时 ROI 被记为 0，仍给「基本回本」结论，应提示行错误并处理分母边界。
-- `tools/pr/analysis-density-1.html:211-237`：关键词计数先区分大小写，只有完全未命中才转小写重算；正文 `Apple apple`、关键词 `Apple` 只统计 1 次而非 2 次。应统一不区分大小写或明确模式。三个页面均以输入事件触发计算；仅源码分析，未运行页面。
 
 ## 功能缺陷
 - ROI 页缺「多渠道对比表」（同预算分三渠道敏感性）。
@@ -313,7 +311,6 @@
 ## 2026-11-06 静态续审：营销工具第 418–423 页
 
 - **历史结论状态更新**：MS-M5 所述负比例现已由 `marketing-ad-budget-allocator.html:254-257` 拒绝，非 100% 合计也在 `:259-262` 明示归一化；仍需运行回归，MS-M6 的手动比例而非智能分配逻辑仍在。MS-J3 所述回收期不展示已过时：`marketing-cac-calculator.html:463-465` 已展示回收期并声明 36 个月假设。MS-N38 的表格/图表/CSV 零分母不一致仍在，MS-N60 的 A 组零转化守卫仍在；MS-F7 目标利润率不可达时无说明仍在。
-- **中文话题输入进入 HTML 和内联脚本，存在注入及复制损坏风险**：`marketing-chinese-hashtag-generator.html:241-243,258-276` 将关键词和行业直接拼入 `innerHTML` 的标签文本、单标签 `onclick` 字符串和全部复制按钮模板字面量，无 HTML 或 JS 上下文转义。含单引号、反引号或 HTML 标记的用户输入可破坏对应结构；潜在脚本注入仅由源码推断，未执行攻击或验证可利用性。建议用文本节点渲染并通过事件监听器绑定复制值。
 - **零预算和零获客成本的除数未定义**：`marketing-ad-budget-allocator.html:250-267,272,281` 允许预算为 0，收入也为 0，整体 ROAS 的 `0/0` 最终被替换为 `—`；`marketing-cac-calculator.html:409-428,455-465,489-505` 允许营销和销售费用同时为 0，LTV 存在时比率及 ROI 除以零、替换为 `—` 却仍显示“健康”，LTV 留空时费用占比也是 `0/0`。应保留零成本的 CAC，明确相关比率不可计算并避免给出健康结论。
 - **CAC 保存校验与计算不一致**：`marketing-cac-calculator.html:413-420,508-525` 的计算会拒绝负费用和非正 LTV，但保存仅检查数值及客户数；因此无效费用或 LTV 仍可存历史，历史列表还会根据无效 CAC 分级。应共用校验逻辑。
 - 本批共阅读 `funnel-calculator`、`marketing-ab-test-significance`、`marketing-ad-budget-allocator`、`marketing-break-even-roas`、`marketing-cac-calculator`、`marketing-chinese-hashtag-generator` 6 页；仅源码分析，未运行页面、注入或浏览器，未计入双跑。
