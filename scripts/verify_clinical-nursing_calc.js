@@ -494,6 +494,20 @@ const CASES = [
   "ref": "门诊记录：clicks 注入 selectedArea='踝关节'（覆盖默认'额头'）后 __reminderEmr() 渲染『部位：踝关节』。默认态兜底循环调 __reminderEmr 用页面默认 selectedArea='额头' → 渲染『部位：额头』，与本用例零交集。"
 },
 {
+  "slug": "clinical-nursing/reminder-time-1",
+  "inputs": {
+    "coldDur": "30",
+    "restDur": "10"
+  },
+  "clicks": [
+    "__reminderEmr()"
+  ],
+  "expect": [
+    "冷敷 20 分钟 / 休息 30 分钟"
+  ],
+  "ref": "D-N125 安全区间收敛：旧实现 clamp 冷敷 5–30、休息 10–120，输入 30/10 会原样写进门诊记录，与同页「单次≤20 分钟、间隔≥30 分钟」矛盾；修复后 input max/min 与全部 clamp 统一为冷敷 ≤20、休息 ≥30，EMR 输出被夹到「冷敷 20 分钟 / 休息 30 分钟」。默认态 20/30 也含该串，但注入 30/10 若未收敛则输出「冷敷 30 分钟 / 休息 10 分钟」→ 用例变红，可判别。"
+},
+{
   "slug": "clinical-nursing/restraint-check",
   "clicks": [
     "checkedState[\"wrist\"]={0:true,1:true,2:true,3:true,4:true};updateResult();"
