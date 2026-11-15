@@ -313,12 +313,18 @@ function sort(){
   let lines = text.split('\n');
   if(document.getElementById('trimEach').checked) lines = lines.map(l => l.trim());
   if(document.getElementById('removeEmpty').checked) lines = lines.filter(l => l !== '');
+  const ci = document.getElementById('caseInsensitive').checked;
   if(document.getElementById('removeDup').checked){
+    // 去重键与「忽略大小写」同源，避免勾选后仍保留 Apple/apple
     const seen = new Set();
-    lines = lines.filter(l => seen.has(l) ? false : (seen.add(l), true));
+    lines = lines.filter(l => {
+      const key = ci ? l.toLowerCase() : l;
+      if(seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 
-  const ci = document.getElementById('caseInsensitive').checked;
   const cmp = ci ? (a, b) => a.toLowerCase().localeCompare(b.toLowerCase()) : (a, b) => a.localeCompare(b);
 
   switch(currentMode){
@@ -335,10 +341,22 @@ function sort(){
       lines.sort((a, b) => b.length - a.length || cmp(a, b));
       break;
     case 'num-asc':
-      lines.sort((a, b) => extractNum(a) - extractNum(b));
+      lines.sort((a, b) => {
+        const x = numOf(a), y = numOf(b);
+        if(x === null && y === null) return cmp(a, b);
+        if(x === null) return 1;
+        if(y === null) return -1;
+        return x - y || cmp(a, b);
+      });
       break;
     case 'num-desc':
-      lines.sort((a, b) => extractNum(b) - extractNum(a));
+      lines.sort((a, b) => {
+        const x = numOf(a), y = numOf(b);
+        if(x === null && y === null) return cmp(a, b);
+        if(x === null) return 1;
+        if(y === null) return -1;
+        return y - x || cmp(a, b);
+      });
       break;
     case 'natural':
       lines.sort((a, b) => naturalCompare(a, b, ci));
@@ -356,9 +374,9 @@ function sort(){
   result.textContent = lines.join('\n');
 }
 
-function extractNum(s){
-  const m = s.match(/-?\d+(\.\d+)?/);
-  return m ? parseFloat(m[0]) : 0;
+function numOf(s){
+  const m = String(s).match(/-?\d+(\.\d+)?/);
+  return m ? parseFloat(m[0]) : null;
 }
 
 function naturalCompare(a, b, ci){
