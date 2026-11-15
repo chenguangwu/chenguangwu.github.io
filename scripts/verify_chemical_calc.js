@@ -96,6 +96,12 @@ const CASES = [
   "ref": "去默认化（原 expect「混合比」是静态标签词，默认态同样命中 = 逃生项）：A 60%×200 + B 30%×100，总质量 300 ⇒ 混合浓度 (12000+3000)/300 = 50.00%；混合比 200 : 100。默认 80/100/20/300 得 35.00% 与 100 : 300（v1 只影响「稀释」页签，不影响本结果，故须改 ca/ma/cb/mb）"
 },
 {
+  "slug": "chemical/mixture-ratio",
+  "clicks": ["cur='alcohol';renderModes();renderParams();document.getElementById('al1').value=60;document.getElementById('v1').value=500;document.getElementById('al2').value=40;calc();document.getElementById('__tbProbe').textContent=document.getElementById('result').innerHTML"],
+  "expect": ["500mL 60° 酒", "250mL 水"],
+  "ref": "酒精稀释结果句跟随输入酒精度（681，N213）：60vol% 500mL → 40vol%，v2=750mL、加水 250mL；修复前结果句硬编码「500mL 95° 酒」，与输入 60° 不符（默认 95° 会命中旧串，故必须改 al1=60）"
+},
+{
   "slug": "chemical/reaction-yield",
   "inputs": {
     "theo": "25",
