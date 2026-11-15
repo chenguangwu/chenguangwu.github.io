@@ -299,31 +299,39 @@ function doRemove(){
   if(!text){ result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Please enter text...":"请输入文本..."); return; }
 
   let pattern = '';
+  let emoji = false;
 
-  if(document.getElementById('removeDigits').checked) pattern += '0-9';
+  // BS-N105：数字按 Unicode Nd 覆盖全角/阿拉伯-印度等本地数字形；汉字补扩展 A（B 区在 u 模式下处理）
+  if(document.getElementById('removeDigits').checked) pattern += '\\p{Nd}';
   if(document.getElementById('removeLower').checked) pattern += 'a-z';
   if(document.getElementById('removeUpper').checked) pattern += 'A-Z';
-  if(document.getElementById('removeChinese').checked) pattern += '\\u4e00-\\u9fff';
-  if(document.getElementById('removePunc').checked) pattern += '，。！？；：、""\'\'（）【】《》,.!?;:\\\'"()\\[\\]<>…—';
+  if(document.getElementById('removeChinese').checked) pattern += '\\u4e00-\\u9fff\\u3400-\\u4dbf\\u{20000}-\\u{2FA1F}';
+  // BS-N105：补中文引号、书名号等全角标点
+  if(document.getElementById('removePunc').checked) pattern += '，。！？；：、“”‘’「」『』〈〉《》【】（）〔〕…—·,.!?;:\\u0027"()\\[\\]<>';
   if(document.getElementById('removeSpaces').checked) pattern += '\\s';
   if(document.getElementById('removeSpecial').checked) pattern += '!@#$%^&*()_+\\-=\\[\\]{};:\\\\|,.<>\\/?`~';
-  if(document.getElementById('removeEmoji').checked) pattern += '\\uD800-\\uDBFF\\uDC00-\\uDFFF\\u2600-\\u27BF\\u1F300-\\u1FAFF';
+  // BS-N104：代理对与 \u1F300 这类超范围写法会破坏字符类，Emoji 改用 \p{Extended_Pictographic}
+  if(document.getElementById('removeEmoji').checked) emoji = true;
 
-  let flag = document.getElementById('caseSensitive').checked ? 'g' : 'gi';
+  let flag = document.getElementById('caseSensitive').checked ? 'gu' : 'giu';
 
   try{
     if(pattern){
       text = text.replace(new RegExp('[' + pattern + ']', flag), '');
     }
+    if(emoji){
+      text = text.replace(/\p{Extended_Pictographic}/gu, '');
+    }
     const customChars = document.getElementById('customChars').value;
     if(customChars){
       const escChars = customChars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      text = text.replace(new RegExp('[' + escChars + ']', flag), '');
+      text = text.replace(new RegExp('[' + escChars + ']', 'gu'), '');
     }
     if(document.getElementById('customRegexFlag').checked){
       const rx = document.getElementById('customRegex').value;
       if(rx){
-        text = text.replace(new RegExp(rx, flag), '');
+        const rxFlag = document.getElementById('caseSensitive').checked ? 'g' : 'gi';
+        text = text.replace(new RegExp(rx, rxFlag), '');
       }
     }
   }catch(e){

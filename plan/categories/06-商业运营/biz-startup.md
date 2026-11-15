@@ -827,7 +827,7 @@
 - 影响：生僻字/扩展区文本被静默丢弃。假工具：否。
 - 方案：改 `for...of` 码点遍历 + `codePointAt(0)`，范围补 `\u{20000}-\u{2FA1F}`。
 
-### BS-N102 仅保留字符：中文引号/直角引号不在标点集合被删（中，确认缺陷）
+### BS-N102 仅保留字符：中文引号/直角引号不在标点集合被删 — 2026-11-15 已修复（576 批：补中文引号/书名号等全角标点）
 - 页面：`tools/biz/text-keep-only.html`
 - 问题：`keepPunc` 拼入的只有 ASCII `""''`，缺少 `“”‘’「」『』`；勾「标点符号」时这些引号被 `[^…]` 删除。
 - 证据：`tools/biz/text-keep-only.html:313-319`（pattern）、`:338-339`（否定字符类）。
@@ -835,7 +835,7 @@
 - 影响：仅保留标点的清洗结果丢失中文引号。假工具：否。
 - 方案：补 `“”‘’「」『』〈〉《》【】（）` 码位。
 
-### BS-N103 仅保留字符：汉字只覆盖 U+4E00-9FFF，扩展 A 被删（中，确认缺陷）
+### BS-N103 仅保留字符：汉字只覆盖 U+4E00-9FFF，扩展 A 被删 — 2026-11-15 已修复（576 批：补扩展 A/B 汉字，u 模式）
 - 页面：`tools/biz/text-keep-only.html`
 - 问题：`keepChinese` 只用 `\u4e00-\u9fff`，扩展 A（`\u3400-\u4dbf`）不在保留集。
 - 证据：`tools/biz/text-keep-only.html:317`。
@@ -843,7 +843,7 @@
 - 影响：生僻字/古籍文本被删。假工具：否。
 - 方案：补 `\u3400-\u4dbf` 与 `\u{20000}-\u{2FA1F}`（后者需 `u` 标志）。
 
-### BS-N104 移除字符：勾「Emoji」会删除全部 ASCII 字母数字（高，确认缺陷）
+### BS-N104 移除字符：勾「Emoji」会删除全部 ASCII 字母数字 — 2026-11-15 已修复（576 批：Emoji 改 \p{Extended_Pictographic}，不再误删字母/生僻字）
 - 页面：`tools/biz/text-remove-numbers.html`
 - 问题：`pattern += '\\uD800-\\uDBFF\\uDC00-\\uDFFF\\u2600-\\u27BF\\u1F300-\\u1FAFF'`，其中 `\u1F300` 在 RegExp 中解析为 `\u1F30` + 字面 `0`，字符类实际形成 `0-\u1FAF` 范围，等价于删除 U+0030 至 U+1FAF 的全部字符（含 A-Z、a-z、0-9 与大部分标点）。
 - 证据：`tools/biz/text-remove-numbers.html:321`（Emoji 片段）、`:327`（`new RegExp('[' + pattern + ']', flag)`）。
@@ -851,7 +851,7 @@
 - 影响：一次勾选即清空正文，且破坏非 emoji 的生僻字。假工具：否。
 - 方案：改用 `\p{Extended_Pictographic}`（`u` 标志）并删除错误的 `\u1F300-\u1FAFF`；代理对范围不要放进字符类。
 
-### BS-N105 移除字符：全角数字/中文引号/扩展 A 汉字漏删（中，确认缺陷）
+### BS-N105 移除字符：全角数字/中文引号/扩展 A 汉字漏删 — 2026-11-15 已修复（576 批：数字按 \p{Nd}，补中文引号与扩展 A/B）
 - 页面：`tools/biz/text-remove-numbers.html`
 - 问题：`removeDigits` 只 `0-9`，与引据「按 Nd 类别覆盖本地数字形」不符；`removePunc` 缺中文引号；`removeChinese` 只 `\u4e00-\u9fff`。
 - 证据：`tools/biz/text-remove-numbers.html:314`（数字）、`:318`（标点）、`:317`（中文）、`:257`（Nd 引据）。
