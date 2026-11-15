@@ -2303,6 +2303,26 @@ const CASES = [
   // ── 卡路里：BMR/TDEE 数值范围校验（LF-N23）───────────────────
   {
     slug: "life/daily-calorie-needs",
+    inputs: { bmiHeight: "160", bmiWeight: "50", bmiAge: "30", bmiGender: "male" },
+    expect: ["14.1%"],
+    ref: "LF-N22 体脂率（男）：BMI=50/1.6²=19.531，Deurenberg 男式 1.2×19.531+0.23×30−16.2=14.14 ⇒ 14.1%；"
+       + "旧实现 BMI×100÷22=88.8（默认 170/65 时为 102%），不会命中 14.1% ⇒ 强判别。",
+  },
+  {
+    slug: "life/daily-calorie-needs",
+    inputs: { bmiHeight: "160", bmiWeight: "50", bmiAge: "30", bmiGender: "female" },
+    expect: ["24.9%"],
+    ref: "LF-N22 体脂率（女）：同 BMI 19.531，女式 1.2×19.531+0.23×30−5.4=24.94 ⇒ 24.9%；与男式 14.1% 区分，"
+       + "证明性别分支生效（旧实现无性别项，恒为 BMI×100÷22=88.8）。",
+  },
+  {
+    slug: "life/daily-calorie-needs",
+    inputs: { bmiAge: "0" },
+    expect: ["年龄需在 1–120 之间才能估算体脂率"],
+    ref: "LF-N23 残留项：BMI 年龄非法时除体脂率显示 -- 外，补一条年龄专属提示；旧版仅标红不解释，默认 25 岁不含该句 ⇒ 强判别。",
+  },
+  {
+    slug: "life/daily-calorie-needs",
     inputs: { bmrAge: "-5", bmrHeight: "170", bmrWeight: "65" },
     expect: ["请输入有效数据：年龄 1–120、身高 50–250、体重 10–300"],
     ref: "LF-N23 负年龄：旧守卫 `!age || !height || !weight` 对 -5 恒放行，Mifflin 男式算出 1742.5 千卡并正常展示；"
