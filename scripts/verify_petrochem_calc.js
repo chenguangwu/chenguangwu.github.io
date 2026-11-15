@@ -14,6 +14,17 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "petrochem/api-gravity",
+  "inputs": {
+    "apiVal": "-130",
+    "sgVal": "0.85"
+  },
+  "expect": [
+    "超出原油常见范围"
+  ],
+  "ref": "修复前 API=-130 输出密度 94.24 g/cm³ 且标「超重质」无警示；现保留计算但给出范围提示"
+},
+{
   "slug": "petrochem/catalyst-calc",
   "inputs": {
     "flow": "7500",

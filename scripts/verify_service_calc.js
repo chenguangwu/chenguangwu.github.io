@@ -35,6 +35,36 @@ const CASES = [
      + "原 45/30/12/8/5 为默认态。等级词「良好」两态同现，不入断言。"
 },
 {
+  "slug": "service/csat-score",
+  "inputs": {
+    "s5": "0",
+    "s4": "0",
+    "s3": "0",
+    "s2": "0",
+    "s1": "0"
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "请至少输入一条评价"
+  ],
+  "ref": "修复前全部清零仍输出 0.0% CSAT、「需改善」及 NaN% 星级分布；现提示补录"
+},
+{
+  "slug": "service/csat-score",
+  "inputs": {
+    "s5": "10",
+    "s4": "0",
+    "s3": "0",
+    "s2": "0",
+    "s1": "-3"
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "留空或负数无法统计"
+  ],
+  "ref": "修复前负人数直接参与合计，CSAT 失真；现拒绝负数"
+},
+{
   "slug": "service/response-time",
   "inputs": {
     "slaTarget": "45"

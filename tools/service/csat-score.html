@@ -244,8 +244,28 @@
 function val(id){ return parseInt(document.getElementById(id).value)||0; }
 
 function calc(){
-  var s5=val('s5'),s4=val('s4'),s3=val('s3'),s2=val('s2'),s1=val('s1');
+  var __ids=['s5','s4','s3','s2','s1'],__counts=[],__bad=false;
+  for(var __i=0;__i<__ids.length;__i++){
+    var __el=document.getElementById(__ids[__i]);
+    var __raw=__el?String(__el.value==null?'':__el.value).trim():'';
+    var __n=Number(__raw);
+    if(__raw===''||!isFinite(__n)||__n<0||__n%1!==0){__bad=true;break;}
+    __counts.push(__n);
+  }
+  if(__bad){
+    document.getElementById('stats').innerHTML='<p style="color:var(--danger);">请填写 0 或正整数星级人数，留空或负数无法统计。</p>';
+    document.getElementById('distChart').innerHTML='';
+    document.getElementById('analysis').innerHTML='';
+    return;
+  }
+  var s5=__counts[0],s4=__counts[1],s3=__counts[2],s2=__counts[3],s1=__counts[4];
   var total=s1+s2+s3+s4+s5;
+  if(total===0){
+    document.getElementById('stats').innerHTML='<p style="color:var(--text-muted);">请至少输入一条评价（星级人数合计大于 0）后再统计。</p>';
+    document.getElementById('distChart').innerHTML='';
+    document.getElementById('analysis').innerHTML='';
+    return;
+  }
   var satisfied=s4+s5;
   var csat=total>0?satisfied/total*100:0;
   var promoters=total>0?s5/total*100:0;
@@ -259,7 +279,7 @@ function calc(){
   var gradeText=csat>=90?'优秀':csat>=75?'良好':csat>=50?'合格':'需改善';
 
   const __g1='<div class="stat-card"><div class="val" style="color:'+csatColor+';">'+csat.toFixed(1)+'%</div><div class="lbl">CSAT 满意度</div></div>'+
-    '<div class="stat-card"><div class="val" style="color:'+npsColor+';">'+nps.toFixed(0)+'</div><div class="lbl">NPS 净推荐值</div></div>'+
+    '<div class="stat-card"><div class="val" style="color:'+npsColor+';">'+nps.toFixed(0)+'</div><div class="lbl">NPS（星级代理）</div></div>'+
     '<div class="stat-card"><div class="val">'+avgScore.toFixed(2)+'</div><div class="lbl">平均星级</div></div>'+
     '<div class="stat-card"><div class="val">'+total+'</div><div class="lbl">总评价数</div></div>';document.getElementById('stats').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
@@ -313,6 +333,10 @@ function resetData(){
 function copyReport(){
   var s5=val('s5'),s4=val('s4'),s3=val('s3'),s2=val('s2'),s1=val('s1');
   var total=s1+s2+s3+s4+s5;
+  if(total<=0){
+    ToolBox.showToast('请先输入评价人数并完成统计', 'warning');
+    return;
+  }
   var csat=total>0?(s4+s5)/total*100:0;
   var nps=total>0?(s5/total*100)-((s1+s2)/total*100):0;
   var txt='CSAT满意度报告\n总评价：'+total+'人\nCSAT：'+csat.toFixed(1)+'%\nNPS：'+nps.toFixed(0)+'\n5星：'+s5+' 4星：'+s4+' 3星：'+s3+' 2星：'+s2+' 1星：'+s1;
