@@ -603,14 +603,14 @@ const CASES = [
     "inputs": {
       "weight": "42",
       "count": "42",
-      "temp": "42",
+      "temp": "28",
       "species": "tilapia",
       "protocol": "hcg"
     },
     "expect": [
       "第二针(85%) HCG 40320.0 IU 1693440 IU 254016.0 IU 1439424.0 IU"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"weight\":\"42\",\"count\":\"42\",\"temp\":\"42\",\"species\":\"tilapia\",\"protocol\":\"hcg\"}，输出区含「第二针(85%) HCG 40320.0 IU 1693440 IU 25401…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"weight\":\"42\",\"count\":\"42\",\"temp\":\"28\",\"species\":\"tilapia\",\"protocol\":\"hcg\"}（水温限 0–40℃），HCG 方案 1200×0.8=960 IU/kg ⇒ 单尾 40320 IU、总量 1693440 IU、第二针 1439424 IU；默认态（草鱼/LRH+DOM）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "fishery/wastewater-cod",
