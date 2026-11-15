@@ -4269,6 +4269,13 @@ const CASES = [
     ref: "F-N31：折现率 −100% ⇒ 旧实现 1+r=0 使 NPV 为 Infinity、被格式化成「—」，可行性仍判「可行」；修复后拒绝边界值。默认 8% ⇒ 不命中。",
   },
   {
+    slug: "finance/npv-calculator",
+    inputs: { rate: "8", init: "10000" },
+    clicks: ["cashFlows=[-1000,-1000];calc();"],
+    expect: ["范围内未找到"],
+    ref: "F-N29 核销（2026-11-16）：现金流全为流出（−1000/−1000）时 NPV 恒负、无 IRR。旧实现固定二分到上限 1000% 并判「可行」；现 calcIRR 返回 {status:'none', reason:'no-positive'}，结果卡显示「范围内未找到」，不再给可行结论。默认现金流含正值 ⇒ 正常 IRR，不命中该文案。"
+  },
+  {
     slug: "finance/investment-roi",
     inputs: { aCost: "1000", aRate: "10", aYears: "5", aAdd: "0", bCost: "5000", bRate: "3", bYears: "5", bAdd: "0" },
     clicks: ["switchTab('compare')", "calcCompare()"],
