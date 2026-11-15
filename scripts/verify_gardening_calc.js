@@ -19,6 +19,24 @@ const CASES = [
   "ref": "西向夏季基准 6h − 低层遮挡 1h = 5h ⇒ 5.0h，落入 4≤h<6 的「半日照」档（默认态 6.0h 为全日照，不含 5.0/半日照）。"
 },
 {
+  "slug": "gardening/pot-capacity",
+  "clicks": ["currentShape='frustum';renderInputs();document.getElementById('top').value=24;document.getElementById('bottom').value=18;document.getElementById('height').value=20;calc();var h=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent=(h.indexOf('6974 cm³')>=0?'T1':'T0')+(h.indexOf('6001 cm³')>=0?'U1':'U0')+(h.indexOf('圆台盆')>=0?'N1':'N0')"],
+  "expect": ["T1U1N1"],
+  "ref": "圆台盆（679 新增）：上口 24 / 下底 18 / 高 20 → R=12、r=9，V=π×20/3×(144+108+81)=π×2220=**6974 cm³**；排水层 2cm 按收口切片 526 cm³、顶部留空 1cm 447 cm³ ⇒ 可用 **6001 cm³**、土 7.20 kg。修复前无圆台形状，只能按圆柱 Φ24 算 9048 cm³、高估约 30%。"
+},
+{
+  "slug": "gardening/pot-capacity",
+  "inputs": {"diameter":"20","height":"5"},
+  "expect": ["942 cm³", "陶粒 1cm"],
+  "ref": "浅盆排水层分档（679，N209）：内径 20、内高 5cm → 盆高 <8cm 取 1cm 排水层，总 1570.8 − 排水 314.2 − 顶空 314.2 = **942 cm³**，结果卡显示「陶粒 1cm」；修复前固定 2cm 仅 628 cm³。"
+},
+{
+  "slug": "gardening/pot-capacity",
+  "inputs": {"diameter":"20","height":"2"},
+  "expect": ["盆高过小"],
+  "ref": "浅盆高度下限（679，N208）：内径 20、内高 2cm → 排水 1 + 顶空 1 = 2cm，无有效容积，页面提示「盆高过小」并停算；修复前按 2cm 排水算出负土壤体积（−0.16 L）。"
+},
+{
   "slug": "gardening/compost-calculator",
   "inputs": {},
   "clicks": ["materials[0].idx=12;materials[0].weight=4;materials[1].idx=4;materials[1].weight=2;calc()"],

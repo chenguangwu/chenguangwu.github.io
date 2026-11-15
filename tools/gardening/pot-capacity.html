@@ -158,6 +158,9 @@
       <div class="shape-btn active" data-shape="cylinder" onclick="selectShape('cylinder')">
         <span class="shape-icon">⭕</span>圆柱盆
       </div>
+      <div class="shape-btn" data-shape="frustum" onclick="selectShape('frustum')">
+        <span class="shape-icon">🔻</span>圆台盆
+      </div>
       <div class="shape-btn" data-shape="square" onclick="selectShape('square')">
         <span class="shape-icon">⬛</span>方盆
       </div>
@@ -193,9 +196,10 @@
     <div class="info-box">
       <strong>📐 计算公式：</strong><br>
       • 圆柱盆：V = π × r² × h（r 为内半径，h 为内部有效高度）<br>
+      • 圆台盆：V = π × h ÷ 3 × (R² + R × r + r²)（R 为上口半径、r 为下底半径）<br>
       • 方盆：V = 边长² × 高<br>
       • 长方盆：V = 长 × 宽 × 高<br>
-      • 可用土壤容积 = 总容积 − 排水层（陶粒约 2cm 厚） − 顶部留空（约 1cm）<br>
+      • 可用土壤容积 = 总容积 − 排水层（陶粒：浅盆 1cm / 中盆 2cm / 深盆 3cm，按盆高自动取值） − 顶部留空（约 1cm）<br>
       • 土壤重量 = 可用容积 × 1.2 g/cm³（通用营养土湿重密度）<br>
       • 排水层陶粒重量 = 排水层容积 × 1.5 g/cm³
     </div>
@@ -254,14 +258,15 @@
 <ul class="dd-list">
 <li>换盆选型估算容积</li>
 <li>按容积配营养土/陶粒</li>
-<li>多形状（圆/方/长方）计算</li>
+<li>多形状（圆柱/圆台/方/长方）计算</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">圆台/圆柱按底面积×高减排水层（底 2cm 陶粒）与顶留空（1cm）得可用容积；营养土重 = 可用容积(cm³)×1.2g/cm³÷1000，陶粒重 = 排水容积×1.5÷1000；容积÷1000 得升数。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">圆柱按底面积×高；圆台按 V=π×h÷3×(R²+R×r+r²)；方盆/长方盆按底面积×高。排水层按盆高分档：盆高 &lt;8cm 取 1cm、8–20cm 取 2cm、&gt;20cm 取 3cm，另扣顶部 1cm 留空（圆台按线性收口切片计算这两段）；盆高须大于排水层+1cm，否则提示无有效容积。营养土重 = 可用容积(cm³)×1.2g/cm³÷1000，陶粒重 = 排水容积×1.5÷1000；容积÷1000 得升数。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">圆柱盆内径 20cm、内高 18cm：底面积 π×10²=314.16cm²，总容积 5654.9cm³；减排水 628.3 与顶空 314.2 得可用 4712.4cm³ → 营养土约 5.65kg、陶粒约 0.94kg、容积 4.71L，对应 6-7 寸盆。</div></div>
+<div class="dd-example"><div class="dd-ex-title">圆台盆算例</div><div class="dd-ex-body">上口 20cm、下底 14cm、高 18cm：R=10、r=7，总容积 π×18÷3×(100+70+49)=π×1314≈4128cm³；排水层与顶空按收口切片合计约 632cm³，可用 ≈3496cm³ → 营养土约 4.20kg、容积 3.50L。按同口径圆柱（Φ20）会高估约 37%。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>为什么底部要铺陶粒？</dt><dd>排水层防积水烂根，尤其无孔盆或浇水偏多时；留顶空防浇水溢出。</dd>
-<dt>方盆和圆盆怎么换算？</dt><dd>方盆用边长²×高，长方盆长×宽×高，均同样减去排水层与顶留空；深盆适当增加排水层厚度。</dd>
+<dt>方盆和圆盆怎么换算？</dt><dd>方盆用边长²×高，长方盆长×宽×高，圆台盆用 π×h÷3×(R²+Rr+r²)，均同样减去排水层与顶留空；深盆适当增加排水层厚度。</dd>
 </dl>
 </div>
 </section>
@@ -310,8 +315,14 @@ let currentShape = 'cylinder';
 
 const SOIL_DENSITY = 1.2;   // g/cm³ 营养土
 const GRAVEL_DENSITY = 1.5; // g/cm³ 陶粒
-const DRAINAGE_HEIGHT = 2;  // cm 排水层厚
+const DRAINAGE_HEIGHT = 2;  // cm 中盆默认排水层厚（浅/深盆按盆高自动分档）
 const TOP_MARGIN = 1;       // cm 顶部留空
+// 排水层按盆高分档：浅盆 1cm、中盆 2cm、深盆 3cm
+function drainageHeightFor(h) {
+  if (h < 8) return 1;
+  if (h <= 20) return 2;
+  return 3;
+}
 
 const SHAPES = {
   cylinder: {
@@ -320,6 +331,16 @@ const SHAPES = {
     formula: 'V = π × r² × h',
     fields: [
       { id: 'diameter', label: '花盆内径 (cm)', value: 20 },
+      { id: 'height', label: '花盆内部高度 (cm)', value: 18 }
+    ]
+  },
+  frustum: {
+    name: '圆台盆',
+    nameEn: 'Frustum',
+    formula: 'V = π × h ÷ 3 × (R² + R × r + r²)',
+    fields: [
+      { id: 'top', label: '上口内径 (cm)', value: 20 },
+      { id: 'bottom', label: '下底内径 (cm)', value: 14 },
       { id: 'height', label: '花盆内部高度 (cm)', value: 18 }
     ]
   },
@@ -382,11 +403,26 @@ function calcBaseArea(shape, v) {
   if (shape === 'cylinder') {
     const r = v.diameter / 2;
     return Math.PI * r * r;
+  } else if (shape === 'frustum') {
+    const r = v.bottom / 2;
+    return Math.PI * r * r;
   } else if (shape === 'square') {
     return v.side * v.side;
   } else {
     return v.length * v.width;
   }
+}
+
+// 计算从盆底向上 y0~y1 高度区间的容积（cm³）；圆台按线性收口切片，其余形状按等截面
+function calcSliceVolume(shape, v, y0, y1) {
+  if (y1 <= y0) return 0;
+  if (shape === 'frustum') {
+    const R = v.top / 2, r = v.bottom / 2, h = v.height;
+    const radAt = y => r + (R - r) * y / h;
+    const a = radAt(y0), b = radAt(y1);
+    return Math.PI * (y1 - y0) / 3 * (a * a + a * b + b * b);
+  }
+  return calcBaseArea(shape, v) * (y1 - y0);
 }
 
 function calc() {
@@ -403,10 +439,15 @@ function calc() {
   }
 
   const height = vals.height;
-  const baseArea = calcBaseArea(currentShape, vals);
-  const totalVolume = baseArea * height;
-  const drainageVolume = baseArea * DRAINAGE_HEIGHT;
-  const topVolume = baseArea * TOP_MARGIN;
+  const drainH = drainageHeightFor(height);
+  if (height <= drainH + TOP_MARGIN) {
+    ToolBox.showToast(i18nText('toast.msg850'), 'error');
+    document.getElementById('result').innerHTML='<p style="text-align:center;color:var(--text-muted);">盆高过小：扣除 '+drainH+'cm 排水层与 '+TOP_MARGIN+'cm 顶部留空后无有效容积，请增大盆高</p>';
+    return;
+  }
+  const totalVolume = calcSliceVolume(currentShape, vals, 0, height);
+  const drainageVolume = calcSliceVolume(currentShape, vals, 0, drainH);
+  const topVolume = calcSliceVolume(currentShape, vals, height - TOP_MARGIN, height);
   const usableVolume = totalVolume - drainageVolume - topVolume;
 
   const soilKg = (usableVolume * SOIL_DENSITY) / 1000;
@@ -428,7 +469,7 @@ function calc() {
       <div class="result-value">${totalVolume.toFixed(0)} cm³ = ${(totalVolume/1000).toFixed(2)} L</div>
     </div>
     <div class="result-block">
-      <div class="result-label">排水层容积（陶粒 ${DRAINAGE_HEIGHT}cm）</div>
+      <div class="result-label">排水层容积（陶粒 ${drainH}cm）</div>
       <div class="result-value">${drainageVolume.toFixed(0)} cm³ = ${(drainageVolume/1000).toFixed(2)} L</div>
     </div>
     <div class="result-block">
@@ -446,7 +487,7 @@ function calc() {
     <div class="info-box" style="margin-top:12px;">
       <strong>💡 排水层建议：</strong><br>
       • 推荐花盆规格：${recSize}<br>
-      • 陶粒铺底 ${DRAINAGE_HEIGHT}cm 厚，约 ${gravelKg.toFixed(2)} kg<br>
+      • 陶粒铺底 ${drainH}cm 厚，约 ${gravelKg.toFixed(2)} kg<br>
       • 土壤装至距盆口 ${TOP_MARGIN}cm，防止浇水溢出<br>
       • 配土建议：营养土:珍珠岩:蛭石 = 6:2:2（通用）或 7:2:1（保水）<br>
       • 新盆栽后第 1 次浇透水（定根水），见盆底出水即可
@@ -459,10 +500,11 @@ function buildResultText() {
   const vals = {};
   for (const f of shape.fields) vals[f.id] = +document.getElementById(f.id).value;
   const height = vals.height;
-  const baseArea = calcBaseArea(currentShape, vals);
-  const totalVolume = baseArea * height;
-  const drainageVolume = baseArea * DRAINAGE_HEIGHT;
-  const usableVolume = totalVolume - drainageVolume - baseArea * TOP_MARGIN;
+  const drainH = drainageHeightFor(height);
+  if (height <= drainH + TOP_MARGIN) return '盆高过小：扣除排水层与顶部留空后无有效容积，请增大盆高。';
+  const totalVolume = calcSliceVolume(currentShape, vals, 0, height);
+  const drainageVolume = calcSliceVolume(currentShape, vals, 0, drainH);
+  const usableVolume = totalVolume - drainageVolume - calcSliceVolume(currentShape, vals, height - TOP_MARGIN, height);
   const soilKg = (usableVolume * SOIL_DENSITY) / 1000;
   const gravelKg = (drainageVolume * GRAVEL_DENSITY) / 1000;
   let txt = `═══════════════════════════\n   花盆容量计算结果\n═══════════════════════════\n\n`;
@@ -497,10 +539,11 @@ function __potExport(){
   var vals={};
   for(var f of shape.fields) vals[f.id]=+document.getElementById(f.id).value;
   var height=vals.height;
-  var baseArea=calcBaseArea(currentShape,vals);
-  var totalVolume=baseArea*height;
-  var drainageVolume=baseArea*DRAINAGE_HEIGHT;
-  var usableVolume=totalVolume-drainageVolume-baseArea*TOP_MARGIN;
+  var drainH=drainageHeightFor(height);
+  if(height<=drainH+TOP_MARGIN){ ToolBox.showToast(i18nText('toast.msg850'),'error'); return; }
+  var totalVolume=calcSliceVolume(currentShape,vals,0,height);
+  var drainageVolume=calcSliceVolume(currentShape,vals,0,drainH);
+  var usableVolume=totalVolume-drainageVolume-calcSliceVolume(currentShape,vals,height-TOP_MARGIN,height);
   var soilKg=(usableVolume*SOIL_DENSITY)/1000;
   var gravelKg=(drainageVolume*GRAVEL_DENSITY)/1000;
   if(en){
