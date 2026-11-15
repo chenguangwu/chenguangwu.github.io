@@ -154,22 +154,6 @@
 
 > 范围：`tools/machinery/` 6 页（低油雾寿命、花键规格、扭矩补偿、联轴器选型、皮带传动、刚度/载荷/疲劳检测）+ `tools/metalwork/` 2 页（无损探伤分级、试模问题统计）。方法：逐页源码阅读 + node 内存复算（脚本 `/tmp/w_batch.js`）；未开浏览器、未跑 `_build.py` / `run_gates.py`、未做英文态/移动端/线上验证。编号续接 `MM-H47`，从 `MM-H48` 起。
 
-### MM-H50 扭矩补偿页历史记录不保存动载荷/工况系数，恢复后补偿扭矩不复现（中，确认缺陷）
-- 问题：`saveHistory` 只存 `{T,temp,wear}`，恢复时也只回填这三项；补偿后扭矩还乘 `dyn×cond`，这两个选择器沿用当前值，恢复结果与保存时不同。
-- 证据：`tools/machinery/torque-3.html:231`（保存字段）、`:233`（恢复仅 vT/vTemp/vWear）、`:211`（`finalTorque=baseComp*dyn*cond`）、`:134-141`（两个系数控件）。
-- 复现：T=500、温 5%、磨 10%、动载 1.2、工况 1.1 → 759.0 N·m，保存；把动载改为 1.0、工况改为 1.0，点「恢复」→ 显示 **575.0 N·m**，期望 759.0。摘要也不显示这两个系数。
-- 影响：`tools/machinery/torque-3.html`。同一历史记录恢复后数值变档，补偿扭矩与总补偿率不可追溯。
-- 方案：item 增加 `dyn`、`cond`，restore 回填 `vDyn`、`vCond`，摘要同步显示。
-- 严重度：中（假工具：否）。
-
-### MM-H51 联轴器选型页历史记录不保存负载特性，恢复后选型扭矩与类型可能跨档（中，确认缺陷）
-- 问题：`saveHistory` 只存 `{T,K1,K2,n}`，`vLoad`（1.0/1.5/2.0/3.0）既未保存也未回填；选型扭矩 `T×K1×K2×load` 与推荐类型都依赖它。
-- 证据：`tools/machinery/torque-2.html:232`（保存字段）、`:234`（恢复仅四项）、`:207-212`（选型扭矩与类型分支）、`:135-141`（负载特性选择器）。
-- 复现：默认 200 N·m、K1=1.5、K2=1.3、1450 rpm、负载「中等冲击」1.5 → 585.0 N·m；保存后把负载改为「均匀负载」1.0，点「恢复」→ **390.0 N·m**，期望 585.0（585 与 390 都落在 <2000 同一档，但系数更极端的组合会改变推荐类型）。
-- 影响：`tools/machinery/torque-2.html`。历史记录不能复现当时的选型依据。
-- 方案：item 增加 `load`，restore 回填 `vLoad`，摘要显示负载特性。
-- 严重度：中（假工具：否）。
-
 ### MM-H52 皮带选型仅按功率查带型、不算单根额定功率与带数，低转速工况给出明显不合格的「推荐」（中，承诺未实现）
 - 问题：`pickBelt(P)` 只按传递功率上限选 Y/Z/A/B/C/D/E，转速仅用于事后算带速；`formula-desc` 与引据表明确写「计算根数」「所需带数等于设计功率除以单根修正后额定功率并向上取整」，但页面无带数、无包角系数/带长系数、无设计功率（服务系数）输入。低转速时同一带型承载能力骤降，仍照常给出「推荐 V 带型号」。
 - 证据：`tools/machinery/power-16.html:209-212`（按功率选带型与最小轮径）、`:213-218`（带速仅用于放大 d1）、`:125`（formula-desc 写「根数」）、`:157-159`（引据表「带数计算」）、`:239-251`（结果卡无带数）。
@@ -261,8 +245,8 @@
 ### 覆盖清单
 - `tools/machinery/lifespan-23.html`：2 中（MM-H54、MM-H55）。
 - `tools/machinery/pressure-4.html`：内/外花键标签与深解挤压表述已修（MM-H48、MM-H49）。
-- `tools/machinery/torque-3.html`：1 中（MM-H50）。
-- `tools/machinery/torque-2.html`：1 中（MM-H51）。
+- `tools/machinery/torque-3.html`：历史已补存动载/工况（MM-H50）。
+- `tools/machinery/torque-2.html`：历史已补存负载特性（MM-H51）。
 - `tools/machinery/power-16.html`：2 中（MM-H52、MM-H53）。
 - `tools/machinery/detector-159.html`：1 高 + 1 中（MM-H56、MM-H57）。
 - `tools/metalwork/detector-24.html`：2 中（MM-H58、MM-H59）。
