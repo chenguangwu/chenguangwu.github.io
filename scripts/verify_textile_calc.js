@@ -46,6 +46,36 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "textile/colorfastness",
+  "clicks": ["var w=rgbToLab(hexToRgb('#ffffff')),k=rgbToLab(hexToRgb('#000000')),d=deltaE(w,k);document.getElementById('__tbProbe').textContent='CF715 '+((Math.abs(w.a)<0.05&&Math.abs(w.b)<0.05&&Math.abs(w.L-100)<0.05&&Math.abs(d-100)<0.1)?'OK':'BAD');"],
+  "expect": ["CF715 OK"],
+  "ref": "白点归一化：旧实现把 sRGB 矩阵结果乘参考白后再除同一白，纯白得 a≈-8.4、b≈-5.8，白-黑 ΔE=100.59；现逐行除以矩阵自身白点 (0.9505/1.0000/1.0890)，纯白 a=b=0、ΔE(白,黑)=100.00。"
+},
+{
+  "slug": "textile/shrinkage",
+  "clicks": ["document.getElementById('shrinkPct').value='150';calcPredict();var t=String(document.getElementById('resultPredict').innerHTML);document.getElementById('__tbProbe').textContent='SK715 '+((t.indexOf('0~100%')>=0&&t.indexOf('-50')<0)?'OK':'BAD');"],
+  "expect": ["SK715 OK"],
+  "ref": "预测缩水率 150%：旧实现算出成品 -50cm；现要求 0≤缩水率<100%，越界提示且不输出负成品。默认 100cm/5% 不命中。"
+},
+{
+  "slug": "textile/shrinkage",
+  "clicks": ["document.getElementById('shrinkPct').value='';calcPredict();var t=String(document.getElementById('resultPredict').innerHTML);document.getElementById('__tbProbe').textContent='SK715B '+((t.indexOf('留空不按 0 计算')>=0)?'OK':'BAD');"],
+  "expect": ["SK715B OK"],
+  "ref": "缩水率清空：旧 parseFloat(...)||0 把空值当 0 并输出「不变」；现提示留空不按 0 计算，不再给出确定结果。"
+},
+{
+  "slug": "textile/shrinkage",
+  "clicks": ["document.getElementById('shrinkPct2').value='';calcReverse();var t=String(document.getElementById('resultReverse').innerHTML);document.getElementById('__tbProbe').textContent='SK715C '+((t.indexOf('留空不按 0 计算')>=0)?'OK':'BAD');"],
+  "expect": ["SK715C OK"],
+  "ref": "反算缩水率清空：旧实现同样按 0 处理并给出应裁剪尺寸；现拦截。"
+},
+{
+  "slug": "textile/shrinkage",
+  "clicks": ["var t=String(document.getElementById('resultReverse').innerHTML);document.getElementById('__tbProbe').textContent='SK715D '+((t.indexOf('需裁剪')>=0)?'OK':'BAD');"],
+  "expect": ["SK715D OK"],
+  "ref": "反算初始态：页面加载时仅运行预测，反算结果区为空直到改动输入；现初始化同时运行 calcReverse，默认 100cm/5% 即显示应裁剪 105.26cm。"
+},
+{
   "slug": "textile/convert-48",
   "inputs": {
     "val": "30"
