@@ -552,6 +552,22 @@ const CASES = [
   "ref": "PHQ-15 十五项全选「很多困扰」j=2 ⇒ 总分 30/30 ⇒ 落 total>14 分支「高」；中重度临界卡显示 ≥10。默认态为提示框，零交集。via=click"
 },
 {
+  "slug": "psychiatry/phq15-somatization",
+  "clicks": [
+    "A=A.map(function(){return 2;});render();calc();var ok1=document.getElementById('result').innerHTML.indexOf('30 / 30')>=0;A[0]=-1;calc();var rb=document.getElementById('resultRefBar');document.getElementById('__tbProbe').textContent='PHQ15REST '+(ok1&&rb&&rb.innerHTML===''?'OK':'BAD');"
+  ],
+  "expect": ["PHQ15REST OK"],
+  "ref": "恢复答案：模拟历史回调写入 A 后 `render();calc()`，结果立即算出 30/30（原回调只 render 不 calc，仍显示 0/30）；随后改为未完成再 calc，标尺容器被清空（原清空逻辑只在 resetQuiz，未答完路径会残留旧标尺）。"
+},
+{
+  "slug": "psychiatry/bis11-impulse",
+  "clicks": [
+    "applyBisPreset('high');A[0]=-1;calc();var rb=document.getElementById('resultRefBar');document.getElementById('__tbProbe').textContent='BIS11RB '+(rb&&rb.innerHTML===''?'OK':'BAD');"
+  ],
+  "expect": ["BIS11RB OK"],
+  "ref": "未答完路径原本只替换 #result，不清理 #resultRefBar：先渲染高分标尺再撤掉一题，旧标尺残留。现在 calc 的未完成分支同步清空标尺；默认页未渲染标尺，不命中。"
+},
+{
   "slug": "psychiatry/phq9-depression",
   "clicks": [ "pick(0,3)", "pick(1,3)", "pick(2,3)", "pick(3,3)", "pick(4,3)", "pick(5,3)", "pick(6,3)",
     "pick(7,3)", "pick(8,3)"],
