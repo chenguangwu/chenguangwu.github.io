@@ -273,8 +273,11 @@ function toggleOp(id) {
 
 function clean() {
   const text = document.getElementById('inputData').value;
-  const beforeCount = text.split('\n').length;
-  let lines = text.split('\n');
+  // 统一换行并忽略末尾空行：`abc\n` 是 1 条，不是 2 条
+  const rawLines = text.replace(/\r\n?/g, '\n').split('\n');
+  while (rawLines.length && rawLines[rawLines.length - 1] === '') rawLines.pop();
+  const beforeCount = rawLines.length;
+  let lines = rawLines.slice();
 
   const applied = [];
   if (selected.has('trim')) { lines = lines.map(l => l.trim()); applied.push('去空白'); }
@@ -287,7 +290,22 @@ function clean() {
   if (selected.has('shuffle')) { for (let i = lines.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i+1)); [lines[i], lines[j]] = [lines[j], lines[i]]; } applied.push('打乱'); }
 
   const maxLen = +document.getElementById('maxLen').value || 0;
-  if (maxLen > 0) { lines = lines.map(l => l.length > maxLen ? l.slice(0, maxLen) : l); applied.push(`限长 ${maxLen}`); }
+  if (maxLen > 0) {
+    // 按码点/字形簇截断，避免切断代理对把 emoji 变成乱码
+    const truncate = (s) => {
+      if (!s) return s;
+      if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+        try {
+          const segs = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(s)].map(x => x.segment);
+          return segs.length > maxLen ? segs.slice(0, maxLen).join('') : s;
+        } catch (e) {}
+      }
+      const cps = Array.from(s);
+      return cps.length > maxLen ? cps.slice(0, maxLen).join('') : s;
+    };
+    lines = lines.map(truncate);
+    applied.push(`限长 ${maxLen}`);
+  }
 
   const result = lines.join('\n');
   document.getElementById('outputData').value = result;

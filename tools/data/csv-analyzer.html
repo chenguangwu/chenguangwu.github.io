@@ -233,23 +233,40 @@ table.csv-table tr:nth-child(even) td { background:var(--bg-card); }
 </div>
 <script>
 function parseCSV(text, delim) {
-  const lines = text.trim().split('\n').filter(l => l.trim());
-  if (lines.length === 0) return { headers: [], rows: [] };
-  const splitLine = (line) => {
-    const result = [];
-    let cur = '', inQuote = false;
-    for (let i = 0; i < line.length; i++) {
-      const c = line[i];
-      if (c === '"') inQuote = !inQuote;
-      else if (c === delim && !inQuote) { result.push(cur); cur = ''; }
-      else cur += c;
+  // 整段按引号状态解析：引号内可含分隔符与换行，"" 表示一个 "
+  const rows = [];
+  let row = [], field = '', inQuote = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuote) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuote = false;
+      } else field += c;
+    } else if (c === '"') {
+      inQuote = true;
+    } else if (c === delim) {
+      row.push(field); field = '';
+    } else if (c === '\n' || c === '\r') {
+      row.push(field); field = '';
+      rows.push(row); row = [];
+      if (c === '\r' && text[i + 1] === '\n') i++;
+    } else {
+      field += c;
     }
-    result.push(cur);
-    return result.map(s => s.trim());
-  };
-  const headers = splitLine(lines[0]);
-  const rows = lines.slice(1).map(splitLine);
-  return { headers, rows };
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  const clean = rows.filter(r => r.length > 1 || String(r[0] || '').trim() !== '');
+  if (!clean.length) return { headers: [], rows: [] };
+  const headers = clean[0].map(s => s.trim());
+  const body = clean.slice(1).map(r => r.map(s => s.trim()));
+  return { headers, rows: body };
+}
+
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
 }
 
 function isNumeric(s) { return !isNaN(parseFloat(s)) && isFinite(s) && s.trim() !== ''; }
@@ -293,11 +310,13 @@ function analyze() {
   }));
 
   // 表格预览
+  const mmRows = rows.reduce((n, r) => n + (r.length !== headers.length ? 1 : 0), 0);
   const tableHtml = `
     <h3 style="text-align:center;margin:12px 0 8px;">📋 数据预览 (前 10 行)</h3>
+    ${mmRows ? `<p style="text-align:center;font-size:12px;color:var(--warning);">⚠ ${mmRows} 行字段数与表头（${headers.length} 列）不一致，统计时缺列按空值、多列被忽略。</p>` : ''}
     <table class="csv-table">
-      <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
-      ${rows.slice(0, 10).map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}
+      <tr>${headers.map(h => `<th>${escHtml(h)}</th>`).join('')}</tr>
+      ${rows.slice(0, 10).map(r => `<tr>${r.map(c => `<td>${escHtml(c)}</td>`).join('')}</tr>`).join('')}
     </table>
     ${rows.length > 10 ? `<p style="text-align:center;font-size:11px;color:var(--text-muted);">... 还有 ${rows.length - 10} 行</p>` : ''}
   `;

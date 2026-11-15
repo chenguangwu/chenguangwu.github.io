@@ -52,6 +52,33 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "data/csv-analyzer",
+  "inputs": {
+    "csvInput": "name,note\nAlice,\"first\nsecond\"\nBob,ok",
+    "delim": ","
+  },
+  "expect": ["还有 1 行", "Alice first second"],
+  "ref": "引号内换行（2026-11-16）：整段按引号状态解析 ⇒ note 字段为「first\\nsecond」但只算 1 条数据，共 2 行；第二字段换行在表格里折成空格。旧实现先按换行切行 ⇒ 得到 3 条数据行、Alice 的 note 只剩 first ⇒ 不出现「还有 1 行」且统计行数偏多。"
+},
+{
+  "slug": "data/csv-analyzer",
+  "inputs": {
+    "csvInput": "name,note\nAlice,\"say \"\"hi\"\"\"\nBob,x",
+    "delim": ","
+  },
+  "expect": ["say \"hi\""],
+  "ref": "转义双引号：\"\" 解析为一个 \"，预览显示 say \"hi\"；旧实现按奇偶翻转 inQuote，四个引号会互相抵消并把内容拆错。"
+},
+{
+  "slug": "data/csv-analyzer",
+  "inputs": {
+    "csvInput": "a,b\n1,2,3\n4,5",
+    "delim": ","
+  },
+  "expect": ["1 行字段数与表头（2 列）不一致"],
+  "ref": "错列可见（2026-11-16）：第 2 行 3 列、表头 2 列 ⇒ 预览上方提示 1 行字段数不一致；旧实现静默按表头取前两列统计。缺列行（4,5 之后的第 3 行）不触发提示。"
+},
+{
   "slug": "data/data-cleaner",
   "inputs": {
     "maxLen": "7",
@@ -62,6 +89,18 @@ const CASES = [
     "限长"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "data/data-cleaner",
+  "inputs": { "inputData": "abc\n\n", "outputData": "", "maxLen": "" },
+  "expect": ["1\n1\n去空白 · 去空行 · 去重"],
+  "ref": "尾随空行不计条数（2026-11-16）：`abc\\n\\n` 只剩 1 条，原始/清洗后都显示 1；旧实现 `split('\\n').length` 得 3。默认样例首尾都有空行，旧值不等于 1 ⇒ 强判别。"
+},
+{
+  "slug": "data/data-cleaner",
+  "inputs": { "inputData": "😀ABC", "outputData": "", "maxLen": "1" },
+  "expect": ["1\n😀\n1\n1"],
+  "ref": "按字形簇截断（2026-11-16）：限长 1 时输出完整 😀 而不是半个代理项；旧实现按 UTF-16 码元 slice(0,1) ⇒ \\ud83d 孤立代理项。输入回显仍是 😀ABC，所以必须锚定「输出值\\n计数」这一组合。"
 },
 {
   "slug": "data/data-visualizer",
@@ -98,6 +137,42 @@ const CASES = [
     "(count)"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "data/pivot-table",
+  "inputs": {
+    "inputData": "地区,产品,销量\nA,X,10\nA,Y,20\nB,X,100\nB,Y,200\nB,X,300",
+    "rowField": "地区", "colField": "产品", "valField": "销量", "agg": "avg"
+  },
+  "expect": ["126.00"],
+  "ref": "avg 合计语义（2026-11-16）：合并原始值后重新求均值 ⇒ 总计 (10+20+100+200+300)/5 = 126.00；旧实现把行均值再求和得 430，或列均值再平均。默认样例为 count，无 126.00。"
+},
+{
+  "slug": "data/pivot-table",
+  "inputs": {
+    "inputData": "地区,产品,销量\nA,X,7\nA,Y,3\nB,X,5\nB,Y,9",
+    "rowField": "地区", "colField": "产品", "valField": "销量", "agg": "min"
+  },
+  "expect": ["A 7 3 3 B 5 9 5 合计 5 3 3"],
+  "ref": "min 合计取极值（2026-11-16）：行合计 A=min(7,3)=3、B=min(5,9)=5；列合计 X=5、Y=3；总计 3。旧实现对合计列求和 ⇒ 行 A 10/B 14、列 12/12、总计 24，整串不命中。"
+},
+{
+  "slug": "data/pivot-table",
+  "inputs": {
+    "inputData": "地区,备注,销量\n华北,\"北京,朝阳\",10\n华北,\"上海,浦东\",20",
+    "rowField": "地区", "colField": "备注", "valField": "销量", "agg": "sum"
+  },
+  "expect": ["北京,朝阳 上海,浦东", "华北 10 20 30"],
+  "ref": "带逗号的引号字段（2026-11-16）：按 CSV 状态机解析后两列备注完整、销量 10+20 汇总 30；旧实现直接 split(',') ⇒ 备注只剩「\\\"北京」，第三段被当作销量 ⇒ 汇总错位。"
+},
+{
+  "slug": "data/pivot-table",
+  "inputs": {
+    "inputData": "地区,产品,销量\n华北,<img src=x onerror=alert(1)>,10",
+    "rowField": "地区", "colField": "产品", "valField": "销量", "agg": "sum"
+  },
+  "expect": ["&lt;img src=x onerror=alert(1)&gt;"],
+  "ref": "用户内容转义（2026-11-16）：列值经 escPivot 后进入 innerHTML，尖括号变成实体；旧实现原样拼接，输入会被当成标签执行。默认样例行不含尖括号。"
 },
 {
   "slug": "data/random-5",

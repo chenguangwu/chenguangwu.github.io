@@ -270,13 +270,46 @@ table.pivot td.total { background:rgba(59,130,246,0.1); font-weight:bold; }
 <!-- /注意事项区块 -->
 </div>
 <script>
+// 按 CSV 规则拆一行：支持双引号包裹（"" 表示一个 "），字段内可含逗号
+function parsePivotLine(line) {
+  const out = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; }
+        else inQ = false;
+      } else cur += ch;
+    } else if (ch === '"') {
+      inQ = true;
+    } else if (ch === ',') {
+      out.push(cur.trim()); cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  out.push(cur.trim());
+  return out;
+}
+function escPivot(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
 function pivot() {
   const text = document.getElementById('inputData').value.trim();
-  const lines = text.split('\n').filter(l => l.trim());
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) { ToolBox.showToast(i18nText('toast.msg747'), 'error'); return; }
-  const headers = lines[0].split(',').map(s => s.trim());
+  const headers = parsePivotLine(lines[0]);
+  const seenHeader = {};
+  const dupHeader = headers.filter(h => { const k = h || ''; if (seenHeader[k]) return true; seenHeader[k] = 1; return false; });
+  if (dupHeader.length) {
+    ToolBox.showToast('表头重复：' + dupHeader.join('、') + '。请改用不重复的列名后再透视。', 'error');
+    return;
+  }
   const rows = lines.slice(1).map(l => {
-    const cells = l.split(',').map(s => s.trim());
+    const cells = parsePivotLine(l);
     const obj = {};
     headers.forEach((h, i) => obj[h] = cells[i] || '');
     return obj;
@@ -296,53 +329,47 @@ function pivot() {
   const rowVals = [...new Set(rows.map(r => r[rowField]))].filter(v => v);
   const colVals = [...new Set(rows.map(r => r[colField]))].filter(v => v);
 
-  // 聚合
-  const grid = {};
-  const totals = {};
+  // 聚合：保留每个单元格的原始数值，合计才能按同一语义重新聚合
+  const grid = {};   // {row: {col: {vals:[], count:N}}}
   rowVals.forEach(r => {
     grid[r] = {};
-    totals[r] = [];
     colVals.forEach(c => {
       const matched = rows.filter(row => row[rowField] === r && row[colField] === c);
       const vals = matched.map(row => parseFloat(row[valField])).filter(n => !isNaN(n));
-      let v = 0;
-      if (agg === 'sum') v = vals.reduce((a, b) => a + b, 0);
-      else if (agg === 'count') v = matched.length;
-      else if (agg === 'avg') v = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-      else if (agg === 'min') v = vals.length ? Math.min(...vals) : 0;
-      else if (agg === 'max') v = vals.length ? Math.max(...vals) : 0;
-      grid[r][c] = v;
-      totals[r].push(v);
+      grid[r][c] = { vals: vals, count: matched.length };
     });
   });
+  function aggregate(cells) {
+    let vals = [], count = 0;
+    cells.forEach(cell => { if (!cell) return; vals = vals.concat(cell.vals); count += cell.count; });
+    if (agg === 'count') return count;
+    if (agg === 'sum') return vals.reduce((a, b) => a + b, 0);
+    if (agg === 'avg') return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+    if (agg === 'min') return vals.length ? Math.min(...vals) : 0;
+    if (agg === 'max') return vals.length ? Math.max(...vals) : 0;
+    return 0;
+  }
 
   // 表格
   const tableHtml = `
-    <h3 style="text-align:center;margin-bottom:8px;">🔄 透视表 (${agg})</h3>
+    <h3 style="text-align:center;margin-bottom:8px;">🔄 透视表 (${escPivot(agg)})</h3>
     <table class="pivot">
-      <tr><th class="row-header">${rowField} \\ ${colField}</th>
-        ${colVals.map(c => `<th>${c}</th>`).join('')}
+      <tr><th class="row-header">${escPivot(rowField)} \\ ${escPivot(colField)}</th>
+        ${colVals.map(c => `<th>${escPivot(c)}</th>`).join('')}
         <th class="total">合计</th>
       </tr>
       ${rowVals.map(r => {
-        const rTotal = agg === 'avg' ? totals[r].reduce((a, b) => a + b, 0) / totals[r].length : totals[r].reduce((a, b) => a + b, 0);
+        const rTotal = aggregate(colVals.map(c => grid[r][c]));
         return `<tr>
-          <td class="row-header">${r}</td>
-          ${colVals.map(c => `<td>${formatV(grid[r][c], agg)}</td>`).join('')}
+          <td class="row-header">${escPivot(r)}</td>
+          ${colVals.map(c => `<td>${formatV(aggregate([grid[r][c]]), agg)}</td>`).join('')}
           <td class="total">${formatV(rTotal, agg)}</td>
         </tr>`;
       }).join('')}
       <tr>
         <td class="row-header">合计</td>
-        ${colVals.map(c => {
-          const allVals = rowVals.flatMap(r => totals[r]);
-          const colVals2 = rowVals.map(r => grid[r][c]);
-          let total;
-          if (agg === 'avg') total = colVals2.reduce((a, b) => a + b, 0) / colVals2.length;
-          else total = colVals2.reduce((a, b) => a + b, 0);
-          return `<td class="total">${formatV(total, agg)}</td>`;
-        }).join('')}
-        <td class="total">${formatV(rowVals.flatMap(r => totals[r]).reduce((a, b) => a + b, 0), agg)}</td>
+        ${colVals.map(c => `<td class="total">${formatV(aggregate(rowVals.map(r => grid[r][c])), agg)}</td>`).join('')}
+        <td class="total">${formatV(aggregate(rowVals.flatMap(r => colVals.map(c => grid[r][c]))), agg)}</td>
       </tr>
     </table>
   `;
