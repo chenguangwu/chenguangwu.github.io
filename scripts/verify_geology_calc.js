@@ -332,12 +332,28 @@ const CASES = [
       "area": "42",
       "thick": "42",
       "dens": "42",
-      "grade": "42"
+      "grade": "2.5"
     },
     "expect": [
-      "金属量 (万吨) 42.000% 平均品位 420"
+      "2.500% 平均品位 25.00 金属品位 (kg/t)"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"thick\":\"42\",\"dens\":\"42\",\"grade\":\"42\"}，输出区含「金属量 (万吨) 42.000% 平均品位 420」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：原注入 grade=42 已按 0–100% 上限拒绝，改为 2.5% 后输出「0.1852 金属量 (万吨) 2.500% 平均品位 25.00 金属品位 (kg/t)」；V=42×42=1764、Q=1764×42=74088、P=Q×2.5%=1852.2、P/Q×1000=25.00 与页面一致，默认态（1.2%）不含 2.500/25.00 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "geology/estimate-grade-reserve",
+    "inputs": { "area": "50000", "thick": "3.5", "dens": "2.7", "grade": "150" },
+    "expect": [
+      "品位 0–100%）"
+    ],
+    "ref": "品位上限于 100%：C=150 时金属量会大于矿石量，须报错而非输出「平均品位 150.000%」；默认 1.2% 不含该提示 ⇒ 零逃生。"
+  },
+  {
+    "slug": "geology/estimate-grade-reserve",
+    "clicks": [
+      "calc();document.getElementById('grade').value='150';calc();document.getElementById('__tbProbe').textContent='STALE '+(lastResult===''?'0':'1');"
+    ],
+    "expect": ["STALE 0"],
+    "ref": "错误态须清空 lastResult：先以默认值算出合法结果，再输入 150% 触发校验失败；旧实现只替换提示文字，lastResult 仍为上一组数据 ⇒ 复制按钮可复制过期结果（探针 1）。默认态无探针串 ⇒ 零逃生。"
   },
   {
     "slug": "geology/estimate-reserve-1",
@@ -414,6 +430,30 @@ const CASES = [
       "距 ≈ 点距 ≈ 816.5 m ，总点数 63 个 ，覆盖 42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"dens\":\"42\",\"cost\":\"42\",\"scale\":\"1\"}，输出区含「距 ≈ 点距 ≈ 816.5 m ，总点数 63 个 ，覆盖 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "geology/soil-sample",
+    "inputs": { "area": "20", "dens": "4", "cost": "-100" },
+    "expect": [
+      "每点成本（&gt;0）"
+    ],
+    "ref": "成本须 >0：D=-100 时旧实现输出估算成本 −8000 元；现于校验阶段报错。默认 cost=80 不含该提示 ⇒ 零逃生。"
+  },
+  {
+    "slug": "geology/soil-sample",
+    "clicks": [
+      "calc();document.getElementById('cost').value='-100';calc();document.getElementById('__tbProbe').textContent='STALE '+(lastResult===''?'0':'1');"
+    ],
+    "expect": ["STALE 0"],
+    "ref": "错误态须清空 lastResult：先默认参数算出合法结果，再把每点成本改 −100 触发失败；旧实现不清 lastResult，复制按钮仍输出上一组数据（探针 1）。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    "slug": "geology/mineral-hardness",
+    "inputs": { "h": "15" },
+    "expect": [
+      "莫氏硬度有效范围 1–10，已按 10 级计算"
+    ],
+    "ref": "输入上限：h=15 超出莫氏 1–10，须提示并回落 10 级；旧实现不校验，15 直接参与比较并给出「可划全部参照物」。默认 h=6 不含该提示 ⇒ 零逃生。"
   },
   {
     "slug": "geology/shuiwendizhishentoushiyan",

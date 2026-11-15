@@ -127,7 +127,7 @@
     </div>
     <h3>莫氏硬度标准矿物</h3>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__mineral_hardnessExport()">导出明细 CSV</button></div><div id="tableWrap"></div> <div id="mineral_hardnessTable"></div> <div id="mineral_hardnessDiff"></div> <div id="mineral_hardnessChart"></div> <div id="mineral_hardnessHist"></div>
-    <div class="info-box">刻划规则：硬度大的矿物能刻划硬度小的。常见参照物：指甲约2.5、铜币约3、铁钉约5、玻璃约5.5、钢锉约6.5。</div>
+    <div class="info-box">刻划规则：硬度大的矿物能刻划硬度小的。常见参照物：指甲约2.5、铜币约3.5、铁钉约5、玻璃约5.5、钢锉约6.5。</div>
   </div>
 
 <!-- Formula & Standard References -->
@@ -210,18 +210,23 @@ var DATA=[
   {h:10,name:'金刚石',formula:'C',feat:'最硬，能刻划一切矿物'}
 ];
 var REFS=[
-  {n:'指甲',h:2.5},{n:'铜币',h:3},{n:'铁钉',h:5},{n:'玻璃',h:5.5},{n:'钢锉',h:6.5}
+  {n:'指甲',h:2.5},{n:'铜币',h:3.5},{n:'铁钉',h:5},{n:'玻璃',h:5.5},{n:'钢锉',h:6.5}
 ];
 function lookup(){
-  var hv=parseFloat(document.getElementById('h').value);
+  var input=document.getElementById('h');
+  var hv=parseFloat(input.value);
   var out=document.getElementById('lookup');
-  if(isNaN(hv)){const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
+  if(isNaN(hv)){input.classList.remove('input-error');const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
+  var clamped=false;
+  if(hv<0){hv=0;clamped=true;}else if(hv>10){hv=10;clamped=true;}
+  input.classList.toggle('input-error',clamped);
   // nearest standard mineral
   var best=DATA[0],bd=99;
   DATA.forEach(function(d){var dd=Math.abs(d.h-hv);if(dd<bd){bd=dd;best=d;}});
   var canScratch=REFS.filter(function(r){return hv>r.h;});
   var scratchedBy=REFS.filter(function(r){return r.h>hv;});
-  var html='<p>最接近的标准矿物：<b>'+best.name+'（莫氏 '+best.h+'）</b></p>';
+  var html=(clamped?'<p style="color:#EF4444;">莫氏硬度有效范围 1–10，已按 '+hv+' 级计算。</p>':'');
+  html+='<p>最接近的标准矿物：<b>'+best.name+'（莫氏 '+best.h+'）</b></p>';
   html+='<p>该矿物可刻划：'+(canScratch.length?canScratch.map(function(r){return r.n+'('+r.h+')'}).join('、'):'（无常见参照物可刻划）')+'</p>';
   html+='<p>可被刻划：'+(scratchedBy.length?scratchedBy.map(function(r){return r.n+'('+r.h+')'}).join('、'):'（无常见参照物能刻划）')+'</p>';
   html+='<div class="test-grid">';
