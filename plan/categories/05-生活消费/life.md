@@ -1,12 +1,8 @@
 # 生活综合 · tools/life（70 页）
 
-## 2026-11-06 已修记录独立复核：热量与长度
-
 - **LF-N23：负数静默计算的原问题已修，BMI 年龄反馈仍不完整。** BMI 的身高/体重、BMR/TDEE 的年龄/身高/体重均有有限数及范围校验，非法时会清空相应面板的结果；BMR 负年龄与 TDEE 负身高的函数桩用例通过。BMI 年龄非法时仅标记输入并将体脂率显示为 `--`，BMI 仍照常显示且无年龄专属提示；原方案要求字段级提示，因此不应把全部反馈要求判为完成。范围是否适用于儿童等人群未做医学确认。
 - **LF-N50：交换动作已实现，目标选择的展示尚不明确。** `swap()` 将源/目标互换并换算输入；函数桩测试覆盖 2.54 cm 交换为 1 in。`convert()` 列出所有非源单位，但不读取 `toUnit` 或标出所选目标；测试的 expect 为「任一子串命中」，不能据此证明目标行提示存在。未找到该编号对应分类原记录，暂不推断原问题完整范围；未做浏览器实测。
 - `node scripts/verify_life_calc.js daily-calorie-needs length-converter` 为 13/13；使用 DOM 桩，不能替代真实浏览器验证。
-
-## 2026-11-06 已修记录独立复核：蜡烛燃烧时间
 
 - **LF-N28：清空后的旧结果已清除。** 页面早退时将副行改为填写重量提示、清空统计、禁用复制按钮；填写有效值会重新启用复制。现有用例验证清空提示，禁用/恢复状态为源码核查，未做浏览器实测。
 - `node scripts/verify_life_calc.js candle-burn-time` 为 4/4，测试使用 DOM 桩，不能替代真实浏览器操作验证。
@@ -52,8 +48,6 @@
 - `event-countdown` 的节日日期、清明固定日期和年度范围与既有记录对应；刷新及定时重算为源码路径，未验证实际显示。
 - `cycle-pruning-lawn` 使用本地日期构造；`color-name-finder` 增加十六进制格式校验；`bill-splitter` 简单 AA 对负数、余数和姓名转义的旧路径已改变。详见原条目标注，不据此宣称回归通过。
 
-## 2026-11-03 审计补充
-
 ### 密码生成失败后仍可复制旧密码（高，确认缺陷）
 - 问题：取消全部字符类型后再生成，页面提示选择类型，但强度条未重置，复制仍读取上次生成的密码。
 - 证据：`tools/life/generator-strength.html:373-393,414-421,430`：空字符池只更新提示与列表后 return，未清空 `allPwds`、强度条；默认加载时执行 `gen()`。浏览器行为未实测。
@@ -71,8 +65,6 @@
 
 ### 覆盖
 - 本轮人工核查 2 页：`tools/life/generator-strength.html` 与 `tools/life/date-add-subtract.html`；后者使用内存 DOM 桩，真实浏览器与其他页面未逐页覆盖。
-
-## 2026-11-03 续查：年龄、日期差与 AA 分摊
 
 ### LF-N1 未勾选排除周末时「周末天数」恒为 0（中，确认源码缺陷）
 - 证据：`tools/life/date-diff.html:271-276,285` 当 `excludeWeekend` 未勾选时 `!excludeWeekend` 恒真，工作日循环把每一天都计入 `workdays`，随后 `weekends=totalDays-workdays` 为 0，页面却显示「周末天数 0」「工作日 = 总天数」。
@@ -113,8 +105,6 @@
 
 ### 续查覆盖
 - 新抽查 `tools/life/age-calculator.html`、`tools/life/percentage-calculator.html`、`tools/life/date-diff.html`、`tools/life/bill-splitter.html` 共 4 页，新增 6 条（0 条高优，4 条中优）与 4 条留存建议；为源码与数值推导，未做浏览器、移动端、线上或门禁验证。
-
-## 2026-11-03 续查（并行批 F）
 
 ### LF-N7 工作日区间少算结束日，与公式、规则示例互相矛盾（高，确认源码缺陷）
 - 描述：页面公式写「总天数 =（结束日期 − 开始日期）÷ 86400000 + 1（含首尾两天）」，规则区又写「周一到周五 = 5 个工作日」，但实现用 `while(d < end)` 逐日遍历，结束日整日不进循环；同日区间直接得到 0 天。
@@ -188,8 +178,6 @@
 ### 续查覆盖
 - 本轮新抽查 `tools/life/workday-calculator.html`、`tools/life/parking-fee.html`、`tools/life/drinking-water-plan.html`、`tools/life/zodiac-calculator.html`、`tools/life/shoe-size-converter.html`、`tools/life/world-clock.html`、`tools/life/timestamp.html` 共 7 页，新增 11 条（3 条高优、5 条中优、3 条低优）与 7 条留存建议。
 - 证据均为源码阅读 + node 内存复算（含 `TZ=America/Los_Angeles` 时区快照与 `Intl.DateTimeFormat` 时区有效性校验）；未做浏览器、移动端、英文态、线上或门禁验证，涉及浏览器行为的结论均为源码推导。
-
-## 2026-11-03 续查（并行批 I）
 
 ### LF-N20 罗马数字反查拆解式与结果互相矛盾，超范围提示错位（中，确认源码缺陷）
 - 描述：`fromRoman` 的拆解式按字符逐个映射后用 `+` 连接，未处理减法组合；`XIV` 显示 `X=10 + I=1 + V=5`（合计 16）但结果 14，`MMXXIV` 显示合计 2026 而结果 2024。对超出 1–3999 的字符串（如 `MMMM`），回验路径把 `toRoman` 的字符串提示当作「正确写法」输出。正数输入还使用 `parseInt`，`1e3` 会被截成 1。

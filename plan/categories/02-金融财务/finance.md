@@ -1,10 +1,7 @@
 # 金融计算 · tools/finance（115 页，第二大分类）
 
-## 2026-11-06 已修记录独立复核：APY 和零利率贷款
-
 - `node scripts/verify_finance_calc.js apy-calculator loan-amortization` 为 8/8，DOM 桩断言命中任一输出即通过；其结果不等于所有显示值、图表与导出已验证。
 
-## 已知问题
 ### F1. 贷款/利率系「名义 vs 实际」口径页散
 - `tools/finance/compound-interest.html` 的利率口径导航位于默认隐藏的「公式说明」面板，而非结果区之后；需切换面板才能看到。
 - 🔴 「同输入多口径并排」未做（计算器组，量级大待裁）。
@@ -24,8 +21,6 @@
 ## 进度
 - 🔴 待开发：S4 分享卡；同输入多口径并排待裁。
 
-## 2026-11-03 审计补充
-
 ### 留存优化：贷款比较显示可比性与总成本（中，建议）
 - 证据：`tools/finance/loan-comparison.html:134-151,266-278` 支持三个不同本金和期数并排、CSV 和复制，但排名仅按月供。
 - 影响：同页；方案：提示不同本金或期限的方案不可仅凭月供判优，给出总利息差、实际总还款及同本金/同期条件下比较入口；如补收费项应标明口径。
@@ -37,12 +32,8 @@
 ### 覆盖
 - 本次人工查 `tools/finance/loan-comparison.html`、`tools/finance/car-loan-calculator.html` 2 页；其余金融页未逐页复扫；历史已修声明未独立复验。
 
-## 2026-11-03 续查：现金流、债券与退休规划
-
-
 ### 续查覆盖
 - 新抽查 `tools/finance/irr-calculator.html`、`tools/finance/bond-yield-calculator.html`、`tools/finance/dca-calculator.html`、`tools/finance/retirement-calculator.html` 共 4 页，新增 7 条（6 条高优），均为源码及数值推导，未做浏览器、线上和门禁验证。
-
 
 ### 留存优化（按页落点，非确认缺陷）
 - `tools/finance/compound-interest.html`：只能正算终值，缺「目标金额反推所需年限/月投」。建议加目标反推与「单利 vs 复利」并排对比，这是理财类搜索的主要意图。
@@ -54,9 +45,6 @@
 ## 2026-11-03 续查（并行批）：金融回补
 （路径均相对 `tools/`）
 
-
-
-
 ### 留存优化（按页落点）
 - `finance/mortgage-calculator`：仅前 24 期；补首付+税费总成本与全表下载。
 - `finance/housing-fund-loan`：规则硬编码 2024、年龄只提示；补利率可选与年龄压年限。
@@ -65,11 +53,6 @@
 
 ### 续查覆盖
 - 实读 6 页：finance 的 mortgage、housing、lease、salary；banking 的 apy、loan-to-value；node 复算，未做浏览器/线上验证。
-
-## 2026-11-03 续查（并行批 I）
-
-
-
 
 ### 留存优化
 - `finance/tax-calculator.html`：CSV 仅导出月度口径，年终奖两方案与「月度/年度」切换未随导出；建议补年终奖对比行与年度口径导出。
@@ -83,8 +66,6 @@
 ### 续查覆盖
 - 本次实读 7 页：`finance/tax-calculator`、`tax-bracket`、`vat-calculator`、`simple-interest`、`credit-card-interest`、`loan-amortization`、`mortgage-prepayment`；新增 11 条（高优 3 条：F-N22/F-N23/F-N26），`tax-bracket` 未发现缺陷（getBracket 在 36000/144000 边界与速算扣除一致，node 复算 100000 → 7480，与分档累加相同）。
 - 证据均由源码行号 + node 内存复算取得；未做浏览器、英文态、移动端与门禁验证。
-
-## 2026-11-03 续查（并行批 J）
 
 ### F-N29 NPV 页 IRR 无根仍返回上限 1000% 并判「可行」（高，确认）
 - 问题：`calcIRR` 固定二分区间 `[-0.99, 10]`，只按「同号就抬 low」推进，从不校验端点异号或残差；现金流全为流出（或首期后仍无正值）时 NPV 永远为负，循环仍收敛到 high≈10，直接以 1000% 作为 IRR。
@@ -120,7 +101,6 @@
 
 > 范围：本轮阅读 8 页（`tools/finance/amount-in-words.html`、`tools/finance/number-to-words-chinese.html`、`tools/finance/gold-price-calculator.html`、`tools/finance/shebeizulinfeilvjisuan.html`、`tools/finance/register-depreciation.html`、`tools/finance/credit-card-validator.html`、`tools/finance/credit-card-luhn.html`、`tools/finance/points-redemption-value.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
 
-
 - 本轮实读 8 页：`tools/finance/amount-in-words.html`、`tools/finance/number-to-words-chinese.html`、`tools/finance/gold-price-calculator.html`、`tools/finance/shebeizulinfeilvjisuan.html`、`tools/finance/register-depreciation.html`、`tools/finance/credit-card-validator.html`、`tools/finance/credit-card-luhn.html`、`tools/finance/points-redemption-value.html`；新增 9 条（高 2/中 4/低 3）；未覆盖：其余 finance 页（约 78 页）未逐页复扫。
 - 证据均由源码行号 + node 内存复算取得；未做浏览器、英文态、移动端、门禁与线上验证；历史已修声明未独立复验。
 
@@ -128,15 +108,12 @@
 
 > 范围：本轮阅读 8 页（`tools/finance/calc-2.html`、`tools/finance/calc-3.html`、`tools/finance/calc-4.html`、`tools/finance/calc-5.html`、`tools/finance/invoice-generator.html`、`tools/finance/currency-converter.html`、`tools/finance/analysis-5.html`、`tools/finance/analysis-risk.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
 
-
-
 - 本轮实读 8 页：`tools/finance/calc-2.html`、`tools/finance/calc-3.html`、`tools/finance/calc-4.html`、`tools/finance/calc-5.html`、`tools/finance/invoice-generator.html`、`tools/finance/currency-converter.html`、`tools/finance/analysis-5.html`、`tools/finance/analysis-risk.html`；新增 11 条（高 3/中 6/低 2）；未覆盖：其余 finance 页（约 66 页）未逐页复扫。
 - 证据均由源码行号 + node 内存复算取得；未做浏览器、英文态、移动端、门禁与线上验证；历史已修声明未独立复验。
 
 ## 2026-11-04 续查（并行批 O）
 
 > 范围：本轮阅读 8 页（`tools/finance/analysis-44.html`、`analysis-cost-1.html`、`assessor-manager.html`、`report-1.html`、`generator-report-1.html`、`number-to-words.html`、`currency-lookup.html`、`credit-card-bin.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
-
 
 - 本轮实读 8 页：`tools/finance/analysis-44.html`、`tools/finance/analysis-cost-1.html`、`tools/finance/assessor-manager.html`、`tools/finance/report-1.html`、`tools/finance/generator-report-1.html`、`tools/finance/number-to-words.html`、`tools/finance/currency-lookup.html`、`tools/finance/credit-card-bin.html`；新增 10 条（高 1/中 5/低 4）；未覆盖：其余 finance 页（约 58 页）未逐页复扫。
 
@@ -269,16 +246,12 @@
 - 未覆盖说明：`tools/finance/` 其余 108 页（含 `index.html`）未复扫；本批仅静态审计，未核对 `?lang=en-US` 英文态、繁体产物、移动端与打印表现；`sort:246-259` 的 bankMap 各前缀归属、`pan:241` 的 `K` 类型、`meid:232-236` 的 Luhn base16 是否对应 3GPP2 规范均需权威资料复核（已在对应条目标注口径，未作断言）。
 - 验证边界：未开浏览器、未跑 `_build.py`、未跑门禁（`_test_static.py`/`_audit_links.py`/`_audit_assets.py`/`run_gates.py`），未做任何 git 写操作，未修改仓库代码（仅本 plan 文件追加）。
 
-## T 批 finance 覆盖（2026-11-04）
-
 ### T 批覆盖说明
 - 本轮审计 19 页：`dns-record-info`、`zip-code-validator`、`sin-validator`、`ifsc-validator`、`npi-validator`、`mirror-text`、`abn-validator`、`aba-validator`、`voter-id-validator`、`nric-validator`、`msisdn-validator`、`word-frequency`、`routing-number-validator`、`imsi-validator`、`postal-code-validator`、`ird-validator`、`dea-validator`、`loan-amortization`、`vcard-qr`（后 3 页为 `finance.md` 未提及页中补齐）。
 - 新增 16 条（高 11 / 中 5），编号 F-N208~F-N223；假工具候选 1 页（`vcard-qr`，类型 B）。
 - 无高优/无条目（覆盖但不列缺陷）：`dns-record-info`（自述「纯速查，不做联网解析」，过滤与导出为真实实现）、`ifsc-validator`（4 字母 + `0` + 6 位字母数字，与 RBI 结构一致）、`abn-validator`（mod 89 权重 `10,1,3,…,19` 经复算正确，`51824753556`/`53004085616` 通过、`12345678901`/`00000000000` 拒绝；仅公式框漏写 10/1 两权重，属文案级）、`word-frequency`（占比分母为「展示词合计」且公式框已明示该口径，无高优）。
 - 数值/规则均 `node -e` 内存复算（临时脚本 `/tmp/fin19_check.js`、`/tmp/fin19_check2.js`，未在仓库建文件），口径来源：SIN/Luhn（Service Canada）、NPI（CMS：首位 1/2 + 80840 Luhn）、ABA（美联储路由号前缀 01–12/21–32/61/80）、ABN（ATO mod 89）、DEA（第 1/3/5 位 + 第 2/4/6 位乘 2 后按位求和取个位）、IRD（NZ Inland Revenue primary/secondary 权重）、NRIC（新加坡 ICA S/T/F/G/M 校验字母表）。
 - 未做浏览器/门禁/线上验证：未开浏览器、未跑 `_build.py`、未跑 `_test_static.py`/`_audit_links.py`/`_audit_assets.py`/`run_gates.py`，未做 git 写操作，未修改任何工具页/代码/样式/数据文件（仅本 plan 文件追加）。
-
-## AC 批 · 贷款/还款/利息族（2026-11-04）
 
 ### 族矩阵
 
@@ -321,7 +294,6 @@
 | 编号 | 页面:行 | 级别 | 问题与期望值 |
 |---|---|---|---|
 
-> **AC 批 F-N224–F-N233 已全部消费完（2026-11-06）**：9 条修复并分别移交 `plan/已修复/2026-11-06-F-N225-N230-金融贷款族A.md`（6 条）与 `plan/已修复/2026-11-06-F-N224-N233-金融贷款族B.md`（3 条）；F-N231（城市公积金额度口径）已移 `plan/G01-公式与计算正确性裁量项.md` C6 待裁断清单，裁断前不改代码、不计入已修/未修。
 > 下方「统计」为 2026-11-04 审计当时的登记数，属历史档案，不代表当前待办数量。
 
 ### 统计

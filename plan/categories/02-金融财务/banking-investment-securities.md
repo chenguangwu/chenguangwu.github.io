@@ -49,7 +49,7 @@
 - 方案：保存并先恢复计算模式，再恢复全部输入和重算；另让 `tools/securities/position-sizing.html` 与 `tools/investment/discounted-payback.html` 导出当前完整输入、结果及明细，而非仅截断的历史摘要（分别见 `:604-610,683-697`、`:262-268,341-355`）。
 
 ### 续查覆盖
-- 新抽查 `tools/banking/loan-tenure.html`、`tools/banking/loan-remaining-balance.html`、`tools/investment/discounted-payback.html`、`tools/securities/position-sizing.html` 共 4 页。B-N1（零止损距离/手续费）、B-N2（两贷款页零利率）、B-N3（已还超期负余额）、B-N4（折现回收期缺失/非法输入）、B-N5（理论期数≠实际结清）均已代码修复并移交 plan/已修复/，本清单不再保留；仅 B-N6 待核源码。
+- 新抽查 `tools/banking/loan-tenure.html`、`tools/banking/loan-remaining-balance.html`、`tools/investment/discounted-payback.html`、`tools/securities/position-sizing.html` 共 4 页；仅 B-N6 待核源码。
 
 ## 2026-11-03 续查（并行批 F）
 
@@ -74,4 +74,4 @@
 - 各页导出/历史只存输入与结果摘要，建议附公式口径与单位，便于跨页对比。
 
 ### 续查覆盖
-- 新抽查 `tools/banking/credit-card-interest-monthly.html`、`tools/banking/debt-to-income.html`、`tools/banking/tax-equivalent-yield.html`、`tools/investment/sortino-ratio.html`、`tools/investment/geometric-mean-return.html`、`tools/investment/profitability-index.html`、`tools/securities/max-drawdown.html`、`tools/securities/margin-requirement.html` 共 8 页。B-F3（税后等效收益率单位）、B-F4（索提诺零超额收益倍数）、B-F5（几何平均百分数口径）、B-F6（盈利指数 CF₀ 符号）、B-F8（最大回撤谷值越界）、B-F9（保证金权益为零/超额）、B-F10（索提诺重复历史）均已代码修复并移交 plan/已修复/，本清单不再保留；仅 B-F1、B-F2 仍开放待处理。
+- 新抽查 `tools/banking/credit-card-interest-monthly.html`、`tools/banking/debt-to-income.html`、`tools/banking/tax-equivalent-yield.html`、`tools/investment/sortino-ratio.html`、`tools/investment/geometric-mean-return.html`、`tools/investment/profitability-index.html`、`tools/securities/max-drawdown.html`、`tools/securities/margin-requirement.html` 共 8 页；仅 B-F1、B-F2 仍开放待处理。

@@ -1,13 +1,10 @@
 # 物理/光学/量子 · tools/{physics 类目录,astronomy,optics,quantum,kinematics,dynamics,thermodynamics,acoustics,fluid}（~250 页）
 
-## 已知问题
 ## 受影响范围
 - tools/optics/（40）、tools/quantum/（28）、tools/astronomy/、tools/kinematics/、tools/dynamics/、tools/thermodynamics/、tools/acoustics/（56）、tools/fluid/、tools/optical/（40）（~250 页）
 
 ## 进度
 - 🔴 待开发
-
-## 2026-11-03 第一轮抽样补充
 
 ### 棱镜错误态仍保留旧明细或生成非法数值（高，确认源码缺陷）
 - 2026-11-06 复核：`tools/optics/prism-deviation.html:209-211,226-241,259-260` 主结果已拦截空值；但未清空旧表，且明细仅检查有限值，负折射率等非法输入仍被计算。
@@ -26,8 +23,6 @@
 
 ### 覆盖
 - 本轮抽查上述光学及量子 4 页；仅源码和数值推导，未进行浏览器实测、线上验证，其余页面未逐页覆盖。
-
-## 2026-11-03 续查（并行批 I）
 
 ### PQ-01 马吕斯定律明细仍接受负光强，小正数占比错误（中，确认）
 - 2026-11-06 复核：`tools/optics/malus-law.html:209-220,230-245,263-264` 主区已校验空值与负光强，但明细只检查有限数，空值时也不清除旧表；两处占比仍以 `Math.max(I0,1e-9)` 作分母。
@@ -62,7 +57,6 @@
 - 方案：主区、明细共用校验，错误时清表；玻尔磁子结果卡可移入常量表。
 
 ### PQ-09 电子对阈值空靶核质量数静默按 0 计算（中，确认）
-- 2026-11-06 复核：`tools/quantum/pair-production-threshold.html:126-137,222-232,285-300` 已改为实际轻子与靶核输入，预设、历史及差异记录真实字段；原假输入问题已修。`__ppParams()` 仍把空值转换成 0，等同用户明确选择不计反冲。
 - Node 模拟实际函数：从 A=27 清空时主区未报错，转而输出纯阈值及反冲因子 1；未做浏览器验证。
 - 影响：漏填靶核质量数时静默改变计算模型。方案：空值提示填写，明确输入 0 时才选择纯阈值。
 
@@ -83,10 +77,6 @@
 - 前批已覆盖（本批未重复）：`tools/optics/snells-law.html`、`prism-deviation.html`、`tools/quantum/rydberg-wavelength.html`、`photoelectric-effect.html`。
 - 方法：仅静态阅读源码 + node 内存复算（输入→输出逐条记录如上）；**未**开浏览器、未做英文态/繁体态、未做移动端、未跑 `_build.py`/`run_gates.py` 或任何门禁，也未验证线上表现。
 - 未覆盖：`tools/optics` 余 15 页、`tools/quantum` 余 21 页、`tools/optical`(41)、`tools/astronomy`(24) 及 `tools/kinematics|dynamics|thermodynamics|acoustics|fluid`，留待后续批次。
-
-## X 批 · 物理/光学（2026-11-04）
-
-- 2026-11-06 复核 PQ-11～22：除 PQ-14 的空值主区和旧表问题已修、仍有图表问题外，其余问题对应源码分支仍在；PQ-19 已修正原记录对超光速相速度的物理表述。此次为源码复核，未做浏览器验证。
 
 ### PQ-11 多普勒页把有符号速度约定封死，远离场景无法计算（高，确认）
 - 描述：两个速度输入按标签是「朝向为正」的有符号量，但输入守卫把 vo、vs 列入「不能为负值」，导致观察者后退、声源后退等页面自己承诺的场景根本无法输入；「声源远离」卡片另用 `(v+vs)` 替代，与用户输入的实际符号语义脱节。

@@ -76,8 +76,6 @@
 | 正则 | 5 | 1 | 0 | 4 |
 | **合计** | **46** | **7** | **10** | **29** |
 
-### 6.1 真缺陷（已修，同批补 verify 用例）
-
 | 页面 | 根因（外部参照回解结论） | 修法 | 用例 |
 |---|---|---|---|
 | `json-to-yaml` | 空串裸写被 YAML 解析成 `null`；`- item` / `? key` 被当序列项与复杂键；`.inf`、日期形态被解析成非字符串；键为空或含 `:` 时产出非法 YAML；`1e+21` 在 YAML 1.1 解析器（PyYAML/Psych）下退化为字符串 | 新增 `yamlPlainSafe` / `yamlScalar` / `yamlNum`：键与字符串按需双引号，空串输出 `""`，指数补 `.0` | IT-N22 |
@@ -132,8 +130,6 @@
 | 端口/协议速查 | 1 | 0 | 0 | 1 |
 | Referer/redirect | 0 | 0 | 0 | 0 |
 | **合计** | **20** | **8** | **3** | **9** |
-
-### 7.1 真缺陷（已修，同批补 verify 用例）
 
 | 页面 | 根因（外部参照回解结论） | 修法 | 用例 |
 |---|---|---|---|
@@ -190,7 +186,6 @@
 | `research/analysis-54` | `freq[t]` / `seen[t]` | 分词后 token 可为 `constructor`（代码类文本） |
 
 不算风险（固定键 / 数值键 / 不可产出魔法名）：`it/ipv6-ula`、`it/mime-type`（表为数组 filter）、`it/jwt-*`（固定字段）、`it/curl-parser`（固定字段）、`tools/quality/control-chart`（数值键）、`biz/text-extract-dates`（日期形态键）、`biz/text-extract-urls`（URL 形态键，不会恰为 `__proto__`）。
-
 
 ## 九、「`x || 默认值` 吞 0」与输入事件缺失（2026-11-05）
 

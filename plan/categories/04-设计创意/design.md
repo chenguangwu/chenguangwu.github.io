@@ -1,16 +1,10 @@
 # 设计创意 · tools/design（111 页）
 
-## 2026-11-06 已修记录独立复核（设计）
-
-- **D-N2：已于 2026-11-08 修复并移交 plan/已修复/2026-11-08-D-N2-配色生成器WCAG对比度.md。** 原 `renderPalette()` 用 YIQ 亮度阈值 (`>128` 选 `#333`/否则 `#fff`) 决定文字色，且虚标黑色对比度为按 `#000` 算的 5.32:1；修复后改为按 `#111` 真实相对亮度计算 WCAG 对比度（如 `#808080` 对 `#111`=4.78:1、对 `#fff`=3.95:1），按「白底/黑底」语义择高者并标注真实评级，图片导出同步修正；`node scripts/verify_design_calc.js` 该页 267/267 通过且无新增逃生项。此前的「仍待处理」结论以本次修复为准。
-- 验证：`node scripts/verify_design_calc.js color-palette-generator typography-scale color-temperature-converter color-shade-generator` 为 16/16；该脚本使用 DOM 桩，且 expect 为命中任一输出的子串断言，不能替代真实浏览器或画布导出验证。对比度数值另以独立 WCAG 公式计算。
-
 ## 2026-11-06 交互复核：相纸方向不匹配导致错误降级（中，确认）
 
 - 基线 `0781ef7e61`；独立 Chrome 在 `tools/design/photo-print-size.html` 选择 300 DPI，输入 1800×1300 后 6寸 (4R) 显示“基本可用”；交换为 1300×1800 即显示“像素充足”。相纸需要 1205×1796 像素，将横图旋转后两边均满足，二者应得到相同的像素判定。
 - 第 284–290 行固定将照片宽对相纸窄边、高对长边，没有测试旋转方向。页面和导出的充足判定应同时考虑宽高交换；这与本文件已记载的预设一像素误差和 CSV 恒“是”问题不同。
 
-## 已知问题
 ## 功能缺陷
 - 颜色工具缺「对比度检查 + 色盲模拟 + 十六进制锁」三合一（WCAG 2.2 达标标注）。
 - shadow-generator 预设过少（S2 补 Material/Neumorphism/Glassmorphism 风格预设）。
@@ -26,8 +20,6 @@
 ## 进度
 - 🟢 批次 04-b1（2026-10-26 · S2 风格预设首批）：`css-box-shadow-generator`（shadow-generator）+10 个设计系统风格预设（Material elevation-1/4、Neumorphism 亮/暗、Glassmorphism+ 描边、Brutalism 硬阴影、Tailwind sm/md/lg/xl 四档）+ 预设标签 EN（en 字段 + __isEn 渲染，存量 presetGrid 中文标签泄漏顺带治理）。verify +3 clicks 直调 applyPreset 用例（Neu 亮/Brutal/TW xl 整串锚，index 依赖 PRESETS 追加序）→ design 185→188、判别器 0、门禁 218/218。
 - 🔴 待开发
-
-## 2026-11-03 审计补充
 
 ### 设计像素尺寸非法时静默改为 1（中，确认缺陷）
 - 问题：清空、零或负数尺寸后页面仍给出 1 像素参与计算的比例和打印尺寸，而输入框未同步改值或显示错误。
@@ -64,8 +56,6 @@
 ### 覆盖
 - 本轮共核查 5 页：`tools/design/photo-aspect-ratio-calculator.html`、`tools/design/image-resizer.html`、`tools/design/image-dpi-converter.html`、`tools/design/photo-print-size.html`、`tools/design/svg-minifier.html`；本次新增 5 个缺陷、2 条嵌入式针对性建议。其他设计页及真实浏览器、移动端、线上状态未逐一验证。
 
-## 2026-11-03 续查：对比度、配色与字体预览
-
 ### 留存优化（按页落点，非确认缺陷）
 - `tools/design/contrast-checker.html`：缺「一键调到 AA/AAA 达标」——用户测出 3.9:1 后只能自己反复微调。建议给出最接近的达标前景/背景色候选（保持色相，只调亮度）、可对比并保存的历史色对，这是此类工具的主要留存点。
 - `tools/design/color-palette-generator.html`：色板只有 CSS 变量文本，无常驻「锁定色 + 再生成」与多格式导出（JSON/SVG/PNG）。建议加锁色、色板命名与导出，避免每次重新生成整组。
@@ -73,8 +63,6 @@
 
 ### 续查覆盖
 - 新抽查 `tools/design/contrast-checker.html`、`tools/design/color-palette-generator.html`、`tools/design/font-preview.html` 共 3 页，新增 5 条（0 条高优）与 3 条留存建议；为源码静态核查，未做浏览器、EN 运行态探针、移动端或门禁验证。
-
-## 2026-11-03 续查（并行批 G）
 
 ### 留存优化
 - `tools/design/depth-of-field-calculator.html`：补「套用超焦距」按钮（把对焦距离一键设为 h 并展示「近点 X 米 ~ ∞」），并画出近/远点与超焦距的相对位置；景深条目前已存在，只差数据闭环。
@@ -87,8 +75,6 @@
 ### 续查覆盖
 - 本轮抽查 7 页：`tools/design/depth-of-field-calculator.html`、`tools/design/focal-length-equivalent.html`、`tools/design/photo-storage-calculator.html`、`tools/design/spacing-scale.html`、`tools/design/image-rotator.html`、`tools/design/qr-code-styled.html`、`tools/design/px-to-rem.html`；另对 `tools/design/rem-to-px.html` 做同构源码对照（未单独列条）。
 - 新增 9 条（D-N6–D-N14，其中高优 2 条）与 6 条留存建议。证据均为源码行号 + node 内存复算或源码路径推演；未做浏览器交互、EN 运行态探针、移动端与门禁验证，涉及 Canvas/二维码回调的条目为静态确认而非运行态实测。
-
-## 2026-11-03 续查（并行批 J）
 
 ### 留存优化
 - `tools/design/breakpoint-queries.html`：断点值目前不可编辑（三档均为固定常量），建议开放自定义断点输入并回写预设，附 Tailwind/Bootstrap 对照表与「复制 CSS」按钮；另把 `vw/vh` 引据行与实际输出打通，避免引据表与产物无关。
@@ -130,9 +116,7 @@
 
 - 本轮实读 8 页（整份 HTML：内联 JS/CSS 生成逻辑、deep-dive、FAQ 全读）。
 - 新增 27 条：高 2（D-N92、D-N96）/ 中 20 / 低 5。
-- 高优均给出可复现输入：D-N92 点击预览无涟漪（旧实现 `.ripple` 无样式，第323批源码复核已不成立、视觉待真机）；D-N96 8×8 点击命中错位（匹配 65 个元素，`idx` 整体偏移 1）。
-  - **D-N92 已闭环**（第394批）：Chromium 真机点击实测——涟漪 span `position:absolute`/`border-radius:50%`/`rgba(255,255,255,0.5)`，Web Animations `playState=running`，420ms 时 scale 1.28、256×256、opacity 0.68；预览区平均亮度 132.03 → 163.84（+31.80），截图肉眼可见白色圆波；脉冲型 2 环 running；持续时长结束后自动移除、页面 0 错误。详见 `plan/已修复/2026-11-14-394-设计-涟漪视觉真机确认.md`。
-- 同族合并：D-N77 = favicon 两页历史恢复下载，已于第321批修复；D-N83 已于第323批核验为过期条目销账、D-N84 已于第323批修复（均为 initials 独有）；D-N86/D-N89 结果区无文本致历史/CSV 恒空，已于第319批修复（与 D-N59 同族，该条已于第320批修复）；D-N91/D-N99 已于第317批修复。
+- 高优均给出可复现输入：D-N96 8×8 点击命中错位（匹配 65 个元素，`idx` 整体偏移 1）。
 - 未覆盖：`tools/design` 其余约 44 页（本文件累计覆盖 64/108）。
 - 未做：浏览器交互、EN 运行态探针、移动端、门禁与线上验证；D-N96 的 DOM 命中顺序按标准文档序推演，未开浏览器。
 
@@ -248,8 +232,6 @@
 - 未覆盖：`tools/design/` 其余页面；未做浏览器渲染/交互、`?lang=en-US` 探针、移动端真机、`_build.py`/门禁与线上验证；未改任何源码、未做 git 写操作。
 
 ---
-
-## S 批（2026-11-04，8 页）
 
 ### 承诺 vs 实际（S 批专项）
 
