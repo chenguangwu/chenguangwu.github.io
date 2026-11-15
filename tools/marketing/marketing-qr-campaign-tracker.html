@@ -146,6 +146,31 @@
 
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__marketing_qr_campaign_trackerExport()">导出明细 CSV</button></div>
     <div class="result-box" id="result"></div>
+
+<div id="qrDataCard" style="margin-top:18px;border-top:1px dashed var(--border);padding-top:14px;">
+  <h3 style="font-size:15px;margin:0 0 6px;">📊 活动扫码与转化汇总（手工录入）</h3>
+  <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">为每个二维码填写曝光、扫码、转化；数据仅保存在本机浏览器，不上传服务器。</p>
+  <div class="toolbar" style="margin:0 0 10px;">
+    <button class="btn" type="button" onclick="qrAddRow()">+ 添加一行</button>
+    <button class="btn" type="button" onclick="qrExportRows()">导出汇总 CSV</button>
+    <button class="btn" type="button" onclick="qrClearRows()">清空</button>
+  </div>
+  <div style="overflow-x:auto;">
+    <table id="qrRowsTable" style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr>
+        <th style="text-align:left;padding:6px;">渠道/位置</th>
+        <th style="padding:6px;">曝光</th>
+        <th style="padding:6px;">扫码</th>
+        <th style="padding:6px;">转化</th>
+        <th style="padding:6px;">扫码率</th>
+        <th style="padding:6px;">转化率</th>
+        <th style="padding:6px;"></th>
+      </tr></thead>
+      <tbody id="qrRowsBody"></tbody>
+    </table>
+  </div>
+  <div id="qrRowsSummary" style="margin-top:10px;"></div>
+</div>
     <div id="marketing_qr_campaign_trackerTable"></div>
     <div id="marketing_qr_campaign_trackerDiff"></div>
     <div id="marketing_qr_campaign_trackerChart"></div>
@@ -184,6 +209,7 @@
 <dl class="dd-faq">
 <dt>一个活动为什么用多个码？</dt><dd>同活动多码可归因各渠道独立表现，避免把所有流量混在一起无法优化。</dd>
 <dt>扫码量低就是码不行？</dt><dd>不一定，受曝光位置与激励影响，应结合「曝光×扫码率」看，而非只看绝对数。</dd>
+<dt>扫码与转化数据从哪里来？</dt><dd>本工具只负责生成带 UTM 参数的追踪链接与<a class="term-link" href="/tools/it/qrcode.html">二维码</a>；扫码量、转化量需在网站统计或活动后台查看后，手工录入本页「活动扫码与转化汇总」，数据仅保存在本机浏览器。</dd>
 </dl>
 </div>
 </section>
@@ -238,14 +264,21 @@ function calc(){
     const __h0='<p>请输入落地页URL</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){r.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}r.innerHTML=__h0;
     return;
   }
-  const params = new URLSearchParams();
-  if(source) params.set('utm_source', source);
-  params.set('utm_medium', 'qrcode');
-  if(camp) params.set('utm_campaign', camp);
-  if(loc) params.set('location', loc);
-  if(qid) params.set('qr_id', qid);
-  const sep = baseUrl.includes('?') ? '&' : '?';
-  const trackUrl = baseUrl + sep + params.toString();
+  // 用 URL API 拼接：自动处理已有 ? / # 片段，set() 去重同名 UTM 参数
+  let trackUrl = '';
+  try{
+    const u = new URL(baseUrl);
+    if(!/^https?:$/.test(u.protocol)) throw new Error('bad protocol');
+    u.searchParams.set('utm_medium', 'qrcode');
+    if(source) u.searchParams.set('utm_source', source);
+    if(camp) u.searchParams.set('utm_campaign', camp);
+    if(loc) u.searchParams.set('location', loc);
+    if(qid) u.searchParams.set('qr_id', qid);
+    trackUrl = u.toString();   // hash 自动保留在末尾
+  }catch(e){
+    r.innerHTML = '<p style="color:var(--danger)">⚠ 请输入有效的 http/https 落地页 URL（如 https://example.com/promotion）。</p>';
+    return;
+  }
   // 二维码在浏览器本地生成（js/qrcode.js），不把落地页 URL 发给任何第三方
   let dataUrl = '';
   if (typeof qrcode !== 'undefined' &&
@@ -269,6 +302,77 @@ function calc(){
   const btn = document.getElementById('copyTrackBtn');
   if(btn) btn.addEventListener('click', function(){ ToolBox.copyText(trackUrl); });
 }
+/* ---- 活动扫码/转化手工汇总（本地 localStorage，不上传） ---- */
+var QR_ROWS_KEY='tb_qr_campaign_rows_v1';
+var qrRows=[];
+function qrLoadRows(){
+  try{ qrRows=JSON.parse(localStorage.getItem(QR_ROWS_KEY)||'[]'); }catch(e){ qrRows=[]; }
+  if(!Array.isArray(qrRows)||!qrRows.length) qrRows=[{name:'朋友圈'},{name:'公众号'},{name:'线下海报'}];
+  qrRows=qrRows.map(function(r){
+    r=r||{};
+    var f=function(v){v=+v;return isFinite(v)&&v>0?Math.round(v):0;};
+    return {name:String(r.name||''),imp:f(r.imp),scan:f(r.scan),conv:f(r.conv)};
+  });
+}
+function qrSaveRows(){ try{ localStorage.setItem(QR_ROWS_KEY,JSON.stringify(qrRows)); }catch(e){} }
+function qrRenderRows(){
+  var tb=document.getElementById('qrRowsBody'); if(!tb)return;
+  tb.innerHTML=qrRows.map(function(r,i){
+    return '<tr>'+
+      '<td style="padding:4px;"><input type="text" value="'+esc(r.name)+'" oninput="qrUpdate('+i+',\'name\',this.value)" style="width:100%;min-width:110px;padding:5px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);"></td>'+
+      ['imp','scan','conv'].map(function(k){
+        return '<td style="padding:4px;"><input type="number" min="0" step="1" value="'+r[k]+'" oninput="qrUpdate('+i+',\''+k+'\',this.value)" style="width:76px;padding:5px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);"></td>';
+      }).join('')+
+      '<td style="padding:4px;text-align:center;" id="qrRate'+i+'"></td>'+
+      '<td style="padding:4px;text-align:center;"><button class="btn" type="button" onclick="qrDelRow('+i+')" style="padding:3px 8px;">×</button></td>'+
+    '</tr>';
+  }).join('');
+  qrSummary();
+}
+function qrUpdate(i,k,v){
+  if(!qrRows[i])return;
+  if(k==='name') qrRows[i].name=v;
+  else { var n=+v; qrRows[i][k]=isFinite(n)&&n>0?Math.round(n):0; }
+  qrSaveRows(); qrSummary();
+}
+function qrSummary(){
+  var en=/^en/i.test(document.documentElement.lang||'');
+  var imp=0,scan=0,conv=0;
+  qrRows.forEach(function(r,i){
+    imp+=r.imp; scan+=r.scan; conv+=r.conv;
+    var cell=document.getElementById('qrRate'+i);
+    if(cell){
+      var sr=r.imp>0?r.scan/r.imp*100:0, cr=r.scan>0?r.conv/r.scan*100:0;
+      cell.innerHTML='<span style="'+(r.scan>r.imp?'color:var(--danger);':'')+'">'+(r.imp>0?sr.toFixed(1)+'%':'—')+' / '+(r.scan>0?cr.toFixed(1)+'%':'—')+'</span>';
+    }
+  });
+  var totalScan=imp>0?scan/imp*100:0, totalConv=scan>0?conv/scan*100:0;
+  var box=document.getElementById('qrRowsSummary');
+  if(box) box.innerHTML='<strong>'+(en?'Totals':'合计')+'</strong>：'+
+    (en?'impressions ':'曝光 ')+imp+'　'+(en?'scans ':'扫码 ')+scan+'　'+(en?'conversions ':'转化 ')+conv+'　'+
+    (en?'scan rate ':'扫码率 ')+(imp>0?totalScan.toFixed(1)+'%':'—')+'　'+
+    (en?'conversion rate ':'转化率 ')+(scan>0?totalConv.toFixed(1)+'%':'—');
+}
+function qrAddRow(){ qrRows.push({name:'',imp:0,scan:0,conv:0}); qrSaveRows(); qrRenderRows(); }
+function qrDelRow(i){ if(i<0||i>=qrRows.length)return; qrRows.splice(i,1); if(!qrRows.length)qrRows=[{name:'',imp:0,scan:0,conv:0}]; qrSaveRows(); qrRenderRows(); }
+function qrClearRows(){ if(!confirm('确定清空全部活动数据？'))return; qrRows=[{name:'',imp:0,scan:0,conv:0}]; qrSaveRows(); qrRenderRows(); }
+function qrExportRows(){
+  var en=/^en/i.test(document.documentElement.lang||'');
+  var rows=[[en?'Channel/Location':'渠道/位置',en?'Impressions':'曝光',en?'Scans':'扫码',en?'Conversions':'转化',en?'Scan rate':'扫码率',en?'Conversion rate':'转化率']];
+  qrRows.forEach(function(r){
+    rows.push([r.name,r.imp,r.scan,r.conv,r.imp>0?(r.scan/r.imp*100).toFixed(1)+'%':'—',r.scan>0?(r.conv/r.scan*100).toFixed(1)+'%':'—']);
+  });
+  var csv='\ufeff'+rows.map(function(r){return r.map(function(x){return '"'+String(x).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='qr-campaign-data.csv'; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); },1000);
+}
+qrLoadRows();
+document.addEventListener('DOMContentLoaded', function(){ qrRenderRows(); });
+['toolbox:langchange','toolbox:dictready'].forEach(function(ev){
+  window.addEventListener(ev, function(){ qrSummary(); });
+});
+
 document.addEventListener('DOMContentLoaded', calc);
 document.querySelectorAll('input,textarea').forEach(el => {
   el.addEventListener('input', calc);
