@@ -150,7 +150,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="💡 标语生成器">💡 Tagline Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按主题取模板库，随机抽选不重复模板并把占位符 [B] 全部替换为品牌名（未填则用 [品牌]）；生成条数受 count 与模板总数双重限制，遍历到已用模板则跳过重抽，输出条数 = min(count, 模板数)</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">输入主题、品牌名、产品、核心卖点与情感调性后，从「主题模板库」与「调性模板库」合并取候选，把 [B] 替换品牌名、[P] 替换产品、[F] 替换卖点（未填则用主题默认值），去重后随机抽取；输出条数 = min(count, 候选池条数)</div>
   <p class="formula-desc" data-zh="本生成器依据指定格式规范在前端按规则随机或确定性生成内容，结果可直接复制使用，数据不离开浏览器。 工具名称：标语生成器 - 营销推广领域的在线工具。">Generate concise taglines for products and campaigns.</p>
 </div>
 
@@ -164,6 +164,17 @@
     </select>
     <label>品牌名（可选）</label>
     <input type="text" id="brand" value="ToolBox" placeholder="如：Acme" style="margin-bottom:12px;">
+    <label>产品 / 品类（可选）</label>
+    <input type="text" id="product" value="" placeholder="如：运动手表" style="margin-bottom:12px;">
+    <label>核心卖点（可选）</label>
+    <input type="text" id="feature" value="" placeholder="如：记录心率" style="margin-bottom:12px;">
+    <label>情感调性</label>
+    <select id="tone" style="margin-bottom:12px;">
+      <option value="passion">热血</option>
+      <option value="warm">温暖</option>
+      <option value="minimal">极简</option>
+      <option value="professional">专业</option>
+    </select>
     <div class="slider-row">
       <label>数量</label>
       <input type="range" id="count" min="1" max="20" value="8" oninput="document.getElementById('countVal').textContent=this.value">
@@ -198,16 +209,17 @@
 <h2>📚 深度解析：标语生成器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>给产品一句话定位生成多条标语。</li>
-<li>按情感调性（热血/温暖/极简）出风格。</li>
-<li>对比候选标语做品牌测试。</li>
+<li>给新品起标语：填产品、核心卖点与调性，一次得到 20 条以内候选。</li>
+<li>同一卖点切换调性对比：热血、温暖、极简、专业四套语气。</li>
+<li>品牌测试前先批量出草稿，再由人工筛选与查重。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">运动手表</div><div class="dd-ex-body">输入「运动手表 / 记录心跳」→ 「记录每一次心跳」「为奔跑而生」「把坚持戴在手腕上」多条候选。</div></div>
-<div class="dd-example"><div class="dd-ex-title">极简调性</div><div class="dd-ex-body">输入「极简笔记 App」→ 「少一点，清一点」「记，仅此而已」，去修饰突出核心。</div></div>
+<div class="dd-example"><div class="dd-ex-title">运动手表（热血）</div><div class="dd-ex-body">品牌 Keep、产品「运动手表」、卖点「记录心率」、调性「热血」→ 输出如「Keep，让运动手表燃起来」「每一次记录心率，都算数」「为记录心率而生」「Keep：把不可能变成记录心率」等；候选池为 8 条主题模板 + 12 条调性模板，按设定条数随机抽取。</div></div>
+<div class="dd-example"><div class="dd-ex-title">极简笔记 App</div><div class="dd-ex-body">产品「笔记 App」、卖点「只记重点」、调性「极简」→ 输出如「笔记 App，仅此而已」「只记重点，就够了」「少即是多」「笔记 App：只记重点」等，去修饰突出核心。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>标语和口号区别？</dt><dd>标语更短、长期绑定品牌（如 Slogan），口号可随活动变；本工具偏品牌向短句。</dd>
 <dt>生成结果能注册商标吗？</dt><dd>不保证。通用短句难注册，正式使用前需查重与法务确认。</dd>
+<dt>产品与卖点不填会怎样？</dt><dd>会用主题默认词（如科技=智能设备/把复杂变简单）补位，仍能出句，但针对性较弱；建议至少填写产品与一个卖点。</dd>
 </dl>
 </div>
 </section>
@@ -256,24 +268,45 @@ const TEMPLATES={
   service:['[B]，用心服务每一天','选择 [B]，放心无忧','[B]，专业值得信赖','[B] - 你身边的专家','与 [B] 携手，共赢未来','[B]，服务至上','[B]，让生活更轻松','信赖 [B]，信赖未来'],
   lifestyle:['[B]，让生活更美好','[B]，简单生活之道','[B] - 慢下来，享受生活','与 [B] 一起，活出自我','[B]，点亮你的每一天','[B]，平衡的艺术','[B]，发现生活的小确幸','[B]，让每个瞬间闪光']
 };
+const TONE_TEMPLATES={
+  passion:['为[F]而生','[B]，让[P]燃起来','每一次[F]，都算数','把[F]做到极致','[P]，就该全力以赴','[B]，为[F]而战','[F]到底，[B]陪你','[B]：把不可能变成[F]','[P]这件事，[B]认真了','[F]，是[P]的底色','[B]，让[F]成为习惯','冲一次[F]，值了'],
+  warm:['[B]，陪你每一次[F]','[F]，是最温柔的坚持','把[P]过成喜欢的样子','[B]，懂你的[P]','[F]，慢慢来也很好','[B]，把[F]放在心里','有[P]，就有[F]','[F]的日子，[B]在','[B]：让[F]有温度','[P]不必完美，[F]就好','[B]，和你一起[F]','[F]，从[P]开始'],
+  minimal:['[P]，仅此而已','[F]，就够了','[B]。少即是多','只做[F]这一件事','[P]，刚刚好','[B]，[F]而已','不多不少，[F]就好','[P]：[F]','[B]——把[F]说清楚','[F]，然后没了','[P]，简单点','[B]，[F]就位'],
+  professional:['[F]，经得起检验','[B]，[P]的专业之选','用数据说话：[F]','[P]，交给[B]','[F]，按标准做到位','[B]：让[F]可复核','[F]有据，[P]有底','专业[F]，选[B]','[B]，把[F]做扎实','[F]这件事，[B]讲证据','[P]的[F]，看得见','[B]：[F]的标准答案']
+};
+const THEME_DEFAULTS={
+  tech:{p:'智能设备',f:'把复杂变简单'},
+  food:{p:'这一餐',f:'新鲜好味道'},
+  fashion:{p:'日常穿搭',f:'好看又自在'},
+  service:{p:'服务',f:'省心省力'},
+  lifestyle:{p:'日常',f:'简单生活'}
+};
 function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
 function pick(arr){return arr[randInt(arr.length)];}
 function generate(){
   const theme=document.getElementById('theme').value;
-  const brand=document.getElementById('brand').value.trim()||'[品牌]';
+  const brandInput=document.getElementById('brand').value.trim();
+  const productInput=document.getElementById('product').value.trim();
+  const featureInput=document.getElementById('feature').value.trim();
+  const tone=document.getElementById('tone').value;
   const count=parseInt(document.getElementById('count').value);
-  const templates=TEMPLATES[theme];
+  const def=THEME_DEFAULTS[theme]||{p:'产品',f:'好用'};
+  const brand=brandInput||productInput||'[品牌]';
+  const product=productInput||def.p;
+  const feature=featureInput||def.f;
+  function fill(t){return t.replace(/\[B\]/g,brand).replace(/\[P\]/g,product).replace(/\[F\]/g,feature);}
+  const pool=Array.from(new Set((TEMPLATES[theme]||[]).concat(TONE_TEMPLATES[tone]||[]).map(fill)));
   const used=new Set();
   let html='';
   let i=0;
-  while(i<count&&used.size<templates.length){
-    const t=pick(templates);
+  while(i<count&&used.size<pool.length){
+    const t=pick(pool);
     if(used.has(t))continue;
     used.add(t);
-    const slogan=t.replace(/\[B\]/g,brand);
-    html+='<div class="code-row">"'+escapeHtml(slogan)+'"</div>';
+    html+='<div class="code-row">"'+escapeHtml(t)+'"</div>';
     i++;
   }
+  html+='<div style="margin-top:10px;font-size:13px;color:var(--text-light);">'+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Candidates: ':'候选池：')+pool.length+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?' taglines':' 条')+'</div>';
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}

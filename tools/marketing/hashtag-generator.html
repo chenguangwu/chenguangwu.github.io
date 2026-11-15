@@ -190,15 +190,16 @@
 <h2>📚 深度解析：话题标签生成器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>发社交内容时批量生成相关标签提升曝光。</li>
-<li>按主题词扩展出长尾标签组合覆盖更多搜索。</li>
-<li>对比不同标签组合的覆盖人群做 A/B。</li>
+<li>中文关键词按内置词库扩展长尾标签：健身减脂 → 减脂餐、居家健身、新手健身等。</li>
+<li>英文关键词按复数规则生成：beach → beaches、city → cities，shoes 这类已复数词保持不变。</li>
+<li>配合年份、多词组合与 emoji 开关，批量准备一组发布用标签。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">主题扩展</div><div class="dd-ex-body">输入「健身减脂」→ 生成 #健身减脂 #减脂餐 #居家健身 #新手健身 #运动打卡 #刷脂训练，覆盖教程、饮食、打卡多场景。</div></div>
-<div class="dd-example"><div class="dd-ex-title">长尾组合</div><div class="dd-ex-body">主标签 + 量级标签 + 人群标签组合：#穿搭 + #小个子女生穿搭 + #平价穿搭，精准触达细分人群。</div></div>
+<div class="dd-example"><div class="dd-ex-title">中文词库扩展</div><div class="dd-ex-body">输入「健身减脂」、每词变体数 5 → #健身减脂 #减脂餐 #居家健身 #新手健身 #运动打卡；词库未收录的关键词改用中文后缀（分享/推荐/攻略/日常/打卡），不会再出现「#关键词s」。</div></div>
+<div class="dd-example"><div class="dd-ex-title">英文复数与后缀</div><div class="dd-ex-body">输入「shoes, beach, city」、变体数 3 → #shoes（已是复数不再加 s）#beach #beaches #beachLife #city #cities #cityLife；后缀只随机取一次，不会拼出 Vife 这类非词。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>标签越多越好吗？</dt><dd>不是。堆 30 个无关标签会被降权，建议 5–10 个高度相关、由宽到窄分层。</dd>
+<dt>中文标签会加英文复数吗？</dt><dd>不会。中文关键词走中文词库或中文后缀，只有英文关键词才按 s/es/去 y 变 ies 的规则处理。</dd>
 <dt>标签能带来真实流量吗？</dt><dd>仅辅助发现，内容质量与发布时机才是核心，标签应贴合正文主题。</dd>
 </dl>
 </div>
@@ -242,7 +243,33 @@
 </div>
 <script>
 const EMOJIS=['✨','🔥','💫','🌊','☀️','🌴','❤️','🌟','📸','🎉','💡','🚀','🌸','🍃'];
+const ZH_EXPAND={
+  '健身减脂':['减脂餐','居家健身','新手健身','运动打卡','刷脂训练'],
+  '健身':['健身餐','居家健身','新手健身','运动打卡','增肌训练'],
+  '减脂':['减脂餐','居家减脂','新手减脂','减脂打卡','刷脂训练'],
+  '穿搭':['小个子女生穿搭','平价穿搭','通勤穿搭','秋冬穿搭','微胖穿搭'],
+  '旅行':['旅行攻略','周末旅行','小众旅行','旅行拍照','旅行vlog'],
+  '美食':['美食探店','家常美食','美食教程','低卡美食','美食日记'],
+  '护肤':['护肤攻略','平价护肤','新手护肤','晚间护肤','换季护肤'],
+  '宠物':['宠物日常','养猫经验','养狗经验','宠物用品','宠物健康'],
+  '学习':['学习方法','高效学习','新手入门','学习打卡','干货分享']
+};
+const ZH_SUFFIX=['分享','推荐','攻略','日常','打卡','新手','合集','技巧'];
+const EN_SUFFIX=['life','vibes','lover','gram','daily','mood'];
+const ZH_KEYS=Object.keys(ZH_EXPAND).sort(function(a,b){return b.length-a.length;});
 function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
+function pluralize(w){
+  const s=w.toLowerCase();
+  if(/[^aeiou]y$/.test(s)) return s.slice(0,-1)+'ies';
+  if(/(ss|us)$/.test(s)) return s+'es';
+  if(/s$/.test(s)) return s;
+  if(/(x|z|ch|sh)$/.test(s)) return s+'es';
+  return s+'s';
+}
+function zhPool(kw){
+  for(const k of ZH_KEYS){ if(kw.indexOf(k)>=0) return ZH_EXPAND[k]; }
+  return ZH_SUFFIX.map(function(s){return kw+s;});
+}
 function generate(){
   const text=document.getElementById('text').value.trim();
   if(!text){alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a keyword":"请输入关键词"));return;}
@@ -255,27 +282,26 @@ function generate(){
   const yearStr=String(new Date().getFullYear());
   const tags=new Set();
   for(const kw of keywords){
-    // base form
+    const isZh=/[\u4e00-\u9fff]/.test(kw);
     const base=lower?kw.toLowerCase():kw;
-    tags.add('#'+(camel?base.charAt(0).toUpperCase()+base.slice(1):base));
-    // variant 1: plural
-    if(variants>=2){
-      tags.add('#'+base+'s');
+    tags.add('#'+(camel&&!isZh?base.charAt(0).toUpperCase()+base.slice(1):base));
+    if(isZh){
+      const pool=zhPool(kw);
+      for(let v=1;v<variants&&v<=pool.length;v++) tags.add('#'+pool[v-1]);
+      if(year) tags.add('#'+base+yearStr);
+    }else{
+      if(variants>=2) tags.add('#'+pluralize(base));
+      if(variants>=3){
+        const suf=EN_SUFFIX[(variants-3)%EN_SUFFIX.length];
+        tags.add('#'+base+(lower?suf:suf.charAt(0).toUpperCase()+suf.slice(1)));
+      }
+      if(variants>=4) tags.add('#'+base+(lower?'daily':'Daily'));
+      if(year) tags.add('#'+base+yearStr);
     }
-    // variant 2: with "life" / "vibes" / "lover"
-    if(variants>=3){
-      const suffixes=['life','vibes','lover','gram','daily','mood'];
-      tags.add('#'+base+(lower?suffixes[randInt(suffixes.length)]:suffixes[randInt(suffixes.length)].charAt(0).toUpperCase()+suffixes[randInt(suffixes.length)].slice(1)));
-    }
-    // variant 3: with year
-    if(variants>=4&&year){
-      tags.add('#'+base+yearStr);
-    }
-    // variant 4: combined with random other keyword
     if(variants>=5&&keywords.length>1){
-      let other=keywords[randInt(keywords.length)];
-      while(other===kw)other=keywords[randInt(keywords.length)];
-      tags.add('#'+base+(lower?'':String.fromCharCode(65+randInt(26)))+other.toLowerCase());
+      const other=keywords[(keywords.indexOf(kw)+1)%keywords.length];
+      const o=lower?other.toLowerCase():other;
+      tags.add('#'+base+(camel&&!isZh?o.charAt(0).toUpperCase()+o.slice(1):o));
     }
   }
   if(year){tags.add('#'+yearStr);}

@@ -147,7 +147,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📣 口号生成器">📣 Slogan Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按场景取标语库，随机抽选并写入已用集合去重（抽到重复则跳过重抽）；输出条数 = min(设定条数, 库容量)；每条在末尾追加感叹号</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">输入场景、产品、核心卖点与调性后，从「场景句库」与「调性模板库」合并取候选，把 [P] 替换产品、[F] 替换卖点（未填用场景默认词），去重后随机抽取；输出条数 = min(设定条数, 候选池条数)，每条末尾追加感叹号</div>
   <p class="formula-desc" data-zh="本生成器依据指定格式规范在前端按规则随机或确定性生成内容，结果可直接复制使用，数据不离开浏览器。 工具名称：口号生成器 - 营销推广领域的在线工具。">Generate brand slogans and taglines from keywords and tone.</p>
 </div>
 
@@ -158,6 +158,17 @@
       <option value="campaign">活动</option>
       <option value="team">团队</option>
       <option value="sales">促销</option>
+    </select>
+    <label>产品 / 服务（可选）</label>
+    <input type="text" id="product" value="" placeholder="如：咖啡" style="margin-bottom:12px;">
+    <label>核心卖点（可选）</label>
+    <input type="text" id="feature" value="" placeholder="如：提神" style="margin-bottom:12px;">
+    <label>调性</label>
+    <select id="tone" style="margin-bottom:12px;">
+      <option value="young">年轻活力</option>
+      <option value="professional">专业可信</option>
+      <option value="warm">温暖治愈</option>
+      <option value="humor">幽默</option>
     </select>
     <div class="slider-row">
       <label>数量</label>
@@ -193,16 +204,17 @@
 <h2>📚 深度解析：口号生成器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>按品牌/产品/调性生成多条候选口号。</li>
-<li>不同场景（年轻/专业/温暖）出不同风格。</li>
-<li>A/B 候选口号做投放测试。</li>
+<li>给品牌或产品起口号：填产品、核心卖点与调性，一次得到 20 条以内候选。</li>
+<li>同一卖点切换调性对比：年轻活力、专业可信、温暖治愈、幽默。</li>
+<li>活动与促销场景可只选场景库，快速拿到通用句。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">咖啡品牌</div><div class="dd-ex-body">输入「咖啡 / 年轻 / 提神」→ 「每一口，醒来的理由」「年轻就要醒着拼」「三秒回血，一杯到位」多条候选。</div></div>
-<div class="dd-example"><div class="dd-ex-title">专业调性</div><div class="dd-ex-body">输入「财税软件 / 专业 / 可信」→ 「让每一笔账都经得起查」「专业的事，交给算得清的软件」。</div></div>
+<div class="dd-example"><div class="dd-ex-title">咖啡品牌（年轻）</div><div class="dd-ex-body">场景促销、产品「咖啡」、卖点「提神」、调性「年轻活力」→ 输出如「咖啡，把提神变成日常」「提神这件事，咖啡是认真的」「年轻就要提神」「咖啡，让提神拉满」等；候选池为 10 条场景句 + 10 条调性句，按设定条数随机抽取。</div></div>
+<div class="dd-example"><div class="dd-ex-title">财税软件（专业）</div><div class="dd-ex-body">产品「财税软件」、卖点「每笔账可查」、调性「专业可信」→ 输出如「财税软件，让每笔账可查经得起检验」「每笔账可查，交给财税软件」「财税软件：每笔账可查的标准答案」等。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>生成的口号能直接用吗？</dt><dd>作灵感草稿，需核对是否侵权/误导，并做小范围测试，本工具不保证注册可用。</dd>
 <dt>怎么选口号？</dt><dd>按记忆点+利益点+不违和筛选，再用点击/转化 A/B 定最终。</dd>
+<dt>不填产品和卖点会怎样？</dt><dd>会用场景默认词（如励志=我们/坚持）补位，仍能出句但针对性较弱；建议至少填写产品与一个卖点。</dd>
 </dl>
 </div>
 </section>
@@ -251,22 +263,43 @@ const SLOGANS={
   team:['团结协作，共赢未来','同心协力，再创佳绩','凝聚力量，成就梦想','协作无间，战无不胜','一起更好','同心同德，携手前行','我们是冠军','团结就是力量','携手并进，共铸辉煌','齐心协力，无所不能'],
   sales:['限时优惠，错过即无','超值特价，速来抢购','买一送一，机不可失','疯狂折扣，全场低价','今日特惠，仅此一天','满减优惠，买就赚','清仓大甩卖，先到先得','零利润，真心惠','年底大促，惠不可挡','惊喜折扣，等你来拿']
 };
+const TONE_TEMPLATES={
+  young:['[P]，把[F]变成日常','[F]这件事，[P]是认真的','年轻就要[F]','[P]，让[F]拉满','[P]一出手，[F]全都有','[F]自由，[P]承包','和[P]一起，[F]上头','[P]，[F]的最佳搭子','[P]，[F]从不缺席','[P]：把[F]做成习惯'],
+  professional:['[P]，让[F]经得起检验','[F]，交给[P]','[P]：[F]的标准答案','每一份[F]，都算得清','[P]，[F]有据可依','专业[F]，选[P]','[P]：把[F]做到位','[F]这件事，[P]讲证据','[P]，让[F]可复核','[F]标准，[P]执行'],
+  warm:['[P]，陪你[F]每一天','[F]，是[P]给的温柔','[P]，慢慢[F]也很好','把[F]留给[P]','[P]在，[F]就在','[F]的日子，有[P]','[P]，懂你的每一次[F]','[F]，从[P]开始','和[P]一起[F]','[P]：让[F]有温度'],
+  humor:['[P]：[F]界卷王','[F]好不好，[P]说了算','别问，问就是[F]','[P]，真的会谢[F]','[F]这件事，[P]是专业的（大概）','[P]出手，[F]发抖','[F]自由，[P]买单','[P]：除了[F]，别的不会','[F]人，[P]魂','[P]，把[F]进行到底']
+};
+const SCENE_DEFAULTS={
+  motivation:{p:'我们',f:'坚持'},
+  sports:{p:'每一次训练',f:'突破'},
+  campaign:{p:'每个人',f:'善意'},
+  team:{p:'团队',f:'协作'},
+  sales:{p:'这份好物',f:'实惠'}
+};
 function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
 function pick(arr){return arr[randInt(arr.length)];}
 function generate(){
   const scene=document.getElementById('scene').value;
   const count=parseInt(document.getElementById('count').value);
-  const list=SLOGANS[scene];
+  const productInput=document.getElementById('product').value.trim();
+  const featureInput=document.getElementById('feature').value.trim();
+  const tone=document.getElementById('tone').value;
+  const def=SCENE_DEFAULTS[scene]||{p:'产品',f:'好用'};
+  const product=productInput||def.p;
+  const feature=featureInput||def.f;
+  function fill(t){return t.replace(/\[P\]/g,product).replace(/\[F\]/g,feature);}
+  const pool=Array.from(new Set((SLOGANS[scene]||[]).concat((TONE_TEMPLATES[tone]||[]).map(fill))));
   const used=new Set();
   let html='';
   let i=0;
-  while(i<count&&used.size<list.length){
-    const s=pick(list);
+  while(i<count&&used.size<pool.length){
+    const s=pick(pool);
     if(used.has(s))continue;
     used.add(s);
     html+='<div class="code-row">'+escapeHtml(s)+'!</div>';
     i++;
   }
+  html+='<div style="margin-top:10px;font-size:13px;color:var(--text-light);">'+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Candidates: ':'候选池：')+pool.length+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?' slogans':' 条')+'</div>';
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
