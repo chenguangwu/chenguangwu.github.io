@@ -1289,6 +1289,47 @@ const CASES = [
     ref: "SMS-62：恒定序列早退时旧实现不调用 __ccExtras，散点图/明细/差异/历史保留上一次结果，且强度卡仍输出「几乎无线相关」。修复后主算早退统一 __ccClear()；本探针先注入旧表格内容再触发恒定序列，验「停答 + 清空」两个行为同时成立，旧版必 BAD。默认态不执行 clicks ⇒ 零逃生。"
   },
 
+  // SMS-63：决定系数 r 越界必须停答，且主算与附加层不再各算一套
+  {
+    slug: "statistics/correlation-r-squared",
+    inputs: { r: "2" },
+    expect: ["相关系数 r 必须是 −1 到 1 之间的数值"],
+    ref: "SMS-63：旧主算不校验 r，r=2 输出 R²=4.0000、未解释变异 −3.000000、解释力 400.0000%；附加层却把 r 截到 1 输出 R²=1，同页两套结论。修复后主算停算提示并清空五面板，附加层与参考曲线同源校验；默认 r=0.8 不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/correlation-r-squared",
+    inputs: { r: "bad" },
+    expect: ["相关系数 r 必须是 −1 到 1 之间的数值"],
+    ref: "SMS-63：旧 num() 把非数按 0 兜底，输入 bad 仍输出 R²=0.0000 与 VIF=1.000000，看似一次有效计算。修复后严格解析，非数直接停算；默认态不含提示 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/correlation-r-squared",
+    inputs: { r: "0.6" },
+    expect: ["0.3600 决定系数 R²"],
+    ref: "SMS-63 回归：合法输入 r=0.6 → R²=0.36、未解释 0.64、解释力 36%。默认 r=0.8 得 0.6400 ⇒ 注入失败即变红，零逃生。"
+  },
+  {
+    slug: "statistics/correlation-r-squared",
+    inputs: { r: "0.7" },
+    clicks: ["var c=document.getElementById('crChart'),t=document.getElementById('crTable');c.innerHTML='旧曲线残留';t.innerHTML='旧表残留';document.getElementById('r').value='2';calcTool();var ok=c.innerHTML===''&&t.innerHTML===''&&typeof __crClear==='function'&&String(__crExtras).indexOf('Math.max(-1,Math.min(1,r))')<0;document.getElementById('__tbProbe').textContent='CRCLR '+(ok?'OK':'BAD');"],
+    expect: ["CRCLR OK"],
+    ref: "SMS-63：旧实现早退不清面板、附加层静默截断 r。本探针先注入旧曲线与旧表，再触发越界输入，验「清空 + 不再截断」两件事同时成立；旧版必 BAD。默认态不执行 clicks ⇒ 零逃生。"
+  },
+  // SMS-64：合并方差无效输入必须清空全部面板
+  {
+    slug: "statistics/pooled-variance",
+    inputs: { n1: "0", s1: "2", n2: "12", s2: "3" },
+    clicks: ["var c=document.getElementById('pvChart'),d=document.getElementById('pvDiff'),t=document.getElementById('pvTable');c.innerHTML='旧图残留';d.innerHTML='旧差异残留';t.innerHTML='旧表残留';calcTool();var ok=c.innerHTML===''&&d.innerHTML===''&&t.innerHTML===''&&typeof __pvClear==='function';document.getElementById('__tbProbe').textContent='PVCLR '+(ok?'OK':'BAD');"],
+    expect: ["PVCLR OK"],
+    ref: "SMS-64：旧主算两处早退只清 pvTable，附加层遇无效值直接 return，图表与差异面板保留上一次结果。修复后三处共用 __pvClear() 清 pvChart/pvTable/pvDiff/pvHist；本探针注入旧内容后触发 n1=0 验证清空，旧版必 BAD。默认态不执行 clicks ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/pooled-variance",
+    inputs: { n1: "0", s1: "2", n2: "12", s2: "3" },
+    expect: ["样本量 n₁、n₂ 必须各自 ≥ 2"],
+    ref: "SMS-64 回归：n1=0 必须停算提示，不得给出合并方差；默认 10/2、12/3 得 6.750 不含该串 ⇒ 零逃生。"
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
