@@ -136,6 +136,31 @@ const CASES = [
   "inputs": { "usl_m": "10", "lsl_m": "0", "mean_m": "11", "sd_m": "1" },
   "expect": ["841,345"],
   "ref": "12-M8 越界：均值 11（超 USL 1σ），超上规概率 Φ(1)=84.13% ⇒ 841,345 PPM（下限侧概率≈0）。旧实现固定 1,000,000。默认手工档 10.0±0.1 不命中。"
+},
+{
+  "slug": "quality/ppm-calculator",
+  "inputs": { "defect": "-5", "total": "8000" },
+  "expect": ["不合格品数须在 0 与总数之间"],
+  "ref": "负不合格品数：旧实现只校验 N>0，-5/8000 会算出 −625 PPM 并给西格玛水平；现要求 0≤d≤N，非法即清空结果并提示。默认 12/8000 不命中。"
+},
+{
+  "slug": "quality/ppm-calculator",
+  "inputs": { "defect": "9000", "total": "8000" },
+  "expect": ["不合格品数须在 0 与总数之间"],
+  "ref": "不合格数超过总数：旧实现照算 112.5% / 1,125,000 PPM；现拦截 d>N。默认 12/8000 不命中。"
+},
+{
+  "slug": "quality/ppm-calculator",
+  "inputs": { "ppm": "2000000" },
+  "clicks": ["fromPpm();var t=String(document.getElementById('rateResult').innerHTML);document.getElementById('__tbProbe').textContent='PPMLIM '+((t.indexOf('0~1000000')>=0)?'OK':'BAD');"],
+  "expect": ["PPMLIM OK"],
+  "ref": "比率模式：PPM 2,000,000 折合率 2，旧实现照算 200% 并给西格玛；现限定缺陷率 0~1（PPM 0~1,000,000），越界提示并停止换算。默认 1,500 PPM 不命中。"
+},
+{
+  "slug": "quality/ppm-calculator",
+  "clicks": ["__ppmMode='rate';var got='';var old=ToolBox.copyText;ToolBox.copyText=function(t){got=String(t);};try{copyAll();}catch(e){}ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='PPMCOPY '+((got.indexOf('PPM / DPMO')>=0&&got.indexOf('d / N')<0)?'OK':'BAD');"],
+  "expect": ["PPMCOPY OK"],
+  "ref": "复制结果按当前页签取值：切换页签时 switchMode 写入 __ppmMode，旧实现永远优先 countResult，切到比率页仍复制数量模式的 d/N 结果；现按当前模式选择 rateResult。"
 }
 ];
 async function main() {

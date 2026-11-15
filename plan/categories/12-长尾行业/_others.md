@@ -97,7 +97,7 @@
 - `tools/property/cycle-10.html:359-365,371-383`：`new Date('YYYY-MM-DD')` 以 UTC 解读而后用本地 `setDate` 计算到期，西半球可能提前一天；距到期 1–2 天也标作「今日到期」。`:487-515,522-533` 巡检保存以数组下标定位，巡检中删路线或清空后再完成会引用错误路线或空值。
 - `tools/property/cycle-10.html:386-398,476-484`：用户可编辑检查点，导出时未转义即拼入 `tr.innerHTML`，存在 HTML 注入点；未运行攻击载荷。应以文本节点构建表格。
 - `tools/property/cycle-elevator.html:320-332,380-388`：未来日期的维保记录可保存并被选为最新记录，后续到期日由未来日期推算，可能掩盖当前逾期；应校验记录日期并按业务确定排程。
-- `tools/quality/ppm-calculator.html:276-293,302-320,344-350`：数量与比例未校验范围，负不合格数或超过总数仍计算；复制永远优先 countResult，切到比率页仍可能复制数量模式的旧结果。
+- `tools/quality/ppm-calculator.html:268-269,292-293,335-343`（已修，710 批）：数量模式要求 0≤d≤N，比率模式要求缺陷率 0~1（PPM 0~1,000,000，百分比 0~100），越界即提示并停止换算；复制结果改按 `__ppmMode` 取当前页签对应结果，切到比率页不再复制数量模式旧值。
 - `tools/quality/process-capability.html:281-288,354-360,374-395,435-442`：通用守卫要求隐藏模式的输入也非空；数据模式复制却重算直接输入模式；USL≤LSL 未拒绝，样本解析也会丢弃无效片段。可能出现复制与屏幕不一致及虚假合格率。
 - `tools/quality/six-sigma.html:259-270,288-295`：DPMO>1000000 或负合格率通过后被钳制为接近零的合格率，原无效数仍展示；短期水平超过 6 输入保留原值而结果钳到 6。需明确边界及同步口径。
 
@@ -854,26 +854,14 @@
 ### 12-N60 dentistry/caries-risk：风险色带分区与文字分级不一致（已修，709 批）
 - 现状：同页 `:21` `.risk-bar` 渐变边界由 20/40/60/80 改为 25/50/75，并去掉多余浅绿带，与图例「低<25 / 中25-49 / 高50-74 / 极高≥75」对齐；marker 仍按 riskScore 百分比定位，50 分起进入橙色高风险带、75 分起转红。测试桩不含 style 节点，该条以源码与 build 复核。
 
-### 12-N61 dentistry/caries-risk：deep-dive FAQ 的“九大因素”与实际录入的九项不一致（中，确认缺陷）
-- 问题：`:265` 列“龋病经历、乳糖摄入、变异链球菌、氟暴露、缓冲能力、唾液流率、糖代谢菌、社会因素、既往充填”；页面实际九项为龋病经历、全身疾病、饮食内容、饮食频率、菌斑量、变链菌、氟暴露、唾液分泌量、唾液缓冲力（`:140-219`）。FAQ 多出“乳糖摄入/糖代谢菌/社会因素/既往充填”，缺“全身疾病/饮食内容/饮食频率/菌斑量/唾液分泌量”。
-- 证据：`tools/dentistry/caries-risk.html:140-219`、`:265`
-- 复现：对照 FAQ 与页面输入项，9 项中有 4 项对不上；用户按 FAQ 找不到“社会因素”输入。
-- 影响：教学口径与工具输入错位，用户误以为漏填了因素。
-- 方案：FAQ 改为与页面九项逐字一致；若保留 Cariogram 原始术语，另加“本工具映射说明”。
+### 12-N61 dentistry/caries-risk：deep-dive FAQ 的“九大因素”与实际录入的九项不一致（已修，710 批）
+- 现状：`i18n/tools/content_deepdive.json` 中 `dentistry/caries-risk` 的 FAQ 改为与录入一致的九项（龋病经历、全身疾病、饮食内容、饮食频率、菌斑量、变链菌、氟暴露、唾液分泌量、唾液缓冲力），深解算例的输入描述同步；重新 build 后写入页面。
 
-### 12-N62 dentistry/caries-risk：口腔工具被标为 cat=finance / FinanceApplication（低，确认缺陷）
-- 问题：`<meta name="toolbox" content="cat=finance,industry=dentistry,...">`（`:9`），JSON-LD `applicationCategory` 为 `FinanceApplication`（`:42`）。与同目录其他口腔工具及医疗分类错配。
-- 证据：`tools/dentistry/caries-risk.html:9`、`:42`
-- 复现：构建后该页进入财务分类，口腔医学分类下不出现；JSON-LD 类型为金融应用。
-- 影响：分类页/SEO 错配，目标用户发现路径错误。
-- 方案：改为与同目录口腔工具一致的 `cat=health`（或医疗分类键），JSON-LD 改 `MedicalWebApplication`/`HealthApplication`；跑 `_build.py`。
+### 12-N62 dentistry/caries-risk：口腔工具被标为 cat=finance / FinanceApplication（已修，710 批）
+- 现状：`tools/dentistry/caries-risk.html:9` 与 zh-tw 同名页改为 `cat=calculator,industry=dentistry`（与同目录 5 个评分类口腔工具一致），JSON-LD `applicationCategory`（`:42`）改为 `UtilitiesApplication`；不再落在财务分类。
 
-### 12-N63 dentistry/caries-risk：`i18nText()` 无参调用 + 首屏英文仅 “Caries Risk” + tool-intro 套话（低，确认缺陷）
-- 问题：`resetAll()` 调 `ToolBox.showToast(i18nText())`（`:357`）、`copyResult()` 调 `ToolBox.copyText(..., i18nText())`（`:362`），均未传 key；`<p data-zh="综合九大…">Caries Risk</p>`（`:132`）英文态只剩名称；tool-intro 简介以“。。”结尾并带“基于权威医学标准”（`:409`）。
-- 证据：`tools/dentistry/caries-risk.html:132`、`:357`、`:362`、`:409`
-- 复现：点“重置”/“复制结果” → toast/复制提示取不到文案（可能为空或 undefined）；`?lang=en-US` → 标题下仅 “Caries Risk”。
-- 影响：交互反馈缺失；英文简介与内容质量受损。
-- 方案：补 `i18nText('toast.reset')`/`i18nText('toast.copy')` 等真实 key；补英文简介；清理“。。”与套话。
+### 12-N63 dentistry/caries-risk：`i18nText()` 无参调用 + 首屏英文仅 “Caries Risk” + tool-intro 套话（已修，710 批）
+- 现状：同页 `:350-368` 新增 `__cariesIsEn()`，重置 toast 直出「已重置九项因素 / Reset all nine factors」，复制结果与提示按中英分别输出完整文本；`:121` 英文副标题补为九因素加权说明；`:414` 工具简介去掉「。。」与「基于权威医学标准」套话，改为模型说明与免责声明。门禁用例断言复制文本与重置提示均非空。
 
 **留存/优势（dentistry/caries-risk）**
 - 九因素逐项下拉 + 权重公式公开，评估过程透明。
