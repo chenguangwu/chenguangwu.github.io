@@ -222,10 +222,9 @@
       </div>
       <div class="explain-section">
         <h4>计算公式</h4>
-        <div class="formula-box">价格弹性 = (需求量变动%) ÷ (价格变动%)</div>
-        <p>需求量变动% = (新销量 - 原销量) ÷ 原销量 × 100%</p>
-        <p>价格变动% = (新价 - 原价) ÷ 原价 × 100%</p>
-        <p>例如：价格从100降到90（-10%），销量从1000升到1200（+20%），弹性 = 20% ÷ (-10%) = -2</p>
+        <div class="formula-box">价格弹性（弧弹性中点法）= [(Q₂−Q₁) ÷ ((Q₁+Q₂)/2)] ÷ [(P₂−P₁) ÷ ((P₁+P₂)/2)]</div>
+        <p>结果区的「价格变动 / 销量变动」仍按相对期初的简单百分比显示：(新值 − 旧值) ÷ 旧值 × 100%</p>
+        <p>例如：价格从100降到90，销量从1000升到1200；按中点法 销量变动≈+18.2%、价格变动≈−10.5%，弹性 ≈ −1.73</p>
       </div>
       <div class="explain-section">
         <h4>弹性类型</h4>
@@ -334,11 +333,11 @@
 <li>按 |E| 分完全无弹性/缺乏/单位/富有弹性。</li>
 <li>对比促销前后收入变化选策略。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">富有弹性</div><div class="dd-ex-body">价格 100→110（+10%），销量 1000→850（−15%）→ E=−15%/+10%=−1.5，|E|&gt;1 富有弹性；原收入 100000、新收入 93500，提价反而少赚。</div></div>
-<div class="dd-example"><div class="dd-ex-title">缺乏弹性</div><div class="dd-ex-body">价格 +10%、销量仅 −3% → E=−0.3，原收入 100000、新收入 106700（110×970），刚需品适合提价。</div></div>
+<div class="dd-example"><div class="dd-ex-title">富有弹性</div><div class="dd-ex-body">价格 100→110（+10%）、销量 1000→850（−15%）→ 中点法 E≈−1.70，|E|&gt;1 富有弹性；原收入 100000、新收入 93500，提价反而少赚。</div></div>
+<div class="dd-example"><div class="dd-ex-title">缺乏弹性</div><div class="dd-ex-body">价格 100→110、销量 1000→970（−3%）→ 中点法 E≈−0.32，缺乏弹性；原收入 100000、新收入 106700（110×970），刚需品适合提价。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>弹性为负正常吗？</dt><dd>正常，价量反向；看绝对值。|E|&lt;1 缺弹性可提价增收，|E|&gt;1 富有弹性提价易丢收入。</dd>
+<dt>弹性为负正常吗？</dt><dd>正常，价量反向；看绝对值。|E|&lt;1 缺乏弹性可提价增收，|E|&gt;1 富有弹性提价易丢收入；本页弹性按中点法计算。</dd>
 <dt>弹性会变吗？</dt><dd>会。短期刚性、长期可替代则变弹；促销期与平时也不同，宜分场景测算。</dd>
 </dl>
 </div>
@@ -380,14 +379,21 @@ function calc() {
   const newQ = parseFloat(document.getElementById('newQty').value);
   const r = document.getElementById('result');
 
-  if (isNaN(oldP) || isNaN(newP) || isNaN(oldQ) || isNaN(newQ) || oldP <= 0 || oldQ <= 0) {
+  if (isNaN(oldP) || isNaN(newP) || isNaN(oldQ) || isNaN(newQ) || oldP <= 0 || oldQ <= 0 || newP <= 0 || newQ < 0) {
     r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';
+    return;
+  }
+  if (oldP === newP) {
+    r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">新旧价格相同，价格变动为 0，无法计算需求价格弹性。请调整新价后再算。</p></div>';
     return;
   }
 
   const priceChangePct = ((newP - oldP) / oldP) * 100;
   const qtyChangePct = ((newQ - oldQ) / oldQ) * 100;
-  const elasticity = priceChangePct !== 0 ? qtyChangePct / priceChangePct : 0;
+  // 弧弹性（中点法），与参考表口径一致
+  const midPricePct = ((newP - oldP) / ((oldP + newP) / 2)) * 100;
+  const midQtyPct = ((newQ - oldQ) / ((oldQ + newQ) / 2)) * 100;
+  const elasticity = midQtyPct / midPricePct;
   const absElasticity = Math.abs(elasticity);
 
   const oldRevenue = oldP * oldQ;
@@ -402,12 +408,12 @@ function calc() {
   else { type = '富有弹性'; typeColor = '#4caf50'; }
 
   let strategy = '';
-  if (absElasticity > 1) {
-    strategy = priceChangePct < 0 ? '降价策略有效，收入增加' : '提价策略无效，收入减少';
-  } else if (absElasticity < 1) {
-    strategy = priceChangePct > 0 ? '提价策略有效，收入增加' : '降价策略无效，收入减少';
+  if (revenueChange > 0) {
+    strategy = priceChangePct < 0 ? '降价带来收入增加（薄利多销有效）' : '提价且收入增加（需求刚性，可继续观察）';
+  } else if (revenueChange < 0) {
+    strategy = priceChangePct > 0 ? '提价导致收入减少（价格敏感，慎用提价）' : '降价仍使收入减少（降价无效，需查成本与需求）';
   } else {
-    strategy = '单位弹性，价格变动不影响总收入';
+    strategy = '收入持平，价格变动未改变总收入';
   }
 
   const __g2=`
@@ -444,9 +450,9 @@ function calc() {
       <div class="label">经营建议</div>
       <p style="margin-top:8px;font-size:13px;color:var(--text-light);line-height:1.7;">
         <strong style="color:var(--text);">${strategy}</strong><br>
-        ${absElasticity > 1 ? '该商品富有弹性，消费者对价格敏感。建议通过降价促销来增加总收入，谨慎使用提价策略。' : 
-          absElasticity < 1 ? '该商品缺乏弹性，消费者对价格不敏感。可考虑适当提价来增加总收入，降价促销效果有限。' : 
-          '该商品接近单位弹性，价格变动对总收入影响不大，应关注成本控制和产品差异化。'}
+        ${revenueChange > 0 ? '本次调价使总收入上升，可小范围延续并继续观察销量与毛利；若为降价，注意毛利率是否仍可承受。' :
+          revenueChange < 0 ? '本次调价使总收入下降，建议回退价格或先做小范围测试，再结合成本与需求弹性调整，不宜直接全量执行。' :
+          '本次调价后总收入持平，价格变动对收入影响有限，应更多关注成本控制与产品差异化。'}
       </p>
     </div>
 
@@ -473,7 +479,7 @@ function calc() {
     </div>
 
     <div style="margin-top:12px;font-size:12px;color:var(--text-muted);text-align:center;">
-      公式：价格弹性 = 销量变动% ÷ 价格变动%
+      公式：价格弹性 = 销量变动% ÷ 价格变动%（弧弹性，中点法）
     </div>
   `;r.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
@@ -484,14 +490,18 @@ function saveHistory() {
   const oldQ = parseFloat(document.getElementById('oldQty').value);
   const newQ = parseFloat(document.getElementById('newQty').value);
 
-  if (isNaN(oldP) || isNaN(newP) || isNaN(oldQ) || isNaN(newQ) || oldP <= 0 || oldQ <= 0) {
+  if (isNaN(oldP) || isNaN(newP) || isNaN(oldQ) || isNaN(newQ) || oldP <= 0 || oldQ <= 0 || newP <= 0 || newQ < 0) {
     ToolBox.showToast(i18nText(),'error');
     return;
   }
+  if (oldP === newP) {
+    ToolBox.showToast('新旧价格相同，无法计算弹性','error');
+    return;
+  }
 
-  const priceChangePct = ((newP - oldP) / oldP) * 100;
-  const qtyChangePct = ((newQ - oldQ) / oldQ) * 100;
-  const elasticity = priceChangePct !== 0 ? qtyChangePct / priceChangePct : 0;
+  const midPricePct = ((newP - oldP) / ((oldP + newP) / 2)) * 100;
+  const midQtyPct = ((newQ - oldQ) / ((oldQ + newQ) / 2)) * 100;
+  const elasticity = midQtyPct / midPricePct;
 
   const record = {
     id: Date.now(),
