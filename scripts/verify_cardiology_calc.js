@@ -307,6 +307,14 @@ const CASES = [
 },
 {
   "slug": "cardiology/holter-grading",
+  "clicks": ["calc()"],
+  "expect": [
+    "室早负荷虽低，但 Lown 分级已达 2 级"
+  ],
+  "ref": "D-N98 默认态自洽：默认 8500 次/24h、520 次/小时 ⇒ Lown 2 级、负荷 8.5% 低危；旧实现只给「通常良性，定期随访观察」，与 Lown 2「需评估病因」冲突。修复后低负荷 + Lown≥2 改给评估病因的提示；纯低负荷（如 200 次、pvcHr 5）仍保留原文案。"
+},
+{
+  "slug": "cardiology/holter-grading",
   "inputs": {
     "pvcTotal": "12750",
     "pvcHr": "520",
