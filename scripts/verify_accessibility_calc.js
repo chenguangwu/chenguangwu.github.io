@@ -15,6 +15,17 @@ const CASES = [
   "ref": "盲文翻译：注入 ab + caseSel=upper ⇒ 结果区渲染盲文点字符 ⠁⠃（A=点1、B=点1+2），统计串为「原文： AB 字母 2 个 · 数字 0 个 · 盲文符号 2 格」。默认态是 hello 2026 ⇒ ⠓⠑⠇⠇⠕ ⠼⠃⠚⠃⠋ / 字母 5 个 · 数字 4 个 · 盲文符号 11 格，双态强判别。旧锚 expect [\"upper\"] 是输入值回显、零判别力，已替换。"
 },
 {
+  "slug": "accessibility/braille-translator",
+  "inputs": {
+    "srcInput": "12"
+  },
+  "expect": [
+    "⠼⠁⠃",
+    "原文： 12 字母 0 个 · 数字 2 个 · 盲文符号 3 格"
+  ],
+  "ref": "数字点位回归：1→a=⠁、2→b=⠃（不是 c 的 ⠉），数字前加数字符 ⠼ ⇒ ⠼⠁⠃、3 格。深度解析原写「2→⠉」与代码/FAQ 矛盾，已改「2→⠃」。"
+},
+{
   "slug": "accessibility/sign-language",
   "inputs": {
     "searchInput": "zzzqx"

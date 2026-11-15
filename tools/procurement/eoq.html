@@ -133,6 +133,10 @@
         <label>单位年持有成本 H（元）</label>
         <input type="number" id="holdCost" value="8" step="any" oninput="calc()" placeholder="如 8">
       </div>
+      <div>
+        <label>采购提前期 LT（天）</label>
+        <input type="number" id="leadTime" value="7" min="0" step="1" oninput="calc()" placeholder="如 7">
+      </div>
     </div>
 
     <div class="stat-grid" id="stats" style="margin-top:16px;"></div>
@@ -148,11 +152,12 @@
       D：年需求量，S：每次订货成本，H：单位年持有成本<br>
       <strong>最优订货次数</strong>：<code>N = D / Q*</code><br>
       <strong>最优订货周期</strong>：<code>T = 365 / N</code>（天）<br>
-      <strong>最低总成本</strong>：<code>TC = √(2DSH)</code>
+      <strong>最低总成本</strong>：<code>TC = √(2DSH)</code><br>
+      <strong>再订货点</strong>：<code>ROP = (D / 365) × LT</code>（件，不含安全库存）
     </div>
 
     <div class="tip-box tip-warn" style="margin-top:12px;">
-      EOQ模型假设：需求恒定、提前期为零、无缺货、无数量折扣。实际应用中需结合安全库存与提前期调整。
+      EOQ模型假设：需求恒定、无缺货、无数量折扣。再订货点按日需求均匀分布（D/365）估算，未包含安全库存，实际采购需另加安全库存与订货批量校验。
     </div>
   </div>
 
@@ -210,7 +215,7 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="重订点">Reorder point</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ROP = d × LT">ROP = daily demand x lead time</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ROP = (D/365) × LT">ROP = (D / 365) x lead time</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Inventory control theory</td>
         </tr>
       </tbody>
@@ -235,6 +240,8 @@ function calc(){
   var D=Math.min(parseFloat(document.getElementById('demand').value)||0,1e15);
   var S=Math.min(parseFloat(document.getElementById('orderCost').value)||0,1e15);
   var H=Math.min(parseFloat(document.getElementById('holdCost').value)||0,1e15);
+  var LTv=parseFloat(document.getElementById('leadTime').value);
+  var LT=(isFinite(LTv)&&LTv>0)?Math.min(LTv,3650):0;
 
   if(D<=0||S<=0||H<=0){
     document.getElementById('stats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请输入有效参数</div></div>';
@@ -248,11 +255,13 @@ function calc(){
   var orderCostTotal=orders*S;
   var holdCostTotal=eoq/2*H;
   var totalCost=orderCostTotal+holdCostTotal;
-  var reorderPoint=0;
+  var daily=D/365;
+  var reorderPoint=daily*LT;
 
   const __g3='<div class="stat-card"><div class="val" style="color:var(--primary);">'+fmt(eoq)+'</div><div class="lbl">最优订货量EOQ</div></div>'+
     '<div class="stat-card"><div class="val">'+fmt(orders)+'</div><div class="lbl">年订货次数</div></div>'+
     '<div class="stat-card"><div class="val">'+fmt(cycle)+'</div><div class="lbl">订货周期(天)</div></div>'+
+    '<div class="stat-card"><div class="val">'+fmt(reorderPoint)+'</div><div class="lbl">再订货点ROP(件)</div></div>'+
     '<div class="stat-card"><div class="val" style="color:var(--secondary);">'+fmt(totalCost)+'</div><div class="lbl">最低年总成本</div></div>';document.getElementById('stats').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   const __g4='<p>计算过程：</p>'+
@@ -260,6 +269,7 @@ function calc(){
     '<p>年订货成本 = '+fmt(orders)+' × '+fmt(S)+' = '+fmt(orderCostTotal)+' 元</p>'+
     '<p>年持有成本 = '+fmt(eoq/2)+' × '+fmt(H)+' = '+fmt(holdCostTotal)+' 元</p>'+
     '<p>年总成本 = '+fmt(orderCostTotal)+' + '+fmt(holdCostTotal)+' = <strong style="color:var(--secondary);">'+fmt(totalCost)+' 元</strong></p>'+
+    '<p>再订货点 = 日均需求 '+fmt(daily)+' × 提前期 '+fmt(LT,0)+' = <strong>'+fmt(reorderPoint)+' 件</strong>（不含安全库存）</p>'+
     '<p style="font-size:12px;color:var(--text-muted);">在EOQ点，年订货成本 = 年持有成本，总成本最小化。</p>';document.getElementById('detailResult').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 
   drawChart(D,S,H,eoq);

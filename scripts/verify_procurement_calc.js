@@ -41,12 +41,14 @@ const CASES = [
   "inputs": {
     "demand": "15000",
     "orderCost": "100",
-    "holdCost": "8"
+    "holdCost": "8",
+    "leadTime": "7"
   },
   "expect": [
-    "612.37"
+    "612.37",
+    "287.67"
   ],
-  "ref": "auto-restore"
+  "ref": "EOQ=√(2×15000×100/8)=612.37；提前期 7 天、日均需求 15000/365=41.0959 ⇒ ROP=287.67 件（默认 demand 10000/LT 7 得 191.78，两串均失配）"
 },
 {
   "slug": "procurement/rater-price",
