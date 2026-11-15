@@ -140,20 +140,6 @@
 - 编号：本批新增 `MM-H1`–`MM-H13`，与文件原有 `M3` 不重号。
 - 验证声明：仅源码阅读 + node 内存复算；未做真实浏览器、英文态（`?lang=en-US`）、移动端、门禁、线上或导出文件实测。涉及 TBKit 渲染、toast、CSV 输出的运行时表现未实测，相关条目仅确认到源码路径层面。
 
-## U 批 · 机械/金属/焊接余量（2026-11-04）
-
-> 范围：`tools/machinery/` 7 页（折弯展开、风机选型、润滑油粘度、工业泵、换油周期、陶瓷轴承、铸件拔模）+ `tools/metalwork/` 2 页（拉削拉力、桥架选型）+ `tools/welding/` 1 页（焊接工艺参数）。方法：逐页源码阅读 + node 内存复算；未开浏览器、未跑 `_build.py` / `run_gates.py`、未修改任何工具页/构建产物。
-
-### 覆盖清单
-- `tools/machinery/taocizhouchengshoumingjisuan.html`：1 中 + 1 中（历史类型、ISO 引据；MM-H30、MM-H31）。
-- `tools/machinery/zhujian-bamoxiedu-sheji.html`：1 中（MM-H32）。
-- `tools/metalwork/laxue-ladao-chisheng-lali-sheji.html`：1 中（MM-H33）。
-- `tools/metalwork/cable-tray-sizing.html`：2 中（MM-H34、MM-H35）。
-- `tools/welding/hanjiegongyicanshu.html`：2 中（MM-H36、MM-H37）。
-- `tools/machinery/fengjixuanxingjisuan.html`：未发现中/高缺陷；轴功率 `Q·Δp/(3600·η·1000)`、电机 1.15 系数与 0.5 kW 向上圆整、比转速 `5.54·n·√Q/Δp^0.75`、叶轮直径 `60·v/(π·n)` 与三项正数校验均正确，未记缺陷。
-- 编号：本批新增 `MM-H30`–`MM-H37`（0 高 / 8 中），续接 `MM-H23`，不重号。
-- 验证声明：仅源码阅读 + node 内存复算（复算脚本在 `/tmp/u_batch.js`）；未开浏览器、未跑 `run_gates.py` / `_build.py`、未做英文态/移动端/线上验证。本批未修改任何工具页或构建产物。
-
 ## V 批 · 机械/金属/焊接/制造（2026-11-04）
 
 > 范围：`tools/machinery/` 4 页（低噪音寿命、涂装用量、润滑系统、输送带选型）+ `tools/metalwork/` 1 页（螺纹规格）+ `tools/welding/` 2 页（保护气体配比、安全通风）+ `tools/manufacturing/` 1 页（CPK）。方法：逐页源码阅读 + node 内存复算（脚本 `/tmp/v_batch.js`）；未开浏览器、未跑 `_build.py` / `run_gates.py`、未做英文态/移动端/线上验证。编号续接 `MM-H37`，从 `MM-H38` 起。
