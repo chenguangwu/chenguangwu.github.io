@@ -258,7 +258,7 @@
   <div class="card">
     <h3>提成模式公式</h3>
     <div class="step-line">固定比例：提成 = 销售额 × 比例</div>
-    <div class="step-line">阶梯提成：各区间分段累计计算（超出部分按对应比例）</div>
+    <div class="step-line">阶梯提成：各区间分段累计计算（区间上限须从低到高严格递增，超出部分按对应比例）</div>
     <div class="step-line">底薪+提成：税前收入 = 底薪 + max(0, 销售额 - 起征点) × 比例</div>
     <div class="step-line">团队提成：个人提成 = 团队总额 × 团队比例 × 个人分配系数</div>
   </div>
@@ -378,14 +378,32 @@ function getTiers(){
     var rateInput = rows[i].querySelector('.tier-rate');
     var cap = parseFloat(capInput.value);
     var rate = parseFloat(rateInput.value);
-    if(isNaN(cap) || isNaN(rate)){
-      cap = i === rows.length-1 ? Infinity : 0;
-      rate = 0;
-    }
     if(i === rows.length-1) cap = Infinity; // 最后一档必为无穷
     tiers.push({cap: cap, rate: rate});
   }
   return tiers;
+}
+
+// 校验档位：有限档位上限须为正且严格递增，比例须在 0–100%
+function validateTiers(tiers){
+  var en = (typeof TBKit !== 'undefined' && TBKit.util && typeof TBKit.util.isEn === 'function' && TBKit.util.isEn());
+  var prev = 0;
+  for(var i=0; i<tiers.length; i++){
+    var t = tiers[i];
+    if(isNaN(t.rate) || t.rate < 0 || t.rate > 100){
+      return en ? 'Each tier rate must be between 0% and 100%.' : '每档提成比例需在 0–100% 之间';
+    }
+    if(i < tiers.length-1){
+      if(isNaN(t.cap) || t.cap <= 0){
+        return en ? 'Enter a positive upper bound for every tier except the last.' : '请填写各档区间上限（正数），最后一档留空表示无穷';
+      }
+      if(t.cap <= prev){
+        return en ? 'Tier upper bounds must increase strictly from low to high.' : '阶梯区间上限须从低到高严格递增';
+      }
+      prev = t.cap;
+    }
+  }
+  return '';
 }
 
 function calcTiered(sales, tiers){
@@ -423,6 +441,13 @@ function calc(){
     detail = '销售额 ¥' + fmt(sales) + ' × ' + rate + '%';
   } else if(currentMode === 'tier'){
     var tiers = getTiers();
+    var tierErr = validateTiers(tiers);
+    if(tierErr){
+      document.getElementById('result').innerHTML = '<div class="result-sub" style="color:var(--danger,#dc2626);">' + esc(tierErr) + '</div>';
+      window._lastResult = null;
+      ToolBox.showToast(tierErr, 'error');
+      return;
+    }
     commission = calcTiered(sales, tiers);
     detail = '阶梯提成（' + tiers.length + ' 档）';
   } else if(currentMode === 'base'){
