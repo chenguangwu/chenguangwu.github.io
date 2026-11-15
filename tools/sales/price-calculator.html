@@ -368,6 +368,7 @@ function computeFor(mode){
     var deviation = getNum('deviation');
     if(isNaN(compPrice) || compPrice < 0){ return {error:'竞品价应 ≥ 0'}; }
     if(isNaN(deviation)){ return {error:'请输入偏差'}; }
+    if(deviation <= -100){ return {error:'偏差应大于 -100%（否则售价 ≤ 0）'}; }
     price = compPrice * (1 + deviation/100);
     formula = '售价 = ¥' + fmt(compPrice) + ' × (1 + (' + deviation + '%))';
     extra.compPrice = compPrice;
@@ -400,7 +401,12 @@ function modeName(m){
 
 function calc(){
   var r = computeFor(currentMode);
-  if(r.error){ ToolBox.showToast(r.error, 'error'); return; }
+  if(r.error){
+    document.getElementById('result').innerHTML = '<p class="tip-error">' + esc(r.error) + '</p>';
+    window._lastResult = null;
+    ToolBox.showToast(r.error, 'error');
+    return;
+  }
 
   var html = '';
   html += '<div class="result-big">建议售价 ¥' + fmt(r.price) + '</div>';
@@ -425,7 +431,13 @@ function calc(){
       html += '<div class="result-sub">盈亏平衡销量：<strong>' + fmt(r.breakEven, 0) + ' 件</strong>（覆盖固定成本 ¥' + fmt(r.fixedCost) + '）</div>';
     }
   } else {
-    html += '<div class="result-sub">盈亏平衡销量：1 件（无固定成本时，售价 &gt; 成本即盈利）</div>';
+    if(r.grossProfit > 0){
+      html += '<div class="result-sub">盈亏平衡销量：1 件即可盈利（无固定成本，售价 &gt; 成本）</div>';
+    } else if(r.grossProfit === 0){
+      html += '<div class="result-sub">盈亏平衡销量：不盈不亏（售价 = 成本，且无固定成本）</div>';
+    } else {
+      html += '<div class="result-sub" style="color:var(--danger);">每卖一件亏损 ¥' + fmt(-r.grossProfit) + '（售价 &lt; 成本），无法保本</div>';
+    }
   }
   if(r.mode === 'target'){
     var totalRev = r.price * r.extra.volume;

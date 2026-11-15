@@ -119,7 +119,7 @@
     <h2 data-zh="📈 销售目标分解">Target Breakdown</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">均分模式：个人目标 = 总目标 ÷ 成员数；权重模式：个人目标 = 总目标 × (个人权重 ÷ 权重总和)；占比 = 个人目标 ÷ 总目标 × 100%，合计核对 = Σ 个人目标。校验：成员数为 0 直接不计算；权重模式下权重总和 ≤0 时按 1 兜底防除零。判据：权重模式下权重越大分担目标越多，各成员占比合计应凑成 100%。</div>
+      <div class="formula-eq">均分模式：个人目标 = 总目标 ÷ 成员数；权重模式：个人目标 = 总目标 × (个人权重 ÷ 权重总和)；占比 = 个人目标 ÷ 总目标 × 100%，合计核对 = Σ 个人目标。校验：成员数为 0 直接不计算；权重模式要求每项权重 ≥0 且合计 >0，否则提示调整权重或改用均分；总目标须 >0。逐行与合计统一保留两位小数，尾差归入目标最大项，保证合计与总目标一致。判据：权重模式下权重越大分担目标越多，各成员占比合计应凑成 100.0%。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="团队目标自下而上分解，支持按权重或均分拆解">Target Breakdown</p>
 
@@ -194,7 +194,7 @@
 <li>校验合计一致：分解后汇总应等于总目标，用于计划评审与责任落位。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">举例：年度目标 100 万元，4 人权重 30/25/20/25</div><div class="dd-ex-body">权重合计 100。张三 = 100万 × 30/100 = 30 万元；李四 = 25 万；王五 = 20 万；赵六 = 25 万。
-汇总 = 30+25+20+25 = 100 万元，与总目标一致。若某成员权重为 0 或负，工具会按剩余权重归一，避免分配异常。</div></div>
+汇总 = 30+25+20+25 = 100 万元，与总目标一致。逐行与合计统一保留两位小数，除不尽时尾差归入目标最大项，保证合计始终等于总目标。若某成员权重为 0，其目标为 0；负权重会被拦截并提示调整，权重合计须大于 0。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>权重分解和平均分解怎么选？</dt><dd>成员能力/资源差异大用权重（如按历史业绩占比）；势均力敌或强调公平用平均。权重之和建议=100，便于直观核对；非100时工具按实际占比归一。</dd>
@@ -290,32 +290,58 @@ function calc(){
   var mode = document.getElementById('mode').value;
   var unit = document.getElementById('unit').value;
   var n = members.length;
+  var en = (typeof TBKit!=='undefined' && TBKit.util && typeof TBKit.util.isEn==='function' && TBKit.util.isEn());
   if(n===0) return;
 
-  var results = [];
+  function fail(msg){
+    document.getElementById('sumBox').innerHTML='<div class="v">—</div><div class="l" style="font-size:13px;color:var(--text-muted);">'+ToolBox.escHtml(msg)+'</div>';
+    document.getElementById('resultTable').innerHTML='<p class="tip-error">'+ToolBox.escHtml(msg)+'</p>';
+  }
+  if(!(total>0)){ fail(en?'Enter a total target greater than 0.':'请输入大于 0 的团队总目标'); return; }
+
   var sumWeight = members.reduce(function(s,m){return s+(+m.weight||0);},0);
-  if(mode==='weight' && sumWeight<=0) sumWeight = 1;
+  if(mode==='weight'){
+    var badWeight = members.some(function(m){ return !isFinite(+m.weight) || +m.weight < 0; });
+    if(badWeight){ fail(en?'Weights must be 0 or greater.':'权重不能为负数'); return; }
+    if(!(sumWeight>0)){ fail(en?'The weights must add up to more than 0. Adjust the weights or switch to equal split.':'权重合计须大于 0，请调整权重或改用均分模式'); return; }
+  }
 
-  members.forEach(function(m){
-    var share;
-    if(mode==='avg'){
-      share = total/n;
-    } else {
-      share = total * ((+m.weight||0)/sumWeight);
-    }
-    results.push({name:m.name||'未命名', weight:m.weight, target:share, pct:(share/total*100)});
-  });
+  var shares = computeShares(total, mode, sumWeight);
+  var targets = shares.targets;
+  var totalR = shares.total;
 
-  var sumTarget = results.reduce(function(s,r){return s+r.target;},0);
-  const __g3='<div class="v">'+fmt(sumTarget)+' '+unit+'</div>'+
+  var maxIdx = 0;
+  for(var i=1;i<targets.length;i++) if(targets[i]>targets[maxIdx]) maxIdx = i;
+
+  var pcts = targets.map(function(t){ return totalR>0 ? Math.round(t/totalR*1000)/10 : 0; });
+  var pDiff = Math.round((100 - pcts.reduce(function(s,p){return s+p;},0))*10)/10;
+  if(pDiff !== 0 && pcts.length) pcts[maxIdx] = Math.round((pcts[maxIdx]+pDiff)*10)/10;
+
+  const __g3='<div class="v">'+fmt(totalR)+' '+unit+'</div>'+
     '<div class="l" style="font-size:13px;color:var(--text-muted);">'+n+' 名成员　·　'+(mode==='avg'?'均分模式':'权重总和 '+sumWeight)+'</div>';document.getElementById('sumBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
-  var rows = results.map(function(r){
-    return [r.name, mode==='weight'?r.weight:'—', fmt(r.target)+' '+unit, r.pct.toFixed(1)+'%'];
+  var rows = members.map(function(m, i){
+    return [m.name||'未命名', mode==='weight'?m.weight:'—', fmt(targets[i])+' '+unit, pcts[i].toFixed(1)+'%'];
   });
-  rows.push(['<strong>合计</strong>', mode==='weight'?'<strong>'+sumWeight+'</strong>':'—', '<strong>'+fmt(sumTarget)+' '+unit+'</strong>', '<strong>100%</strong>']);
+  rows.push(['<strong>合计</strong>', mode==='weight'?'<strong>'+sumWeight+'</strong>':'—', '<strong>'+fmt(totalR)+' '+unit+'</strong>', '<strong>100.0%</strong>']);
   const __g4=ToolBox.createTable(
     ['成员', mode==='weight'?'权重':'—', '分解目标', ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Share":"占比")], rows);document.getElementById('resultTable').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+}
+
+// 目标按两位小数取整，并把尾差归入目标最大项，保证逐行合计 = 总目标
+function computeShares(total, mode, sumWeight){
+  var n = members.length;
+  var totalR = Math.round(total*100)/100;
+  var targets = members.map(function(m){
+    return mode==='avg' ? totalR/n : totalR*((+m.weight||0)/sumWeight);
+  }).map(function(t){ return Math.round(t*100)/100; });
+  var diff = Math.round((totalR - targets.reduce(function(s,t){return s+t;},0))*100)/100;
+  if(diff !== 0 && targets.length){
+    var maxIdx = 0;
+    for(var i=1;i<targets.length;i++) if(targets[i]>targets[maxIdx]) maxIdx = i;
+    targets[maxIdx] = Math.round((targets[maxIdx]+diff)*100)/100;
+  }
+  return {targets:targets, total:totalR};
 }
 
 function __tbkExport(){
@@ -325,25 +351,26 @@ function __tbkExport(){
   var mode=document.getElementById('mode').value;
   var unit=document.getElementById('unit').value;
   if(!members.length){ToolBox.showToast(en?'No members':'请先添加团队成员');return;}
-  var n=members.length;
+  if(!(total>0)){ToolBox.showToast(en?'Enter a total target greater than 0.':'请输入大于 0 的团队总目标');return;}
   var sumWeight=members.reduce(function(s,m){return s+(+m.weight||0);},0);
-  if(mode==='weight'&&sumWeight<=0)sumWeight=1;
+  if(mode==='weight'){
+    if(members.some(function(m){return !isFinite(+m.weight)||+m.weight<0;})){ToolBox.showToast(en?'Weights must be 0 or greater.':'权重不能为负数');return;}
+    if(!(sumWeight>0)){ToolBox.showToast(en?'The weights must add up to more than 0.':'权重合计须大于 0，请调整权重或改用均分模式');return;}
+  }
+  var shares=computeShares(total,mode,sumWeight).targets;
   var tb=document.querySelector('#tbkHidden tbody');
   tb.innerHTML='';
-  var sumTarget=0;
-  members.forEach(function(m){
-    var share=mode==='avg'?total/n:total*((+m.weight||0)/sumWeight);
-    sumTarget+=share;
+  members.forEach(function(m,i){
     var tr=document.createElement('tr');
-    tr.innerHTML='<td>'+ToolBox.escHtml(m.name||'Unnamed')+'</td><td>'+(mode==='weight'?(+m.weight||0):'-')+'</td><td>'+share.toFixed(2)+'</td><td>'+unit+'</td><td>'+(total>0?(share/total*100).toFixed(1):'0.0')+'%</td>';
+    tr.innerHTML='<td>'+ToolBox.escHtml(m.name||'Unnamed')+'</td><td>'+(mode==='weight'?(+m.weight||0):'-')+'</td><td>'+shares[i].toFixed(2)+'</td><td>'+unit+'</td><td>'+(total>0?(shares[i]/total*100).toFixed(1):'0.0')+'%</td>';
     tb.appendChild(tr);
   });
   var tr=document.createElement('tr');
-  tr.innerHTML='<td>Total</td><td>'+(mode==='weight'?sumWeight:'-')+'</td><td>'+sumTarget.toFixed(2)+'</td><td>'+unit+'</td><td>100.0%</td>';
+  tr.innerHTML='<td>Total</td><td>'+(mode==='weight'?sumWeight:'-')+'</td><td>'+shares.reduce(function(s,t){return s+t;},0).toFixed(2)+'</td><td>'+unit+'</td><td>100.0%</td>';
   tb.appendChild(tr);
   TBKit.util.exportTable('#tbkHidden',en?'target-breakdown.csv':'销售目标分解.csv');
 }
-function fmt(n){ return Math.round(n).toLocaleString('zh-CN'); }
+function fmt(n){ return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
 renderMembers();
 calc();
@@ -356,11 +383,11 @@ function __tbExtras(){
   var en=TBKit.util.isEn();
   var labels=[],data=[];
   var sumWeight=members.reduce(function(s,m){return s+(+m.weight||0);},0);
-  if(mode==='weight'&&sumWeight<=0) sumWeight=1;
-  members.forEach(function(m){
-    var share = mode==='avg'? total/members.length : total*((+m.weight||0)/sumWeight);
+  if(mode==='weight' && !(sumWeight>0)) return;
+  var shares=computeShares(total,mode,sumWeight).targets;
+  members.forEach(function(m,i){
     labels.push(m.name||'未命名');
-    data.push(+(+share).toFixed(2));
+    data.push(shares[i]);
   });
   TBKit.chart.bar('#tbChart',{labels:labels,series:[{name:en?'Target':'分解目标',data:data}],height:240,title:en?'Target Breakdown':'目标分解'});
 }
