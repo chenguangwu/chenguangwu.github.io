@@ -144,14 +144,6 @@
 
 > 范围：`tools/machinery/` 4 页（低噪音寿命、涂装用量、润滑系统、输送带选型）+ `tools/metalwork/` 1 页（螺纹规格）+ `tools/welding/` 2 页（保护气体配比、安全通风）+ `tools/manufacturing/` 1 页（CPK）。方法：逐页源码阅读 + node 内存复算（脚本 `/tmp/v_batch.js`）；未开浏览器、未跑 `_build.py` / `run_gates.py`、未做英文态/移动端/线上验证。编号续接 `MM-H37`，从 `MM-H38` 起。
 
-### MM-H42 润滑系统「轴承类型」不改计算：选滚动/推力轴承仍按径向滑动轴承投影面积算比压并给「巴氏合金 PV 可用」结论（中，确认缺陷）
-- 问题：`v_type` 只影响推荐润滑方式文案；`p=W/(d·L)`、`v`、`PV`、Petroff 摩擦系数、油量与 `PV≤15（巴氏合金）` 判定对三种类型完全相同。滚动轴承无「比压/PV/巴氏合金」概念，推力滑动轴承的投影面积也不是 `d·L`（应为环形面积）。
-- 证据：`tools/machinery/runhuaxitongsheji.html:219-220`（读取 type）、`:230-238`（p/v/PV/f 与类型无关）、`:246-255`（type 仅切换润滑方式文案）、`:256-258,276`（固定 PV≤15 与「巴氏合金可用」）。
-- 复现：选「滚动轴承」、d=80、L=80、n=1500、W=10 kN → 仍输出 p=1.56 MPa、PV=9.82 MPa·m/s、f=0.0063，并提示「✓ PV值 9.82 ≤ 许用 15，巴氏合金可用」；期望滚动轴承不出现该判据。
-- 影响：`tools/machinery/runhuaxitongsheji.html`。用户以为已按滚动轴承校核，实际拿到的是滑动轴承比压与材料结论，选型依据错误。
-- 方案：rolling 分支改用当量动载荷/额定寿命或直接隐藏 p/PV/巴氏合金判定；thrust 分支按环形面积计算；或移除不适用的类型选项。
-- 严重度：中（假工具：部分——类型选择器为半装饰）。
-
 ### MM-H43 输送带页倾角不校验，200° 得提升高度 −34.2 m、驱动功率 −24.39 kW（中，确认缺陷）
 - 问题：`readInputs` 只校验 Q、L、ρ、v，`ang` 原样进入 `H=L·sin(ang)`。倾角 >90° 时 sin 变负，>180° 后符号反复；负驱动功率仍正常渲染，倾角评估也照常输出「倾角较大」。
 - 证据：`tools/machinery/shusongdaixuanxingjisuan.html:194-199`（ang 未校验、valid 不含 ang）、`:211`（`H=L*Math.sin(...)`）、`:217`（`P=Q*(L*f+H)*...`）、`:221`（倾角文案）。
@@ -177,11 +169,10 @@
 - 严重度：中（假工具：否）。
 
 ### 覆盖清单
-- `tools/machinery/runhuaxitongsheji.html`：1 中（MM-H42）。
 - `tools/machinery/shusongdaixuanxingjisuan.html`：2 中（MM-H43、MM-H44）。
 - `tools/machinery/lifespan-18.html`：1 中（MM-H45）。
 - `tools/machinery/area-dosage-1.html`：未发现中/高缺陷；`10·VS/DFT` 涂布率、`A/(理论×TE)` 实际用量、1.3 kg/L 质量估算与 0~100 区间校验均正确，未记缺陷。
-- 编号：本批新增 `MM-H38`–`MM-H47`（2 高 / 8 中），续接 `MM-H37`，不重号；H38–H41、H46、H47 已修复销账，余 H42–H45。
+- 编号：本批新增 `MM-H38`–`MM-H47`（2 高 / 8 中），续接 `MM-H37`，不重号；H38–H42、H46、H47 已修复销账，余 H43–H45。
 - 验证声明：仅源码阅读 + node 内存复算；未开浏览器、未跑 `run_gates.py` / `_build.py`、未做英文态/移动端/线上验证。本批未修改任何工具页、js/css/json 或构建产物。
 
 ## W 批 · 机械扭矩/压力/寿命（2026-11-04）

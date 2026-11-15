@@ -21,6 +21,7 @@ const CASES = [
   { slug: "machinery/lifespan-bearing", inputs: {v_C:"45000", v_P:"2500", v_n:"1500"}, expect: ["5832.00 L10寿命"], ref: "滚动轴承寿命" },
   { slug: "machinery/pressure-4", inputs: {v_z:"48", v_m:"2", v_a:"30"}, expect: ["96.000 分度圆直径"], ref: "花键" },
   { slug: "machinery/runhuaxitongsheji", inputs: {v_d:"160", v_l:"80", v_n:"1500"}, expect: ["0.78 比压"], ref: "润滑系统" },
+  { slug: "machinery/runhuaxitongsheji", inputs: {v_d:"80", v_l:"80", v_n:"1500", v_w:"10", v_eta:"30", v_psi:"1.5", v_dt:"20", v_type:"thrust"}, expect: ["推力滑动轴承按 d×L 作等效承载面积估算", "推力滑动轴承"], ref: "轴承类型参与计算：推力轴承输出等效面积提示与 PV 许用 8" },
   { slug: "machinery/strength-15", inputs: {v_P:"11", v_n1:"1200", v_z1:"19"}, expect: ["19.05", "1520"], ref: "链传动强度：n1=1200 → p=19.05，F=1000P/v" },
   { slug: "machinery/strength-6", inputs: {v_d:"80", v_b:"12", v_h:"8"}, expect: ["49.34 挤压应力"], ref: "铆钉连接" },
   { slug: "machinery/tanhuangsheji", inputs: {v_d:"6", v_dd:"20", v_n:"8"}, expect: ["200.728 弹簧刚度"], ref: "弹簧设计" },
@@ -383,7 +384,7 @@ const CASES = [
       "v_type": "thrust"
     },
     "expect": [
-      ") 润滑方式推荐：脂润滑或手加油（速度低，脂润滑即可满足） ✓ PV值 2.20"
+      ") 润滑方式推荐：脂润滑或手加油（端面速度低，脂润滑即可满足） ✓ PV值 2.20"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v_d\":\"42\",\"v_l\":\"42\",\"v_n\":\"42\",\"v_w\":\"42\",\"v_eta\":\"42\",\"v_psi\":\"42\",\"v_dt\":\"42\",\"v_type\":\"thrust\"}，输出区含「) 润滑方式推荐：脂润滑或手加油（速度低，脂润滑即可满足） ✓ PV值 2.20」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
