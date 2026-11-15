@@ -1381,6 +1381,36 @@ const CASES = [
     clicks: ["document.getElementById('__tbProbe').textContent='CPMGUARD '+(typeof __cpmErr==='function'&&/__cpmErr/.test(String(saveHistory))?'OK':'BAD');"],
     expect: ["CPMGUARD OK"],
     ref: "源码形态判定：保存路径与计算路径共用 __cpmErr（负点击、点击>展示不再写入历史）。默认态不设置探针 ⇒ 零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-cpm-calculator",
+    "inputs": { "spend": "0", "impressions": "12000", "clicks": "400" },
+    "expect": ["CPM 千次展示成本 ¥0.00"],
+    "ref": "零花费且展示量大于 0 时 CPM=0 是合法结果；旧校验把 spend<=0 一律当无效直接拒绝。默认花费 5000 ⇒ 不命中。"
+  },
+  {
+    "slug": "marketing/marketing-cac-calculator",
+    "inputs": { "marketingSpend": "0", "salesSpend": "0", "newCustomers": "100", "ltv": "500" },
+    "expect": ["分母为 0，均不可计算"],
+    "ref": "费用合计 0 ⇒ CAC=0，旧实现仍算 LTV:CAC=Infinity 并给出「健康」结论；现明确不可计算。默认费用 8000/2000 ⇒ 不命中。"
+  },
+  {
+    "slug": "marketing/marketing-cpa-calculator",
+    "inputs": { "totalSpend": "0", "newCustomers": "50", "avgOrderValue": "200", "grossMargin": "40", "clicks": "500", "repeatRate": "20" },
+    "expect": ["ROI 的分母为 0，不可计算"],
+    "ref": "零花费时 CPA=0，旧实现把 ROI 强制为 0 并显示 +0.0%「回本」；现明确不可计算。默认花费 1000 ⇒ 不命中。"
+  },
+  {
+    "slug": "marketing/marketing-conversion-rate-calculator",
+    "inputs": { "visitors": "1000", "conversions": "50", "totalCost": "5000", "avgOrder": "0" },
+    "expect": ["ROI -100.0%"],
+    "ref": "客单价明确填 0 ⇒ 收入 0、成本 5000，ROI=-100.0%；旧实现因 revenue>0 条件把 ROI 卡整块隐藏。默认 avgOrder 200 ⇒ 不命中。"
+  },
+  {
+    "slug": "marketing/marketing-conversion-rate-calculator",
+    "clicks": ["document.getElementById('__tbProbe').textContent='HISTCPA '+(/CPA 不可计算（零转化）/.test(String(renderHistory))?'OK':'BAD');"],
+    "expect": ["HISTCPA OK"],
+    "ref": "源码形态判定：历史列表对零转化记录明说 CPA 不可计算，而不是把花费除以零得到 Infinity 后静默替换成破折号。默认态不设置探针 ⇒ 零逃生。"
   }
 
 ];

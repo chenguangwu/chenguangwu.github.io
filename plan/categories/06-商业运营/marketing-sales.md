@@ -311,22 +311,18 @@
 ## 2026-11-06 静态续审：营销工具第 418–423 页
 
 - **历史结论状态更新**：MS-M5 所述负比例现已由 `marketing-ad-budget-allocator.html:254-257` 拒绝，非 100% 合计也在 `:259-262` 明示归一化；仍需运行回归，MS-M6 的手动比例而非智能分配逻辑仍在。MS-J3 所述回收期不展示已过时：`marketing-cac-calculator.html:463-465` 已展示回收期并声明 36 个月假设。MS-N38 的表格/图表/CSV 零分母不一致仍在，MS-N60 的 A 组零转化守卫仍在；MS-F7 目标利润率不可达时无说明仍在。
-- **零预算和零获客成本的除数未定义**：`marketing-ad-budget-allocator.html:250-267,272,281` 允许预算为 0，收入也为 0，整体 ROAS 的 `0/0` 最终被替换为 `—`；`marketing-cac-calculator.html:409-428,455-465,489-505` 允许营销和销售费用同时为 0，LTV 存在时比率及 ROI 除以零、替换为 `—` 却仍显示“健康”，LTV 留空时费用占比也是 `0/0`。应保留零成本的 CAC，明确相关比率不可计算并避免给出健康结论。
+- **零预算的除数未定义（ad-budget-allocator 仍待办）**：`marketing-ad-budget-allocator.html:250-267,272,281` 允许预算为 0，收入也为 0，整体 ROAS 的 `0/0` 最终被替换为 `—` 而未说明；`marketing-cac-calculator` 的同族问题已在 598 批修复（零费用时明确各比率不可计算、不给健康结论）。
 - **CAC 保存校验与计算不一致**：`marketing-cac-calculator.html:413-420,508-525` 的计算会拒绝负费用和非正 LTV，但保存仅检查数值及客户数；因此无效费用或 LTV 仍可存历史，历史列表还会根据无效 CAC 分级。应共用校验逻辑。
 - 本批共阅读 `funnel-calculator`、`marketing-ab-test-significance`、`marketing-ad-budget-allocator`、`marketing-break-even-roas`、`marketing-cac-calculator`、`marketing-chinese-hashtag-generator` 6 页；仅源码分析，未运行页面、注入或浏览器，未计入双跑。
 
 ## 2026-11-06 静态续审：营销工具第 424–429 页
 
 - **历史结论状态更新**：MS-J4（期末超过期初加新增）、MS-J5（转化超过访问）、MS-J7（折后价或优惠超原价）、MS-M1（零折及越界）、MS-N3（点击超过展示）和 MS-J2（新增客户超过点击及毛利率越界）原述计算路径已分别加入校验；`marketing-coupon-discount.html:380-398` 区分空值与零值并由计算和保存共用校验。上述结论仅按源码更新，未做运行回归；优惠券按订单减一次仍是现行计算，公式框须另对照。
-- **零转化历史 CPA 与当前结果不一致**：`marketing-conversion-rate-calculator.html:407-411,426-430,533-545` 对零转化显示 CPA 不可计算，但历史列表仍将花费除以零并把 `Infinity` 替换为 `—`，未附不可计算原因；且花费大于 0、收入为 0 时 ROI 卡被隐藏，不能呈现零收入对应的亏损。应区分输入缺失与真实零收入并统一结果与历史口径。
-- **零花费边界处理有缺口**：`marketing-cpm-calculator.html:398-400` 把 0 花费当无效，尽管展示量非零时 CPM 为 0；`marketing-cpa-calculator.html:449-450,464-485` 对 0 花费强制 ROI 为 0，并在客单和毛利均正时显示 `+0.0%`，而该 ROI 的分母为 0。应分别保留可算的零成本与标注不可计算的比率。
 - 本批共阅读 `marketing-churn-rate`、`marketing-conversion-rate-calculator`、`marketing-coupon-discount`、`marketing-cpa-calculator`、`marketing-cpm-calculator`、`marketing-discount-rate` 6 页；仅源码分析，未运行浏览器，不计双跑。
 
 ## 2026-11-06 静态续审：营销工具第 430–435 页
 
 - **历史结论状态更新**：MS-N78 所述互动数负值现由 `marketing-engagement-rate.html:245-247` 拦截；MS-M3 的包邮毛利率缺失及越界现由 `marketing-free-shipping-threshold.html:244-255` 拦截；MS-F8 的 LTV 零值路径现被拒绝，回本周期已标明按 36 个月分摊（`marketing-ltv-cac-ratio.html:422-424,456`）。仅按源码确认，未做运行回归。Google 广告负数输入、达人报价参数缺校验、关键词混排口径的既有关键路径仍在。
-- **互动数清空被当作零**：`marketing-engagement-rate.html:233-249` 的点赞、评论、分享通过 `parseFloat(...) || 0` 处理；清空这三个字段仍按零生成总互动及互动率。展示量标为可选，其他字段若为必填应区分空串与合法 0，避免缺失数据被解释为零互动。
-- **目标日点击为 0 时 ROAS 无定义**：`marketing-google-ads-budget.html:244-263` 允许日点击为 0，日预算与收入均为 0，`0/0` 被替换为 `—x` 而没有说明。应保留零预算及零收入，并明确 ROAS 不可计算；负值和转化率越界的既有问题见历史记录。
 - 本批共阅读 `marketing-engagement-rate`、`marketing-free-shipping-threshold`、`marketing-google-ads-budget`、`marketing-influencer-pricing`、`marketing-keyword-density`、`marketing-ltv-cac-ratio` 6 页；仅源码分析，未运行浏览器，不计双跑。
 
 ## T 批收口

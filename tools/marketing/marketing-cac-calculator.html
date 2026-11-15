@@ -409,10 +409,11 @@ function calc() {
   }
 
   const totalSpend = mSpend + sSpend;
+  const zeroSpend = totalSpend === 0;
   const cac = totalSpend / customers;
   const marketingCAC = mSpend / customers;
   const salesCAC = sSpend / customers;
-  const hasLTV = !isNaN(ltv) && ltv > 0;
+  const hasLTV = !isNaN(ltv) && ltv > 0 && !zeroSpend;
   const ltvCacRatio = hasLTV ? ltv / cac : null;
   const paybackMonths = hasLTV ? (cac / (ltv / 36)) : null;
 
@@ -426,7 +427,7 @@ function calc() {
     <div class="metric-card">
       <div class="label">CAC 客户获取成本</div>
       <div class="value" style="color:${cacColor};">¥${cac.toFixed(2)}</div>
-      <div class="sub">等级：${cacLevel} · 每获取一个客户的成本</div>
+      <div class="sub">等级：${cacLevel} · 每获取一个客户的成本${zeroSpend ? '（费用合计为 0，此分级不与有投入的情形可比）' : ''}</div>
     </div>
 
     <div class="metric-card">
@@ -440,6 +441,13 @@ function calc() {
         <tr><td style="padding:4px 0;color:var(--text-light);">销售端CAC</td><td style="text-align:right;font-weight:600;">¥${salesCAC.toFixed(2)}</td></tr>
       </table>
     </div>
+
+    ${zeroSpend ? `
+    <div class="metric-card">
+      <div class="label">零费用口径提示</div>
+      <p class="tip-error">营销费用与销售费用合计为 0，CAC=¥0.00；LTV:CAC、投资回报率、回本周期与费用占比的分母为 0，均不可计算，故不给出健康结论。</p>
+    </div>
+    ` : ''}
 
     ${hasLTV ? `
     <div class="metric-card">
@@ -477,11 +485,11 @@ function calc() {
         </div>
         ` : `
         <div class="related-metric">
-          <div class="val">${((mSpend / totalSpend) * 100).toFixed(0)}%</div>
+          <div class="val">${zeroSpend ? '—' : ((mSpend / totalSpend) * 100).toFixed(0) + '%'}</div>
           <div class="lbl">营销费用占比</div>
         </div>
         <div class="related-metric">
-          <div class="val">${((sSpend / totalSpend) * 100).toFixed(0)}%</div>
+          <div class="val">${zeroSpend ? '—' : ((sSpend / totalSpend) * 100).toFixed(0) + '%'}</div>
           <div class="lbl">销售费用占比</div>
         </div>
         `}
