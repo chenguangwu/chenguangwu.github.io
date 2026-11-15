@@ -396,22 +396,6 @@
 - 影响：宣称能力与实物不符，3 张卡为死功能；主体 14 种映射可用，故假工具：否。
 - 方案：补全角与区域指示符映射，或删掉 3 张占位卡并把「15+/数十种/全角」文案改为实际 14 种。
 
-### BS-N130 草莓文字：深解与引据表把功能写成「叠加组合字符 / UTS #39 同形替换」，实际是拼 emoji（中，承诺未实现）
-- 页面：`tools/biz/strawberry-text.html`
-- 问题：方案宣传「在文字上叠加组合字符形成「草莓/带点」观感」「每字符上叠加组合标记」，引据表还给出「同形/近形字符替换，属视觉替换」「兼容归一化可部分还原」（Unicode UTS #39 / UAX #15），FAQ 也称「装饰依赖组合字符」；实现只是在字符前后拼接 emoji（U+1F353 等），与组合标记、同形替换、归一化均无关。
-- 证据：`tools/biz/strawberry-text.html:232`、`:236`、`:239`、`:257-259`（引据表三行）；实现 `:312-327`（`currentEmoji + ch + currentEmoji`）。
-- 复现：输入 `hello` → 输出 `🍓h🍓🍓e🍓…`（emoji 拼接），不存在任何组合标记；对结果做 NFC/NFKC 也不会还原成原词（emoji 不在兼容等价映射内，且它会作为独立字符留存）。
-- 影响：用户按说明预期「可归一化还原/无副作用」，实际插入的是 emoji，平台过滤、字数与检索行为完全不同；假工具：否。
-- 方案：把深解/引据表/FAQ 改为 emoji 拼接原理（或真的实现组合标记方案）。
-
-### BS-N131 高级大小写：meta 与公式承诺「保留专有名词」，实现一律小写化，iPhone→Iphone、USA→Usa（中，承诺未实现+算错）
-- 页面：`tools/biz/text-case-advanced.html`
-- 问题：meta 描述（3 处）与 formula-desc 均写「按句/按标题规则智能转换…并保留专有名词」，实现中 `title` 与 `sentence` 都先 `toLowerCase()` 再首字母大写，没有任何专有名词表、缩写保留或大小写例外分支。
-- 证据：`tools/biz/text-case-advanced.html:10`/`:15`/`:68`（meta「保留专有名词」）、`:164`（formula-desc "preserving proper nouns"）；实现 `:318`（title）、`:319`（sentence）。
-- 复现：输入 `iPhone is from the USA` → 标题模式得 `Iphone Is From The Usa`，句首模式得 `Iphone is from the usa`（品牌名与缩写被破坏）。
-- 影响：长文档排版的核心承诺落空，且输出对专有名词是错的；假工具：否。
-- 方案：加专有名词/全大写缩写保留规则（或删掉「保留专有名词」文案）。
-
 ### X 批覆盖清单（商业文本收尾 5 页）
 - `tools/biz/strawberry-text.html`：2 条（BS-N128/130 中）。复核通过项：包夹/前后/跳过空白三模式与公式一致、清空与复制接线正常。
 - `tools/biz/fancy-text.html`：1 条（BS-N127 中）。复核通过项：14 张映射表 `src/dst` 长度全部相等（`/tmp` 逐表校验，无 `undefined` 空洞）、未命中保留原字符、中文/emoji 按码点安全。

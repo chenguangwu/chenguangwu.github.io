@@ -1594,6 +1594,22 @@ const CASES = [
     ref: "BS-N135：翻转映射表把 l 映射为 l（恒等），故 flip('hello') = ollǝɥ；旧深解算例写 oʅʅǝɥ 凭空多两个 ʅ。默认输入为 Hello（大写 H）得 ollǝH，不含小写 ollǝɥ ⇒ 强判别、零逃生。"
   },
 
+  // BS-N131：title / sentence 保留 ≥2 位全大写缩写；混合大小写专有名词仍不识别（见 formula-eq 说明）
+  {
+    slug: "biz/text-case-advanced",
+    inputs: { input: "API and USA" },
+    clicks: ["convert('title');"],
+    expect: ["API And USA"],
+    ref: "BS-N131：title 模式用 __keepAbbr 占位保护全大写缩写，API and USA ⇒ API And USA；旧实现每词先 toLowerCase 得 Api And Usa。默认输入 hello world EXAMPLE text 不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "biz/text-case-advanced",
+    inputs: { input: "the API guide." },
+    clicks: ["convert('sentence');"],
+    expect: ["The API guide."],
+    ref: "BS-N131：sentence 模式同样占位保护缩写，the API guide. ⇒ The API guide.；旧实现整串 toLowerCase 得 The api guide.。默认态不含该串 ⇒ 强判别、零逃生。"
+  },
+
 ];
 
 
