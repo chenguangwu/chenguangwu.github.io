@@ -343,6 +343,12 @@ const CASES = [
     ref: "注入非默认(默认 lmpDate 空→无输出)：末次月经 2024-03-10 + 280 天 ⇒ 预产期 2024-12-15（与 now 无关，纯偏移）。默认态 lmpDate 空不产生『预产期』串。"
   },
   {
+    slug: "health/pregnancy-due-date",
+    clicks: ["var d=new Date(Date.now()+86400000);document.getElementById('lmpDate').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');calcDueDate('lmp')"],
+    expect: ["所选日期晚于今天，当前孕周不能为负"],
+    ref: "D-N78 未来日期：LMP 设为明天，旧实现输出「-1+...」负孕周与「还有 N 天」混乱文案；修复后直接提示核对日期。默认空日期不产生该串。"
+  },
+  {
     slug: "health/sleep-cycle-calculator",
     inputs: { wakeTime: "06:30", fallAsleep: "20" },
     expect: ["06:30 起床"],
