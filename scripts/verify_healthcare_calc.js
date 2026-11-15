@@ -292,6 +292,24 @@ const CASES = [
     ref: "总滴数 = 250×15 = 3750 滴；滴速 = 3750÷60 = 62.50 滴/分；秒/滴 = 60÷62.5 = 0.96",
   },
   {
+    slug: "healthcare/healthcare-2",
+    inputs: { volume: "1000", time_min: "240", drop: "15" },
+    expect: ["≈65 滴/分"],
+    ref: "D-N17（2026-11-16）：新增泵速（mL/h）与 5 滴/分档位提示。1000 mL / 240 min ⇒ 62.5 滴/分，按 5 取整 ⇒ 65 滴/分。默认 500/120/20 ⇒ 83.3 → ≈85，不命中。"
+  },
+  {
+    slug: "healthcare/healthcare-2",
+    inputs: { volume: "500", time_min: "2", drop: "20" },
+    expect: ["输液时间须在 5–1440 分钟之间"],
+    ref: "D-N17 边界：时间 2 分钟旧实现输出 5000.0 滴/分的物理不可能值；现要求 5–1440 分钟。默认 120 ⇒ 不命中。"
+  },
+  {
+    slug: "healthcare/healthcare-2",
+    inputs: { volume: "500", time_min: "120", drop: "42" },
+    expect: ["非常用滴系数（10/15/20/60 滴/mL）"],
+    ref: "D-N17 提示：42 滴/mL 不属于常用规格，计算照常但追加核对输液器提示；默认 drop=20 ⇒ 不命中。"
+  },
+  {
     slug: "healthcare/healthcare-3",
     inputs: { na_inf: "140", tbw: "35", target: "132", current: "120" },
     expect: ["0.56"],
