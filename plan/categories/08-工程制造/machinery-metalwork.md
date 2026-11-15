@@ -154,30 +154,6 @@
 
 > 范围：`tools/machinery/` 6 页（低油雾寿命、花键规格、扭矩补偿、联轴器选型、皮带传动、刚度/载荷/疲劳检测）+ `tools/metalwork/` 2 页（无损探伤分级、试模问题统计）。方法：逐页源码阅读 + node 内存复算（脚本 `/tmp/w_batch.js`）；未开浏览器、未跑 `_build.py` / `run_gates.py`、未做英文态/移动端/线上验证。编号续接 `MM-H47`，从 `MM-H48` 起。
 
-### MM-H60 试模统计页负数次数/严重度与越界严重度不校验，可得出负密度与「问题较少」结论（中，确认缺陷）
-- 问题：`cnt`、`w` 只判 `isNaN`，未限制次数为正、严重度在 1~3。负次数使问题总数为负、密度为负；负严重度使加权指数为负，两者都落进「<1.5 问题较少」分支。
-- 证据：`tools/metalwork/analysis-35.html:217-219`（解析与仅 isNaN 校验）、`:223`（求和）、`:230`（`wi/n>=3` 三档判定）。
-- 复现：试模 6 次，输入「飞边,-4,2」「欠铸,2,3」→ 问题总数 **-2**、密度 **-0.33**、加权 **-2**、结论「问题较少」；输入「飞边,4,-5」→ 加权 **-14**、结论「问题较少」。期望：次数须为正整数、严重度须 ∈{1,2,3}，越界行标红并中止统计。
-- 影响：`tools/metalwork/analysis-35.html`。错误录入会得到「问题较少」的验收结论，掩盖实际缺陷。
-- 方案：解析后校验 `cnt>0 && w>=1 && w<=3`，非法行单独列出并拒绝计入；结论区显示被拒行数。
-- 严重度：中（假工具：否）。
-
-### MM-H61 试模统计页按空格切分字段，含空格的问题名整行被静默丢弃（中，确认缺陷）
-- 问题：`lines[i].split(/[,，\t ]+/)` 把空格也当分隔符，问题名含空格（英文缺陷名、带说明的中文名）时字段错位，`parseFloat` 得 NaN，`if(isNaN(cnt)||isNaN(w)) continue;` 静默跳过整行，统计总数与加权指数偏小且无任何提示。
-- 证据：`tools/metalwork/analysis-35.html:215`（含空格的分隔正则）、`:217-219`（NaN 即 continue）、`:233-235`（输出总数/指数）。
-- 复现：试模 6 次，输入「short shot,4,2」与「飞边,4,2」→ 仅统计飞边，问题总数 **4**（期望 8）、加权 **8**（期望 16），页面无「已忽略 1 行」提示。期望：仅按逗号/制表符分隔，或对无法解析的行给出明确告警。
-- 影响：`tools/metalwork/analysis-35.html`。含空格缺陷名（尤其英文/中英混写）会被无声吞掉，试模验收统计失真。
-- 方案：分隔正则改为 `/[,，\t]+/` 后再 `trim`；对被跳过的行计数并在结果区列出原文。
-- 严重度：中（假工具：否）。
-
-### MM-H62 试模统计页问题名未经转义直接写入 innerHTML（安全，自 XSS）
-- 问题：结果表用字符串拼接 `tb+="<tr><td>"+r.n+"</td>…"` 后整体赋给 `res.innerHTML`，`r.n` 直接来自 textarea 首字段，未调用 `ToolBox.escHtml`。构造无空格/无逗号的标签即可在本页 origin 执行脚本。
-- 证据：`tools/metalwork/analysis-35.html:226`（未转义的 `r.n` 拼接）、`:241`（`innerHTML` 赋值）、`:212-220`（来源为 `#data` 文本域）。
-- 复现：试模 6 次，文本域输入一行 `<svg/onload=alert(1)>,1,2` → 结果表渲染时弹出 `alert(1)`；脚本可读取本站 localStorage（含全部工具历史记录）。期望：`ToolBox.escHtml(r.n)` 后再拼接，或改用 `textContent`/DOM 构建。
-- 影响：`tools/metalwork/analysis-35.html`。虽为本地自输入（自 XSS，需用户粘贴恶意文本），但页面会执行任意脚本并暴露 localStorage 中的历史数据。
-- 方案：拼接前统一 `ToolBox.escHtml(String(r.n))`；历史表渲染同样复核转义。
-- 严重度：中（安全；假工具：否）。
-
 ### 覆盖清单
 - `tools/machinery/lifespan-23.html`：换油间隔与伪油雾生成量已修（MM-H54、MM-H55）。
 - `tools/machinery/pressure-4.html`：内/外花键标签与深解挤压表述已修（MM-H48、MM-H49）。
@@ -186,9 +162,9 @@
 - `tools/machinery/power-16.html`：带速/超系列提示与「无根数校核」声明已修（MM-H52、MM-H53）。
 - `tools/machinery/detector-159.html`：国标/验收表述与 S-N 承诺已核实清除（MM-H56、MM-H57）。
 - `tools/metalwork/detector-24.html`：输入校验与尺寸阈值降级已完成（MM-H58、MM-H59）。
-- `tools/metalwork/analysis-35.html`：3 中（MM-H60、MM-H61、MM-H62，其中 H62 为安全）。
+- `tools/metalwork/analysis-35.html`：正数/严重度校验、字段切分与转义已完成（MM-H60、MM-H61、MM-H62）。
 - 编号：本批新增 `MM-H48`–`MM-H62`（2 高 / 13 中），续接 `MM-H47`，不重号；假工具 1（MM-H56）／安全 1（MM-H62）。
-- 验证声明：仅源码阅读 + node 内存复算（`/tmp/w_batch.js`）；未开浏览器、未跑 `run_gates.py` / `_build.py`、未做英文态/移动端/线上验证。本批未修改任何工具页、js/css/json 或构建产物。
+- 验证声明：原审计为源码阅读 + node 内存复算（`/tmp/w_batch.js`）；H48–H62 已在 2026-11-16 第 663–669 批逐条修复，均跑对应小门禁、`_build.py`、`_test_static.py` 与 selfcheck（归档见 `plan/已修复/2026-11-16-663…669`）。
 
 ## X 批 · 机械检测/寿命（2026-11-04）
 

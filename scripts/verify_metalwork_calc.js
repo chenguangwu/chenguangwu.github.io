@@ -160,6 +160,24 @@ const CASES = [
   "ref": "总数 8+5+3+6=22；密度 22/12=1.83；加权 8×2+5×3+3×2+6×1=43（默认 6 次试模、飞边 4×2 与欠铸 2×3 → 6/1.00/14，避开；最高频与最高加权默认同为飞边故不作断言）"
 },
 {
+  "slug": "metalwork/analysis-35",
+  "inputs": { "trials": "6", "data": "飞边,-4,2\n欠铸,2,3" },
+  "expect": ["已忽略 1 行", "次数须为正整数", "问题总数： 2"],
+  "ref": "负数次数拦截（669）：飞边 -4 被拒并列出「次数须为正整数」，仅统计欠铸 2 个（修复前总数 -2、密度 -0.33、结论「问题较少」；默认 6/22 不含这些串）"
+},
+{
+  "slug": "metalwork/analysis-35",
+  "inputs": { "trials": "6", "data": "short shot,4,2\n飞边,4,2" },
+  "expect": ["问题总数： 8", "问题类型数： 2"],
+  "ref": "含空格问题名不再丢行（669）：仅按逗号/制表符切分，short shot 整名保留 ⇒ 总数 8、类型 2（修复前按空格切分导致该行被静默丢弃，总数 4、类型 1；默认 22/3 不含）"
+},
+{
+  "slug": "metalwork/analysis-35",
+  "inputs": { "trials": "6", "data": "<svg/onload=alert(1)>,1,2" },
+  "expect": ["&lt;svg/onload=alert(1)&gt;"],
+  "ref": "问题名转义（669 复核 MM-H62）：标签被 escHtml 转义后输出 &lt;svg/onload=alert(1)&gt;，结果区不出现可执行 <svg>（默认数据不含该串）"
+},
+{
   "slug": "metalwork/laxue-ladao-chisheng-lali-sheji",
   "inputs": {
     "v0": "3.0",

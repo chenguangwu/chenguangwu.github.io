@@ -200,15 +200,17 @@ function calc(){
 var n=parseFloat(document.getElementById("trials").value);
 if(isNaN(n)||n<=0){document.getElementById("res").innerHTML="<p>请输入有效的试模次数</p>";return;}
 var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
-var rows=[];
+var rows=[],skipped=[];
 for(var i=0;i<lines.length;i++){
-  var p=lines[i].split(/[,，\t ]+/);
-  if(p.length<3) continue;
-  var nm=p[0],cnt=parseFloat(p[1]),w=parseFloat(p[2]);
-  if(isNaN(cnt)||isNaN(w)) continue;
-  rows.push({n:nm,c:cnt,w:w});
+  var p=lines[i].split(/[,，\t]+/).map(function(s){return s.trim();});
+  if(p.length<3){skipped.push({line:lines[i],why:"字段不足 3 项（问题,次数,严重度）"});continue;}
+  var nm=p[0],cntRaw=p[1],wRaw=p[2];
+  if(!nm){skipped.push({line:lines[i],why:"问题名为空"});continue;}
+  if(!/^\d+$/.test(cntRaw)||parseInt(cntRaw,10)<=0){skipped.push({line:lines[i],why:"次数须为正整数"});continue;}
+  if(!/^[123]$/.test(wRaw)){skipped.push({line:lines[i],why:"严重度须为 1/2/3"});continue;}
+  rows.push({n:nm,c:parseInt(cntRaw,10),w:parseInt(wRaw,10)});
 }
-if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「问题,次数,严重度」数据</p>";return;}
+if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「问题,次数,严重度」数据"+(skipped.length?"（"+skipped.length+" 行无效）":"")+"</p>";return;}
 var tot=0,wi=0;
 rows.forEach(function(r){tot+=r.c;wi+=r.c*r.w;});
 var tb="";
@@ -226,6 +228,11 @@ h+="<p>加权问题指数：<strong>"+wi+"</strong></p>";
 h+="<p>最高频问题：<strong>"+escHtml(topc.n)+"</strong></p>";
 h+="<p>最高加权问题：<strong>"+escHtml(topw.n)+"</strong></p>";
 h+="<p>试模结论：<strong>"+judge+"</strong></p>";
+if(skipped.length){
+  h+="<div class='tip-box tip-warn' style='margin-top:8px;'><strong>已忽略 "+skipped.length+" 行</strong><ul style='margin:6px 0 0;padding-left:18px;'>";
+  skipped.forEach(function(s){h+="<li>"+escHtml(s.line)+" —— "+escHtml(s.why)+"</li>";});
+  h+="</ul></div>";
+}
 h+="<table><thead><tr><th>问题</th><th>次数</th><th>严重度</th><th>加权值</th><th>单次试模频次</th></tr></thead><tbody>"+tb+"</tbody></table>";
 h+="<p style='font-size:12px;color:var(--text-muted);margin-top:8px;'>问题密度 = 问题总数 ÷ 试模次数；加权指数 = Σ(次数 × 严重度)，严重度 1 轻微、2 一般、3 严重。</p>";
 const __g3=h;document.getElementById("res").innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
