@@ -545,6 +545,7 @@ function calc(){
 }
 
 function drawChart(){
+  const en = /^en/i.test(document.documentElement.lang || '');
   const canvas = document.getElementById('chart');
   if(!canvas) return;
   const init = +document.getElementById('init').value || 0;
@@ -615,7 +616,7 @@ function drawChart(){
   ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-muted');
   for(let i=0;i<=n;i++){
     const x = padL + step * i + step/2;
-    ctx.fillText(i===0?'初始':'第'+i+'期', x, h-padB+16);
+    ctx.fillText(i===0?(en?'Init':'初始'):(en?'Period '+i:'第'+i+'期'), x, h-padB+16);
   }
 
   let cumulative = -init;
@@ -632,14 +633,19 @@ function drawChart(){
 
   ctx.fillStyle = danger; ctx.textAlign = 'left';
   ctx.fillRect(padL+6, padT+4, 12, 12);
-  ctx.fillText('投资/流出', padL+22, padT+14);
+  ctx.fillText(en?'Invest/outflow':'投资/流出', padL+22, padT+14);
   ctx.fillStyle = success;
   ctx.fillRect(padL+110, padT+4, 12, 12);
-  ctx.fillText('流入', padL+126, padT+14);
+  ctx.fillText(en?'Inflow':'流入', padL+126, padT+14);
   ctx.strokeStyle = primary; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(padL+200, padT+10); ctx.lineTo(padL+218, padT+10); ctx.stroke();
   ctx.fillStyle = primary;
-  ctx.fillText('累计现金流', padL+224, padT+14);
+  ctx.fillText(en?'Cumulative cash flow':'累计现金流', padL+224, padT+14);
+  window.__tbRedraw = function(){ if(typeof calc==='function') calc(); else drawChart(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 function exportCSV(){

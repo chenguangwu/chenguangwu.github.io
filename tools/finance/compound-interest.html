@@ -404,6 +404,12 @@ function fmt(n) {
 
 function fmtShort(n) {
   if (!isFinite(n)) return '--';
+  if (/^en/i.test(document.documentElement.lang || '')) {
+    if (Math.abs(n) >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+    if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+    if (Math.abs(n) >= 1e3) return (n / 1e3).toFixed(2) + 'k';
+    return n.toFixed(0);
+  }
   if (Math.abs(n) >= 100000000) return (n / 100000000).toFixed(2) + '亿';
   if (Math.abs(n) >= 10000) return (n / 10000).toFixed(2) + '万';
   return n.toFixed(0);
@@ -545,6 +551,7 @@ function calc() {
 }
 
 function drawChart() {
+  const en = /^en/i.test(document.documentElement.lang || '');
   const canvas = document.getElementById('chart');
   const ctx = canvas.getContext('2d');
   const container = canvas.parentElement;
@@ -593,7 +600,7 @@ function drawChart() {
   for (let i = 0; i <= xSteps; i++) {
     const idx = Math.round((yearData.length - 1) * i / xSteps);
     const x = padding.left + (chartW * idx / (yearData.length - 1));
-    ctx.fillText(yearData[idx].year + '年', x, h - padding.bottom + 16);
+    ctx.fillText(en ? 'Year ' + yearData[idx].year : yearData[idx].year + '年', x, h - padding.bottom + 16);
   }
   
   function drawLine(dataKey, color, fillColor) {
@@ -627,11 +634,16 @@ function drawChart() {
   ctx.font = '12px -apple-system, sans-serif';
   ctx.fillStyle = resolveCanvasColor('var(--primary)','#FF6B35');
   ctx.fillRect(padding.left, 8, 12, 12);
-  ctx.fillText('  总资产', padding.left + 16, 18);
+  ctx.fillText(en ? '  Total assets' : '  总资产', padding.left + 16, 18);
   
   ctx.fillStyle = '#ff9800';
   ctx.fillRect(padding.left + 100, 8, 12, 12);
-  ctx.fillText('  累计投入', padding.left + 116, 18);
+  ctx.fillText(en ? '  Total invested' : '  累计投入', padding.left + 116, 18);
+  window.__tbRedraw = function () { drawChart(); };
+  if (!window.__tbLangBound) {
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function () { if (window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 function exportCSV() {

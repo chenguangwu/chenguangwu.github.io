@@ -574,6 +574,7 @@ function renderYearly(){
 }
 
 function drawPieChart(principal, interest) {
+  var en = /^en/i.test(document.documentElement.lang || '');
   var canvas = document.getElementById('pieChart');
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
@@ -608,19 +609,20 @@ function drawPieChart(principal, interest) {
   ctx.fillStyle = '#667eea';
   ctx.fillRect(240, 80, 16, 16);
   ctx.fillStyle = '#333';
-  ctx.fillText('本金 ' + (principal / total * 100).toFixed(1) + '%', 264, 93);
+  ctx.fillText((en ? 'Principal ' : '本金 ') + (principal / total * 100).toFixed(1) + '%', 264, 93);
 
   ctx.fillRect(240, 110, 16, 16);
   ctx.fillStyle = '#f44336';
   ctx.fillRect(240, 110, 16, 16);
   ctx.fillStyle = '#333';
-  ctx.fillText('利息 ' + (interest / total * 100).toFixed(1) + '%', 264, 123);
+  ctx.fillText((en ? 'Interest ' : '利息 ') + (interest / total * 100).toFixed(1) + '%', 264, 123);
 
   ctx.font = 'bold 16px sans-serif';
-  ctx.fillText('本金利息占比', 240, 50);
+  ctx.fillText(en ? 'Principal vs interest' : '本金利息占比', 240, 50);
 }
 
 function drawLineChart(data) {
+  var en = /^en/i.test(document.documentElement.lang || '');
   var canvas = document.getElementById('lineChart');
   if (!canvas || !data || data.length === 0) return;
   var ctx = canvas.getContext('2d');
@@ -657,7 +659,7 @@ function drawLineChart(data) {
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'right';
     var val = (maxVal * i / 5);
-    ctx.fillText(val >= 10000 ? (val / 10000).toFixed(0) + '万' : val.toFixed(0), padding.left - 5, y + 4);
+    ctx.fillText(en ? (val >= 1e6 ? (val / 1e6).toFixed(1) + 'M' : val >= 1e3 ? (val / 1e3).toFixed(0) + 'k' : val.toFixed(0)) : (val >= 10000 ? (val / 10000).toFixed(0) + '万' : val.toFixed(0)), padding.left - 5, y + 4);
   }
 
   var points = Math.min(data.length, 60);
@@ -688,17 +690,22 @@ function drawLineChart(data) {
   ctx.fillStyle = '#333';
   ctx.font = 'bold 14px sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('还款曲线', 10, 20);
+  ctx.fillText(en ? 'Repayment curve' : '还款曲线', 10, 20);
 
   ctx.font = '12px sans-serif';
   ctx.fillStyle = '#667eea';
   ctx.fillRect(w - 140, 10, 12, 12);
   ctx.fillStyle = '#333';
-  ctx.fillText('剩余本金', w - 124, 20);
+  ctx.fillText(en ? 'Remaining principal' : '剩余本金', w - 124, 20);
   ctx.fillStyle = '#f44336';
   ctx.fillRect(w - 140, 30, 12, 12);
   ctx.fillStyle = '#333';
-  ctx.fillText('累计利息', w - 124, 40);
+  ctx.fillText(en ? 'Cumulative interest' : '累计利息', w - 124, 40);
+  window.__tbRedraw = function(){ if(typeof calc==='function') calc(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 function togglePrepay() {

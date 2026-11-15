@@ -482,6 +482,12 @@ function calc(){
 }
 
 function formatMoney(n){
+  if(/^en/i.test(document.documentElement.lang || '')){
+    if(Math.abs(n) >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+    if(Math.abs(n) >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+    if(Math.abs(n) >= 1e3) return (n / 1e3).toFixed(2) + 'k';
+    return ToolBox.formatNumber(n, 2);
+  }
   if(Math.abs(n) >= 100000000) return (n / 100000000).toFixed(2) + '亿';
   if(Math.abs(n) >= 10000) return (n / 10000).toFixed(2) + '万';
   return ToolBox.formatNumber(n, 2);
@@ -634,6 +640,7 @@ function calcBatch(){
 }
 
 function drawPieChart(){
+  var en = /^en/i.test(document.documentElement.lang || '');
   var p = getParams();
   var canvas = document.getElementById('pieChart');
   var ctx = canvas.getContext('2d');
@@ -692,7 +699,7 @@ function drawPieChart(){
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = 'bold 20px -apple-system,sans-serif';
-  ctx.fillText('总成本', cx, cy - 12);
+  ctx.fillText(en ? 'Total cost' : '总成本', cx, cy - 12);
   ctx.font = 'bold 18px -apple-system,sans-serif';
   ctx.fillStyle = resolveCanvasColor('var(--primary)','#FF6B35');
   ctx.fillText(formatMoney(total), cx, cy + 14);
@@ -731,6 +738,7 @@ function renderCostDetail(){
 }
 
 function drawWaterfallChart(){
+  var en = /^en/i.test(document.documentElement.lang || '');
   var p = getParams();
   var canvas = document.getElementById('waterfallChart');
   var ctx = canvas.getContext('2d');
@@ -749,14 +757,14 @@ function drawWaterfallChart(){
   ctx.clearRect(0, 0, w, h);
   
   var items = [
-    {label: '营业收入', val: p.revenue, type: 'total'},
-    {label: '营业成本', val: -p.cogs, type: 'expense'},
-    {label: '销售费用', val: -p.sellingExp, type: 'expense'},
-    {label: '管理费用', val: -p.adminExp, type: 'expense'},
-    {label: '研发费用', val: -p.rdExp, type: 'expense'},
-    {label: '财务费用', val: -p.finExp, type: 'expense'},
-    {label: '折旧摊销', val: -p.da, type: 'expense'},
-    {label: '净利润', val: p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp - p.da - Math.max(0, (p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp - p.da) * p.taxRate / 100), type: 'total'}
+    {label: en ? 'Revenue' : '营业收入', val: p.revenue, type: 'total'},
+    {label: en ? 'COGS' : '营业成本', val: -p.cogs, type: 'expense'},
+    {label: en ? 'Selling' : '销售费用', val: -p.sellingExp, type: 'expense'},
+    {label: en ? 'Admin' : '管理费用', val: -p.adminExp, type: 'expense'},
+    {label: en ? 'R&D' : '研发费用', val: -p.rdExp, type: 'expense'},
+    {label: en ? 'Finance' : '财务费用', val: -p.finExp, type: 'expense'},
+    {label: en ? 'D&A' : '折旧摊销', val: -p.da, type: 'expense'},
+    {label: en ? 'Net profit' : '净利润', val: p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp - p.da - Math.max(0, (p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp - p.da) * p.taxRate / 100), type: 'total'}
   ];
   
   var maxVal = p.revenue;
@@ -825,6 +833,11 @@ function drawWaterfallChart(){
     if(item.type === 'total') labelY = zeroY - val * scale - 4;
     ctx.fillText(formatMoney(val), x, labelY);
   });
+  window.__tbRedraw = function(){ if(typeof calc==='function') calc(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 function calcDupont(){

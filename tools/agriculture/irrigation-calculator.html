@@ -296,6 +296,7 @@ const __g4='<h3 style="text-align:center;margin-bottom:12px;">🏦 '+method.name
 $('chartWrap').style.display='block';drawChart(netPerMu,grossPerMu-netPerMu,monthlyWater/area);
 }
 function drawChart(net,loss,monthly){
+var en=/^en/i.test(document.documentElement.lang||'');
 var c=$('chart'),ctx=c.getContext('2d'),ct=c.parentElement;c.width=ct.clientWidth;c.height=ct.clientHeight;
 var w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
 var pad={top:22,right:20,bottom:30,left:50},cw=w-pad.left-pad.right,ch=h-pad.top-pad.bottom,panelGap=40,ph=(ch-panelGap)/2;
@@ -317,8 +318,9 @@ function panel(y,title,bars,unit){
   });
   ctx.fillStyle=resolveCanvasColor('var(--text-muted)','#6B7280');ctx.textAlign='right';ctx.fillText(unit,pad.left-8,y+ph+13);
 }
-panel(pad.top,'单次灌水（m³/亩）',[{l:'净灌溉',v:net,c:'#4caf50'},{l:'输水损失',v:loss,c:'#ff9800'}],'m³/亩');
-panel(pad.top+ph+panelGap,'月累计用水（m³/亩·月）',[{l:'月均水量',v:monthly,c:'#2196f3'}],'m³/亩');
+panel(pad.top,en?'Per irrigation (m³/mu)':'单次灌水（m³/亩）',[{l:en?'Net water':'净灌溉',v:net,c:'#4caf50'},{l:en?'Conveyance loss':'输水损失',v:loss,c:'#ff9800'}],en?'m³/mu':'m³/亩');
+panel(pad.top+ph+panelGap,en?'Monthly total (m³/mu·month)':'月累计用水（m³/亩·月）',[{l:en?'Average monthly':'月均水量',v:monthly,c:'#2196f3'}],en?'m³/mu':'m³/亩');
+window.__tbRedraw=function(){drawChart(net,loss,monthly);};if(!window.__tbLangBound){window.__tbLangBound=1;window.addEventListener('toolbox:langchange',function(){if(window.__tbRedraw)window.__tbRedraw();});}
 }
 function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),method:METHODS[$('method').value].name,mk:$('method').value,area:$('area').value,crop:$('crop').options[$('crop').selectedIndex].text,cropIdx:$('crop').value,soil:$('soil').value,depth:$('depth').value,moisture:$('moisture').value,price:$('price').value,cycle:$('cycle').value};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
 function getHistory(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch(e){return[];}}

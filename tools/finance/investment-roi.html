@@ -439,6 +439,7 @@ function calcSimple(){
 }
 
 function drawSimpleChart(){
+  const en = /^en/i.test(document.documentElement.lang || '');
   const canvas = document.getElementById('simpleChart');
   if(!canvas) return;
   const cost = parseFloat(document.getElementById('cost').value) || 0;
@@ -483,7 +484,7 @@ function drawSimpleChart(){
   for(let i=0;i<=4;i++){
     const x = padL + cw * i/4;
     const t = years * i/4;
-    ctx.fillText(t.toFixed(1)+'年', x, h-padB+16);
+    ctx.fillText(t.toFixed(1)+(en?' y':'年'), x, h-padB+16);
   }
 
   const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
@@ -516,7 +517,7 @@ function drawSimpleChart(){
   ctx.setLineDash([]);
   ctx.fillStyle = primary;
   ctx.textAlign = 'left';
-  ctx.fillText('成本: '+fmt(cost), padL+6, yCost-4);
+  ctx.fillText((en?'Cost: ':'成本: ')+fmt(cost), padL+6, yCost-4);
 }
 
 // 资金加权 IRR：按每期实际投入时点（期初）构造现金流，期末终值为唯一正流入。
@@ -602,6 +603,7 @@ function calcRegular(){
 }
 
 function drawRegularChart(){
+  const en = /^en/i.test(document.documentElement.lang || '');
   const canvas = document.getElementById('regularChart');
   if(!canvas) return;
   const pmt = parseFloat(document.getElementById('monthly').value) || 0;
@@ -650,7 +652,7 @@ function drawRegularChart(){
   ctx.textAlign = 'center';
   for(let i=0;i<=4;i++){
     const x = padL + cw*i/4;
-    ctx.fillText((period*i/4).toFixed(1)+'年', x, h-padB+16);
+    ctx.fillText((period*i/4).toFixed(1)+(en?' y':'年'), x, h-padB+16);
   }
 
   const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
@@ -681,8 +683,8 @@ function drawRegularChart(){
   ctx.lineTo(padL+cw, h-padB); ctx.lineTo(padL, h-padB); ctx.closePath();
   ctx.fillStyle = grad; ctx.fill();
 
-  ctx.fillStyle = success; ctx.textAlign = 'left'; ctx.fillText('总价值', padL+6, padT+14);
-  ctx.fillStyle = primary; ctx.fillText('投入本金', padL+90, padT+14);
+  ctx.fillStyle = success; ctx.textAlign = 'left'; ctx.fillText(en?'Total value':'总价值', padL+6, padT+14);
+  ctx.fillStyle = primary; ctx.fillText(en?'Principal invested':'投入本金', padL+90, padT+14);
 }
 
 // F-N33 / F-N34：期末价值统一公式（初始投资一次复利 + 每年期初追加的年金终值）。
@@ -800,6 +802,7 @@ function calcCompare(){
 }
 
 function drawCompareChart(){
+  const en = /^en/i.test(document.documentElement.lang || '');
   const canvas = document.getElementById('compareChart');
   if(!canvas) return;
   const a = {
@@ -853,7 +856,7 @@ function drawCompareChart(){
   ctx.textAlign = 'center';
   for(let i=0;i<=4;i++){
     const x = padL + cw*i/4;
-    ctx.fillText((maxYears*i/4).toFixed(1)+'年', x, h-padB+16);
+    ctx.fillText((maxYears*i/4).toFixed(1)+(en?' y':'年'), x, h-padB+16);
   }
 
   const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
@@ -879,10 +882,19 @@ function drawCompareChart(){
 
   ctx.fillStyle = primary; ctx.textAlign = 'left';
   ctx.fillRect(padL+6, padT+4, 12, 3);
-  ctx.fillText('方案A', padL+22, padT+10);
+  ctx.fillText(en?'Option A':'方案A', padL+22, padT+10);
   ctx.fillStyle = success;
   ctx.fillRect(padL+90, padT+4, 12, 3);
-  ctx.fillText('方案B', padL+106, padT+10);
+  ctx.fillText(en?'Option B':'方案B', padL+106, padT+10);
+  window.__tbRedraw = function(){
+    if(document.getElementById('tab-simple').classList.contains('active')) drawSimpleChart();
+    else if(document.getElementById('tab-regular').classList.contains('active')) drawRegularChart();
+    else if(document.getElementById('tab-compare').classList.contains('active')) drawCompareChart();
+  };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 initTemplates();

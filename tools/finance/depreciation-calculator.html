@@ -435,6 +435,7 @@ function calc(){
 }
 
 function drawChart(straight, ddb, syd, units){
+  const en = /^en/i.test(document.documentElement.lang || '');
   const canvas = document.getElementById('chart');
   if(!canvas) return;
   const life = straight.length;
@@ -474,15 +475,15 @@ function drawChart(straight, ddb, syd, units){
   ctx.textAlign = 'center';
   for(let i=0;i<=life;i++){
     const x = padL + cw * i/life;
-    ctx.fillText(i===0?'期初':'第'+i+'年', x, h-padB+16);
+    ctx.fillText(i===0?(en?'Start':'期初'):(en?'Year '+i:'第'+i+'年'), x, h-padB+16);
   }
 
   const methods = [
-    {data:straight, color:'#667eea', label:'直线法'},
-    {data:ddb, color:'#4caf50', label:'双倍余额递减'},
-    {data:syd, color:'#ff9800', label:'年数总和'},
+    {data:straight, color:'#667eea', label:en?'Straight-line':'直线法'},
+    {data:ddb, color:'#4caf50', label:en?'Double declining':'双倍余额递减'},
+    {data:syd, color:'#ff9800', label:en?'Sum-of-years':'年数总和'},
   ];
-  if(units) methods.push({data:units, color:'#9c27b0', label:'工作量法'});
+  if(units) methods.push({data:units, color:'#9c27b0', label:en?'Units of output':'工作量法'});
 
   methods.forEach(m => {
     ctx.beginPath();
@@ -514,6 +515,11 @@ function drawChart(straight, ddb, syd, units){
     ctx.fillText(m.label, lx+26, padT+14);
     lx += 110;
   });
+  window.__tbRedraw = function(){ if(typeof calc==='function') calc(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 function exportCSV(){

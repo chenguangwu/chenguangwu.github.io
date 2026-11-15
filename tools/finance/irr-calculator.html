@@ -656,6 +656,7 @@ function renderDetail(series, perPeriod, annualIrr, unit, discountRate, sol) {
 }
 
 function drawChart() {
+  const en = /^en/i.test(document.documentElement.lang || '');
   const canvas = document.getElementById('chart');
   const ctx = canvas.getContext('2d');
   const container = canvas.parentElement;
@@ -734,11 +735,16 @@ function drawChart() {
   ctx.font = '12px -apple-system, sans-serif';
   ctx.fillStyle = '#4caf50';
   ctx.fillRect(padding.left, 8, 12, 12);
-  ctx.fillText('  流入', padding.left + 16, 18);
+  ctx.fillText(en ? '  Inflow' : '  流入', padding.left + 16, 18);
   
   ctx.fillStyle = '#f44336';
   ctx.fillRect(padding.left + 80, 8, 12, 12);
-  ctx.fillText('  流出', padding.left + 96, 18);
+  ctx.fillText(en ? '  Outflow' : '  流出', padding.left + 96, 18);
+  window.__tbRedraw = function(){ drawChart(); };
+  if (!window.__tbLangBound) {
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 function fmt(n) {
@@ -750,6 +756,12 @@ function fmtShort(n) {
   if (!isFinite(n)) return '--';
   const abs = Math.abs(n);
   const sign = n < 0 ? '-' : '';
+  if (/^en/i.test(document.documentElement.lang || '')) {
+    if (abs >= 1e9) return sign + (abs / 1e9).toFixed(2) + 'B';
+    if (abs >= 1e6) return sign + (abs / 1e6).toFixed(2) + 'M';
+    if (abs >= 1e3) return sign + (abs / 1e3).toFixed(2) + 'k';
+    return sign + abs.toFixed(2);
+  }
   if (abs >= 100000000) return sign + (abs / 100000000).toFixed(2) + '亿';
   if (abs >= 10000) return sign + (abs / 10000).toFixed(2) + '万';
   return sign + abs.toFixed(2);

@@ -490,6 +490,7 @@ function generateYearlyData(age, retireAge, lifeAge, currentSavings, monthlyCont
 }
 
 function drawAssetChart(age, retireAge, lifeAge) {
+  var en = /^en/i.test(document.documentElement.lang || '');
   var canvas = document.getElementById('assetChart');
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
@@ -524,7 +525,7 @@ function drawAssetChart(age, retireAge, lifeAge) {
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'right';
     var val = (maxBalance * i / 5);
-    ctx.fillText(val >= 100000000 ? (val / 100000000).toFixed(1) + '亿' : val >= 10000 ? (val / 10000).toFixed(0) + '万' : val.toFixed(0), padding.left - 8, y + 4);
+    ctx.fillText(en ? (val >= 1e9 ? (val / 1e9).toFixed(1) + 'B' : val >= 1e6 ? (val / 1e6).toFixed(1) + 'M' : val >= 1e3 ? (val / 1e3).toFixed(0) + 'k' : val.toFixed(0)) : (val >= 100000000 ? (val / 100000000).toFixed(1) + '亿' : val >= 10000 ? (val / 10000).toFixed(0) + '万' : val.toFixed(0)), padding.left - 8, y + 4);
   }
 
   var years = yearlyData.length;
@@ -539,7 +540,7 @@ function drawAssetChart(age, retireAge, lifeAge) {
   ctx.fillStyle = '#ff9800';
   ctx.font = '11px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('退休', retireX, padding.top - 8);
+  ctx.fillText(en ? 'Retirement' : '退休', retireX, padding.top - 8);
 
   ctx.beginPath();
   ctx.strokeStyle = '#667eea';
@@ -566,17 +567,17 @@ function drawAssetChart(age, retireAge, lifeAge) {
   ctx.fillStyle = '#333';
   ctx.font = 'bold 14px sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('资产增长曲线', 10, 20);
+  ctx.fillText(en ? 'Asset growth curve' : '资产增长曲线', 10, 20);
 
   ctx.font = '12px sans-serif';
   ctx.fillStyle = '#667eea';
   ctx.fillRect(w - 180, 10, 12, 12);
   ctx.fillStyle = '#333';
-  ctx.fillText('名义资产', w - 164, 20);
+  ctx.fillText(en ? 'Nominal assets' : '名义资产', w - 164, 20);
   ctx.fillStyle = '#4caf50';
   ctx.fillRect(w - 180, 30, 12, 12);
   ctx.fillStyle = '#333';
-  ctx.fillText('实际资产（通胀调整）', w - 164, 40);
+  ctx.fillText(en ? 'Real assets (inflation-adj.)' : '实际资产（通胀调整）', w - 164, 40);
 
   ctx.fillStyle = '#999';
   ctx.font = '11px sans-serif';
@@ -584,7 +585,12 @@ function drawAssetChart(age, retireAge, lifeAge) {
   var step = Math.ceil(years / 8);
   for (var i = 0; i < years; i += step) {
     var x = padding.left + (i / (years - 1)) * chartW;
-    ctx.fillText((age + i) + '岁', x, padding.top + chartH + 18);
+    ctx.fillText(en ? 'Age ' + (age + i) : (age + i) + '岁', x, padding.top + chartH + 18);
+  }
+  window.__tbRedraw = function(){ if(typeof calc==='function') calc(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
   }
 }
 

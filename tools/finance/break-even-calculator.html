@@ -460,6 +460,7 @@ function getSafetyRating(ratio){
 }
 
 function drawChart(){
+  var en = /^en/i.test(document.documentElement.lang || '');
   var p = getParams();
   var err = validateParams(p, true);
   setParamError('chartError', err);
@@ -618,23 +619,29 @@ function drawChart(){
     ctx.fillStyle = textColor;
     ctx.font = 'bold 11px -apple-system,sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('盈亏平衡点: ' + Math.ceil(bep.qty) + '件', bepX + 10, bepY - 10);
+    ctx.fillText((en ? 'Break-even: ' : '盈亏平衡点: ') + Math.ceil(bep.qty) + (en ? ' units' : '件'), bepX + 10, bepY - 10);
   }
   
   ctx.fillStyle = textColor;
   ctx.font = '11px -apple-system,sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('销量（件）', w / 2, h - 12);
+  ctx.fillText(en ? 'Units sold' : '销量（件）', w / 2, h - 12);
   
   ctx.save();
   ctx.translate(14, h / 2);
   ctx.rotate(-Math.PI / 2);
   ctx.textAlign = 'center';
-  ctx.fillText('金额（元）', 0, 0);
+  ctx.fillText(en ? 'Amount (CNY)' : '金额（元）', 0, 0);
   ctx.restore();
+  window.__tbRedraw=function(){if(typeof calc==='function')calc();else drawChart();};if(!window.__tbLangBound){window.__tbLangBound=1;window.addEventListener('toolbox:langchange',function(){if(window.__tbRedraw)window.__tbRedraw();});}
 }
 
 function formatMoney(n){
+  if(/^en/i.test(document.documentElement.lang || '')){
+    if(Math.abs(n) >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if(Math.abs(n) >= 1000) return (n / 1000).toFixed(1) + 'k';
+    return ToolBox.formatNumber(n, 0);
+  }
   if(n >= 10000000) return (n / 10000000).toFixed(1) + '千万';
   if(n >= 10000) return (n / 10000).toFixed(1) + '万';
   return ToolBox.formatNumber(n, 0);
@@ -839,6 +846,7 @@ function calcSensitivity(){
 }
 
 function drawSensitivityChart(p, pct, baseBEP){
+  var en = /^en/i.test(document.documentElement.lang || '');
   var canvas = document.getElementById('sensitivityChart');
   var ctx = canvas.getContext('2d');
   var dpr = window.devicePixelRatio || 1;
@@ -959,12 +967,12 @@ function drawSensitivityChart(p, pct, baseBEP){
   
   ctx.fillStyle = textColor;
   ctx.textAlign = 'center';
-  ctx.fillText('因素变动幅度', w / 2, h - 2);
+  ctx.fillText(en ? 'Factor change' : '因素变动幅度', w / 2, h - 2);
   ctx.save();
   ctx.translate(14, h / 2);
   ctx.rotate(-Math.PI / 2);
   ctx.textAlign = 'center';
-  ctx.fillText('盈亏平衡销量(件)', 0, 0);
+  ctx.fillText(en ? 'Break-even units' : '盈亏平衡销量(件)', 0, 0);
   ctx.restore();
 }
 
