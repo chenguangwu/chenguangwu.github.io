@@ -814,9 +814,9 @@ const CASES = [
       "data": "42"
     },
     "expect": [
-      "00 均值 x̄ — 样本方差 s² — 样本标准差 s"
+      "请至少输入 2 个有效数值（无法解析的项不计入 n）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"data\":\"42\"}，输出区含「00 均值 x̄ — 样本方差 s² — 样本标准差 s」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "SMS-45 升级：原补强用例锁着 n=1 时主结果显示「00 均值 x̄ — 样本方差 s² — 样本标准差 s」这一旧错误行为。修复后 n<2 时停算提示并清空四面板；注入 data=42 得该提示，默认 8 值不含 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "statistics/sample-size-proportion",
@@ -1237,6 +1237,56 @@ const CASES = [
     inputs: { n: "1000", k: "900", p: "0.9" },
     expect: ["0.04202"],
     ref: "SMS-59 回归：主结果在 n=1000、p=0.9、k=900 的极端参数下仍须给出非零概率；默认 Bin(10,0.5) 的 0.11719 不含该串 ⇒ 注入失败变红，零逃生。"
+  },
+
+  // SMS-45：样本方差主算、明细与图表同源解析
+  {
+    slug: "statistics/sample-variance",
+    inputs: { data: "2 4 6" },
+    expect: ["4.0000 样本方差 s²"],
+    ref: "SMS-45：旧主算 split(',') 把 '2 4 6' 解析成单个 2，n=1 ⇒ s²=—；附加层按空白切分得 3 值、s²=4.0000。修复后主算与附加层共用 __svList()。默认 2,4,4,4,5,5,7,9 得 4.5714 ⇒ 不命中，零逃生。"
+  },
+  {
+    slug: "statistics/sample-variance",
+    inputs: { data: "2,4,bad,6" },
+    expect: ["4.0000 样本方差 s²"],
+    ref: "SMS-45：非法项 bad 经严格解析不计入 n，剩 2/4/6 ⇒ 均值 4、s²=(4+0+4)/2=4.0000。 parseFloat 会把 '2abc' 读成 2 的旧宽松口径不再适用；默认态不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/sample-variance",
+    inputs: { data: "2,4,6,8" },
+    clicks: ["var ok=typeof __svClear==='function'&&String(__svExtras).indexOf('__svClear();return')>=0&&String(__tb_sv0).indexOf('__svList(')>=0;document.getElementById('__tbProbe').textContent='SVCLR '+(ok?'OK':'BAD');"],
+    expect: ["SVCLR OK"],
+    ref: "SMS-45：旧输入守卫只清 svTable，图表/差异/历史保留上次结果；修复后 __svClear() 统一清四面板，且原函数 __tb_sv0（包装器保存的 calcTool）改用 __svList()。源码形态探针只在修复态命中，默认态不执行 clicks ⇒ 零逃生。"
+  },
+  // SMS-61：独立 t 检验主算前提守卫
+  {
+    slug: "statistics/independent-t-test",
+    inputs: { m1: "30", m2: "27", s1: "5", s2: "5", n1: "1", n2: "20" },
+    expect: ["两组样本量必须是 ≥2 的整数"],
+    ref: "SMS-61：旧主算仅有 6 项非空守卫，n1=1 时 sp² 用 (n1−1)=0 仍算出 t 与 p≈0 的「极显著」结论，与提示卡要求矛盾。修复后主算强制 n₁,n₂ 为 ≥2 整数且 s₁,s₂>0，不满足停算并清空四面板；默认 n=20/20 不含该串 ⇒ 零逃生。"
+  },
+  // SMS-60：附加层 t 与主算同源（合并方差，不再 Welch 分母）
+  {
+    slug: "statistics/independent-t-test",
+    inputs: { m1: "30", m2: "27", s1: "10", s2: "2", n1: "10", n2: "30" },
+    clicks: ["var cap=[];TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(){}},chart:{bar:function(){}},history:{record:function(r){cap.push(r);},mount:function(){},list:function(){return [];},last:function(){return null;}},preset:{bar:function(){}}};__itExtras();document.getElementById('__tbProbe').textContent='ITT t='+(cap.length?cap[cap.length-1].t:'NA');"],
+    expect: ["ITT t=1.5889"],
+    ref: "SMS-60：旧附加层用 Welch 分母 se=√(s1²/n1+s2²/n2) 得 t=0.9424，却配合并自由度 df=38，与主结果 t=1.5889 相差 41%。修复后附加层共用 sp² 与合并标准误，历史 t 与主结果同源；默认 s1=s2=5、n1=n2=20 时两种分母恰好相等，故本例必须用不等标准差与不等样本量。注入失败即不含该串 ⇒ 零逃生。"
+  },
+  // SMS-62：相关系数恒定序列必须停答
+  {
+    slug: "statistics/correlation-coefficient",
+    inputs: { x: "5,5,5,5", y: "1,2,3,4" },
+    expect: ["皮尔逊相关系数无定义"],
+    ref: "SMS-62：X 全为 5 时 dx=0 ⇒ r=NaN，结果卡显示「—」，但强度卡因 NaN 落入最后的 else 分支输出「几乎无线相关」，同页自相矛盾。修复后 dx/dy≤0 或 r 非有限时停答提示并清空图表/明细/差异/历史；默认 X/Y 不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/correlation-coefficient",
+    inputs: { x: "1,2,3,4", y: "2,4,6,8" },
+    clicks: ["var x=document.getElementById('x'),y=document.getElementById('y');x.value='5,5,5,5';y.value='1,2,3,4';var t=document.getElementById('ccTable');t.innerHTML='旧表格残留';calcTool();var ok=String(document.getElementById('result').innerHTML).indexOf('皮尔逊相关系数无定义')>=0&&t.innerHTML==='';document.getElementById('__tbProbe').textContent='CCCLR '+(ok?'OK':'BAD');"],
+    expect: ["CCCLR OK"],
+    ref: "SMS-62：恒定序列早退时旧实现不调用 __ccExtras，散点图/明细/差异/历史保留上一次结果，且强度卡仍输出「几乎无线相关」。修复后主算早退统一 __ccClear()；本探针先注入旧表格内容再触发恒定序列，验「停答 + 清空」两个行为同时成立，旧版必 BAD。默认态不执行 clicks ⇒ 零逃生。"
   },
 
 ];
