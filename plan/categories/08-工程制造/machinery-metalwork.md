@@ -33,11 +33,9 @@
 - `:155-156,387-400,421-424`：周期空值或 0 静默变为 1 天，负数和小数未阻止，仍生成到期日。建议明确维护确认规则，保存可复核的勾选和备注，校验周期为正整数；未运行页面。
 
 ## 已知问题### M3. gongyeshebeigonglvpipei 死代码与误导注释
-- ✅ 死变量清理（2026-10-26）：torque/loadTorque 两行死变量与注释已删，grep 确认无引用；顺带修该页 #res EN 存量泄漏（calc 动态串 10 处全 __T 化 + location fallback，NO_MODULE 是容器名 #res 非默认所致，--container=res 后 OK_EN）。
 
 ## 功能缺陷
 - metalwork 7 个「双段通用对比页」功能单薄（carbon-8/diandonggongju-xifen/laxue-ladao/tangxue/wushua/yuanlingongju-xifen/zhineng-duogongneng）：生效 calc 仍是 A/B 两值通用比值-差值输出，非领域公式（carbon-8 第二段有 850-950℃ 渗碳拟合为例外）；建议按主题补真实领域计算（渗碳层深-时间、拉削力-齿升、镗杆刚度等）。
-- ✅ 切削页「材料-刀具匹配表」已具备（2026-10-30 复核）：`mechanical/cutting-speed.html` 的 `#refList` 已渲染 碳钢/合金钢/铸铁/铝合金/不锈钢 × 高速钢/硬质合金 的速度区间矩阵，deep-dive 亦列同口径推荐区间；该项销案（`machinery/speed-cutting-feed` 为跳转存根）。
 - 折弯页缺「回弹补偿」输入项。
 
 ## 优化点

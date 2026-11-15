@@ -24,10 +24,6 @@
 - tools/tax/（35）、tools/accounting/（35）、tools/audit/
 
 ## 进度
-- 🟢 批次 2026-10-26 · T1 时效徽标：tools/tax/ 全 31 工具页（index 除外）在 result-box 前插「📅 税率口径截至 2026-10（中国现行税制快照）」徽标（data-zh 双语防 EN 泄漏、无 id 不进 blob、verify 零影响）；批量 python re.sub 一次过。⚠ T1 后半「数据集中 json 单源」未做（涉及 35 页 JS 重构，待裁）。verify tax 60/60、判别器 0 逃生、门禁 218/218。
-- 🟢 批次 2026-10-26 · 个税专项附加模拟：`tax/calc-8`（年终奖个税）加 7 项分项模拟块（子女教育/继续教育/大病医疗/房贷利息/住房租金/赡养老人/婴幼儿照护，年额输入 + 标准定额 placeholder + 实时合计 #edSumBox + 一键填入 extra 联动 calc）；GEN_UI_MAP 前段补 9 条 EN 映射。verify 强用例（24000+36000 → 合计 60000 → apply 后两方案差额 ¥0）。verify tax 61/61、判别器 0 逃生、门禁 218/218。
-- 🟢 批次 2026-10-26 · 企业所得税优惠口径开关：`tax/corporate-income-tax` 加 select（法定税率 none/小型微利 ≤300 万实际 5%/高新 15%），note 行输出口径说明；none 分支与原逻辑一致 ⇒ 老用例零漂移。⚠ 插入 select 打断 42 用例值序列锚（'none' 进 blob）→ 同批改锚「42\nnone\n42\n17.64…」。GEN_UI_MAP 补 4 条。verify 强用例（280 万+small → 140000.00/实际税负 5%）。verify tax 62/62、判别器 0 逃生、门禁 218/218。
-- 🟢 批次 2026-10-26 · S3 速算推导 + S2 场景预设：`tax/calc-8` 加「速算扣除数是怎么来的」静态卡（递推公式 + 2520/16920/31920/52920/85920/181920 六档验算）；preset 栏加「北京月薪2万·有房有娃」「年终奖10万怎么发」两个场景预设（labelEn 双语）。静态卡/预设不改 calc ⇒ verify 零影响。verify tax 62/62、判别器 0 逃生、门禁 218/218。
 - 🔴 待开发：json 单源待裁；其余分类待办见各计划文件。
 
 ## 2026-11-03 第一轮抽样补充
@@ -168,4 +164,3 @@
 - 本批新抽查 8 页：`tools/audit/irr-table.html`、`tools/audit/ratio-analysis.html`、`tools/accounting/amortization-intangible.html`、`tools/accounting/depreciation-syd.html`、`tools/accounting/debt-service-coverage.html`、`tools/tax/capital-gains-effective.html`、`tools/tax/payroll-tax.html`、`tools/tax/stamp-duty.html`；与既有 T1、首轮 6 页、T-N1～T-N8 无重复。
 - 新增 11 条（T-N9～T-N19），其中高优 2 条（T-N9、T-N15）、中优 8 条、低优 1 条；除 T-N19 标注「待验证」外均为源码路径 + node 内存复算确认。
 - 证据均来自源码阅读与 node 复算；**未做**浏览器、英文态、移动端、线上或门禁验证；历史/持久化的实际行为未在真机复核。
-
