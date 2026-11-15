@@ -336,6 +336,26 @@ const CASES = [
   "ref": "关键词过滤型：inputs 写 search=zzzqx ⇒ oninput=render() 过滤 34 种药物得空集 ⇒ 结果区渲染「未找到匹配药物」。默认态（search 空）渲染全部 34 种、blob 内无该串（已双态核验），故为排他锚点。"
 },
 {
+  "slug": "medical/drug-info",
+  "inputs": {
+    "search": "肝毒性"
+  },
+  "expect": [
+    "共 1 种药物"
+  ],
+  "ref": "D-N12 搜索字段扩展：blob 纳入 dose/adverse/contraind/note 后，仅在「不良反应：肝毒性」出现的对乙酰氨基酚应命中 1 种；修复前 blob 只含 name/en/goods/use/cat ⇒ 0 种（「未找到匹配药物」）。默认空搜索为「共 34 种药物」，与本锚零交集。"
+},
+{
+  "slug": "medical/drug-info",
+  "clicks": [
+    "currentCat='解热镇痛';initCats();render();applyDrugPreset('bp');document.getElementById('__tbProbe').textContent='D12 '+document.getElementById('countBar').textContent;"
+  ],
+  "expect": [
+    "D12 共 4 种药物"
+  ],
+  "ref": "D-N12 预设重置分类：先切到「解热镇痛」分类（此时点降压预设会被分类过滤成 0 条），再 applyDrugPreset('bp')；修复后先把 currentCat 重置为 all ⇒ 「高血压」命中 4 种（氨氯地平/美托洛尔/依那普利/缬沙坦）。修复前分类不变 ⇒ 「共 0 种药物」。默认态为「共 34 种药物」，探针串不命中。"
+},
+{
   "slug": "medical/estimate-metabolism",
   "inputs": {
     "weight": "98",
