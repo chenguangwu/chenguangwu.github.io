@@ -278,16 +278,30 @@ const PROSIGNS = {
 };
 const REVERSE = {};
 for(const k in MORSE) REVERSE[MORSE[k]] = k;
-for(const k in PROSIGNS) REVERSE[PROSIGNS[k]] = k;
+for(const k in PROSIGNS) if(!REVERSE[PROSIGNS[k]]) REVERSE[PROSIGNS[k]] = k; // IT-N442：同码以 ITU 标点优先，Prosigns 不覆盖 & + =
 
 function styleCode(s){
   const style = document.getElementById('style').value;
   if(style === 'audio'){
     return s.replace(/\./g,'·').replace(/-/g,'—');
   } else if(style === 'word'){
-    return s.split('').map(c => c === '.' ? 'DIT' : 'DAH').join(' ');
+    return s.split('').map(c => c === '.' ? 'DIT' : 'DAH').join('+'); // IT-N441：码元用 + 连接，保留字符间单空格边界
   }
   return s;
+}
+
+function encodeWord(word){
+  // IT-N443：先整体匹配 <AR>/<SK> 等 Prosigns 记号，再逐字符查表，避免被拆成 A R。
+  var parts=[], i=0;
+  while(i<word.length){
+    var m=/^<([A-Z]{2,10})>/.exec(word.slice(i));
+    var key=m?('<'+m[1]+'>'):'';
+    if(key && PROSIGNS[key]){ parts.push(styleCode(PROSIGNS[key])); i+=m[0].length; continue; }
+    var ch=word.charAt(i);
+    if(MORSE[ch]) parts.push(styleCode(MORSE[ch]));
+    i++;
+  }
+  return parts.join(' ');
 }
 
 function enc(){
@@ -295,13 +309,7 @@ function enc(){
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter text to encode":"请输入要编码的文本"));
   const wordSep = document.getElementById('slashSep').checked ? ' / ' : '  ';
   const words = text.split(/\s+/);
-  const result = words.map(word => {
-    return word.split('').map(ch => {
-      if(MORSE[ch]) return styleCode(MORSE[ch]);
-      if(ch === ' ') return '';
-      return '';
-    }).filter(s => s.length > 0).join(' ');
-  }).filter(s => s.length > 0).join(wordSep);
+  const result = words.map(word => encodeWord(word)).filter(s => s.length > 0).join(wordSep);
   document.getElementById('output').value = result;
 }
 
@@ -311,7 +319,7 @@ function dec(){
   const words = text.split(/\s*\/\s*|\s{2,}/);
   const result = words.map(word => {
     return word.trim().split(/\s+/).map(code => {
-      const normalized = code.replace(/·/g,'.').replace(/—/g,'-').replace(/DAH/gi,'-').replace(/DIT/gi,'.');
+      const normalized = code.replace(/·/g,'.').replace(/—/g,'-').replace(/DAH/gi,'-').replace(/DIT/gi,'.').replace(/\+/g,''); // IT-N441：去掉 word 样式码元连接符
       return REVERSE[normalized] || '?';
     }).join('');
   }).join(' ');

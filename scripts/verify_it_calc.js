@@ -13952,6 +13952,33 @@ const CASES = [
     expect: ["SCHEMAJSON ❌ JSON:"],
     ref: "假验证修复：输出区被改成非法 JSON 文本时，验证按钮须报语法错而非沿用内部 lastSchema 报「有效」。探针串只在注入 {oops 且实现读取输出文本时出现 ⇒ 零逃生。",
   },
+  {
+    slug: "it/morse-decode-advanced",
+    inputs: { input: 'SOS', style: 'word' },
+    clicks: ["enc();var e=document.getElementById('output').value;document.getElementById('input').value=e;dec();document.getElementById('__tbProbe').textContent='MORSEWORD '+e+' => '+document.getElementById('output').value;"],
+    expect: ["MORSEWORD DIT+DIT+DIT DAH+DAH+DAH DIT+DIT+DIT => SOS"],
+    ref: "IT-N441 往返：旧 word 样式用单空格连码元，dec 把每个 DIT/DAH 当独立字符 ⇒ EEETTTEEE；新样式码元用 + 连接、字符间保留单空格，编码→解码还原 SOS。探针串含编码产物与解码结果，只在注入 SOS + word 样式时出现 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/morse-decode-advanced",
+    inputs: { input: '&' },
+    clicks: ["enc();var e=document.getElementById('output').value;document.getElementById('input').value=e;dec();document.getElementById('__tbProbe').textContent='MORSEPUNCT '+e+' => '+document.getElementById('output').value;"],
+    expect: ["MORSEPUNCT .-... => &"],
+    ref: "IT-N442 同码冲突：旧 REVERSE 由 PROSIGNS 覆盖 & 的 .-... ⇒ 解码成 <AS>；新构建以 ITU 标点优先 ⇒ 还原 &。探针串只在注入 & 且标点优先时出现 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/morse-decode-advanced",
+    inputs: { input: '<AR>' },
+    clicks: ["enc();document.getElementById('__tbProbe').textContent='MORSEPRO '+document.getElementById('output').value;"],
+    expect: ["MORSEPRO .-.-."],
+    ref: "IT-N443 Prosigns 编码：旧 enc 逐字符查表，<AR> 被拆成 .- .-.（A R）；新 enc 先整体匹配 PROSIGNS 记号 ⇒ .-.-.。探针串只在注入 <AR> 且实现记号匹配时出现 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/code-line-counter",
+    inputs: { codeInput: 'var re = "/*";\nvar a = 1;\nvar b = 2;', langSel: 'js' },
+    expect: ['3 总行数 3 代码行 0 注释行 0 空行 100.0% 代码占比'],
+    ref: "IT-N445 字符串内 /*：旧实现直接 indexOf('/*') 命中字面量并置 inBlock ⇒ 后两行被吞成注释（1 代码/2 注释）；新实现先遮蔽字符串内容 ⇒ 3 行全代码、占比 100.0%。默认示例分配不同 ⇒ 不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub

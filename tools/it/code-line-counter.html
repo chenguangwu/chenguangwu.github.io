@@ -288,6 +288,26 @@ function isInStr(chunks,i,lang){
   }
   return false;
 }
+function __maskLiterals(line, st){
+  // IT-N445：把字符串/模板字符串内容替换为空格后再做注释检测；
+  // "/*"、'//' 等字面量不得触发块注释或行注释判定。跨行字符串状态由 st.q 延续。
+  var out='', q=st.q, i=0;
+  while(i<line.length){
+    var c=line.charAt(i), n=line.charAt(i+1);
+    if(q){
+      out+=' ';
+      if(c==='\\'){out+=' ';i+=2;continue;}
+      if(c===q)q=null;
+      i++;continue;
+    }
+    if(c==='/'&&n==='*'){out+='/*';i+=2;continue;}
+    if(c==='/'&&n==='/'){out+='//';break;}
+    if(c==='"'||c==="'"||c==='`'){q=c;out+=' ';i++;continue;}
+    out+=c;i++;
+  }
+  st.q=q;
+  return out;
+}
 function calcTool(){
   var raw=document.getElementById('codeInput').value||'';
   if(!raw){raw='// demo\nfunction f(){\n  return 1;\n}\n\n/* done */';}
@@ -298,10 +318,11 @@ function calcTool(){
   var lines=raw.split('\n');
   var total=lines.length,code=0,comment=0,blank=0;
   var inBlock=false;
+  var strState={q:null};
   for(var i=0;i<lines.length;i++){
     var line=lines[i];
     if(!line.trim()){blank++;continue;}
-    var t=line.trim();
+    var t=__maskLiterals(line.trim(), strState);
     var isComment=false;
     // IT-N446: 块注释中间行仅在此处计一次 comment++ 后 continue；结束行交给末尾统一收口（if(isComment)comment++），
     // 避免原实现「inBlock 分支先 comment++、结束行收口又 comment++」造成的重复计数。
