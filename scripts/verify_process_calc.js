@@ -69,12 +69,60 @@ const CASES = [
   "slug": "process/first-pass-yield",
   "inputs": {
     "good": "1425",
+    "total": "1500"
+  },
+  "expect": [
+    "95.00"
+  ],
+  "ref": "1425/1500=95.00%（旧用例 good>total 会被新校验拦截，改为合法输入）"
+},
+{
+  "slug": "process/first-pass-yield",
+  "inputs": {
+    "good": "1100",
     "total": "1000"
   },
   "expect": [
-    "142.50"
+    "良品数不能大于投入数"
   ],
-  "ref": "auto-restore"
+  "ref": "修复前 1100/1000 输出 110% 与 -100 不良；现字段级拒绝"
+},
+{
+  "slug": "process/pp-index",
+  "inputs": {
+    "usl": "10.05",
+    "lsl": "9.95",
+    "slt": "-0.015"
+  },
+  "expect": [
+    "σ_lt 必须大于 0"
+  ],
+  "ref": "负标准差修复前得 Pp≈-1.111；现拒绝"
+},
+{
+  "slug": "process/ppk-index",
+  "inputs": {
+    "usl": "10.05",
+    "lsl": "9.95",
+    "mu": "10.0",
+    "slt": "-0.015"
+  },
+  "expect": [
+    "σ_lt 必须大于 0"
+  ],
+  "ref": "负标准差修复前得 Ppk≈-1.111；现拒绝"
+},
+{
+  "slug": "process/defect-probability",
+  "inputs": {
+    "usl": "10.05",
+    "mu": "10.0",
+    "sigma": "-0.01"
+  },
+  "expect": [
+    "σ 必须大于 0"
+  ],
+  "ref": "负标准差修复前 z=-5 得约 99.99997%；现拒绝"
 },
 {
   "slug": "process/measurement-uncertainty",
