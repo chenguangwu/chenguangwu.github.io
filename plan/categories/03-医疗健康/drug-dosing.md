@@ -128,12 +128,14 @@
 
 > 范围：本轮人工阅读 8 个用药/剂量/给药类页面（`tools/healthcare` 5 页、`tools/clinical-nursing` 2 页、`tools/medical` 1 页）。结论来自源码静态阅读 + node 内存复算（复刻页面表达式与 `toFixed`/`Math.floor` 口径），未开浏览器、未验证英文态/移动端/门禁。涉及临床剂量的条目均需药师/医师复核。
 
-### D-N13 按体重给药剂量英文简介仍称已核对极量（中，确认缺陷）
-- `tools/healthcare/weight-dosage.html:124,173-174,294-313` 英文简介称「with the maximum limit checked」，但页面没有药品极量库或自动核对；引据表也明确要求人工核对。
+### D-N13 按体重给药剂量英文简介仍称已核对极量（已修，739 批）
+- 现状（2026-11-16）：英文简介改为「…Always compare the result with the maximum dose in the drug label yourself; this page does not check it automatically.」，不再声称已核对极量；中文简介与引据表维持「需人工核对说明书极量」口径。
+- 原描述：`tools/healthcare/weight-dosage.html:124,173-174,294-313` 英文简介称「with the maximum limit checked」，但页面没有药品极量库或自动核对；引据表也明确要求人工核对。
 - 影响：英文用户可能误以为计算结果已通过极量校验。应让简介明确需人工核对药品说明书极量，剂量口径需药师复核。
 
-### D-N14 按体重给药剂量：每日次数允许 <1 的小数，单次剂量会大于日总剂量（中，确认缺陷）
-- 描述：`freq` 输入 `step="any"`、无 `min`，守卫只拦 0；`单次=日剂量/freq`，当 0<freq<1 时单次剂量反而大于日总量，页面仍作为一等结果并列展示。
+### D-N14 按体重给药剂量：每日次数允许 <1 的小数，单次剂量会大于日总剂量（已修，739 批）
+- 现状（2026-11-16）：`freq` 输入加 `min="1" max="24" step="1"`；`calc()` 在体重/剂量率校验后新增 `!(freq>=1)||freq>24||Math.floor(freq)!==freq` 拦截，提示「每日次数须为 1–24 的整数（如每日 2 次、q12h 即 2 次），不支持 0.5 等小数」。门禁：freq=0.5 / 100 各一条；原自动用例 freq 由 42 改为 8。
+- 原描述：`freq` 输入 `step="any"`、无 `min`，守卫只拦 0；`单次=日剂量/freq`，当 0<freq<1 时单次剂量反而大于日总量，页面仍作为一等结果并列展示。
 - 证据：`tools/healthcare/weight-dosage.html:127`（`step="any"`）、`:240-291`（守卫只判 freq=0）、`:302-303`（单次算式）。
 - 复现：体重 20 kg、剂量 10 mg/kg、每日次数 **0.5** → 日剂量 **200.0 mg/天**、单次剂量 **400.0 mg/次**（单次 > 日总量，逻辑矛盾）；freq=0.5 常被理解为「每 2 日 1 次」或误输。
 - 影响：分次给药结果自相矛盾，照「单次 400 mg」执行会超日总量一倍。
