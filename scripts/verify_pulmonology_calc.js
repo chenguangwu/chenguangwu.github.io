@@ -390,6 +390,20 @@ const CASES = [
   "ref": "STOP-BANG 八项各 1 分：S(打鼾)+T(疲倦)+O(呼吸暂停)+P(高血压)+BMI>35 = 5 → 5/8 → 高危"
 },
 {
+  "slug": "pulmonology/stop-bang",
+  "checkIds": [
+    "s",
+    "t"
+  ],
+  "clicks": [
+    "calc();var b=document.getElementById('result').innerHTML;document.getElementById('result').innerHTML=(/2\\/8/.test(b)&&/低危/.test(b))?'__SB2_OK__':'__SB2_FAIL__'+b"
+  ],
+  "expect": [
+    "__SB2_OK__"
+  ],
+  "ref": "D-N113 性别默认值：G 项原为 `checked`，女性用户不主动取消时只会打鼾/疲倦也会被抬成 3 分中危；改为默认不勾选后 S+T=2 分应落「2/8 低危」。clicks 读结果区比对分数与等级后写标记，若默认仍勾选则得 3/8 中危 ⇒ FAIL。"
+},
+{
   // 默认（harness 首选项）smear=3+ / culture=pos ⇒ 有传染性；注入涂片阴性 ⇒ 传染性低
   "slug": "pulmonology/tb-resistance",
   "inputs": {
