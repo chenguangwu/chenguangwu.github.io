@@ -5,7 +5,6 @@
 ## 2026-11-06 公关评估和流程静态续审
 
 - `tools/pr/press-conference.html:278-285,288-312,315-378,406`：`renderSteps()` 与 `render()` 都写 `flowList`，初始化及添加环节后前者的编辑表单立刻被后者覆盖，正常路径无法编辑、删除或排序环节。模板切换会覆盖原步骤且无确认。
-- `tools/pr/media-invite.html:252-267,283-303,369-383`：名单仅存于内存，加载示例和清空直接覆盖现有名单；导出前无持久化。名称和联系人渲染使用转义；未验证实际导出。
 - `tools/pr/assessor-56.html:123,169-184`、`assessor-57.html:124,170-185`、`assessor-manager-2.html:124,170-189`、`assessor-risk.html:128,174-192`：下拉变化触发分数或风险矩阵重算，默认分别取各选项首项并立即显示结论；风险页默认全部最低风险不等于已完成评估。均为静态分析，未运行浏览器。
 
 ## 2026-11-06 公关工具静态续审
@@ -311,7 +310,6 @@
 ## 2026-11-06 静态续审：营销工具第 418–423 页
 
 - **历史结论状态更新**：MS-M5 所述负比例现已由 `marketing-ad-budget-allocator.html:254-257` 拒绝，非 100% 合计也在 `:259-262` 明示归一化；仍需运行回归，MS-M6 的手动比例而非智能分配逻辑仍在。MS-J3 所述回收期不展示已过时：`marketing-cac-calculator.html:463-465` 已展示回收期并声明 36 个月假设。MS-N38 的表格/图表/CSV 零分母不一致仍在，MS-N60 的 A 组零转化守卫仍在；MS-F7 目标利润率不可达时无说明仍在。
-- **零预算的除数未定义（ad-budget-allocator 仍待办）**：`marketing-ad-budget-allocator.html:250-267,272,281` 允许预算为 0，收入也为 0，整体 ROAS 的 `0/0` 最终被替换为 `—` 而未说明；`marketing-cac-calculator` 的同族问题已在 598 批修复（零费用时明确各比率不可计算、不给健康结论）。
 - 本批共阅读 `funnel-calculator`、`marketing-ab-test-significance`、`marketing-ad-budget-allocator`、`marketing-break-even-roas`、`marketing-cac-calculator`、`marketing-chinese-hashtag-generator` 6 页；仅源码分析，未运行页面、注入或浏览器，未计入双跑。
 
 ## 2026-11-06 静态续审：营销工具第 424–429 页

@@ -1429,6 +1429,12 @@ const CASES = [
     "clicks": ["document.getElementById('__tbProbe').textContent='CACGUARD '+(typeof __cacErr==='function'&&/__cacErr/.test(String(saveHistory))?'OK':'BAD');"],
     "expect": ["CACGUARD OK"],
     "ref": "源码形态判定：保存路径与计算路径共用 __cacErr（负费用、非正 LTV 不再写入历史并参与分级）。默认态不设置探针 ⇒ 零逃生。"
+  },
+{
+    "slug": "marketing/marketing-ad-budget-allocator",
+    "inputs": { "totalBudget": "0", "roas1": "4", "roas2": "2.5", "roas3": "2", "budget1Pct": "40", "budget2Pct": "35", "budget3Pct": "25" },
+    "expect": ["预算为 0，不可计算"],
+    "ref": "总预算为 0 时各渠道预算与收入均为 0 合法，但整体 ROAS = 0/0；旧实现把 NaN 替换成破折号仍挂着「整体ROAS」标签。默认预算 100000 ⇒ 不命中。"
   }
 ];
 

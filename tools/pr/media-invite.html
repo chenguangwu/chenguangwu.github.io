@@ -238,7 +238,11 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-var medias=[];
+var medias=(function(){try{var v=JSON.parse(localStorage.getItem('tb_media_invite')||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}})();
+var undoMedias=null;
+function saveMedias(){try{localStorage.setItem('tb_media_invite',JSON.stringify(medias));}catch(e){}}
+function undoOverwrite(){if(undoMedias){medias=undoMedias;undoMedias=null;saveMedias();renderList();render();}}
+
 var TYPE_NAMES={tv:'电视',paper:'报刊',online:'网络',radio:'广播'};
 var TYPE_CLASSES={tv:'type-tv',paper:'type-paper',online:'type-online',radio:'type-radio'};
 var STATUS_NAMES={invited:'已邀请',confirmed:'已确认',declined:'已拒绝',attended:'已到场'};
@@ -270,12 +274,14 @@ function updateStatus(id,status){
 }
 
 function clearMedia(){
+  if(medias.length>0) undoMedias=medias.slice();
   medias=[];
   renderList();
   render();
 }
 
 function loadSample(){
+  if(medias.length>0) undoMedias=medias.slice();
   medias=[
     {name:'央视新闻',type:'tv',contact:'张记者',status:'confirmed',id:1},
     {name:'新华社',type:'online',contact:'李记者',status:'confirmed',id:2},
@@ -293,11 +299,13 @@ function loadSample(){
 }
 
 function renderList(){
+  saveMedias();
+  const undoBar=undoMedias?'<p style="font-size:13px;margin-bottom:8px;color:var(--warning,#b45309);">已覆盖原名单（'+undoMedias.length+' 家）<button type="button" class="btn" style="padding:3px 8px;margin-left:8px;" onclick="undoOverwrite()">撤销</button></p>':'';
   if(medias.length===0){
-    const __h0='<p style="text-align:center;color:var(--text-muted);padding:20px;">暂无媒体，请添加或加载示例</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('mediaList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('mediaList').innerHTML=__h0;
+    const __h0=undoBar+'<p style="text-align:center;color:var(--text-muted);padding:20px;">暂无媒体，请添加或加载示例</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('mediaList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('mediaList').innerHTML=__h0;
     return;
   }
-  const __h1='<p style="font-size:13px;margin-bottom:8px;">媒体名单（'+medias.length+'家）</p>'+
+  const __h1=undoBar+'<p style="font-size:13px;margin-bottom:8px;">媒体名单（'+medias.length+'家）</p>'+
     medias.map(function(m){
       return '<div class="media-item">'+
         '<span class="m-name">'+ToolBox.escHtml(m.name)+(m.contact?' ('+ToolBox.escHtml(m.contact)+')':'')+'</span>'+
@@ -568,7 +576,7 @@ var __media_invite_f0=(typeof addMedia==='function')?addMedia:null;
 if(__media_invite_f0){
     addMedia=function(){ var __r=__media_invite_f0.apply(null,arguments); try{ __media_inviteExtras(); }catch(e){} return __r; };
 }
-function __media_inviteBoot(){ try{ __media_invitePresets(); }catch(e){}  try{ if(typeof loadSample==='function') loadSample(); }catch(e){} }
+function __media_inviteBoot(){ try{ __media_invitePresets(); }catch(e){}  try{ if(typeof loadSample==='function' && medias.length===0) loadSample(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __media_inviteBoot();
 else document.addEventListener('DOMContentLoaded', __media_inviteBoot);
 </script>

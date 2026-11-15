@@ -182,6 +182,12 @@ const CASES = [
     "inputs": { "startTime": "", "eventType": "press" },
     "expect": ["开始时间未设置"],
     "ref": "清空开始时间时旧实现静默按 14:00 排程且结果卡仍显示 14:00，用户会误以为是自己的排期；现明确提示未设置并标注占位。默认 14:00 ⇒ 不命中。"
+  },
+{
+    "slug": "pr/media-invite",
+    "clicks": ["document.getElementById('__tbProbe').textContent='INVITEGUARD '+(typeof undoOverwrite==='function'&&/undoMedias/.test(String(loadSample))&&/medias.length===0/.test(String(__media_inviteBoot))&&/saveMedias/.test(String(renderList))?'OK':'BAD');"],
+    "expect": ["INVITEGUARD OK"],
+    "ref": "源码形态判定：名单持久化（renderList 调 saveMedias）、示例/清空覆盖前留存 undoMedias 且可撤销、启动时已有名单不再被示例覆盖。默认态不设置探针 ⇒ 零逃生。"
   }
 ];
 async function main() {
