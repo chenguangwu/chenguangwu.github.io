@@ -125,3 +125,41 @@
 7. `git add -A` → `commit`（说明「删除 pets 重定向存根，旧 URL 真正 404」）→ `push origin master`。
 8. 单次查询 GitHub Actions 确认部署成功（不轮询）。
 9. 回本文件把对应行状态改为「已删（commit xxx）」。
+
+## 2026-11-15 补登记：存量 29 个未登记存根（均已超 1 个月保留期）
+
+> 来源：全站 `grep TOOLBOX-REDIRECT`（29 文件）。建存根日期取该文件首次入库日期（2026-08-25 批量迁移），
+> 到期日按 +1 个月计算，全部**已超期**，状态统一记「待删（超期）」。
+> 删除前须按「删除 SOP」：全站内链改写 → 删文件 → `sitemap-deadlinks.xml` 登记 → 部署 success 后 `_submit_indexnow_deadlinks.py`。
+
+| 源 URL | 目标 URL | 建存根日期 | 到期日 | 状态 | 备注 |
+|---|---|---|---|---|---|
+| https://chenguangwu.github.io/tools/acoustics/intensity-level.html | https://chenguangwu.github.io/tools/acoustics/sound-intensity-level.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/agriculture/calc-2.html | https://chenguangwu.github.io/tools/agriculture/calculator-calc-density.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/biz/text-compare.html | https://chenguangwu.github.io/tools/it/text-diff.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/design/generator-9.html | https://chenguangwu.github.io/tools/biz/barcode-generator.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/design/image-cropper.html | https://chenguangwu.github.io/tools/image/image-crop.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/design/image-resizer.html | https://chenguangwu.github.io/tools/image/image-resize.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/dynamics/inelastic-collision.html | https://chenguangwu.github.io/tools/dynamics/momentum-conservation.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/dynamics/period-pendulum.html | https://chenguangwu.github.io/tools/science/pendulum-period.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/economics/pv-annuity.html | https://chenguangwu.github.io/tools/insurance/annuity-present.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/edu/generator-4.html | https://chenguangwu.github.io/tools/it/summary-generator.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/energy/electrical-power.html | https://chenguangwu.github.io/tools/electromagnetism/electric-power.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/finance/password.html | https://chenguangwu.github.io/tools/life/generator-strength.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/finance/word-counter.html | https://chenguangwu.github.io/tools/text/stats-1.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/fitness/calculator-calc-constitution.html | https://chenguangwu.github.io/tools/healthcare/bmi-calculator.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/hr/overtime-pay-calc.html | https://chenguangwu.github.io/tools/legal/overtime-pay.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/investment/annuity-pv-inv.html | https://chenguangwu.github.io/tools/insurance/annuity-present.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/it/calc-2.html | https://chenguangwu.github.io/tools/life/base-convert.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/math/calc-1.html | https://chenguangwu.github.io/tools/life/percentage-calculator.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/mechanical/calc-1.html | https://chenguangwu.github.io/tools/machinery/calc-lifespan-belt.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/medical/calculator-calc-due-date.html | https://chenguangwu.github.io/tools/health/pregnancy-due-date.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/nuclear/specific-activity-from-halflife.html | https://chenguangwu.github.io/tools/nuclear/specific-activity.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/optical/rayleigh-resolution.html | https://chenguangwu.github.io/tools/optics/rayleigh-criterion.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/optical/snell-refraction.html | https://chenguangwu.github.io/tools/glass/snell-refraction.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/pet/pet-age-converter.html | https://chenguangwu.github.io/tools/pet/pet-age.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/realestate/calc-2.html | https://chenguangwu.github.io/tools/finance/rental-yield-calculator.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/safety/detector-strength.html | https://chenguangwu.github.io/tools/it/password-strength.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/science/factorial-calculator.html | https://chenguangwu.github.io/tools/math/factorial-calc.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/science/range-calculator.html | https://chenguangwu.github.io/tools/statistics/range-stat.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/statistics/variance-list.html | https://chenguangwu.github.io/tools/statistics/sample-variance.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
