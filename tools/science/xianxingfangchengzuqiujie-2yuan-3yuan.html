@@ -123,6 +123,7 @@
       <button class="btn primary" id="mode2Btn" type="button" onclick="setMode(2)">2 元一次方程组</button>
       <button class="btn" id="mode3Btn" type="button" onclick="setMode(3)">3 元一次方程组</button>
     </div>
+    <input type="hidden" id="__xhMode" value="0" aria-hidden="true">
     <div id="grid2" class="eq-grid">
       <div class="eq-mode-title">① 方程一：a₁·x + b₁·y = c₁</div>
       <div class="eq-row">
@@ -298,9 +299,39 @@ function resetAll(){
   ToolBox.showToast('已重置为默认示例','info');
 }
 function historyKey(){try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_'+(document.title||'calc');}}
-function saveHistory(mode,vals){try{var key=historyKey();var list=JSON.parse(localStorage.getItem(key)||'[]');var now=new Date();var item={mode:mode,vals:vals,time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};list.unshift(item);if(list.length>5)list=list.slice(0,5);localStorage.setItem(key,JSON.stringify(list));renderHistory();}catch(e){}}
-function renderHistory(){var box=document.getElementById('historyBox');if(!box)return;try{var list=JSON.parse(localStorage.getItem(historyKey())||'[]');if(list.length===0){box.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}var html='<div class="history-list">';list.forEach(function(h){var sig=h.mode===2?('a₁='+h.vals[0]+' b₁='+h.vals[1]+' c₁='+h.vals[2]+' | a₂='+h.vals[3]+' b₂='+h.vals[4]+' c₂='+h.vals[5]):('三元方程组系数矩阵已记录');html+='<div class="history-item" onclick="restoreHistory('+h.mode+')"><div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">'+ToolBox.escHtml(sig)+'</div></div><span style="font-size:12px;color:var(--primary);">恢复</span></div>';});html+='</div>';const __g8=html;box.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));}catch(e){box.innerHTML='<div class="history-empty">读取记录失败</div>';}}
-function restoreHistory(mode){var d2={a1:'1',b1:'2',c1:'5',a2:'3',b2:'-1',c2:'1'};var d3={a1_3:'1',b1_3:'1',c1_3:'1',d1_3:'6',a2_3:'0',b2_3:'2',c2_3:'1',d2_3:'7',a3_3:'3',b3_3:'0',c3_3:'1',d3_3:'6'};var all=mode===2?d2:d3;Object.keys(all).forEach(function(id){var e=document.getElementById(id);if(e)e.value=all[id];});['a1','b1','c1','a2','b2','c2','a1_3','b1_3','c1_3','d1_3','a2_3','b2_3','c2_3','d2_3','a3_3','b3_3','c3_3','d3_3'].forEach(function(id){setInvalid(id,false);});setMode(mode);}
+var __xhSaveTimer=null;
+function __xhSaveNow(mode,vals){
+  try{
+    var key=historyKey();
+    var list=JSON.parse(localStorage.getItem(key)||'[]');
+    if(list.length&&list[0].mode===mode&&JSON.stringify(list[0].vals)===JSON.stringify(vals)){renderHistory();return;}
+    var now=new Date();
+    var item={mode:mode,vals:vals,time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+    list.unshift(item);if(list.length>5)list=list.slice(0,5);
+    localStorage.setItem(key,JSON.stringify(list));renderHistory();
+  }catch(e){}
+}
+function saveHistory(mode,vals){
+  try{
+    if(typeof clearTimeout==='function'&&__xhSaveTimer!==null)clearTimeout(__xhSaveTimer);
+    if(typeof setTimeout==='function'){
+      __xhSaveTimer=setTimeout(function(){__xhSaveTimer=null;__xhSaveNow(mode,vals);},600);
+    }else{__xhSaveNow(mode,vals);}
+  }catch(e){__xhSaveNow(mode,vals);}
+}
+function renderHistory(){var box=document.getElementById('historyBox');if(!box)return;try{var list=JSON.parse(localStorage.getItem(historyKey())||'[]');if(list.length===0){box.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}var html='<div class="history-list">';list.forEach(function(h,i){var sig=h.mode===2?('a₁='+h.vals[0]+' b₁='+h.vals[1]+' c₁='+h.vals[2]+' | a₂='+h.vals[3]+' b₂='+h.vals[4]+' c₂='+h.vals[5]):('['+h.vals.slice(0,4).join(', ')+'] ['+h.vals.slice(4,8).join(', ')+'] ['+h.vals.slice(8,12).join(', ')+']');html+='<div class="history-item" onclick="restoreHistory('+i+')"><div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">'+ToolBox.escHtml(sig)+'</div></div><span style="font-size:12px;color:var(--primary);">恢复</span></div>';});html+='</div>';const __g8=html;box.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));}catch(e){box.innerHTML='<div class="history-empty">读取记录失败</div>';}}
+function restoreHistory(idx){
+  try{
+    var list=JSON.parse(localStorage.getItem(historyKey())||'[]');
+    var h=list[idx];
+    if(!h)return;
+    var ids=h.mode===2?['a1','b1','c1','a2','b2','c2']:['a1_3','b1_3','c1_3','d1_3','a2_3','b2_3','c2_3','d2_3','a3_3','b3_3','c3_3','d3_3'];
+    var vals=h.vals||[];
+    ids.forEach(function(id,i){var e=document.getElementById(id);if(e&&i<vals.length&&isFinite(vals[i]))e.value=vals[i];});
+    ids.forEach(function(id){setInvalid(id,false);});
+    setMode(h.mode);
+  }catch(e){}
+}
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast('已清空记录','info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){
   renderHistory();
@@ -424,10 +455,15 @@ function __xianxingfangchengzuqiujie_2yuan_3yuanExport(){
 }
 function __xianxingfangchengzuqiujie_2yuan_3yuanPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#xianxingfangchengzuqiujie_2yuan_3yuanPresets',[{label:'默认参数',labelEn:'Default',values:{'a1':'1', 'b1':'2', 'c1':'5', 'a2':'3', 'b2':'-1', 'c2':'1', 'a1_3':'1', 'b1_3':'1', 'c1_3':'1', 'd1_3':'6', 'a2_3':'0', 'b2_3':'2'}},
-  {"label":"2 元：2x+3y=12, x−y=1","labelEn":"2-var: 2x+3y=12, x-y=1","values":{"a1":2,"b1":3,"c1":12,"a2":1,"b2":-1,"c2":1}},
-  {"label":"3 元：2x+y−z=8, −3x−y+2z=−11","labelEn":"3-var system","values":{"a1_3":2,"b1_3":1,"c1_3":-1,"d1_3":8,"a2_3":-3,"b2_3":-1,"c2_3":2,"d2_3":-11,"a3_3":-2,"b3_3":1,"c3_3":2,"d3_3":-3}},
-  {"label":"3 元：x=3, y=4, z=5","labelEn":"3-var diagonal system","values":{"a1_3":1,"b1_3":0,"c1_3":0,"d1_3":3,"a2_3":0,"b2_3":1,"c2_3":0,"d2_3":4,"a3_3":0,"b3_3":0,"c3_3":1,"d3_3":5}}],function(){ calc(); });
+    TBKit.preset.bar('#xianxingfangchengzuqiujie_2yuan_3yuanPresets',[{label:'默认参数',labelEn:'Default',values:{'__xhMode':'0','a1':'1', 'b1':'2', 'c1':'5', 'a2':'3', 'b2':'-1', 'c2':'1', 'a1_3':'1', 'b1_3':'1', 'c1_3':'1', 'd1_3':'6', 'a2_3':'0', 'b2_3':'2', 'c2_3':'1', 'd2_3':'7', 'a3_3':'3', 'b3_3':'0', 'c3_3':'1', 'd3_3':'6'}},
+  {"label":"2 元：2x+3y=12, x−y=1","labelEn":"2-var: 2x+3y=12, x-y=1","values":{"__xhMode":2,"a1":2,"b1":3,"c1":12,"a2":1,"b2":-1,"c2":1}},
+  {"label":"3 元：2x+y−z=8, −3x−y+2z=−11","labelEn":"3-var system","values":{"__xhMode":3,"a1_3":2,"b1_3":1,"c1_3":-1,"d1_3":8,"a2_3":-3,"b2_3":-1,"c2_3":2,"d2_3":-11,"a3_3":-2,"b3_3":1,"c3_3":2,"d3_3":-3}},
+  {"label":"3 元：x=3, y=4, z=5","labelEn":"3-var diagonal system","values":{"__xhMode":3,"a1_3":1,"b1_3":0,"c1_3":0,"d1_3":3,"a2_3":0,"b2_3":1,"c2_3":0,"d2_3":4,"a3_3":0,"b3_3":0,"c3_3":1,"d3_3":5}}],function(){
+    var probe=document.getElementById('__xhMode');
+    var m=probe?parseInt(probe.value,10):0;
+    if(m===2||m===3){ if(m!==curMode) setMode(m); else calc(); }
+    else { calc(); }
+  });
 }
 var __xianxingfangchengzuqiujie_2yuan_3yuan_f0=(typeof calc==='function')?calc:null;
 if(__xianxingfangchengzuqiujie_2yuan_3yuan_f0){

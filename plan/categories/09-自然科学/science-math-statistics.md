@@ -118,6 +118,7 @@
 - `tools/science/torque-converter.html`：SMS-155 已修——导出 CSV 八行数值后缀按各自单位符号（N·m/kN·m/lb·ft/lb·in/kgf·m/gf·cm/ozf·in/dyn·m），表头改为通用 Value，不再全部标 N·m。
 - `tools/science/work-done.html`：SMS-160 已修——预设倍率与结果自洽（默认 F=50,d=10→500 J；「2×」改 F=100,d=10→1000 J；「0.5×」改 F=25,d=10→250 J）。
 - `tools/science/tide-height-estimator.html`：SMS-152/153/154 已修——太阳引潮项 `abs(sin)` 修正相位（春分/秋分 0%、夏至/冬至 46%）；默认日期改本地时区 `__tideLocalDate()` 消除东八区凌晨错位；纬度越界/空值停算提示。verify 潮差 expect 同批由 0.86 更新为 1.08 m。
+- `tools/science/xianxingfangchengzuqiujie-2yuan-3yuan.html`：SMS-161/162 已修——历史按索引读 `vals` 真恢复（三元签名显示实际系数）、保存改 600ms 防抖+去重；预设带 `__xhMode` 在 after 调 `setMode` 真正切元数，「默认参数」补全 12 项。
 - `tools/science/chi-square-calculator.html`：2 条（SMS-17 中、SMS-18 中）。χ²=Σ(O−E)²/E 与上尾 CDF 正确（默认 30,25,20,15,10 → χ²=12.5、df=4、p=0.013996）；问题为静默过滤与自由度口径。
 - `tools/science/anova-calculator.html`：2 条（SMS-19 中、SMS-20 中）。SSB/SSW、dfB=k−1、dfW=N−k、F 与上尾 p 正确（默认数据 F(2,12)=25.554、p=4.73e-5）；问题为非数值静默丢弃与 dfW=0 未拦。注：SMS-7 的同名问题在 `tools/statistics/one-way-anova.html`，与本页实现不同（本页直接由原始观测算 SSW，无 `(n−1)s²` 负值缺陷）。
 
@@ -443,8 +444,8 @@
 | tools/science/wire-gauge-converter.html | 【高】铜电阻量纲错 1000 倍：`res_km=rho/area_mm2` 实为 Ω/m，却标成「Ω/km」（:403、:409），AWG 24 显示 0.08 Ω/km（真值 84.01）、AWG 20 显示 0.03（真值 33.23）、AWG 0 因 `toFixed(2)` 直接成 0.00；由它派生的「Ω/1000ft」（`res_km×0.3048`，:419）与「100m 压降」（`res_km/1000×100`，:421）同样小 1000 倍（AWG 24 显示 0.0084 V，应 8.40 V）。:403、:409、:418-421、:436 | SMS-158 |
 | tools/science/wire-gauge-converter.html | 【中】深挖载流示例与自身口径矛盾：示例写「AWG 20 载流约 5 A」，而同页 5 A/mm² 规则与对照表给 AWG 20（0.5176 mm²）2.59 A，差约 2 倍。:314、:420、:436 | SMS-159 |
 | tools/science/work-done.html | 【中】预设倍率标签与结果不符：「示例 2×」把 F 50→100、d 10→20，做功 500→2000 J（4×）；「示例 0.5×」把 F→25、d→5，做功→125 J（0.25×），标签的 2×/0.5× 均未实现。:258-261 | SMS-160 |
-| tools/science/xianxingfangchengzuqiujie-2yuan-3yuan.html | 【高】历史为假恢复：`restoreHistory(mode)` 只按元数写入固定默认系数，`item.vals` 从未被读取；点任意记录得到的是默认示例，而非该条记录的系数。叠加 `oninput` 每次按键都 `saveHistory`，5 条上限内全是中间态，历史功能实际不可用。:273、:294、:312-314 | SMS-161 |
-| tools/science/xianxingfangchengzuqiujie-2yuan-3yuan.html | 【中】预设不切换元数且默认预设不完整：所有预设回调只调 `calc()`，当前为 3 元时点「2 元」预设只改隐藏字段、界面无变化；「默认参数」只写到 `b2_3`，缺 `c2_3/d2_3/a3_3/b3_3/c3_3/d3_3` 六项，3 元下点击不等于重置。:421-424 | SMS-162 |
+| tools/science/xianxingfangchengzuqiujie-2yuan-3yuan.html | ~~【高】历史为假恢复~~ **已修（627 批）**：`restoreHistory(idx)` 按索引读 `list[idx].vals` 逐字段回填，不再写死默认；三元签名显示实际系数；`saveHistory` 改 600ms 防抖 + 与最新一条去重，杜绝按键中间态塞满 5 条。原证据：:273、:294、:312-314 | SMS-161 |
+| tools/science/xianxingfangchengzuqiujie-2yuan-3yuan.html | ~~【中】预设不切换元数且默认预设不完整~~ **已修（627 批）**：预设 values 加 `__xhMode`（隐藏 input 承载），after 回读取值调 `setMode` 真正切 2/3 元；「默认参数」补全 c2_3/d2_3/a3_3/b3_3/c3_3/d3_3 六项至 12 项。原证据：:421-424 | SMS-162 |
 
 **统计**
 - 条数：11（高 3 / 中 8 / 假 0 / 安全 0）；编号区间 SMS-152–SMS-162，续接 SMS-151，不重号不跳号。
