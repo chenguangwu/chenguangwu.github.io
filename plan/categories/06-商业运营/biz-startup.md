@@ -141,7 +141,7 @@
 - 方案：单行模式按语言给出成对包裹（`<!-- … -->`、`/* … */`）；banner 边线改用 `(cfg.line+' ').repeat(n)` 或行内 `//`/`#` 包裹；块注释分支按语言白名单（html/python/ruby/bash/yaml 各自单独处理），YAML 统一走 `#` 行注释。
 
 ### T 批覆盖清单（8 页）
-- `tools/biz/text-replace-advanced.html`：BS-N30（预设正则丢反斜杠）已于第313批修复。**未发现 XSS**：替换结果走 `textContent`，匹配列表的 `match/groups` 已 `escapeHtml`。另记（未单列，低）：非正则模式下替换串仍按 `$&`/`$$` 解释，替换"原文含 `$&`"会变成插入整个匹配；复制按钮回调引用全局 `event`，Firefox 下无「已复制」反馈。
+- `tools/biz/text-replace-advanced.html`：**未发现 XSS**：替换结果走 `textContent`，匹配列表的 `match/groups` 已 `escapeHtml`。另记（未单列，低）：非正则模式下替换串仍按 `$&`/`$$` 解释，替换"原文含 `$&`"会变成插入整个匹配；复制按钮回调引用全局 `event`，Firefox 下无「已复制」反馈。
 - `tools/biz/text-extract-html-tags.html`：2 条（BS-N31、BS-N32，均中）。另记（未单列，低）：清空输入时只重置 `count`，`uniqueCount` 保留上一次数字；FAQ 所称「仅正文标签」过滤与简介所称「指定标签」入口均不存在。
 - `tools/biz/text-remove-duplicates-lines.html`：2 条（BS-N33、BS-N34，均中）。`trimLine`/`removeEmpty`/`sortResult` 与六种模式均真实生效，未发现 XSS（结果走 `textContent`）。
 - `tools/biz/text-sort-advanced.html`：2 条（BS-N35、BS-N36，均中）。`random`/`reverse`/`natural` 与长度模式实算正常；`lex-zh` 不响应「忽略大小写」（低，未单列）。
@@ -241,13 +241,13 @@
 - `tools/biz/text-wrap.html`：4 条（BS-N45 高；BS-N46、BS-N47、BS-N48 中）。字符模式、词模式、填充、对齐均已实跑；未发现 XSS（结果走 `textContent`）。
 - `tools/biz/text-trim.html`：2 条（BS-N49、BS-N50，均中）。六类修剪顺序与公式一致；全角能力仅停留在文案。
 - `tools/biz/justify-text.html`：1 条（BS-N64，中）。行宽、居中、右对齐、末行不拉伸等主体逻辑正常；未发现假工具。
-- `tools/biz/text-to-slug.html`：1 条（BS-N62，中）；BS-N63（全角被丢）已于第313批修复。分隔符折叠/首尾清理、停用词、60 字符截断均可运行；拼音表实跑验证。
+- `tools/biz/text-to-slug.html`：1 条（BS-N62，中）；分隔符折叠/首尾清理、停用词、60 字符截断均可运行；拼音表实跑验证
 - `tools/biz/text-line-numbers.html`：3 条（BS-N51、BS-N52、BS-N53，均中）。九种行号格式与补零宽度均真实生效。
 - `tools/biz/text-compare.html`：3 条（BS-N54、BS-N55、BS-N56，均中）。LCS 行级对齐正确；`escapeHtml` 已覆盖两侧文本，未发现 XSS。
-- `tools/biz/text-extract-dates.html`：1 条（BS-N57 中）；BS-N42（中文日期 \b 漏抽）已于第313批修复。六种格式的归一化、去重、含时间丢弃逻辑与文案一致。
-- `tools/biz/text-extract-urls.html`：1 条（BS-N58 中）；BS-N44（端口/无点主机漏抽）已于第313批修复。去重、排序、仅 http、移除 query 均可运行；结果经 `escapeHtml` 输出。
+- `tools/biz/text-extract-dates.html`：1 条（BS-N57 中）；六种格式的归一化、去重、含时间丢弃逻辑与文案一致
+- `tools/biz/text-extract-urls.html`：1 条（BS-N58 中）；去重、排序、仅 http、移除 query 均可运行；结果经 `escapeHtml` 输出
 - `tools/biz/text-extract-emails.html`：1 条（BS-N59，中）。去重与复制正常；正则字符集受限，`innerHTML` 拼接未发现 XSS。
-- `tools/biz/text-extract-numbers.html`：2 条（BS-N43 高；BS-N60 中）；BS-N61（求和浮点噪点）已于第313批修复。重叠抑制、数值排序、平均两位小数正常。
+- `tools/biz/text-extract-numbers.html`：2 条（BS-N43 高；BS-N60 中）；重叠抑制、数值排序、平均两位小数正常
 
 - **本批合计 23 条：高 4（BS-N42、BS-N43、BS-N44、BS-N45）/ 中 19。未发现假工具（10 页均有真实转换逻辑并可运行）。**
 - 说明：本轮为**只读**审计，结论来自逐行阅读源码 + `node` 在 `/tmp` 复刻核心函数实算（脚本 `/tmp/u_biz_audit.js`、`/tmp/u_biz_audit2.js`、`/tmp/u_biz_audit3.js`）；**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做线上验证**，未修改任何工具页或构建产物。
@@ -314,9 +314,8 @@
 - `tools/biz/text-to-banner.html`：3 条（BS-N65、BS-N66 高；BS-N67 中）。生成/复制/CSV 可运行，但页面身份与宣传严重不符。
 - `tools/biz/motto-generator.html`：1 条（BS-N73 中）。随机抽取、去重、条数上限与 CSV 正常；未发现 XSS（结果走 `textContent`）。
 - `tools/biz/text-box-drawing.html`：2 条（BS-N68 高；BS-N69 中）。视觉宽度、八种边框、对齐、预设均真实；结果走 `textContent`。
-- `tools/biz/barcode-generator.html`：2 条（BS-N71 高；BS-N72 中）；BS-N70（trim 吞空格）已于第313批修复。EAN-13/UPC-A 随机 30 组与参考库逐位一致，Code 39 码表/校验、Code 128 校验和均正确；问题集中在元信息注入、trim 与缩放钳制。
-- `tools/biz/markdown-quote.html`：BS-N74（有序列表跳号）已于第313批修复，无残留条目。13 种模式均可运行，结果 `textContent` 输出，未见注入。
-- `tools/biz/text-reverse-lines.html`：1 条（BS-N76 中）；BS-N75（代理对/CRLF 拆坏）已于第313批修复。行级倒序、跳空行、首末行保留的主体逻辑正确。
+- `tools/biz/barcode-generator.html`：2 条（BS-N71 高；BS-N72 中）；EAN-13/UPC-A 随机 30 组与参考库逐位一致，Code 39 码表/校验、Code 128 校验和均正确；问题集中在元信息注入、trim 与缩放钳制
+- `tools/biz/text-reverse-lines.html`：1 条（BS-N76 中）；行级倒序、跳空行、首末行保留的主体逻辑正确
 - `tools/biz/superscript-text.html`：3 条（BS-N77 高；BS-N78、BS-N79 中）。数字/符号映射正确，字母 q–z 与模式分流有问题。
 - `tools/biz/fullwidth-halfwidth.html`：1 条（BS-N80 中）。U+FF01–FF5E / U+3000 双向转换与开关组合实算正常，结果 `textContent` 输出。
 

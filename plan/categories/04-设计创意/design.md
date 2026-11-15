@@ -149,7 +149,7 @@
 - 本轮实读 8 页（整份 HTML：内联 JS、`js/tools/colorblind-simulator.js`、deep-dive、FAQ、引据表全读）。
 - 新增 29 条：高 3（D-N106、D-N112、D-N115）/ 中 18 / 低 8。
 - 高优均可复现：D-N106 发散亮度 L=0.90/0.32/0.90（node）；D-N112 「#FFFF33 vs #FFFFFF」ΔE00=29.8 却被记 `oklch=1.1`（node）；D-N115 ISO 6400 + 1/60 的「等效卡」实际 EV 差 +1.06 / +2.06 档（node）。
-- 同族合并：转义标签文本只记 D-N122（另 4 页同行号已在条目列出）；结果区无文本致历史/CSV 恒空记 D-N124（第318批已修，与 D-N59/N89/N91/N99 同族；N89 已于第319批修复、D-N59 已于第320批修复）。
+- 同族合并：转义标签文本只记 D-N122（另 4 页同行号已在条目列出）；结果区无文本致历史/CSV 恒空记 D-N124（第318批已修，与 D-N59/N89/N91/N99 同族
 - 未覆盖：`tools/design` 其余约 36 页（本文件累计覆盖 72/108）。
 - 未做：浏览器交互、EN 运行态探针、移动端、`run_gates.py` 与线上验证；D-N112/D-N115/D-N106 的数值均为 `node` 按页面同款公式复算，未在页面内实测。
 
@@ -191,13 +191,13 @@
 
 **留存建议（tools/design/signature-pad.html）**：整改保留（高价值）。当前笔宽滑杆失效必须优先修；透明导出改为按笔画层重绘；把 `#spPresets` 与 `#spRefTbl` 移出 `touch-action:none` 的 `.canvas-wrap`。引据表还应把「Pointer Events」改成实际使用的 mouse/touch 事件（`:280-282` 对照 `:550-557`）。
 
-**留存建议（tools/design/colorblind-simulator.html）**：保留（本批功能最完整的页面）。建议按类型保存严重度、补真正的色相均分评分、去掉伪 AAA 列；D-N102/D-N103/D-N104 已于第317批修复，D-N105 待处理。
+**留存建议（tools/design/colorblind-simulator.html）**：保留（本批功能最完整的页面）。建议按类型保存严重度、补真正的色相均分评分、去掉伪 AAA 列；D-N105 待处理。
 
 ### 覆盖
 
 - 实读：8/8 页整份 HTML（含内联脚本、deep-dive、FAQ、引据表），外加 `js/tools/colorblind-simulator.js` 全量（约 1100 行）。
 - 新增 25 条：高 4（D-N131、D-N134、D-N137、D-N148）/ 中 14 / 低 7，编号连续 D-N131–D-N155。
-- 未覆盖：`tools/design/` 其余工具页；colorblind 的 D-N102–D-N105 已存在，本批只补新角度（严重度语义、hue 策略、AAA/监听/文件名），不重复旧条；其中 D-N102/D-N103/D-N104 已于第317批修复。
+- 未覆盖：`tools/design/` 其余工具页；colorblind 的 D-N102–D-N105 已存在，本批只补新角度（严重度语义、hue 策略、AAA/监听/文件名），不重复旧条
 - 未做：浏览器真实渲染与交互、`?lang=en-US` 运行态探针、移动端真机、`_build.py`/`run_gates.py` 门禁与线上验证；未改任何源码、未做 git 写操作。
 - 复算说明：Tailwind 242 色对比度、频谱 CSS 拉伸后的圆环尺寸、Base64 扩展名正则、Data Matrix 图案与定位边方向均由 `node` 内存复算，未在页面内实测。
 
@@ -371,19 +371,19 @@
 ### 逐页结论
 
 - **color-palette-generator**：默认单色 #0C1A5A→#E9ECFC 五档可复算，字色取 max(CR) 正确；D-N2 已失效（旧 YIQ 已改），D-N3（随机无协调）仍成立。
-- **color-palette**：默认互补五色；#788EED 上白字仅 3.05:1（D-N228）；FAQ 宣称的 WCAG 校验不存在（D-N229）；D-N33（HEX 只校验长度）已于第311批修复。
-- **color-picker**：默认 #4151e1 自洽、白字 6.02:1；#788EED 时「推荐文字色」仍给 #FFF（3.05:1），与同页 WCAG 面板自相矛盾（D-N230）；D-N31/D-N32 已于第314批修复（越界回写 + HEX 3/6/8 位校验）。
+- **color-palette**：默认互补五色；#788EED 上白字仅 3.05:1（D-N228）；FAQ 宣称的 WCAG 校验不存在（D-N229）
+- **color-picker**：默认 #4151e1 自洽、白字 6.02:1；#788EED 时「推荐文字色」仍给 #FFF（3.05:1），与同页 WCAG 面板自相矛盾（D-N230）
 - **color-shade-generator**：默认 11 卡线性混白/黑，公式一致；D-N34/D-N36 已失效，D-N35 部分仍成立（`:148`、`:383` 仍称 HSL/OKLCH 十档）。
-- **color-temperature-converter**：默认 5500K→(255,238,222) 正算可用；D-N17 已失效（已加范围校验），D-N18（轨迹外反查仍返回边界温）已于第315批修复（残差超阈值提示）。
-- **colorblind-simulator**：默认绿盲 #FF6B35→#B9A62F 与 Machado 1.0 手算一致；D-N102（取色器不写回 HEX）已于第317批修复。
+- **color-temperature-converter**：默认 5500K→(255,238,222) 正算可用；D-N17 已失效（已加范围校验）。
+- **colorblind-simulator**：默认绿盲 #FF6B35→#B9A62F 与 Machado 1.0 手算一致
 - **contrast-checker**：默认 14.68:1、AA/AAA 判定正确；D-N1（非法 HEX 不刷新结果）仍成立。
-- **cvd-safe-palette**：无默认结果；D-N106（发散亮度方向反，L 两端 0.90、中心 0.32）、D-N107（策略两分支同实现）仍成立；D-N108（首色恒定）已于第317批修复。
-- **gradient-from-color**：默认 L90→20 五色标，基色 #667eea(L66) 不出现；D-N125/D-N126 仍成立，D-N124/D-N127 已于第318批修复。
+- **cvd-safe-palette**：无默认结果；D-N106（发散亮度方向反，L 两端 0.90、中心 0.32）、D-N107（策略两分支同实现）仍成立
+- **gradient-from-color**：默认 L90→20 五色标，基色 #667eea(L66) 不出现；D-N125/D-N126 仍成立。
 - **gradient**：默认相邻色标 1.74:1；新增对比度使 D-N47/D-N48 的 gradient 部分失效（image-color-picker 部分仍成立）；D-N233/D-N234 为新增。
-- **material-color**：常量表正确；主色徽标取 600 阶而图表取 500 阶；D-N204（图表取 400 阶）已于第311批修复，D-N205 仍成立。
-- **mesh-gradient**：默认白字最差 2.04:1，报告正确；D-N59（动态色块无 id → 历史/预设/CSV 恒空）已于第320批修复，D-N60 已失效。
+- **material-color**：常量表正确；主色徽标取 600 阶而图表取 500 阶；D-N205 仍成立。
+- **mesh-gradient**：默认白字最差 2.04:1，报告正确
 - **palette-cvd-checker**：默认绿盲最小 ΔE00=4.27、判「差」正确；D-N112（OKLCH 分支把 Lab 当 RGB，复算最小距离 0.55 vs 正确 2.14）仍成立。
-- **palette-extractor**：默认 8 色正确；5/10/12 色百分比合计仅 62.5%/62.5%/75.0%（D-N231）；极小/大面积透明图产 #000000 0.0%（D-N232）；D-N56（排序后导出不刷新）已于第311批修复。
+- **palette-extractor**：默认 8 色正确；5/10/12 色百分比合计仅 62.5%/62.5%/75.0%（D-N231）；极小/大面积透明图产 #000000 0.0%（D-N232）
 - **tailwind-colors**：数据与 Tailwind v3 一致；43/242 色块文字 <4.5:1（yellow-500 白字 1.92:1），D-N142 仍成立。
 - **image-color-picker**（实际在 `tools/design/`）：取样坐标换算正确；半透明 PNG 按原始 RGB 复制（预览为白底合成）；D-N46/D-N47 仍成立。
 

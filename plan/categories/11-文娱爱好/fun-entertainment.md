@@ -437,7 +437,7 @@
 ### X 批覆盖清单（音乐训练 3 页）
 - `tools/music/rhythm-trainer.html`：2 条（FE-N70 高、FE-N71 中）。复核通过项：节奏型生成保证每小节至少 1 个音符且总音符 ≥30%、4 拍预备拍、WebAudio 按 `ctx.currentTime` 预调度、停止/结束守卫、历史落库与导出接线。
 - `tools/music/random-training-rhythm.html`：2 条（FE-N72 高·假功能、FE-N73 中）。复核通过项：6 种节奏型与 6 档 BPM 随机、数量上限 50 钳制、复制/导出/历史接线。
-- `tools/music/sheet-music.html`：2 条（FE-N75/FE-N76 中，FE-N74 已于 2026-11-08 确认代码已修复并移除）。复核通过项：12 调 `KEY_OFFSETS` 半音偏移全部正确、频率按 `NOTE_FREQS×2^oct` 与十二平均律一致、12 个调号按钮与历史回填。
+- `tools/music/sheet-music.html`：2 条（FE-N75/FE-N76 中）。复核通过项：12 调 `KEY_OFFSETS` 半音偏移全部正确、频率按 `NOTE_FREQS×2^oct` 与十二平均律一致、12 个调号按钮与历史回填。
 
 - **X 批合计 6 条：高 2（FE-N70、FE-N72）/ 中 4 / 安全 0。假工具 1 个（FE-N72）。**
 - 说明：本轮为**只读**审计，逐行读源码 + `node` 在 `/tmp` 复刻（`/tmp/xprobe.js`：12 调音名/唱名逐调复算、八级唱名 `SOLFEGE[7]` 实测；节奏训练器时基问题为源码口径推演，未开浏览器录音验证）。**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做 git 写操作**，除本文件与 `plan/categories/06-商业运营/biz-startup.md` 外未修改任何文件。
