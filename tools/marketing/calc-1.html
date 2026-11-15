@@ -143,7 +143,7 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="广告投资回报">Advertising ROI</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="(广告带来收入-广告费)/广告费 ×100%">(attributed revenue - ad spend)/ad spend ×100%</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="(广告带来收入−广告费−商品成本)/广告费 ×100%">(attributed revenue − ad spend − COGS)/ad spend ×100%</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">return on ad spend</td>
         </tr>
         <tr>
@@ -163,10 +163,10 @@
 
     <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
     <ul>
-      <li>ROI = (广告收入 - 广告花费 - 商品成本) / 广告花费 × 100%</li>
-      <li>ROAS = 广告收入 / 广告花费，通常 ROAS > 1 表示广告未亏损</li>
+      <li>ROI = (广告收入 - 广告花费 - 商品成本) / 广告花费 × 100%，不含运营、人力等间接费用</li>
+      <li>ROAS = 广告收入 / 广告花费；是否亏损取决于成本率，盈亏平衡 ROAS = 1 ÷ (1 − 商品成本率)，低于该值即使 ROAS &gt; 1 仍会亏损</li>
       <li>CPA = 广告花费 / 转化数，表示每获取一个转化的成本</li>
-      <li>商品成本率用于估算真实利润，未考虑运营、人力等其他费用</li>
+      <li>商品成本率用于估算真实利润，未考虑运营、人力等其他费用；广告花费须大于 0</li>
       <li>本工具纯前端运行，数据不会上传到服务器</li>
     </ul>
   </div>
@@ -212,14 +212,42 @@ function load(){ try{ const data=JSON.parse(localStorage.getItem(STORE_KEY)||'{}
 function fmt(n,d){ return ToolBox.formatNumber(n,d); }
 function calc(){
   save();
-  const spend = parseFloat($('spend').value)||0;
-  const revenue = parseFloat($('revenue').value)||0;
-  const conversions = parseInt($('conversions').value)||0;
-  const costRate = (parseFloat($('costRate').value)||0)/100;
+  const spendRaw = $('spend').value.trim();
+  const spend = Number(spendRaw);
+  const revenue = $('revenue').value.trim()==='' ? NaN : Number($('revenue').value);
+  const conversions = $('conversions').value.trim()==='' ? 0 : Number($('conversions').value);
+  const costRatePct = $('costRate').value.trim()==='' ? 0 : Number($('costRate').value);
+  const resEl = $('res'), sumEl = $('summary');
+  if(spendRaw===''||!isFinite(spend)||spend<=0){
+    sumEl.innerHTML='';
+    resEl.innerHTML='<p style="color:var(--danger);font-weight:600;">广告花费须大于 0，否则 ROI / ROAS 无定义。</p>';
+    return;
+  }
+  if(!isFinite(revenue)||revenue<0){
+    sumEl.innerHTML='';
+    resEl.innerHTML='<p style="color:var(--danger);font-weight:600;">请输入有效的广告收入（≥ 0）。</p>';
+    return;
+  }
+  if(!isFinite(conversions)||conversions<0){
+    sumEl.innerHTML='';
+    resEl.innerHTML='<p style="color:var(--danger);font-weight:600;">转化数须为非负数（选填，可留空）。</p>';
+    return;
+  }
+  if(!isFinite(costRatePct)||costRatePct<0||costRatePct>100){
+    sumEl.innerHTML='';
+    resEl.innerHTML='<p style="color:var(--danger);font-weight:600;">商品/服务成本率须在 0–100% 之间。</p>';
+    return;
+  }
+  const costRate = costRatePct/100;
   const cogs = revenue * costRate;
   const profit = revenue - spend - cogs;
-  const roas = spend>0 ? (revenue / spend) : 0;
-  const roi = spend>0 ? (profit / spend) : 0;
+  const roas = revenue / spend;
+  const roi = profit / spend;
+  const breakEvenRoas = costRatePct < 100 ? 1/(1-costRate) : Infinity;
+  const verdict = isFinite(breakEvenRoas)
+    ? (roas >= breakEvenRoas ? 'ROAS ≥ 盈亏平衡值，广告本身未亏损' : 'ROAS 低于盈亏平衡值，广告实际亏损')
+    : '成本率 100% 时不存在盈亏平衡 ROAS';
+  const exceed = isFinite(breakEvenRoas) && roas < breakEvenRoas;
   const cpa = conversions>0 ? (spend / conversions) : 0;
   const margin = revenue>0 ? (profit / revenue) : 0;
   const summary=[
@@ -229,7 +257,7 @@ function calc(){
     {num:conversions>0?fmt(cpa,2)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元"):'—',label:'CPA'}
   ];
   const __g0=summary.map(s=>`<div class="data-card"><div class="num">${s.num}</div><div class="label">${s.label}</div></div>`).join('');$('summary').innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
-  const __g1=`<p>广告 ROI：<strong>${fmt(roi*100,2)}%</strong></p><p>ROAS：<strong>${fmt(roas,2)}</strong>（每投入 1 元广告费带来 ${fmt(roas,2)} 元收入）</p><p>净利润：<strong>${fmt(profit,2)} 元</strong>（利润率 ${fmt(margin*100,2)}%）</p>${conversions>0?`<p>CPA（单次转化成本）：<strong>${fmt(cpa,2)} 元</strong></p>`:''}`;$('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  const __g1=`<p>广告 ROI：<strong>${fmt(roi*100,2)}%</strong></p><p>ROAS：<strong>${fmt(roas,2)}</strong>（每投入 1 元广告费带来 ${fmt(roas,2)} 元收入）</p><p>盈亏平衡 ROAS：<strong>${isFinite(breakEvenRoas)?fmt(breakEvenRoas,2):'—'}</strong>（= 1 ÷ (1 − 成本率 ${costRatePct}%)）</p><p>净利润：<strong>${fmt(profit,2)} 元</strong>（利润率 ${fmt(margin*100,2)}%）</p>${conversions>0?`<p>CPA（单次转化成本）：<strong>${fmt(cpa,2)} 元</strong></p>`:''}<p style="margin-top:6px;font-weight:600;color:${exceed?'var(--danger)':'var(--success)'};">${verdict}</p>`;$('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyRes(){ ToolBox.copyText($('res').innerText.replace(/\n+/g,'；'),'已复制结果'); }
 function resetAll(){ $('spend').value=10000; $('revenue').value=30000; $('conversions').value=100; $('costRate').value=40; calc(); }
@@ -394,6 +422,7 @@ else document.addEventListener('DOMContentLoaded', __calc_1Boot);
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>为什么利润要扣货成本？</dt><dd>收入不是利润，卖货还要付进货/生产成本。不扣货成本会把 ROI 算高，误导预算决策。</dd>
+<dt>ROAS &gt; 1 就一定赚钱吗？</dt><dd>不一定。收入还要覆盖商品成本，<a class="term-link" href="/tools/finance/break-even-calculator.html">盈亏平衡</a> ROAS = 1 ÷ (1 − 商品成本率)；成本率 70% 时需 ROAS ≥ 3.33 才不亏。</dd>
 <dt>ROI 和 ROAS 哪个更该看？</dt><dd>ROAS 看广告效率，ROI 看真实盈利。长期决策应优先 ROI，ROAS 仅作投放端即时监控。</dd>
 </dl>
 </div>
