@@ -374,6 +374,19 @@ const CASES = [
        + "胜负分支的 highlightWin 依赖运行时 querySelectorAll('.cell')（桩不登记 createElement 追加的节点）会抛错，故取同一判定链路的平局分支。默认空盘只显示「点击格子开始游戏」，零交集。"
 }
 
+,
+{
+  "slug": "fun/meditation-timer",
+  "clicks": ["(function(){var T=1700000000000,T0=T;var D=Date.now;Date.now=function(){return T;};document.getElementById('dur').value='10';document.getElementById('seg').value='3';var bells=[];var oC=mtmChime;mtmChime=function(iv){bells.push({t:T,iv:!!iv});};mtmReset();mtmStart();T+=180000;mtmTick();T+=180000;mtmTick();T+=180000;mtmTick();T+=60000;mtmTick();var iv=bells.filter(function(b){return b.iv;});var fin=bells.filter(function(b){return !b.iv;});var mins=iv.map(function(b){return Math.round((b.t-T0)/60000);});var ok=(mins.length===3&&mins[0]===3&&mins[1]===6&&mins[2]===9&&fin.length===1);Date.now=D;mtmChime=oC;document.getElementById('__tbProbe').textContent='MTMSEG '+(ok?'OK':'BAD '+JSON.stringify(mins)+' f='+fin.length);})()"],
+  "expect": ["MTMSEG OK"],
+  "ref": "第396批：10 分钟、每段 3 分钟（非整除）应在 3/6/9 分钟响段提示，结束 tick 只响结束钟。旧版以 总时长/ceil(段数) 均分得 2.5/5/7.5 分钟，且结束 tick 同时触发段提示与结束钟。按实际已过时间/设定段长计算边界后，段提示恰 3 次在 3/6/9、结束钟 1 次；修复前 mins=[3,6,9,10] 或 [2,5,7,10] ⇒ BAD。"
+},
+{
+  "slug": "fun/meditation-timer",
+  "clicks": ["(function(){var T=1700000000000,T0=T;var D=Date.now;Date.now=function(){return T;};document.getElementById('dur').value='10';document.getElementById('seg').value='3';var bells=[];var oC=mtmChime;mtmChime=function(iv){if(iv)bells.push(1);};mtmReset();mtmStart();T+=150000;mtmPause();T+=600000;mtmStart();T+=30000;mtmTick();var ok=(bells.length===1);Date.now=D;mtmChime=oC;document.getElementById('__tbProbe').textContent='MTMPAUSE '+(ok?'OK':'BAD '+bells.length);})()"],
+  "expect": ["MTMPAUSE OK"],
+  "ref": "第396批：2.5 分钟暂停、暂停期间现实时间流逝 10 分钟后继续，按已过冥想时间应在继续后 0.5 分钟（绝对 3 分钟段末）补响 1 次。旧版 mtmStart() 继续时把下一次提示重设为「当前时间+完整段长」会错过原段末（继续后 0.5 分钟 0 响）。修复后基于已过时间计算边界 ⇒ 1 响；修复前 0 响 ⇒ BAD。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

@@ -368,7 +368,7 @@ function __meditation_timerPresets(){
     ],function(){ calcTool(); });
 }
 /* ===== 实时冥想计时（修复名不副实：原仅生成静态计划，无倒计时/提示音） ===== */
-var mtmTotalMs=0, mtmEndTs=0, mtmRemainMs=0, mtmRunning=false, mtmTimerId=null, mtmSegCount=0, mtmSegMs=0, mtmNextBellTs=0, mtmAudioCtx=null;
+var mtmTotalMs=0, mtmEndTs=0, mtmRemainMs=0, mtmRunning=false, mtmTimerId=null, mtmSegCount=0, mtmSegMs=0, mtmLastBell=0, mtmAudioCtx=null;
 function mtmParseDur(){var d=Math.floor(num('dur'));if(!isFinite(d)||d<=0)d=10;return d;}
 function mtmParseSeg(){var s=Math.floor(num('seg'));if(!isFinite(s)||s<=0)s=2;return s;}
 function mtmFmt(ms){ms=Math.max(0,ms);var t=Math.round(ms/1000);var m=Math.floor(t/60),s=t%60;return (m<10?'0':'')+m+':'+(s<10?'0':'')+s;}
@@ -400,7 +400,13 @@ function mtmTick(){
     var segNo=Math.min(mtmSegCount, Math.floor((mtmTotalMs-rem)/(mtmSegMs||mtmTotalMs))+1);
     var lbl=document.getElementById('mtmSegLabel'); if(lbl)lbl.textContent='第 '+segNo+' / '+mtmSegCount+' 段';
   }
-  if(mtmNextBellTs>0 && now>=mtmNextBellTs){ mtmChime(true); mtmNextBellTs+=mtmSegMs; }
+  // 按「实际已过时间 ÷ 设定段长」计算段边界：暂停/继续不会错过原段末；
+  // 结束 tick（rem<=0）不再触发段提示，避免与结束钟同时响。
+  if(rem>0 && mtmSegMs>0){
+    var elapsed=mtmTotalMs-rem;
+    var passed=Math.floor(elapsed/mtmSegMs);
+    if(passed>mtmLastBell){ mtmLastBell=passed; mtmChime(true); }
+  }
   if(rem<=0){ mtmFinish(); }
 }
 function mtmStart(){
@@ -409,10 +415,10 @@ function mtmStart(){
     mtmTotalMs=mtmParseDur()*60000;
     mtmSegCount=Math.max(1,Math.ceil(mtmParseDur()/mtmParseSeg()));
     mtmRemainMs=mtmTotalMs;
+    mtmLastBell=0;   // 仅全新一局重置响铃进度；暂停后继续须保留，避免错过原段末
   }
-  mtmSegMs=mtmSegCount>0?mtmTotalMs/mtmSegCount:mtmTotalMs;
+  mtmSegMs=mtmParseSeg()*60000;   // 用设定段长，不再按 总时长/段数 均分
   mtmEndTs=Date.now()+mtmRemainMs;
-  mtmNextBellTs=Date.now()+mtmSegMs;
   mtmRunning=true;
   var sb=document.getElementById('mtmStartBtn'), pb=document.getElementById('mtmPauseBtn'), st=document.getElementById('mtmStatus');
   if(sb){sb.disabled=true;} if(pb){pb.disabled=false;} if(st){st.textContent='冥想进行中…保持觉察，回到呼吸';}
@@ -429,7 +435,7 @@ function mtmPause(){
 }
 function mtmReset(){
   mtmRunning=false; if(mtmTimerId){clearInterval(mtmTimerId);mtmTimerId=null;}
-  mtmRemainMs=0; mtmNextBellTs=0;
+  mtmRemainMs=0; mtmLastBell=0;
   var d=mtmParseDur(), sg=mtmParseSeg();
   var sb=document.getElementById('mtmStartBtn'), pb=document.getElementById('mtmPauseBtn'), st=document.getElementById('mtmStatus'),
       clk=document.getElementById('mtmClock'), lbl=document.getElementById('mtmSegLabel');

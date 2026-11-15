@@ -451,7 +451,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __gina_asthma_last=0,__gina_asthma_skip=false;
+var __gina_asthma_skip=false;
 function __gina_asthmaSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -500,15 +500,16 @@ function __gina_asthmaRender(keys,rk,en){
             __gina_asthma_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='__tbType') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                calcGina();
-                calcAct(); // D-N106：回放须同时重算 ACT，避免 ACT 结果停留在回放前旧值
+                // GINA 与 ACT 共用 #result：若无条件先 calcGina() 再 calcAct()，后者会覆盖前者，
+                // 回放原本 GINA 记录时最终却显示 ACT 结果。按记录保存的评估类型重算。
+                if(rec.__tbType==='act') calcAct(); else calcGina();
             }catch(e2){}
             __gina_asthma_skip=false;
         });
@@ -522,7 +523,7 @@ function __gina_asthmaRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __gina_asthmaExtras(){
+function __gina_asthmaExtras(__tbType){
     if (typeof TBKit === 'undefined') return;
     if (__gina_asthma_skip) return;
     var snap=__gina_asthmaSnap();
@@ -533,8 +534,8 @@ function __gina_asthmaExtras(){
     if(!res) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
-    var now=Date.now();
-    if(now-__gina_asthma_last<1000) return;
+    // 去重改为「输入快照 + 结果文本 + 评估类型」，不再用 1 秒时间节流：
+    // 预设/快速切换会同步连续调用 calcGina();calcAct();，时间节流会吞掉第二条，导致 ACT 不入库。
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -542,13 +543,13 @@ function __gina_asthmaExtras(){
         for(var i=0;i<keys.length;i++){
             if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
         }
-        if(same&&String(last[rk])===String(res)) return;
+        if(same&&String(last[rk])===String(res)&&String(last.__tbType||'')===String(__tbType||'')) return;
     }
-    __gina_asthma_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
     rec.__tbScore=__gina_asthmaScore(res);
+    rec.__tbType=__tbType||'';   // 供回放按评估类型重算
     TBKit.history.record(rec);
     __gina_asthmaRender(keys,rk,en);
 }
@@ -571,12 +572,12 @@ function __gina_asthmaPresets(){
 }
 var __gina_asthma_f0=(typeof calcGina==='function')?calcGina:null;
 if(__gina_asthma_f0){
-    calcGina=function(){ var __r=__gina_asthma_f0.apply(null,arguments); try{ __gina_asthmaExtras(); }catch(e){} return __r; };
+    calcGina=function(){ var __r=__gina_asthma_f0.apply(null,arguments); try{ __gina_asthmaExtras('gina'); }catch(e){} return __r; };
 }
 // D-N106：ACT 评估同样纳入历史/CSV（原只包装 calcGina，ACT 从不入库、回放不重算）。
 var __gina_asthma_act0=(typeof calcAct==='function')?calcAct:null;
 if(__gina_asthma_act0){
-    calcAct=function(){ var __r=__gina_asthma_act0.apply(null,arguments); try{ __gina_asthmaExtras(); }catch(e){} return __r; };
+    calcAct=function(){ var __r=__gina_asthma_act0.apply(null,arguments); try{ __gina_asthmaExtras('act'); }catch(e){} return __r; };
 }
 function __gina_asthmaBoot(){ try{ __gina_asthmaPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __gina_asthmaBoot();

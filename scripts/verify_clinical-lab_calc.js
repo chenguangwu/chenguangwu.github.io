@@ -1370,6 +1370,13 @@ const CASES = [
     "expect": ["HbA1c 需在 3–20% 之间，当前输入「2.9」无效，结果已清空。"],
     "ref": "L-N17 反算下限：血糖 2 mmol/L ⇒ HbA1c=(2×18+46.7)/28.7=2.87→2.9%，convertReverse 写回 val1=2.9 后 convert() 触发 3–20% 校验并清空（修复前判「正常」）。默认 val2 空、val1=7.0 ⇒ 不命中。"
   }
+,
+{
+  "slug": "clinical-lab/biochemistry-ratio",
+  "clicks": ["(function(){function S(id,v){document.getElementById(id).value=v;}S('alt','200');S('alp','100');calc();var h1=String(document.getElementById('result').innerHTML);S('alt','40');S('alp','600');calc();var h2=String(document.getElementById('result').innerHTML);var ok=(h1.indexOf('6.00')>=0&&h2.indexOf('0.20')>=0);document.getElementById('__tbProbe').textContent='BIOR '+(ok?'OK':'BAD h1='+(h1.indexOf('6.00')>=0)+' h2='+(h2.indexOf('0.20')>=0));})()"],
+  "expect": ["BIOR OK"],
+  "ref": "第304批：统一 R 因子为权威定义 R=(ALT/ULN)/(ALP/ULN)=(ALT/40)/(ALP/120)（ALT 在分子）。formula-eq 旧写反为 (ALP/ULN)/(ALT/ULN)、info-box 旧写「ALB/ALP」。注入 ALT=200/ALP=100 ⇒ R=6.00；ALT=40/ALP=600 ⇒ R=0.20，两向复算锁定分子分母方向，默认态 R=1.20 不命中；若方向写反两值互换 ⇒ BAD。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

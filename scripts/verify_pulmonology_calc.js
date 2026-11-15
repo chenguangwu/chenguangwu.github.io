@@ -447,6 +447,19 @@ const CASES = [
   "ref": "原生缺陷修复：GINA 四项（是/否）与 ACT 五题（1-5 分）共 9 个下拉全部改为「请选择」空值默认，首屏不再直接给「未控制/完全控制」分级与升级/降级治疗建议。"
 }
 
+,
+{
+  "slug": "pulmonology/gina-asthma",
+  "clicks": ["(function(){var recs=[];globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},matrix:{table:function(){}},chart:{line:function(){}},preset:{bar:function(){}},history:{list:function(){return recs.slice().reverse();},last:function(){return recs.length?recs[recs.length-1]:null;},record:function(r){recs.push(r);},mount:function(){}}};var oS=__gina_asthmaSnap,oR=__gina_asthmaResText;__gina_asthmaSnap=function(){return {g1:'1',a1:'5'};};var call=0;__gina_asthmaResText=function(){call++;return call===1?'GINA 良好控制':'ACT 25/25 完全控制';};__gina_asthma_skip=false;__gina_asthmaExtras('gina');__gina_asthmaExtras('act');__gina_asthmaSnap=oS;__gina_asthmaResText=oR;var ok=(recs.length===2&&recs[0].__tbType==='gina'&&recs[1].__tbType==='act');document.getElementById('__tbProbe').textContent='GINAREC '+(ok?'OK':'BAD n='+recs.length+' t0='+(recs[0]&&recs[0].__tbType)+' t1='+(recs[1]&&recs[1].__tbType));})()"],
+  "expect": ["GINAREC OK"],
+  "ref": "第307批：两个包装共用 __gina_asthmaExtras 有 now-last<1000 时间节流，预设回调同步 calcGina();calcAct() 会吞掉第二条致 ACT 不入库；且记录须带评估类型。连续两次 Extras('gina')/Extras('act') 且结果文本不同，须各入库一条并分别标记 __tbType；修复前节流使 n=1、或类型缺失 ⇒ BAD。"
+},
+{
+  "slug": "pulmonology/gina-asthma",
+  "clicks": ["(function(){var cb=null;globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},matrix:{table:function(){}},chart:{line:function(){}},preset:{bar:function(){}},history:{list:function(){return [{t:1700000000000,d:{__tbScore:1,'结果':'x'}}];},last:function(){return null;},record:function(){},mount:function(s,c){cb=c;}}};__gina_asthmaRender(['g1','a1'],'结果',false);var calls=[];var oG=calcGina,oA=calcAct;calcGina=function(){calls.push('gina');};calcAct=function(){calls.push('act');};if(cb)cb({g1:'1',g2:'0',g3:'0',g4:'0','结果':'GINA 良好控制',__tbScore:1,__tbType:'gina'});calcGina=oG;calcAct=oA;var ok=(!!cb&&calls.length===1&&calls[0]==='gina');document.getElementById('__tbProbe').textContent='GINAREPLAY '+(ok?'OK':'BAD '+calls.join(',')+' cb='+(!!cb));})()"],
+  "expect": ["GINAREPLAY OK"],
+  "ref": "第307批：GINA 与 ACT 共用 #result，历史回放旧版无条件先 calcGina() 后 calcAct()，后者覆盖前者 ⇒ 回放 GINA 记录却显示 ACT。修复后按记录 __tbType 重算，回放 __tbType=gina 的记录须只调 calcGina（calls=[gina]）；修复前 calls=[gina,act] ⇒ BAD。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

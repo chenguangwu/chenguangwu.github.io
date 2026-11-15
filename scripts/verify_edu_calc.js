@@ -845,6 +845,19 @@ const CASES = [
   "ref": "同 capital-quiz：country-quiz 的 choose(o,el) 比较 o.name === cur.name，逐题传等价选项对象 ⇒ score=10 ⇒ finish 输出「得分：10/10（100%）」。"
        + "默认未开始时输出「根据国旗选择对应的国家 / 得分：0」，零交集。"
 }
+,
+{
+  "slug": "edu/flag-quiz",
+  "clicks": ["(function(){var dfd=[];var oST=setTimeout,oQ=document.querySelectorAll;setTimeout=function(f,ms){dfd.push(f);return dfd.length;};document.querySelectorAll=function(){return [];};try{start('normal');var fe={classList:{add:function(){}},disabled:false,onclick:null};choose(cur,fe);reset();start('normal');var qB=qNo;if(dfd.length)dfd[dfd.length-1]();var qA=qNo;var ok=(qA===qB&&dfd.length>=1);document.getElementById('__tbProbe').textContent='FLAGSTALE '+(ok?'OK':'BAD qB='+qB+' qA='+qA+' n='+dfd.length);}finally{setTimeout=oST;document.querySelectorAll=oQ;}})()"],
+  "expect": ["FLAGSTALE OK"],
+  "ref": "第395批：答题后 setTimeout(next,900) 未取消，0.9 秒内重置/重开会被旧回调重新出题或跳过新局当前题。用延迟执行桩捕获旧推进回调，答题→立即重置→重新开始后手动触发旧回调，须被局次令牌丢弃（qNo 不变）。修复前旧回调直接 next() ⇒ qNo+1 ⇒ BAD。"
+},
+{
+  "slug": "edu/typing-game",
+  "clicks": ["(function(){var T=1700000000000;var D=Date.now;Date.now=function(){return T;};startTime=T-60000;correctKeys=100;totalKeys=100;updateStats();var w=String(document.getElementById('wpm').textContent);Date.now=D;document.getElementById('__tbProbe').textContent='TYPWPM '+(w==='20'?'OK':'BAD '+w);})()"],
+  "expect": ["TYPWPM OK"],
+  "ref": "第398批：速度单位为 WPM（标准词/分），算法 WPM=(正确按键数/5)/(分钟数)；每分钟 100 个正确字符应输出 20 而非 100「字/分」。锁定算法与文案一致（meta 已由「字/分」改 WPM 标准词/分），默认态正确按键 0 ⇒ WPM 0，不命中。"
+}
 ];
 
 async function main() {
