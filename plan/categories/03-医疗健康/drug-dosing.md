@@ -512,7 +512,8 @@
 - 影响：历史回放不可信；对比不同部位方案时得到错误组合。
 - 方案：记录 `part:currentPart`，回放时先 `currentPart=rec.part` 并同步 `.body-part button.active` 再 `calc()`；或增加隐藏 `select id="part"` 参与快照。
 
-### D-N65 冷敷计时器：倒计时按每秒自减而非时间戳校正，后台节流/锁屏会拉长实际冷敷时间（中，待验证）
+### D-N65 冷敷计时器：倒计时按每秒自减而非时间戳校正，后台节流/锁屏会拉长实际冷敷时间（已修，795 批）
+- 现状（2026-11-16）：启动时记录 `timerEndAt = Date.now() + remainingSeconds*1000`；每 tick 用 `Math.max(0, Math.round((timerEndAt-now)/1000))` 结算；暂停时先结算再清零；`resetTimer` 清零；`visibilitychange` 恢复时立即 `tickTimer()`。门禁：结束时间设为 11 分钟后 ⇒ 显示 11:00（旧实现单次 tick 仅 19:59）。
 - 问题：`setInterval(...,1000)` 内执行 `remainingSeconds--`，没有保存结束时间或用 `Date.now()` 重算；浏览器后台标签页/锁屏会节流定时器，tick 次数少于真实秒数，显示时间落后于实际。
 - 证据：`tools/clinical-nursing/cold-compress-timer.html:334-335`（自减）、`:358`（1000ms 间隔）、`:327-329`（启动未设 `endAt`）。
 - 复现（待真机验证）：设 20 分钟，切后台 10 分钟再回前台，预期显示剩余约 10:00；按自减实现可能仍显示接近 20:00，实际已超时。未开浏览器，未实测节流倍率。

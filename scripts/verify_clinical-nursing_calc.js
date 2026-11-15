@@ -207,6 +207,14 @@ const CASES = [
   ]
 },
 {
+  "slug": "clinical-nursing/cold-compress-timer",
+  "clicks": [
+    "resetTimer();timerEndAt=Date.now()+660000;isRunning=true;tickTimer();var t=document.getElementById('timerTime').textContent;document.getElementById('timerTime').textContent=(t==='11:00')?'COLDTSOK':'COLDTSBAD'+t"
+  ],
+  "expect": ["COLDTSOK"],
+  "ref": "D-N65 时间戳倒计时：把结束时间设为 11 分钟后（20 分钟总量、已过 9 分钟），tick 按 Date.now() 结算应显示 11:00；旧实现每秒自减，单次 tick 只会剩 19:59。默认 20:00 不命中。"
+},
+{
   "slug": "clinical-nursing/convert-flow-concentration",
   "inputs": {
     "mode": "o2f",
