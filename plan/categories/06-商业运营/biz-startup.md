@@ -412,19 +412,10 @@
 - 影响：长文档排版的核心承诺落空，且输出对专有名词是错的；假工具：否。
 - 方案：加专有名词/全大写缩写保留规则（或删掉「保留专有名词」文案）。
 
-### BS-N135 颠倒文字：深解算例「oʅʅǝɥ」与实现输出「ollǝɥ」不符（中，算例错误）
-- 页面：`tools/biz/upside-down-text.html`
-- 问题：深解写「输入 hello，倒置输出 oʅʅǝɥ」，但映射表把 `l` 映射为 `l`（恒等），实际结果为 `ollǝɥ`；文档比实现多两个 `ʅ`。
-- 证据：`tools/biz/upside-down-text.html:212`（算例）、`:285`（`'l':'l'`）、`:304`（反转）。
-- 复现：`/tmp` Node 复刻 → `flip('hello')` = `ollǝɥ`；`flip('Hello World!')` = `¡plɹoM ollǝH`。
-- 影响：算例与实物不符，用户以为映射缺字；假工具：否。
-- 方案：把算例改成 `ollǝɥ`，或把 `l` 改为 `ʅ`（并同步全部含 l 的示例）。
-
 ### X 批覆盖清单（商业文本收尾 5 页）
 - `tools/biz/strawberry-text.html`：2 条（BS-N128/130 中）。复核通过项：包夹/前后/跳过空白三模式与公式一致、清空与复制接线正常。
 - `tools/biz/fancy-text.html`：1 条（BS-N127 中）。复核通过项：14 张映射表 `src/dst` 长度全部相等（`/tmp` 逐表校验，无 `undefined` 空洞）、未命中保留原字符、中文/emoji 按码点安全。
 - `tools/biz/text-case-advanced.html`：1 条（BS-N131 中）。复核通过项：22 个模式中 camel/pascal/snake/kebab/constant/dot/path 分词与取词正确，`sentence` 句首规则正确。
-- `tools/biz/upside-down-text.html`：1 条（BS-N135 中）。复核通过项：映射覆盖 a–z/A–Z/0–9/常用标点，未命中保留原字符，空格映射恒等。
 
 - **X 批合计 10 条：高 0 / 中 10 / 安全 0。假工具 0 个。**
 - 说明：本轮为**只读**审计，逐行读源码 + `node` 在 `/tmp` 复刻（`/tmp/xprobe.js`：fancy 17 张卡映射长度校验、`flip('hello')` 实测、草莓 emoji 码位实测、大小写各模式实测）。**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做 git 写操作**，除本文件与 `plan/categories/11-文娱爱好/fun-entertainment.md` 外未修改任何文件。

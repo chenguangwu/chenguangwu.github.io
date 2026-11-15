@@ -1585,6 +1585,15 @@ const CASES = [
     ref: "BS-N126：text-repeat 首屏导出空表，boot 补一次包装版 repeat()。探针只在 clicks 注入出现 ⇒ 零逃生。"
   },
 
+  // BS-N135：锁住「实现输出」与「深解算例」一致（l 恒等映射 ⇒ ollǝɥ，不是 oʅʅǝɥ）
+  {
+    slug: "biz/upside-down-text",
+    inputs: { input: "hello" },
+    clicks: ["convert();"],
+    expect: ["ollǝɥ"],
+    ref: "BS-N135：翻转映射表把 l 映射为 l（恒等），故 flip('hello') = ollǝɥ；旧深解算例写 oʅʅǝɥ 凭空多两个 ʅ。默认输入为 Hello（大写 H）得 ollǝH，不含小写 ollǝɥ ⇒ 强判别、零逃生。"
+  },
+
 ];
 
 
