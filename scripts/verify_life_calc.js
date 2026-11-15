@@ -917,6 +917,20 @@ const CASES = [
   {
     slug: "life/density-converter",
     inputs: { inputVal: "2" },
+    clicks: ["var rb=document.getElementById('resultBox');rb.innerText='基准： 2 kg/m³ 测试';rb.textContent='基准： 2 kg/m³ 测试';var ok='NO';try{var o=ToolBox.copyText;ToolBox.copyText=function(t){ok=String(t).indexOf('基准：')===0?'OK':'BAD';};copyRes();ToolBox.copyText=o;}catch(e){ok='ERR';}rb.textContent='CP '+ok;"],
+    expect: ["CP OK"],
+    ref: "LF-V3 复制入口（2026-11-16）：FAQ/opt-guide 承诺「支持复制与导出」，但工具栏此前只有换算/导出/清空，全文无 copyRes。现新增「📋 复制结果」按钮，copyRes() 读取 #resultBox 的纯文本交给 ToolBox.copyText。探针替换 ToolBox.copyText 捕获入参，断言传入串以「基准：」开头（即换算结果而非空态提示）；默认空态不会调用复制 ⇒ 注入失败即失配。"
+  },
+  {
+    slug: "life/density-converter",
+    inputs: {},
+    clicks: ["var rb=document.getElementById('resultBox');rb.innerText='';rb.textContent='';var called=false;try{var o=ToolBox.copyText;ToolBox.copyText=function(){called=true;};copyRes();ToolBox.copyText=o;}catch(e){}rb.textContent='CPE '+(called?'1':'0');"],
+    expect: ["CPE 0"],
+    ref: "LF-V3 空态守卫：清空后 convert() 输出「请输入有效数值」，copyRes() 识别空态提示并只弹 toast，不把提示语当结果复制（旧实现无该函数）。默认输入 1 ⇒ 不执行本探针，判别明确。"
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "2" },
     expect: ["克每毫升： 0.002 g/mL"],
     ref: 'base=2 kg/m³, gmL=2/1000'
   },

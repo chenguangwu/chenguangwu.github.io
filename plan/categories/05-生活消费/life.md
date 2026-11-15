@@ -769,11 +769,10 @@
 - 同步：`i18n/tools/content_deepdive.json` 的 `life/radiation-converter`（算例 + 两条 FAQ）、`guides/radiation-converter-guide.html`（FAQ 与 FAQPage JSON-LD）。
 - 原证据：`tools/life/radiation-converter.html` 曾写「组织权重 1 时≈1 Sv」「乘组织权重」「Sv = Gy×组织权重因子」。
 
-### LF-V3 密度/磁场/辐射 FAQ 承诺「支持复制」，工具栏仍无复制按钮（原 LF-N109，仍成立）
-- 复核结论：三页均未补复制按钮，承诺文案原样保留。
-- 证据：FAQ/opt-guide 承诺 `density-converter.html:106`、`:503`；`magnet-converter.html:106`、`:506`；`radiation-converter.html:106`、`:532`。工具栏实际仅「换算 / 导出明细 CSV / 清空」：`density:183-185`、`magnet:182-184`、`radiation:184-185`；三页全文无 `copyRes`/`copyText` 调用。
-- 复现：换算后页内无任何复制入口，用户只能手选结果。
-- 建议：三页统一加「复制全部结果」按钮（`ToolBox.copyText(resultBox.innerText)`）或删除「支持复制」；顺带清理 `opt-guide/opt-faq` 通用套话（`:503`/`:506`/`:532`）。
+### LF-V3 密度/磁场/辐射 FAQ 承诺「支持复制」，工具栏仍无复制按钮（已修，724 批）
+- 现状（2026-11-16）：三页工具栏均新增「📋 复制结果」按钮，新增 `copyRes()`：读取 `#resultBox` 纯文本（`innerText` 回退 `textContent`），空态（「请输入数值进行换算」/「请输入有效数值」）只弹 toast 不复制，正常结果交 `ToolBox.copyText`。FAQ「支持复制与导出」承诺成立。
+- 门禁：`life/density-converter` 两条探针——替换 `ToolBox.copyText` 捕获入参须以「基准：」开头（CP OK）；空态调用次数为 0（CPE 0）。
+- 原证据：FAQ/opt-guide 承诺 `density-converter.html:106`、`:509`；`magnet-converter.html:106`、`:516`；`radiation-converter.html:106`、`:539`；工具栏无 `copyRes`/`copyText` 调用。
 
 ### LF-V4 换算器图表恒空白（原 LF-N110，已变化·缺陷仍在）
 - 复核结论：机制仍成立（`parseFloat` 对中文结果恒 NaN），但「图表页签」这一呈现口径已过时——四页当前页签只有 结果/数据表/预设/历史，图表容器被并进「结果」面板。
