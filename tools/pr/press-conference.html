@@ -265,10 +265,18 @@ var TEMPLATES={
 
 var steps=[];
 var editingSteps=false;
+var undoSteps=null;
 
+function undoTemplate(){
+  if(!undoSteps)return;
+  steps=undoSteps;undoSteps=null;
+  var sel=document.getElementById('eventType');if(sel)sel.value='custom';
+  renderSteps();render();
+}
 function loadTemplate(){
   var type=document.getElementById('eventType').value;
   if(type==='custom'&&steps.length>0) return;
+  if(steps.length>0) undoSteps=steps.map(function(s){return Object.assign({},s);});
   steps=type==='custom'?[]:(TEMPLATES[type]||TEMPLATES.product).map(function(s){
     return Object.assign({},s);
   });
@@ -310,6 +318,7 @@ function renderSteps(){
   if(!el)return;
   if(!editingSteps){
     el.innerHTML='<p style="font-size:13px;color:var(--text-muted);margin:0 0 8px;">下方为流程时间表；如需修改环节名称、时长、负责人或调整顺序，请<button type="button" class="btn" style="padding:3px 8px;margin:0 4px;" onclick="toggleStepEdit()">编辑环节</button></p>';
+    if(undoSteps) el.innerHTML=String(el.innerHTML)+'<p style="font-size:13px;color:var(--warning,#b45309);margin:0 0 8px;">已替换原流程（'+undoSteps.length+' 项）<button type="button" class="btn" style="padding:3px 8px;margin-left:8px;" onclick="undoTemplate()">撤销</button></p>';
     return;
   }
   if(steps.length===0){

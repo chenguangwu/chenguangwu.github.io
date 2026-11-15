@@ -194,6 +194,12 @@ const CASES = [
     "clicks": ["document.getElementById('__tbProbe').textContent='FLOWEDIT '+(typeof toggleStepEdit==='function'&&/flowEditor/.test(String(renderSteps))&&!/flowEditor/.test(String(render))&&/editingSteps/.test(String(renderSteps))?'OK':'BAD');"],
     "expect": ["FLOWEDIT OK"],
     "ref": "源码形态判定：环节编辑表单改由 flowEditor 承载且默认收起（editingSteps=false 时不渲染内联 oninput 表单），时间表仍由 render 写 flowList，不再互相覆盖。默认态不设置探针 ⇒ 零逃生。"
+  },
+{
+    "slug": "pr/press-conference",
+    "clicks": ["document.getElementById('__tbProbe').textContent='TPLUNDO '+(typeof undoTemplate==='function'&&/undoSteps/.test(String(loadTemplate))&&/undoSteps/.test(String(renderSteps))?'OK':'BAD');"],
+    "expect": ["TPLUNDO OK"],
+    "ref": "源码形态判定：模板切换前留存原步骤、编辑容器提供撤销入口，不再静默覆盖用户已编辑的流程。默认态不设置探针 ⇒ 零逃生。"
   }
 ];
 async function main() {
