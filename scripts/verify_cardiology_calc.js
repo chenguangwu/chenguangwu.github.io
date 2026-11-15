@@ -258,6 +258,40 @@ const CASES = [
 {
   "slug": "cardiology/holter-grading",
   "inputs": {
+    "pvcTotal": "8500",
+    "pvcHr": ""
+  },
+  "expect": [
+    "频发室早(24h 总量折算 ≥30次/小时) → Lown 2级"
+  ],
+  "ref": "D-N96 频发判定：只填 24h 总量 8500（≈354 次/小时）而每小时留空时，旧实现 `pvcHr=0` 落「偶发(<30次/小时) → Lown 1级」；修复后按 24h 总量折算判 2 级。默认 pvcTotal=8500、pvcHr=520 走「频发室早(≥30次/小时)」旧文案，与本串互斥。"
+},
+{
+  "slug": "cardiology/holter-grading",
+  "inputs": {
+    "pvcTotal": "12000",
+    "totalBeats": "98000"
+  },
+  "expect": [
+    "室早负荷 = 12000/98000 = 12.2%"
+  ],
+  "ref": "D-N97 总心搏参与：新增 24h 总心搏输入，12,000/98,000 = 12.2%，与深解示例一致；旧实现固定 100,000 得 12.0%。默认 100000 的分母不会产生 12.2%。"
+},
+{
+  "slug": "cardiology/holter-grading",
+  "checkIds": ["vt"],
+  "inputs": {
+    "vtSec": "30",
+    "vtBeats": "0"
+  },
+  "expect": [
+    "持续性室速"
+  ],
+  "ref": "D-N99 边界：同页引据写「非持续(<30s)/持续(≥30s)」，30 秒整应判持续性；旧实现 `vtSec>30` 会判 NSVT。未勾室速时不会输出「持续性室速」，默认 0 秒也走 NSVT。"
+},
+{
+  "slug": "cardiology/holter-grading",
+  "inputs": {
     "pvcTotal": "12750",
     "pvcHr": "520",
     "vtBeats": "0",
