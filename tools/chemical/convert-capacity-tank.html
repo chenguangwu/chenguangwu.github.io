@@ -106,14 +106,16 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="储罐容量与液位高度换算在线工具">Convert Capacity Tank - convert values in-browser instantly with local processing.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">容积 V：立式圆柱 V = π(d/2)²·h；长方体 V = 长×宽×高。附算总表面积（涂装参考）与每米液深容积 V÷h。校验：尺寸为有效正数，圆柱需直径与高。</div>
-  <div class="formula-eq">容积 V：立式圆柱 V = π(d/2)²·h；长方体 V = 长×宽×高。附算总表面积（涂装参考）与每米液深容积 V÷h。校验：尺寸为有效正数，圆柱需直径与高。</div>
-  <p class="formula-desc">输入储罐尺寸与液位高度，计算对应容积（m³）。卧式罐为非线性，建议用标定容积表。</p>
+  <div class="formula-eq">立式圆柱 V = π(d/2)²·h；长方体 V = 长×宽×h；卧式圆柱按液位弓形面积 V = L·[R²·arccos((R−h)/R) − (R−h)·√(2Rh−h²)]（R=d/2，h≤d）。反算液位：立式/长方体直接除底面积，卧式罐用二分法求解；充装率 = 当前容积 ÷ 满罐容积 × 100%，满罐容积立式/卧式取 π(d/2)²·L、长方体取 d·宽·L。校验：尺寸须为正数，液位不超过罐高（卧式不超过直径），目标容积不超过满罐容积。</div>
+  <p class="formula-desc">输入罐型、尺寸与液位（或目标容积），输出对应容积/液位、满罐容积、充装率与平均每米液深容积；卧式罐液位-容积为非线性，由弓形面积公式分段计算。</p>
 </div>
-<div class="input-row"><div><label>罐型</label><select id="type" onchange="calc()"><option value="vcyl">立式圆柱</option><option value="box">长方体</option></select></div>
-<div><label>直径/长（m）</label><input type="number" id="d" value="10" step="any" oninput="calc()" placeholder="如 10"></div></div>
-<div class="input-row"><div><label>宽（m，长方体）</label><input type="number" id="w" value="3" step="any" oninput="calc()" placeholder="如 3"></div>
-<div><label>液位高（m）</label><input type="number" id="h" value="4" step="any" oninput="calc()" placeholder="如 4"></div></div>
+<div class="input-row"><div><label>罐型</label><select id="type" onchange="calc()"><option value="vcyl">立式圆柱</option><option value="hcyl">卧式圆柱</option><option value="box">长方体</option></select></div>
+<div><label>计算方向</label><select id="mode" onchange="calc()"><option value="level">液位 → 容积</option><option value="volume">容积 → 液位</option></select></div></div>
+<div class="input-row"><div><label>直径/长 d（m）</label><input type="number" id="d" value="10" step="any" oninput="calc()" placeholder="如 10"></div>
+<div><label>宽（m，长方体）</label><input type="number" id="w" value="3" step="any" oninput="calc()" placeholder="如 3"></div></div>
+<div class="input-row"><div><label>罐高/筒长 L（m）</label><input type="number" id="L" value="12" step="any" oninput="calc()" placeholder="如 12"></div>
+<div><label>液位高（m）</label><input type="number" id="h" value="4" step="any" oninput="calc()" placeholder="如 4"></div>
+<div><label>目标容积（m³，反算用）</label><input type="number" id="Vt" value="314.159" step="any" oninput="calc()" placeholder="如 314.159"></div></div>
 <div class="toolbar"><div id="convert_capacity_tankPresets"></div><button type="button" class="btn primary" onclick="calc()">换算</button><button class="btn" type="button" onclick="__convert_capacity_tankExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="convert_capacity_tankTable"></div> <div id="convert_capacity_tankDiff"></div> <div id="convert_capacity_tankChart"></div> <div id="convert_capacity_tankHist"></div>
   </div>
@@ -144,10 +146,11 @@
 <li>收发作业核实：根据计划收付量换算目标液位，指导装车与转罐操作。</li>
 <li>安全液位红线核算：按充装系数与罐高设定最高液位，防止超装溢流。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">立式储罐液位体积演练</div><div class="dd-ex-body">输入罐直径 10m、液位 4m、罐型为立式圆柱，工具输出当前库存约 314m³，并给出满罐 1000m³ 下的充装率约 31%。</div></div>
+<div class="dd-example"><div class="dd-ex-title">立式储罐液位体积演练</div><div class="dd-ex-body">输入罐直径 10m、罐高 12m、液位 4m、罐型立式圆柱：当前容积 314.159 m³，满罐容积 942.478 m³，充装率 33.33%，平均每米液深 78.540 m³/m。</div></div>
+<div class="dd-example"><div class="dd-ex-title">卧式罐与反算液位</div><div class="dd-ex-body">卧式罐直径 2.4m、筒长 8m、液位 1.2m（恰好半满）：按弓形面积得 18.096 m³，充装率 50.00%；若已知目标容积 18.096 m³，选「容积 → 液位」，二分法反算液位 1.200m。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>卧式罐怎么算？</dt><dd>卧式罐需用封头与筒体分段积分或查容积表，按液位高度非线性换算；本工具支持对应几何公式或表格式输入。</dd>
+<dt>卧式罐怎么算？</dt><dd>按液位对应的弓形面积积分：V = L·[R²·arccos((R−h)/R) − (R−h)·√(2Rh−h²)]，液位-容积为非线性；本工具已内置该公式并支持由容积反算液位。</dd>
 <dt>充装系数为什么要限制？</dt><dd>为防止温度变化膨胀、呼吸阀失效或溢流，常留 5%–10% 气相空间；具体按介质特性与规范设定。</dd>
 <dt>液位换算误差来自哪？</dt><dd>主要来自罐体椭圆度、基础沉降与测量基准偏差；大罐建议用标定容积表校正。</dd>
 </dl>
@@ -191,13 +194,48 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const type=document.getElementById("type").value;const d=+document.getElementById("d").value||0;const w=+document.getElementById("w").value||0;const h=+document.getElementById("h").value||0;
-const need=(type==="vcyl"?["d","h"]:["d","w","h"]);for(const k of need){if(document.getElementById(k).value.trim()===""){document.getElementById("res").innerHTML='<div class="info-box"><strong>请填写'+(type==="vcyl"?"直径与高度":"长、宽、高")+'（米）后再计算容积。</strong></div>';return;}}
-let V;if(type==="vcyl")V=Math.PI*(d/2)*(d/2)*h;else V=d*w*h;
-const out="容积 V = "+V.toFixed(3)+" m³";
-var _d="";if(type==="vcyl"){_d+="\n总表面积 ≈ "+((Math.PI*d*h+Math.PI*d*d/2)).toFixed(2)+" m²（筒体加两封头，防腐涂装参考）";}else if(d>0&&w>0&&h>0){_d+="\n总表面积 = "+(2*(d*w+d*h+w*h)).toFixed(2)+" m²";}
-if(h>0){_d+="\n每米液深容积 = "+(V/h).toFixed(3)+" m³/m";}
-const el=document.getElementById("res");el.innerHTML='<p style="font-size:18px;color:var(--primary);white-space:pre-line;">'+(out+_d).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p>';}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function tankFullVolume(type,d,w,L){return type==="box"?d*w*L:Math.PI*(d/2)*(d/2)*L;}
+function hcylVolume(d,L,h){var R=d/2;h=Math.max(0,Math.min(h,d));return L*(R*R*Math.acos(Math.max(-1,Math.min(1,(R-h)/R)))-(R-h)*Math.sqrt(Math.max(0,2*R*h-h*h)));}
+function tankLevelVolume(type,d,w,L,h){if(type==="box")return d*w*h;if(type==="hcyl")return hcylVolume(d,L,h);return Math.PI*(d/2)*(d/2)*h;}
+function tankSolveLevel(type,d,w,L,V){if(type==="box")return V/(d*w);if(type==="vcyl")return V/(Math.PI*(d/2)*(d/2));var lo=0,hi=d;for(var i=0;i<80;i++){var mid=(lo+hi)/2;if(hcylVolume(d,L,mid)<V)lo=mid;else hi=mid;}return (lo+hi)/2;}
+function calc(){
+  const type=document.getElementById("type").value;
+  const mode=document.getElementById("mode").value;
+  const elv=id=>String(document.getElementById(id).value==null?"":document.getElementById(id).value).trim();
+  const d=+elv("d")||0;
+  const w=+elv("w")||0;
+  const L=+elv("L")||0;
+  const h=+elv("h")||0;
+  const Vt=+elv("Vt")||0;
+  const res=document.getElementById("res");
+  const need=(type==="box"?["d","w","L"]:["d","L"]);
+  for(const k of need){if(elv(k)===""){res.innerHTML='<div class="info-box"><strong>请填写'+(type==="box"?"长、宽、罐高":"直径与罐高/筒长")+'（米）后再计算。</strong></div>';return;}}
+  if(!(d>0)||!(L>0)||(type==="box"&&!(w>0))){res.innerHTML='<div class="info-box"><strong>尺寸须为正数（直径/长、宽、罐高/筒长均需大于 0）。</strong></div>';return;}
+  const full=tankFullVolume(type,d,w,L);
+  let V,level,ratio;
+  if(mode==="volume"){
+    if(!(Vt>0)||Vt>full+1e-9){res.innerHTML='<div class="info-box"><strong>目标容积须在 0~满罐容积（'+full.toFixed(3)+' m³）之间。</strong></div>';return;}
+    V=Vt;level=tankSolveLevel(type,d,w,L,V);ratio=V/full*100;
+  }else{
+    const maxLevel=(type==="hcyl"?d:L);
+    if(elv("h")===""||h<0||h>maxLevel+1e-9){res.innerHTML='<div class="info-box"><strong>液位须在 0~'+maxLevel.toFixed(2)+' m 之间'+(type==="hcyl"?"（卧式罐液位不超过直径）":"（不超过罐高）")+'。</strong></div>';return;}
+    V=tankLevelVolume(type,d,w,L,h);level=h;ratio=full>0?V/full*100:0;
+  }
+  const avgPerM=L>0?full/L:0;
+  let area;
+  if(type==="vcyl")area=Math.PI*d*L+Math.PI*d*d/2;
+  else if(type==="hcyl")area=Math.PI*d*L+Math.PI*d*d/2;
+  else area=2*(d*w+d*L+w*L);
+  const out="容积 V = "+V.toFixed(3)+" m³（液位 "+level.toFixed(3)+" m）";
+  var _d="\n满罐容积 = "+full.toFixed(3)+" m³";
+  _d+="\n充装率 = "+ratio.toFixed(2)+"%";
+  _d+="\n平均每米液深容积 = "+avgPerM.toFixed(3)+" m³/m（满罐均值，卧式罐非线性）";
+  _d+="\n总表面积（满罐）= "+area.toFixed(2)+" m²（防腐涂装参考）";
+  if(type==="hcyl")_d+="\n提示：卧式罐液位-容积按弓形面积非线性计算，高液位时每米液深容积明显大于低液位。";
+  res.innerHTML='<p style="font-size:18px;color:var(--primary);white-space:pre-line;">'+(out+_d).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p>';
+}
+calc();
+function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->
@@ -252,7 +290,7 @@ const el=document.getElementById("res");el.innerHTML='<p style="font-size:18px;c
     <ul class="intro-scenes">
       <li>液位→体积盘点：收发存核对</li>
       <li>收发作业目标液位核算</li>
-      <li>安全液位红线设定</li>
+      <li>充装率与安全余量核算</li>
       <li>卧式/立式罐型适配</li>
     </ul>
     </div>
@@ -385,7 +423,7 @@ function __convert_capacity_tankExport(){
 }
 function __convert_capacity_tankPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#convert_capacity_tankPresets',[{label:'默认参数',labelEn:'Default',values:{'type':'vcyl', 'd':'10', 'w':'3', 'h':'4'}},{"label":"小规模","labelEn":"Small scale","values":{"d":"5"}},{"label":"大规模","labelEn":"Large scale","values":{"d":"15"}},{"label":"极端工况","labelEn":"Extreme case","values":{"d":"20"}}],function(){ calc(); });
+    TBKit.preset.bar('#convert_capacity_tankPresets',[{label:'默认参数',labelEn:'Default',values:{'type':'vcyl','mode':'level', 'd':'10', 'w':'3', 'L':'12', 'h':'4', 'Vt':'314.159'}},{"label":"卧式罐","labelEn":"Horizontal tank","values":{"type":"hcyl","mode":"level","d":"2.4","L":"8","h":"1.2"}},{"label":"长方体","labelEn":"Rectangular","values":{"type":"box","mode":"level","d":"10","w":"3","L":"4","h":"4"}},{"label":"由容积反算液位","labelEn":"Level from volume","values":{"type":"vcyl","mode":"volume","d":"10","L":"12","Vt":"700"}}],function(){ calc(); });
 }
 var __convert_capacity_tank_f0=(typeof calc==='function')?calc:null;
 if(__convert_capacity_tank_f0){

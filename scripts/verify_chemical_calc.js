@@ -21,15 +21,27 @@ const CASES = [
 },
 {
   "slug": "chemical/convert-capacity-tank",
-  "inputs": { "type": "vcyl", "d": "6", "w": "3", "h": "3" },
+  "clicks": ["document.getElementById('type').value='vcyl';document.getElementById('mode').value='level';document.getElementById('d').value='6';document.getElementById('w').value='3';document.getElementById('L').value='12';document.getElementById('h').value='3';document.getElementById('Vt').value='314.159';calc();document.getElementById('__tbProbe').textContent=document.getElementById('res').innerHTML"],
   "expect": ["容积 V = 84.823 m³"],
-  "ref": "立式圆柱 直径 6m、液位 3m → V=π·3²·3=84.823 m³（默认 d=10/h=4 → 314.159，注入态不重合）"
+  "ref": "立式圆柱 直径 6m、液位 3m → V=π·3²·3=84.823 m³（默认 d=10/h=4 → 314.159，注入态不重合；clicks 全量赋值避免同 slug 用例共享 DOM 时串态）"
 },
 {
   "slug": "chemical/convert-capacity-tank",
-  "inputs": { "type": "box", "d": "4", "w": "3", "h": "2" },
-  "expect": ["容积 V = 24.000 m³"],
-  "ref": "长方体 长 4m×宽 3m×液位 2m → V=24.000 m³"
+  "clicks": ["document.getElementById('type').value='vcyl';document.getElementById('mode').value='level';document.getElementById('d').value='10';document.getElementById('w').value='3';document.getElementById('L').value='12';document.getElementById('h').value='4';document.getElementById('Vt').value='314.159';calc();document.getElementById('__tbProbe').textContent=document.getElementById('res').innerHTML"],
+  "expect": ["充装率 = 33.33%", "满罐容积 = 942.478 m³"],
+  "ref": "立式罐 d=10、L=12、液位 4：V=314.159，满罐 π·5²·12=942.478，充装率 33.33%（682 批新增满罐/充装率口径）"
+},
+{
+  "slug": "chemical/convert-capacity-tank",
+  "clicks": ["document.getElementById('type').value='hcyl';document.getElementById('mode').value='volume';document.getElementById('d').value=2.4;document.getElementById('L').value=8;document.getElementById('Vt').value=18.0956;calc();document.getElementById('__tbProbe').textContent=document.getElementById('res').innerHTML"],
+  "expect": ["18.096 m³", "液位 1.200 m"],
+  "ref": "卧式罐反算：d=2.4、L=8 满罐 36.191，目标 18.0956（半满）⇒ 液位 1.200m、充装率 50.00%；旧版无卧式与反算，必失败"
+},
+{
+  "slug": "chemical/convert-capacity-tank",
+  "clicks": ["document.getElementById('type').value='vcyl';document.getElementById('mode').value='level';document.getElementById('d').value='10';document.getElementById('w').value='3';document.getElementById('L').value='12';document.getElementById('h').value='13';document.getElementById('Vt').value='314.159';calc();document.getElementById('__tbProbe').textContent=document.getElementById('res').innerHTML"],
+  "expect": ["液位须在 0~12.00 m 之间"],
+  "ref": "液位 13m 超过罐高 12m 须拦截，不得算出 1021 m³ 的超过满罐容积结果（682 批）"
 },
 {
 "slug": "chemical/convert-density-crude",
@@ -252,8 +264,8 @@ const CASES = [
 {
   "slug": "chemical/convert-capacity-tank",
   "inputs": { "type": "box", "d": "", "w": "3", "h": "4" },
-  "expect": ["请填写长、宽、高（米）后再计算容积。"],
-  "ref": "空态守卫（2026-11-05）：长方体模式清空任一边长后不再输出「容积 V = 0.000 m³」与「每米液深容积」，只给填写提示。⚠ 判空只认空串——0 边长为合法输入，仍按公式算 0；立式圆柱只要求直径与高度。"
+  "expect": ["请填写长、宽、罐高（米）后再计算。"],
+  "ref": "空态守卫（2026-11-05，2026-11-16 第 682 批改文案）：长方体模式清空任一边长后不再输出「容积 V = 0.000 m³」与「每米液深容积」，只给填写提示；罐高改由 L 字段承担（h 仍为液位），故提示统一为「罐高」。⚠ 判空只认空串——0 边长为合法输入，仍按公式算 0。"
 }
 ];
 async function main() {
