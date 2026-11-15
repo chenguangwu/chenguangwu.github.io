@@ -32,28 +32,6 @@
 - 证据：同页 `:259-261,273-288` 已展示比例卡、预览和固定 300 DPI 打印尺寸。
 - 影响：同页；方案：补可选 DPI 与按平台比例的居中裁切尺寸、损失像素说明，保留一键套用。
 
-### 设计工具进一步抽样（2026-11-03）
-
-#### 换图后仍可下载上一次缩放结果（高，确认源码缺陷）
-- 问题与证据：`tools/design/image-resizer.html:259-274,288-307` 上传 A 并缩放后，上传 B 仅更换原图和预览，未清除 lastURL；未重新缩放就下载或复制会取得 A 的结果。浏览器交互未实测。
-- 影响：`tools/design/image-resizer.html`，可能误交付旧图。
-- 方案：换图或修改参数时使旧结果失效，禁用输出直至重新生成并提示状态。
-
-#### DPI 历史恢复遗漏单位及零值静默代入（中，确认函数缺陷，两个问题）
-- 问题与证据：`tools/design/image-dpi-converter.html:409-420,441-470,535-540,577-595` 保存历史含单位，恢复只设置数值不恢复 currentUnit；内存执行英寸 10×15、300 DPI 的记录在当前单位为厘米时恢复成 1181×1772，而英寸应为 3000×4500。空或零 DPI 则由 `||72` 代入，输入框不更新。
-- 影响：`tools/design/image-dpi-converter.html`，历史结果或打印尺寸可能不符。
-- 方案：恢复单位及按钮状态；对空值与非正 DPI 明确提示并清除结果，历史保存使用同样校验。
-
-#### 照片打印 CSV 总标记为可打印（高，确认函数缺陷）
-- 问题与证据：`tools/design/photo-print-size.html:264-285,296-317` 页面根据分辨率生成充足、基本可用、不足三档，导出虽计算 ok 却恒写“是”；内存执行一寸 295×413、300 DPI 时 A4 页面为不足、CSV 为是。
-- 影响：`tools/design/photo-print-size.html`，使用者依导出清单可能误判质量。
-- 方案：导出与页面共享同一状态逻辑并保留三档；增加逐行一致性回归。可附裁切比例、预计有效 DPI 和横竖方向，辅助打印决策。
-
-#### SVG 压缩破坏文本空白或内部声明（高，确认函数缺陷）
-- 问题与证据：`tools/design/svg-minifier.html:254-275` 对整串全局折叠空白，使 `<text xml:space="preserve">A  B</text>` 变成单空格；DOCTYPE 正则遇内部实体声明首个 `>` 提前终止，可能遗留无效片段和实体引用。已对页面原函数内存执行，未作浏览器 XML 解析测试。
-- 影响：`tools/design/svg-minifier.html`，导出 SVG 显示变化或损坏。
-- 方案：采用理解 XML 结构的保守压缩，保留有语义空白；不支持内部 DTD 时明确拒绝而非输出损坏结果。可加入前后对照及解析失败提示。
-
 ### 覆盖
 - 本轮共核查 5 页：`tools/design/photo-aspect-ratio-calculator.html`、`tools/design/image-resizer.html`、`tools/design/image-dpi-converter.html`、`tools/design/photo-print-size.html`、`tools/design/svg-minifier.html`；本次新增 5 个缺陷、2 条嵌入式针对性建议。其他设计页及真实浏览器、移动端、线上状态未逐一验证。
 

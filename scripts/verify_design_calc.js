@@ -777,6 +777,28 @@ const CASES = [
       + "⚠ 本页没有 `setSVGOpts` / `generateMinified`，只有 `generate()`；写错函数名会整条 clicks 抛错、回落到默认态。",
   },
   {
+    slug: "design/svg-minifier",
+    checkIds: ["optWhitespace"],
+    clicks: ["var e=document.getElementById('svgInput');e.value='<svg xmlns=\"http://www.w3.org/2000/svg\"><text xml:space=\"preserve\">A  B</text><rect   width=\"10\"   height=\"10\" /></svg>';generate();var o=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent='P '+((o.indexOf('A  B')>=0)?'1':'0');"],
+    expect: ["P 1"],
+    ref: "xml:space=\"preserve\" 内的空白有语义：旧实现全局把连续空白压成单空格，`A  B` 变 `A B` 导致渲染变化。现先抽出 preserve 元素、压缩后再原样放回；探针检查输出仍含双空格。"
+  },
+  {
+    slug: "design/svg-minifier",
+    checkIds: ["optDecl"],
+    clicks: ["var e=document.getElementById('svgInput');e.value='<svg xmlns=\"http://www.w3.org/2000/svg\"><!DOCTYPE svg [<!ENTITY co \"Acme\">]><text>&co;</text></svg>';generate();var o=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent='D '+((o.indexOf('<!ENTITY')>=0)?'1':'0');"],
+    expect: ["D 1"],
+    ref: "含内部 DTD 子集时不得剔 DOCTYPE：旧正则 `<!DOCTYPE[\\s\\S]*?>` 遇实体声明内首个 `>` 提前截断，留下残片并使 `&co;` 失去声明。现检测 `[...]` 子集后整段保留；探针检查输出仍含 `<!ENTITY`。"
+  },
+  {
+    slug: "design/image-dpi-converter",
+    clicks: [
+      "localStorage.setItem('dpi_converter_history', JSON.stringify([{type:'phys2p',w:10,h:15,dpi:300,unit:'inch',time:1}]));currentUnit2='cm';loadHistory(0);document.getElementById('__tbProbe').textContent='U '+currentUnit2;"
+    ],
+    expect: ["U inch"],
+    ref: "历史恢复须还原物理单位：记录单位为 inch，恢复前把 currentUnit2 置为 cm；旧实现只回填数值与 DPI，单位停在 cm（10cm→1181px）。修复后 loadHistory 调用 restoreUnit2(item.unit) ⇒ 探针读到 inch。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
     slug: "design/pixel-art-generator",
     inputs: { gs: "12" },
     expect: ["12×12 网格尺寸"],
