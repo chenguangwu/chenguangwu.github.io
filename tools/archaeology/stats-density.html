@@ -399,16 +399,23 @@ function __stats_densityExtras(){
 }
 function __stats_densityExport(){
     if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#stats_densityTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__stats_densitySnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __stats_densityRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#stats_densityTable','stats-density.csv'); } catch(e){}
+    var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+    var txt=(document.getElementById('data')||{}).value||'';
+    var lines=txt.split(/[\n;；]+/).map(function(s){return s.trim();}).filter(Boolean);
+    var rows=[],totC=0,totA=0;
+    lines.forEach(function(ln){
+        var parts=ln.split(/[,，\s]+/).filter(Boolean);
+        var c=Number(parts[0]),a=Number(parts[1]);
+        var ok=parts.length===2 && /^\d+$/.test(parts[0]) && /^\d+(\.\d+)?$/.test(parts[1]) && isFinite(c) && isFinite(a) && c>=0 && a>0;
+        if(!ok) return;
+        rows.push([c,a,c/a]);totC+=c;totA+=a;
+    });
+    if(!rows.length) return;
+    rows.sort(function(p,q){return q[2]-p[2];});
+    var out=rows.map(function(r){return [r[0],r[1],fmt(r[2],2)];});
+    out.unshift([en?'Count':'件数',en?'Area (m2)':'面积(㎡)',en?'Density (pcs/m2)':'密度(件/㎡)']);
+    out.push([en?'Total':'合计',fmt(totA,0),fmt(totC/totA,2)]);
+    try { TBKit.export.csv('stats-density.csv',out); } catch(e){}
 }
 function __stats_densityPresets(){
     if (typeof TBKit === 'undefined') return;

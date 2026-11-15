@@ -275,9 +275,15 @@ function calc(){
   var hoursAgo=parseFloat(document.getElementById('hoursAgo').value);
   var diff=document.getElementById('difficulty').value;
   var age=parseFloat(document.getElementById('age').value);
-  if(!reps||reps<1){
-    document.getElementById('result').innerHTML='<div class="retention-val">--</div><div class="retention-sub">请输入有效次数</div>';
+  var badReps=!isFinite(reps)||reps<1||Math.floor(reps)!==reps;
+  var badHours=!isFinite(hoursAgo)||hoursAgo<0;
+  var badAge=!isFinite(age)||age<=0;
+  if(badReps||badHours||badAge){
+    var msg=badReps?'请输入 ≥1 的整数训练次数':(badHours?'请输入已过小时数（≥0）':'请输入有效年龄（月）');
+    document.getElementById('result').innerHTML='<div class="retention-val">--</div><div class="retention-sub">'+msg+'</div>';
     document.getElementById('scheduleGrid').innerHTML='';
+    var cv0=document.getElementById('curveChart');
+    if(cv0){var c0=cv0.getContext('2d');c0.save();c0.setTransform(1,0,0,1,0,0);c0.clearRect(0,0,cv0.width,cv0.height);c0.restore();}
     return;
   }
   var s=DIFFICULTY_S[diff];
@@ -299,6 +305,7 @@ function calc(){
     mainSub='记忆严重衰退，需立即重新训练';
   }
   const __g3='<div class="retention-val">'+mainVal+'</div><div class="retention-sub">'+mainSub+'</div>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  window.__crMain='口令记忆：'+mainVal+' - '+mainSub;
   renderSchedule(reps,s);
   drawCurve(reps,s,hoursAgo);
 }
@@ -312,18 +319,21 @@ function renderSchedule(reps,s){
     schedule.push({session:i+1,interval:intervals[i],retention:ret});
   }
   var html='';
+  var planLines=[];
   schedule.forEach(function(sc){
     var retPct=Math.round(sc.retention*100);
     var color=retPct>=60?'var(--success)':(retPct>=30?'var(--warning)':'var(--danger)');
     var intervalText;
     if(sc.interval<24)intervalText=sc.interval+'小时后';
     else intervalText=fmtLocal(sc.interval/24,1)+'天后';
+    planLines.push('第'+(reps+sc.session-1)+'→'+(reps+sc.session)+'次 | '+intervalText+' | 保留'+retPct+'%');
     html+='<div class="schedule-card">'+
       '<div class="session">第'+(reps+sc.session-1)+'→'+(reps+sc.session)+'次</div>'+
       '<div class="when">'+intervalText+'</div>'+
       '<div class="ret" style="color:'+color+';">保留'+retPct+'%</div>'+
       '</div>';
   });
+  window.__crPlan=planLines;
   const __g4=html;document.getElementById('scheduleGrid').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -422,9 +432,15 @@ function drawCurve(reps,s,hoursAgo){
 }
 
 function copyResult(){
-  var mainVal=document.getElementById('result').querySelector('.retention-val').textContent;
-  var mainSub=document.getElementById('result').querySelector('.retention-sub').textContent;
-  ToolBox.copyText('口令记忆：'+mainVal+' - '+mainSub);
+  var head=window.__crMain||'';
+  if(!head){
+    var el=document.getElementById('result');
+    head='口令记忆：'+((el&&el.textContent)||'').replace(/\s+/g,' ').trim();
+  }
+  var plan=window.__crPlan||[];
+  var txt=head;
+  if(plan.length) txt+='\n复习计划：\n'+plan.join('\n');
+  ToolBox.copyText(txt);
 }
 
 calc();

@@ -48,6 +48,30 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "pet-training/leash-length",
+  "clicks": [
+    "document.getElementById('leashLen').value='4.5';calc();var before=document.getElementById('adviceBox').innerHTML.length>0;document.getElementById('leashLen').value='';calc();var after=document.getElementById('adviceBox').innerHTML;document.getElementById('__tbProbe').textContent='LEASHCLR '+(before&&after===''?'OK':'BAD:'+before+':'+after);"
+  ],
+  "expect": ["LEASHCLR OK"],
+  "ref": "修复前清空绳长只清结果/网格/图示，adviceBox 仍显示上一次的「超过建议上限」安全建议；现无效输入同时清空建议区。默认有效输入不走该分支，探针串不出现。"
+},
+{
+  "slug": "pet-training/command-repetition",
+  "clicks": [
+    "document.getElementById('hoursAgo').value='';calc();var r=document.getElementById('result').innerHTML,s=document.getElementById('scheduleGrid').innerHTML;var ok1=r.indexOf('请输入已过小时数')>=0&&r.indexOf('严重衰退')<0&&s==='';document.getElementById('hoursAgo').value='24';document.getElementById('age').value='';calc();var r2=document.getElementById('result').innerHTML;var ok2=r2.indexOf('请输入有效年龄')>=0;document.getElementById('__tbProbe').textContent='CRMISS '+ok1+' '+ok2;"
+  ],
+  "expect": ["CRMISS true true"],
+  "ref": "修复前已过小时数清空得 NaN，仍落入 else 分支显示「记忆严重衰退」并保留旧复习计划；年龄清空被当成年犬。现两项分别提示补录且清空计划区。默认 10/24/6 均有效，探针串不出现。"
+},
+{
+  "slug": "pet-training/command-repetition",
+  "clicks": [
+    "document.getElementById('reps').value='12';document.getElementById('hoursAgo').value='24';document.getElementById('age').value='6';calc();var got='';ToolBox.copyText=function(t){got=String(t);};copyResult();document.getElementById('__tbProbe').textContent='CRCOPY '+(got.indexOf('复习计划')>=0&&got.indexOf('第12→13次 | 1小时后 | 保留')>=0&&got.indexOf('第12→19次')<0?'OK':'BAD:'+got);"
+  ],
+  "expect": ["CRCOPY OK"],
+  "ref": "修复前「复制训练计划」只复制保留率与一句提示，没有计划明细；现按 renderSchedule 的数据附带第 N→N+1 次、间隔与保留率逐条计划。默认态不调用 copyResult，探针串不出现。"
+},
+{
   "slug": "pet-training/treat-calories",
   "inputs": {
     "weight": "15",

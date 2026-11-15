@@ -115,6 +115,14 @@ const CASES = [
   ],
   "expect": ["RTEMPTY=Y"],
   "ref": "修复前空响应时间被当成 0 计入均值（两条得 10.0 分）；现未填写的响应时间不参与均值/分位数统计，仅 B 的 20.0 分入样。默认态无 RTEMPTY 探针串。"
+},
+{
+  "slug": "service/ticket-priority",
+  "clicks": [
+    "var esrc=/ToolBox\\.escHtml\\(r\\[0\\]\\)/.test(String(__tpTable));var csrc=/tb0\\.innerHTML=''/.test(String(__tpExtras));tickets=[{name:'A',urgency:5,importance:5}];render();tickets=[];render();var clr=document.getElementById('q1').innerHTML.indexOf('A')<0&&document.getElementById('prioList').innerHTML.indexOf('暂无工单')>=0;document.getElementById('__tbProbe').textContent='TPX '+(esrc&&csrc&&clr);"
+  ],
+  "expect": ["TPX true"],
+  "ref": "修复前明细表把工单名直接拼进 innerHTML（注入路径），且空列表时 __tpExtras 提前 return 使明细表残留旧行；现明细表名经 ToolBox.escHtml 转义、空列表分支先清空 tbody 再返回。harness 的 escHtml 桩为恒等函数且 #tpChart 缺失导致 __tpTable 提前返回，故转义与清表用源码形态判定，空态 DOM 另行校验。默认 6 条工单不产生该探针串。"
 }
 ];
 async function main() {
