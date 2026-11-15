@@ -276,10 +276,31 @@ function extract() {
 
   // BS-N44: 旧式要求主机至少一个点且在冒号处截断，漏抽 localhost/内网 IP 带端口的 URL。
   // 新式：协议可选；主机为「域名(含点) | localhost | IPv4 | IPv6方括号」，后接可选端口，再拼路径/查询/片段。
-  // 无协议的裸词（如中文/普通单词）不会被当作域名，避免误抽。
-  var urlRegex = /(https?:\/\/|ftp:\/\/|file:\/\/)?((?:[a-zA-Z0-9](?:[-a-zA-Z0-9]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}|localhost|\[[0-9a-fA-F:]+\]|(?:\d{1,3}\.){3}\d{1,3})(:\d+)?([\/?#][^\s<>"'()\[\]{}]*)?/g;
+  // BS-N58: 路径遇到中文标点/空格即止；主机左侧要求词边界，避免把邮箱域名、版本号当 URL。
+  var urlRegex = /(https?:\/\/|ftp:\/\/|file:\/\/)?((?:[a-zA-Z0-9](?:[-a-zA-Z0-9]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}|localhost|\[[0-9a-fA-F:]+\]|(?:\d{1,3}\.){3}\d{1,3})(:\d+)?([\/?#][^\s<>"'\u3000-\u303F\uFF00-\uFFEF]*)?/g;
 
-  var matches = input.match(urlRegex) || [];
+  // 去掉句末标点，并丢弃未配对的右括号
+  function trimUrl(u){
+    u = u.replace(/[.,;:!?，。；：！？、]+$/, '');
+    var pairs = {')':'(', ']':'[', '}':'{'};
+    while(u.length && pairs[u.slice(-1)]){
+      var close = u.slice(-1), open = pairs[close];
+      var oc = (u.match(new RegExp('\\' + open, 'g')) || []).length;
+      var cc = (u.match(new RegExp('\\' + close, 'g')) || []).length;
+      if(cc <= oc) break;
+      u = u.slice(0, -1);
+    }
+    return u;
+  }
+
+  var matches = [];
+  var mm;
+  while((mm = urlRegex.exec(input)) !== null){
+    var __start = mm.index;
+    if(__start > 0 && /[\w@.%+-]/.test(input.charAt(__start - 1))){ urlRegex.lastIndex = __start + 1; continue; }
+    var __u = trimUrl(mm[0]);
+    if(__u) matches.push(__u);
+  }
   var urls = [];
 
   for (var i = 0; i < matches.length; i++) {

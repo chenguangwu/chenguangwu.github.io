@@ -140,8 +140,8 @@
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📅 提取日期">📅 Date Extractor</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按勾选的日期格式（ISO、斜杠、点号、中文、美式、欧式）依次用各自正则取全部匹配；含时间判据为 /[ T]\d{1,2}:\d{2}/，未勾选「含时间」时丢弃带时间的匹配；勾选规范化时把命中串按该格式的规范化函数改写；勾选去重时以改写后的串为键只保留首次出现。输出条数即结果数组长度，逐条换行输出</div>
-  <p class="formula-desc" data-zh="本文本工具基于标准字符编码与文本处理规则，纯前端运行，代码不离开浏览器。 工具名称：提取日期 - 商业办公领域的在线工具。">Recognise and extract date expressions (absolute and relative) from paragraphs, then sort, deduplicate and export them for contract review and timeline building.</p>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按勾选的日期格式（ISO、斜杠、点号、中文、美式、欧式、英文月份）依次用各自正则取全部匹配；含时间判据为 /[ T]\d{1,2}:\d{2}/，未勾选「含时间」时丢弃带时间的匹配；勾选规范化时把命中串按该格式的规范化函数改写为 YYYY-MM-DD；勾选去重时以改写后的串为键只保留首次出现；勾选排序时按解析出的 ISO 日期升序排列。输出条数即结果数组长度，逐条换行输出</div>
+  <p class="formula-desc" data-zh="本文本工具基于标准字符编码与文本处理规则，纯前端运行，代码不离开浏览器。 工具名称：提取日期 - 商业办公领域的在线工具。">Recognise and extract date expressions (numeric formats plus English month names such as 15 Jan 2024), then optionally normalise, deduplicate, sort and export them for contract review and timeline building. Relative expressions such as "3 days ago" are not parsed.</p>
 </div>
 
     <label>输入文本</label>
@@ -158,11 +158,13 @@
       <label><input type="checkbox" id="zh" checked> 中文 (YYYY年MM月DD日)</label>
       <label><input type="checkbox" id="us" checked> 美式 (MM/DD/YYYY)</label>
       <label><input type="checkbox" id="eu" checked> 欧式 (DD-MM-YYYY)</label>
+      <label><input type="checkbox" id="en" checked> 英文月份 (15 Jan 2024)</label>
       <label><input type="checkbox" id="time" checked> 含时间</label>
     </div>
     <div class="checkbox-row">
       <label><input type="checkbox" id="dedup" checked> 去重</label>
       <label><input type="checkbox" id="normalize"> 规范化为 YYYY-MM-DD</label>
+      <label><input type="checkbox" id="sort"> 按日期升序排序</label>
     </div>
     <div class="toolbar">
       <div id="text_extract_datesPresets"></div>
@@ -268,6 +270,7 @@
 </div>
 
 <script>
+var MONTHS = {jan:1,january:1,feb:2,february:2,mar:3,march:3,apr:4,april:4,may:5,jun:6,june:6,jul:7,july:7,aug:8,august:8,sep:9,sept:9,september:9,oct:10,october:10,nov:11,november:11,dec:12,december:12};
 var patterns = {
   iso: { re: /\b\d{4}-\d{1,2}-\d{1,2}(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?\b/g, norm: function(m){ var p=m.split(/[ T]/)[0].split('-'); return p[0]+'-'+pad(p[1])+'-'+pad(p[2]); } },
   slash: { re: /\b\d{4}\/\d{1,2}\/\d{1,2}\b/g, norm: function(m){ var p=m.split('/'); return p[0]+'-'+pad(p[1])+'-'+pad(p[2]); } },
@@ -275,15 +278,41 @@ var patterns = {
   // BS-N42: \b 以 ASCII \w 为界，"日"后接中文标点不构成词边界致整类漏抽；改用 (?!\d) 允许 CJK 后界。
   zh: { re: /\b\d{4}年\d{1,2}月\d{1,2}日(?!\d)/g, norm: function(m){ var y=m.match(/\d{4}/)[0], mo=m.match(/年(\d{1,2})月/)[1], d=m.match(/月(\d{1,2})日/)[1]; return y+'-'+pad(mo)+'-'+pad(d); } },
   us: { re: /\b\d{1,2}\/\d{1,2}\/\d{4}\b/g, norm: function(m){ var p=m.split('/'); return p[2]+'-'+pad(p[0])+'-'+pad(p[1]); } },
-  eu: { re: /\b\d{1,2}-\d{1,2}-\d{4}\b/g, norm: function(m){ var p=m.split('-'); return p[2]+'-'+pad(p[1])+'-'+pad(p[0]); } }
+  eu: { re: /\b\d{1,2}-\d{1,2}-\d{4}\b/g, norm: function(m){ var p=m.split('-'); return p[2]+'-'+pad(p[1])+'-'+pad(p[0]); } },
+  // BS-N57: 英文月份格式「15 Jan 2024」「Jan 15, 2024」
+  en: { re: /\b(?:\d{1,2}\s+[A-Za-z]{3,9}\.?,?\s+\d{4}|[A-Za-z]{3,9}\.?\s+\d{1,2},?\s+\d{4})\b/g, norm: function(m){
+    var parts = m.replace(/[,.]/g, ' ').trim().split(/\s+/);
+    var mon = null, day = null, year = null;
+    parts.forEach(function(p){
+      if(/^\d{4}$/.test(p)) year = p;
+      else if(/^\d{1,2}$/.test(p)) day = p;
+      else if(MONTHS[p.toLowerCase()]) mon = MONTHS[p.toLowerCase()];
+    });
+    if(!mon || !day || !year) return m;
+    return year + '-' + pad(mon) + '-' + pad(day);
+  } }
 };
 
 function pad(n){ return String(n).length<2 ? '0'+n : n; }
 
+// 统一取 ISO 形式作为排序键；无法解析时返回原串
+function isoKey(s){
+  for(var k in patterns){
+    if(k === 'en'){
+      var r = patterns.en.norm(s);
+      if(/^\d{4}-\d{2}-\d{2}$/.test(r)) return r;
+    } else {
+      var re = new RegExp('^' + patterns[k].re.source.replace(/^\\b|\\b$/g,'') + '$');
+      if(re.test(s)) return patterns[k].norm(s);
+    }
+  }
+  return s;
+}
+
 function extract(){
   var input = document.getElementById('input').value;
   var result = [];
-  var formats = ['iso','slash','dot','zh','us','eu'];
+  var formats = ['iso','slash','dot','zh','us','eu','en'];
   var includeTime = document.getElementById('time').checked;
   var dedup = document.getElementById('dedup').checked;
   var normalize = document.getElementById('normalize').checked;
@@ -302,6 +331,10 @@ function extract(){
       }
     });
   });
+
+  if(document.getElementById('sort').checked){
+    result.sort(function(a,b){ var x=isoKey(a), y=isoKey(b); return x<y?-1:(x>y?1:0); });
+  }
 
   document.getElementById('count').textContent = result.length;
   document.getElementById('result').textContent = result.length ? result.join('\n') : '请输入文本...';

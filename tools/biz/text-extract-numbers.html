@@ -295,26 +295,27 @@ function extract(){
 
   const patterns = [];
   const opt = id => document.getElementById(id).checked;
+  const neg = opt('negative');
+  const sgn = neg ? '-?' : '';
+  // 百分数未启用时先屏蔽整段百分数，避免其数字部分被小数规则抽走（BS-N60）
+  const scanText = opt('percent') ? text : text.replace(/-?\d+\.?\d*%/g, m => ' '.repeat(m.length));
   // 科学计数法（最复杂，先匹配）
-  if(opt('scientific')) patterns.push(/-?\d+\.?\d*[eE][+-]?\d+/g);
+  if(opt('scientific')) patterns.push(new RegExp(sgn + '\\d+\\.?\\d*[eE][+-]?\\d+', 'g'));
   // 百分数
-  if(opt('percent')) patterns.push(/-?\d+\.?\d*%/g);
+  if(opt('percent')) patterns.push(new RegExp(sgn + '\\d+\\.?\\d*%', 'g'));
   // 千分位金额（BS-N43）：先整体命中，避免「1,234.56」被拆成 234.56 与 1
-  if(opt('decimal') || opt('int')) patterns.push(/-?\d{1,3}(?:,\d{3})+(?:\.\d+)?/g);
+  if(opt('decimal') || opt('int')) patterns.push(new RegExp(sgn + '\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?', 'g'));
   // 小数（含负数）
-  if(opt('decimal')) patterns.push(/-?\d+\.\d+/g);
+  if(opt('decimal')) patterns.push(new RegExp(sgn + '\\d+\\.\\d+', 'g'));
   // 整数
-  if(opt('int')){
-    if(opt('negative')) patterns.push(/-?\d+/g);
-    else patterns.push(/\d+/g);
-  }
+  if(opt('int')) patterns.push(new RegExp(sgn + '\\d+', 'g'));
 
   // 数值解析：去掉百分号与千分位逗号，保证求和/排序按真实值
   const numOf = m => parseFloat(String(m).replace(/[%,]/g, ''));
 
   let matches = [];
   for(const p of patterns){
-    const found = text.match(p) || [];
+    const found = scanText.match(p) || [];
     matches = matches.concat(found);
   }
   // 简单去重（基于原始字符串位置）
@@ -324,11 +325,14 @@ function extract(){
   for(const p of patterns){
     let m;
     const rx = new RegExp(p.source, p.flags);
-    while((m = rx.exec(text)) !== null){
+    while((m = rx.exec(scanText)) !== null){
       const start = m.index, end = m.index + m[0].length;
       const overlap = usedRanges.some(r => !(end <= r.start || start >= r.end));
       if(!overlap){
-        finalMatches.push(m[0]);
+        let val = m[0];
+        // 「2020-2025」中的连字符不是负号（BS-N60）
+        if(neg && val.charAt(0) === '-' && start > 0 && /[\d.-]/.test(scanText.charAt(start - 1))) val = val.slice(1);
+        finalMatches.push(val);
         usedRanges.push({start, end});
       }
       if(m.index === rx.lastIndex) rx.lastIndex++;
