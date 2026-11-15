@@ -276,9 +276,15 @@ const CASES = [
   {
     slug: "edu/chinese-stroke-counter",
     inputs: { "input": "你好" },
-    expect: ["📊 统计结果 2 总字数 13 总笔画 2 已收录 6.5 平均笔画"],
+    expect: ["📊 统计结果 2 总字数 13 总笔画 2 已收录 6.5 平均笔画（按已收录 2 字）"],
     ref: "与上例同页同输入、锚另一条渲染链：`result` 区统计「总字数 / 总笔画 / 平均笔画」。"
        + "2 字共 13 画（你 7 + 好 6）⇒ 平均 6.5。默认态仅单字示例，不命中。",
+  },
+  {
+    slug: "edu/chinese-stroke-counter",
+    inputs: { "input": "一二郁郁" },
+    expect: ["4 总字数 3 总笔画 2 已收录 1.5 平均笔画（按已收录 2 字）"],
+    ref: "平均笔画分母只算已收录字：一二郁郁 → 郁未收录（各 0），total=3、found=2 ⇒ 1.5；旧实现用 chars.length=4 得 0.8。默认单字不命中。"
   },
   {
     slug: "edu/generator-26",
