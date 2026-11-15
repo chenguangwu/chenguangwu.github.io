@@ -293,12 +293,12 @@
 <li>定位流失最狠的环节优先优化（如支付弃单高）。</li>
 <li>A/B 两个落地页各自建漏斗对比哪条漏得更慢。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">四级漏斗</div><div class="dd-ex-body">访问 10000 → 加购 5000 → 下单 1000 → 支付 100。整体转化率=100/10000=1%；逐级 50%/20%/10%。支付环节 10% 掉单最严重，应查支付流程。</div></div>
+<div class="dd-example"><div class="dd-ex-title">四级漏斗</div><div class="dd-ex-body">访问 10000 → 加购 5000 → 下单 1000 → 支付 100。整体转化率=100/10000=1%；逐级转化 50%/20%/10%，对应掉单率 50%/80%/90%。支付环节转化率仅 10%、掉单 90%，最严重，应查支付流程。</div></div>
 <div class="dd-example"><div class="dd-ex-title">环比对照</div><div class="dd-ex-body">优化支付页后支付环节由 10% 升到 15%，整体转化由 1% 升到 1.5%，同等流量多 50 单。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>整体转化率低先改哪？</dt><dd>先改环比转化率最低、且流量最大的环节，边际收益最高；别一上来动顶部大流量低转化的环节。</dd>
-<dt>漏斗能算金额吗？</dt><dd>本工具按人数算，金额转化可在各级乘客单价估算 GMV，定位丢钱最多的环节。</dd>
+<dt>漏斗能算金额吗？</dt><dd>本工具按人数算，金额转化可在各级以客单价估算 GMV，定位丢钱最多的环节。</dd>
 </dl>
 </div>
 </section>
@@ -425,33 +425,61 @@ function calc(){
   if(steps.length<2) return;
   const first = parseFloat(steps[0].value)||0;
   const last = parseFloat(steps[steps.length-1].value)||0;
-  const overallRate = first>0 ? (last/first)*100 : 0;
-  
+  // prev<=0 时环比不可计算，统一返回 null，三个出口都显示「—」
+  const rateOf = (prev, val) => prev>0 ? (val/prev)*100 : null;
+  const overallRate = rateOf(first, last);
+
   let maxVal = 0;
   steps.forEach(s=>{ maxVal = Math.max(maxVal, parseFloat(s.value)||0); });
 
-  let summaryHtml = `
+  const zeroSteps = [], growthSteps = [];
+  let maxLost = 0, maxLostIdx = -1;
+  steps.forEach((s,i)=>{
+    if(i===0) return;
+    const val = parseFloat(s.value)||0;
+    const prevVal = parseFloat(steps[i-1].value)||0;
+    if(prevVal<=0){ zeroSteps.push(i+1); return; }
+    if(val>prevVal) growthSteps.push(i+1);
+    const lost = prevVal - val;
+    if(lost>maxLost){ maxLost = lost; maxLostIdx = i; }
+  });
+  let warn = '';
+  if(zeroSteps.length){
+    warn += '<p style="color:#ff9800;font-size:13px;margin:0 0 8px;">⚠ 第 ' + zeroSteps.join('、') + ' 级的上一级人数为 0，环比转化率无法计算，已显示「—」。</p>';
+  }
+  if(growthSteps.length){
+    warn += '<p style="color:#ff9800;font-size:13px;margin:0 0 8px;">⚠ 第 ' + growthSteps.join('、') + ' 级人数高于上一级，漏斗通常逐级递减，请检查是否填反。</p>';
+  }
+  let topLost = '';
+  if(maxLostIdx > 0 && maxLost > 0){
+    const r = rateOf(parseFloat(steps[maxLostIdx-1].value)||0, parseFloat(steps[maxLostIdx].value)||0);
+    topLost = '<p style="font-size:13px;margin:0 0 8px;color:var(--text-light);">最大流失：<strong>' + ToolBox.escHtml(steps[maxLostIdx-1].name) + ' → ' + ToolBox.escHtml(steps[maxLostIdx].name) + '</strong>，流失 ' + ToolBox.formatNumber(maxLost,0) + ' 人（环比 ' + (r===null?'—':r.toFixed(1)+'%') + '）</p>';
+  }
+
+  let summaryHtml = warn + topLost + `
     <div class="stat-grid">
       <div class="stat-card"><div class="val">${ToolBox.formatNumber(first,0)}</div><div class="lbl">入口人数</div></div>
       <div class="stat-card"><div class="val">${ToolBox.formatNumber(last,0)}</div><div class="lbl">最终转化</div></div>
-      <div class="stat-card"><div class="val">${overallRate.toFixed(2)}%</div><div class="lbl">整体转化率</div></div>
+      <div class="stat-card"><div class="val">${overallRate===null?'—':overallRate.toFixed(2)+'%'}</div><div class="lbl">整体转化率</div></div>
       <div class="stat-card"><div class="val">${steps.length}</div><div class="lbl">漏斗层数</div></div>
     </div>
   `;
-  
-  summaryHtml += '<table style="margin-top:12px;"><thead><tr><th>步骤</th><th>人数</th><th>环比转化率</th><th>总体转化率</th></tr></thead><tbody>';
+
+  summaryHtml += '<table style="margin-top:12px;"><thead><tr><th>步骤</th><th>人数</th><th>环比转化率</th><th>流失人数</th><th>总体转化率</th></tr></thead><tbody>';
   steps.forEach((s,i)=>{
     const val = parseFloat(s.value)||0;
     const prevVal = i>0 ? parseFloat(steps[i-1].value)||0 : 0;
-    const stepRate = prevVal>0 ? (val/prevVal)*100 : 100;
-    const totalRate = first>0 ? (val/first)*100 : 0;
-    const rateClass = i===0 ? 'down' : (stepRate>=50 ? '' : 'down');
+    const stepRate = i>0 ? rateOf(prevVal, val) : null;
+    const totalRate = rateOf(first, val);
+    const lost = i>0 && prevVal>0 ? prevVal-val : null;
+    const isTop = i===maxLostIdx && maxLost>0;
     summaryHtml += `
-      <tr>
+      <tr${isTop?' style="background:#fff3e0;"':''}>
         <td><strong>${ToolBox.escHtml(s.name)}</strong></td>
         <td>${ToolBox.formatNumber(val,0)}</td>
-        <td><span class="funnel-rate-tag ${i===0?'':(stepRate>=50?'':'down')}">${i===0?'--':stepRate.toFixed(2)+'%'}</span></td>
-        <td>${totalRate.toFixed(2)}%</td>
+        <td><span class="funnel-rate-tag ${i===0?'':(stepRate!==null&&stepRate>=50?'':'down')}">${i===0?'--':(stepRate===null?'—':stepRate.toFixed(2)+'%')}</span></td>
+        <td>${lost===null?'—':ToolBox.formatNumber(lost,0)}</td>
+        <td>${totalRate===null?'—':totalRate.toFixed(2)+'%'}</td>
       </tr>
     `;
   });
@@ -463,15 +491,15 @@ function calc(){
     const val = parseFloat(s.value)||0;
     const width = maxVal>0 ? (val/maxVal)*100 : 0;
     const prevVal = i>0 ? parseFloat(steps[i-1].value)||0 : 0;
-    const stepRate = prevVal>0 ? (val/prevVal)*100 : 0;
+    const stepRate = i>0 ? rateOf(prevVal, val) : null;
     visualHtml += `
       <div class="funnel-step" style="width:${Math.max(width,25)}%">
         <span class="step-name">${ToolBox.escHtml(s.name)}</span>
         <span class="step-value">${ToolBox.formatNumber(val,0)}</span>
       </div>
       <div class="funnel-meta">
-        <span>${i===0?'起点':'环比转化 '+(stepRate>=50?'↑':'↓')}</span>
-        <span><span class="funnel-rate-tag ${i===0?'':(stepRate>=50?'':'down')}">${i===0?'100%':stepRate.toFixed(1)+'%'}</span></span>
+        <span>${i===0?'起点':(stepRate===null?'环比不可计算':'环比转化 '+(stepRate>=50?'↑':'↓'))}</span>
+        <span><span class="funnel-rate-tag ${i===0?'':(stepRate!==null&&stepRate>=50?'':'down')}">${i===0?'100%':(stepRate===null?'—':stepRate.toFixed(1)+'%')}</span></span>
       </div>
     `;
   });
@@ -549,15 +577,17 @@ function clearHistory(){
 }
 
 function exportFunnel(){
-  let csv = '步骤,人数,环比转化率,总体转化率\n';
+  let csv = '步骤,人数,环比转化率,流失人数,总体转化率\n';
   const cell = v => { let t = String(v==null?'':v); if(/^[=+\-@\t\r]/.test(t)) t = "'" + t; return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g,'""') + '"' : t; };
   const first = parseFloat(steps[0].value)||0;
+  const rateOf = (prev, val) => prev>0 ? (val/prev)*100 : null;
   steps.forEach((s,i)=>{
     const val = parseFloat(s.value)||0;
     const prevVal = i>0 ? parseFloat(steps[i-1].value)||0 : 0;
-    const stepRate = prevVal>0 ? (val/prevVal)*100 : 0;
-    const totalRate = first>0 ? (val/first)*100 : 0;
-    csv += `${cell(s.name)},${val},${i===0?'--':stepRate.toFixed(2)+'%'},${totalRate.toFixed(2)}%\n`;
+    const stepRate = i>0 ? rateOf(prevVal, val) : null;
+    const totalRate = rateOf(first, val);
+    const lost = i>0 && prevVal>0 ? prevVal-val : null;
+    csv += `${cell(s.name)},${val},${i===0?'--':(stepRate===null?'—':stepRate.toFixed(2)+'%')},${lost===null?'—':lost},${totalRate===null?'—':totalRate.toFixed(2)+'%'}\n`;
   });
   ToolBox.downloadText('funnel_analysis.csv', csv, 'text/csv');
 }
