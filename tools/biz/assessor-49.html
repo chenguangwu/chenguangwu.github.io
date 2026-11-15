@@ -171,7 +171,7 @@
 <li>社招初筛时快速给出胜任力画像，把低于 6 分的维度标为面试追问重点。</li>
 <li>培训规划期汇总团队评分，看哪个维度整体偏低，据此排下季度课程。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">同一份评分在不同岗位下的差异</div><div class="dd-ex-body">六维均为 8/7/9/7/7/8：技术岗权重下综合约 8.05（优秀），管理岗权重下约 7.60；说明该员工更适合技术线深耕，转管理需先补团队协作与执行推动。</div></div>
+<div class="dd-example"><div class="dd-ex-title">同一份评分在不同岗位下的差异</div><div class="dd-ex-body">六维均为 8/7/9/7/7/8：技术岗权重下综合约 7.90（优秀），管理岗权重下约 7.65；说明该员工更适合技术线深耕，转管理需先补团队协作与执行推动。</div></div>
 <div class="dd-example"><div class="dd-ex-title">定位待提升维度</div><div class="dd-ex-body">销售岗评分中「创新思维」仅 4 分被标为待提升，综合 6.9 属合格；发展计划应先补创新思维，再谈晋升，因为低分维度会拉低整体画像的可信度。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
@@ -197,12 +197,20 @@
 <script>
 function calc(){
   var jt=document.getElementById('jobType').value;
-  var dims=[{n:'专业知识',v:+document.getElementById('d1').value||0},{n:'沟通表达',v:+document.getElementById('d2').value||0},{n:'问题解决',v:+document.getElementById('d3').value||0},{n:'团队协作',v:+document.getElementById('d4').value||0},{n:'创新思维',v:+document.getElementById('d5').value||0},{n:'执行力',v:+document.getElementById('d6').value||0}];
+  var raw=['d1','d2','d3','d4','d5','d6'].map(function(id){return parseFloat(document.getElementById(id).value);});
+  var names=['专业知识','沟通表达','问题解决','团队协作','创新思维','执行力'];
+  var res=document.getElementById('res');
+  var blank=raw.map(function(x,i){return isNaN(x)?names[i]:null;}).filter(Boolean);
+  if(blank.length){res.innerHTML='<p style="color:var(--danger)">⚠ 请填写全部六个维度评分（1–10）：'+blank.join('、')+'。</p>';return;}
+  var clamped=false;
+  var dims=raw.map(function(x,i){if(x<1||x>10) clamped=true; return {n:names[i],v:Math.min(10,Math.max(1,x))};});
   var weights={'manager':[0.15,0.2,0.15,0.2,0.1,0.2],'tech':[0.3,0.1,0.25,0.1,0.15,0.1],'sales':[0.2,0.25,0.1,0.1,0.05,0.3]}[jt];
   var total=0;dims.forEach(function(d,i){total+=d.v*weights[i];});
+  total=Math.min(10,Math.max(0,total));
   var grade=total>=8.5?'卓越':total>=7?'优秀':total>=5.5?'合格':total>=4?'需提升':'不胜任';
   var color=total>=7?'var(--success)':total>=5.5?'var(--warning)':'var(--danger)';
   var h='<p>岗位类型：'+{'manager':'管理岗','tech':'技术岗','sales':'销售岗'}[jt]+'</p>';
+  if(clamped) h+='<p style="color:var(--danger)">⚠ 有评分超出 1–10，已按边界钳制后计算。</p>';
   dims.forEach(function(d,i){h+='<p>'+d.n+'：'+d.v+'/10 (权重'+(weights[i]*100)+'%) - '+(d.v>=7?'优势':d.v>=5?'一般':'待提升')+'</p>';});
   h+='<p>综合胜任力：<strong style="font-size:22px;color:'+color+';">'+total.toFixed(2)+'/10</strong></p>';
   h+='<p>胜任等级：<strong style="color:'+color+';">'+grade+'</strong></p>';

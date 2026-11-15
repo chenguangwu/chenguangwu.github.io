@@ -105,7 +105,7 @@
     <h2 data-zh="📊 战略（分析/定位/实施）框架">📊 Strategic Analysis Framework</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="分析/定位/实施">Enter key business figures and get a structured strategy output along the analysis–positioning–execution framework, with action points for consulting workshops, planning sessions and management reviews.</p>
 <div class="formula-box">
-<div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">行业吸引力 = (市场增长 + 市场规模 + 利润空间 + (11 − 竞争强度)) ÷ 40 × 100%；业务竞争力 = 四维分值合计 ÷ 40 × 100%；按 3×3 矩阵定位战略单元</div>
+<div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">行业吸引力 = (市场增长 + 市场规模 + 利润空间 + (10 − 竞争强度)) ÷ 40 × 100%；业务竞争力 = 四维分值合计 ÷ 40 × 100%；按 3×3 矩阵定位战略单元（各维输入按 0–10 钳制）</div>
 <p style="font-size:13px;line-height:1.8;color:var(--text);">按 1–10 分对「行业吸引力」（市场增速、市场规模、利润率，越高越好）与「业务竞争力」（份额、品牌、技术、渠道）打分，其中竞争强度反向计分。两维各归一到 0–100%，落入 GE 九宫格对应单元并给出投资 / 选择 / 收割 / 退出等行动建议，输出实施要点清单。</p>
 </div>
 
@@ -199,11 +199,15 @@
 <script>
 function v(id){var x=parseFloat(document.getElementById(id).value);return isNaN(x)?NaN:x;}
 function fmtN(n){return (Math.round(n*100)/100).toLocaleString('zh-CN');}
+var SCORE_IDS=['mGrowth','mSize','mProfit','mComp','cShare','cBrand','cTech','cChan'];
 function calc(){
-  var g=[v('mGrowth'),v('mSize'),v('mProfit'),v('mComp')];
-  var c=[v('cShare'),v('cBrand'),v('cTech'),v('cChan')];
-  if(g.concat(c).some(function(x){return isNaN(x);})){document.getElementById('res').innerHTML='<p>请填写全部维度分值（0–10）</p>';return;}
-  var attr=(g[0]+g[1]+g[2]+(11-g[3])); // 竞争强度反向；满分 40
+  var vals=SCORE_IDS.map(v);
+  if(vals.some(function(x){return isNaN(x);})){document.getElementById('res').innerHTML='<p>请填写全部维度分值（0–10）</p>';return;}
+  // 输入钳制到 0–10，避免越界把满分/百分比推出区间（BS-N14）
+  var clamped=false;
+  var sc=vals.map(function(x){if(x<0||x>10) clamped=true; return Math.min(10,Math.max(0,x));});
+  var g=sc.slice(0,4),c=sc.slice(4);
+  var attr=(g[0]+g[1]+g[2]+(10-g[3])); // 竞争强度反向；满分 40
   var comp=c.reduce(function(a,b){return a+b;},0); // 满分 40
   var attrPct=attr/40*100, compPct=comp/40*100;
   var aLevel=attrPct>=75?'高':(attrPct>=50?'中':'低');
@@ -220,6 +224,7 @@ function calc(){
   res=document.getElementById('res');
   const __g2='<p>行业吸引力：<strong>'+attrPct.toFixed(0)+'</strong>（'+aLevel+'）　业务竞争力：<strong>'+compPct.toFixed(0)+'</strong>（'+cLevel+'）</p>'+
     html+
+    (clamped?'<p style="color:var(--danger)">⚠ 有分值超出 0–10，已按边界钳制后计算。</p>':'')+
     '<p>战略定位：<strong>'+aLevel+'-'+cLevel+'</strong> 单元</p>'+
     '<p>行动建议：<strong style="color:var(--primary)">'+action+'</strong></p>'+
     '<p>实施要点：① 明确当前单元与资源匹配；② 对高吸引力单元优先排期；③ 弱竞争力单元先补能力短板再放量；④ 每个季度重打分复盘。</p>';res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));

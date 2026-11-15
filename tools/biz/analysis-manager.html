@@ -105,8 +105,8 @@
     <h2 data-zh="📊 财务（管理/分析/决策）咨询">📊 Financial Management &amp; Decision Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="管理/分析/决策">Enter financial or operating figures (comma or newline separated) to get mean, extremes and dispersion indicators plus decision hints, supporting budgeting reviews and management decisions.</p>
 <div class="formula-box">
-<div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">毛利率 = (收入 − 成本) ÷ 收入；净利率 = 净利 ÷ 收入；流动比率 = 流动资产 ÷ 流动负债；速动比率（经验系数估算）≈ 流动资产 × 0.8 ÷ 流动负债，标准公式 =（流动资产 − 存货）÷ 流动负债（本页未采集存货，0.8 为经验系数，非标准指标）；资产负债率 = 负债 ÷ 资产；ROA = 净利 ÷ 资产</div>
-<p style="font-size:13px;line-height:1.8;color:var(--text);">输入营业收入、营业成本、期间费用、净利润、流动资产、流动负债、总资产与总负债，计算毛利率、净利率、流动比率、速动比率（未单列存货时按流动资产的 0.8 经验系数估算，非标准公式；标准公式为（流动资产−存货）÷流动负债）、资产负债率与总资产报酬率 ROA，并给出综合健康评级，辅助预算复盘与经营决策。</p>
+<div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">毛利率 = (收入 − 成本) ÷ 收入；营业利润率 = (收入 − 成本 − 期间费用) ÷ 收入；净利率 = 净利 ÷ 收入；流动比率 = 流动资产 ÷ 流动负债；速动比率（经验系数估算）≈ 流动资产 × 0.8 ÷ 流动负债，标准公式 =（流动资产 − 存货）÷ 流动负债（本页未采集存货，0.8 为经验系数，非标准指标）；资产负债率 = 负债 ÷ 资产；ROA = 净利 ÷ 资产</div>
+<p style="font-size:13px;line-height:1.8;color:var(--text);">输入营业收入、营业成本、期间费用、净利润、流动资产、流动负债、总资产与总负债，计算毛利率、营业利润率（已扣除期间费用）、净利率、流动比率、速动比率（未单列存货时按流动资产的 0.8 经验系数估算，非标准公式；标准公式为（流动资产−存货）÷流动负债）、资产负债率与总资产报酬率 ROA，并给出综合健康评级，辅助预算复盘与经营决策。</p>
 </div>
 
 
@@ -200,27 +200,43 @@ function fmtN(n){return (Math.round(n*100)/100).toLocaleString('zh-CN');}
 function calc(){
   var rev=v('rev'),cost=v('cost'),exp=v('exp'),np=v('np'),ca=v('ca'),cl=v('cl'),ta=v('ta'),tl=v('tl');
   if([rev,cost,exp,np,ca,cl,ta,tl].some(function(x){return isNaN(x);})){document.getElementById('res').innerHTML='<p>请填写全部财务数据</p>';return;}
-  var gross=rev>0?(rev-cost)/rev*100:0;
-  var net=rev>0?np/rev*100:0;
-  var cur=cl>0?ca/cl:0;
-  var quick=cl>0?ca*0.8/cl:0;
-  var dar=ta>0?tl/ta*100:0;
-  var roa=ta>0?np/ta*100:0;
-  var rating=(cur>=2 && dar<60 && net>0)?'稳健（偿债与盈利良好）':((cur>=1.2 && dar<70)?'尚可（基本健康，关注杠杆）':'偏弱（流动性或盈利存在压力）');
+  var revOk=rev>0, clOk=cl>0, taOk=ta>0;
+  var gross=revOk?(rev-cost)/rev*100:null;
+  var net=revOk?np/rev*100:null;
+  var op=revOk?(rev-cost-exp)/rev*100:null; // 营业利润率：期间费用参与计算（BS-N15）
+  var cur=clOk?ca/cl:null;
+  var quick=clOk?ca*0.8/cl:null;
+  var dar=taOk?tl/ta*100:null;
+  var roa=taOk?np/ta*100:null;
+  var pct=function(x){return x===null?'—':x.toFixed(2)+'%';};
+  var val=function(x){return x===null?'—':x.toFixed(2);};
+  var missing=[];
+  if(!revOk) missing.push('收入为 0，毛利率/净利率/营业利润率不适用');
+  if(!clOk) missing.push('流动负债为 0，流动比率/速动比率不适用');
+  if(!taOk) missing.push('总资产为 0，资产负债率/ROA 不适用');
+  var liquidScore=cur===null?3:(cur>=2?2:(cur>=1.2?1:0));
+  var debtScore=dar===null?1:(dar<60?2:(dar<70?1:0));
+  var rating;
+  if(!revOk||net===null) rating='数据不足（收入为 0，无法评估盈利）';
+  else if(net>0&&liquidScore>=2&&debtScore>=2) rating='稳健（偿债与盈利良好）';
+  else if(net>0&&liquidScore>=1&&debtScore>=1) rating='尚可（基本健康，关注杠杆）';
+  else rating='偏弱（流动性或盈利存在压力）';
   var rows=[
-    ['毛利率',gross.toFixed(2)+'%'],
-    ['净利率',net.toFixed(2)+'%'],
-    ['流动比率',cur.toFixed(2)],
-    ['速动比率（经验系数估算，非标准）',quick.toFixed(2)],
-    ['资产负债率',dar.toFixed(2)+'%'],
-    ['总资产报酬率 ROA',roa.toFixed(2)+'%']
+    ['毛利率',pct(gross)],
+    ['营业利润率（收入−成本−期间费用）',pct(op)],
+    ['净利率（按手填净利润）',pct(net)],
+    ['流动比率',val(cur)],
+    ['速动比率（经验系数估算，非标准）',val(quick)],
+    ['资产负债率',pct(dar)],
+    ['总资产报酬率 ROA',pct(roa)]
   ];
   var tr='';rows.forEach(function(r){tr+='<tr><td>'+r[0]+'</td><td><strong>'+r[1]+'</strong></td></tr>';});
   res=document.getElementById('res');
   const __g2='<div style="overflow-x:auto"><table><thead><tr><th>指标</th><th>数值</th></tr></thead><tbody>'+tr+'</tbody></table></div>'+
     '<p>综合健康评级：<strong style="color:var(--primary)">'+rating+'</strong></p>'+
+    (missing.length?'<p style="color:var(--text-muted)">口径提示：'+missing.join('；')+'。</p>':'')+
     '<p>速动比率口径：本页用「流动资产 × 0.8 ÷ 流动负债」经验系数估算，<b>不是标准速动比率</b>；标准公式为（流动资产 − 存货）÷ 流动负债，如需精确值请按标准公式另算。</p>'+
-    '<p>经营提示：毛利率反映产品盈利空间，流动比率 &gt;2、资产负债率 &lt;60% 通常为较稳健结构；净利为负或杠杆过高需重点改善。</p>';res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    '<p>经营提示：营业利润率已扣除期间费用；净利润为手填值，请确认已自行扣除费用与税费。流动比率 &gt;2、资产负债率 &lt;60% 通常为较稳健结构；净利为负或杠杆过高需重点改善。</p>';res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}calc();
 </script>
