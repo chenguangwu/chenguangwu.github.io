@@ -598,7 +598,19 @@ def normalize_tool_h1(html_str, zh_name='', dd_title=''):
     def _h1_in_skip(pos):
         return any(s <= pos < e for s, e in skip_spans)
 
-    # ① 错配闭标签
+    # ① 错配闭标签：闭标签查找必须跳过 script/style 内的字面量，
+    # 否则 <h1>中文标题<script>let a='</h2>';</script></h1> 会把脚本字符串改坏（第 216 批）。
+    def _find_close(tag, start):
+        pos = start
+        while True:
+            p = html_str.find(tag, pos)
+            if p == -1:
+                return -1
+            if not _h1_in_skip(p):
+                return p
+            pos = p + len(tag)
+
+    fixes = []
     i = 0
     while True:
         m = _H1_OPEN_RE.search(html_str, i)
@@ -608,14 +620,20 @@ def normalize_tool_h1(html_str, zh_name='', dd_title=''):
             i = m.end()
             continue
         oe = m.end()
-        n1 = html_str.find('</h1>', oe)
-        n2 = html_str.find('</h2>', oe)
+        n1 = _find_close('</h1>', oe)
+        n2 = _find_close('</h2>', oe)
         if n2 != -1 and (n1 == -1 or n2 < n1):
-            html_str = html_str[:n2] + '</h1>' + html_str[n2 + len('</h2>'):]
-            n += 1
-            i = n2 + len('</h1>')
+            fixes.append(n2)
+            i = n2 + len('</h2>')
         else:
             i = oe
+    for p in reversed(fixes):
+        html_str = html_str[:p] + '</h1>' + html_str[p + len('</h2>'):]
+        n += 1
+    if fixes:
+        # 替换改变字符串长度后重算跳过区间，供 ②③④ 使用。
+        skip_spans = [(m.start(), m.end()) for m in
+                      re.finditer(r'<(script|style)\b[^>]*>[\s\S]*?</\1>', html_str, re.I)]
     # 解析可用中文名（先剥标签再反转义，避免实体被误当标签）
     cand = ''
     bcs = re.findall(r'<span class="bc-current">([\s\S]*?)</span>', html_str)
@@ -626,9 +644,14 @@ def normalize_tool_h1(html_str, zh_name='', dd_title=''):
             break
     # ②③④ 处理 h1 块
     reps = []
-    for idx, b in enumerate(_H1_BLOCK_RE.finditer(html_str)):
+    # 索引只统计 script/style 之外的真实 h1；旧实现用 enumerate 全量计数，
+    # 脚本块里的 <h1> 字面量会让页面唯一真实标题的 idx>0 而被误降级为 h2（第 216 批）。
+    real_idx = 0
+    for b in _H1_BLOCK_RE.finditer(html_str):
         if _h1_in_skip(b.start()):
             continue
+        idx = real_idx
+        real_idx += 1
         attr, inner, close = b.group(1), b.group(2), b.group(3)
         _raw = _h1_text(inner)
         if not re.search(r'[\u4e00-\u9fff]', _raw):

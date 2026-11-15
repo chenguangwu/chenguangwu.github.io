@@ -958,6 +958,15 @@ const CASES = [
       + "⚠ 不锚 SVG 属性（如 fill=\"#xxxxxx\"）：collectStrings 剥标签时会把属性整块吞掉，颜色类断言在门禁里恒红，改锁文本信息行。",
   },
   {
+    // 第 389 批复核失败重做：超长行不写入 QR_STATE，下载索引必须按已生成条目数编号
+    slug: "design/generator-8",
+    inputs: { qrtext: "QRI2026MIX\nB" },
+    clicks: ["var __v=String(document.getElementById('qrtext').value||'');var __p=document.getElementById('__tbProbe');if(__v.indexOf('QRI2026MIX')<0){__p.textContent='QRI2026_DEFAULT';}else{document.getElementById('qrtext').value=new Array(3000).join('X')+'\\nB';gen();var __h=String(document.getElementById('res').innerHTML);var __m=__h.match(/data-i=.(\\d+)./);__p.textContent='QRI2026_IDX='+(__m?__m[1]:'NONE')+'_LONG='+(__h.indexOf('内容过长')>=0?'Y':'N')+'_B='+(__h.indexOf('2. B')>=0?'Y':'N');}"],
+    expect: ["QRI2026_IDX=0_LONG=Y_B=Y"],
+    ref: "第 389 批：第一行 2999 字节超 M 级 2331 字节上限被跳过，第二行 B 是唯一有效条目，QR_STATE 只有索引 0。旧实现把原始行号 i=1 写进 data-i，下载会越界取空；修复后按钮索引为 0 且摘要按实际生成数统计。\n"
+      + "探针仅在 inputs 含 QRI2026MIX 时构造混合输入，默认态输出 QRI2026_DEFAULT ⇒ 两态异值、强判别、零逃生。",
+  },
+  {
     slug: "design/generator-11",
     inputs: { cnt: "6" },
     expect: ["6. 波浪纹理"],
