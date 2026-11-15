@@ -740,6 +740,16 @@ const CASES = [
   ],
   "ref": "原有 fallback 用例（bac4/coc1/epi4/wbc0 不满足表驱动四档 → 启发式 score=7≥6 → Ⅰ度）改用 clicks+哨兵：L-N12 修复后页面默认 4/0/4/0 已是Ⅰ度，若沿用静态描述锚会在注入失败时仍命中；哨兵仅在显式调用 grade() 后写入，判别器清 clicks 即失配。"
 },
+{
+  "slug": "clinical-lab/vaginal-discharge-grading",
+  "clicks": [
+    "document.getElementById('coccus').value='2';document.getElementById('wbc').value='2';grade();"
+  ],
+  "expect": [
+    "需鉴别细菌性阴道病(BV)、滴虫性阴道炎与需氧菌性阴道炎"
+  ],
+  "ref": "L-N26：球菌≥++ 且白细胞 15-30 时，提示不再直接指向 BV，而是要求鉴别 BV/滴虫/需氧菌性阴道炎，并给出 BV 典型特征（白细胞少、线索细胞阳性）。默认球菌 0、白细胞 0-5 不产生该串。"
+},
   {
     slug: "clinical-lab/hba1c-converter",
     inputs: { val1: "6.0" },
