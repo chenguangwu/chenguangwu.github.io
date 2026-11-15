@@ -303,7 +303,7 @@ function convert(type){
   switch(type){
     case 'upper': result = text.toUpperCase(); break;
     case 'lower': result = text.toLowerCase(); break;
-    case 'title': result = text.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.substr(1).toLowerCase()); break;
+    case 'title': result = text.replace(/[A-Za-z0-9\u4e00-\u9fff]+/g, w => /^[A-Z0-9]+$/.test(w) ? w.charAt(0) + w.substr(1).toLowerCase() : w.charAt(0).toUpperCase() + w.substr(1)); break;
     case 'sentence': result = text.toLowerCase().replace(/(^\s*\w|[.!?]\s*\w)/g, c => c.toUpperCase()); break;
     case 'camel': {
       const words = getWords(text);
@@ -334,7 +334,11 @@ function convert(type){
 }
 
 function getWords(text){
-  return text.replace(/([a-z])([A-Z])/g, '$1 $2').split(/[\s_-]+/).filter(Boolean);
+  // 按非字母数字（含标点、下划线、连字符）切分，标点不再粘进标识符（BS-N87）
+  return text
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[^A-Za-z0-9\u4e00-\u9fff]+/)
+    .filter(Boolean);
 }
 
 function copyResult(ev){
