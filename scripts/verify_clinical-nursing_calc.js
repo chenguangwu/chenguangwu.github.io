@@ -407,6 +407,14 @@ const CASES = [
   "ref": "鼻导管不再静默封顶 44%：FiO₂ = 21 + 4×12 = 69%（原实现显示 44%）；流量＞6 L/min 触发警示并建议改面罩。默认态 flowRate=2 ⇒ 28% 且无警示，三串均不命中。"
 },
 {
+  "slug": "clinical-nursing/oxygen-concentration",
+  "clicks": [
+    "selectDevice('venturi');document.getElementById('venturiValve').value='24';selectDevice('venturi');calc();"
+  ],
+  "expect": ["文丘里面罩（24%阀，2 L/min）"],
+  "ref": "D-N20（2026-11-16）：文丘里模式只用阀值，旧实现固定写 flowRate=4，24% 阀的病历/结果写「流量 4 L/min → FiO₂ 24%」（页面标注 24% 对应 2 L/min）。现按 VENTURI_FLOW 同步该阀推荐流量，结果描述为「文丘里面罩（24%阀，2 L/min）」。默认鼻导管不出现该串。"
+},
+{
   "slug": "clinical-nursing/pain-nrs",
   "clicks": [
     "selectPain(7)"

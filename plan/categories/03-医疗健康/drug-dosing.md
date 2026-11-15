@@ -171,9 +171,10 @@
 - 现状（2026-11-16 复核）：`tools/clinical-nursing/oxygen-concentration.html` 的鼻导管分支已改为 `21+4×flow`，不再封顶 44%；`flow > maxFlow(6)` 时输出超范围提示并显示未封顶估算；对照表与公式框统一为 21+4×flow（1 L/min→25%、6 L/min→45%）。
 - 原描述：鼻导管分支 `fio2 = min(21+4×flow, 44)`，输入允许 0–15 L/min，12 L/min 静默显示 44%；引据表用 20+4×flow 与公式框 21+4×flow 冲突。
 
-### D-N20 吸氧浓度换算器：文丘里模式忽略流量却把「流量 4 L/min」写进结果/病历，阀值对应流量不同步（中，确认缺陷）
-- 描述：`selectDevice('venturi')` 固定把 `flowRate` 写成 4；`calc()` 的 venturi 分支只用阀值、完全不读流量，但 `__EMR_SUM.flow` 仍取 4，门诊记录输出「流量 4 L/min → FiO₂ 24%」。而阀值选项标注 24% 对应 2 L/min、28% 对应 4 L/min……切换阀值不更新流量。
-- 证据：`tools/clinical-nursing/oxygen-concentration.html:290-300`（固定 flowRate=4）、`:318-322`（venturi 只用 valve）、`:155-161`（阀值与流量标注）、`:391-396`（EMR 拼接 flow）。
+### D-N20 吸氧浓度换算器：文丘里模式忽略流量却把「流量 4 L/min」写进结果/病历，阀值对应流量不同步（已修，743 批）
+- 现状（2026-11-16）：`calc()` 的文丘里分支在取阀值后按 `VENTURI_FLOW[valve]` 同步 `flow` 与 `#flowRate` 输入，描述改为「文丘里面罩（24%阀，2 L/min）」，`__EMR_SUM.flow` 随阀值变化。门禁：选文丘里 + 24% 阀 ⇒ 结果含「文丘里面罩（24%阀，2 L/min）」。
+- 原描述：`selectDevice('venturi')` 固定把 `flowRate` 写成 4；`calc()` 的 venturi 分支只用阀值、完全不读流量，但 `__EMR_SUM.flow` 仍取 4，门诊记录输出「流量 4 L/min → FiO₂ 24%」，与阀值标注的 2 L/min 不符。
+- 证据：`tools/clinical-nursing/oxygen-concentration.html:331-338,290-300,391-396`。
 - 复现：切到「文丘里」→ 流量显示 4、阀值默认 **24%** → 结果「文丘里面罩（24%阀）对应FiO2为24%」，EMR 记录「流量 4 L/min → FiO₂ 约 24%」；而按页面自身标注 24% 阀应对应 **2 L/min**。再选 50% 阀 → 仍记流量 4 L/min（应 12 L/min）。
 - 影响：护理记录中的氧流量与阀值不匹配，属文书错误；流量输入在文丘里模式下形同虚设，用户改流量不生效却无提示。
 - 方案：venturi 模式下由阀值反写并锁定对应流量（24→2…50→12），或隐藏流量输入；EMR 记录区分「阀值 FiO₂」与「设定流量」，无法确定时留空；补各阀值切换用例。
