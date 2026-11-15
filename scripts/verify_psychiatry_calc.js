@@ -497,6 +497,22 @@ const CASES = [
   "ref": "PCL-5 二十项全选「极其严重」j=4 ⇒ 总分 80/80 ⇒ 落 total>35 分支「重度」；四个症状群 B 20/C 8/D 28/E 24 均满分 ⇒ DSM-5 症状群筛查判定「符合」。默认态为提示框，零交集。via=click"
 },
 {
+  "slug": "psychiatry/pcl5-ptsd",
+  "clicks": [
+    "for(var i=0;i<20;i++){pick(i,0);} pick(0,1);pick(5,1);pick(7,1);pick(8,1);pick(14,1);pick(15,1);document.getElementById('__tbProbe').textContent='PCL5NEG '+(document.getElementById('result').innerHTML.indexOf('筛查：不符合')>=0?'OK':'BAD')+(A.reduce(function(s,v){return s+v;},0));"
+  ],
+  "expect": ["PCL5NEG OK6"],
+  "ref": "M-N1：第 1、6、8、9、15、16 题各 1 分、其余 0 ⇒ 总分 6；按 ≥2 分的症状群口径，各群均无阳性条目 ⇒ 筛查「不符合」，与门诊记录一致。修复前按 >0 计数会判「符合」。"
+},
+{
+  "slug": "psychiatry/pcl5-ptsd",
+  "clicks": [
+    "for(var i=0;i<20;i++){pick(i,2);}document.getElementById('__tbProbe').textContent='PCL5POS '+(document.getElementById('result').innerHTML.indexOf('筛查：符合')>=0?'OK':'BAD');"
+  ],
+  "expect": ["PCL5POS OK"],
+  "ref": "M-N1 边界：20 题全选 2 分 ⇒ 每群至少 2 个条目 ≥2，B≥1/C≥1/D≥2/E≥2 同时满足 ⇒ 筛查「符合」。"
+},
+{
   "slug": "psychiatry/pdss-panic",
   "clicks": [ "pick(0,4)", "pick(1,4)", "pick(2,4)", "pick(3,4)", "pick(4,4)", "pick(5,4)", "pick(6,4)"],
   "expect": [
