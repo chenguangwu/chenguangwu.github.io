@@ -212,10 +212,15 @@
   </div>
 </div>
 <script>
+// SMS-51：缺值 / 分母为 0 / 明细早退时统一清空可视化与差异面板，杜绝残留上一次结果
+function __lrClear(){
+  var ids=['lrChart','lrTable','lrDiff','lrHist'];
+  for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}
+}
 function calc(){
   if(!isFinite(__lrN('x1')) || !isFinite(__lrN('x2')) || !isFinite(__lrN('x3')) || !isFinite(__lrN('x4')) || !isFinite(__lrN('x5')) || !isFinite(__lrN('y1')) || !isFinite(__lrN('y2')) || !isFinite(__lrN('y3')) || !isFinite(__lrN('y4')) || !isFinite(__lrN('y5')) || !isFinite(__lrN('xp'))){
     document.getElementById('result').innerHTML = '<p style="color:var(--text-muted);">请填写 5 组 X/Y 数据与预测 X 后再计算。</p>';
-    var __t=document.getElementById('lrTable'); if(__t) __t.innerHTML='';
+    __lrClear();
     return;
   }
   const x1 = +document.getElementById('x1').value || 0;
@@ -229,6 +234,27 @@ function calc(){
   const y4 = +document.getElementById('y4').value || 0;
   const y5 = +document.getElementById('y5').value || 0;
   const xp = +document.getElementById('xp').value || 0;
+  // SMS-50：d = nΣx² − (Σx)² = 0 ⟺ 五个 x 全相同，此时最小二乘直线（竖直数据）无定义
+  const __lrSx = x1+x2+x3+x4+x5, __lrSxx = x1*x1+x2*x2+x3*x3+x4*x4+x5*x5;
+  if(Math.abs(5*__lrSxx-__lrSx*__lrSx)<1e-12){
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger)">⚠ x 值全部相同，无法确定斜率（竖直数据的最小二乘直线无定义）。</p>';
+    __lrClear();
+    return;
+  }
+  // SMS-52：兑现 meta「相关系数及拟合优度」承诺，R² = 1 − SSR/SST，r 取斜率符号 × √R²
+  const __lrR2 = ((()=>{
+    const ys0=[y1,y2,y3,y4,y5], xs0=[x1,x2,x3,x4,x5], nn=5;
+    const mY=ys0.reduce(function(a,b){return a+b;},0)/nn;
+    let sst=0; ys0.forEach(function(y){sst+=Math.pow(y-mY,2);});
+    if(sst<=0) return null;
+    const sx=xs0.reduce(function(a,b){return a+b;},0), sy=ys0.reduce(function(a,b){return a+b;},0),
+          sxx=xs0.reduce(function(a,b){return a+b*b;},0),
+          sxy=xs0.reduce(function(a,b,i){return a+xs0[i]*ys0[i];},0);
+    const den=nn*sxx-sx*sx; if(Math.abs(den)<1e-12) return null;
+    const aa=(nn*sxy-sx*sy)/den, bb=(sy-aa*sx)/nn;
+    let ssr=0; for(let k=0;k<nn;k++){const pr=aa*xs0[k]+bb; ssr+=Math.pow(ys0[k]-pr,2);}
+    return 1-ssr/sst;
+  })());
   let html = '';
   const __v0 = ((()=>{const xs=[x1,x2,x3,x4,x5],ys=[y1,y2,y3,y4,y5],n=5,sx=xs.reduce((a,b)=>a+b,0),sy=ys.reduce((a,b)=>a+b,0),sxx=xs.reduce((a,b)=>a+b*b,0),sxy=xs.reduce((a,b,i)=>a+xs[i]*ys[i],0);const d=n*sxx-sx*sx;return d?(n*sxy-sx*sy)/d:0;})());
   html += `<p>斜率 a：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(4)}</strong> </p>`;
@@ -236,6 +262,10 @@ function calc(){
   html += `<p>截距 b：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(4)}</strong> </p>`;
   const __v2 = ((()=>{const xs=[x1,x2,x3,x4,x5],ys=[y1,y2,y3,y4,y5],n=5,sx=xs.reduce((a,b)=>a+b,0),sy=ys.reduce((a,b)=>a+b,0),sxx=xs.reduce((a,b)=>a+b*b,0),sxy=xs.reduce((a,b,i)=>a+xs[i]*ys[i],0);const d=n*sxx-sx*sx;const a=d?(n*sxy-sx*sy)/d:0;const b=(sy-a*sx)/n;return a*xp+b;})());
   html += `<p>预测 y：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(4)}</strong> </p>`;
+  if(__lrR2!==null){
+    const __lrR=(__v0<0?-1:1)*Math.sqrt(Math.max(0,Math.min(1,__lrR2)));
+    html += `<p>相关系数 r：<strong style="font-size:18px;color:var(--primary);">${__lrR.toFixed(4)}</strong> | 拟合优度 R²：<strong style="font-size:18px;color:var(--primary);">${__lrR2.toFixed(4)}</strong></p>`;
+  }
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {
@@ -260,10 +290,10 @@ function __lrExtras(){
         var xs=[1,2,3,4,5].map(function(i){return __lrN('x'+i);});
         var ys=[1,2,3,4,5].map(function(i){return __lrN('y'+i);});
         var xp=__lrN('xp');
-        if(xs.some(function(x){return !isFinite(x);})||ys.some(function(x){return !isFinite(x);})||!isFinite(xp))return;
+        if(xs.some(function(x){return !isFinite(x);})||ys.some(function(x){return !isFinite(x);})||!isFinite(xp)){__lrClear();return;}
         var n=5,sx=xs.reduce(function(a,b){return a+b;},0),sy=ys.reduce(function(a,b){return a+b;},0),sxx=xs.reduce(function(a,b){return a+b*b;},0),sxy=0;
         for(var i=0;i<n;i++)sxy+=xs[i]*ys[i];
-        var den=n*sxx-sx*sx; if(Math.abs(den)<1e-12)return;
+        var den=n*sxx-sx*sx; if(Math.abs(den)<1e-12){__lrClear();return;}
         var a=(n*sxy-sx*sy)/den, b=(sy-a*sx)/n, yp=a*xp+b;
         var sst=0,mY=sy/n; ys.forEach(function(y){sst+=Math.pow(y-mY,2);});
         var ssr=0; for(var k=0;k<n;k++){var pr=a*xs[k]+b; ssr+=Math.pow(ys[k]-pr,2);}
