@@ -856,3 +856,9 @@
 - 本轮审计 8 页：`tools/clinical-nursing/morse-score.html`、`braden-score.html`、`barthel-index.html`、`pain-nrs.html`、`calc-rater-risk.html`、`assessor-rater-risk.html`、`pressure-injury-description.html`、`reminder-time-1.html`。
 - 新增 11 条（高 10 / 中 1），编号 D-N115–D-N125，沿用本文件 D-N 前缀；假工具候选 0 页（8 页均有真实评分/生成/计时实现）。
 - 未做浏览器/门禁/线上验证；医学阈值仅做「页面声明 vs 实现」一致性核对，分级界值需临床复核。
+
+## 2026-11-16 补查（763 批）
+
+### D-N126 减脂缺口：非正值与「减重 ≥ 目标体重」无守卫，日缺口 >1000 kcal 无提示（已修，763 批）
+- 现状（2026-11-16）：`tools/healthcare/fat-loss-deficit.html` 的 `calc()` 增加「目标减重、计划天数、目标体重均须 >0」与「减重不得 ≥ 目标体重」两条守卫（拒绝并说明起始体重会 ≤0），日缺口 >1000 kcal 时红字提示难以坚持/易掉肌肉；门禁：5 kg/10 天 ⇒ 3850 + 超限提示；120 kg/30 天/目标 60 kg ⇒ 逻辑守卫；自动补强用例改为命中该守卫。
+- 原问题：三项仅做 `+value||0`，非数值/0 直接算出 0 缺口；减重 120 kg、目标体重 60 kg 会得到起始体重 −60 kg；日缺口 3850 kcal 与 616 kcal 同样呈现，无任何强度提示。

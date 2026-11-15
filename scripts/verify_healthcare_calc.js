@@ -325,6 +325,18 @@ const CASES = [
   },
   {
     slug: "healthcare/fat-loss-deficit",
+    inputs: { loss: "5", days: "10", targetWeight: "70" },
+    expect: ["3850", "超过 1000 kcal/天"],
+    ref: "减脂缺口高强度提示（763 批补查）：5×7700 = 38500 kcal，÷10 = 3850 kcal/天；超过 1000 ⇒ 红字提示延长周期/咨询营养师。既有 4 kg/50 天 ⇒ 616 不命中。",
+  },
+  {
+    slug: "healthcare/fat-loss-deficit",
+    inputs: { loss: "120", days: "30", targetWeight: "60" },
+    expect: ["目标减重不能大于等于目标体重"],
+    ref: "减脂缺口逻辑守卫（763 批补查）：减重 120 kg ≥ 目标体重 60 kg ⇒ 起始体重为负（−60 kg），旧实现直接输出 −60.0 kg；修复后拒绝并提示核对。",
+  },
+  {
+    slug: "healthcare/fat-loss-deficit",
     inputs: { loss: "4", days: "50", targetWeight: "70" },
     expect: ["30800", "616", "74"],
     ref: "总缺口 = 4×7700 = 30800 kcal；日缺口 = 30800÷50 = 616；起始体重 = 70+4 = 74 kg",
@@ -726,9 +738,9 @@ const CASES = [
       "targetWeight": "42"
     },
     "expect": [
-      "42\n42\n42\n总缺口： 3234"
+      "42\n42\n42\n⚠ 目标减重不能大于等于目标体重"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"loss\":\"42\",\"days\":\"42\",\"targetWeight\":\"42\"}，输出区含「42\n42\n42\n总缺口： 3234」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"loss\":\"42\",\"days\":\"42\",\"targetWeight\":\"42\"}，命中减脂缺口逻辑守卫（减重 42 ≥ 目标体重 42）；默认态（输入回退，70+4）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "healthcare/healthcare-2",
