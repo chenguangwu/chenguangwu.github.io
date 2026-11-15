@@ -2110,30 +2110,6 @@
 
 ## W 批 · 化工/营养/工艺/运输（2026-11-04）
 
-### 12-N215 nutrition/generator-nutrition-label：营养数据全部随机生成、页面无任何营养成分输入，且能量与蛋白质/脂肪/碳水互不对应（高，假工具）
-- 问题：页面唯一输入是「生成数量」（`:120`），`gen()` 用 `Math.random()` 现造能量 80–379 kcal、蛋白 1–21 g、脂肪 0.5–15.5 g、碳水 5–45 g、钠 50–449 mg（`:203-209`），逐条拼成「（每100g）：能量 …」文本（`:209`）。能量与三大营养素完全独立，不按任何公式核算。meta/公式框却称「按营养成分数据自动排版生成符合规范的食品营养标签…适合预包装食品合规」（`:10`、`:116`）。
-- 证据：`tools/nutrition/generator-nutrition-label.html:10`、`:116`、`:120`、`:199-212`、`:203-209`
-- 复现（node 复算 Atwater 4/9/4）：取随机区间上限（蛋白 21、脂肪 15.5、碳水 45）应为 403.5 kcal，而页面能量最大只到 379 kcal；取下限（1/0.5/5）应为 28.5 kcal，而页面最小 80 kcal。即任一条标签都可能出现「能量与宏量营养素严重不符」。刷新页面数据整体变化，无法复现同一标签。
-- 影响：`tools/nutrition/generator-nutrition-label.html` 输出的是虚构营养数据，却以「合规标签生成」呈现；若被用于预包装食品标签或对外报价，属实质性误导。**需临床复核**（营养素与能量口径）。
-- 方案：改为用户逐项输入每 100 g 蛋白质/脂肪/碳水/膳食纤维/钠，按 `蛋白×17 + 脂肪×37 + 碳水×17 + 纤维×8` 计算 kJ 并校验宏量之和 ≤100 g；随机模式必须显著标注「随机示例，不可用于标签/合规」。
-- 严重度：高；是否假工具：是（核心输入缺失，输出为随机伪造）
-
-### 12-N216 nutrition/generator-nutrition-label：公式框承诺 kJ、NRV%、GB 28050 表格排版，实际只输出一行 kcal 文本，导出还指向历史表（中，承诺未实现）
-- 问题：公式框写「能量(kJ)=…；NRV%=含量÷NRV×100%（能量 8400 kJ、蛋白质 60 g…）；按 GB 28050 规定格式排版」（`:116`）；实际输出为单行 `<p>`「能量 X kcal，蛋白质…g，脂肪…g，碳水…g，钠…mg」（`:209`），无 kJ 换算、无 NRV%、无「营养成分表」表格；「导出明细 CSV」调用 `exportTable('#generator_nutrition_labelTable')`，该 id 是历史表容器而非生成结果（`:382-384`、`:122`）。
-- 证据：`tools/nutrition/generator-nutrition-label.html:116`、`:120-121`、`:199-212`、`:122`、`:382-384`
-- 复现（静态核对）：生成 5 条后页面无任何 `NRV%`、`kJ` 字样（仅公式框有）；点导出得到历史表的「时间/生成数量/结果」列，拿不到 5 条标签正文。
-- 影响：`tools/nutrition/generator-nutrition-label.html` 的「合规标签」承诺全部落空，导出内容与按钮名称不符。**需临床复核**（NRV 参考值口径）。
-- 方案：按 GB 28050 输出能量(kJ)+NRV% 表格；导出改为导出生成结果的结构化数据；若暂不实现，删除公式框中的 kJ/NRV/GB 28050 承诺。
-- 严重度：中；是否假工具：否（已在 N215 计）
-
-### 12-N218 transport/convert-fuel-oil：meta 承诺「UK/US 加仑差异换算」，页面无 UK 选项与 282.48 常数（中，承诺未实现）
-- 问题：meta description 写「以及 UK/US 加仑差异换算」（`:10`），但两个下拉只有 `mpg`/`l100`（`:121-122`），换算常数固定美制 235.2146（`:139-149`、`:168`），无英制加仑分支；FAQ 只解释「若误用英制系数应为 282.48」（`:211`）。
-- 证据：`tools/transport/convert-fuel-oil.html:10`、`:121-122`、`:139-149`、`:211`
-- 复现（静态核对）：全页无 `UK`/`imperial`/`282.48` 可选输入或输出，UK 加仑无法换算。
-- 影响：`tools/transport/convert-fuel-oil.html` 英国市场数据无法按描述换算，meta 与实现不符。
-- 方案：增加「加仑制式（US/UK）」选择并按 235.2146/282.4809 切换；或删除 meta 中的 UK 承诺。
-- 严重度：中；是否假工具：否
-
 ### 12-N219 nutrition/food-calorie-lookup：「导出明细 CSV」指向空的历史表容器 `#food_calorie_lookupTable`，不导出可见食物表（中，假功能）
 - 问题：可见食物表 id 是 `table`（`:127`），而导出函数调用 `exportTable('#food_calorie_lookupTable', …)`（`:391-394`）；`#food_calorie_lookupTable` 是 table 内部的一个空 `<div>`（`:129`），仅在有历史时被 `TBKit.matrix.table` 填入历史行。
 - 证据：`tools/nutrition/food-calorie-lookup.html:127`、`:129`、`:391-394`；`js/tool-kit.js:221-237`（`exportTable` 找不到 `tr` 时直接 `return false`）
@@ -2162,10 +2138,10 @@
 ### 覆盖清单（W 批 化工/营养/工艺/运输，2026-11-04）
 - 审计页数：8（`tools/chemical/convert-capacity-tank.html`、`mixture-ratio.html`、`tools/nutrition/food-calorie-lookup.html`、`generator-nutrition-label.html`、`tools/process/tolerance-worst-case.html`、`tolerance-rss.html`、`tools/transport/convert-fuel-oil.html`、`calculator-calc-tire.html`），覆盖 4 个目录。
 - 新增条数：10 条，编号 12-N212–12-N221（高 3 / 中 7）。
-- 高优：N215（营养标签数据全随机且能量与宏量不符，假工具）、N217（燃油同单位换算输出倒数）。N212 已于 2026-11-16 第 682 批修复（补卧式圆柱弓形面积、容积→液位二分反算、满罐容积与充装率）；N213/N214 已于第 681 批修复（结果句跟随输入酒精度、深解与简介改回两液混合/稀释真实口径）。
-- 中优集中模式：承诺未实现（N216/N218；N214 已于第 681 批修复）、文案/数值错写（N220；N213 已于第 681 批修复）、导出指向错误（N219）、空值/负值兜底仍出数（N221）。
+- 高优：N217（燃油同单位换算输出倒数，已于第 683 批核验并新增 UK 用例）。N212 已于 2026-11-16 第 682 批修复（补卧式圆柱弓形面积、容积→液位二分反算、满罐容积与充装率）；N213/N214 已于第 681 批修复；N215/N216 已于第 683 批核验销账（现为逐项输入 + Atwater 17/37/17/8 kJ + NRV% 表格）；N218 已于第 683 批补「加仑制式 US/UK」与 282.4809 常数。
+- 中优集中模式：文案/数值错写（N220）、导出指向错误（N219）、空值/负值兜底仍出数（N221）；N214 已于第 681 批修复，N216/N218 已于第 683 批修复。
 - 无缺陷页：`tools/transport/calculator-calc-tire.html` 复算 225/45R17→634.3 mm、225/50R17→656.8 mm（+22.5 mm / +3.55%）、235/40R18→645.2 mm（+1.72%），外径差/间隙变化/表显 100 实际车速与公式一致，仅规格串正则不接受带载重/速度级别（如 225/45R17 91W），页面已明示该格式限制。
-- 未单列：`convert-capacity-tank.html` 公式行重复两遍已于第 682 批去重并按新能力重写；`mixture-ratio.html` 的 formula-desc 模板占位串已于第 681 批改为酒精降度公式说明；`convert-fuel-oil.html:122` 多一个 `</div>` 致「到」下拉与结果区脱离卡片（布局问题）；`food-calorie-lookup.html:129` 在 `<table>` 内嵌 `<div>`（浏览器会 foster-parent，导出按钮随之移位）。
+- 未单列：`convert-capacity-tank.html` 公式行重复两遍已于第 682 批去重并按新能力重写；`mixture-ratio.html` 的 formula-desc 模板占位串已于第 681 批改为酒精降度公式说明；`convert-fuel-oil.html` 的多余 `</div>` 已于第 683 批修正（「到」下拉与结果区回到卡片内）；`food-calorie-lookup.html:129` 在 `<table>` 内嵌 `<div>`（浏览器会 foster-parent，导出按钮随之移位，N219 一并处理）。
 - 局限：仅逐行读源码 + `node` 在 `/tmp` 复算，**未开浏览器、未跑 `_build.py`/`run_gates.py`/`_test_static.py`、未做 git 或线上验证**；英文态/繁体页/移动端未实测。营养条目（N215/N216/N220）的营养素值、NRV 与能量口径**需临床复核**，本批结论不构成膳食或标签合规指令。
 
 ## X 批 · 冶金/皮革/园艺/化工（2026-11-04）
