@@ -359,6 +359,26 @@ const CASES = [
 {
   "slug": "cardiology/pericardial-effusion",
   "inputs": {
+    "depth": "0", "distribution": "circum"
+  },
+  "expect": [
+    "未见心包积液"
+  ],
+  "ref": "D-N100 零深度：0 mm 应提示「未见心包积液」而非按 `depth<10` 给「微量 50–100mL」；旧实现 `parseFloat||0` 且无 0 守卫。默认 22mm 走中量，不命中该串。"
+},
+{
+  "slug": "cardiology/pericardial-effusion",
+  "inputs": {
+    "depth": "-5", "distribution": "circum"
+  },
+  "expect": [
+    "最大深度须为不小于 0 的数值"
+  ],
+  "ref": "D-N100 负值：负数深度属无效测量，旧实现 `||0` 后按微量输出；修复后单独提示。0 mm 走另一条「未见心包积液」文案，二者互斥。"
+},
+{
+  "slug": "cardiology/pericardial-effusion",
+  "inputs": {
     "depth": "33", "distribution": "circum"
   },
   "expect": [
