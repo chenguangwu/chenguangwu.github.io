@@ -176,8 +176,13 @@ const CASES = [
   "inputs": { "text": "Apple apple", "kw": "Apple" },
   "expect": ["出现 2 次", "100.00%"],
   "ref": "统一大小写计数：Apple/apple 共 2 次；总词数 en=2、cn=0 ⇒ 密度 2÷2×100=100.00%。旧实现大小写敏感只命中 1 次（50.00%）⇒ 两条均不命中。默认正文为绿色低碳中文 ⇒ 不命中。"
-}
-
+},
+{
+    "slug": "pr/press-conference",
+    "inputs": { "startTime": "", "eventType": "press" },
+    "expect": ["开始时间未设置"],
+    "ref": "清空开始时间时旧实现静默按 14:00 排程且结果卡仍显示 14:00，用户会误以为是自己的排期；现明确提示未设置并标注占位。默认 14:00 ⇒ 不命中。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

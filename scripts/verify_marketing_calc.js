@@ -1411,8 +1411,25 @@ const CASES = [
     "clicks": ["document.getElementById('__tbProbe').textContent='HISTCPA '+(/CPA 不可计算（零转化）/.test(String(renderHistory))?'OK':'BAD');"],
     "expect": ["HISTCPA OK"],
     "ref": "源码形态判定：历史列表对零转化记录明说 CPA 不可计算，而不是把花费除以零得到 Infinity 后静默替换成破折号。默认态不设置探针 ⇒ 零逃生。"
+  },
+{
+    "slug": "marketing/marketing-cpc-calculator",
+    "clicks": ["document.getElementById('__tbProbe').textContent='CPCGUARD2 '+(typeof __cpcErr==='function'&&/__cpcErr/.test(String(saveHistory))?'OK':'BAD');"],
+    "expect": ["CPCGUARD2 OK"],
+    "ref": "源码形态判定：保存路径与计算路径共用 __cpcErr（小数点击、负曝光、点击超展示不再写入历史）。默认态不设置探针 ⇒ 零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-markup-margin",
+    "clicks": ["document.getElementById('__tbProbe').textContent='MMGUARD '+(/record.markupRate < 0/.test(String(saveHistory))&&/record.marginRate >= 100/.test(String(saveHistory))&&/__srcRate/.test(String(saveHistory))?'OK':'BAD');"],
+    "expect": ["MMGUARD OK"],
+    "ref": "源码形态判定：保存路径补齐加价率非负、利润率 0–99、换算模式源值三项与计算一致的守卫；无效比率不再入历史。默认态不设置探针 ⇒ 零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-cac-calculator",
+    "clicks": ["document.getElementById('__tbProbe').textContent='CACGUARD '+(typeof __cacErr==='function'&&/__cacErr/.test(String(saveHistory))?'OK':'BAD');"],
+    "expect": ["CACGUARD OK"],
+    "ref": "源码形态判定：保存路径与计算路径共用 __cacErr（负费用、非正 LTV 不再写入历史并参与分级）。默认态不设置探针 ⇒ 零逃生。"
   }
-
 ];
 
 async function main() {
