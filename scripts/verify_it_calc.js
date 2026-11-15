@@ -13926,6 +13926,32 @@ const CASES = [
     expect: ['SOBREV OK'],
     ref: "IT-N444 修复：旧实现 result=text.split('').reverse() 按 UTF-16 码元反转，😀 被拆成两个代理项 ⇒ output.value 含乱码且长度 3；新实现 Array.from 按码点反转 ⇒ '😀a'→'a😀' 且长度 2。探针读 #output.value 精确比对 ⇒ SOBREV OK。默认空输入走另一分支不命中。",
   },
+  {
+    slug: "it/css-minify",
+    inputs: { src: '.a::after { content : "a: b ; }" ; }' },
+    expect: ['content:"a: b ; }"'],
+    ref: "IT-N431 修复：旧 minify 用 4 条全局正则，引号串内空格/冒号/分号被压缩改写；新实现按 tokenizer 分离字符串与代码段，压缩结果含 content:\"a: b ; }\"。输入是带空格的未压缩形态，期望串是压缩产物 ⇒ 非输入回显；默认示例不含该串 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/css-minify",
+    inputs: { src: '.NaN { color : red ; }' },
+    expect: ['.NaN{color:red}'],
+    ref: "IT-N431 修复：结果写入层的通用 Infinity|NaN 全局替换会把 .NaN 选择器改写成 .—；改为仅纯值判定后保留 .NaN{color:red}。输入含空格与分号，期望串是压缩产物 ⇒ 非输入回显；默认示例不含该串。",
+  },
+  {
+    slug: "it/json-schema-generator",
+    inputs: { input: '{"a":1}' },
+    clicks: ["var __t=[];var __o=ToolBox.showToast;ToolBox.showToast=function(s){__t.push(String(s));};document.getElementById('output').textContent=JSON.stringify({type:'object',required:['ghost'],properties:{a:{type:'string'}}});validateSchema();ToolBox.showToast=__o;document.getElementById('__tbProbe').textContent='SCHEMAVAL '+__t.join('|');"],
+    expect: ["SCHEMAVAL ❌ root.required: ghost not in properties"],
+    ref: "假验证修复：旧 validateSchema 只做 JSON.stringify(lastSchema)，对普通对象永不失败；新实现解析输出区 Schema 文本并递归校验结构，required 引用不存在的 ghost 时报错并带出字段名。探针串只在注入非法 Schema 且实现真校验时出现 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/json-schema-generator",
+    inputs: { input: '{"a":1}' },
+    clicks: ["var __t=[];var __o=ToolBox.showToast;ToolBox.showToast=function(s){__t.push(String(s));};document.getElementById('output').textContent='{oops';validateSchema();ToolBox.showToast=__o;document.getElementById('__tbProbe').textContent='SCHEMAJSON '+__t.join('|');"],
+    expect: ["SCHEMAJSON ❌ JSON:"],
+    ref: "假验证修复：输出区被改成非法 JSON 文本时，验证按钮须报语法错而非沿用内部 lastSchema 报「有效」。探针串只在注入 {oops 且实现读取输出文本时出现 ⇒ 零逃生。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub

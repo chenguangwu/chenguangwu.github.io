@@ -667,17 +667,72 @@ function downloadSchema() {
   ToolBox.downloadText('schema.json', text, 'application/json');
 }
 
+function __schemaIssues(node, path, depth) {
+  var issues = [];
+  if (depth > 12) return issues;
+  if (node === null || typeof node !== 'object' || Array.isArray(node)) {
+    issues.push(path + ': not an object');
+    return issues;
+  }
+  var TYPES = ['string', 'number', 'integer', 'boolean', 'object', 'array', 'null'];
+  if ('type' in node) {
+    var list = Array.isArray(node.type) ? node.type : [node.type];
+    for (var i = 0; i < list.length; i++) {
+      if (TYPES.indexOf(list[i]) < 0) issues.push(path + '.type: ' + String(list[i]));
+    }
+  }
+  if ('$schema' in node && typeof node.$schema !== 'string') issues.push(path + '.$schema: not a string');
+  if ('enum' in node && !Array.isArray(node.enum)) issues.push(path + '.enum: not an array');
+  if ('properties' in node) {
+    var p = node.properties;
+    if (!p || typeof p !== 'object' || Array.isArray(p)) issues.push(path + '.properties: not an object');
+    else Object.keys(p).forEach(function(k) {
+      issues = issues.concat(__schemaIssues(p[k], path + '.properties.' + k, depth + 1));
+    });
+  }
+  if ('required' in node) {
+    var r = node.required;
+    if (!Array.isArray(r) || r.some(function(x) { return typeof x !== 'string'; })) {
+      issues.push(path + '.required: not a string array');
+    } else {
+      var pr = (node.properties && typeof node.properties === 'object' && !Array.isArray(node.properties)) ? node.properties : {};
+      r.forEach(function(k) {
+        if (!Object.prototype.hasOwnProperty.call(pr, k)) issues.push(path + '.required: ' + k + ' not in properties');
+      });
+    }
+  }
+  if ('items' in node) issues = issues.concat(__schemaIssues(node.items, path + '.items', depth + 1));
+  if ('anyOf' in node) {
+    if (!Array.isArray(node.anyOf)) issues.push(path + '.anyOf: not an array');
+    else node.anyOf.forEach(function(sub, idx) {
+      issues = issues.concat(__schemaIssues(sub, path + '.anyOf.' + idx, depth + 1));
+    });
+  }
+  return issues;
+}
+
 function validateSchema() {
-  if (!lastSchema) {
-    ToolBox.showToast(i18nText('toast.msg649'));
+  var out = document.getElementById('output');
+  var raw = out ? String(out.textContent || '').trim() : '';
+  var obj = null;
+  var en = (typeof TBKit !== 'undefined' && TBKit.util.isEn());
+  if (!raw || raw.indexOf('{') < 0) {
+    if (!lastSchema) { ToolBox.showToast(i18nText('toast.msg649')); return; }
+    obj = lastSchema;
+  } else {
+    try { obj = JSON.parse(raw); }
+    catch (e) { ToolBox.showToast('❌ JSON: ' + e.message); return; }
+  }
+  var issues = __schemaIssues(obj, 'root', 0);
+  var st = document.getElementById('statusText');
+  if (issues.length) {
+    var first = issues[0] + (issues.length > 1 ? ' (+' + (issues.length - 1) + ')' : '');
+    ToolBox.showToast('❌ ' + first);
+    if (st) { st.textContent = (en ? '❌ Invalid schema: ' : '❌ Schema 无效：') + first; st.className = 'err'; }
     return;
   }
-  try {
-    JSON.stringify(lastSchema);
-    ToolBox.showToast(i18nText('toast.msg032'));
-  } catch(e) {
-    ToolBox.showToast('❌ ' + e.message);
-  }
+  ToolBox.showToast(i18nText('toast.msg032'));
+  if (st) { st.textContent = en ? '✅ Schema is valid' : '✅ Schema 有效'; st.className = 'ok'; }
 }
 
 function clearAll() {
