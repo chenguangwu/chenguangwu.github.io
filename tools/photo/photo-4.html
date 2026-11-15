@@ -111,7 +111,7 @@
     <div class="input-row"><label>焦距 mm</label><input type="number" id="focal" value="24" step="any" oninput="calc()" placeholder="如 24"></div>
     <div class="input-row"><label>裁切系数</label><input type="number" id="crop" value="1" step="any" oninput="calc()" placeholder="如 1"></div>
     <div class="input-row"><label>传感器长边像素</label><input type="number" id="pixels" value="6000" step="1" oninput="calc()" placeholder="如 6000"></div>
-    <div class="input-row"><label>可接受移动像素</label><input type="number" id="tolerance" value="5" step="1" oninput="calc()" placeholder="如 5"></div>
+    <div class="input-row"><label>光圈 f/N</label><input type="number" id="aperture" value="2.8" step="0.1" oninput="calc()" placeholder="如 2.8"></div>
     <div class="toolbar">
       <div id="photo_4Presets"></div>
       <button class="btn primary" onclick="calc()">计算</button>
@@ -126,7 +126,7 @@
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
-    <div class="formula-eq">500 法则：曝光秒数 ≤ 500 / (焦距 × 裁切系数)<br>NPF 更精确，考虑像素尺寸</div>
+    <div class="formula-eq">500 法则：曝光秒数 ≤ 500 / (焦距 × 裁切系数)<br>NPF（更精确）：t = (35 × 光圈 + 30 × 像元尺寸µm) / (焦距 × 裁切系数)，像元尺寸 = 36 ÷ 裁切系数 ÷ 长边像素 × 1000</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">用于星空摄影避免星点拖线。</p>
   </div>
 </div>
@@ -266,7 +266,7 @@ function __tbInputGuardCore(_ids,_labels){
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
-  var _REQ=['focal', 'crop', 'pixels', 'tolerance'];
+  var _REQ=['focal', 'crop', 'pixels', 'aperture'];
   for(var _i=0;_i<_ids.length;_i++){
     var _e=document.getElementById(_ids[_i]);
     if(!_e) continue;
@@ -288,7 +288,7 @@ function __tbInputGuardCore(_ids,_labels){
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"focal": "focal", "crop": "crop", "tolerance": "tolerance"};
+  var __D={"focal": "focal", "crop": "crop", "aperture": "aperture"};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -317,18 +317,22 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 function calc(){
-    var __ig=__tbInputGuard(['focal', 'crop', 'pixels', 'tolerance'],["焦距 mm", "裁切系数", "传感器长边像素", "可接受移动像素"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+    var __ig=__tbInputGuard(['focal', 'crop', 'pixels', 'aperture'],["焦距 mm", "裁切系数", "传感器长边像素", "光圈 f/N"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const focal = +document.getElementById('focal').value || 0;
   const crop = +document.getElementById('crop').value || 0;
   const pixels = +document.getElementById('pixels').value || 0;
-  const tolerance = +document.getElementById('tolerance').value || 0;
+  const aperture = +document.getElementById('aperture').value || 0;
+  if(aperture<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 请输入大于 0 的光圈值。</p>');return;}
+  const pitch = (36 / crop) * 1000 / pixels;   // 真实像元尺寸 µm（全幅长边 36mm）
   let html = '';
+  const __enR=/^en/i.test(document.documentElement.lang||'');
+  const __u=__enR?' s':' 秒';
   const __v0 = (500/(focal*crop));
-  html += `<p>500 法则：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(1)}</strong> 秒</p>`;
-  const __v1 = ((35*focal+30*pixels/1000)/(focal*crop)/tolerance);
-  html += `<p>NPF 近似：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(2)}</strong> 秒</p>`;
-  const __v2 = (Math.min(500/(focal*crop),(35*focal+30*pixels/1000)/(focal*crop)/tolerance));
-  html += `<p>建议最长时间：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(1)}</strong> 秒</p>`;
+  html += `<p>${__enR?'500 rule: ':'500 法则：'}<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(1)}</strong>${__u}</p>`;
+  const __v1 = ((35*aperture+30*pitch)/(focal*crop));
+  html += `<p>${__enR?'NPF: ':'NPF 近似：'}<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(2)}</strong>${__u}</p>`;
+  const __v2 = (Math.min(500/(focal*crop),(35*aperture+30*pitch)/(focal*crop)));
+  html += `<p>${__enR?'Recommended maximum: ':'建议最长时间：'}<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(1)}</strong>${__u}</p>`;
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {
@@ -456,10 +460,10 @@ function __photo_4Export(){
 }
 function __photo_4Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#photo_4Presets',[{label:'默认参数',labelEn:'Default',values:{focal:'24', crop:'1', pixels:'6000', tolerance:'5'}},
-  {"label":"14mm 全画幅星轨","labelEn":"14mm full-frame star trails","values":{"focal":14,"crop":1,"pixels":6100,"tolerance":5}},
-  {"label":"50mm APS-C 星轨","labelEn":"50mm APS-C star trails","values":{"focal":50,"crop":1.5,"pixels":4000,"tolerance":3}},
-  {"label":"35mm 长曝星轨","labelEn":"35mm long-exposure trails","values":{"focal":35,"crop":1,"pixels":4500,"tolerance":8}}],function(){ calc(); });
+    TBKit.preset.bar('#photo_4Presets',[{label:'默认参数',labelEn:'Default',values:{focal:'24', crop:'1', pixels:'6000', aperture:'2.8'}},
+  {"label":"14mm 全画幅星轨","labelEn":"14mm full-frame star trails","values":{"focal":14,"crop":1,"pixels":6100,"aperture":2.8}},
+  {"label":"50mm APS-C 星轨","labelEn":"50mm APS-C star trails","values":{"focal":50,"crop":1.5,"pixels":4000,"aperture":4}},
+  {"label":"35mm 长曝星轨","labelEn":"35mm long-exposure trails","values":{"focal":35,"crop":1,"pixels":4500,"aperture":5.6}}],function(){ calc(); });
 }
 var __photo_4_f0=(typeof calc==='function')?calc:null;
 if(__photo_4_f0){
