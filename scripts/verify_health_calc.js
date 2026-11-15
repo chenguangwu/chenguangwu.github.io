@@ -182,6 +182,12 @@ const CASES = [
   },
   {
     slug: "health/insulin-dose",
+    inputs: { currentBg: "11", targetBg: "6", icr: "12", isf: "3", carbs: "45", activeIns: "1", exercise: "1.2" },
+    expect: ["×1.20", "未取整合计 5.3 U"],
+    ref: "留存优化：碳水 3.75 + 校正 1.67 − 活性 1 = 4.42；×运动系数 1.20 = 5.30 U（取整前），最终四舍五入 5.5 U。新增「运动系数 ×1.20」与「取整前合计 5.3 U」卡，使假设可核对；默认 exercise=1 ⇒ ×1.00，不命中。",
+  },
+  {
+    slug: "health/insulin-dose",
     inputs: { currentBg: "11", targetBg: "6", icr: "12", isf: "3", carbs: "0" },
     expect: ["1.5", "1.7U"],
     ref: "复核失败重做 G10-48：0 碳水须被当作合法数值（修复前 !carbs 把 0 判为假致清空为 --）。carbDose=0÷12=0.0U、corrDose=(11−6)÷3=1.7U、合计 1.5 U；命中 doseVal=1.5 与 校正剂量卡 1.7U（0.0U 与默认态撞车，改取 1.7U 锚；避开默认 8.5/6.3）。",
@@ -636,9 +642,9 @@ const CASES = [
       "insulinType": "regular"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42\n0.8\n0.0\n1.0U 碳水剂量 0.0U 校正剂量 42.0U 活性胰岛素\nregular"
+      "42\n42\n42\n42\n42\n42\n0.8\n0.0\n1.0U 碳水剂量 0.0U 校正剂量 42.0U 活性胰岛素 ×0.80 运动系数"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"currentBg\":\"42\",\"targetBg\":\"42\",\"icr\":\"42\",\"isf\":\"42\",\"carbs\":\"42\",\"activeIns\":\"42\",\"exercise\":\"0.8\",\"insulinType\":\"regular\"}，输出区含「42\n42\n42\n42\n42\n42\n0.8\n0.0\n1.0U 碳水剂量 0.0U…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"currentBg\":\"42\",\"targetBg\":\"42\",\"icr\":\"42\",\"isf\":\"42\",\"carbs\":\"42\",\"activeIns\":\"42\",\"exercise\":\"0.8\",\"insulinType\":\"regular\"}，输出含「…42.0U 活性胰岛素 ×0.80 运动系数」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。新增卡片后锚点截到「运动系数」，避免与后续取整行耦合。"
   },
   {
     "slug": "health/pregnancy-weight-gain",
