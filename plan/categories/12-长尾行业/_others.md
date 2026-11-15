@@ -2110,22 +2110,6 @@
 
 ## W 批 · 化工/营养/工艺/运输（2026-11-04）
 
-### 12-N219 nutrition/food-calorie-lookup：「导出明细 CSV」指向空的历史表容器 `#food_calorie_lookupTable`，不导出可见食物表（中，假功能）
-- 问题：可见食物表 id 是 `table`（`:127`），而导出函数调用 `exportTable('#food_calorie_lookupTable', …)`（`:391-394`）；`#food_calorie_lookupTable` 是 table 内部的一个空 `<div>`（`:129`），仅在有历史时被 `TBKit.matrix.table` 填入历史行。
-- 证据：`tools/nutrition/food-calorie-lookup.html:127`、`:129`、`:391-394`；`js/tool-kit.js:221-237`（`exportTable` 找不到 `tr` 时直接 `return false`）
-- 复现（静态核对 + 依赖源码）：首屏直接点「导出明细 CSV」→ 目标容器无 `tr` → 返回 false，无文件下载；输入关键词后再点，导出的是「时间/关键词/结果」历史行，而非当前食物明细（食物名/每100g/200g/分类）。
-- 影响：`tools/nutrition/food-calorie-lookup.html` 的导出按钮名不副实，用户拿不到速查表数据。
-- 方案：导出目标改为 `'#table'`，或给食物表加 `id="food_calorie_lookupFoodTable"` 并改指向。
-- 严重度：中；是否假工具：否
-
-### 12-N220 nutrition/food-calorie-lookup：deep-dive 算例数值与表内数据不一致，且馒头/牛油果不在速查表（中，错误结果）
-- 问题：deep-dive 写「米饭 116、馒头 223、鸡胸肉 165、鸡蛋 144、牛油果 160、香蕉 93、苹果 54、西兰花 34 kcal/100g」（`:432-433`）；表内实际为 鸡蛋 **143**（`:229`）、香蕉 **89**（`:242`）、苹果 **52**（`:241`），且 `FOODS` 列表（`:223-272`）中没有「馒头」「牛油果」。
-- 证据：`tools/nutrition/food-calorie-lookup.html:432-433`、`:229`、`:241`、`:242`、`:223-272`
-- 复现（静态核对）：搜「馒头」「牛油果」均返回「未匹配到食物」；同页鸡蛋/香蕉/苹果出现 144/93/54 与 143/89/52 两套值。
-- 影响：`tools/nutrition/food-calorie-lookup.html` 用户按深度解析取值会与速查表差 2%–4%，误导膳食记录。**需临床复核**（食物能量值口径）。
-- 方案：以表内数据为准回写 deep-dive（143/89/52），并把「馒头 223」「牛油果 160」补入 `FOODS` 或从算例删除。
-- 严重度：中；是否假工具：否
-
 ### 12-N221 process/tolerance-worst-case、tolerance-rss：空值与负公差校验（历史条目，部分源码已变）
 - 2026-11-06 静态复核：两页 `:221-236` 现已对空值和非有限输入提示，旧文「空值按 0 参与主计算」已过时；负公差仍被直接求和（`:237-241`），旧负数示例仍适用。空值时 extras 因非有限值直接返回（`:251-255,281-282`），旧表是否可继续导出需运行验证。
 - 问题：两页 `num()` 对空值/非数字一律返回 0（worst-case `:221`、rss `:221`），`calcTool()` 不做必填或 `t≥0` 校验，直接求和/方和根（worst-case `:224-229`、rss `:224-229`）；`__*Extras()` 只在明细表/历史处用 `isFinite` 拦截，结果区已先渲染。
@@ -2139,9 +2123,9 @@
 - 审计页数：8（`tools/chemical/convert-capacity-tank.html`、`mixture-ratio.html`、`tools/nutrition/food-calorie-lookup.html`、`generator-nutrition-label.html`、`tools/process/tolerance-worst-case.html`、`tolerance-rss.html`、`tools/transport/convert-fuel-oil.html`、`calculator-calc-tire.html`），覆盖 4 个目录。
 - 新增条数：10 条，编号 12-N212–12-N221（高 3 / 中 7）。
 - 高优：N217（燃油同单位换算输出倒数，已于第 683 批核验并新增 UK 用例）。N212 已于 2026-11-16 第 682 批修复（补卧式圆柱弓形面积、容积→液位二分反算、满罐容积与充装率）；N213/N214 已于第 681 批修复；N215/N216 已于第 683 批核验销账（现为逐项输入 + Atwater 17/37/17/8 kJ + NRV% 表格）；N218 已于第 683 批补「加仑制式 US/UK」与 282.4809 常数。
-- 中优集中模式：文案/数值错写（N220）、导出指向错误（N219）、空值/负值兜底仍出数（N221）；N214 已于第 681 批修复，N216/N218 已于第 683 批修复。
+- 中优集中模式：空值/负值兜底仍出数（N221）；N214 已于第 681 批修复，N216/N218 已于第 683 批修复，N219/N220 已于第 684 批修复（导出改指向可见速查表、深解数值与表内数据对齐）。
 - 无缺陷页：`tools/transport/calculator-calc-tire.html` 复算 225/45R17→634.3 mm、225/50R17→656.8 mm（+22.5 mm / +3.55%）、235/40R18→645.2 mm（+1.72%），外径差/间隙变化/表显 100 实际车速与公式一致，仅规格串正则不接受带载重/速度级别（如 225/45R17 91W），页面已明示该格式限制。
-- 未单列：`convert-capacity-tank.html` 公式行重复两遍已于第 682 批去重并按新能力重写；`mixture-ratio.html` 的 formula-desc 模板占位串已于第 681 批改为酒精降度公式说明；`convert-fuel-oil.html` 的多余 `</div>` 已于第 683 批修正（「到」下拉与结果区回到卡片内）；`food-calorie-lookup.html:129` 在 `<table>` 内嵌 `<div>`（浏览器会 foster-parent，导出按钮随之移位，N219 一并处理）。
+- 未单列：`convert-capacity-tank.html` 公式行重复两遍已于第 682 批去重并按新能力重写；`mixture-ratio.html` 的 formula-desc 模板占位串已于第 681 批改为酒精降度公式说明；`convert-fuel-oil.html` 的多余 `</div>` 已于第 683 批修正（「到」下拉与结果区回到卡片内）；`food-calorie-lookup.html` 的 `<table>` 内嵌 `<div>` 已于第 684 批移出（导出按钮与历史容器回到表格之后，不再触发 foster-parent）。
 - 局限：仅逐行读源码 + `node` 在 `/tmp` 复算，**未开浏览器、未跑 `_build.py`/`run_gates.py`/`_test_static.py`、未做 git 或线上验证**；英文态/繁体页/移动端未实测。营养条目（N215/N216/N220）的营养素值、NRV 与能量口径**需临床复核**，本批结论不构成膳食或标签合规指令。
 
 ## X 批 · 冶金/皮革/园艺/化工（2026-11-04）
