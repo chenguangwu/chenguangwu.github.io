@@ -264,19 +264,16 @@ function calc(){
   var grade, gradeClass, advice;
   if(absPed>1){
     grade='富有弹性'; gradeClass='grade-bad';
-    advice = '需求对价格敏感。降价可增加总收入，涨价会减少收入。';
   } else if(absPed<1){
     grade='缺乏弹性'; gradeClass='grade-good';
-    advice = '需求对价格不敏感。涨价可增加总收入，降价会减少收入。';
   } else {
     grade='单位弹性'; gradeClass='grade-pass';
-    advice = '价格变动与销量变动抵消，总收入基本不变。';
   }
-  if(ped>0) advice += ' 注意：本例价格与销量同向变动，可能为吉芬品或计算异常。';
 
   var rev1 = p1*q1, rev2 = p2*q2;
   var revChange = rev2-rev1;
   var revPct = rev1>0?(revChange/rev1*100):0;
+  var advice = __peAdvice(ped, absPed, revChange, revPct, p2>p1, false);
 
   const __g1=absPed.toFixed(3);document.getElementById('elasVal').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   document.getElementById('elasVal').style.color = absPed>1?'#EF4444':(absPed<1?'#10B981':'#F59E0B');
@@ -299,6 +296,26 @@ function calc(){
 
 function fmt(n){ return Math.round(n).toLocaleString('zh-CN'); }
 
+// 弹性等级与建议的唯一口径：calc() 与导出共用，保证「建议」永远与本次实际收入方向一致。
+// |PED| 只描述敏感度，不能直接当作方向结论——若价格与销量同向变动（ped>0），
+// 按敏感度套话会与真实收入变化相反，因此结论一律以 revChange 的实际符号给出。
+function __peAdvice(ped, absPed, revChange, revPct, priceUp, en){
+  var advice;
+  if(absPed>1) advice=en?'|PED| > 1: demand is price-sensitive.':'|PED| > 1：需求对价格敏感。';
+  else if(absPed<1) advice=en?'|PED| < 1: demand is price-insensitive.':'|PED| < 1：需求对价格不敏感。';
+  else advice=en?'|PED| = 1: unit elastic.':'|PED| = 1：单位弹性。';
+  var act=priceUp?(en?'raising the price':'提价'):(en?'cutting the price':'降价');
+  if(Math.abs(revChange)<1e-9){
+    advice += en?' Total revenue is unchanged this time.':' 本次'+act+'后总收入基本不变。';
+  } else if(revChange>0){
+    advice += en?' Total revenue rises by '+Math.abs(revPct).toFixed(1)+'% this time.':' 本次'+act+'后总收入增加 '+Math.abs(revPct).toFixed(1)+'%。';
+  } else {
+    advice += en?' Total revenue falls by '+Math.abs(revPct).toFixed(1)+'% this time.':' 本次'+act+'后总收入减少 '+Math.abs(revPct).toFixed(1)+'%。';
+  }
+  if(ped>0) advice += en?' Note: price and quantity moved in the same direction (Giffen good or data anomaly).':' 注意：本例价格与销量同向变动，可能为吉芬品或计算异常。';
+  return advice;
+}
+
 function __peExport(){
   if(typeof TBKit==='undefined')return;
   var p1=+document.getElementById('p1').value||0,
@@ -307,15 +324,13 @@ function __peExport(){
       q2=+document.getElementById('q2').value||0;
   if(p1<=0||q1<=0||p2<=0||q2<=0){ if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter complete valid price and sales first":"请先输入完整有效的价格与销量")); return; }
   var en=TBKit.util.isEn();
+  // 与 calc() 同一守卫：P₁=P₂ 时 dP=0，弹性无定义，导出不得写入 Infinity/NaN。
+  if(p2===p1){ if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(en?'Price unchanged (P1 = P2): elasticity is undefined; adjust a price before exporting.':'价格未变化（P₁ = P₂），需求价格弹性无定义；请调整其中一个价格后再导出。'); return; }
   var dQ=q2-q1, avgQ=(q1+q2)/2, dP=p2-p1, avgP=(p1+p2)/2;
   var ped=(dQ/avgQ)/(dP/avgP), absPed=Math.abs(ped);
   var grade=absPed>1?(en?'Elastic':'富有弹性'):(absPed<1?(en?'Inelastic':'缺乏弹性'):(en?'Unit elastic':'单位弹性'));
-  var advice;
-  if(absPed>1)advice=en?'Demand is price-sensitive: lowering price increases total revenue; raising price decreases it.':'需求对价格敏感。降价可增加总收入，涨价会减少收入。';
-  else if(absPed<1)advice=en?'Demand is price-insensitive: raising price increases total revenue; lowering price decreases it.':'需求对价格不敏感。涨价可增加总收入，降价会减少收入。';
-  else advice=en?'Price and quantity changes offset each other; total revenue roughly unchanged.':'价格变动与销量变动抵消，总收入基本不变。';
-  if(ped>0)advice+=en?' Note: price and quantity moved in the same direction (Giffen good or data anomaly).':' 注意：本例价格与销量同向变动，可能为吉芬品或计算异常。';
   var rev1=p1*q1, rev2=p2*q2, revChange=rev2-rev1, revPct=rev1>0?(revChange/rev1*100):0;
+  var advice=__peAdvice(ped, absPed, revChange, revPct, p2>p1, en);
   var rows=[
     ['Original Price P1',p1],['Original Quantity Q1',q1],['New Price P2',p2],['New Quantity Q2',q2],
     ['Price Change',(dP/avgP*100).toFixed(2)+'%'],['Quantity Change',(dQ/avgQ*100).toFixed(2)+'%'],

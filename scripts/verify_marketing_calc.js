@@ -76,6 +76,24 @@ const CASES = [
     ref: "默认 detail 模式：lifespanMonths=1/(10/100)=10；ltvGross=100×10=1000；ltv=1000×0.6=600.00；LTV:CAC=600/200=3.00",
   },
   {
+    slug: "marketing/marketing-ltv-calculator",
+    clicks: ["switchMode('detail');document.getElementById('cacDetail').value='';calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='LTV563 '+((h.indexOf('请填写 CAC')>=0&&h.indexOf('LTV:CAC')<0)?'OK':'BAD:['+h+']');"],
+    expect: ["LTV563 OK"],
+    ref: "563 复核失败重做：详情模式清空 CAC 时不得把它当 0 继续算。旧实现 `parseFloat(v)||0` ⇒ 通过校验、不显示 LTV:CAC（cac=0 时分支跳过）却照常给 LTV；现先判 raw==='' 并提示「请填写 CAC（可为 0，但不可留空）」，结果区不再出现比率卡。默认 300 不命中。",
+  },
+  {
+    slug: "marketing/marketing-ltv-calculator",
+    clicks: ["switchMode('detail');calc();var h=String(document.getElementById('result').innerHTML);var n=(h.match(/预期生命周期/g)||[]).length;document.getElementById('__tbProbe').textContent='LTV563D '+(n===1?'OK':'BAD:'+n);"],
+    expect: ["LTV563D OK"],
+    ref: "563 复核失败重做：详情模式的「预期生命周期」重复展示（详细拆解表一行 + 相关指标卡一项）。现删除拆解表中的重复行，仅保留指标卡；探针统计结果区出现次数须为 1。",
+  },
+  {
+    slug: "marketing/marketing-ltv-calculator",
+    clicks: ["switchMode('detail');document.getElementById('cacDetail').value='';calc();var n0=getHistory().length;saveHistory();document.getElementById('__tbProbe').textContent='LTV563S '+((getHistory().length===n0)?'OK':'BAD');"],
+    expect: ["LTV563S OK"],
+    ref: "563 复核失败重做：空 CAC 时保存历史须与计算同一校验。旧实现另行 parseFloat ⇒ NaN 被 JSON 序列化成 null 仍写入历史；现 saveHistory 只接受 calc() 校验通过的 __ltvLast 快照（错误态被清空），探针断言历史条数不变。",
+  },
+  {
     slug: "marketing/marketing-markup-margin",
     inputs: { costMarkup: "180", markupRate: "35" },
     expect: ["¥243.00", "¥63.00", "25.93%"],
@@ -208,6 +226,24 @@ const CASES = [
     inputs: { p1: "100", q1: "100", p2: "110", q2: "80" },
     expect: ["-2.33"],
     ref: "avgQ=90,avgP=105；pctQ=-20/90×100=-22.22；pctP=10/105×100=9.52；ped=-22.22/9.52=-2.33（|Ed|>1 富有弹性）",
+  },
+  {
+    slug: "marketing/price-elasticity",
+    inputs: { p1: "100", q1: "1000", p2: "90", q2: "1200" },
+    expect: ["-1.727", "8.0%"],
+    ref: "553 复核失败重做（纠正验收数据）：中点法 dQ=200、avgQ=1100、dP=−10、avgP=95 ⇒ (0.1818)/(−0.10526)=−1.727；收入 100000→108000=+8.0%。原验收记录写的 −2.478/+17% 实际对应 q2=1300，已纠正并以本用例锁定（q2=1200 是非默认值，默认 1300 输出 −2.478，不命中）。",
+  },
+  {
+    slug: "marketing/price-elasticity",
+    inputs: { p1: "100", q1: "100", p2: "110", q2: "120" },
+    expect: ["本次提价后总收入增加 32.0%"],
+    ref: "553 复核失败重做（建议与数据一致）：ped=(20/110)/(10/105)=+1.909，价格与销量同向；收入 10000→13200=+32%。旧实现按 |PED|>1 套话「涨价会减少收入」，与数据相反；现建议先给 |PED| 档位、结论一律按实际收入方向给出。默认 100→90/1000→1300 不产生「增加 32.0%」。",
+  },
+  {
+    slug: "marketing/price-elasticity",
+    clicks: ["window.TBKit=window.TBKit||{util:{isEn:function(){return false;}}};var __t=[];var __o=ToolBox.showToast;ToolBox.showToast=function(s){__t.push(String(s));};document.getElementById('p1').value='100';document.getElementById('q1').value='100';document.getElementById('p2').value='100';document.getElementById('q2').value='120';__peExport();ToolBox.showToast=__o;var h=String(document.getElementById('peHidden').innerHTML);document.getElementById('__tbProbe').textContent='PE553E '+((__t.join('|').indexOf('价格未变化')>=0&&h.indexOf('Infinity')<0&&h.indexOf('NaN')<0)?'OK':'BAD:['+__t.join('|')+']');"],
+    expect: ["PE553E OK"],
+    ref: "553 复核失败重做（导出守卫）：P₁=P₂=100、Q₁=100、Q₂=120 时 dP=0，导出旧逻辑只校验四项 > 0 ⇒ 生成 Infinity/NaN 并写「富有弹性」。现导出复用 calc 的价格未变守卫，toast 提示且不写表。探针要求提示出现且导出表无 Infinity/NaN。",
   },
   // ── 广告投放 ROI 测算（marketing/ad-roi）：CPC / CPM 双计费分支 ──
   {

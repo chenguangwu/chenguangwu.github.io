@@ -420,6 +420,7 @@ function calc() {
     if (!isFinite(lifespan) || lifespan <= 0) errs.push('客户生命周期须大于 0 年');
     if (!isFinite(margin) || margin < 0 || margin > 100) errs.push('毛利率须在 0–100% 之间');
     if (errs.length) {
+      window.__ltvLast = null;
       r.innerHTML='<div class="metric-card"><p class="tip-error">' + errs.join('；') + '</p></div>';
       return;
     }
@@ -431,14 +432,17 @@ function calc() {
     const mrr = parseFloat(document.getElementById('mrrDetail').value);
     const churn = parseFloat(document.getElementById('churnDetail').value);
     const margin = parseFloat(document.getElementById('marginDetail').value);
-    cac = parseFloat(document.getElementById('cacDetail').value) || 0;
+    const cacRaw = String(document.getElementById('cacDetail').value).trim();
+    cac = cacRaw === '' ? NaN : Number(cacRaw);
 
     const errs = [];
     if (!isFinite(mrr) || mrr <= 0) errs.push('月收入须大于 0');
     if (!isFinite(churn) || churn <= 0 || churn > 100) errs.push('月流失率须在 0–100% 之间（不含 0）');
     if (!isFinite(margin) || margin < 0 || margin > 100) errs.push('毛利率须在 0–100% 之间');
-    if (!isFinite(cac) || cac < 0) errs.push('CAC 须为 ≥0 的数字');
+    if (cacRaw === '') errs.push('请填写 CAC（可为 0，但不可留空）');
+    else if (!isFinite(cac) || cac < 0) errs.push('CAC 须为 ≥0 的数字');
     if (errs.length) {
+      window.__ltvLast = null;
       r.innerHTML='<div class="metric-card"><p class="tip-error">' + errs.join('；') + '</p></div>';
       return;
     }
@@ -454,6 +458,9 @@ function calc() {
   const lifeYears = currentMode === 'simple'
     ? inputs.lifespan
     : (inputs.churn > 0 ? 100 / (inputs.churn * 12) : 0);
+
+  // 保存历史只允许写入「本次校验通过的计算结果」：空 CAC 等错误态下 calc 已清空该快照。
+  window.__ltvLast = { mode: currentMode, inputs: inputs, ltv: ltv };
 
   let extra = '';
   if (cac > 0) {
@@ -487,7 +494,6 @@ function calc() {
       <table style="margin-top:8px;font-size:13px;width:100%;">
         <tr><td style="padding:4px 0;color:var(--text-light);">LTV（毛收入）</td><td style="text-align:right;font-weight:600;">¥${ToolBox.formatNumber(ltvGross, 2)}</td></tr>
         <tr><td style="padding:4px 0;color:var(--text-light);">LTV（毛利）</td><td style="text-align:right;font-weight:600;color:var(--primary);">¥${ToolBox.formatNumber(ltv, 2)}</td></tr>
-        ${currentMode === 'detail' ? `<tr><td style="padding:4px 0;color:var(--text-light);">预期生命周期</td><td style="text-align:right;font-weight:600;">${(1 / (inputs.churn/100)).toFixed(1)} 个月</td></tr>` : ''}
       </table>
     </div>
 
@@ -563,7 +569,10 @@ function calc() {
 
 function saveHistory() {
   const r = document.getElementById('result');
-  if (r.innerHTML.includes('请输入') || r.innerHTML.includes('tip-error')) {
+  // 只保存 calc() 校验通过的结果快照：空 CAC 等错误态下 calc 会清空 __ltvLast，
+  // 旧实现另行 parseFloat 会得到 NaN 并被 JSON 序列化成 null。
+  const last = window.__ltvLast;
+  if (!last || last.mode !== currentMode || !isFinite(last.ltv) || r.innerHTML.includes('tip-error')) {
     ToolBox.showToast(i18nText(),'error');
     return;
   }
@@ -571,17 +580,17 @@ function saveHistory() {
   let record = { id: Date.now(), mode: currentMode, time: new Date().toLocaleString('zh-CN') };
 
   if (currentMode === 'simple') {
-    record.arv = parseFloat(document.getElementById('arvSimple').value);
-    record.freq = parseFloat(document.getElementById('freqSimple').value);
-    record.lifespan = parseFloat(document.getElementById('lifespanSimple').value);
-    record.margin = parseFloat(document.getElementById('marginSimple').value);
-    record.ltv = record.arv * record.freq * record.lifespan * (record.margin / 100);
+    record.arv = last.inputs.arv;
+    record.freq = last.inputs.freq;
+    record.lifespan = last.inputs.lifespan;
+    record.margin = last.inputs.margin;
+    record.ltv = last.ltv;
   } else {
-    record.mrr = parseFloat(document.getElementById('mrrDetail').value);
-    record.churn = parseFloat(document.getElementById('churnDetail').value);
-    record.margin = parseFloat(document.getElementById('marginDetail').value);
-    record.cac = parseFloat(document.getElementById('cacDetail').value);
-    record.ltv = (record.mrr * (record.margin / 100)) / (record.churn / 100);
+    record.mrr = last.inputs.mrr;
+    record.churn = last.inputs.churn;
+    record.margin = last.inputs.margin;
+    record.cac = last.inputs.cac;
+    record.ltv = last.ltv;
   }
 
   let history = getHistory();

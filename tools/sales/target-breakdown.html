@@ -306,16 +306,14 @@ function calc(){
     if(!(sumWeight>0)){ fail(en?'The weights must add up to more than 0. Adjust the weights or switch to equal split.':'权重合计须大于 0，请调整权重或改用均分模式'); return; }
   }
 
-  var shares = computeShares(total, mode, sumWeight);
-  var targets = shares.targets;
-  var totalR = shares.total;
+  var all = computeAll(total, mode, sumWeight);
+  var targets = all.targets;
+  var totalR = all.total;
 
   var maxIdx = 0;
   for(var i=1;i<targets.length;i++) if(targets[i]>targets[maxIdx]) maxIdx = i;
 
-  var pcts = targets.map(function(t){ return totalR>0 ? Math.round(t/totalR*1000)/10 : 0; });
-  var pDiff = Math.round((100 - pcts.reduce(function(s,p){return s+p;},0))*10)/10;
-  if(pDiff !== 0 && pcts.length) pcts[maxIdx] = Math.round((pcts[maxIdx]+pDiff)*10)/10;
+  var pcts = all.pcts;
 
   const __g3='<div class="v">'+fmt(totalR)+' '+unit+'</div>'+
     '<div class="l" style="font-size:13px;color:var(--text-muted);">'+n+' 名成员　·　'+(mode==='avg'?'均分模式':'权重总和 '+sumWeight)+'</div>';document.getElementById('sumBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
@@ -344,6 +342,20 @@ function computeShares(total, mode, sumWeight){
   return {targets:targets, total:totalR};
 }
 
+// 目标值 + 展示占比的唯一口径：主表、图表与导出共用，占比尾差同样归最大项。
+// 导出若另行用 target/total 重算，会在 1000 均分 3 人时得到 33.3/33.3/33.3%，
+// 与主表的 33.4/33.3/33.3% 不一致却仍写「合计 100.0%」。
+function computeAll(total, mode, sumWeight){
+  var shares = computeShares(total, mode, sumWeight);
+  var targets = shares.targets, totalR = shares.total;
+  var maxIdx = 0;
+  for(var i=1;i<targets.length;i++) if(targets[i]>targets[maxIdx]) maxIdx = i;
+  var pcts = targets.map(function(t){ return totalR>0 ? Math.round(t/totalR*1000)/10 : 0; });
+  var pDiff = Math.round((100 - pcts.reduce(function(s,p){return s+p;},0))*10)/10;
+  if(pDiff !== 0 && pcts.length) pcts[maxIdx] = Math.round((pcts[maxIdx]+pDiff)*10)/10;
+  return {targets:targets, total:totalR, pcts:pcts};
+}
+
 function __tbkExport(){
   if(typeof TBKit==='undefined')return;
   var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
@@ -357,16 +369,17 @@ function __tbkExport(){
     if(members.some(function(m){return !isFinite(+m.weight)||+m.weight<0;})){ToolBox.showToast(en?'Weights must be 0 or greater.':'权重不能为负数');return;}
     if(!(sumWeight>0)){ToolBox.showToast(en?'The weights must add up to more than 0.':'权重合计须大于 0，请调整权重或改用均分模式');return;}
   }
-  var shares=computeShares(total,mode,sumWeight).targets;
+  var all=computeAll(total,mode,sumWeight);
+  var shares=all.targets, pcts=all.pcts;
   var tb=document.querySelector('#tbkHidden tbody');
   tb.innerHTML='';
   members.forEach(function(m,i){
     var tr=document.createElement('tr');
-    tr.innerHTML='<td>'+ToolBox.escHtml(m.name||'Unnamed')+'</td><td>'+(mode==='weight'?(+m.weight||0):'-')+'</td><td>'+shares[i].toFixed(2)+'</td><td>'+unit+'</td><td>'+(total>0?(shares[i]/total*100).toFixed(1):'0.0')+'%</td>';
+    tr.innerHTML='<td>'+ToolBox.escHtml(m.name||'Unnamed')+'</td><td>'+(mode==='weight'?(+m.weight||0):'-')+'</td><td>'+shares[i].toFixed(2)+'</td><td>'+unit+'</td><td>'+pcts[i].toFixed(1)+'%</td>';
     tb.appendChild(tr);
   });
   var tr=document.createElement('tr');
-  tr.innerHTML='<td>Total</td><td>'+(mode==='weight'?sumWeight:'-')+'</td><td>'+shares.reduce(function(s,t){return s+t;},0).toFixed(2)+'</td><td>'+unit+'</td><td>100.0%</td>';
+  tr.innerHTML='<td>Total</td><td>'+(mode==='weight'?sumWeight:'-')+'</td><td>'+shares.reduce(function(s,t){return s+t;},0).toFixed(2)+'</td><td>'+unit+'</td><td>'+pcts.reduce(function(s,p){return s+p;},0).toFixed(1)+'%</td>';
   tb.appendChild(tr);
   TBKit.util.exportTable('#tbkHidden',en?'target-breakdown.csv':'销售目标分解.csv');
 }
@@ -377,14 +390,24 @@ calc();
 
 function __tbExtras(){
   if(typeof TBKit==='undefined') return;
+  var chartEl=document.getElementById('tbChart');
   var total=+document.getElementById('total').value||0;
-  if(total<=0||!members.length) return;
   var mode=document.getElementById('mode').value;
   var en=TBKit.util.isEn();
-  var labels=[],data=[];
   var sumWeight=members.reduce(function(s,m){return s+(+m.weight||0);},0);
-  if(mode==='weight' && !(sumWeight>0)) return;
-  var shares=computeShares(total,mode,sumWeight).targets;
+  // 与 calc()/导出同一套完整校验：总目标 > 0、至少一名成员、权重非负且合计 > 0。
+  var badWeight = members.some(function(m){ return !isFinite(+m.weight) || +m.weight < 0; });
+  var valid = total>0 && members.length>0 && (mode!=='weight' || (sumWeight>0 && !badWeight));
+  if(!valid){
+    // 输入无效时清除上一轮图表，避免图表继续展示与主表/错误提示矛盾的目标。
+    if(chartEl && chartEl.getContext){
+      var ctx=chartEl.getContext('2d');
+      if(ctx) ctx.clearRect(0,0,chartEl.width,chartEl.height);
+    }
+    return;
+  }
+  var labels=[],data=[];
+  var shares=computeAll(total,mode,sumWeight).targets;
   members.forEach(function(m,i){
     labels.push(m.name||'未命名');
     data.push(shares[i]);

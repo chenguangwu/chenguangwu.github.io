@@ -158,6 +158,18 @@ const CASES = [
   "expect": [ "1,500.00 万元", "权重总和 80" ],
   "ref": "注入 total=1500 万元（默认 1000）⇒ 汇总显示「1,500.00 万元」；默认 4 名成员权重 25/20/25/10 合计 80，显示「权重总和 80」。两串均随金额变化，默认态不含 1,500.00。"
 },
+{
+  "slug": "sales/target-breakdown",
+  "clicks": ["globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){}},chart:{bar:function(){}}};members=[{name:'甲',weight:10},{name:'乙',weight:10},{name:'丙',weight:10}];document.getElementById('total').value='1000';document.getElementById('mode').value='avg';calc();var tbEl=null;var q=document.querySelector;document.querySelector=function(s){var e=q.call(document,s);if(s==='#tbkHidden tbody')tbEl=e;return e;};__tbkExport();document.querySelector=q;var h=String(tbEl&&tbEl.innerHTML);document.getElementById('__tbProbe').textContent='TB559 '+((h.indexOf('33.4%')>=0&&h.indexOf('33.3%')>=0&&h.indexOf('33.3%')!==h.lastIndexOf('33.3%')&&h.indexOf('100.0%')>=0)?'OK':'BAD:['+h+']');"],
+  "expect": ["TB559 OK"],
+  "ref": "559 复核失败重做：1000 均分 3 人 ⇒ 目标 333.34/333.33/333.33，占比尾差归最大项后为 33.4/33.3/33.3%。导出旧实现另按 target/total 重算，得到 33.3/33.3/33.3%，与主表不一致却仍写合计 100.0%。探针读导出表并要求同时出现 33.4% 与两个 33.3%（后者用首末索引不同判断）。默认态（4 人、权重模式）不产生该组合。"
+},
+{
+  "slug": "sales/target-breakdown",
+  "clicks": ["globalThis.TBKit={util:{isEn:function(){return false;}},chart:{bar:function(){}}};members=[{name:'甲',weight:-10},{name:'乙',weight:30}];document.getElementById('total').value='1000';document.getElementById('mode').value='weight';var c=0;TBKit.chart.bar=function(){c++;};calc();var t=String(document.getElementById('resultTable').innerHTML);document.getElementById('__tbProbe').textContent='TB559N '+((c===0&&t.indexOf('权重不能为负数')>=0)?'OK':'BAD:c='+c);"],
+  "expect": ["TB559N OK"],
+  "ref": "559 复核失败重做：权重 -10/30 时主表报「权重不能为负数」，但旧 __tbExtras 只校验合计 > 0（此处 20 > 0）⇒ 仍调用图表绘制负目标，且无效时不清除旧图。现图表复用同一完整校验（非负 + 合计 > 0）并清空画布；探针把 chart.bar 替换为计数桩，要求调用次数为 0 且主表错误提示存在。"
+},
 
 {
     "slug": "sales/commission-calculator",
