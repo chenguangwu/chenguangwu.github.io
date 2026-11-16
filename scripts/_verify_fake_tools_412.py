@@ -59,4 +59,4 @@ if fails:
     sys.exit(1)
 print("412 结论真实性证据：%d/%d 全部通过" % (total, total))
 print("  - 无「全量销账/待修页 0」绝对化措辞")
-print("  - 明确「本清单清 ≠ 全站完成」，列明真实剩余 %d 项（412/157/531）" % len(remain))
+print("  - 明确「本清单清 ≠ 全站完成」，列明真实剩余 %d 项" % len(remain))
