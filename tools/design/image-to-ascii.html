@@ -431,9 +431,9 @@ function clearAll(){
   const __h1='<p>📁 点击选择图片，或拖拽图片到这里</p><p style="font-size:12px;margin-top:6px;">支持 JPG / PNG / GIF / WebP / BMP</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){dropArea.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}dropArea.innerHTML=__h1;
   document.getElementById('output').textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"ASCII art will appear after uploading an image...":"上传图片后会显示 ASCII 字符画...");
 }
-// 历史回放：有图片数据则恢复旧图后按旧参数重绘；无图片数据时按当前图重绘（可恢复边界）。
+// 历史回放：仅有保存了图片的记录才可重绘；无图时绝不拿当前图冒充旧结果。
 window.__asciiRestore=function(dataUrl){
-  if(!dataUrl){ convert(); return; }
+  if(!dataUrl){ return false; }
   __asciiGen++;
   var myGen=__asciiGen;
   var im=new Image();
@@ -446,7 +446,10 @@ window.__asciiRestore=function(dataUrl){
     dropArea.classList.add('has-img');
     convert();
   };
-  im.onerror=()=>{ convert(); };
+  im.onerror=()=>{
+    var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    document.getElementById('output').textContent=__en?'Saved image could not be loaded; the historic result cannot be replayed.':'历史图片加载失败，无法回放该结果（不会用当前图片冒充）。';
+  };
   im.src=dataUrl;
 };
 </script><script>
@@ -523,11 +526,15 @@ function __image_to_asciiRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                // D-N57: 按旧参数重绘；有图片数据则恢复旧图后重绘，否则按当前图重绘（可恢复边界）
-                if(typeof window!=='undefined' && window.__asciiRestore){
-                    window.__asciiRestore(rec.__asciiImg||'');
-                } else {
-                    convert();
+                // D-N57 / 311：参数照常恢复，但只有随记录保存了原图才可重绘结果；
+                // 超限图未保存时明确告知不可回放，禁止拿当前图冒充历史结果。
+                if(rec.__asciiImg){
+                    if(typeof window!=='undefined' && window.__asciiRestore) window.__asciiRestore(rec.__asciiImg);
+                    else document.getElementById('output').textContent=en?'Saved image is unavailable in this context.':'当前环境无法恢复已保存图片。';
+                }else{
+                    document.getElementById('output').textContent=en
+                        ?'This record has no stored image (source exceeded 64 KB or was not saved). Parameters were restored, but the ASCII result cannot be replayed; upload the original image and run again.'
+                        :'该历史记录未保存原图（原图超过 64 KB 或未随记录保存），已恢复参数但无法回放字符画结果；请重新上传原图计算。';
                 }
             }catch(e2){}
             __image_to_ascii_skip=false;
@@ -552,10 +559,11 @@ function __image_to_asciiExtras(){
     var res=__image_to_asciiResText();
     if(!res) return;
     if(/上传图片后会显示|ASCII art will appear/i.test(res)) return;  // 占位态不记历史
-    // 把图片内容纳入记录（≤64KB 才持久化，超出则仅恢复参数，明确可恢复边界）
+    // 把图片内容纳入记录（≤64KB 才持久化；超限时显式标记不可回放，而不是静默丢弃）
     var data={};
-    if(typeof __asciiImgSrc!=='undefined' && __asciiImgSrc && __asciiImgSrc.length<=65536){
-        data.__asciiImg=__asciiImgSrc;
+    if(typeof __asciiImgSrc!=='undefined' && __asciiImgSrc){
+        if(__asciiImgSrc.length<=65536){ data.__asciiImg=__asciiImgSrc; }
+        else { data.__asciiImgOversize=true; }
     }
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
@@ -568,7 +576,8 @@ function __image_to_asciiExtras(){
         for(var i=0;i<keys.length;i++){
             if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
         }
-        if(same && String(last[rk])===String(res) && String(last.__asciiImg||'')===String(data.__asciiImg||'')) return;
+        if(same && String(last[rk])===String(res) && String(last.__asciiImg||'')===String(data.__asciiImg||'')
+            && String(last.__asciiImgOversize||'')===String(data.__asciiImgOversize||'')) return;
     }
     __image_to_ascii_last=now;
     var rec={};

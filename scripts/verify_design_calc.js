@@ -26,6 +26,51 @@ const path = require("path");
 const SVG_PATH = path.join(__dirname, "..", "tools", "design", "svg-minifier.html");
 const PPS_PATH = path.join(__dirname, "..", "tools", "design", "photo-print-size.html");
 
+// 311 复核失败：超限图未存图时，回放会拿当前图冒充历史结果。
+function asciiHistoryGuardChecks() {
+  const src = fs.readFileSync(path.join(__dirname, "..", "tools", "design", "image-to-ascii.html"), "utf8");
+  return [
+    {
+      name: "无图历史不再静默按当前图重绘",
+      ok: /if\(!dataUrl\)\{ return false; \}/.test(src)
+        && !/if\(!dataUrl\)\{ convert\(\); return; \}/.test(src)
+        && !/im\.onerror=\(\)=>\{ convert\(\); \}/.test(src),
+    },
+    {
+      name: "超限图显式标记不可回放并参与去重",
+      ok: /__asciiImgSrc\.length<=65536/.test(src)
+        && /__asciiImgOversize=true/.test(src)
+        && /String\(last\.__asciiImgOversize\|\|''\)===String\(data\.__asciiImgOversize\|\|''\)/.test(src),
+    },
+    {
+      name: "无图回放给出中英文不可回放提示",
+      ok: /if\(rec\.__asciiImg\)/.test(src)
+        && /无法回放字符画结果/.test(src)
+        && /the ASCII result cannot be replayed/.test(src),
+    },
+  ];
+}
+
+// 381 复核失败：阻塞后补播错过拍、停止后预排节点继续响。
+function metronomeStaticChecks() {
+  const src = fs.readFileSync(path.join(__dirname, "..", "tools", "design", "web-audio-metronome.html"), "utf8");
+  return [
+    {
+      name: "主线程阻塞后跳过错过拍并同步拍号",
+      ok: /if\(nextNoteTime<audioCtx\.currentTime-0\.02\)/.test(src)
+        && /const missed=Math\.floor\(\(audioCtx\.currentTime-nextNoteTime\)\/secondsPerBeat\)\+1/.test(src)
+        && /scheduledBeat=\(scheduledBeat\+missed\)%beats/.test(src),
+    },
+    {
+      name: "停止时取消全部预排振荡器并清空队列",
+      ok: /scheduledNodes\.push\(osc\)/.test(src)
+        && /scheduledNodes\.slice\(\)\.forEach/.test(src)
+        && /try\{o\.stop\(\);\}catch\(e\)\{\}/.test(src)
+        && /scheduledNodes\.length=0/.test(src),
+    },
+  ];
+}
+
 // 648 复核失败：DTD 内部子集被整段抽出的约定未覆盖空白压缩；CSV 的 ok 算了却没写进导出。
 function designRework648StaticChecks() {
   const src = fs.readFileSync(SVG_PATH, "utf8");
@@ -2458,6 +2503,18 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"bpmSlider\":\"42\",\"vol\":\"42\",\"beatsPer\":\"3\",\"sound\":\"beep\"}，输出区含「3\n1 2 3\nNaN\nNaN\n42\nbeep」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "design/web-audio-metronome",
+    "inputs": {
+      "bpmSlider": "60",
+      "vol": "42",
+      "beatsPer": "4",
+      "sound": "beep"
+    },
+    "clicks": ["var __oldST=globalThis.setTimeout;globalThis.setTimeout=function(){return 0;};globalThis.__stopCount=0;globalThis.AudioContext=function(){this.currentTime=0;this.destination={};this.createOscillator=function(){return {frequency:{value:0},connect:function(){},start:function(){},stop:function(t){if(typeof t!=='number')globalThis.__stopCount++;}};};this.createGain=function(){return {gain:{setValueAtTime:function(){},exponentialRampToValueAtTime:function(){}},connect:function(){}};};};audioCtx=null;isPlaying=true;currentBeat=0;scheduledBeat=0;nextNoteTime=0.5;bpm=60;beats=4;audioCtx=new AudioContext();audioCtx.currentTime=2;playClick(false,2.05);scheduler();var before=globalThis.__stopCount;toggle();globalThis.setTimeout=__oldST;document.getElementById('__tbProbe').textContent='M381 '+before+'/'+(globalThis.__stopCount||0)+' nodes='+scheduledNodes.length;"],
+    "expect": ["M381 0/1 nodes=0"],
+    "ref": "381 复核失败重做：先排一个 2.05s 的振荡器，再把音频时钟推到 2s、下一拍基准停在 0.5s（已过期 1.5s）。旧 scheduler 会把错过的拍全部立即 start；新实现先快进 nextNoteTime=2.5、scheduledBeat+2，while 不再排拍；toggle() 停止时逐个 stop 预排节点并清空队列。探针断言停止前 0 次、停止后 1 次、剩余节点 0；默认态无探针串。"
+  },
+  {
     "slug": "design/cvd-safe-palette",
     "inputs": {
       "csCount": "42",
@@ -3575,7 +3632,7 @@ async function main() {
     }
   }
 
-  const stat = designRework648StaticChecks();
+  const stat = designRework648StaticChecks().concat(metronomeStaticChecks(), asciiHistoryGuardChecks());
   const staticFails = stat.filter((s) => !s.ok);
   for (const s of staticFails) console.log("❌ [static] " + s.name);
 

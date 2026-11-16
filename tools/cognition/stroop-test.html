@@ -471,14 +471,23 @@
     // 建议
     const __h3=buildSuggestion(rec, cong, incong, neut, interference, interferenceRate);if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){$('stSuggest').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('stSuggest').innerHTML=__h3;
 
-    // 可视化
-    drawBar(cong, incong, neut);
-    drawScatter();
-    $('stScatterCap').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Each point is one scored trial; color encodes condition and the x-axis is trial order. Watch for RT drift caused by fatigue.':'每个点代表一次已反应的计分试次；颜色对应条件，横轴为试次顺序。可观察疲劳导致的 RT 漂移。');
+    // 可视化（语言切换后由 __tbRedraw 复用同一路径重绘）
+    renderCharts();
 
     // 常模说明
     const __h4='常模参考（健康成人）：干扰量约 30–100 ms，干扰率约 8–20%；错误率通常 不一致 > 中性 ≈ 一致。你的数值仅供个人参考，受练习效应影响会逐次下降。';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){$('stNormNote').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('stNormNote').innerHTML=__h4;
   }
+
+  // 语言判定统一走运行时 i18n，避免 canvas 文案与 DOM 文案口径分叉。
+  function isEnUi(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}return /^en/i.test(document.documentElement.lang||'');}
+  function renderCharts(){
+    var cong=condStats('congruent'),incong=condStats('incongruent'),neut=condStats('neutral');
+    drawBar(cong,incong,neut);
+    drawScatter();
+    $('stScatterCap').textContent = isEnUi()?'Each point is one scored trial; color encodes condition and the x-axis is trial order. Watch for RT drift caused by fatigue.':'每个点代表一次已反应的计分试次；颜色对应条件，横轴为试次顺序。可观察疲劳导致的 RT 漂移。';
+  }
+  window.__tbRedraw=function(){try{renderCharts();}catch(e){}};
+  if(!window.__tbLangBound){window.__tbLangBound=1;window.addEventListener('toolbox:langchange',function(){if(window.__tbRedraw)window.__tbRedraw();});}
 
   function detailRow(name, s) {
     return '<tr><td class="k">' + esc(name) + '</td><td>' + s.total + '</td><td>' + (isNaN(s.m) ? '—' : Math.round(s.m)) +
@@ -519,14 +528,14 @@
    * 7. 柱状图（均值 ± SEM）
    * ========================================================== */
   function drawBar(cong, incong, neut) {
-  var en = /^en/i.test(document.documentElement.lang || '');
+    var en = isEnUi();
     var cv = $('stChart'), ctx = cv.getContext('2d');
     var W = cv.width, H = cv.height;
     ctx.clearRect(0, 0, W, H);
     var data = [
-      { label: '一致', s: cong, color: '#30A46C' },
-      { label: '不一致', s: incong, color: '#E5484D' },
-      { label: '中性', s: neut, color: '#9CA3AF' }
+      { label: en ? 'Congruent' : '一致', s: cong, color: '#30A46C' },
+      { label: en ? 'Incongruent' : '不一致', s: incong, color: '#E5484D' },
+      { label: en ? 'Neutral' : '中性', s: neut, color: '#9CA3AF' }
     ];
     var padL = 50, padR = 20, padT = 24, padB = 50;
     var plotW = W - padL - padR, plotH = H - padT - padB;
@@ -576,6 +585,7 @@
    * 8. 散点图（逐试次 RT）
    * ========================================================== */
   function drawScatter() {
+    var en = isEnUi();
     var cv = $('stScatter'), ctx = cv.getContext('2d');
     var W = cv.width, H = cv.height;
     ctx.clearRect(0, 0, W, H);
@@ -584,7 +594,7 @@
     var plotW = W - padL - padR, plotH = H - padT - padB;
     if (!pts.length) {
       ctx.fillStyle = '#9CA3AF'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('无计分数据', W / 2, H / 2); return;
+      ctx.fillText(en ? 'No scored data' : '无计分数据', W / 2, H / 2); return;
     }
     var maxRt = 0; pts.forEach(function (p) { maxRt = Math.max(maxRt, p.rt); });
     maxRt = Math.max(maxRt, 1000) * 1.05;
@@ -596,7 +606,7 @@
       ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
       ctx.textAlign = 'right'; ctx.fillText(Math.round(v) + '', padL - 6, y + 4);
     }
-    ctx.textAlign = 'center'; ctx.fillText('试次顺序', W / 2, H - 8);
+    ctx.textAlign = 'center'; ctx.fillText(en ? 'Trial order' : '试次顺序', W / 2, H - 8);
     var n = pts.length;
     var colorsMap = { congruent: '#30A46C', incongruent: '#E5484D', neutral: '#9CA3AF' };
     pts.forEach(function (p, i) {
@@ -611,8 +621,6 @@
     ctx.fillStyle = '#30A46C'; ctx.fillText(en ? '● Congruent' : '● 一致', padL + 4, padT + 12);
     ctx.fillStyle = '#E5484D'; ctx.fillText(en ? '● Incongruent' : '● 不一致', padL + 60, padT + 12);
     ctx.fillStyle = '#9CA3AF'; ctx.fillText(en ? '● Neutral (○=wrong)' : '● 中性（○=错误）', padL + 120, padT + 12);
-  window.__tbRedraw=function(){ try{ summarize(); }catch(e){} };
-  if(!window.__tbLangBound){window.__tbLangBound=1;window.addEventListener('toolbox:langchange',function(){if(window.__tbRedraw)window.__tbRedraw();});}
   }
 
   /* ============================================================

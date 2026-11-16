@@ -1,6 +1,49 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+const path = require("path");
+
+// 529 复核失败：canvas 文案不进 DOM，DOM 探针查不到；用源码守卫锁定
+// 交互态的双语分支与语言切换重绘路径，避免局部 en 作用域错误回潮。
+function canvasLangStaticChecks() {
+  const read = (slug) => fs.readFileSync(path.join(__dirname, "..", "tools", "cognition", slug), "utf8");
+  const stroop = read("stroop-test.html");
+  const time = read("time-perception.html");
+  return [
+    {
+      name: "Stroop 散点图使用统一语言判定（不再引用 drawBar 局部 en）",
+      ok: /function drawScatter\(\) \{\s*var en = isEnUi\(\);/.test(stroop)
+        && /function isEnUi\(\)\{/.test(stroop)
+        && !/function drawBar\([^)]*\) \{\s*var en = \/\^en\//.test(stroop),
+    },
+    {
+      name: "Stroop 柱图标签、散点空态与轴标题双语",
+      ok: /en \? 'Congruent' : '一致'/.test(stroop)
+        && /en \? 'Incongruent' : '不一致'/.test(stroop)
+        && /en \? 'Neutral' : '中性'/.test(stroop)
+        && /en \? 'No scored data' : '无计分数据'/.test(stroop)
+        && /en \? 'Trial order' : '试次顺序'/.test(stroop),
+    },
+    {
+      name: "Stroop 语言切换复用完整重绘（非只算摘要）",
+      ok: /function renderCharts\(\)/.test(stroop)
+        && /window\.__tbRedraw=function\(\)\{try\{renderCharts\(\);\}catch\(e\)\{\}\};/.test(stroop)
+        && /addEventListener\('toolbox:langchange'/.test(stroop)
+        && !/window\.__tbRedraw=function\(\)\{ try\{ summarize\(\); \}/.test(stroop),
+    },
+    {
+      name: "时间感知双击直方图标题双语且可按语言重绘",
+      ok: /function tpHistLabel\(\)/.test(time)
+        && /drawHist\(\$\('dHist'\), intervals, '#10B981', tpHistLabel\(\)\)/.test(time)
+        && /window\.__tpDoubleIntervals=intervals\.slice\(\)/.test(time)
+        && /window\.__tpRedraw=function\(\)/.test(time)
+        && /addEventListener\('toolbox:langchange'/.test(time)
+        && !/drawHist\(\$\('dHist'\), intervals, '#10B981', '双击间隔\(ms\)'\)/.test(time),
+    },
+  ];
+}
+
 const CASES = [
 {
   "slug": "cognition/cognitive-assessment",
@@ -186,7 +229,12 @@ async function main() {
     }
   }
 
+  const stat = canvasLangStaticChecks();
+  const staticFails = stat.filter((s) => !s.ok);
+  for (const s of staticFails) console.log("❌ [static] " + s.name);
+
   console.log("==== cognition calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (staticFails.length) console.log("❌ static " + (stat.length - staticFails.length) + "/" + stat.length + " 未通过");
+  if (fails.length || staticFails.length) process.exit(1);
 }
 if (require.main === module) main();

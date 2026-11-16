@@ -247,6 +247,8 @@
 let audioCtx=null,isPlaying=false,currentBeat=0,timer=null,bpm=120,beats=4;
 // 预排音频时钟：nextNoteTime 为下一拍的绝对音频时刻（秒），scheduledBeat 为已排拍号
 let nextNoteTime=0,scheduledBeat=0;
+// 已预排但尚未响完的振荡器：停止时必须逐个 cancel，否则预排窗口内的声音会在停止后响起。
+const scheduledNodes=[];
 const LOOKAHEAD_MS=25, SCHEDULE_AHEAD_S=0.1;
 function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();}
 function playClick(isAccent, when){
@@ -261,12 +263,21 @@ function playClick(isAccent, when){
   gain.gain.exponentialRampToValueAtTime(0.001,t+0.05);
   osc.connect(gain);gain.connect(audioCtx.destination);
   osc.start(t);osc.stop(t+0.05);
+  scheduledNodes.push(osc);
+  osc.onended=function(){var i=scheduledNodes.indexOf(osc);if(i>=0)scheduledNodes.splice(i,1);};
 }
 // 节拍器调度：以音频时钟 nextNoteTime 为唯一基准，每次严格 += 60/bpm，
 // 回调延迟只影响「何时排下一批」，不进入节拍基准 ⇒ 长时间播放不累积漂移。
 function scheduler(){
   if(!isPlaying||!audioCtx)return;
   const secondsPerBeat=60/bpm;
+  // 主线程被长时间阻塞时，不补播已错过的拍；只把基准快进到当前时刻，
+  // 并按跳过的拍数同步推进拍号，避免停止/重启后相位错乱。
+  if(nextNoteTime<audioCtx.currentTime-0.02){
+    const missed=Math.floor((audioCtx.currentTime-nextNoteTime)/secondsPerBeat)+1;
+    nextNoteTime+=missed*secondsPerBeat;
+    scheduledBeat=(scheduledBeat+missed)%beats;
+  }
   while(nextNoteTime<audioCtx.currentTime+SCHEDULE_AHEAD_S){
     const beatIndex=scheduledBeat%beats;
     playClick(beatIndex===0,nextNoteTime);
@@ -287,7 +298,12 @@ function renderDots(){
 }
 function toggle(){
   initAudio();
-  if(isPlaying){clearTimeout(timer);isPlaying=false;document.getElementById('playBtn').textContent='▶️ 开始';}
+  if(isPlaying){
+    clearTimeout(timer);isPlaying=false;
+    scheduledNodes.slice().forEach(function(o){try{o.stop();}catch(e){}});
+    scheduledNodes.length=0;
+    document.getElementById('playBtn').textContent='▶️ 开始';
+  }
   else{isPlaying=true;currentBeat=0;scheduledBeat=0;nextNoteTime=audioCtx.currentTime+0.06;document.getElementById('playBtn').textContent='⏸️ 停止';scheduler();}
   renderDots();
 }
