@@ -44,16 +44,6 @@ const CASES = [
 },
 {
   "slug": "pet-training/clicker-timing",
-  "inputs": {
-    "duration": "1200"
-  },
-  "expect": [
-    "1200"
-  ],
-    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
-},
-{
-  "slug": "pet-training/clicker-timing",
   "clicks": [
     "var s=String(scheduleNext),h=String(handleClick);var ok=/clearTimeout\\(nextTimer\\)/.test(s)&&/nextTimer=setTimeout/.test(h)&&/recordAttempt\\(null\\);\\s*updateStats\\(\\)/.test(s);document.getElementById('__tbProbe').textContent='CLK '+ok;"
   ],

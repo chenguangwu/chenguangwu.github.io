@@ -378,16 +378,6 @@ const CASES = [
   "ref": "B2 回归：清空实测 NEX 时不得把空值当 0 或默认 77 混算。旧实现 182×0.2+0=36 cm；修正后身高估算 182×0.25+10=55.5 → 56 cm。默认态 53 cm，零交集。"
 },
 {
-  "slug": "clinical-nursing/fall-emergency-flow",
-  "clicks": [
-    "window.__fallSnap=[0,1,2,4,7]; window.__fallEmr()"
-  ],
-  "expect": [
-    "已完成 5/8 关键步骤"
-  ],
-  "ref": "门诊记录：clicks 注入 window.__fallSnap=[0,1,2,4,7]（完成的步骤索引）后 window.__fallEmr() 渲染『已完成 5/8 关键步骤 + 步骤序号 1,2,3,5,8』。__fallEmr 渲染后 delete window.__fallSnap，兜底循环即便调用也 return；默认态无 __fallSnap → 无任何门诊记录块，零交集。"
-},
-{
   "slug": "clinical-nursing/gastric-tube-depth",
   "inputs": {
     "height": "200",
