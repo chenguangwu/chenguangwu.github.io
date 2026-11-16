@@ -122,7 +122,7 @@ window.INDUSTRY_INFO = {
   'mechanical'           : { name: '机械工程', icon: '⚙️', hot: 125576 },
   'gardening'            : { name: '园艺种植', icon: '🌿', hot: 124264 },
   'language'             : { name: '语言翻译', icon: '🌍', hot: 123727 },
-  'pet'                  : { name: '宠物养护', icon: '🐾', hot: 122530 },
+  'pet'                  : { name: '宠物养护', icon: '🐾', hot: 122529 },
   'chemical'             : { name: '化工材料', icon: '⚗️', hot: 122379 },
   'leather'              : { name: '皮革加工', icon: '👜', hot: 122015 },
   'safety'               : { name: '安全生产', icon: '🦺', hot: 121034 },

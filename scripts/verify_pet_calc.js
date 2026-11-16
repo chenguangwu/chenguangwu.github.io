@@ -206,9 +206,29 @@ const CASES = [
     "petAge": "6"
   },
   "expect": [
-    "44岁"
+    "40岁"
   ],
-  "ref": "auto-restore"
+  "ref": "433 复核：年龄表首项对应 1 岁，猫 6 岁取 CAT_AGES[5]=40（修复前按 petAge 直接索引得 44）"
+},
+{
+  "slug": "pet/pet-age",
+  "inputs": {
+    "petAge": "0"
+  },
+  "expect": [
+    "0岁"
+  ],
+  "ref": "433 复核：猫 0 岁折 0（修复前取 CAT_AGES[0]=15，历史页为 0）；6 岁默认态不含该串"
+},
+{
+  "slug": "pet/pet-age",
+  "inputs": {
+    "petAge": "1"
+  },
+  "expect": [
+    "15岁"
+  ],
+  "ref": "433 复核：猫 1 岁取年龄表首项 15（修复前取 CAT_AGES[1]=24，历史页为 15）；6 岁默认态不含该串"
 },
 
 ];
