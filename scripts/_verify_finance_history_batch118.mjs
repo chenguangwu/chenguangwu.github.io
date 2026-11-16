@@ -5,7 +5,9 @@
 //   text —— 纯文本或 range 归一化工具，没有业务失败态，断言连续输入每次都记 1 且尾部不丢。
 import { JSDOM, VirtualConsole } from 'jsdom';
 import { readFileSync } from 'fs';
-const ROOT = '/Users/cgw/project/cgw/chenguangwu.github.io';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const cases = [
   // --- 有真实拒绝态 ---
@@ -20,8 +22,10 @@ const cases = [
   { slug: 'word-frequency', id: 'input', mode: 'text', alt: 'alpha beta alpha', tail: 'gamma delta gamma', buttonEach: false },
   { slug: 'word-wrap', id: 'input', mode: 'text', alt: '需要换行的第二段文本内容', tail: '第三段换行测试文本 ToolBox', buttonEach: false },
   { slug: 'vcard-qr', id: 'fn', mode: 'text', alt: '李', tail: '王', buttonEach: true },
-  // range 输入会被浏览器归一化到 min=4，长度非法态不存在；生成入口是按钮，必须每次点。
-  { slug: 'password', id: 'pwLen', mode: 'text', alt: '24', tail: '32', buttonEach: true },
+  // 204 批裁断：password.html 已合并重定向至 life/generator-strength.html（提交 d58e5d690f），
+  // 目标页「关闭页面即清除密码」为正确的安全口径；明文密码写入历史/趋势/导出本身是安全隐患。
+  // 原「password 页明文密码写历史/趋势/导出」要求正式作废，本脚本移除该失效用例（pwLen 元素已不存在）。
+  // 等效的安全功能由 password-generator-advanced 提供：历史只存参数与掩码「未保存明文」，仍纳入回归。
   { slug: 'password-generator-advanced', id: 'len', mode: 'text', alt: '28', tail: '36', buttonEach: true },
 ];
 

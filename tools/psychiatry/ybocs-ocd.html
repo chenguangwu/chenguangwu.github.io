@@ -176,7 +176,7 @@
 <li>强迫行为评估</li>
 <li>治疗前后对照</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">总分 20（中度）</div><div class="dd-ex-body">10 项各 0–4 分（第4/5/9/10题为抵抗/控制条目，越能抵抗/控制得分越低，按 4−选项 反向计分）：强迫思维 5 项合计 12、强迫行为 5 项合计 8 → 总分 20，属中度，建议药物治疗联合 ERP。</div></div>
+<div class="dd-example"><div class="dd-ex-title">总分 20（中度）</div><div class="dd-ex-body">10 项各 0–4 分，选最轻选项得 0 分、最重得 4 分；第4/5/9/10题为抵抗/控制条目，选项按「总能抵抗/控制→几乎无法抵抗/控制」方向书写，与其他题同为正向计分：强迫思维 5 项合计 12、强迫行为 5 项合计 8 → 总分 20，属中度，建议药物治疗联合 ERP。</div></div>
 <div class="dd-example"><div class="dd-ex-title">轻度 8 分</div><div class="dd-ex-body">思维 5（各约 1）+ 行为 3（各约 0.6）→ 总分 8，轻度，可先行认知行为干预并随访。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
@@ -226,7 +226,13 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
+// 选项文案按题目方向分组：普通题与抵抗/控制题语义相反，不能用同一组选项再反向计分。
+// 依据 Y-BOCS 原始量表(Goodman 1989)，第4/5/9/10题问「抵抗/控制程度」：
+//   「总能抵抗/控制」= 0 分（症状最轻），「几乎无法抵抗/控制」= 4 分（症状最重）。
+// 这样 10 题统一为「选最轻选项得 0 分」，无症状者全选首项即得 0 分，消除「全选无=16分中度」矛盾。
 var OPTS=['无','轻度','中度','重度','极重度'];
+var OPTS_RES=['总能抵抗','多数能抵抗','约半能抵抗','很少能抵抗','几乎无法抵抗'];
+var OPTS_CTRL=['总能控制','多数能控制','约半能控制','很少能控制','几乎无法控制'];
 var QS=[
 {t:'强迫思维占用您的时间（占用多少时间/频率）',g:'强迫思维'},
 {t:'强迫思维对日常社交、工作功能的干扰程度',g:'强迫思维'},
@@ -240,14 +246,16 @@ var QS=[
 {t:'对强迫行为的控制程度',g:'强迫行为'}
 ];
 var A=new Array(QS.length).fill(-1);
-// Y-BOCS 第4/5/9/10题（0基 3/4/8/9）为抵抗/控制条目：越能抵抗/控制得分越低，按 4−选项 反向计分
-var REV_IDX={3:1,4:1,8:1,9:1};
-function __ybocScore(i){ var v=A[i]; if(v<0) return 0; return REV_IDX[i]?4-v:v; }
+// 题号→选项集：0基第3/8题为「抵抗」、第4/9题为「控制」，其余为普通题。
+// 选项文案已按方向书写（首项=症状最轻=0分），故统一正向计分，不再做 4−选项 反向。
+var OPT_SET={3:'RES',4:'CTRL',8:'RES',9:'CTRL'};
+function __ybocOpts(i){ return OPT_SET[i]==='RES'?OPTS_RES:(OPT_SET[i]==='CTRL'?OPTS_CTRL:OPTS); }
+function __ybocScore(i){ var v=A[i]; if(v<0) return 0; return v; }
 function render(){
   var h='<div class="q-progress">已作答 <strong id="prog">0</strong>/'+QS.length+' 项</div>';
   QS.forEach(function(q,i){
     h+='<div class="q-item"><div class="q-title"><span class="q-num">'+(i+1)+'</span><span>'+q.t+'</span><span class="q-cluster">'+q.g+'</span></div><div class="q-opts">';
-    OPTS.forEach(function(o,j){h+='<span class="q-opt'+(A[i]===j?' active':'')+'" onclick="pick('+i+','+j+')">'+o+'</span>';});
+    __ybocOpts(i).forEach(function(o,j){h+='<span class="q-opt'+(A[i]===j?' active':'')+'" onclick="pick('+i+','+j+')">'+o+'</span>';});
     h+='</div></div>';
   });
   const __g1=h;document.getElementById('quiz').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
@@ -295,7 +303,6 @@ function __ybocLevelName(total){
   if(total<=31)return '重度';
   return '极重度';
 }
-function __ybocOpts(i){ return OPTS; }
 function __ybocText(i){ var q=QS[i]; if(!q) return ''; return typeof q==='string'?q:q.t; }
 function __ybocGroup(i){ var q=QS[i]; if(!q) return ''; return typeof q==='string'?'':q.g; }
 function __ybocAdvice(sev){
@@ -419,7 +426,7 @@ function __emrData(){
     if(A[i]>=0){
       done++; var iv=__ybocScore(i); total+=iv;
       if(i<5) obs+=iv; else com+=iv;
-      if(iv>0) pos.push({i:i+1,t:String((typeof __ybocText==='function')?__ybocText(i):QS[i]).replace(/^\d+\.\s*/,''),o:String(OPTS[A[i]]||'')});
+      if(iv>0) pos.push({i:i+1,t:String((typeof __ybocText==='function')?__ybocText(i):QS[i]).replace(/^\d+\.\s*/,''),o:String(__ybocOpts(i)[A[i]]||'')});
     }
   }
   if(done<QS.length) return;
