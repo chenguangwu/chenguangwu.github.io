@@ -52,9 +52,12 @@ run('', 16, 10);
 check('空输入六卡片—', cards().every(v => v === '—'));
 check('空输入主输出—', d.getElementById('mainOut').textContent === '—');
 
-// 6. 非法基数仍按既有钳制口径（本批未改，回归确认不破坏）
+// 6. 越界基数：保留输入、明确报错、清空全部结果卡片（IT-N48-b 新口径，旧断言要求静默钳制为 36）
 run('10', 99, 2);
-check('基数钳制口径不变(fb=36)', fb.value === '36', 'fb=' + fb.value);
+check('越界基数保留输入(fb=99)', fb.value === '99', 'fb=' + fb.value);
+check('越界基数主输出❌', d.getElementById('mainOut').textContent === '❌');
+check('越界基数六卡片全清', cards().every(v => v === '—'), JSON.stringify(cards()));
+check('越界基数明确报错', /2 到 36 的整数/.test(d.getElementById('result').textContent || d.getElementById('result').innerHTML));
 
 // 7. 负数回归（既有用例）
 run('-255', 10, 16);

@@ -206,7 +206,17 @@ function minify(s){
   // IT-N464：轻量词法扫描——字符串/正则/模板串原样保留，注释只在代码区删除，
   // 保留换行以维持 ASI；纯正则替换会把 URL 的 // 当注释、把换行压掉造成废码。
   var out='', i=0, n=s.length, lastSig='';
-  function regexAllowed(prev){
+  // 正则字面量判定：除了看前一字符，还要识别「表达式关键字」——
+  // `return /a  b/` 的前一字符是 n（看起来像标识符/除法），但 return 之后必然是新表达式，
+  // 这里的正则必须按字面量整体保留，否则内部连续空格会被当成空白折叠。
+  function prevWordAt(pos){
+    var k=pos-1;
+    while(k>=0&&/\s/.test(s[k])) k--;
+    while(k>=0&&/[A-Za-z0-9_$]/.test(s[k])) k--;
+    return s.slice(k+1,pos).replace(/^\s+|\s+$/g,'');
+  }
+  function regexAllowed(prev, word){
+    if(word && /^(return|typeof|instanceof|in|of|new|delete|void|throw|case|do|else|yield|await)$/.test(word)) return true;
     if(!prev) return true;
     return !/[A-Za-z0-9_$\)\]\}]/.test(prev);
   }
@@ -239,7 +249,7 @@ function minify(s){
       }
       lastSig='`'; continue;
     }
-    if(c==='/'&&regexAllowed(lastSig)){
+    if(c==='/'&&regexAllowed(lastSig, prevWordAt(i))){
       out+=c; i++;
       var inClass=false;
       while(i<n){

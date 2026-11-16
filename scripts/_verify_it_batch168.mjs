@@ -49,10 +49,10 @@ function parse(text) { return w.parseIni(text); }
   const r = parse('[s]\n  spaced flag  \nx=1');
   check('带空白无值键trim', r.s['spaced flag'] === '', JSON.stringify(r));
 }
-// 既有 : 分隔行为未变（D39 仍留存，不因本修复改变）
+// 冒号分隔：后续需求已支持（INI 常见 `key: value`），旧断言把「不支持」当预期，现改为验证正确解析
 {
   const r = parse('[s]\nhost: localhost');
-  check(': 分隔仍未支持(D39留存)', JSON.stringify(r) === '{"s":{"host: localhost":""}}', JSON.stringify(r));
+  check(': 分隔解析为 host=localhost', JSON.stringify(r) === '{"s":{"host":"localhost"}}', JSON.stringify(r));
 }
 
 const pass = checks.filter(c => c[1]).length;

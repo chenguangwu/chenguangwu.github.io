@@ -11361,6 +11361,14 @@ const CASES = [
     "ref": "IT-N464：旧实现先删 /* */、再删 // 到行尾，字符串里的 `https://x.com/a` 从 `//` 起被吞，产出 `var u=\"https: result=u;\"` 废码。修复后轻量词法扫描把字符串整体保留，注释只在代码区删除。探针用 String.fromCharCode(34) 构造引号避开 clicks 转义坑；默认态示例不含 x.com/a ⇒ 零逃生。"
   },
   {
+    "slug": "it/js-minify",
+    // 182 复核：关键字之后的正则字面量必须整体保留（return /a  b/ 内部双空格不得被折叠），
+    // 同时除法不能被误判为正则；压缩产物用 new Function 实跑做等价性验证。
+    "clicks": ["var q=String.fromCharCode(34);var nl=String.fromCharCode(10);var s=document.getElementById('src');s.value='function f(){return /a  b/.test('+q+'a  b'+q+')}'+nl+'var t=typeof /a  b/;'+nl+'var x=10/2;'+nl+'var r=f();';calcTool();var h=String(document.getElementById('result').innerHTML);var keep=h.split('/a  b/').length-1;var code='';var mm=h.match(/<pre[^>]*>([\\s\\S]*?)<\\/pre>/);if(mm){code=mm[1].replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,q).replace(/&amp;/g,'&');}var ok='';try{var v=new Function(code+nl+'return [r,t,x];')();ok=v.join(',');}catch(e){ok='ERR';}document.getElementById('__tbProbe').textContent='REX '+keep+' '+ok;"],
+    "expect": ["REX 2 true,object,5"],
+    "ref": "182 复核：`return /a  b/` 与 `typeof /a  b/` 的前一字符分别是 n、f（像标识符），旧判定只看前一字符 ⇒ 不认正则，内部两个空格被折叠成单空格，语义改变（/a b/ 不再匹配 'a  b'）。修复后按前一个词识别 return/typeof 等表达式关键字，两处正则原样保留（keep=2）；`10/2` 仍按除法处理，压缩结果 new Function 实跑得到 true,object,5。默认示例不含正则字面量 ⇒ 探针串零逃生。"
+  },
+  {
     "slug": "it/postgresql-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"
