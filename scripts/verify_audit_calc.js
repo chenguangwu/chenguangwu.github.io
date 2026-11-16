@@ -110,14 +110,14 @@ const CASES = [
 {
   "slug": "audit/irr-table",
   "inputs": {
-    "rateStart": "0",
-    "rateEnd": "33",
-    "rateStep": "1"
+    "rateStart": "5",
+    "rateEnd": "20",
+    "rateStep": "2"
   },
   "expect": [
-    "12,315.00"
+    "13.00% -870.19 NPV 15.00%"
   ],
-  "ref": "auto-restore（802 批随 demo 对齐更新）：示例现金流改为 -100000/25000/30000/35000/30000/20000 后，8% 折现率 NPV=12,315.00；扫描 0–33%/1% 必含该行。"
+  "ref": "扫描步长判别：rateStart=5/rateEnd=20/rateStep=2 ⇒ 扫描表按 5/7/9… 跳行，「13.00% -870.19 NPV 15.00%」为步长 2 的相邻行序列（默认 0–30/1 是 13.00% …14.00%，不含本串）。原锚 12,315.00 是默认 demo 8% 行、撞默认态；改锚随 rateStep 变化的行序列。"
 },
 {
   "slug": "audit/irr-table",

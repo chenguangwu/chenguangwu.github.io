@@ -181,8 +181,8 @@ const CASES = [
   // 脓疱型银屑病 +1 = 12（未勾 culture）→ 高度提示SAPHO。不勾选时 = 低档（故具判别力）。
   "slug": "rheumatology/sapho-syndrome",
   "inputs": {
-    "duration": "3",
-    "vas": "5"
+    "duration": "24",
+    "vas": "8"
   },
   "checkIds": [
     "chestwall",
@@ -194,10 +194,10 @@ const CASES = [
     "pustular"
   ],
   "expect": [
-    "高度提示SAPHO",
-    "前胸壁受累(+3, 特征性表现)"
+    "A(痤疮) (1)：重度痤疮",
+    "P(脓疱病) (2)：掌跖脓疱病(PPP)、脓疱型银屑病"
   ],
-  "ref": "dxScore：前胸壁 +3、骨肥厚 +2、掌跖脓疱病 +2、重度痤疮/HS +2、骶髂关节炎 +1、脊柱 +1、脓疱型银屑病 +1 = 12 → 高度提示SAPHO"
+  "ref": "非默认输入 duration=24/vas=8 + 全 7 项勾选 ⇒ SAPHO 各组分 S2/A1/P2/H+O2（默认态 S1/A0/P1/H+O1）。原锚「高度提示SAPHO」「前胸壁受累」恰为默认态文本，改锚随勾选组合变化的组分明细串（默认态不含）。dxScore 满分 12 仍成立。"
 },
 {
   "slug": "rheumatology/anca-classification",

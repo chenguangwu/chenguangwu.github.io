@@ -395,10 +395,10 @@ const CASES = [
   {
     slug: "data/yaml-json",
     clicks: [
-      "setDir('y2j');document.getElementById('input').value='host: localhost # 注释';convert();"
+      "setDir('y2j');document.getElementById('input').value='host: zzxhost # 注释';convert();"
     ],
-    expect: ['"host": "localhost"'],
-    ref: "I-7 行尾注释：引号外且 `#` 前有空白的注释应剥离。旧实现只跳过整行注释 ⇒ 值变成 \"localhost # 注释\"，不含 \"host\": \"localhost\"。"
+    expect: ['"host": "zzxhost"'],
+    ref: "I-7 行尾注释：引号外且 `#` 前有空白的注释应剥离。旧实现只跳过整行注释 ⇒ 值变成 \"zzxhost # 注释\"，不含 \"host\": \"zzxhost\"。改用唯一值 zzxhost 避开默认态 JSON 示例里的 localhost，确保零逃生。"
   },
   {
     slug: "data/yaml-json",
@@ -430,9 +430,9 @@ const CASES = [
   },
   {
     slug: "data/yaml-json",
-    inputs: { input: "{\"version\":\"1.0.0\",\"port\":8080}" },
-    expect: ['version: "1.0.0"', "port: 8080"],
-    ref: "序列化回归：形似版本的字符串需保持字符串语义（加引号），整数仍裸写；此前 1.0.0 不加引号、回读时无法与字符串区分。"
+    inputs: { input: "{\"version\":\"7.7.7\",\"port\":6060}" },
+    expect: ['version: "7.7.7"', "port: 6060"],
+    ref: "序列化回归：形似版本的字符串需保持字符串语义（加引号），整数仍裸写；此前 1.0.0 不加引号、回读时无法与字符串区分。改用唯一值 7.7.7/6060 避开默认态示例自带的 1.0.0/8080，确保零逃生。"
   },
 
 

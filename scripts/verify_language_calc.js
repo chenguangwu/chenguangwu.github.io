@@ -199,8 +199,8 @@ const CASES = [
   {
     "slug": "language/spanish-accent-rules",
     "inputs": { "wordInput": "cafe" },
-    "expect": [ "按规则无需重音符号" ],
-    "ref": "无符号词不得给出绿色「✓ 不需要」：cafe 按规则重音在倒数第二音节，但与 café 的实际重音不同，页面改为中性表述并提示如需 café 应补符号。旧文案为「不需要重音符号 ✓」。"
+    "expect": [ "以元音/n/s结尾，重音在倒数第二音节" ],
+    "ref": "无符号词 cafe 按规则重音在倒数第二音节（español 默认态为「以辅音结尾、末音节」）。原锚「按规则无需重音符号」是通用文案、撞默认态；改锚随词尾类型变化的重音规则串，仍保留「不给出绿色✓不需要」的中性表述意图（同一注入态下方文案为「若你指的是 café…请补写符号」）。"
   },
   {
     "slug": "language/spanish-accent-rules",

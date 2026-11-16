@@ -132,9 +132,9 @@ const CASES = [
     ref: "注入非默认（默认 dfi=18/hds=8）：DFI 35% 落入「较差（Poor）」档（≥30%），HDS 20% 落入「轻度升高」档（15–25%）。默认态为 18.0% 良好 / 8.0% 正常，两串均不出现。锚值+结论合成串，避开纯标签「DFI 评估」。" },
 
   { slug: "reproductive-medicine/vasography",
-    checkIds: ["vas", "ampulla", "sv", "ejaculatory"],
-    expect: ["通畅 通畅性判定", "输精管道全程显影通畅，未见梗阻。"],
-    ref: "四个 checkbox（vas/ampulla/sv/ejaculatory）全勾选 + site 默认 none ⇒ 命中首分支 patency=通畅。默认全未勾选态为「部分梗阻/可疑」（else 分支）。checkIds 是 harness 支持的注入字段，回退清空即回到全未勾选态 ⇒ 判别力成立。" },
+    clicks: ["document.getElementById('ejaculatory').checked=false;calc()"],
+    expect: ["部分梗阻/可疑 通畅性判定", "造影表现不完全，建议结合精浆生化进一步定位。"],
+    ref: "页面四个 checkbox 现默认全勾选（历史漂移：原 ref 记「默认全未勾选」已过时），全勾选态即默认态 ⇒ 旧锚撞默认。改用 clicks 取消射精管勾选注入非默认态，命中 else 分支「部分梗阻/可疑」+「造影表现不完全…」（默认态为「通畅…全程显影」，不含本串），验证 checkbox 真实参与判定。" },
   {
     "slug": "reproductive-medicine/anti-sperm-antibody",
     "inputs": {
