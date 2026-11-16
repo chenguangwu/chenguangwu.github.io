@@ -284,15 +284,14 @@ function formatPython(){
     const out = [];
     const indStack = [0];
     let prevBlank = false;
-    let inTriple = false, tripleCh = '', tripleOpenOld = 0, tripleOpenNew = 0;
+    let inTriple = false, tripleCh = '';
     const expand = s => s.replace(/\t/g, '    ');
     for(const raw of lines){
       if(inTriple){
-        if(raw.trim() === ''){ out.push(''); if(raw.includes(tripleCh)) inTriple = false; continue; }
-        let rest = raw;
-        if(rest.length >= tripleOpenOld) rest = rest.slice(tripleOpenOld);
-        out.push(IND().repeat(tripleOpenNew) + rest);
-        if(rest.includes(tripleCh)) inTriple = false;
+        // 三引号字符串的每个物理行都是字符串值的一部分（含缩进与空行），必须逐字节保留；
+        // 重新缩进会改变 s 的实际内容（能编译但值不同）。
+        if(raw.includes(tripleCh)) inTriple = false;
+        out.push(raw);
         continue;
       }
       if(raw.trim() === ''){
@@ -307,9 +306,7 @@ function formatPython(){
       const content = raw.trim();
       out.push(IND().repeat(depth) + content);
       const tm = content.match(/('''|""")/);
-      if(tm && content.split(tm[1]).length < 3){
-        inTriple = true; tripleCh = tm[1]; tripleOpenOld = indent; tripleOpenNew = depth;
-      }
+      if(tm && content.split(tm[1]).length < 3){ inTriple = true; tripleCh = tm[1]; }
     }
     setOut(out.join('\n'));
     setErr('✅ 格式化成功');
@@ -350,7 +347,9 @@ function doValidate(){
     let inTriple = false, tripleCh = '';
     let bracket = 0;
     let pendingBlockLine = 0, pendingBlockIndent = 0;
-    const expand = s => s.replace(/\t/g, '    ');
+    const indStack = [0];
+    let allowIndent = false;
+    const expand = s => s.replace(/\t/g, ' ');
     for(let i = 0; i < lines.length; i++){
       const raw = lines[i];
       if(inTriple){
@@ -366,8 +365,23 @@ function doValidate(){
         pendingBlockLine = 0;
       }
       const codeOnly = stripCommentAndString(raw);
+      // 缩进栈校验：退格必须回到某个已有的外层层级；加深只能出现在上一行以冒号开启代码块之后。
+      // 括号内的续行缩进不受块结构约束，跳过。
+      if(bracket === 0){
+        const prevTop = indStack[indStack.length - 1];
+        if(indent < prevTop){
+          while(indStack.length > 1 && indent < indStack[indStack.length - 1]) indStack.pop();
+          if(indent !== indStack[indStack.length - 1]){
+            issues.push('第 ' + (i + 1) + ' 行退格到 ' + indent + ' 个空格，不匹配任何外层缩进层级');
+          }
+        } else if(indent > prevTop){
+          if(allowIndent) indStack.push(indent);
+          else issues.push('第 ' + (i + 1) + ' 行缩进 ' + indent + ' 个空格，但上一行未以冒号开启代码块');
+        }
+      }
       for(const ch of codeOnly){ if(ch === '(' || ch === '[' || ch === '{') bracket++; else if(ch === ')' || ch === ']' || ch === '}') bracket--; }
-      if(/:\s*$/.test(codeOnly.trim())){ pendingBlockLine = i + 1; pendingBlockIndent = indent; }
+      allowIndent = bracket === 0 && /:\s*$/.test(codeOnly.trim());
+      if(allowIndent){ pendingBlockLine = i + 1; pendingBlockIndent = indent; }
     }
     if(inTriple) issues.push('三引号字符串未闭合');
     if(bracket !== 0) issues.push('括号不平衡（差值 ' + bracket + '）');

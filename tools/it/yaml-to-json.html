@@ -225,21 +225,40 @@ function yStripComment(s){
   return s;
 }
 function yBlockMark(s){ var m=String(s).match(/^([|>])([-+]?)$/); return m?{style:m[1],chomp:m[2]}:null; }
-function yCollectBlock(p,parentIndent,bm){
-  if(p.i>=__yamlItems.length || __yamlItems[p.i].ind<=parentIndent) return bm.style==='|'?'':'';
-  var blockIndent=__yamlItems[p.i].ind, start=__yamlItems[p.i].line, end=p.i;
-  while(end<__yamlItems.length && __yamlItems[end].ind>=blockIndent) end++;
-  var last=end<__yamlItems.length?__yamlItems[end].line:__yamlLines.length, raw=[];
-  for(var ln=start;ln<last;ln++){
-    var l=__yamlLines[ln]||'';
-    if(l.trim()===''){ raw.push(''); continue; }
-    var lead=l.length-l.trimStart().length;
-    raw.push(lead>=blockIndent?l.slice(blockIndent):l.trim());
+/* 块标量收集：以物理行为准（不能用 __yamlItems，因为它已跳过空行与 # 行）。
+   - 起始行 = 标记行下一行，因此块内以 # 开头的内容行不会被当注释丢掉；
+   - 块缩进取首个非空物理行的缩进，若 ≤ 父级缩进则块为空（后续行归同级/外层）；
+   - 结束于首个非空且缩进 < 块缩进的行；末尾空行按 chomping 处理。 */
+function yCollectBlock(p,parentIndent,bm,markerLine){
+  var start=markerLine+1, blockIndent=-1;
+  for(var i=start;i<__yamlLines.length;i++){
+    var l=__yamlLines[i]||'';
+    if(l.trim()==='') continue;
+    blockIndent=l.length-l.trimStart().length;
+    break;
   }
-  p.i=end;
+  if(blockIndent<0 || blockIndent<=parentIndent){ p.i=__yamlItems.length; return bm.style==='|'?'':''; }
+  var lastExcl=start;
+  for(var j=start;j<__yamlLines.length;j++){
+    var l2=__yamlLines[j]||'';
+    if(l2.trim()!==''){
+      var ind=l2.length-l2.trimStart().length;
+      if(ind<blockIndent) break;
+    }
+    lastExcl=j+1;
+  }
+  while(p.i<__yamlItems.length && __yamlItems[p.i].line<lastExcl) p.i++;
+  var raw=[];
+  for(var ln=start;ln<lastExcl;ln++){
+    var l3=__yamlLines[ln]||'';
+    if(l3.trim()===''){ raw.push(''); continue; }
+    var lead=l3.length-l3.trimStart().length;
+    raw.push(lead>=blockIndent?l3.slice(blockIndent):l3.trim());
+  }
+  if(bm.chomp!=='+'){ while(raw.length && raw[raw.length-1]==='') raw.pop(); }
   var text;
   if(bm.style==='|'){ text=raw.join('\n'); }
-  else { var out=''; for(var i=0;i<raw.length;i++){ if(raw[i]===''){ out+='\n'; } else { if(i>0&&raw[i-1]!=='') out+=' '; out+=raw[i]; } } text=out; }
+  else { var out=''; for(var k=0;k<raw.length;k++){ if(raw[k]===''){ out+='\n'; } else { if(k>0&&raw[k-1]!=='') out+=' '; out+=raw[k]; } } text=out; }
   if(bm.chomp==='-') text=text.replace(/\n+$/,'');
   else if(bm.chomp!=='+') text=text.replace(/\n+$/,'')+'\n';
   return text;
@@ -282,9 +301,9 @@ function yBlock(items, indent, p){
     var line=items[p.i].content;
     var kv=line.match(/^([^:]+):\s?(.*)$/);
     if(!kv){ p.i++; continue; }
-    var key=kv[1].trim(); var val=kv[2].trim(); p.i++;
+    var key=kv[1].trim(); var val=yStripComment(kv[2]).trim(); var lineNo=items[p.i].line; p.i++;
     var bm=yBlockMark(val);
-    if(bm) obj[key]=yCollectBlock(p,indent,bm);
+    if(bm) obj[key]=yCollectBlock(p,indent,bm,lineNo);
     else if(val===''){ if(p.i<items.length && items[p.i].ind>indent) obj[key]=yBlock(items, items[p.i].ind, p); else obj[key]={}; }
     else obj[key]=yScalar(val);
   }
@@ -293,17 +312,17 @@ function yBlock(items, indent, p){
 function yMapFrom(items, mapIndent, p, firstItem){
   var m={};
   var kv=firstItem.match(/^([^:]+):\s?(.*)$/);
-  var key=kv[1].trim(); var val=kv[2].trim();
+  var key=kv[1].trim(); var val=yStripComment(kv[2]).trim();
   var bm=yBlockMark(val);
-  if(bm) m[key]=yCollectBlock(p,mapIndent,bm);
+  if(bm) m[key]=yCollectBlock(p,mapIndent,bm,items[p.i-1].line);
   else if(val===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[key]=yBlock(items, items[p.i].ind, p); else m[key]={}; }
   else m[key]=yScalar(val);
   while(p.i<items.length && items[p.i].ind===mapIndent && items[p.i].content[0]!=='-'){
     var line=items[p.i].content; var kv2=line.match(/^([^:]+):\s?(.*)$/);
     if(!kv2) break;
-    var k2=kv2[1].trim(); var v2=kv2[2].trim(); p.i++;
+    var k2=kv2[1].trim(); var v2=yStripComment(kv2[2]).trim(); var line2=items[p.i].line; p.i++;
     var bm2=yBlockMark(v2);
-    if(bm2) m[k2]=yCollectBlock(p,mapIndent,bm2);
+    if(bm2) m[k2]=yCollectBlock(p,mapIndent,bm2,line2);
     else if(v2===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[k2]=yBlock(items, items[p.i].ind, p); else m[k2]={}; }
     else m[k2]=yScalar(v2);
   }

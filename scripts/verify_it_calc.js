@@ -716,8 +716,8 @@ const CASES = [
     slug: "it/barcode-itf",
     inputs: {},
     clicks: ["var a=buildITF('12345678901234'),b=buildITF('123456789');document.getElementById('__tbProbe').textContent='ITF='+a.length+'|'+b.length;"],
-    expect: ["ITF=139|103"],
-    ref: "条码族 deepdive 示例一致性：ITF 示例为 14 位 ITF-14；9 位奇数输入自动前补 0 凑偶数位。IT-N324 修正起止符后 guards 从 4+3 模块变为 4+9 模块（ISO 16390 终止 11010 元素 = 111010111 模块），故 bits 长度从 133/97 更新为 139/103，证明文案所述编码规则与实现一致。页面不代算 GTIN-14 校验位。默认态不产生该串。",
+    expect: ["ITF=135|99"],
+    ref: "条码族 deepdive 示例一致性：ITF 示例为 14 位 ITF-14；9 位奇数输入自动前补 0 凑偶数位。IT-N324 复核：ISO/IEC 16390 §4.3.3 终止符只有宽条·窄空·窄条（3:1 模块表示 11101），旧实现多画一组宽条·窄空·宽条（111010111）不符合规范；修正后 bits 长度 135/99（原 139/103）。默认态不产生该串。",
   },
   {
     slug: "it/barcode-msi",
@@ -2809,6 +2809,30 @@ const CASES = [
     inputs: { input: "def f():\nprint(1)", indent: "4" },
     expect: ["VAL302 OK"],
     ref: "IT-N302 注入 `def f():\\nprint(1)`：括号与三引号均平衡，但第 2 行未缩进必须报错；旧实现只看三引号闭合会报校验通过，不命中。"
+  },
+  {
+    slug: "it/python-formatter",
+    // IT-N300 复核：三引号字符串内容必须逐字节保留，不能被新缩进改写
+    inputs: { input: "if True:\n    s = \"\"\"start\n    keep\n    \"\"\"\n    print(repr(s))", indent: "2" },
+    clicks: ["var nl=String.fromCharCode(10);formatPython();var o=document.getElementById('output').textContent;document.getElementById('__tbProbe').textContent='PYTRIPLE '+((o.indexOf('s = \"\"\"start')>=0&&o.indexOf(nl+'    keep'+nl)>=0)?'OK':'BAD:'+o.replace(/ /g,'.'));"],
+    expect: ["PYTRIPLE OK"],
+    ref: "222（第240批）复核失败重做：旧 formatPython 会把三引号体内的每行按新层级重排缩进（4 空格 → 2 空格），代码仍可编译但字符串值改变。现三引号内物理行原样输出（含空行与行首缩进）。探针把缩进设为 2、注入 4 空格内容的字符串，断言输出仍保留 `\\n    keep\\n`；旧实现变成 `\\n  keep\\n` ⇒ 转红。"
+  },
+  {
+    slug: "it/python-formatter",
+    // IT-N302 复核：退格必须回到已有层级
+    inputs: { input: "if True:\n    x=1\n  y=2", indent: "4" },
+    clicks: ["doValidate();var e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='VAL302B '+((e.indexOf('不匹配任何外层缩进层级')>=0&&e.indexOf('❌')===0)?'OK':'BAD:'+e);"],
+    expect: ["VAL302B OK"],
+    ref: "222（第240批）复核失败重做：旧 doValidate 只检查冒号下一行是否缩进，第 3 行退到 2 空格（既不是 0 也不是 4）仍报「结构检查通过」，而 Python 实际抛 IndentationError。现维护缩进栈：退格必须回到已有层级，加深只能出现在冒号块之后。注入 `if True:/    x=1/  y=2` 断言报「不匹配任何外层缩进层级」。"
+  },
+  {
+    slug: "it/python-formatter",
+    // 正对照：合法嵌套不得被缩进栈误判
+    inputs: { input: "def f():\n    if x:\n        return 1\n    return 2", indent: "4" },
+    clicks: ["doValidate();var e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='VAL302C '+(e.indexOf('结构检查通过')>=0?'OK':'BAD:'+e);"],
+    expect: ["VAL302C OK"],
+    ref: "222 对照：def→if→return 的三级合法嵌套（0/4/8）经新缩进栈校验必须仍报通过，确认修复未把正常退格误判为不匹配。默认示例亦为合法代码，但本探针串仅 clicks 内生成 ⇒ 零逃生。"
   },
   {
     slug: "it/graphql-formatter",
@@ -6230,9 +6254,9 @@ const CASES = [
   },
   {
     slug: "it/barcode-itf",
-    clicks: ["var b=buildITF('1234');document.getElementById('__tbProbe').textContent='ITFGUARD '+(b.slice(0,4)==='1010'&&b.slice(-9)==='111010111'?'OK':'BAD');"],
+    clicks: ["var b=buildITF('1234');document.getElementById('__tbProbe').textContent='ITFGUARD '+(b.slice(0,4)==='1010'&&b.slice(-5)==='11101'&&b.slice(-9)!=='111010111'?'OK':'BAD');"],
     expect: ["ITFGUARD OK"],
-    ref: "IT-N324：ISO/IEC 16390 起始符 1010（窄条-窄空-窄条-窄空）、终止符 11010 宽窄元素按 3:1 展开为模块位 111010111。旧实现起始 '0000' 不画条、终止 '100' 窄窄窄，扫描器无法识读；默认样例 bits 不含探针串 ⇒ 零逃生。",
+    ref: "IT-N324（228 批复核修正）：ISO/IEC 16390 §4.3.3 终止符只有宽条·窄空·窄条，3:1 模块表示为 11101。旧实现追加 111010111（多一组窄空·宽条），不符合规范；现断言结尾恰为 11101 且不再出现旧串。起始符 1010 不变。",
   },
   {
     slug: "it/barcode-itf",
@@ -7214,6 +7238,33 @@ const CASES = [
     "inputs": { "source": "port: 8080 # web port\nname: probeZ" },
     "expect": ["\"port\": 8080"],
     "ref": "IT-N327 行尾注释：值中引号外的「空格 + #」在解析前剥离，port 还原为数值 8080。修复前输出 \"port\": \"8080 # web port\"（字符串），不命中数值形态；输入为 `port: 8080 # web port`（无引号键），expect 的 JSON 引号形态只在输出中出现。expect 只留判别串，旧态也会命中的 \"name\": \"probeZ\" 必须剔除（expect 为或关系）。"
+  },
+  {
+    "slug": "it/yaml-to-json",
+    "inputs": { "source": "script: |\n  # comment\n  echo hi\nname: test\n" },
+    "clicks": ["calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='YBLK1 '+((h.indexOf('# comment')>=0&&h.indexOf('echo hi')>=0&&h.indexOf('name')>=0)?'OK':'BAD:'+h.replace(/</g,'(').slice(0,80));"],
+    "expect": ["YBLK1 OK"],
+    "ref": "229（第277批）复核失败重做：parseYaml 建 items 时跳过空行与 # 行，yCollectBlock 又从「下一个 item 的物理行」起收集 ⇒ 块首 `# comment` 内容行（缩进 2 > 父级 0，属块标量正文）被丢掉。现块收集以标记行下一物理行为起点。探针断言结果区同时含 # comment、echo hi 与 name；旧实现缺 # comment ⇒ BAD 转红。"
+  },
+  {
+    "slug": "it/yaml-to-json",
+    "inputs": { "source": "script: | # header\n  echo hi\nname: test\n" },
+    "clicks": ["calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='YBLK2 '+((h.indexOf('echo hi')>=0&&h.indexOf('| # header')<0&&h.indexOf('name')>=0)?'OK':'BAD:'+h.replace(/</g,'(').slice(0,80));"],
+    "expect": ["YBLK2 OK"],
+    "ref": "229（第277批）复核失败重做：块标记带行尾注释（`| # header`）时 yBlockMark 的 ^([|>])([-+]?)$ 无法匹配 ⇒ 整块被当普通标量，后续同级键一并丢失。现先 yStripComment 再识别标记。探针断言结果区含 echo hi 与 name、且不再出现 `| # header`；旧实现三者皆反 ⇒ 转红。"
+  },
+  {
+    "slug": "it/xml-to-yaml",
+    "inputs": { "source": "<root><item><c><d>1</d></c></item><item><c><d>2</d></c></item></root>" },
+    "clicks": ["calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='XMLNEST '+((h.indexOf('- c:')>=0&&h.indexOf('d: \"1\"')>=0)?'OK':'BAD:'+h.replace(/ /g,'.').slice(0,90));"],
+    "expect": ["XMLNEST OK"],
+    "ref": "214 复核失败重做：数组项为对象时，旧 dumpYaml 首键用 pad+'- '、子层却用 pad+unit（2 空格），子键与键同列 ⇒ `- c:` 后 d 成同级兄弟、c 为空对象；4 空格模式后续键还会错位。现按「短横占 2 列」对齐：首键 pad+'- '、后续键 pad+'  '、子层 pad+'    '。探针用两个 item 强制序列，断言输出含 `- c:` 与子层 `d: \"1\"`；旧实现不含该形态 ⇒ 转红。"
+  },
+  {
+    "slug": "it/xml-to-yaml",
+    clicks: ["var sel=document.getElementById('indent');document.getElementById('__tbProbe').textContent='XMLTAB '+(sel&&sel.options&&sel.options.length===2?'OK':'BAD:'+(sel&&sel.options?sel.options.length:'no'));"],
+    "expect": ["XMLTAB OK"],
+    "ref": "214 复核失败重做：YAML 规范禁止 Tab 缩进，页面却提供「Tab」档并原样输出 \\t。现移除该档，仅保留 2/4 空格；历史值 tab 走 parseInt('tab') → 回退 2 空格。探针断言缩进下拉只有 2 个 option。"
   },
   {
     "slug": "it/toml-to-yaml",
@@ -13933,6 +13984,12 @@ const CASES = [
     clicks: ["(function(){document.getElementById('input').value='音频';document.getElementById('mode').value='pinyin';generate();var v=String(document.getElementById('result').textContent);document.getElementById('__tbProbe').textContent=(v==='yinpin'?'SLUGPIN OK':'BAD '+v);})()"],
     expect: ["SLUGPIN OK"],
     ref: "清单 IT-N16 拼音表拼写纠错：内置映射「音频」须为 yinpin。旧源码误写 'yinpinyin'；因 yinpin 是其子串，不能用子串 expect，改用精确相等探针（result.textContent==='yinpin'）⇒ 旧源码 BAD yinpinyin。探针只在 clicks 内生成。",
+  },
+  {
+    slug: "it/slugify",
+    clicks: ["(function(){document.getElementById('input').value='如何学习前端开发从入门到精通';document.getElementById('mode').value='pinyin';generate();var v=String(document.getElementById('result').textContent);document.getElementById('__tbProbe').textContent=(v==='ruhe-xuexi-qianduan-kaifa-cong-rumen-dao-jingtong'?'SLUGKEY OK':'BAD '+v);})()"],
+    expect: ["SLUGKEY OK"],
+    ref: "233（第298批）复核失败重做：PINYIN_MAP 含 15 字整句键「如何学习前端开发从入门到精通」，但 toPinyin 贪心上限写死 8 ⇒ 该键永远不可达（死数据）。现上限改为 Object.keys(PINYIN_MAP) 的最大键长，整句可命中并输出 `ruhe-xuexi-qianduan-kaifa-cong-rumen-dao-jingtong`。旧实现按 8 字分块拆开，结果与整键拼音不同 ⇒ BAD 转红。默认中文标题走拼音分支但不含该句 ⇒ 强判别。"
   },
   {
     slug: "it/properties-parser",
