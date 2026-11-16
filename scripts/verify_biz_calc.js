@@ -1632,7 +1632,20 @@ const CASES = [
     expect: ["The API guide."],
     ref: "BS-N131：sentence 模式同样占位保护缩写，the API guide. ⇒ The API guide.；旧实现整串 toLowerCase 得 The api guide.。默认态不含该串 ⇒ 强判别、零逃生。"
   },
-
+  {
+    slug: "biz/text-extract-dates",
+    inputs: {"input": "会议 A 于 2025-01-06 召开，B 于 2025/02/17 结束，纪念日 2024年12月25日。"},
+    checkIds: ["iso", "slash", "dot", "zh", "us", "eu", "en", "time", "dedup"],
+    expect: ["2025-01-06 2025/02/17 2024年12月25日"],
+    ref: "全新日期文本经ISO/斜杠/正则匹配提取；checkIds声明页面默认勾选的9个格式开关（桩内恒未勾需显式声明）；结果按出现顺序join。",
+  },
+  {
+    slug: "biz/text-extract-dates",
+    inputs: {"input": "开始 2025-03-20 结束 2024-11-05 中点 2025-01-09"},
+    checkIds: ["iso", "normalize", "sort"],
+    expect: ["2024-11-05 2025-01-09 2025-03-20"],
+    ref: "仅勾iso/normalize/sort：提取ISO日期并规范化为YYYY-MM-DD后升序排序。",
+  },
 ];
 
 
