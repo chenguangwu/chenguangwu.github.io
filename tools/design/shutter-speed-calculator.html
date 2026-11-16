@@ -239,15 +239,20 @@ function applyShutterPreset(kind){
 }
 function fmtShutter(s){if(s>=1)return s+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" s":" 秒");if(s>=0.5)return '1/'+Math.round(1/s)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" s":" 秒");return '1/'+Math.round(1/s);}
 // 标准快门档位表：结果区 / CSV / 图表三处共用同一口径（向更快方向取整）
-var SS_STOPS=[1,1/2,1/4,1/8,1/15,1/30,1/60,1/125,1/250,1/500,1/1000];
+// 上界扩到 1/8000：焦距上限 2000mm × 裁切 2.7 = 5400mm 等效，需要 1/5400 s，
+// 旧表末项 1/1000 会把 1000mm/裁切2 这类输入静默截断成慢一档以上的 1/1000。
+var SS_STOPS=[1,1/2,1/4,1/8,1/15,1/30,1/60,1/125,1/250,1/500,1/1000,1/2000,1/4000,1/8000];
 function ssStopsFor(f,crop,isStops){
   var effF=f*crop, baseSpeed=1/effF;
   var baseIdx=SS_STOPS.findIndex(function(s){return s<=baseSpeed;});
-  if(baseIdx<0)baseIdx=SS_STOPS.length-1;
+  // 档位表仍不够快时不再静默取末项，交由调用方明确提示超界
+  if(baseIdx<0){
+    return {overflow:true,baseIdx:-1,safeIdx:-1,base:baseSpeed,safe:null,baseDen:Math.round(effF),safeDen:0};
+  }
   var safeIdx=Math.max(0,baseIdx-isStops);
   var b=SS_STOPS[baseIdx], s=SS_STOPS[safeIdx];
   if(!isFinite(s)) s=SS_STOPS[Math.max(0,Math.min(SS_STOPS.length-1,Math.round(safeIdx)))];
-  return {baseIdx:baseIdx,safeIdx:safeIdx,base:b,safe:s,baseDen:Math.round(1/b),safeDen:Math.round(1/s)};
+  return {overflow:false,baseIdx:baseIdx,safeIdx:safeIdx,base:b,safe:s,baseDen:Math.round(1/b),safeDen:Math.round(1/s)};
 }
 function calc(){
   const f=+document.getElementById('focal').value;
@@ -264,6 +269,12 @@ function calc(){
     return;
   }
   const __ss=ssStopsFor(f,crop,isStops);
+  if(__ss.overflow){
+    document.getElementById('safeShutter').textContent='--';
+    var __eff=(f*crop).toFixed(0);
+    document.getElementById('guide').innerHTML='<p style="color:var(--danger);" data-zh="等效焦距 '+__eff+' mm 需要快于 1/8000 s 的快门，已超出档位表上限；请缩短焦距或提高防抖档位">'+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Effective focal length "+__eff+" mm needs a shutter faster than 1/8000 s, beyond the stop table; shorten the focal length or add stabilization stops.":"等效焦距 "+__eff+" mm 需要快于 1/8000 s 的快门，已超出档位表上限；请缩短焦距或提高防抖档位")+'</p>';
+    return;
+  }
   const safe=__ss.safe;
   const __g1=fmtShutter(safe);document.getElementById('safeShutter').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const scenarios=[
@@ -301,7 +312,7 @@ function __ssExport(){
       [en?'Image stabilization (stops)':'防抖等级 (档)',isStops],
       [en?'Effective focal length (mm)':'等效焦距 (mm)',effF.toFixed(1)],
       [en?'Base safe speed (1/focal)':'基础安全速度 (1/焦距)',fmtShutter(__ss.base)],
-      [en?'Recommended safe shutter':'建议安全快门',fmtShutter(__ss.safe)]
+      [en?'Recommended safe shutter':'建议安全快门',__ss.overflow?(en?'— (beyond 1/8000 s)':'—（超出 1/8000 s）'):fmtShutter(__ss.safe)]
     ];
     var scenarios=[
       {spd:1/1000,use:'凝固高速运动（飞鸟、赛车）',useEn:'Freeze fast motion (birds, racing)'},
@@ -443,7 +454,8 @@ function __ssChartDraw(){
       var r=ssStopsFor(fv,crop,isStops);
       labels.push(String(fv));
       base.push(r.baseDen);
-      withIs.push(r.safeDen);
+      // 超界点画在档位表上限处（结果区已明确提示），避免 num(null)→0 造成曲线回落到 0
+      withIs.push(r.overflow?Math.round(1/SS_STOPS[SS_STOPS.length-1]):r.safeDen);
     });
     TBKit.chart.line(host,{labels:labels,series:[{name:en?'No IS (1/x s)':'无防抖 (1/X s)',data:base},{name:en?'With IS (1/x s)':'含防抖 (1/X s)',data:withIs}],title:(en?'Safe shutter vs focal length (crop ':'安全快门-焦距曲线（裁切系数 ')+crop+(en?')':'）')});
   }catch(e){}

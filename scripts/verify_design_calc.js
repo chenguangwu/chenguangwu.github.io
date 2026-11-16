@@ -671,11 +671,11 @@ const CASES = [
     ref: "D-N180 强锁：字库重建为「平声 / 仄声 / 两读 / 未收录」四态，BOTH 集合收录 38 个跨平仄多音字。「空」兼有 kōng（平）与 kòng（仄）两读，旧实现按「先查 PING」判成「空 平」；新实现先查 BOTH 输出「空 两读」，角标「两」、title「两读」。同串一并锁住「山」shān 平、「不」bù 仄（平水韵入声并入仄库）、「见」jiàn 仄、「人」rén 平，任一字声调口径被改坏即失配。默认示例诗（床前明月光…）不含该串 ⇒ 强判别。",
   },
   {
-    // D-N182 预设：七律预设应填 8 行并触发检查（校验其数据与换行切句等价效果）
+    // D-N182 预设：七律预设应填 8 行、每句 7 字并触发检查（校验真实预设数据而非复述文本）
     slug: "design/checker-5",
-    clicks: ["document.getElementById('poem').value='国破山河在\\n城春草木深\\n感时花溅泪\\n恨别鸟惊心\\n烽火连三月\\n家书抵万金\\n白头搔更短\\n浑欲不胜簪';check()"],
-    expect: ["第8句"],
-    ref: "D-N182 强锁：点「七言律诗·春望」预设会把 8 行诗写入 #poem 并调用 check()，结果应出现「第8句」。默认四行示例诗只到第 4 句，不含「第8句」⇒ 强判别；同时证明标点修复未破坏换行切句（每行=一句）。预设按钮渲染由 TBKit.preset.bar 在真实浏览器完成（harness 桩 click 为空操作且未注入 TBKit），本锁校验预设的数据与切句等价效果。",
+    clicks: ["var __cap=null;globalThis.TBKit={util:{isEn:function(){return false;}},preset:{bar:function(sel,items,cb){__cap=items;}}};__checker_5Presets();var __p=__cap&&__cap[1]||null;var __lines=__p?String(__p.values['#poem']).split('\\n'):[];var __all7=__lines.length===8&&__lines.every(function(s){return s.replace(/[，。？！；、·]/g,'').length===7;});var __out='';if(__p){POEM_TA.value=__p.values['#poem'];check();__out=String(RES.innerHTML);}document.getElementById('__tbProbe').textContent='CHECKER7 '+((__all7&&__lines[0]==='风急天高猿啸哀'&&__out.indexOf('第8句')>=0)?'OK':'BAD lines='+__lines.length+' all7='+__all7+' first='+__lines[0]);"],
+    expect: ["CHECKER7 OK"],
+    ref: "361 复核失败重做：七律预设原为杜甫《春望》，八句均五字（「国破山河在」）却标「七言律诗」，英文亦写 Seven-char。现换为《登高》（八句全七字）。探针 mock TBKit.preset.bar 抓取真实预设数据，断言第 2 个预设：8 行、每行去标点后 7 字、首句「风急天高猿啸哀」，且填入后 check() 输出「第8句」。旧预设首句 5 字 ⇒ all7=false 转红；默认四行示例诗不含「第8句」⇒ 零逃生。"
   },
   {
     // 遮蔽回归：本页复制函数已改名 copySwatch(btn, text)，避免被 js/common.js 的全局 copyText(text) 覆盖。
@@ -2972,6 +2972,13 @@ const CASES = [
 },
 {
   slug: "design/shutter-speed-calculator",
+  inputs: { focal: "1000", crop: "2", is: "0" },
+  clicks: ["var a=ssStopsFor(1000,2,0),b=ssStopsFor(5000,2,0);document.getElementById('focal').value='1000';document.getElementById('crop').value='2';document.getElementById('is').value='0';calc();var t=String(document.getElementById('safeShutter').textContent);document.getElementById('__tbProbe').textContent='SSSTOP safe='+a.safeDen+' ov='+b.overflow+' out='+t;"],
+  expect: ["SSSTOP safe=2000 ov=true out=1/2000"],
+  ref: "350 复核失败重做：SS_STOPS 原末项 1/1000，1000mm×裁切2 需 1/2000，findIndex 失败后被强制取末项 1/1000（慢一档以上）且无提示。现档位表扩到 1/8000，覆盖焦距上限 2000×裁切 2.7=5400 的全部合法输入；仍不够快时返回 overflow=true 由结果区明确提示而非静默截断。探针断言 ssStopsFor(1000,2,0).safeDen=2000、ssStopsFor(5000,2,0).overflow=true、结果区显示 1/2000。默认 50mm/裁切1.5 ⇒ 输出 1/75 不含该串 ⇒ 强判别。"
+},
+{
+  slug: "design/shutter-speed-calculator",
   inputs: { focal: "100000", crop: "2.7", is: "5" },
   clicks: ["calc();"],
   expect: ["焦距超过 2000 mm"],
@@ -3361,9 +3368,9 @@ const CASES = [
 {
   slug: "design/grid-pattern",
   inputs: { gridType: "dashed", cellSize: "30", lineWidth: "2" },
-  clicks: ["var t=document.getElementById('gridType');t.value='dashed';generate();var h=String(document.getElementById('cssOutput').value);var rep=(h.match(/repeating-linear-gradient/g)||[]).length;document.getElementById('__tbProbe').textContent='G72 rep='+rep+' solid='+(h.indexOf('background-image: linear-gradient(')>=0?'Y':'N');"],
-  expect: ["G72 rep=2 solid=N"],
-  ref: "D-N72 回归：旧码 dashed 分支与 square 分支的 background-image / background-size 逐字符相同，只多一条 background-position，实为整体位移半像素的实线网格，选「虚线网格」拿不到虚线。修复后改用两层 repeating-linear-gradient（实线段 lw px + 间隔 2·lw px），输出含 2 处 repeating-linear-gradient、且不再退回普通 linear-gradient 实线写法。旧码 rep=0 solid=Y ⇒ 红。"
+  clicks: ["var t=document.getElementById('gridType');t.value='dashed';generate();var h=String(document.getElementById('cssOutput').value);var dash=(h.match(/stroke-dasharray/g)||[]).length;var rep=(h.match(/repeating-linear-gradient/g)||[]).length;var pre=h.indexOf('stroke-dasharray%3D%221.875%201.875')>=0?'Y':'N';document.getElementById('__tbProbe').textContent='G72 dash='+dash+' rep='+rep+' duty='+pre;"],
+  expect: ["G72 dash=1 rep=0 duty=Y"],
+  ref: "348 复核失败重做：repeating-linear-gradient 只沿单轴重复，color band 在另一轴贯穿整块，横竖叠加得到的仍是连续线网格（旧 D-N72 用例只数渐变个数，无法判定断续）。现改用内联 SVG path + stroke-dasharray 画双向虚线：size=30、lw=2 ⇒ 初始周期 4，30 不被 4 整除 ⇒ n=round(30/4)=8、周期 3.75、dash=1.875，虚线周期整除瓦片以保持跨片连续。探针断言输出含 1 处 stroke-dasharray（编码后为 stroke-dasharray%3D%221.875%201.875）、0 处 repeating-linear-gradient。旧实现 dash=0 rep=2 ⇒ 红；默认 square 类型不含该串 ⇒ 零逃生。"
 },
 {
   slug: "design/isometric-grid",
