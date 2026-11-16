@@ -17,6 +17,12 @@
   var RISK = CFG.risk || null;                 // {score_gte, item_gte:[idx,min], text_any:[...]}
   var NOTE = CFG.note || '';                   // 娱乐/参考类标识文案
   var PERIOD = CFG.period || '最近两周';        // 说明卡中的回溯期
+  // 英文态判断：优先 TBKit，回退 URL 参数；供所有动态串本地化使用（EN 态零 CJK 硬指标）
+  function pkEn() {
+    try { if (window.TBKit && TBKit.util && typeof TBKit.util.isEn === 'function') return TBKit.util.isEn(); } catch (e) { }
+    try { return /[?&]lang=en-US/i.test(location.search); } catch (e) { }
+    return false;
+  }
 
   var LS_INTRO = 'pk:intro:' + KEY;
   var LS_ANS = 'pk:ans:' + KEY;
@@ -33,21 +39,24 @@
   function lsDel(k) { try { window.localStorage.removeItem(k); } catch (e) { } }
 
   var LEVELS = [
-    { key: 'severe', kw: ['极重度', '重度', '严重', '高危', '阳性', '显著'], color: '#dc2626', label: '重度/高危' },
-    { key: 'moderate', kw: ['中重度', '中度', '中等'], color: '#ea580c', label: '中度' },
-    { key: 'mild', kw: ['轻度', '关注', '边缘', '可疑'], color: '#ca8a04', label: '轻度/关注' },
-    { key: 'none', kw: ['无', '阴性', '正常', '低危', '极低', '未达'], color: '#16a34a', label: '正常/低危' }
+    { key: 'severe', kw: ['极重度', '重度', '严重', '高危', '阳性', '显著'], kwEn: ['very severe', 'extreme', 'severe', 'high risk', 'positive', 'significant'], color: '#dc2626', label: '重度/高危', labelEn: 'Severe / High risk' },
+    { key: 'moderate', kw: ['中重度', '中度', '中等'], kwEn: ['moderately severe', 'moderate'], color: '#ea580c', label: '中度', labelEn: 'Moderate' },
+    { key: 'mild', kw: ['轻度', '关注', '边缘', '可疑'], kwEn: ['mild', 'borderline', 'questionable'], color: '#ca8a04', label: '轻度/关注', labelEn: 'Mild / Watch' },
+    { key: 'none', kw: ['无', '阴性', '正常', '低危', '极低', '未达'], kwEn: ['none', 'negative', 'normal', 'low risk', 'minimal', 'subthreshold'], color: '#16a34a', label: '正常/低危', labelEn: 'Normal / Low risk' }
   ];
 
   function matchLevel(text) {
-    var t = String(text || '');
+    var t = String(text || '').toLowerCase();
+    var en = pkEn();
     for (var i = 0; i < LEVELS.length; i++) {
-      for (var j = 0; j < LEVELS[i].kw.length; j++) {
-        if (t.indexOf(LEVELS[i].kw[j]) >= 0) return LEVELS[i];
+      var kws = en ? LEVELS[i].kwEn : LEVELS[i].kw;
+      for (var j = 0; j < kws.length; j++) {
+        if (t.indexOf(kws[j].toLowerCase()) >= 0) return LEVELS[i];
       }
     }
     return null;
   }
+  function levelLabel(lv) { return lv ? (pkEn() ? (lv.labelEn || lv.label) : lv.label) : ''; }
 
   /* ---------------- 样式 ---------------- */
   var CSS = [
@@ -159,7 +168,7 @@
     for (var di = 0; di < n; di++) dots += '<span class="pk-dot"></span>';
     wrap.innerHTML =
       '<div class="pk-progress">' +
-      '  <div class="pk-progress-head"><span>进度 <b id="pk-cur">1</b> / ' + n + ' 题</span><span id="pk-done">已答 0 题</span></div>' +
+      '  <div class="pk-progress-head"><span>' + (pkEn() ? 'Progress ' : '进度 ') + '<b id="pk-cur">1</b> / ' + n + (pkEn() ? '' : ' 题') + '</span><span id="pk-done">' + (pkEn() ? '0 answered' : '已答 0 题') + '</span></div>' +
       '  <div class="pk-dots">' + dots + '</div>' +
       '  <div class="pk-bar"><i id="pk-barfill" style="width:0%"></i></div>' +
       '</div>';
@@ -182,7 +191,7 @@
     var cur = n;
     for (var i = 0; i < n; i++) { if (!done[i]) { cur = i + 1; break; } }
     var elc = $('#pk-cur'); if (elc) elc.textContent = cur;
-    var eld = $('#pk-done'); if (eld) eld.textContent = '已答 ' + c + ' 题';
+    var eld = $('#pk-done'); if (eld) eld.textContent = pkEn() ? (c + ' answered') : ('已答 ' + c + ' 题');
     var dots = $$('.pk-dot');
     dots.forEach(function (d, i) {
       d.classList.toggle('on', !!done[i]);
@@ -203,16 +212,20 @@
     card.className = 'pk-wrap' + (seen ? ' pk-hidden' : '');
     card.id = 'pk-intro';
     var kindLine = KIND === 'clinical'
-      ? '<li>本量表为自助筛查工具，约需 ' + MINUTES + ' 分钟完成。</li>'
-      : '<li>本测试约需 ' + MINUTES + ' 分钟完成。</li>';
+      ? (pkEn() ? '<li>This is a self-screening tool and takes about ' + MINUTES + ' minutes.</li>' : '<li>本量表为自助筛查工具，约需 ' + MINUTES + ' 分钟完成。</li>')
+      : (pkEn() ? '<li>This quiz takes about ' + MINUTES + ' minutes.</li>' : '<li>本测试约需 ' + MINUTES + ' 分钟完成。</li>');
+    var periodText = pkEn() ? 'the past two weeks' : PERIOD;
     card.innerHTML =
       '<div class="pk-intro">' +
-      '  <h4>📋 开始前的说明</h4>' +
+      '  <h4>' + (pkEn() ? '📋 Before you begin' : '📋 开始前的说明') + '</h4>' +
       '  <ul>' + kindLine +
-      '    <li>答案无对错，请按' + PERIOD + '的真实感受选择。</li>' +
-      '    <li>结果仅作参考，不构成诊断；所有数据仅在您的设备本地处理。</li>' +
+      (pkEn()
+        ? '    <li>There are no right or wrong answers; choose based on how you felt over ' + periodText + '.</li>' +
+          '    <li>Results are for reference only and are not a diagnosis; all data stays on your device.</li>'
+        : '    <li>答案无对错，请按' + periodText + '的真实感受选择。</li>' +
+          '    <li>结果仅作参考，不构成诊断；所有数据仅在您的设备本地处理。</li>') +
       '  </ul>' +
-      '  <button type="button" class="pk-btn primary" id="pk-start">开始作答</button>' +
+      '  <button type="button" class="pk-btn primary" id="pk-start">' + (pkEn() ? 'Start' : '开始作答') + '</button>' +
       '</div>';
     host.parentNode.insertBefore(card, host);
     if (!seen) host.classList.add('pk-hidden');
@@ -249,9 +262,13 @@
     var box = document.createElement('div');
     box.id = 'pk-resume';
     box.className = 'pk-resume';
-    box.innerHTML = '<span>检测到 ' + mtxt + ' 未完成的评估记录（仅保存在本机）。是否继续？</span>' +
-      '<button type="button" class="pk-btn primary" id="pk-keep">继续作答</button>' +
-      '<button type="button" class="pk-btn ghost" id="pk-drop">重新开始</button>';
+    box.innerHTML = (pkEn()
+      ? '<span>An unfinished assessment' + (mtxt ? ' (' + mtxt + ')' : '') + ' was found on this device. Continue?</span>' +
+        '<button type="button" class="pk-btn primary" id="pk-keep">Continue</button>' +
+        '<button type="button" class="pk-btn ghost" id="pk-drop">Start over</button>'
+      : '<span>检测到 ' + mtxt + ' 未完成的评估记录（仅保存在本机）。是否继续？</span>' +
+        '<button type="button" class="pk-btn primary" id="pk-keep">继续作答</button>' +
+        '<button type="button" class="pk-btn ghost" id="pk-drop">重新开始</button>');
     host.parentNode.insertBefore(box, host);
     $('#pk-keep').addEventListener('click', function () {
       restoring = true;
@@ -292,12 +309,14 @@
     var shown = miss.slice(0, 30).join('、') + (miss.length > 30 ? ' 等' : '');
     m.innerHTML =
       '<div class="pk-modal-card" role="dialog" aria-modal="true">' +
-      '  <h4>⚠️ 还有 ' + miss.length + ' 题未作答</h4>' +
-      '  <p>未作答的题目：<span class="pk-modal-nums" style="display:inline;">' + shown + '</span></p>' +
-      '  <p>确定用当前答案计算吗？未答题目不会按 0 分处理，结果可能偏低。</p>' +
+      '  <h4>' + (pkEn() ? '⚠️ ' + miss.length + ' unanswered items' : '⚠️ 还有 ' + miss.length + ' 题未作答') + '</h4>' +
+      '  <p>' + (pkEn() ? 'Unanswered:' : '未作答的题目：') + '<span class="pk-modal-nums" style="display:inline;">' + shown + '</span></p>' +
+      (pkEn()
+        ? '  <p>Calculate with the current answers? Unanswered items are not treated as 0, so the result may be lower.</p>'
+        : '  <p>确定用当前答案计算吗？未答题目不会按 0 分处理，结果可能偏低。</p>') +
       '  <div class="pk-modal-actions">' +
-      '    <button type="button" class="pk-btn primary" id="pk-ok">确定计算</button>' +
-      '    <button type="button" class="pk-btn ghost" id="pk-cancel">继续作答</button>' +
+      '    <button type="button" class="pk-btn primary" id="pk-ok">' + (pkEn() ? 'Calculate' : '确定计算') + '</button>' +
+      '    <button type="button" class="pk-btn ghost" id="pk-cancel">' + (pkEn() ? 'Keep answering' : '继续作答') + '</button>' +
       '  </div>' +
       '</div>';
     document.body.appendChild(m);
@@ -361,6 +380,12 @@
   }
 
   function hotlineHtml() {
+    if (pkEn()) {
+      return '<div class="pk-hotline"><span class="pk-hl-title">🆘 This result indicates a relatively high psychological risk</span>' +
+        'If you are distressed or having thoughts of harming yourself, please call a 24-hour mental health helpline immediately: ' +
+        '<a href="tel:4001619995">400-161-9995</a> / <a href="tel:01082951332">010-82951332</a>, ' +
+        'or the crisis line <a href="tel:4008211215">400-821-1215</a>, or go to the nearest hospital emergency department.</div>';
+    }
     return '<div class="pk-hotline"><span class="pk-hl-title">🆘 本次结果提示存在较高心理风险</span>' +
       '如感到痛苦或有伤害自己的念头，请立即拨打 24 小时心理援助热线 ' +
       '<a href="tel:4001619995">400-161-9995</a>（<a href="tel:01082951332">010-82951332</a>），' +
@@ -424,11 +449,11 @@
       head += '<div class="pk-scorecard">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">' +
         '<div><div class="pk-score" style="color:' + lv.color + ';">' + lastScore + '</div>' +
-        '<div style="font-size:13px;color:var(--text-secondary,#6B7280);margin-top:2px;">总分</div></div>' +
-        '<span class="pk-badge" style="background:' + lv.color + ';">' + lv.label + '</span>' +
+        '<div style="font-size:13px;color:var(--text-secondary,#6B7280);margin-top:2px;">' + (pkEn() ? 'Total' : '总分') + '</div></div>' +
+        '<span class="pk-badge" style="background:' + lv.color + ';">' + levelLabel(lv) + '</span>' +
         '</div></div>';
     } else if (lv) {
-      head += '<div class="pk-scorecard"><span class="pk-badge" style="background:' + lv.color + ';">' + lv.label + '</span></div>';
+      head += '<div class="pk-scorecard"><span class="pk-badge" style="background:' + lv.color + ';">' + levelLabel(lv) + '</span></div>';
     }
 
     if (head) box.insertAdjacentHTML('afterbegin', head);
@@ -436,8 +461,8 @@
     var act = document.createElement('div');
     act.className = 'pk-actions';
     act.innerHTML =
-      '<button type="button" class="pk-btn primary" id="pk-copy">📋 复制结果</button>' +
-      '<button type="button" class="pk-btn" id="pk-img">🖼 保存为图片</button>';
+      '<button type="button" class="pk-btn primary" id="pk-copy">' + (pkEn() ? '📋 Copy result' : '📋 复制结果') + '</button>' +
+      '<button type="button" class="pk-btn" id="pk-img">' + (pkEn() ? '🖼 Save as image' : '🖼 保存为图片') + '</button>';
     box.appendChild(act);
 
     $('#pk-copy').addEventListener('click', copySummary);
@@ -448,19 +473,19 @@
     var d = new Date();
     var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
     var date = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-    var lv = lastLevel ? lastLevel.label : '';
+    var lv = levelLabel(lastLevel);
     var lines = [];
     lines.push('【' + (NAME || document.title.replace(/\s*[-|].*$/, '')) + '】');
-    lines.push('总分：' + (lastScore === null ? '—' : lastScore) + (lv ? '（' + lv + '）' : ''));
-    lines.push('评估日期：' + date);
-    lines.push('本结果为自助筛查，不替代专业诊断。');
+    lines.push((pkEn() ? 'Total: ' : '总分：') + (lastScore === null ? '—' : lastScore) + (lv ? (pkEn() ? ' (' : '（') + lv + (pkEn() ? ')' : '）') : ''));
+    lines.push((pkEn() ? 'Date: ' : '评估日期：') + date);
+    lines.push(pkEn() ? 'This result is a self-screening aid and does not replace a professional diagnosis.' : '本结果为自助筛查，不替代专业诊断。');
     return lines.join('\n');
   }
 
   function copySummary() {
     var txt = buildSummary();
     var done = function () {
-      try { if (window.ToolBox && window.ToolBox.showToast) { window.ToolBox.showToast('结果已复制', 'success'); return; } } catch (e) { }
+      try { if (window.ToolBox && window.ToolBox.showToast) { window.ToolBox.showToast(pkEn() ? 'Result copied' : '结果已复制', 'success'); return; } } catch (e) { }
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(txt).then(done, fallback);
@@ -495,7 +520,9 @@
       var date = new Date();
       var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
       var dstr = date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
-      var advice = '本结果为自助筛查，不替代专业诊断。如感到痛苦或有伤害自己的念头，请拨打 24 小时心理援助热线 400-161-9995。';
+      var advice = pkEn()
+        ? 'This result is a self-screening aid and does not replace a professional diagnosis. If you are distressed or having thoughts of harming yourself, please call a 24-hour mental health helpline.'
+        : '本结果为自助筛查，不替代专业诊断。如感到痛苦或有伤害自己的念头，请拨打 24 小时心理援助热线 400-161-9995。';
       var f = function (s, w) { return (w || 400) + ' ' + s + 'px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif'; };
       ctx.font = f(15);
       var lines = wrapText(ctx, advice, W - PAD * 2);
@@ -505,7 +532,7 @@
       ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, W, H);
       ctx.fillStyle = '#FF6B35'; ctx.fillRect(0, 0, W, 6);
       ctx.fillStyle = '#1F2937'; ctx.font = f(20, 600); ctx.fillText(title, PAD, PAD + 26);
-      ctx.fillStyle = '#6B7280'; ctx.font = f(13); ctx.fillText('评估日期：' + dstr, PAD, PAD + 50);
+      ctx.fillStyle = '#6B7280'; ctx.font = f(13); ctx.fillText((pkEn() ? 'Date: ' : '评估日期：') + dstr, PAD, PAD + 50);
       if (lastScore !== null) {
         ctx.fillStyle = lv ? lv.color : '#1F2937';
         ctx.font = f(46, 800);
@@ -513,23 +540,24 @@
       }
       if (lv) {
         ctx.font = f(15, 600);
-        var bw = ctx.measureText(lv.label).width + 24;
+        var lvLabel = levelLabel(lv);
+        var bw = ctx.measureText(lvLabel).width + 24;
         var bx = PAD + (lastScore !== null ? ctx.measureText(String(lastScore)).width * 2.2 + 20 : 0);
         ctx.fillStyle = lv.color;
         roundRect(ctx, bx, PAD + 76, bw, 32, 16);
         ctx.fill();
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillText(lv.label, bx + 12, PAD + 97);
+        ctx.fillText(lvLabel, bx + 12, PAD + 97);
       }
       ctx.fillStyle = '#6B7280'; ctx.font = f(14);
       lines.forEach(function (ln, i) { ctx.fillText(ln, PAD, PAD + 150 + i * 26); });
       ctx.fillStyle = '#9CA3AF'; ctx.font = f(12);
-      ctx.fillText('本结果由 ToolBox 本地生成，数据未上传。', PAD, H - 18);
+      ctx.fillText(pkEn() ? 'Generated locally by ToolBox; no data uploaded.' : '本结果由 ToolBox 本地生成，数据未上传。', PAD, H - 18);
       c.toBlob(function (blob) {
         if (!blob) return;
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
-        a.href = url; a.download = title + '-结果-' + dstr + '.png';
+        a.href = url; a.download = title + (pkEn() ? '-result-' : '-结果-') + dstr + '.png';
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
       }, 'image/png');
