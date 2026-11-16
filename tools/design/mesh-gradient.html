@@ -560,17 +560,32 @@ function __mesh_gradientExport(){
 }
 function __mesh_gradientPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#mesh_gradientPresets',[
-      {label:'默认三色',labelEn:'Default 3 colors',values:{color0:'#667eea',color1:'#764ba2',color2:'#f093fb'}},
-      {label:'暖阳',labelEn:'Warm sunset',values:{color0:'#ff9a9e',color1:'#fecfef',color2:'#f6d365'}},
-      {label:'冷海',labelEn:'Cool ocean',values:{color0:'#4facfe',color1:'#00f2fe',color2:'#43e97b'}}
-    ],function(){
-      var cs=[];
-      for(var i=0;i<3;i++){
-        var e=document.getElementById('color'+i);
-        if(e&&/^#[0-9a-f]{6}$/i.test(e.value)) cs.push(e.value);
+    // D-N320 复核重做：预设回调不能只从现存 color0..color2 控件读色——两色状态下第三色块
+    // 已被 removeColor 删除，setValue('#color2') 无效，导致三色预设退化为两色。
+    // 改为每个预设携带完整色数组，由闭包直接重建 colors 并渲染色块。
+    var PRESETS=[
+      {label:'默认三色',labelEn:'Default 3 colors',cols:['#667eea','#764ba2','#f093fb']},
+      {label:'暖阳',labelEn:'Warm sunset',cols:['#ff9a9e','#fecfef','#f6d365']},
+      {label:'冷海',labelEn:'Cool ocean',cols:['#4facfe','#00f2fe','#43e97b']}
+    ];
+    var list=PRESETS.map(function(p){
+      var values={};
+      p.cols.forEach(function(c,i){ values['color'+i]=c; });
+      return {label:p.label,labelEn:p.labelEn,values:values,_cols:p.cols};
+    });
+    TBKit.preset.bar('#mesh_gradientPresets',list,function(){
+      // preset.bar 的 after 无参数；用按钮激活态对应的预设色数组重建。
+      var active=null;
+      var btns=document.querySelectorAll('#mesh_gradientPresets .tbk-preset-btn');
+      for(var i=0;i<btns.length;i++){ if(btns[i].classList.contains('active')){ active=list[i]; break; } }
+      // after 在 active 类设置之前调用，改为匹配当前控件值对应的预设。
+      if(!active){
+        for(var j=0;j<list.length;j++){
+          var e0=document.getElementById('color0');
+          if(e0&&e0.value.toLowerCase()===list[j]._cols[0].toLowerCase()){ active=list[j]; break; }
+        }
       }
-      if(cs.length>=2){ colors=cs.slice(0,5); renderColors(); }
+      if(active){ colors=active._cols.slice(); renderColors(); }
       generate();
     });
 }

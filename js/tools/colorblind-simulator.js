@@ -320,7 +320,9 @@
   });
   $('c1Hex').addEventListener('input', function () {
     var c = hexToRgb(this.value);
-    if (c) { this.style.borderColor = ''; setColorFromRgb(c, true); }
+    // D-N102 复核重做：手输 HEX 是外部来源，须同步取色器（skipColorPicker=false）；
+    // 只有取色器自身的 input 才跳过回写，避免双向死循环。
+    if (c) { this.style.borderColor = ''; setColorFromRgb(c, false); }
     else { this.style.borderColor = 'var(--danger)'; }
   });
   function syncRgbInputs(c) {
