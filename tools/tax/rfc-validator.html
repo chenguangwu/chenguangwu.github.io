@@ -138,7 +138,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#06B6D4;">
      <h2 data-zh="🇲🇽 墨西哥 RFC 验证">🇲🇽 Mexican RFC Validator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">个人 RFC = 4 字母 + 6 数字 + 3 位同音字（共 13 位）；公司 RFC = 3 字母 + 6 数字 + 3 位同音字（共 12 位）；日期段 yy＜30 判为 2000+yy，否则 1900+yy；末位为校验位，与 rfcChecksum 结果比对</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">个人 RFC = 4 字母 + 6 数字 + 2 位同音码（homonimia）+ 1 位校验位（共 13 位）；公司 RFC = 3 字母 + 6 数字 + 2 位同音码 + 1 位校验位（共 12 位）；格式 AAAaammddHHD，HH 为同音码、D 为校验位（墨西哥税务局 SAT 口径）；日期段 yy＜30 判为 2000+yy，否则 1900+yy；末位校验位与 rfcChecksum 结果比对</div>
   <div class="formula-desc">本校验工具依据对应数据格式与语法规范进行合法性检查，实时给出校验结果与错误定位；纯前端运行，代码不离开浏览器。 工具名称：墨西哥 RFC 验证 - 免费验证器工具，在线墨西哥 RFC 验证，免费使用。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="墨西哥 RFC 验证工具：输入墨西哥纳税人登记号（RFC），校验格式、长度与校验位合法性，用于跨境身份与税号核验。">Validate a Mexican RFC taxpayer registration number for length, structure and check digit. Format check only.</p>
@@ -198,7 +198,7 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="编码结构">Code structure</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="个人 13 位、企业 12 位：字母前缀 + 6 位出生或成立日期 + 3 位同音码 + 校验位">Individuals use 13 characters and companies 12: letter prefix, 6-digit date, 3-character homoclave plus check digit</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="个人 13 位、企业 12 位：字母前缀 + 6 位出生或成立日期 + 2 位同音码（homonimia）+ 1 位校验位（格式 AAAaammddHHD）">Individuals use 13 characters and companies 12: letter prefix, 6-digit date, 2-character homonimia plus 1 check digit (format AAAaammddHHD)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Codigo Fiscal de la Federacion, Art. 29">Codigo Fiscal de la Federacion, Art. 29</td>
         </tr>
         <tr>
@@ -250,8 +250,8 @@ function validate(){
   if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
   let html = `<p><strong>输入：</strong>${escapeHtml(raw)}</p>`;
   html += `<p><strong>长度：</strong>${raw.length} 字符</p>`;
-  // 个人 RFC：4 字母 + 6 数字 + 3 位同音字（末位为校验位）= 13 位
-  // 公司 RFC：3 字母 + 6 数字 + 3 位同音字（末位为校验位）= 12 位
+  // 个人 RFC：4 字母 + 6 数字 + 2 位同音码 + 1 位校验位 = 13 位
+  // 公司 RFC：3 字母 + 6 数字 + 2 位同音码 + 1 位校验位 = 12 位
   const person = /^[A-Z]{4}\d{6}[A-Z0-9]{3}$/;
   const company = /^[A-Z]{3}\d{6}[A-Z0-9]{3}$/;
   let type = '';
@@ -260,7 +260,7 @@ function validate(){
   } else if(company.test(raw)){
     type = '公司 (Persona Moral)';
   } else {
-    html += `<p style="color:var(--danger);">❌ 格式不符。个人 RFC 应为 4 字母 + 6 数字 + 3 位同音字（共 13 位，末位为校验位）；公司 RFC 应为 3 字母 + 6 数字 + 3 位同音字（共 12 位，末位为校验位）</p>`;
+    html += `<p style="color:var(--danger);">❌ 格式不符。个人 RFC 应为 4 字母 + 6 数字 + 2 位同音码 + 1 位校验位（共 13 位）；公司 RFC 应为 3 字母 + 6 数字 + 2 位同音码 + 1 位校验位（共 12 位）</p>`;
     out.innerHTML = html;
     return;
   }
@@ -276,7 +276,7 @@ function validate(){
   html += `<p><strong>类型：</strong>${type}</p>`;
   html += `<p><strong>名称首字母：</strong>${letters}</p>`;
   html += `<p><strong>日期：</strong>${date}（${dateValid ? year+'-'+String(mm).padStart(2,'0')+'-'+String(dd).padStart(2,'0') : '❌ 无效'}）</p>`;
-  html += `<p><strong>同音字位：</strong>${homoclave.substring(0,2)}</p>`;
+  html += `<p><strong>同音码（homonimia，2 位）：</strong>${homoclave.substring(0,2)}</p>`;
   const check = raw.slice(-1);
   const expected = rfcChecksum(raw.slice(0, -1));
   const expectChar = expected === 10 ? 'A' : String(expected);

@@ -662,6 +662,13 @@ const CASES = [
     inputs: { input: "ABC010101AB9" },
     expect: ["✅ RFC 有效"],
     ref: "公司 RFC 12 位：ABC010101AB 的校验和 431%11=2 ⇒ 校验位 9；旧实现把 12 位当「无校验位」直接判格式有效，现统一按末位校验位计算。" },
+  { slug: "tax/rfc-validator",
+    inputs: { input: "ABC010101AB9" },
+    clicks: ["validate();var t=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='RFCHH '+((t.indexOf('同音码（homonimia，2 位）：<\/strong>AB')>=0&&t.indexOf('同音字位')<0)?'OK':'BAD');"],
+    expect: ["RFCHH OK"],
+    ref: "718：末三位 AB9 应拆为 2 位同音码 AB + 1 位校验位 9（SAT 格式 AAAaammddHHD）。旧页面把三位统称「同音字位」，且公式/错误提示写「3 位同音字」；修复后解析展示明确「同音码（homonimia，2 位）」并只显示 AB，校验位单列。默认空输入不产出该串。",
+  },
+
 
   { slug: "tax/rfc-validator",
     inputs: { input: "ABCD010101AB0" },
