@@ -935,10 +935,10 @@ const CASES = [
   },
   {
     slug: "it/vector-magnitude",
-    inputs: {},
-    clicks: ["document.getElementById('dim').value='2';document.getElementById('v0').value='1e999';document.getElementById('v1').value='0';calculate();"],
-    expect: ["⚠ 向量分量必须为有限数值。"],
-    ref: "IT-N477 复核重做：1e999 经 parseFloat 得 Infinity，属非有限分量，必须阻断结论而不是输出 ∞ 或伪方向角。默认态有限输入不出现该提示。"
+    inputs: { v0: "1", v1: "2" },
+    clicks: ["document.getElementById('dim').value='2';document.getElementById('v0').value='1e999';document.getElementById('v1').value='0';calculate();var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='VECT '+(h.indexOf('向量分量必须为有限数值')>=0?'OK':'BAD');"],
+    expect: ["VECT OK"],
+    ref: "IT-N477 复核重做：1e999 经 parseFloat 得 Infinity，属非有限分量，必须阻断结论而不是输出 ∞ 或伪方向角。判别器实测固定错误文案在默认快照也命中，改用探针串锚定「注入 1e999 后确实显示该提示」；默认态不执行 clicks，无 VECT 串。"
   },
   {
     slug: "it/keyword-extractor",
@@ -3799,6 +3799,7 @@ const CASES = [
     slug: "it/a1z26-cipher",
     inputs: { input: "XYZ", sep: "-" },
     clicks: ["enc()"],
+    expect: ["24-25-26"],
     copyCheck: { fn: "copyResult", expect: "24-25-26" },
     ref: "复制路径：enc() 后 copyResult(event) 写入剪贴板的内容必须等于结果区 `24-25-26`，且 then 回调不抛异常；旧实现 .then 内读隐式 event.target 会抛 TypeError 被 Promise 吞掉。",
   },
@@ -14159,14 +14160,14 @@ const CASES = [
   {
     slug: "it/meta-tags-generator",
     inputs: { title: '我的"站点"', desc: '描述<tag>' },
-    expect: ['name="viewport" content="width=device-width'],
-    ref: "IT-N429 修复：旧实现漏输出 viewport 元标签。现 calcTool 默认补 charset+viewport ⇒ 输出必含 name=\"viewport\"。注入带引号/尖括号输入，旧实现原样拼入破坏 HTML，新实现 attr() 转义；该串依赖输入且默认态不含 ⇒ 强判别。",
+    expect: ['我的&amp;quot;站点&amp;quot;'],
+    ref: "IT-N429 修复：注入带引号标题时 attr() 必须转义，输出含「我的&amp;quot;站点&amp;quot;」；判别器实测固定 viewport 串在默认快照也命中，已改锚为依赖输入的转义结果。viewport 另由自动补强用例（含完整 HTML 模板）覆盖。",
   },
   {
     slug: "it/meta-tags-generator",
     inputs: { title: '我的"站点"', desc: '描述<tag>' },
-    expect: ['twitter:title" content="我的'],
-    ref: "IT-N428 修复：旧实现 twitter:title/description 写死本站文案，忽略用户输入。新实现改用输入 t/d ⇒ 输出 twitter:title\" content=\"我的…。默认 title 不同不命中。",
+    expect: ['twitter:title" content="我的&amp;quot;站点&amp;quot;'],
+    ref: "IT-N428 修复：旧实现 twitter:title/description 写死本站文案，忽略用户输入。新实现改用输入 t/d 并转义引号；判别器实测短锚「twitter:title\" content=\"我的」在默认快照也命中，已延长为依赖注入标题的转义串，默认 title 不同不命中。",
   },
   {
     slug: "it/meta-tags-generator",

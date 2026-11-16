@@ -144,13 +144,13 @@ const CASES = [
 {
   "slug": "process/first-pass-yield",
   "inputs": {
-    "good": "1425",
-    "total": "1500"
+    "good": "1440",
+    "total": "1600"
   },
   "expect": [
-    "95.00"
+    "90.00"
   ],
-  "ref": "1425/1500=95.00%（旧用例 good>total 会被新校验拦截，改为合法输入）"
+  "ref": "1440/1600=90.00%。判别器实测旧输入 1425/1500 与页面默认 950/1000 同为 95.00%（默认态命中），已换非默认比例；默认态不出现 90.00。"
 },
 {
   "slug": "process/first-pass-yield",

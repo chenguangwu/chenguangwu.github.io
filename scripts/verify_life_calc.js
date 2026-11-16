@@ -553,6 +553,7 @@ const CASES = [
   {
     slug: "life/base-convert",
     inputs: { input: "4095", customBase: "2" },
+    expect: ["FFF"],
     copyCheck: { fn: "copyVal", btnArg: true, args: ["hex"], expect: "FFF" },
     ref: "复制路径：copyVal('hex', btn) 写入剪贴板的内容必须等于结果区 hex=FFF，且 then 回调不抛异常；旧实现 .then 内读隐式 event.target 会抛 TypeError 被 Promise 吞掉。",
   },

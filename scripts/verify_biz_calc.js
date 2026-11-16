@@ -163,6 +163,7 @@ const CASES = [
     slug: "biz/text-case",
     inputs: { input: "Abc Def" },
     clicks: ["convert('kebab');"],
+    expect: ["abc-def"],
     copyCheck: { fn: "copyResult", expect: "abc-def" },
     ref: "复制路径：convert('kebab') 后 copyResult(event) 写入剪贴板的内容必须等于结果区 'abc-def'，且 then 回调不抛异常；旧实现 .then 内读隐式 event.target 会抛 TypeError 被 Promise 吞掉。",
   },
