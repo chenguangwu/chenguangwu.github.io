@@ -255,16 +255,23 @@ try{
   var doc=new DOMParser().parseFromString(xml,'application/xml');
   var err=doc.getElementsByTagName('parsererror');
   // IT-D20 复核重做：只有「解析器实际生成的错误文档」才算格式错误：
-  //   ① 节点带 mozilla parsererror 命名空间（Firefox/Chromium 真实解析失败文档）；
-  //   ② 不属于文档树的孤立错误节点（无 parentNode，兼容自研 stub DOMParser 的失败节点）。
-  // 合法文档里用户自定义的 <parsererror> 子元素或根元素：namespaceURI 为 null，
-  // 且位于文档树中（parentNode 指向文档元素或 document），不能仅因同名就误判为解析失败。
+  //   ① Firefox：根节点是 http://www.mozilla.org/newlayout/xml/parsererror.xml 命名空间的 <parsererror>；
+  //   ② Chromium：文档根是 XHTML 命名空间的 <html>，<parsererror> 也在 XHTML 命名空间内；
+  //   ③ 不属于文档树的孤立错误节点（无 parentNode，兼容自研 stub DOMParser 的失败节点）。
+  // 合法文档里用户自定义的 <parsererror> 子元素/根元素（哪怕命名空间 URL 里含 parsererror 字样）
+  // 都是普通元素，不能仅因同名或子串命中就误判为解析失败。
+  var XHTML_NS='http://www.w3.org/1999/xhtml';
+  var rootTag=(doc.documentElement&&(doc.documentElement.tagName||'').toLowerCase())||'';
+  var rootNs=(doc.documentElement&&doc.documentElement.namespaceURI)||'';
+  var chromiumDoc=(rootTag==='html'&&rootNs===XHTML_NS);
   var realErr=null,detail='';
   for(var ei=0;ei<err.length;ei++){
     var e0=err[ei];
     var ns=e0.namespaceURI||'';
     var inTree=(!!e0.parentNode)||e0===doc.documentElement;
-    if(/parsererror/i.test(ns) || !inTree){
+    var firefoxErr=/newlayout\/xml\/parsererror\.xml/i.test(ns);
+    var chromiumErr=(chromiumDoc&&ns===XHTML_NS);
+    if(firefoxErr || chromiumErr || !inTree){
       realErr=e0; detail=e0.textContent||''; break;
     }
   }

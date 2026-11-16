@@ -259,6 +259,9 @@ function tomlDateLiteral(v){
   const m = /^(\d{4})-(\d{2})-(\d{2})(?:[Tt ](\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|z|[+-]\d{2}:\d{2})?)?$/.exec(v);
   if(m){
     const y = +m[1], mo = +m[2], d = +m[3];
+    // 218 复核：TOML 采用 RFC 3339，年份 0000 不是可解析日期（Python tomllib 报 Invalid date or datetime），
+    // 必须与非法月日一样退回普通带引号字符串。
+    if(y < 1) return null;
     if(mo < 1 || mo > 12) return null;
     // 第224批复核重做：按真实日历核对各月天数与闰年，避免 2023-02-31 之类非法日期
     // 被当作 TOML 原生 datetime 裸值输出（tomllib 会抛 TOMLDecodeError）。

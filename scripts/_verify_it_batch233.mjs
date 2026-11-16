@@ -101,7 +101,9 @@ function parse(input) {
 const r1 = parse('syntax = "proto3"; message M { map<string, Address> tags = 1; }');
 check('N276 message 内 map<> 解析成功', r1 && r1.err.indexOf('❌') < 0 && /"map<string, Address>"/.test(r1.out) && /"tags"/.test(r1.out), r1 ? (r1.err + ' | ' + r1.out.slice(0, 80)) : 'null');
 const r2 = parse('syntax = "proto3"; message M { oneof pick { map<string, string> opts = 1; } }');
-check('N276 oneof 内 map<> 解析成功', r2 && r2.err.indexOf('❌') < 0 && /opts/.test(r2.out), r2 ? r2.err : 'null');
+// 219 复核：protoc 29.3 明确报 "Map fields are not allowed in oneofs."，
+// 旧断言把「非法 oneof 内的 map 解析成功」当预期，与真实语法相反 ⇒ 改为断言被拒绝。
+check('N276 oneof 内 map<> 被拒绝', r2 && r2.err.indexOf('❌') >= 0 && !/"opts"/.test(r2.out), r2 ? r2.err : 'null');
 
 // ══════════════ N277 校验复用 parseProto ══════════════
 function validate(input) {

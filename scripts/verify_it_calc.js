@@ -267,6 +267,30 @@ const CASES = [
     ref: "第310批配套：真实无效 XML（闭合标签错配）由 DOMParser 生成孤立 parsererror 节点（无 parentNode），仍须判为格式错误，防止修复过度放宽。默认态无本探针 ⇒ 不命中。"
   },
   {
+    slug: "it/xml-validator",
+    domParser: true,
+    inputs: { src: "<root xmlns=\"https://example.com/parsererror\"><parsererror>valid</parsererror></root>" },
+    clicks: ["var __pe={namespaceURI:'https://example.com/parsererror',parentNode:{tagName:'root'},textContent:'valid'};var __rt={tagName:'root',namespaceURI:'https://example.com/parsererror'};var __dc={documentElement:__rt,getElementsByTagName:function(n){return n==='parsererror'?[__pe]:[{},{}];}};globalThis.DOMParser=function(){this.parseFromString=function(){return __dc;};};calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='XML310NS '+((h.indexOf('XML 格式良好')>=0&&h.indexOf('格式错误')<0)?'OK':'BAD');"],
+    expect: ["XML310NS OK"],
+    ref: "310 复核：合法文档的用户自定义命名空间 URL 里含 `parsererror` 字样（xmlns=\"https://example.com/parsererror\"），旧判据 `/parsererror/i.test(ns)` 直接命中 ⇒ 误报格式错误。修复后只认 Firefox 错误文档专用命名空间与 Chromium 的 XHTML 错误文档 ⇒ 该文档判为格式良好。默认示例不含该命名空间 ⇒ 零逃生。"
+  },
+  {
+    slug: "it/xml-validator",
+    domParser: true,
+    inputs: { src: "<a><b></a>" },
+    clicks: ["var __ns='http://www.mozilla.org/newlayout/xml/parsererror.xml';var __pe={namespaceURI:__ns,parentNode:null,textContent:'XML Parsing Error: mismatched tag'};var __rt={tagName:'parsererror',namespaceURI:__ns};var __dc={documentElement:__rt,getElementsByTagName:function(n){return n==='parsererror'?[__pe]:[{}];}};globalThis.DOMParser=function(){this.parseFromString=function(){return __dc;};};calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='XML310FF '+((h.indexOf('格式错误')>=0&&h.indexOf('XML 格式良好')<0)?'OK':'BAD');"],
+    expect: ["XML310FF OK"],
+    ref: "310 配套：Firefox 真实解析失败文档的根节点是 mozilla newlayout parsererror 命名空间 ⇒ 必须判格式错误，防止为新判据把真实错误一起放行。默认态无本探针 ⇒ 不命中。"
+  },
+  {
+    slug: "it/xml-validator",
+    domParser: true,
+    inputs: { src: "<a><b></a>" },
+    clicks: ["var __x='http://www.w3.org/1999/xhtml';var __pe={namespaceURI:__x,parentNode:{tagName:'body'},textContent:'This page contains the following errors'};var __rt={tagName:'HTML',namespaceURI:__x};var __dc={documentElement:__rt,getElementsByTagName:function(n){return n==='parsererror'?[__pe]:[{}];}};globalThis.DOMParser=function(){this.parseFromString=function(){return __dc;};};calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='XML310CR '+((h.indexOf('格式错误')>=0&&h.indexOf('XML 格式良好')<0)?'OK':'BAD');"],
+    expect: ["XML310CR OK"],
+    ref: "310 配套：Chromium 错误文档根为 XHTML 命名空间的 <html>，其 <parsererror> 也在 XHTML 命名空间内 ⇒ 须判格式错误。断言同时要求不出现「XML 格式良好」，区分「按根命名空间识别」与「一律放行」。默认态无本探针 ⇒ 不命中。"
+  },
+  {
     slug: "it/json-schema-generator",
     inputs: { input: '{"items":[[1],["x"]]}' },
     clicks: ["generateSchema();var s=String(JSON.stringify(lastSchema)),q=String.fromCharCode(34);document.getElementById('__tbProbe').textContent='JS210N '+((s.indexOf(q+'string'+q)>=0&&s.indexOf(q+'anyOf'+q)>=0)?'OK':'BAD');"],
@@ -321,6 +345,13 @@ const CASES = [
     clicks: ["doToml();var t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='UC224OFF '+((t.indexOf('d = 2020-01-01T00:00:00+08:00')>=0)?'OK':'BAD');"],
     expect: ["UC224OFF OK"],
     ref: "第224批配套护栏：合法偏移 +08:00 仍须按 TOML 原生 datetime 输出裸值，防止校验过度把合法偏移也拒成字符串。与 UC224BAD2 形成对照；默认样例无该字段 ⇒ 不命中。"
+  },
+  {
+    slug: "it/json-to-toml",
+    inputs: { input: '{"d":"0000-01-01","t":"0000-01-01T00:00:00Z"}' },
+    clicks: ["doToml();var q=String.fromCharCode(34),t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='UC218Z '+((t.indexOf('d = '+q+'0000-01-01'+q)>=0&&t.indexOf('t = '+q+'0000-01-01T00:00:00Z'+q)>=0&&t.indexOf('d = 0000-01-01')<0)?'OK':'BAD:'+t.slice(0,120));"],
+    expect: ["UC218Z OK"],
+    ref: "218 复核：年份 0000 不是可解析 TOML 日期（Python tomllib 报 Invalid date or datetime），旧实现只校验月日/闰年 ⇒ 输出裸值 `d = 0000-01-01`。修复后日期与带时区日期时间都退回带引号字符串；断言同时要求不出现裸值。默认 SAMPLE 无 0000 年份 ⇒ 零逃生。"
   },
   {
     slug: "it/calc-8",
