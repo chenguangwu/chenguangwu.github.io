@@ -580,6 +580,35 @@ def check_guide_desc_boiler():
         stats['passed'] += 1
 
 
+def check_desc_accuracy_901():
+    """435/437 批复核失败重做：锁定三处「描述与真实功能一致」的权威源。"""
+    checks = [
+        (os.path.join(ROOT, 'i18n', 'tools', '_en_override.json'),
+         lambda d: d.get('agriculture/calc-15', {}).get('en') == 'Sowing Date Calculator',
+         'agriculture/calc-15 英文名与倒推播种日功能不符（435 回归）'),
+        (os.path.join(ROOT, 'i18n', 'tools', 'civil.json'),
+         lambda d: '多规格汇总' not in d.get('rebar-weight', {}).get('zh-CN', {}).get('desc', ''),
+         'rebar-weight 卡片描述承诺了页面没有的多规格汇总（437 回归）'),
+        (os.path.join(ROOT, 'i18n', 'tools', 'encode.json'),
+         lambda d: '换行方式' not in d.get('base64-size', {}).get('zh-CN', {}).get('desc', ''),
+         'base64-size 卡片描述把百分比输入写成换行方式（437 回归）'),
+    ]
+    for fp, pred, msg in checks:
+        try:
+            data = json.load(open(fp, encoding='utf-8'))
+            if pred(data):
+                stats['passed'] += 1
+            else:
+                stats['errors'].append(msg)
+        except Exception as exc:
+            stats['errors'].append(msg + '：' + str(exc))
+    page = os.path.join(ROOT, 'tools', 'agriculture', 'calc-15.html')
+    if os.path.isfile(page) and 'Harvest Date Calculator' not in open(page, encoding='utf-8', errors='ignore').read():
+        stats['passed'] += 1
+    elif os.path.isfile(page):
+        stats['errors'].append('页面仍残留旧英文名 Harvest Date Calculator（435 回归）')
+
+
 def main():
     print('=' * 60)
     print('ToolBox 自动化静态测试')
@@ -613,6 +642,7 @@ def main():
     check_text_polisher_desc()
     check_deadlink_map()
     check_guide_desc_boiler()
+    check_desc_accuracy_901()
 
     # 输出结果
     print(f'扫描完成，共检查 {stats["total"]} 个工具页面')
