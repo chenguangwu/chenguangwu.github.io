@@ -304,8 +304,8 @@ const CASES = [
     "c1": "5",
     "c2": "3"
   },
-  "expect": ["30\n1\n1\n2\n2\n1\n2\n5\n3\n45.5 SCORAD 总分 / 中度 30 A 面积(%) 9 B 强度(18) 8 C 主观(20) 37.5 客观SCORAD 管理建议： 规范外用治疗，可考虑湿包裹疗法或紫外线光疗，难治者评估系统用药。\nundefined%"],
-  "ref": "auto-restore"
+  "expect": ["30\n1\n1\n2\n2\n1\n2\n5\n3\n45.5 SCORAD 总分 / 中度 30 A 面积(%) 9 B 强度(18) 8 C 主观(20) 37.5 客观SCORAD 管理建议： 规范外用治疗，可考虑湿包裹疗法或紫外线光疗，难治者评估系统用药。"],
+  "ref": "第930批：去掉原 expect 末尾的采集假象尾巴「\\nundefined%」——harness blob 采集到 id='undefined' 的空元素（elements 表含 'undefined':{ih:'',val:''}），被拼进文本；页面 result.innerHTML 真实输出止于「...系统用药。」，无 undefined%。锚的判别量（45.5 总分、A=30、B=9、C=8、客观 37.5）均随输入变化，默认态不含整串，判别力不变（注入态命中/默认态不含）。"
 },
 {
   // 原为 no_inputs 弱用例：expect「使用含2%酮康唑」是默认总分 ≤4（轻度）分支的建议文案，与输入无关。
