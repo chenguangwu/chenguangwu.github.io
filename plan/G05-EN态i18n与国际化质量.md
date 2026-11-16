@@ -109,3 +109,7 @@
 - 对 `_en-i18n/pending/` 剩余 12 个行业逐一实跑 `--check`：10 个行业残留 0；design 11 页、life 4 页仍有可见中文，判定为真实残留。
 - 已按当前中文源补齐 15 个页面 EN 映射 + `_common.json` 5 条通用表头/词组；重建后 design 105 页、life 70 页残留 0，往返不一致 0。
 - `_en-i18n/pending/{design,life}.json` 历史条目未批量删除；整行业实测已绿，待复核确认后再逐条 `--done`。
+
+### 4. 2026-11-16 全行业复扫（918 批起）
+- 207 个行业逐行 `--check` 发现 88 页 / 261 条可见中文残留（pending 清单未覆盖，多由近期深览/公式框改动引起）。
+- 918 批先清 22 页：telecom 11 页共用说明 + accounting/banking/biz/encode/gardening/language/statistics/tax 11 页；工作底稿 `/tmp/en_all_check_915.log`，剩余 66 页按行业续批。
