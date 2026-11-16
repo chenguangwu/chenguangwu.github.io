@@ -3,18 +3,18 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
   // 注：collectStrings 在剥离 <strong> 标签时会插入空格，故期望值含「： 」后的空格
-  { slug: "martial/breathing-rhythm", inputs: {"breathRate":"30"}, expect: ["呼吸周期： 2.00 秒"] },
-  { slug: "martial/kick-height", inputs: {"kickHeight":"200"}, expect: ["高度比（身高）： 117.6%"] },
+  { slug: "martial/breathing-rhythm", inputs: {"breathRate":"30"}, expect: ["呼吸周期： 2.00 秒"], ref: "独立复算：呼吸周期=60÷breathRate=60÷30=2.00 秒；页面默认 breathRate=12 → 5.00 秒，锚点不命中，依赖注入。" },
+  { slug: "martial/kick-height", inputs: {"kickHeight":"200"}, expect: ["高度比（身高）： 117.6%"], ref: "独立复算：高度比（身高）=踢高÷身高=200÷170=117.6%；页面默认 kickHeight=150 → 88.2%，锚点不命中，依赖注入。" },
   // routine-timer：standardTime 由 loadStandard() 按套路类型重算为区间中值（taijiquan → 360），
   // 完成耗时由 manualTime 注入（原仅计时器可写，页面加载即 myTime=0 → 速度比率 Infinity%，
   // 2026-09-23 已补 manualTime 输入 + myTime<=0 守卫）。
   // 例1 taijiquan 中值 360、耗时 330 → 速度比率 360/330×100 = 109.1%（在 300~420 允许范围内）
-  { slug: "martial/routine-timer", inputs: { "routineType": "taijiquan", "manualTime": "330" }, expect: ["标准： 360 秒", "速度比率： 109.1%"] },
+  { slug: "martial/routine-timer", inputs: { "routineType": "taijiquan", "manualTime": "330" }, expect: ["标准： 360 秒", "速度比率： 109.1%"], ref: "独立复算：taijiquan 标准时长由 loadStandard() 取区间中值 360 秒；manualTime=330 → 速度比率=360÷330×100=109.1%；默认 changquan(80)/无耗时 → 两锚均不命中。" },
   // 例2 changquan 中值 80、耗时 95 → 速度比率 80/95×100 = 84.2%、偏差 +15.0、
   //     超上限扣分 (95−90)×0.5 = 2.5
-  { slug: "martial/routine-timer", inputs: { "routineType": "changquan", "manualTime": "95" }, expect: ["速度比率： 84.2%", "+15.0"] },
-  { slug: "martial/stance-center", inputs: {"frontRatio":"80"}, expect: ["前脚 80%"] },
-  { slug: "martial/strike-resistance", inputs: {"trainYears":"3","freq":"7"}, expect: ["硬度指数： 119"] },
+  { slug: "martial/routine-timer", inputs: { "routineType": "changquan", "manualTime": "95" }, expect: ["速度比率： 84.2%", "+15.0"], ref: "独立复算：changquan 标准时长 80 秒；manualTime=95 → 速度比率=80÷95×100=84.2%、偏差=95−80=+15.0；默认 taijiquan(360)/无耗时 → 两锚不命中。" },
+  { slug: "martial/stance-center", inputs: {"frontRatio":"80"}, expect: ["前脚 80%"], ref: "独立复算：前脚承重比直接取注入 frontRatio=80 → 前脚 80%；页面默认 frontRatio=50 → 前脚 50%，锚点不命中，依赖注入。" },
+  { slug: "martial/strike-resistance", inputs: {"trainYears":"3","freq":"7"}, expect: ["硬度指数： 119"], ref: "独立复算：trainYears=3→年限系数 1.0、freq=7→频率系数 min(1.5,0.6+7×0.12)=1.44，硬度指数=基础值+(上限−基础值)×1.0×1.44；页面默认 trainYears 与 freq=3 得值不同，锚 119 不命中，依赖注入。" },
   {
     "slug": "martial/breathing-rhythm",
     "inputs": {
