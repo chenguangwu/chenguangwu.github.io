@@ -467,6 +467,51 @@ def check_related_tool_cards():
                 stats['errors'].append('Pharmacode 相关工具卡残留模板指纹：' + bad)
 
 
+def check_text_polisher_desc():
+    """411 批复核失败重做：文本润色不得被行业模板误标为翻译工具。
+
+    历史缺陷：zh-CN.intro 清洗后不足 70 字，触发 industry 级模板
+    「XX是一款免费的在线语言翻译工具」，污染 meta/og/twitter/JSON-LD 四处。
+    """
+    page = os.path.join(ROOT, 'tools', 'language', 'text-polisher.html')
+    if not os.path.isfile(page):
+        return
+    src = open(page, encoding='utf-8').read()
+    bad = '在线语言翻译工具'
+    # 四处权威载体逐项检查，避免只看首条 meta 漏掉 JSON-LD
+    carriers = {
+        'meta': r'<meta name="description" content="([^"]*)"',
+        'og': r'<meta property="og:description" content="([^"]*)"',
+        'twitter': r'<meta name="twitter:description" content="([^"]*)"',
+        'json-ld': r'"description":"([^"]*)"',
+    }
+    for name, pat in carriers.items():
+        m = re.search(pat, src)
+        if not m or bad in m.group(1):
+            stats['errors'].append('文本润色 %s 描述仍误标为翻译工具（411 回归）' % name)
+        else:
+            stats['passed'] += 1
+
+    # 权威源清洗后必须自足 70 字，不再靠行业模板补写
+    src_json = os.path.join(ROOT, 'i18n', 'tools', 'language.json')
+    en_json = os.path.join(ROOT, 'i18n', 'tools', 'en', 'language', 'text-polisher.json')
+    intro = ''
+    if os.path.isfile(src_json):
+        data = json.load(open(src_json, encoding='utf-8'))
+        intro = data.get('text-polisher', {}).get('zh-CN', {}).get('intro', '')
+        stripped = re.sub(r'^文本润色工具[。，]?', '', intro)
+        if len(stripped) >= 70:
+            stats['passed'] += 1
+        else:
+            stats['errors'].append('文本润色 intro 清洗后不足 70 字，会再次触发行业模板（411 回归）')
+    if os.path.isfile(en_json) and intro:
+        en_map = json.load(open(en_json, encoding='utf-8')).get('map', {})
+        if intro in en_map and 'Text polishing tool' in en_map[intro]:
+            stats['passed'] += 1
+        else:
+            stats['errors'].append('文本润色新 intro 缺少英文映射（411 回归）')
+
+
 def main():
     print('=' * 60)
     print('ToolBox 自动化静态测试')
@@ -497,6 +542,7 @@ def main():
     check_related_slug_map()
     check_h1_normalization()
     check_related_tool_cards()
+    check_text_polisher_desc()
 
     # 输出结果
     print(f'扫描完成，共检查 {stats["total"]} 个工具页面')
