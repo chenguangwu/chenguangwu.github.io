@@ -397,21 +397,21 @@
 - L-N41：精液页公式与引据表统一为 WHO 第 5 版（2010），并注明第 6 版（2021）数值差异。
 - 门禁新增 3 例（尿沉渣尺寸检索、精液空值、IM 偏高提示），`node scripts/verify_clinical-lab_calc.js` 167/167。
 
-### L-N42 甲状腺页单侧激素升高/缺项被当作「正常」：FT3 10 pmol/L 仍输出「各项指标在参考范围内」（高，确认缺陷）
+### L-N42 甲状腺页单侧激素升高/缺项被当作「正常」：FT3 10 pmol/L 仍输出「各项指标在参考范围内」（已修，833 批核销）
 - 问题：分型只用 `hormoneHigh/hormoneLow` 的总布尔，`else` 兜底一律「甲状腺功能正常」；FT3 高但 TSH 正常既不是甲亢也不进任何分支，直接落到 else。未填项为 `null` 被当作「不低不高」，仅填 TSH 8 即判「亚临床甲减」。
 - 证据：`tools/clinical-lab/thyroid-function-model.html:284-288`（布尔聚合）、`:291-319`（六分支 + else）、`:315-318`（else 文案「各项指标在参考范围内」）、`:258`（`num()` 空值为 `null`）、`:248`（参考区间）。
 - 复现：node：TSH 2.0 + FT3 10（>6.8）+ FT4 16 → 「甲状腺功能正常 / 各项指标在参考范围内」；TSH 2.0 + FT4 30 → 同样「正常」；TSH 8 + FT4 留空 → 「亚临床甲减」。期望：单侧升高输出「FT3/T4 升高待查」，缺 FT4 时不得判亚临床甲减。
 - 影响：`tools/clinical-lab/thyroid-function-model.html`；T3 型甲亢/单侧升高被漏报，仅 TSH 升高被过度诊断，均属高风险。
 - 方案：新增 `hormoneHigh && TSH 正常` 的「T3/T4 升高待查」分支；对缺失 FT3/FT4 返回「请补充」；TSH 0 也应按「测不出」提示而非亚临床甲亢（阈值需内分泌医师复核）。
 
-### L-N43 甲状腺页清空 TSH 直接 return，结果区保留上一次结论且无「待填」提示（中，确认缺陷）
+### L-N43 甲状腺页清空 TSH 直接 return，结果区保留上一次结论且无「待填」提示（已修，833 批核销）
 - 问题：`if(tsh==null) return;` 只中止本次渲染，不清理 `#result`，上一次的分型与标尺残留在页面上。
 - 证据：`tools/clinical-lab/thyroid-function-model.html:269`（`if(tsh==null) return;`）、`:276`（结果 HTML 从「结果分析」开始重建）。
 - 复现：先输入 TSH 0.05 → 「亚临床甲亢」；再清空 TSH 输入框 → 结果区仍是「亚临床甲亢」（仅参考标尺消失）。期望：清空后显示「请填写 TSH」或把结果置灰失效。
 - 影响：`tools/clinical-lab/thyroid-function-model.html`；用户改参数后看到的是旧结论，容易误读。
 - 方案：空值时清空结果并提示「TSH 为必填」，或保留结果但加「已失效，请重新分析」遮罩。
 
-### L-N44 甲状腺页公式框把 `formula-eq` 放在 `formula-title` 之前，标题显示在公式下方（低，确认缺陷）
+### L-N44 甲状腺页公式框把 `formula-eq` 放在 `formula-title` 之前，标题显示在公式下方（已修，833 批核销）
 - 问题：`formula-box` 内先输出公式正文、后输出「📐 工作原理与说明」标题，与同批其他页的「标题在上」结构相反。
 - 证据：`tools/clinical-lab/thyroid-function-model.html:132`（同一行 `formula-eq` 在前、`formula-title` 在后）；对照 `tools/clinical-lab/semen-analysis.html:138`（title 在前）。
 - 复现：打开「工作原理与说明」区块 → 公式正文在上、标题在下。期望：标题在公式上方。
@@ -444,6 +444,14 @@
 - 新增 8 条（L-N37–L-N44）：高 2、中 4、低 2；另每页 3 条留存建议。
 - 未覆盖：`clinical-lab` 其余页、`zh-tw/` 繁体产物、英文态运行时字典；未做浏览器、移动端、门禁与线上验证。
 - 阈值核验：尿沉渣参考区间、精液 WHO 版次与 TMSC 分档、甲状腺参考区间与 TPO 阈值（34 IU/mL）均需检验科/男科/内分泌医师复核。
+
+### 833 批核销记录（2026-11-16）
+
+- 核销 L-N42、L-N43 并修复 L-N44。
+- L-N42：空态守卫（`tsh==null||ft3==null||ft4==null` → 提示补全核心三项并清空标尺）已在分型前拦截；单侧升高已有「甲状腺激素升高（需鉴别）」分支。门禁新增两例：TSH 8 + FT3/FT4 空 ⇒ 补全提示；TSH 2.0 + FT3 10 ⇒ 需鉴别。
+- L-N43：同一守卫在缺项时重写 `#result` 并清空 `thy_*Bar`，不再保留上一次结论。
+- L-N44：公式框内 `formula-title` 移至 `formula-eq` 之前，与同批页面版式一致（本批代码修复）。
+- 门禁：`node scripts/verify_clinical-lab_calc.js` 169/169。
 
 ## T 批 消化内科 覆盖（2026-11-04）
 

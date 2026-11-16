@@ -1180,6 +1180,18 @@ const CASES = [
     ref: '修复 line263 死代码后可达：TSH 2.0（正常 0.27–4.2）+ FT3 2.5<3.1（低）+ FT4 16（正常、不低）→ 非甲状腺病态综合征（euthyroid sick syndrome）。原条件 tshLow 与 line259 中枢性甲减（tshLow&&hormoneLow）重叠、永不可达，旧版此输入会误判「甲状腺功能正常」；修正为 !tshLow&&!tshHigh&&ft3Low&&!ft4Low 后分支可达。默认态（tsh 空 → analyze 提前 return）无任何结果串，注入失败即不命中。'
   },
   {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "8", ft3: "", ft4: "" },
+    expect: ["请填写 TSH、FT3、FT4 三项核心指标后再判读"],
+    ref: 'L-N42 核销：空态守卫在分型前拦截，TSH 8 单独升高但 FT3/FT4 未填 ⇒ 只提示补全核心三项，不再判「亚临床甲减」；旧实现 num() 空值为 null 被当作「不低不高」直接分型。'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "2.0", ft3: "10", ft4: "16" },
+    expect: ["甲状腺激素升高（需鉴别）"],
+    ref: 'L-N42：TSH 2.0 正常 + FT3 10>6.8 单侧升高 ⇒ 「甲状腺激素升高（需鉴别）」；旧实现落到 else「甲状腺功能正常 / 各项指标在参考范围内」。'
+  },
+  {
     "slug": "clinical-lab/stool-occult-blood",
     "inputs": { "age": "", "immunoResult": "neg" },
     "expect": [
