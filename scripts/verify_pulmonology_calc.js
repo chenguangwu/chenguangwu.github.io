@@ -527,7 +527,31 @@ const CASES = [
   "clicks": ["(function(){var cb=null;globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},matrix:{table:function(){}},chart:{line:function(){}},preset:{bar:function(){}},history:{list:function(){return [{t:1700000000000,d:{__tbScore:1,'结果':'x'}}];},last:function(){return null;},record:function(){},mount:function(s,c){cb=c;}}};__gina_asthmaRender(['g1','a1'],'结果',false);var calls=[];var oG=calcGina,oA=calcAct;calcGina=function(){calls.push('gina');};calcAct=function(){calls.push('act');};if(cb)cb({g1:'1',g2:'0',g3:'0',g4:'0','结果':'GINA 良好控制',__tbScore:1,__tbType:'gina'});calcGina=oG;calcAct=oA;var ok=(!!cb&&calls.length===1&&calls[0]==='gina');document.getElementById('__tbProbe').textContent='GINAREPLAY '+(ok?'OK':'BAD '+calls.join(',')+' cb='+(!!cb));})()"],
   "expect": ["GINAREPLAY OK"],
   "ref": "第307批：GINA 与 ACT 共用 #result，历史回放旧版无条件先 calcGina() 后 calcAct()，后者覆盖前者 ⇒ 回放 GINA 记录却显示 ACT。修复后按记录 __tbType 重算，回放 __tbType=gina 的记录须只调 calcGina（calls=[gina]）；修复前 calls=[gina,act] ⇒ BAD。"
+},
+{
+  "slug": "pulmonology/pulmonary-function",
+  "inputs": { "fev1": "2", "fvc": "3", "fev1pp": "60", "fvcpp": "" },
+  "expect": ["请输入有效的 FEV1%pred 与 FVC%pred"],
+  "ref": "03-112 核销：FEV1%pred/FVC%pred 空值不再按 0 判「混合性通气功能障碍 GOLD 4」，改为拦截提示。"
+},
+{
+  "slug": "pulmonology/pneumothorax",
+  "inputs": { "a": "", "b": "2", "c": "2" },
+  "expect": ["请填写 A/B/C 三处胸膜间距"],
+  "ref": "03-117 核销：三处间距任一空值即拦截，不再按 0 输出「0% 少量气胸，可观察吸氧」。"
+},
+{
+  "slug": "pulmonology/self-assess-3",
+  "expect": ["当前为默认评分（6 题均为默认选项）"],
+  "ref": "03-152 核销：默认未作答时只显示「当前为默认评分…请按实际修改后查看解读」，不再直接输出 7 分「高度依赖」与戒烟处方。"
+},
+{
+  "slug": "pulmonology/wells-pe",
+  "clicks": ["document.getElementById('hr').checked=true;calc();"],
+  "expect": ["1.5 Wells总分", "低危 (PE概率 ～1.3%)"],
+  "ref": "03-158 核销：Wells 三分类改为 <2 低危（原 score<=1），仅勾选心率 1.5 分 ⇒ 低危 1.3%，不再判「中危 16.2%」；同时移除 hr 默认勾选，首屏不再预置危险因素。"
 }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

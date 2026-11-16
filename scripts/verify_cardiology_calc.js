@@ -494,7 +494,32 @@ const CASES = [
     "是否进入终末期或需移植/LVAD 应由心衰专科"
   ],
   "ref": "注入 6MWT 120 米（默认 480）→ 极重度受损分支；页面只提示高死亡风险并要求心衰专科评估，不再写「终末期心衰/终末关怀」。默认 480 不含该句。"
+},
+{
+  "slug": "cardiology/ambulatory-bp",
+  "inputs": { "avg24_sbp": "", "avg24_dbp": "80", "day_sbp": "130", "day_dbp": "80", "night_sbp": "120", "night_dbp": "70", "morning_sbp": "135", "lowest_sbp": "110" },
+  "expect": ["请填写 8 项 ABPM 数值"],
+  "ref": "03-91 核销：8 项任一空值即拦截，不再按 0 输出「0/0 正常 + 非杓型」并生成随访建议。"
+},
+{
+  "slug": "cardiology/coronary-calcium",
+  "inputs": { "age": "60", "cacs": "" },
+  "expect": ["请选择性别，并填写年龄与 Agatston 钙化积分。"],
+  "ref": "03-97 核销：钙化积分空值不再按 0 判「无钙化」并建议停用他汀，改为提示填写（0 分为合法值，须显式填 0）。"
+},
+{
+  "slug": "cardiology/echo-report",
+  "inputs": { "lvef": "" },
+  "expect": ["请输入有效 LVEF（1–100%）"],
+  "ref": "03-132 核销：LVEF 空值不再按 0 判「重度降低/终末期心衰、评估移植/LVAD」，改为拦截不出结论。"
+},
+{
+  "slug": "cardiology/cpet-analysis",
+  "inputs": { "peakVO2": "" },
+  "expect": ["请填写全部 CPET 参数"],
+  "ref": "03-138 核销：五项 CPET 参数任一空值即拦截，不再按 0 落入 Weber D 并「强烈推荐心脏移植/LVAD」。"
 }
+
 ];
 async function main() {
   const only = process.argv.slice(2);
