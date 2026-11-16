@@ -194,7 +194,7 @@
 - `i18n/tools/content_deepdive.json` 仓库规范 `indent=1`（`_build.py` 只读不写），apply 脚本必须 `json.dump(indent=1)`，否则全量重排成巨大噪音 diff。
 - **defer 脚本闭包死引用**：`common.js` 整体替换后旧 stub 引用失效 → 「📋复制 / ⬇️导出」点击无反应。根治方式为替换前保存旧对象、替换后回填同名方法指向真实实现；审计脚本 `scripts/audit_toolbox_stub_refs.py`。
 - **淘宝客双链**：PC 链 `s.click.taobao.com/UItQ6Hk`、WAP 免登录链 `s.click.taobao.com/5e6P6Hk`；手机上打开 PC 链会被强制登录 → 转化归零。全站唯一维护点 `js/common.js` 的 `toolboxTaobaoAdUrl()`（断点 `innerWidth < 768`），禁止再硬编码。
-- `scripts/gen_guide_pages.py`：`guides/index.html` 是纯追加（不按 slug 去重），重生成同 slug 会在指南中心重复卡片；重跑前先按行删掉该 slug 旧卡片。
+- `scripts/gen_guide_pages.py`：**历史一次性生成器，非当前权威源，且人工重跑会覆盖现有指南**——它不被 `_build.py` / `run_gates.py` / CI 工作流调用；指南描述当前权威源是「guides 页正文 + `_build.py::normalize_guide_descriptions()` + `i18n/guides/<slug>.json`」，build 每次从正文重算 meta/og/Article 描述。重跑该脚本会用 deep-dive 派生的 `{desc}` 覆盖现有完整描述、且 `guides/index.html` 是纯追加（不按 slug 去重）会产生重复卡片；确有需要重跑时须先备份目标指南页、按行删除 `guides/index.html` 中同 slug 旧卡片，并在重跑后核对描述与 build 归一化结果。不得据「build/门禁不调用它」断言「重跑无覆盖风险」。
 
 ### 无头浏览器验证
 
