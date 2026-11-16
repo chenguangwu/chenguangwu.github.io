@@ -290,20 +290,26 @@ function calc(){
     return;
   }
   // HHI（份额用百分比平方求和，标准 HHI 用 0-1 比例平方×10000）
-  var hhi = named.reduce(function(s,sr){return s+Math.pow(sr.pct,2);},0);
+  var hhiKnown = named.reduce(function(s,sr){return s+Math.pow(sr.pct,2);},0);
   // CR4 前4名集中度（仅具名企业）
-  var cr4 = named.slice(0,4).reduce(function(s,sr){return s+sr.pct;},0);
-  var otherNote = otherPct>0 ? '　·　「其他」占 '+otherPct.toFixed(1)+'%（视为分散，未计入）' : '';
+  var cr4Known = named.slice(0,4).reduce(function(s,sr){return s+sr.pct;},0);
+  // 「其他」是合并口径：其内部仍由真实企业组成，平方和 > 0，且其中企业可能进入前四。
+  // 未拆分时，按具名企业算出的 HHI/CR4 只是下界，不能据此给出确定的市场类型。
+  var hasOther = otherPct > 1e-9;
+  var hhiText = (hasOther ? '≥ ' : '') + Math.round(hhiKnown).toLocaleString('zh-CN');
+  var cr4Text = (hasOther ? '≥ ' : '') + cr4Known.toFixed(1) + '%';
+  var otherNote = hasOther ? '　·　「其他」占 '+otherPct.toFixed(1)+'%（未拆分，已知部分仅为下界）' : '';
 
-  // 集中度判定
+  // 集中度判定（含「其他」时不作确定分类）
   var level, levelColor;
-  if(hhi<1000){ level='竞争型'; levelColor='#10B981'; }
-  else if(hhi<1800){ level='低度寡占'; levelColor='#3B82F6'; }
-  else if(hhi<3000){ level='中度寡占'; levelColor='#F59E0B'; }
+  if(hasOther){ level = '无法判定（需拆分「其他」）'; levelColor = '#6B7280'; }
+  else if(hhiKnown<1000){ level='竞争型'; levelColor='#10B981'; }
+  else if(hhiKnown<1800){ level='低度寡占'; levelColor='#3B82F6'; }
+  else if(hhiKnown<3000){ level='中度寡占'; levelColor='#F59E0B'; }
   else { level='高度寡占'; levelColor='#EF4444'; }
 
-  const __g3='<div class="v" style="color:'+levelColor+';">'+Math.round(hhi).toLocaleString('zh-CN')+'</div>'+
-    '<div class="l" style="font-size:13px;color:var(--text-muted);">HHI 指数　·　'+level+'　·　CR4 集中度 '+cr4.toFixed(1)+'%'+otherNote+'</div>';document.getElementById('hhiBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  const __g3='<div class="v" style="color:'+levelColor+';">'+hhiText+'</div>'+
+    '<div class="l" style="font-size:13px;color:var(--text-muted);">HHI 指数　·　'+level+'　·　CR4 集中度 '+cr4Text+otherNote+'</div>';document.getElementById('hhiBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   // 份额条
   var barsHtml = '<h3 style="margin-top:16px;">市场份额</h3>';
@@ -326,11 +332,14 @@ function calc(){
   // 建议
   var tipBox = document.getElementById('tipBox');
   var tip = '';
-  if(hhi<1000) tip = '市场呈竞争格局，各企业份额分散，新进入者机会较多。';
-  else if(hhi<1800) tip = '市场为低度寡占，头部企业有一定优势但竞争仍较充分。';
-  else if(hhi<3000) tip = '市场为中度寡占，头部企业话语权较强，需关注差异化竞争。';
+  if(hasOther){
+    tip = '「其他」为合并口径（占 '+otherPct.toFixed(1)+'%），未拆分时无法确定真实集中度：上方 HHI/CR4 仅为已知企业的下界，市场类型不予判定。请把「其他」拆分为具体企业后再评估。';
+  }
+  else if(hhiKnown<1000) tip = '市场呈竞争格局，各企业份额分散，新进入者机会较多。';
+  else if(hhiKnown<1800) tip = '市场为低度寡占，头部企业有一定优势但竞争仍较充分。';
+  else if(hhiKnown<3000) tip = '市场为中度寡占，头部企业话语权较强，需关注差异化竞争。';
   else tip = '市场高度集中，头部企业主导，新进入者门槛高。';
-  if(shares[0].pct>50) tip += ' 第一名 '+shares[0].name+' 占据 '+shares[0].pct.toFixed(1)+'%，处于绝对领先。';
+  if(named[0].pct>50) tip += ' 第一名 '+named[0].name+' 占据 '+named[0].pct.toFixed(1)+'%，处于绝对领先。';
   const __g6=tip;tipBox.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
 }
 

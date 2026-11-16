@@ -227,11 +227,20 @@ const CASES = [
     slug: "marketing/ad-roi",
     inputs: { budget: "5000", cpc: "5", ctr: "1", cvr: "2", aov: "100", costRate: "60", fixedCost: "200" },
     clicks: ["setBuy('cpc');calc();"],
-    expect: ["0.40 ROAS", "-68.8% 综合 ROI", "5.00%"],
+    expect: ["0.40 ROAS", "-68.8% 综合 ROI", "13.00%"],
     ref: "点击 = 5000/5 = 1000；展示 = 1000/1% = 100,000；转化 = 20；收入 = 2000；商品成本 = 1200；"
      + "总成本 = 5000+1200+200 = 6400；利润 = −4400；ROAS = 0.40；ROI = −4400/6400 = −68.75% ⇒ −68.8%。"
-     + "盈亏平衡 ROAS = 1/40% = 2.50；补亏提示「转化率需提升至 (5000/100)/1000 = 5.00% 或客单价提升至"
-     + " 5000/(1000×2%) = 250 元」。默认态三条全不命中。",
+     + "盈亏平衡 ROAS = 1/40% = 2.50；补亏提示按「转化数×客单价×毛利率 = 预算+固定成本」反推："
+     + "(5000+200)/(100×0.4) = 130 单 ⇒ 转化率需提升至 130/1000 = 13.00%（修复前用总成本 6400 作分子得 160 单 / 16.00%，"
+     + "把随收入变化的货品成本重复计入）。默认态三条全不命中。",
+  },
+  {
+    // 保本反推不得把货品成本重复计入分子（545 复核失败重做）
+    slug: "marketing/ad-roi",
+    inputs: { budget: "10000", cpc: "2", ctr: "1", cvr: "1", aov: "200", costRate: "50", fixedCost: "0" },
+    clicks: ["setBuy('cpc');calc();var t=String(document.getElementById('tipBox').innerHTML);document.getElementById('__tbProbe').textContent='AR545 '+((t.indexOf('转化率需提升至 2.00%')>=0&&t.indexOf('客单价提升至 400 元')>=0&&t.indexOf('总成本 15,000')<0)?'OK':'BAD:['+t+']');"],
+    expect: ["AR545 OK"],
+    ref: "545 复核失败重做：预算 10000、CPC 2 ⇒ 点击 5000；CVR 1% ⇒ 50 单、收入 10000、货品成本 5000、总成本 15000、利润 −5000。保本条件为 转化数×客单价×毛利率 = 预算+固定成本 ⇒ 10000/(200×0.5)=100 单 ⇒ 转化率 2.00%，客单价 = 10000/(50×0.5)=400 元。旧实现以 totalCost 15000 作分子 ⇒ 150 单/3.00% 与 600 元，并把提示写成「按总成本 15,000 元计」，重复计入随收入变化的货品成本。探针同时断言新值成立、旧值/旧措辞不出现 ⇒ 零逃生。"
   },
   {
     // CPM 计费分支（buyMode 默认 cpc，用例显式切 cpm）：非默认（预算 8000、CPM 40、CTR 2.5%、CVR 4%）
@@ -675,7 +684,7 @@ const CASES = [
   {
     slug: "marketing/assessor-51",
     inputs: { profit: "8000", contribution: "72", discount: "15", years: "12", d1: "8.5", d2: "8.5", d3: "8.5", d4: "8.5", d5: "8.5", d6: "8.5", d7: "8.5" },
-    expect: ["品牌年净利润：5760万元（贡献率72%）", "品牌强度评分：85/100", "调整后折现率：15.75%", "品牌资产价值： 30249万元"],
+    expect: ["→ 品牌净利润 5760万元", "品牌强度评分：85/100", "调整后折现率：15.75%", "品牌资产价值： 30249万元"],
     ref: "注入非默认(默认 profit=5000/contribution=65/7 维均为 8/8/7/7/7/8/7 ⇒ 强度 0.75/discount=12/years=10)：Interbrand 模型 品牌年净利润 = 8000×0.72 = 5760 万元；7 维均为 8.5 分、权重 25/15/10/25/10/10/5 合计 100% ⇒ 品牌强度 = 8.5/10 = 0.85，强度评分 85/100 ⇒ 顶级品牌；调整后折现率 r = dr/100 + (1−st)×0.05 = 0.15 + 0.15×0.05 = 15.75%；品牌资产价值 = Σ_{i=1..12} 5760/(1.1575)^i = 30249 万元。Python/Node 独立复算逐项吻合。默认态 3250/75/13.25%/17460，四条均不命中。",
   },
   {
@@ -901,6 +910,25 @@ const CASES = [
     "clicks": ["comps.forEach(function(c){c.value=0;});calc();"],
     "expect": ["合计须大于 0"],
     "ref": "所有企业销售额置 0：合计为 0 时旧实现直接 return，页面残留上一次的占比与 HHI（看起来仍然有效）；现提示合计须大于 0 并清空旧结果。默认合计 10,000 ⇒ 不命中。"
+  },
+  {
+    "slug": "marketing/market-share",
+    "clicks": ["comps=[{name:'甲',value:100},{name:'乙',value:100},{name:'其他',value:800}];calc();var h=String(document.getElementById('hhiBox').innerHTML);document.getElementById('__tbProbe').textContent='MS546 '+((h.indexOf('≥ 200')>=0&&h.indexOf('无法判定')>=0&&h.indexOf('下界')>=0&&h.indexOf('竞争型')<0)?'OK':'BAD:['+h+']');"],
+    "expect": ["MS546 OK"],
+    "ref": "546 复核失败重做：具名企业各 10%、「其他」80%。合并口径内部仍由真实企业组成，平方和 > 0 且可能进入前四 ⇒ 已知部分只是下界。新实现显示「≥ 200」「≥ 20.0%」，市场类型改为「无法判定（需拆分「其他」）」并注明下界；旧实现显示 HHI 200 / CR4 20.0%、判「竞争型」并称「其他视为分散，未计入」——若其他实为一家企业，真实 HHI=6500、CR4=100%。探针同时要求下界标识/无法判定/下界说明出现且「竞争型」不出现 ⇒ 互斥判别。默认输入不含「其他」条目 ⇒ 不命中。"
+  },
+  {
+    "slug": "marketing/assessor-51",
+    "clicks": ["document.getElementById('contribution').value='';calc();var t=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='AC547 '+((t.indexOf('请填写品牌贡献率')>=0&&t.indexOf('品牌资产价值')<0)?'OK':'BAD:['+t+']');"],
+    "expect": ["AC547 OK"],
+    "ref": "547 复核失败重做：清空品牌贡献率后不得继续出估值。旧实现用一元 + 把空串转 0，0 又在 0–100 区间内 ⇒ 校验放行、按 0% 贡献算出估值；新实现先判 raw===''，提示「请填写品牌贡献率」并清空结果（不再出现「品牌资产价值」）。默认 65 不命中。"
+  },
+  {
+    "slug": "marketing/assessor-51",
+    "inputs": { "contribution": "0" },
+    "clicks": ["calc();var t=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='AC547Z '+((t.indexOf('品牌资产价值')>=0&&t.indexOf('请填写品牌贡献率')<0)?'OK':'BAD:['+t+']');"],
+    "expect": ["AC547Z OK"],
+    "ref": "547 对照：贡献率取合法的 0（非空）时必须照常计算，不能被空值校验误伤。若把「0 或空」一并拦截，本用例转红——与上一条形成空值/零值互斥对照。"
   },
   {
     "slug": "marketing/marketing-qr-campaign-tracker",
