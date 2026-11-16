@@ -153,11 +153,20 @@ function fontPairingCjkStackChecks() {
   const cssUses = (src.match(/font-family:\s*\$\{cjkStack\(/g) || []).length;
   const previewUses = /preview-title" style="font-family:\$\{cjkStack\(p\.title\)\}/.test(src)
     && /preview-body" style="font-family:\$\{cjkStack\(p\.body\)\}/.test(src);
-  const faqUpdated = src.includes("本页导出的 CSS 已采用中英双字体栈") && !src.includes("当前内置搭配均为拉丁字体");
+  // build 的 linkify_terms 会把 FAQ 里的「CSS」自动转成 <a class="term-link">CSS</a>，
+  // 故不能依赖「本页导出的 CSS 已采用…」整串连续出现；剥标签后再判，兼顾手改态与 build 态。
+  const faqText = src.replace(/<[^>]+>/g, "");
+  const faqUpdated = faqText.includes("本页导出的 CSS 已采用中英双字体栈")
+    && !faqText.includes("当前内置搭配均为拉丁字体");
   const enPath = path.join(__dirname, "..", "i18n", "tools", "en", "design", "font-pairing.json");
   const en = JSON.parse(fs.readFileSync(enPath, "utf8"));
   const enMap = en.map || en;
-  const enSynced = Object.keys(enMap).some((k) => k.includes("本页导出的 CSS 已采用中英双字体栈"));
+  // build 的 linkify 把 FAQ 拆成两段文本节点后，EN 映射也须按两段给键；
+  // 兼容整串键（手改态）与两段键（build 态）：两段分别命中即视为已同步。
+  const enKeys = Object.keys(enMap);
+  const enSynced = enKeys.some((k) => k.includes("本页导出的 CSS 已采用中英双字体栈"))
+    || (enKeys.some((k) => k === "中文多用同族字重区分层级，西文再配一种点缀即可。本页导出的")
+        && enKeys.some((k) => k.includes("已采用中英双字体栈：拉丁搭配字体在前")));
   return [
     { name: "font-pairing 定义中英双字体栈并有构造函数", ok: stackDef && stackFn },
     { name: "font-pairing 两处 CSS 输出 + 预览区均用双字体栈", ok: cssUses >= 2 && previewUses },
