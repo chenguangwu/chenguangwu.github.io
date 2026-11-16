@@ -77,17 +77,6 @@
 
 ## 2026-11-03 续查（并行批 J）
 
-### F-N29 NPV 页 IRR 无根仍返回上限 1000% 并判「可行」（已修，730 批）
-- 现状（2026-11-16 复核）：`calcIRR()` 已重写为「符号变化计数 + 代数隔离 + 残差校验」：
-  - 现金流出无正值 ⇒ `{status:'none', reason:'no-positive'}`；
-  - 端点/区间无根 ⇒ `{status:'none', reason:'no-root'}`；
-  - 多根 ⇒ `{status:'multiple', rates:[...]}`，提示改用 NPV/PI 判据；
-  - 系数过长/残差可疑 ⇒ `{status:'uncertain'}`；
-  - 二次式重根用 BigInt 精确判定，避免把重根当普通根。
-  结果卡按状态显示「范围内未找到 / 多根 / 无法确定」，只有 `status==='ok'` 才比较 `IRR ≥ 折现率` 判可行。
-- 原问题：`calcIRR` 固定二分区间 `[-0.99, 10]`，只按「同号就抬 low」推进，从不校验端点异号或残差；现金流全为流出时 NPV 恒负仍收敛到 high≈10，把 1000% 当 IRR。
-- 原证据：`tools/finance/npv-calculator.html:381-396`、`:427`、`:433`、`:457`。
-
 ### 留存优化
 - `tools/finance/npv-calculator.html`：现金流输入行无 `id`，历史快照只存折现率与初始投资（`renderCashFlows` 生成的 input 无 id），恢复历史无法复现现金流；建议给每期唯一 id 或整表 JSON 持久化，并在导出 CSV 中附 NPV/IRR/PI 结论。
 - `tools/finance/investment-roi.html`：缺「一次性 vs 定投」同额对照与真实现金流 IRR 明细；方案对比仅终值维度，建议补增量 ROI 与投入差额列。
@@ -100,10 +89,6 @@
 ### 续查覆盖
 - 本次实读 7 页：`finance/npv-calculator`、`investment-roi`、`cagr`、`payroll-calculator`、`salary-after-tax`、`provident-fund`、`rental-yield-calculator`；新增 12 条（高优 2 条：F-N29/F-N32；中优 9 条；低优 1 条）。
 - 证据均为源码行号 + node 内存复算；刻意未重复 F-N15 已记录的「房贷利息+租金可同时扣」问题（`payroll-calculator.html:505` 同类但已覆盖）。未做浏览器、英文态、移动端、门禁与线上验证；历史已修声明未独立复验。
-
-## 2026-11-03 续查（并行批 K）
-
-> 范围：本轮阅读 8 页（`tools/finance/inflation-calculator.html`、`credit-card-grace-period.html`、`mutual-fund-calculator.html`、`investment-calculator.html`、`futures-pnl-calculator.html`、`discount-calculator.html`、`sharpe-ratio.html`、`portfolio-return.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
 
 ## 2026-11-04 续查（并行批 L）
 

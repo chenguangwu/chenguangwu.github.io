@@ -26,37 +26,7 @@
 ### 覆盖
 - 本轮人工核查编码 1 页 `tools/encode/convert-4.html`；通信 2 页 `tools/telecom/subnet-planner.html`、`tools/telecom/bandwidth-calculator.html`；安全 2 页 `tools/security/virtual-safe.html`、`tools/security/passphrase-generator.html`；数据 2 页 `tools/data/csv-analyzer.html`、`tools/data/csv-to-markdown.html`。仅抽样 7 页，未逐页覆盖其余页面；旧「全部收口」属于历史报告，未独立复验。
 
-### 通信：零地址被拒及输出可带走（已修，2026-11-04 651ce51c27）
-- 现状：`tools/telecom/subnet-planner.html:229-256` 改为严格四段十进制校验（`ipToInt` 返回 `null` 而非 0），`0.0.0.0/0` 可正常划分，空段/浮点/超 255 均拒绝；前缀用 `^\d{1,2}$` 且限定 0–32。
-- 留存优化：该页 `:297-312` 已显示最多 1024 条子网但复制仅带摘要；增加带截断标记的完整清单导出和 `/31`、`/32` 用途说明。移动端表格可用性尚未实测。
-
-### 安全：保险箱文本往返损坏（已修，694 批）
-- 现状：`tools/security/virtual-safe.html:421-487` 改为标准 UTF-8 字节加解密（`TextEncoder`/`TextDecoder`，缺失时手写编解码），密文带 `v2:` 前缀；无前缀的旧记录仍按原 `encodeURIComponent` 口径解析，历史数据可读。门禁用例 `security/virtual-safe`：新建保险箱存入「%41 中文 😀」后 `revealItem` 解出逐字符一致。
-- 留存优化：该页 `:228-250` 已有加密备份与明文 CSV 导出；增加显式的明文风险提示和备份恢复验证，避免用户误导出敏感内容。
-
-### 数据：CSV 多行字段解析错误（已修，693 批）
-- 现状：`tools/data/csv-analyzer.html:235-264` 改为整段引号状态机，支持引号内换行、`""` 转义与 CRLF；`:312-322` 预览对表头/单元格做 HTML 转义，并在字段数与表头不一致时给出「N 行字段数不一致」提示。门禁用例 `data/csv-analyzer` 覆盖多行字段/转义引号/错列三条。
-
 ## 2026-11-03 续查：编码、通信、安全与数据
-
-### 紧急联系人用户内容拼入 HTML 与内联脚本（已修，694 批）
-- 现状：`tools/security/emergency-contacts.html:501-533` 的 `renderCustom()` 改为 `createElement` + `textContent` + `addEventListener`，不再把用户内容拼进 `innerHTML` 或 `onclick="callCustom('…')"`；`:557-565` 导出表对四列统一 `escHtml`。门禁用例 `security/emergency-contacts` 注入带单引号与 JS 的电话，断言列表 HTML 不含 `onclick`/`callCustom` 且联系人确实渲染。
-
-### 紧急联系人清除后字段可能残留（已修，早于本轮）
-- 现状：`tools/security/emergency-contacts.html:143` 的 `<body data-no-persist>` 已退出通用输入持久化（`js/tool-ux.js:84,268-272`），共享设备上不再残留姓名/电话/备注。
-
-### Base32 长度与填充、换行计算不符（已修，692 批）
-- 现状：`tools/encode/base32.html:248-284` 已按「是否含填充」分别输出 ⌈n/5⌉×8 与 ⌈n×8/5⌉，换行只计行间 LF 并分列 CRLF 开销；负字节数/非 0-1 填充/负行宽均拦截且不输出长度。门禁用例 `encode/base32` ×5 覆盖。
-
-### 无线接收功率显示为零（已修，2026-11-04 651ce51c27）
-- 现状：`tools/telecom/path-loss.html:265-276` 新增 `fmtPowerW()` 自动切换 W/mW/µW/nW/pW；默认 2400 MHz/1 km 显示 24.9 pW 而非 0.0000 mW。门禁用例 `telecom/path-loss` 锁定 3600 MHz ⇒ 11.1 pW。
-
-### CSV 转 JSON 静默丢列和大整数精度（已修，692 批）
-- 现状：`tools/data/csv-json.html:345-450` 重复表头、行内超列、未闭合引号均明确提示并停止转换；前导零与超出 Number.MAX_SAFE_INTEGER 的整数保留字符串。门禁用例 `data/csv-json` 覆盖重复/超列/大整数/未闭合四条。
-
-### CSV/JSON 历史恢复及清空状态不可靠（已修，692 批）
-- 现状：`tools/data/csv-json.html:570-583,613-651` 历史记录新增 `__mode` 并在恢复时切回对应模式、更新标签后再 `convert()`（旧实现无参 `setMode()` 抛错被吞）；`clearAll()` 派发 input 事件把通用缓存写成空串。历史表/CSV 导出过滤 `__` 前缀字段。
-- 剩余：未在浏览器实测历史恢复与清空后的 localStorage 具体键值。
 
 ### 续查覆盖
 - 新抽查 `tools/security/emergency-contacts.html`、`tools/encode/base32.html`、`tools/telecom/path-loss.html`、`tools/data/csv-json.html` 4 页，新增 6 条（其中 3 条高优）；源码及局部内存计算证据，未做浏览器、网络或线上验证。
@@ -92,31 +62,6 @@
 - 证据：`tools/telecom/ap-coverage.html:189,245-252`；Pt20/Gt3/Gr2/Pr_min−75/f2400/extra0/fade10 → office MAPL 82.00、125.3 m；dense MAPL 75.00、55.9 m（node 复算），页面写 76 m。
 - 影响：布点密度参考值偏差约 36%，与同页公式自相矛盾。
 - 方案：把 76 m 更正为 55.9 m（同步直径），或补充 76 m 采用的额外假设；增加“按公式复核算例”的校验。
-
-### I-6 YAML→JSON 对“列表项多键对象”静默丢键（已修，694 批）
-- 现状：`tools/data/yaml-json.html:386-454` 重写为按缩进递归的解析器：列表项命中 `key:` 后把该行改写成更深一级的映射首行再递归，后续同级键自然并入同一对象。门禁用例 `data/yaml-json` 注入 `list:\n  - name: Tom\n    age: 3` 断言输出含 `"age": 3`。
-
-### I-7 YAML→JSON 的行尾注释、块标量与带引号键值被误解析（已修，694 批）
-- 现状：同页 `:335-385` 新增 `__yamlStripComment`（引号外、`#` 前有空白的注释）、`__yamlFindColon`（引号/方括号外且冒号后为空白才算分隔符）、`:455-488` 实现 `|`/`>` 块标量（含 `-`/`+` chomping）。门禁用例三条：行尾注释、`msg: |` 块、`- "a:b"`。
-
-### I-8 JSON→YAML 不转义特殊字符键，混合引号时生成非法 YAML（已修，694 批）
-- 现状：同页 `:293-314` 对象键统一走 `yamlString()`；需要引号时一律用 JSON 双引号转义（`\\`、`\"`、`\n`、`\uXXXX` 均为合法 YAML），不再产出不转义内部单引号的单引号风格。门禁用例：`{"a: b":1}` 与 `it's "x"` 混合引号。
-
-### I-9 YAML/JSON 方向切换高亮错按钮（已修，694 批）
-- 现状：同页 `:145-148` 给两个方向按钮加 `data-dir`，`:258-263` 的 `setDir()` 按属性切换 `active`，不再依赖 `.dir-tabs button` 下标（该容器第 2 个按钮是导出 CSV）。
-
-### I-10 数据透视表把单元格内容直接拼入 innerHTML（已修，693 批）
-- 现状：`tools/data/pivot-table.html:295-299,353-375` 新增 `escPivot()`，表头、行/列分组值与聚合名统一转义后再拼入表格；门禁用例注入 `<img onerror>` 断言输出为实体。
-
-### I-11 数据透视表 avg/min/max 的“合计”列与总计行算错（已修，693 批）
-- 现状：同页 `:332-351` 每格保存原始数值与计数，行/列/总计都用 `aggregate()` 合并原始值后按同一语义重算（avg 加权、min/max 取极值、count 计数、sum 求和）。用例锁定 avg=126.00、min 行/列/总计。
-
-### I-12 数据透视表 CSV 按逗号切分，忽略引号与重复表头（已修，693 批）
-- 现状：同页 `:273-316` 新增 `parsePivotLine()` 支持引号包裹与 `""` 转义，行分隔兼容 CRLF；重复表头给出提示并停止透视。用例覆盖带逗号字段（北京,朝阳）与重复列名。
-
-### I-13 数据清洗“原始条数”含尾部空行，限长按 UTF-16 截断 emoji（已修，693 批）
-- 现状：`tools/data/data-cleaner.html:274-308` 先统一 CRLF 并弹出末尾空行再计原始条数；限长改为按字形簇（Intl.Segmenter，缺失时退化为码点）截断，不再切出孤立代理项。门禁用例 `data/data-cleaner` 锁定 `abc\n\n → 1` 与 `😀ABC 限长 1 → 😀`。
-
 
 ### 留存优化
 - `tools/encode/utf-8.html:131-135` 公式列了 4 档（含 2 字节拉丁/希腊），但只有 3 个输入，无 2 字节与组合 emoji 入口；可增加“2 字节字符数”或直接粘贴文本自动分档，并在结果旁对比字符数/字节数/码点数。
