@@ -208,16 +208,26 @@ function calc(){
   const lines=document.getElementById('roster').value.split('\n').map(s=>s.trim()).filter(Boolean);
   const rows=[];
   lines.forEach(function(ln){
-    const parts=ln.split(/[,，\t;；]|\s+/).map(s=>s.trim()).filter(Boolean);
+    let parts=ln.split(/[,，\t;；]|\s+/).map(s=>s.trim()).filter(Boolean);
     if(!parts.length) return;
+    // 「2 箱」「1.5 份」被空格拆成两段时先把数字与单位并回一段，避免末段「箱」非数字导致整行当姓名
+    const unitRe=/^(个|份|箱|件|人|斤|盒|袋|瓶|支|本|张|套|打|提|份儿|份数)$/;
+    const numUnitRe=/^([\d.]+)(?:个|份|箱|件|人|斤|盒|袋|瓶|支|本|张|套|打|提|份儿|份数|[A-Za-z]+)?$/;
+    const merged=[];
+    for(let i=0;i<parts.length;i++){
+      if(i+1<parts.length && /^[\d.]+$/.test(parts[i]) && unitRe.test(parts[i+1])){
+        merged.push(parts[i]+parts[i+1]); i++;
+      }else merged.push(parts[i]);
+    }
+    parts=merged;
     let name='',qty=1;
     if(parts.length===1){
-      const maybeNum=parseFloat(parts[0]);
-      if(isFinite(maybeNum)&&/^[\d.]+$/.test(parts[0])){ name=''; qty=maybeNum; }
+      const m=parts[0].match(numUnitRe);
+      if(m){ qty=parseFloat(m[1]); }
       else name=parts[0];
     }else{
-      const lastNum=parseFloat(parts[parts.length-1]);
-      if(isFinite(lastNum)){ qty=lastNum; name=parts.slice(0,-1).join(' '); }
+      const m=parts[parts.length-1].match(numUnitRe);
+      if(m){ qty=parseFloat(m[1]); name=parts.slice(0,-1).join(' '); }
       else name=parts.join(' ');
     }
     if(!isFinite(qty)||qty<=0) qty=1;
