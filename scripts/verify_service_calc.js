@@ -131,6 +131,24 @@ const CASES = [
   "ref": "修复前空响应时间被当成 0 计入均值（两条得 10.0 分）；现未填写的响应时间不参与均值/分位数统计，仅 B 的 20.0 分入样。默认态无 RTEMPTY 探针串。"
 },
 {
+  "slug": "service/response-time",
+  "inputs": { "slaTarget": "45" },
+  "clicks": [
+    "tickets=[{id:'Z',resp:5,solve:0,status:'resolved'},{id:'Y',resp:15,solve:20,status:'resolved'}];renderList();calc();var s=String(document.getElementById('stats').innerHTML);var d=String(document.getElementById('detailBody').innerHTML);document.getElementById('__tbProbe').textContent='RTZERO10 '+(s.indexOf('10.0分')>=0&&d.indexOf('<td>0.0</td>')>=0?'OK':'BAD');"
+  ],
+  "expect": ["RTZERO10 OK"],
+  "ref": "591 批复核失败回归：已解决且解决时间 0 分钟是合法采样，旧 `solve>0` 把 Z 排除在平均解决时间外只剩 20 分钟；现按 `solve>=0` 入样，两条 (0+20)/2=10.0 分，明细应显示 0.0 而非「-」。注入 SLA=45（默认 30）避免默认态。"
+},
+{
+  "slug": "service/response-time",
+  "inputs": { "slaTarget": "45" },
+  "clicks": [
+    "tickets=[{id:'N',resp:null,solve:5,status:'resolved'},{id:'M',resp:20,solve:null,status:'pending'}];renderList();calc();var d=String(document.getElementById('detailBody').innerHTML);var row=d.split('</tr>').filter(function(r){return r.indexOf('>N<')>=0;})[0]||'';document.getElementById('__tbProbe').textContent='RTNOSAMPLE '+(row.indexOf('<td>-</td><td>5.0</td>')>=0&&row.indexOf('超标')<0?'OK':'BAD');"
+  ],
+  "expect": ["RTNOSAMPLE OK"],
+  "ref": "591 批复核失败回归：SLA 有效但响应时间未采样时，旧明细把 ok=false 直接显示「超标」，等于把「没数据」当成违规；现无采样显示「-」且不着红色。注入 N 行 resp=null 专锚该行，默认 8 单响应均非空。"
+},
+{
   "slug": "service/ticket-priority",
   "clicks": [
     "var esrc=/ToolBox\\.escHtml\\(r\\[0\\]\\)/.test(String(__tpTable));var csrc=/tb0\\.innerHTML=''/.test(String(__tpExtras));tickets=[{name:'A',urgency:5,importance:5}];render();tickets=[];render();var clr=document.getElementById('q1').innerHTML.indexOf('A')<0&&document.getElementById('prioList').innerHTML.indexOf('暂无工单')>=0;document.getElementById('__tbProbe').textContent='TPX '+(esrc&&csrc&&clr);"

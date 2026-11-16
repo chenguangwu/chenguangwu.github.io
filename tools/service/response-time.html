@@ -294,7 +294,7 @@ function calc(){
   var slaValid=isFinite(slaRaw)&&slaRaw>0;
   var sla=slaValid?slaRaw:null;
   var respTimes=tickets.filter(function(t){return t.resp!=null && isFinite(t.resp) && t.resp>=0;}).map(function(t){return t.resp;});
-  var solveTimes=tickets.filter(function(t){return t.status==='resolved' && t.solve!=null && isFinite(t.solve) && t.solve>0;}).map(function(t){return t.solve;});
+  var solveTimes=tickets.filter(function(t){return t.status==='resolved' && t.solve!=null && isFinite(t.solve) && t.solve>=0;}).map(function(t){return t.solve;});
   var total=tickets.length;
   var resolved=tickets.filter(function(t){return t.status==='resolved';}).length;
   var resolveRate=total>0?resolved/total:0;
@@ -327,8 +327,12 @@ function calc(){
 
   var body=document.getElementById('detailBody');
   const __g4=tickets.map(function(t){
-    var ok=slaValid && t.resp!=null && t.resp<=sla;
-    return '<tr><td>'+ToolBox.escHtml(t.id)+'</td><td>'+(t.resp!=null?fmt(t.resp):'-')+'</td><td>'+(t.solve!=null&&t.solve>0?fmt(t.solve):'-')+'</td><td>'+(t.status==='resolved'?'已解决':'处理中')+'</td><td style="color:'+(slaValid?(ok?'var(--success)':'var(--danger)'):'var(--text-muted)')+';">'+(slaValid?(ok?'达标':'超标'):'-')+'</td></tr>';
+    var respValid=t.resp!=null && isFinite(t.resp) && t.resp>=0;
+    var solveValid=t.solve!=null && isFinite(t.solve) && t.solve>=0;
+    var ok=slaValid && respValid && t.resp<=sla;
+    var verdict=(!slaValid||!respValid)?'-':(ok?'达标':'超标');
+    var verdictColor=verdict==='-'?'var(--text-muted)':(ok?'var(--success)':'var(--danger)');
+    return '<tr><td>'+ToolBox.escHtml(t.id)+'</td><td>'+(respValid?fmt(t.resp):'-')+'</td><td>'+(solveValid?fmt(t.solve):'-')+'</td><td>'+(t.status==='resolved'?'已解决':'处理中')+'</td><td style="color:'+verdictColor+';">'+verdict+'</td></tr>';
   }).join('');body.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 

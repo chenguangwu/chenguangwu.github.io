@@ -99,8 +99,26 @@ const CASES = [
   "slug": "hotel/occupancy-revpar",
   "inputs": { "revenue": "-38400" },
   "expect": ["客房收入不能为负数"],
-  "ref": "12-M4：负收入原先仍按 OCC 80% 判「优秀」并输出 ADR ¥-400、RevPAR ¥-320；现在拒绝。默认收入为正，不出现该文案。"
-}
+    "ref": "12-M4：负收入原先仍按 OCC 80% 判「优秀」并输出 ADR ¥-400、RevPAR ¥-320；现在拒绝。默认收入为正，不出现该文案。"
+  },
+  {
+    "slug": "hotel/occupancy-revpar",
+    "inputs": { "totalRooms": "0.5" },
+    "expect": ["总房量需在 1–10000 间之间"],
+    "ref": "584 批复核失败回归：总房量 0.5 间旧逻辑仅判 `<=0`，被当作合法值继续算出评级；现要求 1–10000 的整数。默认 120 间不出现该提示。"
+  },
+  {
+    "slug": "hotel/occupancy-revpar",
+    "inputs": { "revenue": "" },
+    "expect": ["客房收入须填写有效数值"],
+    "ref": "584 批复核失败回归：收入留空旧逻辑 `parseFloat('')||0` 静默按 0 并继续输出评级；现字段级拒绝空值。默认收入 38400 不出现该提示。"
+  },
+  {
+    "slug": "hotel/occupancy-revpar",
+    "inputs": { "soldRooms": "" },
+    "expect": ["售出间夜须填写有效整数"],
+    "ref": "584 批复核失败回归：售出间夜留空旧逻辑按 0 继续输出；现拒绝空值并要求整数。默认售出 96 不出现该提示。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

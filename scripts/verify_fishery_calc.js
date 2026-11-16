@@ -9,7 +9,41 @@
  * 用法: node scripts/verify_fishery_calc.js [slug ...]
  */
 "use strict";
+const fs = require("fs");
+const path = require("path");
 const { runCase } = require("./verify_it_calc.js");
+
+// 深解算例是构建注入的静态正文，harness 只采集结果容器，读不到 .deep-dive。
+// 因此以源文件断言守住「权威源 + 构建产物 + EN 映射」三处口径一致。
+const PARASITE_TOOL = path.join(__dirname, "..", "tools", "fishery", "parasite-lifecycle.html");
+const PARASITE_DEEPDIVE = path.join(__dirname, "..", "i18n", "tools", "content_deepdive.json");
+const PARASITE_EN = path.join(__dirname, "..", "i18n", "tools", "en", "fishery", "parasite-lifecycle.json");
+function parasiteStaticChecks() {
+  const tool = fs.readFileSync(PARASITE_TOOL, "utf8");
+  const deep = JSON.parse(fs.readFileSync(PARASITE_DEEPDIVE, "utf8"));
+  const en = JSON.parse(fs.readFileSync(PARASITE_EN, "utf8"))["map"] || {};
+  const zh = deep["fishery/parasite-lifecycle"]["examples"][0]["body"];
+  const hasGood = function (s) { return s.indexOf("滋养体寄生 8.0 天(120)") >= 0 && s.indexOf("包囊繁殖 3.8 天(57)") >= 0; };
+  const hasOld = function (s) { return s.indexOf("8.6 天(120)") >= 0 || s.indexOf("4.1 天(57)") >= 0; };
+  return [
+    {
+      name: "寄生虫深解源：25℃ 三阶段合计 0.2+8.0+3.8=12.0 天",
+      ok: hasGood(zh) && !hasOld(zh),
+    },
+    {
+      name: "寄生虫工具页构建产物与深解源一致",
+      ok: hasGood(tool) && !hasOld(tool),
+    },
+    {
+      name: "寄生虫英文映射键与中文深解逐字一致",
+      ok: Object.prototype.hasOwnProperty.call(en, zh)
+        && en[zh].indexOf("trophont parasitism 8.0 days (120)") >= 0
+        && en[zh].indexOf("tomont reproduction 3.8 days (57)") >= 0
+        && en[zh].indexOf("8.6 days (120)") < 0
+        && en[zh].indexOf("4.1 days (57)") < 0,
+    },
+  ];
+}
 
 const CASES = [
   {
@@ -752,7 +786,12 @@ async function main() {
     }
   }
 
+  const stat = parasiteStaticChecks();
+  const staticFails = stat.filter((s) => !s.ok);
+  for (const s of staticFails) console.log("❌ [static] " + s.name);
+
   console.log("==== fishery calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (staticFails.length) console.log("❌ static " + (stat.length - staticFails.length) + "/" + stat.length + " 未通过");
+  if (fails.length || staticFails.length) process.exit(1);
 }
 if (require.main === module) main();

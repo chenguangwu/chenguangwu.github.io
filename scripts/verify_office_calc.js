@@ -12,6 +12,21 @@ const { runCase } = require("./verify_it_calc.js");
 // 用户要求的三条都落在下面：htmlLabels:false → foreignObject 为 0；toBlob 在 try/catch 内；
 // 失败 toast 取 e.name || e.message。
 const FLOWCHART_PATH = path.join(__dirname, "..", "tools", "office", "flowchart.html");
+const MINDMAP_PATH = path.join(__dirname, "..", "tools", "office", "mindmap.html");
+function mindmapStaticChecks() {
+  const src = fs.readFileSync(MINDMAP_PATH, "utf8");
+  return [
+    {
+      // 清空按钮会把空串写进 localStorage；恢复时必须区分「没有这个键」与「存了空草稿」。
+      // 降级分支与主分支都要按 key 存在性判断，任一处退回 truthy 判断都会让清空后刷新回到示例。
+      name: "思维导图两条初始化路径均恢复空草稿（按 key 存在性判断）",
+      ok: /__mmSaved\s*!==\s*null/.test(src)
+        && /saved\s*!==\s*null/.test(src)
+        && !/__mmSaved\s*&&\s*__mmSaved\.trim\(\)/.test(src)
+        && !/saved\s*&&\s*saved\.trim\(\)/.test(src),
+    },
+  ];
+}
 function flowchartStaticChecks() {
   const src = fs.readFileSync(FLOWCHART_PATH, "utf8");
   const initCalls = [...src.matchAll(/mermaid\.initialize\(\{[\s\S]*?\}\);/g)].map((m) => m[0]);
@@ -291,8 +306,8 @@ async function main() {
     }
   }
 
-  // 结构前提断言（PNG 导出的可测部分）：与用例一起计入退出码，缺一即红。
-  const stat = flowchartStaticChecks();
+  // 结构前提断言（PNG 导出前置 + 思维导图空草稿恢复）：与用例一起计入退出码，缺一即红。
+  const stat = flowchartStaticChecks().concat(mindmapStaticChecks());
   const staticFails = stat.filter((s) => !s.ok);
   for (const s of staticFails) console.log("❌ [static] " + s.name);
 

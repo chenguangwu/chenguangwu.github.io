@@ -117,7 +117,7 @@ const CASES = [
   {
     slug: "life/drinking-water-plan",
     clicks: [
-      "var h=String(document.getElementById('result').innerHTML);var re=/(\\d+) ml<\\/td>/g,m,s=0;while((m=re.exec(h)))s+=+m[1];var t=h.match(/num\">([\\d,\\.]+) ml/);var tot=t?Number(t[1].replace(/,/g,'')):-1;document.getElementById('__tbProbe').textContent='SUM '+s+' TOT '+tot+' EQ '+((tot>0&&s===tot)?'1':'0');"
+      "var h=String(document.getElementById('result').innerHTML);var re=/([\\d.]+) ml<\\/td>/g,m,s=0;while((m=re.exec(h)))s+=+m[1];var t=h.match(/num\">([\\d,\\.]+) ml/);var tot=t?Number(t[1].replace(/,/g,'')):-1;document.getElementById('__tbProbe').textContent='SUM '+s.toFixed(2)+' TOT '+tot.toFixed(2)+' EQ '+((tot>0&&Math.abs(s-tot)<0.005)?'1':'0');"
     ],
     expect: ["EQ 1"],
     ref: "分段合计须等于每日目标：十个时段比例原为 15/12/12/10/10/12/12/10/7/5（合计 105%），旧实现直接乘目标导致合计 1.05 倍；改为按 slotSum 归一、末段补足余差。探针累加各段 ml 并与目标比对，修复后 EQ 1。默认态无探针串 ⇒ 零逃生。"
@@ -1939,6 +1939,15 @@ const CASES = [
       "l 每日饮水目标 6.6"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"w\":\"42\",\"temp\":\"42\"}，输出区含「l 每日饮水目标 6.6」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/drinking-water-plan",
+    "inputs": { "w": "20.01", "temp": "20", "act": "none", "stage": "normal" },
+    "clicks": [
+      "var s=String(document.getElementById('result').innerHTML);var ms=s.match(/<td[^>]*>([\\d.]+) ml<\\/td>/g)||[];var sum=ms.reduce(function(a,x){return a+parseFloat(x.match(/([\\d.]+) ml/)[1]);},0);document.getElementById('__tbProbe').textContent='WATER '+ms.length+' '+sum.toFixed(2);"
+    ],
+    "expect": ["WATER 10 600.30"],
+    "ref": "645 批复核失败回归：体重 20.01 kg、无运动、20℃、普通人群 ⇒ 目标 20.01×30=600.30 ml；旧分段按整数毫升四舍五入、末段按 Math.round(total) 补足，十段只能合计 600 ml。现按「1 ml 的 1/100」整数分配、末段补足，十段显示值严格合计 600.30。输入 20.01 非默认 60，探针串只在新口径出现。"
   },
   {
     "slug": "life/frequency-converter",

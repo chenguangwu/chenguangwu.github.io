@@ -27,9 +27,10 @@ const CASES = [
 },
 {
   "slug": "chemical/convert-capacity-tank",
-  "clicks": ["document.getElementById('type').value='vcyl';document.getElementById('mode').value='level';document.getElementById('d').value='10';document.getElementById('w').value='3';document.getElementById('L').value='12';document.getElementById('h').value='4';document.getElementById('Vt').value='314.159';calc();document.getElementById('__tbProbe').textContent=document.getElementById('res').innerHTML"],
-  "expect": ["充装率 = 33.33%", "满罐容积 = 942.478 m³"],
-  "ref": "立式罐 d=10、L=12、液位 4：V=314.159，满罐 π·5²·12=942.478，充装率 33.33%（682 批新增满罐/充装率口径）"
+  "inputs": { "type": "vcyl", "mode": "level", "d": "8", "w": "3", "L": "10", "h": "3", "Vt": "150.796" },
+  "clicks": ["calc();document.getElementById('__tbProbe').textContent=document.getElementById('res').innerHTML"],
+  "expect": ["容积 V = 150.796 m³", "充装率 = 30.00%"],
+  "ref": "682 批复核失败回归（存量逃生项收紧）：立式罐 d=8、L=10、液位 3 ⇒ V=π·4²·3=150.796，满罐 502.655，充装率 30.00%；旧用例注入值与页面默认 d=10/L=12/h=4 完全相同，默认态即命中 33.33%/942.478，判别器判逃生。现改为全非默认输入，默认态两锚均不命中。"
 },
 {
   "slug": "chemical/convert-capacity-tank",
@@ -42,6 +43,15 @@ const CASES = [
   "clicks": ["document.getElementById('type').value='vcyl';document.getElementById('mode').value='level';document.getElementById('d').value='10';document.getElementById('w').value='3';document.getElementById('L').value='12';document.getElementById('h').value='13';document.getElementById('Vt').value='314.159';calc();document.getElementById('__tbProbe').textContent=document.getElementById('res').innerHTML"],
   "expect": ["液位须在 0~12.00 m 之间"],
   "ref": "液位 13m 超过罐高 12m 须拦截，不得算出 1021 m³ 的超过满罐容积结果（682 批）"
+},
+{
+  "slug": "chemical/convert-capacity-tank",
+  "inputs": { "Vt": "0", "d": "2.4", "L": "8", "w": "3", "mode": "volume" },
+  "clicks": [
+    "var out=[];['vcyl','hcyl','box'].forEach(function(t){document.getElementById('type').value=t;calc();var h=String(document.getElementById('res').innerHTML);out.push(h.indexOf('液位 0.000 m')>=0&&h.indexOf('充装率 = 0.00%')>=0?'Y':'N');});document.getElementById('__tbProbe').textContent='VT0 '+out.join('');"
+  ],
+  "expect": ["VT0 YYY"],
+  "ref": "682 批复核失败回归：目标容积 0 表示空罐，应反算液位 0、充装率 0%；旧条件 `!(Vt>0)` 与提示「0~满罐」自相矛盾，三种罐型都被拦截。注入 Vt=0（默认 314.159）并逐型断言，探针串只在新口径出现。"
 },
 {
 "slug": "chemical/convert-density-crude",

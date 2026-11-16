@@ -1245,6 +1245,15 @@ const CASES = [
     "ref": "10-31 标尺补「严重」带（2026-11-16）：当前密度 = 100 × 1.2⁴ = 207.36，指数 = 207.36 ÷ 300 × 100 = 69.1 > 60 ⇒ 风险等级「严重」。旧 refBar bands 只有 0–30 安全与 30–null 预警，69.1 会被画在黄色「预警」区间，与结果卡红色「严重」冲突；现补 {60, null, 严重, #EF4444} 并把预警带上界收敛到 60。默认 5 年/500/20%/5000 ⇒ 指数 24.9、安全，两锚均失配。"
   },
   {
+    "slug": "agriculture/estimate-soil",
+    "inputs": { "years": "0", "init": "60", "rate": "0", "threshold": "100" },
+    "clicks": [
+      "window.TBKit={util:{isEn:function(){return false;}},chart:{refBar:function(h,c){var b=c.bands[c.bands.length-1];document.getElementById('__tbProbe').textContent='RBOUND '+(b&&b.lo===60&&b.hi===null?'OK':'BAD');}}};calc();"
+    ],
+    "expect": ["RBOUND OK", "严重"],
+    "ref": "725 批复核失败回归：index=60 时结果卡旧逻辑 `index<=60` 判「预警」，而 refBar 带 [60,∞) 按左闭右开应判「严重」，同一数值两处冲突；改为 `index<60` 后 60 归严重。开放上界须传 null（不得被 num(null)=0 压平），断言末带 lo=60/hi=null。默认 5 年/500/20%/5000 ⇒ 24.9 安全，两条锚均不命中。"
+  },
+  {
     "slug": "agriculture/harvest-date-predictor",
     "inputs": { "sowDate": "2026-05-01", "moisture": "120", "dryRate": "0.5", "gdd": "1500" },
     "expect": ["含水量应在 0–100% 之间"],
