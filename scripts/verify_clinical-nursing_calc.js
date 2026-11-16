@@ -589,6 +589,12 @@ const CASES = [
   "ref": "D-N123 负深度：深度允许留空或 ≥0，输入 -1 属非法测量值，旧实现会拼出「3cm × 2cm × -1cm」并写入记录；修复后命中同一守卫。默认深度 0 合法，不触发提示。"
 },
 {
+  "slug": "clinical-nursing/pressure-injury-description",
+  "clicks": ["var e=String(__pressure_injury_descriptionExtras),x=String(__pressure_injury_descriptionExport);document.getElementById('__tbProbe').textContent='F308 '+(e.indexOf('keys.length>16')>=0&&x.indexOf('keys.length>16')>=0?'OK':'BAD');"],
+  "expect": ["F308 OK"],
+  "ref": "第308批复核失败重做：快照含 8 个部位勾选 + 长宽深 + 渗出 + 周围皮肤共 13 个业务字段，但 __pressure_injury_descriptionExtras()/Export() 用 `keys.slice(0,12)` 截断，把第 13 个 surrounding（周围皮肤）丢弃 ⇒ 改动周围皮肤后回放保留当前值、与历史描述不一致。修复为 12→16（覆盖全部业务字段且留余量），回放遍历 rec 全键故 surrounding 可恢复。JSDOM 真机 5/5 验证记录含 surrounding、改值后回放恢复原描述（2 期场景，1 期按规范不记周围皮肤）。用例锁两处截断守卫，注入失败回退 12 时探针变 BAD。"
+},
+{
   "slug": "clinical-nursing/reminder-time-1",
   "inputs": {
     "coldDur": "15",
