@@ -1,6 +1,28 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+const path = require("path");
+
+// 412 复核失败：精密轴承精度/润滑因子不得声称源自 ISO 281 的精度寿命预测模型。
+// 页面已改为明确标注「启发式折算、非 ISO 281 精度寿命预测、非厂商认证数据」，
+// 并消除「精度保持寿命通常低于疲劳寿命」与折算因子（最高 2.25 倍）的矛盾。
+function lifespan20ScopeChecks() {
+  const src = fs.readFileSync(path.join(__dirname, "..", "tools", "machinery", "lifespan-20.html"), "utf8");
+  const enPath = path.join(__dirname, "..", "i18n", "tools", "en", "machinery", "lifespan-20.json");
+  const en = JSON.parse(fs.readFileSync(enPath, "utf8"));
+  const enMap = en.map || en;
+  const hasDisclaimer = src.includes("并非 ISO 281 的精度寿命修正项或轴承厂商的认证数据")
+    && src.includes("本页用于相对比较的启发式折算");
+  const noOldClaim = !src.includes("精度保持寿命通常低于疲劳寿命，因沟道磨损导致精度丧失");
+  const enSynced = Object.keys(enMap).some((k) => k.includes("需先说明口径边界"))
+    && Object.values(enMap).some((v) => String(v).includes("heuristic coefficients for relative comparison"));
+  return [
+    { name: "lifespan-20 明确精度/润滑因子非 ISO 281 精度寿命预测", ok: hasDisclaimer },
+    { name: "lifespan-20 消除精度寿命低于疲劳寿命的矛盾表述", ok: noOldClaim },
+    { name: "lifespan-20 边界说明英文映射同步", ok: enSynced },
+  ];
+}
 
 const CASES = [
   { slug: "machinery/area-dosage-1", inputs: {v_area:"20", v_dft:"80", v_vs:"55"}, expect: ["3.42 实际用量"], ref: "涂装面积用量计算" },
@@ -591,7 +613,12 @@ async function main() {
     }
   }
 
+  const scopeStat = lifespan20ScopeChecks();
+  const scopeFails = scopeStat.filter((s) => !s.ok);
+  for (const s of scopeFails) console.log("❌ [static] " + s.name);
+
   console.log("==== machinery calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (scopeFails.length) console.log("❌ static " + (scopeStat.length - scopeFails.length) + "/" + scopeStat.length + " 未通过");
+  if (fails.length || scopeFails.length) process.exit(1);
 }
 if (require.main === module) main();
