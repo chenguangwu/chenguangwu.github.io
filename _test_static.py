@@ -512,6 +512,43 @@ def check_text_polisher_desc():
             stats['errors'].append('文本润色新 intro 缺少英文映射（411 回归）')
 
 
+def check_deadlink_map():
+    """431/432 批复核失败重做：每个重定向桩必须登记简体与繁体死链 URL。
+
+    历史缺陷：同分类重复页合并后旧地址只留 TOOLBOX-REDIRECT 桩，
+    未同步 sitemap-deadlinks.xml，搜索引擎仍按旧 URL 索引。
+    """
+    xp = os.path.join(ROOT, 'sitemap-deadlinks.xml')
+    if not os.path.isfile(xp):
+        stats['errors'].append('缺少 sitemap-deadlinks.xml（431/432 回归）')
+        return
+    have = set(re.findall(r'<loc>([^<]+)</loc>', open(xp, encoding='utf-8').read()))
+    missing = []
+    for root, _, files in os.walk(TOOLS_DIR):
+        for fn in files:
+            if not fn.endswith('.html'):
+                continue
+            fp = os.path.join(root, fn)
+            try:
+                src = open(fp, encoding='utf-8', errors='ignore').read()
+            except Exception:
+                continue
+            if 'TOOLBOX-REDIRECT' not in src:
+                continue
+            rel = os.path.relpath(fp, ROOT).replace(os.sep, '/')
+            simp = 'https://chenguangwu.github.io/' + rel
+            trad = 'https://chenguangwu.github.io/zh-tw/' + rel
+            if simp not in have:
+                missing.append('简体 ' + rel)
+            if trad not in have:
+                missing.append('繁体 ' + rel)
+    if missing:
+        for item in missing[:20]:
+            stats['errors'].append('重定向页未登记死链地图：' + item)
+    else:
+        stats['passed'] += 1
+
+
 def main():
     print('=' * 60)
     print('ToolBox 自动化静态测试')
@@ -543,6 +580,7 @@ def main():
     check_h1_normalization()
     check_related_tool_cards()
     check_text_polisher_desc()
+    check_deadlink_map()
 
     # 输出结果
     print(f'扫描完成，共检查 {stats["total"]} 个工具页面')
