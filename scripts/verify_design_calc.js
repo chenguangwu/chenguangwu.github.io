@@ -25,6 +25,33 @@ const fs = require("fs");
 const path = require("path");
 const SVG_PATH = path.join(__dirname, "..", "tools", "design", "svg-minifier.html");
 const PPS_PATH = path.join(__dirname, "..", "tools", "design", "photo-print-size.html");
+const DOT_PATH = path.join(__dirname, "..", "tools", "design", "dot-pattern.html");
+
+// 全站内容源复核：dot-pattern 业务输入/按钮内联事件迁移到 addEventListener；
+// 失败项要求迁移并验证实际交互。桩元素可能无 addEventListener，故必须做能力判断。
+function dotPatternEventBindingChecks() {
+  const src = fs.readFileSync(DOT_PATH, "utf8");
+  const body = src.slice(0, src.indexOf("<!-- TOOLBOX-DEEP-DIVE -->"));
+  const inject = src.slice(src.indexOf("/*TBKIT-INJECT-START*/"));
+  const bizInline = /<(?:input|select|button)[^>]*(?:onchange|onclick)="(?:generate\(\)|__dot_patternExport\(\)|copyResult\(\))"/.test(body);
+  const ids = ["bgColor", "dotColor", "dotSize", "spacing", "arrangement", "dotPatternGen", "dotPatternExp", "dotPatternCopy"];
+  const allBound = ids.every((id) => new RegExp("\\['" + id + "','(?:change|click)'").test(inject));
+  return [
+    {
+      name: "dot-pattern 业务控件无内联 generate/export/copy 事件",
+      ok: !bizInline,
+    },
+    {
+      name: "dot-pattern 八个业务控件经 addEventListener 绑定",
+      ok: allBound && /typeof el\.addEventListener==='function'/.test(inject)
+        && /el\.addEventListener\(evt,fn\)/.test(inject),
+    },
+    {
+      name: "dot-pattern 主题按钮与懒加载内联事件保留",
+      ok: /onclick="ToolBox\.toggleToolTheme\(\)"/.test(body) && /onload="this\.onload=null/.test(src),
+    },
+  ];
+}
 
 // 311 复核失败：超限图未存图时，回放会拿当前图冒充历史结果。
 function asciiHistoryGuardChecks() {
@@ -95,6 +122,25 @@ function designRework648StaticChecks() {
       ok: /ok\?\(en\?'Yes':'是'\):\(en\?'No':'否'\)/.test(exportBody)
         && !/addRow\([^;]*en\?'Yes':/.test(exportBody.replace(/ok\?\(en\?'Yes':'是'\):\(en\?'No':'否'\)/g, "")),
     },
+  ];
+}
+
+// 全站内容源复核：五个颜色工具 deep-dive 的对比度 FAQ 必须按各页真实能力表述，
+// 不得再共用「会按 WCAG 算出对比度值与等级，未达标会标红提醒」这句对无该能力的页失真。
+function colorDeepDiveContrastFaqChecks() {
+  const ddPath = path.join(__dirname, "..", "i18n", "tools", "content_deepdive.json");
+  const dd = JSON.parse(fs.readFileSync(ddPath, "utf8"));
+  const oldClaim = "会按 WCAG 算出对比度值与等级，未达标会标红提醒";
+  const slugs = ["design/color-temperature-converter", "design/color-palette", "design/color-palette-generator", "design/color-picker", "design/mesh-gradient"];
+  const clean = slugs.every((s) => {
+    const node = dd[s];
+    return node && node.faqs && node.faqs.every((f) => !String(f.a || "").includes(oldClaim));
+  });
+  const checker = dd["design/contrast-checker"];
+  const kept = checker && checker.faqs && checker.faqs.some((f) => String(f.a || "").includes(oldClaim));
+  return [
+    { name: "五个颜色工具 deep-dive 对比度 FAQ 按真实能力表述", ok: clean },
+    { name: "contrast-checker 保留其真实具备的 WCAG 标红描述", ok: !!kept },
   ];
 }
 
@@ -3632,7 +3678,7 @@ async function main() {
     }
   }
 
-  const stat = designRework648StaticChecks().concat(metronomeStaticChecks(), asciiHistoryGuardChecks());
+  const stat = designRework648StaticChecks().concat(metronomeStaticChecks(), asciiHistoryGuardChecks(), dotPatternEventBindingChecks(), colorDeepDiveContrastFaqChecks());
   const staticFails = stat.filter((s) => !s.ok);
   for (const s of staticFails) console.log("❌ [static] " + s.name);
 
