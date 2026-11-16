@@ -43,7 +43,10 @@ d.dispatchEvent(new w.Event('DOMContentLoaded', { bubbles: true }));
 {
   const r = w.__tbDevRec();
   check('__v 等于视口面积 innerWidth*innerHeight', r.__v === w.innerWidth * w.innerHeight, '__v=' + r.__v + ' vw/vh=' + w.innerWidth + '/' + w.innerHeight);
-  check('快照含视口字段', typeof r['视口'] === 'string' && r['视口'].indexOf('x') >= 0, JSON.stringify(r['视口']));
+  // 复核重做 855：快照按页面 label 存「视口大小」，值用全角乘号 × 分隔宽高（非旧「视口」键 + ASCII x）
+  check('快照含视口字段', typeof r['视口大小'] === 'string' && r['视口大小'].indexOf('×') >= 0
+    && r['视口大小'].indexOf(String(w.innerWidth)) >= 0 && r['视口大小'].indexOf(String(w.innerHeight)) >= 0,
+    JSON.stringify(r['视口大小']));
   // 改视口 → __v 变化（趋势不再水平线）
   const before = w.__tbDevRec().__v;
   w.innerWidth = 1234; w.innerHeight = 567;

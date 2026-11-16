@@ -65,6 +65,13 @@ const CASES = [
 },
 {
   "slug": "service/csat-score",
+  "inputs": {"s5":"50","s4":"30","s3":"12","s2":"5","s1":"3"},
+  "clicks": ["var cap=null,ot=ToolBox.copyText;ToolBox.copyText=function(t){cap=String(t);};var prevTB=globalThis.TBKit;globalThis.TBKit={util:{isEn:function(){return true;}}};try{copyReport();}finally{ToolBox.copyText=ot;globalThis.TBKit=prevTB;}var ok=!!cap&&cap.indexOf('CSAT Satisfaction Report')>=0&&cap.indexOf('NPS (star-based proxy)')>=0&&cap.indexOf('Total ratings: 100')>=0&&!/[\\u4e00-\\u9fa5]/.test(cap);document.getElementById('__tbProbe').textContent='CSATEN '+(ok?'OK':'BAD '+String(cap).slice(0,50));"],
+  "expect": ["CSATEN OK"],
+  "ref": "881 复核失败重做：copyReport 原硬编码中文，英文态复制仍出中文报告（英文 DOM 探针覆盖不到剪贴板）。注入 isEn=true 捕获 copyText，断言英文报告串且零 CJK；旧实现输出中文 ⇒ BAD。合法态默认 45/30/12/8/5 不触发探针串。"
+},
+{
+  "slug": "service/csat-score",
   "inputs": {
     "s5": "10",
     "s4": "0",
