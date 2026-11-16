@@ -429,6 +429,15 @@ const CASES = [
   "ref": "M-N9 修复后：OPTS 由「总是」到「从不」，正向题 总是=3；25 个正向题选 j=0（总是）得 75，唯一反向题（第 25 题）选 j=5（从不）得 REV[5]=3，总分 78/78 ≥20 ⇒「高风险」；A[3]=0、A[8]=0（总是）⇒ 追加暴食/催吐就医提示。默认（未作答）为提示框，零交集。"
 },
 {
+  "slug": "psychiatry/eat26-eating",
+  "inputs": {},
+  "clicks": [
+    "A=QS.map(function(){return 5;});calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='EATLOW '+((h.indexOf('低风险')>=0&&h.indexOf('总分 3 / 78')>=0)?'OK':'BAD');"
+  ],
+  "expect": ["EATLOW OK"],
+  "ref": "537 复核失败重做：全选「从不」(j=5) ⇒ 25 个正向题各 0 分、第 25 题反向 REV[5]=3 ⇒ 总分 3/78、低风险。若计分数组方向颠倒，全选「从不」会得 75 分高风险 ⇒ BAD。"
+},
+{
   "slug": "psychiatry/gad7-anxiety",
   "clicks": [ "pick(0,3)", "pick(1,3)", "pick(2,3)", "pick(3,3)", "pick(4,3)", "pick(5,3)", "pick(6,3)"],
   "expect": [

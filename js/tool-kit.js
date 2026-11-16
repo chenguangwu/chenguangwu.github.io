@@ -107,6 +107,13 @@
     return isFinite(n) ? n : 0;
   }
 
+  /** 与 num 的区别：缺省/非法返回 null，用于区分「0」与「未给」（如标尺开放区间） */
+  function numOrNull(v) {
+    if (v === null || v === undefined || v === '') return null;
+    var n = typeof v === 'number' ? v : parseFloat(v);
+    return isFinite(n) ? n : null;
+  }
+
   /** 数字美化：12345.678 → 12,345.68（保留 2 位，可指定） */
   function fmt(v, digits) {
     var n = num(v);
@@ -853,29 +860,36 @@
    *
    * 硬约束：纯 SVG 自绘、零依赖；英文态自动切 label.en。
    */
-  chart.refBar = function (host, cfg) {
+  // 标尺分段的归一化（独立成函数，便于无头回归：开放区间不得被 num(null)=0 压平）
+  chart._refBands = function (cfg) {
     cfg = cfg || {};
     var v = num(cfg.value);
     if (!isFinite(v)) return null;
-    var unit = cfg.unit || '';
     var bands = [];
     (cfg.bands || []).forEach(function (b) {
       if (!b) return;
-      var l = isFinite(num(b.lo)) ? num(b.lo) : null;
-      var h = isFinite(num(b.hi)) ? num(b.hi) : null;
+      var l = numOrNull(b.lo);
+      var h = numOrNull(b.hi);
       if (l === null && h === null) return;
       bands.push({ lo: l, hi: h, label: b.label || '', color: b.color || PALETTE[bands.length % PALETTE.length] });
     });
     if (!bands.length) return null;
 
-    var lo0 = isFinite(num(cfg.min)) ? num(cfg.min) : Math.min.apply(null, bands.map(function (b) { return b.lo === null ? b.hi : b.lo; }));
-    var hi0 = isFinite(num(cfg.max)) ? num(cfg.max) : Math.max.apply(null, bands.map(function (b) { return b.hi === null ? b.lo : b.hi; }));
-    if (!(hi0 > lo0)) { hi0 = lo0 + 1; }
-    var log = !!cfg.log && lo0 > 0;
-    var L = function (x) { return log ? Math.log(Math.max(x, 1e-9)) : x; };
-    var a = L(lo0), bb = L(hi0);
-    var clamp = function (x) { return Math.min(Math.max(x, lo0), hi0); };
-    var X = function (val) { return c.pad.l + c.iw * (L(clamp(val)) - a) / (bb - a); };
+    var finite = [];
+    bands.forEach(function (b) {
+      if (b.lo !== null) finite.push(b.lo);
+      if (b.hi !== null) finite.push(b.hi);
+    });
+    var mn = Math.min.apply(null, finite);
+    var mx = Math.max.apply(null, finite);
+    var span = mx - mn || 1;
+    var hasOpenLo = bands.some(function (b) { return b.lo === null; });
+    var hasOpenHi = bands.some(function (b) { return b.hi === null; });
+    var cmin = numOrNull(cfg.min);
+    var cmax = numOrNull(cfg.max);
+    var lo0 = cmin !== null ? cmin : (hasOpenLo ? mn - span * 0.1 : mn);
+    var hi0 = cmax !== null ? cmax : (hasOpenHi ? Math.max(mx, v) + span * 0.1 : mx);
+    if (!(hi0 > lo0)) hi0 = lo0 + 1;
 
     var hit = -1;
     for (var i = 0; i < bands.length; i++) {
@@ -883,6 +897,19 @@
       var bh = bands[i].hi === null ? Infinity : bands[i].hi;
       if (v >= bl && v < bh) { hit = i; break; }
     }
+    return { value: v, bands: bands, lo0: lo0, hi0: hi0, hit: hit };
+  };
+
+  chart.refBar = function (host, cfg) {
+    var norm = chart._refBands(cfg);
+    if (!norm) return null;
+    var v = norm.value, bands = norm.bands, lo0 = norm.lo0, hi0 = norm.hi0, hit = norm.hit;
+    var unit = cfg.unit || '';
+    var log = !!cfg.log && lo0 > 0;
+    var L = function (x) { return log ? Math.log(Math.max(x, 1e-9)) : x; };
+    var a = L(lo0), bb = L(hi0);
+    var clamp = function (x) { return Math.min(Math.max(x, lo0), hi0); };
+    var X = function (val) { return c.pad.l + c.iw * (L(clamp(val)) - a) / (bb - a); };
 
     var h = cfg.height || 126;
     var c = canvas(host, {

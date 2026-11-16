@@ -371,6 +371,19 @@ const CASES = [
   "ref": "03-68 S3 标尺新增：Ct=42 ≥ 判定阈值 40 → 阴性带（默认 ct=25 ⇒ 锚依赖注入，零交集）"
 },
 {
+  "slug": "clinical-lab/pcr-ct-interpretation",
+  "inputs": {
+    "ctSample": "37.5",
+    "ctRef": "20",
+    "ctNeg": "0",
+    "ctPos": "22",
+    "cutoff": "40",
+    "unknownCt": "30"
+  },
+  "expect": ["样本Ct 37.5 → 落在 阳性(低拷贝)"],
+  "ref": "785 复核失败重做：37.1–37.9 原信息框写作「30–37」未覆盖，实现按 30≤Ct<38 判读；注入 37.5 应落「阳性(低拷贝)」，与说明的半开区间一致。默认 ct=25 为高拷贝 ⇒ 零交集。"
+},
+{
   "slug": "clinical-lab/semen-analysis",
   "inputs": {
     "volume": "1.0",

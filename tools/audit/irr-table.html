@@ -267,6 +267,8 @@ function calcIRR(){
   if(flows.length<2 || !hasPos || !hasNeg) return {ok:false,reason:'input',roots:[]};
   // 在 log10(1+r) ∈ [-6, 7]（约 -99.9999% ～ 1e7%）上扫描变号，覆盖负 IRR 与超高 IRR
   var x0=-6, x1=7, N=2400, roots=[];
+  var scale=0; flows.forEach(function(v){ scale+=Math.abs(v); });
+  var rs=[], vs=[];
   var prevR=Math.pow(10,x0)-1, prevV=npvAt(prevR);
   function refine(a,b,va,vb){
     for(var i=0;i<200;i++){
@@ -276,14 +278,34 @@ function calcIRR(){
     }
     return (a+b)/2;
   }
+  function pushRoot(root){
+    for(var k=0;k<roots.length;k++){ if(Math.abs(roots[k]-root)<1e-6*Math.max(1,Math.abs(root))) return; }
+    roots.push(root);
+  }
+  // 偶重根（NPV 与零轴相切）不变号：对采样局部极小 |NPV| 做三分搜索，收敛到 0 才认根
+  function tangencyRoot(a,b){
+    for(var i=0;i<200;i++){
+      var m1=a+(b-a)/3, m2=b-(b-a)/3;
+      var f1=Math.abs(npvAt(m1)), f2=Math.abs(npvAt(m2));
+      if(f1<f2){ b=m2; } else { a=m1; }
+    }
+    var m=(a+b)/2, fm=Math.abs(npvAt(m));
+    return fm<=Math.max(1e-9, scale*1e-10) ? m : null;
+  }
   for(var i=1;i<=N;i++){
     var x=x0+(x1-x0)*i/N, r=Math.pow(10,x)-1, v=npvAt(r);
     if(isFinite(prevV)&&isFinite(v)&&prevV*v<=0&&!(prevV===0&&v===0)){
-      var root=refine(prevR,r,prevV,v), dup=false;
-      for(var k=0;k<roots.length;k++){ if(Math.abs(roots[k]-root)<1e-6*Math.max(1,Math.abs(root))) dup=true; }
-      if(!dup) roots.push(root);
+      pushRoot(refine(prevR,r,prevV,v));
     }
+    rs.push(r); vs.push(v);
     prevR=r; prevV=v;
+  }
+  for(var j=1;j<vs.length-1;j++){
+    var av=Math.abs(vs[j]);
+    if(av<=Math.abs(vs[j-1]) && av<=Math.abs(vs[j+1]) && (vs[j-1]>0)===(vs[j+1]>0)){
+      var tr=tangencyRoot(rs[j-1], rs[j+1]);
+      if(tr!==null) pushRoot(tr);
+    }
   }
   roots.sort(function(a,b){return a-b;});
   return {ok:roots.length>0,reason:roots.length?'':'none',roots:roots};

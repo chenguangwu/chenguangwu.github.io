@@ -184,6 +184,19 @@ const CASES = [
   "ref": "T-N9 区分提示：全零现金流既无正也无负，calcIRR 返回 reason=input，保留原「需有正有负」提示；若误用「区间内无解」文案本串失配。默认 demo 有正有负，不命中。"
 },
 {
+  "slug": "audit/irr-table",
+  "inputs": {
+    "rateStart": "0",
+    "rateEnd": "1",
+    "rateStep": "1"
+  },
+  "clicks": [
+    "flows=[-100,200,-100];renderTable();var t=document.getElementById('irrResult');document.getElementById('__tbProbe').textContent='IRREVEN '+((String(t.innerHTML).indexOf('0.0000%')>=0&&String(t.innerHTML).indexOf('共找到 1 个')>=0)?'OK':'BAD');"
+  ],
+  "expect": ["IRREVEN OK"],
+  "ref": "803 复核失败重做：现金流 -100/200/-100 在 0% 处 NPV=0 为偶重根，全程不变号。旧实现只扫变号 ⇒ roots=[] 并提示「区间内无实数 IRR」。新实现对 |NPV| 采样局部极小做三分搜索（收敛阈值 scale×1e-10）补出该根，主解与列表均显示 0.0000%。默认 demo 12.638% 不命中。"
+},
+{
   "slug": "audit/npv-discount",
   "inputs": {
     "rate": "11",
