@@ -375,8 +375,8 @@ const CASES = [
 {
   "slug": "gastroenterology/glasgow-pancreatitis",
   "inputs": { "age": "55", "wbc": "15", "glucose": "10", "ldh": "350", "ast": "200", "calcium": "", "albumin": "", "pao2": "", "urea": "8" },
-  "expect": ["未填写：钙、白蛋白、PaO₂", "轻症可能性大"],
-  "ref": "L-N47 核销：钙/白蛋白/PaO₂ 空值不再按 0 触发「低于阈值 +1」，改为不计分并列出缺项；三项清空后总分 0 ⇒ 轻症（旧实现 3 分 ⇒ 重症急性胰腺炎）。"
+  "expect": ["未填写：钙、白蛋白、PaO₂", "55 岁"],
+  "ref": "L-N47 核销：钙/白蛋白/PaO₂ 空值不再按 0 触发「低于阈值 +1」，改为不计分并列出缺项；三项清空后总分 0。原「轻症可能性大」在纯默认态也命中（逃生），改为「未填写…」+ 注入年龄 55 岁回显双锚；旧实现 3 分 ⇒ 重症急性胰腺炎。"
 },
 {
   "slug": "gastroenterology/cdai",
@@ -392,9 +392,9 @@ const CASES = [
 },
 {
   "slug": "gastroenterology/cdai",
-  "inputs": { "hct": "35" },
-  "expect": ["Hct 标准 42% − 实测 35% = 7.0"],
-  "ref": "L-N51 核销：女性 Hct 标准值改用 Best 1976 通行口径 42%（男 47%），默认性别为女 ⇒ 42-35=7.0；旧实现 37-35=2.0，本串不命中。"
+  "inputs": { "hct": "30" },
+  "expect": ["Hct 标准 42% − 实测 30% = 12.0", "× 6 = 72.0"],
+  "ref": "L-N51 核销并去默认化：注入 Hct=30（页面默认 35）⇒ 女性标准 42% − 30% = 12.0，×6 = 72.0；旧实现标准 37% 时得 7.0/42.0，两锚都不命中。默认态 7.0 不含本串。"
 },
 {
   "slug": "gastroenterology/saag-ascites",
@@ -411,8 +411,9 @@ const CASES = [
 {
   "slug": "gastroenterology/bilirubin-ratio",
   "inputs": { "tbil": "85", "dbil": "", "ref": "21" },
-  "expect": ["请填写总胆红素 TBIL 与直接胆红素 DBIL"],
-  "ref": "L-N54 核销：DBIL 空值不再按 0 计算（旧实现比值 0.0% 判「溶血/Gilbert」并建议 Coombs/UGT1A1），两值均必填。"
+  "clicks": ["var o=document.getElementById('result');var bad=o.innerHTML.indexOf('请填写总胆红素')>=0;document.getElementById('dbil').value='30';calc();var good=o.innerHTML.indexOf('35.3%')>=0;document.getElementById('__tbProbe').textContent='BILR '+(bad&&good?'OK':'BAD');"],
+  "expect": ["BILR OK"],
+  "ref": "L-N54 状态链：DBIL 空值先显式拒绝（旧实现按 0 算成 0.0% 并误判溶血/Gilbert），再注入 DBIL=30 ⇒ 30/85=35.3% 且判肝细胞性黄疸。纯默认态两值皆空时拒绝提示也出现，原单锚属逃生，改探针锁「拒绝→恢复」整链。"
 },
 {
   "slug": "gastroenterology/hepatic-encephalopathy",

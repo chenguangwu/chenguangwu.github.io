@@ -535,7 +535,7 @@ const CASES = [
     "重度 总分 28 / 28 · 均分 4.0", "≥8 临界值8"
   ],
   "ref": "PDSS 七项全选最重档 j=4 ⇒ 总分 28/28 ⇒ 落 total>13 分支「重度」；均分 (28/7).toFixed(1) = 4.0。注意 #quiz 第 1 题选项含「2-3次」等文本，旧 expect 正是该静态串（默认全量渲染即命中＝逃生项），本次改锚结果卡。默认态为提示框，零交集。via=click"
-},,
+},
 {
   "slug": "psychiatry/pdss-panic",
   "clicks": ["applyPdssPreset(4)"],

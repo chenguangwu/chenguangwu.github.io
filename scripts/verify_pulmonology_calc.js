@@ -547,15 +547,15 @@ const CASES = [
 },
 {
   "slug": "pulmonology/bronchoscopy-grading",
-  "inputs": { "stenGrade": "1" },
-  "expect": ["管腔狭窄＜50%"],
-  "ref": "03-167：Myer-Cotton I 级应为＜50%（原写＜25%）；II/III 级同步改为 50%–70% / 71%–99%。默认 II 级为 50%-70%，与本串不交集。"
+  "inputs": { "stenGrade": "3" },
+  "expect": ["管腔狭窄71%-99%", "III级 重度"],
+  "ref": "03-167 去默认化：注入 III 级（页面首屏默认 II 级）⇒ 管腔狭窄 71%-99%、分级「III级 重度」；旧实现写 25%–50% 或缺分级文案，两锚均失配。判别器纯默认态为 II 级 50%-70%，不含本串（早期写 II 级是逃生项，已改 III 级）。"
 },
 {
   "slug": "pulmonology/wells-pe",
   "clicks": ["document.getElementById('hr').checked=true;calc();"],
-  "expect": ["1.5 Wells总分", "低危 (PE概率 ～1.3%)"],
-  "ref": "03-158 核销：Wells 三分类改为 <2 低危（原 score<=1），仅勾选心率 1.5 分 ⇒ 低危 1.3%，不再判「中危 16.2%」；同时移除 hr 默认勾选，首屏不再预置危险因素。"
+  "expect": ["1.5 Wells总分", "总分 = 1.5"],
+  "ref": "03-158 核销：仅勾选心率得 1.5 分，Wells 三分类 <2 为低危 1.3%（原 score<=1 会误判中危），首屏不再预置 hr。原「低危 (PE概率 ～1.3%)」在纯默认快照也命中（逃生），改用注入勾选决定的总分双锚。"
 }
 
 ];

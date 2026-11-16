@@ -907,8 +907,8 @@ const CASES = [
     "slug": "tax/rfc-validator",
     "inputs": { "input": "ABCD900101ABC" },
     "clicks": ["validate()"],
-    "expect": ["1990-1-1"],
-    "ref": "RFC ABCD900101ABC：首字母 ABCD，日期段 900101 ⇒ 1990-01-01，个人(Persona Física)无校验位。默认输入为空 ⇒ 无此串。"
+    "expect": ["1990-01-01", "校验位： C（期望 4）"],
+    "ref": "RFC ABCD900101ABC：首字母 ABCD，日期段 900101 ⇒ 页面按补零格式输出 1990-01-01；尾部 ABC 中 C 为校验位，按 RFC_BASE 权重算法期望 4 ⇒ 该串校验位不符。旧 expect 写未补零的 1990-1-1 且与校验位结论脱钩，已改为双锚。默认输入为空 ⇒ 两锚均不命中。"
   },
   {
     "slug": "text/text-extract-phones",

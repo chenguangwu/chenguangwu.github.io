@@ -394,9 +394,10 @@ const CASES = [
   },
   {
     "slug": "edu/ebbinghaus-curve",
-    "inputs": { "content": "TbVerifyToday", "startDate": "2024-06-15", "mode": "standard" },
-    "expect": [ "2024-06-15 当天 100% 📌 今天" ],
-    "ref": "本地日历日比较：harness 冻结当天为 2024-06-15，开始日同日 ⇒ 首个复习点应为「📌 今天」。旧实现用 new Date('YYYY-MM-DD')（UTC 零点）与本地零点比较，UTC+8 下差 8 小时恒不相等，落成「⏳ 待复习」。默认态无时间表 ⇒ 不命中。"
+    "inputs": { "content": "TbVerifyToday", "mode": "standard" },
+    "clicks": ["var d=new Date();var s=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');document.getElementById('startDate').value=s;calc();"],
+    "expect": [ "TbVerifyToday", "当天 100% 📌 今天" ],
+    "ref": "本地日历日比较去冻结锚点：起始日在 clicks 内由页面同一时刻的 new Date() 生成本地日期串（跨时区仍与页面 today 同日），不把 harness 冻结的『今天』写进 expect；首个复习点应为「📌 今天」。旧实现用 new Date('YYYY-MM-DD')（UTC 零点）与本地零点比较，UTC+8 下差 8 小时恒不相等，落成「⏳ 待复习」。默认态无时间表且无注入内容 ⇒ 两锚均不命中。"
   },
   {
     "slug": "edu/ebbinghaus-curve",
