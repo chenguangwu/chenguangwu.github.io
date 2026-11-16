@@ -797,7 +797,8 @@
     sizeLinked: true,
     aspectRatio: 1,
     results: [],       // { blob, url, size, name }
-    currentPreviewIdx: -1
+    currentPreviewIdx: -1,
+    gen: 0             // 转换代次：参数变更 / 重新转换时自增，使在途异步回调失效
   };
 
   var uploadZone = document.getElementById('uploadZone');
@@ -913,29 +914,40 @@ window.__svgFileBlocked=__svgFileBlocked;
     return d.innerHTML;
   }
 
-  // ---- 参数变化统一作废旧结果 ----
+  // ---- 参数变化 / 重新转换：统一作废旧结果并使在途异步任务失效 ----
+  // gen 每次自增，convertAll 捕获的 toBlob / BMP 回调发现 gen 变化即丢弃，
+  // 避免「转换进行中变更参数」后旧回调写回旧参数结果、复活下载。
   window.invalidateResults = function() {
-    if (!state.results.length) return;
+    state.gen++;
     state.results.forEach(function(r) {
       if (r && r.url) { try { URL.revokeObjectURL(r.url); } catch (e) {} }
     });
     state.results = [];
     state.currentPreviewIdx = -1;
+    var dlAll = document.getElementById('downloadAllBtn');
+    if (dlAll) dlAll.disabled = true;
+    var pv = document.getElementById('previewSection');
+    if (pv) pv.style.display = 'none';
+    var op = document.getElementById('origPreview');
+    var cp = document.getElementById('convPreview');
+    if (op) op.innerHTML = '<span class="preview-placeholder">暂无预览</span>';
+    if (cp) cp.innerHTML = '<span class="preview-placeholder">暂无预览</span>';
+    var cs = document.getElementById('compareStats');
+    if (cs) cs.innerHTML = '';
     renderFileList();
     updateUI();
+    try { __ifcRenderSummary(); } catch (e) {}
   };
 
   // ---- 格式选择 ----
   window.selectFormat = function(format) {
     state.targetFormat = format;
-    state.results = []; // 切换格式后清除旧结果
+    invalidateResults(); // 切换格式：作废旧结果、撤销旧 URL、使在途任务失效
     document.querySelectorAll('.format-option').forEach(function(el) {
       el.classList.toggle('active', el.dataset.format === format);
     });
     var showQuality = (format === 'jpeg' || format === 'webp');
     document.getElementById('qualitySection').style.display = showQuality ? 'block' : 'none';
-    renderFileList();
-    updateUI();
   };
 
   // ---- 质量更新 ----
@@ -957,15 +969,17 @@ window.__svgFileBlocked=__svgFileBlocked;
   };
 
   window.onCustomSizeChange = function(dim) {
+    invalidateResults(); // 无条件：解锁宽高比 / 无文件 / 转换在途时同样作废旧任务与结果
     if (!state.sizeLinked || state.files.length === 0) return;
-    var w = parseInt(document.getElementById('customWidth').value) || 0;
-    var h = parseInt(document.getElementById('customHeight').value) || 0;
+    var wRaw = String(document.getElementById('customWidth').value || '').trim();
+    var hRaw = String(document.getElementById('customHeight').value || '').trim();
+    var w = /^-?\d+$/.test(wRaw) ? Number(wRaw) : 0;
+    var h = /^-?\d+$/.test(hRaw) ? Number(hRaw) : 0;
     if (dim === 'width' && w > 0) {
       document.getElementById('customHeight').value = Math.round(w / state.aspectRatio);
     } else if (dim === 'height' && h > 0) {
       document.getElementById('customWidth').value = Math.round(h * state.aspectRatio);
     }
-    invalidateResults();
   };
 
   window.toggleSizeLink = function() {
@@ -982,43 +996,55 @@ window.__svgFileBlocked=__svgFileBlocked;
 
   // ---- 移除文件 ----
   window.removeFile = function(idx) {
+    invalidateResults(); // 使在途任务失效、撤销所有结果 URL、清空下载 / 预览载体
     state.files.splice(idx, 1);
-    if (state.results[idx]) {
-      URL.revokeObjectURL(state.results[idx].url);
-      state.results.splice(idx, 1);
-    }
     renderFileList();
     updateUI();
   };
 
   // ---- 转换 ----
+  // 完整输入校验：必须是有限整数字符串且落在 [min,max] 内；
+  // 拒绝 parseInt 把 1.9 / 1000.9 静默截断成 1 / 1000 后通过。
+  function __ifcReadInt(id, min, max) {
+    var raw = String(document.getElementById(id).value || '').trim();
+    if (!/^-?\d+$/.test(raw)) return null;
+    var n = Number(raw);
+    if (!isFinite(n) || n < min || n > max) return null;
+    return n;
+  }
+  /* 仅测试钩子：供 verify 用例调用，不参与任何运行时分支 */
+  window.__ifcReadIntProbe = __ifcReadInt;
+  window.__ifcGenProbe = function () { return state.gen; };
   window.convertAll = function() {
     if (state.files.length === 0) {
       ToolBox.showToast(i18nText('tool.file_upload_hint'), 'warning');
       return;
     }
 
-    state.results = [];
     var format = state.targetFormat;
     var quality = state.quality / 100;
     var mode = state.sizeMode;
 
-    // D-N38：尺寸输入显式校验，禁止空值 / 0 / 负值 / 非数字 / 超范围被静默兜底
+    // 尺寸输入完整校验：有限数、整数、范围；小数 / 空值 / 非数字一律提示而非静默兜底
     var cw = 0, ch = 0, pct = 0;
     if (mode === 'custom') {
-      cw = parseInt(document.getElementById('customWidth').value, 10);
-      ch = parseInt(document.getElementById('customHeight').value, 10);
-      if (!isFinite(cw) || !isFinite(ch) || cw < 1 || ch < 1 || cw > 10000 || ch > 10000) {
+      cw = __ifcReadInt('customWidth', 1, 10000);
+      ch = __ifcReadInt('customHeight', 1, 10000);
+      if (cw === null || ch === null) {
         ToolBox.showToast(__ifcT('自定义宽高需为 1–10000 的整数', 'Custom width and height must be integers between 1 and 10000'), 'error');
         return;
       }
     } else if (mode === 'percent') {
-      pct = parseInt(document.getElementById('percentScale').value, 10);
-      if (!isFinite(pct) || pct < 1 || pct > 1000) {
+      pct = __ifcReadInt('percentScale', 1, 1000);
+      if (pct === null) {
         ToolBox.showToast(__ifcT('缩放比例需为 1–1000 的整数', 'Scale percent must be an integer between 1 and 1000'), 'error');
         return;
       }
     }
+
+    // 使上一次在途任务失效并清空旧结果 / 下载 / 预览载体，再捕获本次代次
+    invalidateResults();
+    var myGen = state.gen;
 
     state.files.forEach(function(item, idx) {
       try {
@@ -1056,6 +1082,7 @@ window.__svgFileBlocked=__svgFileBlocked;
         if (format === 'bmp') {
           try {
             var bmpBlob = encodeBMP(canvas, ctx);
+            if (myGen !== state.gen) return; // 过期任务丢弃，不写结果
             onConverted(idx, item, bmpBlob, format);
           } catch (e) {
             ToolBox.showToast('BMP 转换失败: ' + item.name, 'error');
@@ -1064,6 +1091,7 @@ window.__svgFileBlocked=__svgFileBlocked;
         }
 
         canvas.toBlob(function(blob) {
+          if (myGen !== state.gen) return; // 过期回调丢弃：不写结果、不开放下载
           if (!blob) {
             ToolBox.showToast('转换失败: ' + item.name, 'error');
             return;
@@ -1240,15 +1268,10 @@ window.__svgFileBlocked=__svgFileBlocked;
 
   // ---- 清除全部 ----
   window.clearAll = function() {
-    state.results.forEach(function(r) {
-      if (r) URL.revokeObjectURL(r.url);
-    });
+    invalidateResults(); // 使在途任务失效 + 撤销结果 URL + 清空下载 / 预览载体
     state.files = [];
-    state.results = [];
-    state.currentPreviewIdx = -1;
     renderFileList();
     updateUI();
-    document.getElementById('previewSection').style.display = 'none';
     ToolBox.showToast(i18nText('toast.msg283'), 'info');
   };
 

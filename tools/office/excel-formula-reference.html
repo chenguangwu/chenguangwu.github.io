@@ -323,16 +323,25 @@ function __excel_formula_referenceExtras(){
 }
 function __excel_formula_referenceExport(){
     if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#excel_formula_referenceTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__excel_formula_referenceSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __excel_formula_referenceRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#excel_formula_referenceTable','excel-formula-reference.csv'); } catch(e){}
+    var key=(document.getElementById('keyword').value||'').toLowerCase();
+    var rows=DATA.filter(function(item){
+        var k=(item.name+item.cat+item.syntax+item.hint).toLowerCase();
+        return !key||k.indexOf(key)>=0;
+    });
+    if(!rows.length){ ToolBox.showToast('当前筛选没有可导出的公式','warning'); return; }
+    var en=false;
+    try{ en=!!(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()); }catch(e){}
+    var html='<table id="xfrHidden" style="display:none"><thead><tr>'
+        +'<th>'+(en?'Name':'函数')+'</th><th>'+(en?'Category':'分类')+'</th>'
+        +'<th>'+(en?'Syntax':'语法')+'</th><th>'+(en?'Notes':'说明')+'</th>'
+        +'</tr></thead><tbody>';
+    rows.forEach(function(item){
+        html+='<tr><td>'+item.name+'</td><td>'+item.cat+'</td><td>'+item.syntax+'</td><td>'+item.hint+'</td></tr>';
+    });
+    html+='</tbody></table>';
+    var host=document.createElement('div');host.innerHTML=html;document.body.appendChild(host);
+    try { TBKit.util.exportTable('#xfrHidden','excel-formula-reference.csv'); } catch(e){}
+    setTimeout(function(){ if(host.parentNode) host.parentNode.removeChild(host); },300);
 }
 function __excel_formula_referencePresets(){
     if (typeof TBKit === 'undefined') return;

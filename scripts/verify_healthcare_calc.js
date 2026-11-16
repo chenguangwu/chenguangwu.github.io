@@ -43,6 +43,18 @@ const CASES = [
   },
   {
     slug: "healthcare/antipyretic-dose",
+    inputs: { weight: "15", dose: "80", conc: "32" },
+    expect: ["单次剂量已超过每日上限（900 mg/天）"],
+    ref: "D-N15（2026-11-16）：体重 15 kg、80 mg/kg ⇒ 单次 1200 mg 封顶 1000 mg，日上限 = min(15×60=900, 4000) = 900 mg ⇒ 单次已超日上限。旧实现输出「日上限次：0 次」而无任何超限提示；现给红字警示且不渲染 0 次。默认 15 kg/15 mg/kg ⇒ 225/900，不命中。",
+  },
+  {
+    slug: "healthcare/antipyretic-dose",
+    inputs: { weight: "5", age: "0.17", dose: "15", conc: "32" },
+    expect: ["3 月龄以下婴儿发热应及时就医"],
+    ref: "D-N16（2026-11-16）：年龄输入曾只调用 updateWeightHint()，不触发 calc()，先按默认 4 岁算出剂量后再改年龄会保留旧结果。现 oninput 同时调用 calc()，0.17 岁（≈2 月龄）立即出现就医警示。默认 age=4 ⇒ 不命中。",
+  },
+  {
+    slug: "healthcare/antipyretic-dose",
     inputs: { weight: "20", dose: "10", conc: "32" },
     expect: ["当前体重偏差 23%"],
     ref: "WHO P50 中位体重核对：age 默认 4 岁/男 P50=16.3 kg，|20−16.3|÷16.3=22.7%→toFixed(0)=23%。默认 weight=15 偏差 8% ⇒ 随注入变化、零交集。",
@@ -76,6 +88,12 @@ const CASES = [
     inputs: { adult_dose: "0", child_weight: "20", adult_weight: "70", max_factor: "2" },
     expect: ["成人剂量须大于 0 mg"],
     ref: "D-N6（0 值分支）：成人剂量填 0 时旧实现输出「按体重剂量 0.00 / 受限剂量 0.00 mg」，既无意义又静默；修复后拒绝计算并提示。默认 500 mg 正常，不含该串 ⇒ 零命中。",
+  },
+  {
+    slug: "healthcare/bsa-calculator",
+    inputs: { weight: "8", height: "70", age: "0" },
+    expect: ["BSA： 0.400", "所用公式： Haycock"],
+    ref: "D-N30 0 岁分支：Haycock = 0.024265×8^0.5378×70^0.3964 = 0.400 m²；旧条件 age>0 把 0 岁排除，走 DuBois 0.007184×8^0.425×70^0.725 = 0.386 并标「成人，≥18 岁」。默认 65kg/170cm/30 岁 ⇒ 1.754/DuBois，不命中。",
   },
   {
     slug: "healthcare/weight-dosage",
@@ -204,6 +222,48 @@ const CASES = [
     ref: "Devine（男）= 50 + 0.91×(175−152.4) = 50 + 20.566 = 70.6 kg；上限 ×1.1 = 77.6；下限 ×0.9 = 63.5",
   },
   {
+    slug: "healthcare/map",
+    inputs: { sbp: "180", dbp: "120", hr: "90" },
+    expect: ["MAP： 140.0", "偏高（需排查）"],
+    ref: "D-N34 高值分级：MAP = 120 + (180−120)/3 = 140.0；旧实现 m≥70 一律「正常」，现 ≥100 判「偏高（需排查）」。默认 120/80 ⇒ 93.3 正常，不命中。",
+  },
+  {
+    slug: "healthcare/map",
+    inputs: { sbp: "90", dbp: "40", hr: "110" },
+    expect: ["MAP： 56.7", "偏低", "心率： 110 次/分"],
+    ref: "D-N34 低值 + 心率展示：90/40 ⇒ MAP = 40 + 50/3 = 56.7、脉压 50.0 ⇒ 偏低；心率 110 仅记录不参与公式，避免字段读入后成为死输入。",
+  },
+  {
+    slug: "healthcare/map",
+    inputs: { sbp: "80", dbp: "120" },
+    expect: ["舒张压不得高于收缩压"],
+    ref: "D-N34 顺序守卫：舒张压 120 > 收缩压 80 ⇒ 拒绝计算，不输出负脉压与错误分级。",
+  },
+  {
+    slug: "healthcare/ideal-weight",
+    inputs: { height: "180", sex: "0" },
+    expect: ["70.5"],
+    ref: "D-N35 Devine（女 180 cm）= 45.5 + 2.3×(180/2.54−60) = 45.5 + 2.3×10.866 = 70.5 kg；默认 170/男 ⇒ 65.9，不命中。",
+  },
+  {
+    slug: "healthcare/ideal-weight",
+    inputs: { height: "150", sex: "1" },
+    expect: ["身高需 ≥ 152.4 cm"],
+    ref: "D-N35 身高守卫：150 cm 低于 5 英尺 ⇒ 拒绝并提示改用儿科/专用公式；旧实现输出 Devine 50+2.3×(−0.94)=47.8 并继续渲染。",
+  },
+  {
+    slug: "healthcare/ibw",
+    inputs: { height: "100", sex: "0" },
+    expect: ["公式不适用于此身高范围"],
+    ref: "D-N28 负值守卫：女性 100 cm ⇒ 45.5 + 0.91×(100−152.4) = −2.2 kg；旧实现输出 IBW −2.2、上限 −2.4、下限 −2.0。修复后拒绝并提示公式不适用。默认 170/男 ⇒ 66.0 kg 正常，不含该串。",
+  },
+  {
+    slug: "healthcare/ibw",
+    inputs: { height: "148", sex: "1" },
+    expect: ["身高低于 150 cm"],
+    ref: "D-N28 低身高提示：男 148 cm ⇒ 50 + 0.91×(148−152.4) = 46.0 kg（正值但偏低），追加 Devine 适用范围提示；默认 170 cm 不命中。",
+  },
+  {
     slug: "healthcare/ibw",
     inputs: { height: "170", sex: "1", tbw: "100" },
     expect: ["校正体重 ABW： 79.6", "（IBW + 0.4 × (实际体重 − IBW)）"],
@@ -218,8 +278,62 @@ const CASES = [
   {
     slug: "healthcare/healthcare-5",
     inputs: { weight: "65", activity: "1.2", goal: "1.5" },
-    expect: ["62.4", "93.6", "23.4"],
-    ref: "维持 = 65×0.8×1.2 = 62.4 g；目标 = 62.4×1.5 = 93.6 g；每餐 = 93.6÷4 = 23.4 g",
+    expect: ["62.4", "93.6", "31.2"],
+    ref: "维持 = 65×0.8×1.2 = 62.4 g；目标 = 62.4×1.5 = 93.6 g（1.44 g/kg/日）；每餐 = 93.6÷3 = 31.2 g（D-N36 由四餐改三餐，与引据「宜分三餐均匀摄入」一致）",
+  },
+  {
+    slug: "healthcare/healthcare-5",
+    inputs: { weight: "70", activity: "1", goal: "0.8" },
+    expect: ["44.8", "14.9", "低于 WHO/FAO/UNU 成人最低 0.8 g/kg/日"],
+    ref: "D-N36 低蛋白提示：70×0.8×1 = 56.0；×0.8 = 44.8 g；÷3 = 14.9 g；折合 0.64 g/kg/日 <0.8 ⇒ 红字提示。旧实现静默输出 0.64 g/kg 的「减脂」方案。默认 1.2/1.2 ⇒ 1.152 g/kg，不命中。",
+  },
+  {
+    slug: "healthcare/healthcare-5",
+    inputs: { weight: "70", activity: "0.5", goal: "1.2" },
+    expect: ["活动系数 1–2.5"],
+    ref: "D-N36 白名单：活动系数 0.5 越界 ⇒ 拒绝并提示常用范围，不再输出减半的蛋白质需求。",
+  },
+  {
+    slug: "healthcare/blood-pressure-grade",
+    inputs: { sys: "145", dia: "85" },
+    expect: ["单纯收缩期高血压", "脉压： 60"],
+    ref: "D-N48 分级：145/85 ⇒ 收缩压 ≥140 且舒张压 <90 ⇒ 单纯收缩期高血压；脉压 60。旧实现默认 120/80 输出「3 等级」，现为「正常高值」。",
+  },
+  {
+    slug: "healthcare/blood-pressure-grade",
+    inputs: { sys: "185", dia: "115" },
+    expect: ["3 级高血压"],
+    ref: "D-N48 高值分支：185/115 ⇒ 收缩压 ≥180 或舒张压 ≥110 ⇒ 3 级高血压。",
+  },
+  {
+    slug: "healthcare/blood-pressure-grade",
+    inputs: { sys: "80", dia: "120" },
+    expect: ["收缩压须大于舒张压"],
+    ref: "D-N48 顺序守卫：舒张压 120 > 收缩压 80 ⇒ 拒绝计算，不输出负脉压。",
+  },
+  {
+    slug: "healthcare/healthcare-4",
+    inputs: { dyspnea: "0", rest: "0", limits: "1" },
+    expect: ["NYHA 分级： 3 级", "答案存在矛盾"],
+    ref: "D-N50 矛盾守卫：勾「活动明显受限」但气短为 0 ⇒ 判 3 级并红字提示复核；旧实现判 I 级无症状。默认 1/0/0 走 II 级，不命中。",
+  },
+  {
+    slug: "healthcare/healthcare-4",
+    inputs: { dyspnea: "", rest: "", limits: "" },
+    expect: ["请完整填写三项"],
+    ref: "D-N50 空态守卫：三项全空 ⇒ 拒绝判读；旧实现按 0 计 ⇒ I 级无症状。",
+  },
+  {
+    slug: "healthcare/fat-loss-deficit",
+    inputs: { loss: "5", days: "10", targetWeight: "70" },
+    expect: ["3850", "超过 1000 kcal/天"],
+    ref: "减脂缺口高强度提示（763 批补查）：5×7700 = 38500 kcal，÷10 = 3850 kcal/天；超过 1000 ⇒ 红字提示延长周期/咨询营养师。既有 4 kg/50 天 ⇒ 616 不命中。",
+  },
+  {
+    slug: "healthcare/fat-loss-deficit",
+    inputs: { loss: "120", days: "30", targetWeight: "60" },
+    expect: ["目标减重不能大于等于目标体重"],
+    ref: "减脂缺口逻辑守卫（763 批补查）：减重 120 kg ≥ 目标体重 60 kg ⇒ 起始体重为负（−60 kg），旧实现直接输出 −60.0 kg；修复后拒绝并提示核对。",
   },
   {
     slug: "healthcare/fat-loss-deficit",
@@ -251,7 +365,13 @@ const CASES = [
     slug: "healthcare/egfr-calculator",
     inputs: { scr: "1.2", age: "60", sex: "2" },
     expect: ["45.8"],
-    ref: "MDRD（女）= 175 × 1.2^(−1.154) × 60^(−0.203) × 0.742 = 175 × 0.81033 × 0.43550 × 0.742 = 45.83 → 45.8 mL/min",
+    ref: "MDRD（女）= 175 × 1.2^(−1.154) × 60^(−0.203) × 0.742 = 175 × 0.81033 × 0.43550 × 0.742 = 45.83 → 45.8 mL/min/1.73m²",
+  },
+  {
+    slug: "healthcare/egfr-calculator",
+    inputs: { scr: "120", age: "65", sex: "2", scrUnit: "umol" },
+    expect: ["39.1", "G3b", "mL/min/1.73m²"],
+    ref: "D-N31 µmol/L + 分期：120 µmol/L ÷ 88.4 = 1.3575 mg/dL；女 65 岁 ⇒ 175×1.3575^(−1.154)×65^(−0.203)×0.742 = 39.13 → 39.1，落在 30–44 ⇒ G3b。修复前无单位切换（120 被当 mg/dL ⇒ 0.9）、无分期、单位漏写 /1.73m²。默认 1.0/40/男 ⇒ 79.1/G2，不命中。",
   },
   {
     slug: "healthcare/gfr-cockcroft",
@@ -280,10 +400,46 @@ const CASES = [
     ref: "总滴数 = 250×15 = 3750 滴；滴速 = 3750÷60 = 62.50 滴/分；秒/滴 = 60÷62.5 = 0.96",
   },
   {
+    slug: "healthcare/healthcare-2",
+    inputs: { volume: "1000", time_min: "240", drop: "15" },
+    expect: ["≈65 滴/分"],
+    ref: "D-N17（2026-11-16）：新增泵速（mL/h）与 5 滴/分档位提示。1000 mL / 240 min ⇒ 62.5 滴/分，按 5 取整 ⇒ 65 滴/分。默认 500/120/20 ⇒ 83.3 → ≈85，不命中。"
+  },
+  {
+    slug: "healthcare/healthcare-2",
+    inputs: { volume: "500", time_min: "2", drop: "20" },
+    expect: ["输液时间须在 5–1440 分钟之间"],
+    ref: "D-N17 边界：时间 2 分钟旧实现输出 5000.0 滴/分的物理不可能值；现要求 5–1440 分钟。默认 120 ⇒ 不命中。"
+  },
+  {
+    slug: "healthcare/healthcare-2",
+    inputs: { volume: "500", time_min: "120", drop: "42" },
+    expect: ["非常用滴系数（10/15/20/60 滴/mL）"],
+    ref: "D-N17 提示：42 滴/mL 不属于常用规格，计算照常但追加核对输液器提示；默认 drop=20 ⇒ 不命中。"
+  },
+  {
     slug: "healthcare/healthcare-3",
     inputs: { na_inf: "140", tbw: "35", target: "132", current: "120" },
     expect: ["0.56"],
     ref: "预期升幅 = (140−120) ÷ (35+1) = 20÷36 = 0.5556 → 0.56 mmol/L；目标差距 = 132−120 = 12 mmol/L",
+  },
+  {
+    slug: "healthcare/healthcare-3",
+    inputs: { na_inf: "154", tbw: "30", target: "135", current: "120" },
+    expect: ["13.7 L", "570 mL/h", "7.3–9.1 L"],
+    ref: "D-N21 容量/速度：升幅 = (154−120)÷(30+1) = 1.0968 → 1.10；差距 15.0；所需液量 15÷1.0968 = 13.68 → 13.7 L；24h 均速 13.68×1000÷24 = 570 mL/h；按 8–10 mmol/L 上限单日最多 8÷1.0968=7.3 至 10÷1.0968=9.1 L。修复前只输出「预期升幅」，无液量与速度。输入 30/135 均非默认（42/130）。",
+  },
+  {
+    slug: "healthcare/healthcare-3",
+    inputs: { na_inf: "154", tbw: "30", target: "125", current: "130" },
+    expect: ["目标血钠低于当前血钠"],
+    ref: "D-N21 反向目标守卫：目标 125 < 当前 130 ⇒ 差距 −5.0，须红字提示核对目标/当前值，不得输出负液量或负速度。默认 130 > 118 ⇒ 不命中。",
+  },
+  {
+    slug: "healthcare/healthcare-3",
+    inputs: { na_inf: "110", tbw: "30", target: "130", current: "120" },
+    expect: ["输注液钠浓度须高于当前血钠"],
+    ref: "D-N21 无提升守卫：输注液钠 110 ≤ 当前 120 ⇒ 每升升幅 ≤ 0，须提示无法提升血钠，不得输出 Infinity/负液量。默认 154 > 118 ⇒ 不命中。",
   },
   {
     slug: "healthcare/parkland",
@@ -320,6 +476,18 @@ const CASES = [
     inputs: { rr: "24", age: "40", state: "1" },
     expect: ["呼吸过速（3 级）", "偏离范围中值： 8"],
     ref: "成人 18–<65 岁范围 12–20，24 > 20 → 呼吸过速（3 级）；偏离范围中值 |24−16| = 8。默认 16 → 正常、偏离 0，不命中这两串 ⇒ 强判别。",
+  },
+  {
+    slug: "healthcare/resp-rate",
+    inputs: { rr: "40", age: "0.5", state: "1" },
+    expect: ["婴儿（<1 岁）： 30–60", "状态： 正常 （1 级）"],
+    ref: "D-N47 年龄分段：0.5 岁 40 次/分落在婴儿 30–60 ⇒ 正常；旧实现固定 12–20 判「3 级异常」并显示偏离 24。",
+  },
+  {
+    slug: "healthcare/resp-rate",
+    inputs: { rr: "30", age: "30", state: "2" },
+    expect: ["运动后（不按静息分级）", "运动上限参考： 40"],
+    ref: "D-N47 运动态：30 次/分、state=2 ⇒ 不按静息 12–20 分级，仅给运动上限参考；旧实现仍判「3 级异常」而同一卡片写「运动上限 40」，自相矛盾。",
   },
 
   // ---------- 血醇 ----------
@@ -570,9 +738,9 @@ const CASES = [
       "targetWeight": "42"
     },
     "expect": [
-      "42\n42\n42\n总缺口： 3234"
+      "42\n42\n42\n⚠ 目标减重不能大于等于目标体重"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"loss\":\"42\",\"days\":\"42\",\"targetWeight\":\"42\"}，输出区含「42\n42\n42\n总缺口： 3234」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"loss\":\"42\",\"days\":\"42\",\"targetWeight\":\"42\"}，命中减脂缺口逻辑守卫（减重 42 ≥ 目标体重 42）；默认态（输入回退，70+4）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "healthcare/healthcare-2",
@@ -594,21 +762,21 @@ const CASES = [
       "current": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n预期升幅： 0.00"
+      "每输注 1 L 预期升幅： 0.00"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"na_inf\":\"42\",\"target\":\"42\",\"current\":\"42\"}，输出区含「42\n42\n42\n42\n预期升幅： 0.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"na_inf\":\"42\",\"target\":\"42\",\"current\":\"42\"}，输出区含「每输注 1 L 预期升幅： 0.00」（745 批标签改为每升口径）；默认态升幅 0.84 ⇒ 零逃生。"
   },
   {
     "slug": "healthcare/healthcare-5",
     "inputs": {
       "weight": "42",
-      "activity": "42",
-      "goal": "42"
+      "activity": "2",
+      "goal": "1.5"
     },
     "expect": [
-      " g 目标需求： 59270.4 g 每餐建议： 14817.6 g"
+      "维持需求： 67.2 g 目标需求： 100.8 g（2.40 g/kg/日） 每餐建议（三餐均分）： 33.6 g"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"weight\":\"42\",\"activity\":\"42\",\"goal\":\"42\"}，输出区含「 g 目标需求： 59270.4 g 每餐建议： 14817.6 g」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入 42 kg/活动 2/目标 1.5，输出「维持需求： 67.2 g 目标需求： 100.8 g（2.40 g/kg/日） 每餐建议（三餐均分）： 33.6 g」；默认 70/1.2/1.2 ⇒ 目标 80.6、每餐 26.9，整串零交集。活动/目标已加白名单，原 42/42 输入会走越界提示，故更新为合法非默认值。"
   },
   {
     "slug": "healthcare/healthcare-4",
@@ -780,12 +948,12 @@ const CASES = [
     "inputs": {
       "weight": "42",
       "mgkg": "42",
-      "freq": "42"
+      "freq": "8"
     },
     "expect": [
       "日剂量： 1764"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入，日剂量 = 42×42 = 1764 mg/天。⚠ 03-48 在 freq 后插入 age/sex 输入 + refWeightBox 容器，原值序列锚「42\n42\n42\n日剂量： 1764」断链，改派生串「日剂量： 1764」（默认 20×10=200 不含）⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入，日剂量 = 42×42 = 1764 mg/天（freq 取 8，满足 1–24 整数限界）。⚠ 03-48 在 freq 后插入 age/sex 输入 + refWeightBox 容器，原值序列锚「42\n42\n42\n日剂量： 1764」断链，改派生串「日剂量： 1764」（默认 20×10=200 不含）⇒ 强判别、零逃生。2026-11-16 freq 由 42 改为 8（D-N14 限界）。"
   },
   {
     "slug": "healthcare/weight-dosage",
@@ -798,6 +966,18 @@ const CASES = [
       "当前体重偏差 10%"
     ],
     "ref": "WHO P50 中位体重核对（03-48）：age 默认 4 岁/男 P50=16.3 kg，|18−16.3|÷16.3=10.4%→10%。默认 weight=20 偏差 23% ⇒ 随注入变化、零交集。"
+  },
+  {
+    "slug": "healthcare/weight-dosage",
+    "inputs": { "weight": "20", "mgkg": "10", "freq": "0.5" },
+    "expect": ["每日次数须为 1–24 的整数"],
+    "ref": "D-N14（2026-11-16）：freq=0.5 旧实现输出日剂量 200.0、单次 400.0（单次 > 日总量）。现要求 1≤freq≤24 且为整数，0.5 直接拦截；默认 freq=2 ⇒ 不命中。"
+  },
+  {
+    "slug": "healthcare/weight-dosage",
+    "inputs": { "weight": "20", "mgkg": "10", "freq": "100" },
+    "expect": ["每日次数须为 1–24 的整数"],
+    "ref": "D-N14 上界：freq=100 旧实现输出单次 2.0 mg 且不提示；现 1–24 限界。默认 2 ⇒ 不命中。"
   },
   {
     "slug": "healthcare/wells",

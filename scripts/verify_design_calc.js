@@ -562,16 +562,16 @@ const CASES = [
   // ── 第382批 D-N184：板材分级口径（GB 18580-2017 强制底线 E1 + GB/T 39600-2021 分级）
   {
     slug: "design/detector-28",
-    inputs: { matType: "board", formaldehyde: "0.12", voc: "0", benzeneContent: "0" },
+    inputs: { matType: "board", formaldehyde: "0.03", voc: "0", benzeneContent: "0" },
     expect: [
-      "限值要求：≤0.124 mg/m³ 环保等级： E1级（合格）",
-      "满足 GB 18580-2017 强制底线 E1（≤0.124 mg/m³）",
+      "限值要求：≤0.050 mg/m³ 环保等级： E0级（优等）",
+      "甲醛释放量达到 E0 级（GB/T 39600-2021）",
     ],
-    ref: "D-N184 强锁：板材分级口径统一为「GB 18580-2017 强制底线 E1 ≤0.124 mg/m³ + GB/T 39600-2021 的 ENF ≤0.025 / E0 ≤0.050 / E1 ≤0.124」。"
-      + "注入 formaldehyde=0.12（落在 0.050–0.124 区间）⇒ 限值与等级必须是「≤0.124 mg/m³ + E1级（合格）」。"
-      + "旧实现把 0.124 一档命名为 E2（GB 18580-2017 早已取消 E2，E0/ENF 出自 GB/T 39600-2021），0.12 被判「E2级（限室内）」，两条 expect 全不命中；"
-      + "默认态 formaldehyde=0.08 ⇒ 同样不命中（它走 E1 旧分支）。"
-      + "⚠ 不要锚「甲醛释放量：0.12 mg/m³」这类输入回显；也不要锚 tip-box 的 class 名（属模板常量）。",
+    ref: "D-N184 强锁（632 批收紧）：板材分级口径统一为「GB 18580-2017 强制底线 E1 ≤0.124 mg/m³ + GB/T 39600-2021 的 ENF ≤0.025 / E0 ≤0.050 / E1 ≤0.124」。"
+      + "注入 formaldehyde=0.03（落在 0.025–0.050 区间）⇒ 限值与等级必须是「≤0.050 mg/m³ + E0级（优等）」，并提示达到 E0 级。"
+      + "⚠ 原用例注入 0.12 期望「≤0.124 / E1级」，但默认态 formaldehyde=0.08 同属 E1 档、文案逐字相同，判别器实测「默认态命中 2/2」= 纯逃生项；"
+      + "同一档位内换数值输出不变，故改跨档到 E0 才具备判别力。旧实现把 0.124 一档命名为 E2（GB 18580-2017 早已取消 E2），E0 根本不存在，两串全不命中。"
+      + "⚠ 不要锚「甲醛释放量：0.03 mg/m³」这类输入回显。",
   },
   // ── 第382批 D-N185：参考标尺按材料类型切换（不再是固定甲醛 E0/E1/E2 三段）
   {
@@ -777,6 +777,28 @@ const CASES = [
       + "⚠ 本页没有 `setSVGOpts` / `generateMinified`，只有 `generate()`；写错函数名会整条 clicks 抛错、回落到默认态。",
   },
   {
+    slug: "design/svg-minifier",
+    checkIds: ["optWhitespace"],
+    clicks: ["var e=document.getElementById('svgInput');e.value='<svg xmlns=\"http://www.w3.org/2000/svg\"><text xml:space=\"preserve\">A  B</text><rect   width=\"10\"   height=\"10\" /></svg>';generate();var o=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent='P '+((o.indexOf('A  B')>=0)?'1':'0');"],
+    expect: ["P 1"],
+    ref: "xml:space=\"preserve\" 内的空白有语义：旧实现全局把连续空白压成单空格，`A  B` 变 `A B` 导致渲染变化。现先抽出 preserve 元素、压缩后再原样放回；探针检查输出仍含双空格。"
+  },
+  {
+    slug: "design/svg-minifier",
+    checkIds: ["optDecl"],
+    clicks: ["var e=document.getElementById('svgInput');e.value='<svg xmlns=\"http://www.w3.org/2000/svg\"><!DOCTYPE svg [<!ENTITY co \"Acme\">]><text>&co;</text></svg>';generate();var o=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent='D '+((o.indexOf('<!ENTITY')>=0)?'1':'0');"],
+    expect: ["D 1"],
+    ref: "含内部 DTD 子集时不得剔 DOCTYPE：旧正则 `<!DOCTYPE[\\s\\S]*?>` 遇实体声明内首个 `>` 提前截断，留下残片并使 `&co;` 失去声明。现检测 `[...]` 子集后整段保留；探针检查输出仍含 `<!ENTITY`。"
+  },
+  {
+    slug: "design/image-dpi-converter",
+    clicks: [
+      "localStorage.setItem('dpi_converter_history', JSON.stringify([{type:'phys2p',w:10,h:15,dpi:300,unit:'inch',time:1}]));currentUnit2='cm';loadHistory(0);document.getElementById('__tbProbe').textContent='U '+currentUnit2;"
+    ],
+    expect: ["U inch"],
+    ref: "历史恢复须还原物理单位：记录单位为 inch，恢复前把 currentUnit2 置为 cm；旧实现只回填数值与 DPI，单位停在 cm（10cm→1181px）。修复后 loadHistory 调用 restoreUnit2(item.unit) ⇒ 探针读到 inch。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
     slug: "design/pixel-art-generator",
     inputs: { gs: "12" },
     expect: ["12×12 网格尺寸"],
@@ -956,6 +978,15 @@ const CASES = [
     ref: "D-N208 强锁：编码按 UTF-8 计字节，`中文测试` 4 个汉字 = 12 字节（每字 3 字节），M 级下落在版本 1 ⇒ 21×21。\n"
       + "若把字节数误写成字符数会显示「4 字节」，与 12 字节的期望不符 ⇒ 本条同时锁住 qrUtf8Len 的多字节处理；旧实现无任何版本/字节信息 ⇒ 强判别。\n"
       + "⚠ 不锚 SVG 属性（如 fill=\"#xxxxxx\"）：collectStrings 剥标签时会把属性整块吞掉，颜色类断言在门禁里恒红，改锁文本信息行。",
+  },
+  {
+    // 第 389 批复核失败重做：超长行不写入 QR_STATE，下载索引必须按已生成条目数编号
+    slug: "design/generator-8",
+    inputs: { qrtext: "QRI2026MIX\nB" },
+    clicks: ["var __v=String(document.getElementById('qrtext').value||'');var __p=document.getElementById('__tbProbe');if(__v.indexOf('QRI2026MIX')<0){__p.textContent='QRI2026_DEFAULT';}else{document.getElementById('qrtext').value=new Array(3000).join('X')+'\\nB';gen();var __h=String(document.getElementById('res').innerHTML);var __m=__h.match(/data-i=.(\\d+)./);__p.textContent='QRI2026_IDX='+(__m?__m[1]:'NONE')+'_LONG='+(__h.indexOf('内容过长')>=0?'Y':'N')+'_B='+(__h.indexOf('2. B')>=0?'Y':'N');}"],
+    expect: ["QRI2026_IDX=0_LONG=Y_B=Y"],
+    ref: "第 389 批：第一行 2999 字节超 M 级 2331 字节上限被跳过，第二行 B 是唯一有效条目，QR_STATE 只有索引 0。旧实现把原始行号 i=1 写进 data-i，下载会越界取空；修复后按钮索引为 0 且摘要按实际生成数统计。\n"
+      + "探针仅在 inputs 含 QRI2026MIX 时构造混合输入，默认态输出 QRI2026_DEFAULT ⇒ 两态异值、强判别、零逃生。",
   },
   {
     slug: "design/generator-11",
@@ -1431,16 +1462,17 @@ const CASES = [
   },
   {
     "slug": "design/data-matrix",
-    "inputs": {
-      "text": "abc123测试",
-      "fgColor": "abc123测试",
-      "bgColor": "abc123测试",
-      "size": "42"
-    },
-    "expect": [
-      "abc123测试\nabc123测试\nabc123测试\n42"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"text\":\"abc123测试\",\"fgColor\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"size\":\"42\"}，输出区含「abc123测试\nabc123测试\nabc123测试\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "inputs": { "text": "ORDER-77", "size": "42", "fgColor": "#111111", "bgColor": "#fafafa" },
+    "clicks": ["generate()"],
+    "expect": ["演示模块数须为 8–24 之间的整数"],
+    "ref": "632 批 SMS-168：注入 size=42（超上限 24）。旧实现 Math.max(8,Math.min(24,parseInt(...))) 静默钳位成 24 并照常出图，用户不知道输入被改；现改为严格整数校验，越界停算并提示「演示模块数须为 8–24 之间的整数（不接受小数或超出范围的值）」并清空 preview/table/chart。默认 size=14 合法 ⇒ 不出现该提示。原用例（632 前）expect 为注入值回显「abc123测试\nabc123测试\nabc123测试\n42」，属纯输入回显逃生项，已作文本替回。"
+  },
+  {
+    "slug": "design/data-matrix",
+    "inputs": { "text": "ORDER-77", "size": "14.5", "fgColor": "#111111", "bgColor": "#fafafa" },
+    "clicks": ["generate()"],
+    "expect": ["演示模块数须为 8–24 之间的整数"],
+    "ref": "632 批 SMS-168：注入 size=14.5（小数）。旧实现 parseInt('14.5')=14 静默截断成合法阶数照常出图；现改为 Number + Number.isInteger 严格校验，小数同样停算并给同一提示。默认 size=14 ⇒ 不出现该提示。"
   },
   {
     "slug": "design/css-text-shadow",
@@ -2837,8 +2869,9 @@ const CASES = [
 {
   slug: "design/css-grid-generator",
   inputs: { cols: "5", coltype: "fr", gap: "16", containerW: "960" },
-  expect: ["&lt;div&gt;3&lt;/div&gt;"],
-  ref: "D-N28：旧实现 HTML 结构硬编码 1、2、cols 三个子项，cols=5 时不含第 3 格；修复后按列数循环生成 1..5。默认 3 列不含第 3 格转义串 ⇒ 强判别。",
+  expect: ["&lt;div&gt;5&lt;/div&gt;"],
+  ref: "D-N28（632 批收紧）：旧实现 HTML 结构硬编码 1、2、cols 三个子项；修复后按列数循环生成 1..5，cols=5 时出现第 5 格。"
+      + "⚠ 原锚「&lt;div&gt;3&lt;/div&gt;」在默认 3 列下本来就存在（第 3 格），判别器实测「默认态命中 1/1」= 逃生项；改锚第 5 格后默认态（仅 1/2/3）不命中。",
 },
 {
   slug: "design/css-grid-generator",
@@ -3409,8 +3442,71 @@ const CASES = [
   expect: ["可用性历史 键数=20 末题=Y 表头=21 恢复=Y"],
   ref: "第354批：__tester_assessorSnap() 收集 8 项绩效 + 10 题 SUS 共 18 键，旧码在 Extras 与 Export 两处 keys.slice(0,12) 截掉后 6 题 ⇒ 历史只存 4 题 SUS，恢复时其余 6 题保留当前值再 calc()，SUS 分数与记录结果不符。删除截断后：rec = 18 输入 + 结果 + __tbScore = 20 键，Render 表头 = 时间 + 18 + 结论 + 结果 = 21 列，mount 恢复回调能把 sus9 回写成记录值。旧码应为 键数=14 末题=N 表头=15 恢复=N ⇒ 全失配。探针仅由 clicks 生成 ⇒ 零逃生。",
   inputs: {}
-}
+},
 
+// 第335批：格式转换器小数静默截断
+{
+  slug: "design/image-format-converter",
+  clicks: ["var P=window.__ifcReadIntProbe;var e=document.getElementById('percentScale');var bad=['1.9','1000.9','100.5','0','1001','abc','','1e2'],rb=bad.map(function(v){e.value=v;return P('percentScale',1,1000)===null?'R':'A';}).join('');var good=['1','100','1000'],rg=good.map(function(v){e.value=v;return typeof P('percentScale',1,1000)==='number'?'K':'X';}).join('');document.getElementById('__tbProbe').textContent='IFCINT '+rb+'/'+rg;"],
+  expect: ["IFCINT RRRRRRRR/KKK"],
+  ref: "D-N335 小数静默截断：旧实现 parseInt 把 1.9/1000.9 截断成 1/1000 通过。修复后 __ifcReadIntProbe(id,min,max) 仅接受 /^-?\\d+$/ 且落在 [min,max] 的有限整数。8 个非法串断言全 R、3 个合法串断言全 K；旧实现无此探针 ⇒ clicks 抛错不写探针 ⇒ 零逃生。默认态不执行 clicks、输出区不含 IFCINT 串。",
+},
+// 第324批：格式转换异步回调复活旧结果
+{
+  slug: "design/image-format-converter",
+  clicks: ["var G=window.__ifcGenProbe;var g0=G();try{invalidateResults();}catch(e){}var g1=G();var iv=String(window.invalidateResults),cv=String(window.convertAll||convertAll);var cache=iv.indexOf('state.gen++')>=0&&iv.indexOf('revokeObjectURL')>=0&&iv.indexOf('downloadAllBtn')>=0;var guard=cv.split('myGen !== state.gen').length-1>=2;document.getElementById('__tbProbe').textContent='IFCGEN '+(g1>g0?'INC':'NO')+' CACHE='+(cache?'Y':'N')+' GUARD='+(guard?'Y':'N');"],
+  expect: ["IFCGEN INC CACHE=Y GUARD=Y"],
+  ref: "D-N324 异步旧结果复活：修复后 invalidateResults() 无条件 state.gen++、撤销 object URL、清空 results/预览/下载按钮/摘要；convertAll 捕获 myGen=state.gen，BMP 与 canvas.toBlob 回调均以 myGen !== state.gen 丢弃过期结果。用例真实调 invalidateResults() 断言代次递增(INC)，以源码形态断言清缓存(revokeObjectURL/downloadAllBtn)与 toBlob/BMP 双回调守卫≥2 次(GUARD)。旧实现无 gen/守卫 ⇒ 不命中。",
+},
+// 第332批：PNG 转 SVG 异步旧结果复活
+{
+  slug: "design/png-to-svg",
+  clicks: ["var g0=__pngGen;__pngInvalidate();var g1=__pngGen;var sv=lastSVG;var gen=String((typeof __png_to_svg_f0==='function')?__png_to_svg_f0:generate);var guard=gen.split('myGen !== __pngGen').length-1>=2;var snap=String(__png_to_svgSnap).indexOf('file')>=0;document.getElementById('__tbProbe').textContent='PNGGEN '+(g1===g0+1?'INC':'NO')+' CLEAR='+(sv===''?'Y':'N')+' GUARD='+(guard?'Y':'N')+' SNAP='+(snap?'Y':'N');"],
+  expect: ["PNGGEN INC CLEAR=Y GUARD=Y SNAP=Y"],
+  ref: "D-N332 PNG 转 SVG 异步旧结果复活：修复后新增 __pngGen，__pngInvalidate() 递增代次并清 lastSVG/svgCode/preview；generate 的 FileReader.onload 与 Image.onload 双层均以 myGen !== __pngGen 丢弃过期回调，快照跳过 type=file。注意 generate 被历史包装器(__png_to_svgExtras)重新赋值，故守卫判别取原始函数 __png_to_svg_f0。断言代次+1(INC)、缓存清空(CLEAR)、双层守卫(GUARD)、快照 file 跳过(SNAP)。旧实现无 __pngGen/__pngInvalidate ⇒ clicks 抛错 ⇒ 零逃生。",
+},
+// 第311批：头像生成器历史回放闭环
+{
+  slug: "design/avatar-generator",
+  clicks: ["var g=String(generate),r=String(__avatar_generatorResText);var hook=g.indexOf('__avatar_generatorExtras')>=0;var sum=r.indexOf('Avatar PNG|')>=0&&r.indexOf('getElementsByTagName')>=0;var fail=r.indexOf('导出 PNG 失败')>=0;document.getElementById('__tbProbe').textContent='AVATAR '+(hook?'H':'-')+(sum?'S':'-')+(fail?'F':'-');"],
+  expect: ["AVATAR HSF"],
+  ref: "D-N43 头像历史回放未闭环：修复后历史钩子从 downloadImg 改挂 generate（正常生成即建可回放记录），ResText 在 #output 仅 <img> 致 textContent 为空时从 #preview 的 img.src 生成 'Avatar PNG|…' 稳定摘要，且导出失败提示不记历史。断言 generate 包装含 __avatar_generatorExtras(H)、ResText 含 'Avatar PNG|' 与 getElementsByTagName(S)、含失败过滤(F)。旧实现钩子挂 downloadImg、ResText 恒空 ⇒ 不命中。默认态零逃生。",
+},
+// 第311批：字符画历史回放闭环 + 异步旧图复活
+{
+  slug: "design/image-to-ascii",
+  clicks: ["var s=String(__image_to_asciiSnap),e=String(__image_to_asciiExtras),l=String(loadImage);var skip=s.indexOf('file')>=0;var img=e.indexOf('__asciiImg')>=0;var gen=l.split('myGen!==__asciiGen').length-1>=2;var rst=(typeof window!=='undefined'&&typeof window.__asciiRestore==='function');document.getElementById('__tbProbe').textContent='ASCII '+(skip?'S':'-')+(img?'I':'-')+(gen?'G':'-')+(rst?'R':'-');"],
+  expect: ["ASCII SIGR"],
+  ref: "D-N43 字符画历史回放未闭环 + 异步旧图复活：修复后 __image_to_asciiSnap() 跳过 type=file input、__image_to_asciiExtras() 保存 __asciiImg(≤64KB) 并纳入去重、loadImage 的 FileReader/Image 双层以 myGen!==__asciiGen 丢弃过期回调、新增 window.__asciiRestore 供回放恢复旧图。断言快照跳 file(S)、图片入历史(I)、双层守卫(G)、Restore 存在(R)。旧实现缺 __asciiImg/__asciiGen/__asciiRestore ⇒ 不命中。",
+},
+// 第315批：图案历史类型恢复
+{
+  slug: "design/pattern-generator",
+  clicks: ["var s=String(__pattern_generatorSnap),r=String(__pattern_generatorRender);var snap=s.indexOf('__patternType')>=0;var rec=r.indexOf('__patternType')>=0&&r.indexOf('currentType=')>=0&&r.indexOf('classList.toggle')>=0&&r.indexOf('generate()')>=0;var wl=r.indexOf('triangles|hex|chevron|circles|diamonds|cross')>=0;document.getElementById('__tbProbe').textContent='PATTERN '+(snap?'S':'-')+(rec?'R':'-')+(wl?'W':'-');"],
+  expect: ["PATTERN SRW"],
+  ref: "D-N315 图案历史类型未恢复：修复后 __pattern_generatorSnap() 保存 __patternType=currentType，__pattern_generatorRender() 回放识别该键、白名单校验后恢复 currentType 并同步 .pattern-btn.active，末尾按恢复类型 generate() 重绘。断言快照存类型(S)、回放含 __patternType/currentType=/classList.toggle/generate()(R)、含类型白名单(W)。旧实现不存/不恢复类型 ⇒ 不命中。",
+},
+// 第319批：Base64 非法 MIME ResText 为空（沿用 3044 风格）
+{
+  slug: "design/base64-to-image",
+  clicks: ["var e=document.getElementById('b64Input');e.value='data:text/html;base64,PHNjcmlwdD4=';var r1=__base64_to_imageResText();e.value='not@@base64!!';var r2=__base64_to_imageResText();e.value='data:;base64,AAAA';var r3=__base64_to_imageResText();document.getElementById('__tbProbe').textContent='B64BAD '+(r1===''?'E':'X')+(r2===''?'E':'X')+(r3===''?'E':'X');"],
+  expect: ["B64BAD EEE"],
+  ref: "D-N319 Base64 无效图片仍记录历史：修复后 __base64_to_imageResText() 对非法 data MIME(非 image/)、无魔数纯 Base64、空 MIME 一律返回空串，不再默认 image/png；既有 3044 用例 RES:Base64:image/webp| 的合法路径不受影响。对 data:text/html / 乱码 / data:;base64,AAAA 三种非法输入断言 ResText 全空(E)。旧实现默认 image/png 返回非空 ⇒ 不命中。默认态不执行 clicks ⇒ 零逃生。",
+},
+// 第319批：MIME 白名单 + DOM API 插图 + 代次守卫 + 下载拦截
+{
+  slug: "design/base64-to-image",
+  clicks: ["var s=String(generate),d=String(downloadImg),k=String(__b64CurrentOK);var mime=s.indexOf('__B64_MIME_OK')>=0;var dom=s.indexOf('createElement(')>=0&&s.indexOf('appendChild')>=0&&s.indexOf('im.src')>=0;var gen=s.split('myGen !== __b64Gen').length-1>=2;var ok=d.indexOf('__b64CurrentOK')>=0&&k.indexOf('__b64ValidInput')>=0;document.getElementById('__tbProbe').textContent='B64SAFE '+(mime?'M':'-')+(dom?'D':'-')+(gen?'G':'-')+(ok?'K':'-');"],
+  expect: ["B64SAFE MDGK"],
+  ref: "D-N319 Base64 无效图片仍记录历史（入口收口）：修复后 generate() 用 __B64_MIME_OK 校验 data MIME 与纯 Base64 字符集，成功解码后以 createElement('img')+appendChild+im.src 插图（用户输入永不进 innerHTML）、myGen !== __b64Gen 双层守卫 + 输入一致性校验后才记历史；downloadImg/copyResult 经 __b64CurrentOK() 拦截输入变更后的旧图下载/复制。断言白名单(M)、DOM 插图(D)、代次守卫(G)、下载拦截(K)。旧实现无白名单/守卫/拦截 ⇒ 不命中。",
+},
+// 第333批：像素画绘制及时记录历史
+{
+  slug: "design/pixel-art-generator",
+  clicks: ["var px=(typeof window!=='undefined'&&window._px)||null;var d=String(px),e=String(__pixel_art_generatorExtras),r=String(__pixel_art_generatorRender);var draw=d.indexOf('__pixel_art_generatorExtras(true)')>=0&&d.indexOf('setTimeout')>=0;var ext=e.indexOf('force')>=0&&e.indexOf('__pxGrid')>=0;var ren=r.indexOf('__pxGrid')>=0&&r.indexOf('JSON.parse')>=0;document.getElementById('__tbProbe').textContent='PIXEL '+(draw?'D':'-')+(ext?'E':'-')+(ren?'R':'-');"],
+  expect: ["PIXEL DER"],
+  ref: "D-N333 像素画绘制未及时记录历史：修复后 _px() 绘制后防抖 600ms 调 __pixel_art_generatorExtras(true)，Extras 支持 force 绕过 1 秒节流并把 __pxGrid 纳入去重，Render 回放 JSON.parse(rec.__pxGrid) 重建画布与字符画。断言绘制调 Extras(true)+setTimeout(D)、Extras 含 force 与 __pxGrid(E)、Render 含 __pxGrid 与 JSON.parse(R)。旧实现 _px 不记历史、无网格去重/回放 ⇒ 不命中。",
+},
 ];
 
 // ---------------------------------------------------------------- main

@@ -72,7 +72,7 @@ EN = {
 ],
 'iqr': [
 "📊 Interquartile Range IQR",
-"Computes the quartiles and interquartile range of a data set for outlier detection.",
+"Computes the interquartile range from the five-number summary for outlier detection.",
 '📖 View the "Interquartile Range IQR User Guide"',
 "IQR = Q3 − Q1; outlier lower bound = Q1 − 1.5×IQR; outlier upper bound = Q3 + 1.5×IQR",
 "The interquartile range IQR is the difference between the third and first quartiles, describing the span of the middle 50% of the data and proving more robust than the range. Under Tukey's 1.5×IQR rule, observations below Q1−1.5×IQR or above Q3+1.5×IQR count as outliers, which is how boxplot whiskers and outliers are identified.",

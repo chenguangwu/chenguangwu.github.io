@@ -113,7 +113,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="暴露组与非暴露组结局发生率的比较。">Enter the outcome rates of an exposed and an unexposed group to compute the relative risk RR and its confidence interval, measuring exposure-outcome association in cohort studies.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">相对风险（本页代码口径，四格表计数输入）：暴露组发生率 e1=a÷(a+b)；非暴露组发生率 e0=c÷(c+d)；RR=e1÷e0。校验：a、b、c、d 四字段经输入守卫必填且须为合法数值，否则提示并中止。判据：无固定分级，RR&gt;1 表示暴露组结局风险更高、&lt;1 表示更低、=1 表示无关联，主结果保留 4 位小数。</div>
+      <div class="formula-eq">相对风险（本页代码口径，四格表计数输入）：暴露组发生率 e1=a÷(a+b)；非暴露组发生率 e0=c÷(c+d)；RR=e1÷e0。校验：a、b、c、d 四字段经输入守卫必填且须为非负整数；出现小数时提示并中止；两组均零事件（a=0 且 c=0）报 0/0 未定义，仅 c=0 报 RR 无穷大；停算时清空结果、图表与明细。判据：无固定分级，RR&gt;1 表示暴露组结局风险更高、&lt;1 表示更低、=1 表示无关联，主结果保留 4 位小数。</div>
       <p class="formula-desc">暴露组与非暴露组结局发生率的比较。</p>
     </div>
 
@@ -260,7 +260,8 @@ function __tbInputGuardCore(_ids,_labels){
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"c": "c（非暴露&结局）"};
+  // c=0 表示非暴露组零事件：主算据此区分「RR 无穷大」与「0/0 未定义」，属有效统计结论而非参数错误，故不列入通用分母守卫。
+  var __D={};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -293,10 +294,11 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['a', 'b', 'c', 'd'],["a（暴露&结局）", "b（暴露&非结局）", "c（非暴露&结局）", "d（非暴露&非结局）"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const a=parseFloat(document.getElementById('a').value),b=parseFloat(document.getElementById('b').value),c=parseFloat(document.getElementById('c').value),d=parseFloat(document.getElementById('d').value);
-            if(!isFinite(a)||!isFinite(b)||!isFinite(c)||!isFinite(d)||a<0||b<0||c<0||d<0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 例数必须为 ≥ 0 的数值</p>');return;}
-            if(a+b===0||c+d===0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 暴露组或非暴露组的总人数为 0，发生率与 RR 无定义</p>');return;}
+            if(!isFinite(a)||!isFinite(b)||!isFinite(c)||!isFinite(d)||a<0||b<0||c<0||d<0){__rrClear();ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 例数必须为 ≥ 0 的数值</p>');return;}
+            if(Math.floor(a)!==a||Math.floor(b)!==b||Math.floor(c)!==c||Math.floor(d)!==d){__rrClear();ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 四格表各格例数必须是非负整数，不接受小数。</p>');return;}
+            if(a+b===0||c+d===0){__rrClear();ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 暴露组或非暴露组的总人数为 0，发生率与 RR 无定义</p>');return;}
             const e1=a/(a+b), e0=c/(c+d);
-            if(e0===0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 非暴露组发生率为 0（c=0），RR 为无穷大，无法给出有限结果</p>');return;}
+            if(e0===0){ __rrClear(); ToolBox.setResult('result', e1===0?'<p style="color:var(--danger)">⚠ 两组事件数均为 0（a=0 且 c=0），RR 为 0/0 未定义。</p>':'<p style="color:var(--danger)">⚠ 非暴露组发生率为 0（c=0），RR 为无穷大，无法给出有限结果</p>'); return; }
             const RR=e1/e0;
             const __g2=dataGrid([
                 [RR.toFixed(4),'相对风险 RR'],
@@ -313,12 +315,14 @@ calcTool();
 
 function __rrNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 
+function __rrClear(){
+    var ids=['rrChart','rrDiff','rrHist','rrTable','rrMatrix'];
+    for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}
+}
 function __rrExtras(){
     if (typeof TBKit === 'undefined') return;
     var a=__rrNum('a'), b=__rrNum('b'), c=__rrNum('c'), d=__rrNum('d');
-    if(!isFinite(a)||!isFinite(b)||!isFinite(c)||!isFinite(d)) return;
-    if(a<0||b<0||c<0||d<0) return;
-    if(!(a+b>0)||!(c+d>0)||!(c>0)||!(a>0)) return;
+    if(!isFinite(a)||!isFinite(b)||!isFinite(c)||!isFinite(d)||a<0||b<0||c<0||d<0||Math.floor(a)!==a||Math.floor(b)!==b||Math.floor(c)!==c||Math.floor(d)!==d||!(a+b>0)||!(c+d>0)||!(c>0)||!(a>0)){ __rrClear(); return; }
     var en=TBKit.util.isEn();
     var e1=a/(a+b), e0=c/(c+d);
     var RR=e1/Math.max(e0,1e-12);
@@ -414,7 +418,8 @@ else document.addEventListener("DOMContentLoaded", __rrBoot);
 function __rrChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
   var a=num('a'),b=num('b'),c=num('c'),d=num('d');
-  if(!isFinite(a)||!isFinite(b)||!isFinite(c)||!isFinite(d)||a<0||b<0||c<0||d<0||(a+b)<=0||(c+d)<=0)return;
+  var _chart=document.getElementById('rrChart');
+  if(!isFinite(a)||!isFinite(b)||!isFinite(c)||!isFinite(d)||a<0||b<0||c<0||d<0||(a+b)<=0||(c+d)<=0||c===0||Math.floor(a)!==a||Math.floor(b)!==b||Math.floor(c)!==c||Math.floor(d)!==d){ if(_chart)_chart.innerHTML=''; return; }
   var e1=a/(a+b), e0=c/(c+d), RR=e1/Math.max(e0,1e-12);
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   TBKit.chart.bar('#rrChart',{title:en?'Event Rate: Exposed vs Unexposed (RR = '+RR.toFixed(3)+')':'暴露组 vs 非暴露组发生率（RR = '+RR.toFixed(3)+'）',labels:en?['Exposed','Unexposed']:['暴露组','非暴露组'],series:[{name:en?'Event rate':'发生率',data:[Math.round(e1*10000)/10000, Math.round(e0*10000)/10000]}]});

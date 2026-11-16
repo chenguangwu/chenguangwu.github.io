@@ -322,6 +322,13 @@ function calcTool(){const gs=Math.floor(num('gs')), col=document.getElementById(
      cells[idx].setAttribute('data-c',newColor);
      try{ window.__pxGrid[r][c]=newColor; }catch(e){}
      refreshArt();
+     // D-N333：绘制后以合理频率（防抖 600ms）记录当前网格，避免历史停留在绘制前状态
+     try{
+       clearTimeout(__pixel_art_generator_drawTimer);
+       __pixel_art_generator_drawTimer=setTimeout(function(){
+         try{ __pixel_art_generatorExtras(true); }catch(e){}
+       },600);
+     }catch(e){}
    };
    // 浏览器中挂到 window 供 onclick 使用（verify stub 无 window 不报错）
    try{ window._px=_px; }catch(e){};}
@@ -343,7 +350,7 @@ function refreshArt(){
 }
 calcTool();
 
-var __pixel_art_generator_last=0,__pixel_art_generator_skip=false;
+var __pixel_art_generator_last=0,__pixel_art_generator_skip=false,__pixel_art_generator_drawTimer=0;
 function __pixel_art_generatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -430,7 +437,7 @@ function __pixel_art_generatorData(){
     }
     return d;
 }
-function __pixel_art_generatorExtras(){
+function __pixel_art_generatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__pixel_art_generator_skip) return;
     var snap=__pixel_art_generatorSnap();
@@ -440,10 +447,13 @@ function __pixel_art_generatorExtras(){
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__pixel_art_generatorResText();
     if(!res) return;
+    var gridStr=data.__pxGrid||'';
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__pixel_art_generator_last<1000) return;
+    // 防抖触发的绘制记录用 force 绕过节流，保证「最终图案」一定入库；
+    // 其它入口（calcTool 包装器）仍按 1 秒节流控制频率
+    if(!force && now-__pixel_art_generator_last<1000) return;
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -451,7 +461,8 @@ function __pixel_art_generatorExtras(){
         for(var i=0;i<keys.length;i++){
             if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
         }
-        if(same&&String(last[rk])===String(res)) return;
+        // 网格纳入去重：相同 UI 输入 / 相同结果摘要下，不同图案也必须分别记录
+        if(same && String(last[rk])===String(res) && String(last.__pxGrid||'')===String(gridStr)) return;
     }
     __pixel_art_generator_last=now;
     var rec={};

@@ -109,16 +109,16 @@
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
     <h2 data-zh="⚙️ 智能、无人与高效对比计算器">Smart vs Efficient Equipment R&D Trade-off</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按智能与高效两项评分对比，给出装备研发路线侧重建议。">Compare smart, unmanned and high-efficiency machinery options by cost, output and automation level.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="分别输入智能、无人化、高效三项 0–100 评分（评分口径自定义），对比权重占比与优先路线。">Score the intelligent, unmanned and high-efficiency routes on a 0–100 scale, then compare their weights and the leading route.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">综合差距 = |智能 − 高效|；智能权重比 = 智能 ÷ (智能 + 高效) × 100%</div>
-      <p class="formula-desc">装备制造升级兼顾智能化与高效化：智能评分反映自主决策能力，高效评分反映产能/能耗比。对比两者给出研发侧重；权重比量化相对占比，辅助技术资源分配。</p>
+      <div class="formula-eq">综合差距 = 最高评分 − 最低评分；路线权重占比 = 该路线评分 ÷ 三项评分之和 × 100%；推荐侧重 = 评分最高的路线（并列时一并列出）。校验：三项评分须为 0–100 的数值且不能同时为 0，否则标红并中止。</div>
+      <p class="formula-desc">三项评分分别反映智能化、无人化与高效化程度，评分口径由使用者自定义（如按功能覆盖、人工替代率、产能/能耗比打分）。权重比量化三条路线的资源分配占比，辅助研发决策。</p>
     </div>
     <div class="input-row">
-      <div><label>智能评分 (0-100)</label><input type="number" id="v0" value="88" step="any" oninput="calc()" enterkeyhint="done" aria-label="智能" placeholder="如 88"></div>
-      <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>高效评分 (0-100)</label><input type="number" id="v1" value="80" step="any" oninput="calc()" enterkeyhint="done" aria-label="无人" placeholder="如 80"></div>
+      <div><label>智能评分 (0-100)</label><input type="number" id="v0" value="88" step="any" min="0" max="100" oninput="calc()" enterkeyhint="done" aria-label="智能" placeholder="如 88"></div>
+      <div><label>高效评分 (0-100)</label><input type="number" id="v1" value="80" step="any" min="0" max="100" oninput="calc()" enterkeyhint="done" aria-label="高效" placeholder="如 80"></div>
+      <div><label>无人化评分 (0-100)</label><input type="number" id="v2" value="75" step="any" min="0" max="100" oninput="calc()" enterkeyhint="done" aria-label="无人化" placeholder="如 75"></div>
     </div>
     <div class="toolbar">
       <div id="zhineng_wurenyugaoxiaoduibijisuanqiPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__zhineng_wurenyugaoxiaoduibijisuanqiExport()">导出明细 CSV</button>
@@ -126,7 +126,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div> <div id="zhineng_wurenyugaoxiaoduibijisuanqiTable"></div> <div id="zhineng_wurenyugaoxiaoduibijisuanqiDiff"></div> <div id="zhineng_wurenyugaoxiaoduibijisuanqiChart"></div> <div id="zhineng_wurenyugaoxiaoduibijisuanqiHist"></div>
-    <div class="info-box">💡 综合差距 = |智能 − 高效|；智能权重比 = 智能 ÷ (智能+高效)。</div>
+    <div class="info-box">💡 综合差距 = 最高评分 − 最低评分；路线权重占比 = 该路线评分 ÷ 三项评分之和。评分口径由使用者自定义。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
@@ -303,30 +303,15 @@ function copyRes(){
   if(!text||text.trim()===''){ToolBox.showToast(i18nText(),'warning');return;}
   ToolBox.copyText(text);
 }
-function resetAll(){
-  document.getElementById('v0').value=100;
-  document.getElementById('v1').value=50;
-  setInvalid(document.getElementById('v0'),false);
-  setInvalid(document.getElementById('v1'),false);
-  calc();
-  ToolBox.showToast(i18nText(),'info');
-}
-function swapValues(){
-  var a=document.getElementById('v0').value;
-  var b=document.getElementById('v1').value;
-  document.getElementById('v0').value=b;
-  document.getElementById('v1').value=a;
-  calc();
-}
 function historyKey(){
   try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_'+(document.title||'calc');}
 }
-function saveHistory(a,b){
+function saveHistory(a,b,c){
   try{
     var key=historyKey();
     var list=JSON.parse(localStorage.getItem(key)||'[]');
     var now=new Date();
-    var item={a:a,b:b,time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+    var item={a:a,b:b,c:c,time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
     list.unshift(item);
     if(list.length>5)list=list.slice(0,5);
     localStorage.setItem(key,JSON.stringify(list));
@@ -341,17 +326,18 @@ function renderHistory(){
     if(list.length===0){box.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}
     var html='<div class="history-list">';
     list.forEach(function(h){
-      html+='<div class="history-item" onclick="restoreHistory('+h.a+','+h.b+')">'+
-        '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">A='+h.a+' &nbsp; B='+h.b+'</div></div>'+
+      html+='<div class="history-item" onclick="restoreHistory('+h.a+','+h.b+','+h.c+')">'+
+        '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">智能='+h.a+' &nbsp; 高效='+h.b+' &nbsp; 无人化='+h.c+'</div></div>'+
         '<span style="font-size:12px;color:var(--primary);">恢复</span></div>';
     });
     html+='</div>';
     const __g4=html;box.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   }catch(e){box.innerHTML='<div class="history-empty">读取记录失败</div>';}
 }
-function restoreHistory(a,b){
+function restoreHistory(a,b,c){
   document.getElementById('v0').value=a;
   document.getElementById('v1').value=b;
+  var e2=document.getElementById('v2');if(e2&&c!=null)e2.value=c;
   calc();
   ToolBox.showToast(i18nText(),'info');
 }
@@ -368,30 +354,46 @@ document.addEventListener('DOMContentLoaded',function(){
     if(e.key==='Enter'){e.preventDefault();calc();}
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='c'){e.preventDefault();copyRes();}
   });
+  document.getElementById('v2').addEventListener('keydown',function(e){
+    if(e.key==='Enter'){e.preventDefault();calc();}
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='c'){e.preventDefault();copyRes();}
+  });
 });
 </script>
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
 function calc(){
-    var __ig=__tbInputGuard(['v0', 'v1'],["智能评分 (0-100)", "高效评分 (0-100)"]);if(__ig){const __g6=__ig;ToolBox.setResult("res",(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—')));return;}
-var e0=document.getElementById('v0'),e1=document.getElementById('v1');
-  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+    var __ig=__tbInputGuard(['v0', 'v1', 'v2'],["智能评分 (0-100)", "高效评分 (0-100)", "无人化评分 (0-100)"]);if(__ig){const __g6=__ig;ToolBox.setResult("res",(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—')));return;}
+var e0=document.getElementById('v0'),e1=document.getElementById('v1'),e2=document.getElementById('v2');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN,C=e2?parseFloat(e2.value):NaN;
   var box=document.getElementById('res');
   if(!box)return;
-  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var badA=!(isFinite(A)&&A>=0&&A<=100),badB=!(isFinite(B)&&B>=0&&B<=100),badC=!(isFinite(C)&&C>=0&&C<=100);
+  setInvalid(e0,badA);setInvalid(e1,badB);setInvalid(e2,badC);
+  if(badA||badB||badC||A+B+C<=0){box.innerHTML='<div class="info-box">评分须为 0–100 的数值，且三项不能同时为 0。</div>';return;}
+  var sum=A+B+C;
+  var maxV=Math.max(A,B,C),minV=Math.min(A,B,C);
+  var lead=[];
+  if(A===maxV)lead.push('智能');
+  if(C===maxV)lead.push('无人化');
+  if(B===maxV)lead.push('高效');
   var items=[];
-  items.push([(Math.abs(A-B)).toFixed(0), "综合差距"]);
-  items.push([A>B?"智能路线优先":"高效路线优先", "推荐侧重"]);
-  items.push([(A/(A+B)*100).toFixed(1)+"%", "智能权重占比"]);
+  items.push([(maxV-minV).toFixed(0), "综合差距"]);
+  items.push([lead.join('/')+'路线优先', "推荐侧重"]);
+  items.push([(A/sum*100).toFixed(1)+"%", "智能权重占比"]);
+  items.push([(B/sum*100).toFixed(1)+"%", "高效权重占比"]);
+  items.push([(C/sum*100).toFixed(1)+"%", "无人化权重占比"]);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 综合差距 = |智能 − 高效|；智能权重比 = 智能 ÷ (智能+高效)。';
+  html+='💡 综合差距 = 最高评分 − 最低评分；路线权重占比 = 该路线评分 ÷ 三项评分之和；推荐侧重取评分最高的路线（并列时一并列出）。';
   const __g8=html;box.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
-  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+  if(typeof saveHistory==='function'){try{saveHistory(A,B,C);}catch(e){}}
 }
 function resetAll(){
-  var a=document.getElementById('v0'),b=document.getElementById('v1');
-  if(a)a.value='88';if(b)b.value='80';calc();
+  var a=document.getElementById('v0'),b=document.getElementById('v1'),c=document.getElementById('v2');
+  if(a)a.value='88';if(b)b.value='80';if(c)c.value='75';
+  setInvalid(a,false);setInvalid(b,false);setInvalid(c,false);
+  calc();
 }
 try{calc();}catch(e){}
 
@@ -510,10 +512,11 @@ function __zhineng_wurenyugaoxiaoduibijisuanqiExport(){
 }
 function __zhineng_wurenyugaoxiaoduibijisuanqiPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#zhineng_wurenyugaoxiaoduibijisuanqiPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'88', 'v1':'80'}},
-  {"label":"消费级航拍机","labelEn":"Consumer aerial drone","values":{"v0":82,"v1":74}},
-  {"label":"农业植保机","labelEn":"Agricultural spray drone","values":{"v0":70,"v1":92}},
-  {"label":"工业巡检机","labelEn":"Industrial inspection drone","values":{"v0":94,"v1":85}}],function(){ calc(); });
+    TBKit.preset.bar('#zhineng_wurenyugaoxiaoduibijisuanqiPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'88', 'v1':'80', 'v2':'75'}},
+  {"label":"智能优先方案","labelEn":"Intelligence-first","values":{"v0":92,"v1":72,"v2":68}},
+  {"label":"高效优先方案","labelEn":"Efficiency-first","values":{"v0":70,"v1":93,"v2":66}},
+  {"label":"无人化优先方案","labelEn":"Unmanned-first","values":{"v0":72,"v1":70,"v2":94}},
+  {"label":"三路线均衡","labelEn":"Balanced","values":{"v0":82,"v1":82,"v2":82}}],function(){ calc(); });
 }
 var __zhineng_wurenyugaoxiaoduibijisuanqi_f0=(typeof calc==='function')?calc:null;
 if(__zhineng_wurenyugaoxiaoduibijisuanqi_f0){
@@ -550,19 +553,19 @@ else document.addEventListener('DOMContentLoaded', __zhineng_wurenyugaoxiaoduibi
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：无人机作业参数对比</h2>
+<h2>📚 深度解析：三路线评分对比方法</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>多机型续航、速度、载荷、作业高度横向对比。</li>
-<li>作业效率=幅宽×速度×时间 估算覆盖面积。</li>
-<li>综合评分排序辅助选型。</li>
+<li>研发方案按智能、无人化、高效三条路线分别打分（0–100）。</li>
+<li>按权重占比分配研发资源与预算。</li>
+<li>比较不同方案的领先路线与评分差距。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">覆盖效率</div><div class="dd-ex-body">幅宽 B=5 m、速度 v=5 m/s、单架次 t=600 s：覆盖面积≈B·v·t=5×5×600=15000 m²=1.5 公顷/架次。两架型对比取效率更高者。</div></div>
-<div class="dd-example"><div class="dd-ex-title">作业高度</div><div class="dd-ex-body">飞行高度 h=50 m、幅宽 5 m：地面分辨率与重叠率决定建模精度，高度越低分辨率越高但效率越低。</div></div>
+<div class="dd-example"><div class="dd-ex-title">权重占比</div><div class="dd-ex-body">智能 90、高效 70、无人化 95：合计 255，权重分别为 35.3%、27.5%、37.3%；综合差距 = 95 − 70 = 25，无人化路线优先。</div></div>
+<div class="dd-example"><div class="dd-ex-title">评分口径</div><div class="dd-ex-body">三项评分须使用同一口径与量纲，例如均按「功能覆盖 40% + 人工替代 30% + 投入产出 30%」加权得到；换口径后分数不可直接跨方案比较。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>覆盖面积为何用幅宽×速度？</dt><dd> aerial 作业近似带状覆盖，单位时间面积=幅宽×地速，再乘架次时间得总覆盖。</dd>
-<dt>对比要注意什么？</dt><dd>续航受风温影响、载荷与续航权衡，选型需结合任务（测绘/植保/巡检）与当地法规限高。</dd>
+<dt>评分相同怎么办？</dt><dd>并列最高时页面会同时列出并标注「路线优先」，此时需结合投入、风险与实施周期另行决策；也可对指标加不同权重后重新打分。</dd>
+<dt>评分能代替可行性论证？</dt><dd>不能。评分是主观量化的排序工具，权重与口径会显著影响结论，关键决策仍需成本测算、技术验证与<a class="term-link" href="/tools/pr/risk-assessment.html">风险评估</a>支撑。</dd>
 </dl>
 </div>
 </section>

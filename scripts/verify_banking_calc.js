@@ -78,6 +78,37 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "banking/credit-card-interest-monthly",
+  "inputs": { "bal": "0", "dr": "0.0005", "days": "30" },
+  "expect": ["0.00 利息 I (元)", "— 期间利率 (%)"],
+  "ref": "B-F1（2026-11-16）：bal=0 是合法输入（利息 0），旧 __D 把欠款余额登记为分母并直接报「不能为 0」。现移除分母登记，bal=0 输出利息 0.00、期间利率「—」；默认 1000 ⇒ 15.00/1.5000%，不命中「—」锚。"
+},
+{
+  "slug": "banking/credit-card-interest-monthly",
+  "inputs": {
+    "bal": "1000",
+    "dr": "0",
+    "days": "30"
+  },
+  "expect": ["日利率与计息天数必须大于 0"],
+  "ref": "B-F1 反向：旧实现只拦分母，dr=0/负值照样算出 0 或负利息；现显式要求 dr>0 且 days>0。默认 0.0005/30 ⇒ 不命中。"
+},
+{
+  "slug": "banking/debt-to-income",
+  "inputs": { "debt": "0", "inc": "10000" },
+  "expect": ["— 收入债务倍数"],
+  "ref": "B-F2（2026-11-16）：旧公式 inc/max(debt,1) 在 debt=0 时把「收入债务倍数」显示成 10000.000（等于月收入本身）。现 debt<=0 时该行显示「—」；导出表同口径。默认 4500/10000 ⇒ 2.222，不命中。"
+},
+{
+  "slug": "banking/debt-to-income",
+  "inputs": {
+    "debt": "1000",
+    "inc": "0"
+  },
+  "expect": ["是本计算的分母"],
+  "ref": "B-F2 边界：inc=0 时 DTI 无定义，__tbInputGuard 的零值分母表已把月收入登记为分母并提示「不能为 0」；本批另加了 inc<=0 的显式兜底（分母表命中时先返回）。默认 10000 ⇒ 不命中。"
+},
+{
   "slug": "banking/daily-interest",
   "inputs": {
     "p": "150000",

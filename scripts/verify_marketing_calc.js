@@ -1344,7 +1344,98 @@ const CASES = [
     expect: ["点赞、评论、分享、收藏与曝光量须为非负数"],
     ref: "点赞为负时旧实现总互动 −10、互动率 −0.10%；现拦截。默认点赞 1200 ⇒ 注入失败不命中。",
   }
-
+,
+  {
+    slug: "marketing/marketing-discount-rate",
+    inputs: { origPrice: "200", discountPct: "" },
+    expect: ["请填写原价与折扣率"],
+    ref: "折扣率清空 ⇒ 旧实现 parseFloat('')||0 按 0% 无折扣输出 200.00；现提示补录。默认 30% ⇒ 不命中。",
+  },
+  {
+    slug: "marketing/marketing-keyword-density",
+    inputs: { keyword: "a", content: "!!!" },
+    expect: ["正文不含可统计字符"],
+    ref: "正文仅标点 ⇒ 清洗后总字符 0，旧实现密度 0/0 仍给密度建议；现提示无可统计内容。默认 content 为空走另一提示 ⇒ 不命中。",
+  }
+,
+  {
+    slug: "marketing/marketing-churn-rate",
+    clicks: ["document.getElementById('__tbProbe').textContent='CHURNGUARD '+(typeof __churnErr==='function'&&/__churnErr/.test(String(saveHistory))?'OK':'BAD');"],
+    expect: ["CHURNGUARD OK"],
+    ref: "源码形态判定：保存路径与计算路径共用 __churnErr（负数客户数、期初+新增<期末不再写入历史）。默认态不设置探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "marketing/marketing-conversion-rate-calculator",
+    clicks: ["document.getElementById('__tbProbe').textContent='CONVGUARD '+(typeof __convErr==='function'&&/__convErr/.test(String(saveHistory))?'OK':'BAD');"],
+    expect: ["CONVGUARD OK"],
+    ref: "源码形态判定：保存路径与计算路径共用 __convErr（负转化数、转化>访问不再写入历史）。默认态不设置探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "marketing/marketing-cpa-calculator",
+    clicks: ["document.getElementById('__tbProbe').textContent='CPAGUARD '+(typeof __cpaErr==='function'&&/__cpaErr/.test(String(saveHistory))?'OK':'BAD');"],
+    expect: ["CPAGUARD OK"],
+    ref: "源码形态判定：保存路径与计算路径共用 __cpaErr（客户>点击、毛利率越界不再写入历史）。默认态不设置探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "marketing/marketing-cpm-calculator",
+    clicks: ["document.getElementById('__tbProbe').textContent='CPMGUARD '+(typeof __cpmErr==='function'&&/__cpmErr/.test(String(saveHistory))?'OK':'BAD');"],
+    expect: ["CPMGUARD OK"],
+    ref: "源码形态判定：保存路径与计算路径共用 __cpmErr（负点击、点击>展示不再写入历史）。默认态不设置探针 ⇒ 零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-cpm-calculator",
+    "inputs": { "spend": "0", "impressions": "12000", "clicks": "400" },
+    "expect": ["CPM 千次展示成本 ¥0.00"],
+    "ref": "零花费且展示量大于 0 时 CPM=0 是合法结果；旧校验把 spend<=0 一律当无效直接拒绝。默认花费 5000 ⇒ 不命中。"
+  },
+  {
+    "slug": "marketing/marketing-cac-calculator",
+    "inputs": { "marketingSpend": "0", "salesSpend": "0", "newCustomers": "100", "ltv": "500" },
+    "expect": ["分母为 0，均不可计算"],
+    "ref": "费用合计 0 ⇒ CAC=0，旧实现仍算 LTV:CAC=Infinity 并给出「健康」结论；现明确不可计算。默认费用 8000/2000 ⇒ 不命中。"
+  },
+  {
+    "slug": "marketing/marketing-cpa-calculator",
+    "inputs": { "totalSpend": "0", "newCustomers": "50", "avgOrderValue": "200", "grossMargin": "40", "clicks": "500", "repeatRate": "20" },
+    "expect": ["ROI 的分母为 0，不可计算"],
+    "ref": "零花费时 CPA=0，旧实现把 ROI 强制为 0 并显示 +0.0%「回本」；现明确不可计算。默认花费 1000 ⇒ 不命中。"
+  },
+  {
+    "slug": "marketing/marketing-conversion-rate-calculator",
+    "inputs": { "visitors": "1000", "conversions": "50", "totalCost": "5000", "avgOrder": "0" },
+    "expect": ["ROI -100.0%"],
+    "ref": "客单价明确填 0 ⇒ 收入 0、成本 5000，ROI=-100.0%；旧实现因 revenue>0 条件把 ROI 卡整块隐藏。默认 avgOrder 200 ⇒ 不命中。"
+  },
+  {
+    "slug": "marketing/marketing-conversion-rate-calculator",
+    "clicks": ["document.getElementById('__tbProbe').textContent='HISTCPA '+(/CPA 不可计算（零转化）/.test(String(renderHistory))?'OK':'BAD');"],
+    "expect": ["HISTCPA OK"],
+    "ref": "源码形态判定：历史列表对零转化记录明说 CPA 不可计算，而不是把花费除以零得到 Infinity 后静默替换成破折号。默认态不设置探针 ⇒ 零逃生。"
+  },
+{
+    "slug": "marketing/marketing-cpc-calculator",
+    "clicks": ["document.getElementById('__tbProbe').textContent='CPCGUARD2 '+(typeof __cpcErr==='function'&&/__cpcErr/.test(String(saveHistory))?'OK':'BAD');"],
+    "expect": ["CPCGUARD2 OK"],
+    "ref": "源码形态判定：保存路径与计算路径共用 __cpcErr（小数点击、负曝光、点击超展示不再写入历史）。默认态不设置探针 ⇒ 零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-markup-margin",
+    "clicks": ["document.getElementById('__tbProbe').textContent='MMGUARD '+(/record.markupRate < 0/.test(String(saveHistory))&&/record.marginRate >= 100/.test(String(saveHistory))&&/__srcRate/.test(String(saveHistory))?'OK':'BAD');"],
+    "expect": ["MMGUARD OK"],
+    "ref": "源码形态判定：保存路径补齐加价率非负、利润率 0–99、换算模式源值三项与计算一致的守卫；无效比率不再入历史。默认态不设置探针 ⇒ 零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-cac-calculator",
+    "clicks": ["document.getElementById('__tbProbe').textContent='CACGUARD '+(typeof __cacErr==='function'&&/__cacErr/.test(String(saveHistory))?'OK':'BAD');"],
+    "expect": ["CACGUARD OK"],
+    "ref": "源码形态判定：保存路径与计算路径共用 __cacErr（负费用、非正 LTV 不再写入历史并参与分级）。默认态不设置探针 ⇒ 零逃生。"
+  },
+{
+    "slug": "marketing/marketing-ad-budget-allocator",
+    "inputs": { "totalBudget": "0", "roas1": "4", "roas2": "2.5", "roas3": "2", "budget1Pct": "40", "budget2Pct": "35", "budget3Pct": "25" },
+    "expect": ["预算为 0，不可计算"],
+    "ref": "总预算为 0 时各渠道预算与收入均为 0 合法，但整体 ROAS = 0/0；旧实现把 NaN 替换成破折号仍挂着「整体ROAS」标签。默认预算 100000 ⇒ 不命中。"
+  }
 ];
 
 async function main() {

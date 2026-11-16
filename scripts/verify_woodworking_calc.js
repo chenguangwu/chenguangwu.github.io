@@ -63,6 +63,40 @@ const CASES = [
     "穿透下层约83%"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "woodworking/board-feet",
+  "inputs": {
+    "thicknessIn": "0",
+    "widthIn": "6",
+    "lengthFt": "8",
+    "quantity": "10",
+    "price": "5"
+  },
+  "clicks": [
+    "calcBF();var g=String(document.getElementById('bfGrid').innerHTML),r=String(document.getElementById('bfResult').innerHTML);document.getElementById('__tbProbe').textContent='BF0 '+((g===''&&r.indexOf('请输入有效尺寸')>=0)?'OK':'BAD');"
+  ],
+  "expect": [
+    "BF0 OK"
+  ],
+  "ref": "厚度 0：旧代码只改结果文字、结果卡 bfGrid 仍保留上一次的 40 BF 汇总；现无效尺寸同时清空 bfGrid 与结果，避免旧采购数据被误读。默认 1×6×8×10 为有效输入，不命中。"
+},
+{
+  "slug": "woodworking/board-feet",
+  "inputs": {
+    "thicknessIn": "1",
+    "widthIn": "6",
+    "lengthFt": "8",
+    "quantity": "0",
+    "price": "5"
+  },
+  "clicks": [
+    "calcBF();var g=String(document.getElementById('bfGrid').innerHTML),r=String(document.getElementById('bfResult').innerHTML);document.getElementById('__tbProbe').textContent='BFQ '+((g===''&&r.indexOf('数量须为正整数')>=0)?'OK':'BAD');"
+  ],
+  "expect": [
+    "BFQ OK"
+  ],
+  "ref": "数量 0：旧代码 parseInt(...)||1 把 0 静默改成 1 根并输出结果；现要求正整数，非法时清空结果卡并提示。默认 quantity=1 合法，不命中。"
 }
 ];
 async function main() {

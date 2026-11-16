@@ -358,6 +358,92 @@ const CASES = [
   "clicks": ["document.getElementById('asterixis').value='';calc();document.getElementById('result').textContent='PARTIAL:'+document.getElementById('result').innerHTML.replace(/<[^>]*>/g,'').trim();"],
   "expect": ["PARTIAL:请输入意识状态、行为变化、认知与扑翼样震颤分级后再评估。"],
   "ref": "原生缺陷修复：四项 West Haven 分级下拉全部改为「请选择」空值默认，首屏不再直接给 I 级分级与治疗/住院建议。"
+},
+{
+  "slug": "gastroenterology/child-pugh",
+  "inputs": { "bilirubin": "53", "albumin": "30", "pt": "4", "inr": "1.7", "ascites": "", "encephalopathy": "1" },
+  "expect": ["请填写：腹水程度"],
+  "ref": "L-N45 核销：腹水下拉改为「请选择」空值默认，缺项不再按 0 分参与求和，结果区列出缺项并停止评分。"
+},
+{
+  "slug": "gastroenterology/child-pugh",
+  "inputs": { "bilirubin": "100", "albumin": "40", "pt": "0", "inr": "1", "ascites": "1", "encephalopathy": "1" },
+  "clicks": ["document.getElementById('pbc').checked=true;calc();"],
+  "expect": ["总胆红素 100 μmol/L (68–170，PBC) → 2分"],
+  "ref": "L-N46 核销：勾选 PBC 后胆红素按 68/170 分档，100 μmol/L 记 2 分（非 PBC 为 3 分）；默认不勾选，该串仅在 PBC 注入态出现。"
+},
+{
+  "slug": "gastroenterology/glasgow-pancreatitis",
+  "inputs": { "age": "55", "wbc": "15", "glucose": "10", "ldh": "350", "ast": "200", "calcium": "", "albumin": "", "pao2": "", "urea": "8" },
+  "expect": ["未填写：钙、白蛋白、PaO₂", "轻症可能性大"],
+  "ref": "L-N47 核销：钙/白蛋白/PaO₂ 空值不再按 0 触发「低于阈值 +1」，改为不计分并列出缺项；三项清空后总分 0 ⇒ 轻症（旧实现 3 分 ⇒ 重症急性胰腺炎）。"
+},
+{
+  "slug": "gastroenterology/cdai",
+  "inputs": { "hct": "" },
+  "expect": ["请填写红细胞压积 Hct"],
+  "ref": "L-N50 核销：Hct 空值不再按 0 计算（旧实现凭空 +222 分推入中度活动），改为拦截并提示。"
+},
+{
+  "slug": "gastroenterology/cdai",
+  "inputs": { "hct": "70" },
+  "expect": ["红细胞压积 Hct 应为 20–60%"],
+  "ref": "L-N50 核销：Hct 超出 20–60% 合法性校验即报错不出分。"
+},
+{
+  "slug": "gastroenterology/cdai",
+  "inputs": { "hct": "35" },
+  "expect": ["Hct 标准 42% − 实测 35% = 7.0"],
+  "ref": "L-N51 核销：女性 Hct 标准值改用 Best 1976 通行口径 42%（男 47%），默认性别为女 ⇒ 42-35=7.0；旧实现 37-35=2.0，本串不命中。"
+},
+{
+  "slug": "gastroenterology/saag-ascites",
+  "inputs": { "serumAlb": "", "ascitesAlb": "12" },
+  "expect": ["请填写血清白蛋白与腹水白蛋白"],
+  "ref": "L-N52 核销：血清白蛋白空值不再按 0 计算（旧实现得 SAAG=-12 并判「非门脉高压性腹水」），改为缺项提示不出结论。"
+},
+{
+  "slug": "gastroenterology/saag-ascites",
+  "inputs": { "serumAlb": "12", "ascitesAlb": "40" },
+  "expect": ["数值异常：血清白蛋白与腹水白蛋白均应在 0–60 g/L"],
+  "ref": "L-N52 核销：腹水白蛋白高于血清白蛋白属录入错误，显式报错而非静默算出负 SAAG。"
+},
+{
+  "slug": "gastroenterology/bilirubin-ratio",
+  "inputs": { "tbil": "85", "dbil": "", "ref": "21" },
+  "expect": ["请填写总胆红素 TBIL 与直接胆红素 DBIL"],
+  "ref": "L-N54 核销：DBIL 空值不再按 0 计算（旧实现比值 0.0% 判「溶血/Gilbert」并建议 Coombs/UGT1A1），两值均必填。"
+},
+{
+  "slug": "gastroenterology/hepatic-encephalopathy",
+  "inputs": { "consciousness": "0", "behavior": "0", "cognition": "0", "asterixis": "0" },
+  "expect": ["未做（不诊断 MHE）", "无临床肝性脑病"],
+  "ref": "L-N53 核销：四项全正常且 MHE 专项测试未做时输出「无临床肝性脑病」，不再等同 MHE 并建议乳果糖；旧实现直接输出「轻微型肝性脑病（MHE）」+ 乳果糖。"
+},
+{
+  "slug": "gastroenterology/bilirubin-ratio",
+  "inputs": { "tbil": "21", "dbil": "15", "ref": "21" },
+  "expect": ["孤立性直接胆红素升高"],
+  "ref": "L-N55 核销：DBIL 上限（6.8/8.0）已参与判断，TBIL 21 未超上限但 DBIL 15>6.8 ⇒ 孤立性直接胆红素升高；旧实现只看 TBIL，误判「正常范围」。"
+},
+{
+  "slug": "gastroenterology/bilirubin-ratio",
+  "inputs": { "tbil": "30", "dbil": "60", "ref": "21" },
+  "expect": ["录入有误，已停止计算"],
+  "ref": "L-N56 核销：DBIL>TBIL 显式报错并停止计算，不再静默封顶后输出「梗阻性黄疸」。"
+},
+{
+  "slug": "gastroenterology/mayo-score",
+  "inputs": { "stool": "2", "bleeding": "0", "endoscopy": "0", "physician": "0" },
+  "expect": ["未达临床缓解（单项活动）"],
+  "ref": "L-N57 核销：临床缓解须「总分 ≤2 且便次 ≤1 且无便血」，总分 2（便次 2 分）⇒ 未达临床缓解；旧实现仅看总分判「缓解期」。"
+},
+{
+  "slug": "gastroenterology/hp-resistance",
+  "inputs": { "clarithro": "resistant", "metronidazole": "resistant", "levo": "resistant", "history": "one" },
+  "clicks": ["document.getElementById('penicillin').checked=true;var b=document.getElementById('bismuthAvailable');if(b)b.checked=true;calc();"],
+  "expect": ["当前药敏/过敏组合下无安全的经验性方案"],
+  "ref": "L-N58 核销：青霉素过敏 + 克拉/甲硝唑/左氧全耐药时，方案池按禁用集过滤后为空 ⇒ 明确提示需药敏指导；旧实现青霉素分支不看药敏，仍推荐含克拉霉素/左氧的方案。"
 }
 
 ];

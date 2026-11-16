@@ -231,6 +231,19 @@ const CASES = [
   "clicks": ["calcTool()"],
   "expect": ["请填写原料清单"],
   "ref": "空原料清单：倍数有效但 rows 为空 ⇒ 提示先填清单，不输出空配方；默认 rows 含 4 行 ⇒ 正常配方，不命中。"
+},
+{
+  "slug": "baking/fermentation-time",
+  "inputs": {
+    "baseTime": "60",
+    "actualTemp": "50",
+    "actualHumidity": "75",
+    "fermType": "yeast"
+  },
+  "expect": [
+    "超过 40℃ 酵母快速失活"
+  ],
+  "ref": "50℃：参考表 40℃ 已「过热，酵母开始失活」、55℃+「酵母死亡」，旧代码在 41–54.9℃ 仍按 Q10 给出约 12 分钟的确定值；现 >40℃ 一律不给时间并说明模型不再适用。默认 24℃ 正常出值，不命中。"
 }
 
 ];

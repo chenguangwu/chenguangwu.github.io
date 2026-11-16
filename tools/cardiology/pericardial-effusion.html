@@ -196,14 +196,14 @@
 <h2>📚 深度解析：心包积液(大小)定量器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>积液量分级：超声按舒张期液性暗区最大宽度，少量（&lt;10 mm）、中量（10–20 mm）、大量（&gt;20 mm 或心包腔填塞征象）估量。</li>
+<li>积液量分级（本工具口径）：超声舒张期液性暗区最大宽度 &lt;10mm 微量、10–20mm 少量、20–30mm 中量、30–40mm 大量、&gt;40mm 极大量。</li>
 <li>心脏压塞征象：伴低血压、颈静脉怒张、奇脉、心动过速提示填塞，属急症需引流。</li>
 <li>病因与随访：感染后、肿瘤、结核、甲减、自身免疫或术后积液，量随病因与流速变化，需动态复查。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">默认数据演练（心包积液定量评估）</div><div class="dd-ex-body">输入：舒张期液性暗区最大宽度 14 mm、无低血压、颈静脉不怒张、奇脉阴性、病因 病毒性。工具输出：量 中量（10–20 mm）、压塞征象 无、建议 随访超声 + 治病因、警戒 出现低血压/喘憋立即就诊。提示：积液增速比静态量更危险。</div></div>
+<div class="dd-example"><div class="dd-ex-title">默认数据演练（14mm 少量积液）</div><div class="dd-ex-body">输入：舒张期液性暗区最大宽度 14 mm、无低血压/颈静脉怒张/奇脉。工具输出：少量（100–500mL）、无心包填塞征象、门诊随访并治疗病因；出现低血压或喘憋立即就诊。提示：积液增速比静态量更危险。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>积液多少算大量？</dt><dd>常用超声舒张期最大液宽：&lt;10 mm 少量、10–20 mm 中量、&gt;20 mm 或见心脏摆动/腔静脉扩张为大量；但更关键是有无填塞征象，少量若急速增多也可危急。</dd>
+<dt>积液多少算大量？</dt><dd>本工具按舒张期最大液宽分五档：&lt;10mm 微量、10–20mm 少量、20–30mm 中量、30–40mm 大量、&gt;40mm 极大量；但更关键是有无填塞征象，少量若急速增多也可危急。</dd>
 <dt>什么是心脏压塞？</dt><dd>积液短期内增多致心包内压升高、心室充盈受限，出现低血压、颈静脉怒张、奇脉、心动过速，属急症，需紧急心包穿刺引流，拖延可骤停。</dd>
 <dt>都要穿刺吗？</dt><dd>不必。少量无症状、病因明确（如病毒、甲减）多观察与治因；大量或有填塞、化脓性/结核性者才引流。是否及何时操作由心内科/超声介入评估。</dd>
 </dl>
@@ -257,7 +257,15 @@ function calc(){
     return;
   }
   var dist=document.getElementById('distribution').value;
-  var depth=parseFloat(document.getElementById('depth').value)||0;
+  var depth=parseFloat(document.getElementById('depth').value);
+  if(!isFinite(depth) || depth<0){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-error tb-guard">最大深度须为不小于 0 的数值（mm）。</div>';
+    return;
+  }
+  if(depth===0){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-info tb-guard">最大深度 0 mm：未见心包积液（未检出液性暗区）。若确有积液请重新测量最大深度后再评估。</div>';
+    return;
+  }
 
   var raCollapse=document.getElementById('raCollapse').checked;
   var rvCollapse=document.getElementById('rvCollapse').checked;
@@ -271,9 +279,9 @@ function calc(){
   // 积液定量
   var grade,gradeColor,volume,gradeDesc;
   if(depth<10){grade='微量';gradeColor='#10B981';volume='50–100mL';gradeDesc='少量生理性或病理性积液';}
-  else if(depth<20){grade='少量';gradeColor='#8BC34A';volume='100–500mL';gradeDesc='后方液性暗区为主';}
-  else if(depth<30){grade='中量';gradeColor='#F59E0B';volume='500–1000mL';gradeDesc='前后方均有积液';}
-  else if(depth<40){grade='大量';gradeColor='#EF4444';volume='1000–2000mL';gradeDesc='心脏摆动，胸腔受压';}
+  else if(depth<=20){grade='少量';gradeColor='#8BC34A';volume='100–500mL';gradeDesc='后方液性暗区为主';}
+  else if(depth<=30){grade='中量';gradeColor='#F59E0B';volume='500–1000mL';gradeDesc='前后方均有积液';}
+  else if(depth<=40){grade='大量';gradeColor='#EF4444';volume='1000–2000mL';gradeDesc='心脏摆动，胸腔受压';}
   else{grade='极大量';gradeColor='#EF4444';volume='>2000mL';gradeDesc='显著心脏摆动';}
 
   // 局限性积液调整
@@ -539,8 +547,8 @@ function __pericardial_effusionExport(){
 function __pericardial_effusionPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#pericardial_effusionPresets',[{label:'默认参数',labelEn:'Default',values:{'distribution':'circum', 'depth':'22'}},
-  {"label":"少量局限性积液","labelEn":"Small local","values":{"distribution":"local","depth":"8","raCollapse":false,"rvCollapse":false,"ivc":false,"respVar":false,"hypotension":false,"jvd":false,"muffled":false,"pulsus":false}},
-  {"label":"中量环形积液","labelEn":"Moderate circum","values":{"distribution":"circum","depth":"18","raCollapse":true,"rvCollapse":false,"ivc":true,"respVar":false,"hypotension":false,"jvd":true,"muffled":true,"pulsus":false}},
+  {"label":"微量局限性积液","labelEn":"Trace local","values":{"distribution":"local","depth":"8","raCollapse":false,"rvCollapse":false,"ivc":false,"respVar":false,"hypotension":false,"jvd":false,"muffled":false,"pulsus":false}},
+  {"label":"少量环形积液","labelEn":"Small circumferential","values":{"distribution":"circum","depth":"18","raCollapse":true,"rvCollapse":false,"ivc":true,"respVar":false,"hypotension":false,"jvd":true,"muffled":true,"pulsus":false}},
   {"label":"大量急性压塞","labelEn":"Massive tamponade","values":{"distribution":"circum","depth":"30","raCollapse":true,"rvCollapse":true,"ivc":true,"respVar":true,"hypotension":true,"jvd":true,"muffled":true,"pulsus":true}}],function(){ calc(); });
 }
 var __pericardial_effusion_f0=(typeof calc==='function')?calc:null;

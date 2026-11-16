@@ -113,7 +113,7 @@
     
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">独立样本 t 检验（合并方差）：s_p² = [(n₁−1)s₁² + (n₂−1)s₂²] ÷ (n₁+n₂−2)；t = (m₁−m₂) ÷ √(s_p²×(1÷n₁ + 1÷n₂))；df = n₁+n₂−2；双侧 p 由不完全 Beta 函数 betai(df/2, 0.5, df ÷ (df+t²)) 精确求值。校验：6 项非空守卫，另提示卡要求 n≥2 且 s&gt;0。判据（提示卡）：两标准差之比 &gt;2 建议 Welch 校正（附 Welch t 与 dfw）、n&lt;15 提示样本偏小，并给效应量 Cohen d = (m₁−m₂) ÷ s_p。</div>
+      <div class="formula-eq">独立样本 t 检验（合并方差）：s_p² = [(n₁−1)s₁² + (n₂−1)s₂²] ÷ (n₁+n₂−2)；t = (m₁−m₂) ÷ √(s_p²×(1÷n₁ + 1÷n₂))；df = n₁+n₂−2；双侧 p 由不完全 Beta 函数 betai(df/2, 0.5, df ÷ (df+t²)) 精确求值。校验：6 项非空守卫；主算强制 n₁、n₂ 为 ≥2 的整数且 s₁、s₂&gt;0，不满足时停算并清空图表/明细/差异/历史；数据表的 t 统计量与自由度跟主算同源（均为合并方差口径），不再用 Welch 分母。判据（提示卡）：两标准差之比 &gt;2 建议 Welch 校正（附 Welch t 与 dfw）、n&lt;15 提示样本偏小，并给效应量 Cohen d = (m₁−m₂) ÷ s_p。</div>
       <div class="formula-desc">独立双样本 t 统计量用两组均值之差除以合并标准误，衡量两组总体均值是否有显著差异。合并方差 s_p² 按两组样本量加权平均，自由度 df = n₁ + n₂ − 2。|t| 越大，越倾向拒绝「两组均值相等」的原假设。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="两独立组均值比较，假定方差齐性。">Enter two independent samples (means, standard deviations and sizes) to compute the t value and p value and test whether the two population means differ significantly.</p>
@@ -334,6 +334,11 @@ function betai(a,b,x){if(x<=0)return 0; if(x>=1)return 1;
   if(x<(a+1)/(a+b+2)) return bt*betacf(a,b,x)/a; return 1-bt*betacf(b,a,1-x)/b;}
 
             const a=num('m1'),b=num('m2'),s1=num('s1'),s2=num('s2'),n1=num('n1'),n2=num('n2');
+            if(!(n1>=2&&n2>=2)||Math.abs(n1-Math.round(n1))>1e-9||Math.abs(n2-Math.round(n2))>1e-9||!(s1>0)||!(s2>0)){
+              __itClear();
+              ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 两组样本量必须是 ≥2 的整数，且两组标准差必须大于 0；否则合并方差与 t 检验无定义。</p>');
+              return;
+            }
             const sp2=((n1-1)*s1*s1+(n2-1)*s2*s2)/(n1+n2-2);
             const t=(a-b)/Math.sqrt(sp2*(1/n1+1/n2));
             const df=n1+n2-2;
@@ -358,11 +363,16 @@ function __itExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#itTable', 'independent-t-test.csv'); } catch (e) {}
 }
+function __itClear(){
+  var ids=['itChart','itTable','itDiff','itHist'];
+  for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}
+}
 function __itExtras(){
-    if (typeof TBKit === 'undefined') return;
+    if (typeof TBKit === 'undefined'){__itClear();return;}
     var m1=__itNum('m1'),m2=__itNum('m2'),s1=__itNum('s1'),s2=__itNum('s2'),n1=__itNum('n1'),n2=__itNum('n2');
-    if(!isFinite(m1)||!isFinite(m2)||!isFinite(s1)||!isFinite(s2)||!isFinite(n1)||!isFinite(n2)||n1<2||n2<2) return;
-    var se=Math.sqrt(s1*s1/n1+s2*s2/n2), t=(m1-m2)/se, df=n1+n2-2;
+    if(!isFinite(m1)||!isFinite(m2)||!isFinite(s1)||!isFinite(s2)||!isFinite(n1)||!isFinite(n2)||n1<2||n2<2||!(s1>0)||!(s2>0)||Math.abs(n1-Math.round(n1))>1e-9||Math.abs(n2-Math.round(n2))>1e-9){__itClear();return;}
+    var sp2=((n1-1)*s1*s1+(n2-1)*s2*s2)/(n1+n2-2);
+    var se=Math.sqrt(sp2*(1/n1+1/n2)), t=(m1-m2)/se, df=n1+n2-2;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#itTable',{
         head: en?['Metric','Group 1','Group 2','Diff / Combined']:['指标','组 1','组 2','差异 / 合并'],
@@ -449,8 +459,12 @@ else document.addEventListener("DOMContentLoaded", __itBoot);
 <script>
 function __itChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var m1=num('m1'),m2=num('m2'),s1=num('s1'),s2=num('s2');
-  if(!isFinite(m1)||!isFinite(m2)||!isFinite(s1)||!isFinite(s2)||s1<=0||s2<=0)return;
+  var m1=num('m1'),m2=num('m2'),s1=num('s1'),s2=num('s2'),n1=num('n1'),n2=num('n2');
+  // 与主算前提同源：n1/n2 非法时主算已停答并清空，参考曲线不得再画一组看似有效的 |t|
+  if(!isFinite(m1)||!isFinite(m2)||!isFinite(s1)||!isFinite(s2)||s1<=0||s2<=0||
+     !(n1>=2)||!(n2>=2)||Math.abs(n1-Math.round(n1))>1e-9||Math.abs(n2-Math.round(n2))>1e-9){
+    var __c=document.getElementById('itChart');if(__c)__c.innerHTML='';return;
+  }
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   var labels=[],data=[];
   [5,10,20,40,80,160].forEach(function(k){

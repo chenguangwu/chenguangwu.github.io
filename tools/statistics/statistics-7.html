@@ -324,6 +324,17 @@ function __skStats(arr){ var n=arr.length,m=0,i; for(i=0;i<n;i++)m+=arr[i]; m/=n
     return {n:n,mean:m,sd:sd,skew:sd>0?m3/Math.pow(m2,1.5):0,kurt:sd>0?m4/(m2*m2)-3:0}; }
 function __skExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#skTable','skewness-kurtosis-detail.csv');}catch(e){} }
 function __skExtras(){
+    // SMS-54：常数序列 m₂=0 ⇒ 偏度/峰度无定义，判定卡不得用 0 兜底回答形态问题
+    var __skArr0=__skVals();
+    if(__skArr0.length>=4){
+        var __skSt0=__skStats(__skArr0);
+        if(!(__skSt0.sd>0)){
+            __skVerdict(__skL('Variance is zero; skewness and kurtosis are undefined for a constant series, so no distribution shape can be inferred.','方差为 0，偏度/峰度无定义（常数序列），不能据此判断分布形态。'));
+            var __skIds=['skChart','skTable','skDiff'];
+            for(var __skQ=0;__skQ<__skIds.length;__skQ++){var __skE=document.getElementById(__skIds[__skQ]);if(__skE)__skE.innerHTML='';}
+            return;
+        }
+    }
     if(typeof TBKit==='undefined')return;
     try{
         var arr=__skVals(); if(arr.length<4)return;

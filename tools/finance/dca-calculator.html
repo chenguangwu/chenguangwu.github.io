@@ -387,7 +387,14 @@ function __dcaSyncTiming(){
 }
 
 function calcMonthlyData(){
-    var __ig=__tbInputGuard(['monthly', 'years', 'rate', 'initial'],["每月定投金额(元)", "定投年限", "预期年化收益率(%)", "初始本金(元)"]);if(__ig){const __g2=__ig;ToolBox.setResult("res",(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));return;}
+    var __ig=__tbInputGuard(['monthly', 'years', 'rate', 'initial'],["每月定投金额(元)", "定投年限", "预期年化收益率(%)", "初始本金(元)"]);if(__ig){
+      // 第157批：拒绝态必须停算并清所有结果载体，防上一次成功计算的统计卡/图表/明细表/期数旧结果复活。
+      var __cids=['statGrid','tableWrap','dca_calculatorTable','dca_calculatorDiff','dca_calculatorChart','dca_calculatorHist'];
+      for(var __ci=0;__ci<__cids.length;__ci++){var __ce=document.getElementById(__cids[__ci]);if(__ce)__ce.innerHTML='';}
+      var __tm=document.getElementById('totalMonths');if(__tm)__tm.textContent='';
+      var __rs=document.getElementById('res');if(__rs)__rs.innerHTML='';
+      try{var __cv=document.getElementById('chart');if(__cv&&__cv.getContext){var __cx=__cv.getContext('2d');if(__cx&&__cx.clearRect)__cx.clearRect(0,0,__cv.width||0,__cv.height||0);}}catch(e){}
+      const __g2=__ig;ToolBox.setResult("res",(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));return;}
 var monthly = +document.getElementById('monthly').value || 0;
   var years = Math.max(1, Math.min(50, Math.floor(+document.getElementById('years').value || 0)));
   var annualRate = +document.getElementById('rate').value || 0;
@@ -787,9 +794,26 @@ function __dca_calculatorFullResText(){
     return t;
 }
 function __dca_calculatorScore(t){
-    var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|请填写|填写|Waiting|required/i.test(s)) return 0;
-    return 1;
+    var __fs=String(t||'');
+    // 兼容第42–44批复核用例（必填提示位于 80 字摘要之后）：只认结论级短语，
+    // 不认正常英文标签 "Required annualized return:"（第157批 FN189 误判源）。
+    if(/❌|校验失败|含非法字符|请填写「|后再计算|格式不符|长度必须|不能为 0|不能全为 0|年龄顺序无效|校验和失败|mod-97 校验失败|Luhn 校验失败|Waiting|Please enter|must be/.test(__fs)) return 0;
+    // 第157批：按 __tbInputGuardCore 的真实业务边界判定，不解析全文关键词。
+    // 旧词表含 /required/i，把正常英文结果标签 "Required annualized return:" 误记为未通过；
+    // 而「「monthly」是本计算的分母，不能为 0」拒绝态不含失败词 ⇒ 被误记为通过。
+    // 「目标超出可反推范围」警告是有效计算结果的补充，不得当成计算失败。
+    var ids=['monthly','years','rate','initial'],nums=[];
+    for(var i=0;i<ids.length;i++){
+        var e=document.getElementById(ids[i]);
+        var raw=e?String(e.value==null?'':e.value).trim():'';
+        if(raw===''||!isFinite(parseFloat(raw))) return 0;   // 必填缺失/非数字 → 拒绝
+        nums.push(parseFloat(raw));
+    }
+    if(parseFloat(document.getElementById('monthly').value)===0) return 0;   // 分母为 0 → 拒绝
+    var allZero=true;
+    for(var j=0;j<nums.length;j++){ if(nums[j]!==0){ allZero=false; break; } }
+    if(allZero) return 0;                                     // 输入全 0 → 拒绝
+    return 1;                                                 // 正常求解（含英文标签与超范围警告）记通过
 }
 function __dca_calculatorTime(t){
     var d=new Date(t);

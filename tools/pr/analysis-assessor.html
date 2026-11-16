@@ -189,23 +189,25 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
+function __esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function calc(){
 var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
-var rows=[];
+var rows=[],bad=[];
 for(var i=0;i<lines.length;i++){
   var p=lines[i].split(/[,，\t ]+/);
-  if(p.length<3) continue;
+  if(p.length<3){bad.push(i+1);continue;}
   var nm=p[0],val=parseFloat(p[1]),cost=parseFloat(p[2]);
-  if(isNaN(val)||isNaN(cost)) continue;
+  if(isNaN(val)||isNaN(cost)||val<0||cost<0){bad.push(i+1);continue;}
   rows.push({n:nm,v:val,c:cost});
 }
 if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「权益项,媒体估值,实际投入」数据</p>";return;}
 var tv=0,tc=0;
 rows.forEach(function(r){tv+=r.v;tc+=r.c;});
-var roi=tc>0?(tv-tc)/tc*100:0;
+if(tc<=0){document.getElementById("res").innerHTML="<p>投入合计需大于 0，无法计算 ROI。</p>";return;}
+var roi=(tv-tc)/tc*100;
 var tb="";
 rows.forEach(function(r){
-  tb+="<tr><td>"+r.n+"</td><td>"+r.v.toFixed(2)+"</td><td>"+r.c.toFixed(2)+"</td><td>"+(r.c>0?((r.v-r.c)/r.c*100).toFixed(2):"0.00")+"%</td></tr>";
+  tb+="<tr><td>"+__esc(r.n)+"</td><td>"+r.v.toFixed(2)+"</td><td>"+r.c.toFixed(2)+"</td><td>"+(r.c>0?((r.v-r.c)/r.c*100).toFixed(2):"0.00")+"%</td></tr>";
 });
 var best=rows.slice().sort(function(a,b){return b.v-a.v;})[0];
 var judge=roi>=100?"高回报":(roi>=50?"回报良好":(roi>=0?"基本回本":"未回本"));
@@ -214,8 +216,9 @@ h+="<p>媒体价值合计：<strong>"+tv.toFixed(2)+"</strong></p>";
 h+="<p>投入合计：<strong>"+tc.toFixed(2)+"</strong></p>";
 h+="<p>净回报额：<strong>"+(tv-tc).toFixed(2)+"</strong></p>";
 h+="<p>赞助 ROI：<strong>"+roi.toFixed(2)+"%</strong></p>";
-h+="<p>价值最高权益：<strong>"+best.n+"</strong></p>";
+h+="<p>价值最高权益：<strong>"+__esc(best.n)+"</strong></p>";
 h+="<p>回报判定：<strong>"+judge+"</strong></p>";
+if(bad.length){h+="<p style='color:var(--danger)'>第 "+bad.join("、")+" 行数据无效，已跳过（每行需为「权益项,媒体估值,实际投入」，后两列为非负数字）。</p>";}
 h+="<table><thead><tr><th>权益项</th><th>媒体估值</th><th>实际投入</th><th>单项 ROI</th></tr></thead><tbody>"+tb+"</tbody></table>";
 h+="<p style='font-size:12px;color:var(--text-muted);margin-top:8px;'>赞助 ROI = (媒体价值合计 − 投入合计) ÷ 投入合计 × 100%，衡量赞助投入的媒体回报水平。</p>";
 const __g2=h;document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));

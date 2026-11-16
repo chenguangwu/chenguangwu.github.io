@@ -507,7 +507,7 @@ function calc(){
 
   const __g4=`
     <div class="stat-card"><div class="val" style="color:${npvColor};">${fmt(npv)}</div><div class="lbl">NPV 净现值</div></div>
-    <div class="stat-card"><div class="val" style="color:${irrColor};">${irr !== null ? fmtPct(irr) : (irrInfo.status === 'multiple' ? '多根' : irrInfo.status === 'uncertain' ? '无法确定' : '无解')}</div><div class="lbl">IRR 内部收益率</div></div>
+    <div class="stat-card"><div class="val" style="color:${irrColor};">${irr !== null ? fmtPct(irr) : (irrInfo.status === 'multiple' ? '多根' : irrInfo.status === 'uncertain' ? '无法确定' : '范围内未找到')}</div><div class="lbl">IRR 内部收益率</div></div>
     <div class="stat-card"><div class="val" style="color:${piColor};">${pi.toFixed(3)}</div><div class="lbl">PI 获利指数</div></div>
     <div class="stat-card"><div class="val">${paybackYear>=0 ? (paybackYear+paybackFrac).toFixed(2)+'期' : '未回收'}</div><div class="lbl">投资回收期</div></div>
     <div class="stat-card"><div class="val">${fmt(init)}</div><div class="lbl">初始投资</div></div>
@@ -530,11 +530,11 @@ function calc(){
   if(irr !== null){
     detailHtml += `<span>IRR ${irr>=r?'≥':'<'} 折现率：<strong style="color:${irrColor};">${irr>=r?'✓ 可行':'✗ 不可行'}</strong></span>`;
   } else if(irrInfo.status === 'multiple'){
-    detailHtml += `<span>IRR：<strong style="color:var(--danger);">✗ 存在多个根（${irrInfo.rates.map(fmtPct).join('、')}），无唯一解，不可行</strong></span>`;
+    detailHtml += `<span>IRR：<strong style="color:#ff9800;">⚠ 存在多个根（${irrInfo.rates.map(fmtPct).join('、')}），单一 IRR 判据不适用，请改用 NPV / PI 判断可行性</strong></span>`;
   } else if(irrInfo.status === 'uncertain'){
     detailHtml += `<span>IRR：<strong style="color:var(--danger);">无法确定（现金流过长或数值精度不足），请用专业工具复核</strong></span>`;
   } else {
-    detailHtml += `<span>IRR：<strong style="color:var(--danger);">✗ 无解（现金流同号或在 −99.99% 至 100000% 范围内无零点），不可行</strong></span>`;
+    detailHtml += `<span>IRR：<strong style="color:#ff9800;">⚠ 在 −99.99% 至 100000% 搜索范围内未找到零点（或现金流同号）；不能据此断定无实根，请改用 NPV / PI 判断可行性</strong></span>`;
   }
   detailHtml += `<span>PI ${pi>=1?'≥':'<'} 1：<strong style="color:${piColor};">${pi>=1?'✓ 可行':'✗ 不可行'}</strong></span>`;
   detailHtml += `<span style="width:100%;color:var(--text-dim);">明细按实际折现率 ${fmtPct(r)} 计算。</span>`;
@@ -739,8 +739,16 @@ function __npv_calculatorResText(){
     return t.slice(0,80);
 }
 function __npv_calculatorScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    var __fs=String(t||'');
+    // 兼容结论级短语；多根/范围内未找到的 ⚠ 提示不含这些短语，仍按业务输入判定为有效计算（记 1）。
+    if(/❌|校验失败|含非法字符|请填写「|后再计算|格式不符|长度必须|不能为 0|不能全为 0|年龄顺序无效|校验和失败|mod-97 校验失败|Luhn 校验失败|Waiting|Please enter|must be/.test(__fs)) return 0;
+    // 第156批：calcIRR 的多根 / uncertain / none 都只说明「单一 IRR 判据不适用或范围内未找到」，
+    // 不能据此断言项目不可行；也不能用全文关键词（⚠/❌/无效）把正 NPV 的有效结论记为未通过。
+    // 本页 Score 只表示本次计算是否成功完成：初始投资 >0 且折现率 > -100%（与 calc() 拒绝边界一致）。
+    var init=parseFloat(document.getElementById('init').value);
+    var rate=parseFloat(document.getElementById('rate').value);
+    if(!isFinite(init)||init<=0) return 0;
+    if(!isFinite(rate)||rate<=-100) return 0;
     return 1;
 }
 function __npv_calculatorTime(t){

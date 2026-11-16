@@ -59,6 +59,22 @@ const CASES = [
   "ref": "（推翻 auto-restore）关键词过滤型页：render() 读 #keyword 后对 DATA 做顺序保持型过滤，命中项依次 appendChild 进 #list，collectStrings 采集其 innerHTML（标签→空格）⇒ 过滤态的「相邻条目」串可被断言。注入关键词「数字」⇒ 只有 SUM / AVERAGE / TEXT 命中（三处 syntax 含「数字」），于是 AVERAGE 与 TEXT 在全表中间隔 IF、VLOOKUP、INDEX、MATCH、SUMIFS、COUNTIFS 六项，在过滤态却紧邻 ⇒ 锚跨边界串「求平均值。 TEXT 分类：文本」（默认全量渲染下 AVERAGE 之后是 IF，故默认态必失配）。另一条锚「分类：统计 =AVERAGE(...) 求平均值。 TEXT」同属该边界。已实测排除的逃生项候选：`=TEXT(数字,\"0.00\")` 与 `TEXT 分类：文本 =TEXT(数字,\"0.00\") 数字转文本与格式控制。` —— 二者整段是 TEXT 条目自身的渲染结果，默认全量渲染里同样 contiguous ⇒ 判别力 0（BATCH110①「锚不得成为默认态某串的子串」）。"
 },
 {
+  "slug": "office/excel-formula-reference",
+  "clicks": [
+    "document.getElementById('keyword').value='SUM';render();var got='';window.TBKit={util:{isEn:function(){return false;},exportTable:function(sel,name){got=String(sel)+'|'+String(name);}}};__excel_formula_referenceExport();delete window.TBKit;document.getElementById('__tbProbe').textContent='XFE '+((got.indexOf('#xfrHidden')>=0&&got.indexOf('excel-formula-reference.csv')>=0)?'OK':'BAD');"
+  ],
+  "expect": ["XFE OK"],
+  "ref": "导出目标：旧实现导出历史表 #excel_formula_referenceTable（无历史时为空表）；现按当前关键词过滤 DATA，临时建 #xfrHidden 表导出，文件名不变。"
+},
+{
+  "slug": "office/excel-formula-reference",
+  "clicks": [
+    "document.getElementById('keyword').value='zzz';render();var called=false;window.TBKit={util:{isEn:function(){return false;},exportTable:function(){called=true;}}};var msg='';var oldT=ToolBox.showToast;ToolBox.showToast=function(m){msg=String(m);};__excel_formula_referenceExport();ToolBox.showToast=oldT;delete window.TBKit;document.getElementById('__tbProbe').textContent='XFE2 '+((!called&&msg.indexOf('没有可导出的公式')>=0)?'OK':'BAD');"
+  ],
+  "expect": ["XFE2 OK"],
+  "ref": "无匹配：旧实现会生成空的历史表并导出空 CSV；现提示「当前筛选没有可导出的公式」且不调用导出。"
+},
+{
   // 降级渲染（CDN 被墙 / 离线）：库缺失分支不再只留一句报错，而是把 Markdown 渲染成
   // 嵌套 <ul>，并绑定 input 实时刷新 ⇒ 注入 editor 后可在桩内断言真实产出。
   "slug": "office/mindmap",

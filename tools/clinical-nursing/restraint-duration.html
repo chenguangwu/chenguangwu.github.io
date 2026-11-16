@@ -130,7 +130,7 @@
       </div>
       <div>
         <label>计划持续约束 (小时)</label>
-        <input type="number" id="totalHours" value="4" min="1" max="24" oninput="calc()" placeholder="如 4（1–24 小时）">
+        <input type="number" id="totalHours" value="4" min="1" max="24" step="0.5" oninput="calc()" placeholder="如 4（1–24 小时，可含小数）">
       </div>
     </div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__restraint_durationExport()">导出明细 CSV</button></div>
@@ -187,11 +187,11 @@
 <h2>📚 深度解析：约束用具使用时长(松解周期)计算器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>每 2h 松解 15min。</li>
+<li>每 2h 松解 15min（松解时长不叠加进间隔）。</li>
 <li>每日医嘱续开并复评。</li>
 <li>指征解除即撤。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核约束 4h 松解计划</div><div class="dd-ex-body">输入累计 4h，工具给第 2h、4h 各松解一次，与规范一致。</div></div>
+<div class="dd-example"><div class="dd-ex-title">复核约束 4h 松解计划</div><div class="dd-ex-body">输入 08:00 起累计 4h、每 2h 松解 15min：工具排 10:00 松解、约 10:15 重新约束，12:00 结束前再评估；松解占用的 15 分钟不会把下一次松解推后。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>能替代医嘱？</dt><dd>不能。</dd>
@@ -261,10 +261,16 @@ function selectType(type, btn){
 function calc(){
   var cfg = typeConfig[currentType];
   var startStr = document.getElementById('startTime').value;
-  var totalHours = parseInt(document.getElementById('totalHours').value) || 1;
+  var totalHours = parseFloat(document.getElementById('totalHours').value);
   
   const __g1=cfg.interval + 'h';document.getElementById('loosenInterval').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=cfg.desc;document.getElementById('intervalDesc').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  
+  if(!isFinite(totalHours) || totalHours < 1 || totalHours > 24){
+    document.getElementById('schedule').innerHTML = '<div class="schedule-item" style="border-color:var(--danger);"><span class="time">!</span><span class="action">请输入 1–24 小时的约束总时长（可含小数，如 2.5）；超过 24 小时应复评约束必要性并按机构规范分日排程。</span></div>';
+    try { if (typeof __restraintEmr === 'function') { __restraintEmr(); } } catch (e) {}
+    return;
+  }
   
   var start = new Date();
   var parts = startStr.split(':');
@@ -273,17 +279,17 @@ function calc(){
   var endTime = new Date(start.getTime() + totalHours * 3600000);
   
   var scheduleHtml = '';
-  var current = new Date(start);
   var count = 0;
-  while(current < endTime && count < 24){
-    var loosenTime = new Date(current.getTime() + cfg.interval * 3600000);
-    if(loosenTime > endTime) loosenTime = endTime;
-    
-    var timeStr = formatTime(loosenTime);
-    scheduleHtml += '<div class="schedule-item"><span class="time">' + timeStr + '</span><span class="action">松解约束 ' + cfg.duration + '分钟，评估皮肤及血运</span></div>';
-    
-    current = new Date(loosenTime.getTime() + cfg.duration * 60000);
+  // 松解时间点 = 开始时间 + 间隔 × n；松解时长只影响本轮恢复约束的时刻，不推进下一次间隔
+  for(var n = 1; n <= 48; n++){
+    var loosenTime = new Date(start.getTime() + n * cfg.interval * 3600000);
+    if(loosenTime >= endTime) break;
+    var resumeTime = new Date(loosenTime.getTime() + cfg.duration * 60000);
+    scheduleHtml += '<div class="schedule-item"><span class="time">' + formatTime(loosenTime) + '</span><span class="action">松解约束 ' + cfg.duration + '分钟，评估皮肤及血运（约 ' + formatTime(resumeTime) + ' 重新约束）</span></div>';
     count++;
+  }
+  if(count === 0){
+    scheduleHtml += '<div class="schedule-item"><span class="time">—</span><span class="action">总时长短于松解间隔，期间无需定时松解；结束前评估皮肤与末梢血运。</span></div>';
   }
   scheduleHtml += '<div class="schedule-item" style="border-color:var(--primary);"><span class="time">' + formatTime(endTime) + '</span><span class="action">约束结束，评估是否继续约束</span></div>';
   
@@ -328,15 +334,16 @@ function __restraintEmr(){
   var cfg=typeConfig[currentType];
   var tpMap={wrist:['手腕约束','Wrist restraint'],chest:['胸衣约束','Vest restraint'],mitten:['约束手套','Mitten restraint'],belt:['肩部约束','Shoulder restraint']};
   var tpL=tpMap[currentType]||[cfg.name,cfg.name];
-  var totalEl=document.getElementById('totalHours'); var total=totalEl?(parseInt(totalEl.value)||1):1;
+  var totalEl=document.getElementById('totalHours'); var totalRaw=totalEl?totalEl.value:''; var total=parseFloat(totalRaw);
+  var totalTxt=isFinite(total)?String(total):'未填写';
   var sch=document.getElementById('schedule'); var html=sch?sch.innerHTML:'';
   var cnt=(html.match(/松解约束/g)||[]).length;
   __emrNote({
     boxId:'result',
     name:'约束松解计划',
     nameEn:'Restraint release plan',
-    result:(en?('Restraint type: '+tpL[1]+' · Loosen interval: every '+cfg.interval+' hours · Each release: '+cfg.duration+' min · Total restraint: '+total+' hours · Planned releases: '+cnt):('约束类型：'+tpL[0]+' · 松解间隔：每 '+cfg.interval+' 小时 · 每次松解：'+cfg.duration+' 分钟 · 约束总时长：'+total+' 小时 · 计划松解 '+cnt+' 次')),
-    resultEn:(en?('Restraint type: '+tpL[1]+' · Loosen interval: every '+cfg.interval+' hours · Each release: '+cfg.duration+' min · Total restraint: '+total+' hours · Planned releases: '+cnt):('约束类型：'+tpL[0]+' · 松解间隔：每 '+cfg.interval+' 小时 · 每次松解：'+cfg.duration+' 分钟 · 约束总时长：'+total+' 小时 · 计划松解 '+cnt+' 次')),
+    result:(en?('Restraint type: '+tpL[1]+' · Loosen interval: every '+cfg.interval+' hours · Each release: '+cfg.duration+' min · Total restraint: '+totalTxt+' hours · Planned releases: '+cnt):('约束类型：'+tpL[0]+' · 松解间隔：每 '+cfg.interval+' 小时 · 每次松解：'+cfg.duration+' 分钟 · 约束总时长：'+totalTxt+' 小时 · 计划松解 '+cnt+' 次')),
+    resultEn:(en?('Restraint type: '+tpL[1]+' · Loosen interval: every '+cfg.interval+' hours · Each release: '+cfg.duration+' min · Total restraint: '+totalTxt+' hours · Planned releases: '+cnt):('约束类型：'+tpL[0]+' · 松解间隔：每 '+cfg.interval+' 小时 · 每次松解：'+cfg.duration+' 分钟 · 约束总时长：'+totalTxt+' 小时 · 计划松解 '+cnt+' 次')),
     noPos:true,
     hintZh:'约束病人须按规范定时松解并评估皮肤、末梢血运与肢体活动度，记录松解起止时间；出现皮肤发红、苍白或麻木应立即处理，约束时长与必要性应持续再评估。',
     hintEn:'Restrained patients require scheduled release with skin, distal perfusion and limb-mobility assessment, and release timing should be recorded. Address redness, pallor or numbness promptly and reassess the need for continued restraint.'

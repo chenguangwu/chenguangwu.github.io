@@ -307,7 +307,7 @@ var MAINT_TYPES = [
 
 function getElevator(id){ return elevators.find(function(e){return e.id===id;}); }
 function latestLog(el, type){
-  var recs = el.logs.filter(function(l){return l.type===type;});
+  var recs = el.logs.filter(function(l){ return l.type===type && parseDate(l.date) && parseDate(l.date) <= today(); });
   if(!recs.length) return null;
   return recs.reduce(function(a,b){ return parseDate(a.date) >= parseDate(b.date) ? a : b; });
 }
@@ -374,6 +374,10 @@ function addLog(elId){
   var findings = document.getElementById('logFind_'+elId).value.trim();
   var parts = document.getElementById('logParts_'+elId).value.trim();
   if(!date){ ToolBox.showToast(i18nText(), 'error'); return; }
+  var ld = parseDate(date), inst = parseDate(el.installDate);
+  if(!ld){ ToolBox.showToast('维保日期格式无效','error'); return; }
+  if(inst && ld < inst){ ToolBox.showToast('维保日期不能早于安装日期 '+el.installDate,'error'); return; }
+  if(ld > today()){ ToolBox.showToast('维保日期不能晚于今天','error'); return; }
   el.logs.push({ id:uid(), type:type, date:date, technician:tech, findings:findings, parts:parts });
   save(); render();
   ToolBox.showToast(i18nText());

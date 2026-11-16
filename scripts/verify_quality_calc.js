@@ -45,16 +45,103 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "quality/six-sigma",
+  "slug": "quality/process-capability",
   "inputs": {
-    "dpmo": "6210",
-    "yield": "99.379",
-    "st": "7"
+    "usl2": "10.5",
+    "lsl2": "9.5",
+    "dataInput": "10.1, 9.9, 10.0, 10.2, 9.8"
+  },
+  "clicks": [
+    "document.getElementById('tab-manual').classList.remove('active');document.getElementById('tab-data').classList.add('active');calc();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='PC71 '+((t.indexOf('Cpk 实际能力')>=0&&t.indexOf('请填写')<0)?'OK':'BAD');"
+  ],
+  "expect": [
+    "PC71 OK"
+  ],
+  "ref": "数据模式只校验当前页签：旧守卫把隐藏的手工档 usl/lsl/mean/sigma 也列为必填，数据页在手工档为空时直接报「请填写过程均值」；现按 tab-data 只校验 usl2/lsl2/dataInput。"
+},
+{
+  "slug": "quality/process-capability",
+  "inputs": {
+    "usl": "10",
+    "lsl": "10.5",
+    "mean": "10",
+    "sigma": "0.1"
   },
   "expect": [
-    "3.4008"
+    "USL 必须大于 LSL"
   ],
-  "ref": "auto-restore"
+  "ref": "规格限颠倒：旧实现照算 Cp=-0.83、Cpk=-1.67 并给「能力不足」；现 USL≤LSL 直接拦截。默认 13.5/9.5 合法，不命中。"
+},
+{
+  "slug": "quality/process-capability",
+  "inputs": {
+    "usl2": "10.5",
+    "lsl2": "9.5",
+    "dataInput": "10.1, abc, 9.9, 10.0"
+  },
+  "clicks": [
+    "document.getElementById('tab-manual').classList.remove('active');document.getElementById('tab-data').classList.add('active');calc();"
+  ],
+  "expect": [
+    "无法解析的片段"
+  ],
+  "ref": "样本含非法片段：旧 parseData 静默丢词后按 3 个数出结果；现列出「abc」等无法解析片段并停止计算。"
+},
+{
+  "slug": "quality/process-capability",
+  "inputs": {
+    "usl": "13.5",
+    "lsl": "9.5",
+    "mean": "10.0",
+    "sigma": "0.1",
+    "usl2": "10.5",
+    "lsl2": "9.5",
+    "dataInput": "10.1, 9.9, 10.0, 10.2, 9.8"
+  },
+  "clicks": [
+    "document.getElementById('tab-manual').classList.remove('active');document.getElementById('tab-data').classList.add('active');var got='';var old=ToolBox.copyText;ToolBox.copyText=function(t){got=String(t);};try{copyResult();}catch(e){}ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='PCCOPY '+((got.indexOf('Cpk=')>=0&&got.indexOf('DPMO=')>=0)?'OK':'BAD');"
+  ],
+  "expect": [
+    "PCCOPY OK"
+  ],
+  "ref": "数据页复制与屏幕一致：旧 copyResult 固定读手工档并重算，数据页复制出的是另一组 Cp/Cpk；现按当前页签取数并重算。"
+},
+{
+  "slug": "quality/six-sigma",
+  "inputs": {
+    "dpmo": "6210"
+  },
+  "clicks": [
+    "document.getElementById('dpmo').value='6210';fromDpmo();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='SSBASE '+((t.indexOf('4.00σ')>=0&&t.indexOf('良好')>=0&&t.indexOf('99.3790%')>=0)?'OK':'BAD');"
+  ],
+  "expect": [
+    "SSBASE OK"
+  ],
+  "ref": "默认 6210 DPMO ⇒ 长期 4.00σ、短期 5.50σ、合格率 99.3790%、等级「良好（4σ）」；原自动用例依赖 st=7 被钳到 6σ 的输出，6σ 上限改为显式拦截后不再适用。"
+},
+{
+  "slug": "quality/six-sigma",
+  "clicks": ["document.getElementById('dpmo').value='2000000';fromDpmo();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='SSD '+((t.indexOf('DPMO 不能超过 1,000,000')>=0)?'OK':'BAD');"],
+  "expect": ["SSD OK"],
+  "ref": "DPMO 2,000,000：旧实现把合格率钳到 1e-9 仍展示原 DPMO 与 0.0000% 合格率；现越界即提示并停止计算。默认 6210 不命中。"
+},
+{
+  "slug": "quality/six-sigma",
+  "clicks": ["document.getElementById('yield').value='150';fromYield();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='SSY '+((t.indexOf('合格率不能超过 100%')>=0)?'OK':'BAD');"],
+  "expect": ["SSY OK"],
+  "ref": "合格率 150%：旧实现得 DPMO=-500000 并显示负 DPMO；现拦截 >100%。"
+},
+{
+  "slug": "quality/six-sigma",
+  "clicks": ["document.getElementById('st').value='8';fromSt();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='SST '+((t.indexOf('短期水平请不超过 6')>=0)?'OK':'BAD');"],
+  "expect": ["SST OK"],
+  "ref": "短期水平 8σ：旧实现输入保留 8 而结果钳到 6σ，屏幕自相矛盾；现按 6σ（3.4 DPMO）上限拦截。"
+},
+{
+  "slug": "quality/six-sigma",
+  "clicks": ["fromDpmo();var got='';var old=ToolBox.copyText;ToolBox.copyText=function(t){got=String(t);};try{copyResult();}catch(e){}ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='SSCOPY '+((got&&got.indexOf('短期西格玛水平')>=0)?'OK':'BAD');"],
+  "expect": ["SSCOPY OK"],
+  "ref": "复制结果：结果区为 HTML 卡片（无 innerText），旧实现取空串并弹无参 i18nText；现回退到 textContent/innerHTML 去标签后复制，文本非空且含「短期西格玛水平」。"
 },
 {
   "slug": "quality/calc-cpk",
@@ -136,6 +223,31 @@ const CASES = [
   "inputs": { "usl_m": "10", "lsl_m": "0", "mean_m": "11", "sd_m": "1" },
   "expect": ["841,345"],
   "ref": "12-M8 越界：均值 11（超 USL 1σ），超上规概率 Φ(1)=84.13% ⇒ 841,345 PPM（下限侧概率≈0）。旧实现固定 1,000,000。默认手工档 10.0±0.1 不命中。"
+},
+{
+  "slug": "quality/ppm-calculator",
+  "inputs": { "defect": "-5", "total": "8000" },
+  "expect": ["不合格品数须在 0 与总数之间"],
+  "ref": "负不合格品数：旧实现只校验 N>0，-5/8000 会算出 −625 PPM 并给西格玛水平；现要求 0≤d≤N，非法即清空结果并提示。默认 12/8000 不命中。"
+},
+{
+  "slug": "quality/ppm-calculator",
+  "inputs": { "defect": "9000", "total": "8000" },
+  "expect": ["不合格品数须在 0 与总数之间"],
+  "ref": "不合格数超过总数：旧实现照算 112.5% / 1,125,000 PPM；现拦截 d>N。默认 12/8000 不命中。"
+},
+{
+  "slug": "quality/ppm-calculator",
+  "inputs": { "ppm": "2000000" },
+  "clicks": ["fromPpm();var t=String(document.getElementById('rateResult').innerHTML);document.getElementById('__tbProbe').textContent='PPMLIM '+((t.indexOf('0~1000000')>=0)?'OK':'BAD');"],
+  "expect": ["PPMLIM OK"],
+  "ref": "比率模式：PPM 2,000,000 折合率 2，旧实现照算 200% 并给西格玛；现限定缺陷率 0~1（PPM 0~1,000,000），越界提示并停止换算。默认 1,500 PPM 不命中。"
+},
+{
+  "slug": "quality/ppm-calculator",
+  "clicks": ["__ppmMode='rate';var got='';var old=ToolBox.copyText;ToolBox.copyText=function(t){got=String(t);};try{copyAll();}catch(e){}ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='PPMCOPY '+((got.indexOf('PPM / DPMO')>=0&&got.indexOf('d / N')<0)?'OK':'BAD');"],
+  "expect": ["PPMCOPY OK"],
+  "ref": "复制结果按当前页签取值：切换页签时 switchMode 写入 __ppmMode，旧实现永远优先 countResult，切到比率页仍复制数量模式的 d/N 结果；现按当前模式选择 rateResult。"
 }
 ];
 async function main() {

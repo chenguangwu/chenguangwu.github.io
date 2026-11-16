@@ -276,9 +276,15 @@ const CASES = [
   {
     slug: "edu/chinese-stroke-counter",
     inputs: { "input": "你好" },
-    expect: ["📊 统计结果 2 总字数 13 总笔画 2 已收录 6.5 平均笔画"],
+    expect: ["📊 统计结果 2 总字数 13 总笔画 2 已收录 6.5 平均笔画（按已收录 2 字）"],
     ref: "与上例同页同输入、锚另一条渲染链：`result` 区统计「总字数 / 总笔画 / 平均笔画」。"
        + "2 字共 13 画（你 7 + 好 6）⇒ 平均 6.5。默认态仅单字示例，不命中。",
+  },
+  {
+    slug: "edu/chinese-stroke-counter",
+    inputs: { "input": "一二郁郁" },
+    expect: ["4 总字数 3 总笔画 2 已收录 1.5 平均笔画（按已收录 2 字）"],
+    ref: "平均笔画分母只算已收录字：一二郁郁 → 郁未收录（各 0），total=3、found=2 ⇒ 1.5；旧实现用 chars.length=4 得 0.8。默认单字不命中。"
   },
   {
     slug: "edu/generator-26",
@@ -385,6 +391,26 @@ const CASES = [
     "inputs": { "content": "TbVerifyUnit", "startDate": "2024-06-01", "mode": "intensive" },
     "expect": [ "当天 100" ],
     "ref": "注入唯一学习内容 TbVerifyUnit（默认『英语单词Unit1』）+ 起始日 2024-06-01（默认空 ⇒ 页面输出『计算结果含无效值』无时间表）+ 强化模式 intensive（默认 standard）。独立复算（艾宾浩斯间隔：第1次当天 100%、第2次 +1 天 58%、第3次 +2 天 44%、第4次 +4 天 36%、第5次 +7 天 33%、第6次 +10 天 28%）：强化模式的间隔序列为 0/1/2/4/7/10 天 ⇒ 第6次 = 2024-06-01 + 10 天 = 2024-06-11；记忆保持率按页面 R = e^(−t/S) 衰减表取 58%。harness 的 new Date() 冻结在 2024-06-15（verify_it_calc.js FIXED_NOW）⇒ 各次『已过期』状态确定。默认态无 startDate 即无时间表，四条均不命中。"
+  },
+  {
+    "slug": "edu/ebbinghaus-curve",
+    "inputs": { "content": "TbVerifyToday", "startDate": "2024-06-15", "mode": "standard" },
+    "expect": [ "2024-06-15 当天 100% 📌 今天" ],
+    "ref": "本地日历日比较：harness 冻结当天为 2024-06-15，开始日同日 ⇒ 首个复习点应为「📌 今天」。旧实现用 new Date('YYYY-MM-DD')（UTC 零点）与本地零点比较，UTC+8 下差 8 小时恒不相等，落成「⏳ 待复习」。默认态无时间表 ⇒ 不命中。"
+  },
+  {
+    "slug": "edu/ebbinghaus-curve",
+    "inputs": { "content": "TbVerifyRet", "startDate": "2024-06-01", "mode": "intensive" },
+    "expect": [ "1天后 34%", "2天后 28%" ],
+    "ref": "保持率按经过天数而非序号：强化模式第 2/3 次为 +1/+2 天，经典遗忘曲线 1 天≈34%、2 天≈28%。旧实现按下标取 [100,58,44,...] ⇒ 58%/44%，与同页引据「1 天后≈34%」矛盾。默认态无时间表 ⇒ 零逃生。"
+  },
+  {
+    "slug": "edu/ebbinghaus-curve",
+    "clicks": [
+      "document.getElementById('startDate').value='2024-06-01';generate();document.getElementById('startDate').value='';generate();document.getElementById('__tbProbe').textContent='E '+((String(document.getElementById('result').innerHTML).indexOf('请选择开始日期')>=0)?'1':'0');"
+    ],
+    "expect": [ "E 1" ],
+    "ref": "清空开始日期须提示而非输出 NaN 表：先生成一份合法时间表（证明链路可用），再清空日期重算；旧实现 new Date('') 为 Invalid Date，表格回显 NaN-NaN-NaN。现显式拦截并清空结果区。默认态无探针串 ⇒ 零逃生。"
   },
   {
     "slug": "edu/assessor-27",
@@ -844,6 +870,19 @@ const CASES = [
   "expect": ["得分：10/10（100%）"],
   "ref": "同 capital-quiz：country-quiz 的 choose(o,el) 比较 o.name === cur.name，逐题传等价选项对象 ⇒ score=10 ⇒ finish 输出「得分：10/10（100%）」。"
        + "默认未开始时输出「根据国旗选择对应的国家 / 得分：0」，零交集。"
+}
+,
+{
+  "slug": "edu/flag-quiz",
+  "clicks": ["(function(){var dfd=[];var oST=setTimeout,oQ=document.querySelectorAll;setTimeout=function(f,ms){dfd.push(f);return dfd.length;};document.querySelectorAll=function(){return [];};try{start('normal');var fe={classList:{add:function(){}},disabled:false,onclick:null};choose(cur,fe);reset();start('normal');var qB=qNo;if(dfd.length)dfd[dfd.length-1]();var qA=qNo;var ok=(qA===qB&&dfd.length>=1);document.getElementById('__tbProbe').textContent='FLAGSTALE '+(ok?'OK':'BAD qB='+qB+' qA='+qA+' n='+dfd.length);}finally{setTimeout=oST;document.querySelectorAll=oQ;}})()"],
+  "expect": ["FLAGSTALE OK"],
+  "ref": "第395批：答题后 setTimeout(next,900) 未取消，0.9 秒内重置/重开会被旧回调重新出题或跳过新局当前题。用延迟执行桩捕获旧推进回调，答题→立即重置→重新开始后手动触发旧回调，须被局次令牌丢弃（qNo 不变）。修复前旧回调直接 next() ⇒ qNo+1 ⇒ BAD。"
+},
+{
+  "slug": "edu/typing-game",
+  "clicks": ["(function(){var T=1700000000000;var D=Date.now;Date.now=function(){return T;};startTime=T-60000;correctKeys=100;totalKeys=100;updateStats();var w=String(document.getElementById('wpm').textContent);Date.now=D;document.getElementById('__tbProbe').textContent='TYPWPM '+(w==='20'?'OK':'BAD '+w);})()"],
+  "expect": ["TYPWPM OK"],
+  "ref": "第398批：速度单位为 WPM（标准词/分），算法 WPM=(正确按键数/5)/(分钟数)；每分钟 100 个正确字符应输出 20 而非 100「字/分」。锁定算法与文案一致（meta 已由「字/分」改 WPM 标准词/分），默认态正确按键 0 ⇒ WPM 0，不命中。"
 }
 ];
 

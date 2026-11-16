@@ -114,7 +114,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入经营现金流与年度债务偿付额，求 DSCR。">Compute DSCR from operating cash flow and annual debt service to assess loan repayment capacity.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">偿债保障倍数：DSCR = 经营现金流 OCF ÷ 债务偿付额；联动量：盈余现金 = OCF − 偿付额（万元）、偿债负担率 = 1 ÷ max(DSCR,10⁻⁹)、覆盖率百分数 = OCF ÷ 偿付额 ×100（%）。校验：两项非空守卫，偿付额置 0 报「分母不能为 0」，全 0 报错。判据：无固定分级，DSCR 越高偿债能力越强。</div>
+      <div class="formula-eq">偿债保障倍数：DSCR = 经营现金流 OCF ÷ 债务偿付额；联动量：盈余现金 = OCF − 偿付额（万元）、偿债负担率 = 1 ÷ DSCR（DSCR ≤ 0 时显示「—」）、覆盖率百分数 = DSCR × 100（%）。校验：两项非空、偿付额须大于 0。判据：无固定分级，DSCR 越高偿债能力越强。</div>
       <p class="formula-desc">输入经营现金流与年度债务偿付额，求 DSCR。</p>
     </div>
 
@@ -264,12 +264,14 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['OCF', 'ds'],["经营现金流 OCF (万元)", "债务偿付额 (万元)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const OCF=num('OCF'),ds=num('ds');
+            if(!(ds>0)){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 债务偿付额必须大于 0。</p>');return;}
             const DSCR=OCF/ds;
+            const burden=DSCR>0?(1/DSCR).toFixed(4):'—';
             const __g2=dataGrid([
                 [DSCR.toFixed(2),'偿债保障倍数 DSCR'],
                 [(OCF-ds).toFixed(2), '盈余现金 (万元)'],
-                [(1/Math.max(DSCR,1e-9)).toFixed(4), '偿债负担率'],
-                [(OCF/Math.max(ds,1e-9)*100).toFixed(1), '覆盖率百分数']
+                [burden, '偿债负担率'],
+                [(DSCR*100).toFixed(1), '覆盖率百分数']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('OCF').value = '150';
@@ -341,8 +343,8 @@ function __debt_service_coverageExtras(){
         rows: [
             ['偿债保障倍数 DSCR', DSCR.toFixed(2)],
             ['盈余现金 (万元)', (OCF-ds).toFixed(2)],
-            ['偿债负担率', (1/Math.max(DSCR,1e-9)).toFixed(4)],
-            ['覆盖率百分数', (OCF/Math.max(ds,1e-9)*100).toFixed(1)],
+            ['偿债负担率', DSCR>0?(1/DSCR).toFixed(4):'—'],
+            ['覆盖率百分数', (DSCR*100).toFixed(1)],
         ]
     });
     TBKit.history.record({OCF:__debt_service_coverageRaw('OCF'), ds:__debt_service_coverageRaw('ds'), DSCR:DSCR});

@@ -387,6 +387,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 
+function __cacErr(v){
+  if(isNaN(v.mSpend)||isNaN(v.sSpend)||isNaN(v.customers)||v.customers<=0)return '请输入有效数值';
+  if(v.mSpend<0||v.sSpend<0)return '营销费用与销售费用需为 ≥0 的数字。';
+  if(!isNaN(v.ltv)&&(!isFinite(v.ltv)||v.ltv<=0))return '客户终身价值 LTV 需大于 0（留空则跳过 LTV 分析）。';
+  return '';
+}
 function calc() {
   const mSpend = parseFloat(document.getElementById('marketingSpend').value);
   const sSpend = parseFloat(document.getElementById('salesSpend').value);
@@ -395,24 +401,15 @@ function calc() {
   const ltv = ltvRaw === '' ? NaN : parseFloat(ltvRaw);
   const r = document.getElementById('result');
 
-  if (isNaN(mSpend) || isNaN(sSpend) || isNaN(customers) || customers <= 0) {
-    r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';
-    return;
-  }
-  if (mSpend < 0 || sSpend < 0) {
-    r.innerHTML='<div class="metric-card"><p class="tip-error">营销费用与销售费用需为 ≥0 的数字。</p></div>';
-    return;
-  }
-  if (ltvRaw !== '' && (!isFinite(ltv) || ltv <= 0)) {
-    r.innerHTML='<div class="metric-card"><p class="tip-error">客户终身价值 LTV 需大于 0（留空则跳过 LTV 分析）。</p></div>';
-    return;
-  }
+  const __e=__cacErr({mSpend,sSpend,customers,ltv});
+  if(__e){r.innerHTML='<div class="metric-card"><p class="tip-error">'+__e+'</p></div>';return;}
 
   const totalSpend = mSpend + sSpend;
+  const zeroSpend = totalSpend === 0;
   const cac = totalSpend / customers;
   const marketingCAC = mSpend / customers;
   const salesCAC = sSpend / customers;
-  const hasLTV = !isNaN(ltv) && ltv > 0;
+  const hasLTV = !isNaN(ltv) && ltv > 0 && !zeroSpend;
   const ltvCacRatio = hasLTV ? ltv / cac : null;
   const paybackMonths = hasLTV ? (cac / (ltv / 36)) : null;
 
@@ -426,7 +423,7 @@ function calc() {
     <div class="metric-card">
       <div class="label">CAC 客户获取成本</div>
       <div class="value" style="color:${cacColor};">¥${cac.toFixed(2)}</div>
-      <div class="sub">等级：${cacLevel} · 每获取一个客户的成本</div>
+      <div class="sub">等级：${cacLevel} · 每获取一个客户的成本${zeroSpend ? '（费用合计为 0，此分级不与有投入的情形可比）' : ''}</div>
     </div>
 
     <div class="metric-card">
@@ -440,6 +437,13 @@ function calc() {
         <tr><td style="padding:4px 0;color:var(--text-light);">销售端CAC</td><td style="text-align:right;font-weight:600;">¥${salesCAC.toFixed(2)}</td></tr>
       </table>
     </div>
+
+    ${zeroSpend ? `
+    <div class="metric-card">
+      <div class="label">零费用口径提示</div>
+      <p class="tip-error">营销费用与销售费用合计为 0，CAC=¥0.00；LTV:CAC、投资回报率、回本周期与费用占比的分母为 0，均不可计算，故不给出健康结论。</p>
+    </div>
+    ` : ''}
 
     ${hasLTV ? `
     <div class="metric-card">
@@ -477,11 +481,11 @@ function calc() {
         </div>
         ` : `
         <div class="related-metric">
-          <div class="val">${((mSpend / totalSpend) * 100).toFixed(0)}%</div>
+          <div class="val">${zeroSpend ? '—' : ((mSpend / totalSpend) * 100).toFixed(0) + '%'}</div>
           <div class="lbl">营销费用占比</div>
         </div>
         <div class="related-metric">
-          <div class="val">${((sSpend / totalSpend) * 100).toFixed(0)}%</div>
+          <div class="val">${zeroSpend ? '—' : ((sSpend / totalSpend) * 100).toFixed(0) + '%'}</div>
           <div class="lbl">销售费用占比</div>
         </div>
         `}
@@ -500,10 +504,7 @@ function saveHistory() {
   const customers = parseFloat(document.getElementById('newCustomers').value);
   const ltv = parseFloat(document.getElementById('ltv').value);
 
-  if (isNaN(mSpend) || isNaN(sSpend) || isNaN(customers) || customers <= 0) {
-    ToolBox.showToast(i18nText(),'error');
-    return;
-  }
+  if(__cacErr({mSpend,sSpend,customers,ltv})){ToolBox.showToast(i18nText(),'error');return;}
 
   const cac = (mSpend + sSpend) / customers;
   const record = {

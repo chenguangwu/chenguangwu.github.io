@@ -109,8 +109,8 @@
     <h2 data-zh="🥗 每日蛋白质需求">🥗 Daily Protein Requirement Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据体重和活动水平估算每日蛋白质需求。">Derive the daily protein target in grams from body weight and activity goal, from sedentary maintenance through endurance training to resistance training and cutting.</p>
     <div class="input-row"><label>体重 kg</label><input type="number" id="weight" value="70" step="any" oninput="calc()" placeholder="如 70"></div>
-    <div class="input-row"><label>活动系数 1=久坐 1.2=轻 1.5=中 2=高</label><input type="number" id="activity" value="1.2" step="any" oninput="calc()" placeholder="如 1.2"></div>
-    <div class="input-row"><label>目标 1=维持 1.2=增肌 0.8=减脂</label><input type="number" id="goal" value="1.2" step="any" oninput="calc()" placeholder="如 1.2"></div>
+    <div class="input-row"><label>活动系数 1=久坐 1.2=轻 1.5=中 2=高</label><input type="number" id="activity" value="1.2" min="1" max="2.5" step="0.1" oninput="calc()" placeholder="如 1.2"></div>
+    <div class="input-row"><label>目标 1=维持 1.2=增肌 0.8=减脂</label><input type="number" id="goal" value="1.2" min="0.8" max="2" step="0.1" oninput="calc()" placeholder="如 1.2"></div>
     <div class="toolbar">
       <div id="healthcare_5Presets"></div>
       <button class="btn primary" onclick="calc()">计算</button>
@@ -125,7 +125,7 @@
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
-    <div class="formula-eq">每日蛋白质需求：维持需求 = 体重 × 0.8 g/kg × 活动系数（1=久坐、1.2=轻、1.5=中、2=高）；目标需求 = 维持需求 × 目标系数（1=维持、1.2=增肌、0.8=减脂）；每餐建议 = 目标需求 ÷ 4（g）。校验：无强校验，空/非法值按 0 兜底。判据：无固定分级，三值随体重与系数线性变化，每餐建议按四餐均分。</div>
+    <div class="formula-eq">每日蛋白质需求：维持需求 = 体重 × 0.8 g/kg × 活动系数（1=久坐、1.2=轻、1.5=中、2=高）；目标需求 = 维持需求 × 目标系数（1=维持、1.2=增肌、0.8=减脂），并折算 g/kg/日；每餐建议 = 目标需求 ÷ 3（三餐均分，加餐从总量扣除）。校验：三项须为有效正数；活动系数限 1–2.5、目标系数限 0.8–2，越界拒绝计算；折合 <0.8 g/kg/日 时红字提示低于 WHO/FAO/UNU 成人最低值。判据：无固定分级，三值随体重与系数线性变化。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">运动员或特殊疾病需调整。</p>
   </div>
 </div>
@@ -200,13 +200,20 @@ function calc(){
     document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请填写体重与活动系数（均需大于 0）后再判读。</p>';
     return;
   }
+  if(activity<1 || activity>2.5 || goal<0.8 || goal>2){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 参数超出常用范围：活动系数 1–2.5（久坐 1、轻 1.2、中 1.5、高 2），目标系数 0.8–2（减脂 0.8、维持 1、增肌 1.2）。请核对后重新计算。</p>';
+    return;
+  }
   let html = '';
   const __v0 = (weight*0.8*activity);
   html += `<p>维持需求：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(1)}</strong> g</p>`;
   const __v1 = (weight*0.8*activity*goal);
-  html += `<p>目标需求：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(1)}</strong> g</p>`;
-  const __v2 = (weight*0.8*activity*goal/4);
-  html += `<p>每餐建议：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(1)}</strong> g</p>`;
+  html += `<p>目标需求：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(1)}</strong> g（${(0.8*activity*goal).toFixed(2)} g/kg/日）</p>`;
+  const __v2 = (weight*0.8*activity*goal/3);
+  html += `<p>每餐建议（三餐均分）：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(1)}</strong> g</p>`;
+  if(0.8*activity*goal < 0.8){
+    html += '<p style="color:var(--danger);font-weight:600;">⚠ 当前组合折合 '+(0.8*activity*goal).toFixed(2)+' g/kg/日，低于 WHO/FAO/UNU 成人最低 0.8 g/kg/日；减脂期也建议不低于该值，请上调目标系数或活动系数。</p>';
+  }
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {

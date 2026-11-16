@@ -112,7 +112,7 @@
     <h2 data-zh="由数值序列求极差">Range Calculator</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">极差（本页代码口径，数值序列按逗号或空格分隔）：极差 R=最大值−最小值；联动量：样本数 N=有效项数、均值=Σx÷(N||1)。校验：序列框经输入守卫必填，否则提示并中止。判据：无固定分级，极差只由两端极值决定、对离群值敏感，主结果保留 2 位小数。</div>
+      <div class="formula-eq">极差（本页代码口径，数值序列按逗号、分号、空白或全角分隔符分隔）：极差 R=最大值−最小值；联动量：样本数 N=有效项数、均值=Σx÷(N||1)。校验：序列框经输入守卫必填，非法项跳过、无有效数值时提示并中止；主算与明细表共用同一份解析后的数组。判据：无固定分级，极差只由两端极值决定、对离群值敏感，主结果保留 2 位小数。</div>
       <div class="formula-desc">极差为数据集最大值与最小值之差，是最简单的离散程度度量，反映数据的整体跨度。计算快捷但只依赖两端点，易受离群值影响，常作为描述统计初筛指标。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入多个数值（逗号或空格分隔），求极差。">Enter a series of values to compute the range R = max - min, a quick measure of the spread of a data set.</p>
@@ -278,9 +278,22 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+// SMS-47：主算与明细共用同一份解析结果；支持逗号/分号/空白/全角分隔符，非法项直接跳过
+function __rsVals(){
+  var e=document.getElementById('xs');
+  var toks=String(e?e.value:'').split(/[,\s;，；、]+/).map(function(x){return x.trim();}).filter(function(x){return x;});
+  var vals=[];
+  for(var i=0;i<toks.length;i++){ var v=Number(toks[i]); if(isFinite(v)) vals.push(v); }
+  return vals;
+}
+function __rsClear(){
+  var ids=['rsChart','rsTable','rsStat','rsDiff','rsHist'];
+  for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}
+}
 function calcTool(){
               var __ig=__tbInputGuard(['xs'],["数值序列"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const raw=document.getElementById('xs').value.split(/[ ,]+/).filter(Boolean).map(parseFloat);
+const raw=__rsVals();
+            if(!raw.length){__rsClear();ToolBox.setResult('result','⚠ 数值序列中没有有效数值，请至少输入 1 个数字');return;}
             const R=Math.max.apply(null,raw)-Math.min.apply(null,raw);
             const __g2=dataGrid([
                 [R.toFixed(2),'极差 R'],
@@ -298,8 +311,8 @@ function __rsList(id){var e=document.getElementById(id);return e?TBKit.util.pars
 function __rsExtras(){
     if (typeof TBKit === 'undefined') return;
     var raw=document.getElementById('xs').value;
-    var arr=TBKit.util.parseList(raw);
-    var n=arr.length; if(!n) return;
+    var arr=__rsVals();
+    var n=arr.length; if(!n){ __rsClear(); return; }
     var en=TBKit.util.isEn();
     var srt=arr.slice().sort(function(a,b){return a-b;});
     var mn=srt[0], mx=srt[n-1], R=mx-mn;

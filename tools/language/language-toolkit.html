@@ -280,7 +280,7 @@
         <div class="big-kana" id="detailKana"></div>
         <div class="big-romaji" id="detailRomaji"></div>
       </div>
-      <div class="tip-box tip-info" style="margin-top:14px;">点击任意假名查看罗马音，下方可进入练习模式。</div>
+      <div class="tip-box tip-info" style="margin-top:14px;">点击任意假名查看罗马音，下方可进入练习模式。练习接受常见罗马音变体（如 shi/si、chi/ti、tsu/tu、fu/hu、ji/zi），ゐ/ゑ 为历史假名不进入练习。</div>
 
       <h3 style="margin-top:20px;">✏️ 练习模式</h3>
       <div class="practice-box">
@@ -752,6 +752,7 @@ var currentKanaType='seion';
 var practiceCorrect=0;
 var practiceTotal=0;
 var currentPracticeKana=null;
+var practiceAnswered=false;
 
 function switchGojuon(type){
   currentKanaType=type;
@@ -789,7 +790,7 @@ function showKana(kana,romaji){
   document.getElementById('detailRomaji').textContent='罗马音：'+romaji;
 }
 
-// 练习模式 - 收集所有假名
+// 练习模式 - 收集所有假名（ゐ/ゑ 为历史假名，现代日语已不使用，不进入练习题库）
 function getAllKana(){
   var all=[];
   ['seion','dakuon','handakuon','youon'].forEach(function(type){
@@ -797,6 +798,7 @@ function getAllKana(){
       row.forEach(function(cell,idx){
         if(idx>0&&cell){
           var parts=cell.split('/');
+          if(parts[0]==='ゐ'||parts[0]==='ゑ') return;
           all.push({kana:parts[0],romaji:parts[1]});
         }
       });
@@ -814,17 +816,27 @@ function nextPractice(){
   var all=getAllKana();
   currentPracticeKana=all[Math.floor(Math.random()*all.length)];
   document.getElementById('practiceKana').textContent=currentPracticeKana.kana;
-  document.getElementById('practiceInput').value='';
+  var inp=document.getElementById('practiceInput');
+  practiceAnswered=false;
+  inp.value='';
+  inp.disabled=false;
   document.getElementById('practiceFeedback').style.display='none';
-  document.getElementById('practiceInput').focus();
+  inp.focus();
 }
+// 可接受罗马音（Hepburn 为主，兼容训令式/键盘输入）
+var ROMAJI_ALT={'し':['si'],'ち':['ti'],'つ':['tu'],'ふ':['hu'],'じ':['zi'],'ぢ':['di','ji'],'づ':['du','zu'],'を':['o']};
 function checkPractice(){
   if(!currentPracticeKana){startPractice();return;}
-  var ans=document.getElementById('practiceInput').value.trim().toLowerCase();
+  if(practiceAnswered) return;
+  var inp=document.getElementById('practiceInput');
+  var ans=inp.value.trim().toLowerCase();
   if(!ans) return;
+  practiceAnswered=true;
+  inp.disabled=true;
   practiceTotal++;
   var fb=document.getElementById('practiceFeedback');
-  if(ans===currentPracticeKana.romaji){
+  var alt=ROMAJI_ALT[currentPracticeKana.kana]||[];
+  if(ans===currentPracticeKana.romaji||alt.indexOf(ans)>=0){
     practiceCorrect++;
     fb.style.display='block';
     fb.className='practice-feedback correct';
@@ -832,7 +844,8 @@ function checkPractice(){
   } else {
     fb.style.display='block';
     fb.className='practice-feedback wrong';
-    fb.textContent='✗ 错误。'+currentPracticeKana.kana+' 的罗马音是 '+currentPracticeKana.romaji;
+    fb.textContent='✗ 错误。'+currentPracticeKana.kana+' 的罗马音是 '+currentPracticeKana.romaji+
+      (alt.length?'（也接受 '+alt.join(' / ')+'）':'');
   }
   updatePracticeStats();
   setTimeout(nextPractice,1200);

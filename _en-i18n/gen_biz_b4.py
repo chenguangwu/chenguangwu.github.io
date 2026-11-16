@@ -8,7 +8,7 @@ IND = 'biz'
 # ---------------- 1. 高级大小写转换 ----------------
 apply_tool('text-case-advanced', '高级大小写转换', 'Advanced Case Convert', {
  '🔠 高级大小写转换': '🔠 Advanced Text Case Converter',
- '本文本工具基于标准字符编码与文本处理规则，纯前端运行，代码不离开浏览器。 工具名称：高级大小写转换 - 免费文本处理工具，在线高级大小写转换，免费使用。': 'Apply sentence-case and title-case rules on top of basic case conversion while preserving proper nouns, designed for long documents and editorial cleanup.',
+ '本文本工具基于标准字符编码与文本处理规则，纯前端运行，代码不离开浏览器。 工具名称：高级大小写转换 - 免费文本处理工具，在线高级大小写转换，免费使用。': 'Apply sentence-case and title-case rules on top of basic case conversion while preserving all-caps abbreviations such as USA and API, designed for long documents and editorial cleanup.',
  '当前结果': 'Current result',
  '🎯 转换模式（20+）': '🎯 Conversion Modes (20+)',
  '句首': 'Sentence case',

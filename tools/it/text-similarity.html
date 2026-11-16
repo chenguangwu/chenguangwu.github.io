@@ -635,6 +635,19 @@ function calculate() {
   var textA = document.getElementById('textA').value;
   var textB = document.getElementById('textB').value;
 
+  // IT-N366：levenshtein/computeDiff 各自分配 (m+1)×(n+1) 全矩阵，且 autoCalc 绑在 oninput，
+  // 8000×8000 字符约 1.6GB 会直接 OOM。超过 100 万格时先隐藏旧结果并明确提示，不再闷头算。
+  if (textA.length * textB.length > 1000000) {
+    var rb0 = document.getElementById('resultBox'); if (rb0) rb0.style.display = 'none';
+    var ob0 = document.getElementById('overallBox'); if (ob0) ob0.style.display = 'none';
+    if (typeof ToolBox !== 'undefined' && ToolBox.showToast) {
+      ToolBox.showToast((typeof TBKit !== 'undefined' && TBKit.util.isEn())
+        ? 'Text too long: shorten inputs (edit-distance matrix would use too much memory)'
+        : '文本过长：请缩短输入（编辑距离矩阵会占用过多内存）');
+    }
+    return;
+  }
+
   if (!textA.trim() && !textB.trim()) {
     document.getElementById('resultBox').style.display = 'none';
     document.getElementById('overallBox').style.display = 'none';

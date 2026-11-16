@@ -98,6 +98,54 @@ const CASES = [
   "ref": "D-N8 首次切换实况：240 mL/4 h/60 kg，滴系数 20 ⇒ 60.0 mL/h；切换 3%NaCl 后默认浓度 0.51 mEq/mL ⇒ 30.6 mEq/h ÷ 60 kg = 0.510 mEq/kg/h，超过 0.5 限值应判超限。旧实现 onchange 先 calc（用旧浓度 0.4）再 toggle 改浓度 ⇒ 首次算得 0.400 并误判安全；默认态 drug=none 无该速率串 ⇒ 判别力成立（注入 conc 会掩盖该缺陷，故不注入）。",
 },
 {
+  "slug": "medical/calculator-calc-infusion",
+  "inputs": {
+    "vol": "100",
+    "dur": "24",
+    "drug": "kcl",
+    "conc": "2.0",
+    "w": "60"
+  },
+  "expect": ["浓度超过外周静脉上限"],
+  "ref": "D-N9 浓度硬上限：100 mL/24 h ⇒ 4.17 mL/h × 2.0 mEq/mL = 8.33 mEq/h（≤20 旧实现判安全），但浓度 2.0 是外周上限 0.4 的 5 倍 ⇒ 须判超限并提示中心静脉/心电监护。drug 先于 conc 注入，避免 toggleDrugRow 把浓度改回默认 0.4。",
+},
+{
+  "slug": "medical/calculator-calc-infusion",
+  "inputs": {
+    "vol": "100",
+    "dur": "1",
+    "drug": "kcl",
+    "conc": "0.4",
+    "w": "20"
+  },
+  "expect": ["取较小值 ≤10.0 mEq/h"],
+  "ref": "D-N9 体重上限：100 mL/1 h ⇒ 100 mL/h × 0.4 = 40 mEq/h；20 kg 按 0.5 mEq/kg/h = 10 mEq/h，与成人 20 取较小值 ⇒ 10.0，应判超限。旧实现只比 20 ⇒ 40 > 20 也超，但 20 kg 的 10 mEq/h 门槛完全未体现；56 kg 以上时 0.5×w ≥ 20，成人口径不变。",
+},
+{
+  "slug": "medical/calculator-calc-infusion",
+  "inputs": {
+    "vol": "100",
+    "dur": "1",
+    "drug": "kcl",
+    "conc": "0.2",
+    "w": "60"
+  },
+  "expect": ["✓ 当前 KCl 输注速率 = 20.00 mEq/h"],
+  "ref": "D-N9 边界放行：100 mL/h × 0.2 mEq/mL = 20.00 mEq/h，等于成人上限、浓度 0.2 ≤0.4 ⇒ 应判安全（✓），防止把 ≤ 误写成 <。默认态 drug=none 不含该串。",
+},
+{
+  "slug": "medical/calculator-calc-infusion",
+  "inputs": {
+    "vol": "100",
+    "dur": "1",
+    "drug": "kcl",
+    "conc": "0",
+    "w": "60"
+  },
+  "expect": ["请输入有效的 KCl 浓度"],
+  "ref": "D-N9 浓度空/零守卫：conc=0 时速率恒 0 会被误判安全，须拒绝并提示输入有效浓度。",
+},
+{
   "slug": "medical/clinical-tools",
   "inputs": {
     "meld_bili": "2.0",
@@ -125,15 +173,126 @@ const CASES = [
   "ref": "W1-A 回归：标准 MELD = 3.78×ln(3.0) + 11.2×ln(1.5) + 9.57×ln(2.0) + 6.43 = 21.8；血钠 130（钳制区间内）⇒ MELD-Na = 21.8 + 1.32×7 − 0.033×21.8×7 = 26.0。四项输入均非默认（2.0/1.0/1.2/140）；旧实现输出 MELD-Na 恒 6，本串不命中。"
 },
 {
+  "slug": "medical/clinical-tools",
+  "inputs": {
+    "meld_bili": "1.0",
+    "meld_cr": "10.0",
+    "meld_inr": "1.0",
+    "meld_na": "120"
+  },
+  "expect": [
+    "MELD-Na = 27.7（已纳入血钠校正）"
+  ],
+  "ref": "D-N40 封顶与钳制：肌酐 10 须按 UNOS 上限 4.0 计（未勾透析），胆红素/INR 下限按 1 ⇒ MELD = 9.57×ln4 + 6.43 = 19.7；血钠 120 钳制到 125 ⇒ MELD-Na = 19.7 + 1.32×12 − 0.033×19.7×12 = 27.7。旧实现不封顶肌酐且按 (MELD−6) 查表校正，本串不命中。"
+},
+{
+  "slug": "medical/clinical-tools",
+  "checkIds": ["cha_chf", "cha_htn", "cha_age75", "cha_age65"],
+  "clicks": [
+    "calcCHA();var b=document.getElementById('result-cha').innerHTML;var m=/class=\"val\">(\\d+)</.exec(b);document.getElementById('result-cha').innerHTML=(m&&m[1]==='4')?'__CHA_AGE_OK__':'__CHA_AGE_FAIL__'+b"
+  ],
+  "expect": [
+    "__CHA_AGE_OK__"
+  ],
+  "ref": "D-N41 年龄互斥：心衰 1 + 高血压 1 + ≥75 岁 2 = 4 分；65–74 岁与 ≥75 岁同时勾选时按较高档计并取消低档（旧实现相加成 5 分并抬到「高风险」）。clicks 把结果区分数读回比对，4 分输出标记串；5 分（旧实现）或分数解析失败均输出 FAIL 串。"
+},
+{
+  "slug": "medical/clinical-tools",
+  "inputs": {
+    "gcs_e": "4",
+    "gcs_v": "5",
+    "gcs_m": "6"
+  },
+  "expect": [
+    "（E4+V5+M6=15）"
+  ],
+  "ref": "D-N41 GCS 15 分：默认 E4+V5+M6 = 15 应为「正常意识」，结果区动态串「（E4+V5+M6=15）」在旧实现（15 分被归入 ≥13 的轻度意识障碍）同样出现，故本用例只锁总分回显；分级文案另由同页静态引据约束。"
+},
+{
   "slug": "medical/convert-glucose",
   "inputs": {
     "val": "1",
-    "from": "1"
+    "from": "1",
+    "to": "18.0182"
   },
   "expect": [
-    "0.0555555555556"
+    "0.0554994394557"
   ],
-  "ref": "2026-10-25 选项系数互换后（mmol=18/mg/dL=1 基准）：1 mg/dL→mmol/L = 1×1÷18=0.0555555555556；默认态（val=1,from=mmol(18) → 18）不含该串 ⇒ 强判别、零逃生。"
+  "ref": "统一系数 18.0182 后：1 mg/dL→mmol/L = 1×1÷18.0182 = 0.0554994394557（toPrecision(12)）。默认「5.6 mmol/L → mg/dL」为 100.90192，不命中。"
+},
+{
+  "slug": "medical/convert-glucose",
+  "inputs": {
+    "val": "5.6"
+  },
+  "expect": [
+    "100.90192",
+    "正常（空腹）"
+  ],
+  "ref": "D-N32 默认方向：val=5.6、默认 from=mmol、to=mg/dL ⇒ 5.6×18.0182 = 100.90192 mg/dL；分级按 5.6 mmol/L 落在「正常（空腹）」档。修复前默认 to 也是 mmol/L ⇒ 输出 5.6 同单位换算，且按 5.6 判「空腹受损」边缘；系数取整 18 时输出 100.8。"
+},
+{
+  "slug": "medical/convert-glucose",
+  "inputs": {
+    "val": "5.6",
+    "from": "18.0182",
+    "to": "18.0182"
+  },
+  "expect": [
+    "源单位与目标单位相同"
+  ],
+  "ref": "D-N32 同单位守卫：from=to ⇒ 直接提示无需换算，不再输出「5.6 mmol/L = 5.6 mmol/L」并附血糖分级。"
+},
+{
+  "slug": "medical/convert-glucose",
+  "inputs": {
+    "val": "",
+    "from": "18.0182",
+    "to": "1"
+  },
+  "expect": [
+    "请输入有效的血糖数值"
+  ],
+  "ref": "D-N32 空值守卫：清空数值时旧实现 +''||0 ⇒ 0，输出 0 mg/dL 并判低血糖；修复后拒绝并提示须 >0。"
+},
+{
+  "slug": "medical/convert-time-infusion",
+  "inputs": {
+    "vol": "500",
+    "df": "20",
+    "time": "",
+    "dripIn": "30"
+  },
+  "expect": [
+    "按已知滴速反算输注时长 = 333.3 分钟（约 5 小时 33 分钟）"
+  ],
+  "ref": "D-N10 反向换算：总滴数 = 500×20 = 10000；时长 = 10000÷30 = 333.33 → 333.3 分钟 = 5 小时 33 分；并输出预计完成时间。修复前无 dripIn 输入、只能按时间正向算，无法完成页面宣称的时间换算。默认 dripIn 空 ⇒ 不命中。"
+},
+{
+  "slug": "medical/convert-time-infusion",
+  "inputs": {
+    "vol": "500",
+    "df": "20",
+    "time": "120",
+    "dripIn": "30"
+  },
+  "expect": [
+    "相差 213.3 分钟，请确认以哪个为准"
+  ],
+  "ref": "D-N10 双向核对：计划 120 分钟 vs 按 30 滴/分反算 333.3 分钟，差 213.3 分钟 ⇒ 并列提示以哪个为准，不静默覆盖。"
+},
+{
+  "slug": "medical/convert-time-infusion",
+  "inputs": {
+    "vol": "500",
+    "df": "20",
+    "time": "",
+    "dripIn": ""
+  },
+  "expect": [
+    "输注时间须大于 0（或填写已知滴速以反算时长）"
+  ],
+  "ref": "D-N10 输入完整性：时间与已知滴速同时为空 ⇒ 无法换算，须提示至少填写一项（原实现只校验 time>0，文案已扩展）。"
 },
 {
   "slug": "medical/convert-time-infusion",
@@ -288,6 +447,26 @@ const CASES = [
   "ref": "关键词过滤型：inputs 写 search=zzzqx ⇒ oninput=render() 过滤 34 种药物得空集 ⇒ 结果区渲染「未找到匹配药物」。默认态（search 空）渲染全部 34 种、blob 内无该串（已双态核验），故为排他锚点。"
 },
 {
+  "slug": "medical/drug-info",
+  "inputs": {
+    "search": "肝毒性"
+  },
+  "expect": [
+    "共 1 种药物"
+  ],
+  "ref": "D-N12 搜索字段扩展：blob 纳入 dose/adverse/contraind/note 后，仅在「不良反应：肝毒性」出现的对乙酰氨基酚应命中 1 种；修复前 blob 只含 name/en/goods/use/cat ⇒ 0 种（「未找到匹配药物」）。默认空搜索为「共 34 种药物」，与本锚零交集。"
+},
+{
+  "slug": "medical/drug-info",
+  "clicks": [
+    "currentCat='解热镇痛';initCats();render();applyDrugPreset('bp');document.getElementById('__tbProbe').textContent='D12 '+document.getElementById('countBar').textContent;"
+  ],
+  "expect": [
+    "D12 共 4 种药物"
+  ],
+  "ref": "D-N12 预设重置分类：先切到「解热镇痛」分类（此时点降压预设会被分类过滤成 0 条），再 applyDrugPreset('bp')；修复后先把 currentCat 重置为 all ⇒ 「高血压」命中 4 种（氨氯地平/美托洛尔/依那普利/缬沙坦）。修复前分类不变 ⇒ 「共 0 种药物」。默认态为「共 34 种药物」，探针串不命中。"
+},
+{
   "slug": "medical/estimate-metabolism",
   "inputs": {
     "weight": "98",
@@ -299,6 +478,34 @@ const CASES = [
     "+7.9%"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "medical/estimate-metabolism",
+  "inputs": {
+    "weight": "70",
+    "height": "170",
+    "age": "30",
+    "bf": "80"
+  },
+  "expect": [
+    "两式平均 RMR"
+  ],
+  "ref": "D-N73/D-N74：体脂 80% 越界，旧实现只加红框仍按 Katch-McArdle 计算并显示「三式平均」；修复后越界体脂按缺失处理，标注为「两式平均 RMR」。默认体脂留空同样显示两式，但本用例注入 80 后若仍参与 Katch 会输出「三式」，不命中。"
+},
+{
+  "slug": "medical/estimate-metabolism",
+  "inputs": {
+    "sex": "m",
+    "weight": "120",
+    "height": "190",
+    "age": "25",
+    "activity": "1.9",
+    "bf": ""
+  },
+  "expect": [
+    "超过建议的 300–500 kcal 上限"
+  ],
+  "ref": "D-N75 缺口上限：120kg/190cm/25 岁/1.9 ⇒ TDEE≈4308、-20% 缺口≈862 kcal > 500，应提示下调；旧实现只比较减脂热量是否低于 RMR，本例 3447>2268 会静默通过。默认 65/170/30/1.2 缺口约 376 kcal，不触发。"
 },
 {
   "slug": "medical/medical-calculator",
@@ -331,6 +538,28 @@ const CASES = [
     "每次剂量 = 600.0mg / 1.5次 = 400.0mg"
   ],
   "ref": "D-N23 小数频次：旧实现 parseInt 把 1.5 截断为 1，每日 600.0mg 被算成每次 600.0mg；修复后 parseFloat 保留 1.5 ⇒ 600.0 ÷ 1.5 = 400.0mg。默认 freq=3 时该串为「600.0mg / 3次 = 200.0mg」，不命中 ⇒ 强判别。"
+},
+{
+  "slug": "medical/medical-calculator",
+  "inputs": { "dose_weight": "60", "dose_per_kg": "10", "dose_freq": "0.5" },
+  "expect": ["服药频率须为 1–24 次/天"],
+  "ref": "D-N23（2026-11-16）：频率输入标注 1–24 次/天，但旧实现只拦 ≤0，0.5 次/天输出日 600.0 mg、每次 1200.0 mg。现 freq<1 直接拦截。默认 3 ⇒ 不命中。"
+},
+{
+  "slug": "medical/medical-calculator",
+  "clicks": [
+    "document.getElementById('glucose_mmol').value='';convertGlucose('mmol');"
+  ],
+  "expect": ["请输入有效的血糖值（mmol/L ≥ 0）"],
+  "ref": "D-N24（2026-11-16）：清空 mmol/L 后旧实现直接 return，mg/dL 与「正常空腹血糖」结论原样保留。现清空另一侧并替换为提示；默认 5.6/100.9 ⇒ 不命中。"
+},
+{
+  "slug": "medical/medical-calculator",
+  "clicks": [
+    "document.getElementById('glucose_mg').value='abc';convertGlucose('mg');"
+  ],
+  "expect": ["请输入有效的血糖值（mg/dL ≥ 0）"],
+  "ref": "D-N24 反向：mg/dL 非法输入同样清空 mmol/L 并提示，不再保留旧分级。"
 },
 {
   "slug": "medical/reminder-2",

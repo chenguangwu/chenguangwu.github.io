@@ -379,6 +379,18 @@ const CASES = [
   "clicks": ["resetForm();var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/风险总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/风险等级|风险分级|建议|诊断|治疗/.test(__b);document.getElementById('res').innerHTML=__ok?'__DIMS_RST_OK__':'__DIMS_RST_FAIL__ '+__b;"],
   "expect": ["__DIMS_RST_OK__"],
   "ref": "批 4 重置态：resetForm() 七项归 0 并清 dirty，风险分级与防龋建议消失。"
+},
+{
+  "slug": "dentistry/caries-risk",
+  "clicks": ["var v={f1:3,f2:1,f3:1,f4:2,f5:1,f6:2,f7:1,f8:1,f9:1};Object.keys(v).forEach(function(k){document.getElementById(k).value=String(v[k]);});__scaleDirty=true;calc();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='CR59 '+((t.indexOf('55')>=0&&t.indexOf('高风险')>=0&&t.indexOf('极高风险')<0)?'OK':'BAD');"],
+  "expect": ["CR59 OK"],
+  "ref": "高风险(CAMBRA)预设改为 f1=3、f4=2、f6=2、其余 1：加权总分 0.54+0.06+0.10+0.28+0.10+0.28+0.10+0.09+0.09=1.64 ⇒ 55 分，落「高风险(50-74)」；旧预设九项 3/2 混填得 98 分被判「极高风险」，与按钮名差一档。"
+},
+{
+  "slug": "dentistry/caries-risk",
+  "clicks": ["var got='';var old=ToolBox.copyText;ToolBox.copyText=function(t){got=String(t);};try{copyResult();}catch(e){}ToolBox.copyText=old;var msg='';var oldT=ToolBox.showToast;ToolBox.showToast=function(m){msg=String(m);};try{resetAll();}catch(e){}ToolBox.showToast=oldT;document.getElementById('__tbProbe').textContent='CR63 '+((got.indexOf('龋病风险分数')>=0&&msg.indexOf('已重置')>=0)?'OK':'BAD');"],
+  "expect": ["CR63 OK"],
+  "ref": "N63：`i18nText()` 无参调用改为中英直出文案——复制结果返回含「龋病风险分数」的完整文本，重置 toast 返回「已重置九项因素」；旧实现两个提示串都取不到 key。默认态不执行 clicks，不出现 CR63 探针。"
 }
 
 ];

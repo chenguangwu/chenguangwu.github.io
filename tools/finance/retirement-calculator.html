@@ -700,12 +700,17 @@ function __retirement_calculatorFullResText(){
     return t;
 }
 function __retirement_calculatorScore(t){
-    // 复核判据：本页「❌ 资金不足 / ⚠️ 接近目标」是有效业务结论，不是计算失败；
-    // Score 只表示本次计算是否成功，年龄等输入非法才判 0。
+    var __fs=String(t||'');
+    // 兼容结论级短语。刻意不含「❌」：本页「❌ 资金不足 / ⚠️ 接近目标」是有效计算结论（记 1）。
+    if(/校验失败|含非法字符|请填写「|后再计算|格式不符|长度必须|不能为 0|不能全为 0|年龄顺序无效|校验和失败|mod-97 校验失败|Luhn 校验失败|Waiting|Please enter|must be/.test(__fs)) return 0;
+    // 第203批：年龄顺序无效（age>=retireAge 或 retireAge>=lifeAge）是拒绝态，须记 0；
+    // 「❌ 资金不足 / ⚠️ 接近目标」是有效计算结论，仍记 1，不恢复「警告一律当失败」。
     var age=parseFloat(document.getElementById('age').value);
+    var retireAge=parseFloat(document.getElementById('retireAge').value);
+    var lifeAge=parseFloat(document.getElementById('lifeAge').value);
     if(!isFinite(age)||age<=0||age>120) return 0;
-    var s=String(t||'');
-    if(/请输入|含无效值|无法计算|Waiting|Please enter|Invalid|Failed/i.test(s)) return 0;
+    if(!isFinite(retireAge)||!isFinite(lifeAge)) return 0;
+    if(age>=retireAge||retireAge>=lifeAge) return 0;      // 与 calc() 的年龄顺序拒绝分支对齐
     return 1;
 }
 function __retirement_calculatorTime(t){

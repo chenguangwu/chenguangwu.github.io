@@ -220,8 +220,14 @@ let lastResult='';
 function devTime(K,T,T0){const eff=T-T0;return eff>0?K/eff:Infinity;}
 function calc(){
   const p=PAR[document.getElementById('parasite').value];
-  const T=+document.getElementById('temp').value;
-  if([T].some(isNaN)){ToolBox.showToast(i18nText('toast.msg721'),'error');return;}
+  const Traw=String(document.getElementById('temp').value).trim();
+  const T=Traw===''?NaN:+Traw;
+  if(!isFinite(T)||T<0||T>40){
+    lastResult='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请填写 0–40℃ 的水温：留空或越界时无法代入积温模型。</p>';
+    ToolBox.showToast(i18nText('toast.msg721'),'error');
+    return;
+  }
   const eff=T-p.T0;
   let stageRows='<tr><th>阶段</th><th>积温(℃·天)</th><th>发育时间(天)</th></tr>';
   let total=0,allFinite=true;
@@ -261,7 +267,7 @@ ${risk}`;
     <h3 style="margin-top:14px;">各阶段发育时间</h3>
     <table>${stageRows}</table>
     <h3 style="margin-top:14px;">温度梯度模拟</h3>
-    <table>${tempRows}</table>`;try{ if(typeof cycle==='number'&&isFinite(cycle)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:cycle,unit:'d',bands:[{"lo":0,"hi":3,"label":{"zh":"极高风险","en":"Very high risk"},"color":"#EF4444"},{"lo":3,"hi":7,"label":{"zh":"高风险","en":"High risk"},"color":"#F97316"},{"lo":7,"hi":14,"label":{"zh":"中等风险","en":"Moderate risk"},"color":"#F59E0B"},{"lo":14,"hi":null,"label":{"zh":"低风险","en":"Low risk"},"color":"#10B981"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+    <table>${tempRows}</table>`+ (T>30?'<div class="tip-box tip-warn" style="margin-top:10px;">水温高于 30℃：多数鱼类寄生虫发育受抑甚至停止，积温模型在此区间仅作参考，实际风险需结合镜检与养殖观察。</div>':'');try{ if(typeof cycle==='number'&&isFinite(cycle)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:cycle,unit:'d',bands:[{"lo":0,"hi":3,"label":{"zh":"极高风险","en":"Very high risk"},"color":"#EF4444"},{"lo":3,"hi":7,"label":{"zh":"高风险","en":"High risk"},"color":"#F97316"},{"lo":7,"hi":14,"label":{"zh":"中等风险","en":"Moderate risk"},"color":"#F59E0B"},{"lo":14,"hi":null,"label":{"zh":"低风险","en":"Low risk"},"color":"#10B981"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){if(!lastResult){ToolBox.showToast(i18nText('toast.msg638'),'warning');return;}ToolBox.copyText(lastResult);}

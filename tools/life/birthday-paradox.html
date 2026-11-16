@@ -160,8 +160,8 @@
 
     <div class="toolbar">
       <div id="birthday_paradoxPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__birthday_paradoxExport()">导出明细 CSV</button>
-      <button type="button" class="btn" onclick="document.getElementById('n').value = 23;calc()">23 人（经典）</button>
-      <button type="button" class="btn" onclick="document.getElementById('n').value = 50;calc()">50 人</button>
+      <button type="button" class="btn" onclick="document.getElementById('d').value = 365;document.getElementById('n').value = 23;calc()">23 人（经典）</button>
+      <button type="button" class="btn" onclick="document.getElementById('d').value = 365;document.getElementById('n').value = 50;calc()">50 人</button>
     </div>
 
     <div class="result-box" id="resultBox">请输入人数</div> <div id="birthday_paradoxTable"></div> <div id="birthday_paradoxDiff"></div> <div id="birthday_paradoxChart"></div> <div id="birthday_paradoxHist"></div>
@@ -276,7 +276,12 @@ function calc(){
     logProd += Math.log(1 - i / d);
   }
   const p = 1 - Math.exp(logProd);
-  // 找到达到 50% 的最少人数（如果可能）
+  // 按当前总天数 D 求「达到 50% 的最少人数」，避免固定 23 人文案与自定义 D 脱钩
+  let need50 = null, logNeed = 0;
+  for(let k = 0; k < d; k++){
+    logNeed += Math.log(1 - k / d);
+    if(1 - Math.exp(logNeed) >= 0.5){ need50 = k + 1; break; }
+  }
   const pct = (p * 100).toFixed(4);
   const __g3=`
     <p>人数：<strong>${n}</strong>，总天数：<strong>${d}</strong></p>
@@ -286,7 +291,7 @@ function calc(){
     <p>概率值：${p.toExponential(6)}</p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
     <p>所有人生日不同的概率：${((1 - p) * 100).toFixed(4)}%</p>
-    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">提示：23 人是经典案例，概率恰好超过 50%</p>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">提示：${need50 ? `当前总天数 ${d} 下，至少 ${need50} 人即可让概率超过 50%（当前 ${n} 人为 ${pct}%）` : `总天数为 ${d} 时，人数接近总天数前的概率难以超过 50%`}</p>
   `;document.getElementById('resultBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 

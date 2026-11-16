@@ -312,17 +312,13 @@ function parseProto(){
       const fields = [];
       while(peek() && peek().v !== '}'){
         let type = next().v;
-        let mapKey = null, mapValue = null;
+        // IT-N277 复核重做：protoc 明确报 "Map fields are not allowed in oneofs."，
+        // 旧实现照搬 parseField 的 map 解析把非法 oneof 声明也判为解析通过，
+        // 导致 doValidate() 声称「基于完整语法解析校验通过」。此处直接拒绝。
         if(type === 'map' && peek() && peek().v === '<'){
-          next();
-          mapKey = next().v;
-          while(peek() && peek().v === '.'){ next(); mapKey += '.' + next().v; }
-          expect(',');
-          mapValue = next().v;
-          while(peek() && peek().v === '.'){ next(); mapValue += '.' + next().v; }
-          expect('>');
-          type = 'map<' + mapKey + ', ' + mapValue + '>';
+          throw new Error('Map fields are not allowed in oneofs (oneof 内不允许 map 字段)');
         }
+        let mapKey = null, mapValue = null;
         while(peek() && peek().v === '.'){ next(); type += '.' + next().v; }
         const fname = next().v;
         let num = null;

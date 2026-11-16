@@ -303,31 +303,34 @@ function gen() {
     return;
   }
   const o = qrOpts();
-  const summary = isEnMode()
-    ? ('Generated: ' + lines.length + ' QR code' + (lines.length > 1 ? 's' : '') + ' (EC ' + o.ec + ', quiet zone ' + o.margin + ' modules)')
-    : ('生成结果：共 ' + lines.length + ' 个二维码（纠错 ' + o.ec + '，静区 ' + o.margin + ' 模块）');
-  let html = '<p style="margin-bottom:8px;">' + summary + '</p>';
+  const cards = [];
   const st = [];
   lines.forEach(function (text, i) {
     const bytes = qrUtf8Len(text);
     if (bytes > QR_EC_CAP[o.ec]) {
-      html += '<div class="qr-card"><div class="qr-head">' + (i + 1) + '. ' + qrEsc(text.slice(0, 60)) + '</div>' +
+      cards.push('<div class="qr-card"><div class="qr-head">' + (i + 1) + '. ' + qrEsc(text.slice(0, 60)) + '</div>' +
         '<p style="color:var(--danger);margin:6px 0 0;">' + T('内容过长：', 'Too long: ') + bytes +
         T(' 字节，超出 ', ' bytes, exceeding the ') + o.ec + T(' 级 ', ' level limit of ') +
-        QR_EC_CAP[o.ec] + T(' 字节上限（版本 40），未生成。', ' bytes (version 40); not generated.') + '</p></div>';
+        QR_EC_CAP[o.ec] + T(' 字节上限（版本 40），未生成。', ' bytes (version 40); not generated.') + '</p></div>');
       return;
     }
     const r = qrBuild(text, o);
+    // 超长行不写入 QR_STATE，下载按钮必须按「已生成条目数」编号，不能用原始行号 i，
+    // 否则前面混有超长行时 data-i 会指向错误条目甚至越界（第 389 批复核失败）。
+    const idx = st.length;
     st.push({ text: text, o: o, svg: r.svg });
-    html += '<div class="qr-card"><div class="qr-head">' + (i + 1) + '. ' + qrEsc(text.slice(0, 60)) +
+    cards.push('<div class="qr-card"><div class="qr-head">' + (i + 1) + '. ' + qrEsc(text.slice(0, 60)) +
       (text.length > 60 ? '…' : '') + '</div><div class="qr-body">' + r.svg + '</div>' +
       '<div class="qr-meta">' + T('版本 ', 'Version ') + r.ver + ' · ' + r.count + '×' + r.count + T(' 模块', ' modules') +
       ' · ' + T('纠错 ', 'EC ') + o.ec + ' · ' + bytes + T(' 字节', ' bytes') + '</div>' +
-      '<div class="qr-actions"><button class="btn" type="button" data-qrdl="png" data-i="' + i + '">' + T('下载 PNG', 'Download PNG') + '</button>' +
-      '<button class="btn" type="button" data-qrdl="svg" data-i="' + i + '">' + T('下载 SVG', 'Download SVG') + '</button></div></div>';
+      '<div class="qr-actions"><button class="btn" type="button" data-qrdl="png" data-i="' + idx + '">' + T('下载 PNG', 'Download PNG') + '</button>' +
+      '<button class="btn" type="button" data-qrdl="svg" data-i="' + idx + '">' + T('下载 SVG', 'Download SVG') + '</button></div></div>');
   });
   QR_STATE = st;
-  RE.innerHTML = html;
+  const summary = isEnMode()
+    ? ('Generated: ' + st.length + ' QR code' + (st.length > 1 ? 's' : '') + ' (EC ' + o.ec + ', quiet zone ' + o.margin + ' modules)')
+    : ('生成结果：共 ' + st.length + ' 个二维码（纠错 ' + o.ec + '，静区 ' + o.margin + ' 模块）');
+  RE.innerHTML = '<p style="margin-bottom:8px;">' + summary + '</p>' + cards.join('');
 }
 function qrSaveBlob(blob, name) {
   if (!blob || typeof URL === 'undefined' || !URL.createObjectURL) return;
@@ -363,7 +366,10 @@ document.getElementById('res').addEventListener('click', function (e) {
   if (!t || !t.getAttribute) return;
   const fmt = t.getAttribute('data-qrdl');
   if (!fmt) return;
-  qrDownload(parseInt(t.getAttribute('data-i'), 10) || 0, fmt);
+  // 非法/越界索引直接忽略，不能回落成 0 去下载第一条，避免下载错误条目。
+  const idx = Number(t.getAttribute('data-i'));
+  if (!Number.isInteger(idx) || idx < 0 || idx >= QR_STATE.length) return;
+  qrDownload(idx, fmt);
 });
 
 function copyRes() {

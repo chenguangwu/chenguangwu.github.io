@@ -349,6 +349,17 @@ function transpose(a){
   }
   return r;
 }
+/* 相对容差：以矩阵元素绝对值的最大者为尺度，避免绝对 1e-12 把 1e-13 级
+   但完全合法的矩阵误判为奇异（SMS-108 / SMS-167）。 */
+function __matScale(m){
+  let mx=0;
+  for(let i=0;i<m.length;i++){for(let j=0;j<m[i].length;j++){const t=Math.abs(m[i][j]);if(t>mx)mx=t;}}
+  return mx;
+}
+function __matEps(m){const s=__matScale(m);return s>0?s*1e-12:1e-12;}
+function __matIsEn(){
+  return (typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function')?TBKit.util.isEn():false;
+}
 function det(a){
   const n=a.length;
   if(n===1) return a[0][0];
@@ -377,7 +388,8 @@ function identity(n){
 function inverse(a){
   const n=a.length;
   const d = det(a);
-  if(Math.abs(d)<1e-12) return null;
+  const __eps=__matEps(a);
+  if(Math.abs(d)<__eps) return null;
   const aug = [];
   for(let i=0;i<n;i++){
     aug.push([]);
@@ -389,7 +401,7 @@ function inverse(a){
     for(let k=i+1;k<n;k++){
       if(Math.abs(aug[k][i])>Math.abs(aug[maxRow][i])) maxRow=k;
     }
-    if(Math.abs(aug[maxRow][i])<1e-12) return null;
+    if(Math.abs(aug[maxRow][i])<__eps) return null;
     [aug[i], aug[maxRow]] = [aug[maxRow], aug[i]];
     const pivot = aug[i][i];
     for(let j=0;j<2*n;j++) aug[i][j] /= pivot;
@@ -410,13 +422,14 @@ function rank(a){
   const m = a.map(r => [...r]);
   const rows = m.length;
   const cols = m[0].length;
+  const __eps=__matEps(a);
   let r = 0;
   for(let col=0; col<cols && r<rows; col++){
     let pivot = r;
     for(let i=r+1;i<rows;i++){
       if(Math.abs(m[i][col])>Math.abs(m[pivot][col])) pivot=i;
     }
-    if(Math.abs(m[pivot][col])<1e-12) continue;
+    if(Math.abs(m[pivot][col])<__eps) continue;
     [m[r], m[pivot]] = [m[pivot], m[r]];
     const div = m[r][col];
     for(let j=col;j<cols;j++) m[r][j] /= div;
@@ -447,6 +460,7 @@ function matrixPower(a, power){
 }
 
 function calculate(){
+  const __mEn = __matIsEn();
   const n = +document.getElementById('size').value;
   const op = document.getElementById('op').value;
   const A = getMatrix('a', n);
@@ -455,26 +469,26 @@ function calculate(){
   if(op==='add'){
     const B = getMatrix('b', n);
     const result = add(A,B);
-    html = '<p><strong>矩阵 A：</strong></p>' + matrixToString(A);
-    html += '<p><strong>矩阵 B：</strong></p>' + matrixToString(B);
-    html += '<p style="margin-top:10px;"><strong>结果 C = A + B：</strong></p>' + matrixToString(result);
-    steps = '<div class="step-line"><strong>步骤：</strong>逐元素相加，C[i][j] = A[i][j] + B[i][j]</div>';
+    html = '<p><strong>'+(__mEn?'Matrix A:':'矩阵 A：')+'</strong></p>' + matrixToString(A);
+    html += '<p><strong>'+(__mEn?'Matrix B:':'矩阵 B：')+'</strong></p>' + matrixToString(B);
+    html += '<p style="margin-top:10px;"><strong>'+(__mEn?'Result C = A + B:':'结果 C = A + B：')+'</strong></p>' + matrixToString(result);
+    steps = '<div class="step-line"><strong>'+(__mEn?'Steps:':'步骤：')+'</strong>'+(__mEn?'element-wise addition, C[i][j] = A[i][j] + B[i][j]':'逐元素相加，C[i][j] = A[i][j] + B[i][j]')+'</div>';
     saveHistory('A+B', n, A, B, result, null);
   } else if(op==='sub'){
     const B = getMatrix('b', n);
     const result = sub(A,B);
-    html = '<p><strong>矩阵 A：</strong></p>' + matrixToString(A);
-    html += '<p><strong>矩阵 B：</strong></p>' + matrixToString(B);
-    html += '<p style="margin-top:10px;"><strong>结果 C = A − B：</strong></p>' + matrixToString(result);
-    steps = '<div class="step-line"><strong>步骤：</strong>逐元素相减，C[i][j] = A[i][j] − B[i][j]</div>';
+    html = '<p><strong>'+(__mEn?'Matrix A:':'矩阵 A：')+'</strong></p>' + matrixToString(A);
+    html += '<p><strong>'+(__mEn?'Matrix B:':'矩阵 B：')+'</strong></p>' + matrixToString(B);
+    html += '<p style="margin-top:10px;"><strong>'+(__mEn?'Result C = A − B:':'结果 C = A − B：')+'</strong></p>' + matrixToString(result);
+    steps = '<div class="step-line"><strong>'+(__mEn?'Steps:':'步骤：')+'</strong>'+(__mEn?'element-wise subtraction, C[i][j] = A[i][j] − B[i][j]':'逐元素相减，C[i][j] = A[i][j] − B[i][j]')+'</div>';
     saveHistory('A-B', n, A, B, result, null);
   } else if(op==='mul'){
     const B = getMatrix('b', n);
     const result = mul(A,B);
-    html = '<p><strong>矩阵 A：</strong></p>' + matrixToString(A);
-    html += '<p><strong>矩阵 B：</strong></p>' + matrixToString(B);
-    html += '<p style="margin-top:10px;"><strong>结果 C = A × B：</strong></p>' + matrixToString(result);
-    steps = '<div class="step-line"><strong>步骤：</strong>行 × 列点积，C[i][j] = Σ A[i][k]·B[k][j]</div>';
+    html = '<p><strong>'+(__mEn?'Matrix A:':'矩阵 A：')+'</strong></p>' + matrixToString(A);
+    html += '<p><strong>'+(__mEn?'Matrix B:':'矩阵 B：')+'</strong></p>' + matrixToString(B);
+    html += '<p style="margin-top:10px;"><strong>'+(__mEn?'Result C = A × B:':'结果 C = A × B：')+'</strong></p>' + matrixToString(result);
+    steps = '<div class="step-line"><strong>'+(__mEn?'Steps:':'步骤：')+'</strong>'+(__mEn?'row × column dot product, C[i][j] = Σ A[i][k]·B[k][j]':'行 × 列点积，C[i][j] = Σ A[i][k]·B[k][j]')+'</div>';
     if(n<=3){
       for(let i=0;i<n;i++) for(let j=0;j<n;j++){
         const parts=[];
@@ -487,58 +501,77 @@ function calculate(){
     const __rawScalar = document.getElementById('scalar').value.trim();
     const k = (__rawScalar === '' || isNaN(parseFloat(__rawScalar))) ? 1 : parseFloat(__rawScalar);
     const result = scale(A, k);
-    html = '<p><strong>矩阵 A：</strong></p>' + matrixToString(A);
-    html += '<p style="margin-top:10px;"><strong>结果 k·A = '+fmt(k)+'·A：</strong></p>' + matrixToString(result);
-    steps = '<div class="step-line"><strong>步骤：</strong>每个元素乘以标量 k = '+fmt(k)+'</div>';
+    html = '<p><strong>'+(__mEn?'Matrix A:':'矩阵 A：')+'</strong></p>' + matrixToString(A);
+    html += '<p style="margin-top:10px;"><strong>'+(__mEn?'Result k·A = ':'结果 k·A = ')+fmt(k)+(__mEn?'·A:':'·A：')+'</strong></p>' + matrixToString(result);
+    steps = '<div class="step-line"><strong>'+(__mEn?'Steps:':'步骤：')+'</strong>'+(__mEn?'multiply every element by the scalar k = ':'每个元素乘以标量 k = ')+fmt(k)+'</div>';
     saveHistory(k+'·A', n, A, null, result, null);
   } else if(op==='transpose'){
     const result = transpose(A);
-    html = '<p><strong>矩阵 A：</strong></p>' + matrixToString(A);
-    html += '<p style="margin-top:10px;"><strong>结果 Aᵀ（转置）：</strong></p>' + matrixToString(result);
-    steps = '<div class="step-line"><strong>步骤：</strong>行列互换，Aᵀ[i][j] = A[j][i]</div>';
+    html = '<p><strong>'+(__mEn?'Matrix A:':'矩阵 A：')+'</strong></p>' + matrixToString(A);
+    html += '<p style="margin-top:10px;"><strong>'+(__mEn?'Result Aᵀ (transpose):':'结果 Aᵀ（转置）：')+'</strong></p>' + matrixToString(result);
+    steps = '<div class="step-line"><strong>'+(__mEn?'Steps:':'步骤：')+'</strong>'+(__mEn?'swap rows and columns, Aᵀ[i][j] = A[j][i]':'行列互换，Aᵀ[i][j] = A[j][i]')+'</div>';
     saveHistory('Aᵀ', n, A, null, result, null);
   } else if(op==='det'){
     const d = det(A);
-    html = '<p><strong>矩阵 A：</strong></p>' + matrixToString(A);
+    html = '<p><strong>'+(__mEn?'Matrix A:':'矩阵 A：')+'</strong></p>' + matrixToString(A);
     html += '<div class="big-result">|A| = '+fmt(d)+'</div>';
-    steps = '<div class="step-line"><strong>行列式计算：</strong>按第一行展开（拉普拉斯展开）</div>';
+    steps = '<div class="step-line"><strong>'+(__mEn?'Determinant:':'行列式计算：')+'</strong>'+(__mEn?'cofactor expansion along the first row (Laplace)':'按第一行展开（拉普拉斯展开）')+'</div>';
     steps += '<div class="step-line">det(A) = Σ a₁ⱼ · (-1)^(1+j) · M₁ⱼ</div>';
-    if(d===0) steps += '<div class="step-line" style="color:var(--danger);">注意：行列式为 0，矩阵不可逆（奇异矩阵）</div>';
+    const __singD=Math.abs(d)<=__matEps(A);
+    if(__singD) steps += '<div class="step-line" style="color:var(--danger);">'+(__mEn?'Note: the determinant is zero within the relative tolerance (|A| = '+fmt(d)+'), so the matrix is singular and not invertible':'注意：行列式在相对容差内为 0（|A| = '+fmt(d)+'），矩阵不可逆（奇异矩阵）')+'</div>';
     saveHistory('det(A)', n, A, null, null, d);
   } else if(op==='inv'){
     const d = det(A);
     const inv = inverse(A);
-    html = '<p><strong>矩阵 A：</strong></p>' + matrixToString(A);
+    html = '<p><strong>'+(__mEn?'Matrix A:':'矩阵 A：')+'</strong></p>' + matrixToString(A);
     if(!inv){
-      html += '<p style="color:var(--danger);margin-top:10px;">⚠️ 矩阵不可逆（行列式 = '+fmt(d)+'，奇异矩阵）</p>';
+      html += '<p style="color:var(--danger);margin-top:10px;">'+(__mEn?'⚠️ Matrix is not invertible (determinant = '+fmt(d)+', singular)':'⚠️ 矩阵不可逆（行列式 = '+fmt(d)+'，奇异矩阵）')+'</p>';
     } else {
-      html += '<p style="margin-top:10px;"><strong>结果 A⁻¹（逆矩阵）：</strong></p>' + matrixToString(inv);
+      const __enInv=__matIsEn();
+      html += '<p style="margin-top:10px;"><strong>'+(__enInv?'Result A⁻¹ (inverse):':'结果 A⁻¹（逆矩阵）：')+'</strong></p>' + matrixToString(inv);
       const check = mul(A, inv);
-      steps = '<div class="step-line"><strong>行列式：</strong>|A| = '+fmt(d)+'</div>';
-      steps += '<div class="step-line"><strong>求逆方法：</strong>高斯-若尔当消元法（增广矩阵 [A|I] → [I|A⁻¹]）</div>';
-      steps += '<div class="step-line"><strong>验证：</strong>A · A⁻¹ = I（单位矩阵）</div>';
+      let __maxDev=0;
+      for(let __i=0;__i<n;__i++){
+        for(let __j=0;__j<n;__j++){
+          const __t=Math.abs(check[__i][__j]-(__i===__j?1:0));
+          if(__t>__maxDev)__maxDev=__t;
+        }
+      }
+      const __tol=Math.max(1e-9,__matEps(check));
+      const __bad=!(__maxDev<=__tol);
+      steps = '<div class="step-line"><strong>'+(__enInv?'Determinant:':'行列式：')+'</strong>|A| = '+fmt(d)+'</div>';
+      steps += '<div class="step-line"><strong>'+(__enInv?'Method:':'求逆方法：')+'</strong>'+(__enInv?'Gauss-Jordan elimination on the augmented matrix [A|I] → [I|A⁻¹]':'高斯-若尔当消元法（增广矩阵 [A|I] → [I|A⁻¹]）')+'</div>';
+      steps += '<div class="step-line"><strong>'+(__enInv?'Verification A · A⁻¹ (should equal I):':'验证 A · A⁻¹（应为单位矩阵）：')+'</strong></div>'+matrixToString(check);
+      steps += '<div class="step-line"'+(__bad?' style="color:var(--danger);"':'')+'>'+(__enInv?'Max deviation from I: ':'与单位矩阵最大偏差：')+'|Δ| = '+__maxDev.toExponential(2)+(__bad?(__enInv?' — exceeds tolerance, the inverse is numerically unreliable':' —— 超出容差，求逆结果数值上不可靠'):(__enInv?' — within tolerance':'—— 在容差内'))+'</div>';
       saveHistory('A⁻¹', n, A, null, inv, d);
     }
   } else if(op==='rank'){
     const r = rank(A);
-    html = '<p><strong>矩阵 A：</strong></p>' + matrixToString(A);
+    const __enRk=__matIsEn();
+    html = '<p><strong>'+(__enRk?'Matrix A:':'矩阵 A：')+'</strong></p>' + matrixToString(A);
     html += '<div class="big-result">rank(A) = '+r+'</div>';
-    steps = '<div class="step-line"><strong>秩：</strong>矩阵的行（列）向量组的极大线性无关组的向量个数</div>';
-    steps += '<div class="step-line"><strong>计算方法：</strong>高斯消元法，行阶梯形矩阵的非零行数</div>';
-    if(r === n) steps += '<div class="step-line">满秩矩阵（秩 = '+n+'）</div>';
+    steps = '<div class="step-line"><strong>'+(__enRk?'Rank:':'秩：')+'</strong>'+(__enRk?'the number of vectors in a maximal linearly independent subset of the row (column) vectors':'矩阵的行（列）向量组的极大线性无关组的向量个数')+'</div>';
+    steps += '<div class="step-line"><strong>'+(__enRk?'Method:':'计算方法：')+'</strong>'+(__enRk?'Gaussian elimination; the count of non-zero rows in row echelon form':'高斯消元法，行阶梯形矩阵的非零行数')+'</div>';
+    if(r === n) steps += '<div class="step-line">'+(__enRk?'Full-rank matrix (rank = '+n+')':'满秩矩阵（秩 = '+n+'）')+'</div>';
     saveHistory('rank(A)', n, A, null, null, r);
   } else if(op==='power'){
     const __rawP = document.getElementById('scalar').value.trim();
-    const p = (__rawP === '' || isNaN(parseInt(__rawP, 10))) ? 1 : parseInt(__rawP, 10);
+    const __pNum = Number(__rawP);
+    if(__rawP !== '' && !Number.isInteger(__pNum)){
+      html = '<p style="color:var(--danger);">'+(__matIsEn()?'The exponent must be an integer (decimals and non-numeric values are not accepted)':'幂次必须是整数（不接受小数或非数字）')+'</p>';
+    } else {
+    const p = (__rawP === '') ? 1 : __pNum;
     const result = matrixPower(A, p);
     if(!result){
-      html = '<p style="color:var(--danger);">负幂需要可逆矩阵，当前矩阵不可逆</p>';
+      html = '<p style="color:var(--danger);">'+(__matIsEn()?'A negative exponent requires an invertible matrix; this matrix is singular':'负幂需要可逆矩阵，当前矩阵不可逆')+'</p>';
     } else {
-      html = '<p><strong>矩阵 A：</strong></p>' + matrixToString(A);
-      html += '<p style="margin-top:10px;"><strong>结果 A^'+p+'：</strong></p>' + matrixToString(result);
-      steps = '<div class="step-line"><strong>矩阵幂运算：</strong>Aⁿ = A × A × ... × A（n个A相乘）</div>';
-      steps += '<div class="step-line"><strong>快速方法：</strong>快速幂算法（二进制分解，O(log n) 次乘法）</div>';
+      const __enPw=__matIsEn();
+      html = '<p><strong>'+(__enPw?'Matrix A:':'矩阵 A：')+'</strong></p>' + matrixToString(A);
+      html += '<p style="margin-top:10px;"><strong>'+(__enPw?'Result A^':'结果 A^')+p+(__enPw?':':'：')+'</strong></p>' + matrixToString(result);
+      steps = '<div class="step-line"><strong>'+(__enPw?'Matrix power:':'矩阵幂运算：')+'</strong>'+(__enPw?'Aⁿ = A × A × ... × A (n copies of A)':'Aⁿ = A × A × ... × A（n个A相乘）')+'</div>';
+      steps += '<div class="step-line"><strong>'+(__enPw?'Fast method:':'快速方法：')+'</strong>'+(__enPw?'binary exponentiation, O(log n) multiplications':'快速幂算法（二进制分解，O(log n) 次乘法）')+'</div>';
       saveHistory('A^'+p, n, A, null, result, null);
+    }
     }
   }
   html += steps;

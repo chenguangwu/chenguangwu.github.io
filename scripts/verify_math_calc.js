@@ -703,8 +703,8 @@ const CASES = [
     "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};document.getElementById('plotCanvas').toDataURL=function(){throw new Error('boom')};downloadPlot();"],
     "expect": ["TOAST:导出失败：Error"],
     "ref": "失败注入：plotCanvas.toDataURL 抛 Error + 录制 ToolBox.showToast ⇒ 必须出现「TOAST:导出失败：Error」。修复前异常裸冒成 pageerror、成功 toast 不执行；默认态无 TOAST: 串 ⇒ 判别明确。"
-  }
-
+  },
+  { slug: "math/determinant-2x2", inputs: { a: "0.1", b: "0.3", c: "0.3", d: "0.9" }, expect: ["1.39e-17", "奇异矩阵（不可逆；ad 与 bc 在双精度下仅差"], ref: "SMS-163 相对容差：ad=0.1×0.9=0.09000000000000001、bc=0.3×0.3=0.09，双精度残差 det=1.3877788e-17 ⇒ toExponential(2)=1.39e-17。判定用 |det| ≤ 1e-12·max(|ad|,|bc|)=9.0e-14 ⇒ 奇异（旧 det===0 判非奇异，与展示的 0.00 自相矛盾），并在文案标注残差量级。默认 1,2,3,4 ⇒ det=−2.00 非奇异，不出现这两串。" }
 ];
 
 async function main() {

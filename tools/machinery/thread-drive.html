@@ -131,7 +131,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__thread_driveExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="thread_driveTable"></div> <div id="thread_driveDiff"></div> <div id="thread_driveChart"></div> <div id="thread_driveHist"></div>
-    <div class="info-box">💡 公式：升角 λ=arctan(L/(π·d2))；摩擦角 ρ=arctan(μ)；驱动力矩 T=F·[d2/2·tan(λ+ρ)+μc·dc/2]；效率 η=tan(λ)/tan(λ+ρ)；自锁条件 λ≤ρ</div>
+    <div class="info-box">💡 公式：升角 λ=arctan(L/(π·d2))；摩擦角 ρ=arctan(μ)；驱动力矩 T=F·[d2/2·tan(λ+ρ)+μc·dc/2]；下放力矩 T_lower=F·[d2/2·tan(ρ−λ)+μc·dc/2]（λ≤ρ 时）；效率 η=tan(λ)/tan(λ+ρ)；自锁条件 λ≤ρ</div>
     <div class="tool-notes" style="--tool-accent:#64748B;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
@@ -208,8 +208,8 @@ function __tbInputGuardCore(_ids,_labels){
     if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
     return __msg;
   }
-  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"v_f": "v_f"};
+  // 分母项：轴向载荷 v_f 在公式中为分子（T=F·…），不应按「分母为 0」提示
+  var __D={};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -248,18 +248,18 @@ function readInputs(){
   var d2=num('v_d2'),lead=num('v_lead'),f=num('v_f'),mu=num('v_mu'),muc=num('v_muc'),dc=num('v_dc');
   setInvalid(document.getElementById('v_d2'),d2<=0);
   setInvalid(document.getElementById('v_lead'),lead<=0);
-  setInvalid(document.getElementById('v_f'),f<0);
+  setInvalid(document.getElementById('v_f'),f<=0);
   setInvalid(document.getElementById('v_mu'),mu<=0||mu>0.5);
   setInvalid(document.getElementById('v_muc'),muc<0||muc>0.5);
   setInvalid(document.getElementById('v_dc'),dc<0);
-  var valid=d2>0&&lead>0&&f>=0&&mu>0&&mu<=0.5&&muc>=0&&muc<=0.5&&dc>=0;
+  var valid=d2>0&&lead>0&&f>0&&mu>0&&mu<=0.5&&muc>=0&&muc<=0.5&&dc>=0;
   return {d2:d2,lead:lead,f:f*1000,mu:mu,muc:muc,dc:dc,valid:valid};
 }
 function calc(){
     var __ig=__tbInputGuard(['v_d2', 'v_lead', 'v_f', 'v_mu', 'v_muc', 'v_dc'],["螺纹中径 d2 (mm)", "导程 L (mm)", "轴向载荷 F (kN)", "螺纹摩擦系数 μ", "推力轴承摩擦系数 μc", "推力轴承当量直径 dc (mm)"]);if(__ig){const __g1=__ig;ToolBox.setResult("res",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效参数（中径、导程须大于0，摩擦系数须在0~0.5之间）</p>';
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效参数（中径、导程、轴向载荷须大于 0，摩擦系数须在 0~0.5 之间）</p>';
     lastResult='';return;
   }
   var d2=iv.d2,L=iv.lead,F=iv.f,mu=iv.mu,muc=iv.muc,dc=iv.dc;
@@ -278,9 +278,9 @@ var iv=readInputs();
   var etaTotal=usefulWork/inputWork;
   // 纯螺纹副效率
   var etaThread=Math.tan(lambda)/Math.tan(lambda+rho);
-  // 下放力矩（若可自锁则正，否则需约束）
+  // 下放力矩（自锁时需克服螺纹副摩擦与推力轴承摩擦）
   var T_lower=0;
-  if(rho>lambda){T_lower=F*d2/2*Math.tan(rho-lambda);}
+  if(rho>lambda){T_lower=F*d2/2*Math.tan(rho-lambda)+T_collar;}
   // 所需驱动功率
   var n=100; // 假设转速100rpm
   var P=T_total*2*Math.PI*n/60/1000; // W
@@ -302,7 +302,7 @@ var iv=readInputs();
     '<div class="data-card"><div class="num">'+P.toFixed(2)+'</div><div class="label">驱动功率(W@100rpm)</div></div>'+
     '</div>'+
     (isSelfLocking?'<p style="margin-top:10px;font-size:13px;color:var(--success);">✓ 升角 '+lambdaDeg.toFixed(2)+'° ≤ 摩擦角 '+rhoDeg.toFixed(2)+'°，满足自锁条件，载荷不会自行下落</p>':'<p style="margin-top:10px;font-size:13px;color:var(--warning);">⚠ 升角 '+lambdaDeg.toFixed(2)+'° > 摩擦角 '+rhoDeg.toFixed(2)+'°，不自锁，需设置制动装置防止载荷反转</p>')+
-    '<p style="font-size:13px;color:var(--text-muted);">下放力矩：'+(rho>lambda?(T_lower/1000).toFixed(3)+' N·m':'无需外力（重力自锁下放）')+'</p>';document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+    '<p style="font-size:13px;color:var(--text-muted);">下放力矩：'+(rho>lambda?(T_lower/1000).toFixed(3)+' N·m（含推力轴承摩擦）':'—（不自锁，载荷会自行下放，必须配置制动器）')+'</p>';document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   lastResult='螺纹中径:'+d2+'mm, 导程:'+L+'mm, 载荷:'+(F/1000)+'kN, 摩擦系数:'+mu+'\n升角:'+lambdaDeg.toFixed(2)+'°, 摩擦角:'+rhoDeg.toFixed(2)+'°\n驱动力矩:'+(T_total/1000).toFixed(3)+'N·m, 总效率:'+(etaTotal*100).toFixed(1)+'%, 螺纹副效率:'+(etaThread*100).toFixed(1)+'%\n自锁:'+selfLockText;
 }
 function copyRes(){

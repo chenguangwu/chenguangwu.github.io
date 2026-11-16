@@ -189,11 +189,11 @@
 <li>对比不同项目时，用同一组现金流绘制 NPV 随折现率变化的试算表，直观比较收益率高低。</li>
 <li>做项目可行性论证或融资方案比选时，将 IRR 与资金成本或基准收益率对照判断是否达标。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">五年现金流试算内部收益率</div><div class="dd-ex-body">初始投资 −100000 元，第 1~5 年现金流 25000、30000、35000、30000、20000 元。折现率 8% 时 NPV≈12312 元（正值），12% 时 NPV≈−1414 元（负值），说明 IRR 介于 8% 与 12% 之间；用线性插值 IRR≈8%+(12312÷(12312+1414))×4%≈11.6%，高于资金成本，方案可行。</div></div>
+<div class="dd-example"><div class="dd-ex-title">五年现金流试算内部收益率</div><div class="dd-ex-body">初始投资 −100000 元，第 1~5 年现金流 25000、30000、35000、30000、20000 元。折现率 8% 时 NPV≈12315 元（正），12% 时仍为 +1564 元（正），真实 IRR≈12.64%；本页在 -99.9999%～1e7% 区间扫描 NPV 变号并用二分法细化，高于资金成本时方案可行。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>IRR 和 NPV 应该看哪个？</dt><dd>NPV 直接给出绝对收益金额，IRR 给出相对收益率便于跨规模对比。互斥且规模差异大时优先看 NPV；单纯评价收益率是否达标看 IRR。当现金流多次正负交替出现时 IRR 可能不唯一，应以 NPV 为主。</dd>
-<dt>试算表为什么要扫描多个折现率？</dt><dd>IRR 定义为使 NPV 等于零的折现率，无法一步解析求出，需逐档试算：先找到 NPV 一正一负相邻的两个折现率，再用线性插值逼近。扫描密度越细，定位的内部收益率越精确。</dd>
+<dt>试算表为什么要扫描多个折现率？</dt><dd>IRR 定义为使 NPV 等于零的折现率，没有通用解析解，需数值求解：本页在 -99.9999%～1e7% 按对数间隔扫描 NPV 变号，再用二分法细化，因此负 IRR 与超高 IRR 也能覆盖；现金流多次正负交替时可能有多个根，页面会全部列出，并以最接近 0% 的根为主解。</dd>
 </dl>
 </div>
 </section>
@@ -240,7 +240,7 @@
 </div>
 
 <script>
-var flows = [-100000, 25000, 30000, 35000, 40000, 30000];
+var flows = [-100000, 25000, 30000, 35000, 30000, 20000];
 
 function fmt(n){
   if(!isFinite(n)) return '--';
@@ -257,22 +257,36 @@ function calcNPV(rate){
 }
 
 function calcIRR(){
-  var low=-0.99, high=1000, mid;
-  var npvAt=function(rate){
-    var r=rate/100, s=0;
+  var npvAt=function(r){
+    var s=0;
     for(var t=0;t<flows.length;t++){ s+=flows[t]/Math.pow(1+r,t); }
     return s;
   };
-  var nLow=npvAt(low), nHigh=npvAt(high);
-  if(nLow*nHigh>0) return NaN;
-  for(var i=0;i<300;i++){
-    mid=(low+high)/2;
-    var nMid=npvAt(mid);
-    if(Math.abs(nMid)<0.001) return mid;
-    if(nLow*nMid<0){ high=mid; nHigh=nMid; }
-    else{ low=mid; nLow=nMid; }
+  var hasPos=false, hasNeg=false;
+  flows.forEach(function(v){ if(v>0) hasPos=true; if(v<0) hasNeg=true; });
+  if(flows.length<2 || !hasPos || !hasNeg) return {ok:false,reason:'input',roots:[]};
+  // 在 log10(1+r) ∈ [-6, 7]（约 -99.9999% ～ 1e7%）上扫描变号，覆盖负 IRR 与超高 IRR
+  var x0=-6, x1=7, N=2400, roots=[];
+  var prevR=Math.pow(10,x0)-1, prevV=npvAt(prevR);
+  function refine(a,b,va,vb){
+    for(var i=0;i<200;i++){
+      var m=(a+b)/2, vm=npvAt(m);
+      if(Math.abs(vm)<1e-9 || Math.abs(b-a)<1e-12) return m;
+      if(va*vm<=0){ b=m; vb=vm; } else { a=m; va=vm; }
+    }
+    return (a+b)/2;
   }
-  return mid;
+  for(var i=1;i<=N;i++){
+    var x=x0+(x1-x0)*i/N, r=Math.pow(10,x)-1, v=npvAt(r);
+    if(isFinite(prevV)&&isFinite(v)&&prevV*v<=0&&!(prevV===0&&v===0)){
+      var root=refine(prevR,r,prevV,v), dup=false;
+      for(var k=0;k<roots.length;k++){ if(Math.abs(roots[k]-root)<1e-6*Math.max(1,Math.abs(root))) dup=true; }
+      if(!dup) roots.push(root);
+    }
+    prevR=r; prevV=v;
+  }
+  roots.sort(function(a,b){return a-b;});
+  return {ok:roots.length>0,reason:roots.length?'':'none',roots:roots};
 }
 
 function linearInterp(r1,r2,v1,v2){
@@ -295,7 +309,7 @@ function updateFlow(i,val){ flows[i]=parseFloat(val)||0; renderTable(); }
 function addFlow(){ flows.push(0); renderList(); renderTable(); }
 function removeFlow(i){ flows.splice(i,1); renderList(); renderTable(); }
 function clearFlows(){ flows=[0,0]; renderList(); renderTable(); }
-function loadDemo(){ flows=[-100000,25000,30000,35000,40000,30000]; renderList(); renderTable(); }
+function loadDemo(){ flows=[-100000,25000,30000,35000,30000,20000]; renderList(); renderTable(); }
 
 function renderTable(){
   var body=document.getElementById('scanBody');
@@ -304,6 +318,8 @@ function renderTable(){
   var step=parseFloat(document.getElementById('rateStep').value)||1;
   if(step<=0) step=1;
   if(end<start) end=start+step;
+  var maxRows=2000, truncated=false;
+  if((end-start)/step > maxRows-1){ end=start+step*(maxRows-1); truncated=true; }
 
   var rows=[];
   var crossRates=[];
@@ -319,7 +335,7 @@ function renderTable(){
     prevRate=r; prevNpv=npv;
   }
 
-  const __h1=rows.map(function(row){
+  const __h1=(truncated?'<p style="font-size:12px;color:var(--warning);">⚠ 扫描区间超过 2000 行，已截止到 '+end.toFixed(2)+'%，请增大步长。</p>':'')+rows.map(function(row){
     var cls=row.npv>=0?'pos':'neg';
     var status=row.npv>0?'NPV > 0 可行':(row.npv<0?'NPV < 0 不可行':'NPV = 0');
     var isZero=false;
@@ -332,14 +348,23 @@ function renderTable(){
 
   var irr=calcIRR();
   var irrBox=document.getElementById('irrResult');
-  if(isNaN(irr)||flows.length<2){
-    const __h2='<p style="color:var(--text-muted);">请输入至少两期现金流（需有正有负）才能计算IRR</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){irrBox.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}irrBox.innerHTML=__h2;
+  if(!irr.ok){
+    const __h2=irr.reason==='input'
+      ? '<p style="color:var(--text-muted);">请输入至少两期现金流（需有正有负）才能计算IRR</p>'
+      : '<p style="color:var(--warning);">在 -99.9999% ～ 1e7% 范围内未找到 NPV=0 的折现率：该组现金流按本页公式无实数 IRR，请核对现金流方向与金额。</p>';
+    if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){irrBox.innerHTML='<p style="color:var(--danger)">⚠ 计算结果包含无效值，请检查输入。</p>';return;}
+    irrBox.innerHTML=__h2;
   }else{
-    var color=irr>=0?'var(--success)':'var(--danger)';
-    var verdict=irr>=8?'<span style="color:var(--success);">收益率较高</span>':(irr>=0?'<span style="color:var(--warning);">收益一般</span>':'<span style="color:var(--danger);">投资亏损</span>');
-    const __h3='<p>精确 IRR（线性插值 + 二分法）：<strong style="font-size:20px;color:'+color+';">'+irr.toFixed(4)+'%</strong></p>'+
+    var rootsPct=irr.roots.map(function(r){return r*100;});
+    var principal=irr.roots.slice().sort(function(a,b){return Math.abs(a)-Math.abs(b);})[0]*100;
+    var color=principal>=0?'var(--success)':'var(--danger)';
+    var verdict=principal>=8?'<span style="color:var(--success);">收益率较高</span>':(principal>=0?'<span style="color:var(--warning);">收益一般</span>':'<span style="color:var(--danger);">投资亏损</span>');
+    var rootTxt=rootsPct.map(function(v){return v.toFixed(4)+'%';}).join('、');
+    const __h3='<p>精确 IRR（全区间扫描 + 二分法）：<strong style="font-size:20px;color:'+color+';">'+principal.toFixed(4)+'%</strong></p>'+
       '<p>NPV = 0 对应折现率即内部收益率，'+verdict+'</p>'+
-      '<p style="font-size:12px;color:var(--text-muted);">扫描区间内共发现 '+crossRates.length+' 个 NPV 过零点，IRR 取主解。</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){irrBox.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}irrBox.innerHTML=__h3;
+      '<p style="font-size:12px;color:var(--text-muted);">共找到 '+irr.roots.length+' 个 NPV=0 的折现率：'+rootTxt+'；主解取最接近 0% 的根'+(irr.roots.length>1?'，多解时需结合现金流方向判断经济含义':'')+'。扫描区间内观察到的过零点 '+crossRates.length+' 个。</p>';
+    if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){irrBox.innerHTML='<p style="color:var(--danger)">⚠ 计算结果包含无效值，请检查输入。</p>';return;}
+    irrBox.innerHTML=__h3;
   }
 }
 
@@ -428,6 +453,8 @@ function __irr_tableSnap(){
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
+    // 现金流输入无 id（renderList 动态生成），单独以 cf 键记录，保证历史回放可复现
+    try{ out.cf = flows.join(','); }catch(e){}
     return out;
 }
 function __irr_tableResText(){
@@ -451,10 +478,11 @@ function __irr_tableTime(t){
 function __irr_tableRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
+        var dispKeys=keys.filter(function(k){return k!=='cf';});
+        var head=[en?'Time':'时间'].concat(dispKeys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__irr_tableTime(it.t)];
-            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            for(var i=0;i<dispKeys.length;i++){var v=it.d[dispKeys[i]];row.push(v==null?'':v);}
             var sc=parseFloat(it.d.__tbScore);
             row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
@@ -467,6 +495,13 @@ function __irr_tableRender(keys,rk,en){
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
+                    if(k==='cf'){
+                        var arr=String(rec[k]).split(',');
+                        var nf=[];
+                        for(var q=0;q<arr.length;q++){var x=parseFloat(arr[q]);if(isFinite(x)) nf.push(x);}
+                        if(nf.length){ flows=nf; renderList(); }
+                        continue;
+                    }
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();

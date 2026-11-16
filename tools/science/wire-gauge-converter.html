@@ -174,7 +174,7 @@
   <label><input type="radio" name="mode" value="mm2" onchange="setMode('mm2')"> 从截面积(mm²)转换</label>
 </div>
 <div class="input-row">
-  <div id="awgInput"><label>AWG线规号</label><input type="number" id="awg" value="24" min="0" max="40" step="1" oninput="calcFromAwg()" placeholder="如 24（0–40）"></div>
+  <div id="awgInput"><label>AWG线规号</label><input type="number" id="awg" value="24" min="0" max="40" step="0.01" oninput="calcFromAwg()" placeholder="如 24（0–40）"></div>
   <div id="mmInput" style="display:none;"><label>线径 (mm)</label><input type="number" id="mm" value="0.511" step="0.001" oninput="calcFromMm()" placeholder="如 0.511"></div>
   <div id="mm2Input" style="display:none;"><label>截面积 (mm²)</label><input type="number" id="mm2" value="0.205" step="0.001" oninput="calcFromMm2()" placeholder="如 0.205"></div>
 </div>
@@ -300,7 +300,7 @@
 <li>AWG 号 ↔ 直径/载流。</li>
 <li>布线选型时按 AWG 号对照线径与载流量。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">换算</div><div class="dd-ex-body">AWG 20 → 直径 ≈0.812 mm，载流约 5 A（PVC 绝缘近似）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">换算</div><div class="dd-ex-body">AWG 20 → 直径 ≈0.812 mm、截面积 ≈0.518 mm²；按本页 5 A/mm² 估算载流量约 2.6 A，每千米铜电阻约 33.2 Ω。（实际载流量随绝缘与敷设方式降额，工程选型请查对应规范。）</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>号越大线越细？</dt><dd>是，AWG 号与直径反比。</dd>
@@ -365,31 +365,55 @@ function setMode(m){
 function awgToMm(awg){return 0.127*Math.pow(92,(36-awg)/39);}
 function mmToAwg(d){return 36-39*Math.log(d/0.127)/Math.log(92);}
 
+function __wgMsg(kind){
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function')?TBKit.util.isEn():false;
+  if(kind==='awgEmpty')return en?'Enter an AWG gauge number (0-40)':'请输入 AWG 线规号（0–40）';
+  if(kind==='awgBad')return en?'AWG must be a number between 0 and 40':'AWG 必须是 0–40 之间的数值';
+  if(kind==='awgRange')return en?'The reverse-calculated AWG falls outside the 0-40 range supported here':'反算得到的线规超出本页支持的 0–40 范围';
+  if(kind==='mmBad')return en?'Enter a wire diameter greater than 0 (mm)':'请输入大于 0 的线径（mm）';
+  if(kind==='mm2Bad')return en?'Enter a cross-sectional area greater than 0 (mm2)':'请输入大于 0 的截面积（mm²）';
+  return en?'Invalid input':'输入无效';
+}
+function __wgClear(msg){
+  var ids=['resAwg','resDmm','resDmil','resArea','resRes','resAmp'];
+  for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.textContent='—';}
+  var dt=document.getElementById('detailTable');
+  if(dt)dt.innerHTML='<p style="color:var(--danger)">'+msg+'</p>';
+  lastResult=null;
+}
 function calcFromAwg(){
-  const awg=parseInt(document.getElementById('awg').value);
-  if(isNaN(awg))return;
+  var raw=String(document.getElementById('awg').value).trim();
+  if(raw===''){__wgClear(__wgMsg('awgEmpty'));return;}
+  var awg=Number(raw);
+  if(!isFinite(awg)){__wgClear(__wgMsg('awgBad'));return;}
+  if(awg<0||awg>40){__wgClear(__wgMsg('awgRange'));return;}
   calcAll(awg);
 }
 function calcFromMm(){
-  const d=parseFloat(document.getElementById('mm').value);
-  if(isNaN(d)||d<=0)return;
-  const awg=mmToAwg(d);
+  var raw=String(document.getElementById('mm').value).trim();
+  var d=Number(raw);
+  if(raw===''||!isFinite(d)||d<=0){__wgClear(__wgMsg('mmBad'));return;}
+  var awg=mmToAwg(d);
+  if(!isFinite(awg)||awg<0||awg>40){__wgClear(__wgMsg('awgRange'));return;}
   calcAll(awg);
 }
 function calcFromMm2(){
-  const a=parseFloat(document.getElementById('mm2').value);
-  if(isNaN(a)||a<=0)return;
-  const d=Math.sqrt(a/Math.PI)*2;
-  const awg=mmToAwg(d);
+  var raw=String(document.getElementById('mm2').value).trim();
+  var a=Number(raw);
+  if(raw===''||!isFinite(a)||a<=0){__wgClear(__wgMsg('mm2Bad'));return;}
+  var d=Math.sqrt(a/Math.PI)*2;
+  var awg=mmToAwg(d);
+  if(!isFinite(awg)||awg<0||awg>40){__wgClear(__wgMsg('awgRange'));return;}
   calcAll(awg);
 }
 
 function calcAll(awg){
+  if(!isFinite(awg)||awg<0||awg>40){__wgClear(__wgMsg('awgRange'));return;}
   const d_mm=awgToMm(awg);
   const d_mil=d_mm/0.0254;
   const area_mm2=Math.PI*(d_mm/2)**2;
   const rho=0.0172;
-  const res_km=rho/area_mm2;
+  const res_km=rho*1000/area_mm2;
   const ampacity=area_mm2*5;
   document.getElementById('resAwg').textContent=awg.toFixed(1);
   document.getElementById('resDmm').textContent=d_mm.toFixed(3);
@@ -420,7 +444,7 @@ function renderRefTable(){
   for(let i=0;i<=40;i++){
     const d=awgToMm(i);
     const a=Math.PI*(d/2)**2;
-    const r=0.0172/a;
+    const r=0.0172*1000/a;
     const amp=a*5;
     html+=`<tr><td>${i} AWG</td><td style="text-align:right;">${d.toFixed(3)}</td><td style="text-align:right;">${a.toFixed(3)}</td><td style="text-align:right;">${r.toFixed(2)}</td><td style="text-align:right;">${amp.toFixed(1)}</td></tr>`;
   }
@@ -490,7 +514,7 @@ function __wgExport(){
   else if(mode==='mm2'){var a=parseFloat(document.getElementById('mm2').value);if(!(a>0)){ToolBox.toast(en?'Please enter a valid area':'请输入有效截面积');return;}awg=mmToAwg(Math.sqrt(a/Math.PI)*2);}
   else{awg=parseInt(document.getElementById('awg').value);}
   if(isNaN(awg)){ToolBox.toast(en?'Please enter a valid gauge':'请输入有效线规号');return;}
-  var d_mm=awgToMm(awg),d_mil=d_mm/0.0254,area_mm2=Math.PI*(d_mm/2)**2,res_km=0.0172/area_mm2,ampacity=area_mm2*5;
+  var d_mm=awgToMm(awg),d_mil=d_mm/0.0254,area_mm2=Math.PI*(d_mm/2)**2,res_km=0.0172*1000/area_mm2,ampacity=area_mm2*5;
   var rows=[['AWG',awg.toFixed(2)],['Diameter (mm)',d_mm.toFixed(4)],['Diameter (mil)',d_mil.toFixed(3)],['Diameter (inch)',(d_mil/1000).toFixed(5)],['Area (mm²)',area_mm2.toFixed(5)],['Area (circular mil)',(d_mil*d_mil).toFixed(1)],['Copper resistance (Ω/km)',res_km.toFixed(3)],['Copper resistance (Ω/1000ft)',(res_km*0.3048).toFixed(3)],['Ampacity @5A/mm² (A)',ampacity.toFixed(2)],['100m drop @1A (V)',(res_km/1000*100*1).toFixed(3)]];
   document.querySelector('#wgHidden tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
   TBKit.util.exportTable('#wgHidden', en?'wire-gauge.csv':'线规转换明细.csv');

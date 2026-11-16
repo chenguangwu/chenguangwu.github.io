@@ -113,7 +113,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入相关系数 r，求决定系数 R²。">Enter the correlation coefficient r to compute the coefficient of determination R-squared, the share of variance in the dependent variable explained by a regression model.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">决定系数 R² = r × r（r 为相关系数）；联动卡：未解释变异比例 = 1 − R²、决定优势比 = R² ÷ max(1−R², 10⁻⁹)、解释力 = R² × 100%、方差膨胀因子 VIF = 1 ÷ max(1 − min(R², 0.999999), 10⁻⁹)。校验：无强校验，非数输入按 0 参与计算。判据：|r| 越接近 1 解释力越强，未解释变异与 R² 之和恒为 1，VIF 随 R² 趋近 1 急剧增大。</div>
+      <div class="formula-eq">决定系数 R² = r × r（r 为相关系数）；联动卡：未解释变异比例 = 1 − R²、决定优势比 = R² ÷ max(1−R², 10⁻⁹)、解释力 = R² × 100%、方差膨胀因子 VIF = 1 ÷ max(1 − min(R², 0.999999), 10⁻⁹)。校验：r 必须严格解析为 −1≤r≤1 的有限数值，越界或非数时停算并清空图表/明细/差异/历史；主算与附加层共用同一 r，不再静默截断。判据：|r| 越接近 1 解释力越强，未解释变异与 R² 之和恒为 1，VIF 随 R² 趋近 1 急剧增大。</div>
       <p class="formula-desc">输入相关系数 r，求决定系数 R²。</p>
     </div>
 
@@ -220,7 +220,12 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const r=num('r');
+            const r=__crNum('r');
+            if(!isFinite(r)||r<-1||r>1){
+              __crClear();
+              ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 相关系数 r 必须是 −1 到 1 之间的数值；超出该范围时 R²、未解释变异与解释力均无意义，已停止计算。</p>');
+              return;
+            }
             const R2=r*r;
             const __g1=dataGrid([
                 [R2.toFixed(4),'决定系数 R²'],
@@ -235,12 +240,15 @@ function resetForm(){document.getElementById('r').value = '0.8';
 calcTool();
 
 function __crNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __crClear(){
+  var ids=['crChart','crTable','crMatrix','crDiff','crHist'];
+  for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}
+}
 
 function __crExtras(){
-    if (typeof TBKit === 'undefined') return;
+    if (typeof TBKit === 'undefined'){__crClear();return;}
     var r=__crNum('r');
-    if(!isFinite(r)) return;
-    r=Math.max(-1,Math.min(1,r));
+    if(!isFinite(r)||r<-1||r>1){__crClear();return;}
     var en=TBKit.util.isEn();
     var R2=r*r, vif=1/Math.max(1-R2,1e-9), mag=Math.abs(r);
     var lvl = mag>=0.5?(en?'large':'大'):mag>=0.3?(en?'medium':'中'):mag>=0.1?(en?'small':'小'):(en?'negligible':'可忽略');
@@ -342,9 +350,8 @@ else document.addEventListener("DOMContentLoaded", __crBoot);
 <script>
 function __crChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var r=num('r');
-  if(!isFinite(r))return;
-  r=Math.max(-1,Math.min(1,r));
+  var r=__crNum('r');
+  if(!isFinite(r)||r<-1||r>1){var c=document.getElementById('crChart');if(c)c.innerHTML='';return;}
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   var labels=[],data=[];
   for(var i=0;i<=10;i++){var rv=-1+i*0.2;labels.push(rv.toFixed(1));data.push(Math.round(rv*rv*10000)/10000);}

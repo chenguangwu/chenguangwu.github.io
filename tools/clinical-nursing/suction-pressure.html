@@ -125,11 +125,11 @@
 
     <div class="age-tab">
       <div id="suction_pressurePresets"></div>
-      <button class="active" onclick="selectAge('adult',this)">👤 成人</button>
+      <button class="active" data-age="adult" onclick="selectAge('adult',this)">👤 成人</button>
       <button class="btn" type="button" onclick="__suction_pressureExport()">导出明细 CSV</button>
-      <button onclick="selectAge('child',this)">👦 儿童</button>
-      <button onclick="selectAge('infant',this)">👶 婴幼儿</button>
-      <button onclick="selectAge('newborn',this)">🍼 新生儿</button>
+      <button data-age="child" onclick="selectAge('child',this)">👦 儿童</button>
+      <button data-age="infant" onclick="selectAge('infant',this)">👶 婴幼儿</button>
+      <button data-age="newborn" onclick="selectAge('newborn',this)">🍼 新生儿</button>
     </div>
     <div class="input-row">
       <div>
@@ -270,9 +270,11 @@ var ranges = {
 var currentAge = 'adult';
 
 function selectAge(age, btn){
+  if(!ranges[age]) age = ranges[currentAge] ? currentAge : 'adult';
   currentAge = age;
   document.querySelectorAll('.age-tab button').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
+  var target = (btn && btn.classList) ? btn : document.querySelector('.age-tab button[data-age="' + age + '"]');
+  if(target && target.classList) target.classList.add('active');
   var r = ranges[age];
   document.getElementById('rangeText').textContent = r.min + '-' + r.max + ' mmHg';
   document.getElementById('rangeLabel').textContent = r.label + '安全范围';
@@ -302,7 +304,7 @@ function evaluate(p){
   var r = ranges[currentAge];
   var box = document.querySelector('.range-box');
   var result = document.getElementById('checkResult');
-  if(typeof p!=='number'||!isFinite(p)||p<=0){
+  if(typeof p!=='number'||!isFinite(p)||p<=0||p>600){
     box.className = 'range-box range-warn';
     result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a valid negative pressure (0–600 mmHg); blank is excluded from safety check":"请输入有效负压（0–600 mmHg），空值不参与安全判定");
     return;

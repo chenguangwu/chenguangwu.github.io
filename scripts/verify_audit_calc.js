@@ -55,6 +55,30 @@ const CASES = [
      + "评级词「良好」与「10 / 10」两态同现，亦不锚。",
   },
 {
+  "slug": "audit/ratio-analysis",
+  "clicks": [
+    "document.getElementById('curLiab').value='0';calc();var s=document.getElementById('solvency').innerHTML;document.getElementById('__tbProbe').textContent='RAZERO '+((s.indexOf('N/A')>=0&&s.indexOf('0.00: 1')===-1)?'OK':'BAD');"
+  ],
+  "expect": ["RAZERO OK"],
+  "ref": "T-N12：流动负债 0 时分母无效，流动比率/速动比率不再显示 0.00:1「偏低」，改为 — + N/A；探针读取 #solvency 动态 HTML。默认 demo 流动负债 280000，不出现 N/A。"
+},
+{
+  "slug": "audit/ratio-analysis",
+  "clicks": [
+    "['curAssets','inventory','curLiab','totalAssets','totalLiab','equity','revenue','cogs','netProfit'].forEach(function(k){document.getElementById(k).value='';});calc();var s=document.getElementById('summary').innerHTML;document.getElementById('__tbProbe').textContent='RAEMPTY '+((s.indexOf('有效指标不足')>=0&&s.indexOf('N/A')>=0)?'OK':'BAD');"
+  ],
+  "expect": ["RAEMPTY OK"],
+  "ref": "T-N12：全部清空后 val() 返回 NaN，各比率不再当 0 评「良好」，综合区提示「有效指标不足，无法综合评价」并注明 N/A 不参与评分。默认 demo 五项有效，不命中。"
+},
+{
+  "slug": "audit/ratio-analysis",
+  "clicks": [
+    "document.getElementById('curLiab').value='0';calc();var t=reportText();document.getElementById('__tbProbe').textContent='RACAP '+((t.indexOf('N/A（流动负债缺失或为 0）')>=0&&t.indexOf('流动比率: 2.43')===-1)?'OK':'BAD');"
+  ],
+  "expect": ["RACAP OK"],
+  "ref": "T-N12：复制报告拆出 reportText() 并复用 calc() 的同一结果对象，流动负债 0 时输出「N/A（流动负债缺失或为 0）」，不再用 ||1 兜底成 680000.00 与页面卡片冲突。默认 demo 有流动负债，文本不含该串。"
+},
+{
   "slug": "audit/audit-sample",
   "inputs": {
     "reliance": "98",
@@ -91,9 +115,73 @@ const CASES = [
     "rateStep": "1"
   },
   "expect": [
-    "507.27"
+    "12,315.00"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（802 批随 demo 对齐更新）：示例现金流改为 -100000/25000/30000/35000/30000/20000 后，8% 折现率 NPV=12,315.00；扫描 0–33%/1% 必含该行。"
+},
+{
+  "slug": "audit/irr-table",
+  "inputs": {},
+  "clicks": [
+    "flows=[-5000,2000,3000];renderList();var s=__irr_tableSnap();document.getElementById('__tbProbe').textContent='IRRSNAP '+s.cf;"
+  ],
+  "expect": ["IRRSNAP -5000,2000,3000"],
+  "ref": "T-N19（2026-11-16）：现金流输入由 renderList 动态生成且无 id，旧快照只含扫描参数，历史回放用「当前现金流」重算，记录结果不可复现。现 __irr_tableSnap 追加 cf = flows.join(',')，回放时优先还原 flows 再 renderList。默认现金流 -100000,25000,30000,35000,40000,30000 ⇒ 不命中该串。"
+},
+{
+  "slug": "audit/irr-table",
+  "inputs": {},
+  "clicks": [
+    "flows=[-1000,500];__irr_tableRender(['rateStart','cf'],'结果',false);var t=document.getElementById('irr_tableTable');document.getElementById('__tbProbe').textContent='IRRHIDE '+((t&&String(t.innerHTML||'').indexOf('cf')===-1)?'OK':'BAD');"
+  ],
+  "expect": ["IRRHIDE OK"],
+  "ref": "T-N19 附带：cf 只用于回放，不出现在历史表列头（dispKeys 过滤 cf）；探针渲染一次后检查表内容不含 'cf'。"
+},
+{
+  "slug": "audit/irr-table",
+  "inputs": {
+    "rateStart": "0",
+    "rateEnd": "10000",
+    "rateStep": "0.1"
+  },
+  "expect": ["扫描区间超过 2000 行"],
+  "ref": "留存优化（2026-11-16）：扫描循环按 r+=step 浮点累加且无行数上限，10000/0.1 会生成 10 万行卡死页面。现限制 2000 行，超出时截止到第 2000 行并提示「请增大步长」。默认 0–30/1 ⇒ 31 行，不命中。"
+},
+{
+  "slug": "audit/irr-table",
+  "inputs": {},
+  "clicks": [
+    "flows=[-100,50];renderTable();"
+  ],
+  "expect": ["-50.0000%"],
+  "ref": "T-N9：两期现金流 -100→50 的真实 IRR=-50%，旧实现二分区间 low=-0.99、high=1000（百分数）两端 NPV 同号直接返回 NaN，误报「请输入至少两期现金流」。新实现按 log10(1+r) 全区间扫描，主解 -50.0000%。默认 demo IRR≈12.638%，不命中。"
+},
+{
+  "slug": "audit/irr-table",
+  "inputs": {},
+  "clicks": [
+    "flows=[-100,5000000];renderTable();"
+  ],
+  "expect": ["4999900.0000%"],
+  "ref": "T-N9：早期高回报 -100→5000000 的真实 IRR≈4,999,900%，旧区间上限 1000% 覆盖不到。新实现上限到 1e7%，可返回该根；默认 demo 不命中。"
+},
+{
+  "slug": "audit/irr-table",
+  "inputs": {},
+  "clicks": [
+    "flows=[-100,230,-132];renderTable();"
+  ],
+  "expect": ["10.0000%、20.0000%"],
+  "ref": "T-N10：现金流 -100、230、-132 有两个 IRR（10%、20%），旧实现只做一次二分、两端同号返回 NaN，与扫描表高亮零点矛盾。新实现收集全部根并列出；默认 demo 只有单根 12.638%，不命中。"
+},
+{
+  "slug": "audit/irr-table",
+  "inputs": {},
+  "clicks": [
+    "flows=[0,0];renderTable();"
+  ],
+  "expect": ["请输入至少两期现金流（需有正有负）才能计算IRR"],
+  "ref": "T-N9 区分提示：全零现金流既无正也无负，calcIRR 返回 reason=input，保留原「需有正有负」提示；若误用「区间内无解」文案本串失配。默认 demo 有正有负，不命中。"
 },
 {
   "slug": "audit/npv-discount",

@@ -848,6 +848,13 @@ const CASES = [
     "ref": "AWG 20 ⇒ 线径 0.8118 mm / 31.961 mil（标准线规表）。默认 awg=24 ⇒ 0.5106 mm，不出现 0.8118。"
   },
   {
+    "slug": "science/wire-gauge-converter",
+    "inputs": { "awg": "20" },
+    "clicks": ["calcAll()"],
+    "expect": ["33.23"],
+    "ref": "SMS-158 铜电阻量纲：ρ=0.0172 Ω·mm²/m，R(Ω/km)=ρ×1000/A。AWG20 截面积 0.5176 mm² ⇒ 33.23 Ω/km（旧实现少乘 1000 显示 0.03）。默认 awg=24 ⇒ 84.01 Ω/km，判别器换回默认不命中 33.23。"
+  },
+  {
     "slug": "science/science-flow-rate",
     "inputs": { "diam": "100", "vel": "1" },
     "clicks": ["calc()"],
@@ -913,10 +920,17 @@ const CASES = [
   },
   {
     "slug": "science/tide-height-estimator",
+    "inputs": { "inputDate": "2024-03-20", "inputLat": "30", "coastType": "open", "moonPhaseMode": "manual", "moonPhase": "0" },
+    "clicks": ["calc()"],
+    "expect": ["太阳引潮力贡献： 0%"],
+    "ref": "SMS-152 相位：春分(2024-03-20 doy≈80)太阳赤纬为 0、引潮贡献最小 ⇒ solar=0.46·|sin((80−80)/365.25·2π)|=0 ⇒ 0%。旧 cos 公式此日取峰值 46%（峰谷颠倒）。默认态快照日期 2024-06-15 近夏至 ⇒ 46%，不命中 0%，判别有效。"
+  },
+  {
+    "slug": "science/tide-height-estimator",
     "inputs": { "inputDate": "2024-06-01", "inputLat": "30", "coastType": "open", "moonPhaseMode": "manual", "moonPhase": "0" },
     "clicks": ["calc()"],
-    "expect": ["潮差： 0.86 米"],
-    "ref": "手动月龄=0(新月/大潮)，纬度 30° 修正 0.906，开阔海岸放大 1.0x ⇒ 潮差 0.86 m。默认 moonPhaseMode=auto(按真实日期) ⇒ 不同潮差，不出现 0.86。"
+    "expect": ["潮差： 1.08 米"],
+    "ref": "SMS-152 相位修正后：手动月龄=0(新月/大潮 tideFactor=1)，2024-06-01 doy153 近夏至 ⇒ solar=0.46·|sin((153−80)/365.25·2π)|=0.437；纬度 30° 修正 0.906，开阔海岸 1.0x，high=0.52·(1+0.437)·0.906=0.677，潮差=1.6×high=1.08 m。旧 cos 公式此日 solar 很小 ⇒ 0.86 m。默认 moonPhaseMode=auto ⇒ 不出现 1.08。"
   },
   {
     "slug": "it/phone-qr",
@@ -1822,10 +1836,9 @@ const CASES = [
       "wl": "42",
       "wlNum": "42"
     },
-    "expect": [
-      "380\n380\n#610061\n97\n0\n97\n#610061\n789.47\n3.26"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"wl\":\"42\",\"wlNum\":\"42\"}，输出区含「380\n380\n#610061\n97\n0\n97\n#610061\n789.47\n3…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "clicks": ["calc()"],
+    "expect": ["波长须为 380–780 之间的整数（nm）"],
+    "ref": "628 批超范围守卫：注入 wl=42（低于可见光下限 380）后计算，页面不再静默算出一组无意义 RGB，而是停算并提示「波长须为 380–780 之间的整数（nm）」，各结果字段清为 —。默认 550 nm 输出不含该提示 ⇒ 判别有效。"
   },
   {
     "slug": "science/variance-calculator",
@@ -1986,8 +1999,123 @@ const CASES = [
     inputs: { val: "", from: "N", to: "lbf" },
     expect: ["请输入要转换的数值"],
     ref: "空态守卫（2026-11-05）：清空数值后 `+''` 得 0（不是 NaN）⇒ 旧输出「0 N = 0 lbf」凭空给零值结论；改为先判原始空串再判 NaN。⚠ 数值 0 本身合法（0 N = 0 lbf 照常计算），只判空串。默认 val=1 ⇒ 提示串不出现；注入 1 N 用例断「0.224809」⇒ 两态互斥。",
-  }
+  },
 
+  // ---- 624 批：科学计算守卫组（SMS-15/16/23/27）----
+  {
+    slug: "science/effect-size-calculator",
+    inputs: { m1b: "85", sd1b: "10", n1b: "30.5", m2b: "78", sd2b: "12", n2b: "30" },
+    clicks: ["setMode(1);calculate();"],
+    expect: ["样本量 n 必须是 ≥2 的整数"],
+    ref: "SMS-15：双样本 n₁=30.5 非整数。旧 parseInt('30.5')→30 静默截断后仍算 sdPooled=√[(29×100+29×144)/58]=√122≈11.045、d=7/11.045≈0.6338 并给出等级结论；修复后严格整数校验停算。判别性：默认页签 mode0 不读 n1b，且默认 n=30 为整数 ⇒ 该提示默认态零命中。",
+  },
+  {
+    slug: "science/sample-size-calculator",
+    inputs: { N: "50.5", conf: "0.95", e: "5", p: "0.5" },
+    expect: ["总体大小 N 必须是正整数"],
+    ref: "SMS-16 残留一：N=50.5 非整数。旧 parseInt('50.5')→50 静默按有限总体修正得 n₀=384.16、n=384.16/(1+383.16/50)=44.3→45；修复后停算提示。判别性：默认 N 为空（无限总体）⇒ 该提示默认态零命中。",
+  },
+  {
+    slug: "science/sample-size-calculator",
+    inputs: { N: "0", conf: "0.95", e: "5", p: "0.5" },
+    expect: ["总体大小 N 必须是正整数"],
+    ref: "SMS-16 残留二：N=0 非正数。旧 `if(!isNaN(N)&&N>0)` 判假 ⇒ 当作无限总体静默给 n=385；修复后 N 非空即要求正整数。判别性：默认 N 为空 ⇒ 该提示默认态零命中；与上条同为错误分支但触发值不同（小数 vs 零），互为交叉验证。",
+  },
+  {
+    slug: "science/mode-calculator",
+    inputs: { data: "1,bad,1,2" },
+    expect: ["第 2 项数据无效"],
+    ref: "SMS-23：第 2 项 'bad' 非法。旧 parseFloat+filter(NaN) 静默丢弃后按 3 项算得众数 1（占 66.67%）；修复后逐项严格解析并在第 2 项停算。判别性：默认数据 1,2,2,3,3,3,4,4,5 全合法 ⇒ 该提示默认态零命中。",
+  },
+  {
+    slug: "science/mode-calculator",
+    inputs: { data: "1,1abc,2" },
+    expect: ["第 2 项数据无效"],
+    ref: "SMS-23 扩展：'1abc' 是部分数字前缀。旧 parseFloat('1abc')→1 被接受为合法观测，得出错误频数（1 出现 2 次判众数）；新正则 ^[+-]?( digits | .digits )(e...)?$ 拒绝整 token。判别性：默认数据无非法前缀 ⇒ 零命中。",
+  },
+  {
+    slug: "science/variance-calculator",
+    inputs: { dtype: "sample", data: "1,bad,2,3" },
+    expect: ["第 2 项数据无效"],
+    ref: "SMS-27 残留二：'bad' 非法。旧 parseFloat+filter 静默当 3 项算样本方差；修复后严格校验停算并清四面板。判别性：默认数据全合法 ⇒ 零命中。",
+  },
+  {
+    slug: "science/variance-calculator",
+    inputs: { dtype: "sample", data: "100000000,100000001" },
+    expect: ["浮点消减误差", "请以主结果为准"],
+    ref: "SMS-27 残留一：两值仅差 1、量级 1e8。主算 s²=0.5（偏差 ±0.5 → SS=0.5 → /(n-1)=0.5）；替代公式 E(X²)−[E(X)]² 在双精度下消减为 0 并曾无条件标「与上方一致」。修复后按相对误差 relGap=|v2−variance|/max(|variance|,1e-300)>1e-6 判定并改述。判别性：默认数据 2,4,4,4,5,5,7,9 量级小、替代值一致 ⇒ 新提示默认态零命中。",
+  },
+  {
+    "slug": "science/wavelength-to-rgb",
+    "inputs": { "wl": "550", "wlNum": "520.5" },
+    "clicks": ["syncWl('num')"],
+    "expect": ["不接受小数或超范围值"],
+    "ref": "628 批小数守卫：数字框输入 520.5（非整数波长）后同步，页面不再用 parseFloat 静默截断成 520，而是停算并提示「波长须为 380–780 之间的整数（nm），不接受小数或超范围值」。默认 550 整数输入不出现该提示 ⇒ 判别有效。"
+  },
+  {
+    "slug": "science/wavelength-to-rgb",
+    "inputs": { "wl": "720", "wlNum": "720" },
+    "clicks": ["calc()"],
+    "expect": ["#DB0000", "416.67", "1.72"],
+    "ref": "628 批衰减区一致：λ=720 nm 时亮度因子 f=0.3+0.7·(780−720)/80=0.825，R=round(255·0.825^0.8)=219 ⇒ HEX #DB0000；频率 3e8/720e-9=416.67 THz、光子能量 1240/720=1.72 eV。三项独立可手算复算，参考表新增的 720 nm 行与本算法同源；默认 550 nm 输出 #A3FF00/545.45/2.25 不含这些串 ⇒ 判别有效。"
+  },
+  {
+    "slug": "science/wire-gauge-converter",
+    "inputs": { "awg": "12.5" },
+    "clicks": ["calcFromAwg()"],
+    "expect": ["1.937"],
+    "ref": "629 批小数线规：AWG 12.5 ⇒ d=0.127·92^((36−12.5)/39)=1.937 mm（页面 resDmm toFixed(3) 与明细表 toFixed(4) 均以 1.937 开头）。旧实现对输入用 parseInt，12.5 被截断成 12 ⇒ 2.053 mm，与本用例期望不同 ⇒ 判别有效。默认 awg=24 ⇒ 0.511 mm，不出现 1.937。"
+  },
+  {
+    "slug": "science/wire-gauge-converter",
+    "inputs": { "awg": "" },
+    "clicks": ["calcFromAwg()"],
+    "expect": ["请输入 AWG 线规号（0–40）"],
+    "ref": "629 批空值守卫：清空 AWG 输入框后调用计算，页面不再静默 return 保留上一次结果，而是清空各结果字段并提示「请输入 AWG 线规号（0–40）」。默认 awg=24 正常出结果，不含该提示 ⇒ 判别有效。"
+  },
+  {
+    "slug": "science/wire-gauge-converter",
+    "inputs": { "mm": "0" },
+    "clicks": ["calcFromMm()"],
+    "expect": ["请输入大于 0 的线径（mm）"],
+    "ref": "629 批零线径守卫：线径填 0 后计算，页面不再静默 return 保留旧值，而是清空结果并提示「请输入大于 0 的线径（mm）」（d≤0 时 mmToAwg 对数为 −∞，结果无意义）。默认 awg=24 模式不含该提示 ⇒ 判别有效。"
+  },
+  {
+    "afterLoad": true,
+    "slug": "science/torque-converter",
+    "inputs": { "val": "", "from": "lbft" },
+    "clicks": ["convert()"],
+    "expect": ["请输入有效的扭矩数值"],
+    "ref": "629 批空值守卫：扭矩值清空后调用换算，页面不再用 parseFloat(...)||0 把空值当 0 算出一整列 0 并写入历史，而是清空结果并提示「请输入有效的扭矩数值」。注入 val=20 等正常值时不出现该提示 ⇒ 判别有效。"
+  },
+  {
+    "slug": "science/vector-calculator",
+    "inputs": { "dim": "3", "op": "angle", "a0": "1e-13", "a1": "0", "a2": "0", "b0": "1", "b1": "0", "b2": "0" },
+    "clicks": ["calculate()"],
+    "expect": ["θ = 0°"],
+    "ref": "SMS-166 相对零判定：A=(1e-13,0,0) 是非零向量（最大分量 1e-13≠0），与 B=(1,0,0) 同向 ⇒ cosθ=1 ⇒ θ=0°。旧实现用绝对阈值 mA<1e-12 把 A 误判为零向量并提示「零向量无法计算夹角」。现判据为 |A| ≤ max|分量|·1e-12（此处 1e-13 > 1e-25）⇒ 正常计算。默认 op=add 不出现该角度串 ⇒ 判别有效。"
+  },
+  {
+    "slug": "science/matrix-calculator",
+    "inputs": { "size": "2", "op": "rank", "a0": "1e-13", "a1": "0", "a2": "0", "a3": "1e-13" },
+    "clicks": ["calculate()"],
+    "expect": ["rank(A) = 2"],
+    "ref": "SMS-167 相对容差：A=[[1e-13,0],[0,1e-13]] 两列线性无关 ⇒ rank=2。旧实现用绝对阈值 Math.abs(m[pivot][col])<1e-12 直接 continue，主元 1e-13 被当 0 ⇒ rank=0。现判据为 max|元素|·1e-12=1e-25，主元 1e-13 > 1e-25 正常累加。默认 3×3 单位阵 rank=3，不出现 'rank(A) = 2'。"
+  },
+  {
+    "slug": "science/matrix-calculator",
+    "inputs": { "size": "2", "op": "power", "scalar": "1.5", "a0": "1", "a1": "2", "a2": "3", "a3": "4" },
+    "clicks": ["calculate()"],
+    "expect": ["幂次必须是整数"],
+    "ref": "631 批幂次严格整数：scalar=1.5 时页面不再用 parseInt 静默截断成 1 并给出 A^1，而是停算提示「幂次必须是整数（不接受小数或非数字）」。默认 scalar=2（整数）⇒ 输出 A^2，不含该提示串。"
+  },
+  {
+    "slug": "science/matrix-calculator",
+    "inputs": { "size": "2", "op": "inv", "a0": "4", "a1": "7", "a2": "2", "a3": "6" },
+    "clicks": ["calculate()"],
+    "expect": ["与单位矩阵最大偏差：|Δ| = 2.22e-16", "在容差内"],
+    "ref": "632 批 SMS-109：求逆分支原有 `const check = mul(A, inv)` 计算后从未使用，步骤行只打印「验证：A · A⁻¹ = I」这句定义，属死代码（承诺的验证结果未实现）。现实际输出乘积矩阵并给出与单位矩阵的最大偏差：A=[[4,7],[2,6]] det=10，A⁻¹=[[0.6,-0.7],[-0.2,0.4]]，A·A⁻¹ 对角元 1±1.1e-16，最大偏差 2.22e-16，容差 max(1e-9, max|元素|·1e-12)=1e-9 ⇒ 判「在容差内」。默认 op=det 不输出该行 ⇒ 强判别。"
+  }
 ];
 
 // ---------------------------------------------------------------- main

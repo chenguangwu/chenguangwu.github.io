@@ -255,6 +255,19 @@ const CASES = [
     "请填写 长(cm)、宽(cm)、高(cm)、材积系数 后再计算"
   ],
   "ref": "空态守卫：尺寸与材积系数留空 ⇒ 提示，不再按 0/默认值兜底算出体积与计费重。默认态有初值 ⇒ 可判别。"
+},
+{
+  "slug": "logistics/package-volume-calc",
+  "inputs": {
+    "l": "40",
+    "w": "30",
+    "h": "20",
+    "factor": "0"
+  },
+  "expect": [
+    "抛比为 0 时无法计算材积重"
+  ],
+  "ref": "抛比为零：原实现 `volumeCm3/factor` 得 Infinity，靠全局 NaN/Infinity 替换显示「—」，仍给出体积与「— kg」；现前置校验四个输入均 >0，抛比 0 直接提示并不能出数。默认抛比 6000，不命中。"
 }
 ];
 async function main() {

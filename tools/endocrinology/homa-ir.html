@@ -127,9 +127,9 @@
     </div>
 
     <div class="checkbox-row" style="margin-bottom:12px;">
-      <label><input type="radio" name="population" value="general" onchange="calc()"> 一般人群</label>
-      <label><input type="radio" name="population" value="pcos" onchange="calc()"> PCOS评估</label>
-      <label><input type="radio" name="population" value="nafld" onchange="calc()"> 脂肪肝评估</label>
+      <label><input type="radio" id="pop_general" name="population" value="general" onchange="calc()"> 一般人群</label>
+      <label><input type="radio" id="pop_pcos" name="population" value="pcos" onchange="calc()"> PCOS评估</label>
+      <label><input type="radio" id="pop_nafld" name="population" value="nafld" onchange="calc()"> 脂肪肝评估</label>
     </div>
 
     <div class="toolbar">
@@ -259,8 +259,16 @@ function calc(){
   var fpg = parseFloat(document.getElementById('fpg').value);
   var insulin = parseFloat(document.getElementById('insulin').value);
   var popEl = document.querySelector('input[name="population"]:checked');
-  if(!popEl || isNaN(fpg) || isNaN(insulin) || fpg <= 0){
-    document.getElementById('result').innerHTML='<div class="tip-box tip-info tb-guard">请选择评估人群，并填写空腹血糖与空腹胰岛素。</div>';
+  if(!popEl){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-info tb-guard">请选择评估人群。</div>';
+    return;
+  }
+  if(isNaN(fpg) || fpg <= 0){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn tb-guard">请填写有效的空腹血糖（>0 mmol/L）。</div>';
+    return;
+  }
+  if(isNaN(insulin) || insulin <= 0){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn tb-guard">请填写有效的空腹胰岛素（>0 μU/mL）；胰岛素不能为 0 或负值。</div>';
     return;
   }
   var pop = popEl.value;
@@ -321,7 +329,7 @@ function calc(){
                  {lo:1.0,hi:2.0,label:{zh:'正常',en:'Normal'},color:'#84CC16'},
                  {lo:2.0,hi:cutoff,label:{zh:'临界',en:'Borderline'},color:'#F59E0B'},
                  {lo:cutoff,hi:5.0,label:{zh:'胰岛素抵抗',en:'Insulin resistance'},color:'#F97316'},
-                 {lo:5.0,hi:8,label:{zh:'严重IR',en:'Severe IR'},color:'#EF4444'}];
+                 {lo:5.0,hi:null,label:{zh:'严重IR',en:'Severe IR'},color:'#EF4444'}];
   function __hitIR(v){for(var i=0;i<__irBands.length;i++){var b=__irBands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}return null;}
   function __T(en,zh){return __EN?en:zh;}
   var __betaEn={'正常':'Normal','降低（β细胞功能受损）':'Low (β-cell impairment)','轻度降低':'Mildly low','代偿性升高（IR代偿）':'Compensatory high (IR compensation)'};
@@ -333,6 +341,12 @@ function calc(){
     __refHtml+='</ul></div>';
   }
 
+  var __barMax=Math.max(8,Math.ceil(homaIR));
+  var __stops=[],__prev=0;
+  __irBands.forEach(function(b){var end=b.hi==null?__barMax:Math.min(__barMax,b.hi);if(end>__prev){__stops.push(b.color+' '+(__prev/__barMax*100).toFixed(2)+'%',b.color+' '+(end/__barMax*100).toFixed(2)+'%');__prev=end;}});
+  var __barBg='linear-gradient(to right,'+__stops.join(',')+')';
+  var __pctBar=Math.max(0,Math.min(100,homaIR/__barMax*100));
+  var __ticks=[0,2,cutoff,5,__barMax].map(function(v){return '<span style="position:absolute;left:'+(v/__barMax*100).toFixed(2)+'%;transform:translateX(-50%);">'+v+'</span>';}).join('');
   const __g1='<div style="text-align:center;padding:16px 0;">' +
       '<div style="font-size:48px;font-weight:700;color:'+color+';">'+homaIR.toFixed(2)+'</div>' +
       '<div style="font-size:14px;color:var(--text-muted);">HOMA-IR 胰岛素抵抗指数</div>' +
@@ -341,10 +355,8 @@ function calc(){
     '</div>' +
     '<div style="margin-top:8px;">' +
       '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">胰岛素抵抗分级</div>' +
-      '<div class="ir-bar"><div class="ir-marker" style="left:'+pct+'%;"></div></div>' +
-      '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:4px;">' +
-        '<span>0</span><span>2</span><span>2.5</span><span>5</span><span>8+</span>' +
-      '</div>' +
+      '<div class="ir-bar" style="background:'+__barBg+'"><div class="ir-marker" style="left:'+__pctBar+'%;"></div></div>' +
+      '<div style="position:relative;height:16px;font-size:10px;color:var(--text-muted);margin-top:4px;">' + __ticks + '</div>' +
     '</div>' +
     '<div class="stat-grid" style="margin-top:14px;">' +
       '<div class="stat-card"><div class="val">'+homaIR.toFixed(2)+'</div><div class="lbl">HOMA-IR</div></div>' +
@@ -358,7 +370,7 @@ function calc(){
 
   try{
     if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar&&__ib){
-      TBKit.chart.refBar('#homa_irRefBar',{value:homaIR,unit:'',min:0,max:8,bands:__irBands,ticks:[0,1,2,5,8],title:'HOMA-IR 判读标尺'});
+      TBKit.chart.refBar('#homa_irRefBar',{value:homaIR,unit:'',min:0,max:Math.max(8,Math.ceil(homaIR)),bands:__irBands,ticks:[0,1,2,5,8],title:'HOMA-IR 判读标尺'});
     }
   }catch(e){}
 }

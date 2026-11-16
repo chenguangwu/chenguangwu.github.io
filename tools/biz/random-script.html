@@ -204,11 +204,13 @@ const SCRIPTS=[
   {scene:'催单安抚',script:'我理解您急切的心情，订单正在加急处理中，预计今日发出。'},
   {scene:'退换货',script:'您的退换货申请已受理，请在7天内寄回商品并保留物流单号。'}
 ];
-function pick(arr,n){const a=[...arr].sort(()=>Math.random()-0.5);return a.slice(0,Math.min(n,a.length));}
+function pick(arr,n){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a.slice(0,Math.min(n,a.length));}
 function gen(){
   const n=Math.min(Math.max(parseInt(document.getElementById('cnt').value)||5,1),50);
   const items=pick(SCRIPTS,n);
   let h='<p style="margin-bottom:8px;">生成结果：</p>';
+  // BS-N110：库容不足时明确告知，不再静默截断
+  if(n>SCRIPTS.length){ h+='<p style="color:var(--danger);margin-bottom:8px;">⚠ '+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?('Script library has only '+SCRIPTS.length+' entries; showing the maximum '+SCRIPTS.length+' (requested '+n+').'):('话术库仅 '+SCRIPTS.length+' 条，最多生成 '+SCRIPTS.length+' 条（当前请求 '+n+' 条）。'))+'</p>'; }
   items.forEach((it,i)=>{
     h+=`<div style="padding:8px 0;border-bottom:1px dashed var(--border-color);">
       <p>${i+1}. <strong>${it.scene}</strong></p>
@@ -410,7 +412,7 @@ var __random_script_f0=(typeof gen==='function')?gen:null;
 if(__random_script_f0){
     gen=function(){ var __r=__random_script_f0.apply(null,arguments); try{ __random_scriptExtras(); }catch(e){} return __r; };
 }
-function __random_scriptBoot(){ try{ __random_scriptPresets(); }catch(e){} }
+function __random_scriptBoot(){ try{ __random_scriptPresets(); }catch(e){} try{ gen(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __random_scriptBoot();
 else document.addEventListener('DOMContentLoaded', __random_scriptBoot);
 </script>

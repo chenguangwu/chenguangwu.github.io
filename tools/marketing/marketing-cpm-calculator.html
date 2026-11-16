@@ -378,20 +378,19 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 
+function __cpmErr(v){
+  if(isNaN(v.spend)||isNaN(v.impressions)||v.impressions<=0||v.spend<0)return '请输入有效的花费（可为 0）和大于 0 的展示量';
+  if(!isNaN(v.clicks)&&(v.clicks<0||v.clicks>v.impressions))return '点击量须在 0 与展示量之间（CTR 上限 100%），请核对展示量与点击量口径。';
+  return '';
+}
 function calc() {
   const spend = parseFloat(document.getElementById('spend').value);
   const impressions = parseFloat(document.getElementById('impressions').value);
   const clicks = parseFloat(document.getElementById('clicks').value);
   const r = document.getElementById('result');
 
-  if (isNaN(spend) || isNaN(impressions) || impressions <= 0 || spend <= 0) {
-    r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效的花费和展示量</p></div>';
-    return;
-  }
-  if (!isNaN(clicks) && (clicks < 0 || clicks > impressions)) {
-    r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">点击量须在 0 与展示量之间（CTR 上限 100%），请核对展示量与点击量口径。</p></div>';
-    return;
-  }
+  const __e=__cpmErr({spend,impressions,clicks});
+  if(__e){r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">'+__e+'</p></div>';return;}
 
   const cpm = (spend / impressions) * 1000;
   const hasClicks = !isNaN(clicks) && clicks > 0;
@@ -417,7 +416,7 @@ function calc() {
         <tr><td style="padding:4px 0;color:var(--text-light);">广告总花费</td><td style="text-align:right;font-weight:600;">¥${ToolBox.formatNumber(spend, 2)}</td></tr>
         <tr><td style="padding:4px 0;color:var(--text-light);">总展示量</td><td style="text-align:right;font-weight:600;">${ToolBox.formatNumber(impressions, 0)} 次</td></tr>
         <tr><td style="padding:4px 0;color:var(--text-light);">CPM（千次展示成本）</td><td style="text-align:right;font-weight:600;">¥${cpm.toFixed(2)}</td></tr>
-        <tr><td style="padding:4px 0;color:var(--text-light);">每100元可获展示</td><td style="text-align:right;font-weight:600;">${ToolBox.formatNumber(100 / cpm * 1000, 0)} 次</td></tr>
+        <tr><td style="padding:4px 0;color:var(--text-light);">每100元可获展示</td><td style="text-align:right;font-weight:600;">${cpm > 0 ? ToolBox.formatNumber(100 / cpm * 1000, 0) + ' 次' : '不可计算（零花费）'}</td></tr>
         ${hasClicks ? `
         <tr><td style="padding:4px 0;color:var(--text-light);">总点击量</td><td style="text-align:right;font-weight:600;">${ToolBox.formatNumber(clicks, 0)} 次</td></tr>
         ` : ''}
@@ -455,7 +454,7 @@ function calc() {
           <div class="lbl">单次展示成本</div>
         </div>
         <div class="related-metric">
-          <div class="val">${(100 / cpm * 1000).toFixed(0)}</div>
+          <div class="val">${cpm > 0 ? (100 / cpm * 1000).toFixed(0) : '—'}</div>
           <div class="lbl">每百元展示数</div>
         </div>
         <div class="related-metric">
@@ -481,10 +480,7 @@ function saveHistory() {
   const impressions = parseFloat(document.getElementById('impressions').value);
   const clicks = parseFloat(document.getElementById('clicks').value);
 
-  if (isNaN(spend) || isNaN(impressions) || impressions <= 0 || spend <= 0) {
-    ToolBox.showToast(i18nText(),'error');
-    return;
-  }
+  if(__cpmErr({spend,impressions,clicks})){ToolBox.showToast(i18nText(),'error');return;}
 
   const cpm = (spend / impressions) * 1000;
   const record = {

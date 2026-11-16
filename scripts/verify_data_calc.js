@@ -52,6 +52,33 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "data/csv-analyzer",
+  "inputs": {
+    "csvInput": "name,note\nAlice,\"first\nsecond\"\nBob,ok",
+    "delim": ","
+  },
+  "expect": ["还有 1 行", "Alice first second"],
+  "ref": "引号内换行（2026-11-16）：整段按引号状态解析 ⇒ note 字段为「first\\nsecond」但只算 1 条数据，共 2 行；第二字段换行在表格里折成空格。旧实现先按换行切行 ⇒ 得到 3 条数据行、Alice 的 note 只剩 first ⇒ 不出现「还有 1 行」且统计行数偏多。"
+},
+{
+  "slug": "data/csv-analyzer",
+  "inputs": {
+    "csvInput": "name,note\nAlice,\"say \"\"hi\"\"\"\nBob,x",
+    "delim": ","
+  },
+  "expect": ["say \"hi\""],
+  "ref": "转义双引号：\"\" 解析为一个 \"，预览显示 say \"hi\"；旧实现按奇偶翻转 inQuote，四个引号会互相抵消并把内容拆错。"
+},
+{
+  "slug": "data/csv-analyzer",
+  "inputs": {
+    "csvInput": "a,b\n1,2,3\n4,5",
+    "delim": ","
+  },
+  "expect": ["1 行字段数与表头（2 列）不一致"],
+  "ref": "错列可见（2026-11-16）：第 2 行 3 列、表头 2 列 ⇒ 预览上方提示 1 行字段数不一致；旧实现静默按表头取前两列统计。缺列行（4,5 之后的第 3 行）不触发提示。"
+},
+{
   "slug": "data/data-cleaner",
   "inputs": {
     "maxLen": "7",
@@ -62,6 +89,18 @@ const CASES = [
     "限长"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "data/data-cleaner",
+  "inputs": { "inputData": "abc\n\n", "outputData": "", "maxLen": "" },
+  "expect": ["1\n1\n去空白 · 去空行 · 去重"],
+  "ref": "尾随空行不计条数（2026-11-16）：`abc\\n\\n` 只剩 1 条，原始/清洗后都显示 1；旧实现 `split('\\n').length` 得 3。默认样例首尾都有空行，旧值不等于 1 ⇒ 强判别。"
+},
+{
+  "slug": "data/data-cleaner",
+  "inputs": { "inputData": "😀ABC", "outputData": "", "maxLen": "1" },
+  "expect": ["1\n😀\n1\n1"],
+  "ref": "按字形簇截断（2026-11-16）：限长 1 时输出完整 😀 而不是半个代理项；旧实现按 UTF-16 码元 slice(0,1) ⇒ \\ud83d 孤立代理项。输入回显仍是 😀ABC，所以必须锚定「输出值\\n计数」这一组合。"
 },
 {
   "slug": "data/data-visualizer",
@@ -98,6 +137,42 @@ const CASES = [
     "(count)"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "data/pivot-table",
+  "inputs": {
+    "inputData": "地区,产品,销量\nA,X,10\nA,Y,20\nB,X,100\nB,Y,200\nB,X,300",
+    "rowField": "地区", "colField": "产品", "valField": "销量", "agg": "avg"
+  },
+  "expect": ["126.00"],
+  "ref": "avg 合计语义（2026-11-16）：合并原始值后重新求均值 ⇒ 总计 (10+20+100+200+300)/5 = 126.00；旧实现把行均值再求和得 430，或列均值再平均。默认样例为 count，无 126.00。"
+},
+{
+  "slug": "data/pivot-table",
+  "inputs": {
+    "inputData": "地区,产品,销量\nA,X,7\nA,Y,3\nB,X,5\nB,Y,9",
+    "rowField": "地区", "colField": "产品", "valField": "销量", "agg": "min"
+  },
+  "expect": ["A 7 3 3 B 5 9 5 合计 5 3 3"],
+  "ref": "min 合计取极值（2026-11-16）：行合计 A=min(7,3)=3、B=min(5,9)=5；列合计 X=5、Y=3；总计 3。旧实现对合计列求和 ⇒ 行 A 10/B 14、列 12/12、总计 24，整串不命中。"
+},
+{
+  "slug": "data/pivot-table",
+  "inputs": {
+    "inputData": "地区,备注,销量\n华北,\"北京,朝阳\",10\n华北,\"上海,浦东\",20",
+    "rowField": "地区", "colField": "备注", "valField": "销量", "agg": "sum"
+  },
+  "expect": ["北京,朝阳 上海,浦东", "华北 10 20 30"],
+  "ref": "带逗号的引号字段（2026-11-16）：按 CSV 状态机解析后两列备注完整、销量 10+20 汇总 30；旧实现直接 split(',') ⇒ 备注只剩「\\\"北京」，第三段被当作销量 ⇒ 汇总错位。"
+},
+{
+  "slug": "data/pivot-table",
+  "inputs": {
+    "inputData": "地区,产品,销量\n华北,<img src=x onerror=alert(1)>,10",
+    "rowField": "地区", "colField": "产品", "valField": "销量", "agg": "sum"
+  },
+  "expect": ["&lt;img src=x onerror=alert(1)&gt;"],
+  "ref": "用户内容转义（2026-11-16）：列值经 escPivot 后进入 innerHTML，尖括号变成实体；旧实现原样拼接，输入会被当成标签执行。默认样例行不含尖括号。"
 },
 {
   "slug": "data/random-5",
@@ -266,6 +341,34 @@ const CASES = [
     "copyCheck": { "fn": "copyResult", "expect": "\"col_2\":\"200\"" },
     "ref": "复制路径：注入转换后 copyResult(event) 写入剪贴板的内容必须等于结果区 \"col_2\":\"200\"，且 then 回调不抛异常；旧实现 .then 内读隐式 event.target 会抛 TypeError 被 Promise 吞掉。"
   },
+  {
+    "slug": "data/csv-json",
+    "inputs": { "input": "id,id\n00123,9007199254740993" },
+    "checkIds": ["hasHeader", "parseNumber"],
+    "expect": ["表头重复，转换会丢失列：id（第 1 与 2 列）"],
+    "ref": "重复表头显式拒绝（2026-11-16）：旧实现两个同名列写同一对象键，后者覆盖前者且不报错；现提示重复列号并停止输出。默认样例行（name,age,city）不含该提示 ⇒ 强判别。"
+  },
+  {
+    "slug": "data/csv-json",
+    "inputs": { "input": "a,b\n1,2,3" },
+    "checkIds": ["hasHeader", "parseNumber"],
+    "expect": ["列数超出表头，多出的数据会被丢弃：第 2 行有 3 列（表头 2 列）"],
+    "ref": "超列拒转：旧实现仅遍历表头列，第三列 3 被静默丢弃；现逐行报出超列位置并停止输出。缺列（列数更少）仍按空串补，不报错。"
+  },
+  {
+    "slug": "data/csv-json",
+    "inputs": { "input": "id,big,code\n1,9007199254740993,00123" },
+    "checkIds": ["hasHeader", "parseNumber"],
+    "expect": ["\"big\":\"9007199254740993\"", "\"code\":\"00123\"", "\"id\":1"],
+    "ref": "数值精度保护：超安全整数 9007199254740993 保留字符串（旧实现 Number ⇒ …992），前导零编号 00123 保留字符串（旧实现 ⇒ 123）；普通整数 1 仍转数字。"
+  },
+  {
+    "slug": "data/csv-json",
+    "inputs": { "input": "a,b\n\"unclosed,2", "delimiter": ",", "quote": "\"" },
+    "checkIds": ["hasHeader", "parseNumber"],
+    "expect": ["CSV 引号未闭合"],
+    "ref": "未闭合引号：旧实现把余下全部内容吞进字段并照常输出；现提示行号并停止转换，避免把错误解析结果当有效数据。限定符/分隔符两个 select 必须显式注入——桩里 select 默认值不是首个 option 的 value，不注入则 quote 为空、引号状态永不进入 ⇒ 假通过。"
+  },
 
   {
     "slug": "data/yaml-json",
@@ -277,6 +380,58 @@ const CASES = [
       "1 2 3\n错误: Unexpected non-whitespace character after JSON at position 2 (line 2 column 1)"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n错误: Unexpected non-whitespace char…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+
+  /* ---------- 2026-11-16（694 批）：YAML 解析与序列化修复 ---------- */
+  {
+    slug: "data/yaml-json",
+    clicks: [
+      "setDir('y2j');document.getElementById('input').value='list:\\n  - name: Tom\\n    age: 3';convert();"
+    ],
+    expect: ['"age": 3', '"name": "Tom"'],
+    ref: "I-6 列表项多键对象：`- name: Tom` 后的同级缩进键 age 必须并入同一对象。旧实现在列表项命中 key 后遇到更深缩进直接 break ⇒ 输出仅 {\"list\":[{\"name\":\"Tom\"}]}，无 \"age\": 3。默认方向 j2y、默认输入为 JSON ⇒ 不命中。"
+  },
+  {
+    slug: "data/yaml-json",
+    clicks: [
+      "setDir('y2j');document.getElementById('input').value='host: localhost # 注释';convert();"
+    ],
+    expect: ['"host": "localhost"'],
+    ref: "I-7 行尾注释：引号外且 `#` 前有空白的注释应剥离。旧实现只跳过整行注释 ⇒ 值变成 \"localhost # 注释\"，不含 \"host\": \"localhost\"。"
+  },
+  {
+    slug: "data/yaml-json",
+    clicks: [
+      "setDir('y2j');document.getElementById('input').value='msg: |\\n  hello\\n  world';convert();"
+    ],
+    expect: ['"msg": "hello\\nworld\\n"'],
+    ref: "I-7 块标量：`|` 保留换行、默认 clip 单个结尾换行 ⇒ JSON 值 hello\\\\nworld\\\\n。旧实现把 `|` 当嵌套对象入口、正文行无冒号被跳过 ⇒ \"msg\": null。"
+  },
+  {
+    slug: "data/yaml-json",
+    clicks: [
+      "setDir('y2j');document.getElementById('input').value='- \"a:b\"';convert();"
+    ],
+    expect: ['"a:b"'],
+    ref: "I-7 引号内冒号：`- \"a:b\"` 是标量而不是键值对。旧实现按第一个冒号切分 ⇒ [{\"\\\"a\":\"b\\\"\"}]；新增按引号状态找分隔冒号 ⇒ [\"a:b\"]。"
+  },
+  {
+    slug: "data/yaml-json",
+    inputs: { input: "{\"a: b\":1}" },
+    expect: ['"a: b": 1'],
+    ref: "I-8 JSON→YAML 键转义：含冒号空格的键必须加引号。旧实现键原样输出 `a: b: 1`（非法 YAML）；现键走 yamlString ⇒ `\"a: b\": 1`。"
+  },
+  {
+    slug: "data/yaml-json",
+    inputs: { input: "{\"k\":\"it's \\\"x\\\"\"}" },
+    expect: ["k: \"it's \\\"x\\\"\""],
+    ref: "I-8 混合引号：值同时含单双引号时统一用双引号 + JSON 转义。旧实现走单引号包裹且不转义内部单引号 ⇒ `k: 'it's \"x\"'`（非法）。"
+  },
+  {
+    slug: "data/yaml-json",
+    inputs: { input: "{\"version\":\"1.0.0\",\"port\":8080}" },
+    expect: ['version: "1.0.0"', "port: 8080"],
+    ref: "序列化回归：形似版本的字符串需保持字符串语义（加引号），整数仍裸写；此前 1.0.0 不加引号、回读时无法与字符串区分。"
   },
 
 

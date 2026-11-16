@@ -139,7 +139,68 @@ const CASES = [
   "ref": "风险值=概率×影响=4×5=20 ⇒ 极高风险；仅 1 项 ⇒ 平均=20.0。"
      + "原 expect「(12)」出自 loadSample 样本项（P:3 I:4），默认态列表为空、走兜底 addRisk() 也会命中 ⇒ 逃生项。"
      + "注：兜底阶段无参 addRisk() 会再追加一项，故断言须落在 click 阶段产物（已实测默认态 FAIL）。"
+},
+{
+  "slug": "pr/assessor-58",
+  "inputs": { "k1": "15", "k6": "7", "k7": "250" },
+  "expect": ["28.00", "0.47元"],
+  "ref": "CPM 量纲：费用 7 万元、曝光 250 万次 ⇒ 70000÷2500000×1000 = 28.00 元/千次；CPE = 7÷15 = 0.47 元/粉。旧实现 ×10000 得 280.00 元，不含 28.00 串；默认 5 万/100 万次 ⇒ 50.00 元，注入失败即不命中。"
+},
+{
+  "slug": "pr/assessor-59",
+  "inputs": { "p1": "10", "p2": "20", "p3": "100" },
+  "expect": ["核心媒体报道数不能大于报道总篇数"],
+  "ref": "核心报道 20 > 总报道 10 ⇒ 旧实现输出 200% 占比却无提示；现拦截。默认 50/10 自洽 ⇒ 注入失败不命中。"
+},
+{
+  "slug": "pr/assessor-59",
+  "inputs": { "p1": "", "p2": "10", "p3": "100" },
+  "expect": ["请填写报道篇数与预估曝光量"],
+  "ref": "总篇数留空 ⇒ 旧实现 +''||0 按 0 计算并给出占比 0%；现提示补录并清空复制值。默认态字段均有值 ⇒ 不命中。"
 }
+,
+{
+  "slug": "pr/analysis-assessor",
+  "inputs": { "data": "冠名权益,800000,0" },
+  "expect": ["投入合计需大于 0"],
+  "ref": "投入合计为 0 ⇒ 旧实现 roi 按 0 输出并显示「基本回本」；现拒绝计算。默认两项投入 210000 ⇒ 不命中。"
+},
+{
+  "slug": "pr/analysis-assessor",
+  "inputs": { "data": "冠名权益,800000,300000\n坏行,abc,def" },
+  "expect": ["第 2 行数据无效"],
+  "ref": "第二行后两列非数字 ⇒ 旧实现静默丢弃且无任何说明；现列出跳过行号。默认态无坏行 ⇒ 不命中。"
+},
+{
+  "slug": "pr/analysis-density-1",
+  "inputs": { "text": "Apple apple", "kw": "Apple" },
+  "expect": ["出现 2 次", "100.00%"],
+  "ref": "统一大小写计数：Apple/apple 共 2 次；总词数 en=2、cn=0 ⇒ 密度 2÷2×100=100.00%。旧实现大小写敏感只命中 1 次（50.00%）⇒ 两条均不命中。默认正文为绿色低碳中文 ⇒ 不命中。"
+},
+{
+    "slug": "pr/press-conference",
+    "inputs": { "startTime": "", "eventType": "press" },
+    "expect": ["开始时间未设置"],
+    "ref": "清空开始时间时旧实现静默按 14:00 排程且结果卡仍显示 14:00，用户会误以为是自己的排期；现明确提示未设置并标注占位。默认 14:00 ⇒ 不命中。"
+  },
+{
+    "slug": "pr/media-invite",
+    "clicks": ["document.getElementById('__tbProbe').textContent='INVITEGUARD '+(typeof undoOverwrite==='function'&&/undoMedias/.test(String(loadSample))&&/medias.length===0/.test(String(__media_inviteBoot))&&/saveMedias/.test(String(renderList))?'OK':'BAD');"],
+    "expect": ["INVITEGUARD OK"],
+    "ref": "源码形态判定：名单持久化（renderList 调 saveMedias）、示例/清空覆盖前留存 undoMedias 且可撤销、启动时已有名单不再被示例覆盖。默认态不设置探针 ⇒ 零逃生。"
+  },
+{
+    "slug": "pr/press-conference",
+    "clicks": ["document.getElementById('__tbProbe').textContent='FLOWEDIT '+(typeof toggleStepEdit==='function'&&/flowEditor/.test(String(renderSteps))&&!/flowEditor/.test(String(render))&&/editingSteps/.test(String(renderSteps))?'OK':'BAD');"],
+    "expect": ["FLOWEDIT OK"],
+    "ref": "源码形态判定：环节编辑表单改由 flowEditor 承载且默认收起（editingSteps=false 时不渲染内联 oninput 表单），时间表仍由 render 写 flowList，不再互相覆盖。默认态不设置探针 ⇒ 零逃生。"
+  },
+{
+    "slug": "pr/press-conference",
+    "clicks": ["document.getElementById('__tbProbe').textContent='TPLUNDO '+(typeof undoTemplate==='function'&&/undoSteps/.test(String(loadTemplate))&&/undoSteps/.test(String(renderSteps))?'OK':'BAD');"],
+    "expect": ["TPLUNDO OK"],
+    "ref": "源码形态判定：模板切换前留存原步骤、编辑容器提供撤销入口，不再静默覆盖用户已编辑的流程。默认态不设置探针 ⇒ 零逃生。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

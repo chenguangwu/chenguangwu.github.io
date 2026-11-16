@@ -199,16 +199,51 @@
 </div>
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
+function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):(/^(?:-?Infinity|NaN)$/.test(__g1)?'—':String(__g1)));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){var css=document.getElementById('src').value;
 function minify(s){
-  s=s.replace(/\/\*[\s\S]*?\*\//g,'');
-  s=s.replace(/\s+/g,' ');
-  s=s.replace(/\s*([{}:;,>])\s*/g,'$1');
-  s=s.replace(/;\}/g,'}');
-  s=s.replace(/\s+/g,' ').trim();
-  return s;
+  // IT-N431：逐段扫描。注释剔除；引号字符串与 url() 作为 raw 段原样保留；
+  // 只压缩 code 段空白，避免 content:"a: b" / 属性选择器值被静默改义。
+  var segs=[],buf='',i=0;
+  function flush(){if(buf){segs.push({t:'code',v:buf});buf='';}}
+  while(i<s.length){
+    var c=s.charAt(i);
+    if(c==='/'&&s.charAt(i+1)==='*'){
+      var end=s.indexOf('*/',i+2);
+      if(end<0)break;
+      flush();i=end+2;continue;
+    }
+    if(c==='"'||c==="'"){
+      var q=c,j=i+1;
+      while(j<s.length){
+        if(s.charAt(j)==='\\'){j+=2;continue;}
+        if(s.charAt(j)===q){j++;break;}
+        j++;
+      }
+      flush();segs.push({t:'raw',v:s.slice(i,j)});i=j;continue;
+    }
+    if((c==='u'||c==='U')&&/^url\(/i.test(s.slice(i,i+4))&&!/[a-zA-Z0-9_-]/.test(s.charAt(i-1)||'')){
+      var j=i+4,depth=1,quote=null;
+      while(j<s.length&&depth>0){
+        var d=s.charAt(j);
+        if(quote){if(d==='\\'){j+=2;continue;}if(d===quote)quote=null;j++;continue;}
+        if(d==='"'||d==="'"){quote=d;j++;continue;}
+        if(d==='(')depth++;else if(d===')')depth--;
+        j++;
+      }
+      flush();segs.push({t:'raw',v:s.slice(i,j)});i=j;continue;
+    }
+    buf+=c;i++;
+  }
+  flush();
+  var out='';
+  for(var k=0;k<segs.length;k++){
+    var g=segs[k];
+    if(g.t==='raw'){out+=g.v;continue;}
+    out+=g.v.replace(/\s+/g,' ').replace(/\s*([{}:;,>])\s*/g,'$1').replace(/;\}/g,'}');
+  }
+  return out.trim();
 }
 var out=minify(css);
 var html='<div class="result-title">压缩结果</div><div class="data-grid">';
@@ -217,7 +252,7 @@ html+='<div class="data-card"><div class="num">'+out.length+'</div><div class="l
 html+='<div class="data-card"><div class="num">'+(css.length?Math.round((1-out.length/css.length)*100):0)+'%</div><div class="label">节省</div></div>';
 html+='</div>';
 html+='<pre class="code-box" style="white-space:pre-wrap;word-break:break-all;font-size:12px;">'+escH(out)+'</pre>';
-const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}
+const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):(/^(?:-?Infinity|NaN)$/.test(String(__g2))?'—':String(__g2)));}
 function resetForm(){document.getElementById('src').value='.btn {\n  /* 主按钮 */\n  color: #fff;\n  background: #3B82F6;\n}\n\n.box {\n  margin: 0 auto;\n}';
       calcTool();}
 calcTool();

@@ -114,7 +114,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="根据负载功率、转速与传动效率计算所需电机功率，匹配 IEC 标准功率等级并核算转矩">Compute required motor power from load and efficiency.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">电机选型（由负载功率正推，非由扭矩反推）：所需电机功率 P = 负载功率 P_load ÷ (η÷100)（kW，η 为传动效率%）；计算转矩 T = 9550×P ÷ n（N·m，n 为转速 rpm）；推荐标准功率取 IEC 表中首个 ≥P 的档位（0.75~630kW 共 30 档，全不足时取最大档），额定转矩 = 9550×标准功率 ÷ n。校验：三项非空守卫，任一非数、n=0 或 η≤0 报「请输入有效正数（转速、效率需大于 0）」。判据：功率裕量 = (标准功率−P)÷P×100%，&lt;10% 提示裕量偏小建议放大一档，否则裕量合适。</div>
+      <div class="formula-eq">电机选型（由负载功率正推，非由扭矩反推）：所需电机功率 P = 负载功率 P_load ÷ (η÷100)（kW，η 为传动效率%）；计算转矩 T = 9550×P ÷ n（N·m，n 为转速 rpm）；推荐标准功率取 IEC 表中首个 ≥P 的档位（0.75~630kW 共 30 档），额定转矩 = 9550×标准功率 ÷ n；若所需功率超过 630kW 则只输出所需功率与超系列告警，不给出推荐档位与额定转矩。校验：三项非空守卫，任一非数、n≤0、η≤0 或 η&gt;100 报「请输入有效参数（转速、效率需大于 0，效率不超过 100%）」。判据：功率裕量 = (标准功率−P)÷P×100%，&lt;10% 提示裕量偏小建议放大一档，否则裕量合适。</div>
       <div class="formula-desc">根据负载功率、转速与传动效率计算所需电机功率，匹配 IEC 标准功率等级并核算转矩</div>
     </div>
     <div class="input-row">
@@ -242,15 +242,27 @@ function setInputs(o){INPUT_IDS.forEach(function(id){if(o[id]!==undefined)docume
 function calc(){
     var __ig=__tbInputGuard(['pload', 'nVal', 'eff'],["负载功率 P_load (kW)", "转速 n (rpm)", "传动效率 η (%)"]);if(__ig){const __g1=__ig;ToolBox.setResult("res",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 var Pload=num('pload'),n=num('nVal'),eta=num('eff');
-  if(isNaN(Pload)||isNaN(n)||isNaN(eta)||n===0||eta<=0){
-    document.getElementById('res').innerHTML='<div class="history-empty">请输入有效正数（转速、效率需大于 0）</div>';lastResult='';return;
+  if(isNaN(Pload)||isNaN(n)||isNaN(eta)||n<=0||eta<=0||eta>100){
+    var __badEta=document.getElementById('eff');
+    if(!isNaN(eta)&&eta>100){__badEta.classList.add('input-error');__badEta.setAttribute('aria-invalid','true');}
+    document.getElementById('res').innerHTML='<div class="history-empty">请输入有效参数：转速、效率需大于 0，传动效率不得超过 100%</div>';lastResult='';return;
   }
   var P=Pload/(eta/100);
   var T=9550*P/n;
   // select standard power
   var selP=null;
   for(var i=0;i<IEC.length;i++){if(IEC[i]>=P){selP=IEC[i];break;}}
-  if(!selP)selP=IEC[IEC.length-1];
+  var overflow=(selP===null);
+  if(overflow){
+    const __go='<div class="data-grid">'+
+      '<div class="data-card"><div class="num">'+P.toFixed(2)+'</div><div class="label">所需电机功率 (kW)</div></div>'+
+      '<div class="data-card"><div class="num">'+T.toFixed(1)+'</div><div class="label">计算转矩 T (N·m)</div></div>'+
+      '<div class="data-card"><div class="num">'+(eta).toFixed(0)+'%</div><div class="label">传动效率</div></div>'+
+      '</div>'+
+      '<div class="info-box" style="margin-top:10px;">⚠️ 所需功率 '+P.toFixed(2)+' kW 超出 IEC 标准功率表上限（630 kW），无法按单机标准档位选型。请考虑多机并联驱动、定制电机或核减负载后重新计算。</div>';document.getElementById('res').innerHTML=(typeof __go==='number'?(isFinite(__go)?__go:'—'):String(__go).replace(/Infinity|NaN/g,'—'));
+    lastResult='电机选型：\n所需功率 = '+P.toFixed(2)+' kW\n超出 IEC 标准功率表（上限 630 kW），需多机并联/定制电机\n计算转矩 = '+T.toFixed(1)+' N·m';
+    return;
+  }
   var margin=(selP-P)/P*100;
   var Tsel=9550*selP/n;
   const __g3='<div class="data-grid">'+

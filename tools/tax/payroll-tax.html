@@ -106,7 +106,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入工资总额、雇主费率与雇员费率，求工薪税。">Compute total payroll tax: T = wages × (employer rate + employee rate).</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">工薪税 = 工资×(雇主率+雇员率)。 1 万×(0.2+0.08) → 2800 元。</div>
+      <div class="formula-eq">工薪税合计 = 工资×(雇主率+雇员率)；员工扣款 = 工资×雇员率，员工实得 = 工资 − 员工扣款；单位用工成本 = 工资×(1+雇主率)。 1 万×(0.2+0.08) → 2800 元，员工实得 9200 元、单位成本 12000 元。</div>
       <p class="formula-desc">输入工资总额、雇主费率与雇员费率，求工薪税。</p>
     </div>
 
@@ -218,11 +218,17 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
    if(!__tbReq(['w','er','ee'],['工资总额','雇主费率','雇员费率']))return;
             const w=num('w'),er=num('er'),ee=num('ee');
+            if(!(w>=0)||!(er>=0)||!(ee>=0)){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 工资总额与两项费率均不能为负。</p>');return;}
             const T=w*(er+ee);
+            const empDeduct=w*ee;
+            const net=w-empDeduct;
+            const employerCost=w*(1+er);
             const __g1=dataGrid([
-                [T.toFixed(2),'工薪税 T (元)'],
-                [(er+ee).toFixed(4), '合计税率'],
-                [(w-T).toFixed(2), '税后实得 (元)']
+                [T.toFixed(2),'工薪税合计 T (元)'],
+                [(er+ee).toFixed(4), '合计费率'],
+                [empDeduct.toFixed(2), '员工扣款 (元)'],
+                [net.toFixed(2), '员工实得 (元)'],
+                [employerCost.toFixed(2), '单位用工成本 (元)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('w').value = '10000';
@@ -242,9 +248,11 @@ function __payroll_taxExtras(){
     TBKit.matrix.table('#payroll_taxTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['工薪税 T (元)', T.toFixed(2)],
-            ['合计税率', (er+ee).toFixed(4)],
-            ['税后实得 (元)', (w-T).toFixed(2)],
+            ['工薪税合计 T (元)', T.toFixed(2)],
+            ['合计费率', (er+ee).toFixed(4)],
+            ['员工扣款 (元)', (w*ee).toFixed(2)],
+            ['员工实得 (元)', (w-w*ee).toFixed(2)],
+            ['单位用工成本 (元)', (w*(1+er)).toFixed(2)],
         ]
     });
     TBKit.history.record({w:__payroll_taxRaw('w'), er:__payroll_taxRaw('er'), ee:__payroll_taxRaw('ee'), T:T});

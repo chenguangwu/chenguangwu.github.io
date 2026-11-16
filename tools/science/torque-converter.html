@@ -189,7 +189,7 @@
   <button type="button" class="btn" onclick="resetInput()">🔄 重置</button>
   <button type="button" class="btn" onclick="window.__torqueExport()">⬇️ 导出扭矩换算 CSV</button>
 </div>
-<table id="torqueHidden" style="display:none"><thead><tr><th data-zh="单位">Unit</th><th>Value (N·m)</th></tr></thead><tbody></tbody></table>
+<table id="torqueHidden" style="display:none"><thead><tr><th data-zh="单位">Unit</th><th data-zh="数值">Value</th></tr></thead><tbody></tbody></table>
 </div>
 
 <div id="tab-formula" class="tab-content">
@@ -396,8 +396,19 @@ function __torqueChart(){
   });
 }
 
+function __tqMsg(){
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function')?TBKit.util.isEn():false;
+  return en?'Enter a valid torque value':'请输入有效的扭矩数值';
+}
+function __tqClear(msg){
+  var g=document.getElementById('convGrid');
+  if(g)g.innerHTML='<p style="color:var(--danger)">'+msg+'</p>';
+  lastResult=null;
+}
 function convert(){
-  const v=parseFloat(document.getElementById('val').value)||0;
+  const __traw=String(document.getElementById('val').value).trim();
+  const v=Number(__traw);
+  if(__traw===''||!isFinite(v)){__tqClear(__tqMsg());return;}
   const from=document.getElementById('from').value;
   const baseNm=v*units[from].f;
   const grid=document.getElementById('convGrid');
@@ -475,10 +486,11 @@ function __torqueExport(){
   if(!tbody)return;
   if(!lastResult){ToolBox.toast(en?'请先转换':'请先转换');return;}
   tbody.innerHTML='';
+  var _sym=function(k){var m=units[k].n.match(/\(([^)]+)\)/);return m?m[1]:k;};
   var _row=function(u,v){var tr=document.createElement('tr');tr.innerHTML='<td>'+u+'</td><td>'+v+'</td>';tbody.appendChild(tr);};
   Object.keys(units).forEach(function(k){
     var val=lastResult.baseNm/units[k].f;
-    _row(en?k:units[k].n, val.toExponential(6).replace(/\.?0+e/,'e')+' N·m');
+    _row(en?k:units[k].n, val.toExponential(6).replace(/\.?0+e/,'e')+' '+_sym(k));
   });
   TBKit.util.exportTable('#torqueHidden', en?'torque-conversion.csv':'扭矩换算结果.csv');
 }

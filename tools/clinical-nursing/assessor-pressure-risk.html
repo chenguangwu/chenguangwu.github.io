@@ -149,7 +149,7 @@
 <li>脊柱、肛肠等长时间固定体位手术，按手术时长分段标注高危骨突，提醒术中定时减压。</li>
 <li>肥胖或低蛋白血症患者，结合 <a class="term-link" href="/tools/healthcare/bmi-calculator.html">BMI</a> 与营养状态上调风险等级，缩短减压间隔。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核一例腹腔镜手术侧卧位风险</div><div class="dd-ex-body">输入患者 BMI 28、手术预计 120 分钟、侧卧受压点为股骨大转子与耳廓，工具给出高危标记并建议每 30 分钟减压一次，与实际护理记录对照一致。</div></div>
+<div class="dd-example"><div class="dd-ex-title">复核一例长时间侧卧位手术</div><div class="dd-ex-body">输入侧卧位、预计 300 分钟、BMI 29、年龄 75 岁：体位 3 + 时长&gt;4h 4 + 肥胖 2 + 高龄 3 = 12 分 ⇒ 高风险，重点受压部位为大转子、肩峰、外踝、耳廓，建议减压床垫并每 2 小时（条件允许时）调整体位。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>本工具能替代手术室压疮<a class="term-link" href="/tools/pr/risk-assessment.html">风险评估</a>表吗？</dt><dd>不能，仅作受压点初评提示，正式记录仍按医院压疮评估量表（如 Braden）与术中护理单执行。</dd>
@@ -203,14 +203,27 @@
 <script>
 function calc(){
   var pos=+document.getElementById('position').value;
-  var dur=parseFloat(document.getElementById('duration').value);
-  var bmi=parseFloat(document.getElementById('bmi').value);
-  var age=+document.getElementById('age').value;
+  var durEl=document.getElementById('duration');
+  var bmiEl=document.getElementById('bmi');
+  var ageEl=document.getElementById('age');
+  var dur=parseFloat(durEl.value);
+  var bmi=parseFloat(bmiEl.value);
+  var age=parseFloat(ageEl.value);
+  // D-N62：三项必填并校验范围，避免空值少算、BMI 0 反被判消瘦加分
+  var bad=[];
+  if(!isFinite(dur)||dur<=0||dur>24)bad.push('手术时长须为 0–24 小时');
+  if(!isFinite(bmi)||bmi<10||bmi>60)bad.push('BMI 须在 10–60 之间');
+  if(!isFinite(age)||age<0||age>120)bad.push('年龄须在 0–120 岁之间');
+  if(bad.length){
+    window.__EMR_SUM=null;
+    document.getElementById('res').innerHTML='<div class="tip-box tip-error tb-guard">⚠ '+bad.join('；')+'。请补全后再评估。</div>';
+    return;
+  }
   var score=0;var factors=[];
   var posNames=['仰卧位','俯卧位','侧卧位','截石位','头低脚高位'];
   var posScore=[1,3,3,2,4];
   score+=posScore[pos-1];if(posScore[pos-1]>=3)factors.push(posNames[pos-1]+'压力集中');
-  if(dur>4){score+=4;factors.push('手术时长>'+dur+'h');}else if(dur>2){score+=2;factors.push('手术时长'+dur+'h');}
+  if(dur>4){score+=4;factors.push('手术时长>4h（'+dur+'h）');}else if(dur>2){score+=2;factors.push('手术时长'+dur+'h');}
   if(bmi<18.5){score+=3;factors.push('消瘦(BMI'+bmi+')');}else if(bmi>28){score+=2;factors.push('肥胖(BMI'+bmi+')');}
   if(age>70){score+=3;factors.push('高龄('+age+'岁)');}else if(age>60){score+=1;factors.push('年龄'+age+'岁');}
   if(document.getElementById('diabetes').checked){score+=2;factors.push('糖尿病');}

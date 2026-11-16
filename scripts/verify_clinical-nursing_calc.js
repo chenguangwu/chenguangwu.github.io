@@ -16,9 +16,34 @@ const CASES = [
   ],
   "expect": [
     "【手术体位相关压力性损伤风险评估】 结果：体位 头低脚高位 · 手术时长 5 h · BMI 17 · 年龄 78 岁 → 风险评分 18 分，分级：高风险",
-    "重点受压部位：肩部、背部；风险因素：头低脚高位压力集中、手术时长"
+    "风险因素：头低脚高位压力集中、手术时长&gt;4h（5h）"
   ],
-  "ref": "门诊记录：头低脚高位 4 + 时长>4h 4 + 消瘦(BMI<18.5) 3 + 高龄(>70) 3 + 糖尿病 2 + 水肿 2 = 18 分 ⇒ ≥10 高风险；该体位重点受压部位为肩部/背部。默认态仰卧位（1 分）、无勾选 ⇒ 评分远低于 10、分级低风险，与本用例零交集。（风险因素串在「手术时长>5h」处含被 __emrEsc 转义的 &gt;，故 expect 只截到「手术时长」为止。）"
+  "ref": "门诊记录：头低脚高位 4 + 时长>4h 4 + 消瘦(BMI<18.5) 3 + 高龄(>70) 3 + 糖尿病 2 + 水肿 2 = 18 分 ⇒ ≥10 高风险；该体位重点受压部位为肩部/背部。D-N63：时长因子改为「手术时长>4h（5h）」，阈值 4h 与实际 5h 不再混写；旧实现输出「手术时长>5h」。默认态仰卧位（1 分）、无勾选 ⇒ 评分远低于 10、分级低风险，与本用例零交集。"
+},
+{
+  "slug": "clinical-nursing/assessor-pressure-risk",
+  "inputs": {
+    "position": "3",
+    "duration": "2",
+    "bmi": "0",
+    "age": "50"
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "BMI 须在 10–60 之间"
+  ],
+  "ref": "D-N62 范围守卫：BMI 0 旧实现落 `bmi<18.5` 加 3 分并判中风险；修复后三项范围校验拦截并提示。默认 BMI 空同样拦截，但本用例注入 0 与合法时长/年龄，只命中 BMI 一条。"
+},
+{
+  "slug": "clinical-nursing/assessor-rater-risk",
+  "inputs": {
+    "m1": "25",
+    "m4": "20"
+  },
+  "expect": [
+    "【Morse 跌倒风险评估（6 项 · 满分 125）】 结果：Morse 总分 45/125 → 分级：高风险"
+  ],
+  "ref": "D-N122 阈值回归：跌倒史 25 + 静脉输液 20 = 45 分，页面同页深析/FAQ/引据均为「≥45 高风险」，旧实现 `total>50` 会把 45 判成中风险。默认全 0 ⇒ 0 分低风险，零交集。"
 },
 {
   "slug": "clinical-nursing/assessor-rater-risk",
@@ -33,7 +58,7 @@ const CASES = [
   "expect": [
     "【Morse 跌倒风险评估（6 项 · 满分 125）】 结果：Morse 总分 125/125 → 分级：高风险",
       ],
-  "ref": "门诊记录：6 项全取最高档 25+15+30+20+20+15 = 125 > 50 ⇒「高风险」。默认态 6 项全 0 ⇒「Morse 总分 0/125 → 分级：低风险」，与本用例零交集。"
+  "ref": "门诊记录：6 项全取最高档 25+15+30+20+20+15 = 125 ⇒「高风险」。默认态 6 项全 0 ⇒「Morse 总分 0/125 → 分级：低风险」，与本用例零交集。"
 },
 {
   "slug": "clinical-nursing/bag-valve-mask",
@@ -70,12 +95,37 @@ const CASES = [
 {
   "slug": "clinical-nursing/braden-score",
   "clicks": [
+    "selectScore('sensory',3);selectScore('moisture',2);selectScore('activity',1);selectScore('mobility',2);selectScore('nutrition',2);selectScore('friction',2)"
+  ],
+  "expect": [
+    "每2小时翻身，气垫床，局部减压，加强营养"
+  ],
+  "ref": "D-N118 示例回归：感知 3 + 潮湿 2 + 活动 1 + 移动 2 + 营养 2 + 摩擦 2 = 12 分，落「10–12 高度风险」（旧深解示例称 12 分判极高危）；该 desc 串为高度风险分支独有。默认 23 分无风险、13 分走中度风险（每2小时翻身一次…），均不含本串。"
+},
+{
+  "slug": "clinical-nursing/braden-score",
+  "clicks": [
     "selectScore('sensory',2);selectScore('moisture',2);selectScore('activity',2);selectScore('mobility',2);selectScore('nutrition',2);selectScore('friction',3)"
   ],
   "expect": [
     "每2小时翻身一次"
   ],
   "ref": "静态按钮量表页：逐维 selectScore 到 total=2*5+3=13 落「中度风险(13-14)」分支，其 desc 独有串「每2小时翻身一次」。默认 total=23 走「无风险」；零参兜底 scores[undefined]=undefined→total=NaN 走 else「极度风险」(每1小时翻身)，两态均不含该串（故非逃生项）。"
+},
+{
+  "slug": "clinical-nursing/calc-rater-risk",
+  "inputs": {
+    "b1": "4",
+    "b2": "3",
+    "b3": "2",
+    "b4": "3",
+    "b5": "3",
+    "b6": "2"
+  },
+  "expect": [
+    "【Braden 压疮风险评估（6 维度 · 满分 23）】 结果：Braden 总分 17/23 → 分级：低度风险"
+  ],
+  "ref": "D-N120 分层回归：4+3+2+3+3+2 = 17 落「15–18 低度风险」；同页深解示例曾称 17 分判高危，已同步为低度。默认 21/23 走「当前为默认评分」提示、不输出分级，零交集。"
 },
 {
   "slug": "clinical-nursing/calc-rater-risk",
@@ -117,9 +167,35 @@ const CASES = [
   ],
   "expect": [
     "【胸外按压深度与参数（按年龄）】 结果：对象：儿童（肥胖） → 按压深度 5 cm、频率 100-120 次/分、按压通气比 30:2、回弹要求「完全回弹」、中断 ＜10s",
-    "说明：按压深度：约5cm（胸廓前后径1/3）（肥胖患者需加大力度确保达到深度）"
+    "说明：按压深度：约5cm（胸廓前后径1/3）（肥胖患者需加大力度确保达到深度，目标深度不变）"
   ],
-  "ref": "门诊记录：clicks 调 selectAge('child') 切到儿童（AHA 2020 至少 5 cm，页面统一为 5 cm），inputs 选肥胖体型 ⇒ 追加「肥胖患者需加大力度」。默认态 currentAge='adult'、bodyType='normal' ⇒「对象：成人 → 按压深度 5-6 cm」，与本用例零交集。旧实现输出「4–5 cm」，与同页 desc「约5cm」及 AHA 至少 5 cm 矛盾，已修正。"
+  "ref": "门诊记录：clicks 调 selectAge('child') 切到儿童（AHA 2020 至少 5 cm，页面统一为 5 cm），inputs 选肥胖体型 ⇒ 追加「肥胖患者需加大力度…目标深度不变」。默认态 currentAge='adult'、bodyType='normal' ⇒「对象：成人 → 按压深度 5-6 cm」，与本用例零交集。旧实现输出「4–5 cm」，与同页 desc「约5cm」及 AHA 至少 5 cm 矛盾，已修正；肥胖不再把示意条调浅，故文案明示目标深度不变。"
+},
+{
+  "slug": "clinical-nursing/chest-compression-depth",
+  "inputs": {
+    "rescuer": "two"
+  },
+  "clicks": [
+    "selectAge('child')"
+  ],
+  "expect": [
+    "对象：儿童 → 按压深度 5 cm、频率 100-120 次/分、按压通气比 15:2"
+  ],
+  "ref": "D-N38 单/双人施救：新增 rescuer 选择，儿童/婴儿双人施救按 AHA 2020 为 15:2。inputs 置 two + clicks 切儿童 ⇒ 结果卡与门诊记录均为 15:2；旧实现三条配置硬编码 30:2，本串不命中。默认单人 + 成人仍是 30:2，与本用例互斥。"
+},
+{
+  "slug": "clinical-nursing/chest-compression-depth",
+  "inputs": {
+    "rescuer": "two"
+  },
+  "clicks": [
+    "calc()"
+  ],
+  "expect": [
+    "对象：成人 → 按压深度 5-6 cm、频率 100-120 次/分、按压通气比 30:2"
+  ],
+  "ref": "D-N38 反向守卫：成人双人施救仍为 30:2（AHA 成人不分单双人），rescuer=two 不得把成人改成 15:2。默认态同为成人 30:2，但本用例真实注入 two 后计算，若实现写成「双人一律 15:2」即变红。"
 },
 {
   "slug": "clinical-nursing/chest-compression-depth",
@@ -143,6 +219,14 @@ const CASES = [
   "expect": [
     "【冷敷时长与皮肤安全评估（关节）】 结果：关节冷敷 · 皮肤条件 糖尿病/感觉减退 → 单次 10 分钟 / 间隔 30 分钟 / 每日 4-6次 / 每2分钟检查皮肤 计算口径：单次时长 = 部位基准（关节/肌肉/四肢/术后 20 分钟、面部 15 分钟）× 皮肤敏感系数（正常 1.0、敏感与老年 0.7、糖尿病 0.5），四舍五入取整 临床提示：皮肤敏感/感觉减退人群：单次冷敷缩短至 10 分钟，结束后必须间隔 30 分钟并检查皮肤；因痛觉与温度觉迟钝，禁止凭主观感觉延长冷敷，出现苍白、发绀、麻木立即停止。 评估日期：__________ 评估者：__________ （自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）\n"
   ]
+},
+{
+  "slug": "clinical-nursing/cold-compress-timer",
+  "clicks": [
+    "resetTimer();timerEndAt=Date.now()+660000;isRunning=true;tickTimer();var t=document.getElementById('timerTime').textContent;document.getElementById('timerTime').textContent=(t==='11:00')?'COLDTSOK':'COLDTSBAD'+t"
+  ],
+  "expect": ["COLDTSOK"],
+  "ref": "D-N65 时间戳倒计时：把结束时间设为 11 分钟后（20 分钟总量、已过 9 分钟），tick 按 Date.now() 结算应显示 11:00；旧实现每秒自减，单次 tick 只会剩 19:59。默认 20:00 不命中。"
 },
 {
   "slug": "clinical-nursing/convert-flow-concentration",
@@ -177,6 +261,24 @@ const CASES = [
     "氧流量 ≈ 4.75 L/min（FiO2 40%）"
   ],
   "ref": "去默认化：FiO2 40% ⇒ 流量 = (40−21)/4 = 4.75 L/min。默认态不命中。"
+},
+{
+  "slug": "clinical-nursing/convert-flow-concentration",
+  "inputs": { "mode": "o2f", "val": "120" },
+  "expect": ["FiO₂ 须在 21%–100% 之间"],
+  "ref": "D-N18（2026-11-16）：反推方向旧实现只把负值钳到 0，FiO₂=120% 得 24.75 L/min 且无警示。现要求 21–100，越界直接拦截。默认 40% ⇒ 不命中。"
+},
+{
+  "slug": "clinical-nursing/convert-flow-concentration",
+  "inputs": { "mode": "o2f", "val": "100" },
+  "expect": ["氧流量 ≈ 19.75 L/min", "警示：所需流量 >15 L/min"],
+  "ref": "D-N18：FiO₂ 100% ⇒ (100−21)/4 = 19.75 L/min，超过页面自述 15 L/min 上限；现追加「鼻导管无法提供，请改用面罩/储氧面罩」。默认 40% ⇒ 4.75，两锚均失配。"
+},
+{
+  "slug": "clinical-nursing/convert-flow-concentration",
+  "inputs": { "mode": "f2o", "val": "20" },
+  "expect": ["鼻导管流量须在 0–15 L/min 之间"],
+  "ref": "D-N19（2026-11-16）：正向旧实现 20 L/min 直接封顶 100% 且无提示；现限制 0–15 并提示改用面罩。默认 2 L/min ⇒ 不命中。"
 },
 {
   "slug": "clinical-nursing/cvc-maintenance",
@@ -276,6 +378,30 @@ const CASES = [
   "ref": "B2 回归：清空实测 NEX 时不得把空值当 0 或默认 77 混算。旧实现 182×0.2+0=36 cm；修正后身高估算 182×0.25+10=55.5 → 56 cm。默认态 53 cm，零交集。"
 },
 {
+  "slug": "clinical-nursing/fall-emergency-flow",
+  "clicks": [
+    "window.__fallSnap=[0,1,2,4,7]; window.__fallEmr()"
+  ],
+  "expect": [
+    "已完成 5/8 关键步骤"
+  ],
+  "ref": "门诊记录：clicks 注入 window.__fallSnap=[0,1,2,4,7]（完成的步骤索引）后 window.__fallEmr() 渲染『已完成 5/8 关键步骤 + 步骤序号 1,2,3,5,8』。__fallEmr 渲染后 delete window.__fallSnap，兜底循环即便调用也 return；默认态无 __fallSnap → 无任何门诊记录块，零交集。"
+},
+{
+  "slug": "clinical-nursing/gastric-tube-depth",
+  "inputs": {
+    "height": "200",
+    "noseXiphoid": ""
+  },
+  "clicks": [
+    "currentMethod='formula';calc()"
+  ],
+  "expect": [
+    "超出成人常规 45–55 cm"
+  ],
+  "ref": "D-N26 越界提示：身高 200 cm ⇒ 200×0.25+10 = 60 cm，超出成人常规 45–55 cm，须提示复核并用 X 线/抽吸确认。默认 53 cm 不命中。"
+},
+{
   "slug": "clinical-nursing/generator-pressure",
   "inputs": {
     "cnt": "10"
@@ -345,12 +471,12 @@ const CASES = [
 {
   "slug": "clinical-nursing/morse-score",
   "clicks": [
-    "selectScore('history',25);selectScore('gait',20)"
+    "selectScore('history',25);selectScore('gait',20);var __lb=document.getElementById('totalLabel').textContent;document.getElementById('totalLabel').textContent=(__lb==='高度跌倒风险')?'__MORSE45_OK__':'__MORSE45_FAIL__'+__lb"
   ],
   "expect": [
-    "45"
+    "__MORSE45_OK__"
   ],
-  "ref": "Morse 1989 原版切点 ≥45 为高度风险：25+20=45 必须落「高度跌倒风险」；旧实现以 >50 为高危会把 45 误判为低危。锚定 totalNum=45（注入失败时默认 0 或兜底 NaN→—，均不含 45），与高危 desc 的 NaN 兜底不可分，故不用 desc。"
+  "ref": "D-N115 阈值回归：Morse 原版切点 ≥45 高度风险；25+20=45 必须落「高度跌倒风险」（旧实现 >50 才高危，45 会落「低度跌倒风险」）。clicks 读取 totalLabel 并比对后再写标记，注入失败/兜底 NaN 都输出 FAIL 串。"
 },
 {
   "slug": "clinical-nursing/ostomy-bag-timing",
@@ -364,6 +490,19 @@ const CASES = [
     "造口类型：回肠造口 · 内容物：稀便 · 当前状态：已渗漏 · 建议更换间隔：立即"
   ],
   "ref": "双态零交集：expect 锚定注入的造口类型/内容物/状态组合（leak→间隔立即）。判别器清空 inputs（默认 colostomy/formed/intact → 间隔 7 天）→ 不命中 ⇒ 非逃生项。不抓 new Date() 动态倒计时。"
+},
+{
+  "slug": "clinical-nursing/ostomy-bag-timing",
+  "inputs": {
+    "stomaType": "ileostomy",
+    "outputType": "semi",
+    "baseStatus": "intact"
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "造口类型：回肠造口 · 内容物：半成形便 · 当前状态：完好 · 建议更换间隔：4 天"
+  ],
+  "ref": "D-N46 间隔口径：回肠造口软便基础间隔 4 天（页面公式框/引据统一为回肠 3–5 天、结肠 4–7 天，旧实现 3/7 天并与深解 2–4 天冲突）；默认 结肠/成形便/完好 ⇒ 7 天，不命中。"
 },
 {
   "slug": "clinical-nursing/oxygen-concentration",
@@ -387,6 +526,14 @@ const CASES = [
     "建议改用普通面罩或高流量鼻导管"
   ],
   "ref": "鼻导管不再静默封顶 44%：FiO₂ = 21 + 4×12 = 69%（原实现显示 44%）；流量＞6 L/min 触发警示并建议改面罩。默认态 flowRate=2 ⇒ 28% 且无警示，三串均不命中。"
+},
+{
+  "slug": "clinical-nursing/oxygen-concentration",
+  "clicks": [
+    "selectDevice('venturi');document.getElementById('venturiValve').value='24';selectDevice('venturi');calc();"
+  ],
+  "expect": ["文丘里面罩（24%阀，2 L/min）"],
+  "ref": "D-N20（2026-11-16）：文丘里模式只用阀值，旧实现固定写 flowRate=4，24% 阀的病历/结果写「流量 4 L/min → FiO₂ 24%」（页面标注 24% 对应 2 L/min）。现按 VENTURI_FLOW 同步该阀推荐流量，结果描述为「文丘里面罩（24%阀，2 L/min）」。默认鼻导管不出现该串。"
 },
 {
   "slug": "clinical-nursing/pain-nrs",
@@ -416,6 +563,32 @@ const CASES = [
   "ref": "门诊记录：clicks 调 selectStage('3', 哑 btn)（第二参需 classList.add），REC 内 typeof st==='string' 守卫；创面尺寸由 woundL/W/D 拼出 6×2×0.5cm，3 期才输出渗出液与周围皮肤。默认态 currentStage='1' 且页面末尾 generate() 时 __EMR_S 未赋值 ⇒ guard 直接 return、不产生门诊记录，零交集。原 expect「6cm」属输入回显（零判别力），已废弃。注：本页部位来自 querySelectorAll('#locationCheck input:checked')，stub 下会误返回全部 select 默认值，故门诊记录不含部位、留「损伤部位：____」手填。"
 },
 {
+  "slug": "clinical-nursing/pressure-injury-description",
+  "inputs": {
+    "woundL": "0",
+    "woundW": "2",
+    "woundD": "0"
+  },
+  "clicks": ["generate()"],
+  "expect": [
+    "尺寸无效时不生成护理记录，也不可复制"
+  ],
+  "ref": "D-N123 尺寸守卫：长清空/填 0 时旧实现 `parseFloat||0` 仍输出「0cm × 2cm」并生成记录；修复后前置校验 l>0 && w>0 && d≥0，失败时只显示红字提示并清空 EMR。默认 3×2×0 不含该提示 ⇒ 强判别。"
+},
+{
+  "slug": "clinical-nursing/pressure-injury-description",
+  "inputs": {
+    "woundL": "3",
+    "woundW": "2",
+    "woundD": "-1"
+  },
+  "clicks": ["generate()"],
+  "expect": [
+    "尺寸无效时不生成护理记录，也不可复制"
+  ],
+  "ref": "D-N123 负深度：深度允许留空或 ≥0，输入 -1 属非法测量值，旧实现会拼出「3cm × 2cm × -1cm」并写入记录；修复后命中同一守卫。默认深度 0 合法，不触发提示。"
+},
+{
   "slug": "clinical-nursing/reminder-time-1",
   "inputs": {
     "coldDur": "15",
@@ -429,6 +602,20 @@ const CASES = [
     "部位：踝关节"
   ],
   "ref": "门诊记录：clicks 注入 selectedArea='踝关节'（覆盖默认'额头'）后 __reminderEmr() 渲染『部位：踝关节』。默认态兜底循环调 __reminderEmr 用页面默认 selectedArea='额头' → 渲染『部位：额头』，与本用例零交集。"
+},
+{
+  "slug": "clinical-nursing/reminder-time-1",
+  "inputs": {
+    "coldDur": "30",
+    "restDur": "10"
+  },
+  "clicks": [
+    "__reminderEmr()"
+  ],
+  "expect": [
+    "冷敷 20 分钟 / 休息 30 分钟"
+  ],
+  "ref": "D-N125 安全区间收敛：旧实现 clamp 冷敷 5–30、休息 10–120，输入 30/10 会原样写进门诊记录，与同页「单次≤20 分钟、间隔≥30 分钟」矛盾；修复后 input max/min 与全部 clamp 统一为冷敷 ≤20、休息 ≥30，EMR 输出被夹到「冷敷 20 分钟 / 休息 30 分钟」。默认态 20/30 也含该串，但注入 30/10 若未收敛则输出「冷敷 30 分钟 / 休息 10 分钟」→ 用例变红，可判别。"
 },
 {
   "slug": "clinical-nursing/restraint-check",
@@ -451,6 +638,44 @@ const CASES = [
     "约束类型：胸衣约束 · 松解间隔：每 2 小时"
   ],
   "ref": "双态零交集：expect 锚定注入的约束类型 chest（胸衣约束）。判别器清空 clicks（默认 currentType=wrist → 手腕约束）→ 不命中 ⇒ 非逃生项。不抓 new Date() 动态时刻。"
+},
+{
+  "slug": "clinical-nursing/restraint-duration",
+  "inputs": {
+    "startTime": "08:00",
+    "totalHours": "8"
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "（约 12:15 重新约束）",
+    "（约 16:15 重新约束）"
+  ],
+  "ref": "D-N39 松解点单一来源：08:00 起 8 小时、每 2 小时松解 15 分钟 ⇒ 松解点 10:00 / 12:00 / 14:00 / 16:00（旧实现把 15 分钟松解并入推进，得到 10:00 / 12:15 / 14:30 / 16:00）。新增「约 HH:15 重新约束」为旧实现完全不存在的文案，且 12:15/16:15 只在正确排程下出现。"
+},
+{
+  "slug": "clinical-nursing/restraint-duration",
+  "inputs": {
+    "startTime": "08:00",
+    "totalHours": "2.5"
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "约束总时长：2.5 小时"
+  ],
+  "ref": "D-N39 小数时长：parseInt 截断会把 2.5 小时记成 2 小时（旧 EMR 由 parseInt 得 2），改为 parseFloat 后如实输出 2.5；默认 4 小时不含该串 ⇒ 强判别。"
+},
+{
+  "slug": "clinical-nursing/restraint-duration",
+  "inputs": {
+    "startTime": "08:00",
+    "totalHours": ""
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "约束总时长：未填写",
+    "请输入 1–24 小时的约束总时长"
+  ],
+  "ref": "D-N39 空值拒绝：旧实现 `parseInt('')||1` 静默按 1 小时排程并写入记录；修复后空/越界值拒绝，排程区显示 1–24 小时提示，EMR 标「未填写」。默认 4 小时两串均不出现。"
 },
 {
   "slug": "clinical-nursing/suction-pressure",
@@ -486,6 +711,16 @@ const CASES = [
   "ref": "W1-B 回归：年龄选择必须真正改变区间。clicks 切儿童（80–100 mmHg）后 110 mmHg 属过高；旧实现儿童 100–150 ⇒ 判「在安全范围内」，本串不命中。输入 110 非默认（150）。"
 },
 {
+  "slug": "clinical-nursing/suction-pressure",
+  "clicks": [
+    "selectAge('child',{classList:{add:function(){}}});selectAge();document.getElementById('currentPressure').value='110';checkPressure()"
+  ],
+  "expect": [
+    "过高（超过安全上限 100 mmHg）"
+  ],
+  "ref": "预设按钮走 selectAge() 无参回调：旧实现直接把 currentAge 置为 undefined 并在 btn.classList 抛错，之后任何压力输入在 ranges[undefined].min 处崩溃、结果不再刷新；修复后无参调用沿用当前类别（儿童），并靠 data-age 回填高亮。clicks 先切儿童、再模拟预设无参调用，写 110 mmHg ⇒ 必须仍落儿童上限 100 mmHg 的「过高」文案；崩溃时该文案不出现。"
+},
+{
   "slug": "clinical-nursing/surgical-position-risk",
   "clicks": [
     "selectPosition(\"lithotomy\",{classList:{add:function(){}}})"
@@ -494,6 +729,29 @@ const CASES = [
     "体位 截石位压力点评估 · 压力点共 4 处（高 2 / 中 1 / 低 1）"
   ],
   "ref": "门诊记录：clicks 调 selectPosition('lithotomy', 哑 btn)（第二参需 classList 否则抛错），REC 内 typeof pos==='string' 守卫，输出截石位 4 个压力点的高/中/低分布。默认 supine ⇒「仰卧位压力点评估 · 压力点共 5 处（高 3 / 中 2 / 低 0）」，零交集。"
+},
+{
+  "slug": "clinical-nursing/surgical-position-risk",
+  "inputs": {
+    "opDuration": "5"
+  },
+  "clicks": [
+    "selectPosition('lithotomy',{classList:{add:function(){}}})"
+  ],
+  "expect": [
+    "≥4 小时按压力性损伤高危管理"
+  ],
+  "ref": "D-N58 时长参与：新增预计手术时长输入，5 h ⇒ 结果区提示「≥4 小时按压力性损伤高危管理」；默认 2 h 只显示「＞2 小时属重点预防对象」，不含该串。旧实现全页无时长输入、等级固定。"
+},
+{
+  "slug": "clinical-nursing/surgical-position-risk",
+  "clicks": [
+    "window.TBKit={util:{isEn:function(){return true;}},history:{record:function(){},mount:function(){}},matrix:{table:function(){}}};selectPosition('supine',{classList:{add:function(){}}})"
+  ],
+  "expect": [
+    "position Supine position; 5 pressure points (high 3, moderate 2, low 0)"
+  ],
+  "ref": "D-N60 英文态：把 TBKit.util.isEn 置为 true 后选仰卧位，门诊记录 Result 行与压力点名称/措施均走英文映射。旧实现英文态结果行仍输出「体位 仰卧位压力点评估」，压力点名称与防护措施全为中文。"
 },
 {
   "slug": "clinical-nursing/tracheostomy-dressing",
@@ -505,6 +763,19 @@ const CASES = [
     "分泌物评估：大量分泌物 · 换药间隔：每 4 小时"
   ],
   "ref": "双态零交集：expect 锚定注入的分级 heavy（大量分泌物）。判别器清空 clicks（默认 currentLevel=minimal → 微量分泌物）→ 不命中 ⇒ 非逃生项。不抓 new Date() 动态时刻，只锚分级/间隔/次数。"
+},
+{
+  "slug": "clinical-nursing/tracheostomy-dressing",
+  "inputs": {
+    "firstDressing": "08:00"
+  },
+  "clicks": ["currentLevel='heavy'; calc();"],
+  "expect": [
+    "08:00",
+    "第1次换药（首次）",
+    "第6次换药"
+  ],
+  "ref": "D-N45 排程完整性：大量（4h）从首次 08:00 起应列 6 次（08/12/16/20/00/04），旧实现从 start+interval 开始且循环 break 少算，首末次均缺失。默认微量 8h ⇒ 3 次，不命中「第6次」；首次时间注入为非默认 08:00。"
 }
   ,{
     "slug": "clinical-nursing/braden-score",

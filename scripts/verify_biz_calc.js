@@ -867,6 +867,14 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"duration\":\"42\",\"attendees\":\"42\",\"hourlyRate\":\"42\",\"roomCost\":\"42\"}，输出区含「42\n42\n42\n42\n会议总成本 ¥1276.80 人力成本 ¥1234.80…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "biz/meeting-cost-calculator",
+    "clicks": [
+      "document.getElementById('attendees').value='1';document.getElementById('hourlyRate').value='100';document.getElementById('roomCost').value='600';timerStart=Date.now()-1800000;updateLiveTimer();var L=document.getElementById('liveCost');L.textContent+=' MCLIVE '+((L.textContent.indexOf('¥650.00')>=0)?'OK':'BAD');"
+    ],
+    "expect": ["MCLIVE OK"],
+    "ref": "计时口径：1 人、时薪 100、场地费 600、计时 30 分钟 ⇒ 人力 0.5×1×100=50 + 场地 600 = 650.00。原实现把场地费按秒摊（600/3600×1800=300）得 350.00，与常规计算的一次性场地费口径冲突。默认未计时，不命中。"
+  },
+  {
     "slug": "biz/lorem-ipsum-advanced",
     "inputs": {
       "count": "42",
@@ -930,9 +938,9 @@ const CASES = [
       "cnt": "42"
     },
     "expect": [
-      "单号或注册手机号？ 9. 升级处理 您的问题我已经记录并转交专人处理，预计24小时内与您联系。 10. 确认需求 请问您遇到的问题是否可以理解为：……？我这样理解对吗？"
+      "话术库仅 10 条，最多生成 10 条（当前请求 42 条）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「单号或注册手机号？ 9. 升级处理 您的问题我已经记录并转交专人处理，预计24小…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "BS-N110：数量 42 超过内置话术库 10 条时明确提示库容上限，不再静默截断。609 批把洗牌改为 Fisher–Yates 后原顺序快照失效，改用提示串作锚；默认 cnt=5 不触发提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "biz/strawberry-text",
@@ -1448,7 +1456,170 @@ const CASES = [
     "ref": "原型键回归：提取英文单词并去重，去重表改 Object.create(null) 后 '__proto__' 提取出的 proto 与 constructor 都保留、重复的 proto 合并为一次；输出 'proto constructor'。默认样例（Hello This is text…）不含该串 ⇒ 强判别。"
   },
 
+
+// ── 609 批：商业文本族 9 条确认缺陷的判别性用例 ──────────────────────
+// 口径：expect 是「或」，每条自身必须依赖注入输入且默认态不命中；
+//       探针串只在 clicks 注入执行后出现，默认态零逃生。
+
+  {
+    slug: "biz/text-split",
+    inputs: { input: "😀😀ab", mode: "chars", size: "1" },
+    clicks: ["split();"],
+    expect: ["（共 4 段）"],
+    ref: "BS-N37：按码点切分后 😀😀ab 恰为 4 段；旧实现按 UTF-16 码元 substr 得 6 段（两个 emoji 各被劈成高低代理两半）。默认逗号模式为 5 段示例文本 ⇒ 不命中。"
+  },
+  {
+    slug: "biz/text-split",
+    inputs: { input: "apple,banana,cherry" },
+    clicks: ["split();var cap='';var old=navigator.clipboard;navigator.clipboard={writeText:function(t){cap=String(t);return Promise.resolve();}};copyResult();navigator.clipboard=old;var nl=String.fromCharCode(10);document.getElementById('__tbProbe').textContent='TSCOPY '+(cap==='apple'+nl+'banana'+nl+'cherry'?'OK':'BAD:'+cap.split(nl).join('|'));"],
+    expect: ["TSCOPY OK"],
+    ref: "BS-N38：复制必须只含三段纯内容、以换行分隔；旧实现取 result.innerText 会把序号 1/2/3 粘在内容前。探针只在 clicks 注入执行 ⇒ 默认态零逃生。"
+  },
+  {
+    slug: "biz/text-stats",
+    inputs: { input: "One. Two.\nThree.\n" },
+    clicks: ["analyze();"],
+    expect: ["3 句子数"],
+    ref: "BS-N39：英文句末 . 计入句子数（One./Two./Three. 共 3 句），旧正则只认 [。！？!?] 会回落成 1 句、平均句长与阅读难度整段失真。默认示例文本句子数非 3 ⇒ 不命中。小数点 3.14 因点后不是空白/行尾不误判。"
+  },
+  {
+    slug: "biz/text-stats",
+    inputs: { input: "a\nb\n" },
+    clicks: ["analyze();"],
+    expect: ["2 总行数"],
+    ref: "BS-N40：末尾换行不再多算一个空行（a\\nb\\n 应为 2 行），旧 split('\\n') 得 3 行并摊薄平均行长。默认示例文本为 3 行 ⇒ 不命中。"
+  },
+  {
+    slug: "biz/strawberry-text",
+    inputs: { input: "Hi😀" },
+    clicks: ["convert();"],
+    expect: ["😀"],
+    ref: "BS-N129：按码点遍历后 emoji 完整保留；旧 input[i] 按 UTF-16 码元取字符，😀 被拆成孤立高低代理且中间插了装饰 emoji，结果区不含完整 U+1F600。默认输入 Hello World 你好世界 不含 emoji ⇒ 不命中。"
+  },
+  {
+    slug: "biz/upside-down-text",
+    inputs: { input: "a😀" },
+    clicks: ["convert();"],
+    expect: ["😀ɐ"],
+    ref: "BS-N134：按码点反转后输出 😀ɐ；旧 out.split('').reverse() 把 😀 的代理对倒序拆散，得到孤立代理 + ɐ，不含该连续串。默认 Hello ⇒ ollǝH ⇒ 不命中。"
+  },
+  {
+    slug: "biz/text-case-advanced",
+    inputs: { input: "hello world" },
+    clicks: ["convert('upper');document.getElementById('input').value='abc';updatePreview();var s=String(preview.textContent||'');document.getElementById('__tbProbe').textContent='TCUP '+(s==='ABC'?'OK':'BAD:'+s);"],
+    expect: ["TCUP OK"],
+    ref: "BS-N133：记住上次模式并在输入变化时重算。先转全大写得 HELLO WORLD，再把输入改成 abc 调 updatePreview；修复后预览为 ABC，旧空函数仍停留 HELLO WORLD ⇒ BAD。探针默认态不执行 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/random-script",
+    inputs: { cnt: "7" },
+    clicks: ["var s=String(pick);document.getElementById('__tbProbe').textContent='RSPICK '+(s.indexOf('Math.random()-0.5')<0&&s.indexOf('i=a.length-1')>=0&&s.indexOf('Math.floor(Math.random()*(i+1))')>=0?'OK':'BAD');"],
+    expect: ["RSPICK OK"],
+    ref: "BS-N112：抽取改为 Fisher–Yates 等概率洗牌，不再用 sort(()=>Math.random()-0.5) 的非均匀比较器（旧实现 10 万次抽 5/10 首位偏差达 96%）。源码形态探针只在 clicks 注入出现 ⇒ 默认态零逃生。"
+  },
+  {
+    slug: "biz/zalgo-text",
+    inputs: { input: "说明609" },
+    clicks: ["var s=String(typeof __zalgo_text_f0==='function'?__zalgo_text_f0:generate);document.getElementById('__tbProbe').textContent='ZFLOOR '+(s.indexOf('Math.floor(upMax)')>=0&&s.indexOf('Math.floor(midMax)')>=0&&s.indexOf('Math.floor(downMax)')>=0?'OK':'BAD');"],
+    expect: ["ZFLOOR OK"],
+    ref: "BS-N136：公式框写「上限放大后向下取整」，三档上限须先 Math.floor 再 +1 传给 rand；旧实现传小数使轻度档可超出文档上限。源码形态探针只在 clicks 注入出现 ⇒ 默认态零逃生。"
+  },
+
+
+
+// ── 610 批：注释生成器输出合法性 + 四页首屏导出重算 ──────────────────
+
+  {
+    slug: "biz/comment-generator",
+    inputs: { input: "说明609" },
+    clicks: ["currentLang='html';currentStyle='line';document.getElementById('input').value='说明';generate();var s=String(document.getElementById('result').textContent||'');document.getElementById('__tbProbe').textContent='CMHTMLLINE '+(s.indexOf('<!-- 说明 -->')>=0?'OK':'BAD:'+s);"],
+    expect: ["CMHTMLLINE OK"],
+    ref: "BS-N41：HTML 单行注释必须成对闭合；旧实现只拼 `<!-- 说明`，粘进页面会吞掉后续标签。探针只在 clicks 注入执行 ⇒ 默认态零逃生。"
+  },
+  {
+    slug: "biz/comment-generator",
+    inputs: { input: "说明609" },
+    clicks: ["currentLang='css';currentStyle='line';document.getElementById('input').value='说明';generate();var s=String(document.getElementById('result').textContent||'');document.getElementById('__tbProbe').textContent='CMCSSLINE '+(s.indexOf('/* 说明 */')>=0?'OK':'BAD:'+s);"],
+    expect: ["CMCSSLINE OK"],
+    ref: "BS-N41：CSS 单行注释必须补 `*/`；旧实现只拼 `/* 说明`，粘进样式表会让后面所有规则失效。默认态 js/line 不产生该探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/comment-generator",
+    inputs: { input: "说明609" },
+    clicks: ["currentLang='yaml';currentStyle='block';document.getElementById('input').value='说明';generate();var s=String(document.getElementById('result').textContent||'');var ls=s.split(String.fromCharCode(10));var ok=s.indexOf(' * ')<0&&ls.length>0&&ls.every(function(l){return l.indexOf('# ')===0;});document.getElementById('__tbProbe').textContent='CMYAMLBLOCK '+(ok?'OK':'BAD:'+ls.join('|'));"],
+    expect: ["CMYAMLBLOCK OK"],
+    ref: "BS-N41：YAML 没有跨行块注释，旧实现输出 `#` + ` * 说明` + `#`，中间行不是注释且解析失败；修复后每行都是 `# 说明`。默认态 js/line 不含探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/comment-generator",
+    inputs: { input: "说明609" },
+    clicks: ["currentLang='js';currentStyle='banner';document.getElementById('input').value='说明';generate();var s=String(document.getElementById('result').textContent||'');var ls=s.split(String.fromCharCode(10));var ok=ls.length>=3&&ls.every(function(l){return l.indexOf('//')===0;});document.getElementById('__tbProbe').textContent='CMBANNER '+(ok?'OK':'BAD:'+ls.join('|'));"],
+    expect: ["CMBANNER OK"],
+    ref: "BS-N41：横幅顶/底边线旧为裸 `====`，粘进 JS 直接语法错误；修复后每行都以 `//` 开头。默认态 js/line 不含探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/comment-generator",
+    inputs: { input: "说明609" },
+    clicks: ["currentLang='html';currentStyle='frame';document.getElementById('input').value='说明';generate();var s=String(document.getElementById('result').textContent||'');var ls=s.split(String.fromCharCode(10));var ok=ls.length>=3&&ls.every(function(l){return l.indexOf('<!--')===0&&l.indexOf('-->')>0;});document.getElementById('__tbProbe').textContent='CMHTMLFRAME '+(ok?'OK':'BAD:'+ls.join('|'));"],
+    expect: ["CMHTMLFRAME OK"],
+    ref: "BS-N41：边框旧用 `(<!-- ).repeat(n)` 拼出嵌套未闭合的 `<!--` 串；修复后每行都是完整 `<!-- … -->` 注释。默认态 js/line 不含探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/random-script",
+    inputs: { cnt: "7" },
+    clicks: ["var s=String(__random_scriptBoot);document.getElementById('__tbProbe').textContent='RSBOOT '+(s.indexOf('gen();')>=0?'OK':'BAD');"],
+    expect: ["RSBOOT OK"],
+    ref: "BS-N126：boot 原先只注册预设，首屏结果由包装前的 gen() 直接产生、从未进历史表与明细 CSV ⇒ 直接点导出是空表。修复后 boot 再调一次包装版 gen() 触发 extras。探针只在 clicks 注入出现 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/text-pad",
+    inputs: { input: "说明609" },
+    clicks: ["var s=String(__text_padBoot);document.getElementById('__tbProbe').textContent='TPBOOT '+(s.indexOf('pad();')>=0?'OK':'BAD');"],
+    expect: ["TPBOOT OK"],
+    ref: "BS-N126：text-pad 首屏导出空表，boot 补一次包装版 pad()。探针只在 clicks 注入出现 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/text-indent",
+    inputs: { input: "说明609" },
+    clicks: ["var s=String(__text_indentBoot);document.getElementById('__tbProbe').textContent='TIBOOT '+(s.indexOf('indent();')>=0?'OK':'BAD');"],
+    expect: ["TIBOOT OK"],
+    ref: "BS-N126：text-indent 首屏导出空表，boot 补一次包装版 indent()。探针只在 clicks 注入出现 ⇒ 零逃生。"
+  },
+  {
+    slug: "biz/text-repeat",
+    inputs: { input: "说明609" },
+    clicks: ["var s=String(__text_repeatBoot);document.getElementById('__tbProbe').textContent='TRBOOT '+(s.indexOf('repeat();')>=0?'OK':'BAD');"],
+    expect: ["TRBOOT OK"],
+    ref: "BS-N126：text-repeat 首屏导出空表，boot 补一次包装版 repeat()。探针只在 clicks 注入出现 ⇒ 零逃生。"
+  },
+
+  // BS-N135：锁住「实现输出」与「深解算例」一致（l 恒等映射 ⇒ ollǝɥ，不是 oʅʅǝɥ）
+  {
+    slug: "biz/upside-down-text",
+    inputs: { input: "hello" },
+    clicks: ["convert();"],
+    expect: ["ollǝɥ"],
+    ref: "BS-N135：翻转映射表把 l 映射为 l（恒等），故 flip('hello') = ollǝɥ；旧深解算例写 oʅʅǝɥ 凭空多两个 ʅ。默认输入为 Hello（大写 H）得 ollǝH，不含小写 ollǝɥ ⇒ 强判别、零逃生。"
+  },
+
+  // BS-N131：title / sentence 保留 ≥2 位全大写缩写；混合大小写专有名词仍不识别（见 formula-eq 说明）
+  {
+    slug: "biz/text-case-advanced",
+    inputs: { input: "API and USA" },
+    clicks: ["convert('title');"],
+    expect: ["API And USA"],
+    ref: "BS-N131：title 模式用 __keepAbbr 占位保护全大写缩写，API and USA ⇒ API And USA；旧实现每词先 toLowerCase 得 Api And Usa。默认输入 hello world EXAMPLE text 不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "biz/text-case-advanced",
+    inputs: { input: "the API guide." },
+    clicks: ["convert('sentence');"],
+    expect: ["The API guide."],
+    ref: "BS-N131：sentence 模式同样占位保护缩写，the API guide. ⇒ The API guide.；旧实现整串 toLowerCase 得 The api guide.。默认态不含该串 ⇒ 强判别、零逃生。"
+  },
+
 ];
+
 
 // ---------------------------------------------------------------- main
 async function main() {

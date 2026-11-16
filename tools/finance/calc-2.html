@@ -219,7 +219,9 @@ function irr(flows){
   const hasPos = flows.some(v=>v>0);
   const hasNeg = flows.some(v=>v<0);
   if(!hasPos || !hasNeg) return null;
-  const MIN=-0.99, MAX=10, EPS=1e-6;
+  // 第211批：搜索上限由 1000% 放宽到 100000%（与 NPV 页口径一致），覆盖 -100/2000 这类
+  // 根落在旧区间外的现金流；范围内仍未找到时由 calc() 明确「范围内未找到」而非断言「无实根」。
+  const MIN=-0.99, MAX=1000, EPS=1e-6;
   let guess = 0.1, newtonOk = false;
   for(let iter=0; iter<100; iter++){
     const f = npv(guess, flows);
@@ -274,10 +276,16 @@ function calc(){
   if(rate==null){
     const hasPos = allFlows.some(v=>v>0);
     const hasNeg = allFlows.some(v=>v<0);
+    const __en2=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
     $('summary').innerHTML='';
+    // 第211批：范围内未找到 ≠ 数学上无实根。明确给出搜索区间，避免误导性结论；中英文态同步。
     $('res').innerHTML = (hasPos && hasNeg)
-      ? '<p class="tip-error">无法计算 IRR（现金流无实根）</p>'
-      : '<p class="tip-error">无法计算 IRR：现金流符号没有变化或数据不足</p>';
+      ? (__en2
+        ? '<p class="tip-error">IRR not found within the searchable range (−99.99% to 100000%); a real root may lie outside this range. This does NOT prove the cash flow has no real root.</p>'
+        : '<p class="tip-error">在可搜索利率范围（−99.99% 至 100000%）内未找到使 NPV=0 的 IRR，可能存在范围外的实根；不能据此断定现金流无实根。</p>')
+      : (__en2
+        ? '<p class="tip-error">Cannot compute IRR: cash flows do not change sign or data is insufficient.</p>'
+        : '<p class="tip-error">无法计算 IRR：现金流符号没有变化或数据不足</p>');
     return;
   }
   const irrPct = rate*100;

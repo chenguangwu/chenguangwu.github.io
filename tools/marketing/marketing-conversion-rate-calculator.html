@@ -373,31 +373,29 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 
+function __convErr(v){
+  if(isNaN(v.visitors)||isNaN(v.conversions)||v.visitors<=0)return '请输入有效数值';
+  if(v.conversions<0)return '转化数不能为负数，请核对输入。';
+  if(v.conversions>v.visitors)return '转化数不能大于访问量（转化率上限 100%），请检查是否把点击/跨渠道数据混入访问量口径。';
+  return '';
+}
 function calc() {
   const visitors = parseFloat(document.getElementById('visitors').value);
   const conversions = parseFloat(document.getElementById('conversions').value);
   const totalCost = parseFloat(document.getElementById('totalCost').value) || 0;
-  const avgOrder = parseFloat(document.getElementById('avgOrder').value) || 0;
+  const avgOrderRaw = String(document.getElementById('avgOrder').value || '').trim();
+  const avgOrder = parseFloat(avgOrderRaw) || 0;
+  const hasRevenueInput = avgOrderRaw !== '';
   const r = document.getElementById('result');
 
-  if (isNaN(visitors) || isNaN(conversions) || visitors <= 0) {
-    r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';
-    return;
-  }
-  if (conversions < 0) {
-    r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">转化数不能为负数，请核对输入。</p></div>';
-    return;
-  }
-  if (conversions > visitors) {
-    r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">转化数不能大于访问量（转化率上限 100%），请检查是否把点击/跨渠道数据混入访问量口径。</p></div>';
-    return;
-  }
+  const __e=__convErr({visitors,conversions});
+  if(__e){r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">'+__e+'</p></div>';return;}
 
   const cvr = (conversions / visitors) * 100;
   const cpa = conversions > 0 ? totalCost / conversions : null;
   const revenue = avgOrder > 0 ? conversions * avgOrder : 0;
-  const profit = totalCost > 0 && revenue > 0 ? revenue - totalCost : 0;
-  const roi = totalCost > 0 && revenue > 0 ? (profit / totalCost) * 100 : 0;
+  const profit = totalCost > 0 && hasRevenueInput ? revenue - totalCost : 0;
+  const roi = totalCost > 0 && hasRevenueInput ? (profit / totalCost) * 100 : 0;
 
   let level, color;
   if (cvr >= 8) { level = '优秀'; color = '#4caf50'; }
@@ -420,7 +418,7 @@ function calc() {
     </div>
     ` : ''}
 
-    ${revenue > 0 && totalCost > 0 ? `
+    ${totalCost > 0 && hasRevenueInput ? `
     <div class="metric-card">
       <div class="label">投资回报率 ROI</div>
       <div class="value" style="color:${roi >= 0 ? '#4caf50' : '#f44336'};">
@@ -441,7 +439,7 @@ function calc() {
         <tr><td style="padding:4px 0;color:var(--text-light);">未转化数</td><td style="text-align:right;font-weight:600;">${(visitors - conversions).toLocaleString()}</td></tr>
         <tr><td style="padding:4px 0;color:var(--text-light);">转化率</td><td style="text-align:right;font-weight:600;color:${color};">${cvr.toFixed(2)}%</td></tr>
         ${totalCost > 0 ? `<tr><td style="padding:4px 0;color:var(--text-light);">转化成本CPA</td><td style="text-align:right;font-weight:600;">${cpa === null ? '—' : '¥' + cpa.toFixed(2)}</td></tr>` : ''}
-        ${avgOrder > 0 ? `<tr><td style="padding:4px 0;color:var(--text-light);">转化收入</td><td style="text-align:right;font-weight:600;">¥${ToolBox.formatNumber(revenue, 2)}</td></tr>` : ''}
+        ${hasRevenueInput ? `<tr><td style="padding:4px 0;color:var(--text-light);">转化收入</td><td style="text-align:right;font-weight:600;">¥${ToolBox.formatNumber(revenue, 2)}</td></tr>` : ''}
       </table>
     </div>
 
@@ -483,10 +481,7 @@ function saveHistory() {
   const totalCost = parseFloat(document.getElementById('totalCost').value) || 0;
   const avgOrder = parseFloat(document.getElementById('avgOrder').value) || 0;
 
-  if (isNaN(visitors) || isNaN(conversions) || visitors <= 0) {
-    ToolBox.showToast(i18nText(),'error');
-    return;
-  }
+  if(__convErr({visitors,conversions})){ToolBox.showToast(i18nText(),'error');return;}
 
   const cvr = (conversions / visitors) * 100;
   const record = {
@@ -523,7 +518,7 @@ function renderHistory() {
     <div class="history-item">
       <div>
         <div style="font-weight:600;">转化率 = ${item.cvr.toFixed(2)}%</div>
-        <div class="info">${item.visitors.toLocaleString()}访问 · ${item.conversions.toLocaleString()}转化${item.totalCost > 0 ? ' · CPA ¥' + (item.totalCost/item.conversions).toFixed(0) : ''}</div>
+        <div class="info">${item.visitors.toLocaleString()}访问 · ${item.conversions.toLocaleString()}转化${item.totalCost > 0 ? (item.conversions > 0 ? ' · CPA ¥' + (item.totalCost/item.conversions).toFixed(0) : ' · CPA 不可计算（零转化）') : ''}</div>
         <div class="info">${item.time}</div>
       </div>
       <div class="actions">

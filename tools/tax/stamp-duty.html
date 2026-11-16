@@ -107,7 +107,7 @@
 
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">印花税（本页代码口径）：税额=凭证金额×税率（税率按百分数÷100）；联动量：含税金额=金额×(1+税率)、税率倒数=1÷max(税率,10⁻¹²)、按含税价反算税额=金额×税率÷(1+税率)。校验：无强校验，空值按 0 兜底。判据：无固定分级，税额与凭证金额线性相关，反算项用于已知含税总价时拆分税基。</div>
+      <div class="formula-eq">印花税：税额 = 凭证金额 × 税率（税率按百分数 ÷100）。印花税就凭证所载金额计征，不并入凭证金额，因此不提供「含税金额/反算税额」。联动量：税率(%) = 小数税率×100、每万元凭证税额 = 税率×10000（元/万元）。校验：凭证金额须大于 0、税率不得为负。判据：无固定分级，税额与凭证金额线性相关。</div>
       <p class="formula-desc">由应税凭证金额与适用印花税率计算。</p>
     </div>
 
@@ -214,11 +214,13 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
             const a = num('amount'), r = num('r') / 100;
+            if(!(a>0)||!(r>=0)){
+              ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 凭证金额须大于 0，税率不能为负。</p>');return;
+            }
             const __g1=dataGrid([
-                [(a * r).toFixed(2), '印花税额'],
-                [(a*(1+r)).toFixed(2), '含税金额'],
-                [(1/Math.max(r,1e-12)).toFixed(3), '税率倒数'],
-                [(a*r/(1+r)).toFixed(2), '按含税价反算税额']
+                [(a * r).toFixed(2), '印花税额 (元)'],
+                [(r*100).toFixed(4), '税率 (%)'],
+                [(r*10000).toFixed(4), '每万元凭证税额 (元/万元)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('amount').value = '1000000';
@@ -232,14 +234,14 @@ function __stamp_dutyExtras(){
     if (typeof TBKit === 'undefined') return;
     var a = num('amount'), r = num('r') / 100;
     if (!isFinite(__stamp_dutyNum('amount')) || !isFinite(__stamp_dutyNum('r'))) return;
+    if(!(a>0)||!(r>=0)) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#stamp_dutyTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['印花税额', (a * r).toFixed(2)],
-            ['含税金额', (a*(1+r)).toFixed(2)],
-            ['税率倒数', (1/Math.max(r,1e-12)).toFixed(3)],
-            ['按含税价反算税额', (a*r/(1+r)).toFixed(2)],
+            ['印花税额 (元)', (a * r).toFixed(2)],
+            ['税率 (%)', (r*100).toFixed(4)],
+            ['每万元凭证税额 (元/万元)', (r*10000).toFixed(4)],
         ]
     });
     TBKit.history.record({amount:__stamp_dutyRaw('amount'), r:__stamp_dutyRaw('r'), a:a});

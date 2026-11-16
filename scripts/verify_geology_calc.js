@@ -30,6 +30,8 @@ const CASES = [
   { slug: "geology/dip-strike", inputs: { x1: "0", y1: "0", z1: "0", x2: "1", y2: "0", z2: "-0.5", x3: "0", y3: "1", z3: "-0.5" }, expect: ["315.0"], ref: "三点定面：法向量n=(0.5,0.5,1)（东,北,上），|n|=√1.5；倾角=acos(C/|n|)=35.3°；倾向=atan2(0.5,0.5)=45.0°；走向=(45−90+360)%360=315.0°（默认 z1=100 平面且水平，避开）" },
   { slug: "geology/dip-strike", inputs: { x1: "0", y1: "0", z1: "0", x2: "10", y2: "0", z2: "0", x3: "0", y3: "0", z3: "10" }, expect: ["270.0°", "90.0°", "直立面"], ref: "P1(0,0,0)、P2(10,0,0)、P3(0,0,10)：C=v1x·v2y−v1y·v2x=0 ⇒ C/|n|=0 判直立面，倾角 90.0°、倾向「不确定」、走向 atan2(0,−100)+90=270.0°；原实现误报「水平面、倾角 0°」" },
   { slug: "geology/dip-strike", inputs: { x1: "0", y1: "0", z1: "100", x2: "50", y2: "0", z2: "100", x3: "0", y3: "40", z3: "100" }, expect: ["0.0°", "不确定"], ref: "P1/P2/P3 同 z=100：C=2000、|n|=2000 ⇒ |C|/|n|=1 判水平面，倾角 0.0°、走向/倾向均「不确定」；原实现会输出走向 270.0°/倾向 0.0° 的伪确定值。锚点不取「水平面」——该词在页面静态文案（图例/说明）中恒存在，属逃生项。" },
+  { slug: "geology/dip-strike", inputs: { x1: "0", y1: "0", z1: "100", x2: "50", y2: "0", z2: "100", x3: "0", y3: "40", z3: "100" }, expect: ["产状结果：倾角 0.0°（水平面"], ref: "水平面结果可复制：copyResult() 要求 detail 含「产状」且能匹配 `产状结果：`，旧实现水平面分支只写「三点构成水平面…」故复制按钮恒提示无结果；现补一行产状结果。默认输入非水平面 ⇒ 不命中。" },
+  { slug: "geology/dip-strike", inputs: { x1: "0", y1: "0", z1: "0", x2: "10", y2: "0", z2: "0", x3: "0", y3: "0", z3: "10" }, expect: ["产状结果：走向 270.0°∠倾角 90.0°（直立面"], ref: "直立面结果可复制：旧实现直立面分支无「产状结果：」行，copyResult() 匹配不到任何内容（复制空串）。现补「走向 270.0°∠倾角 90.0°（直立面，倾向不确定）」。默认输入不命中。" },
   { slug: "geology/dizhiyijipinggu", inputs: { rtype: "4", scale: "0.5", comp: "80", sci: "4" }, expect: ["3.80"], ref: "综合评分=类型×0.3+规模×0.2+完整度×0.2+科学价值×0.3；类型4=1.2、规模0.5→3×0.2=0.6、完整度80/20=4×0.2=0.8、科学价值4×0.3=1.2，合计3.80（二级省级保护；默认 scale=2.5 避开）" },
     {
     "slug": "geology/duanceng-xingzhi-weiyi-huodongxing-panding",
@@ -75,6 +77,20 @@ const CASES = [
     "内检合格率： 66.67%"
   ],
   "ref": "RD=3.2520/5.7803/4.0816，均值4.37%；仅S-02超5%，合格率2/3=66.67%"
+},
+{
+  "slug": "geology/analysis-33",
+  "inputs": {
+    "data": "S-01,12.5,12.1\n坏行\nS-03,abc,19.2\nS-04,10,10.5",
+    "lim": "5"
+  },
+  "clicks": [
+    "calc();var r=String(document.getElementById('res').innerHTML),t=String(document.getElementById('analysis_33Table').innerHTML);document.getElementById('__tbProbe').textContent='AQ33 '+((r.indexOf('已接受 2 行、拒绝 2 行')>=0&&r.indexOf('批次判定')<0&&t==='')?'OK':'BAD');"
+  ],
+  "expect": [
+    "AQ33 OK"
+  ],
+  "ref": "混合无效行：第 2 行列数不足、第 3 行分析值非数字，旧代码静默跳过并按剩余行给出合格率；现报告拒绝行数与逐行原因、清空数据表且不输出批次合格结论，直到用户修正。"
 },
 {
   "slug": "geology/analysis-32",
@@ -332,12 +348,28 @@ const CASES = [
       "area": "42",
       "thick": "42",
       "dens": "42",
-      "grade": "42"
+      "grade": "2.5"
     },
     "expect": [
-      "金属量 (万吨) 42.000% 平均品位 420"
+      "2.500% 平均品位 25.00 金属品位 (kg/t)"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"thick\":\"42\",\"dens\":\"42\",\"grade\":\"42\"}，输出区含「金属量 (万吨) 42.000% 平均品位 420」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：原注入 grade=42 已按 0–100% 上限拒绝，改为 2.5% 后输出「0.1852 金属量 (万吨) 2.500% 平均品位 25.00 金属品位 (kg/t)」；V=42×42=1764、Q=1764×42=74088、P=Q×2.5%=1852.2、P/Q×1000=25.00 与页面一致，默认态（1.2%）不含 2.500/25.00 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "geology/estimate-grade-reserve",
+    "inputs": { "area": "50000", "thick": "3.5", "dens": "2.7", "grade": "150" },
+    "expect": [
+      "品位 0–100%）"
+    ],
+    "ref": "品位上限于 100%：C=150 时金属量会大于矿石量，须报错而非输出「平均品位 150.000%」；默认 1.2% 不含该提示 ⇒ 零逃生。"
+  },
+  {
+    "slug": "geology/estimate-grade-reserve",
+    "clicks": [
+      "calc();document.getElementById('grade').value='150';calc();document.getElementById('__tbProbe').textContent='STALE '+(lastResult===''?'0':'1');"
+    ],
+    "expect": ["STALE 0"],
+    "ref": "错误态须清空 lastResult：先以默认值算出合法结果，再输入 150% 触发校验失败；旧实现只替换提示文字，lastResult 仍为上一组数据 ⇒ 复制按钮可复制过期结果（探针 1）。默认态无探针串 ⇒ 零逃生。"
   },
   {
     "slug": "geology/estimate-reserve-1",
@@ -414,6 +446,30 @@ const CASES = [
       "距 ≈ 点距 ≈ 816.5 m ，总点数 63 个 ，覆盖 42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"dens\":\"42\",\"cost\":\"42\",\"scale\":\"1\"}，输出区含「距 ≈ 点距 ≈ 816.5 m ，总点数 63 个 ，覆盖 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "geology/soil-sample",
+    "inputs": { "area": "20", "dens": "4", "cost": "-100" },
+    "expect": [
+      "每点成本（&gt;0）"
+    ],
+    "ref": "成本须 >0：D=-100 时旧实现输出估算成本 −8000 元；现于校验阶段报错。默认 cost=80 不含该提示 ⇒ 零逃生。"
+  },
+  {
+    "slug": "geology/soil-sample",
+    "clicks": [
+      "calc();document.getElementById('cost').value='-100';calc();document.getElementById('__tbProbe').textContent='STALE '+(lastResult===''?'0':'1');"
+    ],
+    "expect": ["STALE 0"],
+    "ref": "错误态须清空 lastResult：先默认参数算出合法结果，再把每点成本改 −100 触发失败；旧实现不清 lastResult，复制按钮仍输出上一组数据（探针 1）。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    "slug": "geology/mineral-hardness",
+    "inputs": { "h": "15" },
+    "expect": [
+      "莫氏硬度有效范围 1–10，已按 10 级计算"
+    ],
+    "ref": "输入上限：h=15 超出莫氏 1–10，须提示并回落 10 级；旧实现不校验，15 直接参与比较并给出「可划全部参照物」。默认 h=6 不含该提示 ⇒ 零逃生。"
   },
   {
     "slug": "geology/shuiwendizhishentoushiyan",

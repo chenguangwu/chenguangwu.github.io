@@ -162,7 +162,7 @@ mark{background:rgba(255,107,53,.2);color:inherit;border-radius:2px;padding:0 2p
 
   <div class="nt-sec nt-analysis-wrap">
     <h3>💡 结果速读</h3>
-    <p style="font-size:13px;color:var(--text-muted);line-height:1.7;margin:0 0 12px;">检测会向你输入的目标地址或公开接口发起请求，结果只在本地展示，页面不保存查询记录；结论仅供排查参考，不替代专业判断。</p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.7;margin:0 0 12px;">检测会向你输入的目标地址或公开接口发起请求，结果只在本地展示；最近一次成功结果仅保存在本机浏览器（localStorage），不会上传服务器；结论仅供排查参考，不替代专业判断。</p>
     <div class="nt-analysis" id="analysis-t6" data-s="idle" aria-live="polite"><span class="nt-hint">执行后自动生成解读。</span></div>
   </div>
 
@@ -250,10 +250,26 @@ window.__ntAnalyze = function (id, text, en) {
       (tag ? '<span class="nt-an-tag" data-lv="' + lv + '">' + tag + '</span>' : '') + v + '</div>');
   }
   var cons = (text.match(/(?:一致性|Consistency)[:：]\s*([^\n]+)/) || [])[1] || '';
-  var match = /一致|Match/.test(cons);
-  item(en ? 'Public IP consistency' : '公网 IP 一致性',
-    match ? (en ? 'Match' : '一致') : (en ? 'Check' : '需关注'), match ? 'good' : 'warn',
-    en ? 'Whether STUN srflx matches the public IP from T1.' : 'STUN 映射地址是否与公网 IP 查询一致。');
+  cons = cons.replace(/<[^>]*>/g, '').trim();
+  // 必须按完整状态值判断：「不一致 / Mismatch」也含「一致 / match」子串，
+  // 旧版 /一致|Match/ 会把不一致误判为一致。先判否定态、再判肯定态，其余不臆造结论。
+  var neg = /不一致|mismatch|不匹配|not\s*match/i.test(cons);
+  var pos = !neg && /一致|match/i.test(cons);
+  var tag, lv, desc;
+  if (pos) {
+    tag = en ? 'Match' : '一致'; lv = 'good';
+    desc = en ? 'STUN srflx matches the public IP from T1.'
+              : 'STUN 映射地址与公网 IP 查询一致。';
+  } else if (neg) {
+    tag = en ? 'Mismatch' : '不一致'; lv = 'warn';
+    desc = en ? 'STUN srflx does not match the public IP from T1; a proxy or VPN may be in use.'
+              : 'STUN 映射地址与公网 IP 查询不一致，可能存在代理或 VPN 出口，建议关注。';
+  } else {
+    tag = en ? 'Unknown' : '无法判断'; lv = 'warn';
+    desc = en ? 'The consistency status is not reported; no conclusion is drawn.'
+              : '结果未给出明确的一致性状态，不做断言，请人工核对。';
+  }
+  item(en ? 'Public IP consistency' : '公网 IP 一致性', tag, lv, desc);
   var privLine = (text.match(/(?:内网地址|Private addresses)[:：]\s*([^\n]+)/) || [])[1] || '';
   var privCount = privLine && privLine.indexOf('—') < 0 ? privLine.split(',').length : 0;
   item(en ? 'Private addresses' : '内网地址暴露', String(privCount), privCount ? 'warn' : 'good',

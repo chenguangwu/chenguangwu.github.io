@@ -237,9 +237,18 @@
 </div>
 
 <script>
+// 第198批复核重做：显式记录本次解码状态，历史评分与「是否写入历史」都以此为准，
+// 不再靠结果文本里的错误关键词或恒记 1 推断。
+// 'ok'=解码成功 / 'fail'=严格 UTF-8 解码失败（有告警产物，须记为未通过）
+// 'invalid'=非法输入（无产物，禁止写历史） / 'empty'=空输入 / 'idle'=尚未计算
+var __binary_to_text_state='idle';
 function convert(){
+  var outEl=document.getElementById('output');
+  // 上次调用写出过结果时先清掉，避免非法输入沿用旧结果（旧结果复活、旧结果被归给新输入）。
+  if(__binary_to_text_state==='ok'||__binary_to_text_state==='fail') outEl.value='';
+  __binary_to_text_state='invalid';
   let text = document.getElementById('input').value.trim();
-  if(!text){ document.getElementById('output').value = ''; return; }
+  if(!text){ outEl.value=''; __binary_to_text_state='empty'; return; }
   text = text.replace(/[\s:,;_\-.\n\r\t]/g,'');
   if(!/^[01]*$/.test(text)){
     alert('仅允许 0 和 1 字符');
@@ -256,6 +265,7 @@ function convert(){
   let out;
   try {
     out = new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes);
+    __binary_to_text_state='ok';
   } catch(e) {
     // 逐字节流式喂入统计非法字节数（stream 模式保持多字节序列状态）
     let bad=0; const probe=new TextDecoder('utf-8',{fatal:true});
@@ -270,8 +280,9 @@ function convert(){
       ? '⚠ Contains '+bad+' invalid UTF-8 byte(s); strict decoding failed. Latin-1 fallback and raw bytes shown below.\n'
       : '⚠ 含 '+bad+' 个非法 UTF-8 字节，严格解码失败。下面给出 Latin-1 对照与原始字节。\n')
       +latin+'\n\n'+(en?'Bytes (hex):':'字节（十六进制）:')+'\n'+hex;
+    __binary_to_text_state='fail';
   }
-  document.getElementById('output').value = out;
+  outEl.value = out;
 }
 
 function copyResult(ev){
@@ -286,6 +297,7 @@ function copyResult(ev){
 function clearAll(){
   document.getElementById('input').value = '';
   document.getElementById('output').value = '';
+  __binary_to_text_state='empty';
 }
 </script><script>
 // tool-intro折叠交互
@@ -321,10 +333,10 @@ function __binary_to_textResText(){
     return t.slice(0,80);
 }
 function __binary_to_textScore(t){
-    // IT-N246：旧版以「错误/Error/Failed…」等关键词给结果判 0，会把解码出的
-    // 正常文本（如 "Error 404"）误判为无效历史。非法输入在 convert() 已 alert 拦下，
-    // 进入历史的都是有效产物，恒记 1；有效性趋势图因此不再假性掉零。
-    return 1;
+    // IT-N246：不再以「错误/Error/Failed…」等结果文本判 0（正常解码文本也可能含这些词）。
+    // 第198批：以本次 convert() 的显式解码状态为准——严格 UTF-8 解码失败记 0（未通过），
+    // 成功及默认态记 1；趋势图/表格/导出的结论列因此不再把失败误标为通过。
+    return __binary_to_text_state === 'fail' ? 0 : 1;
 }
 function __binary_to_textTime(t){
     var d=new Date(t);
@@ -373,6 +385,9 @@ function __binary_to_textRender(keys,rk,en){
 function __binary_to_textExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__binary_to_text_skip) return;
+    // 第198批：非法/空输入没有属于本次输入的结果，禁止写历史（旧结果已被 convert 清空），
+    // 避免把「上次 0xFF 的告警」当成新输入的产物记为通过。
+    if (__binary_to_text_state==='invalid' || __binary_to_text_state==='empty' || __binary_to_text_state==='idle') return;
     var snap=__binary_to_textSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;

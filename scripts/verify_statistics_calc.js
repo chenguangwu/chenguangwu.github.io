@@ -814,9 +814,9 @@ const CASES = [
       "data": "42"
     },
     "expect": [
-      "00 均值 x̄ — 样本方差 s² — 样本标准差 s"
+      "请至少输入 2 个有效数值（无法解析的项不计入 n）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"data\":\"42\"}，输出区含「00 均值 x̄ — 样本方差 s² — 样本标准差 s」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "SMS-45 升级：原补强用例锁着 n=1 时主结果显示「00 均值 x̄ — 样本方差 s² — 样本标准差 s」这一旧错误行为。修复后 n<2 时停算提示并清空四面板；注入 data=42 得该提示，默认 8 值不含 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "statistics/sample-size-proportion",
@@ -937,9 +937,9 @@ const CASES = [
       "xp": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n斜率 a： 0.0000 截距 b： 42.0000 预测 y： 42.0000"
+      "x 值全部相同，无法确定斜率"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"x1\":\"42\",\"x2\":\"42\",\"x3\":\"42\",\"x4\":\"42\",\"x5\":\"42\",\"y1\":\"42\",\"y2\":\"42\",\"y3\":\"42\",\"y4\":\"42\",\"y5\":\"42\",\"xp\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n斜率 a： 0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "SMS-50：五个 x 全相同时 d=nΣx²−(Σx)²=0，最小二乘直线无定义。修复后主算停算并清空图表/明细表；旧实现回落斜率 0、截距 ȳ 并照常预测 42.0000。默认 x=1..5 不含该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "statistics/statistics-4",
@@ -1075,7 +1075,297 @@ const CASES = [
       "000 百分位： 50.00 % 距均值： 0.00 σ"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"x\":\"42\",\"mu\":\"42\",\"sigma\":\"42\"}，输出区含「000 百分位： 50.00 % 距均值： 0.00 σ」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  }
+  },
+
+
+  // SMS-1：主算必须拦住 n=1 / 非整数 n，否则 df≤0 时 betai 给出伪 p 值
+  {
+    slug: "statistics/one-sample-t-test",
+    inputs: { xbar: "52", mu0: "50", sd: "10", n: "1" },
+    expect: ["样本量 n 须为 ≥ 2 的整数"],
+    ref: "SMS-1：n=1 ⇒ df=0、betai(0,…) 返回 p=0，页面会输出「极显著」假结论。修复后主算直接停算并提示。默认 n=25 不含该提示 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "statistics/one-sample-t-test",
+    inputs: { xbar: "52", mu0: "50", sd: "10", n: "2.5" },
+    expect: ["样本量 n 须为 ≥ 2 的整数"],
+    ref: "SMS-1：非整数样本量同样使自由度无定义（df=1.5），旧实现照常出 p 值。默认 n=25 不含该提示 ⇒ 强判别。"
+  },
+
+  // SMS-4：分模式自由度 + 精确上尾概率 + 主算明细共用数组
+  {
+    slug: "statistics/chi-square-test",
+    inputs: { o: "50,30,20,40", e: "35,35,35,35", rowsIn: "2" },
+    expect: ["1 自由度 df 0.0002 上尾概率 p", "14.2857 卡方统计量 χ²"],
+    ref: "SMS-4：r=2、k=4 ⇒ c=2、df=(2−1)(2−1)=1；χ²=500/35=14.2857，p=1−P(0.5, 7.1429)=0.000157⇒0.0002。旧实现固定 df=n−1=3 且完全不输出 p（旧 df=3 时 p=0.0025）。默认态 50,30,20/40,40,20 不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "statistics/chi-square-test",
+    inputs: { o: "30,25,45", e: "33,33,34" },
+    expect: ["0.0558 上尾概率 p", "5.7709 卡方统计量 χ² 2 自由度 df"],
+    ref: "SMS-4：拟合优度 r=1 ⇒ df=k−1=2，χ²=5.7709，p=1−P(1, 2.8855)=0.0558。旧实现无 p 卡片；两条期望都依赖注入输入，默认态不命中 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/chi-square-test",
+    inputs: { o: "50,30,bad", e: "40,40,20" },
+    expect: ["观测值 O：第 3 项「bad」不是有效数值"],
+    ref: "SMS-4：旧实现 parseFloat('bad')=NaN，主算 χ²→NaN 显示破折号、明细却按截断数组给出另一套 χ²=2.5；修复后逐项严格解析，直接报出第 3 项非法。默认态不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "statistics/chi-square-test",
+    inputs: { o: "50,30,20,40", e: "35,35,35,35", rowsIn: "1.5" },
+    expect: ["列联表行数 r 须为 ≥1 的整数"],
+    ref: "SMS-4：行数 r 必须为正整数，非整数直接停算。旧实现没有 r 概念，也不会出现该提示 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "statistics/chi-square-test",
+    inputs: { o: "1,2,3", e: "1,2,3" },
+    clicks: ["var src=String(__csExtras);document.getElementById('__tbProbe').textContent='CSSHARE '+(src.indexOf('__csData')>=0&&src.indexOf('TBKit.util.parseList')<0?'OK':'BAD');"],
+    expect: ["CSSHARE OK"],
+    ref: "SMS-4：明细必须消费主算校验后的 __csData，不得再用 TBKit.util.parseList 独立解析（旧实现会 Math.min 截断 + filter(isFinite) 造出与主算互斥的结果）。源码形态探针只在修复态命中，默认态不执行 clicks ⇒ 零逃生。"
+  },
+
+  // SMS-47：极差页主算与明细共用解析结果（多行 / 分号 / 非法项）
+  {
+    slug: "statistics/range-stat",
+    inputs: { xs: "2\n4\n6" },
+    expect: ["4.00 极差 R 3 样本数 N"],
+    ref: "SMS-47：旧主算 split(/[ ,]+/) 不认换行 ⇒ 整串 parseFloat 只得到 2，R=0.00、N=1；明细却按 3 项给 R=4。修复后主算与明细共用 __rsVals()，N=3、R=4.00。默认序列 2,4,4,4,5,5,7,9 得 7.00/8 ⇒ 不命中，零逃生。"
+  },
+  {
+    slug: "statistics/range-stat",
+    inputs: { xs: "2,4,abc" },
+    expect: ["2.00 极差 R 2 样本数 N"],
+    ref: "SMS-47：旧实现 parseFloat('abc')=NaN 且不过滤 ⇒ N=3、R 与均值显示破折号；修复后非法项跳过，N=2、R=2.00。默认态不含该串 ⇒ 零逃生。"
+  },
+  // SMS-48：Z 分数页 σ≤0 必须停算，不能让 z 符号翻转 / 95% 上界低于均值
+  {
+    slug: "statistics/z-score-calc",
+    inputs: { x: "115", mu: "100", sigma: "-15" },
+    expect: ["标准差 σ 必须大于 0"],
+    ref: "SMS-48：旧守卫只拦 σ=0，负 σ 时 z=(115−100)/(−15)=−1.000、95% 上界=70.600（低于均值）两个错误结论同时出现，图表还保留旧参数。修复后守卫与主算双保险停算并清空图表/基准表。默认 σ=15 不含该提示 ⇒ 零逃生。"
+  },
+  // SMS-49：标准误页负 σ / σ=0
+  {
+    slug: "statistics/standard-error",
+    inputs: { sigma: "-15", n: "36" },
+    expect: ["「标准差 σ」不能为负值", "标准差 σ 不能为负值"],
+    ref: "SMS-49：旧 __N 只列 n，负 σ 得 SE=−2.5000、95% 半宽=−4.9000 并保留旧表。修复后 __N 加 sigma，守卫与主算均停算并清空明细表/矩阵/曲线。默认 σ=15 不含该提示 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/standard-error",
+    inputs: { sigma: "0", n: "36" },
+    expect: ["— 根号 n 与 σ 之比"],
+    ref: "SMS-49：旧主算用 √n÷max(σ,10⁻¹²) 在 σ=0 时输出 6000000000000.0000 这种无意义巨值，明细「SE / σ」行直接显示 NaN。修复后该比值与表格行均显示「—」。默认 σ=15 得 0.4000 ⇒ 不命中，零逃生。"
+  },
+
+  // SMS-52：描述承诺的 r / R² 必须真实出现在主结果
+  {
+    slug: "statistics/statistics-16",
+    inputs: { x1: "1", x2: "2", x3: "3", x4: "4", x5: "5", y1: "3", y2: "5", y3: "6", y4: "9", y5: "11", xp: "6" },
+    expect: ["拟合优度 R²： 0.9804", "相关系数 r： 0.9901"],
+    ref: "SMS-52：a=2、b=0.8，SST=40.8、SSR=0.8 ⇒ R²=1−0.8/40.8=0.9804、r=+√0.9804=0.9901。旧主结果只有斜率/截距/预测，meta 却承诺「相关系数及拟合优度」。默认态 x=1..5/y=2,4,5,4,5 得另一组 R² ⇒ 两条均不命中，零逃生。"
+  },
+  // SMS-51：缺值与分母为 0 必须清空图表 / 明细 / 差异面板
+  {
+    slug: "statistics/statistics-16",
+    inputs: { x1: "7", x2: "8", x3: "9", x4: "10", x5: "11", xp: "6" },
+    clicks: ["var src=String(calc)+String(__lrExtras);document.getElementById('__tbProbe').textContent='LRCLEAR '+(typeof __lrClear==='function'&&src.indexOf('__lrClear();return')>=0&&src.indexOf('__lrClear();')>=0?'OK':'BAD');"],
+    expect: ["LRCLEAR OK"],
+    ref: "SMS-51：修复前 calc 缺值分支只清 lrTable、__lrExtras 两处早退直接 return，图表与差异面板保留上次数据；修复后统一 __lrClear()。源码形态探针只在修复态命中，默认态不执行 clicks ⇒ 零逃生。"
+  },
+
+  // SMS-55：空格分隔输入主算 / 明细 / 曲线必须同口径
+  {
+    slug: "statistics/percentile-rank",
+    inputs: { data: "55 60 65 70", val: "70" },
+    expect: ["87.50 百分等级 PR (%)"],
+    ref: "SMS-55：旧主算 split(',') 只取到 55 ⇒ N=1、PR=100.00；明细用 parseList 得 4 值、PR=(3+0.5×1)/4×100=87.50；曲线又回到 split(',') 只画 1 点。修复后三处共用 __prVals()，一律 87.50。默认 55,60,65,70,75,80,85,90 得 43.75 ⇒ 不命中，零逃生。"
+  },
+  {
+    slug: "statistics/percentile-rank",
+    inputs: { data: "55,60,bad,70", val: "70" },
+    expect: ["83.33 百分等级 PR (%)"],
+    ref: "SMS-55：非法项 bad 不计入 N，剩 55/60/70 共 3 项，低于 70 的 2 个、等于 1 个 ⇒ (2+0.5)/3×100=83.33。旧实现把 bad 计入 N 或整串解析失败会得到不同结果；默认态不含该串 ⇒ 零逃生。"
+  },
+  // SMS-54：常数序列判定卡必须停答
+  {
+    slug: "statistics/statistics-7",
+    inputs: { d1: "5", d2: "5", d3: "5", d4: "5", d5: "5", d6: "5", d7: "5", d8: "5", d9: "5", d10: "5" },
+    expect: ["方差为 0，偏度/峰度无定义（常数序列），不能据此判断分布形态。"],
+    ref: "SMS-54：旧 __skStats 用 sd>0?…:0 把偏度/峰度兜成 0，判定卡据此输出「基本对称 / 接近正态尾部 / 分布形状良好」，与结果卡「—」矛盾。修复后 sd=0 时判定卡单独输出「方差为 0…无定义」并清空图表/明细/差异面板；该串由结果采集区直接命中（stub DOM 的 textContent 不同步 innerHTML，故不用探针读节点）。默认 1..10 的 sd>0 ⇒ 不含该串，零逃生。"
+  },
+
+  // SMS-56：加权平均四个辅助面板必须独立于 #result，且非法态清空
+  {
+    slug: "statistics/statistics-11",
+    inputs: { v1: "70", w1: "0.2", v2: "85", w2: "0.3", v3: "95", w3: "0.5" },
+    clicks: ["var ok=typeof __wmClear==='function'&&String(__wmExtras).indexOf('__wmClear()')>=0&&typeof __tb_wm0==='function'&&String(__tb_wm0).indexOf('__wmClear()')>=0;document.getElementById('__tbProbe').textContent='WMFIX '+(ok?'OK':'BAD');"],
+    expect: ["WMFIX OK"],
+    ref: "SMS-56：旧 #wmChart/#wmTable/#wmDiff/#wmHist 嵌在 #result 内，calc() 的 innerHTML 覆写首次执行即删除四节点，数据表/历史/导出全部失效且无清空函数。修复后四面板移出结果容器、wmDiff 纳入 tbl 映射、新增 __wmClear() 并在守卫与附加层早退调用。源码形态探针只在修复态命中，默认态不执行 clicks ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/statistics-11",
+    inputs: { v1: "70", w1: "0", v2: "85", w2: "0", v3: "95", w3: "0" },
+    expect: ["权重和不能为 0"],
+    ref: "SMS-56 伴生：Σw=0 时旧主算照常输出 NaN/Infinity 且附加层静默早退保留旧图表。修复后主算停算提示并清空四面板；默认权重 0.5/0.3/0.2 不含该串 ⇒ 零逃生。"
+  },
+  // SMS-57：IQR 五数概括顺序校验与清空
+  {
+    slug: "statistics/iqr",
+    inputs: { data_count: "8", min_: "5", q1: "60", median_: "50", q3: "40", max_: "80" },
+    expect: ["五数概括须满足 最小值 ≤ Q1 ≤ 中位数 ≤ Q3 ≤ 最大值"],
+    ref: "SMS-57：旧主算不校验顺序，Q1=60、Q3=40 仍输出 IQR=-20、下限 90、上限 10；附加层 q3<q1 直接 return 保留上次图表。修复后主算停算提示并统一 __iqClear() 清空图表/明细/差异/历史；默认 10/25/40/60/90 合法不含提示 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/iqr",
+    inputs: { data_count: "8", min_: "5", q1: "20", median_: "35", q3: "50", max_: "80" },
+    clicks: ["var ok=typeof __iqClear==='function'&&String(__iqExtras).indexOf('__iqClear();return')>=0&&typeof __tb_fn0==='function'&&String(__tb_fn0).indexOf('__iqClear()')>=0;document.getElementById('__tbProbe').textContent='IQCLR '+(ok?'OK':'BAD');"],
+    expect: ["IQCLR OK"],
+    ref: "SMS-57：旧缺值分支只清 iqTable，箱线图/差异/历史面板保留上次数据；修复后守卫、顺序校验与附加层早退共用 __iqClear()。源码形态探针只在修复态命中，默认态不执行 clicks ⇒ 零逃生。"
+  },
+  // SMS-59：二项分布附加层对数域与 pk 同源
+  {
+    slug: "statistics/binomial-pmf",
+    inputs: { n: "1000", k: "900", p: "0.9" },
+    clicks: ["var v=__bpPmf(1000,0.9,900)[900]||0;var w=typeof __bpLogP==='function'?Math.exp(__bpLogP(1000,0.9,900)):0;document.getElementById('__tbProbe').textContent='BPLOG pmf='+v.toFixed(5)+' src='+w.toFixed(5);"],
+    expect: ["BPLOG pmf=0.04202 src=0.04202"],
+    ref: "SMS-59：旧附加层以 Math.pow(0.1,1000) 起算即下溢为 0，递推整列全 0、历史 pk=0，与主结果 P(X=900)=0.04202 矛盾。修复后 __bpPmf 用对数域增量递推、pk 与主算共用 __bpLogP；Bin(1000,0.9) 在 k=900 处约 1/(√(2π)·√90)=0.04202。默认 n=10/k=3/p=0.5 默认态不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/binomial-pmf",
+    inputs: { n: "1000", k: "900", p: "0.9" },
+    expect: ["0.04202"],
+    ref: "SMS-59 回归：主结果在 n=1000、p=0.9、k=900 的极端参数下仍须给出非零概率；默认 Bin(10,0.5) 的 0.11719 不含该串 ⇒ 注入失败变红，零逃生。"
+  },
+
+  // SMS-45：样本方差主算、明细与图表同源解析
+  {
+    slug: "statistics/sample-variance",
+    inputs: { data: "2 4 6" },
+    expect: ["4.0000 样本方差 s²"],
+    ref: "SMS-45：旧主算 split(',') 把 '2 4 6' 解析成单个 2，n=1 ⇒ s²=—；附加层按空白切分得 3 值、s²=4.0000。修复后主算与附加层共用 __svList()。默认 2,4,4,4,5,5,7,9 得 4.5714 ⇒ 不命中，零逃生。"
+  },
+  {
+    slug: "statistics/sample-variance",
+    inputs: { data: "2,4,bad,6" },
+    expect: ["4.0000 样本方差 s²"],
+    ref: "SMS-45：非法项 bad 经严格解析不计入 n，剩 2/4/6 ⇒ 均值 4、s²=(4+0+4)/2=4.0000。 parseFloat 会把 '2abc' 读成 2 的旧宽松口径不再适用；默认态不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/sample-variance",
+    inputs: { data: "2,4,6,8" },
+    clicks: ["var ok=typeof __svClear==='function'&&String(__svExtras).indexOf('__svClear();return')>=0&&String(__tb_sv0).indexOf('__svList(')>=0;document.getElementById('__tbProbe').textContent='SVCLR '+(ok?'OK':'BAD');"],
+    expect: ["SVCLR OK"],
+    ref: "SMS-45：旧输入守卫只清 svTable，图表/差异/历史保留上次结果；修复后 __svClear() 统一清四面板，且原函数 __tb_sv0（包装器保存的 calcTool）改用 __svList()。源码形态探针只在修复态命中，默认态不执行 clicks ⇒ 零逃生。"
+  },
+  // SMS-61：独立 t 检验主算前提守卫
+  {
+    slug: "statistics/independent-t-test",
+    inputs: { m1: "30", m2: "27", s1: "5", s2: "5", n1: "1", n2: "20" },
+    expect: ["两组样本量必须是 ≥2 的整数"],
+    ref: "SMS-61：旧主算仅有 6 项非空守卫，n1=1 时 sp² 用 (n1−1)=0 仍算出 t 与 p≈0 的「极显著」结论，与提示卡要求矛盾。修复后主算强制 n₁,n₂ 为 ≥2 整数且 s₁,s₂>0，不满足停算并清空四面板；默认 n=20/20 不含该串 ⇒ 零逃生。"
+  },
+  // SMS-60：附加层 t 与主算同源（合并方差，不再 Welch 分母）
+  {
+    slug: "statistics/independent-t-test",
+    inputs: { m1: "30", m2: "27", s1: "10", s2: "2", n1: "10", n2: "30" },
+    clicks: ["var cap=[];TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(){}},chart:{bar:function(){}},history:{record:function(r){cap.push(r);},mount:function(){},list:function(){return [];},last:function(){return null;}},preset:{bar:function(){}}};__itExtras();document.getElementById('__tbProbe').textContent='ITT t='+(cap.length?cap[cap.length-1].t:'NA');"],
+    expect: ["ITT t=1.5889"],
+    ref: "SMS-60：旧附加层用 Welch 分母 se=√(s1²/n1+s2²/n2) 得 t=0.9424，却配合并自由度 df=38，与主结果 t=1.5889 相差 41%。修复后附加层共用 sp² 与合并标准误，历史 t 与主结果同源；默认 s1=s2=5、n1=n2=20 时两种分母恰好相等，故本例必须用不等标准差与不等样本量。注入失败即不含该串 ⇒ 零逃生。"
+  },
+  // SMS-62：相关系数恒定序列必须停答
+  {
+    slug: "statistics/correlation-coefficient",
+    inputs: { x: "5,5,5,5", y: "1,2,3,4" },
+    expect: ["皮尔逊相关系数无定义"],
+    ref: "SMS-62：X 全为 5 时 dx=0 ⇒ r=NaN，结果卡显示「—」，但强度卡因 NaN 落入最后的 else 分支输出「几乎无线相关」，同页自相矛盾。修复后 dx/dy≤0 或 r 非有限时停答提示并清空图表/明细/差异/历史；默认 X/Y 不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/correlation-coefficient",
+    inputs: { x: "1,2,3,4", y: "2,4,6,8" },
+    clicks: ["var x=document.getElementById('x'),y=document.getElementById('y');x.value='5,5,5,5';y.value='1,2,3,4';var t=document.getElementById('ccTable');t.innerHTML='旧表格残留';calcTool();var ok=String(document.getElementById('result').innerHTML).indexOf('皮尔逊相关系数无定义')>=0&&t.innerHTML==='';document.getElementById('__tbProbe').textContent='CCCLR '+(ok?'OK':'BAD');"],
+    expect: ["CCCLR OK"],
+    ref: "SMS-62：恒定序列早退时旧实现不调用 __ccExtras，散点图/明细/差异/历史保留上一次结果，且强度卡仍输出「几乎无线相关」。修复后主算早退统一 __ccClear()；本探针先注入旧表格内容再触发恒定序列，验「停答 + 清空」两个行为同时成立，旧版必 BAD。默认态不执行 clicks ⇒ 零逃生。"
+  },
+
+  // SMS-63：决定系数 r 越界必须停答，且主算与附加层不再各算一套
+  {
+    slug: "statistics/correlation-r-squared",
+    inputs: { r: "2" },
+    expect: ["相关系数 r 必须是 −1 到 1 之间的数值"],
+    ref: "SMS-63：旧主算不校验 r，r=2 输出 R²=4.0000、未解释变异 −3.000000、解释力 400.0000%；附加层却把 r 截到 1 输出 R²=1，同页两套结论。修复后主算停算提示并清空五面板，附加层与参考曲线同源校验；默认 r=0.8 不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/correlation-r-squared",
+    inputs: { r: "bad" },
+    expect: ["相关系数 r 必须是 −1 到 1 之间的数值"],
+    ref: "SMS-63：旧 num() 把非数按 0 兜底，输入 bad 仍输出 R²=0.0000 与 VIF=1.000000，看似一次有效计算。修复后严格解析，非数直接停算；默认态不含提示 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/correlation-r-squared",
+    inputs: { r: "0.6" },
+    expect: ["0.3600 决定系数 R²"],
+    ref: "SMS-63 回归：合法输入 r=0.6 → R²=0.36、未解释 0.64、解释力 36%。默认 r=0.8 得 0.6400 ⇒ 注入失败即变红，零逃生。"
+  },
+  {
+    slug: "statistics/correlation-r-squared",
+    inputs: { r: "0.7" },
+    clicks: ["var c=document.getElementById('crChart'),t=document.getElementById('crTable');c.innerHTML='旧曲线残留';t.innerHTML='旧表残留';document.getElementById('r').value='2';calcTool();var ok=c.innerHTML===''&&t.innerHTML===''&&typeof __crClear==='function'&&String(__crExtras).indexOf('Math.max(-1,Math.min(1,r))')<0;document.getElementById('__tbProbe').textContent='CRCLR '+(ok?'OK':'BAD');"],
+    expect: ["CRCLR OK"],
+    ref: "SMS-63：旧实现早退不清面板、附加层静默截断 r。本探针先注入旧曲线与旧表，再触发越界输入，验「清空 + 不再截断」两件事同时成立；旧版必 BAD。默认态不执行 clicks ⇒ 零逃生。"
+  },
+  // SMS-64：合并方差无效输入必须清空全部面板
+  {
+    slug: "statistics/pooled-variance",
+    inputs: { n1: "0", s1: "2", n2: "12", s2: "3" },
+    clicks: ["var c=document.getElementById('pvChart'),d=document.getElementById('pvDiff'),t=document.getElementById('pvTable');c.innerHTML='旧图残留';d.innerHTML='旧差异残留';t.innerHTML='旧表残留';calcTool();var ok=c.innerHTML===''&&d.innerHTML===''&&t.innerHTML===''&&typeof __pvClear==='function';document.getElementById('__tbProbe').textContent='PVCLR '+(ok?'OK':'BAD');"],
+    expect: ["PVCLR OK"],
+    ref: "SMS-64：旧主算两处早退只清 pvTable，附加层遇无效值直接 return，图表与差异面板保留上一次结果。修复后三处共用 __pvClear() 清 pvChart/pvTable/pvDiff/pvHist；本探针注入旧内容后触发 n1=0 验证清空，旧版必 BAD。默认态不执行 clicks ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/pooled-variance",
+    inputs: { n1: "0", s1: "2", n2: "12", s2: "3" },
+    expect: ["样本量 n₁、n₂ 必须各自 ≥ 2"],
+    ref: "SMS-64 回归：n1=0 必须停算提示，不得给出合并方差；默认 10/2、12/3 得 6.750 不含该串 ⇒ 零逃生。"
+  },
+
+  {
+    slug: "statistics/one-way-anova",
+    inputs: { n1: "1" },
+    expect: ["每组样本量必须是"],
+    ref: "SMS-7：n1=1 时每组样本量 <2，dfw 与 F 无定义；旧实现仍输出 NaN 或看似正常的 F。修复后停算提示并清空面板；默认 n=10 合法不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/one-way-anova",
+    inputs: { n1: "2.5" },
+    expect: ["每组样本量必须是"],
+    ref: "SMS-7：小数样本量旧实现被 num() 放行并得到小数自由度。修复后要求 ≥2 整数而停算；默认 n=10 合法不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/normal-cdf",
+    inputs: { sigma: "0" },
+    expect: ["请检查输入"],
+    ref: "SMS-8：σ=0 旧实现静默按 1 兜底并给出失真 x=μ+zσ。修复后停算提示并清空曲线/明细；默认 σ=1 合法不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/cramers-v",
+    inputs: { a: "1.5" },
+    expect: ["列联表各格例数必须是非负整数"],
+    ref: "SMS-32：非整数例数旧实现被 parseFloat 放行并输出 χ²/V。修复后要求非负整数而停算；默认 40/60/20/80 合法不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/relative-risk",
+    inputs: { a: "0", c: "0" },
+    expect: ["两组事件数均为 0"],
+    ref: "SMS-33：两组均零事件旧实现被通用守卫报成「c 是本计算的分母」或 RR 无穷大。修复后区分 0/0 未定义；默认 a=40/c=20 合法不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/relative-risk",
+    inputs: { a: "1.5" },
+    expect: ["四格表各格例数必须是非负整数"],
+    ref: "SMS-33：非整数例数旧实现被 parseFloat 放行并输出 RR。修复后要求非负整数而停算；默认 40/60/20/80 合法不含该串 ⇒ 零逃生。"
+  },
 
 ];
 

@@ -94,6 +94,24 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "transport/convert-fuel-oil",
+  "inputs": { "val": "30", "from": "mpg", "to": "mpg" },
+  "expect": ["30.00 MPG"],
+  "ref": "同单位换算不得取倒数：from=to=mpg、输入 30 时大字结果应为 30.00 MPG；旧实现无条件先算 r=235.2146/v 并据此输出，得到 7.84 MPG。默认 to=l100、val=45 ⇒ 5.23，不含 30.00 MPG。"
+},
+{
+  "slug": "transport/convert-fuel-oil",
+  "inputs": { "val": "7.84", "from": "l100", "to": "l100" },
+  "expect": ["7.84 L/100km"],
+  "ref": "同单位换算：from=to=l100、输入 7.84 时结果应为 7.84 L/100km；旧实现输出 235.2146/7.84=30.00 L/100km（倒数）。默认态不含该串 ⇒ 零逃生。"
+},
+{
+  "slug": "transport/convert-fuel-oil",
+  "inputs": { "val": "30", "gal": "uk", "from": "mpg", "to": "l100" },
+  "expect": ["9.42 L/100km"],
+  "ref": "英制加仑（683 批）：30 MPG(UK) → 282.4809/30 = 9.4160 ≈ 9.42 L/100km；旧版无 gal 选项且恒用 235.2146（得 7.84），默认美制也含 7.84 ⇒ 必须切 UK 才命中 9.42"
+},
+{
   "slug": "transport/convert-volume-weight",
   "inputs": {
     "l": "60",

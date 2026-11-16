@@ -327,12 +327,13 @@ function calc(){
     __fermRenderExtras();
     return;
   }
-  if(temp>=55){
+  if(temp>40){
+    var tooHot=temp>=55;
     document.getElementById('fermVal').textContent='—';
-    document.getElementById('fermSub').textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Yeast dies at 55°C or above; no reliable fermentation time":"≥55℃ 酵母失活，停止发酵，无法给出有效时间");
+    document.getElementById('fermSub').textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?(tooHot?"Yeast dies at 55°C or above; no reliable fermentation time":"Above 40°C yeast deactivates rapidly; the Q10 model is no longer reliable"):(tooHot?"≥55℃ 酵母失活，停止发酵，无法给出有效时间":"超过 40℃ 酵母快速失活，Q10 模型不再适用，不给出可靠发酵时间"));
     document.getElementById('fermCoef').textContent='--';
     document.getElementById('rangeDisplay').innerHTML='';
-    document.getElementById('fermTip').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Cool the dough below 40°C before fermenting":"请将面团降至 40℃ 以下再发酵。");
+    document.getElementById('fermTip').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Cool the dough below 40°C before fermenting (yeast dies at 55°C or above)":"请将面团降至 40℃ 以下再发酵（≥55℃ 酵母死亡）。");
     __fermRenderExtras();
     return;
   }
@@ -437,7 +438,7 @@ function __fermExport(){
   var temp=parseFloat(document.getElementById('actualTemp').value);
   var hum=parseFloat(document.getElementById('actualHumidity').value);
   var type=document.getElementById('fermType').value;
-  if(!baseTime||!temp||baseTime<=0){ToolBox.showToast(en?'Please enter valid base time and temperature':'请输入有效的基准时间与温度');return;}
+  if(!isFinite(baseTime)||!isFinite(temp)||baseTime<=0||temp<0||temp>40){ToolBox.showToast(en?'Enter a base time above 0 and a temperature between 0 and 40 °C':'请输入大于 0 的基准时间，温度须在 0–40℃ 之间');return;}
   var refTemp=27;
   var q10=type==='sourdough'?2.2:(type==='cold'?2.5:2.0);
   var tempFactor=Math.pow(q10,(temp-refTemp)/10);
@@ -492,7 +493,7 @@ function __fermRenderExtras(){
   var temp=parseFloat(document.getElementById('actualTemp').value);
   var hum=parseFloat(document.getElementById('actualHumidity').value);
   var type=document.getElementById('fermType').value;
-  if(!baseTime||!temp||baseTime<=0){
+  if(!isFinite(baseTime)||!isFinite(temp)||baseTime<=0||temp<0||temp>40){
     if(chartBox)chartBox.innerHTML='';
     if(planBox)planBox.innerHTML='';
     if(stageBox)stageBox.innerHTML='';

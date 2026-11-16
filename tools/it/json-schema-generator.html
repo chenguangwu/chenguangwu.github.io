@@ -476,7 +476,31 @@ function mergeSchemas(schemas) {
       }
       return merged;
     }
-    return schemas[0];
+    // 第210批复核重做：同类型但非 object 的多个样本不再直接丢回第一个，
+    // 而是递归合并数组子项，并只保留所有样本都满足的约束，保证生成的 schema
+    // 至少能接受全部原始样本（含嵌套数组、字符串 format 混合）。
+    const merged = { type: type };
+    if (type === 'array') {
+      // 递归合并各子数组的 items：[[1],["x"]] 的 items 必须同时覆盖 integer 与 string，
+      // 旧实现只取第一个子数组的 integer，字符串样本连自己都校验不过。
+      const subs = schemas.filter(s => s.items).map(s => s.items);
+      if (subs.length === schemas.length && subs.length) merged.items = mergeSchemas(subs);
+    }
+    // 其余约束键（format / minLength / maxLength / minimum / minItems …）：
+    // 仅当所有样本取值完全一致才保留；冲突或缺失的约束一律丢弃，避免沿用首个样本的
+    // format:"email" 把后续的 "hello" 错误拒绝。
+    for (const key of Object.keys(schemas[0])) {
+      if (key === 'type' || key === 'items' || key === 'examples') continue;
+      const v = JSON.stringify(schemas[0][key]);
+      if (schemas.every(s => Object.prototype.hasOwnProperty.call(s, key) && JSON.stringify(s[key]) === v)) {
+        merged[key] = schemas[0][key];
+      }
+    }
+    // examples 只是注解而非约束，合并前两项便于阅读，不影响校验结果。
+    if (schemas.some(s => Array.isArray(s.examples))) {
+      merged.examples = schemas.reduce((acc, s) => acc.concat(s.examples || []), []).slice(0, 2);
+    }
+    return merged;
   }
 
   // IT-N269：混合类型原来直接返回 {}（items 变成「任意值均可」，元素类型信息全丢），
@@ -667,17 +691,72 @@ function downloadSchema() {
   ToolBox.downloadText('schema.json', text, 'application/json');
 }
 
+function __schemaIssues(node, path, depth) {
+  var issues = [];
+  if (depth > 12) return issues;
+  if (node === null || typeof node !== 'object' || Array.isArray(node)) {
+    issues.push(path + ': not an object');
+    return issues;
+  }
+  var TYPES = ['string', 'number', 'integer', 'boolean', 'object', 'array', 'null'];
+  if ('type' in node) {
+    var list = Array.isArray(node.type) ? node.type : [node.type];
+    for (var i = 0; i < list.length; i++) {
+      if (TYPES.indexOf(list[i]) < 0) issues.push(path + '.type: ' + String(list[i]));
+    }
+  }
+  if ('$schema' in node && typeof node.$schema !== 'string') issues.push(path + '.$schema: not a string');
+  if ('enum' in node && !Array.isArray(node.enum)) issues.push(path + '.enum: not an array');
+  if ('properties' in node) {
+    var p = node.properties;
+    if (!p || typeof p !== 'object' || Array.isArray(p)) issues.push(path + '.properties: not an object');
+    else Object.keys(p).forEach(function(k) {
+      issues = issues.concat(__schemaIssues(p[k], path + '.properties.' + k, depth + 1));
+    });
+  }
+  if ('required' in node) {
+    var r = node.required;
+    if (!Array.isArray(r) || r.some(function(x) { return typeof x !== 'string'; })) {
+      issues.push(path + '.required: not a string array');
+    } else {
+      var pr = (node.properties && typeof node.properties === 'object' && !Array.isArray(node.properties)) ? node.properties : {};
+      r.forEach(function(k) {
+        if (!Object.prototype.hasOwnProperty.call(pr, k)) issues.push(path + '.required: ' + k + ' not in properties');
+      });
+    }
+  }
+  if ('items' in node) issues = issues.concat(__schemaIssues(node.items, path + '.items', depth + 1));
+  if ('anyOf' in node) {
+    if (!Array.isArray(node.anyOf)) issues.push(path + '.anyOf: not an array');
+    else node.anyOf.forEach(function(sub, idx) {
+      issues = issues.concat(__schemaIssues(sub, path + '.anyOf.' + idx, depth + 1));
+    });
+  }
+  return issues;
+}
+
 function validateSchema() {
-  if (!lastSchema) {
-    ToolBox.showToast(i18nText('toast.msg649'));
+  var out = document.getElementById('output');
+  var raw = out ? String(out.textContent || '').trim() : '';
+  var obj = null;
+  var en = (typeof TBKit !== 'undefined' && TBKit.util.isEn());
+  if (!raw || raw.indexOf('{') < 0) {
+    if (!lastSchema) { ToolBox.showToast(i18nText('toast.msg649')); return; }
+    obj = lastSchema;
+  } else {
+    try { obj = JSON.parse(raw); }
+    catch (e) { ToolBox.showToast('❌ JSON: ' + e.message); return; }
+  }
+  var issues = __schemaIssues(obj, 'root', 0);
+  var st = document.getElementById('statusText');
+  if (issues.length) {
+    var first = issues[0] + (issues.length > 1 ? ' (+' + (issues.length - 1) + ')' : '');
+    ToolBox.showToast('❌ ' + first);
+    if (st) { st.textContent = (en ? '❌ Invalid schema: ' : '❌ Schema 无效：') + first; st.className = 'err'; }
     return;
   }
-  try {
-    JSON.stringify(lastSchema);
-    ToolBox.showToast(i18nText('toast.msg032'));
-  } catch(e) {
-    ToolBox.showToast('❌ ' + e.message);
-  }
+  ToolBox.showToast(i18nText('toast.msg032'));
+  if (st) { st.textContent = en ? '✅ Schema is valid' : '✅ Schema 有效'; st.className = 'ok'; }
 }
 
 function clearAll() {

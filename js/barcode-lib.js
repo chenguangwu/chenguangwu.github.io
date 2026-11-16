@@ -127,7 +127,12 @@
   }
 
   function ean13Encode(digits) {
-    digits = String(digits || '').replace(/\D/g, '');
+    // 第 385 批复核失败：不得静默剔除非法字符后继续出码，必须显式报错。
+    // 否则 690123456789X 会被悄悄改成 690123456789 生成条码，与「仅接受 12 位数字或校验位正确的 13 位数字」的承诺不符。
+    digits = String(digits || '');
+    if (/[^0-9]/.test(digits)) {
+      return { ok: false, error: 'EAN-13 只能包含数字，请删除字母、空格或其它符号后重试' };
+    }
     if (digits.length === 12) {
       digits += ean13Check(digits);
     } else if (digits.length === 13) {

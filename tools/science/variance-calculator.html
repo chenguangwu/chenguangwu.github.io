@@ -228,10 +228,27 @@ label{margin-top:10px;}
 </div>
 <script>
 function fmt(x){ if(!isFinite(x)) return '未定义'; if(x!==0&&Math.abs(x)<1e-6) return x.toExponential(4); return (Math.round(x*1e10)/1e10).toLocaleString(); }
-function parseData(str){ return str.split(/[,\s\n;]+/).map(s=>s.trim()).filter(s=>s).map(s=>parseFloat(s)).filter(n=>!isNaN(n)); }
+function parseData(str){
+  const toks=str.split(/[,\s\n;]+/).map(s=>s.trim()).filter(s=>s!=='');
+  const vals=[];
+  for(let i=0;i<toks.length;i++){
+    const t=toks[i];
+    if(!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/.test(t)) return {err:i+1};
+    const v=Number(t);
+    if(!isFinite(v)) return {err:i+1};
+    vals.push(v);
+  }
+  return {vals:vals};
+}
+function __varClear(){
+  const ids=['variance_calculatorTable','variance_calculatorDiff','variance_calculatorChart','variance_calculatorHist'];
+  for(let i=0;i<ids.length;i++){const e=document.getElementById(ids[i]);if(e)e.innerHTML='';}
+}
 function calculate(){
-  const data=parseData(document.getElementById('data').value);
+  const parsed=parseData(document.getElementById('data').value);
   const type=document.getElementById('dtype').value;
+  if(parsed.err){__varClear();document.getElementById('output').innerHTML='<p style="color:var(--danger);">第 '+parsed.err+' 项数据无效，请输入数字（不接受字母或部分数字）</p>';return;}
+  const data=parsed.vals;
   if(data.length<1){ const __h0='<p style="color:var(--danger);" data-zh="请输入数据">Please enter data.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0; return; }
   if(type==='sample' && data.length<2){ const __h1='<p style="color:var(--danger);">样本方差需要至少 2 个数据</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1; return; }
   const n=data.length;
@@ -261,7 +278,9 @@ function calculate(){
   html+='<div class="step-line" style="margin-top:8px;color:var(--text-muted);">替代公式：'+(type==='sample'?'总体口径 σ² = E(X²) − [E(X)]²，再乘 n/(n−1) 得样本方差 s²':'σ² = E(X²) − [E(X)]²')+'</div>';
   html+='<div class="step-line">Σx² = '+data.map(x=>fmt(x)+'²').join(' + ')+' = '+fmt(sumSq)+'</div>';
   html+='<div class="step-line">E(X²) = '+fmt(sumSq/n)+'，[E(X)]² = '+fmt(mean*mean)+'</div>';
-  html+='<div class="step-line">'+(type==='sample'?'总体口径 '+fmt(sumSq/n-mean*mean)+' × '+n+'/'+(n-1)+' = s² '+fmt(v2):'σ² ≈ '+fmt(v2))+'（与上方一致）</div>';
+  const relGap=Math.abs(v2-variance)/Math.max(Math.abs(variance),1e-300);
+  const catBad=!isFinite(v2)||relGap>1e-6;
+  html+='<div class="step-line">'+(type==='sample'?'总体口径 '+fmt(sumSq/n-mean*mean)+' × '+n+'/'+(n-1)+' = s² '+fmt(v2):'σ² ≈ '+fmt(v2))+(catBad?'（该替代公式在本组数据下存在浮点消减误差，结果不可靠，请以主结果为准）':'（与上方一致）')+'</div>';
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
 }
 function toggleToolTheme(){

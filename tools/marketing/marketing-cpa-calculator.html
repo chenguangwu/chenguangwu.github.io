@@ -402,6 +402,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 
+function __cpaErr(v){
+  if(isNaN(v.totalSpend)||isNaN(v.newCustomers)||v.newCustomers<=0||v.totalSpend<0)return '请输入有效数值';
+  if(v.clicks>0&&v.newCustomers>v.clicks)return '新增客户数不能大于点击量（转化率上限 100%），请核对转化口径。';
+  if(v.grossMargin<0||v.grossMargin>100)return '毛利率须在 0–100% 之间，请修正后再计算。';
+  return '';
+}
 function calc() {
   const totalSpend = parseFloat(document.getElementById('totalSpend').value);
   const newCustomers = parseFloat(document.getElementById('newCustomers').value);
@@ -411,18 +417,8 @@ function calc() {
   const repeatRate = parseFloat(document.getElementById('repeatRate').value) || 0;
   const r = document.getElementById('result');
 
-  if (isNaN(totalSpend) || isNaN(newCustomers) || newCustomers <= 0 || totalSpend < 0) {
-    r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';
-    return;
-  }
-  if (clicks > 0 && newCustomers > clicks) {
-    r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">新增客户数不能大于点击量（转化率上限 100%），请核对转化口径。</p></div>';
-    return;
-  }
-  if (grossMargin < 0 || grossMargin > 100) {
-    r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">毛利率须在 0–100% 之间，请修正后再计算。</p></div>';
-    return;
-  }
+  const __e=__cpaErr({totalSpend,newCustomers,clicks,grossMargin});
+  if(__e){r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">'+__e+'</p></div>';return;}
   if (repeatRate < 0 || repeatRate > 100) {
     r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">复购率须在 0–100% 之间，请修正后再计算。</p></div>';
     return;
@@ -463,7 +459,15 @@ function calc() {
       <div class="sub">等级：${cpaLevel} · ¥${ToolBox.formatNumber(totalSpend, 0)} / ${newCustomers.toLocaleString()}客户</div>
     </div>
 
-    ${avgOrder > 0 && grossMargin > 0 ? `
+    ${totalSpend === 0 ? `
+    <div class="metric-card">
+      <div class="label">营销投资回报率 ROI</div>
+      <div class="value">—</div>
+      <div class="sub">广告花费为 0，CPA=¥0.00；ROI 的分母为 0，不可计算，故不显示回本或高回报结论。</div>
+    </div>
+    ` : ''}
+
+    ${avgOrder > 0 && grossMargin > 0 && totalSpend > 0 ? `
     <div class="metric-card">
       <div class="label">营销投资回报率 ROI</div>
       <div class="value" style="color:${roiColor};">
@@ -561,10 +565,7 @@ function saveHistory() {
   const clicks = parseFloat(document.getElementById('clicks').value) || 0;
   const repeatRate = parseFloat(document.getElementById('repeatRate').value) || 0;
 
-  if (isNaN(totalSpend) || isNaN(newCustomers) || newCustomers <= 0 || totalSpend < 0) {
-    ToolBox.showToast(i18nText(),'error');
-    return;
-  }
+  if(__cpaErr({totalSpend,newCustomers,clicks,grossMargin})){ToolBox.showToast(i18nText(),'error');return;}
 
   const cpa = totalSpend / newCustomers;
   const record = {

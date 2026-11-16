@@ -54,6 +54,24 @@ const CASES = [
   "ref": "03-69 S3 标尺新增：De Ritis=80/20=4.00>2 → 明显升高（高度提示酒精性肝病）；BUN/Cr=(12×2.8)/(50/88.4)=59.4>20 → 升高（肾前性氮质血症）"
 },
 {
+  "slug": "clinical-lab/biochemistry-ratio",
+  "inputs": { "alt": "", "ast": "30", "alp": "100", "ggt": "50", "bun": "5", "cr": "80", "ua": "300", "alb": "40" },
+  "clicks": [
+    "var b=document.getElementById('result').innerHTML;document.getElementById('result').innerHTML=(/R因子/.test(b))?'__BR_NOALT_FAIL__':'__BR_NOALT_OK__'"
+  ],
+  "expect": ["__BR_NOALT_OK__"],
+  "ref": "D-N82 ALT 缺失：旧实现仅判 `alp>0`，ALT 清空时 R=(0/40)/(100/120)=0 → 「R≤2 胆汁淤积型 DILI」；修复后需 ALT>0 才渲染 R 卡。clicks 检查结果区不含「R因子」；默认 ALT=40 会渲染，本用例注入空值后判别。"
+},
+{
+  "slug": "clinical-lab/biochemistry-ratio",
+  "inputs": { "alt": "40", "ast": "36", "alp": "100", "ggt": "50", "bun": "5", "cr": "80", "ua": "300", "alb": "40" },
+  "clicks": [
+    "var b=document.getElementById('result').innerHTML;document.getElementById('result').innerHTML=(/0\\.90/.test(b)&&/正常范围/.test(b))?'__BR_DR_OK__':'__BR_DR_FAIL__'+b"
+  ],
+  "expect": ["__BR_DR_OK__"],
+  "ref": "D-N83 说明框口径：AST/ALT=0.90 落 0.7–1.0 正常范围，说明框已改为「0.7–1.0 为正常范围；<0.7 常见于急性病毒性肝炎早期」，不再把 <1 一律称肝炎。默认 60/30=2.00 明显升高，不命中 0.90。"
+},
+{
   "slug": "clinical-lab/blood-gas-analysis",
   "inputs": {
     "ph": "7.25",
@@ -195,6 +213,36 @@ const CASES = [
     "γ球蛋白 23.0% → 落在 偏高"
   ],
   "ref": "白蛋白50<57 + γ23>20 + α2 13>11 → 慢性肝病图谱；区带合计50+4+13+10+23=100.0%；参考区间定位（03-70 S3 标尺）：三锚均依赖注入百分比（默认 60/8/19 均为正常带 ⇒ 零交集）"
+},
+{
+  "slug": "clinical-lab/electrophoresis-analysis",
+  "inputs": {
+    "p_b": "18"
+  },
+  "expect": [
+    "β球蛋白升高"
+  ],
+  "ref": "L-N18：β 区带原本只定义了 REF.b 却无任何判读，β 18%>上限 13 仍输出「各区带均在参考范围内」。现补 β 高低双向判读，默认 β=10 正常不带该串。"
+},
+{
+  "slug": "clinical-lab/electrophoresis-analysis",
+  "inputs": {
+    "p_a1": "0.5"
+  },
+  "expect": [
+    "α1球蛋白降低"
+  ],
+  "ref": "L-N18：α1 原本只判升高，0.5%<下限 1 无提示。现补下限分支，默认 α1=3 正常不带该串。"
+},
+{
+  "slug": "clinical-lab/electrophoresis-analysis",
+  "clicks": [
+    "document.getElementById('p_alb').value='';analyze();"
+  ],
+  "expect": [
+    "未填写：白蛋白"
+  ],
+  "ref": "L-N18：num() 原把空值当 0，清空白蛋白即输出「白蛋白降低 0%(0.0g/L)」。现空值记为未填写、不参与判读并列出缺项；默认白蛋白 60 不出现该串。"
 },
 {
   "slug": "clinical-lab/flow-cytometry-ratio",
@@ -722,6 +770,16 @@ const CASES = [
   ],
   "ref": "原有 fallback 用例（bac4/coc1/epi4/wbc0 不满足表驱动四档 → 启发式 score=7≥6 → Ⅰ度）改用 clicks+哨兵：L-N12 修复后页面默认 4/0/4/0 已是Ⅰ度，若沿用静态描述锚会在注入失败时仍命中；哨兵仅在显式调用 grade() 后写入，判别器清 clicks 即失配。"
 },
+{
+  "slug": "clinical-lab/vaginal-discharge-grading",
+  "clicks": [
+    "document.getElementById('coccus').value='2';document.getElementById('wbc').value='2';grade();"
+  ],
+  "expect": [
+    "需鉴别细菌性阴道病(BV)、滴虫性阴道炎与需氧菌性阴道炎"
+  ],
+  "ref": "L-N26：球菌≥++ 且白细胞 15-30 时，提示不再直接指向 BV，而是要求鉴别 BV/滴虫/需氧菌性阴道炎，并给出 BV 典型特征（白细胞少、线索细胞阳性）。默认球菌 0、白细胞 0-5 不产生该串。"
+},
   {
     slug: "clinical-lab/hba1c-converter",
     inputs: { val1: "6.0" },
@@ -745,6 +803,12 @@ const CASES = [
     inputs: { val1: "9.0" },
     expect: ["平均血糖(eAG) = 11.8 mmol/L (212 mg/dL)"],
     ref: '独立复算：v=9.0 ⇒ eag_mgdl=28.7×9.0−46.7=211.6, eag_mmol=11.755⇒11.8, eag_mgdl.toFixed(0)=212（211.6 四舍五入）。完整串含 (212 mg/dL)，不误命中。'
+  },
+  {
+    slug: "clinical-lab/hba1c-converter",
+    inputs: { val1: "8.0" },
+    expect: ["64 mmol/mol （IFCC）"],
+    ref: "L-N24：结果行新增 IFCC 对照，(8.0−2.15)×10.93=63.94 ⇒ toFixed(0)=64。默认 7.0% ⇒ 53 mmol/mol，本串不命中；旧实现结果只给 HbA1c% 与 eAG，无 mmol/mol，正文承诺的 IFCC 换算无处可查。"
   },
   {
     slug: "clinical-lab/hba1c-converter",
@@ -1019,6 +1083,61 @@ const CASES = [
     ref: "L-N30 百分比上限：CD4 60%>51% 应提示高于参考；修复前只查绝对计数、不查百分比上限 ⇒ 漏报。默认 CD4 30% 不命中。"
   },
   {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { cd8: "" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='FCRATIO '+((h.indexOf('倒置')<0&&h.indexOf('—')>=0)?'OK':'BAD');"],
+    expect: ["FCRATIO OK"],
+    ref: "L-N27 核销：CD8 留空时比值显示「—」并提示补全，不再按 0 算出 0.00 并推入「CD4/CD8倒置」。旧实现 h 含「倒置」⇒ BAD。"
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { wbc: "" },
+    expect: ["请先填写有效的白细胞计数（>0）与淋巴细胞百分比（0–100%）"],
+    ref: "L-N28 核销：WBC 空值不再连乘出 cd4Abs=0 并提示「CD4<200，AIDS 分期」，改为整块拦截提示补全。"
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { nk: "2" },
+    expect: ["NK细胞绝对值降低"],
+    ref: "L-N29 核销：NK 2%（绝对 36/μL <95）纳入异常 flag，不再出现「各项指标正常」；默认 NK 15% 不命中。"
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    clicks: ["globalThis.__cap=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},history:{list:function(){return [{t:1,d:{cd4:'20',cd8:'40',__tbScore:1,'结果':'x'}},{t:2,d:{cd4:'30',cd8:'20',__tbScore:1,'结果':'y'}}];},mount:function(){}},matrix:{table:function(){}},chart:{line:function(sel,o){globalThis.__cap=o;}}};__flow_cytometry_ratioRender(['cd4','cd8'],'结果',false);var d=globalThis.__cap&&globalThis.__cap.series[0].data;document.getElementById('__tbProbe').textContent='FCHART '+((d&&d.length===2&&d[0]===1.5&&d[1]===0.5)?'OK':'BAD');"],
+    expect: ["FCHART OK"],
+    ref: "L-N32 核销：趋势图不再 parseFloat 结果文本，改为读 cd4/cd8 反算比值。注入 20/40 与 30/20 两条历史 ⇒ 折线 data=[1.5,0.5]；旧实现 parseFloat('x')=NaN ⇒ nums 不足 2 ⇒ 不画线（__cap 为空）⇒ BAD。"
+  },
+  {
+    slug: "clinical-lab/parasite-egg-id",
+    clicks: ["var e=EGGS.filter(function(x){return x.name.indexOf('短膜壳')>=0;})[0];document.getElementById('__tbProbe').textContent='PGC '+e.size;"],
+    expect: ["PGC 37-47 μm"],
+    ref: "L-N34 核销：短膜壳绦虫卵尺寸改为「37-47 μm」（上下限顺序正确）；旧数据为 47-37 μm。"
+  },
+  {
+    slug: "clinical-lab/parasite-egg-id",
+    clicks: ["document.getElementById('search').value='70-106';filterEggs();var a=currentList.some(function(e){return e.name==='日本血吸虫卵';});document.getElementById('search').value='卵盖';filterEggs();var b=currentList.length>0;document.getElementById('__tbProbe').textContent='PGE size='+(a?'Y':'N')+' operc='+(b?'Y':'N');"],
+    expect: ["PGE size=Y operc=Y"],
+    ref: "L-N35 核销：搜索已覆盖 size/shape/shell/operculum/content 等结构化字段。输入「70-106」按尺寸区间命中日本血吸虫卵；输入「卵盖」命中卵盖字段条目。旧实现只匹配 name+desc ⇒ size=N。"
+  },
+  {
+    slug: "clinical-lab/urine-sediment-atlas",
+    clicks: ["document.getElementById('search').value='7-8';filterItems();document.getElementById('__tbProbe').textContent='URINE n='+__urineList.length;"],
+    expect: ["URINE n=1"],
+    ref: "L-N37 核销：`filterItems` 已覆盖 name/sig/morph/size/bg/mean 六字段；输入尺寸「7-8」命中 1 项（红细胞 7-8 μm）。旧实现仅 3 字段且用 indexOf 字面匹配 ⇒ n=0。"
+  },
+  {
+    slug: "clinical-lab/semen-analysis",
+    clicks: ["['volume','conc','pr','np','im','morph','vital','ph'].forEach(function(k){var e=document.getElementById(k);if(e)e.value='';});analyze();document.getElementById('__tbProbe').textContent='SEMEN '+((document.getElementById('result').innerHTML.indexOf('请填写全部参数')>=0)?'OK':'BAD');"],
+    expect: ["SEMEN OK"],
+    ref: "L-N39 核销：八项任一空值/越界即整块拦截（`bad` 含 isNaN、<0、PR/NP/IM>100、三者之和>100.5），不再按 0 输出「少精症 + 弱精症」；旧实现 num() 空值返 0 且无守卫。"
+  },
+  {
+    slug: "clinical-lab/semen-analysis",
+    clicks: ["document.getElementById('volume').value='3';document.getElementById('conc').value='50';document.getElementById('pr').value='30';document.getElementById('np').value='5';document.getElementById('im').value='65';document.getElementById('morph').value='4';document.getElementById('vital').value='70';document.getElementById('ph').value='7.5';analyze();document.getElementById('__tbProbe').textContent='SEMIM '+document.getElementById('i_im').textContent;"],
+    expect: ["SEMIM ↑ 不动精子比例偏高(总活力不足40%)"],
+    ref: "L-N40 核销：`setInterp` 已支持 highText（原实现只读 lowText，IM 偏高时显示反方向的「↓ 偏低」）。总活力 35%（PR 30 + NP 5）、IM 65% ⇒ 显示「↑ 不动精子比例偏高」。"
+  },
+  {
     slug: "clinical-lab/thyroid-function-model",
     inputs: { tsh: "0.1", ft3: "5.0", ft4: "16", tt3: "1.5", tt4: "100", tpo: "0" },
     expect: ["亚临床甲状腺功能亢进症"],
@@ -1059,6 +1178,18 @@ const CASES = [
     inputs: { tsh: "2.0", ft3: "2.5", ft4: "16", tt3: "1.5", tt4: "100", tpo: "0" },
     expect: ["低T3综合征(非甲状腺病态)", "FT3 2.5 pmol/L → 落在 偏低"],
     ref: '修复 line263 死代码后可达：TSH 2.0（正常 0.27–4.2）+ FT3 2.5<3.1（低）+ FT4 16（正常、不低）→ 非甲状腺病态综合征（euthyroid sick syndrome）。原条件 tshLow 与 line259 中枢性甲减（tshLow&&hormoneLow）重叠、永不可达，旧版此输入会误判「甲状腺功能正常」；修正为 !tshLow&&!tshHigh&&ft3Low&&!ft4Low 后分支可达。默认态（tsh 空 → analyze 提前 return）无任何结果串，注入失败即不命中。'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "8", ft3: "", ft4: "" },
+    expect: ["请填写 TSH、FT3、FT4 三项核心指标后再判读"],
+    ref: 'L-N42 核销：空态守卫在分型前拦截，TSH 8 单独升高但 FT3/FT4 未填 ⇒ 只提示补全核心三项，不再判「亚临床甲减」；旧实现 num() 空值为 null 被当作「不低不高」直接分型。'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "2.0", ft3: "10", ft4: "16" },
+    expect: ["甲状腺激素升高（需鉴别）"],
+    ref: 'L-N42：TSH 2.0 正常 + FT3 10>6.8 单侧升高 ⇒ 「甲状腺激素升高（需鉴别）」；旧实现落到 else「甲状腺功能正常 / 各项指标在参考范围内」。'
   },
   {
     "slug": "clinical-lab/stool-occult-blood",
@@ -1370,6 +1501,13 @@ const CASES = [
     "expect": ["HbA1c 需在 3–20% 之间，当前输入「2.9」无效，结果已清空。"],
     "ref": "L-N17 反算下限：血糖 2 mmol/L ⇒ HbA1c=(2×18+46.7)/28.7=2.87→2.9%，convertReverse 写回 val1=2.9 后 convert() 触发 3–20% 校验并清空（修复前判「正常」）。默认 val2 空、val1=7.0 ⇒ 不命中。"
   }
+,
+{
+  "slug": "clinical-lab/biochemistry-ratio",
+  "clicks": ["(function(){function S(id,v){document.getElementById(id).value=v;}S('alt','200');S('alp','100');calc();var h1=String(document.getElementById('result').innerHTML);S('alt','40');S('alp','600');calc();var h2=String(document.getElementById('result').innerHTML);var ok=(h1.indexOf('6.00')>=0&&h2.indexOf('0.20')>=0);document.getElementById('__tbProbe').textContent='BIOR '+(ok?'OK':'BAD h1='+(h1.indexOf('6.00')>=0)+' h2='+(h2.indexOf('0.20')>=0));})()"],
+  "expect": ["BIOR OK"],
+  "ref": "第304批：统一 R 因子为权威定义 R=(ALT/ULN)/(ALP/ULN)=(ALT/40)/(ALP/120)（ALT 在分子）。formula-eq 旧写反为 (ALP/ULN)/(ALT/ULN)、info-box 旧写「ALB/ALP」。注入 ALT=200/ALP=100 ⇒ R=6.00；ALT=40/ALP=600 ⇒ R=0.20，两向复算锁定分子分母方向，默认态 R=1.20 不命中；若方向写反两值互换 ⇒ BAD。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

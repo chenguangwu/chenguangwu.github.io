@@ -1437,7 +1437,19 @@ function copyHighlightedHTML() {
   const borderColor = isDark ? '#313244' : '#e5e7eb';
   const codeColor = isDark ? '#cdd6f4' : '#1f2937';
 
-  const html = '<div style="border-radius:12px;overflow:hidden;border:1px solid ' + borderColor + ';background:' + bg + ';font-family:\'SF Mono\',\'Fira Code\',\'Courier New\',monospace;font-size:13px;line-height:1.7;">'
+  // IT-N449：把 .hl-* 颜色规则随片段一起导出；只读 styleSheets 的精简环境退回常用色兜底。
+  var hlCss = '';
+  try {
+    var styleNodes = document.querySelectorAll('style');
+    for (var si = 0; si < styleNodes.length; si++) {
+      var cssText = String(styleNodes[si].textContent || '');
+      if (cssText.indexOf('.hl-keyword') >= 0) hlCss += cssText + '\n';
+    }
+  } catch (e) { hlCss = ''; }
+  if (!hlCss) hlCss = '.hl-keyword{color:#2563eb;font-weight:700}.hl-string{color:#16a34a}.hl-comment{color:#9ca3af;font-style:italic}.hl-number{color:#ea580c}.hl-function{color:#7c3aed}.hl-operator{color:#dc2626}.hl-tag{color:#2563eb;font-weight:600}.hl-attr{color:#ea580c}.hl-attr-value{color:#16a34a}.hl-punctuation{color:#6b7280}.hl-type{color:#0891b2;font-weight:600}';
+
+  const html = '<style>' + hlCss + '</style>'
+    + '<div class="code-output-wrap' + (isDark ? ' dark-editor' : '') + '" style="border-radius:12px;overflow:hidden;border:1px solid ' + borderColor + ';background:' + bg + ';font-family:\'SF Mono\',\'Fira Code\',\'Courier New\',monospace;font-size:13px;line-height:1.7;">'
     + '<table style="width:100%;border-collapse:collapse;">'
     + table.innerHTML
       .replace(/ class="code-line-num"/g, ' style="width:56px;text-align:right;padding:0 12px 0 8px;color:' + numColor + ';background:' + numBg + ';border-right:1px solid ' + borderColor + ';user-select:none;font-size:12px;"')

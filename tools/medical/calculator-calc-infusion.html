@@ -149,7 +149,7 @@
         <label>药物类型（速率校验）</label>
         <select id="drug" onchange="toggleDrugRow()">
           <option value="none" selected>普通液体（无特殊限制）</option>
-          <option value="kcl">氯化钾（KCl ≤20 mEq/h）</option>
+          <option value="kcl">氯化钾（成人 ≤20 mEq/h、外周浓度 ≤0.4 mEq/mL）</option>
           <option value="insulin">胰岛素（常规 0.1 U/kg/h）</option>
           <option value="amino">氨基酸（≤0.1 g/kg/h）</option>
           <option value="nacl3">3%氯化钠（≤0.5 mEq/kg/h）</option>
@@ -308,8 +308,17 @@ function calc(){
     var html2='<div class="tip-box ';
     var ok=true, msg='';
     if(drug==='kcl'){
-      ok= ratePerH<=cfg.maxHour;
-      msg='当前 KCl 输注速率 = '+ratePerH.toFixed(2)+' mEq/h（限值 ≤20 mEq/h）。';
+      if(!(conc>0)){
+        ok=false;
+        msg='请输入有效的 KCl 浓度（mEq/mL，须 >0）。';
+      }else{
+        var overConc=conc>0.4;
+        var wCap= w>0? 0.5*w : cfg.maxHour;
+        var hourlyCap=Math.min(cfg.maxHour, wCap);
+        ok= ratePerH<=hourlyCap && !overConc;
+        msg='当前 KCl 输注速率 = '+ratePerH.toFixed(2)+' mEq/h（成人 ≤20 mEq/h'+(w>0?'，按 0.5 mEq/kg/h × '+w+'kg = '+wCap.toFixed(1)+' mEq/h':'')+'，取较小值 ≤'+hourlyCap.toFixed(1)+' mEq/h）；浓度 '+conc.toFixed(2)+' mEq/mL（外周静脉上限 ≤0.4 mEq/mL）。';
+        if(overConc){msg+='<br>⚠️ 浓度超过外周静脉上限，须改用中心静脉并心电监护。';}
+      }
     }else{
       var perKg= w>0? ratePerH/w : 0;
       ok= perKg<=cfg.limitPerKg;

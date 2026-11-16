@@ -37,6 +37,24 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "stage/light-position",
+  "clicks": ["document.getElementById('beamAngle2').value='180';calcPos();"],
+  "expect": ["光束角需在 0-180°"],
+  "ref": "光束角 180°：旧实现 tan(90°) 得 Infinity/极大照射面积；现要求 0<光束角<180 并提示。默认 25° 合法，不命中。"
+},
+{
+  "slug": "stage/light-position",
+  "clicks": ["document.getElementById('beamAngle2').value='';calcPos();"],
+  "expect": ["光束角需在 0-180°"],
+  "ref": "光束角清空：旧 parseFloat(...)||0 按 0 输出零半径/零面积；现提示缺项，不再给出确定结果。"
+},
+{
+  "slug": "stage/light-position",
+  "clicks": ["document.getElementById('beamAngle2').value='-20';calcPos();"],
+  "expect": ["光束角需在 0-180°"],
+  "ref": "负光束角：旧实现得到负半径与负面积；现拦截。"
+},
+{
   "slug": "stage/power-load",
   "inputs": {
     "powerFactor": "3.9",

@@ -253,15 +253,27 @@ function generate(){
   }
   if(removeDecl){
     svg = svg.replace(/<\?xml[\s\S]*?\?>/gi, '');
-    svg = svg.replace(/<!DOCTYPE[\s\S]*?>/gi, '');
+    // 含内部 DTD 子集（[] 内实体声明）时跳过 DOCTYPE 剔除，避免实体引用失效
+    if(!/<!DOCTYPE[\s\S]*?\[[\s\S]*?\]>/.test(svg)){
+      svg = svg.replace(/<!DOCTYPE[\s\S]*?>/gi, '');
+    }
   }
   if(removeMeta){
     svg = svg.replace(/<metadata[\s\S]*?<\/metadata>/gi, '');
   }
   if(removeWhitespace){
+    // xml:space="preserve" 元素内的空白有语义，抽出后再压缩，压缩完原样放回
+    const preserved = [];
+    svg = svg.replace(/<text[^>]*xml:space=["']preserve["'][^>]*>[\s\S]*?<\/text>/gi, function(m){
+      preserved.push(m);
+      return '___TB_PRESERVE_' + (preserved.length - 1) + '___';
+    });
     svg = svg.replace(/>\s+</g, '><');
     svg = svg.replace(/\s{2,}/g, ' ');
     svg = svg.replace(/^\s+|\s+$/g, '');
+    svg = svg.replace(/___TB_PRESERVE_(\d+)___/g, function(m, i){
+      return preserved[+i] !== undefined ? preserved[+i] : m;
+    });
   }
   const newSize = new Blob([svg]).size;
   const ratio = origSize>0 ? ((1 - newSize/origSize)*100).toFixed(1) : 0;

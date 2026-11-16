@@ -185,6 +185,32 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"wordInput\":\"abc123测试\"}，输出区含「abc123测试\n分析结果: abc123测试 ab c 1 2 3 测 试 重…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "language/spanish-accent-rules",
+    "inputs": { "wordInput": "casa" },
+    "expect": [ "音节划分: ca - sa" ],
+    "ref": "元音间单辅音归后一音节：casa 应为 ca-sa（旧实现把辅音拼进当前音节，整词当 1 音节）。默认输入为页面预设词，不命中。"
+  },
+  {
+    "slug": "language/spanish-accent-rules",
+    "inputs": { "wordInput": "meses" },
+    "expect": [ "音节划分: me - ses" ],
+    "ref": "元音+单辅音+元音连续切分：meses 应为 me-ses（旧实现 meses 整词 1 音节）。"
+  },
+  {
+    "slug": "language/spanish-accent-rules",
+    "inputs": { "wordInput": "cafe" },
+    "expect": [ "按规则无需重音符号" ],
+    "ref": "无符号词不得给出绿色「✓ 不需要」：cafe 按规则重音在倒数第二音节，但与 café 的实际重音不同，页面改为中性表述并提示如需 café 应补符号。旧文案为「不需要重音符号 ✓」。"
+  },
+  {
+    "slug": "language/spanish-accent-rules",
+    "clicks": [
+      "document.getElementById('wordInput').value='casa';analyze();document.getElementById('wordInput').value='';analyze();document.getElementById('__tbProbe').textContent='CLR '+((String(document.getElementById('result').innerHTML).indexOf('请输入西语单词')>=0)?'1':'0');"
+    ],
+    "expect": [ "CLR 1" ],
+    "ref": "清空输入须清空旧结果：旧实现 analyze() 在空串直接 return，结果区保留上一个单词的音节与重音结论。现写入「请输入西语单词」。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
     "slug": "language/vocabulary-builder",
     "clicks": [
       "var s={vocab_streak:JSON.stringify({days:1,last:'2024-11-01'})};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};var o=[];checkStreak(new Date(2024,10,2,7,30));o.push(document.getElementById('s-streak').textContent);checkStreak(new Date(2024,10,2,8,30));o.push(document.getElementById('s-streak').textContent);checkStreak(new Date(2024,10,3,0,30));o.push(document.getElementById('s-streak').textContent);document.getElementById('vbHidden').textContent='QSTREAK:'+o.join('|');"
@@ -278,6 +304,42 @@ const CASES = [
   "clicks": ["onKana(11)"],
   "expect": ["し 假名 shi 罗马字"],
   "ref": "onKana(11) ⇒ 平假名第 12 格「し / shi」：详情卡渲染两行数据卡「し · 假名」「shi · 罗马字」。默认未点选、详情区为空，零交集；网格内虽有「し」「shi」拼接文本，但不含「し 假名 shi 罗马字」这一带标签分隔的序列。"
+},
+{
+  "slug": "language/language-toolkit",
+  "clicks": [
+    "practiceCorrect=0;practiceTotal=0;var i=document.getElementById('practiceInput');"
+    + "currentPracticeKana={kana:'し',romaji:'shi'};practiceAnswered=false;i.disabled=false;i.value='si';checkPractice();"
+    + "var a=practiceCorrect,b=practiceTotal;"
+    + "currentPracticeKana={kana:'を',romaji:'wo'};practiceAnswered=false;i.disabled=false;i.value='o';checkPractice();"
+    + "var c=practiceCorrect;"
+    + "currentPracticeKana={kana:'し',romaji:'shi'};practiceAnswered=false;i.disabled=false;i.value='xi';checkPractice();"
+    + "document.getElementById('__tbProbe').textContent='ELF14 a='+a+'/'+b+' w='+c+' x='+practiceCorrect+'/'+practiceTotal"
+    + "+' fb='+document.getElementById('practiceFeedback').textContent;"
+  ],
+  "expect": ["ELF14 a=1/1 w=2 x=2/3 fb=✗ 错误。し 的罗马音是 shi（也接受 si）"],
+  "ref": "EL-F14：し 接受 si、を 接受 o（旧实现只认单一 Hepburn 拼写，两例均判错）；xi 仍判错且反馈列出可接受变体「也接受 si」。默认未作答、练习反馈为空 ⇒ 强判别。"
+},
+{
+  "slug": "language/language-toolkit",
+  "clicks": [
+    "practiceCorrect=0;practiceTotal=0;var i=document.getElementById('practiceInput');"
+    + "var __np=nextPractice;nextPractice=function(){};"
+    + "currentPracticeKana={kana:'し',romaji:'shi'};practiceAnswered=false;i.disabled=false;i.value='shi';"
+    + "checkPractice();checkPractice();var q=practiceAnswered,t=practiceTotal,c2=practiceCorrect;nextPractice=__np;"
+    + "document.getElementById('__tbProbe').textContent='ELF15 total='+t+' correct='+c2+' ans='+(q?'Y':'N');"
+  ],
+  "expect": ["ELF15 total=1 correct=1 ans=Y"],
+  "ref": "EL-F15：答题后 practiceAnswered 置真并禁用输入，同一题连按回车（连续两次 checkPractice）只计 1 题。旧实现无守卫 ⇒ total=2/correct=2 必 FAIL。"
+},
+{
+  "slug": "language/language-toolkit",
+  "clicks": [
+    "var all=getAllKana(),hist=all.filter(function(x){return x.kana==='ゐ'||x.kana==='ゑ';}).length;"
+    + "document.getElementById('__tbProbe').textContent='ELF14KANA hist='+hist+' n='+all.length;"
+  ],
+  "expect": ["ELF14KANA hist=0"],
+  "ref": "EL-F14：ゐ/ゑ 为历史假名，已从练习题库 getAllKana() 排除（仍保留在五十音图表中）。旧实现两者均在池内 ⇒ hist=2 必 FAIL。"
 }
 
 ];

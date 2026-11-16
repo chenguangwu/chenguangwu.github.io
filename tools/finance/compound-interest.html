@@ -416,7 +416,15 @@ function fmtShort(n) {
 }
 
 function calc() {
-  const P = parseFloat(document.getElementById('principal').value) || 0;
+  // 第202批：本金区分「未填写」与显式输入的合法 0。空态只提示、不产生计算结论，
+  // 并清结果区与年表，避免上一次合法方案的结果残留被误当成清空后的结论。
+  const __pRaw = String(document.getElementById('principal').value==null?'':document.getElementById('principal').value).trim();
+  if(__pRaw===''){
+    resetDisplay();
+    document.getElementById('calcNotice').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a principal amount":"请输入本金");
+    return;
+  }
+  const P = parseFloat(__pRaw);
   const r = parseFloat(document.getElementById('rate').value) || 0;
   const YEARS_CAP = 1000;
   const yearsInput = parseFloat(document.getElementById('years').value) || 0;
@@ -727,11 +735,22 @@ function __compound_interestFullResText(){
     return t;
 }
 function __compound_interestScore(t){
-    var fv=document.getElementById('totalFV');
-    if(!fv||!/[0-9]/.test(String(fv.textContent||''))) return 0;
-    var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+    var __fs=String(t||'');
+    if(/❌|校验失败|含非法字符|请填写「|后再计算|格式不符|长度必须|不能为 0|不能全为 0|年龄顺序无效|校验和失败|mod-97 校验失败|Luhn 校验失败|Waiting|Please enter|must be/.test(__fs)) return 0;
+    // 第202批：区分「未填写」与显式输入的合法 0。空本金只提示、不算结论，历史不得冒充成功。
+    // 旧版只看 #totalFV 是否含数字，空本金被静默按 0 计算后仍记通过。
+    var pEl=document.getElementById('principal');
+    var pRaw=pEl?String(pEl.value==null?'':pEl.value).trim():'';
+    if(pRaw==='') return NaN;                              // 空 → 无结论（MANUAL）
+    var P=parseFloat(pRaw);
+    if(!isFinite(P)||P<0) return 0;                       // 非法本金 → 未通过
+    var rEl=document.getElementById('rate'),yEl=document.getElementById('years');
+    var r=parseFloat(rEl?rEl.value:''),y=parseFloat(yEl?yEl.value:'');
+    if(!isFinite(r)||r<0||!isFinite(y)||y<=0) return 0;   // 其它必填越界 → 未通过
+    var aEl=document.getElementById('annual');
+    var aRaw=aEl?String(aEl.value==null?'':aEl.value).trim():'';
+    if(aRaw!==''&&(!isFinite(parseFloat(aRaw))||parseFloat(aRaw)<0)) return 0;  // 负定投 → 未通过
+    return 1;                                              // 显式 0 本金是合法输入，正常计算
 }
 function __compound_interestTime(t){
     var d=new Date(t);

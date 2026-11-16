@@ -151,6 +151,7 @@
     <div id="press_conferenceDiff"></div>
     <div id="press_conferenceChart"></div>
     <div id="press_conferenceHist"></div>
+    <div id="flowEditor"></div>
     <div id="flowList"></div>
   </div>
 
@@ -263,10 +264,19 @@ var TEMPLATES={
 };
 
 var steps=[];
+var editingSteps=false;
+var undoSteps=null;
 
+function undoTemplate(){
+  if(!undoSteps)return;
+  steps=undoSteps;undoSteps=null;
+  var sel=document.getElementById('eventType');if(sel)sel.value='custom';
+  renderSteps();render();
+}
 function loadTemplate(){
   var type=document.getElementById('eventType').value;
   if(type==='custom'&&steps.length>0) return;
+  if(steps.length>0) undoSteps=steps.map(function(s){return Object.assign({},s);});
   steps=type==='custom'?[]:(TEMPLATES[type]||TEMPLATES.product).map(function(s){
     return Object.assign({},s);
   });
@@ -297,13 +307,22 @@ function moveStep(i,dir){
 }
 
 function updateStep(i,field,val){
+  if(!steps[i]||typeof field==='undefined')return;
   steps[i][field]=field==='dur'?(+val||0):val;
   render();
 }
 
+function toggleStepEdit(){editingSteps=!editingSteps;renderSteps();}
 function renderSteps(){
+  var el=document.getElementById('flowEditor');
+  if(!el)return;
+  if(!editingSteps){
+    el.innerHTML='<p style="font-size:13px;color:var(--text-muted);margin:0 0 8px;">下方为流程时间表；如需修改环节名称、时长、负责人或调整顺序，请<button type="button" class="btn" style="padding:3px 8px;margin:0 4px;" onclick="toggleStepEdit()">编辑环节</button></p>';
+    if(undoSteps) el.innerHTML=String(el.innerHTML)+'<p style="font-size:13px;color:var(--warning,#b45309);margin:0 0 8px;">已替换原流程（'+undoSteps.length+' 项）<button type="button" class="btn" style="padding:3px 8px;margin-left:8px;" onclick="undoTemplate()">撤销</button></p>';
+    return;
+  }
   if(steps.length===0){
-    const __h0='<p style="text-align:center;color:var(--text-muted);padding:20px;">暂无流程，请选择类型或添加环节</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('flowList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('flowList').innerHTML=__h0;
+    const __h0='<p style="text-align:center;color:var(--text-muted);padding:20px;">暂无流程，请选择类型或添加环节</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h0;
     return;
   }
   const __h1=steps.map(function(s,i){
@@ -324,11 +343,13 @@ function renderSteps(){
         '</div>'+
       '</div>'+
     '</div>';
-  }).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('flowList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('flowList').innerHTML=__h1;
+  }).join('')+'<p style="margin-top:8px;"><button type="button" class="btn" onclick="toggleStepEdit()">完成编辑</button></p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h1;
 }
 
 function render(){
-  var startStr=document.getElementById('startTime').value||'14:00';
+  var startRaw=String(document.getElementById('startTime').value||'');
+  var startMissing=startRaw==='';
+  var startStr=startMissing?'14:00':startRaw;
   var parts=startStr.split(':');
   var curMin=+parts[0]*60+ +parts[1];
   var totalMin=steps.reduce(function(sum,s){return sum+(+s.dur||0);},0);
@@ -357,8 +378,8 @@ function render(){
   var endParts=endTime.split(':');
   var endTotal=+endParts[0]*60+ +endParts[1];
 
-  const __h4='<div class="stat-grid">'+
-    '<div class="stat-card"><div class="val">'+startStr+'</div><div class="lbl">开始时间</div></div>'+
+  const __h4=(startMissing?'<p class="tip-error">开始时间未设置，时间表暂按 14:00 占位；请填写开始时间后再使用导出。</p>':'')+'<div class="stat-grid">'+
+    '<div class="stat-card"><div class="val">'+(startMissing?'未设置':startStr)+'</div><div class="lbl">开始时间</div></div>'+
     '<div class="stat-card"><div class="val">'+endTime+'</div><div class="lbl">结束时间</div></div>'+
     '<div class="stat-card"><div class="val">'+totalMin+'</div><div class="lbl">总时长(分)</div></div>'+
     '<div class="stat-card"><div class="val">'+steps.length+'</div><div class="lbl">环节数</div></div>'+
@@ -375,10 +396,12 @@ function formatTime(min){
 
 function exportFlow(){
   if(steps.length===0){ToolBox.showToast(i18nText(), 'error');return;}
-  var startStr=document.getElementById('startTime').value||'14:00';
+  var startRaw=String(document.getElementById('startTime').value||'');
+  var startMissing=startRaw==='';
+  var startStr=startMissing?'14:00':startRaw;
   var parts=startStr.split(':');
   var curMin=+parts[0]*60+ +parts[1];
-  var txt='发布会流程表\n开始时间：'+startStr+'\n\n';
+  var txt='发布会流程表\n开始时间：'+(startMissing?'未设置（时间表暂按 14:00 占位，请填写开始时间）':startStr)+'\n\n';
   steps.forEach(function(s,i){
     var timeStr=formatTime(curMin);
     curMin+=s.dur;

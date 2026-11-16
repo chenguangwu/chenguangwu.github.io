@@ -335,6 +335,19 @@ function setStyle(btn){
   generate();
 }
 
+// BS-N41：把一行装饰文本包成该语言合法的单行注释（HTML/CSS 必须成对闭合）
+function __cmtWrap(lang, cfg, s){
+  if(lang === 'html') return '<!-- ' + s + ' -->';
+  if(lang === 'css') return '/* ' + s + ' */';
+  return cfg.line + ' ' + s;
+}
+// BS-N41：横幅/边框的边线也必须是合法注释行，不能是裸 ==== 串
+function __cmtRule(lang, cfg, width){
+  if(lang === 'html' || lang === 'css') return __cmtWrap(lang, cfg, '='.repeat(width));
+  const n = Math.max(1, Math.ceil(width / (cfg.line.length + 1)));
+  return __cmtWrap(lang, cfg, (cfg.line + ' ').repeat(n).trim());
+}
+
 function generate(){
   const text = document.getElementById('input').value;
   const result = document.getElementById('result');
@@ -345,12 +358,16 @@ function generate(){
   let out = '';
 
   if(currentStyle === 'line'){
-    out = lines.map(l => cfg.line + ' ' + l).join('\n');
+    // BS-N41：HTML/CSS 单行注释必须闭合，否则粘进目标文件会吞掉后续规则
+    out = lines.map(l => __cmtWrap(currentLang, cfg, l)).join('\n');
   }else if(currentStyle === 'block'){
     if(currentLang === 'html'){
       out = '<!--\n' + lines.map(l => '  ' + l).join('\n') + '\n-->';
     }else if(currentLang === 'python' || currentLang === 'ruby'){
       out = cfg.blockStart + '\n' + lines.map(l => l).join('\n') + '\n' + cfg.blockEnd;
+    }else if(currentLang === 'yaml' || currentLang === 'bash'){
+      // BS-N41：YAML/bash 没有跨行块注释，混用 ` * ` 前缀会产生非法行
+      out = lines.map(l => cfg.line + ' ' + l).join('\n');
     }else{
       out = cfg.blockStart + '\n' + lines.map(l => ' * ' + l).join('\n') + '\n' + cfg.blockEnd;
     }
@@ -365,23 +382,20 @@ function generate(){
   }else if(currentStyle === 'banner'){
     const maxLen = Math.max(...lines.map(l => l.length));
     const width = maxLen + 6;
-    const sep = '='.repeat(width);
-    out = sep + '\n';
+    out = __cmtRule(currentLang, cfg, width) + '\n';
     lines.forEach(l => {
       const padding = ' '.repeat(Math.max(0, maxLen - l.length));
-      out += cfg.line + '  ' + l + padding + '  ' + cfg.line + '\n';
+      out += __cmtWrap(currentLang, cfg, '  ' + l + padding + '  ') + '\n';
     });
-    out += sep;
+    out += __cmtRule(currentLang, cfg, width);
   }else if(currentStyle === 'frame'){
     const maxLen = Math.max(...lines.map(l => l.length));
-    const top = (cfg.line + ' ').repeat(maxLen + 4);
-    const bot = (cfg.line + ' ').repeat(maxLen + 4);
-    out = top + '\n';
+    out = __cmtRule(currentLang, cfg, maxLen + 6) + '\n';
     lines.forEach(l => {
       const padding = ' '.repeat(Math.max(0, maxLen - l.length));
-      out += cfg.line + '  ' + l + padding + '  ' + cfg.line + '\n';
+      out += __cmtWrap(currentLang, cfg, '  ' + l + padding + '  ') + '\n';
     });
-    out += bot;
+    out += __cmtRule(currentLang, cfg, maxLen + 6);
   }
   result.textContent = out;
 }

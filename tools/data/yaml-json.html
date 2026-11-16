@@ -143,8 +143,8 @@
 </div>
 
     <div class="dir-tabs">
-      <div id="yaml_jsonPresets"></div><button class="active" onclick="setDir('j2y')">JSON → YAML</button><button class="btn" type="button" onclick="__yaml_jsonExport()">导出明细 CSV</button>
-      <button onclick="setDir('y2j')">YAML → JSON</button>
+      <div id="yaml_jsonPresets"></div><button class="active" data-dir="j2y" onclick="setDir('j2y')">JSON → YAML</button><button class="btn" type="button" onclick="__yaml_jsonExport()">导出明细 CSV</button>
+      <button data-dir="y2j" onclick="setDir('y2j')">YAML → JSON</button>
     </div>
     <label id="inLabel">JSON 输入</label>
     <textarea id="input" oninput="convert()" style="min-height:200px;font-family:monospace;font-size:13px;">{
@@ -257,7 +257,7 @@
 let dir = 'j2y';
 function setDir(d){
   dir = d;
-  document.querySelectorAll('.dir-tabs button').forEach((b,i) => b.classList.toggle('active', (d === 'j2y' && i === 0) || (d === 'y2j' && i === 1)));
+  document.querySelectorAll('.dir-tabs button').forEach(b => b.classList.toggle('active', b.getAttribute('data-dir') === d));
   document.getElementById('inLabel').textContent = d === 'j2y' ? 'JSON 输入' : 'YAML 输入';
   document.getElementById('outLabel').textContent = d === 'j2y' ? 'YAML 输出' : 'JSON 输出';
   convert();
@@ -291,108 +291,237 @@ function jsonToYaml(obj, depth){
     const keys = Object.keys(obj);
     if(keys.length === 0) return '{}';
     return keys.map(k => {
+      const key = yamlString(k);
       const v = obj[k];
-      if(v === null) return indent + k + ': null';
+      if(v === null || v === undefined) return indent + key + ': null';
       if(typeof v === 'object'){
         const sub = jsonToYaml(v, depth + 1);
-        return indent + k + ':\n' + sub;
+        return indent + key + ':\n' + sub;
       }
-      return indent + k + ': ' + jsonToYaml(v, depth);
+      return indent + key + ': ' + jsonToYaml(v, depth);
     }).join('\n');
   }
   return String(obj);
 }
+// 仅在可能被解析成非字符串时才加引号：YAML 双引号标量用 JSON 转义即可（\\、\"、\n、\uXXXX 均合法）
 function yamlString(s){
-  if(/[:{}\[\],&*#?|\-<>=!%@`"'\/\n]/.test(s) || /^\s|\s$/.test(s) || s === '' || !isNaN(s)){
-    if(s.includes('"')) return "'" + s + "'";
-    return '"' + s.replace(/\\/g,'\\\\').replace(/"/g,'\\"') + '"';
+  s = String(s);
+  if(s === '') return '""';
+  if(/^[A-Za-z_][A-Za-z0-9_.\/-]*$/.test(s) &&
+     !/^(true|false|yes|no|on|off|null|~)$/i.test(s) &&
+     !/^-?\d+(\.\d+)?([eE][-+]?\d+)?$/.test(s)) return s;
+  return JSON.stringify(s);
+}
+/* ---------- YAML → JSON 解析（YAML 1.2 子集，按缩进递归） ---------- */
+function yamlToJson(text){
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  const ctx = { lines: lines, i: 0 };
+  __yamlSkip(ctx);
+  if(ctx.i >= lines.length) return null;
+  const value = __yamlParseNode(ctx, -1);
+  __yamlSkip(ctx);
+  if(ctx.i < lines.length) __yamlFail('第 ' + (ctx.i + 1) + ' 行无法解析：' + String(lines[ctx.i]).trim().slice(0, 40));
+  return value;
+}
+function __yamlFail(msg){ throw new Error('YAML 语法不支持：' + msg); }
+function __yamlIndent(line){ return line.length - line.replace(/^ +/, '').length; }
+function __yamlSkip(ctx){
+  while(ctx.i < ctx.lines.length){
+    const t = ctx.lines[ctx.i].trim();
+    if(t === '' || t.startsWith('#')){ ctx.i++; continue; }
+    break;
+  }
+}
+// 去掉引号外的行尾注释（# 前必须有空白，`a#b` 与 URL 片段不受影响）
+function __yamlStripComment(s){
+  let q = null;
+  for(let i = 0; i < s.length; i++){
+    const c = s[i];
+    if(q){
+      if(q === '"' && c === '\\'){ i++; continue; }
+      if(c === q){ if(q === "'" && s[i + 1] === "'"){ i++; continue; } q = null; }
+      continue;
+    }
+    if((c === '"' || c === "'") && (i === 0 || /[\s:,\[\{\-]/.test(s[i - 1]))){ q = c; continue; }
+    if(c === '#' && (i === 0 || /\s/.test(s[i - 1]))) return s.slice(0, i);
   }
   return s;
 }
-function yamlToJson(text){
-  // 简化 YAML 解析器
-  const lines = text.split('\n');
-  const result = parseYamlLines(lines, 0, 0).value;
-  return result;
+// 找引号/方括号外的「键值分隔冒号」：冒号后须为空白或行尾（`http://a` 不是分隔符）
+function __yamlFindColon(s){
+  let q = null, depth = 0;
+  for(let i = 0; i < s.length; i++){
+    const c = s[i];
+    if(q){
+      if(q === '"' && c === '\\'){ i++; continue; }
+      if(c === q){ if(q === "'" && s[i + 1] === "'"){ i++; continue; } q = null; }
+      continue;
+    }
+    if((c === '"' || c === "'") && (i === 0 || /[\s:,\[\{\-]/.test(s[i - 1]))){ q = c; continue; }
+    if(c === '[' || c === '{'){ depth++; continue; }
+    if(c === ']' || c === '}'){ depth--; continue; }
+    if(c === ':' && depth <= 0 && (i === s.length - 1 || /\s/.test(s[i + 1]))) return i;
+  }
+  return -1;
 }
-function parseYamlLines(lines, start, indent){
-  let i = start;
-  let value = null;
-  let isArray = false;
-  let isObject = false;
+function __yamlSplitFlow(s){
+  const out = []; let cur = ''; let q = null; let depth = 0;
+  for(let i = 0; i < s.length; i++){
+    const c = s[i];
+    if(q){
+      cur += c;
+      if(q === '"' && c === '\\'){ cur += s[++i] || ''; continue; }
+      if(c === q){ if(q === "'" && s[i + 1] === "'"){ cur += s[++i]; continue; } q = null; }
+      continue;
+    }
+    if(c === '"' || c === "'"){ q = c; cur += c; continue; }
+    if(c === '[' || c === '{') depth++;
+    if(c === ']' || c === '}') depth--;
+    if(c === ',' && depth === 0){ out.push(cur.trim()); cur = ''; continue; }
+    cur += c;
+  }
+  if(cur.trim() !== '') out.push(cur.trim());
+  return out;
+}
+function __yamlParseNode(ctx, parentIndent){
+  __yamlSkip(ctx);
+  if(ctx.i >= ctx.lines.length) return null;
+  const line = ctx.lines[ctx.i];
+  const ind = __yamlIndent(line);
+  if(ind <= parentIndent) return null;
+  const content = __yamlStripComment(line.slice(ind)).trim();
+  if(content === '-' || content.startsWith('- ')) return __yamlParseSeq(ctx, ind);
+  return __yamlParseMap(ctx, ind);
+}
+function __yamlParseSeq(ctx, indent){
   const arr = [];
-  const obj = {};
-  while(i < lines.length){
-    let line = lines[i];
-    // 跳过空行和注释
-    if(!line.trim() || line.trim().startsWith('#')){ i++; continue; }
-    const lineIndent = line.length - line.trimStart().length;
-    if(lineIndent < indent) break;
-    if(lineIndent > indent && i === start) { i++; continue; }
-    if(lineIndent !== indent && !line.trimStart().startsWith('-')) break;
-    const content = line.slice(lineIndent);
-    // 数组项
-    if(content.startsWith('- ')){
-      isArray = true;
-      const item = content.slice(2);
-      if(item.includes(':')){
-        // 数组项是对象
-        const [k, ...vParts] = item.split(':');
-        const v = vParts.join(':').trim();
-        if(v === ''){
-          // 嵌套对象
-          const sub = parseYamlLines(lines, i + 1, indent + 2);
-          arr.push({[k.trim()]: sub.value});
-          i = sub.end;
-        } else {
-          arr.push({[k.trim()]: parseScalar(v)});
-          i++;
-        }
-      } else {
-        arr.push(parseScalar(item));
-        i++;
-      }
-    } else if(content.startsWith('-')){
-      isArray = true;
-      arr.push(parseScalar(content.slice(1).trim()));
-      i++;
-    } else if(content.includes(':')){
-      isObject = true;
-      const idx = content.indexOf(':');
-      const k = content.slice(0, idx).trim();
-      const v = content.slice(idx + 1).trim();
-      if(v === '' || v === '|' || v === '>'){
-        // 嵌套
-        const sub = parseYamlLines(lines, i + 1, indent + 2);
-        obj[k] = sub.value;
-        i = sub.end;
-      } else {
-        obj[k] = parseScalar(v);
-        i++;
-      }
+  while(true){
+    __yamlSkip(ctx);
+    if(ctx.i >= ctx.lines.length) break;
+    const line = ctx.lines[ctx.i];
+    const ind = __yamlIndent(line);
+    if(ind < indent) break;
+    if(ind > indent) __yamlFail('第 ' + (ctx.i + 1) + ' 行缩进不一致');
+    const content = __yamlStripComment(line.slice(ind)).trim();
+    if(!(content === '-' || content.startsWith('- '))) break;
+    const rest = content === '-' ? '' : content.slice(2).trim();
+    if(rest === ''){
+      ctx.i++;
+      arr.push(__yamlParseNode(ctx, indent));
+    } else if(rest === '-' || rest.startsWith('- ')){
+      // 嵌套序列：把本行改写成更深一级的序列首行后递归
+      ctx.lines[ctx.i] = ' '.repeat(indent + 2) + rest;
+      arr.push(__yamlParseSeq(ctx, indent + 2));
+    } else if(__yamlFindColon(rest) >= 0){
+      // 列表项是映射：改写成更深一级的映射首行，后续同级键自然并入同一对象
+      ctx.lines[ctx.i] = ' '.repeat(indent + 2) + rest;
+      arr.push(__yamlParseMap(ctx, indent + 2));
+    } else if(/^[|>][-+]?$/.test(rest)){
+      ctx.i++;
+      arr.push(__yamlParseBlockScalar(ctx, indent, rest));
     } else {
-      i++;
+      ctx.i++;
+      arr.push(__yamlParseScalar(rest));
     }
   }
-  value = isArray ? arr : (isObject ? obj : null);
-  return {value, end: i};
+  return arr;
 }
-function parseScalar(s){
-  s = s.trim();
-  if(s === '' ) return '';
-  if(s === 'null' || s === '~') return null;
-  if(s === 'true' || s === 'yes') return true;
-  if(s === 'false' || s === 'no') return false;
-  if((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))){
-    return s.slice(1, -1).replace(/\\"/g,'"').replace(/\\\\/g,'\\');
+function __yamlParseMap(ctx, indent){
+  const obj = {};
+  while(true){
+    __yamlSkip(ctx);
+    if(ctx.i >= ctx.lines.length) break;
+    const line = ctx.lines[ctx.i];
+    const ind = __yamlIndent(line);
+    if(ind < indent) break;
+    if(ind > indent) __yamlFail('第 ' + (ctx.i + 1) + ' 行缩进不一致');
+    const content = __yamlStripComment(line.slice(ind)).trim();
+    if(content === '-' || content.startsWith('- ')) break;
+    const ci = __yamlFindColon(content);
+    if(ci < 0) break;
+    const key = __yamlParseKey(content.slice(0, ci));
+    const rest = content.slice(ci + 1).trim();
+    ctx.i++;
+    if(rest === ''){
+      obj[key] = __yamlParseNode(ctx, indent);
+    } else if(/^[|>][-+]?$/.test(rest)){
+      obj[key] = __yamlParseBlockScalar(ctx, indent, rest);
+    } else {
+      obj[key] = __yamlParseScalar(rest);
+    }
   }
-  if(/^-?\d+$/.test(s)) return parseInt(s);
-  if(/^-?\d+\.\d+$/.test(s)) return parseFloat(s);
+  return obj;
+}
+// 块标量 | 保留换行、> 折叠换行；- 去掉末尾换行、+ 保留尾部空行、默认保留一个
+function __yamlParseBlockScalar(ctx, parentIndent, header){
+  const fold = header[0] === '>';
+  const chomp = header[1] || '';
+  const raw = [];
+  while(ctx.i < ctx.lines.length){
+    const line = ctx.lines[ctx.i];
+    if(line.trim() === ''){ raw.push(''); ctx.i++; continue; }
+    if(__yamlIndent(line) <= parentIndent) break;
+    raw.push(line);
+    ctx.i++;
+  }
+  let minIndent = Infinity;
+  for(const l of raw){ if(l.trim() !== '') minIndent = Math.min(minIndent, __yamlIndent(l)); }
+  if(!isFinite(minIndent)) minIndent = parentIndent + 1;
+  const body = raw.map(l => l.trim() === '' ? '' : l.slice(minIndent));
+  let end = body.length;
+  while(end > 0 && body[end - 1] === '') end--;
+  const lines = body.slice(0, end);
+  let text;
+  if(fold){
+    text = '';
+    for(let i = 0; i < lines.length; i++){
+      if(i === 0) text = lines[i];
+      else if(lines[i] === '' || lines[i - 1] === '') text += '\n' + lines[i];
+      else text += ' ' + lines[i];
+    }
+  } else {
+    text = lines.join('\n');
+  }
+  if(chomp === '-') return text;
+  if(chomp === '+') return text + '\n' + '\n'.repeat(body.length - end);
+  return text === '' ? '' : text + '\n';
+}
+function __yamlParseKey(k){
+  k = k.trim();
+  if(k.length >= 2 && k.startsWith('"') && k.endsWith('"')){ try { return String(JSON.parse(k)); } catch(e) { return k.slice(1, -1); } }
+  if(k.length >= 2 && k.startsWith("'") && k.endsWith("'")) return k.slice(1, -1).replace(/''/g, "'");
+  if(k.startsWith('? ')) return k.slice(2).trim();
+  return k;
+}
+function __yamlParseScalar(s){
+  s = String(s).trim();
+  if(s === '') return '';
+  if(s === 'null' || s === '~') return null;
+  if(s === 'true' || s === 'yes' || s === 'on') return true;
+  if(s === 'false' || s === 'no' || s === 'off') return false;
+  if(s.startsWith('"') && s.endsWith('"') && s.length >= 2){
+    try { return JSON.parse(s); } catch(e) { return s.slice(1, -1); }
+  }
+  if(s.startsWith("'") && s.endsWith("'") && s.length >= 2) return s.slice(1, -1).replace(/''/g, "'");
+  if(/^-?(0|[1-9]\d*)$/.test(s)) return parseInt(s, 10);
+  if(/^-?\d+\.\d+([eE][-+]?\d+)?$/.test(s)) return parseFloat(s);
   if(s.startsWith('[') && s.endsWith(']')){
-    try{ return JSON.parse(s); }catch(e){}
+    const inner = s.slice(1, -1).trim();
+    if(inner === '') return [];
+    if(inner.startsWith('{') || inner.startsWith('[')){ try { return JSON.parse(s); } catch(e) {} }
+    return __yamlSplitFlow(inner).map(__yamlParseScalar);
   }
   if(s.startsWith('{') && s.endsWith('}')){
-    try{ return JSON.parse(s); }catch(e){}
+    const inner = s.slice(1, -1).trim();
+    if(inner === '') return {};
+    try { return JSON.parse(s); } catch(e) {}
+    const o = {};
+    for(const part of __yamlSplitFlow(inner)){
+      const ci = __yamlFindColon(part);
+      if(ci < 0) __yamlFail('内联映射缺少冒号：' + part.slice(0, 30));
+      o[__yamlParseKey(part.slice(0, ci))] = __yamlParseScalar(part.slice(ci + 1));
+    }
+    return o;
   }
   return s;
 }

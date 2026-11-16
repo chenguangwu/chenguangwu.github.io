@@ -292,13 +292,19 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['income', 'l1', 'r1', 'l2', 'r2', 'r3'],["应税所得", "第1档上限", "第1档税率 (%)", "第2档上限", "第2档税率 (%)", "第3档税率 (%)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const I = num('income'), l1 = num('l1'), r1 = num('r1') / 100, l2 = num('l2'), r2 = num('r2') / 100, r3 = num('r3') / 100;
+            let __err='';
+            if(I<0) __err='应税所得不能为负数。';
+            else if(!(l1>0)) __err='第1档上限须大于 0。';
+            else if(!(l2>l1)) __err='第2档上限须大于第1档上限（档位必须递增）。';
+            else if(!(r1>=0&&r1<=1)||!(r2>=0&&r2<=1)||!(r3>=0&&r3<=1)) __err='三档税率均须在 0%–100% 之间。';
+            if(__err) { ToolBox.setResult('result','<div class="data-grid"><div class="data-card"><div class="num">⚠</div><div class="label">'+__err+'</div></div></div>'); return; }
             let tax = 0;
             if (I > 0) tax += Math.min(I, l1) * r1;
             if (I > l1) tax += Math.min(I - l1, l2 - l1) * r2;
             if (I > l2) tax += (I - l2) * r3;
             const __g2=dataGrid([
                 [tax.toFixed(2), '应纳税额'],
-                [(tax / I * 100).toFixed(2), '实际税率 (%)']
+                [(I > 0 ? (tax / I * 100).toFixed(2) : '—'), '实际税率 (%)']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('income').value = '30000';
@@ -320,12 +326,13 @@ function __progressive_income_taxExtras(){
     if (I > l1) tax += Math.min(I - l1, l2 - l1) * r2;
     if (I > l2) tax += (I - l2) * r3;
     if (!isFinite(__progressive_income_taxNum('income')) || !isFinite(__progressive_income_taxNum('l1')) || !isFinite(__progressive_income_taxNum('r1')) || !isFinite(__progressive_income_taxNum('l2')) || !isFinite(__progressive_income_taxNum('r2')) || !isFinite(__progressive_income_taxNum('r3'))) return;
+    if(I<0 || !(l1>0) || !(l2>l1)) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#progressive_income_taxTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['应纳税额', tax.toFixed(2)],
-            ['实际税率 (%)', (tax / I * 100).toFixed(2)],
+            ['实际税率 (%)', (I > 0 ? (tax / I * 100).toFixed(2) : '—')],
         ]
     });
     TBKit.history.record({income:__progressive_income_taxRaw('income'), l1:__progressive_income_taxRaw('l1'), r1:__progressive_income_taxRaw('r1'), l2:__progressive_income_taxRaw('l2'), r2:__progressive_income_taxRaw('r2'), r3:__progressive_income_taxRaw('r3'), I:I});

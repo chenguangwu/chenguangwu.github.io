@@ -295,9 +295,11 @@ function toggleStep(i){
 }
 
 function startSim(){
-  if(startTime) return;
+  if(timerInterval) return;
+  if(completedSteps.length === steps.length){ completedSteps = []; }
   startTime = Date.now();
   currentStep = 0;
+  document.getElementById('simTimer').textContent = '00:00';
   renderSteps();
   timerInterval = setInterval(updateTimer, 1000);
   ToolBox.showToast(i18nText('toast.msg453'), 'info');
@@ -382,7 +384,7 @@ function clearFlowMarks(){
 function __flowExtras(){
   if(typeof TBKit==='undefined') return;
   try{
-    TBKit.history.record({progress:completedSteps.length+'/'+steps.length, done:completedSteps.length===steps.length}, 3000);
+    TBKit.history.record({progress:completedSteps.length+'/'+steps.length, done:completedSteps.length===steps.length, steps:completedSteps.join(',')}, 3000);
     __flowMountHist();
   }catch(e){}
 }
@@ -390,11 +392,16 @@ function __flowMountHist(){
   if(typeof TBKit==='undefined') return;
   try{
     TBKit.history.mount('#flowHistory', function(rec){
-      var m=/^(\d+)\//.exec(rec.progress||'');
-      if(!m) return;
-      var n=parseInt(m[1]);
-      completedSteps=[];
-      for(var i=0;i<n;i++) completedSteps.push(i);
+      // 优先用完整步骤索引回放；旧记录无 steps 时按进度数兜底
+      if(rec.steps!==undefined){
+        completedSteps=String(rec.steps).split(',').filter(function(x){return x!=='';}).map(function(x){return parseInt(x,10);}).filter(function(x){return isFinite(x)&&x>=0&&x<steps.length;});
+      }else{
+        var m=/^(\d+)\//.exec(rec.progress||'');
+        if(!m) return;
+        var n=parseInt(m[1]);
+        completedSteps=[];
+        for(var i=0;i<n;i++) completedSteps.push(i);
+      }
       currentStep=-1;
       renderSteps();
     }, 8);
@@ -533,7 +540,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 <script>
 (function(){
-  var FE_EN={'立即评估患者状况':'Assess patient immediately','呼叫协助':'Call for help','初步评估损伤程度':'Assess injury severity','生命体征监测':'Monitor vital signs','根据伤情处理':'Treat according to injury','协助患者转移':'Assist patient transfer','通知医生与家屝':'Notify doctor and family','完善记录与上报':'Complete documentation and reporting'};
+  var FE_EN={'立即评估患者状况':'Assess patient immediately','呼叫协助':'Call for help','初步评估损伤程度':'Assess injury severity','生命体征监测':'Monitor vital signs','根据伤情处理':'Treat according to injury','协助患者转移':'Assist patient transfer','通知医生与家属':'Notify doctor and family','完善记录与上报':'Complete documentation and reporting'};
   function feT(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
   function feAll(){
     if(typeof TBKit==='undefined') return;

@@ -348,9 +348,24 @@ function switchTab(name, btn){
 function parseData(str){
   return str.split(/[\s,，;；\n]+/).map(parseFloat).filter(function(v){ return !isNaN(v); });
 }
+function parseDataStrict(str){
+  var tokens=String(str).split(/[\s,，;；\n]+/).filter(function(t){ return t!==''; });
+  var vals=[], bad=[];
+  tokens.forEach(function(t){
+    var v=parseFloat(t);
+    if(isNaN(v)||!isFinite(v)) bad.push(t); else vals.push(v);
+  });
+  return {vals:vals, bad:bad};
+}
+function __pcIsEn(){
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()) return true; }catch(e){}
+  try{ if(typeof location!=='undefined'&&/[?&]lang=en/.test(location.search)) return true; }catch(e){}
+  return false;
+}
 
 function computeFromStats(usl, lsl, mean, sd){
   if (isNaN(usl)||isNaN(lsl)||isNaN(mean)||isNaN(sd)||sd<=0) return null;
+  if (!(usl>lsl)) return null;
   var Cp = (usl-lsl)/(6*sd);
   var Cpu = (usl-mean)/(3*sd);
   var Cpl = (mean-lsl)/(3*sd);
@@ -366,13 +381,20 @@ function computeFromStats(usl, lsl, mean, sd){
 }
 
 function calc(){
-    var __ig=__tbInputGuard(['usl', 'lsl', 'mean', 'sigma', 'dataInput', 'usl2', 'lsl2'],["规格上限 USL", "规格下限 LSL", "过程均值 μ", "标准差 σ（短期）", "dataInput", "规格上限 USL", "规格下限 LSL"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 var isData = document.getElementById('tab-data').classList.contains('active');
+  var __ids = isData?['usl2','lsl2','dataInput']:['usl','lsl','mean','sigma'];
+  var __labels = isData?["规格上限 USL","规格下限 LSL","样本数据"]:["规格上限 USL","规格下限 LSL","过程均值 μ","标准差 σ（短期）"];
+  var __ig=__tbInputGuard(__ids,__labels);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
   var usl, lsl, mean, sd;
   if (isData){
     usl = parseFloat(document.getElementById('usl2').value);
     lsl = parseFloat(document.getElementById('lsl2').value);
-    var arr = parseData(document.getElementById('dataInput').value);
+    var parsed = parseDataStrict(document.getElementById('dataInput').value);
+    if (parsed.bad.length){
+      document.getElementById('result').innerHTML='<p style="color:var(--danger);">数据中含无法解析的片段：'+parsed.bad.slice(0,5).map(function(t){return ToolBox.escHtml?ToolBox.escHtml(t):t;}).join('、')+'。请修正后重新计算。</p>';
+      return;
+    }
+    var arr = parsed.vals;
     if (arr.length < 2){
       document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入至少 2 个有效数据。</p>';
       return;
@@ -385,6 +407,10 @@ var isData = document.getElementById('tab-data').classList.contains('active');
     lsl = parseFloat(document.getElementById('lsl').value);
     mean = parseFloat(document.getElementById('mean').value);
     sd = parseFloat(document.getElementById('sigma').value);
+  }
+  if (!(usl>lsl)){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请检查规格限：USL 必须大于 LSL。</p>';
+    return;
   }
   var r = computeFromStats(usl,lsl,mean,sd);
   if (!r){
@@ -427,13 +453,26 @@ function dataCard(num, label){
   return '<div class="data-card"><div class="num">'+num+'</div><div class="label">'+label+'</div></div>';
 }
 function copyResult(){
-  var usl = parseFloat(document.getElementById('usl').value);
-  var lsl = parseFloat(document.getElementById('lsl').value);
-  var mean = parseFloat(document.getElementById('mean').value);
-  var sd = parseFloat(document.getElementById('sigma').value);
+  var en=__pcIsEn();
+  var isData = document.getElementById('tab-data').classList.contains('active');
+  var usl, lsl, mean, sd;
+  if (isData){
+    usl = parseFloat(document.getElementById('usl2').value);
+    lsl = parseFloat(document.getElementById('lsl2').value);
+    var parsed = parseDataStrict(document.getElementById('dataInput').value);
+    if (parsed.bad.length || parsed.vals.length < 2){ ToolBox.showToast(en?'Fix the data before copying':'数据无效，请先完成计算','warning'); return; }
+    var arr = parsed.vals;
+    mean = arr.reduce(function(a,b){return a+b;},0)/arr.length;
+    sd = Math.sqrt(arr.reduce(function(a,b){return a+(b-mean)*(b-mean);},0)/(arr.length-1));
+  } else {
+    usl = parseFloat(document.getElementById('usl').value);
+    lsl = parseFloat(document.getElementById('lsl').value);
+    mean = parseFloat(document.getElementById('mean').value);
+    sd = parseFloat(document.getElementById('sigma').value);
+  }
   var r = computeFromStats(usl,lsl,mean,sd);
-  if(!r){ ToolBox.showToast(i18nText(), 'warning'); return; }
-  ToolBox.copyText('Cp='+r.Cp.toFixed(3)+' Cpk='+r.Cpk.toFixed(3)+' 合格率='+(r.yieldExact*100).toFixed(4)+'% DPMO='+Math.round(r.dpmo), i18nText('toast.msg544'));
+  if(!r || !(usl>lsl)){ ToolBox.showToast(en?'Check USL/LSL and σ before copying':'请先完成有效计算（含 USL>LSL、σ>0）','warning'); return; }
+  ToolBox.copyText('Cp='+r.Cp.toFixed(3)+' Cpk='+r.Cpk.toFixed(3)+' 合格率='+(r.yieldExact*100).toFixed(4)+'% DPMO='+Math.round(r.dpmo), en?'Copied':'已复制结果');
 }
 calc();
 </script>

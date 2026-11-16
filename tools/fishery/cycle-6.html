@@ -123,8 +123,8 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据池塘面积、水深、放养密度和投饵率估算有机质累积速率，计算推荐清淤周期，追踪清淤倒计时与水质风险等级。">Compute the pond desilting cycle from organic matter accumulation.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">清淤周期(月) = 阈值浓度 ÷ 月均浓度；月均浓度 = 日投饵×30×残留率 ÷ 水体 × 1000</div>
-      <p class="formula-desc">根据池塘面积、水深、放养密度和投饵率估算有机质累积速率，计算推荐清淤周期，追踪清淤倒计时与水质风险等级。</p>
+      <div class="formula-eq">清淤周期(月) = 判据负荷 ÷ 月负荷增量；月负荷增量 = 日投饵×30×残留率 ÷ 塘底面积(kg/m²)；判据负荷 = 底泥 20cm × 干容重 0.35t/m³ × 有机质 5% ≈ 3.5 kg/m²</div>
+      <p class="formula-desc">按饲料残饵沉降至塘底的有机质负荷估算，达到「底泥 20 cm、有机质约 5%」判据所需时间即为推荐周期；实际还应结合底泥实测厚度与泥沙淤积。</p>
     </div>
 
     <h3>➕ 添加池塘记录</h3>
@@ -161,7 +161,7 @@
       <button class="btn" onclick="fillToday()">⏰ 填入今天</button>
       <button class="btn" onclick="window.__pondExport()">⬇️ 导出清淤计划 CSV</button>
     </div>
-    <table id="pondHidden" style="display:none;"><thead><tr><th>Pond</th><th>Area (mu)</th><th>Depth (m)</th><th>Density (/mu)</th><th>Feed Rate (%)</th><th>Last Clean</th><th>Monthly Accum (kg)</th><th>Monthly Conc (mg/L)</th><th>Cycle (months)</th><th>Next Clean</th><th data-zh="剩余天数">Days Left</th><th data-zh="风险">Risk</th></tr></thead><tbody></tbody></table>
+    <table id="pondHidden" style="display:none;"><thead><tr><th>Pond</th><th>Area (mu)</th><th>Depth (m)</th><th>Density (/mu)</th><th>Feed Rate (%)</th><th>Last Clean</th><th>Monthly Accum (kg)</th><th>Monthly Load (kg/m2)</th><th>Cycle (months)</th><th>Next Clean</th><th data-zh="剩余天数">Days Left</th><th data-zh="风险">Risk</th></tr></thead><tbody></tbody></table>
     <div class="preset-row" style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px;align-items:center;">
       <span style="font-size:13px;color:var(--text-muted);">常见场景预设：</span>
       <button type="button" class="btn ghost" onclick="applyPondPreset('small')">精养塘</button>
@@ -182,10 +182,10 @@
       <p><strong>有机质累积估算模型：</strong></p>
       <p>1. 每亩日投饵量 = 放养密度 × 平均体重(估0.5kg) × 投饵率</p>
       <p>2. 有机质残留率约 30%（未食及排泄转化）</p>
-      <p>3. 月累积量 = 日投饵量 × 30 × 残留率</p>
-      <p>4. 累积浓度 = 累积量 ÷ (面积 × 水深 × 667) ，单位 mg/L</p>
-      <p>5. 当浓度超过 15 mg/L 建议清淤，据此反推周期</p>
-      <p style="margin-top:6px;">注：此为简化估算模型，实际需结合底泥厚度、水温、溶氧等综合判断。</p>
+      <p>3. 月残留量 = 日投饵量 × 30 × 残留率（kg）</p>
+      <p>4. 月单位面积负荷 = 月残留量 ÷ (面积 × 667)，单位 kg/m²</p>
+      <p>5. 清淤判据：底泥厚度 20 cm、有机质约 5%（干容重按 0.35 t/m³）≈ 3.5 kg 有机质/m²，周期 = 3.5 ÷ 月负荷</p>
+      <p style="margin-top:6px;">注：此为只计饲料残饵的简化模型，未含泥沙淤积与藻类残体，实测底泥增长通常更快；生产上多每 1~2 年干塘曝晒、3~5 年清淤一次，最终以底泥实测厚度与有机质含量为准。</p>
     </div>
   </div>
 </div>
@@ -222,20 +222,20 @@ function calcParams(pond) {
   var residueRate = 0.3;
   // 月累积量 kg (按30天)
   var monthlyAccum = dailyFeedTotal * 30 * residueRate;
-  // 池塘水量 m³ (1亩=667m²)
-  var waterVol = area * 667 * depth;
-  // 月累积浓度 mg/L = kg / m³ * 1000000(mg/kg) / 1000(L/m³) = kg/m³ * 1000
-  var monthlyConc = (monthlyAccum / waterVol) * 1000; // mg/L per month
-  // 临界浓度 15 mg/L
-  var threshold = 15;
+  // 池塘底面积 m² (1亩=667m²)
+  var bottomArea = area * 667;
+  // 月单位面积有机质负荷 kg/m²/月
+  var monthlyLoad = monthlyAccum / bottomArea;
+  // 清淤判据：底泥 20cm × 干容重 0.35t/m³ × 有机质 5% ≈ 3.5 kg/m²
+  var threshold = 3.5;
   // 推荐清淤周期 月
-  var cycleMonths = monthlyConc > 0 ? threshold / monthlyConc : 999;
-  if (cycleMonths > 36) cycleMonths = 36;
+  var cycleMonths = monthlyLoad > 0 ? threshold / monthlyLoad : 999;
+  if (cycleMonths > 120) cycleMonths = 120;
   return {
     dailyFeedPerMu: dailyFeedPerMu,
     dailyFeedTotal: dailyFeedTotal,
     monthlyAccum: monthlyAccum,
-    monthlyConc: monthlyConc,
+    monthlyLoad: monthlyLoad,
     cycleMonths: cycleMonths
   };
 }
@@ -244,18 +244,19 @@ function getRiskLevel(pond) {
   var p = calcParams(pond);
   var lastClean = pond.lastClean ? new Date(pond.lastClean) : new Date(pond.createdAt);
   var monthsPassed = (Date.now() - lastClean.getTime()) / (1000 * 60 * 60 * 24 * 30);
-  var currentConc = p.monthlyConc * monthsPassed;
-  var ratio = currentConc / 15;
-  if (ratio < 0.6) return { level: 'low', label: '低风险', conc: currentConc, ratio: ratio };
-  if (ratio < 0.9) return { level: 'mid', label: '中风险', conc: currentConc, ratio: ratio };
-  return { level: 'high', label: '高风险', conc: currentConc, ratio: ratio };
+  var currentLoad = p.monthlyLoad * monthsPassed;
+  var ratio = currentLoad / 3.5;
+  if (ratio < 0.6) return { level: 'low', label: '低风险', load: currentLoad, ratio: ratio };
+  if (ratio < 0.9) return { level: 'mid', label: '中风险', load: currentLoad, ratio: ratio };
+  return { level: 'high', label: '高风险', load: currentLoad, ratio: ratio };
 }
 
 function getNextCleanDate(pond) {
   var p = calcParams(pond);
   var lastClean = pond.lastClean ? new Date(pond.lastClean) : new Date(pond.createdAt);
   var next = new Date(lastClean);
-  next.setMonth(next.getMonth() + Math.round(p.cycleMonths));
+  // 按天推进（周期不足 1 个月时 Math.round 会取成 0，导致下次清淤=上次日期）
+  next.setDate(next.getDate() + Math.max(1, Math.round(p.cycleMonths * 30.44)));
   return next;
 }
 
@@ -276,7 +277,7 @@ function __pondExport(){
     var next=getNextCleanDate(p);
     var days=getDaysUntil(next);
     var tr=document.createElement('tr');
-    tr.innerHTML='<td>'+ToolBox.escHtml(p.name)+'</td><td>'+p.area+'</td><td>'+p.depth+'</td><td>'+p.density+'</td><td>'+p.feedRate+'</td><td>'+(p.lastClean||'-')+'</td><td>'+cp.monthlyAccum.toFixed(1)+'</td><td>'+cp.monthlyConc.toFixed(2)+'</td><td>'+cp.cycleMonths.toFixed(1)+'</td><td>'+fmtDate(next)+'</td><td>'+days+'</td><td>'+risk.label+'</td>';
+    tr.innerHTML='<td>'+ToolBox.escHtml(p.name)+'</td><td>'+p.area+'</td><td>'+p.depth+'</td><td>'+p.density+'</td><td>'+p.feedRate+'</td><td>'+(p.lastClean||'-')+'</td><td>'+cp.monthlyAccum.toFixed(1)+'</td><td>'+cp.monthlyLoad.toFixed(3)+'</td><td>'+cp.cycleMonths.toFixed(1)+'</td><td>'+fmtDate(next)+'</td><td>'+days+'</td><td>'+risk.label+'</td>';
     tb.appendChild(tr);
   });
   TBKit.util.exportTable('#pondHidden',en?'pond-dredging-plan.csv':'池塘清淤计划.csv');
@@ -353,7 +354,7 @@ function renderPonds() {
     html += '<div class="pond-info">';
     html += '<span>日投饵量：<b>' + p.dailyFeedTotal.toFixed(1) + ' kg</b></span>';
     html += '<span>月有机质累积：<b>' + p.monthlyAccum.toFixed(1) + ' kg</b></span>';
-    html += '<span>月浓度增量：<b>' + p.monthlyConc.toFixed(2) + ' mg/L</b></span>';
+    html += '<span>月单位面积负荷：<b>' + p.monthlyLoad.toFixed(3) + ' kg/m²</b></span>';
     html += '</div>';
     html += '<div class="pond-info">';
     html += '<span>上次清淤：<b>' + pond.lastClean + '</b></span>';
@@ -364,7 +365,7 @@ function renderPonds() {
     // risk bar
     var barColor = risk.level === 'low' ? 'var(--success)' : (risk.level === 'mid' ? 'var(--warning)' : 'var(--danger)');
     var barPct = Math.min(risk.ratio * 100, 100);
-    html += '<div style="margin-top:8px;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">有机质累积进度 (' + risk.conc.toFixed(1) + ' / 15 mg/L)</div>';
+    html += '<div style="margin-top:8px;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">底泥有机质负荷 (' + risk.load.toFixed(2) + ' / 3.5 kg/m²)</div>';
     html += '<div class="progress-bar"><div class="progress-fill" style="width:' + barPct + '%;background:' + barColor + ';"></div></div></div>';
     if (risk.level === 'high') {
       html += '<div class="tip-box tip-error" style="margin-top:8px;">🚨 底泥有机质累积已达高风险！建议尽快安排清淤，否则易引发水质恶化、缺氧泛塘</div>';
@@ -385,8 +386,15 @@ function applyPondPreset(kind){
           kind==='large'?{n:'2号粗养塘',a:20,d:2.0,den:300,f:2.0}:
           kind==='high'?{n:'3号高密度塘',a:8,d:1.8,den:2000,f:3.5}:null;
   if(!sc)return;
-  ponds=[{id:Date.now(),name:sc.n,area:sc.a,depth:sc.d,density:sc.den,feedRate:sc.f,lastClean:today,createdAt:Date.now()}];
+  var exist=null;
+  for(var i=0;i<ponds.length;i++){if(ponds[i].name===sc.n){exist=ponds[i];break;}}
+  if(exist){
+    exist.area=sc.a;exist.depth=sc.d;exist.density=sc.den;exist.feedRate=sc.f;
+  }else{
+    ponds.push({id:Date.now(),name:sc.n,area:sc.a,depth:sc.d,density:sc.den,feedRate:sc.f,lastClean:today,createdAt:Date.now()});
+  }
   save();render();
+  ToolBox.showToast(exist?'已更新预设池塘：'+sc.n:'已添加预设池塘：'+sc.n,'success');
 }
 load();
 render();
@@ -442,7 +450,7 @@ if (document.readyState === 'loading') {
   <ul>
     <li>本工具基于简化估算模型，实际清淤决策需结合底泥厚度检测、水质指标、养殖品种等因素综合判断</li>
     <li>有机质残留率按 30% 估算，实际因饲料类型、摄食情况、水温等差异较大</li>
-    <li>临界浓度 15 mg/L 为经验参考值，高密度养殖可适当降低阈值</li>
+    <li>清淤判据 3.5 kg/m² 由「底泥 20 cm × 干容重 0.35 t/m³ × 有机质 5%」折算，属经验参考值；只计饲料残饵，未含泥沙淤积，实际清淤以底泥实测厚度为准</li>
     <li>清淤后点击「标记今日已清淤」可重置倒计时</li>
     <li>数据保存在浏览器本地，清除缓存会丢失</li>
   </ul>
@@ -479,11 +487,11 @@ if (document.readyState === 'loading') {
 <li>预警淤泥临界浓度，安排清淤与复养间隔</li>
 <li>结合上次清淤日期推算下次清淤时间与风险等级</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">10 亩精养塘月度核算</div><div class="dd-ex-body">以 10 亩、水深 2 m、放养 500 尾/亩、日投饵率 1% 为例：日投饵约 25 kg，月有机质残留（按 30%）约 225 kg，水体 13340 m³，月浓度增量约 16.9 mg/L；按临界 15 mg/L 推算约 27 天达限，须按月清淤并加强排污。</div></div>
+<div class="dd-example"><div class="dd-ex-title">10 亩精养塘月度核算</div><div class="dd-ex-body">以 10 亩、水深 2 m、放养 500 尾/亩、日投饵率 1% 为例：日投饵约 25 kg，月有机质残留（按 30%）约 225 kg，塘底面积约 6667 m²，月单位面积负荷约 0.034 kg/m²；按底泥 20 cm、有机质 5%（约 3.5 kg/m²）推算约 104 个月（约 8.6 年），叠加泥沙与藻类残体后实际通常每 1~2 年干塘曝晒、3~5 年清淤一次，最终以底泥实测厚度为准。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>清淤周期怎么算？</dt><dd>按投饵量×残留率得月有机质累积，除以水量得月浓度增量，再用临界浓度(15 mg/L)反推可达标月数；高密度精养该值会显著缩短。</dd>
-<dt>风险等级看什么？</dt><dd>看距上次清淤以来累积浓度占临界(15 mg/L)的比例：&lt;60% 低、60~90% 中、≥90% 高，高风险须立即清淤或强排污。</dd>
+<dt>清淤周期怎么算？</dt><dd>按投饵量×残留率得月有机质残留，除以塘底面积（亩×667）得月单位面积负荷，再用「底泥 20 cm、有机质 5% ≈ 3.5 kg/m²」的判据反推周期；模型只计饲料残饵，未含泥沙淤积，实测底泥增长通常更快。</dd>
+<dt>风险等级看什么？</dt><dd>看距上次清淤以来累积的有机质负荷占 3.5 kg/m² 判据的比例：&lt;60% 低、60~90% 中、≥90% 高，高风险须安排清淤或强化排污。</dd>
 </dl>
 </div>
 </section>

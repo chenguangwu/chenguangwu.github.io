@@ -192,6 +192,19 @@ const CASES = [
   "expect": [ "传输效率需在 1–100% 之间" ],
   "ref": "传输效率 >100% 物理上不存在，旧实现按 120% 照算（高估下载速度）；新实现拒绝。默认 85% 不出现该提示。"
 }
+,
+{
+  "slug": "telecom/webrtc-leak-test",
+  "clicks": ["(function(){var F=globalThis.__ntAnalyze;function cls(t,e){var h=F('x',t,e);if(h.indexOf('>不一致<')>=0||h.indexOf('>Mismatch<')>=0)return 'NEG';if(h.indexOf('>一致<')>=0||h.indexOf('>Match<')>=0)return 'POS';if(h.indexOf('>无法判断<')>=0||h.indexOf('>Unknown<')>=0)return 'UNK';return '?';}var N=String.fromCharCode(10);var r1=cls('一致性: 不一致'+N+'内网地址: —',false);var r2=cls('Consistency: Mismatch'+N+'Private addresses: —',true);var r3=cls('一致性: 一致'+N+'内网地址: —',false);var r4=cls('Consistency: Match'+N+'Private addresses: —',true);var ok=(r1==='NEG'&&r2==='NEG'&&r3==='POS'&&r4==='POS');document.getElementById('__tbProbe').textContent='WEBRTC '+(ok?'OK':'BAD '+[r1,r2,r3,r4].join(','));})()"],
+  "expect": ["WEBRTC OK"],
+  "ref": "第288批：__ntAnalyze 一致性须按完整状态精确判断。中文「不一致」含「一致」、英文「Mismatch」含 match，旧版 /一致|Match/ 会把不一致误判为一致（或落到 Check）。用真实结果格式「一致性: 不一致 / Consistency: Mismatch」反例，四态须 NEG/NEG/POS/POS；修复前 r1=POS、r2=? ⇒ BAD。"
+},
+{
+  "slug": "telecom/public-ip-lookup",
+  "clicks": ["(function(){var F=globalThis.__ntAnalyze;function cls(ip){var N=String.fromCharCode(10);var h=F('x','IP: '+ip+N+'来源: test'+N+'时区: —',false);if(h.indexOf('>私有/保留地址<')>=0)return 'RES';if(h.indexOf('>公网地址<')>=0)return 'PUB';if(h.indexOf('>地址性质待确认<')>=0)return 'UNK';return '?';}var ips=['100.64.0.1','fc00::1','8.8.8.8','2001:4860:4860::8888','192.168.1.1'];var want=['RES','RES','PUB','PUB','RES'];var got=ips.map(cls);var ok=(got.join(',')===want.join(','));document.getElementById('__tbProbe').textContent='IPCLS '+(ok?'OK':'BAD '+got.join(','));})()"],
+  "expect": ["IPCLS OK"],
+  "ref": "第288批：T1 地址分类旧版只排除少量 IPv4 私网段，100.64.0.1（100.64.0.0/10 CGNAT 共享地址）与 IPv6 fc00::1（fc00::/7 ULA）被误判为「全球可路由地址」。修复后按完整保留段判定、对无法确认的地址不断言公网；注入 5 地址须 RES/RES/PUB/PUB/RES，修复前为 PUB/PUB/PUB/PUB/RES ⇒ 强判别。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

@@ -112,7 +112,7 @@
     <h2 data-zh="❤️ 动态心电图(Holter)室早室速分级器">Holter Grading</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基于Lown分级系统对室性心律失常进行危险分级，指导临床干预决策">Holter Grading</p>
     <div class="formula-box">
- <div class="formula-eq">Lown分级(按最重表现)：R-on-T现象→5级；室速(≥3连发)→4B；成对室早→4A；多形性室早→3级；频发室早(≥30次/小时)→2级；偶发(<30次/小时)→1级；无室早→0级。室早负荷 = 24h室早总数 / 估算总心搏(≈100000) × 100%：&lt;10%低危、≤15%中危、≤24%高危、&gt;24%极高危。</div>      <div class="formula-title">📐 工作原理与说明</div>
+ <div class="formula-eq">Lown分级(按最重表现)：R-on-T现象→5级；室速(≥3连发)→4B；成对室早→4A；多形性室早→3级；频发室早(≥30次/小时，未填每小时时按 24h 总量折算)→2级；偶发(<30次/小时)→1级；无室早→0级。室早负荷 = 24h室早总数 / 24h总心搏(默认 100000，可填实际值) × 100%：&lt;10%低危、≤15%中危、≤24%高危、&gt;24%极高危。</div>      <div class="formula-title">📐 工作原理与说明</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：pvcTotal÷totalBeats×100">Key formulas: pvcTotal÷totalBeats×100</p>
     </div>
 
@@ -131,6 +131,7 @@
     <div class="input-row">
       <div><label>室速最长持续 (搏动数)</label><input type="number" id="vtBeats" value="0" oninput="calc()" placeholder="如 0"></div>
       <div><label>室速持续时间 (秒)</label><input type="number" id="vtSec" value="0" oninput="calc()" placeholder="如 0"></div>
+      <div><label>24h 总心搏数</label><input type="number" id="totalBeats" value="100000" min="1" step="1000" oninput="calc()" placeholder="默认 100000"></div>
     </div>
 
     <div class="toolbar">
@@ -168,7 +169,7 @@
     </table>
   </div>
 
-  <div class="info-box">提示：Lown分级主要用于急性心梗后室早评估，对非缺血性室早的预测价值有限。室早负荷>15%或合并心功能下降者应评估导管消融指征。室速持续>30秒为持续性室速，需紧急处理。仅供临床参考。</div>
+  <div class="info-box">提示：Lown分级主要用于急性心梗后室早评估，对非缺血性室早的预测价值有限。室早负荷>15%或合并心功能下降者应评估导管消融指征。室速持续≥30秒为持续性室速，需紧急处理。仅供临床参考。</div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -259,29 +260,36 @@ function calc(){
 
   // Lown分级
   var lown,lownColor,details=[];
+  // 频发判定：优先用每小时室早数；未填时用 24h 总量折算，避免「8500 次/24h」被当偶发
+  var effHr = pvcHr>0 ? pvcHr : pvcTotal/24;
+  var freqDetail = pvcHr>0 ? '频发室早(≥30次/小时) → Lown 2级' : '频发室早(24h 总量折算 ≥30次/小时) → Lown 2级';
   if(ront){lown=5;lownColor='#EF4444';details.push('R-on-T现象 → Lown 5级');}
   else if(vt){lown='4B';lownColor='#EF4444';details.push('室速(≥3连发) → Lown 4B级');}
   else if(couplets){lown='4A';lownColor='#F59E0B';details.push('成对室早 → Lown 4A级');}
   else if(multiform){lown=3;lownColor='#F59E0B';details.push('多形性室早 → Lown 3级');}
-  else if(pvcHr>=30){lown=2;lownColor='#3B82F6';details.push('频发室早(≥30次/小时) → Lown 2级');}
-  else if(pvcHr>0||pvcTotal>0){lown=1;lownColor='#10B981';details.push('偶发室早(<30次/小时) → Lown 1级');}
+  else if(effHr>=30){lown=2;lownColor='#3B82F6';details.push(freqDetail);}
+  else if(effHr>0){lown=1;lownColor='#10B981';details.push('偶发室早(<30次/小时) → Lown 1级');}
   else{lown=0;lownColor='#10B981';details.push('无室早 → Lown 0级');}
 
-  // 室早负荷
-  // 假设24h心搏约100000次（可根据实际心率调整）
-  var totalBeats=100000;
+  // 室早负荷：优先用录入的 24h 总心搏；缺省或非法时按 100000 估算
+  var totalBeatsRaw = parseFloat((document.getElementById('totalBeats')||{}).value);
+  var totalBeats = (isFinite(totalBeatsRaw) && totalBeatsRaw > 0) ? totalBeatsRaw : 100000;
   var burden=pvcTotal/totalBeats*100;
   var burdenLevel,burdenColor,burdenAdvice;
   if(burden<10){burdenLevel='低危';burdenColor='#10B981';burdenAdvice='通常良性，定期随访观察。';}
   else if(burden<=15){burdenLevel='中危';burdenColor='#F59E0B';burdenAdvice='监测心功能变化，评估心律失常性心肌病可能。';}
   else if(burden<=24){burdenLevel='高危';burdenColor='#EF4444';burdenAdvice='心律失常性心肌病风险高，考虑导管消融。';}
   else{burdenLevel='极高危';burdenColor='#EF4444';burdenAdvice='强烈推荐导管消融治疗，密切监测心功能。';}
+  // Lown 已达 2 级及以上时，低负荷也不能只给「通常良性」的结论
+  if(lown!==0 && String(lown)!=='1' && burden<10){
+    burdenAdvice='室早负荷虽低，但 Lown 分级已达 '+lown+' 级：仍需评估病因（心肌缺血、心肌病、电解质）与症状，定期复查。';
+  }
 
   // 室速分析
   var vtType='',vtAdvice='';
   if(vt){
-    if(vtSec>30||(vtBeats>0&&vtBeats>=100)){
-      vtType='持续性室速';vtAdvice='持续>30秒，血流动力学不稳定风险高，需紧急电复律/药物终止，评估ICD指征。';
+    if(vtSec>=30||(vtBeats>0&&vtBeats>=100)){
+      vtType='持续性室速';vtAdvice='持续≥30秒，血流动力学不稳定风险高，需紧急电复律/药物终止，评估ICD指征。';
     }else if(vtBeats>=3){
       vtType='非持续性室速(NSVT)';vtAdvice='<30秒，需评估结构性心脏病，高危者考虑ICD。';
     }else{
@@ -302,7 +310,7 @@ function calc(){
 
   html+='<div class="ref-card"><h4>室早负荷分析</h4><ul>';
   html+='<li>24h室早总数：'+pvcTotal+'次</li>';
-  html+='<li>估算24h总心搏：~'+totalBeats+'次（假设心率~70bpm）</li>';
+  html+='<li>估算24h总心搏：~'+totalBeats+'次（可自行填写，未填时按 ~70bpm 估算）</li>';
   html+='<li>室早负荷 = '+pvcTotal+'/'+totalBeats+' = <strong>'+burden.toFixed(1)+'%</strong></li>';
   html+='<li>风险分级：<strong style="color:'+burdenColor+';">'+burdenLevel+'</strong></li>';
   html+='</ul></div>';

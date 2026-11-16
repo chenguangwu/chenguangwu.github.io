@@ -116,7 +116,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="用 n−1 自由度的样本方差。">Enter a data set to compute the sample variance using n - 1 degrees of freedom, measuring dispersion for inferential statistics and hypothesis testing.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">样本方差与标准差（本页代码口径，数据按逗号分隔）：均值 x̄=Σx÷n；样本方差 s²=Σ(xᵢ−x̄)²÷(n−1)；样本标准差 s=√s²，均保留 4 位小数。校验：数据框经输入守卫必填，无法解析的项被过滤不计入 n。判据：无固定分级，数据全部相同则方差为 0，n=1 时分母为 0 结果无定义。</div>
+      <div class="formula-eq">样本方差与标准差（本页代码口径，数据按逗号、分号、空白或全角分隔符逐项严格解析）：均值 x̄=Σx÷n；样本方差 s²=Σ(xᵢ−x̄)²÷(n−1)；样本标准差 s=√s²，均保留 4 位小数。校验：数据框经输入守卫必填，无法解析的项不计入 n；n<2 时主算停答并清空图表/明细/差异/历史；主算与附加层共用同一份解析数组。判据：无固定分级，数据全部相同则方差为 0。</div>
       <p class="formula-desc">用 n−1 自由度的样本方差。</p>
     </div>
 
@@ -134,12 +134,11 @@
       <button class="btn" onclick="__svExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result">
+    <div class="result-box" id="result"></div>
     <div id="svChart" role="img" aria-label="结果可视化"></div>
     <div id="svTable"></div>
     <div id="svDiff"></div>
     <div id="svHist"></div>
-</div>
 
     <!-- Formula & Standard References -->
     <div class="card" id="constRefBox">
@@ -220,7 +219,7 @@
 </div>
 <script>function __tbInputGuard(_ids,_labels){
   var __r=__tbInputGuardCore(_ids,_labels);
-  if(__r){var __t=document.getElementById('svTable');if(__t)__t.innerHTML='';}
+  if(__r){__svClear();}
   return __r;
 }
 function __tbInputGuardCore(_ids,_labels){
@@ -281,7 +280,8 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
               var __ig=__tbInputGuard(['data'],["数据（逗号分隔）"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const arr = document.getElementById('data').value.split(',').map(s => parseFloat(s.trim())).filter(v => !isNaN(v));
+const arr = __svList(document.getElementById('data').value);
+            if(arr.length<2){__svClear();ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 请至少输入 2 个有效数值（无法解析的项不计入 n），否则样本方差的分母 n−1 无定义。</p>');return;}
             const n = arr.length, mean = arr.reduce((a, b) => a + b, 0) / n;
             const ss = arr.reduce((a, b) => a + (b - mean) * (b - mean), 0);
             const __g2=dataGrid([
@@ -295,15 +295,19 @@ function resetForm(){document.getElementById('data').value = '2,4,4,4,5,5,7,9';
 calcTool();
 
 function __svN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
-function __svList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __svList(s){return String(s||'').split(/[,\s;，；、]+/).filter(function(x){return x!=='';}).map(function(x){return Number(x);}).filter(function(v){return isFinite(v);});}
+function __svClear(){
+  var ids=['svChart','svTable','svDiff','svHist'];
+  for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}
+}
 function __svL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
 
 
 function __svExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#svTable','sample-variance.csv');}catch(e){} }
 function __svExtras(){
-    if(typeof TBKit==='undefined')return;
+    if(typeof TBKit==='undefined'){__svClear();return;}
     try{
-        var arr=__svList(document.getElementById('data').value); if(arr.length<2)return;
+        var arr=__svList(document.getElementById('data').value); if(arr.length<2){__svClear();return;}
         var n=arr.length, mean=arr.reduce(function(a,b){return a+b;},0)/n;
         var ss=arr.reduce(function(a,b){return a+(b-mean)*(b-mean);},0);
         var v=ss/(n-1), sd=Math.sqrt(v);
@@ -392,7 +396,7 @@ else document.addEventListener("DOMContentLoaded", __svBoot);
 
 <script>/*TBKIT-INJECT-START*/
 (function(){
-  var P={"res": ["result", "svChart"], "tbl": ["svTable"], "pre": ["svPresets"], "his": ["svHist"]};
+  var P={"res": ["result", "svChart"], "tbl": ["svTable", "svDiff"], "pre": ["svPresets"], "his": ["svHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
     var bar=document.querySelector('.tbk-tabbar');

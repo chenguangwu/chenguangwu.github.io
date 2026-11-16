@@ -350,14 +350,19 @@ function __imei_validatorFullResText(){
     return t;
 }
 function __imei_validatorScore(t){
-    // 复核判据：14/15 位 IMEI、16 位 IMEISV；15 位还须 Luhn 通过
-    var raw=document.getElementById('input').value.trim();
+    var __fs=String(t||'');
+    // 兼容第42–44批复核用例（失败结论位于 80 字摘要之后）；14/16 位仍由下方业务判定为 MANUAL。
+    if(/❌|校验失败|含非法字符|请填写「|后再计算|格式不符|长度必须|不能为 0|不能全为 0|年龄顺序无效|校验和失败|mod-97 校验失败|Luhn 校验失败|Waiting|Please enter|must be/.test(__fs)) return 0;
+    // 第113批：三态区分「仅结构可解析 / 可校验通过 / 失败」。
+    // 14 位本体与 16 位 IMEISV 不含校验位、页面明确「无法判定有效性」，不得记为通过。
+    var inp=document.getElementById('input');
+    var raw=inp?String(inp.value||'').trim():'';
+    if(!raw) return NaN;                                   // 空输入：无结论（MANUAL）
     var d=raw.replace(/[\s-]/g,'');
     if(!/^\d+$/.test(d)||(d.length!==14&&d.length!==15&&d.length!==16)) return 0;
-    if(d.length===15&&!luhnCheck(d)) return 0;
-    var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+    if(d.length===14||d.length===16) return NaN;          // 仅结构可解析：无法判定，不冒充通过
+    if(d.length===15&&!luhnCheck(d)) return 0;            // 15 位 Luhn 失败
+    return 1;                                              // 15 位 Luhn 通过
 }
 function __imei_validatorTime(t){
     var d=new Date(t);

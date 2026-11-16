@@ -263,6 +263,34 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "pulmonology/gina-asthma",
+  "inputs": {
+    "a1": "3",
+    "a2": "4",
+    "a3": "3",
+    "a4": "4",
+    "a5": "3"
+  },
+  "expect": [
+    "17/25 ACT总分 未良好控制（部分控制）"
+  ],
+  "ref": "D-N104 四档回归：3+4+3+4+3=17 落 16–19「未良好控制（部分控制）」；旧实现把 <20 一律判「未控制」，与预设「部分控制」自相矛盾。默认首屏为空值提示，零交集。"
+},
+{
+  "slug": "pulmonology/gina-asthma",
+  "inputs": {
+    "a1": "3",
+    "a2": "3",
+    "a3": "3",
+    "a4": "3",
+    "a5": "3"
+  },
+  "expect": [
+    "15/25 ACT总分 控制很差"
+  ],
+  "ref": "D-N104 下界：15 分属 ≤15「控制很差」，旧实现统称「未控制」；与 17 分档互斥，可判别四档是否真正拆开。"
+},
+{
   // 默认 T1a → ⅠA1期；注入 T2a/N0/M0 → ⅠB期
   "slug": "pulmonology/lung-cancer-tnm",
   "inputs": {
@@ -286,6 +314,32 @@ const CASES = [
     "Lung-RADS 2 年度低剂量CT复查。"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "pulmonology/lung-rads",
+  "inputs": {
+    "type": "solid",
+    "size": "15"
+  },
+  "expect": [
+    "Lung-RADS 4B"
+  ],
+  "ref": "D-N108 边界：实性 15mm 按同页公式「不低于 15mm 为 4B」应判 4B；旧实现 `size<15 → 4A` 之外的分支虽为 4B，但引入 15 整边界用例锁定。默认 9mm ⇒ 4A，不命中。"
+},
+{
+  "slug": "pulmonology/lung-rads",
+  "inputs": {
+    "type": "solid",
+    "size": "3"
+  },
+  "checkIds": ["malignant"],
+  "clicks": [
+    "calc();var b=document.getElementById('result').innerHTML;document.getElementById('result').innerHTML=(/Lung-RADS类别/.test(b)&&/>2</.test(b))?'__LR3_OK__':'__LR3_FAIL__'+b"
+  ],
+  "expect": [
+    "__LR3_OK__"
+  ],
+  "ref": "D-N110 4X 守卫：3mm 实性属 2 类，即使勾选典型恶性征象也不得升 4X；旧实现对任意大小升 4X。clicks 校验结果卡类别仍为 2，默认 9mm 不勾征象为 4A，若守卫失效则输出 FAIL。"
 },
 {
   // Wells 7 项（q0-q6，动态 id）注入全「是」→ 3+3+1.5+1.5+1.5+1+1 = 12.5 → 高风险
@@ -362,6 +416,20 @@ const CASES = [
     "5/8"
   ],
   "ref": "STOP-BANG 八项各 1 分：S(打鼾)+T(疲倦)+O(呼吸暂停)+P(高血压)+BMI>35 = 5 → 5/8 → 高危"
+},
+{
+  "slug": "pulmonology/stop-bang",
+  "checkIds": [
+    "s",
+    "t"
+  ],
+  "clicks": [
+    "calc();var b=document.getElementById('result').innerHTML;document.getElementById('result').innerHTML=(/2\\/8/.test(b)&&/低危/.test(b))?'__SB2_OK__':'__SB2_FAIL__'+b"
+  ],
+  "expect": [
+    "__SB2_OK__"
+  ],
+  "ref": "D-N113 性别默认值：G 项原为 `checked`，女性用户不主动取消时只会打鼾/疲倦也会被抬成 3 分中危；改为默认不勾选后 S+T=2 分应落「2/8 低危」。clicks 读结果区比对分数与等级后写标记，若默认仍勾选则得 3/8 中危 ⇒ FAIL。"
 },
 {
   // 默认（harness 首选项）smear=3+ / culture=pos ⇒ 有传染性；注入涂片阴性 ⇒ 传染性低
@@ -445,6 +513,49 @@ const CASES = [
   "clicks": ["document.getElementById('g4').value='';calcGina();document.getElementById('result').textContent='PARTIAL:'+document.getElementById('result').innerHTML.replace(/<[^>]*>/g,'').trim();"],
   "expect": ["PARTIAL:请输入四项 GINA 控制问题（是/否）后再评估控制水平。"],
   "ref": "原生缺陷修复：GINA 四项（是/否）与 ACT 五题（1-5 分）共 9 个下拉全部改为「请选择」空值默认，首屏不再直接给「未控制/完全控制」分级与升级/降级治疗建议。"
+}
+
+,
+{
+  "slug": "pulmonology/gina-asthma",
+  "clicks": ["(function(){var recs=[];globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},matrix:{table:function(){}},chart:{line:function(){}},preset:{bar:function(){}},history:{list:function(){return recs.slice().reverse();},last:function(){return recs.length?recs[recs.length-1]:null;},record:function(r){recs.push(r);},mount:function(){}}};var oS=__gina_asthmaSnap,oR=__gina_asthmaResText;__gina_asthmaSnap=function(){return {g1:'1',a1:'5'};};var call=0;__gina_asthmaResText=function(){call++;return call===1?'GINA 良好控制':'ACT 25/25 完全控制';};__gina_asthma_skip=false;__gina_asthmaExtras('gina');__gina_asthmaExtras('act');__gina_asthmaSnap=oS;__gina_asthmaResText=oR;var ok=(recs.length===2&&recs[0].__tbType==='gina'&&recs[1].__tbType==='act');document.getElementById('__tbProbe').textContent='GINAREC '+(ok?'OK':'BAD n='+recs.length+' t0='+(recs[0]&&recs[0].__tbType)+' t1='+(recs[1]&&recs[1].__tbType));})()"],
+  "expect": ["GINAREC OK"],
+  "ref": "第307批：两个包装共用 __gina_asthmaExtras 有 now-last<1000 时间节流，预设回调同步 calcGina();calcAct() 会吞掉第二条致 ACT 不入库；且记录须带评估类型。连续两次 Extras('gina')/Extras('act') 且结果文本不同，须各入库一条并分别标记 __tbType；修复前节流使 n=1、或类型缺失 ⇒ BAD。"
+},
+{
+  "slug": "pulmonology/gina-asthma",
+  "clicks": ["(function(){var cb=null;globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},matrix:{table:function(){}},chart:{line:function(){}},preset:{bar:function(){}},history:{list:function(){return [{t:1700000000000,d:{__tbScore:1,'结果':'x'}}];},last:function(){return null;},record:function(){},mount:function(s,c){cb=c;}}};__gina_asthmaRender(['g1','a1'],'结果',false);var calls=[];var oG=calcGina,oA=calcAct;calcGina=function(){calls.push('gina');};calcAct=function(){calls.push('act');};if(cb)cb({g1:'1',g2:'0',g3:'0',g4:'0','结果':'GINA 良好控制',__tbScore:1,__tbType:'gina'});calcGina=oG;calcAct=oA;var ok=(!!cb&&calls.length===1&&calls[0]==='gina');document.getElementById('__tbProbe').textContent='GINAREPLAY '+(ok?'OK':'BAD '+calls.join(',')+' cb='+(!!cb));})()"],
+  "expect": ["GINAREPLAY OK"],
+  "ref": "第307批：GINA 与 ACT 共用 #result，历史回放旧版无条件先 calcGina() 后 calcAct()，后者覆盖前者 ⇒ 回放 GINA 记录却显示 ACT。修复后按记录 __tbType 重算，回放 __tbType=gina 的记录须只调 calcGina（calls=[gina]）；修复前 calls=[gina,act] ⇒ BAD。"
+},
+{
+  "slug": "pulmonology/pulmonary-function",
+  "inputs": { "fev1": "2", "fvc": "3", "fev1pp": "60", "fvcpp": "" },
+  "expect": ["请输入有效的 FEV1%pred 与 FVC%pred"],
+  "ref": "03-112 核销：FEV1%pred/FVC%pred 空值不再按 0 判「混合性通气功能障碍 GOLD 4」，改为拦截提示。"
+},
+{
+  "slug": "pulmonology/pneumothorax",
+  "inputs": { "a": "", "b": "2", "c": "2" },
+  "expect": ["请填写 A/B/C 三处胸膜间距"],
+  "ref": "03-117 核销：三处间距任一空值即拦截，不再按 0 输出「0% 少量气胸，可观察吸氧」。"
+},
+{
+  "slug": "pulmonology/self-assess-3",
+  "expect": ["当前为默认评分（6 题均为默认选项）"],
+  "ref": "03-152 核销：默认未作答时只显示「当前为默认评分…请按实际修改后查看解读」，不再直接输出 7 分「高度依赖」与戒烟处方。"
+},
+{
+  "slug": "pulmonology/bronchoscopy-grading",
+  "inputs": { "stenGrade": "1" },
+  "expect": ["管腔狭窄＜50%"],
+  "ref": "03-167：Myer-Cotton I 级应为＜50%（原写＜25%）；II/III 级同步改为 50%–70% / 71%–99%。默认 II 级为 50%-70%，与本串不交集。"
+},
+{
+  "slug": "pulmonology/wells-pe",
+  "clicks": ["document.getElementById('hr').checked=true;calc();"],
+  "expect": ["1.5 Wells总分", "低危 (PE概率 ～1.3%)"],
+  "ref": "03-158 核销：Wells 三分类改为 <2 低危（原 score<=1），仅勾选心率 1.5 分 ⇒ 低危 1.3%，不再判「中危 16.2%」；同时移除 hr 默认勾选，首屏不再预置危险因素。"
 }
 
 ];

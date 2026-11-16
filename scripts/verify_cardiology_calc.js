@@ -64,6 +64,22 @@ const CASES = [
   "ref": "extent=descOnly（仅降主动脉）→ Stanford B 型 / DeBakey IIIa；malPerf=脏器灌注不良 → complicated → 紧急 TEVAR 腔内修复"
 },
 {
+  "slug": "cardiology/aortic-dissection",
+  "radios": {
+    "extent": "ascDesc"
+  },
+  "checkIds": [
+    "htn"
+  ],
+  "clicks": [
+    "var b=document.getElementById('result').innerHTML;document.getElementById('result').innerHTML=(/A型[\\s\\S]{0,12}累及升主动脉/.test(b)&&/I型/.test(b))?'__AD_A_OK__':'__AD_A_FAIL__'+b"
+  ],
+  "expect": [
+    "__AD_A_OK__"
+  ],
+  "ref": "D-N94 示例回归：深解示例为「升+降全程 + 仅高血压 ⇒ Stanford A / DeBakey I / 急诊」，页面默认不预选范围（首屏显示「请选择夹层累及范围」）。clicks 读取结果区同时校验 Stanford A 与 DeBakey I，不选范围或分型错误均输出 FAIL。"
+},
+{
   // 出血增量公式 + 50–59 岁个体化分支
   "slug": "cardiology/aspirin-prevention",
   "inputs": {
@@ -258,6 +274,48 @@ const CASES = [
 {
   "slug": "cardiology/holter-grading",
   "inputs": {
+    "pvcTotal": "8500",
+    "pvcHr": ""
+  },
+  "expect": [
+    "频发室早(24h 总量折算 ≥30次/小时) → Lown 2级"
+  ],
+  "ref": "D-N96 频发判定：只填 24h 总量 8500（≈354 次/小时）而每小时留空时，旧实现 `pvcHr=0` 落「偶发(<30次/小时) → Lown 1级」；修复后按 24h 总量折算判 2 级。默认 pvcTotal=8500、pvcHr=520 走「频发室早(≥30次/小时)」旧文案，与本串互斥。"
+},
+{
+  "slug": "cardiology/holter-grading",
+  "inputs": {
+    "pvcTotal": "12000",
+    "totalBeats": "98000"
+  },
+  "expect": [
+    "室早负荷 = 12000/98000 = 12.2%"
+  ],
+  "ref": "D-N97 总心搏参与：新增 24h 总心搏输入，12,000/98,000 = 12.2%，与深解示例一致；旧实现固定 100,000 得 12.0%。默认 100000 的分母不会产生 12.2%。"
+},
+{
+  "slug": "cardiology/holter-grading",
+  "checkIds": ["vt"],
+  "inputs": {
+    "vtSec": "30",
+    "vtBeats": "0"
+  },
+  "expect": [
+    "持续性室速"
+  ],
+  "ref": "D-N99 边界：同页引据写「非持续(<30s)/持续(≥30s)」，30 秒整应判持续性；旧实现 `vtSec>30` 会判 NSVT。未勾室速时不会输出「持续性室速」，默认 0 秒也走 NSVT。"
+},
+{
+  "slug": "cardiology/holter-grading",
+  "clicks": ["calc()"],
+  "expect": [
+    "室早负荷虽低，但 Lown 分级已达 2 级"
+  ],
+  "ref": "D-N98 默认态自洽：默认 8500 次/24h、520 次/小时 ⇒ Lown 2 级、负荷 8.5% 低危；旧实现只给「通常良性，定期随访观察」，与 Lown 2「需评估病因」冲突。修复后低负荷 + Lown≥2 改给评估病因的提示；纯低负荷（如 200 次、pvcHr 5）仍保留原文案。"
+},
+{
+  "slug": "cardiology/holter-grading",
+  "inputs": {
     "pvcTotal": "12750",
     "pvcHr": "520",
     "vtBeats": "0",
@@ -333,6 +391,52 @@ const CASES = [
 {
   "slug": "cardiology/pericardial-effusion",
   "inputs": {
+    "depth": "8", "distribution": "circum"
+  },
+  "clicks": [
+    "var b=document.getElementById('result').innerHTML;var m=/分级：<strong[^>]*>([^<]+)</.exec(b);document.getElementById('result').innerHTML=(m&&m[1]==='微量')?'__PE8_OK__':'__PE8_FAIL__'+(m?m[1]:b)"
+  ],
+  "expect": [
+    "__PE8_OK__"
+  ],
+  "ref": "D-N102 预设标签：8mm 在五档表内属「微量（<10mm）」，原预设名却写「少量局限性积液」；已改名并补门禁用例。clicks 从结果区读回分级文本比对「微量」，默认 22mm 为「中量」，不会误命中。"
+},
+{
+  "slug": "cardiology/pericardial-effusion",
+  "inputs": {
+    "depth": "30", "distribution": "circum"
+  },
+  "clicks": [
+    "var b=document.getElementById('result').innerHTML;var m=/分级：<strong[^>]*>([^<]+)</.exec(b);document.getElementById('result').innerHTML=(m&&m[1]==='中量')?'__PE30_OK__':'__PE30_FAIL__'+(m?m[1]:b)"
+  ],
+  "expect": [
+    "__PE30_OK__"
+  ],
+  "ref": "D-N103 边界：同页表格「中量 20–30mm、大量 >30mm」，30mm 整应判中量；旧实现 `depth<30` 把 30 判成大量并给出 1000–2000mL。默认 22mm 为中量，但本用例真实注入 30 后比对分级文本，边界写错即 FAIL。"
+},
+{
+  "slug": "cardiology/pericardial-effusion",
+  "inputs": {
+    "depth": "0", "distribution": "circum"
+  },
+  "expect": [
+    "未见心包积液"
+  ],
+  "ref": "D-N100 零深度：0 mm 应提示「未见心包积液」而非按 `depth<10` 给「微量 50–100mL」；旧实现 `parseFloat||0` 且无 0 守卫。默认 22mm 走中量，不命中该串。"
+},
+{
+  "slug": "cardiology/pericardial-effusion",
+  "inputs": {
+    "depth": "-5", "distribution": "circum"
+  },
+  "expect": [
+    "最大深度须为不小于 0 的数值"
+  ],
+  "ref": "D-N100 负值：负数深度属无效测量，旧实现 `||0` 后按微量输出；修复后单独提示。0 mm 走另一条「未见心包积液」文案，二者互斥。"
+},
+{
+  "slug": "cardiology/pericardial-effusion",
+  "inputs": {
     "depth": "33", "distribution": "circum"
   },
   "expect": [
@@ -390,7 +494,32 @@ const CASES = [
     "是否进入终末期或需移植/LVAD 应由心衰专科"
   ],
   "ref": "注入 6MWT 120 米（默认 480）→ 极重度受损分支；页面只提示高死亡风险并要求心衰专科评估，不再写「终末期心衰/终末关怀」。默认 480 不含该句。"
+},
+{
+  "slug": "cardiology/ambulatory-bp",
+  "inputs": { "avg24_sbp": "", "avg24_dbp": "80", "day_sbp": "130", "day_dbp": "80", "night_sbp": "120", "night_dbp": "70", "morning_sbp": "135", "lowest_sbp": "110" },
+  "expect": ["请填写 8 项 ABPM 数值"],
+  "ref": "03-91 核销：8 项任一空值即拦截，不再按 0 输出「0/0 正常 + 非杓型」并生成随访建议。"
+},
+{
+  "slug": "cardiology/coronary-calcium",
+  "inputs": { "age": "60", "cacs": "" },
+  "expect": ["请选择性别，并填写年龄与 Agatston 钙化积分。"],
+  "ref": "03-97 核销：钙化积分空值不再按 0 判「无钙化」并建议停用他汀，改为提示填写（0 分为合法值，须显式填 0）。"
+},
+{
+  "slug": "cardiology/echo-report",
+  "inputs": { "lvef": "" },
+  "expect": ["请输入有效 LVEF（1–100%）"],
+  "ref": "03-132 核销：LVEF 空值不再按 0 判「重度降低/终末期心衰、评估移植/LVAD」，改为拦截不出结论。"
+},
+{
+  "slug": "cardiology/cpet-analysis",
+  "inputs": { "peakVO2": "" },
+  "expect": ["请填写全部 CPET 参数"],
+  "ref": "03-138 核销：五项 CPET 参数任一空值即拦截，不再按 0 落入 Weber D 并「强烈推荐心脏移植/LVAD」。"
 }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

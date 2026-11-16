@@ -66,14 +66,26 @@ const CASES = [
 {
   "slug": "metallurgy/convert-hardness",
   "inputs": { "val": "300", "scale": "hb" },
-  "expect": ["HBW = 300.00", "HRC = 30.48", "HV = 285.60"],
-  "ref": "HB=300 → HRC 反解二次方程 0.0469HRC²+4.87HRC−192=0 → 30.48；HV=HV(30.48)=285.60（经 HRC 枢纽保证 HB↔HV 一致）"
+  "expect": ["HBW = 300.00", "HRC = 30.48", "HV = 314.33"],
+  "ref": "HB=300 → HRC 反解二次方程 0.0469HRC²+4.87HRC−192=0 → 30.48；HV 统一由 HBW=0.9544·HV 反解，HV=300/0.9544=314.33（旧实现经 HRC 回代得 285.60，使 HV<HBW 违反常规关系）"
 },
 {
   "slug": "metallurgy/convert-hardness",
   "inputs": { "val": "400", "scale": "hv" },
-  "expect": ["HV = 400.00", "HRC = 40.23", "HBW = 419.11"],
-  "ref": "HV=400 → HRC 反解 0.1865HRC²−1.455HRC−243.3=0 → 40.23；HB=HV/0.9544=419.11"
+  "expect": ["HV = 400.00", "HRC = 40.23", "HBW = 381.76"],
+  "ref": "HV=400 → HRC 反解 0.1865HRC²−1.455HRC−243.3=0 → 40.23；HBW=0.9544×400=381.76（旧实现写成 400/0.9544=419.11，且把 HV 回代成 396.9，与输入不符）"
+},
+{
+  "slug": "metallurgy/convert-hardness",
+  "inputs": { "val": "200", "scale": "hb" },
+  "expect": ["超出 HRC 20–67 拟合区间"],
+  "ref": "HBW=200 反解 HRC 低于 20，超出拟合区间：旧实现输出「HRC = NaN」，现改为区间提示；默认 HRC=30 不出现该串 ⇒ 零逃生。"
+},
+{
+  "slug": "metallurgy/convert-hardness",
+  "inputs": { "val": "10", "scale": "hrc" },
+  "expect": ["HRC 适用范围 20–67"],
+  "ref": "HRC 输入越下限（10）须拒绝，旧实现照算 HBW=161.39/HV=160.80；默认 30 不出现该提示 ⇒ 零逃生。"
 },
 {
   "slug": "metallurgy/decarburization",
@@ -83,9 +95,9 @@ const CASES = [
     "ratio": "0.8"
   },
   "expect": [
-    "脱碳较明显"
+    "3.810 mm"
   ],
-  "ref": "de-default: 1150°C/10h/ratio0.8 → xMm≈0.865 mm 落「脱碳较明显」档（默认 1100/2/0.5 → 0.158 属「轻微脱碳，一般可接受」）"
+  "ref": "修复 erfInv 分母：Winitzki 式内层应为 −ln(1−p²)/a（a=0.147），旧实现误用 /π ⇒ erfInv(0.5)=0.1045（真值 0.4769）。1150°C/10h → D=1.227e-10 m²/s、2√(Dt)=4.204 mm、erfInv(0.8)=0.9062 ⇒ x=3.810 mm（旧实现 0.865 mm）；默认 1100/2/0.5 不含 3.810。"
 },
 {
   "slug": "metallurgy/energy-1",
@@ -138,6 +150,14 @@ const CASES = [
     "7.17"
   ],
   "ref": "de-default: 板件 300×250×40、K=3.0 → V=3000/A=1940/M=1.5464 → t=7.17 分钟（默认 200×200×30、K=2.0 → 2.66）"
+},
+{
+  "slug": "metallurgy/solidification-time",
+  "clicks": [
+    "document.getElementById('metal').value='castSteel';onMoldChange();document.getElementById('__tbProbe').textContent='K '+document.getElementById('kCoef').value+' T '+(String(document.getElementById('result').innerHTML).indexOf('3.33')>=0?'1':'0');"
+  ],
+  "expect": ["K 2.5 T 1"],
+  "ref": "切换浇注金属须刷新凝固系数：砂型铸钢的 K 映射为 2.5（页面 K 表 sand.castSteel=2.5），默认板件 200×200×30 → M=1.1538、t=2.5×1.3316=3.33 min。旧实现金属下拉只绑 calc()，K 仍为铸铁 2.0（t=2.66），探针得「K 2.0 T 0」。默认态无探针串 ⇒ 零逃生。"
 },
 {
   "slug": "metallurgy/steel-calc-1",
@@ -237,6 +257,38 @@ const CASES = [
     "74.70"
   ],
   "ref": "非默认输入+独立复算：均价49.50、振幅77.00、标准差25.20、CV50.92%、±1σ区间[24.30,74.70]（默认45000序列均值为4.5万级，注入失败即不命中）"
+},
+{
+  "slug": "metallurgy/analysis-price-1",
+  "inputs": {
+    "data": "45,000\n44,800"
+  },
+  "expect": [
+    "44900.00"
+  ],
+  "ref": "千分位解析（675）：`45,000` 按千位分隔识别为 45000 而非拆成 45/0，与 44,800 → 两条样本均值 **44900.00**（修复前 n=4、均值 222.25）"
+},
+{
+  "slug": "metallurgy/analysis-price-1",
+  "inputs": {
+    "data": "45000,45O00,44800"
+  },
+  "expect": [
+    "44900.00",
+    "1 条：45O00"
+  ],
+  "ref": "非法 token 拒绝并列出（675）：字母 O 的 `45O00` 不再被 parseFloat 截成 45，而是列为已拒绝 1 条；有效样本 45000/44800 → 均值 **44900.00**（修复前 n=3、均值 29948.33）"
+},
+{
+  "slug": "metallurgy/analysis-price-1",
+  "inputs": {
+    "data": "-45000,45000"
+  },
+  "expect": [
+    "请至少输入 2 个有效价格",
+    "-45000"
+  ],
+  "ref": "负价拒绝（675）：负价不属于有效行情，只剩 1 条有效样本 ⇒ 提示至少 2 个有效价格，并列出被拒的 -45000（修复前均值 0.00、CV 0）"
 },
 {
   "slug": "metallurgy/stats-10",

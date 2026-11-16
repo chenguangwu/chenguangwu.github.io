@@ -342,10 +342,10 @@ function getNewline(){
   return document.getElementById('newline').value === '\\r\\n' ? '\r\n' : '\n';
 }
 
-// CSV 解析器：支持引号、转义
+// CSV 解析器：支持引号、转义；返回 { rows, error }
 function parseCSV(text, delim, quote){
   const rows = [];
-  let row = [], field = '', inQuotes = false, i = 0;
+  let row = [], field = '', inQuotes = false, i = 0, error = '';
   while(i < text.length){
     const c = text[i];
     if(inQuotes){
@@ -364,10 +364,11 @@ function parseCSV(text, delim, quote){
       } else { field += c; i++; }
     }
   }
+  if(inQuotes) error = 'CSV 引号未闭合：第 ' + (rows.length + 1) + ' 行存在未结束的引号字段，请补全后再转换。';
   if(field !== '' || row.length > 0){ row.push(field); rows.push(row); }
   // 去除末尾空行
   if(rows.length > 0 && rows[rows.length-1].length === 1 && rows[rows.length-1][0] === '') rows.pop();
-  return rows;
+  return { rows: rows, error: error };
 }
 
 function csvToJson(){
@@ -375,7 +376,9 @@ function csvToJson(){
   if(!text){ setResult(''); return; }
   const delim = getDelimiter();
   const quote = getQuote();
-  const rows = parseCSV(text, delim, quote);
+  const parsed = parseCSV(text, delim, quote);
+  if(parsed.error){ setResult(parsed.error, true); updateStats(0, 0); return; }
+  const rows = parsed.rows;
   
   if(rows.length === 0){ setResult('[]'); return; }
   
@@ -384,19 +387,59 @@ function csvToJson(){
   let headers, dataRows;
   
   if(hasHeader){
-    headers = rows[0];
+    headers = rows[0].slice();
     dataRows = rows.slice(1);
   } else {
-    headers = rows[0].map((_, i) => 'col_' + (i+1));
+    const maxCols = rows.reduce(function(m, r){ return Math.max(m, r.length); }, 0);
+    headers = [];
+    for(let i = 0; i < maxCols; i++) headers.push('col_' + (i + 1));
     dataRows = rows;
   }
-  
+
+  // 表头重复会互相覆盖，必须显式提示而不是静默保留最后一列
+  const seen = {}, dup = [];
+  headers.forEach(function(h, i){
+    const key = h === '' ? 'col_' + (i + 1) : h;
+    headers[i] = key;
+    if(seen[key] !== undefined) dup.push(key + '（第 ' + (seen[key] + 1) + ' 与 ' + (i + 1) + ' 列）');
+    else seen[key] = i;
+  });
+  if(dup.length){
+    setResult('表头重复，转换会丢失列：' + dup.join('；') + '。请先为各列设置唯一表头。', true);
+    updateStats(0, 0);
+    return;
+  }
+
+  // 行内列数超过表头会丢数据，逐行给出位置
+  const overflow = [];
+  dataRows.forEach(function(row, ri){
+    if(row.length > headers.length) overflow.push('第 ' + (ri + 2) + ' 行有 ' + row.length + ' 列（表头 ' + headers.length + ' 列）');
+  });
+  if(overflow.length){
+    setResult('列数超出表头，多出的数据会被丢弃：' + overflow.slice(0, 5).join('；') + (overflow.length > 5 ? ' 等 ' + overflow.length + ' 行' : '') + '。请检查分隔符或补齐表头。', true);
+    updateStats(0, 0);
+    return;
+  }
+
+  // 大整数与前导零不能走 Number：9007199254740993 会变成 ...992，00123 会丢零
+  function toNumberIfSafe(val){
+    if(!/^-?\d+(\.\d+)?$/.test(val)) return undefined;
+    if(/^-?0\d/.test(val)) return undefined;
+    if(/^-?\d+$/.test(val)){
+      const n = Number(val);
+      return Math.abs(n) <= Number.MAX_SAFE_INTEGER ? n : undefined;
+    }
+    const n = Number(val);
+    return isFinite(n) ? n : undefined;
+  }
+
   let json = dataRows.map(row => {
     const obj = {};
     headers.forEach((h, i) => {
       let val = row[i] !== undefined ? row[i] : '';
       if(parseNum){
-        if(val !== '' && !isNaN(val) && /^-?\d+(\.\d+)?$/.test(val)) val = Number(val);
+        const num = toNumberIfSafe(val);
+        if(num !== undefined) val = num;
         else if(val === 'true') val = true;
         else if(val === 'false') val = false;
         else if(val === 'null') val = null;
@@ -505,6 +548,8 @@ function swap(){
 
 function clearAll(){
   input.value = '';
+  // 同步清掉通用输入缓存：tool-ux 在 input 事件里写 localStorage，空串即覆盖旧值
+  try { input.dispatchEvent(new Event('input')); } catch(e) {}
   result.textContent = '';
   result.classList.add('empty');
   updateStats(0, 0);
@@ -533,6 +578,7 @@ function __csv_jsonSnap(){
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
+    out.__mode = currentMode;
     return out;
 }
 function __csv_jsonResText(){
@@ -578,13 +624,29 @@ function __csv_jsonRender(keys,rk,en){
                 }
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
+                    if(k==='__mode'){
+                        if(rec[k]==='csv2json'||rec[k]==='json2csv'){
+                            currentMode=rec[k];
+                            try{
+                                var __tabs=document.querySelectorAll('.mode-tab');
+                                for(var __ti=0;__ti<__tabs.length;__ti++){
+                                    var __tb=__tabs[__ti];
+                                    if(!__tb||!__tb.classList) continue;
+                                    if(__tb.dataset&&__tb.dataset.mode===rec[k]) __tb.classList.add('active');
+                                    else __tb.classList.remove('active');
+                                }
+                            }catch(e4){}
+                        }
+                        continue;
+                    }
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                setMode();
+                // 恢复后按记录的模式重算；旧实现无参调用 setMode() 抛错被吞，结果区不刷新
+                convert();
             }catch(e2){}
             __csv_json_skip=false;
         });
@@ -602,7 +664,7 @@ function __csv_jsonExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__csv_json_skip) return;
     var snap=__csv_jsonSnap();
-    var keys=Object.keys(snap);
+    var keys=Object.keys(snap).filter(function(k){return k.indexOf('__')!==0;});
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__csv_jsonResText();
@@ -624,6 +686,7 @@ function __csv_jsonExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__mode=snap.__mode;
     rec.__tbScore=__csv_jsonScore(res);
     TBKit.history.record(rec);
     __csv_jsonRender(keys,rk,en);
@@ -633,7 +696,7 @@ function __csv_jsonExport(){
     try{
         var box=document.querySelector('#csv_jsonTable');
         if(!box||!box.querySelector('tr')){
-            var snap=__csv_jsonSnap(); var keys=Object.keys(snap);
+            var snap=__csv_jsonSnap(); var keys=Object.keys(snap).filter(function(k){return k.indexOf('__')!==0;});
             if(keys.length>12) keys=keys.slice(0,12);
             var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __csv_jsonRender(keys,en?'Result':'结果',en);
