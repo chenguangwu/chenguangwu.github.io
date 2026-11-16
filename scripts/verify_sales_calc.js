@@ -214,6 +214,12 @@ const CASES = [
     "ref": "空态守卫（2026-11-05）：首阶段人数为 0 时旧实现仍渲染「0 → 0 · 共 N 个阶段」与整表 0 值漏斗，现只给填写提示并清空整体转化率框与明细表。⚠ 只有首阶段（分母）0 视为无数据，后续阶段 0 人（流失 100%）仍照常计算。注入 preset=ecom 用例断 50.00% ⇒ 两态互斥。页面阶段行为动态插入，无法按 id 注入，故用 clicks 置零。",
   },
   {
+    "slug": "sales/conversion-funnel",
+    "clicks": ["stages.forEach(function(s){s.count=0;});calc();var f=document.getElementById('funnel').innerHTML;document.getElementById('__tbProbe').textContent='F463SA '+stages.length+' '+((f.indexOf('请填写首阶段人数')<0&&f.indexOf('width:0%')>=0&&document.getElementById('overallBox').innerHTML.indexOf('—')>=0)?'OK':'BAD');"],
+    "expect": ["F463SA 4 OK"],
+    "ref": "第463批复核失败重做：0 是合法人数。原 calc() 把首阶段 0 一律当未填写，全零漏斗也被拒，无法展示记录要求的 0% 柱宽。修复后区分「全阶段均 0」（合法全零漏斗，展示 width:0%、整体转化率 —）与「首阶段 0 但后续为正」（分母为 0 却有下游，保留原填写提示）。协议串绑定 stages.length=4 且要求全零态出现 0% 柱宽、无填写提示、整体 —；判别器注入失败（回退旧守卫）时全零仍报填写提示 ⇒ 探针变 BAD。",
+  },
+  {
     "slug": "sales/commission-calculator",
     "inputs": { "sales": "120000" },
     "clicks": ["currentMode='team';document.getElementById('teamSales').value='-500000';calc()"],

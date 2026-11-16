@@ -302,6 +302,12 @@ const CASES = [
   "ref": "预设切校园招聘（2000→30）：整体转化率 30/2000×100=1.50%（原用例 expect 命中 select.value 回显；默认技术岗 500→10 得 2.00%）"
 },
 {
+  "slug": "hr/recruitment-funnel",
+  "clicks": ["var s=String(__rfExport);var needle='widthPct=maxCount>0?stages[i].count/maxCount*100:0';document.getElementById('__tbProbe').textContent='F463HR '+(s.indexOf(needle)>=0?'OK':'BAD');"],
+  "expect": ["F463HR OK"],
+  "ref": "第463批复核失败重做：__rfExport() 全零漏斗时 maxCount=0，原 `stages[i].count/maxCount*100` 得 0/0=NaN，导出表 Width 列写「NaN%」（页面柱宽早已按 0 处理，仅导出遗漏）。修复为 `maxCount>0 ? count/maxCount*100 : 0`，全零导出 0.0%、非零仍按基准比例。真机 JSDOM 另验 8/8（全零无 NaN、比例正确）。用例锁源码守卫存在，判别器注入失败（守卫回退）时探针变 BAD。"
+},
+{
   "slug": "hr/stats-funnel-recruit",
   "inputs": {
     "c1name": "渠道A", "c1cost": "100", "c1resume": "100", "c1interview": "50", "c1offer": "10", "c1hire": "5",
