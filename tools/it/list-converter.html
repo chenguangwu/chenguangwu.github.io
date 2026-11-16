@@ -120,6 +120,10 @@
         <option value="bullet">Markdown 列表</option>
       </select>
     </div>
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:8px 0;cursor:pointer;">
+      <input type="checkbox" id="keepBlank" style="width:auto;margin:0;" onchange="convert()">
+      <span data-zh="保留空项与行首尾空白（按原样逐行转换）">Keep blank items and leading/trailing whitespace (convert each line as-is)</span>
+    </label>
     <div class="input-row">
       <textarea id="input" placeholder="每行一个项目，如：&#10;apple&#10;banana&#10;cherry" style="min-height:150px" oninput="convert()">apple
 banana
@@ -259,7 +263,11 @@ cherry</textarea>
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function copyOut(){var v=document.getElementById('output').value;if(!v){if(ToolBox.showToast)ToolBox.showToast(i18nText());return;}ToolBox.copyText(v);if(ToolBox.showToast)ToolBox.showToast(i18nText());}
 function convert(){
-  var lines=document.getElementById('input').value.split(/\r\n|\r|\n/).map(function(s){return s.trim();}).filter(Boolean);
+  var raw=document.getElementById('input').value.split(/\r\n|\r|\n/);
+  // 末尾换行是输入结束符，不当作一个空项；其余空行与行首尾空白按开关决定是否原样保留
+  if(raw.length && raw[raw.length-1]==='') raw.pop();
+  var keep=!!(document.getElementById('keepBlank')&&document.getElementById('keepBlank').checked);
+  var lines=keep?raw.slice():raw.map(function(s){return s.trim();}).filter(Boolean);
   var mode=document.getElementById('mode').value;
   var out=document.getElementById('result');
   var result='';

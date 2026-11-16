@@ -4509,8 +4509,8 @@ const CASES = [
     slug: "it/a1z26-cipher",
     inputs: { input: "42!" },
     clicks: ["enc();document.getElementById('__tbProbe').textContent='N282 '+document.getElementById('output').value;"],
-    expect: ["4-2-!"],
-    ref: "IT-N282：非字母（数字/标点）须原样保留、不静默丢弃，也不产生空词分隔符。修复前 enc 对非字母 return '' 后 filter ⇒ 输出空串；现字符级保留并用 sep 连接（42! → 4-2-!）。默认样例为字母词，不命中。",
+    expect: ["N282 42!"],
+    ref: "IT-N282：非字母（数字/标点）须原样保留、不静默丢弃，也不产生空词分隔符。修复前 enc 对非字母 return '' 后 filter ⇒ 输出空串；现按连续非字母段整体保留（42! → 42!，与 `hello 42!` ⇒ `8-5-12-12-15/42!` 同口径）。默认样例为字母词，不命中。",
   },
   {
     slug: "it/a1z26-cipher",
@@ -14156,8 +14156,45 @@ const CASES = [
     expect: ["BMSTOP OK"],
     ref: "IT-N454 停止保留已完成部分：短时长测试后调 stopRun()，结果区仍须写出已完成 ops 与「负载完成」；旧实现停止只在忙等循环里判断、结果区由同一回调收尾，UI 冻结期间根本无法触发停止。探针串只在注入 20ms + int 时出现 ⇒ 零逃生。",
   },
+  {
+    slug: "it/js-formatter",
+    inputs: { input: "function f(){return/*\n*/1}\nreturn f()" },
+    clicks: ["doMinify();var o=String(document.getElementById('output').textContent);var nl=String.fromCharCode(10);var a,b;try{a=new Function(document.getElementById('input').value)();}catch(e){a='ERR';}try{b=new Function(o)();}catch(e){b='ERR';}document.getElementById('__tbProbe').textContent='MINASI out='+(o.indexOf('return'+nl+'1')>=0?'Y':'N')+' eq='+((a===b&&a===undefined)?'Y':'N')+' b='+b;"],
+    expect: ["MINASI out=Y eq=Y b=undefined"],
+    ref: "221（第239批）复核失败重做：旧 minifyJs 直接跳过 comment token，`return/*\\n*/1` 被压成 `return 1`——输出可编译但语义从 return undefined 变成 return 1。现含换行的块注释在原位保留一个换行。探针同时检查输出含 `return\\n1`，并用 new Function 分别执行原文与压缩结果，两者都必须返回 undefined。默认无块注释 ⇒ 探针串零命中。"
+  },
+  {
+    slug: "it/text-statistics",
+    inputs: { textInput: "Apples, pears, etc. Next item." },
+    clicks: ["document.getElementById('__tbProbe').textContent='SENT a='+splitSentences(document.getElementById('textInput').value).filter(function(s){return s.trim();}).length+' first='+String(splitSentences(document.getElementById('textInput').value).filter(function(s){return s.trim();})[0]).trim();"],
+    expect: ["SENT a=2 first=Apples, pears, etc"],
+    ref: "223（第243批）复核失败重做：旧 splitSentences 无条件保护 etc. 后的句点，`Apples, pears, etc. Next item.` 被并成 1 句。现 etc. 仅在后接小写/数字/逗号/分号/右括号（同句延续）时保护，后接大写新句或结尾则按句点切分。探针断言该串切出 2 句、首句保留 etc。默认示例文本不含该串 ⇒ 零逃生。"
+  },
+  {
+    slug: "it/list-converter",
+    clicks: ["var ta=document.getElementById('input');ta.value='  apple'+String.fromCharCode(10)+String.fromCharCode(10)+'banana  ';document.getElementById('keepBlank').checked=true;convert();var o=String(document.getElementById('output').value).replace(/ /g,'_');document.getElementById('keepBlank').checked=false;convert();var o2=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent='LISTKEEP on=['+o+'] off=['+o2+']';"],
+    expect: ["LISTKEEP on=[__apple,_,_banana__] off=[apple, banana]"],
+    ref: "226（第260批）复核失败重做：convert 原来无条件 map(trim).filter(Boolean)，空行与行首尾缩进被静默删除。现新增「保留空项与行首尾空白」开关：勾选时按原样逐行转换（末尾换行作为结束符不额外计一项），未勾选保持旧行为。探针把空格换成 _ 后断言勾选输出 `__apple,_,_banana__`（两个行首空格、空项、两个行尾空格全部保留）、取消后回到 `apple, banana`。默认输入无空行/缩进 ⇒ 零逃生。"
+  },
+  {
+    slug: "it/url-parser",
+    clicks: ["document.getElementById('b-hostname').value='example.com';document.getElementById('b-port').value='65536';var u=buildUrl();document.getElementById('__tbProbe').textContent='URLPORT out='+JSON.stringify(u)+' txt='+String(document.getElementById('builtUrl').textContent);"],
+    expect: ["URLPORT out=\"\" txt=端口须为 1–65535 之间的整数"],
+    ref: "234（第303批）复核失败重做：buildUrl 原把 b-port 非空值直接拼接，65536 / 12.5 / abc 都能生成并复制 `https://example.com:65536/`。现要求端口为 1–65535 的整数，否则给出双语提示并返回空串（copyBuiltUrl 随之不复制）。默认端口为空、走 `https://example.com/` ⇒ 不命中该串。"
+  },
+  {
+    slug: "it/url-parser",
+    clicks: ["document.getElementById('b-hostname').value='example.com';document.getElementById('b-port').value='8080';var u=buildUrl();document.getElementById('__tbProbe').textContent='URLPORT2 '+String(u);"],
+    expect: ["URLPORT2 https://example.com:8080/"],
+    ref: "234 对照：合法端口 8080 仍正常拼接，确认新增范围校验未误伤有效端口。默认端口为空 ⇒ 输出不含 :8080。"
+  },
+  {
+    slug: "it/binomial-distribution",
+    clicks: ["var a=cdf(10000,5001,0.6);var b=cdf(20,4,0.3);var c=cdf(10,3,0.5);document.getElementById('__tbProbe').textContent='BCDF neg='+a+' mid='+b.toFixed(10)+' exact='+c.toFixed(6);"],
+    expect: ["BCDF neg=0 mid=0.2375077789 exact=0.171875"],
+    ref: "196 复核失败重做：cdf 走补集分支时 1−ΣP(k+1..n) 因浮点累计略大于 1 而得到负概率（n=10000,k=5001,p=0.6 ⇒ −2.9e−12）。现两条分支结果都钳制在 [0,1]，该极端尾部返回 0。参照值：cdf(20,4,0.3)=0.2375077789（逐项 Σ C(20,i)·0.3^i·0.7^(20−i)）、cdf(10,3,0.5)=11/64=0.171875。默认输入不含该串 ⇒ 零逃生。"
+  },
 ];
-
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(

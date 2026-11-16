@@ -461,7 +461,15 @@ function buildUrl(){
   }
   let url=proto+'//';
   if(host)url+=host;
-  if(port)url+=':'+port;
+  if(port){
+    // 端口必须是 1–65535 的整数；旧实现直接拼接，65536 / 12.5 / abc 都会被写进可复制 URL
+    if(!/^\d+$/.test(port)||+port<1||+port>65535){
+      const phint=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Port must be an integer between 1 and 65535':'端口须为 1–65535 之间的整数';
+      document.getElementById('builtUrl').textContent=phint;
+      return '';
+    }
+    url+=':'+port;
+  }
   url+=path.startsWith('/')?path:'/'+path;
   const searchParams=new URLSearchParams();
   buildParams.forEach(p=>{if(p.key)searchParams.append(p.key,p.value);});

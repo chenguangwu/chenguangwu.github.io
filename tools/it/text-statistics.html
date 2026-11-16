@@ -249,10 +249,14 @@ function splitSentences(text){
   const DOT = '\u0001';  // 保护的小数点/缩写点
   const END = '\u0002';  // 句末标记
   let s = String(text).replace(/(\d)\.(\d)/g, '$1' + DOT + '$2');
-  const abbr = ['e.g','i.e','Dr','Mr','Mrs','Ms','Prof','St','vs','etc','No','Fig'];
+  const abbr = ['e.g','i.e','Dr','Mr','Mrs','Ms','Prof','St','vs','No','Fig'];
   abbr.forEach(function(a){
     s = s.replace(new RegExp('\\b' + a + '\\.', 'gi'), a + DOT);
   });
+  // 可位于句末的缩写（etc）：仅当后面紧跟同一句的延续（小写字母/数字/逗号/分号/右括号）时才保护；
+  // 后接大写新句或文本结尾时按句点切分，否则 "Apples, pears, etc. Next item." 会被并成一句。
+  // 注意不能加 i 标志：否则 [a-z0-9] 会匹配大写字母，句末 `etc. Next` 又被并回一句
+  s = s.replace(/\betc\.(?=\s*[,;)]|\s+[a-z0-9])/g, 'etc' + DOT);
   // 中文句末标点无条件切；英文句点仅后接空白或结尾时切（避免缩写/小数残留被切）
   s = s.replace(/[。！？!?]+/g, END).replace(/\.(?=\s|$)/g, END);
   return s.split(END).map(function(x){ return x.split(DOT).join('.'); });

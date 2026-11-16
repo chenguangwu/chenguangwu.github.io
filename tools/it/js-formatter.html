@@ -388,8 +388,12 @@ function minifyJs(){
     let pendingSpace = false;
     const wordLike = t => t === 'name' || t === 'num' || t === 'keyword' || t === 'str' || t === 'regex';
     for(const tk of tokens){
-      // 注释直接丢弃；原换行必须保留，否则 ASI 边界会消失。
-      if(tk.t === 'comment') continue;
+      // 注释不输出；但含换行的块注释本身就是 ASI 边界（如 return/*\n*/1），
+      // 直接丢弃会把 `return;` 变成 `return 1`，必须在原位保留等效换行。
+      if(tk.t === 'comment'){
+        if(tk.v.indexOf('\n') >= 0){ out = out.replace(/[ \t]+$/, '') + '\n'; pendingSpace = false; }
+        continue;
+      }
       if(tk.t === 'ws'){
         if(tk.v.indexOf('\n') >= 0){ out = out.replace(/[ \t]+$/, '') + '\n'; pendingSpace = false; }
         else pendingSpace = true;
