@@ -212,9 +212,8 @@ const CASES = [
     slug: "it/hex-encode",
     inputs: { input: "4869" },
     clicks: ["var src=String(__hex_encodeExtras);var guardPos=src.indexOf(\"==='invalid'\"),recPos=src.indexOf('.record(');var ok=guardPos>=0&&recPos>guardPos&&src.indexOf(\"==='empty'\")<recPos;document.getElementById('__tbProbe').textContent='H213 '+(ok?'OK':'BAD guard='+guardPos+' rec='+recPos);"],
-    ref: "第213批状态链源码守卫：__hex_encodeExtras 必须在 TBKit.history.record 之前对 invalid/empty 提前 return，确保有效→非法后不会把旧结果记成新输入的成功历史。断言守卫出现在 record 之前（旧实现无 invalid 守卫 ⇒ guardPos<0 ⇒ BAD）。harness 的 querySelectorAll('input[id],select[id],textarea[id]') 返回空导致 Snap 恒空、无法在桩内驱动真实记录链，故按既定教训用源码守卫断言，真机状态链由复核方覆盖。",
         expect: ["H213 OK"],
-    ref: "第213批状态链源码守卫：__hex_encodeExtras 须在 TBKit.history.record 之前对 invalid/empty 提前 return，确保有效→非法后不会把旧结果记成新输入的成功历史；同时导出出口在守卫之后。断言 guard 位置 < record 位置（旧实现无 invalid 守卫 ⇒ guardPos<0 ⇒ BAD）。harness 的 querySelectorAll 逗号选择器返回空致 Snap 恒空、无法桩内驱动真实记录链，故按既定教训用源码守卫断言，真机完整状态链由复核方覆盖。",
+    ref: "第213批状态链源码守卫：__hex_encodeExtras 必须在 TBKit.history.record 之前对 invalid/empty 提前 return，确保有效→非法后不会把旧结果记成新输入的成功历史；同时导出出口在守卫之后。断言守卫出现在 record 之前（旧实现无 invalid 守卫 ⇒ guardPos<0 ⇒ BAD）。harness 的 querySelectorAll('input[id],select[id],textarea[id]') 返回空导致 Snap 恒空、无法桩内驱动真实记录链，故按既定教训用源码守卫断言，真机完整状态链由复核方覆盖。",
   },
   {
     slug: "it/hex-encode",
