@@ -867,6 +867,14 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"duration\":\"42\",\"attendees\":\"42\",\"hourlyRate\":\"42\",\"roomCost\":\"42\"}，输出区含「42\n42\n42\n42\n会议总成本 ¥1276.80 人力成本 ¥1234.80…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "biz/meeting-cost-calculator",
+    "clicks": [
+      "document.getElementById('attendees').value='1';document.getElementById('hourlyRate').value='100';document.getElementById('roomCost').value='600';timerStart=Date.now()-1800000;updateLiveTimer();var L=document.getElementById('liveCost');L.textContent+=' MCLIVE '+((L.textContent.indexOf('¥650.00')>=0)?'OK':'BAD');"
+    ],
+    "expect": ["MCLIVE OK"],
+    "ref": "计时口径：1 人、时薪 100、场地费 600、计时 30 分钟 ⇒ 人力 0.5×1×100=50 + 场地 600 = 650.00。原实现把场地费按秒摊（600/3600×1800=300）得 350.00，与常规计算的一次性场地费口径冲突。默认未计时，不命中。"
+  },
+  {
     "slug": "biz/lorem-ipsum-advanced",
     "inputs": {
       "count": "42",
