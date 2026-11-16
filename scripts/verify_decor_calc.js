@@ -113,6 +113,22 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "decor/wallpaper-quantity",
+  "inputs": {
+    "perimeter": "18",
+    "height": "2.8",
+    "deduct": "6",
+    "rollWidth": "0.53",
+    "rollLen": "1.5",
+    "pattern": "0.32",
+    "waste": "5"
+  },
+  "expect": [
+    "无法裁切"
+  ],
+  "ref": "FT-N11：每幅需 2.8+0.32=3.12m，卷长 1.5m < 3.12m，floor(1.5/3.12)=0。原实现把 0 强制改成 1，仍给出「N 卷」采购量；现直接提示「无法裁切」并说明更换卷材/拼接。默认卷长 10m，不命中。"
+},
+{
   "slug": "decor/room-illumination",
   "inputs": { "area": "45", "lux": "300", "roomType": "kitchen" },
   "expect": ["14 盏 建议", "14063 所需光通量(lm)", "实际照度： 161 lux"],
