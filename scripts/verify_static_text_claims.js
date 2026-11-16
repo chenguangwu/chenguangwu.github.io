@@ -15,6 +15,12 @@ const CHECKS = [
     include: ['30≤Ct&lt;38', '38≤Ct&lt;cutoff', '未填 Ct：视为未完成检测'],
     exclude: ['Ct 30–37', '无 Ct：阴性'],
   },
+  {
+    name: '稀释比例标签口径对照与算例一致（532 复核失败重做）',
+    file: 'tools/cleaning/dilution-ratio.html',
+    include: ['产品标签的「1:X」和本页的「1:N」是同一种口径吗？', '原液约 9.9 mL', '1/101'],
+    exclude: ['原液约 10 mL、加水约 990 mL'],
+  },
 ];
 
 let pass = 0;

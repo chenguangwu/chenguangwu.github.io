@@ -92,6 +92,24 @@ const CASES = [
   "ref": "WMA(3) 对最新 3 期 [130,150,190] 按 1/2/3 加权：130×1+150×2+190×3=1000，÷6=166.67 ⇒ 展示 167。旧预测分支把最旧值赋最大权重：(130×3+150×2+190×1)÷6=146.67 ⇒ 147，故「预测 1 — 167」可强判别。"
 },
 {
+  "slug": "sales/moving-average",
+  "inputs": { "window": "5", "periods": "2", "data": "1200\n1250\n1300\n1400" },
+  "clicks": [
+    "calc();document.getElementById('data').value='1500';calc();var t=document.getElementById('resultTable');document.getElementById('__tbProbe').textContent='MAONLY '+document.getElementById('forecastLbl').textContent+' table='+(t.innerHTML?t.innerHTML.length:0);"
+  ],
+  "expect": ["MAONLY 至少需要 2 期历史数据（当前 1 期） table=0"],
+  "ref": "542 复核失败重做：先多期算出结果，再只留 1 期 ⇒ 结果标签改为「至少需要 2 期历史数据（当前 1 期）」且表格清空；旧实现 data.length<2 直接 return，旧结果与表格仍在 ⇒ 本串不命中。"
+},
+{
+  "slug": "sales/moving-average",
+  "inputs": { "window": "3", "periods": "1", "data": "100\n110\n120\n" },
+  "clicks": [
+    "document.getElementById('__tbProbe').textContent='MAN '+parseData().length+' '+JSON.stringify(parseData());"
+  ],
+  "expect": ["MAN 3 [100,110,120]"],
+  "ref": "542 复核失败重做：split 后先滤空串再转数值，末尾换行不再生成 0 值第 4 期；旧实现 +'' = 0 ⇒ MAN 4 [100,110,120,0]，本串不命中。"
+},
+{
   "slug": "sales/price-calculator",
   "inputs": {
     "cost": "150",

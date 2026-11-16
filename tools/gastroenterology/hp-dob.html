@@ -250,13 +250,7 @@ function calc(){
   var L=function(zh,s){return en?s:zh;};
   var dobEl=document.getElementById('dob');
   var dobRaw=dobEl.value.trim();
-  if(dobRaw===''){document.getElementById('result').innerHTML='<div class="info-box"><strong>'+L('请填写检测值后再判读。','Please enter the test value before interpreting.')+'</strong></div>';return;}
   var testType=document.getElementById('testType').value;
-  var dob=parseFloat(dobRaw)||0;
-  var onPPI=document.getElementById('onPPI').checked;
-  var onAntibiotic=document.getElementById('onAntibiotic').checked;
-  var onBismuth=document.getElementById('onBismuth').checked;
-
   var is14=testType==='14c';
   var threshold=is14?100:4.0;          // ¹⁴C 用 DPM≥100；¹³C 用 DOB≥4.0‰
   var unit=is14?'DPM':'‰';
@@ -265,6 +259,11 @@ function calc(){
   var valueUnit=is14?L('DPM（衰变数/分钟）','DPM (disintegrations/min)'):L('DOB值 (‰)','DOB value (‰)');
   var dl=document.getElementById('dobLabel');
   if(dl) dl.textContent=valueUnit;
+  if(dobRaw===''){document.getElementById('result').innerHTML='<div class="info-box"><strong>'+L('请填写检测值后再判读。','Please enter the test value before interpreting.')+'</strong></div>';return;}
+  var dob=parseFloat(dobRaw)||0;
+  var onPPI=document.getElementById('onPPI').checked;
+  var onAntibiotic=document.getElementById('onAntibiotic').checked;
+  var onBismuth=document.getElementById('onBismuth').checked;
 
   var result,color,advice;
   var warnings=[];
@@ -273,25 +272,19 @@ function calc(){
   if(onAntibiotic) warnings.push(L('近4周使用抗生素（可能致假阴性）','Antibiotics used in the last 4 weeks (may cause a false negative)'));
   if(onBismuth) warnings.push(L('近4周使用铋剂（可能致假阴性）','Bismuth used in the last 4 weeks (may cause a false negative)'));
 
-  if(warnings.length>0 && dob<threshold){
-    result=L('结果不可靠（可能假阴性）','Unreliable result (possible false negative)');
-    color='#F59E0B';
-    advice=L('当前'+valueLabel+'＜'+threshold+unit+'，提示阴性。但检测前使用了可能影响结果的药物，存在假阴性风险。建议停用PPI≥2周、抗生素和铋剂≥4周后复查。',
-             'Current '+valueLabel+' < '+threshold+' '+unit+', suggesting negative. However, medications that may affect the result were used before testing, so a false negative is possible. Stop PPI for ≥2 weeks and antibiotics/bismuth for ≥4 weeks, then retest.');
-  }else if(warnings.length>0 && dob>=threshold){
-    result=L('阳性（用药期间仍阳性，提示感染较重）','Positive (still positive while on medication, suggesting heavier infection)');
-    color='#EF4444';
-    advice=L('即使使用了可能抑制Hp的药物，'+valueLabel+'仍≥'+threshold+unit+'，提示Hp感染较重。建议制定根除治疗方案。',
-             'Even with medications that may suppress H. pylori, the '+valueLabel+' remains ≥ '+threshold+' '+unit+', suggesting significant H. pylori infection. Plan eradication therapy.');
-  }else if(dob>=threshold){
+  // 先按检测值给出分级（用药只追加提示，不覆盖分级、也不推断感染程度）
+  if(dob>=threshold){
     color='#EF4444';
     if(is14){
       result=en?__hpGrade14En(dob):__hpGrade14(dob);
       advice=dob<200
         ? L('DPM值100–199，提示弱阳性（+）。建议结合临床症状、粪便抗原或胃镜活检确认，或间隔2–4周复查。',
             'DPM 100–199 suggests weakly positive (+). Confirm with symptoms, stool antigen, or endoscopic biopsy, or retest in 2–4 weeks.')
-        : L('DPM值≥200，提示Hp感染阳性。建议根据药敏情况选择根除方案（推荐含铋剂四联或大剂量二联方案），治疗结束≥4周后复查。',
-            'DPM ≥ 200 suggests H. pylori infection. Choose an eradication regimen based on susceptibility (bismuth quadruple or high-dose dual therapy), and retest ≥4 weeks after completing treatment.');
+        : (dob>=500
+          ? L('DPM值≥500，提示强阳性（+++）。建议结合症状与药敏选择根除方案（推荐含铋剂四联或大剂量二联），治疗结束≥4周后复查。',
+              'DPM ≥ 500 suggests strongly positive (+++). Choose an eradication regimen based on symptoms and susceptibility (bismuth quadruple or high-dose dual therapy), and retest ≥4 weeks after completing treatment.')
+          : L('DPM值200–499，提示阳性（++）。建议根据药敏情况选择根除方案（推荐含铋剂四联或大剂量二联方案），治疗结束≥4周后复查。',
+              'DPM 200–499 suggests positive (++). Choose an eradication regimen based on susceptibility (bismuth quadruple or high-dose dual therapy), and retest ≥4 weeks after completing treatment.'));
     }else{
       result=L('阳性','Positive');
       advice=L('DOB值≥4.0‰，提示Hp感染阳性。建议根据药敏情况选择根除方案（推荐含铋剂四联或大剂量二联方案），治疗结束≥4周后复查。',
@@ -307,6 +300,23 @@ function calc(){
     color='#10B981';
     advice=L(valueLabel+'＜'+threshold+unit+'，提示无Hp感染。如为根除后复查，确认根除成功。继续保持良好卫生习惯。',
              valueLabel+' < '+threshold+' '+unit+', suggesting no H. pylori infection. If this is a post-eradication recheck, eradication is confirmed. Keep good hygiene habits.');
+  }
+
+  if(warnings.length>0){
+    if(dob>=threshold){
+      result+=L('（用药期间，结果可能受抑制）',' (during medication; result may be suppressed)');
+      advice+=L(' 检测前使用了可能影响结果的药物：'+warnings.join('；')+'。不建议仅凭此次阳性判断感染程度，建议停药后复查确认。',
+                ' Medications that may affect the result were used before testing: '+warnings.join('; ')+'. Do not judge infection severity from this single positive result; confirm by retesting after stopping them.');
+    }else if(!is14 && dob>=2.0){
+      result+=L('（用药期间）',' (during medication)');
+      advice+=L(' 检测前使用了可能影响结果的药物：'+warnings.join('；')+'，灰区结果更需停药后复查。',
+                ' Medications that may affect the result were used before testing: '+warnings.join('; ')+'. A gray-zone result especially warrants retesting after stopping them.');
+    }else{
+      result=L('结果不可靠（可能假阴性）','Unreliable result (possible false negative)');
+      color='#F59E0B';
+      advice=L('当前'+valueLabel+'＜'+threshold+unit+'，提示阴性。但检测前使用了可能影响结果的药物（'+warnings.join('；')+'），存在假阴性风险。建议停用PPI≥2周、抗生素和铋剂≥4周后复查。',
+               'Current '+valueLabel+' < '+threshold+' '+unit+', suggesting negative. However, medications that may affect the result were used before testing ('+warnings.join('; ')+'), so a false negative is possible. Stop PPI for ≥2 weeks and antibiotics/bismuth for ≥4 weeks, then retest.');
+    }
   }
 
   var html='<div class="stat-grid">';

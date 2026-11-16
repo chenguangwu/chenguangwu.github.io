@@ -275,6 +275,29 @@ const CASES = [
   "ref": "空态守卫（2026-11-05）：清空 DOB 值后不再输出「0 DOB值」+「阴性」+「DOB值＜4.0‰…继续保持良好卫生习惯」整套结论，只给填写提示。⚠ 判空只认空串——DOB 0 ‰ 是合法检测值（阴性），照常判读。提示文案已改为中英双语合并句「请填写检测值后再判读。」，旧期望「请填写 DOB 检测值后再判读。」随之更新。"
 },
 {
+  "slug": "gastroenterology/hp-dob",
+  "inputs": { "dob": "3.0" },
+  "checkIds": ["onPPI"],
+  "expect": ["灰区/临界（用药期间）"],
+  "ref": "535 复核失败重做：13C DOB 3.0 属灰区，勾选 PPI 只追加用药提示，不得改判阴性或「结果不可靠」。旧实现 warnings 分支先于灰区分支 ⇒「结果不可靠（可能假阴性）」并称阴性，本串不命中。"
+},
+{
+  "slug": "gastroenterology/hp-dob",
+  "inputs": { "dob": "120", "testType": "14c" },
+  "checkIds": ["onPPI"],
+  "expect": ["弱阳性（+）（用药期间，结果可能受抑制）"],
+  "ref": "535 复核失败重做：14C 120 DPM 应保留弱阳性（+）分级，用药仅追加「（用药期间，结果可能受抑制）」；旧实现用药分支吞掉分级并断言「感染较重」，本串不命中。"
+},
+{
+  "slug": "gastroenterology/hp-dob",
+  "inputs": { "dob": "" },
+  "clicks": [
+    "document.getElementById('testType').value='14c';calc();document.getElementById('__tbProbe').textContent='HPLABEL '+document.getElementById('dobLabel').textContent;"
+  ],
+  "expect": ["HPLABEL DPM（衰变数/分钟）"],
+  "ref": "535 复核失败重做：空值提前 return 移到单位/标签切换之后，清空输入切到 14C 时单位标签仍同步为 DPM；旧实现标签切换在 return 之后，保留上一次的「DOB值 (‰)」⇒ 本串不命中。"
+},
+{
   "slug": "gastroenterology/stool-occult-quant",
   "inputs": { "fit": "", "age": "55", "fc": "120" },
   "expect": ["请填写 FIT、粪钙卫蛋白与年龄后再生成联合解读。"],

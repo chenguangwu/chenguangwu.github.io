@@ -250,6 +250,7 @@ function setMethod(m){
 function parseData(){
   return document.getElementById('data').value
     .split(/[\n,，\s]+/)
+    .filter(function(s){return s !== '';})
     .map(function(s){return +s;})
     .filter(function(n){return !isNaN(n);});
 }
@@ -258,11 +259,19 @@ function calc(){
   var data = parseData();
   var n = +document.getElementById('window').value || 3;
   var periods = +document.getElementById('periods').value || 1;
-  if(data.length<2){ return; }
-  if(method!=='ema' && n>data.length){
+  if(data.length<2){
     var en=/^en/i.test(document.documentElement.lang||'');
     document.getElementById('forecastVal').textContent='—';
     document.getElementById('forecastLbl').textContent=en
+      ? 'At least 2 historical periods are required (currently '+data.length+')'
+      : '至少需要 2 期历史数据（当前 '+data.length+' 期）';
+    document.getElementById('resultTable').innerHTML='';
+    return;
+  }
+  if(method!=='ema' && n>data.length){
+    var en2=/^en/i.test(document.documentElement.lang||'');
+    document.getElementById('forecastVal').textContent='—';
+    document.getElementById('forecastLbl').textContent=en2
       ? 'Moving window N cannot exceed the number of historical periods (currently '+data.length+')'
       : '移动窗口 N 不能大于历史期数（当前 '+data.length+' 期）';
     document.getElementById('resultTable').innerHTML='';
@@ -414,6 +423,7 @@ function maExportCsv(){
   var n=+document.getElementById('window').value||3;
   var periods=+document.getElementById('periods').value||1;
   if(data.length<2){return;}
+  if(method!=='ema' && n>data.length){return;}
   var alpha=2/(n+1);
   var ma=[];
   if(method==='sma'){for(var i=n-1;i<data.length;i++){var s=0;for(var j=0;j<n;j++)s+=data[i-j];ma.push(s/n);}}

@@ -172,10 +172,37 @@ const CASES = [
   },
   {
     slug: "marketing/calc-price-elasticity",
-    inputs: { p1: "100", q1: "100", p2: "90", q2: "120" },
-    expect: ["-1.727"],
-    ref: "midQ=110,midP=95；pctQ=20/110×100=18.18；pctP=-10/95×100=-10.53；ed=18.18/-10.53=-1.73（|Ed|>1 富有弹性）",
+    inputs: { p1: "100", q1: "100", p2: "110", q2: "120" },
+    clicks: [
+      "calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='ELAS '+((h.indexOf('核验销量口径或竞品影响')>=0&&h.indexOf('建议降价促销')<0)?'OK':'BAD');"
+    ],
+    expect: ["ELAS OK"],
+    ref: "543 复核失败重做：P100→110、Q100→120 ⇒ Ed=+1.909、收入 10000→13200。建议应按 dR 判「收入增加」并提示正弹性需核验，而不是机械写「涨价导致销量下降、建议降价促销」。旧实现只看 |Ed| 与 dP ⇒ 含「建议降价促销」、不含核验提示 ⇒ BAD。",
   },
+  {
+    slug: "marketing/marketing-ad-budget-allocator",
+    inputs: { totalBudget: "0", roas1: "2", roas2: "3", roas3: "4" },
+    clicks: ["calc();"],
+    expect: ["整体 ROAS 的分母为 0，不可计算"],
+    ref: "562 复核失败重做：总预算 0 时整体 ROAS 明确标为不可计算并给出说明；旧实现 totalRev/total=0/0=NaN，仅显示破折号、无无定义说明 ⇒ 本串不命中。",
+  },
+  {
+    slug: "marketing/cpc-calculator",
+    clicks: [
+      "updateChannel(0,'ratio',parseFloat(''));var h=String(document.getElementById('budgetError').textContent||'');document.getElementById('__tbProbe').textContent='CPCEMPTY '+((h.indexOf('渠道1占比须在 0–100% 之间')>=0)?'OK':'BAD '+h);"
+    ],
+    expect: ["CPCEMPTY OK"],
+    ref: "564 复核失败重做：清空占比后 parseFloat('')=NaN 不再被 ||0 兜成合法 0，calcBudget 在 #budgetError 报「渠道1占比须在 0–100% 之间」；旧实现空值→0 继续计算 ⇒ BAD。",
+  },
+  {
+    slug: "marketing/cpc-calculator",
+    clicks: [
+      "updateChannel(0,'cvr',parseFloat(''));var h=String(document.getElementById('budgetError').textContent||'');document.getElementById('__tbProbe').textContent='CPCEMPTY2 '+((h.indexOf('渠道1 CVR 须在 0–100% 之间')>=0)?'OK':'BAD '+h);"
+    ],
+    expect: ["CPCEMPTY2 OK"],
+    ref: "564 复核失败重做：清空 CVR 后同样在 #budgetError 报错，不再当 0% 计算；旧实现 ||0 ⇒ BAD。",
+  },
+
   {
     slug: "marketing/price-elasticity",
     inputs: { p1: "100", q1: "100", p2: "110", q2: "80" },
