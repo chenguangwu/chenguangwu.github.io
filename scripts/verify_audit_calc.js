@@ -160,6 +160,15 @@ const CASES = [
   "slug": "audit/irr-table",
   "inputs": {},
   "clicks": [
+    "flows=[-100,200,-99.9999];var ir=calcIRR();document.getElementById('__tbProbe').textContent='IRR2 '+ir.ok+' '+ir.roots.map(function(x){return (x*100).toFixed(4)+'%';}).join(',');"
+  ],
+  "expect": ["IRR2 true -0.1000%,0.1000%"],
+  "ref": "835 复核失败重做（相近根漏检）：现金流 [-100,200,-99.9999] 的真实 IRR 为 -0.1% 与 +0.1% 两根（代入 NPV≈0，中间 r=0 处 NPV≈+1e-4）。旧单级 2400 步在 r≈0 步长约 0.0054，两落入同一区间且两端同号 ⇒ 一个根都检不到；现每个外层区间再 8 等分细分，捕获双根。期望串含两个根且默认 demo（单根 12.638%）不命中 ⇒ 强判别。"
+},
+{
+  "slug": "audit/irr-table",
+  "inputs": {},
+  "clicks": [
     "flows=[-100,5000000];renderTable();"
   ],
   "expect": ["4999900.0000%"],

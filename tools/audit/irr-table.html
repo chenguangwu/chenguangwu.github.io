@@ -265,15 +265,17 @@ function calcIRR(){
   var hasPos=false, hasNeg=false;
   flows.forEach(function(v){ if(v>0) hasPos=true; if(v<0) hasNeg=true; });
   if(flows.length<2 || !hasPos || !hasNeg) return {ok:false,reason:'input',roots:[]};
-  // 在 log10(1+r) ∈ [-6, 7]（约 -99.9999% ～ 1e7%）上扫描变号，覆盖负 IRR 与超高 IRR
-  var x0=-6, x1=7, N=2400, roots=[];
+  // 在 log10(1+r) ∈ [-6, 7]（约 -99.9999% ～ 1e7%）上扫描变号，覆盖负 IRR 与超高 IRR。
+  // 835 复核重做：单级 2400 步在 r≈0 附近步长约 0.0054，浅极值的相近根（如 [-100,200,-99.9999]
+  // 的 -0.001/+0.001，间隔约 0.002）会落入同一区间且两端同号而被漏检。改为每个外层区间再 8 等分
+  // 的二级细分，步长缩到约 0.00068，可捕获此类相近根；偶重根仍由下方 tangency 逻辑处理。
+  var x0=-6, x1=7, N=2400, SUB=8, roots=[];
   var scale=0; flows.forEach(function(v){ scale+=Math.abs(v); });
   var rs=[], vs=[];
-  var prevR=Math.pow(10,x0)-1, prevV=npvAt(prevR);
   function refine(a,b,va,vb){
     for(var i=0;i<200;i++){
       var m=(a+b)/2, vm=npvAt(m);
-      if(Math.abs(vm)<1e-9 || Math.abs(b-a)<1e-12) return m;
+      if(Math.abs(vm)<1e-12 || Math.abs(b-a)<1e-14) return m;
       if(va*vm<=0){ b=m; vb=vm; } else { a=m; va=vm; }
     }
     return (a+b)/2;
@@ -292,13 +294,19 @@ function calcIRR(){
     var m=(a+b)/2, fm=Math.abs(npvAt(m));
     return fm<=Math.max(1e-9, scale*1e-10) ? m : null;
   }
+  var prevR=Math.pow(10,x0)-1, prevV=npvAt(prevR);
   for(var i=1;i<=N;i++){
-    var x=x0+(x1-x0)*i/N, r=Math.pow(10,x)-1, v=npvAt(r);
-    if(isFinite(prevV)&&isFinite(v)&&prevV*v<=0&&!(prevV===0&&v===0)){
-      pushRoot(refine(prevR,r,prevV,v));
+    var xa=x0+(x1-x0)*(i-1)/N, xb=x0+(x1-x0)*i/N;
+    var pa=prevR, pva=prevV;
+    for(var s=1;s<=SUB;s++){
+      var x=xa+(xb-xa)*s/SUB, r=Math.pow(10,x)-1, v=npvAt(r);
+      if(isFinite(pva)&&isFinite(v)&&pva*v<=0&&!(pva===0&&v===0)){
+        pushRoot(refine(pa,r,pva,v));
+      }
+      rs.push(r); vs.push(v);
+      pa=r; pva=v;
     }
-    rs.push(r); vs.push(v);
-    prevR=r; prevV=v;
+    prevR=pa; prevV=pva;
   }
   for(var j=1;j<vs.length-1;j++){
     var av=Math.abs(vs[j]);
@@ -373,7 +381,7 @@ function renderTable(){
   if(!irr.ok){
     const __h2=irr.reason==='input'
       ? '<p style="color:var(--text-muted);">请输入至少两期现金流（需有正有负）才能计算IRR</p>'
-      : '<p style="color:var(--warning);">在 -99.9999% ～ 1e7% 范围内未找到 NPV=0 的折现率：该组现金流按本页公式无实数 IRR，请核对现金流方向与金额。</p>';
+      : '<p style="color:var(--warning);">在本页扫描范围（-99.9999% ～ 1e7%）内未检出 NPV=0 的折现率。这可能是该组现金流确无实数 IRR，也可能存在扫描步长仍未能采到的相近根；本页为有限步长数值扫描，不能据此证明「无解」，请核对现金流方向与金额或用更细的区间复核。</p>';
     if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){irrBox.innerHTML='<p style="color:var(--danger)">⚠ 计算结果包含无效值，请检查输入。</p>';return;}
     irrBox.innerHTML=__h2;
   }else{
