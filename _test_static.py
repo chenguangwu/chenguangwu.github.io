@@ -549,6 +549,37 @@ def check_deadlink_map():
         stats['passed'] += 1
 
 
+def check_guide_desc_boiler():
+    """409 批复核失败重做：有专属正文的指南不得再带通用隐私尾句。
+
+    noindex 页与重定向桩按构建口径跳过；其余指南的 meta/og/twitter
+    description 必须由正文摘要替换，避免站内大规模重复描述。
+    """
+    import html as _html
+    tail = ('本指南整理核心功能、适用场景、使用步骤与常见问题，'
+            '纯前端免费在线使用，数据不上传。')
+    bad = []
+    for fp in sorted(__import__('glob').glob(os.path.join(ROOT, 'guides', '*.html'))):
+        try:
+            src = open(fp, encoding='utf-8', errors='ignore').read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src or 'noindex' in src:
+            continue
+        for tag in re.findall(r'<meta[^>]+>', src):
+            if 'description' not in tag:
+                continue
+            cm = re.search(r'\scontent="([^"]*)"', tag)
+            if cm and tail in _html.unescape(cm.group(1)):
+                bad.append(os.path.basename(fp))
+                break
+    if bad:
+        for name in bad[:20]:
+            stats['errors'].append('指南描述仍含通用尾句：' + name)
+    else:
+        stats['passed'] += 1
+
+
 def main():
     print('=' * 60)
     print('ToolBox 自动化静态测试')
@@ -581,6 +612,7 @@ def main():
     check_related_tool_cards()
     check_text_polisher_desc()
     check_deadlink_map()
+    check_guide_desc_boiler()
 
     # 输出结果
     print(f'扫描完成，共检查 {stats["total"]} 个工具页面')

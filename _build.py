@@ -3166,7 +3166,7 @@ def normalize_guide_descriptions():
     if not os.path.isdir(gdir):
         return 0
     meta_re = re.compile(
-        r'(<meta (?:name="description"|property="og:description"|name="twitter:description") content=")'
+        r'(<meta (?:name="description"|property="og:description"|name="twitter:description")[^>]*?\scontent=")'
         r'((?:[^"\\]|\\.)*)(")')
     ld_re = re.compile(r'("description":")((?:[^"\\]|\\.)*)(")')
     fixed = 0
