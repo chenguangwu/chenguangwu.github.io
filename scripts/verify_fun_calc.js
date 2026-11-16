@@ -27,7 +27,15 @@ const CASES = [
     ref: "题库 20 条，clicks 把 Math.random 钉为 0（用完即恢复，避免污染同进程后续用例）⇒ "
        + "idx=floor(0×20)=0 ⇒ 第 1 条「四是四…」、难度「简单」。默认态输出为「挑战快速念出声」、"
        + "文本为「点击\"开始\"获取一条绕口令」⇒ 不含「第 1 条 / 难度：简单」，与本用例零交集。"
-       + "本页只做随机展示与难度标注，不录音、不计时、不评分。",
+       + "本页另带可选计时与最佳成绩（localStorage __tbn_tw_best），随机展示部分不录音、不评分。",
+  },
+  {
+    slug: "fun/tongue-twister",
+    clicks: [
+      "var ok=true;try{next();}catch(e){ok=false;}document.getElementById('__tbProbe').textContent='TWNEXT '+((ok&&document.getElementById('twTime').textContent==='0.0 秒')?'OK':'BAD '+(ok?'time='+document.getElementById('twTime').textContent:'throw'));"
+    ],
+    expect: ["TWNEXT OK"],
+    ref: "397/399 复核失败重做：next() 内 `if(st)` 引用未声明变量，点「开始/下一条」抛 ReferenceError，后续计时归零与 twShowBest 都不执行。修复后 next() 正常返回且 #twTime 归零。旧实现 ⇒ BAD throw，可即时转红。"
   },
 
   // ── 和弦解析（FE-N6 回归锁：Cmaj/Cmajor 应判大三和弦，非小三）──
