@@ -1083,6 +1083,25 @@ const CASES = [
     ref: "L-N30 百分比上限：CD4 60%>51% 应提示高于参考；修复前只查绝对计数、不查百分比上限 ⇒ 漏报。默认 CD4 30% 不命中。"
   },
   {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { cd8: "" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='FCRATIO '+((h.indexOf('倒置')<0&&h.indexOf('—')>=0)?'OK':'BAD');"],
+    expect: ["FCRATIO OK"],
+    ref: "L-N27 核销：CD8 留空时比值显示「—」并提示补全，不再按 0 算出 0.00 并推入「CD4/CD8倒置」。旧实现 h 含「倒置」⇒ BAD。"
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { wbc: "" },
+    expect: ["请先填写有效的白细胞计数（>0）与淋巴细胞百分比（0–100%）"],
+    ref: "L-N28 核销：WBC 空值不再连乘出 cd4Abs=0 并提示「CD4<200，AIDS 分期」，改为整块拦截提示补全。"
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { nk: "2" },
+    expect: ["NK细胞绝对值降低"],
+    ref: "L-N29 核销：NK 2%（绝对 36/μL <95）纳入异常 flag，不再出现「各项指标正常」；默认 NK 15% 不命中。"
+  },
+  {
     slug: "clinical-lab/thyroid-function-model",
     inputs: { tsh: "0.1", ft3: "5.0", ft4: "16", tt3: "1.5", tt4: "100", tpo: "0" },
     expect: ["亚临床甲状腺功能亢进症"],
