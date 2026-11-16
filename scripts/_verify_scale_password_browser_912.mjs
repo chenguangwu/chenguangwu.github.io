@@ -155,13 +155,36 @@ async function testYbocs(browser) {
   const enResult = await en.evaluate(() => document.getElementById('result').textContent);
   // 说明：结果区下方由全局 psych-kit.js 注入的心理危机热线提示在 EN 态仍含中文，
   //       属独立的全站心理量表 i18n 项，不在 912 本项范围；此处只核对 Y-BOCS 本身结果串已英文化。
-  // 观察记录：calc() 动态生成的结果串在英文态仍混中文（总分/强迫思维/危机热线），
-  // 属独立的动态串 i18n 缺陷，另行批次处理，不作为 912 链路证据的通过条件。
+  // 912 复核链路：英文切换后选项/按钮已英文化。
+  // （此前 calc() 动态结果串混中文已在本批修复；全局 psych-kit 危机热线英文化属另外的全局 i18n 项。）
+  const enCalc = await en.evaluate(() => {
+    var sev = document.querySelector('#result .sev-box');
+    var grid = document.querySelector('#result .stat-grid');
+    var info = document.querySelector('#result .info-box');
+    return [sev, grid, info].map((n) => (n ? n.textContent : '')).join(' ');
+  });
+  ok('Y-BOCS 英文态 calc 结果串零 CJK（严重度/总分/群得分/结论）', !CJK.test(enCalc), enCalc.replace(/\s+/g, ' ').slice(0, 100));
   const enOption = await en.evaluate(() => {
     var o = document.querySelector('.q-opt');
     return o ? o.textContent.trim() : '';
   });
   ok('Y-BOCS 英文态选项已英文化', enOption.length > 0 && !CJK.test(enOption), enOption);
+  // 英文态导出 CSV：题目/群组/结论串零 CJK
+  await en.evaluate(() => {
+    window.__exports = [];
+    var orig = TBKit.util.exportTable;
+    TBKit.util.exportTable = function (sel, filename) {
+      var rows = [];
+      document.querySelectorAll(sel + ' tbody tr').forEach(function (tr) {
+        var r = []; tr.querySelectorAll('td').forEach(function (td) { r.push(td.textContent.trim()); }); rows.push(r);
+      });
+      window.__exports.push({ filename: filename, rows: rows });
+      if (typeof orig === 'function') { try { orig.apply(this, arguments); } catch (e) {} }
+    };
+    if (typeof __ybocExport === 'function') __ybocExport();
+  });
+  const enCsv = await en.evaluate(() => JSON.stringify(window.__exports));
+  ok('Y-BOCS 英文态导出 CSV 题目/结论零 CJK', !CJK.test(enCsv), enCsv.slice(0, 100));
   await en.close();
 }
 

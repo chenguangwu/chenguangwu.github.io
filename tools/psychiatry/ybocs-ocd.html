@@ -233,6 +233,10 @@
 var OPTS=['无','轻度','中度','重度','极重度'];
 var OPTS_RES=['总能抵抗','多数能抵抗','约半能抵抗','很少能抵抗','几乎无法抵抗'];
 var OPTS_CTRL=['总能控制','多数能控制','约半能控制','很少能控制','几乎无法控制'];
+// 912/新发现：英文态选项文案（与中文数组一一对应，供 render 与 CSV 导出共用）
+var OPTS_EN=['None','Mild','Moderate','Severe','Extreme'];
+var OPTS_RES_EN=['Always resist','Mostly resist','Resist about half','Rarely resist','Almost unable to resist'];
+var OPTS_CTRL_EN=['Always control','Mostly control','Control about half','Rarely control','Almost unable to control'];
 var QS=[
 {t:'强迫思维占用您的时间（占用多少时间/频率）',g:'强迫思维'},
 {t:'强迫思维对日常社交、工作功能的干扰程度',g:'强迫思维'},
@@ -249,12 +253,15 @@ var A=new Array(QS.length).fill(-1);
 // 题号→选项集：0基第3/8题为「抵抗」、第4/9题为「控制」，其余为普通题。
 // 选项文案已按方向书写（首项=症状最轻=0分），故统一正向计分，不再做 4−选项 反向。
 var OPT_SET={3:'RES',4:'CTRL',8:'RES',9:'CTRL'};
-function __ybocOpts(i){ return OPT_SET[i]==='RES'?OPTS_RES:(OPT_SET[i]==='CTRL'?OPTS_CTRL:OPTS); }
+function __ybocOpts(i){
+  if(__emrEn()) return OPT_SET[i]==='RES'?OPTS_RES_EN:(OPT_SET[i]==='CTRL'?OPTS_CTRL_EN:OPTS_EN);
+  return OPT_SET[i]==='RES'?OPTS_RES:(OPT_SET[i]==='CTRL'?OPTS_CTRL:OPTS);
+}
 function __ybocScore(i){ var v=A[i]; if(v<0) return 0; return v; }
 function render(){
   var h='<div class="q-progress">已作答 <strong id="prog">0</strong>/'+QS.length+' 项</div>';
   QS.forEach(function(q,i){
-    h+='<div class="q-item"><div class="q-title"><span class="q-num">'+(i+1)+'</span><span>'+q.t+'</span><span class="q-cluster">'+q.g+'</span></div><div class="q-opts">';
+    h+='<div class="q-item"><div class="q-title"><span class="q-num">'+(i+1)+'</span><span>'+__ybocText(i)+'</span><span class="q-cluster">'+__ybocGroup(i)+'</span></div><div class="q-opts">';
     __ybocOpts(i).forEach(function(o,j){h+='<span class="q-opt'+(A[i]===j?' active':'')+'" onclick="pick('+i+','+j+')">'+o+'</span>';});
     h+='</div></div>';
   });
@@ -272,28 +279,31 @@ function pick(i,j){
 function updateProg(){var c=0;A.forEach(function(v){if(v>=0)c++;});var p=document.getElementById('prog');if(p){const __g2=c;p.textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}}
 function resetQuiz(){A=new Array(QS.length).fill(-1);render();document.getElementById('result').innerHTML='';}
 function calc(){
+  var EN=__emrEn(); // 912/新发现：动态结果串随语言切换，避免英文态残留中文
   var done=A.filter(function(v){return v>=0;}).length;
   if(done<QS.length){
-    const __g4='<div class="tip-box tip-info">已作答 '+done+'/'+QS.length+' 项，请继续完成剩余题目以获得完整评估。</div>';document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+    const __g4='<div class="tip-box tip-info">'+(EN?('Answered '+done+'/'+QS.length+'. Please complete all items for a full assessment.'):('已作答 '+done+'/'+QS.length+' 项，请继续完成剩余题目以获得完整评估。'))+'</div>';document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
     return;
   }
   var total=0,obs=0,com=0;
   for(var si=0;si<QS.length;si++){ var sv=__ybocScore(si); total+=sv; if(si<5)obs+=sv; else com+=sv; }
   var sev,color,desc;
-  if(total<=7){sev='亚临床';color='#10B981';desc='目前无明显强迫症状。';}
-  else if(total<=15){sev='轻度';color='#84CC16';desc='轻度强迫症状，功能影响有限，可观察随访。';}
-  else if(total<=23){sev='中度';color='#F59E0B';desc='中度强迫症状，建议接受CBT-ERP或药物治疗。';}
-  else if(total<=31){sev='重度';color='#F97316';desc='重度强迫症状，需积极药物联合心理治疗。';}
-  else {sev='极重度';color='#EF4444';desc='极重度强迫症状，功能严重受损，建议强化治疗。';}
+  if(total<=7){color='#10B981';desc=EN?'No obvious obsessive-compulsive symptoms at present.':'目前无明显强迫症状。';}
+  else if(total<=15){color='#84CC16';desc=EN?'Mild symptoms with limited functional impact; observation and follow-up may be sufficient.':'轻度强迫症状，功能影响有限，可观察随访。';}
+  else if(total<=23){color='#F59E0B';desc=EN?'Moderate symptoms; CBT-ERP or medication is recommended.':'中度强迫症状，建议接受CBT-ERP或药物治疗。';}
+  else if(total<=31){color='#F97316';desc=EN?'Severe symptoms; active medication combined with psychotherapy is needed.':'重度强迫症状，需积极药物联合心理治疗。';}
+  else {color='#EF4444';desc=EN?'Very severe symptoms with marked functional impairment; intensified treatment is advised.':'极重度强迫症状，功能严重受损，建议强化治疗。';}
+  var SEV=EN?['Subthreshold','Mild','Moderate','Severe','Very severe']:['亚临床','轻度','中度','重度','极重度'];
+  sev=total<=7?SEV[0]:(total<=15?SEV[1]:(total<=23?SEV[2]:(total<=31?SEV[3]:SEV[4])));
   const __g5='<div class="sev-box" style="background:'+color+'1a;border:1px solid '+color+'55;">'+
     '<div style="font-size:36px;font-weight:700;color:'+color+';">'+sev+'</div>'+
-    '<div style="font-size:16px;color:var(--text-light);margin-top:6px;">总分 '+total+' / 40</div></div>'+
+    '<div style="font-size:16px;color:var(--text-light);margin-top:6px;">'+(EN?'Total ':'总分 ')+total+' / 40</div></div>'+
     '<div class="stat-grid">'+
-    '<div class="stat-card"><div class="val" style="color:'+color+';">'+total+'</div><div class="lbl">Y-BOCS总分</div></div>'+
-    '<div class="stat-card"><div class="val">'+obs+'</div><div class="lbl">强迫思维(0-20)</div></div>'+
-    '<div class="stat-card"><div class="val">'+com+'</div><div class="lbl">强迫行为(0-20)</div></div>'+
+    '<div class="stat-card"><div class="val" style="color:'+color+';">'+total+'</div><div class="lbl">'+(EN?'Y-BOCS total':'Y-BOCS总分')+'</div></div>'+
+    '<div class="stat-card"><div class="val">'+obs+'</div><div class="lbl">'+(EN?'Obsessions (0-20)':'强迫思维(0-20)')+'</div></div>'+
+    '<div class="stat-card"><div class="val">'+com+'</div><div class="lbl">'+(EN?'Compulsions (0-20)':'强迫行为(0-20)')+'</div></div>'+
     '</div>'+
-    '<div class="info-box"><strong>评估结论：</strong>'+desc+'</div>';try{ if(typeof total==='number'&&isFinite(total)){ TBKit.chart.refBar('#resultRefBar',{value:total,unit:'',bands:[{"lo":0,"hi":8,"label":{"zh":"亚临床","en":"Subthreshold"},"color":"#10B981"},{"lo":8,"hi":16,"label":{"zh":"轻度","en":"Mild"},"color":"#84CC16"},{"lo":16,"hi":24,"label":{"zh":"中度","en":"Moderate"},"color":"#F59E0B"},{"lo":24,"hi":32,"label":{"zh":"重度","en":"Severe"},"color":"#F97316"},{"lo":32,"hi":null,"label":{"zh":"极重度","en":"Very severe"},"color":"#EF4444"}]}); } }catch(e){}
+    '<div class="info-box"><strong>'+(EN?'Assessment conclusion: ':'评估结论：')+'</strong>'+desc+'</div>';try{ if(typeof total==='number'&&isFinite(total)){ TBKit.chart.refBar('#resultRefBar',{value:total,unit:'',bands:[{"lo":0,"hi":8,"label":{"zh":"亚临床","en":"Subthreshold"},"color":"#10B981"},{"lo":8,"hi":16,"label":{"zh":"轻度","en":"Mild"},"color":"#84CC16"},{"lo":16,"hi":24,"label":{"zh":"中度","en":"Moderate"},"color":"#F59E0B"},{"lo":24,"hi":32,"label":{"zh":"重度","en":"Severe"},"color":"#F97316"},{"lo":32,"hi":null,"label":{"zh":"极重度","en":"Very severe"},"color":"#EF4444"}]}); } }catch(e){}
   document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
 function __ybocLevelName(total){
@@ -303,8 +313,22 @@ function __ybocLevelName(total){
   if(total<=31)return '重度';
   return '极重度';
 }
-function __ybocText(i){ var q=QS[i]; if(!q) return ''; return typeof q==='string'?q:q.t; }
-function __ybocGroup(i){ var q=QS[i]; if(!q) return ''; return typeof q==='string'?'':q.g; }
+// 912/新发现：英文态题目与群组文案（QS 仅存中文源，英文在此映射，与题目顺序一一对应）
+var QS_EN=[
+  'How much time do obsessions occupy (time spent / frequency)',
+  'How much obsessions interfere with daily social and work functioning',
+  'Distress or anxiety caused by obsessions',
+  'Active resistance against obsessions (more resistance scores lower)',
+  'Control over obsessions (more control scores lower)',
+  'How much time compulsions occupy',
+  'How much compulsions interfere with daily social and work functioning',
+  'Distress or anxiety caused by compulsions',
+  'Active resistance against compulsions (more resistance scores lower)',
+  'Control over compulsions (more control scores lower)'
+];
+var QG_EN=['Obsessions','Obsessions','Obsessions','Obsessions','Obsessions','Compulsions','Compulsions','Compulsions','Compulsions','Compulsions'];
+function __ybocText(i){ var q=QS[i]; if(!q) return ''; if(__emrEn()) return QS_EN[i]||''; return typeof q==='string'?q:q.t; }
+function __ybocGroup(i){ var q=QS[i]; if(!q) return ''; if(__emrEn()) return QG_EN[i]||''; return typeof q==='string'?'':q.g; }
 function __ybocAdvice(sev){
   var m={
     '亚临床':['目前无明显强迫症状。','No significant obsessive-compulsive symptoms at present.'],
