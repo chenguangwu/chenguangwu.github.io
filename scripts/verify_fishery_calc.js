@@ -200,6 +200,13 @@ const CASES = [
     ref: "注入非默认(默认 1000/100/26)：温水性鱼均重 150g ⇒ 基础投喂率 1.53%；21℃ 温度因子 0.37 ⇒ 修正后投喂率 0.56%；日投喂 = 1500×0.56% = 8.45 kg，分 3 餐 ⇒ 每餐 2.82 kg。默认态三项均不同。"
   },
   {
+    slug: "fishery/feed-rate-calculator",
+    inputs: { biomass: "1500", weight: "150", temp: "21" },
+    clicks: ["var n=0;var orig=ToolBox.copyText;ToolBox.copyText=function(){n++;};calc();document.getElementById('biomass').value='-1';calc();copyResult();ToolBox.copyText=orig;document.getElementById('__tbProbe').textContent='FR699 n='+n+' r='+(lastResult===''?0:1);"],
+    expect: ["FR699 n=0 r=0"],
+    ref: "699 复核失败重做：原交接写的 `feed-rate.html` 是文件名笔误，真实页面为 feed-rate-calculator.html。先合法输入算出 lastResult，再把存塘量改为 -1 触发校验失败；旧实现只替换结果文字不清缓存，复制仍输出上一次方案；现失败分支 lastResult='' 且 copyResult() 拒绝复制。探针统计真实 copyText 调用次数并要求缓存为空，默认态无探针串。"
+  },
+  {
     slug: "fishery/drug-withdrawal-fish",
     inputs: { temp: "24", stdDays: "20", refTemp: "18", tbase: "6" },
     expect: ["7.4 天", "0.53 校正系数"],

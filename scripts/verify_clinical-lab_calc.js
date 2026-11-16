@@ -1,6 +1,47 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+const path = require("path");
+
+// 237 复核失败：页面/深解源已统一 Ct<30 高拷贝，但 guide 中文页与两处 EN 映射
+// 仍写「载量中等」。逐字锁定四处口径，避免重建后旧文案回潮。
+function pcrDeepdiveConsistencyChecks() {
+  const read = (...parts) => fs.readFileSync(path.join(__dirname, "..", ...parts), "utf8");
+  const dd = JSON.parse(read("i18n", "tools", "content_deepdive.json"))["clinical-lab/pcr-ct-interpretation"] || {};
+  const example = (dd.examples || []).find((x) => x.title === "Ct 值判读示例");
+  const body = example ? example.body : "";
+  const tool = read("tools", "clinical-lab", "pcr-ct-interpretation.html");
+  const guide = read("guides", "pcr-ct-interpretation-guide.html");
+  const guideMap = JSON.parse(read("i18n", "guides", "pcr-ct-interpretation-guide.json")).map || {};
+  const toolMap = JSON.parse(read("i18n", "tools", "en", "clinical-lab", "pcr-ct-interpretation.json")).map || {};
+  const noCjk = (s) => typeof s === "string" && !/[\u4e00-\u9fff]/.test(s);
+  const stale = (s) => typeof s === "string" && s.indexOf("载量中等") >= 0;
+  return [
+    {
+      name: "PCR 深解示例按 Ct<30 高拷贝口径",
+      ok: body.indexOf("低于 30 属阳性且为高拷贝") >= 0 && body.indexOf("Ct 39") >= 0,
+    },
+    {
+      name: "PCR 工具页、指南页与深解源示例逐字一致",
+      ok: !!body && tool.indexOf(body) >= 0 && guide.indexOf(body) >= 0,
+    },
+    {
+      name: "PCR 两处英文映射键对齐且无中文残留",
+      ok: !!body && noCjk(guideMap["：" + body]) && noCjk(toolMap[body]),
+    },
+    {
+      name: "PCR 判读代码仍按 Ct<30 输出高拷贝",
+      ok: tool.indexOf("ct>=30") >= 0 && tool.indexOf("'阳性(高拷贝)'") >= 0,
+    },
+    {
+      name: "四处口径均无旧文案「载量中等」",
+      ok: !stale(body) && !stale(guideMap["：" + body]) && !stale(toolMap[body])
+        && !stale(tool) && !stale(guide),
+    },
+  ];
+}
+
 const CASES = [
 {
     "slug": "clinical-lab/blood-gas-analysis",
@@ -1550,7 +1591,12 @@ async function main() {
     }
   }
 
+  const stat = pcrDeepdiveConsistencyChecks();
+  const staticFails = stat.filter((s) => !s.ok);
+  for (const s of staticFails) console.log("❌ [static] " + s.name);
+
   console.log("==== clinical-lab calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (staticFails.length) console.log("❌ static " + (stat.length - staticFails.length) + "/" + stat.length + " 未通过");
+  if (fails.length || staticFails.length) process.exit(1);
 }
 if (require.main === module) main();
