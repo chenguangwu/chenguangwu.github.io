@@ -51,6 +51,20 @@ const CASES = [
   "ref": "EOQ=√(2×15000×100/8)=612.37；提前期 7 天、日均需求 15000/365=41.0959 ⇒ ROP=287.67 件（默认 demand 10000/LT 7 得 191.78，两串均失配）"
 },
 {
+  "slug": "procurement/eoq",
+  "inputs": {"demand":"365","orderCost":"100","holdCost":"8","leadTime":"4000"},
+  "clicks": ["var h=String(document.getElementById('detailResult').innerHTML);document.getElementById('__tbProbe').textContent='EOLTMAX '+(h.indexOf('0 到 3650')>=0&&h.indexOf('3650 ×')<0?'OK':'BAD '+h.slice(0,60));"],
+  "expect": ["EOLTMAX OK"],
+  "ref": "586：LT=4000 旧版静默截为 3650 并按 ROP=10×3650=36500 计算；修复后字段级拒绝，提示 0–3650，不出 ROP。合法 LT=7 默认态不命中该提示串。"
+},
+{
+  "slug": "procurement/eoq",
+  "inputs": {"demand":"365","orderCost":"100","holdCost":"8","leadTime":""},
+  "clicks": ["var h=String(document.getElementById('detailResult').innerHTML);document.getElementById('__tbProbe').textContent='EOLTEMPTY '+(h.indexOf('留空')>=0?'OK':'BAD '+h.slice(0,60));"],
+  "expect": ["EOLTEMPTY OK"],
+  "ref": "586：LT 留空旧版静默当 0、ROP=0 仍出结果；修复后提示留空不出 ROP。合法 LT=7 默认态不命中该提示串。"
+},
+{
   "slug": "procurement/rater-price",
   "inputs": {
     "wQuality": "60",

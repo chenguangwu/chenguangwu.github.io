@@ -135,7 +135,7 @@
       </div>
       <div>
         <label>采购提前期 LT（天）</label>
-        <input type="number" id="leadTime" value="7" min="0" step="1" oninput="calc()" placeholder="如 7">
+        <input type="number" id="leadTime" value="7" min="0" max="3650" step="1" oninput="calc()" placeholder="如 7">
       </div>
     </div>
 
@@ -240,14 +240,22 @@ function calc(){
   var D=Math.min(parseFloat(document.getElementById('demand').value)||0,1e15);
   var S=Math.min(parseFloat(document.getElementById('orderCost').value)||0,1e15);
   var H=Math.min(parseFloat(document.getElementById('holdCost').value)||0,1e15);
-  var LTv=parseFloat(document.getElementById('leadTime').value);
-  var LT=(isFinite(LTv)&&LTv>0)?Math.min(LTv,3650):0;
+  var LTraw=String(document.getElementById('leadTime').value==null?'':document.getElementById('leadTime').value).trim();
+  var LTv=Number(LTraw);
 
   if(D<=0||S<=0||H<=0){
     document.getElementById('stats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请输入有效参数</div></div>';
     document.getElementById('detailResult').innerHTML='<p style="color:var(--text-muted);">所有参数需大于0</p>';
     return;
   }
+  // 586：提前期不得静默替换为空/0 或截断到 3650；非法值字段级拒绝并提示，
+  // 避免输入 4000 仍按 3650 计算、或清空后 ROP 变 0 的误导结果。
+  if(LTraw===''||!isFinite(LTv)||LTv<0||LTv%1!==0||LTv>3650){
+    document.getElementById('stats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">提前期须为 0–3650 的整数天数</div></div>';
+    document.getElementById('detailResult').innerHTML='<p style="color:var(--text-muted);">请填写 0 到 3650 之间的整数采购提前期（天），留空、负数、小数或超过 3650 均不出 ROP。</p>';
+    return;
+  }
+  var LT=LTv;
 
   var eoq=Math.sqrt(2*D*S/H);
   var orders=D/eoq;
