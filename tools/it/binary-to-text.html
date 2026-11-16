@@ -311,6 +311,35 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 var __binary_to_text_last=0,__binary_to_text_skip=false;
+// 第198批复核重做：节流窗口内的末次结果挂起，窗口结束后补写，避免快速切换丢历史。
+var __binary_to_text_pending=null,__binary_to_text_pendingTimer=null;
+function __binary_to_textRecord(snap,keys,res,en){
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __binary_to_text_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    rec.__tbScore=__binary_to_textScore(res);
+    TBKit.history.record(rec);
+    __binary_to_textRender(keys,rk,en);
+}
+function __binary_to_textFlushPending(){
+    if(__binary_to_text_pendingTimer){ clearTimeout(__binary_to_text_pendingTimer); __binary_to_text_pendingTimer=null; }
+    if(__binary_to_text_pending){
+        var p=__binary_to_text_pending; __binary_to_text_pending=null;
+        __binary_to_textRecord(p.snap,p.keys,p.res,p.en);
+    }
+}
 function __binary_to_textSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -386,8 +415,12 @@ function __binary_to_textExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__binary_to_text_skip) return;
     // 第198批：非法/空输入没有属于本次输入的结果，禁止写历史（旧结果已被 convert 清空），
-    // 避免把「上次 0xFF 的告警」当成新输入的产物记为通过。
-    if (__binary_to_text_state==='invalid' || __binary_to_text_state==='empty' || __binary_to_text_state==='idle') return;
+    // 避免把「上次 0xFF 的告警」当成新输入的产物记为通过；同时撤销尚未落地的挂起补写。
+    if (__binary_to_text_state==='invalid' || __binary_to_text_state==='empty' || __binary_to_text_state==='idle'){
+        if(__binary_to_text_pendingTimer){ clearTimeout(__binary_to_text_pendingTimer); __binary_to_text_pendingTimer=null; }
+        __binary_to_text_pending=null;
+        return;
+    }
     var snap=__binary_to_textSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -395,28 +428,27 @@ function __binary_to_textExtras(){
     var res=__binary_to_textResText();
     if(!res) return;
     var en=TBKit.util.isEn();
-    var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__binary_to_text_last<1000) return;
-    var last=null;
-    try{ last=TBKit.history.last(); }catch(e){}
-    if(last){
-        var same=true;
-        for(var i=0;i<keys.length;i++){
-            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
-        }
-        if(same&&String(last[rk])===String(res)) return;
+    if(now-__binary_to_text_last<1000){
+        // 节流窗口内：捕获本次快照挂起，窗口结束后补写，避免快速切换时末次结果（尤其失败态）被丢弃。
+        __binary_to_text_pending={snap:snap,keys:keys,res:res,en:en};
+        if(__binary_to_text_pendingTimer) clearTimeout(__binary_to_text_pendingTimer);
+        var wait=1000-(now-__binary_to_text_last)+10;
+        __binary_to_text_pendingTimer=setTimeout(function(){
+            __binary_to_text_pendingTimer=null;
+            __binary_to_textFlushPending();
+        }, wait);
+        return;
     }
-    __binary_to_text_last=now;
-    var rec={};
-    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
-    rec[rk]=res;
-    rec.__tbScore=__binary_to_textScore(res);
-    TBKit.history.record(rec);
-    __binary_to_textRender(keys,rk,en);
+    // 有更早的挂起补写先落地，保证连续输入的中间态不丢失（按时间顺序）。
+    if(__binary_to_text_pendingTimer){ clearTimeout(__binary_to_text_pendingTimer); __binary_to_text_pendingTimer=null; }
+    if(__binary_to_text_pending){ var p=__binary_to_text_pending; __binary_to_text_pending=null; __binary_to_textRecord(p.snap,p.keys,p.res,p.en); }
+    __binary_to_textRecord(snap,keys,res,en);
 }
 function __binary_to_textExport(){
     if (typeof TBKit === 'undefined') return;
+    // 第198批复核重做：导出前先冲刷节流挂起的末次记录，保证导出与当前状态一致。
+    try{ __binary_to_textFlushPending(); }catch(e){}
     try{
         var box=document.querySelector('#binary_to_textTable');
         if(!box||!box.querySelector('tr')){

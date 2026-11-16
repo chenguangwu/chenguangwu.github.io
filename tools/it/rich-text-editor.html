@@ -444,10 +444,29 @@ function fmtSize(b){
 }
 
 /* ---------- 源码同步 ---------- */
+// N439 复核重做：只在 <pre> 外部的两个相邻标签间插入换行。
+// 原先全局 replace(/></g,'>\n<') 会在 pre 内的 <code>a</code><code>b</code> 之间塞入换行，
+// 使 pre 文本从 "ab" 变成 "a\nb\n"，保存/应用源码往返不能保真。
+function insertBreaksOutsidePre(html){
+  var out='', i=0, inPre=false, n=html.length;
+  while(i<n){
+    var gt=html.indexOf('>', i);
+    if(gt<0){ out+=html.slice(i); break; }
+    var lt=html.lastIndexOf('<', gt);
+    var tag=(lt>=i)? html.slice(lt, gt+1) : '';
+    out+=html.slice(i, gt+1);
+    var isClosePre=/^<\/pre\b/i.test(tag);
+    var isOpenPre=/^<pre\b/i.test(tag) && !/\/\s*>$/.test(tag);
+    if(isOpenPre) inPre=true;
+    else if(isClosePre) inPre=false;
+    if(html.charAt(gt+1)==='<' && !inPre) out+='\n';
+    i=gt+1;
+  }
+  return out;
+}
 function prettyHtml(html){
   var inPre = false;
-  return html
-    .replace(/></g, '>\n<')
+  return insertBreaksOutsidePre(html)
     .split('\n')
     .map(function(l){
       var keep = inPre;

@@ -591,13 +591,27 @@ window.__tbEnTitle = "📈 Device Snapshots & Comparison";
 
 
 function __tbDevRec(){
-  var na = navigator || {}, sc = screen || {};
-  // IT-N256：__v 原取 hardwareConcurrency（同一台设备恒定）⇒ 趋势水平线、对比恒 0。
-  // 改用视口面积（innerWidth*innerHeight），改变窗口大小即可产生真实变化，趋势/对比才有意义。
+  // IT-N256 复核重做：快照须覆盖页面全部 label/value 信息项（含 DPR、在线状态、电池及「不可用」态），
+  // 才能对历史记录逐项对比；原先只存 6 个固定字段，DPR/在线/电池等变化无法在历史中体现。
+  var rec = {时间:__tbTime()};
+  var gridIds = ['screenInfo','browserInfo','localeInfo','deviceStatus'];
+  for (var i = 0; i < gridIds.length; i++) {
+    var el = document.getElementById(gridIds[i]);
+    if (!el) continue;
+    var items = el.querySelectorAll ? el.querySelectorAll('.info-item') : [];
+    for (var j = 0; j < items.length; j++) {
+      var lab = items[j].querySelector('.label'), val = items[j].querySelector('.value');
+      var l = lab ? (lab.textContent || '').replace(/\s+/g, ' ').trim() : '';
+      var v = val ? (val.textContent || '').replace(/\s+/g, ' ').trim() : '';
+      if (l) rec[l] = v || '不可用';
+    }
+  }
+  var ua = document.getElementById('uaBox');
+  if (ua && ua.textContent) rec['UserAgent'] = ua.textContent.replace(/\s+/g, ' ').trim();
+  // __v 用视口面积（innerWidth*innerHeight），改变窗口大小即可产生真实变化，趋势/对比才有意义。
   var vw = window.innerWidth || 0, vh = window.innerHeight || 0;
-  return {时间:__tbTime(), 系统:(na.platform||''), 分辨率:(sc.width||0)+'x'+(sc.height||0),
-          语言:na.language||'', 核心:na.hardwareConcurrency||'', 视口:vw+'x'+vh,
-          __v:(vw*vh)||0};
+  rec.__v = (vw * vh) || 0;
+  return rec;
 }
 function __tbDevSave(){ window.__tbArmed = true; __tbHistSave(__tbDevRec()); }
 function __tbDevCopy(){

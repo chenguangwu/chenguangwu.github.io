@@ -368,7 +368,18 @@ function calcTool(){
       for(var b2=0;b2<blockRules.length;b2++){
         var s=blockRules[b2][0],e=blockRules[b2][1];
         var si=t.indexOf(s);
-        if(si>=0){var rest=t.slice(si+2);if(rest.indexOf(e)<0){inBlock=true;}isComment=(si===0);break;}
+        // N447 复核重做：块注释在同一行闭合时，须检查闭合标记后是否还有有效代码；
+        // `/* 注释 */ const a=1;` 是「代码行」，不能因注释从行首开始就整行判为注释。
+        if(si>=0){
+          var endIdx=t.indexOf(e, si+2);
+          if(endIdx<0){ inBlock=true; isComment=(si===0); }
+          else {
+            var beforeCode=t.slice(0,si).trim();
+            var afterCode=t.slice(endIdx+e.length).trim();
+            isComment=(beforeCode===''&&afterCode==='');
+          }
+          break;
+        }
       }
     }
     if(isComment){comment++;}else{code++;}
