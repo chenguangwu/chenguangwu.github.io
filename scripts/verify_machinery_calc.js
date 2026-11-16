@@ -566,7 +566,9 @@ const CASES = [
   { slug: "machinery/power-16", inputs: { pVal: "5.5", n1: "1450", ratio: "10" }, expect: ["超出 800mm 标准系列"], ref: "大带轮超系列拦截（666）：d₁=125，d₁×i=1250 > 800 ⇒ 提示「目标大带轮 ⌀1250mm 超出 800mm 标准系列」且实际传动比显示「—」（修复前静默截断为 800、显示 6.40；默认 i=2.5 不含该串）" },
   { slug: "machinery/power-16", inputs: { pVal: "22", n1: "100", ratio: "3" }, expect: ["转速过低", "减速机或链传动"], ref: "低转速带速不足提示（666）：n₁=100 ⇒ 带速 ≥5 m/s 需 d₁≥955mm（超 800 系列），页面提示改减速机/链传动（修复前 d₁=200、带速 1.05 m/s 仍照常「推荐」；默认 1450rpm 不含该串）" },
   { slug: "machinery/lifespan-23", inputs: { vTemp: "130", vRpm: "9000" }, clicks: ["document.getElementById('vOil').value='ester';calc();"], expect: ["18 建议换油间隔"], ref: "换油间隔不再被 500h 下限抬高（667）：酯类油 6000h、130℃、9000rpm ⇒ fTemp=0.5⁷=0.0078125、fRpm=0.85⁶=0.37715、寿命 23h，间隔 round(23×0.8)=18h（修复前 max(500,…)=500；默认 70℃/3000rpm 为 1040）" },
-  { slug: "machinery/lifespan-23", inputs: { vTemp: "130", vRpm: "9000" }, clicks: ["document.getElementById('vOil').value='ester';calc();"], expect: ["润滑寿命不足 500h"], ref: "短寿命提示（667）：寿命 23h < 500h ⇒ advice 追加「润滑寿命不足 500h，建议缩短换油/补油周期并按状态监测」（默认 1300h 不含该串）" }
+  { slug: "machinery/lifespan-23", inputs: { vTemp: "130", vRpm: "9000" }, clicks: ["document.getElementById('vOil').value='ester';calc();"], expect: ["润滑寿命不足 500h"], ref: "短寿命提示（667）：寿命 23h < 500h ⇒ advice 追加「润滑寿命不足 500h，建议缩短换油/补油周期并按状态监测」（默认 1300h 不含该串）" },
+  { slug: "machinery/power-16", inputs: { pVal: "5.5", n1: "1450", ratio: "10" }, expect: ["几何派生值不适用"], ref: "666 复核（超系列停止派生）：d₁×i=1250>800 ⇒ 中心距/带长/包角显示「—」，总结与复制文本标注几何派生值不适用；默认 i=2.5 不含该串" },
+  { slug: "machinery/power-16", inputs: { pVal: "5.5", n1: "6000", ratio: "2" }, expect: ["增大带轮无法降速"], ref: "666 复核（高速不反向增轮）：n₁=6000 ⇒ 最小标准轮径 80mm 下带速 25.1>25；v 与 d₁ 正相关，旧 while 逐档增轮反把带速推高并推到 800mm，现明确提示无法降速；默认 1450rpm 不含该串" },
 ];
 
 async function main() {
