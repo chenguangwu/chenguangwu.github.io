@@ -264,6 +264,12 @@ function generate(){
   if(removeWhitespace){
     // xml:space="preserve" 元素内的空白有语义，抽出后再压缩，压缩完原样放回
     const preserved = [];
+    // 内部 DTD 子集里的空白有语义（如 <!ENTITY x "A  B">），必须先整段抽出，
+    // 否则后续的 /\s{2,}/g 会改变实体值，压缩后 SVG 与原始内容不等价。
+    svg = svg.replace(/<!DOCTYPE[^>\[]*\[[\s\S]*?\]>/gi, function(m){
+      preserved.push(m);
+      return '___TB_PRESERVE_' + (preserved.length - 1) + '___';
+    });
     svg = svg.replace(/<text[^>]*xml:space=["']preserve["'][^>]*>[\s\S]*?<\/text>/gi, function(m){
       preserved.push(m);
       return '___TB_PRESERVE_' + (preserved.length - 1) + '___';

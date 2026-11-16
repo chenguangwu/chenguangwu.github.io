@@ -1,6 +1,25 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+const path = require("path");
+const COMMISSION_PATH = path.join(__dirname, "..", "tools", "sales", "commission-calculator.html");
+
+// 558 复核失败：末档上限此前仍可编辑，但 getTiers() 无条件替换为 Infinity；
+// 禁用末档输入并明确固定无穷，是唯一不产生「填了却不算」歧义的口径。
+function commissionStaticChecks() {
+  const src = fs.readFileSync(COMMISSION_PATH, "utf8");
+  return [
+    {
+      name: "阶梯提成末档上限输入禁用（固定无穷）",
+      ok: /t\.cap === Infinity\s*\?\s*'[^']*tier-cap[^']*disabled[^']*'\s*:/.test(src)
+        && !/placeholder="上限\(元\)"[^']*disabled/.test(src)
+        && /newLast\.querySelector\('\.tier-cap'\)\.disabled = true/.test(src)
+        && /last\.querySelector\('\.tier-cap'\)\.disabled = true/.test(src),
+    },
+  ];
+}
+
 const CASES = [
 {
   "slug": "sales/commission-calc",
@@ -247,7 +266,12 @@ async function main() {
     }
   }
 
+  const stat = commissionStaticChecks();
+  const staticFails = stat.filter((s) => !s.ok);
+  for (const s of staticFails) console.log("❌ [static] " + s.name);
+
   console.log("==== sales calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (staticFails.length) console.log("❌ static " + (stat.length - staticFails.length) + "/" + stat.length + " 未通过");
+  if (fails.length || staticFails.length) process.exit(1);
 }
 if (require.main === module) main();

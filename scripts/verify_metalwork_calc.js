@@ -16,6 +16,25 @@
  */
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+const path = require("path");
+const RECORDER_PATH = path.join(__dirname, "..", "tools", "metalwork", "recorder-9.html");
+
+// 640 复核失败：syncTargetTemp() 对非法目标只标红，但 calcSoaking() 用 `+value || 0`
+// 把当前目标改成 0，后续偏差、记录与导出继续按无效目标运行。
+function recorderStaticChecks() {
+  const src = fs.readFileSync(RECORDER_PATH, "utf8");
+  const i = src.indexOf("function calcSoaking(");
+  const j = src.indexOf("\nfunction ", i + 1);
+  const body = i < 0 ? "" : src.slice(i, j < 0 ? src.length : j);
+  return [
+    {
+      name: "保温计算不再用空/非法目标覆盖当前目标",
+      ok: !/\+document\.getElementById\('targetTemp'\)\.value *\|\| *0/.test(body)
+        && /tRaw!==''&&isFinite\(t\)&&t>0\) current\.target=t/.test(body),
+    },
+  ];
+}
 
 const CASES = [
   {
@@ -168,8 +187,8 @@ const CASES = [
 {
   "slug": "metalwork/analysis-35",
   "inputs": { "trials": "6", "data": "short shot,4,2\n飞边,4,2" },
-  "expect": ["问题总数： 8", "问题类型数： 2"],
-  "ref": "含空格问题名不再丢行（669）：仅按逗号/制表符切分，short shot 整名保留 ⇒ 总数 8、类型 2（修复前按空格切分导致该行被静默丢弃，总数 4、类型 1；默认 22/3 不含）"
+  "expect": ["问题总数： 8"],
+  "ref": "含空格问题名不再丢行（669）：仅按逗号/制表符切分，short shot 整名保留 ⇒ 总数 8、类型 2（修复前按空格切分导致该行被静默丢弃，总数 4、类型 1）。判别器实测「问题类型数： 2」在默认态也命中（默认数据恰为两类），已移除该逃生锚，仅保留依赖注入数据的总数 8（默认 22 不含）。"
 },
 {
   "slug": "metalwork/analysis-35",
@@ -773,7 +792,12 @@ async function main() {
     }
   }
 
+  const stat = recorderStaticChecks();
+  const staticFails = stat.filter((s) => !s.ok);
+  for (const s of staticFails) console.log("❌ [static] " + s.name);
+
   console.log("==== metalwork calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (staticFails.length) console.log("❌ static " + (stat.length - staticFails.length) + "/" + stat.length + " 未通过");
+  if (fails.length || staticFails.length) process.exit(1);
 }
 if (require.main === module) main();

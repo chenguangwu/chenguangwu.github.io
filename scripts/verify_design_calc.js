@@ -21,6 +21,37 @@
  * （原 mix(c,t) 退化为 Math.round(t) → 纯灰度、与基色无关），现纳入回归用例（见下方 CASES）。
  */
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+const path = require("path");
+const SVG_PATH = path.join(__dirname, "..", "tools", "design", "svg-minifier.html");
+const PPS_PATH = path.join(__dirname, "..", "tools", "design", "photo-print-size.html");
+
+// 648 复核失败：DTD 内部子集被整段抽出的约定未覆盖空白压缩；CSV 的 ok 算了却没写进导出。
+function designRework648StaticChecks() {
+  const src = fs.readFileSync(SVG_PATH, "utf8");
+  const i = src.indexOf("function generate(");
+  const j = src.indexOf("\nfunction ", i + 1);
+  const generate = i < 0 ? "" : src.slice(i, j < 0 ? src.length : j);
+  const dtdAt = generate.indexOf("svg = svg.replace(/<!DOCTYPE[^>");
+  // 注释里也引用了 /\s{2,}/g，必须锚实际替换语句而非首次出现的文本。
+  const wsAt = generate.indexOf("svg = svg.replace(/\\s{2,}/g");
+  const csv = fs.readFileSync(PPS_PATH, "utf8");
+  const k = csv.indexOf("function ppExportCsv(");
+  const exportBody = k < 0 ? "" : csv.slice(k);
+  return [
+    {
+      name: "SVG 内部 DTD 子集在空白压缩前抽出并原样回填",
+      ok: dtdAt >= 0 && wsAt > dtdAt
+        && /preserved\.push\(m\)/.test(generate)
+        && /___TB_PRESERVE_/.test(generate),
+    },
+    {
+      name: "照片打印 CSV 导出按实际 ok 写是/否",
+      ok: /ok\?\(en\?'Yes':'是'\):\(en\?'No':'否'\)/.test(exportBody)
+        && !/addRow\([^;]*en\?'Yes':/.test(exportBody.replace(/ok\?\(en\?'Yes':'是'\):\(en\?'No':'否'\)/g, "")),
+    },
+  ];
+}
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
@@ -3544,7 +3575,12 @@ async function main() {
     }
   }
 
+  const stat = designRework648StaticChecks();
+  const staticFails = stat.filter((s) => !s.ok);
+  for (const s of staticFails) console.log("❌ [static] " + s.name);
+
   console.log("==== design calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (staticFails.length) console.log("❌ static " + (stat.length - staticFails.length) + "/" + stat.length + " 未通过");
+  if (fails.length || staticFails.length) process.exit(1);
 }
 if (require.main === module) main();

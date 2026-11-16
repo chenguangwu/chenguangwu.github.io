@@ -1,6 +1,33 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+const path = require("path");
+const ROLL_PATH = path.join(__dirname, "..", "tools", "paper", "roll-length.html");
+
+// 581 复核失败：calcLen() 有有效层数守卫，copyResult() 却只查三个参数；
+// 复制与计算必须共用同一判据，否则页面提示无法成卷时仍可复制出虚假长度。
+function rollLengthStaticChecks() {
+  const src = fs.readFileSync(ROLL_PATH, "utf8");
+  const body = (name) => {
+    const i = src.indexOf("function " + name + "(");
+    if (i < 0) return "";
+    const j = src.indexOf("\nfunction ", i + 1);
+    return src.slice(i, j < 0 ? src.length : j);
+  };
+  const calc = body("calcLen");
+  const copy = body("copyResult");
+  const calcGuard = /var layers = Math\.round\(\(D - d\) \/ \(2 \* t\)\)/.test(calc)
+    && /layers < 1/.test(calc);
+  const copyGuard = /Math\.round\(\(D - d\) \/ \(2 \* t\)\) < 1/.test(copy);
+  return [
+    {
+      name: "纸卷长度计算与复制共用有效层数守卫",
+      ok: calcGuard && copyGuard && /无法形成有效缠绕层数/.test(copy),
+    },
+  ];
+}
+
 const CASES = [
 {
   "slug": "paper/basis-weight",
@@ -196,7 +223,12 @@ async function main() {
     }
   }
 
+  const stat = rollLengthStaticChecks();
+  const staticFails = stat.filter((s) => !s.ok);
+  for (const s of staticFails) console.log("❌ [static] " + s.name);
+
   console.log("==== paper calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (staticFails.length) console.log("❌ static " + (stat.length - staticFails.length) + "/" + stat.length + " 未通过");
+  if (fails.length || staticFails.length) process.exit(1);
 }
 if (require.main === module) main();

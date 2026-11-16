@@ -10,6 +10,26 @@
  *   node scripts/verify_hydraulic_calc.js bernoulli-velocity calc-2
  */
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+const path = require("path");
+const CYCLE_PATH = path.join(__dirname, "..", "tools", "hydraulic", "cycle-19.html");
+
+// 640 复核失败：markAllDone() 此前只写 last 并持久化，可绕过单次维护的留痕约定。
+function cycleStaticChecks() {
+  const src = fs.readFileSync(CYCLE_PATH, "utf8");
+  const i = src.indexOf("function markAllDone(");
+  const j = src.indexOf("\nfunction ", i + 1);
+  const body = i < 0 ? "" : src.slice(i, j < 0 ? src.length : j);
+  return [
+    {
+      name: "批量标记完成同样写入维护日志并持久化",
+      ok: /c\.log=c\.log\|\|\[\]/.test(body)
+        && /c\.log\.unshift\(/.test(body)
+        && /i18nText\('批量标记完成'\)/.test(body)
+        && /persist\(\);render\(\);/.test(body),
+    },
+  ];
+}
 
 const CASES = [
   {
@@ -1221,7 +1241,12 @@ async function main() {
       console.log(`❌ ${c.slug}  THREW ${e.message.slice(0, 80)}`);
     }
   }
+  const stat = cycleStaticChecks();
+  const staticFails = stat.filter((s) => !s.ok);
+  for (const s of staticFails) console.log("❌ [static] " + s.name);
+
   console.log(`\n==== hydraulic calc ${pass}/${cases.length} ====`);
-  if (fails.length) process.exit(1);
+  if (staticFails.length) console.log("❌ static " + (stat.length - staticFails.length) + "/" + stat.length + " 未通过");
+  if (fails.length || staticFails.length) process.exit(1);
 }
 if (require.main === module) main();
