@@ -346,7 +346,10 @@ function toggleCollapse(id){
 window.toggleCollapse = toggleCollapse;
 
 function latestRecord(pet, type, key){
-  var recs = pet.records.filter(function(r){ return r.type === type && (!key || r.key === key); });
+  // 641：历史里若残留未来日期记录，不得据此推算下一次驱虫/加强针到期日，
+  // 与 vaccineDone() 的「仅计 date<=today」口径一致。
+  var t = today();
+  var recs = pet.records.filter(function(r){ var d = parseDate(r.date); return r.type === type && (!key || r.key === key) && d && d <= t; });
   if(!recs.length) return null;
   return recs.reduce(function(a,b){ return parseDate(a.date) >= parseDate(b.date) ? a : b; });
 }
@@ -379,7 +382,8 @@ function computeItems(pet){
     items.push({ cat:'疫苗', name:BOOSTER.name+'（加强）', type:'vaccine', key:'booster',
       done:false, dueDate:addDays(parseDate(lastBooster.date), BOOSTER.cycleDays), recurring:true, cycleDays:BOOSTER.cycleDays });
   } else if(allCoreDone){
-    var coreRecs = pet.records.filter(function(r){ return r.type==='vaccine' && coreKeys.indexOf(r.key)>=0; });
+    var t = today();
+    var coreRecs = pet.records.filter(function(r){ var d = parseDate(r.date); return r.type==='vaccine' && coreKeys.indexOf(r.key)>=0 && d && d <= t; });
     var latest = coreRecs.reduce(function(a,b){ return parseDate(a.date) >= parseDate(b.date) ? a : b; });
     items.push({ cat:'疫苗', name:BOOSTER.name, type:'vaccine', key:'booster',
       done:false, dueDate:addDays(parseDate(latest.date), BOOSTER.cycleDays), recurring:true, cycleDays:BOOSTER.cycleDays });
