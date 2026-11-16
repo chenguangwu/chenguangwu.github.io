@@ -304,6 +304,42 @@ const CASES = [
   "clicks": ["onKana(11)"],
   "expect": ["し 假名 shi 罗马字"],
   "ref": "onKana(11) ⇒ 平假名第 12 格「し / shi」：详情卡渲染两行数据卡「し · 假名」「shi · 罗马字」。默认未点选、详情区为空，零交集；网格内虽有「し」「shi」拼接文本，但不含「し 假名 shi 罗马字」这一带标签分隔的序列。"
+},
+{
+  "slug": "language/language-toolkit",
+  "clicks": [
+    "practiceCorrect=0;practiceTotal=0;var i=document.getElementById('practiceInput');"
+    + "currentPracticeKana={kana:'し',romaji:'shi'};practiceAnswered=false;i.disabled=false;i.value='si';checkPractice();"
+    + "var a=practiceCorrect,b=practiceTotal;"
+    + "currentPracticeKana={kana:'を',romaji:'wo'};practiceAnswered=false;i.disabled=false;i.value='o';checkPractice();"
+    + "var c=practiceCorrect;"
+    + "currentPracticeKana={kana:'し',romaji:'shi'};practiceAnswered=false;i.disabled=false;i.value='xi';checkPractice();"
+    + "document.getElementById('__tbProbe').textContent='ELF14 a='+a+'/'+b+' w='+c+' x='+practiceCorrect+'/'+practiceTotal"
+    + "+' fb='+document.getElementById('practiceFeedback').textContent;"
+  ],
+  "expect": ["ELF14 a=1/1 w=2 x=2/3 fb=✗ 错误。し 的罗马音是 shi（也接受 si）"],
+  "ref": "EL-F14：し 接受 si、を 接受 o（旧实现只认单一 Hepburn 拼写，两例均判错）；xi 仍判错且反馈列出可接受变体「也接受 si」。默认未作答、练习反馈为空 ⇒ 强判别。"
+},
+{
+  "slug": "language/language-toolkit",
+  "clicks": [
+    "practiceCorrect=0;practiceTotal=0;var i=document.getElementById('practiceInput');"
+    + "var __np=nextPractice;nextPractice=function(){};"
+    + "currentPracticeKana={kana:'し',romaji:'shi'};practiceAnswered=false;i.disabled=false;i.value='shi';"
+    + "checkPractice();checkPractice();var q=practiceAnswered,t=practiceTotal,c2=practiceCorrect;nextPractice=__np;"
+    + "document.getElementById('__tbProbe').textContent='ELF15 total='+t+' correct='+c2+' ans='+(q?'Y':'N');"
+  ],
+  "expect": ["ELF15 total=1 correct=1 ans=Y"],
+  "ref": "EL-F15：答题后 practiceAnswered 置真并禁用输入，同一题连按回车（连续两次 checkPractice）只计 1 题。旧实现无守卫 ⇒ total=2/correct=2 必 FAIL。"
+},
+{
+  "slug": "language/language-toolkit",
+  "clicks": [
+    "var all=getAllKana(),hist=all.filter(function(x){return x.kana==='ゐ'||x.kana==='ゑ';}).length;"
+    + "document.getElementById('__tbProbe').textContent='ELF14KANA hist='+hist+' n='+all.length;"
+  ],
+  "expect": ["ELF14KANA hist=0"],
+  "ref": "EL-F14：ゐ/ゑ 为历史假名，已从练习题库 getAllKana() 排除（仍保留在五十音图表中）。旧实现两者均在池内 ⇒ hist=2 必 FAIL。"
 }
 
 ];
