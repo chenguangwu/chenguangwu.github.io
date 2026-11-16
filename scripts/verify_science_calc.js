@@ -2129,6 +2129,25 @@ const CASES = [
     "clicks": ["calculate()"],
     "expect": ["与单位矩阵最大偏差：|Δ| = 2.22e-16", "在容差内"],
     "ref": "632 批 SMS-109：求逆分支原有 `const check = mul(A, inv)` 计算后从未使用，步骤行只打印「验证：A · A⁻¹ = I」这句定义，属死代码（承诺的验证结果未实现）。现实际输出乘积矩阵并给出与单位矩阵的最大偏差：A=[[4,7],[2,6]] det=10，A⁻¹=[[0.6,-0.7],[-0.2,0.4]]，A·A⁻¹ 对角元 1±1.1e-16，最大偏差 2.22e-16，容差 max(1e-9, max|元素|·1e-12)=1e-9 ⇒ 判「在容差内」。默认 op=det 不输出该行 ⇒ 强判别。"
+  },
+  {
+    "slug": "science/wire-gauge-converter",
+    "inputs": { "awg": "20.5" },
+    "clicks": ["(function(){var cap='';var fake={};Object.defineProperty(fake,'innerHTML',{set:function(v){cap=v;},get:function(){return cap;}});var oq=document.querySelector.bind(document);document.querySelector=function(s){return /wgHidden/.test(String(s))?fake:oq(s);};globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){}}};try{__wgExport();}catch(e){cap='ERR '+e.message;}document.querySelector=oq;document.getElementById('__tbProbe').textContent='WGEXP '+(cap.indexOf('20.50')>=0?'OK':'BAD '+cap.slice(0,120));})()"],
+    "expect": ["WGEXP OK"],
+    "ref": "625/629 复核失败重做：__wgExport 的 AWG 分支原用 parseInt，主算按 20.5 计算、CSV 却按 20 计算。修复后与 calcFromAwg 同源：Number() 保留小数，并补空值/0–40 范围校验。探针拦截 #wgHidden tbody 写入，断言导出首行为 AWG=20.50；旧实现为 20.00 ⇒ 转红。默认 awg=24 不含 20.50 ⇒ 强判别。"
+  },
+  {
+    "slug": "science/matrix-calculator",
+    "clicks": ["(function(){var A=[[1e-13,0],[0,1e-13]];var inv=null;try{inv=inverse(A);}catch(e){}var okInv=!!inv&&Math.abs(inv[0][0]-1e13)<=1e-2&&Math.abs(inv[1][1]-1e13)<=1e-2&&inv[0][1]===0;var s1='x',s2='x';try{s1=__matSingular(A);s2=__matSingular([[1,2],[2,4]]);}catch(e){}document.getElementById('__tbProbe').textContent='MATINV '+((okInv&&s1===false&&s2===true)?'OK':'BAD inv='+(inv?JSON.stringify(inv).slice(0,60):'null')+' s1='+s1+' s2='+s2);})()"],
+    "expect": ["MATINV OK"],
+    "ref": "631 复核失败重做：inverse() 原用 |det| 对比元素级 ε（max|a|×1e-12），行列式是元素的 n 次幂、量纲不一致。A=1e-13·I₂ 时 det=1e-26 < ε=1e-25 ⇒ 误判奇异并返回 null，实际逆为 1e13·I₂。修复后新增 __matSingular 用部分主元消元（元素级 ε）统一行列式与求逆判定：该矩阵主元 1e-13 ≫ 1e-25 ⇒ 可逆；真奇异 [[1,2],[2,4]] ⇒ 判奇异。默认 op=det 不调用 inverse ⇒ 探针串零命中。"
+  },
+  {
+    "slug": "science/matrix-calculator",
+    "clicks": ["(function(){globalThis.TBKit={util:{isEn:function(){return true;}}};try{showFormulas();}catch(e){}var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='MATEN '+((h.indexOf('Matrix formula reference')>=0&&h.indexOf('Addition:')>=0&&!/[\\u4e00-\\u9fff]/.test(h))?'OK':'BAD '+h.slice(0,100));})()"],
+    "expect": ["MATEN OK"],
+    "ref": "632 复核失败重做：showFormulas() 原无条件写入中文标题与多行中文说明，英文态（?lang=en-US）点击「公式说明」仍全中文。修复后按 __matIsEn() 分流整套英文文案。探针 mock TBKit.util.isEn=true 后调用，断言含 Matrix formula reference / Addition: 且无 CJK；默认态不执行 clicks ⇒ 零逃生。"
   }
 ];
 

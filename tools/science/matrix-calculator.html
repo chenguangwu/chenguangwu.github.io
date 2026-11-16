@@ -357,6 +357,28 @@ function __matScale(m){
   return mx;
 }
 function __matEps(m){const s=__matScale(m);return s>0?s*1e-12:1e-12;}
+/* 奇异性判定必须与元素同量纲：行列式是元素的 n 次幂，直接拿 |det| 与元素级 ε 比较会
+   在 1e-13·I₂ 这类小尺度可逆矩阵上误判（det=1e-26 < ε=1e-25）。改为部分主元消元：
+   任一主元低于元素级 ε 即奇异；反例矩阵主元 1e-13 ≫ 1e-25 ⇒ 正常可逆。 */
+function __matSingular(a){
+  const m=a.map(function(r){return r.slice();});
+  const rows=m.length, cols=m[0].length, eps=__matEps(a);
+  let r=0;
+  for(let col=0; col<cols && r<rows; col++){
+    let piv=r;
+    for(let i=r+1;i<rows;i++) if(Math.abs(m[i][col])>Math.abs(m[piv][col])) piv=i;
+    if(Math.abs(m[piv][col])<eps) continue;
+    const tmp=m[r]; m[r]=m[piv]; m[piv]=tmp;
+    const div=m[r][col];
+    for(let j=col;j<cols;j++) m[r][j]/=div;
+    for(let i=r+1;i<rows;i++){
+      const f=m[i][col];
+      for(let j=col;j<cols;j++) m[i][j]-=f*m[r][j];
+    }
+    r++;
+  }
+  return r<Math.min(rows,cols);
+}
 function __matIsEn(){
   return (typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function')?TBKit.util.isEn():false;
 }
@@ -389,7 +411,8 @@ function inverse(a){
   const n=a.length;
   const d = det(a);
   const __eps=__matEps(a);
-  if(Math.abs(d)<__eps) return null;
+  // 与行列式分支共用同量纲的奇异性判定（元素级主元），不再用 |det| 对比元素级 ε
+  if(__matSingular(a)) return null;
   const aug = [];
   for(let i=0;i<n;i++){
     aug.push([]);
@@ -517,8 +540,8 @@ function calculate(){
     html += '<div class="big-result">|A| = '+fmt(d)+'</div>';
     steps = '<div class="step-line"><strong>'+(__mEn?'Determinant:':'行列式计算：')+'</strong>'+(__mEn?'cofactor expansion along the first row (Laplace)':'按第一行展开（拉普拉斯展开）')+'</div>';
     steps += '<div class="step-line">det(A) = Σ a₁ⱼ · (-1)^(1+j) · M₁ⱼ</div>';
-    const __singD=Math.abs(d)<=__matEps(A);
-    if(__singD) steps += '<div class="step-line" style="color:var(--danger);">'+(__mEn?'Note: the determinant is zero within the relative tolerance (|A| = '+fmt(d)+'), so the matrix is singular and not invertible':'注意：行列式在相对容差内为 0（|A| = '+fmt(d)+'），矩阵不可逆（奇异矩阵）')+'</div>';
+    const __singD=__matSingular(A);
+    if(__singD) steps += '<div class="step-line" style="color:var(--danger);">'+(__mEn?'Note: an elimination pivot falls below the relative tolerance, so the matrix is singular and not invertible (|A| = '+fmt(d)+')':'注意：消元主元低于相对容差，矩阵奇异、不可逆（|A| = '+fmt(d)+'）')+'</div>';
     saveHistory('det(A)', n, A, null, null, d);
   } else if(op==='inv'){
     const d = det(A);
@@ -579,7 +602,25 @@ function calculate(){
 }
 
 function showFormulas(){
-  let html = '<h3 style="margin-bottom:10px;">📐 矩阵公式说明</h3>';
+  const __fEn = __matIsEn();
+  let html = __fEn
+    ? '<h3 style="margin-bottom:10px;">📐 Matrix formula reference</h3>'
+    : '<h3 style="margin-bottom:10px;">📐 矩阵公式说明</h3>';
+  if(__fEn){
+    html += '<div class="step-line"><strong>Addition:</strong> A + B, add corresponding entries; matrices must have the same shape</div>';
+    html += '<div class="step-line"><strong>Subtraction:</strong> A − B, subtract corresponding entries; same shape required</div>';
+    html += '<div class="step-line"><strong>Multiplication:</strong> A × B, C[i][j] = Σ A[i][k]·B[k][j]; columns of A must equal rows of B</div>';
+    html += '<div class="step-line"><strong>Scalar multiple:</strong> k·A, multiply every entry by the scalar k</div>';
+    html += '<div class="step-line"><strong>Transpose:</strong> Aᵀ, swap rows and columns, (Aᵀ)[i][j] = A[j][i]</div>';
+    html += '<div class="step-line"><strong>Determinant:</strong> |A|, a scalar for a square matrix; invertible if and only if det(A) ≠ 0</div>';
+    html += '<div class="step-line" style="padding-left:20px;">2×2: |A| = ad − bc for [[a,b],[c,d]]</div>';
+    html += '<div class="step-line" style="padding-left:20px;">3×3: cofactor expansion along the first row, or the rule of Sarrus</div>';
+    html += '<div class="step-line"><strong>Inverse:</strong> A⁻¹, satisfies A·A⁻¹ = A⁻¹·A = I</div>';
+    html += '<div class="step-line" style="padding-left:20px;">2×2: A⁻¹ = (1/det(A)) · [[d,-b],[-c,a]]</div>';
+    html += '<div class="step-line" style="padding-left:20px;">General method: Gauss-Jordan elimination</div>';
+    html += '<div class="step-line"><strong>Rank:</strong> rank(A), size of a maximal linearly independent subset of the row (column) vectors</div>';
+    html += '<div class="step-line"><strong>Power:</strong> Aⁿ, A multiplied by itself n times, computed by fast exponentiation</div>';
+  } else {
   html += '<div class="step-line"><strong>矩阵加法：</strong>A + B，对应元素相加，要求同型矩阵</div>';
   html += '<div class="step-line"><strong>矩阵减法：</strong>A − B，对应元素相减，要求同型矩阵</div>';
   html += '<div class="step-line"><strong>矩阵乘法：</strong>A × B，C[i][j] = Σ A[i][k]·B[k][j]，要求A的列数=B的行数</div>';
@@ -593,6 +634,7 @@ function showFormulas(){
   html += '<div class="step-line" style="padding-left:20px;">一般方法：高斯-若尔当消元法</div>';
   html += '<div class="step-line"><strong>秩：</strong>rank(A)，矩阵行（列）向量组的极大线性无关组的大小</div>';
   html += '<div class="step-line"><strong>幂运算：</strong>Aⁿ，n个A相乘，支持快速幂算法</div>';
+  }
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
 }
 
