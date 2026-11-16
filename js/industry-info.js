@@ -13,7 +13,7 @@ window.INDUSTRY_INFO = {
   'marketing'            : { name: '营销推广', icon: '📢', hot: 2617765 },
   'science'              : { name: '科学研究', icon: '🔬', hot: 2251689 },
   'travel'               : { name: '旅行出行', icon: '✈️', hot: 2220955 },
-  'biz'                  : { name: '商业办公', icon: '💼', hot: 1537837 },
+  'biz'                  : { name: '商业办公', icon: '💼', hot: 1537839 },
   'edu'                  : { name: '教育学习', icon: '📖', hot: 1422505 },
   'fun'                  : { name: '娱乐游戏', icon: '🎮', hot: 1369612 },
   'text'                 : { name: '文本处理', icon: '📝', hot: 1090731 },

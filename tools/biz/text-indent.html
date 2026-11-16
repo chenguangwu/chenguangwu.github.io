@@ -367,8 +367,11 @@ function indent(){
   }
 
   // 计算一行中大括号/圆括号的净层级，跳过字符串与注释（BS-N117）
+  // 复核失败重做（580）：跨行块注释 /* ... */ 的中间行也会把括号算入层级。
+  // blockComment 状态必须跨行保留，不能在每行调用时重置。
+  let blockComment = false;
   function countBraces(line){
-    let openCount = 0, closeCount = 0, quote = null, blockComment = false;
+    let openCount = 0, closeCount = 0, quote = null;
     for(let i = 0; i < line.length; i++){
       const ch = line[i], next = line[i + 1];
       if(blockComment){
@@ -388,6 +391,7 @@ function indent(){
     }
     return { openCount, closeCount };
   }
+  blockComment = false; // 每次 indent() 开始时重置跨行状态
 
   for(let line of lines){
     if(trimEach) line = line.trim();
