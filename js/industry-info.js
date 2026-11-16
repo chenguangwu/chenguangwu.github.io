@@ -49,7 +49,7 @@ window.INDUSTRY_INFO = {
   'fire-rescue'          : { name: '消防救援', icon: '🚒', hot: 408052 },
   'acoustics'            : { name: '声学', icon: '🔊', hot: 407526 },
   'investment'           : { name: '投资理财', icon: '💹', hot: 405542 },
-  'fitness'              : { name: '健身运动', icon: '🏋️', hot: 398540 },
+  'fitness'              : { name: '健身运动', icon: '🏋️', hot: 398538 },
   'fluid'                : { name: '流体力学', icon: '💧', hot: 392102 },
   'aerospace'            : { name: '航空航天', icon: '🚀', hot: 373680 },
   'banking'              : { name: '银行学', icon: '🏦', hot: 365384 },
