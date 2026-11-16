@@ -51,6 +51,20 @@ const CASES = [
 },
 {
   "slug": "service/csat-score",
+  "inputs": {"s5":"10","s4":"0","s3":"0","s2":"0","s1":"-1"},
+  "clicks": ["var cap=null,ot=ToolBox.copyText,ts=ToolBox.showToast;ToolBox.copyText=function(t){cap=String(t);};ToolBox.showToast=function(){};try{copyReport();}finally{ToolBox.copyText=ot;ToolBox.showToast=ts;}document.getElementById('__tbProbe').textContent='CSATCPY '+((cap===null||cap==='')?'OK':'BAD '+cap);"],
+  "expect": ["CSATCPY OK"],
+  "ref": "590：copyReport 原用 parseInt(v)||0 绕过 calc 校验，5星10/1星-1 会把 -1 截成 0 仍导出 10 人报告。修复后共用 readCounts 校验，非法输入直接拒绝、不复制。合法态默认 45/30/12/8/5 不触发探针串。"
+},
+{
+  "slug": "service/csat-score",
+  "inputs": {"s5":"50","s4":"30","s3":"12","s2":"5","s1":"3"},
+  "clicks": ["var cap=null,ot=ToolBox.copyText;ToolBox.copyText=function(t){cap=String(t);};try{copyReport();}finally{ToolBox.copyText=ot;}document.getElementById('__tbProbe').textContent='CSATAGENT '+((cap&&cap.indexOf('NPS（星级代理）')>=0&&cap.indexOf('总评价：100人')>=0)?'OK':'BAD '+String(cap).slice(0,60));"],
+  "expect": ["CSATAGENT OK"],
+  "ref": "590：复制报告里的 NPS 需标注「星级代理」，与统计卡/公式框口径一致，避免误认为标准推荐意愿问卷。100 条评价导出报告须含该标注；旧源码仅写「NPS：」⇒ BAD。"
+},
+{
+  "slug": "service/csat-score",
   "inputs": {
     "s5": "10",
     "s4": "0",
