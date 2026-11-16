@@ -1120,6 +1120,24 @@ const CASES = [
     ref: "L-N35 核销：搜索已覆盖 size/shape/shell/operculum/content 等结构化字段。输入「70-106」按尺寸区间命中日本血吸虫卵；输入「卵盖」命中卵盖字段条目。旧实现只匹配 name+desc ⇒ size=N。"
   },
   {
+    slug: "clinical-lab/urine-sediment-atlas",
+    clicks: ["document.getElementById('search').value='7-8';filterItems();document.getElementById('__tbProbe').textContent='URINE n='+__urineList.length;"],
+    expect: ["URINE n=1"],
+    ref: "L-N37 核销：`filterItems` 已覆盖 name/sig/morph/size/bg/mean 六字段；输入尺寸「7-8」命中 1 项（红细胞 7-8 μm）。旧实现仅 3 字段且用 indexOf 字面匹配 ⇒ n=0。"
+  },
+  {
+    slug: "clinical-lab/semen-analysis",
+    clicks: ["['volume','conc','pr','np','im','morph','vital','ph'].forEach(function(k){var e=document.getElementById(k);if(e)e.value='';});analyze();document.getElementById('__tbProbe').textContent='SEMEN '+((document.getElementById('result').innerHTML.indexOf('请填写全部参数')>=0)?'OK':'BAD');"],
+    expect: ["SEMEN OK"],
+    ref: "L-N39 核销：八项任一空值/越界即整块拦截（`bad` 含 isNaN、<0、PR/NP/IM>100、三者之和>100.5），不再按 0 输出「少精症 + 弱精症」；旧实现 num() 空值返 0 且无守卫。"
+  },
+  {
+    slug: "clinical-lab/semen-analysis",
+    clicks: ["document.getElementById('volume').value='3';document.getElementById('conc').value='50';document.getElementById('pr').value='30';document.getElementById('np').value='5';document.getElementById('im').value='65';document.getElementById('morph').value='4';document.getElementById('vital').value='70';document.getElementById('ph').value='7.5';analyze();document.getElementById('__tbProbe').textContent='SEMIM '+document.getElementById('i_im').textContent;"],
+    expect: ["SEMIM ↑ 不动精子比例偏高(总活力不足40%)"],
+    ref: "L-N40 核销：`setInterp` 已支持 highText（原实现只读 lowText，IM 偏高时显示反方向的「↓ 偏低」）。总活力 35%（PR 30 + NP 5）、IM 65% ⇒ 显示「↑ 不动精子比例偏高」。"
+  },
+  {
     slug: "clinical-lab/thyroid-function-model",
     inputs: { tsh: "0.1", ft3: "5.0", ft4: "16", tt3: "1.5", tt4: "100", tpo: "0" },
     expect: ["亚临床甲状腺功能亢进症"],
