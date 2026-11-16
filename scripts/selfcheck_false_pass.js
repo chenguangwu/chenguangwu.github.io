@@ -109,7 +109,12 @@ function _pageDefaults(html, ids) {
     }
     let ms = html.match(new RegExp('<select\\b[^>]*\\bid=["\']' + _escRe(id) + '["\'][^>]*>([\\s\\S]*?)</select>', "i"));
     if (ms) {
-      const sel = ms[1].match(/<option[^>]*\\bselected\\b[^>]*value=["\']([^"\']*)["\']/i)
+      // 先定位「带 selected 的那个 <option>」，再从该标签内取 value —— 属性顺序无关。
+      // 旧写法只认 selected 在 value 前，但全站 1465 个 selected 选项都是 value 在前
+      // （<option value="x" selected>），旧正则全部落空后回退取「第一个 option 的 value」，
+      // 把默认值判错：既误伤真非默认用例，又漏判注入值恰等于默认值的 all_default 用例。
+      const selTag = ms[1].match(/<option\b[^>]*\bselected\b[^>]*>/i);
+      const sel = (selTag && selTag[0].match(/\bvalue=["\']([^"\']*)["\']/i))
                || ms[1].match(/<option[^>]*value=["\']([^"\']*)["\']/i);
       out[id] = sel ? sel[1] : "";
       continue;
