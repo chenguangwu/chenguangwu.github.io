@@ -220,6 +220,14 @@
     word-break: break-all;
     overflow-wrap: break-word;
   }
+  .fp-font-fallback {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'SF Mono', 'Courier New', monospace;
+    word-break: break-all;
+    opacity: 0.8;
+  }
   .fp-empty {
     text-align: center;
     padding: 40px 20px;
@@ -381,6 +389,25 @@
     <div class="fp-search-row">
       <input type="text" class="fp-search-input" id="fpSearch" placeholder="搜索字体名称...">
       <span class="fp-count" id="fpCount"></span>
+    </div>
+
+    <!-- 当前预览平台与回退链说明（370 复核：标明平台、展示回退链、缺失时预览、平台可用性表） -->
+    <div class="fp-platform-box" id="fpPlatformBox" style="margin:14px 0;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);">
+      <div style="font-weight:600;font-size:13px;margin-bottom:8px;" data-zh="🖥️ 当前预览平台与字体回退">🖥️ Current preview platform &amp; font fallback</div>
+      <div id="fpPlatformInfo" style="font-size:12.5px;color:var(--text-secondary);line-height:1.7;"></div>
+      <div style="overflow-x:auto;margin-top:10px;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr>
+            <th style="text-align:left;padding:5px 6px;border-bottom:1px solid var(--border);" data-zh="字体">Font</th>
+            <th style="text-align:left;padding:5px 6px;border-bottom:1px solid var(--border);" data-zh="Windows">Windows</th>
+            <th style="text-align:left;padding:5px 6px;border-bottom:1px solid var(--border);" data-zh="macOS">macOS</th>
+            <th style="text-align:left;padding:5px 6px;border-bottom:1px solid var(--border);" data-zh="Android">Android</th>
+            <th style="text-align:left;padding:5px 6px;border-bottom:1px solid var(--border);" data-zh="iOS">iOS</th>
+          </tr></thead>
+          <tbody id="fpPlatformTable"></tbody>
+        </table>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:8px;" data-zh="✓=常见预装，—=通常需另行安装。回退链按左到右依次尝试，首个本机可用者生效；全部缺失时落到 sans-serif /system-ui，预览会与标注的字体不同。">✓ = commonly preinstalled, — = usually needs separate installation. Fallbacks are tried left to right; the first locally available font applies. When all are missing it falls back to sans-serif/system-ui, and the preview will differ from the labeled font.</div>
     </div>
 
     <!-- 字体列表 -->
@@ -547,6 +574,7 @@
             + '<div class="fp-font-preview" style="font-family:' + font.family + ';font-size:' + state.size + 'px;font-weight:' + state.weight + ';">'
             + escHtml(state.text)
             + '</div>'
+            + '<div class="fp-font-fallback" title="' + (isEn ? 'Fallback chain' : '回退链') + '">' + escHtml(font.family) + '</div>'
             + '</div>';
         }
       }
@@ -636,11 +664,55 @@
       series: [{ name: en ? 'count' : '数量', data: data }]
     });
   }
+  /* 370 复核：标明当前预览平台、回退链、缺失时预览与平台字体可用性表。
+     用 UA 判定平台；字体可用性按主流系统常见预装经验，标注为参考而非实时探测。 */
+  var FP_PLATFORM_TABLE = [
+    { name: 'Microsoft YaHei', win: 1, mac: 0, and: 0, ios: 0 },
+    { name: 'SimSun / SimHei', win: 1, mac: 0, and: 0, ios: 0 },
+    { name: 'PingFang SC', win: 0, mac: 1, and: 0, ios: 1 },
+    { name: 'Hiragino Sans GB', win: 0, mac: 1, and: 0, ios: 0 },
+    { name: 'Noto Sans SC', win: 0, mac: 0, and: 1, ios: 0 },
+    { name: 'Arial', win: 1, mac: 1, and: 1, ios: 1 },
+    { name: 'Times New Roman', win: 1, mac: 1, and: 0, ios: 0 },
+    { name: 'Georgia', win: 1, mac: 1, and: 0, ios: 1 },
+    { name: 'Courier New', win: 1, mac: 1, and: 1, ios: 1 }
+  ];
+  function fpDetectPlatform(){
+    var ua = (typeof navigator !== 'undefined' && navigator.userAgent) ? String(navigator.userAgent) : '';
+    if (/Windows/i.test(ua)) return 'Windows';
+    if (/Android/i.test(ua)) return 'Android';
+    if (/(iPhone|iPad|iPod)/i.test(ua)) return 'iOS';
+    if (/Macintosh|Mac OS X/i.test(ua)) return 'macOS';
+    return 'Unknown';
+  }
+  function renderPlatform(){
+    var infoEl = document.getElementById('fpPlatformInfo');
+    var tableEl = document.getElementById('fpPlatformTable');
+    if (!infoEl || !tableEl) return;
+    var en = (typeof TBKit !== 'undefined' && TBKit.util && typeof TBKit.util.isEn === 'function' && TBKit.util.isEn());
+    var plat = fpDetectPlatform();
+    var platName = en ? plat : ({ Windows:'Windows', macOS:'macOS', Android:'Android', iOS:'iOS', Unknown:'未识别' }[plat] || plat);
+    var note = en
+      ? 'Detected platform: <strong>' + platName + '</strong>. Fonts not preinstalled on this platform fall back along the chain shown on each card; if none is available, the browser uses sans-serif/system-ui. Preview differs from the labeled font in that case.'
+      : '当前检测平台：<strong>' + platName + '</strong>。该平台未预装的字体将按每张卡片标注的回退链依次尝试；全部缺失时由浏览器落到 sans-serif/system-ui，此时预览与标注字体不同。';
+    infoEl.innerHTML = note;
+    var cols = ['win', 'mac', 'and', 'ios'];
+    var mark = function (v) { return v ? (en ? '✓' : '✓') : '—'; };
+    var rows = '';
+    for (var i = 0; i < FP_PLATFORM_TABLE.length; i++) {
+      var f = FP_PLATFORM_TABLE[i];
+      rows += '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + escHtml(f.name) + '</td>'
+        + cols.map(function (c) { return '<td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:center;">' + mark(f[c]) + '</td>'; }).join('')
+        + '</tr>';
+    }
+    tableEl.innerHTML = rows;
+  }
   /* 切换语言后必须重跑 render()：卡片提示、分类标题与计数都在这里生成；
      __fpChart() 已由 render() 末尾调用，只重画图表会让列表停留在旧语言。 */
-  window.__fpOnLangChange = function () { try { render(); } catch (e) {} };
+  window.__fpOnLangChange = function () { try { render(); renderPlatform(); } catch (e) {} };
   window.addEventListener('toolbox:langchange', window.__fpOnLangChange);
   render();
+  renderPlatform();
 })();
 </script>
 

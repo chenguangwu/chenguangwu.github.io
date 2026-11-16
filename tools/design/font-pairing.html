@@ -307,6 +307,11 @@ const FAV_KEY = 'fontpair_favorites';
 let currentCategory = 'modern';
 let currentPair = null;
 
+// 中英双字体栈：拉丁搭配字体在前，其后追加常见中文字体回退，
+// 让中文标题/正文在导出 CSS 与页面预览中都能用同一套栈显示，而非各自回退到系统默认。
+const CJK_FALLBACKS = "'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif";
+function cjkStack(family){ return "'" + family + "', " + CJK_FALLBACKS; }
+
 const FONT_PAIRS = {
   modern: [
     {title:'Inter', body:'Inter', titleWeight:700, bodyWeight:400, tags:['无衬线','现代','通用']},
@@ -381,8 +386,8 @@ function renderFontPairs(){
           </div>
           <button type="button" class="btn ${isFav ? 'warning' : ''}" onclick="event.stopPropagation();toggleFav(${i})">${isFav ? '⭐' : '☆'}</button>
         </div>
-        <div class="preview-title" style="font-family:'${p.title}',sans-serif;font-weight:${p.titleWeight};" id="ptitle-${i}">The Quick Brown Fox</div>
-        <div class="preview-body" style="font-family:'${p.body}',sans-serif;font-weight:${p.bodyWeight};" id="pbody-${i}">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</div>
+        <div class="preview-title" style="font-family:${cjkStack(p.title)};font-weight:${p.titleWeight};" id="ptitle-${i}">The Quick Brown Fox</div>
+        <div class="preview-body" style="font-family:${cjkStack(p.body)};font-weight:${p.bodyWeight};" id="pbody-${i}">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</div>
         <div class="font-tags">
           ${p.tags.map(t => `<span class="font-tag">${t}</span>`).join('')}
         </div>
@@ -401,15 +406,15 @@ function selectPair(i){
   const css = `/* Google Fonts 引入 */
 @import url('https://fonts.googleapis.com/css2?family=${pair.title.replace(/ /g, '+')}:wght@${pair.titleWeight}&family=${pair.body.replace(/ /g, '+')}:wght@${pair.bodyWeight}&display=swap');
 
-/* 标题字体 */
+/* 标题字体（英文在前，中文回退在后） */
 h1, h2, h3, h4, h5, h6 {
-  font-family: '${pair.title}', sans-serif;
+  font-family: ${cjkStack(pair.title)};
   font-weight: ${pair.titleWeight};
 }
 
-/* 正文字体 */
+/* 正文字体（英文在前，中文回退在后） */
 body {
-  font-family: '${pair.body}', sans-serif;
+  font-family: ${cjkStack(pair.body)};
   font-weight: ${pair.bodyWeight};
 }`;
   
@@ -513,15 +518,15 @@ function applyFav(i){
   const css = `/* Google Fonts 引入 */
 @import url('https://fonts.googleapis.com/css2?family=${f.title.replace(/ /g, '+')}:wght@${f.titleWeight}&family=${f.body.replace(/ /g, '+')}:wght@${f.bodyWeight}&display=swap');
 
-/* 标题字体 */
+/* 标题字体（英文在前，中文回退在后） */
 h1, h2, h3, h4, h5, h6 {
-  font-family: '${f.title}', sans-serif;
+  font-family: ${cjkStack(f.title)};
   font-weight: ${f.titleWeight};
 }
 
-/* 正文字体 */
+/* 正文字体（英文在前，中文回退在后） */
 body {
-  font-family: '${f.body}', sans-serif;
+  font-family: ${cjkStack(f.body)};
   font-weight: ${f.bodyWeight};
 }`;
   document.getElementById('cssOutput').value = css;

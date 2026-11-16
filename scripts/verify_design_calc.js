@@ -144,6 +144,45 @@ function colorDeepDiveContrastFaqChecks() {
   ];
 }
 
+// 371 复核失败：font-pairing 需输出中英双字体栈，并让中文用户预览同一栈效果。
+function fontPairingCjkStackChecks() {
+  const fpPath = path.join(__dirname, "..", "tools", "design", "font-pairing.html");
+  const src = fs.readFileSync(fpPath, "utf8");
+  const stackDef = /CJK_FALLBACKS\s*=\s*"'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"/.test(src);
+  const stackFn = /function cjkStack\(family\)\{ return "'" \+ family \+ "', " \+ CJK_FALLBACKS; \}/.test(src);
+  const cssUses = (src.match(/font-family:\s*\$\{cjkStack\(/g) || []).length;
+  const previewUses = /preview-title" style="font-family:\$\{cjkStack\(p\.title\)\}/.test(src)
+    && /preview-body" style="font-family:\$\{cjkStack\(p\.body\)\}/.test(src);
+  const faqUpdated = src.includes("本页导出的 CSS 已采用中英双字体栈") && !src.includes("当前内置搭配均为拉丁字体");
+  const enPath = path.join(__dirname, "..", "i18n", "tools", "en", "design", "font-pairing.json");
+  const en = JSON.parse(fs.readFileSync(enPath, "utf8"));
+  const enMap = en.map || en;
+  const enSynced = Object.keys(enMap).some((k) => k.includes("本页导出的 CSS 已采用中英双字体栈"));
+  return [
+    { name: "font-pairing 定义中英双字体栈并有构造函数", ok: stackDef && stackFn },
+    { name: "font-pairing 两处 CSS 输出 + 预览区均用双字体栈", ok: cssUses >= 2 && previewUses },
+    { name: "font-pairing FAQ 与英文映射同步双栈说明", ok: faqUpdated && enSynced },
+  ];
+}
+
+// 370 复核失败：font-preview 需标明当前平台、展示回退链、缺失时预览与平台可用性表。
+function fontPreviewPlatformChecks() {
+  const fpPath = path.join(__dirname, "..", "tools", "design", "font-preview.html");
+  const src = fs.readFileSync(fpPath, "utf8");
+  const hasBox = /id="fpPlatformBox"/.test(src) && /id="fpPlatformInfo"/.test(src) && /id="fpPlatformTable"/.test(src);
+  const hasDetect = /function fpDetectPlatform\(\)/.test(src) && /Windows/i.test(src) && /Android/i.test(src) && /iOS/i.test(src);
+  const hasTable = /FP_PLATFORM_TABLE/.test(src) && /renderPlatform\(\)/.test(src);
+  const hasFallback = /fp-font-fallback/.test(src) && /escHtml\(font\.family\)/.test(src);
+  const langRedraw = /__fpOnLangChange[\s\S]{0,120}render\(\); renderPlatform\(\)/.test(src);
+  const hasBilingual = /data-zh="🖥️ 当前预览平台与字体回退"/.test(src);
+  return [
+    { name: "font-preview 有平台信息区与可用性表容器", ok: hasBox },
+    { name: "font-preview 有 UA 平台检测与预装字体表", ok: hasDetect && hasTable },
+    { name: "font-preview 卡片展示字体回退链", ok: hasFallback },
+    { name: "font-preview 语言切换重绘平台区且双语标注", ok: langRedraw && hasBilingual },
+  ];
+}
+
 // ---------------------------------------------------------------- 用例
 const CASES = [
   { slug: "design/contrast-checker", inputs: { fgHex: "F#FF", bgHex: "000000" },
@@ -2963,18 +3002,20 @@ const CASES = [
   "slug": "design/font-pairing",
   "inputs": {},
   "clicks": ["selectPair(2);"],
-  "expect": ["font-family: 'Manrope', sans-serif;", "family=Manrope:wght@700&family=Inter:wght@400"],
+  "expect": ["font-family: 'Manrope', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;", "family=Manrope:wght@700&family=Inter:wght@400"],
   "ref": "selectPair(i) 取 FONT_PAIRS[currentCategory='modern'][2] = {title:'Manrope', body:'Inter', titleWeight:700, bodyWeight:400}，"
-     + "把 @import 与 h1..h6/body 两组规则整体写进 #cssOutput.value。故可锚 `family=Manrope:wght@700&family=Inter:wght@400` 与 "
-     + "`font-family: 'Manrope', sans-serif;`（标题字体取自数据 title 字段）。默认态未调用 selectPair ⇒ cssOutput 为空，两条均失配。"
+     + "把 @import 与 h1..h6/body 两组规则整体写进 #cssOutput.value。371 复核后标题栈改为中英双栈 cjkStack('Manrope') = "
+     + "'Manrope', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif（英文在前、中文回退在后），可中文预览；@import 锚不变。"
+     + "默认态未调用 selectPair ⇒ cssOutput 为空，两条均失配。"
 },
 {
   "slug": "design/font-pairing",
   "inputs": {},
   "clicks": ["setCategory('classic');selectPair(3);"],
-  "expect": ["font-family: 'Cormorant Garamond', sans-serif;", "font-weight: 500;"],
+  "expect": ["font-family: 'Cormorant Garamond', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;", "font-weight: 500;"],
   "ref": "setCategory('classic') 切分类后 selectPair(3) 取 FONT_PAIRS.classic[3] = {title:'Cormorant Garamond', body:'Inter', titleWeight:500}，"
-     + "标题规则字体名与字重（500，非默认 400/600/700）同时落进 cssOutput。默认态（modern、未选）cssOutput 为空 ⇒ 零交集。"
+     + "标题规则用中英双栈 cjkStack('Cormorant Garamond')（371 复核）且字重 500（非默认 400/600/700）同时落进 cssOutput。"
+     + "默认态（modern、未选）cssOutput 为空 ⇒ 零交集。"
 },
 {
   "slug": "design/color-palette",
@@ -3678,7 +3719,7 @@ async function main() {
     }
   }
 
-  const stat = designRework648StaticChecks().concat(metronomeStaticChecks(), asciiHistoryGuardChecks(), dotPatternEventBindingChecks(), colorDeepDiveContrastFaqChecks());
+  const stat = designRework648StaticChecks().concat(metronomeStaticChecks(), asciiHistoryGuardChecks(), dotPatternEventBindingChecks(), colorDeepDiveContrastFaqChecks(), fontPairingCjkStackChecks(), fontPreviewPlatformChecks());
   const staticFails = stat.filter((s) => !s.ok);
   for (const s of staticFails) console.log("❌ [static] " + s.name);
 
