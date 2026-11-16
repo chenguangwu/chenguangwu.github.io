@@ -4,23 +4,29 @@ const { runCase } = require("./verify_it_calc.js");
 const fs = require("fs");
 const path = require("path");
 
-// 412 复核失败：精密轴承精度/润滑因子不得声称源自 ISO 281 的精度寿命预测模型。
-// 页面已改为明确标注「启发式折算、非 ISO 281 精度寿命预测、非厂商认证数据」，
-// 并消除「精度保持寿命通常低于疲劳寿命」与折算因子（最高 2.25 倍）的矛盾。
+// 911 复核重做：停止输出无依据的「精度保持寿命(h)/年数/等级」定量结论。
+// 精度/润滑因子仅作相对比较系数，不派生寿命数值、等级与参考标尺；
+// 保留 ISO 281 的 L10 疲劳寿命与明确标注为相对比较的折算系数。
 function lifespan20ScopeChecks() {
   const src = fs.readFileSync(path.join(__dirname, "..", "tools", "machinery", "lifespan-20.html"), "utf8");
   const enPath = path.join(__dirname, "..", "i18n", "tools", "en", "machinery", "lifespan-20.json");
   const en = JSON.parse(fs.readFileSync(enPath, "utf8"));
   const enMap = en.map || en;
-  const hasDisclaimer = src.includes("并非 ISO 281 的精度寿命修正项或轴承厂商的认证数据")
-    && src.includes("本页用于相对比较的启发式折算");
-  const noOldClaim = !src.includes("精度保持寿命通常低于疲劳寿命，因沟道磨损导致精度丧失");
-  const enSynced = Object.keys(enMap).some((k) => k.includes("需先说明口径边界"))
-    && Object.values(enMap).some((v) => String(v).includes("heuristic coefficients for relative comparison"));
+  // 结果卡与复制报告不得再出现定量精度保持寿命 / 年数 / 等级 / 参考标尺输出
+  const noPrecisionLifeOutput = !src.includes("precisionLife=L10h*cf*lf")
+    && !src.includes("精度保持寿命 (h)") && !src.includes("精度保持 (年)")
+    && !src.includes("寿命等级") && !src.includes("'等级:'+grade")
+    && !src.includes("TBKit.chart.refBar('#resRefBar'");
+  const hasRelativeFactor = src.includes("相对折算系数") && src.includes("relFactor=cf*lf");
+  const hasDisclaimer = src.includes("无可核验模型可换算为定量精度保持寿命")
+    || src.includes("无可靠模型将其换算为定量精度保持寿命");
+  const enSynced = Object.keys(enMap).some((k) => k.includes("为什么本页不再给出"))
+    && Object.values(enMap).some((v) => String(v).includes("no reliable model converts them into a quantitative accuracy-retention life"));
   return [
-    { name: "lifespan-20 明确精度/润滑因子非 ISO 281 精度寿命预测", ok: hasDisclaimer },
-    { name: "lifespan-20 消除精度寿命低于疲劳寿命的矛盾表述", ok: noOldClaim },
-    { name: "lifespan-20 边界说明英文映射同步", ok: enSynced },
+    { name: "lifespan-20 停止输出定量精度保持寿命/年数/等级/标尺", ok: noPrecisionLifeOutput },
+    { name: "lifespan-20 改为相对折算系数（非寿命预测）", ok: hasRelativeFactor },
+    { name: "lifespan-20 明确无可核验模型换算为定量寿命", ok: hasDisclaimer },
+    { name: "lifespan-20 新口径英文映射同步", ok: enSynced },
   ];
 }
 
