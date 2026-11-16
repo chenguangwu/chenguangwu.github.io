@@ -196,6 +196,12 @@
 </div>
 <script>
 function escHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function skipBox(skipped){
+  if(!skipped||!skipped.length) return "";
+  var box="<div class='tip-box tip-warn' style='margin-top:8px;'><strong>已忽略 "+skipped.length+" 行</strong><ul style='margin:6px 0 0;padding-left:18px;'>";
+  skipped.forEach(function(s){box+="<li>"+escHtml(s.line)+" —— "+escHtml(s.why)+"</li>";});
+  return box+"</ul></div>";
+}
 function calc(){
 var n=parseFloat(document.getElementById("trials").value);
 if(isNaN(n)||n<=0){document.getElementById("res").innerHTML="<p>请输入有效的试模次数</p>";return;}
@@ -210,7 +216,7 @@ for(var i=0;i<lines.length;i++){
   if(!/^[123]$/.test(wRaw)){skipped.push({line:lines[i],why:"严重度须为 1/2/3"});continue;}
   rows.push({n:nm,c:parseInt(cntRaw,10),w:parseInt(wRaw,10)});
 }
-if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「问题,次数,严重度」数据"+(skipped.length?"（"+skipped.length+" 行无效）":"")+"</p>";return;}
+if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「问题,次数,严重度」数据"+(skipped.length?"（"+skipped.length+" 行无效）":"")+"</p>"+skipBox(skipped);return;}
 var tot=0,wi=0;
 rows.forEach(function(r){tot+=r.c;wi+=r.c*r.w;});
 var tb="";
@@ -228,11 +234,7 @@ h+="<p>加权问题指数：<strong>"+wi+"</strong></p>";
 h+="<p>最高频问题：<strong>"+escHtml(topc.n)+"</strong></p>";
 h+="<p>最高加权问题：<strong>"+escHtml(topw.n)+"</strong></p>";
 h+="<p>试模结论：<strong>"+judge+"</strong></p>";
-if(skipped.length){
-  h+="<div class='tip-box tip-warn' style='margin-top:8px;'><strong>已忽略 "+skipped.length+" 行</strong><ul style='margin:6px 0 0;padding-left:18px;'>";
-  skipped.forEach(function(s){h+="<li>"+escHtml(s.line)+" —— "+escHtml(s.why)+"</li>";});
-  h+="</ul></div>";
-}
+h+=skipBox(skipped);
 h+="<table><thead><tr><th>问题</th><th>次数</th><th>严重度</th><th>加权值</th><th>单次试模频次</th></tr></thead><tbody>"+tb+"</tbody></table>";
 h+="<p style='font-size:12px;color:var(--text-muted);margin-top:8px;'>问题密度 = 问题总数 ÷ 试模次数；加权指数 = Σ(次数 × 严重度)，严重度 1 轻微、2 一般、3 严重。</p>";
 const __g3=h;document.getElementById("res").innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));

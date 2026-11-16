@@ -8940,14 +8940,27 @@ const CASES = [
   },
   {
     "slug": "it/graphql-formatter",
-    "inputs": {
-      "input": "1\n2\n3",
-      "indent": "4"
-    },
+    "clicks": ["document.getElementById('input').value='query{a{b c}}';document.getElementById('indent').value='4';doBeautify();var n=String.fromCharCode(10);var exp=['query{','    a{','        b c    }','}'].join(n);var v=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='GQL424 '+((v===exp&&String(document.getElementById('err').textContent).indexOf('格式化成功')>=0)?'OK':'BAD:['+v+']');"],
     "expect": [
-      "1 2 3"
+      "GQL424 OK"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，格式化/压缩输出均含「1 2 3」；默认示例为 query GetUser…，不命中。缩进改为读取 #indent 后不再锚定跨元素拼接的默认样例尾部。"
+    "ref": "424 复核失败重做：旧自动补强用例注入 input=1\\n2\\n3 且以「1 2 3」为锚，而 collectStrings 会把输入框 value 的空白折叠成单空格 ⇒ 输入回显即可命中，无法证明格式化生效。改为探针逐字符断言 #output：query{a{b c}} 4 空格缩进应得 query{ / ····a{ / ········b c····} / }（a 与 b c 各按层深缩进 4/8 空格，b c 后接同级闭合的 4 空格）。输入原文为单行 query{a{b c}}，与期望串零交集 ⇒ 非回显。值在 clicks 内写入：本页脚本末尾 loadSample() 会重置 #input，走 inputs 注入会被随后的 boot 覆盖。"
+  },
+  {
+    "slug": "it/graphql-formatter",
+    "clicks": ["document.getElementById('input').value='query{a{b c}}';document.getElementById('indent').value='2';doBeautify();var n=String.fromCharCode(10);var exp=['query{','  a{','    b c  }','}'].join(n);var v=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='GQL424I '+((v===exp)?'OK':'BAD:['+v+']');"],
+    "expect": [
+      "GQL424I OK"
+    ],
+    "ref": "424 复核失败重做（缩进反例）：同一输入改 #indent=2，缩进必须是 2 空格（a 前 2、b c 前 4、闭合前 2）。与 4 空格用例互为反向：若格式化忽略 #indent，两条必有一条转红。"
+  },
+  {
+    "slug": "it/graphql-formatter",
+    "clicks": ["document.getElementById('input').value='query{# keep'+String.fromCharCode(10)+' a b}';doMinify();var v=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='GQL424M '+((v==='query{ a b}'&&String(document.getElementById('input').value).indexOf('# keep')>=0)?'OK':'BAD:['+v+']');"],
+    "expect": [
+      "GQL424M OK"
+    ],
+    "ref": "424 复核失败重做（压缩 + 反例）：输入含注释 # keep，压缩须丢弃注释、保留相邻 name 间的单空格（minify 对每个 name 前都补空格，故结果恰为 query{ a b}），而输入回显含 # keep。若压缩只是回显输入，探针串不成立。"
   },
   {
     "slug": "it/hash-id-generator",
@@ -14186,16 +14199,44 @@ const CASES = [
   {
     slug: "it/json-schema-generator",
     inputs: { input: '{"a":1}' },
-    clicks: ["var __t=[];var __o=ToolBox.showToast;ToolBox.showToast=function(s){__t.push(String(s));};document.getElementById('output').textContent=JSON.stringify({type:'object',required:['ghost'],properties:{a:{type:'string'}}});validateSchema();ToolBox.showToast=__o;document.getElementById('__tbProbe').textContent='SCHEMAVAL '+__t.join('|');"],
-    expect: ["SCHEMAVAL ❌ root.required: ghost not in properties"],
-    ref: "假验证修复：旧 validateSchema 只做 JSON.stringify(lastSchema)，对普通对象永不失败；新实现解析输出区 Schema 文本并递归校验结构，required 引用不存在的 ghost 时报错并带出字段名。探针串只在注入非法 Schema 且实现真校验时出现 ⇒ 零逃生。",
+    clicks: ["var __o=ToolBox.showToast;ToolBox.showToast=function(){};document.getElementById('output').textContent='{\"type\":\"object\",\"required\":[\"a\"]}';validateSchema();ToolBox.showToast=__o;document.getElementById('__tbProbe').textContent='SCHEMAOK '+String(document.getElementById('statusText').textContent);"],
+    expect: ["SCHEMAOK ✅ Schema 结构有效"],
+    ref: "603 复核失败重做：draft-04 起 required 只约束「字符串数组」，不要求每项列于同层 properties；`{\"type\":\"object\",\"required\":[\"a\"]}` 是合法 Schema。旧实现因 required 项不在 properties 中报错 ⇒ 误拒合法 Schema。探针同时读取 statusText，确认有效结论同步到状态区。",
   },
   {
     slug: "it/json-schema-generator",
     inputs: { input: '{"a":1}' },
-    clicks: ["var __t=[];var __o=ToolBox.showToast;ToolBox.showToast=function(s){__t.push(String(s));};document.getElementById('output').textContent='{oops';validateSchema();ToolBox.showToast=__o;document.getElementById('__tbProbe').textContent='SCHEMAJSON '+__t.join('|');"],
-    expect: ["SCHEMAJSON ❌ JSON:"],
-    ref: "假验证修复：输出区被改成非法 JSON 文本时，验证按钮须报语法错而非沿用内部 lastSchema 报「有效」。探针串只在注入 {oops 且实现读取输出文本时出现 ⇒ 零逃生。",
+    clicks: ["var __o=ToolBox.showToast;ToolBox.showToast=function(){};document.getElementById('output').textContent='true';validateSchema();ToolBox.showToast=__o;document.getElementById('__tbProbe').textContent='SCHEMABOOL '+String(document.getElementById('statusText').textContent);"],
+    expect: ["SCHEMABOOL ✅ Schema 结构有效"],
+    ref: "603 复核失败重做：布尔 Schema（true/false）自 draft-06 起合法，旧实现按「必须是对象」直接判无效 ⇒ 误拒。输入恰为 `true` 三个字符，与期望串无交集 ⇒ 非回显。",
+  },
+  {
+    slug: "it/json-schema-generator",
+    inputs: { input: '{"a":1}' },
+    clicks: ["var __o=ToolBox.showToast;ToolBox.showToast=function(){};document.getElementById('output').textContent='{\"type\":\"objct\"}';validateSchema();ToolBox.showToast=__o;document.getElementById('__tbProbe').textContent='SCHEMATYPE '+String(document.getElementById('statusText').textContent);"],
+    expect: ["SCHEMATYPE ❌ Schema 结构错误：root.type: objct"],
+    ref: "603 复核失败重做（结构错误对照）：type 取值不在 string/number/integer/boolean/object/array/null 中 ⇒ 必须报结构错误并在状态区显示，而非仅 toast。与上面两条合法用例互为反向。",
+  },
+  {
+    slug: "it/json-schema-generator",
+    inputs: { input: '{"a":1}' },
+    clicks: ["document.getElementById('__tbProbe').textContent='SCHEMAEDIT '+((document.getElementById('output').getAttribute('contenteditable')==='true')?'OK':'BAD');"],
+    expect: ["SCHEMAEDIT OK"],
+    ref: "603 复核失败重做：交接要求「输出区当前可编辑或粘贴的 Schema」，旧 #output 是普通 div，无任何输入入口。现加 contenteditable=true，探针直接读该属性；旧 DOM 无此属性 ⇒ BAD。",
+  },
+  {
+    slug: "it/json-schema-generator",
+    inputs: { input: '{"a":1}' },
+    clicks: ["var __t=[];var __o=ToolBox.showToast;ToolBox.showToast=function(s){__t.push(String(s));};document.getElementById('output').textContent='{\"required\":\"a\"}';validateSchema();ToolBox.showToast=__o;document.getElementById('__tbProbe').textContent='SCHEMAVAL '+__t.join('|');"],
+    expect: ["SCHEMAVAL ❌ root.required: not a string array"],
+    ref: "603 复核失败重做：原用例以 required:ghost（合法）冒充结构错误，口径本身不成立。改为 required 为字符串而非数组——这是真正的结构错误，新实现仍须报出且带出字段名。探针串只在注入非法 Schema 且实现真校验时出现 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/json-schema-generator",
+    inputs: { input: '{"a":1}' },
+    clicks: ["var __t=[];var __o=ToolBox.showToast;ToolBox.showToast=function(s){__t.push(String(s));};document.getElementById('output').textContent='oops';validateSchema();ToolBox.showToast=__o;document.getElementById('__tbProbe').textContent='SCHEMAJSON '+__t.join('|')+' / '+String(document.getElementById('statusText').textContent);"],
+    expect: ["SCHEMAJSON ❌ Schema 无效：JSON 语法错误"],
+    ref: "假验证修复：输出区被改成非空且不含 { 的非法文本 `oops` 时，验证按钮须报语法错而非沿用内部 lastSchema 报「有效」。旧实现按「含 { 才解析」分支，`oops` 会静默回退 lastSchema；现非空文本一律解析，并把错误同步到 statusText（探针同时读 toast 与状态区）。用 oops（无花括号）而非 {oops，才能命中旧代码的逃生分支。",
   },
   {
     slug: "it/morse-decode-advanced",
@@ -15043,6 +15084,17 @@ async function runCaseInner(c) {
 
   const defaults = {};
   const inputAttrs = {};
+  // 非表单容器的 contenteditable：页面把「结果区」做成可编辑入口（如 it/json-schema-generator
+  // 的 #output 允许用户直接粘贴/修改 Schema 再点验证）。真机上 getAttribute('contenteditable')
+  // 即取自 HTML，桩若丢弃该属性，任何「输出区可编辑」的要求都无法被门禁覆盖。
+  const contentEditableAttrs = {};
+  for (const m of html.matchAll(/<([a-zA-Z][\w-]*)\b([^>]*)>/g)) {
+    const attrs = m[2] || "";
+    const id = (attrs.match(/\bid\s*=\s*["']([^"']+)["']/i) || [])[1];
+    if (!id) continue;
+    const ce = attrs.match(/\bcontenteditable\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+    if (ce) contentEditableAttrs[id] = ce[1] ?? ce[2] ?? ce[3];
+  }
   for (const m of html.matchAll(/<input\b([^>]*)>/gi)) {
     const id = (m[1].match(/\bid\s*=\s*["']([^"']+)["']/i) || [])[1];
     if (id) inputAttrs[id] = m[1];
@@ -15219,6 +15271,8 @@ async function runCaseInner(c) {
         if (/\brequired\b/i.test(inputAttrs[id])) elements[id].setAttribute("required", "");
       }
       elements[id].id = id;   // 动态 DOM 登记按容器 id 分桶（同容器重渲染时覆盖，避免计数翻倍）
+      // 还原 HTML 的 contenteditable（真机 getAttribute 同源）；未声明者保持原状，零影响。
+      if (contentEditableAttrs[id] !== undefined) elements[id].setAttribute("contenteditable", contentEditableAttrs[id]);
       // readonly 输出域标记（G06-S1 快照判据用）：真机中该属性只读不改，
       // 页面脚本不会写它 ⇒ 不会干扰任何既有用例的取值路径。
       if (readonlyIds.has(id)) elements[id].readOnly = true;

@@ -173,6 +173,13 @@ const CASES = [
 },
 {
   "slug": "metalwork/analysis-35",
+  "inputs": { "trials": "6", "data": "short shot,-1,2" },
+  "clicks": ["calc();var t=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='A35ALL '+((t.indexOf('（1 行无效）')>=0&&t.indexOf('short shot,-1,2')>=0&&t.indexOf('次数须为正整数')>=0)?'OK':'BAD:['+t+']');"],
+  "expect": ["A35ALL OK"],
+  "ref": "全行无效也必须列出被忽略行及原因（669 复核失败重做）：唯一数据行次数为 -1 ⇒ 无有效行，进入早退分支；修复前该分支只输出「请输入至少一行…（1 行无效）」后 return，后面的 skipped 逐条列表不执行，用户看不到「次数须为正整数」。现早退分支同样渲染 skipBox ⇒ 结果区同时含无效行数、行原文与原因。用单一探针串断言三项（expect 为「任一命中」，拆成三条会因「（1 行无效）」先命中而假通过）。默认数据无 -1 行且存在有效行 ⇒ 不进早退分支 ⇒ 探针 BAD。"
+},
+{
+  "slug": "metalwork/analysis-35",
   "inputs": { "trials": "6", "data": "<svg/onload=alert(1)>,1,2" },
   "expect": ["&lt;svg/onload=alert(1)&gt;"],
   "ref": "问题名转义（669 复核 MM-H62）：标签被 escHtml 转义后输出 &lt;svg/onload=alert(1)&gt;，结果区不出现可执行 <svg>（默认数据不含该串）"

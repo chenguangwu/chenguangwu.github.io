@@ -208,7 +208,8 @@
     </div>
     
     <div id="viewSchema">
-      <div class="json-highlight" id="output">等待生成...</div> <div id="json_schema_generatorTable"></div> <div id="json_schema_generatorDiff"></div> <div id="json_schema_generatorChart"></div> <div id="json_schema_generatorHist"></div>
+      <div style="font-size:12px;color:var(--text-muted);margin:6px 0;" data-zh="输出区可直接编辑或粘贴 Schema，再点「✅ 验证」做结构校验（覆盖 draft-04/06/07 与 2020-12 的通用结构；布尔 Schema 亦合法）。">The output area is editable — paste or edit a schema there, then click "✅ Validate" for a structural check (common structure of draft-04/06/07 and 2020-12; boolean schemas are valid too).</div>
+      <div class="json-highlight" id="output" contenteditable="true" spellcheck="false" aria-label="可编辑 / 可粘贴的 Schema 输出区">等待生成...</div> <div id="json_schema_generatorTable"></div> <div id="json_schema_generatorDiff"></div> <div id="json_schema_generatorChart"></div> <div id="json_schema_generatorHist"></div>
     </div>
     
     <div id="viewTree" style="display:none;">
@@ -694,8 +695,10 @@ function downloadSchema() {
 function __schemaIssues(node, path, depth) {
   var issues = [];
   if (depth > 12) return issues;
+  // 布尔 Schema（true/false）自 draft-06 起合法，且在 properties/items/anyOf 的任意层级可作子 Schema。
+  if (node === true || node === false) return issues;
   if (node === null || typeof node !== 'object' || Array.isArray(node)) {
-    issues.push(path + ': not an object');
+    issues.push(path + ': not an object or boolean');
     return issues;
   }
   var TYPES = ['string', 'number', 'integer', 'boolean', 'object', 'array', 'null'];
@@ -715,14 +718,11 @@ function __schemaIssues(node, path, depth) {
     });
   }
   if ('required' in node) {
+    // draft-04 起 required 只要求「字符串数组」；不要求每项都出现在同一层 properties：
+    // `{"type":"object","required":["a"]}` 是合法 Schema（缺省 properties 视为允许任意属性）。
     var r = node.required;
     if (!Array.isArray(r) || r.some(function(x) { return typeof x !== 'string'; })) {
       issues.push(path + '.required: not a string array');
-    } else {
-      var pr = (node.properties && typeof node.properties === 'object' && !Array.isArray(node.properties)) ? node.properties : {};
-      r.forEach(function(k) {
-        if (!Object.prototype.hasOwnProperty.call(pr, k)) issues.push(path + '.required: ' + k + ' not in properties');
-      });
     }
   }
   if ('items' in node) issues = issues.concat(__schemaIssues(node.items, path + '.items', depth + 1));
@@ -735,28 +735,47 @@ function __schemaIssues(node, path, depth) {
   return issues;
 }
 
-function validateSchema() {
+function __schemaRawText() {
   var out = document.getElementById('output');
-  var raw = out ? String(out.textContent || '').trim() : '';
-  var obj = null;
+  if (!out) return '';
+  // contenteditable 编辑后浏览器可能插入 <div>/<br> 与不换行空格；textContent 已合并元素文本。
+  return String(out.textContent || '').replace(/\u00a0/g, ' ').trim();
+}
+
+function __schemaIsPlaceholder(raw) {
+  var t = String(raw || '').replace(/\s+/g, ' ');
+  if (!t) return true;
+  if (/^(--|—|-)$/.test(t)) return true;
+  return /^(等待生成|等待输入|Generating|Waiting for input|Please enter)/i.test(t);
+}
+
+function validateSchema() {
   var en = (typeof TBKit !== 'undefined' && TBKit.util.isEn());
-  if (!raw || raw.indexOf('{') < 0) {
+  var st = document.getElementById('statusText');
+  var raw = __schemaRawText();
+  var obj = null;
+  if (__schemaIsPlaceholder(raw)) {
+    // 只有「空/占位」才回退到最近一次生成结果；非空文本一律按内容判定（避免 `oops` 被静默放行）。
     if (!lastSchema) { ToolBox.showToast(i18nText('toast.msg649')); return; }
     obj = lastSchema;
   } else {
     try { obj = JSON.parse(raw); }
-    catch (e) { ToolBox.showToast('❌ JSON: ' + e.message); return; }
+    catch (e) {
+      var jsonErr = (en ? '❌ Invalid schema: JSON syntax error — ' : '❌ Schema 无效：JSON 语法错误 —— ') + e.message;
+      ToolBox.showToast(jsonErr);
+      if (st) { st.textContent = jsonErr; st.className = 'err'; }
+      return;
+    }
   }
   var issues = __schemaIssues(obj, 'root', 0);
-  var st = document.getElementById('statusText');
   if (issues.length) {
     var first = issues[0] + (issues.length > 1 ? ' (+' + (issues.length - 1) + ')' : '');
     ToolBox.showToast('❌ ' + first);
-    if (st) { st.textContent = (en ? '❌ Invalid schema: ' : '❌ Schema 无效：') + first; st.className = 'err'; }
+    if (st) { st.textContent = (en ? '❌ Invalid schema: ' : '❌ Schema 结构错误：') + first; st.className = 'err'; }
     return;
   }
   ToolBox.showToast(i18nText('toast.msg032'));
-  if (st) { st.textContent = en ? '✅ Schema is valid' : '✅ Schema 有效'; st.className = 'ok'; }
+  if (st) { st.textContent = en ? '✅ Schema is valid (structure check)' : '✅ Schema 结构有效'; st.className = 'ok'; }
 }
 
 function clearAll() {
