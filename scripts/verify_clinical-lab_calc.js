@@ -1102,6 +1102,18 @@ const CASES = [
     ref: "L-N29 核销：NK 2%（绝对 36/μL <95）纳入异常 flag，不再出现「各项指标正常」；默认 NK 15% 不命中。"
   },
   {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    clicks: ["globalThis.__cap=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},history:{list:function(){return [{t:1,d:{cd4:'20',cd8:'40',__tbScore:1,'结果':'x'}},{t:2,d:{cd4:'30',cd8:'20',__tbScore:1,'结果':'y'}}];},mount:function(){}},matrix:{table:function(){}},chart:{line:function(sel,o){globalThis.__cap=o;}}};__flow_cytometry_ratioRender(['cd4','cd8'],'结果',false);var d=globalThis.__cap&&globalThis.__cap.series[0].data;document.getElementById('__tbProbe').textContent='FCHART '+((d&&d.length===2&&d[0]===1.5&&d[1]===0.5)?'OK':'BAD');"],
+    expect: ["FCHART OK"],
+    ref: "L-N32 核销：趋势图不再 parseFloat 结果文本，改为读 cd4/cd8 反算比值。注入 20/40 与 30/20 两条历史 ⇒ 折线 data=[1.5,0.5]；旧实现 parseFloat('x')=NaN ⇒ nums 不足 2 ⇒ 不画线（__cap 为空）⇒ BAD。"
+  },
+  {
+    slug: "clinical-lab/parasite-egg-id",
+    clicks: ["var e=EGGS.filter(function(x){return x.name.indexOf('短膜壳')>=0;})[0];document.getElementById('__tbProbe').textContent='PGC '+e.size;"],
+    expect: ["PGC 37-47 μm"],
+    ref: "L-N34 核销：短膜壳绦虫卵尺寸改为「37-47 μm」（上下限顺序正确）；旧数据为 47-37 μm。"
+  },
+  {
     slug: "clinical-lab/thyroid-function-model",
     inputs: { tsh: "0.1", ft3: "5.0", ft4: "16", tt3: "1.5", tt4: "100", tpo: "0" },
     expect: ["亚临床甲状腺功能亢进症"],
