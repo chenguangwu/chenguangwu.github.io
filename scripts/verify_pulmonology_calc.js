@@ -546,6 +546,12 @@ const CASES = [
   "ref": "03-152 核销：默认未作答时只显示「当前为默认评分…请按实际修改后查看解读」，不再直接输出 7 分「高度依赖」与戒烟处方。"
 },
 {
+  "slug": "pulmonology/bronchoscopy-grading",
+  "inputs": { "stenGrade": "1" },
+  "expect": ["管腔狭窄＜50%"],
+  "ref": "03-167：Myer-Cotton I 级应为＜50%（原写＜25%）；II/III 级同步改为 50%–70% / 71%–99%。默认 II 级为 50%-70%，与本串不交集。"
+},
+{
   "slug": "pulmonology/wells-pe",
   "clicks": ["document.getElementById('hr').checked=true;calc();"],
   "expect": ["1.5 Wells总分", "低危 (PE概率 ～1.3%)"],
