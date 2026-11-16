@@ -2046,6 +2046,20 @@ const CASES = [
     ref: "SMS-27 残留一：两值仅差 1、量级 1e8。主算 s²=0.5（偏差 ±0.5 → SS=0.5 → /(n-1)=0.5）；替代公式 E(X²)−[E(X)]² 在双精度下消减为 0 并曾无条件标「与上方一致」。修复后按相对误差 relGap=|v2−variance|/max(|variance|,1e-300)>1e-6 判定并改述。判别性：默认数据 2,4,4,4,5,5,7,9 量级小、替代值一致 ⇒ 新提示默认态零命中。",
   },
   {
+    slug: "science/variance-calculator",
+    inputs: { dtype: "sample", data: "2,4,4,4" },
+    clicks: ["(function(){document.getElementById('variance_calculatorTable').innerHTML='OLD';document.getElementById('data').value='3';calculate();var t=String(document.getElementById('variance_calculatorTable').innerHTML);document.getElementById('__tbProbe').textContent='VARCLR '+(t===''?'OK':'BAD t='+t);})()"],
+    expect: ["VARCLR OK"],
+    ref: "624 复核失败重做：样本方差在仅剩 1 个数时只提示、不调 __varClear()；空数据分支同样只改主输出并 return ⇒ 旧 table/diff/chart/hist 残留，包装层还会把提示当结果重绘旧面板。修复后两条错误分支均置 __variance_calculatorValid=false + __varClear()，extras 遇错误态直接返回。探针预置旧表面板后注入单值样本数据，断言面板被清空；默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "science/mode-calculator",
+    inputs: { data: "1,2,2,3" },
+    clicks: ["(function(){document.getElementById('mode_calculatorTable').innerHTML='OLD';document.getElementById('data').value='';calculate();var t=String(document.getElementById('mode_calculatorTable').innerHTML);document.getElementById('__tbProbe').textContent='MODECLR '+(t===''?'OK':'BAD t='+t);})()"],
+    expect: ["MODECLR OK"],
+    ref: "624 复核失败重做：众数页清空数据后 data.length<1 分支只更新主输出并 return，未清 table/diff/chart/hist，包装层随后把「请输入数据」当结果记入历史并重绘旧面板。修复后空数据/非法数据分支统一 __modeClear() 并置错误态，extras 提前返回。探针预置旧表面板后清空数据，断言面板被清空；默认态无探针串 ⇒ 零逃生。"
+  },
+  {
     "slug": "science/wavelength-to-rgb",
     "inputs": { "wl": "550", "wlNum": "520.5" },
     "clicks": ["syncWl('num')"],

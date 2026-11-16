@@ -1095,9 +1095,15 @@ const CASES = [
   // SMS-4：分模式自由度 + 精确上尾概率 + 主算明细共用数组
   {
     slug: "statistics/chi-square-test",
+    inputs: { o: "50,30,20,40", e: "40,40,30,30", rowsIn: "2" },
+    expect: ["1 自由度 df 0.0006 上尾概率 p", "11.6667 卡方统计量 χ²"],
+    ref: "615 复核失败重做：r=2、k=4 ⇒ c=2、df=1。观测表行合计 80/60、列合计 70/70、总计 140 ⇒ 独立性期望 E=(40,40,30,30)（旧预设误填 35,35,35,35，与边际不符，χ²=14.2857/p=0.0002 并非该表的独立性检验结果）。按边际期望 χ²=100/40+100/40+100/30+100/30=11.6667，p=2(1−Φ(√11.6667))=0.000636⇒0.0006。默认态 50,30,20/40,40,20 不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "statistics/chi-square-test",
     inputs: { o: "50,30,20,40", e: "35,35,35,35", rowsIn: "2" },
-    expect: ["1 自由度 df 0.0002 上尾概率 p", "14.2857 卡方统计量 χ²"],
-    ref: "SMS-4：r=2、k=4 ⇒ c=2、df=(2−1)(2−1)=1；χ²=500/35=14.2857，p=1−P(0.5, 7.1429)=0.000157⇒0.0002。旧实现固定 df=n−1=3 且完全不输出 p（旧 df=3 时 p=0.0025）。默认态 50,30,20/40,40,20 不含该串 ⇒ 强判别、零逃生。"
+    expect: ["期望频数与观测表边际不一致", "第 1 格应为 行合计×列合计÷总计 = 40.0000"],
+    ref: "615 复核失败重做：2×2 独立性检验的期望频数必须由观测表边际生成（E=行合计×列合计÷总计）。观测 50,30,20,40 的边际期望为 40,40,30,30，填 35,35,35,35 时原实现照算 χ²=14.2857 并给出 df=1 的 p 值 ⇒ 结果并非该表的独立性检验。现拒绝不一致输入并指明首个不一致格。默认态（r=1 拟合优度）不进入该分支 ⇒ 零逃生。"
   },
   {
     slug: "statistics/chi-square-test",
@@ -1361,10 +1367,46 @@ const CASES = [
     ref: "SMS-33：两组均零事件旧实现被通用守卫报成「c 是本计算的分母」或 RR 无穷大。修复后区分 0/0 未定义；默认 a=40/c=20 合法不含该串 ⇒ 零逃生。"
   },
   {
+    slug: "statistics/statistics-16",
+    inputs: { x1: "0", x2: "0.00000001", x3: "0.00000002", x4: "0.00000003", x5: "0.00000004",
+              y1: "0", y2: "1", y3: "2", y4: "3", y5: "4", xp: "0.00000005" },
+    expect: ["100000000.0000"],
+    ref: "617 复核失败重做：五个 X 严格递增（0…4e-8）但尺度极小，d=5Σx²−(Σx)²=5e-15；旧实现用固定绝对阈值 1e-12 判「x 值全部相同」而停算。尺度相对口径（全等 或 |d|≤1e-12·nΣx²）下正常计算：slope=1e8、intercept≈0、ŷ(5e-8)=5。默认 x=1..5、y=2.1.. 的斜率 ≈ −0.06，不含 1e8 形态 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "statistics/f-test-variance",
+    inputs: { s1: "25", s2: "16", n1: "2.5", n2: "18" },
+    clicks: ["(function(){globalThis.TBKit={util:{isEn:function(){return false;},fP2:function(){return 0.5;},fP:function(){return 1;},diffBox:function(){},exportTable:function(){}},matrix:{table:function(sel,o){var e=document.getElementById(String(sel).slice(1));if(e&&o&&o.rows&&o.rows.length)e.innerHTML='T';}},history:{record:function(){},mount:function(){},last:function(){return null;},diffLast:function(){return null;}}};document.getElementById('n1').value='20';calcTool();var t1=String(document.getElementById('ftTable').innerHTML);document.getElementById('n1').value='2.5';calcTool();var t2=String(document.getElementById('ftTable').innerHTML);document.getElementById('__tbProbe').textContent='FTINT '+((t1.indexOf('T')>=0&&t2==='')?'OK':'BAD t1='+t1+' t2='+t2);})()"],
+    expect: ["FTINT OK"],
+    ref: "613 复核失败重做：__ftExtras 原只判断 n≥2，未要求整数 ⇒ n1=2.5 时主算提示无效，增强表仍以 df1=1.5 出表；且 n<2 时直接 return 不清空旧表。修复后增强层与主算同源（≥2 且整数），非法即 __ftClear()。探针先合法态渲染出表、再改 2.5 断言表被清空；默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/iqr",
+    inputs: { data_count: "20", min_: "0", q1: "10", median_: "5", q3: "20", max_: "30" },
+    clicks: ["(function(){var called=0;globalThis.TBKit={util:{isEn:function(){return false;},toast:function(){},exportTable:function(){called++;}}};try{__iqExport();}catch(e){}document.getElementById('__tbProbe').textContent='IQEXP '+(called===0?'BLOCK':'LEAK');})()"],
+    expect: ["IQEXP BLOCK"],
+    ref: "619 复核失败重做：__iqExport 原只校验 q3≥q1，中位数 5 < Q1 10 的非法五数概括仍会生成并下载 CSV。修复后导出共享主算完整顺序校验（min≤Q1≤中位数≤Q3≤max）与数据量非空。探针断言 exportTable 未被调用；默认态（合法 20/30/50/70/90）导出会被调用 ⇒ 强判别。"
+  },
+  {
+    slug: "statistics/independent-t-test",
+    inputs: { m1: "30", m2: "27", s1: "5", s2: "5", n1: "20", n2: "20" },
+    clicks: ["(function(){globalThis.TBKit={util:{isEn:function(){return false;}},chart:{line:function(sel,o){var e=document.getElementById(String(sel).slice(1));if(e)e.innerHTML='DRAWN';}}};try{__itChart();}catch(e){}var d1=String(document.getElementById('itChart').innerHTML);document.getElementById('m1').value='';try{__itChart();}catch(e){}var d2=String(document.getElementById('itChart').innerHTML);document.getElementById('__tbProbe').textContent='ITCHART '+((d1.indexOf('DRAWN')>=0&&d2==='')?'OK':'BAD d1='+d1+' d2='+d2);})()"],
+    expect: ["ITCHART OK"],
+    ref: "620 复核失败重做：__itChart 原用 num() 把空均值读成 0 ⇒ 清空 m1 后主算停答、附加层清空，外层包装器仍重画一组「均值 0」的伪 |t| 曲线。修复后改用保留缺值的 __itNum。探针先合法态确认画出、再清空 m1 断言图表被清空；默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/correlation-coefficient",
+    inputs: { x: "1,2,3,4,5", y: "2,4,5,4,5" },
+    clicks: ["(function(){document.getElementById('ccChart').innerHTML='OLD';window.__ccRows=[['1','1','2','0','0','0']];document.getElementById('x').value='';calcTool();var c=String(document.getElementById('ccChart').innerHTML);var n=(window.__ccRows||[]).length;document.getElementById('__tbProbe').textContent='CCCLR '+((c===''&&n===0)?'OK':'BAD c='+c+' n='+n);})()"],
+    expect: ["CCCLR OK"],
+    ref: "620 复核失败重做：X/Y 空值时输入守卫只清 #ccTable，不调 __ccClear() ⇒ 图表/差异/历史与 window.__ccRows 全部残留，仍可导出上次数据。修复后守卫与「长度不符」分支统一走 __ccClear()。探针预置旧图表与旧导出数据，清空 X 后断言两者均被清；默认态无探针串 ⇒ 零逃生。"
+  },
+  {
     slug: "statistics/relative-risk",
-    inputs: { a: "1.5" },
-    expect: ["四格表各格例数必须是非负整数"],
-    ref: "SMS-33：非整数例数旧实现被 parseFloat 放行并输出 RR。修复后要求非负整数而停算；默认 40/60/20/80 合法不含该串 ⇒ 零逃生。"
+    inputs: { a: "10", b: "20", c: "5", d: "25" },
+    clicks: ["(function(){globalThis.TBKit={util:{isEn:function(){return false;}},chart:{bar:function(sel,o){var e=document.getElementById(String(sel).slice(1));if(e)e.innerHTML='DRAWN';}}};try{__rrChart();}catch(e){}var d1=String(document.getElementById('rrChart').innerHTML);document.getElementById('b').value='';try{__rrChart();}catch(e){}var d2=String(document.getElementById('rrChart').innerHTML);document.getElementById('__tbProbe').textContent='RRCHART '+((d1.indexOf('DRAWN')>=0&&d2==='')?'OK':'BAD d1='+d1+' d2='+d2);})()"],
+    expect: ["RRCHART OK"],
+    ref: "623 复核失败重做：__rrChart 原用 num() 把空串读成 0 ⇒ 清空 b 后主算停答、附加层清面板，外层包装器仍按 b=0 重画 RR=6 的柱图。修复后改用保留缺值的 __rrNum。探针先合法态确认画出、再清空 b 断言图表被清空；默认态无探针串 ⇒ 零逃生。"
   },
 
 ];

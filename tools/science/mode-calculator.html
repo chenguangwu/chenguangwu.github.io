@@ -245,11 +245,12 @@ function __modeClear(){
   const ids=['mode_calculatorTable','mode_calculatorDiff','mode_calculatorChart','mode_calculatorHist'];
   for(let i=0;i<ids.length;i++){const e=document.getElementById(ids[i]);if(e)e.innerHTML='';}
 }
+var __mode_calculatorValid=false;
 function calculate(){
   const parsed=parseData(document.getElementById('data').value);
-  if(parsed.err){__modeClear();document.getElementById('output').innerHTML='<p style="color:var(--danger);">第 '+parsed.err+' 项数据无效，请输入数字（不接受字母或部分数字）</p>';return;}
+  if(parsed.err){__mode_calculatorValid=false;__modeClear();document.getElementById('output').innerHTML='<p style="color:var(--danger);">第 '+parsed.err+' 项数据无效，请输入数字（不接受字母或部分数字）</p>';return;}
   const data=parsed.vals;
-  if(data.length<1){ const __h0='<p style="color:var(--danger);">请输入数据</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0; return; }
+  if(data.length<1){ __mode_calculatorValid=false; __modeClear(); const __h0='<p style="color:var(--danger);">请输入数据</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0; return; }
   const n=data.length;
   const counts={};
   for(const x of data){ const k=String(x); counts[k]=(counts[k]||0)+1; }
@@ -283,7 +284,8 @@ function calculate(){
     else if(modes.length===2) html+='<div class="step-line">4. 双峰分布（bimodal），众数 = '+modes.join(', ')+'</div>';
     else html+='<div class="step-line">4. 多峰分布（multimodal），众数 = '+modes.join(', ')+'</div>';
   }
-  const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
+  const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){__mode_calculatorValid=false;document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
+  __mode_calculatorValid=true;
 }
 function toggleToolTheme(){
   const cur=document.documentElement.getAttribute('data-theme');
@@ -380,6 +382,8 @@ function __mode_calculatorRender(keys,rk,en){
 function __mode_calculatorExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__mode_calculator_skip) return;
+    // 主算处于错误态（空数据 / 非法数据 / 无效结果）时不得把错误提示当结果记入历史并重绘旧面板
+    if (typeof __mode_calculatorValid !== 'undefined' && !__mode_calculatorValid) return;
     var snap=__mode_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;

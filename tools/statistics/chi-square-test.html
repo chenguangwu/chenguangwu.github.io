@@ -356,7 +356,28 @@ function calcTool(){
   if(r===1){ df=k-1; mode='拟合优度'; }
   else {
     if(k%r!==0 || k/r<2){__csData=null;__csSet('⚠ '+k+' 个频数无法按 '+r+' 行 × 每行 ≥2 列 组成列联表');return;}
-    df=(r-1)*(k/r-1); mode='列联表 '+r+'×'+(k/r);
+    var c=k/r;
+    df=(r-1)*(c-1); mode='列联表 '+r+'×'+c;
+    // 独立性检验的期望频数必须由观测表边际生成（E = 行合计 × 列合计 ÷ 总计）；
+    // 若用户填的期望值与边际不一致，χ² 不再是该观测表的独立性检验结果 ⇒ 拒绝并指明首个不一致格
+    var grand=0;
+    for(var t=0;t<k;t++) grand+=oa[t];
+    if(grand>0){
+      for(var ri=0;ri<r;ri++){
+        for(var ci=0;ci<c;ci++){
+          var rt=0,ct=0;
+          for(var jj=0;jj<c;jj++) rt+=oa[ri*c+jj];
+          for(var ii=0;ii<r;ii++) ct+=oa[ii*c+ci];
+          var want=rt*ct/grand, idx=ri*c+ci;
+          if(Math.abs(ea[idx]-want) > 1e-9*Math.max(1,Math.abs(want))){
+            __csData=null;
+            __csSet('⚠ 期望频数与观测表边际不一致：第 '+(idx+1)+' 格应为 行合计×列合计÷总计 = '+want.toFixed(4)+
+                    '，当前填 '+ea[idx]+'。独立性检验的期望频数须由观测表边际生成，请按该值修正后再算。');
+            return;
+          }
+        }
+      }
+    }
   }
   var chi=0;
   for(var i=0;i<k;i++) chi += Math.pow(oa[i]-ea[i], 2) / ea[i];
@@ -410,7 +431,7 @@ function __csPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#csPresets',[
         {label:'掷骰子 60 次是否均匀',labelEn:'Dice 60 rolls, fair?',values:{o:'8,9,12,11,10,10',e:'10,10,10,10,10,10',rowsIn:'1'}},
-        {label:'性别 × 偏好（2×2 简化）',labelEn:'Gender × preference (2x2)',values:{o:'50,30,20,40',e:'35,35,35,35',rowsIn:'2'}},
+        {label:'性别 × 偏好（2×2 独立性）',labelEn:'Gender × preference (2x2 independence)',values:{o:'50,30,20,40',e:'40,40,30,30',rowsIn:'2'}},
         {label:'拟合很好（几乎无差异）',labelEn:'Good fit (almost no gap)',values:{o:'20,21,19,20',e:'20,20,20,20',rowsIn:'1'}},
         {label:'拟合很差（差异大）',labelEn:'Poor fit (big gap)',values:{o:'60,10,10,20',e:'25,25,25,25',rowsIn:'1'}}
     ],function(){ calcTool(); });
