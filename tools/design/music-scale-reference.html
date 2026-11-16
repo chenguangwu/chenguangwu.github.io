@@ -349,9 +349,19 @@ function render(){
     const relM=relMajorOfMinor(root);
     if(relM) sigText+=__en?`<br>Relative major: ${relM}`:`<br>关系大调：${relM}`;
   }
-  // I 级三和弦按当前调实时计算（页面表格原为固定示例，查不到所选调的实际构成）
-  const __tri=[scaleNotes[0],scaleNotes[2],scaleNotes[4]];
-  if(__tri[0]&&__tri[1]&&__tri[2]&&NOTE_PC[__tri[0]]!==undefined&&NOTE_PC[__tri[1]]!==undefined&&NOTE_PC[__tri[2]]!==undefined){
+  // I 级三和弦按半音关系实时计算（377 复核重做）：原实现固定取数组第 0/2/4 个音，
+  // 五声音阶 C D E G A 会得 C-E-A（错），应为根音+大三度+纯五度 = C-E-G。
+  // 三度按调式：大调/大调五声 +4，小调/和声/旋律小调/小调五声/布鲁斯 +3；五度恒 +7。
+  const __rootPc=NOTE_PC[scaleNotes[0]];
+  const __thirdInterval=(type==='major'||type==='pentMaj')?4:3;
+  const __findPc=function(pc){
+    for(var i=0;i<scaleNotes.length;i++){ if(NOTE_PC[scaleNotes[i]]===pc){ return scaleNotes[i]; } }
+    return null;
+  };
+  const __tri=__rootPc!==undefined
+    ? [scaleNotes[0], __findPc((__rootPc+__thirdInterval)%12), __findPc((__rootPc+7)%12)]
+    : [null,null,null];
+  if(__tri[0]&&__tri[1]&&__tri[2]){
     const __d3=(NOTE_PC[__tri[1]]-NOTE_PC[__tri[0]]+12)%12;
     const __d5=(NOTE_PC[__tri[2]]-NOTE_PC[__tri[0]]+12)%12;
     let __q='';

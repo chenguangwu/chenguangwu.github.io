@@ -639,7 +639,10 @@ input[type="color"]::-webkit-color-swatch {
     return p;
   }
 
-  function spawnParticles() {
+  function spawnParticles(dtFactor) {
+    // 380 复核重做：爆发计时与螺旋角度须按时间差推进，而非每帧固定增量。
+    // 原实现 60Hz 约 0.5 秒爆发一次，120Hz 变 0.25 秒、低帧率更慢；dtFactor 以 60fps 为 1。
+    var step = (typeof dtFactor === 'number' && isFinite(dtFactor)) ? dtFactor : 1;
     var w = canvas.offsetWidth;
     var h = canvas.offsetHeight;
     var cx = w / 2, cy = h / 2;
@@ -657,8 +660,8 @@ input[type="color"]::-webkit-color-swatch {
         particles.shift();
       }
     } else if (opts.mode === 'burst') {
-      burstTimer++;
-      if (burstTimer >= 30) { // 每0.5秒爆发一次
+      burstTimer += step;
+      if (burstTimer >= 30) { // 每约 0.5 秒爆发一次（30 帧@60fps，按 dt 归一）
         burstTimer = 0;
         var burstCount = Math.min(opts.count, 60);
         for (var i = 0; i < burstCount; i++) {
@@ -674,7 +677,7 @@ input[type="color"]::-webkit-color-swatch {
         particles.shift();
       }
     } else if (opts.mode === 'spiral') {
-      spiralAngle += 0.05;
+      spiralAngle += 0.05 * step;
       while (particles.length < opts.count) {
         var r = 50 + Math.random() * 80;
         var a = spiralAngle + particles.length * 0.15;
@@ -829,7 +832,7 @@ input[type="color"]::-webkit-color-swatch {
     prevTs = timestamp;
     var dtFactor = __dtMs / 16.6667;
 
-    spawnParticles();
+    spawnParticles(dtFactor);
     updateParticles(dtFactor);
     drawParticles();
 
