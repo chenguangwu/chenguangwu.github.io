@@ -288,10 +288,24 @@ function isInStr(chunks,i,lang){
   }
   return false;
 }
-function __maskLiterals(line, st){
+// IT-N445/604：判断 `/` 是正则字面量起始还是除法。取紧邻的前一个词（跳过空白），
+// return/typeof 等「其后必为新表达式」的关键字同样视为表达式起点。
+function __prevWordAt(line, pos){
+  var k=pos-1;
+  while(k>=0&&/\s/.test(line.charAt(k)))k--;
+  while(k>=0&&/[A-Za-z0-9_$]/.test(line.charAt(k)))k--;
+  return line.slice(k+1,pos).replace(/^\s+|\s+$/g,'');
+}
+function __regexAllowed(prev, word){
+  if(word && /^(return|typeof|instanceof|in|of|new|delete|void|throw|case|do|else|yield|await)$/.test(word)) return true;
+  if(!prev) return true;
+  return !/[A-Za-z0-9_$\)\]\}]/.test(prev);
+}
+function __maskLiterals(line, st, lang){
   // IT-N445：把字符串/模板字符串内容替换为空格后再做注释检测；
   // "/*"、'//' 等字面量不得触发块注释或行注释判定。跨行字符串状态由 st.q 延续。
-  var out='', q=st.q, i=0;
+  // 604：JS/C 系的正则字面量同样整体置空——`/[/*]/` 里的 `/*` 不得启动块注释状态。
+  var out='', q=st.q, i=0, lastSig='';
   while(i<line.length){
     var c=line.charAt(i), n=line.charAt(i+1);
     if(q){
@@ -300,10 +314,30 @@ function __maskLiterals(line, st){
       if(c===q)q=null;
       i++;continue;
     }
-    if(c==='/'&&n==='*'){out+='/*';i+=2;continue;}
+    if(c==='/'&&n==='*'){out+='/*';i+=2;lastSig='*';continue;}
     if(c==='/'&&n==='/'){out+='//';break;}
-    if(c==='"'||c==="'"||c==='`'){q=c;out+=' ';i++;continue;}
-    out+=c;i++;
+    if(c==='/'&&(lang==='js'||lang==='c')&&__regexAllowed(lastSig,__prevWordAt(line,i))){
+      var j=i+1, inClass=false, closed=-1;
+      while(j<line.length){
+        var cj=line.charAt(j);
+        if(cj==='\\'){j+=2;continue;}
+        if(cj==='[')inClass=true;
+        else if(cj===']')inClass=false;
+        else if(cj==='/'&&!inClass){closed=j;break;}
+        j++;
+      }
+      if(closed>=0){
+        for(var k=i;k<=closed;k++)out+=' ';
+        i=closed+1;
+        while(i<line.length&&/[a-z]/.test(line.charAt(i))){out+=' ';i++;}
+        lastSig='0';
+        continue;
+      }
+    }
+    if(c==='"'||c==="'"||c==='`'){q=c;out+=' ';lastSig='0';i++;continue;}
+    out+=c;
+    if(!/\s/.test(c))lastSig=c;
+    i++;
   }
   st.q=q;
   return out;
@@ -322,7 +356,7 @@ function calcTool(){
   for(var i=0;i<lines.length;i++){
     var line=lines[i];
     if(!line.trim()){blank++;continue;}
-    var t=__maskLiterals(line.trim(), strState);
+    var t=__maskLiterals(line.trim(), strState, lang);
     var isComment=false;
     // IT-N446: 块注释中间行仅在此处计一次 comment++ 后 continue；结束行交给末尾统一收口（if(isComment)comment++），
     // 避免原实现「inBlock 分支先 comment++、结束行收口又 comment++」造成的重复计数。

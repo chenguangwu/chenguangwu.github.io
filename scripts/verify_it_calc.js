@@ -14194,6 +14194,13 @@ const CASES = [
     ref: "IT-N445 字符串内 /*：旧实现直接 indexOf('/*') 命中字面量并置 inBlock ⇒ 后两行被吞成注释（1 代码/2 注释）；新实现先遮蔽字符串内容 ⇒ 3 行全代码、占比 100.0%。默认示例分配不同 ⇒ 不命中。",
   },
   {
+    slug: "it/code-line-counter",
+    // 604 复核：正则字面量里的 `/*` 不得启动块注释；return 后的正则与除法都要正确区分。
+    clicks: ["var s=document.getElementById('codeInput');s.value='const x = /[/*]/;\\nreturn /[/*]/.test(s);\\nvar y = a / b;\\n// note';document.getElementById('langSel').value='js';calcTool();var v=String(document.getElementById('result').innerHTML);var a=v.indexOf('>4<'),b=v.indexOf('总行数'),c=v.indexOf('>3<'),d=v.indexOf('代码行'),e=v.indexOf('>1<'),f=v.indexOf('注释行'),g=v.indexOf('>0<'),h=v.indexOf('空行');document.getElementById('__tbProbe').textContent='CLRX '+((a>=0&&a<b&&b<c&&c<d&&d<e&&e<f&&f<g&&g<h)?'OK':'BAD:'+v.slice(0,140));"],
+    expect: ["CLRX OK"],
+    ref: "604 复核：`const x = /[/*]/;` 与 `return /[/*]/.test(s);` 中的 `/*` 属正则内容，旧 __maskLiterals 只遮蔽引号/模板串 ⇒ 第一行即置 inBlock，后两行被吞成注释（1 代码/2 注释）。修复后按上下文识别正则字面量并整体置空 ⇒ 4 行 = 3 代码 + 1 注释（末行真注释）；`a / b` 仍按除法处理。默认示例不含正则字面量 ⇒ 探针串零逃生。"
+  },
+  {
     slug: "it/code-highlighter",
     inputs: { codeInput: 'const a = 1;', langSelect: 'javascript', editorTheme: 'light' },
     clicks: ["document.getElementById('__tbProbe').textContent='HLCOPY '+(/<style>/.test(String(copyHighlightedHTML))&&/hl-keyword/.test(String(copyHighlightedHTML))&&/dark-editor/.test(String(copyHighlightedHTML))?'OK':'BAD');"],

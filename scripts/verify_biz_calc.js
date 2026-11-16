@@ -1511,6 +1511,13 @@ const CASES = [
     ref: "BS-N133：记住上次模式并在输入变化时重算。先转全大写得 HELLO WORLD，再把输入改成 abc 调 updatePreview；修复后预览为 ABC，旧空函数仍停留 HELLO WORLD ⇒ BAD。探针默认态不执行 ⇒ 零逃生。"
   },
   {
+    slug: "biz/text-case-advanced",
+    inputs: { input: "abc" },
+    clicks: ["convert('upper');var i=document.getElementById('input');i.value='';updatePreview();var s=String(preview.textContent||'');var copied=false;try{navigator.clipboard={writeText:function(){copied=true;return Promise.resolve();}};}catch(e){}try{copyResult();}catch(e){}document.getElementById('__tbProbe').textContent='TCCLR '+((s==='请输入文本'&&!copied)?'OK':'BAD:'+s+'|'+copied);"],
+    expect: ["TCCLR OK"],
+    ref: "609 复核：合法 → 清空输入后 updatePreview 旧实现因 `input.value` 为空直接跳过 ⇒ 预览仍为 ABC，copyResult 还能复制旧结果。修复后空输入写回「请输入文本」且复制被拦截。探针先转大写再清空，断言预览文案与 alert 拦截同时成立；默认态不执行 ⇒ 零逃生。"
+  },
+  {
     slug: "biz/random-script",
     inputs: { cnt: "7" },
     clicks: ["var s=String(pick);document.getElementById('__tbProbe').textContent='RSPICK '+(s.indexOf('Math.random()-0.5')<0&&s.indexOf('i=a.length-1')>=0&&s.indexOf('Math.floor(Math.random()*(i+1))')>=0?'OK':'BAD');"],
@@ -1535,6 +1542,13 @@ const CASES = [
     clicks: ["currentLang='html';currentStyle='line';document.getElementById('input').value='说明';generate();var s=String(document.getElementById('result').textContent||'');document.getElementById('__tbProbe').textContent='CMHTMLLINE '+(s.indexOf('<!-- 说明 -->')>=0?'OK':'BAD:'+s);"],
     expect: ["CMHTMLLINE OK"],
     ref: "BS-N41：HTML 单行注释必须成对闭合；旧实现只拼 `<!-- 说明`，粘进页面会吞掉后续标签。探针只在 clicks 注入执行 ⇒ 默认态零逃生。"
+  },
+  {
+    slug: "biz/comment-generator",
+    inputs: { input: "说明" },
+    clicks: ["currentLang='html';currentStyle='doc';document.getElementById('input').value='hello';generate();var s=String(document.getElementById('result').textContent||'');document.getElementById('__tbProbe').textContent='CMHTMLDOC '+((s.indexOf('<!--')===0&&s.indexOf('-->')>0&&s.indexOf('hello')>0&&s.indexOf('-->',s.indexOf('hello'))>0)?'OK':'BAD:'+s);"],
+    expect: ["CMHTMLDOC OK"],
+    ref: "610 复核：HTML 文档注释旧实现落入通用分支 `cfg.line + ' ' + l`，产出未闭合的 `<!-- hello`，粘贴后会吞掉后续页面。修复后 HTML doc 走 `<!--` + 逐行缩进 + `-->` 多行包裹；断言以 `<!--` 开头、`-->` 在正文之后闭合。默认样式是 JS 单行注释 ⇒ 零逃生。"
   },
   {
     slug: "biz/comment-generator",
