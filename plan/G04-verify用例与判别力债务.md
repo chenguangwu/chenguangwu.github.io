@@ -4,9 +4,11 @@
 - 判别力：7731 用例全绿（逃生项 0）；false-pass 弱用例 no_inputs=10 / all_default=4（=基线）。
 
 ## 遗留问题
-### P1. beer-gravity 用例缺失
-- 描述：页 OG 公式无 verify 覆盖；麦芽行为动态 id（malt-wt-N），stub 注入不可靠。
-- 方案：用 clicks 驱动（页面 window 导出的 addMalt/updateMaltWeight）重建用例；或为页面补静态汇总 id。
+### P1. beer-gravity 用例缺失 —— ✅ 已解决（2026-11-16 第934批核实，待复核）
+- 原描述：页 OG 公式无 verify 覆盖；麦芽行为动态 id（malt-wt-N），stub 注入不可靠。
+- 原方案：用 clicks 驱动（页面 window 导出的 addMalt/updateMaltWeight）重建用例；或为页面补静态汇总 id。
+- **实际落地**：`scripts/verify_food_calc.js:352` 已存在重建用例，用 `clicks:["malts=[{type:0,weight:8}];calc()"]` 绕过动态 id 注入，四锚（OG 1.093 / FG 0.931 / ABV 21.3% / 24.0°P）带独立复算 ref，默认投料 4kg 淡色+0.5kg 水晶四锚均不命中。该用例在 2026-10-25 删除注释之后已重建，本台账此前未同步。
+- **验证（2026-11-16）**：`verify_food_calc.js` 33/33；单文件判别已检 33 / 正确变红 33 / 逃生 0 / 跳过 0。P1 方案已兑现，勿重复开发。
 - 受影响：scripts/verify_food_calc.js、tools/food/beer-gravity-estimator.html
 
 ### P2. 动态行页面 stub 注入盲区（系统性）
@@ -23,7 +25,7 @@
 - 受影响：全部 verify_*.js
 
 ## 进度
-- 🟡 规则固化完成；P1-P4 🔴 待开发
+- 🟡 规则固化完成；P1 ✅ 已解决（2026-11-16 第934批核实，用例见 verify_food_calc.js:352，food 33/33 + 判别 0 逃生），P2-P4 🔴 待开发
 
 ## 2026-11-03 审计补充（只读审计）
 
