@@ -249,15 +249,19 @@ const countries=[
   {name:'阿根廷',flag:'🇦🇷'},{name:'埃及',flag:'🇪🇬'},{name:'南非',flag:'🇿🇦'},
   {name:'瑞士',flag:'🇨🇭'},{name:'瑞典',flag:'🇸🇪'}
 ];
-let queue,qNo,score,cur;
+let queue,qNo,score,cur,advanceTimer=null,gameToken=0;
 
 function start(){
   reset();
+  gameToken++;
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   queue=[...countries].sort(()=>Math.random()-0.5).slice(0,10);
   qNo=0;score=0;
   next();
 }
 function reset(){
+  gameToken++;
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   document.getElementById('qNo').textContent='0';
   document.getElementById('score').textContent='0';
   document.getElementById('question').textContent='点击"开始"开始';
@@ -266,6 +270,7 @@ function reset(){
   document.getElementById('output').textContent='根据国旗选择对应的国家';
 }
 function next(){
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   if(qNo>=queue.length){
     finish();
     return;
@@ -292,6 +297,16 @@ function next(){
   });
   document.getElementById('output').textContent='选择一个答案';
 }
+// 延迟推进加局次令牌：start()/reset() 递增 gameToken 并清 advanceTimer，
+// 过期回调即使触发也因令牌不匹配丢弃，避免答题后重置/重开被旧回调重新出题或跳题。
+function scheduleNext(){
+  var myToken=gameToken;
+  advanceTimer=setTimeout(function(){
+    advanceTimer=null;
+    if(myToken!==gameToken)return;
+    next();
+  },900);
+}
 function choose(o,el){
   const opts=document.querySelectorAll('.opt');
   opts.forEach(b=>b.onclick=null);
@@ -303,7 +318,7 @@ function choose(o,el){
     opts.forEach(b=>{if(b.textContent===cur.name)b.classList.add('correct');});
   }
   document.getElementById('score').textContent=score;
-  setTimeout(next,900);
+  scheduleNext();
 }
 function finish(){
   document.getElementById('question').textContent='🏁 完成！';

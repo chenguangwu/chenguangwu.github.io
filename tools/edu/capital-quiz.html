@@ -271,19 +271,23 @@ const data=[
   {c:'瑞士',cap:'伯尔尼'},{c:'瑞典',cap:'斯德哥尔摩'},{c:'挪威',cap:'奥斯陆'},
   {c:'希腊',cap:'雅典'},{c:'土耳其',cap:'安卡拉'},{c:'泰国',cap:'曼谷'}
 ];
-let queue,qNo,score,cur,timerId,locked;
+let queue,qNo,score,cur,timerId,locked,advanceTimer=null,gameToken=0;
 
 function getCount(){var el=document.getElementById('qCount');return (el&&+el.value)||10;}
 function getSeconds(){var el=document.getElementById('qTimeLimit');return el?+el.value:0;}
 
 function start(){
   reset();
+  gameToken++;
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   queue=[...data].sort(()=>Math.random()-0.5).slice(0,getCount());
   qNo=0;score=0;
   next();
 }
 function reset(){
   clearInterval(timerId);
+  gameToken++;
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   locked=false;
   document.getElementById('qNo').textContent='0';
   document.getElementById('score').textContent='0';
@@ -297,6 +301,7 @@ function showStatus(remain){
 }
 function next(){
   clearInterval(timerId);
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   locked=false;
   if(qNo>=queue.length){
     finish();
@@ -335,6 +340,16 @@ function next(){
     showStatus();
   }
 }
+// 延迟推进加局次令牌：start()/reset() 递增 gameToken 并清 advanceTimer，
+// 计时超时/作答后 0.9 秒内若已重置或重开，过期回调因令牌不匹配被丢弃。
+function scheduleNext(){
+  var myToken=gameToken;
+  advanceTimer=setTimeout(function(){
+    advanceTimer=null;
+    if(myToken!==gameToken)return;
+    next();
+  },900);
+}
 function timeout(){
   if(locked) return;
   locked=true;
@@ -342,7 +357,7 @@ function timeout(){
   opts.forEach(b=>b.onclick=null);
   opts.forEach(b=>{if(b.textContent===cur.cap)b.classList.add('correct');});
   document.getElementById('output').textContent='⏱ 超时，正确答案是 '+cur.cap;
-  setTimeout(next,900);
+  scheduleNext();
 }
 function choose(o,el){
   if(locked) return;
@@ -358,7 +373,7 @@ function choose(o,el){
     opts.forEach(b=>{if(b.textContent===cur.cap)b.classList.add('correct');});
   }
   document.getElementById('score').textContent=score;
-  setTimeout(next,900);
+  scheduleNext();
 }
 function finish(){
   clearInterval(timerId);

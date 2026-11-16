@@ -874,6 +874,30 @@ const CASES = [
 }
 ,
 {
+  "slug": "edu/country-quiz",
+  "clicks": ["(function(){var dfd=[];var oST=setTimeout,oQ=document.querySelectorAll;setTimeout=function(f,ms){dfd.push(f);return dfd.length;};document.querySelectorAll=function(){return [];};try{start();var fe={classList:{add:function(){}},disabled:false,onclick:null};choose(cur,fe);reset();start();var qB=qNo;if(dfd.length)dfd[dfd.length-1]();var qA=qNo;var ok=(qA===qB&&dfd.length>=1);document.getElementById('__tbProbe').textContent='CTRYSTALE '+(ok?'OK':'BAD qB='+qB+' qA='+qA+' n='+dfd.length);}finally{setTimeout=oST;document.querySelectorAll=oQ;}})()"],
+  "expect": ["CTRYSTALE OK"],
+  "ref": "第395批：country-quiz 裸 setTimeout(next,900) 答题后未取消，0.9 秒内重置/重开会被旧回调重新出题或跳题。延迟桩捕获旧推进回调，答题→立即 reset→start 后手动触发旧回调，须被 gameToken 令牌丢弃（qNo 不变）。旧源码旧回调直接 next() ⇒ qNo+1 ⇒ BAD。"
+},
+{
+  "slug": "edu/color-quiz",
+  "clicks": ["(function(){var dfd=[];var oST=setTimeout,oQ=document.querySelectorAll;setTimeout=function(f,ms){dfd.push(f);return dfd.length;};document.querySelectorAll=function(){return [];};try{start();var fe={classList:{add:function(){}},disabled:false,onclick:null};choose(cur,fe);reset();start();var qB=qNo;if(dfd.length)dfd[dfd.length-1]();var qA=qNo;var ok=(qA===qB&&dfd.length>=1);document.getElementById('__tbProbe').textContent='CLRSTALE '+(ok?'OK':'BAD qB='+qB+' qA='+qA+' n='+dfd.length);}finally{setTimeout=oST;document.querySelectorAll=oQ;}})()"],
+  "expect": ["CLRSTALE OK"],
+  "ref": "第395批：color-quiz 同类裸 setTimeout 推进未取消。延迟桩捕获旧回调，答题→重置→重开后触发旧回调须被令牌丢弃（qNo 不变）。旧源码 qNo+1 ⇒ BAD。"
+},
+{
+  "slug": "edu/math-quiz",
+  "clicks": ["(function(){var dfd=[];var oST=setTimeout,oQ=document.querySelectorAll;setTimeout=function(f,ms){dfd.push(f);return dfd.length;};document.querySelectorAll=function(){return [];};try{start();var fe={classList:{add:function(){}},disabled:false,onclick:null};choose(ans,fe);reset();start();var qB=qNo;if(dfd.length)dfd[dfd.length-1]();var qA=qNo;var ok=(qA===qB&&dfd.length>=1);document.getElementById('__tbProbe').textContent='MATHSTALE '+(ok?'OK':'BAD qB='+qB+' qA='+qA+' n='+dfd.length);}finally{setTimeout=oST;document.querySelectorAll=oQ;}})()"],
+  "expect": ["MATHSTALE OK"],
+  "ref": "第395批：math-quiz 两处 setTimeout(next,900)（作答/超时）均未取消。延迟桩捕获回调，作答→重置→重开后触发旧回调须被令牌丢弃。旧源码 qNo+1 ⇒ BAD。"
+},
+{
+  "slug": "edu/capital-quiz",
+  "clicks": ["(function(){var dfd=[];var oST=setTimeout,oQ=document.querySelectorAll;setTimeout=function(f,ms){dfd.push(f);return dfd.length;};document.querySelectorAll=function(){return [];};try{start();var fe={classList:{add:function(){}},disabled:false,onclick:null};choose(cur,fe);reset();start();var qB=qNo;if(dfd.length)dfd[dfd.length-1]();var qA=qNo;var ok=(qA===qB&&dfd.length>=1);document.getElementById('__tbProbe').textContent='CAPSTALE '+(ok?'OK':'BAD qB='+qB+' qA='+qA+' n='+dfd.length);}finally{setTimeout=oST;document.querySelectorAll=oQ;}})()"],
+  "expect": ["CAPSTALE OK"],
+  "ref": "第395批：capital-quiz 两处裸 setTimeout(next,900) 未取消。延迟桩捕获回调，作答→重置→重开后触发须被令牌丢弃。旧源码 qNo+1 ⇒ BAD。"
+},
+{
   "slug": "edu/flag-quiz",
   "clicks": ["(function(){var dfd=[];var oST=setTimeout,oQ=document.querySelectorAll;setTimeout=function(f,ms){dfd.push(f);return dfd.length;};document.querySelectorAll=function(){return [];};try{start('normal');var fe={classList:{add:function(){}},disabled:false,onclick:null};choose(cur,fe);reset();start('normal');var qB=qNo;if(dfd.length)dfd[dfd.length-1]();var qA=qNo;var ok=(qA===qB&&dfd.length>=1);document.getElementById('__tbProbe').textContent='FLAGSTALE '+(ok?'OK':'BAD qB='+qB+' qA='+qA+' n='+dfd.length);}finally{setTimeout=oST;document.querySelectorAll=oQ;}})()"],
   "expect": ["FLAGSTALE OK"],

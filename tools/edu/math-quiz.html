@@ -267,7 +267,7 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-let qNo,score,correct,total,cur,ans,timerId,locked;
+let qNo,score,correct,total,cur,ans,timerId,locked,advanceTimer=null,gameToken=0;
 
 function getCount(){var el=document.getElementById('qCount');return (el&&+el.value)||10;}
 function getSeconds(){var el=document.getElementById('qTimeLimit');return el?+el.value:0;}
@@ -305,11 +305,15 @@ function gen(){
 }
 function start(){
   reset();
+  gameToken++;
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   qNo=0;score=0;correct=0;total=0;
   next();
 }
 function reset(){
   clearInterval(timerId);
+  gameToken++;
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   locked=false;
   document.getElementById('qNo').textContent='0';
   document.getElementById('score').textContent='0';
@@ -325,6 +329,7 @@ function showStatus(remain){
 }
 function next(){
   clearInterval(timerId);
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   locked=false;
   if(qNo>=getCount()){
     finish();
@@ -358,6 +363,16 @@ function next(){
     showStatus();
   }
 }
+// 延迟推进加局次令牌：start()/reset() 递增 gameToken 并清 advanceTimer，
+// 计时超时/作答后 0.9 秒内若已重置或重开，过期回调因令牌不匹配被丢弃。
+function scheduleNext(){
+  var myToken=gameToken;
+  advanceTimer=setTimeout(function(){
+    advanceTimer=null;
+    if(myToken!==gameToken)return;
+    next();
+  },900);
+}
 function timeout(){
   if(locked) return;
   locked=true;
@@ -366,7 +381,7 @@ function timeout(){
   opts.forEach(b=>{if(parseInt(b.textContent)===ans)b.classList.add('correct');});
   document.getElementById('acc').textContent=Math.round(correct/total*100)+'%';
   document.getElementById('output').innerHTML='<p>⏱ 超时，正确答案是 <strong>'+ans+'</strong></p>';
-  setTimeout(next,900);
+  scheduleNext();
 }
 function choose(o,el){
   if(locked) return;
@@ -384,7 +399,7 @@ function choose(o,el){
   }
   document.getElementById('score').textContent=score;
   document.getElementById('acc').textContent=Math.round(correct/total*100)+'%';
-  setTimeout(next,900);
+  scheduleNext();
 }
 function finish(){
   clearInterval(timerId);
