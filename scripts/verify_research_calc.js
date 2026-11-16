@@ -100,6 +100,14 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "research/assessor-50",
+  "inputs": {"reach":"50000","target":"100000","frequency":"3.5","ctr":"2.5","aidedRecall":"45","unaidedRecall":"20","recognition":"60","favorability":"15","purchaseIntent":"12","nps":"30","cost":"50"},
+  "clicks": ["var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='CPMIMP '+(h.indexOf('2857.14元/千次曝光')>=0&&h.indexOf('10000.00')<0?'OK':'BAD '+h.slice(-120));"],
+  "expect": ["CPMIMP OK"],
+  "ref": "540：CPM 标准口径=每千次曝光成本=投入÷(触达×频次)÷1000。默认 50 万/触达5万/频次3.5 ⇒ 500000÷175000×1000=2857.14 元/千次曝光；旧实现用触达人数算得 10000 元却标「元/千次曝光」，且 frequency 未参与。非默认频次可区分，默认 frequency=3.5 与 inputs 一致但旧口径值 10000 不命中新串 ⇒ 判别成立。",
+},
+
+{
   "slug": "research/tester-17",
   "inputs": {
     "novelty": "9",

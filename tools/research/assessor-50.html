@@ -115,7 +115,7 @@
     <h2 data-zh="📣 广告效果综合评估">Assessor 50</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入广告投放数据（曝光效果/记忆效果/态度效果），系统计算广告效果指数（AEI），给出效果评级与优化建议。">Assessor 50</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">广告效果指数 AEI（三维度加权）<br>曝光效果 = 触达率分 + 频次分 + CTR 分：触达率 = 触达人数 ÷ 目标人群 × 100%<br>触达率分 = min(触达率,100)×0.3；频次分：3–7 次 40｜2–10 次 25｜其余 10<br>CTR 分 = min(CTR%÷5×30, 30)（CTR 5% 满分）<br>记忆效果 = 辅助回忆×0.35 + 无辅助回忆×0.40 + 识别×0.25<br>态度效果 = min(好感度,50)×0.7 + min(购买意向,50)×0.7 + (NPS+100)÷200×36<br>AEI = 曝光×0.30 + 记忆×0.35 + 态度×0.35<br>CPM(元/千次) = 投入万元×10000 ÷ (触达人数÷1000)<br>每回忆用户成本 = 投入×10000 ÷ (触达×无辅助回忆%)<br>评级：≥80 卓越｜≥65 良好｜≥50 一般｜<50 较差</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">广告效果指数 AEI（三维度加权）<br>曝光效果 = 触达率分 + 频次分 + CTR 分：触达率 = 触达人数 ÷ 目标人群 × 100%<br>触达率分 = min(触达率,100)×0.3；频次分：3–7 次 40｜2–10 次 25｜其余 10<br>CTR 分 = min(CTR%÷5×30, 30)（CTR 5% 满分）<br>记忆效果 = 辅助回忆×0.35 + 无辅助回忆×0.40 + 识别×0.25<br>态度效果 = min(好感度,50)×0.7 + min(购买意向,50)×0.7 + (NPS+100)÷200×36<br>AEI = 曝光×0.30 + 记忆×0.35 + 态度×0.35<br>CPM(元/千次曝光) = 投入万元×10000 ÷ (触达人数×平均曝光频次÷1000)，总曝光=触达×频次<br>每触达人次成本 = 投入×10000 ÷ 触达人数；每回忆用户成本 = 投入×10000 ÷ (触达×无辅助回忆%)<br>评级：≥80 卓越｜≥65 良好｜≥50 一般｜<50 较差</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：Math.round(min(aidedRecall,100)×0.35+min(unaidedRecall,100)×0.40+min(recognition,100)×0.25)；Math.round(min(favorability,50)×0.7+min(purchaseIntent,50)×0.7+((nps+100)÷200)×36)；Math.round(exposureScore×0.30+memoryScore×0.35+attitudeScore×0.35)">Key formulas: Math.round(min(aidedRecall,100)×0.35+min(unaidedRecall,100)×0.40+min(recognition,100)×0.25); Math.round(min(favorability,50)×0.7+min(purchaseIntent,50)×0.7+((nps+100)÷200)×36); Math.round(exposureScore×0.30+memoryScore×0.35+attitudeScore×0.35)</p>
     </div>
 
@@ -293,7 +293,9 @@ var reach=parseFloat(document.getElementById('reach').value)||0;
   var aei=Math.round(exposureScore*0.30+memoryScore*0.35+attitudeScore*0.35);
 
   /* 成本效益 */
-  var cpm=reach>0?cost*10000/(reach/1000):0; /* 每千人次成本：投入元 ÷ (触达人数÷1000) */
+  /* 540：CPM = 每千次曝光成本 = 投入元 ÷ (触达人数×平均曝光频次 ÷ 1000)。
+     总曝光数=触达人数×频次；频次≤0 时无定义（显示 —），不再用「每千触达人数」冒充「每千次曝光」。 */
+  var cpm=(reach>0&&frequency>0)?cost*10000/(reach*frequency/1000):NaN;
   var cpr=unaidedRecall>0?cost*10000/(reach*unaidedRecall/100):NaN; /* 每回忆用户成本；无辅助回忆为 0 时无定义 */
 
   /* 评级 */
@@ -307,7 +309,7 @@ var reach=parseFloat(document.getElementById('reach').value)||0;
   html+='<div class="data-card"><div class="num" style="color:'+color+';">'+aei+'</div><div class="label">广告效果指数AEI</div></div>';
   html+='<div class="data-card"><div class="num">'+reachRate.toFixed(1)+'%</div><div class="label">触达率</div></div>';
   html+='<div class="data-card"><div class="num">'+frequency.toFixed(1)+'</div><div class="label">平均频次</div></div>';
-  html+='<div class="data-card"><div class="num">¥'+cpm.toFixed(2)+'</div><div class="label">CPM(元/千次)</div></div>';
+  html+='<div class="data-card"><div class="num">'+(isFinite(cpm)?'¥'+cpm.toFixed(2):'—')+'</div><div class="label">CPM(元/千次曝光)</div></div>';
   html+='</div>';
   html+='<p>效果评级：<strong style="font-size:24px;color:'+color+';">'+level+'</strong></p>';
   html+='<div class="progress-bar" style="margin:8px 0;"><div class="progress-fill" style="width:'+Math.max(0,Math.min(100,aei))+'%;background:'+color+';"></div></div>';
@@ -342,7 +344,7 @@ var reach=parseFloat(document.getElementById('reach').value)||0;
   }else{html+='• 态度效果良好，品牌形象提升明显<br>';}
   html+='</div>';
   html+='<div class="tip-box '+(aei>=65?'tip-success':aei>=50?'tip-warn':'tip-error')+'" style="margin-top:10px;"><strong>综合评价：</strong>'+advice+'</div>';
-  html+='<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">成本效益：CPM='+cpm.toFixed(2)+'元/千次曝光，每回忆用户成本='+(isFinite(cpr)&&cpr>0?'¥'+cpr.toFixed(1):'—')+'</p>';
+  html+='<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">成本效益：CPM='+(isFinite(cpm)?cpm.toFixed(2)+'元/千次曝光':'—（平均曝光频次须>0）')+'，每回忆用户成本='+(isFinite(cpr)&&cpr>0?'¥'+cpr.toFixed(1):'—')+'</p>';
   const __g2=html;try{ if(typeof aei==='number'&&isFinite(aei)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:aei,unit:'',bands:[{"lo":80,"hi":null,"label":{"zh":"效果卓越","en":"Outstanding"},"color":"var(--success)"},{"lo":65,"hi":80,"label":{"zh":"效果良好","en":"Good"},"color":"var(--success)"},{"lo":50,"hi":65,"label":{"zh":"效果一般","en":"Fair"},"color":"var(--warning)"},{"lo":null,"hi":50,"label":{"zh":"效果较差","en":"Poor"},"color":"var(--danger)"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
@@ -385,7 +387,7 @@ calc();
 <li>对比两条创意或两套媒介组合的 AEI 与分项得分，定位是曝光不足还是记忆/态度偏弱。</li>
 <li>结合投入算每触达人次成本与每回忆用户成本，做跨渠道的性价比比较。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">50 万元投放的 AEI 计算</div><div class="dd-ex-body">触达 400 000 / 目标人群 800 000（触达率 50% → 15 分）、平均频次 4（落在 3–7 → 40 分）、CTR 2.0%（2/5×30 = 12 分）→ 曝光 67 分。辅助回忆 60%、无辅助回忆 35%、品牌识别 70% → 记忆 = 60×0.35 + 35×0.40 + 70×0.25 = 53 分。好感度提升 20%、购买意向提升 15%、NPS 30 → 态度 = 20×0.7 + 15×0.7 + (130/200)×36 = 48 分。AEI = 67×0.30 + 53×0.35 + 48×0.35 ≈ 55 → 「效果一般」，短板在记忆（仅 35% 无辅助回忆）。投入 50 万元时每触达人次成本 = 500 000 ÷ 400 000 = 1.25 元，每回忆用户成本 = 500 000 ÷ 140 000 ≈ 3.57 元。</div></div>
+<div class="dd-example"><div class="dd-ex-title">50 万元投放的 AEI 计算</div><div class="dd-ex-body">触达 400 000 / 目标人群 800 000（触达率 50% → 15 分）、平均频次 4（落在 3–7 → 40 分）、CTR 2.0%（2/5×30 = 12 分）→ 曝光 67 分。辅助回忆 60%、无辅助回忆 35%、品牌识别 70% → 记忆 = 60×0.35 + 35×0.40 + 70×0.25 = 53 分。好感度提升 20%、购买意向提升 15%、NPS 30 → 态度 = 20×0.7 + 15×0.7 + (130/200)×36 = 48 分。AEI = 67×0.30 + 53×0.35 + 48×0.35 ≈ 55 → 「效果一般」，短板在记忆（仅 35% 无辅助回忆）。投入 50 万元时每触达人次成本 = 500 000 ÷ 400 000 = 1.25 元，每回忆用户成本 = 500 000 ÷ 140 000 ≈ 3.57 元；总曝光=触达×频次=1 600 000 次，CPM（元/千次曝光）=500 000 ÷ 1 600 = 312.5 元。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>AEI 三个维度为什么权重不同？</dt><dd>曝光 30%、记忆 35%、态度 35%。曝光只是前置条件，真正驱动转化的是消费者是否记住并产生偏好，因此后两者各占 35%。</dd>
