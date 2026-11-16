@@ -1131,6 +1131,13 @@ const CASES = [
     ref: "D 类绕过（foreignObject 嵌套重组）：payload 中 <foreignObj<foreignObject>ect> 经旧清洗单次 replace 移除内层后重组出完整 <foreignObject>…</foreignObject>（实测旧码输出该标签对）；新清洗循环到不动点 ⇒ 彻底清除。expect 锚清洗后派生哨兵，默认态 RM=false 不命中。",
   },
   {
+    slug: "design/svg-viewer",
+    inputs: { svgInput: "<svg xmlns='http://www.w3.org/2000/svg'><rect style='fill:url(https://evil.example/p.svg#g)'/><image href='https://evil.example/a.png'/><img src='https://evil.example/t.png'/><text>SVGE2026</text></svg><iframe src='https://evil.example/f'></iframe><img src='https://evil.example/out.png'>" },
+    clicks: ["var __code=String(document.getElementById('svgInput').value);var __frag=(__code.match(/<svg\\b[\\s\\S]*?<\\/svg\\s*>/i)||[''])[0];var __r=sanitizeSvg(__frag);var __prev=document.getElementById('preview');generate();var __pi=String(__prev.innerHTML);var __bad=(/evil\\.example/i.test(__r.html)||/evil\\.example/i.test(__pi));document.getElementById('__tbProbe').textContent='SVGE2026_URL='+(__bad?'LEAK':'OK')+'_TXT='+(__pi.indexOf('SVGE2026')>=0?'Y':'N');"],
+    expect: ["SVGE2026_URL=OK_TXT=Y"],
+    ref: "337 复核失败重做：旧实现把整段输入交给 innerHTML，只校验存在 <svg>；`<svg>…</svg><img src=\"https://…\">` 中 SVG 外的 img、以及 SVG 内的 <img src> 与 CSS url(https://…) 都未处理，真实浏览器预览时会发起外链请求。修复后 generate() 只取 <svg>…</svg> 片段，sanitizeSvg 移除 img/iframe 等嵌入元素、非内联位图的 src/poster/background、CSS url() 与 @import。探针断言清洗结果与预览内均无 evil.example，且正常文本仍保留；旧实现预览含外链 ⇒ 转红。"
+  },
+  {
     slug: "design/font-preview",
     inputs: { fpText: "ZZPREVZZ" },
     expect: ["ZZPREVZZ"],

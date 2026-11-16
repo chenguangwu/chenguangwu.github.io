@@ -245,6 +245,9 @@ function __svgUnsafeNote(){
 // 清洗后终检：若仍有可执行/外链痕迹，不再把内容写进 innerHTML
 function __svgStillDangerous(s){
   return /<script\b|<\/script|<foreignObject\b|<\/foreignObject|[\s/]+on\w+\s*=|javascript:/i.test(s)
+    || /<img\b|<iframe\b|<object\b|<embed\b|<audio\b|<video\b|<source\b|<link\b|<meta\b|@import/i.test(s)
+    || /\b(src|srcset|poster|data|background|action|formaction)\s*=/i.test(s)
+    || /url\(\s*(?!['"]?#)(?!['"]?data:image\/(?:png|jpe?g|gif|webp|bmp))/i.test(s)
     || /\b(xlink:href|href)\s*=\s*(?!['"]?#)(?!['"]?data:image\/(?:png|jpe?g|gif|webp|bmp)(?:;|,))/i.test(s);
 }
 function sanitizeSvg(code){
@@ -258,6 +261,21 @@ function sanitizeSvg(code){
     s=s.replace(/<\/foreignObject\s*>/gi, function(){removed=true;return '';});
     s=s.replace(/<foreignObject\b[^>]*\/?>/gi, function(){removed=true;return '';});
     s=s.replace(/[\s/]+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, function(){removed=true;return '';});
+    // 任何可发起外链请求的嵌入元素一律移除（解析器会为 img/iframe 等发起网络请求）
+    s=s.replace(/<(img|iframe|object|embed|audio|video|source|link|meta|base)\b[^>]*\/?>/gi, function(){removed=true;return '';});
+    // src / poster / data / background 等资源属性：只放行内联位图 data URI，其余（含外链与 svg+xml）移除
+    s=s.replace(/\b(src|srcset|poster|data|background|action|formaction)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, function(m,attr,val){
+      var v=String(val).replace(/^['"]|['"]$/g,'').trim();
+      if(/^data:image\/(?:png|jpe?g|gif|webp|bmp)(?:;|,)/i.test(v)) return m;
+      removed=true; return '';
+    });
+    // CSS 里的 url(...) 同样是外链通道：仅放行内部 #id 与内联位图，其余替换为 none
+    s=s.replace(/url\(\s*("[^"]*"|'[^']*'|[^)]*)\s*\)/gi, function(m,val){
+      var v=String(val).replace(/^['"]|['"]$/g,'').trim();
+      if(/^#/.test(v)||/^data:image\/(?:png|jpe?g|gif|webp|bmp)(?:;|,)/i.test(v)) return m;
+      removed=true; return 'none';
+    });
+    s=s.replace(/@import[^;]*;?/gi, function(){removed=true;return '';});
     s=s.replace(/\b(xlink:href|href)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, function(m,attr,val){
       var v=String(val).replace(/^['"]|['"]$/g,'').trim();
       // 仅放行内部引用与位图 data URI；data:image/svg+xml 可内嵌脚本，必须拒绝
@@ -281,7 +299,9 @@ function generate(){
   if(!code){ const __h0='<span class="svg-preview-error">请输入 SVG 代码</span>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h0; return; }
   try{
     if(/<svg[\s\S]*<\/svg>/i.test(code)){
-      var safe=sanitizeSvg(code);
+      // 只取 SVG 片段：输入里夹带的 HTML（如 <img src="https://…">）不进入解析器，避免预览时发起外链请求
+      var __m=code.match(/<svg\b[\s\S]*?<\/svg\s*>/i);
+      var safe=sanitizeSvg(__m?__m[0]:'');
       // 终检兜底：清洗后若仍残留可执行/外链痕迹，丢弃内容、只留安全提示
       if(__svgStillDangerous(safe.html)){ safe.html=''; safe.removed=true; }
       const __h1=(safe.removed?'<div class="svg-preview-error">'+__svgUnsafeNote()+'</div>':'')+safe.html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h1;
