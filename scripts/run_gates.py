@@ -74,6 +74,8 @@ GATES = (
     ("general calc correctness", ("node", "scripts/verify_general_calc.js")),
     # finance 分类的正确性验证（校验位算法 / 金融公式），用例集独立维护。
     ("finance calc correctness", ("node", "scripts/verify_finance_calc.js")),
+    # 851 批复核失败重做：校验/工资/单利/增值税页的清空态、历史同步与导出回退边界。
+    ("finance rework851 guards", ("node", "scripts/_verify_finance_rework851.mjs")),
     # design 分类的正确性验证（单位换算 / 色度学 / 摄影光学），用例集独立维护。
     ("design calc correctness", ("node", "scripts/verify_design_calc.js")),
     # science 分类的正确性验证（经典力学 / 电学 / 化学 / 统计），用例集独立维护。
