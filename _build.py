@@ -4663,7 +4663,9 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             _seen_sets = set()
             _out, _pos = [], 0
             for _bm in _rt_blocks:
-                _hrefs = tuple(re.findall(r'href="([^"]+)" class="related-tool-card"', _bm.group(0)))
+                # 406 批复核失败重做：按 href 集合去重，[A,B] 与 [B,A] 视作同一组，
+                # 只删后出现的重复块，保留第一块原有卡片顺序。
+                _hrefs = frozenset(re.findall(r'href="([^"]+)" class="related-tool-card"', _bm.group(0)))
                 if _hrefs and _hrefs in _seen_sets:
                     _out.append(content[_pos:_bm.start()])
                     _pos = _bm.end()

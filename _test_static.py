@@ -412,6 +412,61 @@ def check_h1_normalization():
             stats['errors'].append(f'h1 规范化回归异常：{name} → {exc}')
 
 
+def check_related_tool_cards():
+    """392/403/406 批复核失败重做：锁定相关工具卡名称自愈与无序集合去重口径。
+
+    历史缺陷：
+    - 卡片名称按目标页元数据刷新链在部分页未生效，残留整段 SEO 模板文案；
+    - 多块去重按原始顺序 tuple 比较，[A,B] 与 [B,A] 集合相同却被保留两块。
+    """
+    build_src = open(os.path.join(ROOT, '_build.py'), encoding='utf-8').read()
+
+    # 406：去重键必须是 frozenset（无序集合），且保留第一块顺序（仅跳过后续重复块）
+    if re.search(r'_hrefs\s*=\s*frozenset\(', build_src) and '_seen_sets.add(_hrefs)' in build_src:
+        stats['passed'] += 1
+    else:
+        stats['errors'].append('相关工具块去重未按 frozenset 集合口径实现（406 回归）')
+
+    # 行为验证：[A,B] 与 [B,A] 必须判为同一集合，仅保留第一块原顺序
+    _b1 = '<div><a href="a.html" class="related-tool-card">A</a><a href="b.html" class="related-tool-card">B</a></div>'
+    _b2 = '<div><a href="b.html" class="related-tool-card">B</a><a href="a.html" class="related-tool-card">A</a></div>'
+    _seen, _kept = set(), []
+    for _blk in (_b1, _b2):
+        _hs = frozenset(re.findall(r'href="([^"]+)" class="related-tool-card"', _blk))
+        if _hs and _hs in _seen:
+            continue
+        _seen.add(_hs)
+        _kept.append(_blk)
+    if len(_kept) == 1 and 'a.html' in _kept[0] and _kept[0].index('a.html') < _kept[0].index('b.html'):
+        stats['passed'] += 1
+    else:
+        stats['errors'].append('相关工具块集合去重行为不符：[A,B] 与 [B,A] 未合并或第一块顺序被改（406 回归）')
+
+    # 392/403：刷新链必须按目标工具名原位覆写 rt-name
+    if re.search(r"_new_name\s*=\s*esc_html_py\(_rt_obj\.get\('name'\)", build_src):
+        stats['passed'] += 1
+    else:
+        stats['errors'].append('相关工具卡名称自愈链缺失（392/403 回归）')
+
+    # 产物回归：Pharmacode 卡片名等于目标页 H1，且无整段 SEO 模板指纹
+    src_page = os.path.join(ROOT, 'tools', 'aerospace', 'lift-coefficient.html')
+    tgt_page = os.path.join(ROOT, 'tools', 'science', 'barcode-pharmacode.html')
+    if os.path.isfile(src_page) and os.path.isfile(tgt_page):
+        src = open(src_page, encoding='utf-8').read()
+        tgt = open(tgt_page, encoding='utf-8').read()
+        h1 = re.search(r'<h1[^>]*>([^<]+)</h1>', tgt)
+        card = re.search(
+            r'href="[^"]*barcode-pharmacode\.html"[^>]*>[\s\S]*?'
+            r'<span class="rt-name"[^>]*>([^<]*)</span>', src)
+        if h1 and card and card.group(1).strip() == h1.group(1).strip():
+            stats['passed'] += 1
+        else:
+            stats['errors'].append('Pharmacode 相关工具卡名称与目标页 H1 不一致（392/403 回归）')
+        for bad in ('免费生成器工具', 'ToolBox免费在线工具箱'):
+            if card and bad in card.group(0):
+                stats['errors'].append('Pharmacode 相关工具卡残留模板指纹：' + bad)
+
+
 def main():
     print('=' * 60)
     print('ToolBox 自动化静态测试')
@@ -441,6 +496,7 @@ def main():
     check_i18n_foundation()
     check_related_slug_map()
     check_h1_normalization()
+    check_related_tool_cards()
 
     # 输出结果
     print(f'扫描完成，共检查 {stats["total"]} 个工具页面')
