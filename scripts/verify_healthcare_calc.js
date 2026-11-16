@@ -8,6 +8,45 @@
  */
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+const path = require("path");
+
+// 425 复核失败：指南正文曾套用通用统计模板，与三列收支汇总工具不符。
+function analysisReportCostGuideChecks() {
+  const read = (...parts) => fs.readFileSync(path.join(__dirname, "..", ...parts), "utf8");
+  const guide = read("guides", "analysis-report-cost-guide.html");
+  const tool = read("tools", "healthcare", "analysis-report-cost.html");
+  const en = JSON.parse(read("i18n", "guides", "analysis-report-cost-guide.json")).map || {};
+  const ldBlocks = [...guide.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+  const jsonLd = ldBlocks.find((b) => /"@type"\s*:\s*"FAQPage"/.test(b)) || "";
+  const visibleFaq = [...guide.matchAll(/<dt>([^<]+)<\/dt>/g)].map((m) => m[1]);
+  const ldFaq = [...jsonLd.matchAll(/"name":\s*"([^"]+)"/g)].map((m) => m[1]);
+  const stale = ["均值 x̄", "方差 σ²", "质量月报", "方差用 n", "中位数 = 排序后"];
+  return [
+    {
+      name: "财务指南已清除通用统计模板口径",
+      ok: stale.every((s) => guide.indexOf(s) < 0 && !Object.keys(en).some((k) => k.indexOf(s) >= 0)),
+    },
+    {
+      name: "财务指南正文按科室收支三列口径",
+      ok: guide.indexOf("结余 = 收入 − 成本") >= 0
+        && guide.indexOf("科室盈亏盘点") >= 0
+        && guide.indexOf("收入为 0 的科室怎么处理？") >= 0
+        && tool.indexOf("成本率") >= 0 && tool.indexOf("结余率") >= 0,
+    },
+    {
+      name: "结构化 FAQ 与可见 FAQ 逐字一致",
+      ok: ldFaq.length === visibleFaq.length && visibleFaq.length > 0
+        && visibleFaq.every((q, i) => q === ldFaq[i]),
+    },
+    {
+      name: "英文映射覆盖新正文且无旧统计键",
+      ok: !!en["财务（成本/利润/报表）分析使用指南"]
+        && !!en["：内科,100,70 与 外科,80,90 ⇒ 收入合计 180.00、成本合计 160.00、结余 +20.00、全院成本率 88.89%、结余率 +11.11%；结余最高为内科（+30.00），亏损科室 1 个（外科 −10.00）。若两科室均为 100,100，则结余 0.00、结余率 0.00%、亏损科室 0 个。"]
+        && stale.every((s) => !Object.keys(en).some((k) => k.indexOf(s) >= 0)),
+    },
+  ];
+}
 
 const CASES = [
   // ---------- 儿科给药与剂量 ----------
@@ -326,8 +365,8 @@ const CASES = [
   {
     slug: "healthcare/fat-loss-deficit",
     inputs: { loss: "5", days: "10", targetWeight: "70" },
-    expect: ["3850", "超过 1000 kcal/天"],
-    ref: "减脂缺口高强度提示（763 批补查）：5×7700 = 38500 kcal，÷10 = 3850 kcal/天；超过 1000 ⇒ 红字提示延长周期/咨询营养师。既有 4 kg/50 天 ⇒ 616 不命中。",
+    expect: ["超过 1000 kcal/天"],
+    ref: "减脂缺口高强度提示（763 批补查）：5×7700 = 38500 kcal，÷10 = 3850 kcal/天；超过 1000 ⇒ 红字提示延长周期/咨询营养师。既有 4 kg/50 天 ⇒ 616 不命中。判别器实测数值锚「3850」在默认快照也命中（页面固定算例），已移除，仅留依赖输入的提示锚。",
   },
   {
     slug: "healthcare/fat-loss-deficit",
@@ -370,8 +409,8 @@ const CASES = [
   {
     slug: "healthcare/egfr-calculator",
     inputs: { scr: "120", age: "65", sex: "2", scrUnit: "umol" },
-    expect: ["39.1", "G3b", "mL/min/1.73m²"],
-    ref: "D-N31 µmol/L + 分期：120 µmol/L ÷ 88.4 = 1.3575 mg/dL；女 65 岁 ⇒ 175×1.3575^(−1.154)×65^(−0.203)×0.742 = 39.13 → 39.1，落在 30–44 ⇒ G3b。修复前无单位切换（120 被当 mg/dL ⇒ 0.9）、无分期、单位漏写 /1.73m²。默认 1.0/40/男 ⇒ 79.1/G2，不命中。",
+    expect: ["39.1", "G3b"],
+    ref: "D-N31 µmol/L + 分期：120 µmol/L ÷ 88.4 = 1.3575 mg/dL；女 65 岁 ⇒ 175×1.3575^(−1.154)×65^(−0.203)×0.742 = 39.13 → 39.1，落在 30–44 ⇒ G3b。修复前无单位切换（120 被当 mg/dL ⇒ 0.9）、无分期。判别器实测单位串「mL/min/1.73m²」在默认快照也命中，已移除，仅留依赖输入的数值与分期锚。",
   },
   {
     slug: "healthcare/gfr-cockcroft",
@@ -480,8 +519,8 @@ const CASES = [
   {
     slug: "healthcare/resp-rate",
     inputs: { rr: "40", age: "0.5", state: "1" },
-    expect: ["婴儿（<1 岁）： 30–60", "状态： 正常 （1 级）"],
-    ref: "D-N47 年龄分段：0.5 岁 40 次/分落在婴儿 30–60 ⇒ 正常；旧实现固定 12–20 判「3 级异常」并显示偏离 24。",
+    expect: ["参考范围（婴儿（&lt;1 岁））： 30–60 次/分"],
+    ref: "D-N47 年龄分段：0.5 岁 40 次/分落在婴儿 30–60 ⇒ 正常；旧实现固定 12–20 判「3 级异常」并显示偏离 24。判别器实测「状态： 正常 （1 级）」在默认快照也命中，已移除，仅留依赖年龄分段的参考区间锚。",
   },
   {
     slug: "healthcare/resp-rate",
@@ -1053,7 +1092,12 @@ async function main() {
     }
   }
 
+  const stat = analysisReportCostGuideChecks();
+  const staticFails = stat.filter((s) => !s.ok);
+  for (const s of staticFails) console.log("❌ [static] " + s.name);
+
   console.log("==== healthcare calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (staticFails.length) console.log("❌ static " + (stat.length - staticFails.length) + "/" + stat.length + " 未通过");
+  if (fails.length || staticFails.length) process.exit(1);
 }
 if (require.main === module) main();

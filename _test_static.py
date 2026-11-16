@@ -374,6 +374,44 @@ def check_related_slug_map():
         print('  ✅ 映射与路径均一致，相关工具英文映射可用')
 
 
+def check_h1_normalization():
+    """216 批复核失败重做：把 normalize_tool_h1 的 script/style 干扰固化进静态门禁。
+
+    历史缺陷：闭标签查找与多 h1 降级曾把 script/style 内的字符串字面量当真标题，
+    改坏 markdown-editor 等页面；此前只有一次性临时复现，未进入可重复执行的门禁。
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('toolbox_build_h1', os.path.join(ROOT, '_build.py'))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    norm = mod.normalize_tool_h1
+
+    script_case = "<html><body><h1>标题<script>let a='</h2>';</script></h1></body></html>"
+    style_case = "<html><head><style>.x:after{content:'<h1>假标题</h1>'}</style></head><body><h1>真标题</h1></body></html>"
+    multi_case = "<html><body><h1>主标题</h1><h1>副标题</h1></body></html>"
+    pseudo_case = "<html><body><script>let t='<h1>脚本标题</h1>';</script><h1>主标题</h1><h1>副标题</h1></body></html>"
+    cases = [
+        ('script 内错配闭标签字面量不破坏脚本', script_case,
+         lambda o, c: o == script_case and c == 0 and "let a='</h2>';" in o),
+        ('style 内伪 h1 不参与规范化', style_case,
+         lambda o, c: o == style_case and c == 0 and o.count('<h1>') == 2),
+        ('普通多 h1 只降级第二个', multi_case,
+         lambda o, c: '<h1>主标题</h1><h2>副标题</h2>' in o and c == 1),
+        ('script 内伪 h1 不影响真实标题降级', pseudo_case,
+         lambda o, c: "let t='<h1>脚本标题</h1>';" in o
+         and '<h1>主标题</h1><h2>副标题</h2>' in o and c == 1),
+    ]
+    for name, src, check in cases:
+        try:
+            out, changed = norm(src, '工具名', '')
+            if check(out, changed):
+                stats['passed'] += 1
+            else:
+                stats['errors'].append(f'h1 规范化回归失败：{name} → {out[:160]}（改动 {changed}）')
+        except Exception as exc:
+            stats['errors'].append(f'h1 规范化回归异常：{name} → {exc}')
+
+
 def main():
     print('=' * 60)
     print('ToolBox 自动化静态测试')
@@ -402,6 +440,7 @@ def main():
     # 所有检查必须先跑完，再打印汇总（否则末尾告警不会进入 ⚠️ 警告 计数与详情）
     check_i18n_foundation()
     check_related_slug_map()
+    check_h1_normalization()
 
     # 输出结果
     print(f'扫描完成，共检查 {stats["total"]} 个工具页面')
