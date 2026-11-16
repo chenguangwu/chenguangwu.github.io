@@ -14036,6 +14036,13 @@ const CASES = [
     ref: "清单634 强锁：纯文本差异不产生数值；用户文本含独立 NaN / Infinity 字样时必须照常输出差异行。旧实现对整段结果 HTML 做 NaN/Infinity 守卫 ⇒ 整块替换成「无效值」⇒ BAD。探针只在 clicks 内生成，默认态不命中。",
   },
   {
+    slug: "text/calc-1",
+    inputs: { textA: "a\nb", textB: "a\nc" },
+    clicks: ["(function(){var ra=[],rb=[];for(var i=0;i<2100;i++){ra.push('line'+i);rb.push(i===999?'CHANGED':'line'+i);}document.getElementById('textA').value=ra.join('\\n');document.getElementById('textB').value=rb.join('\\n');compareText();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='BIGD '+(h.indexOf('已切换为逐行位置对齐')>=0&&h.indexOf('CHANGED')>=0?'OK':'BAD');})()"],
+    expect: ["BIGD OK"],
+    ref: "232 复核失败重做：2100×2100 行约 441 万单元，超过 400 万阈值。旧实现无条件分配 LCS 矩阵并同步计算，长文本会阻塞主线程；新实现降级为 O(m+n) 逐行位置对齐并显式提示「不检测行移动」，同时仍渲染出改动行。探针只在 clicks 内生成大文本，默认态不命中。",
+  },
+  {
     slug: "it/text-cleaner",
     clicks: ["(function(){document.getElementById('input-text').value='HELLO WORLD';executeClean();var had=document.getElementById('output-text').value;document.getElementById('input-text').value='';executeClean();var out=document.getElementById('output-text').value;var res=document.getElementById('stat-result').textContent;var red=document.getElementById('stat-reduce').textContent;document.getElementById('__tbProbe').textContent=(had.length>0&&out===''&&res==='0'&&red==='0'?'TCLCLEAR OK':'BAD had='+had.length+' out='+out.length+' res='+res+' red='+red);})()"],
     expect: ["TCLCLEAR OK"],

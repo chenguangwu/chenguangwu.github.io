@@ -231,6 +231,21 @@ function lcs(a, b) {
   return result;
 }
 
+// LCS 矩阵是 (m+1)×(n+1)：2500×2500 行就要 625 万个格子，同步计算会阻塞主线程。
+// 超过阈值时降级为 O(m+n) 的逐行位置对齐，并明确告知不再检测行移动。
+const MAX_DIFF_CELLS = 4000000;
+function alignedDiff(a, b) {
+  const out = [], len = Math.max(a.length, b.length);
+  for (let k = 0; k < len; k++) {
+    if (k < a.length && k < b.length) {
+      if (a[k] === b[k]) out.push({type: 'same', line: a[k]});
+      else out.push({type: 'del', line: a[k]}, {type: 'add', line: b[k]});
+    } else if (k < a.length) out.push({type: 'del', line: a[k]});
+    else out.push({type: 'add', line: b[k]});
+  }
+  return out;
+}
+
 function compareText() {
   const a = splitLines(document.getElementById('textA').value);
   const b = splitLines(document.getElementById('textB').value);
@@ -241,8 +256,13 @@ function compareText() {
     return;
   }
 
-  const diff = lcs(a, b);
-  let html = '<table style="font-family:monospace;font-size:13px;"><thead><tr><th style="width:40px;">行号</th><th>A</th><th>B</th><th>内容</th></tr></thead><tbody>';
+  const cells = (a.length + 1) * (b.length + 1);
+  const degraded = cells > MAX_DIFF_CELLS;
+  const diff = degraded ? alignedDiff(a, b) : lcs(a, b);
+  let html = degraded
+    ? '<p style="color:var(--text-muted)">文本规模超过 400 万单元，已切换为逐行位置对齐（仅比较相同序号的行，不检测行移动）。</p>'
+    : '';
+  html += '<table style="font-family:monospace;font-size:13px;"><thead><tr><th style="width:40px;">行号</th><th>A</th><th>B</th><th>内容</th></tr></thead><tbody>';
   let numA = 0, numB = 0;
   let changes = 0;
 
