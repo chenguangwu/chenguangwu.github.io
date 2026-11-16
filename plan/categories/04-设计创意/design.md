@@ -348,40 +348,26 @@
 ### 逐页结论
 
 - **color-palette-generator**：默认单色 #0C1A5A→#E9ECFC 五档可复算，字色取 max(CR) 正确；D-N2 已失效（旧 YIQ 已改），D-N3（随机无协调）仍成立。
-- **color-palette**：默认互补五色；#788EED 上白字仅 3.05:1（D-N228）；FAQ 宣称的 WCAG 校验不存在（D-N229）
-- **color-picker**：默认 #4151e1 自洽、白字 6.02:1；#788EED 时「推荐文字色」仍给 #FFF（3.05:1），与同页 WCAG 面板自相矛盾（D-N230）
+- **color-palette**：默认互补五色；字色按 max(CR) 选（分界 L≈0.179），FAQ 已如实说明仅自动选可读字色、非任意两色等级检查（原 D-N228/D-N229 已修）
+- **color-picker**：默认 #4151e1 自洽；「推荐文字色」已按 max(CR) 选并与 WCAG 面板一致（原 D-N230 已修）
 - **color-shade-generator**：默认 11 卡线性混白/黑，公式一致；D-N34/D-N36 已失效，D-N35 部分仍成立（`:148`、`:383` 仍称 HSL/OKLCH 十档）。
 - **color-temperature-converter**：默认 5500K→(255,238,222) 正算可用；D-N17 已失效（已加范围校验）。
 - **colorblind-simulator**：默认绿盲 #FF6B35→#B9A62F 与 Machado 1.0 手算一致
-- **contrast-checker**：默认 14.68:1、AA/AAA 判定正确；D-N1（非法 HEX 不刷新结果）仍成立。
+- **contrast-checker**：默认 14.68:1、AA/AAA 判定正确；非法 HEX 已同步清空比率/评级/WCAG 状态/评分条（原 D-N1 已修）。
 - **cvd-safe-palette**：无默认结果；D-N106（发散亮度方向反，L 两端 0.90、中心 0.32）、D-N107（策略两分支同实现）仍成立
 - **gradient-from-color**：默认 L90→20 五色标，基色 #667eea(L66) 不出现；D-N125/D-N126 仍成立。
-- **gradient**：默认相邻色标 1.74:1；新增对比度使 D-N47/D-N48 的 gradient 部分失效（image-color-picker 部分仍成立）；D-N233/D-N234 为新增。
+- **gradient**：默认相邻色标 1.74:1；已明示「本工具不提供 oklab 切换」、相邻色标对比度「不适用 WCAG 文字等级」（原 D-N233/D-N234 已修）。
 - **material-color**：常量表正确；主色徽标取 600 阶而图表取 500 阶；D-N205 仍成立。
 - **mesh-gradient**：默认白字最差 2.04:1，报告正确
 - **palette-cvd-checker**：默认绿盲最小 ΔE00=4.27、判「差」正确；D-N112（OKLCH 分支把 Lab 当 RGB，复算最小距离 0.55 vs 正确 2.14）仍成立。
-- **palette-extractor**：默认 8 色正确；5/10/12 色百分比合计仅 62.5%/62.5%/75.0%（D-N231）；极小/大面积透明图产 #000000 0.0%（D-N232）
+- **palette-extractor**：默认 8 色正确；占比已按保留簇像素数归一（合计 100%，922 批），单像素簇直接聚合不再产 #000000 0.0% 空簇（原 D-N231/D-N232 已修）。
 - **tailwind-colors**：数据与 Tailwind v3 一致；43/242 色块文字 <4.5:1（yellow-500 白字 1.92:1），D-N142 仍成立。
 - **image-color-picker**（实际在 `tools/design/`）：取样坐标换算正确；半透明 PNG 按原始 RGB 复制（预览为白底合成）；D-N46/D-N47 仍成立。
-
-### 问题清单（新增）
-
-| 编号 | 页面:行 | 级别 | 问题与期望值 |
-|---|---|---|---|
-| D-N228 | `tools/design/color-palette.html:401-405` | 中 | 色块字色按 `lum>0.5` 选白/黑：默认 #788EED 白字 3.05:1（黑字 6.89:1）、单色 #A5B3F3 白字 2.03:1（黑字 10.34:1）。期望按 `max(CR_black,CR_white)` 选字（阈值 L≈0.179） |
-| D-N229 | `tools/design/color-palette.html:248,278` | 假 | FAQ「会按 WCAG 算出对比度、未达标标红」+ 引据表 4.5:1 条目，全页无相对亮度/对比度计算、无红标，仅亮度阈值选字 |
-| D-N230 | `tools/design/color-picker.html:487,494,546` | 中 | 「推荐文字色」同用 `luminance>0.5`：HSL(230,76,65)=#788EED(L=0.295) 推荐 #FFF，仅 3.05:1；期望 #000（6.89:1） |
-| D-N231 | `tools/design/palette-extractor.html:840,848,859` | 中 | `maxDepth=ceil(log2 count)` 先切 2^k 簇再 `slice(0,count)`：5 色丢 3/8 簇、10 色丢 6/16、12 色丢 4/16，`percent` 合计仅 62.5%/62.5%/75.0%，JSON 导出同带错值；期望按保留簇重新归一或精确切 N 簇 |
-| D-N232 | `tools/design/palette-extractor.html:752-755` | 中 | 1 像素簇 `mid=0` 仍递归，空簇 `n=0` 分支得 NaN，`rgbToHex` 位运算把 NaN 变 #000000 0.0%。复现：不透明像素 <8 的图（2×2 PNG / 大面积透明 logo）→ 多个 #000000 0.0% |
-| D-N233 | `tools/design/gradient.html:270` | 假 | 引据表称「按 sRGB 或 oklab 插值，oklab 可用」，页面无 oklab 选项/代码，输出一律浏览器 sRGB 插值 |
-| D-N234 | `tools/design/gradient.html:365-421` | 中 | 新补对比度为「相邻色标互比」，却套 WCAG 文字档位贴「正文级/大字或图形级」；默认 1.74:1 被标「仅装饰」，易被读成文字可读性结论。期望改名「色标间对比度、不适用 WCAG 文字等级」 |
 
 ### 统计
 
 - 页数 **16**；独立实现 **6** / 共享或同模板 **10**。
-- 新增 **7** 条（高 **0** / 中 **5** / 假 **2** / 安全 **0**）；编号 D-N228–D-N234。
-- 复核既有 **27** 条：22 条仍成立或部分成立，5 条已失效（D-N2、D-N17、D-N34、D-N36、D-N60）；`plan/fake-tools.md` 中 gradient/mesh 的假工具结论已随实现补齐而失效，建议降级。
-- 复算方式：按页面同款公式用 node/Python 内存复算（HSL/OKLab/WCAG/ΔE00/中位切分），未开浏览器、未跑 `_build.py`/门禁、未改源码、未做 git 写操作。
+- 本族新增 D-N228–D-N234 共 7 条、复核失效 D-N2/N17/N34/N36/N60 共 5 条，均已在后续批次修复并删除记录。
 
 ### AA 批第 1 波处置（2026-11-07 X 批 · 对比度校验器非法 HEX 校验）
 
