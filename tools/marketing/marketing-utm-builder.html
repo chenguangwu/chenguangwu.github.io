@@ -243,7 +243,9 @@ function __utmBuildLink(url, source, medium, campaign, term, content){
   const qIdx = base.indexOf('?');
   const pathOnly = qIdx >= 0 ? base.slice(0, qIdx) : base;
   const kept = new URLSearchParams(qIdx >= 0 ? base.slice(qIdx + 1) : '');
-  pairs.forEach(function(p){ kept.delete(p[0]); });
+  // MS-N32 复核重做：先删除全部受管 UTM 键（含本次留空的），再只写非空项；
+  // 否则留空的 medium/campaign 会继承 URL 里的旧值，页面却提示缺失，导致错误归因。
+  ['utm_source','utm_medium','utm_campaign','utm_term','utm_content'].forEach(function(k){ kept.delete(k); });
   pairs.forEach(function(p){ kept.set(p[0], p[1]); });
   return pathOnly + '?' + kept.toString() + hash;
 }

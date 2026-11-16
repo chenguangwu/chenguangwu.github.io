@@ -276,6 +276,27 @@ const SCENE_DEFAULTS={
   team:{p:'团队',f:'协作'},
   sales:{p:'这份好物',f:'实惠'}
 };
+// MS-N66 复核重做：英文态生成须产出英文口号，不能只在候选池计数处切换语言。
+const SLOGANS_EN={
+  motivation:['Push past your limits','Dream on. Keep going.','Today\'s effort, tomorrow\'s glory','Believe and create','Never give up.','Be better than yesterday.'],
+  sports:['Play hard, never quit','Fight for the honor','Sweat builds greatness','Forward, fearless','Together we win','Challenge yourself.'],
+  campaign:['Spread love, warm the world','Build a better home together','Green living starts with us','Hand in hand, hand in future','Every act of kindness counts','Make hope shine everywhere.'],
+  team:['Together we win','One team, one dream','Unity makes strength','Better together','We are champions','All for one.'],
+  sales:['Limited time, don\'t miss out','Great value, grab it now','Buy one, get one','Today only — special offer','Clearance, first come first served','A surprise deal awaits.']
+};
+const TONE_TEMPLATES_EN={
+  young:['[P] makes [F] everyday','[P] is serious about [F]','Young and bold with [F]','[P] brings all the [F]','[F] freedom, powered by [P]'],
+  professional:['[P] makes [F] stand the test','[F]? Leave it to [P]','[P]: the [F] standard','Every [F] adds up with [P]','[P] delivers [F] with evidence.'],
+  warm:['[P] is with you every [F]','[F] is the warmth [P] gives','[P], taking [F] slowly is fine','[P]: making [F] feel warm','[F] starts with [P].'],
+  humor:['[P]: the [F] champion','[F]? [P] decides.','No questions, just [F]','[P] is obsessed with [F]','[P]: [F] all day, every day.']
+};
+const SCENE_DEFAULTS_EN={
+  motivation:{p:'our team',f:'perseverance'},
+  sports:{p:'every workout',f:'breakthrough'},
+  campaign:{p:'everyone',f:'kindness'},
+  team:{p:'the team',f:'teamwork'},
+  sales:{p:'this find',f:'great value'}
+};
 function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
 function pick(arr){return arr[randInt(arr.length)];}
 function generate(){
@@ -284,11 +305,14 @@ function generate(){
   const productInput=document.getElementById('product').value.trim();
   const featureInput=document.getElementById('feature').value.trim();
   const tone=document.getElementById('tone').value;
-  const def=SCENE_DEFAULTS[scene]||{p:'产品',f:'好用'};
+  const en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  const def=(en?SCENE_DEFAULTS_EN:SCENE_DEFAULTS)[scene]||(en?{p:'product',f:'quality'}:{p:'产品',f:'好用'});
   const product=productInput||def.p;
   const feature=featureInput||def.f;
   function fill(t){return t.replace(/\[P\]/g,product).replace(/\[F\]/g,feature);}
-  const pool=Array.from(new Set((SLOGANS[scene]||[]).concat((TONE_TEMPLATES[tone]||[]).map(fill))));
+  const scenePool=en?(SLOGANS_EN[scene]||[]):(SLOGANS[scene]||[]);
+  const tonePool=en?(TONE_TEMPLATES_EN[tone]||[]):(TONE_TEMPLATES[tone]||[]);
+  const pool=Array.from(new Set(scenePool.concat(tonePool.map(fill))));
   const used=new Set();
   let html='';
   let i=0;
