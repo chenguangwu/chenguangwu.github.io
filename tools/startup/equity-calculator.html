@@ -387,6 +387,7 @@ function readFounders(){
 }
 
 function calc(){
+  __equityLast = null;
   const {list, mode} = readFounders();
   if(!list.length){
     document.getElementById('result').innerHTML='<p style="color:var(--danger);">请至少添加一位创始人</p>';
@@ -454,6 +455,14 @@ function calc(){
     });
   }
 
+  __equityLast = {
+    modeText: document.getElementById('mode').selectedOptions[0].textContent,
+    poolPct: poolPct,
+    founderTotal: founderTotal,
+    table: table.map(t => ({name: t.name, initPct: t.initPct})),
+    capHistory: capHistory.map(h => ({stage: h.stage, rows: h.rows.map(r => ({name: r.name, pct: r.pct}))}))
+  };
+
   // 渲染结果
   const finalRows = table.map(t => {
     const w = Math.max(0, Math.min(100, t.initPct));
@@ -489,20 +498,28 @@ function calc(){
   `;document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
 
-function copyResult(){
-  const {list, mode} = readFounders();
-  if(!list.length){ ToolBox.showToast(i18nText(), 'error'); return; }
-  const totalScore = list.reduce((s,f) => s + f.score, 0);
-  let poolPct = (mode === 'pool' || mode === 'funding') ? (parseFloat(document.getElementById('pool').value) || 0) : 0;
-  const founderTotal = 100 - poolPct;
-  let text = `【股权分配结果】\n模式：${document.getElementById('mode').selectedOptions[0].textContent}\n期权池：${poolPct}%\n创始人合计：${founderTotal}%\n\n`;
-  list.forEach(f => {
-    const pct = totalScore > 0 ? (f.score / totalScore * founderTotal) : 0;
-    text += `${f.name}：分数 ${fmt(f.score)}，持股 ${fmt(pct)}%\n`;
+function equityReportText(){
+  const S = __equityLast;
+  if(!S) return '';
+  let text = `【股权分配结果】\n模式：${S.modeText}\n期权池：${fmt(S.poolPct)}%\n创始人合计：${fmt(S.founderTotal)}%\n\n`;
+  S.table.forEach(t => {
+    text += `${t.name}：持股 ${fmt(t.initPct)}%\n`;
+  });
+  text += `\n【股权变动历程】\n`;
+  S.capHistory.forEach(h => {
+    text += `${h.stage}：` + h.rows.map(r => `${r.name} ${fmt(r.pct)}%`).join('，') + '\n';
   });
   text += `\n生成时间：${new Date().toLocaleString('zh-CN')}`;
-  ToolBox.copyText(text, i18nText());
+  return text;
 }
+
+function copyResult(){
+  const txt = equityReportText();
+  if(!txt){ ToolBox.copyText((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Please calculate first.':'请先点击「计算股权」生成结果后再复制。', i18nText()); return; }
+  ToolBox.copyText(txt, i18nText());
+}
+
+var __equityLast = null;
 
 function resetAll(){
   if(!confirm(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Reset all data?":"确认重置所有数据？"))) return;
