@@ -1266,9 +1266,9 @@ const CASES = [
   },
   {
     slug: "it/base32-encode",
-    clicks: ["var r=[];['ME=======','ME======','MZXW6YQ','MZXR','A'].forEach(function(x){try{var b=base32ToBytes(x);r.push(x+':OK'+b.length);}catch(e){r.push(x+':ERR');}});document.getElementById('__tbProbe').textContent='B32PAD '+r.join('|');"],
-    expect: ["B32PAD ME=======:ERR|ME======:OK1|MZXW6YQ:OK4|MZXR:ERR|A:ERR"],
-    ref: "IT-N110：ME=======（7 个填充，合法应 6）必须拒绝；ME====== 解出 1 字节 a；省略填充的 MZXW6YQ 仍解出 3 字节 foo；MZXR 残余位非零、A 长度非法均拒绝。旧实现无填充数校验 ⇒ ME=======:OK1 不命中。探针仅 clicks 注入出现。",
+    clicks: ["var r=[];['ME=======','ME======','MZXW6YQ','MZXR','A'].forEach(function(x){try{var b=base32ToBytes(x);r.push(x+':OK'+b.length);}catch(e){r.push(x+':ERR');}});var al=0;try{al=base32ToBytes('MZXW6YQ',true).length;}catch(e){al='ERR';}document.getElementById('__tbProbe').textContent='B32PAD '+r.join('|')+'|ALLOW:'+al;"],
+    expect: ["B32PAD ME=======:ERR|ME======:OK1|MZXW6YQ:ERR|MZXR:ERR|A:ERR|ALLOW:4"],
+    ref: "193 复核失败重做：RFC 4648 标准模式要求末组补齐，缺填充必须拒绝；旧实现为兼容无填充串直接放行 MZXW6YQ。现默认拒绝缺填充，仅当勾选「允许省略填充」（函数第二参 allowUnpadded=true）才按规则补回。ME======= 填充数错、MZXR 残余位非零、A 长度非法仍拒绝；ME====== 合法解出 1 字节；MZXW6YQ 允许模式下按 7 符号 → 4 字节解出。旧实现 MZXW6YQ:OK4 ⇒ 转红。",
   },
   {
     slug: "it/base32-encode",
@@ -3118,8 +3118,8 @@ const CASES = [
     slug: "it/api-sign-generator",
     // IT-N460：待签名串里的 payload 必须转义为文本，不得生成可执行 <img onerror> 节点。
     inputs: { secret: "s", params: "<img src=x onerror=alert(1)>=1", algo: "sha256" },
-    expect: ["待签名串： &lt;img src=x onerror=alert(1)&gt;=1&secret=s"],
-    ref: "注入 payload 参数 `<img src=x onerror=alert(1)>=1`：修复后 escHtml 把 < > 转成 &lt; &gt;，out.innerHTML 必含整段转义串 `&lt;img src=x onerror=alert(1)&gt;=1&secret=s` ⇒ 匹配。缺陷态（5640fa93c6^）原样拼接 ⇒ 裸 `<img onerror>` 入 DOM、无该转义串 ⇒ 不匹配。默认态 params 为正常键值、不含 payload ⇒ 判别明确。"
+    expect: ["待签名串： &lt;img src=x onerror=alert(1)&gt;=1&amp;secret=s"],
+    ref: "注入 payload 参数 `<img src=x onerror=alert(1)>=1`：修复后 escHtml 把 < > & 全部转义（185 批复核），out.innerHTML 必含整段转义串 `&lt;img src=x onerror=alert(1)&gt;=1&secret=s` ⇒ 匹配。缺陷态（5640fa93c6^）原样拼接 ⇒ 裸 `<img onerror>` 入 DOM、无该转义串 ⇒ 不匹配。默认态 params 为正常键值、不含 payload ⇒ 判别明确。"
   },
   {
     slug: "it/api-sign-generator",
@@ -12653,9 +12653,23 @@ const CASES = [
   },
   {
     slug: "it/curl-parser",
-    inputs: { cmd: "curl -F 'file=@a.txt' https://x.com/upload" },
-    expect: ["Form： file=@a.txt"],
-    ref: "IT-N14 表单字段：-F 的值单独收集并以 Form 段展示（旧实现无 Form 段、反而把它当 URL）。默认示例无 -F。",
+    inputs: { cmd: "curl -sS -G --data-urlencode 'a%20b=c d' --connect-timeout 1 http://127.0.0.1:1/" },
+    clicks: ["var h=String(document.getElementById('out').innerHTML);document.getElementById('__tbProbe').textContent='CURLENC '+((h.indexOf('a%20b=c+d')>=0&&h.indexOf('a%2520b')<0)?'OK':'BAD:'+h.replace(/<[^>]+>/g,' ').slice(0,90));"],
+    expect: ["CURLENC OK"],
+    ref: "164 复核失败重做：curl --data-urlencode 的 name 部分在 curl 中视为「已编码、原样使用」，旧实现连 name 一起 encodeURIComponent ⇒ `a%20b` 变 `a%2520b`；且 curl 实际把值中空格写成 +。现只编码 value、空格→+，name 原样保留。探针断言输出含 `a%20b=c+d` 且无 `a%2520b`；旧实现两者皆反 ⇒ 转红。"
+  },
+  {
+    slug: "it/curl-parser",
+    inputs: { cmd: "curl https://exa\\\nmple.com" },
+    clicks: ["var h=String(document.getElementById('out').innerHTML);document.getElementById('__tbProbe').textContent='CURLJOIN '+((h.indexOf('https://example.com')>=0&&h.indexOf('https://exa<')<0)?'OK':'BAD:'+h.replace(/<[^>]+>/g,' ').slice(0,90));"],
+    expect: ["CURLJOIN OK"],
+    ref: "166 复核失败重做：shell 的「\\ + 换行」在未引用/双引号内是删除二者（词中续行直接拼接），旧实现全局替换为空格 ⇒ `https://exa` + `mple.com` 拆成两个词、URL 只剩 exa。现按引号上下文扫描：单引号内保留字面内容，其余删除续行。探针断言 URL 为 https://example.com；旧实现得 https://exa ⇒ 转红。"
+  },
+  {
+    slug: "it/api-sign-generator",
+    clicks: ["var v=String(escHtml('secret=&copy&copy;&#169;<b>'));document.getElementById('__tbProbe').textContent='SIGNENT '+((v.indexOf('&amp;copy')>=0&&v.indexOf('&amp;#169;')>=0&&v.indexOf('&lt;b&gt;')>=0&&v.indexOf('&copy')<0)?'OK':'BAD:'+v);"],
+    expect: ["SIGNENT OK"],
+    ref: "185 复核失败重做：旧 escHtml 只转义「带分号实体」前的 &，浏览器仍会解析无分号实体（`&copy` → ©），待签名串显示值与参与签名的字节不一致。现所有 & 一律转义。探针断言 `&copy`/`&#169;` 均变 `&amp;…`、`<b>` 仍被转义且不残留裸 `&copy`。"
   },
   {
     slug: "it/curl-parser",
@@ -12677,10 +12691,10 @@ const CASES = [
   },
   {
     slug: "it/curl-parser",
-    // IT-D37：--data-urlencode 须做 RFC3986 百分号编码，空格→%20（非原样、非 +）。
+    // 164 复核修正：curl --data-urlencode 的 value 按表单编码，空格写作 +（非 %20）
     inputs: { cmd: "curl --data-urlencode 'q=a b' https://x.com/" },
-    expect: ["q=a%20b"],
-    ref: "curl --data-urlencode 'q=a b' 按 RFC3986 编码 value 中的空格为 %20 ⇒ body 含 q=a%20b。修复前把 --data-urlencode 当普通 data 原样拼接 ⇒ body 为 q=a b，不命中。默认示例无 --data-urlencode，不命中。",
+    expect: ["q=a+b"],
+    ref: "curl --data-urlencode 'q=a b' 把 value 中的空格编码为 +（application/x-www-form-urlencoded，与 curl 实际请求体一致），故 body 含 q=a+b。修复前把 --data-urlencode 当普通 data 原样拼接 ⇒ body 为 q=a b；只改 name/value 拆分但保留 %20 也会不命中。默认示例无 --data-urlencode。",
   },
   {
     slug: "it/curl-parser",

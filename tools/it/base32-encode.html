@@ -153,6 +153,9 @@
       <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;">
         <input type="checkbox" id="noPad"> 去掉填充
       </label>
+      <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;">
+        <input type="checkbox" id="allowNoPad"> 解码时允许省略填充
+      </label>
     </div>
 
     <label>输入</label>
@@ -198,7 +201,7 @@
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>Base32 与 Base64 有何区别？</dt><dd>Base32 字符集仅 32 个且无小写，抗误读更强但体积更大（约 8/5 倍）。</dd>
-<dt>为什么 Base32 末尾有等号填充？</dt><dd>Base32 每 5 字节（40 位）切成 8 个 5 位组；原文长度不是 5 的倍数时，末组不足 5 位，需补 0 并用 = 填充到 8 个字符（可能补 1、3、4 或 6 个等号）。去掉填充不影响解码，但需按 RFC 4648 规则补回。</dd>
+<dt>为什么 Base32 末尾有等号填充？</dt><dd>Base32 每 5 字节（40 位）切成 8 个 5 位组；原文长度不是 5 的倍数时，末组不足 5 位，需补 0 并用 = 填充到 8 个字符（可能补 1、3、4 或 6 个等号）。标准模式解码要求补齐填充；本页默认拒绝缺填充串，勾选「允许省略填充」后才按 RFC 4648 规则补回解码。</dd>
 </dl>
 </div>
 </section>
@@ -258,15 +261,15 @@ function bytesToBase32(bytes){
 }
 
 function b32Err(zh,en){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh; }
-function base32ToBytes(str){
-  // RFC 4648：去掉的尾部 '=' 个数必须与数据符号数匹配（2→6、4→4、5→3、7→1、0→0）。
-  // 允许完全省略填充（常见做法），但出现填充时个数错误必须拒绝（旧实现 ME======= 仍解出 'a'）。
+function base32ToBytes(str, allowUnpadded){
+  // RFC 4648 标准模式要求末组补齐：缺填充即拒绝；仅当显式勾选「允许省略填充」才放行。
   const raw = String(str).toUpperCase().replace(/\s/g,'');
   const pad = (raw.match(/=*$/)||[''])[0].length;
   const core = raw.slice(0, raw.length - pad);
   if(core.indexOf('=') >= 0) throw new Error(b32Err('Base32 填充位置无效','Invalid Base32 padding position'));
   const need = {0:0,2:6,4:4,5:3,7:1}[core.length % 8];
   if(need === undefined) throw new Error(b32Err('Base32 长度无效（末组不完整）','Invalid Base32 length (incomplete final group)'));
+  if(pad === 0 && need > 0 && !allowUnpadded) throw new Error(b32Err('缺少 Base32 填充（标准模式应补 '+need+' 个 =；如确为无填充串请勾选「允许省略填充」）','Missing Base32 padding (standard mode expects '+need+' =; enable "allow omitted padding" for unpadded input)'));
   if(pad !== 0 && pad !== need) throw new Error(b32Err('Base32 填充数无效（应为 '+need+' 个 =）','Invalid Base32 padding count (expected '+need+' =)'));
   let out = [], bits = 0, value = 0;
   for(let i = 0; i < core.length; i++){
@@ -299,7 +302,8 @@ function decode32(){
   const text = document.getElementById('input').value.trim();
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter Base32 string to decode":"请输入要解码的 Base32 字符串"));
   try{
-    const bytes = base32ToBytes(text);
+    const allow = !!(document.getElementById('allowNoPad') && document.getElementById('allowNoPad').checked);
+    const bytes = base32ToBytes(text, allow);
     document.getElementById('output').value = new TextDecoder().decode(bytes);
   }catch(e){
     alert(b32Err('解码失败：','Decode failed: ') + e.message);
