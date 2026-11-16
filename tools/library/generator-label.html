@@ -235,13 +235,17 @@ function labelRows(){
   if(boxNo)rows.push({key:'盒号',val:boxNo});
   return rows;
 }
+var labelBoxesOver=false; // 407 复核重做：批量盒号超限标记，供 gen() 明确提示
 function labelBoxes(raw){
+  labelBoxesOver=false;
   raw=String(raw||'').trim();
   if(!raw) return [];
   var m=raw.match(/^(\d+)\s*[-~～]\s*(\d+)$/);
   if(m){
     var a=parseInt(m[1],10),b=parseInt(m[2],10);
-    if(a<=b&&b-a<=500){
+    if(a<=b){
+      // 407 复核重做：原 b-a<=500 含两端 ⇒ 0-500 得 501 项，超出「最多 500 张」承诺。
+      if(b-a+1>500){ labelBoxesOver=true; return []; }
       var w=Math.max(m[1].length,m[2].length),arr=[];
       for(var i=a;i<=b;i++){
         var v=String(i);
@@ -251,7 +255,10 @@ function labelBoxes(raw){
       return arr;
     }
   }
-  return raw.split(/[,，、\s]+/).filter(function(x){return x;});
+  var list=raw.split(/[,，、\s]+/).filter(function(x){return x;});
+  // 407 复核重做：逗号列表分支原本完全无上限，可一次生成任意多张。
+  if(list.length>500){ labelBoxesOver=true; return []; }
+  return list;
 }
 function labelFit(fs,rows){
   var maxW=0;
@@ -269,6 +276,7 @@ function gen(){
   var rows=labelRows();
   if(!rows.length){res.innerHTML='<p>请至少填写一项标签内容。</p>';window.__labelData=null;return;}
   var thick=labelThick(),boxes=labelBoxes(labelVal('boxNo'));
+  if(labelBoxesOver){ res.innerHTML='<p>盒号批量数量超过上限 500 张，请缩小范围或减少列表项后再生成。</p>'; window.__labelData=null; return; }
   var base=rows.filter(function(r){return r.key!=='盒号';});
   var labels=[];
   if(boxes.length){
