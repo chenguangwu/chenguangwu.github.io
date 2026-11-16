@@ -1114,6 +1114,12 @@ const CASES = [
     ref: "L-N34 核销：短膜壳绦虫卵尺寸改为「37-47 μm」（上下限顺序正确）；旧数据为 47-37 μm。"
   },
   {
+    slug: "clinical-lab/parasite-egg-id",
+    clicks: ["document.getElementById('search').value='70-106';filterEggs();var a=currentList.some(function(e){return e.name==='日本血吸虫卵';});document.getElementById('search').value='卵盖';filterEggs();var b=currentList.length>0;document.getElementById('__tbProbe').textContent='PGE size='+(a?'Y':'N')+' operc='+(b?'Y':'N');"],
+    expect: ["PGE size=Y operc=Y"],
+    ref: "L-N35 核销：搜索已覆盖 size/shape/shell/operculum/content 等结构化字段。输入「70-106」按尺寸区间命中日本血吸虫卵；输入「卵盖」命中卵盖字段条目。旧实现只匹配 name+desc ⇒ size=N。"
+  },
+  {
     slug: "clinical-lab/thyroid-function-model",
     inputs: { tsh: "0.1", ft3: "5.0", ft4: "16", tt3: "1.5", tt4: "100", tpo: "0" },
     expect: ["亚临床甲状腺功能亢进症"],
