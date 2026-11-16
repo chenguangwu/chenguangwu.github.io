@@ -93,6 +93,13 @@ const CASES = [
   "ref": "S = √3·U·I = 1.732051×400×63 = 43647.7 VA = 43.648 kVA；P = S×0.90 = 39.283 kW（避开默认 380 V/50 A/0.85）"
 },
 {
+  "slug": "electrical/calc-2",
+  "inputs": { "voltage": "380", "pf": "0.8", "current": "" },
+  "clicks": ["document.getElementById('mode').value='ui';calcThreePhase();var __r=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='C462PH '+document.getElementById('voltage').value+'/'+document.getElementById('pf').value+' '+((__r.indexOf('请输入有效的电流值')>=0)?'OK':'BAD');document.getElementById('mode').value='up';document.getElementById('pInput').value='';calcThreePhase();var __r2=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent+=' '+((__r2.indexOf('请输入有效的有功功率')>=0)?'POK':'PBAD');"],
+  "expect": ["C462PH 380/0.8 OK POK"],
+  "ref": "第462批复核失败重做：calcThreePhase() 三个模式原用 parseFloat(...)||0 读取电流/有功/无功，空串被静默当合法 0，输出 0.000 的假结果；修复后先判空串为 NaN，isFinite 守卫写出带业务字段的提示，真实 0 仍合法。协议串绑定注入的 U/pf 并要求 ui 模式提示电流、up 模式提示有功；默认态 current=50 不产生 C462PH 串 ⇒ 强判别。"
+},
+{
   "slug": "electrical/current-divider",
   "inputs": {
     "It": "150",

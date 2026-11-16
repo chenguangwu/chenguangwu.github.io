@@ -2,7 +2,10 @@
 // JSDOM runScripts:'dangerously' + 真实 js/tool-kit.js + 自建桩；覆盖原 verify 未测的边界。
 import { JSDOM, VirtualConsole } from 'jsdom';
 import { readFileSync } from 'fs';
-const ROOT = '/Users/cgw/project/cgw/chenguangwu.github.io';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+// CI（GitHub Actions）工作目录与本机不同，禁止硬编码本机绝对路径：一律按脚本自身位置推导仓库根。
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 let failed = false;
 function load(slug) {
   const html = readFileSync(`${ROOT}/tools/finance/${slug}.html`, 'utf8');

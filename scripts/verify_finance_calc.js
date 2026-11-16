@@ -1885,6 +1885,27 @@ const CASES = [
     ref: "独立复算：−1000 + 500/(1+r) + 500/(1+r)² + 500/(1+r)³ = 0 ⇒ 1+r = 1.2337519…，IRR = 23.3752%（二分 200 次残差 |NPV| < 1e-6）。默认态（−100000 / 五期 30000，IRR≈15.24%）不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/calc-2",
+    inputs: { initial: "-100", flows: "0.5" },
+    clicks: ["calc();var __t=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='C211LOW '+document.getElementById('initial').value+'/'+document.getElementById('flows').value+' '+((__t.indexOf('-99.5000%')>=0&&__t.indexOf('未找到')<0)?'OK':'BAD');"],
+    expect: ["C211LOW -100/0.5 OK"],
+    ref: "第211批复核失败重做：irr() 搜索下界由 −0.99 放宽到 −0.9999，与中英文失败提示「−99.99% 至 100000%」一致。现金流 −100/+0.5 的真根 = 0.5/100−1 = −99.5%，落在提示区间内但旧下界 −99% 之外 ⇒ 旧版输出「范围内未找到」、修复后算出 −99.5000%。探针绑定注入的 initial/flows，默认态（−100000/五期 30000）不含 C211LOW 串 ⇒ 强判别、零逃生。",
+  },
+  {
+    slug: "finance/car-loan-calculator",
+    inputs: { price: "200000", downPct: "20", rate: "", years: "5" },
+    clicks: ["calculate();document.getElementById('__tbProbe').textContent='C462RATE '+document.getElementById('price').value+'/'+document.getElementById('downPct').value+'/'+document.getElementById('rate').value+' '+((document.getElementById('monthlyPay').textContent==='--')?'EMPTY':'NUM');document.getElementById('rate').value='0';calculate();document.getElementById('__tbProbe').textContent+=String(document.getElementById('monthlyPay').textContent)!=='--'?' ZOK':' ZBAD';"],
+    expect: ["C462RATE 200000/20/ EMPTY ZOK"],
+    ref: "第462批复核失败重做：calculate() 原先把 rateRaw==='' 直接兜成 0，清空利率仍按零利率给出完整还款表，属于「非法输入静默改 0」；修复后原始串为空即 resetDisplay()（月供回 '--'），显式填 0 仍是合法零利率方案。协议串绑定注入的车价/首付/空利率并要求同用例内 0 值恢复可算；默认态 rate=5.5% 不产生 C462RATE 串 ⇒ 强判别。",
+  },
+  {
+    slug: "finance/ifsc-validator",
+    inputs: { input: "SBIN0001234" },
+    clicks: ["var __oq=document.querySelectorAll;document.querySelectorAll=function(){return [document.getElementById('input')];};var __cap=[];TBKit={util:{isEn:function(){return false},exportTable:function(){},copy:function(){},diffBox:function(){},formatNumber:function(v){return String(v)}},chart:{line:function(){},bar:function(){},donut:function(){}},matrix:{table:function(){}},preset:{bar:function(){}},history:{list:function(){return __cap.map(function(d,i){return {t:i,d:d}})},last:function(){return __cap[0]||null},record:function(r){__cap.unshift(r)},mount:function(){},clear:function(){}}};var __g=document.getElementById('input');var __sync=function(){var o=document.getElementById('output');o.textContent=String(o.innerHTML).replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim();};__g.value='SBIN0001234';validate();__sync();__ifsc_validatorExtras(true);var __n=__cap.length;__g.value='';validate();__sync();__ifsc_validatorExtras(true);var __r=__cap[0]||{};document.getElementById('__tbProbe').textContent='C113CLR '+__g.value.length+' '+(__cap.length>__n?'MORE':'SAME')+' '+String(__r['结果']||'')+' '+String(__r.__tbScore);document.querySelectorAll=__oq;"],
+    expect: ["C113CLR 0 MORE 等待输入... NaN"],
+    ref: "第113批复核失败重做：原 __ifsc_validatorExtras() 在 __ifsc_validatorResText() 为空时直接 return，先有效后清空不会记录空快照，导出/历史继续沿用上一条有效记录冒充当前值。修复后仅在「确已清空且最新历史非空态」时记一条 Result=等待输入...、Score=NaN 的空态快照，既不冒充通过也不冒充失败。协议自建 TBKit.history 桩并要求清空后记录数增加且末条 Score 为 NaN；默认态（空输入）不执行 clicks ⇒ 零逃生。",
+  },
+  {
     slug: "finance/bic-validator",
     inputs: { input: "DEUTDEFF500" },
     expect: ["银行代码： DEUT", "国家代码： DE", "分支代码： 500"],

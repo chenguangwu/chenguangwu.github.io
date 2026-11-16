@@ -219,9 +219,10 @@ function irr(flows){
   const hasPos = flows.some(v=>v>0);
   const hasNeg = flows.some(v=>v<0);
   if(!hasPos || !hasNeg) return null;
-  // 第211批：搜索上限由 1000% 放宽到 100000%（与 NPV 页口径一致），覆盖 -100/2000 这类
-  // 根落在旧区间外的现金流；范围内仍未找到时由 calc() 明确「范围内未找到」而非断言「无实根」。
-  const MIN=-0.99, MAX=1000, EPS=1e-6;
+  // 第211批复核重做：搜索下界由 -99% 放宽到 -99.99%，与中英文失败提示口径一致；
+  // 覆盖 -100/+0.5 这类 IRR 为 -99.5% 的现金流（原下界 -99% 漏算却被提示误称在范围内）。
+  // npv 在 -0.9999 处幂次仍有限，且有 isFinite 守卫，二分安全。
+  const MIN=-0.9999, MAX=1000, EPS=1e-6;
   let guess = 0.1, newtonOk = false;
   for(let iter=0; iter<100; iter++){
     const f = npv(guess, flows);
