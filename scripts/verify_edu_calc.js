@@ -15,6 +15,14 @@ globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  // ── 第1176批：数字记忆挑战记录与清空提示 ──
+  {
+    slug: "edu/number-memory",
+    inputs: { answerInput: "1234" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/number-memory.html','utf8');var ok=h.indexOf('ok: correct === currentLevel')>=0&&h.indexOf('history.unshift({ level: currentLevel, date: d.toLocaleString(locale), id: Date.now(), ok:')>=0&&h.indexOf('showToast(i18nText())')<0;document.getElementById('__tbProbe').textContent='JHISTOK:'+(ok?'OK':'BAD');"],
+    expect: ["JHISTOK:OK"],
+    ref: "EL-J121/J122：成功与失败均写挑战记录且用 ok 区分，清空提示有明确文案；旧版只在失败分支写历史且 showToast(i18nText()) 无参 ⇒ BAD。",
+  },
   // ── 第1175批：颜色测验改为色块辨识、清理 HEX/限时宣称（单词记忆三项源码复核销账）──
   {
     slug: "edu/color-quiz",

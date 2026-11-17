@@ -173,20 +173,6 @@
 - 落地艾宾浩斯队列：`lastReview + 1/3/7/15/30 天`，首页展示"今日待复习"。
 - 空词库时同步重置进度条；掌握词退出轮转或只在复习模式出现。
 
-### EL-J121 「数字记忆」训练记录只在答错时写入，"挑战次数"实为失败次数、平均可高于最高记录（中，确认缺陷）
-- 问题：`submitAnswer` 的成功分支只更新 `bestRecord`，不写 `history`；失败分支才 `unshift({level})`。因此"挑战次数"=失败次数，"最近10次平均"=失败层级均值，且失败层级可高于 `bestRecord`，出现"平均 5.0 > 最高 4"的矛盾。
-- 证据：`tools/edu/number-memory.html:393-404`（成功仅更新 best）、`:405-415`（失败才写 history）、`:435`（`avg = history.slice(0,10)...`）、`:442-443`（标签"挑战次数"）。
-- 复现：答对 3 位、4 位（best=4）→ 挑战 5 位失败 → `history=[{level:5}]`；页面显示"挑战次数 1（实际 2 次）""最近10次平均 5.0""最高记录 4"。
-- 影响：`tools/edu/number-memory.html`；训练量与成绩曲线系统性偏低/偏高，无法用于进步追踪。
-- 方案：成功也写入 `{level, passed:true}`，失败写 `{level, passed:false, correct}`；"挑战次数"取全部记录，"平均"按通过的最高位数或分通过/失败两列。
-
-### EL-J122 「数字记忆」清空记录 toast 无文案参数，记录时间硬编码中文区域（低，确认缺陷）
-- 问题：`clearHistory()` 调 `ToolBox.showToast(i18nText())` 未传 key，提示为空/`undefined`；`history` 的日期用 `toLocaleString('zh-CN')`，英文态仍输出中文格式。
-- 证据：`tools/edu/number-memory.html:469`（空参 `i18nText()`）、`:412`（`toLocaleString('zh-CN')`）。
-- 复现：点"清空记录" → 出现空白 toast（真实文案待浏览器确认）；切 `?lang=en-US` 后记录时间仍为"2026/11/4 下午3:20:00"式中文。
-- 影响：`tools/edu/number-memory.html`；交互反馈缺失，英文态残留中文日期。
-- 方案：传真实 toast key；日期改用 `toLocaleString(undefined)` 或按当前语言选择 locale。
-
 ### 留存建议（tools/edu/number-memory.html）
 - 成功/失败都写入历史并记录是否通过，"挑战次数/平均"改全量口径。
 - 修复空 toast 与日期本地化；`showTime` 前加"准备/倒计时"避免数字闪现。
