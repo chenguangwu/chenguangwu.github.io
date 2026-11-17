@@ -449,12 +449,31 @@ const CASES = [
     "document.getElementById('drug').value='3';document.getElementById('perDose').value='13';document.getElementById('freq').value='3';onDrugChange();"
   ],
   "expect": [
-    "说明书日总量区间核对（儿童）",
-    "说明书日总量：20~40 mg/kg/day × 20 kg = 400.0~800.0 mg/day（分 3 次）",
-    "折算单次区间：133.3~266.7 mg (每 8 小时)",
-    "本页儿童单次系数 13 mg/kg × 3 = 39.0 mg/kg/day, 落在说明书区间"
+    "20~45 mg/kg/day × 20 kg = 400.0~900.0",
+    "折算单次区间：133.3~300.0 mg"
   ],
-  "ref": "A5 逐药权威口径落地：NMPA 阿莫西林颗粒说明书儿童一日 20~40 mg/kg 每 8 小时 1 次、干混悬剂一次 6.7~13.3 mg/kg q8h，两者等价。6 岁<14 走儿童 weight 基准，pedDailyRange=[20,40]×20 kg⇒400.0~800.0 mg/day，pedDiv=3⇒单次133.3~266.7 mg/8h；本页 childW=13×3=39.0 mg/kg/day 落在 20~40 区间内（印证 25→13 修正正确）。失败态默认药物对乙酰氨基酚无 pedDailyRange 且 age=30 成人⇒区间卡不出现，四条均不命中。"
+  "ref": "A5 逐药权威口径落地：DailyMed 阿莫西林说明书 >3 月龄且 <40 kg 为 20~45 mg/kg/日，分 8~12 小时；6 岁、20 kg、q8h 时区间 400.0~900.0 mg/day、单次 133.3~300.0 mg/8h，13×3=39.0 mg/kg/day 落在区间内。失败态默认药物为对乙酰氨基酚且 age=30 成人，区间卡不出现。"
+},
+{
+  "slug": "medical/dosage-calculator",
+  "inputs": { "weight": "20", "height": "118", "age": "6" },
+  "clicks": ["document.getElementById('drug').value='0';onDrugChange();"],
+  "expect": ["儿童剂量逐药核验未完成", "禁止按成人 mg/kg 系数折算"],
+  "ref": "A5 安全拦截：对乙酰氨基酚儿童剂量尚未完成逐药说明书核验，旧版按 10 mg/kg 输出 200.0 mg；修复后停止输出剂量并提示查说明书，默认药物/成人态不出现该提示。"
+},
+{
+  "slug": "medical/dosage-calculator",
+  "inputs": { "weight": "20", "height": "118", "age": "6", "perDose": "13", "freq": "4" },
+  "clicks": ["document.getElementById('drug').value='3';onDrugChange();"],
+  "expect": ["当前 4 次/日不在核验范围内", "本工具不输出儿童剂量"],
+  "ref": "A5 分次条件核验：阿莫西林说明书区间只覆盖每日 2 次或 3 次，旧版任意频次仍输出剂量并可能提示落在区间；修复后频次 4 停止输出，默认 freq=3 不命中。"
+},
+{
+  "slug": "medical/dosage-calculator",
+  "inputs": { "weight": "20", "height": "118", "age": "0.2", "perDose": "13", "freq": "3" },
+  "clicks": ["document.getElementById('drug').value='3';onDrugChange();"],
+  "expect": ["≤3 月龄儿童上限 30 mg/kg/日"],
+  "ref": "A5 年龄条件核验：DailyMed 对 ≤3 月龄给出 30 mg/kg/日分 2 次上限，旧版按儿童 13 mg/kg×3=39 mg/kg/日 输出；修复后停止输出并提示医师核定。"
 },
 {
   "slug": "medical/drug-info",
