@@ -210,6 +210,34 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu2/schedule-conflict.html','utf8').replace(/\\s+/g,' ');var ok=h.indexOf('loadSample(); }catch(e2){}')<0&&h.indexOf('detect(); }catch(e2){}')>=0&&h.indexOf('a.start≤b.end 且 b.start≤a.end')>=0&&h.indexOf('a.start&lt;b.end 且 b.start&lt;a.end')<0&&h.indexOf('[start,end)')<0&&h.indexOf('[start,end]')>=0;document.getElementById('__tbProbe').textContent='SCHEDFIX '+(ok?'OK':'BAD');"],
   "expect": ["SCHEDFIX OK"],
   "ref": "第1091批 J10 源码形态：历史回调回填后必须调 detect()（旧版 loadSample() 会把 courseInput 重写为固定 SAMPLE，历史回放失效）；FAQ 与 constRef 区间口径统一为离散整节闭区间 [start,end]，旧半开表述与 [start,end) 必须消失。旧版四项全命中旧串，必然变红。"
+},
+{
+  "slug": "edu2/study-progress",
+  "inputs": {"dailyHours": "4"},
+  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/study-progress.html','utf8');var d=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu2/study-progress']);var ok=h.indexOf('function addWorkdays')>=0&&h.indexOf('function workdaysUntil')>=0&&h.indexOf('addWorkdays(today, needDays)')>=0&&d.indexOf('跳过周六日')>=0&&document.getElementById('dailyHours').value==='4';document.getElementById('__tbProbe').textContent='SPWORK '+(ok?'OK':'BAD');"],
+  "expect": ["SPWORK OK"],
+  "ref": "EL-J132：旧版 estDate=today+needDays*86400000 按日历天推进，与说明「按工作日计」不符。现 addWorkdays 跳过周六日推进完成日、workdaysUntil 按工作日评估目标，权威源 FAQ 同步「跳过周六日」。源码+权威源哨兵，旧版必红。"
+},
+{
+  "slug": "edu2/study-progress",
+  "inputs": {"dailyHours": "3"},
+  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/study-progress.html','utf8');var ok=h.indexOf('if(!isFinite(done) || !isFinite(total) || !isFinite(hours)')>=0&&h.indexOf('parseSubjects.invalid = invalid')>=0&&h.indexOf('isFinite(rawDaily) && rawDaily>0')>=0&&document.getElementById('dailyHours').value==='3';document.getElementById('__tbProbe').textContent='SPNAN '+(ok?'OK':'BAD');"],
+  "expect": ["SPNAN OK"],
+  "ref": "EL-J133：旧版 hours 直接 parseFloat、dailyHours 仅 ||4，NaN 传播后整表显示「—」且无原因。现 parseSubjects 校验 isFinite(hours)&&>0、跳过非法行并计数提示，dailyHours 用 isFinite&&>0 否则 4。源码哨兵，旧版必红。"
+},
+{
+  "slug": "edu2/study-progress",
+  "inputs": {"dailyHours": "5"},
+  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/study-progress.html','utf8');var ok=h.indexOf('calendarDaysToTarget < 0')>=0&&h.indexOf('目标已逾期')>=0&&h.indexOf('已逾期 ')>=0&&document.getElementById('dailyHours').value==='5';document.getElementById('__tbProbe').textContent='SPOVER '+(ok?'OK':'BAD');"],
+  "expect": ["SPOVER OK"],
+  "ref": "EL-J134：旧版目标日期已过时 daysToTarget 钳成 0、落入中性 else「设置目标日期可评估」，完全不提逾期。现 calendarDaysToTarget<0 单独分支显示「目标已逾期 N 天」+相对目标卡标「目标已逾期」。源码哨兵避开 harness 无参兜底重复调 calc 的日期状态干扰，dailyHours 注入非默认值。"
+},
+{
+  "slug": "edu2/study-progress",
+  "inputs": {"dailyHours": "6"},
+  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/study-progress.html','utf8');var ok=h.indexOf('subjects: document.getElementById(\\'subjectInput\\').value')>=0&&h.indexOf('targetDate: document.getElementById(\\'targetDate\\').value')>=0&&h.indexOf('dailyHours: document.getElementById(\\'dailyHours\\').value')>=0&&h.indexOf('__study_progressDetail = list.map')>=0&&h.indexOf('study-progress-detail.csv')>=0&&document.getElementById('dailyHours').value==='6';document.getElementById('__tbProbe').textContent='SPPERSIST '+(ok?'OK':'BAD');"],
+  "expect": ["SPPERSIST OK"],
+  "ref": "EL-J135：旧版 saveInput 仅存科目纯文本、targetDate/dailyHours 每次重置，导出绑历史快照表而非当前明细。现存 JSON 三字段（兼容旧纯文本 fillSaved）、导出用 __study_progressDetail 生成「科目/完成/总数/完成度/剩余工时」明细 CSV。源码哨兵，旧版必红。"
 }
 ];
 async function main() {

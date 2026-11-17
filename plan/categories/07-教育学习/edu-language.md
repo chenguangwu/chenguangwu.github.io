@@ -190,39 +190,6 @@
 ### 留存建议（tools/edu/countdown-5.html）
 - 打卡按日期区间校验并支持"今日投入 vs 剩余所需日均"提示，增强备考闭环。
 
-### EL-J132 「学习进度仪表」说明称"预计完成日按工作日计"，代码按日历天累加（中，确认缺陷）
-- 问题：进度说明明确"预计完成日 = 今日 + 剩余工时 ÷ 每日学习时长（按工作日计）"，但 `estDate` 直接用 `today + needDays*86400000`，把周末也计入；"进度滞后"建议的 `needDaily` 也按日历天摊平。
-- 证据：`tools/edu/study-progress.html:161`（按工作日计）、`:310-316`（`estDate.setTime(today+needDays*86400000)`）、`:366-368`（`needDaily=totalRemainHours/daysToTarget`）。
-- 复现：剩余 17h、日投入 4h → `needDays=5`，从周五 2026-11-06 起算 → 预计 11-11（周三）；按工作日口径应为 11-13（跳过周末）。页面显示 11-11，与说明不符。
-- 影响：`tools/edu/study-progress.html`；预计完成日偏早，目标评估（onTrack）偏乐观。
-- 方案：按工作日推进（逐日跳过周六/日，可选法定节假日），或把说明改为"按日历天、含周末"。
-
-### EL-J133 「学习进度仪表」每任务耗时非数字未校验，NaN 传播后整块结果变成"—"（中，确认缺陷）
-- 问题：`parseSubjects` 只校验 name/done/total，第 4 段 `hours` 直接 `parseFloat`，`NaN` 会进入 `remainHours` → `totalRemainHours` → `needDays` → `estDate`；渲染时 `String(html).replace(/Infinity|NaN/g,'—')` 把错误伪装成占位符，用户看不到原因。`dailyHours` 为 0/负数也仅用 `||4` 兜底 0，负数不拦。
-- 证据：`tools/edu/study-progress.html:271`（`hours=p[3]?parseFloat(p[3]):1`，无 `isNaN`）、`:303`（`s.remainHours=s.remain*s.hours`）、`:312-316`（`needDays/estDate`）、`:334-336`（展示 `toFixed`）、`:377`（`replace(/Infinity|NaN/g,'—')`）、`:296`（`||4`）、`:310`（`dailyHours` 负数未校验）。
-- 复现：输入 `数学,45,80,abc` → node 复算 `hours=NaN`；页面"剩余工时 — h""预计还需 — 天""预计完成日 —-aN-aN"（`fmtDate` 对 Invalid Date 拼出 `NaN-aN-aN`，再被 `:377` 部分替换），且无任何错误提示。
-- 影响：`tools/edu/study-progress.html`；一行格式错误即让全部统计失效，且被静默显示为破折号。
-- 方案：`hours` 校验 `isFinite && >0`，非法行给出明确提示并跳过；`dailyHours` 用 `Number.isFinite(v)&&v>0?v:4`，负数/0 拒绝。
-
-### EL-J134 「学习进度仪表」目标日期已过仍给中性提示，"距目标天数"负值被钳成 0（中，确认缺陷）
-- 问题：`daysToTarget` 为负时，统计卡显示 `0`（`daysToTarget>=0?…:0`）；滞后分支要求 `daysToTarget>0`，`onTrack` 又为 false，于是逾期直接落入最后的 else，输出"按每日 N 小时计算，预计…完成全部任务。设置目标日期可评估是否按期完成"，完全不提"目标已过期"。
-- 证据：`tools/edu/study-progress.html:322-326`（`daysToTarget/onTrack`）、`:341`（负值→0）、`:366-374`（三分支条件）。
-- 复现：目标日期设为 2026-11-03、今天 2026-11-04、剩余 17h/日 4h → node 复算 `daysToTarget=-1`、`onTrack=false`、`shownDays=0`；页面显示"距目标 0 天"和中性提示，不提示已逾期。
-- 影响：`tools/edu/study-progress.html`；逾期被掩盖，目标评估失效。
-- 方案：`daysToTarget<0` 单独分支显示"已逾期 N 天"；统计卡显示负值或"已逾期"；`onTrack` 在目标已过时恒 false 并高亮。
-
-### EL-J135 「学习进度仪表」只持久化科目文本，目标日期/每日时长每次重置；"导出明细"实为历史表（中，确认缺陷）
-- 问题：`saveInput` 仅把 `#subjectInput` 写入 localStorage；`targetDate` 在每次加载被强制设为"今天+45 天"，`dailyHours` 完全不保存。"导出明细 CSV"绑定 `#study_progressTable`，该表是 TBKit 历史记录表（输入快照+结果摘要），不是当前各科明细；无历史时导出为空。
-- 证据：`tools/edu/study-progress.html:256-258`（仅存 subjectInput）、`:386-390`（加载即覆盖 targetDate）、`:150`（"导出明细 CSV"）、`:545-548`（导出 `#study_progressTable`）、`:479-490`（该表由 `TBKit.history` 渲染）。
-- 复现：设目标 2026-12-31、日投入 3h → 刷新页面 → 目标变回"今天+45 天"、日投入回 4h；点导出 → 得到历史快照表（列含"时间/各输入/结果"），不是"科目/完成/总数/耗时"明细。
-- 影响：`tools/edu/study-progress.html`；用户设置丢失，导出内容与按钮文案不符。
-- 方案：把 `targetDate/dailyHours` 一并存入 `toolbox_study_progress`（改 JSON 结构并兼容旧纯文本）；导出改用当前 `list` 生成科目明细 CSV，或把按钮改为"导出历史记录"。
-
-### 留存建议（tools/edu/study-progress.html）
-- 预计完成日与 `needDaily` 统一口径（工作日或日历天），说明与代码一致。
-- 校验第 4 段耗时与每日时长，非法输入明确提示，不要用"—"掩盖 NaN。
-- 持久化目标日期/每日时长；补逾期分支；导出当前科目明细而非历史表。
-
 ### 承诺 vs 实际（Q 批专项）
 - `tools/edu/color-quiz.html:10`「选出名称或 HEX 代码」→ 实际仅 12 个中文色名，无 HEX 题；`:159`「timed quiz」→ 无计时器；`:201`「由 HEX/RGB 反推颜色」→ 未实现。
 - `tools/edu/country-quiz.html:10`「国旗、首都或地理位置」「限时作答」→ 仅国旗题、无计时；`:202`「错题库：强化易错项」→ 无错题本。

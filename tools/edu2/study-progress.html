@@ -180,11 +180,11 @@
 </ul>
 <div class="dd-example"><div class="dd-ex-title">算例：数学8/10(1.5h)·英语12/20(1h)·物理5/8(2h)，日投入4h，目标2026-10-01</div><div class="dd-ex-body">剩余学时 = (10−8)×1.5 + (20−12)×1.0 + (8−5)×2.0 = 3+8+6 = 17 h；
 总进度 = (8+12+5)/(10+20+8) = 25/38 ≈ 65.8%；
-还需天数 = ceil(17/4) = 5 天 → 预计 2026-09-15 完成；
-距目标 2026-10-01 还有 21 天，5 ≤ 21 → 进度正常（onTrack）。</div></div>
+还需 5 个<a class="term-link" href="/tools/life/workday-calculator.html">工作日</a>（ceil(17/4)，跳过周六日）→ 预计完成日按工作日顺延；
+距目标 2026-10-01 还有 21 个日历天（其中工作日按周一至周五计），5 个工作日 ≤ 可用工作日 → 进度正常（onTrack）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>预计完成日为什么有时比预期早很多？</dt><dd>完成日 = 今天 + 剩余学时÷每日投入小时，向上取整到整天；若剩余学时少或日投入高，自然提前。注意它基于「每天都能稳定投入设定小时」的理想假设，实际请假/中断会延后，建议留缓冲。</dd>
+<dt>预计完成日为什么有时比预期早很多？</dt><dd>完成日按工作日推进：需学习天数 = ceil(剩余学时 ÷ 每日投入小时)，从今天起数满该数量个工作日（跳过周六日）即为预计完成日；若剩余学时少或日投入高，自然提前。它基于「每个工作日都能稳定投入设定小时」的理想假设，实际请假/中断会延后，建议留缓冲。</dd>
 <dt>单任务耗时怎么估计更准？</dt><dd>用「该科目近期真实完成若干任务的平均耗时」作 hours，比拍脑袋准；完成后再回填实际值，工具会随数据累积越来越贴近真实节奏。进度按任务数计、不区分难度，重任务可拆细以获得更平滑的进度曲线。</dd>
 </dl>
 </div>
@@ -229,6 +229,7 @@
 
 <script>
 var STORAGE_KEY = 'toolbox_study_progress';
+var __study_progressDetail = [];
 var SAMPLE = '数学,45,80,1.5\n英语,30,60,1\n专业课,20,100,2\n政治,15,50,0.8';
 
 function loadSample(){
@@ -243,12 +244,36 @@ function clearAll(){
   ToolBox.showToast(i18nText(),'info');
 }
 function saveInput(){
-  try{ localStorage.setItem(STORAGE_KEY, document.getElementById('subjectInput').value); }catch(e){}
+  // 新版存 JSON（科目文本 + 目标日期 + 每日时长），旧版纯文本仍可读。
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      subjects: document.getElementById('subjectInput').value,
+      targetDate: document.getElementById('targetDate').value,
+      dailyHours: document.getElementById('dailyHours').value
+    }));
+  }catch(e){}
+}
+function fillSaved(){
+  var raw=null;
+  try{ raw=localStorage.getItem(STORAGE_KEY); }catch(e){}
+  if(!raw) return false;
+  var obj=null;
+  try{ obj=JSON.parse(raw); }catch(e){}
+  if(obj && typeof obj==='object' && 'subjects' in obj){
+    document.getElementById('subjectInput').value = obj.subjects||'';
+    if(obj.targetDate) document.getElementById('targetDate').value = obj.targetDate;
+    if(obj.dailyHours) document.getElementById('dailyHours').value = obj.dailyHours;
+    return true;
+  }
+  // 旧版纯文本：仅恢复科目，目标/时长保留默认。
+  document.getElementById('subjectInput').value = raw;
+  return true;
 }
 
 function parseSubjects(text){
   var lines = text.split('\n');
   var list = [];
+  var invalid = 0;
   for(var i=0;i<lines.length;i++){
     var line = lines[i].trim();
     if(!line) continue;
@@ -258,11 +283,15 @@ function parseSubjects(text){
     var done = parseFloat(p[1]);
     var total = parseFloat(p[2]);
     var hours = p[3] ? parseFloat(p[3]) : 1;
-    if(!name || isNaN(done) || isNaN(total) || total<=0) continue;
+    // 单行耗时非法（非数字/≤0/非有限）直接跳过并计数，避免 NaN 传播到全表；
+    // 这与 done/total 的校验口径一致，用户能看到被跳过的行数。
+    if(!isFinite(done) || !isFinite(total) || !isFinite(hours) || total<=0 || hours<=0){ invalid++; continue; }
+    if(!name || isNaN(done) || isNaN(total)) { invalid++; continue; }
     if(done > total) done = total;
     if(done < 0) done = 0;
     list.push({name:name, done:done, total:total, hours:hours});
   }
+  parseSubjects.invalid = invalid;
   return list;
 }
 
@@ -272,17 +301,42 @@ function fmtDate(d){
   var day = ('0'+d.getDate()).slice(-2);
   return y+'-'+m+'-'+day;
 }
+// 按工作日（周一至周五）推进 n 个学习日，跳过周六日；与"按工作日计"的说明一致。
+function addWorkdays(from, n){
+  var d = new Date(from);
+  var left = n;
+  while(left > 0){
+    d.setDate(d.getDate()+1);
+    var w = d.getDay();
+    if(w!==0 && w!==6) left--;
+  }
+  return d;
+}
+// 从今天到目标日期之间的工作日数（含目标日、不含今天）；用于目标评估的"可用学习日"。
+function workdaysUntil(from, to){
+  var d = new Date(from);
+  var n = 0;
+  while(d < to){
+    d.setDate(d.getDate()+1);
+    var w = d.getDay();
+    if(w!==0 && w!==6) n++;
+  }
+  return n;
+}
 
 function calc(){
   saveInput();
   var text = document.getElementById('subjectInput').value;
   var list = parseSubjects(text);
   if(list.length===0){
-    ToolBox.showToast(i18nText('toast.msg863'),'error');
+    var why = parseSubjects.invalid > 0 ? '科目行格式或耗时无效（耗时需为正数），请检查后重试。' : '';
+    ToolBox.showToast(i18nText('toast.msg863')+(why?' '+why:''),'error');
     document.getElementById('result').style.display='none';
     return;
   }
-  var dailyHours = parseFloat(document.getElementById('dailyHours').value) || 4;
+  var rawDaily = parseFloat(document.getElementById('dailyHours').value);
+  var dailyHours = (isFinite(rawDaily) && rawDaily>0) ? rawDaily : 4;
+  if(rawDaily!==dailyHours) document.getElementById('dailyHours').value = dailyHours;
   var targetStr = document.getElementById('targetDate').value;
 
   var totalDone = 0, totalTasks = 0, totalRemainHours = 0;
@@ -299,19 +353,20 @@ function calc(){
   var today = new Date();
   today.setHours(0,0,0,0);
   var needDays = Math.ceil(totalRemainHours / dailyHours);
-  // 按日历天估算完成日
-  var estDate = new Date(today);
-  estDate.setTime(today.getTime() + needDays * 24*60*60*1000);
+  // 按工作日推进完成日（跳过周六日），与"按工作日计"说明一致。
+  var estDate = addWorkdays(today, needDays);
   var estStr = fmtDate(estDate);
 
   var onTrack = false;
   var targetDate = null;
   var daysToTarget = null;
+  var calendarDaysToTarget = null;
   if(targetStr){
     targetDate = new Date(targetStr + 'T00:00:00');
     if(!isNaN(targetDate.getTime())){
-      daysToTarget = Math.ceil((targetDate.getTime() - today.getTime())/(24*60*60*1000));
-      onTrack = needDays <= daysToTarget;
+      calendarDaysToTarget = Math.ceil((targetDate.getTime() - today.getTime())/(24*60*60*1000));
+      daysToTarget = workdaysUntil(today, targetDate);
+      onTrack = calendarDaysToTarget >= 0 && needDays <= daysToTarget;
     }
   }
 
@@ -324,10 +379,11 @@ function calc(){
   html += '<div class="stat-card"><div class="val">'+needDays+' 天</div><div class="lbl">预计还需</div></div>';
   html += '<div class="stat-card"><div class="val">'+estStr+'</div><div class="lbl">预计完成日</div></div>';
   if(targetDate){
-    var trackTag = onTrack ? 'grade-excellent' : 'grade-fail';
-    var trackText = onTrack ? '进度正常' : '进度滞后';
+    var overdue = calendarDaysToTarget < 0;
+    var trackTag = overdue ? 'grade-fail' : (onTrack ? 'grade-excellent' : 'grade-fail');
+    var trackText = overdue ? '目标已逾期' : (onTrack ? '进度正常' : '进度滞后');
     html += '<div class="stat-card"><div class="val"><span class="grade-tag '+trackTag+'">'+trackText+'</span></div><div class="lbl">相对目标</div></div>';
-    html += '<div class="stat-card"><div class="val">'+(daysToTarget>=0?daysToTarget:0)+'</div><div class="lbl">距目标天数</div></div>';
+    html += '<div class="stat-card"><div class="val">'+(overdue ? '已逾期 '+Math.abs(calendarDaysToTarget)+' 天' : calendarDaysToTarget)+'</div><div class="lbl">距目标天数</div></div>';
   }
   html += '</div>';
 
@@ -352,31 +408,34 @@ function calc(){
   });
 
   // 建议
-  if(targetDate && !onTrack && daysToTarget > 0){
+  if(targetDate && calendarDaysToTarget < 0){
+    html += '<div class="tip-box tip-error" style="margin-top:12px;">目标日期 <strong>'+targetStr+'</strong> 已过去 <strong>'+Math.abs(calendarDaysToTarget)+' 天</strong>，当前剩余 '+totalRemainHours.toFixed(1)+' 小时尚未完成。请重设目标日期，或按当前节奏尽快补齐。</div>';
+  } else if(targetDate && !onTrack && daysToTarget > 0){
     var needDaily = (totalRemainHours / daysToTarget).toFixed(1);
-    html += '<div class="tip-box tip-error" style="margin-top:12px;">进度滞后！按目标日期 <strong>'+targetStr+'</strong> 计算，需每日学习 <strong>'+needDaily+' 小时</strong>（当前 '+dailyHours+' 小时）。建议增加每日时长或调整目标。</div>';
+    html += '<div class="tip-box tip-error" style="margin-top:12px;">进度滞后！按目标日期 <strong>'+targetStr+'</strong> 计算（剩余 '+daysToTarget+' 个工作日），需每日学习 <strong>'+needDaily+' 小时</strong>（当前 '+dailyHours+' 小时）。建议增加每日时长或调整目标。</div>';
   } else if(targetDate && onTrack){
     var slack = daysToTarget - needDays;
-    html += '<div class="tip-box tip-success" style="margin-top:12px;">进度正常，按当前节奏预计 '+estStr+' 完成，比目标提前 <strong>'+slack+' 天</strong>。</div>';
+    html += '<div class="tip-box tip-success" style="margin-top:12px;">进度正常，按当前节奏预计 '+estStr+' 完成，比目标提前 <strong>'+slack+' 个工作日</strong>。</div>';
   } else {
-    html += '<div class="tip-box tip-info" style="margin-top:12px;">按每日 '+dailyHours+' 小时计算，预计 '+estStr+' 完成全部任务。设置目标日期可评估是否按期完成。</div>';
+    html += '<div class="tip-box tip-info" style="margin-top:12px;">按每日 '+dailyHours+' 小时计算，预计 '+estStr+' 完成全部任务（按工作日、跳过周末）。设置目标日期可评估是否按期完成。</div>';
   }
 
+  // 供「导出明细 CSV」使用：当前各科明细（非历史快照表）。
+  __study_progressDetail = list.map(function(s){
+    return {name:s.name, done:s.done, total:s.total, pct:+s.pct.toFixed(1), remainHours:+s.remainHours.toFixed(2)};
+  });
   var el = document.getElementById('result');
   const __g1=html;el.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   el.style.display='block';
 }
 
-// 加载本地保存
-try{
-  var saved = localStorage.getItem(STORAGE_KEY);
-  if(saved) document.getElementById('subjectInput').value = saved;
-}catch(e){}
-(function(){
+// 加载本地保存（科目 / 目标日期 / 每日时长一并恢复）
+var __spHadSaved = fillSaved();
+if(!__spHadSaved){
   var now = new Date();
   var next = new Date(now.getFullYear(), now.getMonth(), now.getDate()+45);
   document.getElementById('targetDate').value = fmtDate(next);
-})();
+}
 calc();
 </script>
 
@@ -541,6 +600,14 @@ function __study_progressExtras(){
 }
 function __study_progressExport(){
     if (typeof TBKit === 'undefined') return;
+    // 优先导出当前各科明细（与按钮文案一致）；无明细时回退到历史快照表。
+    var rows = [['科目','完成','总数','完成度(%)','剩余工时(h)']];
+    var detail = (typeof __study_progressDetail==='object' && __study_progressDetail) ? __study_progressDetail : [];
+    detail.forEach(function(s){ rows.push([s.name, s.done, s.total, s.pct, s.remainHours]); });
+    if(detail.length){
+        var csv = (TBKit.util && TBKit.util.exportCsv) ? TBKit.util.exportCsv : (TBKit.export && TBKit.export.csv);
+        if(typeof csv === 'function'){ csv('study-progress-detail.csv', rows); return; }
+    }
     try{
         var box=document.querySelector('#study_progressTable');
         if(!box||!box.querySelector('tr')){
