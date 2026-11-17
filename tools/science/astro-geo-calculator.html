@@ -616,11 +616,16 @@ function calcHorizon() {
   var dStandard = 3.57 * sqrtH;
   var dRefraction = 3.86 * sqrtH;
 
-  // 地球遮挡高度（d km处被遮挡的最低高度）
-  // h_hidden ≈ d^2 / (2R) * 1000 (m), R=6371km
-  var hiddenAt5km = (25 / (2 * 6371)) * 1000; // ~1.96m
-  var hiddenAt10km = (100 / (2 * 6371)) * 1000; // ~7.85m
-  var hiddenAt20km = (400 / (2 * 6371)) * 1000; // ~31.4m
+  // 目标越过地球曲率所需的最低高度（相对海平面，m）
+  // 观察者几何地平线 d0 = sqrt(2Rh)，R=6371km、h 以 m 计；
+  // d<=d0 时无地球曲率遮挡，d>d0 时 h_min ≈ (d-d0)^2/(2R)*1000。
+  var horizonKm = Math.sqrt(2 * 6371 * h / 1000);
+  function hiddenHeightAt(dKm) {
+    return dKm <= horizonKm ? 0 : Math.pow(dKm - horizonKm, 2) / (2 * 6371) * 1000;
+  }
+  var hiddenAt5km = hiddenHeightAt(5);
+  var hiddenAt10km = hiddenHeightAt(10);
+  var hiddenAt20km = hiddenHeightAt(20);
 
   var html = '<div class="data-grid">';
   html += '<div class="data-card"><div class="num">' + h.toFixed(1) + '</div><div class="label">观察者高度（m）</div></div>';
@@ -629,14 +634,14 @@ function calcHorizon() {
   html += '<div class="data-card"><div class="num">+' + (dRefraction - dStandard).toFixed(2) + '</div><div class="label">折射增加距离（km）</div></div>';
   html += '</div>';
 
-  html += '<div class="sub-label">&#128202; 不同距离处被遮挡的最低高度</div>';
+  html += '<div class="sub-label">&#128202; 不同距离处目标可见所需最低高度（相对海平面）</div>';
   html += '<div class="data-grid">';
-  html += '<div class="data-card"><div class="num">' + hiddenAt5km.toFixed(1) + 'm</div><div class="label">5km处遮挡</div></div>';
-  html += '<div class="data-card"><div class="num">' + hiddenAt10km.toFixed(1) + 'm</div><div class="label">10km处遮挡</div></div>';
-  html += '<div class="data-card"><div class="num">' + hiddenAt20km.toFixed(1) + 'm</div><div class="label">20km处遮挡</div></div>';
+  html += '<div class="data-card"><div class="num">' + hiddenAt5km.toFixed(1) + 'm</div><div class="label">5km处目标最低高度</div></div>';
+  html += '<div class="data-card"><div class="num">' + hiddenAt10km.toFixed(1) + 'm</div><div class="label">10km处目标最低高度</div></div>';
+  html += '<div class="data-card"><div class="num">' + hiddenAt20km.toFixed(1) + 'm</div><div class="label">20km处目标最低高度</div></div>';
   html += '</div>';
 
-  html += '<div class="tip-info" style="margin-top:12px;">&#9432; 地球半径取 6,371 km。大气折射使实际地平线比理论值远约 8%。观测越高，地平线越远：眼睛高度 1.7m 时约 4.7km，站在 100m 高楼约 38.6km。</div>';
+  html += '<div class="tip-info" style="margin-top:12px;">&#9432; 地球半径取 6,371 km。先按观察者高度求几何地平线 d&#8320;=&#8730;(2Rh)，再算目标最低高度 (d&#8722;d&#8320;)&#178;/(2R)；距离不超过 d&#8320; 时记为 0m。大气折射使实际地平线比理论值远约 8%，本组卡片按无折射几何口径。</div>';
 
   const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('hz-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('hz-result').innerHTML=__h3;
 }

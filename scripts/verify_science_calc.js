@@ -2581,6 +2581,13 @@ const CASES = [
     "ref": "SMS-66：蒲福表各级 min~max 间留 0.1 m/s 空隙（1.5→1.6、3.3→3.4…），12 km/h=3.3333 m/s 正落 3.3~3.4 空隙，旧版 !found 兜底 12 级飓风。修复后按 min 下界逐级命中：3.3333≥level2.min(1.6) 且 <level3.min(3.4) ⇒ 2 级轻风。3.3 m/s 为 3.3333.toFixed(1)。默认 wind-speed=5 m/s（命中3级微风）且需 clicks ⇒ 三条均不命中。"
   },
   {
+    "slug": "science/astro-geo-calculator",
+    "inputs": { "hz-height": "2" },
+    "clicks": ["calcHorizon()"],
+    "expect": ["0.0m 5km处目标最低高度", "1.9m 10km处目标最低高度", "17.5m 20km处目标最低高度"],
+    "ref": "SMS-68：观察者高度 h=2m 时几何地平线 d0=sqrt(2×6371km×0.002km)=5.0482km。目标最低高度按 (d−d0)²/(2R)×1000 计算：5km 未超地平线记 0.0m；10km 得 1.922→1.9m；20km 得 17.525→17.5m。旧版三卡写死 d²/(2R)，无论 h 为何均输出 2.0/7.9/31.4m 且标签为「遮挡」，三条锚均不命中；默认 h=1.7m 得 0.0/2.2/18.5m，注入失败亦不命中。"
+  },
+  {
     "slug": "science/calc-distance",
     "clicks": ["var _qs=document.querySelector.bind(document);document.querySelector=function(s){if(String(s).indexOf('dms')>=0)return {checked:true};return _qs(s);};try{swapFmt();}catch(e){}document.querySelector=_qs;var r=document.getElementById('res');r.innerHTML=r.innerHTML+' DMSPROBE type='+document.getElementById('lat1').type+' val='+document.getElementById('lat1').value;"],
     "expect": ["DMSPROBE type=text val=39°54'15.12\""],
