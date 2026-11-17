@@ -16,6 +16,34 @@ const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
   {
+    slug: "edu/word-count-pages",
+    inputs: { words: "-5000" },
+    clicks: ["var w=document.getElementById('words').value;var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='NEG '+(w==='-5000'&&r.indexOf('请输入 ≥100 的正整数')>=0?'OK':'BAD');"],
+    expect: ["NEG OK"],
+    ref: "EL-J66：负字数被拒绝并提示；旧版 parseInt(-5000)||0 直接产出负页数与负完整页数。",
+  },
+  {
+    slug: "edu/word-count-pages",
+    inputs: { words: "" },
+    clicks: ["var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='CLR '+(r.indexOf('请输入 ≥100 的正整数')>=0?'OK':'BAD');"],
+    expect: ["CLR OK"],
+    ref: "EL-J66：清空字数不再当成有效 0 页；旧版 ||0 吞掉空值输出 0 页。",
+  },
+  {
+    slug: "edu/word-count-pages",
+    inputs: { words: "5001" },
+    clicks: ["var w=document.getElementById('words').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu/word-count-pages.html','utf8');var ok=w==='5001'&&h.indexOf('图表篇幅增幅')>=0&&h.indexOf('图表占比')<0;document.getElementById('__tbProbe').textContent='IMGTERM '+(ok?'OK':'BAD');"],
+    expect: ["IMGTERM OK"],
+    ref: "EL-J68：把「图表占比」改为诚实的「图表篇幅增幅」口径（50%=额外篇幅+50%），计算仍按 1+imgs；旧版名称与算法矛盾。",
+  },
+  {
+    slug: "edu/word-count-pages",
+    inputs: { words: "5001" },
+    clicks: ["var w=document.getElementById('words').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var s=JSON.stringify(JSON.parse(h)['edu/word-count-pages']);var ok=w==='5001'&&s.indexOf('字数反推：由页数估字数')<0&&s.indexOf('图表增幅')>=0;document.getElementById('__tbProbe').textContent='WPDOC '+(ok?'OK':'BAD');"],
+    expect: ["WPDOC OK"],
+    ref: "EL-J69：删除深度解析中不存在的「由页数估字数」反推承诺，改真实场景；旧版虚标。",
+  },
+  {
     slug: "edu/edu-unit-converter",
     inputs: { fromVal: "0" },
     clicks: ["var v=document.getElementById('fromVal').value;var o=document.getElementById('toVal').value;document.getElementById('__tbProbe').textContent='ZERO '+(v==='0'&&o==='0'?'OK':'BAD');"],
@@ -1054,9 +1082,9 @@ const CASES = [
       "fontSize": "1"
     },
     "expect": [
-      "📊 估算结果 1 页（约） 按标准文档格式估算 42 总字数 540 每页约字数 0 完整页数 46"
+      "请输入 ≥100 的正整数"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"words\":\"42\",\"format\":\"standard\",\"imgs\":\"0.1\",\"paper\":\"b5\",\"fontSize\":\"1\"}，输出区含「📊 估算结果 1 页（约） 按标准文档格式估算 42 总字数 540 每页约字…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "EL-J66：字数 42 低于下限 100，拒绝计算并提示；旧版 parseInt||0 照算 1 页并给出失真的完整页数与剩余字数。"
   },
   {
     "slug": "data/xml-html-css-geshihua-yiyou-kebuchong",
