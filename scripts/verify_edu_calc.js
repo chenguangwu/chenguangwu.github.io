@@ -16,6 +16,24 @@ const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
   {
+    slug: "edu/essay-word-counter",
+    inputs: { text: "“你好”😀" },
+    expect: ["0 英文词数 2 纯文字字数 5 总字符数 5 不含空白符 2 标点符号 1 段落数 — 平均句长 1 行数"],
+    ref: "EL-J72/J76：中文弯引号计入标点（2），emoji 按 Unicode 码点算 1（总字符 5 = 2 汉字 + 2 弯引号 + 1 emoji）。旧版标点正则只认 ASCII 引号、总字符按 UTF-16 算 6 ⇒ 该串失配。"
+  },
+  {
+    slug: "edu/essay-word-counter",
+    clicks: ["var ws=[];for(var i=0;i<500;i++)ws.push('w'+i);document.getElementById('text').value=ws.join(' ');count();var h=document.getElementById('result').innerHTML;var ok=h.indexOf('>500</div><div class=\"label\">英文词数')>=0&&h.indexOf('>中等<')>=0&&h.indexOf('字数偏少')<0;document.getElementById('__tbProbe').textContent='JENG:'+(ok?'OK':'BAD');"],
+    expect: ["JENG:OK"],
+    ref: "EL-J73：纯英文 500 词须显示英文词数 500，并按纯文字字数判「中等」，不再判「短文/字数偏少」。旧版只按中文字数分级（0 ⇒ 短文）且不显示英文词数 ⇒ BAD。"
+  },
+  {
+    slug: "edu/essay-word-counter",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/essay-word-counter.html','utf8');var d=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu/essay-word-counter']);var ok=h.indexOf('可选是否计入字符总数')<0&&d.indexOf('可选是否计入字符总数')<0;document.getElementById('__tbProbe').textContent='JFAQ:'+(ok?'OK':'BAD');"],
+    expect: ["JFAQ:OK"],
+    ref: "EL-J74：FAQ 不得宣称「标点可选是否计入」（页面无此开关）；页面与权威源两处虚标均已删。旧版两处都在 ⇒ BAD。"
+  },
+  {
     slug: "edu/word-count-pages",
     inputs: { words: "-5000" },
     clicks: ["var w=document.getElementById('words').value;var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='NEG '+(w==='-5000'&&r.indexOf('请输入 ≥100 的正整数')>=0?'OK':'BAD');"],
@@ -558,9 +576,8 @@ const CASES = [
   {
     slug: "edu/essay-word-counter",
     inputs: { "text": "这是一个用于测试词数统计的句子，包含中文与 english 混合内容。" },
-    expect: ["中文字数 35 总字符数 33 不含空格 2 标点符号 1"],
-    ref: "作文字数统计：中文字数按 CJK 字符计（35 = 17 汉字 + 中文标点后的中文字符口径），总字符数 33 为去空白后的原串长度。"
-       + "默认态统计的是页面预置范文（124 / 149 / 145），与本例全不同 ⇒ 强判别。末段「短文·字数偏少」为默认态才有的结论，不进 expect。",
+    expect: ["中文字数 1 英文词数 25 纯文字字数 35 总字符数 33 不含空白符 2 标点符号 1 段落数 25.0 平均句长 1 行数"],
+    ref: "作文字数统计：中文字数按 CJK 字符计（24），英文词 1，纯文字字数 = 24+1=25；总字符 33（码点计），不含空白符 33，标点 1，段落 1，平均句长 25.0。默认态是预置范文（124/149/145），且旧版无「英文词数 / 纯文字字数 / 平均句长 / 不含空白符」四张卡与标签 ⇒ 强判别。",
   },
   {
     slug: "edu/gpa-calculator",
@@ -911,9 +928,9 @@ const CASES = [
       "text": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n📊 字数统计 0 中文字数 5 总字符数 3 不含空格 0 标点符号 3 段落数 3 行数 短文 字数偏少，建议补充内容"
+      "1 2 3\n📊 字数统计 0 中文字数 0 英文词数 0 纯文字字数 5 总字符数 3 不含空白符 0 标点符号 3 段落数 — 平均句长 3 行数 短文 字数偏少，建议补充内容"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"title\":\"abc123测试\",\"text\":\"1\\n2\\n3\"}，输出区含「1 2 3\n📊 字数统计 0 中文字数 5 总字符数 3 不含空格 0 标点符…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强同步：注入非默认输入{\"title\":\"abc123测试\",\"text\":\"1\\n2\\n3\"}，新口径下纯文字字数 0、总字符 5（码点）、不含空白符 3、段落 3、平均句长 —；旧版无「英文词数/纯文字字数/平均句长/不含空白符」四卡与标签 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "edu/edu-unit-converter",
