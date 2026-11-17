@@ -194,6 +194,7 @@
     <div id="tab-today" class="tab-content active">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <h3 style="font-size:14px;margin:0;">今日任务</h3>
+        <select id="taskSubject" aria-label="Subject for new task" style="padding:4px 8px;font-size:12px;"></select>
         <button type="button" class="btn" onclick="addTask()" style="padding:4px 10px;font-size:12px;">+ 添加任务</button>
       </div>
       <div id="todayTasks"></div>
@@ -354,22 +355,35 @@ let data = {
     {id:4, name:'语文文言文阅读', subjectId:4, minutes:40, done:false, priority:3}
   ],
   stats: {
-    todayMinutes: 90,
-    weekHours: 8,
-    totalHours: 120,
-    tasksDone: 128
+    todayMinutes: 0,
+    weekHours: 0,
+    totalHours: 0,
+    tasksDone: 0,
+    todayKey: '',
+    weekKey: ''
   },
-  subjectMinutes: {1: 450, 2: 380, 3: 220, 4: 150}
+  subjectMinutes: {1: 0, 2: 0, 3: 0, 4: 0}
 };
 
 let miniPomoTimer = null;
 let miniPomoRunning = false;
 let miniPomoRemaining = 25 * 60;
 
+function localDayKey(d){
+  d=d||new Date();
+  return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+}
+function localWeekKey(d){
+  d=d||new Date();
+  var monday=new Date(d.getTime()-((d.getDay()+6)%7)*86400000);
+  return localDayKey(monday);
+}
+
 function init(){
   loadData();
   renderTasks();
   renderSubjects();
+  renderSubjectOptions();
   renderWeekDays();
   renderStats();
   planWeek();
@@ -380,7 +394,18 @@ function loadData(){
     const saved = JSON.parse(localStorage.getItem(DATA_KEY)||'{}');
     if(saved.subjects) data.subjects = saved.subjects;
     if(saved.tasks) data.tasks = saved.tasks;
-    if(saved.stats) data.stats = saved.stats;
+    if(saved.stats){
+      data.stats = saved.stats;
+      if(saved.stats.todayKey!==localDayKey()){
+        data.stats.todayMinutes = 0;
+        data.stats.tasksDone = 0;
+      }
+      if(saved.stats.weekKey!==localWeekKey()){
+        data.stats.weekHours = 0;
+      }
+      data.stats.todayKey = localDayKey();
+      data.stats.weekKey = localWeekKey();
+    }
     if(saved.subjectMinutes) data.subjectMinutes = saved.subjectMinutes;
   }catch(e){}
 }
@@ -430,34 +455,60 @@ function renderTasks(){
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h1;
 }
 
+function recordHistory(){
+  let list=[];
+  try{ list=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); }catch(e){}
+  list.unshift({timestamp:Date.now(),minutes:data.stats.todayMinutes,tasks:data.tasks.filter(t=>t.done).length});
+  list=list.slice(0,20);
+  localStorage.setItem(HISTORY_KEY,JSON.stringify(list));
+}
+
 function toggleTask(i){
   data.tasks[i].done = !data.tasks[i].done;
+  const mins = data.tasks[i].minutes||0;
   if(data.tasks[i].done){
     data.stats.tasksDone++;
-    data.stats.todayMinutes += data.tasks[i].minutes;
+    data.stats.todayMinutes += mins;
+    data.stats.weekHours += mins/60;
+    data.stats.totalHours += mins/60;
     const sid = data.tasks[i].subjectId;
-    data.subjectMinutes[sid] = (data.subjectMinutes[sid]||0) + data.tasks[i].minutes;
+    data.subjectMinutes[sid] = (data.subjectMinutes[sid]||0) + mins;
   } else {
     data.stats.tasksDone = Math.max(0, data.stats.tasksDone-1);
-    data.stats.todayMinutes = Math.max(0, data.stats.todayMinutes - data.tasks[i].minutes);
+    data.stats.todayMinutes = Math.max(0, data.stats.todayMinutes - mins);
+    data.stats.weekHours = Math.max(0, data.stats.weekHours - mins/60);
+    data.stats.totalHours = Math.max(0, data.stats.totalHours - mins/60);
     const sid = data.tasks[i].subjectId;
-    data.subjectMinutes[sid] = Math.max(0, (data.subjectMinutes[sid]||0) - data.tasks[i].minutes);
+    data.subjectMinutes[sid] = Math.max(0, (data.subjectMinutes[sid]||0) - mins);
   }
+  data.stats.todayKey = localDayKey();
+  data.stats.weekKey = localWeekKey();
   saveData();
+  if(data.tasks[i].done) recordHistory();
   renderTasks();
 }
 
-function addTask(){
-  const name = prompt('请输入任务名称：');
+function renderSubjectOptions(){
+  const sel=document.getElementById('taskSubject');
+  if(!sel)return;
+  sel.innerHTML=data.subjects.map(function(s){return '<option value="'+s.id+'">'+ToolBox.escHtml(s.name)+'</option>';}).join('');
+}
+
+function addTask(nameArg, minutesArg, priorityArg, subjectArg){
+  if(!data.subjects.length){ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Add a subject first':'请先添加科目','error');return;}
+  const name = nameArg!==undefined?nameArg:(typeof prompt==='function'?prompt('请输入任务名称：'):null);
   if(!name) return;
-  const minutes = parseInt(prompt('预计需要多少分钟？', '30'))||30;
-  if(minutes<=0){ ToolBox.showToast('分钟数需为正整数', 'error'); return; }
-  const priRaw = prompt('优先级？1=高 2=中 3=低', '2');
+  const minutes = minutesArg!==undefined?Number(minutesArg):((typeof prompt==='function'?parseInt(prompt('预计需要多少分钟？', '30'),10):NaN)||30);
+  if(!Number.isFinite(minutes)||minutes<=0){ ToolBox.showToast('分钟数需为正整数', 'error'); return; }
+  const priRaw = priorityArg!==undefined?String(priorityArg):(typeof prompt==='function'?prompt('优先级？1=高 2=中 3=低', '2'):'2');
   const priority = (priRaw==='1'||priRaw==='3') ? parseInt(priRaw) : 2;
+  const sel = document.getElementById('taskSubject');
+  var subjectId = subjectArg!==undefined?Number(subjectArg):(sel?Number(sel.value):data.subjects[0].id);
+  if(!data.subjects.some(function(s){return s.id===subjectId;})) subjectId=data.subjects[0].id;
   data.tasks.push({
     id: Date.now(),
     name: name,
-    subjectId: data.subjects[0]?.id || 0,
+    subjectId: subjectId,
     minutes: minutes,
     priority: priority,
     done: false
@@ -497,6 +548,7 @@ function renderSubjects(){
         <div style="text-align:right;">
           <div style="font-size:14px;font-weight:500;">${s.progress}%</div>
           <button type="button" class="btn" style="padding:2px 6px;font-size:11px;margin-top:4px;" onclick="editSubject(${i})">编辑</button>
+          <button type="button" class="btn danger" style="padding:2px 6px;font-size:11px;margin-top:4px;" onclick="deleteSubject(${i})">删除</button>
         </div>
       </div>
     `;
@@ -521,27 +573,50 @@ function addSubject(){
   ToolBox.showToast(i18nText('toast.msg265'));
 }
 
-function editSubject(i){
+function editSubject(i, nameArg, progressArg){
   const s = data.subjects[i];
-  const name = prompt('修改科目名称：', s.name);
+  var name = nameArg!==undefined?nameArg:(typeof prompt==='function'?prompt('修改科目名称：', s.name):s.name);
   if(name===null) return;
-  const progress = parseInt(prompt('修改进度(0-100)：', s.progress))||s.progress;
+  var raw = progressArg!==undefined?progressArg:(typeof prompt==='function'?prompt('修改进度(0-100)：', s.progress):s.progress);
+  var progress = Number(raw);
+  if(!Number.isFinite(progress)||progress<0||progress>100){
+    ToolBox.showToast('进度须在 0–100','error');
+    return;
+  }
   s.name = name;
-  s.progress = Math.min(100, Math.max(0, progress));
+  s.progress = progress;
   saveData();
   renderSubjects();
 }
 
-function renderWeekDays(){
+function deleteSubject(i){
+  var s=data.subjects[i];
+  if(!s)return;
+  if(!confirm('确定删除科目「'+s.name+'」？')) return;
+  data.subjects.splice(i,1);
+  data.tasks.forEach(function(t){ if(t.subjectId===s.id) t.subjectId=0; });
+  delete data.subjectMinutes[s.id];
+  saveData();
+  renderSubjects();
+  renderSubjectOptions();
+  renderTasks();
+  renderStats();
+  planWeek();
+}
+
+function renderWeekDays(dailyH, studyDays){
+  if(!Number.isFinite(dailyH)) dailyH=parseFloat(document.getElementById('dailyHours').value)||6;
+  if(!Number.isFinite(studyDays)) studyDays=parseInt(document.getElementById('studyDays').value)||6;
+  studyDays=Math.max(1,Math.min(7,studyDays));
   const days = ['周一','周二','周三','周四','周五','周六','周日'];
   const el = document.getElementById('weekDays');
   let html = '';
   for(let i=0;i<7;i++){
-    const isStudy = i < 6;
+    const isStudy = i < studyDays;
     html += `
       <div class="week-day ${isStudy?'active':''}">
         <div class="wd-name">${days[i]}</div>
-        <div class="wd-hours">${isStudy?'6h':'休息'}</div>
+        <div class="wd-hours">${isStudy?dailyH+'h':'休息'}</div>
       </div>
     `;
   }
@@ -551,6 +626,7 @@ function renderWeekDays(){
 function planWeek(){
   const dailyH = parseFloat(document.getElementById('dailyHours').value)||6;
   const studyDays = parseInt(document.getElementById('studyDays').value)||6;
+  renderWeekDays(dailyH, studyDays);
   
   let totalWeight = 0;
   data.subjects.forEach(s=>{ totalWeight += s.difficulty * s.difficulty; });

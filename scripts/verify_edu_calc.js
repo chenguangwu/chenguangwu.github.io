@@ -16,6 +16,55 @@ const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
   {
+    slug: "edu/study-planner",
+    inputs: { dailyHours: "7" },
+    clicks: ["var mk=document.getElementById('dailyHours').value;var t=document.getElementById('statToday').textContent;document.getElementById('__tbProbe').textContent='INIT0 '+(mk==='7'&&String(t).trim()==='0'?'OK':'BAD');"],
+    expect: ["INIT0 OK"],
+    ref: "EL-J54：首启统计从 0 开始，不再展示虚构的 90 分钟/128 任务；旧版写死 90/8/120/128。",
+  },
+  {
+    slug: "edu/study-planner",
+    inputs: { dailyHours: "7" },
+    clicks: ["var mk=document.getElementById('dailyHours').value;localStorage.setItem('toolbox_study_data',JSON.stringify({subjects:[{id:1,name:'数学',difficulty:5,progress:45}],tasks:[],stats:{todayMinutes:150,weekHours:8,totalHours:120,tasksDone:9,todayKey:'2000-1-1',weekKey:'2000-1-1'},subjectMinutes:{1:0}}));loadData();renderStats();var t=document.getElementById('statToday').textContent;document.getElementById('__tbProbe').textContent='CROSS '+(mk==='7'&&String(t).trim()==='0'?'OK':'BAD');"],
+    expect: ["CROSS OK"],
+    ref: "EL-J57：旧 todayKey 跨日后今日分钟与完成任务归零；旧版无日期键直接沿用 150。",
+  },
+  {
+    slug: "edu/study-planner",
+    inputs: { dailyHours: "4", studyDays: "5" },
+    clicks: ["var dh=document.getElementById('dailyHours').value;planWeek();var w=document.getElementById('weekDays').innerHTML;document.getElementById('__tbProbe').textContent='WEEK '+(dh==='4'&&w.indexOf('4h')>=0&&w.indexOf('6h')<0?'OK':'BAD');"],
+    expect: ["WEEK OK"],
+    ref: "EL-J56：周计划日期格随每日时长/学习天数重绘，不再恒 6h×6 天；旧版硬编码。",
+  },
+  {
+    slug: "edu/study-planner",
+    inputs: { dailyHours: "7" },
+    clicks: ["var mk=document.getElementById('dailyHours').value;addTask('TbTaskNew',30,2,2);var last=data.tasks[data.tasks.length-1];document.getElementById('__tbProbe').textContent='TASKSUB '+(mk==='7'&&last.name==='TbTaskNew'&&last.subjectId===2?'OK':'BAD');"],
+    expect: ["TASKSUB OK"],
+    ref: "EL-J58：新增任务可指定科目（英语 id=2），不再恒绑第一科；旧版固定 subjects[0]。",
+  },
+  {
+    slug: "edu/study-planner",
+    inputs: { dailyHours: "7" },
+    clicks: ["var mk=document.getElementById('dailyHours').value;editSubject(0,'数学',0);document.getElementById('__tbProbe').textContent='PROG0 '+(mk==='7'&&data.subjects[0].progress===0?'OK':'BAD');"],
+    expect: ["PROG0 OK"],
+    ref: "EL-J59：科目进度可设为 0；旧版 parseInt(0)||s.progress 回退到 45。",
+  },
+  {
+    slug: "edu/study-planner",
+    inputs: { dailyHours: "7" },
+    clicks: ["var mk=document.getElementById('dailyHours').value;globalThis.confirm=function(){return true;};var n=data.subjects.length;deleteSubject(2);document.getElementById('__tbProbe').textContent='DELSUB '+(mk==='7'&&data.subjects.length===n-1?'OK':'BAD');"],
+    expect: ["DELSUB OK"],
+    ref: "EL-J59：科目可删除，关联任务改未分类；旧版无 deleteSubject 入口。",
+  },
+  {
+    slug: "edu/study-planner",
+    inputs: { dailyHours: "7" },
+    clicks: ["var mk=document.getElementById('dailyHours').value;var cap=null;var os=localStorage.setItem;localStorage.setItem=function(k,v){if(k==='toolbox_study_history')cap=JSON.parse(v);os(k,v);};toggleTask(0);localStorage.setItem=os;document.getElementById('__tbProbe').textContent='HISTW '+(mk==='7'&&cap&&cap.length===1&&cap[0].tasks>0?'OK':'BAD');"],
+    expect: ["HISTW OK"],
+    ref: "EL-J55：完成任务后写入历史记录；旧版历史键只有读取与删除，永不写入。",
+  },
+  {
     slug: "edu/exam-score-calculator",
     inputs: { correct: "95", targetScore: "95" },
     clicks: ["var cv=document.getElementById('correct').value;document.getElementById('targetResult').innerHTML='__STALE__';calc();var r=document.getElementById('targetResult').innerHTML;document.getElementById('__tbProbe').textContent='LIVE '+(cv==='95'&&r.indexOf('__STALE__')<0&&r.indexOf('已达标')>=0?'OK':'BAD');"],
