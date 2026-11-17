@@ -344,6 +344,12 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/nephrology/edema-grading.html','utf8');var ok=h.indexOf('value:score')>=0&&h.indexOf('min:1,max:4')>=0&&h.indexOf('{\"lo\":1,\"hi\":2')>=0&&h.indexOf('{\"lo\":0,\"hi\":3')<0;document.getElementById('__tbProbe').textContent='EDEMABAR '+(ok?'OK':'BAD');"],
   "expect": ["EDEMABAR OK"],
   "ref": "12-N114：结果分级取深度/回弹较重档 score=1..4，参考标尺必须使用同一 score 与 1/2/3/4 分带；旧版按 depth 且用 0/3/5/7 分带 ⇒ 变红。默认态不产生该串，零逃生。"
+},
+{
+  "slug": "nephrology/aki-kdigo",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/nephrology/aki-kdigo.html','utf8');var b=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/nephrology-body.json','utf8');var ok=h.indexOf('cat=health,industry=nephrology')>=0&&h.indexOf('applicationCategory\":\"MedicalApplication')>=0&&h.indexOf('content=\"AKI KDIGO Staging Calculator\"')>=0&&b.indexOf('\"title\": \"AKI KDIGO Staging\"')>=0&&b.indexOf('\"title\": \"Aki Kdigo\"')<0;document.getElementById('__tbProbe').textContent='AKIMETA '+(ok?'OK':'BAD');"],
+  "expect": ["AKIMETA OK"],
+  "ref": "12-N99：分类元数据归健康医疗、JSON-LD 标 MedicalApplication、英文 title-en 完整，nephrology-body 权威源不再保留 Aki Kdigo 占位；旧版 cat=calculator/UtilitiesApplication 且 body 源占位 ⇒ 变红。默认态不产生该串，零逃生。"
 }
 ];
 async function main() {

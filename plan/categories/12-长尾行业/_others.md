@@ -633,13 +633,6 @@
 - 影响：`tools/nephrology/aki-kdigo.html` 透析患者被低估分期；负值被当无尿。
 - 方案：增加「已开始 RRT/透析」复选框，勾选即 `finalStage=3`；尿量/时长下限校验（0≤urine，duration≥0）。需肾内科复核。
 
-### 12-N99 nephrology/aki-kdigo：分类元数据为 finance，英文标题/简介仍是占位（低，确认缺陷）
-- 问题：`<meta name="toolbox" content="cat=finance,…">`（`:9`）与 JSON-LD `applicationCategory:"FinanceApplication"`（`:34`）把肾脏内科工具归为金融；`title-en` 为「Aki Kdigo」（`:56`），`desc-en` 为「Aki Kdigo - online utility on ToolBox.」（`:57`）。
-- 证据：`:9`、`:34`、`:56`、`:57`
-- 复现：页面源码/结构化数据检查 → 分类=finance、英文名大小写错误且截断；英文态卡片显示占位简介。
-- 影响：`tools/nephrology/aki-kdigo.html` 分类页归档错误、英文搜索结果质量差。
-- 方案：cat 改 `health`（与同目录其他工具一致），applicationCategory 改 `MedicalApplication`；title-en 补全为「AKI KDIGO Staging」，desc-en 写真实功能。
-
 **留存建议（nephrology/aki-kdigo）**
 - 增加「变化时间窗（48h/7d）」与「已开始 RRT」两个字段，先判 AKI 再分期。
 - 输出「肌酐比值/增量/尿量分期」三联推导，并给出血肌酐 mg/dL 与 μmol/L 双单位换算。
