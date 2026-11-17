@@ -1705,8 +1705,22 @@ const CASES = [
       "utmNorthing": "42",
       "utmHemisphere": "S"
     },
-    "expect": ["需注意精度损失。\n42\nS\n42\n42\n-2779796542", "° 纬度 1138178550", "° 经度 -277979654269°29'42.64"],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"lat\":\"42\",\"lon\":\"42\",\"utmZone\":\"42\",\"utmEasting\":\"42\",\"utmNorthing\":\"42\",\"utmHemisphere\":\"S\"}，输出区含「需注意精度损失。\n42\nS\n42\n42\n-277979654269.495178…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": ["该带号与东移/北移值不匹配，无法反算为有效经纬度"],
+    "ref": "自动补强（B类零用例）·SMS-101 清账：注入非默认输入{\"lat\":\"42\",\"lon\":\"42\",\"utmZone\":\"42\",\"utmEasting\":\"42\",\"utmNorthing\":\"42\",\"utmHemisphere\":\"S\"}，E=42/N=42 落在物理范围内但与带号 42 不匹配，旧版反算溢出为荒谬值「经度 -277979654269°29'42.64」；现结果域守卫拒绝并提示「该带号与东移/北移值不匹配，无法反算为有效经纬度」。默认态（合法 E/N）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "science/latlon-utm-converter",
+    "inputs": { lat: "0", lon: "180" },
+    clicks: ["convertLL2UTM()"],
+    expect: ["60 UTM带号", "中央经线： 177.0°"],
+    ref: "SMS-101 清账（经度边界）：经度 +180° 是 UTM 东半球的合法边界，应归入第 60 带（中央经线 = 6×60−180+3 = 177.0°）。旧版 ⌊(180+180)/6⌋+1 = 61 越出合法的 1~60 带号，中央经线算成 183.0°；现钳制到 60。两条锚旧版均不成立（旧版为 61/183.0°）⇒ 零逃生。",
+  },
+  {
+    "slug": "science/latlon-utm-converter",
+    "inputs": { utmZone: "50", utmHemisphere: "N", utmEasting: "1500000", utmNorthing: "5000000" },
+    clicks: ["convertUTM2LL();document.getElementById('utmEasting').value='UTMRNG_'+(String(document.getElementById('result-utm2ll').textContent||document.getElementById('result-utm2ll').innerHTML).indexOf('超出有效范围')>=0?'OK':'BAD');"],
+    expect: ["UTMRNG_OK"],
+    ref: "SMS-101 清账（E 范围守卫）：东移值 1500000 m 超出 UTM 假东移 500000 的物理上限 1000000，旧版照常反算输出荒谬经纬度；现直接提示「UTM 坐标超出有效范围」。探针断言结果容器出现该提示，旧版 ⇒ UTMRNG_BAD，零逃生。",
   },
   {
     "slug": "science/led-resistor-calculator",

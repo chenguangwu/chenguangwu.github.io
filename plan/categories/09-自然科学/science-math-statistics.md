@@ -189,7 +189,7 @@
 - `tools/science/lcm-calculator.html`：SMS-94 同族严格解析已修；SMS-96 改为先除后乘 `a/g*b` 缓解 gcd>1 时的中间积溢出，但互质大数（如 1000000007×1000000009）结果超 2^53 仍需 BigInt 重构，保留待专业裁断。
 - `tools/science/geo-distance-calculator.html`：SMS-97 已修——Haversine、初始方位角与英里/海里换算正确（北京 39.9042,116.4074 → 上海 31.2304,121.4737 = 1067.310 km）；同组错误按字段保存后聚合渲染，lat1 越界不会被随后合法的 lon1 抹掉。仍共用 SMS-106。
 - `tools/science/heat-transfer-calculator.html`：1 条（SMS-100 承诺未实现）。默认铜 401 W/m·K / 10 cm² / 10 mm / ΔT 75 → 3007.50 W、热流密度 3,007,500.00 W/m² 正确；SMS-98/99 已修——非正/非有限参数清结果并拒绝，历史记录回填 17 个输入字段；比热容 Q=mcΔT 的主结果、卡、历史与导出按热量 J/kJ/kWh/kcal 显示。热辐射仍只有公式没有计算。
-- `tools/science/latlon-utm-converter.html`：1 条（SMS-101 中）。北京 39.9042,116.4074 → 50N 449345.061E 4417292.495N（收敛角 −0.2916°、比例因子 0.999632），正反算往返准确；问题为 lon=180 得 61 带以及反算无 E/N 范围校验。
+- `tools/science/latlon-utm-converter.html`：SMS-101 已修——北京 39.9042,116.4074 → 50N 449345.061E 4417292.495N（收敛角 −0.2916°、比例因子 0.999632），正反算往返准确；经度 +180° 钳制到第 60 带（中央经线 177.0°），反算增加 E (0~1e6)/N (0~1e7) 范围与结果域校验，带号与 E/N 不匹配时明确拒绝而非输出荒谬经纬度。
 - `tools/science/led-resistor-calculator.html`：3 条（SMS-102、SMS-103 高，SMS-104 中）。串联 5 V/20 mA/2.2 V → R 140 Ω、P 56.0 mW 正确，标准电阻与实际电流亦正确；问题为并联功率少乘 n、精度下拉死输入、取最近值导致实际电流超额定。
 - `tools/science/log-calculator.html`：SMS-105 已修——极小值示例与 `fmt()` 普通分支均使用科学计数（阈值 ≤1e-3），`1e-5` 不再被 `toLocaleString()` 默认 3 位小数显示为 0。
 
@@ -197,11 +197,9 @@
 |---|---|---|
 | tools/science/lcm-calculator.html | 第 1006 批已把 `lcm2` 改为先除后乘 `abs(a/gcd*b)` 并同步步骤行，缓解 gcd>1 时中间积溢出；但互质大数 lcm(1000000007,1000000009) 真值 1,000,000,016,000,000,063 超 2^53，Number 无法精确表示，仍需 BigInt 重构（未自判）。:234 | SMS-96 |
 | tools/science/heat-transfer-calculator.html | 承诺未实现：英文 intro「conductive, convective and radiative … Stefan-Boltzmann」、公式列表、公式框「☀️ 热辐射公式」、FAQ「传导、对流与辐射的热量传递」均承诺辐射计算，但页面仅 conduction/specific/convection 三模式，无 ε、辐射面积、T₁⁴/T₂⁴ 输入，Q=εσA(T₁⁴−T₂⁴) 无法计算。:179、:362、:395、:904 对 :198-201、:620-683 | SMS-100 |
-| tools/science/latlon-utm-converter.html | `zone=Math.floor((lon+180)/6)+1` 在 lon=180 得 61 带（无此带、中央经线 183°、E 166021.443），反向却只收 1–60 无法回转；反向亦不校验 easting/northing，0/0 → 0.000000°,112.511256°，1e6/2e7 → 纬度 180.036710°（node 复刻）。:337-338、:420-427 | SMS-101 |
 | tools/science/led-resistor-calculator.html | 并联功率少乘 n：R=(Vs−Vf)/(If·n) 正确，但 `P=If²·R·n` 应为 `(n·If)²·R`，`:578` 的 actualP 同错。12 V/20 mA/2.2 V/2 只显示 196.0 mW（真值 400.2 mW）、建议 1/2W（应 1W）；n=4 仍显示 196.0 mW（真值 800.3 mW）。:546-547、:578、:566-575 | SMS-102 |
 | tools/science/led-resistor-calculator.html | 「电阻精度」死输入：`nearestStdR(v,tol)` 的 `tol` 在函数体内从未使用，始终只查 E24 表，±1%(E96)/±10%(E12)/±20%(E6) 四个选项对结果零影响，明细却打印「(±xx%)」造成有效假象。:480-492、:245-250、:590 | SMS-103 |
 | tools/science/led-resistor-calculator.html | `nearestStdR` 取绝对差最近值而非「不小于」：R=140 Ω（5 V/20 mA/2.2 V）选 130 Ω，实际电流 21.54 mA 超设定 20 mA（+7.7%）；取 150 Ω 则为 20.53 mA。:482-492、:565、:577 | SMS-104 |
-| tools/science/log-calculator.html | 2026-11-06 复核：`fmt` 对非零绝对值小于 1e-6 的数已改为科学计数，提取页面实际函数在 Node 执行 `fmt(1e-13)` 得 `1.000000e-13`，旧示例已修。残留：普通分支 `toLocaleString()` 不指定精度，Node 中 `fmt(1e-5)` 仍显示 `0`，可把合法真数或底数误写为 0；需在浏览器确认实际格式。:245-249 | SMS-105 |
 | tools/science/gcd-calculator.html | 附加历史模板把 `.result-box` 文本截 80 字存入「结果」列，趋势图再 `parseFloat` 该文本：gcd/lcm 以「输入：」开头、log 以「x = 」开头、geo 以「📊 计算详情」开头 → 恒 NaN，图永不绘制且结果列显示输入串；factorial「10! = …」得 10，图表画的是输入 n 而非 n!。:326-332、:368（同模板 lcm:307/349、log:308/350、geo:1027/1069、factorial:343/385） | SMS-106 |
 
 - 声明：本轮仅逐页通读 8 页源码（HTML + 内联 JS），用 node 在 `/tmp` 复刻主算与边界（BigInt 阶乘位数、斯特林溢出、parseInt 精度、√n 枚举、双精度乘积、UTM 正反算、LED 并联功率/标准电阻、对数 fmt），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。

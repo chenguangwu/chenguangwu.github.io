@@ -322,8 +322,8 @@ function convertLL2UTM(){
   const latRad = lat * DEG2RAD;
   const lonRad = lon * DEG2RAD;
 
-  // 计算UTM带号
-  const zone = Math.floor((lon + 180) / 6) + 1;
+  // 计算UTM带号：合法范围 1~60，经度 +180° 归入第 60 带，不越界成 61
+  const zone = Math.max(1, Math.min(60, Math.floor((lon + 180) / 6) + 1));
   const centralMeridian = ((zone - 1) * 6 - 180 + 3) * DEG2RAD;
   const hemisphere = lat >= 0 ? 'N' : 'S';
 
@@ -414,6 +414,11 @@ function convertUTM2LL(){
     ToolBox.setResult('result-utm2ll', '<p style="color:var(--danger);">请输入有效的UTM坐标</p>');
     return;
   }
+  // UTM 假东移 500000 m、假北移 10000000 m；超出物理范围的 E/N 直接拒绝
+  if(easting < 0 || easting > 1000000 || northing < 0 || northing > 10000000){
+    ToolBox.setResult('result-utm2ll', '<p style="color:var(--danger);">UTM 坐标超出有效范围（东移 0~1000000 m，北移 0~10000000 m）</p>');
+    return;
+  }
 
   const centralMeridian = ((zone - 1) * 6 - 180 + 3) * DEG2RAD;
 
@@ -451,6 +456,12 @@ function convertUTM2LL(){
 
   const latDeg = lat * RAD2DEG;
   const lonDeg = lon * RAD2DEG;
+
+  // 反算结果须落在合法经纬度域内；带号与 E/N 不匹配时反算会溢出为荒谬经纬度
+  if(!isFinite(latDeg) || !isFinite(lonDeg) || latDeg < -90 || latDeg > 90 || lonDeg < -180 || lonDeg > 180){
+    ToolBox.setResult('result-utm2ll', '<p style="color:var(--danger);">该带号与东移/北移值不匹配，无法反算为有效经纬度</p>');
+    return;
+  }
 
   // 格式化度分秒
   function toDMS(val){
