@@ -196,6 +196,12 @@ const CASES = [
   "clicks": ["selectSeason('autumn');var info=String(document.getElementById('seasonInfo').innerHTML);var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/gardening/pruning-calendar.html','utf8');var i=h.indexOf('function __pruning_calendarExport(){'),j=h.indexOf('function __pruning_calendarPresets(){');var ex=j>i?h.slice(i,j):'';var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var ok=info.indexOf('不宜修剪 5 种')>=0&&ex.indexOf(\"TBKit.util.exportTable('#pruning_calendarTable'\")<0&&ex.indexOf('TBKit.util.exportCsv')>=0&&ex.indexOf('PLANTS.forEach')>=0&&ex.indexOf('SEASONS.forEach')>=0&&h.indexOf(\"name:'月季', icon:'🌹', seasons:{spring:'best',summer:'ok',autumn:'best',winter:'best'}\")>=0&&h.indexOf(\"name:'栀子花', icon:'🌼', seasons:{spring:'avoid',summer:'ok',autumn:'best',winter:'avoid'}\")>=0&&h.indexOf(\"name:'杜鹃', icon:'🌺', seasons:{spring:'avoid',summer:'best',autumn:'avoid',winter:'ok'}\")>=0&&dd.indexOf('春冬 best（冬季休眠期重剪）、夏秋 ok')>=0;document.getElementById('__tbProbe').textContent='PRUNECAL '+(ok?'OK':'BAD');"],
   "expect": ["PRUNECAL OK"],
   "ref": "12-N225/N226：导出函数不再读搜索历史表，改为 PLANTS×SEASONS 全矩阵经 exportCsv 输出；杜鹃秋季、栀子花春季改 avoid，与自身描述一致；月季冬季按公式框重剪改 best。注入秋季后不宜植物由旧版 4 种变 5 种，默认春季为 3 种，零逃生；源码形态同时校验深解算例口径。"
+},
+{
+  "slug": "gardening/lawn-mowing",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/gardening/lawn-mowing.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/gardening/lawn-mowing.json','utf8');var ok=h.indexOf('早熟禾 5 至 8 cm')<0&&h.indexOf('结缕草 2.5 至 5 cm')<0&&h.indexOf('高羊茅 6 至 9 cm')<0&&h.indexOf('早熟禾 4–5 cm')>=0&&h.indexOf('结缕草 3–5 cm')>=0&&h.indexOf('高羊茅 5–6 cm')>=0&&h.indexOf('秋季约每 10 天 1 次')>=0&&en.indexOf('Kentucky bluegrass 5 to 8 cm')<0&&en.indexOf('Kentucky bluegrass 4-5 cm')>=0&&en.indexOf('about every 10 days in autumn')>=0;document.getElementById('__tbProbe').textContent='LAWNFM '+(ok?'OK':'BAD');"],
+  "expect": ["LAWNFM OK"],
+  "ref": "12-N227：公式框原写早熟禾 5–8、结缕草 2.5–5、高羊茅 6–9 cm，与 GRASSES 数据表（4–5 / 3–5 / 5–6 cm）冲突；生长期每 5–7 天又与秋季每 10 天冲突。修复后公式为数据表口径并区分春季 5–7 天、秋季 10 天、冬季 2–4 周；中英源同时校验，旧版任一旧串命中即红。"
 }
 ];
 async function main() {
