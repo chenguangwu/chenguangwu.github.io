@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -78,8 +80,15 @@ const CASES = [
     "ambientTemp": "20",
     "bodyWeight": "70"
   },
-  "expect": ["估算范围：0 分钟 ~ 2 小时 48 分钟", "⚠️ 直肠温度≥37°C"],
-  "ref": "auto-restore"
+  "expect": ["直肠温度不应高于 37.2°C", "已超出死后冷却公式适用范围"],
+  "ref": "12-N21：Tr≥37.2 已进入正常体温区间，Henssge 为 0 或负值、区间无意义；新版在字段级直接拒算并提示，旧版输出「估算范围：0 分钟 ~ 2 小时 48 分钟」（区间上界原样为负）"
+},
+{
+  "slug": "forensic-medicine/death-time-estimation",
+  "inputs": {"rectalTemp": "32", "ambientTemp": "20", "bodyWeight": "70", "corneal": "0"},
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/forensic-medicine/death-time-estimation.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var d=JSON.parse(dd)['forensic-medicine/death-time-estimation'];var ok=h.indexOf('两法参考区间：')>=0&&h.indexOf('非上方综合值的置信区间')>=0&&h.indexOf('角膜混浊参考（独立指标，不参与上方加权）')>=0&&h.indexOf('相差较大，两指标不一致')>=0&&h.indexOf('drawTempChart(Ta, K, correction)')>=0&&h.indexOf('var k = K * correction;')>=0&&h.indexOf('0.4 * factor / 1.5')<0&&h.indexOf('不应高于 37.2°C')>=0&&d.scenarios[2].indexOf('独立参考')>=0&&d.examples[0].body.indexOf('0~4')<0;document.getElementById('__tbProbe').textContent='DTCONSIST '+(ok?'OK':'BAD');"],
+  "expect": ["DTCONSIST OK"],
+  "ref": "12-N19/N20/N22：区间文案标注为两法参考区间（非综合值 CI）、角膜改独立指标并加一致性复核提示、曲线改用与数值模型同一 K（去掉旧的 0.4*factor/1.5 固定速率）；deep-dive 权威源同步 0-3 四档与独立参考口径。源码形态哨兵，旧版四处旧串命中即红"
 },
 {
   "slug": "forensic-medicine/detector-10",

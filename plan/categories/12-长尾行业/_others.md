@@ -175,34 +175,6 @@
 
 > 范围：本轮阅读 8 页——`tools/beauty/skincare-routine.html`（beauty）、`tools/forensic-medicine/death-time-estimation.html`（forensic-medicine）、`tools/metallurgy/hardness-conversion.html`（metallurgy）、`tools/urology/psa-density.html`（urology）、`tools/ent/lund-mackay-score.html`（ent）、`tools/pulmonology/curb65.html`（pulmonology）、`tools/nephrology/ckd-staging.html`（nephrology）、`tools/acupuncture/acupoint-location.html`（acupuncture）。仅源码 + `node -e` 内存复算，未开浏览器、未做 EN/移动端/门禁验证。
 
-### 12-N19 forensic-medicine/death-time-estimation：默认首屏“综合估算”落在自报区间之外，且与默认角膜分期相差一个数量级（高，确认缺陷）
-- 问题：默认输入（Tr=32、Ta=20、W=70、普通穿着 0.7、室内 1.0、角膜“透明”）下，`combined = Glaister×0.35 + Henssge×0.65`（`:399`）为 14.18 h，而“估算范围”直接用 Henssge±2.8（`:394-396`）得 15.77–21.37 h；估算值不在自己展示的区间内。同时默认角膜“透明”标 0–2 小时（`:169`、`:403`、`:441`），与 14 小时结论相差一个数量级，页面无冲突提示。
-- 证据：`tools/forensic-medicine/death-time-estimation.html:389-396`、`:399`、`:430`、`:169`、`:403`、`:441`
-- 复现（node 复算）：K=0.4、correction=0.7 → Henssge=18.571 h、lower=15.771 h、upper=21.371 h、Glaister=6.024 h、combined=14.180 h → 页面“14 小时 11 分钟 / 估算范围：15 小时 46 分钟 ~ 21 小时 22 分钟 / 角膜透明 0-2 小时”。
-- 影响：同一屏三个数字互相否定；区间看起来像“综合估算的 95% CI”却与点估计不重叠，法医学教学与初步判断会被误导。
-- 方案：区间改为以 combined 为中心的合成不确定度，或明确标注“Henssge 法 95% 区间（不含 Glaister）”；角膜改为独立参考并在与尸温估算差 >6 h 时高亮“请复核”；默认值应自洽。需法医/临床复核。
-
-### 12-N20 forensic-medicine/death-time-estimation：宣称“角膜交叉验证”，代码从未让角膜参与加权或校验（中，确认缺陷）
-- 问题：页眉/简介称“基于尸温下降公式与角膜混浊程度综合估算”，深度解析称“以角膜混浊分级（0~4）交叉验证”（`:257`）；但 `combined` 只由 Glaister 与 Henssge 加权（`:399`），角膜仅输出独立文本（`:401-408`、`:441`），既不进入结果也不产生一致性告警。另深度解析写“角膜分级 0~4”，下拉只有 0–3 四档（`:169-172`）。
-- 证据：`tools/forensic-medicine/death-time-estimation.html:257`、`:399`、`:401-408`、`:441`、`:169-172`
-- 复现：默认输入 → 尸温估算 14 h 11 min，角膜“透明 0-2 h”，页面并列展示但不提示矛盾；把角膜切到“重度混浊（15-24 h 以上）” → 综合估算仍是 14 h 11 min，不随角膜变化。
-- 影响：用户以为角膜已参与“综合”，实际只是贴了一行参考；角膜与尸温明显冲突时没有复核提示。
-- 方案：要么把角膜分期映射为时间区间并与尸温结果做一致性校验（差异 >6 h 高亮），要么把文案改为“角膜混浊仅作独立参考”；分级统一为 0–3 或补第 4 档。需法医复核。
-
-### 12-N21 forensic-medicine/death-time-estimation：Tr≥37.2 时出现负 Henssge 与负区间上界（中，确认缺陷）
-- 问题：代码只把 `glaisterHours` 与 `combined` 截到 0（`:416-417`），没有截断 `upper`；Tr 输入 45 时 Henssge=-27.857 h，`upper=-25.057 h` 原样交给 `fmtH`，输出“0 分钟 ~ -1503 分钟”，Henssge 卡还显示“-27.9”。校验只拦空值，不拦 Tr 高于 37.2（`:371`）。
-- 证据：`tools/forensic-medicine/death-time-estimation.html:392`、`:395-396`、`:416-417`、`:419-423`、`:430`、`:435`
-- 复现：Tr=45、Ta=20、W=70、普通穿着/室内 → Henssge -27.857 h、lower 0、upper -25.057 h → “估算范围：0 分钟 ~ -1503 分钟”；Henssge 法 -27.9 h、综合估算 0 分钟。期望 Tr≥37.2 时停止计算并提示“尸温不应高于 37.2°C/区间无效”。
-- 影响：非法输入生成负时间与负区间，复制/导出的报告含无意义数值，可能被误当成“已冷却完毕”。
-- 方案：Tr≥37.2 直接报字段错误并清空结果；至少把 lower/upper 同步 `Math.max(0, …)`；`fmtH` 加负值保护；补 37.2/37.3/45 三组用例。
-
-### 12-N22 forensic-medicine/death-time-estimation：冷却曲线不随体重变化，与 Henssge 的 K 模型脱节（低，确认缺陷）
-- 问题：正文 Henssge 用 `K=0.4*sqrt(70/W)`（`:389`），但温度下降图 `drawTempChart(Ta, env*clothing)` 的曲线速率固定为 `0.4*factor/1.5`（`:454`、`:467-468`），完全不含体重。W 从 70 改到 120 时数值估算变化，图却不变。
-- 证据：`tools/forensic-medicine/death-time-estimation.html:389`、`:454`、`:457`、`:467-468`
-- 复现：Tr=32、Ta=20、普通穿着/室内，W=70 → K=0.400、Henssge 18.571 h；W=120 → K=0.305、Henssge 24.317 h；两次图的曲线完全相同（同一 Ta 与 factor）。
-- 影响：可视化与数值模型脱节，用户按图判断冷却进程会被误导。
-- 方案：曲线改用同一 K 与 Henssge 指数模型 `T(t)=Ta+(37.2-Ta)*exp(-K*correction*t)`，并在图注标明“示意”。
-
 **留存/优势（forensic-medicine/death-time-estimation）**
 - 报告式输出：输入、两法结果、区间、角膜分期、警示合成一段可复制/打印的鉴定参考。
 - 增加“角膜 vs 尸温差异”一致性徽标，冲突时自动提示复核。
