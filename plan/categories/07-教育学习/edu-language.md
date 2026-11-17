@@ -502,14 +502,6 @@
 - 方案：校验 `0<=correct<=totalQ`、`totalQ>=1`、`total>0`、`0<=passLine<=100`；非法时清空结果并提示，不再用 `||` 静默默认。
 - 留存建议：同上。
 
-### EL-J52 考试成绩计算器：考试名未转义写入历史 innerHTML，可触发自我 XSS（中，确认缺陷）
-- 问题：历史卡片模板直接拼接 `${item.examName}`，保存时只 `trim()` 未清洗；localStorage 中的旧记录同样原样渲染。
-- 证据：`tools/edu/exam-score-calculator.html:484`（仅 trim）、`:525`（`${item.examName}` 进入 innerHTML）、`:528`（整段 `html` 赋给 `innerHTML`）。
-- 复现：考试名填 `<img src=x onerror=alert(1)>` → 保存后切到历史页即执行脚本；刷新后仍执行。
-- 影响：`tools/edu/exam-score-calculator.html`；可持久化的自我 XSS，亦可破坏历史列表结构。
-- 方案：`item.examName` 经 `ToolBox.escHtml` 后再插入；导入旧数据时同样清洗。
-- 留存建议：同上。
-
 ### EL-J53 考试成绩计算器：使用说明称「历史记录自动保存最近 20 次」，实际必须手动点保存（低，确认缺陷）
 - 问题：使用说明写自动保存，但页面没有任何自动入库逻辑；`saveToHistory()` 只在「保存这次成绩」按钮点击时执行，计算与输入变化均不保存。
 - 证据：`tools/edu/exam-score-calculator.html:202`（自动保存文案）、`:432`（唯一的「保存这次成绩」按钮）、`:479-505`（唯一保存函数）、`:512`（空态文案要求手动点击）。

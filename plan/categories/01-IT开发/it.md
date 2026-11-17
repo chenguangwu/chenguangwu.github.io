@@ -381,15 +381,15 @@
 ## X 批 · IT 速查/编码 II（2026-11-04）
 
 ### 覆盖清单（X 批 IT 速查/编码 II）
-- `json-path`：IT-N488（高，安全）、IT-N489（高，死循环）、IT-N490（高，安全）；无其它高优（预设、递归/通配符/`length()` 主路径正确）。
+- `json-path`：IT-N489（高，死循环）；无其它高优（预设、递归/通配符/`length()` 主路径正确；原 IT-N488 `eval()` 与 IT-N490 高亮注入已修复，第 955 批复核）。
 - `barcode-codabar`：IT-N491（高，编码表）、IT-N492（中）、IT-N493（中）；其余绘制/导出 PNG 主流程可跑。
-- `charset-detector`：IT-N494（高，假工具）、IT-N495（高，安全）；无其它高优。
+- `charset-detector`：IT-N494（高，假工具）；无其它高优（原 IT-N495 输出未转义注入已修复，第 955 批复核）。
 - `php-cheatsheet`：IT-N496（中）；PDO/Composer/trait/命名空间示例均存在，其余命令与语法经核对正确。
 - `kubernetes-cheatsheet`：IT-N497（中）；32 条命令的 `kubectl get/apply/scale/rollout/logs/exec/cp` 与 YAML 示例（selector、port、pathType）经核对正确。
 - `linux-cheatsheet`：IT-N498、IT-N499、IT-N500（中）；114 条命令主体正确，搜索/分类/复制/图表渲染无注入（数据为静态，渲染前统一 `escapeHtml`）。
 - `vim-cheatsheet`：IT-N501（中）；模式/移动/替换/窗口/寄存器示例经核对正确。
 - `nickname-generator`：IT-N502、IT-N503、IT-N504（中）；无高优（生成主流程可跑，输出经 `escapeHtml`）。
-- 安全：本批 3 条——`json-path` 的 `eval()`（IT-N488）与高亮 `innerHTML`（IT-N490）、`charset-detector` 的 `innerHTML`（IT-N495），均为「用户输入未转义/未隔离」型 DOM 注入，属自触发（无持久化、无跨用户传播路径），但都是真实可控代码执行点，建议按高优修。`barcode-codabar` 的输入只进 `canvas` 与 `textContent`，无注入。
+- 安全：0 条（原 IT-N488/IT-N490/IT-N495 均已修复，第 955 批源码复核：`json-path` 无 `eval()` 且高亮前转义，`charset-detector` 输出走 `escOut`）。`barcode-codabar` 的输入只进 `canvas` 与 `textContent`，无注入。
 - 假工具：1 个（`charset-detector`，IT-N494）：名为「编码识别器」，实际只做 6 条固定串替换，文档宣称的 GBK 十六进制识别完全不存在。
 - 方法声明：逐页通读 8 页源码（含 `_build.py` 注入的图表/表格脚本）；在 `/tmp` 用 `node` 复刻 `json-path` 的 `parseTokens` 与切片循环（带步数上限判定死循环）、`parseInt('5:2')` 验证步长失效；用 `node` 遍历 `CODABAR` 表统计元素数与宽元素数，并对照 Wikipedia Codabar 结构（基础 12 符 1 宽条 + 1 宽空、起止符 1 宽条 + 2 宽空）逐字符核验；用 `hexdump` 确认 `RULES` 第二条正则两个分支均为同一 U+FFFD 字符；逐条比对 `--` 注解在 bash / PHP / kubectl / Vim 的语义。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做 git 写操作**；未修改任何工具页、代码或构建产物，新增脚本仅落在 `/tmp`，仅在本审计日志追加本节。
 
