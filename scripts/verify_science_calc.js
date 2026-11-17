@@ -2585,6 +2585,13 @@ const CASES = [
     "clicks": ["var _qs=document.querySelector.bind(document);document.querySelector=function(s){if(String(s).indexOf('dms')>=0)return {checked:true};return _qs(s);};try{swapFmt();}catch(e){}document.querySelector=_qs;var r=document.getElementById('res');r.innerHTML=r.innerHTML+' DMSPROBE type='+document.getElementById('lat1').type+' val='+document.getElementById('lat1').value;"],
     "expect": ["DMSPROBE type=text val=39°54'15.12\""],
     "ref": "SMS-77：四个坐标输入原为 type=number，swapFmt() 把度分秒串（含 ° ' \"）写回 number 输入被浏览器清空 ⇒ 坐标全空报「坐标格式无效」、切回十进制也无法恢复。修复后切格式时同步把四输入 type 改为 text（度分秒）/number（十进制），并用 parseCoord 读取已格式化值。探针勾选 dms 调 swapFmt，断言 lat1.type=text 且保留 39°54'15.12\"；旧版 type 恒 number ⇒ 不命中。默认态不执行 clicks ⇒ 零逃生。"
+  },
+  {
+    "slug": "science/astronomy-toolkit",
+    "inputs": { "mag1": "1.5", "mag2": "1.5" },
+    "clicks": ["calcMagnitude()"],
+    "expect": ["两天体星等相同，亮度相等（比值 1.00）"],
+    "ref": "SMS-71：两星等相等时 ratio=2.512^0=1，旧版 brighter='一样亮' 拼出「即天体 一样亮 比 A 亮 1.00 倍」自相矛盾。修复后相等分支独立输出「两天体星等相同，亮度相等（比值 1.00）」（英文态经 TBKit.util.isEn helper）。默认 mag1=-1.46/mag2=2.0 不等 ⇒ 走原「比…亮…倍」分支，不含该串。"
   }
 ];
 
