@@ -777,6 +777,27 @@ const CASES = [
     ref: "理想气体状态方程求压强（n=1 mol、V=10 L、T=300 K、R=8.314 J/(mol·K)）：P = nRT/V = 1×8.314×300/10 = **249.42 Pa**；页面高亮结果与上式逐字符自洽，并给出摄氏温度 300 K − 273.15 = 26.85 °C 作交叉校验。默认 gasFind 分支不同 ⇒ 不命中。",
   },
   {
+    slug: "science/chemistry-calculator",
+    inputs: {},
+    clicks: ["var a=calcMolarMass('H2Zz'),b=calcMolarMass('2H2O'),c=calcMolarMass('CuSO4.5H2O');document.getElementById('formula').value='CHM83_'+(a.error&&Math.abs(b.totalMass-36.032)<0.01&&Math.abs(c.totalMass-249.7)<0.01?'OK':'BAD');"],
+    expect: ["CHM83_OK"],
+    ref: "SMS-83 清账：未知元素 H2Zz 旧版静默跳字给 2.016，现返回 error；2H2O 旧版段首系数丢失给 18.016，现按 2 个水分子 = 36.032；CuSO4.5H2O 旧版点号未解析给 177.636，现按结晶水（本页 O=16.00）= 249.70。探针断言三者同时成立，旧版 ⇒ CHM83_BAD，零逃生。",
+  },
+  {
+    slug: "science/chemistry-calculator",
+    inputs: {},
+    clicks: ["currentCategory='concentration';selectCategory('concentration');document.getElementById('concType').value='dilution';renderConcInputs();document.getElementById('concC1').value='1';document.getElementById('concV1').value='2';document.getElementById('concC2').value='';document.getElementById('concV2').value='4';calcConcentration();var h1=String(document.getElementById('output').textContent||document.getElementById('output').innerHTML);document.getElementById('concC2').value='0.5';document.getElementById('concV2').value='';calcConcentration();var h2=String(document.getElementById('output').textContent||document.getElementById('output').innerHTML);document.getElementById('concC1').value='CHMDIL_'+(h1.indexOf('C₂ = 0.5')>=0&&h2.indexOf('V₂ = 4')>=0?'OK':'BAD');"],
+    expect: ["CHMDIL_OK"],
+    ref: "SMS-84 清账：稀释公式 C₁V₁=C₂V₂。C₁=1、V₁=2，留空 C₂ 且给 V₂=4 → C₂=1×2/4=0.5；留空 V₂ 且给 C₂=0.5 → V₂=1×2/0.5=4。旧版 C₂ 留空即报「请输入最终浓度」、给了 C₂ 又被覆盖，两个方向无法都算；现恰好留空一个即可双向求解。探针断言两向结果都出现，旧版 ⇒ CHMDIL_BAD，零逃生。",
+  },
+  {
+    slug: "science/chemistry-calculator",
+    inputs: { gasP: "101325", gasV: "0.0224", gasT: "-10", gasN: "1" },
+    clicks: ["calcGas()"],
+    expect: ["热力学温度须大于 0"],
+    ref: "SMS-85 清账：理想气体 T=-10 K 旧版直接算 n=PV/(RT) 得负物质的量；现非求解字段校验正数，T≤0 明确报错并停算。默认 T=300 不含本串，零逃生。",
+  },
+  {
     slug: "science/calc-1",
     inputs: { height: "80", v0: "0", gravity: "10" },
     clicks: ["calc()"],

@@ -178,16 +178,10 @@
 ## Y 批 · 自然科学·统计/物理/化学（2026-11-04）
 
 - `tools/science/centripetal-force.html`：0 条。默认 2 kg / 10 m·s⁻¹ / 5 m → F=40.0 N、4.0789 kgf、a=20.0000 m/s²、T=3.1416 s 正确；预设、图表、历史与差异均按 F 正常记录；v=0 因周期 T 发散被守卫拦截属合理，未发现算错/崩溃/假功能。
-- `tools/science/chemistry-calculator.html`：3 条（SMS-83～85 中）。H2O=18.016、Ca(OH)₂=74.096、Fe₂(SO₄)₃=399.910、KMnO₄=158.040 g/mol 正确，浓度/pH/理想气体主算无误；原分子式 XSS（反射 + localStorage 存储）已修复，第 953 批真机复核。剩余问题为解析静默丢未知元素/前导系数、稀释“留空求另一个”只单向可用、气体无正数校验。
+- `tools/science/chemistry-calculator.html`：SMS-83～85 已于第 1015 批真机销账——分子式严格解析（未知元素/括号失配/零下标报错、段首系数与结晶水多段独立），稀释恰好留空一个值双向求解（C₁/V₁ 必填正值），理想气体非求解字段正数校验（T=-10 K 报错）。H2O/Ca(OH)₂/Fe₂(SO₄)₃/KMnO₄ 摩尔质量、浓度/pH/气体主算均正确；原分子式 XSS 第 953 批已修。本批 Y 批已全部销账。
 
-| 页面 | 问题（含 tools/science/&lt;slug&gt;.html:NN） | 编号 |
-|---|---|---|
-| tools/science/chemistry-calculator.html | parseFormula 的 else 分支静默跳字：H2Zz→2.016 g/mol（未知元素不报错）、2H2O→18.016（应为 36.032）、CuSO4.5H2O→177.636（应为 249.685）、"(OH"→16.000；`if(ELEMENTS[part.symbol])` 只跳过未知符号不报错（node 复刻）。:354-397、:404 | SMS-83 |
-| tools/science/chemistry-calculator.html | 稀释模块标注“留空一个值求另一个”，实际 C₂ 留空即报「请输入最终浓度」（即使已填 V₂）；C₂、V₂ 都填时输入的 C₂ 被 `c1*v1/v2` 覆盖忽略。:517-519、:637-641、:650-659 | SMS-84 |
-| tools/science/chemistry-calculator.html | 理想气体不校验正数：T=-10 K → n=-27.299 mol（负物质的量）；V=0/T=0 → 输出「未定义」而非错误提示（fmt 先把非有限值转成“未定义”，:782 的无效值兜底失效）。:749-771、:777-780 | SMS-85 |
-
-- 声明：本轮仅逐页读源码（HTML + 内联 JS）并用 node 在 `/tmp` 复刻各页 `calc()` 的主算与边界分支（样本方差/总体方差、BigInt 组合数、单位系数、密度/电场量纲、指数与双曲函数溢出），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。本批为历史审计快照；SMS-86～91 已分别于早前批次及第 1014 批真机销账，仅 SMS-83～85（chemistry-calculator）残留待修；安全 0 条（原 SMS-82 XSS 已修复，第 953 批真机复核）；假工具 0 个。
-- 统计：8 页 / 3 条（SMS-83～85，均中）/ 安全 1 条（tools/science/chemistry-calculator.html:588、:596、:822）/ 假工具 0 个 / 编号区间 SMS-81～SMS-91（历史快照；SMS-81 于 969 批、SMS-86～91 于第 1014 批及之前销账）。
+- 声明：本轮为历史审计快照；SMS-81（969 批）、SMS-83～85（第 1015 批）、SMS-86～91（早前批次及第 1014 批）均已真机销账，Y 批无剩余未修项；安全 0 条（原 SMS-82 XSS 已修复，第 953 批真机复核）；假工具 0 个。
+- 统计：8 页 / 0 条（Y 批全部销账）/ 安全 1 条（tools/science/chemistry-calculator.html:588、:596、:822）/ 假工具 0 个 / 编号区间 SMS-81～SMS-91（历史快照，均已销账）。
 
 ## Z 批 · 自然科学·数学/地学/热学（2026-11-04）
 

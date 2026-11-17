@@ -340,67 +340,78 @@ function fmt(x){
   return (Math.round(x*1e10)/1e10).toLocaleString();
 }
 
+// SMS-83：严格解析分子式——未知元素、括号失配、零下标一律报错，段首系数与结晶水多段独立解析。
 function parseFormula(formula){
+  const segments = String(formula).split(/[·.]/).filter(function(x){return x.length>0;});
+  if(segments.length===0) return null;
   const result = [];
-  let i = 0;
-  while(i < formula.length){
-    if(formula[i] === '('){
-      let j = i + 1;
-      let depth = 1;
-      while(j < formula.length && depth > 0){
-        if(formula[j] === '(') depth++;
-        if(formula[j] === ')') depth--;
-        j++;
-      }
-      const inner = formula.substring(i+1, j-1);
-      let numStr = '';
-      while(j < formula.length && /[0-9]/.test(formula[j])){
-        numStr += formula[j];
-        j++;
-      }
-      const multiplier = numStr ? parseInt(numStr) : 1;
-      const innerResult = parseFormula(inner);
-      for(const item of innerResult){
-        result.push({symbol: item.symbol, count: item.count * multiplier});
-      }
-      i = j;
-    } else if(/[A-Z]/.test(formula[i])){
-      let symbol = formula[i];
-      i++;
-      while(i < formula.length && /[a-z]/.test(formula[i])){
-        symbol += formula[i];
-        i++;
-      }
-      let numStr = '';
-      while(i < formula.length && /[0-9]/.test(formula[i])){
-        numStr += formula[i];
-        i++;
-      }
-      const count = numStr ? parseInt(numStr) : 1;
-      result.push({symbol, count});
-    } else {
-      i++;
+  let bad = false;
+  function addComp(src, mult){
+    let i = 0;
+    while(i < src.length){
+      const ch = src[i];
+      if(ch==='('||ch==='['){
+        const stack=[ch];
+        let j=i+1;
+        while(j<src.length&&stack.length>0){
+          const c=src[j];
+          if(c==='('||c==='[') stack.push(c);
+          else if(c===')'||c===']'){
+            const want=stack[stack.length-1]==='('?')':']';
+            if(c!==want){bad=true;return;}
+            stack.pop();
+          }
+          j++;
+        }
+        if(stack.length!==0){bad=true;return;}
+        const inner=src.slice(i+1,j-1);
+        if(!inner){bad=true;return;}
+        let k=j,num='';
+        while(k<src.length&&src[k]>='0'&&src[k]<='9'){num+=src[k];k++;}
+        const m=num?parseInt(num,10):1;
+        if(!(m>=1)){bad=true;return;}
+        addComp(inner,mult*m);
+        if(bad)return;
+        i=k;
+      }else if(ch>='A'&&ch<='Z'){
+        let el=ch;i++;
+        if(i<src.length&&src[i]>='a'&&src[i]<='z'){el+=src[i];i++;}
+        if(!ELEMENTS[el]){bad=true;return;}
+        let num='';
+        while(i<src.length&&src[i]>='0'&&src[i]<='9'){num+=src[i];i++;}
+        const n=num?parseInt(num,10):1;
+        if(!(n>=1)){bad=true;return;}
+        result.push({symbol:el,count:mult*n});
+      }else{bad=true;return;}
     }
   }
-  return result;
+  for(const seg of segments){
+    const m=seg.match(/^([0-9]+)([\s\S]*)$/);
+    const coef=m?parseInt(m[1],10):1;
+    const body=m?m[2]:seg;
+    if(!body||!(coef>=1)){bad=true;break;}
+    addComp(body,coef);
+    if(bad)break;
+  }
+  return bad?null:result;
 }
 
 function calcMolarMass(formula){
   const parts = parseFormula(formula);
+  if(!parts) return {error:'化学式格式有误或含未知元素'};
   let totalMass = 0;
   const detail = [];
   for(const part of parts){
-    if(ELEMENTS[part.symbol]){
-      const mass = ELEMENTS[part.symbol].mass * part.count;
-      totalMass += mass;
-      detail.push({
-        symbol: part.symbol,
-        name: ELEMENTS[part.symbol].name,
-        count: part.count,
-        mass: ELEMENTS[part.symbol].mass,
-        total: mass
-      });
-    }
+    if(!ELEMENTS[part.symbol]) return {error:'未知元素 '+part.symbol};
+    const mass = ELEMENTS[part.symbol].mass * part.count;
+    totalMass += mass;
+    detail.push({
+      symbol: part.symbol,
+      name: ELEMENTS[part.symbol].name,
+      count: part.count,
+      mass: ELEMENTS[part.symbol].mass,
+      total: mass
+    });
   }
   return {totalMass, detail};
 }
@@ -568,8 +579,8 @@ function calcMolar(){
     return;
   }
   const result = calcMolarMass(formula);
-  if(result.detail.length === 0){
-    const __h15='<p style="color:var(--danger);">无法解析分子式，请检查输入</p>';if((typeof __h15==='number'&&!isFinite(__h15))||/Infinity/.test(String(__h15))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h15)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h15;
+  if(result.error || !result.detail || result.detail.length === 0){
+    const __h15='<p style="color:var(--danger);">'+(result.error||'无法解析分子式，请检查输入')+'</p>';if((typeof __h15==='number'&&!isFinite(__h15))||/Infinity/.test(String(__h15))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h15)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h15;
     return;
   }
   let html = '<div class="molar-result">';
@@ -624,9 +635,23 @@ function calcConcentration(){
     const c2 = parseFloat(document.getElementById('concC2').value);
     const v2 = parseFloat(document.getElementById('concV2').value);
     let result = '';
-    if(isNaN(c2)||c2===0){
-      html = '<p style="color:var(--danger);">请输入最终浓度</p>';
-    } else if(isNaN(v2)){
+    const c1Empty = isNaN(c1), v1Empty = isNaN(v1), c2Empty = isNaN(c2), v2Empty = isNaN(v2);
+    const emptyCount = (c1Empty?1:0)+(v1Empty?1:0)+(c2Empty?1:0)+(v2Empty?1:0);
+    if((!c1Empty&&!isFinite(c1))||(!v1Empty&&!isFinite(v1))||(!c2Empty&&!isFinite(c2))||(!v2Empty&&!isFinite(v2))||
+       (!c1Empty&&c1<=0)||(!v1Empty&&v1<=0)||(!c2Empty&&c2<=0)||(!v2Empty&&v2<=0)){
+      html = '<p style="color:var(--danger);">请输入有效的正值（体积与浓度须为正）</p>';
+    } else if(emptyCount!==1 || c1Empty || v1Empty){
+      html = '<p style="color:var(--danger);">请留空 C₂ 或 V₂ 其中一个，C₁ 与 V₁ 必须填写</p>';
+    } else if(c2Empty){
+      const c = c1 * v1 / v2;
+      result = 'C₂ = '+fmt(c)+' mol/L';
+      html = '<div class="molar-result">';
+      html += `<div class="molar-mass">${result}</div>`;
+      html += `<div class="molar-detail">稀释后浓度</div></div>`;
+      html += '<div class="step-line">稀释公式：C₁V₁ = C₂V₂</div>';
+      html += '<div class="step-line">C₂ = C₁V₁ / V₂ = '+fmt(c1)+' × '+fmt(v1)+' / '+fmt(v2)+' = '+fmt(c)+' mol/L</div>';
+      saveHistory('稀释计算', {C2:c, unit:'mol/L'});
+    } else if(v2Empty){
       const v = c1 * v1 / c2;
       result = 'V₂ = '+fmt(v)+' L';
       html = '<div class="molar-result">';
@@ -636,15 +661,6 @@ function calcConcentration(){
       html += '<div class="step-line">V₂ = C₁V₁ / C₂ = '+fmt(c1)+' × '+fmt(v1)+' / '+fmt(c2)+' = '+fmt(v)+' L</div>';
       html += '<div class="step-line">需加水：ΔV = '+fmt(v-v1)+' L</div>';
       saveHistory('稀释计算', {V2:v, unit:'L'});
-    } else {
-      const c = c1 * v1 / v2;
-      result = 'C₂ = '+fmt(c)+' mol/L';
-      html = '<div class="molar-result">';
-      html += `<div class="molar-mass">${result}</div>`;
-      html += `<div class="molar-detail">稀释后浓度</div></div>`;
-      html += '<div class="step-line">稀释公式：C₁V₁ = C₂V₂</div>';
-      html += '<div class="step-line">C₂ = C₁V₁ / V₂ = '+fmt(c1)+' × '+fmt(v1)+' / '+fmt(v2)+' = '+fmt(c)+' mol/L</div>';
-      saveHistory('稀释计算', {C2:c, unit:'mol/L'});
     }
   } else if(type === 'mass_percent'){
     const solute = parseFloat(document.getElementById('concSolute').value);
@@ -735,10 +751,22 @@ function renderPhResult(ph, h, Kw, oh, poh){
 function calcGas(){
   const find = document.getElementById('gasFind').value;
   const R = 8.314;
-  let P = parseFloat(document.getElementById('gasP').value);
-  let V = parseFloat(document.getElementById('gasV').value);
-  let n = parseFloat(document.getElementById('gasN').value);
-  let T = parseFloat(document.getElementById('gasT').value);
+  const rawP = document.getElementById('gasP').value, rawV = document.getElementById('gasV').value;
+  const rawN = document.getElementById('gasN').value, rawT = document.getElementById('gasT').value;
+  let P = rawP.trim()===''?NaN:Number(rawP);
+  let V = rawV.trim()===''?NaN:Number(rawV);
+  let n = rawN.trim()===''?NaN:Number(rawN);
+  let T = rawT.trim()===''?NaN:Number(rawT);
+  // 非求解字段必须给定有限正数：V/n/T 为分母或物理量，负值无意义（T 用热力学温标）。
+  const fields = {P:P, V:V, n:n, T:T};
+  for(const key of ['P','V','n','T']){
+    if(key===find) continue;
+    const v = fields[key];
+    if(!isFinite(v)||v<=0){
+      document.getElementById('output').innerHTML='<p style="color:var(--danger);">请输入有效的正值（体积、物质的量与热力学温度须大于 0）</p>';
+      return;
+    }
+  }
   let result = '';
   let steps = '';
   if(find === 'P'){
