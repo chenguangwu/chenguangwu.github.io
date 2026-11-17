@@ -289,13 +289,24 @@ function calculate(){
   }
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
 }
+// 主线程同步分解必须有工作量上限，否则安全整数内的大质数会长时间阻塞交互。
+// 超限时不伪造「完整分解」：只跳过分解并保留已快速算出的 GCD。
+const MAX_TRIAL_DIVISIONS = 200000;
 function factorize(n){
   n=Math.abs(n);
   if(n===1) return '1';
   const factors={};
   let x=n;
-  for(let i=2;i*i<=x;i++){
-    while(x%i===0){ factors[i]=(factors[i]||0)+1; x/=i; }
+  let i=2, trials=0;
+  while(i<=x/i && trials<MAX_TRIAL_DIVISIONS){
+    if(x%i===0){
+      while(x%i===0){ factors[i]=(factors[i]||0)+1; x/=i; }
+    }
+    i += (i===2?1:2);
+    trials++;
+  }
+  if(x>1 && i<=x/i && trials>=MAX_TRIAL_DIVISIONS){
+    return '因数分解超出同步计算上限（'+fmt(MAX_TRIAL_DIVISIONS)+' 次试除），已跳过；GCD 结果仍有效';
   }
   if(x>1) factors[x]=(factors[x]||0)+1;
   return Object.entries(factors).map(([p,e])=>e>1?p+'^'+e:p).join(' × ');

@@ -2622,6 +2622,62 @@ const CASES = [
     "clicks": ["calcPolar();var t=String(document.getElementById('polarResult').innerHTML);document.getElementById('polarLat').value='POLAREDGE_'+(t.indexOf('66.5°')>=0&&t.indexOf('不是全年极昼或极夜')>=0&&t.indexOf('全年为极昼或极夜')<0?'OK':'BAD '+t.slice(0,60));"],
     "expect": ["POLAREDGE_OK"],
     "ref": "SMS-72：纬度 66.5° 时 declCritical=23.5°，大于页面简化模型的 maxDecl=23.44°，旧版进入早退分支输出「理论上全年为极昼或极夜」，与常用 66.5° 极圈定义直接矛盾。修复后说明该纬度处在常用 66.5° 与 23.44° 真极圈之间：太阳中心几何口径不满足严格阈值，但视直径+折射可致夏至/冬至前后短暂无落日或无日出，并明确否定「全年」。Time and Date 天文资料确认极圈按太阳中心定义、上缘与折射会让极点内侧出现偏差，不能把边界附近写成全年极昼/极夜。默认 polarLat=70（进入正常日期分支）不命中。"
+  },
+  {
+    slug: "science/battery-life-calculator",
+    inputs: {},
+    clicks: ["var _qs=document.querySelector;document.querySelector=function(s){return s==='#battHidden tbody'?document.getElementById('battHidden'):_qs(s);};globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){}},diffBox:function(){}};var c=document.getElementById('cap'),u=document.getElementById('capUnit'),i=document.getElementById('curr'),iu=document.getElementById('currUnit');c.value='3';u.value='1000';i.value='2';iu.value='1000';document.getElementById('volt').value='7.4';document.getElementById('eff').value='0.9';__batteryExport();var h=String(document.getElementById('battHidden').innerHTML);document.getElementById('result').innerHTML='BATEXPUNIT_'+(h.indexOf('3 Ah')>=0&&h.indexOf('2 A')>=0&&h.indexOf('3000 Ah')<0&&h.indexOf('2000 A')<0?'OK':'BAD '+h.slice(0,120));delete globalThis.TBKit;document.querySelector=_qs;"],
+    expect: ["BATEXPUNIT_OK"],
+    ref: "1004 批复核：容量 3 Ah、电流 2 A 时内部换算为 3000 mAh/2000 mA 正确，但旧导出把换算值与用户所选单位标签拼成「3000 Ah」「2000 A」。修复后导出显示原始输入值与对应标签「3 Ah」「2 A」，换算值只用于功率/能量与有效容量。用例把 harness 的 #battHidden tbody 查询重定向到真实元素，避免读空桩造成假绿。"
+  },
+  {
+    slug: "science/battery-life-calculator",
+    inputs: {},
+    clicks: ["var _qs=document.querySelector;document.querySelector=function(s){return s==='#battHidden tbody'?document.getElementById('battHidden'):_qs(s);};globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){}},diffBox:function(){}};var c=document.getElementById('cap'),u=document.getElementById('capUnit'),i=document.getElementById('curr'),iu=document.getElementById('currUnit');c.value='2';u.value='1000';i.value='500';iu.value='1';document.getElementById('volt').value='3.7';document.getElementById('eff').value='1';__batteryExport();var h=String(document.getElementById('battHidden').innerHTML);document.getElementById('result').innerHTML='BATMIXUNIT_'+(h.indexOf('2 Ah')>=0&&h.indexOf('500 mA')>=0&&h.indexOf('2000 Ah')<0?'OK':'BAD '+h.slice(0,120));delete globalThis.TBKit;document.querySelector=_qs;"],
+    expect: ["BATMIXUNIT_OK"],
+    ref: "1004 批复核·混合单位补强：容量 2 Ah、电流 500 mA，内部统一为 2000 mAh/500 mA 计算 3.7 W 与 7.40 Wh，但导出必须显示「2 Ah」「500 mA」。旧版容量行写「2000 Ah」，本用例变红；与上一条 Ah/A 同组互证。"
+  },
+  {
+    slug: "science/gcd-calculator",
+    inputs: {},
+    clicks: ["var r=factorize(1000036000099);document.getElementById('nums').value='GCDBUDGET_'+(r.indexOf('超出同步计算上限')>=0&&r.indexOf('1000003')<0?'OK':'BAD '+r);"],
+    expect: ["GCDBUDGET_OK"],
+    ref: "1006 批复核：1000036000099=1000003×1000033 是安全整数，旧 factorize 需约一百万次同步试除才给出完整分解；现设 200000 次上限，超限只提示跳过分解而不伪造结果。旧版返回「1000003 × 1000033」⇒ BAD；不直接调用 9007199254740881 是为了让旧版差分在受控时间内完成。"
+  },
+  {
+    slug: "science/gcd-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('nums').value='1000036000099,3';calculate();var h=String(document.getElementById('output').innerHTML);document.getElementById('output').innerHTML='GCDBIG_'+(h.indexOf('GCD = 1')>=0&&h.indexOf('超出同步计算上限')>=0&&h.indexOf('GCD = 12')<0?'OK':'BAD');"],
+    expect: ["GCDBIG_OK"],
+    ref: "1006 批复核·链路补强：大安全整数与 3 的 GCD=1 必须照常算出，质因数分解跳过提示须同时出现在结果区。旧版虽给出 GCD=1 但没有跳过提示且完成长分解；默认 48,36,24 的 GCD=12，不命中。"
+  },
+  {
+    slug: "science/gcd-calculator",
+    inputs: {},
+    clicks: ["var s=String(factorize);document.getElementById('nums').value='GCDGUARD_'+(typeof MAX_TRIAL_DIVISIONS!=='undefined'&&MAX_TRIAL_DIVISIONS===200000&&s.indexOf('MAX_TRIAL_DIVISIONS')>=0&&s.indexOf('超出同步计算上限')>=0?'OK':'BAD');"],
+    expect: ["GCDGUARD_OK"],
+    ref: "1006 批复核·源码形态补强：复核点名的 9007199254740881 若在旧版直接执行会长时间阻塞，故用源码形态断言分解函数确实读固定试除上限并带跳过分支；旧版无该常量与分支 ⇒ BAD。"
+  },
+  {
+    slug: "science/significant-figures",
+    inputs: { num: "987654321", digits: "16" },
+    clicks: ["var v=1.234567890123456;var r=roundToSig(v,16);document.getElementById('num').value='SIGFP_'+(r===v?'OK':'BAD');"],
+    expect: ["SIGFP_OK"],
+    ref: "1007 批复核：原数已是 16 位有效数字，修约后应保持不变。旧版对 scaled 无条件加 abs(scaled)×EPSILON×8 补偿，末位被推高一位；新版仅按十进制第 17 位判断，无后续位则不进位。用等值布尔哨兵避免把长浮点写进 expect 造成跨环境 1ULP 反模式；默认 num/digits 不命中探针。"
+  },
+  {
+    slug: "science/significant-figures",
+    inputs: {},
+    clicks: ["var r=document.getElementById('result'),n=document.getElementById('num'),d=document.getElementById('digits');d.value='1';n.value='2.5';calc();var a=String(r.innerHTML).replace(/<[^>]+>/g,' ');n.value='3.5';calc();var b=String(r.innerHTML).replace(/<[^>]+>/g,' ');n.value='-2.5';calc();var c=String(r.innerHTML).replace(/<[^>]+>/g,' ');r.innerHTML='SIGEVEN_'+(a.indexOf('保留 1 位有效数字： 2')>=0&&b.indexOf('保留 1 位有效数字： 4')>=0&&c.indexOf('保留 1 位有效数字： -2')>=0?'OK':'BAD');"],
+    expect: ["SIGEVEN_OK"],
+    ref: "1007 批复核·半值与负数：页面引据写 NIST B.7.1，恰好 5 且后续全 0 时应舍入到偶数：2.5→2、3.5→4、-2.5→-2。旧版 Math.round 对正数 2.5 进一、对负数受补偿影响给 -3，三项不可能同时命中；默认态无探针串。"
+  },
+  {
+    slug: "science/significant-figures",
+    inputs: {},
+    clicks: ["var r=document.getElementById('result'),n=document.getElementById('num'),d=document.getElementById('digits');d.value='2';n.value='1.25e3';calc();var a=String(r.innerHTML).replace(/<[^>]+>/g,' ');d.value='1';n.value='2.5001';calc();var b=String(r.innerHTML).replace(/<[^>]+>/g,' ');n.value='2.4999';calc();var c=String(r.innerHTML).replace(/<[^>]+>/g,' ');r.innerHTML='SIGNEAR_'+(a.indexOf('保留 2 位有效数字： 1200')>=0&&a.indexOf('1.2e+3')>=0&&b.indexOf('保留 1 位有效数字： 3')>=0&&c.indexOf('保留 1 位有效数字： 2')>=0?'OK':'BAD');"],
+    expect: ["SIGNEAR_OK"],
+    ref: "1007 批复核·科学计数法与半值两侧：1.25e3 按 NIST 偶数规则为 1.2e3=1200（旧版浮点放大 125 后原样回除得 1250）；2.5001>半值进到 3，2.4999<半值舍到 2。默认 num/digits 不同，且默认态无探针串。"
   }
 ];
 

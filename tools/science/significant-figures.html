@@ -104,10 +104,10 @@
 </div>
 <div class="card">
      <h2 data-zh="🧮 有效数字计算器">🧮 Significant Figures Calculator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按四舍五入规则处理，支持科学计数法与普通小数格式。">Normalise, round and format numbers to a specified number of significant figures for lab reports and data handling.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按 NIST B.7.1 十进制修约处理：4 舍 6 入，恰好 5 时舍入到偶数；支持科学计数法与普通小数。">Round to significant figures using NIST B.7.1 decimal rules: down on 4, up on 6, exact halves to even; scientific notation and plain decimals supported.</p>
 <div class="formula-box">
   <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">有效数字修约（本页代码口径）：位数 n 先取整并夹取 [1,20]；量级 e=⌊log₁₀|x|⌋，修约因子=10^(n−1−e)，结果=四舍五入(x×因子)÷因子；另按科学计数法输出（尾数至多 4 位小数、去尾随零，指数为正补 + 号）。校验：数值非有限或位数&lt;1 时提示「请输入有效数值与位数」并中止。判据：无固定分级，x=0 原样返回，修约只改变有效位不改变数量级。</div>
+      <div class="formula-eq">有效数字修约（本页代码口径）：位数 n 先取整并夹取 [1,20]；把输入展开为十进制字符串，保留前 n 位有效数字，按第 n+1 位判断：小于 5 舍去、大于 5 进一、恰好 5 且后续全 0 时使保留末位为偶数（NIST B.7.1）。进位溢出时数量级加一并重新取 n 位；另按科学计数法输出（尾数至多 4 位小数、去尾随零，指数为正补 + 号）。校验：数值非有限或位数不在 1–20 时提示并中止；x=0 原样返回，修约只改变有效位不改变数量级。</div>
       <div class="formula-desc">有效数字规则：非零数字与夹在中间的 0 有效、前导 0 无效、小数部分尾随 0 有效；乘除取最少有效位数、加减取最少小数位数，本项目按此给出规范化结果。</div>
   
 </div>
@@ -155,8 +155,8 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="有效数字修约">Sig-fig rounding</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="位数 n 夹取[1,20]；四舍五入并保留数量级">round to n sig-figs; clamp n∈[1,20]</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="NIST 数值修约惯例">NIST rounding conventions</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="位数 n 夹取[1,20]；十进制半值舍入到偶数并保留数量级">round to n sig-figs; clamp n∈[1,20]; exact decimal halves to even</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="NIST B.7.1 数值修约规则"><a href="https://www.nist.gov/pml/owm/metric-si/appendix-b#b-7" target="_blank" rel="noopener">NIST B.7.1 rounding numbers</a></td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="科学计数法">Scientific notation</td>
@@ -204,17 +204,55 @@
   </div>
 </div>
 <script>
+// 把科学计数法展开成普通十进制字符串，避免二进制浮点在半值附近制造伪 4/伪 6。
+function __expandDecimalString(s) {
+  s = String(s).trim();
+  if (!/[eE]/.test(s)) return s;
+  const parts = s.split(/[eE]/);
+  const base = parts[0];
+  const exp = parseInt(parts[1], 10);
+  const neg = base.charAt(0) === '-';
+  const body = neg ? base.slice(1) : base;
+  const m = body.match(/^(\d+)(?:\.(\d*))?$|^\.(\d+)$/);
+  if (!m) return s;
+  const intPart = m[1] || (m[3] ? '0' : '');
+  const fracPart = m[2] || m[3] || '';
+  const digits = intPart + fracPart;
+  const point = intPart.length + exp;
+  const sign = neg ? '-' : '';
+  if (point <= 0) return sign + '0.' + '0'.repeat(-point) + digits;
+  if (point >= digits.length) return sign + digits + '0'.repeat(point - digits.length);
+  return sign + digits.slice(0, point) + '.' + digits.slice(point);
+}
+
+// 十进制有效数字修约：4 舍 6 入；恰好 5 且后续全 0 时按保留末位奇偶（NIST B.7.1）。
+// 只用十进制字符串判断半值，不再对非半值无条件加浮点补偿。
 function roundToSig(num, sig) {
   if (!isFinite(num) || num === 0) return num;
   sig = Math.max(1, Math.min(20, Math.floor(sig)));
-  const abs = Math.abs(num);
-  const exp = Math.floor(Math.log10(abs));
-  const factor = Math.pow(10, sig - 1 - exp);
-  const scaled = num * factor;
-  // 十进制半值修正：二进制表示可能使 x.5 变成 x.4999…，按相对误差补偿后再取整
-  const adj = Math.abs(scaled) * Number.EPSILON * 8;
-  const rounded = Math.round(scaled + (scaled < 0 ? -adj : adj)) / factor;
-  return rounded;
+  const negative = num < 0;
+  const plain = __expandDecimalString(Math.abs(num).toString());
+  const dot = plain.indexOf('.');
+  const intPart = dot >= 0 ? plain.slice(0, dot) : plain;
+  const fracPart = dot >= 0 ? plain.slice(dot + 1) : '';
+  const all = intPart + fracPart;
+  const first = all.search(/[1-9]/);
+  if (first < 0) return 0;
+  let exp = intPart.length - first - 1;
+  let keep = all.slice(first, first + sig);
+  while (keep.length < sig) keep += '0';
+  const next = all.charAt(first + sig);
+  const rest = all.slice(first + sig + 1);
+  let increment = false;
+  if (next > '5') increment = true;
+  else if (next === '5') increment = /[1-9]/.test(rest) || (Number(keep.charAt(sig - 1)) % 2 === 1);
+  if (increment) {
+    let kept = (BigInt(keep) + 1n).toString();
+    if (kept.length > sig) { kept = '1' + '0'.repeat(sig - 1); exp += 1; }
+    keep = kept;
+  }
+  const result = Number(keep + 'e' + (exp - sig + 1));
+  return negative ? -result : result;
 }
 
 function toScientific(v) {
@@ -411,7 +449,7 @@ else document.addEventListener('DOMContentLoaded', __significant_figuresBoot);
 <div class="dd-example"><div class="dd-ex-title">修约</div><div class="dd-ex-body">12.345 保留 3 位有效数字 → 12.3；0.00456 有 3 位有效数字。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>四舍五入规则？</dt><dd>4 舍 6 入，5 看前位奇偶（银行家法）或进一。</dd>
+<dt>四舍五入规则？</dt><dd>4 舍 6 入；恰好 5 且后续全为 0 时，保留末位为偶数则不进、为奇数则进一（NIST B.7.1 银行家法）。</dd>
 <dt>乘除怎么定位数？</dt><dd>结果的有效数字位数取参与运算各数<a class="term-link" href="/tools/science/median-calculator.html">中位数</a>最少者。</dd>
 </dl>
 </div>
