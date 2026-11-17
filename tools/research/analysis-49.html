@@ -304,11 +304,15 @@ function calc(){
   const res=document.getElementById("res");
   const lines=document.getElementById("matrix").value.split("\n").map(s=>s.trim()).filter(Boolean);
   const rows=[];
-  for(const line of lines){
-    const p=line.split(/[,，\t]+/);
-    const v=p.map(s=>parseFloat(s.trim())).filter(x=>!isNaN(x));
+  var missing=[];
+  for(let li=0;li<lines.length;li++){
+    const p=lines[li].split(/[,，\t]/);
+    // 保留空字段为 NaN 占位，不丢弃——缺测必须暴露而非静默并入下一列
+    const v=p.map(function(s){var t=s.trim();return t===''?NaN:parseFloat(t);});
+    for(let ci=0;ci<v.length;ci++){ if(isNaN(v[ci])) missing.push('第 '+(li+1)+' 行第 '+(ci+1)+' 列'); }
     if(v.length>=2) rows.push(v);
   }
+  if(missing.length){const __g0='<p>检测到 '+missing.length+' 处缺失或非数值得分（'+missing.slice(0,5).join('、')+(missing.length>5?' 等':'')+'），请补全后重新计算</p>';res.innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));return;}
   if(rows.length<2){res.innerHTML='<p>请录入至少 2 名被试、每行列数相同的量表数据</p>';return;}
   const k=rows[0].length;
   const bad=rows.filter(r=>r.length!==k).length;
@@ -320,8 +324,12 @@ function calc(){
   for(let j=0;j<k;j++){itemVars.push(variance(rows.map(r=>r[j])));}
   const sumItemVar=itemVars.reduce((a,b)=>a+b,0);
   const totalVar=variance(totals);
-  const alpha=totalVar>0?(k/(k-1))*(1-sumItemVar/totalVar):0;
   const meanTotal=totals.reduce((a,b)=>a+b,0)/n;
+  if(!(totalVar>0)){
+    res.innerHTML='<p>总分方差为 0（所有被试总分相同），Cronbach α 未定义，不输出信度等级</p>';
+    return;
+  }
+  const alpha=(k/(k-1))*(1-sumItemVar/totalVar);
   let level,color;
   if(alpha>=0.9){level='信度优秀';color='#16a34a';}
   else if(alpha>=0.8){level='信度良好';color='#2563eb';}
