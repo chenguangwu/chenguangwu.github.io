@@ -114,16 +114,17 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="根据流量、扬程、介质密度与泵效率，计算水力功率、轴功率、电机功率并推荐标准电机规格">From flow rate, head, fluid density and pump efficiency, computes hydraulic power, shaft power and motor power, then recommends a standard motor rating.</p>
         <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">轴功率 P_s = ρ·g·Q·H / (η·1000)；配电机 P = P_s × K</div>
+      <div class="formula-eq">轴功率 P_s = ρ·g·Q·H / (3600×1000×(η/100))，η 按 % 输入；配电机 P = P_s × K</div>
       <div class="formula-desc">由流量 Q、扬程 H、介质密度 ρ 与泵效率 η 计算轴功率，乘以安全系数 K 并依据标准电机功率等级推荐匹配电机；按比转速推荐泵型。</div>
     </div>
 <div class="input-row">
-      <div><div data-tb="preset" data-tb-presets='[{"label":"流量Q(m³/h)50·扬程H(m)30·介质密度ρ(kg…","labelEn":"qVal=50 · hVal=30 · rho=1000 · eff=75 ·…","values":{"qVal":"50","hVal":"30","rho":"1000","eff":"75","sf":"1.15"}}]'></div>
+      <div><div data-tb="preset" data-tb-presets='[{"label":"流量Q(m³/h)50·扬程H(m)30·介质密度ρ(kg…","labelEn":"qVal=50 · hVal=30 · rho=1000 · eff=75 ·…","values":{"qVal":"50","hVal":"30","rho":"1000","eff":"75","sf":"1.15","rpm":"1450"}}]'></div>
 <label>流量 Q (m³/h)</label><input type="number" id="qVal" value="50" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="流量" placeholder="如 50"></div>
       <div><label>扬程 H (m)</label><input type="number" id="hVal" value="30" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="扬程" placeholder="如 30"></div>
       <div><label>介质密度 ρ (kg/m³)</label><input type="number" id="rho" value="1000" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="介质密度" placeholder="如 1000"></div>
       <div><label>泵效率 η (%)</label><input type="number" id="eff" value="75" step="any" min="1" max="100" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="泵效率" placeholder="如 75（1–100）"></div>
       <div><label>安全系数 K</label><input type="number" id="sf" value="1.15" step="0.05" min="1" max="2" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="安全系数" placeholder="如 1.15（1–2）"></div>
+      <div><label>转速 n (r/min)</label><input type="number" id="rpm" value="1450" step="any" min="1" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="转速" placeholder="如 1450"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button>
@@ -131,7 +132,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__flow_14Export()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="flow_14Table"></div> <div id="flow_14Diff"></div> <div id="flow_14Chart"></div> <div id="flow_14Hist"></div>
-    <div class="info-box">💡 水力功率 Ph=ρgQH/(3600×1000) kW；轴功率 Psh=Ph/η；电机功率 Pm=Psh×K。</div>
+    <div class="info-box">💡 水力功率 Ph=ρgQH/(3600×1000) kW；轴功率 Psh=Ph/(η/100) kW；电机功率 Pm=Psh×K；比转速按页面输入转速 n 计算。</div>
     <div class="tool-notes" style="--tool-accent:#FF6B35;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
@@ -178,27 +179,35 @@
 </div>
 <script>
 var lastResult='';
-var INPUT_IDS=['qVal','hVal','rho','eff','sf'];
+var __flow_14_valid=true;
+var INPUT_IDS=['qVal','hVal','rho','eff','sf','rpm'];
 var MOTOR_STD=[0.75,1.1,1.5,2.2,3,4,5.5,7.5,11,15,18.5,22,30,37,45,55,75,90,110,132,160,200,250,315,400];
 function pickMotor(p){
   for(var i=0;i<MOTOR_STD.length;i++){if(MOTOR_STD[i]>=p)return MOTOR_STD[i];}
-  return MOTOR_STD[MOTOR_STD.length-1];
+  return null;
 }
 function num(id){var el=document.getElementById(id);var v=parseFloat(el.value);if(isNaN(v)||v<0){el.classList.add('input-error');el.setAttribute('aria-invalid','true');return NaN;}el.classList.remove('input-error');el.removeAttribute('aria-invalid');return v;}
 function getInputs(){var o={};INPUT_IDS.forEach(function(id){o[id]=document.getElementById(id).value;});return o;}
 function setInputs(o){INPUT_IDS.forEach(function(id){if(o[id]!==undefined)document.getElementById(id).value=o[id];});}
 function calc(){
-  var Q=num('qVal'),H=num('hVal'),rho=num('rho'),eta=num('eff'),K=num('sf');
-  if(isNaN(Q)||isNaN(H)||isNaN(rho)||isNaN(eta)||isNaN(K)||Q===0||H===0||rho===0||eta===0||K===0){
-    document.getElementById('res').innerHTML='<div class="history-empty">请输入有效正数（流量、扬程、密度、效率需大于 0）</div>';lastResult='';return;
+  __flow_14_valid=true;
+  var Q=num('qVal'),H=num('hVal'),rho=num('rho'),eta=num('eff'),K=num('sf'),rpm=num('rpm');
+  if(isNaN(Q)||isNaN(H)||isNaN(rho)||isNaN(eta)||isNaN(K)||isNaN(rpm)||Q<=0||H<=0||rho<=0||eta<1||eta>100||K<1||K>2||rpm<=0){
+    __flow_14_valid=false;
+    document.getElementById('res').innerHTML='<div class="history-empty">请输入有效参数：流量、扬程、密度与转速须大于 0，效率 η 须在 1–100 之间，安全系数 K 须在 1–2 之间</div>';lastResult='';return;
   }
   var g=9.81;
   var Ph=rho*g*Q*H/3600000; // kW
   var Psh=Ph/(eta/100);
   var Pm=Psh*K;
   var recMotor=pickMotor(Pm);
+  if(recMotor===null){
+    __flow_14_valid=false;
+    document.getElementById('res').innerHTML='<div class="history-empty">⚠️ 所需电机功率 '+Pm.toFixed(2)+' kW 超出标准电机表范围（0.75–400 kW）：请改选非标大功率电机或分级配置，勿按 400 kW 估算负载率。</div>';
+    lastResult='';return;
+  }
   var Qlps=Q/3.6; // L/s
-  var specSpeed=3.65*1450*Math.sqrt(Qlps/1000)/Math.pow(H,0.75); // nq at 1450rpm
+  var specSpeed=3.65*rpm*Math.sqrt(Qlps/1000)/Math.pow(H,0.75); // nq at input speed
   var pumpType;
   if(specSpeed<50)pumpType='旋涡泵/部分流泵';
   else if(specSpeed<80)pumpType='离心泵（低比转速）';
@@ -219,10 +228,10 @@ function calc(){
     '<div class="data-card"><div class="num">'+(Pm>0&&recMotor>0?((Pm/recMotor*100).toFixed(0)+'%'):'—')+'</div><div class="label">电机负载率</div></div>'+
     '</div>'+
     '<div class="info-box" style="margin-top:10px;">📌 Q='+Q+'m³/h，H='+H+'m，需 '+Psh.toFixed(2)+' kW 轴功率，推荐选用 '+recMotor+' kW 电机（安全系数 '+K+'），泵型建议：'+pumpType+'。</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  lastResult='水泵选型：\n水力功率 = '+Ph.toFixed(2)+' kW\n轴功率 = '+Psh.toFixed(2)+' kW\n电机功率 = '+Pm.toFixed(2)+' kW\n推荐电机 = '+recMotor+' kW\n比转速 nq = '+specSpeed.toFixed(1)+'  '+pumpType;
+  lastResult='水泵选型：\n水力功率 = '+Ph.toFixed(2)+' kW\n轴功率 = '+Psh.toFixed(2)+' kW\n电机功率 = '+Pm.toFixed(2)+' kW\n推荐电机 = '+recMotor+' kW\n转速 = '+rpm+' r/min\n比转速 nq = '+specSpeed.toFixed(1)+'  '+pumpType;
 }
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
-function resetAll(){document.getElementById('qVal').value=50;document.getElementById('hVal').value=30;document.getElementById('rho').value=1000;document.getElementById('eff').value=75;document.getElementById('sf').value=1.15;INPUT_IDS.forEach(function(id){var el=document.getElementById(id);el.classList.remove('input-error');el.removeAttribute('aria-invalid');});calc();ToolBox.showToast(i18nText(),'info');}
+function resetAll(){document.getElementById('qVal').value=50;document.getElementById('hVal').value=30;document.getElementById('rho').value=1000;document.getElementById('eff').value=75;document.getElementById('sf').value=1.15;document.getElementById('rpm').value=1450;INPUT_IDS.forEach(function(id){var el=document.getElementById(id);el.classList.remove('input-error');el.removeAttribute('aria-invalid');});calc();ToolBox.showToast(i18nText(),'info');}
 function historyKey(){try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_pump';}}
 function historySummary(){return 'Q='+document.getElementById('qVal').value+'m³/h  H='+document.getElementById('hVal').value+'m  η='+document.getElementById('eff').value+'%';}
 function saveHistory(){if(!lastResult)return;try{var key=historyKey();var list=JSON.parse(localStorage.getItem(key)||'[]');var now=new Date();var item={inputs:getInputs(),summary:historySummary(),result:lastResult.split('\n').slice(1).join(' / '),time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};list.unshift(item);if(list.length>8)list=list.slice(0,8);localStorage.setItem(key,JSON.stringify(list));renderHistory();}catch(e){}}
@@ -305,6 +314,7 @@ function __flow_14Render(keys,rk,en){
 function __flow_14Extras(){
     if (typeof TBKit === 'undefined') return;
     if (__flow_14_skip) return;
+    if (typeof __flow_14_valid !== 'undefined' && !__flow_14_valid) return;
     var snap=__flow_14Snap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -347,9 +357,9 @@ function __flow_14Export(){
 }
 function __flow_14Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#flow_14Presets',[{label:'默认参数',labelEn:'Default',values:{'qVal':'50', 'hVal':'30', 'rho':'1000', 'eff':'75', 'sf':'1.15'}},
-  {'label':'大流量泵','labelEn':'High flow','values':{'qVal':'200','hVal':'50','rho':'1000','eff':'80','sf':'1.2'}},
-  {'label':'高扬程泵','labelEn':'High head','values':{'qVal':'30','hVal':'100','rho':'1000','eff':'70','sf':'1.25'}}],function(){ calc(); });
+    TBKit.preset.bar('#flow_14Presets',[{label:'默认参数',labelEn:'Default',values:{'qVal':'50', 'hVal':'30', 'rho':'1000', 'eff':'75', 'sf':'1.15', 'rpm':'1450'}},
+  {'label':'大流量泵','labelEn':'High flow','values':{'qVal':'200','hVal':'50','rho':'1000','eff':'80','sf':'1.2','rpm':'1450'}},
+  {'label':'高扬程泵','labelEn':'High head','values':{'qVal':'30','hVal':'100','rho':'1000','eff':'70','sf':'1.25','rpm':'1450'}}],function(){ calc(); });
 }
 var __flow_14_f0=(typeof calc==='function')?calc:null;
 if(__flow_14_f0){
@@ -391,7 +401,7 @@ else document.addEventListener('DOMContentLoaded', __flow_14Boot);
 <li>汽蚀校核：高扬程注意 NPSH 与安装高度</li>
 <li>变频评估：变流量下重算功率</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：有效功率 Ph = ρgQH/3.6e6（kW）；轴功率 Psh = Ph/效率；配电机 Pm = Psh×安全系数；比转速 ns = 3.65×1450×√(Q/3.6/1000)/H^0.75（Q 单位 m³/h）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：有效功率 Ph = ρgQH/3.6e6（kW）；轴功率 Psh = Ph/(效率/100)；配电机 Pm = Psh×安全系数；比转速 ns = 3.65×n×√(Q/3.6/1000)/H^0.75（Q 单位 m³/h，n 为页面输入转速 r/min，默认 1450）。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：流量 50m³/h、扬程 30m、清水(ρ=1000)、效率 75%、安全系数 1.15 → 有效功率 4.09kW、轴功率 5.45kW、配电机 6.27kW、比转速 48.7。若流量 100、扬程 50、效率 80%、系数 1.2 → 有效 13.63kW、配电机 20.44kW、比转速 46.9。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
