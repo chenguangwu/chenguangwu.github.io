@@ -210,6 +210,11 @@ const CASES = [
     "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/stone-size-assessment.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/urology/stone-size-assessment.json','utf8');var ok=h.indexOf('输尿管中段 0.9')>=0&&h.indexOf('膀胱 1.0')>=0&&h.indexOf('经验修正，非指南直接给出')>=0&&h.indexOf('肾/输尿管上段 0.7、下段 1.25')<0&&en.indexOf('mid ureter 0.9')>=0&&en.indexOf('empirical adjustments')>=0;document.getElementById('__tbProbe').textContent='STONEFACTOR '+(ok?'OK':'BAD');"],
     "expect": ["STONEFACTOR OK"],
     "ref": "12-N90：公式框原只列 3 个部位系数，代码另有 mid 0.9 / bladder 1.0；现补齐 6 个并明示系数为页面经验修正、膀胱套用输尿管模型仅供粗参。旧版缺 mid/bladder 与局限性说明 ⇒ 变红。N89 模型适用性保留专业复核。"
+  },{
+    "slug": "urology/psa-density",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/psa-density.html','utf8');var ok=h.indexOf('0.15 - &lt;0.25')>=0&&h.indexOf('≥ 0.25')>=0&&h.indexOf('&gt; 0.25')<0&&h.indexOf('密度分级仅描述 PSAD')>=0&&h.indexOf('穿刺指征另按 PSA 绝对值')>=0&&h.indexOf('该分级仅按 PSAD 密度划分')>=0&&h.indexOf('暂不穿刺，建议 MRI/DRE 复核')>=0&&h.indexOf('按 PSA&gt;10 指征，与 PSAD 密度分级无关')>=0;document.getElementById('__tbProbe').textContent='PSAGRADE '+(ok?'OK':'BAD');"],
+    "expect": ["PSAGRADE OK"],
+    "ref": "12-N27/N28：表格 0.25 边界原写 0.15-0.25 与 >0.25，与代码 ≥0.25 高危冲突；分级文案原称前列腺癌风险，与穿刺建议两套阈值同屏相反。现表格改 0.15-<0.25 / ≥0.25，明确 PSAD 密度分级≠穿刺指征，低 PSA 高 PSAD 走 MRI/DRE 复核、PSA>10 按绝对值穿刺并注明与密度无关。源码形态哨兵旧版必红。"
   }
 ];
 async function main() {

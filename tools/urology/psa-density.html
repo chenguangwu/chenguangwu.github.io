@@ -113,7 +113,7 @@
 <div class="formula-box">
   
   
-<div class="formula-eq">PSA 密度 PSAD = 血清 PSA ÷ 前列腺体积；小于0.15 低危、0.15 至 0.25 中危、不低于0.25 高危（建议穿刺）。年龄特异性 PSA 上限：小于50 岁 2.5、小于60 岁 3.5、小于70 岁 4.5、不低于70 岁 6.5 ng/mL。</div></div>
+<div class="formula-eq">PSA 密度 PSAD = 血清 PSA ÷ 前列腺体积；小于0.15 低密度、0.15 至小于0.25 中间密度、不低于0.25 高密度（密度分级仅描述 PSAD，不等同于穿刺指征）。穿刺指征另按 PSA 绝对值、DRE/MRI 综合判断。年龄特异性 PSA 上限：小于50 岁 2.5、小于60 岁 3.5、小于70 岁 4.5、不低于70 岁 6.5 ng/mL。</div></div>
 
     <div class="input-row">
       <div><label>血清 PSA（ng/mL）</label><input type="number" id="psa" value="6.0" step="0.1" oninput="calc()" placeholder="如 6.0"></div>
@@ -139,8 +139,9 @@
     <table>
       <tr><th>PSAD (ng/mL²)</th><th>风险</th><th>建议</th></tr>
       <tr><td>&lt; 0.15</td><td style="color:var(--success);font-weight:600;">低危</td><td>可随访复查，必要时 MRI</td></tr>
-      <tr><td>0.15 - 0.25</td><td style="color:var(--warning);font-weight:600;">中危</td><td>建议结合 MRI/DRE 综合判断</td></tr>
-      <tr><td>&gt; 0.25</td><td style="color:var(--danger);font-weight:600;">高危</td><td>建议前列腺系统穿刺活检</td></tr>
+      <tr><td>0.15 - &lt;0.25</td><td style="color:var(--warning);font-weight:600;">中危</td><td>建议结合 MRI/DRE 综合判断</td></tr>
+      <tr><td>≥ 0.25</td><td style="color:var(--danger);font-weight:600;">高危</td><td>建议前列腺系统穿刺活检</td></tr>
+      <tr><td colspan="3" style="font-size:12px;color:var(--text-muted);">此表为 PSAD 密度分级，仅描述密度高低；穿刺指征另按 PSA 绝对值、DRE/MRI 综合判断，两者结论可能不同（如 PSA&gt;10 但 PSAD 低仍建议穿刺）。</td></tr>
     </table>
 
     <h3 style="margin-top:14px;">年龄特异性 PSA 参考范围</h3>
@@ -274,10 +275,19 @@ function calc(){
 
   var html='<p>PSA 密度 PSAD = '+psa+' ÷ '+vol+' = <strong style="font-size:22px;color:'+color+';">'+psad.toFixed(3)+' ng/mL²</strong></p>';
   html+='<p>风险分级：<strong style="color:'+color+';">'+grade+'</strong> — '+risk+'</p>';
+  html+='<p style="font-size:12px;color:var(--text-muted);">该分级仅按 PSAD 密度划分，不代表总体风险；穿刺与否见下方指征（按 PSA 绝对值与 DRE/MRI 综合判断）。</p>';
   html+='<p style="margin-top:6px;">年龄特异性 PSA 上限（'+age+'岁）：'+ageLimit+' ng/mL，本次 PSA '+psa+(ageFlag?' <strong style="color:var(--danger);">超出</strong>':' <strong style="color:var(--success);">在范围内</strong>')+'</p>';
-  html+='<p style="margin-top:8px;border-top:1px dashed var(--border);padding-top:8px;">穿刺建议：<strong style="color:'+(biopsy?'var(--danger)':'var(--success)')+';">'+(biopsy?'建议前列腺穿刺活检':'暂可随访复查')+'</strong></p>';
-  if(biopsy) html+='<p style="color:var(--text-muted);">指征依据：'+reasons.join('、')+'</p>';
-  else html+='<p style="color:var(--text-muted);">建议定期复查 PSA、PSAD，必要时行多参数 MRI。</p>';
+  var biopsyNote = '';
+  if(biopsy) {
+    html+='<p style="margin-top:8px;border-top:1px dashed var(--border);padding-top:8px;">穿刺建议：<strong style="color:var(--danger);">'+(psa>10?'建议前列腺穿刺活检（按 PSA&gt;10 指征，与 PSAD 密度分级无关）':'建议前列腺穿刺活检')+'</strong></p>';
+    html+='<p style="color:var(--text-muted);">指征依据：'+reasons.join('、')+'</p>';
+  } else if(psa<4 && psad>=0.15) {
+    html+='<p style="margin-top:8px;border-top:1px dashed var(--border);padding-top:8px;">穿刺建议：<strong style="color:var(--success);">暂不穿刺，建议 MRI/DRE 复核</strong></p>';
+    html+='<p style="color:var(--text-muted);">PSA&lt;4 ng/mL 但 PSAD 偏高，密度分级为'+grade+'；建议结合 DRE/MRI 与 PSA 动态复查后再定，勿仅据密度分级穿刺。</p>';
+  } else {
+    html+='<p style="margin-top:8px;border-top:1px dashed var(--border);padding-top:8px;">穿刺建议：<strong style="color:var(--success);">暂可随访复查</strong></p>';
+    html+='<p style="color:var(--text-muted);">建议定期复查 PSA、PSAD，必要时行多参数 MRI。</p>';
+  }
   const __g2=html;__psaRefBar(psad);
   document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
