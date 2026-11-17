@@ -103,6 +103,28 @@ const CASES = [
     ref: "HEX #FF0000 → R255 G0 B0 → rgb(255, 0, 0)",
   },
   {
+    slug: "edu/convert-3", inputs: { val: "12", from: "2", to: "10" },
+    expect: ["第 2 位非法：2进制只允许 01，可带前导负号"],
+    ref: "EL-J151：二进制逐位校验定位到第 2 位 2 非法；旧版 parseInt(12,2)=1 且显示成功。",
+  },
+  {
+    slug: "edu/convert-3", inputs: { val: "10000000000000000", from: "16", to: "10" },
+    expect: ["十进制 18446744073709551616"],
+    ref: "EL-J153：BigInt 逐位换算精确得到 2^64=18446744073709551616；旧版 Number 只有 18446744073709552000。",
+  },
+  {
+    slug: "edu/convert-3",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var s=JSON.stringify(JSON.parse(h)['edu/convert-3']);var ok=s.indexOf('批量转换：一次处理多个数')<0&&s.indexOf('保留前导负号参与换算')>=0;document.getElementById('__tbProbe').textContent='BASEFIX '+(ok?'OK':'BAD');"],
+    expect: ["BASEFIX OK"],
+    ref: "EL-J152/J153：删不存在的批量场景文案，负数口径改为保留前导负号；旧版两者皆反。",
+  },
+  {
+    slug: "edu/convert-3",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu/convert-3.html','utf8');var ok=h.indexOf('BigInt(0)')>=0&&h.indexOf('parseInt(v,f)')<0;document.getElementById('__tbProbe').textContent='BIGINT '+(ok?'OK':'BAD');"],
+    expect: ["BIGINT OK"],
+    ref: "EL-J151/J153：实现改为 BigInt 逐位换算，不再用宽松 parseInt；旧版命中 parseInt(v,f)。",
+  },
+  {
     slug: "edu/convert-3",
     inputs: { val: "FF", from: "16", to: "10" },
     expect: ["255"],
@@ -568,7 +590,7 @@ const CASES = [
       "to": "8"
     },
     "expect": [
-      "abc123测试\n8\n8\n请输入有效的8进制数 8 → 8 进制"
+      "abc123测试\n8\n8\n第 1 位非法：8进制只允许 01234567，可带前导负号 8 → 8 进制"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"val\":\"abc123测试\",\"from\":\"8\",\"to\":\"8\"}，输出区含「abc123测试\n8\n8\n请输入有效的8进制数 8 → 8 进制」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
