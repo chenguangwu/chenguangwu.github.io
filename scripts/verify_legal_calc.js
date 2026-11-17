@@ -13,6 +13,8 @@
  *   node scripts/verify_legal_calc.js
  *   node scripts/verify_legal_calc.js overtime-pay severance-pay
  */
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
@@ -935,6 +937,12 @@ const CASES = [
     "clicks": ["viewYear=2024;viewMonth=2;render();showDetail(2024,2,29)"],
     "expect": ["2024 年 2 月", "2024-02-29"],
     "ref": "切到 2024 年 2 月 ⇒ 标题「2024 年 2 月」（闰年 29 天），再点日期 2024-02-29 的详情 ⇒ 详情区含「2024-02-29」。默认视图取冻结基准日 2024-06-15 ⇒ 标题「2024 年 6 月」、详情为初始提示，两锚均不命中（判别时清空 clicks 即回默认视图）。"
+  },
+  {
+    "slug": "legal/calendar",
+    "clicks": ["try{var a=getLunarHoliday({year:2025,month:12,day:29,isLeap:false});var b=getLunarHoliday({year:2025,month:12,day:30,isLeap:false});var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/legal/calendar.html','utf8');var ok=((a==='除夕')!==(b==='除夕'))&&h.indexOf('l.day===monthDays(l.year,12)')>=0&&h.indexOf('l.day===29 || l.day===30')<0&&h.indexOf('function hasLunarData')>=0&&h.split('hasLunarData(y, m, d)').length-1===3;document.getElementById('dayDetail').innerHTML='LUNARBOUND '+(ok?'OK':'BAD '+a+'/'+b);}catch(e){document.getElementById('dayDetail').innerHTML='LUNARBOUND ERR '+e.message;}"],
+    "expect": ["LUNARBOUND OK"],
+    "ref": "农历除夕按腊月实际天数（monthDays(l.year,12)）判定最后一日，腊月廿九与三十不得同时为除夕；农历数据基准 1900-01-31，两处取农历前经 hasLunarData 守卫，避免负偏移回退 1899。旧版两日同时命中除夕且无边界守卫 ⇒ 哨兵红；默认态不产生该哨兵。"
   }
 
 ];
