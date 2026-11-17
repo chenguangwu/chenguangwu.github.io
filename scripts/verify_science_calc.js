@@ -228,6 +228,13 @@ const CASES = [
     expect: ["156.070", "2.500000"],
     ref: "ρ=2500 kg/m³ → lb/ft³ = 2500×0.062428 = 156.070（新增卡片，替代原无意义的 V/ρ「m⁶/kg」）；g/cm³ = 2500/1000 = 2.5 → 2.500000",
   },
+  {
+    slug: "science/density-physics",
+    inputs: { m: "4", V: "0.001" },
+    clicks: ["calcTool()"],
+    expect: ["4000 kg/m³"],
+    ref: "SMS-88 清账：m=4 kg、V=0.001 m³ → ρ=4000 kg/m³（≥100 分支）。旧版 `rho>=100?rho.toFixed(0):rho.toFixed(3)+' kg/m³'` 因三元优先级使 ≥100 分支丢失单位，结果卡与数据表只显示「4000」；现两分支均带 kg/m³。默认 m=2/V=0.001 得 2000 kg/m³ 不含本串，零逃生。",
+  },
 
   // ── 物理单位换算（默认同量纲）───────────────────────────────
   {
@@ -322,6 +329,18 @@ const CASES = [
     inputs: { n: "7", r: "3" },
     expect: ["C(7, 3) = 35", "= 5,040 / (6 × 24) = 35"],
     ref: "组合数：C(7,3) = 7! / (3! × 4!) = 5040 / (6 × 24) = 35（**因子可手算复算**：7!=5040、3!=6、4!=24）。页面的对称性 C(7,3)=C(7,4) 与递推 C(6,2)+C(6,3)=15+20 三个性质行同为 35，互为交叉验证。默认 n/r 不同 ⇒ 不命中。",
+  },
+  {
+    slug: "science/combination-calculator",
+    inputs: { n: "10.5", r: "3" },
+    expect: ["小数将被拒绝"],
+    ref: "SMS-86 清账：n=10.5 旧版 parseInt 静默截断为 10，算出 C(10,3)=120 却不提示；现 Number+isInteger 严格拒绝小数并提示。默认 n=7/r=3 不含本串，零逃生。",
+  },
+  {
+    slug: "science/combination-calculator",
+    inputs: { n: "1e3", r: "3" },
+    expect: ["C(1000, 3) = 166,167,000"],
+    ref: "SMS-86 清账（科学计数法）：n=1e3、r=3 旧版 parseInt 截断为 1，落 r>n 报错；现按实际整数 1000 解析，C(1000,3)=1000×999×998/6=166,167,000。默认 n=7 不含本串，零逃生。",
   },
   {
     slug: "science/permutation-calculator",
@@ -547,6 +566,13 @@ const CASES = [
     ref: "点电荷场（q=2 μC、r=3 m，页面默认单位表为 μC）：k·q = 8.99e9×2e-6 = 1.7976e4；E = k·q/r² = 1.7976e4/9 = **1997.3 N/C**；V = k·q/r = 1.7976e4/3 = **5992.0 V**。页面另给「库仑常数乘电荷 1.7976e+4」「电场强度与半径乘积 5.9920e+3」两行，与上式同源可交叉复算。默认参数不同 ⇒ 不命中。",
   },
   {
+    slug: "science/electric-field-point",
+    inputs: { q: "2", r: "3" },
+    clicks: ["var cap=null,df=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(el,fs){df=fs;}},matrix:{table:function(){}},history:{record:function(o){cap=o;},mount:function(){}}};document.getElementById('q').value='2';document.getElementById('r').value='3';__electric_field_pointExtras();document.getElementById('q').value='EFH_'+(cap&&cap.E===1997.3&&df&&(''+df).indexOf('E')>=0?'OK':'BAD');delete globalThis.TBKit;"],
+    expect: ["EFH_OK"],
+    ref: "SMS-89 清账：q=2 μC/r=3 m → E=1997.3 N/C。旧版历史只记 q/r/k，diffBox 传常量 ['k'] 恒无差异、历史面板不显示结果；现记录 E=1997.3 且 diffBox 用 ['E']。探针经最小 TBKit 桩捕获 record 与 diff 字段，旧版 ⇒ EFH_BAD，零逃生。",
+  },
+  {
     slug: "science/gravitational-potential",
     inputs: { m: "5", g: "10", h: "4" },
     expect: ["200.0 J", "0.0002 重力势能 (MJ)"],
@@ -654,6 +680,27 @@ const CASES = [
     clicks: ["calculate()"],
     expect: ["e^5 = 148.413", "e^(−5) = 1 / e^5 = 0.007"],
     ref: "自然指数（x=5）：e ≈ 2.718281828459045 ⇒ e^5 = **148.413**；e^(−5) = 1/148.413 = **0.007**；双曲函数 sinh = (eˣ−e⁻ˣ)/2 = (148.413−0.007)/2 = 74.203、cosh = 74.21、tanh = sinh/cosh = 1，与上行同源可交叉复算；10ˣ = 100,000、2ˣ = 32 亦自洽。默认参数不同 ⇒ 不命中。",
+  },
+  {
+    slug: "science/exp-calculator",
+    inputs: { x: "1000" },
+    clicks: ["calculate()"],
+    expect: ["tanh(x) = sinh/cosh 1"],
+    ref: "SMS-90 清账：x=1000 时 e^x 溢出为 ∞，旧版 sinh/cosh 均 ∞、tanh=NaN，fmt(NaN) 落 '-∞' 分支（x=1000 与 x=-1000 同为 -∞）；现用稳定式 tanh=±(1−e^(−2|x|))/(1+e^(−2|x|))，x=1000 得 +1。默认 x=2 得 tanh≈0.96 不含本串，零逃生。",
+  },
+  {
+    slug: "science/exp-calculator",
+    inputs: { x: "0.0005" },
+    clicks: ["calculate()"],
+    expect: ["x = 5.000000e-4", "e^5.000000e-4 = 1.000500"],
+    ref: "SMS-91 清账：x=5e-4 旧版 fmt 普通分支用无精度 toLocaleString，Node 默认三位小数把 x 与 e^x 都显示 0，与 e^x 恒正矛盾；现阈值收紧到 |x|<1e-3 走科学计数，x 显示 5.000000e-4、e^x=exp(0.0005)=1.000500125 → 1.000500。旧版不含两串，零逃生。",
+  },
+  {
+    slug: "science/power-calculator",
+    inputs: { base: "2", exp: "-10" },
+    clicks: ["calculate()"],
+    expect: ["2^-10 = 9.7656250000e-4"],
+    ref: "SMS-132 清账：2^-10=1/1024=0.0009765625，旧版普通分支 toLocaleString 三位小数显示 0.001（丢失 2.4% 精度），现阈值 <1e-3 走 toExponential(10) 得 9.7656250000e-4。默认 2^10=1024 不含此串，零逃生。",
   },
   {
     slug: "science/quadratic-equation",

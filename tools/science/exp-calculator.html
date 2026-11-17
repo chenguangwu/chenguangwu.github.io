@@ -221,7 +221,7 @@ label{margin-top:10px;}
 function fmt(x){
   if(!isFinite(x)) return (x>0?'∞':'-∞');
   if(x===0) return '0';
-  if(Math.abs(x)>1e15||Math.abs(x)<1e-6) return x.toExponential(6);
+  if(Math.abs(x)>1e15||Math.abs(x)<1e-3) return x.toExponential(6);
   return (Math.round(x*1e12)/1e12).toLocaleString();
 }
 function calculate(){
@@ -244,7 +244,9 @@ function calculate(){
   html+='<p style="margin-top:12px;"><strong>双曲函数：</strong></p>';
   const sinh=(Math.exp(x)-Math.exp(-x))/2;
   const cosh=(Math.exp(x)+Math.exp(-x))/2;
-  const tanh=sinh/cosh;
+  // 避免 |x| 大时 eˣ/e⁻ˣ 溢出为 ∞ 导致 sinh/cosh=∞、tanh=NaN；用稳定式 tanh=±(1−e^(−2|x|))/(1+e^(−2|x|))。
+  const tanhAbs=(1-Math.exp(-2*Math.abs(x)))/(1+Math.exp(-2*Math.abs(x)));
+  const tanh=x>=0?tanhAbs:-tanhAbs;
   html+='<div class="func-grid">';
   html+='<div class="func-card"><div class="name">sinh(x) = (eˣ−e⁻ˣ)/2</div><div class="val">'+fmt(sinh)+'</div></div>';
   html+='<div class="func-card"><div class="name">cosh(x) = (eˣ+e⁻ˣ)/2</div><div class="val">'+fmt(cosh)+'</div></div>';

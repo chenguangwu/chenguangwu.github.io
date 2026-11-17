@@ -179,26 +179,15 @@
 
 - `tools/science/centripetal-force.html`：0 条。默认 2 kg / 10 m·s⁻¹ / 5 m → F=40.0 N、4.0789 kgf、a=20.0000 m/s²、T=3.1416 s 正确；预设、图表、历史与差异均按 F 正常记录；v=0 因周期 T 发散被守卫拦截属合理，未发现算错/崩溃/假功能。
 - `tools/science/chemistry-calculator.html`：3 条（SMS-83～85 中）。H2O=18.016、Ca(OH)₂=74.096、Fe₂(SO₄)₃=399.910、KMnO₄=158.040 g/mol 正确，浓度/pH/理想气体主算无误；原分子式 XSS（反射 + localStorage 存储）已修复，第 953 批真机复核。剩余问题为解析静默丢未知元素/前导系数、稀释“留空求另一个”只单向可用、气体无正数校验。
-- `tools/science/combination-calculator.html`：1 条（SMS-86 中）。BigInt 精确：C(10,3)=120、C(33,6)=1,107,568、C(52,5)=2,598,960，大数无浮点精度损失；问题为 parseInt 静默截断小数/科学计数输入。
-- `tools/science/convert-power.html`：1 条（SMS-87 中）。力/能/功率各系数（kgf 9.80665、lbf 4.44822、dyn 1e-5、cal 4.184、kWh 3.6e6、eV 1.602e-19、BTU 1055.06、hp 745.7、PS 735.5）与量纲分组正确，默认 1 N→0.224804 lbf；问题为空输入被 `+''` 当 0。
-- `tools/science/density-physics.html`：1 条（SMS-88 中）。ρ=m/V 默认 2/0.001 → 2000 kg/m³、2.000 g/cm³、124.856 lb/ft³、比容 0.0005 正确，V=0 已守卫；问题为 ρ≥100 时主结果取整且丢失 kg/m³ 单位。
-- `tools/science/electric-field-point.html`：1 条（SMS-89 中）。默认 q=1 µC、r=0.1 m → E=898800.0 N/C、V=89880.0 V、kq=8.9880e+3、E·r=8.9880e+4 正确，r=0 已守卫；问题为历史只记 q/r/k、差异面板比较常量 k，结果 E 不入历史。
-- `tools/science/exp-calculator.html`：2 条（SMS-90 高、SMS-91 中）。默认 x=2 的计算原审正确；|x|≈710 以上 tanh 溢出成“-∞”。2026-11-06 复核：旧的极小数直接归零已修，但非科学计数分支的本地化格式化仍会把部分非零值显示为 0，详见 SMS-91。
 
 | 页面 | 问题（含 tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
 | tools/science/chemistry-calculator.html | parseFormula 的 else 分支静默跳字：H2Zz→2.016 g/mol（未知元素不报错）、2H2O→18.016（应为 36.032）、CuSO4.5H2O→177.636（应为 249.685）、"(OH"→16.000；`if(ELEMENTS[part.symbol])` 只跳过未知符号不报错（node 复刻）。:354-397、:404 | SMS-83 |
 | tools/science/chemistry-calculator.html | 稀释模块标注“留空一个值求另一个”，实际 C₂ 留空即报「请输入最终浓度」（即使已填 V₂）；C₂、V₂ 都填时输入的 C₂ 被 `c1*v1/v2` 覆盖忽略。:517-519、:637-641、:650-659 | SMS-84 |
 | tools/science/chemistry-calculator.html | 理想气体不校验正数：T=-10 K → n=-27.299 mol（负物质的量）；V=0/T=0 → 输出「未定义」而非错误提示（fmt 先把非有限值转成“未定义”，:782 的无效值兜底失效）。:749-771、:777-780 | SMS-85 |
-| tools/science/combination-calculator.html | n/r 用 parseInt 静默截断：10.5→10（按 C(10,3)=120 算）、1e3→1；提示语称“请输入整数”但只判 isNaN，非整数输入不报错。:259-261 | SMS-86 |
-| tools/science/convert-power.html | 数值框清空后 `+document.getElementById('val').value` 得 0，`isNaN(v)` 为 false，直接输出「0 N = 0 lbf」等，不提示缺值。:163 | SMS-87 |
-| tools/science/density-physics.html | ρ≥100 时主结果用 `rho.toFixed(0)` 拼值且未再拼「kg/m³」：默认 2/0.001 的 2000 kg/m³ 在结果卡与数据表中均显示为无单位「2000」（单位只出现在 ρ<100 分支的字符串里）。:267、:289 | SMS-88 |
-| tools/science/electric-field-point.html | 历史只记录 q/r/k（不记 E），`diffBox` 又传入常量 `['k']`，`diffLast` 判等后恒无差异 →「与上次计算相比」永不出现，历史面板也不显示计算结果。:293、:296 | SMS-89 |
-| tools/science/exp-calculator.html | tanh 在 |x|≈710 以上：eˣ/e⁻ˣ 溢出为 ∞ → sinh=cosh=∞ → tanh=NaN，`fmt` 把 NaN 落入 `x>0?'∞':'-∞'` 的 else 分支恒输出“-∞”（x=1000 与 x=-1000 均为 -∞，正确应分别为 1/-1）；且 :264 的 Infinity/NaN 兜底因 fmt 已转成 ∞/— 永不触发。:233、:256-258、:264 | SMS-90 |
-| tools/science/exp-calculator.html | 2026-11-06 复核：`fmt` 已改为对非零且绝对值小于 1e-6 的值输出科学计数；提取实际函数到 Node 执行，e⁻³⁰ 显示 `9.357623e-14`、e⁻²⁸ 显示 `6.914400e-13`、10⁻¹³ 显示 `1.000000e-13`，旧例已修。残留：普通分支调用无精度选项的 `toLocaleString()`（:235-236），Node 默认最多三位小数；例如 e⁻¹³≈2.260329e-6 被显示为 `0`，仍与 eˣ 恒正矛盾。该环境相关格式化应在浏览器另行验证。 | SMS-91 |
 
-- 声明：本轮仅逐页读源码（HTML + 内联 JS）并用 node 在 `/tmp` 复刻各页 `calc()` 的主算与边界分支（样本方差/总体方差、BigInt 组合数、单位系数、密度/电场量纲、指数与双曲函数溢出），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。新增 10 条：高 2（SMS-81、SMS-90）、中 8（SMS-83～SMS-89、SMS-91）；安全 0 条（原 SMS-82 XSS 已修复，第 953 批真机复核）；假工具 0 个；8 页全覆盖（centripetal-force 0 条）。
-- 统计：8 页 / 11 条（高 3 / 中 8）/ 安全 1 条（tools/science/chemistry-calculator.html:588、:596、:822）/ 假工具 0 个 / 编号区间 SMS-81～SMS-91（历史快照；SMS-81 数据 0 开头误拒已于 969 批修复销账）。
+- 声明：本轮仅逐页读源码（HTML + 内联 JS）并用 node 在 `/tmp` 复刻各页 `calc()` 的主算与边界分支（样本方差/总体方差、BigInt 组合数、单位系数、密度/电场量纲、指数与双曲函数溢出），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。本批为历史审计快照；SMS-86～91 已分别于早前批次及第 1014 批真机销账，仅 SMS-83～85（chemistry-calculator）残留待修；安全 0 条（原 SMS-82 XSS 已修复，第 953 批真机复核）；假工具 0 个。
+- 统计：8 页 / 3 条（SMS-83～85，均中）/ 安全 1 条（tools/science/chemistry-calculator.html:588、:596、:822）/ 假工具 0 个 / 编号区间 SMS-81～SMS-91（历史快照；SMS-81 于 969 批、SMS-86～91 于第 1014 批及之前销账）。
 
 ## Z 批 · 自然科学·数学/地学/热学（2026-11-04）
 
@@ -257,7 +246,7 @@
 - `tools/science/physics-constants.html`：3 条（SMS-128～130 中）。c、G、h、e、mₑ、Nₐ、k_B、R、α、a₀ 等数值抽查全部正确；问题在分类维度错置、柱图 exp 元数据与数值不符、重复行符号/数值自相矛盾。
 - `tools/science/pi-digits.html`：0 条。1000 位串长度、前缀与第 100/1000 位复核无误（…3421170679 / …2164201989），第 N 位与搜索位置 +1 口径无偏差。
 - `tools/science/polar-day-night.html`：1 条（SMS-131 中）。70°N 极昼 5/21–7/23 共 64 天、极夜 11/19–1/21 共 64 天，与深挖算例一致；问题在 66.56° 预设返回 0 天及参考卡天数与引擎冲突。
-- `tools/science/power-calculator.html`：Math.pow 主算正确（2^10=1024、2^-10=9.765625e-4）；2026-11-06 复核引据表已改为指数律，SMS-133 清理；SMS-132 的极小数科学计数已修，普通小数精度仍需关注。
+- `tools/science/power-calculator.html`：SMS-132/133 已修——Math.pow 主算正确（2^10=1024、2^-10=9.765625e-4），引据表为指数律，极小数与普通小数（|x|<1e-3）均走科学计数，2^-10 显示 9.7656250000e-4 而非 0.001。
 - `tools/science/prime-number.html`：2 条（SMS-134～135 中）。单值判定/区间筛/质因数分解主算正确（97 素数、91=7×13）；问题为 parseInt 截断与筛法/试除无上限。
 
 | 页面 | 问题（tools/science/&lt;slug&gt;.html:NN） | 编号 |
@@ -265,11 +254,10 @@
 | tools/science/periodic-table.html | 镧系/锕系错位：`#periodicTable` 为 `grid-template-columns:repeat(18,1fr)` 且无 grid-column 定位，7×18=126 个单元格占满 7 行后，15 个镧系排第 8 行 1–15 列，15 个锕系从第 8 行第 16 列续排 → Ac/Th/Pa 落在镧系行右端、其余 12 个换到第 9 行 1–12 列，与深挖「单独排在下方两行」不符。:29、:444-458 | SMS-125 |
 | tools/science/physics-constants.html | 分类维度错置：`universal` 的标签写作「宇宙学」（英文 Cosmology），却装入 c/μ₀/ε₀/G/h/ℏ 等普适与电磁常数；「引力加速度(标准) g」归入「天文」，页面也无电磁类别——按分类查 μ₀/ε₀ 找不到对应维度。:236-244、:269、:277 | SMS-128 |
 | tools/science/polar-day-night.html | 66.56° 预设使极昼/极夜天数均为 0，输出「该纬度无极昼现象 / 无极夜现象」，与参考卡「66.56° 极圈：极昼/极夜各约 1 天」及深挖「约 1 天」直接冲突（阈值 90−23.44=66.56，而正弦近似峰值仅 23.4398，全年无一日满足）；参考卡 70/75/80° 的 65/60、105/95、135/125 也与引擎 64/64、102/102、131/131 不符（按本公式同纬度极昼/极夜必然等长）。:145、:185-187、:222、:267 | SMS-131 |
-| tools/science/power-calculator.html | 2026-11-06 复核：`fmt` 已对非零绝对值 <1e-6 使用科学计数法，提取实际函数在 Node 执行 2^-40 得 `9.0949470177e-13`，旧归零例已修。残留：普通分支无参 `toLocaleString()`，Node 中 10^-4 显示 `0`、3^-5 显示 `0.004`、2^-10 显示 `0.001`；浏览器具体输出仍待确认。:244-249、:259-262 | SMS-132 |
 
 - 声明：本轮仅逐页通读 8 页源码（HTML + 内联 JS），在 `/tmp` 用 node 复刻主算与边界（单摆 T/f/ω 与 g 双值对比、极昼逐日布尔与跨年连续区间、幂 fmt 的 `toLocaleString` 默认位数、π 1000 位串头尾与第 100/1000 位、parseInt 截断、BigInt 排列的量级、sieve 内存/试除复杂度、常量 exp 分桶），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。默认单位复核：单摆 L(m)/g(m·s⁻²) 量纲自洽，极昼工具纬度统一按度、无角度/弧度混用。
 - 安全注记：本批 8 页无 `eval`/`new Function`/`allow-same-origin`/`document.write`、无明文存密、无页面自有网络外传；本批数值页的用户输入均经 `parseFloat`/`parseInt` 或固定数字正则后才参与运算与拼接，未形成可控 HTML 注入。公共模板统一注入的 `lf1-cdn-tos.bytegoofy.com/ttzz/push.js` 属全站既有项（前批按「非本批页面特有、不重复登记」口径处理），故未计入条数。
-- 原审统计（历史快照）：8 页 / 12 条（高 2 / 中 10）/ 安全 0 条 / 假工具 0 个 / 编号区间 SMS-124～SMS-135；SMS-133 已于 2026-11-06 复核清理，SMS-132 以现有残留说明为准，SMS-134/135 已于 2026-11-17 真机销账（严格整数解析 + 范围上限），SMS-129/130 同日销账（exp 数量级修正 + 重复行删除），SMS-124 于 972 批销账（重力常量统一 9.80665）。
+- 原审统计（历史快照）：8 页 / 12 条（高 2 / 中 10）/ 安全 0 条 / 假工具 0 个 / 编号区间 SMS-124～SMS-135；SMS-124（972 批）、SMS-129/130（2026-11-17）、SMS-132（第 1014 批普通小数科学计数）、SMS-133（2026-11-06）、SMS-134/135（2026-11-17）均已真机销账，本批剩余 SMS-125/131。
 
 ## AA 批 · 自然科学·方程/统计/RC/星等（2026-11-04）
 
