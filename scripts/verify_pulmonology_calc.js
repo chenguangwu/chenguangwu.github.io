@@ -4,6 +4,8 @@
 // 全部用例采用「非默认输入 + 独立复算 expect」，expect 必须依赖被测点的计算结果，
 // 不得取页面源码字面量或输入值回显（注入失败时用例必须 FAIL）。
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const CASES = [
 {
   // 默认 wt=55/age=45 → 风险因素「年龄≥35」→ 中危；注入 wt=40/age=30 → 无风险因素 → 低危
@@ -556,9 +558,17 @@ const CASES = [
   "clicks": ["document.getElementById('hr').checked=true;calc();"],
   "expect": ["1.5 Wells总分", "总分 = 1.5"],
   "ref": "03-158 核销：仅勾选心率得 1.5 分，Wells 三分类 <2 为低危 1.3%（原 score<=1 会误判中危），首屏不再预置 hr。原「低危 (PE概率 ～1.3%)」在纯默认快照也命中（逃生），改用注入勾选决定的总分双锚。"
+},
+{
+  "slug": "pulmonology/curb65",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+\"/tools/pulmonology/curb65.html\",\"utf8\");var reg=h.indexOf(\"TBKit.preset.bar(\")>=0;var p0=h.indexOf(\"0 \u5206 \u00b7 \u4f4e\u5371\u95e8\u8bca\")>=0;var p2=h.indexOf(\"2 \u5206 \u00b7 \u4e2d\u5371\u4f4f\u9662\")>=0;var p4=h.indexOf(\"4 \u5206 \u00b7 \u9ad8\u5371 ICU \u8bc4\u4f30\")>=0;document.getElementById(\"__tbProbe\").textContent=(reg&&p0&&p2&&p4)?\"__CURB_PRESET_OK__\":\"__CURB_PRESET_BAD__ \"+[reg,p0,p2,p4].join(\",\");"],
+  "expect": [
+    "__CURB_PRESET_OK__"
+  ],
+  "ref": "第1102批 N32：预设函数旧为空壳、预设tab空白；补 3 个预设（0分门诊/2分住院/4分高危），显式设置 c/u/r/b1/b2/age65 六项。源码形态五哨兵，旧版必红。"
 }
-
 ];
+
 async function main() {
   const only = process.argv.slice(2);
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
