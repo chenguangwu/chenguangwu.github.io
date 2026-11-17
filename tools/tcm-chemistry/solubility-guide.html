@@ -281,16 +281,19 @@ function filterData(){
   renderTable();
 }
 
-function renderTable(){
-  let rows = DATA.filter(d => {
+function filterRows(){
+  return DATA.filter(d => {
     const catOk = activeCat === '全部' || d.cat === activeCat;
     const keyOk = !searchKey || d.name.toLowerCase().includes(searchKey) || d.source.toLowerCase().includes(searchKey) || d.cat.toLowerCase().includes(searchKey);
     return catOk && keyOk;
   });
+}
+function renderTable(){
+  let rows = filterRows();
 
   let html = `<p style="font-size:13px;color:var(--text-secondary);margin:12px 0 6px;">共 <strong>${rows.length}</strong> 条记录</p>`;
   if(rows.length === 0){
-    html += '<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__solubility_guideExport()">导出明细 CSV</button></div><div class="result-box" style="text-align:center;color:var(--text-muted);">未找到匹配成分</div> <div id="solubility_guideTable"></div> <div id="solubility_guideDiff"></div> <div id="solubility_guideChart"></div> <div id="solubility_guideHist"></div>';
+    html += '<div class="result-box" style="text-align:center;color:var(--text-muted);">未找到匹配成分</div> <div id="solubility_guideTable"></div> <div id="solubility_guideDiff"></div> <div id="solubility_guideChart"></div> <div id="solubility_guideHist"></div>';
   } else {
     html += '<div style="overflow-x:auto;"><table class="sol-table"><thead><tr><th>成分</th><th>类别</th><th>来源</th>';
     SOLVENTS.forEach(s => html += `<th>${s}</th>`);
@@ -309,11 +312,7 @@ function renderTable(){
 }
 
 function exportData(){
-  let rows = DATA.filter(d => {
-    const catOk = activeCat === '全部' || d.cat === activeCat;
-    const keyOk = !searchKey || d.name.toLowerCase().includes(searchKey);
-    return catOk && keyOk;
-  });
+  let rows = filterRows();
   let csv = '\uFEFF成分,类别,来源,分子量,' + SOLVENTS.join(',') + ',备注\n';
   rows.forEach(r => {
     csv += [r.name,r.cat,r.source,r.mw,...SOLVENTS.map(s=>r.sol[s]||'-'),r.note||''].map(ToolBox.csvCell).join(',') + '\n';

@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const CASES = [
 {
   "slug": "tcm-chemistry/calc-44",
@@ -339,6 +341,12 @@ const CASES = [
   "clicks": ["document.getElementById('rt_plate').value='2';document.getElementById('t0_plate').value='2.5';document.getElementById('peakWidth').value='0.5';calcPlate();"],
   "expect": ["保留时间 tR 须大于死时间"],
   "ref": "第1071批 N147：tR=2 < t0=2.5 ⇒ k′=(2−2.5)/2.5=−0.2 无物理意义。旧版仍渲染「有效塔板数 16」；新版 calcPlate 开头校验 tR>t0>0&&W>0&&L>0，不满足则提示「保留时间 tR 须大于死时间 t₀」并停算。默认 tR=2.5/t0=2.5 相等也不满足（须严格大于），但默认实际值不同 ⇒ 依赖 clicks 注入，强判别。"
+},
+{
+  "slug": "tcm-chemistry/solubility-guide",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-chemistry/solubility-guide.html','utf8');var n=h.split('let rows = filterRows();').length-1;var ok=h.indexOf('function filterRows()')>=0&&n===2&&h.indexOf('导出明细 CSV')<0;document.getElementById('__tbProbe').textContent='SOLFILTER '+(ok?'OK':'BAD');"],
+  "expect": ["SOLFILTER OK"],
+  "ref": "12-N110 表格/导出筛选口径统一：filterRows 同时匹配名称/来源/类别，renderTable 与 exportData 各复用一次；空结果态误导性的历史导出按钮移除。旧版 exportData 只按名称且空态按钮存在 ⇒ 变红。默认态不产生该串，零逃生。"
 }
 ];
 async function main() {
