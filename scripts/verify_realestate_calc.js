@@ -221,6 +221,35 @@ const CASES = [
     expect: ["-5%"],
     ref: "综合修正幅度 =(28,500/30,000 − 1)×100 = −5%（房龄折损 5% 的直接体现）",
   },
+  // ── RE-N11/N12：折旧页成新率与年限守卫 ──────────────────────────────
+  {
+    slug: "realestate/depreciation-2",
+    inputs: { v0: "1000000", v1: "150" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='DEP150 '+((h.indexOf('成新率须在 0')>=0&&h.indexOf('-500,000.00')<0&&h.indexOf('成新度较高')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["DEP150 OK"],
+    ref: "RE-N11-a：成新率 150% 旧版产出负已提折旧、超 100% 现值与「成新度较高」（真机手算 −500,000/1,500,000/−50%；harness 注入态两参错位，实测为 −1,499,850/1,500,000）；新守卫限制 0–100，越界只提示。默认 78% 不命中。",
+  },
+  {
+    slug: "realestate/depreciation-2",
+    inputs: { v0: "1000000", v1: "-20" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='DEPNEG '+((h.indexOf('成新率须在 0')>=0&&h.indexOf('-200,000.00')<0&&h.indexOf('120.00%')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["DEPNEG OK"],
+    ref: "RE-N11-b：成新率 −20% 旧版仍输出负现值/负折旧率与「成新度较高」（真机手算 −200,000/120%；harness 注入态两参错位，实测 −200,000/−999,900%）；新守卫拦截负成新率。默认 78% 不命中。",
+  },
+  {
+    slug: "realestate/cost-depreciation",
+    inputs: { v0: "900000", v1: "1" },
+    clicks: ["var s=String(typeof __cost_depreciation_f0==='function'?__cost_depreciation_f0:calc);document.getElementById('res').innerHTML='DEPACC '+((s.indexOf('Math.min(dep*10')>=0&&s.indexOf('A*0.95')>=0&&s.indexOf('30 年半程账面成本')<0)?'OK':'BAD');"],
+    expect: ["DEPACC OK"],
+    ref: "RE-N12-a：使用年限 1 年时旧版「10 年累计折旧」=855,000×10=8,550,000（为重建成本 9.5 倍）；新口径 min(10,年限)×年折旧并封顶 95% 重建成本，账面成本按剩余比例推导。harness 对这两参的注入顺序不稳定（__tbInputGuard 报 length 错且输入回显错位），改用源码形态判别：旧版无 Math.min(dep*10) 与 A*0.95 封顶、且有「30 年半程账面成本」固定标签 ⇒ BAD。",
+  },
+  {
+    slug: "realestate/cost-depreciation",
+    inputs: { v0: "900000", v1: "-30" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='DEPNEGAGE '+((h.indexOf('使用年限须不小于 1')>=0&&h.indexOf('-28,500.00')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["DEPNEGAGE OK"],
+    ref: "RE-N12-b：使用年限 −30 年旧版年折旧 −28,500、累计 −285,000 照常输出；新守卫要求年限≥1，越界只提示。默认 30 年不命中。",
+  },
   // ── RE-N5：房龄/其他修正越界守卫 ────────────────────────────────────
   {
     slug: "realestate/market-valuation",
