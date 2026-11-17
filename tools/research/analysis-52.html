@@ -200,9 +200,10 @@ function fmt(n,d){d=d==null?2:d;return Number(n).toLocaleString('zh-CN',{minimum
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function calc(){
   const lines=document.getElementById("codes").value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
-  const rows=[];let bad=0,warn=[],missing=0;
+  const rows=[];let bad=0,warn=[],missing=0,badScoreNames=[];
   lines.forEach(function(ln){
-    const p=ln.split(/[,，、;；\t]+|\s+/).filter(Boolean);
+    // 只按逗号/顿号/分号/制表符分列，空格留给编码名
+    const p=ln.split(/[,，、;；\t]+/).map(function(s){return s.trim();});
     if(p.length<2){bad++;return;}
     const cnt=parseFloat(p[1]);
     if(!isFinite(cnt)||cnt<0){bad++;return;}
@@ -211,7 +212,7 @@ function calc(){
       const v=parseFloat(p[2]);
       if(isFinite(v)){
         if(v>=1&&v<=5){sc=v;}else{invalid=v;warn.push(p[0]);}
-      }else{missing++;}
+      }else{badScoreNames.push(p[0]);}
     }else{missing++;}
     rows.push({name:p[0],c:cnt,s:sc,invalid:invalid});
   });
@@ -234,6 +235,7 @@ function calc(){
   let extra='';
   if(bad)extra+='<p class="muted">'+bad+' 行无法识别已跳过，请检查是否缺少提及次数。</p>';
   if(warn.length)extra+='<p class="muted">评分超出 1~5 的编码：'+esc(warn.join('、'))+'，未计入评分均值与加权均值。</p>';
+  if(badScoreNames.length)extra+='<p class="muted">评分非数字的编码：'+esc(badScoreNames.join('、'))+'，未计入评分统计。</p>';
   if(missing)extra+='<p class="muted">'+missing+' 个编码未填评分，只参与频次统计。</p>';
   const __g3='<p>编码数：<strong>'+rows.length+'</strong> 个　提及总次数：<strong>'+fmt(F,0)+'</strong></p>'
    +list
