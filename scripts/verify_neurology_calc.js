@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -757,6 +759,12 @@ const CASES = [
 
 
 
+  ,{
+    "slug": "neurology/nihss",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/neurology/nihss.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/neurology/nihss.json','utf8');var dj=JSON.parse(dd);var faq=dj['neurology/nihss'].faqs[0].a;var ok=h.indexOf('合计 18 分：中重度（16~20）')>=0&&h.indexOf('0 无神经功能缺损（不代表排除卒中）')>=0&&h.indexOf('无可测神经功能缺损（不能排除卒中）')>=0&&h.indexOf('16~21')<0&&h.indexOf('≥22')<0&&h.indexOf(\"<td>无卒中</td>\")<0&&h.indexOf(\"sev='无卒中'\")<0&&h.indexOf('keys.slice(0,12)')<0&&h.indexOf('keys.slice(0,13)')>=0&&faq.indexOf('16~21')<0&&faq.indexOf('≥22')<0&&faq.indexOf('16~20')>=0&&faq.indexOf('≥21')>=0&&en.indexOf('No measurable deficit (stroke not excluded)')>=0&&en.indexOf('16-21 moderate-severe')<0;document.getElementById('__tbProbe').textContent='NIHSSGRADE '+(ok?'OK':'BAD');"],
+    "expect": ["NIHSSGRADE OK"],
+    "ref": "12-N71/N74/N75：deep-dive 算例与 FAQ 的 16~21/≥22 与表格/代码 16-20/≥21 冲突，改为同页统一口径；0 分由「无卒中」改「无可测神经功能缺损（不能排除卒中）」并与公式框同源；空表导出键上限 12→13 覆盖第 13 项 q11。权威源 content_deepdive.json + en map 同步，旧版四处旧串命中即红，默认态不产生该哨兵。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);
