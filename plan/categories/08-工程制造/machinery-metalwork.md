@@ -123,9 +123,9 @@
 - `tools/machinery/calc-89.html`：平均半径 (D+d)/4、T=μFRmz、p=F/A 正确，默认 80 N·m / 0.099 MPa 复算一致；深度解析整节跑题到法兰接合面。
 - `tools/machinery/calc-gear.html`：直齿 d/db/da/df/p/pb 与默认算例正确；斜齿根切最少齿数少乘 cos²β，判定偏松，齿顶厚未实现。
 - `tools/machinery/detector-194.html`：决策只剩「年限>8 更换」，设备类型与运行模式是死输入，检查清单只按故障套模板，阀门/换热器也列旋转机械拆检项。
-- `tools/machinery/detector-stretch.html`：三项阈值全是写死常量却宣称依据 GB/T 1689、GB/T 528、GB/T 1688 判定合格，空值/负值还可判合格，属假工具。
+- `tools/machinery/detector-stretch.html`：按用户填写的设计限值逐项比对并输出裕度；已明确不内置标准阈值、不引用 GB/T 编号、不出具检测或验收报告。
 - `tools/machinery/energy-2.html`：制动能耗/扭矩/功率公式正确，默认 30.84 kJ、130.90 N·m、10.28 kW 复算一致；深度解析讲电机效率与年电费，与制动无关。
-- `tools/machinery/estimate-gravity.html`：六种体积公式与形心取值正确，默认板 50 cm³ / 392.5 g 一致；负尺寸/负密度不拦，组合重心缺逐件全局偏移输入。
+- `tools/machinery/estimate-gravity.html`：六种体积公式与形心取值正确，默认板 50 cm³ / 392.5 g 一致；组合重心缺逐件全局偏移输入。
 - `tools/machinery/flow-14.html`：水力/轴功率/电机功率与两个算例复算一致（4.09/5.45/6.27 kW，nq 48.7）；电机 400 kW 上限、η/K 校验、公式框与固定 1450 r/min 均有缺陷。
 
 **问题条目**
@@ -137,10 +137,7 @@
 | tools/machinery/calc-gear.html | 【高】斜齿根切最少齿数用 2ha*·cos³β/sin²αt，按端面条件应为 2ha*·cosβ/sin²αt；β=20° 得 12.7（应 14.4），β=30° 得 8.7（应 11.5），13 齿斜齿轮会被判「不根切」（:322,325；:178 亦写 17·cos³β） | MM-H77 |
 | tools/machinery/calc-gear.html | 【中】深度解析称「校核根切与齿顶厚」，页面只输出 da/df，无齿顶厚 sa 计算（:511） | MM-H79 |
 | tools/machinery/detector-194.html | 【高】设备类型 v1 与运行状态 v4 为死输入：calc 只用 years>8 判更换，v1/v4 仅回显名称；检查清单只按故障 v2 分支，阀门/换热器也输出「轴承磨损/联轴器对中/地脚螺栓/动平衡」；简介仍称「考虑运行模式的影响」（:213-222,227-231,288） | MM-H80 |
-| tools/machinery/detector-stretch.html | 【高】阈值 0.08 g、20 MPa、1×10⁶ 次为写死常量，却宣称依据 GB/T 1689、GB/T 528、GB/T 1688 判定合格；三者均为试验方法标准，不规定该合格线，页面还称「检测报告可用于质量验收」（:10,213,232；:125 仍为「合法性校验」模板） | MM-H81 |
-| tools/machinery/detector-stretch.html | 【中】空值/负值兜底为 0 后直接判定：清空磨耗量 → 0 g 显示「合格」，磨耗 -0.5 g 也判「合格」，漏检项目被当作合格项（:219-226） | MM-H82 |
 | tools/machinery/energy-2.html | 【中】深度解析「设备能耗/能效」讲电机效率、年电费与传动效率连乘，页面只算制动能耗，5 kW / η=90% / 4000 h 算例无对应输入；引据表列「温升核算」但页面无质量/比热/散热输入（:426-434,159-161） | MM-H83 |
-| tools/machinery/estimate-gravity.html | 【中】val() 只把 NaN 归 0，尺寸与自定义密度无正值校验：板长 -100 mm → V=-50 cm³、m=-392.5 g；密度 -5 g/cm³（默认板 50 cm³）→ m=-250 g（:306,331-366） | MM-H84 |
 | tools/machinery/estimate-gravity.html | 【中】组合重心无逐件全局位置输入：addToAssembly 只存局部 cx/cy/cz，renderAssembly 直接 Σm·c/Σm 并标「组合重心」；两件无法分别放到 x=0 与 x=200，页面注文自认「需考虑各零件在全局坐标系中的位置偏移」，且提示称原点为几何中心而代码输出 L/2（:200,398-403,421-427,442） | MM-H85 |
 | tools/machinery/flow-14.html | 【中】pickMotor 在 Pm>400 kW 时静默返回 400，仍标「推荐电机」：Pm=500 → 推荐 400 kW、负载率 125%，无「超范围」提示（:194-197,210,224,230） | MM-H86 |
 | tools/machinery/flow-14.html | 【中】效率 η 与安全系数 K 只判非负/非零，未按 1–100、1–2 校验：η=120% → Psh=3.41 kW 小于水力功率 4.09 kW；K=0.5 → Pm=2.73 kW（:136-137,198,203） | MM-H87 |
@@ -148,11 +145,11 @@
 | tools/machinery/flow-14.html | 【中】比转速固定按 1450 r/min 计算，页面无转速输入：2900 r/min 时 nq 翻倍（默认 48.7→97.4），泵型从「旋涡泵/部分流泵」跨到「离心泵（中比转速）」；简介仍称「依据比转速推荐泵型」（:212-219,228-229） | MM-H89 |
 
 **统计**
-- 条数：14（高 3 / 中 11）；编号区间：MM-H73–MM-H89，续接 MM-H72，不重号不跳号。
-- 高优编号：MM-H77（齿轮根切判据算错）、MM-H80（检测页死输入）、MM-H81（检测页写死阈值冒充国标）。
-- 假工具：1（`tools/machinery/detector-stretch.html`）。安全条目：0（无 XSS、eval、allow-same-origin、明文存密、第三方外传）。
+- 条数：11（高 2 / 中 9）；编号区间：MM-H73–MM-H89，续接 MM-H72，不重号不跳号。
+- 高优编号：MM-H77（齿轮根切判据算错）、MM-H80（检测页死输入）。
+- 假工具：0（detector-stretch 已改为用户自填限值比对，不内置阈值、不出具验收结论）。安全条目：0（无 XSS、eval、allow-same-origin、明文存密、第三方外传）。
 - 复算：node 内存复算关键值（根切 zmin、负体积/负密度、泵功率与 nq、制动能耗、离合器扭矩/压力），未落盘仓库；仅源码阅读，未开浏览器、未跑构建/门禁、未改工具页。
-- 去重说明：`detector-stretch` 与既有 MM-H63 同为「写死阈值冒充国标」模式，但页面不同，按逐页口径单列。
+- 去重说明：`detector-stretch` 原与 MM-H63 同属「写死阈值冒充国标」模式，现已改为用户自填限值比对；其余按逐页口径单列。
 
 ## Z 批 · 机械·选型/寿命/传动（2026-11-04）
 

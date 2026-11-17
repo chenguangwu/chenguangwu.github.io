@@ -42,6 +42,8 @@ const CASES = [
   { slug: "machinery/drive-2", inputs: {z1:"4", z2:"40", module:"5"}, expect: ["10.00 传动比"], ref: "蜗杆传动" },
   { slug: "machinery/energy-2", inputs: {v_J:"5", v_n1:"1500", v_n2:"0"}, expect: ["261.80 制动扭矩"], ref: "制动能" },
   { slug: "machinery/estimate-gravity", inputs: {plateL:"120", plateW:"60"}, expect: ["565.200 质量"], ref: "零件重量：钢板 120×60×10 → 72cm³×7.85" },
+  { slug: "machinery/estimate-gravity", inputs: {shape:"plate", plateL:"-100", plateW:"50", plateH:"10"}, expect: ["尺寸须为正数"], ref: "987 负值守卫：板长 -100 mm 旧版算出负体积/负质量，修复后尺寸统一有限性与正值校验并拦截。" },
+  { slug: "machinery/detector-stretch", inputs: {v1:"-0.5", v2:"22", v3:"1.2", hi1:"0.08", lo2:"20", lo3:"1"}, expect: ["实测值（不得为负）"], ref: "987 负值守卫：磨耗量 -0.5 g 旧版按 -0.5≤0.08 判「满足」，修复后负实测值拦截。" },
   { slug: "machinery/estimate-lifespan-bearing", inputs: {loadC:"67", loadP:"5", speed:"1500"}, expect: ["2406.10"], ref: "轴承寿命估算" },
   { slug: "machinery/frequency-17", inputs: {v_m:"200", v_k:"50000", v_f:"25"}, expect: ["2.516 固有频率"], ref: "振动隔振" },
   { slug: "machinery/gear", inputs: {v_fa:"200", v_fb:"150", v_fc:"120"}, expect: ["不满足", "320.00"], ref: "四连杆：200 使最短+最长 320 > 其余和 310 → 不满足 Grashof" },
