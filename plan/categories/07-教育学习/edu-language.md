@@ -184,22 +184,7 @@
 ### 留存建议（tools/edu/country-quiz.html）
 - 与 `flag-quiz.html` 明确分工（本页做首都/位置，另页做国旗），消除近重复。
 
-### EL-J128 「国旗测验」英文简介称"timed multiple-choice quiz"但无计时器，错题库未实现（中，承诺未实现）
-- 问题：`formula-desc` 英文写"timed multiple-choice quiz"，中文 meta 写"即时判分并累计成绩"；实际 `choose()` 只判分后 900ms 进下一题，全程无倒计时/超时判负；deep-dive 的"错题库：强化易错"也无实现。
-- 证据：`tools/edu/flag-quiz.html:158`（timed）、`:303-315`（`choose` 无计时）、`:200`（"错题库"）。
-- 复现：答 10 题 → 无计时显示，停留任意久也不判错；答错后无错题清单，重开 `start()` 只重新随机抽题。
-- 影响：`tools/edu/flag-quiz.html`；英文态描述与功能不符，错题强化承诺落空。
-- 方案：加每题倒计时（超时记错）并显示剩余秒数，或在文案删"timed"；补错题本并在下一轮优先抽错题。
-
-### EL-J129 「国旗测验」与「国家测验」逻辑与题库近重复，仅多 4 国且少一行题干（中，确认缺陷）
-- 问题：两页 `data/countries` 前 20 条完全相同，`start/reset/next/choose/finish` 与 `__tbq` 历史（localStorage key 仅前缀不同）几乎逐行一致；国旗页多 4 国（挪威/希腊/土耳其/泰国），国家页多一行 `question` 文本。两页对搜索引擎与用户都是近重复内容。
-- 证据：`tools/edu/flag-quiz.html:252-261`（24 国）与 `tools/edu/country-quiz.html:254-261`（20 国，前 20 条同）；`flag-quiz.html:264-320` 对比 `country-quiz.html:265-319`；历史 `flag-quiz.html:342-371` 对比 `country-quiz.html:346-371`。
-- 复现：同一轮 10 题，两页题干除国旗页无"Q1."前缀外一致；答错高亮、得分口径、完成文案、历史 CSV 全部相同。
-- 影响：`tools/edu/flag-quiz.html`、`tools/edu/country-quiz.html`；关键词自相竞争，用户无差异化理由。
-- 方案：按题型拆分（国旗页只考国旗+限时；国家页考首都/位置+错题本），题库与文案各自独立；或合并为一页并 301/存根处理另一 URL（须按 §4.6 提死链）。
-
 ### 留存建议（tools/edu/flag-quiz.html）
-- 与 country-quiz 分工，避免同题库同逻辑；题库扩量并加难度分级。
 - 历史记录同时存题量/用时，CSV 增加这两列，支撑"成绩累计"。
 
 ### EL-J130 「高考/考研倒计时」大字天数与"剩余总天数"统计差 1，考试前一天统计为 0（中，确认缺陷）

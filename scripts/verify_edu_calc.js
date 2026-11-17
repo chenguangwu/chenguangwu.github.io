@@ -1595,6 +1595,18 @@ const CASES = [
     expect: ["CQJ127 56 OK"],
     ref: "EL-J127：旧版题库仅 20 国、emoji 无字体栈，部分平台回退为字母代码。现扩到 56 国并加系统 emoji 字体栈兜底（Apple/Segoe/Noto/Twemoji）。源码形态哨兵（条目数+字体栈+新增国名）：旧版 n=20 ⇒ 必红。",
   },
+  {
+    slug: "edu/flag-quiz",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/flag-quiz.html','utf8');var dd=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu/flag-quiz']);var ok=h.indexOf('PER_Q_SEC=10')>=0&&h.indexOf('function startTimer')>=0&&h.indexOf('function onTimeout')>=0&&h.indexOf('function addWrong')>=0&&h.indexOf(\"mode==='wrong'\")>=0&&h.indexOf('10-second countdown')>=0&&dd.indexOf('错题库')>=0;document.getElementById('__tbProbe').textContent='FLAGJ128 '+(ok?'OK':'BAD');"],
+    expect: ["FLAGJ128 OK"],
+    ref: "EL-J128：旧版英文称 timed multiple-choice quiz 但无计时器、错题库未实现。现含 PER_Q_SEC=10 每题倒计时+onTimeout 超时判错+addWrong 错题库+只练错题模式，英文 formula-desc 10-second countdown/review bank 与权威源错题库口径一致。源码+权威源哨兵：旧版无计时与错题实现 ⇒ 必红。",
+  },
+  {
+    slug: "edu/flag-quiz",
+    clicks: ["var fs=globalThis.__tbFs;var f=fs.readFileSync(process.cwd()+'/tools/edu/flag-quiz.html','utf8');var c=fs.readFileSync(process.cwd()+'/tools/edu/country-quiz.html','utf8');var fseg=f.slice(f.indexOf('const data=['),f.indexOf('let queue'));var cseg=c.slice(c.indexOf('const countries=['),c.indexOf('let queue'));var fn=(fseg.match(/name:'/g)||[]).length,cn=(cseg.match(/name:'/g)||[]).length;var ok=fn>=24&&cn>=50&&f.indexOf('PER_Q_SEC')>=0&&c.indexOf('PER_Q_SEC')<0&&f.indexOf('WRONG_KEY')>=0&&c.indexOf('WRONG_KEY')<0;document.getElementById('__tbProbe').textContent='FLAGJ129 '+fn+'/'+cn+' '+(ok?'OK':'BAD');"],
+    expect: ["FLAGJ129 24/56 OK"],
+    ref: "EL-J129：旧版两页前 20 国同题库、逻辑逐行一致构成近重复。现差异化——国旗页 24 国+10 秒限时+错题库+只练错题，国家页 56 国+无计时+无错题库。交叉源码哨兵：旧版 flag=24/country=20 且两页均无/均有计时，该组合不成立 ⇒ 必红。",
+  },
 
 ];
 
