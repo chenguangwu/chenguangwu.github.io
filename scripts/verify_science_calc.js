@@ -2599,6 +2599,15 @@ const CASES = [
     "clicks": ["calcMagnitude()"],
     "expect": ["两天体星等相同，亮度相等（比值 1.00）"],
     "ref": "SMS-71：两星等相等时 ratio=2.512^0=1，旧版 brighter='一样亮' 拼出「即天体 一样亮 比 A 亮 1.00 倍」自相矛盾。修复后相等分支独立输出「两天体星等相同，亮度相等（比值 1.00）」（英文态经 TBKit.util.isEn helper）。默认 mag1=-1.46/mag2=2.0 不等 ⇒ 走原「比…亮…倍」分支，不含该串。"
+  },
+  {
+    "slug": "science/astronomy-toolkit",
+    "inputs": { "moonDate": "2026-09-25" },
+    "clicks": [
+      "(function(){var hist=[],rows=0,chart=null,noop=function(){};globalThis.TBKit={util:{isEn:function(){return false;},diffBox:noop,exportTable:noop},matrix:{table:function(s,o){rows=o.rows.length;}},chart:{line:function(s,o){chart=o;}},history:{list:function(){return hist.slice();},last:function(){return hist.length?hist[hist.length-1].d:null;},record:function(d){hist.push({t:Date.now()+hist.length*1000,d:d});},mount:noop,clear:function(){hist.length=0;},diffLast:function(){return null;}},preset:{bar:noop},export:{csv:noop},share:{params:function(){return {};}}};var _qsa=document.querySelectorAll.bind(document);document.querySelectorAll=function(s){if(String(s).indexOf('input[id]')>=0)return ['moonDate','mag1','mag2','meteorDiameter','meteorSpeed','meteorDensity','meteorAngle','groundDensity','latInput','lonInput','utmZone','utmHemisphere'].map(function(id){return document.getElementById(id);});return _qsa(s);};var mg=document.getElementById('moonInfoGrid');var ids=['moonPhaseName','moonAge','moonIllum','moonNextNew'];Object.defineProperty(mg,'textContent',{configurable:true,get:function(){return ids.map(function(id){return document.getElementById(id).textContent||'';}).join(' ');},set:function(v){mg.innerHTML=String(v);}});__astronomy_toolkit_last=0;calcMoonPhase();document.getElementById('moonDate').value='2026-06-21';__astronomy_toolkit_last=0;calcMoonPhase();var last=hist.length?String(hist[hist.length-1].d['结果']||''):'';document.getElementById('moonDate').value='ASTROHIST_'+(last.indexOf('上弦月 6.2 29.7 23.3天')>=0&&rows===2?'OK':'BAD '+last);})()"
+    ],
+    "expect": ["ASTROHIST_OK"],
+    "ref": "SMS-74：附加层只包裹 calcMoonPhase()，月相结果写在 #moonInfoGrid（非 .result-box）。旧 __astronomy_toolkitResText() 取页面首个 .result-box（#magResult），未算星等时读到占位「请输入…」被正则判空，月相历史/表/图全无；算过星等则把星等结果误记为月相。修复后优先读 #moonInfoGrid，探针注入 2026-09-25（满月13.6/100.0/15.9天）与 2026-06-21（上弦月6.2/29.7/23.3天）两次，断言最后一条历史结果为后者且表格2行。旧版无历史记录 ⇒ ASTROHIST_BAD；默认态不执行 clicks ⇒ 零逃生。harness 需补 input 选择器与月相网格 textContent getter，属桩能力边界。"
   }
 ];
 
