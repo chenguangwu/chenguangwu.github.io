@@ -357,6 +357,17 @@ const CASES = [
     "77.683"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "process/cp-index",
+  "inputs": {
+    "usl": "10.05",
+    "lsl": "9.95",
+    "sigma": "0.0001"
+  },
+  "clicks": ["var s=document.getElementById('sigma');var min=s.getAttribute('min');s.value='0.0001';calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='CPMIN '+(min==='0.0001'&&h.indexOf('166.667')>=0?'OK':'BAD min='+min);"],
+  "expect": ["CPMIN OK"],
+  "ref": "1054 复核重做：σ 输入除原有的 >0 计算守卫外，还须有表单下限 min=0.0001；边界值 0.0001 仍可算出 Cp=(10.05−9.95)/(6×0.0001)=166.667。旧版无 min 属性 ⇒ BAD；默认 σ=0.01 不含该探针。"
 }
 ];
 async function main() {

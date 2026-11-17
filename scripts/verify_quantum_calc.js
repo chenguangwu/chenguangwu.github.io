@@ -13,6 +13,8 @@
  */
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+// harness 的点击代码在 new Function 里执行，模块局部 require 不可见；显式挂到全局供静态源码断言使用。
+globalThis.__tbFs = require("fs");
 
 const CASES = [
   { slug: "quantum/angular-momentum-quant",
@@ -511,6 +513,13 @@ const CASES = [
     "clicks": ["var cap=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(sel,keys){cap=keys;}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__photoelectric_effectExtras();document.getElementById('__tbProbe').textContent='PED '+(cap?cap.join(','):'NONE');"],
     "expect": ["PED f,phi"],
     "ref": "1001 光电效应差异框监视真实输入 f/phi 而非常量 H；默认态不执行 clicks，零逃生。"
+  },
+  {
+    "slug": "quantum/photoelectric-effect",
+    "inputs": { "f": "1e14", "phi": "2" },
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/quantum/photoelectric-effect.html','utf8');document.getElementById('__tbProbe').textContent='PEDEEP '+(h.indexOf('hf&lt;Φ 时 hf−Φ 为负值，仅表示能量不足')>=0&&h.indexOf('没有逸出电子，因此 K_max 不适用')>=0&&h.indexOf('K_max&lt;0')<0&&h.indexOf('无光电子 emission')<0?'OK':'BAD');"],
+    "expect": ["PEDEEP OK"],
+    "ref": "1001 复核重做：深度解析权威源须与低于阈值时的主结果一致——负值是 hf−Φ 能量差，没有逸出电子故 K_max 不适用；旧版正文写「K_max<0，无光电子 emission」，旧句不命中。harness 的 body 桩不含静态正文，故直接读构建后页面源码；探针仅在 clicks 注入后出现，且同时要求新句命中、旧句与混英文词消失。"
   }
 
 ];

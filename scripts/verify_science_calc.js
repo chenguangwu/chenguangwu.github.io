@@ -2594,6 +2594,19 @@ const CASES = [
     "ref": "SMS-77：四个坐标输入原为 type=number，swapFmt() 把度分秒串（含 ° ' \"）写回 number 输入被浏览器清空 ⇒ 坐标全空报「坐标格式无效」、切回十进制也无法恢复。修复后切格式时同步把四输入 type 改为 text（度分秒）/number（十进制），并用 parseCoord 读取已格式化值。探针勾选 dms 调 swapFmt，断言 lat1.type=text 且保留 39°54'15.12\"；旧版 type 恒 number ⇒ 不命中。默认态不执行 clicks ⇒ 零逃生。"
   },
   {
+    "slug": "science/calc-distance",
+    "inputs": { "lat1": "39.904200", "lon1": "116.407400", "lat2": "31.230400", "lon2": "121.473700" },
+    "clicks": ["var ids=['lat1','lon1','lat2','lon2'];ids.forEach(function(id){var el=document.getElementById(id),t=el.type;Object.defineProperty(el,'type',{configurable:true,get:function(){return t;},set:function(v){if(v==='number'&&/[^\\d.eE+-]/.test(String(el.value)))el.value='';t=v;}});});var mode=false,before=ids.map(function(id){return document.getElementById(id).value;}).join(','),_qs=document.querySelector.bind(document);document.querySelector=function(s){if(String(s).indexOf('dms')>=0)return {checked:mode};return _qs(s);};mode=true;swapFmt();var mid=ids.map(function(id){return document.getElementById(id).value;}).join(',');mode=false;swapFmt();document.querySelector=_qs;var after=ids.map(function(id){return document.getElementById(id).value;}).join(',');document.getElementById('__tbProbe').textContent='DMSRT '+((mid.indexOf('°')>=0&&after===before)?'OK':'BAD '+before+'|'+mid+'|'+after);"],
+    "expect": ["DMSRT OK"],
+    "ref": "1029 复核重做：桩内对四个坐标输入补真机语义——切到 number 时含 ° ' \" 的度分秒串会被清空。旧版先改 type 再读值，十进制→度分秒→十进制后四坐标全丢；修复版先在旧 type 下缓存，再切 type 写回，往返必须逐字回到 39.904200/116.407400/31.230400/121.473700。探针仅在 clicks 注入后出现。"
+  },
+  {
+    "slug": "science/calc-distance",
+    "clicks": ["var q=String.fromCharCode(39),dq=String.fromCharCode(34);var a=parseCoord('-0°30'+q+'0'+dq),b=parseCoord('-0 30 0'),c=parseCoord('0°30'+q+'0'+dq+'S'),d=parseCoord('');document.getElementById('lat1').value='';calc();var msg=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='COORDNEG '+(a===-0.5&&b===-0.5&&c===-0.5&&d===null&&msg.indexOf('坐标格式无效')>=0?'OK':'BAD '+[a,b,c,d].join(','));"],
+    "expect": ["COORDNEG OK"],
+    "ref": "1029 复核重做：-0°30' 与 -0 30 0 的负零在数值比较 deg<0 为假，旧版翻成正 0.5；修复版按字面负号识别为 -0.5，同时 S 后缀仍为 -0.5、空串仍判 null 并拦截计算。默认态不执行 clicks ⇒ 零逃生。"
+  },
+  {
     "slug": "science/astronomy-toolkit",
     "inputs": { "mag1": "1.5", "mag2": "1.5" },
     "clicks": ["calcMagnitude()"],
