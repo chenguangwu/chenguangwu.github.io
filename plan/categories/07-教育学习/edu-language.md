@@ -298,38 +298,8 @@
 
 ### 留存建议（tools/edu/grade-calculator.html）
 ① 支持批量粘贴「科目,分数,学分」导入；② 目标倒推与主成绩表联动，补「已达标 / 无论期末考多少都不够」分支；③ 导出 CSV 与打印成绩单。
-### EL-J39 GPA 计算器：百分制 GPA 同时存在 90→3.60、90→4.50、90→4.0 三套口径（高，确认缺陷）
-- 问题：同一页面对「百分制」给出三种互斥换算：公式框写「分数 ÷ 100 × 4」（90→3.60）；`scale-info` 写「GPA = 加权平均分 / 20」（90→4.50）；meta/description 与公式下方说明写「90+→4.0」。只有第一种进入实际计算。
-- 证据：`tools/edu/exam-gpa-calculator.html:169`（`分数 ÷ 100 × 4`）、`:170` 与 `:10`（`90+→4.0`）、`:321-326`（百分制 info「/20」）、`:345`（`scoreToGP100=(score/100)*4`）。
-- 复现：选「百分制」，添加 90 分/3 学分 → 页面 GPA `3.60`；同页 info 换算为 `4.50`，meta 与公式说明为 `4.00`。90 分这一门课在三个口径下分别得到 3.6 / 4.5 / 4.0。
-- 影响：`tools/edu/exam-gpa-calculator.html`；核心 GPA 数值与页面宣传、FAQ 自相矛盾，留学/保研换算场景不可信。
-- 方案：确定唯一口径后同步全部文案——若采用 `score/100×4`，把 meta/FAQ/公式改为「90→3.6」并删除「90+→4.0」；若采用分段 90+→4.0，则 `scoreToGP100` 改成分段表并删 `/20`。`scale-info` 不得再写 `/20`。
-- 留存建议（exam-gpa）：① 提供百分制 ↔ 4.0/5.0 的 GPA 对照表；② 支持整张成绩单批量粘贴；③ 学期 GPA 对比与目标 GPA 反推。
-
-### EL-J40 GPA 计算器：从百分制切回等级制后成绩控件不恢复为下拉，继续添加课程抛 TypeError（高，确认缺陷）
-- 问题：`renderAll()` 在百分制分支用 `sel.outerHTML` 把 `#course-grade` 替换成 `<input type="number">`；切回等级制时只对当前元素执行 `sel.innerHTML=options`，`<input>` 不会变回 `<select>`，页面上仍是数字输入框。随后 `addCourse()` 按等级制读取 `gradeEl.value`（仍是数字），再 `querySelector('option[value="90"]')` 得到 `null`，`:425` 的 `opt.dataset.g` 立即抛异常。
-- 证据：`tools/edu/exam-gpa-calculator.html:373-379`（input/select 只单向 `outerHTML`，反向仅 `innerHTML`）、`:408-425`（等级制分支取 option 后无空值守卫）。
-- 复现：百分制下输入 90 并添加一门 → 点「4.0 (标准)」→ 再填课程名 X、学分 2、点添加 → 控制台 `Cannot read properties of null (reading 'dataset')`，课程未加入；此时成绩控件仍显示数字输入框，无法选择 A/B/C。
-- 影响：`tools/edu/exam-gpa-calculator.html`；只要切换过百分制/中国制，切回任一等级制后录入功能即损坏；`loadGpaSample()` 切回标准 4.0 也会踩同一路径。
-- 方案：两个分支都用整体替换（`outerHTML` 重建 select/input，或重建一个固定容器再插入控件），替换后重新查询元素；`addCourse` 对 `opt` 判空并提示「请选择有效等级」。
-- 留存建议：同上。
-
-### EL-J41 GPA 计算器：分数 120 得 4.80、负学分可抵消总学分使 GPA 归零（中，确认缺陷）
-- 问题：分数与学分只依赖 HTML `min/max`；`+value||0` 接受任意数值，`credit===0` 之外不校验。百分制 120 分按 `120/100×4` 得 4.80；学分填 −3 可通过，和正学分相加可使 `totalCredit<=0`，最终 GPA 被置 0。
-- 证据：`tools/edu/exam-gpa-calculator.html:411-425`（`+value||0`、仅拒绝 0 学分、分数无范围检查）、`:345`（无上限）、`:401-404`（`totalCredit>0? ... :0`）。
-- 复现：百分制 120 分/3 学分 → 单门绩点 `4.80`、GPA `4.80`（期望拦截 0–100）；A 课程 4.0/3 学分 + B 课程 0/−3 学分 → 总学分 `0.0`、GPA `0.00`，页面仍显示两门课（期望拒绝负学分）。
-- 影响：`tools/edu/exam-gpa-calculator.html`；GPA 可超过 4.0 或凭空归零，且会被写入 localStorage 长期保留。
-- 方案：分数必须 0–100、学分必须为正数（建议 0.5–30），非法时 toast 并中止；`totalCredit<=0` 显示「学分无效」而不是 0。
-- 留存建议：同上。
-
-### EL-J42 GPA 计算器：课程名未转义直接插入 innerHTML，可触发自我 XSS（中，确认缺陷）
-- 问题：课程列表用模板字符串拼接 `${c.name}` 与 `${c.grade}`，没有 `ToolBox.escHtml`；localStorage 读回后仍原样渲染，课程名中的 HTML/事件属性会被浏览器执行。
-- 证据：`tools/edu/exam-gpa-calculator.html:390-393`（`<span class="name">${c.name}`）；保存路径 `:341-343` 也未清洗。
-- 复现：课程名填 `<img src=x onerror=alert(1)>`，添加后列表渲染即弹窗；刷新后从 `gpa_calculator_data` 恢复仍弹窗。
-- 影响：`tools/edu/exam-gpa-calculator.html`；虽为本地自我 XSS，但可破坏页面结构、执行任意脚本并持久化。
-- 方案：课程名、等级统一 `ToolBox.escHtml()` 后插入；导入/恢复时过滤 `<`/`>`，或改用 `textContent` 构建节点。
-- 留存建议：同上。
-
+### 留存建议（tools/edu/exam-gpa-calculator.html）
+① 提供百分制 ↔ 4.0/5.0 的 GPA 对照表；② 支持整张成绩单批量粘贴；③ 学期 GPA 对比与目标 GPA 反推。
 ### EL-J43 权重成绩计算器：目标分 0 和空值都被 `||60` 静默改成 60（中，确认缺陷）
 - 2026-11-06 基线 `0781ef7e61` 独立 Chrome 复核：默认项目下目标输入 0，结果仍显示“要达到60分，剩余需考39.2分”；与原记录一致，不新增重复问题。
 - 问题：`target=parseFloat(...)||60` 把合法的 0 当成缺省值；目标输入框没有 min，用户可填 0 或清空，页面会直接把目标改成 60，用户输入 0 后表头却显示「要达到 60 分」。

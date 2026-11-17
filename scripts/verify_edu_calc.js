@@ -16,6 +16,34 @@ const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
   {
+    slug: "edu/exam-gpa-calculator",
+    inputs: { "course-name": "TbGpaS" },
+    clicks: ["var nm=document.getElementById('course-name').value;setScale('100');document.getElementById('course-credit').value='3';document.getElementById('course-grade').value='120';addCourse();var r=document.getElementById('course-list').innerHTML;document.getElementById('__tbProbe').textContent='SC120 '+(nm==='TbGpaS'&&r.indexOf(nm)<0?'OK':'BAD');"],
+    expect: ["SC120 OK"],
+    ref: "EL-J41：百分制 120 越界拒绝添加；旧版 +value||0 直接采纳得绩点 4.80。",
+  },
+  {
+    slug: "edu/exam-gpa-calculator",
+    inputs: { "course-name": "TbGpaC" },
+    clicks: ["var nm=document.getElementById('course-name').value;setScale('100');document.getElementById('course-credit').value='-3';document.getElementById('course-grade').value='90';addCourse();var r=document.getElementById('course-list').innerHTML;document.getElementById('__tbProbe').textContent='CRNEG '+(nm==='TbGpaC'&&r.indexOf(nm)<0?'OK':'BAD');"],
+    expect: ["CRNEG OK"],
+    ref: "EL-J41：负学分拒绝添加；旧版 credit===0 之外不校验，可抵消总学分使 GPA 归零。",
+  },
+  {
+    slug: "edu/exam-gpa-calculator",
+    inputs: { "course-name": "TbGpaX" },
+    clicks: ["var nm=document.getElementById('course-name').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu/exam-gpa-calculator.html','utf8');var ok=nm==='TbGpaX'&&h.indexOf('ToolBox.escHtml(c.grade)')>=0&&h.indexOf(\"'<td>'+c.grade+'</td>'\")<0;document.getElementById('__tbProbe').textContent='GPXSS '+(ok?'OK':'BAD');"],
+    expect: ["GPXSS OK"],
+    ref: "EL-J42：CSV 导出表 grade 字段也过 ToolBox.escHtml；旧版直接拼接 c.grade 可持久化 XSS。",
+  },
+  {
+    slug: "edu/exam-gpa-calculator",
+    inputs: { "course-name": "TbGpaM" },
+    clicks: ["var nm=document.getElementById('course-name').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu/exam-gpa-calculator.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var ok=nm==='TbGpaM'&&h.indexOf('内置换算表转为绩点')<0&&h.indexOf('分数÷100×4 换算（如 90→3.6）')>=0&&dd.indexOf('本工具默认百分制按 分数÷100×4 换算')>=0;document.getElementById('__tbProbe').textContent='GPCAL '+(ok?'OK':'BAD');"],
+    expect: ["GPCAL OK"],
+    ref: "EL-J39：meta/公式框/权威源统一为线性 score÷100×4（90→3.6），不再宣称内置换算表 90+→4.0 适用于默认百分制；旧版三处口径冲突。",
+  },
+  {
     slug: "edu/grade-calculator",
     inputs: { tTarget: "0" },
     clicks: ["var g=function(id){var e=document.getElementById(id);return String(e.innerHTML||e.textContent||'');};calcTarget();document.getElementById('__tbProbe').textContent='TGT0 '+g('targetFinal')+'|'+g('difficulty');"],
