@@ -751,20 +751,6 @@
 - 把已算出的 `displacedPop`、倒塌率、严重破坏率一并输出，形成完整的损失估算表。
 - 提供可调阈值/权重或明确声明固定口径，避免「可微调」的空承诺。
 
-### 12-N143 mining/excavation-volume：公式框/深度解析称「方坑含 0.6×深 边坡放大」，box 模式实为纯长方体（中，确认缺陷）
-- 问题：公式框 `:162` 写「方坑体积 V = (底长+0.6×深)×(底宽+0.6×深)×深」，深度解析 `:223` 写「基坑模式含 0.6·深 的简易边坡放大」；但 `box` 分支是 `L*W*D`（`:320-326`），只有 `pool` 分支用 `(L+0.6D)*(W+0.6D)*D`（`:356`）。文案与代码错位。
-- 证据：`tools/mining/excavation-volume.html:162`、`:223`、`:320-326`、`:356`
-- 复现（node 复算）：L=20、W=10、D=3 → box 模式 600 m³；按公式框的 0.6 边坡为 21.8×11.8×3=771.72 m³，相差 28.6%。
-- 影响：`tools/mining/excavation-volume.html` 用户按页面公式估算放坡基坑，实际工具少算约 29% 土方，影响报价与弃土场容量。
-- 方案：把 0.6 边坡公式用于 `box`（或新增「放坡基坑」模式），并把纯长方体另行命名；同步深度解析与公式框。
-
-### 12-N144 mining/excavation-volume：「小规模/大规模/极端工况」预设只改松散系数为 0.65/1.95/2.6，跌破输入 1–2 与 FAQ 1.2–1.3 口径（中，确认缺陷）
-- 问题：预设 `:502` 将 `swell` 分别设为 0.65、1.95、2.6；输入框 `:173` 标注「1.3（1–2）」且 `min=1 max=2`，FAQ `:226` 写「一般土 1.2–1.3、岩石更大」。0.65 表示压实而非松散，2.6 远超常见土石可松性。
-- 证据：`tools/mining/excavation-volume.html:173`、`:226`、`:502`
-- 复现（node 复算）：box 600 m³，点「小规模」→ swell=0.65，松方量 390 m³（小于原状 600），与「开挖后体积膨胀」定义相反；点「极端工况」→ 1560 m³。
-- 影响：`tools/mining/excavation-volume.html` 预设名与参数含义脱节，小规模场景反而算出「压实方」，车次/弃土量偏小。
-- 方案：预设改为调整几何尺寸/单价而非松散系数；若保留，限定 1.2–1.5（土）并标注适用土类，删除 <1 与 >2 的取值。
-
 **留存建议（mining/excavation-volume）**
 - 明确「上口宽」与「边坡系数」谁是输入、谁是派生，杜绝字段失效。
 - 统一 box/pool 的边坡公式并同步公式框、深度解析与结果标签。
@@ -806,13 +792,6 @@
 - 专业复核：本批无医疗结论；地震震害分级、土方边坡、热力杀菌 F₀、传热与色谱参数均属工程/食品工艺估算，正式使用需由相应专业复核。
 
 ## T 批长尾行业覆盖（2026-11-04）
-
-### 12-N163 welding/weld-strength：焊缝计算长度未按自身说明扣除 2h_f，应力低估约 6%，且 0.7 与引据 0.707 不一致（中，确认缺陷）
-- 问题：使用说明写「l_w 应扣除起灭弧缺陷（通常减 2h_f）」，`calc()` 直接用输入的 l_w 算有效截面，未做扣减；公式框用 0.7，深度解析与 FAQ 用 0.707，同一页面两个系数。
-- 证据：`tools/welding/weld-strength.html:119`（公式框 0.7）、`:179`（说明「通常减 2h_f」）、`:222-223`（`A=0.7*hf*lw`）、`:300`（深度解析 0.707 得 58.9 MPa）、`:303`（FAQ 0.707）
-- 复现（node 复算）：F=50 kN、h_f=6 mm、l_w=200 mm → 页面 A=840 mm²、τ=59.52 MPa；按说明扣 2h_f 后 l_w=188 mm、A=789.6 mm²、τ=63.32 MPa（页面低 6.0%）；按 0.707 则为 58.93 MPa。
-- 影响：`tools/welding/weld-strength.html` 未扣起灭弧段使承载力校核偏乐观，角焊缝实际应力被低估；与深度解析算例对不上也让复核者无法判断哪个口径为准。
-- 方案：增加「是否扣除起灭弧（默认扣 2h_f）」开关，`lwEff=lw−2*hf` 且校验 >0；全页统一 0.7 或 0.707 并注明取值出处（GB 50017 取 0.7）。
 
 ### 覆盖
 - 本轮审计 10 页：`tools/metallurgy/steel-profile-weight.html`、`tools/obstetrics/fetal-weight-hadlock.html`、`tools/travel/road-trip-gas-cost.html`、`tools/sales/stacked-discount.html`、`tools/printing/sheet-calc.html`、`tools/welding/weld-strength.html`、`tools/fluid/poiseuille-flow.html`、`tools/process/sigma-level.html`、`tools/hvac/duct-calculator.html`、`tools/gardening/compost-calculator.html`；均为上文未出现的页面。

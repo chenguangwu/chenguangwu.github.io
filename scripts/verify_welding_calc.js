@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -245,6 +247,12 @@ const CASES = [
   "checkIds": ["deduct"],
   "expect": ["234.0", "61.05", "38.2%"],
   "ref": "非默认输入 + 勾选「扣除两端弧坑」⇒ L_eff=250−2×8=234.0mm、A_e=0.7×8×234=1310.4→1310mm²、τ=80000/1310.4=61.05MPa、利用率=61.05/160=38.2%。旧锚 188.0/63.32/39.6% 恰为默认值（F50/hf6/lw200）撞默认态；改用非默认输入使锚随输入变化且默认态不含。"
+},
+{
+  "slug": "welding/weld-strength",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/welding/weld-strength.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/welding/weld-strength.json','utf8');var ok=h.indexOf('为什么用 0.7 而不是 0.707？')>=0&&h.indexOf('GB 50017 等规范取工程近似 0.7a')>=0&&h.indexOf('为什么乘 0.707？')<0&&en.indexOf('Why use 0.7 instead of 0.707?')>=0&&en.indexOf('codes such as GB 50017 adopt the engineering approximation 0.7a')>=0&&en.indexOf('Why multiply by 0.707?')<0&&en.indexOf('τ=50000/(0.707×6×200)=58.9 MPa')<0;document.getElementById('__tbProbe').textContent='WELDCOEF '+(ok?'OK':'BAD');"],
+  "expect": ["WELDCOEF OK"],
+  "ref": "12-N163 收尾：扣弧坑开关与 L_eff=l_w−2h_f 早已实现并有非默认输入用例覆盖，本批把 FAQ「为什么乘 0.707？」统一为规范口径「为什么用 0.7 而不是 0.707？」，说明精确喉厚 0.707a 与 GB 50017 工程近似 0.7a 的关系；英译词典同步并删除旧算例/旧 FAQ 死键。源码形态断言旧中英串消失、新串到位；旧版必红，默认态不产生该哨兵，零逃生。"
 }
 ];
 async function main() {
