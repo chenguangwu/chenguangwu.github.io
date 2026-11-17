@@ -107,7 +107,17 @@ const CASES = [
   { slug: "metalwork/tester-19",
     inputs: { cableType: "pvc", ir: "10", temp: "40", cr: "0.2", cs: "2.5", ratedV: "6", len: "100" },
     expect: ["17.0"],
-    ref: "1<ratedV=6≤8.7 → 试验电压=2.5×6×1000+2000=17000 V=17.0 kV；温度修正系数=0.5^((40−20)/10)=0.25，R₂₀=10×0.25=2.5 MΩ·km（默认 ratedV0.6→3.5kV，避开）" },
+    ref: "1<ratedV=6≤8.7 → 试验电压=2.5×6×1000+2000=17000 V=17.0 kV；温度修正系数=2^((40−20)/10)=4，R₂₀=10×4=40.0 MΩ·km（默认 ratedV0.6→3.5kV，避开）" },
+
+  { slug: "metalwork/tester-19",
+    inputs: { cableType: "pvc", ir: "1", temp: "40", cr: "0.2", cs: "2.5", ratedV: "0.6", len: "100" },
+    expect: ["4.0 MΩ·km"],
+    ref: "983 温度修正方向：实测 1 MΩ·km @ 40℃ 修正到 20℃ 应为 1×2^((40−20)/10)=4.0 MΩ·km；旧版用 0.5 指数得 0.25 且误判不合格。默认 temp=20/ir=500 → 500.0，不命中 4.0。" },
+
+  { slug: "metalwork/tester-19",
+    inputs: { cableType: "pvc", ir: "500", temp: "20", cr: "", cs: "70", ratedV: "0.6", len: "100" },
+    expect: ["请输入有效参数（绝缘电阻、导体电阻、长度与额定电压须为正数，温度为有限数值）"],
+    ref: "983 空值守卫：cr 清空后旧版 `+''||0` 得 0，0≤0.268×1.1 直接判导体合格；修复后 parseFloat('')=NaN 拦截。默认 cr=0.268 不命中该提示。" },
 
   { slug: "metalwork/thread",
     inputs: { threadType: "metric", diameter: "24", pitch: "3", material: "carbon",

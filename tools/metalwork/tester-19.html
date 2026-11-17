@@ -113,7 +113,7 @@
 
 <div class="card formula-box">
   <h3>📐 计算公式</h3>
-  <div class="formula-eq">绝缘电阻温度修正：R₂₀ = R_t × 0.5^((t−20)/10)；判定 R₂₀ ≥ 限值（PVC/XLPE/控制 0.5、10kV XLPE 1.0 MΩ·km）；直流耐压试验电压 U：额定 ≤1kV→3.5kV，≤8.7kV→2.5·U_N+2000V，>8.7kV→2.0·U_N；试验时间 5 min</div>
+  <div class="formula-eq">绝缘电阻温度修正：R₂₀ = R_t × 2^((t−20)/10)；判定 R₂₀ ≥ 限值（PVC/XLPE/控制 0.5、10kV XLPE 1.0 MΩ·km）；直流耐压试验电压 U：额定 ≤1kV→3.5kV，≤8.7kV→2.5·U_N+2000V，>8.7kV→2.0·U_N；试验时间 5 min</div>
   <p class="formula-desc">绝缘电阻随温度升高而下降，故统一修正到 20℃ 比较；导体电阻以标准截面值 ×1.1 为上限。绝缘电阻、导体电阻、耐压三项均合格才判定安装检测合格。</p>
 </div>
 <div class="input-row"><div><label>电缆类型</label><select id="cableType" style="font-size:16px;" onchange="calc()">
@@ -327,14 +327,17 @@ document.addEventListener('DOMContentLoaded',function(){
 var stdCR={"2.5":7.41,"4":4.61,"6":3.08,"10":1.83,"16":1.15,"25":0.727,"35":0.524,"50":0.387,"70":0.268,"95":0.193,"120":0.153,"150":0.124,"185":0.0991,"240":0.0754,"300":0.0601};
 function calc(){
   var ct=document.getElementById('cableType').value;
-  var ir=+document.getElementById('ir').value||0;
-  var temp=+document.getElementById('temp').value||20;
-  var cr=+document.getElementById('cr').value||0;
+  var ir=parseFloat(document.getElementById('ir').value);
+  var temp=parseFloat(document.getElementById('temp').value);
+  var cr=parseFloat(document.getElementById('cr').value);
   var cs=document.getElementById('cs').value;
-  var ratedV=+document.getElementById('ratedV').value||0.6;
-  var len=+document.getElementById('len').value||100;
+  var ratedV=parseFloat(document.getElementById('ratedV').value);
+  var len=parseFloat(document.getElementById('len').value);
+  if(!isFinite(ir)||!isFinite(temp)||!isFinite(cr)||!isFinite(ratedV)||!isFinite(len)||ir<=0||cr<=0||len<=0||ratedV<=0){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger)">请输入有效参数（绝缘电阻、导体电阻、长度与额定电压须为正数，温度为有限数值）。</p>';return;
+  }
   var ctName={'pvc':'PVC绝缘电缆','xlpe':'XLPE交联电缆','xlpe10':'XLPE交联电缆(10kV)','control':'控制电缆'}[ct];
-  var tempCoeff=Math.pow(0.5,(temp-20)/10);
+  var tempCoeff=Math.pow(2,(temp-20)/10);
   var irCorrected=ir*tempCoeff;
   var irLimit={'pvc':0.5,'xlpe':0.5,'xlpe10':1.0,'control':0.5}[ct];
   var irPass=irCorrected>=irLimit;
