@@ -2678,6 +2678,27 @@ const CASES = [
     clicks: ["var r=document.getElementById('result'),n=document.getElementById('num'),d=document.getElementById('digits');d.value='2';n.value='1.25e3';calc();var a=String(r.innerHTML).replace(/<[^>]+>/g,' ');d.value='1';n.value='2.5001';calc();var b=String(r.innerHTML).replace(/<[^>]+>/g,' ');n.value='2.4999';calc();var c=String(r.innerHTML).replace(/<[^>]+>/g,' ');r.innerHTML='SIGNEAR_'+(a.indexOf('保留 2 位有效数字： 1200')>=0&&a.indexOf('1.2e+3')>=0&&b.indexOf('保留 1 位有效数字： 3')>=0&&c.indexOf('保留 1 位有效数字： 2')>=0?'OK':'BAD');"],
     expect: ["SIGNEAR_OK"],
     ref: "1007 批复核·科学计数法与半值两侧：1.25e3 按 NIST 偶数规则为 1.2e3=1200（旧版浮点放大 125 后原样回除得 1250）；2.5001>半值进到 3，2.4999<半值舍到 2。默认 num/digits 不同，且默认态无探针串。"
+  },
+  {
+    slug: "science/equation-balancer",
+    inputs: { eqInput: "NH3 = NH + NH4 + N3H" },
+    clicks: ["balance();var h=String(document.getElementById('resultArea').innerHTML).replace(/<[^>]+>/g,' ');document.getElementById('eqInput').value='EQRANGE_'+(h.indexOf('有限搜索范围内未找到全正系数')>=0&&h.indexOf('不等于方程式无解')>=0?'OK':'BAD '+h.slice(0,80));"],
+    expect: ["EQRANGE_OK"],
+    ref: "1009 批复核·有限搜索边界：NH3 → NH + NH4 + N3H 存在全正解 14:1:10:1，但权重超出 ±8 搜索范围；旧版把未命中说成「反应物与生成物可能放反、方程式有误」，现明确「搜索范围未命中不等于无解」。默认 H2+O2=H2O 有唯一解，不命中。"
+  },
+  {
+    slug: "science/meteor-crater-estimator",
+    inputs: { meteorDiameter: "42", meteorVelocity: "13", impactAngle: "60", targetDensity: "3000" },
+    clicks: ["calc();var a=String(document.getElementById('result').innerHTML);document.getElementById('targetDensity').value='-1';calc();var b=String(document.getElementById('result').innerHTML),t=String(document.getElementById('meteor_crater_estimatorTable').innerHTML);document.getElementById('targetDensity').value='3000';calc();var c=String(document.getElementById('result').innerHTML);document.getElementById('targetDensity').value='METEORNEG_'+(a.indexOf('撞击坑直径')>=0&&b.indexOf('均须为正值')>=0&&t.length===0&&c.indexOf('撞击坑直径')>=0?'OK':'BAD');"],
+    expect: ["METEORNEG_OK"],
+    ref: "1012 批复核·状态链：合法 42 m/13 km·s⁻¹/60°/3000 kg·m⁻³ 得撞击坑结果；地表密度改 -1 时旧版算 Math.pow(负数,1/3)=NaN 或残留旧结论，现拦截、清空表格且提示密度须为正；恢复 3000 后结果重现。默认直径 50、速度 20、角度 45，不命中本组。"
+  },
+  {
+    slug: "science/chemistry-calculator",
+    inputs: { formula: "abc123测试" },
+    clicks: ["var a=parseFormula('H2O..NaCl'),b=parseFormula('.H2O'),c=parseFormula('H2O·'),d=calcMolarMass('CuSO4.5H2O');document.getElementById('formula').value='CHMEMPTY_'+(a===null&&b===null&&c===null&&d&&Math.abs(d.totalMass-249.7)<0.01?'OK':'BAD');"],
+    expect: ["CHMEMPTY_OK"],
+    ref: "1015 批复核：旧 parseFormula 先 split 再 filter 丢空段，把 H2O..NaCl、.H2O、H2O· 当合法；现发现首尾或连续分隔符立即返回 null，同时正常结晶水 CuSO4·5H2O 仍按 249.70 g/mol 解析。默认公式不同且无探针串。"
   }
 ];
 
