@@ -15,6 +15,28 @@ globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  // ── 第1172批：打字游戏增量计数、历史落地与承诺对齐（均为源码复核销账）──
+  {
+    slug: "edu/typing-game",
+    inputs: { "input": "abc" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/typing-game.html','utf8');var ok=h.indexOf('if(v.length>lastLen)')>=0&&h.indexOf('for(let i=lastLen;i<v.length;i++)')>=0&&h.indexOf('for(let i=0;i<v.length;i++)')<0;document.getElementById('__tbProbe').textContent='JINCR:'+(ok?'OK':'BAD');"],
+    expect: ["JINCR:OK"],
+    ref: "EL-J104：按键统计只遍历新增片段 lastLen→v.length，不再每次 input 全量重计；旧版全串累加会把 WPM 放大近 10 倍 ⇒ BAD。",
+  },
+  {
+    slug: "edu/typing-game",
+    inputs: { "input": "abc" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/typing-game.html','utf8');var ok=h.indexOf('var __typing_game_f1=')>=0&&h.indexOf('finish=function()')>=0&&h.indexOf('__typing_gameExtras(); }catch(e){} return __r;')>=0;document.getElementById('__tbProbe').textContent='JHIST:'+(ok?'OK':'BAD');"],
+    expect: ["JHIST:OK"],
+    ref: "EL-J105：finish 必须被包装以调用 __typing_gameExtras，结果文本非空时写入历史，数据表/历史/CSV 不再永久为空；旧版仅包装 start ⇒ BAD。",
+  },
+  {
+    slug: "edu/typing-game",
+    inputs: { "input": "abc" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/typing-game.html','utf8');var d=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu/typing-game']);var ok=h.indexOf('总字符')>=0&&h.indexOf('totalChars/(elapsed/60)')>=0&&h.indexOf('错题回看')<0&&d.indexOf('最高分')<0&&d.indexOf('不保存历史记录')<0&&d.indexOf('本地浏览器历史')>=0;document.getElementById('__tbProbe').textContent='JDOC:'+(ok?'OK':'BAD');"],
+    expect: ["JDOC:OK"],
+    ref: "EL-J106/J107：不得宣称错题回看/本地最高分排行，totalChars 须用于结果区总字符与 CPM，FAQ 须与已实现的历史记录一致；旧版三项均不满足 ⇒ BAD。",
+  },
   // ── 第1171批：数学测验减数恒小于被减数、干扰项非负（J100/J101/J103 源码复核销账）──
   {
     slug: "edu/math-quiz",
