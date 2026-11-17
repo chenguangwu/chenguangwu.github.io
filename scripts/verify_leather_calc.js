@@ -233,6 +233,12 @@ const CASES = [
     "89.33%"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "leather/colorfast",
+  "clicks": ["document.getElementById('hours').value='0';calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='CF186 '+(h.indexOf('照射时间与辐照度均须大于 0')>=0&&h.indexOf('1 级')<0?'OK':'BAD '+h.slice(0,80))"],
+  "expect": ["CF186 OK"],
+  "ref": "12-N186：旧 calc 只用 setInvalid 画红框，无 return，清空/0/负值仍照算 energy=0 → 「1 级 很差，极易褪色」并写历史。修复后 h>0&&ir>0 守卫 + lastResult 清空 + 中英提示。本用例注入 hours=0，要求提示存在且不含 1 级；默认 20h/42W → 7 级，注入失败不命中 ⇒ 零逃生。评级模型方向（N184）属专业口径，本例不触碰。"
 }
 ];
 async function main() {

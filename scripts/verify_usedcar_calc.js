@@ -234,6 +234,12 @@ const CASES = [
   "inputs": { "life": "-10", "salvage": "5", "price": "120000", "years": "3" },
   "expect": ["折旧年限需在 1–30 年之间"],
   "ref": "12-L2：rule 模式原先把折旧年限校验放在 straight/double 分支内，life=-10 仍照算 54321 折旧 ¥44,400、残值 ¥75,600；现在所有方法统一校验。默认 life=10 合法不出现该文案。"
+},
+{
+  "slug": "usedcar/usedcar-valuation",
+  "clicks": ["document.getElementById('age').value='-2';calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='UC180 '+(h.indexOf('车龄与里程不得为负')>=0&&h.indexOf('成新率')<0?'OK':'BAD '+h.slice(0,80))"],
+  "expect": ["UC180 OK"],
+  "ref": "12-N180：旧 calc 用 parseFloat(...)||0 后无符号守卫，age=-2 得 ageRate=1.1、clamp 到 1 → 成新率 100%、按新车价估值。修复后 newPrice>0&&age>=0&&mileage>=0 守卫 + 中英提示。注入 age=-2 要求提示存在且不含成新率；默认 age=3/mileage=3 合法，注入失败不命中 ⇒ 零逃生。"
 }
 ];
 
