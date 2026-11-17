@@ -214,7 +214,7 @@
 - `tools/metalwork/detector-21.html`：按材料/缺陷/厚度打分选法可跑；材料 6 档只分铁磁/非铁磁，strict 与 critical 同分，深度解析跑到探测器参数。
 - `tools/metalwork/detector-23.html`：偏差与合格判定正确；IT 等级只按公差带绝对值、无视公称尺寸（0.039 mm @Ø50 判 IT4，实为 IT8），却注「按 GB/T 1800.1」。
 - `tools/metalwork/detector-55.html`：18 项加权评分与 ★ 一票否决可跑；引据表与深度解析均跑题。
-- `tools/metalwork/detector-hardness.html`：三维加权可跑；厚度允许偏差基本失效、胶带法无输入恒判合格、各涂层合格线为写死常量却称依据国标，默认组合即判不合格。
+- `tools/metalwork/detector-hardness.html`：三维加权可跑；厚度允许偏差基本失效、胶带法无输入恒判合格、各涂层合格线为写死常量却称依据国标。
 - `tools/metalwork/detector-mold.html`：三轴偏差与空间偏差计算正确；ptName 存在 DOM XSS，「记录此点」是假功能。
 
 **问题条目**
@@ -234,11 +234,10 @@
 | tools/metalwork/detector-hardness.html | 【高】「厚度允许偏差 ±μm」基本失效：ratio≥1.0 一律 thickScore=100/thickPass=true，实测 52 vs 标准 40、容差 ±5（差 12 μm）仍输出「✓ 通过」；ratio>1.6（70 vs 40）也 pass；仅 0.85–1.0 段才用容差（:322-335,410） | MM-H133 |
 | tools/metalwork/detector-hardness.html | 【高】胶带法（ASTM D3359）无对应等级输入：选 tape 时 crosscutRow 与 pulloffRow 都 display:none，代码仍读隐藏的 crosscutGrade（默认 0 级）→ 恒 100 分/合格，方法选择等于死选项（:137-150,289-315） | MM-H134 |
 | tools/metalwork/detector-hardness.html | 【高】各涂层合格线是写死常量却称依据国标：reqPencil paint=HB、anode=2H、pvd=6H，reqHV paint=100…pvd=800，reqNano paint=1…pvd=20，均无标准来源；GB/T 9286/6739/4957 是划格/铅笔/测厚方法标准，不规定合格线，简介仍称「依据…综合判定合格性」（:124,349,357,364,525） | MM-H135 |
-| tools/metalwork/detector-hardness.html | 【中】默认组合自相矛盾：pencilGrade 默认 6B（最软）、coatingType 默认 paint（要求 HB 指数 6），加载即显示「涂层质量良好（未达标）/不合格」，默认参数无法演示合格路径（:183,206,343,349-350） | MM-H136 |
 | tools/metalwork/detector-mold.html | 【高】「记录此点」是假功能：addPoint 只把 `{name,dx}` push 进 pointList，该数组从不渲染、也不导出；CSV 导出的是 TBKit 历史表（输入+结果摘要），不是多点测量报告（:243-250,414-416） | MM-H138 |
 
 **统计**
-- 条数：15（高 10 / 中 4 / 假 1）；编号区间：MM-H120–MM-H140，续接 MM-H119，MM-H122、MM-H130、MM-H131、MM-H137、MM-H139、MM-H140 已修复销账，其余不重号不跳号。
+- 条数：14（高 10 / 中 3 / 假 1）；编号区间：MM-H120–MM-H140，续接 MM-H119，MM-H122、MM-H130、MM-H131、MM-H136、MM-H137、MM-H139、MM-H140 已修复销账，其余不重号不跳号。
 - 高优编号：MM-H120（流程比单位混算）、MM-H121（模具温度死输入）、MM-H123（Q 算了不渲染）、MM-H124（滚刀转速用分度圆）、MM-H126（材料/等级死选项）、MM-H128（IT 等级无视公称尺寸）、MM-H133（厚度容差失效）、MM-H134（胶带法恒合格）、MM-H135（写死涂层合格线冒充国标）、MM-H138（记录点假功能）。
 - 假工具：0（核心直齿/评分/偏差计算均可用）；承诺未实现：1（MM-H125 斜齿）；冒用国标：2（MM-H128、MM-H135）。
 - 安全：0 条（原 MM-H137 已于第 952 批改走 `ToolBox.escHtml` 并真机回放验证）；其余 8 页无 XSS、eval、allow-same-origin、明文存密或业务数据外传；全站模板 ttzz 脚本不单列。

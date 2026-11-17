@@ -269,7 +269,7 @@ const CASES = [
               "crosscutGrade": "0", "thickMethod": "eddy", "thickness": "48",
               "stdThickness": "40", "thickTolerance": "4", "hardnessMethod": "vickers", "vickersVal": "900" },
     expect: ["涂层质量优秀"],
-    ref: "结合力 0 级=100、厚度 48/40=1.2 倍=100、维氏 900HV（有机涂层要求 100HV）=100 → 综合 100 且三项全通过（默认铅笔 6B 不通过 → 等级标「涂层质量良好（未达标）」，与本值不重合）" },
+    ref: "结合力 0 级=100、厚度 48/40=1.2 倍=100、维氏 900HV（有机涂层要求 100HV）=100 → 综合 100 且三项全通过（997 后默认铅笔改为 HB，该用例改用维氏法仍与本值口径不同）" },
 
   { slug: "metalwork/detector-hardness",
     inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "crosscut",
@@ -277,6 +277,12 @@ const CASES = [
               "stdThickness": "40", "thickTolerance": "4", "hardnessMethod": "pencil", "pencilGrade": "6B" },
     expect: ["涂层质量合格（未达标）"],
     ref: "结合力 2 级=65（要求≤1 级 → 不通过）、厚度 100、铅笔 6B=10 不通过 → 综合 65×0.4+100×0.3+10×0.3=59，评分档位为「涂层质量合格」，逐项不通过时等级文案须带「（未达标）」（默认档位为「良好」，与本值不重合）" },
+  { slug: "metalwork/detector-hardness",
+    inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "crosscut",
+              "crosscutGrade": "0", "thickMethod": "eddy", "thickness": "48",
+              "stdThickness": "40", "thickTolerance": "4", "hardnessMethod": "pencil" },
+    expect: ["达标（48μm） 100 ✓ 涂层硬度 30% HB（中等） 46"],
+    ref: "997 默认硬度档（MM-H136）：不注入 pencilGrade 时新默认 HB 满足油漆要求 HB（硬项 46 分、三项全通过），旧默认 6B 是 10 分且未达标。锚含 48μm 避开默认 50μm ⇒ 零逃生。" },
 
   { slug: "metalwork/thread",
     inputs: { threadType: "metric", diameter: "12", pitch: "1.75", material: "carbon",
