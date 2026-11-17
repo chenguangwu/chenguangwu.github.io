@@ -502,6 +502,20 @@ const CASES = [
     "ref": "注入非默认样本（默认 2,4,4,4,5,5,7,9）：均值 3.6；样本标准差 s = √(Σ(x−x̄)²/(n−1)) = √(53.2/4) = 3.646917；Σ((x−x̄)/s)³ = 4.868878；g₁ = n/((n−1)(n−2))·Σ = 5/(4×3)×4.868878 = 2.0287。默认态 g₁ = 0.8185，与本值不同。该页主输出走 ToolBox.setResult（harness 已实现为写 #result.innerHTML，可达）。"
   },
   {
+    "slug": "statistics/linear-regression",
+    "inputs": {},
+    "clicks": ["globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{scatter:function(){},bar:function(){}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};document.getElementById('x').value='1,2,3';document.getElementById('y').value='2,4';__lrExtras();delete globalThis.TBKit;"],
+    "expect": ["输入无效，明细表与图表已清空"],
+    "ref": "复核清账：主结果已拒绝 X/Y 长度不等，但旧 __lrExtras 仍用 Math.min 截断成 2 对生成伪回归明细。现 Extras 与主计算共用 parseListStrict，非法/长度不等/样本不足/X 方差为 0 时清空 #lrTable 并写入清空提示、停止历史记录。自建 TBKit 桩注入 x=3 个/y=2 个直接调 __lrExtras，断言清空提示；旧版无此逻辑且仍生成表格 ⇒ 变红，零逃生。合法态表格仍含「预测」，不含清空提示。"
+  },
+  {
+    "slug": "statistics/skewness-sample",
+    "inputs": {},
+    "clicks": ["globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{scatter:function(){},bar:function(){}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};document.getElementById('xs').value='1,2,bad,4,5';__skExtras();delete globalThis.TBKit;"],
+    "expect": ["输入无效，明细表与图表已清空"],
+    "ref": "复核清账：主结果已逐项校验拒绝「bad」，但旧 __skExtras 用 __skList 静默过滤非法项后仍按 1,2,4,5 生成偏度明细/图表/历史。现共用 __skParseStrict 严格解析，非法项/样本不足/零方差时清空 #skTable 并写入清空提示。自建 TBKit 桩注入含非法项的样本直接调 __skExtras，断言清空提示；旧版无此逻辑且按过滤数据生成表格 ⇒ 变红，零逃生。合法态表格仍含「样本偏度」，不含清空提示。"
+  },
+  {
     "slug": "statistics/binomial-cdf",
     "inputs": {
       "n": "20",

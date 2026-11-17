@@ -243,7 +243,13 @@ function resetForm(){document.getElementById('xs').value = '2, 4, 4, 4, 5, 5, 7,
 calcTool();
 
 function __skN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
-function __skList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+// 与主计算 calcTool 共用严格解析：逐项 Number + isFinite，不再静默过滤非法项。
+function __skParseStrict(s){
+  var toks=(s||'').split(/[ ,]+/).map(function(t){return t.trim();}).filter(Boolean);
+  var raw=[];
+  for(var i=0;i<toks.length;i++){var v=Number(toks[i]);if(!isFinite(v))return {error:true};raw.push(v);}
+  return {vals:raw};
+}
 function __skL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
 
 
@@ -251,9 +257,26 @@ function __skExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.expo
 function __skExtras(){
     if(typeof TBKit==='undefined')return;
     try{
-        var raw=__skList(document.getElementById('xs').value); if(raw.length<3)return;
-        var n=raw.length, mean=raw.reduce(function(a,b){return a+b;},0)/n;
-        var ss=0; raw.forEach(function(x){ss+=Math.pow(x-mean,2);}); var s=Math.sqrt(ss/(n-1));
+        // 与主计算同口径：非法项/样本不足/零方差时清空所有增强面板，不生成偏度明细与图表。
+        var p=__skParseStrict(document.getElementById('xs').value);
+        var bad=p.error||p.vals.length<3;
+        var ss0=0,mean0=0;
+        if(!bad){
+            mean0=p.vals.reduce(function(a,b){return a+b;},0)/p.vals.length;
+            p.vals.forEach(function(x){ss0+=Math.pow(x-mean0,2);});
+            if(ss0===0)bad=true;
+        }
+        if(bad){
+            var __tip=__skL('Input invalid: detail table and chart cleared.','⚠ 输入无效，明细表与图表已清空');
+            document.getElementById('skTable').innerHTML='<p style="color:var(--danger)">'+__tip+'</p>';
+            document.getElementById('skChart').innerHTML='';
+            document.getElementById('skDiff').innerHTML='';
+            document.getElementById('skHist').innerHTML='';
+            return;
+        }
+        var raw=p.vals;
+        var n=raw.length, mean=mean0;
+        var ss=ss0; var s=Math.sqrt(ss/(n-1));
         var cu=0; raw.forEach(function(x){cu+=Math.pow((x-mean)/s,3);});
         var g1=n/((n-1)*(n-2))*cu;
         var labels=raw.map(function(_,i){return String(i+1);});

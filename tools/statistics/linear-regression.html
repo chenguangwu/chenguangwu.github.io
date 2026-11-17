@@ -324,11 +324,30 @@ function __lrExport(){
 }
 function __lrExtras(){
     if (typeof TBKit === 'undefined') return;
-    var xa=TBKit.util.parseList(document.getElementById('x').value);
-    var ya=TBKit.util.parseList(document.getElementById('y').value);
-    var n=Math.min(xa.length,ya.length);
-    if(n<2) return;
-    xa=xa.slice(0,n); ya=ya.slice(0,n);
+    // 与主计算共用严格解析：非法项、长度不等、样本不足、X 方差为 0 时清空所有增强面板，
+    // 不再用 Math.min 截断生成伪回归结论，也不写入历史/差异面板。
+    var xp=parseListStrict(document.getElementById('x').value);
+    var yp=parseListStrict(document.getElementById('y').value);
+    var valid=!xp.error&&!yp.error;
+    if(valid&&xp.vals.length!==yp.vals.length) valid=false;
+    if(valid&&xp.vals.length<2) valid=false;
+    var sxxChk=0;
+    if(valid){
+        var mxc=xp.vals.reduce(function(p,c){return p+c;},0)/xp.vals.length;
+        for(var q=0;q<xp.vals.length;q++){sxxChk+=Math.pow(xp.vals[q]-mxc,2);}
+        if(sxxChk===0) valid=false;
+    }
+    if(!valid){
+        var __clearTip='<p style="color:var(--danger)">'+(TBKit.util.isEn()?'Input invalid: detail table and chart cleared.':'⚠ 输入无效，明细表与图表已清空')+'</p>';
+        document.getElementById('lrTable').innerHTML=__clearTip;
+        document.getElementById('lrChart').innerHTML='';
+        document.getElementById('lrDiff').innerHTML='';
+        document.getElementById('lrHist').innerHTML='';
+        window.__lrRows=[];
+        return;
+    }
+    var xa=xp.vals.slice(), ya=yp.vals.slice();
+    var n=xa.length;
     var mx=0,my=0,i; for(i=0;i<n;i++){mx+=xa[i];my+=ya[i];} mx/=n; my/=n;
     var sxy=0,sxx=0; for(i=0;i<n;i++){sxy+=(xa[i]-mx)*(ya[i]-my); sxx+=(xa[i]-mx)*(xa[i]-mx);}
     var b=sxx>0?sxy/sxx:0, a=my-b*mx;
