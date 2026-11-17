@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+globalThis.__tbFs = fs;
 // 第八批加固：urology 全部用例去默认化 / 修复破损与退化
 // 每条用例输入均 ≠ 页面默认值，且 expect 断言「页面计算出的结果文本」（非输入值、非静态表字面量）。
 // 判别力由 scripts/discriminate_check.js 反向验证（模拟注入失败须 FAIL）。
@@ -166,6 +168,12 @@ const CASES = [
   "clicks": ["__markScaleDirty();resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/IPSS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__IPSS_RST_OK__':'__IPSS_RST_FAIL__ '+__b;"],
   "expect": ["__IPSS_RST_OK__"],
   "ref": "批 3 重置态：先置 dirty 制造决策，再 resetAll() 复位后决策文案消失。"
+},
+{
+  "slug": "urology/ipss-score",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/ipss-score.html','utf8');var noTpl=h.indexOf(\"<li>'+q.t+'</li>\")<0;var noFill=h.indexOf('工作与生活中的相关计算与查询')<0;var noQol=h.indexOf('加 QoL 0-6 共 35')<0;var hasScene=h.indexOf('BPH / 下尿路症状自评')>=0;var hasQol=h.indexOf('QoL 另计 0-6')>=0;document.getElementById('__tbProbe').textContent=(noTpl&&noFill&&noQol&&hasScene&&hasQol)?'__IPSS_CONTENT_OK__':'__IPSS_CONTENT_BAD__ '+[noTpl,noFill,noQol,hasScene,hasQol].join(',');"],
+  "expect": ["__IPSS_CONTENT_OK__"],
+  "ref": "第1097批 N44/N45/N46：模板残留 '+q.t+' 删除、opt-guide/opt-faq/FAQPage 三处套话「工作与生活中的相关计算与查询」改真实场景、deepdive FAQ 的「加 QoL 0-6 共 35」改为 7 项合计 0-35 且 QoL 另计 0-6 不进总分。五哨兵须同时成立，全为源码形态判别，旧版必红。"
 }
 ];
 async function main() {
