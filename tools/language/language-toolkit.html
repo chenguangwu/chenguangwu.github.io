@@ -305,8 +305,9 @@
 
     <!-- ============ 4. 首字母缩写生成器 ============ -->
     <div class="lang-panel" id="panel-acronym">
-      <label>输入文字（中英文均可）</label>
-      <textarea id="acronymInput" placeholder="例如：World Health Organization&#10;或：中华人民共和国" oninput="generateAcronym()"></textarea>
+      <label>输入英文/拉丁字母文字（按词取首字母）</label>
+      <textarea id="acronymInput" placeholder="例如：World Health Organization&#10;或：Application Programming Interface" oninput="generateAcronym()"></textarea>
+      <div class="tip-box tip-info" style="margin-top:8px;">仅支持英文/拉丁字母：每个词取首字母；中文、日文等非拉丁文字会自动跳过并提示。</div>
       <div class="checkbox-row" style="margin-top:12px;">
         <label><input type="radio" name="acroCase" value="upper" checked onchange="generateAcronym()"> 全大写</label>
         <label><input type="radio" name="acroCase" value="lower" onchange="generateAcronym()"> 全小写</label>
@@ -861,29 +862,40 @@ function updatePracticeStats(){
 function generateAcronym(){
   var input=document.getElementById('acronymInput').value;
   var caseType=document.querySelector('input[name="acroCase"]:checked').value;
+  var __en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   if(!input.trim()){
     document.getElementById('acronymResult').style.display='none';
     return;
   }
-  // 支持中英文：英文按空格分词，中文按字取拼音首字母（简化：取每个字符）
+  // 仅支持英文/拉丁字母：按词取首字母；非拉丁文字跳过并明确提示，不再伪装成"首字母"
   var result=[];
   var listItems=[];
+  var skipped=0;
   // 先按空格/换行分割
   var words=input.split(/[\s\n,，、;；]+/).filter(function(w){return w.length>0;});
   words.forEach(function(w){
-    if(/[a-zA-Z]/.test(w)){
-      // 英文词 - 取首字母
-      var letter=w.charAt(0).toUpperCase();
+    var m=w.match(/[a-zA-Z]/);
+    if(m){
+      // 拉丁字母词 - 取词内首个拉丁字母（兼容「世界Hello」这类混杂词）
+      var letter=w.charAt(m.index).toUpperCase();
       result.push(letter);
       listItems.push(w+' → '+letter);
     } else {
-      // 中文字符 - 逐字处理，取每个字作为"首字母"（中文无法取拼音首字母，简化为取字本身）
-      // 但更实用的做法：对中文，整段作为一个词，取第一个字
-      var ch=w.charAt(0);
-      result.push(ch);
-      listItems.push(w+' → '+ch);
+      // 非拉丁文字：本工具无拼音词表，明确跳过，避免输出单字冒充缩写
+      skipped++;
+      listItems.push(w+' → '+(__en?'skipped (Latin letters only)':'已跳过（仅支持英文/拉丁字母）'));
     }
   });
+  if(skipped>0){
+    listItems.push(__en?('Skipped '+skipped+' non-Latin word(s); not counted in the acronym'):('已跳过 '+skipped+' 个非拉丁字母词，未计入缩写'));
+  }
+  if(!result.length){
+    document.getElementById('acronymResult').style.display='block';
+    document.getElementById('acronymWord').textContent='—';
+    document.getElementById('acronymList').innerHTML='<p style="color:var(--danger)">'+
+      (__en?'No English/Latin words found; this generator supports Latin letters only.':'未识别到英文/拉丁字母词；本生成器仅支持英文/拉丁字母输入。')+'</p>';
+    return;
+  }
   var acronym=result.join('');
   if(caseType==='upper'){
     acronym=acronym.toUpperCase();

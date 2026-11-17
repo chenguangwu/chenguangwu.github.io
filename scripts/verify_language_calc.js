@@ -84,6 +84,29 @@ const CASES = [
   "ref": "① 缩写：三词各取首字母（acroCase 默认 upper，radio 落 checked 默认态）→ WHO，明细项「• World → W • Health → H • Organization → O」；② 字符统计「Hello 世界！AB 12.」→ 总字符 15 / 汉字 2 / 字母 7 / 数字 2 / 标点 2 / 空格 2 / 单词 2 / 句子 1（blob 按元素创建顺序拼接，故用换行符做连续断言）。默认态两 textarea 皆空 ⇒ 缩写面板隐藏、字符统计区显示「—」与「请输入文本后再统计。」提示，两组 expect 均失配。"
 },
 {
+  // EL-F16：中文输入不再输出单字冒充缩写，明确跳过并提示（旧版输出「中华人民共和国 → 中」）。
+  "slug": "language/language-toolkit",
+  "inputs": {
+    "acronymInput": "中华人民共和国 World Health"
+  },
+  "expect": [
+    "中华人民共和国 → 已跳过（仅支持英文/拉丁字母）",
+    "已跳过 1 个非拉丁字母词，未计入缩写"
+  ],
+  "ref": "注入「中华人民共和国 World Health」：新实现按词查找首个拉丁字母，中文词无拉丁字母⇒跳过并在明细写「中华人民共和国 → 已跳过（仅支持英文/拉丁字母）」，汇总写「已跳过 1 个非拉丁字母词，未计入缩写」。旧实现中文分支取 w.charAt(0) 输出「中华人民共和国 → 中」，两条断言全失配；默认态 acronymInput 为空⇒缩写面板隐藏，同样失配。**注意**：英文共有串「• World → W • Health → H」旧版也成立，按「或」语义会让整条用例假绿，禁止列入。"
+},
+{
+  // EL-F16 补充：全中文输入明确拒算，不再输出单个汉字冒充缩写（旧版输出「中」）。
+  "slug": "language/language-toolkit",
+  "inputs": {
+    "acronymInput": "中华人民共和国"
+  },
+  "expect": [
+    "未识别到英文/拉丁字母词；本生成器仅支持英文/拉丁字母输入。"
+  ],
+  "ref": "只输入中文时新实现 result 为空⇒缩写位「—」并在明细写「未识别到英文/拉丁字母词；本生成器仅支持英文/拉丁字母输入。」；旧实现把整段中文当一个词取首字输出「中」，该串失配；默认态 acronymInput 为空⇒面板隐藏不显示提示，同样失配。"
+},
+{
   // 原为 no_inputs 弱用例（inputs 空），expect「gentlemen.」是 PHRASES 全量列表里的静态短语（逃生项）。
   // 检索过滤型：q=please 命中 4 条，卡片子集变化 ⇒ 只能锚「仅过滤态成立的跨卡片相邻串」。
   "slug": "language/phrase-translator",
