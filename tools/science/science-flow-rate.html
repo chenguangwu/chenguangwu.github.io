@@ -550,6 +550,14 @@ function fmtVel(v){
   return (v*1000).toFixed(2)+' mm/s';
 }
 
+// 非法输入时清空所有结果与明细，避免上一次结果被误读为新输入的结果。
+function clearFlowResult(){
+  ['resArea','resVel','resRe','resMass'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='--';});
+  ['flowUnits','resultDetail'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
+  var pg=document.getElementById('pipeDiagram');if(pg)pg.textContent='';
+  lastResult=null;
+}
+
 function calc(){
   let Q=0,A=0,v=0,d=0,detail='',modeName='';
   const rho=998.2;
@@ -560,14 +568,16 @@ function calc(){
     const diam=parseFloat(document.getElementById('diam').value);
     const diamUnit=parseFloat(document.getElementById('diamUnit').value);
     v=parseFloat(document.getElementById('vel').value)*parseFloat(document.getElementById('velUnit').value);
-    if(!diam||!v)return;
+    if(!isFinite(diam)||!isFinite(v)||diam<=0||v<=0){clearFlowResult();return;}
     d=diam*diamUnit/1000;
     A=Math.PI*(d/2)**2;
     Q=A*v;
     document.getElementById('pipeDiagram').textContent='💧 ⭕ 🚰';
+    const diamSel=document.getElementById('diamUnit');
+    const diamUnitLabel=diamSel.options[diamSel.selectedIndex]?diamSel.options[diamSel.selectedIndex].text:'mm';
     detail=`
       <div><strong>计算方式：</strong>圆形管道 Q = A × v</div>
-      <div><strong>管道内径：</strong>${diam} mm = ${(d*1000).toFixed(2)} mm</div>
+      <div><strong>管道内径：</strong>${diam} ${diamUnitLabel} = ${(d*1000).toFixed(2)} mm</div>
       <div><strong>截面积 A：</strong>${fmtArea(A)}</div>
       <div><strong>流速 v：</strong>${fmtVel(v)}</div>
       <div><strong>体积流量 Q：</strong>${fmtFlow(Q)}</div>
@@ -577,7 +587,7 @@ function calc(){
     const w=parseFloat(document.getElementById('width').value)*parseFloat(document.getElementById('wUnit').value)/1000;
     const h=parseFloat(document.getElementById('height').value)*parseFloat(document.getElementById('hUnit').value)/1000;
     v=parseFloat(document.getElementById('velRect').value)*parseFloat(document.getElementById('velUnitRect').value);
-    if(!w||!h||!v)return;
+    if(!isFinite(w)||!isFinite(h)||!isFinite(v)||w<=0||h<=0||v<=0){clearFlowResult();return;}
     A=w*h;
     Q=A*v;
     d=2*w*h/(w+h);
@@ -594,7 +604,7 @@ function calc(){
     modeName='流量计时';
     const vol=parseFloat(document.getElementById('volume').value)*parseFloat(document.getElementById('volUnit').value)/1000;
     const t=parseFloat(document.getElementById('timeFill').value)*parseFloat(document.getElementById('timeUnit').value);
-    if(!vol||!t)return;
+    if(!isFinite(vol)||!isFinite(t)||vol<=0||t<=0){clearFlowResult();return;}
     Q=vol/t;
     document.getElementById('pipeDiagram').textContent='⏱️ → 💧';
     detail=`
@@ -658,6 +668,10 @@ function copyResult(){
 function saveHistory(){
   if(!lastResult)return;
   let history=(function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
+  // SMS-143：连同原始输入与单位一并保存，历史加载时才能真正还原而非用当前输入重算。
+  const inputIds=['diam','diamUnit','vel','velUnit','width','wUnit','height','hUnit','velRect','velUnitRect','volume','volUnit','timeFill','timeUnit'];
+  const inputs={};
+  inputIds.forEach(function(id){var el=document.getElementById(id);if(el)inputs[id]=el.value;});
   const item={
     mode:lastResult.mode,
     modeName:lastResult.modeName,
@@ -665,6 +679,7 @@ function saveHistory(){
     Q_val:lastResult.Q,
     A_str:fmtArea(lastResult.A),
     v_str:fmtVel(lastResult.v),
+    inputs:inputs,
     time:new Date().toISOString()
   };
   history.unshift(item);
@@ -704,6 +719,13 @@ function loadHistory(index){
   document.getElementById('mode-circle').style.display=mode==='circle'?'block':'none';
   document.getElementById('mode-rect').style.display=mode==='rect'?'block':'none';
   document.getElementById('mode-time').style.display=mode==='time'?'block':'none';
+  // 回填保存时的原始输入与单位；无 inputs 的旧记录保留旧行为（用当前输入重算）。
+  if(item.inputs){
+    Object.keys(item.inputs).forEach(function(id){
+      var el=document.getElementById(id);
+      if(el&&Object.prototype.hasOwnProperty.call(item.inputs,id))el.value=item.inputs[id];
+    });
+  }
   calc();
   document.querySelector('.tab-btn').click();
 }

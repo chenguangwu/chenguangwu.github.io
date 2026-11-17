@@ -412,6 +412,13 @@ const CASES = [
     ref: "分压电路（Vin=12 V、R1=3 Ω、R2=9 Ω）：Vout = Vin·R2/(R1+R2) = 12×9/12 = **9.000 V**；分压比 = R2/(R1+R2) = 9/12 = **75.0%**。页面另给 I = 12/12 = 1 A = 1000.00 mA、P = 12 W = 12000.00 mW，均与上式自洽。默认参数不同 ⇒ 不命中。",
   },
   {
+    slug: "science/voltage-divider-calculator",
+    inputs: {},
+    clicks: ["function __s(id){var e=document.getElementById(id);return (e&&e.textContent?e.textContent:'');}document.getElementById('vin').value='12';document.getElementById('r1').value='3';document.getElementById('r2').value='9';calc();var v1=__s('resVout');document.getElementById('vin').value='';calc();var v2=__s('resVout');document.getElementById('vin').value='VD_BEFORE_'+v1+'_AFTER_'+v2;"],
+    expect: ["VD_BEFORE_9.000 V_AFTER_—"],
+    ref: "SMS-36/37 残留清账：正向求 Vout 原用 parseFloat(... )||0，清空 Vin 被吞成 0 而输出「0.000 V」伪结果。现改严格 Number 解析 + 必填/正值校验，空 Vin 走 clearResults 把四结果清为「—」。探针先注入 12/3/9 得 9.000 V，再清空 Vin 重算得「—」；旧版清空后为 0.000 V ⇒ 锚变红，零逃生。探针串写到 vin 的 value（harness 采集纯文本），默认态无该串。"
+  },
+  {
     slug: "science/led-resistor-calculator",
     inputs: { vs: "12", if: "0.02", vf: "2", count: "1" },
     expect: ["总正向压降： 2.00 V", "电阻压降： 10.00 V"],
@@ -909,6 +916,27 @@ const CASES = [
     "clicks": ["calc()"],
     "expect": ["7.85 L/s"],
     "ref": "圆管 Q=A·v，A=π·(0.05m)²=0.007854 m²，v=1 ⇒ 0.007854 m³/s=7.854 L/s。默认 diam=50,vel=2 ⇒ 3.93 L/s，不出现 7.85。"
+  },
+  {
+    "slug": "science/science-flow-rate",
+    "inputs": {},
+    "clicks": ["function __d(id){var e=document.getElementById(id);return e?e.innerHTML:'';}document.getElementById('diam').value='50';document.getElementById('vel').value='2';calc();var has1=__d('resultDetail').length>0;document.getElementById('diam').value='';calc();var has2=__d('resultDetail').length>0;var ra=document.getElementById('resArea').textContent;document.getElementById('diam').value='CLRPROBE_'+(has1&&!has2&&ra==='--'?'Y':'N')+'_'+has1+has2+'_'+ra;"],
+    "expect": ["CLRPROBE_Y_truefalse_--"],
+    "ref": "SMS-145 清账：圆形分支原 `if(!diam||!v)return` 在清空输入后保留上一次结果。现新增 clearFlowResult() 清空 flowUnits/resultDetail/resArea/resVel/resRe/resMass/pipeDiagram 并置 lastResult=null；三模式非法输入均调用。探针先算合法值得明细，再清空 diam 重算 ⇒ 明细消失、resArea=--；旧版保留旧明细 ⇒ N，零逃生。探针串写 diam 的 value（harness 采集纯文本）。"
+  },
+  {
+    "slug": "science/science-flow-rate",
+    "inputs": {},
+    "clicks": ["document.getElementById('diam').value='2';var sel=document.getElementById('diamUnit');sel.value='25.4';document.getElementById('vel').value='1';calc();var d=document.getElementById('resultDetail').innerHTML;document.getElementById('diam').value='UNITPROBE_'+(d.indexOf('2 inch')>=0&&d.indexOf('2 mm =')<0?'Y':'N');"],
+    "expect": ["UNITPROBE_Y"],
+    "ref": "SMS-144 清账：明细原把已折算的内径左侧值恒标 mm，选 inch 时显示「2 mm = …」自相矛盾。现从 diamUnit 的选中 option 文本取真实单位标签。探针注入 diam=2、单位 inch、vel=1，断言明细含「2 inch」且不含写死的「2 mm =」；旧版写死 mm ⇒ N，零逃生。"
+  },
+  {
+    "slug": "science/science-flow-rate",
+    "inputs": {},
+    "clicks": ["document.getElementById('diam').value='77.7';document.getElementById('vel').value='2';calc();saveHistory();document.getElementById('diam').value='11.1';loadHistory(0);document.getElementById('diam').value='HISPROBE_'+(document.getElementById('diam').value==='77.7'?'Y':'N')+'_'+document.getElementById('diam').value;"],
+    "expect": ["HISPROBE_Y_77.7"],
+    "ref": "SMS-143 清账：原 saveHistory 只存派生量、loadHistory 切模式后用当前输入重算（假恢复）。现 saveHistory 连同 14 个输入/单位字段一并存入 inputs，loadHistory 逐项回填后再 calc。探针存 diam=77.7 后改为 11.1，loadHistory(0) 后断言 diam 回填为 77.7；旧版保持 11.1 ⇒ N，零逃生。"
   },
   {
     "slug": "science/matrix-calculator",

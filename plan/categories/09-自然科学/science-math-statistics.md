@@ -18,9 +18,6 @@
 
 - `tools/science/physics-constants.html:236-260,276-281,328-340`：SMS-129（exp 数量级写 0，含 c/F/R∞/atm/H₀ 五项）与 SMS-130（玻尔兹曼常数(摩尔) R/Nₐ 重复行）已于 2026-11-17 真机销账——exp 改 8/4/7/5/1 与卡片科学计数一致、重复行删除；搜索、分类、复制及筛选导出路径存在。SMS-128（分类维度错置）属产品语义裁断，保留待决。
 - `tools/science/quadratic-equation.html:366-367,293`：旧 SMS-136 已改为相对阈值 `epsD=1e-12×max(b²,|4ac|,1e-300)` + 小数 `toExponential(6)`，第 962 批真机确认（`scripts/_verify_printing_travel_regress_962.mjs`）：x²−5x+6 两根 2/3、判「两不等实根」。SMS-137 负 a 共轭根符号已于 972 批修正（im 取绝对值，a=−1 得 ±i），结果趋势仍解析以 `Δ` 开头的文本（SMS-151 共用模板问题）。
-- `tools/science/science-flow-rate.html:569-608,669-718`：旧 SMS-143～145 的历史不恢复输入、内径单位写死和无效值保留旧结果路径仍在。
-- `tools/science/science-pressure-converter.html:447-464,495-508`：清空输入后直接返回，旧结果仍可复制与保存，既有记录仍适用。
-- `tools/science/voltage-divider-calculator.html:386-390`：旧 SMS-36～37 已修并经第 961 批真机确认（`scripts/_verify_voltage_divider_961.mjs` 5/5）：目标电压 ≥Vin、=0、留空均清空结果（resVout=—），正常输入 Vout=6 V。残余：正向求 Vout 仍以 `||0` 处理 Vin/R1/R2（`:379-381`），清空 Vin 得 0 V 数值而非「—」，待改为必填校验。
 
 ## 2026-11-06 数学工具静态续审
 
@@ -123,7 +120,7 @@
 
 ## V 批 · 物理/工程计算（2026-11-04）
 
-- 同轮复核：SMS-36/37 已修。`tools/science/voltage-divider-calculator.html:380-413` 对目标电压越界或为 0 提示并清空结果；实跑 Vin=5、目标 6 V 与目标 0 V 均不再给出旧的计算结果。
+- 同轮复核：SMS-36/37 已全部修（含正向求 Vout 的 `||0` 兜底，第 1003 批清账）。`tools/science/voltage-divider-calculator.html` 对目标电压越界/为 0、正向 Vin/R1/R2 空值或非正均提示并清空结果。
 
 ### SMS-38 电池续航导出单位错误且绕过主计算校验（中，确认缺陷）
 - 2026-11-06 复核：`tools/science/battery-life-calculator.html:429-451` 主计算已拒绝非正容量、电流和电压，清空结果与 `lastResult`；旧主区早退保留结果及负时长问题已修。
@@ -143,7 +140,6 @@
 - `tools/science/logic-gate-simulator.html`：2 条（SMS-43 中、SMS-44 中）。8 个门的真值表与 `fn` 全部正确（AND/OR/NOT/NAND/NOR/XOR/XNOR/BUFFER）；真值表高亮按 `data-row` 匹配正确；问题在组合链预设文案与开关 UI 同步。
 - `tools/science/pcb-trace-width.html`：2 条（SMS-39 中、SMS-40 中）。公式、单位（`oz→1.378 mil`、`mil→0.0254 mm`、`oz→0.035 mm`）与截面积一致（默认 2 A/10°C/1 oz 外层 → 30.76 mil / 0.781 mm / 0.0273 mm²）；问题为参考表数值与零值早退。
 - `tools/science/hookes-law.html`：0 条。`F=kx`、`U=0.5kx²`、`kx²=2U` 正确（100 N/m · 0.2 m → 20.0 N、2.0000 J、4.0000 J）；`k=0` 时「劲度系数倒数」显示 1e9 m/N 系公式框自述的 `1÷max(k,10⁻⁹)` 口径，空值按 0 兜底亦已在公式框声明，故不计缺陷。
-- `tools/science/voltage-divider-calculator.html`：2 条（SMS-36 高、SMS-37 中）。正推正确（12 V/10k/10k → 6.000 V、50.0%、0.60 mA、7.20 mW）；问题在逆推分支的目标电压校验与 `||5` 兜底。
 - `tools/science/projectile-range.html`：1 条（SMS-41 中）。`R=v²sin2θ/g`、`H=v²sin²θ/(2g)` 与角度→弧度换算正确（20 m/s/45° → 40.77 m、10.19 m；θ=0 → 0/0）；`g=0` 由守卫拦截，问题为角度定义域。
 
 - 声明：本轮仅逐页读源码并用 node 在 `/tmp` 复刻各页主算（含组合链语义与单位换算），未开浏览器、未跑 `_build.py`/`_test_static`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。新增 11 条：高 2（SMS-34、SMS-36），中 9（SMS-35、SMS-37～SMS-44）；8 页中胡克定律页未发现计算类缺陷。
@@ -335,7 +331,6 @@
 - `tools/science/quadratic-equation.html`：2026-11-06 复核判别式改相对阈值，小系数原例算出 ±1，SMS-136 清理；a<0 共轭根负虚部（SMS-137）已于 972 批修正。
 - `tools/science/range-calculator.html`：2 条（SMS-138 高、SMS-139 中）。默认 [12,25,8,17,33,21,6] → min 6 / max 33 / 极差 27 / 中程 19.5 正确；问题为千分位逗号被当分隔符、说明承诺的均值/中位数/标准差未实现。
 - `tools/science/rc-time-constant.html`：3 条（SMS-140 高、SMS-141～142 中）。预设「滤波 1 kΩ×100 nF → 100 μs」复核正确；问题为默认 10000(kΩ)+0.000001(μF)=10 MΩ/1 pF 使 τ=10 μs（与数值字面本意 10 ms 差 1000 倍）、简介承诺的截止频率缺失、0 V 被替换为 5 V。
-- `tools/science/science-flow-rate.html`：3 条（SMS-143 高、SMS-144～145 中）。DN50/2 m/s → A=1963.5 mm²、Q=3.93 L/s=14.14 m³/h=62.2 GPM、Re≈99,600（湍流），主算正确；问题为历史条目不还原输入（假恢复）、明细把任意单位的内径都标 mm、非法输入保留旧结果。
 - `tools/science/star-magnitude-compare.html`：2 条（SMS-146～147 中）。−1.46 vs 0 → Δm=1.46、3.84 倍；太阳/满月 Δm=14 → 3.98×10⁵，倍率落在常识区间；问题为 0.77 等重复行反查取错星名、天津四与老人星二的距离/绝对星等不自洽。
 - `tools/science/statistics-calculator.html`：2 条（SMS-148 高、SMS-150 中）。默认 n=15 → 均值 10.8、中位数 9、样本 sd 7.485、偏度 0.672、超额峰度 −0.918，全部正确；问题为千分位被切分、末组区间标 `[a,b)` 却含最大值。SMS-149（NaN 偏度/峰度误判对称/正态）本批已修。
 - `tools/science/{quadratic-equation,range-calculator,star-magnitude-compare,statistics-calculator}.html`：1 条（SMS-151 中，共用模板）。`__*Extras` 对中文结果文本做 `parseFloat` 恒得 NaN → 「结果趋势」图永不渲染（rc 页为 canvas 曲线，不受影响）。
@@ -347,9 +342,6 @@
 | tools/science/rc-time-constant.html | 默认值与默认单位错配：阻值 10000 配 `kΩ`（=10 MΩ）、容值 0.000001 配 `μF`（=1 pF），τ=10⁷×10⁻¹²=10 μs；两个数值显然按 Ω/F 基单位填写（10000 Ω × 1 μF 应为 10 ms），默认 τ 与字面本意差 1000 倍，10 MΩ 电阻与 1 pF 电容也非典型默认。:134、:137、:145、:151 | SMS-140 |
 | tools/science/rc-time-constant.html | 工具简介承诺计算「各时间点充放电电压与截止频率」，但全页无 f_c=1/(2πRC) 输出、无任何频率字段（默认 τ=10 μs 对应截止频率 15.9 kHz），承诺未实现。:463 | SMS-141 |
 | tools/science/rc-time-constant.html | `var vs = +voltage.value &#124;&#124; 5` 把合法的 0 V 静默替换成 5 V：输入 0 V 后表格仍按 5 V 显示充电/放电电压（τ 不变，但电压列与曲线全错），导出路径同源。:269、:315 | SMS-142 |
-| tools/science/science-flow-rate.html | 历史记录为假恢复：`saveHistory` 只存 mode/modeName/Q_str/Q_val/A_str/v_str/time，不存 diam/vel/w/h/vol/time 等输入；`loadHistory` 仅切模式后 `calc()` 按当前输入重算，点任意历史条目得到的都是当前输入的结果，存下的 Q_val 无处使用。:669-694、:704-718 | SMS-143 |
-| tools/science/science-flow-rate.html | 明细内径单位写死 mm：`${diam} mm = ${(d*1000).toFixed(2)} mm`，`diam` 已按所选单位折算，左侧原始值却恒标 mm；选 m、输入 50 → 「50 mm = 50000.00 mm」，选 inch、输入 50 → 「50 mm = 1270.00 mm」，自相矛盾（Q 本身正确）。:581 | SMS-144 |
-| tools/science/science-flow-rate.html | 非法输入直接 `return`，不清空也不报错：圆形 `if(!diam&#124;&#124;!v)return`、矩形 `if(!w&#124;&#124;!h&#124;&#124;!v)return`，清空内径或流速设 0 后，上一次的 Q/截面积/雷诺数/明细全部留在屏上，易被当作新结果。:574、:591 | SMS-145 |
 | tools/science/star-magnitude-compare.html | 按星等值反查星名取错行：`STARS.find(s => Math.abs(s.vmag - m1) < 0.01)` 取首个匹配，而表内 0.77 等有牛郎星（:293）与十字架二（:294）两行；点选十字架二后结果卡标注为「牛郎星」，两星张冠李戴。:335-336 | SMS-146 |
 | tools/science/star-magnitude-compare.html | 表内距离/绝对星等不自洽：天津四 vmag 1.25、amag −6.95、dist 2615 ly，按距离反推 amag≈−8.27（差 1.3 等）；老人星二 vmag 1.69、amag −0.9 反推距离仅 107 ly（实际约 111 ly），表中 dist 却写 381 ly（约 3.5 倍）。:300、:304 | SMS-147 |
 | tools/science/statistics-calculator.html | 同一千分位缺陷：`parseData` 用 `[,\s\n;]+` 切分，「1,000, 2,000」→ [1,0,2,0]，n=4 而非 2，均值/方差/偏度全部按错误数据计算，页面无提示。:270 | SMS-148 |

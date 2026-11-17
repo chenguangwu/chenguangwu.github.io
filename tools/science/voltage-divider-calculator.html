@@ -376,13 +376,25 @@ function clearResults(msg){
 }
 
 function calc(){
-  let Vin=parseFloat(document.getElementById('vin').value)||0;
-  let R1=parseFloat(document.getElementById('r1').value)||0;
-  let R2=parseFloat(document.getElementById('r2').value)||0;
+  // 严格解析：空值/非数不能再被 ||0 吞成 0 而给出「0.000 V」伪结果。
+  const rawVin=String(document.getElementById('vin').value).trim();
+  const rawR1=String(document.getElementById('r1').value).trim();
+  const rawR2=String(document.getElementById('r2').value).trim();
+  let Vin=rawVin===''?NaN:Number(rawVin);
+  let R1=rawR1===''?NaN:Number(rawR1);
+  let R2=rawR2===''?NaN:Number(rawR2);
   let Vout=0;
   if(calcVar==='vout'){
-    if(R1+R2>0)Vout=Vin*R2/(R1+R2);
+    // 正向求 Vout：Vin 必须有效、R1/R2 必须为正数（0 电阻分压无意义）。
+    if(!isFinite(Vin)||!isFinite(R1)||!isFinite(R2)||R1<=0||R2<=0){
+      clearResults(__t('请输入有效的 Vin 及大于 0 的 R1、R2','Enter a valid Vin and R1, R2 greater than 0'));return;
+    }
+    Vout=Vin*R2/(R1+R2);
   }else{
+    // 反推分支：Vin 必须有效且 > 0，参与计算的电阻必须是有效有限数（可为 0 时由下游分支专门拦截）。
+    if(!isFinite(Vin)||Vin<=0||!isFinite(R1)||!isFinite(R2)){
+      clearResults(__t('请输入有效的 Vin 及 R1、R2','Enter a valid Vin, R1 and R2'));return;
+    }
     const raw=String(document.getElementById('voutDesired').value).trim();
     const desiredV=raw===''?NaN:Number(raw);
     if(!isFinite(desiredV)||desiredV<=0){clearResults(__t('目标输出电压必须大于 0','Target output voltage must be > 0'));return;}
