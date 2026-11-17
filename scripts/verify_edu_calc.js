@@ -1779,6 +1779,26 @@ const CASES = [
     expect: ["J168 OK"],
     ref: "EL-J168：旧版简介只重复标题、深挖三条空泛短语。现简介列五类单位数与 4/2 位精度、给真实算例，权威源同步仿射口径与 mi/acre 算例。源码+权威源哨兵：旧版无单位清单与精确算例 ⇒ 必红。",
   },
+
+  // ── 第1190批：课程表可视化排课率、检测记录与闭区间口径复核 ──
+  {
+    slug: "edu2/schedule-conflict",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/schedule-conflict.html','utf8');var ok=h.indexOf('可视化课表')>=0&&h.indexOf('无冲突排课率')>=0&&h.indexOf('conflictCells[d+\\'-\\'+p] = true')>=0&&h.indexOf('var scheduleRate =')>=0;document.getElementById('__tbProbe').textContent='J169 '+(ok?'OK':'BAD');"],
+    expect: ["J169 OK"],
+    ref: "EL-J169：旧版只有四张统计卡与冲突表，无周×节次网格与排课率。现结果区渲染可视化课表并高亮冲突格，排课率=(总时片−冲突时片)/总时片。源码哨兵：旧版无 grid/rate 实现 ⇒ 必红。",
+  },
+  {
+    slug: "edu2/schedule-conflict",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/schedule-conflict.html','utf8');var ok=h.indexOf(\"var __schedule_conflict_f0=(typeof detect==='function')?detect:null;\")>=0&&h.indexOf('loadSample=function()')<0&&h.indexOf('if(typeof loadSample===\\'function\\') loadSample();')<0&&h.indexOf('ToolBox.showToast(i18nText())')<0&&h.indexOf(\"if(String((document.getElementById('courseInput')||{}).value||'').trim()) detect();\")>=0;document.getElementById('__tbProbe').textContent='J170 '+(ok?'OK':'BAD');"],
+    expect: ["J170 OK"],
+    ref: "EL-J170：旧版只包装 loadSample 且 boot 自动灌示例、尾部空输入 detect 弹错、清空 toast 空参。现包装 detect 使自建课表也写历史/表/图，boot 只装预设，尾部仅在有输入时 detect，清空用 toast.cleared。源码哨兵：旧版四处缺陷任一存在即红。",
+  },
+  {
+    slug: "edu2/schedule-conflict",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/schedule-conflict.html','utf8');var d=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu2/schedule-conflict']);var ok=h.indexOf('a.start≤b.end 且 b.start≤a.end')>=0&&h.indexOf('[start,end]')>=0&&h.indexOf('[start,end)')<0&&d.indexOf('a.start≤b.end')>=0;document.getElementById('__tbProbe').textContent='J171 '+(ok?'OK':'BAD');"],
+    expect: ["J171 OK"],
+    ref: "EL-J171：旧版 FAQ 写半开区间 a.start<b.end、引据表 [start,end)，与实现闭区间相反。现 FAQ 与引据表统一为 a.start≤b.end 且 [start,end]，权威源同步。源码+权威源哨兵：旧版含半开公式 ⇒ 必红。",
+  },
 ];
 
 async function main() {
