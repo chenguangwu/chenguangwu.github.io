@@ -991,9 +991,9 @@ const CASES = [
       "d6": "42"
     },
     "expect": [
-      "度评估 知识捕获：42/10 ✓ 知识共享：42/10 ✓ 知识应用：42"
+      "请输入有效评分", "评分范围为 0–10"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"d1\":\"42\",\"d2\":\"42\",\"d3\":\"42\",\"d4\":\"42\",\"d5\":\"42\",\"d6\":\"42\"}，输出区含「度评估 知识捕获：42/10 ✓ 知识共享：42/10 ✓ 知识应用：42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "EL-J137：旧版 +value||0 无范围校验，六项全 42 仍算 42.00/10 并判 5 级。现逐维 isFinite+0–10 校验，越界中止并提示「请输入有效评分…评分范围为 0–10」。默认态六项为合法 6/5/7/4/7/8 不命中该串 ⇒ 强判别零逃生。"
   },
   {
     "slug": "edu/calc-2",
@@ -1626,6 +1626,28 @@ const CASES = [
     ref: "EL-J131：旧版两组 related-tools + 两个 formula-box + 三处无参 i18nText()。现只保留一组相关工具与一个公式框，三处 toast 全改用具体 key（msg947/msg082/msg081）。源码形态哨兵，examName 注入唯一串。",
   },
 
+
+  {
+    slug: "edu/assessor-27",
+    inputs: { d1: "6", d2: "6", d3: "6", d4: "6", d5: "6", d6: "6" },
+    clicks: ["var r=document.getElementById('res').innerHTML;document.getElementById('__tbProbe').textContent='J136 '+(r.indexOf('最低分项')>=0&&r.indexOf('短板优先')>=0?'OK':'BAD');"],
+    expect: ["J136 OK"],
+    ref: "EL-J136：旧版仅收集 <6 维度，六项全 6 时 gaps=[] 输出「各维度均达标」。现始终列出最低分维度并标「当前最低分项（短板优先）」。六项全 6 为唯一注入态，默认态 6/5/7/4/7/8 含 5 分未达标 ⇒ 不命中最低分项专属文案。",
+  },
+  {
+    slug: "edu/assessor-27",
+    inputs: { d1: "8", d2: "7", d3: "6", d4: "9", d5: "7", d6: "8" },
+    clicks: ["document.getElementById('d6').value='';calc();var r=document.getElementById('res').innerHTML;document.getElementById('__tbProbe').textContent='J137E '+(r.indexOf('请输入有效评分')>=0&&r.indexOf('知识安全未填写')>=0?'OK':'BAD');"],
+    expect: ["J137E OK"],
+    ref: "EL-J137 空值：旧版 +''||0 把空值当 0 仍出完整等级。现空值提示「知识安全未填写」并中止。默认态六项均有值，不含未填写文案 ⇒ 判别成立。",
+  },
+  {
+    slug: "edu/assessor-27",
+    inputs: { d1: "7", d2: "7", d3: "7", d4: "7", d5: "5", d6: "5" },
+    clicks: ["var r=document.getElementById('res').innerHTML;document.getElementById('__tbProbe').textContent='J138 '+(r.indexOf('知识存储')>=0&&r.indexOf('统一文档库')>=0&&r.indexOf('权限分级')>=0?'OK':'BAD');"],
+    expect: ["J138 OK"],
+    ref: "EL-J138：旧版建议仅拼接共享/创新/捕获三项，仅缺存储+安全时建议串为空只剩「建议：」。现六维各配建议，存储→统一文档库与备份、安全→权限分级与脱敏。默认态含低分维度但本组输入唯一（5,5 仅存储安全未达标）⇒ 判别成立。",
+  },
 ];
 
 async function main() {

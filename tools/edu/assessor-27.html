@@ -110,12 +110,12 @@
   
 </div>
 
-    <div class="input-row"><div><label>知识捕获评分(1-10)</label><input type="number" id="d1" value="6" min="1" max="10" style="font-size:16px;" oninput="calc()" placeholder="如 6（1–10）"></div></div>
-    <div class="input-row"><div><label>知识共享评分(1-10)</label><input type="number" id="d2" value="5" min="1" max="10" style="font-size:16px;" oninput="calc()" placeholder="如 5（1–10）"></div></div>
-    <div class="input-row"><div><label>知识应用评分(1-10)</label><input type="number" id="d3" value="7" min="1" max="10" style="font-size:16px;" oninput="calc()" placeholder="如 7（1–10）"></div></div>
-    <div class="input-row"><div><label>知识创新评分(1-10)</label><input type="number" id="d4" value="4" min="1" max="10" style="font-size:16px;" oninput="calc()" placeholder="如 4（1–10）"></div></div>
-    <div class="input-row"><div><label>知识存储评分(1-10)</label><input type="number" id="d5" value="7" min="1" max="10" style="font-size:16px;" oninput="calc()" placeholder="如 7（1–10）"></div></div>
-    <div class="input-row"><div><label>知识安全评分(1-10)</label><input type="number" id="d6" value="8" min="1" max="10" style="font-size:16px;" oninput="calc()" placeholder="如 8（1–10）"></div></div>
+    <div class="input-row"><div><label>知识捕获评分(0-10)</label><input type="number" id="d1" value="6" min="0" max="10" style="font-size:16px;" oninput="calc()" placeholder="如 6（0–10）"></div></div>
+    <div class="input-row"><div><label>知识共享评分(0-10)</label><input type="number" id="d2" value="5" min="0" max="10" style="font-size:16px;" oninput="calc()" placeholder="如 5（0–10）"></div></div>
+    <div class="input-row"><div><label>知识应用评分(0-10)</label><input type="number" id="d3" value="7" min="0" max="10" style="font-size:16px;" oninput="calc()" placeholder="如 7（0–10）"></div></div>
+    <div class="input-row"><div><label>知识创新评分(0-10)</label><input type="number" id="d4" value="4" min="0" max="10" style="font-size:16px;" oninput="calc()" placeholder="如 4（0–10）"></div></div>
+    <div class="input-row"><div><label>知识存储评分(0-10)</label><input type="number" id="d5" value="7" min="0" max="10" style="font-size:16px;" oninput="calc()" placeholder="如 7（0–10）"></div></div>
+    <div class="input-row"><div><label>知识安全评分(0-10)</label><input type="number" id="d6" value="8" min="0" max="10" style="font-size:16px;" oninput="calc()" placeholder="如 8（0–10）"></div></div>
     <div class="toolbar"><div id="assessor_27Presets"></div><button type="button" class="btn primary" onclick="calc()">知识评估</button><button class="btn" type="button" onclick="__assessor_27Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyReport()">复制报告</button></div>
     <div class="result-box" id="res"></div> <div id="assessor_27Table"></div> <div id="assessor_27Diff"></div> <div id="assessor_27Chart"></div> <div id="assessor_27Hist"></div>
   </div>
@@ -198,7 +198,22 @@
 </div>
 <script>
 function calc(){
-  var dims=[{n:'知识捕获',v:+document.getElementById('d1').value||0},{n:'知识共享',v:+document.getElementById('d2').value||0},{n:'知识应用',v:+document.getElementById('d3').value||0},{n:'知识创新',v:+document.getElementById('d4').value||0},{n:'知识存储',v:+document.getElementById('d5').value||0},{n:'知识安全',v:+document.getElementById('d6').value||0}];
+  var out=document.getElementById('res');
+  // 输入校验：六维均须为 0–10 的有限数；空值与越界分别提示，禁止 ||0 兜底。
+  var dims=[];var bad=[];
+  var names=['知识捕获','知识共享','知识应用','知识创新','知识存储','知识安全'];
+  for(var i=0;i<6;i++){
+    var el=document.getElementById('d'+(i+1));
+    var raw=(el&&el.value!=null)?String(el.value).trim():'';
+    if(raw===''){ bad.push(names[i]+'未填写'); dims.push({n:names[i],v:NaN}); continue; }
+    var v=Number(raw);
+    if(!isFinite(v)||v<0||v>10){ bad.push(names[i]+'须为 0–10 的数字'); dims.push({n:names[i],v:NaN}); continue; }
+    dims.push({n:names[i],v:v});
+  }
+  if(bad.length){
+    out.innerHTML='<div class="tip-box tip-error">请输入有效评分：'+bad.join('；')+'。评分范围为 0–10。</div>';
+    return;
+  }
   var avg=dims.reduce(function(s,d){return s+d.v;},0)/dims.length;
   var level=avg>=8?'5级-优化级':avg>=6.5?'4级-管理级':avg>=5?'3级-规范级':avg>=3.5?'2级-认知级':'1级-初始级';
   var color=avg>=6.5?'var(--success)':avg>=5?'var(--warning)':'var(--danger)';
@@ -206,9 +221,25 @@ function calc(){
   dims.forEach(function(d){h+='<p>'+d.n+'：'+d.v+'/10 '+(d.v>=7?'✓':d.v>=5?'△':'✗')+'</p>';});
   h+='<p>综合评分：<strong style="font-size:22px;color:'+color+';">'+avg.toFixed(2)+'/10</strong></p>';
   h+='<p>成熟度等级：<strong style="color:'+color+';">'+level+'</strong></p>';
-  var gaps=dims.filter(function(d){return d.v<6;}).map(function(d){return d.n});
-  if(gaps.length>0){
-    h+='<div class="tip-box tip-warn" style="margin-top:8px;"><strong>知识缺口：</strong>'+gaps.join('、')+'<br>建议：'+(gaps.indexOf('知识共享')>=0?'建立知识共享平台和激励机制；':'')+(gaps.indexOf('知识创新')>=0?'设立创新基金和知识创造奖励；':'')+(gaps.indexOf('知识捕获')>=0?'完善文档管理和经验沉淀流程；':'')+'</div>';
+  // 缺口双口径：未达标维度（<6）+ 始终列出最低分维度（短板优先），两者合并去重。
+  var advice={
+    '知识捕获':'完善文档管理与经验沉淀流程；',
+    '知识共享':'建立知识共享平台和激励机制；',
+    '知识应用':'把知识嵌入业务流程并设应用检查点；',
+    '知识创新':'设立创新基金和知识创造奖励；',
+    '知识存储':'建设统一文档库与定期备份策略；',
+    '知识安全':'实施权限分级与敏感信息脱敏；'
+  };
+  var gaps=dims.filter(function(d){return d.v<6;}).map(function(d){return d.n;});
+  var minV=Math.min.apply(null,dims.map(function(d){return d.v;}));
+  var lowest=dims.filter(function(d){return d.v===minV;}).map(function(d){return d.n;});
+  var allGaps=gaps.slice();
+  lowest.forEach(function(n){if(allGaps.indexOf(n)<0)allGaps.push(n);});
+  if(allGaps.length>0){
+    var isLowOnly=gaps.length===0;
+    var tip=isLowOnly?'该维度为当前最低分项（短板优先）：':'知识缺口：';
+    var sug=allGaps.map(function(n){return advice[n];}).filter(Boolean).join('');
+    h+='<div class="tip-box tip-warn" style="margin-top:8px;"><strong>'+tip+'</strong>'+allGaps.join('、')+(sug?'<br>建议：'+sug:'')+'</div>';
   }else{
     h+='<div class="tip-box tip-success" style="margin-top:8px;">知识管理各维度均达标，成熟度较高。</div>';
   }
