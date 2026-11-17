@@ -1004,9 +1004,9 @@ const CASES = [
       "direction": "lower"
     },
     "expect": [
-      "分数 等级评价： 中等 该分数约高于 50.00% 的参照群体。"
+      "等级评价： 中等 按原始分数：处于第 50.00 百分位，高于约 50.00% 的参照群体。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"score\":\"42\",\"mean\":\"42\",\"sd\":\"42\",\"direction\":\"lower\"}，输出区含「分数 等级评价： 中等 该分数约高于 50.00% 的参照群体。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "EL-J139/J140：旧版 direction=lower 只翻转等级与有效Z，百分位仍写死「该分数约高于 X%」；负 Z 时同样写「高于」与数值相反。现百分位按原始分数 Φ(z) 中性表述「处于第 pct 百分位，高于/低于约 Y%」按 z 符号切换，并标注方向说明。默认态（score/mean/sd 为默认值）不含该串 ⇒ 强判别零逃生。",
   },
   {
     "slug": "edu/calc-4",
@@ -1647,6 +1647,28 @@ const CASES = [
     clicks: ["var r=document.getElementById('res').innerHTML;document.getElementById('__tbProbe').textContent='J138 '+(r.indexOf('知识存储')>=0&&r.indexOf('统一文档库')>=0&&r.indexOf('权限分级')>=0?'OK':'BAD');"],
     expect: ["J138 OK"],
     ref: "EL-J138：旧版建议仅拼接共享/创新/捕获三项，仅缺存储+安全时建议串为空只剩「建议：」。现六维各配建议，存储→统一文档库与备份、安全→权限分级与脱敏。默认态含低分维度但本组输入唯一（5,5 仅存储安全未达标）⇒ 判别成立。",
+  },
+
+  {
+    slug: "edu/calc-2",
+    inputs: { score: "60", mean: "80", sd: "10", direction: "lower" },
+    clicks: ["var r=document.getElementById('res').innerHTML;document.getElementById('__tbProbe').textContent='J139 '+(r.indexOf('比较方向：分数越低越好')>=0&&r.indexOf('有效 Z 分数')>=0?'OK':'BAD');"],
+    expect: ["J139 OK"],
+    ref: "EL-J139：旧版 direction=lower 仅翻转等级，文案与有效Z口径混乱。现结果区明确标注「比较方向：分数越低越好，等级/T 分数按反向 Z 计算」，与有效Z/T分数同源。低分场景 score=60<mean=80 触发，默认态 higher 不含该方向说明。",
+  },
+  {
+    slug: "edu/calc-2",
+    inputs: { score: "60", mean: "80", sd: "10", direction: "higher" },
+    clicks: ["var r=document.getElementById('res').innerHTML;document.getElementById('__tbProbe').textContent='J140 '+(r.indexOf('低于约')>=0&&r.indexOf('高于约')<0?'OK':'BAD');"],
+    expect: ["J140 OK"],
+    ref: "EL-J140：z=(60−80)/10=−2 为负，旧版仍写「约高于 2.28%」与数值相反。现按 z 符号切换为「低于约 97.72%」。默认态 score85>mean75 为正 Z 写「高于约」⇒ 零逃生。",
+  },
+  {
+    slug: "edu/calc-2",
+    inputs: { score: "95", mean: "80", sd: "10", direction: "higher" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/calc-2.html','utf8');var r=document.getElementById('res').innerHTML;var d=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu/calc-2']);var ok=r.indexOf('T 分数 (50+10Z)')>=0&&r.indexOf('65.00')>=0&&h.indexOf('点击「计算」或「生成」')<0&&d.indexOf('T 分数 = 50 + 10 × 有效 Z')>=0;document.getElementById('__tbProbe').textContent='J141 '+(ok?'OK':'BAD');"],
+    expect: ["J141 OK"],
+    ref: "EL-J141：公式承诺 T=50+10Z 但旧结果卡无输出、opt-guide/opt-faq 与 JSON-LD 是通用套话。现结果卡含 T 分数（95/80/10→z=1.5→T=65.00），套话已改为真实说明，权威源 FAQ 补 T 分数口径。源码+权威源+运行时三哨兵，旧版必红。",
   },
 ];
 
