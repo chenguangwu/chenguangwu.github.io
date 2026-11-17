@@ -204,7 +204,7 @@
 
 - `tools/science/gcd-calculator.html`：SMS-94/95 已于第 1006 批改严格整数解析（Number + isInteger + 拒绝超 2^53），factorize 卡死路径随之被堵；默认 48,36,24 → GCD 12 不变。仍共用 SMS-106 附加历史模板问题（未修）。
 - `tools/science/lcm-calculator.html`：SMS-94 同族严格解析已修；SMS-96 改为先除后乘 `a/g*b` 缓解 gcd>1 时的中间积溢出，但互质大数（如 1000000007×1000000009）结果超 2^53 仍需 BigInt 重构，保留待专业裁断。
-- `tools/science/geo-distance-calculator.html`：1 条（SMS-97 中）。Haversine、初始方位角与英里/海里换算正确（北京 39.9042,116.4074 → 上海 31.2304,121.4737 = 1067.310 km）；问题为同组两输入共用错误容器，提示会被后一个合法输入抹掉（另共用 SMS-106）。
+- `tools/science/geo-distance-calculator.html`：SMS-97 已修——Haversine、初始方位角与英里/海里换算正确（北京 39.9042,116.4074 → 上海 31.2304,121.4737 = 1067.310 km）；同组错误按字段保存后聚合渲染，lat1 越界不会被随后合法的 lon1 抹掉。仍共用 SMS-106。
 - `tools/science/heat-transfer-calculator.html`：3 条（SMS-98、SMS-99 中，SMS-100 承诺未实现）。默认铜 401 W/m·K / 10 cm² / 10 mm / ΔT 75 → 3007.50 W、热流密度 3,007,500.00 W/m² 正确；问题为守卫早退且负面积放行、历史点击不回填、热辐射只有公式没有计算。
 - `tools/science/latlon-utm-converter.html`：1 条（SMS-101 中）。北京 39.9042,116.4074 → 50N 449345.061E 4417292.495N（收敛角 −0.2916°、比例因子 0.999632），正反算往返准确；问题为 lon=180 得 61 带以及反算无 E/N 范围校验。
 - `tools/science/led-resistor-calculator.html`：3 条（SMS-102、SMS-103 高，SMS-104 中）。串联 5 V/20 mA/2.2 V → R 140 Ω、P 56.0 mW 正确，标准电阻与实际电流亦正确；问题为并联功率少乘 n、精度下拉死输入、取最近值导致实际电流超额定。
@@ -213,7 +213,6 @@
 | 页面 | 问题（含 tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
 | tools/science/lcm-calculator.html | 第 1006 批已把 `lcm2` 改为先除后乘 `abs(a/gcd*b)` 并同步步骤行，缓解 gcd>1 时中间积溢出；但互质大数 lcm(1000000007,1000000009) 真值 1,000,000,016,000,000,063 超 2^53，Number 无法精确表示，仍需 BigInt 重构（未自判）。:234 | SMS-96 |
-| tools/science/geo-distance-calculator.html | `validateInput` 开头无条件 `errEl.classList.remove('show')`，且 lat1/lon1 共用 `error1`、lat2/lon2 共用 `error2`：lat1 非法 + lon1 合法 → 提示被后一次校验抹掉，结果全部清成「—」且用户看不到原因。:630、:684-687、:689-697 | SMS-97 |
 | tools/science/heat-transfer-calculator.html | 三处守卫 `if(!k||!A||!L)return` / `if(!m||!c)return` / `if(!h||!A)return` 早退时不清空结果卡，清空 A 或 L 会保留上一次 Q；且不做正数校验，A=-10 放行得 Q=-3007.5，经 fmtPower 负值落末档显示「-3007500000.00 μW」。:626、:644、:669、:600-606 | SMS-98 |
 | tools/science/heat-transfer-calculator.html | `loadHistory` 只设 `mode`、切三个 mode 区块显隐、再 `calc()`（用当前输入），从不回填任何输入值；历史条目只存 mode/modeName/Q/dT/detail，点击后重算结果与条目 Q 不一致，历史「加载」是假恢复。:730-743、:706-708 | SMS-99 |
 | tools/science/heat-transfer-calculator.html | 承诺未实现：英文 intro「conductive, convective and radiative … Stefan-Boltzmann」、公式列表、公式框「☀️ 热辐射公式」、FAQ「传导、对流与辐射的热量传递」均承诺辐射计算，但页面仅 conduction/specific/convection 三模式，无 ε、辐射面积、T₁⁴/T₂⁴ 输入，Q=εσA(T₁⁴−T₂⁴) 无法计算。:179、:362、:395、:904 对 :198-201、:620-683 | SMS-100 |
@@ -233,18 +232,15 @@
 - `tools/science/mean-calculator.html`：SMS-110 几何平均连乘溢出/下溢已于第 1005 批改对数域 exp(Σln/n) 修复。SMS-111（千分位逗号被当分隔符）属页面「逗号或空格分隔」口径未定义，保留待产品裁断。
 - `tools/science/mechanical-power.html`：SMS-117 已修——P=F·v 与 kW/hp/kgf·m/s 系数（745.6999、9.80665）换算正确（100 N×5 m/s=500 W）；主结果改有效数字格式，0.2 W 不再显示 0 W、0.5 W 不再进位成 1 W，数据表同步。
 - `tools/science/meteor-crater-estimator.html`：3 条（SMS-119 高、SMS-120～121 中）。CMM 标度律与能量/破坏半径自洽（50 m/13 km/s 铁陨石 → 1.2 km、10 km/20 km/s → 119.6 km）；问题为水面/冰面地表密度死输入、质量单位标签错 1000 倍、通古斯按钮与预设参数互相矛盾。
-- `tools/science/nato-phonetic.html`：2 条（SMS-112～113 中）。NATO 表 Alfa/Juliett 与数字读法（Three/Tree、Nine/Niner）正确；问题为 ANSI 老表 Y/Z 错词、历史回填强制切到 ANSI。
+- `tools/science/nato-phonetic.html`：SMS-112/113 已修——NATO 表 Alfa/Juliett 与数字读法（Three/Tree、Nine/Niner）正确，ANSI 老表 Y/Z 改为 YOKE/ZEBRA，历史记录写入 `__natoMode` 并在点击时恢复原模式，不再强制 ANSI。
 - `tools/science/newtons-second.html`：SMS-118 已修——F=ma、kN、a×3.6（km/h/s）、kgf 换算正确（10 kg/3 m/s² → 30.0 N、0.030000 kN、10.8000、3.0591）；主结果与 kN 档按量级保留有效位/科学计数，0.0001 N 与 1e-7 kN 不再归零，数据表同步。
-- `tools/science/nth-root-calculator.html`：1 条（SMS-116 中）。∛27=3、⁴√16=2、x>0 全部复数根（27 的立方根 −1.5±2.598i）正确；SMS-114/115 已修——负奇整数根用 `Math.abs(n)%2` 识别，0 的负次根明确报错；残留为极小被开方数回显格式待浏览器确认。
+- `tools/science/nth-root-calculator.html`：SMS-114/115/116 已修——∛27=3、⁴√16=2、x>0 全部复数根（27 的立方根 −1.5±2.598i）正确；负奇整数根用 `Math.abs(n)%2` 识别，0 的负次根明确报错，≤1e-3 走科学计数不再把非零小值回显为 0。
 
 | 页面 | 问题（tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
 | tools/science/matrix-calculator.html | 2026-11-06 复核：空串/NaN 才默认 1，k=0 与 n=0 已保留，`matrixPower(A,0)` 返回单位矩阵。残留：幂次仍用 `parseInt` 静默截断，n=0.5 被按 0 次幂计算并标为 A^0，而非提示需整数；负小数同样截断。:498-500、:541-549 | SMS-107 |
 | tools/science/matrix-calculator.html | 逆矩阵奇异判据用绝对阈值 `Math.abs(det)<1e-12`：[[2e-7,0],[0,2e-7]]（det≈4.0e-14，逆=5e6·I）被判「奇异/不可逆」；:403 的主元判断同样用绝对 1e-12，量级偏小的可逆矩阵整类被误杀。:391、:403 | SMS-108 |
 | tools/science/mean-calculator.html | `parseData` 以 `[,\s\n;]+` 切分后静默丢弃非数值 token：「1,000, 2,000」被切成 1/0/2/0 → n=4、AM=0.75（真值 1500），数据列表与 n 均随之改变，无任何提示。:242、:246-248 | SMS-111 |
-| tools/science/nato-phonetic.html | ANSI 老式字母表两处错词：Y 写作 YOUNG（应为 YOKE）、Z 写作 ZEBA（应为 ZEBRA），切到 ANSI 模式后表格与输出均显示错词。:253 | SMS-112 |
-| tools/science/nato-phonetic.html | 历史回填调用 `setMode()` 未传参 → `m===undefined` 落 else 分支 `modeIdx=2`，点击任意历史条目整表强制切到 ANSI；模式本身也未写入历史，无法还原（:349 对 :260）。:349、:260 | SMS-113 |
-| tools/science/nth-root-calculator.html | 2026-11-06 复核：`fmt(1e-13)` 已使用科学计数法，旧例不再归零。残留：普通分支的 `toLocaleString()` 未指定小数精度，提取页面实际函数在 Node 执行 `fmt(1e-5)` 和 `fmt(1e-4)` 均为 `0`，可能把被开方数回显为 0；需在浏览器确认实际格式。:231-236、:243、:265-267 | SMS-116 |
 | tools/science/meteor-crater-estimator.html | 「地表密度」在目标地表=水面/海洋、冰川/冰盖时被 `calc()` 每次无条件回写 1000/917（输入框又绑 `oninput="calc()"`）：用户改成 1030 立即被覆盖，输入形同只读，死输入。:382-387、:168 | SMS-119 |
 | tools/science/meteor-crater-estimator.html | `formatMass` 单位标签错 1000 倍：m≥1e6 kg 标「(吨)」（该档实为千吨，50 m/3000 kg·m⁻³ 的 1.9635e8 kg 显示「196.35 x 10⁶ kg (吨)」，真值 196 350 t）；m≥1e9 kg 标「(千吨)」（实为百万吨）。:567-568 | SMS-120 |
 | tools/science/meteor-crater-estimator.html | 「通古斯事件」按钮与自带预设冲突：按钮用石质 3000 kg·m⁻³ / 27 km·s⁻¹ / 沉积岩，预设「通古斯 60m 彗星」用 1500 kg·m⁻³ / 15 km·s⁻¹ / 冰盖，同一事件两套参数（撞击能量相差约 6.5 倍）。:587-593 对 :851 | SMS-121 |
@@ -257,7 +253,7 @@
 - 以下历史结论对应旧源码，当前不应继续计为已确认：SMS-9/10 摩尔质量解析已支持括号、水合物并扩充至 118 元素（`molar-mass-calculator.html:233-273`）；SMS-21/22 配平已剥离前导系数并明确提示欠定非唯一（`equation-balancer.html:389-407`、`:547-570`、`:718-719`）；SMS-34/35 分数输入已有整数检查与除零提示（`fraction-calculator.html:357-393`）；SMS-40 PCB 输入无效时清结果、图表和缓存（`pcb-trace-width.html:406-422`）。上述为代码状态变化，不代表实际回归通过。
 - 热传递 SMS-98/99 关键路径仍在：非正参数未全面校验且清空时早退保留结果，历史恢复只切模式后按当前值重新算（`heat-transfer-calculator.html:616-669`、`:732-745`）。比热容分支计算 `Q` 为焦耳，但公共结果仍按 `fmtPower(Q)` 输出瓦特、复制及历史也使用该值（`:639-646`、`:685-706`）。
 - LED SMS-102/103/104 对应公式与 E24 最近值路径仍在（`led-resistor-calculator.html:478-493`、`:529-547`、`:565-590`）；原 SMS-104 举例中的 150 Ω 电流应为 18.67 mA（2.8 V/150 Ω），不是 20.53 mA。并联功率和标准电阻选择需工程复核。
-- NATO 历史强制切 ANSI 的路径仍在（`nato-phonetic.html:264-265`、`:343-355`）；旧词表需来源核验。PCB 的参考表 SMS-39 仍需按当前资料复核，导出路径另仅用真值校验，负输入可能输出 NaN（`pcb-trace-width.html:473-485`）。
+- PCB 的参考表 SMS-39 仍需按当前资料复核，导出路径另仅用真值校验，负输入可能输出 NaN（`pcb-trace-width.html:473-485`）。
 - 本批仅静态读代码及算式复核，未运行浏览器，不能计双跑。
 
 ## AA 批 · 自然科学·物理/数论/元素（2026-11-04）

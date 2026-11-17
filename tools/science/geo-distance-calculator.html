@@ -613,14 +613,35 @@ function clearAll() {
 }
 
 // ===== 输入验证 =====
+// lat1/lon1 共用 error1、lat2/lon2 共用 error2：逐字段保存错误，再按组聚合渲染，
+// 避免 lon1 合法时把同组 lat1 的错误提示抹掉。
+var geoFieldErrors = {lat1:'',lon1:'',lat2:'',lon2:''};
+function geoRenderErrors(errorId, ids) {
+  var el = document.getElementById(errorId);
+  if (!el) return;
+  var msgs = [];
+  for (var i = 0; i < ids.length; i++) {
+    if (geoFieldErrors[ids[i]]) msgs.push(geoFieldErrors[ids[i]]);
+  }
+  if (msgs.length) {
+    el.textContent = msgs.join('；');
+    el.classList.add('show');
+  } else {
+    el.textContent = '';
+    el.classList.remove('show');
+  }
+}
+function geoGroupIds(errorId) {
+  return errorId === 'error1' ? ['lat1','lon1'] : ['lat2','lon2'];
+}
 function validateInput(id, errorId) {
   var val = parseFloat(document.getElementById(id).value);
-  var errEl = document.getElementById(errorId);
-  errEl.classList.remove('show');
+  var ids = geoGroupIds(errorId);
+  geoFieldErrors[id] = '';
 
   if (isNaN(val)) {
-    errEl.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a valid number":"请输入有效的数字");
-    errEl.classList.add('show');
+    geoFieldErrors[id] = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a valid number":"请输入有效的数字");
+    geoRenderErrors(errorId, ids);
     return null;
   }
 
@@ -630,10 +651,11 @@ function validateInput(id, errorId) {
   var name = isLat ? '纬度' : '经度';
 
   if (val < min || val > max) {
-    errEl.textContent = name + '范围应为 ' + min + ' ~ ' + max;
-    errEl.classList.add('show');
+    geoFieldErrors[id] = name + '范围应为 ' + min + ' ~ ' + max;
+    geoRenderErrors(errorId, ids);
     return null;
   }
+  geoRenderErrors(errorId, ids);
   return val;
 }
 

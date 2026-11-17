@@ -348,6 +348,12 @@ const CASES = [
     ref: "SMS-115 清账（0 的负次根）：x=0、n=-2 时 1/0 无定义，旧版 x===0 分支无条件输出 0 并补「0 的 n 次根仅为 0」；现负指数明确报错且不写「仅为 0」步骤。旧版不含该提示 ⇒ 零逃生。",
   },
   {
+    slug: "science/nth-root-calculator",
+    inputs: { x: "0.00001", n: "2" },
+    expect: ["2√1.0000000000e-5"],
+    ref: "SMS-116 清账（极小值回显）：fmt 原用 toLocaleString 默认最多 3 位小数，1e-5 被显示为 0，页面写「²√0」。现把科学计数阈值放宽到 ≤1e-3，1e-5 显示 1.0000000000e-5；旧版不含该串 ⇒ 零逃生。",
+  },
+  {
     slug: "science/fibonacci",
     inputs: { n: "9" },
     clicks: ["run()"],
@@ -696,6 +702,13 @@ const CASES = [
     ref: "Haversine 大圆距离（A=(0°,0°)、B=(0°,1°)，地球半径 6371 km）：同纬度 1° 子午弧长 = 6371×π/180 = **111.1949 km**；初始方位角 = atan2(sin Δλ·cos φ₂, cos φ₁·sin φ₂ − sin φ₁·cos φ₂·cos Δλ)，φ₁=φ₂=0 ⇒ 正西方向 = **270.0000°**（页面标注「正西 (W)」）。两行可分别手算复算且互为方向校验。默认经纬度对不同 ⇒ 不命中。",
   },
   {
+    slug: "science/geo-distance-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('lat1').value='100';document.getElementById('lon1').value='0';document.getElementById('lat2').value='0';document.getElementById('lon2').value='0';calculate();var e=document.getElementById('error1');var t=String(e.textContent||'');var s=!!(e.classList&&e.classList.contains&&e.classList.contains('show'));document.getElementById('lat1').value='GEOERR_'+(t.indexOf('纬度范围应为 -90 ~ 90')>=0&&s?'OK':'BAD');"],
+    expect: ["GEOERR_OK"],
+    ref: "SMS-97 清账（同组错误容器）：lat1=100 非法、lon1=0 合法。旧版 validateInput 每次先 error1.classList.remove('show')，后校验的 lon1 把 lat1 的错误提示抹掉（文本仍在但不可见）；现按字段保存错误并聚合渲染，纬度越界提示保持可见。探针同时断言文本与 show 状态，旧版 ⇒ GEOERR_BAD，零逃生。",
+  },
+  {
     slug: "science/pi-digits",
     inputs: { n: "10" },
     clicks: ["run()"],
@@ -708,6 +721,20 @@ const CASES = [
     clicks: ["convert()"],
     expect: ["S Sierra O Oscar S Sierra"],
     ref: "NATO 字母表转写（输入 SOS，默认 setMode 为字母模式）：S → **Sierra**、O → **Oscar**、S → **Sierra**，逐字母对应、无公式依赖，可逐字手算复算。默认输入串不同 ⇒ 不命中。",
+  },
+  {
+    slug: "science/nato-phonetic",
+    inputs: { input: "YZ" },
+    clicks: ["setMode('ansi');convert();var h=String(document.getElementById('output').innerHTML);document.getElementById('input').value='ANSIYZ_'+(h.indexOf('YOKE')>=0&&h.indexOf('ZEBRA')>=0&&h.indexOf('YOUNG')<0&&h.indexOf('ZEBA')<0?'OK':'BAD');"],
+    expect: ["ANSIYZ_OK"],
+    ref: "SMS-112 清账（ANSI 词表）：旧 ANSI 老表 Y=YOUNG、Z=ZEBA，现改 Y=YOKE、Z=ZEBRA。探针切 ANSI 后转写 YZ，断言新词齐全且旧词不再出现；默认 NATO 模式不含这些锚 ⇒ 零逃生。",
+  },
+  {
+    slug: "science/nato-phonetic",
+    inputs: {},
+    clicks: ["var s=String(__nato_phoneticExtras);var cb=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){},exportTable:function(){}},matrix:{table:function(){}},chart:{line:function(){}},history:{list:function(){return [];},record:function(){},mount:function(_,f){cb=f;}}};__nato_phoneticRender(['input'],'结果',false);if(cb)cb({input:'SOS',__natoMode:0,结果:'S Sierra O Oscar S Sierra'});delete globalThis.TBKit;var h=String(document.getElementById('output').innerHTML);document.getElementById('input').value='NATOHIST_'+(s.indexOf('__natoMode')>=0&&typeof modeIdx==='number'&&modeIdx===0&&h.indexOf('Sierra')>=0&&h.indexOf('SUGAR')<0?'OK':'BAD');"],
+    expect: ["NATOHIST_OK"],
+    ref: "SMS-113 清账（历史模式回填）：旧版历史点击无条件 setMode()（无参）→ else 分支强制 ANSI，NATO 模式记录也被切到 ANSI（S→SUGAR）。现 Extras 写入 __natoMode，mount 回调按保存值恢复；探针用 mode=0 的 NATO 记录断言恢复 modeIdx=0 且输出 Sierra 而非 SUGAR，并要求源码确实写入 __natoMode。旧版 ⇒ NATOHIST_BAD，零逃生。",
   },
   {
     slug: "science/astro-geo-calculator",
