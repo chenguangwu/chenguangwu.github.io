@@ -3820,6 +3820,34 @@ const CASES = [
       "42\n42\n42\n42\n42\n合格判定数 Ac 应小于样本数 n\n暂无计算记录"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\",\"v4\":\"42\"}，输出区含「42\n42\n42\n42\n42\n合格判定数 Ac 应小于样本数 n\n暂无计算记录」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "machinery/jingmishebeixuanxing",
+    "inputs": { "vAcc": "0", "vLoad": "200", "vStroke": "300", "vSpeed": "15" },
+    "clicks": ["var os=localStorage.setItem,writes=0;localStorage.setItem=function(k,v){if(String(k).indexOf('tb_history_')===0)writes++;};calc();saveHistory();localStorage.setItem=os;document.getElementById('__tbProbe').textContent='JSHIS0 '+(writes===0?'OK':'BAD'+writes);"],
+    "expect": ["JSHIS0 OK"],
+    "ref": "990无效输入不入历史：精密选型精度=0 无效（calc 清空 lastResult），旧版 saveHistory 仍写 tb_history；修复后 saveHistory 开头 if(!lastResult)return 不写。合法默认态 saveHistory 会写一条 ⇒ 探针仅无效态出现，零逃生。"
+  },
+  {
+    "slug": "machinery/lifespan-7",
+    "inputs": { "vTemp": "60", "vPress": "0.4", "vSpeed": "1200", "vShaft": "0" },
+    "clicks": ["var os=localStorage.setItem,writes=0;localStorage.setItem=function(k,v){if(String(k).indexOf('tb_history_')===0)writes++;};calc();saveHistory();localStorage.setItem=os;document.getElementById('__tbProbe').textContent='LSHIS0 '+(writes===0?'OK':'BAD'+writes);"],
+    "expect": ["LSHIS0 OK"],
+    "ref": "990无效输入不入历史：密封件轴径=0 无效（calc 清空 lastResult），旧版 saveHistory 仍写历史；修复后不写。合法默认轴径=50 会写一条 ⇒ 零逃生。"
+  },
+  {
+    "slug": "machinery/torque-motion",
+    "inputs": { "vF": "0", "vS": "300", "vT": "10", "vSF": "1.5" },
+    "clicks": ["var os=localStorage.setItem,writes=0;localStorage.setItem=function(k,v){if(String(k).indexOf('tb_history_')===0)writes++;};calc();saveHistory();localStorage.setItem=os;document.getElementById('__tbProbe').textContent='TMHIS0 '+(writes===0?'OK':'BAD'+writes);"],
+    "expect": ["TMHIS0 OK"],
+    "ref": "990无效输入不入历史：执行器负载力=0 无效，旧版 saveHistory 仍写历史；修复后不写。合法默认 F>0 会写一条 ⇒ 零逃生。"
+  },
+  {
+    "slug": "machinery/torque-response",
+    "inputs": { "vN": "0", "vJ": "2.5", "vT": "3", "vSF": "1.5" },
+    "clicks": ["var os=localStorage.setItem,writes=0;localStorage.setItem=function(k,v){if(String(k).indexOf('tb_history_')===0)writes++;};calc();saveHistory();localStorage.setItem=os;document.getElementById('__tbProbe').textContent='TRHIS0 '+(writes===0?'OK':'BAD'+writes);"],
+    "expect": ["TRHIS0 OK"],
+    "ref": "990无效输入不入历史：制动器转速=0 无效，旧版 saveHistory 仍写历史；修复后不写。合法默认 n>0 会写一条 ⇒ 零逃生。"
   }
 
 ];
