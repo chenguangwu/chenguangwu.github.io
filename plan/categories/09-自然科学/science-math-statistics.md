@@ -208,7 +208,7 @@
 - `tools/science/heat-transfer-calculator.html`：3 条（SMS-98、SMS-99 中，SMS-100 承诺未实现）。默认铜 401 W/m·K / 10 cm² / 10 mm / ΔT 75 → 3007.50 W、热流密度 3,007,500.00 W/m² 正确；问题为守卫早退且负面积放行、历史点击不回填、热辐射只有公式没有计算。
 - `tools/science/latlon-utm-converter.html`：1 条（SMS-101 中）。北京 39.9042,116.4074 → 50N 449345.061E 4417292.495N（收敛角 −0.2916°、比例因子 0.999632），正反算往返准确；问题为 lon=180 得 61 带以及反算无 E/N 范围校验。
 - `tools/science/led-resistor-calculator.html`：3 条（SMS-102、SMS-103 高，SMS-104 中）。串联 5 V/20 mA/2.2 V → R 140 Ω、P 56.0 mW 正确，标准电阻与实际电流亦正确；问题为并联功率少乘 n、精度下拉死输入、取最近值导致实际电流超额定。
-- `tools/science/log-calculator.html`：1 条（SMS-105 中）。旧极小值示例已用科学计数显示，但普通分支的格式化仍可能把非零值显示为 0，详见下表复核。
+- `tools/science/log-calculator.html`：SMS-105 已修——极小值示例与 `fmt()` 普通分支均使用科学计数（阈值 ≤1e-3），`1e-5` 不再被 `toLocaleString()` 默认 3 位小数显示为 0。
 
 | 页面 | 问题（含 tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
@@ -224,25 +224,21 @@
 | tools/science/gcd-calculator.html | 附加历史模板把 `.result-box` 文本截 80 字存入「结果」列，趋势图再 `parseFloat` 该文本：gcd/lcm 以「输入：」开头、log 以「x = 」开头、geo 以「📊 计算详情」开头 → 恒 NaN，图永不绘制且结果列显示输入串；factorial「10! = …」得 10，图表画的是输入 n 而非 n!。:326-332、:368（同模板 lcm:307/349、log:308/350、geo:1027/1069、factorial:343/385） | SMS-106 |
 
 - 声明：本轮仅逐页通读 8 页源码（HTML + 内联 JS），用 node 在 `/tmp` 复刻主算与边界（BigInt 阶乘位数、斯特林溢出、parseInt 精度、√n 枚举、双精度乘积、UTM 正反算、LED 并联功率/标准电阻、对数 fmt），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。
-- 原审统计（历史快照）：8 页 / 15 条（高 4 / 中 11，其中承诺未实现 1 条 SMS-100）/ 安全 0 条 / 假工具 0 个 / 编号区间 SMS-92～SMS-106；SMS-93 已于 2026-11-06 复核清理，SMS-105 以现有残留说明为准。
+- 原审统计（历史快照）：8 页 / 15 条（高 4 / 中 11，其中承诺未实现 1 条 SMS-100）/ 安全 0 条 / 假工具 0 个 / 编号区间 SMS-92～SMS-106；SMS-93 与 SMS-105 已分别于 2026-11-06、第 1012 批复核清理。
 
 ## Z 批 · 自然科学·矩阵/统计/电学（2026-11-04）
 
-- `tools/science/matrix-calculator.html`：3 条（SMS-107 高、SMS-108～109 中）。2×2/3×3 乘、行列式、逆、秩主算复核正确（[[4,7],[2,6]] det=10、A⁻¹=[[0.6,-0.7],[-0.2,0.4]]）；2026-11-06 复核：0 标量与 0 次幂已不被默认值吞掉；幂次仍用 `parseInt` 截断小数，逆矩阵绝对阈值和 `check` 不输出的问题仍在。
+- `tools/science/matrix-calculator.html`：SMS-107/108/109 已修——2×2/3×3 乘、行列式、逆、秩主算复核正确（[[4,7],[2,6]] det=10、A⁻¹=[[0.6,-0.7],[-0.2,0.4]]）；幂次改 Number + 整数校验，0 标量/0 次幂保留；奇异与秩判据改相对元素级容差，逆矩阵 check 输出最大偏差。
 - `tools/science/mean-calculator.html`：SMS-110 几何平均连乘溢出/下溢已于第 1005 批改对数域 exp(Σln/n) 修复。SMS-111（千分位逗号被当分隔符）属页面「逗号或空格分隔」口径未定义，保留待产品裁断。
 - `tools/science/mechanical-power.html`：SMS-117 已修——P=F·v 与 kW/hp/kgf·m/s 系数（745.6999、9.80665）换算正确（100 N×5 m/s=500 W）；主结果改有效数字格式，0.2 W 不再显示 0 W、0.5 W 不再进位成 1 W，数据表同步。
-- `tools/science/meteor-crater-estimator.html`：3 条（SMS-119 高、SMS-120～121 中）。CMM 标度律与能量/破坏半径自洽（50 m/13 km/s 铁陨石 → 1.2 km、10 km/20 km/s → 119.6 km）；问题为水面/冰面地表密度死输入、质量单位标签错 1000 倍、通古斯按钮与预设参数互相矛盾。
+- `tools/science/meteor-crater-estimator.html`：1 条（SMS-121 中）。CMM 标度律与能量/破坏半径自洽（50 m/13 km/s 铁陨石 → 1.2 km、10 km/20 km/s → 119.6 km）；SMS-119/120 已修——地表类型切换才套默认密度，同类型手改值保留；质量单位档改为 1e6 kg=千吨、1e9 kg=百万吨。保留通古斯按钮与预设参数矛盾待口径裁断。
 - `tools/science/nato-phonetic.html`：SMS-112/113 已修——NATO 表 Alfa/Juliett 与数字读法（Three/Tree、Nine/Niner）正确，ANSI 老表 Y/Z 改为 YOKE/ZEBRA，历史记录写入 `__natoMode` 并在点击时恢复原模式，不再强制 ANSI。
 - `tools/science/newtons-second.html`：SMS-118 已修——F=ma、kN、a×3.6（km/h/s）、kgf 换算正确（10 kg/3 m/s² → 30.0 N、0.030000 kN、10.8000、3.0591）；主结果与 kN 档按量级保留有效位/科学计数，0.0001 N 与 1e-7 kN 不再归零，数据表同步。
 - `tools/science/nth-root-calculator.html`：SMS-114/115/116 已修——∛27=3、⁴√16=2、x>0 全部复数根（27 的立方根 −1.5±2.598i）正确；负奇整数根用 `Math.abs(n)%2` 识别，0 的负次根明确报错，≤1e-3 走科学计数不再把非零小值回显为 0。
 
 | 页面 | 问题（tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
-| tools/science/matrix-calculator.html | 2026-11-06 复核：空串/NaN 才默认 1，k=0 与 n=0 已保留，`matrixPower(A,0)` 返回单位矩阵。残留：幂次仍用 `parseInt` 静默截断，n=0.5 被按 0 次幂计算并标为 A^0，而非提示需整数；负小数同样截断。:498-500、:541-549 | SMS-107 |
-| tools/science/matrix-calculator.html | 逆矩阵奇异判据用绝对阈值 `Math.abs(det)<1e-12`：[[2e-7,0],[0,2e-7]]（det≈4.0e-14，逆=5e6·I）被判「奇异/不可逆」；:403 的主元判断同样用绝对 1e-12，量级偏小的可逆矩阵整类被误杀。:391、:403 | SMS-108 |
 | tools/science/mean-calculator.html | `parseData` 以 `[,\s\n;]+` 切分后静默丢弃非数值 token：「1,000, 2,000」被切成 1/0/2/0 → n=4、AM=0.75（真值 1500），数据列表与 n 均随之改变，无任何提示。:242、:246-248 | SMS-111 |
-| tools/science/meteor-crater-estimator.html | 「地表密度」在目标地表=水面/海洋、冰川/冰盖时被 `calc()` 每次无条件回写 1000/917（输入框又绑 `oninput="calc()"`）：用户改成 1030 立即被覆盖，输入形同只读，死输入。:382-387、:168 | SMS-119 |
-| tools/science/meteor-crater-estimator.html | `formatMass` 单位标签错 1000 倍：m≥1e6 kg 标「(吨)」（该档实为千吨，50 m/3000 kg·m⁻³ 的 1.9635e8 kg 显示「196.35 x 10⁶ kg (吨)」，真值 196 350 t）；m≥1e9 kg 标「(千吨)」（实为百万吨）。:567-568 | SMS-120 |
 | tools/science/meteor-crater-estimator.html | 「通古斯事件」按钮与自带预设冲突：按钮用石质 3000 kg·m⁻³ / 27 km·s⁻¹ / 沉积岩，预设「通古斯 60m 彗星」用 1500 kg·m⁻³ / 15 km·s⁻¹ / 冰盖，同一事件两套参数（撞击能量相差约 6.5 倍）。:587-593 对 :851 | SMS-121 |
 
 - 声明：本轮仅逐页通读 8 页源码（HTML + 内联 JS）并用 node 在 `/tmp` 复刻主算与边界（矩阵求逆/奇异阈值、连乘几何平均溢出、千分位解析、负整数指数开方、负指数零次根、小数取整、CMM 坑径标度律、欧姆定律增益/单位档），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。`nato-phonetic` 的 `else html += c` 曾按注入排查：字母字符都会被 `ALPHA[c]` 替换成 `<span>`，未转义的只剩标点/非 ASCII，无法拼出可执行标签，故不计安全条。

@@ -357,6 +357,7 @@ function __tbInputGuardCore(_ids,_labels){
 
 const TNT_PER_JOULE = 1 / 4.184e9; // 1吨TNT = 4.184e9 J
 const HIROSHIMA = 15e3; // 15千吨
+let lastTargetType = null;
 
 function calc(){
     var __ig=__tbInputGuard(['meteorDiameter', 'meteorVelocity', 'impactAngle', 'targetDensity'],["陨石直径 (m)", "撞击速度 (km/s)", "撞击角度 (度)", "地表密度 (kg/m³)"]);if(__ig){const __g0=__ig;ToolBox.setResult("result",(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')));return;}
@@ -372,23 +373,28 @@ const diameter = parseFloat(document.getElementById('meteorDiameter').value); //
     return;
   }
 
-  // 自动设置目标密度
-  if(targetType === 'water'){
-    document.getElementById('targetDensity').value = 1000;
-    targetDensity = 1000;
-  } else if(targetType === 'ice'){
-    document.getElementById('targetDensity').value = 917;
-    targetDensity = 917;
-  } else if(targetType === 'sedimentary'){
-    if(targetDensity === 1000 || targetDensity === 917){
-      document.getElementById('targetDensity').value = 2700;
-      targetDensity = 2700;
+  // 仅在「地表类型切换」或首次计算时给默认密度；用户在同一类型下手改密度后，
+  // oninput 触发 calc() 不得再把 1030 等自定义值覆盖成默认 1000/917。
+  if(lastTargetType === null) lastTargetType = targetType;
+  if(targetType !== lastTargetType){
+    if(targetType === 'water'){
+      document.getElementById('targetDensity').value = 1000;
+      targetDensity = 1000;
+    } else if(targetType === 'ice'){
+      document.getElementById('targetDensity').value = 917;
+      targetDensity = 917;
+    } else if(targetType === 'sedimentary'){
+      if(targetDensity === 1000 || targetDensity === 917){
+        document.getElementById('targetDensity').value = 2700;
+        targetDensity = 2700;
+      }
+    } else if(targetType === 'crystalline'){
+      if(targetDensity === 1000 || targetDensity === 917){
+        document.getElementById('targetDensity').value = 3000;
+        targetDensity = 3000;
+      }
     }
-  } else if(targetType === 'crystalline'){
-    if(targetDensity === 1000 || targetDensity === 917){
-      document.getElementById('targetDensity').value = 3000;
-      targetDensity = 3000;
-    }
+    lastTargetType = targetType;
   }
 
   const radius = diameter / 2; // m
@@ -558,8 +564,9 @@ const diameter = parseFloat(document.getElementById('meteorDiameter').value); //
 
 function formatMass(m){
   if(m >= 1e12) return (m/1e12).toFixed(2) + x1e12Text() + ' kg';
-  if(m >= 1e9) return (m/1e9).toFixed(2) + ' x 10&#8313; kg (千吨)';
-  if(m >= 1e6) return (m/1e6).toFixed(2) + ' x 10&#8310; kg (吨)';
+  // 1e6 kg = 1 千吨，1e9 kg = 1 百万吨；旧标签整体少一个数量级。
+  if(m >= 1e9) return (m/1e9).toFixed(2) + ' x 10&#8313; kg (百万吨)';
+  if(m >= 1e6) return (m/1e6).toFixed(2) + ' x 10&#8310; kg (千吨)';
   if(m >= 1e3) return (m/1e3).toFixed(2) + ' x 10&#179; kg';
   return m.toFixed(2) + ' kg';
 }

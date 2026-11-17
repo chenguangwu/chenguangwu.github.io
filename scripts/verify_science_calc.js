@@ -178,6 +178,20 @@ const CASES = [
     expect: ["1.22 km", "202.9 m", "5.91 km"],
     ref: "CMM 瞬态坑 D=1.161(ρi/ρt)^(1/3)·L^0.78·v^0.44·g^-0.22·sin^(1/3)45° = 1.161×(7800/2700)^(1/3)×50^0.78×13000^0.44×9.80665^-0.22×0.8909 = 1217 m → 1.22 km（巴林杰坑实测 1.186 km）；深度 1217/6 = 202.9 m；E=4.314e16 J → 10312 kt → 20psi 半径 0.28×10312^0.33 = 5.91 km。原实现 D=0.07(E/ρ)^(1/4) 仅得 0.12 km（偏小 10 倍）、破坏半径误代入「吨」高估 10 倍",
   },
+  {
+    slug: "science/meteor-crater-estimator",
+    inputs: {},
+    clicks: ["document.getElementById('targetType').value='ice';calc();document.getElementById('targetDensity').value='1030';calc();var v=String(document.getElementById('targetDensity').value);document.getElementById('targetDensity').value='METEORDENS_'+(v==='1030'?'OK':'BAD');"],
+    expect: ["METEORDENS_OK"],
+    ref: "SMS-119 清账（自定义地表密度）：先切到 ice 让密度默认 917，再手改 1030 触发 calc()。旧版 every calc 无条件回写 917，输入形同只读；现仅在地表类型变化时套默认值，同类型手改值保留。探针断言最终输入仍为 1030，旧版 ⇒ METEORDENS_BAD，零逃生。",
+  },
+  {
+    slug: "science/meteor-crater-estimator",
+    inputs: {},
+    clicks: ["var a=formatMass(1.9635e8),b=formatMass(1e9);document.getElementById('meteorDiameter').value='MASSUNIT_'+(a.indexOf('(千吨)')>=0&&b.indexOf('(百万吨)')>=0?'OK':'BAD');"],
+    expect: ["MASSUNIT_OK"],
+    ref: "SMS-120 清账（质量单位档）：1e6 kg = 1 千吨、1e9 kg = 1 百万吨；旧版分别标「(吨)」「(千吨)」少一个数量级。探针要求 1.9635e8 kg 显示千吨、1e9 kg 显示百万吨；旧版 ⇒ MASSUNIT_BAD，零逃生。",
+  },
 
   // ── 样本量（E 按百分比输入）────────────────────────────────
   {
@@ -672,6 +686,13 @@ const CASES = [
     clicks: ["calculate()"],
     expect: ["log 2 (8) = 3", "= ln(8) / ln(2) = 2.079 / 0.693 = 3"],
     ref: "对数（x=8、底 n=2）：换底公式 log_n(x) = ln(x)/ln(n) = 2.079/0.693 = **3**，验证 2³ = 8；页面同给 log₁₀8 = 0.903、ln 8 = 2.079，与上两行同源自洽。默认底数/真数不同 ⇒ 不命中。",
+  },
+  {
+    slug: "science/log-calculator",
+    inputs: { x: "0.00001", base: "10" },
+    clicks: ["calculate()"],
+    expect: ["x = 1.000000e-5"],
+    ref: "SMS-105 清账（极小真数回显）：fmt 原用 toLocaleString 默认最多 3 位小数，1e-5 显示为 0，页面写「x = 0」；现把科学计数阈值放宽到 ≤1e-3，1e-5 显示 x = 1.000000e-5。旧版锚不成立 ⇒ 零逃生。",
   },
   {
     slug: "science/trigonometry-calculator",
