@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const CASES = [
 {
   "slug": "nephrology/aki-kdigo",
@@ -330,6 +332,12 @@ const CASES = [
   "clicks": ["document.getElementById('uacrVal').value='';calc();document.getElementById('result').textContent='PARTIAL:'+document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ').trim();"],
   "expect": ["PARTIAL:请选择基础疾病，并按所选单位填写有效的白蛋白尿数值"],
   "ref": "已选择基础疾病但清空 UACR 时应显示必填提示，不得按 0 判为正常。"
+},
+{
+  "slug": "nephrology/ckd-staging",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/nephrology/ckd-staging.html','utf8');var ok=h.indexOf('function __ckdRefBar(egfr)')>=0&&h.indexOf('try{ __ckdRefBar(parseFloat(')>=0&&h.indexOf('__ckdGBands')>=0;document.getElementById('__tbProbe').textContent='CKDREFBAR '+(ok?'OK':'BAD');"],
+  "expect": ["CKDREFBAR OK"],
+  "ref": "12-N29 同类时序缺陷：eGFR 分级标尺须在 TBKit 就绪后重绘；旧版 boot 只挂预设、bands 封闭在 calc 内 ⇒ 变红。默认态不产生该串，零逃生。"
 }
 ];
 async function main() {

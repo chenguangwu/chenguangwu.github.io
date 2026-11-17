@@ -174,6 +174,12 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/ipss-score.html','utf8');var noTpl=h.indexOf(\"<li>'+q.t+'</li>\")<0;var noFill=h.indexOf('工作与生活中的相关计算与查询')<0;var noQol=h.indexOf('加 QoL 0-6 共 35')<0;var hasScene=h.indexOf('BPH / 下尿路症状自评')>=0;var hasQol=h.indexOf('QoL 另计 0-6')>=0;document.getElementById('__tbProbe').textContent=(noTpl&&noFill&&noQol&&hasScene&&hasQol)?'__IPSS_CONTENT_OK__':'__IPSS_CONTENT_BAD__ '+[noTpl,noFill,noQol,hasScene,hasQol].join(',');"],
   "expect": ["__IPSS_CONTENT_OK__"],
   "ref": "第1097批 N44/N45/N46：模板残留 '+q.t+' 删除、opt-guide/opt-faq/FAQPage 三处套话「工作与生活中的相关计算与查询」改真实场景、deepdive FAQ 的「加 QoL 0-6 共 35」改为 7 项合计 0-35 且 QoL 另计 0-6 不进总分。五哨兵须同时成立，全为源码形态判别，旧版必红。"
+},
+{
+  "slug": "urology/psa-density",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/psa-density.html','utf8');var ok=h.indexOf('function __psaRefBar(psad)')>=0&&h.indexOf('if(__ppa>0&&__pvol>0) __psaRefBar(__ppa/__pvol);')>=0;document.getElementById('__tbProbe').textContent='PSAREFBAR '+(ok?'OK':'BAD');"],
+  "expect": ["PSAREFBAR OK"],
+  "ref": "12-N29 同类时序缺陷：PSAD 首屏参考区间标尺须在 TBKit 就绪后重绘；旧版 boot 只挂预设 ⇒ 变红。默认态不产生该串，零逃生。"
 }
 ];
 async function main() {

@@ -300,7 +300,13 @@ const CASES = [
   { slug: "ent/lund-mackay-score",
     clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ent/lund-mackay-score.html','utf8');var ok=h.indexOf('各 5 个鼻窦')>=0&&h.indexOf('OMC（仅 0 或 2')>=0&&h.indexOf('各 6 个鼻窦 / 窦口复合体（每项 0 至 2')<0;document.getElementById('__tbProbe').textContent='LMFIX '+(ok?'OK':'BAD');"],
     expect: ["LMFIX OK"],
-    ref: "第1096批 N30：公式框旧文案把 6 个部位都写成 0 至 2 三档，但 OMC 只有 0 未阻塞/2 完全阻塞两档，用户会以为漏了 1 分按钮；改为 5 个鼻窦 0–2 + OMC 仅 0 或 2，源码形态判别旧串消失且新串出现。" }
+    ref: "第1096批 N30：公式框旧文案把 6 个部位都写成 0 至 2 三档，但 OMC 只有 0 未阻塞/2 完全阻塞两档，用户会以为漏了 1 分按钮；改为 5 个鼻窦 0–2 + OMC 仅 0 或 2，源码形态判别旧串消失且新串出现。" },
+{
+  "slug": "ent/lund-mackay-score",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ent/lund-mackay-score.html','utf8');var ok=h.indexOf('function __lmRefBar(total)')>=0&&h.indexOf('try{__lmRefBar(__lmTotal());}catch(e){} try{__lmChart();}catch(e){}')>=0;document.getElementById('__tbProbe').textContent='LMREFBAR '+(ok?'OK':'BAD');"],
+  "expect": ["LMREFBAR OK"],
+  "ref": "12-N29 首屏参考区间标尺：DOMContentLoaded 后必须重绘 refBar；旧版回调只调 __lmChart、refBar 被吞掉 ⇒ 变红。默认态不产生该串，零逃生。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

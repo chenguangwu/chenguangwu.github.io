@@ -296,13 +296,6 @@
 - 本地保存 PSAD 历史并画趋势，复诊时直接看变化。
 - 把 DRE/MRI 复选框状态回显到报告与复制文本中。
 
-### 12-N29 ent/lund-mackay-score：首屏“参考区间标尺”缺失，点任一窦腔后才出现（中，确认缺陷）
-- 问题：`calc()` 在页面尾部立即执行（`:446`），而 `TBKit` 由 `defer` 的 `/js/tool-kit.js`（`:102`）在文档解析后才加载，`refBar` 调用被 `typeof TBKit!=='undefined'` 吞掉（`:396`）；`DOMContentLoaded` 只重绘 `__lmChart()`（`:447`），不重算 `calc()`。首屏总分为 0 时 `#resultRefBar` 永远空白，直到点任一窦腔按钮。
-- 证据：`tools/ent/lund-mackay-score.html:396`、`:446-448`、`:102`
-- 复现：打开页面，默认全 0、总分为 0 → 结果区有进度条但无“参考区间标尺”；点任一“1 部分浑浊”后标尺才出现。同款时序问题也存在于 `tools/nephrology/ckd-staging.html:357/366` 与 `tools/urology/psa-density.html:285/292`（首屏无尺，首次输入后才出现）。
-- 影响：首屏缺少风险定位锚点，临床用户看不到“0 分=轻度”的视觉参照。
-- 方案：把 `calc()` 放进 `DOMContentLoaded`（或 `TBKit.ready` 回调）统一重算；`__lmChart` 同一回调里调用 `calc()`；同类页面统一加首屏重算。
-
 **留存/优势（ent/lund-mackay-score）**
 - 一键复制“右侧 8 + 左侧 8 = 16/24 重度”的结构化报告。
 - 增加快捷预设（全 0/全 2/上颌窦+筛窦），减少 12 次点击。
