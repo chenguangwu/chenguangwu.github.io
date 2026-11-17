@@ -353,6 +353,12 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-chemistry/hplc-optimization.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/tcm-chemistry/hplc-optimization.json','utf8');var ok=h.indexOf('基于权威医学标准')<0&&h.indexOf('支持多种临床参数')<0&&h.indexOf('医疗数据不上传，保护隐私')<0&&h.indexOf('临床计算与评估辅助')<0&&h.indexOf('医学学习与考试备考')<0&&h.indexOf('健康监测参考')<0&&h.indexOf('按 HPLC 参数计算保留时间、柱效与分离度')>=0&&h.indexOf('支持等度与梯度洗脱条件评估')>=0&&h.indexOf('分析方法开发与色谱条件筛选')>=0&&h.indexOf('实验结果复核与方案比较')>=0&&en.indexOf('Compute retention time, column efficiency and resolution from HPLC parameters')>=0&&en.indexOf('Supports isocratic and gradient elution evaluation')>=0&&en.indexOf('Parameters are processed only in the browser and are never uploaded')>=0;document.getElementById('__tbProbe').textContent='HPLCINTRO '+(ok?'OK':'BAD');"],
   "expect": ["HPLCINTRO OK"],
   "ref": "12-N146：HPLC 工具简介残留医疗/临床话术（基于权威医学标准、临床参数、医疗数据、健康监测等），与分析化学定位不符。修复后功能特点与使用场景全部改为色谱方法开发口径，并在本页 en map 补齐新键避免英文态 CJK 残留；旧版任一医疗串命中即红。"
+},
+{
+  "slug": "tcm-chemistry/metabolite-prediction",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-chemistry/metabolite-prediction.html','utf8');var zh=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/tcm-chemistry.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/tcm-chemistry/metabolite-prediction.json','utf8');var ok=h.indexOf('预测 I 相与 II 相代谢产物')>=0&&h.indexOf('输入中药成分结构')<0&&h.indexOf('外用给药代谢特点')>=0&&h.indexOf('给药途径只影响以上提示；下方 I/II 相反应按化合物类别给出，不随途径变化。')>=0&&zh.indexOf('不解析结构式，结果需实验验证')>=0&&en.indexOf('Topical route:')>=0&&en.indexOf('The route only affects the note above')>=0;document.getElementById('__tbProbe').textContent='METABI '+(ok?'OK':'BAD');"],
+  "expect": ["METABI OK"],
+  "ref": "12-N92/N94/N95：meta/标题不再承诺结构输入（页面说明与公式框均声明不解析结构式），标题补全 I 相与 II 相；给药途径补外用分支并明示下方类别模板不随途径变化，中英源同步。旧版旧结构输入串命中、标题截断、无外用提示 ⇒ 变红；默认态不产生该哨兵，零逃生。"
 }
 ];
 async function main() {
