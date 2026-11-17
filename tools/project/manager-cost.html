@@ -263,7 +263,7 @@ function loadProjectData() {
     if (d) {
       document.getElementById('projName').value = d.name || '默认项目';
       document.getElementById('bac').value = d.bac ?? 100000;
-      document.getElementById('totalDays').value = d.totalDays || 90;
+      document.getElementById('totalDays').value = d.totalDays ?? 90;
       if (d.periods && d.periods.length) periods = d.periods;
       return true;
     }
@@ -305,8 +305,25 @@ function renderPeriodInputs() {
 }
 
 function updatePeriod(i, field, val) {
-  if (field === 'name') periods[i].name = val;
-  else periods[i][field] = parseFloat(val) || 0;
+  if (field === 'name') { periods[i].name = val; return; }
+  var n = Number(val);
+  if(!isFinite(n) || n < 0){ calcEVM(); return; } // 负数/非法值不入库，保留上次有效输入
+  periods[i][field] = n;
+}
+function __evmValid(){
+  var bad=[];
+  var bac=Number(document.getElementById('bac').value);
+  var tdRaw=document.getElementById('totalDays').value;
+  var td=Number(tdRaw);
+  if(!isFinite(bac)||bac<=0) bad.push('BAC 须大于 0');
+  if(String(tdRaw).trim()===''||!isFinite(td)||!Number.isInteger(td)||td<=0) bad.push('计划总工期须为正整数');
+  for(var i=0;i<periods.length;i++){
+    ['pv','ev','ac'].forEach(function(k){
+      var v=Number(periods[i][k]);
+      if(!isFinite(v)||v<0) bad.push('第'+(i+1)+'期 '+k.toUpperCase()+' 须为非负数');
+    });
+  }
+  return bad;
 }
 
 function addPeriod() {
@@ -324,8 +341,18 @@ function delPeriod(i) {
 
 function calcEVM() {
   if (!periods.length) { ToolBox.showToast(i18nText(), 'error'); return; }
-  var bac = parseFloat(document.getElementById('bac').value) || 0;
-  var totalDays = parseInt(document.getElementById('totalDays').value) || 1;
+  var bad=__evmValid();
+  if(bad.length){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var tip=(en?'Check inputs: ':'请检查输入：')+(en?bad.join('; '):bad.join('；'));
+    document.getElementById('kpiGrid').innerHTML='<p style="color:var(--danger)">'+tip+'</p>';
+    document.getElementById('forecastBox').innerHTML='';
+    document.getElementById('evTableBody').innerHTML='';
+    document.getElementById('chartWrap').innerHTML='';
+    return;
+  }
+  var bac = Number(document.getElementById('bac').value);
+  var totalDays = Number(document.getElementById('totalDays').value);
 
   // 计算累计值
   var cumPV = 0, cumEV = 0, cumAC = 0;
@@ -508,8 +535,9 @@ calcEVM();
 function __evmExport(){
   if(typeof TBKit==='undefined') return;
   var en = TBKit.util.isEn();
-  var bac = parseFloat(document.getElementById('bac').value)||0;
-  var totalDays = parseInt(document.getElementById('totalDays').value)||1;
+  if(__evmValid().length){ ToolBox.showToast(en?'Fix invalid inputs before export':'请先修正无效输入再导出','warning'); return; }
+  var bac = Number(document.getElementById('bac').value);
+  var totalDays = Number(document.getElementById('totalDays').value);
   var cumPV=0, cumEV=0, cumAC=0; var cumData=[];
   periods.forEach(function(p){
     cumPV += p.pv; cumEV += p.ev; cumAC += p.ac;
@@ -533,7 +561,7 @@ function __evmExport(){
     + '<td>'+fmt(pv)+'</td><td>'+fmt(ev)+'</td><td>'+fmt(ac)+'</td>'
     + '<td>'+fmt(cv)+'</td><td>'+fmt(sv)+'</td><td>'+cpi.toFixed(2)+'</td><td>'+spi.toFixed(2)+'</td>'
     + '<td>'+fmt(bac)+'</td><td>'+fmt(eac)+'</td><td>'+fmt(etc)+'</td><td>'+fmt(vac)+'</td>'
-    + '<td>'+(ev/bac*100).toFixed(1)+'%</td><td>'+forecastDays+'</td></tr>';
+    + '<td>'+(bac>0&&isFinite(ev/bac)?(ev/bac*100).toFixed(1)+'%':'')+'</td><td>'+forecastDays+'</td></tr>';
   TBKit.util.exportTable('#evmHidden', en?'evm-report.csv':'挣值管理明细.csv');
 }
 </script>

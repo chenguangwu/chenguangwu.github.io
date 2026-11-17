@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
 const { runCase } = require("./verify_it_calc.js");
+globalThis.__tbFs = fs;
 const CASES = [
 {
   "slug": "project/analysis-28",
@@ -70,6 +72,19 @@ const CASES = [
   },
   "expect": [ "71,118 按当前进度效率" ],
   "ref": "auto-restore"
+},
+{
+  "slug": "project/manager-cost",
+  "inputs": { "bac": "150000", "totalDays": "0" },
+  "clicks": ["calcEVM();var k=String(document.getElementById('kpiGrid').innerHTML);var f=String(document.getElementById('forecastBox').innerHTML);var ok=k.indexOf('请检查输入')>=0&&k.indexOf('计划总工期须为正整数')>=0&&f.indexOf('预计总工期')<0;document.getElementById('__tbProbe').textContent='EVM0 '+(ok?'OK':'BAD '+k.slice(0,140));"],
+  "expect": ["EVM0 OK"],
+  "ref": "第1093批 I7：totalDays=0 旧版 parseInt(0)||1 静默按 1 天预测、输入框仍显示 0；修复后统一 __evmValid() 前置拦截，显示字段级错误且不产出工期预测。哨兵同时锚错误串与预测区清空，旧版必红。"
+},
+{
+  "slug": "project/manager-cost",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/project/manager-cost.html','utf8');var ok=h.indexOf('d.totalDays ?? 90')>=0&&h.indexOf('if(__evmValid().length)')>=0&&h.indexOf('parseInt(')<0&&h.indexOf('parseFloat(val) || 0')<0;document.getElementById('__tbProbe').textContent='EVMFIX '+(ok?'OK':'BAD');"],
+  "expect": ["EVMFIX OK"],
+  "ref": "第1093批 I7 源码形态：保存加载用 ?? 保留 0（旧 || 90 覆盖 0）、导出复用 __evmValid() 拒绝无效输入（旧裸写 ev/bac 得 Infinity%）、全页清除 parseInt(...)||1 与 parseFloat(val)||0 的静默替换。"
 }
 ];
 async function main() {
