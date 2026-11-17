@@ -161,13 +161,6 @@
 - 影响：把"升温至更高温度"当作快冷，且总退火时间被截短；负终温输出无意义的长时长，工艺卡无法直接使用。
 - 方案：coolTo 要求有限且 `0<coolTo<SP`（并提示应低于 AP）；fastRange≤0 时报字段错误并清空全部结果，不生成 0 分钟阶段；补 600/-100/空/等于 SP 用例。
 
-### 12-I4 挤出产量：mm³ 当 cm³，产量放大 1000 倍（历史问题，当前源码已改，待运行回归）
-- 2026-11-06 静态复核：当前 `tools/plastic/extrusion-rate.html:286-293,312-314` 的计算和复制均已除以 1000；下文为旧版证据，不代表现状。未运行页面。
-- 描述：流道面积（mm²）× 螺距（mm）得到 mm³/转，代码未换算即标成 `cm³/rev`；随后 `outputGps = volumePerSec * rho(g/cm³) * eff`，量纲错配 1000 倍。
-- 证据：`tools/plastic/extrusion-rate.html:134-156,248-281`，深度解析 `:201`。node 复算默认 D=65 mm、h=6 mm、螺距 65 mm、80 rpm、0.95 g/cm³、效率 40%：flowArea=1112.12 mm²，每转 72,288.05 mm³（页面显示 72288.05 cm³/rev），产量 131,853.40 kg/h、94,934.45 吨/月；按 mm³→cm³ 换算应为 131.85 kg/h、94.93 吨/月。深度解析微型机组 D=10/h=1/p=5/10 rpm/0.92/90% 的 23.6 mm³/s 被当成 23.6 cm³/s，得 19.5 g/s≈70.2 kg/h；实际 0.0195 g/s≈0.070 kg/h。
-- 影响：产能、日/月产量全部虚增 1000 倍，设备选型与订单排产会被严重误导；深度解析算例同错，用户按示例复算也无法发现。
-- 方案：统一到 cm³ 或统一 SI，并在每个中间量标注单位；`volumePerRev = flowArea * p / 1000`；同步重写深度解析算例并用 node 实跑取数；补单位回归用例（65 mm 机组应约 132 kg/h）。
-
 ### 12-I5 航速单位换算：节↔km/h 系数取反（高，确认）
 - 描述：下拉值把"节"设为 1、"km/h"设为 1.852，公式 `r=v*f/t` 直接按"从/到"相除。正确应为 1 kn = 1.852 km/h，页面却给 1 kn = 0.54 km/h；反向 1 km/h = 1.852 kn。
 - 证据：`tools/shipping/convert-speed-1.html:129-130,207`。node 复算：v=1、from=kn(1)、to=km/h(1.852) → r=1×1/1.852=0.5399568，页面显示"1 节 (kn) = 0.539956803456 千米/时 (km/h)"；v=1、from=1.852、to=1 → 1.852。同页深度解析 `:161` 却写着"1 节=1.852 km/h"，计算器与自身说明直接冲突。
@@ -352,14 +345,6 @@
 ## 2026-11-04 续查（并行批 M）
 
 > 范围：本轮阅读 8 页（chinese、fengshui、printing、hotel、sales、procurement、stats、quality 各 1 页）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
-
-### 12-M3 printing/convert-gsm：紧度填 0 被静默替换为 0.0001，输出 800 mm 厚度（历史问题，当前源码已改，待运行回归）
-- 2026-11-06 静态复核：当前 `tools/printing/convert-gsm.html:203-218` 已验证 GSM、紧度和选填厚度，拒绝紧度 0；以下是旧版证据。
-- 描述：`rho<=0` 时直接把紧度替换成 `0.0001`，不报错；`gsm`/`thick` 也只用 `||0` 解析，空值不校验。紧度 0 会让厚度放大约 8000 倍，页面仍按正常结果展示。
-- 证据：`tools/printing/convert-gsm.html:202`（单行 `calc()`，`if(rho<=0){rho=0.0001;}`、`t=gsm/(1000*rho)`）
-- 复现：GSM 80、紧度 ρ 0、厚度 t 0.1 → 页面「厚度 800.0000 mm」「厚度→GSM 0.01 g/m²」「松厚度 10000.000 cm³/g」「A4 质量 5.000 g」（期望提示紧度必须为 0.3–2.0 的正数并拒绝计算）；GSM 清空、ρ 0.8、t 0.1 → 显示「厚度 0.0000 mm」却同时显示「厚度→GSM 80.00 g/m²」，同一结果自相矛盾。
-- 影响：印刷/包装选材会把 80 gsm 纸读成 800 mm 厚，或把空定量当成 0，报价、克重与厚度比价完全失真。
-- 方案：`gsm>0`、`rho` 限定 0.3–2.0、`thick>0` 逐项校验并显示字段错误；禁止静默 clamp；空值不参与对应方向换算，结果卡分别标注输入来源。
 
 - 本轮实读 8 页：`tools/chinese/lunar-calendar.html`、`tools/fengshui/good-day-selector.html`、`tools/printing/convert-gsm.html`、`tools/hotel/occupancy-revpar.html`、`tools/sales/commission-calculator.html`、`tools/procurement/eoq.html`、`tools/stats/regression-analysis.html`、`tools/quality/calc-cpk.html`；新增 8 条（高 2 / 中 6 / 低 0）；未覆盖：上述 8 个目录的其余页面（chinese、fengshui、printing、hotel、sales、procurement、stats、quality），以及 audit、pet-training 等已有条目页面未重复；M1、M2 为源码 + node 复算确认，M3–M8 均为源码 + 算术复算确认。
 
@@ -1603,15 +1588,6 @@
 - 影响：`tools/obstetrics/fetal-weight-hadlock.html` 床旁估重默认参数即给出极端低体重并触发错误分类，临床可能据此启动不必要的干预。
 - 方案：统一采用有文献出处的宫高×腹围公式（系数与单位写进公式框），或只保留 Johnson 法为主结果；两法并列时明确「以 Johnson/超声为准」，且低于 1500 g 的结果先校验输入量纲（cm vs mm）。
 
-### 12-N159 travel/road-trip-gas-cost：选「纯电动车」仍套油耗×油价，500 km 电费算成 562.5 元（历史结论；2026-11-06 源码已变化，待运行回归）
-
-- 2026-11-06 静态复核：当前 `applyPreset()` 为纯电设置 1.2 元/kWh 并同步主界面单位，原默认 7.5 油价路径不再成立；对比标签、历史单位及输入注入等余项见生活旅行分类，未运行回归。
-- 问题：车型预设 `ev: { consumption: 15.0 }` 把电耗（kWh/100km）直接写入「百公里油耗 (L/100km)」，`calc()` 又统一按「油价 元/L」乘，页面无电价/电耗单位切换。结果卡仍叫「所需油量/油费」。
-- 证据：`tools/travel/road-trip-gas-cost.html:173-174`（油耗 L/100km、油价 元/L）、`:187`（选项「纯电动车 (电耗)」）、`:375`（`ev` 预设 `consumption:15.0`）、`:390-392`（`fuel=d*c/100; fuelCost=fuel*p`）
-- 复现（node 复算）：距离 500 km、选纯电动车、油价 7.5 → 75「L」×7.5 = ¥562.50，通行费 200，总费用 ¥762.50；实际 15 kWh/100km×5=75 kWh，按 0.6 元/kWh 为 ¥45，总费用约 ¥245。能源费高 12.5 倍。
-- 影响：`tools/travel/road-trip-gas-cost.html` 电动车行程成本被系统性高估，油车/电车对比与人均分摊全部失真。
-- 方案：车型为 `ev` 时切换单位为 kWh/100km 与电价（元/kWh），结果卡改「耗电量/电费」；或在预设中同时给出能耗单价字段，禁止用汽油单价乘电耗。
-
 ### 12-N160 sales/stacked-discount：折扣输入标注「8 = 8折」但代码按百分数 ÷100，按提示填 8 变成 0.8 折（高，确认缺陷）
 - 问题：折扣输入 label 写「折扣（如 8 = 8折）」，同一元素的 placeholder 写「如 80（0–100）」；`calc()` 实际执行 `cur×(value/100)`，即 value=80 才是 8 折。按 label 填 8 会打 0.8 折，明细步骤还显示「第1层8折」。
 - 证据：`tools/sales/stacked-discount.html:263`（label「如 8 = 8折」与 placeholder「如 80（0–100）」并存）、`:300-301`（`cur*(d.value/100)`）、`:307`（`d.value+'折'` 拼步骤名）
@@ -1625,14 +1601,6 @@
 - 复现（node 复算）：默认 599 元、8 折、满 300 减 50 → 最终 429.20、省 169.80、`effRate=28.3`，页面「相当于 28.3 折」；正确折数 = 429.20/599×10 = 7.17 折，应显示「约 7.2 折（省 28.3%）」。
 - 影响：`tools/sales/stacked-discount.html` 对外宣传口径把 7 折写成 28 折，促销文案与成本测算自相矛盾。
 - 方案：折数用 `cur/price*10`，百分比用 `totalSave/price*100`，两者同屏分别标注；`price<=0` 时清空标签而不只改数值。
-
-### 12-N162 printing/sheet-calc：非整除页数按小数印张直接算用纸，161 页少备 16% 纸张（历史问题，当前源码已改，待运行回归）
-- 2026-11-06 静态复核：当前 `tools/printing/sheet-calc.html:282-287` 用 `Math.ceil(rawSheets)` 计算整张用纸；以下是旧版证据。
-- 问题：`sheetsPerBook = pages/(format×sideFactor)` 不做进一，`totalSheets`、`reams` 均按小数累计；深度解析已自述「不整除时按进一或留尾处理」，代码未实现。161 页 16 开双面得 5.0313 印张/册、10565.6 张全张、21.13 令，实际每册必须用满 6 张全张。
-- 证据：`tools/printing/sheet-calc.html:218`（深度解析承诺进一/留尾）、`:271-288`（`pages/(format*2)`、`totalSheets`、`reams` 全为浮点）
-- 复现（node 复算）：页数 161、16 开、2000 册、加放 5%、双面 → 页面 5.0313 印张、10565.63 张、21.13 令；按每册 `Math.ceil(161/32)=6` 印张计为 12600 张、25.2 令，差 16.2%。页数 199 时页面 6.2188 印张、26.12 令，实际 7 印张、29.4 令。
-- 影响：`tools/printing/sheet-calc.html` 备纸/报价按小数印张下单会缺纸，补印成本被低估。
-- 方案：提供「按整印张进一」开关（默认开）：`sheetsPerBook=Math.ceil(pages/(format*sideFactor))`；关闭时明确标注「按小数印张估算，下单需向上取整」，并在结果卡同时给出向上取整后的张数与令数。
 
 ### 12-N163 welding/weld-strength：焊缝计算长度未按自身说明扣除 2h_f，应力低估约 6%，且 0.7 与引据 0.707 不一致（中，确认缺陷）
 - 问题：使用说明写「l_w 应扣除起灭弧缺陷（通常减 2h_f）」，`calc()` 直接用输入的 l_w 算有效截面，未做扣减；公式框用 0.7，深度解析与 FAQ 用 0.707，同一页面两个系数。

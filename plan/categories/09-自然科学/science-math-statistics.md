@@ -17,7 +17,7 @@
 ## 2026-11-06 科学工具静态续审（清单 606–613）
 
 - `tools/science/physics-constants.html:236-260,276-281,328-340`：旧 SMS-128～130 的分类、指数和 R/Nₐ 数据问题仍在；搜索、分类、复制及筛选导出路径存在。旧 SMS-129 将 c/F/R∞ 归入「≥10^10」的表述不正确：其正确指数 8/4/7 都应归入 `10^1~10^9`，atm 指数 5 同属此桶。
-- `tools/science/quadratic-equation.html:302-305,376-407,517`：旧 SMS-136 的绝对阈值与小数归零代码已改为相对阈值及科学计数，旧例不再支持该结论，待运行回归；SMS-137 的负 a 共轭根符号问题仍在，结果趋势仍解析以 `Δ` 开头的文本。
+- `tools/science/quadratic-equation.html:366-367,293`：旧 SMS-136 已改为相对阈值 `epsD=1e-12×max(b²,|4ac|,1e-300)` + 小数 `toExponential(6)`，第 962 批真机确认（`scripts/_verify_printing_travel_regress_962.mjs`）：x²−5x+6 两根 2/3、判「两不等实根」。SMS-137 的负 a 共轭根符号问题仍在，结果趋势仍解析以 `Δ` 开头的文本。
 - `tools/science/science-flow-rate.html:569-608,669-718`：旧 SMS-143～145 的历史不恢复输入、内径单位写死和无效值保留旧结果路径仍在。
 - `tools/science/science-pressure-converter.html:447-464,495-508`：清空输入后直接返回，旧结果仍可复制与保存，既有记录仍适用。
 - `tools/science/voltage-divider-calculator.html:386-390`：旧 SMS-36～37 已修并经第 961 批真机确认（`scripts/_verify_voltage_divider_961.mjs` 5/5）：目标电压 ≥Vin、=0、留空均清空结果（resVout=—），正常输入 Vout=6 V。残余：正向求 Vout 仍以 `||0` 处理 Vin/R1/R2（`:379-381`），清空 Vin 得 0 V 数值而非「—」，待改为必填校验。
