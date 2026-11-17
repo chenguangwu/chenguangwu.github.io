@@ -199,6 +199,12 @@ const CASES = [
   "clicks": ["var b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ');var ok=b.indexOf('300 + 0 = 300 mL')>=0&&b.indexOf('残余尿：残余尿低于 50 mL，正常')>=0;document.getElementById('__tbProbe').textContent='PVRZERO '+(ok?'OK':'BAD');"],
   "expect": ["PVRZERO OK"],
   "ref": "12-N108 残余尿0：旧版 pvr>0 分支跳过残余尿提示；新版 0 仍显示正常参考。默认 pvr=30 也会显示同类提示，故用注入输入 300+0 与残余尿提示组合成哨兵，只由 clicks 产出，零逃生。"
+},
+{
+  "slug": "urology/stone-size-assessment",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/stone-size-assessment.html','utf8');var ok=h.indexOf('肾结石 8mm（孤立肾）')>=0&&h.indexOf('肾结石 8mm 伴积水')<0&&h.indexOf('hasOwnProperty.call(rec,__cbs[__ci].id)')>=0;document.getElementById('__tbProbe').textContent='STONEPRESET '+(ok?'OK':'BAD');"],
+  "expect": ["STONEPRESET OK"],
+  "ref": "12-N87/N91：预设标签与 renal=孤立肾/肾功能不全 语义一致，不再谎称伴积水；历史恢复清空未记录勾选的逻辑保留。旧版标签为伴积水 ⇒ 变红。默认态不产生该串，零逃生。"
 }
 ];
 async function main() {
