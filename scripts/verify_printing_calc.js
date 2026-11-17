@@ -146,6 +146,14 @@ const CASES = [
   "inputs": { "sCov": "60" },
   "expect": ["207.90"],
   "ref": "单字段注入（2026-11-05 补 oninput）：仅改覆盖率 60%、其余默认 ⇒ 千张墨量 207.90 g（默认为 138.60 g）⇒ 强判别。实时输入 250ms 防抖且不写历史，避免逐键刷屏。"
+},
+{
+  "slug": "printing/estimate-ink",
+  "clicks": [
+    "function g(id,v,fn){document.getElementById(id).value=v;fn();return String(document.getElementById(id==='sCopies'?'sRes':'cRes').innerHTML);}var a=g('sCopies','1.5',calcSingle),b=g('cCopies','2.7',calcCmyk),c=g('sCopies','0',calcSingle);var ok=[a,b,c].every(function(x){return x.indexOf('印数需为正整数')>=0;});document.getElementById('__tbProbe').textContent='INK134 '+(ok?'OK':'BAD a='+a.slice(0,30)+' b='+b.slice(0,30)+' c='+c.slice(0,30));"
+  ],
+  "expect": ["INK134 OK"],
+  "ref": "第1069批 N134：印数填小数（单色 1.5、CMYK 2.7）与 0 均应被拒「印数需为正整数」。旧实现用 parseInt 把 1.5→1、2.7→2 静默截断后照常出结果，0 靠 <1 拦截；新实现 readCopies 用 Number+Number.isInteger，三者均拦截。哨兵要求三场景全命中，默认 sCopies=5000/cCopies=10000 均为合法整数不触发 ⇒ 依赖 clicks 注入，强判别零逃生。"
 }
 ];
 async function main() {

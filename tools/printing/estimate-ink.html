@@ -232,12 +232,19 @@ function __inkLive(mode){
   clearTimeout(__inkLiveTimer);
   __inkLiveTimer=setTimeout(function(){ if(mode==='cmyk') calcCmyk(true); else calcSingle(true); }, 250);
 }
+// 印数校验：必须为整数且 ≥1，禁止 parseInt 把 1.5 静默截断成 1（与公式框「正整数」口径冲突）。
+function readCopies(id){
+  var raw=document.getElementById(id).value.trim();
+  var n=Number(raw);
+  return {copies:n,ok:raw!==''&&Number.isInteger(n)&&n>=1};
+}
+
 function calcSingle(live){
   var area=parseFloat(document.getElementById('sArea').value);
   var cov=parseFloat(document.getElementById('sCov').value);
   var thk=parseFloat(document.getElementById('sThk').value);
   var den=parseFloat(document.getElementById('sDen').value);
-  var copies=parseInt(document.getElementById('sCopies').value,10);
+  var cr=readCopies('sCopies'),copies=cr.copies;
   var price=parseFloat(document.getElementById('sPrice').value);
   var waste=document.getElementById('sWaste').checked?5:0;
 
@@ -245,13 +252,13 @@ function calcSingle(live){
   setInvalid(document.getElementById('sCov'),isNaN(cov)||cov<0||cov>100);
   setInvalid(document.getElementById('sThk'),isNaN(thk)||thk<=0);
   setInvalid(document.getElementById('sDen'),isNaN(den)||den<=0);
-  setInvalid(document.getElementById('sCopies'),isNaN(copies)||copies<1);
+  setInvalid(document.getElementById('sCopies'),!cr.ok);
 
   if(isNaN(area)||area<0){const __h0='<p style="color:var(--danger);">印刷面积无效</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('sRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('sRes').innerHTML=__h0;return;}
   if(isNaN(cov)||cov<0||cov>100){const __h1='<p style="color:var(--danger);">覆盖率需在 0–100% 之间</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('sRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('sRes').innerHTML=__h1;return;}
   if(isNaN(thk)||thk<=0){const __h2='<p style="color:var(--danger);">墨膜厚度需大于 0</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('sRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('sRes').innerHTML=__h2;return;}
   if(isNaN(den)||den<=0){const __h3='<p style="color:var(--danger);">油墨密度需大于 0</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('sRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('sRes').innerHTML=__h3;return;}
-  if(isNaN(copies)||copies<1){const __h4='<p style="color:var(--danger);">印数需为正整数</p>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('sRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('sRes').innerHTML=__h4;return;}
+  if(!cr.ok){const __h4='<p style="color:var(--danger);">印数需为正整数</p>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('sRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('sRes').innerHTML=__h4;return;}
 
   var covD=cov/100;
   var perCopy=inkWeightPerCopy(area,covD,thk,den);
@@ -296,7 +303,7 @@ function calcCmyk(live){
   var area=parseFloat(document.getElementById('cArea').value);
   var thk=parseFloat(document.getElementById('cThk').value);
   var den=parseFloat(document.getElementById('cDen').value);
-  var copies=parseInt(document.getElementById('cCopies').value,10);
+  var cr=readCopies('cCopies'),copies=cr.copies;
   var price=parseFloat(document.getElementById('cPrice').value);
   var waste=parseFloat(document.getElementById('cWaste').value)||0;
   var covC=parseFloat(document.getElementById('cC').value);
@@ -307,7 +314,8 @@ function calcCmyk(live){
   if(isNaN(area)||area<0){const __h6='<p style="color:var(--danger);">印刷面积无效</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('cRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('cRes').innerHTML=__h6;return;}
   if(isNaN(thk)||thk<=0){const __h7='<p style="color:var(--danger);">墨膜厚度需大于 0</p>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){document.getElementById('cRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('cRes').innerHTML=__h7;return;}
   if(isNaN(den)||den<=0){const __h8='<p style="color:var(--danger);">油墨密度需大于 0</p>';if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){document.getElementById('cRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('cRes').innerHTML=__h8;return;}
-  if(isNaN(copies)||copies<1){const __h9='<p style="color:var(--danger);">印数需为正整数</p>';if((typeof __h9==='number'&&!isFinite(__h9))||/Infinity/.test(String(__h9))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h9)){document.getElementById('cRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('cRes').innerHTML=__h9;return;}
+  setInvalid(document.getElementById('cCopies'),!cr.ok);
+  if(!cr.ok){const __h9='<p style="color:var(--danger);">印数需为正整数</p>';if((typeof __h9==='number'&&!isFinite(__h9))||/Infinity/.test(String(__h9))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h9)){document.getElementById('cRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('cRes').innerHTML=__h9;return;}
 
   var covList=[['cC',covC],['cM',covM],['cY',covY],['cK',covK]];
   var covBad=false;

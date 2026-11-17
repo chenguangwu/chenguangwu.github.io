@@ -72,9 +72,9 @@ const setVal = async (page, id, v) => page.$eval('#' + id, (el, val) => {
     await setVal(page, 'cWaste', '5');
     await setVal(page, 'cCopies', '1.5');
     const fracCopies = await page.evaluate(() => { calcCmyk(); return document.getElementById('cRes').textContent; });
-    // 12-N134 残余：印数仅 parseFloat + <1 校验，1.5 仍被接受（与公式框「正整数」口径冲突）。
-    // 此项不销账，作为待办保留；此处断言「确实未拦截」以证明残余判断有据。
-    ok('残余确认：小数印数 1.5 仍被接受（正整数校验缺失，待办保留）', !/印数需为正整数/.test(fracCopies), String(fracCopies).slice(0, 60));
+    // 12-N134（第1069批修复）：readCopies 用 Number+Number.isInteger 校验，禁止 parseInt 把 1.5 截断成 1。
+    // 断言翻转为「小数印数被拦截」，与公式框「印数为正整数」口径一致。
+    ok('小数印数 1.5 被拦截（正整数校验已补，N134 已修）', /印数需为正整数/.test(fracCopies), String(fracCopies).slice(0, 60));
 
     // ③ 取消含损耗勾选：损耗标签不写死 (5%)
     await page.evaluate(() => { const el = document.getElementById('sWaste'); el.checked = false; el.dispatchEvent(new Event('change', { bubbles: true })); calcSingle(); });
