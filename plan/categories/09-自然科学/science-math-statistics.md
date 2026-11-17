@@ -251,7 +251,6 @@
 - `tools/science/nato-phonetic.html`：2 条（SMS-112～113 中）。NATO 表 Alfa/Juliett 与数字读法（Three/Tree、Nine/Niner）正确；问题为 ANSI 老表 Y/Z 错词、历史回填强制切到 ANSI。
 - `tools/science/newtons-second.html`：1 条（SMS-118 中）。F=ma、kN、a×3.6（km/h/s）、kgf 换算正确（10 kg/3 m/s² → 30.0 N、0.030000 kN、10.8000、3.0591）；问题为主结果 `toFixed(1)` 丢失小数。
 - `tools/science/nth-root-calculator.html`：3 条（SMS-114～116 中）。∛27=3、⁴√16=2、x>0 全部复数根（27 的立方根 −1.5±2.598i）正确；问题在负指数奇次根、0 的负次根、极小被开方数回显。
-- `tools/science/ohms-law-calculator.html`：2 条（SMS-122～123 中）。12 V/220 Ω → I 54.55 mA、P 654.55 mW、G 4.55 mS、Q 54.55 mC 正确；问题为 I=0 开路被拒算、能耗单位拼成 mWh/h 及负值单位档错。
 
 | 页面 | 问题（tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
@@ -268,8 +267,6 @@
 | tools/science/meteor-crater-estimator.html | 「地表密度」在目标地表=水面/海洋、冰川/冰盖时被 `calc()` 每次无条件回写 1000/917（输入框又绑 `oninput="calc()"`）：用户改成 1030 立即被覆盖，输入形同只读，死输入。:382-387、:168 | SMS-119 |
 | tools/science/meteor-crater-estimator.html | `formatMass` 单位标签错 1000 倍：m≥1e6 kg 标「(吨)」（该档实为千吨，50 m/3000 kg·m⁻³ 的 1.9635e8 kg 显示「196.35 x 10⁶ kg (吨)」，真值 196 350 t）；m≥1e9 kg 标「(千吨)」（实为百万吨）。:567-568 | SMS-120 |
 | tools/science/meteor-crater-estimator.html | 「通古斯事件」按钮与自带预设冲突：按钮用石质 3000 kg·m⁻³ / 27 km·s⁻¹ / 沉积岩，预设「通古斯 60m 彗星」用 1500 kg·m⁻³ / 15 km·s⁻¹ / 冰盖，同一事件两套参数（撞击能量相差约 6.5 倍）。:587-593 对 :851 | SMS-121 |
-| tools/science/ohms-law-calculator.html | 有效性判断把 `calcI===0` 当无效：求解电压时 I=0 A、R=220 Ω（开路）本应得 V=0 V、P=0 W，却直接显示「请输入两个有效的已知量」；I=0 或 V=0 的合法电路全部拒算。:509-523 | SMS-122 |
-| tools/science/ohms-law-calculator.html | 单位显示两处错：`fmtEnergy(E)+'/h'` 把每小时能耗拼成「mWh/h」（能量/时间=功率量纲，12 V/220 Ω → 654.55 mWh/h）；且 fmtVolt/fmtCurrent/fmtResistance/fmtPower 只判 `>=` 正阈值，负值全落最小单位档（V=-5 →「-5000000.00 μV」）。:531、:454-484、:544 | SMS-123 |
 
 - 声明：本轮仅逐页通读 8 页源码（HTML + 内联 JS）并用 node 在 `/tmp` 复刻主算与边界（矩阵求逆/奇异阈值、连乘几何平均溢出、千分位解析、负整数指数开方、负指数零次根、小数取整、CMM 坑径标度律、欧姆定律增益/单位档），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。`nato-phonetic` 的 `else html += c` 曾按注入排查：字母字符都会被 `ALPHA[c]` 替换成 `<span>`，未转义的只剩标点/非 ASCII，无法拼出可执行标签，故不计安全条。
 - 统计：8 页 / 17 条（高 3 / 中 14，其中承诺未实现 0 条（SMS-109 已于 632 批修复））/ 安全 0 条（无 eval、无 allow-same-origin、无明文存密、无第三方外传）/ 假工具 0 个 / 编号区间 SMS-107～SMS-123。

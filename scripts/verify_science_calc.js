@@ -48,6 +48,20 @@ const CASES = [
     expect: ["2.00 C"],
     ref: "欧姆定律 I = V/R；10 ÷ 5 = 2 A → 电荷量 Q=I=2 → 2.00 C（resQ，toFixed(2)）",
   },
+  {
+    slug: "science/ohms-law-calculator",
+    inputs: {},
+    clicks: ["setCalcVar('v');document.getElementById('i').value='0';document.getElementById('r').value='220';calc();var d=document.getElementById('resultDetail').innerHTML;var p=document.getElementById('resP').textContent;document.getElementById('i').value='OPENPROBE_'+(d.indexOf('请输入两个')<0&&p!=='--'?'Y':'N')+'_'+p;"],
+    expect: ["OPENPROBE_Y_0.00 μW"],
+    ref: "SMS-122 清账：求解电压时 I=0 A、R=220 Ω（开路）本应得 V=0、P=0。旧版把 calcI===0 当无效，显示「请输入两个有效的已知量」且 P=--。现从有效性判断删去 calcI===0（求解电阻分支已独立守 I≠0）。探针断言明细不再报无效且 P=0.00 μW；旧版 ⇒ OPENPROBE_N，零逃生。"
+  },
+  {
+    slug: "science/ohms-law-calculator",
+    inputs: {},
+    clicks: ["var fv=fmtVolt(-5),fc=fmtCurrent(-0.0002);document.getElementById('i').value='NEGPROBE_'+(fv==='-5.00 V'&&fc==='-200.00 μA'?'Y':'N')+'_'+fv;"],
+    expect: ["NEGPROBE_Y"],
+    ref: "SMS-123 清账（负值档）：五个 fmt* 函数原用裸 v>=阈值 判档，负值全落最小单位档（-5 V→-5000000.00 μV、-0.0002 A→-200000.00 nA）。现改用 Math.abs(v) 选档并保留原值符号。探针断言 fmtVolt(-5)=-5.00 V 且 fmtCurrent(-0.0002)=-200.00 μA；旧版 ⇒ NEGPROBE_N，零逃生。能耗单位 Wh/h→Wh 的修正由已有自动补强用例锚住。"
+  },
 
   // ── 化学（摩尔质量 / pH）────────────────────────────────────
   {
@@ -1642,9 +1656,9 @@ const CASES = [
       "r": "42"
     },
     "expect": [
-      "42\n1\n42\nI\n安培\n42.00 W\n42.000 Wh/h\n23.81 mS\n1.00 C\n电压 V： 4"
+      "42\n1\n42\nI\n安培\n42.00 W\n42.000 Wh\n23.81 mS\n1.00 C\n电压 V： 4"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"v\":\"42\",\"i\":\"42\",\"r\":\"42\"}，输出区含「42\n1\n42\nI\n安培\n42.00 W\n42.000 Wh/h\n23.81 m…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"v\":\"42\",\"i\":\"42\",\"r\":\"42\"}，输出区含「42\n1\n42\nI\n安培\n42.00 W\n42.000 Wh\n23.81 m…」；第 1008 批 SMS-123 同步修正旧错误单位「Wh/h」→「Wh」（标签为 1 小时能耗=E=P×1h）。默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "science/p-value-calculator",

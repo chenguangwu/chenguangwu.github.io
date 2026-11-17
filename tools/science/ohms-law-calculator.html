@@ -440,42 +440,48 @@ function setCalcVar(v){
   calc();
 }
 
+// 量级判档一律用绝对值（保留原值符号），避免负值全落最小单位档（如 -5 V 显示成 -5000000 μV）。
 function fmtVolt(v){
-  if(v>=1e6)return (v/1e6).toFixed(2)+' MV';
-  if(v>=1000)return (v/1000).toFixed(2)+' kV';
-  if(v>=1)return v.toFixed(2)+' V';
-  if(v>=0.001)return (v*1000).toFixed(2)+' mV';
+  const a=Math.abs(v);
+  if(a>=1e6)return (v/1e6).toFixed(2)+' MV';
+  if(a>=1000)return (v/1000).toFixed(2)+' kV';
+  if(a>=1)return v.toFixed(2)+' V';
+  if(a>=0.001)return (v*1000).toFixed(2)+' mV';
   return (v*1e6).toFixed(2)+' μV';
 }
 
 function fmtCurrent(v){
-  if(v>=1000)return (v/1000).toFixed(2)+' kA';
-  if(v>=1)return v.toFixed(3)+' A';
-  if(v>=0.001)return (v*1000).toFixed(2)+' mA';
-  if(v>=0.000001)return (v*1e6).toFixed(2)+' μA';
+  const a=Math.abs(v);
+  if(a>=1000)return (v/1000).toFixed(2)+' kA';
+  if(a>=1)return v.toFixed(3)+' A';
+  if(a>=0.001)return (v*1000).toFixed(2)+' mA';
+  if(a>=0.000001)return (v*1e6).toFixed(2)+' μA';
   return (v*1e9).toFixed(2)+' nA';
 }
 
 function fmtResistance(v){
-  if(v>=1e6)return (v/1e6).toFixed(2)+' MΩ';
-  if(v>=1000)return (v/1000).toFixed(2)+' kΩ';
-  if(v>=1)return v.toFixed(2)+' Ω';
-  if(v>=0.001)return (v*1000).toFixed(2)+' mΩ';
+  const a=Math.abs(v);
+  if(a>=1e6)return (v/1e6).toFixed(2)+' MΩ';
+  if(a>=1000)return (v/1000).toFixed(2)+' kΩ';
+  if(a>=1)return v.toFixed(2)+' Ω';
+  if(a>=0.001)return (v*1000).toFixed(2)+' mΩ';
   return (v*1e6).toFixed(2)+' μΩ';
 }
 
 function fmtPower(v){
-  if(v>=1e6)return (v/1e6).toFixed(2)+' MW';
-  if(v>=1000)return (v/1000).toFixed(2)+' kW';
-  if(v>=1)return v.toFixed(2)+' W';
-  if(v>=0.001)return (v*1000).toFixed(2)+' mW';
+  const a=Math.abs(v);
+  if(a>=1e6)return (v/1e6).toFixed(2)+' MW';
+  if(a>=1000)return (v/1000).toFixed(2)+' kW';
+  if(a>=1)return v.toFixed(2)+' W';
+  if(a>=0.001)return (v*1000).toFixed(2)+' mW';
   return (v*1e6).toFixed(2)+' μW';
 }
 
 function fmtEnergy(v){
-  if(v>=1000)return (v/1000).toFixed(2)+' kWh';
-  if(v>=1)return v.toFixed(3)+' Wh';
-  if(v>=0.001)return (v*1000).toFixed(2)+' mWh';
+  const a=Math.abs(v);
+  if(a>=1000)return (v/1000).toFixed(2)+' kWh';
+  if(a>=1)return v.toFixed(3)+' Wh';
+  if(a>=0.001)return (v*1000).toFixed(2)+' mWh';
   return (v*1e6).toFixed(2)+' μWh';
 }
 
@@ -501,7 +507,9 @@ function calc(){
     valid=true;
   }
   
-  if(!valid||isNaN(calcV)||isNaN(calcI)||isNaN(calcR)||calcR<=0||calcI===0){
+  // I=0（开路）是合法电路状态：求解电压时 V=0、P=0，不能再当作「无效输入」拒算。
+  // 只有求解电阻时才要求 I≠0（上方 calcVar==='r' 分支已独立守卫）。
+  if(!valid||isNaN(calcV)||isNaN(calcI)||isNaN(calcR)||calcR<=0){
     document.getElementById('resP').textContent='--';
     document.getElementById('resE').textContent='--';
     document.getElementById('resG').textContent='--';
@@ -517,7 +525,8 @@ function calc(){
   const Q=calcI;
   
   const __g8=fmtPower(P);document.getElementById('resP').textContent=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
-  const __g9=fmtEnergy(E)+'/h';document.getElementById('resE').textContent=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
+  // 标签为「1小时能耗」：E=P(W)×1h=P(Wh)，直接以能量单位显示，不再拼 '/h'（量纲错误）。
+  const __g9=fmtEnergy(E);document.getElementById('resE').textContent=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
   const __g10=G>=1?G.toFixed(3)+' S':(G*1000).toFixed(2)+' mS';document.getElementById('resG').textContent=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));
   const __g11=Q>=1?Q.toFixed(2)+' C':(Q*1000).toFixed(2)+' mC';document.getElementById('resQ').textContent=(typeof __g11==='number'?(isFinite(__g11)?__g11:'—'):String(__g11).replace(/Infinity|NaN/g,'—'));
   
