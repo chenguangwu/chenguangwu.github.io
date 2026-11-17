@@ -15,6 +15,14 @@ globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  // ── 第1171批：数学测验减数恒小于被减数、干扰项非负（J100/J101/J103 源码复核销账）──
+  {
+    slug: "edu/math-quiz",
+    inputs: { qDifficulty: "easy", qCount: "20" },
+    clicks: ["var oR=Math.random;try{var seq=[0.3,0.5,0.99,0.1,0.1,0.1,0.1,0.1];var i=0;Math.random=function(){return seq[i++%seq.length];};var bad=false;for(var k=0;k<12;k++){gen();if(ans<=0)bad=true;}var opts=gen();var ok=!bad&&opts.every(function(o){return o>=0;});document.getElementById('__tbProbe').textContent='JNEG:'+(ok?'OK':'BAD');}catch(e){document.getElementById('__tbProbe').textContent='JNEG:BAD';}finally{Math.random=oR;}"],
+    expect: ["JNEG:OK"],
+    ref: "EL-J102：减数须恒小于被减数且干扰项裁剪为非负；固定随机序列使旧版生成 a=11,b=11,ans=0 并产出负选项 ⇒ BAD。",
+  },
   // ── 第1170批：考试计时时间戳基准、分段提醒与初始状态 ──
   {
     slug: "edu/exam-timer",
