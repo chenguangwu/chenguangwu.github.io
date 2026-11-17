@@ -15,6 +15,28 @@ globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  // ── 第1174批：时长分配首屏行数、整数分钟与重复框清理 ──
+  {
+    slug: "edu/calc-3",
+    inputs: { totalTime: "180" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/calc-3.html','utf8');var ok=h.indexOf('box.children.length===0')>=0&&h.indexOf('try{addSubject();}catch(e){} try{addSubject();}catch(e){}')<0;document.getElementById('__tbProbe').textContent='JROWS:'+(ok?'OK':'BAD');"],
+    expect: ["JROWS:OK"],
+    ref: "EL-J113：Boot 不得无条件追加 3 个空科目，须在无科目行时才补默认 4 科；旧版首屏 7 行稀释权重 ⇒ BAD。",
+  },
+  {
+    slug: "edu/calc-3",
+    inputs: { totalTime: "119.5" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/calc-3.html','utf8');var ok=h.indexOf('item.remainder')>=0&&h.indexOf('Math.round(item.minutes % 60)')<0&&h.indexOf('Math.round(totalTime)')>=0;document.getElementById('__tbProbe').textContent='JROUND:'+(ok?'OK':'BAD');"],
+    expect: ["JROUND:OK"],
+    ref: "EL-J114：119.5 分钟按整数分配后为 120 分钟，显示 2 小时 0 分钟而非 1 小时 60 分钟；旧版 floor+round 产出 1h60m ⇒ BAD。",
+  },
+  {
+    slug: "edu/calc-3",
+    inputs: { totalTime: "300" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/calc-3.html','utf8');var n=(h.split('<div class=\"formula-title\">📐 计算方式</div>').length-1);var ok=n===1&&h.indexOf('每日或每周学习时长')<0&&h.indexOf('calc_3Hist')>=0;document.getElementById('__tbProbe').textContent='JDOC:'+(ok?'OK':'BAD');"],
+    expect: ["JDOC:OK"],
+    ref: "EL-J115：只保留一个计算方式框，删除未实现的每日/每周承诺，重置须清理历史/表/图容器；旧版两框且虚标 ⇒ BAD。",
+  },
   // ── 第1172批：打字游戏增量计数、历史落地与承诺对齐（均为源码复核销账）──
   {
     slug: "edu/typing-game",
