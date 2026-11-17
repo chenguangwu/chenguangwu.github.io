@@ -167,7 +167,7 @@ A 与 C 时间重叠且同教室101 → 教室冲突 1 起、教师不同无教�
 合计：课程3门、教师冲突1、教室冲突1。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>冲突判定依据是什么？</dt><dd>两门课若「星期相同」且节次区间交叉（a.start&lt;b.end 且 b.start&lt;a.end）即判定时间重叠；重叠基础上再比教师/教室是否相同，分别记教师冲突与教室冲突。工具只做时间+资源冲突检测，不涉及课程合理性。</dd>
+<dt>冲突判定依据是什么？</dt><dd>两门课若「星期相同」且节次区间交叉（a.start≤b.end 且 b.start≤a.end，节次为离散整节、共享同一节即算重叠）即判定时间重叠；重叠基础上再比教师/教室是否相同，分别记教师冲突与教室冲突。工具只做时间+资源冲突检测，不涉及课程合理性。</dd>
 <dt>能检测跨周或单双周冲突吗？</dt><dd>当前按固定星期+节次比对，未区分单双周/隔周课；若课程含单双周安排，需把冲突周次分别列出后再比对，或先在输入中标注周次以免漏检。工具结果仅作排课初检参考。</dd>
 </dl>
 </div>
@@ -187,7 +187,7 @@ A 与 C 时间重叠且同教室101 → 教室冲突 1 起、教师不同无教�
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="区间">Interval</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="[start,end)">[start,end)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="[start,end]">[start,end]</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">scheduling</td>
         </tr>
         <tr>
@@ -223,29 +223,40 @@ function clearAll(){
   ToolBox.showToast(i18nText(),'info');
 }
 
+function parsePeriodStrict(v){
+  var s=String(v==null?'':v).trim();
+  if(!/^\d+$/.test(s)) return NaN;
+  var n=Number(s);
+  return Number.isInteger(n)?n:NaN;
+}
 function parseCourses(text){
   var lines = text.split('\n');
   var list = [];
+  var rejected = [];
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  function rej(lineNo, zh, enText){ rejected.push((en?'Line '+lineNo+': ':'第'+lineNo+'行')+(en?enText:zh)); }
   for(var i=0;i<lines.length;i++){
     var line = lines[i].trim();
     if(!line) continue;
     var p = line.split(/[,，\t]/);
-    if(p.length < 6) continue;
+    var lineNo=i+1;
+    if(p.length < 6){ rej(lineNo,'字段不足6列','fewer than 6 columns'); continue; }
     var c = {
       name: p[0].trim(),
       teacher: p[1].trim(),
       room: p[2].trim(),
-      day: parseInt(p[3]),
-      start: parseInt(p[4]),
-      end: parseInt(p[5])
+      day: parsePeriodStrict(p[3]),
+      start: parsePeriodStrict(p[4]),
+      end: parsePeriodStrict(p[5])
     };
-    if(!c.name||!c.teacher||!c.room) continue;
-    if(isNaN(c.day)||isNaN(c.start)||isNaN(c.end)) continue;
-    if(c.day<1||c.day>7||c.start<1||c.end<c.start) continue;
+    if(!c.name||!c.teacher||!c.room){ rej(lineNo,'名称/教师/教室为空','empty name/teacher/room'); continue; }
+    if(!isFinite(c.day)||!isFinite(c.start)||!isFinite(c.end)){ rej(lineNo,'星期/节次须为整数','weekday/periods must be integers'); continue; }
+    if(c.day<1||c.day>7){ rej(lineNo,'星期超出1-7','weekday out of 1-7'); continue; }
+    if(c.start<1||c.end<c.start){ rej(lineNo,'节次非法','invalid period range'); continue; }
     c.id = i+1;
     list.push(c);
   }
-  return list;
+  return {list:list, rejected:rejected};
 }
 
 function overlap(a, b){
@@ -255,7 +266,8 @@ function overlap(a, b){
 
 function detect(){
   var text = document.getElementById('courseInput').value;
-  var list = parseCourses(text);
+  var parsed = parseCourses(text);
+  var list = parsed.list;
   if(list.length===0){
     ToolBox.showToast(i18nText('toast.msg869'),'error');
     document.getElementById('result').style.display='none';
@@ -311,6 +323,11 @@ function detect(){
   html += '<div class="stat-card"><div class="val">'+roomConflicts.length+'</div><div class="lbl">教室冲突</div></div>';
   html += '<div class="stat-card"><div class="val">'+scheduleRate.toFixed(1)+'%</div><div class="lbl">无冲突排课率</div></div>';
   html += '</div>';
+
+  if(parsed.rejected.length){
+    var enRej=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    html += '<p style="color:var(--danger,#EF4444);">'+(enRej?'Rejected ':'已拒绝 ')+parsed.rejected.length+(enRej?' rows (ignored, not counted in course total): ':' 行（原样忽略，未计入课程总数）：')+ToolBox.escHtml(parsed.rejected.join(enRej?'; ':'；'))+'</p>';
+  }
 
   // 可视化课表（周 × 节次）
   html += '<h3 style="margin-top:16px;">可视化课表</h3>';
@@ -477,7 +494,7 @@ function __schedule_conflictRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                loadSample();
+                detect();
             }catch(e2){}
             __schedule_conflict_skip=false;
         });

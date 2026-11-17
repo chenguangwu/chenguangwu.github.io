@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
 const { runCase } = require("./verify_it_calc.js");
+globalThis.__tbFs = fs;
 const CASES = [
 {
     "slug": "edu2/exam-analysis",
@@ -161,6 +163,21 @@ const CASES = [
     "CC_MISS:未收录|HINT:1"
   ],
   "ref": "EL-J15 回归：未收录字「鑫」应明确提示未收录，避免用户误以为数据错误；页面已标注收录范围（45 字，非完整字典）。"
+},
+{
+  "slug": "edu2/schedule-conflict",
+  "inputs": {
+    "courseInput": "物理,王老师,D401,2,1,2\n化学,王老师,E502,2,1.5,2\n生物,赵老师,D401,2,1abc,2\n历史,孙老师,F603,4,1,2"
+  },
+  "clicks": ["detect();var h=String(document.getElementById('result').innerHTML).replace(/<[^>]+>/g,' ');var ok=h.indexOf('已拒绝 2 行')>=0&&h.indexOf('第2行星期/节次须为整数')>=0&&h.indexOf('第3行星期/节次须为整数')>=0&&h.indexOf('课程总数')>=0;document.getElementById('__tbProbe').textContent='STRICT '+(ok?'OK':'BAD '+h.slice(h.indexOf('已拒绝'),h.indexOf('已拒绝')+160));"],
+  "expect": ["STRICT OK"],
+  "ref": "第1091批 J10：旧版 parseInt 把 1.5/1abc 静默截成 1，四行全计入；严格整数解析后第2/3行被拒绝并在结果区列出行号与原因，仅两门合法课保留。哨兵同时锚拒绝计数与两条行号原因，旧版无拒绝串必然变红。"
+},
+{
+  "slug": "edu2/schedule-conflict",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu2/schedule-conflict.html','utf8').replace(/\\s+/g,' ');var ok=h.indexOf('loadSample(); }catch(e2){}')<0&&h.indexOf('detect(); }catch(e2){}')>=0&&h.indexOf('a.start≤b.end 且 b.start≤a.end')>=0&&h.indexOf('a.start&lt;b.end 且 b.start&lt;a.end')<0&&h.indexOf('[start,end)')<0&&h.indexOf('[start,end]')>=0;document.getElementById('__tbProbe').textContent='SCHEDFIX '+(ok?'OK':'BAD');"],
+  "expect": ["SCHEDFIX OK"],
+  "ref": "第1091批 J10 源码形态：历史回调回填后必须调 detect()（旧版 loadSample() 会把 courseInput 重写为固定 SAMPLE，历史回放失效）；FAQ 与 constRef 区间口径统一为离散整节闭区间 [start,end]，旧半开表述与 [start,end) 必须消失。旧版四项全命中旧串，必然变红。"
 }
 ];
 async function main() {
