@@ -70,6 +70,11 @@ const CASES = [
     expect: ["11.88", "13.88"],
     ref: "EV100=log2(11²/0.008)−log2(400/100)=13.88−2=11.88；实际EV=13.88（默认 2.8/0.01/100→9.61，避开）" },
 
+  { slug: "photo/ev",
+    inputs: { aperture: "-2.8", shutter: "0.01", iso: "100" },
+    expect: ["「aperture」不能为负值"],
+    ref: "975 负光圈守卫：aperture=-2.8 平方后与正值同 EV，修复前掩盖非法输入；默认 2.8 不含该提示。" },
+
   { slug: "photo/field-of-view",
     inputs: { focal: "24", sensor: "36", sensorH: "24" },
     expect: ["73.7", "53.1"],
@@ -94,6 +99,11 @@ const CASES = [
     inputs: { f: "35", n: "5.6", c: "0.03" },
     expect: ["超焦距 mm： 7327", "超焦距 m： 7.33"],
     ref: "S2 预设「街拍 35mm f/5.6」等价注入：H=35²/(5.6×0.03)+35=7291.67+35=7326.67→7327mm=7.33m（默认及 f/8 用例均避开）" },
+
+  { slug: "photo/hyperfocal",
+    inputs: { f: "-35", n: "8", c: "0.03" },
+    expect: ["焦距、光圈与弥散圆均须为正数"],
+    ref: "975 负焦距守卫：f=-35 时 H=f²/(n×c)+f 仍出正数，修复前负焦距被当作有效输入；默认 f=24 不含该提示。" },
 
   { slug: "photo/mired",
     inputs: { k: "3200", shift: "20" },
@@ -214,6 +224,12 @@ const CASES = [
     inputs: { n: "4", t: "0.25", iso: "400" },
     expect: ["6.00", "4.00"],
     ref: "注入非默认(默认 n=2.8/t=0.125/iso=100)：EV = log₂(N²/t) = log₂(16/0.25) = log₂64 = 6.00；换算到 ISO100 ⇒ EV@ISO100 = 6.00 − log₂(400/100) = 4.00。默认态 5.98/5.98 不命中。"
+  },
+  {
+    slug: "photo/exposure-value",
+    inputs: { n: "-2.8", t: "0.125", iso: "100" },
+    expect: ["「aperture」不能为负值"],
+    ref: "975 负光圈守卫：n=-2.8 平方后与正值同 EV，修复前掩盖非法输入；默认 2.8 不含该提示。"
   },
   {
     slug: "photo/photo-11",
