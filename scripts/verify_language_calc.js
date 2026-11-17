@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const CASES = [
 {
   "slug": "language/calc-1",
@@ -320,6 +322,20 @@ const CASES = [
   "clicks": ["showDetail('θ')"],
   "expect": ["清齿间摩擦音。舌尖放在上下齿之间", "θɪŋk"],
   "ref": "showDetail('θ') 渲染 /θ/ 详情：发音方法「清齿间摩擦音。舌尖放在上下齿之间，气流摩擦而出。」+ 例词 think /θɪŋk/。默认详情区为空（只渲染音标卡片网格），零交集。"
+},
+{
+  // EL-F19：/e/ 术语按 IPA 官方表改为 close-mid（半闭），旧版写「半开」。
+  "slug": "language/ipa-practice",
+  "clicks": ["showDetail('e')"],
+  "expect": ["半闭前不圆唇元音。口形比 i: 大，舌头稍后缩。"],
+  "ref": "showDetail('e') 渲染 /e/ 详情：IPA 官方元音表 e=close-mid front unrounded（半闭前不圆唇），旧版误写「半开前不圆唇」（open-mid 是 ɛ/ɔ/ʌ/ɜ），该串失配；默认详情区为空，零交集。"
+},
+{
+  // EL-F19 源码哨兵：/i:/ 例词删去跨语言的「茶 chá」，且 /e/ 术语已改。
+  "slug": "language/ipa-practice",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/language/ipa-practice.html','utf8');var ok=!/茶/.test(h)&&!/chá/.test(h)&&h.indexOf('半闭前不圆唇元音')>=0;document.getElementById('__tbProbe').textContent='IPAFIX '+(ok?'OK':'BAD');"],
+  "expect": ["IPAFIX OK"],
+  "ref": "IPA_DATA 的 /i:/ 例词原混中文「茶 chá (类似)」（韵母 /a/ 与 /i:/ 无关），删除后页面无「茶」/「chá」；同时 /e/ 描述改「半闭」。旧版两者皆不满足 ⇒ IPAFIX BAD。"
 },
 {
   "slug": "language/riyuwushiyintulianxi-dianjifayin",
