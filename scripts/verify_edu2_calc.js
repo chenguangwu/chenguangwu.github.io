@@ -4,6 +4,32 @@ const fs = require("fs");
 const { runCase } = require("./verify_it_calc.js");
 globalThis.__tbFs = fs;
 const CASES = [
+// ── 第1173批：成绩分析多分数解析、0分线、超满分提示与算例精度 ──
+{
+  "slug": "edu2/exam-analysis",
+  "inputs": { "scoreInput": "92,85,78,88" },
+  "expect": ["4 参考人数", "85.8 平均分"],
+  "ref": "EL-J108：整行逗号分隔的纯分数须拆成 4 名学生，均值 (92+85+78+88)/4=85.75→85.8；旧版只取第二个数当分数且把首数当姓名，得 1 人/85.0。默认 loadSample 为 15 人 ⇒ 零逃生。"
+},
+{
+  "slug": "edu2/exam-analysis",
+  "inputs": { "passLine": "0", "excellentLine": "0", "scoreInput": "甲,92\n乙,58" },
+  "expect": ["100.0% 及格率", "100.0% 优秀率"],
+  "ref": "EL-J109：及格线与优秀线填 0 须按 0% 生效，两人均达标；旧版 parseFloat||60/85 会回退成 60/85 分，得 50.0%/0.0%。默认 60/85 不命中。"
+},
+{
+  "slug": "edu2/exam-analysis",
+  "inputs": { "scoreInput": "甲,105\n乙,90" },
+  "expect": ["有 1 个分数超过满分 100"],
+  "ref": "EL-J110：超满分须给出明确提示并归入最高分段；旧版分段上界 full+1 使 105 不入任何段，分段人数之和小于参考人数。默认样例无超满分。"
+},
+{
+  "slug": "edu2/exam-analysis",
+  "inputs": { "fullScore": "110" },
+  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/exam-analysis.html','utf8');var d=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu2/exam-analysis']);var ok=d.indexOf('均值=78.4')>=0&&d.indexOf('78.38')<0&&h.indexOf('已清空输入')>=0&&h.indexOf('__exam_analysisScaleSample')>=0;document.getElementById('__tbProbe').textContent='JDOC:'+(ok?'OK':'BAD');"],
+  "expect": ["JDOC:OK"],
+  "ref": "EL-J112：权威源算例均值精度须与页面 toFixed(1) 一致（78.4），清空须有 Toast，预设缩放须存在；旧版权威源写 78.38 ⇒ BAD。"
+},
 {
     "slug": "edu2/exam-analysis",
     "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'fullScore',type:'text',value:''},{id:'scoreInput',type:'textarea',value:'张三,92'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __r=document.getElementById('result');__r.textContent='平均分 85.5 · 及格率 90%';__r.style=__r.style||{};__r.style.display='none';__exam_analysis_last=0;__exam_analysisExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='EXAMHIDE n='+__cap.length;"],
