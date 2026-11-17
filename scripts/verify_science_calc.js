@@ -79,6 +79,18 @@ const CASES = [
     expect: ["2.333"],
     ref: "算术平均 = (1+2+4)/3 = 2.333（fmt：round(x·1e10)/1e10 后 toLocaleString，默认最多 3 位小数）",
   },
+  {
+    slug: "science/mean-calculator",
+    inputs: { data: Array(100).fill("10000").join(",") },
+    expect: ["几何平均 (GM) 10,000", "不等式：HM ≤ GM ≤ AM 10,000 ≤ 10,000 ≤ 10,000 ✓"],
+    ref: "SMS-110 清账（溢出）：100 个 10000 连乘 = 1e400 = Infinity，旧版 GM=Math.pow(Infinity,0.01)=Infinity 显示「未定义」，不等式成「10,000 ≤ 未定义 ≤ 10,000 ✓」。现改对数域 exp(Σln/n)=exp(ln10000)=10000，GM 卡显示 10,000。判别锚两条均为旧版不成立。"
+  },
+  {
+    slug: "science/mean-calculator",
+    inputs: { data: Array(200).fill("0.01").join(",") },
+    expect: ["几何平均 (GM) 0.01", "不等式：HM ≤ GM ≤ AM 0.01 ≤ 0.01 ≤ 0.01 ✓"],
+    ref: "SMS-110 清账（下溢）：200 个 0.01 连乘下溢为 0，旧版 GM=0、不等式「0.01 ≤ 0 ≤ 0.01 ✓」。现对数域 exp(ln0.01)=0.01，GM 卡与不等式均为 0.01。与上一例共同钉住对数域改造的两端。"
+  },
 
   {
     slug: "science/p-value-calculator",

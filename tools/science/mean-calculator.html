@@ -239,8 +239,9 @@ function calculate(){
   const hasNonPos=data.some(x=>x<=0);
   let geo, harm;
   if(!hasNonPos){
-    const prod=data.reduce((p,x)=>p*x,1);
-    geo=Math.pow(prod, 1/n);
+    // 对数域求几何平均：exp(Σln(x)/n)，避免连乘在 n 较大时溢出 Infinity 或下溢 0。
+    const lnSum=data.reduce((s,x)=>s+Math.log(x),0);
+    geo=Math.exp(lnSum/n);
     const sumRecip=data.reduce((s,x)=>s+1/x,0);
     harm=n/sumRecip;
   }
@@ -259,8 +260,8 @@ function calculate(){
   html+='<div class="step-line">算术平均 AM = (x₁ + x₂ + ... + xₙ) / n</div>';
   html+='<div class="step-line">= ('+data.map(fmt).join(' + ')+') / '+n+' = '+fmt(sum)+' / '+n+' = <strong style="color:var(--primary);">'+fmt(arith)+'</strong></div>';
   if(geo!==undefined){
-    html+='<div class="step-line">几何平均 GM = (x₁ × x₂ × ... × xₙ)^(1/n)</div>';
-    html+='<div class="step-line">= ('+data.map(fmt).join(' × ')+')^(1/'+n+') = '+fmt(data.reduce((p,x)=>p*x,1))+'^(1/'+n+') = '+fmt(geo)+'</div>';
+    html+='<div class="step-line">几何平均 GM = exp( (ln x₁ + ln x₂ + ... + ln xₙ) / n )（对数域，避免连乘溢出）</div>';
+    html+='<div class="step-line">= exp( ( '+data.map(x=>'ln '+fmt(x)).join(' + ')+' ) / '+n+' ) = '+fmt(geo)+'</div>';
     html+='<div class="step-line">调和平均 HM = n / (1/x₁ + 1/x₂ + ... + 1/xₙ)</div>';
     html+='<div class="step-line">= '+n+' / ('+data.map(x=>'1/'+fmt(x)).join(' + ')+') = '+n+' / '+fmt(data.reduce((s,x)=>s+1/x,0))+' = '+fmt(harm)+'</div>';
     // 不等式

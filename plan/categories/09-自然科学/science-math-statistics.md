@@ -253,7 +253,7 @@
 ## Z 批 · 自然科学·矩阵/统计/电学（2026-11-04）
 
 - `tools/science/matrix-calculator.html`：3 条（SMS-107 高、SMS-108～109 中）。2×2/3×3 乘、行列式、逆、秩主算复核正确（[[4,7],[2,6]] det=10、A⁻¹=[[0.6,-0.7],[-0.2,0.4]]）；2026-11-06 复核：0 标量与 0 次幂已不被默认值吞掉；幂次仍用 `parseInt` 截断小数，逆矩阵绝对阈值和 `check` 不输出的问题仍在。
-- `tools/science/mean-calculator.html`：2 条（SMS-110 高、SMS-111 中）。2,4,8 → AM 4.6667、GM 4.0000、HM 3.4286，HM≤GM≤AM 正确；问题为几何平均走连乘，n 上百即溢出/下溢，以及千分位逗号被当作数据分隔符静默改数。
+- `tools/science/mean-calculator.html`：SMS-110 几何平均连乘溢出/下溢已于第 1005 批改对数域 exp(Σln/n) 修复。SMS-111（千分位逗号被当分隔符）属页面「逗号或空格分隔」口径未定义，保留待产品裁断。
 - `tools/science/mechanical-power.html`：1 条（SMS-117 中）。P=F·v 与 kW/hp/kgf·m/s 系数（745.6999、9.80665）换算正确（100 N×5 m/s=500 W）；问题为主结果 `toFixed(0)` 丢失小数。
 - `tools/science/meteor-crater-estimator.html`：3 条（SMS-119 高、SMS-120～121 中）。CMM 标度律与能量/破坏半径自洽（50 m/13 km/s 铁陨石 → 1.2 km、10 km/20 km/s → 119.6 km）；问题为水面/冰面地表密度死输入、质量单位标签错 1000 倍、通古斯按钮与预设参数互相矛盾。
 - `tools/science/nato-phonetic.html`：2 条（SMS-112～113 中）。NATO 表 Alfa/Juliett 与数字读法（Three/Tree、Nine/Niner）正确；问题为 ANSI 老表 Y/Z 错词、历史回填强制切到 ANSI。
@@ -265,7 +265,6 @@
 |---|---|---|
 | tools/science/matrix-calculator.html | 2026-11-06 复核：空串/NaN 才默认 1，k=0 与 n=0 已保留，`matrixPower(A,0)` 返回单位矩阵。残留：幂次仍用 `parseInt` 静默截断，n=0.5 被按 0 次幂计算并标为 A^0，而非提示需整数；负小数同样截断。:498-500、:541-549 | SMS-107 |
 | tools/science/matrix-calculator.html | 逆矩阵奇异判据用绝对阈值 `Math.abs(det)<1e-12`：[[2e-7,0],[0,2e-7]]（det≈4.0e-14，逆=5e6·I）被判「奇异/不可逆」；:403 的主元判断同样用绝对 1e-12，量级偏小的可逆矩阵整类被误杀。:391、:403 | SMS-108 |
-| tools/science/mean-calculator.html | 几何平均用连乘后 `Math.pow(prod,1/n)`：100 个 1e4 → prod=Infinity → GM 显示「未定义」，不等式行成「10,000 ≤ 未定义 ≤ 10,000 ✓」；200 个 1e-2 → prod=0 → GM 显示 0，不等式「0.01 ≤ 0 ≤ 0.01 ✓」（node 复刻）。:252-253、:273、:278 | SMS-110 |
 | tools/science/mean-calculator.html | `parseData` 以 `[,\s\n;]+` 切分后静默丢弃非数值 token：「1,000, 2,000」被切成 1/0/2/0 → n=4、AM=0.75（真值 1500），数据列表与 n 均随之改变，无任何提示。:242、:246-248 | SMS-111 |
 | tools/science/nato-phonetic.html | ANSI 老式字母表两处错词：Y 写作 YOUNG（应为 YOKE）、Z 写作 ZEBA（应为 ZEBRA），切到 ANSI 模式后表格与输出均显示错词。:253 | SMS-112 |
 | tools/science/nato-phonetic.html | 历史回填调用 `setMode()` 未传参 → `m===undefined` 落 else 分支 `modeIdx=2`，点击任意历史条目整表强制切到 ANSI；模式本身也未写入历史，无法还原（:349 对 :260）。:349、:260 | SMS-113 |
