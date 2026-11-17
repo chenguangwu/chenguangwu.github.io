@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
   {
@@ -391,6 +393,12 @@ const CASES = [
   "clicks": ["var got='';var old=ToolBox.copyText;ToolBox.copyText=function(t){got=String(t);};try{copyResult();}catch(e){}ToolBox.copyText=old;var msg='';var oldT=ToolBox.showToast;ToolBox.showToast=function(m){msg=String(m);};try{resetAll();}catch(e){}ToolBox.showToast=oldT;document.getElementById('__tbProbe').textContent='CR63 '+((got.indexOf('龋病风险分数')>=0&&msg.indexOf('已重置')>=0)?'OK':'BAD');"],
   "expect": ["CR63 OK"],
   "ref": "N63：`i18nText()` 无参调用改为中英直出文案——复制结果返回含「龋病风险分数」的完整文本，重置 toast 返回「已重置九项因素」；旧实现两个提示串都取不到 key。默认态不执行 clicks，不出现 CR63 探针。"
+},
+{
+  "slug": "dentistry/periodontal-pocket",
+  "clicks": ["var q=String.fromCharCode(39);var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/dentistry/periodontal-pocket.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/dentistry/periodontal-pocket.json','utf8');var ok=h.indexOf('exportCsv('+q+'periodontal-pocket-sites.csv'+q+',rows)')>=0&&h.indexOf('exportTable(')<0&&h.indexOf('临床附着丧失 CAL (mm)')>=0&&dd.indexOf('轻度 CAL 1~2mm')<0&&dd.indexOf('正常 0–1mm、轻度 2–3mm、中度 4–5mm、重度 ≥6mm')>=0&&en.indexOf('simplified CAL grading')>=0;document.getElementById('__tbProbe').textContent='CALGRADE '+(ok?'OK':'BAD');"],
+  "expect": ["CALGRADE OK"],
+  "ref": "12-N122/N123：FAQ 分档由旧「轻度1~2/中度3~4」改为与代码、表格、引据一致的简化 CAL 分档（0–1/2–3/4–5/≥6）；导出由 TBKit 历史表改为已记录位点的「PD/GM/CAL/简化分档」CSV，无位点时提示先添加。旧版旧 FAQ 与 exportTable 命中 ⇒ 变红；默认态不产生该哨兵，零逃生。"
 }
 
 ];
