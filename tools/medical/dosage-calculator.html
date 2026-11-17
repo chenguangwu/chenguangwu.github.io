@@ -341,7 +341,7 @@ var DRUGS = [
   {name:'对乙酰氨基酚', en:'Acetaminophen', cat:'解热镇痛', adultW:10, childW:10, bsa:0, maxDay:4000, maxSingle:1000, interval:'每 4-6 小时', note:'肝功能不全者慎用，避免与含对乙酰氨基酚复方药同服。', catEn:'Analgesic/antipyretic', intervalEn:'every 4-6 h', noteEn:'Caution in hepatic impairment; avoid combining with other acetaminophen-containing products.'},
   {name:'布洛芬', en:'Ibuprofen', cat:'解热镇痛', adultW:5, childW:5, bsa:0, maxDay:2400, maxSingle:800, interval:'每 6-8 小时', note:'消化道溃疡慎用，餐后服用，孕妇晚期禁用。', catEn:'Analgesic/antipyretic', intervalEn:'every 6-8 h', noteEn:'Caution with peptic ulcer; take after meals; contraindicated in late pregnancy.'},
   {name:'阿司匹林', en:'Aspirin', cat:'解热镇痛/抗血小板', adultW:10, childW:0, bsa:0, maxDay:4000, maxSingle:1000, interval:'每 4-6 小时', childContra:true, note:'儿童禁用（瑞氏综合征风险），抗血小板 75-100mg/日。', catEn:'Analgesic/antiplatelet', intervalEn:'every 4-6 h', noteEn:'Contraindicated in children (Reye syndrome); antiplatelet dose 75-100 mg/day.'},
-  {name:'阿莫西林', en:'Amoxicillin', cat:'抗生素', adultW:7, childW:13, bsa:0, maxDay:3000, maxSingle:1000, interval:'每 8 小时', note:'青霉素过敏者禁用；儿童按 20–40 mg/kg/日 分 3 次（本页约按每次 13 mg/kg 上限折算），肾功能不全需调整剂量。', catEn:'Antibiotic', intervalEn:'every 8 h', noteEn:'Contraindicated in penicillin allergy; children 20-40 mg/kg/day in 3 divided doses (this page uses the 13 mg/kg upper bound per dose); adjust in renal impairment.'},
+  {name:'阿莫西林', en:'Amoxicillin', cat:'抗生素', adultW:7, childW:13, bsa:0, maxDay:3000, maxSingle:1000, interval:'每 8 小时', note:'青霉素过敏者禁用；儿童按 20–40 mg/kg/日 分 3 次（本页约按每次 13 mg/kg 上限折算），肾功能不全需调整剂量。', catEn:'Antibiotic', intervalEn:'every 8 h', noteEn:'Contraindicated in penicillin allergy; children 20-40 mg/kg/day in 3 divided doses (this page uses the 13 mg/kg upper bound per dose); adjust in renal impairment.', pedDailyRange:[20,40], pedDiv:3, pedSrc:'NMPA 阿莫西林颗粒/干混悬剂说明书（儿童一次 6.7~13.3 mg/kg，每 8 小时 1 次，等价日总量 20~40 mg/kg/日分 3 次）', pedSrcEn:'NMPA amoxicillin granules/dry-suspension label (children 6.7-13.3 mg/kg/dose q8h, equivalent to 20-40 mg/kg/day in 3 divided doses)'},
   {name:'头孢氨苄', en:'Cephalexin', cat:'抗生素', adultW:7, childW:25, bsa:0, maxDay:4000, maxSingle:1000, interval:'每 6 小时', note:'青霉素交叉过敏约 5-10%，妊娠期 B 类。', catEn:'Antibiotic', intervalEn:'every 6 h', noteEn:'Penicillin cross-reactivity about 5-10%; pregnancy category B.'},
   {name:'头孢曲松', en:'Ceftriaxone', cat:'抗生素', adultW:0, childW:50, bsa:1500, maxDay:4000, maxSingle:2000, interval:'每日 1 次', note:'新生儿禁与含钙输液配伍，胆囊淤积风险。', catEn:'Antibiotic', intervalEn:'once daily', noteEn:'Do not mix with calcium-containing fluids in neonates; risk of biliary sludging.'},
   {name:'阿奇霉素', en:'Azithromycin', cat:'抗生素', adultW:7, childW:10, bsa:500, maxDay:500, maxSingle:500, interval:'每日 1 次', note:'QT 间期延长风险，肝功能不全慎用。', catEn:'Antibiotic', intervalEn:'once daily', noteEn:'QT prolongation risk; caution in hepatic impairment.'},
@@ -559,6 +559,22 @@ function calc(){
   html += '<div class="step-line">单次剂量：'+singleDose.toFixed(2)+' mg，每 '+(24/freq)+' 小时一次</div>';
   html += '<div class="step-line">日剂量：'+dailyDose.toFixed(2)+' mg' + (d.maxDay?'（最大 '+d.maxDay+' mg）':'')+'</div>';
   html += basisNote + singleWarn + maxWarn;
+
+  // —— 儿童说明书日总量区间核对（A5：把"日总量区间+分次"落到计算结果）——
+  if(isChildAge(age) && d.pedDailyRange && method === 'weight'){
+    var __enR=/^en/i.test(document.documentElement.lang||'');
+    var __lo=d.pedDailyRange[0]*w, __hi=d.pedDailyRange[1]*w;
+    var __perLo=__lo/d.pedDiv, __perHi=__hi/d.pedDiv;
+    var __pageDaily=perDose*freq; // 本页单次系数折算的日总量 mg/kg/日
+    var __inRange=(__pageDaily>=d.pedDailyRange[0]&&__pageDaily<=d.pedDailyRange[1]);
+    html+='<div class="ref-card" style="margin-top:10px;"><h4>'+(__enR?'Label daily-dose range check (pediatric)':'说明书日总量区间核对（儿童）')+'</h4><ul>';
+    html+='<li>'+(__enR?'Label daily total: ':'说明书日总量：')+d.pedDailyRange[0]+'~'+d.pedDailyRange[1]+' mg/kg/day × '+w+' kg = <strong>'+__lo.toFixed(1)+'~'+__hi.toFixed(1)+' mg/day</strong>'+(__enR?', in ':'（分')+d.pedDiv+(__enR?' divided doses':' 次）')+'</li>';
+    html+='<li>'+(__enR?'Per-dose range: ':'折算单次区间：')+__perLo.toFixed(1)+'~'+__perHi.toFixed(1)+' mg ('+(__enR?'per ':'每 ')+(24/d.pedDiv).toFixed(0)+(__enR?' h)':' 小时')+'</li>';
+    html+='<li>'+(__enR?'This page pediatric factor ':'本页儿童单次系数 ')+perDose+' mg/kg × '+freq+' = '+__pageDaily.toFixed(1)+' mg/kg/day, '+(__enR?(__inRange?'within':'outside'):(__inRange?'落在':'超出'))+(__enR?' the label range':'说明书区间')+'</li>';
+    html+='<li style="color:var(--text-muted);">'+(__enR&&d.pedSrcEn?d.pedSrcEn:d.pedSrc)+'</li>';
+    html+='<li style="color:var(--text-muted);">'+(__enR?'Final dose must be set by a clinician by infection site, pathogen and renal function; this tool is for cross-check only.':'最终剂量须由医师按感染部位、病原体与肾功能核定，本工具仅作核对。')+'</li>';
+    html+='</ul></div>';
+  }
 
   // —— 儿童参考体重核对（WHO 生长标准 P50）——
   if (age > 0 && age <= 18 && w > 0) {
