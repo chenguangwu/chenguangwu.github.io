@@ -312,6 +312,29 @@ const CASES = [
     "ref": "注入 μ 子对 + 铝靶 A=27（默认 e/A=0）：E=2·m_μ·c²·(1+m_μ/M)，M=27×1.66053906660e-27=4.48345e-26 kg，m_μ/M=0.004201 ⇒ E=3.400e-11 J=212.2177 MeV；默认态 1.0220 MeV 不命中。"
   },
   {
+    "slug": "quantum/pair-production-threshold",
+    "inputs": {
+      "lepton": "mu",
+      "targetA": ""
+    },
+    "expect": [
+      "⚠ 请填写靶核质量数 A（0 表示不计反冲）。"
+    ],
+    "ref": "999 空靶核质量数守卫（PQ-09）：旧版 parseFloat('') 得 NaN 后静默按 0 计算纯阈值；修复后空值提示补填，显式 0 仍表示不计反冲。默认 targetA=0 不含该串。"
+  },
+  {
+    "slug": "quantum/pair-production-threshold",
+    "inputs": {
+      "lepton": "mu",
+      "targetA": ""
+    },
+    "clicks": ["var rows=-1,rec=0;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(sel,cfg){rows=cfg&&cfg.rows?cfg.rows.length:-1;}},history:{record:function(){rec++;},mount:function(){}}};__pair_production_thresholdExtras();document.getElementById('__tbProbe').textContent='PPBLANK '+((rows===0&&rec===0)?'OK':'BAD rows='+rows+' rec='+rec);"],
+    "expect": [
+      "PPBLANK OK"
+    ],
+    "ref": "999 空靶核质量数不得生成明细或写入历史（PQ-09）：旧版按 A=0 写出 8 行明细并 record；修复后先清表且 record 不被调用。探针只在 clicks 注入后出现，默认态零逃生。"
+  },
+  {
     "slug": "quantum/photoelectric-threshold",
     "inputs": {
       "phi": "42"
