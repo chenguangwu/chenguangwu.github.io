@@ -205,7 +205,12 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/stone-size-assessment.html','utf8');var ok=h.indexOf('肾结石 8mm（孤立肾）')>=0&&h.indexOf('肾结石 8mm 伴积水')<0&&h.indexOf('hasOwnProperty.call(rec,__cbs[__ci].id)')>=0;document.getElementById('__tbProbe').textContent='STONEPRESET '+(ok?'OK':'BAD');"],
   "expect": ["STONEPRESET OK"],
   "ref": "12-N87/N91：预设标签与 renal=孤立肾/肾功能不全 语义一致，不再谎称伴积水；历史恢复清空未记录勾选的逻辑保留。旧版标签为伴积水 ⇒ 变红。默认态不产生该串，零逃生。"
-}
+  },{
+    "slug": "urology/stone-size-assessment",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/stone-size-assessment.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/urology/stone-size-assessment.json','utf8');var ok=h.indexOf('输尿管中段 0.9')>=0&&h.indexOf('膀胱 1.0')>=0&&h.indexOf('经验修正，非指南直接给出')>=0&&h.indexOf('肾/输尿管上段 0.7、下段 1.25')<0&&en.indexOf('mid ureter 0.9')>=0&&en.indexOf('empirical adjustments')>=0;document.getElementById('__tbProbe').textContent='STONEFACTOR '+(ok?'OK':'BAD');"],
+    "expect": ["STONEFACTOR OK"],
+    "ref": "12-N90：公式框原只列 3 个部位系数，代码另有 mid 0.9 / bladder 1.0；现补齐 6 个并明示系数为页面经验修正、膀胱套用输尿管模型仅供粗参。旧版缺 mid/bladder 与局限性说明 ⇒ 变红。N89 模型适用性保留专业复核。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);
