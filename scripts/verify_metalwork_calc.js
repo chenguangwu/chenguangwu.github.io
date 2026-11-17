@@ -295,10 +295,12 @@ const CASES = [
   { slug: "metalwork/detector-24", inputs: { defLen: "5", thick: "20", defCount: "" }, expect: ["未填缺陷数量"], ref: "数量空值拦截（668）：缺陷数量清空 ⇒ 提示「未填缺陷数量（无缺陷请填 0）」，不再静默按 0 判 1 档（默认 1 个不含该串）" },
   { slug: "metalwork/detector-24", inputs: { defLen: "-5", thick: "", defCount: "-1" }, expect: ["缺陷长度须为正数；母材厚度须为正数；缺陷数量须为 ≥0 的整数"], ref: "负数/空值拦截（668）：defLen=-5、thick 清空、defCount=-1 ⇒ 三条错误同时列出，不再输出 1 档（默认 5/20/1 全合法，不含该串）" },
   { slug: "metalwork/analysis-simulator", inputs: { vol: "300", area: "150", runner: "15", fillrate: "70", tmelt: "260", tmold: "50", teject: "120", tw: "40", thick: "4", alpha: "0.05" }, expect: ["总充填体积 345 cm³", "充填时间 4.93 s", "冷却时间（近似） 40.63 s", "流程/壁厚比 0.5,000"], ref: "注入非默认(默认 200/100/10/50/240/60/110/30/3/0.04)：型腔+流道+浇口 300+15 与射胶量填充 ⇒ 总充填体积 345 cm³；充填时间 = 345/70 = 4.93 s；冷却时间近似 40.63 s；流程/壁厚比 = (300+15+…)/4 → 0.5,000。默认态 220 cm³/4.40 s/27.51 s/0.6,667，四条均不命中。" },
+  { slug: "metalwork/analysis-simulator", inputs: { vol: "300", area: "150", runner: "15", fillrate: "70", tmelt: "240", tmold: "50", teject: "300", tw: "30", thick: "4", alpha: "0.05" }, expect: ["熔体温度＞顶出温度＞水温"], ref: "994 温度顺序守卫（MM-H122）：顶出 300℃ 高于熔体 240℃ 时旧版 ln 项为负仍出负冷却时间；修复后先拦截并要求 Tm>Te>Tw。默认 240/110/30 不含该串。" },
   { slug: "metalwork/detector-23", inputs: { nominal: "60.000", actual: "60.034", upperTol: "0.039", lowerTol: "0.000" }, expect: ["实测偏差： +0.0340 mm", "偏差占公差带：87.2%", "极限尺寸：60.0000 ~ 60.0390 mm"], ref: "注入非默认(默认 nominal=50.000/actual=50.025)：独立复算 偏差 = 60.034−60.000 = +0.0340 mm；公差带 0.0390 ⇒ 占比 0.034/0.039 = 87.2%；极限尺寸 = 60.0000 ~ 60.0390 mm。默认态 50.025/+0.0250/64.1%/50.0000~50.0390，三条均不命中（『合格』判定与 IT4/±0.005mm 两态相同，不作锚）。" },
   { slug: "metalwork/detector-23", inputs: { nominal: "60.000", actual: "60.034", upperTol: "-0.050", lowerTol: "0.050" }, expect: ["请输入有限尺寸，且上偏差须大于下偏差"], ref: "993 公差方向守卫：旧版空值 `||0` 与倒挂公差照算并归 IT01，修复后先拒绝上偏差≤下偏差；默认 0.039/0.000 不含该串。" },
   { slug: "metalwork/detector-mold", inputs: { tx: "70.000", ty: "40.000", tz: "25.000", ax: "70.021", ay: "39.975", az: "25.030", tol: "0.020" }, expect: ["X轴：+0.021 mm ✗ 超差", "Z轴：+0.030 mm ✗ 超差", "空间偏差：0.0443 mm"], ref: "注入非默认(默认 50/30/20 与实测 50.015/29.988/20.022)：三轴偏差 = +0.021 / −0.025 / +0.030 mm，均超 ±0.020 ⇒ 三轴全『✗ 超差』；空间偏差 = √(0.021²+0.025²+0.030²) = 0.0443 mm > 0.020。默认态仅 Z 轴超差、空间偏差 0.0292，三条均不命中。" },
   { slug: "metalwork/detector-mold", inputs: { tx: "50.000", ty: "30.000", tz: "20.000", ax: "50.015", ay: "29.988", az: "20.022", tol: "0" }, expect: ["公差须大于 0"], ref: "993 零公差守卫：旧版 tol=0 仍输出三轴超差与刀具补偿建议，修复后先拒绝非正公差；默认 ±0.020 不含该串。" },
+  { slug: "metalwork/detector-mold", inputs: { tx: "50.000", ty: "30.000", tz: "20.000", ax: "50.019", ay: "30.019", az: "20.019", tol: "0.020" }, expect: ["空间偏差：0.0329 mm 公差要求：±0.020 mm 综合判定： 不合格（超差）"], ref: "994 空间偏差纳判定（MM-H139）：三轴各 +0.019 均未超 ±0.020，但空间偏差 √(3×0.019²)=0.0329>tol；旧版判「合格」，修复后判不合格。默认空间偏差 0.0292 且 Z 轴已超差，整串不命中。" },
 
   // ── §7.4 零用例收敛续批：metalwork 确定性数值页（探针实测取锚）────
   {
@@ -388,9 +390,9 @@ const CASES = [
       "alpha": "42"
     },
     "expect": [
-      "流程/壁厚比 0.0,238 缺陷预警 各项指标在常规区间，无明显缺陷预警"
+      "熔体温度＞顶出温度＞水温"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"vol\":\"42\",\"area\":\"42\",\"runner\":\"42\",\"fillrate\":\"42\",\"tmelt\":\"42\",\"tmold\":\"42\",\"teject\":\"42\",\"tw\":\"42\",\"thick\":\"42\",\"alpha\":\"42\"}，输出区含「流程/壁厚比 0.0,238 缺陷预警 各项指标在常规区间，无明显缺陷预警」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "994 温度顺序守卫同步：自动补强旧输入 tmelt=teject=tw=42 原在 ln 项 NaN 下仍输出「各项指标在常规区间」，属假合规；修复后统一拒绝 Tm≤Te≤Tw。默认态 240/110/30 不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "metalwork/cable-tray-sizing",
@@ -815,6 +817,14 @@ const CASES = [
     "ref": "维修服务质量评分：3 模块 × 6 项、每项满分 2 ⇒ 总满分 36；18 个运行时下拉在页面作用域内逐一置「完全执行(2)」后调 calc() ⇒ 实得 36/36 = 100% ≥90 且无关键项缺失 ⇒「优秀」。"
        + "默认态（不执行 clicks）各下拉取不到值（+''=0）⇒ 实得 0%、★ 关键安全项未执行 ⇒「不合格（关键项未执行）」并压到 59%，两锚均不命中。"
        + "（下拉由 innerHTML 运行时生成，pageDefaults 取不到，故改用 clicks 显式驱动，避免进入 skip。）"
+  },
+  {
+    "slug": "metalwork/detector-55",
+    "clicks": [
+      "var oldRef=(typeof TBKit!=='undefined'&&TBKit.chart)?TBKit.chart.refBar:null;var cap=null;if(typeof TBKit==='undefined'){TBKit={util:{isEn:function(){return false;}},chart:{},matrix:{},history:{},preset:{}};}if(!TBKit.chart)TBKit.chart={};TBKit.chart.refBar=function(sel,opt){cap=opt;};if(typeof calc==='function')calc();TBKit.chart.refBar=oldRef;var s=(cap&&cap.bands)?cap.bands.map(function(b){return (b.lo===null?'null':b.lo)+'-'+(b.hi===null?'null':b.hi)+'-'+(b.label&&b.label.zh?b.label.zh:'');}).join('|'):'NONE';document.getElementById('__tbProbe').textContent='BANDS '+s;"
+    ],
+    "expect": ["BANDS 90-null-优秀|75-90-良好|60-75-合格|null-60-不合格"],
+    "ref": "994 标尺区间（MM-H131）：旧版第三段 lo:null/hi:75 把 <60 的不合格也标成合格；修复后补 60–75 合格段与 null–60 不合格段。探针截取 refBar 的 bands 实参，默认态不执行 clicks、无探针串 ⇒ 零逃生。"
   }
 
 ];
