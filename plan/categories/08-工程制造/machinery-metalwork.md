@@ -332,8 +332,8 @@
 |---|---|---|---|---|
 | tools/metalwork/tester-19.html（死键 1） | 电缆类型、绝缘电阻(MΩ·km)、测试温度、导体电阻(Ω/km)、标称截面、U₀、长度 | 绝缘/导体/耐压三项验收报告 | PVC 70mm²、500 MΩ·km、20℃、0.268 Ω/km、0.6kV、100m → IR 500≥0.5、导体 0.268≤0.2948、耐压 3.5kV/15min → 综合合格 | 独立检测计算器（共用 TBKit 外壳，非 A/B 对比） |
 | tools/metalwork/thread.html（死键 1） | 螺纹类型、直径、螺距、材料、内外、批量 | 中径/小径/底孔 + 工艺方案表 | M10×1.5 碳钢外螺纹单件 → d2 9.026、d3 8.160、n 1910 rpm，单件档仅车削一项且为首选 | 独立工艺推荐器 |
-| tools/metalwork/wushua-zhinengyuqingliangduibijisuanqi.html（死键 0） | 无刷评分、轻量评分 | 综合差距、推荐侧重、权重比 | 90/72 → 差距 18、无刷路线优先、55.6% | A/B 双评分模板 |
-| tools/metalwork/zhineng-duogongnengyunaiyongduibijisuanqi.html（死键 0） | 智能评分、耐用评分 | 同上 | 85/78 → 差距 7、智能路线优先、52.1% | 与 wushua 页同源，仅换变量与文案 |
+| tools/metalwork/wushua-zhinengyuqingliangduibijisuanqi.html（死键 0） | 无刷评分、轻量评分 | 综合差距、推荐侧重、权重比 | 90/72 → 差距 18.0、无刷路线优先、55.6% | A/B 双评分模板 |
+| tools/metalwork/zhineng-duogongnengyunaiyongduibijisuanqi.html（死键 0） | 智能评分、耐用评分 | 同上 | 85/78 → 差距 7.0、智能路线优先、52.1% | 与 wushua 页同源，仅换变量与文案 |
 
 族矩阵结论：4 页并非同一业务族，后两页才是「智能对比计算器」；前两页只是同用 TBKit 双列表单外壳的独立计算器。后两页除名词替换外 DOM、函数、历史逻辑完全同构，故同类缺陷按页各记。
 
@@ -341,8 +341,8 @@
 
 - `tools/metalwork/tester-19.html`：默认态可跑并判「综合合格」，但绝缘电阻的温度修正方向相反（高温进一步压低实测值），电缆长度是死输入，导体电阻未按温度折算，空值兜底可产生假合格。
 - `tools/metalwork/thread.html`：默认 M10×1.5 的几何、转速与方案表可跑；螺纹类型只改规格文案，梯形/管/统一螺纹仍套公制 60° 系数；首选方案恒为车削，与「大批量优先滚压」自相矛盾；备选方案的 vc 与 n 不成比例。
-- `tools/metalwork/wushua-zhinengyuqingliangduibijisuanqi.html`：`abs(A−B)`、`A/(A+B)`、A 大则推荐无刷三项均真实实现，默认 90/72 正确；仅在相等/零值时推荐不持平、权重显示「—%」，差距取整丢小数。
-- `tools/metalwork/zhineng-duogongnengyunaiyongduibijisuanqi.html`：与 wushua 页完全同构，默认 85/78 正确，同一组相等/零值缺陷。
+- `tools/metalwork/wushua-zhinengyuqingliangduibijisuanqi.html`：`abs(A−B)`、`A/(A+B)`、A 大则推荐无刷三项均真实实现，默认 90/72 正确。
+- `tools/metalwork/zhineng-duogongnengyunaiyongduibijisuanqi.html`：与 wushua 页完全同构，默认 85/78 正确。
 
 **问题条目**
 
@@ -356,13 +356,11 @@
 | tools/metalwork/thread.html | 【中】首选方案恒为车削：`methods` 固定先推车削（:234），仅大批量追加滚压（:236），:248 取 `methods[0]`；选「Tr40×7 大批量」仍推荐车削，与页内「外螺纹大批量优先滚压/搓丝」相反；内螺纹大直径同理仍首选攻丝。:234-248、:455 | MM-H166 |
 | tools/metalwork/thread.html | 【中】备选方案 vc 与 n 不成比例：铣削 `vc×1.2` 却 `n×0.8`（:239、:244），攻丝 `vc×0.6` 却 `n×0.5`（:242），与 `n=1000vc/(πd)` 自相矛盾；铣削转速比按 vc 应有的值低约 33%。:239-246 | MM-H167 |
 | tools/metalwork/thread.html | 【中】无螺距/直径几何校验：P=20、d=10 时外螺纹牙底直径 −2.269 mm、内螺纹小径 −11.651 mm 仍正常渲染并继续推荐方案，页面无任何提示。:250-251 | MM-H168 |
-| tools/metalwork/wushua-zhinengyuqingliangduibijisuanqi.html | 【中】综合差距 `toFixed(0)` 丢失小数（90.5/72.2 记 18），与公式说明的连续差值不符（A=B 误判与 A=B=0 权重 0/0 已于 973 批修复销账） | MM-H169 |
-| tools/metalwork/zhineng-duogongnengyunaiyongduibijisuanqi.html | 【中】同一模板的相等/零值缺陷：A=B 时恒取「耐用路线优先」、A=B=0 时权重比显示「—%」、综合差距取整到整数，均与公式说明不符。:675-681 | MM-H170 |
 
 **统计**
-- 条数：10（高 2 / 中 8 / 假 0 / 安全 0）；编号区间 MM-H161–MM-H170，续接 MM-H160，不重号不跳号。
+- 条数：8（高 2 / 中 6 / 假 0 / 安全 0）；编号区间 MM-H161–MM-H170，续接 MM-H160，不重号不跳号。
 - 高优编号：MM-H161（温度修正方向反）、MM-H165（螺纹类型不改几何）。
 - 假工具：0（4 页主算均可跑）；承诺未实现：0；冒用国标：0（tester-19 引 GB/T 3048 与判定表一致，问题在修正公式而非冒用）。
 - 安全：0 条；4 页无 `eval`/`new Function`/`allow-same-origin`/`document.write`/明文存密/页面自有网络外传；历史值仅接数值或 `escHtml` 后的时间串，未形成可控 HTML 注入；公共模板 ttzz 脚本不单列。
-- 复算：node 内存复算温度因子 35℃ 0.3536 vs 2.8284、5℃ 2.8284 vs 0.3536，Tr40×7 的 d2/d3 35.453/31.412 vs 36.5/33.0，M10×1.5 的 d2 9.026/d3 8.160/n 1910 rpm，对比页 90/72→18/55.6%、85/78→7/52.1%，未落盘仓库；仅源码阅读，未开浏览器、未跑 `_build.py`/`run_gates.py`、未改 `tools/**` 与构建产物，未触碰 `plan/interaction-validity.md`、`plan/units-factors.md`、`plan/input-parse-dup.md`。
+- 复算：node 内存复算温度因子 35℃ 0.3536 vs 2.8284、5℃ 2.8284 vs 0.3536，Tr40×7 的 d2/d3 35.453/31.412 vs 36.5/33.0，M10×1.5 的 d2 9.026/d3 8.160/n 1910 rpm，对比页 90/72→18.0/55.6%、85/78→7.0/52.1%，未落盘仓库；仅源码阅读，未开浏览器、未跑 `_build.py`/`run_gates.py`、未改 `tools/**` 与构建产物，未触碰 `plan/interaction-validity.md`、`plan/units-factors.md`、`plan/input-parse-dup.md`。
 - 去重说明：tester-19 的温度修正方向错误与既有「查表值不随输入变化」类不同，属公式符号错误，单列；thread 的类型死选项与 MM-H126（材料/等级死选项）同属「下拉只改文案」，但本页还叠加几何错算，按页面单列；两个对比页为同一模板缺陷，按逐页口径各记一条。
