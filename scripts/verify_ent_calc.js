@@ -207,6 +207,20 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "ent/tdi-score",
+  "inputs": {"scoreT":"","scoreD":"","scoreI":""},
+  "clicks": ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='TDIGUARD '+(h.indexOf('0–16')>=0&&h.indexOf('功能性失嗅')<0?'OK':'BAD '+h.slice(0,70));"],
+  "expect": ["TDIGUARD OK"],
+  "ref": "N115 清空守卫：三项留空经 `+||0` 旧版得 tdi=0「功能性失嗅」；修复后 __tdiInputs 判空+范围（0–16）⇒ 提示「0–16」不出分级。旧版 BAD。默认 9/10/11 合法不含该提示，零逃生。"
+},
+{
+  "slug": "ent/tdi-score",
+  "inputs": {"scoreT":"20","scoreD":"16","scoreI":"16"},
+  "clicks": ["var __cap='';var old=ToolBox.copyText;ToolBox.copyText=function(s){__cap=String(s);};copyResult();ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='TDICOPY '+(__cap.indexOf('总分=52')<0?'OK':'BAD '+__cap.slice(0,80));"],
+  "expect": ["TDICOPY OK"],
+  "ref": "N116 复制一致性：T=20 越界（>16），旧版 copyResult 不 clamp ⇒ 复制「总分=52.0/48」（超满分），修复后 __tdiInputs ok=false ⇒ 不复制、只刷新结果提示 ⇒ 无「总分=52」。默认 9/10/11 合法，但本哨兵只在 clicks 注入 copyResult 探针后出现，零逃生。"
+},
+{
   "slug": "ent/temporal-resolution-hearing",
   "inputs": {
     "trGapSlider": "20",
