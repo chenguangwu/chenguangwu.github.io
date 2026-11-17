@@ -327,6 +327,18 @@ const CASES = [
   "clicks": ["document.getElementById('herbA').value='乌头';document.getElementById('herbB').value='半夏';checkClassic()"],
   "expect": ["乌头 与 半夏", "乌头组"],
   "ref": "⚠ 该页两个 select 的选项由 initHerbs() 在 DOMContentLoaded 时填充，而 harness step-3 兜底会再调 initHerbs ⇒ inputs 字段注入会被冲回默认（甘草/甘遂）。改用 clicks 在页面作用域设值并直接调 checkClassic()（step-2.5 立即判定，不等 step-3）。注入「乌头 + 半夏」命中十八反乌头组（乌头反半夏/瓜蒌/贝母/白蔹/白及）⇒ 输出『禁止配伍！乌头 与 半夏 属于 十八反』。⚠ expect 只取『乌头 与 半夏』+『十八反』：默认态（甘草/甘遂）虽也含『十八反』，但不含『乌头 与 半夏』，判别器实测两条均会变红（OR 语义下同态需全部命中才逃生）。"
+},
+{
+  "slug": "tcm-chemistry/hplc-optimization",
+  "clicks": ["document.getElementById('t0').value='1.2';document.getElementById('kPrime').value='5';document.getElementById('gradSlope').value='2';calcRT();"],
+  "expect": ["梯度参数不适用", "早于死时间"],
+  "ref": "第1071批 N145：短柱梯度预设 t0=1.2/k=5/slope=2 ⇒ tR_grad=1.2×6/7=1.03 < t0=1.2，物理上不可能。旧版照常渲染「梯度保留时间 1.03 min」无警示；新版 tR_grad<t0 时输出「⚠️ 梯度参数不适用…早于死时间 t₀」警示。默认 slope=0 走等度不触发 ⇒ 依赖 inputs 注入，强判别零逃生。"
+},
+{
+  "slug": "tcm-chemistry/hplc-optimization",
+  "clicks": ["document.getElementById('rt_plate').value='2';document.getElementById('t0_plate').value='2.5';document.getElementById('peakWidth').value='0.5';calcPlate();"],
+  "expect": ["保留时间 tR 须大于死时间"],
+  "ref": "第1071批 N147：tR=2 < t0=2.5 ⇒ k′=(2−2.5)/2.5=−0.2 无物理意义。旧版仍渲染「有效塔板数 16」；新版 calcPlate 开头校验 tR>t0>0&&W>0&&L>0，不满足则提示「保留时间 tR 须大于死时间 t₀」并停算。默认 tR=2.5/t0=2.5 相等也不满足（须严格大于），但默认实际值不同 ⇒ 依赖 clicks 注入，强判别。"
 }
 ];
 async function main() {

@@ -303,7 +303,8 @@ function calcRT(){
   html += '<div class="stat-grid">';
   html += `<div class="stat-card"><div class="val">${tR.toFixed(2)}</div><div class="lbl">等度保留时间(min)</div></div>`;
   if(gradSlope > 0){
-    html += `<div class="stat-card"><div class="val">${tR_grad.toFixed(2)}</div><div class="lbl">梯度保留时间(min)</div></div>`;
+    // N145: 梯度模型在极端 slope/k 组合下会给出早于死时间的保留时间（如短柱预设 1.03 < t0 1.2），物理上不可能，须警示。
+    html += `<div class="stat-card"><div class="val" style="color:${tR_grad<t0?'var(--danger)':''};">${tR_grad.toFixed(2)}</div><div class="lbl">梯度保留时间(min)</div></div>`;
   }
   html += `<div class="stat-card"><div class="val">${k.toFixed(2)}</div><div class="lbl">容量因子k'</div></div>`;
   html += `<div class="stat-card"><div class="val">${colVol.toFixed(2)}</div><div class="lbl">柱体积(mL)</div></div>`;
@@ -312,7 +313,11 @@ function calcRT(){
   html += `<div class="tip-box tip-success"><strong>结果：</strong>在等度洗脱模式下，保留时间 tR = t₀ × (1 + k') = ${t0} × (1 + ${k}) = <strong>${tR.toFixed(2)} min</strong></div>`;
 
   if(gradSlope > 0){
-    html += `<div class="tip-box tip-info"><strong>梯度模式：</strong>梯度保留时间约 <strong>${tR_grad.toFixed(2)} min</strong>，驻留体积约 ${dwellVol.toFixed(2)} mL，驻留时间约 ${(dwellVol/F).toFixed(2)} min。</div>`;
+    if(tR_grad < t0){
+      html += `<div class="tip-box tip-warn"><strong>⚠️ 梯度参数不适用：</strong>按当前梯度斜率与 k' 算出的保留时间 ${tR_grad.toFixed(2)} min 早于死时间 t₀=${t0} min，物理上不可能（溶剂峰也不会早于 t₀ 流出）。请降低梯度斜率或调整 k'，或改用等度模式。驻留体积约 ${dwellVol.toFixed(2)} mL。</div>`;
+    } else {
+      html += `<div class="tip-box tip-info"><strong>梯度模式：</strong>梯度保留时间约 <strong>${tR_grad.toFixed(2)} min</strong>，驻留体积约 ${dwellVol.toFixed(2)} mL，驻留时间约 ${(dwellVol/F).toFixed(2)} min。</div>`;
+    }
   }
 
   // 优化建议
@@ -339,6 +344,12 @@ function calcPlate(){
   const W = +document.getElementById('peakWidth').value || 0.1;
   const t0 = +document.getElementById('t0_plate').value || 1;
   const L = +document.getElementById('L_plate').value || 250;
+
+  // N147: 保留时间须大于死时间（否则 k′<0 无物理意义），峰宽/柱长须为正，不能用 || 兜底静默出负柱效。
+  if(!(tR > t0 && t0 > 0 && W > 0 && L > 0)){
+    document.getElementById('plateResult').innerHTML='<p style="color:var(--danger)">保留时间 tR 须大于死时间 t₀（且 t₀、峰宽、柱长均为正数），当前参数无物理意义。</p>';
+    return;
+  }
 
   const N = 16 * Math.pow(tR / W, 2);
   const k = (tR - t0) / t0;
@@ -445,7 +456,7 @@ ToolBox.initToolTheme();
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>HPLC条件优化器 - 高效液相色谱条件参数优化计算，含保留时间预测、柱效计算、分离度评估。。医疗专业工具，基于权威医学标准，仅供参考。</p>
+    <p>HPLC条件优化器 - 高效液相色谱条件参数优化计算，含保留时间预测、柱效计算、分离度评估。适用于分析化学与色谱方法开发，结果仅供参考，请以实验验证为准。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>基于权威医学标准</li>
