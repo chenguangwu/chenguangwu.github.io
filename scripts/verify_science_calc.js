@@ -316,6 +316,27 @@ const CASES = [
     expect: ["ASTRORNG_OK"],
     ref: "SMS-73 清账（E 范围守卫）：东移值 1500000 m 超出假东移 500000 的物理上限 1000000，旧版照常反算输出荒谬经纬度；现直接提示「东移应在 0~1000000 m」。探针断言反向结果容器出现该提示，旧版 ⇒ ASTRORNG_BAD，零逃生。",
   },
+  {
+    slug: "science/led-resistor-calculator",
+    inputs: { vs: "12", if: "20", ifUnit: "0.001", vf: "2.2", count: "2" },
+    clicks: ["config='parallel';calc();document.getElementById('vs').value='LEDPAR_'+(String(document.getElementById('resP').textContent).indexOf('392.0 mW')>=0?'OK':'BAD_'+String(document.getElementById('resP').textContent));"],
+    expect: ["LEDPAR_OK"],
+    ref: "SMS-102 清账（并联功耗）：并联 n 只共用限流电阻，流过电阻的总电流 = n·If。Vs=12 V、Vf=2.2 V、If=20 mA、count=2：R=(12−2.2)/(0.02×2)=245 Ω，旧版 P=If²·R·n=0.02²×245×2=196.0 mW（少乘一个 n）；正确 P=(n·If)²·R=(0.04)²×245=392.0 mW。探针断言电阻功率卡为 392.0 mW，旧版 ⇒ LEDPAR_BAD，零逃生。",
+  },
+  {
+    slug: "science/led-resistor-calculator",
+    inputs: { vs: "12", if: "20", ifUnit: "0.001", vf: "2", count: "1" },
+    clicks: ["document.getElementById('tolerance').value='0.01';calc();var a=String(document.getElementById('resStd').textContent);document.getElementById('tolerance').value='0.05';calc();var b=String(document.getElementById('resStd').textContent);document.getElementById('tolerance').value='0.2';calc();var c=String(document.getElementById('resStd').textContent);document.getElementById('vs').value='LEDTOL_'+(a.indexOf('499.0')>=0&&b.indexOf('510.0')>=0&&c.indexOf('470.0')>=0?'OK':'BAD_'+a+'_'+b+'_'+c);"],
+    expect: ["LEDTOL_OK"],
+    ref: "SMS-103 清账（电阻精度档生效）：R=(12−2)/0.02=500 Ω，旧版 nearestStdR 写死 E24，四档精度对结果零影响；现按 tol 选系列：E96→499 Ω、E24→510 Ω、E6→470 Ω（IEC 60062 标准数列）。探针断言三档标准电阻各为 499/510/470，旧版三档同为 510 ⇒ LEDTOL_BAD，零逃生。",
+  },
+  {
+    slug: "science/led-resistor-calculator",
+    inputs: { vs: "12", if: "20", ifUnit: "0.001", vf: "2.2", count: "2" },
+    clicks: ["config='parallel';calc();var h=String(document.getElementById('resultDetail').innerHTML);document.getElementById('vs').value='LEDAP_'+(h.indexOf('400.2 mW')>=0?'OK':'BAD');"],
+    expect: ["LEDAP_OK"],
+    ref: "SMS-102 清账（并联实际功耗）：并联 2 只、R=245 Ω、E24 标准值 240 Ω，实际每支路电流 =(12−2.2)/240/2=20.4167 mA，电阻总电流 40.833 mA，实际功耗=(0.040833)²×240=400.17 mW≈400.2 mW；旧版按单支路电流平方×R×n≈200 mW（少乘一个 n）。探针断言明细含 400.2 mW，旧版 ⇒ LEDAP_BAD，零逃生。",
+  },
   // ---- BATCH251：数学基础族（9 例）——「分步推导行」批量收口 ----
   // 【判据】这一族（阶乘/斐波那契/分数/组合/排列/方差/中位数/众数/n 次根）几乎清一色地输出
   // 「编号步骤 + 可手算的等式」，且默认参数各不相同 ⇒ **首轮多数就能过**，不必换参博弈。

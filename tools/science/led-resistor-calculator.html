@@ -464,14 +464,20 @@ function getVf(){
   return parseFloat(sel);
 }
 
-const E24=[10,11,12,13,15,16,18,20,22,24,27,30,33,36,39,43,47,51,56,62,68,75,82,91];
+// E 系列标准阻值有效数字（1~10 基准，IEC 60062）。tol 决定采用哪一档系列。
+const E_SERIES={
+  0.01:[1.00,1.02,1.05,1.07,1.10,1.13,1.15,1.18,1.21,1.24,1.27,1.30,1.33,1.37,1.40,1.43,1.47,1.50,1.54,1.58,1.62,1.65,1.69,1.74,1.78,1.82,1.87,1.91,1.96,2.00,2.05,2.10,2.15,2.21,2.26,2.32,2.37,2.43,2.49,2.55,2.61,2.67,2.74,2.80,2.87,2.94,3.01,3.09,3.16,3.24,3.32,3.40,3.48,3.57,3.65,3.74,3.83,3.92,4.02,4.12,4.22,4.32,4.42,4.53,4.64,4.75,4.87,4.99,5.11,5.23,5.36,5.49,5.62,5.76,5.90,6.04,6.19,6.34,6.49,6.65,6.81,6.98,7.15,7.32,7.50,7.68,7.87,8.06,8.25,8.45,8.66,8.87,9.09,9.31,9.53,9.76],
+  0.05:[1.0,1.1,1.2,1.3,1.5,1.6,1.8,2.0,2.2,2.4,2.7,3.0,3.3,3.6,3.9,4.3,4.7,5.1,5.6,6.2,6.8,7.5,8.2,9.1],
+  0.1:[1.0,1.2,1.5,1.8,2.2,2.7,3.3,3.9,4.7,5.6,6.8,8.2],
+  0.2:[1.0,1.5,2.2,3.3,4.7,6.8]
+};
 
 function nearestStdR(v,tol){
   if(v<=0)return 0;
-  let best=v,bestR=v;
-  const series=E24;
-  for(let decade=0;decade<8;decade++){
-    const mult=Math.pow(10,decade-1);
+  let best=Infinity,bestR=v;
+  const series=E_SERIES[tol]||E_SERIES[0.05];
+  for(let decade=-1;decade<9;decade++){
+    const mult=Math.pow(10,decade);
     for(const base of series){
       const r=base*mult;
       const diff=Math.abs(r-v);
@@ -531,9 +537,10 @@ function calc(){
     R=(vs-totalVf)/ifVal;
     P=ifVal*ifVal*R;
   }else{
+    // 并联：n 只 LED 共用限流电阻，流过电阻的总电流 = count·ifVal，功耗 P = (count·ifVal)²·R
     totalVf=vf;
     R=(vs-vf)/(ifVal*count);
-    P=ifVal*ifVal*R*count;
+    P=Math.pow(count*ifVal,2)*R;
   }
   
   const __g1=count+'个 '+getLedName(vf)+' ('+configName+')';document.getElementById('ledType').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
@@ -564,7 +571,8 @@ function calc(){
   else pwRating='1/16W';
   
   const actualIf=config==='series'?(vs-totalVf)/stdR:(vs-vf)/stdR/count;
-  const actualP=config==='series'?actualIf*actualIf*stdR:actualIf*actualIf*stdR*count;
+  // 并联时电阻上的总电流为 count·actualIf（每支路电流 × 支路数），功耗按总电流平方计
+  const actualP=config==='series'?actualIf*actualIf*stdR:Math.pow(count*actualIf,2)*stdR;
   
   const __g10=fmtR(R);document.getElementById('resR').textContent=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));
   const __g11=fmtR(stdR);document.getElementById('resStd').textContent=(typeof __g11==='number'?(isFinite(__g11)?__g11:'—'):String(__g11).replace(/Infinity|NaN/g,'—'));

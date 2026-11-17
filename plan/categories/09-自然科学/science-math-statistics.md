@@ -189,15 +189,13 @@
 - `tools/science/geo-distance-calculator.html`：SMS-97 已修——Haversine、初始方位角与英里/海里换算正确（北京 39.9042,116.4074 → 上海 31.2304,121.4737 = 1067.310 km）；同组错误按字段保存后聚合渲染，lat1 越界不会被随后合法的 lon1 抹掉。仍共用 SMS-106。
 - `tools/science/heat-transfer-calculator.html`：1 条（SMS-100 承诺未实现）。默认铜 401 W/m·K / 10 cm² / 10 mm / ΔT 75 → 3007.50 W、热流密度 3,007,500.00 W/m² 正确；SMS-98/99 已修——非正/非有限参数清结果并拒绝，历史记录回填 17 个输入字段；比热容 Q=mcΔT 的主结果、卡、历史与导出按热量 J/kJ/kWh/kcal 显示。热辐射仍只有公式没有计算。
 - `tools/science/latlon-utm-converter.html`：SMS-101 已修——北京 39.9042,116.4074 → 50N 449345.061E 4417292.495N（收敛角 −0.2916°、比例因子 0.999632），正反算往返准确；经度 +180° 钳制到第 60 带（中央经线 177.0°），反算增加 E (0~1e6)/N (0~1e7) 范围与结果域校验，带号与 E/N 不匹配时明确拒绝而非输出荒谬经纬度。
-- `tools/science/led-resistor-calculator.html`：3 条（SMS-102、SMS-103 高，SMS-104 中）。串联 5 V/20 mA/2.2 V → R 140 Ω、P 56.0 mW 正确，标准电阻与实际电流亦正确；问题为并联功率少乘 n、精度下拉死输入、取最近值导致实际电流超额定。
+- `tools/science/led-resistor-calculator.html`：1 条（SMS-104 中）。串联 5 V/20 mA/2.2 V → R 140 Ω、P 56.0 mW 正确，标准电阻与实际电流亦正确；SMS-102/103 已修——并联功耗改按总电流 (n·If)²·R（12 V/2.2 V/20 mA/2 只由 196.0 mW 更正为 392.0 mW）、精度下拉按 tol 选 E96/E24/E12/E6 标准数列（R=500 时分别 499/510/470 Ω）。残留为「取最近标准值」是否改为「向上取以保证不超额定」的产品口径（页面明确承诺"最接近值"），保留待工程裁断。
 - `tools/science/log-calculator.html`：SMS-105 已修——极小值示例与 `fmt()` 普通分支均使用科学计数（阈值 ≤1e-3），`1e-5` 不再被 `toLocaleString()` 默认 3 位小数显示为 0。
 
 | 页面 | 问题（含 tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
 | tools/science/lcm-calculator.html | 第 1006 批已把 `lcm2` 改为先除后乘 `abs(a/gcd*b)` 并同步步骤行，缓解 gcd>1 时中间积溢出；但互质大数 lcm(1000000007,1000000009) 真值 1,000,000,016,000,000,063 超 2^53，Number 无法精确表示，仍需 BigInt 重构（未自判）。:234 | SMS-96 |
 | tools/science/heat-transfer-calculator.html | 承诺未实现：英文 intro「conductive, convective and radiative … Stefan-Boltzmann」、公式列表、公式框「☀️ 热辐射公式」、FAQ「传导、对流与辐射的热量传递」均承诺辐射计算，但页面仅 conduction/specific/convection 三模式，无 ε、辐射面积、T₁⁴/T₂⁴ 输入，Q=εσA(T₁⁴−T₂⁴) 无法计算。:179、:362、:395、:904 对 :198-201、:620-683 | SMS-100 |
-| tools/science/led-resistor-calculator.html | 并联功率少乘 n：R=(Vs−Vf)/(If·n) 正确，但 `P=If²·R·n` 应为 `(n·If)²·R`，`:578` 的 actualP 同错。12 V/20 mA/2.2 V/2 只显示 196.0 mW（真值 400.2 mW）、建议 1/2W（应 1W）；n=4 仍显示 196.0 mW（真值 800.3 mW）。:546-547、:578、:566-575 | SMS-102 |
-| tools/science/led-resistor-calculator.html | 「电阻精度」死输入：`nearestStdR(v,tol)` 的 `tol` 在函数体内从未使用，始终只查 E24 表，±1%(E96)/±10%(E12)/±20%(E6) 四个选项对结果零影响，明细却打印「(±xx%)」造成有效假象。:480-492、:245-250、:590 | SMS-103 |
 | tools/science/led-resistor-calculator.html | `nearestStdR` 取绝对差最近值而非「不小于」：R=140 Ω（5 V/20 mA/2.2 V）选 130 Ω，实际电流 21.54 mA 超设定 20 mA（+7.7%）；取 150 Ω 则为 20.53 mA。:482-492、:565、:577 | SMS-104 |
 | tools/science/gcd-calculator.html | 附加历史模板把 `.result-box` 文本截 80 字存入「结果」列，趋势图再 `parseFloat` 该文本：gcd/lcm 以「输入：」开头、log 以「x = 」开头、geo 以「📊 计算详情」开头 → 恒 NaN，图永不绘制且结果列显示输入串；factorial「10! = …」得 10，图表画的是输入 n 而非 n!。:326-332、:368（同模板 lcm:307/349、log:308/350、geo:1027/1069、factorial:343/385） | SMS-106 |
 
@@ -225,7 +223,7 @@
 ## 2026-11-06 科学工具静态续审（清单 598–605）
 
 - 以下历史结论对应旧源码，当前不应继续计为已确认：SMS-9/10 摩尔质量解析已支持括号、水合物并扩充至 118 元素（`molar-mass-calculator.html:233-273`）；SMS-21/22 配平已剥离前导系数并明确提示欠定非唯一（`equation-balancer.html:389-407`、`:547-570`、`:718-719`）；SMS-34/35 分数输入已有整数检查与除零提示（`fraction-calculator.html:357-393`）；SMS-40 PCB 输入无效时清结果、图表和缓存（`pcb-trace-width.html:406-422`）。上述为代码状态变化，不代表实际回归通过。
-- LED SMS-102/103/104 对应公式与 E24 最近值路径仍在（`led-resistor-calculator.html:478-493`、`:529-547`、`:565-590`）；原 SMS-104 举例中的 150 Ω 电流应为 18.67 mA（2.8 V/150 Ω），不是 20.53 mA。并联功率和标准电阻选择需工程复核。
+- LED SMS-102（并联功耗按 (n·If)²·R）与 SMS-103（精度档按 tol 选 E96/E24/E12/E6）已于第 1020 批修复；仅 SMS-104（取最近值 vs 向上取整的产品口径）仍在，页面承诺「最接近标准值」，改口径需工程/产品裁断，不自判。原举例中 150 Ω 电流应为 18.67 mA（2.8 V/150 Ω），不是 20.53 mA。
 - PCB 的参考表 SMS-39 仍需按当前资料复核，导出路径另仅用真值校验，负输入可能输出 NaN（`pcb-trace-width.html:473-485`）。
 - 本批仅静态读代码及算式复核，未运行浏览器，不能计双跑。
 
