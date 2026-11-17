@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+globalThis.__tbFs = fs; // 供 clicks 内做源码形态判别（harness 点击串无 require）
 const CASES = [
   // 原为 all_default 弱用例 + expect「满足要求」是判定文案（二值判读词，逃生项）。
   // 均布模式（calcMode 默认 uniform）：f = 5qL⁴/(384EI)，[f] = L/limitN。注入值刻意让校核不通过（跨分支）。
@@ -115,6 +117,12 @@ const CASES = [
       "42\n42\n42\n42\n42\n42\n42\n42\n42\n6223392.0 m³\n130691.23 t\n3111696.0 m³\n26687.15"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inL\":\"42\",\"inNbeam\":\"42\",\"inArea\":\"42\",\"inB\":\"42\",\"inT\":\"42\",\"inSpan\":\"42\",\"inRatio\":\"42\",\"inPc\":\"42\",\"inPs\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n42\n42\n6223392.0 m³\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "bridge/deflection-calc",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/bridge/deflection-calc.html','utf8');document.getElementById('__tbProbe').textContent='BRIDGEEX '+(h.indexOf('≈ 10.1 mm，约 L/594')<0&&h.indexOf('≈ 0.0017 mm')>=0?'OK':'BAD');"],
+    "expect": ["BRIDGEEX OK"],
+    "ref": "12-G6 算例纠偏：q=20、L=6、EI=2e8 按页内式 5qL⁴/(384EI)=1.69e-6 m≈0.0017 mm，旧深度解析误写「10.1 mm、L/594」（差约6000倍）。源码形态断言旧错串消失、新正确值出现；默认态不执行 clicks ⇒ 零逃生。"
   }
 
 ];
