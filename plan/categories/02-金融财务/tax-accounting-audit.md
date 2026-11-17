@@ -39,7 +39,7 @@
 ## 2026-11-03 续查：抵免、折旧、现金周期与净现值
 
 ### 续查覆盖
-- 新抽查 `tools/tax/foreign-tax-credit.html`、`tools/accounting/depreciation-declining.html`、`tools/accounting/cash-conversion-cycle.html`、`tools/audit/npv-discount.html` 4 页；T-N1～T-N8 均已修复并回归。
+- 新抽查 `tools/tax/foreign-tax-credit.html`、`tools/accounting/depreciation-declining.html`、`tools/accounting/cash-conversion-cycle.html`、`tools/audit/npv-discount.html` 4 页。
 
 ## 2026-11-03 续查（并行批 G）
 
