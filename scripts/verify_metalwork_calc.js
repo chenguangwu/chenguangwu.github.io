@@ -125,6 +125,12 @@ const CASES = [
     expect: ["22.05", "20.32"],
     ref: "d2=d−0.64952P=24−1.94856=22.05；d1=d−1.22687P=24−3.68061=20.32（默认 d10/P1.5→9.03/8.16，避开）" },
 
+  { slug: "metalwork/thread",
+    inputs: { threadType: "metric", diameter: "40", pitch: "2", material: "carbon",
+              threadDir: "external", batch: "medium" },
+    expect: ["铣削螺纹 573"],
+    ref: "985 备选转速与 vc 同比例：vc=60 m/min，基础 n=1000×60/(π×40)=477 rpm；铣削 vc×1.2=72 m/min，按同页 n=1000vc/(πd) 应为 573 rpm（旧版 n×0.8=382，与 vc 反向变动）。默认 batch=single 无该备选行，不命中。" },
+
 
   { slug: "metalwork/welding-heat",
     inputs: { current: "200", voltage: "25", speed: "30", eff: "0.8" },
@@ -740,9 +746,9 @@ const CASES = [
       "batch": "medium"
     },
     "expect": [
-      "8253×P = -3.466 mm 攻丝底孔 D = d - P = 0.0 mm 精度等级 6H 其他可选方法 方法 转速(rpm) 精度 适用批量 铣削螺纹(内) 273 6H 中批量 车削内螺纹 205 6H/4H 单件"
+      "螺距相对直径过大"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"diameter\":\"42\",\"pitch\":\"42\",\"threadType\":\"unified\",\"material\":\"alloy\",\"threadDir\":\"internal\",\"batch\":\"medium\"}，输出区含「8253×P = -3.466 mm 攻丝底孔 D = d - P = 0.0 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "985 几何守卫（原自动补强用例同步）：注入 diameter=42/pitch=42 内螺纹，旧版输出负牙底直径 -3.466 mm 与 0.0 mm 底孔；修复后小径/中径/底孔出现非正值即拦截并提示「螺距相对直径过大」。默认 10×1.5 不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "metalwork/wushua-zhinengyuqingliangduibijisuanqi",
