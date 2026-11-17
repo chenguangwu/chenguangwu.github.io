@@ -34,6 +34,25 @@ const CASES = [
     ref: "EL-J74：FAQ 不得宣称「标点可选是否计入」（页面无此开关）；页面与权威源两处虚标均已删。旧版两处都在 ⇒ BAD。"
   },
   {
+    slug: "edu/24-point-solver",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/24-point-solver.html','utf8');var head=h.slice(0,h.indexOf('</head>'));var ok=head.indexOf('og:description')>=0&&head.indexOf('T 点求解器，输入')<0;document.getElementById('__tbProbe').textContent='JHEAD:'+(ok?'OK':'BAD');"],
+    expect: ["JHEAD:OK"],
+    ref: "EL-J78：head 内不得有裸文本（旧版两行 `T 点求解器…\">` 会被提升到 body 首屏），og:description 须为完整 meta；旧版必 BAD。"
+  },
+  {
+    slug: "edu/24-point-solver",
+    inputs: { nums: "3,3,8,8" },
+    clicks: ["var h=document.getElementById('result').innerHTML;var fs=globalThis.__tbFs;var s=fs.readFileSync(process.cwd()+'/tools/edu/24-point-solver.html','utf8');var ok=h.indexOf('个不同的解')>=0&&h.indexOf('命中')<0&&s.indexOf('容差 1e-6')<0&&s.indexOf('容差 1e-9')>=0;document.getElementById('result').innerHTML='JSOLV:'+(ok?'OK':'BAD');"],
+    expect: ["JSOLV:OK"],
+    ref: "EL-J80：3,3,8,8 的多解不得被「取前 6 再去重」压成「命中 1 个示例」，且公式容差须与实现 1e-9 一致；旧版两项都不满足 ⇒ BAD。"
+  },
+  {
+    slug: "edu/capital-quiz",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/capital-quiz.html','utf8');var ok=h.indexOf('点击「计算」或「生成」按钮')<0&&h.indexOf('点击「开始」抽题')>=0;document.getElementById('__tbProbe').textContent='JCFAQ:'+(ok?'OK':'BAD');"],
+    expect: ["JCFAQ:OK"],
+    ref: "EL-J84：使用说明与 FAQPage 结构化数据须与真实按钮（开始/重置）一致，不得沿用「点击计算或生成」模板套话；旧版两处都在 ⇒ BAD。"
+  },
+  {
     slug: "edu/word-count-pages",
     inputs: { words: "-5000" },
     clicks: ["var w=document.getElementById('words').value;var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='NEG '+(w==='-5000'&&r.indexOf('请输入 ≥100 的正整数')>=0?'OK':'BAD');"],
@@ -725,9 +744,9 @@ const CASES = [
       "nums": "1 2 3 4"
     },
     "expect": [
-      "命中 6 个示例： (4 * (3 + (1 + 2))) = 24"
+      "个不同的解，展示前 20 个： (4 * (3 + (1 + 2))) = 24"
     ],
-    "ref": "24 点独立复算（穷举 +−×÷ 四则）：1,2,3,4 可解出 24，例如 4 × (3 + (1 + 2)) = 4 × 6 = 24。修复后表达式保留原始数字与中间层，不再退化成 (4 * 6) 这类丢失来源的式子；本次命中 6 个示例，首条即 4 × (3 + (1 + 2))。HTML 默认 nums='5,5,5,1' → 不产生该串。"
+    "ref": "24 点独立复算（穷举 +−×÷ 四则）：1,2,3,4 可解出 24，例如 4 × (3 + (1 + 2)) = 4 × 6 = 24。EL-J80 后不再先截断前 6 条再去重，改为枚举全部去重后展示前 20 并标注总数，故锚取新文案首段；旧版「命中 6 个示例」不含该串。HTML 默认 nums='5,5,5,1' → 不产生该串。"
   },
   // ── 零用例收敛（2026-10-09）────────────────────────────
   {
