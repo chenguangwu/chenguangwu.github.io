@@ -1552,27 +1552,6 @@
 - 影响：`tools/metallurgy/steel-profile-weight.html` 槽钢按理论重量备料/结算偏轻，批量采购会出现实际过磅显著超预算。
 - 方案：改为 `t*(a+2*b-2*t)*0.00785`（a 为槽钢高度、b 为翼缘宽、t 为厚度）；保留 1.05 腿端修正时须在公式框注明修正对象；补一条 20a 标准值对照，偏差 >10% 时提示按 GB/T 706 查表。
 
-### 12-N156 obstetrics/fetal-weight-hadlock：缺 FL 时落入「单腹围粗估」，BPD 8.8/HC 32/AC 30.5 只得 340 g 并被判极低出生体重（高，确认缺陷）
-- 问题：分支只处理「四参数齐全」「BPD+AC+FL」「AC+FL」「仅 AC」「仅 FL」。当用户填了 BPD+HC+AC 而漏填 FL 时，既不进 BPD+AC+FL（要求 hasFl），也不进四参数，直接落到 `hasAc` 的单腹围三次方近似 `ac³×0.012`，BPD/HC 被静默丢弃。
-- 证据：`tools/obstetrics/fetal-weight-hadlock.html:134`（Hadlock 四参数公式）、`:138-141`（BPD/HC/AC/FL 四个输入）、`:287-288`（仅按是否有值分支）、`:309-311`（`else if(hasAc)` → `Math.pow(ac,3)*0.012`）
-- 复现（node 复算）：BPD 8.8、HC 32.0、AC 30.5、FL 留空 → 340.47 g，分类「极低出生体重」，建议「警惕早产并发症」；同一组参数补 FL=6.6 后四参数法得 2471 g。期望缺 FL 时改用 BPD+HC+AC 的三参数式或明确提示「缺 FL 无法估算」，而不是 340 g。
-- 影响：`tools/obstetrics/fetal-weight-hadlock.html` 常规产检漏填一项股骨长即触发极端低体重报警，可能引发不必要的 FGR 转诊与孕妇焦虑。
-- 方案：单腹围近似仅在「确实只有 AC」时启用；BPD+HC+AC 走 Hadlock 三参数（AC+HC）或提示补 FL；`ac³×0.012` 系数明显偏小（AC 30.5 仅 340 g），应改用有出处的一元公式并标注误差。
-
-### 12-N157 obstetrics/fetal-weight-hadlock：单 FL 分支多乘 10，FL 6.6 cm 输出 4897 g 巨大儿（高，确认缺陷）
-- 问题：仅填股骨长时执行 `efw = 660 + 64.2 * fl * 10`，把 cm 值额外放大 10 倍（等价于按 mm 代入）。该分支还先赋 `660+64.2*fl*10`，无任何量纲注释或范围校验。
-- 证据：`tools/obstetrics/fetal-weight-hadlock.html:312-313`
-- 复现（node 复算）：仅填 FL=6.6 cm → 660+64.2×6.6×10 = 4897.2 g，分类「巨大儿」，提示评估糖尿病与肩难产；去掉 ×10 为 1083.7 g。FL 6.6 cm 常见于约 30–32 周，EFW 应在 1.1–1.8 kg 量级，4897 g 不可能。
-- 影响：`tools/obstetrics/fetal-weight-hadlock.html` 只做单项 FL 粗估时必然报巨大儿，分娩方式评估被错误数据带偏。
-- 方案：删除 `*10`，并把单 FL 公式写明出处与适用孕周；增加 `fl` 合理区间（如 2–9 cm），超出即拒绝；单项参数结果只作参考、不参与巨大儿分级。
-
-### 12-N158 obstetrics/fetal-weight-hadlock：宫高×腹围系数取 0.3，32 cm/95 cm 仅 912 g，与同屏 Johnson 3100 g 冲突（高，确认缺陷）
-- 问题：临床估重页把 `efw = sfh * ac * 0.3` 作为主结果，注释却写「宫高×腹围×0.9×0.28」；同一屏另算 Johnson `(sfh−12)×155`。主结果 912 g 被判「极低出生体重」，Johnson 3100 g 属正常，两者相差 3.4 倍且无主次说明。
-- 证据：`tools/obstetrics/fetal-weight-hadlock.html:351-355`（注释与 `efw=sfh*ac*0.3`）、`:364`（Johnson 结果卡）、`:369-370`（两种口径并列）、`:322-323`（按 912 g 分级）
-- 复现（node 复算）：宫高 32 cm、腹围 95 cm → 32×95×0.3 = 912 g，分类「极低出生体重」；同屏 Johnson 法 (32−12)×155 = 3100 g。按注释的 ×0.9×0.28 为 766 g，更低；若仅 ×0.9 则 2736 g，与 Johnson 同量级。
-- 影响：`tools/obstetrics/fetal-weight-hadlock.html` 床旁估重默认参数即给出极端低体重并触发错误分类，临床可能据此启动不必要的干预。
-- 方案：统一采用有文献出处的宫高×腹围公式（系数与单位写进公式框），或只保留 Johnson 法为主结果；两法并列时明确「以 Johnson/超声为准」，且低于 1500 g 的结果先校验输入量纲（cm vs mm）。
-
 ### 12-N160 sales/stacked-discount：折扣输入标注「8 = 8折」但代码按百分数 ÷100，按提示填 8 变成 0.8 折（高，确认缺陷）
 - 问题：折扣输入 label 写「折扣（如 8 = 8折）」，同一元素的 placeholder 写「如 80（0–100）」；`calc()` 实际执行 `cur×(value/100)`，即 value=80 才是 8 折。按 label 填 8 会打 0.8 折，明细步骤还显示「第1层8折」。
 - 证据：`tools/sales/stacked-discount.html:263`（label「如 8 = 8折」与 placeholder「如 80（0–100）」并存）、`:300-301`（`cur*(d.value/100)`）、`:307`（`d.value+'折'` 拼步骤名）
