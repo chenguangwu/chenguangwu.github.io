@@ -155,6 +155,10 @@ const CASES = [
     inputs: { lam: "480", L: "2", d: "0.4" },
     expect: ["2.400"],
     ref: "Δy=λL/d=480e-9×2/(0.4e-3)=2.4e-3 m=2.400 mm" },
+  { slug: "optics/young-fringe",
+    inputs: { lam: "0", L: "2", d: "0.4" },
+    expect: ["波长 λ、屏距 L、缝距 d 均必须 > 0"],
+    ref: "998 分母误标修复（PQ-04）：λ=0 旧版被误标「波长 λ 是本计算的分母，不能为 0」，实际 λ 在分子；修复后只把 d 当分母，零值走统一正性提示。" },
   {
     "slug": "optics/angular-magnification",
     "inputs": {

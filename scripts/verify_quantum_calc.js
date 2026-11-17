@@ -93,6 +93,19 @@ const CASES = [
     inputs: { lam: "800e-9" },
     expect: ["2.483e-19", "1.550"],
     ref: "E=hc/λ=6.626e-34×2.998e8/800e-9=2.483e-19 J=1.550 eV" },
+  {
+    "slug": "quantum/photon-energy",
+    "inputs": { lam: "500e-9" },
+    "clicks": ["var cap=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(sel,keys){cap=keys;}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__photon_energyExtras();document.getElementById('__tbProbe').textContent='DIFF '+(cap?cap.join(','):'NONE');"],
+    "expect": ["DIFF lam"],
+    "ref": "998 差异对照监视真实输入（PQ-22）：旧版 diffBox 监视常量 H，永远没有差异；修复后监视 λ。默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
+    "slug": "quantum/photon-energy",
+    "inputs": { lam: "-500e-9" },
+    "expect": ["波长 λ 必须为正数"],
+    "ref": "998 波长正值守卫（PQ-22）：旧版负波长直接算出负能量与负 eV；修复后主区与明细同时拒绝。默认 500e-9 不含该串。"
+  },
   { slug: "quantum/photon-flux",
     inputs: { P: "2", lam: "400e-9" },
     expect: ["4.027e+18"],
