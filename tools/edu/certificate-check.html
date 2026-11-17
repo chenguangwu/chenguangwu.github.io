@@ -155,13 +155,14 @@
 
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">结果</button>
   <button type="button" class="tbk-tab" data-pane="chart">图表</button>
   <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
   <button type="button" class="tbk-tab" data-pane="his">历史</button>
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📜 证书查询">📜 Certificate Query &amp; Verification</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="查询各类职业/语言/IT证书信息">Check a certificate's number format and key fields for a first-pass review; confirm authenticity via the official channel.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按名称/类别速查证书目录与报考信息">Look up certificates by name or category in a local catalog; this tool does not verify authenticity.</p>
     
     <div class="search-row">
       <div data-tb="preset" data-tb-presets='[{"label":"search-input:电工","labelEn":"search-input=电工","values":{"search-input":"电工"}}]'></div>
@@ -226,8 +227,8 @@
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ISO/IEC 17024:2012, personnel certification">ISO/IEC 17024:2012, personnel certification</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="证书核验">Certificate verification</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="核验应查验发证机构资质与证书编号，而非仅凭图片判断">verification checks issuer accreditation and certificate number not an image</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="官方核验途径">Official verification</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="官方核验须到发证机构官网查验机构资质与证书编号；本工具只做目录速查，不提供核验">Official verification requires checking issuer accreditation and certificate number on the issuer website; this tool only searches a local catalog and performs no verification</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ISO/IEC 17024:2012, personnel certification">ISO/IEC 17024:2012, personnel certification</td>
         </tr>
         <tr>
@@ -287,9 +288,16 @@ const CATS = ['英语', '管理', '财会', '金融', '教育', 'IT', '建筑', 
 const FAV_KEY = 'cert_fav';
 const PLAN_KEY = 'cert_plan';
 
-function getFav() { return (function(){try{return JSON.parse(localStorage.getItem(FAV_KEY) || '[]')}catch(e){try{localStorage.removeItem(FAV_KEY)}catch(_){}return []}})(); }
+function certKey(c) { return c ? c.n + '|' + c.d : ''; }
+function normCertKey(x) {
+  if (typeof x !== 'string') return '';
+  if (x.indexOf('|') >= 0) return x;
+  for (var i = 0; i < CERTS.length; i++) if (CERTS[i].n === x) return certKey(CERTS[i]);
+  return x;
+}
+function getFav() { return (function(){try{return JSON.parse(localStorage.getItem(FAV_KEY) || '[]')}catch(e){try{localStorage.removeItem(FAV_KEY)}catch(_){}return []}})().map(normCertKey); }
 function setFav(arr) { localStorage.setItem(FAV_KEY, JSON.stringify(arr)); }
-function getPlan() { return (function(){try{return JSON.parse(localStorage.getItem(PLAN_KEY) || '[]')}catch(e){try{localStorage.removeItem(PLAN_KEY)}catch(_){}return []}})(); }
+function getPlan() { return (function(){try{return JSON.parse(localStorage.getItem(PLAN_KEY) || '[]')}catch(e){try{localStorage.removeItem(PLAN_KEY)}catch(_){}return []}})().map(normCertKey); }
 function setPlan(arr) { localStorage.setItem(PLAN_KEY, JSON.stringify(arr)); }
 
 let state = { cat: 'all' };
@@ -315,8 +323,8 @@ function doSearch() {
   const favs = getFav();
   const plan = getPlan();
   let results = CERTS.filter(c => {
-    if (state.cat === 'have' && !favs.includes(c.n)) return false;
-    if (state.cat === 'plan' && !plan.includes(c.n)) return false;
+    if (state.cat === 'have' && !favs.includes(certKey(c))) return false;
+    if (state.cat === 'plan' && !plan.includes(certKey(c))) return false;
     if (state.cat !== 'all' && state.cat !== 'have' && state.cat !== 'plan' && c.c !== state.cat) return false;
     if (q) {
       const hay = (c.n + ' ' + c.en + ' ' + c.c + ' ' + c.d + ' ' + c.desc).toLowerCase();
@@ -331,8 +339,8 @@ function doSearch() {
     return;
   }
   el.innerHTML = results.map(c => {
-    const have = favs.includes(c.n);
-    const pl = plan.includes(c.n);
+    const have = favs.includes(certKey(c));
+    const pl = plan.includes(certKey(c));
     return `<div class="cert-card">
       <div class="cert-head">
         <div>
@@ -351,27 +359,27 @@ function doSearch() {
         <span>💼 ${c.salary}</span>
       </div>
       <div class="check-row">
-        <button type="button" class="check-btn have ${have ? 'have' : ''}" onclick="toggleHave('${c.n.replace(/'/g, "\\'")}')">${have ? '✓ 已获得' : '○ 已获得'}</button>
-        <button type="button" class="check-btn want ${pl ? 'want' : ''}" onclick="togglePlan('${c.n.replace(/'/g, "\\'")}')">${pl ? '📅 备考中' : '○ 备考中'}</button>
+        <button type="button" class="check-btn have ${have ? 'have' : ''}" onclick="toggleHave('${certKey(c).replace(/'/g, "\\'")}')">${have ? '✓ 已获得' : '○ 已获得'}</button>
+        <button type="button" class="check-btn want ${pl ? 'want' : ''}" onclick="togglePlan('${certKey(c).replace(/'/g, "\\'")}')">${pl ? '📅 备考中' : '○ 备考中'}</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function toggleHave(n) {
+function toggleHave(key) {
   const favs = getFav();
-  const i = favs.indexOf(n);
+  const i = favs.indexOf(key);
   if (i >= 0) favs.splice(i, 1);
-  else favs.unshift(n);
+  else favs.unshift(key);
   setFav(favs);
   doSearch();
 }
 
-function togglePlan(n) {
+function togglePlan(key) {
   const plan = getPlan();
-  const i = plan.indexOf(n);
+  const i = plan.indexOf(key);
   if (i >= 0) plan.splice(i, 1);
-  else plan.unshift(n);
+  else plan.unshift(key);
   setPlan(plan);
   doSearch();
 }
@@ -449,14 +457,7 @@ function __certificate_checkRender(keys,rk,en){
             }catch(e2){}
             __certificate_check_skip=false;
         });
-        var nums=[],labels=[];
-        for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d.__tbScore);
-            if(isFinite(v)){nums.push(v);labels.push(__certificate_checkTime(arr[j].t));}
-        }
-        if(nums.length>=2){
-            TBKit.chart.line('#certificate_checkChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
-        }
+        // 图表固定展示各分类证书数（真实静态数据源），不解析结果文本，也不被历史渲染覆盖
     }catch(e3){}
 }
 function __certificate_checkExtras(){
@@ -505,11 +506,16 @@ function __certificate_checkExport(){
 function __certificate_checkPresets(){
     if (typeof TBKit === 'undefined') return;
 }
+function __certificate_checkCategoryChart(){
+    if (typeof TBKit === 'undefined' || !TBKit.chart || !TBKit.chart.line) return;
+    var nums=CATS.map(function(c){return CERTS.filter(function(x){return x.c===c;}).length;});
+    TBKit.chart.line('#certificate_checkChart',{labels:CATS,series:[{name:'证书数',data:nums}]});
+}
 var __certificate_check_f0=(typeof doSearch==='function')?doSearch:null;
 if(__certificate_check_f0){
     doSearch=function(){ var __r=__certificate_check_f0.apply(null,arguments); try{ __certificate_checkExtras(); }catch(e){} return __r; };
 }
-function __certificate_checkBoot(){ try{ __certificate_checkPresets(); }catch(e){} }
+function __certificate_checkBoot(){ try{ __certificate_checkPresets(); }catch(e){} try{ __certificate_checkCategoryChart(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __certificate_checkBoot();
 else document.addEventListener('DOMContentLoaded', __certificate_checkBoot);
 </script>
@@ -569,7 +575,7 @@ else document.addEventListener('DOMContentLoaded', __certificate_checkBoot);
 <!-- /SEO 介绍区块 -->
 <script>/*TBKIT-INJECT-START*/
 (function(){
-  var P={"chart": ["certificate_checkChart"], "tbl": ["certificate_checkTable"], "his": ["certificate_checkHist"]};
+  var P={"res": ["results", "result-stats"], "chart": ["certificate_checkChart"], "tbl": ["certificate_checkTable"], "his": ["certificate_checkHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
     var bar=document.querySelector('.tbk-tabbar');

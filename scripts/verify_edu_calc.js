@@ -15,6 +15,60 @@ globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  // ── 第1168批：证书查询唯一键/首屏图表/诚实口径，时区转换 DST 口径/输入校验 ──
+  {
+    slug: "edu/certificate-check",
+    inputs: { "search-input": "电工" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/certificate-check.html','utf8');var ok=h.indexOf('number format')<0&&h.indexOf('does not verify authenticity')>=0&&h.indexOf('官方核验须到发证机构官网')>=0;document.getElementById('__tbProbe').textContent='JL85:'+(ok?'OK':'BAD');"],
+    expect: ["JL85:OK"],
+    ref: "EL-J85：副标题与引据表不得宣称编号格式预检；旧版英文含 number format 且引据写「证书核验」⇒ BAD。",
+  },
+  {
+    slug: "edu/certificate-check",
+    inputs: { "search-input": "心理咨询师" },
+    clicks: ["var s={};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};if(typeof certKey!=='function'){document.getElementById('__tbProbe').textContent='JKEY:BAD';}else{var a=CERTS.filter(function(c){return c.n==='心理咨询师';});var k1=certKey(a[0]),k2=certKey(a[1]);toggleHave(k1);var fav=JSON.parse(s['cert_fav']||'[]');var ok=a.length===2&&k1!==k2&&fav.length===1&&fav[0]===k1;document.getElementById('__tbProbe').textContent='JKEY:'+(ok?'OK':'BAD');}"],
+    expect: ["JKEY:OK"],
+    ref: "EL-J86：两条同名心理咨询师须用「名称|发证机构」唯一键，点其中一条只写一条收藏；旧版按名称做键且无 certKey ⇒ BAD。",
+  },
+  {
+    slug: "edu/certificate-check",
+    inputs: { "search-input": "软考" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/certificate-check.html','utf8');var ok=h.indexOf('data-pane=\"res\"')>=0&&h.indexOf('\"res\": [\"results\"')>=0&&h.indexOf('CATS.map')>=0&&h.indexOf(\"name:'证书数'\")>=0;document.getElementById('__tbProbe').textContent='JTAB:'+(ok?'OK':'BAD');"],
+    expect: ["JTAB:OK"],
+    ref: "EL-J88：首个 tab 须为结果区，图表须用各类别证书数这一真实静态数据源；旧版首 tab 为空图表且无 res 组 ⇒ BAD。",
+  },
+  {
+    slug: "edu/convert-1",
+    inputs: { val: "09:00", from: "8", to: "-5" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/convert-1.html','utf8');var d=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu/convert-1']);var en=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/en/edu/convert-1.json','utf8')));var ok=h.indexOf('自动处理跨日与夏令时')<0&&h.indexOf('夏令时期间目标时区偏移再加 60 分钟')<0&&d.indexOf('夏令时：标注夏令时偏移')<0&&en.indexOf('another 60 minutes is added')<0&&h.indexOf('按固定标准偏移换算')>=0;document.getElementById('__tbProbe').textContent='JDST:'+(ok?'OK':'BAD');"],
+    expect: ["JDST:OK"],
+    ref: "EL-J89/J90：meta/公式/权威源/英文词典须统一为固定标准偏移口径，删除自动处理夏令时承诺；旧版四处均有夏令时虚标 ⇒ BAD。",
+  },
+  {
+    slug: "edu/convert-1",
+    inputs: { val: "25:00", from: "8", to: "-5" },
+    expect: ["请输入有效 HH:MM（00:00-23:59）"],
+    ref: "EL-J91：小时越界 25:00 必须拒绝；旧版正则抓子串输出 10:00 次日，不含错误文案 ⇒ 强判别。",
+  },
+  {
+    slug: "edu/convert-1",
+    inputs: { val: "23:99", from: "8", to: "-5" },
+    expect: ["请输入有效 HH:MM（00:00-23:59）"],
+    ref: "EL-J91：分钟越界 23:99 必须拒绝；旧版静默进位输出 00:39 次日 ⇒ 强判别。",
+  },
+  {
+    slug: "edu/convert-1",
+    inputs: { val: "12:00abc", from: "8", to: "-5" },
+    expect: ["请输入有效 HH:MM（00:00-23:59）"],
+    ref: "EL-J91：尾随字符须拒绝，正则必须锚定整串；旧版子串匹配照常换算 ⇒ 强判别。",
+  },
+  {
+    slug: "edu/convert-1",
+    inputs: { val: "20:00", from: "8", to: "0" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/convert-1.html','utf8');var ok=h.indexOf(\"'有效性趋势'\")<0&&h.indexOf('换算时刻（当日分钟）')>=0;document.getElementById('__tbProbe').textContent='JMIN:'+(ok?'OK':'BAD');"],
+    expect: ["JMIN:OK"],
+    ref: "EL-J92：趋势图须以换算时刻的当日分钟数为数值并标注 HH:MM，不再画有效性 0/1；旧版 series 名为「有效性趋势」⇒ BAD。",
+  },
   {
     slug: "edu/essay-word-counter",
     inputs: { text: "“你好”😀" },
@@ -588,8 +642,8 @@ const CASES = [
   {
     slug: "edu/convert-1",
     inputs: { "val": "01:30", "from": "60", "to": "0" },
-    expect: ["13:30 前一日（-3天）"],
-    ref: "时区/时刻换算：结果 = 输入时刻 − from 时区偏移 + to 时区偏移，跨 24h 时按天进位并在末段给出「前一日（−N 天）」。"
+    expect: ["13:30 前一日（3 天）"],
+    ref: "时区/时刻换算：结果 = 输入时刻 − from 时区偏移 + to 时区偏移，跨 24h 时按天进位并在末段给出「前一日（N 天）」。"
        + "默认 val=12:00 且 from=to=0 ⇒ 输出 `12:00 同日`，与注入态不同。锚点含天进位说明段，属该页独有推导。",
   },
   {
@@ -887,9 +941,9 @@ const CASES = [
       "to": "-7"
     },
     "expect": [
-      "abc123测试\n-7\n-7\n请输入 HH:MM 格式"
+      "abc123测试\n-7\n-7\n请输入有效 HH:MM（00:00-23:59）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"val\":\"abc123测试\",\"from\":\"-7\",\"to\":\"-7\"}，输出区含「abc123测试\n-7\n-7\n请输入 HH:MM 格式」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"val\":\"abc123测试\",\"from\":\"-7\",\"to\":\"-7\"}，输出区含「abc123测试\n-7\n-7\n请输入有效 HH:MM（00:00-23:59）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "edu/convert-2",
