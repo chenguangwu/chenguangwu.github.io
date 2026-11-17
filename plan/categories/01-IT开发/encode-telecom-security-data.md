@@ -33,18 +33,6 @@
 
 ## 2026-11-03 续查（并行批 I）
 
-### I-4 BER→Eb/N0 反解被 0 dB 下界截断，低信噪比目标给出错误 0.00 dB（中，确认）
-- 描述：二分区间固定 lo=0，而 BER 输入允许 (0,1)；当目标 BER 高于 0 dB 对应的 BER（BPSK/QPSK 约 7.87×10⁻²）时，解应落在负 dB，算法只能返回 0 dB，且“校验”行仍写“与目标一致”。
-- 证据：`tools/telecom/ber-snr.html:261-269,295-310`；BPSK、BER=0.1 → 输出 `所需 Eb/N0 ≈ 0.00 dB`，反算 BER=7.865e-2（实际约 -0.86 dB）；BER=0.5 同样返回 0.00 dB（node 复算）。
-- 影响：极高误码率场景的所需 Eb/N0 被高估（可达约 1 dB），校验文案掩盖偏差。
-- 方案：二分下界改为 -20（或按各调制 BER→0.5 的极限取负值），超出可解范围时明确提示；校验行按实际反算值比对，不一致时提示。
-
-### I-5 AP 覆盖页深度解析的“室内密集”半径与页内公式不符（中，确认）
-- 描述：算例先用 office(+8 dB) 得 125 m，再称改“室内密集(+15 dB)”降至约 76 m；同参数按页内 FSPL 反解应为 55.9 m。
-- 证据：`tools/telecom/ap-coverage.html:189,245-252`；Pt20/Gt3/Gr2/Pr_min−75/f2400/extra0/fade10 → office MAPL 82.00、125.3 m；dense MAPL 75.00、55.9 m（node 复算），页面写 76 m。
-- 影响：布点密度参考值偏差约 36%，与同页公式自相矛盾。
-- 方案：把 76 m 更正为 55.9 m（同步直径），或补充 76 m 采用的额外假设；增加“按公式复核算例”的校验。
-
 ### 留存优化
 - `tools/encode/utf-8.html:131-135` 公式列了 4 档（含 2 字节拉丁/希腊），但只有 3 个输入，无 2 字节与组合 emoji 入口；可增加“2 字节字符数”或直接粘贴文本自动分档，并在结果旁对比字符数/字节数/码点数。
 - `tools/encode/base64-length.html:164-169` 深度解析提到 MIME 每 76 字符折行，但结果只给行数不含 CRLF 开销；可并列“纯字符数 / 含 CRLF 实际传输字节”，并同时展示有/无填充两种口径。
@@ -57,4 +45,3 @@
 
 ### 续查覆盖
 - 本轮新抽查 8 页：`tools/encode/utf-8.html`、`tools/encode/base64-length.html`、`tools/encode/jwt-size.html`、`tools/telecom/ber-snr.html`、`tools/telecom/ap-coverage.html`、`tools/data/yaml-json.html`、`tools/data/pivot-table.html`、`tools/data/data-cleaner.html`；与前两批已覆盖的 convert-4、subnet-planner、bandwidth-calculator、virtual-safe、passphrase-generator、csv-analyzer、csv-to-markdown、emergency-contacts、base32、path-loss、csv-json 不重复。
-- 新增 13 条（高 3 条 I-6/I-10/I-11、中 9 条、低 1 条）。证据为源码行号与 node 内存执行页面函数复算；未开浏览器，未做英文态/移动端/门禁或线上验证。
