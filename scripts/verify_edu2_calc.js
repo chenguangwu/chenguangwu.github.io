@@ -26,9 +26,9 @@ const CASES = [
 {
   "slug": "edu2/exam-analysis",
   "inputs": { "fullScore": "110" },
-  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/exam-analysis.html','utf8');var d=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu2/exam-analysis']);var ok=d.indexOf('均值=78.4')>=0&&d.indexOf('78.38')<0&&h.indexOf('已清空输入')>=0&&h.indexOf('__exam_analysisScaleSample')>=0;document.getElementById('__tbProbe').textContent='JDOC:'+(ok?'OK':'BAD');"],
-  "expect": ["JDOC:OK"],
-  "ref": "EL-J112：权威源算例均值精度须与页面 toFixed(1) 一致（78.4），清空须有 Toast，预设缩放须存在；旧版权威源写 78.38 ⇒ BAD。"
+    "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/exam-analysis.html','utf8');var d=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu2/exam-analysis']);var sq=String.fromCharCode(39);var boot='if(String(document.getElementById('+sq+'scoreInput'+sq+').value||'+sq+sq+').trim()) calc();';var ok=d.indexOf('均值=78.4')>=0&&d.indexOf('78.38')<0&&h.indexOf('已清空输入')>=0&&h.indexOf('__exam_analysisScaleSample')<0&&h.indexOf(boot)>=0;document.getElementById('__tbProbe').textContent='JDOC:'+(ok?'OK':'BAD');"],
+    "expect": ["JDOC:OK"],
+    "ref": "EL-J112：权威源算例均值精度须与页面 toFixed(1) 一致（78.4），清空须有 Toast；第1188批又删掉 __exam_analysisScaleSample 并取消首屏自动载样，现改为断言缩放样例函数不存在且只有 scoreInput 非空才 calc()。旧版保留样例缩放函数并首屏自动载样 ⇒ 必红。"
 },
 {
     "slug": "edu2/exam-analysis",
@@ -238,6 +238,18 @@ const CASES = [
   "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/study-progress.html','utf8');var ok=h.indexOf('subjects: document.getElementById(\\'subjectInput\\').value')>=0&&h.indexOf('targetDate: document.getElementById(\\'targetDate\\').value')>=0&&h.indexOf('dailyHours: document.getElementById(\\'dailyHours\\').value')>=0&&h.indexOf('__study_progressDetail = list.map')>=0&&h.indexOf('study-progress-detail.csv')>=0&&document.getElementById('dailyHours').value==='6';document.getElementById('__tbProbe').textContent='SPPERSIST '+(ok?'OK':'BAD');"],
   "expect": ["SPPERSIST OK"],
   "ref": "EL-J135：旧版 saveInput 仅存科目纯文本、targetDate/dailyHours 每次重置，导出绑历史快照表而非当前明细。现存 JSON 三字段（兼容旧纯文本 fillSaved）、导出用 __study_progressDetail 生成「科目/完成/总数/完成度/剩余工时」明细 CSV。源码哨兵，旧版必红。"
+},
+{
+  "slug": "edu2/wrong-book",
+  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/wrong-book.html','utf8');var ok=h.indexOf('function parseLocalDate(s)')>=0&&h.indexOf('return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));')>=0&&h.indexOf('new Date(it.reviewDate)')<0&&h.split('parseLocalDate(it.reviewDate)').length-1===3;document.getElementById('__tbProbe').textContent='WBLOCAL '+(ok?'OK':'BAD');"],
+  "expect": ["WBLOCAL OK"],
+  "ref": "EL 当日错题到期复核：reviewDate 保存的是本地日历日期字符串，旧版 new Date('YYYY-MM-DD') 按 UTC 解析，在 UTC- 时区会落到前一天，导致“今日复习”在统计卡里被当到期/逾期。现统一 parseLocalDate 按本地零点解析，三处引用一并替换；源码哨兵，旧版必红。"
+},
+{
+  "slug": "edu2/exam-countdown",
+  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/exam-countdown.html','utf8');var ok=h.indexOf('var studyDays = workdays + (countWeekend ? weekends : 0);')>=0&&h.indexOf('周末计入可复习天数')>=0&&h.indexOf('可复习天数（含周末）')>=0&&h.indexOf('workdays--')<0;document.getElementById('__tbProbe').textContent='EXCWKND '+(ok?'OK':'BAD');"],
+  "expect": ["EXCWKND OK"],
+  "ref": "R 批承诺复核：旧版 countWeekend 只改卡片显示，可复习天数不随勾选变化；节假日在 weekday 分支 workdays-- 后又 workdays++，实际未扣减。现 studyDays 按勾选含/不含周末，标签与说明同步，节假日只计一次不再错扣；源码哨兵，旧版必红。"
 }
 ];
 async function main() {

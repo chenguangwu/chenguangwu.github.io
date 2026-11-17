@@ -126,7 +126,7 @@
     </div>
 
     <div class="checkbox-row">
-      <label><input type="checkbox" id="countWeekend" checked> 统计周末</label>
+      <label><input type="checkbox" id="countWeekend" checked> 周末计入可复习天数</label>
       <label><input type="checkbox" id="countHoliday" checked> 含法定节假日（按调休）</label>
     </div>
 
@@ -299,16 +299,15 @@ function calc(){
       if(wd === 0 || wd === 6){
         weekends++;
         if(isHoliday) holidays++;
+      } else if(isHoliday){
+        holidays++;
       } else {
-        if(isHoliday){
-          holidays++;
-          workdays--;
-        }
         workdays++;
       }
     }
     if(workdays < 0) workdays = 0;
   }
+  var studyDays = workdays + (countWeekend ? weekends : 0);
 
   var status, statusTag;
   if(totalDays > 0){
@@ -336,6 +335,7 @@ function calc(){
     html += '<h3 style="margin-top:8px;">时间分布</h3>';
     html += '<div class="data-grid">';
     html += '<div class="data-card"><div class="num">'+workdays+'</div><div class="label">工作日（天）</div></div>';
+    html += '<div class="data-card"><div class="num">'+studyDays+'</div><div class="label">'+(__en?(countWeekend?'Study days (incl. weekends)':'Study days (weekdays only)'):(countWeekend?'可复习天数（含周末）':'可复习天数（仅工作日）'))+'</div></div>';
     if(countWeekend){
       html += '<div class="data-card"><div class="num">'+weekends+'</div><div class="label">周末（天）</div></div>';
     } else {
@@ -368,7 +368,7 @@ function calc(){
     html += '<h3 style="margin-top:16px;">'+(__en?'Time remaining':'时间余量')+'</h3>';
     var weeks=Math.floor(totalDays/7), remDays=totalDays%7;
     html += '<p style="font-size:14px;">'+(__en?('About '+weeks+' weeks and '+remDays+' days left.'):('剩余约 '+weeks+' 周 '+remDays+' 天。'))+'</p>';
-    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">距考试还有 '+totalDays+' 天，含 '+workdays+' 个工作日'+(countWeekend?('、'+weekends+' 个周末'):'（周末未单独统计）')+(countHoliday?('、'+holidays+' 个节假日'):'')+'。</p>';
+    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+(__en?('Days left: '+totalDays+'; study days: '+studyDays+(countWeekend?' (incl. weekends)':' (weekdays only)')+(countHoliday?'; holidays: '+holidays:'')):('距考试还有 '+totalDays+' 天，可复习 '+studyDays+' 天'+(countWeekend?'（含周末）':'（仅工作日）')+(countHoliday?'、含 '+holidays+' 个节假日':'')))+'。</p>';
     if(countHoliday && !hasHolidayData){
       html += '<p style="font-size:12px;color:var(--danger);">'+(__en?'No built-in holiday data for this year; no holiday deduction was applied.':'该年份未内置节假日表，未扣减法定节假日。')+'</p>';
     }

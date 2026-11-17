@@ -1843,6 +1843,14 @@ const CASES = [
     expect: ["RDSCLR OK"],
     ref: "EL 阅读估算清空复核：注入 680 字/分 + 15000 字先得有效估算，再把速度置空；旧版 else 分支缺失，旧估算保留。现无效输入明确写「请填写有效的阅读速度和目标字数。」，同时顺手清掉历史载入的无参 i18nText()。动态状态链断言，旧版必红。",
   },
+
+  // ── 第1193批：权重归一提示 ──
+  {
+    slug: "edu/grade-weight-calculator",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/grade-weight-calculator.html','utf8');var ok=h.indexOf('const weightHint=Math.abs(totalW-100)>0.001')>=0&&h.indexOf('结果按总权重归一')>=0&&h.indexOf('${weightHint}')>=0;document.getElementById('__tbProbe').textContent='GWSUM '+(ok?'OK':'BAD');"],
+    expect: ["GWSUM OK"],
+    ref: "E2 权重和提示：权重本来按 totalW 归一，Σw≠100 并非计算错误，但结果区未说明，容易被误认为漏项。现非 100% 时显式提示「结果按总权重归一；若按百分比口径请使合计为 100%」，英文同步；源码哨兵，旧版无提示必红。",
+  },
 ];
 
 async function main() {
