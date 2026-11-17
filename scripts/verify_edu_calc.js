@@ -907,7 +907,13 @@ const CASES = [
   "clicks": ["(function(){var T=1700000000000;var D=Date.now;Date.now=function(){return T;};startTime=T-60000;correctKeys=100;totalKeys=100;updateStats();var w=String(document.getElementById('wpm').textContent);Date.now=D;document.getElementById('__tbProbe').textContent='TYPWPM '+(w==='20'?'OK':'BAD '+w);})()"],
   "expect": ["TYPWPM OK"],
   "ref": "第398批：速度单位为 WPM（标准词/分），算法 WPM=(正确按键数/5)/(分钟数)；每分钟 100 个正确字符应输出 20 而非 100「字/分」。锁定算法与文案一致（meta 已由「字/分」改 WPM 标准词/分），默认态正确按键 0 ⇒ WPM 0，不命中。"
-}
+  },
+  {
+    slug: "edu/chinese-zodiac",
+    inputs: { "year": "1" },
+    expect: ["🐔 鸡年 辛酉年 · 金命 1年出生"],
+    ref: "12-EL-F17：getZodiac/getGanZhi 原用 (y-4)%12/%10，y<4 时负数取模得负下标、数组返回 undefined，calc 取 z.a 抛 TypeError 结果区不更新。改防御性取模 ((y-4)%12+12)%12 与 ((y-4)%10+10)%10。year=1 ⇒ (1-4)%12=-3→9 鸡、(1-4)%10=-3→7 辛、地支 9 酉 ⇒ 辛酉鸡年；默认 year=2000（庚辰龙）不命中，旧版崩溃无输出 ⇒ 零逃生。"
+  }
 ];
 
 async function main() {
