@@ -2553,6 +2553,20 @@ const CASES = [
     "clicks": ["(function(){globalThis.TBKit={util:{isEn:function(){return true;}}};try{showFormulas();}catch(e){}var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='MATEN '+((h.indexOf('Matrix formula reference')>=0&&h.indexOf('Addition:')>=0&&!/[\\u4e00-\\u9fff]/.test(h))?'OK':'BAD '+h.slice(0,100));})()"],
     "expect": ["MATEN OK"],
     "ref": "632 复核失败重做：showFormulas() 原无条件写入中文标题与多行中文说明，英文态（?lang=en-US）点击「公式说明」仍全中文。修复后按 __matIsEn() 分流整套英文文案。探针 mock TBKit.util.isEn=true 后调用，断言含 Matrix formula reference / Addition: 且无 CJK；默认态不执行 clicks ⇒ 零逃生。"
+  },
+  {
+    "slug": "science/astro-geo-calculator",
+    "inputs": { "sun-lat": "-33.86", "sun-lon": "151.21", "sun-date": "2026-06-21" },
+    "clicks": ["calcSunriseSunset()"],
+    "expect": ["33.8600°S, 151.2100°E", "05:03", "14:47"],
+    "ref": "SMS-65/67：hourAngle 算地方太阳时，转北京时间应 +8−lon/15（东八区中央经线120°E），旧版写反为 +lon/15−8。悉尼 2026-06-21（南半球冬季，dayOfYear=172、赤纬23.4498°）：cosH=−tan(−33.86°)tan(23.4498°)=0.2898⇒H=73.0796°⇒太阳时日出 12−73.0796/15=7.128h；修正 7.128+8−151.21/15=5.047h⇒05:03、日落 14:47。位置行旧版固定 °N/°E 对负值显示 −33.8600°N；修复后按符号输出 33.8600°S, 151.2100°E。默认 lat/lon/date 不同且需 clicks 触发 ⇒ 三条均不命中（默认态 sun-date 空，不产生该位置/时刻串）。"
+  },
+  {
+    "slug": "science/astro-geo-calculator",
+    "inputs": { "wind-speed": "12", "wind-unit": "kmh" },
+    "clicks": ["calcWindLevel()"],
+    "expect": ["3.3 风速（m/s）", "蒲福 2 级", "轻风"],
+    "ref": "SMS-66：蒲福表各级 min~max 间留 0.1 m/s 空隙（1.5→1.6、3.3→3.4…），12 km/h=3.3333 m/s 正落 3.3~3.4 空隙，旧版 !found 兜底 12 级飓风。修复后按 min 下界逐级命中：3.3333≥level2.min(1.6) 且 <level3.min(3.4) ⇒ 2 级轻风。3.3 m/s 为 3.3333.toFixed(1)。默认 wind-speed=5 m/s（命中3级微风）且需 clicks ⇒ 三条均不命中。"
   }
 ];
 

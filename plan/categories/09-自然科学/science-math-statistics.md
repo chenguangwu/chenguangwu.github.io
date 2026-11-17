@@ -149,7 +149,7 @@
 
 ## Y 批 · 自然科学·天文/地理/计算（2026-11-04）
 
-- `tools/science/astro-geo-calculator.html`：5 条 —— 地震能量（log₁₀E=1.5M+4.8）、TNT 当量、地平线公式（3.57/3.86√h）、湿度（Magnus+干湿球）与气压均正确，但日出日落时区修正符号写反（高）、蒲福表 0.1 m/s 空隙把常见风速判成 12 级飓风（高），另有半球标签、固定遮挡高度卡与图表恒空三处中等问题。
+- `tools/science/astro-geo-calculator.html`：2 条（SMS-68/69）—— 地震能量、TNT 当量、地平线、湿度与气压正确；SMS-65/66/67 已于第 1027 批修复（日出日落时区改 `+8−lon/15` 北京 04:49、蒲福表按 min 下界命中消灭 0.1 空隙、位置行按符号输出 N/S/E/W）；剩余固定遮挡高度卡与历史图表恒空两处中等问题。
 - `tools/science/astronomy-toolkit.html`：4 条 —— 撞击坑 CMM 标度律（默认 50 m/20 km/s → 1.14 km 瞬态坑、约 9.4 Mt）、UTM 正反算、观测评分主体正确；SMS-73（经度无校验/61 带）已修——正向经度限 -180~180、带号钳制 1~60，反向加 E/N 物理范围与结果域守卫；剩余中等问题为月相照明度线性插值偏差、等星等文案、66.5° 极昼早退、附加历史读错结果框。
 - `tools/science/barcode-pharmacode.html`：0 条 —— 非固定映射假工具；走共享 `js/barcode-lib.js` 的 `pharmacodeEncode`（`num+1` 二进制去最高位、1→宽条、条间 1 模块空白），3→两窄条、131070→16 宽条，取值 3～131070 有守卫，画布渲染与自动生成正常。
 - `tools/science/calc-cycle.html`：2 条 —— 元素量、括号嵌套与未知元素报错正确，但文档三处示范的水合物 `CuSO4.5H2O` 实际报「无法识别的字符：5」（承诺未实现），且多余右括号会抛未捕获 TypeError（高）。
@@ -157,9 +157,6 @@
 
 | 页面 | 问题（含 tools/&lt;dir&gt;/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
-| tools/science/astro-geo-calculator.html | 日出/日落时区修正符号写反：`sunriseHour + lon/15 − 8` 应为 `+ 8 − lon/15`。北京 2026-06-21 算得 04:21，正确 04:49（偏早 28.7 min）；经度 0° 时偏差达 8 h（20:35 vs 12:35，node 复刻）。:527-528 | SMS-65 |
-| tools/science/astro-geo-calculator.html | 蒲福表各级 min/max 之间留 0.1 m/s 空隙（0.2→0.3、1.5→1.6、3.3→3.4…），落在空隙的值全部走 `!found` 兜底 → 12 级飓风；12 km/h（3.333 m/s）、0.9 km/h（0.25 m/s）实测均显示「蒲福 12 级 / 飓风」。:661-673、:693 | SMS-66 |
-| tools/science/astro-geo-calculator.html | 位置行固定拼接 `°N`/`°E`：南/西半球显示为「负值+北/东标」，如 lat=-33.86 →「-33.8600°N」。:510 | SMS-67 |
 | tools/science/astro-geo-calculator.html | 「不同距离处被遮挡的最低高度」三张卡只用 `d²/(2R)*1000`，完全不含观察高度 h：h=100 m 时 5 km 处实际无遮挡，仍固定输出 2.0 m（常量 1.96），换任何高度数字都不变（写死常量式输出）。:631-646 | SMS-68 |
 | tools/science/astro-geo-calculator.html | 历史图表对结果文本做 `parseFloat`，而结果以「📍 位置：」开头 → 恒 NaN，`nums.length<2`，图表永不绘制（表格/历史可记录）。:896-902、:936-943 | SMS-69 |
 | tools/science/astronomy-toolkit.html | 月相照明度用 8 段等距线性插值：月龄 12.9 天显示 74.9%，余弦模型实际 96.1%（偏差 21.2 pp）；且 12.91963 处由 75% 直接跳到 100%、满月窗口 3.69 天恒 100%（node 复刻）。:607-626 | SMS-70 |
@@ -172,7 +169,7 @@
 | tools/science/calc-distance.html | 中点经度 `lon1+atan2(By,cosφ1+Bx)` 未归一化到 ±180：(-30,178)→(-20,-170) 输出「184.24568」（node 复刻）。:249、:265 | SMS-79 |
 | tools/science/calc-distance.html | 使用说明写「Ctrl/Cmd + Enter 复制结果」，键盘处理只匹配 Ctrl/Cmd+C（且需无选中文本），按说明操作无反应。:174 对 :367 | SMS-80 |
 
-- 统计：5 页 / 15 条（高 4 / 中 11）/ 安全 0 条 / 假工具 0 个 / 编号区间 SMS-65～SMS-80（SMS-78 飞行时间进位已于 973 批修复销账）。
+- 统计：5 页 / 12 条（高 2 / 中 10）/ 安全 0 条 / 假工具 0 个 / 编号区间 SMS-65～SMS-80（SMS-65/66/67 第 1027 批修复、SMS-78 飞行时间进位 973 批销账）。
 
 ## Y 批 · 自然科学·统计/物理/化学（2026-11-04）
 

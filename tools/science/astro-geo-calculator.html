@@ -496,7 +496,8 @@ function calcSunriseSunset() {
   var latRad = lat * Math.PI / 180;
   var cosHourAngle = -Math.tan(latRad) * Math.tan(declination);
 
-  var html = '<p><strong>&#128205; 位置：</strong>' + lat.toFixed(4) + '&deg;N, ' + lon.toFixed(4) + '&deg;E</p>';
+  var latHemi = lat < 0 ? 'S' : 'N', lonHemi = lon < 0 ? 'W' : 'E';
+  var html = '<p><strong>&#128205; 位置：</strong>' + Math.abs(lat).toFixed(4) + '&deg;' + latHemi + ', ' + Math.abs(lon).toFixed(4) + '&deg;' + lonHemi + '</p>';
   html += '<p><strong>&#128197; 日期：</strong>' + dateStr + '（第 ' + dayOfYear + ' 天）</p>';
   html += '<p><strong>&#127774; 太阳赤纬：</strong>' + (declination * 180 / Math.PI).toFixed(2) + '&deg;</p>';
 
@@ -511,10 +512,10 @@ function calcSunriseSunset() {
     var sunriseHour = 12 - hourAngle / 15;
     var sunsetHour = 12 + hourAngle / 15;
 
-    // 经度修正（简化：用经度偏移估算时区，这里按北京时间 UTC+8 粗调）
-    var timezoneOffset = 8; // 默认东八区
-    var localSunrise = sunriseHour + (lon / 15) - timezoneOffset;
-    var localSunset = sunsetHour + (lon / 15) - timezoneOffset;
+    // 经度修正：hourAngle 算出的是地方太阳时，转北京时间 = 太阳时 + (时区中央经线120° − 当地经度)/15
+    var timezoneOffset = 8; // 默认东八区（中央经线 120°E）
+    var localSunrise = sunriseHour + timezoneOffset - (lon / 15);
+    var localSunset = sunsetHour + timezoneOffset - (lon / 15);
 
     // 归一化到 0~24
     function normalizeHour(h) { h = h % 24; if (h < 0) h += 24; return h; }
@@ -671,15 +672,14 @@ function calcWindLevel() {
   var speedMs = unit === 'kmh' ? speed / 3.6 : speed;
   var speedKmh = unit === 'kmh' ? speed : speed * 3.6;
 
-  // 查找风级
-  var found = null;
-  for (var i = 0; i < beaufortData.length; i++) {
-    if (speedMs >= beaufortData[i].min && speedMs <= beaufortData[i].max) {
-      found = beaufortData[i];
-      break;
-    }
+  // 查找风级：按各级下限 min 逐级下界命中（speed < 下一级 min 即本级），
+  // 避免旧版 min~max 离散区间在 0.2~0.3 等处留下 0.1 m/s 空隙、落空隙误判 12 级飓风。
+  var found = beaufortData[0]; // 0 级兜底（speedMs>=0）
+  for (var i = 1; i < beaufortData.length; i++) {
+    if (speedMs >= beaufortData[i].min) found = beaufortData[i];
+    else break;
   }
-  if (!found) found = beaufortData[beaufortData.length - 1]; // 超过12级按12级
+  // 超过 12 级上限仍按 12 级（beaufortData 末级 min=32.7、max=999）
 
   // 风级颜色（高等级优先判断）
   var badgeClass = 'beaufort-low';
