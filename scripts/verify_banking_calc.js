@@ -155,6 +155,12 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "banking/emi-loan",
+  "inputs": { "p": "600000", "r": "0", "y": "30" },
+  "expect": ["1666.67 月供 EMI", "600000.00 还款总额"],
+  "ref": "965 批零利率合法退化：r=0 时 EMI=P/N=600000/360=1666.67、还款总额=P=600000，守卫不再把 r 拦为分母。默认 r=4.9 ⇒ 1432962.15，不命中 ⇒ 强判别。真机 11/11。"
+},
+{
   "slug": "banking/fd-quarterly",
   "inputs": {
     "p": "150000",
@@ -252,6 +258,12 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "banking/loan-total-interest",
+  "inputs": { "p": "600000", "r": "0", "y": "30" },
+  "expect": ["0.00 贷款总利息", "1666.67 月供 EMI"],
+  "ref": "965 批零利率合法退化：r=0 时总利息=0、月供=P/N=1666.67。默认 r=4.9 ⇒ 682962.15，不命中 ⇒ 强判别。真机 11/11。"
+},
+{
   "slug": "banking/net-worth",
   "inputs": {
     "assets": "750000",
@@ -309,6 +321,12 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "banking/rd-maturity",
+  "inputs": { "p": "1000", "r": "0", "t": "2" },
+  "expect": ["24000.00 到期金额 M", "0.00 利息总额"],
+  "ref": "965 批零利率合法退化：r=0 时零复利退化为纯本金 P·t·12=1000×2×12=24000、利息=0。默认 r=8 ⇒ 18793.99，不命中 ⇒ 强判别。真机 14/14。"
+},
+{
   "slug": "banking/savings-goal-monthly",
   "inputs": {
     "fv": "300000",
@@ -319,6 +337,12 @@ const CASES = [
     "244482.50"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "banking/savings-goal-monthly",
+  "inputs": { "fv": "360000", "r": "0", "y": "10" },
+  "expect": ["3000.00 每月应存 PMT", "360000.00 累计存入"],
+  "ref": "965 批零利率合法退化：r=0 时每月应存=FV/N=360000/120=3000、累计=360000。默认 r=4 ⇒ 244482.50，不命中 ⇒ 强判别。真机 11/11。"
 },
 {
   "slug": "banking/tax-equivalent-yield",
