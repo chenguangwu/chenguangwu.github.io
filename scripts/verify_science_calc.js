@@ -2615,6 +2615,13 @@ const CASES = [
     "clicks": ["calcMoonPhase();var a=document.getElementById('moonPhaseName').textContent,b=document.getElementById('moonIllum').textContent;document.getElementById('moonDate').value='MOONILL_'+(a==='盈凸月'&&b==='93.9'?'OK':'BAD '+a+'/'+b);"],
     "expect": ["MOONILL_OK"],
     "ref": "SMS-70：照明度原用 8 段等距线性插值，2026-01-01（页面按 UTC 12:00 取日）月龄 12.4215 天落在 9.22831~12.91963 段，旧式算 50+(12.4215−9.22831)/3.69133×25≈71.6%，且 12.91963~16.61096 全程恒 100%（3.69 天平台）。修复为相角余弦模型 (1−cos(2π·age/S))/2：age=12.4215、S=29.530588 ⇒ 93.9%，月相名称仍按原阈值判「盈凸月」。旧版 ⇒ MOONILL_BAD 71.6%；默认态（moonDate 空→今天）不命中。"
+  },
+  {
+    "slug": "science/astronomy-toolkit",
+    "inputs": { "polarLat": "66.5" },
+    "clicks": ["calcPolar();var t=String(document.getElementById('polarResult').innerHTML);document.getElementById('polarLat').value='POLAREDGE_'+(t.indexOf('66.5°')>=0&&t.indexOf('不是全年极昼或极夜')>=0&&t.indexOf('全年为极昼或极夜')<0?'OK':'BAD '+t.slice(0,60));"],
+    "expect": ["POLAREDGE_OK"],
+    "ref": "SMS-72：纬度 66.5° 时 declCritical=23.5°，大于页面简化模型的 maxDecl=23.44°，旧版进入早退分支输出「理论上全年为极昼或极夜」，与常用 66.5° 极圈定义直接矛盾。修复后说明该纬度处在常用 66.5° 与 23.44° 真极圈之间：太阳中心几何口径不满足严格阈值，但视直径+折射可致夏至/冬至前后短暂无落日或无日出，并明确否定「全年」。Time and Date 天文资料确认极圈按太阳中心定义、上缘与折射会让极点内侧出现偏差，不能把边界附近写成全年极昼/极夜。默认 polarLat=70（进入正常日期分支）不命中。"
   }
 ];
 
