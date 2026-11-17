@@ -196,10 +196,10 @@
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>加权平均：按权重汇总。</li>
-<li>折算：百分制与等级互转。</li>
+<li>权重归一：结果按总权重归一，权重可任意正数。</li>
 <li>批量：多科一次算。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：科目权重 0.6/0.4，成绩 90/80→加权 86。</div></div>
+<div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：科目权重 60/40，成绩 90/80 → 加权分 = (90×60+80×40) ÷ 100 = 86；权重可为任意正数，结果按总权重归一。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>与<a class="term-link" href="/tools/edu/grade-calculator.html">成绩计算器</a>？</dt><dd>本工具侧重多科/多模块加权合并。</dd>
@@ -223,20 +223,56 @@
 let items=[{name:'平时作业',weight:20,score:85},{name:'期中考试',weight:30,score:78},{name:'期末考试',weight:50,score:''}];
 function render(){
   let html='';items.forEach((it,i)=>{
-    html+=`<div class="input-row" style="margin-bottom:8px;"><div style="flex:2;"><label>项目名称</label><input type="text" value="${ToolBox.escHtml(it.name)}" onchange="upd(${i},'name',this.value)"></div><div><label>权重(%)</label><input type="number" value="${it.weight}" min="0" max="100" step="5" onchange="upd(${i},'weight',parseFloat(this.value)||0)" placeholder="如 ${it.weight}（0–100）"></div><div><label>得分</label><input type="number" value="${it.score}" min="0" max="100" step="0.5" placeholder="未出" onchange="upd(${i},'score',this.value==''?'':parseFloat(this.value))"></div><button onclick="del(${i})" style="background:#ef5350;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;margin-top:20px;">×</button></div>`;
+    html+=`<div class="input-row" style="margin-bottom:8px;"><div style="flex:2;"><label>项目名称</label><input type="text" value="${ToolBox.escHtml(it.name)}" onchange="upd(${i},'name',this.value)"></div><div><label>权重(%)</label><input type="number" value="${it.weight}" min="0" max="100" step="5" onchange="upd(${i},'weight',this.value)" placeholder="如 ${it.weight}（0–100）"></div><div><label>得分</label><input type="number" value="${it.score}" min="0" max="100" step="0.5" placeholder="未出" onchange="upd(${i},'score',this.value)"></div><button onclick="del(${i})" style="background:#ef5350;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;margin-top:20px;">×</button></div>`;
   });
   const __g1=html;document.getElementById('items').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));calc();
 }
 function addItem(){items.push({name:'项目'+(items.length+1),weight:10,score:''});render();}
 function del(i){items.splice(i,1);render();}
-function upd(i,k,v){items[i][k]=v;calc();}
+function upd(i,k,v){
+  if(k==='weight'){
+    const n=Number(v);
+    if(!Number.isFinite(n)||n<0||n>100){
+      document.getElementById('result').innerHTML='<p style="color:var(--danger)">权重须在 0–100</p>';
+      return;
+    }
+    items[i][k]=n;
+  }else if(k==='score'){
+    const n=v===''?null:Number(v);
+    if(v!==''&&(!Number.isFinite(n)||n<0||n>100)){
+      document.getElementById('result').innerHTML='<p style="color:var(--danger)">得分须在 0–100</p>';
+      return;
+    }
+    items[i][k]=v===''?'':n;
+  }else{
+    items[i][k]=v;
+  }
+  calc();
+}
 function calc(){
+  const raw=String(document.getElementById('target').value||'').trim();
+  if(raw===''){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请填写目标分</p>';
+    return;
+  }
+  const target=Number(raw);
+  if(!Number.isFinite(target)||target<0||target>100){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">目标分须在 0–100</p>';
+    return;
+  }
+  if(items.length===0){
+    document.getElementById('result').innerHTML='<p style="color:var(--text-muted)">请添加项目</p>';
+    return;
+  }
   let totalW=0,weighted=0,knownW=0,needScore='--';
-  const target=parseFloat(document.getElementById('target').value)||60;
   items.forEach(it=>{
     totalW+=it.weight;
-    if(it.score!==''&&!isNaN(it.score)){weighted+=it.score*it.weight/100;knownW+=it.weight;}
+    if(it.score!==''&&Number.isFinite(it.score)){weighted+=it.score*it.weight/100;knownW+=it.weight;}
   });
+  if(!(totalW>0)||items.some(it=>!Number.isFinite(it.weight)||it.weight<0||it.weight>100||(it.score!==''&&(!Number.isFinite(it.score)||it.score<0||it.score>100)))){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">权重或得分无效，请检查（权重 0–100 且合计大于 0，得分 0–100）</p>';
+    return;
+  }
   const remainW=totalW-knownW;
   const remain=target-weighted;
   if(remainW>0){
@@ -245,8 +281,8 @@ function calc(){
   }
   document.getElementById('known').value=weighted.toFixed(2);
   let finalScore='--';
-  const allScored=items.every(it=>it.score!==''&&!isNaN(it.score));
-  if(allScored&&totalW>0)finalScore=(weighted/(totalW/100)).toFixed(2);
+  const allScored=items.every(it=>it.score!==''&&Number.isFinite(it.score));
+  if(allScored)finalScore=(weighted/(totalW/100)).toFixed(2);
   const __g2=`<div style="text-align:center;padding:12px;"><div style="font-size:14px;color:var(--text-muted);">加权总分${allScored?'':''}</div><div style="font-size:48px;font-weight:bold;color:var(--primary);">${allScored?finalScore:'--'}</div><div style="color:var(--text-light);">${allScored?'分':'部分成绩未出'}</div></div><table><tbody><tr><td>总权重</td><td style="text-align:right;">${totalW}%</td></tr><tr><td>已出成绩权重</td><td style="text-align:right;">${knownW}%</td></tr><tr><td>剩余权重</td><td style="text-align:right;">${remainW}%</td></tr><tr><td>要达到${target}分，剩余需考</td><td style="text-align:right;font-weight:600;color:${needScore.includes('不可能')?'#ef5350':needScore.includes('已达标')?'#66bb6a':'var(--primary)'};">${needScore}</td></tr></tbody></table>`;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 render();

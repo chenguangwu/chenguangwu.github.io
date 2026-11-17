@@ -16,6 +16,48 @@ const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
   {
+    slug: "edu/grade-weight-calculator",
+    inputs: { target: "" },
+    clicks: ["var tg=document.getElementById('target').value;var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='TGEMPTY '+(tg===''&&r.indexOf('请填写目标分')>=0?'OK':'BAD');"],
+    expect: ["TGEMPTY OK"],
+    ref: "EL-J43：目标清空必须提示「请填写目标分」；旧版 parseFloat(空串)||60 静默按 60 算。",
+  },
+  {
+    slug: "edu/grade-weight-calculator",
+    inputs: { target: "0" },
+    clicks: ["var tg=document.getElementById('target').value;var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='TGZERO '+(tg==='0'&&r.indexOf('要达到0分')>=0&&r.indexOf('已达标')>=0?'OK':'BAD');"],
+    expect: ["TGZERO OK"],
+    ref: "EL-J43：目标 0 是合法输入，按 0 计算并显示已达标；旧版静默改成 60 且给 61.0 分缺口。",
+  },
+  {
+    slug: "edu/grade-weight-calculator",
+    inputs: { target: "72" },
+    clicks: ["var tg=document.getElementById('target').value;upd(0,'score',120);var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='SC120 '+(tg==='72'&&r.indexOf('得分须在 0–100')>=0?'OK':'BAD');"],
+    expect: ["SC120 OK"],
+    ref: "EL-J44：得分 120 越界拒绝写入并提示；旧版按 120 加权且仍显示正常结果。",
+  },
+  {
+    slug: "edu/grade-weight-calculator",
+    inputs: { target: "72" },
+    clicks: ["var tg=document.getElementById('target').value;upd(1,'weight',-20);var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='WTNEG '+(tg==='72'&&r.indexOf('权重须在 0–100')>=0?'OK':'BAD');"],
+    expect: ["WTNEG OK"],
+    ref: "EL-J44：负权重拒绝写入；旧版总权重变 50% 仍输出「不可能达到」。",
+  },
+  {
+    slug: "edu/grade-weight-calculator",
+    inputs: { target: "72" },
+    clicks: ["var tg=document.getElementById('target').value;del(2);del(1);del(0);var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='EMPTY '+(tg==='72'&&r.indexOf('请添加项目')>=0?'OK':'BAD');"],
+    expect: ["EMPTY OK"],
+    ref: "EL-J45：删光项目显示「请添加项目」；旧版 every() 空数组为真，输出「-- 分」。",
+  },
+  {
+    slug: "edu/grade-weight-calculator",
+    inputs: { target: "72" },
+    clicks: ["var tg=document.getElementById('target').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var s=JSON.stringify(JSON.parse(h)['edu/grade-weight-calculator']);var ok=tg==='72'&&s.indexOf('折算：百分制与等级互转')<0&&s.indexOf('权重 60/40')>=0;document.getElementById('__tbProbe').textContent='GWFIX '+(ok?'OK':'BAD');"],
+    expect: ["GWFIX OK"],
+    ref: "EL-J46：权威源删「百分制与等级互转」虚标，示例改 60/40 并注明归一；旧版 0.6/0.4 且与 UI 单位冲突。",
+  },
+  {
     slug: "edu/exam-gpa-calculator",
     inputs: { "course-name": "TbGpaS" },
     clicks: ["var nm=document.getElementById('course-name').value;setScale('100');document.getElementById('course-credit').value='3';document.getElementById('course-grade').value='120';addCourse();var r=document.getElementById('course-list').innerHTML;document.getElementById('__tbProbe').textContent='SC120 '+(nm==='TbGpaS'&&r.indexOf(nm)<0?'OK':'BAD');"],
