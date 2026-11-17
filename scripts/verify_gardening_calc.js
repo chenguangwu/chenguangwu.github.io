@@ -106,6 +106,14 @@ const CASES = [
   "ref": "12-N182 月份区间未展开：旧实现 renderMonthView 用 v.seed.includes('3月') 字面子串匹配，区间开头的「3-4月 / 8月」不含连续「3月」，导致三月漏 12 种（黄瓜/萝卜/白菜/生菜/韭菜/葱/西瓜/南瓜/冬瓜/苦瓜/丝瓜/茼蒿），同时「1月」误命中「11-12月」的 11 月。修复后 __monthsOf 展开 a-b月 与「常年」为月集合，三月播种应有 21 种。本用例取 12 个旧版必漏品种，逐个检查是否落在三月卡片 <span> 内；旧版全漏得 000000000000 ⇒ 红，修复版全中 ⇒ 绿。定位用汉字「三月/四月」h4 边界，与 new Date() 当前月无关 ⇒ 跨天稳定；探针串只在 clicks 注入后出现 ⇒ 零逃生。"
 },
 {
+  "slug": "gardening/plant-calendar",
+  "clicks": [
+    "toggleSeason('spring');showMonthView=true;renderView();var h=String(document.getElementById('view').innerHTML);var m=h.match(/（筛选 (\\d+) 种）/);document.getElementById('__tbProbe').textContent='N183 '+(m?m[1]:'NA')"
+  ],
+  "expect": ["N183 31"],
+  "ref": "12-N183 季节筛选同源于区间未展开：旧 getFiltered 用 v.seed.includes('3月')，春季 3/4/5 月实际 25 种，漏 生菜(3-9月)/大蒜·洋葱(收获5-6月)/毛豆(4-6月)/苋菜(4-6月)/空心菜(4-7月)，应为 31 种。修复后与 N182 共用 __monthsOf 做月份集合交集。探针只在 toggleSeason 注入后出现（默认无筛选不渲染「（筛选 N 种）」）⇒ 零逃生；旧版得 25 红、修复版 31 绿。"
+},
+{
   "slug": "gardening/plant-care",
   "inputs": {
     "searchInput": "zzz"

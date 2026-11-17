@@ -202,6 +202,14 @@ const CASES = [
   "ref": "新增回归：圆管外径 20、壁厚 3 → 截面积 π·t·(a−t) = π×3×17 = 160.22 mm²，米重 = 160.22×0.00785 = 1.258 kg/m，总重 7.55 kg。旧实现把圆管当实心圆钢 a²×0.00617 = 2.468 kg/m，虚高 96%"
 },
 {
+  "slug": "metallurgy/steel-profile-weight",
+  "clicks": [
+    "var cap=null;globalThis.TBKit={chart:{line:function(s,o){cap=o.series[0].data;}}};var el=function(id,v){document.getElementById(id).value=v;};el('type','tube');el('d1','20');el('t','3');__spwChart();var tu=cap?cap[3]:null;el('type','channel');el('d2','10');el('t','3');__spwChart();var ch=cap?cap[3]:null;document.getElementById('__tbProbe').textContent='SPWCH '+(tu!==null&&Math.abs(tu-1.258)<0.01?'T':'t')+(ch!==null&&Math.abs(ch-0.801)<0.01?'C':'c')"
+  ],
+  "expect": ["SPWCH TC"],
+  "ref": "12-N154/N155 图表载体漏扫：主结果已修圆管/槽钢，但 TBKIT-INJECT 的 __spwChart() 无 tube 分支（旧版全 0）且槽钢仍用 (a+b−2t)×t×0.00785×1.05。stub TBKit.chart.line 捕获 series 数据，a=20 索引 3：圆管 π×3×17×0.00785=1.258、槽钢 (20+20−6)×3×0.00785=0.801；旧版得 0 与 0.594 ⇒ SPWCH tc 红。默认态不执行 clicks、无该探针 ⇒ 零逃生。"
+},
+{
   "slug": "metallurgy/analysis-34",
   "inputs": {
     "data": "0.62,0.64,0.61,0.65,0.63,0.60",
