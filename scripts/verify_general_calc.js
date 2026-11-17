@@ -2968,6 +2968,18 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vTemp\":\"42\",\"vPress\":\"42\",\"vSpeed\":\"42\",\"vMat\":\"fk\",\"vMed\":\"water\"}，输出区含「预计寿命 (年) 222.86 温度因子 0.12 压力因子 0.99 速度因子…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "machinery/lifespan-7",
+    "inputs": { "vTemp": "80", "vPress": "5", "vSpeed": "1500", "vShaft": "100", "vMat": "nbr", "vMed": "oil" },
+    "expect": ["39.270 PV值 (MPa·m/s)"],
+    "ref": "991 轴径参与 PV（MM-H97）：轴径 100mm 时线速度 = 1500×0.1×π/60 = 7.854 m/s，PV = 5×7.854 = 39.270 MPa·m/s；旧版轴径写死 50mm 恒得 19.635。"
+  },
+  {
+    "slug": "machinery/lifespan-7",
+    "inputs": { "vTemp": "80", "vPress": "5", "vSpeed": "1500", "vShaft": "0", "vMat": "nbr", "vMed": "oil" },
+    "expect": ["轴径须大于 0mm"],
+    "ref": "991 轴径守卫（MM-H97）：vShaft=0 旧版仍按 50mm 照算 PV 19.635；修复后拦截并提示轴径须大于 0mm，默认 50mm 不含该串。"
+  },
+  {
     "slug": "general/lifespan-wear-2",
     "inputs": {
       "vRate": "42",

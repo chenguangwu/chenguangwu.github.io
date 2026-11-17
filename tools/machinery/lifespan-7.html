@@ -109,11 +109,11 @@
      <h2 data-zh="🧮 密封件寿命计算">🧮 Seal Life Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入密封材质、工作温度、压力与转速，综合估算密封件使用寿命">From seal material, operating temperature, pressure and shaft speed, estimates seal service life.</p>
         <div class="formula-box">
-      <div class="formula-title">📐 计算公式</div> <div class="formula-eq">密封件寿命估算<br>温度因子 = 2^((材料最优温 − 工况温度) ÷ 10)（超温取 0.05，下限 0.01）<br>压力因子 = e^(−压力 ÷ 20)；速度因子 = 转速&gt;0 ? e^(−转速 ÷ 5000) : 1<br>预计寿命(h) = 材料基准寿命 × 温度因子 × 压力因子 × 速度因子 × 介质因子<br>PV 值 = 压力(MPa) × 线速度(m/s)；线速度 = 转速 × 轴径(0.05m) × π ÷ 60<br>PV 限值：PTFE 0.5｜其他 0.3 MPa·m/s；等级：≥10000h 优｜≥5000 良｜≥1000 中｜&lt;1000 差</div>
+      <div class="formula-title">📐 计算公式</div> <div class="formula-eq">密封件寿命估算<br>温度因子 = 2^((材料最优温 − 工况温度) ÷ 10)（超温取 0.05，下限 0.01）<br>压力因子 = e^(−压力 ÷ 20)；速度因子 = 转速&gt;0 ? e^(−转速 ÷ 5000) : 1<br>预计寿命(h) = 材料基准寿命 × 温度因子 × 压力因子 × 速度因子 × 介质因子<br>PV 值 = 压力(MPa) × 线速度(m/s)；线速度 = 转速 × 轴径(mm)/1000 × π ÷ 60（轴径按页面输入，默认 50mm）<br>PV 限值：PTFE 0.5｜其他 0.3 MPa·m/s；等级：≥10000h 优｜≥5000 良｜≥1000 中｜&lt;1000 差</div>
       <div class="formula-desc">密封件寿命计算：依据密封材质、工作温度/压力/转速与介质相容性，参照密封磨损经验公式预估服役寿命，用于备件更换计划。</div>
     </div>
 <div class="input-row">
-      <div><div data-tb="preset" data-tb-presets='[{"label":"工作温度(℃)80·工作压力(MPa)5·转速(rpm)1…","labelEn":"vTemp=80 · vPress=5 · vSpeed=1500 · vMa…","values":{"vTemp":"80","vPress":"5","vSpeed":"1500","vMat":"nbr","vMed":"oil"}}]'></div>
+      <div><div data-tb="preset" data-tb-presets='[{"label":"工作温度(℃)80·工作压力(MPa)5·转速(rpm)1…","labelEn":"vTemp=80 · vPress=5 · vSpeed=1500 · vMa…","values":{"vTemp":"80","vPress":"5","vSpeed":"1500","vShaft":"50","vMat":"nbr","vMed":"oil"}}]'></div>
 <label>密封材质</label>
         <select id="vMat" style="font-size:16px;" onchange="calc()">
           <option value="nbr" selected>丁腈橡胶 NBR</option>
@@ -128,6 +128,7 @@
     <div class="input-row">
       <div><label>工作压力 (MPa)</label><input type="number" id="vPress" value="5" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="工作压力" placeholder="如 5"></div>
       <div><label>转速 (rpm)</label><input type="number" id="vSpeed" value="1500" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="转速" placeholder="如 1500"></div>
+      <div><label>轴径 (mm)</label><input type="number" id="vShaft" value="50" step="any" min="1" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="轴径" placeholder="如 50"></div>
       <div><label>介质类型</label>
         <select id="vMed" style="font-size:16px;" onchange="calc()">
           <option value="oil" selected>液压油</option>
@@ -203,19 +204,20 @@ var matData={
 };
 var medFactor={'oil':1,'water':0.9,'gas':0.7,'chem':0.6};
 function readInputs(){
-  var t=num('vTemp'),p=num('vPress'),s=num('vSpeed');
+  var t=num('vTemp'),p=num('vPress'),s=num('vSpeed'),shaft=num('vShaft');
   setInvalid(document.getElementById('vTemp'),t<-50||t>300);
   setInvalid(document.getElementById('vPress'),p<=0||p>50);
   setInvalid(document.getElementById('vSpeed'),s<0);
-  return {t:t,p:p,s:s,mat:document.getElementById('vMat').value,med:document.getElementById('vMed').value,valid:t>=-50&&t<=300&&p>0&&p<=50&&s>=0};
+  setInvalid(document.getElementById('vShaft'),shaft<=0);
+  return {t:t,p:p,s:s,shaft:shaft,mat:document.getElementById('vMat').value,med:document.getElementById('vMed').value,valid:t>=-50&&t<=300&&p>0&&p<=50&&s>=0&&shaft>0};
 }
 function calc(){
   var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;">请输入有效参数（温度-50~300℃, 压力0~50MPa, 转速≥0）</div>';
+    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;">请输入有效参数（温度-50~300℃, 压力0~50MPa, 转速≥0, 轴径须大于 0mm）</div>';
     lastResult='';return;
   }
-  var t=iv.t,p=iv.p,s=iv.s,mat=iv.mat,med=iv.med;
+  var t=iv.t,p=iv.p,s=iv.s,shaft=iv.shaft,mat=iv.mat,med=iv.med;
   var md=matData[mat];
   // 温度因子：Arrhenius Q10=2
   var tempFactor;
@@ -231,8 +233,8 @@ function calc(){
   // 综合寿命
   var estLife=md.baseLife*tempFactor*pressFactor*speedFactor*mf;
   estLife=Math.max(10,estLife);
-  // PV值评估（粗略，假设轴径50mm）
-  var shaftDiameter=0.05; // m
+  // PV值评估（按页面输入的轴径）
+  var shaftDiameter=shaft/1000; // mm -> m
   var lineSpeed=s*shaftDiameter*Math.PI/60; // m/s
   var pv=p*lineSpeed; // MPa·m/s
   var pvLimit=mat==='ptfe'?0.5:0.3;
@@ -260,20 +262,20 @@ function calc(){
     '<div class="info-box" style="margin-top:8px;">📋 '+tempAdvice+'</div>'+
     '<div class="info-box" style="margin-top:4px;color:var(--text-secondary);">💡 '+pvAdvice+'（线速度 '+lineSpeed.toFixed(2)+' m/s）</div>';try{ if(typeof estLife==='number'&&isFinite(estLife)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:estLife,unit:'h',bands:[{"lo":10000,"hi":null,"label":{"zh":"优","en":"Excellent"},"color":"#10B981"},{"lo":5000,"hi":10000,"label":{"zh":"良","en":"Good"},"color":"#3B82F6"},{"lo":1000,"hi":5000,"label":{"zh":"中","en":"Fair"},"color":"#F59E0B"},{"lo":null,"hi":1000,"label":{"zh":"差","en":"Poor"},"color":"#EF4444"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  lastResult='密封件寿命计算\n材质:'+md.name+'\n温度:'+t+'℃, 压力:'+p+'MPa, 转速:'+s+'rpm\n温度因子:'+tempFactor.toFixed(2)+'\n压力因子:'+pressFactor.toFixed(2)+'\n速度因子:'+speedFactor.toFixed(2)+'\n预计寿命:'+estLife.toFixed(0)+'小时 ('+(estLife/24/365).toFixed(1)+'年)\nPV值:'+pv.toFixed(3)+' MPa·m/s\n'+tempAdvice+'\n'+pvAdvice;
+  lastResult='密封件寿命计算\n材质:'+md.name+'\n温度:'+t+'℃, 压力:'+p+'MPa, 转速:'+s+'rpm, 轴径:'+shaft+'mm\n温度因子:'+tempFactor.toFixed(2)+'\n压力因子:'+pressFactor.toFixed(2)+'\n速度因子:'+speedFactor.toFixed(2)+'\n预计寿命:'+estLife.toFixed(0)+'小时 ('+(estLife/24/365).toFixed(1)+'年)\nPV值:'+pv.toFixed(3)+' MPa·m/s\n'+tempAdvice+'\n'+pvAdvice;
 }
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
 function resetAll(){
   document.getElementById('vTemp').value=80;document.getElementById('vPress').value=5;
-  document.getElementById('vSpeed').value=1500;document.getElementById('vMat').value='nbr';
+  document.getElementById('vSpeed').value=1500;document.getElementById('vShaft').value=50;document.getElementById('vMat').value='nbr';
   document.getElementById('vMed').value='oil';
-  ['vTemp','vPress','vSpeed'].forEach(function(id){setInvalid(document.getElementById(id),false);});
+  ['vTemp','vPress','vSpeed','vShaft'].forEach(function(id){setInvalid(document.getElementById(id),false);});
   calc();ToolBox.showToast(i18nText(),'info');
 }
 function historyKey(){try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_seal';}}
-function saveHistory(){try{var k=historyKey();var l=JSON.parse(localStorage.getItem(k)||'[]');var n=new Date();l.unshift({t:num('vTemp'),p:num('vPress'),s:num('vSpeed'),mat:document.getElementById('vMat').value,med:document.getElementById('vMed').value,time:n.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});if(l.length>8)l=l.slice(0,8);localStorage.setItem(k,JSON.stringify(l));renderHistory();}catch(e){}}
-function renderHistory(){var b=document.getElementById('historyBox');if(!b)return;try{var l=JSON.parse(localStorage.getItem(historyKey())||'[]');if(!l.length){b.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}var h='';l.forEach(function(it,i){h+='<div class="history-item" onclick="restoreHistory('+i+')"><div><div class="time">'+ToolBox.escHtml(it.time)+'</div><div class="summary">'+it.t+'℃, '+it.p+'MPa, '+it.s+'rpm</div></div><span style="font-size:12px;color:var(--primary);">恢复</span></div>';});const __g4=h;b.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}catch(e){b.innerHTML='<div class="history-empty">读取记录失败</div>';}}
-function restoreHistory(i){try{var l=JSON.parse(localStorage.getItem(historyKey())||'[]');var h=l[i];if(!h)return;document.getElementById('vTemp').value=h.t;document.getElementById('vPress').value=h.p;document.getElementById('vSpeed').value=h.s;document.getElementById('vMat').value=h.mat;document.getElementById('vMed').value=h.med;calc();ToolBox.showToast(i18nText(),'info');}catch(e){}}
+function saveHistory(){try{var k=historyKey();var l=JSON.parse(localStorage.getItem(k)||'[]');var n=new Date();l.unshift({t:num('vTemp'),p:num('vPress'),s:num('vSpeed'),shaft:num('vShaft'),mat:document.getElementById('vMat').value,med:document.getElementById('vMed').value,time:n.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});if(l.length>8)l=l.slice(0,8);localStorage.setItem(k,JSON.stringify(l));renderHistory();}catch(e){}}
+function renderHistory(){var b=document.getElementById('historyBox');if(!b)return;try{var l=JSON.parse(localStorage.getItem(historyKey())||'[]');if(!l.length){b.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}var h='';l.forEach(function(it,i){h+='<div class="history-item" onclick="restoreHistory('+i+')"><div><div class="time">'+ToolBox.escHtml(it.time)+'</div><div class="summary">'+it.t+'℃, '+it.p+'MPa, '+it.s+'rpm'+(it.shaft!==undefined?', 轴径'+it.shaft+'mm':'')+'</div></div><span style="font-size:12px;color:var(--primary);">恢复</span></div>';});const __g4=h;b.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}catch(e){b.innerHTML='<div class="history-empty">读取记录失败</div>';}}
+function restoreHistory(i){try{var l=JSON.parse(localStorage.getItem(historyKey())||'[]');var h=l[i];if(!h)return;document.getElementById('vTemp').value=h.t;document.getElementById('vPress').value=h.p;document.getElementById('vSpeed').value=h.s;if(h.shaft!==undefined)document.getElementById('vShaft').value=h.shaft;document.getElementById('vMat').value=h.mat;document.getElementById('vMed').value=h.med;calc();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
@@ -438,7 +440,7 @@ else document.addEventListener('DOMContentLoaded', __lifespan_7Boot);
 <li>工况评估：温度超限时看寿命衰减幅度</li>
 <li>备件计划：按预计小时数折算天数与年数，安排更换周期</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：温度按 Arrhenius Q10=2，超过材料上限取 0.05，否则 = 2^((适宜温度−工作温度)/10)，下限 0.01；压力因子 = e^(−p/20)；速度因子 = e^(−转速/5000)（静止取 1）；介质因子：油 1、水 0.9、气 0.7、化学介质 0.6；预计寿命 = 基准寿命×四因子（下限 10h）。PV：线速度 = 转速×0.05×π/60，PV = 压力×线速度，限值 PTFE 0.5、其余 0.3 MPa·m/s。基准寿命：NBR 8000h、FKM 15000h、EPDM 12000h、VMQ 10000h、PTFE 25000h。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：温度按 Arrhenius Q10=2，超过材料上限取 0.05，否则 = 2^((适宜温度−工作温度)/10)，下限 0.01；压力因子 = e^(−p/20)；速度因子 = e^(−转速/5000)（静止取 1）；介质因子：油 1、水 0.9、气 0.7、化学介质 0.6；预计寿命 = 基准寿命×四因子（下限 10h）。PV：线速度 = 转速×轴径(mm)/1000×π/60（轴径按输入，默认 50mm），PV = 压力×线速度，限值 PTFE 0.5、其余 0.3 MPa·m/s。基准寿命：NBR 8000h、FKM 15000h、EPDM 12000h、VMQ 10000h、PTFE 25000h。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：丁腈橡胶 NBR（基准 8000h、适宜 80℃、上限 120℃）、油介质、80℃/5MPa/1500rpm → 温度因子 1、压力因子 0.779、速度因子 0.741，预计寿命 4616h（约 192 天），线速度 3.93m/s、PV=19.64 MPa·m/s 超限，等级「中」。温度升到 130℃（超 NBR 上限）→ 温度因子骤降至 0.05，寿命仅 231h，提示「温度超过材料极限，需更换材质」。换 PTFE（基准 25000h、适宜 150℃）在 150℃/2MPa/500rpm → 三因子 1/0.905/0.905，寿命 20468h（约 853 天），等级「优」。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
