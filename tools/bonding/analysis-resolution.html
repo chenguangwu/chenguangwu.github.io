@@ -161,15 +161,15 @@
 <h2>📚 深度解析：粘接（案例分析/故障/解决）</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>粘接失效案例复盘：对一批脱粘/开裂故障样本按「严重度评分」统计，用均值判断整体风险水平、用分布定位高频失效模式。</li>
-<li>工艺改进前后对比：改进前/后各采一组质量评分，比较均值与<a class="term-link" href="/tools/it/standard-deviation.html">标准差</a>，量化改进效果是否显著。</li>
-<li>供应商质量核查：对到货批次的粘接外观/强度抽检评分，用极差与标准差判定某批是否异常。</li>
+<li>开胶脱落诊断：选择失效现象「开胶脱落」、基材「金属」，输入工况温度与固化时间，工具列出表面污染、胶种选择、固化不足等可能原因及对应排查措施，并给出工况风险等级。</li>
+<li>工艺参数对比：在同一失效现象下分别调整表面处理（未处理/仅清洗/打磨）与固化时间，比较工况预警条数与风险等级变化，定位界面处理不足或固化偏短等主因。</li>
+<li>抽检异常排查：对到货或产线出现的发白雾面、气泡气孔、耐温失效等现象，按现象+基材+温度+固化组合查询故障矩阵，快速得到针对性的解决建议。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：10 个失效案例严重度评分（1-5）</div><div class="dd-ex-body">输入 10 个粘接失效案例的严重度评分（1=轻微，5=严重）：3, 4, 2, 5, 4, 3, 5, 2, 4, 3。数据量 10；总和 35；平均值 3.50；<a class="term-link" href="/tools/science/median-calculator.html">中位数</a> 3.50；最小值 2；最大值 5；极差 3；方差 1.05；标准差 1.02。结论：平均严重度 3.5（中等偏上），个别 5 分严重案例需重点根因分析；分布较集中（标准差 1.02），说明失效程度相对一致，可能是同一类工艺诱因。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：金属基材开胶脱落的工况风险诊断</div><div class="dd-ex-body">输入：现象「开胶脱落」、基材「金属」、工况温度 25℃、固化时间 30 min、表面处理「仅清洗」。工具按故障矩阵给出 3 条可能原因（表面污染/油污未清洁、胶种选择不当、固化不足）及排查措施；工况预警 1 条——表面处理不足是界面失效主因（仅清洗），建议打磨或底涂；温度 25℃、固化 30 min 均在正常范围，不触发高温/短固化预警。风险等级「中」（1 条预警）。处置优先级：先清洁脱脂并打磨基材表面，必要时底涂，再复核胶种适配性。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt><a class="term-link" href="/tools/stats/sample-size.html">样本量</a>多少才有统计意义？</dt><dd>工程上建议 ≥5 个才能初步看趋势，≥20~30 个可作较稳的均值/标准差估计；样本太少时均值易被单个案例带偏，应结合具体失效模式而非只看数字。</dd>
-<dt>怎么用这批数据指导改工艺？</dt><dd>先算基线均值与标准差，改进后再采一组对比：若均值下降且标准差缩小，说明既降严重度又更可控；同时关注最大值是否降低（最坏情况是否收敛）。</dd>
+<dt>风险等级是怎么算出来的？</dt><dd>按工况预警条数分级：2 条及以上为「高」、1 条为「中」、无预警为「低」。预警来自四类条件：表面处理不足（未处理/仅清洗）、固化时间偏短（0-10 min）、工况温度过高（&gt;120℃）、低表面能基材（塑料/橡胶）。</dd>
+<dt>固化时间填 0 会怎样？</dt><dd>固化时间为 0 或负数时无法形成有效粘接，工具会提示「固化时间须大于 0 分钟」并停止诊断，不会给出「低风险」结论。请按实际工艺填写正的固化时间。</dd>
 </dl>
 </div>
 </section>
@@ -218,6 +218,11 @@ function calc(){
   var sym=document.getElementById('sym').value;
   var sub=document.getElementById('sub').value;
   var temp=v('temp'),cure=v('cure'),surf=document.getElementById('surf').value;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn && TBKit.util.isEn());
+  var res0=document.getElementById('res');
+  function bad(msg){ res0.innerHTML='<p style="color:var(--danger);">'+msg+'</p>'; }
+  if(isNaN(cure)||cure<=0){ bad(en?'Cure time must be greater than 0 min':'固化时间须大于 0 分钟（0 或负值无法固化）'); return; }
+  if(isNaN(temp)||temp<=-273){ bad(en?'Temperature must be above absolute zero':'工况温度须高于绝对零度'); return; }
   var map={
     '开胶脱落':[['表面污染 / 油污未清洁','清洁并脱脂，必要时底涂'],['胶种选择不当','改用与基材适配的胶种'],['固化不足','延长固化时间或升温']],
     '脆性断裂':[['胶层过厚 / 应力集中','控制胶层厚度、增加搭接面积'],['胶种韧性不足','选用高韧性改性胶'],['固化收缩大','选低收缩配方']],
@@ -292,7 +297,7 @@ function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}c
     </ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
     <ul class="intro-scenes">
-      <li>粘接失效案例按严重度评分统计，用均值定位整体风险水平</li><li>工艺改进前后各采一组评分对比均值与标准差，量化改进效果</li><li>到货批次粘接抽检评分用极差与标准差判定某批是否异常</li>
+      <li>开胶脱落等故障的现象诊断与根因定位</li><li>表面处理/固化/温度工况参数调整后的风险等级对比</li><li>到货抽检异常现象按故障矩阵快速排查</li>
     </ul>
     </div>
 </div>

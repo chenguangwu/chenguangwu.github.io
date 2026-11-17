@@ -73,6 +73,12 @@ const CASES = [
   "inputs": { "sym": "界面失效", "sub": "塑料", "temp": "130", "cure": "8", "surf": "仅清洗" },
   "expect": ["诊断现象： 界面失效", "风险等级： 高"],
   "ref": "重做为「粘接失效分析与排查」：sym/sub/temp/cure/surf 注入。独立复算：界面失效→2 条原因；sub=塑料/温度130>120/固化8<10/表面仅清洗 共 4 条预警→风险等级=高。默认 sym=开胶脱落、surf=未处理、temp=25、cure=30、sub=金属→风险=中，与本例「风险等级：高」零交集；诊断现象：界面失效 亦非默认首项（开胶脱落）。"
+},
+{
+  "slug": "bonding/analysis-resolution",
+  "clicks": ["var cu=document.getElementById('cure'),te=document.getElementById('temp'),r=document.getElementById('res');cu.value='0';calc();var z=/固化时间须大于 0/.test(r.innerHTML);cu.value='-5';calc();var neg=/固化时间须大于 0/.test(r.innerHTML);cu.value='30';te.value='-300';calc();var tz=/温度须高于绝对零度/.test(r.innerHTML);te.value='25';cu.value='30';calc();var ok=/诊断现象/.test(r.innerHTML)&&/风险等级/.test(r.innerHTML);document.getElementById('__tbProbe').textContent=(z&&neg&&tz&&ok)?'__BOND_G9_OK__':'__BOND_G9_BAD__ '+[z,neg,tz,ok].join(',');"],
+  "expect": ["__BOND_G9_OK__"],
+  "ref": "第1099批 G9：固化=0 或负曾被 `cure>0&&cure<10` 放过、表面已打磨时判「低风险」；现改为 cure<=0 直接拦截报错，温度低于绝对零度亦拦截，合法值正常诊断。旧版三哨兵全红。"
 }
 ];
 async function main() {
