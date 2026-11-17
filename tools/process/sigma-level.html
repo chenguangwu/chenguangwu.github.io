@@ -228,8 +228,8 @@ function __tbInputGuardCore(_ids,_labels){
     if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
     return __msg;
   }
-  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"dpmo": "DPMO"};
+  // 分母项：本页 DPMO 是分子（y=1−dpmo/1e6），0 为理想无缺陷工况，不得登记为分母
+  var __D={};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -252,15 +252,8 @@ function __tbInputGuardCore(_ids,_labels){
       return __TPL3.replace('%s',__N[_ids[_n]]);
     }
   }
-  // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
-  var _nums=[];
-  for(var _z=0;_z<_vals.length;_z++){ if(typeof _vals[_z]==='number'&&!isNaN(_vals[_z])) _nums.push(_vals[_z]); }
-  if(!_nums.length) return '';
-  if(_nums.length>0){
-    var _allZero=true;
-    for(var _z2=0;_z2<_nums.length;_z2++){ if(_nums[_z2]!==0){ _allZero=false; break; } }
-    if(_allZero) return "<p style=\"color:var(--danger)\">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>";
-  }
+  // 本页唯一输入 DPMO 是分子（y=1−dpmo/1e6），0 为理想无缺陷工况（≥6σ），不得按「全零无意义」拒绝。
+  // dpmo 越界（≥1e6）由主计算 invNorm 分支单独提示，此处不作全零拦截。
   for(var _k=0;_k<_ids.length;_k++){
     var _e2=document.getElementById(_ids[_k]);
     if(_e2&&_e2.classList&&_e2.classList.remove)_e2.classList.remove('input-error');
@@ -286,6 +279,8 @@ function invNorm(p){const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759
   else{q=Math.sqrt(-2*Math.log(1-p));return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}}
 
             const d=num('dpmo');
+            if(d<=0){ToolBox.setResult('result','<p style="color:var(--primary)">DPMO = 0：理想无缺陷，西格玛水平 ≥ 6σ（1.5σ 偏移下已达到六西格玛上限）。</p>');return;}
+            if(d>=1e6){ToolBox.setResult('result','<p style="color:var(--danger)">DPMO 必须小于 1000000（缺陷数不能超过总数）。</p>');return;}
             const y=1-d/1e6;
             const zb=invNorm(y);
             const __g2=dataGrid([

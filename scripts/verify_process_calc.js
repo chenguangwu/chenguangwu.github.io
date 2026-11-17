@@ -305,6 +305,12 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "process/sigma-level",
+  "inputs": { "dpmo": "0" },
+  "expect": [ "DPMO = 0：理想无缺陷" ],
+  "ref": "DPMO=0 代表无缺陷理想工况（y=1−0/1e6=1，invNorm(1)=∞），应显示「西格玛水平 ≥ 6σ」而非被判为分母为 0 或全零无意义。修复前 __D 把 dpmo 误登记为分母 + 全零守卫拒绝，页面报错；默认 dpmo=6210 不含该串 ⇒ 强判别"
+},
+{
   "slug": "process/tolerance-rss",
   "inputs": {
     "t1": "3.1",
