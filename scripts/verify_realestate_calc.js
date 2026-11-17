@@ -221,6 +221,21 @@ const CASES = [
     expect: ["-5%"],
     ref: "综合修正幅度 =(28,500/30,000 − 1)×100 = −5%（房龄折损 5% 的直接体现）",
   },
+  // ── 租金估算：负单价/负面积守卫 ─────────────────────────────────────
+  {
+    slug: "realestate/rent-1",
+    inputs: { v0: "-10", v1: "100" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='RENTNEGU '+((h.indexOf('均须大于 0')>=0&&h.indexOf('-1000.00')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["RENTNEGU OK"],
+    ref: "租金估算负单价：单价 −10、面积 100 时旧版月潜在毛收入 −1,000 且 saveHistory 照常写入；新守卫要求两输入 >0，越界只提示并中止。默认 85/1200 合法不命中。",
+  },
+  {
+    slug: "realestate/rent-1",
+    inputs: { v0: "85", v1: "-100" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='RENTNEGA '+((h.indexOf('均须大于 0')>=0&&h.indexOf('-8500.00')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["RENTNEGA OK"],
+    ref: "租金估算负面积：面积 −100 时旧版月潜在毛收入 −8,500 照常输出；新守卫同样拦截。默认 85/1200 合法不命中。",
+  },
   // ── RE-N11/N12：折旧页成新率与年限守卫 ──────────────────────────────
   {
     slug: "realestate/depreciation-2",
