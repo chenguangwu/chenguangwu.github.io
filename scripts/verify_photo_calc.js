@@ -12,13 +12,15 @@
  * 用法: node scripts/verify_photo_calc.js [slug ...]
  */
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
   { slug: "photo/bracketing-plan",
     inputs: { range: "9", step: "3", base: "2" },
-    expect: ["-2.5", "6.5"],
-    ref: "张数=9/3+1=4；最低EV=2−9/2=−2.5；最高EV=2+9/2=6.5（默认 3/1/0→4/−1.5/1.5，避开）" },
+    expect: ["-2.5", "6.5", "EV 序列： -2.5, 0.5, 3.5, 6.5"],
+    ref: "张数=9/3+1=4；最低EV=2−9/2=−2.5；最高EV=2+9/2=6.5；每档序列 −2.5/0.5/3.5/6.5（默认 3/1/0→4/−1.5/1.5，避开）" },
 
   { slug: "photo/card-capacity",
     inputs: { card: "128", per: "40", jpeg: "8" },
@@ -667,6 +669,36 @@ const CASES = [
     "inputs": { "mp": "45", "bit": "14", "fps": "5" },
     "expect": ["分钟@5帧"],
     "ref": "RAW 帧率标签：第二项按用户 fps 计算却固定写「分钟@10帧」，5fps 时标题与实际口径不符。现标签随输入帧率变化；默认 fps=10 不命中。"
+  },
+  {
+    "slug": "photo/mired",
+    "inputs": { "k": "-3200", "shift": "0" },
+    "expect": ["色温须为正数"],
+    "ref": "P-N7 负色温：旧版输出 Mired −312.5、偏移后色温 −3200K；现 k>0 校验拦截。默认 5600K 不命中。"
+  },
+  {
+    "slug": "photo/mired",
+    "inputs": { "k": "3200", "shift": "600" },
+    "expect": ["偏移 mired 须在 -500 到 +500"],
+    "ref": "P-N7 超大偏移：shift=600 超出常用 -500…+500 范围，旧版仍给出负的偏移后色温；现字段级提示且不输出。默认 shift=0 不命中。"
+  },
+  {
+    "slug": "photo/bracketing-plan",
+    "inputs": { "range": "-3", "step": "1", "base": "0" },
+    "expect": ["范围与步进须为正数"],
+    "ref": "P-N11 负范围：旧版输出「张数 −2 张」且最低 EV 1.5 / 最高 EV −1.5 颠倒；现 range>0 守卫。默认 range=3 不命中。"
+  },
+  {
+    "slug": "photo/bracketing-plan",
+    "inputs": { "range": "3", "step": "2", "base": "0" },
+    "expect": ["范围÷步进 必须为整数"],
+    "ref": "P-N11 非整数档：3÷2=1.5 被旧版 toFixed(0) 显示成 2 张，实际无法等距覆盖 ±1.5EV；现要求整除并提示。默认 3÷1 不命中。"
+  },
+  {
+    "slug": "photo/ev",
+    "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/photo/ev.html','utf8');var ok=h.indexOf('if(!isFinite(aperture)||aperture<=0)')>=0&&h.indexOf('光圈 f 值须为正数。')>=0;document.getElementById('__tbProbe').textContent='EVAPERT '+(ok?'OK':'BAD');"],
+    "expect": ["EVAPERT OK"],
+    "ref": "P-N12 负光圈：通用 __tbInputGuard 已能拦负值，但 calc() 自身仍用 Math.pow(aperture,2) 掩盖负号。现增加显式 aperture>0 守卫与中英提示，与 calc-exposure-aperture 同口径；源码哨兵，旧版必红。"
   }
 ];
 

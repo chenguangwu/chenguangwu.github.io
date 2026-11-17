@@ -56,11 +56,6 @@
 
 > 本批为纯静态源码审计：逐页读 `calc()` 与输入/守卫，再用 node 在内存中按页面同一表达式复算；未打开浏览器、未验证 EN/繁体、移动端、线上或门禁。
 
-### P-N7 mired 负色温与负 mired 无校验（低，确认源码缺陷）
-- 证据：`tools/photo/mired.html:325-333` 仅 `k` 走分母非零守卫（`:295`），无正数检查。node：k=-3200、shift=0 → 「Mired 值 -312.5 mired」「偏移后色温 -3200 K」。
-- 影响：`tools/photo/mired.html`；负开尔文/负 mired 在物理上不存在，页面仍作为正常结果展示。
-- 方案：`k > 0` 校验；`shift` 限合理区间（如 -500…+500）并在越界时提示，不输出负 mired。
-
 ### P-N9 帧率转换被误述为「放慢/加速播放」且时长不变（中，确认源码缺陷）
 - 证据：`tools/video/video-fps.html:297-308` 以 `ratio=dstFps/srcFps` 生成提示。node：源 24、目标 60、时长 10 s → 输出「升帧转换…放慢2.50倍播放」，但页面同时给出 240 → 600 帧、时长仍 10 s；源 60、目标 24 → 「加速2.50倍播放」，帧数 600 → 240、时长仍 10 s。常规帧率转换不改时间轴，只有重新定时才会改变时长与速度。
 - 影响：`tools/video/video-fps.html`；剪辑/交付者会误判是否需要变速与音频对齐，按提示改时长即产生 2.5 倍音画不同步。
@@ -70,16 +65,6 @@
 - 证据：`tools/video/video-fps.html:131` 同一行先写「跨帧率时长比 = 目标帧率 ÷ 源帧率」，紧接着举「60 fps 素材放入 24 fps 时间线…时长 = 原始时长 × 60 ÷ 24」。node：24/60=0.4、60/24=2.5，两者互为倒数，同一句给出两个口径（0.4 是速度比、2.5 才是时长比）。
 - 影响：`tools/video/video-fps.html`；说明区无法自洽，用户无法判断该乘还是该除。
 - 方案：统一为「时长比 = 源fps ÷ 目标fps（2.5×）」「速度比 = 目标fps ÷ 源fps（0.4×）」，与 P-N9 的文案改造同批落地。
-
-### P-N11 包围曝光负范围导致高低 EV 颠倒、非整数张数被静默取整（中，确认源码缺陷）
-- 证据：`tools/photo/bracketing-plan.html:324-335` 只校验 `step` 非零（`:296`），`range` 与 `base` 无符号约束，张数 `range/step+1` 直接 `toFixed(0)`。node：range=-3、step=1、base=0 → 「张数 -2 张」「最低EV 1.5」「最高EV -1.5」（最低/最高颠倒）；range=3、step=2 → 2.5 被显示为「3 张」，而 ±1.5 EV、步长 2 EV 实际无法落出 3 个等距档位；range=1、step=3 → 显示「1 张」却覆盖 ±0.5 EV。
-- 影响：`tools/photo/bracketing-plan.html`；HDR 拍摄按错误张数/区间布光，合成时缺档或重复档。
-- 方案：`range > 0`、`step > 0` 且 `range/step` 为整数（或按向上取整重算首尾 EV 并列出每一张的 EV）；结果区补「每张 EV 序列」而非仅给区间端点。
-
-### P-N12 曝光值页负光圈被平方后当正光圈使用（低，确认源码缺陷）
-- 证据：`tools/photo/ev.html:343-350` 用 `Math.pow(aperture,2)`，守卫 `:301-322` 仅拦光圈为 0，未拦负值（`shutter`/`iso` 有负值限制，唯独光圈缺）。node：aperture=-2.8、shutter=0.01、iso=100 → EV100 9.61，与 +2.8 完全相同；aperture=-11 → 13.56，与 +11 相同。
-- 影响：`tools/photo/ev.html`；负光圈是明显误填，却得到一个看似合理的 EV，掩盖输入错误。
-- 方案：光圈补 `> 0` 校验（与同站 `calc-exposure-aperture.html:233-236` 的正数守卫口径一致），非法时字段级提示并不输出结果。
 
 ### P-N13 闪光灯 GN 页负闪光指数可算、ISO 系数不参与结果（低，确认源码缺陷/口径不一致）
 - 证据：`tools/photo/flash-gn.html:339-348` 仅 `dist` 走分母非零守卫（`:297`），`gn` 无正数校验，`iso` 仅换算系数。node：gn=-40、dist=5 → 「可用光圈 -8.0 f」；gn=0、dist=5 → 「0.0 f」；iso=800 → 系数 2.83 而「可用光圈(ISO100)」仍为 8.0 f。`:121` 英文简介称 "accounting for ISO and zoom"，`:139` 公式框却明确「ISO 修正系数…独立展示量，不回乘到光圈或距离」。
@@ -96,7 +81,6 @@
 - `tools/photo/mired.html`：加常见光源（日光 5500K/钨丝 3200K/阴天 6500K）与常见校色滤镜（80A/80B/85B）的 mired 偏移预设，并显示「目标色温 → 需 ±mired」双向换算，替代纯手填偏移。
 - `tools/photo/print-size.html`：结果区把「当前像素在所选 DPI 下的物理尺寸」与「该物理尺寸在 300 DPI 下所需像素」分两行展示，避免单位混算；标准对照表可补 300 DPI 与 150 DPI 两列。
 - `tools/video/video-fps.html`：补「变速重定时」开关与音频同步提示，并给 24↔25（PAL 制式 4% 变速）、23.976↔24 的常见转换说明。
-- `tools/photo/bracketing-plan.html`：输出每张的 EV 与对应快门（基于基准快门按 2^EV 换算），并给相机常见 AEB 档位（±2EV/3 张、±3EV/5 张）预设。
 - `tools/photo/ev.html`：结果区补「等效曝光互换表」（固定 EV 下 1/3 档光圈-快门组合），与 `calc-exposure-aperture.html` 的输出结构对齐。
 - `tools/photo/flash-gn.html`：补 GN 随变焦/ISO 变化的常见机身实测参考，以及跳闪/柔光罩的衰减系数提示。
 - `tools/photo/convert-focal.html`：输出补水平/垂直/对角三种 FOV（当前只算单一方向），并给全画幅/APS-C/M4/3 的等效焦距一行结论。

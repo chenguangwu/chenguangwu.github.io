@@ -125,7 +125,7 @@
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
-    <div class="formula-eq">包围张数 = 范围 ÷ 步进 + 1；曝光覆盖区间 = [基准 − 范围÷2, 基准 + 范围÷2] EV。校验：范围、步进、基准三项必填（非法按 0）。判据：步进越小采样越密、张数越多；范围越大高光/阴影覆盖越广，HDR 合成常用 ±2EV 配 0.5–1EV 步进。</div>
+    <div class="formula-eq">包围张数 = 范围 ÷ 步进 + 1；曝光覆盖区间 = [基准 − 范围÷2, 基准 + 范围÷2] EV。校验：范围、步进、基准三项必填；范围与步进须为正数且 范围÷步进 为整数，保证所有档位等距。判据：步进越小采样越密、张数越多；范围越大高光/阴影覆盖越广，HDR 合成常用 ±2EV 配 0.5–1EV 步进。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">用于 HDR 合成或保险曝光。</p>
   </div>
 </div>
@@ -320,13 +320,23 @@ function calc(){
 const range = +document.getElementById('range').value || 0;
   const step = +document.getElementById('step').value || 0;
   const base = +document.getElementById('base').value || 0;
+  const __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  const ratio=range/step;
+  if(!isFinite(range)||range<=0||!isFinite(step)||step<=0||!isFinite(base)||Math.abs(ratio-Math.round(ratio))>1e-6){
+    ToolBox.setResult('result', __en?'Range and step must be positive, and range ÷ step must be an integer so every frame lands on an even EV stop.':'范围与步进须为正数，且 范围÷步进 必须为整数，保证每张落在等距 EV 档位。');
+    return;
+  }
   let html = '';
-  const __v0 = (range/step+1);
-  html += `<p>张数：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(0)}</strong> 张</p>`;
+  const frames=Math.round(ratio)+1;
+  const __v0 = (frames);
+  html += `<p>张数：<strong style="font-size:18px;color:var(--primary);">${__v0}</strong> 张</p>`;
   const __v1 = (base-range/2);
   html += `<p>最低EV：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(1)}</strong> EV</p>`;
   const __v2 = (base+range/2);
   html += `<p>最高EV：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(1)}</strong> EV</p>`;
+  const seq=[];
+  for(var i=0;i<frames;i++) seq.push((base-range/2+i*step).toFixed(1));
+  html += `<p>${__en?'EV sequence: ':'每张 EV 序列：'}<strong style="color:var(--primary);">${seq.join(', ')}</strong></p>`;
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {
@@ -455,7 +465,7 @@ function __bracketing_planExport(){
 function __bracketing_planPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#bracketing_planPresets',[{label:'默认参数',labelEn:'Default',values:{range:'3', step:'1', base:'0'}},
-  {"label":"风光包围 5 张 1/3 档","labelEn":"Landscape bracket, 5 frames 1/3 stop","values":{"range":5,"step":0.33,"base":0}},
+  {"label":"风光包围 5 张 1/3 档","labelEn":"Landscape bracket, 5 frames 1/3 stop","values":{"range":4/3,"step":1/3,"base":0}},
   {"label":"大光比 7 张 1 档","labelEn":"High contrast, 7 frames 1 stop","values":{"range":7,"step":1,"base":0}},
   {"label":"室内 HDR 3 张 2 档","labelEn":"Indoor HDR, 3 frames 2 stops","values":{"range":3,"step":2,"base":0}}],function(){ calc(); });
 }
