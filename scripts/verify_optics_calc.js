@@ -64,6 +64,10 @@ const CASES = [
     inputs: { f: "0.3", do: "0.8" },
     expect: ["0.4800"],
     ref: "1/dᵢ=1/f−1/dₒ=3.3333−1.25=2.0833 → dᵢ=0.4800 m" },
+  { slug: "optics/mirror-equation",
+    inputs: { f: "-0.2", do: "0.5" },
+    expect: ["-0.1429"],
+    ref: "凸面镜成像（f 为有符号量，凹正凸负）：f=-0.2 m、dₒ=0.5 m → 1/dᵢ=1/f−1/dₒ=-5−2=-7 → dᵢ=-0.1429 m（虚像、缩小、正立）；旧版把 f 列入「不能为负」拦截，页面文案/算例承诺的凸面镜功能被屏蔽。-0.1429 非默认 ⇒ 零逃生。" },
 
   { slug: "optics/optical-power-diopter",
     inputs: { f: "0.25" },

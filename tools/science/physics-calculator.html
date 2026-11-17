@@ -389,9 +389,17 @@ const FORMULAS = {
       return null;
     },desc:'运动电荷在磁场中受到的作用力'},
     {id:'phi_bs',name:'磁通量',expr:'Φ = BS cosθ',vars:{phi:'磁通量 (Wb)',B:'磁感应强度 (T)',S:'面积 (m²)',theta:'夹角 (°)'},calc:(phi,B,S,theta)=>{
-      if(phi.v===null&&B.v!==null&&S.v!==null) { const t=(theta.v||0)*Math.PI/180; return {phi:B.v*S.v*Math.cos(t)}; }
-      if(B.v===null&&phi.v!==null&&S.v!==null) return {B:phi.v/S.v};
-      if(S.v===null&&phi.v!==null&&B.v!==null) return {S:phi.v/B.v};
+      const t=(theta.v||0)*Math.PI/180, ct=Math.cos(t);
+      if(phi.v===null&&B.v!==null&&S.v!==null) return {phi:B.v*S.v*ct};
+      // 反解须与正解同一 cosθ；cosθ=0 时非零磁通无解、零磁通不能唯一反解
+      if(B.v===null&&phi.v!==null&&S.v!==null) {
+        if(Math.abs(ct)<1e-12) return {_error:phi.v===0?'θ=90° 时零磁通无法唯一反解磁感应强度':'θ=90°（cosθ=0）时非零磁通无解'};
+        return {B:phi.v/(S.v*ct)};
+      }
+      if(S.v===null&&phi.v!==null&&B.v!==null) {
+        if(Math.abs(ct)<1e-12) return {_error:phi.v===0?'θ=90° 时零磁通无法唯一反解面积':'θ=90°（cosθ=0）时非零磁通无解'};
+        return {S:phi.v/(B.v*ct)};
+      }
       return null;
     },desc:'穿过某一面积的磁感线条数'},
   ],

@@ -337,6 +337,18 @@ const CASES = [
     expect: ["LEDAP_OK"],
     ref: "SMS-102 清账（并联实际功耗）：并联 2 只、R=245 Ω、E24 标准值 240 Ω，实际每支路电流 =(12−2.2)/240/2=20.4167 mA，电阻总电流 40.833 mA，实际功耗=(0.040833)²×240=400.17 mW≈400.2 mW；旧版按单支路电流平方×R×n≈200 mW（少乘一个 n）。探针断言明细含 400.2 mW，旧版 ⇒ LEDAP_BAD，零逃生。",
   },
+  {
+    slug: "science/physics-calculator",
+    clicks: ["currentCategory='electromagnetism';currentFormula=FORMULAS.electromagnetism.find(function(f){return f.id==='phi_bs';});renderInputs();document.getElementById('var_phi').value='1';document.getElementById('var_B').value='';document.getElementById('var_S').value='2';document.getElementById('var_theta').value='60';calculate();var h=String(document.getElementById('output').textContent||document.getElementById('output').innerHTML);document.getElementById('var_S').value='PHIBS_'+(h.indexOf('磁感应强度 (T) = 1')>=0&&h.indexOf('= 0.5')<0?'OK':'BAD_'+h.slice(-80));"],
+    expect: ["PHIBS_OK"],
+    ref: "SMS（磁通量反解漏 cosθ）：Φ=BS cosθ，反解 B 须 B=Φ/(S·cosθ)。Φ=1 Wb、S=2 m²、θ=60° → B=1/(2×0.5)=1.0000 T；旧版 B=Φ/S=0.5000 T（漏 cosθ）。探针断言解出 B=1（且非旧版 0.5），旧版 ⇒ PHIBS_BAD，零逃生。",
+  },
+  {
+    slug: "science/doppler-effect",
+    inputs: { f: "1000", v: "343", vo: "-10", vs: "0" },
+    expect: ["970.8 Hz 观测频率"],
+    ref: "多普勒负速度守卫（vo/vs 为有符号速度，标签「朝向为正」）：f=1000 Hz、v=343、观察者后退 vo=-10、声源静止 vs=0 → f′=1000×(343-10)/343=970.85 ⇒ 970.8 Hz；旧版把 vo 列入「不能为负」直接拦截并提示错误，无法算后退场景。970.6 非默认 ⇒ 零逃生。",
+  },
   // ---- BATCH251：数学基础族（9 例）——「分步推导行」批量收口 ----
   // 【判据】这一族（阶乘/斐波那契/分数/组合/排列/方差/中位数/众数/n 次根）几乎清一色地输出
   // 「编号步骤 + 可手算的等式」，且默认参数各不相同 ⇒ **首轮多数就能过**，不必换参博弈。
