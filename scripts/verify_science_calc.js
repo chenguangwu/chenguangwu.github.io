@@ -2555,6 +2555,18 @@ const CASES = [
     "ref": "632 复核失败重做：showFormulas() 原无条件写入中文标题与多行中文说明，英文态（?lang=en-US）点击「公式说明」仍全中文。修复后按 __matIsEn() 分流整套英文文案。探针 mock TBKit.util.isEn=true 后调用，断言含 Matrix formula reference / Addition: 且无 CJK；默认态不执行 clicks ⇒ 零逃生。"
   },
   {
+    "slug": "science/calc-cycle",
+    "inputs": { "formula": "H2O)" },
+    "expect": ["括号不匹配：多余的右括号"],
+    "ref": "SMS-75：parseSegment 原在 ')' 分支直接 stack.pop()，多余右括号（H2O)/)H2O）无对应左括号时 top=undefined，随后 for(var k in top){cur[k]=…} 抛未捕获 TypeError、结果停留旧值。修复为 pop 前判断 stack.length<=1 直接返回错误。默认 formula=H2O 合法 ⇒ 不含该错误串（页面原生静态说明只有泛化「括号不匹配」，无此精确串）。"
+  },
+  {
+    "slug": "science/calc-cycle",
+    "inputs": { "formula": "CuSO4.5H2O" },
+    "expect": ["249.68 g/mol", "共 21 个原子"],
+    "ref": "SMS-76：文档示范水合物 CuSO4.5H2O，但旧 parseSegment 把段首系数 5 当非法字符报「无法识别的字符：\\\"5\\\"」。修复后 parseFormula 分段剥离段首系数乘算：Cu 63.546+S 32.06+O4 63.996+5×(H2 2.016+O 15.999)=63.546+32.06+63.996+90.075=249.677→249.68 g/mol；原子数 1+1+4+5×3=21。默认 H2O=18.02 ⇒ 不含该串。"
+  },
+  {
     "slug": "science/astro-geo-calculator",
     "inputs": { "sun-lat": "-33.86", "sun-lon": "151.21", "sun-date": "2026-06-21" },
     "clicks": ["calcSunriseSunset()"],

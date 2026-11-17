@@ -222,9 +222,14 @@ function parseFormula(formula){
   for(var si=0;si<segments.length;si++){
     var seg=segments[si];
     if(!seg)continue;
-    var res=parseSegment(seg);
+    // 段首系数：水合物 2H2O / 5H2O 的系数应乘算，而非当作非法字符（SMS-76）
+    var lead=seg.match(/^(\d+)([\s\S]*)$/);
+    var segCoef=lead?parseInt(lead[1],10):1;
+    var body=lead?lead[2]:seg;
+    if(!body)return {counts:{},error:'系数后缺少化学式'};
+    var res=parseSegment(body);
     if(res.error)return res;
-    for(var k in res.counts){total[k]=(total[k]||0)+res.counts[k];}
+    for(var k in res.counts){total[k]=(total[k]||0)+res.counts[k]*segCoef;}
   }
   return {counts:total,error:null};
 }
@@ -237,6 +242,7 @@ function parseSegment(s){
     if(ch==='('){
       stack.push({});i++;
     }else if(ch===')'){
+      if(stack.length<=1)return {counts:{},error:'括号不匹配：多余的右括号'}; // 无对应左括号，先拦截再 pop（SMS-75）
       i++;
       var num=readNum(s,i);
       i=num.pos;

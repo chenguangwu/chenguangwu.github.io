@@ -152,7 +152,7 @@
 - `tools/science/astro-geo-calculator.html`：2 条（SMS-68/69）—— 地震能量、TNT 当量、地平线、湿度与气压正确；SMS-65/66/67 已于第 1027 批修复（日出日落时区改 `+8−lon/15` 北京 04:49、蒲福表按 min 下界命中消灭 0.1 空隙、位置行按符号输出 N/S/E/W）；剩余固定遮挡高度卡与历史图表恒空两处中等问题。
 - `tools/science/astronomy-toolkit.html`：4 条 —— 撞击坑 CMM 标度律（默认 50 m/20 km/s → 1.14 km 瞬态坑、约 9.4 Mt）、UTM 正反算、观测评分主体正确；SMS-73（经度无校验/61 带）已修——正向经度限 -180~180、带号钳制 1~60，反向加 E/N 物理范围与结果域守卫；剩余中等问题为月相照明度线性插值偏差、等星等文案、66.5° 极昼早退、附加历史读错结果框。
 - `tools/science/barcode-pharmacode.html`：0 条 —— 非固定映射假工具；走共享 `js/barcode-lib.js` 的 `pharmacodeEncode`（`num+1` 二进制去最高位、1→宽条、条间 1 模块空白），3→两窄条、131070→16 宽条，取值 3～131070 有守卫，画布渲染与自动生成正常。
-- `tools/science/calc-cycle.html`：2 条 —— 元素量、括号嵌套与未知元素报错正确，但文档三处示范的水合物 `CuSO4.5H2O` 实际报「无法识别的字符：5」（承诺未实现），且多余右括号会抛未捕获 TypeError（高）。
+- `tools/science/calc-cycle.html`：0 条 —— 元素量、括号嵌套与未知元素报错正确；SMS-75/76 已于第 1028 批修复（多余右括号先拦截再 pop 不再抛 TypeError、段首系数 5H2O 乘算 CuSO4.5H2O=249.68 与文档一致），Y 批本页销账。
 - `tools/science/calc-distance.html`：3 条 —— Haversine 距离、英里/海里、初始方位角、中点纬度均正确（默认北京→上海 1067.310 km、方位 153.07°），但度分秒模式在 number 输入上被清空（高），另有中点经度越界与快捷键说明不符两处中等问题（飞行时间 60 分进位已于 973 批修复销账）。
 
 | 页面 | 问题（含 tools/&lt;dir&gt;/&lt;slug&gt;.html:NN） | 编号 |
@@ -163,13 +163,11 @@
 | tools/science/astronomy-toolkit.html | 两星等相等时 `brighter='一样亮'`，拼出「即天体 一样亮 比 A 亮 1.00 倍」这类自相矛盾语句。:758-762 | SMS-71 |
 | tools/science/astronomy-toolkit.html | 纬度 66.5°～66.556° 时 `declCritical>23.44` 进入早退分支，输出「理论上全年为极昼或极夜」；66.5° 实际极昼/极夜各约 1 天（输入 max=90 允许该值）。:996-1000 | SMS-72 |
 | tools/science/astronomy-toolkit.html | 月相计算的附加历史/图表读 `document.querySelector('.result-box')`（页内首个结果框是 `#magResult`）：未算过星等时读到「请输入…」占位而被 `:1224` 的正则判空，月相历史/表/图全无；算过星等后则把星等结果当作月相结果写入历史，图表也画星等趋势（数据错配）。:205、:1219-1225、:1260-1265 | SMS-74 |
-| tools/science/calc-cycle.html | 括号栈无下溢保护：`H2O)`、`)H2O`、`(H2O))` 在 `stack.pop()` 后 `cur=undefined`，`cur[k]=…` 抛未捕获 TypeError，结果区停留旧值（node 复刻三例均确认）。:254-257 | SMS-75 |
-| tools/science/calc-cycle.html | 文档三处示范水合物 `CuSO4.5H2O`（及 `·` 写法）与「5 个结晶水」的说法，但 `parseSegment` 把段首 `5` 判为非法字符，实际报「无法识别的字符："5"」；`2H2O` 同理（系数应在段首乘算）。:133、:168、:348 对 :231、:269-270 | SMS-76 |
 | tools/science/calc-distance.html | 度分秒模式失效：四个坐标输入是 `type="number"`，`swapFmt()` 把 `39°54'…"` 写回 number 输入被浏览器清空 → 坐标全空并报「坐标格式无效」，切回十进制也因值为空无法恢复。:127-137、:275-288 | SMS-77 |
 | tools/science/calc-distance.html | 中点经度 `lon1+atan2(By,cosφ1+Bx)` 未归一化到 ±180：(-30,178)→(-20,-170) 输出「184.24568」（node 复刻）。:249、:265 | SMS-79 |
 | tools/science/calc-distance.html | 使用说明写「Ctrl/Cmd + Enter 复制结果」，键盘处理只匹配 Ctrl/Cmd+C（且需无选中文本），按说明操作无反应。:174 对 :367 | SMS-80 |
 
-- 统计：5 页 / 12 条（高 2 / 中 10）/ 安全 0 条 / 假工具 0 个 / 编号区间 SMS-65～SMS-80（SMS-65/66/67 第 1027 批修复、SMS-78 飞行时间进位 973 批销账）。
+- 统计：5 页 / 10 条（高 1 / 中 9）/ 安全 0 条 / 假工具 0 个 / 编号区间 SMS-65～SMS-80（SMS-65/66/67 第 1027 批、SMS-75/76 第 1028 批修复；SMS-78 飞行时间进位 973 批销账）。
 
 ## Y 批 · 自然科学·统计/物理/化学（2026-11-04）
 
