@@ -445,7 +445,28 @@ const CASES = [
     "inputs": {"usArea":"20","usHead":"5","usIntensity":"1.5","usFreq":"1"},
     "checks": ["pulsed"],
     "expect": ["超声波 1MHz 脉冲1:4 1.5W/cm² × 4.0 分钟 · 辐射头 5cm² · 治疗面积 20cm² · 总功率 7.5W · 总能量 360J · 有效深度 4-5cm（深部） · 病程分期 慢性期"],
-    "ref": "门诊记录：usArea=20、usHead=5 ⇒ 时间=20/5=4.0 分钟（未触 3–10 分钟上下限）；总功率=1.5×5=7.5W；checks 注入 usMode:pulsed ⇒ 脉冲 1:4 能量=7.5×4×60×0.2=360J；强度 1.5>0.5 ⇒ 慢性期；freq=1 ⇒ 深部 4-5cm。默认态 usArea 为空 ⇒ calcUS 早退显示「请输入治疗面积」、不产生门诊记录，零交集。原先那条超长 expect 混合了三段 tab 的原始 blob，已收敛为门诊记录单串。"
+    "ref": "门诊记录：usArea=20、usHead=5 ⇒ 时间=20/5=4.0 分钟（未触 3–10 分钟上下限）；总功率=1.5×5=7.5W；checks 注入 usMode:pulsed ⇒ 脉冲 1:4 能量=7.5×4×60×0.2=360J；强度 1.5>0.5 ⇒ 慢性期；freq=1 ⇒ 深部 4-5cm。默认态 usArea 为空 ⇒ calcUS 早退、不产生门诊记录，零交集。原先那条超长 expect 混合了三段 tab 的原始 blob，已收敛为门诊记录单串。"
+  }
+  ,{
+    "slug": "rehabilitation/physiotherapy-dose",
+    "inputs": {"usArea":"-20","usHead":"5","usIntensity":"1.5","usFreq":"1"},
+    "clicks": ["calcUS();var h=String(document.getElementById('usResult').innerHTML);document.getElementById('__tbProbe').textContent='USGUARD '+(h.indexOf('均须大于 0')>=0&&h.indexOf('3.0')<0?'OK':'BAD '+h.slice(0,80));"],
+    "expect": ["USGUARD OK"],
+    "ref": "N125 负面积守卫：usArea=-20（负数 truthy，旧 !area 挡不住）⇒ 应提示「均须大于 0」且不渲染被 Math.max(time,3) 兜出的 3.0 分钟。旧版负 area 照算 ⇒ BAD。默认 20/5/1.5/1 不含该错误提示，零逃生。"
+  }
+  ,{
+    "slug": "rehabilitation/physiotherapy-dose",
+    "inputs": {"laserPower":"-500","laserArea":"10","laserDose":"2"},
+    "clicks": ["calcLaser();var h=String(document.getElementById('laserResult').innerHTML);document.getElementById('__tbProbe').textContent='LASERGUARD '+(h.indexOf('均须大于 0')>=0&&h.indexOf('照射时间')<0?'OK':'BAD '+h.slice(0,80));"],
+    "expect": ["LASERGUARD OK"],
+    "ref": "N125 负功率守卫：laserPower=-500（旧 !power 挡不住负数）⇒ 应提示「均须大于 0」且不渲染负照射时间。旧版负功率照算 ⇒ BAD。默认正功率不含该错误提示，零逃生。"
+  }
+  ,{
+    "slug": "rehabilitation/physiotherapy-dose",
+    "inputs": {"tensTime":"-10"},
+    "clicks": ["calcTENS();var h=String(document.getElementById('tensResult').innerHTML);document.getElementById('__tbProbe').textContent='TENSGUARD '+(h.indexOf('0–120')>=0&&h.indexOf('× -10')<0?'OK':'BAD '+h.slice(0,80));"],
+    "expect": ["TENSGUARD OK"],
+    "ref": "N125 TENS 负时间守卫：tensTime=-10（旧 parseFloat||30 挡不住负数）⇒ 应提示「0–120 分钟」且不写入「× -10分钟」处方。旧版 −10 原样进处方 ⇒ BAD。默认 tensTime 30 合法不命中，零逃生。"
   }
   ,{
     "slug": "rehabilitation/berg-balance-scale",
