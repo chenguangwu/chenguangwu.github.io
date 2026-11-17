@@ -1571,6 +1571,31 @@ const CASES = [
     ref: "EL-J160/J161/J162 源码形态：删误导性 progressPct 与失实注释，新增 hasHolidayData；依赖 inputs 唯一串避免默认态命中。",
   },
 
+  {
+    slug: "edu/timezone-converter",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/timezone-converter.html','utf8');var ok=h.indexOf('zoneOffsetMinutes(iana, dateMs)')>=0&&h.indexOf('function wallToInstant')>=0&&h.indexOf('dstMonths')<0&&h.indexOf('function getOffset(')<0;document.getElementById('__tbProbe').textContent='TZJ123 '+(ok?'OK':'BAD');"],
+    expect: ["TZJ123 OK"],
+    ref: "EL-J123：旧版 getOffset(tz,useDST) 恒用静态 dstOffset、dstMonths 定义后未调用，1 月纽约按 EDT 算错 1 小时。现改为 Intl.IANA 按所选日期实时取偏移（zoneOffsetMinutes）+ wallToInstant 跨 DST 边界二次校正。源码形态哨兵：旧版含 dstMonths/getOffset 且无实时函数 ⇒ 必红。",
+  },
+  {
+    slug: "edu/timezone-converter",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/timezone-converter.html','utf8');var ok=h.indexOf('zoneOffsetMinutes(tz.tz, utcNow)')>=0&&h.indexOf('offset > stdOffsetMinutes(tz.tz, nowYear)')>=0&&h.indexOf('getOffset(tz,false)')<0&&h.indexOf('getOffset(tz, false)')<0;document.getElementById('__tbProbe').textContent='TZJ124 '+(ok?'OK':'BAD');"],
+    expect: ["TZJ124 OK"],
+    ref: "EL-J124：旧版 updateWorldClock 用 getOffset(tz,false) 恒标准偏移、徽标无条件常显。现世界时钟按 IANA 实时偏移，徽标以 offset>stdOffsetMinutes 比较后显隐，二者口径一致。源码形态哨兵：旧版无实时偏移函数且含 getOffset(tz,false) ⇒ 必红。",
+  },
+  {
+    slug: "edu/country-quiz",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/country-quiz.html','utf8');var dd=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu/country-quiz']);var ok=h.indexOf('限时作答')<0&&h.indexOf('首都或地理位置')<0&&h.indexOf('不计时、不含首都或地图题')>=0&&dd.indexOf('错题库')<0&&dd.indexOf('不包含首都题或地图位置题')>=0;document.getElementById('__tbProbe').textContent='CQJ126 '+(ok?'OK':'BAD');"],
+    expect: ["CQJ126 OK"],
+    ref: "EL-J126：旧版 meta/og 宣称「国旗、首都或地理位置…限时作答」且 FAQ 有错题库，实际仅国旗题无计时。现宣称统一为「看国旗选国家…不计时、不含首都或地图题」，deep-dive 权威源无错题库且有范围说明。源码+权威源双哨兵：旧版含限时作答/首都或地理位置 ⇒ 必红。",
+  },
+  {
+    slug: "edu/country-quiz",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/country-quiz.html','utf8');var seg=h.slice(h.indexOf('const countries=['),h.indexOf('let queue'));var n=(seg.match(/name:'/g)||[]).length;var ok=n>=50&&h.indexOf('Noto Color Emoji')>=0&&seg.indexOf('荷兰')>=0&&seg.indexOf('新加坡')>=0&&seg.indexOf('肯尼亚')>=0;document.getElementById('__tbProbe').textContent='CQJ127 '+n+' '+(ok?'OK':'BAD');"],
+    expect: ["CQJ127 56 OK"],
+    ref: "EL-J127：旧版题库仅 20 国、emoji 无字体栈，部分平台回退为字母代码。现扩到 56 国并加系统 emoji 字体栈兜底（Apple/Segoe/Noto/Twemoji）。源码形态哨兵（条目数+字体栈+新增国名）：旧版 n=20 ⇒ 必红。",
+  },
+
 ];
 
 async function main() {

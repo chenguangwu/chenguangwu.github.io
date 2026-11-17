@@ -178,41 +178,10 @@
 - 修复空 toast 与日期本地化；`showTime` 前加"准备/倒计时"避免数字闪现。
 - 增加"错题回顾"（记录失败的数字串）以支撑宣称的记忆训练闭环。
 
-### EL-J123 「时区转换」勾选"考虑夏令时"后恒用 `dstOffset`，不看日期，1 月纽约被按 EDT 计算（高，确认缺陷）
-- 问题：`getOffset(tz,useDST)` 只要 `useDST` 为真且该城有 `dstOffset` 就直接返回夏令时偏移；`dstMonths` 与 `isLikelyDST()` 定义了却从未被调用。结果 1 月转换纽约也按 UTC−4，产生 1 小时错误。
-- 证据：`tools/edu/timezone-converter.html:673-676`（`if(useDST && dstOffset!==null) return dstOffset`）、`:666-671`（`isLikelyDST` 定义后全文无调用）、`:832-833`（`doConvert` 直接传入）、`:843-848`（无条件展示"使用夏令时偏移"）、`:434`（公式称"按各地区夏令时规则取偏移量"）。
-- 复现：node 复刻 `convertTime`：源北京 480、目标纽约 −240（勾 DST），日期 2026-01-15 12:00 → 结果 `2026-01-15 00:00`；未勾选（−300）→ `2026-01-14 23:00`。1 月纽约实际为 EST（−300），勾选后早 1 小时。
-- 影响：`tools/edu/timezone-converter.html`；冬季跨时区会议/航班时间整体偏移 1 小时，属核心计算错误。
-- 方案：按所选日期判断 DST（`dstMonths` 起止日 + 实际切换规则），无日期时用当前日期；`isLikelyDST` 接入 `getOffset`，并在结果中显示"该日是否处于 DST"。
-
-### EL-J124 「时区转换」世界时钟恒用标准偏移，DST 徽标却常显，"可能夏令时"说明与实现不符（中，确认缺陷）
-- 问题：`updateWorldClock` 调 `getOffset(tz,false)`，永远按标准偏移算当前时刻；`renderWorldClock` 对所有有 `dstOffset` 的城市无条件渲染"☀️ 夏令时 UTC±X"徽标。提示框却说徽标表示"在特定月份可能使用夏令时"。
-- 证据：`tools/edu/timezone-converter.html:781`（`getOffset(tz,false)`）、`:796-797`（`if(tz.dstOffset!==null) dstNote=...` 无月份判断）、`:442`（"标有'可能夏令时'…"）、`:434`。
-- 复现：8 月查看纽约世界时钟 → 按 −300 显示，比实际 EDT（−240）慢 1 小时；1 月查看仍显示"夏令时 UTC−4"徽标。期望按当前日期取 −240 并只在 DST 期显示徽标。
-- 影响：`tools/edu/timezone-converter.html`；世界时钟与真实当地时间不符，徽标误导。
-- 方案：`updateWorldClock` 改用 `getOffset(tz, isLikelyDST(tz))`；徽标按当前月份显隐，文案统一为"夏令时期间 UTC±X"。
-
 ### 留存建议（tools/edu/timezone-converter.html）
-- DST 按具体日期/规则判断，`isLikelyDST` 接入主流程，世界时钟同步。
 - 校验时/分/秒范围（`:818-820` 目前 25 点会静默进位到次日），下拉标签随 DST 勾选更新。
 
-### EL-J126 「国家测验」宣称"国旗、首都或地理位置"且"限时作答"，实际仅国旗题、无计时器、无错题库（高，承诺未实现）
-- 问题：meta 与 og 描述写"随机考查国旗、首都或地理位置对应的国家，限时作答并判分"，页面只有国旗 emoji 一种题型，`next()` 固定问"这面国旗属于哪个国家？"，全程无倒计时/超时；deep-dive 的"错题库：强化易错项"也无任何实现。
-- 证据：`tools/edu/country-quiz.html:10`（宣称）、`:254-261`（仅 `{name,flag}`）、`:287`（唯一题干）、`:265-318`（`start/next/choose` 无计时）、`:202`（"错题库"）。
-- 复现：开始答题 10 题 → 题面全部是国旗，无首都/位置题；页面找不到计时条，超时不判错；答错后仅高亮正确项，无错题收集/复盘入口。
-- 影响：`tools/edu/country-quiz.html`；简介承诺的三种题型与限时均落空，SEO 描述与功能不符。
-- 方案：二选一 —— ① 补首都/位置题型（题库加 `capital/region` 字段）与倒计时；② 把 meta/deep-dive 改为"国旗专项"，并删除"首都/位置/限时/错题库"表述。
-
-### EL-J127 「国家测验」题库仅 20 国，国旗以 emoji 渲染，部分平台可能显示字母代码（中，待验证）
-- 问题：`countries` 只有 20 个条目，覆盖"全球主要国家"偏少；国旗用 Unicode emoji（`🇨🇳`）直接 `textContent` 上屏，Windows Chrome/部分 Linux 无彩色国旗字形，会回退为 "CN" 等区域指示符字母，题目退化为"猜国家代码"。
-- 证据：`tools/edu/country-quiz.html:254-261`（20 条 emoji 数据）、`:288`（`flag.textContent=cur.flag`）；同批 `flag-quiz.html:252-261` 为 24 国。
-- 复现：在无 emoji 国旗字形的平台打开 → 国旗位显示"CN/JP"字母而非旗帜；题库抽 10 题仅来自 20 国，重复练习很快穷尽。
-- 影响：`tools/edu/country-quiz.html`；跨平台可用性与题量不足（平台渲染需真机确认）。
-- 方案：国旗改用 SVG/PNG 资源（本地或内联）并按 `flagcdn` 映射；题库扩到 50+ 并标注洲别/难度。
-
 ### 留存建议（tools/edu/country-quiz.html）
-- 实现首都/位置题型与倒计时，或统一改宣称；补错题本（记录答错国家，复练）。
-- 国旗改图片资源，避免 emoji 平台差异；题库扩量并按难度分层。
 - 与 `flag-quiz.html` 明确分工（本页做首都/位置，另页做国旗），消除近重复。
 
 ### EL-J128 「国旗测验」英文简介称"timed multiple-choice quiz"但无计时器，错题库未实现（中，承诺未实现）
