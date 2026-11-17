@@ -678,6 +678,20 @@ const CASES = [
     ref: "素数判定（n=89，√89 ≈ 9.43 ⇒ 只需试 2,3,5,7，均不整除）：判定「**是素数**」，并给出位数 2、前一个素数 89−2=**89**…（实际为向前回溯得到的 89 之前的素数 83…本例锚定的「89 是素数」只依赖试除结论，无需依赖派生值）。与 91 那条互为反向对照，两条同页共存、互不削弱。",
   },
   {
+    slug: "science/prime-number",
+    inputs: { num: "97.9" },
+    clicks: ["run()"],
+    expect: ["请输入正整数"],
+    ref: "严格整数解析（SMS-134）：parsePositiveInt 用 Number() 后 Number.isSafeInteger 校验，小数 97.9 不是整数 ⇒ 拒绝并提示「请输入正整数」，不再被旧 parseInt 静默截成 97 而误判「97 是素数」。默认态 num=97 是真素数，不命中该提示；旧版注入失败会判「97 是素数」⇒ 本用例变红，判别力真实。",
+  },
+  {
+    slug: "science/prime-number",
+    inputs: { num: "1e3" },
+    clicks: ["run()"],
+    expect: ["1000 不是素数"],
+    ref: "科学计数解析（SMS-134）：number 输入框 value 对「1e3」保留原串，parsePositiveInt 用 Number('1e3')=1000 且为安全整数 ⇒ 按 1000 判定为合数「1000 不是素数」；旧 parseInt('1e3') 截成 1 判「1 不是素数」，与本 expecting 串不同 ⇒ 注入失败即变红。1000=2³×5³ 有因子 2，否定结论只依赖数值 1000。",
+  },
+  {
     slug: "science/si-unit-converter",
     inputs: { fromValue: "5", fromUnit: "7", toUnit: "10" },
     clicks: ["convert()"],
