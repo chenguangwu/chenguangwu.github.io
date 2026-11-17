@@ -1296,13 +1296,6 @@
 - 影响：`tools/welding/weld-strength.html` 未扣起灭弧段使承载力校核偏乐观，角焊缝实际应力被低估；与深度解析算例对不上也让复核者无法判断哪个口径为准。
 - 方案：增加「是否扣除起灭弧（默认扣 2h_f）」开关，`lwEff=lw−2*hf` 且校验 >0；全页统一 0.7 或 0.707 并注明取值出处（GB 50017 取 0.7）。
 
-### 12-N164 fluid/poiseuille-flow：半径 0 或负值不拦截，r=−0.01 与 +0.01 输出完全相同（中，确认缺陷）
-- 问题：输入无 `min`，守卫只把 μ、L 视作分母并对 0 报错；半径 r=0 时 Q=0 被当作正常结果输出，r 为负时四次方把符号抹掉，仍给正流量。ΔP 为负同样直接输出负流量。
-- 证据：`tools/fluid/poiseuille-flow.html:127-131`（dp/r 无 min）、`:243`（`__D` 仅含 mu、L）、`:249-252`（仅拦零分母）、`:276`（`Math.pow(r,4)`）
-- 复现（node 复算）：默认其他参数不变，r=0 → 页面「流量 Q 0.000e+0 m³/s、Q 0.000 mL/s」无提示；r=−0.01 → 3.927e-3 m³/s，与 r=+0.01 完全一致；ΔP=−1000 → −3.927e-3 m³/s。期望三种情况均提示半径/压差必须为正。
-- 影响：`tools/fluid/poiseuille-flow.html` 无效几何与反向压差被当作有效层流结果，微流控/血管阻力估算可能引用无意义数值。
-- 方案：对 dp、r 增加 `min>0` 与代码级 `<=0` 拦截；`__D` 补 r（r⁴ 亦为分母）；负值统一提示「压差与半径必须为正」，并补 Re 校核（Re>2300 时提示公式不适用）。
-
 ### 覆盖
 - 本轮审计 10 页：`tools/metallurgy/steel-profile-weight.html`、`tools/obstetrics/fetal-weight-hadlock.html`、`tools/travel/road-trip-gas-cost.html`、`tools/sales/stacked-discount.html`、`tools/printing/sheet-calc.html`、`tools/welding/weld-strength.html`、`tools/fluid/poiseuille-flow.html`、`tools/process/sigma-level.html`、`tools/hvac/duct-calculator.html`、`tools/gardening/compost-calculator.html`；均为上文未出现的页面。
 - 新增 13 条（高 7 / 中 6），编号 12-N154–12-N166；假工具候选 0 页。
@@ -1328,26 +1321,12 @@
 - 影响：`tools/gardening/soil-ph.html` 按页面表格 100–300 g 对应「升 1 个 pH」，差 1.5 个单位应给 150–450 g，页面只给 100–300 g（仅覆盖所需区间的约 2/3），用户按清单补一次仍差 0.5–1.0 个 pH，误判「已按工具加足」。
 - 方案：结果区按 `diff` 计算建议区间（`dose×diff`）并显示「按差值 Z 个单位」，保留「分次、每次 ≤0.5–1.0」的提示；调酸同理乘硫磺粉 100–200 g。
 
-### 12-N175 chemical/reaction-yield：实际产量大于理论产量时产率 >100% 仍判「🏆 卓越」，损失量为负（中，确认缺陷）
-- 问题：`yieldPct=(act/theo)*100`（`:306`）无上限校验，分级链 `>=90 → 🏆 卓越`（`:311`）；损失量 `theo−act`（`:321`）可为负。仅校验 `theo<=0`（`:305`）。
-- 证据：`tools/chemical/reaction-yield.html:303-311`、`:321`
-- 复现：理论 10 g、实际 15 g → 「产率 150.00%」「🏆 卓越」「损失量 −5.00 g」；实际留空 → 0% 判「⚠️ 偏低」而非提示缺项。
-- 影响：`tools/chemical/reaction-yield.html` 称量/理论量填错时把不可能的结果评为最优工艺，工艺放行与收率考核被误导；负损失量也不符合质量守恒。
-- 方案：`act>theo`（或 `yieldPct>100`）报错/标「数据异常」；`act` 为空或 ≤0 时提示补全；分级前先做 0<yieldPct≤100 校验。
-
 ### 12-N179 usedcar/usedcar-valuation：公式框承诺「按车况浮动形成残值区间」，实际无车况输入、只输出单一估价值（中，确认缺陷）
 - 问题：公式框 `:123` 写「估价 = 新车价 × 综合成新率，再按车况上下浮动形成残值区间」；深度解析 `:372` 也承诺「得成新率与估值区间」。但页面只有新车价/车龄/里程三个输入（`:127-138`），`calc()` 只输出单值（`:226-228`），无车况、品牌、地区项，也无上下限。
 - 证据：`tools/usedcar/usedcar-valuation.html:123`、`:127-138`、`:226-228`、`:372`
 - 复现：默认（12 万、3 年、3 万 km）→ 结果仅「成新率 85.0% / 估算二手价 102000.00 元」；任何输入组合都不出现区间，输入区也没有车况控件。
 - 影响：`tools/usedcar/usedcar-valuation.html` 用户按承诺寻找「残值区间」却拿不到，只能把单值当报价；车况这一最大不确定性完全缺失。
 - 方案：增加车况系数（优/良/一般/差 = +5%/0/−8%/−15%）与品牌保值率档位，输出「低–高」区间；或删掉「按车况浮动/残值区间」表述，改为「单点理论残值」。
-
-### 12-N181 process/cpk-with-shift：σ 负值与 LSL>USL 均不拦截，负 Cpk 被当正常结论输出（中，确认缺陷）
-- 问题：输入守卫只把 σ 登记为分母、仅拦 `σ===0`（`:255-265`），无正负校验；`calcTool` 直接 `Math.min((usl−mu)/(3*s),(mu−lsl)/(3*s))`（`:287-292`），也没有 `usl>lsl` 检查。
-- 证据：`tools/process/cpk-with-shift.html:255-265`、`:287-292`、`:313`
-- 复现（node 复算）：默认参数下 σ=−0.01 → Cpk **−2.333**（页面正常渲染）；LSL=10.1、USL=9.9（上下限写反）→ Cpk **−4.000**；两种都无 toast、无红框。σ=0 反而会被正确拦截。
-- 影响：`tools/process/cpk-with-shift.html` 负能力指数被当作评估结论，用户可能据此判定「过程已越界」或怀疑数据，而非发现 σ/规格限输错。
-- 方案：硬校验 `σ>0 && USL>LSL && LSL≤μ≤USL`；μ 越界时单独标「均值已超出规格」并把 Cpk 显示为「不合格（<0）」；σ 输入加 `min="0.0001"` 并在代码层复核。
 
 ### 覆盖清单（T 批 长尾行业，2026-11-04）
 - 审计页数：8（`tools/metallurgy/alloy-ratio.html`、`tools/leather/calc-dosage-4.html`、`tools/gardening/soil-ph.html`、`tools/chemical/reaction-yield.html`、`tools/nutrition/generator-glucose-load.html`、`tools/process/cpk-with-shift.html`、`tools/transport/calculator-calc-fuel.html`、`tools/usedcar/usedcar-valuation.html`），8 个不同目录各 1 页，均为既有 plan 未覆盖页（Grep 上述 8 个 slug 在 `_others.md` 零命中）。

@@ -427,6 +427,14 @@ const CASES = [
     "inputs": { "v": "12" },
     "expect": ["1.375"],
     "ref": "单字段注入（2026-11-05 补 oninput）：仅改流速 v=12 m/s、其余默认 ⇒ σ=(101325−2339)/(0.5×1000×144)=1.375；默认 v=10 为 1.980 ⇒ 强判别。"
+  },
+  {
+    "slug": "fluid/poiseuille-flow",
+    "clicks": [
+      "var d=document.getElementById;function g(id,v){d(id).value=v;calcTool();return String(d('result').innerHTML);}var a=g('r','0'),b=g('r','-0.01');d('r').value='0.01';var c=g('dp','-1000');var ok=[a,b,c].every(function(x){return x.indexOf('均须为正数')>=0&&x.indexOf('Q (m³/s)')<0;});document.getElementById('__tbProbe').textContent='POIS164 '+(ok?'OK':'BAD a='+a.slice(0,30)+' b='+b.slice(0,30)+' c='+c.slice(0,30));"
+    ],
+    "expect": ["POIS164 OK"],
+    "ref": "第1066批 N164：管半径 r=0 → 旧版 Q=0 当正常结果；r=-0.01 → 四次方抹符号与 +0.01 同值；dp=-1000 → 负流量。旧版三者均渲染 Q 卡无守卫；新版 calcTool 对 dp/r/mu/L 统一正有限校验，三者均清空结果并提示「压差、管半径、黏度与管长均须为正数」。哨兵要求三场景全部被拦截且不含 Q 卡，默认正输入（dp1000/r0.01）不触发 ⇒ 依赖 clicks 注入，强判别零逃生。"
   }
 
 ];
