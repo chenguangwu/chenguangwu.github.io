@@ -513,6 +513,13 @@ const CASES = [
   },
   {
     slug: "science/quadratic-equation",
+    inputs: { a: "-1", b: "0", c: "-1" },
+    clicks: ["solve()"],
+    expect: ["x₁ 0 + 1i", "x₂ 0 − 1i"],
+    ref: "a<0 的共轭复根：x²+1=0 → x=±i。虚部须一正一负；修复前 im=sq/(2a) 在 a=−1 时为 −1，两根拼成「0 + -1i」与「0 − 1i」都是 −i；修复后 im 取绝对值，得「x₁0 + 1i」「x₂0 − 1i」。默认 a=1 实根不命中",
+  },
+  {
+    slug: "science/quadratic-equation",
     inputs: { a: "1", b: "-5", c: "6" },
     clicks: ["solve()"],
     expect: ["精确：x = (5 + 1) / 2", "精确：x = (5 - 1) / 2"],

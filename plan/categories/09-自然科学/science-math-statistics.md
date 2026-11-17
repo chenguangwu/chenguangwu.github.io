@@ -17,7 +17,7 @@
 ## 2026-11-06 科学工具静态续审（清单 606–613）
 
 - `tools/science/physics-constants.html:236-260,276-281,328-340`：SMS-129（exp 数量级写 0，含 c/F/R∞/atm/H₀ 五项）与 SMS-130（玻尔兹曼常数(摩尔) R/Nₐ 重复行）已于 2026-11-17 真机销账——exp 改 8/4/7/5/1 与卡片科学计数一致、重复行删除；搜索、分类、复制及筛选导出路径存在。SMS-128（分类维度错置）属产品语义裁断，保留待决。
-- `tools/science/quadratic-equation.html:366-367,293`：旧 SMS-136 已改为相对阈值 `epsD=1e-12×max(b²,|4ac|,1e-300)` + 小数 `toExponential(6)`，第 962 批真机确认（`scripts/_verify_printing_travel_regress_962.mjs`）：x²−5x+6 两根 2/3、判「两不等实根」。SMS-137 的负 a 共轭根符号问题仍在，结果趋势仍解析以 `Δ` 开头的文本。
+- `tools/science/quadratic-equation.html:366-367,293`：旧 SMS-136 已改为相对阈值 `epsD=1e-12×max(b²,|4ac|,1e-300)` + 小数 `toExponential(6)`，第 962 批真机确认（`scripts/_verify_printing_travel_regress_962.mjs`）：x²−5x+6 两根 2/3、判「两不等实根」。SMS-137 负 a 共轭根符号已于 972 批修正（im 取绝对值，a=−1 得 ±i），结果趋势仍解析以 `Δ` 开头的文本（SMS-151 共用模板问题）。
 - `tools/science/science-flow-rate.html:569-608,669-718`：旧 SMS-143～145 的历史不恢复输入、内径单位写死和无效值保留旧结果路径仍在。
 - `tools/science/science-pressure-converter.html:447-464,495-508`：清空输入后直接返回，旧结果仍可复制与保存，既有记录仍适用。
 - `tools/science/voltage-divider-calculator.html:386-390`：旧 SMS-36～37 已修并经第 961 批真机确认（`scripts/_verify_voltage_divider_961.mjs` 5/5）：目标电压 ≥Vin、=0、留空均清空结果（resVout=—），正常输入 Vout=6 V。残余：正向求 Vout 仍以 `||0` 处理 Vin/R1/R2（`:379-381`），清空 Vin 得 0 V 数值而非「—」，待改为必填校验。
@@ -328,7 +328,7 @@
 
 ## AA 批 · 自然科学·物理/数论/元素（2026-11-04）
 
-- `tools/science/pendulum-period.html`：1 条（SMS-124 中）。L=1、g=9.81 → T=2.006 s、f=0.4985 Hz、ω=3.1321 rad/s，量纲自洽；问题在默认/重置/历史预设三处都把 g 写成 9.81，与同页引据「默认 g = 9.80665」不一致。
+- `tools/science/pendulum-period.html`：SMS-124 已修——默认/重置/历史预设三处 g 由 9.81 统一为 9.80665（与同页引据及 physics-constants 一致），输入 step 改 any 使默认值合步长；英文 JSON placeholder 同步。L=1、g=9.80665 → T=2.006 s、f=0.4985 Hz、ω=3.1321 rad/s，量纲自洽。
 - `tools/science/periodic-table.html`：1 条（SMS-125 高）。118 元素及 H/Cr/Cu/Pd/La–Lu 电子排布抽样正确；问题为镧系/锕系直接 append 进 18 列 grid、未做网格定位，锕系前 3 个挤进镧系行右侧。
 - `tools/science/permutation-calculator.html`：2 条（SMS-126 高、SMS-127 中）。P(5,2)=20、P(10,3)=720、P(n,0)=1 复核正确；问题为 parseInt 静默截断（公式框承诺的整数校验未实现）与 n/r 无上限导致大数连乘冻结。
 - `tools/science/physics-constants.html`：3 条（SMS-128～130 中）。c、G、h、e、mₑ、Nₐ、k_B、R、α、a₀ 等数值抽查全部正确；问题在分类维度错置、柱图 exp 元数据与数值不符、重复行符号/数值自相矛盾。
@@ -339,7 +339,6 @@
 
 | 页面 | 问题（tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
-| tools/science/pendulum-period.html | 默认重力加速度自相矛盾：输入框、`resetForm`、历史「默认」预设均为 9.81，而同页引据写明「默认 g = 9.80665 m/s²」（physics-constants 亦为 9.80665）；L=10 时 T 显示 6.344 s，按 9.80665 应为 6.345 s，f/ω 同源偏移。:131、:294、:167、:327 | SMS-124 |
 | tools/science/periodic-table.html | 镧系/锕系错位：`#periodicTable` 为 `grid-template-columns:repeat(18,1fr)` 且无 grid-column 定位，7×18=126 个单元格占满 7 行后，15 个镧系排第 8 行 1–15 列，15 个锕系从第 8 行第 16 列续排 → Ac/Th/Pa 落在镧系行右端、其余 12 个换到第 9 行 1–12 列，与深挖「单独排在下方两行」不符。:29、:444-458 | SMS-125 |
 | tools/science/permutation-calculator.html | `parseInt` 吞掉小数且未做整数校验：n=5.9、r=2.9 → 按 P(5,2)=20 输出，输入框仍显示 5.9/2.9，无任何提示；公式框明写「n、r 须为整数（非整数提示「请输入整数」）」，代码只有 `isNaN` 判断，承诺的校验未实现。:150、:248-250 | SMS-126 |
 | tools/science/permutation-calculator.html | n/r 无上限且先构造两个从未使用的 O(n) 数组，再在 `factorialRange` 做 r 次 BigInt 连乘：P(100000,100000) 需 10 万次、约 45 万位大数乘法，标签页冻结数十秒以上，n=1e6 更甚。:235、:262-263 | SMS-127 |
@@ -349,11 +348,11 @@
 
 - 声明：本轮仅逐页通读 8 页源码（HTML + 内联 JS），在 `/tmp` 用 node 复刻主算与边界（单摆 T/f/ω 与 g 双值对比、极昼逐日布尔与跨年连续区间、幂 fmt 的 `toLocaleString` 默认位数、π 1000 位串头尾与第 100/1000 位、parseInt 截断、BigInt 排列的量级、sieve 内存/试除复杂度、常量 exp 分桶），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。默认单位复核：单摆 L(m)/g(m·s⁻²) 量纲自洽，极昼工具纬度统一按度、无角度/弧度混用。
 - 安全注记：本批 8 页无 `eval`/`new Function`/`allow-same-origin`/`document.write`、无明文存密、无页面自有网络外传；本批数值页的用户输入均经 `parseFloat`/`parseInt` 或固定数字正则后才参与运算与拼接，未形成可控 HTML 注入。公共模板统一注入的 `lf1-cdn-tos.bytegoofy.com/ttzz/push.js` 属全站既有项（前批按「非本批页面特有、不重复登记」口径处理），故未计入条数。
-- 原审统计（历史快照）：8 页 / 12 条（高 2 / 中 10）/ 安全 0 条 / 假工具 0 个 / 编号区间 SMS-124～SMS-135；SMS-133 已于 2026-11-06 复核清理，SMS-132 以现有残留说明为准，SMS-134/135 已于 2026-11-17 真机销账（严格整数解析 + 范围上限），SMS-129/130 同日销账（exp 数量级修正 + 重复行删除）。
+- 原审统计（历史快照）：8 页 / 12 条（高 2 / 中 10）/ 安全 0 条 / 假工具 0 个 / 编号区间 SMS-124～SMS-135；SMS-133 已于 2026-11-06 复核清理，SMS-132 以现有残留说明为准，SMS-134/135 已于 2026-11-17 真机销账（严格整数解析 + 范围上限），SMS-129/130 同日销账（exp 数量级修正 + 重复行删除），SMS-124 于 972 批销账（重力常量统一 9.80665）。
 
 ## AA 批 · 自然科学·方程/统计/RC/星等（2026-11-04）
 
-- `tools/science/quadratic-equation.html`：2026-11-06 复核，判别式改为相对阈值，小系数原例计算出 ±1，SMS-136 清理；a<0 时两个数值根仍都显示为负虚部（SMS-137）。
+- `tools/science/quadratic-equation.html`：2026-11-06 复核判别式改相对阈值，小系数原例算出 ±1，SMS-136 清理；a<0 共轭根负虚部（SMS-137）已于 972 批修正。
 - `tools/science/range-calculator.html`：2 条（SMS-138 高、SMS-139 中）。默认 [12,25,8,17,33,21,6] → min 6 / max 33 / 极差 27 / 中程 19.5 正确；问题为千分位逗号被当分隔符、说明承诺的均值/中位数/标准差未实现。
 - `tools/science/rc-time-constant.html`：3 条（SMS-140 高、SMS-141～142 中）。预设「滤波 1 kΩ×100 nF → 100 μs」复核正确；问题为默认 10000(kΩ)+0.000001(μF)=10 MΩ/1 pF 使 τ=10 μs（与数值字面本意 10 ms 差 1000 倍）、简介承诺的截止频率缺失、0 V 被替换为 5 V。
 - `tools/science/science-flow-rate.html`：3 条（SMS-143 高、SMS-144～145 中）。DN50/2 m/s → A=1963.5 mm²、Q=3.93 L/s=14.14 m³/h=62.2 GPM、Re≈99,600（湍流），主算正确；问题为历史条目不还原输入（假恢复）、明细把任意单位的内径都标 mm、非法输入保留旧结果。
@@ -363,7 +362,6 @@
 
 | 页面 | 问题（tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
-| tools/science/quadratic-equation.html | a<0 时复根数值展示错误：`im = √(−Δ)/(2a)` 为负值，x₁ 拼 `${re} + ${im}i`，x₂ 拼 `− &#124;im&#124;`；2026-11-06 提取实际 `solve()` 在 Node 执行 a=−1、b=0、c=−1，分别得到「0 + -1i」和「0 − 1i」，实际上两行都是 −i，漏掉 +i；精确形式两根则分别为 −i、+i。:401-407 | SMS-137 |
 | tools/science/range-calculator.html | `parseData` 以 `[,\s\n;]+` 切分，千分位逗号被当分隔符：输入「1,000, 2,000」→ [1,0,2,0]，极差由 1000 变成 2；单值「1,000」→ [1,0] 极差 1，页面无任何提示。:232 | SMS-138 |
 | tools/science/range-calculator.html | 公式说明承诺「同时输出均值、中位数与标准差便于对照」，但 `calculate` 只渲染最小值/最大值/极差/中程数与步骤，全页无均值、中位数、标准差计算（承诺未实现）。:154、:240-254 | SMS-139 |
 | tools/science/rc-time-constant.html | 默认值与默认单位错配：阻值 10000 配 `kΩ`（=10 MΩ）、容值 0.000001 配 `μF`（=1 pF），τ=10⁷×10⁻¹²=10 μs；两个数值显然按 Ω/F 基单位填写（10000 Ω × 1 μF 应为 10 ms），默认 τ 与字面本意差 1000 倍，10 MΩ 电阻与 1 pF 电容也非典型默认。:134、:137、:145、:151 | SMS-140 |
