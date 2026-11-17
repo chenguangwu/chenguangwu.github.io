@@ -78,6 +78,24 @@ const CASES = [
     ref: "新增回归：括号结构 Ca(OH)2 → 40.078+2×(15.999+1.008)=74.092；旧正则解析丢掉括号，会把 O2H2 误拆成 O2 + H2 且 Ca 后系数错位，得 57.09 一类错误值",
   },
   {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "Ca(OH]2" },
+    expect: ["化学式格式有误"],
+    ref: "SMS-9 清账（括号类型）：原括号扫描只累计深度、不区分配对类型，Ca(OH]2 的 '(' 遇 ']' 也 depth-- 归零被接受。现改栈匹配，闭合符须与栈顶开启符对应；交叉括号报错。旧版接受并算出质量 ⇒ 变红，零逃生。"
+  },
+  {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "NaCl·2H2O·3H2O" },
+    expect: ["摩尔质量 M 148.515", "H 10 1.008 10.080", "O 5 15.999 79.995"],
+    ref: "SMS-9 清账（多水合段）：原 addComp 递归时把前段系数累乘到后段，NaCl·2H2O·3H2O 得 H=16/O=8/M=202.560。现按 · 在顶层分段、各段系数独立（NaCl+2H2O+3H2O）：H=2+3=5×2=10、O=2+3=5、M=148.515。三条锚均为旧版不成立，零逃生。"
+  },
+  {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "H0" },
+    expect: ["化学式格式有误"],
+    ref: "SMS-9 清账（零下标）：原括号/元素下标只按数字串解析，H0 产生 H=0 并以 M=0.000、占比 NaN/Infinity 参与展示。现元素与括号计数统一要求正整数，0 下标判格式错误；旧版不报「化学式格式有误」⇒ 变红，零逃生。"
+  },
+  {
     slug: "science/ph-calculator",
     // ⚠ 默认页签是「H⁺→pH」，读的是 id="H"（默认 0.001）；id="ph" 属于另两个页签，
     // 旧用例注入 ph:"3" 对默认页签**无效**，expect「3.00 / 1.000e-3」实由默认 H=0.001
@@ -85,6 +103,13 @@ const CASES = [
     inputs: { H: "0.0005" },
     expect: ["[OH⁻] 2.000e-11 mol/L", "pOH 10.70"],
     ref: "H=5e-4 → pH=-log10(5e-4)=3.30；[OH⁻]=1e-14/5e-4=2.000e-11；pOH=14-3.301=10.70。默认 H=0.001 得 pH 3.00 / [OH⁻] 1.000e-11 / pOH 11.00（跨档）",
+  },
+  {
+    slug: "science/ph-calculator",
+    inputs: {},
+    clicks: ["var e=document.getElementById('H');e.value='0.0005';calc();var h1=String(document.getElementById('result').innerHTML);e.value='';calc();var h2=String(document.getElementById('result').innerHTML);e.value='PH11_'+((h1.indexOf('2.000e-11')>=0&&h2.indexOf('2.000e-11')<0&&h2.indexOf('请输入有效参数以查看结果')>=0)?'OK':'BAD');"],
+    expect: ["PH11_OK"],
+    ref: "SMS-11 清账（状态链）：先以 H=5e-4 算出 [OH⁻]=2.000e-11，再清空 H 触发非法输入。旧版 toast 后 return 保留上一份报告；现 calc 开头先清结果并显示「请输入有效参数以查看结果」，旧浓度报告必须消失。探针同时断言旧报告存在过、清空后报告消失且提示出现，默认态不含 PH11_OK ⇒ 零逃生。",
   },
 
   {

@@ -225,39 +225,59 @@ function parseFormula(s){
   s=s.replace(/[·•*]/g,'·').replace(/₀/g,'0').replace(/₁/g,'1').replace(/₂/g,'2').replace(/₃/g,'3').replace(/₄/g,'4').replace(/₅/g,'5').replace(/₆/g,'6').replace(/₇/g,'7').replace(/₈/g,'8').replace(/₉/g,'9');
   const comp={};let bad=false;
   function addComp(src,mult){
+    function readCount(num){
+      const n=num?parseInt(num,10):1;
+      if(!isFinite(n)||n<=0){bad=true;return 0;}
+      return n;
+    }
     let i=0;
     while(i<src.length){
       const ch=src[i];
       if(ch==='('||ch==='['){
-        let depth=1,j=i+1;
-        while(j<src.length&&depth>0){
-          if(src[j]==='('||src[j]==='[')depth++;
-          else if(src[j]===')'||src[j]===']')depth--;
+        // 用栈匹配括号类型：允许合法嵌套（如 [(OH)2]），拒绝交叉（Ca(OH]2）。
+        const stack=[ch];
+        let j=i+1;
+        while(j<src.length&&stack.length>0){
+          const c=src[j];
+          if(c==='('||c==='[')stack.push(c);
+          else if(c===')'||c===']'){
+            const want=stack[stack.length-1]==='('?')':']';
+            if(c!==want){bad=true;return;}
+            stack.pop();
+          }
           j++;
         }
-        if(depth!==0){bad=true;return;}
+        if(stack.length!==0){bad=true;return;}
         const inner=src.slice(i+1,j-1);
         let k=j,num='';
         while(k<src.length&&src[k]>='0'&&src[k]<='9'){num+=src[k];k++;}
-        addComp(inner,mult*(num?parseInt(num,10):1));
+        const cnt=readCount(num);
+        if(bad)return;
+        addComp(inner,mult*cnt);
         i=k;
       }else if(ch>='A'&&ch<='Z'){
         let el=ch;i++;
         if(i<src.length&&src[i]>='a'&&src[i]<='z'){el+=src[i];i++;}
         let num='';
         while(i<src.length&&src[i]>='0'&&src[i]<='9'){num+=src[i];i++;}
-        comp[el]=(comp[el]||0)+mult*(num?parseInt(num,10):1);
-      }else if(ch==='·'){
-        i++;
-        let num='';
-        while(i<src.length&&src[i]>='0'&&src[i]<='9'){num+=src[i];i++;}
-        if(i>=src.length){bad=true;return;}
-        addComp(src.slice(i),mult*(num?parseInt(num,10):1));
-        return;
+        const cnt=readCount(num);
+        if(bad)return;
+        comp[el]=(comp[el]||0)+mult*cnt;
       }else{bad=true;return;}
     }
   }
-  addComp(s,1);
+  // 水合/加成段按 · 分割，每段系数只作用于本段（NaCl·2H2O·3H2O 应为 NaCl+2H2O+3H2O，
+  // 不能让前段系数累乘到后段）。原实现在 addComp 内递归并传累乘 mult，导致多段串乘。
+  const segments=s.split('·').filter(function(x){return x.length>0;});
+  if(segments.length===0){return null;}
+  for(const seg of segments){
+    const m=seg.match(/^(\d+)([\s\S]*)$/);
+    const coef=m?parseInt(m[1],10):1;
+    const body=m?m[2]:seg;
+    if(!body){bad=true;break;}
+    addComp(body,coef);
+    if(bad)break;
+  }
   return bad?null:comp;
 }
 function initElements(){
