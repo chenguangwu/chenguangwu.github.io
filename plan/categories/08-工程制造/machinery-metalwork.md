@@ -195,12 +195,10 @@
 | tools/machinery/xiao-dingwei-lianjie-chicun.html | 【中】「⇄ 互换 A/B」沿用通用两参模板，交换 F(kN) 与 τ(MPa) 后仍按 d=√(4F/πτ) 计算：20/120 互换后成 120 kN / 20 MPa，d=87.4 mm、截面积 5999 mm²，无单位/量纲提示（:131, :493-498, :562） | MM-H112 |
 | tools/machinery/xiao-dingwei-lianjie-chicun.html | 【中】深度解析称「圆柱销/圆锥销的直径 d 与长度 L 按剪力与挤压选定」并给出 σc=F/(d·t)，页面无板厚 t、销长 L 与配合输入，只输出直径/截面积，「尺寸」与挤压校核未实现（:720-724, :563-566） | MM-H113 |
 | tools/metalwork/analysis-36.html | 【假】只做「数量×权重」统计；可见英文副标题承诺 "Diagnose common casting defects … assess likely causes and remedies"，简介功能承诺均值/标准差/极差、控制界限判定批次合格性、按浇道/型腔定位高发位置，代码全部未实现，无任何成因/对策输出（:117, :286-292, :209-239） | MM-H114 |
-| tools/metalwork/analysis-36.html | 【中】数量与权重不校验：cnt 可为负或 0（缺陷总数/缺陷率变负），权重不限 1–3（输 100 使加权指数虚高约 30 倍），页脚仍写「权重按严重度取 1~3」（:217-219, :237） | MM-H115 |
 | tools/metalwork/analysis-cost-price-5.html | 【假】标题含「成本」、引据表列「材料成本=体积×密度×单价（铜 8.96 g/cm³）」与「总成本=材料+加工+损耗+废品率」，页面只有价格序列统计，无体积/密度/加工费/废品率任何输入，成本分析未实现（:125, :191-203, :220-256） | MM-H117 |
-| tools/metalwork/analysis-cost-price-5.html | 【中】负价仍参与均值/标准差/回撤：输入 −10 等负值仍照常统计，缺少「价格应为非负」的业务校验（前一期为 0 与均值为 0 的除零假合规已于 973 批修复销账） | MM-H118 |
 
 **统计**
-- 条数：9（高 2 / 中 5 / 假 2）；编号区间：MM-H104–MM-H119，MM-H107–MM-H110、MM-H111、MM-H116、MM-H119 已修复销账，其余不重号不跳号。
+- 条数：7（高 2 / 中 3 / 假 2）；编号区间：MM-H104–MM-H119，MM-H107–MM-H110、MM-H111、MM-H115、MM-H116、MM-H118、MM-H119 已修复销账，其余不重号不跳号。
 - 高优编号：MM-H104（链条选型不看功率、无强度校核）、MM-H106（回火线性模型高估 10–16 HRC）。
 - 假工具：2（`tools/metalwork/analysis-36.html`、`tools/metalwork/analysis-cost-price-5.html`，均核心统计可用但宣称的分析/诊断/成本能力未实现）。承诺未实现另有：MM-H104（meta 称校核静/疲劳强度）、MM-H113（挤压与销长）。
 - 安全：0 条（原 MM-H116/H119 的用户输入未转义均已由 `escXss` 修复，第 952 批真机复核零注入）；其余 8 页无 XSS、eval、allow-same-origin、明文存密或业务数据外传；全站模板 ttzz 脚本不单列。
@@ -233,7 +231,6 @@
 | tools/metalwork/detector-21.html | 【中】深度解析整节为「焊接/探伤探测器参数对比」（灵敏度 0.5/1.0 mm、信噪比 20 dB、设备比对），与本页按材料/缺陷/厚度选检测方法无关，页面也无对应输入（:312-320） | MM-H127 |
 | tools/metalwork/detector-23.html | 【高】IT 等级只按公差带绝对值查表、完全不看公称尺寸：0.039 mm 在 Ø50 按 GB/T 1800.1 为 IT8（30–50 mm IT8=39 μm），页面判 IT4；阈值 0.004/0.006/0.010… 不对应任何尺寸段的 IT01/IT0/IT1，属冒用国标验收（:214,236-247） | MM-H128 |
 | tools/metalwork/detector-23.html | 【中】检测方式不影响判定：measureMethod 只改方法名与「不确定度 ±0.005/0.002/0.010 mm」文本，pass 仍只看 dev∈[lt,ut]；注文称不确定度应小于公差带 1/3~1/10，激光 ±0.010 对 0.010 公差带仍判合格（:215,233,248,258-259） | MM-H129 |
-| tools/metalwork/detector-23.html | 【中】空值/负公差无校验：nominal/actual 空值经 `||0` 变 0；上偏差 −0.05、下偏差 +0.05 时 tolRange=−0.1 仍归为 IT01，pass 恒 false 并输出「尺寸偏大/偏小」建议，无参数错误提示（:224-247,260-268） | MM-H130 |
 | tools/metalwork/detector-55.html | 【中】参考区间标尺把 <75% 全部标「合格」：bands 第三段 lo:null、hi:75、label 合格，覆盖了页面实际判「不合格」的 <60% 区间（:295-298,313） | MM-H131 |
 | tools/metalwork/detector-55.html | 【中】引据表与深度解析均跑题：引据列 OEE/Weibull/MTBF，深度解析讲无损检测探测器「检出率/3σ 阈值/设备一致性」，本页是维修流程 18 项自查，无对应输入或输出（:160-172,349-362） | MM-H132 |
 | tools/metalwork/detector-hardness.html | 【高】「厚度允许偏差 ±μm」基本失效：ratio≥1.0 一律 thickScore=100/thickPass=true，实测 52 vs 标准 40、容差 ±5（差 12 μm）仍输出「✓ 通过」；ratio>1.6（70 vs 40）也 pass；仅 0.85–1.0 段才用容差（:322-335,410） | MM-H133 |
@@ -242,10 +239,9 @@
 | tools/metalwork/detector-hardness.html | 【中】默认组合自相矛盾：pencilGrade 默认 6B（最软）、coatingType 默认 paint（要求 HB 指数 6），加载即显示「涂层质量良好（未达标）/不合格」，默认参数无法演示合格路径（:183,206,343,349-350） | MM-H136 |
 | tools/metalwork/detector-mold.html | 【高】「记录此点」是假功能：addPoint 只把 `{name,dx}` push 进 pointList，该数组从不渲染、也不导出；CSV 导出的是 TBKit 历史表（输入+结果摘要），不是多点测量报告（:243-250,414-416） | MM-H138 |
 | tools/metalwork/detector-mold.html | 【中】公式框与判定逻辑不符：说明称「各轴偏差均不超公差且空间偏差不超公差」才 PASS，代码 allPass=passX&&passY&&passZ，未判 dist；三轴各 0.019 mm、tol=0.020 → 空间偏差 0.0329 mm 仍判「合格」（:120,227-239） | MM-H139 |
-| tools/metalwork/detector-mold.html | 【中】空值/零公差无校验：坐标用 `+value` 读取，清空理论/实测坐标得 0 仍参与计算；清空公差得 ±0.000 mm，任意偏差全判超差并给出刀具补偿建议，无「请输入」提示（:222-224,238-264） | MM-H140 |
 
 **统计**
-- 条数：20（高 10 / 中 9 / 假 1）；编号区间：MM-H120–MM-H140，续接 MM-H119，安全一条 MM-H137 已修复销账，其余不重号不跳号。
+- 条数：18（高 10 / 中 7 / 假 1）；编号区间：MM-H120–MM-H140，续接 MM-H119，MM-H130、MM-H137、MM-H140 已修复销账，其余不重号不跳号。
 - 高优编号：MM-H120（流程比单位混算）、MM-H121（模具温度死输入）、MM-H123（Q 算了不渲染）、MM-H124（滚刀转速用分度圆）、MM-H126（材料/等级死选项）、MM-H128（IT 等级无视公称尺寸）、MM-H133（厚度容差失效）、MM-H134（胶带法恒合格）、MM-H135（写死涂层合格线冒充国标）、MM-H138（记录点假功能）。
 - 假工具：0（核心直齿/评分/偏差计算均可用）；承诺未实现：1（MM-H125 斜齿）；冒用国标：2（MM-H128、MM-H135）。
 - 安全：0 条（原 MM-H137 已于第 952 批改走 `ToolBox.escHtml` 并真机回放验证）；其余 8 页无 XSS、eval、allow-same-origin、明文存密或业务数据外传；全站模板 ttzz 脚本不单列。
