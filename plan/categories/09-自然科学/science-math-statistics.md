@@ -39,10 +39,6 @@
 - 证据：同页 `:447-464,467-484` 已并列单位结果及海拔压力参考曲线。
 - 影响：同页；方案：提供常见轮胎表压与绝压示例，并明确大气压力假设，防止用户误把参考值视为实测。
 
-### 二项分布负阈值被钳位为零（中，确认源码及函数缺陷）
-- 2026-11-06 复核：原大样本下溢问题已改为对数域计算；提取页面实际函数执行 n=1000、p=0.8、x=900，P(X≤x) 显示 1.0000、右尾显示 0.0000，原反向结果不再复现。
-- 残留：`tools/statistics/binomial-cdf.html:243-248` 允许负整数 x，却将其钳位为 0。实跑 n=10、p=0.5、x=-1，显示 P(X≤x)=0.0010、P(X=x)=0.0010；实际二者均应为 0。应正确处理负阈值，或明确拒绝该输入，不得静默替换。
-
 ### 回归主结果已拒绝不等长，增强明细仍截断（高，确认函数缺陷）
 - 2026-11-06 复核：`tools/statistics/linear-regression.html:292-314` 的主计算已严格检查非法项、长度、样本数及 X 方差；旧称主结果静默截断已不成立。
 - 残留：`:331-371` 的增强计算仍独立解析并用 `Math.min` 截断，包装器无论主计算成功与否都会调用它。提取页面函数在内存 DOM 桩实跑 X=`1,2,3`、Y=`2,4`：主结果提示长度不等，但明细表仍输出前两组拟合结果。图表、历史和导出也沿用这套截断数据。
@@ -369,7 +365,7 @@
 - `tools/science/rc-time-constant.html`：3 条（SMS-140 高、SMS-141～142 中）。预设「滤波 1 kΩ×100 nF → 100 μs」复核正确；问题为默认 10000(kΩ)+0.000001(μF)=10 MΩ/1 pF 使 τ=10 μs（与数值字面本意 10 ms 差 1000 倍）、简介承诺的截止频率缺失、0 V 被替换为 5 V。
 - `tools/science/science-flow-rate.html`：3 条（SMS-143 高、SMS-144～145 中）。DN50/2 m/s → A=1963.5 mm²、Q=3.93 L/s=14.14 m³/h=62.2 GPM、Re≈99,600（湍流），主算正确；问题为历史条目不还原输入（假恢复）、明细把任意单位的内径都标 mm、非法输入保留旧结果。
 - `tools/science/star-magnitude-compare.html`：2 条（SMS-146～147 中）。−1.46 vs 0 → Δm=1.46、3.84 倍；太阳/满月 Δm=14 → 3.98×10⁵，倍率落在常识区间；问题为 0.77 等重复行反查取错星名、天津四与老人星二的距离/绝对星等不自洽。
-- `tools/science/statistics-calculator.html`：3 条（SMS-148 高、SMS-149～150 中）。默认 n=15 → 均值 10.8、中位数 9、样本 sd 7.485、偏度 0.672、超额峰度 −0.918，全部正确；问题为千分位被切分、NaN 偏度/峰度仍判「对称/正态」、末组区间标 `[a,b)` 却含最大值。
+- `tools/science/statistics-calculator.html`：2 条（SMS-148 高、SMS-150 中）。默认 n=15 → 均值 10.8、中位数 9、样本 sd 7.485、偏度 0.672、超额峰度 −0.918，全部正确；问题为千分位被切分、末组区间标 `[a,b)` 却含最大值。SMS-149（NaN 偏度/峰度误判对称/正态）本批已修。
 - `tools/science/{quadratic-equation,range-calculator,star-magnitude-compare,statistics-calculator}.html`：1 条（SMS-151 中，共用模板）。`__*Extras` 对中文结果文本做 `parseFloat` 恒得 NaN → 「结果趋势」图永不渲染（rc 页为 canvas 曲线，不受影响）。
 
 | 页面 | 问题（tools/science/&lt;slug&gt;.html:NN） | 编号 |
@@ -386,7 +382,6 @@
 | tools/science/star-magnitude-compare.html | 按星等值反查星名取错行：`STARS.find(s => Math.abs(s.vmag - m1) < 0.01)` 取首个匹配，而表内 0.77 等有牛郎星（:293）与十字架二（:294）两行；点选十字架二后结果卡标注为「牛郎星」，两星张冠李戴。:335-336 | SMS-146 |
 | tools/science/star-magnitude-compare.html | 表内距离/绝对星等不自洽：天津四 vmag 1.25、amag −6.95、dist 2615 ly，按距离反推 amag≈−8.27（差 1.3 等）；老人星二 vmag 1.69、amag −0.9 反推距离仅 107 ly（实际约 111 ly），表中 dist 却写 381 ly（约 3.5 倍）。:300、:304 | SMS-147 |
 | tools/science/statistics-calculator.html | 同一千分位缺陷：`parseData` 用 `[,\s\n;]+` 切分，「1,000, 2,000」→ [1,0,2,0]，n=4 而非 2，均值/方差/偏度全部按错误数据计算，页面无提示。:270 | SMS-148 |
-| tools/science/statistics-calculator.html | `fmt(NaN)` 返回「未定义」，随后仍用 `skew>0/skew<0`、`kurt>0/kurt<0` 下定性结论 → 常数数据（5,5,5）显示「偏度 = 未定义（对称）」「峰度 = 未定义（正态）」；n=2 样本偏度与 n=2/n=3 样本峰度同样 NaN 却判「对称/正态」。:293、:302、:388-389 | SMS-149 |
 | tools/science/statistics-calculator.html | 频数表末组区间标成左闭右开 `[20.4, 25.00)`，却把最大值 25 计入该组（`idx` 夹到最后一桶），末行区间与频数自相矛盾；默认数据即可复现。:411 | SMS-150 |
 | tools/science/&#123;quadratic-equation,range-calculator,star-magnitude-compare,statistics-calculator&#125;.html | 共用模板「结果趋势」图恒为空：`__*Extras` 用 `parseFloat(arr[j].d[rk])` 解析中文结果文本（「Δ = 1」「极差 Range = 27」「星等差 Δm = 1.46」「样本均值 = 10.8」），恒为 NaN，`nums.length>=2` 永不成立，图一次都不渲染（rc 页为 canvas 曲线不受影响）。quadratic:514、range:335、star:598、statistics:612 | SMS-151 |
 

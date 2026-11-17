@@ -234,6 +234,7 @@ function calcTool(){
               ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 需满足：n 为 0–1000 的整数、x 为整数、0 ≤ p ≤ 1</p>');return;
             }
             const n=Math.round(nRaw), pv=p;
+            const xBelow=xRaw<0;  // 负阈值：P(X≤x) 恒为 0，不得钳位成 pmf[0]
             const xx=Math.max(0,Math.min(Math.round(xRaw),n));
             // 对数域递推：pmf[k]=exp(logC(n,k)+k·ln p+(n−k)·ln(1−p))，避免 (1−p)^n 下溢后整列归零
             const pmf=new Array(n+1).fill(0);
@@ -251,13 +252,14 @@ function calcTool(){
             let cdf=0;
             for(let k=0;k<=xx;k++) cdf+=pmf[k];
             if(cdf>1) cdf=1;
+            if(xBelow) cdf=0;
             const __g1=dataGrid([
                 [cdf.toFixed(4),'累积概率 P(X≤x)'],
-                [(pmf[xx]||0).toFixed(4),__bcL('Exactly P(X=x)','恰好 P(X=x)')],
+                [(xBelow?0:(pmf[xx]||0)).toFixed(4),__bcL('Exactly P(X=x)','恰好 P(X=x)')],
                 [Math.max(0,1-cdf).toFixed(4),__bcL('Upper tail P(X>x)','右尾 P(X&gt;x)')],
                 [(n*p).toFixed(3),__bcL('Mean E(X)=np','期望 E(X)=np')]
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
-            __bcExtras(n,p,xx,pmf,cdf);
+            __bcExtras(n,p,xBelow?-1:xx,pmf,cdf);
         }
 function __bcExtras(n,p,xx,pmf,cdf){
     if (typeof TBKit === 'undefined') return;

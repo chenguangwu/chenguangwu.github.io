@@ -484,6 +484,13 @@ const CASES = [
     ref: "总体描述统计（n=5，数据 2,4,6,8,10，population 口径）：Σx = **30**、均值 x̄ = 30/5 = **6**；总体方差 = Σ(xᵢ−6)²/n = (16+4+0+4+16)/5 = 40/5 = **8**；总体标准差 = **√8 = 2.828**；标准误 SE = 2.828/√5 = 1.265、中位数 6、极差 8、偏度 0（对称）、峰度 −1.3（扁峰），均与上式自洽。默认数据/dtype 不同 ⇒ 不命中。",
   },
   {
+    slug: "science/statistics-calculator",
+    inputs: { data: "5, 5, 5", dtype: "population" },
+    clicks: ["calculate()"],
+    expect: ["—/不适用（方差为 0，样本无偏度）"],
+    ref: "常数数据方差为0，偏度/峰度无定义；旧版 fmt(NaN)='未定义' 却按 skew>0/skew<0 判假落入'对称/正态'；新版 isFinite 门控显示不适用。默认数据不含此串，强判别"
+  },
+  {
     slug: "science/exp-calculator",
     inputs: { x: "5" },
     clicks: ["calculate()"],
