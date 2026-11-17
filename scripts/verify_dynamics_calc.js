@@ -356,6 +356,12 @@ const CASES = [
       "力功 W (J) 37044"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"m\":\"42\",\"v1\":\"42\",\"v2\":\"42\"}，输出区含「力功 W (J) 37044」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "dynamics/rotational-kinetic-energy",
+    "clicks": ["var d=document.getElementById;function g(v){d('I').value=v;calcTool();return String(d('result').innerHTML);}var a=g('-1'),b=g('0');d('I').value='0.5';var c=g('0.5');var ok=a.indexOf('转动惯量 I 必须为正数')>=0&&a.indexOf('转动动能')<0&&b.indexOf('转动惯量 I 必须为正数')>=0&&b.indexOf('转动动能')<0&&c.indexOf('25.000')>=0;document.getElementById('__tbProbe').textContent='RKENEG '+(ok?'OK':'BAD a='+a.slice(0,25));"],
+    "expect": ["RKENEG OK"],
+    "ref": "12-N84 负惯量守卫：I=-1 旧版 E=0.5×(-1)×100=-50 J 负动能、I=0 出 0 J 仍展示结果；新版拦截并清空结果；I=0.5、ω=10 合法仍出 25.000 J。哨兵要求两非法态提示且无动能卡、合法态有 25.000，依赖 clicks 注入，默认态不命中。"
   }
 
 ];

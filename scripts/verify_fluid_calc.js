@@ -435,6 +435,12 @@ const CASES = [
     ],
     "expect": ["POIS164 OK"],
     "ref": "第1066批 N164：管半径 r=0 → 旧版 Q=0 当正常结果；r=-0.01 → 四次方抹符号与 +0.01 同值；dp=-1000 → 负流量。旧版三者均渲染 Q 卡无守卫；新版 calcTool 对 dp/r/mu/L 统一正有限校验，三者均清空结果并提示「压差、管半径、黏度与管长均须为正数」。哨兵要求三场景全部被拦截且不含 Q 卡，默认正输入（dp1000/r0.01）不触发 ⇒ 依赖 clicks 注入，强判别零逃生。"
+  },
+  {
+    "slug": "fluid/bernoulli-pressure",
+    "clicks": ["var d=document.getElementById;function g(v){d('rho').value=v;calcTool();return String(d('result').innerHTML);}var a=g('-1000'),b=g('0');d('rho').value='1000';var c=g('1000');var ok=a.indexOf('密度 ρ 必须为正数')>=0&&a.indexOf('P₂')<0&&b.indexOf('密度 ρ 必须为正数')>=0&&b.indexOf('P₂')<0&&c.indexOf('P₂ (Pa)')>=0;document.getElementById('__tbProbe').textContent='BERNNEG '+(ok?'OK':'BAD a='+a.slice(0,25));"],
+    "expect": ["BERNNEG OK"],
+    "ref": "12-N82 负密度守卫：ρ=-1000/0 旧版照常算 P₂（负密度压力反升、ρ=0 压差归零），新版拦截并清空结果；ρ=1000 合法仍出 P₂。哨兵要求两非法态均提示且无 P₂ 卡、合法态有 P₂，依赖 clicks 注入，默认态不命中。"
   }
 
 ];
