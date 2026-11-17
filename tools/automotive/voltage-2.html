@@ -157,7 +157,7 @@
     <div id="adviceBox"></div>
   </div>
   <div class="card">
-    <h3>🔋 12V 电池荷电状态对照</h3>
+    <h3>🔋 电池荷电状态对照（12V 单块口径，24V/48V 整组电压按单块折算）</h3>
     <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
       <tr>
         <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">静态电压</th>
@@ -308,13 +308,16 @@ function calc(){
   else if(Math.abs(genV-vbat)<0.05){ state='临界（不充不放）'; stateCls='warn'; }
   else { state='放电中（发电机欠压）'; stateCls='bad'; }
 
-  // ---- 电池荷电状态
+  // ---- 电池荷电状态：对照表按 12V 单块口径；24V/48V 串联系统先折算到单块再查表，避免整组电压被误判满电
+  var blocks=volt>=20?Math.max(1,Math.round(volt/12)):1;
+  var vCell=vbat/blocks;
   var soc='';
-  if(vbat>=12.66) soc='100%（满电）';
-  else if(vbat>=12.45) soc='约 75%';
-  else if(vbat>=12.24) soc='约 50%';
-  else if(vbat>=12.06) soc='约 25%';
+  if(vCell>=12.66) soc='100%（满电）';
+  else if(vCell>=12.45) soc='约 75%';
+  else if(vCell>=12.24) soc='约 50%';
+  else if(vCell>=12.06) soc='约 25%';
   else soc='亏电';
+  var socNote=blocks>1?('（按 '+blocks+'×12V 单块折算 '+fmtLocal(vCell,2)+' V）'):'';
 
   // ---- 供电线路压降
   var Rs=rho*len/Math.max(area,0.01), Rd=Rs*2;
@@ -324,7 +327,7 @@ function calc(){
   const __g1='<div class="result-grid">'
     +'<div class="result-item"><div class="result-label">发电机输出电压</div><div class="result-value">'+fmtLocal(genV,1)+' V</div></div>'
     +'<div class="result-item"><div class="result-label">充电电流</div><div class="result-value">'+fmtLocal(chg,1)+' A</div></div>'
-    +'<div class="result-item"><div class="result-label">电池荷电状态</div><div class="result-value">'+soc+'</div></div>'
+    +'<div class="result-item"><div class="result-label">电池荷电状态</div><div class="result-value">'+soc+socNote+'</div></div>'
     +'<div class="result-item"><div class="result-label">末端电压</div><div class="result-value">'+fmtLocal(endV,2)+' V</div></div>'
     +'</div>';R.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
@@ -356,7 +359,7 @@ function calc(){
   if(chg>0 && chg<3) ad+='<div class="tip-warn">⚠️ 充电电流偏小，电池回充缓慢；若长期如此，检查皮带打滑、调节器与搭铁点。</div>';
   if(pct>5) ad+='<div class="tip-warn">⚠️ 线路压降 '+fmtLocal(pct,1)+'%，末端仅 '+fmtLocal(endV,2)+' V，建议加粗线径或缩短走线。</div>';
   if(genV>15.2) ad+='<div class="tip-warn">⚠️ 充电电压超过 15.2 V，可能过充，需检查调节器。</div>';
-  if(vbat<12.06) ad+='<div class="tip-warn">⚠️ 电池电压 '+fmtLocal(vbat,2)+' V 已属亏电，建议充电并做负载测试。</div>';
+  if(vCell<12.06) ad+='<div class="tip-warn">⚠️ 电池电压 '+(blocks>1?fmtLocal(vCell,2)+' V/单块（整组 '+fmtLocal(vbat,2)+' V）':fmtLocal(vbat,2)+' V')+' 已属亏电，建议充电并做负载测试。</div>';
   if(!ad) ad='<div class="tip-info">✅ 当前转速下发电机输出正常，充电电流与线路压降均在合理范围。</div>';
   const __g4=ad;A.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
