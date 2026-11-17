@@ -245,11 +245,16 @@ function bigFmt(bn){
   return out;
 }
 function calculate(){
-  const n=parseInt(document.getElementById('n').value);
-  const r=parseInt(document.getElementById('r').value);
-  if(isNaN(n)||isNaN(r)){ const __h0='<p style="color:var(--danger);">请输入整数</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0; return; }
-  if(n<0||r<0){ const __h1='<p style="color:var(--danger);">n 和 r 必须非负</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1; return; }
-  if(r>n){ const __h2='<p style="color:var(--danger);">⚠️ r 不能大于 n</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2; return; }
+  // 严格整数解析：拒绝小数/非有限/超 2^53（BigInt 需精确整数输入）。
+  const nv=Number(document.getElementById('n').value), rv=Number(document.getElementById('r').value);
+  const nOk=document.getElementById('n').value.trim()!==''&&isFinite(nv)&&Number.isInteger(nv)&&Math.abs(nv)<=Number.MAX_SAFE_INTEGER;
+  const rOk=document.getElementById('r').value.trim()!==''&&isFinite(rv)&&Number.isInteger(rv)&&Math.abs(rv)<=Number.MAX_SAFE_INTEGER;
+  if(!nOk||!rOk){ document.getElementById('output').innerHTML='<p style="color:var(--danger);">请输入整数（小数或非整数不被接受）</p>'; return; }
+  const n=nv, r=rv;
+  if(n<0||r<0){ document.getElementById('output').innerHTML='<p style="color:var(--danger);">n 和 r 必须非负</p>'; return; }
+  if(r>n){ document.getElementById('output').innerHTML='<p style="color:var(--danger);">⚠️ r 不能大于 n</p>'; return; }
+  // 上限守卫：BigInt 连乘 r 项，n 过大（如 1e5）会冻结页面；2000! 约 5700 位，毫秒级完成。
+  if(n>2000){ document.getElementById('output').innerHTML='<p style="color:var(--danger);">n 过大（上限 2000），请减小 n 以免页面卡死</p>'; return; }
   const result=factorialRange(n,n-r+1);
   let html='<p><strong>P('+n+', '+r+') = </strong></p>';
   html+='<div class="big-result">'+bigFmt(result)+'</div>';
@@ -257,10 +262,7 @@ function calculate(){
   html+='<div class="step-line">P(n, r) = n! / (n − r)!</div>';
   html+='<div class="step-line">= '+n+'! / '+(n-r)+'!</div>';
   html+='<div class="step-line">= ['+n+' × '+(n-1)+' × ... × 1] / ['+(n-r)+' × '+(n-r-1)+' × ... × 1]</div>';
-  // 约分展开
-  const upper=[], lower=[];
-  for(let i=n;i>=1;i--) upper.push(i);
-  for(let i=n-r;i>=1;i--) lower.push(i);
+  // 约分展开（原构造 upper/lower 两个 O(n) 数组从未使用，已删除以免 n 大时浪费内存）
   if(r<=20){
     const kept=[];
     for(let i=n;i>n-r;i--) kept.push(i);

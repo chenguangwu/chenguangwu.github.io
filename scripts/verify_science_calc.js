@@ -271,6 +271,20 @@ const CASES = [
     ref: "排列数：P(7,3) = 7! / 4! = 7 × 6 × 5 = 210（**可手算复算**，且与同参数组合数 C(7,3)=35 满足 P = C × 3! = 210）。默认 n/r 不同 ⇒ 不命中。",
   },
   {
+    slug: "science/permutation-calculator",
+    inputs: { n: "5.9", r: "2" },
+    clicks: ["calculate()"],
+    expect: ["请输入整数（小数或非整数不被接受）"],
+    ref: "SMS-126 清账：原 parseInt 把 5.9 截为 5 仍算出 P(5,2)=20 且输入框留 5.9。现 Number + Number.isInteger 严格解析，非整数直接提示。旧版无该提示 ⇒ 变红，零逃生。"
+  },
+  {
+    slug: "science/permutation-calculator",
+    inputs: { n: "2001", r: "2" },
+    clicks: ["calculate()"],
+    expect: ["n 过大（上限 2000），请减小 n 以免页面卡死"],
+    ref: "SMS-127 清账：原 n 无上限，BigInt 连乘 r 项 + 两个未使用的 O(n) 数组，n=1e5 冻结页面。现加 n≤2000 上限守卫并删除未使用数组。注入 n=2001（刚过界，旧版可在秒内算出、不会卡死）断言上限提示；旧版正常输出排列数 ⇒ 变红，零逃生。"
+  },
+  {
     slug: "science/nth-root-calculator",
     inputs: { x: "27", n: "7" },
     expect: ["e^0.471 = 1.601", "验证：(1.601)^7 = 27 ≈ 27"],
