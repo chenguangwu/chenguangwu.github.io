@@ -313,6 +313,21 @@ const CASES = [
     expect: ["PDMIN OK"],
     ref: "RE-N4-b：折扣率 −20% 旧版实售价 10,560（高于标价）、优惠额 −1,760、等效折数 12.0 折；新守卫拦截负折扣率。默认 12% 不命中。",
   },
+  // ── RE-N8：收益还原负净收益/负资本化率守卫 ──────────────────────────
+  {
+    slug: "realestate/return-1",
+    inputs: { v0: "216000", v1: "-4.8" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='RETCAP '+((h.indexOf('资本化率须在 0')>=0&&h.indexOf('-4,500,000.00')<0&&h.indexOf('-20.83')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["RETCAP OK"],
+    ref: "RE-N8-a：年净收益 216,000、资本化率 −4.8% ⇒ 旧版 R<0 使收益价格与静态回收年限同为负（真机手算 V=−4,500,000、回收=−20.83 年；harness 注入态 A/B 互换，实测仍为负收益价格/零回收）；新守卫拦截负资本化率。默认 4.8% 不命中。",
+  },
+  {
+    slug: "realestate/return-1",
+    inputs: { v0: "-216000", v1: "4.8" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='RETNOI '+((h.indexOf('年净收益须大于 0')>=0&&h.indexOf('-4,500,000.00')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["RETNOI OK"],
+    ref: "RE-N8-b：年净收益 −216,000、资本化率 4.8% ⇒ 旧版仍照常输出负收益价格（harness 注入态 A/B 互换，实测为负收益价格/负月净收益）；新守卫要求年净收益>0。默认 216,000 不命中。",
+  },
   {
     slug: "realestate/calc-cost",
     inputs: { v0: "1200000", v1: "5" },
@@ -1849,9 +1864,9 @@ const CASES = [
       "v1": "42"
     },
     "expect": [
-      " 月净收益（元） 2.38"
+      "年净收益须大于 0，资本化率须在 0–30% 之间。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\"}，输出区含「 月净收益（元） 2.38」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\"}，cap=42% 超出 RE-N8 的 0–30% 守卫 ⇒ 输出区为越界提示；默认 4.8% 合法、不含该串 ⇒ 强判别、零逃生。旧版曾输出月净收益 2.38，已随守卫同步更正。"
   },
   {
     "slug": "realestate/return-2",
