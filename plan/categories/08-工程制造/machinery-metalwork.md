@@ -119,9 +119,9 @@
 ## Y 批 · 机械·铸造/齿轮/检测（2026-11-04）
 
 **逐页结论（8 页）**
-- `tools/machinery/analysis-casting.html`：重量、模数与 Chvorinov 凝固时间公式及默认算例（7200 g / 2.5 cm / 12.5 s）一致；但 V、ρ、C 均未校验，负体积得负重量/负模数，且标题/引据仍是「箱体焊接/刚度」。
-- `tools/machinery/calc-89.html`：平均半径 (D+d)/4、T=μFRmz、p=F/A 正确，默认 80 N·m / 0.099 MPa 复算一致；深度解析整节跑题到法兰接合面，摩擦面数未限整数。
-- `tools/machinery/calc-gear.html`：直齿 d/db/da/df/p/pb 与默认算例正确；斜齿根切最少齿数少乘 cos²β，判定偏松，α≥90 与 ha*/c* 越界未中止，齿顶厚未实现。
+- `tools/machinery/analysis-casting.html`：重量、模数与 Chvorinov 凝固时间公式及默认算例（7200 g / 2.5 cm / 12.5 s）一致；标题/引据仍是「箱体焊接/刚度」。
+- `tools/machinery/calc-89.html`：平均半径 (D+d)/4、T=μFRmz、p=F/A 正确，默认 80 N·m / 0.099 MPa 复算一致；深度解析整节跑题到法兰接合面。
+- `tools/machinery/calc-gear.html`：直齿 d/db/da/df/p/pb 与默认算例正确；斜齿根切最少齿数少乘 cos²β，判定偏松，齿顶厚未实现。
 - `tools/machinery/detector-194.html`：决策只剩「年限>8 更换」，设备类型与运行模式是死输入，检查清单只按故障套模板，阀门/换热器也列旋转机械拆检项。
 - `tools/machinery/detector-stretch.html`：三项阈值全是写死常量却宣称依据 GB/T 1689、GB/T 528、GB/T 1688 判定合格，空值/负值还可判合格，属假工具。
 - `tools/machinery/energy-2.html`：制动能耗/扭矩/功率公式正确，默认 30.84 kJ、130.90 N·m、10.28 kW 复算一致；深度解析讲电机效率与年电费，与制动无关。
@@ -132,12 +132,9 @@
 
 | 页面 | 问题（含 tools/machinery/<slug>.html:NN） | 编号 |
 |---|---|---|
-| tools/machinery/analysis-casting.html | 【中】只校验 A>0 与 V/A 非 NaN，V、ρ、C 未校验：V=-1000 cm³、A=400 → G=-7200.00 g、M=-2.5 cm；C=-2 → t=-12.5 s；ρ 空值仅把 G 显示为「—」，M/t 仍照常输出（:216-224） | MM-H73 |
 | tools/machinery/analysis-casting.html | 【中】名不副实：`<title>`/meta 为「箱体（焊接/铸造/刚度）分析」并承诺刚度与变形，页面实际只算浇注重量/模数/凝固时间；标准引据表列尺寸公差/拔模斜度/刚度，均无对应输入输出（:10-11,183-195） | MM-H74 |
 | tools/machinery/calc-89.html | 【中】深度解析整节写法兰接合面压力（W/A、螺栓预紧），与离合器无关；算例 D=100/d=60、W=10 kN 无法用页面输入复现（:433-442） | MM-H75 |
-| tools/machinery/calc-89.html | 【中】摩擦面数 z 仅判 z<1，未限整数；z=2.5 被接受，T=μF·Rm·z 由 80 变 100 N·m（:206,220） | MM-H76 |
 | tools/machinery/calc-gear.html | 【高】斜齿根切最少齿数用 2ha*·cos³β/sin²αt，按端面条件应为 2ha*·cosβ/sin²αt；β=20° 得 12.7（应 14.4），β=30° 得 8.7（应 11.5），13 齿斜齿轮会被判「不根切」（:322,325；:178 亦写 17·cos³β） | MM-H77 |
-| tools/machinery/calc-gear.html | 【中】压力角 α≥90 只标红不中止，α=90 时 db=0、pb=0、zmin=2 仍出结果；ha*/c* 无范围校验，ha*=-1 时 da<d、zmin 为负（:286-288,143-144） | MM-H78 |
 | tools/machinery/calc-gear.html | 【中】深度解析称「校核根切与齿顶厚」，页面只输出 da/df，无齿顶厚 sa 计算（:511） | MM-H79 |
 | tools/machinery/detector-194.html | 【高】设备类型 v1 与运行状态 v4 为死输入：calc 只用 years>8 判更换，v1/v4 仅回显名称；检查清单只按故障 v2 分支，阀门/换热器也输出「轴承磨损/联轴器对中/地脚螺栓/动平衡」；简介仍称「考虑运行模式的影响」（:213-222,227-231,288） | MM-H80 |
 | tools/machinery/detector-stretch.html | 【高】阈值 0.08 g、20 MPa、1×10⁶ 次为写死常量，却宣称依据 GB/T 1689、GB/T 528、GB/T 1688 判定合格；三者均为试验方法标准，不规定该合格线，页面还称「检测报告可用于质量验收」（:10,213,232；:125 仍为「合法性校验」模板） | MM-H81 |
@@ -151,7 +148,7 @@
 | tools/machinery/flow-14.html | 【中】比转速固定按 1450 r/min 计算，页面无转速输入：2900 r/min 时 nq 翻倍（默认 48.7→97.4），泵型从「旋涡泵/部分流泵」跨到「离心泵（中比转速）」；简介仍称「依据比转速推荐泵型」（:212-219,228-229） | MM-H89 |
 
 **统计**
-- 条数：17（高 3 / 中 14）；编号区间：MM-H73–MM-H89，续接 MM-H72，不重号不跳号。
+- 条数：14（高 3 / 中 11）；编号区间：MM-H73–MM-H89，续接 MM-H72，不重号不跳号。
 - 高优编号：MM-H77（齿轮根切判据算错）、MM-H80（检测页死输入）、MM-H81（检测页写死阈值冒充国标）。
 - 假工具：1（`tools/machinery/detector-stretch.html`）。安全条目：0（无 XSS、eval、allow-same-origin、明文存密、第三方外传）。
 - 复算：node 内存复算关键值（根切 zmin、负体积/负密度、泵功率与 nq、制动能耗、离合器扭矩/压力），未落盘仓库；仅源码阅读，未开浏览器、未跑构建/门禁、未改工具页。

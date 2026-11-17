@@ -91,6 +91,9 @@ const CASES = [
   { slug: "machinery/analysis-lifespan", inputs: {rt:"8760", nf:"0.5", mt:"66", tv:"500"}, expect: ["故障次数须为正整数"], ref: "故障次数须为正整数（672）：0.5 次故障无统计意义，原按 0.5 次参与 MTBF=17,520 h；现标红中止" },
   { slug: "machinery/calc-gear", inputs: {module:"3", teeth:"16", pressure:"20"}, expect: ["48.0000"], ref: "分度圆 d = m·z = 3 × 16 = **48.0000** mm（默认 2×20 得 40.0000）" },
   { slug: "machinery/calc-gear", inputs: {module:"3", teeth:"16", pressure:"20"}, expect: ["54.0000"], ref: "齿顶圆 da = d + 2hₐ = 48 + 2×1×3 = **54.0000** mm；齿根圆 df = 48 − 2×1.25×3 = 40.5000，与 da 相差恰为一个全齿高" },
+  { slug: "machinery/analysis-casting", inputs: {vol:"1000", area:"400", rho:"-5", C:"2.0"}, expect: ["体积、表面积、密度与凝固系数均须为正数"], ref: "986 负值守卫：密度 -5 旧版算出 -5000.00 g 并照常输出，修复后非正值拦截。" },
+  { slug: "machinery/calc-89", inputs: {v_D:"200", v_d:"120", v_mu:"0.25", v_F:"2000", v_z:"2.5", v_n:"1500"}, expect: ["摩擦面数须为正整数"], ref: "986 整数守卫：摩擦面数 2.5 旧版接受并乘进扭矩，修复后非整数拦截。" },
+  { slug: "machinery/calc-gear", inputs: {module:"2", teeth:"20", pressure:"90", helix:"0", haCoef:"1", cCoef:"0.25"}, expect: ["压力角须在 0 到 90 度之间"], ref: "986 角度守卫：α=90 旧版只标红不中止仍输出 db=0/pb=0，修复后提前拦截。" },
   { slug: "welding/calc-weld", inputs: {plateThk:"10", weldSize:"8", weldLen:"200", load:"40", weldMat:"E50"}, expect: ["5.66"], ref: "角焊缝喉厚 a = 0.707 K = 0.707 × 8 = **5.66** mm（默认 6 ⇒ 4.24）" },
   { slug: "welding/calc-weld", inputs: {plateThk:"10", weldSize:"8", weldLen:"200", load:"40", weldMat:"E50"}, expect: ["1131.20"], ref: "有效面积 A = a·L = 5.66 × 200 = **1131.20** mm²（默认 424.20）。页面先按 0.707K 四舍五入到 5.66 再乘全长，与一步相乘 1131.37 有 0.17 的舍入差 ⇒ 锚取页面值" },
   { slug: "machinery/calc-200", inputs: {pload:"1200", nVal:"1450", eff:"90"}, expect: ["1333.33", "超出 IEC 标准功率表上限"], ref: "所需功率 P = 1200 ÷ 0.9 = **1333.33** kW > 630 kW → 只输出所需功率与「超出 IEC 标准功率表上限」，不再推荐 630 kW 电机、不再给额定转矩/裕量（默认 7.5/90% 得 8.33 kW、推荐 11 kW，不含这两个串）" },
@@ -187,7 +190,7 @@ const CASES = [
       "v_n": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42\n请检查输入：外径须大于内径，各值须为正数\n暂无计算记录"
+      "42\n42\n42\n42\n42\n42\n请检查输入：外径须大于内径，摩擦面数须为正整数，各值须为正数\n暂无计算记录"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v_D\":\"42\",\"v_d\":\"42\",\"v_mu\":\"42\",\"v_F\":\"42\",\"v_z\":\"42\",\"v_n\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n请检查输入：外径须大于内径，各值须为正数\n暂…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
