@@ -1670,6 +1670,26 @@ const CASES = [
     expect: ["J141 OK"],
     ref: "EL-J141：公式承诺 T=50+10Z 但旧结果卡无输出、opt-guide/opt-faq 与 JSON-LD 是通用套话。现结果卡含 T 分数（95/80/10→z=1.5→T=65.00），套话已改为真实说明，权威源 FAQ 补 T 分数口径。源码+权威源+运行时三哨兵，旧版必红。",
   },
+
+  // ── 第1184批：错题本末轮排期、错因双维筛选与空 toast 收口 ──
+  {
+    slug: "edu/reminder-1",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/reminder-1.html','utf8');var ok=h.indexOf('stage+1>=REVIEW_INTERVALS.length')>=0&&h.indexOf('不再安排复习')>=0&&h.indexOf('REVIEW_INTERVALS[Math.min(stage+1,4)]')<0&&h.indexOf('undefined天后')<0;document.getElementById('__tbProbe').textContent='J142 '+(ok?'OK':'BAD');"],
+    expect: ["J142 OK"],
+    ref: "EL-J142：旧版 stage=3 时取 REVIEW_INTERVALS[Math.min(stage+1,4)] 得 undefined，提示 undefined天后再复习。现末轮单独文案「标记为已掌握，不再安排复习」。源码形态哨兵：旧版含越界索引 ⇒ 必红。",
+  },
+  {
+    slug: "edu/reminder-1",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/reminder-1.html','utf8');var en=JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/en/edu/reminder-1.json','utf8'));var ok=h.indexOf('currentErrTypeFilter')>=0&&h.indexOf('function setErrTypeFilter')>=0&&h.indexOf('id=\"errTypeFilter\"')>=0&&h.indexOf('id=\"errTypeStats\"')>=0&&h.indexOf('currentErrTypeFilter!==')>=0&&en.map['全部错因']==='All error types'&&en.map['📊 错因分布']==='📊 Error-Type Breakdown';document.getElementById('__tbProbe').textContent='J143 '+(ok?'OK':'BAD');"],
+    expect: ["J143 OK"],
+    ref: "EL-J143：旧版只有学科 chip 与学科分布，错误类型仅卡片标签，双维归类承诺不成立。现补错误类型 chip（与学科取交集）与错因分布统计块，英文词典同步。源码+词典哨兵：旧版无 errTypeFilter/errTypeStats ⇒ 必红。",
+  },
+  {
+    slug: "edu/reminder-1",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/reminder-1.html','utf8');var empty=(h.match(/i18nText\\(\\)/g)||[]).length;var ok=empty===0&&h.indexOf(\"showToast(i18nText('toast.deleted'))\")>=0&&h.indexOf(\"showToast(i18nText('toast.cleared'))\")>=0;document.getElementById('__tbProbe').textContent='J144 '+(ok?'OK':'BAD '+empty);"],
+    expect: ["J144 OK"],
+    ref: "EL-J144：旧版 delQuestion/clearAll 调 i18nText() 无参，toast 显示 undefined。现分别用 toast.deleted/toast.cleared。源码哨兵：旧版空参调用 2 次且无具体键 ⇒ 必红。",
+  },
 ];
 
 async function main() {

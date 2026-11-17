@@ -207,32 +207,6 @@
 - 未覆盖：`plan/categories/07-教育学习/` 内其余教育页、`tools/edu/index.html` 目录页、`tools/edu2/` 其余页、`tools/language/` 与 `tools/chinese/` 均未在本批审计。
 - 验证边界：仅静态读源码 + `node` 内存复刻（countdown 日差/工作日、calc-3 分配与取整、study-progress NaN 与逾期、时区 DST 偏移、数字记忆历史口径）；**未**做真实浏览器、英文态/繁体态、移动端、门禁、构建与线上验证；`i18nText()` 空参的真实 toast 表现待浏览器确认。
 
-### EL-J142 「错题本」第 3 轮复习点「已掌握」弹出 `undefined天后再复习`（高，确认缺陷）
-- 问题：`nextInfo` 用 `REVIEW_INTERVALS[Math.min(stage+1,4)]`，而数组只有 4 项（索引 0–3）；stage=3 时取索引 4 得 `undefined`，直接拼进提示文案。
-- 证据：`tools/edu/reminder-1.html:316`（`[1,3,7,14]`）、`:426`（stage 名称到 4）、`:435-437`（`stage<4` 时计算 `Math.min(stage+1,4)`）。
-- 复现：某题连续 3 次「已掌握」推进到 stage=3 → 打开复习弹窗 → node 复算 `REVIEW_INTERVALS[4]=undefined`，页面显示「选择"已掌握"→undefined天后再复习」。
-- 影响：`tools/edu/reminder-1.html`；最后一轮复习的排期说明失效，用户不知道点"已掌握"后是否还需复习。
-- 方案：stage=3 单独文案「已掌握→标记为已掌握，不再排期」；或把数组补一项并统一 stage→interval 映射。
-
-### EL-J143 「错题本」只按学科归类，"按错误类型自动归类"未实现（中，确认缺陷）
-- 问题：描述与简介称「自动按学科和错误类型归类」，实际只有学科筛选 chip 与学科分布条；错误类型仅作为卡片上的文字标签，没有分组、筛选或错因统计。
-- 证据：`tools/edu/reminder-1.html:10`（meta description 宣称双维归类）、`:173`（正文简介同述）、`:539-543`（仅生成学科 chip）、`:620-637`（仅学科分布）、`:567`/`:594`（错误类型只作 `q-type` 文本）。
-- 复现：添加 5 道"计算错误"、3 道"审题失误" → 筛选区只有学科选项，无法按错误类型查看，也无错因占比统计。
-- 影响：`tools/edu/reminder-1.html`；错因分析这一核心卖点不可用，用户仍要人工翻卡片。
-- 方案：补错误类型 chip 筛选与"错因分布"统计块，或把文案降级为"按学科归类，错误类型仅标签"。
-
-### EL-J144 「错题本」删除/清空时 `i18nText()` 无参，toast 显示 `undefined`（低，确认缺陷）
-- 问题：`delQuestion` 与 `clearAll` 调用 `ToolBox.showToast(i18nText())`，`i18nText` 收到 `undefined` 会原样返回该值，toast 文案变成 `undefined`。
-- 证据：`tools/edu/reminder-1.html:417`（删除）、`:649`（清空）；`js/common.js:1510-1522`（无 key 时返回 `key` 本身）。
-- 复现：删除任意错题或确认清空 → toast 文本为 `undefined`（node 复刻 `normalizeI18nKey(undefined)` 返回 `undefined`）。
-- 影响：`tools/edu/reminder-1.html`；操作反馈变成乱码，且与同页其它已配 key 的 toast 不一致。
-- 方案：改用具体 key（如 `toast.deleted` / `toast.cleared`）或直接传中文兜底字符串。
-
-### 留存建议（tools/edu/reminder-1.html）
-- 修正 stage=3 的排期文案，补齐 `REVIEW_INTERVALS` 与 stage 的边界映射，并加单测式 node 复算。
-- 实现错误类型筛选/统计，或把"双维归类"改写为"按学科归类"。
-- 所有 `showToast` 必须显式传 key 或文案，禁止空参调用。
-
 ### EL-J145 「考试成绩目标计算」深挖算例 91.7 与页面实际口径 25.00 冲突（高，确认缺陷）
 
 > **订正（2026-11-05）**：本条结论已过时。`edu/calc-4` 及 `dermatology/vasi-vitiligo`、`obstetrics/fetal-weight-hadlock`、`fishery/feed-protein-fat` 四页经 `calc()` 实跑复核：HEAD 值与实现吻合（95.0 / 16.75 / 2892 g / 11.45 kJ/g）；早先「确认错值」结论有误，存档值（91.7 / 28 / 3100 / 1.14）才无算式来源。现页面 `calc()` 为 `earned=当前成绩×当前权重/100`、`需平均=(目标−earned)/剩余权重`，70/40/85 → 95.0，与深挖示例一致；本条下述「页面得 25.00」为改版前旧实现，已不适用。台账见 `plan/tools-audit-84-ledger.md`。
