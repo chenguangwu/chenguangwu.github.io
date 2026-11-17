@@ -254,7 +254,7 @@
 - `tools/metalwork/recorder-9.html`：钢种温度表与 t=k·δ+20 可跑；渗碳无渗层深度输入，保温时间只输出固定文案，核心卖点未实现。
 - `tools/metalwork/resistance-2.html`：六法评分可跑；接头形式是死输入，默认 3mm 低碳钢对接竟首选激光焊。
 - `tools/metalwork/speed-itinerary.html`：行程/走刀/时间可跑；每刀往复数把工件长度当横向宽度，200×100 板时间偏大一倍，材料去除量算了不渲染。
-- `tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html`：第二段覆盖后 IT 可算（D50/IT7=0.0273 mm）；用实际 D 而非尺寸段几何均值偏高 9%，形位公差取 IT/2 无依据，⇄ 互换即报错。
+- `tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html`：第二段覆盖后 IT 可算（D50/IT7=0.0273 mm）；用实际 D 而非尺寸段几何均值偏高 9%，形位公差取 IT/2 无依据。
 - `tools/metalwork/temp-forging.html`：查表温度正确；10kg/φ50 钢件加热仅 8 min、保温 2 min，低约一个数量级。
 
 **问题条目**
@@ -275,12 +275,10 @@
 | tools/metalwork/speed-itinerary.html | 【高】材料去除量 `materialRemoval` 算了不渲染、不进导出，公式框仍承诺；且 `L×余量×切深×0.001` 量纲错误（缺宽度，正确体积为 L×宽×余量）（:127,248） | MM-H154 |
 | tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html | 【中】IT 用实际直径 D 而非尺寸段几何均值：D50 算 IT7=0.0273 mm、IT8=0.0427 mm，GB/T 1800.1 的 30–50 段为 0.025/0.039 mm，偏高约 9%；公式框仅写「≈」，未提示应按段均值（:126,564-566） | MM-H155 |
 | tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html | 【中】圆度/同轴度建议直接取 `IT/2`：两项形位公差本属独立公差项目、同一数值无标准依据，页面却作为「建议」输出（:567） | MM-H156 |
-| tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html | 【中】⇄ 互换按钮把孔径 D 与 IT 等级互换（50↔7），第二段校验随即判「IT 等级需为 5–10 的整数」，常规输入一按即报错；重置按钮已被第二段覆盖为 50/7，但互换未同步（:131,495-501,575） | MM-H157 |
-| tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html | 【中】孔径 D 无正值校验：只判 `isFinite`，输 −50 仍按 cbrt 得负标准公差 −0.0273 mm 并正常渲染（:559,562-566） | MM-H158 |
 | tools/metalwork/temp-forging.html | 【高】加热/保温时间量级错误：`ceil(0.5W+0.05d)` 把 kg 与 mm 直接相加，10kg/φ50 钢件仅 8 min；保温 `ceil(0.2W)` 仅 2 min。φ50 钢件常规加热约 30–60 min、保温 ≥30 min，页面低约一个数量级，且与截面/装炉条件脱钩（:127,226-227,243-244） | MM-H159 |
 
 **统计**
-- 条数：17（高 7 / 中 7 / 假 3 / 安全 0）；编号区间：MM-H141–MM-H160，续接 MM-H140，MM-H142、MM-H151、MM-H160 已修复销账，不重号不跳号。
+- 条数：15（高 7 / 中 5 / 假 3 / 安全 0）；编号区间：MM-H141–MM-H160，续接 MM-H140，MM-H142、MM-H151、MM-H157、MM-H158、MM-H160 已修复销账，不重号不跳号。
 - 高优编号：MM-H144（压铸/低压批量档漏判）、MM-H147（渗碳保温时间假功能）、MM-H149（接头形式死输入）、MM-H150（默认首选激光焊）、MM-H153（长度当横向宽度）、MM-H154（材料去除量算了不渲染）、MM-H159（加热/保温时间低一个数量级）。
 - 假工具：0（8 页核心查表/公式均可用）；承诺未实现：3（MM-H146 铸造工艺参数、MM-H152 焊接工艺参数、MM-H147 渗碳深度估算）；冒用国标：2（MM-H143 ISO 10668、MM-H146 ISO 8062-3）。
 - 安全：0 条；8 页均未发现 XSS、eval、allow-same-origin、明文存密或业务数据外传；`recorder-9` 备注经 `escHtml` 转义，`tangxue` 历史恢复仅接数值参数，全站模板 ttzz 脚本不单列。

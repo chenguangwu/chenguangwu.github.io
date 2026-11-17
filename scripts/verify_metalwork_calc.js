@@ -347,6 +347,19 @@ const CASES = [
     ref: "注入非默认(默认 v0=50/v1=7→标准公差 IT≈0.0216 mm)：真实 calc（页内行 516 镗削专用，覆盖通用两参）孔径 D=100、IT8 系数 a₈=25 ⇒ IT≈(0.45·∛100+0.001·100)×25/1000 = (0.45×4.6416+0.1)×25/1000 = 2.1887×25/1000 = 0.0547 mm。默认态 50/7 → (0.45·3.684+0.05)×16/1000=0.0216，不命中 0.0547。"
   },
   {
+    slug: "metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi",
+    inputs: { v0: "50", v1: "7" },
+    clicks: ["var ot=(typeof ToolBox!=='undefined'&&ToolBox.showToast)?ToolBox.showToast:null;if(typeof ToolBox!=='undefined')ToolBox.showToast=function(){};swapValues();if(ot&&typeof ToolBox!=='undefined')ToolBox.showToast=ot;document.getElementById('__tbProbe').textContent='SWAP '+document.getElementById('v0').value+'/'+document.getElementById('v1').value;"],
+    expect: ["SWAP 50/7"],
+    ref: "996 量纲互换守卫（MM-H157）：孔位 D=50 与 IT=7 量纲不同，旧版一按 ⇄ 变成 D=7/IT=50 并报「IT 等级需为 5–10」；修复后拒绝互换保持 50/7。默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi",
+    inputs: { v0: "-50", v1: "7" },
+    expect: ["孔径 D 须为正数"],
+    ref: "996 孔径正值守卫（MM-H158）：旧版 cbrt(-50) 得负标准公差仍照常渲染；修复后先拦截 D≤0。默认 50 不含该串。"
+  },
+  {
     slug: "metalwork/wushua-zhinengyuqingliangduibijisuanqi",
     inputs: { v0: "60", v1: "85" },
     expect: ["25.0 综合差距"],
