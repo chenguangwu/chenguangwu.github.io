@@ -106,7 +106,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入折射率 n 与棱镜顶角 A（度），求偏向角。">Compute the deviation angle from prism refractive index n and apex angle A under the small-angle approximation. For dispersing prisms and beam-steering elements.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">薄棱镜最小偏向角（小顶角近似）：δ = (n−1)·A（°，n 折射率、A 顶角）；联动量：偏向角/顶角比 = δ ÷ max(A,10⁻⁹)、折射率差 n−1、顶角一半 A/2。校验：无强校验，空值按 0 兜底。判据：无固定分级，偏向角随顶角与折射率差线性增长。</div>
+      <div class="formula-eq">薄棱镜最小偏向角（小顶角近似）：δ = (n−1)·A（°，n 折射率、A 顶角）；联动量：偏向角/顶角比 = δ ÷ A、折射率差 n−1、顶角一半 A/2。校验：n、A 均必填且 n&gt;0、0°&lt;A&lt;180°。判据：无固定分级，偏向角随顶角与折射率差线性增长。</div>
       <p class="formula-desc">输入折射率 n 与棱镜顶角 A（度），求偏向角。</p>
     </div>
 
@@ -195,13 +195,21 @@
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __prism_deviationParams(){
+            var nRaw=String(document.getElementById('n').value==null?'':document.getElementById('n').value).trim();
+            var ARaw=String(document.getElementById('A').value==null?'':document.getElementById('A').value).trim();
+            var n=parseFloat(nRaw),A=parseFloat(ARaw);
+            if(nRaw===''||ARaw===''||!isFinite(n)||n<=0||!isFinite(A)||A<=0||A>=180) return {err:'<p style="color:var(--danger)">⚠ 折射率 n 必须 &gt; 0，顶角 A 必须在 0°–180° 之间</p>'};
+            return {n:n,A:A};
+        }
 function calcTool(){
-            const n=parseFloat(document.getElementById('n').value),A=parseFloat(document.getElementById('A').value);
-            if(!isFinite(n)||n<=0||!isFinite(A)||A<=0||A>=180){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 折射率 n 必须 &gt; 0，顶角 A 必须在 0°–180° 之间</p>');return;}
+            var p=__prism_deviationParams();
+            if(p.err){ToolBox.setResult('result',p.err);return;}
+            const n=p.n,A=p.A;
             const delta=(n-1)*A;
             const __g1=dataGrid([
                 [delta.toFixed(2),'偏向角 δ (°)'],
-                [(delta/Math.max(A,1e-9)).toFixed(4), '偏向角与顶角比'],
+                [(delta/A).toFixed(4), '偏向角与顶角比'],
                 [(n-1).toFixed(4), '折射率减一'],
                 [(A/2).toFixed(2), '顶角一半']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
@@ -215,15 +223,16 @@ function __prism_deviationNum(id){var e=document.getElementById(id);var v=e?pars
 function __prism_deviationExtras(){
     function __prism_deviationRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var n=num('n'),A=num('A');
-    var delta=(n-1)*A;
-    if (!isFinite(__prism_deviationNum('n')) || !isFinite(__prism_deviationNum('A'))) return;
     var en=TBKit.util.isEn();
+    var p=__prism_deviationParams();
+    if(p.err){TBKit.matrix.table('#prism_deviationTable',{head:en?['Item','Value']:['项目','数值'],rows:[]});return;}
+    var n=p.n,A=p.A;
+    var delta=(n-1)*A;
     TBKit.matrix.table('#prism_deviationTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['偏向角 δ (°)', delta.toFixed(2)],
-            ['偏向角与顶角比', (delta/Math.max(A,1e-9)).toFixed(4)],
+            ['偏向角与顶角比', (delta/A).toFixed(4)],
             ['折射率减一', (n-1).toFixed(4)],
             ['顶角一半', (A/2).toFixed(2)],
         ]

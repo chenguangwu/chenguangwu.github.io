@@ -422,6 +422,13 @@ const CASES = [
     "clicks": ["var p=null;globalThis.TBKit={preset:{bar:function(sel,items){p=items;}},util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__brewster_anglePresets();var vals=p?p.map(function(x){return x.values.n1+'/'+x.values.n2;}).join('|'):'NONE';document.getElementById('__tbProbe').textContent='BRWPRE '+vals;"],
     "expect": ["BRWPRE 1.0/1.5|1/1.33|1.5/1.33"],
     "ref": "1000 布儒斯特预设改为不同介质比值（PQ-03）：旧版 2×/0.5× 的 n2/n1 恒 1.5、三个预设输出完全相同；新版空气→水 1.33 与玻璃→水 1.33/1.5 给出不同角度。默认态不执行 clicks，零逃生。"
+  },
+  {
+    "slug": "optics/prism-deviation",
+    "inputs": { "n": "-1", "A": "10" },
+    "clicks": ["var rows=-1,rec=0;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(sel,cfg){rows=cfg&&cfg.rows?cfg.rows.length:-1;}},history:{record:function(){rec++;},mount:function(){}}};__prism_deviationExtras();document.getElementById('__tbProbe').textContent='PRISMBAD '+((rows===0&&rec===0)?'OK':'BAD rows='+rows+' rec='+rec);"],
+    "expect": ["PRISMBAD OK"],
+    "ref": "1001 棱镜明细同步主区 n>0 校验：旧版 n=-1、A=10° 仍写 4 行明细并记历史；修复后清表且不记录。默认 n=1.5 不含该串。"
   }
 
 ];

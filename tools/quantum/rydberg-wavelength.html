@@ -106,7 +106,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="氢原子谱线波长。">Compute the hydrogen spectral-line wavelength from initial and final levels and the Rydberg constant, for Balmer-series emission/absorption wavelength estimates.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">里德伯公式波长（本页代码口径）：波数 1÷λ=R×(1÷n₁²−1÷n₂²)（m⁻¹，R=1.0973731568×10⁷ m⁻¹、n₁ 低能级、n₂ 高能级）；波长 λ=1÷波数×10⁹（nm）。校验：两项空值即提示并中止；n₁、n₂ 四舍五入取整，若 n₁&gt;n₂ 自动交换保证能级顺序。判据：无固定分级，n₁=2 为巴耳末系（3→2 即 α 线 ≈656nm），能级差越大波长越短。</div>
+      <div class="formula-eq">里德伯公式波长（本页代码口径）：波数 1÷λ=R×(1÷n₁²−1÷n₂²)（m⁻¹，R=1.0973731568×10⁷ m⁻¹、n₁ 低能级、n₂ 高能级）；波长 λ=1÷波数×10⁹（nm）。校验：n₁、n₂ 均必填且为 ≥1 的整数、不能相等；若 n₁&gt;n₂ 自动交换保证能级顺序。判据：无固定分级，n₁=2 为巴耳末系（3→2 即 α 线 ≈656nm），能级差越大波长越短。</div>
       <p class="formula-desc">氢原子谱线波长。</p>
     </div>
 
@@ -271,14 +271,22 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){rows=Array.isArray(rows)?rows:[];let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __rydberg_wavelengthParams(){
+            var n1Text=String(document.getElementById('n1').value==null?'':document.getElementById('n1').value).trim();
+            var n2Text=String(document.getElementById('n2').value==null?'':document.getElementById('n2').value).trim();
+            var n1Raw=parseFloat(n1Text), n2Raw=parseFloat(n2Text);
+            if(n1Text===''||n2Text===''||!isFinite(n1Raw)||!isFinite(n2Raw)||n1Raw<1||n2Raw<1||Math.abs(n1Raw-Math.round(n1Raw))>1e-9||Math.abs(n2Raw-Math.round(n2Raw))>1e-9) return {err:'<p style="color:var(--danger)">⚠ 能级 n₁、n₂ 必须为 ≥ 1 的整数</p>'};
+            var n1=Math.round(n1Raw), n2=Math.round(n2Raw);
+            if(n1===n2) return {err:'<p style="color:var(--danger)">⚠ n₁ 与 n₂ 必须不同，否则不存在跃迁（1/λ=0）</p>'};
+            if(n1>n2){var t=n1;n1=n2;n2=t;}
+            return {n1:n1,n2:n2};
+        }
 function calcTool(){
               var __ig=__tbInputGuard(['n1', 'n2'],["低能级 n₁", "高能级 n₂"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const H=6.62607015e-34,C=299792458,ME=9.10938356e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
-            const n1Raw=parseFloat(document.getElementById('n1').value), n2Raw=parseFloat(document.getElementById('n2').value);
-            if(!isFinite(n1Raw)||!isFinite(n2Raw)||n1Raw<1||n2Raw<1||Math.abs(n1Raw-Math.round(n1Raw))>1e-9||Math.abs(n2Raw-Math.round(n2Raw))>1e-9){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 能级 n₁、n₂ 必须为 ≥ 1 的整数</p>');return;}
-            let n1 = Math.round(n1Raw), n2 = Math.round(n2Raw);
-            if (n1 === n2) { ToolBox.setResult('result','<p style="color:var(--danger)">⚠ n₁ 与 n₂ 必须不同，否则不存在跃迁（1/λ=0）</p>'); return; }
-            if (n1 > n2) { const t = n1; n1 = n2; n2 = t; }
+            var p=__rydberg_wavelengthParams();
+            if(p.err){ToolBox.setResult('result',p.err);return;}
+            let n1 = p.n1, n2 = p.n2;
             const inv = RY * (1/(n1*n1) - 1/(n2*n2));
             const __g2=dataGrid([
                 [inv.toExponential(3), '波数 1/λ (m⁻¹)'],
@@ -294,12 +302,12 @@ function __rydberg_wavelengthNum(id){var e=document.getElementById(id);var v=e?p
 function __rydberg_wavelengthExtras(){
     function __rydberg_wavelengthRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var H=6.62607015e-34,C=299792458,ME=9.10938356e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
-    var n1 = Math.round(num('n1')), n2 = Math.round(num('n2'));
-    if (n1 > n2) { var t = n1; n1 = n2; n2 = t; }
-    var inv = RY * (1/(n1*n1) - 1/(n2*n2));
-    if (!isFinite(__rydberg_wavelengthNum('n1')) || !isFinite(__rydberg_wavelengthNum('n2'))) return;
     var en=TBKit.util.isEn();
+    var p=__rydberg_wavelengthParams();
+    if(p.err){TBKit.matrix.table('#rydberg_wavelengthTable',{head:en?['Item','Value']:['项目','数值'],rows:[]});return;}
+    var RY=1.0973731568e7;
+    var n1 = p.n1, n2 = p.n2;
+    var inv = RY * (1/(n1*n1) - 1/(n2*n2));
     TBKit.matrix.table('#rydberg_wavelengthTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
@@ -307,10 +315,10 @@ function __rydberg_wavelengthExtras(){
             ['波长 λ (nm)', ((1/inv) * 1e9).toFixed(2)],
         ]
     });
-    TBKit.history.record({n1:__rydberg_wavelengthRaw('n1'), n2:__rydberg_wavelengthRaw('n2'), H:H});
+    TBKit.history.record({n1:__rydberg_wavelengthRaw('n1'), n2:__rydberg_wavelengthRaw('n2')});
     function __rydberg_wavelengthRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#rydberg_wavelengthHist',function(rec){ __rydberg_wavelengthRestore(rec); calcTool(); });
-    TBKit.util.diffBox('#rydberg_wavelengthDiff',['H']);
+    TBKit.util.diffBox('#rydberg_wavelengthDiff',['n1','n2']);
 }
 function __rydberg_wavelengthExport(){
     if (typeof TBKit === 'undefined') return;
@@ -321,7 +329,7 @@ function __rydberg_wavelengthPresets(){
     TBKit.preset.bar('#rydberg_wavelengthPresets',[
         {label:'默认',labelEn:'Default',values:{n1:'2', n2:'3'}},
         {label:'示例 2×',labelEn:'Example 2×',values:{n1:'4', n2:'6'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n1:'1', n2:'1.5'}},
+        {label:'3→4（红外）',labelEn:'3 to 4 (infrared)',values:{n1:'3', n2:'4'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;

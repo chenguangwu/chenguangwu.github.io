@@ -476,6 +476,41 @@ const CASES = [
     "clicks": ["var cap=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(sel,keys){cap=keys;}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__zeeman_splittingExtras();document.getElementById('__tbProbe').textContent='ZDIFF '+(cap?cap.join(','):'NONE');"],
     "expect": ["ZDIFF B"],
     "ref": "1000 塞曼差异对照监视真实磁感应强度而非常量 μ_B；B=0 是合法输入，旧版 diffBox 监视 muB，修复后监视 B。默认态不执行 clicks，零逃生。"
+  },
+  {
+    "slug": "quantum/rydberg-wavelength",
+    "inputs": { "n1": "2", "n2": "2" },
+    "clicks": ["var rows=-1,rec=0;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(sel,cfg){rows=cfg&&cfg.rows?cfg.rows.length:-1;}},history:{record:function(){rec++;},mount:function(){}}};__rydberg_wavelengthExtras();document.getElementById('__tbProbe').textContent='RYDEQ '+((rows===0&&rec===0)?'OK':'BAD rows='+rows+' rec='+rec);"],
+    "expect": ["RYDEQ OK"],
+    "ref": "1001 里德伯明细同步主区 n₁≠n₂ 校验：旧版 n₁=n₂=2 仍写波长 Infinity 的 2 行明细并记历史；修复后清表且不记录。默认 2/3 不含该串。"
+  },
+  {
+    "slug": "quantum/rydberg-wavelength",
+    "inputs": { "n1": "4", "n2": "6" },
+    "clicks": ["var keys=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(sel,k){keys=k;}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__rydberg_wavelengthExtras();document.getElementById('__tbProbe').textContent='RYDIFF '+(keys?keys.join(','):'NONE');"],
+    "expect": ["RYDIFF n1,n2"],
+    "ref": "1001 里德伯差异框监视真实能级 n1/n2 而非常量 H；默认态不执行 clicks，零逃生。"
+  },
+  {
+    "slug": "quantum/rydberg-wavelength",
+    "inputs": { "n1": "3", "n2": "4" },
+    "clicks": ["var p=null;globalThis.TBKit={preset:{bar:function(sel,items){p=items;}},util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__rydberg_wavelengthPresets();var vals=p?p.map(function(x){return x.values.n1+'/'+x.values.n2;}).join('|'):'NONE';document.getElementById('__tbProbe').textContent='RYDPRE '+vals;"],
+    "expect": ["RYDPRE 2/3|4/6|3/4"],
+    "ref": "1001 里德伯 0.5× 预设由非法 1/1.5 改为 3→4；旧版预设探针为 2/3|4/6|1/1.5，修复后为 2/3|4/6|3/4。默认态不执行 clicks，零逃生。"
+  },
+  {
+    "slug": "quantum/photoelectric-effect",
+    "inputs": { "f": "1e14", "phi": "2" },
+    "clicks": ["var rows=null,rec=0;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(sel,cfg){rows=cfg&&cfg.rows?cfg.rows:null;}},history:{record:function(){rec++;},mount:function(){}}};__photoelectric_effectExtras();var s=rows?JSON.stringify(rows):'NONE';document.getElementById('__tbProbe').textContent='PENOPHOTO '+((s.indexOf('无光电子，最大动能不适用')>=0&&rec===1)?'OK':'BAD '+s);"],
+    "expect": ["PENOPHOTO OK"],
+    "ref": "1001 光电效应低于阈值时明细不再把钳到 0 的负能量差称作最大动能（旧版写 -1.586e+0 J / -0.991 eV），改为「无光电子，最大动能不适用」；默认 f=1e15 不含该串。"
+  },
+  {
+    "slug": "quantum/photoelectric-effect",
+    "inputs": { "f": "3e15", "phi": "1.5" },
+    "clicks": ["var cap=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(sel,keys){cap=keys;}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__photoelectric_effectExtras();document.getElementById('__tbProbe').textContent='PED '+(cap?cap.join(','):'NONE');"],
+    "expect": ["PED f,phi"],
+    "ref": "1001 光电效应差异框监视真实输入 f/phi 而非常量 H；默认态不执行 clicks，零逃生。"
   }
 
 ];
