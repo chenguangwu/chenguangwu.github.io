@@ -115,6 +115,28 @@ const CASES = [
     expect: ["100,000"],
     ref: "当地上限 100,000 生效：min(144,000, 100,000) = 100,000（验证封顶逻辑）",
   },
+  // ── RE-N2/N3：倍数与上限口径守卫 ────────────────────────────────────
+  {
+    slug: "realestate/fund-loan",
+    inputs: { balance: "80000", multiplier: "-1", monthlyFund: "2400", fundYears: "5", payMultiple: "60", cap: "600000" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='FUNDNEG '+((h.indexOf('请输入合理')>=0&&h.indexOf('-80,000')<0)?'OK':'BAD '+h.slice(0,80));"],
+    expect: ["FUNDNEG OK"],
+    ref: "RE-N2：余额 80,000、倍数 -1 ⇒ amt1=-80,000；旧守卫只查 balance/monthlyFund/fundYears，amt2=144,000 取小后仍得 -80,000 并写「¥-80,000/额度评级：较低」。新守卫要求倍数>0 ⇒ 只显示错误提示。默认 20 倍不命中。",
+  },
+  {
+    slug: "realestate/fund-loan",
+    inputs: { balance: "80000", multiplier: "20", monthlyFund: "2400", fundYears: "5", payMultiple: "60", cap: "0" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='FUNDCAP0 '+((h.indexOf('未设置')>=0&&h.indexOf('¥0')<0&&h.indexOf('¥144,000')>=0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["FUNDCAP0 OK"],
+    ref: "RE-N3-a：上限 0 时旧版上限卡显示「¥0」但最终额度 144,000 不受约束，两卡矛盾；新口径把上限卡写成「未设置（不限）」，finalLimit 仍为 min(1,600,000, 144,000)=144,000。默认 cap=600000 不命中。",
+  },
+  {
+    slug: "realestate/fund-loan",
+    inputs: { balance: "80000", multiplier: "20", monthlyFund: "2400", fundYears: "5", payMultiple: "60", cap: "-100000" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='FUNDCAPNEG '+((h.indexOf('请输入合理')>=0&&h.indexOf('-100,000')<0)?'OK':'BAD '+h.slice(0,80));"],
+    expect: ["FUNDCAPNEG OK"],
+    ref: "RE-N3-b：负上限 -100,000 旧版仍渲染「当地额度上限 ¥-100,000」，而 finalLimit 取 rawLimit=144,000；新守卫拦负上限并停止渲染。默认 cap=600000 不命中。",
+  },
 
   // ── 按揭可贷额度：loan=评估价×成数；月供/总利息按等额本息 ─────────────
   {
