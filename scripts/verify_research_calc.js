@@ -112,6 +112,24 @@ const CASES = [
   "expect": ["CPMIMP OK"],
   "ref": "540：CPM 标准口径=每千次曝光成本=投入÷(触达×频次)÷1000。默认 50 万/触达5万/频次3.5 ⇒ 500000÷175000×1000=2857.14 元/千次曝光；旧实现用触达人数算得 10000 元却标「元/千次曝光」，且 frequency 未参与。非默认频次可区分，默认 frequency=3.5 与 inputs 一致但旧口径值 10000 不命中新串 ⇒ 判别成立。",
 },
+{
+  "slug": "research/assessor-50",
+  "inputs": { "target": "0" },
+  "expect": ["「目标人群总数」是本计算的分母，不能为 0"],
+  "ref": "target 作分母未纳入零值守卫：旧版 target=0 时 `target=parseFloat(…)||1` 之前没拦截，触达率恒 0%、AEI 45 无提示。现分母守卫含 target 并用中文字段名标红。默认 target=100000 不命中。"
+},
+{
+  "slug": "research/assessor-50",
+  "inputs": { "reach": "200000", "target": "100000" },
+  "expect": ["触达人数（200000）不能大于目标人群总数（100000）"],
+  "ref": "触达超目标：旧版只在得分侧 min(...,100)，展示仍用原始比率得触达率 200%。现 reach>target 直接拦截并提示改用去重触达人数。默认 reach=50000 不命中。"
+},
+{
+  "slug": "research/assessor-50",
+  "inputs": { "favorability": "-50", "purchaseIntent": "-50", "nps": "-300" },
+  "expect": ["35 广告效果指数AEI"],
+  "ref": "负态度输入：旧版 -50/-50/-300 经公式得态度 -106、AEI -2、进度条 width:-2%。现好感/意向 clamp 到 0–50、NPS clamp 到 -100–100，态度 0、AEI=round(70×0.3+39×0.35+0)=35，进度条 35%。默认态度正常 AEI 49，不含 35，不命中。"
+},
 
 {
   "slug": "research/tester-17",
