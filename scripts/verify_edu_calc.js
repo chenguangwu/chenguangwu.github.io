@@ -26,14 +26,12 @@ const CASES = [
   // ── 第1175批：颜色测验改为色块辨识、清理 HEX/限时宣称（单词记忆三项源码复核销账）──
   {
     slug: "edu/color-quiz",
-    inputs: { "input": "red" },
     clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/color-quiz.html','utf8');var ok=h.indexOf(\"nameEl.textContent='●'\")>=0&&h.indexOf('background:${o.c}')<0&&h.indexOf('b.dataset.key=o.n')>=0;document.getElementById('__tbProbe').textContent='JBLIND:'+(ok?'OK':'BAD');"],
     expect: ["JBLIND:OK"],
     ref: "EL-J116：题面只显示纯色块且选项只有色名文字，高亮改数据键；旧版题面写出正确色名且选项带色块，读字即可满分 ⇒ BAD。",
   },
   {
     slug: "edu/color-quiz",
-    inputs: { "input": "blue" },
     clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/color-quiz.html','utf8');var d=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu/color-quiz']);var ok=h.indexOf('HEX 代码')<0&&h.indexOf('timed quiz')<0&&d.indexOf('由 HEX/RGB 反推颜色')<0;document.getElementById('__tbProbe').textContent='JHEX:'+(ok?'OK':'BAD');"],
     expect: ["JHEX:OK"],
     ref: "EL-J117：删除未实现的 HEX/RGB 题型与限时宣称，deep-dive 改为真实色块辨识；旧版三处虚标 ⇒ BAD。",
@@ -1613,6 +1611,12 @@ const CASES = [
     clicks: ["var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+6);var s=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');state={name:document.getElementById('examName').value,date:s,targetHours:500,logs:[]};render();var hero=document.getElementById('heroBox').innerHTML;var tot=document.getElementById('statTotal').textContent;document.getElementById('__tbProbe').textContent='CDJ130 '+(String(tot).trim()==='6'&&hero.indexOf('>6<')>=0?'OK':'BAD tot='+tot);"],
     expect: ["CDJ130 OK"],
     ref: "EL-J130：hero 用 diff=round(目标−今日)=6（含今天、不含考试日），旧版 countDays 从明天起算得 5 ⇒ statTotal=5 与大字 6 差 1。现 countDays 从今天起算，区间 {今…考前一天} 共 6 天，hero 与统计卡一致。用动态 today+6 避免冻结日期依赖，examName 注入唯一串。",
+  },
+  {
+    slug: "edu/capital-quiz",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/capital-quiz.html','utf8');var d=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu/capital-quiz']);var ok=h.indexOf('成绩能保存吗？')>=0&&h.indexOf('可导出 CSV 复核')>=0&&d.indexOf('可导出 CSV 复核')>=0&&h.indexOf('TBKit.util.exportTable')>=0;document.getElementById('__tbProbe').textContent='CAPEXP '+(ok?'OK':'BAD');"],
+    expect: ["CAPEXP OK"],
+    ref: "全量 UX 门禁回退修复：capital-quiz 真实 CSV 导出（TBKit.util.exportTable）此前沿用通用套话「支持复制与导出」命中，套话清理后正文无导出说明致 UX export 信号丢失（edu 均分 8.41→8.39）。补真实 FAQ「成绩能保存吗？…可导出 CSV 复核」并同步权威源，页面与权威源双哨兵。旧版无该 FAQ ⇒ 必红。",
   },
   {
     slug: "edu/countdown-5",
