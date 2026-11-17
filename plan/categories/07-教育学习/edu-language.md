@@ -242,38 +242,12 @@
 - 路径校正：上一批写的 `tools/edu/exam-analysis.html`、`tools/edu/study-progress.html` 实际不存在，真实地址为 `tools/edu2/exam-analysis.html`、`tools/edu2/study-progress.html`；本批按真实 URL 审计。
 - 验证边界：仅静态读源码 + `node` 复刻（成熟度均分/缺口阈值、Z 与 CDF、错题 stage 边界、目标倒推与越界、位置编码、`parseInt` 截断、颜色 HEX/RGB 越界、倒计时进度与复选框、等级/及格率冲突、并列排名）；**未**做真实浏览器、移动端、英文态/繁体态、门禁、构建与线上验证。
 
-### 留存建议（tools/edu/countdown-5.html）
-- 统计卡与 hero 统一口径（建议都含考试当天，或都在文案里注明“不含考试当天”）。
-- 删除重复的公式框与第二组相关工具，补全三处空 toast 文案。
-
-### EL-V1 「高考/考研倒计时」hero 天数与“剩余总天数”统计仍差 1，考试前一天统计为 0（中，确认缺陷，复核仍成立）
-- 问题：复核 R 批 EL-J130。hero 用 `diff=Math.round((target-now)/86400000)`（含考试当天），统计用 `countDays()` 从明天起 `while(cur<target)`（不含考试当天），两者恒差 1。
-- 证据：`:299`（diff）、`:304`（hero 输出 diff）、`:152`（统计卡“剩余总天数”）、`:267-278`（从明天起、`cur<target`）、`:312`（提示语用 `d.total`）。
-- 复现：node 实算（今天 2026-11-04）：考试明天 → hero 1、statTotal 0、motto“距考试还有 0 天”；2 天后 → hero 2、total 1；30 天后 → hero 30、total 29（工作日 21、周末 8）；100 天后 → hero 100、total 99。
-- 影响：`tools/edu/countdown-5.html`；同一屏两个“剩余天数”不一致，临近考试时统计卡显示 0 天，误导考生。
-- 方案：统计改为 `total=diff`（含考试日），或让 hero 与统计共用同一计数函数，并在标签注明“不含考试当天”。
-
-### EL-V2 「高考/考研倒计时」重复公式框/重复相关工具与三处空 toast 仍存在（低，确认缺陷，复核仍成立）
-- 问题：复核 R 批 EL-J131。`statsCard` 内连续两个“📐 计算方式”卡片，第二个只重复一句话；页面尾部两组“🔗 相关工具”；`addLog`/`clearLog`/清空成功三处 `i18nText()` 无参数。
-- 证据：`:157-160` 与 `:161-164`（两个 formula-box）、`:438-466` 与 `:468-496`（两组 related-tools）、`:241`、`:261`、`:263`（空 `i18nText()`）。
-- 复现：grep 计数“📐 计算方式”=2、`class="related-tools"`=2；日期留空点“记录”→ `i18nText()` 返回 `undefined`，toast 文本随之变成 `undefined`。
-- 影响：同页；页面冗长、toast 出现字面量 undefined。
-- 方案：删掉第二个公式框与第二组相关工具；三处改为真实键（如 `i18nText('toast.需要日期')`）或直接传中文兜底。
-
 ### 承诺 vs 实际（S 批专项）
-- `tools/edu/convert-area-volume.html:120`/`:121`「温度按 (值−32)÷1.8、K−273.15 换算」→ 温度类别无单位可选项，输出恒等于输入（`:207-211`）。
-- `tools/edu/convert-area-volume.html:157`「示例 100°F ≈ 37.78°C」→ 页面输出 100.00（`:211`）。
-- `tools/edu/convert-area-volume.html:344-350`「结果趋势图」→ 对 `结果 = …` 文本 `parseFloat` 得 NaN，图永不渲染（`:331-335`）。
-- `tools/edu2/schedule-conflict.html:13`/`:16`/`:118`「输出冲突清单与可视化课表」→ 只有统计卡与冲突表，无周×节网格（`:299-329`）。
-- `tools/edu2/schedule-conflict.html:121`「无冲突排课率 = 无冲突时段数 ÷ 总时段数 × 100%」→ 结果区无该数值（`:299-329`）。
-- `tools/edu2/schedule-conflict.html:181`/`:201`「半开区间 a.start<b.end」→ 实现为闭区间（`:262-265`），同节次判定相反。
-- `tools/edu/countdown-5.html:158`「剩余天数 = round((目标−今日)/86400000)」→ 统计卡用“不含考试当天”的 `countDays`，与 hero 差 1（`:267-278`、`:299`、`:304`）。
 - `tools/edu/countdown-5.html:316-321`「累计时长 = Σ记录；学习天数 = 记录条数」→ 已实现，复核通过。
 - `tools/edu2/schedule-conflict.html:227-230`「载入示例」→ 示例 8 门课冲突数为 0（教师 0/教室 0），无法演示冲突检测。
 
 ### 覆盖
 - 实读 3 页：`tools/edu/convert-area-volume.html`、`tools/edu2/schedule-conflict.html`、`tools/edu/countdown-5.html`，3/3 全覆盖。
-- 新增 8 条（EL-J166～EL-J171、EL-V1～EL-V2）：高 2（EL-J166、EL-J169），中 4（EL-J167、EL-J170、EL-J171、EL-V1），低 2（EL-J168、EL-V2），另附 3 组留存建议与 1 节“承诺 vs 实际（S 批专项）”。
+- 新增 6 条（EL-J166～EL-J171）：高 2（EL-J166、EL-J169），中 3（EL-J167、EL-J170、EL-J171），低 1（EL-J168），另附 3 组留存建议与 1 节“承诺 vs 实际（S 批专项）”。
 - 07 教育/edu2 已无未提及页：`tools/edu` 45 个工具页 + `tools/edu2` 5 个工具页均已在 `edu-language.md` 或 `research-library.md` 覆盖；`tools/edu/index.html`、`tools/edu2/index.html` 为分类目录页（无 `<meta name="toolbox">`、无工具交互），不计入工具页审计。
-- 复核结论：EL-J130（hero 与统计差 1）仍成立 → EL-V1；EL-J131（重复公式框/相关工具、空 toast）仍成立 → EL-V2。
 - 验证边界：仅静态读源码 + `node -e` 复刻（`for…in undefined`、温度空选项恒等、`parseFloat('结果 = …')`、倒计时 hero 与 countDays 差值、示例冲突对数、半开/闭区间判定）；未做真实浏览器、移动端、英文态/繁体态、门禁、构建与线上验证；`showToast(undefined)` 的最终显示形态待浏览器确认。

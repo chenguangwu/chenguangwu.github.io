@@ -1799,6 +1799,29 @@ const CASES = [
     expect: ["J171 OK"],
     ref: "EL-J171：旧版 FAQ 写半开区间 a.start<b.end、引据表 [start,end)，与实现闭区间相反。现 FAQ 与引据表统一为 a.start≤b.end 且 [start,end]，权威源同步。源码+权威源哨兵：旧版含半开公式 ⇒ 必红。",
   },
+
+  // ── 第1191批：复核失败重做——倒计时 hero 与统计卡逐日对齐 ──
+  {
+    slug: "edu/countdown-5",
+    inputs: { examName: "TbV1R1" },
+    clicks: ["var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+1);var s=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');state={name:document.getElementById('examName').value,date:s,targetHours:500,logs:[]};render();var hero=document.getElementById('heroBox').innerHTML;var tot=document.getElementById('statTotal').textContent;document.getElementById('__tbProbe').textContent='V1R1 '+(String(tot).trim()==='1'&&hero.indexOf('>1<')>=0?'OK':'BAD '+tot);"],
+    expect: ["V1R1 OK"],
+    ref: "复核失败重做·EL-V1：复核称考试明天 hero=1/statTotal=0。现 countDays 从今天零点起算且 while(cur<target)，明天区间仅 {今天} 共 1 天，与 hero diff=1 一致。用动态明天避免冻结日期依赖，examName 注入唯一串。",
+  },
+  {
+    slug: "edu/countdown-5",
+    inputs: { examName: "TbV1R2" },
+    clicks: ["var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+2);var s=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');state={name:document.getElementById('examName').value,date:s,targetHours:500,logs:[]};render();var hero=document.getElementById('heroBox').innerHTML;var tot=document.getElementById('statTotal').textContent;document.getElementById('__tbProbe').textContent='V1R2 '+(String(tot).trim()==='2'&&hero.indexOf('>2<')>=0?'OK':'BAD '+tot);"],
+    expect: ["V1R2 OK"],
+    ref: "复核失败重做·EL-V1：复核称 2 天后 hero=2/total=1。现区间 {今天,明天} 共 2 天，与 diff=2 同口径。既有 CDJ130 覆盖 6 天，本例补复核点名的小天数边界。",
+  },
+  {
+    slug: "edu/countdown-5",
+    inputs: { examName: "TbV2R1" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/countdown-5.html','utf8');var q=String.fromCharCode(34);var rt=h.split('class='+q+'related-tools'+q+' data-related-tools='+q+'1'+q).length-1;var fb=h.split('class='+q+'card formula-box'+q).length-1;var empty=h.split('i18nText()').length-1;var ok=document.getElementById('examName').value==='TbV2R1'&&rt===1&&fb===1&&empty===0;document.getElementById('__tbProbe').textContent='V2R1 '+(ok?'OK':'BAD rt='+rt+' fb='+fb+' empty='+empty);"],
+    expect: ["V2R1 OK"],
+    ref: "复核失败重做·EL-V2：复核称两处 formula-box、两处 related-tools 与三处无参 i18nText() 仍存在。现各仅一处且 toast 全用具体键（msg947/msg082/msg081）；源码哨兵计数，旧版任一重复或空参均必红。examName 注入唯一串。",
+  },
 ];
 
 async function main() {
