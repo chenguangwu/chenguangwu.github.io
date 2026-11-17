@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -228,6 +230,12 @@ const CASES = [
     "诊断成立(NIH标准)"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "endocrinology/pcos-diagnosis",
+  "clicks": ["document.getElementById('criteria').value='rotterdam';loadMild();var h=String(document.getElementById('result').innerHTML).replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/endocrinology/pcos-diagnosis.json','utf8');var ok=h.indexOf('不符合')>=0&&h.indexOf('A型（经典）')<0&&en.indexOf('Mild (PCOM only)')>=0&&en.indexOf('\"Mild PCOS\"')<0;document.getElementById('__tbProbe').textContent='PCOSMILD '+(ok?'OK':'BAD '+h.slice(0,160));"],
+  "expect": ["PCOSMILD OK"],
+  "ref": "12-N128：「轻度（仅 PCOM）」按钮原 loadMild 给 cycle=38+临床高雄+PCOM 且排除项全勾 ⇒ 3/3 判 A 型最高风险，与同页「仅 PCOM 形态（单项，不满足诊断）」预设相反。改为 cycle=32、FG=4、仅 PCOM，与预设同源 ⇒ 输出「不符合」；默认态 cycle=45/睾酮72（>60 触发生化高雄）为 2/3 诊断成立，注入失败不会命中本哨兵，零逃生。"
 },
 {
   "slug": "endocrinology/pituitary-tumor",

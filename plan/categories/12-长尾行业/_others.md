@@ -689,27 +689,6 @@
 - 保存常用参数组合（设备、频率、ERA、强度、时间）为一键方案，便于同科室复用。
 - 治疗记录保存完整参数而非仅处方文本，支持按患者/部位导出疗程表与剂量累计。
 
-### 12-N127 endocrinology/pcos-diagnosis：睾酮阈值单位自相矛盾（公式 >60 nmol/L，界面/代码 >60 ng/dL，差约 29 倍）（高，确认缺陷）
-- 问题：公式框写「生化高雄：睾酮>60 nmol/L」（`:134`），复选框写「总睾酮>60ng/dL」（`:165`），输入标签为「总睾酮 (ng/dL)」（`:168`），代码按 `t>60`（ng/dL）判定（`:340`）。60 nmol/L ≈ 1729 ng/dL，60 ng/dL ≈ 2.08 nmol/L，两者相差约 29 倍。
-- 证据：`tools/endocrinology/pcos-diagnosis.html:134`、`:165`、`:168`、`:340`
-- 复现（node 复算）：输入 60 ng/dL（2.08 nmol/L）→ 代码判「生化高雄满足」；按公式框的 60 nmol/L 口径，该值远低于阈值。默认 72 ng/dL 同样被判高雄。
-- 影响：`tools/endocrinology/pcos-diagnosis.html` 高雄激素核心标准出现单位级错误，可直接影响 PCOS 诊断成立与否；阈值与单位需内分泌专业复核。
-- 方案：统一为 ng/dL（或 nmol/L）并在界面标注换算；阈值改为检验室性别/年龄特异的参考上限或公认切点（如总睾酮 > 实验室上限），不要用 60 这一跨单位数字。
-
-### 12-N128 endocrinology/pcos-diagnosis：「轻度 PCOS」按钮实际 3/3 满足并判 A 型最高代谢风险，与「轻度仅 PCOM」预设不符（中，确认缺陷）
-- 问题：`loadMild()` 设 cycle=38（>35 即排卵障碍）、clinicalHA 勾选、pcom 勾选且两项排除均勾选（`:307-320`），结果 `metCount=3`、`excluded=true` → 「PCOS 诊断成立」且表型 A（最高风险，`:386`）。而预设「轻度 PCOS 仅 PCOM」给 cycle=32、仅 PCOM（`:584`），结果应为「不符合」。同名入口给出相反结论。
-- 证据：`tools/endocrinology/pcos-diagnosis.html:307-320`、`:582-585`、`:362-390`
-- 复现（node 复算）：按 `loadMild()` 取值 → crit1=true（38>35）、crit2=true（FG 9）、crit3=true（PCOM 勾选）→ 3/3 → A 型。期望「轻度」示例只满足 PCOM（或明确为 B/C 型）。
-- 影响：`tools/endocrinology/pcos-diagnosis.html` 教学示例与命名相反，用户点了「轻度」却得到最高代谢风险的经典表型。
-- 方案：把 `loadMild()` 改为仅 PCOM（cycle≤35、periods≥8、FG<8、睾酮<阈值），或改名「经典 PCOS（3/3）」；按钮与预设同源。
-
-### 12-N129 endocrinology/pcos-diagnosis：PCOM 卵泡阈值同页「≥20（2023）」与引据/示例「≥12」并存；NIH/AES 未排除即直接判「不符合」（中，确认缺陷）
-- 问题：正文说明「≥20 个（2023 国际共识更新，原≥12）」（`:216`），代码用 `follicles>=20`（`:348`）；引据表仍写「单侧 ≥12」（`:274`），深度解析示例也写「每侧≥12」（`:246`）。另 NIH/AES 分支在未排除其他病因时直接输出「不符合 NIH/AES 标准」（`:370-382`），而鹿特丹分支会输出「符合但需排除」（`:364-365`）。
-- 证据：`tools/endocrinology/pcos-diagnosis.html:216`、`:348`、`:274`、`:246`、`:370-382`
-- 复现：卵泡 15、卵巢体积 9 → 代码不满足 PCOM；按引据/示例的 ≥12 则应满足。NIH 标准下高雄+排卵障碍均满足但未勾排除项 → 实际「不符合NIH标准」，期望「符合NIH标准，需排除其他病因后确诊」。
-- 影响：`tools/endocrinology/pcos-diagnosis.html` PCOM 判定随阅者参照的段落而变；三种标准对「未排除」的处理不一致，可能把可诊断病例判成不符合。阈值版本与标准适用需妇科内分泌复核。
-- 方案：全页统一为 2023 ≥20（或按设备/年龄注明版本），删除 ≥12 旧表述；NIH/AES 增加「符合（需排除）」中间态，与鹿特丹一致。
-
 **留存建议（endocrinology/pcos-diagnosis）**
 - 增加年龄、BMI/腰围、AMH、OGTT/HOMA-IR、血脂与血压字段，把「代谢风险分层」落为可计算的分层结果而非固定文案。
 - 记录检验单位与实验室参考范围（睾酮、17-OHP、TSH、PRL），避免单位混用；支持 ng/dL ↔ nmol/L 切换。
