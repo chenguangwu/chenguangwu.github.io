@@ -80,6 +80,11 @@ const CASES = [
     expect: ["73.7", "53.1"],
     ref: "水平=2·atan(36/48)×180/π=73.7°；垂直=2·atan(24/48)×180/π=53.1°（默认 50/36/24→39.6/27.0，避开）" },
 
+  { slug: "photo/field-of-view",
+    inputs: { focal: "-50", sensor: "36", sensorH: "24" },
+    expect: ["焦距与传感器尺寸均须为正数"],
+    ref: "976 负焦距守卫：f=-50 会得负视角，修复前照常渲染；默认 f=50 不含该提示。" },
+
   { slug: "photo/flash-gn",
     inputs: { gn: "60", dist: "4", iso: "400" },
     expect: ["15.0", "21.4"],
@@ -236,6 +241,12 @@ const CASES = [
     inputs: { speed: "80", distance: "15", focal: "135" },
     expect: ["22.22 m/s", "84.88", "0.0009 s", "1146"],
     ref: "注入非默认(默认 50/10/100)：80 km/h = 22.22 m/s；视角移动角速度 = v/d 换算 ⇒ 84.88 °/s；推荐快门 ≪ 1/角速度 ⇒ 0.0009 s（推荐分母 1146）。默认态 13.89 m/s 与各值不命中。"
+  },
+  {
+    slug: "photo/photo-11",
+    inputs: { speed: "50", distance: "-10", focal: "100" },
+    expect: ["速度、距离与焦距均须为正数"],
+    ref: "976 负距离守卫：distance=-10 时 Math.max(1/4000, …) 把负秒数夹成 1/4000，修复前输出看似正常的快门；默认 distance=10 不含该提示。"
   },
   {
     slug: "photo/photo-6",
