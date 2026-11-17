@@ -254,6 +254,11 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/leather/assessor-21.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/leather/assessor-21.json','utf8');var ok=h.indexOf('综合得分 = 穿透率得分')<0&&h.indexOf('质量分级须三项同时满足')>=0&&h.indexOf('60%（未达一等品所需 70%），均匀度 6、色牢度 3 → 合格品')>=0&&h.indexOf('60%，均匀度 6、色牢度 3 → 一等品')<0&&en.indexOf('grading requires all three thresholds')>=0&&en.indexOf('below the 70% needed for first grade')>=0;document.getElementById('__tbProbe').textContent='DYEGRADE '+(ok?'OK':'BAD');"],
   "expect": ["DYEGRADE OK"],
   "ref": "12-N223/N229：公式框原承诺「综合得分=穿透率40%+均匀度30%+色牢度30%」及 A/B/C 分档，代码与深解实际走三项同时满足阈值；改为与实现一致的优等/一等/合格门槛。算例穿透率 60% 未达一等品 70%，改判合格品；英译源同步。旧版旧综合得分串与旧算例命中 ⇒ 变红；默认态不产生该哨兵，零逃生。"
+},{
+  "slug": "leather/colorfast",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/leather/colorfast.html','utf8');var q=String.fromCharCode(34);var a=h.indexOf('2400,'+q+'hi'+q+':4800')>=0&&h.indexOf('4800,'+q+'hi'+q+':null')>=0&&h.indexOf('Level 8')>=0&&h.indexOf('2400,'+q+'hi'+q+':null')<0;document.getElementById('__tbProbe').textContent='CFREFBAR '+(a?'OK':'BAD');"],
+  "expect": ["CFREFBAR OK"],
+  "ref": "12-N185：calc 对 energy≥4800 输出「8 级」，但参考标尺 bands 最后一档为 7 级 hi:null，同屏出现 7/8 级两个结论。现 7 级改 hi:4800 并补 8 级档（lo:4800,hi:null），与 calc 输出范围对齐；不改评级方向与阈值（N184 方向倒置仍待专业裁断）。源码形态哨兵旧版必红。"
 }
 ];
 async function main() {
