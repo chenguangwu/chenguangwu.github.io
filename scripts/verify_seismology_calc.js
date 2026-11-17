@@ -78,6 +78,18 @@ const CASES = [
     "2.13"
   ],
   "ref": "非默认输入+独立复算：G-R b=lg e/(均值4.0125−Mmin3.0+0.05)=0.41、a=lg8+0.41×3.0=2.13（默认序列2.5…4.2 输出 b=0.38/a=1.86，注入失败即不命中）"
+},
+{
+  "slug": "seismology/stats-attenuation",
+  "inputs": { "mags": "4.0,4.0" },
+  "expect": ["样本震级无跨度"],
+  "ref": "12-G8：等震级序列旧版 b≈8.69、a≈35.04，修复后拒绝无跨度样本；默认序列有跨度，不命中。"
+},
+{
+  "slug": "seismology/stats-attenuation",
+  "inputs": { "mags": "3.0,4.0,5.0", "c": "-10", "t": "10" },
+  "expect": ["K 与 p 须大于 0"],
+  "ref": "12-G8：c=-10,t=10 使 t+c=0，旧版显示 Infinity 后被清洗为破折号，修复后参数守卫提示；默认 c=1 不命中。"
 }
 ];
 async function main() {

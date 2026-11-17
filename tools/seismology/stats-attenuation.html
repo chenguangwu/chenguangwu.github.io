@@ -194,28 +194,39 @@
 </div>
 <script>
 function calc(){
-  var mraw=document.getElementById('mags').value.split(/[,\n\s]+/).map(function(s){return parseFloat(s.trim());}).filter(function(v){return !isNaN(v);});
-  if(mraw.length<2){document.getElementById('res').innerHTML='<p>请至少输入 2 个震级</p>';return;}
+  var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+  var __res=document.getElementById('res');
+  function __fail(msg){__res.innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';}
+  var __toks=document.getElementById('mags').value.split(/[,\n\s]+/).filter(function(s){return s!=='';});
+  var __badMag=__toks.some(function(s){var v=Number(s);return !Number.isFinite(v)||v<0;});
+  if(__badMag){__fail(__en?'Magnitudes must be finite values not less than 0.':'震级须为有限且不小于 0 的数值。');return;}
+  var mraw=__toks.map(function(s){return Number(s);});
+  if(mraw.length<2){__fail(__en?'Please enter at least 2 magnitudes.':'请至少输入 2 个震级。');return;}
   var n=mraw.length;
   var Mmin=Math.min.apply(null,mraw);
   var mean=mraw.reduce(function(a,b){return a+b;},0)/n;
+  var K=Number(document.getElementById('K').value);
+  var c=Number(document.getElementById('c').value);
+  var p=Number(document.getElementById('p').value);
+  var t=Number(document.getElementById('t').value);
+  if(!Number.isFinite(K)||K<=0||!Number.isFinite(c)||c<0||!Number.isFinite(p)||p<=0||!Number.isFinite(t)||t<0||t+c<=0){
+    __fail(__en?'K and p must be positive, c and t non-negative, and t+c greater than 0.':'K 与 p 须大于 0，c 与 t 须非负，且 t+c 须大于 0。');return;
+  }
+  if(mean<=Mmin+1e-12){__fail(__en?'Magnitudes have no span; b/a cannot be fitted.':'样本震级无跨度，无法拟合 b/a 值。');return;}
   var dM=0.1;
   var b=0.43429448/(mean-Mmin+dM/2);
   var a=Math.log10(n)+b*Mmin;
-  var K=parseFloat(document.getElementById('K').value);
-  var c=parseFloat(document.getElementById('c').value);
-  var p=parseFloat(document.getElementById('p').value);
-  var t=parseFloat(document.getElementById('t').value);
-  var nt=(isNaN(K)||isNaN(c)||isNaN(p)||isNaN(t))?NaN:K/Math.pow(t+c,p);
+  var nt=K/Math.pow(t+c,p);
+  var ntText=Number.isFinite(nt)?nt.toFixed(2):'—';
   var html='<table><thead><tr><th>指标</th><th>数值</th></tr></thead><tbody>';
   html+='<tr><td>事件数 N</td><td><strong>'+n+'</strong></td></tr>';
   html+='<tr><td>最小震级 Mmin</td><td><strong>'+Mmin.toFixed(1)+'</strong></td></tr>';
   html+='<tr><td>平均震级</td><td><strong>'+mean.toFixed(3)+'</strong></td></tr>';
   html+='<tr><td>b 值（G-R）</td><td><strong>'+b.toFixed(2)+'</strong></td></tr>';
   html+='<tr><td>a 值（G-R）</td><td><strong>'+a.toFixed(2)+'</strong></td></tr>';
-  html+='<tr><td>大森律 n(t) @t='+t+'天</td><td><strong>'+(isNaN(nt)?'—':nt.toFixed(2))+'</strong></td></tr>';
+  html+='<tr><td>大森律 n(t) @t='+t+'天</td><td><strong>'+ntText+'</strong></td></tr>';
   html+='</tbody></table>';
-  const __g2=html;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  const __g2=html;__res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 calc();
 function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
