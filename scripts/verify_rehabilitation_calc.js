@@ -212,8 +212,24 @@ const CASES = [
     "【FIM 功能独立性评定（18 项 · 运动 13 + 认知 5）】 结果：总分 72/126（运动 52/91、认知 20/35）→ 分级：轻度依赖",
     "52/91（独立率57%）"
   ],
-  "ref": "门诊记录（EMR note）：18 项下拉 `fim_0..17` 由 renderItems() 动态生成、stub 中不存在，故 clicks 覆写 getElementById 统一给 4 分 ⇒ 运动 13×4=52/91、认知 5×4=20/35、总分 72 ⇒ 72–89 落「轻度依赖」。本页只求和与分级，不预测出院分数（旧用例的「康复预期 22 分」已随伪造预测一并删除）。默认态 18 项全 7（满分 126）⇒「完全独立」，与本用例零交集。"
-},
+    "ref": "门诊记录（EMR note）：18 项下拉 `fim_0..17` 由 renderItems() 动态生成、stub 中不存在，故 clicks 覆写 getElementById 统一给 4 分 ⇒ 运动 13×4=52/91、认知 5×4=20/35、总分 72 ⇒ 72–89 落「轻度依赖」。本页只求和与分级，不预测出院分数（旧用例的「康复预期 22 分」已随伪造预测一并删除）。默认态 18 项全 7（满分 126）⇒「完全独立」，与本用例零交集。"
+  },
+  {
+    "slug": "rehabilitation/fim-scale",
+    "clicks": [
+      "var src=String(typeof __tb_fn0==='function'?__tb_fn0:updateScore);var ok=typeof __tb_fn0==='function'&&/calcScore\s*\(\s*\)/.test(src);document.getElementById('__tbProbe').textContent='FIM68SRC '+(ok?'OK':'BAD');"
+    ],
+    "expect": ["FIM68SRC OK"],
+    "ref": "N68 改分项同步：updateScore（原始函数被 __tb_fn0 捕获）须在统计卡之外调用 calcScore 同步结果框/分级/EMR/_score；旧实现只刷统计卡。探针直接断言 __tb_fn0 函数体含 calcScore() 调用——旧版源码形态不含 ⇒ 变红。该页 select 由 renderItems 动态生成、stub 取不到，且结果区多容器在 mock getElementById 下采集不稳，故按项目先例（1043 批 cost-depreciation）用源码形态判别。默认态不产生该串，零逃生。"
+  },
+  {
+    "slug": "rehabilitation/fim-scale",
+    "clicks": [
+      "var __m={};for(var i=0;i<18;i++)__m['fim_'+i]='1';var __g=document.getElementById;document.getElementById=function(id){if(__m[id]!==undefined)return {value:__m[id],checked:false};return __g.call(document,id);};calcScore();var __before=window._score?window._score.total:null;resetAll();var __after=window._score?window._score.total:null;__g.call(document,'__tbProbe').textContent='FIMRESET before='+__before+' after='+(__after===null?'null':__after);"
+    ],
+    "expect": ["FIMRESET before=18 after=null"],
+    "ref": "N66 重置清分：18 项全 1 ⇒ calcScore 写入 _score.total=18；resetAll 后必须清 window._score=null，否则「保存记录」仍写 18 分旧值。修复后 after=null；旧实现 resetAll 不清 _score ⇒ after=18 ⇒ 旧版 BAD。默认态不触发哨兵，零逃生。"
+  },
 {
   "slug": "rehabilitation/flacc-scale",
   "checks": [

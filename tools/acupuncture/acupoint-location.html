@@ -398,10 +398,17 @@ function calc(){
   html += '<div class="stat-card"><div class="val">'+cmPerCun.toFixed(2)+'</div><div class="lbl">每寸厘米</div></div>';
   html += '</div>';
 
-  if(targetCun && targetCun>=0){
-    var distCm = targetCun * cmPerCun;
+  var targetRaw = document.getElementById('targetCun').value.trim();
+  var targetNum = Number(targetRaw);
+  var targetFilled = targetRaw !== '' && Number.isFinite(targetNum);
+  var targetOk = targetFilled && targetNum >= 0 && targetNum <= stdCun;
+  var __acuEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  if(targetFilled && !targetOk){
+    html += '<p style="color:var(--danger);font-size:13px;">'+(__acuEn?('Target distance must be between 0 and '+stdCun+' cun.'):('目标穴位距起点应在 0–'+stdCun+' 寸之间。'))+'</p>';
+  }else if(targetOk){
+    var distCm = targetNum * cmPerCun;
     html += '<div class="tip-box tip-success" style="margin-top:12px;">';
-    html += '<strong>取穴定位：</strong>从「'+it.landmark.split('至')[0]+'」起点，沿分段方向测量 <strong>'+distCm.toFixed(2)+' cm</strong>（即 '+targetCun+'寸），即为目标穴位位置。';
+    html += '<strong>取穴定位：</strong>从「'+it.landmark.split('至')[0]+'」起点，沿分段方向测量 <strong>'+distCm.toFixed(2)+' cm</strong>（即 '+targetNum+'寸），即为目标穴位位置。';
     html += '</div>';
   }else{
     html += '<p style="color:var(--text-muted);font-size:13px;">输入"目标穴位距起点(寸)"可换算具体测量距离。</p>';
@@ -428,7 +435,7 @@ function copyResult(){
   if(!realCm){ ToolBox.showToast(i18nText('toast.msg785'),'warning'); return; }
   var cmPerCun = realCm/it.cun;
   var txt = '骨度分寸：'+it.part+' 标准折量'+it.cun+'寸，实测'+realCm+'cm，1寸≈'+cmPerCun.toFixed(2)+'cm';
-  if(targetCun){ txt += '，目标穴位距起点'+targetCun+'寸≈'+(targetCun*cmPerCun).toFixed(2)+'cm'; }
+  if(Number.isFinite(targetCun)&&targetCun>=0&&targetCun<=it.cun){ txt += '，目标穴位距起点'+targetCun+'寸≈'+(targetCun*cmPerCun).toFixed(2)+'cm'; }
   var realDist = parseFloat(document.getElementById('realDist').value);
   if(realDist && realDist>0){ txt += '，实测'+realDist.toFixed(2)+'cm反算≈'+(realDist/cmPerCun).toFixed(2)+'寸'; }
   ToolBox.copyText(txt, i18nText('msg218'));
