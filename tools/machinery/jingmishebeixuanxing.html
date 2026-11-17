@@ -110,7 +110,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入精度、负载、行程，推荐直线导轨规格与滚珠丝杠参数">Select precision equipment by accuracy, load, stroke and speed.</p>
         <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">精密设备直线传动选型（本页代码口径，公式+查表混合）：负载力=负载×9.8（N）；转速=速度×1000÷导程（rpm）；丝杠总长=行程×1.3（mm）；驱动扭矩=负载力×导程÷(2π×0.9×1000)（N·m，丝杠效率按 0.9）；导轨取 HGR 序列（15~65 规格，动额定 7.7~101kN）中首个动额定≥负载力×6÷1000（kN）者；导程取 [5,10,20,32,40] 中首个 ≥速度×1000÷3000 者。校验：四项输入均须 &gt;0，否则提示「请输入有效的正数参数」并中止。判据：定位精度 ≤10μm 选 C3、≤20 选 C5、≤50 选 C7、其余 C10；丝杠直径按负载力 &gt;5000N→32mm、&gt;2000N→25mm、&gt;500N→20mm、其余 16mm。</div>
+      <div class="formula-eq">精密设备直线传动选型（本页代码口径，公式+查表混合）：负载力=负载×9.8（N）；转速=速度×1000÷导程（rpm）；丝杠总长=行程×1.3（mm）；驱动扭矩=负载力×导程÷(2π×0.9×1000)（N·m，丝杠效率按 0.9）；导轨取 HGR 序列（15~65 规格，动额定 7.7~101kN）中首个动额定≥负载力×6÷1000（kN）者，超出 101kN 即提示超范围；导程取 [5,10,20,32,40] 中首个 ≥速度×1000÷3000 者，需求超过 40mm 即提示超范围，均不静默取末项。校验：四项输入均须 &gt;0，否则提示「请输入有效的正数参数」并中止。判据：定位精度 ≤10μm 选 C3、≤20 选 C5、≤50 选 C7、其余 C10；丝杠直径按负载力 &gt;5000N→32mm、&gt;2000N→25mm、&gt;500N→20mm、其余 16mm。</div>
       <div class="formula-desc">依据定位精度、负载、行程与移动速度等要求，推荐合适的直线导轨规格（HGR 系列）和滚珠丝杠参数（直径、导程、精度等级）。</div>
     </div>
 <div class="input-row">
@@ -188,20 +188,28 @@ var railSpecs=[{sz:15,dr:7.7},{sz:20,dr:13.6},{sz:25,dr:17.6},{sz:30,dr:27.5},{s
 function selRail(loadN){
   var reqDR=loadN*6/1000; // kN
   for(var i=0;i<railSpecs.length;i++){if(railSpecs[i].dr>=reqDR)return railSpecs[i];}
-  return railSpecs[railSpecs.length-1];
+  return null;
 }
 var screwLeads=[5,10,20,32,40];
 function selLead(speed){ // m/min -> mm/min, assume max 3000rpm
   var minLead=speed*1000/3000;
   for(var i=0;i<screwLeads.length;i++){if(screwLeads[i]>=minLead)return screwLeads[i];}
-  return screwLeads[screwLeads.length-1];
+  return null;
 }
 function calc(){
   var iv=readInputs();if(!iv.valid){document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;">请输入有效的正数参数</div>';lastResult='';return;}
   var acc=iv.acc,load=iv.load,stroke=iv.stroke,speed=iv.speed;
   var loadN=load*9.8;
   var rail=selRail(loadN);
+  if(!rail){
+    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;">⚠️ 所需导轨动额定 '+(loadN*6/1000).toFixed(1)+' kN 超出 HGR15~HGR65 上限 101 kN：请降低负载或另选更大规格，勿按 HGR65 估算。</div>';
+    lastResult='';return;
+  }
   var lead=selLead(speed);
+  if(!lead){
+    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;">⚠️ 速度 '+speed+' m/min 所需最小导程 '+(speed*1000/3000).toFixed(1)+' mm 超出本页导程表 [5,10,20,32,40] 上限 40 mm（3000rpm 下约 200 m/min）：请降低速度或扩充导程规格后复核，勿按 40mm 估算 25000rpm。</div>';
+    lastResult='';return;
+  }
   var rpm=speed*1000/lead;
   var screwClass = acc<=10?'C3':(acc<=20?'C5':(acc<=50?'C7':'C10'));
   var screwLen=stroke*1.3;
@@ -225,9 +233,9 @@ function calc(){
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
 function resetAll(){document.getElementById('vAcc').value=10;document.getElementById('vLoad').value=50;document.getElementById('vStroke').value=500;document.getElementById('vSpeed').value=15;['vAcc','vLoad','vStroke','vSpeed'].forEach(function(id){setInvalid(document.getElementById(id),false);});calc();ToolBox.showToast(i18nText(),'info');}
 function historyKey(){try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_precision_sel';}}
-function saveHistory(){try{var k=historyKey();var l=JSON.parse(localStorage.getItem(k)||'[]');var n=new Date();l.unshift({acc:num('vAcc'),load:num('vLoad'),stroke:num('vStroke'),time:n.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});if(l.length>8)l=l.slice(0,8);localStorage.setItem(k,JSON.stringify(l));renderHistory();}catch(e){}}
-function renderHistory(){var b=document.getElementById('historyBox');if(!b)return;try{var l=JSON.parse(localStorage.getItem(historyKey())||'[]');if(!l.length){b.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}var h='';l.forEach(function(it,i){h+='<div class="history-item" onclick="restoreHistory('+i+')"><div><div class="time">'+ToolBox.escHtml(it.time)+'</div><div class="summary">精度'+it.acc+'μm, 负载'+it.load+'kg, 行程'+it.stroke+'mm</div></div><span style="font-size:12px;color:var(--primary);">恢复</span></div>';});const __g4=h;b.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}catch(e){b.innerHTML='<div class="history-empty">读取记录失败</div>';}}
-function restoreHistory(i){try{var l=JSON.parse(localStorage.getItem(historyKey())||'[]');var h=l[i];if(!h)return;document.getElementById('vAcc').value=h.acc;document.getElementById('vLoad').value=h.load;document.getElementById('vStroke').value=h.stroke;calc();ToolBox.showToast(i18nText(),'info');}catch(e){}}
+function saveHistory(){try{var k=historyKey();var l=JSON.parse(localStorage.getItem(k)||'[]');var n=new Date();l.unshift({acc:num('vAcc'),load:num('vLoad'),stroke:num('vStroke'),speed:num('vSpeed'),time:n.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});if(l.length>8)l=l.slice(0,8);localStorage.setItem(k,JSON.stringify(l));renderHistory();}catch(e){}}
+function renderHistory(){var b=document.getElementById('historyBox');if(!b)return;try{var l=JSON.parse(localStorage.getItem(historyKey())||'[]');if(!l.length){b.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}var h='';l.forEach(function(it,i){h+='<div class="history-item" onclick="restoreHistory('+i+')"><div><div class="time">'+ToolBox.escHtml(it.time)+'</div><div class="summary">精度'+it.acc+'μm, 负载'+it.load+'kg, 行程'+it.stroke+'mm'+(it.speed!==undefined?', 速度'+it.speed+'m/min':'')+'</div></div><span style="font-size:12px;color:var(--primary);">恢复</span></div>';});const __g4=h;b.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}catch(e){b.innerHTML='<div class="history-empty">读取记录失败</div>';}}
+function restoreHistory(i){try{var l=JSON.parse(localStorage.getItem(historyKey())||'[]');var h=l[i];if(!h)return;document.getElementById('vAcc').value=h.acc;document.getElementById('vLoad').value=h.load;document.getElementById('vStroke').value=h.stroke;if(h.speed!==undefined)document.getElementById('vSpeed').value=h.speed;calc();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();

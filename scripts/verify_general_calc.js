@@ -995,8 +995,8 @@ const CASES = [
     slug: "machinery/jingmishebeixuanxing",
     inputs: { vAcc: "0.5", vLoad: "200", vStroke: "300", vSpeed: "1000" },
     clicks: ["calc()"],
-    expect: ["25000 所需转速 (rpm)", "13.86 驱动扭矩 (N·m)"],
-    ref: "丝杠选型：导程 40mm / 行程 300mm / 进给 1000 ⇒ 所需转速 25000rpm 量级；驱动扭矩 13.86 N·m（含加速惯量项 vAcc=0.5）。两者均随进给速度与负载联动。同场「导轨规格 HGR20 / 精度 C3 / 导程精度」为查表文案串，不锚。",
+    expect: ["超出本页导程表"],
+    ref: "990 导程超范围（MM-H92）：速度 1000 m/min 所需最小导程 333.3mm > 40mm 上限，旧版静默取 40mm 并输出 25000rpm、13.86 N·m；修复后明确提示超范围并中止，默认 15m/min 不含该串。",
   },
   // ---- BATCH258：general 分类「双约束极值 / 配比 / 链路 / 传动」族（7 例） ----
   // 【判据】本批全部沿用「同源不同式交叉锚」：每条用例锚两个**由不同算式得到、但指向同一结果**的行，
@@ -2664,6 +2664,19 @@ const CASES = [
       "/导程(mm) C7 丝杠精度等级 55"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vAcc\":\"42\",\"vLoad\":\"42\",\"vStroke\":\"42\",\"vSpeed\":\"42\"}，输出区含「/导程(mm) C7 丝杠精度等级 55」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "machinery/jingmishebeixuanxing",
+    "inputs": { "vAcc": "10", "vLoad": "2000", "vStroke": "500", "vSpeed": "15" },
+    "expect": ["超出 HGR15~HGR65 上限 101 kN"],
+    "ref": "990 导轨超范围（MM-H92）：2000kg 需动额定 117.6kN > HGR65 的 101kN，旧版静默取 HGR65 仍出结果；修复后明确提示超范围，默认 50kg/7.7kN 不含该串。"
+  },
+  {
+    "slug": "machinery/jingmishebeixuanxing",
+    "inputs": { "vAcc": "5", "vLoad": "50", "vStroke": "300", "vSpeed": "30" },
+    "clicks": ["var os=localStorage.setItem,og=localStorage.getItem,cap=null;localStorage.setItem=function(k,v){cap=v;};saveHistory();localStorage.setItem=os;var arr=JSON.parse(cap||'[]');var stored=arr[0]?String(arr[0].speed):'NONE';document.getElementById('vSpeed').value='1';localStorage.getItem=function(){return JSON.stringify(arr);};restoreHistory(0);localStorage.getItem=og;var restored=document.getElementById('vSpeed').value;document.getElementById('__tbProbe').textContent='JMSPD stored='+stored+' restored='+restored;"],
+    "expect": ["JMSPD stored=30 restored=30"],
+    "ref": "990 历史速度（MM-H93）：saveHistory 原不存 vSpeed、restoreHistory 不恢复，改速度后恢复按 1m/min 重算；修复后记录与恢复都保留 30m/min。默认 15m/min 不含该串。"
   },
   {
     "slug": "materials/huanbaonaimopinggu",
