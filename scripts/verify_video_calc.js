@@ -80,6 +80,24 @@ const CASES = [
   ],
   "ref": "start=0×3600+1×60+30=90s ⇒ 00:01:30；end=3×60=180s ⇒ 00:03:00；片段时长=180−90=90s ⇒ 00:01:30。"
      + "原 expect「添加一个开始吧」是空列表提示（默认全 0 ⇒ 起止相同、无法成段，回退默认仍命中 ⇒ 逃生项）。"
+},
+{
+  "slug": "video/video-compressor",
+  "clicks": ["document.getElementById('duration').value='0';calc();"],
+  "expect": ["请输入有效的视频时长"],
+  "ref": "943零值守卫：时长显式填 0 须提示并停止，不得静默按 10 分钟计算。默认 duration=10 ⇒ 出压缩参数不含该提示。"
+},
+{
+  "slug": "video/video-compressor",
+  "clicks": ["var d=document.getElementById('duration');d.value='';calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='VCDUR '+(h.indexOf('请输入有效的视频时长')>=0&&h.indexOf('kbps')<0?'OK':'BAD');"],
+  "expect": ["VCDUR OK"],
+  "ref": "943清空守卫：时长清空须同样拦截且不残留旧 kbps 参数；旧版 +''||10 会静默按 10 分钟出结果 ⇒ 哨兵 BAD。"
+},
+{
+  "slug": "video/video-converter",
+  "clicks": ["document.getElementById('duration').value='0';generate();"],
+  "expect": ["请输入有效的视频时长"],
+  "ref": "943零值守卫：转换器时长 0 须提示，不得用 0 估算大小/生成命令。默认 duration=10 不命中。"
 }
 ];
 async function main() {

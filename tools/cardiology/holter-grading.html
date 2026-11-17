@@ -271,8 +271,16 @@ function calc(){
   else if(effHr>0){lown=1;lownColor='#10B981';details.push('偶发室早(<30次/小时) → Lown 1级');}
   else{lown=0;lownColor='#10B981';details.push('无室早 → Lown 0级');}
 
-  // 室早负荷：优先用录入的 24h 总心搏；缺省或非法时按 100000 估算
-  var totalBeatsRaw = parseFloat((document.getElementById('totalBeats')||{}).value);
+  // 室早负荷：空值按 100000 估算；明确录入 0/负值属无效输入，须拦截并停止结论，不能静默回退估算
+  var tbEl=document.getElementById('totalBeats');
+  var totalBeatsStr=tbEl?String(tbEl.value).trim():'';
+  if(totalBeatsStr!==''&&(!isFinite(Number(totalBeatsStr))||Number(totalBeatsStr)<=0)){
+    var msg=(typeof TBKit!=='undefined'&&TBKit.util.isEn())?'24h total beats must be a positive number (> 0)':'24h 总心搏数须为正数（> 0），0 或负值无效，请重新填写';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">'+msg+'</p>';
+    ['holter_gradingTable','holter_gradingDiff','holter_gradingChart'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
+    return;
+  }
+  var totalBeatsRaw = totalBeatsStr===''?NaN:Number(totalBeatsStr);
   var totalBeats = (isFinite(totalBeatsRaw) && totalBeatsRaw > 0) ? totalBeatsRaw : 100000;
   var burden=pvcTotal/totalBeats*100;
   var burdenLevel,burdenColor,burdenAdvice;

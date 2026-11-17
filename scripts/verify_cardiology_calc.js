@@ -519,6 +519,18 @@ const CASES = [
   "inputs": { "peakVO2": "" },
   "expect": ["请填写全部 CPET 参数"],
   "ref": "03-138 核销：五项 CPET 参数任一空值即拦截，不再按 0 落入 Weber D 并「强烈推荐心脏移植/LVAD」。"
+},
+{
+  "slug": "cardiology/holter-grading",
+  "clicks": ["document.getElementById('totalBeats').value='0';calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='HOLTER0 '+(h.indexOf('须为正数')>=0&&h.indexOf('Lown')<0&&h.indexOf('负荷')<0?'OK':'BAD');"],
+  "expect": ["HOLTER0 OK"],
+  "ref": "944零值守卫：24h 总心搏显式填 0 须提示无效并清空 Lown/负荷结论，不得静默回退 100000。默认 100000 出分级结果不含提示 ⇒ 哨兵旧版 BAD。"
+},
+{
+  "slug": "cardiology/holter-grading",
+  "clicks": ["var tb=document.getElementById('totalBeats');tb.value='';calc();var h1=String(document.getElementById('result').innerHTML);tb.value='120000';calc();var h2=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='HOLTERCHAIN '+(h1.indexOf('须为正数')<0&&h1.indexOf('100000')>=0&&h2.indexOf('120000')>=0&&h2.indexOf('须为正数')<0?'OK':'BAD');"],
+  "expect": ["HOLTERCHAIN OK"],
+  "ref": "944状态链：空值仍走 100000 估算（不拦截），随后填合法 120000 重算负荷且无残留提示；验证空值估算与明确无效值区分、切换后结果更新。"
 }
 
 ];
