@@ -60,6 +60,11 @@ const CASES = [
     expect: ["90.0", "22.6"],
     ref: "等效焦距=60×1.5=90.0mm；视角=2·atan(36/(2×90))×180/π=22.6°（默认 35/1.5→52.5/37.8，避开）" },
 
+  { slug: "photo/equivalent-focal",
+    inputs: { focal: "0", crop: "1.5", sensorW: "36" },
+    expect: ["焦距、裁剪系数与传感器宽均须为正数"],
+    ref: "974 零焦距守卫：focal=0 时 36/(2×focal×crop) 无定义，修复前 atan(Infinity) 显示 180°；默认 focal=35 不含该提示。" },
+
   { slug: "photo/ev",
     inputs: { aperture: "11", shutter: "0.008", iso: "400" },
     expect: ["11.88", "13.88"],
@@ -195,8 +200,14 @@ const CASES = [
   {
     slug: "photo/macro-magnification",
     inputs: { focal: "105", s: "200", frame: "36" },
-    expect: ["1.11 ×", "39.8 mm"],
-    ref: "注入非默认(默认 focal=100/s=150/frame=24)：放大率 m = f/(s−f) = 105/(200−105) = 1.11×；像高 = frame×m = 36×1.11 = 39.8 mm。默认态 2.00 ×/48.0 mm 不命中。"
+    expect: ["可拍物高 mm（画幅高÷m）： 32.6 mm"],
+    ref: "974 可拍物高方向修正：m=105/(200−105)=1.11×，画幅高 36mm 对应的可拍物高 = 36÷1.105 = 32.6 mm（修复前误用 m×画幅高 得 39.8 mm）。默认 100/150/24 为 12.0 mm，不命中。"
+  },
+  {
+    slug: "photo/macro-magnification",
+    inputs: { focal: "50", s: "150", frame: "24" },
+    expect: ["可拍物高 mm（画幅高÷m）： 48.0 mm"],
+    ref: "974 低放大率方向：m=50/(150−50)=0.50×，可拍物高 = 24÷0.50 = 48.0 mm（修复前误算 12.0 mm）。默认 m=2.00/12.0 mm 不命中。"
   },
   {
     slug: "photo/exposure-value",
@@ -398,9 +409,9 @@ const CASES = [
       "frame": "42"
     },
     "expect": [
-      "42\n42\n42\n放大率： —"
+      "42\n42\n42\n⚠ 物距必须大于焦距（否则无法成像）。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"focal\":\"42\",\"s\":\"42\",\"frame\":\"42\"}，输出区含「42\n42\n42\n放大率： —」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "974 等距边界修正（原自动补强用例同步）：注入 focal=s=42 时 m=f/(s−f)=Infinity，修复前经全局替换只剩「放大率： —」；默认 s=150>f 不含该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "photo/nd-filter",

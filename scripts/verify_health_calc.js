@@ -246,6 +246,12 @@ const CASES = [
   },
   {
     slug: "health/one-rep-max",
+    inputs: { weight: "60", reps: "6" },
+    expect: ["5RM 61.7 86%"],
+    ref: "974 RM 表不再重复乘输入重量：Epley 1RM=60×(1+6/30)=72.0，5RM 对应负重=72.0÷(1+5/30)=61.7 kg（86%）；修复前再乘 60 得 3702.9 kg。默认 80/5 的 5RM 为 80.0，不含该串。",
+  },
+  {
+    slug: "health/one-rep-max",
     inputs: { weight: "120", reps: "3" },
     expect: ["5×5 力量 5×5 80-85% 105.6-112.2 增力/肌肥大"],
     ref: "新增「训练周期处方表」(programTable)：onerm=Epley 120×(1+3/30)=132.0；5×5@80-85% ⇒ 105.6-112.2 kg（node 复算一致）；默认 80/5 出 74.6-79.3 不命中 ⇒ 强判别、零逃生。",

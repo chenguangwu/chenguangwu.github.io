@@ -136,13 +136,6 @@
 
 ## T 批 农业覆盖（2026-11-04）
 
-### 10-15 收获损失率「减产(kg/百亩)」公式量纲错 50 倍（高，确认缺陷）
-- 问题：结果卡用 `(theory-actual)*100/theory*10` 计算「减产(kg/百亩)」，该式实际等于「损失率×10」，不是每百亩减产量；正确应为 `(theory-actual)*100`（kg/亩 × 100 亩）。
-- 证据：`tools/agriculture/harvest-loss-rate.html:277`（减产卡片表达式）、`:250-253`（totalLoss/lossRate 定义）。
-- 复现：理论 500 kg/亩、实际 465 kg/亩 → 总损失 35 kg/亩；页面「减产(kg/百亩)」= 70，正确值 3500，差 50 倍。
-- 影响：同页；减产强度被低估 50 倍，直接误导损失评估与减损决策。
-- 方案：改为 `(theory-actual)*100`，或删除该卡、只保留总损失量与损失率。
-
 ### 10-16 收获损失率未校验 actual≤theory，复制路径无任何校验（中，确认缺陷）
 - 问题：calc 只校验 `theory<=0`，未校验实际产量不得高于理论产量；actual>theory 时 lossRate 为负，落入「≤3%」分支被判「损失极低」。copyResult 自行重算 lossRate 且无校验，theory=0 时会复制出 Infinity/NaN。
 - 证据：`tools/agriculture/harvest-loss-rate.html:248`（仅 theory 校验）、`:262-263`（负值分级）、`:300-304`（copy 无校验）。
@@ -207,7 +200,7 @@
 - 方案：copy 复用结果对象，至少输出 OCI、等级与各因子分值。
 
 ### T 批覆盖清单（8 页）
-- `harvest-loss-rate.html`：发现 2 条（10-15 高、10-16 中）；减产卡片量纲错 50 倍为核心缺陷。
+- `harvest-loss-rate.html`：发现 1 条（10-16 中）；减产卡片量纲错 50 倍已修复销账。
 - `irrigation-calculator.html`：发现 2 条（10-17、10-18，均中）；Kc/需水量未参与、历史不恢复。
 - `dli-calculator.html`：发现 1 条（10-19 中）；DLI 主公式正确，仅补光建议「至」少算本底。
 - `greenhouse-ventilation.html`：发现 1 条（10-20 高）；风口面积与 15% 地面积口径混用，所有预设恒判不足。
