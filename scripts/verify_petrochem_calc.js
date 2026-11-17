@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
 const { runCase } = require("./verify_it_calc.js");
+globalThis.__tbFs = fs;
 const CASES = [
 {
   "slug": "petrochem/api-gravity",
@@ -103,6 +105,18 @@ const CASES = [
     "CATSW=Y"
   ],
   "ref": "修复前切到停留时间模式只切面板、未改输入前 resultTime 为空；现 switchMode 立即调用 calcTime()，默认 5000 kg/h、30 s、850 kg/m³、700 kg/m³ ⇒ 体积流量 5.88 m³/h、装量 0.049 m³ / 34.31 kg。默认态无该探针串。"
+},
+{
+  "slug": "petrochem/tank-capacity",
+  "clicks": ["document.getElementById('safety').value='0';calc();var h=String(document.getElementById('result').innerHTML);var ok=h.indexOf('请检查输入')>=0&&h.indexOf('安全装料系数')>=0&&h.indexOf('安全容量')<0;document.getElementById('__tbProbe').textContent='TANKSAFE '+(ok?'OK':'BAD '+h);"],
+  "expect": ["TANKSAFE OK"],
+  "ref": "第1094批 I8：safety=0 旧版 parseFloat||0 得 safeVol=0、装料率>0 即报「超出安全液位」并显示安全容量 0；修复后 1–100 范围校验拦截，字段级提示且不出容量结论。哨兵锚错误与「安全容量」消失，旧版必红。"
+},
+{
+  "slug": "petrochem/tank-capacity",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/petrochem/tank-capacity.html','utf8');var ok=h.indexOf('safety<1||safety>100')>=0&&h.indexOf('density<=0')>=0&&h.indexOf('level>maxLevel')>=0&&h.indexOf('var maxLevel=')>=0;document.getElementById('__tbProbe').textContent='TANKFIX '+(ok?'OK':'BAD');"],
+  "expect": ["TANKFIX OK"],
+  "ref": "第1094批 I8 源码形态：安全系数 1–100、密度>0、液位 0..D（立式 0..L）三项前置守卫必须存在；旧版仅 Math.max/min 截断且结果文本打印原始越界液位。"
 }
 ];
 async function main() {
