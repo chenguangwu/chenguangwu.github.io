@@ -200,15 +200,20 @@ function fmt(n,d){d=d==null?2:d;return Number(n).toLocaleString('zh-CN',{minimum
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function calc(){
   const lines=document.getElementById("codes").value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
-  const rows=[];let bad=0,warn=[];
+  const rows=[];let bad=0,warn=[],missing=0;
   lines.forEach(function(ln){
     const p=ln.split(/[,，、;；\t]+|\s+/).filter(Boolean);
     if(p.length<2){bad++;return;}
     const cnt=parseFloat(p[1]);
     if(!isFinite(cnt)||cnt<0){bad++;return;}
-    let sc=null;
-    if(p.length>2){const v=parseFloat(p[2]);if(isFinite(v)){sc=v;if(v<1||v>5)warn.push(p[0]);}}
-    rows.push({name:p[0],c:cnt,s:sc});
+    let sc=null,invalid=null;
+    if(p.length>2){
+      const v=parseFloat(p[2]);
+      if(isFinite(v)){
+        if(v>=1&&v<=5){sc=v;}else{invalid=v;warn.push(p[0]);}
+      }else{missing++;}
+    }else{missing++;}
+    rows.push({name:p[0],c:cnt,s:sc,invalid:invalid});
   });
   const box=document.getElementById("res");
   if(!rows.length){box.innerHTML='<p>请至少录入一行「编码名,提及次数」。</p>';return;}
@@ -218,7 +223,7 @@ function calc(){
   let cum=0;
   const list=rows.map((r,i)=>{
     const p=r.c/F*100;cum+=p;
-    return '<p>'+(i+1)+'. <strong>'+esc(r.name)+'</strong> — '+fmt(r.c,0)+' 次，占 <strong>'+fmt(p,1)+'%</strong>，累计 '+fmt(cum,1)+'%'+(r.s==null?'，未评分':'，评分 '+fmt(r.s,1))+'</p>';
+    return '<p>'+(i+1)+'. <strong>'+esc(r.name)+'</strong> — '+fmt(r.c,0)+' 次，占 <strong>'+fmt(p,1)+'%</strong>，累计 '+fmt(cum,1)+'%'+(r.s!=null?'，评分 '+fmt(r.s,1):(r.invalid!=null?'，评分 '+fmt(r.invalid,1)+'（越界，未计入）':'，未评分'))+'</p>';
   }).join('');
   const scored=rows.filter(r=>r.s!=null);
   const simple=scored.length?scored.reduce((a,b)=>a+b.s,0)/scored.length:null;
@@ -228,8 +233,8 @@ function calc(){
   const top=rows[0];
   let extra='';
   if(bad)extra+='<p class="muted">'+bad+' 行无法识别已跳过，请检查是否缺少提及次数。</p>';
-  if(warn.length)extra+='<p class="muted">评分超出 1~5 的编码：'+esc(warn.join('、'))+'，已按原值计入。</p>';
-  if(scored.length<rows.length)extra+='<p class="muted">'+(rows.length-scored.length)+' 个编码未填评分，只参与频次统计。</p>';
+  if(warn.length)extra+='<p class="muted">评分超出 1~5 的编码：'+esc(warn.join('、'))+'，未计入评分均值与加权均值。</p>';
+  if(missing)extra+='<p class="muted">'+missing+' 个编码未填评分，只参与频次统计。</p>';
   const __g3='<p>编码数：<strong>'+rows.length+'</strong> 个　提及总次数：<strong>'+fmt(F,0)+'</strong></p>'
    +list
    +'<p>主导编码：<strong style="color:var(--primary);">'+esc(top.name)+'</strong>（'+fmt(top.c,0)+' 次，'+fmt(top.c/F*100,1)+'%）</p>'

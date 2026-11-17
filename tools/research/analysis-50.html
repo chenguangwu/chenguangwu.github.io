@@ -192,18 +192,20 @@
 <script>
 function calc(){
 var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
-var rows=[];
+var rows=[],badLines=[];
 for(var i=0;i<lines.length;i++){
-  var p=lines[i].split(/[,，\t ]+/);
-  if(p.length<2) continue;
-  var nm=p[0],v=parseFloat(p[1]);
-  if(isNaN(v)) continue;
+  // 只按逗号/制表符分列，空格留给企业名（英文名/带空格品牌名）
+  var p=lines[i].split(/[,，\t]+/);
+  if(p.length<2){badLines.push((i+1)+':'+lines[i]);continue;}
+  var nm=p[0].trim(),v=parseFloat(p[p.length-1]);
+  if(!(v>0)){badLines.push((i+1)+':'+lines[i]);continue;}
   rows.push({n:nm,v:v});
 }
-if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「企业,营收」数据</p>";return;}
+if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「企业,营收」数据（营收须为正数）</p>";return;}
 rows.sort(function(a,b){return b.v-a.v;});
 var T=0;
 rows.forEach(function(r){T+=r.v;});
+if(!(T>0)){document.getElementById("res").innerHTML="<p>营收合计须大于 0，无法计算集中度</p>";return;}
 var tb=rows.map(function(r){
   return "<tr><td>"+r.n+"</td><td>"+r.v.toFixed(2)+"</td><td>"+(T>0?(r.v/T*100).toFixed(2):"0.00")+"%</td></tr>";
 }).join("");
@@ -221,6 +223,7 @@ h+="<p>HHI 指数：<strong>"+hhi.toFixed(2)+"</strong></p>";
 h+="<p>格局判定：<strong>"+judge+"</strong></p>";
 h+="<table><thead><tr><th>企业</th><th>营收</th><th>市场份额</th></tr></thead><tbody>"+tb+"</tbody></table>";
 h+="<p style='font-size:12px;color:var(--text-muted);margin-top:8px;'>份额 = 该企业营收 ÷ 市场总规模 × 100%；CRn = 前 n 家企业份额之和；HHI = Σ(各企业份额百分数的平方)，&gt;2500 为高度集中。</p>";
+if(badLines.length){h+="<p style='color:var(--danger);'>已跳过 "+badLines.length+" 行无效数据（营收非正或列数不足）："+badLines.slice(0,5).join('；')+(badLines.length>5?' 等':'')+"</p>";}
 const __g2=h;document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
