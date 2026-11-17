@@ -110,7 +110,11 @@
   
 </div>
 
-<div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
+<div class="input-row">
+  <div><label>房间数 R</label><input type="number" id="roomCount" value="3" min="1" max="10" step="1" oninput="gen()" placeholder="如 3（1–10）"></div>
+  <div><label>每房间家具数 F</label><input type="number" id="furnitureCount" value="3" min="1" max="9" step="1" oninput="gen()" placeholder="如 3（1–9）"></div>
+  <div><label>每家具序号数 N</label><input type="number" id="seqCount" value="2" min="1" max="9" step="1" oninput="gen()" placeholder="如 2（1–9）"></div>
+</div>
 <div class="toolbar"><div id="generator_26Presets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_26Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="generator_26Table"></div> <div id="generator_26Diff"></div> <div id="generator_26Chart"></div> <div id="generator_26Hist"></div>
   </div>
@@ -141,7 +145,7 @@
 <li>规则确定：同输入同输出。</li>
 <li>复制使用：结果可复制。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：生成 00-09 十个位置桩，对应房间十处。</div></div>
+<div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：3 房间 × 3 家具 × 2 序号 = 18 个挂钩点，首码 A1-01（111），末码 C3-02（332）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>记忆宫殿？</dt><dd>将待记信息与熟悉位置绑定的记忆术。</dd>
@@ -191,28 +195,70 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function randInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+function readInt(id, min, max) {
+  var el = document.getElementById(id);
+  var raw = String(el && el.value != null ? el.value : '').trim();
+  if (raw === '') return { bad: true };
+  var v = Number(raw);
+  if (!Number.isInteger(v) || v < min || v > max) return { bad: true };
+  return { v: v };
 }
 function gen() {
-  const n = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
-  const rooms = ['客厅','卧室','厨房','书房','阳台','玄关','餐厅','卫生间','走廊','储物间'];
-  const objects = ['沙发','电视','冰箱','书架','花盆','鞋柜','餐桌','镜子','吊灯','窗帘','地毯','时钟','台灯','衣柜','马桶','灶台','洗衣机','窗台'];
-  const actions = ['上面放着','旁边靠着','下面压着','里面藏着','前面摆着'];
-  let html = '<p style="margin-bottom:8px;">生成结果：</p>';
-  for (let i = 0; i < n; i++) {
-    const room = rooms[i % rooms.length];
-    const gridX = String.fromCharCode(65 + (i % 4));
-    const gridY = Math.floor(i / 4) + 1;
-    const object = objects[i % objects.length];
-    const action = actions[i % actions.length];
-    const target = String(i + 1).padStart(2, '0');
-    const code = `${room}-${gridX}${gridY}-${object}`;
-    html += `<div style="margin:8px 0;padding:10px;background:var(--bg-hover);border-radius:8px;">
-      <strong>${i+1}. 位置编码：${code}</strong>
-      <p style="margin:6px 0;font-size:13px;">虚拟格子：${room} · 坐标 ${gridX}${gridY} · 锚点：${object}</p>
-      <p style="font-size:12px;color:var(--text-muted);">联想口诀：「${object}在${room}${gridX}${gridY}，${action}${target}号信息」</p>
-    </div>`;
+  var isEn = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  var msg = isEn
+    ? { r: 'Rooms must be an integer from 1 to 10', f: 'Furniture slots must be an integer from 1 to 9', n: 'Sequence numbers must be an integer from 1 to 9', cap: 'Total hooks exceed 200; reduce rooms, furniture slots or sequence numbers.' }
+    : { r: '房间数须为 1–10 的整数', f: '家具数须为 1–9 的整数', n: '序号数须为 1–9 的整数', cap: '总挂钩点超过 200，请缩小房间数/家具数/序号数。' };
+  function fail(text) { document.getElementById('res').innerHTML = '<p style="color:var(--danger);">' + text + '</p>'; }
+  var r = readInt('roomCount', 1, 10);
+  if (r.bad) { fail(msg.r); return; }
+  var f = readInt('furnitureCount', 1, 9);
+  if (f.bad) { fail(msg.f); return; }
+  var n = readInt('seqCount', 1, 9);
+  if (n.bad) { fail(msg.n); return; }
+  var total = r.v * f.v * n.v;
+  if (total > 200) { fail(msg.cap + ' (' + total + ')'); return; }
+  const rooms = isEn
+    ? ['Living room','Bedroom','Kitchen','Study','Balcony','Entryway','Dining room','Bathroom','Corridor','Storage']
+    : ['客厅','卧室','厨房','书房','阳台','玄关','餐厅','卫生间','走廊','储物间'];
+  const objects = isEn
+    ? ['sofa','TV','fridge','bookshelf','plant','shoe cabinet','dining table','mirror','chandelier','curtain','carpet','clock','desk lamp','wardrobe','toilet','stove','washing machine','windowsill']
+    : ['沙发','电视','冰箱','书架','花盆','鞋柜','餐桌','镜子','吊灯','窗帘','地毯','时钟','台灯','衣柜','马桶','灶台','洗衣机','窗台'];
+  const actions = isEn
+    ? ['on top of','beside','under','inside','in front of']
+    : ['上面放着','旁边靠着','下面压着','里面藏着','前面摆着'];
+  let html = '<p style="margin-bottom:8px;">' + (isEn
+    ? 'Total hooks: ' + total + ' (' + r.v + ' x ' + f.v + ' x ' + n.v + ')'
+    : '总挂钩点：' + total + '（' + r.v + ' × ' + f.v + ' × ' + n.v + '）') + '</p>';
+  let idx = 0;
+  for (let ri = 0; ri < r.v; ri++) {
+    for (let fi = 0; fi < f.v; fi++) {
+      for (let si = 0; si < n.v; si++) {
+        idx++;
+        var room = rooms[ri];
+        var furnitureNo = fi + 1;
+        var seqNo = si + 1;
+        var object = objects[(ri * f.v + fi) % objects.length];
+        var action = actions[idx % actions.length];
+        var letter = String.fromCharCode(65 + ri);
+        var charCode = letter + furnitureNo + '-' + String(seqNo).padStart(2, '0');
+        var numericCode = (ri + 1) * 100 + furnitureNo * 10 + seqNo;
+        var target = String(idx).padStart(2, '0');
+        var codeLine = isEn
+          ? idx + '. Position code: ' + charCode + ' (' + numericCode + ')'
+          : idx + '. 位置编码：' + charCode + '（' + numericCode + '）';
+        var gridLine = isEn
+          ? 'Grid: ' + room + ' · furniture ' + furnitureNo + ': ' + object + ' · sequence ' + String(seqNo).padStart(2, '0')
+          : '虚拟格子：' + room + ' · 家具位 ' + furnitureNo + '：' + object + ' · 序号 ' + String(seqNo).padStart(2, '0');
+        var mnemonicLine = isEn
+          ? 'Mnemonic: "' + object + ' at ' + room + letter + furnitureNo + ', ' + action + ' item ' + target + '"'
+          : '联想口诀：「' + object + '在' + room + letter + furnitureNo + '，' + action + target + '号信息」';
+        html += '<div style="margin:8px 0;padding:10px;background:var(--bg-hover);border-radius:8px;">' +
+          '<strong>' + codeLine + '</strong>' +
+          '<p style="margin:6px 0;font-size:13px;">' + gridLine + '</p>' +
+          '<p style="font-size:12px;color:var(--text-muted);">' + mnemonicLine + '</p>' +
+          '</div>';
+      }
+    }
   }
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;
 }
@@ -396,10 +442,10 @@ function __generator_26Export(){
 }
 function __generator_26Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#generator_26Presets',[{label:'默认参数',labelEn:'Default',values:{'cnt':'5'}},
-  {"label":"生成 8 条","labelEn":"Generate 8 items","values":{"cnt":8}},
-  {"label":"生成 15 条","labelEn":"Generate 15 items","values":{"cnt":15}},
-  {"label":"生成 30 条","labelEn":"Generate 30 items","values":{"cnt":30}}],function(){ gen(); });
+    TBKit.preset.bar('#generator_26Presets',[{label:'默认 3×3×2',labelEn:'Default 3×3×2',values:{'roomCount':'3','furnitureCount':'3','seqCount':'2'}},
+  {"label":"小宫殿 2×2×2","labelEn":"Small 2×2×2","values":{"roomCount":2,"furnitureCount":2,"seqCount":2}},
+  {"label":"大宫殿 4×3×3","labelEn":"Large 4×3×3","values":{"roomCount":4,"furnitureCount":3,"seqCount":3}},
+  {"label":"长序列 2×2×9","labelEn":"Long 2×2×9","values":{"roomCount":2,"furnitureCount":2,"seqCount":9}}],function(){ gen(); });
 }
 var __generator_26_f0=(typeof gen==='function')?gen:null;
 if(__generator_26_f0){

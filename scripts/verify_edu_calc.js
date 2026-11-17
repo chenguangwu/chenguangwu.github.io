@@ -856,16 +856,15 @@ const CASES = [
   },
   {
     slug: "edu/generator-26",
-    inputs: { "cnt": "6" },
-    expect: ["6. 位置编码：玄关-B2-鞋柜"],
-    ref: "记忆编码生成器（位置编码 / 虚拟格子 / 联想口诀）。本例锚第 6 条的「序号 + 房间+坐标+锚点」连排；"
-       + "默认 cnt=5 ⇒ 第 6 条本就不存在 ⇒ 默认态必 FAIL。口诀尾部的序号句是确定性的，不写进 expect 以规避随机措辞。",
+    inputs: { roomCount: "2", furnitureCount: "2", seqCount: "2" },
+    expect: ["总挂钩点：8（2 × 2 × 2）", "8. 位置编码：B2-02（222）"],
+    ref: "记忆编码生成器（房间×家具×序号三层编码）。注入 2×2×2 得 8 个唯一挂钩点，末码 B2-02（222），同时验证字符码与数值码都按房间/家具/序号展开；默认 3×3×2 无末码 ⇒ 零逃生。",
   },
   {
     slug: "edu/generator-26",
-    inputs: { "cnt": "8" },
-    expect: ["8. 位置编码"],
-    ref: "与上一条同页扩到 8 条：锚第 8 条序号前缀，验证 cnt 真的驱动循环次数（而非加一条后截断）。默认态 5 条不命中。",
+    inputs: { roomCount: "1", furnitureCount: "1", seqCount: "8" },
+    expect: ["8. 位置编码：A1-08（118）"],
+    ref: "序号数驱动同一房间同一家具下 01–08 八个唯一序号，末码 A1-08（118）；默认 N=2 不命中。",
   },
   {
     slug: "edu/exam-gpa-calculator",
@@ -1202,12 +1201,15 @@ const CASES = [
   {
     "slug": "edu/generator-26",
     "inputs": {
-      "cnt": "42"
+      "roomCount": "2",
+      "furnitureCount": "3",
+      "seqCount": "7"
     },
     "expect": [
-      "阳台 · 坐标 A7 · 锚点：餐桌 联想口诀：「餐桌在阳台A7，前面摆着25号信息」 26. 位置编码：玄关-B7-镜子 虚拟格子：玄关 · 坐标 B7 · 锚点：镜子 联想口诀：「镜子在玄关B7，上面放着26号信息」 27. 位置编码："
+      "总挂钩点：42（2 × 3 × 7）",
+      "42. 位置编码：B3-07（237）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「阳台 · 坐标 A7 · 锚点：餐桌 联想口诀：「餐桌在阳台A7，前面摆着25号…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入 2×3×7=42 个唯一挂钩点，末码 B3-07（237）按房间×100+家具×10+序号生成；默认 3×3×2=18 不命中。"
   },
   {
     "slug": "edu/grade-weight-calculator",
@@ -1711,6 +1713,29 @@ const CASES = [
     clicks: ["var r=document.getElementById('res').innerHTML;document.getElementById('__tbProbe').textContent='J147 '+(r.indexOf('请输入有效的成绩')>=0&&r.indexOf('-162.50')<0?'OK':'BAD');"],
     expect: ["J147 OK"],
     ref: "EL-J147：旧版漏校 currentScore 上界，150 分算出 -162.50% 仍显示可行。现 0–100 校验命中即提示有效成绩并中止；neededAvg<=0 已明确「目标已达成」。默认态成绩合法不命中提示 ⇒ 零逃生。",
+  },
+
+  // ── 第1186批：记忆宫殿三层编码、规模参数与零值边界收口 ──
+  {
+    slug: "edu/generator-26",
+    inputs: { roomCount: "3", furnitureCount: "2", seqCount: "1" },
+    clicks: ["var r=document.getElementById('res').innerHTML;document.getElementById('__tbProbe').textContent='J148 '+(r.indexOf('6. 位置编码：C2-01（321）')>=0?'OK':'BAD');"],
+    expect: ["J148 OK"],
+    ref: "EL-J148：旧版只输出「房间-A1-锚点」无家具位编号与序号，也无数值编码。现字符码 A1-01 + 数值码房间×100+家具×10+序号同屏输出；3×2×1 末码 C2-01（321）唯一，默认 3×3×2 不命中。",
+  },
+  {
+    slug: "edu/generator-26",
+    inputs: { roomCount: "4", furnitureCount: "1", seqCount: "1" },
+    clicks: ["var r=document.getElementById('res').innerHTML;document.getElementById('__tbProbe').textContent='J149 '+(r.indexOf('总挂钩点：4（4 × 1 × 1）')>=0&&r.indexOf('4. 位置编码：D1-01（411）')>=0?'OK':'BAD');"],
+    expect: ["J149 OK"],
+    ref: "EL-J149：旧版唯一 cnt 输入，R/F/N 硬编码无法定制宫殿规模。现三输入决定 R×F×N 总数与唯一编码；注入 4×1×1 得 4 个挂钩点、末码 D1-01（411），默认 3×3×2 不命中。",
+  },
+  {
+    slug: "edu/generator-26",
+    inputs: { roomCount: "0", furnitureCount: "3", seqCount: "2" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/generator-26.html','utf8');var r=document.getElementById('res').innerHTML;var ok=r.indexOf('房间数须为 1–10 的整数')>=0&&r.indexOf('位置编码')<0&&h.indexOf('function randInt')<0;document.getElementById('__tbProbe').textContent='J150 '+(ok?'OK':'BAD');"],
+    expect: ["J150 OK"],
+    ref: "EL-J150：旧版 parseInt('0')||5 把 0 静默改成 5 条，且 randInt 定义后从未调用。现 0 触发明确范围提示、不生成任何编码，死函数已删；默认 R=3 合法不命中提示。",
   },
 ];
 
