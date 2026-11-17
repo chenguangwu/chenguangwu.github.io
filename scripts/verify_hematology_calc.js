@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -529,6 +531,12 @@ const CASES = [
     clicks: ["__markScaleDirty();resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/总分 \\(满分8\\)/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__ITP_RST_OK__':'__ITP_RST_FAIL__ '+__b;"],
     expect: ["__ITP_RST_OK__"],
     ref: "批 3 重置态：先置 dirty 制造决策，再 resetAll() 复位后决策文案消失。"
+  },
+  {
+    slug: "hematology/dic-scoring",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/hematology/dic-scoring.html','utf8');var q=String.fromCharCode(34);var a=h.indexOf('ddimer'+q+':6')>=0&&h.indexOf('ddimer'+q+':3,'+q+'pt'+q+':2')<0&&h.indexOf('else if(rb')>=0&&h.indexOf('rb.innerHTML=')>=0&&h.indexOf('无升高0/中度1/显著2')>=0&&h.indexOf('早期 DIC 可疑')>=0;document.getElementById('__tbProbe').textContent='DICFIX '+(a?'OK':'BAD');"],
+    expect: ["DICFIX OK"],
+    ref: "12-N51/N52/N53：早期DIC可疑预设原 plt85+ddimer3+pt2+fib2.5=2分判不支持DIC（名实相反），改 ddimer6+pt4+fib1.0=3分落非显性DIC；hasDisease 取消时 refBar 加 else 清空避免旧红色标尺残留；D-二聚体简化档补与 ISTH 原文 0/2/3 分值不同的声明。源码形态哨兵旧版必红。"
   }
 ];
 async function main() {
