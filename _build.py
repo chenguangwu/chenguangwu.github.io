@@ -4134,6 +4134,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             'validator': 'UtilitiesApplication', 'reference': 'UtilitiesApplication',
             'calculator': 'UtilitiesApplication', 'math': 'UtilitiesApplication',
             'finance': 'FinanceApplication', 'game': 'GamesApplication',
+            'health': 'MedicalApplication',
             'image': 'MultimediaApplication', 'design': 'MultimediaApplication',
         }
         app_cat = app_cat_map.get(t['cat'], 'UtilitiesApplication')
