@@ -205,7 +205,7 @@
 - `tools/science/gcd-calculator.html`：SMS-94/95 已于第 1006 批改严格整数解析（Number + isInteger + 拒绝超 2^53），factorize 卡死路径随之被堵；默认 48,36,24 → GCD 12 不变。仍共用 SMS-106 附加历史模板问题（未修）。
 - `tools/science/lcm-calculator.html`：SMS-94 同族严格解析已修；SMS-96 改为先除后乘 `a/g*b` 缓解 gcd>1 时的中间积溢出，但互质大数（如 1000000007×1000000009）结果超 2^53 仍需 BigInt 重构，保留待专业裁断。
 - `tools/science/geo-distance-calculator.html`：SMS-97 已修——Haversine、初始方位角与英里/海里换算正确（北京 39.9042,116.4074 → 上海 31.2304,121.4737 = 1067.310 km）；同组错误按字段保存后聚合渲染，lat1 越界不会被随后合法的 lon1 抹掉。仍共用 SMS-106。
-- `tools/science/heat-transfer-calculator.html`：3 条（SMS-98、SMS-99 中，SMS-100 承诺未实现）。默认铜 401 W/m·K / 10 cm² / 10 mm / ΔT 75 → 3007.50 W、热流密度 3,007,500.00 W/m² 正确；问题为守卫早退且负面积放行、历史点击不回填、热辐射只有公式没有计算。
+- `tools/science/heat-transfer-calculator.html`：1 条（SMS-100 承诺未实现）。默认铜 401 W/m·K / 10 cm² / 10 mm / ΔT 75 → 3007.50 W、热流密度 3,007,500.00 W/m² 正确；SMS-98/99 已修——非正/非有限参数清结果并拒绝，历史记录回填 17 个输入字段；比热容 Q=mcΔT 的主结果、卡、历史与导出按热量 J/kJ/kWh/kcal 显示。热辐射仍只有公式没有计算。
 - `tools/science/latlon-utm-converter.html`：1 条（SMS-101 中）。北京 39.9042,116.4074 → 50N 449345.061E 4417292.495N（收敛角 −0.2916°、比例因子 0.999632），正反算往返准确；问题为 lon=180 得 61 带以及反算无 E/N 范围校验。
 - `tools/science/led-resistor-calculator.html`：3 条（SMS-102、SMS-103 高，SMS-104 中）。串联 5 V/20 mA/2.2 V → R 140 Ω、P 56.0 mW 正确，标准电阻与实际电流亦正确；问题为并联功率少乘 n、精度下拉死输入、取最近值导致实际电流超额定。
 - `tools/science/log-calculator.html`：SMS-105 已修——极小值示例与 `fmt()` 普通分支均使用科学计数（阈值 ≤1e-3），`1e-5` 不再被 `toLocaleString()` 默认 3 位小数显示为 0。
@@ -213,8 +213,6 @@
 | 页面 | 问题（含 tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
 | tools/science/lcm-calculator.html | 第 1006 批已把 `lcm2` 改为先除后乘 `abs(a/gcd*b)` 并同步步骤行，缓解 gcd>1 时中间积溢出；但互质大数 lcm(1000000007,1000000009) 真值 1,000,000,016,000,000,063 超 2^53，Number 无法精确表示，仍需 BigInt 重构（未自判）。:234 | SMS-96 |
-| tools/science/heat-transfer-calculator.html | 三处守卫 `if(!k||!A||!L)return` / `if(!m||!c)return` / `if(!h||!A)return` 早退时不清空结果卡，清空 A 或 L 会保留上一次 Q；且不做正数校验，A=-10 放行得 Q=-3007.5，经 fmtPower 负值落末档显示「-3007500000.00 μW」。:626、:644、:669、:600-606 | SMS-98 |
-| tools/science/heat-transfer-calculator.html | `loadHistory` 只设 `mode`、切三个 mode 区块显隐、再 `calc()`（用当前输入），从不回填任何输入值；历史条目只存 mode/modeName/Q/dT/detail，点击后重算结果与条目 Q 不一致，历史「加载」是假恢复。:730-743、:706-708 | SMS-99 |
 | tools/science/heat-transfer-calculator.html | 承诺未实现：英文 intro「conductive, convective and radiative … Stefan-Boltzmann」、公式列表、公式框「☀️ 热辐射公式」、FAQ「传导、对流与辐射的热量传递」均承诺辐射计算，但页面仅 conduction/specific/convection 三模式，无 ε、辐射面积、T₁⁴/T₂⁴ 输入，Q=εσA(T₁⁴−T₂⁴) 无法计算。:179、:362、:395、:904 对 :198-201、:620-683 | SMS-100 |
 | tools/science/latlon-utm-converter.html | `zone=Math.floor((lon+180)/6)+1` 在 lon=180 得 61 带（无此带、中央经线 183°、E 166021.443），反向却只收 1–60 无法回转；反向亦不校验 easting/northing，0/0 → 0.000000°,112.511256°，1e6/2e7 → 纬度 180.036710°（node 复刻）。:337-338、:420-427 | SMS-101 |
 | tools/science/led-resistor-calculator.html | 并联功率少乘 n：R=(Vs−Vf)/(If·n) 正确，但 `P=If²·R·n` 应为 `(n·If)²·R`，`:578` 的 actualP 同错。12 V/20 mA/2.2 V/2 只显示 196.0 mW（真值 400.2 mW）、建议 1/2W（应 1W）；n=4 仍显示 196.0 mW（真值 800.3 mW）。:546-547、:578、:566-575 | SMS-102 |
@@ -247,7 +245,6 @@
 ## 2026-11-06 科学工具静态续审（清单 598–605）
 
 - 以下历史结论对应旧源码，当前不应继续计为已确认：SMS-9/10 摩尔质量解析已支持括号、水合物并扩充至 118 元素（`molar-mass-calculator.html:233-273`）；SMS-21/22 配平已剥离前导系数并明确提示欠定非唯一（`equation-balancer.html:389-407`、`:547-570`、`:718-719`）；SMS-34/35 分数输入已有整数检查与除零提示（`fraction-calculator.html:357-393`）；SMS-40 PCB 输入无效时清结果、图表和缓存（`pcb-trace-width.html:406-422`）。上述为代码状态变化，不代表实际回归通过。
-- 热传递 SMS-98/99 关键路径仍在：非正参数未全面校验且清空时早退保留结果，历史恢复只切模式后按当前值重新算（`heat-transfer-calculator.html:616-669`、`:732-745`）。比热容分支计算 `Q` 为焦耳，但公共结果仍按 `fmtPower(Q)` 输出瓦特、复制及历史也使用该值（`:639-646`、`:685-706`）。
 - LED SMS-102/103/104 对应公式与 E24 最近值路径仍在（`led-resistor-calculator.html:478-493`、`:529-547`、`:565-590`）；原 SMS-104 举例中的 150 Ω 电流应为 18.67 mA（2.8 V/150 Ω），不是 20.53 mA。并联功率和标准电阻选择需工程复核。
 - PCB 的参考表 SMS-39 仍需按当前资料复核，导出路径另仅用真值校验，负输入可能输出 NaN（`pcb-trace-width.html:473-485`）。
 - 本批仅静态读代码及算式复核，未运行浏览器，不能计双跑。

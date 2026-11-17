@@ -559,6 +559,27 @@ const CASES = [
     ref: "傅里叶热传导（页内材质表把 condK 回写为铜 401 W/m·K；A=3.00 cm²=3.0000e-4 m²、L=2.00 mm=2.0000e-3 m、ΔT=100−20=80.0 K）：Q = k·A·ΔT/L = 401×3e-4×80/2e-3 = **4812 W = 4.81 kW**；热流密度 = Q/A = 4812/3e-4 = **1.604e7 W/m²**（显示 16040000.00）。两行同源不同式，手算可复算。默认参数不同 ⇒ 不命中。",
   },
   {
+    slug: "science/heat-transfer-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('condA').value='3';calc();var before=String(document.getElementById('resQ').textContent);document.getElementById('condA').value='-10';calc();var after=String(document.getElementById('resQ').textContent);var d=String(document.getElementById('resultDetail').innerHTML);document.getElementById('condA').value='HTCLR_'+(before.indexOf('902.25 W')>=0&&after==='--'&&d.indexOf('请输入有效')>=0?'OK':'BAD');"],
+    expect: ["HTCLR_OK"],
+    ref: "SMS-98 清账：先合法面积 3 cm²、默认 L=10 mm/ΔT=75 K 算出 902.25 W，再把 A=-10 交给旧守卫 `if(!A)`（负数 truthy）算出负热流并保留旧结果；现统一正数/有限性校验并 clearHeatResult 清结果卡与明细。探针断言旧结果存在过、非法后结果回 -- 且出现错误提示；旧版 ⇒ HTCLR_BAD，零逃生。",
+  },
+  {
+    slug: "science/heat-transfer-calculator",
+    inputs: {},
+    clicks: ["localStorage.removeItem(HISTORY_KEY);document.getElementById('condA').value='77.7';calc();saveHistory();document.getElementById('condA').value='11.1';loadHistory(0);var v=String(document.getElementById('condA').value);document.getElementById('condA').value='HTHIST_'+(v==='77.7'?'OK':'BAD');"],
+    expect: ["HTHIST_OK"],
+    ref: "SMS-99 清账：历史条目现写入 17 个输入字段，loadHistory 先回填输入再 calc；旧版只切模式后用当前输入重算，condA=77.7 的记录点击后仍显示 11.1。探针断言加载历史后 condA 回到 77.7，旧版 ⇒ HTHIST_BAD，零逃生。",
+  },
+  {
+    slug: "science/heat-transfer-calculator",
+    inputs: {},
+    clicks: ["mode='specific';document.getElementById('specM').value='1';document.getElementById('specMUnit').value='1';document.getElementById('specT1').value='20';document.getElementById('specT2').value='120';calc();var q=String(document.getElementById('resQ').textContent);var kwh=String(document.getElementById('resQKwh').textContent);var lab=String(document.getElementById('resQLabel').textContent);document.getElementById('specM').value='HTUNIT_'+(q.indexOf('kJ')>=0&&kwh.indexOf('kWh')>=0&&lab.indexOf('总热量')>=0?'OK':'BAD');"],
+    expect: ["HTUNIT_OK"],
+    ref: "比热容单位清账：m=1 kg、c=4186 J/kg·°C、ΔT=100 °C → Q=418600 J=418.60 kJ=0.116278 kWh。旧版主结果 fmtPower(Q) 显示 418.60 kW、第二卡也写 kW，标签「热流量」；现按模式显示总热量 kJ/kWh/kcal，复制与导出同源。旧版 ⇒ HTUNIT_BAD，零逃生。",
+  },
+  {
     slug: "science/wavelength-to-rgb",
     inputs: { wl: "520" },
     expect: ["#36FF00", "2.38"],
@@ -1580,9 +1601,9 @@ const CASES = [
       "convType": "25"
     },
     "expect": [
-      "K 热流量 Q： 0.00 μW 热流密度： 0.00 W/m²\n42\n42\n42\n42\n42\n42\n42\n42\n42\n0.001"
+      "功率 (kW)\n千卡/秒\n0.00 μW\n0.00 W\n0.0°C\n0.0000 kcal/s"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"condK\":\"42\",\"condA\":\"42\",\"condL\":\"42\",\"condT1\":\"42\",\"condT2\":\"42\",\"specM\":\"42\",\"specC\":\"42\",\"specT1\":\"42\",\"specT2\":\"42\",\"convH\":\"42\",\"convA\":\"42\",\"convTw\":\"42\",\"convTf\":\"42\",\"condMat\":\"237\",\"specMUnit\":\"0.001\",\"specMat\":\"450\",\"convType\":\"25\"}，输出区含「K 热流量 Q： 0.00 μW 热流密度： 0.00 W/m²\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）·第1013批同步：注入非默认输入使 ΔT=0，输出区含导热模式动态标签「功率 (kW)/千卡/秒」与 0.00 μW、0.00 W、0.0°C、0.0000 kcal/s 成套值；默认态为 3007.50 W，不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "science/kinetic-energy",

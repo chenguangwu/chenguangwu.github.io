@@ -320,10 +320,10 @@
 </div>
 
 <div class="stat-grid-2">
-  <div class="stat-card"><div class="val" id="resQ">--</div><div class="lbl">热流量 Q</div></div>
-  <div class="stat-card"><div class="val" id="resQKwh">--</div><div class="lbl">kW</div></div>
+  <div class="stat-card"><div class="val" id="resQ">--</div><div class="lbl" id="resQLabel">热流量 Q</div></div>
+  <div class="stat-card"><div class="val" id="resQKwh">--</div><div class="lbl" id="resQKwhLabel">kW</div></div>
   <div class="stat-card"><div class="val" id="resDT">--</div><div class="lbl">温差 ΔT</div></div>
-  <div class="stat-card"><div class="val" id="resKcal">--</div><div class="lbl">千卡/秒</div></div>
+  <div class="stat-card"><div class="val" id="resKcal">--</div><div class="lbl" id="resKcalLabel">千卡/秒</div></div>
 </div>
 
 <div id="resultDetail" style="margin-top:12px;padding:12px;background:var(--result-bg);border-radius:8px;font-size:13px;line-height:1.8;color:var(--text-light);"></div>
@@ -602,6 +602,29 @@ function fmtEnergy(v){
   return (v*1e6).toFixed(2)+' μJ';
 }
 
+const HEAT_INPUT_IDS=['condMat','condK','condA','condL','condT1','condT2',
+  'specM','specMUnit','specMat','specC','specT1','specT2',
+  'convType','convH','convA','convTw','convTf'];
+function snapshotHeatInputs(){
+  const out={};
+  HEAT_INPUT_IDS.forEach(function(id){
+    const el=document.getElementById(id);
+    if(el)out[id]=el.value;
+  });
+  return out;
+}
+function clearHeatResult(msg){
+  ['resQ','resQKwh','resDT','resKcal'].forEach(function(id){
+    document.getElementById(id).textContent='--';
+  });
+  document.getElementById('resultDetail').innerHTML=msg?('<p style="color:var(--danger);">'+msg+'</p>'):'';
+  const chart=document.getElementById('htChart');if(chart)chart.innerHTML='';
+  const table=document.getElementById('htTable');if(table)table.style.display='none';
+  lastResult=null;
+}
+function validFinite(v){return isFinite(v);}
+function positive(v){return isFinite(v)&&v>0;}
+
 function calc(){
   let Q=0,dT=0,detail='';
   let modeName='';
@@ -612,7 +635,9 @@ function calc(){
     const L=parseFloat(document.getElementById('condL').value)/1000;
     const T1=parseFloat(document.getElementById('condT1').value);
     const T2=parseFloat(document.getElementById('condT2').value);
-    if(!k||!A||!L)return;
+    if(!positive(k)||!positive(A)||!positive(L)||!validFinite(T1)||!validFinite(T2)){
+      clearHeatResult('请输入有效的导热系数、正面积/厚度及温度');return;
+    }
     dT=Math.abs(T1-T2);
     Q=k*A*dT/L;
     modeName='热传导';
@@ -630,7 +655,9 @@ function calc(){
     const c=getSpecC();
     const T1=parseFloat(document.getElementById('specT1').value);
     const T2=parseFloat(document.getElementById('specT2').value);
-    if(!m||!c)return;
+    if(!positive(m)||!positive(c)||!validFinite(T1)||!validFinite(T2)){
+      clearHeatResult('请输入有效的质量、正比热容及温度');return;
+    }
     dT=Math.abs(T2-T1);
     Q=m*c*dT;
     modeName='比热容';
@@ -655,7 +682,9 @@ function calc(){
     const A=parseFloat(document.getElementById('convA').value)/1e4;
     const Tw=parseFloat(document.getElementById('convTw').value);
     const Tf=parseFloat(document.getElementById('convTf').value);
-    if(!h||!A)return;
+    if(!positive(h)||!positive(A)||!validFinite(Tw)||!validFinite(Tf)){
+      clearHeatResult('请输入有效的对流系数、正换热面积及温度');return;
+    }
     dT=Math.abs(Tw-Tf);
     Q=h*A*dT;
     modeName='热对流';
@@ -671,19 +700,29 @@ function calc(){
     `;
   }
   
-  const __g1=fmtPower(Q);document.getElementById('resQ').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
-  const __g2=Q>=1000?(Q/1000).toFixed(2)+' kW':Q.toFixed(2)+' W';document.getElementById('resQKwh').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  // 传导/对流求得热流量（W）；比热容模式 Q=mcΔT 是热量（J），
+  // 主结果、换算卡、历史与导出必须按模式用对单位，不能统一写 W/kW。
+  const isEnergyMode=mode==='specific';
+  const qDisplay=isEnergyMode?fmtEnergy(Q):fmtPower(Q);
+  const qAltDisplay=isEnergyMode?(Q/3.6e6).toFixed(6)+' kWh':(Q>=1000?(Q/1000).toFixed(2)+' kW':Q.toFixed(2)+' W');
+  const kcalDisplay=isEnergyMode?(Q/4186).toFixed(2)+' kcal':(Q/4186).toFixed(4)+' kcal/s';
+  document.getElementById('resQLabel').textContent=isEnergyMode?'总热量 Q':'热流量 Q';
+  document.getElementById('resQKwhLabel').textContent=isEnergyMode?'千瓦时 (kWh)':'功率 (kW)';
+  document.getElementById('resKcalLabel').textContent=isEnergyMode?'千卡 (kcal)':'千卡/秒';
+  const __g1=qDisplay;document.getElementById('resQ').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  const __g2=qAltDisplay;document.getElementById('resQKwh').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   const __g3=dT.toFixed(1)+'°C';document.getElementById('resDT').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-  const __g4=mode==='specific'?(Q/4186).toFixed(2)+' kcal':(Q/4186).toFixed(4)+' kcal/s';document.getElementById('resKcal').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  const __g4=kcalDisplay;document.getElementById('resKcal').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   const __g5=detail;document.getElementById('resultDetail').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   
-  lastResult={mode,modeName,Q:fmtPower(Q),Q_val:Q,dT:dT.toFixed(1),detail};
+  lastResult={mode,modeName,Q:qDisplay,Q_val:Q,dT:dT.toFixed(1),detail,inputs:snapshotHeatInputs()};
 }
 
 function copyResult(){
   if(!lastResult)return;
+  const qLabel=lastResult.mode==='specific'?'热量 Q':'热流量 Q';
   const text=`热传递计算结果（${lastResult.modeName}）：
-热流量: ${lastResult.Q}
+${qLabel}: ${lastResult.Q}
 温差: ${lastResult.dT}°C`;
   navigator.clipboard.writeText(text);
   ToolBox.toast('已复制到剪贴板');
@@ -723,6 +762,14 @@ function loadHistory(index){
   const item=history[index];
   if(!item)return;
   mode=item.mode;
+  const inputs=item.inputs||{};
+  Object.keys(inputs).forEach(function(id){
+    const el=document.getElementById(id);
+    if(el)el.value=inputs[id];
+  });
+  document.getElementById('condKWrap').style.display=document.getElementById('condMat').value==='custom'?'block':'none';
+  document.getElementById('specCWrap').style.display=document.getElementById('specMat').value==='custom'?'block':'none';
+  document.getElementById('convHWrap').style.display=document.getElementById('convType').value==='custom'?'block':'none';
   document.querySelectorAll('.mode-tab').forEach((b,i)=>{
     const modes=['conduction','specific','convection'];
     b.classList.toggle('active',modes[i]===mode);
@@ -731,7 +778,8 @@ function loadHistory(index){
   document.getElementById('mode-specific').style.display=mode==='specific'?'block':'none';
   document.getElementById('mode-convection').style.display=mode==='convection'?'block':'none';
   calc();
-  document.querySelector('.tab-btn').click();
+  const tabBtn=document.querySelector('.tab-btn');
+  if(tabBtn&&typeof tabBtn.click==='function')tabBtn.click();
 }
 
 function clearHistory(){
@@ -792,15 +840,19 @@ function __htExport(){
   var dT=Math.abs(T1-T2);
   var Q=lastResult.Q_val;
   var rows=[];
+  var energy=mode==='specific';
+  var qName=en?(energy?'Energy Q':'Heat transfer rate Q'):(energy?'热量 Q':'热流量 Q');
+  var qAlt=en?(energy?(Q/3.6e6).toFixed(6)+' kWh':(Q/1000).toFixed(2)+' kW')
+             :(energy?(Q/3.6e6).toFixed(6)+' 千瓦时':(Q/1000).toFixed(2)+' kW');
   if(en){
-    rows=[['Mode',lastResult.modeName],['Heat transfer rate Q',lastResult.Q+' ('+(Q/1000).toFixed(2)+' kW)'],['Temperature difference ΔT',dT.toFixed(1)+' °C']];
+    rows=[['Mode',lastResult.modeName],[qName,lastResult.Q+' ('+qAlt+')'],['Temperature difference ΔT',dT.toFixed(1)+' °C']];
     if(mode==='conduction'){rows.push(['Thermal conductivity k',k+' W/m·K'],['Area A',(A*1e4).toFixed(2)+' cm²'],['Thickness L',(L*1000).toFixed(2)+' mm'],['Heat flux',(Q/A).toFixed(2)+' W/m²']);}
-    else if(mode==='specific'){rows.push(['Mass m',m+' kg'],['Specific heat c',c+' J/kg·°C'],['Heating/Cooling',T2>T1?'Absorb':'Release'],['Energy Q',(Q/4186).toFixed(2)+' kcal'],['kWh',(Q/3.6e6).toFixed(6)+' kWh'],['BTU',(Q/1055).toFixed(2)+' BTU']);}
+    else if(mode==='specific'){rows.push(['Mass m',m+' kg'],['Specific heat c',c+' J/kg·°C'],['Heating/Cooling',T2>T1?'Absorb':'Release'],['kcal',(Q/4186).toFixed(2)+' kcal'],['kWh',(Q/3.6e6).toFixed(6)+' kWh'],['BTU',(Q/1055).toFixed(2)+' BTU']);}
     else if(mode==='convection'){rows.push(['Convection coeff h',h+' W/m²·K'],['Area A',(A*1e4).toFixed(2)+' cm²'],['Heat flux',(Q/A).toFixed(2)+' W/m²']);}
   } else {
-    rows=[['计算模式',lastResult.modeName],['热流量 Q',lastResult.Q+'（'+(Q/1000).toFixed(2)+' kW）'],['温差 ΔT',dT.toFixed(1)+' °C']];
+    rows=[['计算模式',lastResult.modeName],[qName,lastResult.Q+'（'+qAlt+'）'],['温差 ΔT',dT.toFixed(1)+' °C']];
     if(mode==='conduction'){rows.push(['导热系数 k',k+' W/m·K'],['截面积 A',(A*1e4).toFixed(2)+' cm²'],['厚度 L',(L*1000).toFixed(2)+' mm'],['热流密度',(Q/A).toFixed(2)+' W/m²']);}
-    else if(mode==='specific'){rows.push(['质量 m',m+' kg'],['比热容 c',c+' J/kg·°C'],['吸/放热',T2>T1?'吸收':'释放'],['热量 Q',(Q/4186).toFixed(2)+' kcal'],['千瓦时',(Q/3.6e6).toFixed(6)+' kWh'],['英热单位',(Q/1055).toFixed(2)+' BTU']);}
+    else if(mode==='specific'){rows.push(['质量 m',m+' kg'],['比热容 c',c+' J/kg·°C'],['吸/放热',T2>T1?'吸收':'释放'],['千卡',(Q/4186).toFixed(2)+' kcal'],['千瓦时',(Q/3.6e6).toFixed(6)+' kWh'],['英热单位',(Q/1055).toFixed(2)+' BTU']);}
     else if(mode==='convection'){rows.push(['对流系数 h',h+' W/m²·K'],['截面积 A',(A*1e4).toFixed(2)+' cm²'],['热流密度',(Q/A).toFixed(2)+' W/m²']);}
   }
   var t=document.getElementById('htTable'); if(!t)return;
@@ -816,9 +868,12 @@ function __htExtras(){
   var host=document.getElementById('htChart'); if(!host||!TBKit.chart||!TBKit.chart.bar)return;
   var Q=lastResult.Q_val||0;
   var en=__htIsEn();
-  var labels=en?['W','kW','kcal/s']:['瓦(W)','千瓦(kW)','千卡/秒'];
-  var vals=[Q,+(Q/1000).toFixed(3),+(Q/4186).toFixed(4)];
-  try{ TBKit.chart.bar(host,{labels:labels,series:[{name:en?'Heat transfer rate':'热流量',data:vals}],height:240,title:en?'Heat transfer rate by unit':'热流量（不同单位）'}); }catch(e){}
+  var energy=lastResult.mode==='specific';
+  var labels=en?(energy?['J','kJ','kcal']:['W','kW','kcal/s']):(energy?['焦(J)','千焦(kJ)','千卡(kcal)']:['瓦(W)','千瓦(kW)','千卡/秒']);
+  var vals=energy?[Q,+(Q/1000).toFixed(3),+(Q/4186).toFixed(4)]:[Q,+(Q/1000).toFixed(3),+(Q/4186).toFixed(4)];
+  var name=en?(energy?'Heat energy':'Heat transfer rate'):(energy?'热量':'热流量');
+  var title=en?(energy?'Heat energy by unit':'Heat transfer rate by unit'):(energy?'热量（不同单位）':'热流量（不同单位）');
+  try{ TBKit.chart.bar(host,{labels:labels,series:[{name:name,data:vals}],height:240,title:title}); }catch(e){}
 }
 var __ht0=calc; calc=function(){ __ht0(); try{ __htExtras(); }catch(e){} };
 calc();
