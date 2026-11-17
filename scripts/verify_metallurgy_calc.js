@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -366,6 +368,18 @@ const CASES = [
     "185.14"
   ],
   "ref": "新增回归：默认组切到对接焊缝须立即按对接公式重算（t=10）：A=2000 mm²、W=66666.7 mm³，σ=120000/2000+8e6/66666.7=180、τ=50000/2000=25、折算 √(180²+3×25²)=185.14、应力比 115.7%。旧 onchange 只切 disabled 不重算，仍是角焊缝 267.22/167.0%"
+},
+{
+  "slug": "metallurgy/analysis-34",
+  "clicks": ["document.getElementById('spfound').value='';calc();var h=String(document.getElementById('res').innerHTML).replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ');var ok=h.indexOf('加标回收率： —')>=0&&h.indexOf('回收率判定： —')>=0&&h.indexOf('偏离')<0;document.getElementById('__tbProbe').textContent='RECNAN '+(ok?'OK':'BAD '+h.slice(0,160));"],
+  "expect": ["RECNAN OK"],
+  "ref": "12-N224：加标后测得量清空时 parseFloat→NaN，旧实现仍把 rec 当有效数，显示「—%」并误判「偏离（需排查基体干扰或操作损失）」。修复后 rec 需 isFinite(spfound)，回收率与判定均为「—」；默认 spfound=0.69 命中「良好」，零逃生。"
+},
+{
+  "slug": "metallurgy/stats-10",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/metallurgy/stats-10.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/metallurgy/stats-10.json','utf8');var ok=h.indexOf('收得率 = 成品金属量 ÷ 投入金属量 × 100')<0&&h.indexOf('成材率 = 合格成品 ÷ 总投入 × 100')<0&&h.indexOf('收得率 = 合格坯（锭）量 ÷ 入炉金属料 × 100%')>=0&&h.indexOf('成材率 = 合格成品材量 ÷ 合格坯（锭）量 × 100%')>=0&&dd.indexOf('入炉 120 t、合格坯 100 t、成品材 92 t')>=0&&dd.indexOf('成材率 = 92÷100 = 92.00%')>=0&&en.indexOf('product rate = qualified product ÷ raw material × 100%')<0&&en.indexOf('overall product rate = qualified finished product ÷ metallic charge × 100%')>=0;document.getElementById('__tbProbe').textContent='YIELDDOC '+(ok?'OK':'BAD');"],
+  "expect": ["YIELDDOC OK"],
+  "ref": "12-N228：页面引据表此前把收得率写成「成品/投入」、成材率写成「合格品/总投入」，深解算例把综合成材率 92% 误称成材率。修复后三率按收得率=合格坯/入炉料、成材率=成品材/合格坯、综合成材率=成品材/入炉料统一，中英源同步；旧版任一旧串命中即红。"
 }
 ];
 async function main() {
