@@ -71,6 +71,32 @@ const CASES = [
     ref: "pct=40/50×100=80%；score=40×2=80；grade A 很好 👍",
   },
   {
+    slug: "edu/convert-2", inputs: { val: "zzz", from: "hex", to: "rgb" },
+    expect: ["zzz\nhex\nrgb\n输入无效"],
+    ref: "EL-J157：HEX 严格正则 ^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$，zzz 非法；旧版 parseInt 得 NaN 被位运算吞成 #000000。",
+  },
+  {
+    slug: "edu/convert-2", inputs: { val: "12345", from: "hex", to: "rgb" },
+    expect: ["12345\nhex\nrgb\n输入无效"],
+    ref: "EL-J157：5 位 HEX 同样不匹配正则；旧版直接 parseInt(12345,16) 输出 #012345。",
+  },
+  {
+    slug: "edu/convert-2", inputs: { val: "300,-10,50", from: "rgb", to: "hex" },
+    expect: ["#FF0032", "越界通道已钳制到 0–255"],
+    ref: "EL-J158：各通道钳制到 0–255，300→255、-10→0、50→50 ⇒ #FF0032 并提示越界；旧版输出非法 #2C-A32。",
+  },
+  {
+    slug: "edu/convert-2", inputs: { val: "hsl(200,50%)", from: "hsl", to: "rgb" },
+    expect: ["hsl(200,50%)\nhsl\nrgb\n输入无效"],
+    ref: "EL-J158/J159：HSL 需 3 个参数且 H∈[0,360] S/L∈[0,100]；缺第 3 参直接报错，旧版输出 rgb(—, —, —)。",
+  },
+  {
+    slug: "edu/convert-2",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var dd=JSON.parse(h)['edu/convert-2'];var s=JSON.stringify(dd);var ok=s.indexOf('保留输入精度')<0&&s.indexOf('输出精度：HEX/RGB 逐通道取整')>=0;document.getElementById('__tbProbe').textContent='PRECISION '+(ok?'OK':'BAD');"],
+    expect: ["PRECISION OK"],
+    ref: "EL-J159：权威源不再宣称「保留输入精度」，改为按各格式惯例取整；旧版仍有该表述。",
+  },
+  {
     slug: "edu/convert-2",
     inputs: { val: "#FF0000", from: "hex", to: "rgb" },
     expect: ["rgb(255, 0, 0)"],
@@ -530,9 +556,9 @@ const CASES = [
       "to": "rgb"
     },
     "expect": [
-      "abc123测试\nrgb\nrgb\nrgb(123, —, —)"
+      "abc123测试\nrgb\nrgb\n输入无效"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"val\":\"abc123测试\",\"from\":\"rgb\",\"to\":\"rgb\"}，输出区含「abc123测试\nrgb\nrgb\nrgb(123, —, —)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "EL-J158：rgb 解析需至少 3 个通道，abc123测试 只解析出 123 一个数 ⇒ 输入无效；旧版缺参仍输出 rgb(123, —, —)。"
   },
   {
     "slug": "edu/convert-3",
