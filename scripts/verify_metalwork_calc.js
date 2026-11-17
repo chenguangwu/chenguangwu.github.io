@@ -17,6 +17,7 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const fs = require("fs");
+globalThis.__tbFs = fs; // 供 clicks 内做源码形态判别（harness 点击串无 require）
 const path = require("path");
 const RECORDER_PATH = path.join(__dirname, "..", "tools", "metalwork", "recorder-9.html");
 
@@ -354,10 +355,16 @@ const CASES = [
   },
   {
     slug: "metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi",
-    inputs: { v0: "50", v1: "7" },
-    clicks: ["var ot=(typeof ToolBox!=='undefined'&&ToolBox.showToast)?ToolBox.showToast:null;if(typeof ToolBox!=='undefined')ToolBox.showToast=function(){};swapValues();if(ot&&typeof ToolBox!=='undefined')ToolBox.showToast=ot;document.getElementById('__tbProbe').textContent='SWAP '+document.getElementById('v0').value+'/'+document.getElementById('v1').value;"],
-    expect: ["SWAP 50/7"],
-    ref: "996 量纲互换守卫（MM-H157）：孔位 D=50 与 IT=7 量纲不同，旧版一按 ⇄ 变成 D=7/IT=50 并报「IT 等级需为 5–10」；修复后拒绝互换保持 50/7。默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html','utf8');document.getElementById('__tbProbe').textContent='SWAPRM '+(h.indexOf('swapValues')<0&&h.indexOf('互换 A/B')<0&&h.indexOf('onclick=\"swapValues()\"')<0?'OK':'BAD');"],
+    expect: ["SWAPRM OK"],
+    ref: "996量纲互换移除（MM-H157）：孔径 D（mm 正实数）与 IT 等级（5–10 整数）量纲不同，互换无业务意义；旧版仅凭两数同落 5–10 就互换，5.5/7 互换后 IT=5.5 被 calc 拒绝。修复后移除 ⇄ 按钮与 swapValues 函数；源码形态断言互换入口与函数均已消失，默认态不执行 clicks ⇒ 零逃生。"
+  },
+  {
+    slug: "metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi",
+    inputs: { v0: "5.5", v1: "7" },
+    expect: ["D=5.5 可算"],
+    ref: "996小数孔径回归：孔径 D=5.5（合法正实数）应能正常算出 IT 公差，而非报错。用 DOM 哨兵判定：结果容器出现「标准公差 IT」且无「等级需为 5–10」拒绝提示。旧版 5.5/7 单次 calc 本就能算（问题在互换），此用例仅做移除互换后的回归保护，判别力由 SWAPRM 用例承担。",
+    clicks: ["var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent=(h.indexOf('标准公差 IT')>=0&&h.indexOf('等级需为 5–10')<0)?'D=5.5 可算':'BAD'"]
   },
   {
     slug: "metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi",

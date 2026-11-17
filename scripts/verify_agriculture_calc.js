@@ -1797,6 +1797,18 @@ const CASES = [
     clicks: ["addPlanting()"],
     expect: ["86 天后收获", "已生长 14/100 天 (14%)", "当前：幼苗期"],
     ref: "番茄 = CROPS[0]（cycle 100 天）：种植 2024-06-01、基准日 2024-06-15 ⇒ elapsed = 14、left = 100 − 14 = 86 ⇒「86 天后收获」；frac = 14/100 = 0.14 落在 0.07 < f ≤ 0.25 ⇒「幼苗期」，进度串「已生长 14/100 天 (14%)」。默认无种植记录 ⇒ 列表显示空态「还没有种植记录」，三条锚均不命中（判别时清空 clicks/inputs 即回该默认态）。"
+  },
+  {
+    "slug": "agriculture/harvest-loss-rate",
+    "inputs": { "theoryYield": "500", "actualYield": "0" },
+    "expect": ["100.00%"],
+    "ref": "977合法零值：理论 500、实际 0（颗粒无收）⇒ 总损失 500、损失率 500/500×100=100.00%（toFixed(2)）。旧版 actual<=0 拒绝并提示「实际产量必须大于0」，不含 100.00%；默认 actual=465 损失率 7.00% 亦不命中。"
+  },
+  {
+    "slug": "agriculture/harvest-loss-rate",
+    "clicks": ["document.getElementById('actualYield').value='';calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='HARVESTEMPTY '+(h.indexOf('须为非负数')>=0?'OK':'BAD');"],
+    "expect": ["HARVESTEMPTY OK"],
+    "ref": "977空串守卫：实际产量清空须提示「实际产量须为非负数（0 表示颗粒无收）」，不能与合法 0 混同；默认 actual=465 出正常结果不含该提示。"
   }
 
 ];
