@@ -2307,6 +2307,12 @@ const CASES = [
        + "判别器清空 clicks 后兜底调 showDetail()（无参 ⇒ ELEMENTS.find 返回 undefined ⇒ 直接 return），详情仍是氢，不命中。"
   },
 
+  {
+    slug: "science/periodic-table",
+    clicks: ["buildTable();var h=String(document.getElementById('periodicTable').innerHTML);var ac=h.indexOf('class=\"element cat-actinide\" style=\"grid-column:1;\"');var la=h.indexOf('class=\"element cat-lanthanide\" style=\"grid-column:1;\"');document.getElementById('search').value='PTGRID_'+(ac>=0&&la>=0?'OK':'BAD');"],
+    expect: ["PTGRID_OK"],
+    ref: "SMS-125 清账（镧锕系独立成行）：18 列 grid 中主表 7×18=126 格占满 7 行，镧系 15 格排第 8 行 1–15 列，旧版锕系第 1 格（Ac）无 grid-column 定位、从第 8 行第 16 列续排 → 与镧系同行错位；现镧系与锕系首格均加 grid-column:1 强制各起新行。探针断言两者首格均带 grid-column:1，旧版无 ⇒ PTGRID_BAD，零逃生。",
+  },
   // ---- 2026-11-05：8 页 science 工具「深度解析算例」与页面输出对齐（算例数字均 node 实跑取回）----
   {
     "slug": "science/power-calculator",

@@ -230,23 +230,22 @@
 ## AA 批 · 自然科学·物理/数论/元素（2026-11-04）
 
 - `tools/science/pendulum-period.html`：SMS-124 已修——默认/重置/历史预设三处 g 由 9.81 统一为 9.80665（与同页引据及 physics-constants 一致），输入 step 改 any 使默认值合步长；英文 JSON placeholder 同步。L=1、g=9.80665 → T=2.006 s、f=0.4985 Hz、ω=3.1321 rad/s，量纲自洽。
-- `tools/science/periodic-table.html`：1 条（SMS-125 高）。118 元素及 H/Cr/Cu/Pd/La–Lu 电子排布抽样正确；问题为镧系/锕系直接 append 进 18 列 grid、未做网格定位，锕系前 3 个挤进镧系行右侧。
+- `tools/science/periodic-table.html`：SMS-125 已修——118 元素及 H/Cr/Cu/Pd/La–Lu 电子排布抽样正确；镧系与锕系首格均加 `grid-column:1` 强制各起新行，锕系不再续排在镧系行右侧。
 - `tools/science/permutation-calculator.html`：SMS-126/127 已于第 1007 批改严格整数解析 + n≤2000 上限守卫，并删除未使用的 O(n) 数组；P(7,3)=210 等常规结果不变。
 - `tools/science/physics-constants.html`：3 条（SMS-128～130 中）。c、G、h、e、mₑ、Nₐ、k_B、R、α、a₀ 等数值抽查全部正确；问题在分类维度错置、柱图 exp 元数据与数值不符、重复行符号/数值自相矛盾。
 - `tools/science/pi-digits.html`：0 条。1000 位串长度、前缀与第 100/1000 位复核无误（…3421170679 / …2164201989），第 N 位与搜索位置 +1 口径无偏差。
 - `tools/science/polar-day-night.html`：1 条（SMS-131 中）。70°N 极昼 5/21–7/23 共 64 天、极夜 11/19–1/21 共 64 天，与深挖算例一致；问题在 66.56° 预设返回 0 天及参考卡天数与引擎冲突。
 - `tools/science/power-calculator.html`：SMS-132/133 已修——Math.pow 主算正确（2^10=1024、2^-10=9.765625e-4），引据表为指数律，极小数与普通小数（|x|<1e-3）均走科学计数，2^-10 显示 9.7656250000e-4 而非 0.001。
-- `tools/science/prime-number.html`：2 条（SMS-134～135 中）。单值判定/区间筛/质因数分解主算正确（97 素数、91=7×13）；问题为 parseInt 截断与筛法/试除无上限。
+- `tools/science/prime-number.html`：SMS-134/135 已修——单值判定/区间筛/质因数分解主算正确（97 素数、91=7×13）；`parsePositiveInt` 用 Number+Number.isSafeInteger 严格解析（拒绝 97.9 截断、1e3→1），区间终点上限 1e7、单值试除至 √n 有界，verify 4 条覆盖。
 
 | 页面 | 问题（tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
-| tools/science/periodic-table.html | 镧系/锕系错位：`#periodicTable` 为 `grid-template-columns:repeat(18,1fr)` 且无 grid-column 定位，7×18=126 个单元格占满 7 行后，15 个镧系排第 8 行 1–15 列，15 个锕系从第 8 行第 16 列续排 → Ac/Th/Pa 落在镧系行右端、其余 12 个换到第 9 行 1–12 列，与深挖「单独排在下方两行」不符。:29、:444-458 | SMS-125 |
 | tools/science/physics-constants.html | 分类维度错置：`universal` 的标签写作「宇宙学」（英文 Cosmology），却装入 c/μ₀/ε₀/G/h/ℏ 等普适与电磁常数；「引力加速度(标准) g」归入「天文」，页面也无电磁类别——按分类查 μ₀/ε₀ 找不到对应维度。:236-244、:269、:277 | SMS-128 |
 | tools/science/polar-day-night.html | 66.56° 预设使极昼/极夜天数均为 0，输出「该纬度无极昼现象 / 无极夜现象」，与参考卡「66.56° 极圈：极昼/极夜各约 1 天」及深挖「约 1 天」直接冲突（阈值 90−23.44=66.56，而正弦近似峰值仅 23.4398，全年无一日满足）；参考卡 70/75/80° 的 65/60、105/95、135/125 也与引擎 64/64、102/102、131/131 不符（按本公式同纬度极昼/极夜必然等长）。:145、:185-187、:222、:267 | SMS-131 |
 
 - 声明：本轮仅逐页通读 8 页源码（HTML + 内联 JS），在 `/tmp` 用 node 复刻主算与边界（单摆 T/f/ω 与 g 双值对比、极昼逐日布尔与跨年连续区间、幂 fmt 的 `toLocaleString` 默认位数、π 1000 位串头尾与第 100/1000 位、parseInt 截断、BigInt 排列的量级、sieve 内存/试除复杂度、常量 exp 分桶），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。默认单位复核：单摆 L(m)/g(m·s⁻²) 量纲自洽，极昼工具纬度统一按度、无角度/弧度混用。
 - 安全注记：本批 8 页无 `eval`/`new Function`/`allow-same-origin`/`document.write`、无明文存密、无页面自有网络外传；本批数值页的用户输入均经 `parseFloat`/`parseInt` 或固定数字正则后才参与运算与拼接，未形成可控 HTML 注入。公共模板统一注入的 `lf1-cdn-tos.bytegoofy.com/ttzz/push.js` 属全站既有项（前批按「非本批页面特有、不重复登记」口径处理），故未计入条数。
-- 原审统计（历史快照）：8 页 / 12 条（高 2 / 中 10）/ 安全 0 条 / 假工具 0 个 / 编号区间 SMS-124～SMS-135；SMS-124（972 批）、SMS-129/130（2026-11-17）、SMS-132（第 1014 批普通小数科学计数）、SMS-133（2026-11-06）、SMS-134/135（2026-11-17）均已真机销账，本批剩余 SMS-125/131。
+- 原审统计（历史快照）：8 页 / 12 条（高 2 / 中 10）/ 安全 0 条 / 假工具 0 个 / 编号区间 SMS-124～SMS-135；SMS-124（972 批）、SMS-125（第 1021 批镧锕系定位）、SMS-129/130、SMS-132（第 1014 批）、SMS-133、SMS-134/135 均已真机销账，本批仅剩 SMS-131（66.56° 极昼 0 天，涉天文常数口径待裁断）。
 
 ## AA 批 · 自然科学·方程/统计/RC/星等（2026-11-04）
 
