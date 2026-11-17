@@ -106,7 +106,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入磁感应强度 B，求相邻塞曼能级能量差。">Enter magnetic flux density B; compute the energy gap ΔE = μ_B·B between adjacent Zeeman sublevels, showing equally spaced splitting under an external field, for atomic-spectrum Zeeman effect and field calibration.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">塞曼能级分裂（本页代码口径）：ΔE=μ_B×B（玻尔磁子 μ_B=9.2740100783×10⁻²⁴ J/T、B 磁感应强度 T）；联动量：ΔE(eV)=ΔE÷e（e=1.602176634×10⁻¹⁹ C）、ΔE(J)、ΔE(meV)，均按科学计数法输出。校验：无强校验，空值按 0 兜底。判据：无固定分级，分裂能与磁感应强度线性相关，1T 场下分裂约 5.788×10⁻⁵ eV。</div>
+      <div class="formula-eq">塞曼能级分裂（本页代码口径）：ΔE=μ_B×B（玻尔磁子 μ_B=9.2740100783×10⁻²⁴ J/T、B 磁感应强度 T）；联动量：ΔE(eV)=ΔE÷e（e=1.602176634×10⁻¹⁹ C）、ΔE(J)、ΔE(meV)，均按科学计数法输出。校验：B 必填且为 ≥0 数值，0 表示无外加磁场。判据：无固定分级，分裂能与磁感应强度线性相关，1T 场下分裂约 5.788×10⁻⁵ eV。</div>
       <p class="formula-desc">输入磁感应强度 B，求相邻塞曼能级能量差。</p>
     </div>
 
@@ -195,11 +195,17 @@
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __zeeman_splittingParams(){
+            var rawB=String(document.getElementById('B').value==null?'':document.getElementById('B').value).trim();
+            var B=parseFloat(rawB);
+            if(rawB===''||!isFinite(B)||B<0) return {err:'<p style="color:var(--danger)">⚠ 磁感应强度 B 必须为 ≥ 0 的数值（单位：T）</p>'};
+            return {B:B};
+        }
 function calcTool(){
             const muB=9.2740100783e-24, e=1.602176634e-19;
-            const rawB=document.getElementById('B').value.trim();
-            const B=parseFloat(rawB);
-            if(rawB===''||!isFinite(B)||B<0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 磁感应强度 B 必须为 ≥ 0 的数值（单位：T）</p>');return;}
+            var p=__zeeman_splittingParams();
+            if(p.err){ToolBox.setResult('result',p.err);return;}
+            const B=p.B;
             const dE=muB*B;
             const __g1=dataGrid([
                 [(dE/e).toExponential(3),'能级分裂 ΔE (eV)'],
@@ -216,11 +222,12 @@ function __zeeman_splittingNum(id){var e=document.getElementById(id);var v=e?par
 function __zeeman_splittingExtras(){
     function __zeeman_splittingRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var muB=9.2740100783e-24, e=1.602176634e-19;
-    var B=num('B');
-    var dE=muB*B;
-    if (!isFinite(__zeeman_splittingNum('B'))) return;
     var en=TBKit.util.isEn();
+    var p=__zeeman_splittingParams();
+    if(p.err){TBKit.matrix.table('#zeeman_splittingTable',{head:en?['Item','Value']:['项目','数值'],rows:[]});return;}
+    var muB=9.2740100783e-24, e=1.602176634e-19;
+    var B=p.B;
+    var dE=muB*B;
     TBKit.matrix.table('#zeeman_splittingTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
@@ -230,10 +237,10 @@ function __zeeman_splittingExtras(){
             ['分裂能 (meV)', (dE/e*1e3).toExponential(3)],
         ]
     });
-    TBKit.history.record({B:__zeeman_splittingRaw('B'), muB:muB});
+    TBKit.history.record({B:__zeeman_splittingRaw('B')});
     function __zeeman_splittingRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#zeeman_splittingHist',function(rec){ __zeeman_splittingRestore(rec); calcTool(); });
-    TBKit.util.diffBox('#zeeman_splittingDiff',['muB']);
+    TBKit.util.diffBox('#zeeman_splittingDiff',['B']);
 }
 function __zeeman_splittingExport(){
     if (typeof TBKit === 'undefined') return;

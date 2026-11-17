@@ -448,6 +448,34 @@ const CASES = [
       " ΔE (eV) 3.895e-22"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"B\":\"42\"}，输出区含「 ΔE (eV) 3.895e-22」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "quantum/compton-shift",
+    "inputs": { "th": "270" },
+    "clicks": ["var rows=-1,rec=0;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(sel,cfg){rows=cfg&&cfg.rows?cfg.rows.length:-1;}},history:{record:function(){rec++;},mount:function(){}}};__compton_shiftExtras();document.getElementById('__tbProbe').textContent='COM270 '+((rows===0&&rec===0)?'OK':'BAD rows='+rows+' rec='+rec);"],
+    "expect": ["COM270 OK"],
+    "ref": "1000 康普顿散射明细同步主区角度定义域（PQ-05）：旧版 θ=270° 主区报错但明细仍生成 2 行并写历史；修复后先清表且不记录。探针只在 clicks 注入后出现，默认 90° 不含该串。"
+  },
+  {
+    "slug": "quantum/compton-shift",
+    "inputs": { "th": "45" },
+    "clicks": ["var cap=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(sel,keys){cap=keys;}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__compton_shiftExtras();document.getElementById('__tbProbe').textContent='CDIFF '+(cap?cap.join(','):'NONE');"],
+    "expect": ["CDIFF th"],
+    "ref": "1000 康普顿差异对照监视真实散射角而非常量 H：旧版 diffBox 固定监视 H，修复后监视 th；默认态不执行 clicks，零逃生。"
+  },
+  {
+    "slug": "quantum/zeeman-splitting",
+    "inputs": { "B": "-1" },
+    "clicks": ["var rows=-1,rec=0;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(sel,cfg){rows=cfg&&cfg.rows?cfg.rows.length:-1;}},history:{record:function(){rec++;},mount:function(){}}};__zeeman_splittingExtras();document.getElementById('__tbProbe').textContent='ZEENEG '+((rows===0&&rec===0)?'OK':'BAD rows='+rows+' rec='+rec);"],
+    "expect": ["ZEENEG OK"],
+    "ref": "1000 塞曼分裂明细同步主区 B≥0 校验（PQ-08）：旧版 B=-1 主区报错但明细仍写 4 行并记历史；修复后清表且不记录。默认 B=1 不含该串。"
+  },
+  {
+    "slug": "quantum/zeeman-splitting",
+    "inputs": { "B": "0" },
+    "clicks": ["var cap=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(sel,keys){cap=keys;}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__zeeman_splittingExtras();document.getElementById('__tbProbe').textContent='ZDIFF '+(cap?cap.join(','):'NONE');"],
+    "expect": ["ZDIFF B"],
+    "ref": "1000 塞曼差异对照监视真实磁感应强度而非常量 μ_B；B=0 是合法输入，旧版 diffBox 监视 muB，修复后监视 B。默认态不执行 clicks，零逃生。"
   }
 
 ];
