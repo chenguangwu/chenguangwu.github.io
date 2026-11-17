@@ -338,6 +338,12 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/nephrology/ckd-staging.html','utf8');var ok=h.indexOf('function __ckdRefBar(egfr)')>=0&&h.indexOf('try{ __ckdRefBar(parseFloat(')>=0&&h.indexOf('__ckdGBands')>=0;document.getElementById('__tbProbe').textContent='CKDREFBAR '+(ok?'OK':'BAD');"],
   "expect": ["CKDREFBAR OK"],
   "ref": "12-N29 同类时序缺陷：eGFR 分级标尺须在 TBKit 就绪后重绘；旧版 boot 只挂预设、bands 封闭在 calc 内 ⇒ 变红。默认态不产生该串，零逃生。"
+},
+{
+  "slug": "nephrology/edema-grading",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/nephrology/edema-grading.html','utf8');var ok=h.indexOf('value:score')>=0&&h.indexOf('min:1,max:4')>=0&&h.indexOf('{\"lo\":1,\"hi\":2')>=0&&h.indexOf('{\"lo\":0,\"hi\":3')<0;document.getElementById('__tbProbe').textContent='EDEMABAR '+(ok?'OK':'BAD');"],
+  "expect": ["EDEMABAR OK"],
+  "ref": "12-N114：结果分级取深度/回弹较重档 score=1..4，参考标尺必须使用同一 score 与 1/2/3/4 分带；旧版按 depth 且用 0/3/5/7 分带 ⇒ 变红。默认态不产生该串，零逃生。"
 }
 ];
 async function main() {
