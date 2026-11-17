@@ -221,6 +221,28 @@ const CASES = [
     expect: ["-5%"],
     ref: "综合修正幅度 =(28,500/30,000 − 1)×100 = −5%（房龄折损 5% 的直接体现）",
   },
+  // ── RE-N5：房龄/其他修正越界守卫 ────────────────────────────────────
+  {
+    slug: "realestate/market-valuation",
+    inputs: { area: "100", basePrice: "30000", floor: "1", facing: "1", deco: "1", age: "-8", school: "1", extra: "0" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='VALAGE '+((h.indexOf('请输入有效的面积')>=0&&h.indexOf('31,200')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["VALAGE OK"],
+    ref: "RE-N5-a：房龄 −8 年旧版系数 max(0.80,1.04)=1.04（反向加价 4%），估值 31,200 元/㎡；新守卫要求 age>=0，非法提示并中止。默认 10 年不命中。",
+  },
+  {
+    slug: "realestate/market-valuation",
+    inputs: { area: "100", basePrice: "30000", floor: "1", facing: "1", deco: "1", age: "10", school: "1", extra: "-60" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='VALEXTRA '+((h.indexOf('请输入有效的面积')>=0&&h.indexOf('-55.00%')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["VALEXTRA OK"],
+    ref: "RE-N5-b：其他修正 −60% 旧版综合修正 −55%，远超本页 ±25% 引据；新守卫把 extra 限在 −30%~+30%。默认 0% 不命中。",
+  },
+  {
+    slug: "realestate/market-valuation",
+    inputs: { area: "100", basePrice: "30000", floor: "1", facing: "1", deco: "1", age: "2", school: "1.08", extra: "25" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='VALWARN '+((h.indexOf('累计 25% 指导值')>=0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["VALWARN OK"],
+    ref: "RE-N5-c：房龄 2 年（系数 0.99）、学区 1.08、其他修正 +25% ⇒ 综合修正 =(1.08×1.25×0.99−1)×100≈+33.65%，超过本页引据累计 25%；新结果区给黄色提示。默认 age=10/extra=0 ⇒ −5%，不命中。",
+  },
 
   // ── 面积换算：套内面积 × 公摊系数 → 公摊/建面/得房率 ───────────────
   {
@@ -275,6 +297,21 @@ const CASES = [
     inputs: { v0: "12000", v1: "15" },
     expect: ["85.00%"],
     ref: "实售占标价比 = 10,200 ÷ 12,000 × 100% = **85.00%**，与同页「等效折数 8.5 折」同源（(1−15%)×10）⇒ 两条锚互为交叉校验；不锚「标价 12,000 / 15%」（那是输入回显）。",
+  },
+  // ── RE-N4：折扣率 0–100 边界守卫 ────────────────────────────────────
+  {
+    slug: "realestate/price-discount-1",
+    inputs: { v0: "8800", v1: "150" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='PDMAX '+((h.indexOf('折扣率须在 0')>=0&&h.indexOf('-4400.00')<0&&h.indexOf('-5.0 折')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["PDMAX OK"],
+    ref: "RE-N4-a：标价 8,800、折扣率 150% 旧版 sp=8,800×(1−1.5)=−4,400、等效折数 −5.0 折、占比 −50%；新守卫限制折扣率 0–100，非法即提示并 return。默认 12% 不命中。",
+  },
+  {
+    slug: "realestate/price-discount-1",
+    inputs: { v0: "8800", v1: "-20" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='PDMIN '+((h.indexOf('折扣率须在 0')>=0&&h.indexOf('10560.00')<0&&h.indexOf('12.0 折')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["PDMIN OK"],
+    ref: "RE-N4-b：折扣率 −20% 旧版实售价 10,560（高于标价）、优惠额 −1,760、等效折数 12.0 折；新守卫拦截负折扣率。默认 12% 不命中。",
   },
   {
     slug: "realestate/calc-cost",
@@ -1755,9 +1792,9 @@ const CASES = [
       "school": "1.03"
     },
     "expect": [
-      "42\n42\n1.03\n1.00\n1.02\n42\n1.03\n42\n¥51.63"
+      "请输入有效的面积、参考均价（房龄不小于 0，其他修正 −30%~+30%）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"basePrice\":\"42\",\"age\":\"42\",\"extra\":\"42\",\"floor\":\"1.03\",\"facing\":\"1.00\",\"deco\":\"1.02\",\"school\":\"1.03\"}，输出区含「42\n42\n1.03\n1.00\n1.02\n42\n1.03\n42\n¥51.63」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"basePrice\":\"42\",\"age\":\"42\",\"extra\":\"42\",\"floor\":\"1.03\",\"facing\":\"1.00\",\"deco\":\"1.02\",\"school\":\"1.03\"}，extra=42% 超出 RE-N5 的 ±30% 守卫 ⇒ 输出区为越界提示；默认 extra=0 合法、不含该串 ⇒ 强判别、零逃生。旧版曾输出 ¥51.63，已随守卫同步更正。"
   },
   {
     "slug": "realestate/rater-usable-layout",
