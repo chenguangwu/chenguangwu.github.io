@@ -211,7 +211,11 @@ function __tbInputGuardCore(_ids,_labels){
     if(_raw===''){ if(_need&&_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
     if(_e.type==='number'||_e.tagName==='TEXTAREA'){
       if(_need&&isNaN(_num)){ if(_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
-      _vals.push(_num);
+      if(_e.tagName==='TEXTAREA'){
+        // 数据列表：按分隔符拆成每个数值，供分母/全零检查逐项判断（不得把整串 parseFloat 成首段）
+        var _parts=String(_raw).split(/[,\n\s]+/).map(function(x){return parseFloat(x);}).filter(function(x){return !isNaN(x);});
+        if(_parts.length===0) _vals.push(NaN); else for(var _p=0;_p<_parts.length;_p++) _vals.push(_parts[_p]);
+      } else _vals.push(_num);
     } else _vals.push(_raw);
   }
   if(_firstBad>=0){
@@ -222,8 +226,8 @@ function __tbInputGuardCore(_ids,_labels){
     if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
     return __msg;
   }
-  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"data": "data"};
+  // 分母项：本页无分母输入；data 是待统计数据列表（可含 0），不是分母，不得登记
+  var __D={};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);

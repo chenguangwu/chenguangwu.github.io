@@ -382,8 +382,8 @@ const CASES = [
     slug: "general/power-focal",
     inputs: { power: "1000", speed: "1000", focal: "50", material: "1" },
     clicks: ["calc()"],
-    expect: ["1.00 线能量（J/mm）"],
-    ref: "线能量 = 功率 1000 W ÷ 速度 1000 mm/s = 1.00 J/mm，同场光斑直径 0.063mm、功率密度 323.4 kW/mm²。可独立复算。默认态不同 ⇒ 不命中。",
+    expect: ["1.00 线能量（J/mm）", "323.4功率密度（kW/mm²）"],
+    ref: "线能量 = 功率 1000 W ÷ 速度 1000 mm/s = 1.00 J/mm，同场光斑直径 0.063mm、功率密度 = P/S² = 1000/(0.063²) ≈ 323400 W/mm² = 323.4 kW/mm²；旧实现把已除 1000 的 kW 值再拼 'k' → 323.4k（放大1000倍）。可独立复算，默认态不同 ⇒ 不命中。",
   },
   {
     slug: "machinery/torque-motion",
