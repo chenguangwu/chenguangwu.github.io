@@ -1147,8 +1147,22 @@ const CASES = [
   {
     slug: "realestate/layout-score",
     inputs: { builtArea: "140", innerArea: "105", width: "9", depth: "14", rooms: "4" },
-    expect: ["80.6 综合评分 / 100 良好", "得房率： 75% ，面宽进深比： 0.64", "方正度 20.29/25"],
-    ref: "注入非默认(默认 100/78/8/10/3)：得房率 = 105/140 = 75%；面宽进深比 = 9/14 = 0.643 → 0.64；方正度按 0.64 偏离理想 0.8 的程度扣分 = 20.29/25；房间数 4 间仍满分 10/10（默认 3 间亦 10/10 ⇒ 该项无判别力不作锚）；综合 80.6 分『良好』。默认态 91.6/78%/0.8/25 分，三条均不命中。"
+    expect: ["79.1 综合评分 / 100 良好", "得房率： 75% ，面宽进深比： 0.64", "方正度 20.29/25"],
+    ref: "注入非默认(默认 100/78/8/10/3)：得房率 = 105/140 = 75%；面宽进深比 = 9/14 = 0.643 → 0.64；方正度按 0.64 偏离理想 0.8 的程度扣分 = 20.29/25；房间数按连续插值 idealRooms=3+(140−120)/40=3.5，4 间得 8.5/10（旧硬边界给 10/10）；综合 79.1 分『良好』。默认态分数不同，三条均不命中。"
+  },
+  // ── RE-N6：理想间数连续插值与面宽/进深守卫 ──────────────────────────
+  {
+    slug: "realestate/layout-score",
+    inputs: { builtArea: "120", innerArea: "96", width: "8", depth: "10", rooms: "3" },
+    expect: ["房间数 10/10", "95.1 综合评分 / 100 优秀"],
+    ref: "RE-N6-a：建面 120㎡、3 室，旧硬边界 idealRooms=4 ⇒ s5=7；新连续插值 idealRooms=3 ⇒ s5=10（119.9㎡ 与 120㎡ 不再跳档 3 分）。默认 100㎡/3 间不区分该边界。",
+  },
+  {
+    slug: "realestate/layout-score",
+    inputs: { builtArea: "100", innerArea: "78", width: "0", depth: "0", rooms: "3" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='LAYOUTDIM '+((h.indexOf('请输入合理面积与面宽')>=0&&h.indexOf('综合评分')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["LAYOUTDIM OK"],
+    ref: "RE-N6-b：面宽、进深均留 0 时旧版 s2=0、s4=0 静默扣 35 分，只显示面宽进深比 --；新守卫要求两者>0，直接提示并中止。默认 8/10 合法 ⇒ 零逃生。",
   },
   {
     slug: "realestate/analysis-42",
