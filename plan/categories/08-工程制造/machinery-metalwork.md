@@ -288,7 +288,7 @@
 | tools/metalwork/analysis-36.html | 【假】只做「数量×权重」统计；可见英文副标题承诺 "Diagnose common casting defects … assess likely causes and remedies"，简介功能承诺均值/标准差/极差、控制界限判定批次合格性、按浇道/型腔定位高发位置，代码全部未实现，无任何成因/对策输出（:117, :286-292, :209-239） | MM-H114 |
 | tools/metalwork/analysis-36.html | 【中】数量与权重不校验：cnt 可为负或 0（缺陷总数/缺陷率变负），权重不限 1–3（输 100 使加权指数虚高约 30 倍），页脚仍写「权重按严重度取 1~3」（:217-219, :237） | MM-H115 |
 | tools/metalwork/analysis-cost-price-5.html | 【假】标题含「成本」、引据表列「材料成本=体积×密度×单价（铜 8.96 g/cm³）」与「总成本=材料+加工+损耗+废品率」，页面只有价格序列统计，无体积/密度/加工费/废品率任何输入，成本分析未实现（:125, :191-203, :220-256） | MM-H117 |
-| tools/metalwork/analysis-cost-price-5.html | 【中】价格 0/负值未校验：前一期为 0 时环比得 Infinity（被全局替换成「—」），均值为 0 时 CV 直接取 0 显示「无波动」，负价仍参与均值/标准差/回撤（:236, :239, :248） | MM-H118 |
+| tools/metalwork/analysis-cost-price-5.html | 【中】负价仍参与均值/标准差/回撤：输入 −10 等负值仍照常统计，缺少「价格应为非负」的业务校验（前一期为 0 与均值为 0 的除零假合规已于 973 批修复销账） | MM-H118 |
 
 **统计**
 - 条数：13（高 2 / 中 9 / 假 2）；编号区间：MM-H104–MM-H119，续接 MM-H103，安全两条 MM-H116/H119 已修复销账、MM-H111 双销量纲于 972 批销账，其余不重号不跳号。
@@ -422,7 +422,7 @@
 | tools/metalwork/thread.html | 【中】首选方案恒为车削：`methods` 固定先推车削（:234），仅大批量追加滚压（:236），:248 取 `methods[0]`；选「Tr40×7 大批量」仍推荐车削，与页内「外螺纹大批量优先滚压/搓丝」相反；内螺纹大直径同理仍首选攻丝。:234-248、:455 | MM-H166 |
 | tools/metalwork/thread.html | 【中】备选方案 vc 与 n 不成比例：铣削 `vc×1.2` 却 `n×0.8`（:239、:244），攻丝 `vc×0.6` 却 `n×0.5`（:242），与 `n=1000vc/(πd)` 自相矛盾；铣削转速比按 vc 应有的值低约 33%。:239-246 | MM-H167 |
 | tools/metalwork/thread.html | 【中】无螺距/直径几何校验：P=20、d=10 时外螺纹牙底直径 −2.269 mm、内螺纹小径 −11.651 mm 仍正常渲染并继续推荐方案，页面无任何提示。:250-251 | MM-H168 |
-| tools/metalwork/wushua-zhinengyuqingliangduibijisuanqi.html | 【中】相等/零值未处理：A=B 时 :673 恒取「轻量路线优先」而非持平；A=B=0 时 :674 的 0/0 被 :678 清洗成「—%」；:672 综合差距 `toFixed(0)` 丢失小数（90.5/72.2 记 18）。:672-678 | MM-H169 |
+| tools/metalwork/wushua-zhinengyuqingliangduibijisuanqi.html | 【中】综合差距 `toFixed(0)` 丢失小数（90.5/72.2 记 18），与公式说明的连续差值不符（A=B 误判与 A=B=0 权重 0/0 已于 973 批修复销账） | MM-H169 |
 | tools/metalwork/zhineng-duogongnengyunaiyongduibijisuanqi.html | 【中】同一模板的相等/零值缺陷：A=B 时恒取「耐用路线优先」、A=B=0 时权重比显示「—%」、综合差距取整到整数，均与公式说明不符。:675-681 | MM-H170 |
 
 **统计**

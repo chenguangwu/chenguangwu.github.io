@@ -226,25 +226,26 @@ var mean=sum/n;
 var ss=0;
 arr.forEach(function(o){ss+=(o.v-mean)*(o.v-mean);});
 var sd=Math.sqrt(ss/(n-1));
-var cv=mean!==0?sd/mean*100:0;
+var meanZero=mean===0;                       // 均值为 0 时 CV/相对涨跌幅除零无定义，不得显示 0% 假合规
+var cv=meanZero?null:sd/mean*100;
 var vs=arr.map(function(o){return o.v;});
 var mx=Math.max.apply(null,vs),mn=Math.min.apply(null,vs);
-var chg=(arr[0].v!==0)?(arr[n-1].v-arr[0].v)/arr[0].v*100:0;
+var chg=(arr[0].v!==0)?(arr[n-1].v-arr[0].v)/arr[0].v*100:null;
 var peak=arr[0].v,mdd=0;
 arr.forEach(function(o){
 if(o.v>peak)peak=o.v;
-var dd=(o.v-peak)/peak*100;
+var dd=peak!==0?(o.v-peak)/peak*100:0;       // 全零序列峰值 0 时回撤无意义，记 0 不外抛 NaN
 if(dd<mdd)mdd=dd;
 });
 var rows='';
 arr.forEach(function(o){
-var mom=(arr.indexOf(o)>0)?((o.v-arr[arr.indexOf(o)-1].v)/arr[arr.indexOf(o)-1].v*100):0;
-rows+='<tr><td>'+escXss(o.name)+'</td><td>'+o.v.toFixed(2)+'</td><td>'+((o.v-mean)/mean*100).toFixed(2)+'%</td><td>'+(arr.indexOf(o)>0?mom.toFixed(2)+'%':'—')+'</td></tr>';
+var mom=(arr.indexOf(o)>0&&arr[arr.indexOf(o)-1].v!==0)?((o.v-arr[arr.indexOf(o)-1].v)/arr[arr.indexOf(o)-1].v*100):null;
+rows+='<tr><td>'+escXss(o.name)+'</td><td>'+o.v.toFixed(2)+'</td><td>'+(meanZero?'—':((o.v-mean)/mean*100).toFixed(2)+'%')+'</td><td>'+(mom!==null?mom.toFixed(2)+'%':'—')+'</td></tr>';
 });
 const __g2='<p>期数：<strong>'+n+'</strong>　均值：<strong style="color:var(--primary);">'+mean.toFixed(2)+'</strong></p>'+
-'<p>标准差：<strong>'+sd.toFixed(2)+'</strong>　变异系数（波动率）：<strong>'+cv.toFixed(2)+'%</strong></p>'+
+'<p>标准差：<strong>'+sd.toFixed(2)+'</strong>　变异系数（波动率）：<strong>'+(cv!==null?cv.toFixed(2)+'%':'—/无法计算（均值为 0）')+'</strong></p>'+
 '<p>最高：<strong>'+mx.toFixed(2)+'</strong>　最低：<strong>'+mn.toFixed(2)+'</strong>　极差：<strong>'+(mx-mn).toFixed(2)+'</strong></p>'+
-'<p>首末涨跌幅：<strong>'+chg.toFixed(2)+'%</strong>　最大回撤：<strong>'+mdd.toFixed(2)+'%</strong></p>'+
+'<p>首末涨跌幅：<strong>'+(chg!==null?chg.toFixed(2)+'%':'—/无法计算（首期为 0）')+'</strong>　最大回撤：<strong>'+mdd.toFixed(2)+'%</strong></p>'+
 '<p style="font-size:13px;color:var(--text-muted);">变异系数 CV = 样本标准差 ÷ 均值，衡量价格波动幅度；最大回撤为序列中自阶段高点的最大跌幅。</p>'+
 '<table><thead><tr><th>期次</th><th>价格</th><th>相对均值</th><th>环比</th></tr></thead><tbody>'+rows+'</tbody></table>';document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
