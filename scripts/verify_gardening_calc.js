@@ -98,6 +98,14 @@ const CASES = [
   "ref": "clicks 注入：toggleCat('leaf') 把叶菜加入 currentCats，renderView → renderMonthView 仅在过滤集非空时拼出派生串「（筛选 N 种）」，N = 该分类蔬菜数；离线独立复算 VEGGIES 中 cat='leaf' 共 8 种（leaf 8 / melon 6 / fruit 5 / root 5 / allium 3 / bean 3 / other 1，合计 31）⇒ 锚取值 8。旧锚「11-12月」是番茄收获期的静态字段字面量 ⇒ 判别力 0。注意该页 currentMonth 取 new Date()（会渲染「📍 九月 (本月)」这类随日期漂移的串），但「（筛选 8 种）」与日期无关 ⇒ 跨天稳定。清 clicks 后过滤集为空、该串不渲染 ⇒ 零逃生项。"
 },
 {
+  "slug": "gardening/plant-calendar",
+  "clicks": [
+    "showMonthView=true;renderView();var h=String(document.getElementById('view').innerHTML);var i=h.indexOf('三月'),j=h.indexOf('四月',i+1);var seg=i>=0?h.slice(i,j>0?j:i+1600):'';var names=['黄瓜','萝卜','白菜','生菜','韭菜','葱','西瓜','南瓜','冬瓜','苦瓜','丝瓜','茼蒿'];document.getElementById('__tbProbe').textContent='M182 '+names.map(function(n){return seg.indexOf('>'+n+'<')>=0?'1':'0';}).join('')"
+  ],
+  "expect": ["M182 111111111111"],
+  "ref": "12-N182 月份区间未展开：旧实现 renderMonthView 用 v.seed.includes('3月') 字面子串匹配，区间开头的「3-4月 / 8月」不含连续「3月」，导致三月漏 12 种（黄瓜/萝卜/白菜/生菜/韭菜/葱/西瓜/南瓜/冬瓜/苦瓜/丝瓜/茼蒿），同时「1月」误命中「11-12月」的 11 月。修复后 __monthsOf 展开 a-b月 与「常年」为月集合，三月播种应有 21 种。本用例取 12 个旧版必漏品种，逐个检查是否落在三月卡片 <span> 内；旧版全漏得 000000000000 ⇒ 红，修复版全中 ⇒ 绿。定位用汉字「三月/四月」h4 边界，与 new Date() 当前月无关 ⇒ 跨天稳定；探针串只在 clicks 注入后出现 ⇒ 零逃生。"
+},
+{
   "slug": "gardening/plant-care",
   "inputs": {
     "searchInput": "zzz"
@@ -140,6 +148,14 @@ const CASES = [
     "+3.0"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "gardening/soil-ph",
+  "clicks": [
+    "document.getElementById('soilPh').value='';calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='N171 '+(h.indexOf('请输入有效的 pH 值')>=0&&h.indexOf('偏酸')<0&&h.indexOf('0.0')<0?'OK':'BAD '+h.slice(0,90))"
+  ],
+  "expect": ["N171 OK"],
+  "ref": "12-N171 空输入被 +''=0 误判为 pH 0：旧守卫 isNaN(0)||0<0||0>14 全部不成立，直接输出「当前土壤 pH 0.0」「⚠️ 偏酸」及整套加石灰方案。修复后先 trim 判空再 parseFloat，空值走「请输入有效的 pH 值（0-14）」并停算。本用例清空输入后同时要求有效提示存在、偏酸结论与 0.0 均不存在，三重条件杜绝旧版蒙混；默认 6.5 为完全适配，注入失败不产任一哨兵 ⇒ 零逃生。"
 },
 {
   "slug": "gardening/watering-schedule",

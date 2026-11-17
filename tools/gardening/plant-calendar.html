@@ -344,6 +344,24 @@ const SEASONS = {
   winter: { name:'冬季', months:[12,1,2], icon:'❄️' }
 };
 
+// 把「2-3月 / 9月」「常年」展开为月份集合：区间按月逐个展开，单个数字按完整 token 匹配，
+// 避免 includes('1月') 命中 '11月'、includes('3月') 漏掉 '3-4月' 这类区间开头的月份。
+function __monthsOf(text) {
+  const s = String(text == null ? '' : text);
+  const out = [];
+  const add = function (m) { m = +m; if (m >= 1 && m <= 12 && out.indexOf(m) < 0) out.push(m); };
+  if (s.indexOf('常年') >= 0) { for (let m = 1; m <= 12; m++) out.push(m); return out; }
+  const re = /(\d{1,2})\s*[-~至]\s*(\d{1,2})\s*月|(\d{1,2})\s*月/g;
+  let m;
+  while ((m = re.exec(s)) !== null) {
+    if (m[3] !== undefined) { add(m[3]); continue; }
+    let a = +m[1], b = +m[2];
+    if (a > b) { const t = a; a = b; b = t; }
+    for (let x = a; x <= b; x++) add(x);
+  }
+  return out;
+}
+
 let currentCats = new Set();
 let currentSeasons = new Set();
 let showMonthView = true;
@@ -401,7 +419,7 @@ function getFiltered() {
     if (currentSeasons.size > 0) {
       const matchesSeason = [...currentSeasons].some(s => {
         const months = SEASONS[s].months;
-        return months.some(m => v.seed.includes(`${m}月`) || v.harvest.includes(`${m}月`));
+        return __monthsOf(v.seed).some(m => months.indexOf(m) >= 0) || __monthsOf(v.harvest).some(m => months.indexOf(m) >= 0);
       });
       if (!matchesSeason) return false;
     }
@@ -424,8 +442,8 @@ function renderMonthView() {
     <div class="month-grid">
       ${months.map((m, i) => {
         const monthNum = i + 1;
-        const seedVegs = filtered.filter(v => v.seed.includes(`${monthNum}月`));
-        const harvestVegs = filtered.filter(v => v.harvest.includes(`${monthNum}月`));
+        const seedVegs = filtered.filter(v => __monthsOf(v.seed).indexOf(monthNum) >= 0);
+        const harvestVegs = filtered.filter(v => __monthsOf(v.harvest).indexOf(monthNum) >= 0);
         return `<div class="month-card ${monthNum === currentMonth ? 'current' : ''}">
           <h4>${monthNum === currentMonth ? '📍 ' : ''}${m} ${monthNum === currentMonth ? '(本月)' : ''}</h4>
           <div class="veg-list">

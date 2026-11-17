@@ -389,12 +389,22 @@ function phLevelTag(p) {
   return '<span class="ph-tag tag-alk">碱性</span>';
 }
 
+function __soilPhInput() {
+  const v = document.getElementById('soilPh').value;
+  const raw = String(v == null ? '' : v).trim();
+  return { raw: raw, val: parseFloat(raw) };
+}
+function __soilPhInvalid(x) {
+  return x.raw === '' || isNaN(x.val) || x.val < 0 || x.val > 14;
+}
 function calc() {
-  const soilPh = +document.getElementById('soilPh').value;
+  const phInput = __soilPhInput();
+  const soilPh = phInput.val;
   const plantName = document.getElementById('plant').value;
-  if (isNaN(soilPh) || soilPh < 0 || soilPh > 14) {
+  if (__soilPhInvalid(phInput)) {
+    const __spEn = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
     ToolBox.showToast(i18nText('toast.msg843'), 'error');
-    document.getElementById('result').innerHTML='<p style="text-align:center;color:var(--text-muted);">请输入有效的 pH 值（0-14）</p>';
+    document.getElementById('result').innerHTML='<p style="text-align:center;color:var(--text-muted);">'+(__spEn?'Enter a valid pH value (0-14)':'请输入有效的 pH 值（0-14）')+'</p>';
     return;
   }
   const plant = PLANTS[plantName];
@@ -493,7 +503,9 @@ function calc() {
 }
 
 function buildResultText() {
-  const soilPh = +document.getElementById('soilPh').value;
+  const phInput = __soilPhInput();
+  if (__soilPhInvalid(phInput)) return '';
+  const soilPh = phInput.val;
   const plantName = document.getElementById('plant').value;
   const plant = PLANTS[plantName];
   if (!plant) return '';
@@ -514,6 +526,10 @@ function buildResultText() {
 }
 
 function copyResult() {
+  if (__soilPhInvalid(__soilPhInput())) {
+    ToolBox.showToast(i18nText('toast.msg843'), 'error');
+    return;
+  }
   ToolBox.copyText(buildResultText(), i18nText('msg249'));
 }
 
