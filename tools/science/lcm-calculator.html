@@ -231,9 +231,19 @@ label{margin-top:10px;}
 <script>
 function fmt(x){ return x.toLocaleString(); }
 function gcd2(a,b){ a=Math.abs(a); b=Math.abs(b); if(!isFinite(a)||!isFinite(b)) return NaN; /* 非有限输入（含 undefined/NaN）直接返回，避免 while(b!==0) 因 b=NaN 恒真而死循环 */ while(b!==0){ const r=a%b; a=b; b=r; } return a; }
-function lcm2(a,b){ return Math.abs(a*b)/gcd2(a,b); }
+// 先除后乘，避免 a*b 中间积溢出（SMS-96）。
+function lcm2(a,b){ const g=gcd2(a,b); return g===0?NaN:Math.abs(a/g*b); }
+// 严格整数解析：拒绝小数/非有限/超出安全整数范围，不再 parseInt 静默截断。
 function parseNums(str){
-  return str.split(/[,\s;]+/).map(s=>s.trim()).filter(s=>s).map(s=>parseInt(s)).filter(n=>!isNaN(n));
+  const toks=str.split(/[,\s;]+/).map(s=>s.trim()).filter(s=>s);
+  const nums=[];
+  for(const t of toks){
+    const v=Number(t);
+    if(!isFinite(v)||!Number.isInteger(v)) return {nums:[],error:'请输入整数（小数将被拒绝，科学计数法按实际整数值解析）'};
+    if(Math.abs(v)>Number.MAX_SAFE_INTEGER) return {nums:[],error:'数值超出安全整数范围（±'+Number.MAX_SAFE_INTEGER+'），无法精确计算'};
+    nums.push(v);
+  }
+  return {nums:nums,error:''};
 }
 function factorize(n){
   n=Math.abs(n); if(n===1) return '1';
@@ -243,7 +253,9 @@ function factorize(n){
   return Object.entries(f).map(([p,e])=>e>1?p+'^'+e:p).join(' × ');
 }
 function calculate(){
-  const nums=parseNums(document.getElementById('nums').value);
+  const __pn=parseNums(document.getElementById('nums').value);
+  if(__pn.error){ document.getElementById('output').innerHTML='<p style="color:var(--danger);">⚠ '+__pn.error+'</p>'; return; }
+  const nums=__pn.nums;
   if(nums.length<1){ const __h0='<p style="color:var(--danger);">请输入至少一个整数</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0; return; }
   if(nums.some(n=>n===0)){ const __h1='<p style="color:var(--danger);">⚠️ 不能包含 0</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1; return; }
   let html='<p><strong>输入：</strong>'+nums.map(fmt).join(', ')+'</p>';
@@ -261,7 +273,7 @@ function calculate(){
   for(const s of steps){
     html+='<div class="step-line" style="margin-top:6px;color:var(--text);">LCM('+fmt(s.a)+', '+fmt(s.b)+')：</div>';
     html+='<div class="step-line">GCD('+fmt(s.a)+', '+fmt(s.b)+') = '+fmt(s.gcd)+'</div>';
-    html+='<div class="step-line">LCM = ('+fmt(s.a)+' × '+fmt(s.b)+') / GCD = ('+fmt(s.a*s.b)+') / '+fmt(s.gcd)+' = '+fmt(s.lcm)+'</div>';
+    html+='<div class="step-line">LCM = ('+fmt(s.a)+' / GCD) × '+fmt(s.b)+' = ('+fmt(s.a/s.gcd)+') × '+fmt(s.b)+' = '+fmt(s.lcm)+'</div>';
   }
   html+='<div class="step-line" style="margin-top:8px;color:var(--success);"><strong>最终 LCM('+nums.map(fmt).join(', ')+') = '+fmt(cur)+'</strong></div>';
   html+='<p style="margin-top:12px;"><strong>质因数分解：</strong></p>';

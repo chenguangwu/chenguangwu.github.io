@@ -245,11 +245,23 @@ function gcd2(a,b){
   }
   return {gcd:a, steps};
 }
+// 严格整数解析：拒绝小数/科学计数/非有限/超出安全整数范围，不再用 parseInt 静默截断。
+// 超出 2^53 的整数在 Number 下已失真，且在 factorize 里穷举 √n 会卡死 ⇒ 直接拒绝。
 function parseNums(str){
-  return str.split(/[,\s;]+/).map(s=>s.trim()).filter(s=>s).map(s=>parseInt(s)).filter(n=>!isNaN(n));
+  const toks=str.split(/[,\s;]+/).map(s=>s.trim()).filter(s=>s);
+  const nums=[];
+  for(const t of toks){
+    const v=Number(t);
+    if(!isFinite(v)||!Number.isInteger(v)) return {nums:[],error:'请输入整数（小数将被拒绝，科学计数法按实际整数值解析）'};
+    if(Math.abs(v)>Number.MAX_SAFE_INTEGER) return {nums:[],error:'数值超出安全整数范围（±'+Number.MAX_SAFE_INTEGER+'），无法精确计算'};
+    nums.push(v);
+  }
+  return {nums:nums,error:''};
 }
 function calculate(){
-  const nums=parseNums(document.getElementById('nums').value);
+  const __pn=parseNums(document.getElementById('nums').value);
+  if(__pn.error){ const __he='<p style="color:var(--danger);">⚠ '+__pn.error+'</p>';document.getElementById('output').innerHTML=__he; return; }
+  const nums=__pn.nums;
   if(nums.length<1){ const __h0='<p style="color:var(--danger);">请输入至少一个整数</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0; return; }
   if(nums.some(n=>n===0)){ const __h1='<p style="color:var(--danger);">⚠️ 不能包含 0</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1; return; }
   let html='<p><strong>输入：</strong>'+nums.map(fmt).join(', ')+'</p>';

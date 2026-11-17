@@ -895,11 +895,32 @@ const CASES = [
     "ref": "独立复算：GCD(8,12)=4，GCD(4,20)=4 ⇒ 4。默认 nums=48,36,24 ⇒ 12，不出现 'GCD = 4'。"
   },
   {
+    "slug": "science/gcd-calculator",
+    "inputs": {},
+    "clicks": ["var p=parseNums('1.5,3');document.getElementById('nums').value='DECPROBE_'+(p.error?'Y':'N')+'_'+p.error;"],
+    "expect": ["DECPROBE_Y_请输入整数"],
+    "ref": "SMS-94 清账：parseNums 原用 parseInt 静默截断小数（1.5→1）。现改 Number + Number.isInteger 严格解析，小数返回 error。探针直接调 parseNums('1.5,3') 断言 error；旧版返回数组无 error ⇒ DECPROBE_N，零逃生。"
+  },
+  {
+    "slug": "science/gcd-calculator",
+    "inputs": {},
+    "clicks": ["var p=parseNums('9007199254740993,3');document.getElementById('nums').value='BIGPROBE_'+(p.error&&p.error.indexOf('安全整数')>=0?'Y':'N');"],
+    "expect": ["BIGPROBE_Y"],
+    "ref": "SMS-95 清账：parseNums 原 parseInt 把 2^53+1 截为 2^53（失真）且 factorize 穷举 √n 卡死。现拒绝 |v|>Number.MAX_SAFE_INTEGER 并提示超出安全整数范围。探针直接调 parseNums 避免旧版卡死，断言 error 含「安全整数」；旧版无 error ⇒ BIGPROBE_N，零逃生。"
+  },
+  {
     "slug": "science/lcm-calculator",
     "inputs": { "nums": "15,20,25" },
     "clicks": ["calculate()"],
     "expect": ["LCM = 300"],
     "ref": "独立复算：LCM(15,20)=60，LCM(60,25)=300 ⇒ 300。默认 nums=12,18,24 ⇒ 72，不出现 300。"
+  },
+  {
+    "slug": "science/lcm-calculator",
+    "inputs": {},
+    "clicks": ["var p=parseNums('4.5,6');document.getElementById('nums').value='LCMDECPROBE_'+(p.error?'Y':'N')+'_'+p.error;"],
+    "expect": ["LCMDECPROBE_Y_请输入整数"],
+    "ref": "SMS-94 同族清账：lcm 页 parseNums 原同样用 parseInt 静默截断小数（4.5→4）。现与 gcd 页一致改严格解析。探针直接调 parseNums('4.5,6') 断言 error；旧版返回数组无 error ⇒ LCMDECPROBE_N，零逃生。"
   },
   {
     "slug": "science/vector-calculator",

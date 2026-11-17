@@ -223,8 +223,8 @@
 
 ## Z 批 · 自然科学·数学/地学/热学（2026-11-04）
 
-- `tools/science/gcd-calculator.html`：3 条（SMS-94、SMS-95 高、SMS-106）。默认 48,36,24 → GCD 12、辗转相除步骤与质因数分解正确；问题在 `parseInt` 解析小数/科学计数/超 2⁵³ 与 √n 枚举无上限，另共用 SMS-106 的附加历史模板。
-- `tools/science/lcm-calculator.html`：1 条（SMS-96 中）。默认 12,18,24 → LCM 72，gcd 链路正确；问题为 `a·b` 双精度溢出（另与 SMS-95 同源的 factorize 同样可卡死）。
+- `tools/science/gcd-calculator.html`：SMS-94/95 已于第 1006 批改严格整数解析（Number + isInteger + 拒绝超 2^53），factorize 卡死路径随之被堵；默认 48,36,24 → GCD 12 不变。仍共用 SMS-106 附加历史模板问题（未修）。
+- `tools/science/lcm-calculator.html`：SMS-94 同族严格解析已修；SMS-96 改为先除后乘 `a/g*b` 缓解 gcd>1 时的中间积溢出，但互质大数（如 1000000007×1000000009）结果超 2^53 仍需 BigInt 重构，保留待专业裁断。
 - `tools/science/geo-distance-calculator.html`：1 条（SMS-97 中）。Haversine、初始方位角与英里/海里换算正确（北京 39.9042,116.4074 → 上海 31.2304,121.4737 = 1067.310 km）；问题为同组两输入共用错误容器，提示会被后一个合法输入抹掉（另共用 SMS-106）。
 - `tools/science/heat-transfer-calculator.html`：3 条（SMS-98、SMS-99 中，SMS-100 承诺未实现）。默认铜 401 W/m·K / 10 cm² / 10 mm / ΔT 75 → 3007.50 W、热流密度 3,007,500.00 W/m² 正确；问题为守卫早退且负面积放行、历史点击不回填、热辐射只有公式没有计算。
 - `tools/science/latlon-utm-converter.html`：1 条（SMS-101 中）。北京 39.9042,116.4074 → 50N 449345.061E 4417292.495N（收敛角 −0.2916°、比例因子 0.999632），正反算往返准确；问题为 lon=180 得 61 带以及反算无 E/N 范围校验。
@@ -233,9 +233,7 @@
 
 | 页面 | 问题（含 tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
-| tools/science/gcd-calculator.html | 解析用裸 `parseInt`：`1.5,3`→[1,3] 得 GCD 1、`1e3,500`→[1,500] 得 1、`0.5,1.5`→[0,1] 误报「不能包含 0」；`9007199254740993,3` 被截为 …992，输出 GCD 1 而真值 3（node 复刻）。:249、:254 | SMS-94 |
-| tools/science/gcd-calculator.html | `factorize` 按 `for(let i=2;i*i<=x;i++)` 穷举到 √n，无上限、无 BigInt：20 位输入（parseInt→1.2e19，√≈3.5×10⁹ 次取模）使标签页冻结数分钟；lcm:238-241 同源代码。:280-289 | SMS-95 |
-| tools/science/lcm-calculator.html | `lcm2 = abs(a·b)/gcd` 全用双精度：lcm(1000000007,1000000009) 显示 1,000,000,016,000,000,000，真值 …0063（差 63）；步骤行打印的同一乘积同样失真。:234、:249 | SMS-96 |
+| tools/science/lcm-calculator.html | 第 1006 批已把 `lcm2` 改为先除后乘 `abs(a/gcd*b)` 并同步步骤行，缓解 gcd>1 时中间积溢出；但互质大数 lcm(1000000007,1000000009) 真值 1,000,000,016,000,000,063 超 2^53，Number 无法精确表示，仍需 BigInt 重构（未自判）。:234 | SMS-96 |
 | tools/science/geo-distance-calculator.html | `validateInput` 开头无条件 `errEl.classList.remove('show')`，且 lat1/lon1 共用 `error1`、lat2/lon2 共用 `error2`：lat1 非法 + lon1 合法 → 提示被后一次校验抹掉，结果全部清成「—」且用户看不到原因。:630、:684-687、:689-697 | SMS-97 |
 | tools/science/heat-transfer-calculator.html | 三处守卫 `if(!k||!A||!L)return` / `if(!m||!c)return` / `if(!h||!A)return` 早退时不清空结果卡，清空 A 或 L 会保留上一次 Q；且不做正数校验，A=-10 放行得 Q=-3007.5，经 fmtPower 负值落末档显示「-3007500000.00 μW」。:626、:644、:669、:600-606 | SMS-98 |
 | tools/science/heat-transfer-calculator.html | `loadHistory` 只设 `mode`、切三个 mode 区块显隐、再 `calc()`（用当前输入），从不回填任何输入值；历史条目只存 mode/modeName/Q/dT/detail，点击后重算结果与条目 Q 不一致，历史「加载」是假恢复。:730-743、:706-708 | SMS-99 |
