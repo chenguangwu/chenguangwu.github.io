@@ -159,6 +159,7 @@
       <div class="stat-box"><div class="stat-num" id="s-known">0</div><div class="stat-lbl">已掌握</div></div>
       <div class="stat-box"><div class="stat-num" id="s-learning">0</div><div class="stat-lbl">学习中</div></div>
       <div class="stat-box"><div class="stat-num" id="s-streak">0</div><div class="stat-lbl">连续天数</div></div>
+      <div class="stat-box"><div class="stat-num" id="s-due">0</div><div class="stat-lbl">今日待复习</div></div>
     </div>
 <div id="__tbpExtras" style="margin-top:12px"></div>
 
@@ -184,6 +185,7 @@
       <button type="button" class="act-btn unknown" onclick="mark('unknown')">不认识</button>
       <button type="button" class="act-btn fuzzy" onclick="mark('fuzzy')">模糊</button>
       <button type="button" class="act-btn know" onclick="mark('known')">认识</button>
+      <button type="button" class="act-btn" id="favBtn" onclick="toggleFav()">⭐ 收藏</button>
     </div>
     <div class="card-actions" style="margin-top:10px;">
       <button type="button" class="btn" onclick="window.__vbExport()">⬇️ 导出单词表 CSV</button>
@@ -339,6 +341,56 @@ function setProgress(p) { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
 function getFav() { return (function(){try{return JSON.parse(localStorage.getItem(FAV_KEY) || '[]')}catch(e){try{localStorage.removeItem(FAV_KEY)}catch(_){}return []}})(); }
 function setFav(arr) { localStorage.setItem(FAV_KEY, JSON.stringify(arr)); }
 
+const REVIEW_KEY = 'vocab_review';
+const REVIEW_STEPS = [1, 2, 4, 7, 15];
+
+function getReview() { return (function(){try{return JSON.parse(localStorage.getItem(REVIEW_KEY) || '{}')}catch(e){try{localStorage.removeItem(REVIEW_KEY)}catch(_){}return {}}})(); }
+function setReview(r) { localStorage.setItem(REVIEW_KEY, JSON.stringify(r)); }
+function dayKeyAfter(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return localDateKey(d);
+}
+function updateReview(status) {
+  if (!state.current) return;
+  const key = state.current.cat + '_' + state.current.w;
+  const review = getReview();
+  const prev = review[key] || { step: 0 };
+  prev.step = status === 'known'
+    ? Math.min((Number(prev.step) || 0) + 1, REVIEW_STEPS.length - 1)
+    : 0;
+  prev.last = localDateKey();
+  prev.due = dayKeyAfter(status === 'known' ? REVIEW_STEPS[prev.step] : 1);
+  review[key] = prev;
+  setReview(review);
+}
+function dueWords(pool) {
+  const review = getReview();
+  const today = localDateKey();
+  return pool.filter(function(w) {
+    const q = review[w.cat + '_' + w.w];
+    return q && q.due && q.due <= today;
+  });
+}
+function __vbEn() { try { return !!(typeof TBKit !== 'undefined' && TBKit.util.isEn()); } catch (e) { return false; } }
+function favLabel() {
+  if (!state.current) return __vbEn() ? '☆ Favorite' : '⭐ 收藏';
+  if (getFav().indexOf(state.current.w) >= 0) {
+    return __vbEn() ? '★ Favorited (click to remove)' : '★ 已收藏（点击移出）';
+  }
+  return __vbEn() ? '☆ Favorite' : '⭐ 收藏';
+}
+function toggleFav() {
+  if (!state.current) return;
+  const favs = getFav();
+  const i = favs.indexOf(state.current.w);
+  if (i >= 0) favs.splice(i, 1);
+  else favs.push(state.current.w);
+  setFav(favs);
+  const btn = document.getElementById('favBtn');
+  if (btn) btn.textContent = favLabel();
+}
+
 function pickWord() {
   let pool;
   if (state.cat === 'fav') {
@@ -360,10 +412,12 @@ function pickWord() {
     document.getElementById('example').textContent = '';
     return;
   }
-  // 优先选择 progress 中 unknown 状态的
+  // 到期复习词优先，其次 unknown，最后全池随机。
   const progress = getProgress();
+  const due = dueWords(pool);
   const unknown = pool.filter(w => progress[`${w.cat}_${w.w}`] === 'unknown');
-  const candidates = unknown.length > 0 && Math.random() < 0.6 ? unknown : pool;
+  const candidates = due.length > 0 ? due
+    : (unknown.length > 0 && Math.random() < 0.6 ? unknown : pool);
   state.current = candidates[Math.floor(Math.random() * candidates.length)];
   document.getElementById('word').textContent = state.current.w;
   document.getElementById('phonetic').textContent = state.current.p;
@@ -372,6 +426,8 @@ function pickWord() {
   document.getElementById('example').textContent = '例: ' + state.current.e;
   document.getElementById('example').style.display = 'none';
   state.flipped = false;
+  const favBtn = document.getElementById('favBtn');
+  if (favBtn) favBtn.textContent = favLabel();
 }
 
 function flip() {
@@ -385,11 +441,7 @@ function mark(status) {
   const progress = getProgress();
   progress[`${state.current.cat}_${state.current.w}`] = status;
   setProgress(progress);
-  if (status === 'known') {
-    const favs = getFav();
-    if (!favs.includes(state.current.w)) favs.push(state.current.w);
-    setFav(favs);
-  }
+  updateReview(status);
   updateStats();
   pickWord();
   if (status === 'known') {
@@ -408,6 +460,11 @@ function updateStats() {
   document.getElementById('s-total').textContent = total;
   document.getElementById('s-known').textContent = known;
   document.getElementById('s-learning').textContent = learning;
+  document.getElementById('s-due').textContent = dueWords(
+    Object.keys(WORDS).reduce(function(arr, cat) {
+      return arr.concat(WORDS[cat].map(function(w) { return { cat: cat, w: w.w }; }));
+    }, [])
+  ).length;
   const streak = (function(){try{return JSON.parse(localStorage.getItem(STREAK_KEY) || '{"days":0,"last":null}')}catch(e){try{localStorage.removeItem(STREAK_KEY)}catch(_){}return {"days":0,"last":null}}})();
   document.getElementById('s-streak').textContent = streak.days;
 }

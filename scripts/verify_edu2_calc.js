@@ -105,6 +105,12 @@ const CASES = [
   "ref": "EL-J10 正向对照：合法成语「一马当先」仍应计分并继续游戏，避免修复把正常接龙一并拒掉。"
 },
 {
+  "slug": "language/idiom-solitaire",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/language/idiom-solitaire.html','utf8');var m=h.match(/var IDIOM_DB = \\[([\\s\\S]*?)\\n\\];/);var a=JSON.parse('['+m[1]+']');var ok=a.length===883&&a.every(function(x){return x.length===4})&&new Set(a).size===a.length;document.getElementById('chainList').textContent='JIDIOM:'+(ok?'OK':'BAD');"],
+  "expect": ["JIDIOM:OK"],
+  "ref": "EL-J11：词库须全四字且无重复（清理后 883 条）；旧版 903 条含 15 组重复与 5 条三/五字熟语 ⇒ BAD。"
+},
+{
   "slug": "language/grammar-checker",
   "clicks": [
     "document.getElementById('input-text').value='   ';check();document.getElementById('grammar_checkerPresets').textContent='G_EMPTY:'+document.getElementById('s-issues').textContent+'|PROMPT:'+(document.getElementById('result').innerHTML.indexOf('请输入文本后再检查')>=0?1:0);"

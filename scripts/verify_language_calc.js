@@ -173,6 +173,18 @@ const CASES = [
   ],
   "ref": "独立复算：注入的收藏表 ['aberrant'] 命中 WORDS.gre[0]，pickWord() 走 state.cat==='fav' 分支 ⇒ pool 只含该词，#word 渲染单词名、#phonetic 渲染 /æˈberənt/。注入路径复刻 .cat-btn[data-c=fav] 的真实 onclick（state.cat=b.dataset.c; pickWord()），仅把 dataset.c 换成注入的收藏表。选 gre 词条是因为默认 state.cat='cet4'：cet4 池内任一随机词都产不出该串，规避 pickWord() 的 Math.random() 导致的默认态偶发命中。"
 },
+{
+  "slug": "language/vocabulary-builder",
+  "clicks": ["var s={vocab_fav:JSON.stringify(['existing'])};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};state.cat='cet4';pickWord();var w=state.current.w;mark('known');var after=JSON.parse(s.vocab_fav||'[]');var noAuto=after.indexOf(w)<0&&after.length===1;state.current={cat:'cet4',w:w};toggleFav();var added=JSON.parse(s.vocab_fav).indexOf(w)>=0;toggleFav();var removed=JSON.parse(s.vocab_fav).indexOf(w)<0;document.getElementById('vbHidden').textContent='JFAV:'+(noAuto&&added&&removed?'OK':'BAD');"],
+  "expect": ["JFAV:OK"],
+  "ref": "EL-J7：标记「认识」不得自动塞收藏，星标须可显式加入与移出；旧版 mark('known') 无条件 push 且无 toggleFav，必 BAD。"
+},
+{
+  "slug": "language/vocabulary-builder",
+  "clicks": ["var s={};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};state.current={cat:'cet4',w:'TESTWORD'};mark('known');var r1=JSON.parse(s.vocab_review||'{}')['cet4_TESTWORD'];state.current={cat:'cet4',w:'TESTWORD'};mark('known');var r2=JSON.parse(s.vocab_review||'{}')['cet4_TESTWORD'];var ok=r1&&r2&&r1.step===1&&r2.step===2&&r1.due!==r2.due;document.getElementById('vbHidden').textContent='JDUE:'+(ok?'OK':'BAD');"],
+  "expect": ["JDUE:OK"],
+  "ref": "EL-J8：复习间隔须按 1/2/4/7/15 天递增记录 due；旧版 progress 只存字符串状态、无 vocab_review，r1/r2 均 undefined ⇒ BAD。"
+},
   {
     "slug": "language/german-gender-quiz",
     "inputs": {
