@@ -16,6 +16,62 @@ const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
   {
+    slug: "edu/grade-calculator",
+    inputs: { tTarget: "0" },
+    clicks: ["var g=function(id){var e=document.getElementById(id);return String(e.innerHTML||e.textContent||'');};calcTarget();document.getElementById('__tbProbe').textContent='TGT0 '+g('targetFinal')+'|'+g('difficulty');"],
+    expect: ["TGT0 请填写有效目标与占比|—"],
+    ref: "EL-J36：目标 0 非法，应提示有效目标与占比且难度清空；旧版算出负数期末需求仍判「很容易」。",
+  },
+  {
+    slug: "edu/grade-calculator",
+    inputs: { tTarget: "" },
+    clicks: ["var g=function(id){var e=document.getElementById(id);return String(e.innerHTML||e.textContent||'');};calcTarget();document.getElementById('__tbProbe').textContent='TGTEMPTY '+g('targetFinal');"],
+    expect: ["TGTEMPTY 请填写有效目标与占比"],
+    ref: "EL-J36：目标清空同样拒绝计算；旧版 parseFloat('')||0 ⇒ -82.0 分。",
+  },
+  {
+    slug: "edu/grade-calculator",
+    inputs: { tFinalWeight: "-10" },
+    clicks: ["var g=function(id){var e=document.getElementById(id);return String(e.innerHTML||e.textContent||'');};calcTarget();document.getElementById('__tbProbe').textContent='FWNEG '+g('targetFinal');"],
+    expect: ["FWNEG 请填写有效目标与占比"],
+    ref: "EL-J36：期末占比为负应提示无效；旧版 finalW>0 不成立直接置 0 分仍判「很容易」。",
+  },
+  {
+    slug: "edu/grade-calculator",
+    inputs: { tTarget: "70", tRegular: "95", tRegularWeight: "40", tMidterm: "90", tMidtermWeight: "40", tFinalWeight: "20" },
+    clicks: ["var g=function(id){var e=document.getElementById(id);return String(e.innerHTML||e.textContent||'');};calcTarget();document.getElementById('__tbProbe').textContent='DONE '+g('difficulty')+'|'+g('targetFinal');"],
+    expect: ["DONE 已达标 ✅"],
+    ref: "EL-J36：已达标单独分支，不用负分进入「很容易」；旧版即便 -20.0 分仍显示「很容易 🌟」。",
+  },
+  {
+    slug: "edu/grade-calculator",
+    inputs: { rStd: "0" },
+    clicks: ["var g=function(id){var e=document.getElementById(id);return String(e.innerHTML||e.textContent||'');};calcRank();document.getElementById('__tbProbe').textContent='STD0 '+g('rankResult')+'|'+g('zScore');"],
+    expect: ["STD0 标准差必须大于 0|—"],
+    ref: "EL-J37：标准差 0 必须提示并停止；旧版 parseFloat('0')||10 静默按 10 算得 Z=1.00、第 8 名。",
+  },
+  {
+    slug: "edu/grade-calculator",
+    inputs: { rMyScore: "31" },
+    clicks: ["updateCourse(0,'score',120);var g=function(id){var e=document.getElementById(id);return String(e.innerHTML||e.textContent||'');};var nm=document.getElementById('rMyScore').value;document.getElementById('__tbProbe').textContent='SC120 '+(nm==='31'?g('totalScore'):'BADIN');"],
+    expect: ["SC120 分数须在 0–100"],
+    ref: "EL-J37：分数 120 越界拒绝写入并显示提示；旧版直接采纳算成 120.00 且仍判 A 优秀。",
+  },
+  {
+    slug: "edu/grade-calculator",
+    inputs: { rAvg: "32" },
+    clicks: ["updateCourse(0,'credit',-1);var g=function(id){var e=document.getElementById(id);return String(e.innerHTML||e.textContent||'');};var nm=document.getElementById('rAvg').value;document.getElementById('__tbProbe').textContent='CRNEG '+(nm==='32'?g('totalScore'):'BADIN');"],
+    expect: ["CRNEG 权重须大于 0"],
+    ref: "EL-J37：负权重拒绝写入；旧版负学分参与加权，可拉低或反转加权均分。",
+  },
+  {
+    slug: "edu/grade-calculator",
+    inputs: { tMidterm: "33" },
+    clicks: ["var nm=document.getElementById('tMidterm').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu/grade-calculator.html','utf8');var ok=nm==='33'&&(h.match(/formula-title/g)||[]).length===1&&h.indexOf('i18nText()')<0;document.getElementById('__tbProbe').textContent='GCSRC '+(ok?'OK':'BAD');"],
+    expect: ["GCSRC OK"],
+    ref: "EL-J38：删除重复的第二个「计算方式」公式框，页面仅一处；顺带清除三处无参 i18nText() toast。旧版两处公式标题且含 i18nText()。",
+  },
+  {
     slug: "edu/24-point-solver",
     clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:\"nums\",type:'text',value:\"1 2 3 4\"}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __sync=function(){var r=document.getElementById('result');r.textContent=String(r.innerHTML||'').replace(/<[^>]*>/g,'').replace(/\\s+/g,' ').trim();};document.getElementById(\"nums\").value=\"1 2 3 4\";__els.find(function(e){return e.id===\"nums\";}).value=\"1 2 3 4\";solve();__sync();__24_point_solverExtras();document.getElementById(\"nums\").value=\"2 3 4 5\";__els.find(function(e){return e.id===\"nums\";}).value=\"2 3 4 5\";solve();__sync();__24_point_solverExtras();document.querySelectorAll=__oq;var __lr=__cap[__cap.length-1]||{};var __o={};for(var __k in __lr){if(__k!=='结果'&&__k!=='__tbScore')__o[__k]=__lr[__k];}document.getElementById('__tbProbe').textContent='TAIL24 n='+__cap.length+' last='+JSON.stringify(__o);"],
     expect: ["TAIL24 n=3 last={\"nums\":\"2 3 4 5\"}"],

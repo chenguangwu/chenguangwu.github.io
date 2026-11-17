@@ -172,10 +172,6 @@
   <div class="formula-title">📐 计算方式</div> <div class="formula-eq">学分加权成绩计算<br>加权均分 = Σ(课程分数 × 课程学分) ÷ Σ课程学分<br>简单平均分 = Σ课程分数 ÷ 课程门数<br>等级判定（按加权均分）：≥90 A 优秀｜≥80 B 良好｜≥70 C 中等｜≥60 D 及格｜&lt;60 F 不及格</div>
   <p>加权总分 = Σ(分项得分 × 权重) ÷ Σ权重；权重之和通常归一为 1，未归一时自动按总和分摊权重影响。</p>
 </div>
-<div class="card formula-box">
-  <div class="formula-title">📐 计算方式</div>
-  <p>加权总分 = Σ(分项得分 × 权重) ÷ Σ权重；权重之和通常归一为 1，未归一时自动按总和分摊权重影响。</p>
-</div>
 <div class="tabs">
       <div class="tab active" onclick="switchTab('calc')">成绩计算</div>
       <div class="tab" onclick="switchTab('target')">目标倒推</div>
@@ -388,8 +384,8 @@ function renderCourses(){
     html += `
       <div class="course-row">
         <div class="cr-name"><label>科目名</label><input type="text" value="${ToolBox.escHtml(c.name)}" onchange="updateCourse(${i},'name',this.value)"></div>
-        <div><label>分数</label><input type="number" value="${c.score}" min="0" max="100" onchange="updateCourse(${i},'score',parseFloat(this.value)||0)" placeholder="如 ${c.score}（0–100）"></div>
-        <div><label>权重</label><input type="number" value="${c.credit}" min="0.5" step="0.5" onchange="updateCourse(${i},'credit',parseFloat(this.value)||0)" placeholder="如 ${c.credit}"></div>
+        <div><label>分数</label><input type="number" value="${c.score}" min="0" max="100" onchange="updateCourse(${i},'score',this.value)" placeholder="如 ${c.score}（0–100）"></div>
+        <div><label>权重</label><input type="number" value="${c.credit}" min="0.5" step="0.5" onchange="updateCourse(${i},'credit',this.value)" placeholder="如 ${c.credit}"></div>
         <button type="button" class="btn cr-del danger" onclick="removeCourse(${i})" ${courses.length<=1?'disabled style="opacity:0.5;cursor:not-allowed;"':''}>×</button>
       </div>
     `;
@@ -411,12 +407,37 @@ function removeCourse(i){
 }
 
 function updateCourse(i, key, val){
-  courses[i][key] = val;
+  if(key==='score'){
+    const n = Number(val);
+    if(!Number.isFinite(n) || n<0 || n>100){
+      document.getElementById('totalScore').textContent=(typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Score must be 0-100':'分数须在 0–100';
+      return;
+    }
+    courses[i][key] = n;
+  }else if(key==='credit'){
+    const n = Number(val);
+    if(!Number.isFinite(n) || n<=0){
+      document.getElementById('totalScore').textContent=(typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Weight must be > 0':'权重须大于 0';
+      return;
+    }
+    courses[i][key] = n;
+  }else{
+    courses[i][key] = val;
+  }
   calc();
 }
 
 function calc(){
   if(courses.length===0) return;
+
+  const badScore=courses.find(c=>!Number.isFinite(c.score)||c.score<0||c.score>100);
+  const badCredit=courses.find(c=>!Number.isFinite(c.credit)||c.credit<=0);
+  if(badScore||badCredit){
+    const en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    document.getElementById('totalScore').textContent=en?'Invalid course data':(badScore?'分数须在 0–100':'权重须大于 0');
+    document.getElementById('gradeLabel').textContent='—';
+    return;
+  }
   
   let totalWeight = 0, totalScore = 0;
   let max = 0, min = 100, sum = 0;
@@ -451,25 +472,39 @@ function calc(){
 }
 
 function calcTarget(){
-  const regular = parseFloat(document.getElementById('tRegular').value)||0;
-  const regularW = parseFloat(document.getElementById('tRegularWeight').value)||0;
-  const midterm = parseFloat(document.getElementById('tMidterm').value)||0;
-  const midtermW = parseFloat(document.getElementById('tMidtermWeight').value)||0;
-  const target = parseFloat(document.getElementById('tTarget').value)||0;
-  const finalW = parseFloat(document.getElementById('tFinalWeight').value)||0;
-  
+  const en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  const read=id=>{const s=String(document.getElementById(id).value||'').trim();return s===''?NaN:Number(s);};
+  const regular=read('tRegular'), regularW=read('tRegularWeight');
+  const midterm=read('tMidterm'), midtermW=read('tMidtermWeight');
+  const target=read('tTarget'), finalW=read('tFinalWeight');
+  const valid=Number.isFinite(regular)&&regular>=0&&regular<=100
+    &&Number.isFinite(midterm)&&midterm>=0&&midterm<=100
+    &&Number.isFinite(target)&&target>0&&target<=100
+    &&Number.isFinite(regularW)&&regularW>0
+    &&Number.isFinite(midtermW)&&midtermW>0
+    &&Number.isFinite(finalW)&&finalW>0;
+  if(!valid){
+    document.getElementById('currentGot').textContent='—';
+    document.getElementById('targetNeed').textContent='—';
+    document.getElementById('targetFinal').textContent=en?'Enter valid target and weights':'请填写有效目标与占比';
+    document.getElementById('difficulty').textContent='—';
+    document.getElementById('targetDesc').textContent=en?'Target 0-100, each weight > 0':'目标须在 0–100 且三项占比均须大于 0';
+    return;
+  }
+
   const totalWeight = regularW + midtermW + finalW;
-  // 按实际权重总和归一：权重之和不为 100 时仍能得到正确的 100 分制加权成绩
-  const gotScore = totalWeight > 0 ? (regular * regularW + midterm * midtermW) / totalWeight : 0;
+  // 按实际权重总和归一：权重之和不为 100 时仍得到 100 分制加权成绩
+  const gotScore = (regular * regularW + midterm * midtermW) / totalWeight;
   const needScore = target - gotScore;
-  const finalNeed = finalW > 0 && totalWeight > 0 ? needScore / (finalW / totalWeight) : 0;
+  const finalNeed = needScore / (finalW / totalWeight);
   
   const __g8=gotScore.toFixed(1);document.getElementById('currentGot').textContent=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
   const __g9=needScore.toFixed(1);document.getElementById('targetNeed').textContent=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
   const __g10=finalNeed.toFixed(1) + ' 分';document.getElementById('targetFinal').textContent=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));
   
   let diff, desc;
-  if(finalNeed <= 60){ diff = '很容易 🌟'; desc = '目标很容易达到，保持状态即可'; }
+  if(finalNeed <= 0){ diff = '已达标 ✅'; desc = en?'Already on track':'当前成绩已达到目标，期末正常发挥即可'; }
+  else if(finalNeed <= 60){ diff = '很容易 🌟'; desc = '目标很容易达到，保持状态即可'; }
   else if(finalNeed <= 75){ diff = '较轻松 🙂'; desc = '目标不难，正常发挥即可'; }
   else if(finalNeed <= 85){ diff = '需努力 💪'; desc = '需要认真复习，有一定挑战'; }
   else if(finalNeed <= 95){ diff = '有难度 🔥'; desc = '目标较高，需要非常努力'; }
@@ -483,9 +518,19 @@ function calcRank(){
   const myScore = parseFloat(document.getElementById('rMyScore').value)||0;
   const avg = parseFloat(document.getElementById('rAvg').value)||0;
   const total = parseFloat(document.getElementById('rTotal').value)||0;
-  const std = parseFloat(document.getElementById('rStd').value)||10;
-  
-  if(std <= 0) return;
+  const stdRaw=String(document.getElementById('rStd').value||'').trim();
+  const std=stdRaw===''?NaN:Number(stdRaw);
+
+  if(!Number.isFinite(std)||std<=0){
+    const en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    document.getElementById('zScore').textContent='—';
+    document.getElementById('percentile').textContent='—';
+    document.getElementById('rankResult').textContent=en?'Std dev must be > 0':'标准差必须大于 0';
+    document.getElementById('rankPercent').textContent=en?'Enter a valid standard deviation':'请输入有效标准差';
+    document.getElementById('aboveAvg').textContent='—';
+    document.getElementById('rankGrade').textContent='—';
+    return;
+  }
   
   const z = (myScore - avg) / std;
   const percentile = normalCDF(z);
@@ -538,7 +583,7 @@ function saveRecord(){
   history.unshift(data);
   history = history.slice(0,20);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-  ToolBox.showToast(i18nText());
+  ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Saved':'已保存本次成绩记录','success');
 }
 
 function clearAll(){
@@ -580,14 +625,14 @@ function deleteHistory(i){
   history.splice(i,1);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
   renderHistory();
-  ToolBox.showToast(i18nText());
+  ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Deleted':'已删除该条记录','success');
 }
 
 function clearHistory(){
   if(!confirm(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Clear all history?":"确定清空所有历史记录？"))) return;
   localStorage.removeItem(HISTORY_KEY);
   renderHistory();
-  ToolBox.showToast(i18nText());
+  ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'History cleared':'已清空历史记录','success');
 }
 
 renderCourses();
