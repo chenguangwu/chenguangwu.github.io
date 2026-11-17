@@ -116,8 +116,8 @@ const CASES = [
 
   { slug: "encode/jwt-size",
     inputs: { header: "100", payload: "300", sig: "64" },
-    expect: ["624", "626"],
-    ref: "Base64 部分=ceil(100/3)×4+ceil(300/3)×4+ceil(64/3)×4=136+400+88=624；含分隔符=626（默认 50/200/32→380/382，避开）" },
+    expect: ["620", "622"],
+    ref: "I-3 去填充口径：base64url 去尾部 =，100%3=1→134、300%3=0→400、64%3=1→86，合计 620、含分隔符 622。旧版按含填充 ceil(n/3)×4 得 624/626，与页面表格「去掉尾部 = 填充」自述矛盾。默认 50/200/32→ (68+268+44)=380/382，避开。" },
 
   { slug: "encode/radix-digits",
     inputs: { N: "1000", base: "10", bytes: "1" },
@@ -537,8 +537,43 @@ const CASES = [
     "inputs": { "bytes": "-3", "pad": "1", "line": "0" },
     "expect": ["请输入有效参数"],
     "ref": "非法输入拦截：负字节数旧实现按 Math.ceil(-3/5)*8 得 0 并正常展示；现在提示且不输出长度。默认 100/1/0 正常出 160，不含该提示 ⇒ 强判别。"
+  },
+  {
+    "slug": "encode/utf-8",
+    "inputs": { "ascii": "-100", "cjk": "20", "emoji": "5" },
+    "expect": ["三类字符数均须为非负整数"],
+    "ref": "I-1 负字符数：旧版 ascii=-100 使总字节=-20、平均 0.27、膨胀 -73.33% 全部失去物理意义。现三项非负整数守卫拦截；默认 100/20/5 不命中。"
+  },
+  {
+    "slug": "encode/utf-8",
+    "inputs": { "ascii": "0.5", "cjk": "20", "emoji": "5" },
+    "expect": ["三类字符数均须为非负整数"],
+    "ref": "I-1 小数字符数：字符数必须整数，0.5 个字符无意义。现整数守卫拦截；默认 100/20/5 不命中。"
+  },
+  {
+    "slug": "encode/base64-length",
+    "inputs": { "bytes": "10", "padding": "0", "wrap": "0" },
+    "expect": ["编码字符数(去填充)： 14 字符"],
+    "ref": "I-2 padding 开关参与计算：bytes=10、含填充 ceil(10/3)×4=16，去填充应为 4·floor(10/3)+2=14（10%3=1 补2）。旧版 padding=0 仍输出 16「编码字符数(含填充)」开关无效；现 padding=0 输出 14 且标签改「去填充」。默认 bytes=100 padding=1 输出含填充 136，不含本串 ⇒ 强判别零逃生。"
+  },
+  {
+    "slug": "encode/base64-length",
+    "inputs": { "bytes": "1.5", "padding": "1", "wrap": "0" },
+    "expect": ["字节数、含填充标记与换行数均须为非负整数"],
+    "ref": "I-2 小数字节：旧版 bytes=1.5 算出填充数 1.5 个无意义。现三项非负整数守卫拦截；默认 100 不命中。"
+  },
+  {
+    "slug": "encode/jwt-size",
+    "inputs": { "header": "48", "payload": "201", "sig": "32" },
+    "expect": ["Base64 部分： 375 字符"],
+    "ref": "I-3 去填充边界：48%3=0→64、201%3=0→268、32%3=2→4·10+3=43（去尾部=），合计 375。旧版按含填充 ceil(32/3)×4=44 得 376，多算 1 字符。注入非默认 header=48/payload=201（默认 50/200）避开默认态。"
+  },
+  {
+    "slug": "encode/jwt-size",
+    "clicks": ["var p=String(typeof __jwt_sizePresets==='function'?__jwt_sizePresets:'');var ok=/sig[^0-9]{0,6}32/.test(p)&&!/sig[^0-9]{0,6}43/.test(p);document.getElementById('__tbProbe').textContent='JWTPRE '+(ok?'OK':'BAD');"],
+    "expect": ["JWTPRE OK"],
+    "ref": "I-3 预设口径：旧「简单登录 JWT」预设把 HS256 的 43 字符签名填进「签名长度字节」框被二次编码；现改为 32 字节并在 calc 内以 __b64url 去填充编码。函数源码哨兵，旧版必红。"
   }
-
 ];
 
 async function main() {
