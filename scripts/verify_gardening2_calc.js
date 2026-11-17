@@ -56,6 +56,12 @@ const CASES = [
     "0.42"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "gardening2/fertilizer-ppm",
+  "clicks": ["document.getElementById('mode').value='calcPpm';document.getElementById('targetPpm').value='1';document.getElementById('waterAmount').value='1.5';document.getElementById('nutrientPct').value='20';calc();var lab=document.getElementById('targetPpmLabel');var inp=document.getElementById('targetPpm');var h=String(document.getElementById('result').innerHTML);var ok=!!lab&&lab.textContent==='实际肥料用量 (g)'&&inp.placeholder==='如 1'&&h.indexOf('133 ppm')>=0&&h.indexOf('用量 1g')>=0;document.getElementById('__tbProbe').textContent='REVPPM '+(ok?'OK':'BAD '+(lab?lab.textContent:'nolabel')+' ph='+inp.placeholder+' '+h.slice(0,120));"],
+  "expect": ["REVPPM OK"],
+  "ref": "第1090批 J8：反算模式把 targetPpm 输入框当克数用，旧版标签仍写「目标浓度 (ppm)」/占位「如 200」，用户按标签填 200 会得到 40000ppm。修复后切 calcPpm 时标签动态改「实际肥料用量 (g)」、占位「如 1」，且预设值 1g/1.5L/20% → ppm=1×0.2×1e6÷1.5÷1000=133、结果回显「用量 1.000g」。旧版 label 无 id ⇒ lab 为 null，哨兵必然 BAD。"
 }
 ];
 async function main() {
