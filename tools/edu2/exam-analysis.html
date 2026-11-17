@@ -116,6 +116,7 @@
     <div class="formula-box">
       <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">成绩统计分析<br>及格线 = 满分 × 及格率%；优秀线 = 满分 × 优秀率%<br>平均分 = Σ分数 ÷ 人数；标准差 = √(Σ(x−μ)² ÷ n)（总体标准差）<br>及格率 = ≥及格线人数 ÷ 总人数 × 100%；优秀率同理<br>分数段分布：90–100%｜80–89%｜70–79%｜60–69%｜<60%（按满分比例）<br>排名按分数降序；等级：≥优秀线 优秀｜≥max(满分75%, 及格线) 良好｜≥及格线 及格｜其余不及格<br>整体水平采用与单人相同的等级阈值（均分 ≥优秀线 优秀｜≥良好线 良好｜≥及格线 及格｜否则不及格）</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：b.count ÷ maxBand × 100；full × excelPct ÷ 100；full × passPct ÷ 100">Key formulas: b.count ÷ maxBand × 100; full × excelPct ÷ 100; full × passPct ÷ 100</p>
+      <p class="formula-desc" data-zh="排名同分并列：相同分数同名次，下一名按实际位次跳号（如 1、2、2、4）。">Ties share the same rank; the next rank skips occupied positions (for example 1, 2, 2, 4).</p>
     </div>
 
     <div class="input-row">
@@ -192,6 +193,7 @@
 <dl class="dd-faq">
 <dt>标准差代表什么？</dt><dd>标准差反映成绩的离散程度（此处为总体标准差 σ=√(Σ(x−均值)²/n)）；值越大说明学生成绩差距越大、分化越明显，越小说明整体越均衡，是诊断班级两极分化的重要统计量。</dd>
 <dt>及格率/优秀率怎么算才对？</dt><dd>及格率=达到及格线人数÷总人数×100%，优秀率同理；关键是及格/优秀分数线要按满分制换算（线百分比×满分），而非固定 60/85 分——满分 150 时及格线为 90 分。本工具已自动按满分折算。</dd>
+<dt>同分排名？</dt><dd>同分并列同名次，下一名按实际位次跳号（如 1、2、2、4）；等级阈值取 max(满分75%, 及格线) 良好线，与及格率共用同一条线。</dd>
 </dl>
 </div>
 </section>
@@ -345,9 +347,16 @@ function calc(){
     }
   });
 
-  // 排名
+  // 排名（竞争排名：同分同名次，下一名按实际位次跳号）
   var ranked = list.slice().sort(function(a,b){ return b.score - a.score; });
-  ranked.forEach(function(s, idx){ s.rank = idx+1; });
+  var prevScore = null, prevRank = 0;
+  ranked.forEach(function(s, idx){
+    if(prevScore === null || s.score !== prevScore){
+      prevRank = idx + 1;
+      prevScore = s.score;
+    }
+    s.rank = prevRank;
+  });
 
   var goodScore = Math.max(full*0.75, passScore);
   var meanGrade = mean >= excelScore ? {tag:'grade-excellent',text:'优秀'} : mean >= goodScore ? {tag:'grade-good',text:'良好'} : mean >= passScore ? {tag:'grade-pass',text:'及格'} : {tag:'grade-fail',text:'不及格'};
@@ -382,8 +391,8 @@ function calc(){
   html += '<h3 style="margin-top:16px;">成绩排名</h3>';
   html += '<table><thead><tr><th>排名</th><th>姓名</th><th>分数</th><th>等级</th><th>与均分差</th></tr></thead><tbody>';
   ranked.forEach(function(s){
-    var grade = s.score >= excelScore ? 'grade-excellent' : s.score >= full*0.75 ? 'grade-good' : s.score >= passScore ? 'grade-pass' : 'grade-fail';
-    var gradeText = s.score >= excelScore ? '优秀' : s.score >= full*0.75 ? '良好' : s.score >= passScore ? '及格' : '不及格';
+    var grade = s.score >= excelScore ? 'grade-excellent' : s.score >= goodScore ? 'grade-good' : s.score >= passScore ? 'grade-pass' : 'grade-fail';
+    var gradeText = s.score >= excelScore ? '优秀' : s.score >= goodScore ? '良好' : s.score >= passScore ? '及格' : '不及格';
     var diff = s.score - mean;
     var diffStr = diff >= 0 ? '+'+diff.toFixed(1) : diff.toFixed(1);
     html += '<tr><td>'+s.rank+'</td><td>'+ToolBox.escHtml(s.name)+'</td><td>'+s.score+'</td><td><span class="grade-tag '+grade+'">'+gradeText+'</span></td><td style="color:'+(diff>=0?'var(--success)':'var(--danger)')+'">'+diffStr+'</td></tr>';
@@ -395,7 +404,7 @@ function calc(){
   el.style.display='block';
 }
 
-calc();
+if(String(document.getElementById('scoreInput').value||'').trim()) calc();
 </script>
 
 <!-- SEO 介绍区块 -->
@@ -575,17 +584,10 @@ function __exam_analysisExport(){
     }catch(e){}
     try { TBKit.util.exportTable('#exam_analysisTable','exam-analysis.csv'); } catch(e){}
 }
-function __exam_analysisScaleSample(full){
-  return SAMPLE.split('\n').map(function(l){
-    var p = l.split(',');
-    return p[0] + ',' + (parseFloat(p[1]) * full / 100).toFixed(1);
-  }).join('\n');
-}
 function __exam_analysisPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#exam_analysisPresets',[{label:'默认参数',labelEn:'Default',values:{'fullScore':'100', 'passLine':'60', 'excellentLine':'85'}},{"label":"小规模","labelEn":"Small scale","values":{"fullScore":"50"}},{"label":"大规模","labelEn":"Large scale","values":{"fullScore":"150"}},{"label":"极端工况","labelEn":"Extreme case","values":{"fullScore":"200"}}],function(){
-        var full = parseFloat(document.getElementById('fullScore').value) || 100;
-        document.getElementById('scoreInput').value = Math.abs(full - 100) < 0.01 ? SAMPLE : __exam_analysisScaleSample(full);
+        // 预设只改满分/分数线，绝不覆盖用户已录入的成绩
         calc();
     });
 }
@@ -593,7 +595,7 @@ var __exam_analysis_f0=(typeof calc==='function')?calc:null;
 if(__exam_analysis_f0){
     calc=function(){ var __r=__exam_analysis_f0.apply(null,arguments); try{ __exam_analysisExtras(); }catch(e){} return __r; };
 }
-function __exam_analysisBoot(){ try{ __exam_analysisPresets(); }catch(e){}  try{ if(typeof loadSample==='function') loadSample(); }catch(e){} }
+function __exam_analysisBoot(){ try{ __exam_analysisPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __exam_analysisBoot();
 else document.addEventListener('DOMContentLoaded', __exam_analysisBoot);
 </script>

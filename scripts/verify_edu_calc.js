@@ -1737,6 +1737,28 @@ const CASES = [
     expect: ["J150 OK"],
     ref: "EL-J150：旧版 parseInt('0')||5 把 0 静默改成 5 条，且 randInt 定义后从未调用。现 0 触发明确范围提示、不生成任何编码，死函数已删；默认 R=3 合法不命中提示。",
   },
+
+  // ── 第1188批：考试成绩分析等级阈值、首屏示例与并列排名收口 ──
+  {
+    slug: "edu2/exam-analysis",
+    inputs: { scoreInput: "张三,78\n李四,95", fullScore: "100", passLine: "90", excellentLine: "95" },
+    clicks: ["var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='J163 '+(r.indexOf('78</td><td><span class=\"grade-tag grade-fail\">不及格</span>')>=0?'OK':'BAD');"],
+    expect: ["J163 OK"],
+    ref: "EL-J163：旧版单人等级先判 full*0.75，及格线 90 时 78 分被标「良好」却不计入及格率。现良好线统一为 max(75%×满分, 及格线)，78 分与及格率同为不及格。默认 60% 线不命中该组合 ⇒ 零逃生。",
+  },
+  {
+    slug: "edu2/exam-analysis",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/exam-analysis.html','utf8');var boot='function __exam_analysisBoot(){ try{ __exam_analysisPresets(); }catch(e){} }';var ov=\"document.getElementById('scoreInput').value = Math.abs(full - 100)\";var guard=\"if(String(document.getElementById('scoreInput').value||'').trim()) calc();\";var ok=h.indexOf(boot)>=0&&h.indexOf(guard)>=0&&h.indexOf(ov)<0&&h.indexOf('__exam_analysisScaleSample')<0;document.getElementById('__tbProbe').textContent='J164 '+(ok?'OK':'BAD');"],
+    expect: ["J164 OK"],
+    ref: "EL-J164：旧版 boot 调 loadSample 自动写历史、预设回调用缩放样例覆盖 scoreInput。现首屏空态只在有输入时 calc，预设只改满分/分数线，示例缩放死函数已删。源码形态哨兵：旧版含自动 loadSample 与覆盖语句 ⇒ 必红。",
+  },
+  {
+    slug: "edu2/exam-analysis",
+    inputs: { scoreInput: "张三,92\n李四,92\n王五,80", fullScore: "100", passLine: "60", excellentLine: "85" },
+    clicks: ["var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='J165 '+(r.indexOf('<td>1</td><td>张三</td><td>92</td>')>=0&&r.indexOf('<td>1</td><td>李四</td><td>92</td>')>=0&&r.indexOf('<td>3</td><td>王五</td><td>80</td>')>=0?'OK':'BAD');"],
+    expect: ["J165 OK"],
+    ref: "EL-J165：旧版排序后直接 idx+1，同分 92 被给 1/2 名。现竞争排名同分同名次、下一名跳号（1/1/3）。默认 15 人样例无该 1/1/3 组合 ⇒ 零逃生。",
+  },
 ];
 
 async function main() {
