@@ -302,6 +302,20 @@ const CASES = [
     ref: "巴林杰陨石坑参数（铁陨石 L=50 m、v=13 km/s、ρi=7800、ρt=2700、45°）：CMM 瞬态坑 D_tc=1.161×(7800/2700)^(1/3)×50^0.78×13000^0.44×9.80665^−0.22×sin^(1/3)45°=1217.4 m，未超 2.5 km 过渡径（不折减）→ 1.217 km；E=0.5×(4/3)π·25³×7800×13000²=4.314e16 J ⇒ 广岛当量 684.7 倍。原实现把 CMM 与另一条 D=0.07(E/ρ)^(1/4) 取平均 ⇒ 仅 619 m，且与同站 science/meteor-crater-estimator 同参数给出的 1.22 km 自相矛盾",
   },
 
+  {
+    slug: "science/astronomy-toolkit",
+    inputs: { latInput: "0", lonInput: "180" },
+    clicks: ["convertLatLonToUTM();document.getElementById('lonInput').value='ASTROZONE_'+(String(document.getElementById('utmResult').textContent||document.getElementById('utmResult').innerHTML).indexOf('60N')>=0?'OK':'BAD');"],
+    expect: ["ASTROZONE_OK"],
+    ref: "SMS-73 清账（经度边界）：经度 +180° 是 UTM 东半球合法边界，应归入第 60 带（60N）。旧版 ⌊(180+180)/6⌋+1=61 输出不存在的 61 带；现钳制到 60。探针断言正向结果含「60N」且非「61」，旧版 ⇒ ASTROZONE_BAD，零逃生。",
+  },
+  {
+    slug: "science/astronomy-toolkit",
+    inputs: { utmZone: "50", utmHemisphere: "N", utmEasting: "1500000", utmNorthing: "5000000" },
+    clicks: ["convertUTMToLatLon();document.getElementById('utmEasting').value='ASTRORNG_'+(String(document.getElementById('utmReverseResult').textContent||document.getElementById('utmReverseResult').innerHTML).indexOf('东移应在 0~1000000')>=0?'OK':'BAD');"],
+    expect: ["ASTRORNG_OK"],
+    ref: "SMS-73 清账（E 范围守卫）：东移值 1500000 m 超出假东移 500000 的物理上限 1000000，旧版照常反算输出荒谬经纬度；现直接提示「东移应在 0~1000000 m」。探针断言反向结果容器出现该提示，旧版 ⇒ ASTRORNG_BAD，零逃生。",
+  },
   // ---- BATCH251：数学基础族（9 例）——「分步推导行」批量收口 ----
   // 【判据】这一族（阶乘/斐波那契/分数/组合/排列/方差/中位数/众数/n 次根）几乎清一色地输出
   // 「编号步骤 + 可手算的等式」，且默认参数各不相同 ⇒ **首轮多数就能过**，不必换参博弈。
@@ -1349,8 +1363,8 @@ const CASES = [
       "obsMoonPhase": "crescent",
       "obsBortle": "2"
     },
-    "expect": ["果仅供科普参考。\n-2779796544", "\n1138178552", "\nUTM 标准投影范围：纬度 -80° 到 84°。请检查输入值。\n42\nS\n42\n42\n纬度 ：2779796544"],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"moonDate\":\"abc123测试\",\"mag1\":\"42\",\"mag2\":\"42\",\"meteorDiameter\":\"42\",\"meteorSpeed\":\"42\",\"meteorDensity\":\"42\",\"meteorAngle\":\"42\",\"groundDensity\":\"42\",\"latInput\":\"42\",\"lonInput\":\"42\",\"utmZone\":\"42\",\"utmEasting\":\"42\",\"utmNorthing\":\"42\",\"polarLat\":\"42\",\"utmHemisphere\":\"S\",\"obsMoonPhase\":\"crescent\",\"obsBortle\":\"2\"}，输出区含「果仅供科普参考。\n-277979654460.676331\n1138178552…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": ["果仅供科普参考。", "该区号与东移/北移值不匹配，无法反算为有效经纬度"],
+    "ref": "自动补强（B类零用例）·SMS-73 清账：注入非默认输入含 utmZone=42/utmEasting=42/utmNorthing=42/utmHemisphere=S，旧版反向溢出为荒谬值「纬度：2779796544」；现结果域守卫拒绝并提示「该区号与东移/北移值不匹配」。默认态（合法 E/N）不含该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "science/battery-life-calculator",
