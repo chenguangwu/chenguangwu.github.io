@@ -312,6 +312,12 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ent/tonsil-grading.html','utf8');var ok=h.indexOf('out.grade=String(grade)')>=0&&h.indexOf('TBKit.preset.bar(')>=0&&h.indexOf('tonsil_gradingPresets')>=0&&h.indexOf('Grade III with OSAHS')>=0&&h.indexOf('ToolBox.copyText(full')>=0&&h.indexOf('hasOwnProperty.call(rec')>=0;document.getElementById('__tbProbe').textContent='TONSILHIST '+(ok?'OK':'BAD');"],
   "expect": ["TONSILHIST OK"],
   "ref": "12-N101/N102/N103 复制部分：历史快照显式包含分度且恢复时同步按钮；预设栏补三组场景；复制结果改为完整结果文本。旧版快照无 grade、预设空壳、复制仅分度 ⇒ 变红。IV 度单独是否手术仍待专业复核，不在本用例。"
+},
+{
+  "slug": "ent/tdi-score",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ent/tdi-score.html','utf8');var ok=h.indexOf('id=\"scoreT\" value=\"6\" min=\"0\" max=\"16\"')>=0&&h.indexOf('范围 0-16')>=0&&h.indexOf('阈值T (0-16)')>=0&&h.indexOf('总分 >30.5 正常')>=0&&h.indexOf('min=\"1\" max=\"16\"')<0&&h.indexOf('范围 1-16')<0&&h.indexOf('总分 >30 正常')<0;document.getElementById('__tbProbe').textContent='TDIRANGE '+(ok?'OK':'BAD');"],
+  "expect": ["TDIRANGE OK"],
+  "ref": "12-N117：T 子项统一 0–16，引据阈值统一 >30.5；旧版 min=1、提示 1-16、引据 >30 ⇒ 变红。默认态不产生该串，零逃生。"
 }
 ];
 async function main() {
