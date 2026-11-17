@@ -111,7 +111,7 @@
     <h2 data-zh="💰 租金（市场比较/动态）定价">Rent 2</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入多个可比房源租金及楼层、朝向、装修、配套等修正系数，自动计算加权参考租金、租金区间与年增长建议。">Rent 2 - online utility on ToolBox.</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">租金评估（市场比较法）<br>单价 = 月租金 ÷ 面积（元/㎡·月）<br>比准单价 = 单价 × (1 + 综合修正率)<br>加权单价 = Σ(比准单价 × 权重) ÷ Σ权重<br>建议月租金 = 加权单价 × 目标面积<br>租金区间 = min/max(比准单价) × 目标面积<br>下一年预期租金 = 建议租金 × (1 + 年增长率)<br>输入校验：租金、面积、权重均须 &gt;0<br>可比案例按权重输出修正对比表</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">租金评估（市场比较法）<br>单价 = 月租金 ÷ 面积（元/㎡·月）<br>比准单价 = 单价 × (1 + 综合修正率)<br>加权单价 = Σ(比准单价 × 权重) ÷ Σ权重<br>建议月租金 = 加权单价 × 目标面积<br>租金区间 = min/max(比准单价) × 目标面积<br>下一年预期租金 = 建议租金 × (1 + 年增长率)<br>输入校验：租金、面积、权重均须 &gt;0，综合修正率须在 −50%~+50% 之间<br>可比案例按权重输出修正对比表</div>
       <p class="formula-desc" data-zh="「输入多个可比房源租金及楼层、朝向、装修、配套等修正系数，自动计算加权参考租金、租金区间与年增长建议。」按输入参数进行专业计算并输出结果。">Rent 2 - online utility on ToolBox.: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -208,6 +208,14 @@ function calc(){
     {name:'C',rent:num('rentC'),area:num('areaC'),adj:num('adjC')/100,w:num('wC')}
   ].filter(function(c){return c.rent>0&&c.area>0&&c.w>0;});
   if(cases.length===0){document.getElementById('res').innerHTML='<p style="color:var(--danger);">请至少输入一个有效的可比房源（租金、面积、权重均大于 0）。</p>';return;}
+  // 综合修正率业务上限定 −50%~+50%：越界会让比准单价归零/变负，进而污染加权租金与区间。
+  for(var k=0;k<cases.length;k++){
+    if(cases[k].adj < -0.5 || cases[k].adj > 0.5){
+      var __rentEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+      document.getElementById('res').innerHTML='<p style="color:var(--danger);">'+(__rentEn?'Case '+cases[k].name+' adjustment must be between -50% and +50%.':'案例 '+cases[k].name+' 的综合修正超出 −50%~+50%，请检查输入。')+'</p>';
+      return;
+    }
+  }
 
   var targetArea=num('targetArea'),g=num('growth')/100;
   var rows=[],valid=[];
@@ -229,7 +237,7 @@ function calc(){
 
   var useArea=targetArea>0?targetArea:(valid.length>0?valid[0].area:0);
   var refRent=weightedUnit*useArea;
-  var minRent=Math.min.apply(null,valid.map(function(c){return c.adjustedUnit;}))*useArea;
+  var minRent=Math.max(0,Math.min.apply(null,valid.map(function(c){return c.adjustedUnit;}))*useArea);
   var maxRent=Math.max.apply(null,valid.map(function(c){return c.adjustedUnit;}))*useArea;
   var nextYear=refRent*(1+g);
 

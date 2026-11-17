@@ -102,6 +102,30 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "rental/rent-2",
+  "inputs": {
+    "targetArea": "90", "growth": "2",
+    "rentA": "4500", "areaA": "85", "adjA": "-150", "wA": "1",
+    "rentB": "5200", "areaB": "95", "adjB": "2", "wB": "1",
+    "rentC": "4800", "areaC": "88", "adjC": "0", "wC": "1"
+  },
+  "clicks": ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='RENTADJ '+((h.indexOf('综合修正超出')>=0&&h.indexOf('租金区间')<0)?'OK':'BAD '+h.slice(0,100));"],
+  "expect": ["RENTADJ OK"],
+  "ref": "RE-N7-a：案例 A 综合修正 −150% ⇒ 比准单价为负，旧版仍参与加权得建议租金 2,517、租金区间 −2,382–5,025；新守卫要求修正率在 −50%~+50%，越界仅提示且不写历史。默认 −3% 不命中。"
+},
+{
+  "slug": "rental/rent-2",
+  "inputs": {
+    "targetArea": "90", "growth": "2",
+    "rentA": "4500", "areaA": "85", "adjA": "-3", "wA": "1",
+    "rentB": "5200", "areaB": "95", "adjB": "60", "wB": "1",
+    "rentC": "4800", "areaC": "88", "adjC": "0", "wC": "1"
+  },
+  "clicks": ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='RENTADJMAX '+((h.indexOf('综合修正超出')>=0&&h.indexOf('可比房源修正表')<0)?'OK':'BAD '+h.slice(0,100));"],
+  "expect": ["RENTADJMAX OK"],
+  "ref": "RE-N7-b：案例 B 综合修正 +60% 超出 +50% 上界，旧版照常输出加权表；新守卫拦截正越界。默认 +2% 不命中。"
+},
+{
   "slug": "rental/calc-commission-1",
   "inputs": {
     "amount": "",
