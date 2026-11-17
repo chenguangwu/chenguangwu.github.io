@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 // food-processing 21 例：全部为非默认输入 + 独立复算 expect（Python Decimal/高精度）。
 // 复算口径：每例期望值均由页面公式独立推出，且不与页面「深度解析」算例字面量碰撞。
@@ -179,6 +181,12 @@ const CASES = [
   "clicks": ["rows.splice(0,rows.length);calc()"],
   "expect": ["请先添加原料行后再计算。"],
   "ref": "空表：原料行全部删除后不再给「¥0.00 配方成本报告」，改为提示；默认 4 行（500/150/120/100 g）⇒ 正常报告，不命中。判别力：兜底循环 addRow(5 行，末行 qty=0)+delRow(删首行→4 行) 只会命中「请填写每条原料的单价、用量与损耗」，不会删除到零行，故不命中本串。"
+},
+{
+  "slug": "food-processing/sterilization-f-value",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/food-processing/sterilization-f-value.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/food-processing/sterilization-f-value.json','utf8');var ok=h.indexOf('美食烹饪工具')<0&&h.indexOf('食材配比与营养')<0&&h.indexOf('低酸罐头、饮料与食品热杀菌工艺核算')>=0&&h.indexOf('低酸罐头商业无菌 F₀ 核算')>=0&&en.indexOf('美食烹饪工具')<0&&en.indexOf('a food and cooking tool')<0&&en.indexOf('low-acid canned food, beverages and thermal processing')>=0;document.getElementById('__tbProbe').textContent='FVALINTRO '+(ok?'OK':'BAD');"],
+  "expect": ["FVALINTRO OK"],
+  "ref": "12-N153 销账补英译源：页面工具简介早已改为工业热杀菌定位，但本页 en map 仍保留旧「美食烹饪/食材配比与营养」中英键。修复后页面无烹饪措辞，en map 同步为 F 值工艺核算口径；旧版因 en map 旧串命中而红。"
 }
 
 ];
