@@ -2579,6 +2579,12 @@ const CASES = [
     "clicks": ["calcWindLevel()"],
     "expect": ["3.3 风速（m/s）", "蒲福 2 级", "轻风"],
     "ref": "SMS-66：蒲福表各级 min~max 间留 0.1 m/s 空隙（1.5→1.6、3.3→3.4…），12 km/h=3.3333 m/s 正落 3.3~3.4 空隙，旧版 !found 兜底 12 级飓风。修复后按 min 下界逐级命中：3.3333≥level2.min(1.6) 且 <level3.min(3.4) ⇒ 2 级轻风。3.3 m/s 为 3.3333.toFixed(1)。默认 wind-speed=5 m/s（命中3级微风）且需 clicks ⇒ 三条均不命中。"
+  },
+  {
+    "slug": "science/calc-distance",
+    "clicks": ["var _qs=document.querySelector.bind(document);document.querySelector=function(s){if(String(s).indexOf('dms')>=0)return {checked:true};return _qs(s);};try{swapFmt();}catch(e){}document.querySelector=_qs;var r=document.getElementById('res');r.innerHTML=r.innerHTML+' DMSPROBE type='+document.getElementById('lat1').type+' val='+document.getElementById('lat1').value;"],
+    "expect": ["DMSPROBE type=text val=39°54'15.12\""],
+    "ref": "SMS-77：四个坐标输入原为 type=number，swapFmt() 把度分秒串（含 ° ' \"）写回 number 输入被浏览器清空 ⇒ 坐标全空报「坐标格式无效」、切回十进制也无法恢复。修复后切格式时同步把四输入 type 改为 text（度分秒）/number（十进制），并用 parseCoord 读取已格式化值。探针勾选 dms 调 swapFmt，断言 lat1.type=text 且保留 39°54'15.12\"；旧版 type 恒 number ⇒ 不命中。默认态不执行 clicks ⇒ 零逃生。"
   }
 ];
 
