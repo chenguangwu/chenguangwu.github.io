@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const CASES = [
   {
     slug: "dermatology/actinic-keratosis",
@@ -481,6 +483,12 @@ const CASES = [
   "clicks": ["var src=String(__pasi_scoreExport);var ok=src.indexOf('Object.keys(snap)')>=0&&src.indexOf('slice(0,12)')<0;document.getElementById('__tbProbe').textContent='PASIEXP '+(ok?'OK':'BAD');"],
   "expect": ["PASIEXP OK"],
   "ref": "N42 导出兜底字段完整性：PASI 快照共 16 字段（4 区 × E/I/D/A），无历史时导出兜底若 keys.slice(0,12) 会丢下肢 l_e/l_i/l_d/l_a。修复后 __pasi_scoreExport 用全量 Object.keys(snap)、无截断；旧版源码含 slice(0,12) ⇒ 变红。harness 的 querySelectorAll 返回空使 Snap 恒空、无法桩内驱动真实记录链，按既定教训（213 批）用源码形态判别，真机全链路由复核方覆盖。默认态不产生该串，零逃生。"
+},
+{
+  "slug": "dermatology/pasi-score",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/dermatology/pasi-score.html','utf8');var noBare=h.indexOf('content=\"Pasi Score\"')<0&&h.indexOf('>Pasi Score</h2>')<0&&h.indexOf('>Pasi Score</p>')<0;var okTitle=h.indexOf('content=\"PASI Score Calculator (Psoriasis Area and Severity Index)\"')>=0;var okIntro=h.indexOf('Rate erythema, induration and desquamation (0-4) in four body regions')>=0;var okH2=h.indexOf('>📐 PASI Score (Psoriasis Area and Severity Index)</h2>')>=0;document.getElementById('__tbProbe').textContent='PASIINTRO '+(noBare&&okTitle&&okIntro&&okH2?'OK':'BAD');"],
+  "expect": ["PASIINTRO OK"],
+  "ref": "12-N43 英文首屏介绍补全：英文 title/desc/h2/首个 p 不再退化为裸名 Pasi Score；旧版源码四处均为裸名 ⇒ 变红。harness 不加载构建后静态正文，按源码形态判别；默认态不产生该串，零逃生。"
 }
 ];
 async function main() {

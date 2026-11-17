@@ -380,13 +380,6 @@
 
 > 范围：本轮实读 8 页——`tools/dermatology/pasi-score.html`（dermatology）、`tools/urology/ipss-score.html`（urology）、`tools/obstetrics/bishop-score.html`（obstetrics）、`tools/hematology/dic-scoring.html`（hematology）、`tools/endocrinology/homa-ir.html`（endocrinology）、`tools/dentistry/caries-risk.html`（dentistry）、`tools/rehabilitation/fim-scale.html`（rehabilitation）、`tools/neurology/nihss.html`（neurology）。每页完整读 HTML（含内联 JS、公式框、deep-dive、FAQ）。仅源码 + `node -e` 内存复算，未开浏览器、未做 EN/移动端/门禁验证；医学量表阈值只判「实现与页面引据是否一致」，均需临床复核。
 
-### 12-N43 dermatology/pasi-score：英文态首屏介绍退化为 “Pasi Score”，英文 title/desc 同为裸名（低，确认缺陷）
-- 问题：`<h2 data-zh="…">Pasi Score</h2>`、首个 `<p data-zh="基于 PASI…">Pasi Score</p>`（`:133`、`:138`）；`<meta name="title-en">`/`desc-en` 亦为 `Pasi Score`（`:70-71`）。英文态整段介绍只剩工具名，无任何“PASI / 面积 / 严重度”说明。
-- 证据：`tools/dermatology/pasi-score.html:70-71`、`:133`、`:138`
-- 复现：打开 `?lang=en-US` → 标题下正文为 “Pasi Score”，期望完整英文简介（PASI 四区域面积 × 严重度）。
-- 影响：英文用户与搜索引擎拿不到工具用途描述，SEO 与可读性受损。
-- 方案：补 `i18n/tools/en/dermatology/pasi-score.json` 或改源页英文串；`title-en` 改为 “PASI Score Calculator (Psoriasis Area and Severity Index)”。
-
 **留存/优势（dermatology/pasi-score）**
 - 四区域色块分栏 + 区域权重标签，输入路径清晰。
 - 提供轻/中/重预设与一键重置，便于教学演示。
