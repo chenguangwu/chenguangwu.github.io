@@ -90,24 +90,6 @@
 
 > 方法：逐页读源码 + Node 内存复算（抽取页面内函数/字典求值、按页面判定逻辑模拟输入），未做浏览器、英文态、移动端、门禁或线上验证。编号 `EL-J*` 为本批新增，未与既有 E2 / S2 / S4 / EL-F* 重号。
 
-### EL-J1 拼音打字练习实为汉字照抄，拼音输入必然全错（高，确认缺陷）
-- 问题：页面标题、英文副标题、深挖示例均宣称「拼音打字 / Practice pinyin typing / 显示「中国」输入 zhongguo 判对」，但判定逻辑是把用户输入的**最后一个字符**与当前汉字逐字比对，页面没有任何拼音/音节数据。
-- 证据：`tools/edu/pinyin-typing-practice.html:243`（深挖示例「输入 zhongguo 判对」）、`:368`（按 `ch === inputValues[i]` 着色）、`:391-397`（`newChar = val[val.length-1]`，`if (newChar !== currentText[currentIndex]) errors++`）。Node 按该逻辑模拟样例「床前明月光，疑是地上霜。…」：逐键输入 `zhongguo` 8 个字母 → `currentIndex=8`、`errors=8`、正确率 0%。
-- 影响：`tools/edu/pinyin-typing-practice.html`；拼音用户按页面宣称的方式输入永远得 0 分，核心「打字速度/正确率」统计对目标用户不可用。IME 组合态期间 `input` 事件也会把拼音字母计入错误（需真机 IME 验证，标为待验证）。
-- 方案：二选一——① 为每条样例逐字标注拼音，按音节比对（接受无声调/同音变体），并加 `compositionstart/compositionend` 守卫，组合态不计错；② 明确改名为「汉字照抄练习」，删除「拼音打字 / zhongguo 判对」等宣称及英文 `Practice pinyin typing` 文案。落地后用内存用例断言 `zhongguo → 100%` 或断言页面无拼音宣称。
-
-### EL-J2 错误数只增不减，退格后准确率与速度可为负（中，确认缺陷）
-- 问题：退格只回退 `currentIndex`，不回退 `errors`；`updateStats`/`finishTyping` 仍用累计错误数计算正确率与速度。
-- 证据：`tools/edu/pinyin-typing-practice.html:402-404`（`else if (val.length < currentIndex) currentIndex = val.length;`，无 `errors--`）、`:412-414`（`currentIndex - errors`）、`:431-434`（完成 toast 未做 `Math.max`，直接输出负值）。Node 模拟两字文本「你好」：输 `x`（错 1）→ 退格 → 输 `y`（错 2）→ 输 `z`（错 3）完成，得 `(2-3)/2 = -50%`，速度同为负。
-- 影响：同页统计与完成提示；中间打错再改对的用户会被持续扣分，甚至看到负正确率/负速度，数据不可信。
-- 方案：记录每个位置的首次错误标记（数组 `errorFlags[i]`），退格时按标记回退；或在 `currentIndex` 减小时同步修正 `errors`。显示前统一 `Math.max(0, …)` 并补「打错→退格→改对」用例。
-
-### EL-J3 一次 input 事件只记 1 字，粘贴/长输入进度失真（中，确认缺陷）
-- 问题：输入处理只取 `val` 末字符并 `currentIndex++`，不按新增长度逐字推进；粘贴整句或语音/输入法一次上屏多字时，进度只前进 1。
-- 证据：`tools/edu/pinyin-typing-practice.html:389-397`（`if (val.length > currentIndex) { … currentIndex++ }`，没有循环）。Node 复算：把 12 字「床前明月光，疑是地上霜。」一次性粘贴，得 `currentIndex=1、errors=1`（应推进 12）。
-- 影响：同页；粘贴/批量输入后进度条、速度、正确率全部失真，且比对只覆盖最后一个字。
-- 方案：保存上一次输入值，按 `val` 与旧值的差异逐字处理（或对所有新增字符循环比对）；屏蔽粘贴（`paste` 事件提示逐字输入），并明确说明不支持整段粘贴。
-
 ### EL-J5 英语单词测试可能生成相同释义选项（中）
 - `tools/edu/english-vocabulary.html:467-470` 按单词而非释义排除干扰项；cet6 中 `agony` 与 `anguish` 的释义均为「极度痛苦」，可能同时成为同一道题的选项，用户无法区分。
 - 构造选项时对释义去重，并覆盖重复释义用例。

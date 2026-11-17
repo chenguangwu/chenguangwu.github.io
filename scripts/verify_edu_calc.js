@@ -1140,6 +1140,26 @@ const CASES = [
     "ref": "EL-J3 判分回归：zhonggou 把「guo」拼成「gou」，第 2 字判错 ⇒ 完成、正确率 50%、错误 1 个。旧实现按汉字比对，该输入既不完成也不产生此锚点。"
   },
   {
+    "slug": "edu/pinyin-typing-practice",
+    "clicks": [
+      "currentText='床前明月光';resetTyping();window.__ptApplyInput('chuangqianmingyou');var e1=window.__ptState().errors;window.__ptApplyInput('chuangqianmingyue');var e2=window.__ptState().errors;document.getElementById('ptTypeSel').value='PT4:e1='+e1+',e2='+e2;"
+    ],
+    "expect": [
+      "PT4:e1=1,e2=0"
+    ],
+    "ref": "EL-J2 回归：先输错 chuangqianmingyou（第4字应为 yue，errors=1），退格改 yue 后错误数须回退为 0。旧实现 errors 只增不减，e2 仍为 1。"
+  },
+  {
+    "slug": "edu/pinyin-typing-practice",
+    "clicks": [
+      "currentText='床前明月光，疑是地上霜。';resetTyping();window.__ptApplyInput('chuangqianmingyueguangyishidishangshuang');var st=window.__ptState();document.getElementById('ptTypeSel').value='PT5:c='+st.completed+',e='+st.errors+',f='+(st.finished?1:0);"
+    ],
+    "expect": [
+      "PT5:c=10,e=0,f=1"
+    ],
+    "ref": "EL-J3 回归：12 字符（含2标点）整句一次上屏，应按 10 个汉字逐字推进且全对完成。旧实现一次只取末字符推进 1 位、按汉字比对必错。"
+  },
+  {
     "slug": "edu/english-vocabulary",
     "inputs": {
       "qCount": "-5"
