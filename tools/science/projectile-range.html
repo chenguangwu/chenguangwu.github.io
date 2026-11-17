@@ -285,10 +285,19 @@ function __projectile_rangeNum(id){var e=document.getElementById(id);var v=e?par
 function __projectile_rangeExtras(){
     function __projectile_rangeRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
+    // 与主计算共用同一有效性口径：角度须 0–90°、v>0、g>0；非法时清空所有增强面板，
+    // 不再生成负射程伪明细，也不写入历史/差异。
+    var thDeg=__projectile_rangeNum('theta');
     var v=num('v'), th=num('theta')*Math.PI/180, g=num('g');
+    if (!isFinite(__projectile_rangeNum('v')) || !isFinite(thDeg) || !isFinite(__projectile_rangeNum('g')) ||
+        !(thDeg>=0&&thDeg<=90) || !(v>0) || !(g>0)){
+        document.getElementById('projectile_rangeTable').innerHTML='<p style="color:var(--danger)">'+(TBKit.util.isEn()?'Input invalid: detail table and chart cleared.':'⚠ 输入无效，明细表与图表已清空')+'</p>';
+        document.getElementById('projectile_rangeDiff').innerHTML='';
+        document.getElementById('projectile_rangeHist').innerHTML='';
+        return;
+    }
     var R = v*v*Math.sin(2*th)/g;
     var H = v*v*Math.sin(th)*Math.sin(th)/(2*g);
-    if (!isFinite(__projectile_rangeNum('v')) || !isFinite(__projectile_rangeNum('theta')) || !isFinite(__projectile_rangeNum('g'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#projectile_rangeTable',{
         head: en?['Item','Value']:['项目','数值'],

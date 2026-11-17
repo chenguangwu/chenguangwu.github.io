@@ -313,6 +313,13 @@ const CASES = [
     ref: "θ=−30° 会让 sin2θ=−0.866 产出负射程（页面曾显示 −35.3 m）；修复后拒绝定义域外角度。默认 45° 不命中",
   },
   {
+    slug: "science/projectile-range",
+    inputs: {},
+    clicks: ["globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){},scatter:function(){}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};document.getElementById('v').value='20';document.getElementById('theta').value='100';document.getElementById('g').value='9.81';__projectile_rangeExtras();delete globalThis.TBKit;"],
+    expect: ["输入无效，明细表与图表已清空"],
+    ref: "SMS-41 清账：主结果已拒 θ∉[0,90°]，但旧 __projectile_rangeExtras 只查有限性，越界仍生成负射程明细并写历史。现 Extras 与主计算共用角度范围 + v>0 + g>0 守卫，非法时清空明细/差异/历史并写入双语提示。自建 TBKit 桩注入 θ=100° 直接调 Extras，断言清空提示；旧版无此逻辑且生成 −13.95 m 负射程 ⇒ 变红，零逃生。合法态表格仍含「水平射程」且无提示。"
+  },
+  {
     slug: "science/pcb-trace-width",
     inputs: { current: "1", thickness: "1", temp: "10" },
     expect: ["11.8"],
@@ -704,6 +711,13 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["0.74 W", "7.40 Wh"],
     ref: "电池放电（容量 2000 mAh = 2 Ah、电流 200 mA = 0.2 A、电压 3.7 V）：功率 P = 3.7×0.2 = **0.74 W**；电能 E = 3.7×2 = **7.40 Wh**；续航 = 2 Ah/0.2 A = **10 小时**（页面时间轴 100%→0 秒/10 小时、90%→1 小时…与之一致）。默认组（1 Ah / 0.1 A）在 BATCH255 判过逃生 ⇒ 本例换组到 2 Ah / 0.2 A 后 0.74 W / 7.40 Wh 双态过。",
+  },
+  {
+    slug: "science/battery-life-calculator",
+    inputs: {},
+    clicks: ["var __exp=0;globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){__exp++;}},diffBox:function(){}};document.getElementById('cap').value='3000';document.getElementById('curr').value='100';document.getElementById('volt').value='3.7';document.getElementById('eff').value='1.5';__batteryExport();document.getElementById('cap').value='BATEXP_'+__exp+'_'+(document.querySelector('#battHidden tbody')?document.querySelector('#battHidden tbody').innerHTML.indexOf('3000')>=0?'Y':'N':'N');delete globalThis.TBKit;"],
+    expect: ["BATEXP_0_N"],
+    ref: "SMS-38 残留清账：导出函数原只守 capV/currV/volt，效率 eff 非法（如 150%）仍导出。现与主计算同口径要求容量/电流/电压>0 且 0<eff≤1，非法时提示且不导出。自建 TBKit 桩捕获 exportTable 调用次数 + 检查 #battHidden tbody：注入 eff=1.5 ⇒ 旧版导出 1 次且表含 3000（BATEXP_1_Y），修复后 0 次且表空（BATEXP_0_N）⇒ 变红，零逃生。"
   },
   {
     slug: "science/prime-number",
