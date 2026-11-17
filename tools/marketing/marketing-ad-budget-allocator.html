@@ -145,6 +145,10 @@
 <label style="margin-top:12px;">渠道2分配比例（%）</label><input type="number" id="budget2Pct" value="35" oninput="calc()" placeholder="如 35">
 <label style="margin-top:12px;">渠道3历史ROAS（如信息流）</label><input type="number" id="roas3" value="2" oninput="calc()" placeholder="如 2">
 <label style="margin-top:12px;">渠道3分配比例（%）</label><input type="number" id="budget3Pct" value="25" oninput="calc()" placeholder="如 25">
+<label style="margin-top:12px;" data-zh="对比方案·渠道1比例（%）">Scenario: channel 1 share (%)</label><input type="number" id="alt1Pct" value="30" oninput="calc()" placeholder="如 30">
+<label style="margin-top:12px;" data-zh="对比方案·渠道2比例（%）">Scenario: channel 2 share (%)</label><input type="number" id="alt2Pct" value="30" oninput="calc()" placeholder="如 30">
+<label style="margin-top:12px;" data-zh="对比方案·渠道3比例（%）">Scenario: channel 3 share (%)</label><input type="number" id="alt3Pct" value="40" oninput="calc()" placeholder="如 40">
+<div class="input-hint" style="font-size:12px;color:var(--text-muted);margin-top:4px;" data-zh="同预算三渠道敏感性比较：基准方案为上方分配比例或 ROAS 加权结果，对比方案固定总预算不变，仅改变三渠道比例；ROAS 固定为输入值，不考虑饱和、滞后与归因变化。">Three-channel sensitivity at the same budget: the baseline uses the allocation above; the scenario keeps total budget unchanged and changes only the three shares. ROAS is fixed and ignores saturation, lag and attribution changes.</div>
 <label style="margin-top:12px;">分配方式</label>
 <select id="allocMode" onchange="calc()">
   <option value="manual">手动比例（按填写百分比拆分）</option>
@@ -218,6 +222,11 @@
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="渠道预算 × 该渠道 ROAS">Channel budget × that channel ROAS</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">expected return</td>
         </tr>
+        <tr>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ROAS 定义">ROAS definition</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ROAS = 转化价值 ÷ 广告花费；ROI = 利润 ÷ 总花费">ROAS = conversion value / ad spend; ROI = profit / total spend</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);"><a href="https://support.google.com/google-ads/answer/12851704?hl=en" target="_blank" rel="noopener">Google Ads Glossary</a></td>
+        </tr>
       </tbody>
     </table>
   </div>
@@ -238,6 +247,10 @@ function calc(){
   const r1 = parseFloat(document.getElementById('roas1').value);
   const r2 = parseFloat(document.getElementById('roas2').value);
   const r3 = parseFloat(document.getElementById('roas3').value);
+  const a1 = parseFloat(document.getElementById('alt1Pct').value);
+  const a2 = parseFloat(document.getElementById('alt2Pct').value);
+  const a3 = parseFloat(document.getElementById('alt3Pct').value);
+  const __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?true:false;
   const modeEl = document.getElementById('allocMode');
   const mode = modeEl ? modeEl.value : 'manual';
   const pctEls = ['budget1Pct','budget2Pct','budget3Pct'].map(function(id){ return document.getElementById(id); });
@@ -251,12 +264,17 @@ function calc(){
     b3 = parseFloat(document.getElementById('budget3Pct').value);
   }
   const r = document.getElementById('result');
-  if(!isFinite(total)||!isFinite(r1)||!isFinite(r2)||!isFinite(r3)||!isFinite(b1)||!isFinite(b2)||!isFinite(b3)){
-    r.innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter a valid number</p>":"<p>请输入有效数值</p>");
+  if(!isFinite(total)||!isFinite(r1)||!isFinite(r2)||!isFinite(r3)||!isFinite(b1)||!isFinite(b2)||!isFinite(b3)||!isFinite(a1)||!isFinite(a2)||!isFinite(a3)){
+    r.innerHTML=(__en?"<p>Enter a valid number</p>":"<p>请输入有效数值</p>");
     return;
   }
-  if(total<0||b1<0||b2<0||b3<0||r1<0||r2<0||r3<0){
-    r.innerHTML='<p>总预算、分配比例与 ROAS 均须为非负数</p>';
+  if(total<0||b1<0||b2<0||b3<0||r1<0||r2<0||r3<0||a1<0||a2<0||a3<0){
+    r.innerHTML=__en?'<p>Budget, shares and ROAS must all be non-negative</p>':'<p>总预算、分配比例与 ROAS 均须为非负数</p>';
+    return;
+  }
+  const altSum = a1+a2+a3;
+  if(altSum <= 0){
+    r.innerHTML=__en?'<p>The scenario shares must total more than 0</p>':'<p>对比方案的渠道比例合计须大于 0</p>';
     return;
   }
   const pctSum = b1+b2+b3;
@@ -278,7 +296,27 @@ function calc(){
   const rev1 = bud1*r1, rev2 = bud2*r2, rev3 = bud3*r3;
   const totalRev = rev1+rev2+rev3;
   const totalRoas = total > 0 ? totalRev/total : null;
-  const __g2=modeNote + pctWarn + `
+
+  // 同预算三渠道敏感性比较：固定 ROAS，只改变分配比例，明确是算术情景而非预测
+  const alt1 = a1/altSum, alt2 = a2/altSum, alt3 = a3/altSum;
+  const ab1 = total*alt1, ab2 = total*alt2, ab3 = total*alt3;
+  const ar1 = ab1*r1, ar2 = ab2*r2, ar3 = ab3*r3;
+  const altRev = ar1+ar2+ar3;
+  const deltaRev = altRev-totalRev;
+  const altWarn = Math.abs(altSum-100)>0.01
+    ? (__en?'<p style="color:#ff9800;margin:0 0 8px;">Scenario shares total '+altSum+'%; normalised to 100%.</p>':'<p style="color:#ff9800;margin:0 0 8px;">对比方案比例合计 '+altSum+'%，已按比例归一到 100%。</p>')
+    : '';
+  let cmpHtml = '<h3 style="margin-top:14px;">'+(__en?'Same-budget three-channel sensitivity':'同预算三渠道敏感性比较')+'</h3>' + altWarn;
+  cmpHtml += '<p style="font-size:12px;color:var(--text-muted);">'+(__en
+    ? 'ROAS is fixed at the entered values; total budget stays the same. This is an arithmetic scenario only and does not model saturation, lag, attribution changes or an optimal allocation (Google Ads defines ROAS as conversion value / ad spend).'
+    : 'ROAS 固定为输入值、总预算不变；结果仅为输入假设下的算术比较，未考虑饱和、滞后、归因变化或最优投放建议（Google Ads 定义 ROAS = 转化价值 ÷ 广告花费）。')+'</p>';
+  cmpHtml += '<table><tr><th>'+(__en?'Channel':'渠道')+'</th><th>'+(__en?'Baseline budget':'基准预算')+'</th><th>'+(__en?'Scenario budget':'对比预算')+'</th><th>'+(__en?'Baseline revenue':'基准收入')+'</th><th>'+(__en?'Scenario revenue':'对比收入')+'</th><th>'+(__en?'Revenue Δ':'收入差异')+'</th></tr>';
+  cmpHtml += '<tr><td>'+(__en?'Channel 1 (search)':'渠道1（搜索）')+'</td><td>¥'+ToolBox.formatNumber(bud1,0)+'</td><td>¥'+ToolBox.formatNumber(ab1,0)+'</td><td>¥'+ToolBox.formatNumber(rev1,0)+'</td><td>¥'+ToolBox.formatNumber(ar1,0)+'</td><td>¥'+ToolBox.formatNumber(ar1-rev1,0)+'</td></tr>';
+  cmpHtml += '<tr><td>'+(__en?'Channel 2 (social)':'渠道2（社交）')+'</td><td>¥'+ToolBox.formatNumber(bud2,0)+'</td><td>¥'+ToolBox.formatNumber(ab2,0)+'</td><td>¥'+ToolBox.formatNumber(rev2,0)+'</td><td>¥'+ToolBox.formatNumber(ar2,0)+'</td><td>¥'+ToolBox.formatNumber(ar2-rev2,0)+'</td></tr>';
+  cmpHtml += '<tr><td>'+(__en?'Channel 3 (feed)':'渠道3（信息流）')+'</td><td>¥'+ToolBox.formatNumber(bud3,0)+'</td><td>¥'+ToolBox.formatNumber(ab3,0)+'</td><td>¥'+ToolBox.formatNumber(rev3,0)+'</td><td>¥'+ToolBox.formatNumber(ar3,0)+'</td><td>¥'+ToolBox.formatNumber(ar3-rev3,0)+'</td></tr>';
+  cmpHtml += '<tr><th>'+(__en?'Total':'合计')+'</th><th>¥'+ToolBox.formatNumber(total,0)+'</th><th>¥'+ToolBox.formatNumber(total,0)+'</th><th>¥'+ToolBox.formatNumber(totalRev,0)+'</th><th>¥'+ToolBox.formatNumber(altRev,0)+'</th><th>¥'+ToolBox.formatNumber(deltaRev,0)+'</th></tr></table>';
+
+  const __g2=modeNote + pctWarn + cmpHtml + `
     ${total===0?'<p class="tip-error">总预算为 0：各渠道预算与预估收入均为 0 属正常结果，但整体 ROAS 的分母为 0，不可计算。</p>':''}
     <div class="stat-grid">
       <div class="stat-card"><div class="val">¥${ToolBox.formatNumber(total, 0)}</div><div class="lbl">总预算</div></div>

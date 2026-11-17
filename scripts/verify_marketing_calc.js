@@ -658,6 +658,12 @@ const CASES = [
     ref: "渠道1比例为 −10%：负占比会让该渠道预算为负、收入为负，旧实现照算；现直接拦截。默认全为正 ⇒ 不命中。"
   },
   {
+    slug: "marketing/marketing-ad-budget-allocator",
+    inputs: { totalBudget: "100000", roas1: "4", roas2: "2.5", roas3: "2", budget1Pct: "40", budget2Pct: "35", budget3Pct: "25", alt1Pct: "20", alt2Pct: "50", alt3Pct: "30" },
+    expect: ["¥265,000", "¥-32,500"],
+    ref: "915 批复核：基准 40/35/25 收入 297,500；对比 20/50/30 在总预算 100,000 不变下收入 265,000、差异 -32,500（默认对比比例 30/30/40 为 275,000/-22,500，不命中）。旧版无对比表，三条均不命中；ROAS 固定假设与 Google Ads 定义已注明。"
+  },
+  {
     slug: "marketing/marketing-roi",
     inputs: { m_cost: "21000", m_price: "199", m_impressions: "50000", m_ctr: "3", m_cvr: "4", m_repeat: "25" },
     expect: ["-28.9%", "¥-6,075", "¥350.00"],
@@ -734,7 +740,9 @@ const CASES = [
   {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "本周行业简报", "previewText": "限时福利"}, "expect": ["6 1 ✓ 完整 6字", "94 优秀 👍 标题质量良好，继续保持！", "💡 标题较短，建议提供更多信息吸引读者 ⚠️ 预览正文包含垃圾词「限时」，可能影响送达率"], "ref": "独立复算：标题 6 字符（<10 ⇒ 扣 5 分）、1 词、无数字无括号；垃圾词扫描覆盖标题 + 预览正文，预览「限时福利」命中垃圾词「限时」扣 4 分（标题内未命中 ⇒ 提示标注「预览正文」），同时「福利」命中积极词加 3 分 ⇒ 100 − 5 − 4 + 3 = 94。该例专测预览正文参与扫描的分支：若只看标题则总分为 98 且不出现「预览正文包含垃圾词」提示。"},
   {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "竖版封面视频"}, "clicks": ["filterSizes();"], "expect": ["未找到匹配的尺寸"], "ref": "独立判定：关键词「竖版封面视频」在页面 12 个平台 × 各类尺寸的名称/平台名/宽高/比例数据中均无任何子串命中 ⇒ 过滤后集合为空，filterSizes() 走空分支渲染「未找到匹配的尺寸」。默认态（空关键词）全量渲染 12 个平台的全部尺寸卡，blob 无该提示串；兜底无参 filterSizes() 读空 searchInput 同样渲染全量、不会复现空提示 ⇒ 非兜底产物。过滤命中的串（如搜「头像」得 11 条头像卡连排）**不可作锚**：默认态本就全量含这些串，判别器回退 searchInput 后照样命中。搜索词在输入框 value 中回显，不作锚。"},
   {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "Instagram"}, "clicks": ["ToolBox.downloadText=function(n,c){document.getElementById('sizesList').textContent=c;};exportSizes();"], "expect": ["Instagram,头像"], "ref": "按平台名搜索后导出（方向 5 导出/屏幕一致性）：屏幕过滤含 p.name，旧导出过滤漏掉 p.name ⇒ 只剩名称里含 Instagram 的尺寸（故事类），「头像」行缺失。本用例把导出 CSV 写回 sizesList 再锚「平台,类型」行；导出已收敛到 ToolBox.csvCell（RFC 4180 最小引号：无逗号/换行/引号时不加引号），故锚为 `Instagram,头像` 而非旧的 `\"Instagram\",\"头像\"`。默认空关键词虽含 Instagram 卡，但无 CSV 形态的「Instagram,头像」串；且无 p.name 过滤时该行也不存在 ⇒ 双向判别。"},
-  {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "微博"}, "clicks": ["ToolBox.downloadText=function(n,c){document.getElementById('sizesList').textContent=c;};exportSizes();"], "expect": ["微博,头像,头像,180,180,1:1"], "ref": "915 批：微博客服公开说明头像大尺寸为 180×180，页面旧数据仍为 200×200。本用例按平台名搜索后导出，锚定 CSV 整行「平台,类型,名称,宽,高,比例」，旧值 200 时整行不匹配；默认态无 CSV 输出，故非回显/默认态逃生。与 Instagram 用例同为导出链路但锚定不同平台数据。"}
+  {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "微博"}, "clicks": ["ToolBox.downloadText=function(n,c){document.getElementById('sizesList').textContent=c;};exportSizes();"], "expect": ["微博,头像,头像,180,180,1:1"], "ref": "915 批：微博客服公开说明头像大尺寸为 180×180，页面旧数据仍为 200×200。本用例按平台名搜索后导出，锚定 CSV 整行「平台,类型,名称,宽,高,比例」，旧值 200 时整行不匹配；默认态无 CSV 输出，故非回显/默认态逃生。与 Instagram 用例同为导出链路但锚定不同平台数据。"},
+  {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "频道封面"}, "clicks": ["filterSizes();var t=String(document.getElementById('sizesList').innerHTML);document.getElementById('__tbProbe').textContent='YTSRC '+(t.indexOf('support.google.com/youtube/answer/12950272')>=0&&t.indexOf('朋友圈封面')<0?'OK':'BAD');"], "expect": ["YTSRC OK"], "ref": "915 批来源逐条落地：YouTube 横幅卡展示官方提示链接，且搜索「频道封面」后不出现其他平台卡片；stub 中 innerHTML 写入不联动 textContent，故探针读 innerHTML。旧版无逐条来源、默认全量含其他平台，故注入失败时变红。"},
+  {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "频道封面"}, "clicks": ["ToolBox.downloadText=function(n,c){var ok=c.indexOf('support.google.com/youtube/answer/12950272')>=0&&c.indexOf('朋友圈封面')<0;document.getElementById('sizesList').textContent='YTSV '+(ok?'OK':'BAD');};exportSizes();"], "expect": ["YTSV OK"], "ref": "915 批导出覆盖：CSV 新增来源列，按「频道封面」筛选后仅含 YouTube 官方链接且无其他平台行；旧版导出无来源列，默认全量含其他平台，故变红。"}
 ,
 {
     "slug": "marketing/marketing-cpa-calculator",
