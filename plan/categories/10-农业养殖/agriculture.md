@@ -136,13 +136,6 @@
 
 ## T 批 农业覆盖（2026-11-04）
 
-### 10-16 收获损失率未校验 actual≤theory，复制路径无任何校验（中，确认缺陷）
-- 问题：calc 只校验 `theory<=0`，未校验实际产量不得高于理论产量；actual>theory 时 lossRate 为负，落入「≤3%」分支被判「损失极低」。copyResult 自行重算 lossRate 且无校验，theory=0 时会复制出 Infinity/NaN。
-- 证据：`tools/agriculture/harvest-loss-rate.html:248`（仅 theory 校验）、`:262-263`（负值分级）、`:300-304`（copy 无校验）。
-- 复现：理论 500、实际 520 → 总损失 -20 kg/亩、损失率 -4.00%、评级「损失极低」；理论 0、实际 465 时页面先提示错误，但点「复制结果」仍输出「损失率：-Infinity%」。
-- 影响：同页；异常输入产生反向结论与非法复制文本。
-- 方案：calc 增加 `actual>theory` 提示；copy 复用 calc 校验或结果对象，非法时中止并 toast。
-
 ### 10-17 灌溉页「作物需水系数」为死输入，Kc/需水量从未参与计算（中，确认缺陷）
 - 问题：作物类型选择只把「计划湿润层深度」预填为该作物默认值，`CROPS` 中的 `water`（需水量）与 `kc`（作物系数）从未进入 calc；页面简介承诺的「作物需水系数…调整」未实现。
 - 证据：`tools/agriculture/irrigation-calculator.html:144`、`:150`（承诺）、`:273`（water/kc 定义）、`:277`（applyCrop 仅写 depth）、`:278-286`（calc 只用 area/method/soil/depth/moisture/price/cycle）。
@@ -200,7 +193,7 @@
 - 方案：copy 复用结果对象，至少输出 OCI、等级与各因子分值。
 
 ### T 批覆盖清单（8 页）
-- `harvest-loss-rate.html`：发现 1 条（10-16 中）；减产卡片量纲错 50 倍已修复销账。
+- `harvest-loss-rate.html`：减产卡片量纲错 50 倍与 actual>theory 反向结论两处均已修复销账（977 批补 verify 锁）。
 - `irrigation-calculator.html`：发现 2 条（10-17、10-18，均中）；Kc/需水量未参与、历史不恢复。
 - `dli-calculator.html`：发现 1 条（10-19 中）；DLI 主公式正确，仅补光建议「至」少算本底。
 - `greenhouse-ventilation.html`：发现 1 条（10-20 高）；风口面积与 15% 地面积口径混用，所有预设恒判不足。

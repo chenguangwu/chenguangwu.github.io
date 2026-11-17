@@ -104,6 +104,12 @@ const CASES = [
     expect: ["30.0", "6.00%"],
     ref: "总损失 = 500 − 470 = 30.0 kg/亩；损失率 = 30 ÷ 500 × 100 = 6.00%",
   },
+  {
+    slug: "agriculture/harvest-loss-rate",
+    inputs: { theoryYield: "500", actualYield: "520" },
+    expect: ["实际产量不能高于理论产量"],
+    ref: "977 非法产量比较：actual=520>theory=500 时损失率为负，修复前落入「≤3%」判「损失极低」；默认 470<500 不含该提示。",
+  },
   // ── 配比混合（十字交叉法：占比 = |另一方−目标| ÷ 两差之和）────────
   {
     slug: "agriculture/calculator-calc-ratio-1",
