@@ -393,6 +393,13 @@ const CASES = [
     ref: "选型推力 = 负载力 1000 N × 安全系数 1.5 = 1500 N，向上取整到标准推力 2000 N。可独立复算。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "machinery/torque-motion",
+    inputs: { vF: "2000", vS: "300", vT: "10", vSF: "1.5", vType: "0.6" },
+    clicks: ["var os=localStorage.setItem,og=localStorage.getItem,cap=null;localStorage.setItem=function(k,v){cap=v;};saveHistory();localStorage.setItem=os;var arr=JSON.parse(cap||'[]');var stored=arr[0]?String(arr[0].type):'NONE';document.getElementById('vType').value='0.85';localStorage.getItem=function(){return JSON.stringify(arr);};restoreHistory(0);localStorage.getItem=og;var restored=document.getElementById('vType').value;document.getElementById('__tbProbe').textContent='TMTYPE stored='+stored+' restored='+restored;"],
+    expect: ["TMTYPE stored=0.6 restored=0.6"],
+    ref: "992 历史类型（MM-H108）：原 saveHistory 不存 vType、restoreHistory 不恢复，改选齿轮齿条后恢复按 0.85 重算；修复后记录与恢复均保留 0.6。默认态 0.7 不含该串。",
+  },
+  {
     slug: "antiques/rater-1",
     inputs: { std: "1", ctype: "1" },
     clicks: ["calc()"],
@@ -890,6 +897,20 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["12.57 制动力矩 (N·m)", "157.08 角速度 (rad/s)"],
     ref: "角速度 ω = 2πn/60 = 2π×1500/60 = 157.08 rad/s；制动力矩 = 轴向载荷 × 制动盘半径 = 80N × 0.157m = 12.57 N·m；选型力矩 = 12.57 × 1.5 = 18.85 N·m。两串均可手算复算。",
+  },
+  {
+    slug: "machinery/torque-response",
+    inputs: { vN: "2900", vJ: "1.2", vT: "1", vSF: "1.5", vLoad: "1.3" },
+    clicks: ["calc()"],
+    expect: ["71.94 制动能量 (kJ)"],
+    ref: "992 能量载荷系数（MM-H109）：ω=2π×2900/60≈303.69 rad/s，0.5×J×ω²/1000×1.3≈71.94 kJ；旧版漏乘负载系数得 55.34 kJ，默认 1450/2.5/0.8 不含该串。",
+  },
+  {
+    slug: "machinery/torque-response",
+    inputs: { vN: "1450", vJ: "2.5", vT: "3", vSF: "1.5", vLoad: "1.3" },
+    clicks: ["var os=localStorage.setItem,og=localStorage.getItem,cap=null;localStorage.setItem=function(k,v){cap=v;};saveHistory();localStorage.setItem=os;var arr=JSON.parse(cap||'[]');var stored=arr[0]?String(arr[0].load):'NONE';document.getElementById('vLoad').value='0.8';localStorage.getItem=function(){return JSON.stringify(arr);};restoreHistory(0);localStorage.getItem=og;var restored=document.getElementById('vLoad').value;document.getElementById('__tbProbe').textContent='TRLOAD stored='+stored+' restored='+restored;"],
+    expect: ["TRLOAD stored=1.3 restored=1.3"],
+    ref: "992 历史负载（同源补强）：原 saveHistory 不存 vLoad、restoreHistory 不恢复，改选阻力辅助后恢复按 0.8 重算；修复后记录与恢复均保留 1.3。默认态 0.8 不含该串。",
   },
   {
     slug: "general/tester-40",
