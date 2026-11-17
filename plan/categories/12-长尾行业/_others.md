@@ -193,13 +193,6 @@
 
 > 范围：本轮阅读 8 页——`tools/bridge/foundation-calc.html`（bridge）、`tools/chess/bridge-scoring.html`（chess）、`tools/aquaculture/hardness-water-quality.html`（aquaculture）、`tools/maritime/stowage-factor.html`（maritime）、`tools/tunnel/support-design.html`（tunnel）、`tools/glass/snell-refraction.html`（glass）、`tools/petrochem/api-gravity.html`（petrochem）、`tools/accessibility/braille-translator.html`（accessibility）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### 12-N9 tunnel/support-design：公式框写 L=(1/3~1/4)B、t=k·B，代码实际 0.20–0.45B 且 t 按级别固定（中，确认缺陷）
-- 描述：公式框声明“L=(1/3~1/4)·B”（`:168`）与“t=k·B”（`:168`），但代码 `lFactor=[0,0,0.20,0.25,0.30,0.35,0.40,0.45]`（`:262`），Ⅳ–Ⅵ 级已超出 1/3~1/4；喷层厚度直接取固定数组 `tArr=[5,8,12,18,22,25]`（`:269`），完全不随 B 变化，公式中的 `k` 无定义也未使用。深度解析 `:205` 又写 0.20–0.45，三方口径不一。
-- 证据：`tools/tunnel/support-design.html:168-169` vs `:262-273`；深度解析 `:205`
-- 复现：B=20 m、H=8 m、Ⅵ级 → 页面 L=9.0 m、S=1.0 m、t=25 cm；按公式框 L 应为 5.0–6.7 m，t 应按 `k·B` 随跨度变化（页面 25 cm 与 B 无关）。
-- 影响：用户按公式框复核会认为 9.0 m 锚杆超长/喷层厚度算错；投标或方案估算的锚杆工程量与说明不一致。
-- 方案：把公式框改为“L=(0.20~0.45)B（按围岩级别）”“t 按围岩级别取 5~25 cm”，删除未定义的 `t=k·B`；或让代码真正按 `k·B` 计算喷层并给出 k 表；补 6 个级别 × B=10/20 的回归。
-
 - 本轮实读 8 页：`tools/bridge/foundation-calc.html`、`tools/chess/bridge-scoring.html`、`tools/aquaculture/hardness-water-quality.html`、`tools/maritime/stowage-factor.html`、`tools/tunnel/support-design.html`、`tools/glass/snell-refraction.html`、`tools/petrochem/api-gravity.html`、`tools/accessibility/braille-translator.html`；新增 12 条（高 1 / 中 8 / 低 3）；未覆盖：上述 8 个目录各仅读 1 页（每目录 6 页，共余 40 页未读），以及 audit、pet-training 等长尾目录；N1 为源码 + node 复算确认的承载力/桩数偏差，N5、N10、N11、N12 的“期望值”按页面自身公式与标准换算复算。
 
 ## 2026-11-04 续查（并行批 O）
@@ -238,20 +231,6 @@
 - 报告式输出：输入、两法结果、区间、角膜分期、警示合成一段可复制/打印的鉴定参考。
 - 增加“角膜 vs 尸温差异”一致性徽标，冲突时自动提示复核。
 - 提供教学预设与本地历史对比，便于课堂演示不同温度/体重曲线。
-
-### 12-N25 metallurgy/hardness-conversion：公式框、深度解析、对照表给出三套 HRC20/40 对应值（中，确认缺陷）
-- 问题：公式框写“HRC20≈HB238、HV247，HRC40≈HB371、HV392”（`:118`）；深度解析写“HRC20≈HBW225≈HV240，HRC40≈HBW380≈HV400”（`:174`）；`buildRefTable` 用的 `DATA` 是“HRC20=HBW225/HV226，HRC40=HBW380/HV392”（`:222-228`）。同一 HRC20 的 HV 在三处为 247/240/226。另公式框引 GB/T 33362，参考表又引 ISO 18265（`:203`）。
-- 证据：`tools/metallurgy/hardness-conversion.html:118`、`:174`、`:203`、`:222-228`
-- 复现：标尺 HRC、数值 20 → 结果 HBW 225、HV 226；按公式框应 238/247，按深度解析应 225/240。
-- 影响：用户无法判断哪套值可信，教学与来料验收口径混乱；HV 最大差 21（约 9%）。
-- 方案：以 `DATA` 为唯一真源，公式框/深度解析改为“HRC20≈HBW225≈HV226”；标准统一为 ASTM E140/GB/T 33362（或 ISO 18265）并注明适用范围。
-
-### 12-N26 metallurgy/hardness-conversion：预设“小规模/大规模/极端工况”与硬度语义无关，且不切换标尺（低，确认缺陷）
-- 问题：预设标签照搬规模模板（`:465-467`），值 22.5/67.5/90 只写 `inVal`，不写 `inType`；若当前标尺是 HBW/HRB，点“小规模”会把 22.5 当作 HBW/HRB 数值，结果被钳到 HBW100/HV100 或伪造低值。
-- 证据：`tools/metallurgy/hardness-conversion.html:465-467`、`:131`
-- 复现：先选“布氏 HBW” → 点“小规模” → 输入 22.5 HBW → 结果 HBW 100、HV 100（期望提示 HBW 低于 100 不适用，或预设自动切回 HRC）。
-- 影响：一键预设给出与标签完全不符的数值，用户会误以为软钢 HBW 只有 100。
-- 方案：预设改为“退火软钢 HRC20 / 正火中碳钢 HRC30 / 淬火高硬度 HRC55”，并显式 `inType:'hrc'`；“极端 90”改为 65 或删除。
 
 **留存/优势（metallurgy/hardness-conversion）**
 - 批量换算：支持粘贴一列硬度值，一次输出 HRC/HBW/HV 与 σb，可导出 CSV。

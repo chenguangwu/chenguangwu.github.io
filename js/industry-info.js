@@ -185,7 +185,7 @@ window.INDUSTRY_INFO = {
   'media'                : { name: '媒体传播', icon: '📰', hot: 43328 },
   'chess'                : { name: '棋类游戏', icon: '♟️', hot: 41685 },
   'service'              : { name: '生活服务', icon: '🎧', hot: 41588 },
-  'tunnel'               : { name: '隧道工程', icon: '🚇', hot: 40708 },
+  'tunnel'               : { name: '隧道工程', icon: '🚇', hot: 40711 },
   'logistics2'           : { name: '仓储物流', icon: '📦', hot: 40376 },
   'audit'                : { name: '审计合规', icon: '📋', hot: 38679 },
   'kids'                 : { name: '儿童成长', icon: '🧸', hot: 38290 },
