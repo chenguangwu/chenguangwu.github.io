@@ -16,6 +16,34 @@ const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
   {
+    slug: "edu/edu-unit-converter",
+    inputs: { fromVal: "0" },
+    clicks: ["var v=document.getElementById('fromVal').value;var o=document.getElementById('toVal').value;document.getElementById('__tbProbe').textContent='ZERO '+(v==='0'&&o==='0'?'OK':'BAD');"],
+    expect: ["ZERO OK"],
+    ref: "EL-J62：输入 0 时输出 0 而非 0e0；旧版 Math.abs(0)<0.0001 走指数格式得 0.000000e+0→0e0。",
+  },
+  {
+    slug: "edu/edu-unit-converter",
+    inputs: { fromVal: "" },
+    clicks: ["var o=document.getElementById('toVal').value;document.getElementById('__tbProbe').textContent='EMPTYVAL '+(o==='0'?'OK':'BAD');"],
+    expect: ["EMPTYVAL OK"],
+    ref: "EL-J62：清空输入按 0 输出，不再显示 0e0；旧版 ||0 后走指数分支。",
+  },
+  {
+    slug: "edu/edu-unit-converter",
+    inputs: { fromVal: "7" },
+    clicks: ["var v=document.getElementById('fromVal').value;localStorage.removeItem('edu_unit_history');setCat('length',true);var h=localStorage.getItem('edu_unit_history');document.getElementById('__tbProbe').textContent='NOSAVE '+(v==='7'&&!h?'OK':'BAD');"],
+    expect: ["NOSAVE OK"],
+    ref: "EL-J63：silent 初始化不写历史；旧版 setCat→convert 无条件 saveHistory，首屏即产生 1 条。",
+  },
+  {
+    slug: "edu/edu-unit-converter",
+    inputs: { fromVal: "7" },
+    clicks: ["var v=document.getElementById('fromVal').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu/edu-unit-converter.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var ok=v==='7'&&h.indexOf('scores, grades, pages')<0&&dd.indexOf('分数/等级/页码/字数')<0&&dd.indexOf('长度、质量、面积、体积、时间、角度')>=0;document.getElementById('__tbProbe').textContent='UNITDOC '+(ok?'OK':'BAD');"],
+    expect: ["UNITDOC OK"],
+    ref: "EL-J61：英文副标题与权威源改为真实物理量换算，不再虚标分数/等级/页码/字数；旧版三处矛盾。",
+  },
+  {
     slug: "edu/study-planner",
     inputs: { dailyHours: "7" },
     clicks: ["var mk=document.getElementById('dailyHours').value;var t=document.getElementById('statToday').textContent;document.getElementById('__tbProbe').textContent='INIT0 '+(mk==='7'&&String(t).trim()==='0'?'OK':'BAD');"],
