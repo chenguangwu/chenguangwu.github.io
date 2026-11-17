@@ -56,7 +56,7 @@ window.INDUSTRY_INFO = {
   'encode'               : { name: '编码转换', icon: '🔐', hot: 359425 },
   'dynamics'             : { name: '动力学', icon: '🌀', hot: 358011 },
   'ai'                   : { name: '人工智能', icon: '🤖', hot: 356999 },
-  'astronomy'            : { name: '天文观测', icon: '🔭', hot: 345464 },
+  'astronomy'            : { name: '天文观测', icon: '🔭', hot: 345466 },
   'securities'           : { name: '证券投资', icon: '📈', hot: 335366 },
   'optics'               : { name: '光学', icon: '🔭', hot: 333974 },
   'electrical'           : { name: '电气工程', icon: '🔌', hot: 325011 },

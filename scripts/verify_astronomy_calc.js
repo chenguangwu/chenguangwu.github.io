@@ -1,5 +1,8 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
+globalThis.__tbRoot = process.cwd();
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -53,7 +56,13 @@ const CASES = [
   "ref": "新增回归：负高度角曾被当作有效输入直接算（-5° 时公式仍返回数值）。现应提示并拒绝计算；默认 30° 不出现该提示"
 },
 {
-"slug": "astronomy/convert-15",
+  "slug": "astronomy/atmospheric-refraction",
+  "clicks": ["var fs=globalThis.__tbFs,root=globalThis.__tbRoot;function rd(p){try{return fs.readFileSync(root+'/'+p,'utf8')}catch(e){return ''}};var html=rd('tools/astronomy/atmospheric-refraction.html'),zh=rd('i18n/tools/astronomy.json'),ov=rd('i18n/tools/_en_override.json'),en=rd('i18n/tools/en/astronomy/atmospheric-refraction.json');var ok=html.indexOf('输入天体真高度角，用Bennett近似公式')<0&&html.indexOf('Bennett 近似')<0&&html.indexOf('地平高度角')<0&&html.indexOf('Saemundsson')>=0&&html.indexOf('视高度角')>=0&&zh.indexOf('输入观测视高度角')>=0&&zh.indexOf('Saemundsson')>=0&&zh.indexOf('Bennett')<0&&ov.indexOf('astronomy/atmospheric-refraction')>=0&&ov.indexOf('Atmospheric Refraction Calculator for Apparent Altitude')>=0&&ov.indexOf('Saemundsson')>=0&&en.indexOf('Bennett')<0&&en.indexOf('True altitude angle (degrees)')<0&&en.indexOf('地平高度角')<0;document.getElementById('__tbProbe').textContent='ATRFMETA '+(ok?'OK':'BAD');"],
+  "expect": ["ATRFMETA OK"],
+  "ref": "N105/N106 源码形态回归：公式系数属于 Saemundsson 且参数是观测视高度角；meta/og/JSON-LD、中文 i18n 源、英文覆盖与英译词典不得再残留 Bennett 署名、真高度角输入或地平高度角旧口径。默认态无探针串，零逃生。"
+},
+{
+  "slug": "astronomy/convert-15",
 "inputs": {
 "val": "7",
 "unit": "mag"
