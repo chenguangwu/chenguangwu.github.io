@@ -13,66 +13,15 @@
 ## 进度
 - 🟡 续批中（剩余：电压降分步统一）
 
-## 2026-11-03 第一轮抽样补充
-
-### 功率因数目标无效时错误信息进入历史（中，确认源码路径，交互待复验）
-- 问题与证据：`tools/electrical/power-factor-compensation.html:214-224,333-339,383-410,423-425` 目标功率因数不大于当前值时主函数输出提示；包装函数仍提取显示文本并尝试记入历史，过滤逻辑不包含该提示。100 kW、当前 0.8、目标 0.7，TBKit 可用且上次记录超过 1 秒时会将提示作为结果记录。
-- 影响：`tools/electrical/power-factor-compensation.html`，历史和导出可能混入无效计算。
-- 方案：计算函数返回有效状态，仅成功结果进入历史；增加合法→无效目标的真实浏览器用例。
-- 留存建议：利用同页现有补偿计算及预设，提供补偿前后无功功率和视在功率并排对照，复制含单位和假设的记录。
-
-### 覆盖
-- 本轮新增抽查上述 1 页，仅源码推导，未验证浏览器；其余页面未逐页覆盖。
-
-## 2026-11-03 续查（并行批 H）
-
-> 编号说明：本文件原有条目「功率因数目标无效时错误信息进入历史」无编号前缀，保留不动；本批沿用同目录并行批约定新增 `EE-H` 系列（EE-H1…EE-H8），不与其重号。下列结论均为源码阅读 + node 内存复算（复刻页内公式），未做真实浏览器、英文态（`?lang=en-US`）、移动端、门禁或线上验证。
-
-### EE-H3 变压器页「总有功计算负荷」又被乘 Kd，且深度解析算例与公式不符（中，确认）
-- 描述：输入标签是「总有功计算负荷 P (kW)」（按行业口径已含需用系数），但计算仍 `Sjs=P*Kd/cosφ`，等于重复计入 Kd；同时深度解析算例用 `510/(0.8×1.2)≈531kVA`，既未除以负荷率 β，也与页内 `St=Sjs*kRes/beta` 不一致。
-- 证据：`tools/electrical/transformer-sizing.html:126,232-233,180`。复现默认 P=160、cosφ=0.85、Kd=0.8、β=0.75、备用 1.1 → 页面 Sjs=150.59kVA、St=220.86kVA、选 250kVA（负荷率 60.2%）；若 P 已是计算负荷（不再乘 Kd）→ Sjs=188.24kVA、St=276.08kVA、应选 315kVA（相差一档）。深度解析 S=600kVA、cosφ=0.85 → P=510kW，按页内公式 Sjs=480kVA、St=768kVA（应选 800kVA），而算例写 531kVA/630kVA。
-- 影响：`tools/electrical/transformer-sizing.html`。同一份负荷按标签理解会选小一档变压器，长期过载；算例无法用于手算核对。
-- 方案：明确 P 口径——若为「设备/安装功率」则保留 Kd 并改标签，若为「计算负荷」则删除 `*Kd`；算例按 `Sjs=P/cosφ、St=Sjs*kRes/beta` 重写并补齐 β 取值。
-
-### EE-H4 蓄电池页 DoD/效率不校验范围，可算出 3 倍标称能量与负续航（中，确认）
-- 描述：`min/max` 只是 HTML 属性，键盘可输入越界值；JS 校验只对 DoD、η 做 `isNaN`，未限制 `0<DoD≤1`、`0<η≤1`，两者直接相乘进入可用能量。
-- 证据：`tools/electrical/battery-bank.html:238-241,247-248`。复现单体 3.2V/100Ah、16 串 2 并、负载 500W → 总能量 10,240Wh；DoD=150%、η=200% → 可用能量 30,720Wh、续航 61.44h（为标称能量 3 倍）；DoD=−50%、η=90% → 可用能量 −4,608Wh、续航 −9.22h。正常 80%/90% 时为 7,373Wh、14.75h。另 `:274` 把「每组串联 N 节」写成「N 芮」。
-- 影响：`tools/electrical/battery-bank.html`。超出物理上限的备用时长会被当作有效结果复制/导出，负续航也会直接显示。
-- 方案：JS 补 `0<dod<=1 && 0<eff<=1`，越界标红并停止；续航为负时提示参数矛盾；顺带修正「芮」为「节」。
-
-### EE-H5 晶振反求模式遇倍频场景主结果为空并报 999% 误差（高，确认）
-- 描述：反求模式只以整数分频 `N=round(晶振/目标)` 作为主结果；当目标频率高于晶振（比值<1）时 `N=0`，主结果显示「—」、误差固定 999%，而同页卡片已算出倍频 `M=4`、误差 0.00%，两套结论互相矛盾。页面还自带「反求 12MHz→48MHz」预设。
-- 证据：`tools/electronics/crystal-divider.html:141,306-310,342-355`。复现点击预设「反求 12MHz→48MHz」→ xr=12MHz、tgt=48MHz、ratio=0.2500、bestN=0 → `freqVal='—'`、`freqLbl='分频比 N=0（理论 0.2500，误差 999.000%）'`；卡片显示「或倍频 M 4（误差 0.00%）」。另 `:320` 的 `+value||1` 会把分频系数 0 静默改成 1，使 `n<=0` 守卫永不触发。
-- 影响：`tools/electronics/crystal-divider.html`。页面公开的示例按钮本身走不通，用户会误判 12MHz 无法得到 48MHz。
-- 方案：比值<1 时优先展示倍频方案（`xr*bestM`）并把误差取 `errM`；只有分频、倍频均无整数解时才提示 999；输入 0 改为报错而非兜底 1。
-
-### EE-H6 PCB 温升页环境温度 0℃ 被兜底成 25℃，板温虚高 25℃（中，确认）
-- 描述：`amb = +value || 25` 把合法的 0℃ 与空值/非法值混同；计算、复制结果、CSV 导出三处都复用了同一兜底。
-- 证据：`tools/electronics/pcb-power.html:292,307,345,364,378`。复现功耗 5W、面积 100cm²、2oz、h=35、覆盖率 60%、环境 0℃ → 有效面积 0.008740m²、ΔT=16.35℃；板温应为 16.35℃，页面按 25℃ 计显示 41.35℃，导出也写 `Ambient=25`。
-- 影响：`tools/electronics/pcb-power.html`。冷库/冬季 0℃ 工况的板温被高估 25℃，热设计结论偏保守且与输入不符。
-- 方案：仅当值为空或 `isNaN` 时兜底，0 按合法值参与计算；三处取值统一走一个解析函数，并在结果区回显实际采用的环境温度。
-
-### EE-H7 电容储能模式「平均充电功率」用固定 5ms 假设，与输入无关（中，确认）
-- 描述：储能模式没有电阻或充电时间输入，却输出「平均充电功率」；代码把 `tau` 写死 0.001s，再按 `5*tau` 求平均功率，任何工况都只是 `E/5ms`。
-- 证据：`tools/electronics/capacitor-calculator.html:343-354,367-369`。复现 C=1000µF、V=5V → E=12.500mJ、Q=5.00mC、显示「平均充电功率 2500.0mW」，其唯一来源是 `P=E/(5×0.001)`；页面小字自承「假设 5ms 内充满」。
-- 影响：`tools/electronics/capacitor-calculator.html`。用户会把这个与电源能力无关的固定值当作实际充电功率，用于选电源/限流时失真。
-- 方案：删除该指标，或增加「充电电阻 R」输入后按真实 τ 计算平均功率；至少改为「按假设 5ms」的可编辑参数，并在结果中显示所采用的 R/时间。
-
-### EE-H8 电压降页深度解析算例 5.5% 与页内公式不符（低，确认）
-- 描述：场景列表写「50m 铜芯 4mm² 单相 20A，U%=5.5%，需加大到 6mm²」，按同页 ρ=0.0184 与 `ΔU=2·I·ρL/S` 复算既得不到 5.5%，4mm² 也已满足 5%。
-- 证据：`tools/electrical/voltage-drop.html:186,296-300`。复现 L=50m、S=4mm²、I=20A、单相、ρ=0.0184 → R=0.2300Ω、ΔU=9.20V、U%=4.18%；升到 6mm² → 2.79%。同页另一算例 `:191` 的 100m/2.5mm²/10A≈6.4% 是正确的。
-- 影响：`tools/electrical/voltage-drop.html` 深度解析区。用户用该算例核对时会与计算器结果对不上，且「需加大」的结论不成立。
-- 方案：改为 2.5mm²（同口径 6.69%）→ 加大到 4mm²（4.18%），保留「超 5% 须加粗」的叙事；或按 ρ=0.0175 统一重算该节并标注取值。
-
-### 留存优化
-- `tools/electrical/wire-gauge-selector.html`：补 50/70/95/120mm² 档位与「实际余量倍数」，增加三相 380V 口径；先修 EE-H1 的越界推荐再扩表。
+## 留存优化
+- `tools/electrical/wire-gauge-selector.html`：补 50/70/95/120mm² 档位与「实际余量倍数」，增加三相 380V 口径。
 - `tools/electrical/breaker-sizing.html`：增加 B/C/D 脱扣曲线与 Icu 分断能力输入，输出「过载/短路」两项校验；避免只给额定电流。
 - `tools/electrical/transformer-sizing.html`：结果区并列「按计算负荷 / 按设备功率×Kd」两种口径的容量，并把 β 与经济负荷区间画成标尺。
 - `tools/electrical/battery-bank.html`：补电池类型与 Peukert 指数、放电倍率 C 的提示，区分「标称/可用」能量；续航按恒功率与恒流两种口径对照。
 - `tools/electronics/crystal-divider.html`：反求模式给出「分频 N / 倍频 M」候选表（含误差排序），并标注 PLL 参考频率与 VCO 上限。
 - `tools/electronics/pcb-power.html`：增加散热过孔/铝基板/散热片等效热阻的可选项，输出「自然对流 vs 强制风冷」对照。
 
-### 续查覆盖
+## 续查覆盖
 - 已覆盖 8 页：`tools/electrical/voltage-drop.html`、`tools/electrical/wire-gauge-selector.html`、`tools/electrical/breaker-sizing.html`、`tools/electrical/transformer-sizing.html`、`tools/electrical/battery-bank.html`、`tools/electronics/capacitor-calculator.html`、`tools/electronics/crystal-divider.html`、`tools/electronics/pcb-power.html`。
 - 未覆盖：`tools/electrical/`（目录共 35 个工具页）除本批 5 页与第一轮的 `power-factor-compensation.html` 外，其余 29 页未覆盖；`tools/electronics/`（共 21 个工具页）其余 18 页未覆盖；`tools/electromagnetism/` 全部未覆盖。第一轮页面本批未重复。
 - 验证声明：仅源码阅读 + node 内存复算，未做真实浏览器、英文态（`?lang=en-US`）、移动端、门禁或线上验证；标准取值与器件手册亦未逐条核对。

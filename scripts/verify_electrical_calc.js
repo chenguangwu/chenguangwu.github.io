@@ -8,6 +8,12 @@ const CASES = [
     expect: ["TAILPF n=3 last={\"power\":\"400\",\"pf1\":\"0.75\",\"pf2\":\"0.92\"}"],
     ref: "复核失败重做·F-N189 第46批（1 秒节流丢尾帧）：连续两次真实计算并各写一条历史，快速变更后的最终稳定状态必须进入历史；旧实现 `if(now-*_last<1000) return;` 直接丢弃后续更新，历史停在首次输入（n=1 且 last 为首组），修复后最后一条为第二组输入。用例自建 TBKit 桩 + querySelectorAll 桩走页面真实 Extras 路径，默认态不执行 clicks、无探针串 ⇒ 零逃生。"
   },
+  {
+    slug: "electrical/power-factor-compensation",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:\"power\",type:'text',value:\"300\"},{id:\"pf1\",type:'text',value:\"0.90\"},{id:\"pf2\",type:'text',value:\"0.80\"}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __sync=function(){var r=document.getElementById('result');r.textContent=String(r.innerHTML||'').replace(/<[^>]*>/g,'').replace(/\\s+/g,' ').trim();};document.getElementById(\"power\").value=\"300\";__els.find(function(e){return e.id===\"power\";}).value=\"300\";document.getElementById(\"pf1\").value=\"0.90\";__els.find(function(e){return e.id===\"pf1\";}).value=\"0.90\";document.getElementById(\"pf2\").value=\"0.80\";__els.find(function(e){return e.id===\"pf2\";}).value=\"0.80\";calc();__sync();__power_factor_compensationExtras();document.querySelectorAll=__oq;var __hit=__cap.some(function(r){return String(r.pf2)==='0.80';});document.getElementById('__tbProbe').textContent='BADPF hit='+__hit;"],
+    expect: ["BADPF hit=false"],
+    ref: "目标功率因数 0.80 ≤ 当前 0.90 时主函数只输出「目标功率因数应大于当前功率因数」提示并 return，旧版包装函数仍把该提示作为结果写进历史与导出（评分正则不含此业务文案）。修复改为计算函数显式置 __power_factor_compensation_valid=false，Extras 在记录前跳过。用例走页面真实 calc 包装 + TBKit 桩，合法态不执行 clicks、无探针串 ⇒ 零逃生；判别锚为历史中是否存在非法 pf2 记录，不依赖记录条数。"
+  },
 {
   "slug": "electrical/battery-bank",
   "inputs": {
