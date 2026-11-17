@@ -122,6 +122,15 @@ const CASES = [
   "ref": "haystack = zh+en+cat（不含 ex），please 命中 请原谅我(idx12)/便宜点(30)/请说慢一点(41)/请再说一遍(42)。默认态（q 空）渲染全部 48 条、卡片按原序相邻（12→13、30→31），故「礼貌 例: Please forgive me for my mistake. 便宜点」「购物 例: Can you make it cheaper? 请说慢一点」两条跨卡片相邻串仅过滤态成立；单卡片文本在默认态必然出现，不可作 expect。"
 },
 {
+  "slug": "language/phrase-translator",
+  "inputs": {
+    "search-input": "pleasezz"
+  },
+  "clicks": ["var q=document.getElementById('search-input').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/language/phrase-translator.html','utf8');var d=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var ok=q==='pleasezz'&&h.indexOf('支持多种语言互转')<0&&h.indexOf('中英文常用语互查')>=0&&d.indexOf('¿Cuánto')<0&&d.indexOf('Je ne comprends')<0;document.getElementById('__tbProbe').textContent='PTL20 '+(ok?'OK':'BAD');"],
+  "expect": ["PTL20 OK"],
+  "ref": "EL-J20：词库只有中英，intro 与深挖示例须删「支持多种语言互转」及西语/法语虚标，改中英互查口径；旧版两处虚标均在，源码哨兵必 BAD。"
+},
+{
   "slug": "language/stats-2",
   "inputs": {
     "text": "Hello hi 你好，世界！AB CD."
