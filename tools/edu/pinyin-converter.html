@@ -171,7 +171,7 @@
     <div id="tab-convert" class="tab-content active">
       <div class="input-row">
         <label>输入中文</label>
-        <textarea id="inputText" rows="4" placeholder="请输入中文汉字，支持批量转换" oninput="convert()">你好世界，学习拼音很重要！</textarea>
+        <textarea id="inputText" rows="4" placeholder="请输入中文汉字，支持批量转换" oninput="convert()" onchange="commitHistory()" onblur="commitHistory()">你好世界，学习拼音很重要！</textarea>
       </div>
 
       <div class="mode-selector">
@@ -638,7 +638,16 @@ function convert(){
   }
 
   const __h1=resultHtml;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
-  saveHistory(input, result.trim());
+  // 实时转换只更新面板；历史改由输入确认（change/blur）时写一次，避免键入中间串污染 50 条上限。
+  __lastConverted = {text:input, pinyin:result.trim()};
+}
+
+// 输入确认后才落库：整串精确去重并保留新时间戳，见 saveHistory。
+var __lastConverted = {text:'', pinyin:''};
+function commitHistory(){
+  if(!__lastConverted.text || !__lastConverted.pinyin) return;
+  saveHistory(__lastConverted.text, __lastConverted.pinyin);
+  __lastConverted = {text:'', pinyin:''};
 }
 
 function copyResult(){

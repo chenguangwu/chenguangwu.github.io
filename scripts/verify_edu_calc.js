@@ -148,6 +148,18 @@ const CASES = [
   },
   {
     slug: "edu/pinyin-converter",
+    clicks: ["var __w=[];localStorage.getItem=function(){return null;};localStorage.setItem=function(k,v){__w.push(v);};var t=document.getElementById('inputText');t.value='中';convert();t.value='中华';convert();t.value='中华人民共和国';convert();document.getElementById('__tbProbe').textContent='HISTDEBOUNCE '+__w.length;"],
+    expect: ["HISTDEBOUNCE 0"],
+    ref: "EL-F3：oninput 连续键入只实时转换、不落历史。旧版 convert() 末尾无条件 saveHistory ⇒ 3 次写入；改成输入确认（change/blur→commitHistory）后为 0。",
+  },
+  {
+    slug: "edu/pinyin-converter",
+    clicks: ["var __w=[];localStorage.getItem=function(){return null;};localStorage.setItem=function(k,v){__w.push(v);};var t=document.getElementById('inputText');t.value='中华人民共和国';convert();commitHistory();var ok=__w.length===1&&JSON.parse(__w[0])[0].text==='中华人民共和国';document.getElementById('__tbProbe').textContent='HISTCOMMIT '+(ok?'OK':'BAD');"],
+    expect: ["HISTCOMMIT OK"],
+    ref: "EL-F3：显式确认后只写 1 条且为整串「中华人民共和国」，不是键入中间态。旧版无 commitHistory 入口、且逐次写入半截串 ⇒ 该串失配。",
+  },
+  {
+    slug: "edu/pinyin-converter",
     inputs: { inputText: "我爱中国" },
     expect: ["wǒ ài zhōng guó", "总字符：4"],
     ref: "pinyinData 实测 我=wǒ / 爱=ài / 中=zhōng / 国=guó；withSpace 默认勾选 ⇒ 逐字带声调拼接。"
