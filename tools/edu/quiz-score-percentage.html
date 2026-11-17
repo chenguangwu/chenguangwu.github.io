@@ -344,16 +344,17 @@ function calc(){
     return;
   }
   const {correct,total,pts}=v;
-  const wrong=Math.max(0,total-correct);
+  const wrong=total-correct;
   const pct=total>0?(correct/total*100):0;
+  const pctShown=Math.round(pct*10)/10;
   const score=correct*pts;
   const maxScore=total*pts;
   
   let grade='',cls='',msg='';
-  if(pct>=90){grade='A+ 太棒了！🌟';cls='grade-excellent';msg='完美！继续保持，向满分冲刺！';}
-  else if(pct>=80){grade='A 很好！👍';cls='grade-excellent';msg='成绩不错，查漏补缺可以更好！';}
-  else if(pct>=70){grade='B 不错 💪';cls='grade-good';msg='继续努力，提升空间很大！';}
-  else if(pct>=60){grade='C 及格了 📝';cls='grade-pass';msg='及格了，但还需要加强基础！';}
+  if(pctShown>=90){grade='A+ 太棒了！🌟';cls='grade-excellent';msg='完美！继续保持，向满分冲刺！';}
+  else if(pctShown>=80){grade='A 很好！👍';cls='grade-excellent';msg='成绩不错，查漏补缺可以更好！';}
+  else if(pctShown>=70){grade='B 不错 💪';cls='grade-good';msg='继续努力，提升空间很大！';}
+  else if(pctShown>=60){grade='C 及格了 📝';cls='grade-pass';msg='及格了，但还需要加强基础！';}
   else{grade='D 需要加油 💦';cls='grade-fail';msg='别灰心，从基础开始，一定能进步！';}
   
   let qHtml='<h4 style="margin:12px 0 8px;">错题可视化</h4><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;">';
@@ -371,7 +372,7 @@ function calc(){
   const __g2=`
     <h3>📊 测验结果</h3>
     <div style="text-align:center;padding:12px;">
-      <div style="font-size:56px;font-weight:bold;color:var(--primary);">${pct.toFixed(1)}%</div>
+      <div style="font-size:56px;font-weight:bold;color:var(--primary);">${pctShown.toFixed(1)}%</div>
       <div style="margin-top:8px;"><span class="grade-tag ${cls}">${grade}</span></div>
       <p style="margin-top:8px;font-size:13px;color:var(--text-light);">${msg}</p>
     </div>
@@ -384,7 +385,7 @@ function calc(){
     <div class="progress-bar">
       <div class="progress-fill" style="width:${pct}%"></div>
     </div>
-    <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px;">正确率 ${pct.toFixed(1)}%</p>
+    <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px;">正确率 ${pctShown.toFixed(1)}%</p>
   `;try{ if(typeof pct==='number'&&isFinite(pct)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:pct,unit:'',bands:[{"lo":null,"hi":60,"label":{"zh":"D","en":"D"},"color":"#EF4444"},{"lo":60,"hi":70,"label":{"zh":"C","en":"C"},"color":"#F97316"},{"lo":70,"hi":80,"label":{"zh":"B","en":"B"},"color":"#F59E0B"},{"lo":80,"hi":90,"label":{"zh":"A","en":"A"},"color":"#84CC16"},{"lo":90,"hi":null,"label":{"zh":"A+","en":"A+"},"color":"#10B981"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
@@ -406,12 +407,12 @@ function saveToHistory(){
       total:total,
       points:pts,
       score:score,
-      pct:pct
+      pct:pctShown
     });
     list=list.slice(0,20);
     localStorage.setItem(HISTORY_KEY,JSON.stringify(list));
-    ToolBox.showToast(i18nText());
-  }catch(e){ToolBox.showToast(i18nText(),'error');}
+    ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Saved':'已保存本次测验','success');
+  }catch(e){ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Save failed':'保存失败','error');}
 }
 
 function renderHistory(){
@@ -452,7 +453,7 @@ function loadHistory(i){
       document.getElementById('quizName').value=item.quizName;
       calc();
       switchTabByName('calc');
-      ToolBox.showToast(i18nText());
+      ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Restored':'已回填到表单','success');
     }
   }catch(e){}
 }

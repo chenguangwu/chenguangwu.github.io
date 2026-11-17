@@ -280,27 +280,6 @@
 - 影响：`tools/language/translator.html`；小语种用户几乎查不到词，页面规模与能力描述明显不符。
 - 方案：按语言对显示实际词条数并补齐高频词；删除「100+」总括与「自动语种检测」表述，或实现基于字符范围（Han/Cyrillic/Kana/Hangul）的源语言自动切换。
 
-### EL-J31 测验正确率：清空总题数被静默替换为 1，答对数可大于总数，输出 4200%/150% 仍判 A+（中，确认缺陷）
-- 描述：`parseInt(...)||1` 把空值/0 的总题数替换成 1；答对数没有上限校验，负数也参与。`wrong` 用 `max(0,total-correct)` 掩盖矛盾，等级直接按异常 pct 判定，页面无任何提示。
-- 证据：`tools/edu/quiz-score-percentage.html:338-340`（`correct=parseInt||0`、`total=parseInt||1`、`pts=parseFloat||1`）、`:341-342`（`wrong=Math.max(0,total-correct)`、`pct=correct/total*100`）、`:347-351`（按 pct 直接判级）、`:374-376`（得分/满分/答错卡片）。
-- 复现：清空「总题数」（答对仍 42）→ 正确率 4200.0%、满分 2、得分 84、等级 A+（期望提示总题数必填并停止计算）；总题 10 / 答对 15 → 150.0%、A+、得分 30 > 满分 20（期望拦截或提示「答对数不能超过总题数」）；答对 -5 → -50.0%、得分 -10。
-- 影响：`tools/edu/quiz-score-percentage.html`；编辑输入框的中间态与误输会给出荒谬结论，保存后历史记录同样污染。
-- 方案：`Number.isInteger(total)&&total>=1&&correct>=0&&correct<=total&&points>0` 全量校验，非法时清空结果并显示具体提示；去掉 `||1` 的静默替换，`wrong` 不再需要 `max` 掩盖。
-
-### EL-J32 测验正确率：等级判定用未舍入值、展示用 `toFixed(1)`，89.96% 显示 90.0% 却判 A（低，确认缺陷）
-- 描述：等级阈值用原始 `pct` 比较，展示用一位小数四舍五入；临界值附近出现「显示 90.0% 但等级 A」的自相矛盾，与参考表「90–100% A+」不一致。
-- 证据：`tools/edu/quiz-score-percentage.html:347`（`if(pct>=90)`）、`:368`（`${pct.toFixed(1)}%`）、`:222-226`（参考表 90–100 A+）。
-- 复现：总题 10000 / 答对 8996 → 展示 90.0%，等级 A（期望 A+，或展示 89.9% 保持 A）。
-- 影响：`tools/edu/quiz-score-percentage.html`；临界成绩的等级标签与百分比互相打脸，成绩复盘场景会被质疑。
-- 方案：先按展示精度四舍五入得到 `pctShown`，阈值与展示都用它；或展示保留 2 位小数并注明「按原始值判级」。
-
-### EL-J33 保存/润色提示调用 `i18nText()` 无 key，toast 显示字面量 `undefined`（低，确认缺陷）
-- 描述：`ToolBox.showToast(i18nText())` 没有传 key；`i18nText(undefined)` 在 `normalizeI18nKey` 直接返回 `undefined`，最终 `showToast` 用 `textContent=undefined` 渲染为字符串「undefined」。测验保存/回填与文本润色（含每次加载自动 `polish()`）都会触发。
-- 证据：`tools/edu/quiz-score-percentage.html:407-408`、`:449`；`tools/language/text-polisher.html:330`（`polish()` 末尾）、`:337`（同义词提示）；`js/common.js:1510-1521`（无 fallback 时返回 `key`，此处为 `undefined`）。
-- 复现：点击「保存这次测验」→ 底部 toast 显示「undefined」（期望「已保存」）；打开文本润色页 → 初始化 `polish()` 立即弹「undefined」；选中「美丽」→ 弹「undefined漂亮 / 迷人…」。
-- 影响：`tools/edu/quiz-score-percentage.html`、`tools/language/text-polisher.html`；保存成功与否没有可读反馈，同义词提示还带脏前缀。
-- 方案：传入明确 key 与中文兜底（如 `i18nText('toast.saved','已保存')`），同义词提示改为固定前缀「可替换为：」；在公共层加 `i18nText` 空 key 断言。
-
 ### EL-J34 日语五十音练习：对/错统计跨会话、跨假名累计且无重置入口（低，确认缺陷）
 - 描述：`quizRight` / `quizTotal` 只在页面初始化时为 0，`toggleQuiz()` 进入/退出练习、切换平假名/片假名都不清零；用户关闭再开练习会接着上次的分子分母继续累计，正确率不再代表「本次练习」。
 - 证据：`tools/language/riyuwushiyintulianxi-dianjifayin.html:188`（全局初始 0）、`:208-212`（`toggleQuiz` 无重置）、`:224-229`（每次答题累加并渲染）、`:191-196`（`setKana` 不碰统计）。

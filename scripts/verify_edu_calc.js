@@ -65,6 +65,18 @@ const CASES = [
     ref: "目标分反推（calcTarget）：perQ=2 → score=40×2=80；目标 90>80；需补 10 分；每对 1 题得 2 分 ⇒ ceil(10/2)=5 题；剩余题 50−40=10 够用；预计 80+5×2=90 分。默认态（correct85/target95）→「再做对 10 题可达 95 分」不命中 ⇒ 强判别、零逃生。",
   },
   {
+    slug: "edu/quiz-score-percentage", inputs: { total: "10000", correct: "8996", points: "2" },
+    expect: ["A+ 太棒了！🌟"],
+    ref: "EL-J32：89.96% 按展示精度 90.0% 判级 ⇒ A+；旧版用未舍入 pct 判 A 却展示 90.0%。展示串 90.0% 旧版也命中，禁止列入 expect。",
+  },
+  {
+    slug: "edu/quiz-score-percentage",
+    inputs: { quizName: "TbQuizToast" },
+    clicks: ["var nm=document.getElementById('quizName').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu/quiz-score-percentage.html','utf8');var h2=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/language/text-polisher.html','utf8');var ok=nm==='TbQuizToast'&&h.indexOf('i18nText()')<0&&h2.indexOf('i18nText()')<0&&h.indexOf('已保存本次测验')>=0;document.getElementById('__tbProbe').textContent='TOASTFIX '+(ok?'OK':'BAD');"],
+    expect: ["TOASTFIX OK"],
+    ref: "EL-J33：测验页与润色页均无无参 i18nText() 调用，测验页保存有明确文案；旧版 toast 显示 undefined。",
+  },
+  {
     slug: "edu/quiz-score-percentage",
     inputs: { total: "50", correct: "40", points: "2" },
     expect: ["80"],
