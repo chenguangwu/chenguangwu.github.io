@@ -16,6 +16,48 @@ const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
   {
+    slug: "edu/exam-score-calculator",
+    inputs: { correct: "95", targetScore: "95" },
+    clicks: ["var cv=document.getElementById('correct').value;document.getElementById('targetResult').innerHTML='__STALE__';calc();var r=document.getElementById('targetResult').innerHTML;document.getElementById('__tbProbe').textContent='LIVE '+(cv==='95'&&r.indexOf('__STALE__')<0&&r.indexOf('已达标')>=0?'OK':'BAD');"],
+    expect: ["LIVE OK"],
+    ref: "EL-J48：calc() 末尾联动 calcTarget()，基础成绩改动后目标卡不再残留旧结论；旧版只calc主表，目标卡保留旧缺口。",
+  },
+  {
+    slug: "edu/exam-score-calculator",
+    inputs: { totalQ: "10", correct: "15", examName: "TbBadC" },
+    clicks: ["var nm=document.getElementById('examName').value;var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='BADCNT '+(nm==='TbBadC'&&r.indexOf('请检查输入')>=0?'OK':'BAD');"],
+    expect: ["BADCNT OK"],
+    ref: "EL-J51：做对题数大于总题数必须拒绝并提示；旧版显示 15/10、正确率 100%、得分 100。",
+  },
+  {
+    slug: "edu/exam-score-calculator",
+    inputs: { passLine: "0", correct: "55", total: "100", totalQ: "100", examName: "TbP0" },
+    clicks: ["var nm=document.getElementById('examName').value;var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='PL0 '+(nm==='TbP0'&&r.indexOf('及格 ✓')>=0?'OK':'BAD');"],
+    expect: ["PL0 OK"],
+    ref: "EL-J51：及格线 0 是合法值，55% 应判及格；旧版 parseFloat(0)||60 静默按 60 判不及格。",
+  },
+  {
+    slug: "edu/exam-score-calculator",
+    inputs: { examName: "TbHist75" },
+    clicks: ["var nm=document.getElementById('examName').value;localStorage.setItem('exam_score_history',JSON.stringify([{time:'2026-01-01T00:00:00Z',examName:'TbHist75',score:75,total:100,rate:75,correct:75,totalQ:100,passLine:60}]));renderHistory();var r=document.getElementById('historyList').innerHTML;document.getElementById('__tbProbe').textContent='H75 '+(nm==='TbHist75'&&r.indexOf('中等')>=0?'OK':'BAD');"],
+    expect: ["H75 OK"],
+    ref: "EL-J49：历史等级与主表共用 gradeOf，75% 显示中等；旧版历史硬编码 60 档，只有及格。",
+  },
+  {
+    slug: "edu/exam-score-calculator",
+    inputs: { examName: "TbSave", passLine: "70", perQ: "2", classAvg: "80", total: "100", totalQ: "50", correct: "30" },
+    clicks: ["var nm=document.getElementById('examName').value;var __si=localStorage.setItem;var cap=null;localStorage.setItem=function(k,v){if(k==='exam_score_history')cap=JSON.parse(v);};saveToHistory();localStorage.setItem=__si;var it=cap&&cap[0];var ok=nm==='TbSave'&&it&&it.score===60&&it.passLine===70&&it.perQ===2&&it.classAvg===80&&it.grade;document.getElementById('__tbProbe').textContent='SAVE '+(ok?'OK':'BAD');"],
+    expect: ["SAVE OK"],
+    ref: "EL-J47/J50：历史与屏幕同口径(30×2=60)并保存 passLine/perQ/classAvg/grade；旧版不存这些字段且按平均分比例算 60 但无口径信息。",
+  },
+  {
+    slug: "edu/exam-score-calculator",
+    inputs: { examName: "TbDoc" },
+    clicks: ["var nm=document.getElementById('examName').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu/exam-score-calculator.html','utf8');var ok=nm==='TbDoc'&&h.indexOf('历史记录自动保存')<0&&h.indexOf('历史记录需手动点击')>=0&&h.indexOf('gradeOf(')>=0;document.getElementById('__tbProbe').textContent='ESCDOC '+(ok?'OK':'BAD');"],
+    expect: ["ESCDOC OK"],
+    ref: "EL-J53/J49：使用说明改手动保存，页面存在共用 gradeOf；旧版宣称自动保存且无 gradeOf。",
+  },
+  {
     slug: "edu/grade-weight-calculator",
     inputs: { target: "" },
     clicks: ["var tg=document.getElementById('target').value;var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='TGEMPTY '+(tg===''&&r.indexOf('请填写目标分')>=0?'OK':'BAD');"],

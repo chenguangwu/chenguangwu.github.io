@@ -302,54 +302,8 @@
 ① 提供百分制 ↔ 4.0/5.0 的 GPA 对照表；② 支持整张成绩单批量粘贴；③ 学期 GPA 对比与目标 GPA 反推。
 ### 留存建议（tools/edu/grade-weight-calculator.html）
 ① 多套权重方案并列对比；② 用进度条展示「已得/缺口/剩余需考」；③ 导出 CSV 与打印测算表。
-### EL-J47 考试成绩计算器：保存历史忽略每题分值，屏幕 40 分保存成 80 分（高，确认缺陷）
-- 问题：主计算在 `perQ>0` 时用 `correct*perQ`，但 `saveToHistory()` 固定用 `correct/totalQ*total`，完全不读 `perQ`。只要每题分值与「总分/总题数」的平均值不同，历史记录就与屏幕结果不一致。
-- 证据：`tools/edu/exam-score-calculator.html:369`（主计算 `perQ>0?correct*perQ:...`）、`:486-488`（保存固定按比例并 cap）、`:492-500`（历史未存 perQ）。
-- 复现：总分 100、总题数 50、每题分值 1、做对 40 → 屏幕「40.0 分、得分率 40%」；点保存 → 历史显示「80.0 / 100 分、正确率 80%」。期望保存值与屏幕一致（40 分）。
-- 影响：`tools/edu/exam-score-calculator.html`；历史成绩、GPA/等级复盘全部被系统性放大，家长或教师查看记录会被误导。
-- 方案：抽出 `computeExam(total,correct,totalQ,perQ)` 供 `calc` 与 `saveToHistory` 共用；历史额外保存 `perQ`、`passLine` 与最终 `score`。
-- 留存建议（exam-score）：① 多次考试历史趋势图；② 按题型/知识点记录错题；③ 目标倒推与主成绩联动并提供打印成绩单。
-
-### EL-J48 考试成绩计算器：目标倒推卡不随做对题数/总分变化，旧结果残留（中，确认缺陷）
-- 问题：`total/totalQ/correct/perQ` 的 `oninput` 只调用 `calc()`，而 `calc()` 不调用 `calcTarget()`；目标卡仅在初始化、目标字段变化和预设回调时更新，基础成绩改动后仍显示旧结论。
-- 证据：`tools/edu/exam-score-calculator.html:167`、`:170`（基础输入 `oninput="calc()"`）、`:187`（仅目标输入 `oninput="calcTarget()"`）、`:437-476`（`calcTarget` 独立读取输入）、`:559`（仅初始化调用一次）。
-- 复现：默认目标 95、做对 85 → 目标卡「再做对 10 题可达 95 分」；把做对改为 95 → 主结果变 95 分，但目标卡仍写「再做对 10 题」且预计 95 分（期望「已达标」）。
-- 影响：`tools/edu/exam-score-calculator.html`；目标规划与实际成绩脱节，用户会按过期缺口复习。
-- 方案：`calc()` 末尾调用 `calcTarget()`，或在四个基础输入上增加 `calcTarget()`；`calcTarget` 内部统一复用已计算的 score/total。
-- 留存建议：同上。
-
-### EL-J49 考试成绩计算器：历史等级缺「中等」且忽略及格线，75% 主表为中等、历史为及格（中，确认缺陷）
-- 问题：历史渲染硬编码 `>=90 优秀 / >=80 良好 / >=60 及格`，没有 70–79 的「中等」，也不读取 `passLine`；主计算却包含 `rate>=70` 的「中等」并用 `rate>=passLine` 判及格。
-- 证据：`tools/edu/exam-score-calculator.html:520-523`（历史阈值）、`:382-383`（主计算「中等」与 `passLine` 分支）。
-- 复现：做对 75/100、总分 100 → 主结果「中等 💪」；保存后历史标签显示「及格」。及格线设 70、得分率 65 → 主结果「不及格」，历史仍显示「及格」。
-- 影响：`tools/edu/exam-score-calculator.html`；同一成绩在两处等级不同，历史失去复盘价值。
-- 方案：抽出 `gradeOf(rate,passLine)`（含 90/80/70/passLine 四档），主表与历史共用；历史保存/使用当时的 passLine。
-- 留存建议：同上。
-
-### EL-J50 考试成绩计算器：历史记录不保存及格线/每题分值，回填后按当前残留值重算（中，确认缺陷）
-- 问题：`saveToHistory` 只存 `score/total/rate/correct/totalQ`，不存 `perQ`、`passLine`、`classAvg`；`loadHistory` 也只回填四项字段。再次打开或换设备后，及格判定、目标卡、班级对比均按页面当前值计算，和保存时不同。
-- 证据：`tools/edu/exam-score-calculator.html:492-500`（字段缺失）、`:539-543`（回填字段缺失）、`:365`/`:483`（passLine 默认 60）。
-- 复现：及格线 90、做对 85/100 → 主结果「良好」但提示未及格；保存后刷新页面（及格线回到 60）再点该历史 → 同一记录变成「已及格」，提示语与首次保存时相反。
-- 影响：`tools/edu/exam-score-calculator.html`；历史记录无法忠实还原当时的判分口径。
-- 方案：历史保存 `perQ/passLine/classAvg` 与最终 `grade`，回填时一并恢复；旧记录缺失字段时按默认值显示并在详情注明。
-- 留存建议：同上。
-
-### EL-J51 考试成绩计算器：做对题数可大于总题数，显示「15/10」且正确率 100%；及格线 0 被改成 60（中，确认缺陷）
-- 问题：`correct` 无上限校验，`score` 被 `Math.min(score,total)` 截到满分，`wrong=Math.max(0, totalQ-correct)` 掩盖矛盾，正确率卡片仍直接输出 `${correct}/${totalQ}`。`passLine` 用 `||60`，合法 0 被替换。
-- 证据：`tools/edu/exam-score-calculator.html:361-365`（`||100`/`||60`）、`:369-375`（cap 与 `max(0,...)`）、`:419`（`${correct}/${totalQ}`）。
-- 复现：总分 100、总题数 10、每题分值空、做对 15 → 得分 100、正确率「15/10」、错题 0、等级优秀；及格线填 0、得分 55 → 仍按 60 判「不及格」（期望按 0 判及格）。
-- 影响：`tools/edu/exam-score-calculator.html`；误输或清空时输出自相矛盾的「正确率」，及格线 0 的宽严设定失效。
-- 方案：校验 `0<=correct<=totalQ`、`totalQ>=1`、`total>0`、`0<=passLine<=100`；非法时清空结果并提示，不再用 `||` 静默默认。
-- 留存建议：同上。
-
-### EL-J53 考试成绩计算器：使用说明称「历史记录自动保存最近 20 次」，实际必须手动点保存（低，确认缺陷）
-- 问题：使用说明写自动保存，但页面没有任何自动入库逻辑；`saveToHistory()` 只在「保存这次成绩」按钮点击时执行，计算与输入变化均不保存。
-- 证据：`tools/edu/exam-score-calculator.html:202`（自动保存文案）、`:432`（唯一的「保存这次成绩」按钮）、`:479-505`（唯一保存函数）、`:512`（空态文案要求手动点击）。
-- 复现：完成一次计算后直接打开「历史记录」→ 显示「暂无记录」；必须回到计算页点「保存这次成绩」才会出现。期望按说明自动出现，或文案改为「手动保存，最多 20 条」。
-- 影响：`tools/edu/exam-score-calculator.html`；用户以为成绩已留存，实际丢失。
-- 方案：改为手动保存文案，或在 `calc()` 后 debounce 自动保存并明确提示；两种行为的条数上限都保持 20。
-- 留存建议：同上。
-
+### 留存建议（tools/edu/exam-score-calculator.html）
+① 多次考试历史趋势图；② 按题型/知识点记录错题；③ 目标倒推与主成绩联动并提供打印成绩单。
 ### EL-J54 学习计划：首屏统计直接展示虚构的 90 分钟/8 小时/120 小时/128 任务，与默认任务矛盾（中，确认缺陷）
 - 问题：默认数据把 `stats` 写死为 90/8/120/128，但默认 4 个任务只有 1 个完成（30 分钟）；真实完成任务或番茄钟只增加 `todayMinutes` 与 `tasksDone`，`weekHours/totalHours` 从不更新。首次使用即展示非用户产生的累计数据。
 - 证据：`tools/edu/study-planner.html:352-371`（默认 stats 与 subjectMinutes）、`:359-363`（4 个任务仅 1 个 done）、`:437-438`（仅改 today/tasksDone）、`:577-581`（直接输出 stats）。

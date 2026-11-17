@@ -188,7 +188,7 @@
       <li>如每题分值不同，可手动指定每题分值</li>
       <li>可设置及格线百分比，自动判断是否及格</li>
       <li>输入班级平均分可进行成绩对比分析</li>
-      <li>历史记录自动保存最近20次考试成绩</li>
+      <li>历史记录需手动点击「保存这次成绩」，最多保留最近 20 次</li>
     </ul>
   </div>
   <div class="ref-card">
@@ -345,33 +345,54 @@ function switchTab(name){
   if(name==='history')renderHistory();
 }
 
+function examIsEn(){
+  return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');
+}
+function readExamInputs(){
+  var num=function(id,def){var s=String(document.getElementById(id).value||'').trim();return s===''?def:Number(s);};
+  var total=num('total',NaN),correct=num('correct',NaN),totalQ=num('totalQ',NaN);
+  var passLine=num('passLine',NaN),perQ=num('perQ',0);
+  var valid=Number.isFinite(total)&&total>0
+    &&Number.isFinite(totalQ)&&Number.isInteger(totalQ)&&totalQ>=1
+    &&Number.isFinite(correct)&&Number.isInteger(correct)&&correct>=0&&correct<=totalQ
+    &&Number.isFinite(passLine)&&passLine>=0&&passLine<=100
+    &&Number.isFinite(perQ)&&perQ>=0;
+  if(!valid)return null;
+  var caRaw=String(document.getElementById('classAvg').value||'').trim();
+  return {total:total,correct:correct,totalQ:totalQ,perQ:perQ,passLine:passLine,
+    classAvg:caRaw===''?NaN:Number(caRaw),
+    examName:String(document.getElementById('examName').value||'').trim()};
+}
+function computeExam(v){
+  var score=v.perQ>0?v.correct*v.perQ:v.correct/v.totalQ*v.total;
+  score=Math.max(0,Math.min(score,v.total));
+  var rate=v.total>0?score/v.total*100:0;
+  var passScore=v.total*v.passLine/100;
+  return {score:score,rate:rate,passScore:passScore,passed:score>=passScore,
+    wrong:v.totalQ-v.correct,lost:v.total-score};
+}
+function gradeOf(rate,passLine,en){
+  if(rate>=90)return {grade:en?'Excellent 🏆':'优秀 🏆',cls:'grade-excellent',desc:en?'Outstanding — keep it up! Try more challenging material.':'成绩优异，继续保持！可以尝试更有挑战性的内容。'};
+  if(rate>=80)return {grade:en?'Good 👍':'良好 👍',cls:'grade-good',desc:en?'Nice work — filling small gaps can push you further.':'成绩不错，查漏补缺可以更上一层楼。'};
+  if(rate>=70)return {grade:en?'Average 💪':'中等 💪',cls:'grade-good',desc:en?'Solid base — focus on weak areas for the biggest gains.':'基础尚可，重点突破薄弱环节提分空间大。'};
+  if(rate>=passLine)return {grade:en?'Pass ✓':'及格 ✓',cls:'grade-pass',desc:en?'Just passed — reinforce the fundamentals.':'刚刚及格，需要加强基础知识的学习。'};
+  return {grade:en?'Fail ✗':'不及格 ✗',cls:'grade-fail',desc:en?'Keep going — start with a systematic review of basics.':'需要努力，建议从基础开始系统复习。'};
+}
+
 function calc(){
-  var __EN=((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||''));
+  var __EN=examIsEn();
   var __T=function(en,zh){return __EN?en:zh;};
-  const total=parseFloat(document.getElementById('total').value)||100;
-  const correct=parseInt(document.getElementById('correct').value)||0;
-  const totalQ=parseInt(document.getElementById('totalQ').value)||100;
-  const perQ=parseFloat(document.getElementById('perQ').value);
-  const passLine=parseFloat(document.getElementById('passLine').value)||60;
-  const classAvg=parseFloat(document.getElementById('classAvg').value);
-  const examName=document.getElementById('examName').value.trim();
-  
-  let score=perQ>0?correct*perQ:(correct/totalQ*total);
-  score=Math.min(score,total);
-  score=Math.max(0,score);
-  
-  const rate=total>0?(score/total*100):0;
-  const passScore=total*passLine/100;
-  const wrong=Math.max(0,totalQ-correct);
-  const lost=total-score;
-  const passed=score>=passScore;
-  
-  let grade='',gradeClass='',desc='';
-  if(rate>=90){grade=__T('Excellent 🏆','优秀 🏆');gradeClass='grade-excellent';desc=__T('Outstanding — keep it up! Try more challenging material.','成绩优异，继续保持！可以尝试更有挑战性的内容。');}
-  else if(rate>=80){grade=__T('Good 👍','良好 👍');gradeClass='grade-good';desc=__T('Nice work — filling small gaps can push you further.','成绩不错，查漏补缺可以更上一层楼。');}
-  else if(rate>=70){grade=__T('Average 💪','中等 💪');gradeClass='grade-good';desc=__T('Solid base — focus on weak areas for the biggest gains.','基础尚可，重点突破薄弱环节提分空间大。');}
-  else if(rate>=passLine){grade=__T('Pass ✓','及格 ✓');gradeClass='grade-pass';desc=__T('Just passed — reinforce the fundamentals.','刚刚及格，需要加强基础知识的学习。');}
-  else{grade=__T('Fail ✗','不及格 ✗');gradeClass='grade-fail';desc=__T('Keep going — start with a systematic review of basics.','需要努力，建议从基础开始系统复习。');}
+  var v=readExamInputs();
+  if(!v){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">'+__T('Check inputs: full mark > 0, at least 1 question, 0 ≤ correct ≤ total questions, pass line 0-100.','请检查输入：总分>0、总题数≥1、0≤做对题数≤总题数、及格线 0–100。')+'</p>';
+    return;
+  }
+  const total=v.total,correct=v.correct,totalQ=v.totalQ,perQ=v.perQ,passLine=v.passLine;
+  const classAvg=v.classAvg,examName=v.examName;
+  var c=computeExam(v);
+  const score=c.score,rate=c.rate,passScore=c.passScore,wrong=c.wrong,lost=c.lost,passed=c.passed;
+  var g=gradeOf(rate,passLine,__EN);
+  const grade=g.grade,gradeClass=g.cls,desc=g.desc;
   
   let gpa=0;
   if(rate>=90)gpa=4.0;
@@ -422,24 +443,23 @@ function calc(){
       <button type="button" class="btn primary" onclick="saveToHistory()" style="width:100%;">${__T('💾 Save this result','💾 保存这次成绩')}</button>
     </div>
   `;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  calcTarget();
 }
 
 function calcTarget(){
-  var __EN=((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||''));
+  var __EN=examIsEn();
   var __T=function(en,zh){return __EN?en:zh;};
   var el=document.getElementById('targetResult');
   if(!el) return;
-  var total=parseFloat(document.getElementById('total').value)||100;
-  var correct=parseInt(document.getElementById('correct').value)||0;
-  var totalQ=parseInt(document.getElementById('totalQ').value)||100;
-  var perQ=parseFloat(document.getElementById('perQ').value);
-  var target=parseFloat(document.getElementById('targetScore').value);
-  if(isNaN(target)){
+  var v=readExamInputs();
+  var targetRaw=String(document.getElementById('targetScore').value||'').trim();
+  var target=targetRaw===''?NaN:Number(targetRaw);
+  if(!v||!Number.isFinite(target)){
     el.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:0;">'+__T('Enter a target score to see how many more questions to answer correctly.','请输入目标分数，查看还需做对多少题。')+'</p>';
     return;
   }
-  var score=perQ>0?correct*perQ:(correct/totalQ*total);
-  score=Math.min(score,total);score=Math.max(0,score);
+  var total=v.total,correct=v.correct,totalQ=v.totalQ,perQ=v.perQ;
+  var score=computeExam(v).score;
   if(target<=score){
     el.innerHTML='<div class="data-grid"><div class="data-card"><div class="num" style="color:#66bb6a;">✓</div><div class="label">'+__T('Already reached','已达标')+'</div></div></div><p style="font-size:13px;color:var(--text-light);margin-top:8px;">'+__T('Current '+score.toFixed(1)+' pts already meets the target.','当前 '+score.toFixed(1)+' 分已达标。')+'</p>';
     return;
@@ -467,34 +487,26 @@ function calcTarget(){
 }
 
 function saveToHistory(){
-  const total=parseFloat(document.getElementById('total').value)||100;
-  const correct=parseInt(document.getElementById('correct').value)||0;
-  const totalQ=parseInt(document.getElementById('totalQ').value)||100;
-  const perQ=parseFloat(document.getElementById('perQ').value);
-  const passLine=parseFloat(document.getElementById('passLine').value)||60;
-  const examName=document.getElementById('examName').value.trim();
-  
-  // 与 calc() 保持同一口径：填写「每题分值」时按 correct × perQ 计分
-  let score=perQ>0?correct*perQ:(correct/totalQ*total);
-  score=Math.min(score,total);
-  const rate=total>0?(score/total*100):0;
-  
+  var __EN=examIsEn();
+  var v=readExamInputs();
+  if(!v){ToolBox.showToast(__EN?'Check inputs first':'请先检查输入','error');return;}
+  var c=computeExam(v);
+  var g=gradeOf(c.rate,v.passLine,__EN);
   try{
-    let list=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');
+    var list=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');
     list.unshift({
       time:new Date().toISOString(),
-      examName:examName||'未命名考试',
-      score:score,
-      total:total,
-      rate:rate,
-      correct:correct,
-      totalQ:totalQ,
-      perQ:perQ>0?perQ:0
+      examName:v.examName||(__EN?'Untitled exam':'未命名考试'),
+      score:c.score,total:v.total,rate:c.rate,
+      correct:v.correct,totalQ:v.totalQ,
+      perQ:v.perQ>0?v.perQ:0,passLine:v.passLine,
+      classAvg:Number.isFinite(v.classAvg)?v.classAvg:0,
+      grade:g.grade
     });
     list=list.slice(0,20);
     localStorage.setItem(HISTORY_KEY,JSON.stringify(list));
-    ToolBox.showToast(i18nText());
-  }catch(e){ToolBox.showToast(i18nText(),'error');}
+    ToolBox.showToast(__EN?'Saved':'已保存本次成绩','success');
+  }catch(e){ToolBox.showToast(__EN?'Save failed':'保存失败','error');}
 }
 
 function renderHistory(){
@@ -509,11 +521,9 @@ function renderHistory(){
     list.forEach((item,i)=>{
       const d=new Date(item.time);
       const dateStr=d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate();
-      let grade='',cls='';
-      if(item.rate>=90){grade='优秀';cls='grade-excellent';}
-      else if(item.rate>=80){grade='良好';cls='grade-good';}
-      else if(item.rate>=60){grade='及格';cls='grade-pass';}
-      else{grade='不及格';cls='grade-fail';}
+      var pl=Number.isFinite(item.passLine)?item.passLine:60;
+      var g=gradeOf(item.rate,pl,false);
+      var grade=g.grade,cls=g.cls;
       html+=`<div class="history-item" onclick="loadHistory(${i})">
         <div class="time">${dateStr} · ${ToolBox.escHtml(item.examName)}</div>
         <div class="summary">${item.score.toFixed(1)} / ${item.total}分 <span class="grade-tag ${cls}" style="font-size:11px;padding:2px 8px;">${grade}</span></div>
@@ -532,11 +542,13 @@ function loadHistory(i){
       document.getElementById('total').value=item.total;
       document.getElementById('correct').value=item.correct;
       document.getElementById('totalQ').value=item.totalQ;
-      if(item.perQ>0) document.getElementById('perQ').value=item.perQ;
-      document.getElementById('examName').value=item.examName;
+      document.getElementById('perQ').value=item.perQ>0?item.perQ:'';
+      document.getElementById('passLine').value=Number.isFinite(item.passLine)?item.passLine:60;
+      document.getElementById('classAvg').value=Number.isFinite(item.classAvg)&&item.classAvg>0?item.classAvg:'';
+      document.getElementById('examName').value=item.examName||'';
       calc();
       switchTab('calc');
-      ToolBox.showToast(i18nText());
+      ToolBox.showToast(examIsEn()?'Restored':'已回填历史成绩','success');
     }
   }catch(e){}
 }
