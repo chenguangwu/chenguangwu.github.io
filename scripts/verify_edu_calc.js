@@ -15,6 +15,28 @@ globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  // ── 第1175批：颜色测验改为色块辨识、清理 HEX/限时宣称（单词记忆三项源码复核销账）──
+  {
+    slug: "edu/color-quiz",
+    inputs: { "input": "red" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/color-quiz.html','utf8');var ok=h.indexOf(\"nameEl.textContent='●'\")>=0&&h.indexOf('background:${o.c}')<0&&h.indexOf('b.dataset.key=o.n')>=0;document.getElementById('__tbProbe').textContent='JBLIND:'+(ok?'OK':'BAD');"],
+    expect: ["JBLIND:OK"],
+    ref: "EL-J116：题面只显示纯色块且选项只有色名文字，高亮改数据键；旧版题面写出正确色名且选项带色块，读字即可满分 ⇒ BAD。",
+  },
+  {
+    slug: "edu/color-quiz",
+    inputs: { "input": "blue" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/color-quiz.html','utf8');var d=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu/color-quiz']);var ok=h.indexOf('HEX 代码')<0&&h.indexOf('timed quiz')<0&&d.indexOf('由 HEX/RGB 反推颜色')<0;document.getElementById('__tbProbe').textContent='JHEX:'+(ok?'OK':'BAD');"],
+    expect: ["JHEX:OK"],
+    ref: "EL-J117：删除未实现的 HEX/RGB 题型与限时宣称，deep-dive 改为真实色块辨识；旧版三处虚标 ⇒ BAD。",
+  },
+  {
+    slug: "edu/word-memory",
+    inputs: { filterLevel: "3" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/word-memory.html','utf8');var ok=h.indexOf('name:'+'\\''+'认识'+'\\''+', count:familiar')>=0&&h.indexOf('nextDueAt')>=0&&h.indexOf(\"'0 / 0'\")>=0;document.getElementById('__tbProbe').textContent='JWMEM:'+(ok?'OK':'BAD');"],
+    expect: ["JWMEM:OK"],
+    ref: "EL-J118/J119/J120：四档独立统计、艾宾浩斯到期队列、空词库进度归零均已实现；旧版三项缺失 ⇒ BAD。",
+  },
   // ── 第1174批：时长分配首屏行数、整数分钟与重复框清理 ──
   {
     slug: "edu/calc-3",
