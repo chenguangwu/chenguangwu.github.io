@@ -11,7 +11,8 @@ const CHROME='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 let pass=0,fail=0;
 const ok=(n,c,e)=>{if(c){pass++;console.log('  ✅ '+n);}else{fail++;console.log('  ❌ '+n+(e?'  → '+e:''));}};
 const MIME={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.css':'text/css; charset=utf-8'};
-const cache={}; const oldSrc=rel=>(rel in cache)?cache[rel]:(cache[rel]=execFileSync('git',['show','HEAD:'+rel],{cwd:ROOT,encoding:'utf8',maxBuffer:64*1024*1024}));
+const cache={}; // 972 基线固定为修复提交 c18e6ba792 的父提交 5a2659e7ac
+const oldSrc=rel=>(rel in cache)?cache[rel]:(cache[rel]=execFileSync('git',['show','5a2659e7ac:'+rel],{cwd:ROOT,encoding:'utf8',maxBuffer:64*1024*1024}));
 // 精确取输出：二次方程用 solve() 后 roots 渲染区，双销用结果卡，单摆用输入 value + 结果
 const CASES=[
   { name:'二次方程复根符号', rel:'tools/science/quadratic-equation.html',

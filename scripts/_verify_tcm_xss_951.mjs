@@ -157,7 +157,8 @@ try {
     await page.__tbContext.close();
 
     console.log('[' + name + '] 修复前（git HEAD 回放，应命中注入）');
-    const old = execFileSync('git', ['show', 'HEAD:' + c.rel], { cwd: ROOT, encoding: 'utf8' });
+    // 951 基线固定为修复提交 ae906ca738 的父提交，避免 HEAD 推进后旧版对照假失败
+    const old = execFileSync('git', ['show', '237aaac6d4:' + c.rel], { cwd: ROOT, encoding: 'utf8' });
     const oldPage = await newPage(browser, c.rel, old);
     const o = await probe(oldPage, c.code);
     ok('旧版确有注入元素', o.injected > 0 || !!o.fired, JSON.stringify(o).slice(0, 300));

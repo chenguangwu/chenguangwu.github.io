@@ -105,7 +105,8 @@ try {
 
     if (c.diffOld) {
       console.log('[' + name + '] 修复前（git HEAD 回放，应命中注入）');
-      const old = execFileSync('git', ['show', 'HEAD:' + c.rel], { cwd: ROOT, encoding: 'utf8' });
+      // 952 基线固定为修复提交 85c81bcdd7 的父提交，避免 HEAD 漂移
+      const old = execFileSync('git', ['show', 'ae906ca738:' + c.rel], { cwd: ROOT, encoding: 'utf8' });
       const o = await newPage(browser, c.rel, old);
       const before = await probe(o.page, c.code);
       ok('旧版确实回放', before.oldServed, JSON.stringify(before));

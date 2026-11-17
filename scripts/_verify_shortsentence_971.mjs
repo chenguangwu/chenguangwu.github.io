@@ -9,7 +9,7 @@ let pass=0,fail=0;
 const ok=(n,c,e)=>{if(c){pass++;console.log('  ✅ '+n);}else{fail++;console.log('  ❌ '+n+(e?'  → '+e:''));}};
 const MIME={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.css':'text/css; charset=utf-8'};
 const rel='tools/ai/ai-text-summarizer.html';
-const old=execFileSync('git',['show','HEAD:'+rel],{cwd:ROOT,encoding:'utf8',maxBuffer:64*1024*1024});
+const old=execFileSync('git',['show','cfb947172c:'+rel],{cwd:ROOT,encoding:'utf8',maxBuffer:64*1024*1024}); // 971 基线固定为修复提交 5a2659e7ac 的父提交
 const code="document.getElementById('input').value='天很蓝。'.repeat(13);summarize();return {stat:document.getElementById('stat').textContent,result:document.getElementById('result').textContent};";
 (async()=>{
   const server=http.createServer((req,res)=>{const p=decodeURIComponent(req.url.split('?')[0]);const f=path.join(ROOT,p);if(!fs.existsSync(f)||!fs.statSync(f).isFile()){res.writeHead(404);res.end('nf');return;}res.writeHead(200,{'Content-Type':MIME[path.extname(f)]||'application/octet-stream'});fs.createReadStream(f).pipe(res);});

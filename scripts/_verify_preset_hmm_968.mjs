@@ -17,7 +17,8 @@ let pass = 0, fail = 0;
 const ok = (n, c, e) => { if (c) { pass++; console.log('  ✅ ' + n); } else { fail++; console.log('  ❌ ' + n + (e ? '  → ' + e : '')); } };
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.css': 'text/css; charset=utf-8' };
 const cache = {};
-const oldSrc = rel => (rel in cache) ? cache[rel] : (cache[rel] = execFileSync('git', ['show', 'HEAD:' + rel], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }));
+// 968 基线固定为修复提交 dac4032970 的父提交
+const oldSrc = rel => (rel in cache) ? cache[rel] : (cache[rel] = execFileSync('git', ['show', 'ce93831ded:' + rel], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }));
 
 const CASES = [
   {

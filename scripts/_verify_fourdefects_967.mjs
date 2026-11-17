@@ -24,7 +24,8 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
 
 let oldSrcCache = {};
 function oldSrc(rel) {
-  if (!(rel in oldSrcCache)) oldSrcCache[rel] = execFileSync('git', ['show', 'HEAD:' + rel], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  // 967 基线固定为修复提交 ce93831ded 的父提交，避免 HEAD 推进后旧版假失败
+  if (!(rel in oldSrcCache)) oldSrcCache[rel] = execFileSync('git', ['show', 'f76d7e4ce1:' + rel], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   return oldSrcCache[rel];
 }
 

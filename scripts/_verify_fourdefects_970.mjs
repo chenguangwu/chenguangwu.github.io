@@ -11,7 +11,8 @@ const CHROME='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 let pass=0,fail=0;
 const ok=(n,c,e)=>{if(c){pass++;console.log('  ✅ '+n);}else{fail++;console.log('  ❌ '+n+(e?'  → '+e:''));}};
 const MIME={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.css':'text/css; charset=utf-8'};
-const cache={}; const oldSrc=rel=>(rel in cache)?cache[rel]:(cache[rel]=execFileSync('git',['show','HEAD:'+rel],{cwd:ROOT,encoding:'utf8',maxBuffer:64*1024*1024}));
+const cache={}; // 970 基线固定为修复提交 cfb947172c 的父提交
+const oldSrc=rel=>(rel in cache)?cache[rel]:(cache[rel]=execFileSync('git',['show','060ecc5636:'+rel],{cwd:ROOT,encoding:'utf8',maxBuffer:64*1024*1024}));
 const CASES=[
   { name:'传感器覆盖面积多乘距离', rel:'tools/general/detector-16.html',
     code:"calc();return document.getElementById('res').textContent;",

@@ -117,7 +117,8 @@ try {
     await n.context.close();
 
     console.log('[' + name + '] 修复前（git HEAD 回放，应命中注入）');
-    const old = execFileSync('git', ['show', 'HEAD:' + c.rel], { cwd: ROOT, encoding: 'utf8' });
+    // 954 基线固定为修复提交 045e2d2d2b 的父提交
+    const old = execFileSync('git', ['show', '862e916418:' + c.rel], { cwd: ROOT, encoding: 'utf8' });
     const o = await newPage(browser, c.rel, old);
     const before = await probe(o.page, c.code, c.boxes);
     ok('旧版确实回放', before.oldServed, JSON.stringify(before));

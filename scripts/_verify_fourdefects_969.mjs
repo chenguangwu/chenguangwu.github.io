@@ -11,7 +11,8 @@ const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 let pass=0, fail=0;
 const ok=(n,c,e)=>{if(c){pass++;console.log('  ✅ '+n);}else{fail++;console.log('  ❌ '+n+(e?'  → '+e:''));}};
 const MIME={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.css':'text/css; charset=utf-8'};
-const cache={}; const oldSrc=rel=>(rel in cache)?cache[rel]:(cache[rel]=execFileSync('git',['show','HEAD:'+rel],{cwd:ROOT,encoding:'utf8',maxBuffer:64*1024*1024}));
+const cache={}; // 969 基线固定为修复提交 060ecc5636 的父提交
+const oldSrc=rel=>(rel in cache)?cache[rel]:(cache[rel]=execFileSync('git',['show','dac4032970:'+rel],{cwd:ROOT,encoding:'utf8',maxBuffer:64*1024*1024}));
 const CASES=[
   { name:'车损险万元当元', rel:'tools/automotive/insurance-premium-estimator.html',
     code:"document.getElementById('price').value='20';document.getElementById('ncd').value='0.7';calc();return document.getElementById('result').textContent;",

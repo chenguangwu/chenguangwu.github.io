@@ -11,7 +11,8 @@ const CHROME='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 let pass=0,fail=0;
 const ok=(n,c,e)=>{if(c){pass++;console.log('  ✅ '+n);}else{fail++;console.log('  ❌ '+n+(e?'  → '+e:''));}};
 const MIME={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.css':'text/css; charset=utf-8'};
-const cache={}; const oldSrc=rel=>(rel in cache)?cache[rel]:(cache[rel]=execFileSync('git',['show','HEAD:'+rel],{cwd:ROOT,encoding:'utf8',maxBuffer:64*1024*1024}));
+const cache={}; // 973 基线固定为修复提交 1e1f8fbb11 的父提交 c18e6ba792
+const oldSrc=rel=>(rel in cache)?cache[rel]:(cache[rel]=execFileSync('git',['show','c18e6ba792:'+rel],{cwd:ROOT,encoding:'utf8',maxBuffer:64*1024*1024}));
 const CASES=[
   { name:'飞行时间60分进位', rel:'tools/science/calc-distance.html',
     code:"document.getElementById('lat1').value='40';document.getElementById('lon1').value='116';document.getElementById('lon2').value='116';document.getElementById('lat2').value='31.907';calc();return document.getElementById('res').textContent;",
@@ -20,8 +21,12 @@ const CASES=[
     code:"document.getElementById('v0').value='80';document.getElementById('v1').value='80';calc();return document.getElementById('res').textContent;",
     oldExpect:'轻量路线优先', newExpect:'两方案持平' },
   { name:'CV均值零除零', rel:'tools/metalwork/analysis-cost-price-5.html',
-    code:"document.getElementById('data').value='10\\n-10';calc();return document.getElementById('res').textContent;",
+    // 973 复核：当前页已拒绝负价格，改用全 0 非负序列覆盖零均值（mean=0、sd=0），仍触发 CV 除零
+    code:"document.getElementById('data').value='0\\n0';calc();return document.getElementById('res').textContent;",
     oldCheck:t=>/变异系数（波动率）：0\.00%/.test(t), newCheck:t=>/变异系数（波动率）：—\/无法计算/.test(t) },
+  { name:'负价格拒绝', rel:'tools/metalwork/analysis-cost-price-5.html',
+    code:"document.getElementById('data').value='10\\n-10';calc();return document.getElementById('res').textContent;",
+    oldCheck:t=>/变异系数（波动率）/.test(t), newCheck:t=>/价格须为非负有限数值/.test(t) },
 ];
 (async()=>{
   const server=http.createServer((req,res)=>{const p=decodeURIComponent(req.url.split('?')[0]);const f=path.join(ROOT,p);if(!fs.existsSync(f)||!fs.statSync(f).isFile()){res.writeHead(404);res.end('nf');return;}res.writeHead(200,{'Content-Type':MIME[path.extname(f)]||'application/octet-stream'});fs.createReadStream(f).pipe(res);});

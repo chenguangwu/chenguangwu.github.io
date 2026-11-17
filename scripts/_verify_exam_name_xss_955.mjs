@@ -82,7 +82,8 @@ try {
   await n.context.close();
 
   console.log('[exam-score-calculator] 修复前（git HEAD 回放，应命中注入）');
-  const old = execFileSync('git', ['show', 'HEAD:' + REL], { cwd: ROOT, encoding: 'utf8' });
+  // 955 基线固定为修复提交 e193ec372f 的父提交
+  const old = execFileSync('git', ['show', '045e2d2d2b:' + REL], { cwd: ROOT, encoding: 'utf8' });
   const o = await newPage(browser, old);
   const before = await probe(o.page);
   ok('旧版确实回放', before.oldServed, JSON.stringify(before));
