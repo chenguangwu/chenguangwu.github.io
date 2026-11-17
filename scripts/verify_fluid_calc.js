@@ -6,6 +6,8 @@
  */
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+globalThis.__tbFs = fs;
 
 const CASES = [
   { slug: "fluid/bernoulli-pressure",
@@ -128,12 +130,14 @@ const CASES = [
       "p1": "42",
       "v1": "42",
       "v2": "42",
-      "rho": "42"
+      "rho": "42",
+      "z1": "42",
+      "z2": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42"
+      "42\n42\n42\n42\n42\n42"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"p1\":\"42\",\"v1\":\"42\",\"v2\":\"42\",\"rho\":\"42\"}，输出区含「42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"p1\":\"42\",\"v1\":\"42\",\"v2\":\"42\",\"rho\":\"42\",\"z1\":\"42\",\"z2\":\"42\"}，输出区含六个 42；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "fluid/buoyancy-force",
@@ -441,6 +445,18 @@ const CASES = [
     "clicks": ["var d=document.getElementById;function g(v){d('rho').value=v;calcTool();return String(d('result').innerHTML);}var a=g('-1000'),b=g('0');d('rho').value='1000';var c=g('1000');var ok=a.indexOf('密度 ρ 必须为正数')>=0&&a.indexOf('P₂')<0&&b.indexOf('密度 ρ 必须为正数')>=0&&b.indexOf('P₂')<0&&c.indexOf('P₂ (Pa)')>=0;document.getElementById('__tbProbe').textContent='BERNNEG '+(ok?'OK':'BAD a='+a.slice(0,25));"],
     "expect": ["BERNNEG OK"],
     "ref": "12-N82 负密度守卫：ρ=-1000/0 旧版照常算 P₂（负密度压力反升、ρ=0 压差归零），新版拦截并清空结果；ρ=1000 合法仍出 P₂。哨兵要求两非法态均提示且无 P₂ 卡、合法态有 P₂，依赖 clicks 注入，默认态不命中。"
+  },
+  {
+    "slug": "fluid/bernoulli-pressure",
+    "clicks": ["var d=document.getElementById;d('p1').value='101325';d('v1').value='1';d('v2').value='1';d('rho').value='1000';d('z1').value='0';d('z2').value='5';calcTool();var b=d('result').innerHTML.replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ');var ok=b.indexOf('49.05')>=0&&b.indexOf('-49.05')>=0&&b.indexOf('重力压差')>=0;d('__tbProbe').textContent='BERZ '+(ok?'OK':'BAD');"],
+    "expect": ["BERZ OK"],
+    "ref": "12-N81 高度项兑现：等高同速 P₂=101325 Pa；下游高 5 m 时重力压差 −49.05 kPa、总压差 49.05 kPa。旧版无 z1/z2 输入，仍算 P₁，哨兵不命中。"
+  },
+  {
+    "slug": "fluid/bernoulli-pressure",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/fluid/bernoulli-pressure.html','utf8');var ok=h.indexOf('伯努利压力随流速二次下降')>=0&&h.indexOf('伯努利压力随流速线性下降')<0&&h.indexOf('文丘里缩颈')>=0&&h.indexOf('示例 2×')<0&&h.indexOf('ρg(z₁ − z₂)')>=0;document.getElementById('__tbProbe').textContent='BERCHART '+(ok?'OK':'BAD');"],
+    "expect": ["BERCHART OK"],
+    "ref": "12-N81/N83：公式与图表明确二次下降和高差项，预设改真实工况不再全量同乘。旧版公式/标题/预设不符 ⇒ 变红。默认态不产生该串，零逃生。"
   }
 
 ];

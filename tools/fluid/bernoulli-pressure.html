@@ -106,7 +106,7 @@
     
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">同一水平流线、忽略粘性损失：P₂ = P₁ + ½ρ(v₁² − v₂²)；压差 = (P₁ − P₂) ÷ 1000（kPa）。校验：四项输入须为数值，流体密度 ρ 必须为正（>0 kg/m³），空值与负值拦截并清空结果。判据：流速升高处静压下降（文丘里效应），v₂ &gt; v₁ 时 P₂ &lt; P₁。</div>
+      <div class="formula-eq">忽略粘性损失：P₂ = P₁ + ½ρ(v₁² − v₂²) + ρg(z₁ − z₂)，g = 9.81 m/s²；压差 = (P₁ − P₂) ÷ 1000（kPa）。校验：六项输入须为数值，流体密度 ρ 必须为正（>0 kg/m³），空值与非数值拦截并清空结果。判据：等高时流速升高处静压下降（文丘里效应）；下游升高（z₂ &gt; z₁）还会再降 ρgΔz。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="理想流体沿流线速度与压力关系。">Compute the static pressure change along a streamline from flow speed, elevation and fluid density using Bernoulli's equation p + ½ρv² + ρgh = constant, for pipe sections, airfoils and general pressure analysis.</p>
 
@@ -128,6 +128,14 @@
       <div>
         <label for="rho">密度 ρ (kg/m³)</label>
         <input type="number" id="rho" value="1000" step="10" placeholder="如 1000">
+      </div>
+      <div>
+        <label for="z1">上游高度 z₁ (m)</label>
+        <input type="number" id="z1" value="0" step="0.1" placeholder="如 0">
+      </div>
+      <div>
+        <label for="z2">下游高度 z₂ (m)</label>
+        <input type="number" id="z2" value="0" step="0.1" placeholder="如 0">
       </div>
     </div>
 
@@ -234,19 +242,23 @@ function __tbClear(ids){for(var i=0;i<ids.length;i++){var e=document.getElementB
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            var __ig=__tbInputGuard(['p1','v1','v2','rho'],['压力 P₁ (Pa)','速度 v₁ (m/s)','速度 v₂ (m/s)','密度 ρ (kg/m³)']);if(__ig){__tbClear(['bernoulli_pressureTable','bepChart']);const __g0='<p style="color:var(--danger)">⚠ '+__ig+'</p>';ToolBox.setResult('result',(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')));return;}
-            const p1 = num('p1'), v1 = num('v1'), v2 = num('v2'), rho = num('rho');
+            var __ig=__tbInputGuard(['p1','v1','v2','rho','z1','z2'],['压力 P₁ (Pa)','速度 v₁ (m/s)','速度 v₂ (m/s)','密度 ρ (kg/m³)','上游高度 z₁ (m)','下游高度 z₂ (m)']);if(__ig){__tbClear(['bernoulli_pressureTable','bepChart']);const __g0='<p style="color:var(--danger)">⚠ '+__ig+'</p>';ToolBox.setResult('result',(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')));return;}
+            const p1 = num('p1'), v1 = num('v1'), v2 = num('v2'), rho = num('rho'), z1 = num('z1'), z2 = num('z2');
             if(!(rho>0)){__tbClear(['bernoulli_pressureTable','bepChart']);ToolBox.setResult('result','<p style="color:var(--danger);">流体密度 ρ 必须为正数（> 0 kg/m³）</p>');return;}
-            const p2 = p1 + 0.5 * rho * (v1 * v1 - v2 * v2);
+            const gz = rho * 9.81 * (z1 - z2);
+            const p2 = p1 + 0.5 * rho * (v1 * v1 - v2 * v2) + gz;
             const __g1=dataGrid([
                 [p2.toFixed(1), '压力 P₂ (Pa)'],
-                [((p1 - p2) / 1000).toFixed(2), '压差 (kPa)']
+                [((p1 - p2) / 1000).toFixed(2), '压差 (kPa)'],
+                [(gz / 1000).toFixed(2), '重力压差 ρgΔz (kPa)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('p1').value = '101325';
       document.getElementById('v1').value = '1';
       document.getElementById('v2').value = '3';
       document.getElementById('rho').value = '1000';
+      document.getElementById('z1').value = '0';
+      document.getElementById('z2').value = '0';
       calcTool();}
 calcTool();
 
@@ -254,18 +266,20 @@ function __bernoulli_pressureNum(id){var e=document.getElementById(id);var v=e?p
 function __bernoulli_pressureExtras(){
     function __bernoulli_pressureRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var p1 = num('p1'), v1 = num('v1'), v2 = num('v2'), rho = num('rho');
-    var p2 = p1 + 0.5 * rho * (v1 * v1 - v2 * v2);
-    if (!isFinite(__bernoulli_pressureNum('p1')) || !isFinite(__bernoulli_pressureNum('v1')) || !isFinite(__bernoulli_pressureNum('v2')) || !isFinite(__bernoulli_pressureNum('rho')) || !(rho>0)) return;
+    var p1 = num('p1'), v1 = num('v1'), v2 = num('v2'), rho = num('rho'), z1 = num('z1'), z2 = num('z2');
+    var gz = rho * 9.81 * (z1 - z2);
+    var p2 = p1 + 0.5 * rho * (v1 * v1 - v2 * v2) + gz;
+    if (!isFinite(__bernoulli_pressureNum('p1')) || !isFinite(__bernoulli_pressureNum('v1')) || !isFinite(__bernoulli_pressureNum('v2')) || !isFinite(__bernoulli_pressureNum('rho')) || !isFinite(__bernoulli_pressureNum('z1')) || !isFinite(__bernoulli_pressureNum('z2')) || !(rho>0)) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#bernoulli_pressureTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['压力 P₂ (Pa)', p2.toFixed(1)],
             ['压差 (kPa)', ((p1 - p2) / 1000).toFixed(2)],
+            ['重力压差 ρgΔz (kPa)', (gz / 1000).toFixed(2)],
         ]
     });
-    TBKit.history.record({p1:__bernoulli_pressureRaw('p1'), v1:__bernoulli_pressureRaw('v1'), v2:__bernoulli_pressureRaw('v2'), rho:__bernoulli_pressureRaw('rho'), p2:p2});
+    TBKit.history.record({p1:__bernoulli_pressureRaw('p1'), v1:__bernoulli_pressureRaw('v1'), v2:__bernoulli_pressureRaw('v2'), rho:__bernoulli_pressureRaw('rho'), z1:__bernoulli_pressureRaw('z1'), z2:__bernoulli_pressureRaw('z2'), p2:p2});
     function __bernoulli_pressureRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#bernoulli_pressureHist',function(rec){ __bernoulli_pressureRestore(rec); calcTool(); });
     TBKit.util.diffBox('#bernoulli_pressureDiff',['p2']);
@@ -277,9 +291,9 @@ function __bernoulli_pressureExport(){
 function __bernoulli_pressurePresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#bernoulli_pressurePresets',[
-        {label:'默认',labelEn:'Default',values:{p1:'101325', v1:'1', v2:'3', rho:'1000'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{p1:'202650', v1:'2', v2:'6', rho:'2000'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p1:'50662.5', v1:'0.5', v2:'1.5', rho:'500'}},
+        {label:'默认',labelEn:'Default',values:{p1:'101325', v1:'1', v2:'3', rho:'1000', z1:'0', z2:'0'}},
+        {label:'文丘里缩颈',labelEn:'Venturi throat',values:{p1:'101325', v1:'1', v2:'6', rho:'1000', z1:'0', z2:'0'}},
+        {label:'上坡 5 m',labelEn:'5 m uphill',values:{p1:'101325', v1:'1', v2:'2', rho:'1000', z1:'0', z2:'5'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;
@@ -330,14 +344,15 @@ else document.addEventListener('DOMContentLoaded', __bernoulli_pressureBoot);
 </section>
 <script>
 function __bepSweep(){
-  var p1=num('p1'), v1=num('v1'), rho=num('rho');
-  if(!isFinite(p1)||!isFinite(v1)||!isFinite(rho)||rho<=0)return null;
+  var p1=num('p1'), v1=num('v1'), rho=num('rho'), z1=num('z1'), z2=num('z2');
+  if(!isFinite(p1)||!isFinite(v1)||!isFinite(rho)||rho<=0||!isFinite(z1)||!isFinite(z2))return null;
   var labels=[],dP=[],dQ=[];
+  var gz=rho*9.81*(z1-z2);
   var v2s=[1,3,6,10,14,18,20];
   for(var k=0;k<v2s.length;k++){
     var vv=v2s[k];
     labels.push(vv.toFixed(0));
-    dP.push(Math.round((p1+0.5*rho*(v1*v1-vv*vv))*10)/10);
+    dP.push(Math.round((p1+0.5*rho*(v1*v1-vv*vv)+gz)*10)/10);
     dQ.push(Math.round(0.5*rho*vv*vv*10)/10);
   }
   return {labels:labels,dP:dP,dQ:dQ};
@@ -346,7 +361,7 @@ function __bepChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var s=__bepSweep(); if(!s)return;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-  TBKit.chart.line('#bepChart',{title:en?'Bernoulli Pressure vs Velocity (linear vs quadratic)':'伯努利压力随流速线性下降',labels:s.labels,series:[{name:en?'Pressure P₂ (Pa)':'压力 P₂ (Pa)',data:s.dP},{name:en?'Dynamic pressure ½ρv₂² (Pa)':'动压 ½ρv₂² (Pa)',data:s.dQ}]});
+  TBKit.chart.line('#bepChart',{title:en?'Bernoulli Pressure vs Velocity (quadratic, fixed Δz)':'伯努利压力随流速二次下降（高差固定）',labels:s.labels,series:[{name:en?'Pressure P₂ (Pa)':'压力 P₂ (Pa)',data:s.dP},{name:en?'Dynamic pressure ½ρv₂² (Pa)':'动压 ½ρv₂² (Pa)',data:s.dQ}]});
 }
 
 function __bepShow(which){
