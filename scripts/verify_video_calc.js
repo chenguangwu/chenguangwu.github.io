@@ -98,6 +98,12 @@ const CASES = [
   "clicks": ["document.getElementById('duration').value='0';generate();"],
   "expect": ["请输入有效的视频时长"],
   "ref": "943零值守卫：转换器时长 0 须提示，不得用 0 估算大小/生成命令。默认 duration=10 不命中。"
+},
+{
+  "slug": "video/video-speed",
+  "inputs": { "h": "0", "m": "0", "s": "1", "ms": "0", "fps": "30", "speed": "0.75" },
+  "expect": ["增加00:00.333"],
+  "ref": "减速对照：1 秒素材按 0.75× 播放需 1.333 秒，差值为负 0.333 秒。旧版把负数直接送 fmtTimeShort 得「节省-1:-1」；现按绝对值显示并改标签为「增加00:00.333」。默认 30 分钟 1.5× 命中「节省」不命中本串。"
 }
 ];
 async function main() {
