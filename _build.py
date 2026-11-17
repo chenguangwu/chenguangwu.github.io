@@ -1024,6 +1024,8 @@ def _localized_url_blocks(abs_url, today, freq, prio):
 #   例外是各工具页 meta 中已人工指定的「专属图标」（非占位时予以保留）。
 # ============================================================
 TOOL_ICON_RULES = [
+    # 医疗「CKD 分期」须优先于财务「分期 → 🏠」规则，否则被误分到住房分类图标
+    (r'ckd.staging|慢性肾病|慢性肾脏病', '🫘'),
     # ---------- 1) 唯一标识型对象（名词自证，优先级最高）----------
     (r'二维码|qrcode|qr code|^qr-|-qr-', '🔳'),
     (r'条形码|条码|barcode|codabar|code128|code39|ean-?1[238]|upc-a|tf-14|msi|pharmacode', '🏷️'),
