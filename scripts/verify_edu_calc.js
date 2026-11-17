@@ -10,6 +10,8 @@
  * 用法: node scripts/verify_edu_calc.js [slug ...]
  */
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
@@ -913,6 +915,19 @@ const CASES = [
     inputs: { "year": "1" },
     expect: ["🐔 鸡年 辛酉年 · 金命 1年出生"],
     ref: "12-EL-F17：getZodiac/getGanZhi 原用 (y-4)%12/%10，y<4 时负数取模得负下标、数组返回 undefined，calc 取 z.a 抛 TypeError 结果区不更新。改防御性取模 ((y-4)%12+12)%12 与 ((y-4)%10+10)%10。year=1 ⇒ (1-4)%12=-3→9 鸡、(1-4)%10=-3→7 辛、地支 9 酉 ⇒ 辛酉鸡年；默认 year=2000（庚辰龙）不命中，旧版崩溃无输出 ⇒ 零逃生。"
+  },
+  {
+    slug: "edu/pinyin-converter",
+    inputs: { inputText: "嗯" },
+    clicks: ["currentMode='notone';convert();"],
+    expect: ["拼音结果 ng"],
+    ref: "12-EL-F4：removeTone 原替换表未含 ǹ，「嗯」映射到 ǹg 在无声调模式仍保留调号 ǹg 且首字母模式取到 ǹ。改为先替换（ü→v 等）再 NFD 分解去 U+0300–U+036F 组合调号，ǹg→ng。注入「嗯」无声调 ⇒ ng；默认「你好世界…」不含此串，旧版输出 ǹg ⇒ 零逃生。"
+  },
+  {
+    slug: "edu/chinese-stroke-counter",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu/chinese-stroke-counter.html','utf8');var dd=JSON.parse(globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu/chinese-stroke-counter'];var s=JSON.stringify(dd);var ok=h.indexOf('按笔顺拆解')<0&&h.indexOf('笔顺拆解：展示笔画组成顺序')<0&&h.indexOf('按画数筛选')>=0&&s.indexOf('笔顺拆解')<0&&s.indexOf('按画筛选：按笔画数查找同画数的汉字')>=0&&s.indexOf('不提供逐笔笔顺演示')>=0;document.getElementById('__tbProbe').textContent='STROKEDD '+(ok?'OK':'BAD');"],
+    expect: ["STROKEDD OK"],
+    ref: "12-EL-F13：笔画页深度解析/首屏宣称「按笔顺拆解、展示笔画组成顺序」，实际只有总笔画数与按画筛选，无笔顺数据。权威源 content_deepdive.json 与页面预渲染改为「总笔画统计与按画数筛选、不提供逐笔笔顺演示」。源码形态哨兵旧版必红。"
   }
 ];
 
