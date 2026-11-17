@@ -161,8 +161,8 @@ textarea{min-height:200px;}
 
 <div class="toolbar">
  <button type="button" class="btn primary" onclick="polish()">✨ 一键润色</button>
- <button type="button" class="btn" onclick="ToolBox.copyText(document.getElementById('output').innerText)">📋 复制结果</button>
- <button type="button" class="btn" onclick="document.getElementById('input').value='';updateStats();document.getElementById('output').innerText='';">🧹 清空</button>
+ <button type="button" class="btn" onclick="copyPolishResult()">📋 复制结果</button>
+ <button type="button" class="btn" onclick="clearPolish()">🧹 清空</button>
 </div>
 
 <h3>润色结果</h3>
@@ -273,6 +273,37 @@ const SYNONYMS = {
  '完成': ['达成','实现','做好','做完']
 };
 
+var __textPolisherStale = false;
+function markPolishStale(){
+ const out = document.getElementById('output');
+ if(!out || !String(out.innerText||'').trim()) return;
+ __textPolisherStale = true;
+ if(out.dataset) out.dataset.stale = '1';
+ const info = document.getElementById('polish-info');
+ if(info) info.innerHTML = isEnMode()
+   ? 'Input changed. Polish again before copying.'
+   : '输入已修改，请重新润色后再复制。';
+}
+function clearPolish(){
+ document.getElementById('input').value = '';
+ updateStats();
+ const out = document.getElementById('output');
+ if(out){ out.innerText = ''; if(out.dataset) out.dataset.stale = '0'; }
+ __textPolisherStale = false;
+ const info = document.getElementById('polish-info');
+ if(info) info.innerHTML = '';
+ const syn = document.getElementById('synBox');
+ if(syn){ syn.style.display = 'none'; syn.innerHTML = ''; }
+}
+function copyPolishResult(){
+ const out = document.getElementById('output');
+ const stale = __textPolisherStale || (out && out.dataset && out.dataset.stale === '1');
+ if(stale){
+  ToolBox.showToast(isEnMode() ? 'Input changed; polish again before copying.' : '输入已修改，请重新润色后再复制。', 'error');
+  return;
+ }
+ ToolBox.copyText(out ? out.innerText : '');
+}
 function updateStats(){
  const t = document.getElementById('input').value;
  document.getElementById('s-chars').textContent = t.length;
@@ -281,6 +312,7 @@ function updateStats(){
  document.getElementById('s-cn').textContent = (t.match(/[\u4e00-\u9fa5]/g) || []).length;
  document.getElementById('s-en').textContent = (t.match(/[a-zA-Z]/g) || []).length;
  document.getElementById('s-nums').textContent = (t.match(/\d/g) || []).length;
+ markPolishStale();
 }
 
 // 口语填充词 / 口语连接词：删除或改写，均计为「已优化」。
@@ -408,7 +440,10 @@ function polish(){
  // 长句断句：单句超过 40 字时按逗号切开
  t = splitLongSentences(t, 40, counts);
 
- document.getElementById('output').innerText = t;
+ const out = document.getElementById('output');
+ out.innerText = t;
+ if(out.dataset) out.dataset.stale = '0';
+ __textPolisherStale = false;
  renderPolishInfo(counts);
  const en = isEnMode();
  const total = counts.filler + counts.repeat + counts.split + counts.format;
@@ -447,6 +482,10 @@ function applySynonym(i){
  ToolBox.showToast((isEnMode() ? 'Replaced: ' : '已替换：') + word + ' → ' + rep, 'success');
  box.style.display = 'none';
 }
+
+document.querySelectorAll('.checkbox-row input').forEach(function(c){
+ c.addEventListener('change', markPolishStale);
+});
 
 polish();
 </script><script>

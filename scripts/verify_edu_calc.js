@@ -1822,6 +1822,27 @@ const CASES = [
     expect: ["V2R1 OK"],
     ref: "复核失败重做·EL-V2：复核称两处 formula-box、两处 related-tools 与三处无参 i18nText() 仍存在。现各仅一处且 toast 全用具体键（msg947/msg082/msg081）；源码哨兵计数，旧版任一重复或空参均必红。examName 注入唯一串。",
   },
+
+  // ── 第1192批：输入变更过期、空答案反馈与无效估算清理 ──
+  {
+    slug: "language/text-polisher",
+    clicks: ["var fs=globalThis.__tbFs;var q=String.fromCharCode(34);var nl=String.fromCharCode(10);var h=fs.readFileSync(process.cwd()+'/tools/language/text-polisher.html','utf8');var ok=h.indexOf('function markPolishStale()')>=0&&h.indexOf('function copyPolishResult()')>=0&&h.indexOf('onclick='+q+'copyPolishResult()'+q)>=0&&h.indexOf('onclick='+q+'clearPolish()'+q)>=0&&h.indexOf('onclick='+q+'ToolBox.copyText(')<0&&h.indexOf('markPolishStale();'+nl+'}')>=0;document.getElementById('__tbProbe').textContent='TPSTALE '+(ok?'OK':'BAD');"],
+    expect: ["TPSTALE OK"],
+    ref: "EL 静态复核：旧版输入 oninput 只更新统计，复制按钮直接取旧 #output.innerText。现输入变化与选项变化调用 markPolishStale() 标记过期，复制走 copyPolishResult() 阻止旧结果并提示重新润色，清空走 clearPolish() 同步复位；源码哨兵，旧版必红。",
+  },
+  {
+    slug: "edu/multiplication-table",
+    clicks: ["var fs=globalThis.__tbFs;var sq=String.fromCharCode(39);var h=fs.readFileSync(process.cwd()+'/tools/edu/multiplication-table.html','utf8');var ok=h.indexOf('if (isNaN(val))')>=0&&h.indexOf('请输入答案后再提交')>=0&&h.indexOf('fb.textContent = '+sq+'请输入答案后再提交'+sq)>=0&&h.indexOf('fb.className = '+sq+'feedback'+sq)>=0;document.getElementById('__tbProbe').textContent='MULMED '+(ok?'OK':'BAD');"],
+    expect: ["MULMED OK"],
+    ref: "EL 空答案残留复核：旧版 parseInt 得 NaN 后直接 return，上一题的 ✅/❌ 与正确答案留在 #pFeedback。现有 isNaN 分支清空输入样式并写「请输入答案后再提交」，错误→清空→提交状态链不再残留；源码哨兵，旧版必红。",
+  },
+  {
+    slug: "edu/reading-speed-calculator",
+    inputs: { wpm: "680", estWords: "15000" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/reading-speed-calculator.html','utf8');var w=document.getElementById('wpm');var e=document.getElementById('estWords');w.value='680';e.value='15000';estimate();var before=String(document.getElementById('estResult').innerHTML||'');w.value='';estimate();var after=String(document.getElementById('estResult').innerHTML||'');var ok=before.indexOf('预计阅读时间')>=0&&after.indexOf('预计阅读时间')<0&&after.indexOf('请填写有效')>=0&&h.indexOf('i18nText()')<0;document.getElementById('__tbProbe').textContent='RDSCLR '+(ok?'OK':'BAD');"],
+    expect: ["RDSCLR OK"],
+    ref: "EL 阅读估算清空复核：注入 680 字/分 + 15000 字先得有效估算，再把速度置空；旧版 else 分支缺失，旧估算保留。现无效输入明确写「请填写有效的阅读速度和目标字数。」，同时顺手清掉历史载入的无参 i18nText()。动态状态链断言，旧版必红。",
+  },
 ];
 
 async function main() {
