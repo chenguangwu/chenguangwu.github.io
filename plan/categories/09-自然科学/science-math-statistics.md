@@ -20,7 +20,7 @@
 - `tools/science/quadratic-equation.html:302-305,376-407,517`：旧 SMS-136 的绝对阈值与小数归零代码已改为相对阈值及科学计数，旧例不再支持该结论，待运行回归；SMS-137 的负 a 共轭根符号问题仍在，结果趋势仍解析以 `Δ` 开头的文本。
 - `tools/science/science-flow-rate.html:569-608,669-718`：旧 SMS-143～145 的历史不恢复输入、内径单位写死和无效值保留旧结果路径仍在。
 - `tools/science/science-pressure-converter.html:447-464,495-508`：清空输入后直接返回，旧结果仍可复制与保存，既有记录仍适用。
-- `tools/science/voltage-divider-calculator.html:389-424`：旧 SMS-36～37 的升压与目标空值兜底关键代码已改为校验并清结果，待运行回归；正向输入仍以 `||0` 处理空值，清空 Vin/R1/R2 可能产生看似有效的零结果。
+- `tools/science/voltage-divider-calculator.html:386-390`：旧 SMS-36～37 已修并经第 961 批真机确认（`scripts/_verify_voltage_divider_961.mjs` 5/5）：目标电压 ≥Vin、=0、留空均清空结果（resVout=—），正常输入 Vout=6 V。残余：正向求 Vout 仍以 `||0` 处理 Vin/R1/R2（`:379-381`），清空 Vin 得 0 V 数值而非「—」，待改为必填校验。
 
 ## 2026-11-06 数学工具静态续审
 
