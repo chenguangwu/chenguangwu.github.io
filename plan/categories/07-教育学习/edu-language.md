@@ -152,28 +152,6 @@
 
 范围：静态实读 9 页（`tools/edu/` 8 页 + `tools/edu2/` 1 页），完整核对 HTML、内联 JS、deep-dive、FAQ 与 JSON-LD；关键数值缺陷用 `node -e` 内存复刻。只读审计，未改代码、未跑构建、未做 git 写。
 
-### EL-J93 「学习计划」今日 tab 连续出现两个"📐 计算方式"框，内容重复（中，确认缺陷）
-- 问题：`#tab-today` 顶部叠了两个 `formula-box`，第二个的正文与第一个里的 `<p>` 完全相同，渲染成两块重复卡片。
-- 证据：`tools/edu/exam-study-planner.html:293-296`（第一个框，`:295` 为说明段）、`:297-300`（第二个框，`:299` 与 `:295` 文字相同）。
-- 复现：打开页面"今日"tab → 连续看到两个"计算方式"标题与同一段"累计专注时长 = 单次专注分钟数 × 完成轮数…"；期望只保留一块。
-- 影响：`tools/edu/exam-study-planner.html`；首屏重复占位，显得未完成。
-- 方案：删除 `:297-300` 整块，保留含公式的那一个框。
-
-### EL-J94 「学习计划」跳过休息也会推进番茄轮次，可无专注刷满目标轮数（中，确认缺陷）
-- 问题：`skipPomo` 在"休息"状态下跳到专注时执行 `pomo.round++`，因此每跳过一次休息就记一轮；配合完成判定只看 `round >= target`，可在几乎不专注的情况下触发"完成 N 轮"。
-- 证据：`tools/edu/exam-study-planner.html:673-680`（`pomo.mode === 'focus' ? … : 'focus'` 后 `pomo.round++`）、`:623-627`（`pomo.round >= pomo.target` 即完成并提示）。
-- 复现：设目标 4 轮、专注 25 分钟；连点「跳过」4 次（focus→break→focus→break→…）使 `round` 到 4，再完成 1 次专注 → 弹出"🎊 恭喜！完成 4 轮番茄钟"，本地统计 `pomoCount=1`；期望轮次只按完成的专注计。
-- 影响：`tools/edu/exam-study-planner.html`；番茄统计被刷高，目标达成与专注时长失真。
-- 方案：`round` 只在一次专注自然结束时递增；跳过休息不增轮，跳过专注不计轮。
-
-### EL-J95 「学习计划」番茄钟按每秒递减计时，且专注分钟数取结束瞬间的输入值（中，确认缺陷）
-- 问题：`tickPomo` 每分钟靠 `remaining--` 累减，页面切后台被节流后会明显变慢；统计写入时读取当前 `#focus-mins`，中途修改专注时长会让记录与真实专注时间不一致。
-- 证据：`tools/edu/exam-study-planner.html:613-614`（`pomo.remaining--` 每秒）、`:620`（`stats.focusMinutes += +document.getElementById('focus-mins').value`）。
-- 复现：设 25 分钟，切后台 10 分钟后回到前台 → 剩余只减少约 10 秒量级（非 10 分钟）；专注进行中把「专注时长」改为 45 分钟，本次结束记 45 分钟而非实际时长；期望按真实时间与开始时快照计。
-- 影响：`tools/edu/exam-study-planner.html`；计时不准、专注统计失真。
-- 方案：改为记录结束时间戳（deadline）按 `Date.now()` 计算剩余；开始时快照 focus/break 分钟数，结束按快照累加。
-- 留存建议（本页 3 条）：① 删重复计算框；② 跳过休息不推进轮次；③ 计时改时间戳并快照时长。
-
 ### EL-J96 「考试计时」正计时永远停在 `00:00:00`（高，确认缺陷）
 - 问题：`startCountup` 每 250ms 取一次 `diff≈0.25s`，但每次都把 `countUp.s` 重新 `Math.floor(total % 60)`；小数部分既没进位也没累积，下一秒又被归零，显示永远不前进。
 - 证据：`tools/edu/exam-timer.html:483-490`（`diff=(now-last)/1000` → `total=h*3600+m*60+s+diff` → `s=Math.floor(total%60)`）。

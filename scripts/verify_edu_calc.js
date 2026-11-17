@@ -15,6 +15,28 @@ globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  // ── 第1169批：学习计划重复公式框、番茄轮次刷高与计时失真 ──
+  {
+    slug: "edu/exam-study-planner",
+    inputs: { "focus-mins": "30" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/exam-study-planner.html','utf8');var n=h.split('累计专注时长 = 单次专注分钟数 × 完成轮数').length-1;document.getElementById('__tbProbe').textContent='JDUP:'+(n===1?'OK':'BAD');"],
+    expect: ["JDUP:OK"],
+    ref: "EL-J93：今日 tab 只保留一个「计算方式」框；旧版同一段说明重复两次 ⇒ BAD。",
+  },
+  {
+    slug: "edu/exam-study-planner",
+    inputs: { "focus-mins": "30", "target-rounds": "4" },
+    clicks: ["var r0=pomo.round;skipPomo();var r1=pomo.round;skipPomo();var r2=pomo.round;document.getElementById('__tbProbe').textContent='JSKIP:'+((r0===1&&r1===r0&&r2===r0)?'OK':'BAD');"],
+    expect: ["JSKIP:OK"],
+    ref: "EL-J94：跳过休息与跳过专注都不得推进轮次；旧版从休息跳回专注时 round++ ⇒ 第二次 skip 后 round=2 ⇒ BAD。",
+  },
+  {
+    slug: "edu/exam-study-planner",
+    inputs: { "focus-mins": "45", "target-rounds": "4" },
+    clicks: ["var ok=false;try{resetPomo();var f=+document.getElementById('focus-mins').value;var snap=(pomo.focusMin===f&&pomo.deadline===null);togglePomo();var d=pomo.deadline;var adv=Math.abs(d-Date.now()-f*60000)<5000;clearInterval(pomo.timer);pomo.running=false;ok=snap&&adv;}catch(e){}document.getElementById('__tbProbe').textContent='JDEAD:'+(ok?'OK':'BAD');"],
+    expect: ["JDEAD:OK"],
+    ref: "EL-J95：专注时长在 resetPomo 时快照，计时以 deadline 时间戳为基准；旧版无 focusMin/deadline 字段且 remaining 每秒递减 ⇒ BAD。",
+  },
   // ── 第1168批：证书查询唯一键/首屏图表/诚实口径，时区转换 DST 口径/输入校验 ──
   {
     slug: "edu/certificate-check",
