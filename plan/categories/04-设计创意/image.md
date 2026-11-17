@@ -22,16 +22,6 @@
 
 ## 2026-11-03 第一轮抽样补充
 
-### 拼图裁切越界与加载乱序（中，确认源码缺陷，两个问题）
-- 问题与证据：`tools/image/image-collage.html:507-520,610-617` cover 分支绘制超出单格而无裁剪；原函数内存执行将 200×100 图填入 100×100 格时绘制范围为 −50 至 150，可能覆盖其他格和间距。`:409-428` 多文件在各自 onload 时 push，解码较快的图先进入列表，不保证 FileList 顺序。
-- 影响：`tools/image/image-collage.html`，拼图边界或截图次序可能错误；尚未实测浏览器画布。
-- 方案：每格绘制时按格子裁剪并恢复上下文；按选择次序存储并统一处理加载失败。可进一步提供文件名排序、反转和撤销，方便长截图拼接。
-
-### 边缘裁剪框尺寸与导出不一致（中，确认函数缺陷）
-- 问题与证据：`tools/image/image-crop.html:681-697,793-804,839-844` 先限制边界再强制最小尺寸；100×100 图右下角以 (98,98) 建立 1:1 裁剪框时，内存执行得到 12×12，而导出再次裁边最多 2×2，信息显示与实际不同。真实指针交互尚未复测。
-- 影响：`tools/image/image-crop.html`。
-- 方案：最小尺寸服从边界，空间不足时移动起点或提示，显示与导出统一。
-
 ### 留存建议（低，建议）
 - `tools/image/image-mosaic.html:616-654`：当前单选区导出流程可增加多个独立选区和导出前检查，方便一次遮挡姓名、电话和地址；先修复预览一致性。
 - `tools/image/image-collage.html:431-477`：在现有上下移动基础上提供按名称排序、反转及撤销，降低长图重排成本。
@@ -40,21 +30,6 @@
 - 本次只读核查 4 页：`tools/image/image-mosaic.html`、`tools/image/image-collage.html`、`tools/image/image-crop.html`、`tools/image/image-watermark.html`；合计 5 个缺陷，2 条建议。未做真实浏览器、移动端、线上或其他图片页逐页验证。
 
 ## 2026-11-03 续查：缩放与批量压缩
-
-### IM-N1 目标宽高为空或 0 时静默输出 1 像素图（中，确认源码缺陷）
-- 证据：`tools/image/image-resize.html:629-630` 用 `parseInt(value,10)||1` 与 `Math.max(1, …)`，清空或输入 0 后直接按 1 像素渲染；HTML 仅写 `min=1 max=10000`（`:300,305`），JS 不校验上限，手输 20000 会创建超大画布，`toBlob` 失败时 `resultBlob` 为空，下载却提示「请上传图片」（`:700-703`），与真实失败原因不符。
-- 影响：`tools/image/image-resize.html`；用户误得 1×1 图或无法判断为何下载失败。
-- 方案：宽高原因为空/0/超上限时给出字段级错误并停止渲染；`toBlob` 为空时提示「尺寸过大或浏览器不支持该格式」，保留上次成功结果并标注参数。
-
-### IM-N2 GIF/SVG 被当位图静默输出静态帧（中，确认源码缺陷）
-- 证据：`tools/image/image-resize.html:262` 接受 `image/*`，`:646-660` 直接 `drawImage` 到 canvas，导出仅 PNG/JPEG/WebP；GIF 动图只保留首帧，SVG 被栅格化，页面无任何提示。
-- 影响：`tools/image/image-resize.html`；用户上传动图后以为得到动图。
-- 方案：检测 `image/gif` 与 `image/svg+xml` 并明确提示「将输出静态首帧/栅格图」，或对 GIF 提供逐帧处理；下载文件名与结果区标注实际输出格式。
-
-### IM-N3 压缩页英文态提示与复制文本仍是中文（中，确认源码缺陷；运行态待探针）
-- 证据：`tools/image/image-compress.html:531,776,781,791-795` 添加成功、下载、批量下载及复制结果文本全为硬编码中文，而同页其它 toast 用 `i18nText`（如 `:530`）；`tools/image/image-resize.html:719` 下载 toast 同样硬编码。运行时词典按 `textContent` 替换，不会改写 JS 动态 toast。
-- 影响：`tools/image/image-compress.html`、`tools/image/image-resize.html`；英文态操作反馈与复制结果夹中文（G05 同类，页面级）。
-- 方案：所有动态文案走 `i18nText`/`__T`，第三层词典补齐；改后重跑 `_build.py` 并用 EN 探针复验下载与复制路径。
 
 ### 留存优化（按页落点，非确认缺陷）
 - `tools/image/image-resize.html`：无平台尺寸预设，用户改小红书 1242×1660、公众号封面 900×383 只能手算。建议内置常用平台预设与「按长边等比」模式，并在结果区给出文件体积与格式建议。

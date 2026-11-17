@@ -368,6 +368,18 @@ const CASES = [
   "expect": ["TOAST:缩略图生成失败：Error"],
   "ref": "失败注入：新建画布的 toDataURL 必抛 Error ⇒ makeThumb 必须 toast「缩略图生成失败：Error」并返回空串，不得让异常打断 renderFrameGrid 整帧渲染。"
     + "修复前异常裸冒成 pageerror、整帧网格渲染中断；默认态无 TOAST: 串 ⇒ 判别明确。"
+},
+{
+  "slug": "image/image-compress",
+  "clicks": ["var cap='';ToolBox.showToast=function(m){cap=String(m);};TBKit={util:{isEn:function(){return true;}}};__svgFileBlocked({type:'image/svg+xml',name:'x.svg'});var en=cap;TBKit={util:{isEn:function(){return false;}}};__svgFileBlocked({type:'image/svg+xml',name:'x.svg'});var zh=cap;document.getElementById('__svg_probe').textContent='IMN3 '+(en.indexOf('Only bitmap')>=0&&en.indexOf('SVG')>=0&&zh.indexOf('仅支持位图')>=0?'OK':'BAD '+en+'|'+zh);"],
+  "expect": ["IMN3 OK"],
+  "ref": "IM-N3 英文态动态 toast：旧版 __svgFileBlocked 的 toast 硬编码中文「仅支持位图（PNG/JPG/WebP），不支持 SVG」，EN 探针按 textContent 替换不会改写 JS 动态 toast，英文态用户看到中文。现所有动态 toast 走 __imgEn() 中英切换。注入 isEn=true/false 双断言；默认态不执行 clicks 故无 IMN3 串 ⇒ 强判别。"
+},
+{
+  "slug": "image/image-resize",
+  "clicks": ["var cap='';ToolBox.showToast=function(m){cap=String(m);};TBKit={util:{isEn:function(){return true;}}};__svgFileBlocked({type:'image/svg+xml',name:'x.svg'});var en=cap;TBKit={util:{isEn:function(){return false;}}};__svgFileBlocked({type:'image/svg+xml',name:'x.svg'});var zh=cap;document.getElementById('__svg_probe').textContent='IMN3R '+(en.indexOf('Only bitmap')>=0&&zh.indexOf('仅支持位图')>=0?'OK':'BAD '+en+'|'+zh);"],
+  "expect": ["IMN3R OK"],
+  "ref": "IM-N3 resize 页同类：旧版 __svgFileBlocked 及下载/导出/复制 toast 全硬编码中文。现统一 __imgEn() 中英切换（含「尺寸过大」「导出失败」「已下载」「复制失败」）。isEn 双断言，默认态不命中。"
 }
 ];
 async function main() {
