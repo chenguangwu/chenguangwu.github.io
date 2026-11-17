@@ -231,11 +231,11 @@
 
 - `tools/science/matrix-calculator.html`：3 条（SMS-107 高、SMS-108～109 中）。2×2/3×3 乘、行列式、逆、秩主算复核正确（[[4,7],[2,6]] det=10、A⁻¹=[[0.6,-0.7],[-0.2,0.4]]）；2026-11-06 复核：0 标量与 0 次幂已不被默认值吞掉；幂次仍用 `parseInt` 截断小数，逆矩阵绝对阈值和 `check` 不输出的问题仍在。
 - `tools/science/mean-calculator.html`：SMS-110 几何平均连乘溢出/下溢已于第 1005 批改对数域 exp(Σln/n) 修复。SMS-111（千分位逗号被当分隔符）属页面「逗号或空格分隔」口径未定义，保留待产品裁断。
-- `tools/science/mechanical-power.html`：1 条（SMS-117 中）。P=F·v 与 kW/hp/kgf·m/s 系数（745.6999、9.80665）换算正确（100 N×5 m/s=500 W）；问题为主结果 `toFixed(0)` 丢失小数。
+- `tools/science/mechanical-power.html`：SMS-117 已修——P=F·v 与 kW/hp/kgf·m/s 系数（745.6999、9.80665）换算正确（100 N×5 m/s=500 W）；主结果改有效数字格式，0.2 W 不再显示 0 W、0.5 W 不再进位成 1 W，数据表同步。
 - `tools/science/meteor-crater-estimator.html`：3 条（SMS-119 高、SMS-120～121 中）。CMM 标度律与能量/破坏半径自洽（50 m/13 km/s 铁陨石 → 1.2 km、10 km/20 km/s → 119.6 km）；问题为水面/冰面地表密度死输入、质量单位标签错 1000 倍、通古斯按钮与预设参数互相矛盾。
 - `tools/science/nato-phonetic.html`：2 条（SMS-112～113 中）。NATO 表 Alfa/Juliett 与数字读法（Three/Tree、Nine/Niner）正确；问题为 ANSI 老表 Y/Z 错词、历史回填强制切到 ANSI。
-- `tools/science/newtons-second.html`：1 条（SMS-118 中）。F=ma、kN、a×3.6（km/h/s）、kgf 换算正确（10 kg/3 m/s² → 30.0 N、0.030000 kN、10.8000、3.0591）；问题为主结果 `toFixed(1)` 丢失小数。
-- `tools/science/nth-root-calculator.html`：3 条（SMS-114～116 中）。∛27=3、⁴√16=2、x>0 全部复数根（27 的立方根 −1.5±2.598i）正确；问题在负指数奇次根、0 的负次根、极小被开方数回显。
+- `tools/science/newtons-second.html`：SMS-118 已修——F=ma、kN、a×3.6（km/h/s）、kgf 换算正确（10 kg/3 m/s² → 30.0 N、0.030000 kN、10.8000、3.0591）；主结果与 kN 档按量级保留有效位/科学计数，0.0001 N 与 1e-7 kN 不再归零，数据表同步。
+- `tools/science/nth-root-calculator.html`：1 条（SMS-116 中）。∛27=3、⁴√16=2、x>0 全部复数根（27 的立方根 −1.5±2.598i）正确；SMS-114/115 已修——负奇整数根用 `Math.abs(n)%2` 识别，0 的负次根明确报错；残留为极小被开方数回显格式待浏览器确认。
 
 | 页面 | 问题（tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
@@ -244,11 +244,7 @@
 | tools/science/mean-calculator.html | `parseData` 以 `[,\s\n;]+` 切分后静默丢弃非数值 token：「1,000, 2,000」被切成 1/0/2/0 → n=4、AM=0.75（真值 1500），数据列表与 n 均随之改变，无任何提示。:242、:246-248 | SMS-111 |
 | tools/science/nato-phonetic.html | ANSI 老式字母表两处错词：Y 写作 YOUNG（应为 YOKE）、Z 写作 ZEBA（应为 ZEBRA），切到 ANSI 模式后表格与输出均显示错词。:253 | SMS-112 |
 | tools/science/nato-phonetic.html | 历史回填调用 `setMode()` 未传参 → `m===undefined` 落 else 分支 `modeIdx=2`，点击任意历史条目整表强制切到 ANSI；模式本身也未写入历史，无法还原（:349 对 :260）。:349、:260 | SMS-113 |
-| tools/science/nth-root-calculator.html | 负奇整数根漏判：`isIntN && n%2===1` 对 n=-3 得 -1（JS 负数取余），落进 else 报「负数的非整数次根在实数范围内无定义」；x=-8、n=-3 实根应为 -0.5（node 复刻）。:245-249、:254 | SMS-114 |
-| tools/science/nth-root-calculator.html | `x===0` 分支不区分 n 正负：x=0、n=-1 输出「0 的 n 次根 = 0」并补「0 的 n 次根仅为 0」，而 0 的负次根无定义（Math.pow(0,-1)=Infinity）。:257-258、:274、:292 | SMS-115 |
 | tools/science/nth-root-calculator.html | 2026-11-06 复核：`fmt(1e-13)` 已使用科学计数法，旧例不再归零。残留：普通分支的 `toLocaleString()` 未指定小数精度，提取页面实际函数在 Node 执行 `fmt(1e-5)` 和 `fmt(1e-4)` 均为 `0`，可能把被开方数回显为 0；需在浏览器确认实际格式。:231-236、:243、:265-267 | SMS-116 |
-| tools/science/mechanical-power.html | 主结果 `P.toFixed(0)`：F=0.4 N、v=0.5 m/s → P=0.2 W 显示「0 W」，0.5 W 显示「1 W」（toFixed 进位）；同期 kW 卡仍为 0.000200，数据表同错。:213、:235 | SMS-117 |
-| tools/science/newtons-second.html | 主结果 `F.toFixed(1)`：m=0.001 kg、a=0.1 m/s² → 0.0001 N 显示「0.0 N」，kN 档 0.000000 也无法还原；数据表与历史同用该值。:225、:249 | SMS-118 |
 | tools/science/meteor-crater-estimator.html | 「地表密度」在目标地表=水面/海洋、冰川/冰盖时被 `calc()` 每次无条件回写 1000/917（输入框又绑 `oninput="calc()"`）：用户改成 1030 立即被覆盖，输入形同只读，死输入。:382-387、:168 | SMS-119 |
 | tools/science/meteor-crater-estimator.html | `formatMass` 单位标签错 1000 倍：m≥1e6 kg 标「(吨)」（该档实为千吨，50 m/3000 kg·m⁻³ 的 1.9635e8 kg 显示「196.35 x 10⁶ kg (吨)」，真值 196 350 t）；m≥1e9 kg 标「(千吨)」（实为百万吨）。:567-568 | SMS-120 |
 | tools/science/meteor-crater-estimator.html | 「通古斯事件」按钮与自带预设冲突：按钮用石质 3000 kg·m⁻³ / 27 km·s⁻¹ / 沉积岩，预设「通古斯 60m 彗星」用 1500 kg·m⁻³ / 15 km·s⁻¹ / 冰盖，同一事件两套参数（撞击能量相差约 6.5 倍）。:587-593 对 :851 | SMS-121 |
