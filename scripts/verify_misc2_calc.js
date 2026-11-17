@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const CASES = [
 {
   "slug": "it/screen-size",
@@ -54,6 +56,12 @@ const CASES = [
     "请输入200-320mm之间的脚长"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "daily-goods/shoe-size",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/daily-goods/shoe-size.html','utf8');var noCN=h.indexOf('即 CN 250')<0&&h.indexOf('CN 250)')<0;var newCN=h.indexOf('即 CN 25.0')>=0;var noEU=h.indexOf('40.25 ≈ 40')<0;var newEU=h.indexOf('40.25 → 40.5')>=0;document.getElementById('__tbProbe').textContent=(noCN&&newCN&&noEU&&newEU)?'__SHOE_G2_OK__':'__SHOE_G2_BAD__ '+[noCN,newCN,noEU,newEU].join(',');"],
+  "expect": ["__SHOE_G2_OK__"],
+  "ref": "第1100批 G2：CN 口径统一 cm 制（公式框「脚长250mm即CN250」改为 CN25.0，与代码 cn=cm/说明卡255mm→25.5/算例CN26.0 一致）；EU 按 0.5 分度取半（「40.25≈40」改为「40.25→40.5」，与 half(40.25)=40.5 一致），meta/JSON-LD/说明卡四处同步。旧版必红。"
 }
 ];
 async function main() {
