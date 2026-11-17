@@ -859,10 +859,6 @@
 - 统一 box/pool 的边坡公式并同步公式框、深度解析与结果标签。
 - 预设按工程场景维护合理松散系数区间（土 1.2–1.3、岩 1.5–2.0），不跨出输入范围。
 
-### 12-N146 tcm-chemistry/hplc-optimization：简介 li 仍有医疗措辞（残余，第1071批部分修）
-- 第1071批已真修核心 p 句：原「…医疗专业工具，基于权威医学标准，仅供参考」改为「…适用于分析化学与色谱方法开发，结果仅供参考，请以实验验证为准」，同步 en map 键，build 后「医疗专业工具」0 残留。
-- 残余：功能特点 li（支持多种临床参数/医疗数据不上传）与使用场景 li（临床计算与评估辅助/医学学习与考试备考/健康监测参考）仍为医疗措辞。这些 li 由通用 intro i18n 词典英文化（不在本页 en json），直接改中文会引入 EN CJK 残留（第1071批实测 5 条残留后回退）。需在通用 i18n 词典批次统一替换这些 li 的中英映射后再改，本批保留。
-
 **留存建议（tcm-chemistry/hplc-optimization）**
 - 梯度/等度结果分区展示，并在梯度模式下移除「在等度洗脱模式下」的固定结论文案。
 - 增加参数合理性校验（tR>t0、W>0、流速/柱长>0），错误时阻止结果输出。
@@ -964,14 +960,6 @@
 - 影响：`tools/leather/colorfast.html` 同一结果区出现两个等级，用户无法确认以哪个为准。
 - 方案：补 `{lo:4800,hi:null,'8 级'}`，并把 7 级改为 `{lo:2400,hi:4800}`。
 - 严重度：中；是否假工具：否
-
-### 12-N190 metallurgy/energy-1：标题与引据表承诺「吨钢/吨铝单耗」，页面无产量/基期输入，单耗未实现（中，承诺未实现）
-- 问题：标题、meta、面包屑均为「能耗（吨钢/吨铝/节能减排）」（`:10`、`:118`），引据表给出「单耗 = 总能耗 ÷ 钢产量」（`:146`）、「节能 = 基期单耗 − 当期单耗」（`:151`）；但输入只有「节电量 kWh」「节气量 m³」（`:126-128`，aria-label 仍残留「吨钢」「吨铝」），`calc` 只算折标煤/CO₂/GJ（`:554-558`），无产量、无单耗、无基期对比。
-- 证据：`tools/metallurgy/energy-1.html:10`、`:118`、`:146`、`:151`、`:126-128`、`:554-558`
-- 复现：默认 50000 kWh + 2000 m³ → 仅得 8.805 tce / 23.42 tCO₂ / 258.0 GJ / 8805.0 kgce；任意输入组合都不会出现「单耗」或「基期−当期」。
-- 影响：`tools/metallurgy/energy-1.html` SEO 与标题指向吨钢/吨铝单耗，实际工具是节能折标煤换算，冶金用户按标题进来拿不到单耗指标。
-- 方案：增加「产量（t）」与「基期单耗」输入并输出单耗/节能量；或把标题与引据表改为「节电节气折标煤与碳减排」。
-- 严重度：中；是否假工具：否（存在文案承诺未实现）
 
 ### 覆盖清单（U 批 长尾行业，2026-11-04）
 - 审计页数：11（`tools/metallurgy/steel-calc-1.html`、`tools/metallurgy/energy-1.html`、`tools/leather/yield-rate-1.html`、`tools/leather/colorfast.html`、`tools/gardening/plant-calendar.html`、`tools/gardening/watering-schedule.html`、`tools/chemical/convert-density-crude.html`、`tools/chemical/calc-pipeline-pressure-drop.html`、`tools/process/cp-index.html`、`tools/process/dpmo-calc.html`、`tools/usedcar/car-purchase-cost.html`），覆盖 6 个目录。

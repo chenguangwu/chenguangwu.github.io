@@ -347,6 +347,12 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-chemistry/solubility-guide.html','utf8');var n=h.split('let rows = filterRows();').length-1;var ok=h.indexOf('function filterRows()')>=0&&n===2&&h.indexOf('导出明细 CSV')<0;document.getElementById('__tbProbe').textContent='SOLFILTER '+(ok?'OK':'BAD');"],
   "expect": ["SOLFILTER OK"],
   "ref": "12-N110 表格/导出筛选口径统一：filterRows 同时匹配名称/来源/类别，renderTable 与 exportData 各复用一次；空结果态误导性的历史导出按钮移除。旧版 exportData 只按名称且空态按钮存在 ⇒ 变红。默认态不产生该串，零逃生。"
+},
+{
+  "slug": "tcm-chemistry/hplc-optimization",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-chemistry/hplc-optimization.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/tcm-chemistry/hplc-optimization.json','utf8');var ok=h.indexOf('基于权威医学标准')<0&&h.indexOf('支持多种临床参数')<0&&h.indexOf('医疗数据不上传，保护隐私')<0&&h.indexOf('临床计算与评估辅助')<0&&h.indexOf('医学学习与考试备考')<0&&h.indexOf('健康监测参考')<0&&h.indexOf('按 HPLC 参数计算保留时间、柱效与分离度')>=0&&h.indexOf('支持等度与梯度洗脱条件评估')>=0&&h.indexOf('分析方法开发与色谱条件筛选')>=0&&h.indexOf('实验结果复核与方案比较')>=0&&en.indexOf('Compute retention time, column efficiency and resolution from HPLC parameters')>=0&&en.indexOf('Supports isocratic and gradient elution evaluation')>=0&&en.indexOf('Parameters are processed only in the browser and are never uploaded')>=0;document.getElementById('__tbProbe').textContent='HPLCINTRO '+(ok?'OK':'BAD');"],
+  "expect": ["HPLCINTRO OK"],
+  "ref": "12-N146：HPLC 工具简介残留医疗/临床话术（基于权威医学标准、临床参数、医疗数据、健康监测等），与分析化学定位不符。修复后功能特点与使用场景全部改为色谱方法开发口径，并在本页 en map 补齐新键避免英文态 CJK 残留；旧版任一医疗串命中即红。"
 }
 ];
 async function main() {
