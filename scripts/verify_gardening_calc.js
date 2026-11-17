@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
 const { runCase } = require("./verify_it_calc.js");
+globalThis.__tbFs = fs;
 const CASES = [
 {
   "slug": "gardening/balcony-sunlight",
@@ -182,6 +184,12 @@ const CASES = [
   ],
   "expect": ["SOILPH172 OK"],
   "ref": "第1066批 N172：月季适宜 6.0-6.9，实测 9.5 ⇒ 距离最近上边界 9.5−6.9=2.6。偏差卡与建议文案必须用同一边界口径：新实现偏差卡「+2.6」、建议「土壤偏碱 2.6 个单位」同屏一致；旧实现偏差卡用中点 9.5−6.45=+3.0，与建议 2.6 自相矛盾。哨兵要求 +2.6 与「偏碱 2.6」同时出现且无 +3.0，默认 soilPh=6.5 在范围内不触发 ⇒ 依赖 clicks 注入，强判别零逃生。"
+},
+{
+  "slug": "gardening/watering-schedule",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/gardening/watering-schedule.html','utf8');var ok=h.indexOf('单次约 234ml')<0&&h.indexOf('单次 20×1.0×0.6×0.9×10=108ml')>=0;document.getElementById('__tbProbe').textContent='WATEREX '+(ok?'OK':'BAD');"],
+  "expect": ["WATEREX OK"],
+  "ref": "第1089批 N198：冬季室内单次水量按页内公式 round(盆径×基础系数×季节系数×环境系数×10)=round(20×1.0×0.6×0.9×10)=108ml；旧算例把环境频率系数 1.3 误当水量系数写成 234ml。源码形态判别：旧串消失且新代入式+108ml 出现才通过。"
 }
 ];
 async function main() {

@@ -10,7 +10,9 @@
  * 用法: node scripts/verify_obstetrics_calc.js [slug ...]
  */
 "use strict";
+const fs = require("fs");
 const { runCase } = require("./verify_it_calc.js");
+globalThis.__tbFs = fs;
 
 const CASES = [
   { slug: "obstetrics/afi-normal",
@@ -523,6 +525,11 @@ const CASES = [
     clicks: ["crits={1:true,2:true,3:false};calc()"],
     expect: ["2/3", "PCOS(多囊卵巢综合征)"],
     ref: "鹿特丹标准三项中满足 2 项（稀发排卵 + 高雄激素，未选多囊卵巢超声）⇒ 诊断 PCOS、满足条件数 2/3、表型 B 型（经典无多囊卵巢：稀发排卵+高雄）。默认态 crits 全 false ⇒ 0/3「不符合PCOS诊断」，两锚均不命中（判别时清空 clicks 即回默认态）。"
+  },
+  { slug: "obstetrics/bishop-score",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/obstetrics/bishop-score.html','utf8');var ok=h.indexOf('3+3+2+1+2 = 11/13')<0&&h.indexOf('2+3+2+1+2 = 10/13')>=0&&h.indexOf('消退 30%（1分）')<0&&h.indexOf('消退 30%（0分）')>=0;document.getElementById('__tbProbe').textContent='BISHOPEx '+(ok?'OK':'BAD');"],
+    expect: ["BISHOPEx OK"],
+    ref: "第1089批 N47/N48：算例1 宫口 3cm 按评分表与下拉 value 应记 2 分，总分 2+3+2+1+2=10/13（旧写 3cm=3 分、11/13）；算例2 消退 30% 属 0–30 档应记 0 分、总分 0（旧写 1 分）。源码形态判别：旧两串消失且新两串出现才通过，旧版必然命中旧串变红。"
   }
 ];
 
