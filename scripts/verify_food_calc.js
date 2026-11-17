@@ -351,8 +351,21 @@ const CASES = [
 {
   "slug": "food/beer-gravity-estimator",
   "clicks": ["malts=[{type:0,weight:8}];calc()"],
-  "expect": ["1.093", "0.931", "21.3%", "24.0°P"],
-  "ref": "麦芽投料 8 kg 淡色麦芽（PPG 37）→ GU = 37×8×2.20462 = 652.57；水量 20 L = 5.28344 gal、效率 75% ⇒ 重力单位 = 652.57×0.75/5.28344 = 92.63 ⇒ OG = 1.093；衰减 75% ⇒ FG = 1 − 0.09263×0.75 = 0.931；ABV = (1.093−0.931)×131.25 = 21.3%；Plato = 0.09263×259 = 24.0°P。默认投料（4 kg 淡色 + 0.5 kg 水晶）⇒ OG 1.052/ABV 11.9%，四锚均不命中（判别时清空 clicks 即回默认投料）。"
+  "expect": ["1.023"],
+  "ref": "934公式纠偏：麦芽 8 kg 淡色（PPG 37）、20 L 水、效率 75% ⇒ OG=1.093；表观发酵度 75% ⇒ FG=OG−(OG−1)×0.75=1.023。仅锚 FG——旧错误式 1−(OG−1)×0.75=0.931 不含 1.023；OG=1.093/Plato=24.0°P 不受 FG 公式影响，故不可作为判别锚。默认态 FG=1.013 亦不命中。"
+},
+{
+  "slug": "food/beer-gravity-estimator",
+  "inputs": {"attenuation": "50", "water": "23", "efficiency": "72"},
+  "clicks": ["malts=[{type:0,weight:10}];calc()"],
+  "expect": ["1.048"],
+  "ref": "934独立复算：10 kg 淡色 23 L 效率 72% ⇒ OG=1.097；发酵度 50% ⇒ FG=1.097−0.097×0.5=1.048。仅锚 FG——旧错误式 1−0.097×0.5=0.952 不含 1.048；OG=1.097 两版相同不可锚。默认态 FG=1.013 不命中。"
+},
+{
+  "slug": "food/beer-gravity-estimator",
+  "clicks": ["malts=[{type:0,weight:8}];calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='BEERABV '+((h.indexOf('9.1%')>=0&&h.indexOf('0.931')<0&&h.indexOf('21.3%')<0)?'OK':'BAD');"],
+  "expect": ["BEERABV OK"],
+  "ref": "934 ABV 联动哨兵：读取页面结果容器，正确式 ABV=(1.093−1.023)×131.25=9.1%；旧版 ABV=21.3% 且含 0.931，哨兵为 BAD。锚定旧错值消失而非内联自算。"
 },
 
 {

@@ -336,6 +336,9 @@ function parsePositiveInt(raw){
   return n;
 }
 const __rangeTooLarge = () => ((typeof TBKit!=='undefined'&&TBKit.util.isEn()) ? "Range end is too large (max 10000000)" : "范围终点过大（上限 10000000）");
+// 单值试除工作量上限：sqrt(1e12)=1e6 次循环，同步计算秒级返回；超过则拒绝，避免安全整数范围内难分解数阻塞页面。
+const MAX_SINGLE = 1000000000000;
+const __singleTooLarge = () => ((typeof TBKit!=='undefined'&&TBKit.util.isEn()) ? "Value too large for single-number calculation (max 1e12)" : "单值过大（上限 1e12），试除计算量过高，请改用区间或更小数值");
 
 function run(){
   const t0 = performance.now();
@@ -346,6 +349,7 @@ function run(){
     case 0: {
       const n = parsePositiveInt(document.getElementById('num').value);
       if(isNaN(n)){ big.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a positive integer":"请输入正整数"); big.className = 'big-result'; const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){detail.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}detail.innerHTML=__h1; return; }
+      if(n > MAX_SINGLE){ big.textContent = __singleTooLarge(); big.className = 'big-result'; detail.innerHTML = ''; return; }
       const yes = isPrime(n);
       const t1 = performance.now();
       const __h2=`${n} <span class="${yes?'prime-yes':'prime-no'}">${yes?((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Yes":"是"):'不是'}素数</span>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){big.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}big.innerHTML=__h2;
@@ -411,6 +415,7 @@ function run(){
       const n = parsePositiveInt(document.getElementById('num').value);
       if(isNaN(n)){ big.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a positive integer":"请输入正整数"); const __h11='';if((typeof __h11==='number'&&!isFinite(__h11))||/Infinity/.test(String(__h11))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h11)){detail.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}detail.innerHTML=__h11; return; }
       if(n === 1){ big.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"1 has no prime factors":"1 没有质因数"); const __h12='';if((typeof __h12==='number'&&!isFinite(__h12))||/Infinity/.test(String(__h12))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h12)){detail.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}detail.innerHTML=__h12; return; }
+      if(n > MAX_SINGLE){ big.textContent = __singleTooLarge(); detail.innerHTML = ''; return; }
       const factors = factorize(n);
       const t1 = performance.now();
       // 统计每个因子
@@ -617,7 +622,7 @@ else document.addEventListener('DOMContentLoaded', __prime_numberBoot);
     <h4><span class="h4-icon">📝</span>工具简介</h4>
     <p data-zh="素数工具是一款科学研究领域的在线工具。科学研究工具，采用标准科学公式，计算精准。">Test whether an integer is prime, generate prime tables in a range, or factorise a number into primes for number theory and coding.</p>    <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">素数判定与生成（本页代码口径）：n 为素数 ⇔ n≥2 且不存在因数 p≤√n；实现按 6k±1 试除（n&lt;2 判非、n&lt;4 判是、偶数判非、3 的倍数仅 3 本身、i 自 5 步进 6 试除 i 与 i+2 至 i²&gt;n）；区间枚举走埃氏筛、第 N 个/前 N 个（N 上限分别为 10⁶/10⁵）、因数分解从 2 试除至 d²&gt;n。校验：单数判定 n 须为正整数、区间须 1≤from≤to、N 超限分别提示并中止。判据：输出「是/不是素数」并附前后素数、计数、耗时等明细。</div>
+      <div class="formula-eq">素数判定与生成（本页代码口径）：n 为素数 ⇔ n≥2 且不存在因数 p≤√n；实现按 6k±1 试除（n&lt;2 判非、n&lt;4 判是、偶数判非、3 的倍数仅 3 本身、i 自 5 步进 6 试除 i 与 i+2 至 i²&gt;n）；区间枚举走埃氏筛、第 N 个/前 N 个（N 上限分别为 10⁶/10⁵）、因数分解从 2 试除至 d²&gt;n。校验：单数判定 n 须为正整数且≤10¹²（单值试除工作量上限，√10¹²=10⁶ 次循环秒级返回）、区间终点≤10⁷、N 超限分别提示并中止。判据：输出「是/不是素数」并附前后素数、计数、耗时等明细。</div>
       <div class="formula-desc">素性判定采用试除到 √n（辅以小素数预筛与 6k±1 步进加速）；区间筛法用埃拉托斯特尼筛列出范围内的全部素数。</div>
     </div>
 

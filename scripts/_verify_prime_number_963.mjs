@@ -68,6 +68,20 @@ const big = page => page.evaluate(() => document.getElementById('bigResult').tex
     const huge = await big(page);
     ok('case0 1e18 超安全整数被拦截（不进入试除）', /过大|安全|超出|范围|正整数/.test(huge), huge);
 
+    // ④b case0 安全整数范围内但超单值上限（9e15 难分解数）须秒级拦截，不阻塞页面
+    await setVal(page, 'num', '9007199254740881');
+    let tS0 = Date.now();
+    await page.evaluate(() => run());
+    const capped = await big(page);
+    const capMs = Date.now() - tS0;
+    ok('case0 9e15 超单值上限被拦截（秒级返回、提示上限）', /上限|过大|1e12/.test(capped) && capMs < 3000, capped + ' / ' + capMs + 'ms');
+    // ④c 边界值 1e12 仍可计算（不误拦），且页面保持响应
+    await setVal(page, 'num', '1000000000000');
+    tS0 = Date.now();
+    await page.evaluate(() => run());
+    const boundary = await big(page);
+    ok('case0 边界 1e12 可计算（不判为上限拦截）', !/上限|过大/.test(boundary) && /不是素数|是素数/.test(boundary) && (Date.now() - tS0) < 5000, boundary + ' / ' + (Date.now() - tS0) + 'ms');
+
     // ③ case1 范围终点 1e9 被上限拦截（不分配 1GB）
     await page.evaluate(() => setMode(1));
     await setVal(page, 'from', '1');
@@ -84,6 +98,19 @@ const big = page => page.evaluate(() => document.getElementById('bigResult').tex
     await page.evaluate(() => run());
     const fac = await big(page);
     ok('case4 质因数小数 360.5 被拒绝', /正整数|整数/.test(fac) && !/360/.test(fac), fac);
+
+    // ⑤b case4 安全整数范围内但超单值上限须秒级拦截
+    await setVal(page, 'num', '9007199254740881');
+    let tS4 = Date.now();
+    await page.evaluate(() => run());
+    const facCap = await big(page);
+    ok('case4 9e15 超单值上限被拦截（秒级返回）', /上限|过大|1e12/.test(facCap) && (Date.now() - tS4) < 3000, facCap + ' / ' + (Date.now() - tS4) + 'ms');
+    // ⑤c case4 边界 1e12 可分解
+    await setVal(page, 'num', '1000000000000');
+    tS4 = Date.now();
+    await page.evaluate(() => run());
+    const facBoundary = await big(page);
+    ok('case4 边界 1e12 可分解（不判为上限拦截）', !/上限|过大/.test(facBoundary) && (Date.now() - tS4) < 5000, facBoundary + ' / ' + (Date.now() - tS4) + 'ms');
 
     // ⑥ 正常回归：91 不是素数 / 89 是素数
     await page.evaluate(() => setMode(0));
@@ -102,6 +129,12 @@ const big = page => page.evaluate(() => document.getElementById('bigResult').tex
     await page.evaluate(() => run());
     const en = await big(page);
     ok('英文态超限提示无 CJK 残留', /Range end is too large/.test(en) && !/[\u4e00-\u9fff]/.test(en), en);
+    // 英文态单值上限提示须走 helper，零 CJK
+    await page.evaluate(() => setMode(0));
+    await setVal(page, 'num', '9007199254740881');
+    await page.evaluate(() => run());
+    const enSingle = await big(page);
+    ok('英文态单值上限提示无 CJK 残留', /too large for single-number/.test(enSingle) && !/[\u4e00-\u9fff]/.test(enSingle), enSingle);
     ok('无脚本异常', errs.length === 0, errs.join(' | '));
 
     await ctx.close();

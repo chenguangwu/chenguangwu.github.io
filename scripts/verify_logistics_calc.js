@@ -266,6 +266,12 @@ const CASES = [
     "抛比为 0 时无法计算材积重"
   ],
   "ref": "抛比为零：原实现 `volumeCm3/factor` 得 Infinity，靠全局 NaN/Infinity 替换显示「—」，仍给出体积与「— kg」；现前置校验四个输入均 >0，抛比 0 直接提示并不能出数。默认抛比 6000，不命中。"
+},
+{
+  "slug": "logistics/detector-30",
+  "clicks": ["var tx=document.getElementById('texture');var step=tx.getAttribute('step');tx.value='3.5';calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='TEXSTEP '+(step==='0.5'&&h.indexOf('质地：3.5/10')>=0&&h.indexOf('6.1/10')>=0?'OK':'BAD step='+step);"],
+  "expect": ["TEXSTEP OK"],
+  "ref": "937预设步长：质地评分「低值」预设 3.5 须合法，输入 min=1 max=10 且 step=0.5 才符合 HTML 默认步长；旧版无 step（默认 1）3.5 触发 stepMismatch，且默认 texture=7 ⇒ avg=(8+8+7+5)/4=7.0 不命中 6.1。探针要求 step=0.5、3.5 参与计算得 avg=(8+8+3.5+5)/4=6.125→6.1/10。"
 }
 ];
 async function main() {

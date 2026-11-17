@@ -156,6 +156,12 @@ const CASES = [
     inputs: { avgDaily: "", maxDaily: "8", avgLead: "3", maxLead: "7", orderCost: "50", holdCost: "12", currentStock: "20" },
     expect: ["请填写平均日消耗量、最大日消耗量、平均/最大到货天数、单次订货成本、单位持有成本与当前库存后再计算。"],
     ref: "空态守卫（2026-11-05）：清空平均日消耗量后不再渲染「0.0 安全库存 / 0.0 再订货点 / 0.0 经济订货量 / 0 预计可用天数」与「⚠️ 低于安全库存！」风险结论，只给填写提示。⚠ 判空用原始空串——currentStock=0（库存用光）、orderCost=0、holdCost=0 均为合法值，不在拦截范围。注入 8/8/3/7/50/12/20 用例断「每次订156.0kg」⇒ 两态互斥。",
+  },
+  {
+    "slug": "restaurant/dish-cost-card",
+    "clicks": ["var q=document.getElementById('dishQty');var step=q.getAttribute('step');document.getElementById('dishName').value='半份测试';q.value='1.5';calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='DISHSTEP '+(step==='0.5'&&h.indexOf('半份测试')>=0&&h.indexOf('¥')>=0?'OK':'BAD step='+step);"],
+    "expect": ["DISHSTEP OK"],
+    "ref": "937预设步长：份数「大规模」预设 1.5 须合法，输入 min=1 且 step=0.5 才符合 HTML 默认步长；旧版无 step（默认 1）1.5 触发 stepMismatch。探针同时要求 step=0.5、1.5 份参与计算产出结果容器。默认态 step 缺失⇒BAD。"
   }
 ];
 async function main() {
