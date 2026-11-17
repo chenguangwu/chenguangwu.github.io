@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+globalThis.__tbFs = fs; // 供 clicks 内做源码形态判别（harness 点击串无 require）
 const CASES = [
 {
   "slug": "audit/npv-discount",
@@ -231,6 +233,12 @@ const CASES = [
     "折现因子或净现值溢出"
   ],
   "ref": "T-N6 复核失败修复：折现率 -99%、初始投资 10万、年金 2.5万、1000 期（等额年金模式），折现因子 1/0.01^(t+1) 溢出致 NPV 非有限；修复后必须阻断结论/明细/导出并提示，不得再输出 -- NPV 却仍给 24900.00% ROI 与千行明细。注入态与默认态(率 11%)该提示不命中 ⇒ 强判别。"
+},
+{
+  "slug": "audit/irr-table",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/audit/irr-table.html','utf8');document.getElementById('__tbProbe').textContent='IRRFAQ '+(h.indexOf('页面会全部列出')<0&&h.indexOf('不保证穷尽全部根')>=0?'OK':'BAD');"],
+  "expect": ["IRRFAQ OK"],
+  "ref": "835绝对承诺移除：FAQ 旧句「页面会全部列出」与有限步长扫描的实现冲突；权威源改为「仅列出扫描命中的根，不保证穷尽全部根」。源码形态断言旧承诺消失且新限制出现，默认态不执行 clicks ⇒ 零逃生。"
 }
 ];
 async function main() {
