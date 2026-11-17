@@ -406,25 +406,33 @@ function fmtT(m){
   var h=Math.floor(m/60), mm=m%60;
   return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm;
 }
+function normNow(last, now){
+  // 当前时刻早于上一班离站时刻 ⇒ 视为跨零点后的次日，归一到同一时间轴
+  var n=now;
+  while(n<last) n+=1440;
+  return n;
+}
 function nextArrival(last, iv, now, ride){
-  var n=last+iv;
   if(iv<=0) return NaN;
-  while(n<now) n+=iv;
+  // 从上一班起（含上一班：若其尚未到站则即为下一班到站），取首个「到站时刻」晚于当前时刻的班次
+  var n=last;
+  while(n+ride<=now) n+=iv;
   return n+ride;
 }
 function calc(){
     var __ig=__tbInputGuard(['interval', 'last', 'now', 'ride', 'err', 'iv2', 'last2'],["发车间隔 (分钟)", "上一班离站时刻", "当前时刻", "起点到本站行驶时间 (分钟)", "平均误差 (±分钟)", "对比线路发车间隔 (分钟)", "对比线路上一班离站"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 var R=document.getElementById('result'),G=document.getElementById('distGrid'),
       F=document.getElementById('formulaBox'),A=document.getElementById('adviceBox');
-  var iv=val('interval'), last=toMin(str('last')), now=toMin(str('now'));
+  var iv=val('interval'), last=toMin(str('last')), nowRaw=toMin(str('now'));
   var ride=val('ride'), err=val('err');
   var iv2=val('iv2'), last2=toMin(str('last2'));
   var lineN=str('line');
 
+  var now=normNow(last, nowRaw), now2=normNow(last2, nowRaw);
   var arr=nextArrival(last,iv,now,ride);
   var wait=now-last, togo=arr-now;
   var wLo=arr-err, wHi=arr+err;
-  var arr2=nextArrival(last2,iv2,now,ride);
+  var arr2=nextArrival(last2,iv2,now2,ride);
 
   var best=(arr2&&arr2<arr)?'对比线路更早':'本线路更早';
   var who=arr2? (best==='对比线路更早'?'对比线路':'本线路') : '本线路';
@@ -438,7 +446,7 @@ var R=document.getElementById('result'),G=document.getElementById('distGrid'),
 
   const __g3='<div class="dist-grid">'
     +'<div class="dist-card"><h4>本线路（'+lineN+' 路）</h4><p>间隔 '+fmtLocal(iv,0)+' 分钟</p><p>到达 '+fmtT(arr)+'（约 '+fmtLocal(togo,0)+' 分钟后）</p></div>'
-    +'<div class="dist-card"><h4>对比线路</h4><p>间隔 '+fmtLocal(iv2,0)+' 分钟</p><p>到达 '+(arr2?fmtT(arr2):'—')+'（'+(arr2?('约 '+fmtLocal(arr2-now,0)+' 分钟后'):'—')+'）</p></div>'
+    +'<div class="dist-card"><h4>对比线路</h4><p>间隔 '+fmtLocal(iv2,0)+' 分钟</p><p>到达 '+(arr2?fmtT(arr2):'—')+'（'+(arr2?('约 '+fmtLocal(arr2-now2,0)+' 分钟后'):'—')+'）</p></div>'
     +'<div class="dist-card"><h4>建议出发</h4><p>'+who+'</p><p>提前 '+fmtLocal(Math.max(0,err+1),0)+' 分钟到站</p></div>'
     +'<div class="dist-card"><h4>线路平均间隔</h4><p>'+fmtLocal((iv+iv2)/2,1)+' 分钟</p><p>综合平均等待约 '+fmtLocal((iv+iv2)/4,1)+' 分钟</p></div>'
     +'</div>';G.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
@@ -452,9 +460,9 @@ var R=document.getElementById('result'),G=document.getElementById('distGrid'),
       +'<td style="padding:5px 8px;">'+fmtT(arr+i*iv-err)+' ~ '+fmtT(arr+i*iv+err)+'</td></tr>';
   }
   const __g4='<div class="formula-title">📐 估算口径</div> <div class="formula-eq">预计到达区间 = 预报到达时刻 ± 预报误差；已等待时长 = 当前时刻 − 最近更新时刻；剩余等待 = 到达时刻 − 当前时刻</div>'
-    +'<div class="formula-line">下一班发车 = 上一班离站时刻 + n × 发车间隔（取首个晚于当前时刻者）</div>'
-    +'<div class="formula-line">预计到达 = 下一班发车时刻 + 起点到本站行驶时间</div>'
-    +'<div class="formula-line">已等待 = 当前时刻 − 上一班离站时刻；还需等待 = 预计到达 − 当前时刻</div>'
+    +'<div class="formula-line">下一班到站 = 上一班离站时刻 + n × 发车间隔 + 起点到本站行驶时间（取首个到站时刻晚于当前者）</div>'
+    +'<div class="formula-line">当前时刻早于上一班离站时刻时按跨零点次日归一，等待时长不会出现负值</div>'
+    +'<div class="formula-line">已等待 = 当前时刻 − 上一班离站时刻；还需等待 = 预计到站 − 当前时刻</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;">'
     +'<tr><th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">班次</th>'
     +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">到达时刻</th>'

@@ -973,6 +973,27 @@ const CASES = [
     "inputs": { "lastDate": "2026-11-30", "months": "3" },
     "expect": ["2027-02-28"],
     "ref": "跨年 + 月末：2026-11-30 +3 月 = 2027-02-28（旧 setMonth 得 2027-03-02）。"
+  },
+
+  // ---- 第1060批：公交到站「按到站时刻找班」+「跨零点归一」判别 ----
+  {
+    "slug": "automotive/bus-arrival-estimator",
+    "inputs": { "interval": "10", "last": "09:00", "now": "09:05", "ride": "20", "err": "2", "iv2": "15", "last2": "09:00" },
+    "expect": ["下一班到达 09:20"],
+    "ref": "到站口径（ride>0）：上一班 09:00 离站、行驶 20 分钟 ⇒ 09:20 到站；当前 09:05，这班尚未到站，即为下一班到站。旧实现按发车时刻找班（last+iv=09:10 发车再 +ride ⇒ 09:30），得「下一班到达 09:30」⇒ 本锚不命中；修复后 nextArrival 从 last 起按到站时刻比较 ⇒ 09:20。锚串带「下一班到达」标签，仅结果区出现、不在输入回显或时刻表单元格中。"
+  },
+  {
+    "slug": "automotive/bus-arrival-estimator",
+    "inputs": { "interval": "15", "last": "23:50", "now": "00:10", "ride": "5", "err": "2", "iv2": "20", "last2": "23:45" },
+    "expect": ["下一班到达 00:25", "已等待 20 分钟"],
+    "ref": "跨零点归一：上一班 23:50(1430 分) 离站、当前 00:10(10 分) ⇒ normNow 把 now 归一到 1450 分（次日）；nextArrival 从 1430 起按到站时刻比较（1435/1450 均已过）⇒ 下一班 1465 分 = 00:25 到站，已等待 = 1450−1430 = 20 分钟。旧实现 now=10 分，wait=10−1430=−1420 ⇒ 「已等待 -1420 分钟」，且 arr=1445=00:10 ⇒ 两锚均不命中。「下一班到达 00:25」只在结果区（时刻表单元格仅显示 00:25 无该标签），两锚互不削弱、均依赖输入。"
+  },
+  {
+    "slug": "automotive/time-maintenance",
+    "inputs": { "km": "64500", "age": "4", "last": "12", "perY": "9000", "ahead": "800" },
+    "clicks": ["calc();var ad=document.getElementById('adviceBox');var s=ad?String(ad.innerHTML):'';document.getElementById('result').innerHTML='TIME_OVER '+(s.indexOf('已超期')>=0?'YES':'NO');"],
+    "expect": ["TIME_OVER YES"],
+    "ref": "第1060批 N245 整周期到期：上次保养距今 12 月、全合成机油周期 12 月（harness select 取首项矿物油 6 月，同样达到周期）⇒ 应判到期/已超期。旧实现 leftMon=(used===0&&last>0)?ivMon:(ivMon-used) 对 last=周期取余得 0 又回填 ivMon，判「未到期」，adviceBox 无「已超期」提示 ⇒ NO；新实现 leftMon=max(0,ivMon-last)=0 ⇒ over 非空、adviceBox 出现「⛔ 已超期」⇒ YES。哨兵依赖 last 输入，默认 last=11 时 oil 周期 6 取余为 5、leftMon=1 ⇒ 仍无超期 ⇒ NO，强判别零逃生。"
   }
 
 ];
