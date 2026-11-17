@@ -190,6 +190,12 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/gardening/watering-schedule.html','utf8');var ok=h.indexOf('单次约 234ml')<0&&h.indexOf('单次 20×1.0×0.6×0.9×10=108ml')>=0;document.getElementById('__tbProbe').textContent='WATEREX '+(ok?'OK':'BAD');"],
   "expect": ["WATEREX OK"],
   "ref": "第1089批 N198：冬季室内单次水量按页内公式 round(盆径×基础系数×季节系数×环境系数×10)=round(20×1.0×0.6×0.9×10)=108ml；旧算例把环境频率系数 1.3 误当水量系数写成 234ml。源码形态判别：旧串消失且新代入式+108ml 出现才通过。"
+},
+{
+  "slug": "gardening/pruning-calendar",
+  "clicks": ["selectSeason('autumn');var info=String(document.getElementById('seasonInfo').innerHTML);var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/gardening/pruning-calendar.html','utf8');var i=h.indexOf('function __pruning_calendarExport(){'),j=h.indexOf('function __pruning_calendarPresets(){');var ex=j>i?h.slice(i,j):'';var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var ok=info.indexOf('不宜修剪 5 种')>=0&&ex.indexOf(\"TBKit.util.exportTable('#pruning_calendarTable'\")<0&&ex.indexOf('TBKit.util.exportCsv')>=0&&ex.indexOf('PLANTS.forEach')>=0&&ex.indexOf('SEASONS.forEach')>=0&&h.indexOf(\"name:'月季', icon:'🌹', seasons:{spring:'best',summer:'ok',autumn:'best',winter:'best'}\")>=0&&h.indexOf(\"name:'栀子花', icon:'🌼', seasons:{spring:'avoid',summer:'ok',autumn:'best',winter:'avoid'}\")>=0&&h.indexOf(\"name:'杜鹃', icon:'🌺', seasons:{spring:'avoid',summer:'best',autumn:'avoid',winter:'ok'}\")>=0&&dd.indexOf('春冬 best（冬季休眠期重剪）、夏秋 ok')>=0;document.getElementById('__tbProbe').textContent='PRUNECAL '+(ok?'OK':'BAD');"],
+  "expect": ["PRUNECAL OK"],
+  "ref": "12-N225/N226：导出函数不再读搜索历史表，改为 PLANTS×SEASONS 全矩阵经 exportCsv 输出；杜鹃秋季、栀子花春季改 avoid，与自身描述一致；月季冬季按公式框重剪改 best。注入秋季后不宜植物由旧版 4 种变 5 种，默认春季为 3 种，零逃生；源码形态同时校验深解算例口径。"
 }
 ];
 async function main() {
