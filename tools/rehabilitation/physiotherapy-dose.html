@@ -353,8 +353,9 @@ function calcUS() {
 
   // 治疗时间 = 面积/辐射头面积 × 系数（每cm²约1分钟）
   var time = (area / head) * 1.0; // 分钟
+  var rawTime = time;
   time = Math.min(time, 10); // 最长10分钟
-  time = Math.max(time, 3); // 最短3分钟
+  // 不再强制 3 分钟下限：小面积按实际面积计算，避免能量被抬高约 3 倍
 
   var totalPower = intensity * head; // W
   var energy = totalPower * time * 60; // J
@@ -373,6 +374,12 @@ function calcUS() {
   html += '<p><strong>强度：</strong>' + intensity + ' W/cm² ｜ <strong>辐射头：</strong>' + head + ' cm²</p>';
 
   // 检查面积
+  if (rawTime < 3) {
+    var smallTip = __usEn
+      ? 'Treatment area is only about ' + rawTime.toFixed(1) + ' transducer areas; the theoretical time is under 3 minutes. Calculated by the actual area - check the treatment area and transducer to avoid local overdose.'
+      : '治疗区仅约 ' + rawTime.toFixed(1) + ' 个辐射头面积，理论时间不足 3 分钟；已按实际面积计算，请核对治疗区与辐射头选择，避免局部过量。';
+    html += '<div class="tip-box tip-warn" style="margin-top:8px;">' + smallTip + '</div>';
+  }
   if (area > head * 4) {
     html += '<div class="tip-box tip-warn" style="margin-top:8px;">治疗面积超过辐射头4倍，建议分区治疗或使用更大辐射头</div>';
   }

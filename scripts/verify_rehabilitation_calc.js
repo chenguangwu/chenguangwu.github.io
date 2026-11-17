@@ -471,6 +471,13 @@ const CASES = [
     "ref": "N125 TENS 负时间守卫：tensTime=-10（旧 parseFloat||30 挡不住负数）⇒ 应提示「0–120 分钟」且不写入「× -10分钟」处方。旧版 −10 原样进处方 ⇒ BAD。默认 tensTime 30 合法不命中，零逃生。"
   }
   ,{
+    "slug": "rehabilitation/physiotherapy-dose",
+    "inputs": {"usArea":"1","usHead":"10","usIntensity":"0.5","usFreq":"3"},
+    "clicks": ["calcUS();var h=String(document.getElementById('usResult').innerHTML).replace(/<[^>]+>/g,' ');var ok=h.indexOf('0.1')>=0&&h.indexOf('3.0')<0&&h.indexOf('避免局部过量')>=0;document.getElementById('__tbProbe').textContent='USMINTIME '+(ok?'OK':'BAD '+h.slice(0,100));"],
+    "expect": ["USMINTIME OK"],
+    "ref": "12-N126：usArea=1、头 10cm² 的理论时间 0.1 分钟，旧版 Math.max(time,3) 强制拉到 3 分钟使能量从 30J 虚增到 900J；现移除下限、按实际面积计算并提示核对治疗区。默认 usArea 为空 ⇒ calcUS 早退，零逃生。"
+  }
+  ,{
     "slug": "rehabilitation/berg-balance-scale",
     "checks": ["2"],
     "expect": [
