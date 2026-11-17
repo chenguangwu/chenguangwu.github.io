@@ -486,7 +486,7 @@ const CASES = [
 },
 {
   "slug": "dermatology/pasi-score",
-  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/dermatology/pasi-score.html','utf8');var noBare=h.indexOf('content=\"Pasi Score\"')<0&&h.indexOf('>Pasi Score</h2>')<0&&h.indexOf('>Pasi Score</p>')<0;var okTitle=h.indexOf('content=\"PASI Score Calculator (Psoriasis Area and Severity Index)\"')>=0;var okIntro=h.indexOf('Rate erythema, induration and desquamation (0-4) in four body regions')>=0;var okH2=h.indexOf('>📐 PASI Score (Psoriasis Area and Severity Index)</h2>')>=0;document.getElementById('__tbProbe').textContent='PASIINTRO '+(noBare&&okTitle&&okIntro&&okH2?'OK':'BAD');"],
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/dermatology/pasi-score.html','utf8');var noBare=h.indexOf('content=\"Pasi Score\"')<0&&h.indexOf('>Pasi Score</h2>')<0&&h.indexOf('>Pasi Score</p>')<0;var okTitle=h.indexOf('content=\"PASI Score Calculator: Psoriasis Area and Severity Index\"')>=0;var okIntro=h.indexOf('Rate erythema, induration and desquamation (0-4) in four body regions')>=0;var okH2=h.indexOf('>📐 PASI Score (Psoriasis Area and Severity Index)</h2>')>=0;document.getElementById('__tbProbe').textContent='PASIINTRO '+(noBare&&okTitle&&okIntro&&okH2?'OK':'BAD');"],
   "expect": ["PASIINTRO OK"],
   "ref": "12-N43 英文首屏介绍补全：英文 title/desc/h2/首个 p 不再退化为裸名 Pasi Score；旧版源码四处均为裸名 ⇒ 变红。harness 不加载构建后静态正文，按源码形态判别；默认态不产生该串，零逃生。"
 }
