@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -43,7 +45,7 @@ const CASES = [
   ],
   "expect": [
     "总体结果：异常",
-    "个人-社会：通过0/18，未通过18，延迟项14 → "
+    "个人-社会：通过0/18，未通过18，延迟项14，已测18/应测14 → "
   ],
   "ref": "门诊记录：把「个人-社会」能区 18 月龄及以前的条目全部标记 fail（clicks 直接写 testResults），其余能区未测 ⇒ 该能区延迟 14 项 ⇒ 异常，0 可疑、3 个资料不完整 ⇒ 总体「异常」。判定看年龄线及以下的延迟项数量，不看通过率。默认态 testResults 为空 ⇒ 4 能区全「资料不完整」、总体「资料不完整」，与本用例零交集。"
 },
@@ -195,6 +197,12 @@ const CASES = [
 },
   { slug: "pediatrics/hearing-screening", inputs: { age: "" }, expect: ["请填写筛查时的日龄/月龄后再评估。"], ref: "空态守卫：清空日龄/月龄后不再输出 0 日龄与筛查结论/随访建议，只给填写提示（旧实现 ⇒ 0 日龄 + 通过/未通过结论）。默认态 3 日龄 ⇒ 提示串不出现。" },
   { slug: "pediatrics/hearing-screening", inputs: { method: "oae", ageUnit: "day", age: "3", leftResult: "refer", rightResult: "pass" }, expect: ["单侧未通过(转诊)", "左耳结果：未通过(转诊)"], ref: "注入 3 日龄 + 左耳未通过/右耳通过 ⇒ 单侧未通过(转诊)、3 日龄、左耳未通过(转诊)；默认态两耳均通过（双侧通过）⇒ 两条均不命中。" },
+  {
+    "slug": "pediatrics/ddst-screening",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pediatrics/ddst-screening.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/pediatrics/ddst-screening.json','utf8');var d=JSON.parse(dd)['pediatrics/ddst-screening'];var ok=h.indexOf('var tested=passed+failed')>=0&&h.indexOf('var rate=total>0')<0&&h.indexOf('已测')>=0&&h.indexOf('/应测')>=0&&h.indexOf('out.__ddst_results=JSON.stringify(testResults)')>=0&&h.indexOf('if(rec.__ddst_results!==undefined) __ddst_restoreResults')>=0&&h.indexOf('总体结果：')>=0&&en.indexOf('All domains fully tested')>=0&&d.examples[1].body.indexOf('80%')<0&&d.examples[1].body.indexOf('无延迟')>=0;document.getElementById('__tbProbe').textContent='DDSTHIST '+(ok?'OK':'BAD');"],
+    "expect": ["DDSTHIST OK"],
+    "ref": "12-N78/N80：通过率分母由全部显示项（含未测/右侧更难项）改为已测项并显示「已测 x/应测 y」；历史快照序列化 testResults 逐项标记，恢复时 renderTests()+markTest() 重建，结果列改存总体结果+能区摘要而非前80字。N76/N77/N79 源码复核已修纯销账。权威源深解删「通过≥80%→正常」旧口径。旧版分母/快照/文案均命中旧串即红，默认态不产生该哨兵。"
+  },
 ];
 async function main() {
   const only = process.argv.slice(2);

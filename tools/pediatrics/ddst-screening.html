@@ -186,7 +186,7 @@
 <li>异常/可疑</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">18 月 2 能区延迟</div><div class="dd-ex-body">个人-社交/精细等 2 能区未通过→异常，2–3 周复查仍异常转诊。</div></div>
-<div class="dd-example"><div class="dd-ex-title">正常</div><div class="dd-ex-body">各能区通过≥80%→正常，定期体检随访。</div></div>
+<div class="dd-example"><div class="dd-ex-title">正常</div><div class="dd-ex-body">各能区年龄线及以下均已测且无延迟→正常，定期体检随访。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>能区有哪些？</dt><dd>个人-社交、精细动作、语言、大运动；任 2 能区延迟为异常。</dd>
@@ -391,12 +391,13 @@ function calc(){
         }
       });
     });
-    var rate=total>0?Math.round(passed/total*100):0;
+    var tested=passed+failed;
+    var rate=tested>0?Math.round(passed/tested*100):0;
     // 年龄线及以下未测完时只报「资料不完整」，避免把「少测」当成「正常」
     var incomplete=ageTested<ageTotal;
     var status=incomplete?'资料不完整':(delayed>=2?'异常':(delayed>0?'可疑':'正常'));
     var statusColor=incomplete?'#64748B':(delayed>=2?'#EF4444':(delayed>0?'#F59E0B':'#10B981'));
-    domainResults.push({name:d.name,color:d.color,passed:passed,failed:failed,total:total,rate:rate,status:status,delayed:delayed,statusColor:statusColor,ageTotal:ageTotal,ageTested:ageTested});
+    domainResults.push({name:d.name,color:d.color,passed:passed,failed:failed,total:total,tested:tested,rate:rate,status:status,delayed:delayed,statusColor:statusColor,ageTotal:ageTotal,ageTested:ageTested});
   });
 
   var html='<h3 style="margin-bottom:12px;">📊 DDST筛查报告</h3>';
@@ -408,7 +409,7 @@ function calc(){
 
   html+='<div class="ref-card"><h4>各能区详情</h4><ul>';
   domainResults.forEach(function(r){
-    html+='<li>'+r.name+'：通过'+r.passed+'/'+r.total+'，未通过'+r.failed+'，延迟项'+r.delayed+' → <strong style="color:'+r.statusColor+';">'+r.status+'</strong></li>';
+    html+='<li>'+r.name+'：通过'+r.passed+'/'+r.total+'，未通过'+r.failed+'，延迟项'+r.delayed+'，已测'+r.tested+'/应测'+r.ageTotal+' → <strong style="color:'+r.statusColor+';">'+r.status+'</strong></li>';
     html+='<div class="progress-bar"><div class="progress-fill" style="width:'+r.rate+'%;background:'+r.color+';"></div></div>';
   });
   html+='</ul></div>';
@@ -591,7 +592,16 @@ function __ddst_screeningSnap(){
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
+    out.__ddst_results=JSON.stringify(testResults);
     return out;
+}
+function __ddst_restoreResults(raw){
+    try{
+        var obj=(typeof raw==='string')?JSON.parse(raw):raw;
+        testResults=(obj&&typeof obj==='object'&&!Array.isArray(obj))?obj:{};
+    }catch(e){ testResults={}; }
+    renderTests();
+    Object.keys(testResults).forEach(function(id){ markTest(id,testResults[id]); });
 }
 function __ddst_screeningResText(){
     var r=document.getElementById('result');
@@ -599,6 +609,12 @@ function __ddst_screeningResText(){
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
+    var m=t.match(/总体结果：([^\s，。]+)/);
+    if(m){
+      var parts=[],re=/([0-9]+个?能区(?:异常|可疑|资料不完整))/g,mm;
+      while((mm=re.exec(t))!==null) parts.push(mm[1]);
+      return '总体结果：'+m[1]+(parts.length?('，'+parts.join('、')):'');
+    }
     return t.slice(0,80);
 }
 function __ddst_screeningScore(t){
@@ -629,13 +645,15 @@ function __ddst_screeningRender(keys,rk,en){
             __ddst_screening_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='__ddst_results') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
+                if(rec.__ddst_results!==undefined) __ddst_restoreResults(rec.__ddst_results);
+                else { testResults={}; renderTests(); }
                 calc();
             }catch(e2){}
             __ddst_screening_skip=false;
