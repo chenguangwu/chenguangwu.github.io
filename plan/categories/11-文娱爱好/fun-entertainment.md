@@ -237,14 +237,6 @@
 
 ## W 批 · 益智/记忆/随机（2026-11-04）
 
-### FE-N53 随机选择器把用户选项原样拼进 `innerHTML`，存在自 XSS（高，确认源码缺陷；安全）
-- 页面：`tools/fun/random-picker.html`
-- 问题：抽中结果与历史记录都用模板串直接写 `innerHTML`，选项文本（来自 textarea）未做 HTML 转义；输入含 `<img onerror=…>` 的选项后点「开始」即执行脚本。
-- 证据：`:270` 选项直接来自 `#items` 的 `split`；`:299` `` `<strong>${picked}</strong>` `` 与 `:300` `` `<span>${s}</span>` `` 均通过 `.innerHTML` 落盘。
-- 复现：选项写 `<img src=x onerror=alert(document.domain)>` → 点「开始」→ 1.2 秒后弹框。
-- 影响：DOM 型自 XSS。本工具纯本地、无服务端与 URL 参数投递通道，需用户自行粘贴恶意选项才触发，非远程可利用；但输入未转义属实打实的注入缺陷，任何后续把选项做成「分享/预设链接」的改动都会把它升级为可投递 XSS。
-- 方案：结果与历史改用 `textContent`/DOM API 渲染，或统一 `escapeHtml()` 后再拼 `innerHTML`。
-
 ### FE-N54 数据表/历史/导出 CSV 记录的是「抽取中…」而非真实结果（中，确认源码缺陷）
 - 页面：`tools/fun/random-picker.html`
 - 问题：TBKit 包装器在 `start()` 同步返回后立刻抓取结果文本，而真实结果要等 15×80ms 动画结束才定格，于是首条记录永远是占位串。
@@ -362,7 +354,7 @@
 - 方案：用 `typeof data.bestScore!=='number'` 判首次；`endGame` 开头加 `if(!gameActive) return;`。
 
 ### W 批覆盖清单（益智/记忆/随机 8 页）
-- `tools/fun/random-picker.html`：3 条（FE-N53 高·安全；FE-N54、FE-N55 中）。复核通过项：随机索引等概率、15×80ms 定格、历史保留 20 条、`unique` 关闭时每次重填池、预设文本与 `reset`。
+- `tools/fun/random-picker.html`：2 条（FE-N54、FE-N55 中）。原 FE-N53 自 XSS 已改 `textContent`/DOM API 渲染，第 953 批清账。复核通过项：随机索引等概率、15×80ms 定格、历史保留 20 条、`unique` 关闭时每次重填池、预设文本与 `reset`。
 - `tools/fun/daily-riddle.html`：3 条（FE-N56、FE-N57、FE-N58 中）。复核通过项：日期+难度种子出题稳定、同难度当日只计一次分、连击按自然日推进且当日第二次难度不重复推进、答案归一化忽略空格与中英文标点、历史保留 30 条。
 - `tools/fun/tongue-twister.html`：1 条（FE-N59 高·假功能）。复核通过项：题库 20 条、`next()` 不与上一条重复、难度标签展示、`reset` 复位计数。
 - `tools/fun/keyboard-heatmap.html`：1 条（FE-N60 中）。复核通过项：键位布局渲染、热力色阶映射、`localStorage` 回读与清空、非单字符键名映射。
@@ -568,13 +560,12 @@
 
 逐页结论（3 页）：
 
-- `tools/fun/raffle-picker.html`：3 条（FE-N102 安全、FE-N103、FE-N104 中）。去重不放回抽取、人数上限与「再抽一次」重置可用；核心风险是名单经 `innerHTML` 拼接，另有权重/导入/可复现承诺缺失与历史记录取错时机。
+- `tools/fun/raffle-picker.html`：2 条（FE-N103、FE-N104 中）。原 FE-N102 名单 XSS 已改 `escH` 后拼装，第 953 批清账；去重不放回抽取、人数上限与「再抽一次」重置可用；剩余问题为权重/导入/可复现承诺缺失与历史记录取错时机。
 - `tools/fun/random-name-gen.html`：1 条（FE-N105 中）。姓氏+字库组合、性别/字数筛选与复制可用；两个预设写入不存在的下拉值。
 - `tools/fun/shape-memory.html`：2 条（FE-N106、FE-N107 中）。关卡递增、间隔公式（`max(500, 800−level×40)`）与判错逻辑可运行；重置不清定时链，且玩法是顺序记忆而非文案所称的「位置复原」。
 
 | 页面 | 问题（tools/fun/<slug>.html:NN） | 编号 |
 |---|---|---|
-| `tools/fun/raffle-picker.html` | 名单成员未经转义写入 `innerHTML`：`:297` 的 `output.innerHTML` 直接拼 `winners.join('、')`，`:300` 的 `history.innerHTML` 同样拼接；名单来自 `:277` 的 textarea，输入 `<img src=x onerror=alert(1)>` 之类的名字即执行脚本（`w.textContent` 的展示区反而安全）。建议改用 `textContent` 或 `escapeHtml`（安全·XSS，可被恶意名单利用） | FE-N102 |
 | `tools/fun/raffle-picker.html` | 权重/导入/可复现承诺未实现：meta `:10`「支持权重与去重」，深度解析 `:219`、`:222`、`:223` 描述权重抽取与「导入名单」，`:10`/`:14` 称「过程可公开复现」；实际控件 `:168-180` 只有名单文本框与「抽取人数」，无权重输入、无文件导入，`:285`/`:292` 用 `Math.random()` 且无种子/无公开算法，第三方无法复算（去重已由 `:294` 的 `splice` 实现）（承诺未实现） | FE-N103 |
 | `tools/fun/raffle-picker.html` | 历史/数据表记录占位或上一轮结果：`start()` `:284-303` 先显示「抽取中」并由 `setInterval` 在 1.6s 后才写 `#output`，而包装器 `:443-446` 在 `start()` 返回后立即调用 `__raffle_pickerExtras()`，`:356-362` 取 `#output` 当前文本；`#output` 默认 `:182`「点击"开始"开始抽取」不含错误过滤词，首抽即把该占位串写入历史，此后每次记录上一轮中奖名单，`:435-438` 导出的 CSV 同样取自该表（错误结果） | FE-N104 |
 | `tools/fun/random-name-gen.html` | 预设写入 select 不存在的值：`:403` 的「小规模」`chars:'1'`、「极端工况」`chars:'4'`，而 `:131` 的下拉只有 `2`/`3` 两个 option；赋 `value='1'/'4'` 后 select 变成空值（`selectedIndex = -1`），`calcTool` `:275`/`:285` 落入 else 分支只生成两字名，与预设标签不符（两个预设实际都退化成两字名、数量也不随标签变化）（错误结果） | FE-N105 |
@@ -583,10 +574,10 @@
 
 **统计**
 - 页数：3（`raffle-picker`、`random-name-gen`、`shape-memory`）。
-- 问题：6 条——高 0 / 中 5（FE-N103–FE-N107）/ 安全 1（FE-N102）。
-- 编号区间：FE-N102–FE-N107，连续且无重号、无跳号（与上批 FE-N90–FE-N101 衔接）。
+- 问题：5 条——高 0 / 中 5（FE-N103–FE-N107）/ 安全 0（FE-N102 已修复销账）。
+- 编号区间：FE-N103–FE-N107，连续且无重号、无跳号（FE-N102 已修复，与上批 FE-N90–FE-N101 衔接）。
 - 假工具：0 个（三页核心交互（抽取/生成/记忆）均为真实实现，缺陷集中在承诺、记录时机与定时器）。
-- 安全条目：1 条（FE-N102 DOM XSS）。其余：本批未出现 `eval`/`new Function`/`allow-same-origin`/明文存密；`raffle-picker` 的抽奖历史仅存内存（`history` 数组），`shape-memory` 的进度经 `__eshm` 落 localStorage 但只存关卡数值。
+- 安全条目：0 条（原 FE-N102 DOM XSS 已修复）。其余：本批未出现 `eval`/`new Function`/`allow-same-origin`/明文存密；`raffle-picker` 的抽奖历史仅存内存（`history` 数组），`shape-memory` 的进度经 `__eshm` 落 localStorage 但只存关卡数值。
 - 方法：逐页通读 HTML 与全部内联 JS；异步包装、定时链与预设取值为源码口径推演，未开浏览器；未跑 `_build.py`/`run_gates.py`、未执行 git、未修改任何 `tools/**` 或构建产物。
 
 ## AA 批 · 文娱·统计/打地鼠（2026-11-04）

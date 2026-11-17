@@ -211,15 +211,6 @@
 - 是否假工具：**是**（核心的图片横幅能力未实现，仅剩文本方框）
 - 方案：二选一——① 真做 canvas 横幅（字体族/字号/前景背景色/PNG 下载）；② 若保留 ASCII 方框，则同步改写 title、description、深度解析与引据表，并去掉「字体/配色/导出图片」承诺。
 
-### BS-N71 条码生成：内容行未经转义写入 `innerHTML`，Code 128 可注入 HTML 并执行事件（高，安全）
-- 页面：`tools/biz/barcode-generator.html`
-- 问题：`meta()` 用字符串拼 `<b>` + `rows[i][1]` 后写 `box.innerHTML`；`buildMeta()` 第一行就是 `['条码内容', res.text]`，而 Code 128 接受全部可打印 ASCII（含 `<`、`>`、`"`），用户输入会作为 HTML 解析。
-- 证据：`tools/biz/barcode-generator.html:311-319`（`h += '<div><span>' + rows[i][0] + '</span><b>' + rows[i][1] + '</b></div>'; box.innerHTML = h`）、`:353`（内容行）、`:389`（未转义原文）。
-- 复现：Code 128 输入 `<img src=x onerror="window.__xss=1">` → 编码成功；jsdom 复算 `meta()` 后 `#bcMeta` 内出现 1 个真实 `<img>` 元素，页面加载即触发 `onerror`。属自 XSS（需本人粘贴），但可被“示例文本”诱导。
-- 影响：与项目结果区统一 `textContent`/`escapeHtml` 的约定不符，任何未来把输入带入 URL/分享的场景会升级为可传播 XSS。
-- 是否假工具：否
-- 方案：`meta()` 改用 `textContent` 逐节点构建，或对 `rows[i][0]/[1]` 统一 `escapeHtml`；SVG 的 `o.text` 已有转义，可复用同一函数。
-
 ### BS-N72 条码生成：宽度缩放 0.5 被静默抬到 1，控件标称范围失效（中，确认缺陷）
 - 页面：`tools/biz/barcode-generator.html`
 - 问题：页面允许 `min="0.5" step="0.5"`，但渲染层 `normalizeOptions()` 用 `Math.max(1, Math.min(10, ...))`，0.5 永远变成 1；用户选最小档与选 1 输出像素完全相同。
@@ -260,12 +251,12 @@
 - `tools/biz/text-to-banner.html`：3 条（BS-N65、BS-N66 高；BS-N67 中）。生成/复制/CSV 可运行，但页面身份与宣传严重不符。
 - `tools/biz/motto-generator.html`：1 条（BS-N73 中）。随机抽取、去重、条数上限与 CSV 正常；未发现 XSS（结果走 `textContent`）。
 - `tools/biz/text-box-drawing.html`：2 条（BS-N68 高；BS-N69 中）。视觉宽度、八种边框、对齐、预设均真实；结果走 `textContent`。
-- `tools/biz/barcode-generator.html`：2 条（BS-N71 高；BS-N72 中）；EAN-13/UPC-A 随机 30 组与参考库逐位一致，Code 39 码表/校验、Code 128 校验和均正确；问题集中在元信息注入、trim 与缩放钳制
+- `tools/biz/barcode-generator.html`：1 条（BS-N72 中）；EAN-13/UPC-A 随机 30 组与参考库逐位一致，Code 39 码表/校验、Code 128 校验和均正确；原元信息注入已改 `textContent` 渲染，第 953 批清账，剩余问题为 trim 与缩放钳制
 - `tools/biz/text-reverse-lines.html`：1 条（BS-N76 中）；行级倒序、跳空行、首末行保留的主体逻辑正确
 - `tools/biz/superscript-text.html`：3 条（BS-N77 高；BS-N78、BS-N79 中）。数字/符号映射正确，字母 q–z 与模式分流有问题。
 - `tools/biz/fullwidth-halfwidth.html`：1 条（BS-N80 中）。U+FF01–FF5E / U+3000 双向转换与开关组合实算正常，结果 `textContent` 输出。
 
-- **本批合计 16 条：高 5（BS-N65、BS-N66、BS-N68、BS-N71、BS-N77）/ 中 11。假工具 1 个（`text-to-banner`，核心图片横幅承诺未实现）。**
+- **本批合计 15 条：高 4（BS-N65、BS-N66、BS-N68、BS-N77）/ 中 11（BS-N71 已修复销账）。假工具 1 个（`text-to-banner`，核心图片横幅承诺未实现）。**
 - 说明：本轮为**只读**审计，结论来自逐行阅读源码 + `node` 在 `/tmp` 复刻核心函数实算（脚本 `/tmp/v_biz_text.js`、`/tmp/c39cmp2.js`、`/tmp/bccmp.js`）；条码另用 `/tmp/pylibs` 的 `python-barcode` 参考实现比对 EAN/UPC/Code39 码表；**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做线上验证**，除本文件外未修改任何文件。
 
 ## V 批 · 商业文本 B（2026-11-04）

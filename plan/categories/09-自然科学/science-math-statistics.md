@@ -243,7 +243,7 @@
 
 - `tools/science/calc-stats.html`：1 条（SMS-81 高）。默认 2,4,4,4,5,5,7,9 → 均值 5.0000、样本方差 4.5714、标准差 2.1381、CV 42.76%、Q1 4.0000/Q3 5.5000 均正确；问题为把纯文本数据框当作分母项，数据集以 0 开头即被误报“分母为 0”拒绝计算。
 - `tools/science/centripetal-force.html`：0 条。默认 2 kg / 10 m·s⁻¹ / 5 m → F=40.0 N、4.0789 kgf、a=20.0000 m/s²、T=3.1416 s 正确；预设、图表、历史与差异均按 F 正常记录；v=0 因周期 T 发散被守卫拦截属合理，未发现算错/崩溃/假功能。
-- `tools/science/chemistry-calculator.html`：4 条（SMS-82 高·安全，SMS-83～85 中）。H2O=18.016、Ca(OH)₂=74.096、Fe₂(SO₄)₃=399.910、KMnO₄=158.040 g/mol 正确，浓度/pH/理想气体主算无误；问题为分子式 XSS（反射 + localStorage 存储）、解析静默丢未知元素/前导系数、稀释“留空求另一个”只单向可用、气体无正数校验。
+- `tools/science/chemistry-calculator.html`：3 条（SMS-83～85 中）。H2O=18.016、Ca(OH)₂=74.096、Fe₂(SO₄)₃=399.910、KMnO₄=158.040 g/mol 正确，浓度/pH/理想气体主算无误；原分子式 XSS（反射 + localStorage 存储）已修复，第 953 批真机复核。剩余问题为解析静默丢未知元素/前导系数、稀释“留空求另一个”只单向可用、气体无正数校验。
 - `tools/science/combination-calculator.html`：1 条（SMS-86 中）。BigInt 精确：C(10,3)=120、C(33,6)=1,107,568、C(52,5)=2,598,960，大数无浮点精度损失；问题为 parseInt 静默截断小数/科学计数输入。
 - `tools/science/convert-power.html`：1 条（SMS-87 中）。力/能/功率各系数（kgf 9.80665、lbf 4.44822、dyn 1e-5、cal 4.184、kWh 3.6e6、eV 1.602e-19、BTU 1055.06、hp 745.7、PS 735.5）与量纲分组正确，默认 1 N→0.224804 lbf；问题为空输入被 `+''` 当 0。
 - `tools/science/density-physics.html`：1 条（SMS-88 中）。ρ=m/V 默认 2/0.001 → 2000 kg/m³、2.000 g/cm³、124.856 lb/ft³、比容 0.0005 正确，V=0 已守卫；问题为 ρ≥100 时主结果取整且丢失 kg/m³ 单位。
@@ -253,7 +253,6 @@
 | 页面 | 问题（含 tools/science/&lt;slug&gt;.html:NN） | 编号 |
 |---|---|---|
 | tools/science/calc-stats.html | 数据以 0 开头即被 `__D={"data":"data"}` 当作分母置零校验：`parseFloat("0,1,2,0")===0` → 直接返回「⚠「data」是本计算的分母，不能为 0。」，完全不计算（node 复刻 "0,1,2,0"、"0.0,5" 均命中）。:232、:238、:261 | SMS-81 |
-| tools/science/chemistry-calculator.html | 分子式未转义即拼入 innerHTML（`${formula} 的摩尔质量`），并原样存入 localStorage 后在历史面板再次拼入 innerHTML；`H<img src=x onerror=alert(1)>` 经 parseFormula 仍能识别出 H（detail 非空），点“计算”即触发，重开历史记录再触发（反射 + 存储型 XSS）。:588、:596、:807、:822 | SMS-82 |
 | tools/science/chemistry-calculator.html | parseFormula 的 else 分支静默跳字：H2Zz→2.016 g/mol（未知元素不报错）、2H2O→18.016（应为 36.032）、CuSO4.5H2O→177.636（应为 249.685）、"(OH"→16.000；`if(ELEMENTS[part.symbol])` 只跳过未知符号不报错（node 复刻）。:354-397、:404 | SMS-83 |
 | tools/science/chemistry-calculator.html | 稀释模块标注“留空一个值求另一个”，实际 C₂ 留空即报「请输入最终浓度」（即使已填 V₂）；C₂、V₂ 都填时输入的 C₂ 被 `c1*v1/v2` 覆盖忽略。:517-519、:637-641、:650-659 | SMS-84 |
 | tools/science/chemistry-calculator.html | 理想气体不校验正数：T=-10 K → n=-27.299 mol（负物质的量）；V=0/T=0 → 输出「未定义」而非错误提示（fmt 先把非有限值转成“未定义”，:782 的无效值兜底失效）。:749-771、:777-780 | SMS-85 |
@@ -264,7 +263,7 @@
 | tools/science/exp-calculator.html | tanh 在 |x|≈710 以上：eˣ/e⁻ˣ 溢出为 ∞ → sinh=cosh=∞ → tanh=NaN，`fmt` 把 NaN 落入 `x>0?'∞':'-∞'` 的 else 分支恒输出“-∞”（x=1000 与 x=-1000 均为 -∞，正确应分别为 1/-1）；且 :264 的 Infinity/NaN 兜底因 fmt 已转成 ∞/— 永不触发。:233、:256-258、:264 | SMS-90 |
 | tools/science/exp-calculator.html | 2026-11-06 复核：`fmt` 已改为对非零且绝对值小于 1e-6 的值输出科学计数；提取实际函数到 Node 执行，e⁻³⁰ 显示 `9.357623e-14`、e⁻²⁸ 显示 `6.914400e-13`、10⁻¹³ 显示 `1.000000e-13`，旧例已修。残留：普通分支调用无精度选项的 `toLocaleString()`（:235-236），Node 默认最多三位小数；例如 e⁻¹³≈2.260329e-6 被显示为 `0`，仍与 eˣ 恒正矛盾。该环境相关格式化应在浏览器另行验证。 | SMS-91 |
 
-- 声明：本轮仅逐页读源码（HTML + 内联 JS）并用 node 在 `/tmp` 复刻各页 `calc()` 的主算与边界分支（样本方差/总体方差、BigInt 组合数、单位系数、密度/电场量纲、指数与双曲函数溢出），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。新增 11 条：高 3（SMS-81、SMS-82、SMS-90）、中 8（SMS-83～SMS-89、SMS-91）；安全 1 条（XSS，`tools/science/chemistry-calculator.html:588`、`:596`、`:822`）；假工具 0 个；8 页全覆盖（centripetal-force 0 条）。
+- 声明：本轮仅逐页读源码（HTML + 内联 JS）并用 node 在 `/tmp` 复刻各页 `calc()` 的主算与边界分支（样本方差/总体方差、BigInt 组合数、单位系数、密度/电场量纲、指数与双曲函数溢出），未开浏览器、未跑 `_build.py`/`run_gates`、未做线上与英文态验证，未修改任何工具页、构建产物或仓库文件。新增 10 条：高 2（SMS-81、SMS-90）、中 8（SMS-83～SMS-89、SMS-91）；安全 0 条（原 SMS-82 XSS 已修复，第 953 批真机复核）；假工具 0 个；8 页全覆盖（centripetal-force 0 条）。
 - 统计：8 页 / 11 条（高 3 / 中 8）/ 安全 1 条（tools/science/chemistry-calculator.html:588、:596、:822）/ 假工具 0 个 / 编号区间 SMS-81～SMS-91。
 
 ## Z 批 · 自然科学·数学/地学/热学（2026-11-04）
