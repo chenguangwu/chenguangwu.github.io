@@ -988,7 +988,37 @@ const CASES = [
     clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu/chinese-stroke-counter.html','utf8');var dd=JSON.parse(globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu/chinese-stroke-counter'];var s=JSON.stringify(dd);var ok=h.indexOf('按笔顺拆解')<0&&h.indexOf('笔顺拆解：展示笔画组成顺序')<0&&h.indexOf('按画数筛选')>=0&&s.indexOf('笔顺拆解')<0&&s.indexOf('按画筛选：按笔画数查找同画数的汉字')>=0&&s.indexOf('不提供逐笔笔顺演示')>=0;document.getElementById('__tbProbe').textContent='STROKEDD '+(ok?'OK':'BAD');"],
     expect: ["STROKEDD OK"],
     ref: "12-EL-F13：笔画页深度解析/首屏宣称「按笔顺拆解、展示笔画组成顺序」，实际只有总笔画数与按画筛选，无笔顺数据。权威源 content_deepdive.json 与页面预渲染改为「总笔画统计与按画数筛选、不提供逐笔笔顺演示」。源码形态哨兵旧版必红。"
-  }
+  },
+
+  {
+    slug: "edu2/exam-countdown",
+    inputs: { examName: "TbCtiNowe" },
+    clicks: ["var d=new Date();d.setDate(d.getDate()+21);var s=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');document.getElementById('examDate').value=s;document.getElementById('countWeekend').checked=false;document.getElementById('countHoliday').checked=false;calc();var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='NOWE '+(r.indexOf('TbCtiNowe')>=0&&r.indexOf('周末未单独统计')>=0?'OK':'BAD');"],
+    expect: ["NOWE OK"],
+    ref: "EL-J160：取消勾选后周末卡显示「周末未单独统计」；用 inputs 唯一串做注入依赖，旧版恒显示「周末（天）」。",
+  },
+  {
+    slug: "edu2/exam-countdown",
+    inputs: { examName: "TbCtiTime" },
+    clicks: ["var d=new Date();d.setDate(d.getDate()+21);var s=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');document.getElementById('examDate').value=s;document.getElementById('countWeekend').checked=true;document.getElementById('countHoliday').checked=false;calc();var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='TIMEQ '+(r.indexOf('TbCtiTime')>=0&&r.indexOf('时间余量')>=0&&r.indexOf('周末（天）')>=0?'OK':'BAD');"],
+    expect: ["TIMEQ OK"],
+    ref: "EL-J161：无起始日不伪造进度百分比，标题改「时间余量」；旧版是「倒计时进度」且按 max(totalDays,100) 算百分比。",
+  },
+  {
+    slug: "edu2/exam-countdown",
+    inputs: { examName: "TbCtiHol" },
+    clicks: ["var s=(new Date().getFullYear()+3)+'-10-01';document.getElementById('examDate').value=s;document.getElementById('countHoliday').checked=true;calc();var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='CTIHOL '+(r.indexOf('TbCtiHol')>=0&&r.indexOf('该年份未内置节假日表')>=0?'OK':'BAD');"],
+    expect: ["CTIHOL OK"],
+    ref: "EL-J162：内置表仅 2026 年，其他年份勾选节假日时明确提示未扣减；旧版静默按 0 且注释谎称 2025-2027。",
+  },
+  {
+    slug: "edu2/exam-countdown",
+    inputs: { examName: "TbCtiSrc" },
+    clicks: ["var nm=document.getElementById('examName').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu2/exam-countdown.html','utf8');var ok=nm==='TbCtiSrc'&&h.indexOf('progressPct')<0&&h.indexOf('2025-2027')<0&&h.indexOf('hasHolidayData')>=0;document.getElementById('__tbProbe').textContent='CDFIX '+(ok?'OK':'BAD');"],
+    expect: ["CDFIX OK"],
+    ref: "EL-J160/J161/J162 源码形态：删误导性 progressPct 与失实注释，新增 hasHolidayData；依赖 inputs 唯一串避免默认态命中。",
+  },
+
 ];
 
 async function main() {

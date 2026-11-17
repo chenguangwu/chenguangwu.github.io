@@ -233,7 +233,7 @@
 </div>
 
 <script>
-// 内置2025-2027主要节假日（近似，实际以官方为准）
+// 仅内置 2026 年主要节假日（近似，无调休补班；实际以官方为准）
 var HOLIDAYS = {
   '2026-01-01':'元旦','2026-02-08':'春节','2026-02-09':'春节','2026-02-10':'春节','2026-02-11':'春节','2026-02-12':'春节','2026-02-13':'春节',
   '2026-04-04':'清明','2026-04-05':'清明','2026-04-06':'清明',
@@ -285,6 +285,8 @@ function calc(){
 
   var diffMs = examDate.getTime() - today.getTime();
   var totalDays = Math.ceil(diffMs / (1000*60*60*24));
+  var __en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var hasHolidayData=Object.keys(HOLIDAYS).some(function(k){return k.indexOf(examDate.getFullYear()+'-')===0;});
 
   var workdays = 0, weekends = 0, holidays = 0;
   if(totalDays > 0){
@@ -334,7 +336,11 @@ function calc(){
     html += '<h3 style="margin-top:8px;">时间分布</h3>';
     html += '<div class="data-grid">';
     html += '<div class="data-card"><div class="num">'+workdays+'</div><div class="label">工作日（天）</div></div>';
-    html += '<div class="data-card"><div class="num">'+weekends+'</div><div class="label">周末（天）</div></div>';
+    if(countWeekend){
+      html += '<div class="data-card"><div class="num">'+weekends+'</div><div class="label">周末（天）</div></div>';
+    } else {
+      html += '<div class="data-card"><div class="num">—</div><div class="label">'+(__en?'Weekend not counted separately':'周末未单独统计')+'</div></div>';
+    }
     if(countHoliday){
       html += '<div class="data-card"><div class="num">'+holidays+'</div><div class="label">含节假日（天）</div></div>';
     }
@@ -358,12 +364,14 @@ function calc(){
     }
     html += '<div class="tip-box tip-success" style="margin-top:12px;">'+advice+'</div>';
 
-    // 倒计时可视化
-    html += '<h3 style="margin-top:16px;">倒计时进度</h3>';
-    var refDays = Math.max(totalDays, 100);
-    var progressPct = (1 - totalDays/refDays) * 100;
-    html += '<div class="progress-bar"><div class="progress-fill" style="width:'+progressPct.toFixed(1)+'%"></div></div>';
-    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">距考试还有 '+totalDays+' 天，含 '+workdays+' 个工作日、'+weekends+' 个周末'+(countHoliday?('、'+holidays+' 个节假日'):'')+'。</p>';
+    // 时间余量：无起始日，不伪造"复习进度"百分比
+    html += '<h3 style="margin-top:16px;">'+(__en?'Time remaining':'时间余量')+'</h3>';
+    var weeks=Math.floor(totalDays/7), remDays=totalDays%7;
+    html += '<p style="font-size:14px;">'+(__en?('About '+weeks+' weeks and '+remDays+' days left.'):('剩余约 '+weeks+' 周 '+remDays+' 天。'))+'</p>';
+    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">距考试还有 '+totalDays+' 天，含 '+workdays+' 个工作日'+(countWeekend?('、'+weekends+' 个周末'):'（周末未单独统计）')+(countHoliday?('、'+holidays+' 个节假日'):'')+'。</p>';
+    if(countHoliday && !hasHolidayData){
+      html += '<p style="font-size:12px;color:var(--danger);">'+(__en?'No built-in holiday data for this year; no holiday deduction was applied.':'该年份未内置节假日表，未扣减法定节假日。')+'</p>';
+    }
   } else if(totalDays === 0){
     html += '<div class="tip-box tip-warn" style="margin-top:12px;">今天就是考试日！请提前到达考场，带齐证件与文具，沉着应考。</div>';
   } else {
