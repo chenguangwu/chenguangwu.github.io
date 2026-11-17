@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -246,6 +248,12 @@ const CASES = [
   "clicks": ["document.getElementById('hours').value='0';calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='CF186 '+(h.indexOf('照射时间与辐照度均须大于 0')>=0&&h.indexOf('1 级')<0?'OK':'BAD '+h.slice(0,80))"],
   "expect": ["CF186 OK"],
   "ref": "12-N186：旧 calc 只用 setInvalid 画红框，无 return，清空/0/负值仍照算 energy=0 → 「1 级 很差，极易褪色」并写历史。修复后 h>0&&ir>0 守卫 + lastResult 清空 + 中英提示。本用例注入 hours=0，要求提示存在且不含 1 级；默认 20h/42W → 7 级，注入失败不命中 ⇒ 零逃生。评级模型方向（N184）属专业口径，本例不触碰。"
+},
+{
+  "slug": "leather/assessor-21",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/leather/assessor-21.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/leather/assessor-21.json','utf8');var ok=h.indexOf('综合得分 = 穿透率得分')<0&&h.indexOf('质量分级须三项同时满足')>=0&&h.indexOf('60%（未达一等品所需 70%），均匀度 6、色牢度 3 → 合格品')>=0&&h.indexOf('60%，均匀度 6、色牢度 3 → 一等品')<0&&en.indexOf('grading requires all three thresholds')>=0&&en.indexOf('below the 70% needed for first grade')>=0;document.getElementById('__tbProbe').textContent='DYEGRADE '+(ok?'OK':'BAD');"],
+  "expect": ["DYEGRADE OK"],
+  "ref": "12-N223/N229：公式框原承诺「综合得分=穿透率40%+均匀度30%+色牢度30%」及 A/B/C 分档，代码与深解实际走三项同时满足阈值；改为与实现一致的优等/一等/合格门槛。算例穿透率 60% 未达一等品 70%，改判合格品；英译源同步。旧版旧综合得分串与旧算例命中 ⇒ 变红；默认态不产生该哨兵，零逃生。"
 }
 ];
 async function main() {
