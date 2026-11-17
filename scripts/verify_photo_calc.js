@@ -699,6 +699,36 @@ const CASES = [
     "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/photo/ev.html','utf8');var ok=h.indexOf('if(!isFinite(aperture)||aperture<=0)')>=0&&h.indexOf('光圈 f 值须为正数。')>=0;document.getElementById('__tbProbe').textContent='EVAPERT '+(ok?'OK':'BAD');"],
     "expect": ["EVAPERT OK"],
     "ref": "P-N12 负光圈：通用 __tbInputGuard 已能拦负值，但 calc() 自身仍用 Math.pow(aperture,2) 掩盖负号。现增加显式 aperture>0 守卫与中英提示，与 calc-exposure-aperture 同口径；源码哨兵，旧版必红。"
+  },
+  {
+    "slug": "photo/flash-gn",
+    "inputs": { "gn": "-40", "dist": "5", "iso": "100" },
+    "expect": ["闪光指数 GN 与距离均须为正数"],
+    "ref": "P-N13 负闪光指数：旧版 gn=-40/dist=5 直接算出「可用光圈 -8.0 f」无意义值（通用守卫只查分母0和iso负值，gn 不在 __N）。现加 gn>0 且 dist>0 显式守卫与中英提示；默认 40/5 不命中。"
+  },
+  {
+    "slug": "photo/flash-gn",
+    "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/photo/flash-gn.html','utf8');var ok=h.indexOf('accounting for ISO and zoom')<0&&h.indexOf('ISO correction factor is shown separately')>=0;document.getElementById('__tbProbe').textContent='FGIso '+(ok?'OK':'BAD');"],
+    "expect": ["FGIso OK"],
+    "ref": "P-N13 ISO 口径：英文简介旧称 accounting for ISO and zoom 会让用户误以为结果已含 ISO 增益，与公式框「ISO 独立展示不回乘」冲突。现改为 ISO correction factor is shown separately，与计算口径一致。源码哨兵，旧版必红。"
+  },
+  {
+    "slug": "photo/convert-focal",
+    "inputs": { "focal": "-50", "sensor": "36", "fov": "39.6" },
+    "expect": ["焦距与传感器尺寸均须为正数"],
+    "ref": "P-N14 负焦距：旧版 f=-50 被静默替换为 0.0001，输出「视场角 180.00°」超广角假结论且无提示。现 f<=0 或 d<=0 直接字段级报错并 return；默认 f=50 不命中。"
+  },
+  {
+    "slug": "photo/convert-focal",
+    "inputs": { "focal": "0", "sensor": "36", "fov": "39.6" },
+    "expect": ["焦距与传感器尺寸均须为正数"],
+    "ref": "P-N14 零焦距：旧版 f=0 同样静默兜底成 0.0001 → 180.00°。现正数守卫拦截；与上一条负焦距共用提示但输入不同，各自独立复算。"
+  },
+  {
+    "slug": "photo/convert-focal",
+    "inputs": { "focal": "50", "sensor": "36", "fov": "200" },
+    "expect": ["视场角须在 0 到 180 之间"],
+    "ref": "P-N14 反解 FOV 越界：旧版 fov=200 时 f2 条件不满足被静默算成 0，显示「0.00 mm」看似合法结果。现越界显示「视场角须在 0 到 180 之间」提示；默认 fov=39.6 命中正常反解不命中本串。"
   }
 ];
 
