@@ -994,6 +994,14 @@ const CASES = [
     "clicks": ["calc();var ad=document.getElementById('adviceBox');var s=ad?String(ad.innerHTML):'';document.getElementById('result').innerHTML='TIME_OVER '+(s.indexOf('已超期')>=0?'YES':'NO');"],
     "expect": ["TIME_OVER YES"],
     "ref": "第1060批 N245 整周期到期：上次保养距今 12 月、全合成机油周期 12 月（harness select 取首项矿物油 6 月，同样达到周期）⇒ 应判到期/已超期。旧实现 leftMon=(used===0&&last>0)?ivMon:(ivMon-used) 对 last=周期取余得 0 又回填 ivMon，判「未到期」，adviceBox 无「已超期」提示 ⇒ NO；新实现 leftMon=max(0,ivMon-last)=0 ⇒ over 非空、adviceBox 出现「⛔ 已超期」⇒ YES。哨兵依赖 last 输入，默认 last=11 时 oil 周期 6 取余为 5、leftMon=1 ⇒ 仍无超期 ⇒ NO，强判别零逃生。"
+  },
+
+  // ---- 第1061批：油耗页「满油续航」与「月度碳排放」兑现 ----
+  {
+    "slug": "automotive/fuel-economy",
+    "inputs": { "fuelL": "50", "dist": "400", "price": "7", "tank": "60", "remain": "10", "monthKm": "1200" },
+    "expect": ["480 满油续航 (km)", "346.5 月度碳排放 (kg CO₂)"],
+    "ref": "第1061批 N236/N237：油箱容量与碳排放承诺兑现。L100=50÷400×100=12.5；满油续航=油箱 60÷12.5×100=480 km（旧实现 tank 死输入、distGrid 无此卡 ⇒ 锚不命中）；月度碳排放=月里程 1200÷100×12.5×2.31=346.5 kg（旧实现 CO2_PER_L 仅在公式文字、无数值卡 ⇒ 锚不命中）。两锚均为新增结果卡「值+标签」相邻串（blob 折叠空白后 480 与「满油续航」相邻），依赖 tank/monthKm 输入，默认组 40L/560km/tank50/month1500 不产生 480 与 346.5，强判别。"
   }
 
 ];
