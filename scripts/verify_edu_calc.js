@@ -1759,6 +1759,26 @@ const CASES = [
     expect: ["J165 OK"],
     ref: "EL-J165：旧版排序后直接 idx+1，同分 92 被给 1/2 名。现竞争排名同分同名次、下一名跳号（1/1/3）。默认 15 人样例无该 1/1/3 组合 ⇒ 零逃生。",
   },
+
+  // ── 第1189批：单位换算温度仿射、趋势数值字段与简介精度口径收口 ──
+  {
+    slug: "edu/convert-area-volume",
+    clicks: ["document.getElementById('cat').value='temp';fillSel();document.getElementById('val').value='100';document.getElementById('from').value='F';document.getElementById('to').value='C';calc();var r=document.getElementById('res').innerHTML;document.getElementById('__tbProbe').textContent='J166 '+(r.indexOf('100 F → 37.78 C')>=0?'OK':'BAD');"],
+    expect: ["J166 OK"],
+    ref: "EL-J166：旧版类别含 temp 但 U/N 无 temp 键，fillSel 清空两个 select 后 calc 恒等于输入。现温度分支独立列 C/F/K 并走仿射公式，100°F → 37.78°C。默认长度类不命中该串 ⇒ 零逃生。",
+  },
+  {
+    slug: "edu/convert-area-volume",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/convert-area-volume.html','utf8');var ok=h.indexOf('rec.__tbScore=__convert_area_volumeScore(res);')>=0&&h.indexOf('var v=parseFloat(arr[j].d.__tbScore);')>=0&&h.indexOf('parseFloat(arr[j].d[rk])')<0;document.getElementById('__tbProbe').textContent='J167 '+(ok?'OK':'BAD');"],
+    expect: ["J167 OK"],
+    ref: "EL-J167：旧版趋势图 parseFloat('结果 = 100.0000') 恒 NaN 永不绘图。现历史另写数值字段 __tbScore，图表读该字段；源码哨兵：旧版无数值字段且对展示文本 parseFloat ⇒ 必红。",
+  },
+  {
+    slug: "edu/convert-area-volume",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/convert-area-volume.html','utf8');var d=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu/convert-area-volume']);var ok=h.indexOf('支持长度 7 种、重量 5 种')>=0&&h.indexOf('1 acre = 4046.8564224 m²')>=0&&d.indexOf('仿射公式先转 ℃')>=0&&d.indexOf('4046.8564224')>=0;document.getElementById('__tbProbe').textContent='J168 '+(ok?'OK':'BAD');"],
+    expect: ["J168 OK"],
+    ref: "EL-J168：旧版简介只重复标题、深挖三条空泛短语。现简介列五类单位数与 4/2 位精度、给真实算例，权威源同步仿射口径与 mi/acre 算例。源码+权威源哨兵：旧版无单位清单与精确算例 ⇒ 必红。",
+  },
 ];
 
 async function main() {
