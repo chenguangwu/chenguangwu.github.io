@@ -1188,6 +1188,30 @@ const CASES = [
   {
     "slug": "edu/english-vocabulary",
     "clicks": [
+      "var orig=vocabularies.cet6;vocabularies.cet6=[{w:'a1',m:'同义'},{w:'a2',m:'同义'},{w:'a3',m:'同义'},{w:'b',m:'异义'}];currentLevel='cet6';var bad=0;for(var i=0;i<3;i++){startQuiz();questions.forEach(function(q){if(new Set(q.options).size!==q.options.length)bad++;});}vocabularies.cet6=orig;currentLevel='cet4';document.getElementById('vocabChart').textContent='JDUPOPT:'+(bad===0?'OK':'BAD');"
+    ],
+    "expect": ["JDUPOPT:OK"],
+    "ref": "EL-J5：词库含 3 个同义释义时，选项必须按释义去重（去重后仅 2 词，每题 2 选项且释义唯一）；旧版按单词过滤，同义词必同时进入同一题选项 ⇒ BAD。"
+  },
+  {
+    "slug": "edu/english-vocabulary",
+    "clicks": [
+      "var s={'vocab-wordbook':JSON.stringify([{w:'abandon',m:'放弃'},{w:'agony',m:'痛苦'},{w:'joy',m:'快乐'},{w:'calm',m:'平静'}]),'vocab-history':JSON.stringify([{level:'cet6',score:80,time:'2024-01-01'}])};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};startQuiz('wordbook');var ok=questions.length>0&&questions.every(function(q){return ['abandon','agony','joy','calm'].indexOf(q.word)>=0;});showHistory(1);var h=document.getElementById('histList').innerHTML;var ok2=h.indexOf('80%')>=0&&h.indexOf('cet6')>=0;document.getElementById('vocabChart').textContent='JBOOK:'+(ok&&ok2?'OK':'BAD');"
+    ],
+    "expect": ["JBOOK:OK"],
+    "ref": "EL-J6：生词本可出题（题干全部来自注入的 4 词）且历史面板读得出 vocab-history；旧版 startQuiz 不接受词源参数、且根本没有 showHistory ⇒ BAD。"
+  },
+  {
+    "slug": "edu/english-vocabulary",
+    "clicks": [
+      "var s={};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};document.getElementById('qCount').value='2';startQuiz();var before=typeof __vocabAns[0];skipQuestion(1);var after=typeof __vocabAns[0];document.getElementById('qHint').textContent='JSKIP:'+(before==='undefined'&&after==='undefined'?'OK':'BAD');"
+    ],
+    "expect": ["JSKIP:OK"],
+    "ref": "EL-J6：跳过不得写入 __vocabAns，汇总才能按「未作答」计入 skip；旧版无 skipQuestion 函数 ⇒ BAD。"
+  },
+  {
+    "slug": "edu/english-vocabulary",
+    "clicks": [
       "document.getElementById('qCount').value='1';startQuiz();var a=questions.length;document.getElementById('qCount').value='5';startQuiz();document.getElementById('vocabChart').textContent='QOK:'+a+'|'+questions.length;"
     ],
     "expect": [

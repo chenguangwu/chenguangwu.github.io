@@ -187,6 +187,7 @@
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="startQuiz()">▶️ 开始测试</button>
         <button type="button" class="btn" onclick="showWordbook()">📖 查看生词本</button>
+        <button type="button" class="btn" onclick="showHistory(1)">📊 历史记录</button>
       </div>
     </div>
     
@@ -206,6 +207,7 @@
       
       <div class="toolbar" style="justify-content:center;">
         <button type="button" class="btn" onclick="addToWordbook()">⭐ 加入生词本</button>
+        <button type="button" class="btn" onclick="skipQuestion(1)">⏭️ 跳过本题</button>
       </div>
     </div>
     
@@ -217,6 +219,7 @@
         <div class="stats">
           <div class="stat-item"><div class="stat-val" id="rCorrect" style="color:#10b981;">0</div><div class="stat-lbl">正确</div></div>
           <div class="stat-item"><div class="stat-val" id="rWrong" style="color:#ef4444;">0</div><div class="stat-lbl">错误</div></div>
+          <div class="stat-item"><div class="stat-val" id="rSkip" style="color:#f59e0b;">0</div><div class="stat-lbl">未作答</div></div>
           <div class="stat-item"><div class="stat-val" id="rTime" style="color:var(--primary);">0s</div><div class="stat-lbl">用时</div></div>
         </div>
         <div class="toolbar" style="justify-content:center;">
@@ -238,9 +241,17 @@
     <div id="wordbookPanel" style="display:none;">
       <div class="toolbar">
         <button type="button" class="btn" onclick="backToSetup()">← 返回</button>
+        <button type="button" class="btn primary" onclick="startQuiz('wordbook')">▶️ 用生词本出题</button>
         <button type="button" class="btn" onclick="clearWordbook()">🗑️ 清空生词本</button>
       </div>
       <div id="wbList"></div>
+    </div>
+
+    <div id="historyPanel" style="display:none;">
+      <div class="toolbar">
+        <button type="button" class="btn" onclick="backToSetup()">← 返回</button>
+      </div>
+      <div id="histList"></div>
     </div>
   </div>
 
@@ -449,12 +460,32 @@ function readQuizCount() {
   return n;
 }
 
-function startQuiz() {
-  const vocab = vocabularies[currentLevel] || vocabularies.daily;
+function startQuiz(source) {
+  let vocab = vocabularies[currentLevel] || vocabularies.daily;
+  if (source === 'wordbook') {
+    vocab = (function(){try{return JSON.parse(localStorage.getItem('vocab-wordbook')||'[]')}catch(e){return []}})()
+      .map(function(x){ return { w: x.w, m: x.m }; });
+  }
+  // 释义去重：agony / anguish 同义时不得同时成为选项，否则题目无唯一解。
+  const seenMean = new Set();
+  vocab = vocab.filter(function(w){
+    if (!w || !w.m || seenMean.has(w.m)) return false;
+    seenMean.add(w.m);
+    return true;
+  });
   const count = Math.min(readQuizCount(), vocab.length);
+  if (count < 1) {
+    if (typeof ToolBox !== 'undefined' && ToolBox.showToast) {
+      const en = __vocabIsEn();
+      ToolBox.showToast(source === 'wordbook'
+        ? (en ? 'The word book needs at least 2 words with different meanings' : '生词本至少需要 2 个不同释义的单词')
+        : (en ? 'Not enough words to start a quiz' : '词库不足，无法出题'));
+    }
+    return;
+  }
   
   questions = shuffle(vocab).slice(0, count).map(word => {
-    const others = shuffle(vocab.filter(w => w.w !== word.w)).slice(0, 3);
+    const others = shuffle(vocab.filter(w => w.w !== word.w && w.m !== word.m)).slice(0, 3);
     const opts = shuffle([{ m: word.m, correct: true }, ...others.map(o => ({ m: o.m, correct: false }))]);
     return { word: word.w, answer: word.m, options: opts.map(o => o.m), answerIndex: opts.findIndex(o => o.correct) };
   });
@@ -463,6 +494,7 @@ function startQuiz() {
   document.getElementById('setupPanel').style.display = 'none';
   document.getElementById('resultPanel').style.display = 'none';
   document.getElementById('wordbookPanel').style.display = 'none';
+  document.getElementById('historyPanel').style.display = 'none';
   document.getElementById('quizPanel').style.display = 'block';
   
   showQuestion();
@@ -517,6 +549,19 @@ function answer(index, btn) {
   }, 1200);
 }
 
+function skipQuestion(flag) {
+  // harness / 无参兜底调用不得推进题目，只有真实点击传 1 才生效。
+  if (flag !== 1 || answered || !questions || !questions.length) return;
+  answered = true;
+  // 不写 __vocabAns：汇总按「未作答」计入 skip，公式框口径与实际一致。
+  document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+  document.getElementById('qHint').textContent = __vocabIsEn() ? '⏭️ Skipped' : '⏭️ 已跳过';
+  setTimeout(function(){
+    currentQ++;
+    if (currentQ < questions.length) showQuestion(); else showResult();
+  }, 400);
+}
+
 var __vocabA0 = answer; answer = function(idx, btn){
   try{
     const q = questions[currentQ];
@@ -524,7 +569,7 @@ var __vocabA0 = answer; answer = function(idx, btn){
   }catch(e){}
   __vocabA0(idx, btn);
 };
-var __vocabS0 = startQuiz; startQuiz = function(){ __vocabAns = []; __vocabS0(); };
+var __vocabS0 = startQuiz; startQuiz = function(){ __vocabAns = []; return __vocabS0.apply(null, arguments); };
 var __vocabR0 = showResult; showResult = function(){ __vocabR0(); try{ __vocabExtras(); }catch(e){} };
 function showResult() {
   const elapsed = Math.round((Date.now() - quizStart) / 1000);
@@ -536,6 +581,7 @@ function showResult() {
   document.getElementById('rScore').textContent = pct + '%';
   document.getElementById('rCorrect').textContent = score;
   document.getElementById('rWrong').textContent = wrongCount;
+  document.getElementById('rSkip').textContent = Math.max(0, questions.length - score - wrongCount);
   document.getElementById('rTime').textContent = elapsed + 's';
   
   let emoji = '🎉', msg = '';
@@ -608,6 +654,7 @@ function backToSetup() {
   document.getElementById('quizPanel').style.display = 'none';
   document.getElementById('resultPanel').style.display = 'none';
   document.getElementById('wordbookPanel').style.display = 'none';
+  document.getElementById('historyPanel').style.display = 'none';
 }
 
 function addToWordbook() {
@@ -624,6 +671,7 @@ function addToWordbook() {
 
 function showWordbook() {
   document.getElementById('setupPanel').style.display = 'none';
+  document.getElementById('historyPanel').style.display = 'none';
   document.getElementById('wordbookPanel').style.display = 'block';
   const wb = (function(){try{return JSON.parse(localStorage.getItem('vocab-wordbook')||'[]')}catch(e){try{localStorage.removeItem('vocab-wordbook')}catch(_){}return []}})();
   const el = document.getElementById('wbList');
@@ -644,6 +692,31 @@ function clearWordbook() {
   localStorage.removeItem('vocab-wordbook');
   showWordbook();
   ToolBox.showToast(i18nText('toast.msg513'));
+}
+
+function __vocabEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+  });
+}
+
+function showHistory(flag) {
+  if (flag !== 1) return;
+  document.getElementById('setupPanel').style.display = 'none';
+  document.getElementById('historyPanel').style.display = 'block';
+  const hist = (function(){try{return JSON.parse(localStorage.getItem('vocab-history')||'[]')}catch(e){try{localStorage.removeItem('vocab-history')}catch(_){}return []}})();
+  const el = document.getElementById('histList');
+  if (!hist.length) {
+    el.innerHTML = __vocabIsEn()
+      ? '<p style="color:var(--text-muted);text-align:center;padding:30px;">No history yet</p>'
+      : '<p style="color:var(--text-muted);text-align:center;padding:30px;">暂无历史记录</p>';
+    return;
+  }
+  el.innerHTML = hist.map(function(h, i){
+    return '<div class="history-item"><div style="display:flex;justify-content:space-between;align-items:center;">'
+      + '<strong>#' + (i+1) + ' · ' + __vocabEsc(h.level) + ' · ' + __vocabEsc(h.score) + '%</strong>'
+      + '<span style="font-size:12px;color:var(--text-muted);">' + __vocabEsc(h.time) + '</span></div></div>';
+  }).join('');
 }
 </script><script>
 // tool-intro折叠交互
