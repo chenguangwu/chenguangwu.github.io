@@ -377,6 +377,19 @@ const CASES = [
   "ref": "onKana(11) ⇒ 平假名第 12 格「し / shi」：详情卡渲染两行数据卡「し · 假名」「shi · 罗马字」。默认未点选、详情区为空，零交集；网格内虽有「し」「shi」拼接文本，但不含「し 假名 shi 罗马字」这一带标签分隔的序列。"
 },
 {
+  "slug": "language/stats-2",
+  "inputs": { "text": "１２３④😀" },
+  "clicks": ["calc();var h=document.getElementById('res').innerHTML;var ok=h.indexOf('数字字符数：<strong>3</strong>')>=0&&h.indexOf('总字符数（含空格）：<strong style=\"color:var(--primary);\">5</strong>')>=0;document.getElementById('__tbProbe').textContent='JWIDE:'+(ok?'OK':'BAD');"],
+  "expect": ["JWIDE:OK"],
+  "ref": "EL-J27：全角 １２３ 应计入数字（3），emoji 按 Unicode 码点计 1 字符（总 5）；旧版只认半角 [0-9] 且 t.length 把 emoji 算 2 ⇒ BAD。"
+},
+{
+  "slug": "language/riyuwushiyintulianxi-dianjifayin",
+  "clicks": ["quizRight=3;quizTotal=5;answerQuiz(0);var before=quizTotal;resetQuizStats(1);var after=quizTotal;var shown=document.getElementById('quizTotal').textContent;document.getElementById('__tbProbe').textContent='JRESET:'+(before===6&&after===0&&shown==='0'?'OK':'BAD');"],
+  "expect": ["JRESET:OK"],
+  "ref": "EL-J34：答题统计须可显式重置，重置后内存计数与 DOM 同时归零；旧版 resetAll 为空函数、无 resetQuizStats ⇒ BAD。"
+},
+{
   "slug": "language/language-toolkit",
   "clicks": [
     "practiceCorrect=0;practiceTotal=0;var i=document.getElementById('practiceInput');"

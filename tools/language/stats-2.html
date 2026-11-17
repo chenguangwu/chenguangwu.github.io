@@ -108,7 +108,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="含汉字/英文/标点">Stats 2 - online utility on ToolBox.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">总字符数 = 文本长度；不含空格数 = 剔除全部空白后的长度，空白符数 = 两者之差；汉字数按中日韩统一表意区间逐字匹配；英文单词数按字母串计数（允许撇号 / 连字符连接，如 don't、state-of-the-art 各计 1 词），英文字母数逐字母计数（两者口径不同，不可混用）；数字字符逐个计数；中文标点与西文标点各按独立字符类分别计数；行数 = 文本按换行（兼容回车）拆分后的段数，空文本记 0。校验：无强校验，空文本各计数自然为 0。判据：总字符 = 不含空格数 + 空白符数，各分项口径互不重叠、总和不重复计入。</div>
+      <div class="formula-eq">总字符数 = 按 Unicode 码点计的字符数（emoji 算 1 个字符，不按 UTF-16 单元重复计）；不含空格数 = 剔除全部空白后的码点数，空白符数 = 两者之差；汉字数按中日韩统一表意区间逐字匹配；英文单词数按字母串计数（允许撇号 / 连字符连接，如 don't、state-of-the-art 各计 1 词），英文字母数逐字母计数（两者口径不同，不可混用）；数字字符逐个计数（含全角 ０–９）；中文标点与西文标点各按独立字符类分别计数；行数 = 文本按换行（兼容回车）拆分后的段数，空文本记 0。校验：无强校验，空文本各计数自然为 0。判据：总字符 = 不含空格数 + 空白符数，各分项口径互不重叠、总和不重复计入。</div>
       <p class="formula-desc">分别统计文本中的汉字、英文字母、英文单词、数字、标点与空白符数量，用于字数核算、排版估算与字符编码核对；文本仅在浏览器本地处理，不上传。</p>
     </div>
 
@@ -201,12 +201,12 @@ function fmt(n){return Number(n).toLocaleString('zh-CN');}
 function calc(){
   const t=document.getElementById("text").value;
   if(t.trim()===''){document.getElementById("res").innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter the text to count before counting.</p>":"<p>请输入待统计文本后再统计。</p>");return;}
-  const total=t.length;
-  const noSpace=t.replace(/\s/g,'').length;
+  const total=Array.from(t).length;
+  const noSpace=Array.from(t.replace(/\s/g,'')).length;
   const han=(t.match(/[\u4e00-\u9fa5]/g)||[]).length;
   const enLetters=(t.match(/[A-Za-z]/g)||[]).length;
   const en=(t.match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g)||[]).length;
-  const digit=(t.match(/[0-9]/g)||[]).length;
+  const digit=(t.match(/[0-9\uFF10-\uFF19]/g)||[]).length;
   const punctCn=(t.match(/[\u3001\u3002\u3008-\u3011\u3014-\u301F\uFF01-\uFF0F\uFF1A-\uFF20\uFF3B-\uFF40\uFF5B-\uFF65]/g)||[]).length;
   const punctEn=(t.match(/[.,!?;:'"()\[\]{}\-_/\\@#$%^&*+=<>~`|]/g)||[]).length;
   const space=total-noSpace;
