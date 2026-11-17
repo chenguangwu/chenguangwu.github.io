@@ -306,6 +306,12 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ent/lund-mackay-score.html','utf8');var ok=h.indexOf('function __lmRefBar(total)')>=0&&h.indexOf('try{__lmRefBar(__lmTotal());}catch(e){} try{__lmChart();}catch(e){}')>=0;document.getElementById('__tbProbe').textContent='LMREFBAR '+(ok?'OK':'BAD');"],
   "expect": ["LMREFBAR OK"],
   "ref": "12-N29 首屏参考区间标尺：DOMContentLoaded 后必须重绘 refBar；旧版回调只调 __lmChart、refBar 被吞掉 ⇒ 变红。默认态不产生该串，零逃生。"
+},
+{
+  "slug": "ent/tonsil-grading",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ent/tonsil-grading.html','utf8');var ok=h.indexOf('out.grade=String(grade)')>=0&&h.indexOf('TBKit.preset.bar(')>=0&&h.indexOf('tonsil_gradingPresets')>=0&&h.indexOf('Grade III with OSAHS')>=0&&h.indexOf('ToolBox.copyText(full')>=0&&h.indexOf('hasOwnProperty.call(rec')>=0;document.getElementById('__tbProbe').textContent='TONSILHIST '+(ok?'OK':'BAD');"],
+  "expect": ["TONSILHIST OK"],
+  "ref": "12-N101/N102/N103 复制部分：历史快照显式包含分度且恢复时同步按钮；预设栏补三组场景；复制结果改为完整结果文本。旧版快照无 grade、预设空壳、复制仅分度 ⇒ 变红。IV 度单独是否手术仍待专业复核，不在本用例。"
 }
 ];
 async function main() {

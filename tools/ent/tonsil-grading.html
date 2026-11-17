@@ -144,6 +144,7 @@
         <div class="g-desc">>75%口咽宽度(对吻)</div>
       </button>
     </div>
+    <input type="hidden" id="gradeValue" value="2">
 
     <h3 style="font-size:14px;margin-bottom:10px;">伴随症状（可多选）</h3>
     <label class="symptom-check"><input type="checkbox" id="s1" onchange="calc()"> 反复扁桃体炎发作(≥3次/年)</label>
@@ -248,12 +249,16 @@
 <script>
 var grade = 2;
 
-function selectGrade(btn, g){
-  document.querySelectorAll('.grade-btn').forEach(function(b){b.classList.remove('active');});
-  btn.classList.add('active');
-  grade = g;
+function setGrade(g){
+  var btns=document.querySelectorAll('.grade-btn');
+  for(var i=0;i<btns.length;i++) btns[i].classList.remove('active');
+  if(btns[g]) btns[g].classList.add('active');
+  grade=g;
+  var hv=document.getElementById('gradeValue');
+  if(hv) hv.value=String(g);
   calc();
 }
+function selectGrade(btn, g){ setGrade(g); }
 
 function calc(){
   var gradeInfo = {
@@ -293,8 +298,9 @@ function calc(){
 }
 
 function copyResult(){
-  var gradeInfo = {0:'0度',1:'I度',2:'II度',3:'III度',4:'IV度'};
-  ToolBox.copyText('扁桃体Brodsky分度：'+gradeInfo[grade], i18nText('toast.msg544'));
+  var r=document.getElementById('result');
+  var full=r?(r.innerText||r.textContent||'').replace(/\s+/g,' ').trim():'';
+  ToolBox.copyText(full||('扁桃体Brodsky分度：'+grade), i18nText('toast.msg544'));
 }
 
 calc();
@@ -381,6 +387,7 @@ function __tonsil_gradingSnap(){
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
+    out.grade=String(grade);
     return out;
 }
 function __tonsil_gradingResText(){
@@ -425,12 +432,20 @@ function __tonsil_gradingRender(keys,rk,en){
                     if(!Object.prototype.hasOwnProperty.call(rec,__cbs[__ci].id)) __cbs[__ci].checked=false;
                 }
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='grade') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
+                }
+                if(Object.prototype.hasOwnProperty.call(rec,'grade')){
+                    var g=Math.max(0,Math.min(4,parseInt(rec.grade,10)||0));
+                    grade=g;
+                    var gbtns=document.querySelectorAll('.grade-btn');
+                    for(var gi=0;gi<gbtns.length;gi++){ if(gi===g) gbtns[gi].classList.add('active'); else gbtns[gi].classList.remove('active'); }
+                    var ghv=document.getElementById('gradeValue');
+                    if(ghv) ghv.value=String(g);
                 }
                 calc();
             }catch(e2){}
@@ -489,8 +504,19 @@ function __tonsil_gradingExport(){
     }catch(e){}
     try { TBKit.util.exportTable('#tonsil_gradingTable','tonsil-grading.csv'); } catch(e){}
 }
+function __tonsil_gradingApplyPreset(){
+    var hv=document.getElementById('gradeValue');
+    var g=hv?parseInt(hv.value,10):grade;
+    if(!isFinite(g)) g=grade;
+    setGrade(g);
+}
 function __tonsil_gradingPresets(){
     if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tonsil_gradingPresets',[
+      {label:'III度+OSAHS',labelEn:'Grade III with OSAHS',values:{gradeValue:3,s1:'0',s2:'1',s3:'0',s4:'0',s5:'0'}},
+      {label:'IV度对吻/气道梗阻',labelEn:'Grade IV kissing tonsils',values:{gradeValue:4,s1:'0',s2:'1',s3:'1',s4:'0',s5:'0'}},
+      {label:'反复扁桃体炎',labelEn:'Recurrent tonsillitis',values:{gradeValue:2,s1:'1',s2:'0',s3:'0',s4:'0',s5:'0'}}
+    ],__tonsil_gradingApplyPreset);
 }
 var __tonsil_grading_f0=(typeof calc==='function')?calc:null;
 if(__tonsil_grading_f0){
