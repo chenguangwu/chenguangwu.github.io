@@ -112,8 +112,8 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="建筑面积/套内/公摊换算在线工具">Convert among gross floor area, inner area and shared (common) area by factor; check the usable-rate.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">公摊面积（本页代码口径）：公摊面积=套内面积×公摊系数÷100（㎡，公摊系数按百分数填写）；公摊面积随套内面积与系数线性增长，是建筑面积的组成部分，与套内面积合并进入下一式。校验：无强校验，空值按 0 兜底。判据：无固定分级，公摊占比由得房率间接反映，系数越高同套内面积下公摊越大。</div>
-      <div class="formula-eq">建筑面积与得房率（本页代码口径）：建筑面积=套内面积+公摊面积（㎡）；得房率=套内÷建筑面积×100（%）；联动量：公摊率=100−得房率（%）、建面相当于套内倍数=建筑面积÷套内。校验：无强校验，空值按 0 兜底。判据：得房率 ≥85% 优秀、≥75% 良好、≥70% 一般、否则偏低；参考多层住宅 85% 以上、高层 75% 左右、超高层 70% 左右。</div>
+      <div class="formula-eq">公摊面积（本页代码口径）：公摊面积=套内面积×公摊系数÷100（㎡，公摊系数按百分数填写）；公摊面积随套内面积与系数线性增长，是建筑面积的组成部分，与套内面积合并进入下一式。校验：套内面积须大于 0、公摊系数须在 0–100 之间，否则提示并中止。判据：无固定分级，公摊占比由得房率间接反映，系数越高同套内面积下公摊越大。</div>
+      <div class="formula-eq">建筑面积与得房率（本页代码口径）：建筑面积=套内面积+公摊面积（㎡）；得房率=套内÷建筑面积×100（%）；联动量：公摊率=100−得房率（%）、建面相当于套内倍数=建筑面积÷套内。校验：套内面积须大于 0、公摊系数须在 0–100 之间，否则提示并中止。判据：得房率 ≥85% 优秀、≥75% 良好、≥70% 一般、否则偏低；参考多层住宅 85% 以上、高层 75% 左右、超高层 70% 左右。</div>
       <p class="formula-desc">按套内面积与公摊系数互算建筑面积与得房率，用于购房面积核对。</p>
     </div>
 <div class="input-row"><div><label>套内面积（㎡）</label><input type="number" id="inner" value="100" step="any" oninput="calc()" placeholder="如 100"></div>
@@ -189,6 +189,12 @@
 </div>
 <script>
 function calc(){const inner=+document.getElementById("inner").value||0;const ratio=+document.getElementById("ratio").value||0;
+const __areaEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?true:false;
+if(!(inner>0)||!(ratio>=0&&ratio<=100)){
+  const __msg=__areaEn?'Enter a valid inner area and shared-area factor (inner area > 0, factor 0-100).':'请输入有效的套内面积与公摊系数（套内面积须大于 0，公摊系数须在 0–100 之间）';
+  document.getElementById("res").innerHTML='<p style="font-size:14px;color:var(--danger);">'+__msg+'</p>';
+  return;
+}
 const shared=inner*ratio/100;const gross=inner+shared;const rate=inner/gross*100;
 const out="公摊面积 = "+shared.toFixed(2)+" ㎡\n建筑面积 = "+gross.toFixed(2)+" ㎡\n得房率 = "+rate.toFixed(2)+" %";
 var _d="";if(isFinite(rate)){_d+="\n公摊率 = "+(100-rate).toFixed(2)+" %\n得房率评价："+(rate>=85?"优秀":rate>=75?"良好":rate>=70?"一般":"偏低");}if(rate>0){_d+="\n建面相当于套内的 "+(gross/inner).toFixed(3)+" 倍";}_d+="\n参考：多层住宅得房率一般 85% 以上，高层 75% 左右，超高层 70% 左右";

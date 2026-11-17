@@ -213,6 +213,21 @@ const CASES = [
     expect: ["公摊面积 = 21.60 ㎡", "建筑面积 = 141.60 ㎡", "得房率 = 84.75 %"],
     ref: "套内 120㎡ × 18% = 公摊 21.60㎡，建面 141.60㎡，得房率 84.75%",
   },
+  // ── RE-N1：套内面积/公摊系数越界守卫 ────────────────────────────────
+  {
+    slug: "realestate/convert-area-shared",
+    inputs: { inner: "0", ratio: "20" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='AREAGUARD0 '+(h.indexOf('请输入有效的套内面积')>=0&&h.indexOf('NaN')<0?'OK':'BAD '+h.slice(0,80));"],
+    expect: ["AREAGUARD0 OK"],
+    ref: "RE-N1-a：套内面积 0、系数 20% 旧版 gross=0 使 rate=0/0=NaN，仍渲染「得房率 = NaN %」。守卫要求 inner>0 且 0<=ratio<=100，非法时只显示提示并 return；默认 100/20 合法 ⇒ 零逃生。",
+  },
+  {
+    slug: "realestate/convert-area-shared",
+    inputs: { inner: "100", ratio: "-50" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='AREARATIO '+(h.indexOf('请输入有效的套内面积')>=0&&h.indexOf('-50.00')<0&&h.indexOf('优秀')<0?'OK':'BAD '+h.slice(0,80));"],
+    expect: ["AREARATIO OK"],
+    ref: "RE-N1-b：系数 -50% 旧版 shared=-50㎡、gross=50㎡、rate=200% 且判「优秀」。同一守卫拦截负系数；默认 20% ⇒ 零逃生。",
+  },
 {
   "slug": "realestate/analysis-risk-1",
   "inputs": { "inv": "5000000", "rate": "8", "data": "Y1,1200000\nY2,1500000\nY3,1800000\nY4,1600000\nY5,1200000" },

@@ -24,12 +24,6 @@
 
 本批覆盖 8 页：`tools/realestate/convert-area-shared.html`、`tools/realestate/fund-loan.html`、`tools/realestate/price-discount-1.html`、`tools/realestate/market-valuation.html`、`tools/realestate/layout-score.html`、`tools/rental/rent-2.html`、`tools/realestate/return-1.html`、`tools/rental/rental-yield.html`。下列结论均来自只读源码阅读 + node 内存复刻页内公式，未在浏览器执行；文件原有两条为无编号标题，本批沿用同目录兄弟文件「前缀-N」格式取 `RE-N`，与该文件既有标题不重号，也不与 `06-F*` / `MS-F*` / `L-N*` 冲突。
 
-### RE-N1 公摊换算无输入校验，空套内输出「得房率 = NaN %」、负系数输出 200%/Infinity（高，确认）
-- 描述：`calc()` 直接用 `+value || 0` 取值后算 `公摊=套内×系数/100`、`得房率=套内÷(套内+公摊)`，没有面积/系数的正负与区间校验，也没有对 `NaN/Infinity` 结果做拦截或提示。
-- 证据：`tools/realestate/convert-area-shared.html:202-206`（输入框 `:130-131`）。复现 套内 0、公摊系数 20 → 实际输出「公摊面积 = 0.00 ㎡ / 建筑面积 = 0.00 ㎡ / 得房率 = NaN %」，页面照常渲染且无任何提示；套内 100、系数 −50 → 「公摊面积 = −50.00 ㎡ / 建筑面积 = 50.00 ㎡ / 得房率 = 200.00 % / 公摊率 = −100.00 % / 得房率评价：优秀」；系数 −100 → 「得房率 = Infinity % / 建面相当于套内的 0.000 倍」。
-- 影响：给房看面积核对的核心页，零值/负数（空格误触、粘贴负号）会输出负数公摊、200% 得房率甚至 NaN/Infinity，且被判「优秀」，用户无法察觉输入有误。
-- 方案：进入计算前校验 `inner > 0` 且 `0 <= ratio <= 100`（或按产品定义给上限），越界标红并停止渲染；输出前对 `rate` 做 `isFinite` 判断，非有限值提示「请输入有效的套内面积与公摊系数」。
-
 ### RE-N2 公积金页倍数可负，直接输出负「建议可贷额度」（高，确认）
 - 描述：守卫只挡 `balance`、`monthlyFund`、`fundYears` 三项为负，`multiplier`、`payMultiple`、`cap` 未校验；负倍数使 `amt1/amt2` 为负，`Math.min` 后「建议可贷额度」与评级一起给出负数。
 - 证据：`tools/realestate/fund-loan.html:271-311`（守卫 `:279-282`，输入 `:145-171` 虽有 `min="0"` 但挡不住手输/粘贴）。复现 余额 80000、余额倍数 −1、月缴存 2400、缴存 5 年、月供倍数 60、上限 600000 → 实际「按余额倍数测算 ¥−80,000 / 建议可贷额度 ¥−80,000（约 −8 万元）/ 额度评级：较低」；月供倍数 −60 → 「按月缴存测算 ¥−144,000 / 建议可贷额度 ¥−144,000」。
