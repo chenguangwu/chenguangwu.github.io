@@ -153,9 +153,9 @@ const CASES = [
     "soilPh": "9.5"
   },
   "expect": [
-    "+3.0"
+    "+2.6"
   ],
-  "ref": "auto-restore"
+  "ref": "第1066批 N172 口径统一后重锚：月季适宜 6.0-6.9，实测 9.5 ⇒ 偏差卡取距最近上边界 9.5−6.9=+2.6（旧中点口径 9.5−6.45=+3.05→「+3.0」，与建议「偏碱 2.6」同屏矛盾）。"
 },
 {
   "slug": "gardening/soil-ph",
@@ -174,6 +174,14 @@ const CASES = [
     "1.08L"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "gardening/soil-ph",
+  "clicks": [
+    "document.getElementById('plant').value='月季';document.getElementById('soilPh').value='9.5';calc();var h=String(document.getElementById('result').innerHTML).replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ');var ok=h.indexOf('+2.6')>=0&&h.indexOf('偏碱 2.6')>=0&&h.indexOf('+3.0')<0;document.getElementById('__tbProbe').textContent='SOILPH172 '+(ok?'OK':'BAD '+h.slice(h.indexOf('偏差'),h.indexOf('偏差')+90));"
+  ],
+  "expect": ["SOILPH172 OK"],
+  "ref": "第1066批 N172：月季适宜 6.0-6.9，实测 9.5 ⇒ 距离最近上边界 9.5−6.9=2.6。偏差卡与建议文案必须用同一边界口径：新实现偏差卡「+2.6」、建议「土壤偏碱 2.6 个单位」同屏一致；旧实现偏差卡用中点 9.5−6.45=+3.0，与建议 2.6 自相矛盾。哨兵要求 +2.6 与「偏碱 2.6」同时出现且无 +3.0，默认 soilPh=6.5 在范围内不触发 ⇒ 依赖 clicks 注入，强判别零逃生。"
 }
 ];
 async function main() {
