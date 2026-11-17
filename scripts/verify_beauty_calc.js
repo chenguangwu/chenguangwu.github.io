@@ -245,6 +245,22 @@ const CASES = [
     "年龄段： 40岁以上"
   ],
   "ref": "护理流程卡按 ROUTINES[ageGroup] 渲染：注入 40 ⇒ 年龄档「40岁以上」、主打紧致抗皱。原注入 ageGroup=\"25\" 与页面默认 selected 相同，且原锚「25-30岁」既是下拉选项文本、又是默认渲染值 ⇒ 默认态即命中，零判别力。"
+},
+{
+  "slug": "beauty/skincare-routine",
+  "clicks": [
+    "setSkinType('sensitive');currentTime='weekly';renderRoutine();var h=String(document.getElementById('routineResult').innerHTML);var steps=(h.match(/class=\"step-num\"/g)||[]).length;var warns=(h.match(/tip-box tip-warn/g)||[]).length;document.getElementById('__tbProbe').textContent='BEAUTY16 '+(steps===1&&warns>=2?'OK':'BAD steps='+steps+' warns='+warns);"
+  ],
+  "expect": ["BEAUTY16 OK"],
+  "ref": "第1065批 N16：敏感肌 weekly 有 1 个真实步骤（补水面膜）+ 1 条⚠️注意禁忌。旧版 renderRoutine 把禁忌当步骤编号 ⇒ step-num 数 2、tip-warn 仅末尾通用免责 1 处；新版把 name 以⚠️开头的条目跳过编号、单独 tip-warn 渲染 ⇒ step-num 数 1、tip-warn ≥2（免责+禁忌）。⚠️注意条目是 routines.sensitive['20'].weekly 最后一环，仅切敏感肌+weekly 才渲染，默认干皮晨间不含该条目 ⇒ 哨兵依赖 clicks 状态切换，强判别零逃生。"
+},
+{
+  "slug": "beauty/skincare-routine",
+  "clicks": [
+    "setSkinType('dry');document.getElementById('ageGroup').value='25';generateRoutine();currentTime='evening';renderRoutine();var h=String(document.getElementById('routineResult').innerHTML);document.getElementById('__tbProbe').textContent='BEAUTY17 '+(h.indexOf('勿二次清洁')>=0&&h.indexOf('卸妆后可以不用二次洁面')<0?'OK':'BAD');"
+  ],
+  "expect": ["BEAUTY17 OK"],
+  "ref": "第1065批 N17：干皮25岁晚间步骤1旧 tip「卸妆后可以不用二次洁面」与步骤2「洁面」矛盾。新版步骤1 tip 改为「干皮卸妆后用温和洁面，勿二次清洁」、步骤2 强调氨基酸洁面 ⇒ 含「勿二次清洁」且不含旧矛盾串；旧版反之。仅在干皮+25岁+晚间该组合出现，默认干皮晨间不含卸妆步骤 ⇒ 哨兵依赖 clicks 切换，强判别零逃生。"
 }
 ];
 async function main() {

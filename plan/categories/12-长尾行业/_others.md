@@ -297,40 +297,12 @@
 
 > 范围：本轮阅读 8 页——`tools/beauty/skincare-routine.html`（beauty）、`tools/forensic-medicine/death-time-estimation.html`（forensic-medicine）、`tools/metallurgy/hardness-conversion.html`（metallurgy）、`tools/urology/psa-density.html`（urology）、`tools/ent/lund-mackay-score.html`（ent）、`tools/pulmonology/curb65.html`（pulmonology）、`tools/nephrology/ckd-staging.html`（nephrology）、`tools/acupuncture/acupoint-location.html`（acupuncture）。仅源码 + `node -e` 内存复算，未开浏览器、未做 EN/移动端/门禁验证。
 
-### 12-N13 beauty/skincare-routine：点击肤质卡片只换高亮不重算，结果继续显示上一肤质（高，确认缺陷）
-- 问题：`setSkinType()` 只改 `currentSkinType` 与卡片 active 态（`:762-765`），未调用 `renderRoutine()`；而时段切换会重算（`:767-772`）、年龄下拉会重算（`:166`）。用户点“油皮”后，结果卡仍写“你的肤质：干皮”，整套步骤仍是干皮方案。
-- 证据：`tools/beauty/skincare-routine.html:762-765`、`:774-779`、`:166`、`:175-193`
-- 复现：默认干皮/25-30/晨间 → 点“油皮”卡片 → active 移到油皮，但 `#routineResult` 仍为“你的肤质：干皮 · 25-30岁 · 晨间护肤（温和洁面/高机能水/…）”；点“生成护肤流程”后才变油皮方案。
-- 影响：肤质是方案的第一决定变量，旧结果残留会让用户把干皮流程当油皮方案执行，直接影响产品选择与皮肤状态。
-- 方案：`setSkinType` 末尾调用 `renderRoutine()`（首次进入则 `generateRoutine()`），并把当前肤质写入可快照字段；补 4 肤质 × 3 时段点击回归。
-
-### 12-N14 beauty/skincare-routine：TBKit 历史快照不含肤质，恢复记录会用当前肤质重算（中，确认缺陷）
-- 问题：历史快照 `__skincare_routineSnap()` 只遍历 `input/select/textarea`（`:857-867`），肤质是 `div.skin-type-card`，未入快照；恢复时只还原 `ageGroup`，再用 `currentSkinType` 重算（`:922-945`）。本地 `saveResult()` 虽存了 `skinType`（`:804-816`），但历史列表只展示、不能恢复。
-- 证据：`tools/beauty/skincare-routine.html:857-867`、`:922-945`、`:804-816`
-- 复现：干皮 25 生成并记录 → 切到油皮 → 历史“恢复”该条 → 结果按油皮重算；表格里的“肤质：干皮”与恢复后方案不一致。
-- 影响：历史记录不可复现，用户无法对比“同年龄不同肤质”或回看原方案。
-- 方案：把 `skinType` 写入隐藏 input 或直接加入 snap/record 字段，恢复时先 `setSkinType(rec.skinType)` 再生成；`saveResult` 记录同步补步骤明细。
-
 ### 12-N15 beauty/skincare-routine：“导出明细 CSV”导的是 TBKit 历史表，不是当前流程；无历史时为空（中，确认缺陷）
 - 问题：`__skincare_routineExport()` 调 `TBKit.util.exportTable('#skincare_routineTable', ...)`（`:948-951`），该表由 `TBKit.history.record` 渲染（`:942-946`），列是历史快照键+结果摘要；当前肤质/年龄/时段的步骤、产品、用法、用量从未进入导出。首次进入尚未产生历史时点导出得到空表。
 - 证据：`tools/beauty/skincare-routine.html:198`、`:942-946`、`:948-951`
 - 复现：打开页面直接点“导出明细 CSV” → 无数据行；生成流程后导出 → 只有“结果摘要”一列的历史记录，没有逐步护肤清单。
 - 影响：用户最需要的“把方案带走/打印”能力缺失，只能截图。
 - 方案：新增当前流程专用导出（列：时段/步骤/产品/用法/用量），或把 `skincare_history` 明细作为导出源；空表时提示先“保存方案”。
-
-### 12-N16 beauty/skincare-routine：敏感肌周护理把“⚠️ 注意/不要去角质”当成带编号步骤（低，确认缺陷）
-- 问题：敏感肌 20-25 岁 `weekly` 只有“补水面膜”和“⚠️ 注意 / 敏感期不要去角质！”两条（`:681-682`）；后者带 `product` 字段、与真实步骤同结构、同编号，导出/展示时会被当成要执行的第二步。
-- 证据：`tools/beauty/skincare-routine.html:681-682`
-- 复现：敏感肌 + 20-25 + 周护理 → 步骤 2 显示“⚠️ 注意 / 敏感期不要去角质！ / 不要用清洁面膜！不要刷酸！”。
-- 影响：禁忌提示与操作步骤混排，用户可能理解为“需要做一次去角质评估”；流程结构也不专业。
-- 方案：警示移出 `steps`，单独渲染为 tip/warning；或给条目加 `type:'note'`，编号时跳过。
-
-### 12-N17 beauty/skincare-routine：干皮晚间第一步写“不用二次洁面”，第二步就是“洁面”（低，确认缺陷）
-- 问题：干皮 25 岁晚间步骤 1“卸妆”的 tip 为“卸妆后可以不用二次洁面”（`:402`），紧接着步骤 2 又是“洁面”（`:403`），同一流程内自相矛盾。
-- 证据：`tools/beauty/skincare-routine.html:402-403`
-- 复现：干皮 + 25-30 + 晚间 → 看到“卸妆：卸妆后可以不用二次洁面”，下一步“洁面：不化妆的话只用洁面即可”。
-- 影响：干皮用户可能跳过洁面或重复清洁，屏障受损风险增加；文案可信度下降。
-- 方案：二选一——删除“不用二次洁面”表述，或把步骤 2 改为“清水/氨基酸洁面（仅 T 区）”并同步 tip；补 4 肤质 × 3 时段文案核对。
 
 ### 12-N18 beauty/skincare-routine：简介写“计算护肤品用量与配比”，实际只排流程；“测试肤质”也无测试逻辑（低，确认缺陷）
 - 问题：简介 `:1011` 写“帮助计算护肤品用量与配比”，但页面没有用量/配比计算，输出只是步骤清单；“第一步：测试你的肤质”（`:163`）下方是四张静态卡片，没有问卷或判定逻辑。
