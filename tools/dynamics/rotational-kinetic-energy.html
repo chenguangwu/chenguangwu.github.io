@@ -224,9 +224,9 @@ function __tbClear(ids){for(var i=0;i<ids.length;i++){var e=document.getElementB
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            var __ig=__tbInputGuard(['I','w'],['转动惯量 I (kg·m²)','角速度 ω (rad/s)']);if(__ig){__tbClear(['rotational_kinetic_energyTable','rkeChart']);const __g0='<p style="color:var(--danger)">⚠ '+__ig+'</p>';ToolBox.setResult('result',(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')));return;}
+            var __ig=__tbInputGuard(['I','w'],['转动惯量 I (kg·m²)','角速度 ω (rad/s)']);if(__ig){__tbClear(['rotational_kinetic_energyTable','rkeChart','rkeChartL']);const __g0='<p style="color:var(--danger)">⚠ '+__ig+'</p>';ToolBox.setResult('result',(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')));return;}
             const I=num('I'),w=num('w');
-            if(!(I>0)){__tbClear(['rotational_kinetic_energyTable','rkeChart']);ToolBox.setResult('result','<p style="color:var(--danger);">转动惯量 I 必须为正数（> 0 kg·m²）</p>');return;}
+            if(!(I>0)){__tbClear(['rotational_kinetic_energyTable','rkeChart','rkeChartL']);ToolBox.setResult('result','<p style="color:var(--danger);">转动惯量 I 必须为正数（> 0 kg·m²）</p>');return;}
             const E=0.5*I*w*w;
             const __g1=dataGrid([
                 [E.toFixed(3),'转动动能 E (J)'],
@@ -270,8 +270,8 @@ function __rotational_kinetic_energyPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#rotational_kinetic_energyPresets',[
         {label:'默认',labelEn:'Default',values:{I:'0.5', w:'10'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{I:'1', w:'20'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{I:'0.25', w:'5'}},
+        {label:'转速加倍（动能×4）',labelEn:'Double speed (KE x4)',values:{I:'0.5', w:'20'}},
+        {label:'转速减半（动能÷4）',labelEn:'Half speed (KE /4)',values:{I:'0.5', w:'5'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;
@@ -285,6 +285,7 @@ else document.addEventListener('DOMContentLoaded', __rotational_kinetic_energyBo
 <button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
 </div>
 <div id="rkeChart" style="margin-top:8px;"></div>
+<div id="rkeChartL" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -338,14 +339,15 @@ function __rkeChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var s=__rkeSweep(); if(!s)return;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-  TBKit.chart.line('#rkeChart',{title:en?'Rotational KE (quadratic) & Angular Momentum (linear) vs ω':'转动动能平方、角动量线性随角速度增长',labels:s.labels,series:[{name:en?'Rotational KE (J)':'转动动能 (J)',data:s.dE},{name:en?'Angular momentum L (kg·m²/s)':'角动量 L (kg·m²/s)',data:s.dL}]});
+  TBKit.chart.line('#rkeChart',{title:en?'Rotational KE (J) vs ω':'转动动能 (J) 随角速度增长',labels:s.labels,series:[{name:en?'Rotational KE (J)':'转动动能 (J)',data:s.dE}]});
+  TBKit.chart.line('#rkeChartL',{title:en?'Angular Momentum L (kg·m²/s) vs ω':'角动量 L (kg·m²/s) 随角速度增长',labels:s.labels,series:[{name:en?'Angular momentum L (kg·m²/s)':'角动量 L (kg·m²/s)',data:s.dL}]});
 }
 
 function __rkeShow(which){
-  var c=document.getElementById('rkeChart'), t=document.getElementById('rotational_kinetic_energyTable');
-  if(!c||!t)return;
-  if(which==='table'){c.style.display='none';t.style.display='';}
-  else{c.style.display='';t.style.display='none';}
+  var c=document.getElementById('rkeChart'), cl=document.getElementById('rkeChartL'), t=document.getElementById('rotational_kinetic_energyTable');
+  if(!c||!cl||!t)return;
+  if(which==='table'){c.style.display='none';cl.style.display='none';t.style.display='';}
+  else{c.style.display='';cl.style.display='';t.style.display='none';}
 }
 function __rkeTabInit(){
   var btns=document.querySelectorAll('.rke-tabs .tab-btn');

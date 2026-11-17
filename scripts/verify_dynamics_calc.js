@@ -6,6 +6,8 @@
  */
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+globalThis.__tbFs = fs;
 
 const CASES = [
   { slug: "dynamics/angular-momentum-conservation",
@@ -362,6 +364,12 @@ const CASES = [
     "clicks": ["var d=document.getElementById;function g(v){d('I').value=v;calcTool();return String(d('result').innerHTML);}var a=g('-1'),b=g('0');d('I').value='0.5';var c=g('0.5');var ok=a.indexOf('转动惯量 I 必须为正数')>=0&&a.indexOf('转动动能')<0&&b.indexOf('转动惯量 I 必须为正数')>=0&&b.indexOf('转动动能')<0&&c.indexOf('25.000')>=0;document.getElementById('__tbProbe').textContent='RKENEG '+(ok?'OK':'BAD a='+a.slice(0,25));"],
     "expect": ["RKENEG OK"],
     "ref": "12-N84 负惯量守卫：I=-1 旧版 E=0.5×(-1)×100=-50 J 负动能、I=0 出 0 J 仍展示结果；新版拦截并清空结果；I=0.5、ω=10 合法仍出 25.000 J。哨兵要求两非法态提示且无动能卡、合法态有 25.000，依赖 clicks 注入，默认态不命中。"
+  },
+  {
+    "slug": "dynamics/rotational-kinetic-energy",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/dynamics/rotational-kinetic-energy.html','utf8');var n=h.split('TBKit.chart.line(').length-1;var ok=h.indexOf('rkeChartL')>=0&&n===2&&h.indexOf('转速加倍（动能×4）')>=0&&h.indexOf('示例 2×')<0&&h.indexOf('Angular Momentum L (kg·m²/s) vs ω')>=0;document.getElementById('__tbProbe').textContent='RKECHART '+(ok?'OK':'BAD');"],
+    "expect": ["RKECHART OK"],
+    "ref": "12-N85/N86：动能(J)与角动量(kg·m²/s)拆成两张图避免量纲混轴；预设按真实倍数命名（转速加倍动能×4）。旧版同图且示例2×实际8倍 ⇒ 变红。默认态不产生该串，零逃生。"
   }
 
 ];
