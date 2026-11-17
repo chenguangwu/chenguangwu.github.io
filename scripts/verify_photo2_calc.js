@@ -96,6 +96,17 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "photo2/video-storage",
+  "inputs": {
+    "bitrate": "20",
+    "hours": "0",
+    "minutes": "0",
+    "audioBitrate": "128"
+  },
+  "expect": ["时长、码率与分辨率须有效"],
+  "ref": "978 零时长守卫：hours=minutes=0 时 sizeGB=0，存储卡可录时长全为 0 分；修复前照常渲染 0KB，默认 hours=1 不含该提示。"
+},
+{
   "slug": "photo2/white-balance",
   "inputs": {
     "kelvin": "5503"
