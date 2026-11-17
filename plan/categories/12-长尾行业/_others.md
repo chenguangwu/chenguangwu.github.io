@@ -578,13 +578,6 @@
 
 > 范围：本轮实读 8 页——`tools/dermatology/pasi-score.html`（dermatology）、`tools/urology/ipss-score.html`（urology）、`tools/obstetrics/bishop-score.html`（obstetrics）、`tools/hematology/dic-scoring.html`（hematology）、`tools/endocrinology/homa-ir.html`（endocrinology）、`tools/dentistry/caries-risk.html`（dentistry）、`tools/rehabilitation/fim-scale.html`（rehabilitation）、`tools/neurology/nihss.html`（neurology）。每页完整读 HTML（含内联 JS、公式框、deep-dive、FAQ）。仅源码 + `node -e` 内存复算，未开浏览器、未做 EN/移动端/门禁验证；医学量表阈值只判「实现与页面引据是否一致」，均需临床复核。
 
-### 12-N42 dermatology/pasi-score：历史快照截断到前 12 个字段，下肢 4 项被排除，恢复记录后结果对不上（中，确认缺陷）
-- 问题：PASI 共 16 个 select（4 区 × E/I/D/A），快照按 DOM 顺序取 `Object.keys`，再 `keys.length>12 → slice(0,12)`（`:507`）；前 12 个恰好是头、上肢、躯干，`l_e/l_i/l_d/l_a` 全部被丢弃。恢复时只还原这 12 项，用当前下肢值重算（`:481-495`）。
-- 证据：`tools/dermatology/pasi-score.html:446-455`、`:507`、`:481-495`
-- 复现（node 复算，默认 e/i=2、d=0、area：头 0/上 1/躯 1/下 1）：下肢面积从 1 改 6 → 结果 11.6，历史新增该结果但记录不含下肢；把下肢改回 1 后恢复该条 → 结果 3.6，与记录“11.6”不一致。
-- 影响：历史记录不可复现，无法回看/对比下肢皮损变化；同一“结果”对应多组输入。
-- 方案：快照上限按实际字段数（≥16），或按区域前缀分组；恢复前校验“记录字段数=当前字段数”，缺失则提示；补下肢改动的历史回归。
-
 ### 12-N43 dermatology/pasi-score：英文态首屏介绍退化为 “Pasi Score”，英文 title/desc 同为裸名（低，确认缺陷）
 - 问题：`<h2 data-zh="…">Pasi Score</h2>`、首个 `<p data-zh="基于 PASI…">Pasi Score</p>`（`:133`、`:138`）；`<meta name="title-en">`/`desc-en` 亦为 `Pasi Score`（`:70-71`）。英文态整段介绍只剩工具名，无任何“PASI / 面积 / 严重度”说明。
 - 证据：`tools/dermatology/pasi-score.html:70-71`、`:133`、`:138`

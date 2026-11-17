@@ -475,6 +475,12 @@ const CASES = [
   "clicks": ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/脂溢性皮炎评分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__SD_RST_OK__':'__SD_RST_FAIL__ '+__b;"],
   "expect": ["__SD_RST_OK__"],
   "ref": "批 4 重置态：resetAll() 恢复默认档位并清 dirty，决策文案消失。"
+},
+{
+  "slug": "dermatology/pasi-score",
+  "clicks": ["var src=String(__pasi_scoreExport);var ok=src.indexOf('Object.keys(snap)')>=0&&src.indexOf('slice(0,12)')<0;document.getElementById('__tbProbe').textContent='PASIEXP '+(ok?'OK':'BAD');"],
+  "expect": ["PASIEXP OK"],
+  "ref": "N42 导出兜底字段完整性：PASI 快照共 16 字段（4 区 × E/I/D/A），无历史时导出兜底若 keys.slice(0,12) 会丢下肢 l_e/l_i/l_d/l_a。修复后 __pasi_scoreExport 用全量 Object.keys(snap)、无截断；旧版源码含 slice(0,12) ⇒ 变红。harness 的 querySelectorAll 返回空使 Snap 恒空、无法桩内驱动真实记录链，按既定教训（213 批）用源码形态判别，真机全链路由复核方覆盖。默认态不产生该串，零逃生。"
 }
 ];
 async function main() {
