@@ -180,6 +180,25 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/psa-density.html','utf8');var ok=h.indexOf('function __psaRefBar(psad)')>=0&&h.indexOf('if(__ppa>0&&__pvol>0) __psaRefBar(__ppa/__pvol);')>=0;document.getElementById('__tbProbe').textContent='PSAREFBAR '+(ok?'OK':'BAD');"],
   "expect": ["PSAREFBAR OK"],
   "ref": "12-N29 同类时序缺陷：PSAD 首屏参考区间标尺须在 TBKit 就绪后重绘；旧版 boot 只挂预设 ⇒ 变红。默认态不产生该串，零逃生。"
+},
+{
+  "slug": "urology/bladder-capacity",
+  "inputs": {"voided":"0","pvr":"0","age":"45"},
+  "expect": ["排尿量与残余尿至少一项需大于 0"],
+  "ref": "12-N108：0+0 空记录旧版按容量0给出偏小/排空障碍；新版前置拦截并停止分级。默认 280+30 不产生该串。"
+},
+{
+  "slug": "urology/bladder-capacity",
+  "inputs": {"voided":"120","pvr":"60","age":"45"},
+  "expect": ["膀胱容量显著缩小（低于预期50%）"],
+  "ref": "12-N109：180/400=45% 旧版只判「偏小」，与 FAQ「<50% 显著下降」冲突；新版三档口径给显著缩小。默认 310/400 不产生该串。"
+},
+{
+  "slug": "urology/bladder-capacity",
+  "inputs": {"voided":"300","pvr":"0","age":"45"},
+  "clicks": ["var b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ');var ok=b.indexOf('300 + 0 = 300 mL')>=0&&b.indexOf('残余尿：残余尿低于 50 mL，正常')>=0;document.getElementById('__tbProbe').textContent='PVRZERO '+(ok?'OK':'BAD');"],
+  "expect": ["PVRZERO OK"],
+  "ref": "12-N108 残余尿0：旧版 pvr>0 分支跳过残余尿提示；新版 0 仍显示正常参考。默认 pvr=30 也会显示同类提示，故用注入输入 300+0 与残余尿提示组合成哨兵，只由 clicks 产出，零逃生。"
 }
 ];
 async function main() {
