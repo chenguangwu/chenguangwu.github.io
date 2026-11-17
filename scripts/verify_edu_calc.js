@@ -1690,6 +1690,28 @@ const CASES = [
     expect: ["J144 OK"],
     ref: "EL-J144：旧版 delQuestion/clearAll 调 i18nText() 无参，toast 显示 undefined。现分别用 toast.deleted/toast.cleared。源码哨兵：旧版空参调用 2 次且无具体键 ⇒ 必红。",
   },
+
+  // ── 第1185批：成绩目标计算加权口径、项数可见与成绩越界收口 ──
+  {
+    slug: "edu/calc-4",
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/calc-4.html','utf8');var ok=h.indexOf('const earnedPoints = currentScore * currentWeight / 100')>=0&&h.indexOf('const neededTotal = targetScore - earnedPoints')>=0&&h.indexOf('const neededAvg = neededTotal / (remainingWeight / 100)')>=0&&(h.match(/class=\"formula-eq\"/g)||[]).length===1;document.getElementById('__tbProbe').textContent='J145 '+(ok?'OK':'BAD');"],
+    expect: ["J145 OK"],
+    ref: "EL-J145：订正后加权口径为 earned=当前×权重、缺口=目标−earned、剩余均分=缺口÷剩余权重；旧文档 91.7/页面 25 均属过时，现示例 95.0 与页面一致。另清掉重复 formula-eq。源码+计数哨兵：旧版重复公式框 2 处 ⇒ 必红。",
+  },
+  {
+    slug: "edu/calc-4",
+    inputs: { currentScore: "70", currentWeight: "40", targetScore: "85", remainingParts: "5" },
+    clicks: ["var r=document.getElementById('res').innerHTML;document.getElementById('__tbProbe').textContent='J146 '+(r.indexOf('剩余 5 项若等权')>=0&&r.indexOf('95.00')>=0?'OK':'BAD');"],
+    expect: ["J146 OK"],
+    ref: "EL-J146：旧版 remainingParts 只读不参与输出，改 1→5 结果完全相同。现结果区明说「剩余 N 项若等权，每项均需 X 分」且标注项数只按项拆解、不改变剩余权重。注入 5 项（70/40/85→95.00）与默认 2 项区分 ⇒ 零逃生。",
+  },
+  {
+    slug: "edu/calc-4",
+    inputs: { currentScore: "150", currentWeight: "60", targetScore: "85", remainingParts: "2" },
+    clicks: ["var r=document.getElementById('res').innerHTML;document.getElementById('__tbProbe').textContent='J147 '+(r.indexOf('请输入有效的成绩')>=0&&r.indexOf('-162.50')<0?'OK':'BAD');"],
+    expect: ["J147 OK"],
+    ref: "EL-J147：旧版漏校 currentScore 上界，150 分算出 -162.50% 仍显示可行。现 0–100 校验命中即提示有效成绩并中止；neededAvg<=0 已明确「目标已达成」。默认态成绩合法不命中提示 ⇒ 零逃生。",
+  },
 ];
 
 async function main() {
