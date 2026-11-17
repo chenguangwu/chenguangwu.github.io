@@ -170,9 +170,21 @@ const CASES = [
       "searchInput": "abc123测试"
     },
     "expect": [
-      "Wolf (狼)\nabc123测试\n0\n1\n0\n未找到包含 \"abc123测试\" 的名词。当前词库包含 184 个名词。"
+      "Wolf (狼)\nabc123测试\n0\n1\n0\n未找到包含 \"abc123测试\" 的名词。当前词库包含 183 个名词。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「Wolf (狼)\nabc123测试\n0\n1\n0\n未找到包含 \"abc123测试\"…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "language/german-gender-quiz",
+    "clicks": ["document.getElementById('__tbProbe').textContent='GQFIX '+NOUN_CONFLICTS.length+'/'+UNIQUE_NOUNS.length+'/'+NOUNS.length+'/'+NOUNS.filter(function(n){return n.word==='Augen';}).length;"],
+    "expect": ["GQFIX 0/183/183/0"],
+    "ref": "EL-F20 数据自检：删除复数独立词条 Augen、伪条目 der Haus 与两条完全重复（Mädchen/Buch）后，NOUNS/UNIQUE_NOUNS 均为 183，同词同义不同性冲突 NOUN_CONFLICTS=0，Augen 独立词条数为 0。旧版无 NOUN_CONFLICTS 变量且 UNIQUE_NOUNS=184、含 Augen ⇒ 该串失配。",
+  },
+  {
+    "slug": "language/german-gender-quiz",
+    "inputs": { "searchInput": "Augen" },
+    "expect": ["未找到包含 \"augen\" 的名词。当前词库包含 183 个名词。"],
+    "ref": "EL-F20 行为回归：搜「Augen」应无命中（正确词形是单数 das Auge，复数 die Augen 只在详情展示，不作为独立测验词条）；旧版词库含 Augen/die 会命中并显示表格，该提示串失配。",
   },
   {
     "slug": "language/grammar-checker",

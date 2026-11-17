@@ -389,7 +389,6 @@ var NOUNS = [
   {word:'Sprache',gender:'die',meaning:'语言'},
   {word:'Hand',gender:'die',meaning:'手'},
   {word:'Nase',gender:'die',meaning:'鼻子'},
-  {word:'Augen',gender:'die',meaning:'眼睛'},
   {word:'Wange',gender:'die',meaning:'脸颊'},
   {word:'Haut',gender:'die',meaning:'皮肤'},
   {word:'Sonne',gender:'die',meaning:'太阳'},
@@ -414,7 +413,6 @@ var NOUNS = [
   // das (中性)
   {word:'Kind',gender:'das',meaning:'孩子'},
   {word:'Baby',gender:'das',meaning:'婴儿'},
-  {word:'Haus',gender:'der',meaning:'房子'}, // exception: der Haus (dialect) but usually das
   {word:'Haus',gender:'das',meaning:'房子'},
   {word:'Zimmer',gender:'das',meaning:'房间'},
   {word:'Buch',gender:'das',meaning:'书'},
@@ -441,7 +439,6 @@ var NOUNS = [
   {word:'Fleisch',gender:'das',meaning:'肉'},
   {word:'Ei',gender:'das',meaning:'鸡蛋'},
   {word:'Salz',gender:'das',meaning:'盐'},
-  {word:'Mädchen',gender:'das',meaning:'女孩'},
   {word:'Fräulein',gender:'das',meaning:'小姐'},
   {word:'Dokument',gender:'das',meaning:'文件'},
   {word:'Element',gender:'das',meaning:'元素'},
@@ -454,7 +451,6 @@ var NOUNS = [
   {word:'Schwein',gender:'das',meaning:'猪'},
   {word:'Schaf',gender:'das',meaning:'羊'},
   {word:'Vogel',gender:'der',meaning:'鸟'}, // exception
-  {word:'Buch',gender:'das',meaning:'书'},
   {word:'Bein',gender:'das',meaning:'腿'},
   {word:'Auge',gender:'das',meaning:'眼睛'},
   {word:'Ohr',gender:'das',meaning:'耳朵'},
@@ -486,10 +482,20 @@ var NOUNS = [
 
 // Remove duplicate entries keeping last
 var nounMap = {};
+// 数据自检：同词同义却标不同性 ⇒ 题库自相矛盾，报警而非静默靠「保留最后一条」掩盖。
+var NOUN_CONFLICTS = [];
 for (var i = 0; i < NOUNS.length; i++) {
-  nounMap[NOUNS[i].word.toLowerCase()] = NOUNS[i];
+  var __nk = NOUNS[i].word.toLowerCase();
+  var __prev = nounMap[__nk];
+  if (__prev && __prev.meaning === NOUNS[i].meaning && __prev.gender !== NOUNS[i].gender) {
+    NOUN_CONFLICTS.push(__nk + '(' + __prev.gender + '/' + NOUNS[i].gender + ')');
+  }
+  nounMap[__nk] = NOUNS[i];
 }
 var UNIQUE_NOUNS = Object.keys(nounMap).map(function(k){ return nounMap[k]; });
+if (NOUN_CONFLICTS.length && typeof console !== 'undefined' && console.warn) {
+  console.warn('[德语词库] 同词同义不同性：' + NOUN_CONFLICTS.join('、') + '，请核对题库');
+}
 
 var currentNoun = null;
 var score = {correct:0, wrong:0, streak:0};
