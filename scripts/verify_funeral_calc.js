@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -82,6 +84,12 @@ const CASES = [
     ],
     "expect": ["CER=OK END=Y"],
     "ref": "修复前 render() 每次先用开始时间 09:00 覆盖手输时间、再按 HH:mm 字符串排序，跨午夜时次日 00:15 排到前一日 23:30 之前、结束时间也不带日偏移；现 render 不再覆盖手输时间，按录入顺序折算绝对分钟排序并标「（次日）」，末环节 23:30+20+30=次日 00:45。默认态无该探针串。"
+  },
+  {
+    "slug": "funeral/reminder-3",
+    "clicks": ["var d=getNextDate({type:'lunar',lYear:2020,lMonth:5,lDay:5,lLeap:false,yearly:false});var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/funeral/reminder-3.html','utf8');var ok=!!d&&d.getFullYear()===2020&&h.indexOf('if(lDay>(isLeap?leapDays(lYear):monthDays(lYear,lMonth)))return null;')>=0&&h.indexOf('lunarToSolar(it.lYear,lm,ld,leap)')>=0&&h.indexOf('now.getFullYear()+20')>=0&&h.indexOf('now.getFullYear()+3')<0;document.getElementById('__tbProbe').textContent='LUNARREM '+(ok?'OK':'BAD '+String(d&&d.getFullYear()));"],
+    "expect": ["LUNARREM OK"],
+    "ref": "一次性农历提醒按添加时选定的原年计算（2020 年五月初五仍落 2020 年，旧版从当前年起找会落 2026 年）；每年重复的闰月搜索扩到 20 年覆盖 19 年闰月周期；lunarToSolar 增加农历大小月校验，小月三十日不再悄悄换算到下月。默认态不产生该哨兵。"
   }
 
 ];

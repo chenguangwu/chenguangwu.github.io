@@ -202,7 +202,13 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/gardening/lawn-mowing.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/gardening/lawn-mowing.json','utf8');var ok=h.indexOf('早熟禾 5 至 8 cm')<0&&h.indexOf('结缕草 2.5 至 5 cm')<0&&h.indexOf('高羊茅 6 至 9 cm')<0&&h.indexOf('早熟禾 4–5 cm')>=0&&h.indexOf('结缕草 3–5 cm')>=0&&h.indexOf('高羊茅 5–6 cm')>=0&&h.indexOf('秋季约每 10 天 1 次')>=0&&en.indexOf('Kentucky bluegrass 5 to 8 cm')<0&&en.indexOf('Kentucky bluegrass 4-5 cm')>=0&&en.indexOf('about every 10 days in autumn')>=0;document.getElementById('__tbProbe').textContent='LAWNFM '+(ok?'OK':'BAD');"],
   "expect": ["LAWNFM OK"],
   "ref": "12-N227：公式框原写早熟禾 5–8、结缕草 2.5–5、高羊茅 6–9 cm，与 GRASSES 数据表（4–5 / 3–5 / 5–6 cm）冲突；生长期每 5–7 天又与秋季每 10 天冲突。修复后公式为数据表口径并区分春季 5–7 天、秋季 10 天、冬季 2–4 周；中英源同时校验，旧版任一旧串命中即红。"
-}
+  },
+  {
+    "slug": "gardening/reminder-cycle-succulent",
+    "clicks": ["var d=parseLocalDate('2026-11-06');var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/gardening/reminder-cycle-succulent.html','utf8');var ok=!!d&&d.getFullYear()===2026&&d.getMonth()===10&&d.getDate()===6&&h.indexOf('new Date(plant.lastWater)')<0&&h.indexOf('new Date(todayStr())')<0&&h.indexOf('parseLocalDate(plant.lastWater)')>=0&&h.indexOf('parseLocalDate(todayStr())')>=0;document.getElementById('__tbProbe').textContent='LOCALDATE '+(ok?'OK':'BAD');"],
+    "expect": ["LOCALDATE OK"],
+    "ref": "YYYY-MM-DD 原先用 new Date(字符串) 按 UTC 午夜解析，西半球本地显示前一天；现 parseLocalDate 按本地年月日构造，上次浇水与今天/剩余天数不再整体偏一天。旧版无该函数且两处仍是裸 new Date ⇒ 哨兵红；默认态不产生该哨兵。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

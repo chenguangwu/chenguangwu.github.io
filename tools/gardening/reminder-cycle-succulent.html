@@ -192,6 +192,12 @@ function fmtDate(d) {
   return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 }
 function todayStr() { return fmtDate(new Date()); }
+// YYYY-MM-DD 必须按本地年月日构造：new Date("YYYY-MM-DD") 按 UTC 午夜解析，
+// 西半球会本地显示为前一天，导致上次/下次浇水日期整体偏一天。
+function parseLocalDate(s) {
+  var m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(String(s || ''));
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
+}
 function fillToday() { document.getElementById('plantLastWater').value = todayStr(); }
 
 function getSeasonAdjust() {
@@ -209,14 +215,14 @@ function getNextWaterDate(plant) {
   var v = getVariety(plant.variety);
   var season = getSeasonAdjust();
   var adjustedFreq = Math.round(v.freq * season.factor);
-  var last = new Date(plant.lastWater);
+  var last = parseLocalDate(plant.lastWater);
   var next = new Date(last);
   next.setDate(next.getDate() + adjustedFreq);
   return next;
 }
 
 function getDaysUntil(date) {
-  var today = new Date(todayStr());
+  var today = parseLocalDate(todayStr());
   return Math.ceil((date - today) / (1000 * 60 * 60 * 24));
 }
 

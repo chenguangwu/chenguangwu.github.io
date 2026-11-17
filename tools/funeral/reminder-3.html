@@ -240,7 +240,9 @@ function monthDays(y,m){return (lunarInfo[y-1900]&(0x10000>>m))?30:29;}
 
 // 农历转公历
 function lunarToSolar(lYear,lMonth,lDay,isLeap){
-  if(lYear<1900||lYear>2099)return null;
+  if(lYear<1900||lYear>2099||lMonth<1||lMonth>12||lDay<1)return null;
+  // 大小月校验：小月三十日不存在，不能悄悄换算到下月
+  if(lDay>(isLeap?leapDays(lYear):monthDays(lYear,lMonth)))return null;
   var offset=0;
   for(var i=1900;i<lYear;i++){offset+=lYearDays(i);}
   var leap=leapMonth(lYear);
@@ -330,8 +332,14 @@ function getNextDate(it){
   }
   // lunar
   var lm=it.lMonth,ld=it.lDay,leap=!!it.lLeap;
-  // 从当年起查找有效的农历年（闰月可能某些年没有）
-  for(var y=now.getFullYear();y<=now.getFullYear()+3;y++){
+  // 一次性农历提醒按添加时选定的原年计算，不能改用当前农历年的同月同日
+  if(!it.yearly){
+    var d0=lunarToSolar(it.lYear,lm,ld,leap);
+    if(d0){d0.setHours(0,0,0,0);return d0;}
+    return null;
+  }
+  // 每年重复：闰月并非每年都有，搜索范围须覆盖 19 年闰月周期
+  for(var y=now.getFullYear();y<=now.getFullYear()+20;y++){
     if(y<1900||y>2099)continue;
     // 判断该年是否有此闰月
     if(leap&&leapMonth(y)!==lm)continue;
