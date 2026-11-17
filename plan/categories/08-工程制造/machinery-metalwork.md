@@ -226,7 +226,7 @@
 ## Z 批 · 机械·选型/寿命/传动（2026-11-04）
 
 **逐页结论（8 页）**
-- `tools/machinery/flow-itinerary.html`：推力/拉力/容积/流量公式与默认算例复算一致；仅预设条把 16 MPa 标成「16bar」，点击后按 16 MPa 计算，与标签差 10 倍。
+- `tools/machinery/flow-itinerary.html`：推力/拉力/容积/流量公式与默认算例复算一致，预设条单位已与输入（MPa）一致。
 - `tools/machinery/frequency-17.html`：k/m 固有频率、阻尼透射率、隔振效率与静变形公式及深度解析算例均复算一致，0 问题。
 - `tools/machinery/jingmishebeixuanxing.html`：导轨 6 倍载荷、导程按 3000 rpm 的选择逻辑成立；但「导程精度」按导程写死 ±3/±5/±8 μm 与 C3/C5/C7 无关，超表上限静默取下限，历史漏存速度。
 - `tools/machinery/lifespan-20.html`：L10 与其两个算例复算一致；但精度/润滑因子无 ISO 281 依据却冠以 ISO 281，dn 值固定按内径 25 mm 估算，两项核心结论失真。
@@ -239,11 +239,9 @@
 
 | 页面 | 问题（含 tools/machinery/<slug>.html:NN） | 编号 |
 |---|---|---|
-| tools/machinery/flow-itinerary.html | 【中】预设条标签写「16bar/8bar/25bar」，但 `press` 输入单位是 MPa、值为 16/8/25；点击后按 16 MPa 计算推力 125.66 kN，而 16 bar=1.6 MPa 应为 12.57 kN，量纲差 10 倍（:132, :338-340） | MM-H90 |
 | tools/machinery/jingmishebeixuanxing.html | 【高】「导程精度」由导程写死（5→±3、10→±5、其余±8 μm/300mm），与所选 C3/C5/C7 无关：acc=50 判 C7（标准 ±50 μm/300mm），默认导程 5 却显示 ±3μm/300mm；acc=5 判 C3、导程 40 又显示 ±8μm/300mm，精度等级与精度值自相矛盾（:217, :220, :232） | MM-H91 |
 | tools/machinery/jingmishebeixuanxing.html | 【高】导轨/导程超表静默取末项：负载 2000 kg→需 117.6 kN，仍推荐 HGR65（动额定仅 101 kN）；速度 200 m/min→导程 40mm 时转速 5000 rpm，超过页面自称 3000 rpm 上限，均无超范围提示（:200-202, :205-208, :216, :230） | MM-H92 |
 | tools/machinery/jingmishebeixuanxing.html | 【中】历史记录 `saveHistory` 未存 vSpeed，`restoreHistory` 也不恢复速度；恢复后按当前速度重算，同一记录的导程/转速/扭矩与保存时不一致（:239, :241, :216） | MM-H93 |
-| tools/machinery/jingmishebeixuanxing.html | 【中】预设标签写「50N/20N/200N」，而 `vLoad` 输入单位是 kg、代码按 kg×9.8 计载；点击「200N」实为 200 kg（1960 N），量纲差约 10 倍（:128, :345-347） | MM-H94 |
 | tools/machinery/lifespan-20.html | 【高】精度因子 p0..p2=1.0/1.05/1.1/1.2/1.5、润滑因子 grease..jet=0.8/1.0/1.3/1.5 均无 ISO 281 依据；`precisionLife=L10h*cf*lf` 把润滑影响二次计入（L10 本身已受润滑影响），P2+喷油可把「精度保持寿命」放大至疲劳寿命 2.25 倍，与注文「精度保持寿命通常低于疲劳寿命」矛盾；meta/简介仍称「基于 ISO 281…结合精度等级因子」（:10, :209-210, :232） | MM-H95 |
 | tools/machinery/lifespan-20.html | 【高】dn 值按 `n*25` 写死内径 25mm，页面无内径输入；5000 rpm 下实际 100mm 内径 dn=500000（已到高速润滑警戒线），页面显示 125000 并判「工况良好」，dn 结论随真实轴承内径完全失真（:235-236, :243） | MM-H96 |
 | tools/machinery/lifespan-7.html | 【高】PV 校核固定轴径 0.05m（无轴径输入），限值 PTFE 0.5、其余 0.3 MPa·m/s；默认 5MPa/1500rpm→PV=19.64 即「超限」，PTFE 预设 2MPa/500rpm→2.62 也「超限」却同时判寿命「优」，油润滑 O 形圈被系统性误判为干摩擦超限（:246, :249-250） | MM-H97 |
@@ -255,7 +253,7 @@
 | tools/machinery/speed-26.html | 【中】无链号满足时 `sel` 保持末项 24A 并照常出结果：1000kW 时修正功率 1000kW 仍推荐 24A（maxKw 250）；n=10000rpm 仍推荐 24A（maxRpm 1300），无「超出选型范围」提示（:217-220, :228-233） | MM-H103 |
 
 **统计**
-- 条数：14（高 7 / 中 7）；编号区间：MM-H90–MM-H103，续接 MM-H89，不重号不跳号。
+- 条数：12（高 7 / 中 5）；编号区间：MM-H90–MM-H103，其中 MM-H90、MM-H94 已修销账，续接 MM-H89，不重号不跳号。
 - 高优编号：MM-H91（丝杠精度等级与导程精度脱钩）、MM-H92（导轨/导程超限静默取下限）、MM-H95（无依据因子冒充 ISO 281）、MM-H96（dn 内径写死 25mm）、MM-H97（PV 轴径写死 50mm）、MM-H100（极数推断产生负转差）、MM-H102（链号额定功率表与转速无关）。
 - 假工具：2（`tools/machinery/lifespan-20.html` 的核心精度/润滑因子无标准来源；`tools/machinery/speed-26.html` 的「额定功率/转速表」名不副实）。承诺未实现：0。
 - 安全：0（8 页均无 XSS、eval、allow-same-origin、明文存密或业务数据第三方外传，无 path:line 可列；全站模板 ttzz 脚本不单列）。
