@@ -3704,6 +3704,12 @@ const CASES = [
   expect: ["PIXEL DER"],
   ref: "D-N333 像素画绘制未及时记录历史：修复后 _px() 绘制后防抖 600ms 调 __pixel_art_generatorExtras(true)，Extras 支持 force 绕过 1 秒节流并把 __pxGrid 纳入去重，Render 回放 JSON.parse(rec.__pxGrid) 重建画布与字符画。断言绘制调 Extras(true)+setTimeout(D)、Extras 含 force 与 __pxGrid(E)、Render 含 __pxGrid 与 JSON.parse(R)。旧实现 _px 不记历史、无网格去重/回放 ⇒ 不命中。",
 },
+{
+  slug: "design/photo-print-size",
+  inputs: { pw: "1800", ph: "1300", dpi: "300" },
+  expect: ["6寸 (4R) ✅ 像素充足（旋转后）"],
+  ref: "相纸方向不匹配：6寸(4R) 10.2×15.2cm@300DPI 需 1205×1796px。横图 1800×1300 正向宽1800≥1205✓但高1300<1796✗，旧版固定宽对窄边判「基本可用」；旋转后宽1800≥1796✓且高1300≥1205✓应判「像素充足」。交换为 1300×1800 正向即充足，二者应同为充足。现 rotW 判定覆盖旋转方向并标注「旋转后」。锚定「6寸 (4R)」整行避免默认态 A4 旋转命中（默认 4000×3000 对 A4 2481×3508 也是旋转后充足）；默认 6寸正向充足不带「旋转后」⇒ 强判别。",
+},
 ];
 
 // ---------------------------------------------------------------- main
