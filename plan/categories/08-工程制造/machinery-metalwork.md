@@ -271,8 +271,8 @@
 - `tools/machinery/torque-motion.html`：推力档位、速度、功率与默认算例一致；仅深度解析两个算例的效率用了页面不存在的 0.9 与错配的 0.6/0.7，历史不存执行器类型（中）。
 - `tools/machinery/torque-response.html`: ω/α/T/峰值功率与两个算例一致；制动能量未乘负载系数（默认高 25%、反向负载低 23%），「默认参数」预设 vLoad 与页面默认不符（中）。
 - `tools/machinery/xiao-dingwei-lianjie-chicun.html`：主算 d=√(4F/πτ) 正确；「双销并联直径=2×d」算错（应 d/√2，放大 2.83 倍），⇄ 互换按钮错位量纲，挤压/销长/配合未实现（高 + 中）。
-- `tools/metalwork/analysis-36.html`：计数/加权/缺陷率与算例（212、19.20%）一致；仅是统计器，可见英文副标题与简介承诺的成因/对策、标准差、控制界限、位置溯源均未实现，缺陷名未转义（假 + 中 + 安全）。
-- `tools/metalwork/analysis-cost-price-5.html`：均值/样本标准差/CV/极差/首末涨跌幅/最大回撤与算例一致；标题与引据表承诺材料成本构成但无任何成本输入，价格 0/负值未校验，期次名未转义（假 + 中 + 安全）。
+- `tools/metalwork/analysis-36.html`：计数/加权/缺陷率与算例（212、19.20%）一致；仅是统计器，可见英文副标题与简介承诺的成因/对策、标准差、控制界限、位置溯源均未实现（假 + 中；原未转义注入项已修复，第 952 批真机复核）。
+- `tools/metalwork/analysis-cost-price-5.html`：均值/样本标准差/CV/极差/首末涨跌幅/最大回撤与算例一致；标题与引据表承诺材料成本构成但无任何成本输入，价格 0/负值未校验（假 + 中；原未转义注入项已修复，第 952 批真机复核）。
 
 **问题条目**
 
@@ -290,16 +290,14 @@
 | tools/machinery/xiao-dingwei-lianjie-chicun.html | 【中】深度解析称「圆柱销/圆锥销的直径 d 与长度 L 按剪力与挤压选定」并给出 σc=F/(d·t)，页面无板厚 t、销长 L 与配合输入，只输出直径/截面积，「尺寸」与挤压校核未实现（:720-724, :563-566） | MM-H113 |
 | tools/metalwork/analysis-36.html | 【假】只做「数量×权重」统计；可见英文副标题承诺 "Diagnose common casting defects … assess likely causes and remedies"，简介功能承诺均值/标准差/极差、控制界限判定批次合格性、按浇道/型腔定位高发位置，代码全部未实现，无任何成因/对策输出（:117, :286-292, :209-239） | MM-H114 |
 | tools/metalwork/analysis-36.html | 【中】数量与权重不校验：cnt 可为负或 0（缺陷总数/缺陷率变负），权重不限 1–3（输 100 使加权指数虚高约 30 倍），页脚仍写「权重按严重度取 1~3」（:217-219, :237） | MM-H115 |
-| tools/metalwork/analysis-36.html | 【安全】缺陷类型名 r.n 未转义即拼入 innerHTML（明细表、数量最多、加权最高三处）；一行 `<img/src=x/onerror=alert(1)>,5,1` 即可执行脚本（tools/metalwork/analysis-36.html:226, :234-235） | MM-H116 |
 | tools/metalwork/analysis-cost-price-5.html | 【假】标题含「成本」、引据表列「材料成本=体积×密度×单价（铜 8.96 g/cm³）」与「总成本=材料+加工+损耗+废品率」，页面只有价格序列统计，无体积/密度/加工费/废品率任何输入，成本分析未实现（:125, :191-203, :220-256） | MM-H117 |
 | tools/metalwork/analysis-cost-price-5.html | 【中】价格 0/负值未校验：前一期为 0 时环比得 Infinity（被全局替换成「—」），均值为 0 时 CV 直接取 0 显示「无波动」，负价仍参与均值/标准差/回撤（:236, :239, :248） | MM-H118 |
-| tools/metalwork/analysis-cost-price-5.html | 【安全】期次名 o.name 未转义即拼入表格 innerHTML；`<img/src=x/onerror=alert(1)>,48000` 再加一行价格即可执行脚本（tools/metalwork/analysis-cost-price-5.html:249） | MM-H119 |
 
 **统计**
-- 条数：16（高 3 / 中 9 / 假 2 / 安全 2）；编号区间：MM-H104–MM-H119，续接 MM-H103，不重号不跳号。
+- 条数：14（高 3 / 中 9 / 假 2）；编号区间：MM-H104–MM-H119，续接 MM-H103，安全两条 MM-H116/H119 已修复销账，其余不重号不跳号。
 - 高优编号：MM-H104（链条选型不看功率、无强度校核）、MM-H106（回火线性模型高估 10–16 HRC）、MM-H111（双销并联直径 2d）。
 - 假工具：2（`tools/metalwork/analysis-36.html`、`tools/metalwork/analysis-cost-price-5.html`，均核心统计可用但宣称的分析/诊断/成本能力未实现）。承诺未实现另有：MM-H104（meta 称校核静/疲劳强度）、MM-H113（挤压与销长）。
-- 安全：2 条，path:line 为 `tools/metalwork/analysis-36.html:226,234-235` 与 `tools/metalwork/analysis-cost-price-5.html:249`（均为用户输入未转义拼 innerHTML 的 DOM XSS，非第三方外传）；其余 6 页无 XSS、eval、allow-same-origin、明文存密或业务数据外传；全站模板 ttzz 脚本不单列。
+- 安全：0 条（原 MM-H116/H119 的用户输入未转义均已由 `escXss` 修复，第 952 批真机复核零注入）；其余 8 页无 XSS、eval、allow-same-origin、明文存密或业务数据外传；全站模板 ttzz 脚本不单列。
 - 复算：node 复算 45 钢 500/600°C 42.6/39.7 HRC、链速 7.722 m/s 与 F 712/12951/64753 N、双销 10.301/29.135 mm、制动能量 23.06/28.82/37.47 kJ、缺陷指数 212 与 19.20%、CV 4.41%/SD 2446.38，未落盘仓库；仅源码阅读，未开浏览器、未跑 `_build.py`/`run_gates.py`、未改 `tools/**` 与构建产物，未触碰 `plan/interaction-validity.md`。
 - 去重说明：`strength-15`「按转速查表不看载荷」与 MM-H102（speed-26 额定功率表）同属选型表缺载荷维度但页面与机制不同；`temp-hardness` 的写死系数与 MM-H81（detector-stretch 写死阈值）同模式但页面不同，均按逐页口径单列。
 
@@ -336,18 +334,17 @@
 | tools/metalwork/detector-hardness.html | 【高】胶带法（ASTM D3359）无对应等级输入：选 tape 时 crosscutRow 与 pulloffRow 都 display:none，代码仍读隐藏的 crosscutGrade（默认 0 级）→ 恒 100 分/合格，方法选择等于死选项（:137-150,289-315） | MM-H134 |
 | tools/metalwork/detector-hardness.html | 【高】各涂层合格线是写死常量却称依据国标：reqPencil paint=HB、anode=2H、pvd=6H，reqHV paint=100…pvd=800，reqNano paint=1…pvd=20，均无标准来源；GB/T 9286/6739/4957 是划格/铅笔/测厚方法标准，不规定合格线，简介仍称「依据…综合判定合格性」（:124,349,357,364,525） | MM-H135 |
 | tools/metalwork/detector-hardness.html | 【中】默认组合自相矛盾：pencilGrade 默认 6B（最软）、coatingType 默认 paint（要求 HB 指数 6），加载即显示「涂层质量良好（未达标）/不合格」，默认参数无法演示合格路径（:183,206,343,349-350） | MM-H136 |
-| tools/metalwork/detector-mold.html | 【安全】测量点编号 ptName 未转义即拼入 innerHTML（`'<p>测量点：'+…+'</p>'`），输入 `<img src=x onerror=alert(1)>` 即执行 DOM XSS（tools/metalwork/detector-mold.html:230） | MM-H137 |
 | tools/metalwork/detector-mold.html | 【高】「记录此点」是假功能：addPoint 只把 `{name,dx}` push 进 pointList，该数组从不渲染、也不导出；CSV 导出的是 TBKit 历史表（输入+结果摘要），不是多点测量报告（:243-250,414-416） | MM-H138 |
 | tools/metalwork/detector-mold.html | 【中】公式框与判定逻辑不符：说明称「各轴偏差均不超公差且空间偏差不超公差」才 PASS，代码 allPass=passX&&passY&&passZ，未判 dist；三轴各 0.019 mm、tol=0.020 → 空间偏差 0.0329 mm 仍判「合格」（:120,227-239） | MM-H139 |
 | tools/metalwork/detector-mold.html | 【中】空值/零公差无校验：坐标用 `+value` 读取，清空理论/实测坐标得 0 仍参与计算；清空公差得 ±0.000 mm，任意偏差全判超差并给出刀具补偿建议，无「请输入」提示（:222-224,238-264） | MM-H140 |
 
 **统计**
-- 条数：21（高 10 / 中 9 / 假 1 / 安全 1）；编号区间：MM-H120–MM-H140，续接 MM-H119，不重号不跳号。
+- 条数：20（高 10 / 中 9 / 假 1）；编号区间：MM-H120–MM-H140，续接 MM-H119，安全一条 MM-H137 已修复销账，其余不重号不跳号。
 - 高优编号：MM-H120（流程比单位混算）、MM-H121（模具温度死输入）、MM-H123（Q 算了不渲染）、MM-H124（滚刀转速用分度圆）、MM-H126（材料/等级死选项）、MM-H128（IT 等级无视公称尺寸）、MM-H133（厚度容差失效）、MM-H134（胶带法恒合格）、MM-H135（写死涂层合格线冒充国标）、MM-H138（记录点假功能）。
 - 假工具：0（核心直齿/评分/偏差计算均可用）；承诺未实现：1（MM-H125 斜齿）；冒用国标：2（MM-H128、MM-H135）。
-- 安全：1 条，path:line 为 `tools/metalwork/detector-mold.html:230`（用户输入未转义拼 innerHTML 的 DOM XSS，非第三方外传）；其余 7 页无 XSS、eval、allow-same-origin、明文存密或业务数据外传；全站模板 ttzz 脚本不单列。
+- 安全：0 条（原 MM-H137 已于第 952 批改走 `ToolBox.escHtml` 并真机回放验证）；其余 8 页无 XSS、eval、allow-same-origin、明文存密或业务数据外传；全站模板 ttzz 脚本不单列。
 - 复算：node 内存复算关键值（流程比 0.667 vs 6.67、铣削 1909.9 rpm / 763.9 mm/min / Q 305.6 mm²/min、滚齿 265.3 vs 127.3 rpm、IT8(30–50 mm)=39 μm、模腔空间偏差 0.0329 mm），未落盘仓库；仅源码阅读，未开浏览器、未跑 `_build.py`/`run_gates.py`、未改 `tools/**` 与构建产物，未触碰 `plan/interaction-validity.md`、`plan/units-factors.md`。
-- 去重说明：`detector-hardness` 的写死涂层合格线与 MM-H81（detector-stretch 写死阈值）同属「冒充国标验收」模式但页面不同；`detector-23` 的 IT 表与 MM-H91（丝杠精度等级与导程脱钩）同为「查表值不随输入维度变化」但字段不同；`detector-mold` 的 DOM XSS 与 MM-H116/H119 同为未转义拼 innerHTML，按逐页口径单列。
+- 去重说明：`detector-hardness` 的写死涂层合格线与 MM-H81（detector-stretch 写死阈值）同属「冒充国标验收」模式但页面不同；`detector-23` 的 IT 表与 MM-H91（丝杠精度等级与导程脱钩）同为「查表值不随输入维度变化」但字段不同。
 
 ## AA 批 · 金属·锻造/压铸/糖度（2026-11-04）
 
