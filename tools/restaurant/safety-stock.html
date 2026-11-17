@@ -238,16 +238,22 @@
 function calc(){
   const name=document.getElementById('ingName').value||'食材';
   const unit=document.getElementById('unit').value;
-  const avgDaily=+document.getElementById('avgDaily').value||0;
-  const maxDaily=+document.getElementById('maxDaily').value||0;
-  const avgLead=+document.getElementById('avgLead').value||1;
-  const maxLead=+document.getElementById('maxLead').value||1;
-  const orderCost=+document.getElementById('orderCost').value||0;
-  const holdCost=+document.getElementById('holdCost').value||0.01;
-  const currentStock=+document.getElementById('currentStock').value||0;
-  const workDays=+document.getElementById('workDays').value||365;
+  const en=(typeof TBKit!=='undefined'&&TBKit.util.isEn && TBKit.util.isEn());
+  function failField(msg){
+    document.getElementById('result').innerHTML='<div class="info-box"><strong>'+msg+'</strong></div>';
+    var t=document.getElementById('safety_stockTable'); if(t) t.innerHTML='';
+    return;
+  }
+  const avgDaily=Number(document.getElementById('avgDaily').value);
+  const maxDaily=Number(document.getElementById('maxDaily').value);
+  const avgLead=Number(document.getElementById('avgLead').value);
+  const maxLead=Number(document.getElementById('maxLead').value);
+  const orderCost=Number(document.getElementById('orderCost').value);
+  const holdCost=Number(document.getElementById('holdCost').value);
+  const currentStock=Number(document.getElementById('currentStock').value);
+  const workDays=Number(document.getElementById('workDays').value);
 
-  var __need=['avgDaily','maxDaily','avgLead','maxLead','orderCost','holdCost','currentStock'];
+  var __need=['avgDaily','maxDaily','avgLead','maxLead','orderCost','holdCost','currentStock','workDays'];
   for(var __i=0;__i<__need.length;__i++){
     if(document.getElementById(__need[__i]).value.trim()===''){
       document.getElementById('result').innerHTML='<div class="info-box"><strong>请填写平均日消耗量、最大日消耗量、平均/最大到货天数、单次订货成本、单位持有成本与当前库存后再计算。</strong></div>';
@@ -255,6 +261,15 @@ function calc(){
       return;
     }
   }
+  // 逐项合法性校验（不再用 || 静默替换默认；0/负/非数报字段错误并清空结果）
+  if(!isFinite(avgDaily)||avgDaily<=0){ failField(en?'Average daily usage must be greater than 0':'平均日消耗量须大于 0'); return; }
+  if(!isFinite(maxDaily)||maxDaily<avgDaily){ failField(en?'Max daily usage must be >= average daily usage':'最大日消耗量须不小于平均日消耗量'); return; }
+  if(!isFinite(avgLead)||avgLead<=0){ failField(en?'Average lead time must be greater than 0':'平均到货天数须大于 0'); return; }
+  if(!isFinite(maxLead)||maxLead<avgLead){ failField(en?'Max lead time must be >= average lead time':'最大到货天数须不小于平均到货天数'); return; }
+  if(!isFinite(orderCost)||orderCost<0){ failField(en?'Order cost must be >= 0':'单次订货成本须不小于 0'); return; }
+  if(!isFinite(holdCost)||holdCost<=0){ failField(en?'Holding cost must be greater than 0':'单位持有成本须大于 0'); return; }
+  if(!isFinite(currentStock)||currentStock<0){ failField(en?'Current stock must be >= 0':'当前库存须不小于 0'); return; }
+  if(!Number.isInteger(workDays)||workDays<1||workDays>366){ failField(en?'Business days must be an integer from 1 to 366':'年营业天数须为 1–366 的整数'); return; }
 
   // 安全库存 = 最大日消耗 * 最大到货天数 - 平均日消耗 * 平均到货天数
   const safetyStock=Math.max(0,maxDaily*maxLead-avgDaily*avgLead);

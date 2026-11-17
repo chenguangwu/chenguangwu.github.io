@@ -162,6 +162,12 @@ const CASES = [
     "clicks": ["var q=document.getElementById('dishQty');var step=q.getAttribute('step');document.getElementById('dishName').value='半份测试';q.value='1.5';calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='DISHSTEP '+(step==='0.5'&&h.indexOf('半份测试')>=0&&h.indexOf('¥')>=0?'OK':'BAD step='+step);"],
     "expect": ["DISHSTEP OK"],
     "ref": "937预设步长：份数「大规模」预设 1.5 须合法，输入 min=1 且 step=0.5 才符合 HTML 默认步长；旧版无 step（默认 1）1.5 触发 stepMismatch。探针同时要求 step=0.5、1.5 份参与计算产出结果容器。默认态 step 缺失⇒BAD。"
+  },
+  {
+    "slug": "restaurant/safety-stock",
+    "clicks": ["var $=function(id){return document.getElementById(id);};function set(v){var ids=['avgDaily','maxDaily','avgLead','maxLead','orderCost','holdCost','currentStock','workDays'],ks=['avgDaily8','maxDaily8','avgLead3','maxLead7','orderCost50','holdCost12','currentStock20','workDays365'];for(var i=0;i<ids.length;i++) $(ids[i]).value=String(v[ks[i]]);}$('ingName').value='守卫测试';set({avgDaily8:-5,maxDaily8:8,avgLead3:3,maxLead7:7,orderCost50:50,holdCost12:12,currentStock20:20,workDays365:365});calc();var neg=/平均日消耗量须大于 0/.test($('result').innerHTML);set({avgDaily8:5,maxDaily8:8,avgLead3:3,maxLead7:7,orderCost50:50,holdCost12:0,currentStock20:20,workDays365:365});calc();var hc=/单位持有成本须大于 0/.test($('result').innerHTML);set({avgDaily8:5,maxDaily8:8,avgLead3:3,maxLead7:7,orderCost50:50,holdCost12:12,currentStock20:20,workDays365:400});calc();var wd=/年营业天数须为 1–366/.test($('result').innerHTML);set({avgDaily8:5,maxDaily8:8,avgLead3:3,maxLead7:7,orderCost50:50,holdCost12:12,currentStock20:20,workDays365:365});calc();var ok=/安全库存/.test($('result').innerHTML)&&/经济订货量/.test($('result').innerHTML);document.getElementById('__tbProbe').textContent=(neg&&hc&&wd&&ok)?'__SAFE_L7_OK__':'__SAFE_L7_BAD__ '+[neg,hc,wd,ok].join(',');"],
+    "expect": ["__SAFE_L7_OK__"],
+    "ref": "第1101批 L7：旧版 avgDaily=-5 使年需求负、EOQ NaN→「—」、daysLeft 恒 0 仍判「低于安全库存」；holdCost=0 被 ||0.01 静默替换；workDays=400 无校验。新：日均≤0/持有成本≤0/营业天数非1-366均报字段错误并清空表，合法值正常出安全库存+EOQ。旧版三哨兵全红。"
   }
 ];
 async function main() {
