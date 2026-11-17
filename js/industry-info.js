@@ -131,7 +131,7 @@ window.INDUSTRY_INFO = {
   'dyeing'               : { name: '印染染色', icon: '🎨', hot: 114126 },
   'mining'               : { name: '矿业冶金', icon: '⛏️', hot: 111277 },
   'forensic-medicine'    : { name: '法医学', icon: '⚖️', hot: 108132 },
-  'usedcar'              : { name: '二手车', icon: '🚙', hot: 107152 },
+  'usedcar'              : { name: '二手车', icon: '🚙', hot: 107153 },
   'paper'                : { name: '造纸印刷', icon: '📄', hot: 106765 },
   'sales'                : { name: '销售管理', icon: '📈', hot: 102469 },
   'fire'                 : { name: '消防安全', icon: '🚒', hot: 96736 },

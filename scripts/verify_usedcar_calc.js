@@ -10,6 +10,8 @@
 //   其中若干项改档后重算 —— expect 只认「click 后的分数」；判别器 clearInject 清空 clicks 后
 //   回退兜底只能复现注入态的全优分（100），与 expect 不重合 ⇒ 既不 skip 也无逃生项。
 //   （ck_* 是运行期 id、pageDefaults 取不到，故 inputs 侧这些键会被判别器保留注入值。）
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -240,6 +242,12 @@ const CASES = [
   "clicks": ["document.getElementById('age').value='-2';calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='UC180 '+(h.indexOf('车龄与里程不得为负')>=0&&h.indexOf('成新率')<0?'OK':'BAD '+h.slice(0,80))"],
   "expect": ["UC180 OK"],
   "ref": "12-N180：旧 calc 用 parseFloat(...)||0 后无符号守卫，age=-2 得 ageRate=1.1、clamp 到 1 → 成新率 100%、按新车价估值。修复后 newPrice>0&&age>=0&&mileage>=0 守卫 + 中英提示。注入 age=-2 要求提示存在且不含成新率；默认 age=3/mileage=3 合法，注入失败不命中 ⇒ 零逃生。"
+},
+{
+  "slug": "usedcar/usedcar-valuation",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/usedcar/usedcar-valuation.html','utf8');var zh=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/usedcar.json','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/usedcar/usedcar-valuation.json','utf8');var ok=h.indexOf('再按车况上下浮动形成残值区间')<0&&h.indexOf('输出单一基线估值')>=0&&zh.indexOf('里程与车况')<0&&zh.indexOf('估算残值基线')>=0&&dd.indexOf('单一基线估值')>=0&&dd.indexOf('成新率与估值区间')<0&&en.indexOf('single baseline estimate')>=0&&en.indexOf('valuation range')<0;document.getElementById('__tbProbe').textContent='UC179 '+(ok?'OK':'BAD');"],
+  "expect": ["UC179 OK"],
+  "ref": "12-N179：公式框/meta/深解均承诺「按车况浮动形成残值区间」，但页面无车况输入、代码只输出单一估值；统一改为「单一基线估值，未计入车况/品牌溢价/地区行情」并同步中英源。源码形态断言旧承诺串全部消失、新口径到位；旧版必红，默认态不产生该哨兵，零逃生。"
 }
 ];
 

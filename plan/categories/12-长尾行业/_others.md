@@ -769,13 +769,6 @@
 - 影响：`tools/gardening/soil-ph.html` 按页面表格 100–300 g 对应「升 1 个 pH」，差 1.5 个单位应给 150–450 g，页面只给 100–300 g（仅覆盖所需区间的约 2/3），用户按清单补一次仍差 0.5–1.0 个 pH，误判「已按工具加足」。
 - 方案：结果区按 `diff` 计算建议区间（`dose×diff`）并显示「按差值 Z 个单位」，保留「分次、每次 ≤0.5–1.0」的提示；调酸同理乘硫磺粉 100–200 g。
 
-### 12-N179 usedcar/usedcar-valuation：公式框承诺「按车况浮动形成残值区间」，实际无车况输入、只输出单一估价值（中，确认缺陷）
-- 问题：公式框 `:123` 写「估价 = 新车价 × 综合成新率，再按车况上下浮动形成残值区间」；深度解析 `:372` 也承诺「得成新率与估值区间」。但页面只有新车价/车龄/里程三个输入（`:127-138`），`calc()` 只输出单值（`:226-228`），无车况、品牌、地区项，也无上下限。
-- 证据：`tools/usedcar/usedcar-valuation.html:123`、`:127-138`、`:226-228`、`:372`
-- 复现：默认（12 万、3 年、3 万 km）→ 结果仅「成新率 85.0% / 估算二手价 102000.00 元」；任何输入组合都不出现区间，输入区也没有车况控件。
-- 影响：`tools/usedcar/usedcar-valuation.html` 用户按承诺寻找「残值区间」却拿不到，只能把单值当报价；车况这一最大不确定性完全缺失。
-- 方案：增加车况系数（优/良/一般/差 = +5%/0/−8%/−15%）与品牌保值率档位，输出「低–高」区间；或删掉「按车况浮动/残值区间」表述，改为「单点理论残值」。
-
 ### 覆盖清单（T 批 长尾行业，2026-11-04）
 - 审计页数：8（`tools/metallurgy/alloy-ratio.html`、`tools/leather/calc-dosage-4.html`、`tools/gardening/soil-ph.html`、`tools/chemical/reaction-yield.html`、`tools/nutrition/generator-glucose-load.html`、`tools/process/cpk-with-shift.html`、`tools/transport/calculator-calc-fuel.html`、`tools/usedcar/usedcar-valuation.html`），8 个不同目录各 1 页，均为既有 plan 未覆盖页（Grep 上述 8 个 slug 在 `_others.md` 零命中）。
 - 新增条数：15 条，编号 12-N167–12-N181（高 5 / 中 10）。
