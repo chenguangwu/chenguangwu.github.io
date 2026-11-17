@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
 const { runCase } = require("./verify_it_calc.js");
+globalThis.__tbFs = fs;
 const CASES = [
 {
   // 原为 no_inputs 弱用例：expect「26-50%」来自 grade=2 的默认档，与勾选无关。
@@ -294,7 +296,11 @@ const CASES = [
   { slug: "ent/caloric-test",
     inputs: { rw: "", lw: "", rc: "", lc: "" },
     expect: ["请填写四组冷热试验反应值（°/s）后再判读。"],
-    ref: "空态守卫：四项全清空时不再把空值按 0 参与计算（旧实现 +''||0 → 总和 0 → UW=0/DP=0 →「前庭功能正常」），改为只输出填写提示，不给正常/异常结论。默认态四项 25/22/20/18 有值 ⇒ 提示串不出现。" }
+    ref: "空态守卫：四项全清空时不再把空值按 0 参与计算（旧实现 +''||0 → 总和 0 → UW=0/DP=0 →「前庭功能正常」），改为只输出填写提示，不给正常/异常结论。默认态四项 25/22/20/18 有值 ⇒ 提示串不出现。" },
+  { slug: "ent/lund-mackay-score",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ent/lund-mackay-score.html','utf8');var ok=h.indexOf('各 5 个鼻窦')>=0&&h.indexOf('OMC（仅 0 或 2')>=0&&h.indexOf('各 6 个鼻窦 / 窦口复合体（每项 0 至 2')<0;document.getElementById('__tbProbe').textContent='LMFIX '+(ok?'OK':'BAD');"],
+    expect: ["LMFIX OK"],
+    ref: "第1096批 N30：公式框旧文案把 6 个部位都写成 0 至 2 三档，但 OMC 只有 0 未阻塞/2 完全阻塞两档，用户会以为漏了 1 分按钮；改为 5 个鼻窦 0–2 + OMC 仅 0 或 2，源码形态判别旧串消失且新串出现。" }
 ];
 async function main() {
   const only = process.argv.slice(2);
