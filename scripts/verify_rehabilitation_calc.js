@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
   { slug: "rehabilitation/berg-balance-scale", checks: ["4"],
@@ -486,6 +488,12 @@ const CASES = [
     ],
     "ref": "边界用例：14 项各 3 分 = 42 分，锁定 41–44 这一档（此前页面把该档写成「40–44」与「41–44」两种口径，已统一为 41–44 轻度障碍/中度跌倒风险）；跌倒风险估算 (45-42)×7=21%。"
        + "默认态 answered=0 ⇒ 门诊记录整段不渲染，零交集；21–40 段（总分 28）返回「中高跌倒风险」，与本例「中度跌倒风险」互斥。"
+  }
+  ,{
+    "slug": "rehabilitation/fim-scale",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/rehabilitation/fim-scale.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/rehabilitation/fim-scale.json','utf8');var d=JSON.parse(dd)['rehabilitation/fim-scale'];var faq=d.faqs[0].a,ex=d.examples[1].body;var ok=h.indexOf('72-107')<0&&h.indexOf('18-53')<0&&h.indexOf('预期增益')<0&&h.indexOf('108–125 基本独立')>=0&&h.indexOf('不预测出院分数')>=0&&faq.indexOf('72-107')<0&&faq.indexOf('90–107')>=0&&faq.indexOf('19–35')>=0&&ex.indexOf('入院<80')<0&&ex.indexOf('不预测出院分数')>=0&&en.indexOf('72-107 moderate dependence')<0&&en.indexOf('expected gain')<0;document.getElementById('__tbProbe').textContent='FIMGRADE '+(ok?'OK':'BAD');"],
+    "expect": ["FIMGRADE OK"],
+    "ref": "12-N64/N65/N67/N69：deep-dive FAQ 旧 5 档（72-107 中度/54-71 重度/18-53 极重度）与主表/代码 8 档冲突；算例残留已从代码删除的「预期增益≈20+(80-总分)×0.3」承诺。权威源 content_deepdive.json 统一为 8 档并改为「不预测出院分数」；N67 首屏统计卡与结果框文案、N69 opt 区与 FAQPage 均为源码复核已修纯销账。旧版旧档串/增益串命中即红；默认态不产生该哨兵。"
   }
 ];
 async function main() {
