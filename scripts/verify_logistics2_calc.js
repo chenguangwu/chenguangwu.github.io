@@ -131,6 +131,12 @@ const CASES = [
   },
   "expect": ["8 最大可装件数"],
   "ref": "06-F6（中优）：车厢 5×3×2、货物 1.5×1.2×2。旧 3 向枚举最大 6 件（[1.5,1.2,2]→3×2×1）；补全 6 向全排列后 [1.2,1.5,2]→floor(5/1.2)×floor(3/1.5)×floor(2/2)=4×2×1=8 件；重量上限 floor(5000/10)=500 ⇒ 最大可装 8、体积受限。"
+},
+{
+  "slug": "logistics2/inventory-aging",
+  "clicks": ["var el=document.getElementById('invInput'),per=document.getElementById('period'),th=document.getElementById('threshold'),r=document.getElementById('result'),nl=String.fromCharCode(10);per.value='90';th.value='180';el.value='合格品,100,200,30,10'+nl+'缺单价,500,100,60'+nl+'负库存,-100,50,20,10'+nl+'小数库龄,100,50,20.5,10';calc();var h=r.innerHTML;var rej=/已拒绝 3 行/.test(h)&&/字段不足5列/.test(h)&&/不得为负数/.test(h)&&/库龄须为整数天/.test(h)&&/SKU 总数/.test(h);per.value='0';calc();var zero=/统计周期须为正整数/.test(r.innerHTML);per.value='-90';calc();var neg=/统计周期须为正整数/.test(r.innerHTML);per.value='90';el.value='慢周转,100,1000,10,1';calc();var h2=r.innerHTML;var agepart=/判定口径/.test(h2)&&/库龄\\(天\\)/.test(h2)&&/判定天数/.test(h2);document.getElementById('__tbProbe').textContent=(rej&&zero&&neg&&agepart)?'__INV_I6_OK__':'__INV_I6_BAD__ '+[rej,zero,neg,agepart].join(',');"],
+  "expect": ["__INV_I6_OK__"],
+  "ref": "第1098批 I6：①残缺行逐行拒绝并披露（字段不足5列/负库存/小数库龄三行被拒，合格品行保留，SKU 总数仍出）；②period=0 与 -90 均报错不再静默替换默认 90；③库龄参与判定（明细表新增库龄/判定天数列+判定口径说明）。旧版：残缺行静默丢弃无披露、period 0/负静默按 90、无库龄列 ⇒ 全红。"
 }
 ];
 async function main() {
