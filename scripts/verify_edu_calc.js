@@ -15,6 +15,35 @@ globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  // ── 第1170批：考试计时时间戳基准、分段提醒与初始状态 ──
+  {
+    slug: "edu/exam-timer",
+    inputs: { "set-minutes": "42" },
+    clicks: ["var ok=false;try{if(typeof tickCountup!=='function')throw 0;var real=Date.now;var t=real();Date.now=function(){return t;};resetCountup();startCountup();Date.now=function(){return t+10000;};tickCountup();var d=document.getElementById('countup-display').textContent;clearInterval(countUp.interval);Date.now=real;ok=(d==='00:00:10');}catch(e){}document.getElementById('__tbProbe').textContent='JUP:'+(ok?'OK':'BAD');"],
+    expect: ["JUP:OK"],
+    ref: "EL-J96：正计时须以 startedAt 时间戳为基准，推进 10 秒后显示 00:00:10；旧版靠 250ms 增量重算整数秒且无 tickCountup ⇒ BAD。",
+  },
+  {
+    slug: "edu/exam-timer",
+    inputs: { "set-minutes": "5" },
+    clicks: ["var ok=false;try{if(typeof tickCountdown!=='function')throw 0;var real=Date.now;var t=real();Date.now=function(){return t;};reset();start();Date.now=function(){return t+300000;};tickCountdown();var d=document.getElementById('display').textContent;var r=countDown.remaining;clearInterval(countDown.interval);Date.now=real;ok=(d==='00:00:00'&&r===0);}catch(e){}document.getElementById('__tbProbe').textContent='JDOWN:'+(ok?'OK':'BAD');"],
+    expect: ["JDOWN:OK"],
+    ref: "EL-J97：倒计时须按 deadline 计算，5 分钟设定在真实时间推进 5 分钟后归零；旧版 remaining-- 每秒递减且无 tickCountdown ⇒ BAD。",
+  },
+  {
+    slug: "edu/exam-timer",
+    inputs: { "set-minutes": "20", "alert-before": "15" },
+    clicks: ["var ok=false;try{var seen=[];var old=ToolBox.showToast;ToolBox.showToast=function(m){seen.push(m);};var real=Date.now;var t=real();Date.now=function(){return t;};reset();start();Date.now=function(){return t+301000;};tickCountdown();clearInterval(countDown.interval);Date.now=real;ToolBox.showToast=old;ok=seen.some(function(m){return m.indexOf('已用 5 分钟')>=0;});}catch(e){}document.getElementById('__tbProbe').textContent='JALERT:'+(ok?'OK':'BAD');"],
+    expect: ["JALERT:OK"],
+    ref: "EL-J98：运行到 25%（20 分钟的第 5 分钟）须触发分段提醒；旧版只有导出表静态节点、无 alert-before 与运行期提示 ⇒ BAD。",
+  },
+  {
+    slug: "edu/exam-timer",
+    inputs: { "set-minutes": "45" },
+    clicks: ["var st=document.getElementById('state-label').textContent;document.getElementById('__tbProbe').textContent='JREADY:'+(st==='就绪'?'OK':'BAD');"],
+    expect: ["JREADY:OK"],
+    ref: "EL-J99：从未启动时状态徽标显示「就绪」，不因 reset→pause 被覆盖为「已暂停」；旧版必然写「⏸ 已暂停」⇒ BAD。",
+  },
   // ── 第1169批：学习计划重复公式框、番茄轮次刷高与计时失真 ──
   {
     slug: "edu/exam-study-planner",
@@ -1086,9 +1115,9 @@ const CASES = [
       "set-seconds": "42"
     },
     "expect": [
-      "42\n42\n42\n42:42:41"
+      "42\n42\n42\n42:42:42"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"set-hours\":\"42\",\"set-minutes\":\"42\",\"set-seconds\":\"42\"}，输出区含「42\n42\n42\n42:42:41」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"set-hours\":\"42\",\"set-minutes\":\"42\",\"set-seconds\":\"42\"}，输出区含「42\n42\n42\n42:42:42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "edu/generator-26",

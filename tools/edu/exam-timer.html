@@ -158,8 +158,8 @@
     
     <h3 style="font-size:14px;margin-bottom:8px;color:var(--text-primary);">⏲️ 倒计时模式</h3>
     <div class="card formula-box">
-  <div class="formula-title">📐 计算方式</div> <div class="formula-eq">每秒把剩余秒数减 1；小时 = floor(剩余 ÷ 3600)，分钟 = floor((剩余 mod 3600) ÷ 60)，秒 = 剩余 mod 60；剩余归零时清除定时器并置为停止态；启动时若剩余为 0 先重置为设定总时长，并把开始记录写入历史</div>
-  <p>进度 = (1 − 剩余秒数 ÷ 总秒数) × 100%；已用时长 = 总时长 − 剩余时长。分段提醒用于合理分配答题与检查时间。</p>
+  <div class="formula-title">📐 计算方式</div> <div class="formula-eq">启动时记录截止时刻 deadline = 当前时刻 + 设定总秒数，剩余秒数 = ceil((deadline − 当前时刻) ÷ 1000)，后台节流后回到前台按真实时刻自动校正；小时 = floor(剩余 ÷ 3600)，分钟 = floor((剩余 mod 3600) ÷ 60)，秒 = 剩余 mod 60；暂停时保存剩余并重算 deadline，归零时清除定时器并置为停止态</div>
+  <p>进度 = (1 − 剩余秒数 ÷ 总秒数) × 100%；已用时长 = 总时长 − 剩余时长。运行到 25%/50%/75% 或提前 N 分钟时触发提醒并写入历史，导出表给出同样的节点。</p>
 </div>
 <div class="set-row">
       <label>时</label><input type="number" id="set-hours" value="0" min="0" max="23" placeholder="如 0（0–23）">
@@ -184,7 +184,9 @@
     
     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <button type="button" class="btn" onclick="__examExport()">⬇️ 导出考试时间表 CSV</button>
-      <span style="font-size:12px;color:var(--text-muted);">按当前时长生成分段提醒点（0/25/50/75/100%）</span>
+      <label for="alert-before" style="font-size:12px;color:var(--text-muted);">提前提醒（分钟，0=关闭）</label>
+      <input type="number" id="alert-before" value="15" min="0" max="120" style="width:70px;">
+      <span style="font-size:12px;color:var(--text-muted);">运行至 25%/50%/75% 与提前 N 分钟时提示</span>
     </div>
     <div id="examChart" style="margin-top:10px;"></div>
     <table id="examTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
@@ -236,7 +238,7 @@
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>倒计时能暂停吗？</dt><dd>支持暂停与继续，中断时间不计入已用时长；模考时建议全程不暂停，以贴近真实考场节奏。</dd>
-<dt>手机锁屏会停吗？</dt><dd>计时依赖当前页面运行，切换后台或锁屏可能被系统节流；重要模考请在常亮屏幕上运行，或提前用闹钟兜底。</dd>
+<dt>手机锁屏会停吗？</dt><dd>剩余时间按截止时刻计算，切后台或锁屏不会因定时器节流而变慢，回到前台会自动校正；但页面被系统完全停止时无法发声提醒，重要模考建议同时用闹钟兜底。</dd>
 </dl>
 </div>
 </section>
@@ -284,8 +286,8 @@
 <script>
 const HIST_KEY = 'exam_timer_history';
 
-let countDown = { h: 0, m: 30, s: 0, total: 30 * 60, remaining: 30 * 60, interval: null, running: false };
-let countUp = { h: 0, m: 0, s: 0, interval: null, running: false, last: null };
+let countDown = { h: 0, m: 30, s: 0, total: 30 * 60, remaining: 30 * 60, interval: null, running: false, deadline: null, started: false, alerted: null };
+let countUp = { h: 0, m: 0, s: 0, interval: null, running: false, startedAt: null, pausedMs: 0 };
 
 function loadHistory() { return (function(){try{return JSON.parse(localStorage.getItem(HIST_KEY) || '[]')}catch(e){try{localStorage.removeItem(HIST_KEY)}catch(_){}return []}})(); }
 function saveHistory(arr) { localStorage.setItem(HIST_KEY, JSON.stringify(arr)); }
@@ -335,8 +337,9 @@ function updateDisplay() {
     document.getElementById('state-label').textContent = '⏱️ 进行中';
     document.getElementById('state-label').className = 'timer-state';
   } else {
-    document.getElementById('state-label').textContent = '⏸ 已暂停';
-    document.getElementById('state-label').className = 'timer-state paused';
+    const ready = !countDown.started && !countDown.running && countDown.remaining === countDown.total;
+    document.getElementById('state-label').textContent = ready ? (__examIsEn() ? 'Ready' : '就绪') : '⏸ 已暂停';
+    document.getElementById('state-label').className = ready ? 'timer-state' : 'timer-state paused';
   }
 }
 
@@ -425,31 +428,60 @@ function playBeep() {
   }
 }
 
+function fireAlerts() {
+  if (!countDown.total || !countDown.alerted) return;
+  const used = countDown.total - countDown.remaining;
+  const marks = [0.25, 0.5, 0.75].map(function (p) { return Math.round(countDown.total * p); });
+  const el = document.getElementById('alert-before');
+  const before = Math.max(0, Math.floor(+(el ? el.value : 0) || 0)) * 60;
+  if (before > 0 && before < countDown.total) marks.push(countDown.total - before);
+  marks.forEach(function (m) {
+    const key = String(m);
+    if (used >= m && !countDown.alerted[key]) {
+      countDown.alerted[key] = true;
+      const msg = '⏰ 已用 ' + Math.floor(m / 60) + ' 分钟，剩余 ' + Math.floor((countDown.total - m) / 60) + ' 分钟';
+      ToolBox.showToast(msg, 'warning');
+      addHistory('提醒: ' + msg);
+      playBeep();
+    }
+  });
+}
+
+function tickCountdown() {
+  if (!countDown.running || countDown.deadline == null) return;
+  countDown.remaining = Math.max(0, Math.ceil((countDown.deadline - Date.now()) / 1000));
+  countDown.h = Math.floor(countDown.remaining / 3600);
+  countDown.m = Math.floor((countDown.remaining % 3600) / 60);
+  countDown.s = countDown.remaining % 60;
+  fireAlerts();
+  updateDisplay();
+  if (countDown.remaining === 0) {
+    clearInterval(countDown.interval);
+    countDown.running = false;
+    countDown.deadline = null;
+  }
+}
+
 function start() {
   if (countDown.running) return;
   if (countDown.remaining === 0) reset();
   countDown.running = true;
-  countDown.interval = setInterval(() => {
-    if (countDown.remaining > 0) {
-      countDown.remaining--;
-      countDown.h = Math.floor(countDown.remaining / 3600);
-      countDown.m = Math.floor((countDown.remaining % 3600) / 60);
-      countDown.s = countDown.remaining % 60;
-      updateDisplay();
-      if (countDown.remaining === 0) {
-        clearInterval(countDown.interval);
-        countDown.running = false;
-      }
-    }
-  }, 1000);
+  countDown.started = true;
+  countDown.alerted = {};
+  countDown.deadline = Date.now() + countDown.remaining * 1000;
+  countDown.interval = setInterval(tickCountdown, 1000);
   addHistory(`开始倒计时: ${countDown.total}秒`);
   updateDisplay();
 }
 
 function pause() {
   if (countDown.interval) clearInterval(countDown.interval);
+  if (countDown.running && countDown.deadline != null) {
+    countDown.remaining = Math.max(0, Math.ceil((countDown.deadline - Date.now()) / 1000));
+  }
   countDown.running = false;
   countDown.interval = null;
+  countDown.deadline = null;
   updateDisplay();
 }
 
@@ -460,37 +492,44 @@ function reset() {
   countDown.s = +document.getElementById('set-seconds').value || 0;
   countDown.total = countDown.h * 3600 + countDown.m * 60 + countDown.s;
   countDown.remaining = countDown.total;
+  countDown.started = false;
+  countDown.alerted = {};
   updateDisplay();
+}
+
+document.addEventListener('visibilitychange', function () {
+  if (!document.hidden && countDown.running) tickCountdown();
+});
+
+function tickCountup() {
+  if (!countUp.running || countUp.startedAt == null) return;
+  const elapsed = Math.max(0, Math.floor((Date.now() - countUp.startedAt) / 1000));
+  countUp.h = Math.min(99, Math.floor(elapsed / 3600));
+  countUp.m = Math.floor((elapsed % 3600) / 60);
+  countUp.s = elapsed % 60;
+  document.getElementById('countup-display').textContent =
+    `${String(countUp.h).padStart(2, '0')}:${String(countUp.m).padStart(2, '0')}:${String(countUp.s).padStart(2, '0')}`;
 }
 
 function startCountup() {
   if (countUp.running) return;
   countUp.running = true;
-  countUp.last = Date.now();
-  countUp.interval = setInterval(() => {
-    const now = Date.now();
-    const diff = (now - countUp.last) / 1000;
-    countUp.last = now;
-    countUp.frac = (countUp.frac || 0) + diff;
-    const total = countUp.h * 3600 + countUp.m * 60 + countUp.s + countUp.frac;
-    countUp.h = Math.floor(total / 3600);
-    countUp.m = Math.floor((total % 3600) / 60);
-    countUp.s = Math.floor(total % 60);
-    countUp.frac = total - Math.floor(total);
-    document.getElementById('countup-display').textContent = 
-      `${String(Math.min(countUp.h, 99)).padStart(2, '0')}:${String(countUp.m).padStart(2, '0')}:${String(countUp.s).padStart(2, '0')}`;
-  }, 250);
+  countUp.startedAt = Date.now() - (countUp.pausedMs || 0);
+  countUp.interval = setInterval(tickCountup, 250);
+  tickCountup();
 }
 
 function pauseCountup() {
   if (countUp.interval) clearInterval(countUp.interval);
   countUp.running = false;
+  if (countUp.startedAt != null) countUp.pausedMs = Date.now() - countUp.startedAt;
 }
 
 function resetCountup() {
   pauseCountup();
   countUp.h = countUp.m = countUp.s = 0;
-  countUp.frac = 0;
+  countUp.pausedMs = 0;
+  countUp.startedAt = null;
   document.getElementById('countup-display').textContent = '00:00:00';
 }
 
