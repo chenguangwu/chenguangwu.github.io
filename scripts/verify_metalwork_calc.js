@@ -286,6 +286,7 @@ const CASES = [
   { slug: "metalwork/forging-ratio", inputs: { "shape": "rect" }, expect: ["锻造比 K = 2.000", "F₁=90×80=7200mm²"], ref: " shape=矩形 ⇒ renderInputs 生成 w0=120/h0=120/w1=90/h1=80；a0=120×120=14400mm²、a1=90×80=7200mm² ⇒ K=2.000、ε=50.0%（默认圆形 d0=120/d1=70 ⇒ K=2.939、11310/3848mm²，与本值不重合；K=2<目标 3 ⇒ 未达标）" },
   { slug: "metalwork/surface-finish", inputs: { "inType": "ra", "inVal": "0.4" }, expect: ["对应 N5 级表面", "建议加工方法： 精车/精铣/精磨"], ref: " Ra=0.4 落在 0.4→N5 区间，命中最近邻档位 ⇒ 等级与建议加工方法随 Ra 变动" },
   { slug: "metalwork/temp-forging", inputs: { "material": "titanium", "weight": "20", "diameter": "80" }, expect: ["锻造温度范围 180 ℃", "约 14 min"], ref: " 钛合金 MAT_DATA 温度区间下限 180 ℃；加热 t=ceil(20·0.5+80·0.05)=14 min、保温 ceil(20·0.2)=4 min" },
+  { slug: "metalwork/temp-forging", inputs: { material: "aluminum", weight: "10", diameter: "50" }, expect: ["最高加热（满量程 100%） 490℃"], ref: "995 温度条满量程（MM-H160）：铝合金 maxHeat=490℃，旧版满量程恒 1300 只画 38%；修复后以材料最高加热温度为满量程并在标签显示 100%。默认低碳钢虽同为 100%，但显示 1300℃，整串不命中 ⇒ 零逃生。" },
   { slug: "metalwork/zulinfeilvjisuan", inputs: { "value": "120000", "months": "24", "residual": "8", "rate": "6", "payType": "monthly", "mgmtFee": "2" }, expect: ["月租金 5093.00 元", "9.86%"], ref: " 残值 9600.00 → 本金 110400.00；管理费 120000·2%·2.0=4800.00；24 期、期利率 0.5000% ⇒ PMT 4892.9954，月租 5093.00；ROI 9.86%" },
   { slug: "metalwork/pressure-casting", inputs: { "weight": "10", "wall": "1.5", "material": "zinc", "batch": "mass" }, expect: ["压力铸造(压铸) 推荐方法", "最大重量 30 kg"], ref: " 锌 + 批量 mass 命中 METHODS 首项 ⇒ 压铸；壁厚 1.5 的工艺上限重量 30 kg" },
 
@@ -606,9 +607,15 @@ const CASES = [
       "industry": "consumer"
     },
     "expect": [
-      "牌利润 (万元) 4.20 市场份额系数 知名品牌（1-10亿） 行业 消费品（乘数=8） 年营收 42 万元 品牌利润 42 × 42% = 18"
+      "请输入有效年限系数(0.5–3)"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"revenue\":\"42\",\"profitRate\":\"42\",\"multiplier\":\"42\",\"yearFactor\":\"42\",\"marketShare\":\"42\",\"industry\":\"consumer\"}，输出区含「牌利润 (万元) 4.20 市场份额系数 知名品牌（1-10亿） 行业 消费品（…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "995 年限范围同步：自动补强旧输入 yearFactor=42 原照常估算品牌价值，修复后按页面占位范围 0.5–3 拒绝。默认态 1.2 不含该串 ⇒ 强判别、零逃生。",
+  },
+  {
+    "slug": "metalwork/pinpaijiazhipinggujisuan",
+    "inputs": { revenue: "5000", profitRate: "90", multiplier: "5", yearFactor: "1.2", marketShare: "10", industry: "metalwork" },
+    "expect": ["请输入有效品牌利润率(1-80)"],
+    "ref": "995 利润率上限（MM-H142）：输入框自带 max=80，键盘输 90 旧版仍按 100 上限出估值；修复后按同页口径拒绝。默认 15% 不含该串 ⇒ 零逃生。"
   },
   {
     "slug": "metalwork/pressure-casting",
@@ -672,9 +679,9 @@ const CASES = [
       "plateType": "medium"
     },
     "expect": [
-      "42\nalloy\nlap\nmedium\n埋弧焊 推荐方法 焊剂(无气体) 保护方式 高 焊缝质量 中"
+      "42\nalloy\nlap\nthick\n埋弧焊 推荐方法 焊剂(无气体) 保护方式 高 焊缝质量 中"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"thickness\":\"42\",\"material\":\"alloy\",\"joint\":\"lap\",\"plateType\":\"medium\"}，输出区含「42\nalloy\nlap\nmedium\n埋弧焊 推荐方法 焊剂(无气体) 保护方…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "995 板厚档位同步：厚度 42mm 按页内口径应归厚板(thick)，旧版沿用注入的 medium 仍可出同一方法；修复后 select 与评分统一由厚度派生。默认态 3mm/sheet 不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "metalwork/speed-itinerary",

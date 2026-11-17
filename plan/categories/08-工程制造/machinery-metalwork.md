@@ -249,20 +249,19 @@
 
 **逐页结论（8 页）**
 - `tools/metalwork/lifespan-1.html`：续航/Wh/DoD 公式正确，默认 10W/5000mAh/3.7V 复算 1.26h；铅酸选项自动写入单格 2V，12V 电池续航被低估 6 倍。
-- `tools/metalwork/pinpaijiazhipinggujisuan.html`：乘数模型可跑，默认 4500 万元；年限系数可为负仍出负估值，引据 ISO 10668 却无折现，科技预设 13 亿 = 6.5 倍营收。
+- `tools/metalwork/pinpaijiazhipinggujisuan.html`：乘数模型可跑，默认 4500 万元；引据 ISO 10668 却无折现，科技预设 13 亿 = 6.5 倍营收。
 - `tools/metalwork/pressure-casting.html`：五法过滤可跑；批量档漏判，压铸/低压在中批量仍入选，首选恒为砂型，承诺的浇注/冷却工艺参数与压射比压未实现。
 - `tools/metalwork/recorder-9.html`：钢种温度表与 t=k·δ+20 可跑；渗碳无渗层深度输入，保温时间只输出固定文案，核心卖点未实现。
-- `tools/metalwork/resistance-2.html`：六法评分可跑；接头形式是死输入，板厚关系与厚度可互相矛盾，默认 3mm 低碳钢对接竟首选激光焊。
+- `tools/metalwork/resistance-2.html`：六法评分可跑；接头形式是死输入，默认 3mm 低碳钢对接竟首选激光焊。
 - `tools/metalwork/speed-itinerary.html`：行程/走刀/时间可跑；每刀往复数把工件长度当横向宽度，200×100 板时间偏大一倍，材料去除量算了不渲染。
 - `tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html`：第二段覆盖后 IT 可算（D50/IT7=0.0273 mm）；用实际 D 而非尺寸段几何均值偏高 9%，形位公差取 IT/2 无依据，⇄ 互换即报错。
-- `tools/metalwork/temp-forging.html`：查表温度正确；10kg/φ50 钢件加热仅 8 min、保温 2 min，低约一个数量级，温度条满量程恒按 1300℃。
+- `tools/metalwork/temp-forging.html`：查表温度正确；10kg/φ50 钢件加热仅 8 min、保温 2 min，低约一个数量级。
 
 **问题条目**
 
 | 页面 | 问题（含 tools/metalwork/<slug>.html:NN） | 编号 |
 |---|---|---|
 | tools/metalwork/lifespan-1.html | 【中】铅酸电池选项自动把电压写成 2 V（`BAT_VOLT.lead=2`），但选项标签是「铅酸电池(12V/单格2V)」；12V/100Ah 电池续航 81.6h 被算成 13.6h，低估 6 倍，用户需手工改回 12V（:156,220,239-242） | MM-H141 |
-| tools/metalwork/pinpaijiazhipinggujisuan.html | 【中】年限系数只校验 >0（HTML `min=0.5` 仅约束步进器），键盘输 −1 得负品牌价值且仍标「初创品牌」；利润率控件 `max=80` 但校验放行到 100（:137,145,232,236,238,242-249） | MM-H142 |
 | tools/metalwork/pinpaijiazhipinggujisuan.html | 【假】引据表称 ISO 10668「收益法/特许权使用费节省法」，实算却是「利润×乘数×年限×份额」自定义模型、全程无折现；科技预设 2 亿营收×20%×10×1.3×2.5 = 13 亿（6.5 倍营收，合计 32.5 倍利润），冒用国标口径（:127,186-199,241-242,436） | MM-H143 |
 | tools/metalwork/pressure-casting.html | 【高】批量维度漏判：压铸/低压铸造 `batch:'mass'`，代码只排除 `batch==='single'`，选「中批量」时两者仍进入可选列表并被推荐，与页面「压铸适合薄壁大批量、小批不适合」自相矛盾（:167,222-223,238-239,491） | MM-H144 |
 | tools/metalwork/pressure-casting.html | 【中】首选恒为砂型：`Object.keys(METHODS)` 顺序把 sand 放首位，凡铁/钢/铝/铜命中即取 `matched[0]`；铝合金 5kg/5mm/中批的首选仍是砂型而非压铸/金属型，排序未按精度/批量/成本评分（:233,240,248） | MM-H145 |
@@ -271,7 +270,6 @@
 | tools/metalwork/recorder-9.html | 【中】目标温度与记录温度均无范围校验：目标可输 0/负数/远超材料区间仍进入曲线与统计，`createJob` 只拦 ≤0；记录温度任意值均接受（:152,411,450-453） | MM-H148 |
 | tools/metalwork/resistance-2.html | 【高】接头形式 `joint` 完全不参与过滤与评分：唯一使用处是一个空 `if` 块（无任何语句/赋值），对接/搭接/T形/角接结果与首选方法完全相同，属死输入（:147-152,231,239-241,279-291） | MM-H149 |
 | tools/metalwork/resistance-2.html | 【高】默认 3mm 低碳钢对接评分：激光 50+20+15=85 > TIG 80 > 电阻 75，首选激光焊，与页面「薄板≤3mm 优先 TIG/电阻焊」及成本「低」优先的口径相反；成本「高」在评分中完全不扣分（:274,279-290） | MM-H150 |
-| tools/metalwork/resistance-2.html | 【中】板厚关系 `plateType` 与厚度 t 独立输入：t=3 可选「厚板」、t=50 可选「薄板」，过滤按 t、评分按 plateType，同一 t 可得不同首选；`resetAll` 又把 plateType 设为 medium，而页面初始/预设为 sheet（:156-161,284-286,454） | MM-H151 |
 | tools/metalwork/resistance-2.html | 【假】简介承诺推荐「工艺参数」，结果只有方法/保护气体/质量/成本，无电流、电压、气流量；引据表的热输入 Q、碳当量 CE、预热温度三项均未实现（:128,183-197） | MM-H152 |
 | tools/metalwork/speed-itinerary.html | 【高】每刀进给往复数用 `ceil(L/f)`，把工件长度 L 当作横向宽度；进给量是 mm/往复行程的横向步距，正确应为 `ceil(宽度/f)`。200×100 板应为 400 往复，页面算 800（时间 6.4 vs 3.2 min），长度/宽度比越大偏差越大（:245-247,259） | MM-H153 |
 | tools/metalwork/speed-itinerary.html | 【高】材料去除量 `materialRemoval` 算了不渲染、不进导出，公式框仍承诺；且 `L×余量×切深×0.001` 量纲错误（缺宽度，正确体积为 L×宽×余量）（:127,248） | MM-H154 |
@@ -280,10 +278,9 @@
 | tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html | 【中】⇄ 互换按钮把孔径 D 与 IT 等级互换（50↔7），第二段校验随即判「IT 等级需为 5–10 的整数」，常规输入一按即报错；重置按钮已被第二段覆盖为 50/7，但互换未同步（:131,495-501,575） | MM-H157 |
 | tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html | 【中】孔径 D 无正值校验：只判 `isFinite`，输 −50 仍按 cbrt 得负标准公差 −0.0273 mm 并正常渲染（:559,562-566） | MM-H158 |
 | tools/metalwork/temp-forging.html | 【高】加热/保温时间量级错误：`ceil(0.5W+0.05d)` 把 kg 与 mm 直接相加，10kg/φ50 钢件仅 8 min；保温 `ceil(0.2W)` 仅 2 min。φ50 钢件常规加热约 30–60 min、保温 ≥30 min，页面低约一个数量级，且与截面/装炉条件脱钩（:127,226-227,243-244） | MM-H159 |
-| tools/metalwork/temp-forging.html | 【中】温度条满量程恒取 `Math.max(maxHeat,1300)`，而所有 maxHeat≤1300 故恒为 1300：铝合金 490℃ 的「最高加热」条只占 38%、470℃ 始锻占 36%，视觉上远低于满量程，图表失去材料相对意义（:247-254） | MM-H160 |
 
 **统计**
-- 条数：20（高 7 / 中 10 / 假 3 / 安全 0）；编号区间：MM-H141–MM-H160，续接 MM-H140，不重号不跳号。
+- 条数：17（高 7 / 中 7 / 假 3 / 安全 0）；编号区间：MM-H141–MM-H160，续接 MM-H140，MM-H142、MM-H151、MM-H160 已修复销账，不重号不跳号。
 - 高优编号：MM-H144（压铸/低压批量档漏判）、MM-H147（渗碳保温时间假功能）、MM-H149（接头形式死输入）、MM-H150（默认首选激光焊）、MM-H153（长度当横向宽度）、MM-H154（材料去除量算了不渲染）、MM-H159（加热/保温时间低一个数量级）。
 - 假工具：0（8 页核心查表/公式均可用）；承诺未实现：3（MM-H146 铸造工艺参数、MM-H152 焊接工艺参数、MM-H147 渗碳深度估算）；冒用国标：2（MM-H143 ISO 10668、MM-H146 ISO 8062-3）。
 - 安全：0 条；8 页均未发现 XSS、eval、allow-same-origin、明文存密或业务数据外传；`recorder-9` 备注经 `escHtml` 转义，`tangxue` 历史恢复仅接数值参数，全站模板 ttzz 脚本不单列。
