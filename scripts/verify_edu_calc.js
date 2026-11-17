@@ -1607,6 +1607,20 @@ const CASES = [
     expect: ["FLAGJ129 24/56 OK"],
     ref: "EL-J129：旧版两页前 20 国同题库、逻辑逐行一致构成近重复。现差异化——国旗页 24 国+10 秒限时+错题库+只练错题，国家页 56 国+无计时+无错题库。交叉源码哨兵：旧版 flag=24/country=20 且两页均无/均有计时，该组合不成立 ⇒ 必红。",
   },
+  {
+    slug: "edu/countdown-5",
+    inputs: { examName: "TbCdDay" },
+    clicks: ["var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+6);var s=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');state={name:document.getElementById('examName').value,date:s,targetHours:500,logs:[]};render();var hero=document.getElementById('heroBox').innerHTML;var tot=document.getElementById('statTotal').textContent;document.getElementById('__tbProbe').textContent='CDJ130 '+(String(tot).trim()==='6'&&hero.indexOf('>6<')>=0?'OK':'BAD tot='+tot);"],
+    expect: ["CDJ130 OK"],
+    ref: "EL-J130：hero 用 diff=round(目标−今日)=6（含今天、不含考试日），旧版 countDays 从明天起算得 5 ⇒ statTotal=5 与大字 6 差 1。现 countDays 从今天起算，区间 {今…考前一天} 共 6 天，hero 与统计卡一致。用动态 today+6 避免冻结日期依赖，examName 注入唯一串。",
+  },
+  {
+    slug: "edu/countdown-5",
+    inputs: { examName: "TbCdDom" },
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/countdown-5.html','utf8');var rt=(h.match(/class=\"related-tools\" data-related-tools=\"1\"/g)||[]).length;var fb=(h.match(/class=\"card formula-box\"/g)||[]).length;var empty=(h.match(/i18nText\\(\\)/g)||[]).length;var ok=document.getElementById('examName').value==='TbCdDom'&&rt===1&&fb===1&&empty===0;document.getElementById('__tbProbe').textContent='CDJ131 '+(ok?'OK':'BAD rt='+rt+' fb='+fb+' empty='+empty);"],
+    expect: ["CDJ131 OK"],
+    ref: "EL-J131：旧版两组 related-tools + 两个 formula-box + 三处无参 i18nText()。现只保留一组相关工具与一个公式框，三处 toast 全改用具体 key（msg947/msg082/msg081）。源码形态哨兵，examName 注入唯一串。",
+  },
 
 ];
 

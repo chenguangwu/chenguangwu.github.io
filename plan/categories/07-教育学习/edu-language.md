@@ -187,23 +187,7 @@
 ### 留存建议（tools/edu/flag-quiz.html）
 - 历史记录同时存题量/用时，CSV 增加这两列，支撑"成绩累计"。
 
-### EL-J130 「高考/考研倒计时」大字天数与"剩余总天数"统计差 1，考试前一天统计为 0（中，确认缺陷）
-- 问题：hero 用 `diff = round(target-now)`（今天到考试日，含今天为第 0 天）；`countDays` 从"明天"开始 `while(cur<target)`，不含今天也不含考试当天。两者口径不同，导致同屏两个"剩余天数"相差 1；考试前一天 `countDays` 返回 0，而大字显示"1 天后开考"。
-- 证据：`tools/edu/countdown-5.html:267-278`（`cur.setDate(+1)` 后循环到 `<target`）、`:299`（`diff`）、`:304`（hero 大字）、`:308`（`statTotal=d.total`）、`:312-313`（"距考试还有 d.total 天"）、`:158-159`（公式称"剩余天数 = round(目标−今日)"与"区间统计"并存）。
-- 复现：node 复算 today=2026-11-04，target=2026-11-10 → `diff=6`、`countDays={total:5,work:3,weekend:2}`；target=2026-11-05 → `diff=1`、`total:0`。页面同时显示"1 天后开考"和"剩余总天数 0"。
-- 影响：`tools/edu/countdown-5.html`；首屏主数字与统计卡自相矛盾，考前最后一天显示 0 天。
-- 方案：统一口径（推荐"含今天、不含考试日"：`total = diff`，工作日从今天起算），或 hero 也用 `d.total` 并改文案；公式说明同步为同一口径。
-
-### EL-J131 「高考/考研倒计时」重复两组"相关工具"与两个公式框，三处空 toast（低，确认缺陷）
-- 问题：同一页连续输出两份 `related-tools`（第二份工具卡描述更长），`formula-box` 也重复两次；`saveExam/addLog/clearLog` 的错误/信息分支多处调用 `i18nText()` 不传 key。
-- 证据：`tools/edu/countdown-5.html:157-164`（两个公式框）、`:438-466` 与 `:467-496`（两组相同 6 卡相关工具）、`:241`、`:261`、`:263`（空参 `i18nText()`）。
-- 复现：页面"相关工具"出现两遍；点"清空记录"（无记录时）或输入非法时长 → toast 文案为空/undefined（真实文案待浏览器确认）。
-- 影响：`tools/edu/countdown-5.html`；DOM 重复、页面冗长，错误提示缺失。
-- 方案：删除后一组 `related-tools`（保留描述更完整的一份）与一个公式框；所有 toast 传真实 key。
-
 ### 留存建议（tools/edu/countdown-5.html）
-- 统一剩余天数口径，hero 与统计卡使用同一 `countDays` 结果。
-- 删重复 related-tools/formula-box；补 toast key 与日期区间校验（当前可给任意未来日期打卡）。
 - 打卡按日期区间校验并支持"今日投入 vs 剩余所需日均"提示，增强备考闭环。
 
 ### EL-J132 「学习进度仪表」说明称"预计完成日按工作日计"，代码按日历天累加（中，确认缺陷）
