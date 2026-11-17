@@ -28,7 +28,14 @@ const CASES = [
   "expect": [
     "0.1389 所需截面积 F (m²)"
   ],
-  "ref": "非默认输入（默认 3600/5）：所需截面积 F_req = Q÷(3600×v) = 5000÷(3600×10) = 0.138889 m² ⇒ 显示 0.1389（页面对 F_req 取 toFixed(4)）。该量只由 Q、v 决定，不随形状分支/管径取值变化（本页 harness 下恒走圆形分支且 diaD 不可注入，故不锚任何含管径的量），也不在零参兜底函数 suggestSize() 渲染的文案里。默认态 F_req = 3600÷(3600×5) = 0.2000，不含该串。"
+    "ref": "非默认输入（默认 3600/5）：所需截面积 F_req = Q÷(3600×v) = 5000÷(3600×10) = 0.138889 m² ⇒ 显示 0.1389（页面对 F_req 取 toFixed(4)）。该量只由 Q、v 决定，不随形状分支/管径取值变化（本页 harness 下恒走圆形分支且 diaD 不可注入，故不锚任何含管径的量），也不在零参兜底函数 suggestSize() 渲染的文案里。默认态 F_req = 3600÷(3600×5) = 0.2000，不含该串。"
+},
+{
+  "slug": "hvac/duct-calculator",
+  "inputs": {"Q":"5000","v":"10","rho":"0"},
+  "clicks": ["calc();var h=String(document.getElementById('resultGrid').innerHTML);document.getElementById('__tbProbe').textContent='DUCTRHO '+(h.indexOf('均须大于 0')>=0&&h.indexOf('所需截面积')<0?'OK':'BAD '+h.slice(0,80));"],
+  "expect": ["DUCTRHO OK"],
+  "ref": "N166 空气密度守卫：rho=0 旧版动压/总阻力全 0 仍渲染「匹配良好」，修复后守卫提示「均须大于 0」且不出结果网格。默认 rho=1.2 合法不命中，零逃生。"
 },
 {
   "slug": "hvac/pump-calculator",

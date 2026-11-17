@@ -222,6 +222,13 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "leather/yield-rate-1",
+  "inputs": {"c0":"0","vol":"500","c1":"300"},
+  "clicks": ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='YIELDC0 '+(h.indexOf('废液铬浓度须大于 0')>=0&&h.indexOf('0.00%')<0?'OK':'BAD '+h.slice(0,80));"],
+  "expect": ["YIELDC0 OK"],
+  "ref": "N189 c0=0 守卫：旧版仅 setInvalid 标红仍算 rate=0「较差」并写历史；修复后早退提示「废液铬浓度须大于 0」且不出 0.00%。默认 c0=3000 合法不命中，零逃生。"
+},
+{
   "slug": "leather/yield-rate",
   "inputs": {
     "c0": "7500",
