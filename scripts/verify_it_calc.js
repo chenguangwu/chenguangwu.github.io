@@ -14367,6 +14367,24 @@ const CASES = [
     expect: ["BCDF neg=0 mid=0.2375077789 exact=0.171875"],
     ref: "196 复核失败重做：cdf 走补集分支时 1−ΣP(k+1..n) 因浮点累计略大于 1 而得到负概率（n=10000,k=5001,p=0.6 ⇒ −2.9e−12）。现两条分支结果都钳制在 [0,1]，该极端尾部返回 0。参照值：cdf(20,4,0.3)=0.2375077789（逐项 Σ C(20,i)·0.3^i·0.7^(20−i)）、cdf(10,3,0.5)=11/64=0.171875。默认输入不含该串 ⇒ 零逃生。"
   },
+  {
+    slug: "it/summary-generator",
+    clicks: ["document.getElementById('inputText').value='自定义文本第一句。自定义文本第二句。自定义文本第三句。';generateSummary();var r=document.getElementById('summaryResult').innerHTML;document.getElementById('__tbProbe').textContent='SGJ154 '+(r.indexOf('自定义文本')>=0?'OK':'BAD');"],
+    expect: ["SGJ154 OK"],
+    ref: "EL-J154（原 edu/generator-4 重定向至 it/summary-generator）：旧版无 textarea，永远摘要硬编码 sampleText。现真实输入 textarea 参与分句与摘要；注入自定义文本后结果区命中，默认示例不含该串 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/summary-generator",
+    clicks: ["generateSummary();var w=String(document.getElementById('weightChart').innerHTML||'');var s=String(document.getElementById('statRatio').textContent||'');document.getElementById('summaryResult').textContent='SGJ155 '+(w.indexOf('长度(')>=0&&w.indexOf('关键词')>=0&&w.indexOf('位置')>=0&&s.indexOf('%')>=0?'OK':'BAD');"],
+    expect: ["SGJ155 OK"],
+    ref: "EL-J155：旧版只算平均词频、无长度/位置/关键词三项子权重与压缩率。现权重卡逐句展示 lenW×kwW×posW 与最终权重，统计卡输出压缩比；探针串仅由显式 clicks 写入，默认态不命中 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/summary-generator",
+    clicks: ["document.getElementById('sentenceCount').value='custom';document.getElementById('customCount').value='20';generateSummary();var h=document.getElementById('limitHint').innerHTML;document.getElementById('__tbProbe').textContent='SGJ156 '+(h.indexOf('请求 20 句')>=0&&h.indexOf('只有 10 句')>=0?'OK':'BAD');"],
+    expect: ["SGJ156 OK"],
+    ref: "EL-J156：旧版请求句数超过原文句数时只 slice/Math.min 静默截断。现 limitHint 明确「请求 N 句，但原文只有 M 句；已显示全部 M 句」。示例文本 10 句，请求 20 句才命中；默认请求 5 句无提示 ⇒ 零逃生。",
+  },
 ];
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
