@@ -206,25 +206,6 @@
 
 > 范围：本轮阅读 8 页——`tools/beauty/skincare-routine.html`（beauty）、`tools/forensic-medicine/death-time-estimation.html`（forensic-medicine）、`tools/metallurgy/hardness-conversion.html`（metallurgy）、`tools/urology/psa-density.html`（urology）、`tools/ent/lund-mackay-score.html`（ent）、`tools/pulmonology/curb65.html`（pulmonology）、`tools/nephrology/ckd-staging.html`（nephrology）、`tools/acupuncture/acupoint-location.html`（acupuncture）。仅源码 + `node -e` 内存复算，未开浏览器、未做 EN/移动端/门禁验证。
 
-### 12-N15 beauty/skincare-routine：“导出明细 CSV”导的是 TBKit 历史表，不是当前流程；无历史时为空（中，确认缺陷）
-- 问题：`__skincare_routineExport()` 调 `TBKit.util.exportTable('#skincare_routineTable', ...)`（`:948-951`），该表由 `TBKit.history.record` 渲染（`:942-946`），列是历史快照键+结果摘要；当前肤质/年龄/时段的步骤、产品、用法、用量从未进入导出。首次进入尚未产生历史时点导出得到空表。
-- 证据：`tools/beauty/skincare-routine.html:198`、`:942-946`、`:948-951`
-- 复现：打开页面直接点“导出明细 CSV” → 无数据行；生成流程后导出 → 只有“结果摘要”一列的历史记录，没有逐步护肤清单。
-- 影响：用户最需要的“把方案带走/打印”能力缺失，只能截图。
-- 方案：新增当前流程专用导出（列：时段/步骤/产品/用法/用量），或把 `skincare_history` 明细作为导出源；空表时提示先“保存方案”。
-
-### 12-N18 beauty/skincare-routine：简介写“计算护肤品用量与配比”，实际只排流程；“测试肤质”也无测试逻辑（低，确认缺陷）
-- 问题：简介 `:1011` 写“帮助计算护肤品用量与配比”，但页面没有用量/配比计算，输出只是步骤清单；“第一步：测试你的肤质”（`:163`）下方是四张静态卡片，没有问卷或判定逻辑。
-- 证据：`tools/beauty/skincare-routine.html:1011`、`:163`、`:175-193`
-- 复现：按简介寻找“用量/配比”输入 → 页面只有肤质卡片、年龄下拉、早晚/频率 tab；结果无任何毫升/克数。
-- 影响：搜索“护肤品用量计算”的用户得到流程表，名实不符影响点击后的留存与信任。
-- 方案：简介改为“按肤质/年龄/时段生成早晚与每周护肤流程”；若要保留“用量”，在每步已有的 `amount` 字段上增加“全脸用量估算”汇总。
-
-**留存/优势（beauty/skincare-routine）**
-- 支持把当前流程导出为「步骤/产品/用法/用量」CSV 或打印卡片（现状导出的是历史表）。
-- 增加“肤质+年龄+时段”一键预设并记住上次选择，减少三次点击。
-- 允许在结果里替换/跳过步骤并本地保存，形成个人化方案。
-
 ### 12-N19 forensic-medicine/death-time-estimation：默认首屏“综合估算”落在自报区间之外，且与默认角膜分期相差一个数量级（高，确认缺陷）
 - 问题：默认输入（Tr=32、Ta=20、W=70、普通穿着 0.7、室内 1.0、角膜“透明”）下，`combined = Glaister×0.35 + Henssge×0.65`（`:399`）为 14.18 h，而“估算范围”直接用 Henssge±2.8（`:394-396`）得 15.77–21.37 h；估算值不在自己展示的区间内。同时默认角膜“透明”标 0–2 小时（`:169`、`:403`、`:441`），与 14 小时结论相差一个数量级，页面无冲突提示。
 - 证据：`tools/forensic-medicine/death-time-estimation.html:389-396`、`:399`、`:430`、`:169`、`:403`、`:441`
