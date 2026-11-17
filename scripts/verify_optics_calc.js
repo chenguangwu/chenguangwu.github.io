@@ -68,6 +68,10 @@ const CASES = [
     inputs: { f: "-0.2", do: "0.5" },
     expect: ["-0.1429"],
     ref: "凸面镜成像（f 为有符号量，凹正凸负）：f=-0.2 m、dₒ=0.5 m → 1/dᵢ=1/f−1/dₒ=-5−2=-7 → dᵢ=-0.1429 m（虚像、缩小、正立）；旧版把 f 列入「不能为负」拦截，页面文案/算例承诺的凸面镜功能被屏蔽。-0.1429 非默认 ⇒ 零逃生。" },
+  { slug: "optics/mirror-equation",
+    clicks: ["document.getElementById('f').value='0';document.getElementById('do').value='0.5';calcTool();var h=String(document.getElementById('result').textContent||document.getElementById('result').innerHTML);document.getElementById('f').value='FZERO_'+(h.indexOf('不能为 0')>=0?'OK':'BAD');"],
+    expect: ["FZERO_OK"],
+    ref: "PQ-20 清账（f=0 分母守卫）：f=0、dₒ=0.5 时 1/f 发散、dᵢ=1/(∞−2) 收敛成 0，旧版输出「像距 0、放大率 0」伪结果；现 __D 含 f，f=0 提示「焦距不能为 0」。探针断言结果含「不能为 0」，旧版 ⇒ FZERO_BAD，零逃生。" },
 
   { slug: "optics/optical-power-diopter",
     inputs: { f: "0.25" },
