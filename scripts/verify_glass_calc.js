@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
 const { runCase } = require("./verify_it_calc.js");
+globalThis.__tbFs = fs;
 const CASES = [
   { slug: "glass/annealing-curve", inputs: {"thick":"12","glass":"boro","coolTo":"100"}, expect: ["总退火时间 ≈ 84 时 17 分","565 保温温度(°C)","1.5 慢冷速率(°C/h)"], ref: "12mm 硼硅、冷至100℃：保温565℃×48min、慢冷1.5℃/h、总退火84时17分（默认6mm soda→50℃走另一组值）" },
   { slug: "glass/cutting-score", inputs: {"sheetW":"2200","sheetH":"1600","thick":"12","pieceW":"500","pieceH":"400","kerf":"4"}, expect: ["15 小片数量","5×3 排版旋转90°","85.2% 材料利用率"], ref: "2200×1600 原片切 500×400（kerf 4）：旋转90°排 5×3=15 片、利用率 85.2%、切割6次（默认 1830×1220 切 400×300）" },
@@ -72,8 +74,20 @@ const CASES = [
       "→ 推荐最小厚度 6 mm 步骤3 涉及安全，采用钢化玻璃 结论 42×42mm 玻璃（0.00m²）用于玻璃门，推荐 6mm钢化玻璃"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"width\":\"42\",\"height\":\"42\",\"scene\":\"door\"}，输出区含「→ 推荐最小厚度 6 mm 步骤3 涉及安全，采用钢化玻璃 结论 42×42mm…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "glass/annealing-curve",
+    "inputs": {"thick":"6","glass":"soda","coolTo":"600"},
+    "clicks": ["calc();var h=String(document.getElementById('result').innerHTML);var ok=h.indexOf('冷却终温须在 0 与应变点 SP')>=0&&h.indexOf('总退火时间')<0&&h.indexOf('快速冷却')<0;document.getElementById('__tbProbe').textContent='COOLHI '+(ok?'OK':'BAD '+h);"],
+    "expect": ["COOLHI OK"],
+    "ref": "第1095批 I3：钠钙玻璃 SP=515，coolTo=600 旧版 fastRange=-85 被截断成 0 分钟仍生成「515→600」快冷阶段、总时长虚短；修复后 0<coolTo<SP 前置拦截，字段级错误且不出阶段卡。"
+  },
+  {
+    "slug": "glass/annealing-curve",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/glass/annealing-curve.html','utf8');var ok=h.indexOf('!isFinite(coolTo)||coolTo<=0||coolTo>=g.SP')>=0&&h.indexOf('请输入有效厚度')>=0;document.getElementById('__tbProbe').textContent='COOLFIX '+(ok?'OK':'BAD');"],
+    "expect": ["COOLFIX OK"],
+    "ref": "第1095批 I3 源码形态：冷却终温须为有限值且严格落在 0 与当前品类应变点 SP 之间；旧版仅 isNaN 判定，无范围约束。"
   }
-
 ];
 async function main() {
   const only = process.argv.slice(2);
