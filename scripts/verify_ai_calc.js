@@ -1350,6 +1350,17 @@ const HOST_CASES = [
     tableExpect: "20000",
     exportFn: "__qrExport",
   },
+  // AI-N15：量化字节 > 原字节时是体积增加，不能把负「节省」取绝对值后仍叫节省。
+  {
+    slug: "ai/quantization-ratio",
+    chart: "qrChart", table: "qrTable",
+    extras: ["qrChart", "qrTable", "qrDiff", "qrHist", "qrPresets"],
+    inputs: { params: "7000", fromB: "1", toB: "4" },
+    tableExpect: "体积增加 (MB)",
+    chartExpect: "体积增加",
+    extraExpect: ["21000", "300.0%", "<1 表示体积变大"],
+    forbidden: ["节省 (MB)"],
+  },
   { slug: "ai/ai-text-summarizer", kind: "summarizer" },
   { slug: "ai/ai-code-review", kind: "codeReview" },
 ];
@@ -1451,6 +1462,12 @@ async function runTokenHostCase(h) {
   if (!doc.getElementById(h.table).textContent.includes(h.tableExpect)) return { ok: false, why: "改输入后 #" + h.table + " 未含 " + h.tableExpect };
   for (const s of h.extraExpect || []) {
     if (!doc.getElementById(h.table).textContent.includes(s)) return { ok: false, why: "改输入后 #" + h.table + " 未含 " + s };
+  }
+  for (const s of h.forbidden || []) {
+    if (doc.getElementById(h.table).textContent.includes(s)) return { ok: false, why: "改输入后 #" + h.table + " 仍含错误口径 " + s };
+  }
+  if (h.chartExpect && !doc.getElementById(h.chart).textContent.includes(h.chartExpect)) {
+    return { ok: false, why: "改输入后 #" + h.chart + " 未含 " + h.chartExpect };
   }
   // 页签切换
   const tblBtn = doc.querySelector('.tbk-tab[data-pane="tbl"]');
