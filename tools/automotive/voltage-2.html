@@ -321,7 +321,9 @@ function calc(){
 
   // ---- 供电线路压降
   var Rs=rho*len/Math.max(area,0.01), Rd=Rs*2;
-  var dU=load*Rd, pct=volt>0?dU/volt*100:0, endV=volt-dU;
+  // 简化模型：发电机电压高于电池时由发电机供电，否则由电池供电；忽略电池负载压降。
+  var supply=Math.max(genV,vbat), source=genV>vbat?'发电机':'电池';
+  var dU=load*Rd, pct=supply>0?dU/supply*100:0, endV=supply-dU;
   var lineJudge = pct<=3 ? '良好（≤3%）' : (pct<=5 ? '尚可（3%~5%）' : (pct<=8 ? '偏高（5%~8%）' : '过高（>8%）'));
 
   const __g1='<div class="result-grid">'
@@ -333,6 +335,7 @@ function calc(){
 
   const __g2='<div class="dist-grid">'
     +'<div class="dist-card"><h4>充电状态</h4><p>'+state+'（调节器'+(limited?'已达目标':'未达目标，转速不足')+'）</p></div>'
+    +'<div class="dist-card"><h4>供电工况</h4><p>'+source+'供电，估算供电端 '+fmtLocal(supply,2)+' V；忽略电池负载压降。</p></div>'
     +'<div class="dist-card"><h4>线路压降</h4><p>'+fmtLocal(dU,2)+' V（'+fmtLocal(pct,1)+'%）</p><p>'+lineJudge+'</p></div>'
     +'</div>';G.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
@@ -346,6 +349,7 @@ function calc(){
   const __g3='<div class="formula-title">📐 计算口径</div> <div class="formula-eq">发电电压 = 调节器电压 × min(1, 转速 ÷ 切入转速)；单根导线电阻 R = ρ × 长度 ÷ 截面积；回路电阻 = 2R</div>'
     +'<div class="formula-line">发电电压 V<sub>gen</sub> = V<sub>reg</sub> × min(1, n / n<sub>cutin</sub>)</div>'
     +'<div class="formula-line">充电电流 I<sub>chg</sub> = (V<sub>gen</sub> − V<sub>bat</sub>) ÷ R<sub>loop</sub></div>'
+    +'<div class="formula-line">供电端电压 = max(发电电压, 电池静态电压)；末端电压 = 供电端电压 − 线路压降（简化估算，不计电池负载压降）</div>'
     +'<div class="formula-line">线路压降 ΔU = I × ρ × 2L ÷ A（单程 L，双线计入 2L）</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;">'
     +'<tr><th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">转速 (rpm)</th>'

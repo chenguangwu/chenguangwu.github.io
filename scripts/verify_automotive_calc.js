@@ -494,6 +494,9 @@ const CASES = [
   ],
   "ref": "独立复算：建议里程 7500 km（半合成 × 城市 1.0）⇒ 下次 = 上次 12,000 + 37,500? 页面按当前里程 42,000 外推得 49,500。⚠ 原 expect '22500' 为年里程输入回显（零判别力）。首版改锚「37500」经判别器实测为逃生（默认态亦为 37,500），故改用 cur=42,000 的 49,500 ⇒ 默认态不含该串。"
 },
+{ slug: "automotive/parking-fee-calculator", inputs: { firstMin:"60", firstFee:"10", unitMin:"30", unitFee:"5", parkMin:"30", cap:"50", freeMin:"30" }, expect:["应付 0 元"], ref:"免费边界 30 分钟不收费。" },
+{ slug: "automotive/parking-fee-calculator", inputs: { firstMin:"60", firstFee:"10", unitMin:"30", unitFee:"5", parkMin:"31", cap:"50", freeMin:"30" }, expect:["应付 10 元"], ref:"超免费时间 1 分钟按剩余时间收首段费。" },
+{ slug: "automotive/parking-fee-calculator", inputs: { firstMin:"60", firstFee:"10", unitMin:"30", unitFee:"5", parkMin:"1500", cap:"50", freeMin:"30" }, expect:["应付 60 元"], ref:"1500 分钟按 1440 和 60 分段，首段封顶 50，次段 10。" },
 {
   "slug": "automotive/parking-fee-calculator",
   "inputs": {
@@ -728,6 +731,7 @@ const CASES = [
   ],
   "ref": "auto-restore"
 },
+{ slug:"automotive/voltage-2", inputs:{volt:"12",vreg:"14.4",cutin:"700",rpm:"0",vbat:"12.4",rloop:"0.08",load:"10",len:"5",area:"2.5",mat:"0.0175"}, expect:["末端电压 11.7 V", "电池供电"], ref:"停转时电池静态 12.4 V 供电，压降 0.7 V，末端 11.7 V。" },
 {
   "slug": "automotive/voltage-2",
   "inputs": {
@@ -744,8 +748,8 @@ const CASES = [
   },
   "expect": [
     "充电电流 5.7 A",
-    "末端电压 11.74 V",
-    "2.26 V（16.1%）"
+    "末端电压 12.14 V",
+    "2.26 V（15.7%）"
   ],
   "ref": "去默认化：注入 rpm=2000 / cutin=1200 ⇒ ratio = 1.6667 ≥ 1 ⇒ genV = 14.4×min(1,1.6667) = 14.4；充电电流 = (14.4−12.4)/max(0.35,0.001) = 5.7143 ⇒ 5.7 A；vbat=12.4 落在 [12.24,12.45) ⇒ SOC 文案「约 50%」。线路：Rs = 0.0282×4/2.5 = 0.04512，Rd = 2Rs = 0.09024 ⇒ 压降 = 25×0.09024 = 2.256 ⇒ 2.26 V；压降率 = 2.256/14×100 = 16.1138 ⇒ 16.1%；末端电压 = 14−2.256 = 11.744 ⇒ 11.74 V，>8% ⇒ 判定「过高（>8%）」。默认态 volt=12 / mat=0.0175 / len=5 / load=10 / rloop=0.08 / cutin=700 / rpm=2500 ⇒ 末端电压 11.30 V、压降 0.70 V（5.8%）、充电电流 25.0 A，三条锚全部失配。（「发电机输出电压 14.4 V」不可作锚 —— 默认态 ratio≥1 时 genV 同为 14.4。）"
 },
