@@ -2693,6 +2693,20 @@ const CASES = [
     ref: "1007 批复核·科学计数法与半值两侧：1.25e3 按 NIST 偶数规则为 1.2e3=1200（旧版浮点放大 125 后原样回除得 1250）；2.5001>半值进到 3，2.4999<半值舍到 2。默认 num/digits 不同，且默认态无探针串。"
   },
   {
+    slug: "science/significant-figures",
+    inputs: { num: "1.234567890123456789", digits: "20" },
+    clicks: ["calc();var h=document.getElementById('result').innerHTML;document.getElementById('result').innerHTML='SIG20_'+(h.includes('1.2345678901234567890</strong>')&&h.includes('1.2345678901234567890e+0')?'OK':'BAD');"],
+    expect: ["SIG20_OK"],
+    ref: "第1007批再次复核：20位修约必须使用原始十进制输入，不能先转成Number导致末尾丢失。"
+  },
+  {
+    slug: "science/significant-figures",
+    inputs: {},
+    clicks: ["var a=exactSig('-1.234567890123456785e2',18),b=exactSig('1.234567890123456795e2',18),c=exactSig('1e1001',3);document.getElementById('result').innerHTML='SIGEXACT_'+(a.plain==='-123.456789012345678'&&b.plain==='123.456789012345680'&&c===null?'OK':'BAD');"],
+    expect: ["SIGEXACT_OK"],
+    ref: "第1007批再次复核：长科学计数法、负数及十进制半值向偶数修约，过大指数安全拦截。"
+  },
+  {
     slug: "science/equation-balancer",
     inputs: { eqInput: "NH3 = NH + NH4 + N3H" },
     clicks: ["balance();var h=String(document.getElementById('resultArea').innerHTML).replace(/<[^>]+>/g,' ');document.getElementById('eqInput').value='EQRANGE_'+(h.indexOf('有限搜索范围内未找到全正系数')>=0&&h.indexOf('不等于方程式无解')>=0?'OK':'BAD '+h.slice(0,80));"],

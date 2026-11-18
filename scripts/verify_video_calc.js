@@ -118,7 +118,19 @@ const CASES = [
   "clicks": ["var s=document.getElementById('srcFps'),d=document.getElementById('dstFps');s.value='60';d.value='24';calc();var t=String(document.getElementById('frameDesc').innerHTML||'');var r=String(document.getElementById('frameResult').textContent||'');var ok=t.indexOf('时长仍为 10s 不变')>=0&&t.indexOf('加速')<0&&t.indexOf('快放')>=0&&r.indexOf('600 → 240 帧')>=0;document.getElementById('__tbProbe').textContent='VFPSDN '+(ok?'OK':'BAD '+t.slice(0,120));"],
   "expect": ["VFPSDN OK"],
   "ref": "P-N9 降帧误述：源60→目标24、10s，旧版写「加速2.50倍播放」暗示时长变 4s，但帧数 600→240/时长10s。现改为「时长仍为 10s 不变」+「如需快放须另用变速重定时」。注入非默认源60（默认24）避开默认态。P-N10 同批修正公式框与权威源算例口径（时长比=源÷目标、速度比=目标÷源）。"
-}
+},
+{
+  slug: "video/video-compressor",
+  clicks: ["var calls=0;globalThis.TBKit={util:{isEn:function(){return false},exportTable:function(){calls++}},history:{record:function(){calls++}}};var d=document.getElementById('duration');d.value='';calc();__video_compressorExport();__video_compressorExtras();var a=calls;d.value='10';__video_compressorExport();document.getElementById('__tbProbe').textContent='VIDEXPORTC_'+(a===0&&calls===1?'OK':'BAD');"],
+  expect: ["VIDEXPORTC_OK"],
+  ref: "943再次复核：空时长禁止导出和保存，恢复有效时长后导出可用。"
+},
+{
+  slug: "video/video-converter",
+  clicks: ["var calls=0;globalThis.TBKit={util:{isEn:function(){return false},exportTable:function(){calls++}},history:{record:function(){calls++}}};var d=document.getElementById('duration');d.value='0';generate();__video_converterExport();__video_converterExtras();var a=calls;d.value='10';__video_converterExport();document.getElementById('__tbProbe').textContent='VIDEXPORTV_'+(a===0&&calls===1?'OK':'BAD');"],
+  expect: ["VIDEXPORTV_OK"],
+  ref: "943再次复核：零时长禁止导出和保存，恢复有效时长后导出可用。"
+},
 ];
 async function main() {
   const only = process.argv.slice(2);

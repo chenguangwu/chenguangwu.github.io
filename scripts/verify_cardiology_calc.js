@@ -577,6 +577,12 @@ const CASES = [
   "ref": "944状态链：空值仍走 100000 估算（不拦截），随后填合法 120000 重算负荷且无残留提示；验证空值估算与明确无效值区分、切换后结果更新。"
 },
 {
+  "slug": "cardiology/holter-grading",
+  "clicks": ["var calls=0;globalThis.TBKit={util:{isEn:function(){return false},exportTable:function(){calls++}},history:{record:function(){calls++}}};var d=document.getElementById('totalBeats');d.value='0';calc();__holter_gradingExtras();__holter_gradingExport();var a=calls;d.value='120000';__holter_gradingExport();document.getElementById('__tbProbe').textContent='HOLTEREXTRA_'+(a===0&&calls===1?'OK':'BAD');"],
+  "expect": ["HOLTEREXTRA_OK"],
+  "ref": "944 再次复核：明确无效心搏数不得记录历史或导出，恢复正数后允许导出。"
+},
+{
   "slug": "cardiology/statin-dose",
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/statin-dose.html','utf8');var dyn=h.indexOf('maxStatinReduction')>=0&&h.indexOf('requiredReduction>maxStatinReduction')>=0&&h.indexOf('最大降幅~55%')<0;document.getElementById('__tbProbe').textContent='STATIN81 '+(dyn?'OK':'BAD');"],
   "expect": ["STATIN81 OK"],
