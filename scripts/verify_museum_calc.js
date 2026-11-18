@@ -44,11 +44,20 @@ const CASES = [
   "inputs": {},
   "clicks": ["document.getElementById('era1').value='3';document.getElementById('era2').value='9';compare()"],
   "expect": [
-    "时间跨度相差: 839 年",
+    "建立时间相差: 839 年",
     "秦朝 15 年 vs 唐朝 289 年 (差 274 年)",
     "比值 0.25（相当于 25.0%；唐朝为秦朝的 4.00 倍）"
   ],
-  "ref": "两个朝代 <select> 的 option 由 JS 按 ERAS 下标填充（静态无 option ⇒ clicks 赋值后调 compare()）：era1=3 秦朝(s=-221,dur=15,人口约2000万)、era2=9 唐朝(s=618,dur=289,人口约8000万) ⇒ 起始年差 |−221−618|=839、时长差 |15−289|=274；人口按万=1e4 统一换算后 2e7/8e7=0.25（相当于 25.0%，唐朝为秦朝的 4 倍）。旧实现按未换算数字 2000/8000 求 max/min=4.0 倍，断言语义已切换为前/后比值。"
+  "ref": "两个朝代 <select> 的 option 由 JS 按 ERAS 下标填充（静态无 option ⇒ clicks 赋值后调 compare()）：era1=3 秦朝(s=-221,dur=15,人口约2000万)、era2=9 唐朝(s=618,dur=289,人口约8000万) ⇒ 起始年差 |−221−618|=839、时长差 |15−289|=274；人口按万=1e4 统一换算后 2e7/8e7=0.25（相当于 25.0%，唐朝为秦朝的 4 倍）。旧实现按未换算数字 2000/8000 求 max/min=4.0 倍，断言语义已切换为前/后比值。RL-K19：源码文案早已从「时间跨度相差」改为「建立时间相差」（e98f3a7d60），旧 expect 仍是「时间跨度相差」死锚、靠另外两条假绿，本批同步为现行文案。"
+},
+{
+  "slug": "museum/era-comparator",
+  "inputs": {},
+  "clicks": ["document.getElementById('era1').value='14';document.getElementById('era2').value='15';compare();var h=String(document.getElementById('result').innerHTML);var y=new Date().getFullYear();document.getElementById('__tbProbe').textContent=(h.indexOf('- '+y+' 年')>=0)?'NOWYEAR OK':'NOWYEAR STALE '+y"],
+  "expect": [
+    "NOWYEAR OK"
+  ],
+  "ref": "RL-K19 现代中国止年不能写死 2025：修复后 ERAS 末项 e=MODERN_END_YEAR=new Date().getFullYear()、dur=e-1949 ⇒ 哨兵「NOWYEAR OK」；批前版写死 e=2025/dur=76 ⇒ 哨兵「NOWYEAR STALE 2025/76」不命中。锚不锁具体年份、不依赖当前时间，只校验动态一致性。"
 },
 {
   "slug": "museum/era-comparator",
