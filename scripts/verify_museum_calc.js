@@ -104,6 +104,92 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "museum/lighting-lux",
+  "inputs": {
+    "lampCount": "5",
+    "area": "4"
+  },
+  "clicks": ["document.getElementById('lumens').value='0';calc();"],
+  "expect": [
+    "单盏光通量需大于 0 lm。"
+  ],
+  "ref": "零光通守卫（RL-K13）：单盏 0 lm 是无效光源，旧版 parseFloat('0')||0 后照度 0 lx 却判「照度达标 ✓」，把全暗包装成合规。修复后拦截「单盏光通量需大于 0 lm。」，旧版不输出该串。用 clicks 注入是因为 harness 会无参试探 onLampChange() 把 lumens 重置为预设 500。"
+},
+{
+  "slug": "museum/lighting-lux",
+  "inputs": {
+    "lampCount": "5",
+    "area": "4",
+    "trans": "0"
+  },
+  "expect": [
+    "玻璃透过率需大于 0 且不超过 100%。"
+  ],
+  "ref": "零透过率守卫（RL-K13）：透过率 0% 表示玻璃完全不透光，旧版 ||100 当成 100% 算出 875 lx 并报超标（中等敏感 150 lx），既掩盖输入错误又给出无意义结论。修复后直接拦截，旧版不含该提示。"
+},
+{
+  "slug": "museum/lighting-lux",
+  "inputs": {
+    "lampCount": "5",
+    "area": "4"
+  },
+  "clicks": ["document.getElementById('utilCoef').value='0';calc();"],
+  "expect": [
+    "利用系数需大于 0 且不超过 1。"
+  ],
+  "ref": "零利用系数守卫（RL-K13）：旧版 util=0 被 ||0.7 静默替换，5 盏 500 lm、面积 4 ㎡ 算出无效照度。修复后拦截，旧版不含该提示。clicks 注入避开 onLampChange() 预设重置。"
+},
+{
+  "slug": "museum/lighting-lux",
+  "inputs": {
+    "lampCount": "5",
+    "area": ""
+  },
+  "expect": [
+    "展柜面积需大于 0 ㎡。"
+  ],
+  "ref": "空面积守卫（RL-K13）：面积清空旧版 ||1 当作 1 ㎡ 继续算并给出超标结论，修复后明确要求大于 0。空字符串随 input/change 事件触发 calc()，断言只落在结果区提示。"
+},
+{
+  "slug": "museum/lighting-lux",
+  "inputs": {
+    "lampCount": "1",
+    "distance": "0.8",
+    "area": "20",
+    "trans": "92",
+    "sensClass": "high"
+  },
+  "expect": [
+    "中心照度过曝 ✕",
+    "尽管平均照度达标"
+  ],
+  "ref": "峰值合规双条件（RL-K14）：1 盏 500 lm、36°、利用系数 0.7、透过率 92%、距离 0.8 m、面积 20 ㎡、高敏感 50 lx ⇒ 平均 16 lx 达标但中心约 1636 lx 远超限值。旧版只看 avgLux 输出「照度达标 ✓」，两条断言均不命中；修复后输出「照度中心照度过曝 ✕」与峰值警告。"
+},
+{
+  "slug": "museum/lighting-lux",
+  "inputs": {
+    "sensClass": "low",
+    "lampCount": "2",
+    "area": "7"
+  },
+  "expect": [
+    "展品限值（低敏感） 150 lx，年曝光量≤150万 lx·h/年"
+  ],
+  "ref": "年曝光口径（RL-K15）：低敏感照度限值 150 lx 对应年曝光量应与其他档同量级为 150 万 lx·h/年，旧版写「≤150 lx·h」少四个数量级。锚含「展品限值（低敏感）」上下文，默认中等敏感不命中；旧版低敏感串不含「万」也不命中。"
+},
+{
+  "slug": "museum/lighting-lux",
+  "inputs": {
+    "lampCount": "3",
+    "area": "4",
+    "distance": "1.2"
+  },
+  "expect": [
+    "375 lm/㎡ 光通量密度（标称）"
+  ],
+  "ref": "术语与量纲（RL-K15）：灯数×单灯光通÷面积 的单位是 lm/㎡，属于光通量密度而非功率密度（W/㎡）。旧版结果卡片写「展柜功率密度」，修复后改「光通量密度（标称）」并同步公式框。锚带非默认数值 3×500÷4=375 lm/㎡（默认 4×500÷2=1000），避免默认态静态标签造成假绿。"
+},
+{
   "slug": "museum/showcase-monitor",
   "inputs": {
     "temp": "30",
