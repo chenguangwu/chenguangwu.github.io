@@ -466,7 +466,7 @@ const CASES = [
   ,{
     "slug": "rehabilitation/physiotherapy-dose",
     "inputs": {"tensTime":"-10"},
-    "clicks": ["calcTENS();var h=String(document.getElementById('tensResult').innerHTML);document.getElementById('__tbProbe').textContent='TENSGUARD '+(h.indexOf('0–120')>=0&&h.indexOf('× -10')<0?'OK':'BAD '+h.slice(0,80));"],
+    "clicks": ["calcTENS();var h=String(document.getElementById('tensResult').innerHTML);document.getElementById('__tbProbe').textContent='TENSGUARD '+(h.indexOf('大于 0 且不超过 120')>=0&&h.indexOf('× -10')<0?'OK':'BAD '+h.slice(0,80));"],
     "expect": ["TENSGUARD OK"],
     "ref": "N125 TENS 负时间守卫：tensTime=-10（旧 parseFloat||30 挡不住负数）⇒ 应提示「0–120 分钟」且不写入「× -10分钟」处方。旧版 −10 原样进处方 ⇒ BAD。默认 tensTime 30 合法不命中，零逃生。"
   }

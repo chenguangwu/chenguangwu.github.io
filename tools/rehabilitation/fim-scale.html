@@ -251,6 +251,16 @@ var fimData = [
 ];
 
 var STORE_KEY = 'fim_records';
+var fimUpdateTimer = null;
+
+function scheduleFimUpdate() {
+  clearTimeout(fimUpdateTimer);
+  fimUpdateTimer = setTimeout(function() { fimUpdateTimer = null; updateScore(); }, 120);
+}
+
+function flushFimUpdate() {
+  if (fimUpdateTimer !== null) { clearTimeout(fimUpdateTimer); fimUpdateTimer = null; updateScore(); }
+}
 
 function init() {
   renderItems();
@@ -270,7 +280,7 @@ function renderItems() {
       html += '<strong>' + (idx+1) + '. ' + item.name + '</strong>';
       html += '<p style="font-size:11px;color:var(--text-muted);margin:2px 0;">' + item.desc + '</p>';
       html += '</div>';
-      html += '<select id="fim_' + idx + '" style="width:140px;font-size:13px;" onchange="updateScore()">';
+      html += '<select id="fim_' + idx + '" style="width:140px;font-size:13px;" onchange="scheduleFimUpdate()">';
       html += '<option value="1">1-完全帮助</option>';
       html += '<option value="2">2-最大帮助</option>';
       html += '<option value="3">3-中度帮助</option>';
@@ -357,8 +367,18 @@ function calcScore() {
 }
 
 function saveRecord() {
+  flushFimUpdate();
   if (!window._score) { ToolBox.showToast(i18nText(), 'error'); return; }
   var s = window._score;
+  var motor = 0, cognitive = 0;
+  for (var i = 0; i < 18; i++) {
+    var value = Number(document.getElementById('fim_' + i).value);
+    if (!Number.isInteger(value) || value < 1 || value > 7) { ToolBox.showToast('评分无效，请检查各分项。', 'error'); return; }
+    if (i < 13) motor += value; else cognitive += value;
+  }
+  if (s.motor !== motor || s.cognitive !== cognitive || s.total !== motor + cognitive) {
+    ToolBox.showToast('评分已变化，请重新计算后保存。', 'error'); return;
+  }
   var records = [];
   try { records = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e) {}
   records.unshift({ date: new Date().toLocaleDateString('zh-CN'), total: s.total, motor: s.motor, cognitive: s.cognitive, level: s.level });
@@ -394,6 +414,8 @@ function clearHistory() {
 }
 
 function resetAll() {
+  clearTimeout(fimUpdateTimer);
+  fimUpdateTimer = null;
   for (var i = 0; i < 18; i++) {
     document.getElementById('fim_' + i).value = '7';
   }

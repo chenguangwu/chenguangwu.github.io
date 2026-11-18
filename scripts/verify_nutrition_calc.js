@@ -151,6 +151,12 @@ const CASES = [
   "ref": "auto-restore（随机组合型生成器，具体血糖负荷值非每次必现；改断言确定性生成标题）"
 },
 {
+  "slug": "nutrition/generator-glucose-load",
+  "clicks": ["var ok=level(10)==='低负荷'&&level(10.04)==='中负荷'&&level(19.96)==='中负荷'&&level(20)==='高负荷';FOODS.unshift({name:'边界样本',gi:99.8,serve:1,carb:20});Math.random=function(){return 0};document.getElementById('cnt').value='1';gen();ok=ok&&document.getElementById('res').innerHTML.indexOf('20.0（中负荷）')>=0;document.getElementById('__tbProbe').textContent='GLBOUND '+(ok?'OK':'BAD');"],
+  "expect": ["GLBOUND OK"],
+  "ref": "GL 原始值分级：10 低、10.04 中、19.96 中、20 高；显示可舍入但不得用于分级。"
+},
+{
   "slug": "nutrition/nutrition-1",
   "inputs": {
     "v1": "150",

@@ -119,11 +119,11 @@
     </div>
     <div class="input-row">
       <label>车龄（年）</label>
-      <input type="number" id="age" value="3" min="0" step="0.1" oninput="calc()" placeholder="如 3">
+      <input type="number" id="age" value="3" min="0" max="30" step="0.1" oninput="calc()" placeholder="如 3">
     </div>
     <div class="input-row">
       <label>累计里程（万公里）</label>
-      <input type="number" id="mileage" value="3" min="0" step="0.1" oninput="calc()" placeholder="如 3">
+      <input type="number" id="mileage" value="3" min="0" max="100" step="0.1" oninput="calc()" placeholder="如 3">
     </div>
 
     <div class="toolbar">
@@ -203,12 +203,19 @@ function clamp(v, min, max) {
 }
 
 function calc() {
-  const newPrice = parseFloat(document.getElementById('newPrice').value) || 0;
-  const age = parseFloat(document.getElementById('age').value) || 0;
-  const mileage = parseFloat(document.getElementById('mileage').value) || 0;
-  if (!(newPrice > 0) || age < 0 || mileage < 0) {
-    const __ucEn = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">'+(__ucEn?'New car price must be >0; age and mileage must not be negative.':'新车价须大于 0，车龄与里程不得为负。')+'</p>';
+  const rawPrice = document.getElementById('newPrice').value.trim();
+  const rawAge = document.getElementById('age').value.trim();
+  const rawMileage = document.getElementById('mileage').value.trim();
+  const newPrice = Number(rawPrice), age = Number(rawAge), mileage = Number(rawMileage);
+  const __ucEn = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  let error = '';
+  if (!rawPrice || !rawAge || !rawMileage) error = __ucEn ? 'Please fill in all three fields.' : '请填写新车价、车龄和里程。';
+  else if (![newPrice, age, mileage].every(Number.isFinite) || !(newPrice > 0) || age < 0 || mileage < 0)
+    error = __ucEn ? 'New car price must be >0; age and mileage must not be negative.' : '新车价须大于 0，车龄与里程不得为负。';
+  else if (age > 30 || mileage > 100)
+    error = __ucEn ? 'This estimate supports age up to 30 years and mileage up to 1,000,000 km.' : '本估算适用车龄不超过 30 年、里程不超过 100 万公里。';
+  if (error) {
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">'+error+'</p>';
     return;
   }
 

@@ -41,6 +41,27 @@ const CASES = [
   "expect": ["ACUGUARD OK"],
   "ref": "N37 越界守卫：head 首段「前发际→后发际」标准折量 12 寸，目标 20 寸超出 0–12 ⇒ 提示越界且不渲染 60.00 cm。旧实现 targetCun>=0 无上限，20 寸算出 60.00 cm、无越界提示 ⇒ 旧版 BAD。默认 targetCun 为空不命中该哨兵 ⇒ 零逃生。"
 },
+{
+  "slug": "acupuncture/acupoint-location",
+  "inputs": { "realCm": "36", "targetCun": "0" },
+  "clicks": ["selectRegion('head');calc()"],
+  "expect": ["0.00 cm"],
+  "ref": "12-N37：头部 12 寸段输入 0，位置为 0.00 cm。"
+},
+{
+  "slug": "acupuncture/acupoint-location",
+  "inputs": { "realCm": "36", "targetCun": "12" },
+  "clicks": ["selectRegion('head');calc()"],
+  "expect": ["36.00 cm"],
+  "ref": "12-N37：头部 12 寸段输入上界 12，位置为 36.00 cm。"
+},
+{
+  "slug": "acupuncture/acupoint-location",
+  "inputs": { "realCm": "36", "targetCun": "12.1" },
+  "clicks": ["selectRegion('head');calc()"],
+  "expect": ["目标穴位距起点应在 0–12 寸之间"],
+  "ref": "12-N37：头部 12 寸段输入 12.1 超出上界，应拒绝。"
+},
   // 注：acupuncture/analysis-10 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {
   "slug": "acupuncture/bloodletting-therapy",
