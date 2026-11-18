@@ -173,6 +173,30 @@ const CASES = [
 },
 {
   "slug": "library/shelf-capacity",
+  "inputs": { "bookThick": "0" },
+  "expect": ["图书平均厚度需大于 0 cm。"],
+  "ref": "书厚 0：旧版 parseFloat('0')||1 静默按 1cm 算得每层 85 册与一整套容量方案，掩盖错误输入。现书厚须 >0 并拦截。默认 2.5 ⇒ 不命中。"
+},
+{
+  "slug": "library/shelf-capacity",
+  "inputs": { "totalBooks": "-5000" },
+  "expect": ["总馆藏量需为不小于 0 的数值。"],
+  "ref": "负馆藏：旧版无负数守卫，输出 -12 架、-1 排、-8.0 米、-13.6㎡ 等不可实现的规划结果。现总馆藏量 >=0 拦截。默认 4200 ⇒ 不命中。"
+},
+{
+  "slug": "library/shelf-capacity",
+  "inputs": { "rowGap": "-1.2" },
+  "expect": ["排间距需为不小于 0 的数值。"],
+  "ref": "负排距：旧版 -1.2 米直接进面积公式得负面积。现排间距 >=0 拦截。默认 1.2 ⇒ 不命中。"
+},
+{
+  "slug": "library/shelf-capacity",
+  "inputs": { "fillRate": "150" },
+  "expect": ["填充率需在 1–100 之间。"],
+  "ref": "填充率超 100：旧版 150% 会算出超过物理层长的册数，仍输出完整方案。现填充率限 1–100。默认 75 ⇒ 不命中。"
+},
+{
+  "slug": "library/shelf-capacity",
   "inputs": { "layers": "0" },
   "expect": ["每架层数需为不小于 1 的整数。"],
   "ref": "层数填 0 后旧实现 parseInt('0')||1 ⇒ 静默按 1 层计算；现显式拒绝。默认 6 ⇒ 不命中。"
