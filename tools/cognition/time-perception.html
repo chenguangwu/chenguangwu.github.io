@@ -418,13 +418,18 @@
     function onTap() {
       if (!running) { return; }
       var now = performance.now();
-      // 找最近未匹配的节拍
-      var best = -1, bestD = 1e9, bi = -1;
+      // 一拍只接受一次：先找全局最近拍，若该拍已记录则忽略重复点击
+      var best = -1, bestD = 1e9;
       for (var i = 0; i < beatTimes.length; i++) {
         var d = Math.abs(now - beatTimes[i].perf);
-        if (d < bestD) { bestD = d; best = i; bi = i; }
+        if (d < bestD) { bestD = d; best = i; }
       }
       if (best === -1) { return; }
+      if (beatTimes[best].used) {
+        log.textContent = matched + ' / 20 拍 · 本拍已记录，忽略重复点击';
+        return;
+      }
+      beatTimes[best].used = true;
       var err = now - beatTimes[best].perf; // + 滞后 / - 提前
       taps.push({ beat: best, err: err });
       matched++;
@@ -436,6 +441,16 @@
     }
     btn.addEventListener('click', onTap);
     startBtn.addEventListener('click', start);
+    // verify 驱动钩子：自包含状态模拟对同一拍连点（AudioContext 定时器在 stub DOM 下会提前结算，不能走真实点击链）
+    window.__tpBeatDupProbe = function (n) {
+      var now = performance.now();
+      running = true;
+      beatTimes = [];
+      for (var k = 0; k < total; k++) { beatTimes.push({ perf: now, t: 0 }); }
+      taps = []; matched = 0;
+      for (var j = 0; j < n; j++) { onTap(); }
+      return { taps: taps.length, matched: matched, log: log.textContent };
+    };
     function finish() {
       running = false;
       btn.style.pointerEvents = 'none';

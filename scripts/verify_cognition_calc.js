@@ -245,6 +245,17 @@ const CASES = [
     "完成（无有效样本）"
   ],
   "ref": "零点击回归（W6-C）：切到节拍同步、注入最小 AudioContext 桩后点开始，收集窗口到点 finish() 时 taps=[] ⇒ 必须显示「样本不足」且不写入百分位。旧实现 std([])=0 ⇒ percentile('beat',0)=P98，零点击也输出「P98」异常值。断言串为页面统计卡真实产物，默认态（未开始）不含。"
+},
+{
+  "slug": "cognition/time-perception",
+  "clicks": [
+    "window.__tpSelectMode('beat');",
+    "var r=window.__tpBeatDupProbe(20);document.getElementById('bHint').textContent='TAP:'+r.taps+'/'+r.matched+'|'+r.log;"
+  ],
+  "expect": [
+    "TAP:1/1|1 / 20 拍 · 本拍已记录，忽略重复点击"
+  ],
+  "ref": "一拍一次（RL-K29）：开始后对最近拍连点 20 次，只有首次命中计入，其余 19 次必须提示「本拍已记录」并保持 1/20。旧实现未排除已匹配拍，matched 直接累加到 20 并立即 finish，输出「20 / 20 拍」且 σ 极小刷出高分；断言落在真实进度日志，默认态无 TAP 前缀。"
 }
 ];
 async function main() {
