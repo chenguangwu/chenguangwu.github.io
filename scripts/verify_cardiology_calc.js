@@ -599,6 +599,24 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/has-bled.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/cardiology/has-bled.json','utf8');var zhOk=h.indexOf('3 分为中风险（加强监测）')<0&&h.indexOf('0 至 1 分为低出血风险、2 分为中等出血风险、3 分及以上为高出血风险')>=0;var enOk=en.indexOf('3 medium (closer monitoring)')<0&&en.indexOf('0-1 low bleeding risk, 2 moderate, >=3 high bleeding risk')>=0;document.getElementById('__tbProbe').textContent='HASBLED78 '+(zhOk&&enOk?'OK':'BAD');"],
   "expect": ["HASBLED78 OK"],
   "ref": "03-78 HAS-BLED 三处分级口径统一：计算分支与分级表均为 0–1 低/2 中等/≥3 高危，唯公式说明写「0–2 低、3 中、≥4 高」。本批公式说明中文 + EN 词典同步改到一致口径。源码形态哨兵：旧中文/旧英文串消失、新串出现；默认态不产哨兵（仅 clicks 读源码），零逃生。"
+},
+{
+  "slug": "cardiology/nt-probnp",
+  "inputs": { "age": "", "ntprobnp": "" },
+  "expect": ["请填写有效年龄（1–120 岁）与 NT-proBNP（>0 pg/mL）后再计算。"],
+  "ref": "03-80 NT-proBNP 必填守卫：旧版空值 parseFloat||0 → nt=0 命中 <300、age=0 命中 <50岁 → 误报「急性心衰可能性低(排除)」+450 截断值。本批 age 1–120 且 nt>0 才计算。默认 age/ntprobnp 合法不命中本提示，零逃生。"
+},
+{
+  "slug": "cardiology/antiarrhythmic-class",
+  "clicks": ["showClass('4', {classList:{add:function(){},remove:function(){}}});var h=String(document.getElementById('classContent').innerHTML);document.getElementById('__tbProbe').textContent='AAR141 '+(h.indexOf('IV类类')<0&&h.indexOf('>IV类<')>=0&&h.indexOf('钙通道阻滞剂')>=0?'OK':'BAD');"],
+  "expect": ["AAR141 OK"],
+  "ref": "03-141 面板标题重复「类」：classData 的 II/III/IV name 原含「类」，渲染再拼 +'类' → 「IV类类」。本批 name 去「类」与 IA/IB/IC 一致，渲染仍为「IV类」（h4 精确标签）但无「IV类类」。哨兵要求无重复串、h4 为「IV类」、保留类描述「钙通道阻滞剂」（来自 title）。默认态 I 类不产本哨兵，零逃生。"
+},
+{
+  "slug": "cardiology/myocardial-bridge",
+  "inputs": { "compression": "" },
+  "expect": ["请输入收缩期压缩程度（0–100%）"],
+  "ref": "03-144 压缩程度必填守卫：旧版空值 ||0 → compression=0 落入 <50 → 1级/轻度 +「通常为良性变异，无需特殊治疗」。本批压缩必填 0–100，空/越界拦截不出分级。默认 compression=65 合法不命中本提示，零逃生。"
 }
 ];
 async function main() {
