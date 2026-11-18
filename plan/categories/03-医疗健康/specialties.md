@@ -294,20 +294,6 @@
 - 影响：`tools/cardiology/calc-3.html`；随访趋势功能实际不可用。
 - 方案：历史记录增加数值字段（如 `score`），趋势图读数值；或从结果 DOM 按 `#result strong` 取分。
 
-### 03-88 「相关工具」区块在页面中重复渲染两遍（低，确认缺陷）
-- 问题：同一组相关工具卡片连续出现两次（两个 `data-related-tools="1"` 区块），页面底部出现两排相同的「相关工具」。
-- 证据：`tools/cardiology/calc-3.html:199-227` 与 `:229-257`（两个完整 `related-tools` 区块）。
-- 复现：滚动到结果区下方 → 看到两组标题均为「🔗 相关工具」的卡片网格。期望只保留一组。
-- 影响：`tools/cardiology/calc-3.html`；重复内链与重复标题影响可读性与 SEO。
-- 方案：删除后一组 `:229-257`，保留一组并在构建后复查。
-
-### 03-89 医疗页被标为 `cat=finance`，JSON-LD 也写成 `FinanceApplication`（低，确认缺陷）
-- 问题：`<meta name="toolbox">` 的 `cat` 是 `finance`，结构化数据 `applicationCategory` 是 `FinanceApplication`；同目录其他心内页为 `cat=health`。这会让构建分类、筛选与搜索摘要把医疗工具归到金融类。
-- 证据：`tools/cardiology/calc-3.html:9`（`cat=finance,industry=cardiology`）、`:41`（`"applicationCategory":"FinanceApplication"`）；对照 `tools/cardiology/ambulatory-bp.html:9`（`cat=health`）。
-- 复现：查看页面源码或构建后的分类 → 本页归入 finance，而心内其他页归 health。期望 `cat=health`、`applicationCategory` 为医疗/健康类。
-- 影响：`tools/cardiology/calc-3.html`；分类索引与 JSON-LD 语义错误。
-- 方案：改为 `cat=health`，JSON-LD 按同目录医疗页口径修正（具体值以 `_build.py` 分类映射为准）。
-
 ### 03-90 「默认参数」预设不清空已勾选的危险因素，点后得到 9 分高危而非 0 分（中，确认缺陷）
 - 问题：预设只对 `values` 中出现的字段调用 `setValue`，不会重置未列出的字段。「默认参数」只给 `age:'0'`、`killip:'0'`，六个 checkbox 不在 values 里；若用户刚从「高危」预设过来，六个勾选全部保留，得分仍为 9。
 - 证据：`tools/cardiology/calc-3.html:422`（默认参数只含 age/killip）、`:423-425`（高危预设勾选 6 项）；`js/tool-kit.js:988-997`（`setValue` 只改指定字段）、`:1049-1051`（只遍历 `p.values`，无清空逻辑）。

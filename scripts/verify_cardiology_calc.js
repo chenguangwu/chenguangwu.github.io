@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -142,6 +144,12 @@ const CASES = [
     "3.1%"
   ],
   "ref": "age 选项值 3 = ≥75 岁计 3 分，其余默认未勾选 → 总分 3；mortality[3]='3.1%'。默认 <65 岁 → 0.8%，注入失败回退默认不命中。"
+},
+{
+  "slug": "cardiology/calc-3",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/calc-3.html','utf8');var ok=h.indexOf('cat=health,industry=cardiology')>=0&&h.indexOf('\"applicationCategory\":\"MedicalApplication\"')>=0&&h.indexOf('FinanceApplication')<0&&h.indexOf('cat=finance')<0;document.getElementById('__tbProbe').textContent='C3CAT '+(ok?'OK':'BAD');"],
+  "expect": ["C3CAT OK"],
+  "ref": "03-89 医疗页误标金融类：meta cat=finance、JSON-LD applicationCategory=FinanceApplication，与同目录心血管页 cat=health 不符。改 meta 为 cat=health 后 build 自动重生成 JSON-LD 为 MedicalApplication。源码形态哨兵：须含 cat=health + MedicalApplication 且不含两种旧串。默认态不产哨兵（仅 clicks 读源码后出现），零逃生。"
 },
 {
   "slug": "cardiology/cardiac-rehab-mets",

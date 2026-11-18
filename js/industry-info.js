@@ -111,7 +111,7 @@ window.INDUSTRY_INFO = {
   'engineering'          : { name: '工程计算', icon: '⚙️', hot: 149497 },
   'psychology'           : { name: '心理咨询', icon: '💭', hot: 148788 },
   'dermatology'          : { name: '皮肤性病', icon: '🧴', hot: 146959 },
-  'cardiology'           : { name: '心血管科', icon: '🫀', hot: 146118 },
+  'cardiology'           : { name: '心血管科', icon: '🫀', hot: 145618 },
   'pediatrics'           : { name: '儿科医学', icon: '🧒', hot: 143483 },
   'medical'              : { name: '医疗专业', icon: '🏥', hot: 143118 },
   'property'             : { name: '物业管理', icon: '🏢', hot: 141461 },
