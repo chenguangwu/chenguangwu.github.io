@@ -26,6 +26,36 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "library/archive-label",
+  "inputs": {
+    "fonds": "4", "catalog": "01", "boxNo": "A0001", "year": "2024", "org": "办公室", "title": "测试", "range": "1-30", "unit": "XX市人民政府",
+    "__alFrom": "1", "__alCount": "2", "__alPerBox": "30"
+  },
+  "clicks": ["__alBatch()", "var t=String(document.getElementById('__alBatchTable').innerHTML||'');document.getElementById('__tbProbe').textContent=(t.indexOf('A0002')>=0&&t.indexOf('00002')<0)?'PFX OK':'PFX BAD'"],
+  "expect": ["PFX OK"],
+  "ref": "RL-K21 盒号前缀保留：boxNo=A0001 时批量盒号应为 A0001/A0002，旧版取 boxNo.length 纯数字 pad 生成 00001/00002，前缀 A 丢失。修复后正则拆分前缀 A 与数字段 0001，批量 prefix+pad 生成 A0002。哨兵断言含 A0002 且不含 00002，读 innerHTML（stub DOM 的 textContent 不反射 innerHTML）。"
+},
+{
+  "slug": "library/archive-label",
+  "inputs": {
+    "fonds": "4", "catalog": "01", "boxNo": "0001", "year": "2024", "org": "办公室", "title": "测试", "range": "1-30", "unit": "XX市人民政府",
+    "__alFrom": "1", "__alCount": "2", "__alPerBox": "50"
+  },
+  "clicks": ["__alBatch()", "var k=String(document.getElementById('__alCheck').innerHTML||'');document.getElementById('__tbProbe').textContent=(k.indexOf('超过起止件号')>=0)?'SPAN OK':'SPAN BAD'"],
+  "expect": ["SPAN OK"],
+  "ref": "RL-K20 perBox 超 range 跨度：range=1-30 跨度 30，每盒件数 50 超出 ⇒ 修复后在 __alCheck 追加警告「每盒件数 50 超过起止件号 1-30 的跨度 30 件」，旧版无任何冲突提示。哨兵锚「超过起止件号」。"
+},
+{
+  "slug": "library/archive-label",
+  "inputs": {
+    "fonds": "4", "catalog": "01", "boxNo": "0001", "year": "2024", "org": "办公室", "title": "测试", "range": "1-50", "unit": "XX市人民政府",
+    "__alFrom": "1", "__alCount": "2", "__alPerBox": "0"
+  },
+  "clicks": ["__alBatch()", "var k=String(document.getElementById('__alCheck').innerHTML||'');document.getElementById('__tbProbe').textContent=(k.indexOf('批量参数不合法')>=0)?'BADPARAM OK':'BADPARAM BAD'"],
+  "expect": ["BADPARAM OK"],
+  "ref": "RL-K21 非法参数反馈：每盒件数=0 时旧版 __alBatch 静默 return、界面无提示；修复后在 __alCheck 写「批量参数不合法…」。哨兵锚「批量参数不合法」。"
+},
+{
   "slug": "library/clc-classifier",
   "inputs": {
     "search": "zzzqx"

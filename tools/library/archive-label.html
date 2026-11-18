@@ -357,18 +357,29 @@ render();
   };
 
   window.__alBatch = function(){
+    var check=document.getElementById('__alCheck');
     var from=parseInt(v('__alFrom'),10), count=parseInt(v('__alCount'),10), per=parseInt(v('__alPerBox'),10);
-    if(!isFinite(from)||from<1||!isFinite(count)||count<1||!isFinite(per)||per<1) return;
+    if(!isFinite(from)||from<1||!isFinite(count)||count<1||!isFinite(per)||per<1){
+      if(check) check.innerHTML='<div class="tip-box tip-warning" style="margin:8px 0;">'+T('⚠ 批量参数不合法：起始盒号、盒数、每盒件数均需为正整数。','⚠ Invalid batch parameters: start box, count and files per box must be positive integers.')+'</div>';
+      batchRows=[]; __alRenderBatch(); return;
+    }
     var fonds=v('fonds'), catalog=v('catalog'), year=v('year'), retention=v('retention'),
         org=v('org'), title=v('title'), unit=v('unit');
-    var boxLen = v('boxNo').length || 4;
+    // RL-K21：盒号保留字母/分类前缀，仅对末尾数字段补零（A0001 → A0002，而非 00002）
+    var boxRaw=v('boxNo');
+    var bm=boxRaw.match(/^(.*?)(\d+)$/);
+    var boxPrefix=bm?bm[1]:'';
+    var boxLen=(bm?bm[2]:boxRaw).length||4;
+    // RL-K20：range 起止件号定跨度，首盒从区间起点顺延；perBox 超出跨度给提示
     var rangeVal = v('range');
-    var m = rangeVal.match(/^(\d+)/);
-    var firstFrom = m ? parseInt(m[1],10) : 1;
-    var rangeLen = m ? m[1].length : 3;
+    var rm = rangeVal.match(/^(\d+)\s*[-–—]\s*(\d+)$/);
+    var firstFrom = rm ? parseInt(rm[1],10) : 1;
+    var lastFrom  = rm ? parseInt(rm[2],10) : null;
+    var rangeLen = (rm ? rm[1] : '').length || 3;
+    var span = (lastFrom!==null) ? (lastFrom-firstFrom+1) : null;
     batchRows = [];
     for(var i=0;i<count;i++){
-      var boxNo = pad(from+i, boxLen);
+      var boxNo = boxPrefix + pad(from+i, boxLen);
       var code = fonds+'-'+catalog+'-'+boxNo;
       var fromNo = firstFrom + i*per;
       var rng = pad(fromNo, rangeLen)+'-'+pad(fromNo+per-1, rangeLen);
@@ -376,6 +387,10 @@ render();
     }
     __alRenderBatch();
     __alRenderCheck();
+    if(span!==null && per>span && check){
+      var warn=T('⚠ 每盒件数 '+per+' 超过起止件号 '+rangeVal+' 的跨度 '+span+' 件，批量件号将超出单盒标签区间。','⚠ Files per box ('+per+') exceeds the span ('+span+') of range '+rangeVal+'; batch file numbers will exceed the single-box range.');
+      check.innerHTML = String(check.innerHTML)+'<div class="tip-box tip-warning" style="margin:8px 0;">'+warn+'</div>';
+    }
   };
 
   function __alRenderBatch(){
