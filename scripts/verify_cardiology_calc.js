@@ -158,6 +158,12 @@ const CASES = [
   "ref": "03-87 趋势图按 TIMI 分值画线：历史记录「结果」首段是「TIMI 评分： N 分」，旧版趋势图对整段 parseFloat 得 NaN 永不渲染；曾伪修为 __tbScore=0/1（有效性标记）画 0/1 线，非分值。本批新增 __calc_3Timi 从结果文本提取 N（兼容中英），record 存 __tbTimi，趋势图读它并按分值画线，历史表结论列仍用 0/1 __tbScore 不变。三档断言 11/5/0 精确提取；旧版无该函数⇒THROWN红；默认态无探针，零逃生。"
 },
 {
+  "slug": "cardiology/coronary-calcium",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/coronary-calcium.html','utf8');var noOld=h.indexOf('事件率<1%')<0&&h.indexOf('事件率&lt;1%')<0&&h.indexOf('rate <1%')<0;var unified=(h.match(/5–10年事件率 1\.1–1\.5%/g)||[]).length>=2&&h.indexOf(\"Very low (5–10y event rate 1.1–1.5%)\")>=0;document.getElementById('__tbProbe').textContent='CACS100 '+(noOld&&unified?'OK':'BAD');"],
+  "expect": ["CACS100 OK"],
+  "ref": "03-100 零积分事件率口径统一：分级表/结果 risk 变量写「5–10年事件率<1%」，而代码 event10、公式、MESA 表均为 1.1–1.5%，患者看到两个不同数值。本批把分级表、risk 变量、EN 映射三处统一为 1.1–1.5%。源码形态哨兵：无三种旧串且 ≥2 处新串 + EN 映射新值。默认态不产哨兵（仅 clicks 读源码），零逃生。"
+},
+{
   "slug": "cardiology/cardiac-rehab-mets",
   "inputs": {
     "mets": "8",
