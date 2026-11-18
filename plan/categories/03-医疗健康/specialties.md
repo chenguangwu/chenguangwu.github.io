@@ -927,12 +927,6 @@
 - 复现：D3+RC3+Child C+有出血史 → 11 分「极高危 >50%」；该 >50% 被当作首次出血风险，实为再出血语境。期望拆分首次/再出血两套口径，或删出血史并改标题。
 - 影响：一级/二级预防指征混用；需临床复核。假工具：否。
 
-### 03-194 食管静脉曲张页 cat=finance、JSON-LD 写 FinanceApplication（中，确认缺陷）
-- 问题：医疗页被归入金融类。
-- 证据：`tools/gastroenterology/esophageal-varices.html:9`（`cat=finance,industry=gastroenterology`）、`:32`（`FinanceApplication`）。
-- 复现：构建/筛选 → 本页落入 finance；期望 `cat=health`、医疗类 applicationCategory。
-- 影响：分类索引与结构化数据错误。假工具：否。
-
 ## U 批 消化/呼吸覆盖（2026-11-04）
 - 本轮审计 11 页：gastroscopy-atlas、gastric-emptying、colonoscopy-polyp、gastrin-level、nafld-fibroscan、detector-7、stool-occult-quant、intestinal-metaplasia、esophageal-varices、ercp-success、oxygenation-index。
 - 新增 23 条（03-172–03-194）：高 11、中 12，假工具候选 1 页（`ercp-success.html`，类型 B 局部）。
@@ -956,13 +950,6 @@
 - 复现（node 复刻）：BMI 20、无体重下降、白蛋白 38、摄入正常、中度活动、广泛病变，仅把并发症设为「瘘管/脓肿」→ 疾病分 2（按公式应为 3）；设为「短肠综合征/肠梗阻」→ 3 分（公式中该项无 3 分档）。
 - 影响：1 分档位差可使总分跨 3 / 5 阈值，风险分级随之改变。需临床复核。假工具：否。
 - 方案：按所采用的 NRS 改良表重排档位（瘘/脓肿→3、其余并发症→2），并同步公式框与「NRS-2002 评分标准」表。
-
-### 03-198 IBD 营养风险筛查页 cat=finance、JSON-LD 写 FinanceApplication（中，确认缺陷）
-- 页面：`tools/gastroenterology/ibd-nutrition.html`
-- 问题：医疗页被归入金融类（与 03-194 同类）。
-- 证据：`tools/gastroenterology/ibd-nutrition.html:9`（`cat=finance,industry=gastroenterology`）、`:34`（`FinanceApplication`）。
-- 复现：构建/分类筛选 → 本页落入 finance；期望 `cat=health`、医疗类 applicationCategory。
-- 影响：分类索引与结构化数据错误。假工具：否。
 
 ### 03-199 胶囊内镜：跨零点或时间倒序算出负值，仍被判「正常」（高，确认缺陷）
 - 页面：`tools/gastroenterology/capsule-endoscopy.html`
