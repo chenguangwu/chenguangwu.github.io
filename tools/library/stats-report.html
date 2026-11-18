@@ -112,7 +112,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="数量/类型/利用">Statistics</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">流通率 = 年借阅册次 ÷ 馆藏总册数 × 100%；读者人均借阅 = 年借阅册次 ÷ 注册读者数；到馆率 = 年到馆人次 ÷ 注册读者数；新增占比 = 年度新增馆藏 ÷ 馆藏总册数 × 100%；图书周转天数 = 365 ÷ 流通率；各项指标同比变动率 =（本年值 − 上年值）÷ 上年值 × 100%，用于横向与纵向比较馆藏利用效率。</div>
+      <div class="formula-eq">流通率 = 年借阅册次 ÷ 馆藏总册数 × 100%；读者人均借阅 = 年借阅册次 ÷ 注册读者数；到馆率 = 年到馆人次 ÷ 注册读者数；新增占比 = 年度新增馆藏 ÷ 馆藏总册数 × 100%；图书周转天数 = 365 ÷（借阅册次÷馆藏，小数而非百分数）；各项指标同比变动率 =（本年值 − 上年值）÷ 上年值 × 100%，用于横向与纵向比较馆藏利用效率。</div>
   <p class="formula-desc" data-zh="录入馆藏总量、年度借阅量、注册读者与到馆人次，汇总利用率、周转率、人均借阅与人均到馆等馆藏利用报表指标，用于年度业务统计与馆藏发展决策。利用率 = 借阅册次 ÷ 馆藏册数 × 100%，周转率 = 借阅册次 ÷ 馆藏册数。计算在浏览器本地完成，数据不上传服务器。"></p>
 </div>
 
@@ -168,7 +168,7 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="流通率">Circulation</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="流通率 = 年借阅册次 ÷ 馆藏总册数 × 100%；周转天数 = 365 ÷ 流通率">Circulation = annual loans ÷ holdings × 100%; turnover = 365 ÷ circ%</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="流通率 = 年借阅册次 ÷ 馆藏总册数 × 100%；周转天数 = 365 ÷（借阅÷馆藏）">Circulation = annual loans ÷ holdings × 100%; turnover = 365 ÷ circ%</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Library stats</td>
         </tr>
         <tr>
@@ -205,9 +205,14 @@ function calc(){
   if(bad||col<=0||rd<=0){document.getElementById('res').innerHTML='<p>请完整填写馆藏与读者数据，馆藏与注册读者需大于 0</p>';return;}
   if(nw>col){document.getElementById('res').innerHTML='<p>年度新增馆藏不能大于馆藏总册数</p>';return;}
   const util=loan/col*100, turn=loan/col, perReader=loan/rd, perVisit=vis/rd, newRate=nw/col*100;
+  if(loan<0){document.getElementById('res').innerHTML='<p>年度借阅册次不能为负</p>';return;}
+  if(vis<0){document.getElementById('res').innerHTML='<p>年度到馆人次不能为负</p>';return;}
+  if(nw<0){document.getElementById('res').innerHTML='<p>年度新增馆藏不能为负</p>';return;}
+  const days=turn>0?365/turn:NaN;
   const perTrip=vis>0?loan/vis:0;
   const __g3='<p>馆藏利用率：<strong style="color:var(--primary);">'+fmt(util)+'%</strong>（借阅 '+fmt(loan,0)+' 册次）</p>'+
     '<p>馆藏周转率：<strong style="color:var(--primary);">'+fmt(turn)+'</strong> 次/册（每册年均被借出次数）</p>'+
+    '<p>图书周转天数：<strong>'+(isFinite(days)?fmt(days,1)+' 天':'—')+'</strong>（365 ÷ 流通率小数 '+fmt(turn,2)+'，非百分数）</p>'+
     '<p>读者人均借阅：<strong>'+fmt(perReader)+'</strong> 册/人（注册读者 '+fmt(rd,0)+' 人）</p>'+
     '<p>读者人均到馆：<strong>'+fmt(perVisit)+'</strong> 次/人</p>'+
     '<p>单次到馆借阅：<strong>'+fmt(perTrip)+'</strong> 册/人次</p>'+
