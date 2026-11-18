@@ -523,6 +523,12 @@ const CASES = [
   "ref": "03-93~03-96 同页四条批量：①深解示例删未输出的「昼/夜比值 1.13」（权威源 content_deepdive + build 落地）；②结果卡错字 SBB→SBP；③预设写死 2024-01/02/03 改为动态今天 var __today（≥3 处 followDate，默认参数也补，切回默认不残留旧日期）；④输入标签「清晨收缩压」改「起床后 2h 平均收缩压」并注明非单次峰值。源码形态哨兵：旧串 SBB/2024 写死/清晨收缩压/1.13 任一出现即红。日期不依赖具体值（只断言动态构造与无写死），跨天稳定；默认态不产哨兵，零逃生。"
 },
 {
+  "slug": "cardiology/ambulatory-bp",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/ambulatory-bp.html','utf8');var deep=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var d=JSON.parse(deep);var sc=d['cardiology/ambulatory-bp'].scenarios.join('|');var noClaim=sc.indexOf('白大衣')<0&&sc.indexOf('隐匿')<0;var noPage=h.indexOf('白大衣与隐匿性高血压鉴别')<0&&h.indexOf('白大衣高血压')<0;document.getElementById('__tbProbe').textContent='ABP92 '+(noClaim&&noPage?'OK':'BAD');"],
+  "expect": ["ABP92 OK"],
+  "ref": "03-92 删虚假功能承诺：页面无诊室血压输入，无法鉴别白大衣/隐匿性高血压，但简介场景+深解场景宣称该功能。改权威源 content_deepdive 的 scenarios 删该条（build 同步删简介场景与深解场景两处渲染），EN 词典删对应2键。源码形态哨兵：JSON 解析 scenarios 不含白大衣/隐匿，页面 HTML 不含两处承诺串。默认态不产哨兵（仅 clicks 读源码），零逃生。"
+},
+{
   "slug": "cardiology/coronary-calcium",
   "inputs": { "age": "60", "cacs": "", "sex": "m" },
   "expect": ["请填写有效年龄（1–120 岁）与 Agatston 钙化积分（≥0，无钙化请填 0）。"],
