@@ -547,6 +547,18 @@ function normalizeVerb(v) {
   return v.trim().toLowerCase().replace(/[\u00e9\u00e8\u00ea\u00eb]/g,'e').replace(/\u00e7/g,'c').replace(/\u00fb/g,'u').replace(/\u00f9/g,'u').replace(/\u00ee/g,'i').replace(/\u00f4/g,'o').replace(/\u00e2/g,'a').replace(/\u00e0/g,'a').replace(/\u00ae/g,'a');
 }
 
+// 复合过去时 = 助动词（avoir/être 按人称变位）+ 过去分词。
+// 旧版把规则动词写成「主语 + 原形 + é/i」（如 je parleré），既无助动词也非过去分词。
+function composePerfect(aux, pp) {
+  var auxForms = aux === 'être'
+    ? ['suis','es','est','sommes','êtes','sont']
+    : ['ai','as','a','avons','avez','ont'];
+  return PRONOUNS.map(function(p, i){
+    var subj = (p === 'je' && /^[aeiouyâêîôûéè]/i.test(auxForms[i])) ? "j'" : p;
+    return (subj === "j'" ? subj + auxForms[i] : subj + ' ' + auxForms[i]) + ' ' + pp;
+  });
+}
+
 function getGroup1Conj(stem, tense) {
   var endings = {
     present:['e','es','e','ons','ez','ent'],
@@ -569,6 +581,22 @@ function lookup() {
   // Check irregulars first
   var verb = IRREGULARS[norm];
   if (verb) {
+    // 部分内置第一组动词（manger/commencer/acheter/juger）只登记了 stem/pp/aux 元数据，
+    // 未列时态数组 ⇒ 直接 renderResult 会让所有时态按钮禁用。这里按第一组规则补齐。
+    if (!verb.present && verb.stem && verb.group === 1) {
+      var full = {
+        group: 1, label: verb.label || raw,
+        present: getGroup1Conj(verb.stem, 'present'),
+        imparfait: getGroup1Conj(verb.stem, 'imparfait'),
+        futur_simple: getGroup1Conj(verb.stem, 'futur_simple'),
+        conditionnel: getGroup1Conj(verb.stem, 'conditionnel'),
+        subjonctif: getGroup1Conj(verb.stem, 'subjonctif'),
+        passe_compose: composePerfect(verb.aux || 'avoir', verb.pp || (verb.stem + 'é')),
+        pp: verb.pp, aux: verb.aux
+      };
+      renderResult(full.label, full);
+      return;
+    }
     renderResult(verb.label || raw, verb);
     return;
   }
@@ -586,8 +614,8 @@ function lookup() {
       futur_simple: getGroup1Conj(stem, 'futur_simple'),
       conditionnel: getGroup1Conj(stem, 'conditionnel'),
       subjonctif: getGroup1Conj(stem, 'subjonctif'),
-      passe_compose: PRONOUNS.map(function(p){ return p + ' ' + displayVerb + 'é'; }),
-      pp: displayVerb + 'é',
+      passe_compose: composePerfect('avoir', stem + 'é'),
+      pp: stem + 'é',
       aux: 'avoir'
     };
     renderResult(displayVerb, data);
@@ -605,7 +633,9 @@ function lookup() {
       futur_simple: [stem2+'irai', stem2+'iras', stem2+'ira', stem2+'irons', stem2+'irez', stem2+'iront'],
       conditionnel: [stem2+'irais', stem2+'irais', stem2+'irait', stem2+'irions', stem2+'iriez', stem2+'iraient'],
       subjonctif: [stem2+'isse', stem2+'isses', stem2+'isse', stem2+'issions', stem2+'issiez', stem2+'issent'],
-      passe_compose: PRONOUNS.map(function(p){ return p + ' ' + raw + 'i'; })
+      passe_compose: composePerfect('avoir', stem2 + 'i'),
+      pp: stem2 + 'i',
+      aux: 'avoir'
     };
     renderResult(raw, data2);
     return;
