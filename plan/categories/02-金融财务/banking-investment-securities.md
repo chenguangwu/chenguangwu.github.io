@@ -35,11 +35,6 @@
 
 ## 2026-11-03 续查：贷款、投资与仓位
 
-### B-N6 仓位历史未保存计算模式（中，待核源码路径）
-- 证据：`tools/securities/position-sizing.html:361-386,592-602,629-643,677-680` 历史未记录或恢复 `currentTab`；切换到凯利模式后恢复固定风险记录，按当前模式重算，浏览器回填待测。
-- 影响：`tools/securities/position-sizing.html`；历史方案可能无法复现，影响复核。
-- 方案：保存并先恢复计算模式，再恢复全部输入和重算；另让 `tools/securities/position-sizing.html` 与 `tools/investment/discounted-payback.html` 导出当前完整输入、结果及明细，而非仅截断的历史摘要（分别见 `:604-610,683-697`、`:262-268,341-355`）。
-
 ### 续查覆盖
 - 新抽查 `tools/banking/loan-tenure.html`、`tools/banking/loan-remaining-balance.html`、`tools/investment/discounted-payback.html`、`tools/securities/position-sizing.html` 共 4 页；仅 B-N6 待核源码。
 
