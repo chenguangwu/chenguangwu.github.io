@@ -187,6 +187,12 @@ const CASES = [
   "ref": "3 阶 9 格 10 秒：旧固定阈值 0.9<1.0 只判「良好」，不同阶不可比。现每格 10/9=1.11 秒判「优秀」。默认态无 LV 串。"
 },
 {
+  "slug": "cognition/schulte-table",
+  "clicks": ["var p=window.__scColorProbe();document.getElementById('__tbProbe').textContent='INK '+p.label+'|'+p.ink+'|'+p.bg;"],
+  "expect": ["INK 红|#EC4899|#1F2937"],
+  "ref": "颜色名模式：旧版白字配词义色底（黄/白/银格不可读），且字义与底色同色不存在 Stroop 冲突。现字义「红」、墨水色错开 7 位为粉 #EC4899，中性底按墨水亮度选深底 #1F2937 保证对比。默认态无 INK 串。"
+},
+{
   "slug": "cognition/stroop-test",
   "inputs": {
     "stTimeout": "3750"
