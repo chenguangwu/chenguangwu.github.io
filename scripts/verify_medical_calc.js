@@ -476,6 +476,27 @@ const CASES = [
   "ref": "A5 年龄条件核验：DailyMed 对 ≤3 月龄给出 30 mg/kg/日分 2 次上限，旧版按儿童 13 mg/kg×3=39 mg/kg/日 输出；修复后停止输出并提示医师核定。"
 },
 {
+  "slug": "medical/dosage-calculator",
+  "inputs": { "weight": "20", "height": "118", "age": "0.25", "perDose": "13", "freq": "3" },
+  "clicks": ["document.getElementById('drug').value='3';onDrugChange();"],
+  "expect": ["≤3 月龄儿童上限 30 mg/kg/日"],
+  "ref": "三月龄边界等于 0.25 岁，仍须进入 ≤3 月龄拦截，而不是按 >3 月龄区间输出剂量。"
+},
+{
+  "slug": "medical/dosage-calculator",
+  "inputs": { "weight": "20", "height": "118", "age": "6", "perDose": "13", "freq": "3" },
+  "clicks": ["document.getElementById('drug').value='3';onDrugChange();document.getElementById('method').value='bsa';calc();"],
+  "expect": ["体表面积法未经核验，本工具不输出儿童剂量"],
+  "ref": "儿童阿莫西林仅核验 mg/kg 方案；手动切到 mg/m² 不得沿用体重口径校验并输出面积法剂量。"
+},
+{
+  "slug": "medical/dosage-calculator",
+  "inputs": { "weight": "30", "height": "150", "age": "14" },
+  "clicks": ["document.getElementById('drug').value='0';onDrugChange();"],
+  "expect": ["儿童剂量逐药核验未完成", "禁止按成人 mg/kg 系数折算"],
+  "ref": "14 岁未成年人仍须进入儿童未核验守卫，不能按成人系数输出。"
+},
+{
   "slug": "medical/drug-info",
   "inputs": {
     "search": "zzzqx"
