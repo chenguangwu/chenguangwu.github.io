@@ -114,10 +114,10 @@ input[type="number"],input[type="text"],select{font-size:16px;}
     <h2 data-zh="📐 脱毛硫化钠用量">Calc Dosage 4</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入皮重、液比与硫化钠浓度，计算脱毛液量及硫化钠用量">Calc Dosage 4</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">液量 = 皮重 × 液比 (L)；硫化钠用量 = 液量 × 浓度% ÷ 100 (kg)；占皮重比例 = 用量 ÷ 皮重 × 100%；皮重须大于 0，浓度须在 0–20% 之间（常温溶解度上限），液比非负</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">液量 = 皮重 × 液比 (L)；硫化钠用量 = 液量 × 浓度% ÷ 100 (kg)；占皮重比例 = 用量 ÷ 皮重 × 100%；皮重须大于 0，浓度以质量体积百分比计（g/100 mL），本工具输入范围 0–20；不可将该范围视为溶解度或安全投料限值，液比非负</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：liq×c÷100">Key formulas: liq×c÷100</p>
     </div>
-<div class="input-row"><div><label>皮重 (kg)</label><input type="number" class="calc-input" id="weight" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="皮重 (kg)" placeholder="如 100"></div><div><label>液比</label><input type="number" class="calc-input" id="lr" value="2.0" step="any" oninput="calc()" enterkeyhint="done" aria-label="液比" placeholder="如 2.0"></div><div><label>硫化钠浓度 (%)</label><input type="number" class="calc-input" id="conc" value="3" step="any" oninput="calc()" enterkeyhint="done" aria-label="硫化钠浓度 (%)" placeholder="如 3（0–20）"></div></div>
+<div class="input-row"><div><label>皮重 (kg)</label><input type="number" class="calc-input" id="weight" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="皮重 (kg)" placeholder="如 100"></div><div><label>液比</label><input type="number" class="calc-input" id="lr" value="2.0" step="any" oninput="calc()" enterkeyhint="done" aria-label="液比" placeholder="如 2.0"></div><div><label>硫化钠质量体积浓度 (g/100 mL)</label><input type="number" class="calc-input" id="conc" value="3" step="any" oninput="calc()" enterkeyhint="done" aria-label="硫化钠质量体积浓度 (g/100 mL)" placeholder="如 3（0–20）"></div></div>
     <div class="toolbar">
       <div id="calc_dosage_4Presets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -160,7 +160,7 @@ input[type="number"],input[type="text"],select{font-size:16px;}
 
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
       <ul>
-<li>浓度按溶液中硫化钠质量百分比计，常规脱毛约 2–5%，上限受常温溶解度限制（约 20%）</li>
+<li>浓度按硫化钠质量体积百分比（g/100 mL 最终液体）计，不等同于质量百分比或占皮重比例。产品纯度及工艺不同会影响实际投料；请以具体工艺和产品安全数据为准。</li>
         <li>硫化钠有腐蚀性，实际操作须做好防护</li>
         <li>结果为估算值，需结合工艺调整</li>
       </ul>
@@ -193,7 +193,7 @@ function calc(){
   setInvalid(document.getElementById('conc'),cBad);
   if(wBad||lrBad||cBad){
     lastResult='';
-    var msg=wBad?'皮重须大于 0':(lrBad?'液比不得为负':'硫化钠浓度须在 0–20% 之间（常温溶解度上限）');
+    var msg=wBad?'皮重须大于 0':(lrBad?'液比不得为负':'硫化钠浓度以质量体积百分比计（g/100 mL），本工具输入范围 0–20；不可将该范围视为溶解度或安全投料限值');
     document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ '+msg+'</p>';
     return;
   }
@@ -201,12 +201,12 @@ function calc(){
   var dose=liq*c/100;
   var pct=w>0?dose/w*100:0;
   var en=typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn();
-  var warnings=[];
+  var warnings=[en?"The 10% alerts are review triggers, not safety limits; values below them are not necessarily safe.":"10% 仅为提醒复核的触发值，不是安全限值；低于该值也不代表安全。"];
   if(c>10) warnings.push(en?'Concentration exceeds 10%; verify the formulation and safety controls with a qualified professional.':'浓度超过 10%，请与专业人员核实配方及安全措施。');
   if(pct>10) warnings.push(en?'Sodium sulfide exceeds 10% of hide weight; verify the dosage with a qualified professional.':'硫化钠用量超过皮重的 10%，请与专业人员核实用量。');
   lastResult='皮重:'+w+'kg 液比:'+lr+' 浓度:'+c+'%\n液量:'+liq.toFixed(1)+'L\n硫化钠用量:'+dose.toFixed(2)+'kg\n占皮重:'+pct.toFixed(2)+'%'+(warnings.length?'\n⚠ '+warnings.join(' '):'');
   const __g4=(warnings.length?'<div class="tip-box tip-warn">⚠ '+warnings.join(' ')+'</div>':'')+grid([dc(liq.toFixed(1),'液量 (L)'),dc(dose.toFixed(2),'硫化钠用量 (kg)'),dc(pct.toFixed(2)+'%','占皮重比例')])+
-    para('按液量 = 皮重 × 液比计算，硫化钠用量 = 液量 × 浓度%。实际投料需结合皮张状态与脱毛效果调整。');document.getElementById('res').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+    para('按液量 = 皮重 × 液比计算，硫化钠用量 = 液量 × 浓度%。结果假设液比换算的液量等于最终液体体积，按纯硫化钠计算；加水体积不一定等于最终液体体积。结果非工艺处方，须核对原料纯度、工艺与安全数据。');document.getElementById('res').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   if(w>0&&lr>0) saveHistory('皮重'+w+'kg 用量'+dose.toFixed(2)+'kg');
 }
 function resetAll(){document.getElementById('weight').value=100;document.getElementById('lr').value=2.0;document.getElementById('conc').value=3;setInvalid(document.getElementById('weight'),false);setInvalid(document.getElementById('lr'),false);setInvalid(document.getElementById('conc'),false);calc();ToolBox.showToast(i18nText(),'info');}

@@ -446,8 +446,9 @@ const CASES = [
     "slug": "rehabilitation/physiotherapy-dose",
     "inputs": {"usArea":"20","usHead":"5","usIntensity":"1.5","usFreq":"1"},
     "checks": ["pulsed"],
-    "expect": ["超声波 1MHz 脉冲1:4 1.5W/cm² × 4.0 分钟 · 辐射头 5cm² · 治疗面积 20cm² · 总功率 7.5W · 总能量 360J · 有效深度 4-5cm（深部） · 病程分期 慢性期"],
-    "ref": "门诊记录：usArea=20、usHead=5 ⇒ 时间=20/5=4.0 分钟（未触 3–10 分钟上下限）；总功率=1.5×5=7.5W；checks 注入 usMode:pulsed ⇒ 脉冲 1:4 能量=7.5×4×60×0.2=360J；强度 1.5>0.5 ⇒ 慢性期；freq=1 ⇒ 深部 4-5cm。默认态 usArea 为空 ⇒ calcUS 早退、不产生门诊记录，零交集。原先那条超长 expect 混合了三段 tab 的原始 blob，已收敛为门诊记录单串。"
+    "clicks": ["calcUS();var h=String(document.getElementById('usResult').innerHTML);document.getElementById('__tbProbe').textContent='USARITH '+(h.indexOf('360')>=0&&h.indexOf('不能据此推断病程')>=0&&h.indexOf('慢性期')<0?'OK':'BAD');"],
+    "expect": ["USARITH OK"],
+    "ref": "面积20、探头5、强度1.5、脉冲占空比20%：演示时间4分钟，能量360J；不得由强度推断病程。"
   }
   ,{
     "slug": "rehabilitation/physiotherapy-dose",
@@ -473,7 +474,7 @@ const CASES = [
   ,{
     "slug": "rehabilitation/physiotherapy-dose",
     "inputs": {"usArea":"1","usHead":"10","usIntensity":"0.5","usFreq":"3"},
-    "clicks": ["calcUS();var h=String(document.getElementById('usResult').innerHTML).replace(/<[^>]+>/g,' ');var ok=h.indexOf('0.1')>=0&&h.indexOf('3.0')<0&&h.indexOf('避免局部过量')>=0;document.getElementById('__tbProbe').textContent='USMINTIME '+(ok?'OK':'BAD '+h.slice(0,100));"],
+    "clicks": ["calcUS();var h=String(document.getElementById('usResult').innerHTML).replace(/<[^>]+>/g,' ');var ok=h.indexOf('0.1')>=0&&h.indexOf('3.0')<0&&h.indexOf('时间为假设值')>=0;document.getElementById('__tbProbe').textContent='USMINTIME '+(ok?'OK':'BAD '+h.slice(0,100));"],
     "expect": ["USMINTIME OK"],
     "ref": "12-N126：usArea=1、头 10cm² 的理论时间 0.1 分钟，旧版 Math.max(time,3) 强制拉到 3 分钟使能量从 30J 虚增到 900J；现移除下限、按实际面积计算并提示核对治疗区。默认 usArea 为空 ⇒ calcUS 早退，零逃生。"
   }

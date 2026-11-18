@@ -78,7 +78,7 @@ window.INDUSTRY_INFO = {
   'insurance'            : { name: '保险计算', icon: '🛡️', hot: 235117 },
   'civil'                : { name: '土木工程', icon: '🏗️', hot: 229067 },
   'food-processing'      : { name: '食品加工', icon: '🏭', hot: 226749 },
-  'rehabilitation'       : { name: '康复医学', icon: '🦾', hot: 224080 },
+  'rehabilitation'       : { name: '康复医学', icon: '🦾', hot: 224076 },
   'tcm-chemistry'        : { name: '中药化学', icon: '🌿', hot: 220740 },
   'obstetrics'           : { name: '产科医学', icon: '🤱', hot: 201146 },
   'forestry'             : { name: '林业资源', icon: '🌲', hot: 200042 },
