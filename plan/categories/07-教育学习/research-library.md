@@ -55,17 +55,6 @@
 
 > 范围：本轮阅读 8 页（`tools/library/archive-label.html`、`tools/library/generator-label.html`、`tools/library/stats-report.html`、`tools/cognition/digit-span-test.html`、`tools/cognition/schulte-table.html`、`tools/cognition/stroop-test.html`、`tools/museum/lighting-lux.html`、`tools/museum/era-comparator.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### RL-K11 Stroop：一致条件 40 试次（含 24 前置纯块）对不一致 16 试次，干扰量基线受练习/块序污染（中，疑似）
-- 描述：一致块 24 次先于混合块 48 次（内部分为一致/不一致/中性各 16），因此 `cong` 汇总 40 次且主要来自前置纯块，`incong` 仅 16 次；`interference = incong.m - cong.m` 把「块序 + 练习效应」混入 Stroop 效应。
-- 证据：`tools/cognition/stroop-test.html:327-337`（块结构）、`:409-418`（按条件汇总）、`:431-433`（干扰量差值）。
-- 复现：完成一轮默认测试后，一致 n=40、不一致 n=16、中性 n=16；若把一致块也改成混合块内 16 次，干扰量通常会明显变化（当前实现无法分离块序效应）。
-- 影响：干扰量/干扰率的可比性与研究用途受影响。
-- 方案：三条件在混合块内等量随机化（或明确把纯块作为练习不计分），保证 n 与块序平衡。
-
-- 本轮实读 8 页：`tools/library/archive-label.html`、`tools/library/generator-label.html`、`tools/library/stats-report.html`、`tools/cognition/digit-span-test.html`、`tools/cognition/schulte-table.html`、`tools/cognition/stroop-test.html`、`tools/museum/lighting-lux.html`、`tools/museum/era-comparator.html`；新增 21 条（高 3 / 中 11 / 低 7）。
-- 与既有条目无重号、无重复页面：首轮已覆盖 `analysis-49`、`calc-97`、`overdue-fine`、`citation-format`，H 批已覆盖 `analysis-50/51/52/54`、`assessor-50`、`tester-17`、`clc-classifier`、`shelf-capacity`；本批 8 页均为首次阅读。
-- 未覆盖：`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`、`tools/research/index.html`（分类索引页）；`tools/cognition/cognitive-assessment.html`、`corsi-block-test.html`、`human-benchmark.html`、`nback-training.html`、`time-perception.html`；`tools/museum/audio-guide-timer.html`、`exhibit-spacing.html`、`historical-calendar.html`、`showcase-monitor.html`、`timeline-viewer.html`、`visitor-route.html`；`tools/library/stats-report.html` 的导出/历史面板未单独审查。
-
 ## 2026-11-04 续查（并行批 M）
 
 > 范围：本轮阅读 8 页（`tools/cognition/cognitive-assessment.html`、`tools/cognition/corsi-block-test.html`、`tools/cognition/nback-training.html`、`tools/cognition/time-perception.html`、`tools/museum/audio-guide-timer.html`、`tools/museum/exhibit-spacing.html`、`tools/museum/historical-calendar.html`、`tools/museum/showcase-monitor.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。

@@ -240,6 +240,12 @@ const CASES = [
   "ref": "零试次提前结束：旧版 overallAcc=0 仍 push 一条 0 分历史，污染趋势。现无 scored 试次时提示并直接 return，断言历史条数 0->0 与提示文案；默认态无 ST 串。"
 },
 {
+  "slug": "cognition/stroop-test",
+  "clicks": ["var p=window.__stBlockProbe();document.getElementById('__tbProbe').textContent='STBLOCK c'+p.congruent+' i'+p.incongruent+' n'+p.neutral+' t'+p.total+' tot'+p.totalTrials;"],
+  "expect": ["STBLOCK c16 i16 n16 t48 tot82"],
+  "ref": "RL-K11 块序污染修复：前置一致块 24 次全为 congruent，旧实现计分标记 scored=phase!=='练习' 使 cong=24+16=40、incong=16，干扰量混入选练习与块序效应。修复后前置一致块不计分，仅混合块三条件各 16 次等量随机进入计分 ⇒ c16/i16/n16/t48，总试次仍 82 不变。注入态才有 STBLOCK 串，默认态无 ⇒ 零逃生；旧版 cong=40 命中不到期望串会变红。"
+},
+{
   "slug": "cognition/time-perception",
   "inputs": {
     "bSel": "90"

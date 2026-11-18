@@ -327,8 +327,11 @@
     for (var k3 = 0; k3 < 16; k3++) { mix.push('neutral'); }
     shuffle(mix);
     mix.forEach(function (cond) { list.push(makeTrial(cond, colors)); });
-    // 标记计分（练习不计分）
-    list.forEach(function (t) { t.scored = (t.phase !== '练习'); });
+    // 标记计分：练习阶段与前置一致块都不计分。
+    // K11 复核：前置一致块 24 次全为 congruent，若计分会使 cong n=40 而 incong n=16，
+    // 干扰量 incong.m−cong.m 混入块序与练习效应。只让混合块（三条件各 16 次等量随机）
+    // 进入计分，保证三条件样本量与呈现顺序平衡。
+    list.forEach(function (t) { t.scored = (t.phase === '混合块'); });
     S.trials = list; S.idx = 0;
   }
 
@@ -704,6 +707,17 @@
     var before = loadHistory().length;
     S.log = []; finish();
     return { html: $('stResult').innerHTML, before: before, after: loadHistory().length };
+  };
+  // 只读诊断钩子：重建一次试次序列，统计各条件的计分数（不触发计时、不改用户可见状态）
+  window.__stBlockProbe = function () {
+    var keep = { trials: S.trials, idx: S.idx, phaseName: S.phaseName };
+    buildSession();
+    var out = { congruent: 0, incongruent: 0, neutral: 0, total: 0, totalTrials: S.trials.length };
+    S.trials.forEach(function (t) {
+      if (t.scored) { out[t.condition] = (out[t.condition] || 0) + 1; out.total++; }
+    });
+    S.trials = keep.trials; S.idx = keep.idx; S.phaseName = keep.phaseName;
+    return out;
   };
 })();
 </script>
