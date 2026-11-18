@@ -319,19 +319,6 @@ var DRUG_ELIM = {
   '苯妥英钠': 'hepatic', '芬太尼': 'hepatic', '环磷酰胺': 'both'
 };
 
-// WHO 生长标准体重-for-age 第 50 百分位（0–18 岁，kg）
-var W_REF_BOY = { 0: 3.3, 1: 9.6, 2: 12.2, 3: 14.3, 4: 16.3, 5: 18.3, 6: 20.5, 7: 22.9, 8: 25.6, 9: 28.6,
-  10: 32.0, 11: 35.9, 12: 40.5, 13: 45.6, 14: 50.8, 15: 55.4, 16: 59.3, 17: 62.3, 18: 64.4 };
-var W_REF_GIRL = { 0: 3.2, 1: 8.9, 2: 11.5, 3: 13.9, 4: 16.1, 5: 18.2, 6: 20.2, 7: 22.4, 8: 25.0, 9: 28.2,
-  10: 31.9, 11: 36.9, 12: 41.5, 13: 45.8, 14: 47.6, 15: 49.0, 16: 50.0, 17: 50.6, 18: 51.0 };
-
-function refWeightOf(age) {
-  if (!(age >= 0) || age > 18) return null;
-  var lo = Math.floor(age), hi = Math.ceil(age);
-  function lerp(t) { return lo === hi ? t[lo] : t[lo] + (t[hi] - t[lo]) * (age - lo); }
-  return { boy: lerp(W_REF_BOY), girl: lerp(W_REF_GIRL) };
-}
-
 // 给药基准：按药物说明书区分 mg/kg（体重）与 mg/m²（体表面积），禁止跨基准相乘
 function isChildAge(age){ return age < 18; }
 
@@ -342,16 +329,6 @@ function basisFor(d, age){
 function doseBasisText(d, child){
   var en=medIsEn();
   return child ? (en?'Pediatric dosing unavailable':'儿童剂量暂停计算') : (en?'Adult dosing unavailable':'成人剂量暂停计算');
-}
-
-function updatePedWeightHint() {
-  var el = document.getElementById('pedWeightBox');
-  if (!el) return;
-  var age = +document.getElementById('age').value;
-  var r = refWeightOf(age);
-  if (!r) { el.innerHTML = ''; return; }
-  el.innerHTML = '📏 ' + age + ' 岁儿童中位体重（WHO P50）：男童约 <strong>' + r.boy.toFixed(1)
-    + ' kg</strong> ｜ 女童约 <strong>' + r.girl.toFixed(1) + ' kg</strong>（仅用于核对体重填写是否偏差过大）';
 }
 
 function init(){
@@ -404,7 +381,6 @@ function organTipHtml(d){
 
 // 无可用剂量（儿童禁用 / 未核验 / 无儿科资料）时不输出数字剂量，仅给出明确警示，避免误用成人剂量
 function renderBlocked(d, age, kind){
-  updatePedWeightHint();
   var html = '<div class="stat-grid">';
   html += '<div class="stat-card"><div class="val">—</div><div class="lbl">单次剂量</div></div>';
   html += '<div class="stat-card"><div class="val">—</div><div class="lbl">日剂量</div></div>';
@@ -418,8 +394,8 @@ function renderBlocked(d, age, kind){
     html += '<div class="warn-line">⚠ '+(medIsEn()?'Adult dose unavailable: the formulation, indication and patient factors have not been verified. Consult the current label and a clinician.':'成人剂量暂停计算：本页未核验具体制剂、适应证和患者情况，请查阅现行说明书并由医师或药师核定。')+'</div>';
   } else if (kind === 'unverified') {
     html += '<div class="warn-line" style="font-size:14px;">⚠ '+(medIsEn()
-      ? ('Pediatric dose not verified: no label-based daily range, dosing frequency and conditions are available for '+d.name+'; this tool does not output a pediatric dose.')
-      : ('儿童剂量逐药核验未完成：「'+d.name+'」尚未取得可核对的儿科说明书日总量、分次与适用条件，本工具不输出儿童剂量。'))+'</div>';
+      ? ('Pediatric dosing unavailable: this tool does not verify the specific product, indication and patient conditions for '+d.name+'; this tool does not output a pediatric dose.')
+      : ('儿童剂量逐药核验未完成：本工具未核验「'+d.name+'」的具体制剂、适应证与患者情况，不输出儿童剂量。'))+'</div>';
     html += '<div class="step-line">'+(medIsEn()
       ? 'Check the current regional label for the exact formulation, or consult a pediatrician/clinical pharmacist; do not scale from adult mg/kg dosing.'
       : '请查阅该药当前地区、具体制剂的说明书，或咨询儿科医师/临床药师；禁止按成人 mg/kg 系数折算。')+'</div>';
@@ -551,20 +527,11 @@ else document.addEventListener('DOMContentLoaded', __dosage_calculatorBoot);
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>药物剂量计算器。医疗专业工具，基于权威医学标准，仅供参考。</p>
-    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <p>成人与儿童剂量计算已暂停；请查阅具体制剂的现行说明书。</p>
+    <h4><span class="h4-icon">✨</span>当前状态</h4>
     <ul class="intro-features">
-      <li>基于权威医学标准</li>
-      <li>支持多种临床参数</li>
-      <li>实时计算，结果即时显示</li>
+      <li>不提供剂量、剂量上限或自动调整建议</li>
       <li>医疗数据不上传，保护隐私</li>
-    </ul>
-    <h4><span class="h4-icon">🎯</span>使用场景</h4>
-    <ul class="intro-scenes">
-      <li>临床计算与评估辅助</li>
-      <li>医学学习与考试备考</li>
-      <li>科研数据分析</li>
-      <li>健康监测参考</li>
     </ul>
     </div>
 </div>

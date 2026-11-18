@@ -10,6 +10,7 @@ const data = vm.runInNewContext('(' + dataText[1] + ')');
 const items = [
   ['weibo', '头像', 100, 100, 'kefu.weibo.com/faqdetail?id=20908', '生成'],
   ['twitter', '头像', 400, 400, 'help.x.com/en/managing-your-account/how-to-customize-your-profile', '推荐'],
+  ['twitter', '带应用按钮图片广告', 800, 418, 'help.x.com/en/business-and-advertising/creative-ad-specifications', '推荐'],
   ['twitter', '横幅图片', 1500, 500, 'help.x.com/en/managing-your-account/how-to-customize-your-profile', '推荐'],
   ['linkedin', '个人头像', 400, 400, 'linkedin.com/help/linkedin/answer/a549049', '最小'],
   ['linkedin', '背景图片', 1584, 396, 'linkedin.com/help/linkedin/answer/a568217', '推荐'],

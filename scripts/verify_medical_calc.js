@@ -656,6 +656,14 @@ const CASES = [
   ],
   "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
 }
+,{
+  "slug": "medical/dosage-calculator",
+  "inputs": {"age": "14", "weight": "50", "height": "160"},
+  "clicks": ["document.getElementById('drug').value='0';onDrugChange();var hint=document.getElementById('pedWeightBox');document.getElementById('__tbProbe').textContent='WHOAGE '+(!hint||!hint.innerHTML?'OK':'BAD');"],
+  "expect": ["WHOAGE OK"],
+  "ref": "WHO 年龄别体重参考不覆盖 10 岁以上；不得显示未经核实的 14 岁体重百分位。"
+}
+
 ];
 async function main() {
   const only = process.argv.slice(2);
