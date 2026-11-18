@@ -148,13 +148,6 @@
 
 > 范围：本轮阅读 7 页（`tools/cognition/human-benchmark.html`、`tools/museum/visitor-route.html`、`tools/museum/timeline-viewer.html`、`tools/research/index.html`、`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`）。**说明：四目录仅剩这 7 个未覆盖页（3 个工具页 + 4 个索引页），不足以凑满 8 页；未跨目录外扩，以免与 edu-language 批重复。** 仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### RL-K40 Human Benchmark：Chimp 测试数字标注与判定序列错位，几乎必然首击即错（高，确认）
-- 描述：数字按 `positions`（洗牌后顺序）标为 1..n，判定却用 `order`（按格位升序排序）的排位；两者通常不同，导致点击「1」被判成别的数字。仅当 `positions` 恰好升序（3 格时约 1/6 概率）才能过第 1 关。
-- 证据：`tools/cognition/human-benchmark.html:648-654`、`:676-678`。
-- 复现：进入 Chimp，若 `positions=[2,0,1]` → 格 2 显示「1」、格 0 显示「2」、格 1 显示「3」；点显示「1」的格 2，代码算 `order.indexOf(2)=2 → num=3` → 立即「点错啦！到达等级 1」（期望 num=1，进入下一数字）。
-- 影响：该项核心玩法失效，所有人的 Chimp 原始分恒为 1 级、P 极低，且写入本地成绩/综合指数。
-- 方案：统一口径——标注与判定都用 `order`（或在标注时用 `order.indexOf(pos)+1`），不要两套排序。
-
 ### RL-K42 Human Benchmark：序列记忆失败时把「尝试等级」当「完成等级」，原始分恒 +1（中，确认）
 - 描述：`nextLevel()` 先 `level++` 再播放；首关点错即 `finish(level)`，报告「最长 1 级」，但用户实际连 1 级都没复述成功。
 - 证据：`tools/cognition/human-benchmark.html:507-513`、`:525-530`、`:312`。
