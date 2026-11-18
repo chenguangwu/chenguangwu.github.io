@@ -729,6 +729,12 @@ const CASES = [
   },
   {
     slug: "edu/pinyin-converter",
+    inputs: { inputText: "男女空车觉立飞父母儿女" },
+    expect: ["nánnǚkōngchējuélìfēifùmǔérnǚ"],
+    ref: "EL-F2：补高频常用字后，plan 列举的 11 个缺字（男女空车觉立飞父母儿女）全部可转换；withSpace 默认未勾选逐字带声调拼接。旧版这些字不在 PINYIN_CHARS，segmentPinyin 回落单字回填原汉字 ⇒ 该拼音串整条失配；默认输入也不同 ⇒ 强判别。",
+  },
+  {
+    slug: "edu/pinyin-converter",
     inputs: { inputText: "我爱中国" },
     clicks: ["currentMode='notone';convert();"],
     expect: ["woaizhongguo"],
