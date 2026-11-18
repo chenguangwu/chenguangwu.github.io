@@ -117,13 +117,6 @@
 
 > 范围：本轮阅读 8 页——`tools/dyeing/calc-dosage-2.html`（dyeing）、`tools/leather/convert-area-weight.html`（leather）、`tools/safety/accident-stats.html`（safety）、`tools/nutrition/calorie-deficit.html`（nutrition）、`tools/usedcar/car-residual.html`（usedcar）、`tools/wedding/wedding-banquet.html`（wedding）、`tools/restaurant/safety-stock.html`（restaurant）、`tools/elderly/fall-risk.html`（elderly）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### 12-L3 nutrition/calorie-deficit：减脂提示「300~500 千卡缺口」与页面自身目标区间不一致（中，确认缺陷）
-- 描述：`lose` 目标按 TDEE 的 85%~90% 计算（缺口 10%~15%），提示文案却写「保持 300~500 千卡缺口」；默认参数下实际缺口仅约 217~325 千卡，文案与实际输出不符，且未随 TDEE 缩放。
-- 证据：`tools/nutrition/calorie-deficit.html:240-243`（`:241-242` 区间、`:243` 提示），`:257-261`（输出）
-- 复现：默认 男/28 岁/170 cm/65 kg/轻量活动 1.375（`:135` selected）→ BMR 1,577.5、TDEE 2,169、目标 `1844 ~ 1952` 千卡/天，实际缺口 217~325 千卡；提示仍为「300~500 千卡缺口，周减重约 0.25~0.5kg」。（node 复算）
-- 影响：低 TDEE 人群按提示追求 300~500 缺口会落到目标区间之外；高 TDEE 人群则被提示低估，减脂速度预期错位。
-- 方案：提示改为动态文案（如「当前缺口约 X 千卡/天，约合每周 Y kg」），或把目标改为「TDEE − 固定缺口」并同时给出百分比校验；补 1500/2500/3500 TDEE 三组用例。
-
 ### 12-L4 nutrition/calorie-deficit：低体重女性「较快减脂」目标低于 BMR，无任何下限提示（中，疑似）
 - 描述：`lose2` 直接取 TDEE 的 78%~85%，不与已算出的 BMR 比较，也不设常见 1200 千卡下限；低体重、久坐用户的目标摄入可低于 BMR，页面仍照常给出「建议日摄入」。
 - 证据：`tools/nutrition/calorie-deficit.html:244-247`（区间），`:236-237`（BMR/TDEE），`:257-261`（输出无下限校验）

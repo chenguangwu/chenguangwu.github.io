@@ -96,6 +96,18 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "nutrition/calorie-deficit",
+  "inputs": {
+    "age": "42",
+    "height": "170",
+    "weight": "80"
+  },
+  "expect": [
+    "缺口约 228~342 千卡/天，周减重约 0.21~0.31kg"
+  ],
+  "ref": "12-L3 动态缺口强锚：age42/170cm/80kg/男/系数1.375/goal=lose ⇒ BMR=10·80+6.25·170−5·42+5=1657.5、TDEE=1657.5×1.375=2279.06；缺口低=tdee×10%=228、缺口高=tdee×15%=342，周减重=缺口×7/7700=0.21~0.31kg。旧版固定「300~500 千卡缺口/0.25~0.5kg」不命中本串，注入失败即红。独立用例，避免与 BMR「1508」用例或关系假绿。"
+},
+{
   "slug": "nutrition/estimate-1",
   "clicks": [
     "getSelected = function(){return [0,3,6];};calculate();"
