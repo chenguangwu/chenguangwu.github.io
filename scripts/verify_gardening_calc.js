@@ -186,6 +186,14 @@ const CASES = [
   "ref": "第1066批 N172：月季适宜 6.0-6.9，实测 9.5 ⇒ 距离最近上边界 9.5−6.9=2.6。偏差卡与建议文案必须用同一边界口径：新实现偏差卡「+2.6」、建议「土壤偏碱 2.6 个单位」同屏一致；旧实现偏差卡用中点 9.5−6.45=+3.0，与建议 2.6 自相矛盾。哨兵要求 +2.6 与「偏碱 2.6」同时出现且无 +3.0，默认 soilPh=6.5 在范围内不触发 ⇒ 依赖 clicks 注入，强判别零逃生。"
 },
 {
+  "slug": "gardening/soil-ph",
+  "clicks": [
+    "document.getElementById('plant').value='蓝莓';document.getElementById('soilPh').value='6.8';calc();var h=String(document.getElementById('result').innerHTML);var a=h.indexOf('130-260 g/m²')>=0&&h.indexOf('按差值 1.3 个单位')>=0&&h.indexOf('降 1.3 个 pH')>=0;document.getElementById('soilPh').value='4.4';calc();var h2=String(document.getElementById('result').innerHTML);var b=h2.indexOf('10-30 g/m²')>=0&&h2.indexOf('按差值 0.1 个单位')>=0&&h2.indexOf('升 0.1 个 pH')>=0;document.getElementById('__tbProbe').textContent='SOILPH173 '+(a&&b?'OK':'BAD');"
+  ],
+  "expect": ["SOILPH173 OK"],
+  "ref": "12-N173 调节剂用量按差值缩放（双向强锚）：蓝莓 4.5-5.5，实测 6.8 偏碱 1.3 单位 ⇒ 硫磺粉每单位基准 100-200g/m²×1.3=130-260 g/m²、效果「降 1.3 个 pH」；实测 4.4 偏酸 0.1 单位 ⇒ 石灰粉每单位基准 100-300g/m²×0.1=10-30 g/m²、效果「升 0.1 个 pH」。旧版把整表 dose 原样渲染（恒为 100-200 g / 100-300 g、效果恒为「1 个 pH」），两个方向哨兵均不命中；默认 soilPh=6.5 完全适配不产出调节剂，注入失败零逃生。"
+},
+{
   "slug": "gardening/watering-schedule",
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/gardening/watering-schedule.html','utf8');var ok=h.indexOf('单次约 234ml')<0&&h.indexOf('单次 20×1.0×0.6×0.9×10=108ml')>=0;document.getElementById('__tbProbe').textContent='WATEREX '+(ok?'OK':'BAD');"],
   "expect": ["WATEREX OK"],

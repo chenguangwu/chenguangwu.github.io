@@ -266,8 +266,8 @@
 <li>偏酸/偏碱调节用量</li>
 <li>喜酸植物（蓝莓/杜鹃）调酸</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">输入土壤 pH 与目标植物适宜区间 [min,max]：在区间内“完全适配”；低于 min 偏酸、高于 max 偏碱，按差值给调节剂与用量（升 1 单位约石灰粉 100-300g/m²，降 1 单位约硫磺粉 100-200g/m²）。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">蓝莓适宜 pH 4.5-5.5，实测 6.8 → 偏碱 1.3 单位，建议硫磺粉 100-200g/m² 降 pH（2-3 月缓慢生效）；番茄适宜 6.0-7.0，实测 6.5 → 完全适配无需调节。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">输入土壤 pH 与目标植物适宜区间 [min,max]：在区间内“完全适配”；低于 min 偏酸、高于 max 偏碱，按差值给调节剂与用量：升 1 单位约石灰粉 100-300g/m²、降 1 单位约硫磺粉 100-200g/m² 为每单位基准，页面按实测与边界的差值等比缩放（如差 1.5 单位则石灰粉约 150-450g/m²、硫磺粉约 150-300g/m²），分次施加。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">蓝莓适宜 pH 4.5-5.5，实测 6.8 → 偏碱 1.3 单位，按每单位 100-200g/m² 基准折算，建议硫磺粉约 130-260g/m² 降 pH（2-3 月缓慢生效，分次施加）；实测 4.4 → 偏酸 0.1 单位，按每单位 100-300g/m² 基准折算石灰粉约 10-30g/m²。番茄适宜 6.0-7.0，实测 6.5 → 完全适配无需调节。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>调酸用什么最快？</dt><dd>硫酸亚铁灌根降 0.3-0.5 且补铁（月季黄化良药），但持久性不如硫磺粉；绣球调蓝用硫酸铝。</dd>
@@ -363,14 +363,14 @@ const PLANTS = {
 // pH 调节剂
 const ADJUSTERS = {
   lower: [
-    { name: '硫磺粉', dose: '100-200 g', effect: '降 1 个 pH', note: '缓慢（2-3 月生效），持久' },
+    { name: '硫磺粉', dose: '100-200 g', effect: '降 1 个 pH', doseLo: 100, doseHi: 200, scale: true, note: '缓慢（2-3 月生效），持久' },
     { name: '硫酸亚铁', dose: '1-2 g/L 水灌根', effect: '降 0.3-0.5', note: '快速，兼补铁，月季黄化良药' },
     { name: '硫酸铝', dose: '50-100 g', effect: '降 0.5-1.0', note: '较快，绣球调蓝常用' },
     { name: '食醋', dose: '1:1000 稀释浇灌', effect: '临时降 0.2-0.5', note: '应急用，效果短暂' },
     { name: '松针土/泥炭', dose: '换土 30-50%', effect: '缓降 0.3-0.8', note: '配土调酸，温和' }
   ],
   raise: [
-    { name: '石灰粉（生石灰/熟石灰）', dose: '100-300 g', effect: '升 1 个 pH', note: '常用，2-4 周生效' },
+    { name: '石灰粉（生石灰/熟石灰）', dose: '100-300 g', effect: '升 1 个 pH', doseLo: 100, doseHi: 300, scale: true, note: '常用，2-4 周生效' },
     { name: '草木灰', dose: '100-200 g', effect: '升 0.3-0.5', note: '兼补钾，速效' },
     { name: '蛋壳粉', dose: '50-100 g', effect: '缓慢升 0.2', note: '缓慢释放，预防性使用' },
     { name: '白云石粉', dose: '150-250 g', effect: '升 0.5-1.0', note: '兼补钙镁，温和持久' },
@@ -433,17 +433,26 @@ function calc() {
     advice = `土壤偏碱 ${diff} 个单位，需降低 pH 至 ${minPh}-${maxPh} 范围。`;
   }
 
+  // N173: 调节剂用量按距最近适宜边界的差值缩放（基准剂量为「每升降 1 个 pH」），
+  // 仅对 scale:true 的单位剂量项生效；换土比例/稀释浇灌等非单位量项保持原文案。
+  const diffNum = Number(Math.abs(delta).toFixed(1));
+  const diffTxt = diffNum.toFixed(1);
+  const doseTxt = a => a.scale
+    ? (a.doseLo*diffNum).toFixed(0)+'-'+(a.doseHi*diffNum).toFixed(0)+' g/m²（按差值 '+diffTxt+' 个单位；基准 '+a.dose+' / pH）'
+    : a.dose;
+  const effTxt = a => a.scale ? a.effect.replace('1 个 pH', diffTxt+' 个 pH') : a.effect;
+
   let adjusterHtml = '';
   if (soilPh < minPh) {
     adjusterHtml = '<h4 style="margin:12px 0 6px;">⬆️ 升高 pH（加碱）建议</h4>' +
       ADJUSTERS.raise.map(a => `<div class="note-item" style="border-left-color:#f59e0b;">
-        <strong>${escapeHtml(a.name)}</strong> · 用量 ${escapeHtml(a.dose)} · ${escapeHtml(a.effect)}<br>
+        <strong>${escapeHtml(a.name)}</strong> · 用量 ${escapeHtml(doseTxt(a))} · ${escapeHtml(effTxt(a))}<br>
         <span style="color:var(--text-muted);font-size:12px;">${escapeHtml(a.note)}</span>
       </div>`).join('');
   } else if (soilPh > maxPh) {
     adjusterHtml = '<h4 style="margin:12px 0 6px;">⬇️ 降低 pH（加酸）建议</h4>' +
       ADJUSTERS.lower.map(a => `<div class="note-item">
-        <strong>${escapeHtml(a.name)}</strong> · 用量 ${escapeHtml(a.dose)} · ${escapeHtml(a.effect)}<br>
+        <strong>${escapeHtml(a.name)}</strong> · 用量 ${escapeHtml(doseTxt(a))} · ${escapeHtml(effTxt(a))}<br>
         <span style="color:var(--text-muted);font-size:12px;">${escapeHtml(a.note)}</span>
       </div>`).join('');
   }

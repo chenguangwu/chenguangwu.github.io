@@ -439,13 +439,6 @@
 
 > 本批只读审计 8 页（每目录 1 页），均未出现在既有 plan 条目中（已 Grep 确认 slug 零命中）。编号续接 12-N166。
 
-### 12-N173 gardening/soil-ph：调节剂用量固定不随差值缩放，差 1.5 个 pH 仍只给 100–300 g/m²（中，确认缺陷）
-- 问题：深度解析 `:280` 承诺「按差值给调节剂与用量（升 1 单位约石灰粉 100-300 g/m²，降 1 单位约硫磺粉 100-200 g/m²）」，但 `ADJUSTERS` 每项 `dose` 是固定字符串（`:375-390`），`calc` 只把整表原样渲染（`:437-449`），没有任何乘 `diff` 的处理。
-- 证据：`tools/gardening/soil-ph.html:280`、`:375-390`、`:437-449`
-- 复现：蓝莓 4.5–5.5：实测 4.4（差 0.1）与实测 3.0（差 1.5）得到完全相同的「石灰粉 · 用量 100-300 g · 升 1 个 pH」清单；按承诺 1.5 单位应为 150–450 g/m²。
-- 影响：`tools/gardening/soil-ph.html` 按页面表格 100–300 g 对应「升 1 个 pH」，差 1.5 个单位应给 150–450 g，页面只给 100–300 g（仅覆盖所需区间的约 2/3），用户按清单补一次仍差 0.5–1.0 个 pH，误判「已按工具加足」。
-- 方案：结果区按 `diff` 计算建议区间（`dose×diff`）并显示「按差值 Z 个单位」，保留「分次、每次 ≤0.5–1.0」的提示；调酸同理乘硫磺粉 100–200 g。
-
 ### 覆盖清单（T 批 长尾行业，2026-11-04）
 - 审计页数：8（`tools/metallurgy/alloy-ratio.html`、`tools/leather/calc-dosage-4.html`、`tools/gardening/soil-ph.html`、`tools/chemical/reaction-yield.html`、`tools/nutrition/generator-glucose-load.html`、`tools/process/cpk-with-shift.html`、`tools/transport/calculator-calc-fuel.html`、`tools/usedcar/usedcar-valuation.html`），8 个不同目录各 1 页，均为既有 plan 未覆盖页（Grep 上述 8 个 slug 在 `_others.md` 零命中）。
 - 新增条数：15 条，编号 12-N167–12-N181（高 5 / 中 10）。
