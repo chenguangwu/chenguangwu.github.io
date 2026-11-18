@@ -122,6 +122,14 @@ const CASES = [
      + "它既非页面缺陷也零判别力（默认态即命中）。",
 },
 {
+  "slug": "museum/historical-calendar",
+  "clicks": ["document.getElementById('date-input').value='1899-12-31';update();"],
+  "expect": [
+    "仅支持 1900–2100 年日期，请重新选择。"
+  ],
+  "ref": "年份越界（RL-K36）：solarToLunar 对 1899 年返回 null，旧版未判空直接读 lunar.y ⇒ TypeError 中断，详情与历史事件停留在上一次结果。修复后给出范围提示并清空事件列表；默认态为当前本地日期，不含该提示。"
+},
+{
   "slug": "museum/lighting-lux",
   "inputs": {
     "lampCount": "7",

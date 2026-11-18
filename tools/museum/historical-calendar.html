@@ -161,7 +161,7 @@
     
     <div class="input-row">
       <label>选择日期</label>
-      <input type="date" id="date-input" onchange="update()">
+      <input type="date" id="date-input" min="1900-01-01" max="2100-12-31" onchange="update()">
       <span style="font-size:13px;color:var(--text-muted);">📌 示例日期：</span><button type="button" class="btn" onclick="applyHcalPreset('y2000')">2000-01-01</button><button type="button" class="btn" onclick="applyHcalPreset('spring')">2024 春节</button><button type="button" class="btn" onclick="applyHcalPreset('solstice')">2024 夏至</button><button type="button" class="btn" onclick="applyHcalPreset('founding')">1949 开国</button>
     </div>
     
@@ -459,6 +459,11 @@ function update() {
   renderCalendar();
   
   const lunar = solarToLunar(y, m, d);
+  if (!lunar) {
+    document.getElementById('detail-info').innerHTML = '<div class="tip-box tip-error">仅支持 1900–2100 年日期，请重新选择。</div>';
+    document.getElementById('events-list').innerHTML = '';
+    return;
+  }
   const ganzhi = getGanZhi(lunar.y);
   const zodiac = getZodiac(lunar.y);
   const term = getSolarTerm(y, m, d);
@@ -484,8 +489,10 @@ function update() {
   }
 }
 
+// 默认日期取本地日历日：toISOString().slice(0,10) 取的是 UTC，东八区 00:00–07:59 会显示前一天
 const today = new Date();
-document.getElementById('date-input').value = today.toISOString().slice(0, 10);
+const _pad2 = n => String(n).padStart(2, '0');
+document.getElementById('date-input').value = today.getFullYear() + '-' + _pad2(today.getMonth()+1) + '-' + _pad2(today.getDate());
 update();
 </script>
 <script>

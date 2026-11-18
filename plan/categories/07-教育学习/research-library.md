@@ -140,20 +140,6 @@
 - 影响：节气标注在多数年份错位或漏标，历史日期解读失真。
 - 方案：内置 1900–2100 逐年节气表，或用太阳黄经近似公式按年份计算。
 
-### RL-K36 历史日历：1899/2101 年日期使 `solarToLunar` 返回 null，随后抛异常并保留旧结果（中，确认）
-- 描述：`solarToLunar` 对 `y<1900 || y>2100` 返回 null，`update()` 未判空即读 `lunar.y`；日期输入也未设 min/max。
-- 证据：`tools/museum/historical-calendar.html:344`、`:472-473`、`:175`。
-- 复现：选择 1899-12-31 → `getGanZhi(lunar.y)` 抛 TypeError，详细信息与历史事件停留在上一次结果（期望提示「仅支持 1900–2100」）。
-- 影响：页面静默失败，陈旧结果被误认为新日期结果。
-- 方案：`update()` 开头判 `if (!lunar) { 显示范围提示; return; }`；给日期输入加 `min="1900-01-31" max="2100-12-31"`。
-
-### RL-K37 历史日历：默认日期取 UTC，东八区凌晨显示「昨天」（中，确认）
-- 描述：初始化用 `today.toISOString().slice(0,10)`，取 UTC 日期而非本地日期。
-- 证据：`tools/museum/historical-calendar.html:499`。
-- 复现：2026-11-04 06:00（Asia/Shanghai）打开 → 默认日期 2026-11-03（期望 11-04）。
-- 影响：每天 00:00–07:59 打开都默认到前一天，农历/节气/历史事件随错日。
-- 方案：改用本地字段拼接 `getFullYear()`、`getMonth()+1`、`getDate()`（各补零）。
-
 ### RL-K38 展柜环境监测：陶瓷/玻璃超标时建议为空，只显示「调整建议：。」（中，确认）
 - 描述：超标建议只覆盖 `Array.isArray(m.temp)` 与 `m.rh` 对象/`rhMax`；陶瓷/玻璃使用 `tempR`/`rhR`，`!tempOK` 或 `!rhOK` 时没有任何分支，`advice.join` 为空串。
 - 证据：`tools/museum/showcase-monitor.html:243`（数据）、`:324-332`。
