@@ -40,11 +40,6 @@
 ### 续查覆盖
 - 本轮抽查 `tools/insurance/life-cover-need.html`、`premium-calc.html`、`net-single-premium.html`、`surrender-value.html` 4 页。
 
-### R-N7 净趸缴示例采用不同计算对象（中，确认表述冲突）
-- 证据：`tools/insurance/net-single-premium.html:123-127,191-194,438` 页面模型涉及死亡概率，深度解析却用「每年给付 100 万」的确定年金现值约 853 万作示例；默认死亡率 0.01、利率 0.03、10 年与保额 100 万的本页计算约 81763.70。
-- 影响：`tools/insurance/net-single-premium.html`；示例不能验证本工具且易混淆年金与死亡给付。
-- 方案：换成同模型、同给付时点的逐年示例，明确精算假设；确定年金另行标示。
-
 ### 续查覆盖
 - 新抽查 `tools/insurance/life-cover-need.html`、`tools/insurance/premium-calc.html`、`tools/insurance/surrender-value.html`、`tools/insurance/net-single-premium.html` 共 4 页，新增 7 条（3 条高优）；未做浏览器、线上或门禁验证。
 
