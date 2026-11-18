@@ -351,126 +351,6 @@ const CASES = [
   "ref": "D-N10 逐项校验：液体量 0 时旧实现滴速 0、总滴数 0 且无提示；修复后判 vol>0 失败并提示整句「液体量须大于 0」。默认 vol=500 有效，不含该提示 ⇒ 判别力成立。"
 },
 {
-  "slug": "medical/dosage-calculator",
-  "inputs": {
-    "weight": "24",
-    "height": "118",
-    "age": "30"
-  },
-  "clicks": [
-    "document.getElementById('drug').value='0';onDrugChange();document.getElementById('weight').value='';document.getElementById('result').innerHTML='OLD 500 mg';calc();var o=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='ADULTGUARD '+(o.indexOf('成人剂量暂停计算')>=0&&o.indexOf('OLD')<0&&!/\\d+\\s*mg/.test(o)?'OK':'BAD');"
-  ],
-  "expect": [
-    "ADULTGUARD OK"
-  ],
-  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
-},
-{
-  "slug": "medical/dosage-calculator",
-  "inputs": {
-    "weight": "24",
-    "height": "118",
-    "age": "6"
-  },
-  "clicks": [
-    "document.getElementById('drug').value='0';onDrugChange();"
-  ],
-  "expect": [
-    "儿童剂量逐药核验未完成"
-  ],
-  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
-},
-{
-  "slug": "medical/dosage-calculator",
-  "inputs": {
-    "weight": "24",
-    "height": "118",
-    "age": "30"
-  },
-  "clicks": [
-    "document.getElementById('drug').value='3';onDrugChange();"
-  ],
-  "expect": [
-    "成人剂量暂停计算"
-  ],
-  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
-},
-{
-  "slug": "medical/dosage-calculator",
-  "inputs": {
-    "weight": "24",
-    "height": "118",
-    "age": "30"
-  },
-  "clicks": [
-    "document.getElementById('drug').value='0';onDrugChange();"
-  ],
-  "expect": [
-    "成人剂量暂停计算"
-  ],
-  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
-},
-{
-  "slug": "medical/dosage-calculator",
-  "inputs": {
-    "weight": "24",
-    "height": "118",
-    "age": "30"
-  },
-  "clicks": [
-    "document.getElementById('drug').value='3';onDrugChange();"
-  ],
-  "expect": [
-    "成人剂量暂停计算"
-  ],
-  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
-},
-{
-  "slug": "medical/dosage-calculator",
-  "inputs": {
-    "weight": "24",
-    "height": "118",
-    "age": "6"
-  },
-  "clicks": [
-    "document.getElementById('drug').value='2';onDrugChange();"
-  ],
-  "expect": [
-    "儿童剂量不提供"
-  ],
-  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
-},
-{
-  "slug": "medical/dosage-calculator",
-  "inputs": {
-    "weight": "24",
-    "height": "118",
-    "age": "6"
-  },
-  "clicks": [
-    "document.getElementById('drug').value='0';onDrugChange();"
-  ],
-  "expect": [
-    "儿童剂量逐药核验未完成"
-  ],
-  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
-},
-{
-  "slug": "medical/dosage-calculator",
-  "inputs": {
-    "weight": "24",
-    "height": "118",
-    "age": "6"
-  },
-  "clicks": [
-    "document.getElementById('drug').value='3';onDrugChange();"
-  ],
-  "expect": [
-    "儿童剂量逐药核验未完成"
-  ],
-  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
-},
-{
   "slug": "medical/drug-info",
   "inputs": {
     "search": "zzzqx"
@@ -628,48 +508,19 @@ const CASES = [
 }
 ,{
   "slug": "medical/dosage-calculator",
-  "inputs": {
-    "weight": "24",
-    "height": "118",
-    "age": "30"
-  },
-  "clicks": [
-    "document.getElementById('drug').value='0';onDrugChange();var r=document.getElementById('result');Object.defineProperty(r,'innerText',{configurable:true,get:function(){return String(this.innerHTML||'').replace(/<[^>]*>/g,'')}});var captured='';ToolBox.copyText=function(s){captured=String(s)};calc();copyResult();document.getElementById('__tbProbe').textContent='COPYPARITY '+(captured===(r.innerText||r.textContent||'')&&captured.indexOf('成人剂量暂停计算')>=0&&!/\\d+\\s*mg/.test(captured)?'OK':'BAD');"
-  ],
-  "expect": [
-    "COPYPARITY OK"
-  ],
-  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
-}
-,{
-  "slug": "medical/dosage-calculator",
-  "inputs": {
-    "weight": "24",
-    "height": "118",
-    "age": "30"
-  },
-  "clicks": [
-    "document.getElementById('drug').value='0';onDrugChange();var hit=0;TBKit={history:{list:function(){hit++;return [{d:{'结果':'单次 900 mg'}}]},mount:function(){hit++}},matrix:{table:function(){hit++}},util:{exportTable:function(){hit++}}};ToolBox.showToast=function(){};__dosage_calculatorRender([], '结果', false);__dosage_calculatorExtras();__dosage_calculatorExport();document.getElementById('__tbProbe').textContent='OLDDOSEHIDDEN '+(hit===0?'OK':'BAD');"
-  ],
-  "expect": [
-    "OLDDOSEHIDDEN OK"
-  ],
-  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
-}
-,{
-  "slug": "medical/dosage-calculator",
-  "inputs": {"age": "14", "weight": "50", "height": "160"},
-  "clicks": ["document.getElementById('drug').value='0';onDrugChange();var hint=document.getElementById('pedWeightBox');document.getElementById('__tbProbe').textContent='WHOAGE '+(!hint||!hint.innerHTML?'OK':'BAD');"],
-  "expect": ["WHOAGE OK"],
-  "ref": "WHO 年龄别体重参考不覆盖 10 岁以上；不得显示未经核实的 14 岁体重百分位。"
-}
-
-,{
-  "slug": "medical/dosage-calculator",
-  "inputs": {"age": "30"},
+  "inputs": {"tyAge": "12"},
   "clicks": ["function setv(id,v){document.getElementById(id).value=v} function tick(id,v){document.getElementById(id).checked=v} setv('tyAge','12');setv('tyTaken','8');setv('tyHours','4');setv('tyReason','fever');tick('tyProduct',true);tick('tyRisk',true);tick('tyLimits',true);tyCheck();var ok=document.getElementById('tyResult').textContent.indexOf('650 mg')>=0; setv('tyAge','11.99');tyCheck();ok=ok&&document.getElementById('tyResult').textContent.indexOf('650 mg')<0;setv('tyAge','12');setv('tyTaken','9');tyCheck();ok=ok&&document.getElementById('tyResult').textContent.indexOf('650 mg')<0;setv('tyTaken','8');setv('tyHours','3.99');tyCheck();ok=ok&&document.getElementById('tyResult').textContent.indexOf('650 mg')<0;setv('tyHours','4');setv('tyReason','other');tyCheck();ok=ok&&document.getElementById('tyResult').textContent.indexOf('650 mg')<0;setv('tyReason','pain');tick('tyRisk',false);tyCheck();ok=ok&&document.getElementById('tyResult').textContent.indexOf('650 mg')<0;document.getElementById('__tbProbe').textContent='TYLABEL '+(ok?'OK':'BAD');"],
   "expect": ["TYLABEL OK"],
   "ref": "指定美版 325 mg 片剂标签：12 岁、过去 24 小时 8 片、间隔 4 小时及安全确认时展示；低龄、9 片、间隔不足、非适应证和未确认均拦截。"
+}
+
+
+,{
+  "slug": "medical/dosage-calculator",
+  "inputs": {"tyAge": "12"},
+  "clicks": ["var noLegacy=typeof DRUGS==='undefined'&&typeof copyResult==='undefined'&&typeof __dosage_calculatorExport==='undefined'&&typeof __dosage_calculatorRender==='undefined';document.getElementById('__tbProbe').textContent='LEGACYREMOVED '+(noLegacy?'OK':'BAD');"],
+  "expect": ["LEGACYREMOVED OK"],
+  "ref": "原通用药品库、计算表单、历史、预设、复制及导出入口均应移除，避免使用未经核验的数据。"
 }
 
 ];

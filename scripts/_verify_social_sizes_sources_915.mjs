@@ -29,14 +29,14 @@ for (const [platform, name, width, height, url, nature] of items) {
   assert.ok(item.source.includes(url)); assert.ok(item.noteZh.includes(nature));
   assert.ok(item.noteEn && item.noteZh.includes('2026-11-18') && item.noteEn.includes('2026-11-18'));
 }
-for (const p of Object.values(data)) for (const item of p.sizes) {
-  if (item.source) assert.ok(item.sourceText && item.noteZh && item.noteEn, item.name);
+assert.deepEqual(Object.keys(data).sort(), ['bilibili', 'linkedin', 'twitter', 'weibo', 'youtube']);
+const all = Object.values(data).flatMap(p => p.sizes);
+assert.equal(all.length, items.length, '只保留逐项核实的尺寸');
+for (const item of all) {
+  assert.ok(item.source && item.sourceText && item.noteZh && item.noteEn, item.name);
+  assert.doesNotMatch(item.noteZh, /未核验|社区快照/);
+  assert.doesNotMatch(item.noteEn, /unverified|community snapshot/i);
 }
-for (const text of ['社区快照，此项未核验', 'Community snapshot; this item has not been verified', 'sizeSourceHtml(s,', 'sizeSourceText(s,', 's.source ? \' · \' + s.source']) assert.ok(html.includes(text), text);
-assert.ok(data.twitter.sizes.find(s => s.name === '推文图片').noteZh.includes('像素尺寸未核验'));
-assert.ok(data.twitter.sizes.find(s => s.name === '推文图片').noteZh.includes('单图帖子'));
-assert.ok(data.weibo.sizes.find(s => s.name === '个人页封面').noteZh.includes('与此历史比例不符'));
-assert.ok(data.xiaohongshu.sizes.find(s => s.name === '笔记封面').noteZh.includes('像素尺寸未核验'));
-assert.ok(data.youtube.sizes.find(s => s.name === '社区帖子图片').noteZh.includes('像素尺寸未核验'));
-for (const name of ['竖版帖子', '横版帖子']) assert.ok(data.instagram.sizes.find(s => s.name === name).noteZh.includes('未核验'));
-console.log(`社媒尺寸来源专项：${items.length} 条官方口径及未核验、展示和导出标识通过`);
+for (const text of ['sizeSourceHtml(s,', 'sizeSourceText(s,', "s.source ? ' · ' + s.source"]) assert.ok(html.includes(text), text);
+assert.doesNotMatch(html, /社区快照|像素尺寸未核验/);
+console.log(`社媒尺寸来源专项：${items.length} 条官方口径、展示和导出标识通过`);
