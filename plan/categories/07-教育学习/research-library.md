@@ -113,13 +113,6 @@
 
 > 范围：本轮阅读 7 页（`tools/cognition/human-benchmark.html`、`tools/museum/visitor-route.html`、`tools/museum/timeline-viewer.html`、`tools/research/index.html`、`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`）。**说明：四目录仅剩这 7 个未覆盖页（3 个工具页 + 4 个索引页），不足以凑满 8 页；未跨目录外扩，以免与 edu-language 批重复。** 仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### RL-K57 四个分类索引页：meta 均称覆盖「单位转换」，目录内并无换算类工具（低，确认）
-- 描述：research/library/cognition/museum 四个 `index.html` 的 description/og/twitter 使用同一套模板句「常见计算、换算、单位转换与查询需求」，但四目录工具均为统计、档案、测评、展陈类，无单位换算器。
-- 证据：`tools/research/index.html:6`、`tools/library/index.html:6`、`tools/cognition/index.html:6`、`tools/museum/index.html:6`（`:11`/`:21` 同样）。
-- 复现：浏览四页工具卡 → 无任何单位转换工具（期望删去「单位转换」或按类目定制摘要）。
-- 影响：搜索摘要与页面内容不符，易致高跳出；四页摘要高度同质。
-- 方案：构建模板按行业生成差异化描述，移除未覆盖的能力词。
-
 ### RL-K58 文博索引页：时代对比/历史日历/时间轴三张卡片共用同一段「查询历史文化知识」套话（低，确认）
 - 描述：三张卡描述几乎逐字相同，未说明各自独有能力（朝代重叠/节气农历/主题时间轴），与同页其他卡（照度、导览、间距）的信息密度明显不一致。
 - 证据：`tools/museum/index.html:88`、`:90`、`:93`。

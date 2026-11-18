@@ -10,6 +10,35 @@ import json
 import re
 
 
+# RL-K57：以下行业的工具是统计/编目/测评/展陈类，不含换算器，通用模板的「换算/单位转换」
+# 与实际工具不符。仅对这些行业定制能力词，其余行业继续用原模板（避免全站 268 页 SEO 文案变动）。
+_CAPABILITY_ZH = {
+    'research': '统计分析、数据处理与查询',
+    'library': '文献编目、档案管理与查询',
+    'cognition': '认知测评、脑力训练与查询',
+    'museum': '展陈规划、文物保存与查询',
+}
+_CAPABILITY_EN = {
+    'research': 'statistical analysis, data processing and lookups',
+    'library': 'document cataloguing, archive management and lookups',
+    'cognition': 'cognitive assessment, brain training and lookups',
+    'museum': 'exhibition planning, heritage conservation and lookups',
+}
+# 定制行业的完整英文短语（嵌入正文/FAQ 的固定句式）；fallback 为原模板整句，保证其他行业零变动。
+_BODY_EN = {
+    'research': 'covering statistical analysis and data processing',
+    'library': 'covering document cataloguing and archive management',
+    'cognition': 'covering cognitive assessment and brain training',
+    'museum': 'covering exhibition planning and heritage conservation',
+}
+_FAQ_EN = {
+    'research': 'Most tools here cover statistical analysis and data processing;',
+    'library': 'Most tools here cover document cataloguing and archive management;',
+    'cognition': 'Most tools here cover cognitive assessment and brain training;',
+    'museum': 'Most tools here cover exhibition planning and heritage conservation;',
+}
+
+
 def _esc(s):
     return (str(s).replace('&', '&amp;').replace('<', '&lt;')
             .replace('>', '&gt;').replace('"', '&quot;'))
@@ -25,13 +54,14 @@ def _pick_repr(tool_names, n=18):
     return [tool_names[int(round(i * step))] for i in range(n)]
 
 
-def _make_desc_zh(ind_name, count, tool_names):
+def _make_desc_zh(ind, ind_name, count, tool_names):
     # 基准串已含足够信息且 ≥100 字，覆盖绝大多数行业；极短行业名或单工具行业
     # 若仍不足 100 字，再补充代表工具名兜底，整体控制在 150 字以内。
-    base = ('本页收录%d个免费%s在线工具，覆盖%s场景下的常见计算、换算、单位转换与查询需求，'
+    ability = _CAPABILITY_ZH.get(ind, '常见计算、换算、单位转换与查询')
+    base = ('本页收录%d个免费%s在线工具，覆盖%s场景下的%s需求，'
             '帮助你快速完成相关日常任务。所有工具均为纯前端在线工具，无需安装软件、无需注册账号，'
             '数据在浏览器本地计算，不上传服务器，手机与电脑打开网页即可直接使用。'
-            % (count, ind_name, ind_name))
+            % (count, ind_name, ind_name, ability))
     if 100 <= len(base) <= 150:
         return base
     if len(base) < 100:
@@ -56,7 +86,7 @@ def build_content(ind, ind_name, en_name, count, tool_names, tool_names_en=None)
     title_zh = '%s在线工具集合 - 免费实用的%s工具箱' % (ind_name, ind_name)
     if len(title_zh) > 60:
         title_zh = '%s工具集合(%d) - ToolBox 免费在线工具' % (ind_name, count)
-    desc_zh = _make_desc_zh(ind_name, count, tool_names)
+    desc_zh = _make_desc_zh(ind, ind_name, count, tool_names)
     # 英文 description 的代表工具名同样取英文名（原先误用中文名，导致英文描述夹中文）
     rep6 = ', '.join(rep_en[:6])
     # 修正两处质量缺陷：① 无英文名代表工具时 rep6 为空 → 旧模板产出「Includes  and more.」破碎句；
@@ -82,18 +112,20 @@ def build_content(ind, ind_name, en_name, count, tool_names, tool_names_en=None)
                   'and anything you enter is processed inside your browser — never uploaded.'
                   % (count, en_name, rep_txt_en))},
         {'q': '%s工具的结果能直接用于医疗、法律或财务决策吗？' % ind_name,
-         'a': ('不能直接作为决策依据。本页工具多为通用计算、换算与查询，结果仅供日常参考；'
+         'a': ('不能直接作为决策依据。本页工具多为%s，结果仅供日常参考；'
                '涉及诊断、诉讼、投资、工程验收等专业场景，请以权威标准、原始仪器读数或持证专业人士的结论为准。'
-               '所有运算都在本地完成，数据不上传。'),
+               '所有运算都在本地完成，数据不上传。' % _CAPABILITY_ZH.get(ind, '通用计算、换算与查询')),
          'q_en': 'Can the results be used directly for medical, legal or financial decisions?',
-         'a_en': ('No — treat them as everyday references only. Most tools here are general-purpose '
-                  'calculators, converters and lookups; for diagnosis, litigation, investment or '
+         'a_en': ('No — treat them as everyday references only. %s for diagnosis, litigation, investment or '
                   'engineering acceptance, rely on authoritative standards, raw instrument readings '
-                  'or a licensed professional. Everything is computed locally and nothing is uploaded.')},
+                  'or a licensed professional. Everything is computed locally and nothing is uploaded.'
+                  % _FAQ_EN.get(ind, 'Most tools here are general-purpose calculators, converters and lookups;'))},
     ]
     return {
         'ind': ind, 'ind_name': ind_name, 'en_name': en_name, 'count': count,
         'rep': rep, 'rep_en': rep_en, 'title_zh': title_zh, 'desc_zh': desc_zh, 'desc_en': desc_en,
+        'ability_zh': _CAPABILITY_ZH.get(ind, '常见计算、换算与查询'),
+        'ability_en': _CAPABILITY_EN.get(ind, 'calculations, conversions and lookups'),
         'faq': faq,
     }
 
@@ -107,11 +139,13 @@ def render_body(c, count):
     en_name = c.get('en_name') or ind_name
     rep = c['rep']
     rep_en = c.get('rep_en') or rep
+    ability_zh = c.get('ability_zh') or '常见计算、换算与查询'
+    body_en = _BODY_EN.get(c.get('ind'), 'for everyday calculations, conversions and lookups')
     out = []
     out.append('      <h4><span class="h4-icon">📝</span><span data-i18n="cat.h_about" data-i18n-fb="栏目简介">栏目简介</span></h4>\n')
-    out.append('      <p><span class="t-zh">%s工具集合收录了 %d 个免费在线工具，覆盖%s场景下的常见计算、换算与查询需求。无论你是相关领域的从业者、学生还是普通用户，都能在这里找到即用即走的实用小工具。所有工具纯前端运行，数据不上传服务器，保护隐私安全。</span>'
-               '<span class="t-en">This collection gathers %d free online %s tools for everyday calculations, conversions and lookups. Whether you are a professional, a student or a casual user, you will find handy tools you can use right away. Everything runs client-side — no data is uploaded.</span></p>\n'
-               % (_esc(ind_name), count, _esc(ind_name), count, _esc(en_name)))
+    out.append('      <p><span class="t-zh">%s工具集合收录了 %d 个免费在线工具，覆盖%s场景下的%s需求。无论你是相关领域的从业者、学生还是普通用户，都能在这里找到即用即走的实用小工具。所有工具纯前端运行，数据不上传服务器，保护隐私安全。</span>'
+               '<span class="t-en">This collection gathers %d free online %s tools %s. Whether you are a professional, a student or a casual user, you will find handy tools you can use right away. Everything runs client-side — no data is uploaded.</span></p>\n'
+               % (_esc(ind_name), count, _esc(ind_name), _esc(ability_zh), count, _esc(en_name), _esc(body_en)))
     out.append('      <h4><span class="h4-icon">✨</span><span data-i18n="cat.h_feature" data-i18n-fb="核心功能与适用场景">核心功能与适用场景</span></h4>\n')
     out.append('      <p><span class="t-zh">本页收录的%s工具包括（部分代表工具）：</span><span class="t-en">Featured %s tools on this page include:</span></p>\n' % (_esc(ind_name), _esc(en_name)))
     out.append('      <ul class="intro-features">\n')
