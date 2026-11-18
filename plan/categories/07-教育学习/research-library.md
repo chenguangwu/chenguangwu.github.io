@@ -148,13 +148,6 @@
 
 > 范围：本轮阅读 7 页（`tools/cognition/human-benchmark.html`、`tools/museum/visitor-route.html`、`tools/museum/timeline-viewer.html`、`tools/research/index.html`、`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`）。**说明：四目录仅剩这 7 个未覆盖页（3 个工具页 + 4 个索引页），不足以凑满 8 页；未跨目录外扩，以免与 edu-language 批重复。** 仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### RL-K42 Human Benchmark：序列记忆失败时把「尝试等级」当「完成等级」，原始分恒 +1（中，确认）
-- 描述：`nextLevel()` 先 `level++` 再播放；首关点错即 `finish(level)`，报告「最长 1 级」，但用户实际连 1 级都没复述成功。
-- 证据：`tools/cognition/human-benchmark.html:507-513`、`:525-530`、`:312`。
-- 复现：第 1 关点错 → 结果「最长 1 级」；连过 9 级、第 10 级点错 → 报 10 级（P88），期望 9 级（P79）。
-- 影响：该项原始分与百分位系统性高估一级，污染记忆/执行维度与综合指数。
-- 方案：失败时 `onResult(level-1)`（达到 20 级封顶时仍报 20）；或将 `level` 语义改为「已完成级数」。
-
 ### RL-K43 Human Benchmark：只做 1 项也生成完整报告，未测维度按 P0 计入综合指数（中，确认）
 - 描述：`computeAbilities()` 对未测能力返回 0；报告照常显示四维 P 值与「0–100 综合脑力指数」，`computeIndex()` 仍按 0.30/0.25/0.25/0.20 全权重求和，未测项被当作「0 百分位」。
 - 证据：`tools/cognition/human-benchmark.html:854-880`、`:936-953`、`:330`。
