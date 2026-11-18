@@ -310,7 +310,7 @@ function renderNodeSelects(){
 // Dijkstra
 function dijkstra(graph, start, end){
   if(start==null||end==null) return null;
-  var dist = {}, prev = {}, visited = {};
+  var dist = {}, prev = {}, visited = {}, prevW = {};
   nodes.forEach(function(n){ dist[n] = Infinity; prev[n] = null; visited[n] = false; });
   dist[start] = 0;
   for(var c=0;c<nodes.length;c++){
@@ -322,7 +322,7 @@ function dijkstra(graph, start, end){
     graph[u].forEach(function(item){
       var v = item.to, w = item.w;
       if(visited[v]) return;
-      if(dist[u] + w < dist[v]){ dist[v] = dist[u] + w; prev[v] = u; }
+      if(dist[u] + w < dist[v]){ dist[v] = dist[u] + w; prev[v] = u; prevW[v] = w; }
     });
   }
   // 回溯路径（cur != null 同时排除 null 与 undefined：起终点缺失时 prev[cur] 为 undefined，
@@ -338,7 +338,10 @@ function dijkstra(graph, start, end){
     cur = prev[cur];
     steps++;
   }
-  return {path:path, dist:dist[end]};
+  // 分段权重取 Dijkstra 实际选中的边，不能二次全表扫描（平行边会被最后一条覆盖）
+  var segW = {};
+  for(var k=0;k<path.length-1;k++){ segW[path[k]+'\u0000'+path[k+1]] = prevW[path[k+1]]; }
+  return {path:path, dist:dist[end], segW:segW};
 }
 
 function compute(){
@@ -377,7 +380,7 @@ function compute(){
   var anchors = [start].concat(wps).concat([end]);
   var seq = [];
   anchors.forEach(function(a){ if(seq.length === 0 || seq[seq.length-1] !== a) seq.push(a); });
-  var fullPath = [], total = 0;
+  var fullPath = [], total = 0, segW = {};
   for(var i=0;i<seq.length-1;i++){
     var leg = dijkstra(graph, seq[i], seq[i+1]);
     if(!leg){
@@ -387,6 +390,7 @@ function compute(){
     if(fullPath.length) leg.path.shift();
     fullPath = fullPath.concat(leg.path);
     total += leg.dist;
+    Object.keys(leg.segW).forEach(function(key){ segW[key] = leg.segW[key]; });
   }
 
   var html = '';
@@ -404,10 +408,8 @@ function compute(){
     var arrow = i < fullPath.length-1 ? ' <span style="color:var(--primary);">→</span> ' : '';
     var seg = '';
     if(i < fullPath.length-1){
-      var w = 0;
-      edges.forEach(function(e){
-        if((e[0]===p && e[1]===fullPath[i+1]) || (e[1]===p && e[0]===fullPath[i+1])) w = Math.abs(parseFloat(e[2])||0);
-      });
+      var w = segW[p+'\u0000'+fullPath[i+1]];
+      if(!isFinite(w)) w = 0;
       seg = ' <span style="color:var(--text-muted);font-size:12px;">('+w+'m)</span>';
     }
     var mustTag = (wps.indexOf(p) >= 0) ? ' <span style="color:var(--tool-accent,#FF6B35);font-size:12px;">（必看）</span>' : '';

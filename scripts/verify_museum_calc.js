@@ -31,6 +31,15 @@ const CASES = [
   "ref": "必看节点串联：A→B→C→D 各段 10 m，途经必看节点 C 后总距离 30 m，而直达 A→D 为 100 m；「（必看）」标记只对必看节点输出。旧实现无 waypoints 输入、无条件直接求 start→end ⇒ 总距离 100 m 且无必看标记，两条均不命中。默认展线为 115 m，30 m 亦不与默认冲突。"
 },
 {
+  "slug": "museum/visitor-route",
+  "inputs": {},
+  "clicks": ["document.getElementById('nodeInput').value='A,B,C';syncNodes();edges=[['A','B',30],['A','B',100],['B','C',10]];compute();"],
+  "expect": [
+    "A (30m) → 2. B"
+  ],
+  "ref": "平行边分段（RL-K46）：A–B 同时存在 30 m 与 100 m 两条通道，Dijkstra 选 30 m。旧版分段渲染遍历全部 edges 并覆盖权值为最后一条 100 m，显示「A (100m) → 2. B」；修复后取 prevW 实际选中边显示「A (30m) → 2. B」。锚含节点 A/B，避开默认态（入口→青铜馆 30m）与「40 m 总距离」两版同值造成的假绿。"
+},
+{
   "slug": "museum/era-comparator",
   "inputs": {},
   "clicks": ["document.getElementById('era1').value='3';document.getElementById('era2').value='9';compare()"],
