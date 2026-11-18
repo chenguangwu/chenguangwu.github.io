@@ -1118,6 +1118,19 @@
     try { localStorage.removeItem(hkey()); } catch (e) {}
   };
 
+  // AI-N5：情感分析/文本摘要两个页面已下架，但其历史键仍可能残留在老用户浏览器里
+  // （键内曾保存输入前 300 个码元）。页面下架后无法再通过页面上的「清空」入口清理，
+  // 因此在公共脚本加载时一次性删除这两个旧键；其他页面的历史键一律不动。
+  (function purgeRetiredHistory() {
+    var retired = [
+      'tbk_hist_/tools/ai/sentiment-analysis.html',
+      'tbk_hist_/tools/ai/text-summarization.html'
+    ];
+    for (var i = 0; i < retired.length; i++) {
+      try { localStorage.removeItem(retired[i]); } catch (e) {}
+    }
+  })();
+
   /**
    * 记录一次计算：obj 里放要展示的摘要字段。
    * coalesceMs > 0 时，若上一条记录在 coalesceMs 毫秒内，则覆盖它而不是新增一条
