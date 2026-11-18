@@ -33,6 +33,8 @@ for (const p of Object.values(data)) for (const item of p.sizes) {
   if (item.source) assert.ok(item.sourceText && item.noteZh && item.noteEn, item.name);
 }
 for (const text of ['社区快照，此项未核验', 'Community snapshot; this item has not been verified', 'sizeSourceHtml(s,', 'sizeSourceText(s,', 's.source ? \' · \' + s.source']) assert.ok(html.includes(text), text);
+assert.ok(data.twitter.sizes.find(s => s.name === '推文图片').noteZh.includes('像素尺寸未核验'));
+assert.ok(data.twitter.sizes.find(s => s.name === '推文图片').noteZh.includes('单图帖子'));
 assert.ok(data.weibo.sizes.find(s => s.name === '个人页封面').noteZh.includes('与此历史比例不符'));
 assert.ok(data.xiaohongshu.sizes.find(s => s.name === '笔记封面').noteZh.includes('像素尺寸未核验'));
 assert.ok(data.youtube.sizes.find(s => s.name === '社区帖子图片').noteZh.includes('像素尺寸未核验'));

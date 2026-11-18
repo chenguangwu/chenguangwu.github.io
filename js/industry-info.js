@@ -113,7 +113,7 @@ window.INDUSTRY_INFO = {
   'dermatology'          : { name: '皮肤性病', icon: '🧴', hot: 146959 },
   'cardiology'           : { name: '心血管科', icon: '🫀', hot: 145618 },
   'pediatrics'           : { name: '儿科医学', icon: '🧒', hot: 143476 },
-  'medical'              : { name: '医疗专业', icon: '🏥', hot: 143115 },
+  'medical'              : { name: '医疗专业', icon: '🏥', hot: 143116 },
   'property'             : { name: '物业管理', icon: '🏢', hot: 141461 },
   'beauty'               : { name: '美容护肤', icon: '💄', hot: 141373 },
   'logistics'            : { name: '物流运输', icon: '🚚', hot: 136589 },

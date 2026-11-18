@@ -664,6 +664,14 @@ const CASES = [
   "ref": "WHO 年龄别体重参考不覆盖 10 岁以上；不得显示未经核实的 14 岁体重百分位。"
 }
 
+,{
+  "slug": "medical/dosage-calculator",
+  "inputs": {"age": "30"},
+  "clicks": ["function setv(id,v){document.getElementById(id).value=v} function tick(id,v){document.getElementById(id).checked=v} setv('tyAge','12');setv('tyTaken','8');setv('tyHours','4');setv('tyReason','fever');tick('tyProduct',true);tick('tyRisk',true);tick('tyLimits',true);tyCheck();var ok=document.getElementById('tyResult').textContent.indexOf('650 mg')>=0; setv('tyAge','11.99');tyCheck();ok=ok&&document.getElementById('tyResult').textContent.indexOf('650 mg')<0;setv('tyAge','12');setv('tyTaken','9');tyCheck();ok=ok&&document.getElementById('tyResult').textContent.indexOf('650 mg')<0;setv('tyTaken','8');setv('tyHours','3.99');tyCheck();ok=ok&&document.getElementById('tyResult').textContent.indexOf('650 mg')<0;setv('tyHours','4');setv('tyReason','other');tyCheck();ok=ok&&document.getElementById('tyResult').textContent.indexOf('650 mg')<0;setv('tyReason','pain');tick('tyRisk',false);tyCheck();ok=ok&&document.getElementById('tyResult').textContent.indexOf('650 mg')<0;document.getElementById('__tbProbe').textContent='TYLABEL '+(ok?'OK':'BAD');"],
+  "expect": ["TYLABEL OK"],
+  "ref": "指定美版 325 mg 片剂标签：12 岁、过去 24 小时 8 片、间隔 4 小时及安全确认时展示；低龄、9 片、间隔不足、非适应证和未确认均拦截。"
+}
+
 ];
 async function main() {
   const only = process.argv.slice(2);
