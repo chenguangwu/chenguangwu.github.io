@@ -16,6 +16,8 @@ const items = [
   ['linkedin', '主页帖子链接预览图', 1200, 627, 'linkedin.com/help/lms/answer/a567368', '建议'],
   ['linkedin', '单图广告', 1200, 628, 'single-image-ads/specs', '推荐'],
   ['linkedin', '轮播卡片', 1080, 1080, 'carousel-ads/specs', '至少'],
+  ['bilibili', '课堂横版课程封面', 1146, 717, 'bilibili.com/cheese/cooperate/help', '至少'],
+  ['youtube', '视频广告缩略图', 1280, 720, 'answer/13547298', '推荐'],
   ['youtube', '频道封面', 2560, 1440, 'answer/10456525', '推荐'],
   ['youtube', '视频缩略图', 3840, 2160, 'answer/72431', '推荐'],
 ];
@@ -30,5 +32,6 @@ for (const p of Object.values(data)) for (const item of p.sizes) {
   if (item.source) assert.ok(item.sourceText && item.noteZh && item.noteEn, item.name);
 }
 for (const text of ['社区快照，此项未核验', 'Community snapshot; this item has not been verified', 'sizeSourceHtml(s,', 'sizeSourceText(s,', 's.source ? \' · \' + s.source']) assert.ok(html.includes(text), text);
+assert.ok(data.youtube.sizes.find(s => s.name === '社区帖子图片').noteZh.includes('像素尺寸未核验'));
 for (const name of ['竖版帖子', '横版帖子']) assert.ok(data.instagram.sizes.find(s => s.name === name).noteZh.includes('未核验'));
 console.log(`社媒尺寸来源专项：${items.length} 条官方口径及未核验、展示和导出标识通过`);
