@@ -537,8 +537,20 @@ const CASES = [
 {
   "slug": "cardiology/coronary-calcium",
   "inputs": { "age": "60", "cacs": "", "sex": "m" },
-  "expect": ["请填写有效年龄（1–120 岁）与 Agatston 钙化积分（≥0，无钙化请填 0）。"],
-  "ref": "03-97 核销：钙化积分空值不再按 0 判「无钙化」并建议停用他汀，改为提示填写（0 分为合法值，须显式填 0）。补注入 sex=m 使提示从默认态的「请选择性别…」变为「请填写有效年龄…积分」（默认态全空只显示前者），原锚撞默认态故改之。"
+  "expect": ["请填写有效年龄（1–120 岁）与 Agatston 钙化积分（非负整数，无钙化请填 0）。"],
+  "ref": "03-97 核销：钙化积分空值不再按 0 判「无钙化」并建议停用他汀，改为提示填写（0 分为合法值，须显式填 0）。补注入 sex=m 使提示从默认态的「请选择性别…」变为「请填写有效年龄…积分」（默认态全空只显示前者），原锚撞默认态故改之。03-102 起校验补整数约束，文案「≥0」改「非负整数」，本锚同步。"
+},
+{
+  "slug": "cardiology/coronary-calcium",
+  "inputs": { "age": "62", "cacs": "0.5", "sex": "m" },
+  "expect": ["Agatston 钙化积分（非负整数，无钙化请填 0）"],
+  "ref": "03-102 CACS 须非负整数：Agatston 积分=面积×权重求和必为整数；旧版 0.5 落入 <100 判「轻度钙化」，但标尺 band [0,1) 写「无钙化」，同屏矛盾。本批输入加 step=1/min=0、calc 加 Math.floor(cacs)!==cacs 拦截，0.5 直接提示填非负整数、不产分级/标尺。默认 CACS 空不命中本串（默认态先撞年龄复核），强判别零逃生。"
+},
+{
+  "slug": "cardiology/coronary-calcium",
+  "clicks": ["document.getElementById('age').value='62';document.getElementById('sex').value='m';document.getElementById('cacs').value='0';calc();var h=String(document.getElementById('result').innerHTML).replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ');var ok=h.indexOf('年龄性别百分位：无钙化')>=0&&h.indexOf('年龄性别百分位 0')<0&&h.indexOf('百分位：0')<0;document.getElementById('__tbProbe').textContent='CACS102Z '+(ok?'OK':'BAD');"],
+  "expect": ["CACS102Z OK"],
+  "ref": "03-102 零积分百分位显示统一：旧版结果卡 stat 区 __pctEn(0) 返回数字 0（显示「百分位 0」），而参考卡 percentile===0 写「无钙化」，同屏矛盾。本批 __pctEn(0) 改返回「无钙化」/「None」，与参考卡一致。强锚要求结果卡两处（stat 区 + 解读区）均显示无钙化；旧版 stat 区显示 0 ⇒ 红；CACS=280 默认态走 ≥75 分位，注入失败零逃生。"
 },
 {
   "slug": "cardiology/echo-report",
