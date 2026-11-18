@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -467,8 +469,13 @@ const CASES = [
   "clicks": ["document.getElementById('penicillin').checked=true;var b=document.getElementById('bismuthAvailable');if(b)b.checked=true;calc();"],
   "expect": ["当前药敏/过敏组合下无安全的经验性方案"],
   "ref": "L-N58 核销：青霉素过敏 + 克拉/甲硝唑/左氧全耐药时，方案池按禁用集过滤后为空 ⇒ 明确提示需药敏指导；旧实现青霉素分支不看药敏，仍推荐含克拉霉素/左氧的方案。"
+},
+{
+  "slug": "gastroenterology/ibd-nutrition",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/gastroenterology/ibd-nutrition.html','utf8');var ok=h.indexOf('min:0,max:7')>=0&&h.indexOf('\"lo\":0,\"hi\":3')>=0&&h.indexOf('\"lo\":3,\"hi\":5')>=0&&h.indexOf('\"lo\":5,\"hi\":null')>=0&&h.indexOf('\"lo\":null,\"hi\":5')<0&&h.indexOf('有营养风险\",\"en\":\"At risk')<0;document.getElementById('__tbProbe').textContent='IBD197 '+(ok?'OK':'BAD');"],
+  "expect": ["IBD197 OK"],
+  "ref": "03-197 IBD 参考标尺量程塌缩：旧 bands 两端均单边 null → refBar 推导 lo0=hi0=5 兜底 5–6，低分 clamp 最左且高亮「有营养风险」，与文本 <3低/≥3中/≥5重 相反。本批显式 min:0,max:7 + 三段 bands [0,3)低/[3,5)中/[5,∞)重 与文本分级同源。源码形态哨兵：旧双边 null/错标消失、新量程与分段出现；默认态不产哨兵（仅 clicks 读源码），零逃生。"
 }
-
 ];
 async function main() {
   const only = process.argv.slice(2);
