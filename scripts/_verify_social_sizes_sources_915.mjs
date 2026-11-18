@@ -1,66 +1,33 @@
 #!/usr/bin/env node
-/**
- * 915 批复核失败重做的静态证据：社交尺寸页数据口径与官方核对入口。
- *
- * 判据：
- *   1) 微博客服公开说明的头像大尺寸 180×180 已落到页面数据；旧值 200×200 不再出现；
- *   2) 页面明确标注「2024-07 为社区整理快照，非平台官方发布」，不冒充官方规格表；
- *   3) 对已核对的公开说明（微博 / Instagram / YouTube）给出可追溯口径；
- *   4) 11 个平台均给出官方核对入口链接（规范变更时以平台后台为准）。
- *
- * 用法：node scripts/_verify_social_sizes_sources_915.mjs
- * 退出码：0 全通过；1 存在失败。
- */
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const FILE = path.join(ROOT, 'tools', 'marketing', 'social-media-image-sizes.html');
-const html = fs.readFileSync(FILE, 'utf8');
-
-const fails = [];
-function check(cond, msg) {
-  if (!cond) fails.push(msg);
-}
-
-const weiboStart = html.indexOf('weibo: {');
-const weiboEnd = html.indexOf('douyin: {', weiboStart);
-check(weiboStart >= 0 && weiboEnd > weiboStart, '未定位到微博数据块');
-const weibo = weiboStart >= 0 && weiboEnd > weiboStart ? html.slice(weiboStart, weiboEnd) : '';
-check(weibo.includes("{type:'头像', name:'头像', width: 180, height: 180, ratio: '1:1'}"),
-  '微博客服口径 180×180 未落到页面数据');
-check(!weibo.includes('width: 200, height: 200'), '微博数据块仍残留旧值 200×200');
-
-check(html.includes('社区整理快照，非平台官方发布'), '未声明数据是社区整理快照（非官方规格表）');
-check(html.includes('微博客服头像大尺寸 180×180'), '缺少微博客服 180×180 的已核对说明');
-check(html.includes('Instagram 帮助中心图片宽度最高 1080px'), '缺少 Instagram 帮助中心的已核对说明');
-check(html.includes('YouTube 帮助中心建议横幅至少 2560×1440'), '缺少 YouTube 帮助中心的已核对说明');
-
-const official = [
-  ['微信', 'https://mp.weixin.qq.com/'],
-  ['微博', 'https://help.weibo.com/'],
-  ['抖音', 'https://creator.douyin.com/help/contentStandard'],
-  ['小红书', 'https://creator.xiaohongshu.com/'],
-  ['哔哩哔哩', 'https://member.bilibili.com/platform/home'],
-  ['知乎', 'https://www.zhihu.com/'],
-  ['Meta', 'https://www.facebook.com/business/help/'],
-  ['Instagram', 'https://help.instagram.com/1631821640426723'],
-  ['X', 'https://help.x.com/'],
-  ['LinkedIn', 'https://www.linkedin.com/help/linkedin'],
-  ['YouTube', 'https://support.google.com/youtube/answer/10456525'],
+// 专项：逐条核对来源性质、链接、筛选与导出共用口径。
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const html = fs.readFileSync('tools/marketing/social-media-image-sizes.html', 'utf8');
+const dataText = html.match(/const platformData = (\{[\s\S]*?\n\});\n\nlet currentPlatform/);
+assert.ok(dataText, 'platformData 缺失');
+const data = vm.runInNewContext('(' + dataText[1] + ')');
+const items = [
+  ['weibo', '头像', 100, 100, 'kefu.weibo.com/faqdetail?id=20908', '生成'],
+  ['twitter', '头像', 400, 400, 'help.x.com/en/managing-your-account/how-to-customize-your-profile', '推荐'],
+  ['twitter', '横幅图片', 1500, 500, 'help.x.com/en/managing-your-account/how-to-customize-your-profile', '推荐'],
+  ['linkedin', '个人头像', 400, 400, 'linkedin.com/help/linkedin/answer/a549049', '最小'],
+  ['linkedin', '背景图片', 1584, 396, 'linkedin.com/help/linkedin/answer/a568217', '推荐'],
+  ['linkedin', '单图广告', 1200, 628, 'single-image-ads/specs', '推荐'],
+  ['linkedin', '轮播卡片', 1080, 1080, 'carousel-ads/specs', '至少'],
+  ['youtube', '频道封面', 2560, 1440, 'answer/10456525', '推荐'],
+  ['youtube', '视频缩略图', 3840, 2160, 'answer/72431', '推荐'],
 ];
-for (const [name, url] of official) {
-  check(html.includes(`href="${url}"`), `${name} 官方核对入口缺失：${url}`);
+for (const [platform, name, width, height, url, nature] of items) {
+  const item = data[platform].sizes.find(x => x.name === name);
+  assert.ok(item, platform + ' ' + name);
+  assert.equal(item.width, width); assert.equal(item.height, height);
+  assert.ok(item.source.includes(url)); assert.ok(item.noteZh.includes(nature));
+  assert.ok(item.noteEn && item.noteZh.includes('2026-11-18') && item.noteEn.includes('2026-11-18'));
 }
-
-const total = 7 + official.length;
-if (fails.length) {
-  console.log(`社交尺寸来源证据：${total - fails.length}/${total} 通过，${fails.length} 失败`);
-  for (const m of fails) console.log('  FAIL ' + m);
-  process.exit(1);
+for (const p of Object.values(data)) for (const item of p.sizes) {
+  if (item.source) assert.ok(item.sourceText && item.noteZh && item.noteEn, item.name);
 }
-console.log(`社交尺寸来源证据：${total}/${total} 全部通过`);
-console.log('  - 微博头像对齐公开说明 180×180，旧值已清');
-console.log('  - 明确 2024-07 为社区快照，列出 3 项已核对公开说明');
-console.log('  - 11 个平台均给出官方核对入口');
+for (const text of ['社区快照，此项未核验', 'Community snapshot; this item has not been verified', 'sizeSourceHtml(s,', 'sizeSourceText(s,', 's.source ? \' · \' + s.source']) assert.ok(html.includes(text), text);
+for (const name of ['竖版帖子', '横版帖子']) assert.ok(data.instagram.sizes.find(s => s.name === name).noteZh.includes('未核验'));
+console.log(`社媒尺寸来源专项：${items.length} 条官方口径及未核验、展示和导出标识通过`);
