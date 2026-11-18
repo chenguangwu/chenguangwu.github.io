@@ -148,7 +148,7 @@ window.INDUSTRY_INFO = {
   'woodwork'             : { name: '木工制作', icon: '🪚', hot: 76880 },
   'elderly'              : { name: '养老护理', icon: '👴', hot: 76804 },
   'futures'              : { name: '期货交易', icon: '📉', hot: 75746 },
-  'museum'               : { name: '文博展陈', icon: '🏛️', hot: 69720 },
+  'museum'               : { name: '文博展陈', icon: '🏛️', hot: 69723 },
   'quality'              : { name: '质量管理', icon: '✅', hot: 69323 },
   'parenting'            : { name: '育儿亲子', icon: '👶', hot: 69250 },
   'wedding'              : { name: '婚礼策划', icon: '💒', hot: 69205 },

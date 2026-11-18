@@ -113,13 +113,6 @@
 
 > 范围：本轮阅读 7 页（`tools/cognition/human-benchmark.html`、`tools/museum/visitor-route.html`、`tools/museum/timeline-viewer.html`、`tools/research/index.html`、`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`）。**说明：四目录仅剩这 7 个未覆盖页（3 个工具页 + 4 个索引页），不足以凑满 8 页；未跨目录外扩，以免与 edu-language 批重复。** 仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### RL-K58 文博索引页：时代对比/历史日历/时间轴三张卡片共用同一段「查询历史文化知识」套话（低，确认）
-- 描述：三张卡描述几乎逐字相同，未说明各自独有能力（朝代重叠/节气农历/主题时间轴），与同页其他卡（照度、导览、间距）的信息密度明显不一致。
-- 证据：`tools/museum/index.html:88`、`:90`、`:93`。
-- 复现：对比三卡文案 → 除工具名外一致，均无具体功能与输入输出说明（期望分别写明「朝代区间重叠/人口对比」「农历节气/干支」「按主题浏览/按年份排序/CSV 导出」）。
-- 影响：类目页无法帮助用户选择工具，SEO 内容重复。
-- 方案：按各工具实际能力重写三张卡描述。
-
 - 本轮实读 7 页：`tools/cognition/human-benchmark.html`、`tools/museum/visitor-route.html`、`tools/museum/timeline-viewer.html`、`tools/research/index.html`、`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`；新增 19 条（高 2 / 中 10 / 低 7）。
 - 重复说明：本批无重读页面；RL-K51 是索引页文案问题（analysis-49/52/54 页面本身由前序批次覆盖，但该三处「卡片承诺未实现」此前未记录），RL-K57 为四个索引页共有模板问题。
 - 四目录 35 个 HTML（31 个工具页 + 4 个索引页）至此全部覆盖；未覆盖：无。**本批范围内只剩上述 7 个未覆盖页，无法凑满 8 页，特此说明。**
