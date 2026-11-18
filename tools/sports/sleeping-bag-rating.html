@@ -126,7 +126,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#10B981;">
     <h2 data-zh="⚖️ 睡袋温标对照">⚖️ Sleeping Bag Temperature Rating Lookup (EN13537)</h2>
     <p class="sub-label" data-zh="基于 EN13537 标准的睡袋温标对照，输入环境温度推荐合适睡袋">An EN13537 sleeping-bag temperature-rating lookup: enter expected ambient temperature to recommend a suitable comfort/limit temperature bag for outdoor camping gear choice.</p>    <div class="formula-box">
-      <div class="formula-title">📐 计算公式 / 原理</div> <div class="formula-eq">睡袋温标选择<br>目标温度与环境温度：怕热型 = 环境温度（按舒适温度匹配）；普通型 = 环境温度 − 3℃（下限温度预留 3℃）；怕冷型 = 环境温度 − 5℃（下限温度预留 5℃）<br>推荐规则：选第一个「对应温标 ≤ 目标温度」的系列（怕热型用舒适温度，其余用下限温度）；无匹配取最暖款<br>温标四级递减：舒适 > 下限 > 极限 > 生存<br>温度条位置 = (环境温度+40) ÷ 60 × 100%（量程 −40~20℃）<br>安全分档：≤−20℃ 极端｜≤−10℃ 严寒｜≤0℃ 冬季｜≤10℃ 三季｜>10℃ 夏季<br>睡垫 R 值：≤−20℃ R>5｜≤−10℃ R4–5｜≤0℃ R3–4｜≤10℃ R2–3｜其余 R1–2</div>
+      <div class="formula-title">📐 计算公式 / 原理</div> <div class="formula-eq">睡袋温标选择<br>目标温度与环境温度：怕热型 = 环境温度（按舒适温度匹配）；普通型 = 环境温度 − 3℃（下限温度预留 3℃）；怕冷型 = 环境温度 − 5℃（舒适温度预留 5℃）<br>推荐规则：选第一个「对应温标 ≤ 目标温度」的系列（怕热型和怕冷型用舒适温度，普通型用下限温度）；无匹配时仅展示最暖款，不能视为满足要求<br>温标四级递减：舒适 > 下限 > 极限 > 生存<br>温度条位置 = (环境温度+40) ÷ 60 × 100%（量程 −40~20℃）<br>安全分档：≤−20℃ 极端｜≤−10℃ 严寒｜≤0℃ 冬季｜≤10℃ 三季｜>10℃ 夏季<br>睡垫 R 值：≤−20℃ R>5｜≤−10℃ R4–5｜≤0℃ R3–4｜≤10℃ R2–3｜其余 R1–2</div>
       <div class="formula-desc">EN13537/ISO 23537 睡袋温标四指标：舒适(Comfort，女性下限)、下限(Limit，男性下限)、极限(Extreme，可存活)与最高(Upper)；选袋以出行最低预期环境温度对照舒适/下限温标留 5℃ 余量。</div>
     </div>
 
@@ -192,7 +192,7 @@
     <div class="ref-card">
       <h4>选购建议</h4>
       <ul>
-        <li>以露营地夜间最低温度为基准，选择下限温度低于环境温度 3-5°C 的睡袋</li>
+        <li>以露营地夜间最低温度为基准；普通型以下限温度预留 3°C，怕冷型以舒适温度预留 5°C</li>
         <li>怕冷者建议以舒适温度为选择标准</li>
         <li>高海拔地区夜间温度比平原低 6°C/1000m</li>
         <li>湿冷环境保温效果下降，建议选更低温标</li>
@@ -319,7 +319,8 @@ function calc() {
     matchKey = 'comfort';
   } else if (sleeperType === 'cold') {
     targetTemp = temp - 5; // 5°C margin
-    targetLabel = '下限温度 (含5°C余量)';
+    targetLabel = '舒适温度 (含5°C余量)';
+    matchKey = 'comfort';
   } else {
     targetTemp = temp - 3; // 普通型：按页内建议预留 3°C 余量
   }
@@ -334,7 +335,8 @@ function calc() {
       break;
     }
   }
-  // If no match (too cold), use the warmest available
+  // A fallback is an example only, not a suitable recommendation.
+  var noMatch = !recommended;
   if (!recommended) {
     recommended = BAG_SERIES[BAG_SERIES.length - 1];
     recommendedIdx = BAG_SERIES.length - 1;
@@ -345,6 +347,7 @@ function calc() {
 
   var html = '';
 
+  if (noMatch) html += '<div class="tip-error">无满足目标温标的系列；以下最暖款仅供参考，不能视为适用，请选更低温标的睡袋。</div>';
   // Stats
   html += '<div class="stat-grid">';
   html += '<div class="stat-card"><div class="val">' + temp + '°C</div><div class="lbl">环境温度</div></div>';

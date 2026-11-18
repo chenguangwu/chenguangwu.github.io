@@ -597,9 +597,11 @@ const CASES = [
 {
   "slug": "cardiology/ckd-epi",
   "inputs": { "age": "0", "scr": "1.3", "uacr": "80", "sex": "m" },
-  "expect": ["年龄须为 1–120 岁，请重新填写。"],
+  "expect": ["成人 CKD-EPI 公式适用于 18–120 岁，请重新填写。"],
   "ref": "03-83 年龄守卫：旧版 age=0 无拦截，0.9938^0=1 使 eGFR 抬高（age=65→61.0、age=0→91.3）；负值同理。本批 age≤0 或 >120 拦截。注入 age=0 命中提示、默认 age 合法不命中；原用例 age=98 合法仍通过，二者零交集。"
 },
+{"slug":"cardiology/ckd-epi","inputs":{"age":"17","scr":"1.3","uacr":"80","sex":"m"},"expect":["成人 CKD-EPI 公式适用于 18–120 岁"],"ref":"17 岁不能使用成人 CKD-EPI。"},
+{"slug":"cardiology/ckd-epi","inputs":{"age":"18","scr":"1.3","uacr":"80","sex":"m"},"expect":["81.7"],"ref":"18 岁进入成人公式，男、肌酐 1.3 时 eGFR 约 81.7。"},
 {
   "slug": "cardiology/has-bled",
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/has-bled.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/cardiology/has-bled.json','utf8');var zhOk=h.indexOf('3 分为中风险（加强监测）')<0&&h.indexOf('0 至 1 分为低出血风险、2 分为中等出血风险、3 分及以上为高出血风险')>=0;var enOk=en.indexOf('3 medium (closer monitoring)')<0&&en.indexOf('0-1 low bleeding risk, 2 moderate, >=3 high bleeding risk')>=0;document.getElementById('__tbProbe').textContent='HASBLED78 '+(zhOk&&enOk?'OK':'BAD');"],

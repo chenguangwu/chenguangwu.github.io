@@ -253,9 +253,14 @@ function calc(){
     document.getElementById('result').innerHTML='<p style="color:var(--danger)">请输入收缩期压缩程度（0–100%），再评估心肌桥分级。</p>';
     return;
   }
-  var diastolic=parseFloat(document.getElementById('diastolic').value)||0;
-  var length=parseFloat(document.getElementById('length').value)||0;
-  var depth=parseFloat(document.getElementById('depth').value)||0;
+  function optionalNumber(id){ var raw=document.getElementById(id).value.trim(); return raw==='' ? null : Number(raw); }
+  var diastolic=optionalNumber('diastolic');
+  var length=optionalNumber('length');
+  var depth=optionalNumber('depth');
+  if ((diastolic!==null && (!isFinite(diastolic)||diastolic<0||diastolic>100)) ||
+      (length!==null && (!isFinite(length)||length<0)) || (depth!==null && (!isFinite(depth)||depth<0))) {
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请检查可选参数：舒张期狭窄为 0–100%，长度和深度不可为负。</p>'; return;
+  }
   var symptoms=document.getElementById('symptoms').checked;
   var arrhythmia=document.getElementById('arrhythmia').checked;
   var stressTest=document.getElementById('stressTest').checked;
@@ -298,26 +303,27 @@ function calc(){
 
   // 深度评估
   var depthNote='';
-  if(depth>=5)depthNote='深部心肌桥(≥5mm)，外科切开术效果可能更好。';
+  if(depth===null)depthNote='';
+  else if(depth>=5)depthNote='深部心肌桥(≥5mm)，外科切开术效果可能更好。';
   else if(depth>=2)depthNote='中等深度心肌桥。';
   else depthNote='浅表心肌桥(<2mm)。';
 
   // 长度评估
-  var lengthNote=length>=25?'心肌桥较长(≥25mm)，血流影响可能更大。':'心肌桥较短。';
+  var lengthNote=length===null?'':length>=25?'心肌桥较长(≥25mm)，血流影响可能更大。':'心肌桥较短。';
 
   var html='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val" style="color:'+gradeColor+';font-size:20px;">'+grade+'</div><div class="lbl">Nobel分级</div></div>';
   html+='<div class="stat-card"><div class="val" style="color:'+gradeColor+';">'+compression+'%</div><div class="lbl">收缩期压缩</div></div>';
   html+='<div class="stat-card"><div class="val" style="color:'+severityColor+';font-size:16px;">'+severity+'</div><div class="lbl">临床严重度</div></div>';
-  html+='<div class="stat-card"><div class="val" style="color:var(--text);">'+diastolic+'%</div><div class="lbl">舒张期残余狭窄</div></div>';
+  html+='<div class="stat-card"><div class="val" style="color:var(--text);">'+(diastolic===null?'—':diastolic+'%')+'</div><div class="lbl">舒张期残余狭窄</div></div>';
   html+='</div>';
 
   html+='<div class="ref-card"><h4>评估结果</h4><ul>';
   html+='<li>收缩期压缩：'+compression+'% → <strong style="color:'+gradeColor+';">Nobel '+grade+'</strong></li>';
   html+='<li>'+gradeDesc+'</li>';
-  html+='<li>舒张期残余狭窄：'+diastolic+'%'+(diastolic>=30?' (<strong style="color:#EF4444;">舒张期血流受限</strong>)':'')+'</li>';
-  html+='<li>心肌桥长度：'+length+'mm → '+lengthNote+'</li>';
-  html+='<li>心肌桥深度：'+depth+'mm → '+depthNote+'</li>';
+  html+='<li>舒张期残余狭窄：'+(diastolic===null?'—':diastolic+'%')+(diastolic!==null&&diastolic>=30?' (<strong style="color:#EF4444;">舒张期血流受限</strong>)':'')+'</li>';
+  html+='<li>心肌桥长度：'+(length===null?'—':length+'mm → '+lengthNote)+'</li>';
+  html+='<li>心肌桥深度：'+(depth===null?'—':depth+'mm → '+depthNote)+'</li>';
   html+='<li>缺血症状：'+(symptoms?'有':'无')+'</li>';
   html+='<li>运动试验：'+(stressTest?'阳性':'阴性/未测')+'</li>';
   html+='<li>合并心律失常：'+(arrhythmia?'有':'无')+'</li>';

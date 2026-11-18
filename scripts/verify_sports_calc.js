@@ -938,7 +938,7 @@ const CASES = [
   {
     slug: "sports/sleeping-bag-rating",
     inputs: { "temp-slider": "15", "temp-input": "15", "sleeper-type": "cold" },
-    expect: ["10°C 目标下限温度"],
+    expect: ["10°C 目标舒适温度 (含5°C余量)"],
     ref: "注入非默认(默认 temp=5→目标下限 0°C)：环境温度 15°C − 5°C 余量 = 目标下限 10°C。默认态 0°C 不命中 10°C（锚计算区标题，非静态温度表）。"
   },
   {
