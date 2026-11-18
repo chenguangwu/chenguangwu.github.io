@@ -241,7 +241,24 @@ function getNodes(){
 }
 
 function syncNodes(){
+  var oldNodes = nodes.slice();
   nodes = getNodes();
+  // RL-K47：展厅改名（旧名消失、新名全新增）时按相同索引 1:1 迁移通道端点，
+  // 避免下拉无匹配项显示错位、compute 静默丢弃该通道
+  var oldSet = {}, newSet = {};
+  oldNodes.forEach(function(n){ oldSet[n] = 1; });
+  nodes.forEach(function(n){ newSet[n] = 1; });
+  var rename = {}, usedNew = {};
+  for (var i = 0; i < Math.min(oldNodes.length, nodes.length); i++) {
+    var o = oldNodes[i], n = nodes[i];
+    if (o !== n && !newSet[o] && !oldSet[n] && !usedNew[n]) {
+      rename[o] = n; usedNew[n] = 1;
+    }
+  }
+  edges.forEach(function(e){
+    if (rename[e[0]]) { e[0] = rename[e[0]]; }
+    if (rename[e[1]]) { e[1] = rename[e[1]]; }
+  });
   renderNodeTags();
   renderEdges();
   renderNodeSelects();
@@ -264,9 +281,15 @@ function renderEdges(){
   edges.forEach(function(e, i){
     var div = document.createElement('div');
     div.className = 'edge-row';
+    // RL-K47：端点不在当前展厅列表时标红提示，避免下拉默认项造成「显示与实际不符」
+    var _vrEn = (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn());
+    var badEnds = [];
+    if (nodes.indexOf(e[0]) < 0) badEnds.push(_vrEn ? ('From "'+e[0]+'"') : ('起点「'+e[0]+'」'));
+    if (nodes.indexOf(e[1]) < 0) badEnds.push(_vrEn ? ('To "'+e[1]+'"') : ('终点「'+e[1]+'」'));
+    var invalidTip = badEnds.length ? '<div class="tip-box tip-error" style="margin:2px 0;">'+(_vrEn ? '⚠ Invalid edge endpoint: ' : '⚠ 通道端点已失效：')+badEnds.join(_vrEn ? ', ' : '、')+(_vrEn ? ', rename the hall or delete this edge.' : '，请修改展厅名或删除该通道。')+'</div>' : '';
     var opts = nodes.map(function(n){ return '<option value="'+ToolBox.escHtml(n)+'"'+(e[0]===n?' selected':'')+'>'+ToolBox.escHtml(n)+'</option>'; }).join('');
     var opts2 = nodes.map(function(n){ return '<option value="'+ToolBox.escHtml(n)+'"'+(e[1]===n?' selected':'')+'>'+ToolBox.escHtml(n)+'</option>'; }).join('');
-    const __h2='<select data-i="'+i+'" data-k="0">'+opts+'</select>' +
+    const __h2=invalidTip+'<select data-i="'+i+'" data-k="0">'+opts+'</select>' +
       '<input type="number" value="'+e[2]+'" min="0" step="1" style="max-width:90px;" data-i="'+i+'" data-k="2" placeholder="如 '+e[2]+'">' +
       '<span style="color:var(--text-muted);">m</span>' +
       '<select data-i="'+i+'" data-k="1">'+opts2+'</select>' +
@@ -366,6 +389,7 @@ function compute(){
   var negativeFixed = false;
   var graph = {};
   nodes.forEach(function(n){ graph[n] = []; });
+  var deadEdges = [];
   edges.forEach(function(e){
     if(graph[e[0]] && graph[e[1]]){
       var w = parseFloat(e[2]);
@@ -373,6 +397,8 @@ function compute(){
       if(w < 0){ w = Math.abs(w); negativeFixed = true; }
       graph[e[0]].push({to:e[1], w:w});
       graph[e[1]].push({to:e[0], w:w});
+    } else {
+      deadEdges.push((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn()) ? ('"'+e[0]+' - '+e[1]+'"') : ('「'+e[0]+' — '+e[1]+'」'));
     }
   });
 
@@ -395,6 +421,7 @@ function compute(){
 
   var html = '';
   if(negativeFixed){ html += '<div class="tip-box tip-info" style="margin-bottom:12px;">检测到负距离，已按绝对值纳入计算。</div>'; }
+  if(deadEdges.length){ var _de = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn()); html += '<div class="tip-box tip-warning" style="margin-bottom:12px;">'+(_de ? '⚠ Ignored edges with invalid endpoints: ' : '⚠ 以下通道端点已失效、未纳入计算：')+deadEdges.map(function(s){ return ToolBox.escHtml(s); }).join(_de ? ', ' : '、')+'</div>'; }
   html += '<div class="data-grid">';
   html += dataCard('起点', start);
   html += dataCard('终点', end);

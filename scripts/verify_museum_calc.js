@@ -40,6 +40,18 @@ const CASES = [
   "ref": "平行边分段（RL-K46）：A–B 同时存在 30 m 与 100 m 两条通道，Dijkstra 选 30 m。旧版分段渲染遍历全部 edges 并覆盖权值为最后一条 100 m，显示「A (100m) → 2. B」；修复后取 prevW 实际选中边显示「A (30m) → 2. B」。锚含节点 A/B，避开默认态（入口→青铜馆 30m）与「40 m 总距离」两版同值造成的假绿。"
 },
 {
+  "slug": "museum/visitor-route",
+  "clicks": ["document.getElementById('nodeInput').value='入口,青铜馆,陶瓷馆,书画馆,玉器馆,东门';edges=[['玉器馆','出口',30]];syncNodes();document.getElementById('__tbProbe').textContent='MIG '+(edges[0][1]==='东门'?'OK':'BAD '+edges[0][1])"],
+  "expect": ["MIG OK"],
+  "ref": "RL-K47 展厅改名端点迁移：页面初始 nodes 含末项「出口」，edges 有「玉器馆—出口」边；把 nodeInput 末项改为「东门」后 syncNodes()，旧版不迁移、边端点仍是「出口」（下拉无匹配项、compute 静默丢弃），修复版按索引 1:1 迁移为「东门」。哨兵检查 edges[0][1]。"
+},
+{
+  "slug": "museum/visitor-route",
+  "clicks": ["document.getElementById('nodeInput').value='入口,青铜馆,陶瓷馆,书画馆,玉器馆,出口,东门';edges=[['入口','青铜馆',10],['青铜馆','出口',10],['玉器馆','玉石馆',30]];document.getElementById('startNode').value='入口';document.getElementById('endNode').value='出口';compute();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent=(h.indexOf('端点已失效')>=0)?'DEAD OK':'DEAD BAD'"],
+  "expect": ["DEAD OK"],
+  "ref": "RL-K47 失效边提示：新增「东门」使「玉石馆」边不满足改名迁移（玉石馆从未在 nodes），compute() 时旧版对不在 nodes 的端点静默跳过、无任何提示，修复版在结果区输出「通道端点已失效、未纳入计算」。保留入口→青铜馆→出口有效路径避免无路径提前 return。"
+},
+{
   "slug": "museum/era-comparator",
   "inputs": {},
   "clicks": ["document.getElementById('era1').value='3';document.getElementById('era2').value='9';compare()"],

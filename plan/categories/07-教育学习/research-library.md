@@ -113,13 +113,6 @@
 
 > 范围：本轮阅读 7 页（`tools/cognition/human-benchmark.html`、`tools/museum/visitor-route.html`、`tools/museum/timeline-viewer.html`、`tools/research/index.html`、`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`）。**说明：四目录仅剩这 7 个未覆盖页（3 个工具页 + 4 个索引页），不足以凑满 8 页；未跨目录外扩，以免与 edu-language 批重复。** 仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### RL-K47 参观流线：改名展厅后通道下拉无匹配项，显示错位且计算静默丢弃通道（中，确认）
-- 描述：`renderEdges()` 仅对 `e[0]===n` 加 `selected`；旧端点不存在时浏览器默认选第一项，但 `edges` 数据仍保留旧名；`compute()` 对不在 `nodes` 的端点直接跳过，无提示。
-- 证据：`tools/museum/visitor-route.html:274-275`、`:354-360`、`:245-255`。
-- 复现：把展厅列表的「出口」改为「东门」→ 原来「玉器馆—出口」行第二个下拉显示「入口」，但内部仍是「出口」；规划显示「没有可达路径」。期望自动同步/标红失效通道并提示。
-- 影响：界面显示与实际图数据不一致，用户误删或漏连通道。
-- 方案：节点变更时按索引/映射迁移端点，映射不到的边标红并要求确认删除；不要依赖 `<select>` 默认项。
-
 ### RL-K48 历史时间轴：无任何筛选/搜索控件，深度解析却称「支持中西对照筛选」且算例事件不在数据中（中，确认）
 - 描述：页面只有 4 个主题按钮，无 `input/select`；`renderTimeline()` 仅按主题整表渲染。深度解析称可按「公元前 3 世纪 / 15 世纪 / 19 世纪」筛选，并称有 1405 郑和、1861 洋务、1894 甲午，但数据中均不存在。
 - 证据：`tools/museum/timeline-viewer.html:206-207`、`:362-376`、`:344-360`；数据仅到 `:273`（1840）与 `:287`（1453），无 1405/1861/1894。
