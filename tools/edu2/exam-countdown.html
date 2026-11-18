@@ -286,7 +286,8 @@ function calc(){
   var diffMs = examDate.getTime() - today.getTime();
   var totalDays = Math.ceil(diffMs / (1000*60*60*24));
   var __en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
-  var hasHolidayData=Object.keys(HOLIDAYS).some(function(k){return k.indexOf(examDate.getFullYear()+'-')===0;});
+  var coveredYears = {}, missingYears = {};
+  var holidayYears = new Set(Object.keys(HOLIDAYS).map(function(k){return k.slice(0,4);}));
 
   var workdays = 0, weekends = 0, holidays = 0;
   if(totalDays > 0){
@@ -295,6 +296,8 @@ function calc(){
       cur.setTime(today.getTime() + (i+1)*24*60*60*1000);
       var wd = cur.getDay();
       var ds = fmtDate(cur);
+      var year = String(cur.getFullYear());
+      (holidayYears.has(year) ? coveredYears : missingYears)[year] = true;
       var isHoliday = countHoliday && HOLIDAYS[ds];
       if(wd === 0 || wd === 6){
         weekends++;
@@ -369,8 +372,9 @@ function calc(){
     var weeks=Math.floor(totalDays/7), remDays=totalDays%7;
     html += '<p style="font-size:14px;">'+(__en?('About '+weeks+' weeks and '+remDays+' days left.'):('剩余约 '+weeks+' 周 '+remDays+' 天。'))+'</p>';
     html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+(__en?('Days left: '+totalDays+'; study days: '+studyDays+(countWeekend?' (incl. weekends)':' (weekdays only)')+(countHoliday?'; holidays: '+holidays:'')):('距考试还有 '+totalDays+' 天，可复习 '+studyDays+' 天'+(countWeekend?'（含周末）':'（仅工作日）')+(countHoliday?'、含 '+holidays+' 个节假日':'')))+'。</p>';
-    if(countHoliday && !hasHolidayData){
-      html += '<p style="font-size:12px;color:var(--danger);">'+(__en?'No built-in holiday data for this year; no holiday deduction was applied.':'该年份未内置节假日表，未扣减法定节假日。')+'</p>';
+    if(countHoliday && Object.keys(missingYears).length){
+      var covered = Object.keys(coveredYears).join(', '), missing = Object.keys(missingYears).join(', ');
+      html += '<p style="font-size:12px;color:var(--danger);">'+(__en?('No holiday data for '+missing+'; holidays in those years were not deducted.'+(covered?' Built-in estimates were applied for '+covered+'.':'')):('未内置 '+missing+' 年节假日表，这些年份未扣减节假日。'+(covered?'已按内置估算表处理 '+covered+' 年。':'')))+'</p>';
     }
   } else if(totalDays === 0){
     html += '<div class="tip-box tip-warn" style="margin-top:12px;">今天就是考试日！请提前到达考场，带齐证件与文具，沉着应考。</div>';

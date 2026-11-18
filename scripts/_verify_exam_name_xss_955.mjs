@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 第 955 批专项：考试成绩计算器历史考试名的真实浏览器注入回归（含 git HEAD 旧版回放）。
+ * 第 955 批专项：考试成绩计算器历史考试名的真实浏览器注入回归（含 固定修复前基线回放）。
  * 用法：node scripts/_verify_exam_name_xss_955.mjs
  */
 import fs from 'node:fs';
@@ -81,7 +81,7 @@ try {
   ok('载荷以文本呈现', r.textHit, JSON.stringify(r));
   await n.context.close();
 
-  console.log('[exam-score-calculator] 修复前（git HEAD 回放，应命中注入）');
+  console.log('[exam-score-calculator] 修复前（固定修复前基线回放，应命中注入）');
   // 955 基线固定为修复提交 e193ec372f 的父提交
   const old = execFileSync('git', ['show', '045e2d2d2b:' + REL], { cwd: ROOT, encoding: 'utf8' });
   const o = await newPage(browser, old);

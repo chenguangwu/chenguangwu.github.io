@@ -355,13 +355,16 @@ function updateReview(status) {
   if (!state.current) return;
   const key = state.current.cat + '_' + state.current.w;
   const review = getReview();
-  const prev = review[key] || { step: 0 };
-  prev.step = status === 'known'
-    ? Math.min((Number(prev.step) || 0) + 1, REVIEW_STEPS.length - 1)
+  const prev = review[key];
+  const today = localDateKey();
+  if (status === 'known' && prev && prev.due && prev.due > today) return;
+  const next = prev || { step: 0 };
+  next.step = status === 'known' && prev
+    ? Math.min(Math.max(0, Number(prev.step) || 0) + 1, REVIEW_STEPS.length - 1)
     : 0;
-  prev.last = localDateKey();
-  prev.due = dayKeyAfter(status === 'known' ? REVIEW_STEPS[prev.step] : 1);
-  review[key] = prev;
+  next.last = today;
+  next.due = dayKeyAfter(status === 'known' ? REVIEW_STEPS[next.step] : 1);
+  review[key] = next;
   setReview(review);
 }
 function dueWords(pool) {

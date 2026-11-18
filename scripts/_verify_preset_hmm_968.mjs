@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * 第 968 批专项：卡方独立性预设期望频数 + 视力表 5′视标高度量纲。
- * 每例 OLD=git show HEAD 回放、NEW=工作区源码，独立 browser context。
+ * 每例 OLD=固定修复前基线回放、NEW=工作区源码，独立 browser context。
  */
 import fs from 'node:fs';
 import path from 'node:path';

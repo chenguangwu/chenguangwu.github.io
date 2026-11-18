@@ -219,6 +219,11 @@ const CASES = [
     ref: "EL-J92：趋势图须以换算时刻的当日分钟数为数值并标注 HH:MM，不再画有效性 0/1；旧版 series 名为「有效性趋势」⇒ BAD。",
   },
   {
+    slug: "edu/essay-word-counter", inputs: {text:"𠀀 Hello world.你好！"},
+    clicks: ["count();var h=document.getElementById('result').innerHTML;var ok=h.indexOf('>3</div><div class=\"label\">中文字数')>=0&&h.indexOf('>5</div><div class=\"label\">纯文字字数')>=0&&h.indexOf('>2.5</div><div class=\"label\">平均句长')>=0;document.getElementById('__tbProbe').textContent='HANEXT:'+(ok?'OK':'BAD');"],
+    expect: ["HANEXT:OK"], ref: "扩展 B 汉字及英文句点和中文句末混排。",
+  },
+  {
     slug: "edu/essay-word-counter",
     inputs: { text: "“你好”😀" },
     expect: ["0 英文词数 2 纯文字字数 5 总字符数 5 不含空白符 2 标点符号 1 段落数 — 平均句长 1 行数"],
@@ -1263,9 +1268,9 @@ const CASES = [
       "known": "42"
     },
     "expect": [
-      "重 60% 要达到42分，剩余需考 31.0 分"
+      "重 60% 要达到42分，剩余需考 24.0 分"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"target\":\"42\",\"known\":\"42\"}，输出区含「重 60% 要达到42分，剩余需考 31.0 分」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"target\":\"42\",\"known\":\"42\"}，输出区含「重 60% 要达到42分，剩余需考 24.0 分」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "edu/gpa-calculator",
@@ -1488,6 +1493,23 @@ const CASES = [
     "ref": "EL-J4 合法边界：题量 1 与 5 均在 1–100 内，抽题数应分别为 1 与 5，且不弹越界提示。默认态不产生 QOK 锚点。"
   },
   {
+    slug: "edu/english-vocabulary",
+    clicks: ["var s={};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};questions=[];s['vocab-wordbook']=JSON.stringify([{w:'one',m:'same'},{w:'two',m:'same'}]);startQuiz('wordbook');var rejected=questions.length===0;s['vocab-wordbook']=JSON.stringify([{w:'one',m:'<img src=x onerror=alert(1)>'},{w:'two',m:'safe'}]);document.getElementById('qCount').value='1';startQuiz('wordbook');var q=questions.length===1&&questions[0].options.length===2;showWordbook();var h=document.getElementById('qOptions').innerHTML+' '+document.getElementById('wbList').innerHTML;document.getElementById('vocabChart').textContent='WBSAFE:'+(rejected&&q&&h.indexOf('<img')<0&&h.indexOf('&lt;img')>=0?'OK':'BAD');"],
+    expect: ["WBSAFE:OK"],
+    ref: "同义词不足拒绝出题；单题仍需两个不同选项，历史释义中的标签保持文本。",
+  },
+  {
+    slug: "edu/grade-weight-calculator", inputs: {target:"60"},
+    clicks: ["items=[{name:'a',weight:25,score:80},{name:'b',weight:25,score:''}];calc();var a=document.getElementById('result').innerHTML.indexOf('40.0 分')>=0;upd(0,'weight','');calc();var b=document.getElementById('result').innerHTML.indexOf('权重或得分无效')>=0;upd(0,'weight','0');var c=document.getElementById('result').innerHTML.indexOf('60.0 分')>=0;document.getElementById('__tbProbe').textContent='WEIGHT:'+(a&&b&&c?'OK':'BAD');"],
+    expect: ["WEIGHT:OK"], ref: "非 100 总权重目标归一、空权重与合法零权重。",
+  },
+  {
+    slug: "edu/exam-score-calculator",
+    clicks: ["var v=[gradeOf(69,70,false),gradeOf(70,70,false),gradeOf(79,80,false),gradeOf(80,80,false),gradeOf(89,90,false),gradeOf(90,90,false)];var ok=v[0].cls==='grade-fail'&&v[1].cls!=='grade-fail'&&v[2].cls==='grade-fail'&&v[3].cls!=='grade-fail'&&v[4].cls==='grade-fail'&&v[5].cls!=='grade-fail';localStorage.getItem=function(){return JSON.stringify([{time:'2024-01-01',examName:'x',score:75,total:100,rate:75,correct:75,totalQ:100,passLine:90}]);};renderHistory();ok=ok&&document.getElementById('historyList').innerHTML.indexOf('不及格')>=0;document.getElementById('__tbProbe').textContent='PASSLINE:'+(ok?'OK':'BAD');"],
+    expect: ["PASSLINE:OK"],
+    ref: "及格线优先，覆盖 70/80/90 边界及历史记录。",
+  },
+  {
     "slug": "edu/english-vocabulary",
     "clicks": [
       "questions=[{word:'assimilate',answer:'适应',options:['容纳；适应','适应'],answerIndex:1}];currentQ=0;score=0;wrongCount=0;answered=false;showQuestion();var bs=document.querySelectorAll('.option-btn');var marks=[];bs.forEach(function(b,i){b.classList.add=function(c){marks.push(i+':'+c);};});answer(0,bs[0]);document.getElementById('vocabChart').textContent='QSTRICT:'+marks.join(',')+'|wrong='+wrongCount;"
@@ -1604,16 +1626,16 @@ const CASES = [
   {
     slug: "edu2/exam-countdown",
     inputs: { examName: "TbCtiHol" },
-    clicks: ["var s=(new Date().getFullYear()+3)+'-10-01';document.getElementById('examDate').value=s;document.getElementById('countHoliday').checked=true;calc();var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='CTIHOL '+(r.indexOf('TbCtiHol')>=0&&r.indexOf('该年份未内置节假日表')>=0?'OK':'BAD');"],
+    clicks: ["var s=(new Date().getFullYear()+3)+'-10-01';document.getElementById('examDate').value=s;document.getElementById('countHoliday').checked=true;calc();var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='CTIHOL '+(r.indexOf('TbCtiHol')>=0&&r.indexOf('未内置 ')>=0&&r.indexOf('这些年份未扣减节假日')>=0?'OK':'BAD');"],
     expect: ["CTIHOL OK"],
     ref: "EL-J162：内置表仅 2026 年，其他年份勾选节假日时明确提示未扣减；旧版静默按 0 且注释谎称 2025-2027。",
   },
   {
     slug: "edu2/exam-countdown",
     inputs: { examName: "TbCtiSrc" },
-    clicks: ["var nm=document.getElementById('examName').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu2/exam-countdown.html','utf8');var ok=nm==='TbCtiSrc'&&h.indexOf('progressPct')<0&&h.indexOf('2025-2027')<0&&h.indexOf('hasHolidayData')>=0;document.getElementById('__tbProbe').textContent='CDFIX '+(ok?'OK':'BAD');"],
+    clicks: ["var nm=document.getElementById('examName').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu2/exam-countdown.html','utf8');var ok=nm==='TbCtiSrc'&&h.indexOf('progressPct')<0&&h.indexOf('2025-2027')<0&&h.indexOf('missingYears')>=0;document.getElementById('__tbProbe').textContent='CDFIX '+(ok?'OK':'BAD');"],
     expect: ["CDFIX OK"],
-    ref: "EL-J160/J161/J162 源码形态：删误导性 progressPct 与失实注释，新增 hasHolidayData；依赖 inputs 唯一串避免默认态命中。",
+    ref: "EL-J160/J161/J162 源码形态：删误导性 progressPct 与失实注释，按缺表年份提示；依赖 inputs 唯一串避免默认态命中。",
   },
 
   {

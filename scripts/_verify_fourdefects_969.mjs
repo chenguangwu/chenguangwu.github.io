@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * 第 969 批专项：车损险万元当元、扭转常数立方错边、功率密度多拼k、calc-stats 数据0开头误拒。
- * OLD=git show HEAD 回放、NEW=工作区源码；独立 browser context + 外链 abort。
+ * OLD=固定修复前基线回放、NEW=工作区源码；独立 browser context + 外链 abort。
  */
 import fs from 'node:fs'; import path from 'node:path'; import http from 'node:http';
 import { execFileSync } from 'node:child_process'; import { createRequire } from 'node:module'; import { fileURLToPath } from 'node:url';

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * 第 954 批专项：旅行三页 + 易经页用户输入拼 HTML 的真机注入回归。
- * 四页均做 git HEAD 旧版回放，确保「零注入 + 文本可见」断言确有判别力。
+ * 四页均做 固定修复前基线回放，确保「零注入 + 文本可见」断言确有判别力。
  * 用法：node scripts/_verify_travel_yi_xss_954.mjs
  */
 import fs from 'node:fs';
@@ -116,7 +116,7 @@ try {
     ok('载荷以文本呈现', r.textHit > 0, JSON.stringify(r));
     await n.context.close();
 
-    console.log('[' + name + '] 修复前（git HEAD 回放，应命中注入）');
+    console.log('[' + name + '] 修复前（固定修复前基线回放，应命中注入）');
     // 954 基线固定为修复提交 045e2d2d2b 的父提交
     const old = execFileSync('git', ['show', '862e916418:' + c.rel], { cwd: ROOT, encoding: 'utf8' });
     const o = await newPage(browser, c.rel, old);

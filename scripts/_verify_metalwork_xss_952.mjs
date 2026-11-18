@@ -2,7 +2,7 @@
 /**
  * 第 952 批专项：金属加工三页用户输入拼 HTML 的真实浏览器注入回归。
  * 三页：detector-mold（本批修）、analysis-36 / analysis-cost-price-5（前批已加 escXss，本批复核清账）。
- * 判据是真机 DOM「载荷仍是文本、无元素注入」；detector-mold 另用 git HEAD 回放旧版证明判别力。
+ * 判据是真机 DOM「载荷仍是文本、无元素注入」；detector-mold 另用 固定修复前基线回放旧版证明判别力。
  * 用法：node scripts/_verify_metalwork_xss_952.mjs
  */
 import fs from 'node:fs';
@@ -104,7 +104,7 @@ try {
     await n.context.close();
 
     if (c.diffOld) {
-      console.log('[' + name + '] 修复前（git HEAD 回放，应命中注入）');
+      console.log('[' + name + '] 修复前（固定修复前基线回放，应命中注入）');
       // 952 基线固定为修复提交 85c81bcdd7 的父提交，避免 HEAD 漂移
       const old = execFileSync('git', ['show', 'ae906ca738:' + c.rel], { cwd: ROOT, encoding: 'utf8' });
       const o = await newPage(browser, c.rel, old);

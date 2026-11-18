@@ -139,9 +139,9 @@
 
         <div class="formula-box">
           <div class="formula-title">📐 计算公式</div>
-          <div class="formula-eq">加权总分 = Σ(已出成绩ᵢ × 权重ᵢ ÷ 100)（仅统计成绩非空且为数的项），已出权重 = 该批项权重之和，剩余权重 = 总权重 − 已出权重。校验：目标分缺省按 60；成绩为空的项不计入。判据：剩余需考分 = (目标分 − 加权总分) ÷ (剩余权重÷100)，≤0 判「已达标」、&gt;100 判「不可能达到」，其余按一位小数显示。</div>
-          <div class="formula-eq">最终加权平均分 = 加权总分 ÷ (总权重 ÷ 100)（按百制权重归一），仅在全部项成绩均已出且总权重 &gt;0 时给出，否则显示「部分成绩未出」。校验：目标分缺省按 60 兜底。判据：与总权重/已出权重/剩余权重/剩余需考分同表联动输出。</div>
-          <div class="formula-desc">权重以百分比计；剩余权重下所需成绩 = (目标 − 已得加权分) / (剩余权重 / 100)。</div>
+          <div class="formula-eq">加权总分 = Σ(已出成绩ᵢ × 权重ᵢ ÷ 100)（仅统计成绩非空且为数的项），已出权重 = 该批项权重之和，剩余权重 = 总权重 − 已出权重。校验：目标分和每项权重必填；成绩为空的项不计入。判据：剩余需考分 = (目标分 × 总权重÷100 − 加权总分) ÷ (剩余权重÷100)，≤0 判「已达标」、&gt;100 判「不可能达到」，其余按一位小数显示。</div>
+          <div class="formula-eq">最终加权平均分 = 加权总分 ÷ (总权重 ÷ 100)（按百制权重归一），仅在全部项成绩均已出且总权重 &gt;0 时给出，否则显示「部分成绩未出」。校验：目标分和每项权重必填。判据：与总权重/已出权重/剩余权重/剩余需考分同表联动输出。</div>
+          <div class="formula-desc">权重以百分比计；剩余权重下所需成绩 = (目标 × 总权重 / 100 − 已得加权分) / (剩余权重 / 100)。</div>
         </div>
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按平时分、期中、期末等权重计算总评成绩">Combine component scores into a final grade using your own weight distribution.</p>
 <div id="items"></div>
@@ -196,10 +196,10 @@
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>加权平均：按权重汇总。</li>
-<li>权重归一：结果按总权重归一，权重可任意正数。</li>
+<li>权重归一：结果按总权重归一，单项权重为 0–100，合计须大于 0。</li>
 <li>批量：多科一次算。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：科目权重 60/40，成绩 90/80 → 加权分 = (90×60+80×40) ÷ 100 = 86；权重可为任意正数，结果按总权重归一。</div></div>
+<div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：科目权重 60/40，成绩 90/80 → 加权分 = (90×60+80×40) ÷ 100 = 86；单项权重为 0–100，合计须大于 0，结果按总权重归一。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>与<a class="term-link" href="/tools/edu/grade-calculator.html">成绩计算器</a>？</dt><dd>本工具侧重多科/多模块加权合并。</dd>
@@ -230,9 +230,12 @@ function render(){
 function addItem(){items.push({name:'项目'+(items.length+1),weight:10,score:''});render();}
 function del(i){items.splice(i,1);render();}
 function upd(i,k,v){
+  if(!items[i]) return;
   if(k==='weight'){
-    const n=Number(v);
+    const n=String(v).trim()===''?NaN:Number(v);
     if(!Number.isFinite(n)||n<0||n>100){
+      items[i][k]='';
+      document.getElementById('known').value='';
       document.getElementById('result').innerHTML='<p style="color:var(--danger)">权重须在 0–100</p>';
       return;
     }
@@ -269,12 +272,12 @@ function calc(){
     totalW+=it.weight;
     if(it.score!==''&&Number.isFinite(it.score)){weighted+=it.score*it.weight/100;knownW+=it.weight;}
   });
-  if(!(totalW>0)||items.some(it=>!Number.isFinite(it.weight)||it.weight<0||it.weight>100||(it.score!==''&&(!Number.isFinite(it.score)||it.score<0||it.score>100)))){
+  if(!(totalW>0)||items.some(it=>it.weight===''||!Number.isFinite(it.weight)||it.weight<0||it.weight>100||(it.score!==''&&(!Number.isFinite(it.score)||it.score<0||it.score>100)))){
     document.getElementById('result').innerHTML='<p style="color:var(--danger)">权重或得分无效，请检查（权重 0–100 且合计大于 0，得分 0–100）</p>';
     return;
   }
   const remainW=totalW-knownW;
-  const remain=target-weighted;
+  const remain=target*totalW/100-weighted;
   if(remainW>0){
     const need=remain/(remainW/100);
     needScore=need<=0?'已达标 ✅':need>100?'不可能达到 ❌':need.toFixed(1)+' 分';

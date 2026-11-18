@@ -463,18 +463,17 @@ function readQuizCount() {
 function startQuiz(source) {
   let vocab = vocabularies[currentLevel] || vocabularies.daily;
   if (source === 'wordbook') {
-    vocab = (function(){try{return JSON.parse(localStorage.getItem('vocab-wordbook')||'[]')}catch(e){return []}})()
-      .map(function(x){ return { w: x.w, m: x.m }; });
+    vocab = (function(){try{var v=JSON.parse(localStorage.getItem('vocab-wordbook')||'[]');return Array.isArray(v)?v:[]}catch(e){return []}})();
   }
   // 释义去重：agony / anguish 同义时不得同时成为选项，否则题目无唯一解。
-  const seenMean = new Set();
+  const seenMean = new Set(), seenWord = new Set();
   vocab = vocab.filter(function(w){
-    if (!w || !w.m || seenMean.has(w.m)) return false;
-    seenMean.add(w.m);
+    if (!w || typeof w.w !== 'string' || typeof w.m !== 'string' || !w.w.trim() || !w.m.trim() || seenMean.has(w.m.trim()) || seenWord.has(w.w.trim())) return false;
+    seenMean.add(w.m.trim()); seenWord.add(w.w.trim());
     return true;
   });
   const count = Math.min(readQuizCount(), vocab.length);
-  if (count < 1) {
+  if (vocab.length < 2 || count < 1) {
     if (typeof ToolBox !== 'undefined' && ToolBox.showToast) {
       const en = __vocabIsEn();
       ToolBox.showToast(source === 'wordbook'
@@ -514,8 +513,12 @@ function showQuestion() {
   
   const opts = document.getElementById('qOptions');
   opts.innerHTML = q.options.map((o,i) => 
-    `<button type="button" class="option-btn" onclick="answer(${i},this)">${String.fromCharCode(65+i)}. ${o}</button>`
+    `<button type="button" class="option-btn" onclick="answer(${i},this)">${String.fromCharCode(65+i)}. ${vocabEscape(o)}</button>`
   ).join('');
+}
+
+function vocabEscape(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});
 }
 
 function answer(index, btn) {
@@ -681,10 +684,10 @@ function showWordbook() {
   }
   const __h2=wb.map(w => `<div class="history-item">
     <div style="display:flex;justify-content:space-between;align-items:center;">
-      <strong style="font-family:'SF Mono',monospace;font-size:18px;">${w.w}</strong>
-      <span style="font-size:12px;color:var(--text-muted);">${w.time}</span>
+      <strong style="font-family:'SF Mono',monospace;font-size:18px;">${vocabEscape(w.w)}</strong>
+      <span style="font-size:12px;color:var(--text-muted);">${vocabEscape(w.time)}</span>
     </div>
-    <div style="color:var(--text-secondary);margin-top:4px;">${w.m}</div>
+    <div style="color:var(--text-secondary);margin-top:4px;">${vocabEscape(w.m)}</div>
   </div>`).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h2;
 }
 

@@ -2,7 +2,7 @@
 /**
  * 第 953 批专项：生活/教育/理科三页用户文本拼 HTML 的真机注入回归。
  * cycle-4（本批修单位/日志字段）+ chemistry-calculator / grammar-checker（前批已修，本批复核清账）。
- * cycle-4 另做 git HEAD 旧版回放，证明断言有判别力。
+ * cycle-4 另做 固定修复前基线回放，证明断言有判别力。
  * 用法：node scripts/_verify_misc_xss_953.mjs
  */
 import fs from 'node:fs';
@@ -117,7 +117,7 @@ try {
     await n.context.close();
 
     if (c.diffOld) {
-      console.log('[' + name + '] 修复前（git HEAD 回放，应命中注入）');
+      console.log('[' + name + '] 修复前（固定修复前基线回放，应命中注入）');
       // 953 基线固定为修复提交 862e916418 的父提交；化学页载荷断言另见脚本内安全拒绝/安全转义双认可逻辑
       const old = execFileSync('git', ['show', '85c81bcdd7:' + c.rel], { cwd: ROOT, encoding: 'utf8' });
       const o = await newPage(browser, c.rel, old);

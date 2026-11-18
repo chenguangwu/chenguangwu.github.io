@@ -2,7 +2,7 @@
 /**
  * 第 967 批专项：四类真缺陷（空分组 0/0、量纲、NaN 假合规、负阈值钳位）。
  * 每例对同一 URL 跑两遍：
- *  - OLD：请求拦截回放 git show HEAD:<path>（本批改动前的版本），断言「缺陷串」存在；
+ *  - OLD：请求拦截回放 git show 固定修复前基线:<path>（本批改动前的版本），断言「缺陷串」存在；
  *  - NEW：读工作区当前源码，断言「缺陷串」消失且「正确串」存在。
  * 外链 CDN 全部 abort，每例独立 browser context 避开 service worker 缓存。
  * 用法：node scripts/_verify_fourdefects_967.mjs
@@ -82,7 +82,7 @@ const CASES = [
   try {
     for (const c of CASES) {
       const url = 'http://127.0.0.1:' + port + '/' + c.rel;
-      // ---- OLD：回放 HEAD 旧版，缺陷串应出现 ----
+      // ---- OLD：回放固定修复前基线，缺陷串应出现 ----
       {
         const ctx = await browser.createBrowserContext();
         try {

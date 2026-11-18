@@ -6,7 +6,7 @@
  * 时间线/趋势/汇总/导出隐藏表。判据是「用户输入在 DOM 里仍是文本、没有生成元素」，
  * 而不是仅看 verify 桩（桩内 ToolBox.escHtml 是恒等函数，无法判转义）。
  *
- * 旧版差分：同一断言对 git HEAD（修复前源码）经请求拦截回放，必须命中注入。
+ * 旧版差分：同一断言对 固定修复前基线源码经请求拦截回放，必须命中注入。
  *
  * 用法：node scripts/_verify_tcm_xss_951.mjs
  */
@@ -156,7 +156,7 @@ try {
     }
     await page.__tbContext.close();
 
-    console.log('[' + name + '] 修复前（git HEAD 回放，应命中注入）');
+    console.log('[' + name + '] 修复前（固定修复前基线回放，应命中注入）');
     // 951 基线固定为修复提交 ae906ca738 的父提交，避免 HEAD 推进后旧版对照假失败
     const old = execFileSync('git', ['show', '237aaac6d4:' + c.rel], { cwd: ROOT, encoding: 'utf8' });
     const oldPage = await newPage(browser, c.rel, old);

@@ -246,6 +246,11 @@ const CASES = [
   "ref": "EL 当日错题到期复核：reviewDate 保存的是本地日历日期字符串，旧版 new Date('YYYY-MM-DD') 按 UTC 解析，在 UTC- 时区会落到前一天，导致“今日复习”在统计卡里被当到期/逾期。现统一 parseLocalDate 按本地零点解析，三处引用一并替换；源码哨兵，旧版必红。"
 },
 {
+  slug: "edu2/exam-countdown", inputs: {examDate:"2027-01-03"},
+  clicks: ["var NativeDate=Date;Date=class extends NativeDate{constructor(...a){super(...(a.length?a:['2026-12-30T12:00:00']));}static now(){return new NativeDate('2026-12-30T12:00:00').getTime();}};document.getElementById('countHoliday').checked=true;calc();var h=document.getElementById('result').innerHTML;var cross=h.indexOf('未内置 2027 年')>=0&&h.indexOf('处理 2026 年')>=0;document.getElementById('examDate').value='2026-12-31';calc();var single=document.getElementById('result').innerHTML.indexOf('未内置')<0;Date=NativeDate;document.getElementById('__tbProbe').textContent='HOLYEARS:'+(cross&&single?'OK':'BAD');"],
+  expect: ["HOLYEARS:OK"], ref: "跨年分别披露已覆盖与缺表年份，单年已覆盖不提示缺表。"
+},
+{
   "slug": "edu2/exam-countdown",
   "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/exam-countdown.html','utf8');var ok=h.indexOf('var studyDays = workdays + (countWeekend ? weekends : 0);')>=0&&h.indexOf('周末计入可复习天数')>=0&&h.indexOf('可复习天数（含周末）')>=0&&h.indexOf('workdays--')<0;document.getElementById('__tbProbe').textContent='EXCWKND '+(ok?'OK':'BAD');"],
   "expect": ["EXCWKND OK"],

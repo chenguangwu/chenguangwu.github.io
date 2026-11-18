@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * 第 972 批专项：二次方程复根符号、双销并联量纲、单摆重力常量与引据矛盾。
- * OLD=git show HEAD 回放、NEW=工作区源码；独立 browser context + 外链 abort。
+ * OLD=固定修复前基线回放、NEW=工作区源码；独立 browser context + 外链 abort。
  */
 import fs from 'node:fs'; import path from 'node:path'; import http from 'node:http';
 import { execFileSync } from 'node:child_process'; import { createRequire } from 'node:module'; import { fileURLToPath } from 'node:url';

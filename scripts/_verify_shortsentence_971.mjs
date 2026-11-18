@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** 第 971 批专项：AI 摘要短句文本 0/0=NaN 假合规。OLD=git show HEAD 回放、NEW=工作区。 */
+/** 第 971 批专项：AI 摘要短句文本 0/0=NaN 假合规。OLD=固定修复前基线回放、NEW=工作区。 */
 import fs from 'node:fs'; import path from 'node:path'; import http from 'node:http';
 import { execFileSync } from 'node:child_process'; import { createRequire } from 'node:module'; import { fileURLToPath } from 'node:url';
 const require=createRequire(import.meta.url); const puppeteer=require('puppeteer-core');

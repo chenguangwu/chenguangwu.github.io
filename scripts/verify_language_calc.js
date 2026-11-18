@@ -190,9 +190,9 @@ const CASES = [
 },
 {
   "slug": "language/vocabulary-builder",
-  "clicks": ["var s={};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};state.current={cat:'cet4',w:'TESTWORD'};mark('known');var r1=JSON.parse(s.vocab_review||'{}')['cet4_TESTWORD'];state.current={cat:'cet4',w:'TESTWORD'};mark('known');var r2=JSON.parse(s.vocab_review||'{}')['cet4_TESTWORD'];var ok=r1&&r2&&r1.step===1&&r2.step===2&&r1.due!==r2.due;document.getElementById('vbHidden').textContent='JDUE:'+(ok?'OK':'BAD');"],
+  "clicks": ["var s={};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};state.current={cat:'cet4',w:'TESTWORD'};mark('known');var r1=JSON.parse(s.vocab_review||'{}')['cet4_TESTWORD'];state.current={cat:'cet4',w:'TESTWORD'};mark('known');var r2=JSON.parse(s.vocab_review||'{}')['cet4_TESTWORD'];var same=r1&&r2&&r1.step===0&&r1.due===r2.due&&r1.due===dayKeyAfter(1);r2.due=localDateKey();s.vocab_review=JSON.stringify({cet4_TESTWORD:r2});state.current={cat:'cet4',w:'TESTWORD'};updateReview('known');var r3=JSON.parse(s.vocab_review).cet4_TESTWORD;state.current={cat:'cet4',w:'TESTWORD'};updateReview('fuzzy');var r4=JSON.parse(s.vocab_review).cet4_TESTWORD;var ok=same&&r3.step===1&&r3.due===dayKeyAfter(2)&&r4.step===0&&r4.due===dayKeyAfter(1);document.getElementById('vbHidden').textContent='JDUE:'+(ok?'OK':'BAD');"],
   "expect": ["JDUE:OK"],
-  "ref": "EL-J8：复习间隔须按 1/2/4/7/15 天递增记录 due；旧版 progress 只存字符串状态、无 vocab_review，r1/r2 均 undefined ⇒ BAD。"
+  "ref": "EL-J8：首次安排 1 天，提前复习不升级；到期后安排 2 天，模糊重置为 1 天。"
 },
   {
     "slug": "language/german-gender-quiz",

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * 第 973 批专项：飞行时间60分进位、无刷/轻量相等与零值、CV/涨跌幅除零假合规。
- * OLD=git show HEAD 回放、NEW=工作区源码；独立 browser context + 外链 abort。
+ * OLD=固定修复前基线回放、NEW=工作区源码；独立 browser context + 外链 abort。
  */
 import fs from 'node:fs'; import path from 'node:path'; import http from 'node:http';
 import { execFileSync } from 'node:child_process'; import { createRequire } from 'node:module'; import { fileURLToPath } from 'node:url';
