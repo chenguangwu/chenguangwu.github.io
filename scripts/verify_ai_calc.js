@@ -1310,6 +1310,8 @@ const HOST_CASES = [
     extras: ["t2Chart", "t2Table", "t2Diff", "t2Hist", "t2Presets"],
     inputs: { input_tokens: "2500", output_tokens: "800", input_price: "3", output_price: "10" },
     tableExpect: "0.0155",
+    // AI-N11：同一批数字旧表格全标 ¥（实为 USD），人民币行缺失。
+    extraExpect: ["输入成本 (USD)", "人民币约 (×7.2, CNY)"],
     restore: { inputId: "input_tokens", historyKey: "input_tokens" },
     exportFn: "__t2Export", emptyHint: true,
   },
@@ -1447,6 +1449,9 @@ async function runTokenHostCase(h) {
   win.calc();
   if (!doc.getElementById(h.chart).textContent.trim()) return { ok: false, why: "改输入后 #" + h.chart + " 为空" };
   if (!doc.getElementById(h.table).textContent.includes(h.tableExpect)) return { ok: false, why: "改输入后 #" + h.table + " 未含 " + h.tableExpect };
+  for (const s of h.extraExpect || []) {
+    if (!doc.getElementById(h.table).textContent.includes(s)) return { ok: false, why: "改输入后 #" + h.table + " 未含 " + s };
+  }
   // 页签切换
   const tblBtn = doc.querySelector('.tbk-tab[data-pane="tbl"]');
   const resBtn = doc.querySelector('.tbk-tab[data-pane="res"]');
