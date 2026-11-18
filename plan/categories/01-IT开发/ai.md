@@ -55,13 +55,6 @@
 - 影响：本批 6 页及 ai 目录多数同类页的历史点击回填无效或归零，历史面板形同装饰。
 - 方案：record 与 mount 使用同一组字段（输入 + 输出），回填前做 `!= null` 判别与数值化，空值不覆盖现有输入；逐页验证「计算两次 → 点历史第一条 → 输入与结果还原」。
 
-### AI-N9 历史写入未合并且首屏即写，20 条槽位被噪音占满（中，确认源码缺陷）
-- 描述：`history.record` 支持 `coalesceMs` 合并连续输入，但本批页面全部不传该参数；同时 `__*Boot` 在无用户输入时也调用扩展段，首屏即写入一条默认/空记录。
-- 证据：`js/tool-kit.js:1088-1099`（`coalesceMs` 缺省时不合并，仅 `unshift` 后截断 20 条）；`tools/ai/token.html:334-342`、`tools/ai/context-window.html:337-345`、`tools/ai/ai-text-summarizer.html:480-486`、`tools/ai/ai-code-review.html:452-458` 均在 boot 调 `__*Extras`，而扩展段内直接 `record`（`context-window.html:321`、`ai-text-summarizer.html:466`、`ai-code-review.html:438`）。
-- 证据（node 内存复算）：`context-window` 默认值 `500/1500/1000/128000` 在无交互时写入 `pct=2.3`；`ai-text-summarizer` 空输入写入 `{text:'',ratio:0}`；`ai-code-review` 空代码写入 `{code:'',issues:0}`。
-- 影响：每敲一个字符就新增一条历史，几次输入即把 20 条槽位刷满为同值噪音，真实对比记录被挤掉；首屏空记录还会被用户误认为"上次结果"。
-- 方案：`record(obj, 800)` 合并连续输入；boot 阶段只渲染空态、不写历史；历史列表按输入指纹去重，并显示时间与关键输入。
-
 ### AI-N14 `inference-throughput` 批处理时延方向与全文相反，指标互不自洽（中，确认源码缺陷）
 - 描述：页面正文与 FAQ 反复说"batching 会拉长单请求时延"，图表与表格却用 `耗时÷批大小`（批越大时延越小）；`每 token 毫秒` 用总 token 数，`单请求吞吐` 又按批大小折算，二者无法同时成立。
 - 证据：`tools/ai/inference-throughput.html:124`（公式框写"总吞吐…仅由 token 数与耗时决定"，等于声称 `batch` 无关）、`:145`（"并发批量越大人均吞吐越低，batching 以拉长单请求时延换取总吞吐"）、`:125`、`:180`（正文与 FAQ 的"延迟/吞吐取舍"表述）、`:311`（图表 `latency per request` 用 `sec/b`，即"批越大时延越低"）、`:313-314`（`lat` 与 `ms per token` 两行）、`:282-283`（主结果总吞吐与人均吞吐）。

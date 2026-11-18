@@ -1297,6 +1297,7 @@ const CASES = [
 const HOST_CASES = [
   {
     slug: "ai/token",
+    coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
     chart: "tkChart", table: "tkTable",
     extras: ["tkChart", "tkTable", "tkDiff", "tkHist", "tkPresets"],
     inputs: { chars: "900", lang: "1", overlap: "1.5" },
@@ -1308,6 +1309,7 @@ const HOST_CASES = [
   },
   {
     slug: "ai/token-2",
+    coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
     chart: "t2Chart", table: "t2Table",
     extras: ["t2Chart", "t2Table", "t2Diff", "t2Hist", "t2Presets"],
     inputs: { input_tokens: "2500", output_tokens: "800", input_price: "3", output_price: "10" },
@@ -1319,6 +1321,7 @@ const HOST_CASES = [
   },
   {
     slug: "ai/token-usage",
+    coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
     chart: "tuChart", table: "tuTable",
     extras: ["tuChart", "tuTable", "tuDiff", "tuHist", "tuPresets"],
     inputs: { cn: "240", enWords: "150", code: "40" },
@@ -1332,6 +1335,7 @@ const HOST_CASES = [
   // restore 刻意不设：这 4 页 history.record 只写输出字段，属 AI-N8 另案，不在本批混修。
   {
     slug: "ai/context-window",
+    coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
     chart: "cwChart", table: "cwTable",
     extras: ["cwChart", "cwTable", "cwDiff", "cwHist", "cwPresets"],
     inputs: { system: "800", prompt: "2200", resp: "1500", ctx: "64000" },
@@ -1340,6 +1344,7 @@ const HOST_CASES = [
   },
   {
     slug: "ai/inference-throughput",
+    coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
     chart: "itChart", table: "itTable",
     extras: ["itChart", "itTable", "itDiff", "itHist", "itPresets"],
     inputs: { tokens: "900", sec: "6", batch: "2" },
@@ -1348,6 +1353,7 @@ const HOST_CASES = [
   },
   {
     slug: "ai/quantization-ratio",
+    coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
     chart: "qrChart", table: "qrTable",
     extras: ["qrChart", "qrTable", "qrDiff", "qrHist", "qrPresets"],
     inputs: { params: "2500", fromB: "8", toB: "4" },
@@ -1407,7 +1413,15 @@ function installTBKit(win, state) {
       },
     },
     history: {
-      record: (v) => { state.history.push(v); },
+      // 与 js/tool-kit.js 一致：coalesceMs>0 且上一条在窗口内则覆盖，不新增槽位。
+      record: (v, coalesceMs) => {
+        const now = Date.now();
+        if (coalesceMs && state.history.length && now - (state.history[0].t || 0) < coalesceMs) {
+          state.history[0] = Object.assign({}, v, { t: now });
+          return;
+        }
+        state.history.push(Object.assign({}, v, { t: now }));
+      },
       mount: (sel, cb) => { state.mountCb = cb; },
       list: () => state.history.slice(),
       last: () => state.history[state.history.length - 1] || null,
@@ -1468,6 +1482,13 @@ async function runTokenHostCase(h) {
   for (const s of h.extraExpect || []) {
     if (!doc.getElementById(h.table).textContent.includes(s)) return { ok: false, why: "改输入后 #" + h.table + " 未含 " + s };
   }
+  if (h.coalesce) {
+    const before = state.history.length;
+    win.calc(); win.calc();
+    if (state.history.length !== before) {
+      return { ok: false, why: "连续重算新增历史 " + (state.history.length - before) + " 条，未合并" };
+    }
+  }
   for (const s of h.forbidden || []) {
     if (doc.getElementById(h.table).textContent.includes(s)) return { ok: false, why: "改输入后 #" + h.table + " 仍含错误口径 " + s };
   }
@@ -1510,7 +1531,8 @@ async function runTokenHostCase(h) {
 }
 
 async function runCodeReviewCase() {
-  const dom = makeDom("ai/ai-code-review", { state: { history: [], exportCalls: 0, exported: false, mountCb: null }, notify: [] });
+  const state = { history: [], exportCalls: 0, exported: false, mountCb: null };
+  const dom = makeDom("ai/ai-code-review", { state, notify: [] });
   const win = dom.window;
   await domReady(win);
   const doc = win.document;
@@ -1534,11 +1556,15 @@ async function runCodeReviewCase() {
   if (doc.getElementById("result").textContent.includes("使用 any 类型")) {
     return { ok: false, why: "JS 模式误报 TS 规则" };
   }
+  const before = state.history.length;
+  win.review(); win.review();
+  if (state.history.length !== before) return { ok: false, why: "审查页连续重算新增历史 " + (state.history.length - before) + " 条" };
   return { ok: true };
 }
 
 async function runSummarizerHostCase() {
-  const dom = makeDom("ai/ai-text-summarizer", { state: { history: [], exportCalls: 0, exported: false, mountCb: null }, notify: [] });
+  const state = { history: [], exportCalls: 0, exported: false, mountCb: null };
+  const dom = makeDom("ai/ai-text-summarizer", { state, notify: [] });
   const win = dom.window;
   await domReady(win);
   const doc = win.document;
@@ -1555,6 +1581,9 @@ async function runSummarizerHostCase() {
   const table = doc.getElementById("tzTable");
   if (!table.textContent.trim()) return { ok: false, why: "摘要后 #tzTable 为空" };
   if (!table.textContent.includes("原文长度")) return { ok: false, why: "#tzTable 未写入明细行" };
+  const before = state.history.length;
+  win.summarize(); win.summarize();
+  if (state.history.length !== before) return { ok: false, why: "摘要页连续重算新增历史 " + (state.history.length - before) + " 条" };
   return { ok: true };
 }
 
