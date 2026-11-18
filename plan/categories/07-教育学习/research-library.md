@@ -113,13 +113,6 @@
 
 > 范围：本轮阅读 7 页（`tools/cognition/human-benchmark.html`、`tools/museum/visitor-route.html`、`tools/museum/timeline-viewer.html`、`tools/research/index.html`、`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`）。**说明：四目录仅剩这 7 个未覆盖页（3 个工具页 + 4 个索引页），不足以凑满 8 页；未跨目录外扩，以免与 edu-language 批重复。** 仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### RL-K54 参观流线：公式框的「通行时间/拥挤度」与「必看节点」均未实现（低，确认）
-- 描述：公式表列出 `T = L/v + Σ停留` 与拥挤度 `人数/通行能力`，页面只算距离；深度解析称「设定起终点与必看节点」，实际无必经节点输入。
-- 证据：`tools/museum/visitor-route.html:208`、`:212-213`、`:183`、`:189`。
-- 复现：页面仅有距离输入与起终点下拉，无速度/停留/人数/容量/必经节点控件（期望按公式给出时长与拥挤度，或删除公式行）。
-- 影响：公式与标准引据区展示未实现能力，误导专业用户。
-- 方案：删除未实现公式，或补「步行速度+停留时间」输入输出 T；必经节点可后续实现多点分段。
-
 ### RL-K57 四个分类索引页：meta 均称覆盖「单位转换」，目录内并无换算类工具（低，确认）
 - 描述：research/library/cognition/museum 四个 `index.html` 的 description/og/twitter 使用同一套模板句「常见计算、换算、单位转换与查询需求」，但四目录工具均为统计、档案、测评、展陈类，无单位换算器。
 - 证据：`tools/research/index.html:6`、`tools/library/index.html:6`、`tools/cognition/index.html:6`、`tools/museum/index.html:6`（`:11`/`:21` 同样）。
