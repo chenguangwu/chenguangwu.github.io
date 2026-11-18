@@ -55,13 +55,6 @@
 
 > 范围：本轮阅读 8 页（`tools/library/archive-label.html`、`tools/library/generator-label.html`、`tools/library/stats-report.html`、`tools/cognition/digit-span-test.html`、`tools/cognition/schulte-table.html`、`tools/cognition/stroop-test.html`、`tools/museum/lighting-lux.html`、`tools/museum/era-comparator.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### RL-K5 统计报表：深度解析的场景与算例是「台账明细+类型汇总」另一工具模板（中，确认）
-- 描述：深度解析要求「输入台账明细自动汇总总件数、各类型数量与占比、按年度/类型交叉汇总」，算例给出「总件数 1200、文书 800 利用 300、业务 400 利用 60」；页面实际只有馆藏/借阅/读者/到馆/新增 5 个全局数字，无明细录入、无类型维度。
-- 证据：`tools/library/stats-report.html:160-165`（场景与算例）对照 `:130-134`（实际输入）、`:218-225`（实际输出）。
-- 复现：按深度解析输入「文书类 800 件、利用 300 件次」→ 页面无对应字段，只能算全馆利用率；`360÷1200=30%` 的示例无法复现。
-- 影响：示例与实现脱节，用户照做必然对不上。
-- 方案：把深度解析改写为本页真实口径（`借阅册次 ÷ 馆藏册数`），或补明细表输入与分组汇总。
-
 ### RL-K11 Stroop：一致条件 40 试次（含 24 前置纯块）对不一致 16 试次，干扰量基线受练习/块序污染（中，疑似）
 - 描述：一致块 24 次先于混合块 48 次（内部分为一致/不一致/中性各 16），因此 `cong` 汇总 40 次且主要来自前置纯块，`incong` 仅 16 次；`interference = incong.m - cong.m` 把「块序 + 练习效应」混入 Stroop 效应。
 - 证据：`tools/cognition/stroop-test.html:327-337`（块结构）、`:409-418`（按条件汇总）、`:431-433`（干扰量差值）。
