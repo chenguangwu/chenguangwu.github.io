@@ -571,6 +571,16 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pulmonology/curb65.html','utf8');var dd=JSON.parse(globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['pulmonology/curb65'];var ok=h.indexOf('var mortByScore=[0.7,2.1,9.2,14.5,40,57]')>=0&&h.indexOf('<td>40%</td>')>=0&&h.indexOf('<td>57%</td>')>=0&&h.indexOf('<td>0.7%</td>')>=0&&h.indexOf('死亡风险</th>')<0&&h.indexOf('高(≥15%)')<0&&h.indexOf('4–5 分重点考虑 ICU/HDU')>=0&&h.indexOf('score>=4?')>=0&&dd.examples[0].body.indexOf('14.5%')>=0&&dd.examples[1].body.indexOf('0.7%')>=0;document.getElementById('__tbProbe').textContent='CURBMORT '+(ok?'OK':'BAD');"],
   "expect": ["CURBMORT OK"],
   "ref": "12-N31：CURB-65 死亡率原 0–1 合并 1.5%、≥3 统一 ≥15%，4/5 分（Lim 2003 为 40%/57%）被严重低估；ICU 阈值公式框 ≥3、表格/代码 ≥4、深解 3 分三处冲突。现代码按逐分数组 [0.7,2.1,9.2,14.5,40,57] 展示、表格逐分、公式框与深解统一 4–5 分重点 ICU。源码形态哨兵，旧版必红。"
+},{
+  "slug": "pulmonology/calc-48",
+  "inputs": { "pao2": "80", "fio2": "150" },
+  "expect": ["FiO2 应在 21–100% 之间，请重新填写。"],
+  "ref": "03-162 FiO2 上限校验：旧版仅 isNaN||fio2<21 判下限，max=100 属性不阻止键入，150% 直接算出 P/F≈53「重度ARDS」+OI 被放大。本批加 fio2>100 拦截。默认 fio2=40 合法不命中，零逃生。"
+},{
+  "slug": "pulmonology/oxygenation-index",
+  "inputs": { "pao2": "65", "fio2": "150", "spo2": "95" },
+  "expect": ["FiO2 应在 21–100% 之间，请重新填写。"],
+  "ref": "03-192 FiO2 范围校验：旧版 parseFloat||21 无范围校验，150% 算出 P/F≈43「重度ARDS」、-10% 走兜底 P/F 0 且 FiO₂ 显示负值。本批用原始字符串判空 + 21–100 拦截。默认 fio2=40 合法不命中，零逃生。"
 }
 ];
 
