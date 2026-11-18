@@ -3,6 +3,12 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+  "slug":"mining/excavation-volume",
+  "clicks":["cur='circular';renderParams();document.getElementById('D1').value='20';document.getElementById('D2').value='0';document.getElementById('H').value='5';calc();var c=document.getElementById('result').innerHTML.indexOf('523.6')>=0;document.getElementById('D2').value='20';calc();var y=document.getElementById('result').innerHTML.indexOf('1570.8')>=0;document.getElementById('__tbProbe').textContent='CONE '+(c&&y?'OK':'BAD');"],
+  "expect":["CONE OK"],
+  "ref":"零底径为圆锥 523.6 m³；等直径为圆柱 1570.8 m³。"
+},
+{
   "slug": "mining/calc-1",
   "inputs": {
     "q": "0.5",

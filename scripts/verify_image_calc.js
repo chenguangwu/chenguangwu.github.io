@@ -377,7 +377,7 @@ const CASES = [
 },
 {
   "slug": "image/image-resize",
-  "clicks": ["var cap='';ToolBox.showToast=function(m){cap=String(m);};TBKit={util:{isEn:function(){return true;}}};__svgFileBlocked({type:'image/svg+xml',name:'x.svg'});var en=cap;TBKit={util:{isEn:function(){return false;}}};__svgFileBlocked({type:'image/svg+xml',name:'x.svg'});var zh=cap;document.getElementById('__svg_probe').textContent='IMN3R '+(en.indexOf('Only bitmap')>=0&&zh.indexOf('仅支持位图')>=0?'OK':'BAD '+en+'|'+zh);"],
+  "clicks": ["var cap='';ToolBox.showToast=function(m){cap=String(m);};TBKit={util:{isEn:function(){return true;}}};__svgFileBlocked({type:'image/svg+xml',name:'x.svg'});var en=cap;TBKit={util:{isEn:function(){return false;}}};__svgFileBlocked({type:'image/svg+xml',name:'x.svg'});var zh=cap;document.getElementById('__svg_probe').textContent='IMN3R '+(en.indexOf('SVG images are not supported')>=0&&zh.indexOf('不支持 SVG 图片')>=0?'OK':'BAD '+en+'|'+zh);"],
   "expect": ["IMN3R OK"],
   "ref": "IM-N3 resize 页同类：旧版 __svgFileBlocked 及下载/导出/复制 toast 全硬编码中文。现统一 __imgEn() 中英切换（含「尺寸过大」「导出失败」「已下载」「复制失败」）。isEn 双断言，默认态不命中。"
 }

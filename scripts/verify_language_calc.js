@@ -5,6 +5,12 @@ const fs = require("fs");
 globalThis.__tbFs = fs;
 const CASES = [
 {
+  "slug":"language/language-toolkit",
+  "inputs":{"acronymInput":"École e\u0301cole 中文 World"},
+  "expect":["École → É", "école → É", "中文 → 已跳过（仅支持英文/拉丁字母）"],
+  "ref":"带重音拉丁字母、组合重音及混合中文应正确取首字母。"
+},
+{
   "slug": "language/calc-1",
   "inputs": {
     "knownRatio": "90"

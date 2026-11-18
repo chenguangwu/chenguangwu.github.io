@@ -661,14 +661,19 @@
     );
   }
 
-  // 把某时区的「墙上时间」换算成真实 UTC 时刻；跨夏令时边界时二次校正
+  // 枚举转换附近出现的偏移，再反验墙上时间；跳时无解，回拨可有两个解。
   function wallToInstant(iana, year, month, day, hours, minutes, seconds) {
     var wall = Date.UTC(year, month - 1, day, hours, minutes, seconds);
-    var off = zoneOffsetMinutes(iana, wall);
-    var inst = wall - off * 60000;
-    var off2 = zoneOffsetMinutes(iana, inst);
-    if (off2 !== off) inst = wall - off2 * 60000;
-    return inst;
+    var offsets = [], matches = [];
+    for (var delta = -48; delta <= 48; delta += 6) {
+      var off = zoneOffsetMinutes(iana, wall + delta * 3600000);
+      if (offsets.indexOf(off) < 0) offsets.push(off);
+    }
+    offsets.forEach(function (off) {
+      var candidate = wall - off * 60000;
+      if (zoneOffsetMinutes(iana, candidate) === off) matches.push(candidate);
+    });
+    return matches.length === 1 ? matches[0] : (matches.length ? 'ambiguous' : 'nonexistent');
   }
 
   function pad(n) { return String(n).padStart(2, '0'); }
@@ -692,6 +697,7 @@
     // 源时区墙上时间 → 真实 UTC 时刻 → 目标时区墙上时间；
     // 两端偏移均由 IANA 时区数据库按真实时刻即时取得，夏令时自然生效。
     var realUTC = wallToInstant(srcIana, year, month, day, hours, minutes, seconds);
+    if (typeof realUTC !== 'number') return {error: realUTC};
     var srcOffset = zoneOffsetMinutes(srcIana, realUTC);
     var dstOffset = zoneOffsetMinutes(dstIana, realUTC);
     var d = new Date(realUTC + dstOffset * 60000);
@@ -824,6 +830,15 @@
     }
 
     var result = convertWallTime(srcTz.tz, dstTz.tz, year, month, day, h, m, s);
+    if (result.error) {
+      var errorEl = document.getElementById('convertResult');
+      var english = document.documentElement.lang.toLowerCase().indexOf('en') === 0;
+      errorEl.style.display = 'block';
+      errorEl.textContent = result.error === 'ambiguous'
+        ? (english ? 'This local time occurs twice due to a clock change; choose another time.' : '该本地时间因时钟回拨出现两次，请选择其他时间。')
+        : (english ? 'This local time does not exist due to a clock change; choose another time.' : '该本地时间因时钟跳变不存在，请选择其他时间。');
+      return;
+    }
     var srcOffset = result.srcOffset;
     var dstOffset = result.dstOffset;
     var diffMinutes = dstOffset - srcOffset;

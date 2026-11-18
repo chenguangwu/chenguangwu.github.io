@@ -109,7 +109,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="计算车价落地总花费（含购置税、保险、上牌）。">Compute total buying costs including taxes, insurance, and fees.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">购车总费用 = 车价 + 购置税 + 保险 + 上牌费；购置税 = 车价 ÷ 1.13 × 10%（现行乘用车税率）；全款总支出为上述合计；贷款另计利息，月供 = 贷款额 × 月利率 ×（1 + 月利率）ⁿ ÷〔（1 + 月利率）ⁿ − 1〕。</div>
+  <div class="formula-eq">购车总费用 = 车价 + 购置税 + 保险 + 上牌费。普通计税按含税发票价 ÷ 1.13 × 税率估算；合资格新能源乘用车按购置日期应用对应减税上限。贷款利息和手续费另计。</div>
   
 </div>
 
@@ -118,7 +118,12 @@
       <input type="number" id="price" value="150000" min="0" step="100" oninput="calc()" placeholder="如 150000">
     </div>
     <div class="input-row">
-      <label>购置税率（%）</label>
+      <label for="taxMode">购置税方案</label>
+      <select id="taxMode" onchange="calc()"><option value="manual">手动税率（不自动减免）</option><option value="nev2425">合资格新能源乘用车：2024–2025 年购置</option><option value="nev2627">合资格新能源乘用车：2026–2027 年购置</option></select>
+      <div>购置日期以有效凭证日期为准；新能源方案须自行确认车型符合政策目录。2028 年及以后请按届时政策手动估算。<a href="https://hq.mof.gov.cn/tongzhitonggao/202307/t20230704_3894319.htm">财政部公告</a></div>
+    </div>
+    <div class="input-row">
+      <label>手动方案购置税率（%）</label>
       <input type="number" id="taxRate" value="10" min="0" step="0.1" oninput="calc()" placeholder="如 10">
     </div>
     <div class="input-row">
@@ -177,7 +182,7 @@
   <div class="related-tools-grid">
     <a href="usedcar-valuation.html" class="related-tool-card">
       <span class="rt-icon">🚙</span>
-      <span class="rt-info"><span class="rt-name">二手车估价器</span><span class="rt-desc">二手车在线估价器，输入车型、上牌年份与里程，结合成新率与折旧模型估算残值基线，辅助买卖定价，纯前端本…</span></span>
+      <span class="rt-info"><span class="rt-name">二手车估价器</span><span class="rt-desc">二手车在线估价器，输入新车价格、车龄与里程，结合成新率与折旧模型估算残值基线，辅助买卖定价，纯前端本…</span></span>
     </a>
     <a href="wear.html" class="related-tool-card">
       <span class="rt-icon">📏</span>
@@ -216,7 +221,10 @@ function calc() {
   const plate = parseFloat(document.getElementById('plate').value);
 
   // 购置税计税依据为不含增值税价（发票价 ÷ 1.13），与公式框/引据表口径一致（N197）
-  const tax = price / 1.13 * taxRate / 100;
+  const mode = document.getElementById('taxMode').value;
+  const fullTax = price / 1.13 * 0.1;
+  const tax = mode === 'nev2425' ? fullTax - Math.min(fullTax, 30000) :
+    mode === 'nev2627' ? fullTax - Math.min(fullTax / 2, 15000) : price / 1.13 * taxRate / 100;
   const total = price + tax + insurance + plate;
 
   const __g1=`<p>购置税：<strong>${tax.toFixed(2)} 元</strong></p>` +
@@ -385,12 +393,12 @@ else document.addEventListener('DOMContentLoaded', __car_purchase_costBoot);
 <ul class="dd-list">
 <li>预算前核算落地价：把裸车价、购置税、保险、上牌等相加，避免只盯裸车价而超预算。</li>
 <li>对比全款与贷款的总支出（本工具算一次性费用，贷款利息另计），看清真实购车成本。</li>
-<li>不同购置税率（新能源免征/燃油车 10%）下对比两车落地价差异。</li>
+<li>按购置日期和车辆资格，对比普通乘用车与符合条件新能源乘用车的购置税。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">以「裸车价 15 万、购置税率 10%、保险 5000 元、上牌 500 元」为例</div><div class="dd-ex-body">购置税=150000÷1.13×10%≈13274.34 元；总费用=裸车价 150000+购置税 13274.34+保险 5000+上牌 500=168774.34 元（落地价）。若为新能源车（购置税免征），则落地价降为 155500 元，省下约 1.33 万。</div></div>
+<div class="dd-example"><div class="dd-ex-title">以「裸车价 15 万、购置税率 10%、保险 5000 元、上牌 500 元」为例</div><div class="dd-ex-body">普通购置税=150000÷1.13×10%≈13274.34 元，落地价约 168774.34 元。若为 2026—2027 年购置且符合条件的新能源乘用车，减税约 6637.17 元，购置税约 6637.17 元，落地价约 162137.17 元；减税额每车不超过 15000 元。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>购置税为什么是裸车价÷1.13×10%？</dt><dd>燃油乘用车购置税计税依据为「不含<a class="term-link" href="/tools/accounting/calc-1.html">增值税</a>的车价」，即发票价÷1.13，再×10%；本工具按此口径计算，与公式框一致，比直接按裸车价×税率低约 11.5%。新能源乘用车目前免征车辆购置税，可切换税率为 0 对比。</dd>
+<dt>购置税为什么是裸车价÷1.13×10%？</dt><dd>按含税发票价除以 1.13 估算不含<a class="term-link" href="/tools/accounting/calc-1.html">增值税</a>价，普通税率为 10%。符合条件的新能源乘用车在 2024—2025 年购置时免税额上限 30000 元，2026—2027 年购置时减半且减税额上限 15000 元；购置日期以有效凭证为准，资格请核对政策目录。</dd>
 <dt>这个落地价包含贷款利息吗？</dt><dd>不含。本工具只计算一次性购车费用（购置税+保险+上牌等），分期贷款的利息、手续费需另行叠加到总持有成本中。</dd>
 </dl>
 </div>

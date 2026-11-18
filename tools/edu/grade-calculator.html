@@ -384,8 +384,8 @@ function renderCourses(){
     html += `
       <div class="course-row">
         <div class="cr-name"><label>科目名</label><input type="text" value="${ToolBox.escHtml(c.name)}" onchange="updateCourse(${i},'name',this.value)"></div>
-        <div><label>分数</label><input type="number" value="${c.score}" min="0" max="100" onchange="updateCourse(${i},'score',this.value)" placeholder="如 ${c.score}（0–100）"></div>
-        <div><label>权重</label><input type="number" value="${c.credit}" min="0.5" step="0.5" onchange="updateCourse(${i},'credit',this.value)" placeholder="如 ${c.credit}"></div>
+        <div><label>分数</label><input type="number" value="${c.score}" min="0" max="100" oninput="updateCourse(${i},'score',this.value)" placeholder="如 ${c.score}（0–100）"></div>
+        <div><label>权重</label><input type="number" value="${c.credit}" min="0.5" step="0.5" oninput="updateCourse(${i},'credit',this.value)" placeholder="如 ${c.credit}"></div>
         <button type="button" class="btn cr-del danger" onclick="removeCourse(${i})" ${courses.length<=1?'disabled style="opacity:0.5;cursor:not-allowed;"':''}>×</button>
       </div>
     `;
@@ -407,20 +407,9 @@ function removeCourse(i){
 }
 
 function updateCourse(i, key, val){
-  if(key==='score'){
-    const n = Number(val);
-    if(!Number.isFinite(n) || n<0 || n>100){
-      document.getElementById('totalScore').textContent=(typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Score must be 0-100':'分数须在 0–100';
-      return;
-    }
-    courses[i][key] = n;
-  }else if(key==='credit'){
-    const n = Number(val);
-    if(!Number.isFinite(n) || n<=0){
-      document.getElementById('totalScore').textContent=(typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Weight must be > 0':'权重须大于 0';
-      return;
-    }
-    courses[i][key] = n;
+  if(key==='score' || key==='credit'){
+    const raw=String(val).trim();
+    courses[i][key] = raw === '' ? NaN : Number(raw);
   }else{
     courses[i][key] = val;
   }
@@ -436,6 +425,8 @@ function calc(){
     const en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
     document.getElementById('totalScore').textContent=en?'Invalid course data':(badScore?'分数须在 0–100':'权重须大于 0');
     document.getElementById('gradeLabel').textContent='—';
+    document.getElementById('gradeLabel').className='score-grade';
+    ['maxScore','minScore','avgScore','courseCount'].forEach(id=>document.getElementById(id).textContent='—');
     return;
   }
   
@@ -564,6 +555,10 @@ function normalCDF(z){
 }
 
 function saveRecord(){
+  if(courses.some(c=>!Number.isFinite(c.score)||c.score<0||c.score>100||!Number.isFinite(c.credit)||c.credit<=0)){
+    ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Enter valid scores and weights':'请填写有效分数和权重','error');
+    return;
+  }
   let totalWeight = 0, totalScore = 0;
   courses.forEach(c=>{
     totalWeight += c.credit;

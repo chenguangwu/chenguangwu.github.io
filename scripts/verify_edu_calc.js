@@ -15,6 +15,24 @@ globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+{
+ "slug":"edu/edu-unit-converter",
+ "inputs":{"fromVal":"7"},
+ "clicks":["var e=document.getElementById('fromVal');e.value='';convert(true);var empty=document.getElementById('toVal').value===''&&document.getElementById('info').textContent.indexOf('请输入数值')>=0;e.value='0';convert(true);document.getElementById('__tbProbe').textContent='UNITZERO '+(empty&&document.getElementById('toVal').value==='0'?'OK':'BAD');"],
+ "expect":["UNITZERO OK"],"ref":"空输入仅提示，显式零值正常转换。"
+},
+{
+ "slug":"edu/exam-gpa-calculator",
+ "inputs":{"course-name":"Zero Test"},
+ "clicks":["setScale('100');document.getElementById('course-credit').value='3';document.getElementById('course-grade').value='';var before=state.courses.length;addCourse();var empty=state.courses.length===before;document.getElementById('course-grade').value='0';addCourse();document.getElementById('__tbProbe').textContent='GPAZERO '+(empty&&state.courses.length===before+1&&state.courses[before].grade===0?'OK':'BAD');"],
+ "expect":["GPAZERO OK"],"ref":"空成绩拒绝，显式零分接受。"
+},
+{
+ "slug":"edu/convert-2",
+ "inputs":{"val":"1,2,3,999","from":"rgb","to":"hex"},
+ "clicks":["var e=document.getElementById('val'),r=document.getElementById('res');var bad=['1,2,3,999','abc1xyz2foo3','1e2,0,0'].every(function(v){e.value=v;calc();return r.innerHTML.indexOf('输入无效')>=0});e.value='rgb(1,2,3)';calc();var ok=r.innerHTML.indexOf('#010203')>=0;e.value='300,0,0';calc();var clamp=r.innerHTML.indexOf('#FF0000')>=0&&r.innerHTML.indexOf('钳制')>=0;document.getElementById('__tbProbe').textContent='COLORS '+(bad&&ok&&clamp?'OK':'BAD');"],
+ "expect":["COLORS OK"],"ref":"多余通道、混杂字符、科学计数法拒绝；合法格式和越界提示保留。"
+},
   // ── 第1176批：数字记忆挑战记录与清空提示 ──
   {
     slug: "edu/number-memory",
@@ -282,9 +300,9 @@ const CASES = [
   {
     slug: "edu/edu-unit-converter",
     inputs: { fromVal: "" },
-    clicks: ["var o=document.getElementById('toVal').value;document.getElementById('__tbProbe').textContent='EMPTYVAL '+(o==='0'?'OK':'BAD');"],
+    clicks: ["var o=document.getElementById('toVal').value;document.getElementById('__tbProbe').textContent='EMPTYVAL '+(o===''?'OK':'BAD');"],
     expect: ["EMPTYVAL OK"],
-    ref: "EL-J62：清空输入按 0 输出，不再显示 0e0；旧版 ||0 后走指数分支。",
+    ref: "空输入不输出结果，显式 0 的独立用例仍应输出 0。",
   },
   {
     slug: "edu/edu-unit-converter",
@@ -567,6 +585,13 @@ const CASES = [
     ref: "目标分反推（calcTarget）：perQ=2 → score=40×2=80；目标 90>80；需补 10 分；每对 1 题得 2 分 ⇒ ceil(10/2)=5 题；剩余题 50−40=10 够用；预计 80+5×2=90 分。默认态（correct85/target95）→「再做对 10 题可达 95 分」不命中 ⇒ 强判别、零逃生。",
   },
   {
+    slug: "edu/grade-calculator",
+    inputs: { tMidterm: "33" },
+    clicks: ["localStorage.removeItem('toolbox_grade_history');updateCourse(0,'score','');saveRecord();var a=document.getElementById('totalScore').textContent,b=document.getElementById('maxScore').textContent,h=localStorage.getItem('toolbox_grade_history');updateCourse(0,'score','0');saveRecord();var z=JSON.parse(localStorage.getItem('toolbox_grade_history')||'[]');document.getElementById('__tbProbe').textContent='GRADEEMPTY '+(a.indexOf('分数须')>=0&&b==='—'&&!h&&z.length===1&&z[0].score==='67.37'?'OK':'BAD');"],
+    expect: ["GRADEEMPTY OK"],
+    ref: "清空分数时清除旧结论且禁止保存；输入合法零分后恢复计算并保存 67.37。",
+  },
+  {
     slug: "edu/quiz-score-percentage", inputs: { total: "10000", correct: "8996", points: "2" },
     expect: ["A+ 太棒了！🌟"],
     ref: "EL-J32：89.96% 按展示精度 90.0% 判级 ⇒ A+；旧版用未舍入 pct 判 A 却展示 90.0%。展示串 90.0% 旧版也命中，禁止列入 expect。",
@@ -577,6 +602,13 @@ const CASES = [
     clicks: ["var nm=document.getElementById('quizName').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu/quiz-score-percentage.html','utf8');var h2=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/language/text-polisher.html','utf8');var ok=nm==='TbQuizToast'&&h.indexOf('i18nText()')<0&&h2.indexOf('i18nText()')<0&&h.indexOf('已保存本次测验')>=0;document.getElementById('__tbProbe').textContent='TOASTFIX '+(ok?'OK':'BAD');"],
     expect: ["TOASTFIX OK"],
     ref: "EL-J33：测验页与润色页均无无参 i18nText() 调用，测验页保存有明确文案；旧版 toast 显示 undefined。",
+  },
+  {
+    slug: "edu/quiz-score-percentage",
+    inputs: { total: "10000", correct: "8996", points: "2", quizName: "QuizRound" },
+    clicks: ["localStorage.removeItem('quiz_score_history');saveToHistory();var q=JSON.parse(localStorage.getItem('quiz_score_history')||'[]')[0];document.getElementById('__tbProbe').textContent='QUIZSAVE '+(q&&q.pct===90&&q.quizName==='QuizRound'?'OK':'BAD');"],
+    expect: ["QUIZSAVE OK"],
+    ref: "保存历史使用显示精度：8996/10000=89.96%，四舍五入后为 90.0%；断言真实存储的名称及 pct。",
   },
   {
     slug: "edu/quiz-score-percentage",

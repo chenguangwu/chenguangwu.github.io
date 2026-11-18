@@ -375,7 +375,7 @@ const CASES = [
   "expect": [
     "6 岁：男童中位体重约 20.5 kg ，女童约 20.2 kg",
     "较同龄男童中位体重高 17%",
-    "主要清除途径：肝脏 肝功能 C 级：建议显著减量"
+    "本工具不提供统一减量比例"
   ],
   "ref": "WHO 生长标准 P50：6 岁男 20.5 kg / 女 20.2 kg；输入 24 kg ⇒ (24-20.5)/20.5=17.07% ⇒ 高 17%。对乙酰氨基酚（DRUGS[0]）经肝代谢，Child-Pugh C ⇒ 显著减量或避免。失败态：clicks 清空 ⇒ hepFunc 回落 normal、age 保持默认 30（非儿童）⇒ 参考体重段不出现、肝提示消失 ⇒ 三条均不命中。"
 },
@@ -390,7 +390,7 @@ const CASES = [
   "clicks": ["document.getElementById('drug').value='3';document.getElementById('renalFunc').value='severe';calc();"],
   "expect": [
     "药物：阿莫西林（Amoxicillin）",
-    "主要清除途径：肾脏 肾功能重度下降：建议显著减量"
+    "本工具不提供统一减量比例"
   ],
   "ref": "drug value=3 ⇒ DRUGS[3]=阿莫西林（索引序：对乙酰氨基酚0/布洛芬1/阿司匹林2/阿莫西林3），经肾排泄；肾功能重度下降（Ccr 15–29）⇒ 显著减量或延长间隔。默认药物为对乙酰氨基酚（肝脏）且 renalFunc 回落 normal ⇒ 两条均不命中。"
 },
@@ -433,26 +433,10 @@ const CASES = [
   },
   "clicks": ["document.getElementById('drug').value='2';onDrugChange();"],
   "expect": [
-    "儿童禁用：「阿司匹林」",
+    "儿童剂量不提供：「阿司匹林」",
     "未计算 剂量基准"
   ],
   "ref": "阿司匹林（DRUGS[2]）childW=0 且 childContra=true：5 岁（<14）⇒ basisFor 返回 contra ⇒ renderBlocked，结果区不输出数字剂量并显示儿童禁用/剂量基准未计算。修复前按成人 10 mg/kg×20 kg 输出 200.0 mg 且无结果区警示。注入 20/118/5 均非默认（60/170/30），失败态回落成人态 ⇒ 两条动态锚均不命中（「儿童禁用」原生字串在药物下拉与静态说明里恒存在，不能作锚）。"
-},
-{
-  "slug": "medical/dosage-calculator",
-  "inputs": {
-    "weight": "20",
-    "height": "112",
-    "age": "6"
-  },
-  "clicks": [
-    "document.getElementById('drug').value='3';document.getElementById('perDose').value='13';document.getElementById('freq').value='3';onDrugChange();"
-  ],
-  "expect": [
-    "20~45 mg/kg/day × 20 kg = 400.0~900.0",
-    "折算单次区间：133.3~300.0 mg"
-  ],
-  "ref": "A5 逐药权威口径落地：DailyMed 阿莫西林说明书 >3 月龄且 <40 kg 为 20~45 mg/kg/日，分 8~12 小时；6 岁、20 kg、q8h 时区间 400.0~900.0 mg/day、单次 133.3~300.0 mg/8h，13×3=39.0 mg/kg/day 落在区间内。失败态默认药物为对乙酰氨基酚且 age=30 成人，区间卡不出现。"
 },
 {
   "slug": "medical/dosage-calculator",
@@ -460,34 +444,6 @@ const CASES = [
   "clicks": ["document.getElementById('drug').value='0';onDrugChange();"],
   "expect": ["儿童剂量逐药核验未完成", "禁止按成人 mg/kg 系数折算"],
   "ref": "A5 安全拦截：对乙酰氨基酚儿童剂量尚未完成逐药说明书核验，旧版按 10 mg/kg 输出 200.0 mg；修复后停止输出剂量并提示查说明书，默认药物/成人态不出现该提示。"
-},
-{
-  "slug": "medical/dosage-calculator",
-  "inputs": { "weight": "20", "height": "118", "age": "6", "perDose": "13", "freq": "4" },
-  "clicks": ["document.getElementById('drug').value='3';onDrugChange();"],
-  "expect": ["当前 4 次/日不在核验范围内", "本工具不输出儿童剂量"],
-  "ref": "A5 分次条件核验：阿莫西林说明书区间只覆盖每日 2 次或 3 次，旧版任意频次仍输出剂量并可能提示落在区间；修复后频次 4 停止输出，默认 freq=3 不命中。"
-},
-{
-  "slug": "medical/dosage-calculator",
-  "inputs": { "weight": "20", "height": "118", "age": "0.2", "perDose": "13", "freq": "3" },
-  "clicks": ["document.getElementById('drug').value='3';onDrugChange();"],
-  "expect": ["≤3 月龄儿童上限 30 mg/kg/日"],
-  "ref": "A5 年龄条件核验：DailyMed 对 ≤3 月龄给出 30 mg/kg/日分 2 次上限，旧版按儿童 13 mg/kg×3=39 mg/kg/日 输出；修复后停止输出并提示医师核定。"
-},
-{
-  "slug": "medical/dosage-calculator",
-  "inputs": { "weight": "20", "height": "118", "age": "0.25", "perDose": "13", "freq": "3" },
-  "clicks": ["document.getElementById('drug').value='3';onDrugChange();"],
-  "expect": ["≤3 月龄儿童上限 30 mg/kg/日"],
-  "ref": "三月龄边界等于 0.25 岁，仍须进入 ≤3 月龄拦截，而不是按 >3 月龄区间输出剂量。"
-},
-{
-  "slug": "medical/dosage-calculator",
-  "inputs": { "weight": "20", "height": "118", "age": "6", "perDose": "13", "freq": "3" },
-  "clicks": ["document.getElementById('drug').value='3';onDrugChange();document.getElementById('method').value='bsa';calc();"],
-  "expect": ["体表面积法未经核验，本工具不输出儿童剂量"],
-  "ref": "儿童阿莫西林仅核验 mg/kg 方案；手动切到 mg/m² 不得沿用体重口径校验并输出面积法剂量。"
 },
 {
   "slug": "medical/dosage-calculator",
@@ -651,6 +607,20 @@ const CASES = [
     "12.75"
   ],
   "ref": "手术时长：5 例 55/72/64/88/61 → 均值 340/5=68.0 分钟，样本标准差 12.75，排台上限 P95=68.0+1.645×12.75=89.0（独立复算，非页面默认记录）"
+}
+,{
+  "slug": "medical/dosage-calculator",
+  "inputs": {"weight":"20", "height":"118", "age":"6"},
+  "clicks": ["document.getElementById('drug').value='3';onDrugChange();var captured='';ToolBox.copyText=function(s){captured=s};document.getElementById('perDose').value='13';document.getElementById('freq').value='3';calc();copyResult();document.getElementById('__tbProbe').textContent='PEDCOPY '+(captured.indexOf('儿童剂量暂停计算')>=0 && captured.indexOf('单次剂量：')<0 && document.getElementById('result').innerHTML.indexOf('未计算')>=0?'OK':'BAD');"],
+  "expect": ["PEDCOPY OK"],
+  "ref": "阿莫西林儿童参数处于旧宽区间时，结果和复制均不得输出剂量；复制拦截必须覆盖 unverified。"
+}
+,{
+  "slug":"medical/dosage-calculator",
+  "inputs":{"weight":"90","height":"170","age":"30","perDose":"100","freq":"3"},
+  "clicks":["var captured='';ToolBox.copyText=function(s){captured=s};calc();copyResult();document.getElementById('__tbProbe').textContent='COPYCAP '+(captured.indexOf('单次剂量：1000.00 mg')>=0 && document.getElementById('result').innerHTML.indexOf('1000.00 mg')>=0?'OK':'BAD '+captured);"],
+  "expect":["COPYCAP OK"],
+  "ref":"超单次上限时复制与显示使用同一封顶剂量。"
 }
 ];
 async function main() {

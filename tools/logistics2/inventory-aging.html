@@ -239,7 +239,7 @@ function clearAll(){
   ToolBox.showToast(i18nText(),'info');
 }
 
-function parseInv(text){
+function parseInv(text, en){
   var lines = text.split('\n');
   var list = [];
   var rejected = [];
@@ -248,19 +248,19 @@ function parseInv(text){
     if(!line) continue;
     var lineNo = i+1;
     var p = line.split(/[,，\t]/);
-    if(p.length < 5){ rejected.push('第'+lineNo+'行：字段不足5列（需 名称,库存,出库,库龄,单价）'); continue; }
+    if(p.length < 5){ rejected.push(en?'Line '+lineNo+': fewer than 5 fields (name, stock, outgoing, age, unit price required)':'第'+lineNo+'行：字段不足5列（需 名称,库存,出库,库龄,单价）'); continue; }
     var name = p[0].trim();
     var stock = Number(p[1].trim());
     var out = Number(p[2].trim());
     var age = Number(p[3].trim());
     var price = Number(p[4].trim());
     var why = '';
-    if(!name) why='名称为空';
-    else if(p.slice(1).some(function(x){return String(x).trim()==='';})) why='存在空数值';
-    else if(![stock,out,age,price].every(function(x){return isFinite(x);})) why='数值非法';
-    else if(stock<0||out<0||age<0||price<0) why='库存/出库/库龄/单价不得为负数';
-    else if(!Number.isInteger(age)) why='库龄须为整数天';
-    if(why){ rejected.push('第'+lineNo+'行：'+why); continue; }
+    if(!name) why=en?'Name is empty':'名称为空';
+    else if(p.slice(1).some(function(x){return String(x).trim()==='';})) why=en?'A numeric field is empty':'存在空数值';
+    else if(![stock,out,age,price].every(function(x){return isFinite(x);})) why=en?'Invalid numeric value':'数值非法';
+    else if(stock<0||out<0||age<0||price<0) why=en?'Stock, outgoing, age and unit price must be nonnegative':'库存/出库/库龄/单价不得为负数';
+    else if(!Number.isInteger(age)) why=en?'Age must be a whole number of days':'库龄须为整数天';
+    if(why){ rejected.push((en?'Line '+lineNo+': ':'第'+lineNo+'行：')+why); continue; }
     list.push({name:name, stock:stock, out:out, age:age, price:price});
   }
   return {list:list, rejected:rejected};
@@ -268,8 +268,9 @@ function parseInv(text){
 
 function calc(){
   var en = (typeof TBKit!=='undefined'&&TBKit.util.isEn && TBKit.util.isEn());
+  var tr = function(zh, english){return en ? english : zh;};
   var text = document.getElementById('invInput').value;
-  var parsed = parseInv(text);
+  var parsed = parseInv(text, en);
   var list = parsed.list;
   var rejected = parsed.rejected;
   var out = document.getElementById('result');
@@ -319,10 +320,10 @@ function calc(){
 
   html = '';
   html += '<div class="stat-grid">';
-  html += '<div class="stat-card"><div class="val">'+list.length+'</div><div class="lbl">SKU 总数</div></div>';
-  html += '<div class="stat-card"><div class="val">'+slowCount+'</div><div class="lbl">呆滞品数</div></div>';
-  html += '<div class="stat-card"><div class="val">¥'+ToolBox.formatNumber(totalStockValue,0)+'</div><div class="lbl">库存总金额</div></div>';
-  html += '<div class="stat-card"><div class="val">'+slowPct.toFixed(1)+'%</div><div class="lbl">呆滞金额占比</div></div>';
+  html += '<div class="stat-card"><div class="val">'+list.length+'</div><div class="lbl">'+tr('SKU 总数','Total SKUs')+'</div></div>';
+  html += '<div class="stat-card"><div class="val">'+slowCount+'</div><div class="lbl">'+tr('呆滞品数','Slow-moving SKUs')+'</div></div>';
+  html += '<div class="stat-card"><div class="val">¥'+ToolBox.formatNumber(totalStockValue,0)+'</div><div class="lbl">'+tr('库存总金额','Total inventory value')+'</div></div>';
+  html += '<div class="stat-card"><div class="val">'+slowPct.toFixed(1)+'%</div><div class="lbl">'+tr('呆滞金额占比','Slow-moving value share')+'</div></div>';
   html += '</div>';
 
   if(rejected.length){
@@ -330,28 +331,28 @@ function calc(){
   }
   html += '<div class="tip-box tip-info" style="margin-top:8px;">'+(en?'Slow-moving rule: max(turnover days, inventory age) > threshold; larger value used. Accepted ':'呆滞判定口径：max(周转天数, 库龄) 超过阈值即判呆滞，取两者较大值。已接受 ')+list.length+(en?' line(s).':' 行。')+'</div>';
 
-  html += '<h3 style="margin-top:8px;">呆滞品明细（按周转天数降序）</h3>';
-  html += '<table><thead><tr><th>SKU</th><th>库存量</th><th>日均出库</th><th>周转天数</th><th>库龄(天)</th><th>判定天数</th><th>库存金额</th><th>状态</th></tr></thead><tbody>';
+  html += '<h3 style="margin-top:8px;">'+tr('呆滞品明细（按周转天数降序）','Slow-moving details (descending turnover days)')+'</h3>';
+  html += '<table><thead><tr><th>SKU</th><th>'+tr('库存量','Stock')+'</th><th>'+tr('日均出库','Average daily outgoing')+'</th><th>'+tr('周转天数','Turnover days')+'</th><th>'+tr('库龄(天)','Inventory age (days)')+'</th><th>'+tr('判定天数','Decision days')+'</th><th>'+tr('库存金额','Inventory value')+'</th><th>'+tr('状态','Status')+'</th></tr></thead><tbody>';
   list.forEach(function(it){
     var tdStr = it.turnoverDays===Infinity ? '∞' : ToolBox.formatNumber(it.turnoverDays,0);
     var ddStr = it.decideDays===Infinity ? '∞' : ToolBox.formatNumber(it.decideDays,0);
-    var status = it.isSlow ? '<span class="grade-tag grade-fail">呆滞</span>' : '<span class="grade-tag grade-excellent">正常</span>';
+    var status = it.isSlow ? '<span class="grade-tag grade-fail">'+tr('呆滞','Slow-moving')+'</span>' : '<span class="grade-tag grade-excellent">'+tr('正常','Normal')+'</span>';
     html += '<tr><td>'+ToolBox.escHtml(it.name)+'</td><td>'+ToolBox.formatNumber(it.stock,0)+'</td><td>'+ToolBox.formatNumber(it.dailyOut,1)+'</td><td>'+tdStr+'</td><td>'+it.age+'</td><td>'+ddStr+'</td><td>¥'+ToolBox.formatNumber(it.stockValue,0)+'</td><td>'+status+'</td></tr>';
   });
   html += '</tbody></table>';
 
-  html += '<h3 style="margin-top:16px;">呆滞金额分布</h3>';
+  html += '<h3 style="margin-top:16px;">'+tr('呆滞金额分布','Inventory value distribution')+'</h3>';
   var maxVal = Math.max.apply(null, list.map(function(it){return it.stockValue;})) || 1;
   list.forEach(function(it){
     var pct = it.stockValue / maxVal * 100;
     var color = it.isSlow ? 'background:linear-gradient(135deg,#EF4444,#F59E0B);' : 'background:var(--gradient-primary);';
-    html += '<div class="bar-row"><div class="bar-lbl" style="width:90px;text-align:left;">'+ToolBox.escHtml(it.name)+'</div><div class="bar-bg"><div class="bar-fill" style="width:'+pct.toFixed(1)+'%;'+color+'">¥'+ToolBox.formatNumber(it.stockValue,0)+'</div></div><div class="bar-lbl">'+(it.isSlow?'呆滞':'正常')+'</div></div>';
+    html += '<div class="bar-row"><div class="bar-lbl" style="width:90px;text-align:left;">'+ToolBox.escHtml(it.name)+'</div><div class="bar-bg"><div class="bar-fill" style="width:'+pct.toFixed(1)+'%;'+color+'">¥'+ToolBox.formatNumber(it.stockValue,0)+'</div></div><div class="bar-lbl">'+(it.isSlow?tr('呆滞','Slow-moving'):tr('正常','Normal'))+'</div></div>';
   });
 
   if(slowCount > 0){
-    html += '<div class="tip-box tip-error" style="margin-top:12px;">检测到 <strong>'+slowCount+'</strong> 个呆滞品，占用库存资金 <strong>¥'+ToolBox.formatNumber(slowStockValue,0)+'</strong>（占比 '+slowPct.toFixed(1)+'%）。建议优先清理促销、降价处理或退供应商。</div>';
+    html += '<div class="tip-box tip-error" style="margin-top:12px;">'+tr('检测到 ','Found ')+'<strong>'+slowCount+'</strong>'+tr(' 个呆滞品，占用库存资金 ',' slow-moving SKU(s), with inventory value ')+'<strong>¥'+ToolBox.formatNumber(slowStockValue,0)+'</strong> ('+slowPct.toFixed(1)+'%). '+tr('建议优先清理促销、降价处理或退供应商。','Consider promotion, price reduction or return to the supplier.')+'</div>';
   } else {
-    html += '<div class="tip-box tip-success" style="margin-top:12px;">当前无呆滞库存，整体周转健康。</div>';
+    html += '<div class="tip-box tip-success" style="margin-top:12px;">'+tr('当前无呆滞库存，整体周转健康。','No slow-moving inventory under the selected rule.')+'</div>';
   }
 
   var el = document.getElementById('result');
@@ -360,6 +361,7 @@ function calc(){
 }
 
 calc();
+['toolbox:langchange','toolbox:dictready'].forEach(function(ev){window.addEventListener(ev, calc);});
 </script>
 
 <!-- SEO 介绍区块 -->

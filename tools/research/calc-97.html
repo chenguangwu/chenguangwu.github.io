@@ -213,7 +213,8 @@ function calc(){
   if(e<=0||e>=1){document.getElementById('res').innerHTML='<p style="color:var(--danger);">误差限度须在 0–100% 之间。</p>';return;}
   if(!(p>0&&p<1)){document.getElementById('res').innerHTML='<p style="color:var(--danger);">预期比例 p 须在 0–100% 之间（不含端点）。</p>';return;}
   if(n<1){document.getElementById('res').innerHTML='<p style="color:var(--danger);">实际样本量须 ≥1。</p>';return;}
-  if(!infinite && n>=N){document.getElementById('res').innerHTML='<p style="color:var(--danger);">有限总体下实际样本量 n 不能达到或超过总体规模 N（'+fmt(N,0)+'）。</p>';return;}
+  if(!infinite && (N<1 || !Number.isInteger(N))){document.getElementById('res').innerHTML='<p style="color:var(--danger);">有限总体规模 N 须为正整数。</p>';return;}
+  if(!infinite && n>N){document.getElementById('res').innerHTML='<p style="color:var(--danger);">有限总体下实际样本量 n 不能超过总体规模 N（'+fmt(N,0)+'）。</p>';return;}
   // 所需样本量（Cochran + FPC）
   var n0=(z*z)*p*(1-p)/(e*e);
   var nReq;
@@ -221,7 +222,7 @@ function calc(){
   else{nReq=Math.ceil(n0/(1+(n0-1)/N));}
   // 实际误差
   var se=Math.sqrt(p*(1-p)/n);
-  var fpc=infinite?1:Math.sqrt((N-n)/(N-1>0?N-1:1));
+  var fpc=infinite?1:(n===N?0:Math.sqrt((N-n)/(N-1)));
   var eActual=z*se*fpc;
   // 分层分配
   var strata=parseStrata();
@@ -267,7 +268,7 @@ function calc(){
     '<div class="result-box" style="margin-top:8px;">'+
     '<p>参数：'+confTxt+'（Z='+fmt(z,3)+'），p='+fmt(p*100,0)+'%，'+(infinite?'无限总体':'N='+fmt(N,0))+'。</p>'+
     '<p>实际样本 n='+fmt(n,0)+' 的抽样误差为 ±'+fmt(eActual*100,2)+'%，'+meet+'。</p>'+
-    '<p style="color:var(--text-muted);font-size:12px;">💡 '+gap+'。误差与样本量平方根成反比，样本翻倍误差仅降约 29%。</p>'+
+    '<p style="color:var(--text-muted);font-size:12px;">💡 '+gap+'。'+(!infinite && n===N?'这是普查，抽样误差为零；其他误差仍可能存在。':'无限总体近似下，误差与样本量平方根成反比。')+'</p>'+
     '</div>';document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   saveHistory({N:N,z:z,p:p*100,e:e*100,n:n,infinite:infinite});
 }

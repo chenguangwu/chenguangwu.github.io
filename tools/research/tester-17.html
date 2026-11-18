@@ -196,7 +196,9 @@ function calc(){
   var cheap=parseFloat(document.getElementById('cheap').value)||0;
   var expensive=parseFloat(document.getElementById('expensive').value)||0;
   var tooExpensive=parseFloat(document.getElementById('tooExpensive').value)||0;
-  var cost=parseFloat(document.getElementById('cost').value)||0;
+  var costRaw=document.getElementById('cost').value.trim();
+  var costMissing=costRaw==='';
+  var cost=costMissing?0:Number(costRaw);
   var sampleSize=parseFloat(document.getElementById('sampleSize').value)||0;
 
   /* 输入校验：PSM 四价必须为正且单调递增，概念四项须在 1–10 内 */
@@ -241,9 +243,8 @@ function calc(){
   /* 确保逻辑合理 */
   if(priceFloor>opp)priceFloor=opp;
   if(priceCeiling<opp)priceCeiling=opp;
-  /* 毛利率：成本未填（0）时按 0 计得 100%，并在明细注明；售价低于成本时为负，须显式标注亏损 */
-  var costMissing=cost===0;
-  var margin=opp>0?((opp-(costMissing?0:cost))/opp*100):0;
+  /* 未填写成本时不计算毛利；明确输入零仍按零计算。 */
+  var margin=costMissing?null:((opp-cost)/opp*100);
   /* 接受区间 */
   var rangeWidth=priceCeiling-priceFloor;
   var rangePct=opp>0?(rangeWidth/opp*100):0;
@@ -251,7 +252,7 @@ function calc(){
   var html='<div class="data-grid">';
   html+='<div class="data-card"><div class="num" style="color:'+conceptColor+';">'+conceptScore.toFixed(0)+'</div><div class="label">概念评分</div></div>';
   html+='<div class="data-card"><div class="num" style="color:var(--success);">¥'+opp.toFixed(0)+'</div><div class="label">最优价格点</div></div>';
-  html+='<div class="data-card"><div class="num">'+margin.toFixed(0)+'%</div><div class="label">毛利率</div></div>';
+  html+='<div class="data-card"><div class="num">'+(costMissing?'无法计算':margin.toFixed(0)+'%')+'</div><div class="label">毛利率</div></div>';
   html+='<div class="data-card"><div class="num">'+rangePct.toFixed(0)+'%</div><div class="label">价格弹性空间</div></div>';
   html+='</div>';
 
@@ -272,20 +273,21 @@ function calc(){
   html+='<tr><td>价格下限</td><td style="font-weight:600;color:var(--danger);">¥'+priceFloor.toFixed(0)+'</td><td>低于此价消费者怀疑质量</td></tr>';
   html+='<tr style="background:var(--bg-active);"><td>最优价格点(OPP)</td><td style="font-weight:700;color:var(--success);font-size:16px;">¥'+opp.toFixed(0)+'</td><td>可接受人数最多的价格</td></tr>';
   html+='<tr><td>价格上限</td><td style="font-weight:600;color:var(--warning);">¥'+priceCeiling.toFixed(0)+'</td><td>高于此价消费者不会购买</td></tr>';
-  html+='<tr><td>成本</td><td>¥'+cost.toFixed(0)+(costMissing?'（未填）':'')+'</td><td>产品单位成本</td></tr>';
+  html+='<tr><td>成本</td><td>'+(costMissing?'未填':'¥'+cost.toFixed(0))+'</td><td>产品单位成本</td></tr>';
+  if(costMissing){html+='<tr><td>最优毛利率</td><td>无法计算</td><td>请填写成本</td></tr>';} else {
   html+='<tr><td>最优毛利率</td><td style="color:'+(margin<0?'var(--danger)':margin>=50?'var(--success)':margin>=30?'#2563EB':'var(--danger)')+';">'+(margin<0?'亏损 ':'')+margin.toFixed(1)+'%</td><td>'+(margin<0?'售价低于成本':margin>=50?'利润空间充足':margin>=30?'利润适中':'利润偏低')+'</td></tr>';
+  }
   html+='</tbody></table>';
-  html+='<div class="progress-bar" style="margin:8px 0;"><div class="progress-fill" style="width:'+Math.max(0,Math.min(100,margin))+'%;background:'+(margin>=50?'var(--success)':margin>=30?'#2563EB':'var(--danger)')+';"></div></div>';
-
+  if(!costMissing) html+='<div class="progress-bar" style="margin:8px 0;"><div class="progress-fill" style="width:'+Math.max(0,Math.min(100,margin))+'%;background:'+(margin>=50?'var(--success)':margin>=30?'#2563EB':'var(--danger)')+';"></div></div>';
   /* 建议 */
   var priceAdvice='';
-  if(margin<0){priceAdvice='最优价格¥'+opp.toFixed(0)+'低于成本¥'+cost.toFixed(0)+'，毛利率 '+margin.toFixed(0)+'%，当前定价将亏损，建议提价或降低成本。';}
+  if(costMissing){priceAdvice='未填写成本，无法计算毛利或给出定价建议。';}
+  else if(margin<0){priceAdvice='最优价格¥'+opp.toFixed(0)+'低于成本¥'+cost.toFixed(0)+'，毛利率 '+margin.toFixed(0)+'%，当前定价将亏损，建议提价或降低成本。';}
   else if(margin>=50){priceAdvice='最优价格¥'+opp.toFixed(0)+'的毛利率达'+margin.toFixed(0)+'%，利润空间充足，建议以此价格上市。';}
   else if(margin>=30){priceAdvice='最优价格¥'+opp.toFixed(0)+'的毛利率为'+margin.toFixed(0)+'%，利润适中。若需提高毛利可考虑降低成本或上探至¥'+priceCeiling.toFixed(0)+'。';}
   else{priceAdvice='最优价格¥'+opp.toFixed(0)+'的毛利率仅'+margin.toFixed(0)+'%，建议优化成本结构或重新定位产品价值。';}
-  if(costMissing)priceAdvice+='（未填成本，毛利率按成本 0 计算。）';
-  if(rangePct>40){priceAdvice+='价格弹性空间大（'+rangePct.toFixed(0)+'%），可灵活定价。';}
-  else{priceAdvice+='价格弹性空间小（'+rangePct.toFixed(0)+'%），定价需谨慎。';}
+  if(!costMissing && rangePct>40){priceAdvice+='价格弹性空间大（'+rangePct.toFixed(0)+'%），可灵活定价。';}
+  else if(!costMissing){priceAdvice+='价格弹性空间小（'+rangePct.toFixed(0)+'%），定价需谨慎。';}
 
   var _tipCls=costMissing?'tip-warn':(conceptScore>=65&&margin>=30?'tip-success':conceptScore>=50?'tip-warn':'tip-error');
   html+='<div class="tip-box '+_tipCls+'" style="margin-top:10px;">';

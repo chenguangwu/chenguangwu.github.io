@@ -16,6 +16,20 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
   "slug": "usedcar/car-purchase-cost",
+  "inputs": {"price":"400000", "taxRate":"10", "insurance":"8000", "plate":"800"},
+  "clicks": ["document.getElementById('taxMode').value='nev2627';calc()"],
+  "expect": ["20398.23", "429198.23"],
+  "ref": "2026–2027 合资格新能源乘用车减税上限 15000 元：400000÷1.13×10%−15000=20398.23。"
+},
+{
+  "slug": "usedcar/car-purchase-cost",
+  "inputs": {"price":"452000", "taxRate":"10", "insurance":"8000", "plate":"800"},
+  "clicks": ["document.getElementById('taxMode').value='nev2425';calc()"],
+  "expect": ["10000.00", "470800.00"],
+  "ref": "2024–2025 合资格新能源乘用车免税上限 30000 元。"
+},
+{
+  "slug": "usedcar/car-purchase-cost",
   "inputs": {
     "price": "225000",
     "taxRate": "10",
