@@ -88,12 +88,25 @@ const CASES = [
     "window.__corsiDrive('start');",
     "window.__corsiDrive('answer',false);",
     "window.__corsiDrive('answer',true);",
-    "var s=window.__corsiDrive('state');document.getElementById('cbMsg').textContent='RETRY:'+s.phase+'/'+s.length+'/'+(s.passed+(s.half?0.5:0));"
+    "var s=window.__corsiDrive('state');document.getElementById('cbMsg').textContent='RETRY:'+s.phase+'/'+s.length+'/'+(s.passed+(s.full?0.5:0));"
   ],
   "expect": [
-    "RETRY:input/3/2.5"
+    "RETRY:input/3/2"
   ],
-  "ref": "首错重试回归（W6-A）：长度 2 第 1 次错→仍有第 2 次机会；第 2 次对 ⇒ 记为 2 中 1（passed=2.5）并晋升长度 3 且立即出题（phase=input、length=3）。旧实现晋升后停在 idle（期望串为 RETRY:idle/3/2.5），据此区分。"
+  "ref": "首错重试回归（W6-A）：长度 2 第 1 次错→仍有第 2 次机会；第 2 次对 ⇒ 记为 2 中 1（passed=2，不加 0.5）并晋升长度 3 且立即出题（phase=input、length=3）。K25 修复前把 0.5 加给 2 中 1，输出 RETRY:input/3/2.5，表现更差反而广度更高；修复后断言 2.0。"
+},
+{
+  "slug": "cognition/corsi-block-test",
+  "clicks": [
+    "window.__corsiDrive('start');",
+    "window.__corsiDrive('answer',true);",
+    "window.__corsiDrive('answer',true);",
+    "var s=window.__corsiDrive('state');document.getElementById('cbMsg').textContent='FULL:'+s.phase+'/'+s.length+'/'+(s.passed+(s.full?0.5:0));"
+  ],
+  "expect": [
+    "FULL:input/3/2.5"
+  ],
+  "ref": "满分加分方向（RL-K25）：长度 2 两次全对才应加 0.5，得 span 2.5，高于 2 中 1 的 2.0。修复前 state.full 不存在且 0.5 只给 2 中 1，输出 FULL:input/3/2；断言依赖 clicks 驱动的真实状态，默认态不命中。"
 },
 {
   "slug": "cognition/digit-span-test",

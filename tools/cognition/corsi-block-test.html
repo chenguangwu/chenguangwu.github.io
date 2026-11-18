@@ -143,7 +143,7 @@
     <div class="ref-cite" style="font-size:12.5px;line-height:1.75;color:var(--text-muted);background:var(--bg-hover);border-left:3px solid var(--primary);border-radius:0 8px 8px 0;padding:8px 12px;margin:0 0 14px;" data-zh="📖 范式来源：Corsi PM. Human memory and the medial temporal region of the brain [dissertation]. Montreal: McGill University; 1972. ｜ Corsi 木块敲击测验 · 9 块不规则木块 · 按序列回忆敲击 · 记录最长正确序列（Corsi span）· 成人典型 5–6 个">📖 Source: Corsi PM. Human memory and the medial temporal region of the brain [dissertation]. Montreal: McGill University; 1972. | Corsi Block-Tapping Test · 9 irregular blocks · reproduce tapped sequence · longest correct span (adult typical 5–6)</div>
 <div class="formula-box">
       <div class="formula-title">📐 评分原理</div> <div class="formula-eq">期望序列：正向模式取原序列，反向模式取原序列反转；逐项比对点击序列与期望序列一致才判本试次正确；每个长度给 2 次机会，第 1 次正确即晋升下一长度（记为 2 中 1），第 1 次错则再给 1 次，两次全错即终止；空间广度取最后一次通过的长度</div>
-      <p class="formula-desc">每块序列长度 L 随机生成、互不重复。每个长度做 2 次试次：只要 2 次中答对至少 1 次即晋升到 L+1；连续 2 次答错则终止。Corsi 广度 = 最后一个通过的长度，若该长度仅 1/2 次答对再加 0.5。乘积分（Product Score）= 所有「正确复现」序列的长度之和，对记忆容量与抗干扰更敏感。常模取近似值：儿童约 4.8、成人约 5.5、老年约 4.9。</p>
+      <p class="formula-desc">每块序列长度 L 随机生成、互不重复。每个长度做 2 次试次：只要 2 次中答对至少 1 次即晋升到 L+1；连续 2 次答错则终止。Corsi 广度 = 最后一个通过的长度，若该长度 2/2 次全部答对再加 0.5（2 中 1 不加分，避免表现更好反而得分更低）。乘积分（Product Score）= 所有「正确复现」序列的长度之和，对记忆容量与抗干扰更敏感。常模取近似值：儿童约 4.8、成人约 5.5、老年约 4.9。</p>
     </div>
 
     <div class="cb-ctl">
@@ -293,7 +293,7 @@
     length: 2, trialInLen: 0,
     seq: [], response: [],
     trials: [], // {length, seq, resp, correct, mode}
-    correctInLen: 0, lastPassed: 0, lastPassedOneOfTwo: false,
+    correctInLen: 0, lastPassed: 0, lastPassedFull: false,
     timer: null
   };
 
@@ -312,7 +312,7 @@
   function setStat() {
     $('cbLen').textContent = G.phase === 'idle' ? '—' : String(G.length);
     $('cbTrial').textContent = G.phase === 'idle' ? '—' : (G.trialInLen + 1) + '/2';
-    $('cbPass').textContent = G.lastPassed ? String(G.lastPassed + (G.lastPassedOneOfTwo ? 0.5 : 0)) : '—';
+    $('cbPass').textContent = G.lastPassed ? String(G.lastPassed + (G.lastPassedFull ? 0.5 : 0)) : '—';
     $('cbCorrect').textContent = String(G.trials.filter(function (t) { return t.correct; }).length);
   }
 
@@ -405,7 +405,7 @@
     if (G.correctInLen >= 1 && G.trialInLen === 1) {
       // 该长度 2 次中至少 1 次正确 → 晋升
       G.lastPassed = G.length;
-      G.lastPassedOneOfTwo = (G.correctInLen === 1);
+      G.lastPassedFull = (G.correctInLen === 2);
       advanceLength();
       return;
     } else if (G.trialInLen === 1) {
@@ -438,7 +438,7 @@
     clearTimeout(G.timer);
     clearBlocks();
     $('cbReplay').disabled = true; $('cbStop').disabled = true;
-    var span = G.lastPassed + (G.lastPassedOneOfTwo ? 0.5 : 0);
+    var span = G.lastPassed + (G.lastPassedFull ? 0.5 : 0);
     var totalCorrect = G.trials.filter(function (t) { return t.correct; }).length;
     var product = G.trials.filter(function (t) { return t.correct; })
       .reduce(function (s, t) { return s + t.length; }, 0);
@@ -542,7 +542,7 @@
     G.speed = parseInt($('cbSpeed').value, 10);
     G.phase = 'idle';
     G.length = 2; G.trialInLen = 0; G.correctInLen = 0;
-    G.lastPassed = 0; G.lastPassedOneOfTwo = false;
+    G.lastPassed = 0; G.lastPassedFull = false;
     G.trials = []; G.response = [];
     $('cbResult').classList.remove('on');
     const __h4='';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){$('cbProgress').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('cbProgress').innerHTML=__h4;
@@ -575,7 +575,7 @@
     }
     return {
       phase: G.phase, length: G.length, trialInLen: G.trialInLen,
-      passed: G.lastPassed, half: G.lastPassedOneOfTwo,
+      passed: G.lastPassed, full: G.lastPassedFull,
       trials: G.trials.length, correct: G.trials.filter(function (t) { return t.correct; }).length
     };
   };

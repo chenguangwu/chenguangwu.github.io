@@ -133,20 +133,6 @@
 - 影响：单项结果被包装成综合能力，强弱项自相矛盾。
 - 方案：单项模式改标题为「单项标准分」并隐藏强弱项；强弱项先去重，且指标数 <3 时不展示。
 
-### RL-K24 Corsi 积木测试：通过首个长度后不启动下一试次，测试永久停摆（高，确认）
-- 描述：`evaluate()` 在「本长度至少 1/2 正确」时调用 `advanceLength()` 后直接 `return`；`advanceLength()` 只做 `G.length++`、清零计数和 `setStat()`，**没有调用 `startTrial()`**，也无任何 `setTimeout` 续接。
-- 证据：`tools/cognition/corsi-block-test.html:413-418`、`:432-438`；对照失败分支 `:425-427` 有 `setTimeout(startTrial, 650)`。
-- 复现：长度 2 两次点击均正确 → toast「本试次正确 ✓」→ 进度显示长度 3，但不再闪现新序列，点击积木无响应（`phase='idle'`），只能点「结束并记录」，span=2.0（期望自动进入长度 3 的新试次）。
-- 影响：测试永远测不到 >2.5 的广度，页面自称成人常模约 5.5，实测结果必然被判为重度缺陷。
-- 方案：`advanceLength()` 末尾加 `setTimeout(startTrial, 650)`，并确保清屏后 `G.phase='show'` 再开始序列。
-
-### RL-K25 Corsi 积木测试：0.5 加分方向写反，2/2 全对反而低于 1/2（中，确认）
-- 描述：`span = lastPassed + (lastPassedOneOfTwo ? 0.5 : 0)`，而 `lastPassedOneOfTwo = (correctInLen === 1)`；即「仅 1/2 正确」加 0.5，「2/2 全对」不加分。
-- 证据：`tools/cognition/corsi-block-test.html:415-416`、`:445`、`:154`（「仅 1/2 次答对再加 0.5」）。
-- 复现：长度 2 两次全对 → span 2.0；第一次对、第二次错 → span 2.5（期望 2/2 不低于 1/2，或两者均按通过长度记 2）。
-- 影响：表现更好得到更低广度，与「2 中 1 加 0.5」的文字规则方向相反。
-- 方案：改为 2/2 记 L（或 L+0.5）、1/2 记 L；若沿用 0.5 规则则改为 `correctInLen===2 ? 0.5 : 0`。
-
 ### RL-K26 N-back 训练：未按的非靶试次被判错，整体正确率恒为 0（高，确认）
 - 描述：未响应时 `posResp` 保持 `null`，整体正确判定写成 `t.posResp === (t.isPosMatch ? 1 : 0)`；非靶试次「不按」本应记 0，但 `null !== 0` 被记为错误。代码注释恰好明说「未响应对噪声判正确拒绝」。
 - 证据：`tools/cognition/nback-training.html:379`、`:470`、`:489-495`、`:507-515`、`:584`。
