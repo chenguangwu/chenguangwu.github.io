@@ -14,10 +14,6 @@
 - 受影响：tools/banking/annuity-*、growing-annuity-pv、tools/investment/*（~25 页）
 - 方案：统一参数命名与「期初/期末」开关；互相内链成族。
 
-### B3. Black-Scholes/希腊字母页无隐含波动率反解
-- 受影响：tools/securities/black-scholes-*、option-greeks
-- 方案：加「由市价反解 IV」二分（纯前端可行，竞品标配）。
-
 ## 功能缺陷
 - 定投计算器缺「止盈目标反推年化」。
 
@@ -29,7 +25,7 @@
 - tools/banking/（25）、tools/investment/（48）、tools/securities/（35）
 
 ## 进度
-- 🔴 待开发（B1 年金族口径统一互链待做；B3 IV 反解全落地；S7 引据 securities 6 + investment 10 + banking 25 已全量落地，余 valuation 待续）
+- 🔴 待开发（B1 年金族口径统一互链待做；S7 引据 securities 6 + investment 10 + banking 25 已全量落地，余 valuation 待续）
 
 ## 2026-11-03 第一轮抽样补充
 
