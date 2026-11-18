@@ -13,6 +13,7 @@ const items = [
   ['twitter', '横幅图片', 1500, 500, 'help.x.com/en/managing-your-account/how-to-customize-your-profile', '推荐'],
   ['linkedin', '个人头像', 400, 400, 'linkedin.com/help/linkedin/answer/a549049', '最小'],
   ['linkedin', '背景图片', 1584, 396, 'linkedin.com/help/linkedin/answer/a568217', '推荐'],
+  ['linkedin', '主页帖子链接预览图', 1200, 627, 'linkedin.com/help/lms/answer/a567368', '建议'],
   ['linkedin', '单图广告', 1200, 628, 'single-image-ads/specs', '推荐'],
   ['linkedin', '轮播卡片', 1080, 1080, 'carousel-ads/specs', '至少'],
   ['youtube', '频道封面', 2560, 1440, 'answer/10456525', '推荐'],
