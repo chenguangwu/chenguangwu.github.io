@@ -1366,6 +1366,7 @@ const HOST_CASES = [
     forbidden: ["节省 (MB)"],
   },
   { slug: "ai/ai-text-summarizer", kind: "summarizer" },
+  { slug: "ai/ai-text-summarizer", kind: "keywords" },
   { slug: "ai/ai-code-review", kind: "codeReview" },
 ];
 
@@ -1557,6 +1558,27 @@ async function runSummarizerHostCase() {
   return { ok: true };
 }
 
+async function runKeywordsCase() {
+  const dom = makeDom("ai/ai-text-summarizer", { state: { history: [], exportCalls: 0, exported: false, mountCb: null }, notify: [] });
+  const win = dom.window;
+  await domReady(win);
+  const doc = win.document;
+  if (typeof win.extractKeywords !== "function") return { ok: false, why: "缺少 extractKeywords()" };
+  doc.getElementById("input").value = "人工智能是人工智能的核心。机器学习是人工智能的核心。Machine learning models are used in machine learning. ".repeat(3);
+  win.extractKeywords();
+  const out = doc.getElementById("result").textContent;
+  if (!out.includes("关键词")) return { ok: false, why: "未渲染关键词面板" };
+  // AI-N16：按每个关键词 token 精确比对（不能用子串，否则完整词「人工智能」会误命中「工智」）。
+  const words = Array.from(doc.querySelectorAll("#result .sent-item")).map((el) => String(el.textContent).split(" (")[0].trim());
+  for (const bad of ["工智", "人工智", "ac", "mo"]) { // 「in」是输入里的真实单词，不能当碎片
+    if (words.includes(bad)) return { ok: false, why: "关键词仍是碎片 " + bad };
+  }
+  if (!words.some((w) => /^(machine|learning|人工智能|机器学习)$/.test(w))) {
+    return { ok: false, why: "关键词未保留完整词: " + words.join(",") };
+  }
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------- main
 async function main() {
   const only = process.argv.slice(2);
@@ -1597,6 +1619,7 @@ async function main() {
     try {
       const r = h.kind === "codeReview" ? await runCodeReviewCase()
         : h.kind === "summarizer" ? await runSummarizerHostCase()
+        : h.kind === "keywords" ? await runKeywordsCase()
         : await runTokenHostCase(h);
       if (r.ok) hostPass++;
       else { hostFails.push(h.slug); console.log("❌ DOM " + h.slug + "  " + r.why); }

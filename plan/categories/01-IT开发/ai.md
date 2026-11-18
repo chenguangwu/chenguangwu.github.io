@@ -80,12 +80,6 @@
 - 影响：`inference-throughput`；容量规划会把"批越大越快"当结论，与同页 SLO 建议冲突，`ms/token` 与人均吞吐差 4 倍。
 - 方案：明确输入语义（总 token/单请求 token、端到端时延/单请求时延），图表改为按实测"批越大单请求时延上升、总吞吐上升"的双轴；`ms/token` 改用单请求 token 数。
 
-### AI-N16 `ai-text-summarizer` 关键词为滑窗碎片（中，确认函数缺陷）
-- 已修（971 批）：短句文本 0/0=NaN 假合规——`splitSentences` 由 `trim().length>5` 改为 `>0` 保留非空短句、压缩比分母为 0 显示"—"，真机回放 5/5 通过（"天很蓝。"×13 → 原句数 13、压缩比 23%）。
-- 残留描述：关键词把同一短语的 2-gram/3-gram 当作多个独立词输出。证据 `tools/ai/ai-text-summarizer.html:287-292`（2-gram/3-gram 全量入数组）、`:354-363`（按出现次数排序、无去重/合并）。node 内存复算：示例长文 `keywords(...,5)` 得 `["智能",18] ["人工",10] ["工智",10] ["人工智",10] ["工智能",10]`；英文 `"Machine learning models…"` 得 `["ac",4] ["in",4] ["mo",3]` 等无意义二字母片段。
-- 影响：`ai-text-summarizer` 关键词面板中文全是重叠子串、英文全是字母碎片，用户无法得到可用词表。
-- 方案（需算法重做/专业裁断）：关键词改用 `Intl.Segmenter` 分词并合并同源 n-gram（最长匹配去重），英文按单词而非字符 n-gram 计数。
-
 ### AI-N20 计算器页重复渲染两组"相关工具"卡片（低，确认源码缺陷）
 - 描述：同一页连续出现两个 `data-related-tools` 区块，前 4 张卡片完全重复，用户会看到重复推荐。
 - 证据：`tools/ai/token.html:214-242` 与 `:244-272`（两组各 6 张，`dropout/l1-l2/rag/roc-auc` 重复）；统计 `class="related-tools"` 出现次数：`token.html`、`token-2.html`、`token-usage.html`、`context-window.html`、`inference-throughput.html`、`quantization-ratio.html`、`transformer-params.html` 均为 `2`，`ai-text-summarizer.html`、`ai-code-review.html` 为 `1`。

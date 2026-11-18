@@ -263,22 +263,24 @@
 <script>
 // 中文分词（简单实现：按标点和常见词切分）
 function splitWords(text) {
-  // 移除标点
-  const clean = text.replace(/[\s,。!?;:,.""''「」『』、\/\\\-\(\)（）\[\]【】\{\}｛｝]/g, ' ');
-  // 简单按空格切分 + 二元组合
-  const words = [];
+  // AI-N16：不再把同一词组的所有 2-gram/3-gram 当作独立词（会出现「工智」「人工智」及英文双字母碎片）。
+  // 中文用 Intl.Segmenter 按词切分，英文保留完整单词；环境不支持时退回原 token，绝不生成滑窗碎片。
+  const clean = String(text || '').replace(/[\s,。!?;:,.""''「」『』、\/\\\-\(\)（）\[\]【】\{\}｛｝]/g, ' ');
   const tokens = clean.split(/\s+/).filter(w => w.length > 0);
-  for (let t of tokens) {
-    if (t.length === 1) {
-      words.push(t);
+  const words = [];
+  let seg = null;
+  try {
+    if (typeof Intl !== 'undefined' && Intl.Segmenter) seg = new Intl.Segmenter('zh', { granularity: 'word' });
+  } catch (e) { seg = null; }
+  for (const t of tokens) {
+    if (/^[A-Za-z][A-Za-z'-]*$/.test(t)) {
+      words.push(t.toLowerCase());
+    } else if (seg) {
+      for (const s of seg.segment(t)) {
+        if (s.isWordLike && !/^\s+$/.test(s.segment)) words.push(s.segment);
+      }
     } else {
-      // 切出 2-gram 和 3-gram
-      for (let i = 0; i < t.length - 1; i++) {
-        words.push(t.substr(i, 2));
-      }
-      for (let i = 0; i < t.length - 2; i++) {
-        words.push(t.substr(i, 3));
-      }
+      words.push(t);
     }
   }
   return words;
