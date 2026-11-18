@@ -591,6 +591,11 @@ const CASES = [
   "inputs": { "pao2": "", "fio2": "40", "spo2": "92" },
   "expect": ["请输入 PaO₂（>0 mmHg）后再计算氧合指数与 ARDS 分级。"],
   "ref": "03-190 氧合指数 PaO2 空值守卫：旧版 ||0 → P/F=0 落入「重度ARDS」+PEEP默认勾选直接给 ECMO 建议。本批 PaO2 必填 >0，空/0 拦截。保留 fio2=40/spo2=92 合法，仅清空 pao2 命中（先过 FiO2 校验）；默认 pao2=65 合法不命中，零逃生。"
+},{
+  "slug": "pulmonology/light-criteria",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pulmonology/light-criteria.html','utf8');var noOld=h.indexOf('0.67')<0&&h.indexOf('above 0.67')<0;var hasNew=(h.match(/>0\.6 /g)||[]).length>=1&&h.indexOf('LDH ratio above 0.6,')>=0;document.getElementById('__tbProbe').textContent='LIGHT164 '+(noOld&&hasNew?'OK':'BAD');"],
+  "expect": ["LIGHT164 OK"],
+  "ref": "03-164 Light 标准引据表 LDH 阈值口径：公式框/表格/代码均为 0.6（Light 1972 原值），独引据表 data-zh 中文与英文写 0.67。本批改为 0.6 并同步英文。源码形态哨兵：无 0.67、含新 0.6；默认态不产哨兵（仅 clicks 读源码），零逃生。"
 }
 ];
 
