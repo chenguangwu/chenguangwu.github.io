@@ -156,8 +156,19 @@
     
     <div class="theme-row" id="theme-buttons"></div>
 
-    <div class="toolbar" style="margin:14px 0;">
-      <button type="button" class="btn" onclick="window.__tlExport()">⬇️ 导出时间轴 CSV</button>
+    <div class="toolbar" style="margin:14px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <label style="font-size:13px;"><span data-zh="世纪筛选">Century</span>
+        <select id="tlCentury" onchange="renderTimeline()" style="height:36px;padding:0 8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-card);color:var(--text-primary);">
+          <option value="" data-zh="全部世纪">All centuries</option>
+          <option value="b3" data-zh="公元前 3 世纪">3rd c. BCE</option>
+          <option value="15" data-zh="15 世纪">15th century</option>
+          <option value="19" data-zh="19 世纪">19th century</option>
+        </select>
+      </label>
+      <label style="font-size:13px;"><span data-zh="关键词">Keyword</span>
+        <input type="text" id="tlKeyword" oninput="renderTimeline()" placeholder="Title / desc / category" style="height:36px;padding:0 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-card);color:var(--text-primary);width:170px;">
+      </label>
+      <button type="button" class="btn" data-zh="⬇️ 导出时间轴 CSV" onclick="window.__tlExport()">⬇️ Export timeline CSV</button>
     </div>
 
     <div class="timeline" id="timeline"></div>
@@ -258,8 +269,11 @@ const TIMELINES = {
     { y: 960, t: '北宋建立', cat: '政治', desc: '赵匡胤建立宋朝' },
     { y: 1271, t: '元朝建立', cat: '政治', desc: '忽必烈建立元朝' },
     { y: 1368, t: '明朝建立', cat: '政治', desc: '朱元璋建立明朝' },
+    { y: 1405, t: '郑和下西洋', cat: '探索', desc: '郑和首次下西洋,远航东南亚与印度洋' },
     { y: 1644, t: '清朝入关', cat: '政治', desc: '清朝入关,统一全国' },
     { y: 1840, t: '鸦片战争', cat: '政治', desc: '中国近代史开端' },
+    { y: 1861, t: '洋务运动', cat: '经济', desc: '洋务派创办近代军工与民用企业' },
+    { y: 1894, t: '甲午战争', cat: '政治', desc: '中日甲午战争,北洋水师覆没' },
     { y: 1911, t: '辛亥革命', cat: '政治', desc: '推翻清朝统治' },
     { y: 1949, t: '新中国成立', cat: '政治', desc: '中华人民共和国成立' },
     { y: 1978, t: '改革开放', cat: '经济', desc: '中国实行改革开放政策' },
@@ -349,7 +363,21 @@ function renderThemeButtons() {
 }
 
 function renderTimeline() {
-  const events = TIMELINES[currentTheme].slice().sort((a, b) => a.y - b.y);
+  // RL-K48：世纪 / 关键词筛选（世纪：1–100=1 世纪；公元前 3 世纪 = −300…−201）
+  var centurySel = document.getElementById('tlCentury');
+  var kwEl = document.getElementById('tlKeyword');
+  var cen = centurySel ? centurySel.value : '';
+  var kw = kwEl ? String(kwEl.value || '').trim().toLowerCase() : '';
+  var centuryOf = function (y) { return y > 0 ? Math.ceil(y / 100) : -Math.ceil(-y / 100); };
+  var events = TIMELINES[currentTheme].slice().filter(function (e) {
+    if (cen === 'b3') { if (!(e.y >= -300 && e.y <= -201)) return false; }
+    else if (/^\d+$/.test(cen)) { if (centuryOf(e.y) !== parseInt(cen, 10)) return false; }
+    if (kw) {
+      var hay = (e.t + ' ' + e.cat + ' ' + e.desc).toLowerCase();
+      if (hay.indexOf(kw) < 0) return false;
+    }
+    return true;
+  }).sort((a, b) => a.y - b.y);
   const el = document.getElementById('timeline');
   const __h1=events.map(e => {
     const yearStr = e.y < 0 ? `前 ${-e.y}` : `${e.y}`;

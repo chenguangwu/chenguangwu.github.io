@@ -295,6 +295,18 @@ const CASES = [
   "ref": "去默认化（原 expect「2070」＝默认「中国历史」主题下夏朝建立 -2070 的渲染串，注入失败仍命中 → 逃生项）：clicks 置顶层全局 currentTheme='世界历史' 后调 renderTimeline()，timeline 渲染世界史首条「前 3100 年 上下埃及统一 政治 古埃及第一王朝建立」；默认中国历史显示「夏朝建立 ... -2070」，注入失败即不命中。"
 },
 {
+  "slug": "museum/timeline-viewer",
+  "clicks": ["document.getElementById('tlCentury').value='b3';renderTimeline();var h=String(document.getElementById('timeline').innerHTML);document.getElementById('__tbProbe').textContent=(h.indexOf('前 221')>=0&&h.indexOf('前 202')>=0&&h.indexOf('前 2070')<0)?'CEN OK':'CEN BAD'"],
+  "expect": ["CEN OK"],
+  "ref": "RL-K48 世纪筛选：新增 tlCentury 下拉与 renderTimeline 世纪过滤；选「公元前 3 世纪」(-300..-201) 应含前 221 秦统一、前 202 汉建立，不含前 2070 夏（前 21 世纪）。批前版无该控件（钩子缺失即缺陷）、无过滤、渲染全表 ⇒ 哨兵不成立。"
+},
+{
+  "slug": "museum/timeline-viewer",
+  "clicks": ["document.getElementById('tlKeyword').value='甲午';renderTimeline();var h=String(document.getElementById('timeline').innerHTML);document.getElementById('__tbProbe').textContent=(h.indexOf('1894')>=0&&h.indexOf('甲午战争')>=0&&h.indexOf('夏朝建立')<0)?'KW OK':'KW BAD'"],
+  "expect": ["KW OK"],
+  "ref": "RL-K48 关键词筛选 + 算例数据补齐：新增 tlKeyword 输入框按标题/分类/简述过滤，且中国历史补 1405 郑和、1861 洋务、1894 甲午三条算例事件（深度解析算例原有但数据缺失）。输入「甲午」应只显示 1894 甲午战争、不含夏朝建立；批前版无控件无该事件 ⇒ 哨兵不成立。"
+},
+{
     dynDom: true,
   "slug": "museum/audio-guide-timer",
   "inputs": {

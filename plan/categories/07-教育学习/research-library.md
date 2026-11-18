@@ -113,13 +113,6 @@
 
 > 范围：本轮阅读 7 页（`tools/cognition/human-benchmark.html`、`tools/museum/visitor-route.html`、`tools/museum/timeline-viewer.html`、`tools/research/index.html`、`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`）。**说明：四目录仅剩这 7 个未覆盖页（3 个工具页 + 4 个索引页），不足以凑满 8 页；未跨目录外扩，以免与 edu-language 批重复。** 仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### RL-K48 历史时间轴：无任何筛选/搜索控件，深度解析却称「支持中西对照筛选」且算例事件不在数据中（中，确认）
-- 描述：页面只有 4 个主题按钮，无 `input/select`；`renderTimeline()` 仅按主题整表渲染。深度解析称可按「公元前 3 世纪 / 15 世纪 / 19 世纪」筛选，并称有 1405 郑和、1861 洋务、1894 甲午，但数据中均不存在。
-- 证据：`tools/museum/timeline-viewer.html:206-207`、`:362-376`、`:344-360`；数据仅到 `:273`（1840）与 `:287`（1453），无 1405/1861/1894。
-- 复现：找筛选入口 → 无；选「中国历史」→ 看不到 1405/1861/1894。期望实现世纪/关键词筛选，或删掉「筛选」表述并改写算例。
-- 影响：深度解析示例无法复现，工具核心「查找」承诺落空。
-- 方案：增加年份区间/关键词输入并过滤 `TIMELINES[currentTheme]`；补齐或改写示例事件。
-
 ### RL-K49 历史时间轴：固定 24px 间距与「比例 = 像素宽度 ÷ 总跨度」公式不符（中，确认）
 - 描述：每条 `.tl-item` 固定 `margin-bottom:24px`，圆点绝对定位 `left:75px`，与年份数值无关；公式表却声称时间轴按像素/跨度比例缩放。
 - 证据：`tools/museum/timeline-viewer.html:34-36`、`:230-231`、`:163`；渲染见 `:362-376`。
