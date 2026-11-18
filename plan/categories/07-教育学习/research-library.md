@@ -133,13 +133,6 @@
 - 影响：单项结果被包装成综合能力，强弱项自相矛盾。
 - 方案：单项模式改标题为「单项标准分」并隐藏强弱项；强弱项先去重，且指标数 <3 时不展示。
 
-### RL-K34 展品间距：公式框粘贴 JS 表达式并把绘图缩放当公式（低，确认）
-- 描述：公式说明直接暴露 `Math.tan`、`recSpacing`，并把 SVG 的 `scale=min(360÷(recSpacing×2+40),1)` 当作计算项；缺少真正的输出量（推荐间距、每米件数）。
-- 证据：`tools/museum/exhibit-spacing.html:137-138`；缩放实现 `:298`。
-- 复现：阅读公式框 → 出现「min(360 ÷ (recSpacing×2 + 40), 1)」，按此无法算出 176 cm 间距（期望给出 distH/distV/best/min/recSpacing 的可读公式）。
-- 影响：公式区与结果不对应，属内容质量缺陷。
-- 方案：改写为「distH=(w/2)/tan(ha)；distV=(|ch-eye|+h/2)/tan(va)；best=max；min=0.6√(w²+h²)」，删除 scale 项。
-
 ### RL-K35 历史日历：节气用固定月-日表，2024 冬至等年份错位/漏标（中，确认）
 - 描述：`TERM_DATES` 是固定「月-日」表（如冬至 12-22），不随年份变化；节气实际每年漂移 1–2 天。
 - 证据：`tools/museum/historical-calendar.html:300`、`:379-393`。
