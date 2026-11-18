@@ -571,6 +571,9 @@ function __visitor_routeSnap(){
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
+    // RL-K53：通道行控件无 id，无法被上面的扫描采集；单独序列化 edges 数组存入内部键，
+    // 回放时据此重建通道端点与距离，使历史记录可完整复现规划结果。
+    out.__vrEdges=JSON.stringify(edges);
     return out;
 }
 function __visitor_routeResText(){
@@ -591,6 +594,35 @@ function __visitor_routeTime(t){
     function q(x){return (x<10?'0':'')+x;}
     return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
 }
+function __visitor_routeApplySnap(rec,rk){
+    __visitor_route_skip=true;
+    try{
+        // RL-K53：先恢复通道数据（快照时序列化的 edges），再回填带 id 的控件，
+        // 最后 compute() 用恢复后的 edges 与控件值重算，历史记录才能完整复现。
+        if(rec.__vrEdges){
+            try{
+                var _edges=JSON.parse(rec.__vrEdges);
+                if(Array.isArray(_edges)&&_edges.length){
+                    edges=_edges.map(function(e){
+                        if(Array.isArray(e)&&e.length>=3) return [String(e[0]),String(e[1]),e[2]];
+                        return null;
+                    }).filter(Boolean);
+                    renderEdges();
+                }
+            }catch(e){}
+        }
+        for(var k in rec){
+            if(k===rk||k==='__tbScore'||k==='__vrEdges') continue;
+            var e=document.getElementById(k);
+            if(!e) continue;
+            var t=(e.type||'').toLowerCase();
+            if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+            else{e.value=rec[k];}
+        }
+        compute();
+    }catch(e2){}
+    __visitor_route_skip=false;
+}
 function __visitor_routeRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
@@ -605,21 +637,7 @@ function __visitor_routeRender(keys,rk,en){
         });
         TBKit.matrix.table('#visitor_routeTable',{head:head,rows:rows});
         TBKit.util.diffBox('#visitor_routeDiff');
-        TBKit.history.mount('#visitor_routeHist',function(rec){
-            __visitor_route_skip=true;
-            try{
-                for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
-                    var e=document.getElementById(k);
-                    if(!e) continue;
-                    var t=(e.type||'').toLowerCase();
-                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
-                    else{e.value=rec[k];}
-                }
-                compute();
-            }catch(e2){}
-            __visitor_route_skip=false;
-        });
+        TBKit.history.mount('#visitor_routeHist',function(rec){ __visitor_routeApplySnap(rec,rk); });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
             var v=parseFloat(arr[j].d.__tbScore);
@@ -634,8 +652,10 @@ function __visitor_routeExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__visitor_route_skip) return;
     var snap=__visitor_routeSnap();
-    var keys=Object.keys(snap);
-    if(!keys.length) return;
+    // RL-K53：__vrEdges 是内部快照键（通道数据），不作为展示列；rec 中仍携带它供回放。
+    var allKeys=Object.keys(snap);
+    var keys=allKeys.filter(function(k){return k!=='__vrEdges';});
+    if(!allKeys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__visitor_routeResText();
     if(!res) return;
@@ -650,11 +670,13 @@ function __visitor_routeExtras(){
         for(var i=0;i<keys.length;i++){
             if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
         }
+        if(same&&String(last.__vrEdges)!==String(snap.__vrEdges)) same=false;
         if(same&&String(last[rk])===String(res)) return;
     }
     __visitor_route_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec.__vrEdges=snap.__vrEdges;
     rec[rk]=res;
     rec.__tbScore=__visitor_routeScore(res);
     TBKit.history.record(rec);
@@ -665,7 +687,7 @@ function __visitor_routeExport(){
     try{
         var box=document.querySelector('#visitor_routeTable');
         if(!box||!box.querySelector('tr')){
-            var snap=__visitor_routeSnap(); var keys=Object.keys(snap);
+            var snap=__visitor_routeSnap(); var keys=Object.keys(snap).filter(function(k){return k!=='__vrEdges';});
             if(keys.length>12) keys=keys.slice(0,12);
             var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __visitor_routeRender(keys,en?'Result':'结果',en);

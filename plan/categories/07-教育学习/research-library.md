@@ -113,13 +113,6 @@
 
 > 范围：本轮阅读 7 页（`tools/cognition/human-benchmark.html`、`tools/museum/visitor-route.html`、`tools/museum/timeline-viewer.html`、`tools/research/index.html`、`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`）。**说明：四目录仅剩这 7 个未覆盖页（3 个工具页 + 4 个索引页），不足以凑满 8 页；未跨目录外扩，以免与 edu-language 批重复。** 仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### RL-K53 参观流线：历史快照只存有 id 的控件，通道距离/端点无法回放（低，确认）
-- 描述：`__visitor_routeSnap()` 只采集带 `id` 的 `input/select/textarea`；通道行只有 `data-i/data-k` 没有 `id`，因此历史记录不含任何边数据；回放只恢复展厅、起终点。
-- 证据：`tools/museum/visitor-route.html:508`、`:543-554`；边控件 `:276-279`。
-- 复现：把某通道改为 100m 并规划（记录）；再改为 20m 后点历史记录回放 → 展厅/起终点恢复，但通道仍是 20m，总距离与当初记录不同。期望快照包含通道端点与权值并整体恢复。
-- 影响：历史「回放/对比」失真，记录无法复现。
-- 方案：给边控件加 `id`（如 `edge-<i>-0/1/2`），或快照序列化 `edges` 数组并在回放时重建。
-
 ### RL-K54 参观流线：公式框的「通行时间/拥挤度」与「必看节点」均未实现（低，确认）
 - 描述：公式表列出 `T = L/v + Σ停留` 与拥挤度 `人数/通行能力`，页面只算距离；深度解析称「设定起终点与必看节点」，实际无必经节点输入。
 - 证据：`tools/museum/visitor-route.html:208`、`:212-213`、`:183`、`:189`。

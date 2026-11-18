@@ -52,6 +52,18 @@ const CASES = [
   "ref": "RL-K47 失效边提示：新增「东门」使「玉石馆」边不满足改名迁移（玉石馆从未在 nodes），compute() 时旧版对不在 nodes 的端点静默跳过、无任何提示，修复版在结果区输出「通道端点已失效、未纳入计算」。保留入口→青铜馆→出口有效路径避免无路径提前 return。"
 },
 {
+  "slug": "museum/visitor-route",
+  "clicks": ["edges=[['A','B',137],['B','C',8]];var s=__visitor_routeSnap();var e=[];try{e=JSON.parse(s.__vrEdges||'[]');}catch(err){}document.getElementById('__tbProbe').textContent=(e.length===2&&e[0][0]==='A'&&e[0][2]==137&&e[1][1]==='C')?'SNAP OK':'SNAP BAD'"],
+  "expect": ["SNAP OK"],
+  "ref": "RL-K53 快照含通道数据：历史快照原先只采集带 id 的控件，通道行只有 data-i/data-k 无 id ⇒ 快照不含边。修复后 __visitor_routeSnap() 增加内部键 __vrEdges 序列化 edges。注入非默认边 A–B 137m/B–C 8m 后断言快照 __vrEdges 解析含两条边及 137/8 数值；旧版无该键解析为空 ⇒ SNAP BAD。"
+},
+{
+  "slug": "museum/visitor-route",
+  "clicks": ["document.getElementById('nodeInput').value='A,B,C';syncNodes();document.getElementById('startNode').value='A';document.getElementById('endNode').value='C';edges=[['A','B',5],['B','C',5]];__visitor_routeApplySnap({nodeInput:'A,B,C',startNode:'A',endNode:'C',__vrEdges:JSON.stringify([['A','B',90],['B','C',4]])},'结果');var h=String(document.getElementById('result').innerHTML);var ok=(edges.length===2&&edges[0][2]==90&&edges[1][2]==4&&h.indexOf('94 m')>=0);document.getElementById('__tbProbe').textContent=ok?'REPLAY OK':'REPLAY BAD'"],
+  "expect": ["REPLAY OK"],
+  "ref": "RL-K53 回放重建通道：把当前 edges 设为 5+5（总 10m），回放一条快照 edges=90+4（总 94m），修复后 __visitor_routeApplySnap() 先恢复 edges 再 compute ⇒ result 显示 94 m、edges 为 90/4；旧版无该函数（或回放只回填带 id 控件不动 edges）⇒ 仍是 10m ⇒ REPLAY BAD。94 m 非默认态。"
+},
+{
   "slug": "museum/era-comparator",
   "inputs": {},
   "clicks": ["document.getElementById('era1').value='3';document.getElementById('era2').value='9';compare()"],
