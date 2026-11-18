@@ -113,13 +113,6 @@
 
 > 范围：本轮阅读 7 页（`tools/cognition/human-benchmark.html`、`tools/museum/visitor-route.html`、`tools/museum/timeline-viewer.html`、`tools/research/index.html`、`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`）。**说明：四目录仅剩这 7 个未覆盖页（3 个工具页 + 4 个索引页），不足以凑满 8 页；未跨目录外扩，以免与 edu-language 批重复。** 仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### RL-K49 历史时间轴：固定 24px 间距与「比例 = 像素宽度 ÷ 总跨度」公式不符（中，确认）
-- 描述：每条 `.tl-item` 固定 `margin-bottom:24px`，圆点绝对定位 `left:75px`，与年份数值无关；公式表却声称时间轴按像素/跨度比例缩放。
-- 证据：`tools/museum/timeline-viewer.html:34-36`、`:230-231`、`:163`；渲染见 `:362-376`。
-- 复现：同类目下前 221 与前 202 的垂直间距，与 1840 与 1911 完全相同（均 24px）；期望按年份差缩放，或删掉比例公式。
-- 影响：时间轴视觉误导「等距即等时」，与公式自相矛盾。
-- 方案：按 `(y-minY)/(maxY-minY)` 计算位置/高度；若坚持列表式，删除比例行并注明「等距排列」。
-
 ### RL-K50 历史时间轴：遗留中医模板「辨证记录历史」与 `tcm-history.csv`（中，确认）
 - 描述：历史记录面板文案、英文 `Diagnosis Records`、localStorage 键 `__tbm_tcm_timeline`、导出文件名均沿用中医模板。
 - 证据：`tools/museum/timeline-viewer.html:467-469`、`:481-487`。
