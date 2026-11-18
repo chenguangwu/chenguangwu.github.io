@@ -483,7 +483,7 @@ const CASES = [
   "inputs": {
     "ldl": "6.8"
   },
-  "expect": ["6.8\n1.8\n6.8 当前 LDL-C 1.8 目标 LDL-C 73.5% 所需降幅 高强度 他汀强度 计算过程 当前LDL-C = 6.8 mmol/L 目标LDL-C = 1.8 mmol/L 所需降幅 = (6.8−1.8)/6.8×100% = 73.5% 预计达标后LDL-C = 1.80 mmol/L 他汀强度等级： 高强度 联合用药建议 单药最大降幅可能不足，建议联合治疗 高强度他汀(最大降幅~55%) + 依折麦布(额外~20%) 联合后预期降幅：~64% 联合仍不达标：加用PCSK9抑制剂(额外降50–60%) 需联合用药 单药最大他汀可能无法达标，建议联合依折麦布和PCSK9抑制剂。"],
+  "expect": ["6.8\n1.8\n6.8 当前 LDL-C 1.8 目标 LDL-C 73.5% 所需降幅 高强度 他汀强度 计算过程 当前LDL-C = 6.8 mmol/L 目标LDL-C = 1.8 mmol/L 所需降幅 = (6.8−1.8)/6.8×100% = 73.5% 预计达标后LDL-C = 1.80 mmol/L 他汀强度等级： 高强度 联合用药建议 单药最大降幅可能不足，建议联合治疗 高强度他汀(最大降幅~63%) + 依折麦布(额外~20%) 联合后预期降幅：~64% 联合仍不达标：加用PCSK9抑制剂(额外降50–60%) 需联合用药 单药最大他汀可能无法达标，建议联合依折麦布和PCSK9抑制剂。"],
   "ref": "auto-restore"
 },
 {
@@ -575,8 +575,31 @@ const CASES = [
   "clicks": ["var tb=document.getElementById('totalBeats');tb.value='';calc();var h1=String(document.getElementById('result').innerHTML);tb.value='120000';calc();var h2=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='HOLTERCHAIN '+(h1.indexOf('须为正数')<0&&h1.indexOf('100000')>=0&&h2.indexOf('120000')>=0&&h2.indexOf('须为正数')<0?'OK':'BAD');"],
   "expect": ["HOLTERCHAIN OK"],
   "ref": "944状态链：空值仍走 100000 估算（不拦截），随后填合法 120000 重算负荷且无残留提示；验证空值估算与明确无效值区分、切换后结果更新。"
+},
+{
+  "slug": "cardiology/statin-dose",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/statin-dose.html','utf8');var dyn=h.indexOf('maxStatinReduction')>=0&&h.indexOf('requiredReduction>maxStatinReduction')>=0&&h.indexOf('最大降幅~55%')<0;document.getElementById('__tbProbe').textContent='STATIN81 '+(dyn?'OK':'BAD');"],
+  "expect": ["STATIN81 OK"],
+  "ref": "03-81 单药最大降幅动态求值：旧版写死 required>55 且文案「最大降幅~55%」，56–62% 所需降幅（单药瑞舒伐他汀40mg 63% 可达）被误报需联合。本批由 statinData 动态求 maxStatinReduction 并以其为联合阈值、文案同步。源码形态哨兵：无写死 55、含动态阈值与文案串。默认态不产哨兵（仅 clicks 读源码），零逃生。"
+},
+{
+  "slug": "cardiology/statin-dose",
+  "inputs": { "ldl": "" },
+  "expect": ["请填写有效的当前 LDL-C（>0 mmol/L）后再计算。"],
+  "ref": "03-82 LDL-C 必填守卫：旧版空值 parseFloat||0 → required=0 → 误报「无需他汀」+「预计达标后 0.00」。本批空/0/非法值拦截并清空结果。默认 ldl=3.8 合法，不命中本提示，零逃生。"
+},
+{
+  "slug": "cardiology/ckd-epi",
+  "inputs": { "age": "0", "scr": "1.3", "uacr": "80", "sex": "m" },
+  "expect": ["年龄须为 1–120 岁，请重新填写。"],
+  "ref": "03-83 年龄守卫：旧版 age=0 无拦截，0.9938^0=1 使 eGFR 抬高（age=65→61.0、age=0→91.3）；负值同理。本批 age≤0 或 >120 拦截。注入 age=0 命中提示、默认 age 合法不命中；原用例 age=98 合法仍通过，二者零交集。"
+},
+{
+  "slug": "cardiology/has-bled",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/has-bled.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/cardiology/has-bled.json','utf8');var zhOk=h.indexOf('3 分为中风险（加强监测）')<0&&h.indexOf('0 至 1 分为低出血风险、2 分为中等出血风险、3 分及以上为高出血风险')>=0;var enOk=en.indexOf('3 medium (closer monitoring)')<0&&en.indexOf('0-1 low bleeding risk, 2 moderate, >=3 high bleeding risk')>=0;document.getElementById('__tbProbe').textContent='HASBLED78 '+(zhOk&&enOk?'OK':'BAD');"],
+  "expect": ["HASBLED78 OK"],
+  "ref": "03-78 HAS-BLED 三处分级口径统一：计算分支与分级表均为 0–1 低/2 中等/≥3 高危，唯公式说明写「0–2 低、3 中、≥4 高」。本批公式说明中文 + EN 词典同步改到一致口径。源码形态哨兵：旧中文/旧英文串消失、新串出现；默认态不产哨兵（仅 clicks 读源码），零逃生。"
 }
-
 ];
 async function main() {
   const only = process.argv.slice(2);

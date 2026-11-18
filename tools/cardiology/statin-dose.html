@@ -250,11 +250,17 @@ var statinData={
 var statinNames={atorvastatin:'阿托伐他汀',rosuvastatin:'瑞舒伐他汀',simvastatin:'辛伐他汀',pravastatin:'普伐他汀',fluvastatin:'氟伐他汀',pitavastatin:'匹伐他汀'};
 
 function calc(){
-  var ldl=parseFloat(document.getElementById('ldl').value)||0;
+  // 03-82：LDL-C 必填且 >0，空/0/非法值时清空结果并提示，不再输出「无需他汀」+「预计达标后 0.00」。
+  var ldlRaw=String(document.getElementById('ldl').value==null?'':document.getElementById('ldl').value).trim();
+  var ldl=parseFloat(ldlRaw);
   var target=parseFloat(document.getElementById('target').value);
+  if(ldlRaw===''||!isFinite(ldl)||ldl<=0){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请填写有效的当前 LDL-C（>0 mmol/L）后再计算。</p>';
+    return;
+  }
 
   // 计算所需降幅
-  var requiredReduction=ldl>0?((ldl-target)/ldl*100):0;
+  var requiredReduction=(ldl-target)/ldl*100;
   requiredReduction=Math.round(requiredReduction*10)/10;
 
   // 强度分级
@@ -278,10 +284,14 @@ function calc(){
   }
   recommendations.sort(function(a,b){return b.reduction-a.reduction;});
 
+  // 03-81：单药最大降幅由 statinData 动态求得（当前瑞舒伐他汀40mg=63%），
+  // 仅当所需降幅超过单药上限才提示联合，不再用写死的 55% 误报 56–62% 区间。
+  var maxStatinReduction=0;
+  for(var d in statinData){for(var k in statinData[d]){if(statinData[d][k]>maxStatinReduction)maxStatinReduction=statinData[d][k];}}
   // 预计达标后LDL
   var predictedLDL=ldl*(1-requiredReduction/100);
   var needEzetimibe=false;
-  if(requiredReduction>55){
+  if(requiredReduction>maxStatinReduction){
     needEzetimibe=true;
   }
 
@@ -317,7 +327,7 @@ function calc(){
     var combinedAchieve=(1-afterEzetimibe/ldl)*100;
     html+='<div class="ref-card"><h4>联合用药建议</h4><ul>';
     html+='<li>单药最大降幅可能不足，建议联合治疗</li>';
-    html+='<li>高强度他汀(最大降幅~55%) + 依折麦布(额外~20%)</li>';
+    html+='<li>高强度他汀(最大降幅~'+maxStatinReduction+'%) + 依折麦布(额外~20%)</li>';
     html+='<li>联合后预期降幅：~'+Math.round(combinedAchieve)+'%</li>';
     if(requiredReduction>65){
       html+='<li>联合仍不达标：加用PCSK9抑制剂(额外降50–60%)</li>';

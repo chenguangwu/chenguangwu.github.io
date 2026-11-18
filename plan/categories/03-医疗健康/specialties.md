@@ -219,12 +219,6 @@
 - 影响：代偿性代谢性酸中毒被贴成呼吸性碱中毒，原发紊乱方向可能相反。
 - 方案：该分支改为「pH 正常、PaCO2↓、HCO3↓：代酸代偿 vs 呼碱代偿，需结合 AG/阴离子间隙与病史」，不输出确定性原发诊断；是否合并代酸由 AG 分支补充。
 
-### 03-78 HAS-BLED 3 分分级公式说明与计算结果矛盾（中，确认）
-- 描述：页首公式说明写「0–2 低危、3 中风险、≥4 高危」，`calc()` 实际把 3 分归为「高危」并给 3.74% 大出血率；下方表格与 info-box 又写「≥3 高危」。
-- 证据：`tools/cardiology/has-bled.html:121`（公式说明）对 `:317-321`（calc 分支：`score===2` 中危、`score===3` 高危 3.74%、`score===4` 很高危）。node 复算：htn=1、renal=1、elderly=1 → **score=3 → risk='高危'、bleedRate='3.74%'**。
-- 影响：同一页面三种口径，使用者无法确定 3 分到底算中危还是高危。
-- 方案：以计算分支为准统一公式说明与表格文案；若确需保留「3 分中风险」口径，则 calc、表格、info-box 同步改，禁止只改一处。
-
 ### 03-79 CHA₂DS₂-VASc 女性单纯性别分仍展示 0.6% 年卒中风险（中，确认）
 - 描述：女性固定 +1 分，但建议文案明确「女性单独 1 分不增加卒中风险」；结果卡仍按分数查表显示 0.6% 年风险，两个输出互相打脸。
 - 证据：`tools/cardiology/chads2-vasc.html:291`（`sex==='f'` +1）、`:294-303`（按 score 查 0.2/0.6/2.2…）、`:311-312`（女性 `score<=1` 给「无需 OAC，女性单独 1 分不增加卒中风险」）。node 复算：sex=f、age<65、无其他危险因素 → **score=1、riskRate='0.6%'**，同屏建议为「无需 OAC / 不增加风险」。
@@ -236,24 +230,6 @@
 - 证据：`tools/cardiology/nt-probnp.html:258-283`（`parseFloat(...)||0`、`if(nt<excludeCutoff)` 排除分支）。node 复算：age 留空、NT-proBNP 留空 → `ageGroup='<50岁'`、`includeCutoff=450`、`dx='急性心衰可能性低(排除)'`。
 - 影响：未录入任何检验值即可得到「心衰排除」的临床结论，易被误读为真实判读。
 - 方案：加入必填守卫（age 1–120、NT-proBNP>0），空值/0 时清空结果并提示，不渲染诊断与预后卡。
-
-### 03-81 他汀换算在 56–62% 区间误报「单药不足需联合」（中，确认）
-- 描述：`needEzetimibe` 以固定阈值 `requiredReduction>55` 判断，未与 `statinData` 中最大单药降幅（瑞舒伐他汀 40mg = 63%）比较；所需降幅 56–62% 时单药本可覆盖，却提示联合依折麦布。
-- 证据：`tools/cardiology/statin-dose.html:253-259`（最大降幅 63）、`:295-297`（`if(requiredReduction>55) needEzetimibe=true`）、`:324-337`（输出「单药最大降幅可能不足，建议联合治疗」）。node 复算：LDL=2.5、目标=1.0 → required=`(2.5−1.0)/2.5×100`=**60.0%**、`needEzetimibe=true`，而同表瑞舒伐他汀 40mg 标称 **63%** 可单药达标。
-- 影响：本可单药达标者被推荐加药，增加不必要联合治疗与费用。
-- 方案：由 `statinData` 动态求最大降幅 `maxStatinReduction`，仅当 `requiredReduction > maxStatinReduction` 时提示联合；文案中的「最大降幅~55%」同步改为实际最大值。
-
-### 03-82 他汀换算清空 LDL 后仍输出「无需他汀」（低，确认）
-- 描述：LDL 空值被 `||0` 转成 0，`requiredReduction=0`，直接落入「无需他汀」分支，并显示「预计达标后 LDL-C = 0.00」。
-- 证据：`tools/cardiology/statin-dose.html:264`（`parseFloat(...)||0`）、`:268`（`ldl>0?...:0`）、`:276`（`else` → 无需他汀）。node 复算：LDL 留空、目标 1.8 → required=**0%**、intensity=**无需他汀**、predictedLDL=**0.00 mmol/L**。
-- 影响：未填当前 LDL 时给出「已达目标、无需他汀」的错误结论。
-- 方案：LDL 必填且 >0，空值/0 时清空结果并提示；目标值下拉不受影响。
-
-### 03-83 CKD-EPI 未拦截 0 岁与负年龄（低，确认）
-- 描述：`__tbInputGuard` 的必填项含 age/scr/uacr，但负值白名单 `__N` 只有 `scr`；年龄为 0 或负数时照常代入 `0.9938^age`，eGFR 被抬高。
-- 证据：`tools/cardiology/ckd-epi.html:269-333`（`_REQ=['age','scr','uacr']`、`__N={'scr':'scr'}`）、`:339`（`parseFloat(age)||0`）。node 复算（男性、Scr=1.3）：age=65 → **61.0**；age=0 → **91.3**；age=−10 → **97.2**（`0.9938^-10`>1）。
-- 影响：误填 0/负年龄时 eGFR 与 CKD 分期整体偏高，可能把 G3 报成 G2。
-- 方案：年龄按 18–120（或至少 >0）校验并报错；UACR 缺失是否应阻断纯 eGFR 计算，需产品确认后决定（当前三字段均为必填）。
 
 ### 留存优化
 - 心内数值页统一接入同一套输入守卫：`ckd-epi` 已有 `__tbInputGuard`，而 `grace-score`、`timi-score`、`nt-probnp`、`statin-dose` 仍是 `||0` 裸解析，建议抽成共享脚本后逐页替换，避免同类空值缺陷反复出现。
