@@ -553,10 +553,7 @@ function composePerfect(aux, pp) {
   var auxForms = aux === 'être'
     ? ['suis','es','est','sommes','êtes','sont']
     : ['ai','as','a','avons','avez','ont'];
-  return PRONOUNS.map(function(p, i){
-    var subj = (p === 'je' && /^[aeiouyâêîôûéè]/i.test(auxForms[i])) ? "j'" : p;
-    return (subj === "j'" ? subj + auxForms[i] : subj + ' ' + auxForms[i]) + ' ' + pp;
-  });
+  return auxForms.map(function(form){ return form + ' ' + pp; });
 }
 
 function getGroup1Conj(stem, tense) {
@@ -569,7 +566,15 @@ function getGroup1Conj(stem, tense) {
   };
   var e = endings[tense];
   if (!e) return null;
-  return PRONOUNS.map(function(_, i){ return stem + e[i]; });
+  return PRONOUNS.map(function(_, i){
+    var root = stem;
+    if ((tense === 'present' && i === 3) || (tense === 'imparfait' && i !== 3 && i !== 4)) {
+      if (/g$/.test(root)) root += 'e';
+      else if (/c$/.test(root)) root = root.slice(0, -1) + 'ç';
+    }
+    if (stem === 'achet' && ((tense === 'present' || tense === 'subjonctif') && i !== 3 && i !== 4 || tense === 'futur_simple' || tense === 'conditionnel')) root = 'achèt';
+    return root + e[i];
+  });
 }
 
 function lookup() {
@@ -664,7 +669,8 @@ function renderResult(name, data) {
   if (forms) {
     html += '<table class="conj-table">';
     for (var j = 0; j < PRONOUNS.length; j++) {
-      html += '<tr><td class="pronoun">' + PRONOUNS[j] + '</td><td class="form">' + ToolBox.escHtml(forms[j]) + '</td></tr>';
+      var subject = j === 0 && /^[aeiouyâêîôûéè]/i.test(forms[j]) ? "j'" : PRONOUNS[j];
+      html += '<tr><td class="pronoun">' + subject + '</td><td class="form">' + ToolBox.escHtml(forms[j]) + '</td></tr>';
     }
     html += '</table>';
   }

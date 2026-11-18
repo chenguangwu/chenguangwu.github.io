@@ -592,12 +592,16 @@ function __visitor_routeTime(t){
 function __visitor_routeApplySnap(rec,rk){
     __visitor_route_skip=true;
     try{
-        // RL-K53：先恢复通道数据（快照时序列化的 edges），再回填带 id 的控件，
-        // 最后 compute() 用恢复后的 edges 与控件值重算，历史记录才能完整复现。
-        if(rec.__vrEdges){
+        // 先重建历史节点与下拉选项，再恢复通道和起终点。
+        // 旧快照没有通道字段时保留当前通道，按 syncNodes 的兼容规则迁移名称。
+        if(Object.prototype.hasOwnProperty.call(rec, 'nodeInput')){
+            document.getElementById('nodeInput').value=rec.nodeInput;
+            syncNodes();
+        }
+        if(rec.__vrEdges != null){
             try{
                 var _edges=JSON.parse(rec.__vrEdges);
-                if(Array.isArray(_edges)&&_edges.length){
+                if(Array.isArray(_edges)){
                     edges=_edges.map(function(e){
                         if(Array.isArray(e)&&e.length>=3) return [String(e[0]),String(e[1]),e[2]];
                         return null;
@@ -607,7 +611,7 @@ function __visitor_routeApplySnap(rec,rk){
             }catch(e){}
         }
         for(var k in rec){
-            if(k===rk||k==='__tbScore'||k==='__vrEdges') continue;
+            if(k===rk||k==='__tbScore'||k==='__vrEdges'||k==='nodeInput') continue;
             var e=document.getElementById(k);
             if(!e) continue;
             var t=(e.type||'').toLowerCase();

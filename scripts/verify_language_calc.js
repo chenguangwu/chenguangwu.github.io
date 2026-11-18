@@ -48,6 +48,9 @@ const CASES = [
   ],
   "ref": "第二组 -ir 规则：词干 fin + is/is/it/issons/issez/issent，变位表按 PRONOUNS=[je,tu,il/elle,nous,vous,ils/elles] 渲染 ⇒ 「nous finissons」「vous finissez」仅在注入态出现。默认态 verbInput 为空 → lookup() 首行 return、#result 不被改写 ⇒ 两串均失配。**注意**：整页 quickList（parler/aimer/finir/commencer…）是静态标签，一律不可作 expect。"
 },
+{"slug":"language/french-verb-conjugator","inputs":{"verbInput":"manger"},"expect":["nous mangeons"],"ref":"manger 的现在时 nous 保留 e。"},
+{"slug":"language/french-verb-conjugator","inputs":{"verbInput":"commencer"},"expect":["nous commençons"],"ref":"commencer 的现在时 nous 使用 ç。"},
+{"slug":"language/french-verb-conjugator","inputs":{"verbInput":"acheter"},"expect":["achète"],"ref":"acheter 的单数词干变为 achèt。"},
 {
   "slug": "language/generator-19",
   "inputs": {

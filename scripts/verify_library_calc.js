@@ -56,6 +56,14 @@ const CASES = [
   "ref": "RL-K21 非法参数反馈：每盒件数=0 时旧版 __alBatch 静默 return、界面无提示；修复后在 __alCheck 写「批量参数不合法…」。哨兵锚「批量参数不合法」。"
 },
 {
+  "slug":"library/archive-label", "inputs":{"__alFrom":"1.5","__alCount":"2","__alPerBox":"50"},
+  "clicks":["__alBatch()"], "expect":["批量参数不合法"], "ref":"小数盒号不得被截断成整数。"
+},
+{
+  "slug":"library/archive-label", "inputs":{"__alFrom":"1","__alCount":"201","__alPerBox":"50"},
+  "clicks":["__alBatch()"], "expect":["盒数最多 200"], "ref":"盒数上限必须在生成前执行，避免无界循环。"
+},
+{
   "slug": "library/clc-classifier",
   "inputs": {
     "search": "zzzqx"
