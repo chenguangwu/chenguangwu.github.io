@@ -53,12 +53,6 @@
 
 ## 2026-11-03 续查（并行批 H）
 
-### AI-N7 首个 `calc()` 即覆盖结果容器，图表/数据表/历史宿主从未渲染（高，确认源码缺陷）
-- 描述：6 个估算页都把图表、数据表、差值、历史容器放进 `#result`，而主计算函数用 `innerHTML` 整体替换 `#result`；扩展逻辑随后按 id 取宿主，只能拿到 `null`。
-- 证据：`tools/ai/token.html:136-141,288`（`#tkChart/#tkTable/#tkDiff/#tkHist` 均在 `#result` 内，`:288` 整体替换）、`tools/ai/token-2.html:137-141,289`、`tools/ai/token-usage.html:136-141,281`、`tools/ai/context-window.html:137-141,292`、`tools/ai/inference-throughput.html:136-141,286`、`tools/ai/quantization-ratio.html:136-141,288`；扩展段目标分别为 `tkChart`(`token.html:313`)、`t2Chart`(`token-2.html:312`)、`tuChart`(`token-usage.html:306`)、`cwChart`(`context-window.html:316`)、`itChart`(`inference-throughput.html:311`)、`qrChart`(`quantization-ratio.html:312`)。`token.html:298` 的裸 `calc()` 先于 `__tkBoot` 执行，故首屏即丢失宿主。
-- 影响：以上 6 页的图表、数据表、差值、历史长期为空（"数据表/历史"页签点了也无内容）；`导出 CSV` 也依赖同名表格宿主（`token.html:305` 等），实际无内容可导。主数字结果与预设仍正常。同类问题亦见于 `tools/ai/ai-text-summarizer.html:185-189,397`：`#tzTable/#tzDiff/#tzHist` 位于 `#result` 内，执行摘要后表格与历史被清空（图表在结果区外，仍可用）。
-- 方案：把主结果与图表/表格/差值/历史拆成稳定同级容器，计算只写主结果节点；修复后逐页验证首屏、改输入、预设、页签切换、导出与历史回填。
-
 ### AI-N8 历史只记录输出值，回填却读取输入字段（高，确认源码缺陷）
 - 描述：`history.record` 写入的字段与 `history.mount` 回填读取的字段不是同一组，回填时把输入框写成字符串 `undefined`。
 - 证据：`tools/ai/token.html:318,320` 记录 `{tokens}`、回填读 `chars/lang/overlap`；`tools/ai/token-2.html:320,322` 记录 `{total}`、回填读 `input_tokens/output_tokens/input_price/output_price`；`tools/ai/token-usage.html:315,317`、`tools/ai/context-window.html:321,323`、`tools/ai/inference-throughput.html:316,318`、`tools/ai/quantization-ratio.html:320,322` 同样错位。全目录 64 处 `history.mount` 中仅 `min-max`、`dropout`、`cross-entropy`、`sigmoid`、`lr-decay`、`lr-warmup`、`relu-leakyrelu`、`precision-recall`、`ai-prompt-generator` 等少数页面同时记录输入字段。

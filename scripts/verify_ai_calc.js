@@ -1322,6 +1322,33 @@ const HOST_CASES = [
     restore: { inputId: "cn", historyKey: "cn" },
     exportFn: "__tuExport",
   },
+  // AI-N7 余下 4 页：主结果 innerHTML 曾把图表/表格/差值/历史宿主一起清掉。
+  // restore 刻意不设：这 4 页 history.record 只写输出字段，属 AI-N8 另案，不在本批混修。
+  {
+    slug: "ai/context-window",
+    chart: "cwChart", table: "cwTable",
+    extras: ["cwChart", "cwTable", "cwDiff", "cwHist", "cwPresets"],
+    inputs: { system: "800", prompt: "2200", resp: "1500", ctx: "64000" },
+    tableExpect: "59500",
+    exportFn: "__cwExport",
+  },
+  {
+    slug: "ai/inference-throughput",
+    chart: "itChart", table: "itTable",
+    extras: ["itChart", "itTable", "itDiff", "itHist", "itPresets"],
+    inputs: { tokens: "900", sec: "6", batch: "2" },
+    tableExpect: "150.0",
+    exportFn: "__itExport",
+  },
+  {
+    slug: "ai/quantization-ratio",
+    chart: "qrChart", table: "qrTable",
+    extras: ["qrChart", "qrTable", "qrDiff", "qrHist", "qrPresets"],
+    inputs: { params: "2500", fromB: "8", toB: "4" },
+    tableExpect: "20000",
+    exportFn: "__qrExport",
+  },
+  { slug: "ai/ai-text-summarizer", kind: "summarizer" },
   { slug: "ai/ai-code-review", kind: "codeReview" },
 ];
 
@@ -1352,7 +1379,7 @@ function installTBKit(win, state) {
       },
       diffBox: () => null,
     },
-    chart: { bar: chart, pie: chart },
+    chart: { bar: chart, pie: chart, gauge: chart, line: chart },
     matrix: {
       table: (sel, o) => {
         const el = q(sel);
@@ -1429,8 +1456,8 @@ async function runTokenHostCase(h) {
     if (doc.getElementById(h.table).style.display === "none") return { ok: false, why: "页签切换未显示数据表" };
     resBtn.click();
   }
-  // 历史回填：用首屏默认那条回填，输入应被恢复
-  if (typeof state.mountCb === "function" && state.history.length) {
+  // 历史回填：用首屏默认那条回填，输入应被恢复（仅 record/mount 字段一致的页面）
+  if (h.restore && typeof state.mountCb === "function" && state.history.length) {
     const first = state.history[0];
     state.mountCb(first);
     const got = doc.getElementById(h.restore.inputId).value;
@@ -1467,6 +1494,27 @@ async function runCodeReviewCase() {
   if (!/userName/.test(code)) return { ok: false, why: "示例代码未还原为干净示例" };
   if (!doc.getElementById("scoreBox").textContent.includes("代码质量评分")) return { ok: false, why: "载入示例后评分卡未重算" };
   if (!doc.getElementById("result").textContent.includes("详细问题")) return { ok: false, why: "载入示例后结果区未重算" };
+  return { ok: true };
+}
+
+async function runSummarizerHostCase() {
+  const dom = makeDom("ai/ai-text-summarizer", { state: { history: [], exportCalls: 0, exported: false, mountCb: null }, notify: [] });
+  const win = dom.window;
+  await domReady(win);
+  const doc = win.document;
+  const result = doc.getElementById("result");
+  if (!result) return { ok: false, why: "缺少 #result" };
+  for (const id of ["tzTable", "tzDiff", "tzHist"]) {
+    const el = doc.getElementById(id);
+    if (!el) return { ok: false, why: "#" + id + " 已被主结果 innerHTML 覆盖" };
+    if (result.contains(el)) return { ok: false, why: "#" + id + " 仍嵌套在 #result 内" };
+  }
+  if (typeof win.summarize !== "function") return { ok: false, why: "缺少 summarize()" };
+  doc.getElementById("input").value = "第一句用于验证。第二句用于验证。第三句用于验证。第四句用于验证。";
+  win.summarize();
+  const table = doc.getElementById("tzTable");
+  if (!table.textContent.trim()) return { ok: false, why: "摘要后 #tzTable 为空" };
+  if (!table.textContent.includes("原文长度")) return { ok: false, why: "#tzTable 未写入明细行" };
   return { ok: true };
 }
 
@@ -1508,7 +1556,9 @@ async function main() {
       continue;
     }
     try {
-      const r = h.kind === "codeReview" ? await runCodeReviewCase() : await runTokenHostCase(h);
+      const r = h.kind === "codeReview" ? await runCodeReviewCase()
+        : h.kind === "summarizer" ? await runSummarizerHostCase()
+        : await runTokenHostCase(h);
       if (r.ok) hostPass++;
       else { hostFails.push(h.slug); console.log("❌ DOM " + h.slug + "  " + r.why); }
     } catch (e) {
