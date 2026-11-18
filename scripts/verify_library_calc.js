@@ -36,6 +36,12 @@ const CASES = [
   "ref": "inputs 写 search=zzzqx ⇒ oninput=onSearch() ⇒ renderSubs('zzzqx') 命中 0 条 ⇒ 结果区渲染「搜索结果：0 条」。默认态走 else 分支渲染当前主类二级类目、blob 无「搜索结果」串（已双态核验）；兜底 onSearch() 读到空值仍走 else，不产该串。"
 },
 {
+  "slug": "library/clc-classifier",
+  "clicks": ["selectedCode='B84';updateResult();var b=document.getElementById('result').innerHTML.match(/当前选择分类号：<strong[^>]*>([^<]+)<\\/strong>/)[1];switchMain('T');var a=document.getElementById('result').innerHTML.match(/当前选择分类号：<strong[^>]*>([^<]+)<\\/strong>/)[1];document.getElementById('__tbProbe').textContent='SWITCH '+b+'->'+a;"],
+  "expect": ["SWITCH B84->未选择"],
+  "ref": "切换大类清空选择：旧版按钮只改 currentMain 不重置 selectedCode，选中 B84 后切到 T，结果区仍显示 B84 并生成 B84/123 跨大类索书号。封装 switchMain 并在切换时清空，端到端断言分类号从 B84 变为未选择；默认态无 SWITCH 串，不命中。"
+},
+{
   "slug": "library/generator-label",
   "inputs": {
     "fonds": "B123",
