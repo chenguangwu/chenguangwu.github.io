@@ -3240,6 +3240,18 @@ const CASES = [
     ref: "ISO 3166-1 alpha-2 → alpha-3/区号/首都/货币映射（CN→CHN→+86→北京→CNY）。默认示例代码不同。",
   },
   {
+    slug: "it/country-code-lookup",
+    inputs: { input: "IS" },
+    expect: ["国名： Iceland（冰岛）", "电话区号： +354", "货币： ISK"],
+    ref: "IT-N423：补 ISO 3166-1 常见遗漏国 IS（冰岛/Iceland/+354/ISL/雷克雅未克/ISK）。旧版 COUNTRIES 无 IS ⇒ 输出「未找到匹配」，三条期望均失配；默认示例 CN 不同 ⇒ 强判别。",
+  },
+  {
+    slug: "it/country-code-lookup",
+    inputs: { input: "UK" },
+    expect: ["ISO 3166-1： GB", "国名： United Kingdom（英国）"],
+    ref: "IT-N423：常见别名 UK→GB（非 ISO 但通用），旧版直接查 COUNTRIES['UK'] 未命中 ⇒ 未找到；修复经 COUNTRY_ALIASES 映射后返回英国条目（ISO 码显示 GB）。默认示例 CN 不同 ⇒ 强判别。",
+  },
+  {
     slug: "it/language-code-lookup",
     inputs: { input: "zh" },
     expect: ["ISO 639-3： zho"],
