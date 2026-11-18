@@ -858,10 +858,12 @@
     LAST = R;
     var compBand = bandLabel(R.comp);
     var compPr = phi((R.comp - 100) / 15) * 100;
+    // RL-K23：仅测 1 项时不得包装为「综合」标准分
+    var isSingle = R.scored.length === 1;
     var h = '<div class="sca-sec"><h3>🧾 评估报告</h3>' +
       '<div class="sca-grid2" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">' +
-      '<div class="sca-metric"><div class="v">' + nf(R.comp, 0) + '</div><div class="l">' + B('综合标准分', 'Composite score') + '</div></div>' +
-      '<div class="sca-metric"><div class="v">' + nf(compPr, 0) + '%</div><div class="l">' + B('综合百分位', 'Composite percentile') + '</div></div>' +
+      '<div class="sca-metric"><div class="v">' + nf(R.comp, 0) + '</div><div class="l">' + (isSingle ? B('单项标准分', 'Single-test score') : B('综合标准分', 'Composite score')) + '</div></div>' +
+      '<div class="sca-metric"><div class="v">' + nf(compPr, 0) + '%</div><div class="l">' + (isSingle ? B('单项百分位', 'Single-test percentile') : B('综合百分位', 'Composite percentile')) + '</div></div>' +
       '<div class="sca-metric"><div class="v">' + esc(compBand.t) + '</div><div class="l">' + B('总体水平', 'Overall level') + '</div></div>' +
       '<div class="sca-metric"><div class="v">' + R.scored.length + '</div><div class="l">' + B('有效指标数', 'Valid measures') + '</div></div>' +
       '</div>';
@@ -887,16 +889,22 @@
     });
     h += '</tbody></table></div>';
 
-    // 强弱项解读
+    // 强弱项解读（RL-K23：指标数 <3 不展示，避免同一项被同时列为强弱项）
     var sorted = R.scored.slice().sort(function (a, b) { return b.ss - a.ss; });
-    var strong = sorted.slice(0, 2), weak = sorted.slice(-2).reverse();
-    h += '<div class="sca-note"><b>' + B('强项：', 'Strengths: ') + '</b>' +
-      strong.map(function (s) {
-        return esc(mLabel(MEAS_MAP[s.key])) + '（' + B('标准分 ', 'SS ') + nf(s.ss, 0) + B('，超过 ', ', ahead of ') + nf(s.pr, 0) + B('% 同龄人）', '% of peers)');
-      }).join('　') + '<br><b>' + B('相对弱项：', 'Relative weaknesses: ') + '</b>' +
-      weak.map(function (s) {
-        return esc(mLabel(MEAS_MAP[s.key])) + '（' + B('标准分 ', 'SS ') + nf(s.ss, 0) + '）';
-      }).join('　') + '<br>' + interpretation(R) + '</div>';
+    var swNote = '';
+    if (R.scored.length >= 3) {
+      var strong = sorted.slice(0, 2);
+      var strongKeys = {}; strong.forEach(function (s) { strongKeys[s.key] = 1; });
+      var weak = sorted.slice().reverse().filter(function (s) { return !strongKeys[s.key]; }).slice(0, 2);
+      swNote = '<b>' + B('强项：', 'Strengths: ') + '</b>' +
+        strong.map(function (s) {
+          return esc(mLabel(MEAS_MAP[s.key])) + '（' + B('标准分 ', 'SS ') + nf(s.ss, 0) + B('，超过 ', ', ahead of ') + nf(s.pr, 0) + B('% 同龄人）', '% of peers)');
+        }).join('　') + (weak.length ? '<br><b>' + B('相对弱项：', 'Relative weaknesses: ') + '</b>' +
+        weak.map(function (s) {
+          return esc(mLabel(MEAS_MAP[s.key])) + '（' + B('标准分 ', 'SS ') + nf(s.ss, 0) + '）';
+        }).join('　') : '') + '<br>';
+    }
+    h += '<div class="sca-note">' + swNote + interpretation(R) + '</div>';
 
     h += '<div class="sca-actions" style="margin-top:12px">' +
       '<button class="btn primary" id="scaCard">' + B('导出结果卡片 PNG', 'Export result card PNG') + '</button>' +

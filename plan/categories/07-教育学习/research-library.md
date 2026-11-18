@@ -98,20 +98,6 @@
 > 范围：本轮阅读 8 页（`tools/cognition/cognitive-assessment.html`、`tools/cognition/corsi-block-test.html`、`tools/cognition/nback-training.html`、`tools/cognition/time-perception.html`、`tools/museum/audio-guide-timer.html`、`tools/museum/exhibit-spacing.html`、`tools/museum/historical-calendar.html`、`tools/museum/showcase-monitor.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 > 编号说明：文件实际最大编号为 K 批末尾 RL-K21（非提示中的 K16），为避免重号，本轮从 **RL-K22** 起续编。
 
-### RL-K22 综合认知评估：深度解析称「百分制/非标准常模」，实现却是年龄常模标准分（中，确认）
-- 描述：深度解析与 FAQ 两处写「各域 82/74/88/79 为相对百分制」「分数仅站内自评、非标准化常模换算」，但同页公式框与代码使用四层年龄常模、`SS=100+15Z`、`PR=Φ(Z)`，报告直接输出标准分（可低于 40 或高于 160），并非 0–100 百分制。
-- 证据：`tools/cognition/cognitive-assessment.html:179-180`（公式）、`:299`、`:302`（文案）；`js/tools/cognitive-assessment.js:831`（综合分取各指标 SS 均值）。
-- 复现：选 30–49 岁、仅测简单反应时，原始 300 ms → 页面显示 SS≈94.5、PR≈35.6；若原始 250 ms → SS≈114（期望文案按 SS 常模解释，而不是「百分制 94 分」）。
-- 影响：同一分数被两种口径解释；用户会把 SS 94 当作「94 分及格」，与 PR 35.6 的实际常模位置相差一倍。
-- 方案：全页统一为「标准分 SS（M=100，SD=15，基于年龄常模）+ 百分位 PR」；删除「百分制/非标准化常模」表述，示例改列 SS 与 PR 双值。
-
-### RL-K23 综合认知评估：仅测单项时仍称「综合标准分」，强弱项重复同一项（低，确认）
-- 描述：`comp` 对全部已测指标 SS 取均值；仅测 1 项时仍输出「综合标准分/综合百分位」，强弱项用 `slice(0,2)` 与 `slice(-2)` 在同一项上重复展示。
-- 证据：`js/tools/cognitive-assessment.js:831`、`:891-897`；`tools/cognition/cognitive-assessment.html:202-211`（仅测选项）。
-- 复现：仅测「简单反应时」得 SS 94.5 → 报告「综合标准分 94」，同时「强项：简单反应时」「相对弱项：简单反应时」（期望单项模式显示「单项标准分」且不展示强弱项）。
-- 影响：单项结果被包装成综合能力，强弱项自相矛盾。
-- 方案：单项模式改标题为「单项标准分」并隐藏强弱项；强弱项先去重，且指标数 <3 时不展示。
-
 ### RL-K35 历史日历：节气用固定月-日表，2024 冬至等年份错位/漏标（中，确认）
 - 描述：`TERM_DATES` 是固定「月-日」表（如冬至 12-22），不随年份变化；节气实际每年漂移 1–2 天。
 - 证据：`tools/museum/historical-calendar.html:300`、`:379-393`。
