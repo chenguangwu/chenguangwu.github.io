@@ -353,104 +353,122 @@ const CASES = [
 {
   "slug": "medical/dosage-calculator",
   "inputs": {
-    "weight": "90",
-    "height": "170",
-    "age": "30",
-    "perDose": "10"
+    "weight": "24",
+    "height": "118",
+    "age": "30"
   },
-  "expect": [
-    "900.00"
+  "clicks": [
+    "document.getElementById('drug').value='0';onDrugChange();document.getElementById('weight').value='';document.getElementById('result').innerHTML='OLD 500 mg';calc();var o=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='ADULTGUARD '+(o.indexOf('成人剂量暂停计算')>=0&&o.indexOf('OLD')<0&&!/\\d+\\s*mg/.test(o)?'OK':'BAD');"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "ADULTGUARD OK"
+  ],
+  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
 },
 {
   "slug": "medical/dosage-calculator",
   "inputs": {
     "weight": "24",
     "height": "118",
-    "age": "6",
-    "perDose": "10"
+    "age": "6"
   },
-  "clicks": ["document.getElementById('hepFunc').value='c';calc();"],
-  "expect": [
-    "6 岁：男童中位体重约 20.5 kg ，女童约 20.2 kg",
-    "较同龄男童中位体重高 17%",
-    "本工具不提供统一减量比例"
+  "clicks": [
+    "document.getElementById('drug').value='0';onDrugChange();"
   ],
-  "ref": "WHO 生长标准 P50：6 岁男 20.5 kg / 女 20.2 kg；输入 24 kg ⇒ (24-20.5)/20.5=17.07% ⇒ 高 17%。对乙酰氨基酚（DRUGS[0]）经肝代谢，Child-Pugh C ⇒ 显著减量或避免。失败态：clicks 清空 ⇒ hepFunc 回落 normal、age 保持默认 30（非儿童）⇒ 参考体重段不出现、肝提示消失 ⇒ 三条均不命中。"
+  "expect": [
+    "儿童剂量逐药核验未完成"
+  ],
+  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
 },
 {
   "slug": "medical/dosage-calculator",
   "inputs": {
-    "weight": "60",
-    "height": "170",
-    "age": "30",
-    "perDose": "10"
-  },
-  "clicks": ["document.getElementById('drug').value='3';document.getElementById('renalFunc').value='severe';calc();"],
-  "expect": [
-    "药物：阿莫西林（Amoxicillin）",
-    "本工具不提供统一减量比例"
-  ],
-  "ref": "drug value=3 ⇒ DRUGS[3]=阿莫西林（索引序：对乙酰氨基酚0/布洛芬1/阿司匹林2/阿莫西林3），经肾排泄；肾功能重度下降（Ccr 15–29）⇒ 显著减量或延长间隔。默认药物为对乙酰氨基酚（肝脏）且 renalFunc 回落 normal ⇒ 两条均不命中。"
-},
-{
-  "slug": "medical/dosage-calculator",
-  "inputs": {
-    "weight": "70",
-    "height": "165",
-    "age": "28"
-  },
-  "clicks": ["document.getElementById('drug').value='5';onDrugChange();"],
-  "expect": [
-    "单次剂量：2000.00 mg",
-    "已超过该药物单次极量 2000 mg",
-    "按体表面积（mg/m²）：1500 mg/m² × BSA 1.79 m²"
-  ],
-  "ref": "BSA 基准药物：头孢曲松（DRUGS[5]，成人 bsa=1500 mg/m²；childW=50 仅用于儿童）。复算：BSA=√(165×70÷3600)=1.79118 m²；原始单次=1.79118×1500=2686.773 mg > 单次极量 2000 mg ⇒ 按 2000 mg 封顶并告警（日剂量随之为 2000 mg，未超日上限 4000 mg）。默认药物为对乙酰氨基酚（单次 600.0 mg、无极量告警）⇒ 三条均不命中。"
-},
-{
-  "slug": "medical/dosage-calculator",
-  "inputs": {
-    "weight": "70",
-    "height": "165",
-    "age": "28"
-  },
-  "clicks": ["document.getElementById('drug').value='3';onDrugChange();"],
-  "expect": [
-    "490.0 mg",
-    "按体重（mg/kg）：7 mg/kg × 70 kg",
-    "日剂量：1470.00 mg"
-  ],
-  "ref": "阿莫西林（DRUGS[3]）成人单次剂量为 0.5 g q8h ⇒ 折算 7 mg/kg/次；单次 = 70×7 = 490.0 mg，日剂量 = 490×3 = 1470.00 mg（未超最大日剂量 3000 mg）。修复前 adultW=50 被当作单次 mg/kg，输出单次 3500.0 mg、日 10500.00 mg（约为说明书成人单次的 7 倍、超过最大日剂量 3.5 倍）。默认药物为对乙酰氨基酚（10 mg/kg）⇒ 三条均不命中。"
-},
-{
-  "slug": "medical/dosage-calculator",
-  "inputs": {
-    "weight": "20",
+    "weight": "24",
     "height": "118",
-    "age": "5"
+    "age": "30"
   },
-  "clicks": ["document.getElementById('drug').value='2';onDrugChange();"],
-  "expect": [
-    "儿童剂量不提供：「阿司匹林」",
-    "未计算 剂量基准"
+  "clicks": [
+    "document.getElementById('drug').value='3';onDrugChange();"
   ],
-  "ref": "阿司匹林（DRUGS[2]）childW=0 且 childContra=true：5 岁（<14）⇒ basisFor 返回 contra ⇒ renderBlocked，结果区不输出数字剂量并显示儿童禁用/剂量基准未计算。修复前按成人 10 mg/kg×20 kg 输出 200.0 mg 且无结果区警示。注入 20/118/5 均非默认（60/170/30），失败态回落成人态 ⇒ 两条动态锚均不命中（「儿童禁用」原生字串在药物下拉与静态说明里恒存在，不能作锚）。"
+  "expect": [
+    "成人剂量暂停计算"
+  ],
+  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
 },
 {
   "slug": "medical/dosage-calculator",
-  "inputs": { "weight": "20", "height": "118", "age": "6" },
-  "clicks": ["document.getElementById('drug').value='0';onDrugChange();"],
-  "expect": ["儿童剂量逐药核验未完成", "禁止按成人 mg/kg 系数折算"],
-  "ref": "A5 安全拦截：对乙酰氨基酚儿童剂量尚未完成逐药说明书核验，旧版按 10 mg/kg 输出 200.0 mg；修复后停止输出剂量并提示查说明书，默认药物/成人态不出现该提示。"
+  "inputs": {
+    "weight": "24",
+    "height": "118",
+    "age": "30"
+  },
+  "clicks": [
+    "document.getElementById('drug').value='0';onDrugChange();"
+  ],
+  "expect": [
+    "成人剂量暂停计算"
+  ],
+  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
 },
 {
   "slug": "medical/dosage-calculator",
-  "inputs": { "weight": "30", "height": "150", "age": "14" },
-  "clicks": ["document.getElementById('drug').value='0';onDrugChange();"],
-  "expect": ["儿童剂量逐药核验未完成", "禁止按成人 mg/kg 系数折算"],
-  "ref": "14 岁未成年人仍须进入儿童未核验守卫，不能按成人系数输出。"
+  "inputs": {
+    "weight": "24",
+    "height": "118",
+    "age": "30"
+  },
+  "clicks": [
+    "document.getElementById('drug').value='3';onDrugChange();"
+  ],
+  "expect": [
+    "成人剂量暂停计算"
+  ],
+  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
+},
+{
+  "slug": "medical/dosage-calculator",
+  "inputs": {
+    "weight": "24",
+    "height": "118",
+    "age": "6"
+  },
+  "clicks": [
+    "document.getElementById('drug').value='2';onDrugChange();"
+  ],
+  "expect": [
+    "儿童剂量不提供"
+  ],
+  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
+},
+{
+  "slug": "medical/dosage-calculator",
+  "inputs": {
+    "weight": "24",
+    "height": "118",
+    "age": "6"
+  },
+  "clicks": [
+    "document.getElementById('drug').value='0';onDrugChange();"
+  ],
+  "expect": [
+    "儿童剂量逐药核验未完成"
+  ],
+  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
+},
+{
+  "slug": "medical/dosage-calculator",
+  "inputs": {
+    "weight": "24",
+    "height": "118",
+    "age": "6"
+  },
+  "clicks": [
+    "document.getElementById('drug').value='3';onDrugChange();"
+  ],
+  "expect": [
+    "儿童剂量逐药核验未完成"
+  ],
+  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
 },
 {
   "slug": "medical/drug-info",
@@ -610,17 +628,33 @@ const CASES = [
 }
 ,{
   "slug": "medical/dosage-calculator",
-  "inputs": {"weight":"20", "height":"118", "age":"6"},
-  "clicks": ["document.getElementById('drug').value='3';onDrugChange();var captured='';ToolBox.copyText=function(s){captured=s};document.getElementById('perDose').value='13';document.getElementById('freq').value='3';calc();copyResult();document.getElementById('__tbProbe').textContent='PEDCOPY '+(captured.indexOf('儿童剂量暂停计算')>=0 && captured.indexOf('单次剂量：')<0 && document.getElementById('result').innerHTML.indexOf('未计算')>=0?'OK':'BAD');"],
-  "expect": ["PEDCOPY OK"],
-  "ref": "阿莫西林儿童参数处于旧宽区间时，结果和复制均不得输出剂量；复制拦截必须覆盖 unverified。"
+  "inputs": {
+    "weight": "24",
+    "height": "118",
+    "age": "30"
+  },
+  "clicks": [
+    "document.getElementById('drug').value='0';onDrugChange();var r=document.getElementById('result');Object.defineProperty(r,'innerText',{configurable:true,get:function(){return String(this.innerHTML||'').replace(/<[^>]*>/g,'')}});var captured='';ToolBox.copyText=function(s){captured=String(s)};calc();copyResult();document.getElementById('__tbProbe').textContent='COPYPARITY '+(captured===(r.innerText||r.textContent||'')&&captured.indexOf('成人剂量暂停计算')>=0&&!/\\d+\\s*mg/.test(captured)?'OK':'BAD');"
+  ],
+  "expect": [
+    "COPYPARITY OK"
+  ],
+  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
 }
 ,{
-  "slug":"medical/dosage-calculator",
-  "inputs":{"weight":"90","height":"170","age":"30","perDose":"100","freq":"3"},
-  "clicks":["var captured='';ToolBox.copyText=function(s){captured=s};calc();copyResult();document.getElementById('__tbProbe').textContent='COPYCAP '+(captured.indexOf('单次剂量：1000.00 mg')>=0 && document.getElementById('result').innerHTML.indexOf('1000.00 mg')>=0?'OK':'BAD '+captured);"],
-  "expect":["COPYCAP OK"],
-  "ref":"超单次上限时复制与显示使用同一封顶剂量。"
+  "slug": "medical/dosage-calculator",
+  "inputs": {
+    "weight": "24",
+    "height": "118",
+    "age": "30"
+  },
+  "clicks": [
+    "document.getElementById('drug').value='0';onDrugChange();var hit=0;TBKit={history:{list:function(){hit++;return [{d:{'结果':'单次 900 mg'}}]},mount:function(){hit++}},matrix:{table:function(){hit++}},util:{exportTable:function(){hit++}}};ToolBox.showToast=function(){};__dosage_calculatorRender([], '结果', false);__dosage_calculatorExtras();__dosage_calculatorExport();document.getElementById('__tbProbe').textContent='OLDDOSEHIDDEN '+(hit===0?'OK':'BAD');"
+  ],
+  "expect": [
+    "OLDDOSEHIDDEN OK"
+  ],
+  "ref": "未核验剂量安全拦截；不依据旧系数或历史剂量输出给药方案。"
 }
 ];
 async function main() {

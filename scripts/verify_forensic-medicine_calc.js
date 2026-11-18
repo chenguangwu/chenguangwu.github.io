@@ -73,23 +73,10 @@ const CASES = [
   ],
   "ref": "auto-restore"
 },
-{
-  "slug": "forensic-medicine/death-time-estimation",
-  "inputs": {
-    "rectalTemp": "48",
-    "ambientTemp": "20",
-    "bodyWeight": "70"
-  },
-  "expect": ["直肠温度不应高于 37.2°C", "已超出死后冷却公式适用范围"],
-  "ref": "12-N21：Tr≥37.2 已进入正常体温区间，Henssge 为 0 或负值、区间无意义；新版在字段级直接拒算并提示，旧版输出「估算范围：0 分钟 ~ 2 小时 48 分钟」（区间上界原样为负）"
-},
-{
-  "slug": "forensic-medicine/death-time-estimation",
-  "inputs": {"rectalTemp": "32", "ambientTemp": "20", "bodyWeight": "70", "corneal": "0"},
-  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/forensic-medicine/death-time-estimation.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var d=JSON.parse(dd)['forensic-medicine/death-time-estimation'];var ok=h.indexOf('两法参考区间：')>=0&&h.indexOf('非上方综合值的置信区间')>=0&&h.indexOf('角膜混浊参考（独立指标，不参与上方加权）')>=0&&h.indexOf('相差较大，两指标不一致')>=0&&h.indexOf('drawTempChart(Ta, K, correction)')>=0&&h.indexOf('var k = K * correction;')>=0&&h.indexOf('0.4 * factor / 1.5')<0&&h.indexOf('不应高于 37.2°C')>=0&&d.scenarios[2].indexOf('独立参考')>=0&&d.examples[0].body.indexOf('0~4')<0;document.getElementById('__tbProbe').textContent='DTCONSIST '+(ok?'OK':'BAD');"],
-  "expect": ["DTCONSIST OK"],
-  "ref": "12-N19/N20/N22：区间文案标注为两法参考区间（非综合值 CI）、角膜改独立指标并加一致性复核提示、曲线改用与数值模型同一 K（去掉旧的 0.4*factor/1.5 固定速率）；deep-dive 权威源同步 0-3 四档与独立参考口径。源码形态哨兵，旧版四处旧串命中即红"
-},
+{ "slug": "forensic-medicine/death-time-estimation", "inputs": {"rectalTemp":"32", "ambientTemp":"20", "corneal":"2"}, "expect": ["Glaister 简化模型数值", "6.0 小时", "不据此换算时间"], "ref": "Glaister 简化演示：32°C 得 6.0 小时，角膜不参与计算。" },
+{ "slug":"forensic-medicine/death-time-estimation", "inputs":{"rectalTemp":"32","ambientTemp":"20","corneal":"3"}, "clicks":["calc();var c=document.getElementById('tempChart').innerHTML;var r=document.getElementById('result').innerHTML;var ok=c.indexOf('data-temp=\"32\"')>=0&&r.indexOf('6.0 小时')>=0;document.getElementById('rectalTemp').value='20';calc();ok=ok&&document.getElementById('tempChart').innerHTML==='';document.getElementById('__tbProbe').textContent='DTCURVE '+(ok?'OK':'BAD');"], "expect":["DTCURVE OK"], "ref":"曲线末点与实际直肠温一致，拒算时清空旧图。" },
+{ "slug": "forensic-medicine/death-time-estimation", "inputs": {"rectalTemp":"37", "ambientTemp":"20"}, "expect": ["无法估算：直肠温度须低于 37°C 且高于环境温度"], "ref": "37°C 不允许估算。" },
+{ "slug": "forensic-medicine/death-time-estimation", "inputs": {"rectalTemp":"20", "ambientTemp":"20"}, "expect": ["无法估算：直肠温度须低于 37°C 且高于环境温度"], "ref": "直肠温度不高于环境温度时拒算。" },
 {
   "slug": "forensic-medicine/detector-10",
   "inputs": {

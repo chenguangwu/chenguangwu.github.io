@@ -35,27 +35,14 @@ const CASES = [
   "ref": "新生儿 CCHD 脉搏血氧筛查（门诊记录）：右手 85% / 足部 80% / 差值 5% → 综合风险中风险、筛查阳性（默认 98/97/1% → 低风险、阴性）。原用例 expect 含「85%」属输入回显（逃生项类型②），已改为门诊记录强串「CCHD脉搏血氧筛查：CCHD筛查阳性（SpO2＜90%）」+「综合风险：中风险」，二者均随输入变化、默认态（阴性/低风险）不出现，零交集。钩子捕获 minS/diff/cchd/urg/lvl/sign/risk 等已算变量，EN 态走 cchdMap/urgMap/lvlMap + resultEn/extraEn/hintEn 纯英文映射，零 CJK。"
 },
 {"slug":"pediatrics/chd-assessment","inputs":{"age":"2","rhSpo2":"85","llSpo2":"78"},"checkIds":["cyanosis"],"expect":["结果：右上肢 SpO₂ 85% / 下肢 78%（差值 7%）→ 血氧筛查 阳性(转诊)；风险评分 8 分，分级：高风险","危险因素 3 项（血氧筛查阳性、中心性紫绀、上下肢SpO2差值≥5%(导管依赖)）"],"ref":"门诊记录（EMR note）：右上肢 85%、下肢 78% 均 <90 ⇒ 血氧阳性 +3；差值 7% ≥5 ⇒ 再 +2；勾选中心性紫绀 +3 ⇒ 风险评分 8 ≥5 落「高风险」。默认态 97/96（差值 1%、阴性）且无勾选 ⇒「风险评分 0 分，分级：极低风险」，零交集。原用例 expect 仅 85%/高风险 两个碎片。"},
-{
-  "slug": "pediatrics/ddst-screening",
-  "inputs": {
-    "age": "18"
-  },
-  "clicks": [
-    "var d=domains[0];getAgeGroups(18).forEach(function(g){var it=d.items[g]||[];it.forEach(function(x,idx){testResults[d.key+'_'+g+'_'+idx]='fail';});});calc()"
-  ],
-  "expect": [
-    "总体结果：异常",
-    "个人-社会：通过0/18，未通过18，延迟项14，已测18/应测14 → "
-  ],
-  "ref": "门诊记录：把「个人-社会」能区 18 月龄及以前的条目全部标记 fail（clicks 直接写 testResults），其余能区未测 ⇒ 该能区延迟 14 项 ⇒ 异常，0 可疑、3 个资料不完整 ⇒ 总体「异常」。判定看年龄线及以下的延迟项数量，不看通过率。默认态 testResults 为空 ⇒ 4 能区全「资料不完整」、总体「资料不完整」，与本用例零交集。"
-},
+{ "slug":"pediatrics/ddst-screening", "inputs":{"age":"18"}, "clicks":["var d=domains[0],g=getAgeGroups(18)[0];testResults[d.key+'_'+g+'_0']='fail';testResults[d.key+'_'+g+'_1']='refuse';calc()"], "expect":["未观察到 1，拒绝 1"], "ref":"未观察到与拒绝分开计数，不推导筛查等级。" },
 {"slug":"pediatrics/dehydration-assessment","inputs":{"weight":"8","prevWeight":"8.8"},"checkIds":["s3","s4","s8"],"expect":["结果：分度：中度脱水（估计体液丢失 5-10%）· Gorelick 评分 3/10","体重丢失法算得 9.1%"],"ref":"门诊记录：勾选 s3 黏膜干燥 + s4 眼窝凹陷 + s8 尿量减少 ⇒ Gorelick 3/10 落 3–6 段「中度脱水」（5-10%）；病前 8.8 kg → 现 8 kg，体重丢失 (0.8/8.8)=9.1% ⇒ 累计丢失量按体重丢失法算得约 727 mL。默认态 10 kg、未勾选、无病前体重 ⇒「轻度脱水」「Gorelick 0/10」，零交集。"},
 {"slug":"pediatrics/diarrhea-dehydration","inputs":{"age":"18","weight":"10","stoolFreq":"8","duration":"3","stoolType":"watery"},"checkIds":["s1","s4","s5","s8"],"expect":["结果：分度：中度脱水（体液丢失 8%）· 腹泻 8 次/日 · 病程 3 天 · 大便性状 水样便","重度体征 0 项、中度体征 4 项、轻度体征 0 项（共 4 项）"],"ref":"门诊记录：勾选 s1 眼窝凹陷 + s4 皮肤弹性差 + s5 尿量减少 + s8 前囟凹陷，全属中度体征 4 项 ⇒ 中度脱水（7.5%→显示 8%）；水样便。默认态 12 月/10 kg/6 次/日、未勾选 ⇒「无脱水（体液丢失 0%）」，零交集。"},
 {"slug":"pediatrics/enuresis-age","inputs":{"age":"8","freq":"6"},"expect":["结果：年龄 8 岁 · 每周遗尿 6 次 → 严重度 中度(4-6次/周)；原发性遗尿 / 单症状性遗尿(仅夜间)（符合诊断）；同龄自然控尿率约 93%"],"ref":"门诊记录：8 岁、每周 6 次 ⇒ 4–6 段「中度」、≥5 岁且 ≥2 次/周「符合诊断」、8 岁档自然控尿率 93%；本题未勾选任何伴随症状 ⇒ 需排查 0 项。默认态 7 岁/4 次 ⇒「每周遗尿 4 次」「同龄自然控尿率约 85%」，零交集。原用例 expect 仅「10岁」年龄回显。"},
 {"slug":"pediatrics/growth-curve-zscore","inputs":{"gender":"girl","age":"24","ageUnit":"month","height":"82","weight":"10.5","head":"46"},"expect":["结果：年龄 24 月（女）· 身高 82 cm → Z -1.16（正常）；体重 10.5 kg → Z -0.77（正常）；头围 46 cm → Z -0.33（正常）","参考中位数：身高中位 85.7、体重中位 11.5、头围中位 46.5"],"ref":"门诊记录（EMR note）：24 月女童 WHO 身高中位 85.7 cm、SD 3.2 ⇒ Z=(82-85.7)/3.2=-1.16；体重中位 11.5、SD 1.3 ⇒ -0.77；头围中位 46.5、SD 1.5 ⇒ -0.33。默认态男童 87/12.5/48 ⇒「身高 87 cm → Z -0.03」，零交集。本批同时修 whoRef 体重/头围模型：旧实现体重 3.2+0.38×月龄、头围 34.0+0.55×月龄 线性外推，6 月龄女童只给 5.48 kg/37.3 cm（WHO 实际 7.3 kg/42.2 cm），正常婴儿被判 Z≈-2.5 低体重与 Z≈-3.8 小头畸形；改为 WHO 2006 锚点表（体重 0–60 月、头围 0–24 月）+ 线性插值。"},
 {"slug":"pediatrics/hfmd-course","inputs":{"age":"18","day":"3","temp":"39.2"},"checkIds":["s2","s3"],"expect":["结果：年龄 18 月 · 病程第 3 天 · 体温 39.2°C → 分期：第2期：神经系统受累期；皮疹 0 处、分布典型：否","重症预警征象 2 项（神经系统 2 项、心肺 0 项）；处置：住院治疗+降颅压"],"ref":"门诊记录：勾选 s2 精神差/嗜睡 + s3 肢体抖动/肌阵挛（均属神经系统预警征）⇒ 神经 2 项、心肺 0 项 ⇒ 落「第 2 期：神经系统受累期」，处置「住院治疗+降颅压」。默认态 24 月/第 2 天/38.5°C 且无勾选 ⇒「疑似(皮疹不典型)」，零交集。原用例 expect 仅「40°C」体温回显。"},
 {"slug":"pediatrics/hirschberg-test","inputs":{"fixing":"left","reflex":"nasal","offset":"3","pupil":"6"},"expect":["结果：注视眼：左眼 → 非注视眼：右眼；光反射位置 偏鼻侧、偏移 3 mm（约 45°）→ 重度外斜视(Exotropia)","经验换算：角膜光反射每偏移 1 mm 约对应 15°（≈7 三棱镜度）；瞳孔直径 6 mm"],"ref":"门诊记录：左眼注视、光反射偏鼻侧（眼球外转）⇒ 外斜；偏移 3 mm × 15° = 45°；≥3.5 mm 段为「极重度」、2.5–3.5 mm 为「重度」⇒ 3 mm 落「重度外斜视」。默认态 reflex=center、offset=2 ⇒「正位(无斜视)」「光反射位置 居中」，零交集。原用例注入 reflex=exo（页面并无该选项值）导致结论含 undefined，属非法输入，已改为合法值 nasal。"},
-{"slug":"pediatrics/neonatal-jaundice","inputs":{"hours":"72","tsb":"15","ga":"39","bw":"3200"},"expect":["结果：TSB 15 mg/dL @ 出生 72 小时 → 高危险区；光疗阈值 19、换血阈值 25 → 未达光疗阈值","小时龄百分位 P40 11.5 / P75 14.5 / P95 15.0 mg/dL；高危因素：无"],"ref":"门诊记录：Bhutani 1999 小时龄百分位表 72 h 为 P40 11.5 / P75 14.5 / P95 15.0 mg/dL（AAP 2004/2009 沿用），TSB 15 ≥ P95 ⇒「高危险区」；39 周足月低危儿 72–96 h 按本页 AAP 2004 曲线光疗阈值 19、换血 25（AAP 2022 已取代 2004，临床以 2022 版为准）⇒ 15<19 未达光疗阈值。默认态 48 h/TSB 14 ⇒「TSB 14 mg/dL @ 出生 48 小时」「P95 12.0」，零交集。"},
+{"slug":"pediatrics/neonatal-jaundice","inputs":{"hours":"72","tsb":"15","ga":"34","bw":"2400"},"expect":["256.5 μmol/L","仅作单位换算，不判定风险分区或治疗阈值"],"ref":"胎龄 34 周、出生体重 2400 g 时不输出 AAP 2022 治疗阈值或 SGA 判定；TSB 15 mg/dL × 17.1 = 256.5 μmol/L。默认 TSB 10 ⇒ 171.0，转换值可区分默认态。"},
 {"slug":"pediatrics/pediatric-anemia","inputs":{"age":"12","ageUnit":"month","weight":"10","hb":"95","sf":"8","mcv":"70"},"expect":["结果：年龄 12 月（6-23月）· Hb 95 g/L（阈值 ≥105）→ 中度贫血；MCV 70 fL（阈值 ≥70）、SF 8 μg/L → 缺铁性贫血(IDA,Stage 3)","元素铁补充量 40.0 mg/日；SF 偏低：是；MCV 偏低：否"],"ref":"门诊记录：12 月龄属 WHO 2024 的 6-23 月组，Hb 阈值 105 g/L，实测 95 ⇒ 中度贫血（70–99）；MCV 70 不低于 1 岁档界值 70、SF 8 < 12 ⇒ IDA Stage 3；10 kg × 4 mg/kg/日 = 40.0 mg/日元素铁。默认态 Hb 100/MCV 72/SF 12 ⇒「轻度贫血」「铁储存不足」，零交集。"},
 {"slug":"pediatrics/pediatric-anemia","inputs":{"age":"12","ageUnit":"month","weight":"100","hb":"95","sf":"8","mcv":"70"},"expect":["元素铁补充量 200.0 mg/日","已按 200 mg 封顶"],"ref":"日总量封顶：100 kg × 4 mg/kg = 400 mg/日 > 儿科口服元素铁日总量上限 200 mg（WHO/Nelson）⇒ 输出 200.0 mg/日并告警。默认态 10 kg ⇒ 40.0 mg/日、无告警，两条均不命中；与上一条 10 kg 用例构成 40.0 vs 200.0 的方向判别。"},
 {"slug":"pediatrics/pediatric-fever","inputs":{"temp":"39.2","age":"8"},"clicks":["var e=document.getElementById('fever3d');if(e){e.checked=true;}calc()"],"expect":["结果：体温 39.2°C（腋温）→ 腋温等效 39.2°C，分度：高热","月龄 8 月；危险信号 1 条"],"ref":"门诊记录（EMR note）：体温 39.2°C（腋温）落 39.0–41.0 段「高热」；勾选发热>3 天 ⇒ 危险信号 1 条。默认态 38.5°C/24 月、未勾选 ⇒「分度：中度发热」「危险信号 0 条」，零交集。原用例只锚 39.5°C 单值（输入回显式弱锚）。"},
@@ -77,7 +64,7 @@ const CASES = [
     "【儿童生长发育 Z 评分评估（WHO 标准）】 结果：女 2.0 岁（24 月龄）· 体重 8.2 kg（Z -2.73）· 身长/高 80 cm（Z -1.96）· 头围 45 cm（Z -1.74） · BMI 12.8 阳性条目（共 1 项）：Q1 体重/年龄 Z -2.73（超出 ±2SD：中度偏低） 判读口径：以 WHO 儿童生长标准（按月龄插值取中位数与 SD）计算 Z 评分；|Z|&gt;2 为超出正常范围、|Z|&gt;3 为重度异常；单次测量不替代纵向生长曲线 临床提示：存在超出 ±2SD 的指标：结合生长曲线趋势（是否跨越主要百分位线）判断，单次测量异常需 4 周内复测确认，同时记录喂养与近期疾病史。 评估日期：__________ 评估者：__________ （自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）"
   ]
 },
-{"slug":"pediatrics/xinshengerhuangdan-xiaoshidanhongsu-quxian","inputs":{"age":"48","bili":"20"},"expect":["结果：日龄 48 小时，TSB 20 mg/dL → 光疗阈值区；光疗阈值 13.5、换血阈值 21.0 mg/dL；Bhutani 百分位 ≥95th","胎龄 38 周（低危曲线）· 危险因素：无；距换血阈值余 1.0 mg/dL"],"ref":"门诊记录：48 h、TSB 20 mg/dL，胎龄 38 周无危险因素 ⇒ 走低危阈值（光疗 13.5、换血 21.0）⇒ 20 ≥13.5 且 <21 落「光疗阈值区」，距换血余 1.0 mg/dL；Bhutani 表 P95(48h)=12 ⇒ 20 ≥ P95 落 ≥95th。默认态 TSB 14 ⇒「TSB 14 mg/dL」「距换血阈值余 7.0 mg/dL」，零交集。本批同时把本页旧百分位表（P95 48h=14.0/P75=9.5/P40=6.0，较 AAP 口径系统性偏高约 2 mg/dL）统一为 Bhutani/Maisels 表值，与 neonatal-jaundice 页同源。"},
+{"slug":"pediatrics/xinshengerhuangdan-xiaoshidanhongsu-quxian","inputs":{"age":"48","bili":"20"},"expect":["342.1 μmol/L","风险分区及治疗阈值暂停提供"],"ref":"20 mg/dL 单位换算，不输出未经核验的风险与治疗阈值。"},
 {
   "slug": "pediatrics/vaccine-schedule",
   "inputs": {
@@ -197,12 +184,7 @@ const CASES = [
 },
   { slug: "pediatrics/hearing-screening", inputs: { age: "" }, expect: ["请填写筛查时的日龄/月龄后再评估。"], ref: "空态守卫：清空日龄/月龄后不再输出 0 日龄与筛查结论/随访建议，只给填写提示（旧实现 ⇒ 0 日龄 + 通过/未通过结论）。默认态 3 日龄 ⇒ 提示串不出现。" },
   { slug: "pediatrics/hearing-screening", inputs: { method: "oae", ageUnit: "day", age: "3", leftResult: "refer", rightResult: "pass" }, expect: ["单侧未通过(转诊)", "左耳结果：未通过(转诊)"], ref: "注入 3 日龄 + 左耳未通过/右耳通过 ⇒ 单侧未通过(转诊)、3 日龄、左耳未通过(转诊)；默认态两耳均通过（双侧通过）⇒ 两条均不命中。" },
-  {
-    "slug": "pediatrics/ddst-screening",
-    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pediatrics/ddst-screening.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/pediatrics/ddst-screening.json','utf8');var d=JSON.parse(dd)['pediatrics/ddst-screening'];var ok=h.indexOf('var tested=passed+failed')>=0&&h.indexOf('var rate=total>0')<0&&h.indexOf('已测')>=0&&h.indexOf('/应测')>=0&&h.indexOf('out.__ddst_results=JSON.stringify(testResults)')>=0&&h.indexOf('if(rec.__ddst_results!==undefined) __ddst_restoreResults')>=0&&h.indexOf('总体结果：')>=0&&en.indexOf('All domains fully tested')>=0&&d.examples[1].body.indexOf('80%')<0&&d.examples[1].body.indexOf('无延迟')>=0;document.getElementById('__tbProbe').textContent='DDSTHIST '+(ok?'OK':'BAD');"],
-    "expect": ["DDSTHIST OK"],
-    "ref": "12-N78/N80：通过率分母由全部显示项（含未测/右侧更难项）改为已测项并显示「已测 x/应测 y」；历史快照序列化 testResults 逐项标记，恢复时 renderTests()+markTest() 重建，结果列改存总体结果+能区摘要而非前80字。N76/N77/N79 源码复核已修纯销账。权威源深解删「通过≥80%→正常」旧口径。旧版分母/快照/文案均命中旧串即红，默认态不产生该哨兵。"
-  },
+  { "slug":"pediatrics/ddst-screening", "inputs":{"age":""}, "expect":["请填写"], "ref":"空月龄不显示记录结论。" },
 ];
 async function main() {
   const only = process.argv.slice(2);

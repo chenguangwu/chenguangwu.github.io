@@ -1663,7 +1663,7 @@ const CASES = [
   },
   {
     slug: "edu/country-quiz",
-    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/country-quiz.html','utf8');var seg=h.slice(h.indexOf('const countries=['),h.indexOf('let queue'));var n=(seg.match(/name:'/g)||[]).length;var ok=n>=50&&h.indexOf('Noto Color Emoji')>=0&&seg.indexOf('荷兰')>=0&&seg.indexOf('新加坡')>=0&&seg.indexOf('肯尼亚')>=0;document.getElementById('__tbProbe').textContent='CQJ127 '+n+' '+(ok?'OK':'BAD');"],
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/country-quiz.html','utf8');var seg=h.slice(h.indexOf('const countries=['),h.indexOf('let queue'));var n=(seg.match(/name:'/g)||[]).length;var flags=Array.from(seg.matchAll(/flag:'([^']+)'/g),m=>m[1]);var ok=n>=50&&flags.length===n&&flags.every(f=>fs.existsSync(process.cwd()+'/assets/country-flags/'+Array.from(f,c=>c.codePointAt(0).toString(16)).join('-')+'.svg'))&&h.indexOf('flagImg.onerror')>=0&&seg.indexOf('荷兰')>=0&&seg.indexOf('新加坡')>=0&&seg.indexOf('肯尼亚')>=0;document.getElementById('__tbProbe').textContent='CQJ127 '+n+' '+(ok?'OK':'BAD');"],
     expect: ["CQJ127 56 OK"],
     ref: "EL-J127：旧版题库仅 20 国、emoji 无字体栈，部分平台回退为字母代码。现扩到 56 国并加系统 emoji 字体栈兜底（Apple/Segoe/Noto/Twemoji）。源码形态哨兵（条目数+字体栈+新增国名）：旧版 n=20 ⇒ 必红。",
   },
@@ -1923,6 +1923,13 @@ const CASES = [
     expect: ["GWSUM OK"],
     ref: "E2 权重和提示：权重本来按 totalW 归一，Σw≠100 并非计算错误，但结果区未说明，容易被误认为漏项。现非 100% 时显式提示「结果按总权重归一；若按百分比口径请使合计为 100%」，英文同步；源码哨兵，旧版无提示必红。",
   },
+  { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "1900-01-30" }, expect: ["生日早于春节（1900-01-31），生肖按 1899 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
+  { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "1900-01-31" }, expect: ["生日晚于或等于春节（1900-01-31），生肖按 1900 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
+  { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "1970-02-05" }, expect: ["生日早于春节（1970-02-06），生肖按 1969 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
+  { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "1970-02-06" }, expect: ["生日晚于或等于春节（1970-02-06），生肖按 1970 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
+  { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "2100-02-08" }, expect: ["生日早于春节（2100-02-09），生肖按 2099 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
+  { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "2100-02-09" }, expect: ["生日晚于或等于春节（2100-02-09），生肖按 2100 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
+  { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "2101-01-01" }, expect: ["出生日期仅支持 1900–2100 年。"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
 ];
 
 async function main() {

@@ -121,13 +121,19 @@ const CASES = [
   "slug": "nephrology/edema-grading",
   "inputs": {
     "depth": "7",
-    "recovery": "30", "location": "ankle", "bilateral": "yes"
+    "recovery": "120", "location": "ankle", "bilateral": "yes"
   },
   "expect": [
-    "4+"
+    "3+"
   ],
   "ref": "auto-restore"
 },
+{"slug": "nephrology/edema-grading", "inputs": {"depth": "0", "recovery": "120", "location": "ankle", "bilateral": "yes"}, "expect": ["0（无可测凹陷）"], "ref": "Calzon 2023 凹陷深度分档；恢复时间不改变结果"},
+{"slug": "nephrology/edema-grading", "inputs": {"depth": "1", "recovery": "120", "location": "ankle", "bilateral": "yes"}, "expect": ["½+"], "ref": "Calzon 2023 凹陷深度分档；恢复时间不改变结果"},
+{"slug": "nephrology/edema-grading", "inputs": {"depth": "2", "recovery": "120", "location": "ankle", "bilateral": "yes"}, "expect": ["1+"], "ref": "Calzon 2023 凹陷深度分档；恢复时间不改变结果"},
+{"slug": "nephrology/edema-grading", "inputs": {"depth": "4", "recovery": "120", "location": "ankle", "bilateral": "yes"}, "expect": ["2+"], "ref": "Calzon 2023 凹陷深度分档；恢复时间不改变结果"},
+{"slug": "nephrology/edema-grading", "inputs": {"depth": "6", "recovery": "120", "location": "ankle", "bilateral": "yes"}, "expect": ["3+"], "ref": "Calzon 2023 凹陷深度分档；恢复时间不改变结果"},
+{"slug": "nephrology/edema-grading", "inputs": {"depth": "8", "recovery": "120", "location": "ankle", "bilateral": "yes"}, "expect": ["4+"], "ref": "Calzon 2023 凹陷深度分档；恢复时间不改变结果"},
 {
   "slug": "nephrology/hematuria-source",
   "inputs": {
@@ -341,7 +347,7 @@ const CASES = [
 },
 {
   "slug": "nephrology/edema-grading",
-  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/nephrology/edema-grading.html','utf8');var ok=h.indexOf('value:score')>=0&&h.indexOf('min:1,max:4')>=0&&h.indexOf('{\"lo\":1,\"hi\":2')>=0&&h.indexOf('{\"lo\":0,\"hi\":3')<0;document.getElementById('__tbProbe').textContent='EDEMABAR '+(ok?'OK':'BAD');"],
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/nephrology/edema-grading.html','utf8');var ok=h.indexOf('value:score')>=0&&h.indexOf('min:0,max:4')>=0&&h.indexOf('lo:0.5,hi:1')>=0&&h.indexOf('{\"lo\":0,\"hi\":3')<0;document.getElementById('__tbProbe').textContent='EDEMABAR '+(ok?'OK':'BAD');"],
   "expect": ["EDEMABAR OK"],
   "ref": "12-N114：结果分级取深度/回弹较重档 score=1..4，参考标尺必须使用同一 score 与 1/2/3/4 分带；旧版按 depth 且用 0/3/5/7 分带 ⇒ 变红。默认态不产生该串，零逃生。"
 },

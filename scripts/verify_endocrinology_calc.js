@@ -218,6 +218,8 @@ const CASES = [
 {
   "slug": "endocrinology/pcos-diagnosis",
   "inputs": {
+    "pcosScope": "adult",
+    "scanMethod": "volume",
     "cycle": "45",
     "periods": "6",
     "testosterone": "72",
@@ -237,6 +239,11 @@ const CASES = [
   "expect": ["PCOSMILD OK"],
   "ref": "12-N128：「轻度（仅 PCOM）」按钮原 loadMild 给 cycle=38+临床高雄+PCOM 且排除项全勾 ⇒ 3/3 判 A 型最高风险，与同页「仅 PCOM 形态（单项，不满足诊断）」预设相反。改为 cycle=32、FG=4、仅 PCOM，与预设同源 ⇒ 输出「不符合」；默认态 cycle=45/睾酮72（>60 触发生化高雄）为 2/3 诊断成立，注入失败不会命中本哨兵，零逃生。"
 },
+{ "slug":"endocrinology/pcos-diagnosis", "inputs":{"criteria":"rotterdam","pcosScope":"adult","scanMethod":"tv","follicles":"19"}, "expect":["不满足 ③ 多囊形态"], "ref":"经阴道卵泡数 19 低于 20。" },
+{ "slug":"endocrinology/pcos-diagnosis", "inputs":{"criteria":"rotterdam","pcosScope":"adult","scanMethod":"tv","follicles":"20"}, "expect":["满足 ③ 多囊形态"], "ref":"经阴道卵泡数 20 达到阈值。" },
+{ "slug":"endocrinology/pcos-diagnosis", "inputs":{"criteria":"rotterdam","pcosScope":"adult","scanMethod":"volume","ovaryVol":"9"}, "expect":["不满足 ③ 多囊形态"], "ref":"体积 9 mL 低于 10 mL。" },
+{ "slug":"endocrinology/pcos-diagnosis", "inputs":{"criteria":"rotterdam","pcosScope":"adult","scanMethod":"volume","ovaryVol":"10"}, "expect":["满足 ③ 多囊形态"], "ref":"体积 10 mL 达到阈值。" },
+{ "slug":"endocrinology/pcos-diagnosis", "inputs":{"criteria":"rotterdam","pcosScope":"adult","scanMethod":"tv","follicles":"19.5"}, "expect":["请填写有效的非负整数单侧全卵巢卵泡数"], "ref":"卵泡数必须为非负整数。" },
 {
   "slug": "endocrinology/pituitary-tumor",
   "inputs": {
