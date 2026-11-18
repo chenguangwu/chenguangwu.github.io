@@ -70,6 +70,40 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "museum/exhibit-spacing",
+  "inputs": {
+    "artWidth": "120",
+    "artHeight": "100",
+    "centerH": "150",
+    "hAngle": "30",
+    "vAngle": "15",
+    "eyeH": "155",
+    "viewers": "2",
+    "shoulder": "60"
+  },
+  "expect": [
+    "0.46 幅/m"
+  ],
+  "ref": "每米布展数（RL-K32）：推荐间距 = max(120+60×2×0.8, 120×1.5) = 216 cm ⇒ 100÷216 = 0.46296 ⇒ 显示 0.46 幅/m。旧版 Math.floor 截成 0 幅/m，默认态为 0.57，两值均不命中 0.46。"
+},
+{
+  "slug": "museum/exhibit-spacing",
+  "inputs": {
+    "artWidth": "80",
+    "artHeight": "100",
+    "centerH": "150",
+    "hAngle": "60",
+    "vAngle": "45",
+    "eyeH": "155",
+    "viewers": "1",
+    "shoulder": "60"
+  },
+  "expect": [
+    "视角与清晰距离冲突：已按最小观看距离给建议。"
+  ],
+  "ref": "距离冲突（RL-K33）：水平 40÷tan60°≈23.1 cm、垂直 (5+50)÷tan45°=55 cm，视角最佳 55 cm < 对角线 0.6 倍 76.8 cm。修复后最佳距离抬到 76.8 cm 并提示冲突；旧版两条建议打架且无该提示，默认态也不命中。"
+},
+{
   "slug": "museum/historical-calendar",
   "inputs": {
     "date-input": "2008-08-08"
