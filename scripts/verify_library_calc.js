@@ -42,6 +42,18 @@ const CASES = [
   "ref": "切换大类清空选择：旧版按钮只改 currentMain 不重置 selectedCode，选中 B84 后切到 T，结果区仍显示 B84 并生成 B84/123 跨大类索书号。封装 switchMain 并在切换时清空，端到端断言分类号从 B84 变为未选择；默认态无 SWITCH 串，不命中。"
 },
 {
+  "slug": "library/clc-classifier",
+  "inputs": { "search": "tp3" },
+  "expect": ["搜索结果：3 条", "TP31"],
+  "ref": "深度解析示例承诺检索 TP3 可命中并生成 TP3/123，但旧表只到二级 TB…TV，search('tp3') 返回 0 条。现补 TP3/TP31/TP39 常用三级类目，按类号前缀命中 3 条。默认 A 大类无这些类号，不命中。"
+},
+{
+  "slug": "library/clc-classifier",
+  "inputs": { "search": "计算机" },
+  "expect": ["搜索结果：4 条", "TP39"],
+  "ref": "中文主题检索：旧版仅命中 TP 自动化技术、计算机技术 1 条，无法复现深度解析的「检索计算机」三级下钻。补三级类目后命中 TP/TP3/TP31/TP39 共 4 条。默认 A 大类无这些条目，不命中。"
+},
+{
   "slug": "library/generator-label",
   "inputs": {
     "fonds": "B123",
