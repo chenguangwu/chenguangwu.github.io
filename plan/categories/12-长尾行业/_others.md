@@ -104,13 +104,6 @@
 
 > 范围：本轮阅读 8 页——`tools/chemical/solution-concentration.html`（chemical）、`tools/mining/convert-grade-ore.html`（mining）、`tools/hvac/cooling-load.html`（hvac）、`tools/paper/roll-length.html`（paper）、`tools/fire/hydrant-pressure.html`（fire）、`tools/gas/load-1.html`（gas）、`tools/security/flood-level.html`（security）、`tools/transport/convert-volume-weight.html`（transport）。仅源码 + node 内存复算，未开浏览器，未做 EN/移动端/门禁验证。
 
-### 12-K11 transport/convert-volume-weight：缺实际重输入与计费重量输出，与标题/meta/引据表承诺不符（中，确认缺陷）
-- 描述：标题、meta description、引据表与深度解析算例都承诺"实际重 vs 体积重，取较大者作为计费重量"，深度解析还给出"实重 8 kg → 计费重 12 kg"的算例；但页面只有长/宽/高/除数四个输入，`calc` 只算体积重（及 lb、6000 系数对照），没有实重输入，也没有 `max(实重, 体积重)` 结果。`formula-box` 末尾虽注明"本工具输出体积重"，但标题/meta/算例仍按"对比取大"宣传。
-- 证据：`tools/transport/convert-volume-weight.html:10`（meta 承诺）、`:120-124`（四个输入与除数下拉）、`:150`（引据表 Chargeable=max）、`:169`（`calc` 仅输出体积重）、`:181`（公式框注明仅输出体积重）、`:209`（算例含实重 8 kg）。
-- 复现：50×40×30 cm、系数 5000 → 12.00 kg；页面无法输入实重 8 kg，无法得到算例所写的计费重 12 kg，也无"计费重量"字段。
-- 影响：工具名与搜索词承诺的核心对比功能缺失，用户按描述无法得到计费重量，只能自行再比大小。
-- 方案：增加"实际重量 (kg)"输入，输出 `max(实重, 体积重)` 并同时列出 5000/6000 两系数的计费重；实重为空/负时报错；同步 meta 与公式说明。
-
 - 本轮实读 8 页：`tools/chemical/solution-concentration.html`、`tools/mining/convert-grade-ore.html`、`tools/hvac/cooling-load.html`、`tools/paper/roll-length.html`、`tools/fire/hydrant-pressure.html`、`tools/gas/load-1.html`、`tools/security/flood-level.html`、`tools/transport/convert-volume-weight.html`；新增 11 条（高 1 / 中 9 / 低 1）；未覆盖：chemical、mining、hvac、paper、fire、gas、security、transport 各目录的其余页面，以及 dyeing、leather、safety、nutrition、usedcar、wedding、restaurant、elderly、procurement、cleaning 等长尾目录本轮未读。
 
 ## 2026-11-04 续查（并行批 L）

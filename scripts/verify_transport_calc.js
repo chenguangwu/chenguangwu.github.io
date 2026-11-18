@@ -123,6 +123,14 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "transport/convert-volume-weight",
+  "clicks": [
+    "document.getElementById('l').value='50';document.getElementById('w').value='40';document.getElementById('h').value='30';document.getElementById('d').value='5000';document.getElementById('actual').value='8';calc();var a=String(document.getElementById('res').innerHTML);var okHeavy=a.indexOf('计费重量 12.00 kg')>=0&&a.indexOf('取体积重')>=0;document.getElementById('actual').value='20';calc();var b=String(document.getElementById('res').innerHTML);var okActual=b.indexOf('计费重量 20.00 kg')>=0&&b.indexOf('取实际重量')>=0;document.getElementById('__tbProbe').textContent='CVW1288 '+(okHeavy&&okActual?'OK':'BAD');"
+  ],
+  "expect": ["CVW1288 OK"],
+  "ref": "12-K11 补全计费重量功能：标题/meta/引据表承诺「实重 vs 体积重取大者」但旧页面无实重输入、只输出体积重。50×40×30÷5000=12 kg，实重 8<12 ⇒ 计费重 12.00 kg「取体积重」；实重 20>12 ⇒ 计费重 20.00 kg「取实际重量」。旧版无 actual 输入（getElementById 返回 null 报错/无计费重输出）⇒ 红；默认 actual 留空不产计费重串，注入失败零逃生。"
+},
+{
   "slug": "transport/cycle-signal",
   "inputs": {
     "cycle": "90",
