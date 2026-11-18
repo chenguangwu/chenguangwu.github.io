@@ -652,7 +652,7 @@
     this.abilities = ABILITY.chimp;
   }
   ChimpTest.prototype.render = function (stage) {
-    var self = this, level = 1, grid = 0, order = [], pickNext = 1, cells = [];
+    var self = this, level = 1, grid = 0, order = [], pickNext = 1, cells = [], done = false;
     const __h6='<div class="hb-sub" id="cHint">' + T('记住数字位置，随后按 1,2,3… 顺序点击。','Remember the number positions, then tap 1,2,3… in order.') + '</div>' +
       '<div class="hb-chimp" id="cGrid"></div>' +
       '<div class="hb-sub" id="cLog">' + T('等级 1','Level 1') + '</div>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){stage.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}stage.innerHTML=__h6;
@@ -675,7 +675,7 @@
       log.textContent = T('等级 ','Level ') + level;
       $('cHint').textContent = T('记住数字位置…','Remember number positions…');
       beep(600, 0.1);
-      hbLater(hide, 1000 + level * 60);
+      hbLater(function () { if (!done) { hide(); } }, 1000 + level * 60);
     }
     function makeCell(i, val) {
       var b = document.createElement('button');
@@ -689,6 +689,7 @@
       $('cHint').textContent = T('按 1,2,3… 顺序点击空位。','Tap the empty cells in 1,2,3… order.');
     }
     function onClick(i) {
+      if (done) { return; }
       if (cells[i].classList.contains('picked')) { return; }
       // 找到该格对应的数字：与 start() 的标注共用 chimpNumAt，保证标注序号与判定序一致
       var num = chimpNumAt(order, i);
@@ -697,10 +698,12 @@
         cells[i].textContent = num; cells[i].classList.add('picked');
         beep(500 + num * 30, 0.05);
         pickNext++;
-        if (pickNext > order.length) { level++; hbLater(start, 500); }
+        if (pickNext > order.length) { level++; hbLater(function () { if (!done) { start(); } }, 500); }
       } else { wrong(); }
     }
     function wrong() {
+      if (done) { return; }
+      done = true;
       beep(180, 0.3, 'square');
       $('cHint').textContent = T('点错啦！到达等级 ','Wrong! Reached level ') + level + '.';
       self.onResult(level);
@@ -715,7 +718,7 @@
     this.abilities = ABILITY.visual;
   }
   VisualTest.prototype.render = function (stage) {
-    var self = this, n = 4, cells = [], picked = {}, need = [];
+    var self = this, n = 4, cells = [], picked = {}, need = [], done = false;
     const __h8='<div class="hb-sub" id="gHint">' + T('记住高亮格子，随后全部点出。','Remember the highlighted cells, then tap them all.') + '</div>' +
       '<div class="hb-grid9" id="gGrid"></div>' +
       '<div class="hb-sub" id="gLog">' + T('目标 ','Target ') + n + ' ' + T('格','cells') + '</div>';if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){stage.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}stage.innerHTML=__h8;
@@ -737,11 +740,13 @@
       $('gHint').textContent = T('记住 ','Remember ') + n + ' ' + T('个高亮格子…','highlighted cells…');
       beep(600, 0.1);
       hbLater(function () {
+        if (done) { return; }
         cells.forEach(function (c) { c.classList.remove('on'); c.classList.add('hot'); });
         $('gHint').textContent = T('点击刚才高亮的 ','Tap the ') + n + ' ' + T('格。','highlighted cells.');
       }, 900 + n * 40);
     }
     function onClick(i, el) {
+      if (done) { return; }
       if (!el.classList.contains('hot')) { return; }
       if (el.classList.contains('picked')) { return; }
       var pos = need.indexOf(i);
@@ -754,6 +759,8 @@
       }
     }
     function fail() {
+      if (done) { return; }
+      done = true;
       beep(180, 0.3, 'square');
       $('gHint').textContent = T('记漏或点错！最高 ','Missed or wrong! Best ') + (n - 1) + ' ' + T('格。','cells.');
       self.onResult(n - 1);

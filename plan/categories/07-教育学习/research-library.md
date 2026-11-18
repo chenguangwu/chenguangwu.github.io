@@ -155,20 +155,6 @@
 - 影响：单项用户得到严重低估且自相矛盾的报告。
 - 方案：报告中未测维度显示「未测」并排除出雷达；综合指数按已测能力权重重新归一；仅 8 项齐全时提示完整指数。
 
-### RL-K44 Human Benchmark：打字测试允许粘贴，样本 84 字可在首帧内粘贴得 63000 WPM/P99（中，确认）
-- 描述：`textarea` 无 `paste`/`beforeinput` 拦截，`update()` 在下一帧发现 `typed.length>=total` 即 `finish`，用时约 16ms。
-- 证据：`tools/cognition/human-benchmark.html:758`、`:780`、`:782-790`。
-- 复现：粘贴 84 字样本 → 正确字符 84，sec≈0.016 → WPM≈63000（页面写死 P99）。期望禁止粘贴或把粘贴标记为无效。
-- 影响：成绩可被瞬间刷满，历史最佳与综合指数失真。
-- 方案：`area.addEventListener('paste', e=>e.preventDefault())`；或检测单帧字符增量异常并判无效。
-
-### RL-K45 Human Benchmark：Chimp/视觉记忆答错后未锁定，仍可继续答题并覆盖已记录成绩（中，确认）
-- 描述：`wrong()`/`fail()` 只调用 `onResult`，不设结束标志；Chimp 的 `pickNext` 保持原值，视觉记忆的剩余 `hot` 格仍可点击，用户可继续完成更高等级并再次 `onResult`。
-- 证据：`tools/cognition/human-benchmark.html:686-690`、`:673-684`；`:739-743`、`:727-737`。
-- 复现：视觉记忆完成 4 格后在 400ms 间隔内误点空格 → 记录 4；随后继续点完 5 格再错 → 记录 5，最终成绩被抬高。Chimp 点错后继续按顺序点对 → `level++` 继续。
-- 影响：一次测试可多次写入成绩，失败不再终止，结果不可信。
-- 方案：`done` 标志在 `wrong/fail` 置位，所有点击与延时回调先判 `done` 直接返回。
-
 ### RL-K46 参观流线：重复通道时「分段距离」取最后一条边，分段和与总距离不一致（中，确认）
 - 描述：Dijkstra 对平行边取最小权，但渲染分段时 `edges.forEach` 命中同端点就覆盖 `w`，最终显示最后一条（可能最大）权值。
 - 证据：`tools/museum/visitor-route.html:380-383`、`:329-331`。
