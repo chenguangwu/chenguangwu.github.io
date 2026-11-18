@@ -2,6 +2,7 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
+{ "slug":"research/analysis-54", "inputs":{"data":"A,价格\nB,价格\nC,价格\nD,价格\nE,价格\nF,价格"}, "expect":["出现≥3次的主题（自定义频次提示）：1 个","不能判定饱和或停止抽样"], "ref":"六条同主题记录触发连续无新主题提示，但不得推断饱和或停止抽样。" },
 {
   "slug": "research/analysis-49",
   "inputs": {
@@ -263,7 +264,7 @@ const CASES = [
 {
   "slug": "research/analysis-54",
   "inputs": { "data": "访谈1\n访谈2\n访谈3\n访谈4\n访谈5" },
-  "expect": ["尚未编码任何主题，无法判断主题饱和", "有 5 条资料仅填写了资料文本"],
+  "expect": ["尚未编码任何主题，无法统计连续无新主题情况", "有 5 条资料仅填写了资料文本"],
   "ref": "无编码判饱和：旧版未编码行也累积 lastNew，5 行全空仍判「主题趋于饱和，可停止抽样」。现未编码行重置 lastNew=0 且 coded>0 才判饱和，并单独提示未编码行数。默认全编码不命中。"
 },
 {

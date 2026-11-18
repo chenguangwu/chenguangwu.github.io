@@ -5,6 +5,7 @@ globalThis.__tbFs = fs;
 globalThis.__tbRoot = process.cwd();
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
+{ "slug":"astronomy/atmospheric-refraction", "inputs":{"h":"5"}, "clicks":["globalThis.TBKit={chart:{line:function(sel,opt){var a=opt.series[0].data;document.getElementById('__tbProbe').textContent='CHART '+a[0]+' '+a[1]+' '+a[18];}}};__atrfChart()"], "expect":["CHART 34.433 9.92 0"], "ref":"图表视高度 0、5、90 度分别与反求主结果一致。" },
 {
     "slug": "astronomy/observation-conditions",
     "clicks": ["var oldEn=__plIsEn;__plIsEn=function(){return false};calcPlanets(2026,6,21,90);var zh=String(document.getElementById('planetVisibility').innerHTML);__plIsEn=function(){return true};calcPlanets(2026,6,21,-90);var en=String(document.getElementById('planetVisibility').innerHTML);__plIsEn=oldEn;document.getElementById('__tbProbe').textContent='ASTROWORD '+(/木星/.test(zh)&&/土星/.test(zh)&&/距角偏小/.test(zh)&&/距角较大/.test(zh)&&!/不可见|条件良好|整夜可见/.test(zh)&&/Jupiter/.test(en)&&/Saturn/.test(en)&&/Small elongation/.test(en)&&/Large elongation/.test(en)&&!/Not visible|Good conditions|visible all night/.test(en)?'OK':'BAD');"],

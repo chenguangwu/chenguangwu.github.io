@@ -14,6 +14,8 @@ const fs = require("fs");
 globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
+{ "slug":"usedcar/car-purchase-cost", "inputs":{"price":"400000","taxRate":"","insurance":"8000","plate":"800"}, "clicks":["document.getElementById('taxMode').value='nev2627';calc()"], "expect":["20398.23","429198.23"], "ref":"新能源固定税率不依赖手动税率；清空税率仍应算出减免及落地价。" },
+{ "slug":"usedcar/car-purchase-cost", "inputs":{"price":"400000","taxRate":"","insurance":"8000","plate":"800"}, "clicks":["document.getElementById('taxMode').value='nev2627';calc();document.getElementById('taxMode').value='manual';calc()"], "expect":["请填写 购置税率"], "ref":"新能源切回手动模式后，空手动税率仍须阻止计算。" },
 {
   "slug": "usedcar/car-purchase-cost",
   "inputs": {"price":"400000", "taxRate":"10", "insurance":"8000", "plate":"800"},

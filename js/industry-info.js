@@ -144,7 +144,7 @@ window.INDUSTRY_INFO = {
   'pr'                   : { name: '公关传播', icon: '📢', hot: 81735 },
   'urban'                : { name: '城市规划', icon: '🏙️', hot: 80279 },
   'audio'                : { name: '音频工具', icon: '🎧', hot: 80271 },
-  'video'                : { name: '视频处理', icon: '🎬', hot: 77956 },
+  'video'                : { name: '视频处理', icon: '🎬', hot: 77957 },
   'woodwork'             : { name: '木工制作', icon: '🪚', hot: 76880 },
   'elderly'              : { name: '养老护理', icon: '👴', hot: 76804 },
   'futures'              : { name: '期货交易', icon: '📉', hot: 75746 },
