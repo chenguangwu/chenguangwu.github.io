@@ -335,8 +335,22 @@ function dsMeanCompleted(spans){
     lastPassed: 0, lastPassedOne: false,
     seq: [], entry: '',
     trials: [], // {cond,length,seq,resp,correct}
-    spans: {} // cond -> span
+    spans: {}, // cond -> span
+    _timer: null, _timers: [], _gen: 0
   };
+
+  // 任何一次「开始/重开/停止」都作废上一条异步链，避免两条数字序列交错
+  function cancelPending(){
+    clearTimeout(G._timer);
+    G._timers.forEach(function(t){ clearTimeout(t); });
+    G._timers = [];
+    G._gen++;
+    G.phase = 'idle';
+  }
+  function later(fn, ms){
+    var gen = G._gen;
+    G._timers.push(setTimeout(function(){ if(gen !== G._gen) return; fn(); }, ms));
+  }
 
   function setStat() {
     $('dsLen').textContent = G.phase === 'idle' ? '—' : String(G.length);
@@ -372,7 +386,8 @@ function dsMeanCompleted(spans){
       showDigit(String(seq[i]), false);
       if (G.audio) { speakDigit(seq[i]); }
       i++;
-      G._timer = setTimeout(step, G.speed);
+      var gen = G._gen;
+      G._timer = setTimeout(function(){ if(gen !== G._gen) return; step(); }, G.speed);
     }
     step();
   }
@@ -407,18 +422,18 @@ function dsMeanCompleted(spans){
       G.lastPassed = G.length;
       G.lastPassedOne = (G.correctInLen === 1);
       if (G.trialInLen === 1) { advanceLength(); }
-      else { G.trialInLen = 1; setStat(); setTimeout(startTrial, 650); }
+      else { G.trialInLen = 1; setStat(); later(startTrial, 650); }
     } else if (G.trialInLen === 1) {
       finishCondition();
     } else {
-      G.trialInLen = 1; setStat(); setTimeout(startTrial, 650);
+      G.trialInLen = 1; setStat(); later(startTrial, 650);
     }
   }
 
   function advanceLength() {
     if (G.length >= 12) { finishCondition(); return; }
     G.length++; G.trialInLen = 0; G.correctInLen = 0; setStat();
-    setTimeout(startTrial, 700);
+    later(startTrial, 700);
   }
 
   function finishCondition() {
@@ -430,7 +445,7 @@ function dsMeanCompleted(spans){
     // 队列继续
     if (G.queue.length) {
       var next = G.queue.shift();
-      setTimeout(function () { beginCondition(next); }, 700);
+      later(function () { beginCondition(next); }, 700);
     } else {
       compileAll();
     }
@@ -442,7 +457,7 @@ function dsMeanCompleted(spans){
     G.lastPassed = 0; G.lastPassedOne = false;
     setMsg('开始「' + WAIS[cond].name + '」条件：观察数字并按时复述。');
     setStat();
-    setTimeout(startTrial, 450);
+    later(startTrial, 450);
   }
 
   function compileAll() {
@@ -579,6 +594,7 @@ function dsMeanCompleted(spans){
    * 4. 控制
    * ========================================================== */
   function startSingle() {
+    cancelPending();
     if ('speechSynthesis' in window) { try { window.speechSynthesis.cancel(); } catch (e) {} }
     G.audio = $('dsAudio').checked;
     G.speed = parseInt($('dsSpeed').value, 10);
@@ -589,6 +605,7 @@ function dsMeanCompleted(spans){
     beginCondition($('dsCond').value);
   }
   function runAll() {
+    cancelPending();
     if ('speechSynthesis' in window) { try { window.speechSynthesis.cancel(); } catch (e) {} }
     G.audio = $('dsAudio').checked;
     G.speed = parseInt($('dsSpeed').value, 10);
@@ -600,9 +617,8 @@ function dsMeanCompleted(spans){
   }
   function stopNow() {
     if (G.phase === 'showing' || G.phase === 'input') {
-      clearTimeout(G._timer);
+      cancelPending();
       if ('speechSynthesis' in window) { try { window.speechSynthesis.cancel(); } catch (e) {} }
-      G.phase = 'idle';
       if (G.trials.length) {
         if (G.curCond && !G.spans[G.curCond]) {
           G.lastPassed = G.lastPassed; finishConditionForce();
@@ -645,6 +661,10 @@ function dsMeanCompleted(spans){
     if (b3) b3.addEventListener('click', function () { runAll(); });
   }
   bindPreset();
+
+  // 只读诊断钩子：观察异步链代际，重复开始必须使旧链的回调全部失效
+  window.__dsTimerState = function () { return { gen: G._gen, phase: G.phase, timers: G._timers.length }; };
+  window.__dsRestartProbe = function () { startSingle(); return window.__dsTimerState(); };
 
   setStat();
 })();

@@ -118,6 +118,12 @@ const CASES = [
   "ref": "单项回归：只完成正背一项（广度 8）⇒ dsMeanCompleted({fwd:8}) 按已完成 1 项求均值 = 8（旧实现固定除以 3 得 2.7）；同时 __dsEmr(rec.done=1) 的总结文案显示「已完成 1 项均值」。断言含 dsMeanCompleted 的真实返回值，非默认态（默认无结果）可命中。"
 },
 {
+  "slug": "cognition/digit-span-test",
+  "clicks": ["var a=window.__dsRestartProbe();var b=window.__dsRestartProbe();document.getElementById('__tbProbe').textContent='GEN '+a.gen+'->'+b.gen+' timers '+b.timers;"],
+  "expect": ["GEN 1->2"],
+  "ref": "重复开始必须作废旧异步链：旧版 startSingle 不 clearTimeout/不置 phase，两次开始会在同一 _timer 上叠两条 step 链、数字串交错。现 cancelPending 递增 _gen 并清空所有定时注册，两次重开代际 1→2，旧链回调因代际不符直接 return。默认态无 GEN 串。"
+},
+{
   "slug": "cognition/human-benchmark",
   "clicks": [
     "var P=[6,1,4,8];document.getElementById('cLog').textContent='CHIMP-MAP:'+window.chimpNumAt(P,6)+window.chimpNumAt(P,1)+window.chimpNumAt(P,4)+window.chimpNumAt(P,8);"
