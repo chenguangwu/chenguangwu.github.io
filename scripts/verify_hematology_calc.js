@@ -130,7 +130,7 @@ const CASES = [
   "slug": "hematology/dic-scoring",
   "inputs": {
     "plt": "68",
-    "ddimer": "8.5",
+    "ddimer": "2",
     "pt": "6",
     "fib": "1.2"
   },
@@ -311,7 +311,7 @@ const CASES = [
   "slug": "hematology/rater-6",
   "inputs": {
     "plt": "68",
-    "ddimer": "8.5",
+    "ddimer": "2",
     "pt": "5",
     "fib": "0.9",
     "fdp": "40"
@@ -408,12 +408,33 @@ const CASES = [
     ref: "空态守卫：8 项全清空时不再按 0 计算（旧实现 → 克隆 0%「未检测到 PNH 克隆」+ LDH 0「正常/轻度升高」+ Hb 0「重度贫血」的伪结论），改为只输出填写提示。默认态 35/32/15/28/10/25/450/85 有值 ⇒ 提示串不出现。" }
   ,
   {
-    // 宣称 vs 实现：ISTH 原文 D-二聚体只有 无/中度/显著 三档 0/1/2 分；旧实现误用 0/2/3。
+    // ISTH 纤维蛋白相关标志物无/中度/显著升高对应 0/2/3 分。
     slug: "hematology/dic-scoring",
-    inputs: { plt: "68", ddimer: "12", pt: "4", fib: "1.2" },
+    inputs: { plt: "68", ddimer: "3", pt: "4", fib: "1.2" },
     checkIds: ["hasDisease"],
-    expect: ["D-二聚体 显著升高 (12mg/L) → +2"],
-    ref: "血小板 68(+1) + D-二聚体 12→显著升高(+2) + PT 4s(+1) + 纤维蛋白原 1.2(+0) = 4 分。旧实现显著升高 +3 ⇒ 5 分误判。判别器实测「非显性DIC（可能）」在默认快照也命中（默认同为 4 分），已删该逃生锚，仅保留依赖注入 ddimer=12 的明细串（默认态为中度升高 → +1）。"
+    expect: ["纤维蛋白相关标志物 显著升高 → +3"],
+    ref: "血小板 68(+1)、标志物显著升高(+3)、PT 4 秒(+1)、纤维蛋白原 1.2(+0)，总分 5。"
+  },
+  {
+    slug: "hematology/dic-scoring",
+    inputs: { plt: "68", ddimer: "2", pt: "6", fib: "1.2" },
+    checkIds: ["hasDisease"],
+    expect: ["中度升高 → +2", "PT延长 ≥6s (6s) → +2", "显性DIC"],
+    ref: "ISTH: 1 + 2 + 2 + 0 = 5; PT at 6 seconds belongs to the 2-point category."
+  },
+  {
+    slug: "hematology/dic-scoring",
+    inputs: { plt: "68", ddimer: "0", pt: "5.9", fib: "1.2" },
+    checkIds: ["hasDisease"],
+    expect: ["无升高 → +0", "PT延长 3至<6s (5.9s) → +1", "尚不符合显性DIC标准"],
+    ref: "No marker elevation adds 0 and PT 5.9 seconds adds 1; an overt score below 5 does not exclude early DIC."
+  },
+  {
+    slug: "hematology/dic-scoring",
+    inputs: { plt: "68", ddimer: "", pt: "6", fib: "1.2" },
+    checkIds: ["hasDisease"],
+    expect: ["请填写血小板、PT 延长和纤维蛋白原，并选择标志物升高程度"],
+    ref: "No selected marker category must not be scored as no elevation."
   },
   {
     // 宣称 vs 实现：IPSS-R 2012 原始细胞分档为 0/1/2/3（>10% 计 3 分），旧实现误为 4 分。
@@ -534,7 +555,7 @@ const CASES = [
   },
   {
     slug: "hematology/dic-scoring",
-    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/hematology/dic-scoring.html','utf8');var q=String.fromCharCode(34);var a=h.indexOf('ddimer'+q+':6')>=0&&h.indexOf('ddimer'+q+':3,'+q+'pt'+q+':2')<0&&h.indexOf('else if(rb')>=0&&h.indexOf('rb.innerHTML=')>=0&&h.indexOf('无升高0/中度1/显著2')>=0&&h.indexOf('早期 DIC 可疑')>=0;document.getElementById('__tbProbe').textContent='DICFIX '+(a?'OK':'BAD');"],
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/hematology/dic-scoring.html','utf8');var q=String.fromCharCode(34);var a=h.indexOf('ddimer'+q+':2')>=0&&h.indexOf('ddimer'+q+':3,'+q+'pt'+q+':2')<0&&h.indexOf('else if(rb')>=0&&h.indexOf('rb.innerHTML=')>=0&&h.indexOf('本地实验室阈值')>=0&&h.indexOf('早期 DIC 可疑')>=0;document.getElementById('__tbProbe').textContent='DICFIX '+(a?'OK':'BAD');"],
     expect: ["DICFIX OK"],
     ref: "12-N51/N52/N53：早期DIC可疑预设原 plt85+ddimer3+pt2+fib2.5=2分判不支持DIC（名实相反），改 ddimer6+pt4+fib1.0=3分落非显性DIC；hasDisease 取消时 refBar 加 else 清空避免旧红色标尺残留；D-二聚体简化档补与 ISTH 原文 0/2/3 分值不同的声明。源码形态哨兵旧版必红。"
   }

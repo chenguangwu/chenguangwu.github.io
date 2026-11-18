@@ -568,9 +568,14 @@ const CASES = [
   "ref": "第1102批 N32：预设函数旧为空壳、预设tab空白；补 3 个预设（0分门诊/2分住院/4分高危），显式设置 c/u/r/b1/b2/age65 六项。源码形态五哨兵，旧版必红。"
 },{
   "slug": "pulmonology/curb65",
-  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pulmonology/curb65.html','utf8');var dd=JSON.parse(globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['pulmonology/curb65'];var ok=h.indexOf('var mortByScore=[0.7,2.1,9.2,14.5,40,57]')>=0&&h.indexOf('<td>40%</td>')>=0&&h.indexOf('<td>57%</td>')>=0&&h.indexOf('<td>0.7%</td>')>=0&&h.indexOf('死亡风险</th>')<0&&h.indexOf('高(≥15%)')<0&&h.indexOf('4–5 分重点考虑 ICU/HDU')>=0&&h.indexOf('score>=4?')>=0&&dd.examples[0].body.indexOf('14.5%')>=0&&dd.examples[1].body.indexOf('0.7%')>=0;document.getElementById('__tbProbe').textContent='CURBMORT '+(ok?'OK':'BAD');"],
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pulmonology/curb65.html','utf8');var dd=JSON.parse(globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['pulmonology/curb65'];var ok=h.indexOf('var mortByScore=[0.7,2.1,9.2,14.5,40,null]')>=0&&h.indexOf('<td>40%</td>')>=0&&h.indexOf('<td>数据不确定</td>')>=0&&h.indexOf('<td>0.7%</td>')>=0&&h.indexOf('死亡风险</th>')<0&&h.indexOf('高(≥15%)')<0&&h.indexOf('4–5 分重点考虑 ICU/HDU')>=0&&h.indexOf('score>=4?')>=0&&dd.examples[0].body.indexOf('14.5%')>=0&&dd.examples[1].body.indexOf('0.7%')>=0;document.getElementById('__tbProbe').textContent='CURBMORT '+(ok?'OK':'BAD');"],
   "expect": ["CURBMORT OK"],
   "ref": "12-N31：CURB-65 死亡率原 0–1 合并 1.5%、≥3 统一 ≥15%，4/5 分（Lim 2003 为 40%/57%）被严重低估；ICU 阈值公式框 ≥3、表格/代码 ≥4、深解 3 分三处冲突。现代码按逐分数组 [0.7,2.1,9.2,14.5,40,57] 展示、表格逐分、公式框与深解统一 4–5 分重点 ICU。源码形态哨兵，旧版必红。"
+},{
+  "slug": "pulmonology/curb65",
+  "checkIds": ["c", "u", "r", "b1", "age65"],
+  "expect": ["具体死亡率不确定", "考虑ICU/HDU"],
+  "ref": "Five criteria selected: retain high-risk assessment without assigning the conflicting 57% to the derivation cohort."
 },{
   "slug": "pulmonology/calc-48",
   "inputs": { "pao2": "80", "fio2": "150" },

@@ -219,6 +219,11 @@ const CASES = [
     ref: "EL-J92：趋势图须以换算时刻的当日分钟数为数值并标注 HH:MM，不再画有效性 0/1；旧版 series 名为「有效性趋势」⇒ BAD。",
   },
   {
+    slug: "edu/study-planner", inputs: {dailyHours:"3"},
+    clicks: ["var RealDate=Date;var day='2026-11-16T12:00:00';Date=class extends RealDate{constructor(...a){super(...(a.length?a:[day]));}static now(){return new RealDate(day).getTime();}};data.tasks=[{name:'A',minutes:60,subjectId:1,done:false},{name:'B',minutes:30,subjectId:1,done:false}];data.stats={todayMinutes:0,weekHours:0,totalHours:0,tasksDone:0,todayKey:localDayKey(),weekKey:localWeekKey()};data.subjectMinutes={1:0};toggleTask(0);day='2026-11-17T12:00:00';toggleTask(1);var a=data.stats.todayMinutes===30&&data.stats.tasksDone===1&&data.stats.weekHours===1.5;toggleTask(0);var b=data.stats.todayMinutes===30&&data.stats.tasksDone===1&&data.stats.weekHours===0.5&&data.stats.totalHours===0.5&&data.subjectMinutes[1]===30;var old=data.subjects[0].progress;editSubject(0,'X',null);var c=data.subjects[0].progress===old;Date=RealDate;document.getElementById('__tbProbe').textContent='STUDYDAY:'+(a&&b&&c?'OK':'BAD');"],
+    expect: ["STUDYDAY:OK"], ref: "跨午夜完成、次日撤销旧任务及取消进度输入。"
+  },
+  {
     slug: "edu/essay-word-counter", inputs: {text:"𠀀 Hello world.你好！"},
     clicks: ["count();var h=document.getElementById('result').innerHTML;var ok=h.indexOf('>3</div><div class=\"label\">中文字数')>=0&&h.indexOf('>5</div><div class=\"label\">纯文字字数')>=0&&h.indexOf('>2.5</div><div class=\"label\">平均句长')>=0;document.getElementById('__tbProbe').textContent='HANEXT:'+(ok?'OK':'BAD');"],
     expect: ["HANEXT:OK"], ref: "扩展 B 汉字及英文句点和中文句末混排。",

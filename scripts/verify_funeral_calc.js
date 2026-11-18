@@ -5,6 +5,11 @@ globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+  slug: "funeral/reminder-3", inputs: {lYear:"2020"},
+  clicks: ["var NativeDate=Date;Date=class extends NativeDate{constructor(...a){super(...(a.length?a:['2026-11-18T12:00:00']));}static now(){return new NativeDate('2026-11-18T12:00:00').getTime();}};var d=getNextDate({type:'lunar',yearly:true,lMonth:4,lDay:1,lLeap:true});var ok=d&&d.getFullYear()===2058&&lunarToSolar(2026,4,1,true)===null;Date=NativeDate;document.getElementById('__tbProbe').textContent='LEAPNEXT:'+(ok?'OK':'BAD');"],
+  expect: ["LEAPNEXT:OK"], ref: "2026 年后闰四月下一次为 2058，且无该闰月时不转换。"
+},
+{
   "slug": "funeral/ceremony-timeline",
   "inputs": {
     "startTime": "09:00",
@@ -87,9 +92,9 @@ const CASES = [
   },
   {
     "slug": "funeral/reminder-3",
-    "clicks": ["var d=getNextDate({type:'lunar',lYear:2020,lMonth:5,lDay:5,lLeap:false,yearly:false});var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/funeral/reminder-3.html','utf8');var ok=!!d&&d.getFullYear()===2020&&h.indexOf('if(lDay>(isLeap?leapDays(lYear):monthDays(lYear,lMonth)))return null;')>=0&&h.indexOf('lunarToSolar(it.lYear,lm,ld,leap)')>=0&&h.indexOf('now.getFullYear()+20')>=0&&h.indexOf('now.getFullYear()+3')<0;document.getElementById('__tbProbe').textContent='LUNARREM '+(ok?'OK':'BAD '+String(d&&d.getFullYear()));"],
+    "clicks": ["var d=getNextDate({type:'lunar',lYear:2020,lMonth:5,lDay:5,lLeap:false,yearly:false});var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/funeral/reminder-3.html','utf8');var ok=!!d&&d.getFullYear()===2020&&h.indexOf('if(lDay>(isLeap?leapDays(lYear):monthDays(lYear,lMonth)))return null;')>=0&&h.indexOf('lunarToSolar(it.lYear,lm,ld,leap)')>=0&&h.indexOf('y<=2099')>=0&&h.indexOf('now.getFullYear()+20')<0;document.getElementById('__tbProbe').textContent='LUNARREM '+(ok?'OK':'BAD '+String(d&&d.getFullYear()));"],
     "expect": ["LUNARREM OK"],
-    "ref": "一次性农历提醒按添加时选定的原年计算（2020 年五月初五仍落 2020 年，旧版从当前年起找会落 2026 年）；每年重复的闰月搜索扩到 20 年覆盖 19 年闰月周期；lunarToSolar 增加农历大小月校验，小月三十日不再悄悄换算到下月。默认态不产生该哨兵。"
+    "ref": "一次性农历提醒按添加时选定的原年计算（2020 年五月初五仍落 2020 年，旧版从当前年起找会落 2026 年）；每年重复的闰月搜索覆盖数据表至 2099 年；lunarToSolar 增加农历大小月校验，小月三十日不再悄悄换算到下月。默认态不产生该哨兵。"
   }
 
 ];

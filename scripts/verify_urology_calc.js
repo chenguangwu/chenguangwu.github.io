@@ -52,8 +52,8 @@ const CASES = [
 {
   "slug": "urology/psa-density",
   "inputs": { "psa": "12", "vol": "25", "age": "50" },
-  "expect": ["0.480", "风险分级：高危", "穿刺建议：建议前列腺穿刺活检"],
-  "ref": "de-default: PSAD0.480 高危 活检"
+  "expect": ["0.480", "风险分级：高危", "穿刺评估：需结合临床和影像综合判断"],
+  "ref": "PSAD 0.480：计算密度并提示综合判断，不能直接决定活检。"
 },
 {
   "slug": "urology/residual-urine",
@@ -212,9 +212,16 @@ const CASES = [
     "ref": "12-N90：公式框原只列 3 个部位系数，代码另有 mid 0.9 / bladder 1.0；现补齐 6 个并明示系数为页面经验修正、膀胱套用输尿管模型仅供粗参。旧版缺 mid/bladder 与局限性说明 ⇒ 变红。N89 模型适用性保留专业复核。"
   },{
     "slug": "urology/psa-density",
-    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/psa-density.html','utf8');var ok=h.indexOf('0.15 - &lt;0.25')>=0&&h.indexOf('≥ 0.25')>=0&&h.indexOf('&gt; 0.25')<0&&h.indexOf('密度分级仅描述 PSAD')>=0&&h.indexOf('穿刺指征另按 PSA 绝对值')>=0&&h.indexOf('该分级仅按 PSAD 密度划分')>=0&&h.indexOf('暂不穿刺，建议 MRI/DRE 复核')>=0&&h.indexOf('按 PSA&gt;10 指征，与 PSAD 密度分级无关')>=0;document.getElementById('__tbProbe').textContent='PSAGRADE '+(ok?'OK':'BAD');"],
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/psa-density.html','utf8');var ok=h.indexOf('0.15 - &lt;0.25')>=0&&h.indexOf('≥ 0.25')>=0&&h.indexOf('不能决定是否活检')>=0&&h.indexOf('未勾选不代表检查正常')>=0&&h.indexOf('暂不穿刺')<0;document.getElementById('__tbProbe').textContent='PSAGRADE '+(ok?'OK':'BAD');"],
     "expect": ["PSAGRADE OK"],
-    "ref": "12-N27/N28：表格 0.25 边界原写 0.15-0.25 与 >0.25，与代码 ≥0.25 高危冲突；分级文案原称前列腺癌风险，与穿刺建议两套阈值同屏相反。现表格改 0.15-<0.25 / ≥0.25，明确 PSAD 密度分级≠穿刺指征，低 PSA 高 PSAD 走 MRI/DRE 复核、PSA>10 按绝对值穿刺并注明与密度无关。源码形态哨兵旧版必红。"
+    "ref": "PSAD 密度边界与不以单一指标直接决定活检的说明。"
+  },{
+    "slug": "urology/psa-density",
+    "inputs": { "psa": "3", "vol": "15", "age": "60" },
+    "checkIds": ["mri", "dre"],
+    "expect": ["MRI可疑", "DRE异常", "不能决定是否活检"],
+    "ref": "PSA <4 with suspicious MRI and abnormal DRE must include both findings and avoid a definite no-biopsy recommendation."
+
   }
 ];
 async function main() {

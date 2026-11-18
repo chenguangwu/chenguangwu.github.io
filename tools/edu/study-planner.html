@@ -234,10 +234,11 @@
         <div class="stat-card"><div class="val" id="statWeek">0</div><div class="lbl">本周小时</div></div>
         <div class="stat-card"><div class="val" id="statTotal">0</div><div class="lbl">累计小时</div></div>
         <div class="stat-card"><div class="val" id="statTasks">0</div><div class="lbl">完成任务</div></div>
-        <div class="stat-card"><div class="val" id="statRate">—</div><div class="lbl">今日完成率</div></div>
+        <div class="stat-card"><div class="val" id="statRate">—</div><div class="lbl">任务完成率</div></div>
         <div class="stat-card"><div class="val" id="statPending">0</div><div class="lbl">待办计划分钟</div></div>
       </div>
 
+      <p style="font-size:12px;color:var(--text-muted);">旧版已完成任务没有完成日期，撤销时无法追溯扣减历史统计；新完成的任务会记录归属日期。</p>
       <h3 style="font-size:14px;margin:16px 0 10px;">各科目时长分布</h3>
       <div id="subjectStats"></div>
     </div>
@@ -378,6 +379,12 @@ function localWeekKey(d){
   var monday=new Date(d.getTime()-((d.getDay()+6)%7)*86400000);
   return localDayKey(monday);
 }
+function rollStats(){
+  var day=localDayKey(), week=localWeekKey();
+  if(data.stats.todayKey!==day){data.stats.todayMinutes=0;data.stats.tasksDone=0;}
+  if(data.stats.weekKey!==week) data.stats.weekHours=0;
+  data.stats.todayKey=day; data.stats.weekKey=week;
+}
 
 function init(){
   loadData();
@@ -396,17 +403,9 @@ function loadData(){
     if(saved.tasks) data.tasks = saved.tasks;
     if(saved.stats){
       data.stats = saved.stats;
-      if(saved.stats.todayKey!==localDayKey()){
-        data.stats.todayMinutes = 0;
-        data.stats.tasksDone = 0;
-      }
-      if(saved.stats.weekKey!==localWeekKey()){
-        data.stats.weekHours = 0;
-      }
-      data.stats.todayKey = localDayKey();
-      data.stats.weekKey = localWeekKey();
     }
     if(saved.subjectMinutes) data.subjectMinutes = saved.subjectMinutes;
+    rollStats();
   }catch(e){}
 }
 
@@ -458,15 +457,20 @@ function renderTasks(){
 function recordHistory(){
   let list=[];
   try{ list=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); }catch(e){}
-  list.unshift({timestamp:Date.now(),minutes:data.stats.todayMinutes,tasks:data.tasks.filter(t=>t.done).length});
+  list.unshift({timestamp:Date.now(),minutes:data.stats.todayMinutes,tasks:data.stats.tasksDone});
   list=list.slice(0,20);
   localStorage.setItem(HISTORY_KEY,JSON.stringify(list));
 }
 
 function toggleTask(i){
+  rollStats();
   data.tasks[i].done = !data.tasks[i].done;
   const mins = data.tasks[i].minutes||0;
   if(data.tasks[i].done){
+    data.tasks[i].completedDay=localDayKey();
+    data.tasks[i].completedWeek=localWeekKey();
+    data.tasks[i].completedMinutes=mins;
+    data.tasks[i].completedSubject=data.tasks[i].subjectId;
     data.stats.tasksDone++;
     data.stats.todayMinutes += mins;
     data.stats.weekHours += mins/60;
@@ -474,15 +478,19 @@ function toggleTask(i){
     const sid = data.tasks[i].subjectId;
     data.subjectMinutes[sid] = (data.subjectMinutes[sid]||0) + mins;
   } else {
-    data.stats.tasksDone = Math.max(0, data.stats.tasksDone-1);
-    data.stats.todayMinutes = Math.max(0, data.stats.todayMinutes - mins);
-    data.stats.weekHours = Math.max(0, data.stats.weekHours - mins/60);
-    data.stats.totalHours = Math.max(0, data.stats.totalHours - mins/60);
-    const sid = data.tasks[i].subjectId;
-    data.subjectMinutes[sid] = Math.max(0, (data.subjectMinutes[sid]||0) - mins);
+    const task=data.tasks[i];
+    if(task.completedDay){
+      const recorded=task.completedMinutes||0, sid=task.completedSubject;
+      if(task.completedDay===localDayKey()){
+        data.stats.tasksDone = Math.max(0, data.stats.tasksDone-1);
+        data.stats.todayMinutes = Math.max(0, data.stats.todayMinutes - recorded);
+      }
+      if(task.completedWeek===localWeekKey()) data.stats.weekHours = Math.max(0, data.stats.weekHours - recorded/60);
+      data.stats.totalHours = Math.max(0, data.stats.totalHours - recorded/60);
+      data.subjectMinutes[sid] = Math.max(0, (data.subjectMinutes[sid]||0) - recorded);
+    }
+    delete task.completedDay; delete task.completedWeek; delete task.completedMinutes; delete task.completedSubject;
   }
-  data.stats.todayKey = localDayKey();
-  data.stats.weekKey = localWeekKey();
   saveData();
   if(data.tasks[i].done) recordHistory();
   renderTasks();
@@ -578,6 +586,7 @@ function editSubject(i, nameArg, progressArg){
   var name = nameArg!==undefined?nameArg:(typeof prompt==='function'?prompt('修改科目名称：', s.name):s.name);
   if(name===null) return;
   var raw = progressArg!==undefined?progressArg:(typeof prompt==='function'?prompt('修改进度(0-100)：', s.progress):s.progress);
+  if(raw===null) return;
   var progress = Number(raw);
   if(!Number.isFinite(progress)||progress<0||progress>100){
     ToolBox.showToast('进度须在 0–100','error');
@@ -654,6 +663,7 @@ function planWeek(){
 }
 
 function renderStats(){
+  rollStats();
   document.getElementById('statToday').textContent = data.stats.todayMinutes;
   document.getElementById('statWeek').textContent = data.stats.weekHours;
   document.getElementById('statTotal').textContent = data.stats.totalHours;
@@ -703,6 +713,7 @@ function toggleMiniPomo(){
         miniPomoRemaining = 25 * 60;
         updateMiniPomoDisplay();
         ToolBox.showToast(i18nText('toast.msg1005'), 'success');
+        rollStats();
         data.stats.todayMinutes += 25;
         saveData();
       }

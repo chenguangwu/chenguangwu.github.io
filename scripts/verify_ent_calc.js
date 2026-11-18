@@ -254,7 +254,7 @@ const CASES = [
     "s4"
   ],
   "expect": [
-    "存在手术指征（反复发作≥3次/年、扁桃体周围脓肿史）"
+    "需要进一步评估（反复发作≥3次/年、扁桃体周围脓肿史）"
   ],
   "ref": "grade 默认 2（II度）；勾选 s1(反复扁桃体炎)+s4(周围脓肿史) → surgReason 依序拼接为「反复发作≥3次/年、扁桃体周围脓肿史」。回退默认（未勾选、grade=2）→ 「目前暂无明确手术指征」，该串不命中。"
 },
@@ -320,10 +320,13 @@ const CASES = [
   "ref": "12-N117：T 子项统一 0–16，引据阈值统一 >30.5；旧版 min=1、提示 1-16、引据 >30 ⇒ 变红。默认态不产生该串，零逃生。"
   },{
     "slug": "ent/tonsil-grading",
-    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ent/tonsil-grading.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/ent/tonsil-grading.json','utf8');var a=JSON.parse(dd)['ent/tonsil-grading'].faqs.filter(function(f){return f.q==='分度与手术关系？';})[0].a;var ok=h.indexOf('吞咽困难（仅记录，不参与指征判断）')>=0&&a.indexOf('吞咽障碍')<0&&a.indexOf('OSAHS')>=0&&a.indexOf('不单独构成手术指征')>=0&&en.indexOf('record only, not a surgical indication')>=0;document.getElementById('__tbProbe').textContent='TONSILS3 '+(ok?'OK':'BAD');"],
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ent/tonsil-grading.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/ent/tonsil-grading.json','utf8');var a=JSON.parse(dd)['ent/tonsil-grading'].faqs.filter(function(f){return f.q==='分度与手术关系？';})[0].a;var ok=h.indexOf('吞咽困难（仅记录，不参与指征判断）')>=0&&a.indexOf('吞咽障碍')<0&&a.indexOf('不能单凭分度或打鼾决定手术')>=0&&en.indexOf('record only, not a surgical indication')>=0;document.getElementById('__tbProbe').textContent='TONSILS3 '+(ok?'OK':'BAD');"],
     "expect": ["TONSILS3 OK"],
     "ref": "12-N100：吞咽困难原被采集却称「伴吞咽障碍多建议手术」，与判定逻辑（s3 不参与指征）冲突。现复选框明示仅记录，深解 FAQ 对齐页面既有手术指征列表并声明吞咽困难不单独构成指征。旧版 FAQ 仍含「吞咽障碍」且无仅记录标注 ⇒ 变红。N103 的 IV 度单独手术阈值保留专业复核。"
-  }
+  },
+  {"slug":"ent/tonsil-grading", "clicks":["setGrade(4);calc()"], "expect":["未选择上述症状或病史；仅凭分度不能判定是否需要手术"], "ref":"IV 度无症状不单独判定手术"},
+  {"slug":"ent/tonsil-grading", "checkIds":["s2"], "clicks":["setGrade(4);calc()"], "expect":["需要进一步评估（睡眠打鼾/呼吸暂停）"], "ref":"打鼾是评估线索，不能直接确诊 OSAHS 或决定手术"}
+
 ];
 async function main() {
   const only = process.argv.slice(2);
