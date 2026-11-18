@@ -1323,6 +1323,8 @@ const HOST_CASES = [
     extras: ["tuChart", "tuTable", "tuDiff", "tuHist", "tuPresets"],
     inputs: { cn: "240", enWords: "150", code: "40" },
     tableExpect: "400",
+    // AI-N13：代码输入单位是已计数的 tokens，表格不能再写成「代码行数」。
+    extraExpect: ["输入代码 tokens"],
     restore: { inputId: "cn", historyKey: "cn" },
     exportFn: "__tuExport",
   },
