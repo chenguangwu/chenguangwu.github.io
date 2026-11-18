@@ -581,6 +581,16 @@ const CASES = [
   "inputs": { "pao2": "65", "fio2": "150", "spo2": "95" },
   "expect": ["FiO2 应在 21–100% 之间，请重新填写。"],
   "ref": "03-192 FiO2 范围校验：旧版 parseFloat||21 无范围校验，150% 算出 P/F≈43「重度ARDS」、-10% 走兜底 P/F 0 且 FiO₂ 显示负值。本批用原始字符串判空 + 21–100 拦截。默认 fio2=40 合法不命中，零逃生。"
+},{
+  "slug": "pulmonology/respiratory-failure",
+  "inputs": { "pao2": "", "paco2": "40", "fio2": "21", "age": "65" },
+  "expect": ["请输入 PaO₂（>0 mmHg）与 PaCO₂（>0 mmHg）后再判断呼吸衰竭类型。"],
+  "ref": "03-165 血气呼衰空值守卫：旧版 pao2/paco2 空值 ||0 → pao2=0<60 直接判「I型呼衰」并算虚假 A-a 梯度。本批 PaO2/PaCO2 必填 >0，空/0/非法拦截不出分型。保留 paco2=40/fio2=21/age=65 合法，仅清空 pao2 命中；默认 pao2=55 合法不命中，零逃生。"
+},{
+  "slug": "pulmonology/oxygenation-index",
+  "inputs": { "pao2": "", "fio2": "40", "spo2": "92" },
+  "expect": ["请输入 PaO₂（>0 mmHg）后再计算氧合指数与 ARDS 分级。"],
+  "ref": "03-190 氧合指数 PaO2 空值守卫：旧版 ||0 → P/F=0 落入「重度ARDS」+PEEP默认勾选直接给 ECMO 建议。本批 PaO2 必填 >0，空/0 拦截。保留 fio2=40/spo2=92 合法，仅清空 pao2 命中（先过 FiO2 校验）；默认 pao2=65 合法不命中，零逃生。"
 }
 ];
 
