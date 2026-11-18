@@ -113,20 +113,6 @@
 
 > 范围：本轮阅读 7 页（`tools/cognition/human-benchmark.html`、`tools/museum/visitor-route.html`、`tools/museum/timeline-viewer.html`、`tools/research/index.html`、`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`）。**说明：四目录仅剩这 7 个未覆盖页（3 个工具页 + 4 个索引页），不足以凑满 8 页；未跨目录外扩，以免与 edu-language 批重复。** 仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### RL-K50 历史时间轴：遗留中医模板「辨证记录历史」与 `tcm-history.csv`（中，确认）
-- 描述：历史记录面板文案、英文 `Diagnosis Records`、localStorage 键 `__tbm_tcm_timeline`、导出文件名均沿用中医模板。
-- 证据：`tools/museum/timeline-viewer.html:467-469`、`:481-487`。
-- 复现：切换两次主题 → 页面出现「辨证记录历史 / 序号 / 条目 / 查看次数」，点导出得到 `tcm-history.csv`。期望「浏览记录 / 主题 / 浏览次数 / timeline-history.csv」。
-- 影响：明显串味，削弱专业可信度；英文态同样错误。
-- 方案：替换 `T` 字典、KEY 与文件名（含新 KEY 迁移或直接重置）。
-
-### RL-K51 科研索引页：三张卡片承诺未实现的功能（KMO/Bartlett、三角验证、主持人提纲）（中，确认）
-- 描述：索引卡与工具页 title/meta 均超出实现——analysis-49 只算 Cronbach α，无 KMO/Bartlett 输出；analysis-54 FAQ 明确「不能三角验证」；analysis-52 FAQ 明确「不能质性编码/主题提炼」，卡片却写「主持人提纲与编码归类」。
-- 证据：`tools/research/index.html:88-89`、`:93`；`tools/research/analysis-49.html:217-252`（仅 α）；`tools/research/analysis-54.html:152`；`tools/research/analysis-52.html:166`。
-- 复现：从索引点 analysis-49，输入任意矩阵 → 结果只有被试数/条目数/α/判读，无 KMO、Bartlett χ²、p（期望卡片承诺的四项）；analysis-54/52 同理无三角验证/提纲。
-- 影响：搜索摘要与首屏承诺落空，用户按缺失功能评估工具。
-- 方案：补实现 KMO/Bartlett（相关矩阵求逆+行列式）；或把卡片与 title/meta 改为「Cronbach α 信度分析」等真实能力。
-
 ### RL-K53 参观流线：历史快照只存有 id 的控件，通道距离/端点无法回放（低，确认）
 - 描述：`__visitor_routeSnap()` 只采集带 `id` 的 `input/select/textarea`；通道行只有 `data-i/data-k` 没有 `id`，因此历史记录不含任何边数据；回放只恢复展厅、起终点。
 - 证据：`tools/museum/visitor-route.html:508`、`:543-554`；边控件 `:276-279`。
