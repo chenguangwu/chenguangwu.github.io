@@ -48,13 +48,6 @@
 
 ## 2026-11-03 续查（并行批 H）
 
-### AI-N8 历史只记录输出值，回填却读取输入字段（高，确认源码缺陷）
-- 描述：`history.record` 写入的字段与 `history.mount` 回填读取的字段不是同一组，回填时把输入框写成字符串 `undefined`。
-- 证据：`tools/ai/token.html:318,320` 记录 `{tokens}`、回填读 `chars/lang/overlap`；`tools/ai/token-2.html:320,322` 记录 `{total}`、回填读 `input_tokens/output_tokens/input_price/output_price`；`tools/ai/token-usage.html:315,317`、`tools/ai/context-window.html:321,323`、`tools/ai/inference-throughput.html:316,318`、`tools/ai/quantization-ratio.html:320,322` 同样错位。全目录 64 处 `history.mount` 中仅 `min-max`、`dropout`、`cross-entropy`、`sigmoid`、`lr-decay`、`lr-warmup`、`relu-leakyrelu`、`precision-recall`、`ai-prompt-generator` 等少数页面同时记录输入字段。
-- 证据（node 内存复算）：按 `token.html:318,320` 的 record/mount 口径复现「记录 `{tokens:334}` → 回填 `chars=v.chars`（`v.tokens!=null` 恒真，未拦住 undefined）」，三个输入在 DOM 侧落为字符串 `undefined`，随后 `+value || 0` 兜底使估算 token 输出 `0`（不是原 334）。
-- 影响：本批 6 页及 ai 目录多数同类页的历史点击回填无效或归零，历史面板形同装饰。
-- 方案：record 与 mount 使用同一组字段（输入 + 输出），回填前做 `!= null` 判别与数值化，空值不覆盖现有输入；逐页验证「计算两次 → 点历史第一条 → 输入与结果还原」。
-
 ### AI-N14 `inference-throughput` 批处理时延方向与全文相反，指标互不自洽（中，确认源码缺陷）
 - 描述：页面正文与 FAQ 反复说"batching 会拉长单请求时延"，图表与表格却用 `耗时÷批大小`（批越大时延越小）；`每 token 毫秒` 用总 token 数，`单请求吞吐` 又按批大小折算，二者无法同时成立。
 - 证据：`tools/ai/inference-throughput.html:124`（公式框写"总吞吐…仅由 token 数与耗时决定"，等于声称 `batch` 无关）、`:145`（"并发批量越大人均吞吐越低，batching 以拉长单请求时延换取总吞吐"）、`:125`、`:180`（正文与 FAQ 的"延迟/吞吐取舍"表述）、`:311`（图表 `latency per request` 用 `sec/b`，即"批越大时延越低"）、`:313-314`（`lat` 与 `ms per token` 两行）、`:282-283`（主结果总吞吐与人均吞吐）。

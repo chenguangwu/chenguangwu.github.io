@@ -1336,6 +1336,7 @@ const HOST_CASES = [
   {
     slug: "ai/context-window",
     coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
+    restore: { inputId: "system", historyKey: "system" },
     chart: "cwChart", table: "cwTable",
     extras: ["cwChart", "cwTable", "cwDiff", "cwHist", "cwPresets"],
     inputs: { system: "800", prompt: "2200", resp: "1500", ctx: "64000" },
@@ -1345,6 +1346,7 @@ const HOST_CASES = [
   {
     slug: "ai/inference-throughput",
     coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
+    restore: { inputId: "tokens", historyKey: "tokens" },
     chart: "itChart", table: "itTable",
     extras: ["itChart", "itTable", "itDiff", "itHist", "itPresets"],
     inputs: { tokens: "900", sec: "6", batch: "2" },
@@ -1354,6 +1356,7 @@ const HOST_CASES = [
   {
     slug: "ai/quantization-ratio",
     coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
+    restore: { inputId: "params", historyKey: "params" },
     chart: "qrChart", table: "qrTable",
     extras: ["qrChart", "qrTable", "qrDiff", "qrHist", "qrPresets"],
     inputs: { params: "2500", fromB: "8", toB: "4" },
