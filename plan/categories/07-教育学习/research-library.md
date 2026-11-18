@@ -113,13 +113,6 @@
 
 > 范围：本轮阅读 7 页（`tools/cognition/human-benchmark.html`、`tools/museum/visitor-route.html`、`tools/museum/timeline-viewer.html`、`tools/research/index.html`、`tools/library/index.html`、`tools/cognition/index.html`、`tools/museum/index.html`）。**说明：四目录仅剩这 7 个未覆盖页（3 个工具页 + 4 个索引页），不足以凑满 8 页；未跨目录外扩，以免与 edu-language 批重复。** 仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### RL-K43 Human Benchmark：只做 1 项也生成完整报告，未测维度按 P0 计入综合指数（中，确认）
-- 描述：`computeAbilities()` 对未测能力返回 0；报告照常显示四维 P 值与「0–100 综合脑力指数」，`computeIndex()` 仍按 0.30/0.25/0.25/0.20 全权重求和，未测项被当作「0 百分位」。
-- 证据：`tools/cognition/human-benchmark.html:854-880`、`:936-953`、`:330`。
-- 复现：只完成反应速度 250ms（P69）→ 报告「记忆 P0 / 注意 P0 / 加工速度 P69 / 执行 P0」，指数 17、「击败了约 17% 的人」（期望隐藏未测维度，或按已测权重归一化，指数应≈69）。
-- 影响：单项用户得到严重低估且自相矛盾的报告。
-- 方案：报告中未测维度显示「未测」并排除出雷达；综合指数按已测能力权重重新归一；仅 8 项齐全时提示完整指数。
-
 ### RL-K47 参观流线：改名展厅后通道下拉无匹配项，显示错位且计算静默丢弃通道（中，确认）
 - 描述：`renderEdges()` 仅对 `e[0]===n` 加 `selected`；旧端点不存在时浏览器默认选第一项，但 `edges` 数据仍保留旧名；`compute()` 对不在 `nodes` 的端点直接跳过，无提示。
 - 证据：`tools/museum/visitor-route.html:274-275`、`:354-360`、`:245-255`。

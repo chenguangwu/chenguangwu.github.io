@@ -147,6 +147,24 @@ const CASES = [
   "ref": "Chimp 标注/判定一致性（N5-D）：固定位置序列 P=[6,1,4,8] 下，P[k] 屏幕标注 k+1，判定序也必须按 P 的下标给出同一序号 ⇒ 期望 1234。旧实现判定序为 positions 升序排序（排序后与标注错位，答对判错/答错判对），且无 chimpNumAt 共用映射 ⇒ 本串不成立。非默认态注入、避开页面默认渲染。"
 },
 {
+  "slug": "cognition/human-benchmark",
+  "clicks": ["var r=window.__hbIndexWith([69,null,null,null,null,null,null,null]);document.getElementById('__tbProbe').textContent='IDX '+r.index+' M='+Object.keys(r.measured).sort().join(',')"],
+  "expect": ["IDX 69 M=speed"],
+  "ref": "RL-K43 未测维度不得按 P0 计入综合指数：仅 reaction=P69，已测维度只有 speed（权 0.25）⇒ 归一后 index=69、measured=speed；旧版按全权重 69×0.25≈17（plan 复现的「指数 17」），断言「IDX 69」不成立。钩子 __hbIndexWith 纯计算无 DOM 副作用，注入 8 项百分位（null=未测）。"
+},
+{
+  "slug": "cognition/human-benchmark",
+  "clicks": ["var r=window.__hbIndexWith([50,50,50,50,50,50,50,50]);document.getElementById('__tbProbe').textContent='IDX '+r.index+' M='+Object.keys(r.measured).sort().join(',')"],
+  "expect": ["IDX 50 M=attention,executive,memory,speed"],
+  "ref": "RL-K43 全测回归：8 项均 P50 ⇒ 四维各 50、归一化 index=50、measured 四维齐全。防止归一改动在全测时误算。"
+},
+{
+  "slug": "cognition/human-benchmark",
+  "clicks": ["var r=window.__hbIndexWith([null,null,null,90,null,null,null,null]);document.getElementById('__tbProbe').textContent='IDX '+r.index+' M='+Object.keys(r.measured).sort().join(',')"],
+  "expect": ["IDX 90 M=memory"],
+  "ref": "RL-K43 仅 memory 维度已测（number=P90，权 0.30）⇒ 归一 index=90、measured=memory；旧版全权重 90×0.30=27 不命中。与 reaction 用例分属不同维度，防单一路径假绿。"
+},
+{
   "slug": "cognition/nback-training",
   "inputs": {
     "nbDur": "1350",
