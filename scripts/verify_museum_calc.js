@@ -245,6 +245,16 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "museum/showcase-monitor",
+  "clicks": [
+    "currentMat='ceramic';document.getElementById('temp').value='40';document.getElementById('rh').value='50';evalEnv();"
+  ],
+  "expect": [
+    "温度偏高，建议降至 35℃ 以下"
+  ],
+  "ref": "范围型材质建议（RL-K38）：陶瓷/玻璃用 tempR=[5,35]、rhR=[20,60]，旧版建议分支只覆盖数组 temp 与 rhMax，40℃ 超标时 advice 为空，输出「调整建议：。」。修复后按 tempR 上下界给出降温建议；默认材质为书画（数组 temp），不命中该串。"
+},
+{
   "slug": "museum/timeline-viewer",
   "clicks": [
     "currentTheme='世界历史';renderTimeline();"
