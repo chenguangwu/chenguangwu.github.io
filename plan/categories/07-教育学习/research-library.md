@@ -218,13 +218,6 @@
 - 影响：首屏下方内容明显跑题，影响 E-E-A-T。
 - 方案：改写为博物馆动线场景，删除「批量操作」等模板项与重复句号。
 
-### RL-K56 历史时间轴：面包屑与 meta 将类目写成「历史人文」，与「文博展陈」不一致（低，确认）
-- 描述：面包屑第二级文字为「🏛️ 历史人文」，同页 description/og 亦称「历史人文领域」，但实际类目与 JSON-LD 是「文博展陈」。
-- 证据：`tools/museum/timeline-viewer.html:149`、`:10`、`:15`；类目见 `:95`。
-- 复现：打开页面 → 面包屑显示「历史人文」，点进去是 museum/index.html「文博展陈」。期望统一为「文博展陈」。
-- 影响：类目归属混乱，内链锚文本与落地页不一致。
-- 方案：改面包屑文字与 meta 描述为「文博展陈」。
-
 ### RL-K57 四个分类索引页：meta 均称覆盖「单位转换」，目录内并无换算类工具（低，确认）
 - 描述：research/library/cognition/museum 四个 `index.html` 的 description/og/twitter 使用同一套模板句「常见计算、换算、单位转换与查询需求」，但四目录工具均为统计、档案、测评、展陈类，无单位换算器。
 - 证据：`tools/research/index.html:6`、`tools/library/index.html:6`、`tools/cognition/index.html:6`、`tools/museum/index.html:6`（`:11`/`:21` 同样）。
