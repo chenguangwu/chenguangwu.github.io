@@ -14307,6 +14307,25 @@ const CASES = [
     ref: "IT-N449 源码形态判定：复制函数须拼 <style> 前缀、含 .hl-* 颜色兜底、并按主题给容器加 dark-editor 类；旧实现三者皆无 ⇒ BAD。探针串只在注入该页且函数已改造时出现 ⇒ 零逃生。",
   },
   {
+    slug: "it/code-highlighter",
+    // IT-N448：跨行块注释必须三行同为 comment；旧逐行 tokenize 中间行 plain、结束行 operator。
+    clicks: ["var e=document.getElementById('codeInput');e.value='/* a\\n b\\n*/';document.getElementById('langSelect').value='javascript';highlight();var p=document.getElementById('codeOutputBody').innerHTML.split('<tr');var ok=p.length>=4&&[1,2,3].every(function(i){return p[i].indexOf('hl-comment')>=0&&p[i].indexOf('hl-plain')<0&&p[i].indexOf('hl-operator')<0;});document.getElementById('__tbProbe').textContent='HLBLOCK '+(ok?'OK':'BAD');"],
+    expect: ["HLBLOCK OK"],
+    ref: "IT-N448 JS 跨行块注释：旧 renderHighlighted 逐行 tokenize，第 2 行 b 为 hl-plain、第 3 行 */ 为 hl-operator；新实现整段 tokenize 后按 token 内换行拆行，三行均 hl-comment。默认示例无跨行块注释 ⇒ 探针串零逃生。",
+  },
+  {
+    slug: "it/code-highlighter",
+    clicks: ["var e=document.getElementById('codeInput');e.value='\"\"\"a\\n b\\n\"\"\"';document.getElementById('langSelect').value='python';highlight();var p=document.getElementById('codeOutputBody').innerHTML.split('<tr');var ok=p.length>=4&&[1,2,3].every(function(i){return p[i].indexOf('hl-string')>=0&&p[i].indexOf('hl-plain')<0&&p[i].indexOf('hl-operator')<0;});document.getElementById('__tbProbe').textContent='HLDOC '+(ok?'OK':'BAD');"],
+    expect: ["HLDOC OK"],
+    ref: "IT-N448 Python 三引号文档字符串：旧逐行 tokenize 只在首末行命中 string，中间行 b 为 hl-plain；新实现整段 tokenize ⇒ 三行均 hl-string。默认示例无三引号跨行串 ⇒ 探针串零逃生。",
+  },
+  {
+    slug: "it/code-highlighter",
+    clicks: ["var e=document.getElementById('codeInput');e.value='<!-- a\\n b\\n-->';document.getElementById('langSelect').value='html';highlight();var p=document.getElementById('codeOutputBody').innerHTML.split('<tr');var ok=p.length>=4&&[1,2,3].every(function(i){return p[i].indexOf('hl-comment')>=0&&p[i].indexOf('hl-plain')<0&&p[i].indexOf('hl-operator')<0;});document.getElementById('__tbProbe').textContent='HLHTML '+(ok?'OK':'BAD');"],
+    expect: ["HLHTML OK"],
+    ref: "IT-N448 HTML 跨行注释：旧逐行 tokenize 中间行 b 为 hl-plain、末行 --> 为 hl-plain；新实现整段 tokenize ⇒ 三行均 hl-comment。默认示例无跨行 HTML 注释 ⇒ 探针串零逃生。",
+  },
+  {
     slug: "it/benchmark-builder",
     inputs: { type: 'array', ms: '5000' },
     clicks: ["var cap='';var old=ToolBox.copyText;ToolBox.copyText=function(s){cap=String(s);};copyCode();ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='BMCOPY '+(cap.indexOf('<5000')>=0&&cap.indexOf('a.sort')>=0&&cap.indexOf('array / 5000ms')>=0?'OK':'BAD '+cap.slice(0,120));"],

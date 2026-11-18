@@ -1332,22 +1332,30 @@ function renderToken(token) {
 
 // ========== 逐行渲染 ==========
 function renderHighlighted(code, lang) {
-  const lines = code.split('\n');
+  // 必须先对整段源码 tokenize，再按 token 内部的换行拆到各行。
+  // 逐行 tokenize 会让 /* */、Python 三引号字符串、HTML <!-- --> 等跨行 token
+  // 在每一行里都找不到结束符，导致中间行被当成普通代码、结束行被当成运算符。
+  const lineCount = code.split('\n').length;
   const lineHtmls = [];
-
-  // 逐行 tokenize，确保行号与高亮内容对齐
-  for (let l = 0; l < lines.length; l++) {
-    const line = lines[l];
-    const lineTokens = tokenize(line, lang);
-    let lineH = '';
-    for (let t = 0; t < lineTokens.length; t++) {
-      lineH += renderToken(lineTokens[t]);
+  for (let n = 0; n < lineCount; n++) lineHtmls.push('');
+  let lineIdx = 0;
+  const allTokens = tokenize(code, lang);
+  for (let t = 0; t < allTokens.length; t++) {
+    const token = allTokens[t];
+    const parts = String(token.value).split('\n');
+    for (let k = 0; k < parts.length; k++) {
+      if (k > 0) lineIdx++;
+      if (lineIdx >= lineCount) break;
+      if (parts[k] !== '') {
+        lineHtmls[lineIdx] += renderToken({ type: token.type, value: parts[k] });
+      }
     }
-    // 确保空行也有内容（保持行高）
-    if (lineH === '') lineH = ' ';
-    lineHtmls.push(lineH);
+    if (lineIdx >= lineCount) break;
   }
-
+  // 确保空行也有内容（保持行高）
+  for (let n = 0; n < lineHtmls.length; n++) {
+    if (lineHtmls[n] === '') lineHtmls[n] = ' ';
+  }
   return lineHtmls;
 }
 
