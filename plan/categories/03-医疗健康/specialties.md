@@ -287,13 +287,6 @@
 - 影响：`tools/cardiology/calc-3.html`；分诊阈值被教错，可能把中危患者当高危或反之。
 - 方案：把深解与 FAQ 改为逐项列权重，并统一写「0–4 低危、5–8 中危、≥9 高危」；删除「每项 1 分」「≥4 高危」。需医师复核分层口径。
 
-### 03-87 结果趋势图因 `parseFloat` 读到中文首段永不渲染（中，确认缺陷）
-- 问题：历史记录 `结果` 字段存的是整段结果文本，趋势图对该字段 `parseFloat`。结果首段是「TIMI 评分：」，`parseFloat` 返回 NaN，所有记录被 `isFinite` 过滤，`nums.length` 永远不到 2，折线图空白。
-- 证据：`tools/cardiology/calc-3.html:305`（结果首段 `<p>TIMI 评分：…`）、`:337`（`__calc_3ResText` 取 `textContent`）、`:397`（`rk='结果'`）、`:377-383`（`parseFloat(arr[j].d[rk])` + `isFinite` + `nums.length>=2`）。
-- 复现：连续计算 5 分与 11 分两组 → node 复算 `parseFloat('TIMI 评分： 11 分') = NaN`；历史表有两行，折线图仍为空。期望按 TIMI 分值画线。
-- 影响：`tools/cardiology/calc-3.html`；随访趋势功能实际不可用。
-- 方案：历史记录增加数值字段（如 `score`），趋势图读数值；或从结果 DOM 按 `#result strong` 取分。
-
 ### 03-90 「默认参数」预设不清空已勾选的危险因素，点后得到 9 分高危而非 0 分（中，确认缺陷）
 - 问题：预设只对 `values` 中出现的字段调用 `setValue`，不会重置未列出的字段。「默认参数」只给 `age:'0'`、`killip:'0'`，六个 checkbox 不在 values 里；若用户刚从「高危」预设过来，六个勾选全部保留，得分仍为 9。
 - 证据：`tools/cardiology/calc-3.html:422`（默认参数只含 age/killip）、`:423-425`（高危预设勾选 6 项）；`js/tool-kit.js:988-997`（`setValue` 只改指定字段）、`:1049-1051`（只遍历 `p.values`，无清空逻辑）。

@@ -152,6 +152,12 @@ const CASES = [
   "ref": "03-89 医疗页误标金融类：meta cat=finance、JSON-LD applicationCategory=FinanceApplication，与同目录心血管页 cat=health 不符。改 meta 为 cat=health 后 build 自动重生成 JSON-LD 为 MedicalApplication。源码形态哨兵：须含 cat=health + MedicalApplication 且不含两种旧串。默认态不产哨兵（仅 clicks 读源码后出现），零逃生。"
 },
 {
+  "slug": "cardiology/calc-3",
+  "clicks": ["var a=__calc_3Timi('TIMI 评分： 11 分（满分 14 分）');var b=__calc_3Timi('TIMI Score: 5 / 14');var c=__calc_3Timi('TIMI 评分： 0 分（满分 14 分）');document.getElementById('__tbProbe').textContent='C3TREND '+(a===11&&b===5&&c===0?'OK':'BAD '+a+','+b+','+c);"],
+  "expect": ["C3TREND OK"],
+  "ref": "03-87 趋势图按 TIMI 分值画线：历史记录「结果」首段是「TIMI 评分： N 分」，旧版趋势图对整段 parseFloat 得 NaN 永不渲染；曾伪修为 __tbScore=0/1（有效性标记）画 0/1 线，非分值。本批新增 __calc_3Timi 从结果文本提取 N（兼容中英），record 存 __tbTimi，趋势图读它并按分值画线，历史表结论列仍用 0/1 __tbScore 不变。三档断言 11/5/0 精确提取；旧版无该函数⇒THROWN红；默认态无探针，零逃生。"
+},
+{
   "slug": "cardiology/cardiac-rehab-mets",
   "inputs": {
     "mets": "8",

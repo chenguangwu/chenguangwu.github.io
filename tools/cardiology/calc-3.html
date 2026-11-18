@@ -314,6 +314,12 @@ function __calc_3Score(t){
     if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
+// 从结果文本首段「TIMI 评分： N 分」提取分值，供趋势图按分值画线（03-87）
+function __calc_3Timi(t){
+    var s=String(t||'');
+    var m=s.match(/TIMI\s*(?:评分|Score)\s*[：:]\s*(\d+)/i);
+    return m?+m[1]:NaN;
+}
 function __calc_3Time(t){
     var d=new Date(t);
     function q(x){return (x<10?'0':'')+x;}
@@ -343,7 +349,7 @@ function __calc_3Render(keys,rk,en){
                     if(!Object.prototype.hasOwnProperty.call(rec,__cbs[__ci].id)) __cbs[__ci].checked=false;
                 }
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='__tbTimi') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -356,11 +362,11 @@ function __calc_3Render(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d.__tbScore);
+            var v=parseFloat(arr[j].d.__tbTimi);
             if(isFinite(v)){nums.push(v);labels.push(__calc_3Time(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#calc_3Chart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
+            TBKit.chart.line('#calc_3Chart',{labels:labels,series:[{name:en?'TIMI Score trend':'TIMI 评分趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -391,6 +397,7 @@ function __calc_3Extras(){
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
     rec.__tbScore=__calc_3Score(res);
+    rec.__tbTimi=__calc_3Timi(res);
     TBKit.history.record(rec);
     __calc_3Render(keys,rk,en);
 }
