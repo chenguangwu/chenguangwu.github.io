@@ -203,6 +203,12 @@ const CASES = [
     "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
+  "slug": "cognition/stroop-test",
+  "clicks": ["var p=window.__stFinishProbe();document.getElementById('__tbProbe').textContent='ST '+p.before+'->'+p.after+' '+p.html;"],
+  "expect": ["ST 0->0 本次无有效试次，未保存记录"],
+  "ref": "零试次提前结束：旧版 overallAcc=0 仍 push 一条 0 分历史，污染趋势。现无 scored 试次时提示并直接 return，断言历史条数 0->0 与提示文案；默认态无 ST 串。"
+},
+{
   "slug": "cognition/time-perception",
   "inputs": {
     "bSel": "90"

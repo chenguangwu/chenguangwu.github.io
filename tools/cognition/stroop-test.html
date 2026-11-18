@@ -164,7 +164,6 @@
     <section id="stSetup" class="st-stage">
       <div class="st-row">
         <div class="st-field">
-          <div data-tb="preset" data-tb-presets='[{"label":"每试次时限2500ms2500","labelEn":"stTimeout=2500","values":{"stTimeout":"2500"}}]'></div>
 <label>颜色数量</label>
           <div class="st-seg" id="stColors">
             <button data-v="4" aria-pressed="true">4 色</button>
@@ -173,6 +172,7 @@
         </div>
         <div class="st-field">
           <label>每试次时限 <span id="stTimeoutV">2500</span> ms</label>
+          <div data-tb="preset" data-tb-presets='[{"label":"每试次时限 2500ms","labelEn":"stTimeout=2500","values":{"stTimeout":"2500"}}]'></div>
           <input type="range" id="stTimeout" min="1200" max="4000" step="100" value="2500">
         </div>
         <div class="st-field">
@@ -420,6 +420,13 @@
   function finish() {
     S.running = false;
     if (S.timer) { clearTimeout(S.timer); S.timer = null; }
+    if (!S.log.some(function (x) { return x.scored; })) {
+      // 零试次不是一次有效测量：给提示且不写历史，避免 0 分污染趋势
+      $('stResult').innerHTML = '<p style="color:var(--danger)">本次无有效试次，未保存记录。</p>';
+      $('stResult').style.display = 'block';
+      $('stPlay').style.display = 'none';
+      return;
+    }
     var cong = condStats('congruent'), incong = condStats('incongruent'), neut = condStats('neutral');
     var interference = (!isNaN(incong.m) && !isNaN(cong.m)) ? (incong.m - cong.m) : NaN;
     var interferenceRate = (!isNaN(interference) && cong.m > 0) ? (interference / cong.m * 100) : NaN;
@@ -692,6 +699,12 @@
     else if (k === 'b' && S.nColors >= 3) { onRespond(2); }
     else if (k === 'y' && S.nColors >= 4) { onRespond(3); }
   });
+  // 只读诊断钩子：零试次不写历史；预设控件归属时限字段
+  window.__stFinishProbe = function () {
+    var before = loadHistory().length;
+    S.log = []; finish();
+    return { html: $('stResult').innerHTML, before: before, after: loadHistory().length };
+  };
 })();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
