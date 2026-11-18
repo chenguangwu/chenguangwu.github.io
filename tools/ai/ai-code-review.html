@@ -289,8 +289,18 @@ const RULES = [
   { id: 'empty', severity: 'info', pattern: /\{\s*\}/, title: '空代码块', desc: '代码中存在空块。', fix: '添加代码或删除空块。' },
 ];
 
+// AI-N17：TypeScript 选择器必须接线。仅在 ts 模式追加 TS 专属规则，JS 模式保持原规则集。
+const TS_RULES = [
+  { id: 'tsAny', severity: 'warn', pattern: /\bany\b/, title: '使用 any 类型', desc: 'any 会关闭类型检查，削弱 TypeScript 的主要收益。', fix: '改用具体类型、unknown 或泛型约束。' },
+  { id: 'tsNonNull', severity: 'info', pattern: /\w!\s*(\.|\[|\()/, title: '使用非空断言', desc: '! 断言会让编译器跳过空值检查，运行时仍可能抛出异常。', fix: '改为显式空值判断或可选链。' },
+  { id: 'tsAs', severity: 'info', pattern: /\bas\s+[A-Z]\w*/, title: '使用类型断言', desc: 'as 断言绕过类型推导，断言错误不会被编译器发现。', fix: '优先用类型守卫或泛型让类型自然推导。' },
+];
+
 function review() {
   const code = document.getElementById('code').value;
+  const langEl = document.getElementById('lang');
+  const isTS = !!(langEl && langEl.value === 'typescript');
+  const rules = isTS ? RULES.concat(TS_RULES) : RULES;
   if (!code.trim()) {
     ToolBox.showToast(i18nText('toast.msg733'), 'warn');
     return;
@@ -299,7 +309,7 @@ function review() {
   const lines = code.split('\n');
   const issues = [];
   
-  for (const rule of RULES) {
+  for (const rule of rules) {
     const matches = [];
     for (let i = 0; i < lines.length; i++) {
       if (rule.pattern.test(lines[i])) {

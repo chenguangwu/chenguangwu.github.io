@@ -86,26 +86,6 @@
 - 影响：`ai-text-summarizer` 关键词面板中文全是重叠子串、英文全是字母碎片，用户无法得到可用词表。
 - 方案（需算法重做/专业裁断）：关键词改用 `Intl.Segmenter` 分词并合并同源 n-gram（最长匹配去重），英文按单词而非字符 n-gram 计数。
 
-### AI-N17 `ai-code-review` 语言选择器未接线，两种语言审查结果完全相同（中，确认源码缺陷）
-- 描述：页面提供 JavaScript/TypeScript 下拉框，但 `review()` 与图表统计均未读取该值；规则集是纯 JS 正则，TypeScript 特有语法没有任何检查。
-- 证据：`tools/ai/ai-code-review.html:170`（`select id="lang"`；全文仅此一处定义该 id，无任何脚本按 id 读取它）、`:303-327`（`review()` 只读 `code` 与 `RULES`）、`:549-561`（图表同样只遍历 `RULES`）、`:280-301`（规则集无语言字段）。
-- 影响：`ai-code-review`；用户切换语言获得逐字相同的评分与问题清单，形成"已按 TS 审查"的错误预期。
-- 方案：要么移除该下拉框，要么给规则加 `lang` 维度并补充 TS 规则（如 `any`、`as` 断言、接口命名）；修复后对比同一段代码在两种语言下的差异输出。
-
-### AI-N18 `ai-code-review` 示例代码被注入守卫片段污染，并制造额外误报（中，确认源码缺陷）
-- 描述：`loadSample()` 的模板字符串里混入一段自动生成的 `NaN` 守卫代码（含 `__h4`、`document.getElementById('result').innerHTML=__h4`），示例本身不可运行，并额外触发 `innerHTML` 与 `longLine` 两条告警（`==` 命中的是原示例第 3 行 `if (data == null)`，与注入无关）。
-- 证据：`tools/ai/ai-code-review.html:386-400`，其中 `:393` 为注入片段；`:283`（`innerHTML` 规则）、`:296`（`==` 规则）、`:298`（`longLine` 规则）。
-- 证据（node 内存复算）：`loadSample()` 生成的示例共 13 行 604 字符，`includes("__h4")===true`、`includes("innerHTML=__h4")===true`；按页面 `RULES` 命中 `eval:[9]`、`innerHTML:[7]`、`debugger:[11]`、`console:[6]`、`var:[2,8,9]`、`==:[3]`、`longLine:[7]`（第 7 行 324 字符）。
-- 影响：`ai-code-review`；点"示例代码"后用户看到的是一段带构建残留的乱码式示例；审查该示例时评分 61，且注入行额外制造 `innerHTML`/`longLine` 两条命中。
-- 方案：把示例还原为干净的 `const el = '<p>' + data.name + '</p>';` 或改用 `textContent`，删除注入守卫；示例填入后自动触发一次审查，便于对照预期命中。
-
-### AI-N19 "示例代码"只填文本框不重算，结果区保留上一份代码的评分（低，确认源码缺陷）
-- 描述：`loadSample()` 仅给 `#code` 赋值，既不调用 `review()` 也不清空 `#scoreBox`/`#result`；换入示例后，屏幕上仍是上一段代码的评分与问题清单。
-- 证据：`tools/ai/ai-code-review.html:386-400`（`loadSample` 全程只有一次 `document.getElementById('code').value=...`，`:400` 直接结束）、`:352`（`#scoreBox` 只在 `review()` 内写入）、`:377`（`#result` 只在 `review()` 内写入）。
-- 证据（node 内存复算）：用状态桩执行 `review()` 后读取 `scoreBox.innerHTML`，再调用 `loadSample()` 二次读取，字符串完全一致（代码已替换、评分未变）。
-- 影响：`ai-code-review`；用户以为看到的是示例的审查结果，实际是旧代码分数，易得出错误结论。
-- 方案：`loadSample()` 末尾调用 `review()`（或清空 `scoreBox`/`result` 并提示"点击开始审查"）；按钮文案可改为"载入并审查"。
-
 ### AI-N20 计算器页重复渲染两组"相关工具"卡片（低，确认源码缺陷）
 - 描述：同一页连续出现两个 `data-related-tools` 区块，前 4 张卡片完全重复，用户会看到重复推荐。
 - 证据：`tools/ai/token.html:214-242` 与 `:244-272`（两组各 6 张，`dropout/l1-l2/rag/roc-auc` 重复）；统计 `class="related-tools"` 出现次数：`token.html`、`token-2.html`、`token-usage.html`、`context-window.html`、`inference-throughput.html`、`quantization-ratio.html`、`transformer-params.html` 均为 `2`，`ai-text-summarizer.html`、`ai-code-review.html` 为 `1`。

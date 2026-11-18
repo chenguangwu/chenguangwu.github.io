@@ -1520,6 +1520,19 @@ async function runCodeReviewCase() {
   if (!/userName/.test(code)) return { ok: false, why: "示例代码未还原为干净示例" };
   if (!doc.getElementById("scoreBox").textContent.includes("代码质量评分")) return { ok: false, why: "载入示例后评分卡未重算" };
   if (!doc.getElementById("result").textContent.includes("详细问题")) return { ok: false, why: "载入示例后结果区未重算" };
+  // AI-N17：同一段 TS 代码切到 typescript 必须多出 TS 规则，切回 javascript 后消失。
+  doc.getElementById("lang").value = "typescript";
+  doc.getElementById("code").value = "let x: any = 1;\nconst y = obj!.name;\nconst z = foo as Bar;";
+  win.review();
+  const ts = doc.getElementById("result").textContent;
+  for (const s of ["使用 any 类型", "使用非空断言", "使用类型断言"]) {
+    if (!ts.includes(s)) return { ok: false, why: "TS 模式缺少规则 " + s };
+  }
+  doc.getElementById("lang").value = "javascript";
+  win.review();
+  if (doc.getElementById("result").textContent.includes("使用 any 类型")) {
+    return { ok: false, why: "JS 模式误报 TS 规则" };
+  }
   return { ok: true };
 }
 
