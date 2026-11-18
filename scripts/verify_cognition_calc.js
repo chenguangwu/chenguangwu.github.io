@@ -175,6 +175,18 @@ const CASES = [
     "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
+  "slug": "cognition/schulte-table",
+  "clicks": ["document.getElementById('__tbProbe').textContent='LV '+window.__scLevel(5,'num','asc',25/38,0);"],
+  "expect": ["本次评级： 良好"],
+  "ref": "5 阶 25 格 38 秒：速率 0.658 个/秒，旧固定阈值 <0.7 判「需加强」，与同页深度解析「成人 5×5 常见 25–40 秒」矛盾。现按每格耗时 38/25=1.52 秒判「良好」。默认态无 LV 串。"
+},
+{
+  "slug": "cognition/schulte-table",
+  "clicks": ["document.getElementById('__tbProbe').textContent='LV '+window.__scLevel(3,'num','asc',9/10,0);"],
+  "expect": ["本次评级： 优秀"],
+  "ref": "3 阶 9 格 10 秒：旧固定阈值 0.9<1.0 只判「良好」，不同阶不可比。现每格 10/9=1.11 秒判「优秀」。默认态无 LV 串。"
+},
+{
   "slug": "cognition/stroop-test",
   "inputs": {
     "stTimeout": "3750"
