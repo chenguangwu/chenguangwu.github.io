@@ -3252,6 +3252,12 @@ const CASES = [
     ref: "IT-N423：常见别名 UK→GB（非 ISO 但通用），旧版直接查 COUNTRIES['UK'] 未命中 ⇒ 未找到；修复经 COUNTRY_ALIASES 映射后返回英国条目（ISO 码显示 GB）。默认示例 CN 不同 ⇒ 强判别。",
   },
   {
+    slug: "it/country-code-lookup",
+    inputs: { input: "ISL" },
+    expect: ["ISO 3166-1： IS", "国名： Iceland（冰岛）"],
+    ref: "ISO alpha-3 ISL 精确检索冰岛，旧实现只查 alpha-2 和名称。"
+  },
+  {
     slug: "it/language-code-lookup",
     inputs: { input: "zh" },
     expect: ["ISO 639-3： zho"],
@@ -8597,7 +8603,7 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\nInput: abc123测试 ❌ 未找到匹配的国家 支持：ISO 3166-1 alpha-2 代码（如 CN、US、JP）或中英文国名"
+      "输入： abc123测试 ❌ 未找到匹配的国家 本库仅覆盖部分国家和地区；可查 alpha-2、alpha-3 或中英文名称，不支持数字码"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\nInput: abc123测试 ❌ 未找到匹配的国家 支持：I…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },

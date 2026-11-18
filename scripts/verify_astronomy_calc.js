@@ -43,7 +43,7 @@ const CASES = [
     "0.0169",
     "44.9831"
   ],
-  "ref": "h=45°（视高度角）→ 括号内 45.206°，R = 1.02/tan(45.206°) = 1.0120′ = 0.0169°；修正后真高度角 = 45 − 0.0169 = 44.9831°。旧实现把方向写成 h + R/60（得 45.0169），且参数按真高度角解释，与 Saemundsson 公式口径相反"
+  "ref": "视高度 45° 数值反求真高度 44.9831°，折射约 1.0133′。"
 },
 {
   "slug": "astronomy/atmospheric-refraction",
@@ -59,7 +59,7 @@ const CASES = [
   "slug": "astronomy/atmospheric-refraction",
   "clicks": ["var fs=globalThis.__tbFs,root=globalThis.__tbRoot;function rd(p){try{return fs.readFileSync(root+'/'+p,'utf8')}catch(e){return ''}};var html=rd('tools/astronomy/atmospheric-refraction.html'),zh=rd('i18n/tools/astronomy.json'),ov=rd('i18n/tools/_en_override.json'),en=rd('i18n/tools/en/astronomy/atmospheric-refraction.json');var ok=html.indexOf('输入天体真高度角，用Bennett近似公式')<0&&html.indexOf('Bennett 近似')<0&&html.indexOf('地平高度角')<0&&html.indexOf('Saemundsson')>=0&&html.indexOf('视高度角')>=0&&zh.indexOf('输入观测视高度角')>=0&&zh.indexOf('Saemundsson')>=0&&zh.indexOf('Bennett')<0&&ov.indexOf('astronomy/atmospheric-refraction')>=0&&ov.indexOf('Atmospheric Refraction Calculator for Apparent Altitude')>=0&&ov.indexOf('Saemundsson')>=0&&en.indexOf('Bennett')<0&&en.indexOf('True altitude angle (degrees)')<0&&en.indexOf('地平高度角')<0;document.getElementById('__tbProbe').textContent='ATRFMETA '+(ok?'OK':'BAD');"],
   "expect": ["ATRFMETA OK"],
-  "ref": "N105/N106 源码形态回归：公式系数属于 Saemundsson 且参数是观测视高度角；meta/og/JSON-LD、中文 i18n 源、英文覆盖与英译词典不得再残留 Bennett 署名、真高度角输入或地平高度角旧口径。默认态无探针串，零逃生。"
+  "ref": "N105/N106 源码形态回归：公式系数属于 Saemundsson 且页面输入为观测视高度角，实际先反求真高度；meta/og/JSON-LD、中文 i18n 源、英文覆盖与英译词典不得再残留 Bennett 署名、真高度角输入或地平高度角旧口径。默认态无探针串，零逃生。"
 },
 {
   "slug": "astronomy/convert-15",
@@ -289,6 +289,10 @@ const CASES = [
     "expect": ["73.03°", "166.00° 南", "太阳时 11:42"],
     "ref": "NOAA 口径独立复算：2024-06-21 12:00（UTC+8）、lon=116 ⇒ 经度时差 (116−120)/15h = −16 min、EoT≈−1.7 min ⇒ 太阳时 11:42；赤纬 23.45°，H=(11.7−12)×15=−4.5°；sin h = sin40°·sin23.45° + cos40°·cos23.45°·cosH = 0.2563+0.7006 = 0.9563 ⇒ h=73.03°；方位角 166.00°（正南偏东 14°）。默认 lat=39.9042/lon=116.4074、日期空（冻结日 2024-06-15，赤纬 23.31°）⇒ 高度角约 73.4°、无「166.00° 南」，三锚均不命中。"
   }
+,
+ {"slug":"astronomy/atmospheric-refraction","inputs":{"h":"0"},"expect":["34.433","-0.5739"],"ref":"视地平线 0°：反求真高度约 −0.573875°，代回真高度公式 R≈34.4325′；旧的直接代入约 29′。"},
+ {"slug":"astronomy/atmospheric-refraction","inputs":{"h":"5"},"expect":["9.920","4.8347"],"ref":"视高度 5°：真高度约 4.834659°，R≈9.92047′，验证数值反求。"},
+ {"slug":"astronomy/atmospheric-refraction","inputs":{"h":"90"},"expect":["0.000","90.0000"],"ref":"天顶截除经验式微小负值。"}
 
 ];
 async function main() {
