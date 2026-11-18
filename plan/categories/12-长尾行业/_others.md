@@ -104,13 +104,6 @@
 
 > 范围：本轮阅读 8 页——`tools/chemical/solution-concentration.html`（chemical）、`tools/mining/convert-grade-ore.html`（mining）、`tools/hvac/cooling-load.html`（hvac）、`tools/paper/roll-length.html`（paper）、`tools/fire/hydrant-pressure.html`（fire）、`tools/gas/load-1.html`（gas）、`tools/security/flood-level.html`（security）、`tools/transport/convert-volume-weight.html`（transport）。仅源码 + node 内存复算，未开浏览器，未做 EN/移动端/门禁验证。
 
-### 12-K2 chemical/solution-concentration：深度解析宣称的「w%↔mol/L」跨换算无密度输入，示例无法复现（中，确认缺陷）
-- 描述：深度解析把"给定密度与分子量，在 w% 与 mol/L 间换算"列为核心场景，并给出"输入 w%=10、密度 1.07 g/mL、M=58.44 → 约 1.83 mol/L"的算例；但页面四个模式（molar/mass/ppm/dilute）均无密度或质量分数联合输入，mass 模式只输出 `%` 与 `ppm`，molar 模式只接受溶质质量/摩尔质量/体积，用户无法在界面复现该算例。
-- 证据：`tools/chemical/solution-concentration.html:209,213`（场景与算例）、`:274-296`（四个模式的输入项）、`:322-343`（mass 模式仅输出 %/质量比/ppm）。
-- 复现：按算例只能分别算 10% 与 1.83 mol/L，页面没有任何"w% + 密度 + M"入口；node：1000×1.07×0.10/58.44 = 1.831 mol/L，说明示例数值本身正确、但功能缺失。
-- 影响：简介/深度解析承诺的核心互算能力缺失，用户按示例找不到入口，也影响搜索词与内容一致性。
-- 方案：新增"质量分数↔摩尔浓度"模式（输入 w%、密度 g/mL、摩尔质量），或把深度解析算例改写成页面可实现的两步（先算质量浓度 g/L，再除以 M）。
-
 ### 12-K11 transport/convert-volume-weight：缺实际重输入与计费重量输出，与标题/meta/引据表承诺不符（中，确认缺陷）
 - 描述：标题、meta description、引据表与深度解析算例都承诺"实际重 vs 体积重，取较大者作为计费重量"，深度解析还给出"实重 8 kg → 计费重 12 kg"的算例；但页面只有长/宽/高/除数四个输入，`calc` 只算体积重（及 lb、6000 系数对照），没有实重输入，也没有 `max(实重, 体积重)` 结果。`formula-box` 末尾虽注明"本工具输出体积重"，但标题/meta/算例仍按"对比取大"宣传。
 - 证据：`tools/transport/convert-volume-weight.html:10`（meta 承诺）、`:120-124`（四个输入与除数下拉）、`:150`（引据表 Chargeable=max）、`:169`（`calc` 仅输出体积重）、`:181`（公式框注明仅输出体积重）、`:209`（算例含实重 8 kg）。
