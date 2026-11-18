@@ -131,13 +131,6 @@
 - 影响：按结果预订会多订 1 桌（10 人/桌），场地费按 1500–3000 元/桌多支出；`expectTables` 成为死变量，后续维护易误改。
 - 方案：主桌数改用 `expectTables`，或明确「主桌按满员、备桌为额外」并删除 90% 文案；结果同时列出「按满员/按 90%」两套桌数；补 108/120/240 人与 8/10/12 人桌用例。
 
-### 12-L8 elderly/fall-risk：引据表 Morse「>45 高危」与本页 12 题 25 分制百分比分级不可对应（中，确认缺陷）
-- 描述：页面自建 12 题问卷（环境 6 题各 0–2 分、身体 6 题最高 3 分），`maxScore` 实为 25，并按 `total/maxScore` 的 25%/50%/75% 分为低/中/高/极高；但「公式与标准引据」表却列「Morse 评分 / 条目加权求和 / Morse 2009」与「>45 高危」，该阈值在本页 0–25 分体系内永远无法达到，且分级名称（极高风险）也不属于 Morse 口径。
-- 证据：`tools/elderly/fall-risk.html:204-211`（引据表），`:263-267`（`maxScore` 求和），`:308-313`（百分比分级）
-- 复现：12 题全选最差 → 总分 25、风险占比 100%、判「极高风险」；按引据表「>45 高危」则 25 分连高危门槛都不到，两套口径互斥。（node 复算 maxScore=25）
-- 影响：用户按引据表把得分与 Morse 阈值对照会得出相反结论；对外宣称 Morse 2009 但实际未采用其条目与权重，可信度受损。
-- 方案：要么改为真正的 Morse 量表（6 项、0–15/0–20/0–25 权重、>45 高危），要么删掉 Morse 引用、改标「自建问卷（0–25 分，按百分比分级）」并给出分级依据；补全对/全错两组用例。
-
 - 本轮实读 8 页：`tools/dyeing/calc-dosage-2.html`、`tools/leather/convert-area-weight.html`、`tools/safety/accident-stats.html`、`tools/nutrition/calorie-deficit.html`、`tools/usedcar/car-residual.html`、`tools/wedding/wedding-banquet.html`、`tools/restaurant/safety-stock.html`、`tools/elderly/fall-risk.html`；新增 9 条（高 2 / 中 6 / 低 1）；未覆盖：上述 8 个目录的其余页面（dyeing 13、leather 15、safety 15、nutrition 18、usedcar 12、wedding 9、restaurant 10、elderly 11），以及 procurement、cleaning 等长尾目录本轮未读；L4 的「低于 BMR/1200 千卡」属专业指南判断，标疑似待复核，其余均为源码与算术复算确认。
 
 ## 2026-11-04 续查（并行批 M）

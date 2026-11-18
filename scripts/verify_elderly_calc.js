@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -82,6 +84,12 @@ const CASES = [
     "卫生间、厨房铺设防滑地垫，保持地面干燥"
   ],
   "ref": "（2026-09-24 曾记为「getScore 走 input[name=..]:checked 属性选择器 ⇒ 结构性不可注入」，本批次推翻）getScore 是顶层函数声明，在页面作用域里可整体替换；覆写后直接调 renderAdvice() 即可让全部 12 条条件项入列，命中 e1 分支专属串。默认态 getScore 返回 null ⇒ items 为空，只 push「继续保持良好的居家与生活习惯」，不含该串。旧锚「行走时是否需要借助辅助器具或他人搀扶」是静态题干、默认态必命中，判别力 0，已弃。"
+},
+{
+  "slug": "elderly/fall-risk",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/elderly/fall-risk.html','utf8');var noOld=h.indexOf('Morse 评分')<0&&h.indexOf('Morse 2009')<0&&h.indexOf('>45 高危')<0&&h.indexOf('条目加权求和')<0;var hasNew=h.indexOf('本页自建问卷')>=0&&h.indexOf('风险占比 &lt;25% / &lt;50% / &lt;75% / ≥75%')>=0&&h.indexOf('12 题选项分值累加')>=0;document.getElementById('__tbProbe').textContent='FR1287 '+(noOld&&hasNew?'OK':'BAD');"],
+  "expect": ["FR1287 OK"],
+  "ref": "12-L8 引据表模板串味：页面实为 12 题自建问卷（环境6+身体6）、满分 25、按风险占比 <25%/<50%/<75% 分低/中/高/极高，引据表却错挂 Morse 2009「>45 高危」（0-25 分体系永不可达、分级名也不属 Morse 口径）。本批删虚假 Morse 引用、改标真实自建口径。源码形态哨兵：旧版四项 Morse 串任一出现即红；修复版须同时含三个新口径串。默认态不产生该哨兵（仅在 clicks 读源码后出现），零逃生。"
 },
 {
   "slug": "elderly/medication-schedule",
