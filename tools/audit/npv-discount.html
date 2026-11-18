@@ -435,7 +435,29 @@ calc();
 function __npvExport(){
   if(typeof TBKit==='undefined') return;
   if(window.__npvBlocked){ try{ ToolBox.showToast('当前结果含非法参数或溢出，明细为空时不导出。','error'); }catch(e){} return; }
-  try{ TBKit.util.exportTable('#detailTable','npv-detail.csv'); }catch(e){}
+  // 导出完整输入参数 + 逐期折现明细，而非仅截断的表格摘要（年金期数 0 校验项配套）
+  var rate=__npvParse('rate'), init=__npvParse('init'), mode=getMode();
+  var rows=[['项目','数值']];
+  rows.push(['折现率 (%)', rate]);
+  rows.push(['初始投资 (元)', init]);
+  if(mode==='annuity'){
+    rows.push(['计算模式','等额年金']);
+    rows.push(['每期金额 (元)', __npvParse('annuityAmt')]);
+    rows.push(['期数', __npvParse('annuityN')]);
+  }else{
+    rows.push(['计算模式','自定义现金流']);
+  }
+  rows.push([]);
+  var tbl=document.getElementById('detailTable');
+  if(tbl){
+    var trs=tbl.querySelectorAll('tr');
+    for(var i=0;i<trs.length;i++){
+      var cells=trs[i].querySelectorAll('th,td'), line=[];
+      for(var j=0;j<cells.length;j++) line.push((cells[j].textContent||'').trim());
+      if(line.length) rows.push(line);
+    }
+  }
+  try{ TBKit.util.exportCsv('npv-detail.csv', rows); }catch(e){}
 }
 </script>
 

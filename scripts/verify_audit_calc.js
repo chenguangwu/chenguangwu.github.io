@@ -239,7 +239,15 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/audit/irr-table.html','utf8');document.getElementById('__tbProbe').textContent='IRRFAQ '+(h.indexOf('页面会全部列出')<0&&h.indexOf('不保证穷尽全部根')>=0?'OK':'BAD');"],
   "expect": ["IRRFAQ OK"],
   "ref": "835绝对承诺移除：FAQ 旧句「页面会全部列出」与有限步长扫描的实现冲突；权威源改为「仅列出扫描命中的根，不保证穷尽全部根」。源码形态断言旧承诺消失且新限制出现，默认态不执行 clicks ⇒ 零逃生。"
-}
+  },
+  {
+    "slug": "audit/npv-discount",
+    "inputs": { "rate": "12", "init": "1000", "annuityAmt": "200", "annuityN": "3" },
+    "radios": { "mode": "annuity" },
+    "clicks": ["calc();var cap=[];globalThis.TBKit={util:{isEn:function(){return false;},exportCsv:function(n,rows){cap=rows.map(function(r){return r.join('|');});}}};__npvExport();var j=cap.join(' ');document.getElementById('__tbProbe').textContent='NPVEXPORT rate='+(j.indexOf('折现率 (%)|12')>=0?1:0)+' init='+(j.indexOf('初始投资 (元)|1000')>=0?1:0)+' n='+(j.indexOf('期数|3')>=0?1:0);try{delete globalThis.TBKit;}catch(e){}"],
+    "expect": ["NPVEXPORT rate=1 init=1 n=1"],
+    "ref": "年金期数0校验项配套：导出须含完整输入参数(折现率/初始投资/期数)与期数口径，而非仅截断的历史摘要表。注入非默认年金12%/1000/200×3，旧版只exportTable明细表不含参数摘要串 ⇒ 精确红；默认态不执行clicks、无探针串 ⇒ 零逃生。"
+  },
 ];
 async function main() {
   const only = process.argv.slice(2);
