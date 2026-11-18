@@ -32,6 +32,8 @@ for (const p of Object.values(data)) for (const item of p.sizes) {
   if (item.source) assert.ok(item.sourceText && item.noteZh && item.noteEn, item.name);
 }
 for (const text of ['社区快照，此项未核验', 'Community snapshot; this item has not been verified', 'sizeSourceHtml(s,', 'sizeSourceText(s,', 's.source ? \' · \' + s.source']) assert.ok(html.includes(text), text);
+assert.ok(data.weibo.sizes.find(s => s.name === '个人页封面').noteZh.includes('与此历史比例不符'));
+assert.ok(data.xiaohongshu.sizes.find(s => s.name === '笔记封面').noteZh.includes('像素尺寸未核验'));
 assert.ok(data.youtube.sizes.find(s => s.name === '社区帖子图片').noteZh.includes('像素尺寸未核验'));
 for (const name of ['竖版帖子', '横版帖子']) assert.ok(data.instagram.sizes.find(s => s.name === name).noteZh.includes('未核验'));
 console.log(`社媒尺寸来源专项：${items.length} 条官方口径及未核验、展示和导出标识通过`);
