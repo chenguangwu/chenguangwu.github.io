@@ -35,28 +35,17 @@ check("不等于「全站全部完成」" in text or "不成立「全站全部�
       "未声明本清单清不等于全站完成")
 check("plan/复核失败/" in text, "未指向仍存在的失败项目录")
 
-# ③ 清单声明的剩余数量必须与实际失败目录一致（从文本提取，避免硬编码随销账变化而误报红）
+# ③ 清单指向实时目录，不复制会随着迁移失真的数量或名单。
 import re
 fail_dir = os.path.join(ROOT, "plan", "复核失败")
 remain = sorted(fn for fn in os.listdir(fail_dir) if fn.endswith(".md"))
-m = re.search(r"仍有\s*\*\*(\d+)\s*项\*\*未闭环", text)
-check(m is not None, "清单未声明剩余项数量")
-if m:
-    check(len(remain) == int(m.group(1)),
-          "plan/复核失败/ 实际 %d 项，清单声明 %s 项：%s" % (len(remain), m.group(1), remain))
-# 清单点名的每一项都必须真实存在于失败目录（从「未闭环：…」段落提取 3 位编号，非硬编码）
-m2 = re.search(r"未闭环：([^\n]+(?:\n[^\n]+)?)", text)
-named = sorted(set(re.findall(r"(\d{3})(?:\s*A\d)?（", m2.group(1)))) if m2 else []
-check(len(named) >= 1, "清单未点名具体剩余项编号")
-for key in named:
-    check(any(key in fn for fn in remain), "清单点名剩余项 %s 未出现在失败目录" % key)
+check("实时目录为准" in text, "未说明以失败目录实时内容为准")
+check(not re.search(r"仍有\s*\*\*?\d+\s*项", text), "仍有静态失败数量")
+check(not re.search(r"未闭环：[0-9０-９]", text), "仍有静态失败编号列表")
 
-total = 4 + 2 + 1 + 6
 if fails:
-    print("412 结论真实性证据：%d/%d 通过，%d 失败" % (total - len(fails), total, len(fails)))
+    print("412 结论真实性检查失败：")
     for x in fails:
         print("  FAIL", x)
     sys.exit(1)
-print("412 结论真实性证据：%d/%d 全部通过" % (total, total))
-print("  - 无「全量销账/待修页 0」绝对化措辞")
-print("  - 明确「本清单清 ≠ 全站完成」，列明真实剩余 %d 项" % len(remain))
+print("412 结论真实性检查通过；失败目录当前 %d 项（实时读取）" % len(remain))
