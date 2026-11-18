@@ -45,7 +45,6 @@
 ### 留存优化
 - 8 页共用同一套 `num()` / `__tbInputGuard` 模板，分母表由「置零探测」写死（`__D={...}`），建议改为显式规则（`{min,max,allowZero,unit}` 声明），把零值、负数、单位三类问题一次性收口，避免逐页打补丁。
 - 单位口径：`tax-equivalent-yield`、`geometric-mean-return`、`sortino-ratio`、`profitability-index` 的公式框宜统一增加「输入单位」一行（% 还是小数），示例中同时给出两种写法。
-- `geometric-mean-return.html:175,418` 的算例「0.1,0.2,−0.05 → 7.83%」与 node 实算 7.84% 差 0.01pp，建议改为 7.84%（保留两位）。
 - 各页导出/历史只存输入与结果摘要，建议附公式口径与单位，便于跨页对比。
 
 ### 续查覆盖
