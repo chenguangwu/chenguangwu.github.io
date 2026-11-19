@@ -786,6 +786,26 @@ const CASES = [
     "LRGUARD OK"
   ],
   "ref": "第1316批·镜片折射率度数/直径/中心厚度空值静默代入修复源码形态强锚：原 power||0、diameter||65、ct||2 空值仍输出折射率与结论；修复后原始判空+直径与中心厚度正数守卫。旧版无 __pRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/polarized-axis",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/polarized-axis.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1500):'';var ok=g.indexOf('__sphRaw')>=0&&g.indexOf('__cylRaw')>=0&&g.indexOf('__pantoRaw')>=0&&g.indexOf('__wrapRaw')>=0&&g.indexOf('panto>=90')>=0&&g.indexOf('请输入有效的球镜')>=0;document.getElementById('__tbProbe').textContent='PAGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "PAGUARD OK"
+  ],
+  "ref": "第1317批·偏光镜轴位球镜/柱镜/前倾角/面弯空值静默按0修复源码形态强锚：原四处 ||0 空值仍输出诱导柱镜与有效球镜；修复后原始判空+非有限数与角度范围守卫。axis 未参与计算的专业口径余项不动。旧版无 __sphRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/peripheral-defocus",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/peripheral-defocus.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1500):'';var ok=g.indexOf('__centralRaw')>=0&&g.indexOf('__periphRaw')>=0&&g.indexOf('__angleRaw')>=0&&g.indexOf('angle<=0')>=0&&g.indexOf('__visEmpty')>=0&&g.indexOf('请输入有效的中心屈光')>=0;document.getElementById('__tbProbe').textContent='PDGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "PDGUARD OK"
+  ],
+  "ref": "第1317批·周边离焦中心/周边/偏心角空值静默按0或20修复源码形态强锚：原 ||0/||20 空值仍输出 RPD、方向结论与示意图；修复后原始判空+角度正数守卫+可视化容器清空。RPD=0 方向冲突与防控百分比属专业口径余项。旧版无 __centralRaw ⇒ BAD。"
 }
 ];
 
