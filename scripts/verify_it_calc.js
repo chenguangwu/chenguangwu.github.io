@@ -14429,6 +14429,12 @@ const CASES = [
     expect: ["C4GUARD OK"],
     ref: "第1308批·基准字号空值静默回退修复源码形态强锚：旧版 convertCss/copyCssResult 均 parseFloat(baseSize.value)||16，清空基准字号静默按 16 换算且复制结果带假基准。新版两处改原始串判空 + NaN（空⇒NaN），convertCss 守卫补 isNaN(base) 走提示并把预览固定 16px，copyCssResult 空值直接 return；公式框文案同步为「不静默取 16」。旧版两处 ||16 且无 isNaN(base) ⇒ BAD；真机交互由复核方覆盖。",
   },
+  {
+    slug: "it/nanoid-generator",
+    clicks: ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/nanoid-generator.html','utf8');var ok=h.indexOf('21 字符长度提供约 126 位熵')>=0&&h.indexOf('21 字符长度提供约 122 位熵')<0;document.getElementById('__tbProbe').textContent='NDENT '+(ok?'OK':'BAD');})();"],
+    expect: ["NDENT OK"],
+    ref: "第1309批·Nano ID 熵值口径纠错强锚：默认 64 字符表 × 21 位 ⇒ 21×log2(64)=126 bit，同页 FAQ 与引据表均写 126；原第183行写「约 122 位熵」与同页自相矛盾（122 实为 UUID v4 的位数）。修复为 126；旧版含 122 ⇒ BAD。纯静态文案不含动态中文，EN 态不受影响。",
+  },
 ];
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

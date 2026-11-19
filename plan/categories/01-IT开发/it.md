@@ -192,7 +192,6 @@
 - `tools/it/json-to-toml.html:177-180`：缩进下拉与 `:439` Tab 预设无输出效果（见 N200）。
 - `tools/it/plist-parser.html:10`、`:164`：宣称支持 date/data，实际 `:273-274` 只取文本、`:283` 回写为 string（见 N202）。
 - `tools/it/char-encoder.html:174`：格式清单列出 **Punycode**，但 `:280` 起的 `formats` 数组与全文件均无 Punycode 实现/输出行（新增发现，未单列编号）。
-- `tools/it/nanoid-generator.html:194`：写"21 字符约 122 位熵"，而 `:227`/`:246` 写 126 位；64 字符表下 21×6=126 bit，`:194` 数值错误（"约 4 年"沿用官方 350M ID/s 口径，按 126 位成立）。
 - `tools/it/markdown-table-generator.html:154`："导出明细 CSV"（`:418`）导的是历史表，且 `:339-345` 读取 `#output`（textarea）的 `textContent` 恒为空，历史/图表/导出实际无数据——属 IT-N140 模板缺陷，不重复编号。
 - `tools/it/wifi-qr-generator.html:103`：宣称"任何扫码 App 都能识别"；但 `:235-236` 不转义特殊字符（N218），隐藏网络字符串还缺 `;;`（N219），且 `:175` 与 `:110` 对"是否需要转义"自相矛盾。
 - `tools/it/wifi-qr-generator.html:83`、`:103`、`:105`：页面名为"二维码生成器"、简介称"生成二维码"，实际不生成 QR（N220）。

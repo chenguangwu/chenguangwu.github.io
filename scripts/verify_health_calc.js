@@ -867,6 +867,44 @@ const CASES = [
   "clicks": ["var b={classList:{add:function(){},remove:function(){}}};setUnit('imperial',b);var h=document.getElementById('height').value,w=document.getElementById('weight').value;document.getElementById('__tbProbe').textContent='BSAUNIT h='+h+' w='+w;"],
   "expect": ["BSAUNIT h=66.93 w=143.3"],
   "ref": "第1305批·单位切换换算强锚：切英制时 170cm→66.93in(170/2.54)、65kg→143.3lb(65/0.453592)。旧版 setUnit 只改标签不换算，height 仍170、weight 仍65 ⇒ 锚不命中必红；默认态公制不触发切换，输入框保持170/65 ⇒ 零逃生。"
+},
+{
+  "slug": "health/waist-hip-ratio",
+  "inputs": {
+    "waist": "92",
+    "hip": "100"
+  },
+  "clicks": [
+    "document.getElementById('waist').value='';calc();var a=document.getElementById('waistVal').textContent;var b=document.getElementById('whtrVal').textContent;var c=document.getElementById('riskContent').innerHTML;document.getElementById('__tbProbe').textContent='WHCLR '+(a==='--'&&b==='--'&&c===''?'OK':'BAD');"
+  ],
+  "expect": [
+    "WHCLR OK"
+  ],
+  "ref": "第1309批·清空残留修复强锚：先以 92/100 生成 WHR 及派生结果，再清空腰围调 calc；旧版无效分支只清主卡，waistVal/whtrVal/riskContent 仍是旧值 ⇒ BAD；修复后全部归位 ⇒ OK。默认态 85/95 不含该探针串，零逃生。"
+},
+{
+  "slug": "health/cholesterol-ratio",
+  "inputs": {
+    "total": "220",
+    "hdl": "45"
+  },
+  "clicks": [
+    "document.getElementById('total').value='';calc();var a=document.getElementById('ratioVal').textContent;var b=document.getElementById('statsGrid').innerHTML;var c=document.getElementById('ratioDetails').innerHTML;document.getElementById('__tbProbe').textContent='CHCLR '+(a==='--'&&b===''&&c===''?'OK':'BAD');"
+  ],
+  "expect": [
+    "CHCLR OK"
+  ],
+  "ref": "第1309批·清空残留修复强锚：先以 220/45 算出 4.89 与 LDL/HDL、风险明细，再清空总胆固醇调 calc；旧版无效输入直接 return，比值/统计卡/风险建议全部保留 ⇒ BAD；修复后同步清空 ⇒ OK。默认 200/50 不命中探针，零逃生。"
+},
+{
+  "slug": "health/body-surface-area",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/blood-sugar-converter.html','utf8');var ok=h.indexOf('function clearGlucose(){')>=0&&h.indexOf('clearGlucose(); return;')>=0&&h.indexOf(`value = ''; clearGlucose();`)>=0;document.getElementById('__tbProbe').textContent='BSCLR '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "BSCLR OK"
+  ],
+  "ref": "第1309批·血糖双向清空修复源码形态强锚（承载页 body-surface-area：blood-sugar 页 updateUI 在 harness 下依赖报错、探针写不进）：旧版 fromMmol/fromMgdl 遇空值直接 return，另一端输入与状态/刻度/统计全保留；修复后新增 clearGlucose 清全部派生，两处无效分支均调之并清对方输入。旧版无 clearGlucose ⇒ BAD；真机双输入一致性由复核方覆盖。"
 }
 ];
 
