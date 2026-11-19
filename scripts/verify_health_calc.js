@@ -405,9 +405,9 @@ const CASES = [
       "mgdl": "42"
     },
     "expect": [
-      "2.3\n41\n严重低血糖\n立即就医！\n2.3 mmol/L 41 mg/dL 2.28 换算系数"
+      "2.3\n41\n严重低血糖\n立即就医！\n2.3 mmol/L 41 mg/dL 18.02 换算系数"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"mmol\":\"42\",\"mgdl\":\"42\"}，输出区含「2.3\n41\n严重低血糖\n立即就医！\n2.3 mmol/L 41 mg/dL 2…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "换算系数修复后自动补强锚：注入 mmols=42→取 mmol 42 经 mg/dL 换算链得 2.3 mmol/L/41 mg/dL（换算系数恒为18.02、不再随输入变化成旧假值2.28）；默认态(5.5/99)不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "health/body-fat-calculator",
@@ -855,6 +855,18 @@ const CASES = [
   "clicks": ["document.getElementById('__tbProbe').textContent='BPLOGIC '+String(document.getElementById('bpCat').textContent);"],
   "expect": ["BPLOGIC 请填写有效的收缩压和舒张压（收缩压不得低于舒张压）"],
   "ref": "第1304批·血压逻辑校验强锚：收缩压100<舒张压110，旧版 !s||!d 放行→输出『3级高血压』+负脉压-10，真缺陷；修复后拦截并清空结果、提示有效范围。默认态120/80合法不触发该提示 ⇒ 零逃生；中文态(页面原样硬编码)不依赖TBKit.isEn。"
+},
+{
+  "slug": "health/body-surface-area",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/blood-sugar-converter.html','utf8');var ok=h.indexOf('(18.0182).toFixed(2)')>=0&&h.indexOf('mmol * 18.0182 / 18')<0;document.getElementById('__tbProbe').textContent='COEF '+(ok?'OK':'BAD');"],
+  "expect": ["COEF OK"],
+  "ref": "第1305批·假换算系数修复源码形态强锚(承载页用同目录body-surface-area：blood-sugar 页 updateUI 在 harness 下 getStatus/marker 依赖报错、探针写不进)：原 `(mmol*18.0182/18).toFixed(2)` 实际≈输入值，输入5.5显示『5.51 换算系数』随输入变化完全误导；修复后恒为真实系数 `(18.0182).toFixed(2)`=18.02。旧版含旧表达式且无新常量 ⇒ BAD；真机双输入一致性由复核方覆盖。"
+},
+{
+  "slug": "health/body-surface-area",
+  "clicks": ["var b={classList:{add:function(){},remove:function(){}}};setUnit('imperial',b);var h=document.getElementById('height').value,w=document.getElementById('weight').value;document.getElementById('__tbProbe').textContent='BSAUNIT h='+h+' w='+w;"],
+  "expect": ["BSAUNIT h=66.93 w=143.3"],
+  "ref": "第1305批·单位切换换算强锚：切英制时 170cm→66.93in(170/2.54)、65kg→143.3lb(65/0.453592)。旧版 setUnit 只改标签不换算，height 仍170、weight 仍65 ⇒ 锚不命中必红；默认态公制不触发切换，输入框保持170/65 ⇒ 零逃生。"
 }
 ];
 
