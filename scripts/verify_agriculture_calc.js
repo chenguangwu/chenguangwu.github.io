@@ -1810,7 +1810,17 @@ const CASES = [
     "expect": ["HARVESTEMPTY OK"],
     "ref": "977空串守卫：实际产量清空须提示「实际产量须为非负数（0 表示颗粒无收）」，不能与合法 0 混同；默认 actual=465 出正常结果不含该提示。"
   }
-
+,
+{
+  "slug": "agriculture/seed-germination-rate",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/agriculture/seed-germination-rate.html','utf8');var ok=h.indexOf('43.18 × 12 = 518.2')>=0&&h.indexOf('0.92 × 12 = 11.04')<0;document.getElementById('__tbProbe').textContent='SEDEX '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "SEDEX OK"
+  ],
+  "ref": "第1312批·种子活力指数算例口径纠错源码形态强锚：工具公式为 VI=GI×苗长，原算例却写 0.92×12=11.04（发芽率×苗长），与公式差数十倍；改成逐日 20/20/18/15/10/6/3 得 GI≈43.18、VI≈518.2 自洽。旧版含 11.04 ⇒ BAD；EN 映射同步换键。"
+}
 ];
 
 // ---------------------------------------------------------------- main

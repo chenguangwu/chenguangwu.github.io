@@ -383,7 +383,17 @@ const CASES = [
        + "桩内未加载 canvasExportError（真机由共享脚本注入）⇒ 用例前先给恒返回 null 的替身，确保走到 toBlob。"
        + "修复前异常裸冒成 pageerror、无任何可见提示；默认态无该串 ⇒ 判别明确。"
   }
-
+,
+{
+  "slug": "ophthalmology/eye-chart-toolkit",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/eye-chart-toolkit.html','utf8');var i=h.indexOf('function saveResult() {');var s=i>=0?h.slice(i,i+560):'';var ok=s.indexOf('if (!rowVal)')>=0&&s.indexOf('rows[rows.length - 1]')<0&&s.indexOf('请先在当前视力表测出一行识别结果再保存')>=0;document.getElementById('__tbProbe').textContent='EYESAVE '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "EYESAVE OK"
+  ],
+  "ref": "第1312批·视力表空行误保存修复源码形态强锚（saveResult 在 IIFE 内，harness 无法直接调用）：旧版识别行留空时取最后一行当实测视力写入历史；修复后空行直接提示并 return。旧版含 rows[rows.length-1] 回退 ⇒ BAD。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

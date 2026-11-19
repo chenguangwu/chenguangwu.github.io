@@ -979,6 +979,21 @@ const CASES = [
     "RHDEL OK"
   ],
   "ref": "第1311批·康复计时器删除项下标错位修复源码形态强锚（承载页同目录 breath-timer：rehab-timer 依赖 localStorage/计时器，harness 下不稳定）：旧版 splice 后不重设 timer.itemId，删当前或前项会指向别的动作或越界读 undefined.duration；修复后空列表置 null、删当前/前项重映射并同步 remaining。旧版无重映射 ⇒ BAD。"
+},
+{
+  "slug": "health/smoking-cost-calculator",
+  "inputs": {
+    "years": "20",
+    "perDay": "20",
+    "price": "15"
+  },
+  "clicks": [
+    "calc();document.getElementById('years').value='';calc();var a=document.getElementById('dailyCost').textContent;var b=document.getElementById('savingProjection').innerHTML;document.getElementById('__tbProbe').textContent='SMKCLR '+(a==='--'&&b===''?'OK':'BAD');"
+  ],
+  "expect": [
+    "SMKCLR OK"
+  ],
+  "ref": "第1312批·烟龄无效只替换累计花费修复强锚：先以20年/20支/15元生成全部费用与寿命结果，再清空烟龄调 calc；旧版仅把 totalCost 改成提示，dailyCost/savingProjection 等仍为旧值 ⇒ BAD；修复后全部派生同步归位 ⇒ OK。"
 }
 ];
 
