@@ -38,7 +38,7 @@
 
 > 八页仅源码推演，未运行浏览器或核验验光、光学标准；涉及专业结论须复核。
 
-- `tools/optical/coating-design.html:331-399,400-435`：波长为负仍计算负膜厚；0 波长或 0 折射率在另一项非零时经守卫后被 `||` 换为默认值；清空必填只替换结果，未清层系图。选 SiO₂、ZrO₂ 等时结果说明仍固定称 MgF₂，且声称反射率“降至”，但高折射率膜的计算结果可能更高。
+- `tools/optical/coating-design.html`：波长/镜片折射率 0 与负值静默换默认（`||550`/`||1.6`）、清空只替换结果未清层系图——第1319批已修（原始判空+正数守卫，守卫与非法分支均清 `layerStack`，强锚 `CDGUARD` 已落 optical verify；旧版无 `__lamRaw` ⇒ BAD）。余项：选 SiO₂、ZrO₂ 等时结果说明仍固定称 MgF₂，且声称反射率“降至”但高折射率膜的计算结果可能更高。材料文案与反射率措辞须专业复核。
 - `tools/optical/convergence-near-point.html`：瞳距空值按 0 计算——第1315批已修（原始串判空+正数守卫，强锚 `CNPGUARD` 已落 optical verify）。余项：距离无效时仅更新主结果，距离参考表沿用旧值；PD=62mm/40cm 的每眼需求与双眼总量口径冲突须视光师复核。
 - `tools/optical/frame-pupillary.html`：A/DBL/PD 清空按 0 出匹配建议——第1315批已修（三处原始判空+正数守卫，强锚 `FPGUARD` 已落 optical verify；ED 为 0 回退 A 属选填默认，保留）。余项：移心过大时一律建议更大 DBL 与自身公式方向冲突，须视光师复核。
 - `tools/optical/frame-tilt.html`：倾角/瞳距/瞳高清空按 0——第1315批已修（原始串判空，pd 与瞳高正数守卫，倾角 0 仍合法，强锚 `FTGUARD` 已落 optical verify）。余项：`shiftCm` 未展示英文简介所述棱镜效应且无镜度输入；前倾光心移动与瞳高方向须专业复核。

@@ -826,6 +826,16 @@ const CASES = [
     "AFGUARD OK"
   ],
   "ref": "第1318批·抗疲劳下加光基础模式年龄/工作距离/远用度数码值静默代入修复源码形态强锚：原三处 ||0/||40 空值仍输出 ADD 与结论；修复后原始判空+年龄与距离正数守卫，远用度数允许0与负值。ADD 限幅1D 属专业口径余项。旧版无 __ageRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/coating-design",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/coating-design.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1400):'';var ok=g.indexOf('__lamRaw')>=0&&g.indexOf('__nLRaw')>=0&&g.indexOf('lam<=0')>=0&&g.indexOf('nLens<=0')>=0&&g.indexOf('__lsBad')>=0&&g.indexOf('请输入有效的设计波长')>=0&&g.indexOf('|| 550')<0&&g.indexOf('|| 1.6;')<0;document.getElementById('__tbProbe').textContent='CDGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "CDGUARD OK"
+  ],
+  "ref": "第1319批·镀膜设计波长/lensN 的 0 与负值静默换默认（||550/||1.6）修复源码形态强锚：原波长为负算负膜厚、0 值换默认仍出层系图；修复后原始判空+正数守卫，守卫分支与非法分支均清 layerStack。MgF₂ 固定文案与反射率'降至'措辞属专业口径余项不动。旧版无 __lamRaw ⇒ BAD。"
 }
 ];
 
