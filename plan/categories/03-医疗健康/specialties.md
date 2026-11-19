@@ -50,8 +50,8 @@
 > 七页仅分析源码，未运行页面或做医学核验；医疗和验光解释须专业复核。
 
 - `tools/ophthalmology/strabismus-angle.html:129,139-149,154-158,303-312,315-328,428-440`：页面称 1Δ 在 1 米偏移 1cm，但转换网格算 `pd*0.5`；20Δ 因而显示 10cm 而非按页面定义的 20cm。`pd2` 瞳孔直径没有参与计算；Hirschberg 公式说明写 15Δ/mm，运行路径却用 7°/mm 后正切换算。历史恢复无参调用 `switchTab()`，先移除所有 tab 的 active 后在 `btn.classList` 抛错并被捕获，不重新计算。医学换算和适用性须复核。
-- `tools/ophthalmology/refraction-error.html:356-366,377-380`：单片或双镜任一数字清空即直接返回，旧处方仍显示。散光分类仅看轴位而不看柱镜正负，互为转置的处方可能被标成不同类别；页内 180° 示例的 J0 算式也与其负号结果矛盾，专业判定须复核。
-- `tools/ophthalmology/tear-breakup-time.html:133-136,292-319`：只校验首次 BUT，即使填写平均 TBUT 仍要求首次值；负值可进入分级。清空首次值只清主结果和 `barWrap`，未清参考标尺 `resultRefBar`；10 秒在代码中为正常，而表格写 >10 正常、5–10 不稳定。干眼分级、用药建议和阈值须临床复核。
+- `tools/ophthalmology/refraction-error.html`：单片或双镜任一数字清空即直接返回、旧处方仍显示——第1323批已修（calcSingle/calcCombine 空值分支清对应结果容器，源码形态强锚 `REFCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：散光分类仅看轴位而不看柱镜正负，互为转置的处方可能被标成不同类别；页内 180° 示例的 J0 算式也与其负号结果矛盾，专业判定须复核。
+- `tools/ophthalmology/tear-breakup-time.html`：清空首次值未清参考标尺 `resultRefBar`——第1323批已修（清空分支同步清 `resultRefBar`，源码形态强锚 `TBUTCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：只校验首次 BUT，即使填写平均 TBUT 仍要求首次值；负值可进入分级；10 秒在代码中为正常而表格写 >10 正常。干眼分级、用药建议和阈值须临床复核。
 - `tools/ophthalmology/vision-screening-21.html:480-503,526-543,754-784,796`：左右眼散光负荷分别计算，但方向从两眼答案取最大值，一个眼的症状可决定另一眼的轴向提示。所有未答题默认“从不”，可直接连点生成完整结论；清空历史不清趋势容器，旧图可能留存。问卷到近视度数、置信带与散光轴位的医学有效性无本次证据，须专业复核，不应把静态检查视为验证模型。
 - `tools/ophthalmology/visual-field-analysis.html:134-145,307-347,399-410,437-448`：仅检查 NaN，不约束 VFI 至 0–100 或 PSD 非负；GHT 单选项无 id，历史快照仅收 `input[id]`，恢复时保留当前 GHT 而非当次选择，可重算不同结论。HAP 等医学分期及界限须专业复核。
 - `tools/optical/accommodation-amplitude.html`：年龄清空经 `||0` 当成 0 岁继续出结果——第1318批已修（原始串判空+年龄正数守卫，强锚 `AAGUARD` 已落 optical verify；旧版无 `__ageRaw` ⇒ BAD）。余项：非正参考调节幅度对应近点被写成固定 999cm，60 岁还给出完全下加光建议；深解的 30 岁数值及引据表公式与实际公式不一致，医学适用性须验光专业复核。实测调节值为选填，本批未动。

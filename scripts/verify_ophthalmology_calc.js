@@ -399,6 +399,18 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/iop-correction.html','utf8');var i=h.indexOf('var __ig=__tbInputGuard');var seg=i>=0?h.slice(i,i+300):'';var ok=seg.indexOf(\"('grid').innerHTML=''\")>=0&&seg.indexOf(\"('formulaList').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='IOPCLR '+(ok?'OK':'BAD');})();"],
   "expect": ["IOPCLR OK"],
   "ref": "第1322批·清空必填残留修复源码形态强锚：原 __tbInputGuard 空值分支只更新 result 即 return，grid/formulaList 沿用旧值；越界分支两处均清。修复后守卫分支同步清 grid 与 formulaList。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/refraction-error",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/refraction-error.html','utf8');var ok=h.indexOf(\"isNaN(s)||isNaN(c)||isNaN(ax)){$('singleResult').innerHTML='';return;}\")>=0&&h.indexOf(\".some(isNaN)){$('combineResult').innerHTML='';return;}\")>=0;document.getElementById('__tbProbe').textContent='REFCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["REFCLR OK"],
+  "ref": "第1323批·屈光误差输入清空旧结果残留修复源码形态强锚：原 calcSingle/calcCombine 遇空值直接 return，旧处方结果保留；修复后两处 return 前清对应结果容器。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/tear-breakup-time",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/tear-breakup-time.html','utf8');var i=h.indexOf('if(isNaN(but)){');var seg=i>=0?h.slice(i,i+220):'';var ok=seg.indexOf(\"('resultRefBar').innerHTML=''\")>=0&&seg.indexOf(\"('barWrap').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='TBUTCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["TBUTCLR OK"],
+  "ref": "第1323批·泪膜破裂清空未清标尺修复源码形态强锚：原清空首次 BUT 只清 barWrap，resultRefBar 参考标尺留存；修复后同步清 resultRefBar。旧版无 ⇒ BAD。"
 }
 ];
 async function main() {
