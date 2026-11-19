@@ -8,7 +8,7 @@
 
 - `tools/tcm-pharmacy/formula-song.html`：缺必填项时只 toast、保留上次生成结果。（原药材输入未转义注入路径已于第 951 批修复并真机验证，从待办删除。）
 - `tools/tcm-pharmacy/four-qi-nature.html:358-372,383-425,440-443`：畏寒对应 `qi:'热'`，计分只处理寒、温两种，单选畏寒时总分为 0，算法误判“寒热不显”且评分百分比为 NaN。症状到药性推荐和代表药须临床专业复核。
-- `tools/tcm-pharmacy/herb-quality.html:127-142,363-384,415-443`：切换药材时将标准区内联 display 设为 block、评分区设为 none，但切标签只切 class，内联 display 未解除，评分区仍隐藏、标准区仍显示；滑块变化也不清理已生成评分。评分阈值与“符合药典标准、可入药使用”须专业复核。
+- `tools/tcm-pharmacy/herb-quality.html`：切标签只切 class、内联 display 未解除致两区同显——第1327批已修（switchTab 同步设 tab-standard/tab-score 的内联 display，源码形态强锚 `HQTAB` 已落 tcm-pharmacy verify；旧版无 ⇒ BAD）。余项：滑块变化也不清理已生成评分；评分阈值与“符合药典标准、可入药使用”须专业复核。
 - `tools/tcm-pharmacy/tcm-pharmacoeconomics.html`：按最低日费用给出“最经济方案”和“性价比”，没有疗效或等效性数据，且不同疗程时最低日费未必对应最低总费用。费用/药物比较须临床专业复核，未运行页面。（原 CSV 隐藏表未转义注入路径已于第 951 批修复并真机验证，从待办删除。）
 
 ## 2026-11-06 中医问诊工具静态续审（清单 626–629）

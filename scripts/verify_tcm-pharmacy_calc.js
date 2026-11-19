@@ -329,6 +329,12 @@ const CASES = [
     "苦走骨——多食苦则呕吐"
   ],
   "ref": "弱用例去默认化（BATCH117）：原锚默认酸味「酸走筋——多食酸则筋脉拘急」（判别力0）。改为 clicks 触发 renderFlavor('苦') 切苦味，expect 锚苦味专属「五味所走」串；默认态（酸）与清 clicks 兜底遍历均不产出该串 ⇒ 零逃生项。"
+},
+{
+  "slug": "tcm-pharmacy/herb-quality",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-pharmacy/herb-quality.html','utf8');var i=h.indexOf('function switchTab(tab, e){');var j=h.indexOf('function loadHerb',i);var seg=(i>=0&&j>i)?h.slice(i,j):'';var n=(seg.split('style.display').length-1);var ok=n>=2;document.getElementById('__tbProbe').textContent='HQTAB '+(ok?'OK':'BAD');})();"],
+  "expect": ["HQTAB OK"],
+  "ref": "第1327批·切换药材标签内联display未解除修复源码形态强锚：原 switchTab 只切 active class，tab-standard 内联 display:block 不清除致两区同显；修复后同步设两 tab 内联 display。旧版无 ⇒ BAD。"
 }
 ];
 async function main() {
