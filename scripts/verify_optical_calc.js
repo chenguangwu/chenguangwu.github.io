@@ -736,6 +736,36 @@ const CASES = [
     "EDGET OK"
   ],
   "ref": "第1314批·镜片厚度空/负仍推荐磨边修复源码形态强锚：原 `||0` 使空值落入 <2mm 平边档、负厚度同档；修复后原始判空+正数守卫+双语提示。旧版含 || 回退 ⇒ BAD。"
+},
+{
+  "slug": "optical/frame-pupillary",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/frame-pupillary.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1100):'';var ok=g.indexOf('__aRaw')>=0&&g.indexOf('__dblRaw')>=0&&g.indexOf('__pdRaw')>=0&&g.indexOf('A<=0')>=0;document.getElementById('__tbProbe').textContent='FPGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "FPGUARD OK"
+  ],
+  "ref": "第1315批·镜框尺寸/鼻梁/瞳距空值按0修复源码形态强锚：原三处 ||0 空值仍出几何移心建议；修复后原始判空+正数守卫+双语提示。旧版无 __aRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/frame-tilt",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/frame-tilt.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1100):'';var ok=g.indexOf('__tRaw')>=0&&g.indexOf('__pdRaw')>=0&&g.indexOf('__phRaw')>=0&&g.indexOf('pupilHeight<=0')>=0;document.getElementById('__tbProbe').textContent='FTGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "FTGUARD OK"
+  ],
+  "ref": "第1315批·倾角/瞳距/瞳高空值按0修复源码形态强锚：原三处 ||0 空值仍输出光心位置与调整结论；修复后原始判空+pd/瞳高正数守卫，倾角0仍合法。旧版无 __tRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/convergence-near-point",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/convergence-near-point.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1100):'';var ok=g.indexOf('__pdRaw')>=0&&g.indexOf('pd<=0')>=0&&g.indexOf('isFinite(pd)')>=0;document.getElementById('__tbProbe').textContent='CNPGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "CNPGUARD OK"
+  ],
+  "ref": "第1315批·集合近点瞳距空值按0修复源码形态强锚：原 pd||0 空值仍出集合需求与双眼总量；修复后原始判空+正数守卫+双语提示。旧版无 __pdRaw ⇒ BAD。"
 }
 ];
 
