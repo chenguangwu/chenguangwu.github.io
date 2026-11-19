@@ -423,6 +423,12 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/axial-length.html','utf8');var a=h.indexOf('function calcCorr(){'),b=h.indexOf('function calcSeg(){');var ca=a>=0?h.slice(a,b):'',cb=b>=0?h.slice(b,b+520):'';var ok=ca.indexOf(\"[al,vMeas,vTrue].some(function(v){return !isFinite(v)||v<=0;})\")>=0&&cb.indexOf(\"[acd,vAcd,lt,vLt,vl,vVl].some(function(v){return !isFinite(v)||v<=0;})\")>=0;document.getElementById('__tbProbe').textContent='ALNEG '+(ok?'OK':'BAD');})();"],
   "expect": ["ALNEG OK"],
   "ref": "第1324批·负眼轴/负声速参与运算修复源码形态强锚：原两分支只拦 NaN，负声速/零声速可致除零与荒谬 IOL 影响；修复后眼轴与声速须为正数。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/visual-field-analysis",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/visual-field-analysis.html','utf8');var ok=h.indexOf('psd<0||vfi<0||vfi>100')>=0&&h.indexOf('VFI 须在 0–100% 之间')>=0;document.getElementById('__tbProbe').textContent='VFIDOM '+(ok?'OK':'BAD');})();"],
+  "expect": ["VFIDOM OK"],
+  "ref": "第1325批·视野指标定义域守卫修复源码形态强锚：原只拦 NaN，PSD 负值/VFI 越界仍进 HAP 分级；修复后要求 PSD≥0、VFI∈[0,100]。MD 负值按习惯输入保留。旧版无 ⇒ BAD。"
 }
 ];
 async function main() {
