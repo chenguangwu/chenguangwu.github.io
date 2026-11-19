@@ -83,6 +83,10 @@
     try {
       var TB = window.ToolBox;
       if (!TB || typeof TB.copyFromElement !== 'function') return;
+      // 游戏/对战页的结果是胜负状态而非可复用数据，「复制结果/导出 TXT」无意义且干扰，
+      // 整页跳过注入。用严格游戏动作词识别，避免误伤打字/测验等有真实计算价值的工具页。
+      var bodyText = (document.body && document.body.textContent || '');
+      if (/开始新局|开始游戏|开始对战|再来一局|悔1手|悔棋/.test(bodyText)) return;
       var el = null;
       var selectors = [
         '#result', '#result-box', '#resultBox', '#output', '#output-box', '#outputBox',
