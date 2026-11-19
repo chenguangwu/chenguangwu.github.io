@@ -245,7 +245,7 @@
       </div>
       <div>
         <label>半衰期 (小时)</label>
-        <select id="halfLife" onchange="calcHalfLife()">
+        <select id="halfLife" onchange="calcHalfLife();calcLastCafTime();">
           <option value="3">3小时 (代谢快)</option>
           <option value="4">4小时</option>
           <option value="5" selected>5小时 (成人平均)</option>
@@ -443,7 +443,15 @@ const drinkOptions = [
 ];
 
 function calc(){
-  const w = parseFloat(document.getElementById('weight').value)||65;
+  var __wRaw=String(document.getElementById('weight').value==null?'':document.getElementById('weight').value).trim();
+  const w = __wRaw==='' ? NaN : parseFloat(__wRaw);
+  if(!isFinite(w) || w<=0){
+    // 体重空/非法时清掉全部派生上限，禁止静默按 65 kg 出结果
+    ['safeLimit','moderate','highRisk','cupsOfCoffee'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.textContent = '--';
+    });
+    return;
+  }
   const group = parseFloat(document.getElementById('group').value);
   const safe = group > 0 ? Math.round(w * group) : 100;
   const moderate = Math.round(w * 3);
@@ -545,10 +553,15 @@ function quickAdd(caf){
 
 function calcHalfLife(){
   const timeStr = document.getElementById('drinkTime').value;
-  const amount = parseFloat(document.getElementById('drinkAmount').value)||95;
-  const hl = parseFloat(document.getElementById('halfLife').value)||5;
+  var __aRaw=String(document.getElementById('drinkAmount').value==null?'':document.getElementById('drinkAmount').value).trim();
+  const amount = __aRaw==='' ? NaN : parseFloat(__aRaw);
+  var __hlRaw=String(document.getElementById('halfLife').value==null?'':document.getElementById('halfLife').value).trim();
+  const hl = __hlRaw==='' ? NaN : parseFloat(__hlRaw);
   
-  if(!timeStr) return;
+  if(!timeStr || !isFinite(amount) || amount<=0 || !isFinite(hl) || hl<=0){
+    document.getElementById('halfLifeResult').innerHTML = '';
+    return;
+  }
   
   const [h, m] = timeStr.split(':').map(Number);
   const drinkDate = new Date();
@@ -581,7 +594,12 @@ function calcHalfLife(){
 }
 
 function calcLastCafTime(){
-  const hl = parseFloat(document.getElementById('halfLife').value)||5;
+  var __hlRaw2=String(document.getElementById('halfLife').value==null?'':document.getElementById('halfLife').value).trim();
+  const hl = __hlRaw2==='' ? NaN : parseFloat(__hlRaw2);
+  if(!isFinite(hl) || hl<=0){
+    document.getElementById('lastCafTime').textContent = '--';
+    return;
+  }
   const bedtime = new Date();
   bedtime.setHours(23, 0, 0, 0);
   const lastCaf = new Date(bedtime.getTime() - 8 * hl * 3600 * 1000 / 5);

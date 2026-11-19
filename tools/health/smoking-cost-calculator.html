@@ -412,22 +412,32 @@
 </div>
 
 <script>
+function clearSmokingDerived(msg){
+  ['dailyCost','weeklyCost','monthlyCost','yearlyCost','lifeSaved','lifeYears'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.textContent = '--';
+  });
+  document.getElementById('savingProjection').innerHTML = '';
+  document.getElementById('savingIdeas').innerHTML = '';
+  document.getElementById('totalCost').textContent = msg;
+}
+
 function calc(){
   const yRaw = document.getElementById('years').value.trim();
   const y = yRaw===''?NaN:parseInt(yRaw,10);
   if(!Number.isFinite(y)||y<0||y>60){
-    // IT-N212：烟龄无效时同步清空全部派生结果，禁止只替换累计花费而留下旧费用/寿命/建议
-    ['dailyCost','weeklyCost','monthlyCost','yearlyCost','lifeSaved','lifeYears'].forEach(function(id){
-      var el = document.getElementById(id); if(el) el.textContent = '--';
-    });
-    document.getElementById('savingProjection').innerHTML = '';
-    document.getElementById('savingIdeas').innerHTML = '';
-    document.getElementById('totalCost').textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter smoking years between 0 and 60":"请输入 0–60 年的烟龄");
+    clearSmokingDerived(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter smoking years between 0 and 60":"请输入 0–60 年的烟龄"));
     return;
   }
-  const pd = parseInt(document.getElementById('perDay').value)||1;
-  const p = parseFloat(document.getElementById('price').value)||1;
-  const pp = parseInt(document.getElementById('perPack').value)||20;
+  var __pdRaw=String(document.getElementById('perDay').value==null?'':document.getElementById('perDay').value).trim();
+  const pd = __pdRaw==='' ? NaN : parseInt(__pdRaw,10);
+  var __pRaw=String(document.getElementById('price').value==null?'':document.getElementById('price').value).trim();
+  const p = __pRaw==='' ? NaN : parseFloat(__pRaw);
+  var __ppRaw=String(document.getElementById('perPack').value==null?'':document.getElementById('perPack').value).trim();
+  const pp = __ppRaw==='' ? NaN : parseInt(__ppRaw,10);
+  if(!isFinite(pd)||pd<0||!isFinite(p)||p<=0||!isFinite(pp)||pp<=0){
+    clearSmokingDerived(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter valid daily cigarettes, price and pack size":"请输入有效的每日支数、烟价与每包支数"));
+    return;
+  }
   
   const daily = pd / pp * p;
   const weekly = daily * 7;

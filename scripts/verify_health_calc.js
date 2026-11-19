@@ -994,6 +994,32 @@ const CASES = [
     "SMKCLR OK"
   ],
   "ref": "第1312批·烟龄无效只替换累计花费修复强锚：先以20年/20支/15元生成全部费用与寿命结果，再清空烟龄调 calc；旧版仅把 totalCost 改成提示，dailyCost/savingProjection 等仍为旧值 ⇒ BAD；修复后全部派生同步归位 ⇒ OK。"
+},
+{
+  "slug": "health/smoking-cost-calculator",
+  "inputs": {
+    "years": "20",
+    "perDay": "20",
+    "price": "15",
+    "perPack": "20"
+  },
+  "clicks": [
+    "calc();document.getElementById('perDay').value='';calc();var a=document.getElementById('dailyCost').textContent;var b=document.getElementById('totalCost').textContent;document.getElementById('__tbProbe').textContent='SMKPD '+(a==='--'&&b.indexOf('有效')>=0?'OK':'BAD');"
+  ],
+  "expect": [
+    "SMKPD OK"
+  ],
+  "ref": "第1313批·每日支数静默代入1修复强锚：先以20年/20支/15元生成费用，再清空每支数调 calc；旧版 parseInt('')||1 仍出费用与寿命结果 ⇒ BAD；修复后原始判空走统一清空并提示有效参数 ⇒ OK。"
+},
+{
+  "slug": "health/alcohol-units",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/caffeine-limit.html','utf8');var i=h.indexOf('function calc(){');var s1=i>=0?h.slice(i,i+760):'';var j=h.indexOf('function calcHalfLife(){');var s2=j>=0?h.slice(j,j+760):'';var k=h.indexOf('function calcLastCafTime(){');var s3=k>=0?h.slice(k,k+520):'';var ok=s1.indexOf('__wRaw')>=0&&s1.indexOf('NaN : parseFloat(__wRaw)')>=0&&s1.indexOf('|| 65')<0&&s2.indexOf('__hlRaw')>=0&&s2.indexOf('NaN : parseFloat(__hlRaw)')>=0&&s2.indexOf('|| 5')<0&&s2.indexOf('|| 95')<0&&s3.indexOf('__hlRaw2')>=0&&s3.indexOf('NaN : parseFloat(__hlRaw2)')>=0&&h.indexOf('calcHalfLife();calcLastCafTime();')>=0;document.getElementById('__tbProbe').textContent='CAFGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "CAFGUARD OK"
+  ],
+  "ref": "第1313批·咖啡因三处静默代入修复源码形态强锚（承载页 alcohol-units：caffeine 页 harness 下 removeDrink(this) 报错）：体重空/非法不再 ||65 且清派生上限；半衰期摄入量与 halfLife 原始判空、空值清半衰期图；最晚饮用时间空 halfLife 显示 -- 并按 350M 口径不依赖时间断言。"
 }
 ];
 
