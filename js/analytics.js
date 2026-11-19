@@ -1,4 +1,4 @@
-// ToolBox 统一统计入口：百度统计、51.la、Microsoft Clarity。
+// ToolBox 统一统计入口：百度统计、51.la（网站统计 + 应用监控）、Microsoft Clarity。
 // 新增或调整统计平台时，只修改本文件，页面无需逐页改动。
 (function (window, document) {
   'use strict';
@@ -71,6 +71,20 @@
           autoTrack: true
         });
         flushLaTracks();
+      }
+    });
+  });
+
+  // 51.la 应用监控（性能监控）：与网站统计共用统一入口，使用监控专用 ID。
+  // 官方提供两种安装：静态 <script src="...perf..." crossorigin="anonymous"> + init，
+  // 或异步 IIFE 插入后在 onload 里 init。本站取异步等价方案（统一 loadScript 动态插入），
+  // 覆盖全站页面，并保留静态写法的 sendSuspicious:true 参数。
+  // 不设 crossOrigin 属主动选择：perf 端点实测返回 access-control-allow-origin:*
+  //（与无 CORS 头的 v6-widget 挂件端点不同），loadScript 统一不设该属性，与其他统计脚本一致。
+  runSafely(function () {
+    loadScript('LA_PERF_MONITOR', 'https://sdk.51.la/perf/js-sdk-perf.min.js', function () {
+      if (window.LingQue && typeof window.LingQue.Monitor === 'function') {
+        new window.LingQue.Monitor().init({ id: '3RsOdL1MNE7j4CCN', sendSuspicious: true });
       }
     });
   });
