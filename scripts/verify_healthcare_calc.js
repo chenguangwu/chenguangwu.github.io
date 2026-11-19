@@ -9,6 +9,7 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const fs = require("fs");
+globalThis.__tbFs = fs;
 const path = require("path");
 
 // 425 复核失败：指南正文曾套用通用统计模板，与三列收支汇总工具不符。
@@ -1074,7 +1075,13 @@ const CASES = [
   { slug: "healthcare/healthcare-5",
     inputs: { weight: "", activity: "", goal: "" },
     expect: ["请填写体重与活动系数（均需大于 0）后再判读。"],
-    ref: "空态守卫：体重/活动系数/目标系数清空或为 0 时旧实现输出 0.0g（伪剂量）；改为范围提示。默认态 70/1.2/1.2 ⇒ 提示串不出现。" }
+    ref: "空态守卫：体重/活动系数/目标系数清空或为 0 时旧实现输出 0.0g（伪剂量）；改为范围提示。默认态 70/1.2/1.2 ⇒ 提示串不出现。" },
+{
+  "slug": "healthcare/heart-rate-zones",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/healthcare/heart-rate-zones.html','utf8');var i=h.indexOf('function calc(){');var seg=i>=0?h.slice(i,i+1200):'';var ok=seg.indexOf('__hrzClear')>=0&&seg.indexOf('isFinite(parseFloat(s))')>=0&&seg.indexOf('rhr>=maxHr')>=0&&seg.indexOf('lt<=rhr||lt>=maxHr')>=0&&seg.indexOf('|| 30')<0&&seg.indexOf('|| 65')<0&&seg.indexOf('|| 190')<0;document.getElementById('__tbProbe').textContent='HRZGUARD '+(ok?'OK':'BAD');})();"],
+  "expect": ["HRZGUARD OK"],
+  "ref": "第1307批·心率区间空值与倒置修复源码形态强锚：calc 须 rawNum 判空/isFinite、无 ||30/65/190 默认回退、rhr<maxHr、乳酸阈 lt 在(rhr,maxHr)之间，无效走 __hrzClear 清全部区间与评价。旧版四处 || 回退且无关系校验、lactate 法 maxHr190/lthr190 得 Z4 190-181 倒置 ⇒ BAD；真机交互由复核方覆盖。"
+}
 
 ];
 

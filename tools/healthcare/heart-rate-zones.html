@@ -350,7 +350,7 @@ function calcZones(maxHr, restHr, method){
       {name:'极限区',short:'Z5',min:Math.round(maxHr*0.9),max:maxHr,color:'#ef5350',purpose:'最大摄氧',desc:'极限强度，提升最大摄氧量和爆发力。',duration:'1-5分钟'}
     ];
   } else if(method === 'lactate'){
-    const lt = parseInt(document.getElementById('lthr').value) || 165;
+    const lt = parseInt(document.getElementById('lthr').value, 10); // calc() 已校验 lt 有效
     return [
       {name:'热身/恢复区',short:'Z1',min:restHr,max:Math.round(lt*0.85),color:'#4fc3f7',purpose:'恢复热身',desc:'轻松强度，用于热身和恢复。',duration:'20-60分钟'},
       {name:'燃脂区',short:'Z2',min:Math.round(lt*0.85),max:Math.round(lt*0.95),color:'#66bb6a',purpose:'脂肪燃烧',desc:'中等偏低强度，建立有氧基础。',duration:'30-90分钟'},
@@ -370,15 +370,28 @@ function calcZones(maxHr, restHr, method){
   }
 }
 
+function __hrzClear(msg){
+  ['maxHrVal','hrrVal','restHrVal','hrVisual','hrMarkers','zoneDetails','exerciseRef'].forEach(function(id){
+    var e=document.getElementById(id);if(e)e.innerHTML='';
+  });
+  var a=document.getElementById('restingAssessment');
+  var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+  if(a)a.innerHTML='<p style="color:var(--danger)">'+(__en?msg.en:msg.zh)+'</p>';
+}
 function calc(){
-  const age = parseInt(document.getElementById('age').value) || 30;
-  const rhr = parseInt(document.getElementById('rhr').value) || 65;
-  let maxHr;
-  
+  // 空值/非数/非正不静默回退默认值；参数关系无效时清除全部分区与评价
+  function rawNum(id){var s=String(document.getElementById(id).value==null?'':document.getElementById(id).value).trim();return s===''||!isFinite(parseFloat(s))?NaN:parseFloat(s);}
+  var age=rawNum('age'), rhr=rawNum('rhr'), maxHr, lt=NaN;
+  var bad={zh:'请填写有效的年龄、静息心率等参数（静息心率须小于最大心率）',en:'Enter valid age and resting heart rate (resting HR must be below max HR)'};
+  var badLt={zh:'乳酸阈须大于静息心率且小于最大心率',en:'Lactate threshold must be between resting and max heart rate'};
+  if(!isFinite(rhr)||rhr<=0){ __hrzClear(bad); return; }
   if(method === 'lactate'){
-    maxHr = parseInt(document.getElementById('maxhrInput').value) || 190;
-  } else {
-    maxHr = getMaxHr(age);
+    maxHr=rawNum('maxhrInput'); lt=rawNum('lthr');
+    if(!isFinite(maxHr)||maxHr<=0||!isFinite(lt)||lt<=0||rhr>=maxHr||lt<=rhr||lt>=maxHr){ __hrzClear(badLt); return; }
+  }else{
+    if(!isFinite(age)||age<=0){ __hrzClear(bad); return; }
+    maxHr=getMaxHr(age);
+    if(!(maxHr>rhr)){ __hrzClear(bad); return; }
   }
   
   const hrr = maxHr - rhr;
