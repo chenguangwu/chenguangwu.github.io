@@ -10,6 +10,8 @@
  *   node scripts/verify_fun_calc.js bbq-portion hotpot-portion
  */
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+globalThis.__tbFs = fs;
 
 const CASES = [
 {
@@ -394,7 +396,13 @@ const CASES = [
   "clicks": ["(function(){var T=1700000000000,T0=T;var D=Date.now;Date.now=function(){return T;};document.getElementById('dur').value='10';document.getElementById('seg').value='3';var bells=[];var oC=mtmChime;mtmChime=function(iv){if(iv)bells.push(1);};mtmReset();mtmStart();T+=150000;mtmPause();T+=600000;mtmStart();T+=30000;mtmTick();var ok=(bells.length===1);Date.now=D;mtmChime=oC;document.getElementById('__tbProbe').textContent='MTMPAUSE '+(ok?'OK':'BAD '+bells.length);})()"],
   "expect": ["MTMPAUSE OK"],
   "ref": "第396批：2.5 分钟暂停、暂停期间现实时间流逝 10 分钟后继续，按已过冥想时间应在继续后 0.5 分钟（绝对 3 分钟段末）补响 1 次。旧版 mtmStart() 继续时把下一次提示重设为「当前时间+完整段长」会错过原段末（继续后 0.5 分钟 0 响）。修复后基于已过时间计算边界 ⇒ 1 响；修复前 0 响 ⇒ BAD。"
-}
+},
+{
+  "slug": "fun/typing-rhythm",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/fun/typing-rhythm.html','utf8');var i=h.indexOf('function analyze()');var seg=i>=0?h.slice(i,i+1800):'';var ok=seg.indexOf('calcWpm(lastVal.length, totalMs)')>=0&&seg.indexOf('times[times.length-1] - times[0]')>=0&&seg.indexOf('calcWpm(lastVal.length,m)')<0;document.getElementById('__tbProbe').textContent='TYPMWPM '+(ok?'OK':'BAD');"],
+  "expect": ["TYPMWPM OK"],
+  "ref": "第1306批·WPM虚增修复源码形态强锚：按 chars/总经过时间算，不再用平均间隔 m 当总时长。旧版 calcWpm(lastVal.length,m) ⇒ BAD；真机按键节奏由复核方覆盖。"
+},
 ];
 async function main() {
   const only = process.argv.slice(2);

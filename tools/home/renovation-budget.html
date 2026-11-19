@@ -325,7 +325,24 @@ function delItem(id){
 function updateItem(id, field, value){
  const list = getItems();
  const it = list.find(x => x.id === id);
- if(it){ it[field] = +value || value; setItems(list); calc(); }
+ if(!it) return;
+ if(field === 'price' || field === 'qty'){
+   // 空值/负数不覆盖原值，避免空串参与乘法被当成 0、负数产生负金额
+   const raw = String(value==null?'':value).trim();
+   const num = parseFloat(raw);
+   if(raw === '' || !isFinite(num) || num < 0) return;
+   it[field] = num;
+ }else{
+   it[field] = value;
+ }
+ setItems(list);
+ // 只刷新该行小计，避免重建整个列表导致正在输入的光标丢失
+ if(field === 'price' || field === 'qty'){
+   const row = document.querySelector('.budget-row[data-id="' + id + '"]');
+   const totalEl = row && row.querySelector('.total');
+   if(totalEl) totalEl.innerHTML = '¥' + (it.price * it.qty).toLocaleString();
+ }
+ calc();
 }
 
 function loadTemplate(t){
@@ -351,7 +368,7 @@ function renderItems(){
  const list = getItems();
  const __g1=list.length === 0
   ? '<div style="color:var(--text-muted);font-size:13px;padding:8px;">暂无项目,可加载模板或手动添加</div>'
-  : list.map(it => `<div class="budget-row">
+  : list.map(it => `<div class="budget-row" data-id="${it.id}">
     <input type="text" value="${escapeAttr(it.name)}" oninput="updateItem(${it.id},'name',this.value)">
     <input type="number" value="${it.price}" min="0" step="100" oninput="updateItem(${it.id},'price',this.value)" placeholder="e.g. ${it.price}">
     <input type="number" value="${it.qty}" min="1" step="1" oninput="updateItem(${it.id},'qty',this.value)" placeholder="e.g. ${it.qty}">

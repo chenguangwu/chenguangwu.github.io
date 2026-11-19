@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
   { slug: "home/paint-calculator", inputs: { coverage: "" },
@@ -123,6 +125,12 @@ const CASES = [
   ],
   "ref": "空态守卫：必填项留空 ⇒ 提示并保留总光通量为「—」，不再按 0/默认值静默算出结论。"
      + "默认态 5/4/2.8/800/0.6/0.8 输出 4167 与「7 只」等结论，不含该提示 ⇒ 可判别。"
+},
+{
+  "slug": "home/renovation-budget",
+  "clicks": ["(function(){var hh=globalThis.__tbFs;var h1=hh.readFileSync(process.cwd()+'/tools/home/renovation-budget.html','utf8');var i1=h1.indexOf('function updateItem(');var sg=i1>=0?h1.slice(i1,i1+700):'';var okg=sg.indexOf('isFinite(num)')>=0&&sg.indexOf('num < 0')>=0&&sg.indexOf('totalEl.innerHTML')>=0&&h1.indexOf('data-id=')>=0;var h2=hh.readFileSync(process.cwd()+'/tools/hotel/tip-calculator.html','utf8');var i2=h2.indexOf('function copyResult()');var sg2=i2>=0?h2.slice(i2,i2+700):'';var okt=sg2.indexOf('taxAmount')>=0&&sg2.indexOf('bill + taxAmount + tip')>=0&&sg2.indexOf('bill + tip')<0&&sg2.indexOf('tax < 0')>=0;document.getElementById('__tbProbe').textContent='RENITEM '+(okg?'OK':'BAD')+' TIPTAX '+(okt?'OK':'BAD');})();"],
+  "expect": ["RENITEM OK TIPTAX OK"],
+  "ref": "第1306批双源码形态强锚(承载页 home/renovation-budget)：①装修明细 updateItem 校验数值并定点刷该行 .total、行带 data-id；旧版空串入总计且只 calc 不刷行 ⇒ BAD。②tip-calculator copyResult 须含税(bill+taxAmount+tip)、同源并拦负税率；旧版 bill+tip 漏税 ⇒ BAD。真机交互由复核方覆盖。"
 }
 ];
 async function main() {
