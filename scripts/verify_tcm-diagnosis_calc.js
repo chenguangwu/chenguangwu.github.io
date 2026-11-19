@@ -223,6 +223,12 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-diagnosis/formula-matching.html','utf8');var i=h.indexOf('天麻钩藤饮');var seg=i>=0?h.slice(i,i+400):'';var ok=seg.indexOf('温服')>=0&&seg.indexOf('用法')<0;document.getElementById('__tbProbe').textContent='FMUSAGE '+(ok?'OK':'BAD');})();"],
   "expect": ["FMUSAGE OK"],
   "ref": "第1320批·天麻钩藤饮字段名错配修复源码形态强锚：原数据对象把用法写成 用法:'温服'，详情读取 f.usage 故用法区空；改为 usage 后修复。旧版无 usage:'温服' ⇒ BAD。"
+},
+{
+  "slug": "tcm-diagnosis/ten-questions",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-diagnosis/ten-questions.html','utf8');var i=h.indexOf('function resetForm(){');var seg=i>=0?h.slice(i,i+560):'';var ok=seg.indexOf(\"getElementById('pGender')\")>=0&&seg.indexOf(\"value='男'\")>=0;document.getElementById('__tbProbe').textContent='TQRESET '+(ok?'OK':'BAD');})();"],
+  "expect": ["TQRESET OK"],
+  "ref": "第1321批·重置未清性别下拉修复源码形态强锚：原 resetForm 只清文本/单选，pGender 沿用上次值；修复后显式设 pGender='男'。旧版无该重置 ⇒ BAD。"
 }
 ];
 async function main() {

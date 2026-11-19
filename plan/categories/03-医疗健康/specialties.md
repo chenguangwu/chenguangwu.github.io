@@ -15,7 +15,7 @@
 
 - `tools/tcm-diagnosis/disease-tracking.html`：未填写症状也可保存总分 0 并标「无症状」；不同记录填写的症状集合不同时仍直接比较总分给出好转/加重判断。（原症状/舌象/脉象/日期未经转义拼入时间线、趋势、汇总和导出 HTML 的注入路径已于第 951 批修复并真机验证，从待办删除。）
 - `tools/tcm-diagnosis/formula-matching.html`：天麻钩藤饮 `用法` 字段错配致详情用法为空——第1320批已修（数据对象 `用法`→`usage`，强锚 `FMUSAGE` 源码哨兵已落 tcm-diagnosis verify；旧版无该 `usage` ⇒ BAD）。余项：方剂内容及禁忌未做专业核验。
-- `tools/tcm-diagnosis/ten-questions.html:338-340,363-400`：改动输入后 300ms 静默生成完整记录；重置清文本及单选但未重置性别下拉，之后新生成仍沿用上次性别。重置只改 DOM，不代表清除了通用输入持久化，隐私状态待验证。
+- `tools/tcm-diagnosis/ten-questions.html`：重置未重置性别下拉——第1321批已修（resetForm 显式设 pGender='男'，源码形态强锚 `TQRESET` 已落 tcm-diagnosis verify；旧版无该重置 ⇒ BAD）。余项：改动输入后 300ms 静默生成完整记录；重置只改 DOM，不代表清除了通用输入持久化，隐私状态待验证。
 - `tools/tcm-diagnosis/treatment-principle.html:371-437,474-490`：选择项触发建议，全部未选则隐藏并拒绝导出；参考方药与治则映射可直接呈现具体治疗建议，须临床专业核验，不能据静态检查判医疗正确。四页均未运行浏览器。
 
 ## 2026-11-06 儿童疫苗排程静态续审
