@@ -766,6 +766,26 @@ const CASES = [
     "CNPGUARD OK"
   ],
   "ref": "第1315批·集合近点瞳距空值按0修复源码形态强锚：原 pd||0 空值仍出集合需求与双眼总量；修复后原始判空+正数守卫+双语提示。旧版无 __pdRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/progressive-corridor",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/progressive-corridor.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1400):'';var ok=g.indexOf('__addRaw')>=0&&g.indexOf('__bhRaw')>=0&&g.indexOf('__phRaw')>=0&&g.indexOf('bH<=0')>=0&&g.indexOf('ph<=0')>=0&&g.indexOf('请输入有效的下加光')>=0&&g.indexOf('|| 1.5')<0;document.getElementById('__tbProbe').textContent='PCGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "PCGUARD OK"
+  ],
+  "ref": "第1316批·渐进通道下加光/镜圈高度/瞳高空值静默代入修复源码形态强锚：原 add||0、bHeight||40、pupilH||0 空值仍输出通道长度与结论；修复后原始判空+下加光非负、镜圈高度与瞳高正数守卫。旧版无 __addRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/lens-refractive-index",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/lens-refractive-index.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1400):'';var ok=g.indexOf('__pRaw')>=0&&g.indexOf('__dRaw')>=0&&g.indexOf('__ctRaw')>=0&&g.indexOf('dia<=0')>=0&&g.indexOf('ct<=0')>=0&&g.indexOf('请输入有效的度数')>=0;document.getElementById('__tbProbe').textContent='LRGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "LRGUARD OK"
+  ],
+  "ref": "第1316批·镜片折射率度数/直径/中心厚度空值静默代入修复源码形态强锚：原 power||0、diameter||65、ct||2 空值仍输出折射率与结论；修复后原始判空+直径与中心厚度正数守卫。旧版无 __pRaw ⇒ BAD。"
 }
 ];
 
