@@ -411,6 +411,18 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/tear-breakup-time.html','utf8');var i=h.indexOf('if(isNaN(but)){');var seg=i>=0?h.slice(i,i+220):'';var ok=seg.indexOf(\"('resultRefBar').innerHTML=''\")>=0&&seg.indexOf(\"('barWrap').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='TBUTCLR '+(ok?'OK':'BAD');})();"],
   "expect": ["TBUTCLR OK"],
   "ref": "第1323批·泪膜破裂清空未清标尺修复源码形态强锚：原清空首次 BUT 只清 barWrap，resultRefBar 参考标尺留存；修复后同步清 resultRefBar。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/oct-rnfl",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/oct-rnfl.html','utf8');var ok=h.indexOf(\"[age,g,s,i,n,t].some(function(v){return !isFinite(v)||v<=0;})\")>=0&&h.indexOf(\"年龄与各项厚度须为正数\")>=0;document.getElementById('__tbProbe').textContent='OCTNEG '+(ok?'OK':'BAD');})();"],
+  "expect": ["OCTNEG OK"],
+  "ref": "第1324批·负年龄/负厚度参与分级修复源码形态强锚：原只拦 NaN，负厚度也会出 RNFL 分级；修复后年龄与各项厚度须为正数。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/axial-length",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/axial-length.html','utf8');var a=h.indexOf('function calcCorr(){'),b=h.indexOf('function calcSeg(){');var ca=a>=0?h.slice(a,b):'',cb=b>=0?h.slice(b,b+520):'';var ok=ca.indexOf(\"[al,vMeas,vTrue].some(function(v){return !isFinite(v)||v<=0;})\")>=0&&cb.indexOf(\"[acd,vAcd,lt,vLt,vl,vVl].some(function(v){return !isFinite(v)||v<=0;})\")>=0;document.getElementById('__tbProbe').textContent='ALNEG '+(ok?'OK':'BAD');})();"],
+  "expect": ["ALNEG OK"],
+  "ref": "第1324批·负眼轴/负声速参与运算修复源码形态强锚：原两分支只拦 NaN，负声速/零声速可致除零与荒谬 IOL 影响；修复后眼轴与声速须为正数。旧版无 ⇒ BAD。"
 }
 ];
 async function main() {
