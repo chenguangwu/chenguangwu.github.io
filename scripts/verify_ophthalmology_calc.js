@@ -393,6 +393,12 @@ const CASES = [
     "EYESAVE OK"
   ],
   "ref": "第1312批·视力表空行误保存修复源码形态强锚（saveResult 在 IIFE 内，harness 无法直接调用）：旧版识别行留空时取最后一行当实测视力写入历史；修复后空行直接提示并 return。旧版含 rows[rows.length-1] 回退 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/iop-correction",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/iop-correction.html','utf8');var i=h.indexOf('var __ig=__tbInputGuard');var seg=i>=0?h.slice(i,i+300):'';var ok=seg.indexOf(\"('grid').innerHTML=''\")>=0&&seg.indexOf(\"('formulaList').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='IOPCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["IOPCLR OK"],
+  "ref": "第1322批·清空必填残留修复源码形态强锚：原 __tbInputGuard 空值分支只更新 result 即 return，grid/formulaList 沿用旧值；越界分支两处均清。修复后守卫分支同步清 grid 与 formulaList。旧版无 ⇒ BAD。"
 }
 ];
 async function main() {

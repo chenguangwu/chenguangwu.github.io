@@ -67,7 +67,7 @@
 - `tools/ophthalmology/amsler-grid-test.html:197-209,570-584,593-605,620-620,738-748`：提示可点“完成”闭合，但工具栏未见完成按钮，实际只绑定双击或 Enter；保存只含已闭合标记，正在绘制的区域不会入快照。切换眼别也未清除 `S.drawing`，随后闭合会把未完成区域归入切换后的眼。触屏具体事件表现未实测。
 - `tools/ophthalmology/axial-length.html:325-338,341-353`：仅检查 NaN，眼轴或分段长度为负仍参与运算；接触压平校正从测量长度减 0.15 mm，与压平造成测值缩短的方向可能矛盾，IOL 输出符号与深解“下调”描述亦需核对。专业假设及公式须临床核验。
 - `tools/ophthalmology/cd-ratio.html:302-327`：越界输入被静默夹到 0–1 而继续给分级；0.5 被单眼标为“青光眼疑似”，综合风险却仅在 `>0.5` 等条件成立，双眼同为 0.5 且未勾选时综合显示未见明显异常，存在自相矛盾。阈值及 ISNT 解释须临床核验。
-- `tools/ophthalmology/iop-correction.html:361-368,397-418`：清空必填输入时前置守卫只更新主结果后 return，网格和各公式仍显示旧值；数值越界分支才清除它们。各公式及临床适用性未核验。
+- `tools/ophthalmology/iop-correction.html`：清空必填时网格与公式区残留旧值——第1322批已修（`__tbInputGuard` 空值分支与越界分支一致，同步清 `grid`/`formulaList`，源码形态强锚 `IOPCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：各公式及临床适用性未核验。
 - `tools/ophthalmology/oct-rnfl.html:317-338`：只拦 NaN，负厚度或负年龄也产生分级；界面写 `S>I>N>T`，实际判定为 `s>i-5 && i>n && n>t`，例如 S=96、I=100、N=65、T=60 会判“符合”但并非 S>I。年龄模型与分级须专业核验。
 
 ## 2026-11-06 子宫内膜记录静态续审
