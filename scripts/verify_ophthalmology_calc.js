@@ -429,6 +429,12 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/visual-field-analysis.html','utf8');var ok=h.indexOf('psd<0||vfi<0||vfi>100')>=0&&h.indexOf('VFI 须在 0–100% 之间')>=0;document.getElementById('__tbProbe').textContent='VFIDOM '+(ok?'OK':'BAD');})();"],
   "expect": ["VFIDOM OK"],
   "ref": "第1325批·视野指标定义域守卫修复源码形态强锚：原只拦 NaN，PSD 负值/VFI 越界仍进 HAP 分级；修复后要求 PSD≥0、VFI∈[0,100]。MD 负值按习惯输入保留。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/vision-screening-21",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/vision-screening-21.html','utf8');var i=h.indexOf('window.__vsClearHist=');var seg=i>=0?h.slice(i,i+220):'';var ok=seg.indexOf(\"getElementById('__vsTrend')\")>=0&&seg.indexOf(\"__vt.innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='VSCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["VSCLR OK"],
+  "ref": "第1326批·清空历史未清趋势图修复源码形态强锚：原 __vsClearHist 只存空历史并重渲染，#__vsTrend 旧趋势留存；修复后同步清空趋势容器。旧版无 ⇒ BAD。"
 }
 ];
 async function main() {
