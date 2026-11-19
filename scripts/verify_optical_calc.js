@@ -706,7 +706,37 @@ const CASES = [
     "clicks": ["selectScene('snow')"],
     "expect": ["8%-18%", "棕色/琥珀"],
     "ref": "雪地场景固定参数：可见光透过率 8%-18%、推荐棕色/琥珀；默认白天为 15%-25%、灰色/棕色，零交集。"
-  }
+  },
+{
+  "slug": "optical/blue-light-filter",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/blue-light-filter.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+900):'';var ok=g.indexOf('__cRaw')>=0&&g.indexOf('__kRaw')>=0&&g.indexOf('k<=0')>=0&&g.indexOf('|| 430')<0&&g.indexOf('|| 10')<0;document.getElementById('__tbProbe').textContent='BLCUT '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "BLCUT OK"
+  ],
+  "ref": "第1314批·蓝光截止波长/陡度静默代入修复源码形态强锚：原 `||430`/`||10` 空值照常出阻隔率、负陡度可反转曲线；修复后原始串判空、k<=0 清空频谱。旧版含 || 回退 ⇒ BAD。"
+},
+{
+  "slug": "optical/tinted-lens",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/tinted-lens.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+900):'';var ok=g.indexOf('__dRaw')>=0&&g.indexOf('__bRaw')>=0&&g.indexOf('density>100')>=0&&g.indexOf('baseVlt>100')>=0&&g.indexOf('|| 92')<0&&g.indexOf('|| 0')<0;document.getElementById('__tbProbe').textContent='TINTVLT '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "TINTVLT OK"
+  ],
+  "ref": "第1314批·染色镜片基础透光率静默回退修复源码形态强锚：原 `||92` 空值/0 仍出 VLT 分类；修复后原始判空、0–100 范围校验、无效清 tintGrid。旧版含 || 回退 ⇒ BAD。"
+},
+{
+  "slug": "optical/edge-bevel",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/edge-bevel.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+900):'';var ok=g.indexOf('__tRaw')>=0&&g.indexOf('t<=0')>=0&&g.indexOf('|| 0')<0&&g.indexOf('请输入大于 0 的镜片厚度')>=0;document.getElementById('__tbProbe').textContent='EDGET '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "EDGET OK"
+  ],
+  "ref": "第1314批·镜片厚度空/负仍推荐磨边修复源码形态强锚：原 `||0` 使空值落入 <2mm 平边档、负厚度同档；修复后原始判空+正数守卫+双语提示。旧版含 || 回退 ⇒ BAD。"
+}
 ];
 
 async function main() {
