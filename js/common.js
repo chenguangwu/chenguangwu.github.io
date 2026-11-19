@@ -3485,6 +3485,9 @@ function autoInjectCopyBtn(){
       return /复制|copy/i.test(b.textContent || '');
     });
     if (hasCopy) return;
+    // 游戏/对战页无可复制的结果数据，工具栏塞「复制结果」只会干扰，整页跳过
+    var bodyText = (document.body && document.body.textContent || '');
+    if (/开始新局|开始游戏|开始对战|再来一局|悔1手|悔棋/.test(bodyText)) return;
     if (toolbar.querySelector('.auto-copy-btn')) return;
     var btn = document.createElement('button');
     btn.className = 'btn auto-copy-btn';
