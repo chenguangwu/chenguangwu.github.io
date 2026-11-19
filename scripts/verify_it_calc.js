@@ -16,6 +16,7 @@
  *   ref     —— 该期望值的来源说明（权威向量 / 独立实现 / 标准文档），必填，便于复核
  */
 const fs = require("fs");
+globalThis.__tbFs = fs;
 const path = require("path");
 // 运行期生成 id 判定（与 audit_verify_input_ids.js 共用同一套模板解析，避免两处正则漂移）。
 // 仅用于注入参数合法性校验：动态 id 无法静态判存在，必须放行，否则会误伤 JS 拼控件的页。
@@ -14421,6 +14422,12 @@ const CASES = [
     clicks: ["document.getElementById('sentenceCount').value='custom';document.getElementById('customCount').value='20';generateSummary();var h=document.getElementById('limitHint').innerHTML;document.getElementById('__tbProbe').textContent='SGJ156 '+(h.indexOf('请求 20 句')>=0&&h.indexOf('只有 10 句')>=0?'OK':'BAD');"],
     expect: ["SGJ156 OK"],
     ref: "EL-J156：旧版请求句数超过原文句数时只 slice/Math.min 静默截断。现 limitHint 明确「请求 N 句，但原文只有 M 句；已显示全部 M 句」。示例文本 10 句，请求 20 句才命中；默认请求 5 句无提示 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/calc-4",
+    clicks: ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/calc-4.html','utf8');var i=h.indexOf('function convertCss() {');var seg=i>=0?h.slice(i,i+900):'';var c=h.indexOf('function copyCssResult() {');var cseg=c>=0?h.slice(c,c+520):'';var ok=seg.indexOf(\"__bsRaw=String(\")>=0&&seg.indexOf(\"__bsRaw==='' ? NaN : parseFloat(__bsRaw)\")>=0&&seg.indexOf('isNaN(base)')>=0&&seg.indexOf(\"parseFloat(document.getElementById('baseSize').value) || 16\")<0&&cseg.indexOf('__bsRaw2=String(')>=0&&cseg.indexOf('isNaN(base)')>=0&&h.indexOf('非法时提示，不静默取 16')>=0&&h.indexOf('非法时取 16')<0;document.getElementById('__tbProbe').textContent='C4GUARD '+(ok?'OK':'BAD');})();"],
+    expect: ["C4GUARD OK"],
+    ref: "第1308批·基准字号空值静默回退修复源码形态强锚：旧版 convertCss/copyCssResult 均 parseFloat(baseSize.value)||16，清空基准字号静默按 16 换算且复制结果带假基准。新版两处改原始串判空 + NaN（空⇒NaN），convertCss 守卫补 isNaN(base) 走提示并把预览固定 16px，copyCssResult 空值直接 return；公式框文案同步为「不静默取 16」。旧版两处 ||16 且无 isNaN(base) ⇒ BAD；真机交互由复核方覆盖。",
   },
 ];
 // ---------------------------------------------------------------- DOM stub
