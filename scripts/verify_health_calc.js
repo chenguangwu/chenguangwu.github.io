@@ -6,6 +6,8 @@
  * 用法: node scripts/verify_health_calc.js
  */
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
@@ -774,9 +776,9 @@ const CASES = [
       "perPack": "16"
     },
     "expect": [
-      "42\n42\n42\n16\n¥110.3\n¥772\n¥3308\n¥40241\n¥1,690,132.5\n2,832,984\n7761.6"
+      "42\n42\n42\n16\n¥110.3\n¥772\n¥3308\n¥40241\n¥1,690,132.5\n4,918\n13.5"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"perDay\":\"42\",\"years\":\"42\",\"price\":\"42\",\"perPack\":\"16\"}，输出区含「42\n42\n42\n16\n¥110.3\n¥772\n¥3308\n¥40241\n¥1,…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "寿命损失分钟换天量纲修复强锚：每支11分钟，42支/天×365×42年=643,860支，11×643,860÷(60×24)=4,918天≈13.5年。旧版 `÷60×24` 放大576倍得2,832,984天/7761.6年，必红；默认态输入回退不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "health/water-intake-calculator",
@@ -833,6 +835,26 @@ const CASES = [
   "expect": ["消化内科/全科", "注意补液防脱水，清淡饮食，一般3-5天恢复。"],
   "ref": "categorySelect=digestive（消化系统）+ 固定路径 chooseOption(0)→chooseOption(0) ⇒ 决策树 d1 选「水样便，次数多」直达结果卡：科室「消化内科/全科」、建议「注意补液防脱水，清淡饮食，一般3-5天恢复。」。"
        + "注意：疾病名「急性肠胃炎」在页面静态科普列表里也出现（消化道：急性肠胃炎、食物中毒、胃炎），故不作锚；锚只取脚本内数据、静态正文零出现的科室与建议串。默认态未选分类、结果区隐藏，零交集。"
+},
+{
+  "slug": "health/sleep-cycle-calculator",
+  "inputs": { "wakeTime": "00:00", "fallAsleep": "0" },
+  "clicks": ["var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='SLEEP0 '+(h.indexOf('已考虑 0 分钟入睡潜伏期')>=0 && h.indexOf('00:00 起床')>=0 ? 'OK':'BAD');"],
+  "expect": ["SLEEP0 OK"],
+  "ref": "第1304批·合法0误拦修复强锚：醒来时间00:00(time型,非数值分母)+入睡潜伏期0分钟均为合法输入，修复后守卫不误报『分母为0/输入不能全为0』、calc不再把0吞成15，结果含『已考虑 0 分钟入睡潜伏期』且含00:00起床 ⇒ OK。旧版守卫把 wakeTime 当分母、fallAsleep=0 全零误拦，结果区为错误提示无此串 ⇒ BAD；默认态 07:00/15 不含『已考虑 0 分钟』。"
+},
+{
+  "slug": "health/alcohol-units",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/caffeine-limit.html','utf8');var q=String.fromCharCode(39);var i=h.indexOf('function quickAdd(caf){');var seg=i>=0?h.slice(i,i+400):'';var add=i>=0&&h.indexOf(q+'#drinks .drink-row:last-child .drink-type'+q)<0&&seg.indexOf('addDrink()')>=0;document.getElementById('__tbProbe').textContent='CAFADD '+(add?'OK':'BAD');"],
+  "expect": ["CAFADD OK"],
+  "ref": "第1304批·caffeine quickAdd追加而非覆盖源码形态强锚(承载页用同目录alcohol-units避开caffeine页onclick=removeDrink(this)在harness的报错)：修复后 quickAdd 调 addDrink() 真正追加新行、不再用 :last-child 定位最后一行覆盖其类型。旧版只有 `last.value=caf` 覆盖最后一行，连点两种饮品前一种被吞 ⇒ 源码含 :last-child 串且函数体内无 addDrink() ⇒ BAD。harness stub DOM 的 appendChild/querySelectorAll 不完整(removeDrink 抛错)，故用源码形态断言、真机交互由复核方覆盖；默认态源码不变⇒探针恒为固定值，该用例靠源码差分而非输入判别(形态哨兵类)。"
+},
+{
+  "slug": "health/blood-pressure-classifier",
+  "inputs": { "sys": "100", "dia": "110", "age": "55", "gender": "female" },
+  "clicks": ["document.getElementById('__tbProbe').textContent='BPLOGIC '+String(document.getElementById('bpCat').textContent);"],
+  "expect": ["BPLOGIC 请填写有效的收缩压和舒张压（收缩压不得低于舒张压）"],
+  "ref": "第1304批·血压逻辑校验强锚：收缩压100<舒张压110，旧版 !s||!d 放行→输出『3级高血压』+负脉压-10，真缺陷；修复后拦截并清空结果、提示有效范围。默认态120/80合法不触发该提示 ⇒ 零逃生；中文态(页面原样硬编码)不依赖TBKit.isEn。"
 }
 ];
 
