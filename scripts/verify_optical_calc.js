@@ -806,6 +806,26 @@ const CASES = [
     "PDGUARD OK"
   ],
   "ref": "第1317批·周边离焦中心/周边/偏心角空值静默按0或20修复源码形态强锚：原 ||0/||20 空值仍输出 RPD、方向结论与示意图；修复后原始判空+角度正数守卫+可视化容器清空。RPD=0 方向冲突与防控百分比属专业口径余项。旧版无 __centralRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/accommodation-amplitude",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/accommodation-amplitude.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+700):'';var ok=g.indexOf('__ageRaw')>=0&&g.indexOf('age<=0')>=0&&g.indexOf('请输入有效的年龄')>=0&&g.indexOf('|| 0')<0;document.getElementById('__tbProbe').textContent='AAGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "AAGUARD OK"
+  ],
+  "ref": "第1318批·调节幅度年龄空值按0修复源码形态强锚：原 age||0 空值仍算出 Hofstetter 三档幅度与近点（0岁成人值）；修复后原始判空+年龄正数守卫。实测调节值为选填，不在本批改。旧版无 __ageRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/anti-fatigue-design",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/anti-fatigue-design.html','utf8');var i=h.indexOf(\"if(mode === 'basic'){\");var g=i>=0?h.slice(i,i+1100):'';var ok=g.indexOf('__ageRaw')>=0&&g.indexOf('__wdRaw')>=0&&g.indexOf('__rxRaw')>=0&&g.indexOf('workDist<=0')>=0&&g.indexOf('请输入有效的年龄、工作距离')>=0;document.getElementById('__tbProbe').textContent='AFGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "AFGUARD OK"
+  ],
+  "ref": "第1318批·抗疲劳下加光基础模式年龄/工作距离/远用度数码值静默代入修复源码形态强锚：原三处 ||0/||40 空值仍输出 ADD 与结论；修复后原始判空+年龄与距离正数守卫，远用度数允许0与负值。ADD 限幅1D 属专业口径余项。旧版无 __ageRaw ⇒ BAD。"
 }
 ];
 
