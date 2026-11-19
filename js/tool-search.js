@@ -166,7 +166,9 @@
     var q = String(inst.input.value || '').trim();
     if (!q) { close(inst); return; }
     if (!INDEX) {
-      if (!LOADING) loadIndex();
+      // 索引加载完成后必须重绘当前输入：否则「正在加载工具索引…」会一直悬停，
+      // 即便索引早已就绪（用户不再输入/聚焦时无任何重绘触发点）。
+      loadIndex(function () { if (inst.input.value.trim()) refresh(inst); });
       paint(inst, '<div class="tb-sr-tip">' + esc(T('search.searching', '正在加载工具索引…')) + '</div>');
       return;
     }
