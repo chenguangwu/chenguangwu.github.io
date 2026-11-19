@@ -217,7 +217,13 @@ const CASES = [
     "expect": ["患者：张三 性别：男 年龄：？岁"],
     "ref": "单字段注入（2026-11-05 补 oninput + 事件委托）：仅填姓名，其余留空 ⇒ 300ms 防抖后自动生成记录，未答项统一「（未述）」；默认态为「填写问诊内容后点击…」不出现记录。"
   }
-
+,
+{
+  "slug": "tcm-diagnosis/formula-matching",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-diagnosis/formula-matching.html','utf8');var i=h.indexOf('天麻钩藤饮');var seg=i>=0?h.slice(i,i+400):'';var ok=seg.indexOf('温服')>=0&&seg.indexOf('用法')<0;document.getElementById('__tbProbe').textContent='FMUSAGE '+(ok?'OK':'BAD');})();"],
+  "expect": ["FMUSAGE OK"],
+  "ref": "第1320批·天麻钩藤饮字段名错配修复源码形态强锚：原数据对象把用法写成 用法:'温服'，详情读取 f.usage 故用法区空；改为 usage 后修复。旧版无 usage:'温服' ⇒ BAD。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);
