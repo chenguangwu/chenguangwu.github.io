@@ -676,6 +676,16 @@ function addItem() {
 function deleteItem(idx) {
   if (!confirm(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Delete this training item?":"确定删除该训练项目？"))) return;
   state.items.splice(idx, 1);
+  // IT-N212：删除后重映射当前计时项下标，避免仍指向别的动作或越界读 undefined.duration
+  if (state.items.length === 0) {
+    state.timer.itemId = null;
+  } else if (state.timer.itemId !== null) {
+    if (idx === state.timer.itemId) state.timer.itemId = Math.min(idx, state.items.length - 1);
+    else if (idx < state.timer.itemId) state.timer.itemId--;
+    if (state.timer.itemId >= state.items.length) state.timer.itemId = state.items.length - 1;
+    var cur = state.items[state.timer.itemId];
+    if (cur) state.timer.remaining = cur.duration;
+  }
   saveItems();
   renderItemList();
   renderTimerSelect();

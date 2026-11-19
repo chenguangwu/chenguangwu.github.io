@@ -969,6 +969,16 @@ const CASES = [
     "GFCLR OK"
   ],
   "ref": "第1310批·清空残留修复强锚：先以 50岁/1.2 生成 eGFR 与分期，再清空肌酐调 calc；旧版无效输入直接 return，gfrVal/gfrStage/statsGrid 全保留 ⇒ BAD；修复后 clearGfr 同步清空（Cockcroft 缺体重亦走同路径）⇒ OK。"
+},
+{
+  "slug": "health/breath-timer",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/rehab-timer.html','utf8');var i=h.indexOf('function deleteItem(idx) {');var s=i>=0?h.slice(i,i+800):'';var ok=s.indexOf('state.items.splice(idx, 1)')>=0&&s.indexOf('state.timer.itemId = null')>=0&&s.indexOf('idx === state.timer.itemId')>=0&&s.indexOf('idx < state.timer.itemId')>=0&&s.indexOf('state.timer.remaining = cur.duration')>=0;document.getElementById('__tbProbe').textContent='RHDEL '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "RHDEL OK"
+  ],
+  "ref": "第1311批·康复计时器删除项下标错位修复源码形态强锚（承载页同目录 breath-timer：rehab-timer 依赖 localStorage/计时器，harness 下不稳定）：旧版 splice 后不重设 timer.itemId，删当前或前项会指向别的动作或越界读 undefined.duration；修复后空列表置 null、删当前/前项重映射并同步 remaining。旧版无重映射 ⇒ BAD。"
 }
 ];
 
