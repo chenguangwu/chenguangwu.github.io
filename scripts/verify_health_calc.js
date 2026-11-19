@@ -905,6 +905,70 @@ const CASES = [
     "BSCLR OK"
   ],
   "ref": "第1309批·血糖双向清空修复源码形态强锚（承载页 body-surface-area：blood-sugar 页 updateUI 在 harness 下依赖报错、探针写不进）：旧版 fromMmol/fromMgdl 遇空值直接 return，另一端输入与状态/刻度/统计全保留；修复后新增 clearGlucose 清全部派生，两处无效分支均调之并清对方输入。旧版无 clearGlucose ⇒ BAD；真机双输入一致性由复核方覆盖。"
+},
+{
+  "slug": "health/child-bmi-calculator",
+  "inputs": {
+    "age": "10",
+    "height": "140",
+    "weight": "35"
+  },
+  "clicks": [
+    "calc();document.getElementById('height').value='';calc();var a=document.getElementById('adviceContent').innerHTML;document.getElementById('__tbProbe').textContent='CBCLR '+(a===''?'OK':'BAD');"
+  ],
+  "expect": [
+    "CBCLR OK"
+  ],
+  "ref": "第1310批·清空残留修复强锚：先以 10岁/140cm/35kg 生成建议卡，再清空身高调 calc；旧版无效分支清主卡但留 adviceContent 旧分类与体重 ⇒ BAD；修复后建议卡清空 ⇒ OK。"
+},
+{
+  "slug": "health/child-height-predictor",
+  "inputs": {
+    "father": "175",
+    "mother": "160",
+    "age": "10",
+    "childHeight": "140"
+  },
+  "clicks": [
+    "calc();document.getElementById('father').value='';calc();var a=document.getElementById('fatherH').textContent;var b=document.getElementById('barChild').style.height;document.getElementById('__tbProbe').textContent='CHPCLR '+(a==='--'&&b==='0%'?'OK':'BAD');"
+  ],
+  "expect": [
+    "CHPCLR OK"
+  ],
+  "ref": "第1310批·清空残留修复强锚：先以 175/160 生成预测卡与柱状图，再清空父亲身高调 calc；旧版只清 targetHeight/heightRange，fatherH 与柱状图仍保留 ⇒ BAD；修复后全部归位 ⇒ OK。"
+},
+{
+  "slug": "health/calorie-needs",
+  "inputs": {
+    "age": "30",
+    "height": "175",
+    "weight": "70",
+    "bodyFat": "20",
+    "activity": "1.5"
+  },
+  "clicks": [
+    "calc();document.getElementById('height').value='';calc();var a=document.getElementById('goalLabel').textContent;var b=document.getElementById('macroResult').innerHTML;var c=document.getElementById('mealPlanContent').innerHTML;document.getElementById('__tbProbe').textContent='CALCLR '+(a==='--'&&b===''&&c===''?'OK':'BAD');"
+  ],
+  "expect": [
+    "CALCLR OK"
+  ],
+  "ref": "第1310批·清空残留修复强锚：先以 30岁/175cm/70kg 生成目标、营养分配与餐单，再清空身高调 calc；旧版仅把 calories 设 --，其余全保留 ⇒ BAD；修复后同步清空 ⇒ OK。"
+},
+{
+  "slug": "health/gfr-calculator",
+  "inputs": {
+    "age": "50",
+    "cr": "1.2",
+    "weight": "70",
+    "height": "175"
+  },
+  "clicks": [
+    "calc();document.getElementById('cr').value='';calc();var a=document.getElementById('gfrVal').textContent;var b=document.getElementById('gfrStage').textContent;var c=document.getElementById('statsGrid').innerHTML;document.getElementById('__tbProbe').textContent='GFCLR '+(a==='--'&&b==='--'&&c===''?'OK':'BAD');"
+  ],
+  "expect": [
+    "GFCLR OK"
+  ],
+  "ref": "第1310批·清空残留修复强锚：先以 50岁/1.2 生成 eGFR 与分期，再清空肌酐调 calc；旧版无效输入直接 return，gfrVal/gfrStage/statsGrid 全保留 ⇒ BAD；修复后 clearGfr 同步清空（Cockcroft 缺体重亦走同路径）⇒ OK。"
 }
 ];
 

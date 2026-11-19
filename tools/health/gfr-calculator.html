@@ -469,7 +469,16 @@ function calc() {
   else if (wtBasis === 'abw' && isFinite(ibw)) useW = abw;
   const wtBasisName = { tbw: '实际体重 TBW', ibw: '理想体重 IBW（Devine）', abw: '校正体重 ABW' }[wtBasis] || '实际体重 TBW';
   
-  if(!age || !cr || age <= 0 || cr <= 0) return;
+  // IT-N211：无效输入（含 Cockcroft 缺体重）同步清空全部派生结果，禁止沿用上次分期
+  function clearGfr(){
+    var gv = document.getElementById('gfrVal'); if(gv){ gv.textContent='--'; gv.style.color=''; }
+    var gs = document.getElementById('gfrStage'); if(gs){ gs.textContent='--'; gs.style.color=''; }
+    var mk = document.getElementById('marker'); if(mk) mk.style.left='0%';
+    document.getElementById('statsGrid').innerHTML='';
+    var wi = document.getElementById('wtInfo'); if(wi) wi.innerHTML='';
+  }
+
+  if(!age || !cr || age <= 0 || cr <= 0){ clearGfr(); return; }
   
   let gfr, gfrLabel;
   
@@ -479,7 +488,7 @@ function calc() {
       gfrLabel = 'MDRD公式';
       break;
     case 'cockcroft':
-      if(!useW) return;
+      if(!useW){ clearGfr(); return; }
       gfr = calcCockcroft(age, cr, useW, isFemale);
       gfrLabel = 'Cockcroft-Gault (mL/min)';
       break;
