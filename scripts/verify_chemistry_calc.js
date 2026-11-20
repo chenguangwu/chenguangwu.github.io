@@ -116,6 +116,11 @@ const CASES = [
     inputs: { C: "0.01", Ka: "1e-5" },
     expect: ["3.162e-4", "3.500"],
     ref: "h=sqrt(1e-5*0.01)=3.162e-4；pH=3.500" },
+  { slug: "chemistry/ph-to-h",
+    inputs: { pH: "" },
+    expect: ["请填写 pH 值"],
+    ref: "pH 留空：旧代码按 pH=0 输出 [H⁺]=1 mol/L 的强酸结论；新增守卫后须提示。" },
+
 { slug: "chemistry/ph-to-h",
     inputs: { pH: "3" },
     expect: ["1.000e-3", "3.000"],
@@ -402,12 +407,12 @@ const CASES = [
   {
     "slug": "chemistry/ph-to-h",
     "inputs": {
-      "pH": "42"
+      "pH": "2.5"
     },
     "expect": [
-      "42\n1.000e-42"
+      "3.162e-3 氢离子浓度"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"pH\":\"42\"}，输出区含「42\n1.000e-42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "pH=2.5（非默认 7）：[H⁺]=10^(−2.5)=3.162e-3 mol/L；原哨兵 42 超出新增 0–14 校验范围，改用物理有效值。"
   },
   {
     "slug": "chemistry/reaction-quotient",

@@ -119,9 +119,19 @@ const CASES = [
     ref: "72/8=9.00 年；精确=ln2/ln(1.08)=9.01 年" },
 
   { slug: "economics/spending-multiplier",
+    inputs: { mpc: "" },
+    expect: ["请填写边际消费倾向 MPC"],
+    ref: "MPC 留空：旧代码按 0 输出乘数 1 与税收乘数 0；新增守卫后须提示。" },
+
+  { slug: "economics/spending-multiplier",
     inputs: { mpc: "0.5" },
     expect: ["2.00", "-1.00"],
     ref: "k=1/(1−0.5)=2.00；k_t=−0.5/0.5=−1.00（原用 0.75 得 4.00/−3.00，其中 \"4.00\" 是默认输出 \"-4.00\" 的子串，会假通过）" },
+
+  { slug: "economics/tax-multiplier",
+    inputs: { mpc: "" },
+    expect: ["请填写边际消费倾向 MPC"],
+    ref: "MPC 留空：旧代码按 0 输出税收乘数 0 与支出乘数 1；新增守卫后须提示。" },
 
   { slug: "economics/tax-multiplier",
     inputs: { mpc: "0.6" },
@@ -384,22 +394,22 @@ const CASES = [
   {
     "slug": "economics/spending-multiplier",
     "inputs": {
-      "mpc": "42"
+      "mpc": "0.6"
     },
     "expect": [
-      "储蓄倾向 MPS -1.024 转移支付乘数"
+      "1.500 转移支付乘数"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"mpc\":\"42\"}，输出区含「储蓄倾向 MPS -1.024 转移支付乘数」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "MPC=0.6（非默认 0.8）：k=1/(1−0.6)=2.50、k_t=−1.50、MPS=0.4、转移支付乘数=1.500；原哨兵 42 超出新增 0–1 校验范围。"
   },
   {
     "slug": "economics/tax-multiplier",
     "inputs": {
-      "mpc": "42"
+      "mpc": "0.6"
     },
     "expect": [
-      "支出乘数 k_g -1.0244 税收乘数绝对值 -41.0"
+      "1.5000 税收乘数绝对值"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"mpc\":\"42\"}，输出区含「支出乘数 k_g -1.0244 税收乘数绝对值 -41.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "MPC=0.6（非默认 0.8）：k_t=−1.50、k_g=2.5000、税收乘数绝对值 1.5000、MPS 0.4000、比值 1.5000；原哨兵 42 超出新增 0–1 校验范围。"
   },
   {
     "slug": "economics/rule-of-72",

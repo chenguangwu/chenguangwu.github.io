@@ -299,6 +299,10 @@ const CASES = [
     inputs: { M: "" },
     expect: ["请填写天体质量（须大于 0）后再计算。"],
     ref: "质量留空：旧代码按 0 kg 输出 r_s=0 与视界面积 0；新增守卫后须提示。" },
+  { slug: "astronomy/moon-illumination",
+    inputs: { D: "" },
+    expect: ["请填写月龄（0–29.53 天）后再计算。"],
+    ref: "月龄留空：旧代码按 0 天输出新月 0% 照明；新增守卫后须提示。" },
 
 ];
 async function main() {
