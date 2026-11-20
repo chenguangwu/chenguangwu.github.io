@@ -288,7 +288,27 @@ const CASES = [
   "expect": ["MOLCLR OK"],
   "ref": "第1345批 molar-mass 三早退(空式/未知元素/molar<=0)原只 showToast，不清 #result(元素组成明细表)；改为三处同步清空。"
 }
-
+,
+{
+  "slug": "chemical/solution-concentration",
+  "inputs": {
+    "mass": "0"
+  },
+  "expect": [
+    "请填写大于 0 的质量"
+  ],
+  "ref": "质量=0 时清空摩尔浓度卡（SOLCLR）；旧实现仅 toast，1.0000 mol/L 旧值残留"
+},
+{
+  "slug": "chemical/mixture-ratio",
+  "inputs": {
+    "ma": "0"
+  },
+  "expect": [
+    "请填写大于 0 的两组分质量"
+  ],
+  "ref": "质量=0 时清空混合浓度/配比（MIXCLR）；旧实现仅 toast，35.00%/400 残留"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

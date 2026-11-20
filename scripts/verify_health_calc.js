@@ -1020,6 +1020,16 @@ const CASES = [
     "CAFGUARD OK"
   ],
   "ref": "第1313批·咖啡因三处静默代入修复源码形态强锚（承载页 alcohol-units：caffeine 页 harness 下 removeDrink(this) 报错）：体重空/非法不再 ||65 且清派生上限；半衰期摄入量与 halfLife 原始判空、空值清半衰期图；最晚饮用时间空 halfLife 显示 -- 并按 350M 口径不依赖时间断言。"
+},
+{
+  "slug": "health/calc-1",
+  "inputs": {
+    "weight": "0"
+  },
+  "expect": [
+    "请填写体重大于 0"
+  ],
+  "ref": "体重为空时清空饮水建议（H1CLR）；旧实现仅 toast，2200 ml 仍显示"
 }
 ];
 

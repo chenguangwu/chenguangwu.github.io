@@ -937,7 +937,17 @@ const CASES = [
   "expect": ["SOLCLR OK"],
   "ref": "第1345批 solar-calculator p<=0 早退原只 showToast，不清 #solarViz/#result(收益卡+月度分布)。"
 }
-
+,
+{
+  "slug": "energy/energy-efficiency",
+  "inputs": {
+    "output": "0"
+  },
+  "expect": [
+    "请填写大于 0 的输出/输入数值"
+  ],
+  "ref": "输出为 0 时清空能效结果（EFFCLR）；旧实现仍显示 33.00 COP / A+++"
+}
 ];
 
 async function main() {

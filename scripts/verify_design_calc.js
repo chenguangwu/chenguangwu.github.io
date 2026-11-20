@@ -3715,6 +3715,26 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/design/iso-noise-reference.html\',\'utf8\');var i=h.indexOf(\'function switchTab(tab, btn) {\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if (!tab || !btn)\')>=0&&seg.indexOf(\'renderISO(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'ISONO0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['ISONO0 OK'],
   "ref": "第1337批·历史恢复无参切换抛错修复源码形态强锚：旧版 function switchTab(tab, btn) { 无参调用解引用参数/全局event抛错被 catch 吞、结果不重算；修复后无参分支安全返回或重算主结果。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "design/generator-6",
+  "inputs": {
+    "cnt": "0"
+  },
+  "expect": [
+    "请输入 1–50 之间的整数"
+  ],
+  "ref": "数量非法时清掉旧的阴影样式（G6CLR）"
+},
+{
+  "slug": "design/detector-29",
+  "inputs": {
+    "fgColor": ""
+  },
+  "expect": [
+    "合法的 HEX 颜色"
+  ],
+  "ref": "颜色非法时不得输出「0 分 / 不合规」结论（D29CLR）"
 }
 ];
 
