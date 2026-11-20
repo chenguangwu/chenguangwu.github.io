@@ -90,6 +90,12 @@ const CASES = [
     ref: "第128批 通用历史快照截断：本页 16 个输入全部影响结果，旧 Extras/Export 两处 keys.length>12 会把 baby/medicalBig/threshold/city 永久挤出历史表与回放。修复放宽到 24。注入 baby=777 才命中；默认 0 或旧源码 ⇒ BAD ⇒ 强判别、零逃生。"
   },
   {
+    slug: "finance/payroll-calculator",
+    inputs: { bonus: "30000" },
+    expect: ["年终奖并入综合所得", "更优方式"],
+    ref: "年终奖单独/并入两方案对比：bonus>0 时输出两种税额及更优方式；默认 bonus=0 不含该串，强判别。"
+  },
+  {
     slug: "finance/salary-after-tax",
     inputs: { gross: "0", ins: "0", ded: "0", months: "1" },
     clicks: ["var okIn=String(document.getElementById('gross').value)==='0';calcTool();var s1=__salary_after_taxScore('');document.getElementById('months').value='0';calcTool();var s0=__salary_after_taxScore('');document.getElementById('__tbProbe').textContent='SATSCORE '+(okIn&&s1===1&&s0===0?'OK':'BAD');"],

@@ -82,6 +82,12 @@ const CASES = [
 },
 {
   "slug": "audit/audit-sample",
+  "inputs": {"reliance":"79","tolerable":"5","expected":"1"},
+  "expect": ["可信赖程度须在 80–99% 之间"],
+  "ref": "低于 80% 不得四舍五入到 80 后按 95% 因子 3.0 计算，须显式拒绝"
+},
+{
+  "slug": "audit/audit-sample",
   "inputs": {
     "reliance": "98",
     "tolerable": "5",

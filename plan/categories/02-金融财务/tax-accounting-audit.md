@@ -56,3 +56,8 @@
 - 本批新抽查 8 页：`tools/audit/irr-table.html`、`tools/audit/ratio-analysis.html`、`tools/accounting/amortization-intangible.html`、`tools/accounting/depreciation-syd.html`、`tools/accounting/debt-service-coverage.html`、`tools/tax/capital-gains-effective.html`、`tools/tax/payroll-tax.html`、`tools/tax/stamp-duty.html`；与既有 T1、首轮 6 页、T-N1～T-N8 无重复。
 - 新增 11 条（T-N9～T-N19），其中高优 2 条（T-N9、T-N15）、中优 8 条、低优 1 条；除 T-N19 标注「待验证」外均为源码路径 + node 内存复算确认。
 - 证据均来自源码阅读与 node 复算；**未做**浏览器、英文态、移动端、线上或门禁验证；历史/持久化的实际行为未在真机复核。
+
+
+## 2026-11-21 抽样可信赖程度
+
+- `audit/audit-sample` 可信赖程度限 80–99%，低于 80 显式拒绝。
