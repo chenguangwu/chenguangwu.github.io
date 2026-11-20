@@ -1,7 +1,7 @@
 # 医疗 · 量表评分类（psychiatry/psychology/clinical-nursing/rehabilitation/neurology 等 ~150 页）
 
 ## 2026-11-06 静态复核（未运行页面）
-- `tools/psychology/attachment-style-test.html:501-508,699-706,743-786`：结果展示后修改答案仅更新进度，原结果仍显示；复制和导出则按修改后的答案重新计算，可能与画面不一致。应修改答案时隐藏旧结果或重算。
+- `tools/psychology/attachment-style-test.html`：结果展示后修改答案旧结果不刷新——第1332批已修（change 事件内若 #atResult 已显示则 remove('on') 隐藏，避免与按当前答案重算的复制/导出不一致，源码形态强锚 `ATREFRESH` 已落 psychology verify；旧版无 ⇒ BAD）。余项：隐藏而非自动重算，用户须点"重新计算"才见新结果；心理量表解释与阈值须专业复核。
 - `tools/psychology/holland-career-test.html:692-699,943-957,963-1005`：同样修改答案后旧画面不刷新，而复制/导出按当前状态重算；分数并列时 `:728-731` 按固定类型顺序排序，仍把前三名表述为主导型，需标明并列与不确定性。心理测验解释和阈值需专业复核。
 
 ## 已知问题

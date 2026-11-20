@@ -182,6 +182,12 @@ const CASES = [
   "expect": ["红色 · 活泼热情", "24 / 24（100%）"],
   "ref": "FPA 四色人格 24 题，每题第 1 项对应红色。全选第 1 项 ⇒ 红 24、总分 24 ⇒ 占比渲染「24 / 24（100%）」，主导色「红色 · 活泼热情」。"
        + "pPick 内 setTimeout 由桩立即执行，逐题推进到第 24 题后 calc()。默认态未作答、结果区为空，零交集。"
+},
+{
+  "slug": "psychology/attachment-style-test",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/psychology/attachment-style-test.html','utf8');var i=h.indexOf(\"$('atQuiz').addEventListener('change'\");var j=h.indexOf('function updateProgress',i);var seg=(i>=0&&j>i)?h.slice(i,j):'';var a=seg.split('classList.contains').length-1;var b=seg.split('classList.remove').length-1;var ok=a>=1&&b>=1;document.getElementById('__tbProbe').textContent='ATREFRESH '+(ok?'OK':'BAD');})();"],
+  "expect": ["ATREFRESH OK"],
+  "ref": "第1332批·改答案后旧结果不刷新修复源码形态强锚：原 change 事件只 updateProgress，结果区 #atResult 保留旧结果，而复制/导出按当前 state 重算致画面与导出不一致；修复后 change 段内结果已显示时 classList.remove('on') 隐藏旧结果。change 段内 classList.contains/remove 计数 before=0/fixed=1。按函数边界截取禁固定长度。"
 }
 ];
 async function main() {
