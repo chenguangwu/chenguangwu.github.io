@@ -818,8 +818,8 @@ const CASES = [
   {
     slug: "finance/gstin-validator",
     inputs: { input: "99AAPFU0939F1ZK" },
-    expect: ["州代码： 99 - ❌ 未分配州码", "❌ 州代码不是 GST 已分配州码 ❌ GSTIN 校验失败"],
-    ref: "F-N193 防回归锁：州码 99 非法，即使校验位 K 正确也不得判有效；旧实现仅凭 zChar=Z 且校验位相等即判 ✅。默认预填 09AABCU9603R1ZL（州码 09 合法）⇒ 不命中。",
+    expect: ["州代码： 99 - Centre Jurisdiction（特殊辖区）（99 为 Centre Jurisdiction / Other Country 特殊注册码，不等同普通州）", "✅ GSTIN 有效（99 特殊辖区）"],
+    ref: "F-N193 裁断回填（2026-11-21）：99 是 GST 已分配的特殊注册码（Centre Jurisdiction / Other Country OIDAR），不是「未分配州码」。校验位 K 正确 ⇒ 判格式有效，并加注「不等同普通州」。默认预填 09AABCU9603R1ZL 不含 99 ⇒ 不命中。",
   },
   {
     slug: "finance/routing-number-validator",
