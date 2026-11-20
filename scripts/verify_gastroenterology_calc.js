@@ -487,6 +487,12 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/gastroenterology/esophageal-varices.html','utf8');var ok=h.indexOf('cat=health')>=0&&h.indexOf('MedicalApplication')>=0&&h.indexOf('cat=finance')<0&&h.indexOf('FinanceApplication')<0;document.getElementById('__tbProbe').textContent='EV194CAT '+(ok?'OK':'BAD');"],
   "expect": ["EV194CAT OK"],
   "ref": "03-194 食管静脉曲张页分类纠正：医疗页误标 cat=finance/FinanceApplication，改 cat=health（唯一源），build 自动重生成 MedicalApplication。源码形态哨兵：含 cat=health + MedicalApplication 且无旧串；默认态不产哨兵（仅 clicks 读源码），零逃生。"
+},
+{
+  "slug": "gastroenterology/capsule-endoscopy",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/gastroenterology/capsule-endoscopy.html','utf8');var a=h.split('===null').length-1;var b=h.split('d+=1440').length-1;var c=h.split('min:0,max:480').length-1;var ok=a>=3&&b>=1&&c>=1;document.getElementById('__tbProbe').textContent='CAPFIX '+(ok?'OK':'BAD');})();"],
+  "expect": ["CAPFIX OK"],
+  "ref": "第1330批·胶囊内镜跨零点负值/00:00判缺失/SBTT标尺量程修复源码形态强锚：判空改 ===null(00:00合法) before=0/fixed=3；elapsed 对负差 +1440 跨日归一化 before=0/fixed=1；标尺显式 min:0,max:480 三段同源 before=0/fixed=1。旧版无 ⇒ BAD。三锚均不含引号规避 harness 转义。"
 }
 ];
 async function main() {

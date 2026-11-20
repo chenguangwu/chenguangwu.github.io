@@ -265,17 +265,20 @@ function calc(){
   var completed=document.getElementById('completed').checked;
   var prep=document.getElementById('prep').checked;
 
-  if(!ingestMin||!duodenumMin||!cecumMin){
+  if(ingestMin===null||duodenumMin===null||cecumMin===null){
     document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请填写完整的时间信息</p>';
     return;
   }
 
-  // 计算通过时间（分钟）
-  var gtt=duodenumMin-ingestMin; // 胃通过时间
-  var sbtt=cecumMin-duodenumMin; // 小肠通过时间
-  var totalTransit=cecumMin-ingestMin; // 全肠道通过（至回盲瓣）
+  // 计算通过时间（分钟）；跨零点时加 1440 归一化，避免负值进入分级
+  function elapsed(a,b){ var d=b-a; if(d<0) d+=1440; return d; }
+  var crossDay=(duodenumMin<ingestMin || cecumMin<duodenumMin);
+  var gtt=elapsed(ingestMin,duodenumMin); // 胃通过时间
+  var sbtt=elapsed(duodenumMin,cecumMin); // 小肠通过时间
+  var totalTransit=elapsed(ingestMin,cecumMin); // 全肠道通过（至回盲瓣）
 
   var details=[];
+  if(crossDay) details.push('（时间跨越零点，已按次日 24 小时制计算通过时间）');
   details.push('吞服时间：'+document.getElementById('ingest').value);
   details.push('到达十二指肠：'+document.getElementById('duodenum').value);
   details.push('到达回盲瓣：'+document.getElementById('cecum').value);
@@ -328,8 +331,8 @@ function calc(){
   }
 
   // 排出信息
-  if(completed && excreteMin){
-    var excreteTime=excreteMin-ingestMin;
+  if(completed && excreteMin!==null){
+    var excreteTime=elapsed(ingestMin,excreteMin);
     details.push('胶囊排出：'+document.getElementById('excrete').value);
     details.push('全肠道通过时间：'+minutesToHoursMin(excreteTime)+' ('+excreteTime+'分钟)');
     if(excreteTime>480){
@@ -352,7 +355,7 @@ function calc(){
   html+='<strong>'+completionRate+'</strong><br>'+advice;
   html+='</div>';
 
-  const __g2=html;try{ if(typeof sbtt==='number'&&isFinite(sbtt)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:sbtt,unit:'',bands:[{"lo":0,"hi":180,"label":{"zh":"通过时间偏短","en":"Rapid transit"},"color":"#10B981"},{"lo":180,"hi":null,"label":{"zh":"通过时间延长","en":"Prolonged transit"},"color":"#84CC16"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+  const __g2=html;try{ if(typeof sbtt==='number'&&isFinite(sbtt)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:sbtt,unit:'',min:0,max:480,bands:[{"lo":0,"hi":180,"label":{"zh":"通过时间偏短","en":"Rapid transit"},"color":"#10B981"},{"lo":180,"hi":360,"label":{"zh":"正常","en":"Normal"},"color":"#10B981"},{"lo":360,"hi":480,"label":{"zh":"通过时间延长","en":"Prolonged transit"},"color":"#84CC16"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
