@@ -12,7 +12,7 @@
 1. 改任何 `css/js/json` 前必须先 `python3 _build.py`（否则 Service Worker 旧缓存不失效）。
 2. 凡引 `js/common.js` 的页面必须同时引 `js/i18n.js`（否则 `?lang=en-US` 整页回退中文）。
 3. 改英文态字典 `i18n/tools/en/**` 后同样必须重跑 `_build.py` —— 该子树已纳入 SW 版本戳（`compute_sw_build()`），否则 `_swv` 不变、CDN 继续下发旧字典。
-4. **收尾判定**：本地 `run_gates.py` 全过 + GitHub Actions 部署成功（单次查询）+ 抽样验证线上改动已生效。push 后先确认目标 commit `success`，再抽 3–6 个代表性 URL `curl -o` 落盘核对**本批关键内容确已出现**（英文态必须用真机探针 `scripts/_en_i18n_probe.mjs --check` —— 静态 HTML 不体现运行时替换）；判「生效」看**关键内容命中**，不看「页面能打开」。**仍禁止**全量逐文件 MD5 比对 / 逐 URL 打 200 / sleep 等 CDN 传播 / 循环轮询 API。不进构建产物的改动（`*.md` / memory 日志 / 门禁脚本注释）连部署都无需等待（口诀：**「会不会让线上页面变一个字节？会→等部署成功；不会→不等。」**）。
+4. **收尾判定**：本地 `run_gates.py` 全过 + GitHub Actions 部署成功（单次查询）+ 抽样验证线上改动已生效。**门禁节奏按 `plan/门禁提速与工作协议.md` 第零节（老板 2026-11-20 定）执行：每批只跑本批相关轻量校验（`node --check` / 分类 verify / `python3 _build.py`），全量 `run_gates.py` 每 2–3 小时跑一次、跑绿即 push，其余时间不跑全量、不推送；全量门禁后台运行期间并行准备下几批方案，不空等。** push 后先确认目标 commit `success`，再抽 3–6 个代表性 URL `curl -o` 落盘核对**本批关键内容确已出现**（英文态必须用真机探针 `scripts/_en_i18n_probe.mjs --check` —— 静态 HTML 不体现运行时替换）；判「生效」看**关键内容命中**，不看「页面能打开」。**仍禁止**全量逐文件 MD5 比对 / 逐 URL 打 200 / sleep 等 CDN 传播 / 循环轮询 API。不进构建产物的改动（`*.md` / memory 日志 / 门禁脚本注释）连部署都无需等待（口诀：**「会不会让线上页面变一个字节？会→等部署成功；不会→不等。」**）。
 
 ### 1. 纯前端原则
 

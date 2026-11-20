@@ -320,6 +320,16 @@ const CASES = [
     "当前装机总功率为 0（无负荷）"
   ],
   "ref": "显式 0 合法（与全空互斥）：六项均填 0（空房）走「无负荷」分支，保留结论且不再给进线/开关建议。全空用例断言提示语 ⇒ 两态互斥。"
+},
+{
+  "slug": "electrical/voltage-divider",
+  "inputs": {
+    "r2": "0"
+  },
+  "expect": [
+    "请填写大于 0 的电压与电阻"
+  ],
+  "ref": "R2=0 时清空分压结果（VDCLR）；旧实现仅 toast，Vout/电流/功耗仍是上一次 1.081V 等值"
 }
 ];
 async function main() {

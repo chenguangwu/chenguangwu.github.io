@@ -518,6 +518,36 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/construction/timber-volume.html\',\'utf8\');var i=h.indexOf(\'function switchType(type) {\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+700):\'\';var ok=seg.indexOf(\'if(type === \\\'board\\\') calcBoard(); else calcLog();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'TIMVOL0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['TIMVOL0 OK'],
   "ref": "第1338批·模式切换残留旧结果修复源码形态强锚：旧版 function switchType(type) { 只切 class/display 不重算，共用结果区保留上一模式结论；修复后切换即调重算函数。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "construction/pipe-flow",
+  "inputs": {
+    "diameter": "0"
+  },
+  "expect": [
+    "请填写大于 0 的管径、流速与管长"
+  ],
+  "ref": "管径=0 时清空流量/水头损失（PIPECLR）；旧实现仅 toast，11.547 L/s 等旧值残留"
+},
+{
+  "slug": "construction/ac-size-guide",
+  "inputs": {
+    "area": "0"
+  },
+  "expect": [
+    "请填写大于 0 的房间面积"
+  ],
+  "ref": "面积为 0 时清空匹数/制冷需求（ACCLR）；旧实现仍显示 5匹 / 20582W 上一次结果"
+},
+{
+  "slug": "construction/window-shading",
+  "inputs": {
+    "winW": "0"
+  },
+  "expect": [
+    "请填写大于 0 的窗高与窗宽"
+  ],
+  "ref": "窗宽=0 时清空遮阳系数与辐射得热（WINSCLR）；旧实现仍显示 0.902 / 80359 W"
 }
 ];
 async function main() {
