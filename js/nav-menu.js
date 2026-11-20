@@ -7,7 +7,8 @@
 
   const CLS_ACTIVE = 'active';
   const CLS_OPEN = 'open';
-  let groups = [];
+  let groups = [];        // 首屏瘦身版（json/nav-groups.json）：分类与子行业名/图标/数量
+  let fullGroups = null;  // 全量版（json/industry-groups.json）：含每个子行业 24 张工具卡
   let activeGroupIndex = 0;
   let activeChildIndex = 0;
   let loaded = false;
@@ -67,17 +68,40 @@
   }
 
   // ---- 数据加载 ----
-  async function loadGroups() {
+  function asset(p) { return window.I18n && I18n.assetUrl ? I18n.assetUrl(p) : p; }
+
+  // G07：顶部导航首屏只需要分类骨架（18KB）；1.2MB 的全量数据（每个子行业 24 张工具卡）
+  // 改成用户第一次打开下拉面板/移动端抽屉时才拉，避免每页冷启动白下 1.2MB。
+  async function loadSlim() {
     if (loaded) return groups;
     try {
-      const url = window.I18n && I18n.assetUrl ? I18n.assetUrl('/json/industry-groups.json') : '/json/industry-groups.json';
-      const res = await fetch(url);
-      groups = await res.json();
+      const res = await fetch(asset('/json/nav-groups.json'));
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length) { groups = data; loaded = true; return groups; }
+      }
+    } catch (e) { /* 瘦身版缺失时回退全量 */ }
+    return loadGroups();
+  }
+
+  async function loadGroups() {
+    if (fullGroups) { groups = fullGroups; loaded = true; return groups; }
+    try {
+      const res = await fetch(asset('/json/industry-groups.json'));
+      const data = await res.json();
+      fullGroups = Array.isArray(data) ? data : [];
+      groups = fullGroups;
       loaded = true;
     } catch (e) {
-      groups = [];
+      if (!groups.length) groups = [];
     }
     return groups;
+  }
+
+  async function ensureFull() {
+    if (fullGroups) return fullGroups;
+    await loadGroups();
+    return fullGroups || [];
   }
 
   // ---- 渲染顶部导航 ----
@@ -203,10 +227,17 @@
     });
     catCol.appendChild(catList);
 
-    // 右侧工具网格（默认显示第一个子行业）
-    renderToolsCol(toolsCol, g, 0);
-
+    // 右侧工具网格（默认显示第一个子行业）；全量数据未到先给加载态，到了再补齐
     panel.classList.add(CLS_OPEN);
+    if (fullGroups) {
+      renderToolsCol(toolsCol, g, 0);
+    } else {
+      toolsCol.innerHTML = '<div class="tb-megapanel-loading">' + (isEn() ? 'Loading…' : '载入中…') + '</div>';
+      const wantGroup = groupIndex;
+      ensureFull().then(() => {
+        if (activeGroupIndex === wantGroup) selectChild(0);
+      });
+    }
   }
 
   function selectChild(childIndex) {
@@ -214,6 +245,10 @@
     const panel = $('#tbMegapanel');
     const g = groups[activeGroupIndex];
     if (!panel || !g) return;
+    if (!fullGroups) {
+      ensureFull().then(() => { if (activeChildIndex === childIndex) selectChild(childIndex); });
+      return;
+    }
     const items = panel.querySelectorAll('.tb-megapanel-cat-item');
     items.forEach((li, i) => li.classList.toggle(CLS_ACTIVE, i === childIndex));
     renderToolsCol(panel.querySelector('.tb-megapanel-tools'), g, childIndex);
@@ -308,7 +343,7 @@
 
   // ---- 初始化：插入导航结构 ----
   async function init() {
-    await loadGroups();
+    await loadSlim();
     if (!groups.length) return;
 
     // 在 body 最开头插入导航容器

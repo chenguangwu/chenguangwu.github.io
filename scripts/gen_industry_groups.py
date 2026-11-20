@@ -337,6 +337,20 @@ def main():
     with open(out_path, 'w', encoding='utf-8') as f:
         json.dump(out, f, ensure_ascii=False, indent=1)
     print(f'✅ 生成 {out_path}')
+
+    # G07：顶部导航只需要「12 个一级分类 + 子行业名/图标/数量」，但 industry-groups.json
+    # 约 1.2MB（含每个子行业 24 张工具卡的名称/描述）。全站 4700+ 工具页都靠 nav-menu.js
+    # 渲染顶部导航，为此在冷启动时下载 1.2MB 纯属浪费。这里再产出一份瘦身版，供导航
+    # 首屏使用；下拉面板（需要工具卡）改成首次交互再按需拉全量。
+    slim = [{
+        'key': g['key'], 'name': g['name'], 'en': g['en'], 'icon': g['icon'], 'count': g['count'],
+        'children': [{'key': c['key'], 'name': c['name'], 'en': c['en'], 'icon': c['icon'], 'count': c['count']}
+                     for c in g['children']],
+    } for g in out]
+    slim_path = os.path.join(ROOT, 'json', 'nav-groups.json')
+    with open(slim_path, 'w', encoding='utf-8') as f:
+        json.dump(slim, f, ensure_ascii=False, separators=(',', ':'))
+    print('✅ 生成 %s（%.1f KB）' % (slim_path, os.path.getsize(slim_path) / 1024))
     print('一级分类分布:')
     for item in out:
         print(f"  {item['icon']} {item['name']:6} {len(item['children']):3} 子行业  {item['count']:4} 工具")
