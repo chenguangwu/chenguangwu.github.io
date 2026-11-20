@@ -377,6 +377,76 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/tcm-chemistry/toxicity-dose.html\',\'utf8\');var i=h.indexOf(\'function switchTab(name, btn){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!name||!btn)\')>=0&&seg.indexOf(\'convert(); classify(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'TMCTD0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['TMCTD0 OK'],
   "ref": "第1336批·历史恢复无参切换函数抛错修复源码形态强锚：旧版 function switchTab(name, btn){ 无参调用解引用参数抛错被 catch 吞、结果不重算；修复后无参分支安全重算本页主结果并 return。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "tcm-chemistry/granule-quality",
+  "inputs": {
+    "totalWt": "0"
+  },
+  "expect": [
+    "请填写大于 0 的总质量"
+  ],
+  "ref": "总质量为 0 时清空粒度分布分析（TCMGRNCLR）"
+},
+{
+  "slug": "tcm-chemistry/ointment-release",
+  "inputs": {
+    "time": "0"
+  },
+  "expect": [
+    "请填写大于 0 的初始浓度"
+  ],
+  "ref": "时间=0 时清空释放度曲线（TCMOINTCLR）"
+},
+{
+  "slug": "tcm-chemistry/extraction-counts",
+  "inputs": {
+    "K": "0"
+  },
+  "expect": [
+    "请填写大于 0 的分配系数"
+  ],
+  "ref": "K=0 时清空萃取次数结论（TCMEXTRCLR）"
+},
+{
+  "slug": "tcm-chemistry/capsule-filling",
+  "inputs": {
+    "height": "0"
+  },
+  "expect": [
+    "请填写大于 0 的堆高"
+  ],
+  "ref": "堆高=0 时清空流动性评价（TCMCAPCLR）"
+},
+{
+  "slug": "tcm-chemistry/toxicity-dose",
+  "inputs": {
+    "dose": "0"
+  },
+  "expect": [
+    "请填写大于 0 的剂量"
+  ],
+  "ref": "剂量=0 时清空等效剂量换算（TCMTOXCLR）"
+},
+{
+  "slug": "tcm-chemistry/pharmacokinetics",
+  "inputs": {
+    "dose": "0"
+  },
+  "expect": [
+    "请填写大于 0 的剂量"
+  ],
+  "ref": "剂量=0 时清空药代参数（TCMPKCLR）"
+},
+{
+  "slug": "tcm-chemistry/structure-identification",
+  "inputs": {
+    "irInput": ""
+  },
+  "expect": [
+    "请填写 IR 吸收峰"
+  ],
+  "ref": "IR 峰为空时清空结构解析结果（TCMIRCLR）"
 }
 ];
 async function main() {
