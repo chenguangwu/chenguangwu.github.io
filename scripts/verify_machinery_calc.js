@@ -644,6 +644,18 @@ const CASES = [
   "inputs": {"vAcc":"50","vLoad":"50","vStroke":"500","vSpeed":"15"},
   "expect": ["C7","±50μm/300mm"],
   "ref": "MM-H91：定位精度 50μm 判 C7，导程精度须随等级显示 ±50μm/300mm；旧逻辑按导程 5mm 显示 ±3μm/300mm，与 C7 自相矛盾。默认 acc10/lead5 为 C3/±3 ⇒ 不命中"
+},
+{
+  "slug": "machinery/lifespan-7",
+  "inputs": {"vMat":"nbr","vTemp":"300","vPress":"1","vSpeed":"500","shaft":"50","vMed":"oil"},
+  "expect": ["材料可能分解，不可继续使用","10"],
+  "ref": "NBR 上限 120℃：130℃ 取 0.05、300℃ 远超 20℃ 取 0.001，寿命触底 10h；旧逻辑两个温度同为 0.05/231h，无法区分超温程度"
+},
+{
+  "slug": "machinery/lifespan-7",
+  "inputs": {"vMat":"nbr","vTemp":"-50","vPress":"1","vSpeed":"500","shaft":"50","vMed":"oil"},
+  "expect": ["低于材料低温极限"],
+  "ref": "NBR 低温下限 -30℃：-50℃ 须提示脆裂/更换材质；旧逻辑 Q10 外推得 2^13，寿命反而放大"
 }
 ];
 

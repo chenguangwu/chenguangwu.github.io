@@ -879,7 +879,9 @@ const CASES = [
   expect: ["已记录测量点（1）", "0.0292", "合格"],
   ref: "MM-H138：记录此点须落到可见表格并参与导出；默认 P1 三维偏差 ΔX=0.0150、ΔY=-0.0120、ΔZ=0.0220，均在 ±0.020 内，空间偏差 0.0292 mm，判定合格" },
 { slug: "metalwork/detector-23", inputs: { nominal: "60.000", actual: "60.030", upperTol: "0.039", lowerTol: "0.000" }, expect: ["公差等级：IT8"], ref: "Ø60 分段 D≈63.25，i=0.45×³√63.25+0.001×63.25≈1.88μm，25i≈47μm；39μm 落在 16i(30)~25i(47) ⇒ IT8。默认 50/39 同样 IT8，故此用例锁定口径而非默认态" },
-{ slug: "metalwork/detector-23", inputs: { nominal: "10.000", actual: "10.030", upperTol: "0.039", lowerTol: "0.000" }, expect: ["公差等级：IT10"], ref: "Ø10 分段 D≈7.746，i≈0.90μm；39μm >40i(35.9) 且 ≤64i(57.5) ⇒ IT10。旧逻辑仅按 0.039 一律 IT4，完全无视公称尺寸" }
+{ slug: "metalwork/detector-23", inputs: { nominal: "10.000", actual: "10.030", upperTol: "0.039", lowerTol: "0.000" }, expect: ["公差等级：IT10"], ref: "Ø10 分段 D≈7.746，i≈0.90μm；39μm >40i(35.9) 且 ≤64i(57.5) ⇒ IT10。旧逻辑仅按 0.039 一律 IT4，完全无视公称尺寸" },
+{ slug: "metalwork/detector-21", inputs: { material: "ferro", defect: "surface", thickness: "20", level: "critical" }, expect: ["关键检测（放射/超声各 +2）"], ref: "关键检测须比严格检测再加权：本页可见等级标注 +2；旧逻辑 strict 与 critical 同为 +1，两者输出完全相同" },
+{ slug: "metalwork/detector-21", inputs: { material: "ferro", defect: "surface", thickness: "20", level: "strict" }, expect: ["严格检测（放射/超声各 +1）"], ref: "严格检测标注 +1，与 critical 的 +2 区分" }
 ];
 
 async function main() {

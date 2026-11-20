@@ -359,3 +359,9 @@
 
 - `metalwork/detector-23` IT 等级按 GB/T 1800.1 公差因子随公称尺寸计算。
 - `metalwork/analysis-simulator` 流程/壁厚比统一 cm，冷却基准取 max(模温,水温)。
+
+
+## 2026-11-21 检测等级/密封温度
+
+- `metalwork/detector-21` 关键检测 +2、严格 +1，并显示等级。
+- `machinery/lifespan-7` 补材料低温下限，超上限 20℃ 以上判材料分解。
