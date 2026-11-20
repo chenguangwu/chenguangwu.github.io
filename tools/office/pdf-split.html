@@ -573,17 +573,11 @@ window.pdfjsLib = pdfjsLib;
 </div>
 
 <script>
-// pdf.js 4.x 为 ESM，模块脚本延迟执行；此处只等待加载完成，不做 worker 配置（交给上方 module）
-function pdfjsReady(timeoutMs) {
-  return new Promise(function (resolve, reject) {
-    if (window.pdfjsLib) return resolve(window.pdfjsLib);
-    var t0 = Date.now();
-    (function poll() {
-      if (window.pdfjsLib) return resolve(window.pdfjsLib);
-      if (Date.now() - t0 > (timeoutMs || 10000)) return reject(new Error('pdfjs-not-ready'));
-      setTimeout(poll, 50);
-    })();
-  });
+// pdf.js 4.x 为 ESM，模块脚本在页面解析阶段即执行并写入 window.pdfjsLib；
+// 用户选择文件时必然已完成，因此这里只做同步检查，不再用无主轮询 Promise（避免测试环境事件循环空转后静默退出）。
+function pdfjsReady() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  return Promise.reject(new Error('pdfjs-not-ready'));
 }
 
 // 全局状态

@@ -138,3 +138,7 @@ if (raw === '' || !Number.isFinite(v) || v < MIN || v > MAX) {
 - 抽验只覆盖 40/4916 页，且以「结果区文本变化」为主要信号，canvas 绘图类页面的 NaN 不可见。
 - 静态脚本按「第一个赋值语句」推断变量来源，无法处理跨函数传参（如 `calc(x)` 内部再解析），因此 `probe_failed` 的 6 页不代表页面无缺陷。
 - 工作区有其它修复线的未提交改动，抽验反映的是**当前工作区**状态；线上版本可能已有差异。
+
+## 2026-11-21 复核：4.1 的 8 页已全部清零
+
+逐页复查：`car-loan-calculator`、`dli-calculator`、`tympanometry`、`dry-matter-conversion`、`ai-15`、`water-tds-evaluator`、`electrical/calc-2` 均已改为「显式空值/非有限值拒绝 + 清空旧结果」，不再用 `|| 0` 把非法串伪装成 0；`chemistry/lifespan-24` 的 `num()` 虽将 NaN 归 0，但 `readInputs()` 立即以 `conc>0 && conc<=20 && temp>0` 判无效并清空结果，不再沿用旧结论。本文 4.1 保留为历史审计记录。

@@ -235,3 +235,10 @@ legacy 自身 3 条逃生项（`construction/calc-204`、`it/decimal-encode`、`
 
 判别力验证：把 `construction/calc-204` 的五项 expect 全部改成错值后，`node scripts/verify_general_calc.js calc-204` 输出 `❌ 未匹配期望值`、exit 1；恢复后 2/2 通过。两文件 discriminate（legacy 与 `TB_STUB_FIDELITY=1`）均为 `仍 PASS(逃生项): 0`。
 
+
+
+## 2026-11-21 复核：8 条 fidelity 逃生与 pdf-split 静默退出均已收口
+
+- 全量 `scripts/discriminate_check.js`：已检 12,479 / 正确变红 12,478 / 逃生 1（仅基线 `surveying/calc-1`）/ 跳过 7，故原 8 条 fidelity 逃生（dli-calculator、hp-resistance、image-collage、confidence-interval、captcha-generator、des、summary-generator、sports/calculator-calc-time）均已由各线收紧，清零。
+- `tools/office/pdf-split.html`：`pdfjsReady()` 不再用 50ms 轮询 Promise。pdf.js 的 ESM 在页面解析阶段即写入 `window.pdfjsLib`，用户点选文件时必然就绪；现改为同步检查，缺失时立即 reject 并由既有 catch 提示「解析引擎加载失败」，消除测试环境事件循环空转导致的静默 exit 0。
+- 证据：office 14/14；内联脚本 12,102 段 0 语法错误。
