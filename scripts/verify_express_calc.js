@@ -6,12 +6,12 @@ const CASES = [
     "slug": "express/insurance-fee",
     "inputs": {
       "company": "sf",
-      "value": "5000",
+      "value": "6000",
       "coverage": "20000"
     },
     "expect": [
-      "25.00",
-      "4,975.00"
+      "30.00",
+      "5,970.00"
     ],
     "ref": "顺丰0.5% 5000→25元"
   },
