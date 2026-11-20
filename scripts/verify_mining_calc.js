@@ -254,7 +254,17 @@ const CASES = [
   "expect": ["请输入品位、矿石量与金属单价后再换算。"],
   "ref": "空态守卫（2026-11-05）：清空品位后不再输出「0.00 品位 / 0 kg / ¥0 / 低于边界品位」，只给填写提示。⚠ 0 合法——品位 0（废石）、矿石量 0、单价 0 均照常换算，不拦。"
 }
-
+,
+{
+  "slug": "mining/excavation-volume",
+  "inputs": {
+    "L": "0"
+  },
+  "expect": [
+    "请填写大于 0 的长、宽、深"
+  ],
+  "ref": "尺寸=0 时清空挖方量报告（EXCCLR）；旧实现仅 toast，600 m³ / 39 车 残留"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

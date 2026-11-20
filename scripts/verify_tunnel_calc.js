@@ -69,6 +69,36 @@ const CASES = [
   "clicks": ["var zh=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/tunnel.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/tunnel/support-design.json','utf8');var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tunnel/support-design.html','utf8');var ok=zh.indexOf('1/3~1/4')<0&&zh.indexOf('0.20~0.45')>=0&&zh.indexOf('5~25 cm')>=0&&en.indexOf('1/3~1/4')<0&&en.indexOf('caving arch')<0&&h.indexOf('跨度的 1/3~1/4')<0&&h.indexOf('k_L = 0.20~0.45')>=0;document.getElementById('__tbProbe').textContent='TUNNELMETA '+(ok?'OK':'BAD');"],
   "expect": ["TUNNELMETA OK"],
   "ref": "12-N9：页面公式框早已按代码改为 k_L=0.20~0.45、喷层按级别固定，但权威 intro 与由其生成的 meta/og/JSON-LD 仍写「跨度的 1/3~1/4」，英译词典还残留塌落拱旧口径死键。源码形态断言中英权威源与页面 meta 全部无旧串且新串到位；旧版必红，默认态不产生该哨兵，零逃生。"
+},
+{
+  "slug": "tunnel/gas-monitor",
+  "inputs": {
+    "inGas": ""
+  },
+  "expect": [
+    "请填写瓦斯浓度"
+  ],
+  "ref": "浓度为空时清空瓦斯判定（GASCLR）；旧实现 !isFinite 直接 return，上一档「0.50% / 注意」残留"
+},
+{
+  "slug": "tunnel/lining-thickness",
+  "inputs": {
+    "inB": ""
+  },
+  "expect": [
+    "请填写大于 0 的开挖跨度"
+  ],
+  "ref": "跨度为空时清空衬砌厚度（LINCLR）"
+},
+{
+  "slug": "tunnel/support-design",
+  "inputs": {
+    "inB": ""
+  },
+  "expect": [
+    "请填写大于 0 的开挖跨度与高度"
+  ],
+  "ref": "跨度为空时清空支护参数（SUPCLR）"
 }
 ];
 async function main() {
