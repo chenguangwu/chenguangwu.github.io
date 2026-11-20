@@ -953,8 +953,8 @@ const CASES = [
   {
     slug: "clinical-lab/blood-gas-analysis",
     inputs: { ph: "7.45", paco2: "30", hco3: "20", pao2: "90", na: "140", cl: "100" },
-    expect: ["实测HCO3符合慢性呼碱代偿（预期 19.0 ±3）。"],
-    ref: '独立复算：pH7.45(正常)/PaCO2 30/HCO3 20→呼碱+代偿，慢性预期HCO3=24-0.5×10=19.0，实测20符合慢性代偿。锚取慢性呼碱代偿结论串，与病例4急性区分。'
+    expect: ["混合/代偿方向待定"],
+    ref: 'pH7.45(正常)/PaCO2 30/HCO3 20：同一组血气可符合慢性呼碱代偿，也可能是代酸经呼吸代偿。修复后不再直接判「呼碱+代偿」，改输出「混合/代偿方向待定」并补 AG=20 提示；与 pH7.50 的急性呼碱用例区分。'
   },
   {
     slug: "clinical-lab/blood-gas-analysis",

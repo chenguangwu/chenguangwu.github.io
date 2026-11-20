@@ -438,16 +438,13 @@ function calcZScore(bmi, thresh){
 
 function getHeightStatus(height, age, sex){
   const a = Math.max(2, Math.min(20, age));
-  let medianH;
-  if(sex === 'male'){
-    if(a <= 12) medianH = 50 + 7.5 * a - 0.1 * a * a;
-    else medianH = 140 + 7.5 * (a - 10) - 0.15 * (a - 10) * (a - 10);
-    medianH = Math.min(175, medianH);
-  } else {
-    if(a <= 12) medianH = 48 + 7.8 * a - 0.12 * a * a;
-    else medianH = 145 + 4.5 * (a - 10) - 0.1 * (a - 10) * (a - 10);
-    medianH = Math.min(163, medianH);
-  }
+  // 2–20 岁身高中位数近似（cm）：按中国儿童生长标准取整，逐年线性插值，避免 12 岁分段跳变
+  const boys=[88.5,96.8,104.1,111.3,117.7,124.0,130.0,135.4,140.2,145.3,151.9,159.5,165.0,169.0,171.5,172.5,172.7,172.8,172.8];
+  const girls=[87.2,95.6,103.1,110.2,116.6,122.5,128.5,134.0,140.1,146.6,152.4,156.3,158.6,159.8,160.6,161.0,161.2,161.2,161.5];
+  const table = sex === 'male' ? boys : girls;
+  const lo = Math.floor(a), hi = Math.min(20, Math.ceil(a));
+  const t = a - lo;
+  const medianH = table[lo-2] + (table[hi-2] - table[lo-2]) * t;
   const diff = (height - medianH) / medianH * 100;
   if(diff < -5) return {label:'偏矮',color:'#4fc3f7'};
   if(diff <= 5) return {label:'中等',color:'#66bb6a'};
