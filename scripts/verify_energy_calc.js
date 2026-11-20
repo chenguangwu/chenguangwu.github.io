@@ -947,7 +947,10 @@ const CASES = [
     "请填写大于 0 的输出/输入数值"
   ],
   "ref": "输出为 0 时清空能效结果（EFFCLR）；旧实现仍显示 33.00 COP / A+++"
-}
+},
+{ slug:"energy/air-purifier-area", inputs:{"cadrInput":"","factorInput":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"energy/assessor-water-quality", inputs:{"tds":"","temp":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"energy/fridge-power-estimator", inputs:{"volume":"","envTemp":"","elecPrice":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 
 async function main() {

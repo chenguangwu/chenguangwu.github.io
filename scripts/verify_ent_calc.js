@@ -344,7 +344,12 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/ent/hearing-loss-classification.html\',\'utf8\');var i=h.indexOf(\'function copyResult(){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+900):\'\';var ok=seg.indexOf(\'__ids.every(function(id)\')>=0&&seg.indexOf(\'请先填写听阈再复制\')>=0;document.getElementById(\'__tbProbe\').textContent=\'HLCCP0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['HLCCP0 OK'],
   "ref": "第1341批·复制与页面结果不同源修复源码形态强锚：旧版 copyResult 另算一遍且无守卫，页面显示错误/—时复制仍输出 Infinity/0dB 假值；修复后 copyResult 补与 calc 同源守卫，无效时提示并 return。旧版无 ⇒ BAD。"
-}
+},
+{ slug:"ent/allergy-skin-test", inputs:{"histWheal":"","histFlare":"","allerWheal":"","allerFlare":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"ent/laryngeal-nerve", inputs:{"f0":"","jitter":"","shimmer":"","nhr":"","hnr":"","mpt":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"ent/nasal-resistance", inputs:{"lp":"","lv":"","rp":"","rv":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"ent/tinnitus-matching", inputs:{"loudness":"","masking":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"ent/tympanic-perforation", inputs:{"perfD":"","perfW":"","tmD":"","tmW":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

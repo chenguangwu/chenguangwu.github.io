@@ -3735,7 +3735,9 @@ const CASES = [
     "合法的 HEX 颜色"
   ],
   "ref": "颜色非法时不得输出「0 分 / 不合规」结论（D29CLR）"
-}
+},
+{ slug:"design/generator-34", inputs:{"slides":"","minutes":"","points":"","fontSize":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"design/photo-storage-calculator", inputs:{"count":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 
 // ---------------------------------------------------------------- main

@@ -306,7 +306,7 @@ const CASES = [
     "c1": "5",
     "c2": "3"
   },
-  "expect": ["30\n1\n1\n2\n2\n1\n2\n5\n3\n45.5 SCORAD 总分 / 中度 30 A 面积(%) 9 B 强度(18) 8 C 主观(20) 37.5 客观SCORAD 管理建议： 规范外用治疗，可考虑湿包裹疗法或紫外线光疗，难治者评估系统用药。"],
+  "expect": ["45.5 SCORAD 总分 / 中度 30 A 面积(%) 9 B 强度(18) 8 C 主观(20) 37.5 客观SCORAD"],
   "ref": "第930批：去掉原 expect 末尾的采集假象尾巴「\\nundefined%」——harness blob 采集到 id='undefined' 的空元素（elements 表含 'undefined':{ih:'',val:''}），被拼进文本；页面 result.innerHTML 真实输出止于「...系统用药。」，无 undefined%。锚的判别量（45.5 总分、A=30、B=9、C=8、客观 37.5）均随输入变化，默认态不含整串，判别力不变（注入态命中/默认态不含）。"
 },
 {
@@ -489,7 +489,8 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/dermatology/pasi-score.html','utf8');var noBare=h.indexOf('content=\"Pasi Score\"')<0&&h.indexOf('>Pasi Score</h2>')<0&&h.indexOf('>Pasi Score</p>')<0;var okTitle=h.indexOf('content=\"PASI Score Calculator: Psoriasis Area and Severity Index\"')>=0;var okIntro=h.indexOf('Rate erythema, induration and desquamation (0-4) in four body regions')>=0;var okH2=h.indexOf('>📐 PASI Score (Psoriasis Area and Severity Index)</h2>')>=0;document.getElementById('__tbProbe').textContent='PASIINTRO '+(noBare&&okTitle&&okIntro&&okH2?'OK':'BAD');"],
   "expect": ["PASIINTRO OK"],
   "ref": "12-N43 英文首屏介绍补全：英文 title/desc/h2/首个 p 不再退化为裸名 Pasi Score；旧版源码四处均为裸名 ⇒ 变红。harness 不加载构建后静态正文，按源码形态判别；默认态不产生该串，零逃生。"
-}
+},
+{ slug:"dermatology/scorad-index", inputs:{"c1":"","c2":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

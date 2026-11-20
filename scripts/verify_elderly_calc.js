@@ -126,7 +126,8 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/elderly/bp-trend.html\',\'utf8\');var i=h.indexOf(\'function switchTab(name, ev){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!name||!ev)\')>=0&&seg.indexOf(\'drawChart(); renderHistory(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'BPTRH0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['BPTRH0 OK'],
   "ref": "第1336批·历史恢复无参切换函数抛错修复源码形态强锚：旧版 function switchTab(name, ev){ 无参调用解引用参数抛错被 catch 吞、结果不重算；修复后无参分支安全重算本页主结果并 return。旧版无 ⇒ BAD。"
-}
+},
+{ slug:"elderly/assessor-35", inputs:{"age":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

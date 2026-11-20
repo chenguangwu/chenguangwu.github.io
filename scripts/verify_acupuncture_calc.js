@@ -276,7 +276,9 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/acupuncture/acupoint-combination.html\',\'utf8\');var i=h.indexOf(\'function switchMode(m, btn){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!m||!btn)\')>=0&&seg.indexOf(\'renderMethods(); else renderDisease(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'ACPCF0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['ACPCF0 OK'],
   "ref": "第1336批·历史恢复无参切换函数抛错修复源码形态强锚：旧版 function switchMode(m, btn){ 无参调用解引用参数抛错被 catch 吞、结果不重算；修复后无参分支安全重算本页主结果并 return。旧版无 ⇒ BAD。"
-}
+},
+{ slug:"acupuncture/acupoint-injection", inputs:{"points":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"acupuncture/bloodletting-therapy", inputs:{"points":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

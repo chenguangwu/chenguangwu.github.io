@@ -573,7 +573,11 @@ const CASES = [
     "clicks": ["var p=String(typeof __jwt_sizePresets==='function'?__jwt_sizePresets:'');var ok=/sig[^0-9]{0,6}32/.test(p)&&!/sig[^0-9]{0,6}43/.test(p);document.getElementById('__tbProbe').textContent='JWTPRE '+(ok?'OK':'BAD');"],
     "expect": ["JWTPRE OK"],
     "ref": "I-3 预设口径：旧「简单登录 JWT」预设把 HS256 的 43 字符签名填进「签名长度字节」框被二次编码；现改为 32 字节并在 calc 内以 __b64url 去填充编码。函数源码哨兵，旧版必红。"
-  }
+  },
+{ slug:"encode/base58", inputs:{"payload":"","checksum":"","version":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"encode/base64-length", inputs:{"bytes":"","padding":"","wrap":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"encode/crc", inputs:{"poly_degree":"","input_bytes":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"encode/encode-7", inputs:{"bits":"","n":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 
 async function main() {
