@@ -13,7 +13,12 @@ const argv = process.argv.slice(2);
 const listArg = argv.find((a) => a.startsWith('--list='));
 const jsonArg = argv.find((a) => a.startsWith('--json='));
 if (!listArg) { console.error('usage: node scripts/_audit_stale_result.mjs --list=<file>'); process.exit(2); }
-const files = fs.readFileSync(listArg.slice(7), 'utf8').split('\n').map((s) => s.trim()).filter(Boolean);
+// 兼容站点绝对 URL 路径（/tools/...）：直接传绝对路径会让 existsSync 全 false，
+// 脚本静默跳过、仍打印「0 残留」——2026-11-20 曾因此造成 G10 假绿。
+const files = fs.readFileSync(listArg.slice(7), 'utf8').split('\n')
+  .map((s) => s.trim()).filter(Boolean)
+  .map((s) => (s.startsWith('/') ? '.' + s : s));
+if (!files.length) { console.error('样本清单为空，拒绝判定通过'); process.exit(2); }
 
 const anyStub = () => new Proxy({}, {
   get(t, k) { if (k === 'then') return undefined; return () => ({}); },
@@ -93,8 +98,9 @@ function calcEntry(raw) {
 const rows = [];
 let skipNoBox = 0, skipNotResult = 0, pass = 0, stale = 0, err = 0;
 
+let missing = 0;
 for (const f of files) {
-  if (!fs.existsSync(f)) continue;
+  if (!fs.existsSync(f)) { missing++; continue; }
   const raw = fs.readFileSync(f, 'utf8');
   let dom;
   try { dom = build(raw, `https://x.test/${f}`); }
@@ -173,7 +179,12 @@ for (const f of files) {
 }
 
 console.log(`\n===== G10 审计（清空必填项后结果残留）=====`);
-console.log(`样本 ${files.length} / 残留 ${stale} / 正常 ${pass} / 无结果区 ${skipNoBox} / 结果区非结果 ${skipNotResult} / 异常 ${err}`);
+console.log(`样本 ${files.length} / 缺失 ${missing} / 残留 ${stale} / 正常 ${pass} / 无结果区 ${skipNoBox} / 结果区非结果 ${skipNotResult} / 异常 ${err}`);
+// 防空跑假绿：清单里的文件全部不存在时，不得打印「0 残留」当作通过。
+if (files.length - missing === 0) {
+  console.error('✗ 清单内文件全部不存在（路径口径错误），拒绝判定通过');
+  process.exit(2);
+}
 for (const r of rows.slice(0, 80)) {
   console.log(`${r.v.padEnd(5)} ${r.f}${r.fields ? '  ← 清空未失效: ' + r.fields.join(',') : ''}${r.why ? '  ! ' + r.why : ''}`);
 }
