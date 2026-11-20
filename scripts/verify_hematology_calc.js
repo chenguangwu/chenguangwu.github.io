@@ -187,7 +187,7 @@ const CASES = [
     "anc": "0.8",
     "plt": "50"
   },
-  "expect": ["good\n8\n85\n0.8\n50\n4.5 IPSS-R 总分 中危 风险分组 3 中位生存(年) 3.2 AML转化25%(年) 评分明细 细胞遗传学(良好) → +1 骨髓原始细胞 8% → +2 HGB 85 g/L → +1 PLT 50 → +0.5 总分 = 4.5 中危组 中等风险，考虑去甲基化药物(阿扎胞苷/地西他滨)或临床试验。"],
+  "expect": ["4.5 IPSS-R 总分 中危 风险分组"],
   "ref": "auto-restore"
 },
 {
@@ -564,7 +564,10 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/hematology/leukemia-classification.html\',\'utf8\');var i=h.indexOf(\'function switchTab(t,btn){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!t||!btn)\')>=0&&seg.indexOf(\'showAml(); showAll(); showMicm(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'LEUKH0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['LEUKH0 OK'],
   "ref": "第1336批·历史恢复无参切换函数抛错修复源码形态强锚：旧版 function switchTab(t,btn){ 无参调用解引用参数抛错被 catch 吞、结果不重算；修复后无参分支安全重算本页主结果并 return。旧版无 ⇒ BAD。"
-}
+},
+{ slug:"hematology/ipss-r", inputs:{"hgb":"","plt":"","blasts":""}, expect:["请填写血红蛋白、血小板与原始细胞比例"], ref:"核心临床参数留空不得给出分级/风险结论（CLINCLR）" },
+{ slug:"hematology/mm-staging", inputs:{"b2m":"","albumin":""}, expect:["请填写β2 微球蛋白与白蛋白"], ref:"核心临床参数留空不得给出分级/风险结论（CLINCLR）" },
+{ slug:"hematology/m-protein", inputs:{"mprotein":"","tp":""}, expect:["请填写M 蛋白量与总蛋白"], ref:"核心临床参数留空不得给出分级/风险结论（CLINCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

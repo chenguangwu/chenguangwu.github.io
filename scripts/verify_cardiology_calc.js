@@ -643,7 +643,8 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/coronary-calcium.html','utf8');var i=h.indexOf(\"labelEn:'Default'\");var seg=i>=0?h.slice(i,i+240):'';var ok=seg.indexOf(\"'followDate':''\")>=0;document.getElementById('__tbProbe').textContent='CACSDATE '+(ok?'OK':'BAD');})();"],
   "expect": ["CACSDATE OK"],
   "ref": "第1335批·默认参数预设不清空随访日期修复源码形态强锚：原默认参数 values 不含 followDate，从中危预设(2024-02-01)切回后旧日期残留；修复后默认参数显式写 followDate:'' 清空。旧版无 ⇒ BAD。"
-}
+},
+{ slug:"cardiology/aspirin-prevention", inputs:{"age":"","ascvd":""}, expect:["请填写年龄与 10 年 ASCVD 风险"], ref:"核心临床参数留空不得给出分级/风险结论（CLINCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);
