@@ -267,23 +267,23 @@ const CASES = [
 
   { slug: "metalwork/detector-hardness",
     inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "crosscut",
-              "crosscutGrade": "0", "thickMethod": "eddy", "thickness": "48",
+              "crosscutGrade": "0", "thickMethod": "eddy", "thickness": "44",
               "stdThickness": "40", "thickTolerance": "4", "hardnessMethod": "vickers", "vickersVal": "900" },
     expect: ["涂层质量优秀"],
-    ref: "结合力 0 级=100、厚度 48/40=1.2 倍=100、维氏 900HV（有机涂层要求 100HV）=100 → 综合 100 且三项全通过（997 后默认铅笔改为 HB，该用例改用维氏法仍与本值口径不同）" },
+    ref: "结合力 0 级=100、厚度 44/40 偏差 4μm 在 ±4μm 内=100、维氏 900HV（有机涂层要求 100HV）=100 → 综合 100 且三项全通过（997 后默认铅笔改为 HB，该用例改用维氏法仍与本值口径不同）" },
 
   { slug: "metalwork/detector-hardness",
     inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "crosscut",
-              "crosscutGrade": "2", "thickMethod": "eddy", "thickness": "48",
+              "crosscutGrade": "2", "thickMethod": "eddy", "thickness": "42",
               "stdThickness": "40", "thickTolerance": "4", "hardnessMethod": "pencil", "pencilGrade": "6B" },
     expect: ["涂层质量合格（未达标）"],
-    ref: "结合力 2 级=65（要求≤1 级 → 不通过）、厚度 100、铅笔 6B=10 不通过 → 综合 65×0.4+100×0.3+10×0.3=59，评分档位为「涂层质量合格」，逐项不通过时等级文案须带「（未达标）」（默认档位为「良好」，与本值不重合）" },
+    ref: "结合力 2 级=65（要求≤1 级 → 不通过）、厚度 42/40 在允差内=100、铅笔 6B=10 不通过 → 综合 65×0.4+100×0.3+10×0.3=59，评分档位为「涂层质量合格」，逐项不通过时等级文案须带「（未达标）」（默认档位为「良好」，与本值不重合）" },
   { slug: "metalwork/detector-hardness",
     inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "crosscut",
-              "crosscutGrade": "0", "thickMethod": "eddy", "thickness": "48",
+              "crosscutGrade": "0", "thickMethod": "eddy", "thickness": "42",
               "stdThickness": "40", "thickTolerance": "4", "hardnessMethod": "pencil" },
-    expect: ["达标（48μm） 100 ✓ 涂层硬度 30% HB（中等） 46"],
-    ref: "997 默认硬度档（MM-H136）：不注入 pencilGrade 时新默认 HB 满足油漆要求 HB（硬项 46 分、三项全通过），旧默认 6B 是 10 分且未达标。锚含 48μm 避开默认 50μm ⇒ 零逃生。" },
+    expect: ["达标（42μm） 100 ✓ 涂层硬度 30% HB（中等） 46"],
+    ref: "997 默认硬度档（MM-H136）：不注入 pencilGrade 时新默认 HB 满足油漆要求 HB（硬项 46 分、三项全通过），旧默认 6B 是 10 分且未达标。锚含 42μm 避开默认 50μm ⇒ 零逃生。" },
 
   { slug: "metalwork/thread",
     inputs: { threadType: "metric", diameter: "12", pitch: "1.75", material: "carbon",
@@ -860,7 +860,24 @@ const CASES = [
     "ref": "994 标尺区间（MM-H131）：旧版第三段 lo:null/hi:75 把 <60 的不合格也标成合格；修复后补 60–75 合格段与 null–60 不合格段。探针截取 refBar 的 bands 实参，默认态不执行 clicks、无探针串 ⇒ 零逃生。"
   },
 { slug:"metalwork/detector-hardness", inputs:{"thickness":""}, expect:["请填写涂层厚度"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" },
-{ slug:"metalwork/assessor-34", inputs:{"duration":"","stdDuration":"","corrosionArea":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"metalwork/assessor-34", inputs:{"duration":"","stdDuration":"","corrosionArea":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug: "metalwork/detector-hardness",
+  inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "crosscut", "crosscutGrade": "0",
+            "thickMethod": "eddy", "thickness": "52", "stdThickness": "40", "thickTolerance": "5",
+            "hardnessMethod": "vickers", "vickersVal": "900" },
+  expect: ["超厚 +12.0μm（52μm）", "厚度未达标准"],
+  ref: "MM-H133：52 对 40、允差 ±5、差 12μm 必须判超厚不合格；旧逻辑 ratio≥1 一律 100 分/通过" },
+{ slug: "metalwork/detector-hardness",
+  inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "tape", "tapeGrade": "5",
+            "thickMethod": "eddy", "thickness": "42", "stdThickness": "40", "thickTolerance": "4",
+            "hardnessMethod": "vickers", "vickersVal": "900" },
+  expect: ["胶带法 0B（最差）", "结合力未达标准"],
+  ref: "MM-H134：胶带法必须有 5B–0B 等级输入；选 0B 应得 0 分且不通过，旧逻辑恒读隐藏划格 0 级=100" },
+{ slug: "metalwork/detector-mold",
+  inputs: { "ptName": "P1", "tx":"50.000","ty":"30.000","tz":"20.000","ax":"50.015","ay":"29.988","az":"20.022","tol":"0.020" },
+  clicks: ["addPoint();"],
+  expect: ["已记录测量点（1）", "0.0292", "合格"],
+  ref: "MM-H138：记录此点须落到可见表格并参与导出；默认 P1 三维偏差 ΔX=0.0150、ΔY=-0.0120、ΔZ=0.0220，均在 ±0.020 内，空间偏差 0.0292 mm，判定合格" }
 ];
 
 async function main() {

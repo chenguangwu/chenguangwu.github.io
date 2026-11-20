@@ -123,7 +123,7 @@
     </div>
     <div class="input-row"><div><label>公差带 (±mm)</label><input type="number" id="tol" value="0.020" step="0.001" style="font-size:16px;" oninput="calc()" placeholder="如 0.020"></div></div>
     <div class="toolbar"><div id="detector_moldPresets"></div><button type="button" class="btn primary" onclick="calc()">计算偏差</button><button class="btn" type="button" onclick="__detector_moldExport()">导出明细 CSV</button><button type="button" class="btn" onclick="addPoint()">记录此点</button><button type="button" class="btn" onclick="copyReport()">复制报告</button></div>
-    <div class="result-box" id="res"></div> <div id="detector_moldTable"></div> <div id="detector_moldDiff"></div> <div id="detector_moldChart"></div> <div id="detector_moldHist"></div>
+    <div class="result-box" id="res"></div> <div id="pointListBox"></div> <div id="detector_moldTable"></div> <div id="detector_moldDiff"></div> <div id="detector_moldChart"></div> <div id="detector_moldHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -238,12 +238,36 @@ function calc(){
   const __g1=html;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function addPoint(){
-  var name=document.getElementById('ptName').value;
+  var name=document.getElementById('ptName').value.trim()||('P'+(pointList.length+1));
   var tx=+document.getElementById('tx').value,ax=+document.getElementById('ax').value;
-  var dx=(ax-tx).toFixed(4);
-  pointList.push({name:name,dx:dx});
-  ToolBox.showToast(i18nText('toast.saved', '测量点 '+name+' 已记录'));
+  var ty=+document.getElementById('ty').value,ay=+document.getElementById('ay').value;
+  var tz=+document.getElementById('tz').value,az=+document.getElementById('az').value;
+  var tol=+document.getElementById('tol').value;
+  var dx=ax-tx,dy=ay-ty,dz=az-tz,dist=Math.sqrt(dx*dx+dy*dy+dz*dz);
+  var pass=Math.abs(dx)<=tol&&Math.abs(dy)<=tol&&Math.abs(dz)<=tol;
+  pointList.push({name:name,dx:dx,dy:dy,dz:dz,dist:dist,pass:pass});
+  renderPoints();
+  ToolBox.showToast('测量点 '+name+' 已记录（'+(pass?'合格':'超差')+'）');
   document.getElementById('ptName').value='P'+(pointList.length+1);
+}
+function renderPoints(){
+  var box=document.getElementById('pointListBox');
+  if(!box)return;
+  if(!pointList.length){box.innerHTML='';return;}
+  var h='<p style="font-weight:600;margin-top:10px;">已记录测量点（'+pointList.length+'）</p>'+
+    '<table style="margin-top:6px;border-collapse:collapse;width:100%;font-size:13px;">'+
+    '<thead><tr><th style="border:1px solid var(--border);padding:5px;">点名</th><th style="border:1px solid var(--border);padding:5px;">ΔX</th><th style="border:1px solid var(--border);padding:5px;">ΔY</th><th style="border:1px solid var(--border);padding:5px;">ΔZ</th><th style="border:1px solid var(--border);padding:5px;">空间偏差</th><th style="border:1px solid var(--border);padding:5px;">判定</th></tr></thead><tbody>';
+  pointList.forEach(function(pt){
+    var esc=(typeof ToolBox!=='undefined'&&ToolBox.escHtml)?ToolBox.escHtml(pt.name):String(pt.name).replace(/</g,'&lt;');
+    h+='<tr><td style="border:1px solid var(--border);padding:5px;">'+esc+'</td>'+
+      '<td style="border:1px solid var(--border);padding:5px;">'+pt.dx.toFixed(4)+'</td>'+
+      '<td style="border:1px solid var(--border);padding:5px;">'+pt.dy.toFixed(4)+'</td>'+
+      '<td style="border:1px solid var(--border);padding:5px;">'+pt.dz.toFixed(4)+'</td>'+
+      '<td style="border:1px solid var(--border);padding:5px;">'+pt.dist.toFixed(4)+'</td>'+
+      '<td style="border:1px solid var(--border);padding:5px;color:'+(pt.pass?'var(--success)':'var(--danger)')+';">'+(pt.pass?'合格':'超差')+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  box.innerHTML=h;
 }
 function copyReport(){
   ToolBox.copyText(document.getElementById('res').innerText, i18nText());
@@ -418,6 +442,11 @@ function __detector_moldExtras(){
 }
 function __detector_moldExport(){
     if (typeof TBKit === 'undefined') return;
+    if(pointList.length){
+        renderPoints();
+        try { TBKit.util.exportTable('#pointListBox','detector-mold-points.csv'); } catch(e){}
+        return;
+    }
     try{
         var box=document.querySelector('#detector_moldTable');
         if(!box||!box.querySelector('tr')){

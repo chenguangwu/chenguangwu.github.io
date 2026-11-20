@@ -338,3 +338,11 @@
 - `plastic/material-select` 特点标签可点击筛选并动态建项。
 - `machinery/bearing-1` 增加 a₁/aISO 修正寿命 Lnm。
 - `electrical/wire-gauge-selector` 截面扩展至 120 mm²。
+
+
+## 2026-11-21 链条功率/根切/硬度/记录点
+
+- `machinery/strength-15` 按静强度 ≥4 升档，功率参与选型；疲劳校核边界如实标注。
+- `machinery/calc-gear` 斜齿 zmin 修正为 2ha*cosβ/sin²αt（β20°→14.4）。
+- `metalwork/detector-hardness` 厚度按标准±允差判定、胶带法补 5B–0B 输入、合格线标经验阈值。
+- `metalwork/detector-mold` 记录点改可见表格并参与导出。

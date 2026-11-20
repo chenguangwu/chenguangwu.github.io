@@ -613,6 +613,19 @@ const CASES = [
   "inputs": {"cVal":"50","pVal":"5","nVal":"1500","bType":"3","reli":"90","aisoVal":"0"},
   "expect": ["aISO 均需大于 0"],
   "ref": "aISO=0 不得输出修正寿命 0"
+},
+{
+  "slug": "machinery/strength-15",
+  "inputs": {"v_P":"100","v_n1":"960","v_z1":"19","v_z2":"57"},
+  "expect": ["16A","6.2"],
+  "ref": "功率参与选型：100 kW/960 rpm/19 齿，初档 12A 圆周力 17267 N、破断 45.4 kN 安全系数 2.63<4 ⇒ 升档 16A，F=12952 N、80.2/12.952=6.19；默认 5.5 kW 为 12A、安全系数 47.8 ⇒ 不命中"
+},
+{
+  "slug": "machinery/calc-gear",
+  "inputs": {"module":"2","teeth":"13","pressure":"20","helix":"20","haCoef":"1","cCoef":"0.25"},
+  "clicks": ["document.querySelector('input[name=gearType][value=helical]').checked=true;calc();"],
+  "expect": ["14.4","小于不根切最少齿数"],
+  "ref": "斜齿根切最少齿数：αt=atan(tan20°/cos20°)=21.17°，zmin=2×1×cos20°/sin²αt=14.4；z=13 应判根切。旧式 cos³β 得 12.7，13 齿会被误判不根切"
 }
 ];
 

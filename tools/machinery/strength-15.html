@@ -209,14 +209,28 @@ function calc(){
     lastResult='';return;
   }
   var P=iv.P,n1=iv.n1,z1=iv.z1,z2=iv.z2;
-  var p=recommendPitch(n1);              // 推荐节距 mm
-  var v=z1*n1*p/(60*1000);                // 链速 m/s
-  var F=v>0?1000*P/v:0;                   // 有效圆周力 N
+  var CHAIN=[
+    {p:9.525,no:'06B',brk:10.8},{p:12.7,no:'08A/08B',brk:18.1},
+    {p:15.875,no:'10A',brk:31.2},{p:19.05,no:'12A',brk:45.4},
+    {p:25.4,no:'16A',brk:80.2},{p:31.75,no:'20A',brk:127},
+    {p:38.1,no:'24A',brk:187},{p:50.8,no:'32A',brk:318}
+  ];
+  var ci=Math.max(0,CHAIN.findIndex(function(c){return c.p===recommendPitch(n1);}));
+  var p=CHAIN[ci].p, v=0, F=0;
+  // 先按转速选初档，再按静强度安全系数 ≥4 逐档加粗（功率真正参与选型）
+  for(var k=ci;k<CHAIN.length;k++){
+    p=CHAIN[k].p;
+    v=z1*n1*p/(60*1000);
+    F=v>0?1000*P/v:0;
+    if(F<=0 || CHAIN[k].brk*1000/F>=4) { ci=k; break; }
+    ci=k;
+  }
+  var chainNo=CHAIN[ci].no;
+  var safety=F>0?CHAIN[ci].brk*1000/F:Infinity;
   var i=z2/z1;                             // 传动比
   var a0=40*p;                             // 推荐中心距 mm
   var Lp=2*a0/p+(z1+z2)/2+Math.pow((z2-z1)/(2*Math.PI),2)*p/a0;  // 链节数
   Lp=Math.round(Lp);
-  var chainNo={9.525:'06B',12.7:'08A/08B',15.875:'10A',19.05:'12A',25.4:'16A',31.75:'20A',38.1:'24A',50.8:'32A'}[p]||'-';
   var vStatus=v<=0.6?'<span style="color:var(--warning);">低速</span>':v<=12?'<span style="color:var(--success);">中速</span>':'<span style="color:var(--danger);">高速</span>';
   const __g2='<div class="data-grid">'+
     '<div class="data-card"><div class="num">'+p.toFixed(2)+'</div><div class="label">推荐节距 p (mm)</div></div>'+
@@ -232,8 +246,14 @@ function calc(){
     '<div class="data-card"><div class="num">'+Lp+'</div><div class="label">链节数 Lp</div></div>'+
     '<div class="data-card"><div class="num">'+vStatus+'</div><div class="label">链速评价</div></div>'+
     '<div class="data-card"><div class="num">'+(Lp%2===0?'偶数':'<span style="color:var(--warning);">奇数</span>')+'</div><div class="label">链节奇偶</div></div>'+
-    '</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  lastResult='功率:'+P+'kW, n1='+n1+'r/min, z1='+z1+', z2='+z2+'\n推荐节距:'+p.toFixed(2)+'mm 链号:'+chainNo+' 链速:'+v.toFixed(3)+'m/s\n圆周力:'+F.toFixed(0)+'N 传动比:'+i.toFixed(3)+' 推荐中心距:'+a0.toFixed(0)+'mm 链节数:'+Lp;
+    '</div>'+
+    '<div class="data-grid" style="margin-top:8px;">'+
+    '<div class="data-card"><div class="num">'+(isFinite(safety)?safety.toFixed(1):'—')+'</div><div class="label">静强度安全系数（≥4 合格）</div></div>'+
+    '<div class="data-card"><div class="num">'+CHAIN[ci].brk+' kN</div><div class="label">链段破断载荷</div></div>'+
+    '<div class="data-card"><div class="num">'+(safety>=4?'合格':'不足')+'</div><div class="label">静强度判定</div></div>'+
+    '</div>'+
+    '<div class="info-box" style="margin-top:10px;">📌 选型先按小链轮转速取初始节距，再按静强度安全系数 ≥4 逐档加粗；本页只做静强度校核，疲劳寿命仍须按 GB/T 1243 功率曲线与链轮齿数修正。</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  lastResult='功率:'+P+'kW, n1='+n1+'r/min, z1='+z1+', z2='+z2+'\n推荐节距:'+p.toFixed(2)+'mm 链号:'+chainNo+' 链速:'+v.toFixed(3)+'m/s\n圆周力:'+F.toFixed(0)+'N 静强度安全系数:'+(isFinite(safety)?safety.toFixed(1):'—')+' 传动比:'+i.toFixed(3)+' 推荐中心距:'+a0.toFixed(0)+'mm 链节数:'+Lp;
 }
 function copyRes(){
   if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}
