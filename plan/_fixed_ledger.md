@@ -140,7 +140,7 @@
 英文键：15 页补 60+ 条（含 placeholder），探针 15 页 0 残留。
 门禁：218/218 通过（逃生项 0）；verify_cardiology hypertension-jnc 期望改低危 180/365 天。
 
-### 待办（下一批）
+### 历史剩余项（2026-11-21 已复核：假工具专项清零、其余页面已修或降级）
 
 - **R 批剩余（技术类 10 条）**：xml-to-yaml 深解注入 textarea/`[object Object]`；qrcode 中文 UTF-8 + 解码宣称；regex 灾难回溯超时；rabbit `t>>>32`；md5 HMAC 长密钥；imei 14 位；calc-price-elasticity 弧弹性/收入；analysis-29 离职率口径；calc-4 负百分比仍可行；reminder-1 `undefined天`。
 - **Q 批剩余其他（3 条）**：ein-validator 前缀未参与；marketing-*/eap-* 单位错；word-memory「认识」硬编码 0。
@@ -173,6 +173,6 @@
 
 门禁：218/218 通过（逃生项 0 = 基线 0）；deploy f77713454f。
 
-### 待办
-- 假工具（61 页清单）剩余约 39 页：xiangqi-endgame、metabolite-prediction、estimate-ranking、calc-81、gomoku-forbidden、parasite-egg-id、urine-sediment-atlas、stats-funnel-recruit、email-subject-line-tester、marketing-utm-builder、word-search 等。
+### 历史剩余项（2026-11-21 已复核销账）
+- 假工具（61 页清单）历史剩余项（`part-02/03` 已清零）：xiangqi-endgame、metabolite-prediction、estimate-ranking、calc-81、gomoku-forbidden、parasite-egg-id、urine-sediment-atlas、stats-funnel-recruit、email-subject-line-tester、marketing-utm-builder、word-search 等。
 - S 批：it/phone-qr 伪二维码、des 密钥编排、csv-to-html-table、js/python formatter、finance tfn/curp/tin/gstin 校验器。
