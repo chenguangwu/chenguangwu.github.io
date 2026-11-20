@@ -1535,7 +1535,17 @@ const CASES = [
     "inputs": { "totalBudget": "0", "roas1": "4", "roas2": "2.5", "roas3": "2", "budget1Pct": "40", "budget2Pct": "35", "budget3Pct": "25" },
     "expect": ["预算为 0，不可计算"],
     "ref": "总预算为 0 时各渠道预算与收入均为 0 合法，但整体 ROAS = 0/0；旧实现把 NaN 替换成破折号仍挂着「整体ROAS」标签。默认预算 100000 ⇒ 不命中。"
-  }
+  },
+{
+  "slug": "marketing/hashtag-generator",
+  "inputs": {
+    "text": ""
+  },
+  "expect": [
+    "请输入关键词"
+  ],
+  "ref": "清空关键词后必须清掉上一次的标签结果（HASHTAGCLEAR）；旧实现走 alert+return，结果区仍留 #99/#99s 旧标签且可被复制"
+}
 ];
 
 async function main() {

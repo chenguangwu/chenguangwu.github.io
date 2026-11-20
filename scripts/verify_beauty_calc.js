@@ -269,6 +269,17 @@ const CASES = [
   "clicks": ["var q=String.fromCharCode(39);var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/beauty/skincare-routine.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/beauty/skincare-routine.json','utf8');var ok=h.indexOf('exportCsv('+q+'skincare-routine.csv'+q+',rows)')>=0&&h.indexOf('exportTable(')<0&&h.indexOf('参考用量'+q+']')>=0&&h.indexOf('帮助计算护肤品用量与配比')<0&&h.indexOf('第一步：选择你的肤质')>=0&&en.indexOf('Step one: choose your skin type')>=0&&en.indexOf('Generate morning, evening and weekly routines')>=0;document.getElementById('__tbProbe').textContent='SKINEXPORT '+(ok?'OK':'BAD');"],
   "expect": ["SKINEXPORT OK"],
   "ref": "12-N15/N18：导出函数改为按肤质/年龄×晨间/晚间/周护理生成「肤质/年龄段/时段/步骤/产品/用法/参考用量」矩阵，不再导出历史表；简介去掉「计算护肤品用量与配比」（实为定性参考量），静态肤质卡片改「选择」措辞并同步英译。旧版 exportTable 与旧简介/旧肤质文案命中 ⇒ 变红；默认态不产生该哨兵，零逃生。"
+},
+{
+  "slug": "beauty/bmi-beauty",
+  "inputs": {
+    "height": "",
+    "weight": ""
+  },
+  "expect": [
+    "请填写身高和体重"
+  ],
+  "ref": "空身高/体重时清空结果卡（BMICLEAR）；旧实现只 toast，BMI 数值与体型分析保留上次结果"
 }
 ];
 async function main() {

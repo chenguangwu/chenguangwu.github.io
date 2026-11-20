@@ -281,7 +281,17 @@ const CASES = [
   "expect": ["EMPTY:请输入手动营养素，或先添加食物后再计算热量。"],
   "ref": "空态守卫（2026-11-05）：无食物条目且手动碳水/蛋白/脂肪均空（或全 0）时，不再输出「总热量 0 kcal」等全 0 结果，只给提示。⚠ 单项 0 合法（如纯脂餐碳水 0）照常计算。"
 }
-
+,
+{
+  "slug": "nutrition/calc-1",
+  "inputs": {
+    "weight": ""
+  },
+  "expect": [
+    "请填写体重、身高、年龄"
+  ],
+  "ref": "空体重时清空目标热量/BMR/三大营养素卡（NUTRICLCLEAR）；旧实现输出仍为上一次 2957 kcal"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

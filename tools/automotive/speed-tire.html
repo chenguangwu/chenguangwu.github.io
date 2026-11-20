@@ -296,14 +296,16 @@ function calc(){
   var dia0=stDia(w0,ar0,rim0), circ0=Math.PI*dia0;
   var diffPct=dia0>0?(dia-circ0/Math.PI)/dia0*100:0;
   var speedErr=circ0>0?circ/circ0:1;
-  var cls=stClass(vmax);
+  // SPEEDVMAX：vmax 为空/非正时 stClass(NaN) 会落到最高档「Y(超) 300」，属荒谬结论
+  var vmaxOk=isFinite(vmax)&&vmax>0;
+  var cls=vmaxOk?stClass(vmax):null;
   var ok=Math.abs(diffPct)<=tol;
 
   const __g1='<div class="result-grid">'
     +'<div class="result-item"><div class="result-label">轮胎直径</div><div class="result-value">'+fmtLocal(dia,1)+' mm</div></div>'
     +'<div class="result-item"><div class="result-label">轮胎周长</div><div class="result-value">'+fmtLocal(circ,1)+' mm</div></div>'
     +'<div class="result-item"><div class="result-label">每公里转数</div><div class="result-value">'+fmtLocal(turns,1)+' 转</div></div>'
-    +'<div class="result-item"><div class="result-label">推荐速度等级</div><div class="result-value">'+cls[0]+'（'+cls[1]+' km/h）</div></div>'
+    +'<div class="result-item"><div class="result-label">推荐速度等级</div><div class="result-value">'+(cls?cls[0]+'（'+cls[1]+' km/h）':'—（未填写最高车速）')+'</div></div>'
     +'</div>';R.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
   const __g2='<div class="dist-grid">'
@@ -338,7 +340,7 @@ function calc(){
     +rows+'</table>';F.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   var ad='';
-  ad+='<div class="tip-info">🔘 '+fmtLocal(w,0)+'/'+fmtLocal(ar,0)+'R'+fmtLocal(rim,1)+' 直径 '+fmtLocal(dia,1)+' mm、周长 '+fmtLocal(circ,1)+' mm，最高车速 '+fmtLocal(vmax,0)+' km/h 对应 '+cls[0]+' 级（'+cls[1]+' km/h）。</div>';
+  ad+='<div class="tip-info">🔘 '+fmtLocal(w,0)+'/'+fmtLocal(ar,0)+'R'+fmtLocal(rim,1)+' 直径 '+fmtLocal(dia,1)+' mm、周长 '+fmtLocal(circ,1)+' mm，最高车速 '+(vmaxOk?fmtLocal(vmax,0)+' km/h 对应 '+cls[0]+' 级（'+cls[1]+' km/h）':'—（未填写最高车速，无法推荐速度等级）')+'。</div>';
   if(!ok) ad+='<div class="tip-warn">⚠️ 直径相对原厂偏差 '+fmtLocal(diffPct,2)+'%，超过 ±'+fmtLocal(tol,1)+'% 容差，速度表与里程表会有可感知误差，请重新选择规格或做仪表标定。</div>';
   else ad+='<div class="tip-info">📏 直径偏差 '+fmtLocal(diffPct,2)+'%，在 ±'+fmtLocal(tol,1)+'% 容差内，速度表影响可接受。</div>';
   if(Math.abs(speedErr-1)>0.005) ad+='<div class="tip-info">🧭 表显 100 km/h 时实际约 '+fmtLocal(100*speedErr,1)+' km/h，注意限速区间的换算。</div>';

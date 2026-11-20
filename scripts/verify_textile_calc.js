@@ -364,6 +364,26 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/textile/convert-yarn.html','utf8');var i=h.indexOf('function calc(){');var s=i>=0?h.slice(i,i+320):'';var ok=s.indexOf('!isFinite(v)||v<=0')>=0&&s.indexOf('请输入大于 0 的纱线细度值')>=0;document.getElementById('__tbProbe').textContent='YARNDIV '+(ok?'OK':'BAD');"],
   "expect": ["YARNDIV OK"],
   "ref": "第1343批 除零守卫：纱线细度值为 0/空/非数字时原 calc 走 590.5/0=Infinity，改为有限正数守卫并显示提示后 return。"
+},
+{
+  "slug": "textile/fabric-converter",
+  "inputs": {
+    "gsm": "0"
+  },
+  "expect": [
+    "请填写克重与幅宽"
+  ],
+  "ref": "gsm<=0 时清空米重/码价结果（FABRICCLEAR）；旧实现仅 toast，结果仍为上一次 148.5 g/m"
+},
+{
+  "slug": "textile/thread-count",
+  "inputs": {
+    "value": "0"
+  },
+  "expect": [
+    "请填写大于 0 的支数"
+  ],
+  "ref": "支数<=0 时清空 Tex/Nm/Ne/D 结果（THREADCLEAR）；旧实现仅 toast，旧换算值残留"
 }
 ];
 async function main() {

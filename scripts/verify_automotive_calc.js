@@ -1015,7 +1015,27 @@ const CASES = [
     "expect": ["约 25%（按 2×12V 单块折算 12.1 V）"],
     "ref": "第1062批 N244：24V 卡车系统整组静态电压 24.2 V，按 2×12V 串联折算单块 12.1 V，落在 [12.06,12.24) ⇒ 约 25%，结果卡标注折算口径（fmtLocal 去尾零故为 12.1）。旧实现把整组 24.2 V 直接套 12V 阈值（≥12.66）判「100%（满电）」且无折算注 ⇒ 锚不命中；新实现 blocks=round(24/12)=2、vCell=24.2/2=12.1 ⇒ 命中。默认 12V 系统 blocks=1、不走折算，锚依赖 volt=24/vbat=24.2 输入，强判别。"
   }
-
+,
+{
+  "slug": "automotive/speed-tire",
+  "inputs": {
+    "vmax": ""
+  },
+  "expect": [
+    "—（未填写最高车速）"
+  ],
+  "ref": "vmax 缺失时不得落到 stClass(NaN) 的最高档 Y(超) 300 km/h（SPEEDVMAX），应显示未填写"
+},
+{
+  "slug": "automotive/oil-change-countdown",
+  "inputs": {
+    "ldate": ""
+  },
+  "expect": [
+    "仅按里程判断（未填写上次换油日期）"
+  ],
+  "ref": "缺上次换油日期时时间维度不可判定，状态不得给「未到期」绿灯（OILDCLEAR）"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);
