@@ -2750,6 +2750,18 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/science/t-score-calculator.html\',\'utf8\');var i=h.indexOf(\'function setMode(m){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'currentMode=m\')>=0&&seg.indexOf(\'calculate();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'TSCM0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['TSCM0 OK'],
   "ref": "第1339批·模式切换残留旧结果修复源码形态强锚：旧版 setMode 只切 currentMode/class/display 不重算，共用 #output 保留上一模式结论；修复后切换即调 calculate()。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'science/wire-gauge-converter',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/science/wire-gauge-converter.html\',\'utf8\');var i=h.indexOf(\'function setMode(\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+600):\'\';var ok=seg.indexOf(\'if(m===\\\'mm\\\') calcFromMm(); else if(m===\\\'mm2\\\') calcFromMm2(); else calcFromAwg();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'WGM0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['WGM0 OK'],
+  "ref": "第1340批·模式切换残留旧结果修复源码形态强锚：旧版 setMode 只切显示不重算，共用结果区保留上一模式结论；修复后切换即按新口径重算。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'science/calculator',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/science/calculator.html\',\'utf8\');var i=h.indexOf(\'function setMode(\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+600):\'\';var ok=seg.indexOf(\'calculate();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'CALCM0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['CALCM0 OK'],
+  "ref": "第1340批·模式切换残留旧结果修复源码形态强锚：旧版 setMode 只切显示不重算，共用结果区保留上一模式结论；修复后切换即按新口径重算。旧版无 ⇒ BAD。"
 }
 ];
 
