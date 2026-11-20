@@ -341,7 +341,12 @@ const CASES = [
     "是本计算的分母，不能为 0"
   ],
   "ref": "输入校验前置（v9 治本）：三输入全 0 → P2 作分母 → 页面直接提示『末压强 (kPa) 不能为 0』，不再往下算出 NaN 再由 v8 守卫遮成无信息量告警；注入失败回退默认(P1=150,V1=2,P2=50)→V2=6 有限不命中，可判别"
-}
+},
+  { slug: "thermodynamics/humid-air-enthalpy",
+    inputs: { t: "25", w: "" },
+    expect: ["请填写干球温度与含湿量后再计算。"],
+    ref: "含湿量留空：旧代码按 0 输出干空气焓，伪装成湿空气结果；新增守卫后须提示。" },
+
 ];
 async function main() {
   const only = process.argv.slice(2);

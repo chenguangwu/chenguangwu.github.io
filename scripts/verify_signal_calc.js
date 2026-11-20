@@ -13,6 +13,11 @@ const CASES = [
   { slug: "signal/duty-cycle", inputs: { ton: "3", T: "10" }, expect: ["30.00 占空比"], ref: "D=ton/T×100=3/10×100=30%" },
   { slug: "signal/energy-discrete", inputs: { s: "2 3 -2 1" }, expect: ["18.000 信号能量"], ref: "去默认化：E=Σx²=4+9+4+1=18.000；N=4、平均功率 E/N=4.5000、RMS=√4.5=2.1213。默认 1 2 3 -1 得 15.000" },
   { slug: "signal/fft-resolution", inputs: { fs: "8000", N: "1024" }, expect: ["7.8125 频率分辨率"], ref: "Δf=fs/N=8000/1024=7.8125" },
+  { slug: "signal/first-order-rise",
+    inputs: { tau: "" },
+    expect: ["请填写时间常数 τ（须大于 0）后再计算。"],
+    ref: "时间常数留空：旧代码按 0 输出上升时间 0；新增守卫后须提示。" },
+
   { slug: "signal/first-order-rise", inputs: { tau: "0.01" }, expect: ["2.200e-2 上升时间"], ref: "t_r=2.2τ=2.2×0.01=0.022" },
   { slug: "signal/fourier-base", inputs: { T: "0.025" }, expect: ["40.00 基频"], ref: "去默认化：f₀=1/T=1/0.025=40.00 Hz；ω=2πf₀=251.327 rad/s、半周期 0.0125 s。默认 T=0.02 得 50.00 Hz" },
   { slug: "signal/gain-db", inputs: { vout: "20", vin: "0.5" }, expect: ["32.04 增益"], ref: "去默认化：G=20·log₁₀(Vout/Vin)=20·log₁₀(40)=32.04 dB；电压比 40.000、功率比 1600.0000。默认 10/1 得 20.00 dB" },

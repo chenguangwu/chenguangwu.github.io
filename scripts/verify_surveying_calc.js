@@ -31,6 +31,11 @@ const CASES = [
     expect: ["173.205", "100.000"],
     ref: "水平距=200×cos30°=173.205；高差=200×sin30°=100.000（默认 150/10 避开）",
   },
+  { slug: "surveying/external-distance-curve",
+    inputs: { R: "500", D: "" },
+    expect: ["请填写曲线半径与圆心角后再计算。"],
+    ref: "圆心角留空：旧代码按 0° 输出外距 0；新增守卫后须提示。" },
+
   {
     slug: "surveying/external-distance-curve",
     inputs: { R: "200", D: "90" },

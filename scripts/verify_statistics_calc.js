@@ -84,6 +84,11 @@ const CASES = [
     ref: "SE = √(0.2×0.8/100) = √0.0016 = 0.0400",
   },
   // ── 对立事件概率（1 − P(A)）──────────────────────────────────────
+  { slug: "statistics/probability-complement",
+    inputs: { p: "" },
+    expect: ["请填写概率 p（0–1）后再计算。"],
+    ref: "概率留空：旧代码按 0 输出补事件概率 1，等于断言事件必不发生；新增守卫后须提示。" },
+
   {
     slug: "statistics/probability-complement",
     inputs: { p: "0.65" },
@@ -814,12 +819,12 @@ const CASES = [
   {
     "slug": "statistics/probability-complement",
     "inputs": {
-      "p": "42"
+      "p": "0.42"
     },
     "expect": [
-      "概率 P(Aᶜ) 42000000000000.000000"
+      "0.5800 补事件概率"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"p\":\"42\"}，输出区含「概率 P(Aᶜ) 42000000000000.000000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "p=0.42（非默认 0.3）：补事件概率 0.58、优势比 0.724138；原哨兵 42 超出新增 0–1 校验范围。"
   },
   {
     "slug": "statistics/range-stat",

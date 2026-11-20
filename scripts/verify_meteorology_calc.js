@@ -189,6 +189,11 @@ const CASES = [
     expect: ["48.2 湿热指数 Humidex"],
     ref: "独立复算：T35/RH60。e=es(35)·0.6=33.96；Humidex=35+0.5555·(33.96−10)=48.2。默认 T30/RH70→≈40，不出现 48.2。"
   },
+  { slug: "meteorology/isa-temperature",
+    inputs: { h: "" },
+    expect: ["请填写海拔高度（0–20 km）后再计算。"],
+    ref: "海拔留空：旧代码按 0 km 输出海平面 15°C；新增守卫后须提示。" },
+
   {
     slug: "meteorology/isa-temperature",
     inputs: {"h": "12"},
@@ -512,12 +517,12 @@ const CASES = [
   {
     "slug": "meteorology/isa-temperature",
     "inputs": {
-      "h": "42"
+      "h": "5.5"
     },
     "expect": [
-      " (K) 0.995030"
+      "-20.8 °C 标准气温"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"h\":\"42\"}，输出区含「 (K) 0.995030」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "h=5.5 km（非默认 5）：T=15−6.5×5.5=−20.75→−20.8°C；原哨兵 42 超出新增 0–20 km 校验范围。"
   },
   {
     "slug": "meteorology/jiangshuigailvguji",
