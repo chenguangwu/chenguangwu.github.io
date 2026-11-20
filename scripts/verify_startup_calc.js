@@ -1,5 +1,8 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
+globalThis.__tbRoot = process.cwd();
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -225,6 +228,13 @@ const CASES = [
   ],
   "expect": ["EQCOPY OK"],
   "ref": "融资稀释复制修复：复制文本改由 `__equityLast`（calc 的最终表 + capHistory）生成，不再重新按 hash 比例算融资前股权，并新增「股权变动历程」。旧实现文本无该标题、且融资模式下缺投资人行。默认态未 calc 时 `equityReportText()` 为空，不命中。"
+}
+,
+{
+  "slug": "startup/equity-calculator",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/' +'tools/startup/equity-calculator.html','utf8');var i=h.indexOf('f.idea < 0');var s=i>=0?h.slice(i,i+700):'';var ok=s.indexOf(\"getElementById('result').innerHTML\")>=0&&s.indexOf('poolPct < 0 || poolPct >= 100')>=0&&(s.match(/getElementById\\('result'\\).innerHTML/g)||[]).length>=2;document.getElementById('__tbProbe').textContent='EQCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["EQCLR OK"],
+  "ref": "第1345批 equity-calculator 贡献负值/期权池越界两早退原只 showToast，不清 #result(股权表+变动历程)；对齐同函数另两分支写法补清空。"
 }
 
 ];

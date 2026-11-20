@@ -1,5 +1,8 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
+globalThis.__tbRoot = process.cwd();
 const { runCase } = require("./verify_it_calc.js");
 // 2026-09-24 去默认化（BATCH69）：原 14 例里有 12 例的输入等于页面默认值、expect 又是
 // 「轴向变形 / 公式 / 矩形 / 扭转角」这类**静态标签词** ⇒ 默认态同样命中（真逃生项）。
@@ -198,6 +201,19 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"F\":\"42\",\"hf\":\"42\",\"lw\":\"42\"}，输出区含「_e (mm²) 34.01」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
+,
+{
+  "slug": "engineering/stress-calculator",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/' +'tools/engineering/stress-calculator.html','utf8');var i=h.indexOf('if (A === 0)');var s=i>=0?h.slice(i,i+560):'';var ok=(s.match(/getElementById\\('stressViz'\\).innerHTML=''/g)||[]).length>=1&&(s.match(/getElementById\\('result'\\).innerHTML=''/g)||[]).length>=1&&(s.match(/if \\(A === 0\\)/g)||[]).length>=1;document.getElementById('__tbProbe').textContent='STRSHIST '+(ok?'OK':'BAD');})();"],
+  "expect": ["STRSHIST OK"],
+  "ref": "第1345批 stress-calculator 四类型早退(A/W/D=0)原只 showToast 后 return，不清 #stressViz 与 #result，旧应力卡与 SVG 残留；改为四处早退同步清空。"
+},
+{
+  "slug": "engineering/beam-calculator",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/' +'tools/engineering/beam-calculator.html','utf8');var i=h.indexOf('if (L <= 0)');var s=i>=0?h.slice(i,i+200):'';var ok=s.indexOf(\"getElementById('beamViz').innerHTML=''\")>=0&&s.indexOf(\"getElementById('result').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='BEAMCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["BEAMCLR OK"],
+  "ref": "第1345批 beam-calculator L<=0 早退原只 showToast，不清 #beamViz/#result；input guard 分支也补清 beamViz。"
+}
 
 ];
 async function main() {

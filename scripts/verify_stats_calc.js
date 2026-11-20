@@ -1,5 +1,8 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
+globalThis.__tbRoot = process.cwd();
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -67,7 +70,14 @@ const CASES = [
   "clicks": ["document.getElementById('equation').textContent='TC='+tCrit95(18)"],
   "expect": ["TC=2.101"],
   "ref": "12-M7：t 临界值由固定 2.306（仅 df=8）改为按 df 查表；df=18（n=20）应为 2.101。默认 n=10 ⇒ df=8 ⇒ 2.306，不命中。"
+},
+{
+  "slug": "stats/regression-analysis",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/' +'tools/stats/regression-analysis.html','utf8');var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+'tools/stats/regression-analysis.html','utf8');var i=h.indexOf('if(xs.length !== ys.length');var s=i>=0?h.slice(i,i+900):'';var ok=s.indexOf('model = null')>=0&&(s.match(/getElementById\\('result'\\).innerHTML=''/g)||[]).length>=2&&s.indexOf('clearRect')>=0;document.getElementById('__tbProbe').textContent='REGCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["REGCLR OK"],
+  "ref": "第1345批 regression-analysis 两早退(样本不足/sxx|syy<=0)原只改 #equation，不清 #result/canvas/model；改为两处同步清空并重置 model。"
 }
+
 ];
 async function main() {
   const only = process.argv.slice(2);
