@@ -14435,6 +14435,18 @@ const CASES = [
     expect: ["NDENT OK"],
     ref: "第1309批·Nano ID 熵值口径纠错强锚：默认 64 字符表 × 21 位 ⇒ 21×log2(64)=126 bit，同页 FAQ 与引据表均写 126；原第183行写「约 122 位熵」与同页自相矛盾（122 实为 UUID v4 的位数）。修复为 126；旧版含 122 ⇒ BAD。纯静态文案不含动态中文，EN 态不受影响。",
   },
+{
+  "slug": 'it/url-encode',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/it/url-encode.html\',\'utf8\');var i=h.indexOf(\'function setEncodeMode(mode){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+700):\'\';var ok=seg.indexOf(\'encodeUrl();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'URLENC0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['URLENC0 OK'],
+  "ref": "第1338批·模式切换残留旧结果修复源码形态强锚：旧版 function setEncodeMode(mode){ 只切 class/display 不重算，共用结果区保留上一模式结论；修复后切换即调重算函数。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'it/normal-distribution',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/it/normal-distribution.html\',\'utf8\');var i=h.indexOf(\'function setMode(m){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+700):\'\';var ok=seg.indexOf(\'calculate();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'NORMD0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['NORMD0 OK'],
+  "ref": "第1338批·模式切换残留旧结果修复源码形态强锚：旧版 function setMode(m){ 只切 class/display 不重算，共用结果区保留上一模式结论；修复后切换即调重算函数。旧版无 ⇒ BAD。"
+}
 ];
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

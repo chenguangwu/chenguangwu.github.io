@@ -512,7 +512,13 @@ const CASES = [
       "空值不按 0 处理"
     ],
     "ref": "新增守卫：抗压强度留空时旧代码 parseFloat||0 ⇒ 0 MPa ⇒ 判「不合格」；现改为提示「请填写全部三项实测值…空值不按 0 处理」。默认 v1=35 非空，不命中 ⇒ 强判别。"
-  }
+  },
+{
+  "slug": 'construction/timber-volume',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/construction/timber-volume.html\',\'utf8\');var i=h.indexOf(\'function switchType(type) {\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+700):\'\';var ok=seg.indexOf(\'if(type === \\\'board\\\') calcBoard(); else calcLog();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'TIMVOL0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['TIMVOL0 OK'],
+  "ref": "第1338批·模式切换残留旧结果修复源码形态强锚：旧版 function switchType(type) { 只切 class/display 不重算，共用结果区保留上一模式结论；修复后切换即调重算函数。旧版无 ⇒ BAD。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

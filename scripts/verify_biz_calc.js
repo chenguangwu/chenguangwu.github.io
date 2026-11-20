@@ -1651,6 +1651,12 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/biz/lorem-ipsum-advanced.html\',\'utf8\');var i=h.indexOf(\'function setMode(btn){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!btn)\')>=0&&seg.indexOf(\'generate(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'LOREM0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['LOREM0 OK'],
   "ref": "第1337批·历史恢复无参切换抛错修复源码形态强锚：旧版 function setMode(btn){ 无参调用解引用参数/全局event抛错被 catch 吞、结果不重算；修复后无参分支安全返回或重算主结果。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'biz/name-generator',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/biz/name-generator.html\',\'utf8\');var i=h.indexOf(\'function setGender(g, btn) {\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+700):\'\';var ok=seg.indexOf(\'genChinese();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'NMGEN0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['NMGEN0 OK'],
+  "ref": "第1338批·模式切换残留旧结果修复源码形态强锚：旧版 function setGender(g, btn) { 只切 class/display 不重算，共用结果区保留上一模式结论；修复后切换即调重算函数。旧版无 ⇒ BAD。"
 }
 ];
 
