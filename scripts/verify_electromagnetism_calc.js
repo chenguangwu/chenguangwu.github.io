@@ -438,6 +438,9 @@ const CASES = [
 ,
 { slug:"electromagnetism/ohms-law", inputs:{V:"",I:"",R:""}, expect:["请填写大于 0"], ref:"电压/电流/电阻全空时不得残留旧结果，须提示补填（OHMCLR）" },
   { slug: "electromagnetism/force-wire-field", inputs: { B: "0.5", I: "10", L: "0.2", th: "270" }, expect: ["⚠ 请完整填写磁感应强度、电流、导线长度与夹角；前三项不能为负，夹角须在 0–180°。"], ref: "夹角 270° 无意义但 sin 仍给出 −1 倍力；新守卫应拒绝。默认 0.5/10/0.2/90→1.0000 不含该提示。" },
+  { slug: "electromagnetism/capacitors-series", inputs: { C1: "0", C2: "4" }, expect: ["⚠ 两只电容的容量都必须大于 0。"], ref: "C1=0 时 1/C1 为 Infinity，旧实现出 Infinity/0 结果；新守卫应拒绝。默认 2/2 不含该提示。" },
+  { slug: "electromagnetism/capacitors-parallel", inputs: { C1: "-2", C2: "4" }, expect: ["⚠ 两只电容的容量都必须大于 0。"], ref: "负电容会使并联等效变小；新守卫应拒绝。默认 10/22 不含该提示。" },
+  { slug: "electromagnetism/inductors-parallel", inputs: { L1: "-2", L2: "4" }, expect: ["⚠ 两只电感的感值都必须大于 0。"], ref: "负电感会使等效值变负；新守卫应拒绝。默认 2/4 不含该提示。" },
 
 ];
 

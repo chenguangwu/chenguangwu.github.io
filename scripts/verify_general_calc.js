@@ -964,10 +964,10 @@ const CASES = [
   },
   {
     slug: "electrical/dianhuaxuedunhuakongzhi",
-    inputs: { E: "1", i: "20", ph: "380" },
+    inputs: { E: "1", i: "20", ph: "7" },
     clicks: ["calc()"],
-    expect: ["0.232 腐蚀速率 (mm/a)", "22.60 钝化临界电位 (V)"],
-    ref: "电位 i=20μA/cm²、pH=380… 按阳极极化曲线：腐蚀速率 0.232 mm/a，钝化临界电位 22.60V，当前位于活化腐蚀区。同场「析氢线 −22.46V / 析氧线 −21.23V」为硬编码文案串，不锚。",
+    expect: ["0.232 腐蚀速率 (mm/a)", "0.22 钝化临界电位 (V)"],
+    ref: "电流密度 20、pH=7 时腐蚀速率 0.232 mm/a，钝化临界电位 −0.2+0.06×7=0.22 V，E=1 V 位于钝化区。同场「析氢线 −22.46V / 析氧线 −21.23V」为硬编码文案串，不锚。",
   },
   {
     slug: "chemistry/temp-time-concentration",
@@ -2400,10 +2400,10 @@ const CASES = [
     "inputs": {
       "E": "42",
       "i": "42",
-      "ph": "42"
+      "ph": "14"
     },
     "expect": [
-      "临界电位 (V) 高电位碱性条件溶解为铁酸盐 区间说明 -2.48"
+      "临界电位 (V) 高电位碱性条件溶解为铁酸盐 区间说明 -0.83 析氢线"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"E\":\"42\",\"i\":\"42\",\"ph\":\"42\"}，输出区含「临界电位 (V) 高电位碱性条件溶解为铁酸盐 区间说明 -2.48」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3851,7 +3851,14 @@ const CASES = [
     "clicks": ["var os=localStorage.setItem,writes=0;localStorage.setItem=function(k,v){if(String(k).indexOf('tb_history_')===0)writes++;};calc();saveHistory();localStorage.setItem=os;document.getElementById('__tbProbe').textContent='TRHIS0 '+(writes===0?'OK':'BAD'+writes);"],
     "expect": ["TRHIS0 OK"],
     "ref": "990无效输入不入历史：制动器转速=0 无效，旧版 saveHistory 仍写历史；修复后不写。合法默认 n>0 会写一条 ⇒ 零逃生。"
-  }
+  },
+  {
+    slug: "electrical/dianhuaxuedunhuakongzhi",
+    inputs: { E: "-0.2", i: "0.1", ph: "15" },
+    clicks: ["calc()"],
+    expect: ["⚠ 电流密度不能为负，pH 值须在 0–14 之间。"],
+    ref: "pH 15 超出 0–14，旧实现仍按公式输出钝化临界电位；新守卫应拒绝。默认 pH=7 不含该提示。"
+  },
 
 ];
 
