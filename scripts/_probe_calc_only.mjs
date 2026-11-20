@@ -22,7 +22,7 @@ for (const rel of list) {
     if (el.tagName === 'SELECT') { el.selectedIndex = -1; el.value = ''; } else if (el.type === 'checkbox' || el.type === 'radio') { el.checked = false; } else el.value = '';
     el.dispatchEvent(new w.Event('input', { bubbles: true })); el.dispatchEvent(new w.Event('change', { bubbles: true }));
   }
-  const fn = ['calc', 'calculate', 'compute', 'calcTool', 'run', 'calcDueDate', 'calc12', 'calc1', 'calcError', 'calcConvert', 'calcModulus', 'lookup', 'analyze'].map(n => (typeof w[n] === 'function' ? n : null)).filter(Boolean)[0];
+  const fn = ['calc', 'calculate', 'compute', 'calcTool', 'run', 'calcDueDate', 'calc12', 'calc1', 'calcError', 'calcConvert', 'calcModulus', 'lookup', 'analyze', 'calcPCM', 'calculate'].map(n => (typeof w[n] === 'function' ? n : null)).filter(Boolean)[0];
   try { if (fn) w[fn](); } catch (e) {}
   const boxes = [...w.document.querySelectorAll('[id]')].filter(el => /result|res$|^res|output|answer|summary/i.test(el.id) && !['INPUT','SELECT','TEXTAREA'].includes(el.tagName));
   const t = boxes.map(b => (b.textContent || '').replace(/\s+/g, ' ').trim()).filter(Boolean).join('|');
