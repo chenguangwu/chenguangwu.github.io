@@ -2037,6 +2037,8 @@ const CASES = [
 { slug:"realestate/assessor-risk-10", inputs:{"invest":"","revenue":""}, expect:["请填写投资额与年收益"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" },
 { slug:"realestate/calc-assessor", inputs:{"area":"","price":""}, expect:["请填写建筑面积与单价"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" },
   { slug: "realestate/pv", inputs: { v0: "100", v1: "-100" }, expect: ["⚠ 折现率必须高于 −100%。"], ref: "r=−100% 时 1+r=0，现值除零发散；新守卫应拒绝。默认折现率不含该提示。" },
+  { slug: "realestate/assessor-44", inputs: { revenue: "1000", margin: "5", years: "10", rate: "", tax: "25" }, expect: ["⚠ 请填写折现率与所得税率。"], ref: "折现率留空曾被 ||0.1 静默替换成 10%，结果看似有效；新守卫应要求显式填写。默认 rate=10/tax=25 不含该提示。" },
+  { slug: "realestate/down-payment", inputs: { totalPrice: "1000000", downPct: "30", years: "30", rate: "-5" }, expect: ["年利率不能为负"], ref: "负年利率会算出低于本金的月供；新守卫应拒绝。默认 rate=4.9 不含该提示。" },
 
 ];
 

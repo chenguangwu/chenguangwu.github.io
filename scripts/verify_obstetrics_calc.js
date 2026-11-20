@@ -278,7 +278,7 @@ const CASES = [
     "inputs": {
       "age": "42",
       "weight": "42",
-      "ga": "42",
+      "ga": "16",
       "afp": "42",
       "bhCG": "42"
     },
@@ -551,7 +551,9 @@ const CASES = [
     "请填写心率与收缩压"
   ],
   "ref": "心率/收缩压为空时清空休克指数（PPHSCLR）"
-}
+},
+  { slug: "obstetrics/calc-risk", inputs: { age: "30", weight: "60", ga: "16", afp: "-1", bhCG: "1.5" }, expect: ["⚠ 年龄、体重、孕周或血清标志物超出合理范围"], ref: "负 AFP MoM 无物理意义；新守卫应拒绝并提示范围。默认 30/60/16/0.8/1.5 不含该提示。" },
+
 ];
 
 async function main() {

@@ -432,7 +432,9 @@ const CASES = [
 { slug:"rheumatology/il6-inflammation", inputs:{"il6":"","crp":""}, expect:["请填写IL-6 与 CRP 水平"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
 { slug:"rheumatology/itp-immune", inputs:{"plt":""}, expect:["请填写血小板计数"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
 { slug:"rheumatology/mda5-antibody", inputs:{"ferritin":""}, expect:["请填写铁蛋白水平"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
-{ slug:"rheumatology/sapho-syndrome", inputs:{"age":"","vas":""}, expect:["请填写年龄与 VAS 评分"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" }
+{ slug:"rheumatology/sapho-syndrome", inputs:{"age":"","vas":""}, expect:["请填写年龄与 VAS 评分"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
+{ slug:"rheumatology/das28", inputs:{}, clicks:["document.getElementById('marker').value='esr';document.getElementById('markerVal').value='-5';document.getElementById('tjc').value='5';document.getElementById('sjc').value='3';document.getElementById('gh').value='30';calc();"], expect:["⚠ 压痛/肿胀关节数、整体健康评分不得为负，ESR 标志物值必须大于 0。"], ref:"ESR=−5 时 ln(负数) 无定义，DAS28 会被算成 −Infinity；旧实现用 Math.max(1) 静默改写为 1；新守卫应提示。默认 markerVal=20 不含该提示。" },
+
 ];
 async function main() {
   const only = process.argv.slice(2);
