@@ -246,12 +246,19 @@
 </div>
 <script>
 function calc(){
-  const __blank = ['p1','p2','p3','p4'].every(function(id){var el=document.getElementById(id);return el && String(el.value).trim()==='';});
-  if (__blank) { document.getElementById('result').innerHTML = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter each event probability before calculating.</p>":"<p>请输入各事件概率后再计算。</p>"); return; }
-  const p1 = +document.getElementById('p1').value || 0;
-  const p2 = +document.getElementById('p2').value || 0;
-  const p3 = +document.getElementById('p3').value || 0;
-  const p4 = +document.getElementById('p4').value || 0;
+  // G10：任一概率留空都必须清空结果并提示；旧写法只在「全部留空」时提示，
+  // 其余情况把空值当 0 参与计算，会给出一个并不对应完整输入的熵值。
+  const ids = ['p1','p2','p3','p4'];
+  const vals = ids.map(function(id){var el=document.getElementById(id);return el ? String(el.value).trim() : '';});
+  if (vals.some(function(v){return v==='';})) {
+    document.getElementById('result').innerHTML = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter a probability for every event before calculating.</p>":"<p>请为每个事件填写概率后再计算。</p>");
+    return;
+  }
+  const p1 = +vals[0], p2 = +vals[1], p3 = +vals[2], p4 = +vals[3];
+  if ([p1,p2,p3,p4].some(function(p){return !isFinite(p) || p<0 || p>1;})) {
+    document.getElementById('result').innerHTML = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p style=\"color:var(--danger)\">Each probability must be between 0 and 1.</p>":"<p style=\"color:var(--danger)\">每个概率须在 0–1 之间。</p>");
+    return;
+  }
   let html = '';
   const __v = ((()=>{const ps=[p1,p2,p3,p4];let h=0;for(const p of ps){if(p>0)h+=-p*Math.log(p)/Math.LN2;}return h;})());
   html += `<p>信息熵 H：<strong style="font-size:18px;color:var(--primary);">${__v.toFixed(4)}</strong> bit/符号</p>`;

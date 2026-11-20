@@ -267,11 +267,20 @@ function renderParams(){
 
 function calc(){
   var Dref = num('Dref'), Tref = num('Tref'), Z = num('Z'), n = num('n');
-  if(!(Dref > 0) || !(Z > 0) || !(n > 0)){ ToolBox.showToast(i18nText(),'error'); return; }
+  // G10：参数非法时既要 toast 也要清空结果区，否则复制/导出会把上一组参数的结果带走。
+  if(!(Dref > 0) || !(Z > 0) || !(n > 0)){
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger)">' +
+      ((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ Enter valid D-value, Z-value and log-reduction before calculating.' : '⚠ 请填写有效的 D 值、Z 值与目标对数后再计算。') + '</p>';
+    ToolBox.showToast(i18nText(),'error'); return;
+  }
 
   if(cur === 'tt'){
     var T = num('T');
-    if(!(T >= 0)){ ToolBox.showToast(i18nText('toast.msg886'),'error'); return; }
+    if(!(T >= 0)){
+      document.getElementById('result').innerHTML = '<p style="color:var(--danger)">' +
+        ((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ Enter a valid blanching temperature (≥0 ℃).' : '⚠ 请填写有效的热烫温度（≥0 ℃）。') + '</p>';
+      ToolBox.showToast(i18nText('toast.msg886'),'error'); return;
+    }
     var D_T = Dref * Math.pow(10, (Tref - T) / Z);
     var t = D_T * n;
     const __g5='<h3 style="text-align:center;margin-bottom:10px;">🌡️ 所需热烫时间</h3>' +
@@ -283,7 +292,11 @@ function calc(){
       '<p style="margin-top:12px;">在 ' + T + '℃ 下使酶失活 ' + n + ' 个对数（残余 ' + Math.pow(10, -n) * 100 + '%），需热烫 <strong>' + t.toFixed(2) + ' min</strong>。</p>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   } else if(cur === 'tt2'){
     var t = num('t');
-    if(!(t > 0)){ ToolBox.showToast(i18nText('toast.msg885'),'error'); return; }
+    if(!(t > 0)){
+      document.getElementById('result').innerHTML = '<p style="color:var(--danger)">' +
+        ((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ Enter a valid blanching time (>0 min).' : '⚠ 请填写有效的热烫时间（>0 min）。') + '</p>';
+      ToolBox.showToast(i18nText('toast.msg885'),'error'); return;
+    }
     // t = Dref * n * 10^((Tref-T)/Z) → (Tref-T)/Z = log10(t/(Dref*n)) → T = Tref - Z*log10(t/(Dref*n))
     var D_T = t / n;
     var T = Tref - Z * Math.log10(D_T / Dref);

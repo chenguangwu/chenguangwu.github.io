@@ -22,12 +22,14 @@ const SAMPLE = Number(getArg("--sample", "60"));
 const BASE = getArg("--base", "http://127.0.0.1:8137");
 const OUT = getArg("--out", "");
 const URLS = getArg("--urls", "");
+const CLICK = argv.includes("--click");
+const SEED = Number(getArg("--seed", "20261120"));
 
 function pick(n) {
   if (URLS) return fs.readFileSync(URLS, "utf8").split("\n").filter(Boolean);
   const tools = JSON.parse(fs.readFileSync("json/tools.json", "utf8"));
   const all = tools.map((t) => "/" + String(t.url).replace(/^\/+/, "")).filter((u) => u.endsWith(".html"));
-  let s = 20261120;
+  let s = SEED;
   const rnd = () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
   const c = all.slice(); const out = [];
   for (let i = 0; i < n && c.length; i++) out.push(c.splice(Math.floor(rnd() * c.length), 1)[0]);
@@ -63,6 +65,19 @@ function pick(n) {
           resultLen: r ? (r.innerText || "").replace(/\s+/g, " ").trim().length : 0
         };
       });
+      if (CLICK) {
+        info.before = info.resultLen;
+        await page.evaluate(() => {
+          const b = document.querySelector("button.btn.primary, button.primary, .btn.primary") ||
+                    document.querySelector("button[onclick*='calc'], button[onclick*='generate'], button[onclick*='Generate']");
+          if (b) b.click();
+        });
+        await new Promise((r) => setTimeout(r, 250));
+        info.after = await page.evaluate(() => {
+          const r = document.querySelector(".result-box") || document.querySelector("#result");
+          return r ? (r.innerText || "").replace(/\s+/g, " ").trim().length : 0;
+        });
+      }
     } catch (e) {
       errs.push("goto: " + String(e).slice(0, 120));
     }
