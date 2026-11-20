@@ -521,8 +521,8 @@ const CASES = [
   "clicks": ["var noLegacy=typeof DRUGS==='undefined'&&typeof copyResult==='undefined'&&typeof __dosage_calculatorExport==='undefined'&&typeof __dosage_calculatorRender==='undefined';document.getElementById('__tbProbe').textContent='LEGACYREMOVED '+(noLegacy?'OK':'BAD');"],
   "expect": ["LEGACYREMOVED OK"],
   "ref": "原通用药品库、计算表单、历史、预设、复制及导出入口均应移除，避免使用未经核验的数据。"
-}
-
+},
+{ slug:"medical/assessor-risk-3", inputs:{"ph":"","water":"","protein":"","sodium":"","oxalate":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

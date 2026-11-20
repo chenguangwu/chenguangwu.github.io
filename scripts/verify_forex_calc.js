@@ -42,7 +42,8 @@ const CASES = [
   "inputs": { "pair": "GBPUSD", "lots": "3", "days": "2" },
   "expect": ["$60.00 点差成本", "总交易成本 = $60.00"],
   "ref": "注入非默认（默认 EURUSD / lots=1 / days=0）：⚠ 选 pair 会联动改写 ask/bid（GBP/USD 的 data 报价 1.2752/1.275）⇒ 不手工注入 ask/bid（注入也会被覆盖，真机同样）。点差 = 0.00020 ⇒ 2.0 点；每手每点 = 100000×0.0001÷1 = $10 ⇒ 点差成本 = 3×2.0×10 = $60.00；佣金 = 3×7 = $21.00；隔夜 = 3×(−3.5)×2 = −$21.00 ⇒ 总成本 = 60+21−21 = $60.00。默认态点差成本 $20.00 / 总成本 $27.00，两串均不出现。"
-}
+},
+{ slug:"forex/pip-calc", inputs:{"rate":"","quoteUsdRate":"","pips":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

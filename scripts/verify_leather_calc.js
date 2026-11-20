@@ -265,7 +265,8 @@ const CASES = [
   "clicks": ["var c=document.getElementById('conc'),l=document.getElementById('lr'),r=document.getElementById('res');c.value='10';l.value='1';calc();var a=r.innerHTML.indexOf('超过 10%')<0&&r.innerHTML.indexOf('超过皮重的 10%')<0;c.value='11';l.value='2';calc();var b=r.innerHTML.indexOf('浓度超过 10%')>=0&&r.innerHTML.indexOf('超过皮重的 10%')>=0&&lastResult.indexOf('超过皮重的 10%')>=0;document.getElementById('__tbProbe').textContent='LEATHERWARN '+(a&&b?'OK':'BAD');"],
   "expect": ["LEATHERWARN OK"],
   "ref": "浓度及占皮重均在严格大于 10% 时提示并随复制结果保留，10% 不触发。"
-}
+},
+{ slug:"leather/assessor-21", inputs:{"thickness":"","penetration":"","uniformity":"","fastness":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

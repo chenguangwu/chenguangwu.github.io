@@ -118,7 +118,9 @@ const CASES = [
     "inputs": { "soldRooms": "" },
     "expect": ["售出间夜须填写有效整数"],
     "ref": "584 批复核失败回归：售出间夜留空旧逻辑按 0 继续输出；现拒绝空值并要求整数。默认售出 96 不出现该提示。"
-  }
+  },
+{ slug:"hotel/luggage-weight", inputs:{"days":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"hotel/tip-calculator", inputs:{"bill":"","tipPct":"","people":"","tax":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

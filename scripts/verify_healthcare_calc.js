@@ -1105,7 +1105,10 @@ const CASES = [
     "请选择性别后再计算"
   ],
   "ref": "性别未选时不得静默按女性公式给理想体重（IWCLR）"
-}
+},
+{ slug:"healthcare/bmi-2", inputs:{"age":"","bmi":"","sex":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"healthcare/due-date-calc", inputs:{"lmp":"","cycleLen":"","ovulationDay":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"healthcare/water-intake", inputs:{"weight":"","activity":"","climate":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
 ];
 
 async function main() {

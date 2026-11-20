@@ -543,7 +543,8 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"s\":\"42\",\"eps\":\"42\"}，输出区含「0 应变 (%) 1.0000e+0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
 { slug:"materials/detector-35", inputs:{"strength":"","flexural":""}, expect:["请填写抗压强度与抗折强度"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" },
-{ slug:"materials/detector-40", inputs:{"voc":"","hcho":"","pb":"","benzene":""}, expect:["请填写VOC、甲醛、铅与苯系物检出值"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" }
+{ slug:"materials/detector-40", inputs:{"voc":"","hcho":"","pb":"","benzene":""}, expect:["请填写VOC、甲醛、铅与苯系物检出值"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" },
+{ slug:"materials/detector-strength-color-diff", inputs:{"colorDiff":"","compress":"","flexural":"","density":"","absorption":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 
 

@@ -782,7 +782,8 @@ const CASES = [
     "请填写体重"
   ],
   "ref": "空体重时清空蛋白质建议区间（CALC5CLEAR）；旧实现 toast 后 return，仍显示上一次 129-168g"
-}
+},
+{ slug:"fitness/step-stride", inputs:{"cadence":"","stride":"","weight":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 
 async function main() {

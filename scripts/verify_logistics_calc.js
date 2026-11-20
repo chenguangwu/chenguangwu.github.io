@@ -273,7 +273,9 @@ const CASES = [
   "expect": ["TEXSTEP OK"],
   "ref": "937预设步长：质地评分「低值」预设 3.5 须合法，输入 min=1 max=10 且 step=0.5 才符合 HTML 默认步长；旧版无 step（默认 1）3.5 触发 stepMismatch，且默认 texture=7 ⇒ avg=(8+8+7+5)/4=7.0 不命中 6.1。探针要求 step=0.5、3.5 参与计算得 avg=(8+8+3.5+5)/4=6.125→6.1/10。"
 },
-{ slug:"logistics/fuel-calculator", inputs:{dist:"",consume:""}, expect:["请填写大于 0 的行驶距离与百公里油耗"], ref:"距离/油耗空时不得输出 0 元油费结论（FUELCLR）" }
+{ slug:"logistics/fuel-calculator", inputs:{dist:"",consume:""}, expect:["请填写大于 0 的行驶距离与百公里油耗"], ref:"距离/油耗空时不得输出 0 元油费结论（FUELCLR）" },
+{ slug:"logistics/checker-6", inputs:{"total":"","lost":"","delayed":"","damaged":"","complaints":"","csat":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"logistics/detector-30", inputs:{"temp":"","hours":"","appearance":"","odor":"","texture":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

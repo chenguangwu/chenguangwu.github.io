@@ -248,8 +248,8 @@ const CASES = [
   "inputs": { "palmArea": "10", "burnDepth": "2s", "totalArea": "", "thirdArea": "10" },
   "expect": ["请输入烧伤总面积与III度面积后再分级。"],
   "ref": "空态守卫：总面积留空时不再按 0% 出「轻度烧伤」分级；显式填 0 仍照常分级。"
-}
-
+},
+{ slug:"forensic-medicine/detector-10", inputs:{"diatomCount":"","diatomType":"","waterType":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

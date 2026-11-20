@@ -790,7 +790,8 @@ const CASES = [
     "请填写大于 0 的存塘生物量"
   ],
   "ref": "存塘量为空时清空收益对比（HSPCLR）"
-}
+},
+{ slug:"fishery/fish-growth-curve", inputs:{"target":"","predDay":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 
 async function main() {

@@ -859,7 +859,8 @@ const CASES = [
     "expect": ["BANDS 90-null-优秀|75-90-良好|60-75-合格|null-60-不合格"],
     "ref": "994 标尺区间（MM-H131）：旧版第三段 lo:null/hi:75 把 <60 的不合格也标成合格；修复后补 60–75 合格段与 null–60 不合格段。探针截取 refBar 的 bands 实参，默认态不执行 clicks、无探针串 ⇒ 零逃生。"
   },
-{ slug:"metalwork/detector-hardness", inputs:{"thickness":""}, expect:["请填写涂层厚度"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" }
+{ slug:"metalwork/detector-hardness", inputs:{"thickness":""}, expect:["请填写涂层厚度"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" },
+{ slug:"metalwork/assessor-34", inputs:{"duration":"","stdDuration":"","corrosionArea":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 
 async function main() {

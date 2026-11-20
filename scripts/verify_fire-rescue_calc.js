@@ -631,7 +631,8 @@ const CASES = [
   { slug: "fire-rescue/fire-fighting-tactics", inputs: { structure: "2", fireArea: "300", trapped: "1", force: "6", water: "1" }, expect: ["300 着火面积(m²)", "钢结构 建筑结构", "少数 被困人员"], ref: "注入 300 m² + 钢结构 + 少数被困：输出 300 着火面积(m²)、钢结构 建筑结构、少数 被困人员、推荐战术模式：进攻（默认也可能出现进攻模式，因此不作为断言；其余三个锚均不命中）。空态另有用例。" },
 { slug:"fire-rescue/chemical-spill", inputs:{"amount":"","wind":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
 { slug:"fire-rescue/detector-11", inputs:{"rated":"","measured":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
-{ slug:"fire-rescue/fire-risk-assessment", inputs:{"height":"","area":"","density":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"fire-rescue/fire-risk-assessment", inputs:{"height":"","area":"","density":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"fire-rescue/rescue-route", inputs:{"floors":"","entrances":"","roadWidth":"","vehicles":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

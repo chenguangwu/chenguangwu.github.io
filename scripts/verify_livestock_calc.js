@@ -507,8 +507,8 @@ const CASES = [
   "clicks": ["records.forEach(function(r){r.yield=null;r.scc=null;});analyze()"],
   "expect": ["请填写完整的产奶量与 SCC"],
   "ref": "空态：产奶量/SCC 清空（0 按缺失）⇒ 提示并隐藏图表，不再给「0 万/ml 优秀」结论；默认 30/25 等有效记录 ⇒ 正常分析，不命中。"
-}
-
+},
+{ slug:"livestock/detector-12", inputs:{"afb1":"","zea":"","don":"","ota":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);
