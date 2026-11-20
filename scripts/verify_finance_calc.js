@@ -19,6 +19,9 @@
  * 验证「算法对无效输入给出正确判定」与验证正例同等重要。
  * 注意：依赖图表（canvas）或依赖「今天」的工具刻意不纳入，否则门禁会随环境失败。
  */
+const fs = require("fs");
+globalThis.__tbFs = fs;
+globalThis.__tbRoot = process.cwd();
 const { runCase } = require("./verify_it_calc.js");
 
 // ---------------------------------------------------------------- 用例
@@ -5043,6 +5046,18 @@ const CASES = [
     clicks: ["var __r=calcIRR(parseFloat(document.getElementById('init').value),[100101]);document.getElementById('__tbProbe').textContent='C156NPVN '+((__r.status==='none')?'OK':'BAD');"],
     expect: ["C156NPVN OK"],
     ref: "第156批 范围外根：init=100、首期 100101 的数学 IRR=100001% 超出搜索上限 100000%，算法返回 none（no-root）。旧首屏摘要简写「无解」易被理解为数学上不存在解；修复后统计卡与明细改称「范围内未找到」并注明搜索区间，与全局无解区分。",
+  },
+  {
+    slug: "finance/retirement-calculator",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/retirement-calculator.html','utf8');var i=h.indexOf('function clearYearlyOutput()');var s=i>=0?h.slice(i,i+260):'';var ok=s.indexOf(\"('yearlyTable')\")>=0&&s.indexOf(\"('sensitivityTable')\")>=0&&s.indexOf(\"sens.innerHTML = ''\")>=0;document.getElementById('__tbProbe').textContent='RETSENS '+(ok?'OK':'BAD');"],
+    expect: ["RETSENS OK"],
+    ref: "第1343批 清空残留：原 clearYearlyOutput 只清年度明细表，非法分支（年龄顺序无效/输入守卫）触发后敏感性分析表 #sensitivityTable 仍保留上一次合法计算旧数据，形成主结果报错+明细旧值矛盾；改为同步清空敏感性表。",
+  },
+  {
+    slug: "finance/compound-interest",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/compound-interest.html','utf8');var i=h.indexOf('function resetDisplay()');var s=i>=0?h.slice(i,i+520):'';var ok=s.indexOf(\"getElementById('chart')\")>=0&&s.indexOf('getContext')>=0&&s.indexOf('clearRect')>=0;document.getElementById('__tbProbe').textContent='CMPCHART '+(ok?'OK':'BAD');"],
+    expect: ["CMPCHART OK"],
+    ref: "第1343批 清空残留：原 resetDisplay 清了数值卡与年度表但未擦除 canvas#chart 上旧柱状图（清空路径不触发 drawChart 的 clearRect）；改为清空时判空安全擦除画布。",
   },
 
 ];

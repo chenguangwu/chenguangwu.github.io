@@ -1,5 +1,8 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
+globalThis.__tbRoot = process.cwd();
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -355,6 +358,12 @@ const CASES = [
     "42.0%"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "textile/convert-yarn",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/textile/convert-yarn.html','utf8');var i=h.indexOf('function calc(){');var s=i>=0?h.slice(i,i+320):'';var ok=s.indexOf('!isFinite(v)||v<=0')>=0&&s.indexOf('请输入大于 0 的纱线细度值')>=0;document.getElementById('__tbProbe').textContent='YARNDIV '+(ok?'OK':'BAD');"],
+  "expect": ["YARNDIV OK"],
+  "ref": "第1343批 除零守卫：纱线细度值为 0/空/非数字时原 calc 走 590.5/0=Infinity，改为有限正数守卫并显示提示后 return。"
 }
 ];
 async function main() {

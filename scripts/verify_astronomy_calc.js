@@ -293,7 +293,8 @@ const CASES = [
 ,
  {"slug":"astronomy/atmospheric-refraction","inputs":{"h":"0"},"expect":["34.433","-0.5739"],"ref":"视地平线 0°：反求真高度约 −0.573875°，代回真高度公式 R≈34.4325′；旧的直接代入约 29′。"},
  {"slug":"astronomy/atmospheric-refraction","inputs":{"h":"5"},"expect":["9.920","4.8347"],"ref":"视高度 5°：真高度约 4.834659°，R≈9.92047′，验证数值反求。"},
- {"slug":"astronomy/atmospheric-refraction","inputs":{"h":"90"},"expect":["0.000","90.0000"],"ref":"天顶截除经验式微小负值。"}
+ {"slug":"astronomy/atmospheric-refraction","inputs":{"h":"90"},"expect":["0.000","90.0000"],"ref":"天顶截除经验式微小负值。"},
+ {"slug":"astronomy/convert-18","clicks":["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/astronomy/convert-18.html','utf8');var i=h.indexOf('function calc(){');var s=i>=0?h.slice(i,i+520):'';var ok=s.indexOf('m===\"p2h\"&&(!isFinite(v)||v<=0)')>=0&&s.indexOf('m!==\"p2h\"&&(!isFinite(v)||v>=44330)')>=0&&s.indexOf('海拔超出模型适用范围')>=0;document.getElementById('__tbProbe').textContent='ASTMOD '+(ok?'OK':'BAD');"],"expect":["ASTMOD OK"],"ref":"第1343批 模型边界守卫：p2h 模式气压<=0（Math.pow 负数 1/5.255→NaN）、h2p 模式海拔>=44330（1−v/44330<=0，Math.pow 负数 5.255→NaN）此前均显示 NaN；改为有限/范围守卫并显示提示后 return。"}
 
 ];
 async function main() {
