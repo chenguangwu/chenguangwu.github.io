@@ -111,7 +111,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入铆钉直径、板厚、铆钉数、板宽及载荷，校核剪切、挤压、撕裂强度并计算铆缝效率">Compute rivet shear and bearing strength for a riveted lap or butt joint.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">铆接强度三重校核（本页代码口径）：总剪切面积=铆钉数×πd²÷4、总挤压面积=铆钉数×d×板厚、净截面=(板宽−铆钉数×d)×板厚（mm²）；剪切 τ=载荷÷剪切面积、挤压 σc=载荷÷挤压面积、撕裂 σt=载荷÷净截面（MPa，载荷 kN×1000 转 N）；铆缝效率 η=三项许用承载力的最小值÷(许用拉应力×板宽×板厚)×100，破坏模式按最小项标注剪切/挤压/撕裂控制。校验：d、板厚&gt;0，铆钉数为正整数，板宽&gt;铆钉数×d，载荷≥0，三项许用应力&gt;0，否则提示并中止。判据（η%）：≥80 优良、≥60 合格、≥40 偏低、其余不合格；另输出各应力项安全裕度。</div>
+      <div class="formula-eq" data-zh="Rivet joint triple check: shear area n×m×πd²/4, bearing area n×d×t, net section (W−n_row×d)×t; check τ, σc, σt and joint efficiency; invalid inputs stop with a prompt.">铆接强度三重校核（本页代码口径）：总剪切面积=铆钉数×剪切面数×πd²÷4、总挤压面积=铆钉数×d×板厚、净截面=(板宽−每排铆钉数×d)×板厚（mm²）；剪切 τ=载荷÷剪切面积、挤压 σc=载荷÷挤压面积、撕裂 σt=载荷÷净截面（MPa，载荷 kN×1000 转 N）；铆缝效率 η=三项许用承载力的最小值÷(许用拉应力×板宽×板厚)×100，破坏模式按最小项标注剪切/挤压/撕裂控制。校验：d、板厚&gt;0，铆钉数为正整数，板宽&gt;铆钉数×d，载荷≥0，三项许用应力&gt;0，否则提示并中止。判据（η%）：≥80 优良、≥60 合格、≥40 偏低、其余不合格；另输出各应力项安全裕度。</div>
       <p class="formula-desc">输入铆钉直径、板厚、铆钉数、板宽及载荷，校核剪切、挤压、撕裂强度并计算铆缝效率</p>
     </div>
     <div class="input-row">
@@ -119,6 +119,8 @@
 <label>铆钉直径 d (mm)</label><input type="number" id="v_d" value="16" min="1" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 16"></div>
       <div><label>板厚 t (mm)</label><input type="number" id="v_t" value="10" min="0.1" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 10"></div>
       <div><label>铆钉数 n</label><input type="number" id="v_n" value="4" min="1" step="1" oninput="calc()" style="font-size:16px;" placeholder="如 4"></div>
+      <div><label>剪切面数 m（单剪1/双剪2）</label><input type="number" id="v_m" value="1" min="1" max="4" step="1" oninput="calc()" placeholder="1=single, 2=double"></div>
+      <div><label>每排铆钉数（留空=全部同排）</label><input type="number" id="v_nr" value="" min="1" step="1" oninput="calc()" placeholder="rivets per row (blank=all)"></div>
       <div><label>板宽 W (mm)</label><input type="number" id="v_w" value="120" min="1" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 120"></div>
     </div>
     <div class="input-row">
@@ -133,7 +135,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__strength_7Export()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="strength_7Table"></div> <div id="strength_7Diff"></div> <div id="strength_7Chart"></div> <div id="strength_7Hist"></div>
-    <div class="info-box">💡 公式：剪切应力 τ=F/(n·π·d²/4)；挤压应力 σc=F/(n·d·t)；撕裂应力 σt=F/((W-n·d)·t)；铆缝效率 η=最小破坏力/(W·t·[σt])×100%</div>
+    <div class="info-box" data-zh="Formula: shear τ=F/(n·m·π·d²/4); bearing σc=F/(n·d·t); tear-out σt=F/((W−n_row·d)·t); joint efficiency η=min failure load/(W·t·[σt])×100%">💡 公式：剪切应力 τ=F/(n·m·π·d²/4)；挤压应力 σc=F/(n·d·t)；撕裂应力 σt=F/((W-n_row·d)·t)；铆缝效率 η=最小破坏力/(W·t·[σt])×100%</div>
     <div class="tool-notes" style="--tool-accent:#64748B;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
@@ -170,7 +172,7 @@
         <li>单剪切适用于单搭接，双剪切（双盖板）时剪切面积加倍</li>
         <li>铆钉排列应满足边距≥1.5d、间距≥3d 的构造要求</li>
         <li>许用应力根据材料和工况选取，钢铆钉常用 [τ]=90~100MPa</li>
-        <li>本工具按单剪切搭接计算，双剪切需手动将 d 等效加倍</li>
+        <li>双剪（双盖板）把「剪切面数 m」填 2，剪切面积按 n·m·πd²/4 计算，不再用「d 加倍」的错误等效</li>
       </ul>
     </div>
     <div style="margin-top:16px;">
@@ -248,29 +250,32 @@ function setInvalid(el,invalid){
 }
 function readInputs(){
   var d=num('v_d'),t=num('v_t'),n=num('v_n'),w=num('v_w'),f=num('v_f');
+  var m=num('v_m')||1, nrow=num('v_nr')||n;
   var tau=num('v_tau'),sigc=num('v_sigc'),sigt=num('v_sigt');
   setInvalid(document.getElementById('v_d'),d<=0);
   setInvalid(document.getElementById('v_t'),t<=0);
   setInvalid(document.getElementById('v_n'),n<1||n!=Math.floor(n));
-  setInvalid(document.getElementById('v_w'),w<=n*d);
+  setInvalid(document.getElementById('v_m'),m<1||m>4||m!=Math.floor(m));
+  setInvalid(document.getElementById('v_nr'),nrow<1||nrow>n||nrow!=Math.floor(nrow));
+  setInvalid(document.getElementById('v_w'),w<=nrow*d);
   setInvalid(document.getElementById('v_f'),f<0);
   setInvalid(document.getElementById('v_tau'),tau<=0);
   setInvalid(document.getElementById('v_sigc'),sigc<=0);
   setInvalid(document.getElementById('v_sigt'),sigt<=0);
-  var valid=d>0&&t>0&&n>=1&&n==Math.floor(n)&&w>n*d&&f>=0&&tau>0&&sigc>0&&sigt>0;
-  return {d:d,t:t,n:n,w:w,f:f*1000,tau:tau,sigc:sigc,sigt:sigt,valid:valid};
+  var valid=d>0&&t>0&&n>=1&&n==Math.floor(n)&&m>=1&&m<=4&&m==Math.floor(m)&&nrow>=1&&nrow<=n&&w>nrow*d&&f>=0&&tau>0&&sigc>0&&sigt>0;
+  return {d:d,t:t,n:n,m:m,nrow:nrow,w:w,f:f*1000,tau:tau,sigc:sigc,sigt:sigt,valid:valid};
 }
 function calc(){
     var __ig=__tbInputGuard(['v_d', 'v_t', 'v_n', 'v_w', 'v_f', 'v_tau', 'v_sigc', 'v_sigt'],["铆钉直径 d (mm)", "板厚 t (mm)", "铆钉数 n", "板宽 W (mm)", "载荷 F (kN)", "许用剪切应力 [τ] (MPa)", "许用挤压应力 [σc] (MPa)", "许用拉应力 [σt] (MPa)"]);if(__ig){const __g1=__ig;ToolBox.setResult("res",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效参数（板宽须大于铆钉总径，铆钉数为正整数）</p>';
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效参数（板宽须大于每排铆钉总径，铆钉数/剪切面数/每排数为正整数）</p>';
     lastResult='';return;
   }
-  var d=iv.d,t=iv.t,n=iv.n,w=iv.w,F=iv.f;
-  var As=n*Math.PI*d*d/4;          // 总剪切面积 mm²
+  var d=iv.d,t=iv.t,n=iv.n,m=iv.m,nrow=iv.nrow,w=iv.w,F=iv.f;
+  var As=n*m*Math.PI*d*d/4;          // 总剪切面积 mm²
   var Ab=n*d*t;                    // 总挤压面积 mm²
-  var A_net=(w-n*d)*t;             // 净截面面积 mm²
+  var A_net=(w-nrow*d)*t;             // 净截面面积 mm²
   var tau=F/As;                    // 剪切应力 MPa
   var sigc=F/Ab;                   // 挤压应力 MPa
   var sigt=F/A_net;                // 撕裂应力 MPa
