@@ -530,7 +530,28 @@ const CASES = [
     clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/obstetrics/bishop-score.html','utf8');var ok=h.indexOf('3+3+2+1+2 = 11/13')<0&&h.indexOf('2+3+2+1+2 = 10/13')>=0&&h.indexOf('消退 30%（1分）')<0&&h.indexOf('消退 30%（0分）')>=0;document.getElementById('__tbProbe').textContent='BISHOPEx '+(ok?'OK':'BAD');"],
     expect: ["BISHOPEx OK"],
     ref: "第1089批 N47/N48：算例1 宫口 3cm 按评分表与下拉 value 应记 2 分，总分 2+3+2+1+2=10/13（旧写 3cm=3 分、11/13）；算例2 消退 30% 属 0–30 档应记 0 分、总分 0（旧写 1 分）。源码形态判别：旧两串消失且新两串出现才通过，旧版必然命中旧串变红。"
-  }
+  },
+{
+  "slug": "obstetrics/postpartum-hemorrhage",
+  "inputs": {
+    "wetWeight": ""
+  },
+  "expect": [
+    "请填写湿重与干敷料重"
+  ],
+  "ref": "湿/干重为空时清空失血量分级（PPHCLR）"
+},
+{
+  "slug": "obstetrics/postpartum-hemorrhage",
+  "inputs": {
+    "hr": "",
+    "sbp": ""
+  },
+  "expect": [
+    "请填写心率与收缩压"
+  ],
+  "ref": "心率/收缩压为空时清空休克指数（PPHSCLR）"
+}
 ];
 
 async function main() {

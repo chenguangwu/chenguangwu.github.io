@@ -1035,6 +1035,17 @@ const CASES = [
     "仅按里程判断（未填写上次换油日期）"
   ],
   "ref": "缺上次换油日期时时间维度不可判定，状态不得给「未到期」绿灯（OILDCLEAR）"
+},
+{
+  "slug": "automotive/calc-1",
+  "inputs": {
+    "m": "",
+    "P": ""
+  },
+  "expect": [
+    "请填写大于 0 的整备质量"
+  ],
+  "ref": "核心参数缺失时不得给「0 m/s² / 判定 估算完成」（ACC1CLR）"
 }
 ];
 async function main() {

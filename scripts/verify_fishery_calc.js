@@ -770,7 +770,17 @@ const CASES = [
   "expect": ["群体总重量需大于 0，水温需在 0–40℃ 之间"],
   "ref": "超范围守卫：水温 45℃ 超出 0–40℃ 有效区间 ⇒ 提示且不输出投喂量，避免把不存在的温度档当有效值；默认 22℃ 正常输出 2.0% / 20.00 kg / 4 餐，不命中。"
 }
-
+,
+{
+  "slug": "fishery/fish-weight",
+  "inputs": {
+    "length": "0"
+  },
+  "expect": [
+    "请填写大于 0 的体长"
+  ],
+  "ref": "体长=0 时清空估重结果（FISHWCLR）；旧实现仅 toast，662.5 g 残留"
+}
 ];
 
 async function main() {
