@@ -666,8 +666,13 @@ const CASES = [
   "inputs": {},
   "expect": ["请输入五个区域的动态与静态皱纹评分（0=无、4=重度）后再评估。"],
   "ref": "原生缺陷修复：10 个评分下拉全部改为「请选择」空值默认，首屏不再直接给出总体类型与除皱剂量建议。"
-}
-
+},
+{ slug:"cosmetic-derm/assessor-67", inputs:{"pb":"","as":"","hg":"","methanol":""}, expect:["请填写铅、砷、汞、甲醇实测值"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
+{ slug:"cosmetic-derm/corneometer", inputs:{"forehead":"","cheek":"","nose":"","hand":""}, expect:["请填写各部位含水量读数"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
+{ slug:"cosmetic-derm/sebumeter", inputs:{"forehead":"","nose":"","cheek":"","chin":""}, expect:["请填写各部位皮脂读数"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
+{ slug:"cosmetic-derm/spf-pa-calculator", inputs:{"med":"","uvi":"","outdoorTime":""}, expect:["请填写MED、UVI 与户外时长"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
+{ slug:"cosmetic-derm/telangiectasia-area", inputs:{"areaPct":"","density":"","diameter":""}, expect:["请填写受累面积、密度与血管直径"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
+{ slug:"cosmetic-derm/visia-spots", inputs:{"spotCount":"","areaPct":"","depth":""}, expect:["请填写色斑数量、面积占比与深度"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" }
 ];
 
 async function main() {
