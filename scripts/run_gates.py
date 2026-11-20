@@ -111,6 +111,10 @@ GATES = (
     # 曼宁明渠 / 局部水头损失 / 水泵功率 / 矩形堰 / 由流量求流速 / 明渠均匀流 / 能量分解 /
     # 水力发电 / 泵站效率 / 蓄能器容量 / 水锤防护 / 液压伺服 / 水泵扬程）。
     ("hydraulic calc correctness", ("node", "scripts/verify_hydraulic_calc.js")),
+    # beekeeping / daily-goods / express 三个小行业的正确性验证（补 G04 覆盖缺口，2026-11-20 第1372批）。
+    ("beekeeping calc correctness", ("node", "scripts/verify_beekeeping_calc.js")),
+    ("daily-goods calc correctness", ("node", "scripts/verify_daily-goods_calc.js")),
+    ("express calc correctness", ("node", "scripts/verify_express_calc.js")),
     # statistics 分类的正确性验证（Z 分数 / 单样本 t / 变异系数 / 加权平均 / 标准误 /
     # 对立事件 / 四分位距与异常值 / 正态区间概率 / 二项 PMF·CDF / 正态 CDF / 泊松 PMF /
     # 百分等级 / 比例置信区间 / 均值·比例样本量 / 相对风险 / 比值比 / 相关系数 /
