@@ -50,7 +50,14 @@ function pick(n) {
   for (const u of pages) {
     const errs = [];
     const onErr = (e) => errs.push("pageerror: " + String(e).slice(0, 160));
-    const onCon = (m) => { if (m.type() === "error") errs.push("console: " + m.text().slice(0, 160)); };
+    const onCon = (m) => {
+      if (m.type() !== "error") return;
+      const t = m.text();
+      // 浏览器/第三方统计的已知策略噪音：非页面缺陷，过滤掉以免淹没真实错误
+      if (/Permissions policy violation: unload/i.test(t)) return;
+      if (/clarity\.ms|clarity-js/i.test(t)) return;
+      errs.push("console: " + t.slice(0, 160));
+    };
     const onFail = (r) => errs.push("reqfail: " + r.url().split("/").pop() + " " + (r.failure() || {}).errorText);
     page.on("pageerror", onErr); page.on("console", onCon); page.on("requestfailed", onFail);
     let info = {};
