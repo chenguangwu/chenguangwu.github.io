@@ -842,6 +842,12 @@ const CASES = [
   "inputs": { "temp": "-20", "uv": "5", "type": "gray" },
   "expect": ["温度超出本模型适用范围"],
   "ref": "第1320批·负温度荒谬值修复真机强锚：temp=-20 时 tempFactorDark=1+(−20−25)×0.03=−0.35≤0，旧版算出负变深时间（−16秒）仍输出；修复后拒绝并提示。默认态 temp=25 因子=1>0 不命中该文案；旧版无该守卫不命中 ⇒ 真红。"
+},
+{
+  "slug": "optical/convergence-near-point",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/convergence-near-point.html','utf8');var i=h.indexOf('function calc(){');var j=h.indexOf('function ',i+10);var seg=(i>=0&&j>i)?h.slice(i,j):'';var n=(seg.split('distTable tbody').length-1);var ok=n>=3;document.getElementById('__tbProbe').textContent='CNPTBL '+(ok?'OK':'BAD');})();"],
+  "expect": ["CNPTBL OK"],
+  "ref": "第1328批·距离/瞳距无效未清参考表残留修复源码形态强锚：原 pd<=0 与 dist<=0 两守卫只更新主结果，#distTable 旧值留存；修复后两守卫均清 distTable tbody。calc 函数体内 distTable tbody 引用 before=1/fixed=3。按函数边界截取禁固定长度。"
 }
 ];
 

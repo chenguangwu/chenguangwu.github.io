@@ -335,6 +335,12 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-pharmacy/herb-quality.html','utf8');var i=h.indexOf('function switchTab(tab, e){');var j=h.indexOf('function loadHerb',i);var seg=(i>=0&&j>i)?h.slice(i,j):'';var n=(seg.split('style.display').length-1);var ok=n>=2;document.getElementById('__tbProbe').textContent='HQTAB '+(ok?'OK':'BAD');})();"],
   "expect": ["HQTAB OK"],
   "ref": "第1327批·切换药材标签内联display未解除修复源码形态强锚：原 switchTab 只切 active class，tab-standard 内联 display:block 不清除致两区同显；修复后同步设两 tab 内联 display。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "tcm-pharmacy/formula-song",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-pharmacy/formula-song.html','utf8');var i=h.indexOf('function generateSong(){');var j=h.indexOf('function ',i+10);var seg=(i>=0&&j>i)?h.slice(i,j):'';var n=(seg.split('result.innerHTML').length-1);var ok=n>=4;document.getElementById('__tbProbe').textContent='FSONGCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["FSONGCLR OK"],
+  "ref": "第1328批·方歌缺必填未清上次结果修复源码形态强锚：原 !name/!herbStr 与 herbs.length<2 两分支只 toast 保留上次生成结果；修复后两分支均清 result.innerHTML。generateSong 函数体内 result.innerHTML 引用 before=2/fixed=4。按函数边界截取禁固定长度。"
 }
 ];
 async function main() {

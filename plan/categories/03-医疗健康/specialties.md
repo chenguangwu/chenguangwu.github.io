@@ -6,7 +6,7 @@
 
 ## 2026-11-06 中药工具静态续审（清单 630–633）
 
-- `tools/tcm-pharmacy/formula-song.html`：缺必填项时只 toast、保留上次生成结果。（原药材输入未转义注入路径已于第 951 批修复并真机验证，从待办删除。）
+- `tools/tcm-pharmacy/formula-song.html`：缺必填项时只 toast、保留上次生成结果——第1328批已修（generateSong 两处缺必填分支均清 result.innerHTML，源码形态强锚 `FSONGCLR` 已落 tcm-pharmacy verify；旧版段内引用 before=2/fixed=4，旧版无 ⇒ BAD）。原药材输入未转义注入路径已于第 951 批修复并真机验证。余项：方歌生成质量与方剂内容未做专业核验。
 - `tools/tcm-pharmacy/four-qi-nature.html:358-372,383-425,440-443`：畏寒对应 `qi:'热'`，计分只处理寒、温两种，单选畏寒时总分为 0，算法误判“寒热不显”且评分百分比为 NaN。症状到药性推荐和代表药须临床专业复核。
 - `tools/tcm-pharmacy/herb-quality.html`：切标签只切 class、内联 display 未解除致两区同显——第1327批已修（switchTab 同步设 tab-standard/tab-score 的内联 display，源码形态强锚 `HQTAB` 已落 tcm-pharmacy verify；旧版无 ⇒ BAD）。余项：滑块变化也不清理已生成评分；评分阈值与“符合药典标准、可入药使用”须专业复核。
 - `tools/tcm-pharmacy/tcm-pharmacoeconomics.html`：按最低日费用给出“最经济方案”和“性价比”，没有疗效或等效性数据，且不同疗程时最低日费未必对应最低总费用。费用/药物比较须临床专业复核，未运行页面。（原 CSV 隐藏表未转义注入路径已于第 951 批修复并真机验证，从待办删除。）
@@ -39,7 +39,7 @@
 > 八页仅源码推演，未运行浏览器或核验验光、光学标准；涉及专业结论须复核。
 
 - `tools/optical/coating-design.html`：波长/镜片折射率 0 与负值静默换默认（`||550`/`||1.6`）、清空只替换结果未清层系图——第1319批已修（原始判空+正数守卫，守卫与非法分支均清 `layerStack`，强锚 `CDGUARD` 已落 optical verify；旧版无 `__lamRaw` ⇒ BAD）。余项：选 SiO₂、ZrO₂ 等时结果说明仍固定称 MgF₂，且声称反射率“降至”但高折射率膜的计算结果可能更高。材料文案与反射率措辞须专业复核。
-- `tools/optical/convergence-near-point.html`：瞳距空值按 0 计算——第1315批已修（原始串判空+正数守卫，强锚 `CNPGUARD` 已落 optical verify）。余项：距离无效时仅更新主结果，距离参考表沿用旧值；PD=62mm/40cm 的每眼需求与双眼总量口径冲突须视光师复核。
+- `tools/optical/convergence-near-point.html`：瞳距空值按 0 计算——第1315批已修（原始串判空+正数守卫，强锚 `CNPGUARD` 已落 optical verify）。距离/瞳距无效未清参考表——第1328批已修（pd<=0 与 dist<=0 两守卫均清 #distTable tbody，源码形态强锚 `CNPTBL` 已落 optical verify；旧版 calc 段引用 before=1/fixed=3，旧版无 ⇒ BAD）。余项：PD=62mm/40cm 的每眼需求与双眼总量口径冲突须视光师复核。
 - `tools/optical/frame-pupillary.html`：A/DBL/PD 清空按 0 出匹配建议——第1315批已修（三处原始判空+正数守卫，强锚 `FPGUARD` 已落 optical verify；ED 为 0 回退 A 属选填默认，保留）。余项：移心过大时一律建议更大 DBL 与自身公式方向冲突，须视光师复核。
 - `tools/optical/frame-tilt.html`：倾角/瞳距/瞳高清空按 0——第1315批已修（原始串判空，pd 与瞳高正数守卫，倾角 0 仍合法，强锚 `FTGUARD` 已落 optical verify）。余项：`shiftCm` 未展示英文简介所述棱镜效应且无镜度输入；前倾光心移动与瞳高方向须专业复核。
 - `tools/optical/lens-refractive-index.html`：度数/直径/中心厚度空值静默代入——第1316批已修（三处原始判空+直径与中心厚度正数守卫，强锚 `LRGUARD` 已落 optical verify；旧版无 `__pRaw` ⇒ BAD）。余项：正负镜均对度数取绝对值并用明确标注“负镜”的边厚公式，正镜也显示中心加差的边厚。厚度模型适用范围须专业复核。
