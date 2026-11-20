@@ -2726,7 +2726,31 @@ const CASES = [
     clicks: ["var a=parseFormula('H2O..NaCl'),b=parseFormula('.H2O'),c=parseFormula('H2O·'),d=calcMolarMass('CuSO4.5H2O');document.getElementById('formula').value='CHMEMPTY_'+(a===null&&b===null&&c===null&&d&&Math.abs(d.totalMass-249.7)<0.01?'OK':'BAD');"],
     expect: ["CHMEMPTY_OK"],
     ref: "1015 批复核：旧 parseFormula 先 split 再 filter 丢空段，把 H2O..NaCl、.H2O、H2O· 当合法；现发现首尾或连续分隔符立即返回 null，同时正常结晶水 CuSO4·5H2O 仍按 249.70 g/mol 解析。默认公式不同且无探针串。"
-  }
+  },
+{
+  "slug": 'science/p-value-calculator',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/science/p-value-calculator.html\',\'utf8\');var i=h.indexOf(\'function setMode(m){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'currentMode=m\')>=0&&seg.indexOf(\'calculate();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'PVALM0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['PVALM0 OK'],
+  "ref": "第1339批·模式切换残留旧结果修复源码形态强锚：旧版 setMode 只切 currentMode/class/display 不重算，共用 #output 保留上一模式结论；修复后切换即调 calculate()。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'science/effect-size-calculator',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/science/effect-size-calculator.html\',\'utf8\');var i=h.indexOf(\'function setMode(m){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'currentMode=m\')>=0&&seg.indexOf(\'calculate();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'EFFM0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['EFFM0 OK'],
+  "ref": "第1339批·模式切换残留旧结果修复源码形态强锚：旧版 setMode 只切 currentMode/class/display 不重算，共用 #output 保留上一模式结论；修复后切换即调 calculate()。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'science/chi-square-calculator',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/science/chi-square-calculator.html\',\'utf8\');var i=h.indexOf(\'function setMode(m){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'currentMode=m\')>=0&&seg.indexOf(\'calculate();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'CHISQM0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['CHISQM0 OK'],
+  "ref": "第1339批·模式切换残留旧结果修复源码形态强锚：旧版 setMode 只切 currentMode/class/display 不重算，共用 #output 保留上一模式结论；修复后切换即调 calculate()。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'science/t-score-calculator',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/science/t-score-calculator.html\',\'utf8\');var i=h.indexOf(\'function setMode(m){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'currentMode=m\')>=0&&seg.indexOf(\'calculate();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'TSCM0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['TSCM0 OK'],
+  "ref": "第1339批·模式切换残留旧结果修复源码形态强锚：旧版 setMode 只切 currentMode/class/display 不重算，共用 #output 保留上一模式结论；修复后切换即调 calculate()。旧版无 ⇒ BAD。"
+}
 ];
 
 // ---------------------------------------------------------------- main
