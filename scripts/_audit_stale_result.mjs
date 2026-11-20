@@ -71,6 +71,18 @@ const ready = (w) => new Promise((res) => {
 
 const TEXTY = ['text', 'number', 'search', 'url', 'email', 'password', 'date', 'time', 'datetime-local', 'tel'];
 const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+// 隐藏的结果区（display:none / hidden 属性 / 祖先隐藏）等同已清空：
+// 大量页面接受「style.display='none'」作为清结果手段，旧版只看 textContent 会误判成残留。
+function visibleText(el) {
+  let cur = el;
+  while (cur && cur.nodeType === 1) {
+    if (cur.hidden) return '';
+    const st = cur.getAttribute && cur.getAttribute('style') || '';
+    if (/display\s*:\s*none|visibility\s*:\s*hidden/i.test(st)) return '';
+    cur = cur.parentElement;
+  }
+  return norm(el.textContent);
+}
 const ERRORISH = /请(输入|填写|选择|勾选|先)|无效|不合法|应在|不能为|必须|⚠|❌|失败|错误|Invalid|Please|must be/i;
 
 // 结果区候选：站点统一容器。最终取「真正随输入变化」的那个（见主循环），
@@ -124,7 +136,7 @@ for (const f of files) {
     const orig = els.map((e) => e.value);
     const altOf = (v) => (/^-?\d+(\.\d+)?$/.test(v) ? String(parseFloat(v) * 2 || 7) : (v ? v + 'X' : '7'));
     const setAll = (fn) => { for (let i = 0; i < els.length; i++) els[i].value = fn(i, String(orig[i] || '')); };
-    const texts = () => cands.map((c) => norm(c.textContent));
+    const texts = () => cands.map((c) => visibleText(c));
 
     // 先取默认态，再全量改值：挑「文本真的变了」的容器作为结果区。
     setAll((i, v) => v); runCalc();
