@@ -60,6 +60,13 @@ const CASES = [
 
   // ── 电能 E = P×t（kWh） ─────────────────────────────────────────
   {
+    slug: "energy/energy-cost",
+    inputs: { P: "2500", h: "10", rate: "" },
+    expect: ["请填写功率、时长、电价后再计算。"],
+    ref: "rate 留空：旧代码 num() 回退 0，静默输出 0.00 元；新增空值守卫后须提示，且不得输出 0.00。"
+  },
+
+  {
     slug: "energy/energy-from-power",
     inputs: { P: "1500", t: "3" },
     expect: ["4.500"],
