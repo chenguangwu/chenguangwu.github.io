@@ -22,7 +22,7 @@
 - 受影响：scripts/falsepass_baseline.json 登记页
 
 ### P4. 判别器对「分级词锚点」误报已解，但「纯数值锚」仍有撞默认风险
-- 方案：新增用例锚点时跑双态核验（注入态命中/默认态失配）——纪律已在 baseline note，建议固化成脚本 `scripts/check_anchor_two_state.js`（待开发）。
+- 方案：新增用例锚点时跑双态核验（注入态命中/默认态失配）——纪律已由 `scripts/discriminate_check.js` 全量默认态快照 + `scripts/discriminate_baseline.json` 棘轮固化（2026-11-21 全量 12,440 检、逃生 1=基线、跳过 7=基线），不再单列脚本。
 - 受影响：全部 verify_*.js
 
 ## 进度（2026-11-20 收口）
