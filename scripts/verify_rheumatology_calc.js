@@ -423,8 +423,16 @@ const CASES = [
   "clicks": ["document.getElementById('pregnancy').value='';calc();document.getElementById('result').textContent='PARTIAL:'+document.getElementById('result').innerHTML.replace(/<[^>]*>/g,'').trim();"],
   "expect": ["PARTIAL:请输入抗SSA、抗SSB、ANA、RF、补体与妊娠状态后再评估临床意义。"],
   "ref": "原生缺陷修复：6 个下拉全部改为「请选择」空值默认，首屏不再直接给「高度可能 pSS / 需排查 SLE」诊断倾向与用药/妊娠管理建议。"
-}
-
+},
+{ slug:"rheumatology/complement-level", inputs:{"c3":"","c4":""}, expect:["请填写C3 与 C4 补体水平"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
+{ slug:"rheumatology/das28", inputs:{"tjc":"","sjc":"","markerVal":""}, expect:["请填写压痛关节数、肿胀关节数与标志物值"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
+{ slug:"rheumatology/detector-8", inputs:{"screen":"","confirm":"","aptt":""}, expect:["请填写筛查/确证比值与 aPTT"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
+{ slug:"rheumatology/gout-uric-acid", inputs:{"ua":""}, expect:["请填写血尿酸值"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
+{ slug:"rheumatology/igg4-level", inputs:{"igg4":"","igg":""}, expect:["请填写IgG4 与 IgG 水平"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
+{ slug:"rheumatology/il6-inflammation", inputs:{"il6":"","crp":""}, expect:["请填写IL-6 与 CRP 水平"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
+{ slug:"rheumatology/itp-immune", inputs:{"plt":""}, expect:["请填写血小板计数"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
+{ slug:"rheumatology/mda5-antibody", inputs:{"ferritin":""}, expect:["请填写铁蛋白水平"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
+{ slug:"rheumatology/sapho-syndrome", inputs:{"age":"","vas":""}, expect:["请填写年龄与 VAS 评分"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);
