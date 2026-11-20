@@ -291,7 +291,14 @@ const CASES = [
     "请填写体重、身高、年龄"
   ],
   "ref": "空体重时清空目标热量/BMR/三大营养素卡（NUTRICLCLEAR）；旧实现输出仍为上一次 2957 kcal"
-}
+},
+  {
+    "slug": "nutrition/calc-1",
+    "inputs": {"age": "-5", "weight": "65", "height": "170"},
+    "expect": ["⚠ 年龄须在 1–120 岁，体重 1–300 kg，身高 50–250 cm。"],
+    "ref": "负年龄使 BMR 反而增大；新守卫应拒绝。默认 30/65/170 不含该提示。"
+  },
+
 ];
 async function main() {
   const only = process.argv.slice(2);

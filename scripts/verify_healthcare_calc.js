@@ -994,7 +994,7 @@ const CASES = [
     "slug": "healthcare/tdee-calculator",
     "inputs": {
       "age": "42",
-      "height": "42",
+      "height": "170",
       "weight": "42",
       "bf": "42",
       "act": "1.375"
@@ -1109,6 +1109,13 @@ const CASES = [
 { slug:"healthcare/bmi-2", inputs:{"age":"","bmi":"","sex":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
 { slug:"healthcare/due-date-calc", inputs:{"lmp":"","cycleLen":"","ovulationDay":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
 { slug:"healthcare/water-intake", inputs:{"weight":"","activity":"","climate":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+  {
+    "slug": "healthcare/tdee-calculator",
+    "inputs": {"age": "5", "height": "170", "weight": "65", "bf": "", "act": "1.375"},
+    "expect": ["⚠ 年龄须在 10–120 岁，身高 100–250 cm，体重 20–300 kg；体脂率如填写须在 0–70%。"],
+    "ref": "5 岁儿童被当作成人套 Mifflin 公式仍出 TDEE；新守卫应拒绝。默认 30/170/65 不含该提示。"
+  },
+
 ];
 
 async function main() {
