@@ -111,7 +111,7 @@
     <h2 data-zh="🔍 检测（在线/脱机/激光）反馈">🔍 Inspection Feedback (Inline, Offline, Laser)</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="选择检测方式(在线/脱机/激光)，输入实测尺寸与理论值，计算偏差并判定IT公差等级">Evaluate inspection feedback modes such as inline, offline and laser measurement and their impact on production quality control.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">机械尺寸检测与公差等级判定<br>实测偏差 = 实测尺寸 − 标称尺寸（mm）<br>公差带 = 上偏差 − 下偏差<br>极限尺寸：上限 = 标称 + 上偏差｜下限 = 标称 + 下偏差<br>合格判定：下偏差 ≤ 偏差 ≤ 上偏差<br>偏差占公差带 = (偏差 − 下偏差) ÷ 公差带 × 100%<br>IT 等级按公差带查表（mm）：≤0.004 IT01｜≤0.006 IT0｜≤0.010 IT1<br>　≤0.016 IT2｜≤0.025 IT3｜≤0.039 IT4｜≤0.062 IT5｜≤0.100 IT6<br>　≤0.160 IT7｜≤0.250 IT8｜≤0.400 IT9｜其他 IT10+<br>测量不确定度：在线 0.005｜三坐标 0.002｜激光 0.010 mm<br>偏差居中（占比 35%~65%）判过程稳定</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">机械尺寸检测与公差等级判定<br>实测偏差 = 实测尺寸 − 标称尺寸（mm）<br>公差带 = 上偏差 − 下偏差<br>极限尺寸：上限 = 标称 + 上偏差｜下限 = 标称 + 下偏差<br>合格判定：下偏差 ≤ 偏差 ≤ 上偏差<br>偏差占公差带 = (偏差 − 下偏差) ÷ 公差带 × 100%<br>IT 等级按 GB/T 1800.1 计算：i=0.45·D^(1/3)+0.001·D（μm，D 为基本尺寸分段几何平均），IT5–IT18 依次取 7i/10i/16i/25i/40i/64i/100i/160i/250i/400i/640i/1000i/1600i/2500i；小于 7i 记「IT5 以下」。<br>例：Ø50（D≈38.73）i≈1.56μm，39μm 公差带 ⇒ IT8（25i≈39μm），不再按固定 0.039 一律 IT4<br>测量不确定度：在线 0.005｜三坐标 0.002｜激光 0.010 mm<br>偏差居中（占比 35%~65%）判过程稳定</div>
   <p class="formula-desc">本工具按 CNC 加工尺寸检测规范，输入实测尺寸与理论值计算偏差并对照 IT 公差等级判定合格性，给出刀具补偿与加工调整建议；纯前端运行，数据不上传。</p>
 </div>
 
@@ -200,7 +200,7 @@
   <ul>
       <li>在线检测使用机床测头，实时反馈但精度较低(±5μm)；脱机检测精度最高(±2μm)</li>
       <li>激光检测适合复杂曲面和薄壁件，但测量不确定度较大(±10μm)</li>
-      <li>公差等级按GB/T 1800.1标准，IT01最高，IT18最低</li>
+      <li>公差等级按 GB/T 1800.1 标准公差因子随基本尺寸计算，IT5–IT18；小于 7i 记「IT5 以下」，IT18 以上另行复核</li>
       <li>测量不确定度应小于公差带的1/3~1/10，否则判定结果不可靠</li>
       <li>偏差占公差带百分比可反映加工过程能力，建议控制在30-70%</li>
   </ul>
@@ -208,6 +208,21 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
+function itGradeFor(nom,tolMM){
+  // GB/T 1800.1 标准公差因子 i=0.45·D^(1/3)+0.001·D；D 为尺寸分段几何平均
+  var ranges=[[3,1.732],[6,4.242],[10,7.746],[18,13.416],[30,23.238],[50,38.730],[80,63.246],[120,97.98],[180,146.97],[250,212.13],[315,273.86],[400,354.18],[500,436.0]];
+  var D=1;
+  for(var r=0;r<ranges.length;r++){ if(nom<=ranges[r][0]){ D=ranges[r][1]; break; } }
+  var iUnit=0.45*Math.cbrt(D)+0.001*D; // μm
+  var tolUm=tolMM*1000;
+  // IT5 起有标准倍数；低于 IT5 仍按原分级
+  var factors={5:7,6:10,7:16,8:25,9:40,10:64,11:100,12:160,13:250,14:400,15:640,16:1000,17:1600,18:2500};
+  if(tolUm < iUnit*7) return 'IT5 以下';
+  for(var g=5;g<=18;g++){
+    if(tolUm <= iUnit*factors[g] + 1e-9) return 'IT'+g;
+  }
+  return 'IT18 以上';
+}
 function calc(){
   var mm=document.getElementById('measureMethod').value;
   var nom=parseFloat(document.getElementById('nominal').value);
@@ -225,19 +240,7 @@ function calc(){
   var lowerLimit=nom+lt;
   var pass=dev>=lt&&dev<=ut;
   var devPct=tolRange>0?(dev-lt)/tolRange*100:0;
-  var itGrade='';
-  if(tolRange<=0.004)itGrade='IT01';
-  else if(tolRange<=0.006)itGrade='IT0';
-  else if(tolRange<=0.010)itGrade='IT1';
-  else if(tolRange<=0.016)itGrade='IT2';
-  else if(tolRange<=0.025)itGrade='IT3';
-  else if(tolRange<=0.039)itGrade='IT4';
-  else if(tolRange<=0.062)itGrade='IT5';
-  else if(tolRange<=0.100)itGrade='IT6';
-  else if(tolRange<=0.160)itGrade='IT7';
-  else if(tolRange<=0.250)itGrade='IT8';
-  else if(tolRange<=0.400)itGrade='IT9';
-  else itGrade='IT10+';
+  var itGrade=itGradeFor(nom,tolRange);
   var methodUncertainty={'online':0.005,'offline':0.002,'laser':0.010}[mm];
   var fmt=function(v){return(v>=0?'+':'')+v.toFixed(4);};
   var html='<p>检测方式：<strong>'+mmName+'</strong></p>';

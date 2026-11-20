@@ -97,7 +97,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📊 模流（分析/填充/冷却）模拟">📊 Mold Flow Analysis Simulator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="分析/填充/冷却">Simulate mold filling and cooling behaviour to estimate filling time, cooling time and likely defect regions.</p>
-<div class="formula-box"><div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">总充填体积 = 体积 × (1 + 损耗率 ÷ 100)；充填时间 = 总体积 ÷ 流量；冷却时间 ≈ h² ÷ (π²α) × ln[(4 ÷ π) × (熔体温度 − 水温) ÷ (顶出温度 − 水温)]；流程比 = (体积 ÷ 表面积) ÷ 壁厚</div><p>本工具按简化经验公式估算注塑模流关键指标，供方案预判与试模排期参考：</p><p>① 总充填体积 = 塑件体积 ×（1 + 流道占比）；充填时间 = 总充填体积 ÷ 充填速率。</p><p>② 冷却时间采用平板近似（Ballman）：t ≈ (h²/π²α)·ln[(4/π)·(T熔−T水)/(T顶出−T水)]，其中 h 为壁厚、α 为材料热扩散系数。</p><p>③ 流程/壁厚比 =（塑件体积 ÷ 投影面积）÷ 壁厚，比值越大远程充填越困难。结果仅为工程估算，需结合试模验证。</p></div>
+<div class="formula-box"><div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">总充填体积 = 体积 × (1 + 损耗率 ÷ 100)；充填时间 = 总体积 ÷ 流量；冷却时间 ≈ h² ÷ (π²α) × ln[(4 ÷ π) × (熔体温度 − 水温) ÷ (顶出温度 − 水温)]；流程/壁厚比 = (体积 ÷ 表面积 cm) ÷ (壁厚 mm ÷ 10) cm</div><p>本工具按简化经验公式估算注塑模流关键指标，供方案预判与试模排期参考：</p><p>① 总充填体积 = 塑件体积 ×（1 + 流道占比）；充填时间 = 总充填体积 ÷ 充填速率。</p><p>② 冷却时间采用平板近似（Ballman）：t ≈ (h²/π²α)·ln[(4/π)·(T熔−T水)/(T顶出−T水)]，其中 h 为壁厚、α 为材料热扩散系数。</p><p>③ 流程/壁厚比 =（塑件体积 ÷ 投影面积，cm）÷（壁厚 mm÷10，cm），比值越大远程充填越困难；冷却对数项以模温与水温中的较高者为基准。结果仅为工程估算，需结合试模验证。</p></div>
 
 <label>塑件体积 V（cm³）</label>
 <input type="number" id="vol" value="200" step="any" placeholder="如 200">
@@ -212,13 +212,14 @@ function calc(){
   var res=document.getElementById('res');
   var __asEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?true:false;
   if([V,A,r,Q,Tm,Tmo,Te,Tw,h,al].some(function(x){return !isFinite(x);})){res.innerHTML=(__asEn?'Fill in complete numeric parameters.':'请填写完整的数值参数。');return;}
-  if(V<=0||A<=0||r<0||Q<=0||h<=0||al<=0||Tm<=Te||Te<=Tw){res.innerHTML=(__asEn?'Enter positive values: melt temperature > ejection temperature > water temperature.':'请输入有效参数：体积、面积、流量、壁厚与热扩散系数须为正，且熔体温度＞顶出温度＞水温。');return;}
+  var Tref=Math.max(Tmo,Tw);
+  if(V<=0||A<=0||r<0||Q<=0||h<=0||al<=0||Tm<=Te||Te<=Tref){res.innerHTML=(__asEn?'Enter positive values: melt temperature > ejection temperature > max(mold, water) temperature.':'请输入有效参数：体积、面积、流量、壁厚与热扩散系数须为正，且熔体温度＞顶出温度＞模温与水温中的较高者。');return;}
   var totalV=V*(1+r/100);
   var tFill=totalV/Q;
-  var ratio=(Tm-Tw)/(Te-Tw);
+  var ratio=(Tm-Tref)/(Te-Tref);
   if((4/Math.PI)*ratio<=1){res.innerHTML=(__asEn?'Ejection temperature is too low for the cooling logarithm.':'参数不合理：顶出温度过低，冷却对数项无定义。');return;}
   var tCool=(h*h/(Math.PI*Math.PI*al))*Math.log((4/Math.PI)*ratio);
-  var slender=(V/A)/h;
+  var slender=(V/A)/(h/10); // V/A 为 cm 等效流程，壁厚 mm 转 cm
   var warns=[];
   if(tFill>3)warns.push('充填时间偏长（>3s），存在短射、困气风险，建议增大浇口或提高注射速率');
   if(tCool>30)warns.push('冷却时间偏长（>30s），周期变长且翘曲风险升高，建议优化冷却水路');
@@ -228,7 +229,8 @@ function calc(){
   h2+='<tr><td>总充填体积</td><td>'+fmtN(totalV)+' cm³</td></tr>';
   h2+='<tr><td>充填时间</td><td>'+fmtN(tFill)+' s</td></tr>';
   h2+='<tr><td>冷却时间（近似）</td><td>'+fmtN(tCool)+' s</td></tr>';
-  h2+='<tr><td>流程/壁厚比</td><td>'+fmtN(slender)+'</td></tr></table>';
+  h2+='<tr><td>冷却基准温度（max 模温/水温）</td><td>'+fmtN(Tref)+' °C</td></tr>';
+  h2+='<tr><td>流程/壁厚比（V/A ÷ h(cm)）</td><td>'+fmtN(slender)+'</td></tr></table>';
   h2+='<h3>缺陷预警</h3><ul class="dd-list">';
   for(var i=0;i<warns.length;i++)h2+='<li>'+warns[i]+'</li>';
   h2+='</ul>';

@@ -353,3 +353,9 @@
 - `machinery/detector-194` 设备与运行模式参与阈值和清单。
 - `machinery/jingmishebeixuanxing` 导程精度按 C3/C5/C7/C10 等级取值。
 - `metalwork/calc-feed` 渲染 Q 并澄清为简化指数而非体积去除率。
+
+
+## 2026-11-21 IT等级/流程比
+
+- `metalwork/detector-23` IT 等级按 GB/T 1800.1 公差因子随公称尺寸计算。
+- `metalwork/analysis-simulator` 流程/壁厚比统一 cm，冷却基准取 max(模温,水温)。
