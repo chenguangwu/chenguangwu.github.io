@@ -1471,15 +1471,15 @@ const CASES = [
   {
     "slug": "agriculture/gdd-calculator",
     "inputs": {
-      "tbase": "42",
-      "tupper": "42",
+      "tbase": "5",
+      "tupper": "25",
       "targetGDD": "42",
       "method": "single"
     },
     "expect": [
-      "6天 第7天\nsingle\n42\n42\n42"
+      "single\n5\n25\n42"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"tbase\":\"42\",\"tupper\":\"42\",\"targetGDD\":\"42\",\"method\":\"single\"}，输出区含「6天 第7天\nsingle\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"tbase\":\"42\",\"tupper\":\"42\",\"targetGDD\":\"42\",\"method\":\"single\"}，输出区含「single\n5\n25\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "agriculture/harvest-date-predictor",
@@ -1823,7 +1823,22 @@ const CASES = [
 },
 { slug:"agriculture/greenhouse-rolling-time", inputs:{inTemp:"",outTemp:""}, expect:["请填写棚内温度与棚外温度"], ref:"棚内/棚外温度空时不得给「保持现状/彻底换气」结论（GHROLCLR）" },
 { slug:"agriculture/agri-calculator", inputs:{fert_n:"",fert_p:"",fert_k:"",fert_area:""}, expect:["请填写氮磷钾配比与施肥面积"], ref:"NPK 与面积空时不得输出 0-0-0 假方案（AGCALCLR）" },
-{ slug:"agriculture/agri-calculator", inputs:{plant_spacing:"",plant_row:"",plant_area:""}, expect:["请填写株距、行距与面积"], ref:"株行距/面积空时不得输出 0 株数（AGCALCLR2）" }
+{ slug:"agriculture/agri-calculator", inputs:{plant_spacing:"",plant_row:"",plant_area:""}, expect:["请填写株距、行距与面积"], ref:"株行距/面积空时不得输出 0 株数（AGCALCLR2）" },
+  {
+    slug: "agriculture/gdd-calculator",
+    inputs: { method: "simple", tbase: "10", tupper: "30", targetGDD: "300", tmax0: "15", tmin0: "35" },
+    expect: ["某天的最高气温不能低于最低气温，请检查逐日气温。"],
+    ref: "最高 15 < 最低 35 时旧实现按日均 −10 计并把 GDD 截为 0，假装已计算；新守卫应拒绝。正常 35/15 不含该提示。"
+  },
+  {
+    slug: "agriculture/agri-calculator",
+    inputs: { pest_content: "40", pest_target: "1000", pest_volume: "0", pest_unit: "ppm" },
+    clicks: ["calcPesticide();"],
+    dumpIds: ["pestResult"],
+    expect: ["⚠ 原药含量须在 0–100%（不含 0），目标浓度与配制量都必须大于 0。"],
+    ref: "配制量 0 L 时需药量与加水量都为 0，看似有效；新守卫应拒绝。默认 40/1000/30 不含该提示。"
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
