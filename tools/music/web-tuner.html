@@ -245,7 +245,7 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Web Audio 调音器是做什么的？", "acceptedAnswer": {"@type": "Answer", "text": "调用浏览器麦克风实时采集声音并用Web Audio分析音高，显示当前音名与偏差，辅助吉他、贝斯、尤克里里等弦乐器快速调音，纯前端无需联网。"}}, {"@type": "Question", "name": "如何使用Web Audio 调音器？", "acceptedAnswer": {"@type": "Answer", "text": "在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。"}}, {"@type": "Question", "name": "计算结果准确吗？", "acceptedAnswer": {"@type": "Answer", "text": "本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。"}}, {"@type": "Question", "name": "Web Audio 调音器适合哪些场景？", "acceptedAnswer": {"@type": "Answer", "text": "工作与生活中的相关计算与查询。"}}, {"@type": "Question", "name": "使用本工具需要联网或上传数据吗？", "acceptedAnswer": {"@type": "Answer", "text": "不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。"}}]}
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "调音器原理是什么？", "acceptedAnswer": {"@type": "Answer", "text": "麦克风取声→FFT/自相关得基频→按十二平均律算最近音名与音分偏差→指针指示偏高/偏低，照着调弦。"}}, {"@type": "Question", "name": "±5 音分内算准合理吗？", "acceptedAnswer": {"@type": "Answer", "text": "人耳对音高分辨约 5–6 音分，合奏要求更严（常<3），独奏/练习 ±5 内足够用。"}}, {"@type": "Question", "name": "换参考音后读数为什么整体偏了？", "acceptedAnswer": {"@type": "Answer", "text": "432 / 440 / 442 Hz 会平移全部音分：440 Hz 在 432 基准下已是 +31.8 cents，超过 ±5 会显示「偏高」。先确认与乐谱/乐队用的是同一基准，再判断乐器是否走音。"}}, {"@type": "Question", "name": "和弦能测准吗？", "acceptedAnswer": {"@type": "Answer", "text": "不能。自相关一次只给一个基频，和弦、双音、强泛音都会得到错误读数；请一次只拨一根弦，等音高稳定后再读。"}}, {"@type": "Question", "name": "为什么有时不显示音名？", "acceptedAnswer": {"@type": "Answer", "text": "频率超出 50–2000 Hz 或音量过小（RMS 小于 0.01）时不输出；环境噪声大时先靠近麦克风、减少伴奏。"}}, {"@type": "Question", "name": "吉他六弦参考值准吗？", "acceptedAnswer": {"@type": "Answer", "text": "82.41 / 110.00 / 146.83 / 196.00 / 246.94 / 329.63 是十二平均律理论值，与按钮内置值偏差均不超过 0.07 音分，可直接作目标参考。"}}]}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
@@ -313,6 +313,10 @@
       </div>
       <div class="tuner-freq-text" id="freqText">-- Hz</div>
       <div class="tuner-cents-text" id="centsText"></div>
+    </div>
+
+    <div class="toolbar" style="justify-content:center;">
+      <button type="button" class="btn" onclick="copyTunerReading()">复制读数</button>
     </div>
 
     <!-- 调音表 -->
@@ -863,6 +867,16 @@
   }
 
   /* ===== 启动/停止 ===== */
+  window.copyTunerReading = function() {
+    const note = (document.getElementById('noteName')?.textContent || '').trim();
+    const oct = (document.getElementById('noteOctave')?.textContent || '').trim();
+    const freq = (document.getElementById('freqText')?.textContent || '').trim();
+    const cents = (document.getElementById('centsText')?.textContent || '').trim();
+    if (!note || note === '--') { if (global.ToolBox && ToolBox.toast) ToolBox.toast('请先开始调音'); return; }
+    const txt = '音名 ' + note + oct + '｜频率 ' + freq + (cents ? '｜偏差 ' + cents : '');
+    if (global.ToolBox && ToolBox.copyText) ToolBox.copyText(txt, '读数已复制');
+  };
+
   window.startTuner = async function() {
     try {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -983,7 +997,6 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
-<section class="opt-guide"><h2>如何使用Web Audio 调音器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>参考音 A4：</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>Web Audio 调音器是做什么的？</dt><dd>调用浏览器麦克风实时采集声音并用Web Audio分析音高，显示当前音名与偏差，辅助吉他、贝斯、尤克里里等弦乐器快速调音，纯前端无需联网。</dd><dt>如何使用Web Audio 调音器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>Web Audio 调音器适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
 <script>
 (function(){try{
   var NS="tools/music/web-tuner.html";

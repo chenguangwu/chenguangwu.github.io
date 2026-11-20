@@ -58,7 +58,7 @@ TBK_CHART_RE = re.compile(r"TBKit\.chart\.", re.I)
 TBK_TABLE_RE = re.compile(r"TBKit\.matrix\.table", re.I)
 TBK_PERSIST_RE = re.compile(r"TBKit\.history\.", re.I)
 TBK_PRESET_RE = re.compile(r"TBKit\.preset\.bar", re.I)
-TBK_EXPORT_RE = re.compile(r"TBKit\.export\.|TBKit\.share\.", re.I)
+TBK_EXPORT_RE = re.compile(r"TBKit\.export\.|TBKit\.share\.|TBKit\.util\.exportTable", re.I)
 TBK_COMPARE_RE = re.compile(r"TBKit\.history\.diffLast|TBKit\.util\.diffBox", re.I)
 
 
