@@ -2,6 +2,8 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const fs = require("fs");
+globalThis.__tbFs = fs;
+globalThis.__tbRoot = process.cwd();
 const path = require("path");
 const COMMISSION_PATH = path.join(__dirname, "..", "tools", "sales", "commission-calculator.html");
 
@@ -244,6 +246,12 @@ const CASES = [
     "clicks": ["currentMode='team';document.getElementById('teamSales').value='-500000';calc()"],
     "expect": ["团队销售额不能为负数"],
     "ref": "12-M5：团队销售额 -500,000、费率 6%、份额 0.3 原先照算提成 ¥-9,000；现在明确拒绝并清空缓存。注入非默认销售额 120000，默认团队档不出现该文案。"
+  },
+  {
+    "slug": "sales/stacked-discount",
+    "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+\'tools/sales/stacked-discount.html\',\'utf8\');var i=h.indexOf(\'if(price<=0)\');var s=i>=0?h.slice(i,i+420):\'\';var ok=(s.match(/getElementById\\(\'detailTable\'\\).innerHTML=\'\'/g)||[]).length>=1&&s.indexOf(\'badRate\')>=0;document.getElementById(\'__tbProbe\').textContent=\'STKDCL \'+(ok?\'OK\':\'BAD\');})();"],
+    "expect": ["STKDCL OK"],
+    "ref": "第1344批 早退残留：stacked-discount 的 price<=0 与 badRate 两分支原只改 finalVal/finalLbl 不清 #detailTable，旧明细表残留；修复后两分支 return 前清空明细表。"
   }
 ];
 async function main() {

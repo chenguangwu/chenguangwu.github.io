@@ -5059,6 +5059,12 @@ const CASES = [
     expect: ["CMPCHART OK"],
     ref: "第1343批 清空残留：原 resetDisplay 清了数值卡与年度表但未擦除 canvas#chart 上旧柱状图（清空路径不触发 drawChart 的 clearRect）；改为清空时判空安全擦除画布。",
   },
+  {
+    slug: "finance/position-size-calculator",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/position-size-calculator.html','utf8');var i=h.indexOf('if (!(ratio > 0))');var s=i>=0?h.slice(i,i+220):'';var ok=s.indexOf(\"('statGrid').innerHTML=''\")>=0&&s.indexOf('盈亏比须大于 0')>=0;document.getElementById('__tbProbe').textContent='POSSTAT '+(ok?'OK':'BAD');"],
+    expect: ["POSSTAT OK"],
+    ref: "第1344批 分支残留：凯利模式 ratio<=0 早退分支原只写 #res 就 return，#statGrid 保留上次合法计算的统计卡（martingale 分支有清，口径不一）；改为早退同步清空 statGrid。",
+  },
 
 ];
 

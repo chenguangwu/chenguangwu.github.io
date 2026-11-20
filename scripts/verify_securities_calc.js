@@ -10,6 +10,9 @@
  * 用法: node scripts/verify_securities_calc.js [slug ...]
  */
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
+globalThis.__tbRoot = process.cwd();
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
@@ -692,6 +695,12 @@ const CASES = [
     inputs: { K: "", P: "" },
     expect: ["请填写「行权价 K」后再计算。"],
     ref: "空态守卫：清空 K/P 后必须提示，不得渲染 0.00 结构化零值。",
+  },
+  {
+    slug: "securities/position-sizing",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/securities/position-sizing.html','utf8');var i=h.indexOf('function calcFixed(){');var s=i>=0?h.slice(i,i+420):'';var ok=s.indexOf('__tbInputGuard(')>=0&&s.indexOf(\"'feeRate'\")>=0&&s.indexOf('__ig')>=0;document.getElementById('__tbProbe').textContent='FIXGUARD '+(ok?'OK':'BAD');"],
+    expect: ["FIXGUARD OK"],
+    ref: "第1344批 守卫覆盖不全：calcFixed 固定风险模式原无 __tbInputGuard，非数字手续费经 getVal 静默转 0 产出错误结果（calcKelly 有守卫）；修复后 calcFixed 入口补六参数守卫。",
   }
 
 ];

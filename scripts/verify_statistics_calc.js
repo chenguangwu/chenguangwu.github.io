@@ -13,6 +13,9 @@
  *   node scripts/verify_statistics_calc.js
  *   node scripts/verify_statistics_calc.js z-score-calc t
  */
+const fs = require("fs");
+globalThis.__tbFs = fs;
+globalThis.__tbRoot = process.cwd();
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
@@ -1427,6 +1430,12 @@ const CASES = [
     clicks: ["(function(){globalThis.TBKit={util:{isEn:function(){return false;}},chart:{bar:function(sel,o){var e=document.getElementById(String(sel).slice(1));if(e)e.innerHTML='DRAWN';}}};try{__rrChart();}catch(e){}var d1=String(document.getElementById('rrChart').innerHTML);document.getElementById('b').value='';try{__rrChart();}catch(e){}var d2=String(document.getElementById('rrChart').innerHTML);document.getElementById('__tbProbe').textContent='RRCHART '+((d1.indexOf('DRAWN')>=0&&d2==='')?'OK':'BAD d1='+d1+' d2='+d2);})()"],
     expect: ["RRCHART OK"],
     ref: "623 复核失败重做：__rrChart 原用 num() 把空串读成 0 ⇒ 清空 b 后主算停答、附加层清面板，外层包装器仍按 b=0 重画 RR=6 的柱图。修复后改用保留缺值的 __rrNum。探针先合法态确认画出、再清空 b 断言图表被清空；默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "statistics/normal-cdf",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/statistics/normal-cdf.html','utf8');var ok=h.indexOf('Math.max(0, 2 * phi - 1)')>=0&&h.indexOf('区间 P(|Z−μ|≤zσ)')>=0;document.getElementById('__tbProbe').textContent='NMIDCLAMP '+(ok?'OK':'BAD');"],
+    expect: ["NMIDCLAMP OK"],
+    ref: "第1344批 百分比越界：区间 P(|Z−μ|≤zσ) 原用 (2φ−1)*100，z<0 时 φ<0.5 得负百分比（空集应为 0）；修复后 Math.max(0, 2φ−1) 夹取。",
   },
 
 ];

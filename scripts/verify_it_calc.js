@@ -14446,6 +14446,12 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/it/normal-distribution.html\',\'utf8\');var i=h.indexOf(\'function setMode(m){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+700):\'\';var ok=seg.indexOf(\'calculate();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'NORMD0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['NORMD0 OK'],
   "ref": "第1338批·模式切换残留旧结果修复源码形态强锚：旧版 function setMode(m){ 只切 class/display 不重算，共用结果区保留上一模式结论；修复后切换即调重算函数。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'it/normal-distribution',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/it/normal-distribution.html\',\'utf8\');var i=h.indexOf(\'if(isNaN(a)||isNaN(b))\');var seg=i>=0?h.slice(i,i+520):\'\';var ok=seg.indexOf(\'if(a>b)\')>=0&&seg.indexOf(\'区间下限 a 不得大于上限 b\')>=0;document.getElementById(\'__tbProbe\').textContent=\'NORMAB \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['NORMAB OK'],
+  "ref": "第1344批·区间概率负守卫源码形态强锚：旧版区间模式 P(a≤X≤b) 只判 isNaN，a>b 时 normalCDF(b)-normalCDF(a)<0 显示负概率；修复后 a>b 提示并 return。旧版无 ⇒ BAD。"
 }
 ];
 // ---------------------------------------------------------------- DOM stub
