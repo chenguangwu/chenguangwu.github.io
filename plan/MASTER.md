@@ -22,7 +22,7 @@
 
 | 文件 | 主题 | 状态 |
 |---|---|---|
-| G01-公式与计算正确性裁量项.md | 16 批精度审计后仍待老板裁定的口径/阈值/条目结构 | 🟡 A1–A3 经复核已落地（parkland 8h 半量 / qtc 按性别 450·460 / gfr-cockcroft 身高输入+DuBois）；A4 页面已不存在（vo2-max-calculator）；A5 阿莫西林儿童 25→13 mg/kg/次（20–40 mg/kg/日 分 3 次口径）；A7 hp-dob 13C/14C 阈值分列（14C 按 100/200/500 DPM 分档）；A8 kupperman/vanderbilt/asrs 已按官方计分收口（含 vanderbilt 结果区覆盖 bug）；A6 EAT-26 反向计分改为官方唯一反向项；C1 CMC(l:c) S_H 改按 ISO 105-J03；余项 C6 为需来源裁断 |
+| G01-公式与计算正确性裁量项.md | 16 批精度审计后仍待老板裁定的口径/阈值/条目结构 | 🟢 代码侧收口 A1–A3 经复核已落地（parkland 8h 半量 / qtc 按性别 450·460 / gfr-cockcroft 身高输入+DuBois）；A4 页面已不存在（vo2-max-calculator）；A5 阿莫西林儿童 25→13 mg/kg/次（20–40 mg/kg/日 分 3 次口径）；A7 hp-dob 13C/14C 阈值分列（14C 按 100/200/500 DPM 分档）；A8 kupperman/vanderbilt/asrs 已按官方计分收口（含 vanderbilt 结果区覆盖 bug）；A6 EAT-26 反向计分改为官方唯一反向项；C1 CMC(l:c) S_H 改按 ISO 105-J03；C6 已裁断（第 1384 批：保留余额倍数 + 补 2026-11 来源/时效 + 缴存年限 FAQ）；其余医学阈值项已转为「专业复核对账清单」，非代码缺陷 |
 | G02-重定向存根清理与索引合规.md | 超期存根删除 + 死链提交流程 | 🟢 2026-11-20 复核：磁盘 29 个存根全部为 2026-11-14 新建、到期 2026-12-14，**无超期未删**（旧「29 个超期」表述有误）；新增门禁 `scripts/audit_redirect_stubs.py --check` 机器校验未登记／超期未删／幽灵登记三类问题（第 1378 批） |
 | G03-构建数据源还原坑.md | HTML 手改被 _build.py 冲掉（json/i18n 源未改） | 🟢 已收口（2026-11-20：SOP + `_build.py` 构建期 G03 提示日志，实测 4426 页） |
 | G04-verify用例与判别力债务.md | 逃生项/弱用例/坏用例存量与补强规则 | 🟡 规则固化；**207/207 行业 verify 脚本已全覆盖**（第 1372 批补 beekeeping/daily-goods/express 并挂 run_gates）；7731 与 4970 的时间及统计口径差异待核实；余下为弱用例判别力逐行业补强（滚动） |
