@@ -347,6 +347,13 @@ const CASES = [
     expect: ["请填写干球温度与含湿量后再计算。"],
     ref: "含湿量留空：旧代码按 0 输出干空气焓，伪装成湿空气结果；新增守卫后须提示。" },
 
+{
+  "slug": "thermodynamics/polytropic-work",
+  "inputs": {"p1": "0", "v1": "1", "p2": "50", "v2": "2", "n": "1.3"},
+  "expect": ["⚠ 压力与体积都必须大于 0。"],
+  "ref": "初压为 0 时 W 只是 0，但等温分支会出现 Math.log(v2/v1) 以外的负压输入发散；新守卫要求压力体积均 >0。默认 100/1/50/2/1.3→166.67 不含该提示。"
+},
+
 ];
 async function main() {
   const only = process.argv.slice(2);

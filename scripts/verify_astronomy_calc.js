@@ -304,6 +304,8 @@ const CASES = [
     expect: ["请填写月龄（0–29.53 天）后再计算。"],
     ref: "月龄留空：旧代码按 0 天输出新月 0% 照明；新增守卫后须提示。" },
 
+{ "slug":"astronomy/convert-15", "inputs":{"val":"0","unit":"joule"}, "expect":["⚠ 能量必须大于 0 才能换算震级。"], "ref":"焦耳输入为 0 时 log10(E) 发散；新守卫应拒绝计算。默认 6 级→6.310e+13 J 不含该提示。" },
+
 ];
 async function main() {
   const only = process.argv.slice(2);
