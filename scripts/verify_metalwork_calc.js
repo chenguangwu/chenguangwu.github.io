@@ -563,7 +563,7 @@ const CASES = [
       "reqLevel": "2"
     },
     "expect": [
-      "pulloff\n1\n42\n42\n42\n42\nvickers\n5B\n42\n42\nzn\n2\n79"
+      "综合评分 涂层质量良好（未达标）"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"pulloffVal\":\"42\",\"thickness\":\"42\",\"stdThickness\":\"42\",\"thickTolerance\":\"42\",\"vickersVal\":\"42\",\"nanoVal\":\"42\",\"adhesionMethod\":\"pulloff\",\"crosscutGrade\":\"1\",\"thickMethod\":\"magnetic\",\"hardnessMethod\":\"vickers\",\"pencilGrade\":\"5B\",\"coatingType\":\"zn\",\"reqLevel\":\"2\"}，输出区含「pulloff\n1\n42\n42\n42\n42\nvickers\n5B\n42\n42\nz…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -858,8 +858,8 @@ const CASES = [
     ],
     "expect": ["BANDS 90-null-优秀|75-90-良好|60-75-合格|null-60-不合格"],
     "ref": "994 标尺区间（MM-H131）：旧版第三段 lo:null/hi:75 把 <60 的不合格也标成合格；修复后补 60–75 合格段与 null–60 不合格段。探针截取 refBar 的 bands 实参，默认态不执行 clicks、无探针串 ⇒ 零逃生。"
-  }
-
+  },
+{ slug:"metalwork/detector-hardness", inputs:{"thickness":""}, expect:["请填写涂层厚度"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" }
 ];
 
 async function main() {

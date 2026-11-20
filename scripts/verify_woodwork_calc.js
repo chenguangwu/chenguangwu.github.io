@@ -86,7 +86,8 @@ const CASES = [
     "21%"
   ],
   "ref": "auto-restore"
-}
+},
+{ slug:"woodwork/detector-32", inputs:{"hcho":"","loadForce":"","stability":"","cycles":""}, expect:["请填写甲醛释放量与力学耐久指标"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

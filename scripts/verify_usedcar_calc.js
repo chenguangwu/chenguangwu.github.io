@@ -270,7 +270,10 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/usedcar/usedcar-valuation.html','utf8');var zh=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/usedcar.json','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/usedcar/usedcar-valuation.json','utf8');var ok=h.indexOf('再按车况上下浮动形成残值区间')<0&&h.indexOf('输出算术示例')>=0&&zh.indexOf('里程与车况')<0&&zh.indexOf('估算残值基线')>=0&&dd.indexOf('单一基线估值')>=0&&dd.indexOf('成新率与估值区间')<0&&en.indexOf('single baseline estimate')>=0&&en.indexOf('valuation range')<0;document.getElementById('__tbProbe').textContent='UC179 '+(ok?'OK':'BAD');"],
   "expect": ["UC179 OK"],
   "ref": "12-N179：公式框/meta/深解均承诺「按车况浮动形成残值区间」，但页面无车况输入、代码只输出单一估值；统一改为「单一基线估值，未计入车况/品牌溢价/地区行情」并同步中英源。源码形态断言旧承诺串全部消失、新口径到位；旧版必红，默认态不产生该哨兵，零逃生。"
-}
+},
+{ slug:"usedcar/checker-3", inputs:{"carAge":"","mileage":""}, expect:["请填写车龄与行驶里程"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" },
+{ slug:"usedcar/rater-37", inputs:{"mileage":""}, expect:["请填写行驶里程"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" },
+{ slug:"usedcar/tester-12", inputs:{"batteryV":"","chargingV":""}, expect:["请填写蓄电池与充电电压"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" }
 ];
 
 async function main() {
