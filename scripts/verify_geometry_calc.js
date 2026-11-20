@@ -81,6 +81,11 @@ const CASES = [
     ref: "A=5·4/(4·tan36°)=6.8819 m²；内切圆半径=2/(2·tan36°)=1.3764 m" },
 
   { slug: "geometry/trapezoid-area",
+    inputs: { a: "3", b: "5", h: "" },
+    expect: ["请填写上底、下底与高后再计算。"],
+    ref: "高留空：旧 num() 回退 0 静默输出面积 0；新增空值守卫后须提示。" },
+
+  { slug: "geometry/trapezoid-area",
     inputs: { a: "2", b: "7", h: "3" },
     expect: ["13.5000", "9.0000"],
     ref: "A=(2+7)·3/2=13.5000 m²；中位线=(2+7)/2=4.5 ⇒ 中位线×2=上下底之和=9.0000 m（原式算 (a+b)·2=18，把「×2」错做成「×4」）" },
@@ -89,6 +94,11 @@ const CASES = [
     inputs: { a: "5", b: "6", c: "7" },
     expect: ["14.6969", "9.0000"],
     ref: "s=9.0000；A=√(9·4·3·2)=√216=14.6969 m²" },
+
+  { slug: "geometry/pythagorean",
+    inputs: { a: "3", b: "" },
+    expect: ["请填写两条直角边后再计算。"],
+    ref: "b 留空：旧 num() 回退 0 把斜边算成 a；新增空值守卫后须提示。" },
 
   { slug: "geometry/pythagorean",
     inputs: { a: "5", b: "12" },
