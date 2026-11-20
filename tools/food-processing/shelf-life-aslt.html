@@ -233,8 +233,18 @@ function num(id){ return parseFloat(document.getElementById(id).value) || 0; }
 
 function calc(){
   var Tt = num('Tt'), Ts = num('Ts'), thetaT = num('thetaT'), Q10 = num('Q10');
-  if(thetaT <= 0){ ToolBox.showToast(i18nText('toast.msg909'),'error'); return; }
-  if(Q10 < 1){ ToolBox.showToast(i18nText('toast.msg015'),'error'); return; }
+  // G10：空值/非法输入必须清空结果区
+  var __slBlank = ['thetaT','Q10'].some(function(id){var e=document.getElementById(id);return !e||String(e.value).trim()==='';});
+  if(__slBlank || !(thetaT > 0)){
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger)">' +
+      ((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ Enter a shelf life at test temperature (> 0) and a Q10 value.' : '⚠ 请填写大于 0 的试验温度保质期与 Q10 值。') + '</p>';
+    ToolBox.showToast(i18nText('toast.msg909'),'error'); return;
+  }
+  if(!(Q10 >= 1)){
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger)">' +
+      ((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ Q10 must be at least 1.' : '⚠ Q10 须不小于 1。') + '</p>';
+    ToolBox.showToast(i18nText('toast.msg015'),'error'); return;
+  }
 
   var deltaT = Tt - Ts;                         // 温差(试验-储存)
   var factor = Math.pow(Q10, deltaT / 10);      // 外推倍数

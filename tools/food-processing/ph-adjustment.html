@@ -259,9 +259,12 @@ function calc(){
   var ag = AGENTS[document.getElementById('agent').value];
   // G10：任一参数非法都清空结果区，避免复制/导出带走上一组参数的结果
   var __bad = '';
-  if(vol <= 0) __bad = ((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ Enter a valid solution volume (> 0).' : '⚠ 请填写有效的溶液体积（> 0）。');
+  // num() 用 `|| 0` 兜底，空串会变成 0 从而绕过区间校验 —— 必须先判原始串是否为空
+  var __blank = ['vol','ph0','ph1','conc'].some(function(id){var e=document.getElementById(id);return !e||String(e.value).trim()==='';});
+  if(__blank) __bad = ((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ Fill in volume, initial pH, target pH and regulator concentration.' : '⚠ 请填写溶液体积、初始 pH、目标 pH 与调节剂浓度。');
+  else if(vol <= 0) __bad = ((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ Enter a valid solution volume (> 0).' : '⚠ 请填写有效的溶液体积（> 0）。');
   else if(conc <= 0) __bad = ((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ Enter a valid regulator concentration (> 0).' : '⚠ 请填写有效的调节剂浓度（> 0）。');
-  else if(ph0 < 0 || ph0 > 14 || ph1 < 0 || ph1 > 14) __bad = ((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ pH values must be within 0–14.' : '⚠ pH 值须在 0–14 之间。');
+  else if(!isFinite(ph0) || !isFinite(ph1) || ph0 < 0 || ph0 > 14 || ph1 < 0 || ph1 > 14) __bad = ((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ pH values must be within 0–14.' : '⚠ pH 值须在 0–14 之间。');
   if(__bad){ document.getElementById('result').innerHTML = '<p style="color:var(--danger)">' + __bad + '</p>'; ToolBox.showToast(i18nText(),'error'); return; }
 
   var H0 = Math.pow(10, -ph0), H1 = Math.pow(10, -ph1);
