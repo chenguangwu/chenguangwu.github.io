@@ -558,7 +558,13 @@ const CASES = [
     clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/hematology/dic-scoring.html','utf8');var q=String.fromCharCode(34);var a=h.indexOf('ddimer'+q+':2')>=0&&h.indexOf('ddimer'+q+':3,'+q+'pt'+q+':2')<0&&h.indexOf('else if(rb')>=0&&h.indexOf('rb.innerHTML=')>=0&&h.indexOf('本地实验室阈值')>=0&&h.indexOf('早期 DIC 可疑')>=0;document.getElementById('__tbProbe').textContent='DICFIX '+(a?'OK':'BAD');"],
     expect: ["DICFIX OK"],
     ref: "12-N51/N52/N53：早期DIC可疑预设原 plt85+ddimer3+pt2+fib2.5=2分判不支持DIC（名实相反），改 ddimer6+pt4+fib1.0=3分落非显性DIC；hasDisease 取消时 refBar 加 else 清空避免旧红色标尺残留；D-二聚体简化档补与 ISTH 原文 0/2/3 分值不同的声明。源码形态哨兵旧版必红。"
-  }
+  },
+{
+  "slug": 'hematology/leukemia-classification',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/hematology/leukemia-classification.html\',\'utf8\');var i=h.indexOf(\'function switchTab(t,btn){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!t||!btn)\')>=0&&seg.indexOf(\'showAml(); showAll(); showMicm(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'LEUKH0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['LEUKH0 OK'],
+  "ref": "第1336批·历史恢复无参切换函数抛错修复源码形态强锚：旧版 function switchTab(t,btn){ 无参调用解引用参数抛错被 catch 吞、结果不重算；修复后无参分支安全重算本页主结果并 return。旧版无 ⇒ BAD。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

@@ -269,6 +269,13 @@ const CASES = [
   "clicks": ["var q=String.fromCharCode(39);var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/acupuncture/acupoint-location.html','utf8');var ok=h.indexOf('胫骨内侧髁下缘→内踝尖')>=0&&h.indexOf('胫骨内侧髁下缘至内踝尖 13 寸')>=0&&h.indexOf('髌骨下缘→内踝尖')<0&&h.indexOf('脉中→耳根')<0&&h.indexOf('胸骨上穴')<0&&h.indexOf('胸骨上窝→剑突 9寸；脐中→耻骨联合上缘 5寸')>=0&&h.indexOf('navel to pubic symphysis = 5 cun')>=0;document.getElementById('__tbProbe').textContent='ACUGUDU '+(ok?'OK':'BAD');"],
   "expect": ["ACUGUDU OK"],
   "ref": "12-N38/N39/N40：下肢 13 寸段起点由「髌骨下缘」改为标准「胫骨内侧髁下缘」并与自身括注统一；参考表中英两栏改为与 BONE_DATA 一致的「胸骨上窝→剑突 9 寸；脐中→耻骨联合上缘 5 寸」，删除「脉中→耳根」错误骨度；N39 反算已用 realDist/cmPerCun 正确实现，源码核销。源码形态断言旧起点/旧骨度串消失、新中英串到位；旧版必红，默认态不产生该哨兵，零逃生。"
+},
+{
+  "slug": 'acupuncture/acupoint-combination',
+  "afterLoad": true,
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/acupuncture/acupoint-combination.html\',\'utf8\');var i=h.indexOf(\'function switchMode(m, btn){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!m||!btn)\')>=0&&seg.indexOf(\'renderMethods(); else renderDisease(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'ACPCF0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['ACPCF0 OK'],
+  "ref": "第1336批·历史恢复无参切换函数抛错修复源码形态强锚：旧版 function switchMode(m, btn){ 无参调用解引用参数抛错被 catch 吞、结果不重算；修复后无参分支安全重算本页主结果并 return。旧版无 ⇒ BAD。"
 }
 ];
 async function main() {

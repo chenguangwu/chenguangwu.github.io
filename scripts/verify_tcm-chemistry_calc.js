@@ -359,6 +359,24 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-chemistry/metabolite-prediction.html','utf8');var zh=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/tcm-chemistry.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/tcm-chemistry/metabolite-prediction.json','utf8');var ok=h.indexOf('预测 I 相与 II 相代谢产物')>=0&&h.indexOf('输入中药成分结构')<0&&h.indexOf('外用给药代谢特点')>=0&&h.indexOf('给药途径只影响以上提示；下方 I/II 相反应按化合物类别给出，不随途径变化。')>=0&&zh.indexOf('不解析结构式，结果需实验验证')>=0&&en.indexOf('Topical route:')>=0&&en.indexOf('The route only affects the note above')>=0;document.getElementById('__tbProbe').textContent='METABI '+(ok?'OK':'BAD');"],
   "expect": ["METABI OK"],
   "ref": "12-N92/N94/N95：meta/标题不再承诺结构输入（页面说明与公式框均声明不解析结构式），标题补全 I 相与 II 相；给药途径补外用分支并明示下方类别模板不随途径变化，中英源同步。旧版旧结构输入串命中、标题截断、无外用提示 ⇒ 变红；默认态不产生该哨兵，零逃生。"
+},
+{
+  "slug": 'tcm-chemistry/compatibility-taboo',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/tcm-chemistry/compatibility-taboo.html\',\'utf8\');var i=h.indexOf(\'function switchTab(name, btn){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!name||!btn)\')>=0&&seg.indexOf(\'checkClassic(); checkPhyschem(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'TMCCF0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['TMCCF0 OK'],
+  "ref": "第1336批·历史恢复无参切换函数抛错修复源码形态强锚：旧版 function switchTab(name, btn){ 无参调用解引用参数抛错被 catch 吞、结果不重算；修复后无参分支安全重算本页主结果并 return。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'tcm-chemistry/structure-identification',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/tcm-chemistry/structure-identification.html\',\'utf8\');var i=h.indexOf(\'function switchTab(name, btn){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!name||!btn)\')>=0&&seg.indexOf(\'parseIR(); parseNMR(); parseMS(); parseUV(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'TMCSI0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['TMCSI0 OK'],
+  "ref": "第1336批·历史恢复无参切换函数抛错修复源码形态强锚：旧版 function switchTab(name, btn){ 无参调用解引用参数抛错被 catch 吞、结果不重算；修复后无参分支安全重算本页主结果并 return。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'tcm-chemistry/toxicity-dose',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/tcm-chemistry/toxicity-dose.html\',\'utf8\');var i=h.indexOf(\'function switchTab(name, btn){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!name||!btn)\')>=0&&seg.indexOf(\'convert(); classify(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'TMCTD0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['TMCTD0 OK'],
+  "ref": "第1336批·历史恢复无参切换函数抛错修复源码形态强锚：旧版 function switchTab(name, btn){ 无参调用解引用参数抛错被 catch 吞、结果不重算；修复后无参分支安全重算本页主结果并 return。旧版无 ⇒ BAD。"
 }
 ];
 async function main() {
