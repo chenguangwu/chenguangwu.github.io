@@ -129,9 +129,19 @@ const CASES = [
 
   // ---- 测量系统分析 MSA ----
   { slug: "metrology/gauge-repeatability",
+    inputs: { r: "", m: "3" },
+    expect: ["请填写平均极差与测量次数后再计算。"],
+    ref: "平均极差留空：旧 num() 回退 0 静默输出 σ=0；新增空值守卫后须提示。" },
+
+  { slug: "metrology/gauge-repeatability",
     inputs: { r: "0.07", m: "4" },
     expect: ["0.0340", "0.1751"],
     ref: "d₂(4)=2.059；σ_r=0.07/2.059=0.0340；99% 带宽 5.15σ_r=0.1751" },
+
+  { slug: "metrology/gauge-reproducibility",
+    inputs: { r: "", o: "3" },
+    expect: ["请填写极差与评价人数后再计算。"],
+    ref: "极差留空：旧 num() 回退 0 静默输出 σ=0；新增空值守卫后须提示。" },
 
   { slug: "metrology/gauge-reproducibility",
     inputs: { r: "0.06", o: "2" },

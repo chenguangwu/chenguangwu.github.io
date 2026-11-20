@@ -106,7 +106,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="由风向角度（°）映射到 16 方位罗盘名称（如 N、NE、SSW）。">Convert wind direction between compass degrees and named bearings.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">风向 16 方位换算（本页代码口径，查表映射、无算术公式）：角度先归一化 ((deg mod 360)+360) mod 360；方位索引 idx=Math.round(角度÷22.5) mod 16，查 16 方位表 N/NNE/NE/ENE/E/ESE/SE/SSE/S/SSW/SW/WSW/W/WNW/NW/NNW；联动量：方位角弧度=角度×π÷180、相反风向=方位表第 (idx+8) mod 16 项。校验：无强校验，空值按 0 兜底（0° 即正北）。判据：每 22.5° 一档，四舍五入归属最近方位。</div>
+      <div class="formula-eq">风向 16 方位换算（本页代码口径，查表映射、无算术公式）：角度先归一化 ((deg mod 360)+360) mod 360；方位索引 idx=Math.round(角度÷22.5) mod 16，查 16 方位表 N/NNE/NE/ENE/E/ESE/SE/SSE/S/SSW/SW/WSW/W/WNW/NW/NNW；联动量：方位角弧度=角度×π÷180、相反风向=方位表第 (idx+8) mod 16 项。校验：空值即提示；角度须为有效数值，按 ((deg mod 360)+360) mod 360 归一（负角与 &gt;360° 合法）。判据：每 22.5° 一档，四舍五入归属最近方位。</div>
       <p class="formula-desc">由风向角度（°）映射到 16 方位罗盘名称（如 N、NE、SSW）。</p>
     </div>
 
@@ -195,7 +195,12 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const deg=((num('deg')%360)+360)%360;
+            const __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+            const __raw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+            if(__raw('deg')===''){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en?'Enter wind direction in degrees before calculating.':'请填写风向角度后再计算。')+'</p>');return;}
+            const __d=Number(__raw('deg'));
+            if(!Number.isFinite(__d)){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en?'Wind direction must be a valid number.':'风向角度须为有效数值。')+'</p>');return;}
+            const deg=((__d%360)+360)%360;
             const names=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
             const idx = Math.round(deg/22.5)%16;
             const __g1=dataGrid([ [names[idx], '16 方位（'+deg.toFixed(0)+'°）'],

@@ -106,7 +106,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="由气温，按 Magnus 公式 e_s = 6.1094·exp(17.625T/(T+243.04)) 计算饱和水汽压。">Compute saturation vapor pressure with the Magnus or Tetens formula.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">Magnus 饱和水汽压实算式（本页代码口径，Bolton 1980 系数）：e_s=6.1094×exp(17.625×T÷(T+243.04))（hPa，T 气温 ℃）；联动量：毫米汞柱=e_s×0.750062、帕斯卡=e_s×100、Magnus 与 Bolton 参数化之比=e_s÷max(6.112×exp(17.67×T÷(T+243.5)),10⁻⁹)×100（%）。校验：无强校验，空值按 0 兜底。判据：无固定分级，温度越高饱和水汽压按指数快速增长。</div>
+      <div class="formula-eq">Magnus 饱和水汽压实算式（本页代码口径，Bolton 1980 系数）：e_s=6.1094×exp(17.625×T÷(T+243.04))（hPa，T 气温 ℃）；联动量：毫米汞柱=e_s×0.750062、帕斯卡=e_s×100、Magnus 与 Bolton 参数化之比=e_s÷max(6.112×exp(17.67×T÷(T+243.5)),10⁻⁹)×100（%）。校验：空值即提示；气温须高于 −243.04 ℃（否则分母为 0 或公式发散）。判据：无固定分级，温度越高饱和水汽压按指数快速增长。</div>
       <p class="formula-desc">由气温，按 Magnus 公式 e_s = 6.1094·exp(17.625T/(T+243.04)) 计算饱和水汽压。</p>
     </div>
 
@@ -255,7 +255,12 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const T=num('T');
+            const __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+            const __raw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+            if(__raw('T')===''){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en?'Enter air temperature before calculating.':'请填写气温后再计算。')+'</p>');return;}
+            const T0=Number(__raw('T'));
+            if(!Number.isFinite(T0)||T0<=-243.04){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en?'Temperature must be a valid number above -243.04 °C.':'气温须为高于 -243.04 ℃ 的有效数值。')+'</p>');return;}
+            const T=T0;
             const es = 6.1094*Math.exp(17.625*T/(T+243.04));
             const __g1=dataGrid([ [es.toFixed(2)+' hPa', '饱和水汽压 e_s'],
                 [(es*0.750062).toFixed(3), '饱和水汽压 (mmHg 毫米汞柱)'],

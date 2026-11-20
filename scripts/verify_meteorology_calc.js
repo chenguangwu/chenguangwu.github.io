@@ -112,6 +112,11 @@ const CASES = [
     expect: ["45.9 酷热指数 HI", "42.8 表观温度 AT", "极危险 致命中暑风险"],
     ref: "独立复算：T38/RH45/V5/kmh。Vms=5/3.6=1.389；HI(Rothfusz,T≥27&RH≥40)→45.9°C；WC(T>10)→null；AT(Steadman): e=0.45·6.105·exp(17.27·38/275.7)=29.7→AT=38+0.33·29.7-0.70·1.389-4.0=42.8；主参考 T≥27→HI=45.9→极危险。默认 T32/RH70/V2→HI 较低。"
   },
+  { slug: "meteorology/wind-direction",
+    inputs: { deg: "" },
+    expect: ["请填写风向角度后再计算。"],
+    ref: "角度留空：旧 num() 回退 0 静默输出 N；新增空值守卫后须提示。" },
+
   {
     slug: "meteorology/wind-direction",
     inputs: { deg: "135" },
@@ -214,6 +219,11 @@ const CASES = [
     expect: ["55.1 % 相对湿度 RH"],
     ref: "独立复算：T30/Td20。es(30)=42.46；es(20)=23.39；RH=23.39/42.46·100=55.1%。默认 T25/Td16.7→≈60，不出现 55.1 % 相对湿度 RH。"
   },
+  { slug: "meteorology/saturation-vapor-pressure",
+    inputs: { T: "" },
+    expect: ["请填写气温后再计算。"],
+    ref: "气温留空：旧 num() 回退 0 静默输出 0 ℃ 饱和水汽压；新增空值守卫后须提示。" },
+
   {
     slug: "meteorology/saturation-vapor-pressure",
     inputs: {"T": "35"},

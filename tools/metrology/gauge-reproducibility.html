@@ -106,7 +106,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="再现性 = 操作者均值极差 / d₂*。">Compute reproducibility σ_o from the range of operator averages divided by the d₂* coefficient to quantify operator-to-operator variation.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">量具再现性（极差法）：σ_o = R ÷ d₂*；d₂* 按评价人数查表——2 人 1.128、3 人 1.693、4 人 2.059，表外回落 1.693；6σ 扩展 = R ÷ d₂* × 6。校验：无强校验，空值按 0 兜底。判据：无固定分级，σ_o 越小人员间再现性越好。</div>
+      <div class="formula-eq">量具再现性（极差法）：σ_o = R ÷ d₂*；d₂* 按评价人数查表——2 人 1.128、3 人 1.693、4 人 2.059，表外回落 1.693；6σ 扩展 = R ÷ d₂* × 6。校验：两项空值即提示；极差不得为负、评价人数须为 ≥2 的整数（0 极差合法）。判据：无固定分级，σ_o 越小人员间再现性越好。</div>
       <p class="formula-desc">再现性 = 操作者均值极差 / d₂*。</p>
     </div>
 
@@ -215,7 +215,12 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const R=num('r'),o=num('o');
+            const __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+            const __raw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+            if(__raw('r')===''||__raw('o')===''){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en?'Enter range and number of operators before calculating.':'请填写极差与评价人数后再计算。')+'</p>');return;}
+            const R0=Number(__raw('r')),o0=Number(__raw('o'));
+            if(!Number.isFinite(R0)||!Number.isFinite(o0)||R0<0||o0<2||!Number.isInteger(o0)){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en?'Range cannot be negative; number of operators must be an integer of at least 2.':'极差不得为负，评价人数须为不小于 2 的整数。')+'</p>');return;}
+            const R=R0,o=o0;
             const d2s={2:1.128,3:1.693,4:2.059}[o]||1.693;
             const __g1=dataGrid([
                 [(R/d2s).toFixed(4),'再现性 σ_o'],
