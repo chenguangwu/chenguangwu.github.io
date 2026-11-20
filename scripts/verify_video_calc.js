@@ -140,6 +140,12 @@ const CASES = [
   expect: ["VIDSPDIV OK"],
   ref: "第1346批·分母为零守卫：旧版 sp=0 时 newMs=totalMs/0=Infinity、totalSec=0 时 savePct=0/0=NaN%；修复后 sp 与 totalSec 非正均提示并 return。"
 },
+{
+  slug: "video/video-speed",
+  clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+'tools/video/video-speed.html','utf8');var i=h.indexOf('const fps=+document.getElementById');var s=i>=0?h.slice(i,i+260):'';var ok=s.indexOf('!isFinite(fps)||fps<=0')>=0&&s.indexOf('帧率须为正数')>=0;document.getElementById('__tbProbe').textContent='VIDFPSNEG '+(ok?'OK':'BAD');"],
+  expect: ["VIDFPSNEG OK"],
+  ref: "第1348批·帧率为负守卫：旧版 fps=-1 时输出「总帧数 -300 @ -1fps / 帧时长 -1000ms」荒谬值（帧率须为正）；输入守卫只拦空与非数字不拦负数。修复后 fps 非正数提示并 return。"
+},
 ];
 async function main() {
   const only = process.argv.slice(2);
