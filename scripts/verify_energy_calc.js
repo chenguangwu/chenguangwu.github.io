@@ -412,9 +412,9 @@ const CASES = [
       "tdsInput": "350"
     },
     "expect": [
-      "350 ppm - 净化后可用"
+      "350 ppm - 偏高 TDS"
     ],
-    "ref": "TDS 350 ppm 落入页面分级表300 ~ 600 ppm 区间（水质一般，不建议直接饮用）→ 评级'净化后可用'。分级区间与 WHO 饮用水水质常用 TDS 分级一致（<50 直饮级、50–100 矿泉水级、100–300 自来水级、300–600 需净化、>600 不宜直饮）。页面输出 '350 ppm - 净化后可用'。HTML 默认 tdsInput=150 → '150 ppm - 自来水级'，默认态不产生该串。"
+    "ref": "TDS 350 ppm 落入页面分级表300 ~ 600 ppm 区间（水质一般，不建议直接饮用）→ 评级「偏高 TDS」。分级仅作 TDS 口感/溶解固体参考，不构成直饮安全结论。页面输出 '350 ppm - 偏高 TDS'。HTML 默认 tdsInput=150 → '150 ppm - 中等 TDS'，默认态不产生该串。"
   },
   {
     "slug": "energy/water-tds-evaluator",
@@ -431,7 +431,7 @@ const CASES = [
   {
     "slug": "energy/water-tds-evaluator",
     "inputs": { "tdsInput": "5000" },
-    "expect": ["5000 ppm - 不宜饮用"],
+    "expect": ["5000 ppm - 极高 TDS"],
     "ref": "G10-51 上限闭区间边界：5000 是合法端点，须正常出结论；tdsGrades 末档上限同步由 99999 收紧为 5000，静态分级表与结果卡不再显示越界数值。bar.textContent = '5000 ppm - 不宜饮用'；默认 150 不含该串 ⇒ 强判别、零逃生。"
   },
   {
