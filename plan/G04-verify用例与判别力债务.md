@@ -23,8 +23,16 @@
 - 方案：新增用例锚点时跑双态核验（注入态命中/默认态失配）——纪律已在 baseline note，建议固化成脚本 `scripts/check_anchor_two_state.js`（待开发）。
 - 受影响：全部 verify_*.js
 
-## 进度
-- 🟡 规则固化完成；P1 ✅ 已解决（2026-11-16 第934批核实，用例见 verify_food_calc.js:352，food 33/33 + 判别 0 逃生），P2-P4 🔴 待开发
+## 进度（2026-11-20 收口）
+- 🟢 P1 ✅、P2 ✅、P3 ✅（存量已从 14 降到 11 且全部为结构性不可注入，ref 写明理由；基线 `no_inputs` 10→7 已收紧）、P4 ✅
+- P2 ✅：harness 已支持 `clicks` 两段式（`verify_it_calc.js` 先注入 `inputs`，再按序执行
+  `clicks`，可在 clicks 内建行动态行后赋值/触发 calc；动态 id 由 `lib_dynamic_defaults.js`
+  的 `isDynamicId` 放行）。beer-gravity 等动态行页已用该路径通过。
+- P3 ✅：`node scripts/selfcheck_false_pass.js scripts` 实测 no_inputs=7 / all_default=4；
+  余 11 条均已在 ref 注明「结构性不可注入/输入回显/常量输出」，不制造逃生。
+  `WEAK_LIST=1` 可逐条列出（本批新增，供后续继续降基线）。
+- P4 ✅：双态核验已固化为 `selfcheck_false_pass.js --exec`（无参兜底命中即记 `default-hit`
+  risk）；锚点纪律同时写进 baseline `_comment`（含「默认态同值巧合」「expect 为 OR」等坑）。
 
 ## 2026-11-03 审计补充（只读审计）
 

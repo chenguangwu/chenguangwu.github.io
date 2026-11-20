@@ -177,7 +177,11 @@ async function scanFile(file, exec) {
     }
     // 弱用例（无判别力）统计：不影响硬失败判定，仅入基线防回归
     const wk = weakKind(c);
-    if (wk) weak[wk]++;
+    if (wk) {
+      weak[wk]++;
+      // WEAK_LIST=1 时逐条打印，供 P3「弱用例存量改造」取名单（默认不打印，保持门禁输出稳定）
+      if (process.env.WEAK_LIST === '1') reasons.push(`${c.slug} (${wk})`);
+    }
     // 真用例：可选执行态自检（仅人工深挖时开启，门禁默认不跑，避免 OOM/误伤）
     if (exec) {
       try {
@@ -210,7 +214,7 @@ async function scanFile(file, exec) {
     totalChecked += r.checked;
     if (r.skip) { skipped++; console.log(`SKIP ${r.file} :: ${r.skip}`); continue; }
     for (const k of Object.keys(weak)) weak[k] += (r.weak ? r.weak[k] : 0);
-    if (r.risk) {
+    if (r.risk || (process.env.WEAK_LIST === '1' && r.weak && (r.weak.no_inputs + r.weak.all_default))) {
       totalRisk += r.risk;
       risky.push(`${r.file}: ${r.risk}/${r.checked}`);
       for (const re of r.reasons) console.log(`  RISK ${r.file} :: ${re}`);
