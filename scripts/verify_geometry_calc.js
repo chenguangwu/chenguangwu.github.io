@@ -132,9 +132,19 @@ const CASES = [
     ref: "V=π·9·4=113.0973 m³；侧面积=2π·3·4=75.3982 m²" },
 
   { slug: "geometry/ellipsoid-volume",
+    inputs: { a: "3", b: "2", c: "" },
+    expect: ["请填写三个半轴后再计算。"],
+    ref: "c 留空：旧 num() 回退 0 静默输出体积 0；新增空值守卫后须提示。" },
+
+  { slug: "geometry/ellipsoid-volume",
     inputs: { a: "2", b: "4", c: "5" },
     expect: ["167.552"],
     ref: "V=4/3·π·2·4·5=167.552 m³" },
+
+  { slug: "geometry/pyramid-volume",
+    inputs: { A: "9", h: "" },
+    expect: ["请填写底面积与高后再计算。"],
+    ref: "高留空：旧 num() 回退 0 静默输出体积 0；新增空值守卫后须提示。" },
 
   { slug: "geometry/pyramid-volume",
     inputs: { A: "12", h: "5" },
@@ -142,9 +152,19 @@ const CASES = [
     ref: "V=12·5/3=20.000 m³" },
 
   { slug: "geometry/rectangular-prism-volume",
+    inputs: { l: "5", w: "4", h: "" },
+    expect: ["请填写长、宽、高后再计算。"],
+    ref: "高留空：旧 num() 回退 0 静默输出体积 0；新增空值守卫后须提示。" },
+
+  { slug: "geometry/rectangular-prism-volume",
     inputs: { l: "5", w: "4", h: "3" },
     expect: ["60.000", "94.000", "48.000"],
     ref: "V=5·4·3=60.000 m³；A=2·(20+12+15)=94.000 m²；长方体有 12 条棱 ⇒ 棱长总和=4(l+w+h)=48.000 m（原式用 2(l+w+h)=24，少算一半）" },
+
+  { slug: "geometry/sphere-surface-area",
+    inputs: { r: "" },
+    expect: ["请填写半径后再计算。"],
+    ref: "半径留空：旧 num() 回退 0 静默输出表面积 0；新增空值守卫后须提示。" },
 
   { slug: "geometry/sphere-surface-area",
     inputs: { r: "2" },

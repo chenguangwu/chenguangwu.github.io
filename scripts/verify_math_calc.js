@@ -35,6 +35,11 @@ const CASES = [
   { slug: "math/nth-term-geometric", inputs: { a1: "3", r: "2", n: "6" }, expect: ["96.000"], ref: "aₙ=a₁·r^(n−1)=3×2⁵=96.000（默认 2,3,4 避开）" },
   { slug: "math/herons-area", inputs: { a: "5", b: "5", c: "6" }, expect: ["12.000"], ref: "s=(5+5+6)/2=8；A=√(s(s−a)(s−b)(s−c))=√(8×3×3×2)=√144=12.000（默认 3,4,5 避开）" },
   { slug: "math/exponent-solve", inputs: { a: "3", b: "81" }, expect: ["4.0000"], ref: "由 3^x=81 得 x=ln81/ln3=4.0000（默认 2,8 避开）" },
+  { slug: "math/quadratic-discriminant",
+    inputs: { a: "", b: "-3", c: "2" },
+    expect: ["请填写系数 a、b、c 后再计算。"],
+    ref: "a 留空：旧 num() 回退 0 直接判非二次方程；新增空值守卫后须提示。" },
+
   { slug: "math/quadratic-discriminant", inputs: { a: "2", b: "3", c: "5" }, expect: ["-31.00"], ref: "Δ=b²−4ac=9−40=−31.00（默认 1,−3,2→1.00 避开）" },
   { slug: "math/circular-permutation", inputs: { n: "7" }, expect: ["720"], ref: "圆排列数=(n−1)!=6!=720（默认 n=5→24 避开）" },
   { slug: "math/combination-repetition", inputs: { n: "6", r: "4" }, expect: ["126"], ref: "可重复组合 C(n+r−1,r)=C(9,4)=126（默认 5,3→35 避开）" },
