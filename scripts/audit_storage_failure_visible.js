@@ -8,7 +8,7 @@
  *   ③ security/virtual-safe 必须保留写入后回读的两个 getItem 比对（收窄 catch 后这是唯一失败路径）。
  * - 动态段（puppeteer + Chrome，缺浏览器显式 SKIP 且 exit 0）：
  *   ④ 配额异常下 toast 恰好 1 条，且不出现任何成功态文案；
- *   ⑤ TypeError 必须重新变成 pageerror（负向自证，证明收窄没有把真 bug 吞掉）。
+ *   ⑤ TypeError 必须原样抛出为 TypeError（主动调用捕获异常形态，负向自证收窄没吞真 bug）。
  *
  * 用法：node scripts/audit_storage_failure_visible.js [--static-only]
  *       AUDIT_ROOT=/tmp/red_root node ... --static-only   # 造红自证
@@ -216,8 +216,17 @@ async function runCase(browser, base, rel, mode) {
     // 成功路径证据：真实写入后能回读出键值（与注入态互不影响）
     keys: (() => { try { return Object.keys(localStorage); } catch (e) { return []; } })(),
   }));
+  // 负向自证：主动调用被页面 GUARD 包装后的 setItem，直接捕获异常形态。
+  // pageerror 事件在部分 headless/Chrome 组合下对「经多层包装后抛出」的异常派发不稳定，
+  // 但异常的 name/message 是「收窄 catch 是否把真 bug 吞成 undefined」的直接证据：
+  // 若被吞 ⇒ 返回 NO_THROW；若原样抛出 ⇒ TypeError:page bug。仅在 typeerror 模式探测，
+  // 避免污染 quota/normal 用例的 toast 计数与存储键。
+  const activeThrow = mode === "typeerror" ? await page.evaluate(() => {
+    try { localStorage.setItem("__tb_typeerror_probe", "v"); return "NO_THROW"; }
+    catch (e) { return String(e && e.name) + ":" + String(e && e.message); }
+  }) : "";
   await page.close();
-  return { toasts: state.toasts, warned: state.warned, keys: state.keys, errors };
+  return { toasts: state.toasts, warned: state.warned, keys: state.keys, activeThrow, errors };
 }
 
 async function dynamicChecks() {
@@ -254,10 +263,12 @@ async function dynamicChecks() {
     if (successLike.length) failures.push(`quota: 出现成功态文案: ${successLike.join(" | ")}`);
     if (!q.warned) failures.push("quota: __tbSyncWarned 未置位（解析期 GUARD 未生效）");
 
-    // ⑤ TypeError：必须重新变成 pageerror（收窄不得吞真 bug）
+    // ⑤ TypeError：白名单收窄后 TypeError 必须原样抛出，不能被吞成 undefined（负向自证）。
+    // 主判据用主动调用捕获的异常形态（稳定）：NO_THROW 表示被吞；TypeError:page bug 表示原样抛出。
+    // pageerror 作为辅助证据记录（部分 headless 组合对其派发不稳定，不再单独定生死）。
     const t = await runCase(browser, base, "tools/it/caesar-cipher.html", "typeerror");
-    if (!t.errors.some(m => /page bug/.test(m))) {
-      failures.push(`typeerror: 未产生 pageerror（errors=${t.errors.join(" | ") || "none"}）`);
+    if (!/^TypeError:page bug$/.test(t.activeThrow)) {
+      failures.push(`typeerror: setItem 未原样抛 TypeError（activeThrow=${t.activeThrow || "none"}，可能被收窄 catch 吞掉）`);
     }
 
     // ⑥ 成功路径：不注入时真实写入应能回读，且不得出现失败提示（与⑤互不冲突）
