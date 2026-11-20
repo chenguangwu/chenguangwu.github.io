@@ -597,8 +597,28 @@ const CASES = [
     "clicks": ["sources=[{name:'A',level:90},{name:'B',level:70}];calcAll()"],
     "expect": ["100.0", "超过职业暴露限值（85dB/8h）"],
     "ref": "能量叠加独立复算：10^(90/10)+10^(70/10)=1e9+1e7=1.01e9 ⇒ 总声压级 10·lg(1.01e9)=100.043 ⇒ 100.0 dB ≥85 ⇒「超过职业暴露限值（85dB/8h）」；默认 80/75 dB ⇒ 81.2 dB「较高，需采取降噪措施」，两锚均不命中（判别时清空 clicks 即回默认声源）。"
-  }
-
+  },
+{ slug:"eco/battery-storage", inputs:{"av":"","ah":"","v":"","dod":""}, expect:["请填写电池容量"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/convert-air-aqi", inputs:{"c":""}, expect:["请填写PM2.5 浓度"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/env-impact-score", inputs:{"energy":"","water":"","waste":"","emis":""}, expect:["请填写能源、水资源、废弃物、排放四项评分"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/noise-addition", inputs:{"L1":"","L2":"","L3":""}, expect:["请填写三个声源的声压级"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/eco-10", inputs:{"capacity":"","hours":"","factor":""}, expect:["请填写装机容量、年有效小时数、排放因子"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/eco-16", inputs:{"capacity":"","cf":"","factor":""}, expect:["请填写装机容量、容量因子、排放因子"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/eco-4", inputs:{"pop":"","per_capita":"","days":""}, expect:["请填写人口、人均日产量、天数"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/eco-7", inputs:{"kwh":"","coal_kg":"","gas_m3":""}, expect:["请填写用电量、燃煤量、天然气量"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/eco-8", inputs:{"area":"","density":"","rate":"","years":""}, expect:["请填写面积、种植密度、固碳率、年限"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/eco-11", inputs:{"vehicles":"","extra_time":"","fuel_rate":"","days":""}, expect:["请填写车辆数、单次额外耗时、油耗、天数"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/eco", inputs:{"electricity":"","coal":"","gas":"","oil":""}, expect:["请填写电力、燃煤、天然气、汽油用量"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/ecological-footprint", inputs:{"meat":"","car":"","elec":"","flights":""}, expect:["请填写肉类、驾车、用电、飞行数据"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/water-footprint", inputs:{"beef":"","shirt":"","coffee":""}, expect:["请填写牛肉、衬衫、咖啡消费量"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/rainwater-harvest", inputs:{"roof":"","rain":"","eff":""}, expect:["请填写屋顶面积、降雨量、收集效率"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/water-saving", inputs:{"perCapita":"","people":"","days":"","reduce":""}, expect:["请填写人均用水、人数、天数、节水率"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/wind-power", inputs:{"v":"","d":"","cp":"","rho":""}, expect:["请填写风速、叶轮直径、功率系数、空气密度"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/solar-output", inputs:{"area":"","eff":"","irr":"","days":""}, expect:["请填写组件面积、效率、辐照度、天数"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/electricity-carbon", inputs:{"kwh":"","factor":"","days":""}, expect:["请填写用电量、排放因子、天数"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/landfill-methane", inputs:{"organic":"","doc":"","mcf":"","frac":""}, expect:["请填写有机垃圾量、可降解比例"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/carbon-offset", inputs:{"car":"","bus":"","flightS":"","flightL":"","electricity":"","gas":"","takeout":"","packages":"","shopping":""}, expect:["请填写各项碳排放活动数据"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/waste-calculator", inputs:{"people":""}, expect:["请填写家庭人口数量"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" }
 ];
 
 async function main() {
