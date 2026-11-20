@@ -264,6 +264,11 @@ const CASES = [
     expect: ["5×5 力量 5×5 80-85% 105.6-112.2 增力/肌肥大"],
     ref: "新增「训练周期处方表」(programTable)：onerm=Epley 120×(1+3/30)=132.0；5×5@80-85% ⇒ 105.6-112.2 kg（node 复算一致）；默认 80/5 出 74.6-79.3 不命中 ⇒ 强判别、零逃生。",
   },
+  { slug: "health/vo2-max-calculator",
+    inputs: { cooperAge: "42", cooperDist: "" },
+    expect: ["请填写当前测试方法的全部数据后再计算。"],
+    ref: "Cooper 距离留空：旧代码按 0 距离算出 vo2<=0 后仅显示「--」，不说明原因；新增守卫后须明确提示补全当前方法数据。" },
+
   {
     slug: "health/vo2-max-calculator",
     inputs: { cooperAge: "42", cooperDist: "2400" },

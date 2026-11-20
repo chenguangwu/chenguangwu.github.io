@@ -321,6 +321,11 @@ const CASES = [
     expect: ["ASTRORNG_OK"],
     ref: "SMS-73 清账（E 范围守卫）：东移值 1500000 m 超出假东移 500000 的物理上限 1000000，旧版照常反算输出荒谬经纬度；现直接提示「东移应在 0~1000000 m」。探针断言反向结果容器出现该提示，旧版 ⇒ ASTRORNG_BAD，零逃生。",
   },
+  { slug: "science/led-resistor-calculator",
+    inputs: { vs: "5", if: "20", count: "" },
+    expect: ["请填写有效的电源电压、正向电流与 LED 数量（1–50）后再计算。"],
+    ref: "LED 数量留空：旧代码 parseInt||1 按 1 颗计算；新增守卫后须提示且四个结果卡回到 --。" },
+
   {
     slug: "science/led-resistor-calculator",
     inputs: { vs: "12", if: "20", ifUnit: "0.001", vf: "2.2", count: "2" },
