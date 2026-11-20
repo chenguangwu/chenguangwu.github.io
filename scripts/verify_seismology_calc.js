@@ -90,7 +90,8 @@ const CASES = [
   "inputs": { "mags": "3.0,4.0,5.0", "c": "-10", "t": "10" },
   "expect": ["K 与 p 须大于 0"],
   "ref": "12-G8：c=-10,t=10 使 t+c=0，旧版显示 Infinity 后被清洗为破折号，修复后参数守卫提示；默认 c=1 不命中。"
-}
+},
+{ slug:"seismology/assessor-30", inputs:{"pga":"","pgv":"","damageIndex":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

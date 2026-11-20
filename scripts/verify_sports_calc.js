@@ -1039,9 +1039,8 @@ const CASES = [
       "bodyPart": "chest"
     },
     "expect": [
-      "chest\n42\n42\n42\n42\n测试部位：胸部 承受力：42N (参考上限5"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"force\":\"42\",\"painTolerance\":\"42\",\"years\":\"42\",\"recovery\":\"42\",\"bodyPart\":\"chest\"}，输出区含「chest\n42\n42\n42\n42\n测试部位：胸部 承受力：42N (参考上限5」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+      "承受力：42N"],
+      "ref": "自动补强（B类零用例）：注入非默认输入{\"force\":\"42\",\"painTolerance\":\"42\",\"years\":\"42\",\"recovery\":\"42\",\"bodyPart\":\"chest\"}，输出区含「chest\n42\n42\n42\n42\n测试部位：胸部 承受力：42N (参考上限5」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "sports/assessor-risk-2",
@@ -1937,7 +1936,9 @@ const CASES = [
       shots: "10", shotsOn: "4", goals: "5", xg: "1.2" },
     expect: ["进球数不能多于射正次数（进球必为射正）"],
     ref: "SF-N112 校验：进球 5 > 射正 4 不可能成立（进球必为射正），停算提示；默认 2 ≤ 5 不触发。",
-  }
+  },
+{ slug:"sports/assessor-hardness", inputs:{"force":"","painTolerance":"","years":"","recovery":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"sports/tester-8", inputs:{"vo2max":"","weight":"","duration":"","avgVo2":"","restVo2":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 
 // ---------------------------------------------------------------- main

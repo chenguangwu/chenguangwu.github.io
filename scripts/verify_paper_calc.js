@@ -201,7 +201,8 @@ const CASES = [
   ],
   "expect": ["PGF=OK"],
   "ref": "修复前 filterTable 用全局 'tbody tr'，会把不属于等级表的白度明细行一起隐藏；现只遍历 #table1~#table4 的等级表 tbody。用 querySelectorAll 捕获实际选择器，默认态无该探针串。"
-}
+},
+{ slug:"paper/detector-17", inputs:{"defSize":"","defPerSqm":"","area":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

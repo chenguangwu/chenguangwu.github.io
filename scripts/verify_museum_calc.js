@@ -454,8 +454,8 @@ const CASES = [
   "ref": "开场超时保护（RL-K31）：可用 300 秒 < 开场结束 400 秒，旧版 floor((300−400)/(60+10)) = −2 件仍输出「减少讲解展品数至 -2 件」。修复后容量封顶为 0 并改提示「无法再安排讲解」，断言依赖 intro>avail 的输入组合，默认态不命中。"
 } ,
 {dynDom:true, slug:"museum/audio-guide-timer", inputs:{exhibitCount:"3",perExhibit:"40",moveTime:"20",introTime:"0",available:"1.6666666666666667"},clicks:["calcQuick();"],expect:["减少讲解展品数至 2 件"],ref:"100 秒恰好容纳两件 40 秒讲解及一次 20 秒移动。"},
-{dynDom:true, slug:"museum/audio-guide-timer", inputs:{exhibitCount:"3",perExhibit:"50",moveTime:"20",introTime:"30",available:"1"},clicks:["calcQuick();"],expect:["剩余时间不足以安排一件展品的讲解"],ref:"开场 30 秒后剩余 30 秒，少于单件 50 秒。"}
-
+{dynDom:true, slug:"museum/audio-guide-timer", inputs:{exhibitCount:"3",perExhibit:"50",moveTime:"20",introTime:"30",available:"1"},clicks:["calcQuick();"],expect:["剩余时间不足以安排一件展品的讲解"],ref:"开场 30 秒后剩余 30 秒，少于单件 50 秒。"},
+{ slug:"museum/exhibit-spacing", inputs:{"artWidth":"","artHeight":"","centerH":"","hAngle":"","vAngle":"","eyeH":"","viewers":"","shoulder":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

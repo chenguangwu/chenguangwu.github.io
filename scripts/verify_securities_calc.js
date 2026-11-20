@@ -701,8 +701,8 @@ const CASES = [
     clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/securities/position-sizing.html','utf8');var i=h.indexOf('function calcFixed(){');var s=i>=0?h.slice(i,i+420):'';var ok=s.indexOf('__tbInputGuard(')>=0&&s.indexOf(\"'feeRate'\")>=0&&s.indexOf('__ig')>=0;document.getElementById('__tbProbe').textContent='FIXGUARD '+(ok?'OK':'BAD');"],
     expect: ["FIXGUARD OK"],
     ref: "第1344批 守卫覆盖不全：calcFixed 固定风险模式原无 __tbInputGuard，非数字手续费经 getVal 静默转 0 产出错误结果（calcKelly 有守卫）；修复后 calcFixed 入口补六参数守卫。",
-  }
-
+  },
+{ slug:"securities/beta-calc", inputs:{"riskFree":"","mktReturn":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 
 async function main() {

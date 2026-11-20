@@ -601,7 +601,9 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pulmonology/light-criteria.html','utf8');var noOld=h.indexOf('0.67')<0&&h.indexOf('above 0.67')<0;var hasNew=(h.match(/>0\.6 /g)||[]).length>=1&&h.indexOf('LDH ratio above 0.6,')>=0;document.getElementById('__tbProbe').textContent='LIGHT164 '+(noOld&&hasNew?'OK':'BAD');"],
   "expect": ["LIGHT164 OK"],
   "ref": "03-164 Light 标准引据表 LDH 阈值口径：公式框/表格/代码均为 0.6（Light 1972 原值），独引据表 data-zh 中文与英文写 0.67。本批改为 0.6 并同步英文。源码形态哨兵：无 0.67、含新 0.6；默认态不产哨兵（仅 clicks 读源码），零逃生。"
-}
+},
+{ slug:"pulmonology/anti-tb-dosing", inputs:{"wt":"","age":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"pulmonology/sputum-analysis", inputs:{"vol":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 
 async function main() {

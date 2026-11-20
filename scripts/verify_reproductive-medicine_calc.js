@@ -453,7 +453,9 @@ const CASES = [
              rightvas: "2", rightampulla: "2", rightseminal: "2", rightejaculatory: "2", righturethra: "2" },
     clicks: ["calc()"],
     expect: ["单侧梗阻 总体评估", "9/10 通畅段数", "左侧存在完全梗阻（输精管段）"],
-    ref: "页面 10 个分段下拉由 buildList() 用 innerHTML 生成（id 固定为 left|right + seg.key），桩不建动态行但其 id 可注入，故补齐 10 项即可测。实跑值：左侧输精管段=完全梗阻(0)、其余 9 段通畅(2) ⇒ 左侧梗阻 / 右侧通畅、通畅段数 9/10、提示「左侧存在完全梗阻（输精管段）」。旧期望：无用例（零覆盖）。新期望：上列三条；默认态 10 个下拉全为首项「通畅」⇒ 双侧通畅 / 10/10，三条均不命中。" }
+    ref: "页面 10 个分段下拉由 buildList() 用 innerHTML 生成（id 固定为 left|right + seg.key），桩不建动态行但其 id 可注入，故补齐 10 项即可测。实跑值：左侧输精管段=完全梗阻(0)、其余 9 段通畅(2) ⇒ 左侧梗阻 / 右侧通畅、通畅段数 9/10、提示「左侧存在完全梗阻（输精管段）」。旧期望：无用例（零覆盖）。新期望：上列三条；默认态 10 个下拉全为首项「通畅」⇒ 双侧通畅 / 10/10，三条均不命中。" },
+{ slug:"reproductive-medicine/detector-9", inputs:{"ejVol":"","ejConc":"","urVol":"","urConc":"","urPh":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"reproductive-medicine/pgt-indication", inputs:{"ageVal":"","rplVal":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 
 "use strict";

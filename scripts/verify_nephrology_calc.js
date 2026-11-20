@@ -361,7 +361,8 @@ const CASES = [
     "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/nephrology/ckd-staging.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/nephrology/ckd-staging.json','utf8');var d=JSON.parse(dd)['nephrology/ckd-staging'];var b1=d.examples[0].body,b2=d.examples[1].body;var ok=h.indexOf('cat=health,industry=nephrology,icon=🫘')>=0&&h.indexOf('applicationCategory\":\"MedicalApplication')>=0&&h.indexOf('UACR 不能留空')>=0&&h.indexOf('gStage==='+String.fromCharCode(39)+'G3a'+String.fromCharCode(39))>=0&&h.indexOf('risk='+String.fromCharCode(39)+'很高风险'+String.fromCharCode(39))>=0&&b1.indexOf('高风险')>=0&&b1.indexOf('2 次/年')>=0&&b1.indexOf('中风险')<0&&b2.indexOf('很高风险')>=0&&en.indexOf('high risk; follow up twice a year')>=0;document.getElementById('__tbProbe').textContent='CKDMETA '+(ok?'OK':'BAD');"],
     "expect": ["CKDMETA OK"],
     "ref": "12-N33/N34/N35/N36：风险矩阵按 A 分期区分 G3a+A3=很高风险、G3b+A1=高风险（与 KDIGO 热图一致），UACR 空值早退不落 A1；深解算例同步为 G3a+A2 高风险 2次/年、G4+A3 很高风险 ≥3次/年；分类 health/MedicalApplication，图标 🫘 不再被财务「分期→🏠」规则误伤。旧版任一旧串命中即红；默认态不产生该哨兵。"
-  }
+  },
+{ slug:"nephrology/hematuria-source", inputs:{"rbcCount":"","dysmorphic":"","g1":"","protein":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

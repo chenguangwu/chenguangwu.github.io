@@ -235,8 +235,8 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/' +'tools/startup/equity-calculator.html','utf8');var i=h.indexOf('f.idea < 0');var s=i>=0?h.slice(i,i+700):'';var ok=s.indexOf(\"getElementById('result').innerHTML\")>=0&&s.indexOf('poolPct < 0 || poolPct >= 100')>=0&&(s.match(/getElementById\\('result'\\).innerHTML/g)||[]).length>=2;document.getElementById('__tbProbe').textContent='EQCLR '+(ok?'OK':'BAD');})();"],
   "expect": ["EQCLR OK"],
   "ref": "第1345批 equity-calculator 贡献负值/期权池越界两早退原只 showToast，不清 #result(股权表+变动历程)；对齐同函数另两分支写法补清空。"
-}
-
+},
+{ slug:"startup/burn-rate", inputs:{"cash":"","income":"","salary":"","rent":"","marketing":"","other":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

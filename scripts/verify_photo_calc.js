@@ -729,7 +729,8 @@ const CASES = [
     "inputs": { "focal": "50", "sensor": "36", "fov": "200" },
     "expect": ["视场角须在 0 到 180 之间"],
     "ref": "P-N14 反解 FOV 越界：旧版 fov=200 时 f2 条件不满足被静默算成 0，显示「0.00 mm」看似合法结果。现越界显示「视场角须在 0 到 180 之间」提示；默认 fov=39.6 命中正常反解不命中本串。"
-  }
+  },
+{ slug:"photo/golden-hour", inputs:{"lat":"","decl":"","twilightMin":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 
 async function main() {
