@@ -110,6 +110,7 @@ const CASES = [
     ],
     "ref": "新增守卫：S=0 时旧代码 EOQ=0、年订货次数=∞、订货成本=0 并输出伪结果（Infinity 被替换成 —，周期 0 天）。桩内 __tbInputGuard 已把 orderCost 列为分母并先行拦截，页面自身 D/S/H≤0 守卫为第二道；默认订货成本非 0，不命中 ⇒ 强判别。"
   },
+  { slug: "manufacturing/defect-rate", inputs: {"total":"1000","defects":"100","defectQty":"1200","processes":"2"}, expect: ["600,000"], ref: "多缺陷场景：缺陷数 1200 可大于投入 1000（旧实现 d>t 直接拦截）；DPMO=(1200/1000)×10⁶/2=600,000，PPM 仍按不良品 100/1000=100,000 ⇒ 强判别" },
   {
     "slug": "manufacturing/defect-rate",
     "inputs": {
@@ -118,7 +119,7 @@ const CASES = [
       "processes": "42"
     },
     "expect": [
-      "量分析报告 投入 42 件 · 不良 42 件 · 42"
+      "量分析报告 投入 42 件 · 不良品 42 件 · 缺陷 42 个 · 42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"total\":\"42\",\"defects\":\"42\",\"processes\":\"42\"}，输出区含「量分析报告 投入 42 件 · 不良 42 件 · 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }

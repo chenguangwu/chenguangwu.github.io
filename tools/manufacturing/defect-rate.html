@@ -151,7 +151,7 @@
     <h2 data-zh="🧮 不良率与西格玛计算">Defect Rate</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="直通率、DPMO、PPM、CPK、西格玛水平换算">Defect Rate</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">质量指标换算（不良率/直通率/西格玛）<br>不良率 = 不良数 ÷ 投入总数 × 100%<br>单工序直通率 FTY = 1 − 不良率<br>滚动直通率 RTY = FTY^工序数（串联系统）<br>PPM = 不良率 × 10⁶<br>DPMO = PPM ÷ 工序数（每百万机会缺陷数）<br>西格玛水平 = DPMO 反查标准表（含 1.5σ 漂移，3.4→6σ、233→5σ、6210→4σ、66807→3σ）<br>短期等效 CPK = 西格玛水平 ÷ 3<br>等级：&lt;3σ 行业平均｜3~4σ 良好｜4~5σ 优秀｜≥5σ 卓越<br>输入校验：投入>0、不良数 ≤ 投入数</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">质量指标换算（不良率/直通率/西格玛）<br>不良率 = 不良品数 ÷ 投入总数 × 100%<br>单工序直通率 FTY = 1 − 不良率<br>滚动直通率 RTY = FTY^工序数（串联系统）<br>PPM = 不良率 × 10⁶（按不良品数）<br>DPMO = 缺陷数 ÷ 投入总数 × 10⁶ ÷ 工序数（缺陷数留空时按不良品数）<br>西格玛水平 = DPMO 反查标准表（含 1.5σ 漂移，3.4→6σ、233→5σ、6210→4σ、66807→3σ）<br>短期等效 CPK = 西格玛水平 ÷ 3<br>等级：&lt;3σ 行业平均｜3~4σ 良好｜4~5σ 优秀｜≥5σ 卓越<br>输入校验：投入>0、不良品数 ≤ 投入数、缺陷数 ≥ 不良品数（留空按不良品数）</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：max(0, sigma ÷ 3)；(d ÷ t) × 1000000 ÷ p；(d ÷ t) × 1000000">Key formulas: max(0, sigma ÷ 3); (d ÷ t) × 1000000 ÷ p; (d ÷ t) × 1000000</p>
     </div>
 
@@ -165,6 +165,10 @@
     <div class="input-row">
       <label>不良数量(件)</label>
       <input type="number" id="defects" value="50" min="0" placeholder="如 50">
+    </div>
+    <div class="input-row">
+      <label>缺陷数(个，多缺陷场景填写，可留空)</label>
+      <input type="number" id="defectQty" value="" min="0" placeholder="如 1200（一件可有多个缺陷）">
     </div>
     <div class="input-row">
       <label>工序数</label>
@@ -285,14 +289,18 @@ function calc() {
   const t = parseFloat(totalEl.value);
   const d = parseFloat(defectsEl.value);
   const p = parseFloat(procEl.value);
+  const qRaw = String((document.getElementById('defectQty')||{}).value||'').trim();
+  const q = qRaw === '' ? d : parseFloat(qRaw);
   const tBad = !(isFinite(t) && t > 0 && Math.floor(t) === t);
   const dBad = !(isFinite(d) && d >= 0 && Math.floor(d) === d && d <= t);
   const pBad = !(isFinite(p) && p > 0 && Math.floor(p) === p);
+  const qBad = !(isFinite(q) && q >= d && Math.floor(q) === q);
   totalEl.classList.toggle('input-error',tBad);
   defectsEl.classList.toggle('input-error',dBad);
   procEl.classList.toggle('input-error',pBad);
-  if (tBad || dBad || pBad) {
-    document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 输入无效：投入数量与工序数须为正整数，不良数量须为 0 到投入数量之间的整数。</p>';
+  var qEl=document.getElementById('defectQty'); if(qEl) qEl.classList.toggle('input-error',qBad);
+  if (tBad || dBad || pBad || qBad) {
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 输入无效：投入数量与工序数须为正整数；不良品数为 0–投入数量；缺陷数须 ≥ 不良品数（留空按不良品数）。</p>';
     ['defect_rateTable','defect_rateDiff','defect_rateChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});
     return;
   }
@@ -300,7 +308,7 @@ function calc() {
   const defectRate = (d / t) * 100;  // %
   const yieldSingle = 1 - d/t;       // 单工序直通率
   const rtY = Math.pow(yieldSingle, p);  // 滚动直通率
-  const dpmo = (d / t) * 1000000 / p;  // 每百万机会缺陷数
+  const dpmo = (q / t) * 1000000 / p;  // 每百万机会缺陷数（缺陷数口径）
   const ppm = (d / t) * 1000000;
   const sigma = dpmoToSigma(dpmo);
   // 短期等效 CPK：与含 1.5σ 漂移的西格玛水平对齐，CPK = σ 水平 ÷ 3
@@ -314,7 +322,7 @@ function calc() {
 
   const __g2=`
     <h3 style="text-align:center;margin-bottom:12px;">📊 质量分析报告</h3>
-    <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:16px;">投入 ${t.toLocaleString()} 件 · 不良 ${d} 件 · ${p} 道工序</p>
+    <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:16px;">投入 ${t.toLocaleString()} 件 · 不良品 ${d} 件 · 缺陷 ${q} 个 · ${p} 道工序</p>
 
     <div class="result-block">
       <div class="result-label">不良率 (Defect Rate)</div>
@@ -329,7 +337,7 @@ function calc() {
       <div class="result-value">${(rtY*100).toFixed(2)}%</div>
     </div>
     <div class="result-block">
-      <div class="result-label">PPM (百万缺陷数)</div>
+      <div class="result-label">PPM (百万不良品数)</div>
       <div class="result-value">${Math.round(ppm).toLocaleString()}</div>
     </div>
     <div class="result-block">

@@ -25,7 +25,7 @@
 - tools/health/（child-medication-dose/weight-dosage 等 40 页）、tools/medical/dosage-calculator 系、tools/healthcare/（parkland/ibw 等）、tools/clinical-nursing/ 输液类（~40 页合计）
 
 ## 进度
-- 🟡 进行中（2026-10-26 批次 03-2）：其余代表页待铺开
+- 🟢 已完成（2026-11-21 复核：child-medication-dose / dosage-calculator 两套能力已接入；其余输液页无年龄输入，按模板不适用）
   - `health/child-medication-dose`：新增「同年龄参考体重（WHO 生长标准 P50，0–18 岁男/女）」+ 输入值与中位体重偏差百分比；
     新增「肝肾功能减量提示」（两 select：肾功能 Ccr 四级 / 肝功能 Child-Pugh 四级），8 种药标注主要清除途径（肝/肾/局部肠道），
     药物参考表新增「主要清除途径」列。

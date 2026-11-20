@@ -948,6 +948,7 @@ const CASES = [
 { slug:"legal/late-payment-interest", inputs:{"principal":""}, expect:["请填写欠款本金"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
 { slug:"legal/labor-compensation", inputs:{"workYears":"","monthlySalary":""}, expect:["请填写工作年限与月工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
 { slug:"legal/labor-compensation-n1", inputs:{"workYears":"","monthlySalary":""}, expect:["请填写工作年限与月工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
+{ slug:"legal/labor-compensation", inputs:{workYears:"0.5", monthlySalary:"12345", salaryCap:"0", noticeGiven:"1"}, expect:["12,345"], ref:"工作满 6 个月（0.5 年）按一年计，N=1 ⇒ 12,345 元；旧实现给 0.5 个月 6,172.50，且默认 3 年不含 12,345 ⇒ 强判别。" },
 { slug:"legal/severance-pay", inputs:{"workYears":"","monthlySalary":""}, expect:["请填写工作年限与月工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
 { slug:"legal/child-support", inputs:{"monthlyIncome":""}, expect:["请填写支付方月收入"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
 { slug:"legal/rent-deposit", inputs:{"monthlyRent":""}, expect:["请填写月租金"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },

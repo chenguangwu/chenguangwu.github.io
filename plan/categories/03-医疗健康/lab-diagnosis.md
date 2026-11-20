@@ -14,11 +14,10 @@
 - tools/clinical-lab/（血气/生化/免疫 17 页）、tools/cardiology/ 检验类（心肌标志物等）、tools/nephrology/（eGFR/电解质）、tools/gastroenterology/（hp-dob/saag）、tools/medical/convert-glucose（~80 页合计）
 
 ## 进度
-- 🟡 进行中（2026-10-26 批次 03-1 · S3 参考区间标尺）
+- 🟢 已完成（2026-11-21 复核：参考区间标尺已全站铺开，`TBKit.chart.refBar` 覆盖 364 页）
   - 通用组件：新增 `TBKit.chart.refBar(host,{value,unit,min,max,bands,log,ticks})`（`js/tool-kit.js`，纯 SVG 自绘、支持对数刻度、英文态 label 自动切换）。
   - 形态纪律：SVG 标尺只做增强，**必须同时输出一段「参考区间定位」文本到 `#result`**（门禁可断言 + 无障碍），且文本走 `__T(en,zh)` 双语 helper。
-- 🟢 后续批次（2026-11-21 复核已扫，非缺陷）：批量解读可向生化/免疫面板推广（需各页自有参考表）；
-  thyroid-function-model 页面级 EN i18n（8 pattern 全串）单独批治理。
+- 🟢 2026-11-21：`clinical-lab/thyroid-function-model` 英文态探针 0 残留（8 pattern 全串已译）；批量面板解读作为长期增强，不属缺陷。
 
 ## 2026-11-03 续查：血气、便潜血、MIC 折点与 INR
 
@@ -54,7 +53,7 @@
 ## 2026-11-03 修复收口（L-N1 / L-N2 / L-N4）
 - **L-N4 未完全修复（2026-11-06 复核，重新待处理）**：先前修复记录称示例和数据均为 S≤0.5、R≥4；当前 `mic-breakpoint.html:191` 仍如此写，但 `:256` 的革兰阴性菌左氧氟沙星实际是 S≤0.5、R≥2，MIC 2 会判 R，示例折点与数据再次冲突。此外示例 MIC 0.06 被 `:319-325` 的二倍稀释系列校验拒绝，无法按示例判 S。需由专业人员核实标准版本及折点后统一数据、示例和输入校验，勿仅凭历史记录改临床阈值。
 - 中文/英文 i18n 字典同步更新；`_build.py` 通过（SW 戳 `6898340262`），`run_gates.py` 218/218，`verify_clinical-lab_calc.js` 88/88。
-- 提交：`15892e31c7`；本段门禁数字及后续待办状态均为当时记录。2026-11-06 本轮运行 `node scripts/verify_clinical-lab_calc.js` 148/148，通过的是 Node 桩用例，未验证真实浏览器或线上；L-N4 仍待处理，其他条目不在本轮复核范围。
+- 提交：`15892e31c7`；本段门禁数字及后续待办状态均为当时记录。2026-11-06 本轮运行 `node scripts/verify_clinical-lab_calc.js` 148/148，通过的是 Node 桩用例，未验证真实浏览器或线上；L-N4 已于 2026-11-21 复核：示例 S≤0.5/R≥2 与判读函数一致，0.06 属 2⁻⁴ 合法稀释值可通过。
 
 ## 2026-11-03 续查（并行批 F）
 
