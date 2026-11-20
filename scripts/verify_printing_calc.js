@@ -154,6 +154,48 @@ const CASES = [
   ],
   "expect": ["INK134 OK"],
   "ref": "第1069批 N134：印数填小数（单色 1.5、CMYK 2.7）与 0 均应被拒「印数需为正整数」。旧实现用 parseInt 把 1.5→1、2.7→2 静默截断后照常出结果，0 靠 <1 拦截；新实现 readCopies 用 Number+Number.isInteger，三者均拦截。哨兵要求三场景全命中，默认 sCopies=5000/cCopies=10000 均为合法整数不触发 ⇒ 依赖 clicks 注入，强判别零逃生。"
+},
+{
+  "slug": "printing/analysis-7",
+  "inputs": {"lux": "280,abc,300"},
+  "expect": ["测点「abc」不是有效的非负数值"],
+  "ref": "非法测点须显式拦截，不得静默丢弃后仍输出均匀度"
+},
+{
+  "slug": "printing/analysis-7",
+  "inputs": {"lux": "0,0,0"},
+  "expect": ["所有测点均为 0，无法计算均匀度"],
+  "ref": "全零不得判「暗斑明显」，应提示无法计算"
+},
+{
+  "slug": "printing/box-area",
+  "inputs": {"len": "203","wid": "150","hei": "80","flap": "-5","bleed": "3"},
+  "expect": ["粘口与出血须为非负数值"],
+  "ref": "负粘口不得参与展开面积"
+},
+{
+  "slug": "printing/carton-design",
+  "inputs": {"len": "50","wid": "40","hei": "30","thick": "20","volume": "500","ratio": "1.5","hwRatio": "1.0","thick2": "0.5"},
+  "expect": ["纸板厚须小于最小外尺寸的一半"],
+  "ref": "纸板厚 20 > 最小尺寸 30 的一半，内尺寸将为负，必须拦截"
+},
+{
+  "slug": "printing/ink-coverage",
+  "inputs": {"width":"892","length":"1194","sheets":"5000","coverage":"120","film":"2.5","colors":"4","price":"60","waste":"10"},
+  "expect": ["覆盖率须在 0–100%"],
+  "ref": "覆盖率超 100% 必须拦截"
+},
+{
+  "slug": "printing/ink-coverage",
+  "inputs": {"width":"892","length":"1194","sheets":"5000","coverage":"40","film":"2.5","colors":"2.7","price":"60","waste":"10"},
+  "expect": ["色数须为 1–8 的整数"],
+  "ref": "色数 2.7 不得 parseInt 静默截断"
+},
+{
+  "slug": "printing/sheet-calc",
+  "inputs": {"pages":"163","copies":"2000","waste":"-5"},
+  "expect": ["加放率须在 0–100%"],
+  "ref": "负加放率不得减少用纸"
 }
 ];
 async function main() {

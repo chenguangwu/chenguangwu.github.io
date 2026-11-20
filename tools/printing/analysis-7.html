@@ -193,8 +193,12 @@
 function fmt(n,d){d=d==null?2:d;return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
 function calc(){
   const res=document.getElementById("res");
-  const raw=document.getElementById("lux").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v)&&v>=0);
-  if(!raw.length){res.innerHTML='<p>请录入各测点亮度读数（cd/m²）</p>';return;}
+  const tokens=document.getElementById("lux").value.split(/[,\n\s]+/).map(s=>s.trim()).filter(Boolean);
+  if(!tokens.length){res.innerHTML='<p>请录入各测点亮度读数（cd/m²）</p>';return;}
+  const bad=tokens.find(t=>!isFinite(Number(t))||Number(t)<0);
+  if(bad!==undefined){res.innerHTML='<p style="color:var(--danger);">测点「'+bad.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'」不是有效的非负数值，请修正后重试</p>';const rb=document.querySelector('#resRefBar');if(rb)rb.innerHTML='';return;}
+  const raw=tokens.map(Number);
+  if(raw.every(v=>v===0)){res.innerHTML='<p style="color:var(--danger);">所有测点均为 0，无法计算均匀度；请录入实际亮度读数</p>';const rb0=document.querySelector('#resRefBar');if(rb0)rb0.innerHTML='';return;}
   const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;
   const sorted=[...raw].sort((a,b)=>a-b);
   const mn=sorted[0],mx=sorted[n-1];

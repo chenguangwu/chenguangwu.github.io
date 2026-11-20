@@ -250,19 +250,32 @@
 
 <script>
 function calc() {
-  var inj = parseFloat(document.getElementById('injectTime').value) || 0;
-  var hold = parseFloat(document.getElementById('holdTime').value) || 0;
-  var cool = parseFloat(document.getElementById('coolTime').value) || 0;
-  var openT = parseFloat(document.getElementById('openTime').value) || 0;
-  var eject = parseFloat(document.getElementById('ejectTime').value) || 0;
-  var closeT = parseFloat(document.getElementById('closeTime').value) || 0;
-  var cav = parseInt(document.getElementById('cavities').value) || 1;
-  var hpd = parseFloat(document.getElementById('hoursPerDay').value) || 0;
-  var yr = parseFloat(document.getElementById('yieldRate').value) || 0;
+  var ids = ['injectTime','holdTime','coolTime','openTime','ejectTime','closeTime','hoursPerDay','yieldRate'];
+  var vals = {}, bad = '';
+  ids.forEach(function(id){
+    var raw = document.getElementById(id).value.trim();
+    var v = Number(raw);
+    if (raw === '' || !isFinite(v) || v < 0) { bad = bad || id; }
+    vals[id] = v;
+  });
+  var cavRaw = document.getElementById('cavities').value.trim();
+  var cav = Number(cavRaw);
+  if (cavRaw === '' || !Number.isInteger(cav) || cav < 1 || cav > 256) bad = bad || 'cavities';
+  if (vals.hoursPerDay > 24) bad = bad || 'hoursPerDay';
+  if (vals.yieldRate > 100) bad = bad || 'yieldRate';
+  if (bad) {
+    ToolBox.setResult('result', '<p style="color:var(--danger);">各工序时间与日运行小时须为非负数值，型腔数须为 1–256 的整数，良率须在 0–100% 之间</p>');
+    ToolBox.setResult('chartArea', '');
+    return;
+  }
+  var inj=vals.injectTime, hold=vals.holdTime, cool=vals.coolTime;
+  var openT=vals.openTime, eject=vals.ejectTime, closeT=vals.closeTime;
+  var hpd=vals.hoursPerDay, yr=vals.yieldRate;
 
   var totalCycle = inj + hold + cool + openT + eject + closeT;
   if (totalCycle <= 0) {
     ToolBox.setResult('result', '<p style="color:var(--danger);">总周期需大于 0</p>');
+    ToolBox.setResult('chartArea', '');
     return;
   }
   var shotsPerHour = 3600 / totalCycle;
@@ -291,6 +304,8 @@ function calc() {
 }
 
 function copyResult() {
+  var rt = document.getElementById('result');
+  if (rt && rt.textContent.indexOf('须为') !== -1) { ToolBox.showToast('请先修正输入', 'error'); return; }
   var totalCycle = (parseFloat(document.getElementById('injectTime').value)||0) +
     (parseFloat(document.getElementById('holdTime').value)||0) +
     (parseFloat(document.getElementById('coolTime').value)||0) +

@@ -71,6 +71,36 @@ const CASES = [
     "手机壳、镜片、头盔 透明,高强度,耐高温 PA66"
   ],
   "ref": "按特性筛选的图鉴页：默认「全部材料」渲染全表 ⇒ 任何单行文本都是逃生项，只能锚「仅过滤态成立的跨行相邻串」。注入 耐高温 后 PC 行紧邻 PA66 行，而默认全表中 PC 后紧邻 POM ⇒ 该跨行串仅过滤态成立（判别器换回「全部材料」即全表 ⇒ 该串消失）。非默认输入+独立复算。"
+},
+{
+  "slug": "plastic/blow-molding",
+  "inputs": {"partDia":"","parisonDia":"25","parisonWall":"4","bur":"3.2","yieldStr":"25","wallThk":"1.2","bottleDia":"80"},
+  "expect": ["制品直径与型坯直径均需大于 0"],
+  "ref": "清空制品直径不得输出吹胀比 0 和「偏小」"
+},
+{
+  "slug": "plastic/blow-molding",
+  "inputs": {"partDia":"83","parisonDia":"25","parisonWall":"4","bur":"3.2","yieldStr":"","wallThk":"1.2","bottleDia":"80"},
+  "expect": ["屈服强度、壁厚和直径均需大于 0"],
+  "ref": "清空屈服强度不得输出推荐压力 0"
+},
+{
+  "slug": "plastic/injection-cycle",
+  "inputs": {"injectTime":"6","holdTime":"5","coolTime":"20","openTime":"-3","ejectTime":"2","closeTime":"3","cavities":"4","hoursPerDay":"24","yieldRate":"95"},
+  "expect": ["各工序时间与日运行小时须为非负数值"],
+  "ref": "负工序时间不得参与周期"
+},
+{
+  "slug": "plastic/injection-cycle",
+  "inputs": {"injectTime":"6","holdTime":"5","coolTime":"20","openTime":"3","ejectTime":"2","closeTime":"3","cavities":"4","hoursPerDay":"30","yieldRate":"95"},
+  "expect": ["日运行小时须为非负数值"],
+  "ref": "日运行 30 小时须拦截"
+},
+{
+  "slug": "plastic/shrinkage-calc",
+  "inputs": {"moldSize":"100","partSize":"98.5","targetSize":"100","shrinkRate":"100"},
+  "expect": ["收缩率须为 0–100%"],
+  "ref": "100% 收缩率会导致除零"
 }
 ];
 async function main() {

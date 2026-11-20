@@ -238,8 +238,8 @@ function switchTab(name, btn) {
 function calcRate() {
   var mold = parseFloat(document.getElementById('moldSize').value) || 0;
   var part = parseFloat(document.getElementById('partSize').value) || 0;
-  if (mold <= 0) {
-    ToolBox.setResult('rateResult', '<p style="color:var(--danger);">模具尺寸需大于 0</p>');
+  if (mold <= 0 || part <= 0) {
+    ToolBox.setResult('rateResult', '<p style="color:var(--danger);">模具尺寸与制品尺寸均需大于 0</p>');
     return;
   }
   if (part > mold) {
@@ -256,9 +256,14 @@ function calcRate() {
 
 function calcMold() {
   var target = parseFloat(document.getElementById('targetSize').value) || 0;
-  var rate = parseFloat(document.getElementById('shrinkRate').value) || 0;
+  var rateRaw = document.getElementById('shrinkRate').value.trim();
+  var rate = Number(rateRaw);
   if (target <= 0) {
     ToolBox.setResult('moldResult', '<p style="color:var(--danger);">目标尺寸需大于 0</p>');
+    return;
+  }
+  if (rateRaw === '' || !isFinite(rate) || rate < 0 || rate >= 100) {
+    ToolBox.setResult('moldResult', '<p style="color:var(--danger);">收缩率须为 0–100%（不含 100%）的数值</p>');
     return;
   }
   var moldDim = target / (1 - rate / 100);
@@ -271,6 +276,8 @@ function calcMold() {
 
 function copyResult() {
   var activeTab = document.querySelector('.tab-content.active').id;
+  var rbox = document.getElementById(activeTab === 'tab-rate' ? 'rateResult' : 'moldResult');
+  if (rbox && rbox.textContent.indexOf('须') !== -1) { ToolBox.showToast('请先修正输入', 'error'); return; }
   var text;
   if (activeTab === 'tab-rate') {
     var mold = parseFloat(document.getElementById('moldSize').value) || 0;

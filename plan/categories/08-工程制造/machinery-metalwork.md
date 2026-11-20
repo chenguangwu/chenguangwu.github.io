@@ -324,3 +324,10 @@
 - 安全：0 条；4 页无 `eval`/`new Function`/`allow-same-origin`/`document.write`/明文存密/页面自有网络外传；历史值仅接数值或 `escHtml` 后的时间串，未形成可控 HTML 注入；公共模板 ttzz 脚本不单列。
 - 复算：node 内存复算温度因子 35℃ 0.3536 vs 2.8284、5℃ 2.8284 vs 0.3536，Tr40×7 的 d2/d3 35.453/31.412 vs 36.5/33.0，M10×1.5 的 d2 9.026/d3 8.160/n 1910 rpm，对比页 90/72→18.0/55.6%、85/78→7.0/52.1%，未落盘仓库；仅源码阅读，未开浏览器、未跑 `_build.py`/`run_gates.py`、未改 `tools/**` 与构建产物，未触碰 `plan/interaction-validity.md`、`plan/units-factors.md`、`plan/input-parse-dup.md`。
 - 去重说明：tester-19 的温度修正方向错误与既有「查表值不随输入变化」类不同，属公式符号错误，单列；thread 的类型死选项与 MM-H126（材料/等级死选项）同属「下拉只改文案」，但本页还叠加几何错算，按页面单列；两个对比页为同一模板缺陷，按逐页口径各记一条。
+
+
+## 2026-11-21 印刷/塑料校验批次
+
+- `printing/analysis-7`、`box-area`、`carton-design`、`convert-gsm`、`ink-coverage`、`sheet-calc` 六页空值/负值/超界与 A4 面积口径已实修。
+- `plastic/blow-molding`、`injection-cycle`、`shrinkage-calc` 三页输入边界与失败态清空已实修。
+- 验证：printing 18/18、plastic 10/10。
