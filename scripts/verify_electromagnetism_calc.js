@@ -56,6 +56,11 @@ const CASES = [
     ref: "V=k·q/r=8.98755e9·2e-6/4=4493.776 V" },
 
   { slug: "electromagnetism/electric-power",
+    inputs: { V: "12", I: "" },
+    expect: ["请填写电压与电流后再计算。"],
+    ref: "电流留空：旧 num() 回退 0 静默输出功率 0；新增空值守卫后须提示。" },
+
+  { slug: "electromagnetism/electric-power",
     inputs: { V: "24", I: "3.5" },
     expect: ["84.000", "0.0840"],
     ref: "P=V·I=24·3.5=84.000 W；84/1000=0.0840 kW" },
@@ -133,6 +138,11 @@ const CASES = [
     inputs: { L1: "3", L2: "6" },
     expect: ["2.0000", "0.5000"],
     ref: "L=1/(1/3+1/6)=2.0000 mH；总倒感=1/2=0.5000 1/mH" },
+
+  { slug: "electromagnetism/inductors-series",
+    inputs: { L1: "1", L2: "" },
+    expect: ["请填写两个电感值后再计算。"],
+    ref: "L₂ 留空：旧 num() 回退 0 使并联项除零为 Infinity；新增空值守卫后须提示。" },
 
   { slug: "electromagnetism/inductors-series",
     inputs: { L1: "3", L2: "5" },

@@ -44,6 +44,11 @@ const CASES = [
     ref: "v=√(16+2×3×20)=√136=11.662 m/s" },
 
   { slug: "kinematics/uniform-displacement",
+    inputs: { v: "5", t: "" },
+    expect: ["请填写速度与时间后再计算。"],
+    ref: "时间留空：旧 num() 回退 0 静默输出位移 0；新增空值守卫后须提示。" },
+
+  { slug: "kinematics/uniform-displacement",
     inputs: { v: "12", t: "7" },
     expect: ["84.000"],
     ref: "s=12×7=84.000 m" },
@@ -63,6 +68,11 @@ const CASES = [
     inputs: { h: "45", g: "9.8" },
     expect: ["3.030", "29.698"],
     ref: "t=√(2×45/9.8)=3.030 s；触地速度=9.8×3.030=29.698 m/s" },
+
+  { slug: "kinematics/height-fall-distance",
+    inputs: { t: "2", g: "" },
+    expect: ["请填写下落时间与重力加速度后再计算。"],
+    ref: "g 留空：旧 num() 回退 0 静默输出下落距离 0；新增空值守卫后须提示。" },
 
   { slug: "kinematics/height-fall-distance",
     inputs: { t: "3.5", g: "9.81" },

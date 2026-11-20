@@ -107,7 +107,7 @@
 
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">两电感串联（无互感耦合）：等效电感 L = L₁ + L₂（mH，直接相加）；联动量：并联等效 = 1 ÷ (1÷L₁ + 1÷L₂)（mH）、电感比 = L₁ ÷ (L₂||1)、并值复算 = L₁·L₂ ÷ ((L₁+L₂)||1)（分母为 0 时按 1 兜底）。校验：无强校验，空值按 0 兜底。判据：无固定分级，串联等效恒不小于两者中较大者，与并联公式（倒数相加再取倒数）互补。</div>
+      <div class="formula-eq">两电感串联（无互感耦合）：等效电感 L = L₁ + L₂（mH，直接相加）；联动量：并联等效 = 1 ÷ (1÷L₁ + 1÷L₂)（mH）、电感比 = L₁ ÷ (L₂||1)、并值复算 = L₁·L₂ ÷ ((L₁+L₂)||1)（分母为 0 时按 1 兜底）。校验：空值即提示；两个电感值均须大于 0。判据：无固定分级，串联等效恒不小于两者中较大者，与并联公式（倒数相加再取倒数）互补。</div>
       <p class="formula-desc">串联电感总和即为等效电感（忽略互感）。</p>
     </div>
 
@@ -198,7 +198,11 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const L1 = num('L1'), L2 = num('L2');
+            const __rangeEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+            const __rangeRaw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+            if(__rangeRaw('L1')===''||__rangeRaw('L2')===''){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__rangeEn?'Enter both inductance values before calculating.':'请填写两个电感值后再计算。')+'</p>');return;}
+            const L1 = Number(__rangeRaw('L1')), L2 = Number(__rangeRaw('L2'));
+            if(!Number.isFinite(L1)||!Number.isFinite(L2)||L1<=0||L2<=0){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__rangeEn?'Both inductance values must be greater than 0 for the parallel formula.':'两个电感值均须大于 0（并联公式需要非零分母）。')+'</p>');return;}
             const L = L1 + L2;
             const __g1=dataGrid([
                 [L.toFixed(4), '等效电感 L (mH)'],

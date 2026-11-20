@@ -103,7 +103,7 @@
 
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">胡克定律（本页代码口径）：弹簧力 F=k×x（N，k 劲度系数 N/m、x 位移 m）；联动量：弹性势能 U=0.5×k×x²（J）、劲度系数倒数=1÷max(k,10⁻⁹)（m/N）、k·x² 之积（=2U，J）。校验：无强校验，空值按 0 兜底。判据：无固定分级，力与位移线性相关、势能随位移平方增长，超出线性区后 k×x 不再适用。</div>
+      <div class="formula-eq">胡克定律（本页代码口径）：弹簧力 F=k×x（N，k 劲度系数 N/m、x 位移 m）；联动量：弹性势能 U=0.5×k×x²（J）、劲度系数倒数=1÷max(k,10⁻⁹)（m/N）、k·x² 之积（=2U，J）。校验：两项空值即提示；劲度系数不得为负、形变量须为有效数值（0 合法）。判据：无固定分级，力与位移线性相关、势能随位移平方增长，超出线性区后 k×x 不再适用。</div>
       <div class="formula-desc">由弹簧刚度与形变量，按 F = kx 计算弹簧恢复力（弹性力）。</div>
     </div>
 
@@ -197,7 +197,11 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const k=num('k'), x=num('x');
+            const __rangeEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+            const __rangeRaw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+            if(__rangeRaw('k')===''||__rangeRaw('x')===''){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__rangeEn?'Enter stiffness and displacement before calculating.':'请填写劲度系数与形变量后再计算。')+'</p>');return;}
+            const k=Number(__rangeRaw('k')),x=Number(__rangeRaw('x'));
+            if(!Number.isFinite(k)||!Number.isFinite(x)||k<0){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__rangeEn?'Stiffness cannot be negative; displacement must be a valid number.':'劲度系数不得为负，形变量须为有效数值。')+'</p>');return;}
             const F = k*x;
             const __g1=dataGrid([ [F.toFixed(1)+' N', '弹簧力 F = k·x'],
                 [(0.5*k*x*x).toFixed(4), '弹性势能 U (J)'],
