@@ -189,8 +189,15 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pediatrics/vaccine-schedule.html','utf8');var i=h.indexOf('if(!birthDate){');var j=h.indexOf('var ageMonths',i);var seg=(i>=0&&j>i)?h.slice(i,j):'';var n=(seg.split('getElementById(').length-1);var ok=n>=3;document.getElementById('__tbProbe').textContent='VACCLR '+(ok?'OK':'BAD');})();"],
   "expect": ["VACCLR OK"],
   "ref": "第1329批·清空出生日期未清年龄主结果修复源码形态强锚：原 !birthDate 分支只更新 scheduleList 清单，#result 当前年龄旧值留存；修复后补清 result。分支段内 getElementById( 引用 before=2/fixed=3。按函数分支边界截取禁固定长度。"
-}
-
+},
+{ slug:"pediatrics/assessor-spo2", inputs:{"rhSpO2":"","footSpO2":""}, expect:["请填写右手与足部 SpO2"], ref:"核心测量值留空不得给出分级/风险结论（PEDCLR）" },
+{ slug:"pediatrics/chd-assessment", inputs:{"age":"","rhSpo2":"","llSpo2":""}, expect:["请填写日龄与上下肢血氧"], ref:"核心测量值留空不得给出分级/风险结论（PEDCLR）" },
+{ slug:"pediatrics/enuresis-age", inputs:{"age":""}, expect:["请填写年龄"], ref:"核心测量值留空不得给出分级/风险结论（PEDCLR）" },
+{ slug:"pediatrics/hirschberg-test", inputs:{"offset":"","pupil":""}, expect:["请填写角膜反光偏移与瞳孔直径"], ref:"核心测量值留空不得给出分级/风险结论（PEDCLR）" },
+{ slug:"pediatrics/pediatric-fracture", inputs:{"age":""}, expect:["请填写年龄"], ref:"核心测量值留空不得给出分级/风险结论（PEDCLR）" },
+{ slug:"pediatrics/pediatric-pneumonia", inputs:{"age":"","rr":"","spo2":""}, expect:["请填写月龄、呼吸频率与血氧"], ref:"核心测量值留空不得给出分级/风险结论（PEDCLR）" },
+{ slug:"pediatrics/rater-27", inputs:{"ageMonth":"","weight":"","height":"","headCirc":""}, expect:["请填写月龄、体重、身长与头围"], ref:"核心测量值留空不得给出分级/风险结论（PEDCLR）" },
+{ slug:"pediatrics/seizure-classification", inputs:{"age":""}, expect:["请填写年龄"], ref:"核心测量值留空不得给出分级/风险结论（PEDCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);
