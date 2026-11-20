@@ -155,7 +155,13 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+\"tools/advertising/reach-frequency.html\",'utf8');var i=h.indexOf('function copyBasic(){');var s=i>=0?h.slice(i,i+320):'';var ok=s.indexOf('pop>0?(reach/pop*100):0')>=0&&s.indexOf('reach>0?(imp/reach):0')>=0;document.getElementById('__tbProbe').textContent='REACHCPY '+(ok?'OK':'BAD');"],
   "expect": ['REACHCPY OK'],
   "ref": "第1347批·复制与页面不同源：旧版 copyBasic 裸算 reach/pop 与 imp/reach，reach=0 时复制「频次:Infinity」；主 calcBasic 已用 reach>0 守卫。修复后 copyBasic 与 calcBasic 同源，零值取 0。"
-}
+},
+{
+  "slug": "advertising/estimate-cycle",
+  "inputs": { "arpu": "50", "churn": "5", "margin": "", "cac": "200" },
+  "expect": ["请填写毛利率后再计算。"],
+  "ref": "毛利率留空：旧代码 parseFloat||0 使 LTV、LTV:CAC 与回本周期全部变成 0 或无穷，却照常渲染结论；新增守卫后须提示。"
+},
 ];
 async function main() {
   const only = process.argv.slice(2);

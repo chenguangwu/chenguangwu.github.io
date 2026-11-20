@@ -97,6 +97,12 @@ const CASES = [
     ref: "约定10%（≤3.45×4=13.8%受保护）；利息=150000×10%×1=15000；本息=165000（原 expect 写成默认 rate=12 的 112000/12000，与 ref 自相矛盾）",
   },
   // ── 法律援助资格（低保户免核查）────────────────────────────────────
+  { slug: "legal/legal-aid-eligibility",
+    inputs: { applicantType: "normal", monthlyIncome: "", localLowIncome: "3000" },
+    checks: ["labor"],
+    expect: ["请补充收入信息后再判断是否符合法律援助条件"],
+    ref: "普通申请人月收入留空：旧代码 economicEligible 保持 false，直接给出「可能不符合」的否定结论；新增未定态后须提示补充收入。" },
+
   {
     slug: "legal/legal-aid-eligibility",
     inputs: { applicantType: "normal", monthlyIncome: "999999", localLowIncome: "2000" },
@@ -419,6 +425,11 @@ const CASES = [
     expect: ["诉讼时效届满日： 2026-12-31", "930天"],
     ref: "注入非默认(默认空→请填写相关日期信息)：dueDate=2023-01-01、lastDemand=2024-01-01（中断重算3年）→ 诉讼时效届满日 2026-12-31、剩余 930天。默认态无届满日不命中。"
   },
+  { slug: "legal/social-security-base",
+    inputs: { salary: "", city: "北京", insType: "养老" },
+    expect: ["请填写有效的月工资（0 或以上）后再计算。"],
+    ref: "月工资留空：旧代码按 0 落入缴费下限，凭空算出一整套按最低基数缴纳的金额；新增守卫后须提示。" },
+
   {
     slug: "legal/social-security-base",
     inputs: { salary: "15000", city: "上海", insType: "养老" },

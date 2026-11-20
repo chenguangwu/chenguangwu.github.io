@@ -311,8 +311,10 @@ var __aeD=null;
 function checkEligibility(){
   const matterTypes = Array.from(document.querySelectorAll('.matter-type:checked')).map(c => c.value);
   const applicantType = document.getElementById('applicantType').value;
-  const monthlyIncome = parseFloat(document.getElementById('monthlyIncome').value) || 0;
-  const localLowIncome = parseFloat(document.getElementById('localLowIncome').value) || 0;
+  const __aeIncomeRaw = String(document.getElementById('monthlyIncome').value).trim();
+  const __aeLowRaw = String(document.getElementById('localLowIncome').value).trim();
+  const monthlyIncome = parseFloat(__aeIncomeRaw) || 0;
+  const localLowIncome = parseFloat(__aeLowRaw) || 0;
   
   const incomeSection = document.getElementById('incomeSection');
   const noCheckTypes = ['lowincome', 'disabled', 'minor', 'elderly', 'migrant', 'hero'];
@@ -341,6 +343,9 @@ function checkEligibility(){
   }else if(applicantType === 'hero'){
     economicEligible = true;
     economicReason = aeL('见义勇为人员，免予经济困难核查','Good Samaritan: exempt from means test');
+  }else if(__aeIncomeRaw==='' || __aeLowRaw==='' || !isFinite(monthlyIncome) || !isFinite(localLowIncome) || monthlyIncome < 0 || localLowIncome < 0){
+    economicEligible = null;
+    economicReason = aeL('请填写家庭月人均收入与当地低保标准后再判断经济状况','Please enter monthly income and the local subsistence line to assess your financial situation');
   }else{
     if(monthlyIncome > 0 && localLowIncome > 0){
       const threshold = localLowIncome * 2;
@@ -368,6 +373,9 @@ function checkEligibility(){
     resultHtml += `<p>2. ${aeL('向当地法律援助中心或拨打12348申请','Apply at your local legal aid centre or call 12348')}</p>`;
     resultHtml += `<p>3. ${aeL('也可通过"12348中国法网"线上申请','You can also apply online via the 12348 China legal aid network')}</p>`;
     resultHtml += `</div>`;
+  }else if(economicEligible === null){
+    resultHtml += `<p style="color:var(--warning,#ff9800);font-size:16px;font-weight:600;">⚠️ ${aeL('请补充收入信息后再判断是否符合法律援助条件','Please provide income details before we can assess legal aid eligibility')}</p>`;
+    resultHtml += `<p style="margin-top:8px;">${economicReason}</p>`;
   }else{
     resultHtml += `<p style="color:var(--danger);font-size:16px;font-weight:600;">⚠️ ${aeL('可能不符合法律援助条件','May not meet the legal aid conditions')}</p>`;
     resultHtml += `<p style="margin-top:8px;">经济状况：${economicReason}</p>`;
