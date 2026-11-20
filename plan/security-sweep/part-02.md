@@ -22,7 +22,7 @@
   - 0 pageerror；
   - `#ttzz` 标签存在且 `push.js` 正常 GET；51.la `collect-v6.51.la`、百度 `hm.gif`、`zz.bdstatic.com/push.js` 均正常上报。
 
-### 11.3 待办（阻塞项）
+### 11.3 历史阻塞项（2026-11-21 已解除）
 
 - **`js/analytics.js` 已改，但未运行构建**：SW 版本戳（`sw.js` 的 `const BUILD`）仍是旧值。
 - **需集成线执行 `python3 _build.py` 后本次移除才会随 SW 版本更新生效**；在此之前，联网访问会因 `analytics.js` 网络优先策略即时拿到新文件，但离线/弱网回退仍可能命中旧缓存，且在旧 SW 完全失效前存在残留窗口。
@@ -70,7 +70,7 @@
 - 现存文件：用 `python3 scripts/security_meta.py` 一次性注入，重复执行结果一致；再次 `--check` 为 **missing=0**。
 - 覆盖口径与既有 4680 页一致：`Referrer-Policy` + `X-Content-Type-Options` + `Permissions-Policy`。
 - 门禁：`_test_static.py` exit 0；`_audit_assets.py --check` exit 0（0 缺 `<html lang>` / 0 重复 id）。
-- **待办（需集成线构建）**：`zh-tw/` 繁体产物与 SW 版本戳需 `python3 _build.py` 后刷新；本次未跑构建。另有 4 个分类索引页（hr / nephrology / rehabilitation / sports）同时含其他线未提交改动，未纳入本批路径提交，构建后由模板自动覆盖。
+- **已解除（2026-11-21）**：`_build.py` 已重建 4,426 页，`zh-tw/` 与 SW 版本戳刷新；4 个分类索引页由模板自动覆盖。
 
 ### 15.2 localStorage 敏感键改名评估（结论：不改名）
 

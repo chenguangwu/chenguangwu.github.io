@@ -226,7 +226,7 @@
 | tools/metalwork/analysis-simulator.html | 【高】流程/壁厚比量纲混算：`slender=(V/A)/h` 中 V 为 cm³、A 为 cm²、h 为 mm，默认 (200/100)/3=0.667；统一按 mm 为 (200000/10000)/3=6.67，偏小 10 倍。且 V/A 是平均厚度而非流程长度（公式框同时写「表面积」与「投影面积」），阈值 150 几乎永不触发（:111,115,230,234,240） | MM-H120 |
 | tools/metalwork/analysis-simulator.html | 【高】模具温度 tmold 是死输入：被 parseFloat 并参与 isFinite 校验，但 Tmo 之后从未进入任何公式或输出；改 40/60/80 结果完全不变（:124,221-244） | MM-H121 |
 | tools/metalwork/calc-feed.html | 【高】材料去除率 Q 算了不渲染：`var Q = vf*dia*0.02` 从未进入结果/导出/历史，公式框仍承诺「材料去除率 Q ≈ Vf×D×0.02」；该式缺切宽/切深、量纲为 mm²/min，与引据表 MRR=切宽×切深×进给 自相矛盾（:127,180,216,220-226） | MM-H123 |
-| tools/metalwork/calc-gear-2.html | 【高】滚刀转速把工件分度圆当刀具直径：`n=1000*Vc/(π*d)` 中 d=m*z；m2/z24/Vc40 → 265.3 rpm，按 φ100 滚刀应约 127 rpm（高 2.1 倍）；若按工件转速理解，则「滚刀转速」标签又错。插齿同样用 d 算「转速」，与冲程数概念混淆（:176,228,238,248） | MM-H124 |
+| tools/metalwork/calc-gear-2.html | 【✅ 2026-11-21 已修】原滚刀转速把工件分度圆当刀具直径：`n=1000*Vc/(π*d)` 中 d=m*z；m2/z24/Vc40 → 265.3 rpm，按 φ100 滚刀应约 127 rpm（高 2.1 倍）。现新增「滚刀外径」输入（默认 100 mm），滚刀转速按刀具外径计算、工件转速=n刀/z、进给 Vf=工件转速×f；插齿保留原口径并明确标签，`verify_metalwork_calc.js` 104/104。 | MM-H124 |
 | tools/metalwork/calc-gear-2.html | 【假】英文副标题承诺 "for spur and helical gears"，但无螺旋角 β 输入，da=m(z+2)、df=m(z−2.5)、db=mzcos20° 全按直齿，斜齿几何未实现（:127,224-227） | MM-H125 |
 | tools/metalwork/detector-21.html | 【高】材料 6 选项只分铁磁/非铁磁：铸件/锻件/管材/焊接件落入同一 isFerro 分支，打分与建议完全相同；检测等级 strict 与 critical 都只 +1 RT/+1 UT，两档无差异（:216,223-226,238-239） | MM-H126 |
 | tools/metalwork/detector-21.html | 【中】深度解析整节为「焊接/探伤探测器参数对比」（灵敏度 0.5/1.0 mm、信噪比 20 dB、设备比对），与本页按材料/缺陷/厚度选检测方法无关，页面也无对应输入（:312-320） | MM-H127 |

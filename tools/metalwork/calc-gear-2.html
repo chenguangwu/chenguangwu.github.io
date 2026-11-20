@@ -116,7 +116,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入端面模数、齿数、螺旋角与加工方法，按法向模数与端面压力角修正后计算齿轮几何参数与切削加工参数">Compute gear machining dimensions — pitch/addendum/dedendum diameters, normal module, transverse pressure angle and axial pitch for spur (β=0) and helical gears.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">端面模数 mt、齿数 z、螺旋角 β（β=0 即直齿）、法向压力角 αn=20°：分度圆 d = mt×z；法向模数 mn = mt×cosβ；端面压力角 αt = atan(tanαn ÷ cosβ)；齿顶圆 da = d + 2×mn；齿根圆 df = d − 2.5×mn；基圆 db = d×cosαt；端面齿距 pt = π×mt；轴向齿距 px = π×mt/tanβ（直齿时无轴向齿距）。滚齿/插齿主轴转速 n = 1000×Vc ÷ (π×d)（rpm），进给速度 Vf = n×f（mm/min）。校验：端面模数须为有效正数、齿数至少 4、螺旋角 0–45°、切削速度与进给量须 &gt;0，否则逐项提示。提示：滚齿 n&gt;500 rpm 或插齿 n&gt;800 rpm 时提醒检查刀具与机床（阈值为本页提示线，非验收标准），另按材料表给出推荐切削速度 Vc 参考值。</div>
+      <div class="formula-eq">端面模数 mt、齿数 z、螺旋角 β（β=0 即直齿）、法向压力角 αn=20°：分度圆 d = mt×z；法向模数 mn = mt×cosβ；端面压力角 αt = atan(tanαn ÷ cosβ)；齿顶圆 da = d + 2×mn；齿根圆 df = d − 2.5×mn；基圆 db = d×cosαt；端面齿距 pt = π×mt；轴向齿距 px = π×mt/tanβ（直齿时无轴向齿距）。滚齿：滚刀转速 n刀 = 1000×Vc ÷ (π×滚刀外径)，工件转速 n工 = n刀 ÷ z（单头滚刀），进给 Vf = n工×f；插齿：n = 1000×Vc ÷ (π×d)，Vf = n×f。校验：端面模数须为有效正数、齿数至少 4、螺旋角 0–45°、切削速度与进给量须 &gt;0，否则逐项提示。提示：滚齿滚刀转速&gt;500 rpm 或插齿 n&gt;800 rpm 时提醒检查刀具与机床（阈值为本页提示线，非验收标准），另按材料表给出推荐切削速度 Vc 参考值。</div>
       <div class="formula-desc">输入端面模数、齿数、螺旋角（0 为直齿）与加工方法；斜齿时齿顶圆/齿根圆按法向模数 mn、基圆按端面压力角 αt 修正，并计算切削加工参数。</div>
     </div>
     <div class="input-row">
@@ -138,6 +138,10 @@
           <option value="hob">滚齿</option>
           <option value="shape">插齿</option>
         </select>
+      </div>
+      <div>
+        <label>滚刀外径 (mm，仅滚齿用)</label>
+        <input type="number" id="toolDia" value="100" min="20" max="300" step="5" oninput="calc()" enterkeyhint="done" aria-label="滚刀外径" placeholder="如 100（20–300）">
       </div>
       <div>
         <label>切削速度 Vc (m/min)</label>
@@ -207,6 +211,7 @@ function calc() {
   var m = parseFloat(document.getElementById('module').value);
   var z = parseInt(document.getElementById('teeth').value);
   var beta = parseFloat(document.getElementById('helix').value) || 0;
+  var toolDia = parseFloat(document.getElementById('toolDia').value);
   var method = document.getElementById('method').value;
   var vc = parseFloat(document.getElementById('vc').value);
   var f = parseFloat(document.getElementById('feed').value);
@@ -216,6 +221,7 @@ function calc() {
   if (beta < 0 || beta > 45) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">螺旋角须为 0–45°（0 表示直齿）</p>'; return; }
   if (isNaN(vc) || vc <= 0) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效切削速度</p>'; return; }
   if (isNaN(f) || f <= 0) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效进给量</p>'; return; }
+  if (method === 'hob' && (isNaN(toolDia) || toolDia <= 0)) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">滚齿须填写有效的滚刀外径（>0）</p>'; return; }
   var betaRad = beta * Math.PI / 180;
   var cosB = Math.cos(betaRad);
   var mn = m * cosB;
@@ -224,8 +230,9 @@ function calc() {
   var da = d + 2 * mn;
   var df = d - 2.5 * mn;
   var db = d * Math.cos(alphaT);
-  var n = 1000 * vc / (Math.PI * d);
-  var vf = n * f;
+  var n = method === 'hob' ? 1000 * vc / (Math.PI * toolDia) : 1000 * vc / (Math.PI * d);
+  var nWork = method === 'hob' ? n / z : n;
+  var vf = nWork * f;
   var px = beta > 0 ? Math.PI * m / Math.tan(betaRad) : null;
   var alphaTDeg = alphaT * 180 / Math.PI;
   var methodName = method === 'hob' ? '滚齿' : '插齿';
@@ -236,7 +243,8 @@ function calc() {
     '<div class="data-card"><div class="num">' + db.toFixed(2) + '</div><div class="label">基圆 db (mm)</div></div>' +
     '</div>';
   html += '<div class="data-grid" style="margin-top:8px;">' +
-    '<div class="data-card"><div class="num">' + n.toFixed(1) + '</div><div class="label">' + methodName + '转速 (rpm)</div></div>' +
+    '<div class="data-card"><div class="num">' + n.toFixed(1) + '</div><div class="label">' + (method === 'hob' ? '滚刀转速' : '插齿刀转速') + ' (rpm)</div></div>' +
+    (method === 'hob' ? '<div class="data-card"><div class="num">' + nWork.toFixed(1) + '</div><div class="label">工件转速 (rpm)</div></div>' : '') +
     '<div class="data-card"><div class="num">' + vf.toFixed(1) + '</div><div class="label">进给速度 (mm/min)</div></div>' +
     '<div class="data-card"><div class="num">' + (m * Math.PI).toFixed(3) + '</div><div class="label">端面齿距 pt (mm)</div></div>' +
     '<div class="data-card"><div class="num">' + mn.toFixed(3) + '</div><div class="label">法向模数 mn (mm)</div></div>' +
@@ -252,8 +260,9 @@ function calc() {
   html += '<tr><th>端面齿距</th><td>pt = π × ' + m + ' = ' + (m * Math.PI).toFixed(3) + ' mm</td></tr>';
   html += '<tr><th>法向模数</th><td>mn = ' + m + ' × cos' + beta + '° = ' + mn.toFixed(3) + ' mm</td></tr>';
   html += '<tr><th>轴向齿距</th><td>' + (px === null ? 'β=0（直齿），无轴向齿距' : 'px = π × ' + m + ' / tan' + beta + '° = ' + px.toFixed(3) + ' mm') + '</td></tr>';
-  html += '<tr><th>' + methodName + '转速</th><td>n = 1000 × ' + vc + ' / (π × ' + d.toFixed(2) + ') = ' + n.toFixed(1) + ' rpm</td></tr>';
-  html += '<tr><th>进给速度</th><td>Vf = ' + n.toFixed(1) + ' × ' + f + ' = ' + vf.toFixed(1) + ' mm/min</td></tr>';
+  html += '<tr><th>' + (method === 'hob' ? '滚刀转速' : '插齿刀转速') + '</th><td>n = 1000 × ' + vc + ' / (π × ' + (method === 'hob' ? toolDia.toFixed(2) : d.toFixed(2)) + ') = ' + n.toFixed(1) + ' rpm</td></tr>';
+  if (method === 'hob') html += '<tr><th>工件转速</th><td>n工 = n刀 ÷ z = ' + n.toFixed(1) + ' ÷ ' + z + ' = ' + nWork.toFixed(1) + ' rpm</td></tr>';
+  html += '<tr><th>进给速度</th><td>Vf = ' + nWork.toFixed(1) + ' × ' + f + ' = ' + vf.toFixed(1) + ' mm/min</td></tr>';
   html += '</tbody></table>';
   var tip = '';
   if (method === 'hob') {
@@ -277,6 +286,7 @@ function resetAll() {
   document.getElementById('teeth').value = '24';
   document.getElementById('helix').value = '0';
   document.getElementById('method').value = 'hob';
+  document.getElementById('toolDia').value = '100';
   document.getElementById('vc').value = '40';
   document.getElementById('feed').value = '1.5';
   document.getElementById('material').value = 'carbon';

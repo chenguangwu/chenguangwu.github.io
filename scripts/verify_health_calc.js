@@ -694,14 +694,14 @@ const CASES = [
       "ultrasoundDay": "42",
       "ivfDate": "abc123测试",
       "fetalWeek": "42",
-      "bpd": "42",
-      "fl": "42",
+      "bpd": "8",
+      "fl": "6",
       "ivfDay": "5"
     },
     "expect": [
-      "诊检查、随时待产\n42\n42\n42\n1015006 g 估算体重 (Hadlock公式 (BPD+FL)) 1015.01 kg 公斤换算 862755-1167257"
+      "6126 g 估算体重 (BPD+FL 经验式) 6.13 kg 公斤换算 5207-7045 g 参考波动"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"lmpDate\":\"abc123测试\",\"ovulationDate\":\"abc123测试\",\"ultrasoundDate\":\"abc123测试\",\"ultrasoundWeek\":\"42\",\"ultrasoundDay\":\"42\",\"ivfDate\":\"abc123测试\",\"fetalWeek\":\"42\",\"bpd\":\"42\",\"fl\":\"42\",\"ivfDay\":\"5\"}，输出区含「诊检查、随时待产\n42\n42\n42\n1015006 g 估算体重 (Hadloc…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lmpDate\":\"abc123测试\",\"ovulationDate\":\"abc123测试\",\"ultrasoundDate\":\"abc123测试\",\"ultrasoundWeek\":\"42\",\"ultrasoundDay\":\"42\",\"ivfDate\":\"abc123测试\",\"fetalWeek\":\"42\",\"bpd\":\"42\",\"fl\":\"42\",\"ivfDay\":\"5\"}，输出区含「6126 g 估算体重 (BPD+FL 经验式) 6.13 kg 公斤换算 5207-7045 g 参考波动」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "health/protein-needs",

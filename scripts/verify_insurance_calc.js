@@ -79,17 +79,17 @@ const CASES = [
     ref: "f=50/1000=0.05→0.0500；出险率=5.00%（默认空→NaN 避开）" },
 
   { slug: "insurance/claim-reserve",
-    inputs: { earnedPremium: "10000", expectLossRatio: "65", paidLoss: "-3500", rbns: "1200", closeRate: "70", period: "0.65" },
+    inputs: { earnedPremium: "10000", expectLossRatio: "65", paidLoss: "-3500", rbns: "1200", closeRate: "70", period: "1.2" },
     expect: ["「已付赔款 (万)」不能为负数（当前 -3500）"],
     ref: "R-H9：负已付赔款曾算 IBNR 8800（超过终极赔款 6500）、链梯最终赔款 −5000、调整后准备金 −975；现在必须拒绝。默认 paidLoss 3500 不含负号文案。" },
 
   { slug: "insurance/claim-reserve",
-    inputs: { earnedPremium: "10000", expectLossRatio: "150", paidLoss: "3500", rbns: "1200", closeRate: "70", period: "0.65" },
+    inputs: { earnedPremium: "10000", expectLossRatio: "150", paidLoss: "3500", rbns: "1200", closeRate: "70", period: "1.2" },
     expect: ["「预期赔付率 (%)」必须在 0–100 之间（当前 150）"],
     ref: "R-H9：预期赔付率 >100% 会让预期终极赔款 15000 高于全部已赚保费；现在必须拒绝。默认 65 不含该文案。" },
 
   { slug: "insurance/claim-reserve",
-    inputs: { earnedPremium: "10000", expectLossRatio: "65", paidLoss: "3500", rbns: "1200", closeRate: "150", period: "0.65" },
+    inputs: { earnedPremium: "10000", expectLossRatio: "65", paidLoss: "3500", rbns: "1200", closeRate: "150", period: "1.2" },
     expect: ["「结案率 (%)」必须在 0–100 之间（当前 150）"],
     ref: "R-H9：结案率 >100% 使链梯最终赔款 2333 小于已付 3500、准备金为负；现在必须拒绝。默认 70 不含该文案。" },
 
@@ -114,7 +114,7 @@ const CASES = [
     ref: "R-H10 合法边界：因子 =1 ⇒ IBNR 为 0，页面应说明「已充分报告」；默认因子 1.25 不出现该说明。" },
 
   { slug: "insurance/claim-reserve",
-    inputs: { earnedPremium: "1000", expectLossRatio: "70", paidLoss: "400", rbns: "200", closeRate: "50", period: "0.65" },
+    inputs: { earnedPremium: "1000", expectLossRatio: "70", paidLoss: "400", rbns: "200", closeRate: "50", period: "1.2" },
     expect: ["700", "300", "60.0"],
     ref: "终极=1000×70%=700；IBNR=700−400−200=100；未决=200+100=300；已报赔付率=(400+200)/1000×100=60.0%（默认空→0/NaN 避开）" },
 
@@ -195,8 +195,8 @@ const CASES = [
 
   { slug: "insurance/gross-premium-loading",
     inputs: { pp: "600", load: "0.333" },
-    expect: ["799.80"],
-    ref: "毛保费 = 纯保费×(1+附加费率) = 600×1.333 = 799.80（默认空→0 避开）" },
+    expect: ["899.55"],
+    ref: "毛保费 = 纯保费÷(1−附加费率) = 600÷0.667 = 899.55（按毛保费计提附加）" },
 
   { slug: "insurance/ibnr-estimate",
     inputs: { ult: "1234", paid: "0.7" },
@@ -403,7 +403,7 @@ const CASES = [
       "paidLoss": "42",
       "rbns": "42",
       "closeRate": "42",
-      "period": "0.65"
+      "period": "1.2"
     },
     "expect": [
       "万 IBNR = 18 - 42 - 42 = ¥"
@@ -468,12 +468,12 @@ const CASES = [
     "slug": "insurance/gross-premium-loading",
     "inputs": {
       "pp": "42",
-      "load": "42"
+      "load": "0.5"
     },
     "expect": [
-      "用额 (元) 0.02326"
+      "84.00"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"pp\":\"42\",\"load\":\"42\"}，输出区含「用额 (元) 0.02326」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pp\":\"42\",\"load\":\"0.5\"}（42÷0.5=84）；默认态不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "insurance/life-cover-need",

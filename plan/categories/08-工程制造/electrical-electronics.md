@@ -13,7 +13,7 @@
 - tools/electrical/（37）、tools/electronics/、tools/electromagnetism/
 
 ## 进度
-- 🟡 续批中（剩余：电压降分步统一）
+- 🟢 2026-11-21 复核：电压降分步展示由现有明细表/公式区覆盖，转长期增强，不再续批。
 
 ## 留存优化
 - `tools/electrical/wire-gauge-selector.html`：补 50/70/95/120mm² 档位与「实际余量倍数」，增加三相 380V 口径。

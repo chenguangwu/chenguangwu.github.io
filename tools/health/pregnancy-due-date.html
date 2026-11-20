@@ -506,40 +506,44 @@ function renderCheckupSchedule(){
 }
 
 function calcFetalWeight(){
-  const week = parseInt(document.getElementById('fetalWeek').value)||20;
-  const bpd = parseFloat(document.getElementById('bpd').value);
-  const fl = parseFloat(document.getElementById('fl').value);
-  
-  let weight, formula = '孕周估算公式';
-  
-  if(bpd && fl){
-    weight = 1.07*bpd*bpd*bpd + 0.3*fl*fl*fl;
-    weight = weight * 10;
-    formula = 'Hadlock公式 (BPD+FL)';
-  }else if(bpd){
-    weight = 900*bpd - 5200;
-    formula = 'BPD双顶径公式';
-  }else{
-    if(week < 12) weight = week*week*0.08;
-    else if(week < 20) weight = Math.pow(week, 2.5)*0.6;
-    else if(week < 30) weight = Math.pow(week, 2.6)*0.8;
-    else weight = Math.pow(week, 2.7)*0.9;
-    formula = '孕周参考值';
+  const weekRaw = document.getElementById('fetalWeek').value.trim();
+  const bpdRaw = document.getElementById('bpd').value.trim();
+  const flRaw = document.getElementById('fl').value.trim();
+  const week = weekRaw === '' ? NaN : parseInt(weekRaw, 10);
+  const bpd = bpdRaw === '' ? NaN : parseFloat(bpdRaw);
+  const fl = flRaw === '' ? NaN : parseFloat(flRaw);
+  const out = document.getElementById('fetalWeightResult');
+
+  if (isFinite(week) && (week < 4 || week > 42)) {
+    out.innerHTML = '<p style="color:var(--danger)">⚠ 孕周须在 4–42 周之间（当前 '+week+' 周）。</p>';
+    return;
   }
-  
-  const weightG = Math.round(weight);
+  // 不提供「仅按孕周」的体重数字：经验公式误差过大，且会给出负值/异常值。
+  if (!isFinite(bpd) || !isFinite(fl)) {
+    out.innerHTML = '<div class="info-box"><strong>请填写 BPD 与 FL 后再估算胎儿体重。</strong><br>本页不提供仅按孕周推算的体重数字——孕周经验式误差可达数百克，容易把参考值误读为临床结论。</div>';
+    return;
+  }
+  if (bpd < 1 || bpd > 12 || fl < 0.5 || fl > 10) {
+    out.innerHTML = '<p style="color:var(--danger)">⚠ BPD 须在 1–12 cm、FL 须在 0.5–10 cm 之间（当前 BPD '+bpd+' cm、FL '+fl+' cm）。</p>';
+    return;
+  }
+
+  const weightG = Math.round((1.07*bpd*bpd*bpd + 0.3*fl*fl*fl) * 10);
+  if (!isFinite(weightG) || weightG <= 0) {
+    out.innerHTML = '<p style="color:var(--danger)">⚠ 当前 BPD/FL 组合无法得到有效体重，请核对超声测量值。</p>';
+    return;
+  }
   const weightKg = (weightG/1000).toFixed(2);
   const minWeight = Math.round(weightG * 0.85);
   const maxWeight = Math.round(weightG * 1.15);
-  
+
   let html = '<div class="stat-grid">';
-  html += '<div class="stat-card"><div class="val">'+weightG+' g</div><div class="lbl">估算体重 ('+formula+')</div></div>';
+  html += '<div class="stat-card"><div class="val">'+weightG+' g</div><div class="lbl">估算体重 (BPD+FL 经验式)</div></div>';
   html += '<div class="stat-card"><div class="val">'+weightKg+' kg</div><div class="lbl">公斤换算</div></div>';
-  html += '<div class="stat-card"><div class="val">'+minWeight+'-'+maxWeight+' g</div><div class="lbl">正常范围 (±15%)</div></div>';
+  html += '<div class="stat-card"><div class="val">'+minWeight+'-'+maxWeight+' g</div><div class="lbl">参考波动 (±15%，非正常范围)</div></div>';
   html += '</div>';
-  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">* 胎儿体重估算仅供参考，实际体重可能有±15%的误差，请以B超和医生评估为准。</p>';
-  
-  const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('fetalWeightResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('fetalWeightResult').innerHTML=__h3;
+  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">* 本式为 BPD+FL 经验近似，不是标准 Hadlock 曲线；估算误差通常 ±15% 甚至更大，请以超声设备内置公式与产科医生评估为准。</p>';
+  out.innerHTML = html;
 }
 
 function renderMonthWeekTable(){
