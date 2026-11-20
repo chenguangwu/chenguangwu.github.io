@@ -1820,7 +1820,10 @@ const CASES = [
     "SEDEX OK"
   ],
   "ref": "第1312批·种子活力指数算例口径纠错源码形态强锚：工具公式为 VI=GI×苗长，原算例却写 0.92×12=11.04（发芽率×苗长），与公式差数十倍；改成逐日 20/20/18/15/10/6/3 得 GI≈43.18、VI≈518.2 自洽。旧版含 11.04 ⇒ BAD；EN 映射同步换键。"
-}
+},
+{ slug:"agriculture/greenhouse-rolling-time", inputs:{inTemp:"",outTemp:""}, expect:["请填写棚内温度与棚外温度"], ref:"棚内/棚外温度空时不得给「保持现状/彻底换气」结论（GHROLCLR）" },
+{ slug:"agriculture/agri-calculator", inputs:{fert_n:"",fert_p:"",fert_k:"",fert_area:""}, expect:["请填写氮磷钾配比与施肥面积"], ref:"NPK 与面积空时不得输出 0-0-0 假方案（AGCALCLR）" },
+{ slug:"agriculture/agri-calculator", inputs:{plant_spacing:"",plant_row:"",plant_area:""}, expect:["请填写株距、行距与面积"], ref:"株行距/面积空时不得输出 0 株数（AGCALCLR2）" }
 ];
 
 // ---------------------------------------------------------------- main
