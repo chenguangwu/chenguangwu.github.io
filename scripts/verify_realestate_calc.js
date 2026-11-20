@@ -2035,7 +2035,9 @@ const CASES = [
 { slug:"realestate/assessor-44", inputs:{"revenue":""}, expect:["请填写年营业收入"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" },
 { slug:"realestate/assessor-45", inputs:{"val":"","market":""}, expect:["请填写评估价值与市场成交价"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" },
 { slug:"realestate/assessor-risk-10", inputs:{"invest":"","revenue":""}, expect:["请填写投资额与年收益"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" },
-{ slug:"realestate/calc-assessor", inputs:{"area":"","price":""}, expect:["请填写建筑面积与单价"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" }
+{ slug:"realestate/calc-assessor", inputs:{"area":"","price":""}, expect:["请填写建筑面积与单价"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" },
+  { slug: "realestate/pv", inputs: { v0: "100", v1: "-100" }, expect: ["⚠ 折现率必须高于 −100%。"], ref: "r=−100% 时 1+r=0，现值除零发散；新守卫应拒绝。默认折现率不含该提示。" },
+
 ];
 
 // ---------------------------------------------------------------- main

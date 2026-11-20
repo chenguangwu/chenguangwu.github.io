@@ -488,7 +488,9 @@ const CASES = [
     "inputs": { "yb": "", "ybm": "" },
     "expect": ["请填写「债券收益率」后再计算。"],
     "ref": "空态守卫：清空 yb/ybm 后必须提示，不得渲染 0 利差结构化零值。"
-  }
+  },
+  { slug: "investment/bond-price", inputs: { face: "1000", cr: "5", ytm: "6", n: "10", freq: "0" }, expect: ["⚠ 面值必须大于 0"], ref: "付息频率 0 时 c=F*cr/0 得 Infinity；新守卫要求频率为正整数。默认 1000/5/6/10/2→925.61 不含该提示。" },
+  { slug: "investment/npv-calc", inputs: { cf0: "0", cf1: "0", cf2: "0", cf3: "0", cf4: "0", r: "10" }, expect: ["⚠ 请至少填写一笔非零现金流。"], ref: "全部现金流为 0 时 NPV=0 会被当成有效结果；新守卫应提示。默认 −1000/300/400/500/200 不含该提示。" },
 
 ];
 

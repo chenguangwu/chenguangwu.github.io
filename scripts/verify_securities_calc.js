@@ -702,7 +702,9 @@ const CASES = [
     expect: ["FIXGUARD OK"],
     ref: "第1344批 守卫覆盖不全：calcFixed 固定风险模式原无 __tbInputGuard，非数字手续费经 getVal 静默转 0 产出错误结果（calcKelly 有守卫）；修复后 calcFixed 入口补六参数守卫。",
   },
-{ slug:"securities/beta-calc", inputs:{"riskFree":"","mktReturn":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"securities/beta-calc", inputs:{"riskFree":"","mktReturn":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+  { slug: "securities/annualized-vol", inputs: { sd: "-0.02" }, expect: ["⚠ 日波动率不能为负。"], ref: "负日波动率开方后仍为 −31.75% 年化，符号被掩盖；新守卫应拒绝。默认 0.01→15.87 不含该提示。" },
+
 ];
 
 async function main() {
