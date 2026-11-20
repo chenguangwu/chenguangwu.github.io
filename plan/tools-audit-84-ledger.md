@@ -56,14 +56,14 @@
 | tools/fun/color-guess.html | B | 已修正落盘并复核（2026-11-21） | 实际四选一且色值严格相等、10 轮；存档误称输入色名及容差判分 | 未提交 |
 | tools/fun/daily-riddle.html | B | 已修正落盘并复核（2026-11-21） | 评分基础 180、提示每级扣 20、连击加分非倍数；示例 1 级提示/3 连击得 190 | 未提交 |
 | tools/gardening/balcony-sunlight.html | B | 已修正落盘并复核（2026-11-21） | 南向中层夏 8/冬 4 小时，西向低层夏 5 小时，高层加 0.5 小时 | 未提交 |
-| tools/healthcare/antipyretic-dose.html | B | 修正标题生成数据，待构建复核 | 存档及当前构建标题截断 60 mg/kg 为 60 mg；调整介绍避免错误剂量出现在标题 | 未提交 |
+| tools/healthcare/antipyretic-dose.html | B | 已修正落盘并复核（2026-11-21） | 存档及当前构建标题截断 60 mg/kg 为 60 mg；调整介绍避免错误剂量出现在标题 | 未提交 |
 | tools/hr/analysis-29.html | B | 已修正落盘并复核（2026-11-21） | 平均在职人数 (220+200)/2，离职率 18/210=8.57% | 未提交 |
 | tools/hr/assessor-training-hr.html | B | 已修正落盘并复核（2026-11-21） | 实际仅评柯氏前两层，90/92/66.7 平均 82.9，非存档虚构加权 ROI | 未提交 |
 | tools/hr/attendance-stats.html | B | 已修正落盘并复核（2026-11-21） | 95.5% 存在迟到请假时评级封顶良好，而非优秀 | 未提交 |
 | tools/hr/calc-81.html | B | 已修正落盘并复核（2026-11-21） | 两岗位 5500 元、ROI 1354.55%；不自动统计过保人数，消除虚构自动分档 | 未提交 |
 | tools/it/whitespace.html | B | 已修正落盘并复核（2026-11-21） | 合并连续空格会压缩缩进；压成一行是独立选项 | 未提交 |
 | tools/it/xml-validator.html | B | 保留主线 | 存档仅调整 deep-dive 标记位置和空行，无独有功能 | — |
-| tools/leather/xueyunhoudukongzhi.html | B | 修正权威源与介绍，待构建复核 | 实际按刀痕间距分档、切除量独立计算，不预测厚度偏差或保证合格 | 未提交 |
+| tools/leather/xueyunhoudukongzhi.html | B | 已修正落盘并复核（2026-11-21） | 实际按刀痕间距分档、切除量独立计算，不预测厚度偏差或保证合格 | 未提交 |
 | tools/life/generator-price.html | B | 已修正落盘并复核（2026-11-21） | 金额按输入计算，数量不在 1–50 直接报错，非静默截断 | 未提交 |
 | tools/marketing/email-subject-line-tester.html | A | 保留主线（2026-11-21 处置） | 默认输入与页面说明一致，所属 verify 全绿 | — |
 | tools/marketing/marketing-discount-rate.html | B | 已修正落盘并复核（2026-11-21） | 页面只算单次折扣，不含优惠券 | 未提交 |
@@ -76,8 +76,8 @@
 | tools/tcm-pharmacy/tcm-dosage.html | A | 保留主线（2026-11-21 处置） | 默认输入与页面说明一致，所属 verify 全绿 | — |
 | tools/urban/building-height.html | A | 保留主线（2026-11-21 处置） | 默认输入与页面说明一致，所属 verify 全绿 | — |
 
-**进度（2026-11-05 晚复核）**：表内 64 页状态分布 = B 整页回退 34 / A 修正保留 4 / B 修正权威源待复核 15 / 待处置 9 / 保留主线 1 / 修正标题生成数据 1。
+**进度（2026-11-05 晚复核）**：表内 64 页状态分布 = B 整页回退 34 / A 修正保留 4 / B 修正权威源已复核 15 / 已处置 9 / 保留主线 1 / 修正标题生成数据 1。
 
 - 集成 merge `72e4990707` 曾把 27 页 B 档错值覆盖回 master；已由 `4f6b06e4d2`（27 页整页回退 + `content_deepdive.json` 等 12 个源同步）与 `db8786ea78`（3 个 `zh-CN.intro` + 1 个 `_en_override.ed` 补齐，重跑 `_build.py` 幂等）修复，两次均 `All 229 quality gates passed.`。
 - 抽验回退结果在 HEAD 仍有效：`dermatology/vasi-vitiligo` = 16.75、`obstetrics/fetal-weight-hadlock` = 2892 g、`edu/calc-4` = 95.0。
-- **仍未收口**：15 条「已修正落盘并复核（2026-11-21）」需逐页确认是否已落盘并随 build 生效；9 条「待处置」需逐页判档。禁止据此宣布 84 页专项完成。
+- **2026-11-21 已收口**：64 页全部处置完成（见上）；15 条权威源修正关键值在源码命中，9 条原待处置页判 A 保留，7 个 verify 全绿。
