@@ -206,7 +206,7 @@
     </div>
     <div class="tuning-row">
       <label>自定义：</label>
-      <input type="number" id="a4Input" value="440" min="400" max="480" step="0.1" oninput="onCustomA4()" style="width:120px;" placeholder="如 440（400–480）">
+      <input type="number" id="a4Input" value="440" min="400" max="480" step="0.1" oninput="onCustomA4()" onblur="finishA4Edit()" style="width:120px;" placeholder="如 440（400–480）">
       <span style="font-size:13px;color:var(--text-muted);">Hz</span>
     </div>
 
@@ -502,6 +502,22 @@
     var val = parseFloat(document.getElementById('a4Input').value);
     if (val && val >= 200 && val <= 1000) {
       document.querySelectorAll('#tuningPresets button').forEach(function(b) { b.classList.remove('active'); });
+      setA4(val);
+    }
+  };
+
+  // 失焦时收口自定义 A4：空值/越界不能让输入框显示无效而内部仍沿用旧参考频率。
+  window.finishA4Edit = function() {
+    var el = document.getElementById('a4Input');
+    var raw = String(el.value == null ? '' : el.value).trim();
+    var val = raw === '' ? NaN : parseFloat(raw);
+    if (!isFinite(val) || val < 200 || val > 1000) {
+      ToolBox.showToast('A4 参考频率需在 200–1000 Hz，已恢复标准 440 Hz', 'error');
+      document.querySelectorAll('#tuningPresets button').forEach(function(b) { b.classList.remove('active'); });
+      var std = document.querySelector('#tuningPresets button[data-freq="440"]');
+      if (std) std.classList.add('active');
+      setA4(440);
+    } else if (val !== a4Freq) {
       setA4(val);
     }
   };
