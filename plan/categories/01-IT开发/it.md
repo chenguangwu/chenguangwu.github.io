@@ -322,8 +322,8 @@
 ## V 批 · IT 编辑器/安全/编码（2026-11-04）
 
 ### 覆盖清单（V 批 IT 编辑器/安全/编码）
-- `code-highlighter`：IT-N448（中，跨行高亮待修）；无高优缺陷（token 渲染统一走 `esc()`，`<`/`>`/`&`/`"` 已转义，未发现注入）。
-- `code-runner`：IT-N453（中，执行超时待修）；N451/N452 已由 srcdoc + 去 allow-same-origin + `<\/script` 转义修复。
+- `code-highlighter`：IT-N448 ✅ 2026-11-21 复核已修——整段 tokenize 后 JS 块注释三行均 `hl-comment`、Python 三引号三行均 `hl-string`，并有 HLBLOCK/HLDOC 强判别用例；无高优缺陷（token 渲染统一走 `esc()`，`<`/`>`/`&`/`"` 已转义，未发现注入）。
+- `code-runner`：IT-N453 经复核属浏览器同线程沙箱的固有边界——iframe 内 `while(true)` 无法由父页定时器中断；页面已明确披露「无超时终止、勿运行不可信代码」，且每次运行换新 iframe，不再作为代码缺陷。N451/N452 已由 srcdoc + 去 allow-same-origin + `<\/script` 转义修复。
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数实算（`calcTool` 行数统计、`enc/dec`、`prettyHtml`、emoji 数组去重、`split('')` 反转）并给出「输入 → 实际 / 期望」；**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。IT-N437 的事件属性执行、IT-N451 的沙箱逃逸依据 HTML 规范（`innerHTML` 插入的 `onerror` 会触发；`allow-scripts` + `allow-same-origin` 不提供来源隔离）判定，未做真机复现。
 
 ## W 批 · IT URL/签名/安全（2026-11-04）

@@ -174,18 +174,18 @@
 |---|---|
 | 初筛命中（`obj[k]=` / `obj[k]=true` / `seen[k]` / `if(obj[k])` 写法） | 约 3,600 处，涉及 200+ 文件 |
 | 真风险页（键来自用户文本/键名） | 19 |
-| 已修（含前批 `text-dedupe-sort`） | 17 |
-| 登记待修（已划给商业线） | 2 |
+| 已修（含前批 `text-dedupe-sort`） | 19 |
+| 登记待修（已划给商业线） | 0 |
 
 已修（本批 15 页 + 前批 1 页）：`it/url-parser`、`it/url-params`、`it/ini-parser`、`it/properties-parser`、`it/toml-formatter`、`it/xml-to-json`、`it/xml-to-yaml`、`it/xml-to-toml`、`it/yaml-to-json`、`it/yaml-to-toml`、`it/yaml-to-xml`、`it/yaml-formatter`、`it/csv-to-json`、`it/json-schema-generator`、`it/toml-to-yaml`、`it/text-dedupe-sort`（前批）。统一改为 `Object.create(null)`（或保留键仍走自有属性），并补 `__proto__` / `constructor` 输入用例（IT-N27 / IT-N34 系列）。后续补修 `research/analysis-54`（`freq`/`seen` 改 null 原型，补两键计数用例）。
 
-登记待修（2 页，已划给商业线，本线不碰）：
+2026-11-21 复核：原登记 3 页已全部改用 `Object.create(null)`，待修清零。
 
-| 页面 | 写法 | 触发键 |
+| 页面 | 原写法 | 现状 |
 |---|---|---|
-| `biz/text-remove-duplicates-lines` | `seen[key]` | 整行文本可以是 `__proto__` / `constructor` |
-| `biz/text-extract-english` | `seen[key]` | 英文单词 `constructor` 是合法命中词 |
-| `research/analysis-54` | `freq[t]` / `seen[t]` | 分词后 token 可为 `constructor`（代码类文本） |
+| `biz/text-remove-duplicates-lines` | `seen[key]` | ✅ `counts` / `firstOcc` / `lastOcc` / `seen` 均 null 原型 |
+| `biz/text-extract-english` | `seen[key]` | ✅ `seen = Object.create(null)` |
+| `research/analysis-54` | `freq[t]` / `seen[t]` | ✅ `freq` / `seen` 均 null 原型 |
 
 不算风险（固定键 / 数值键 / 不可产出魔法名）：`it/ipv6-ula`、`it/mime-type`（表为数组 filter）、`it/jwt-*`（固定字段）、`it/curl-parser`（固定字段）、`tools/quality/control-chart`（数值键）、`biz/text-extract-dates`（日期形态键）、`biz/text-extract-urls`（URL 形态键，不会恰为 `__proto__`）。
 

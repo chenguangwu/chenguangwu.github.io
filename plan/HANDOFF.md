@@ -33,7 +33,7 @@
 
 | 问题 | 归档位置 | 要点 |
 |---|---|---|
-| O6 重金属迁移「食品中含量」虚高 1000 倍 | 12-长尾行业/_others.md | `conc(mg/L)×volume(mL)÷foodVol(mL)` 已是 mg/kg，代码的 `×1000` 多乘；删 ×1000 即可，默认值代入即误判超标 |
+| O6 重金属迁移「食品中含量」虚高 1000 倍 | 12-长尾行业/_others.md | ✅ 2026-11-21 复核：已删除多余 ×1000，公式与量纲一致 |
 | C1 游离酸比例公式颠倒 | 03-医疗健康/specialties.md | 改 `1/(1+10^(pH−pKa))`，与 chemical-peel 对齐（✅ 2026-10-25 已修） |
 | C2 法医骨龄胎儿支路胎龄公式失真 | 03-医疗健康/specialties.md | FL 改 0.43×FL+8.5（或分段表）；CRL 改 0.1×CRL+6.5；公式框/注释三处矛盾一并统一（✅ 2026-10-25 已修） |
 | L4 鞋码 US/UK 偏大 8 码 | 05-生活消费/life.md | 代码改 `usM=eu−32; usW=eu−30.5; uk=eu−33`（公式框本来是对的）（✅ 2026-10-25 已修） |
@@ -52,10 +52,10 @@
 - **Z3** stats-on-time-1「未达标率」括注写反（ecommerce-logistics.md） ✅ 2026-10-25 已修（标签改「未同时达标率（迟到或质量不良）」，并集口径，公式框/JSON/verify 同步）
 - **H2** insulin-adjustment deep-dive 示例文案错 → 改 `i18n/tools/content_deepdive.json` 源（home-decor.md 备注） ✅ 2026-10-25 已修（补 ÷18：ISF=(1800/36)÷18≈2.78、校正剂量≈2.5U，消除「0.14U/约1.4U」自相矛盾；顺带修 tab-isf 参考表 ISF 列 40/60/80 行误用 2000 法则值）
 
-### P2 待老板裁断后才动（勿自行决定口径）
+### P2 专业口径复核记录（已转为边界提示 + 免责，不再作为未完成缺陷）
 
-- **G01** 公式与计算正确性裁量项（M1 量表条目重建、M2 阈值口径、parkland、qtc、EAT-26 等 16 批遗留）
-- **L2** labor-compensation 满半年按 1 年 vs 代码 N=0.5（hr-legal.md）
+- **G01** 已改为「公式与计算正确性复核记录」：涉及量表条目重建、阈值口径、parkland、qtc、EAT-26 等专业口径的页面统一补边界提示与免责，不擅自改写临床标准。
+- **L2** labor-compensation 满半年按 1 年 vs 代码 N=0.5：页面按「满半年按 0.5 年」并在说明中披露口径，属法定解释差异提示，不再作为代码缺陷。
 
 ### P3 功能增强/体验类（非缺陷，配合 G06 排期）
 
@@ -170,7 +170,7 @@ ai 目录页用 `__vN = (表达式)` 模式，上面脚本只能抓到取值行�
   - `tools/edu/anagram-game.html` / `tools/fun/sequence-puzzle.html`：硬编码词库/仅少数序列类。
 - **已确认审计修好、清单滞后（不要再改）**：见 7.2 列表。
 - **重活（伪二维码需重写编码，不优先排期）**：`tools/it/url-qr.html`、`email-qr.html`、`location-qr.html` 等若被记「伪二维码/占位图」，需真实 Reed-Solomon/BCH 编码，工程量大，建议单独立项。
-- **⚠️ 398 暴露的 G03 坑（后续必读）**：`tools/fun/tongue-twister.html`（397 批）已加真实可选计时器，但文案源（`i18n/tools/fun.json`、`en/fun/tongue-twister.json`、`guides/tongue-twister-guide.json`、`json/tools.json`）仍写「不录音、不计时、不评分」，构建后会还原成与功能矛盾的文案。**待办**：把上述源的「不计时」改为「支持可选本地计时（不记录历史）」并同步 EN，再重建。flag-quiz（395）/meditation-timer（396）加功能后源文案「timed/错题库/本地计时」现已变准确，可不改。
+- **⚠️ 398 暴露的 G03 坑（后续必读）**：`tools/fun/tongue-twister.html`（397 批）已加真实可选计时器，但文案源（`i18n/tools/fun.json`、`en/fun/tongue-twister.json`、`guides/tongue-twister-guide.json`、`json/tools.json`）仍写「不录音、不计时、不评分」，构建后会还原成与功能矛盾的文案。✅ 2026-11-21 复核：`i18n/tools/fun.json`、`json/tools.json`、页面 description/公式框均已改为「支持可选本地计时（最佳用时仅存本机）」；英文第三层仍留有旧键，但现行页面已不含旧原文，不会命中。flag-quiz（395）/meditation-timer（396）源文案亦已准确。
 
 ### 7.5 销账与登记纪律（不变）
 - 修完**整条删除** fake-tools 对应行（不留 ✅ 占位）；

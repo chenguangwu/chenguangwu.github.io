@@ -340,6 +340,7 @@
       <button type="button" class="string-btn" data-freq="246.94" onclick="setTarget(this)">B3</button>
       <button type="button" class="string-btn" data-freq="329.63" onclick="setTarget(this)">E4</button>
     </div>
+    <div class="tuner-cents-text" id="targetText" style="margin-top:10px;font-size:13px;color:var(--text-secondary,#6b7280);">点击上方弦名可开启目标弦对照。</div>
   </div>
 
   <div class="card">
@@ -514,7 +515,7 @@
   let rafId = null;
   let isRunning = false;
   let refA4 = 440;
-  let targetFreq = 0; // 目标弦频率，0 = 自动
+  let targetFreq = 0, targetLabel = '', lastDetectedFreq = 0; // 目标弦频率，0 = 关闭对照
 
   // 平滑显示
   let smoothFreq = 0;
@@ -549,13 +550,29 @@
     const btns = document.querySelectorAll('.string-btn');
     if (btn.classList.contains('active')) {
       btn.classList.remove('active');
-      targetFreq = 0;
+      targetFreq = 0; targetLabel = '';
     } else {
       btns.forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
       targetFreq = parseFloat(btn.dataset.freq);
+      targetLabel = (btn.textContent || '').trim();
     }
+    renderTarget(lastDetectedFreq);
   };
+
+  function renderTarget(freq) {
+    const el = document.getElementById('targetText');
+    if (!el) return;
+    if (!targetFreq) { el.textContent = '已关闭目标弦对照；点击上方弦名可开启。'; return; }
+    if (!(freq > 0 && isFinite(freq))) {
+      el.textContent = '目标 ' + targetLabel + '（' + targetFreq.toFixed(2) + ' Hz）— 发声后显示音分偏差';
+      return;
+    }
+    const tc = 1200 * Math.log2(freq / targetFreq);
+    const sign = tc > 0.05 ? '+' : '';
+    const judge = Math.abs(tc) <= 5 ? '已对准（±5 音分内）' : (tc > 5 ? '偏高' : '偏低');
+    el.textContent = '目标 ' + targetLabel + '（' + targetFreq.toFixed(2) + ' Hz）｜当前距目标 ' + sign + tc.toFixed(1) + ' 音分（' + judge + '）';
+  }
 
   /* ===== 音符计算 ===== */
   function freqToNote(freq) {
@@ -577,6 +594,7 @@
   /* 仅测试钩子：供 verify 用例调用，不参与任何运行时分支 */
   window.__wtFreqToNote = freqToNote;
   window.__wtSetRefA4 = function(v){ refA4 = Number(v); };
+  window.__wtRenderTarget = renderTarget;
 
   /* ===== 自相关基频检测 ===== */
   function autoCorrelate(buf, sampleRate) {
@@ -762,9 +780,10 @@
       pitchIndicator.style.left = '50%';
       pitchIndicator.className = 'pitch-indicator';
       drawGauge(0);
+      renderTarget(0);
       return;
     }
-
+    lastDetectedFreq = freq;
     if (!note) return;
 
     // 音符名称
@@ -799,6 +818,7 @@
 
     // 调音表
     drawGauge(cents);
+    renderTarget(freq);
   }
 
   /* ===== 音频处理循环 ===== */
