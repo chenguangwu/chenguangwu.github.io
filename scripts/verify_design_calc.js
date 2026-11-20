@@ -843,7 +843,7 @@ const CASES = [
   {
     // D-N182 预设：七律预设应填 8 行、每句 7 字并触发检查（校验真实预设数据而非复述文本）
     slug: "design/checker-5",
-    clicks: ["var __cap=null;globalThis.TBKit={util:{isEn:function(){return false;}},preset:{bar:function(sel,items,cb){__cap=items;}}};__checker_5Presets();var __p=__cap&&__cap[1]||null;var __lines=__p?String(__p.values['#poem']).split('\\n'):[];var __all7=__lines.length===8&&__lines.every(function(s){return s.replace(/[，。？！；、·]/g,'').length===7;});var __out='';if(__p){POEM_TA.value=__p.values['#poem'];check();__out=String(RES.innerHTML);}document.getElementById('__tbProbe').textContent='CHECKER7 '+((__all7&&__lines[0]==='风急天高猿啸哀'&&__out.indexOf('第8句')>=0)?'OK':'BAD lines='+__lines.length+' all7='+__all7+' first='+__lines[0]);"],
+    clicks: ["var __cap=null;globalThis.TBKit={util:{isEn:function(){return false;}},preset:{bar:function(sel,items,cb){__cap=items;}}};__checker_5Presets();var __p=__cap&&__cap[1]||null;var __lines=__p?String(__p.values['poem']).split('\\n'):[];var __all7=__lines.length===8&&__lines.every(function(s){return s.replace(/[，。？！；、·]/g,'').length===7;});var __out='';if(__p){POEM_TA.value=__p.values['poem'];check();__out=String(RES.innerHTML);}document.getElementById('__tbProbe').textContent='CHECKER7 '+((__all7&&__lines[0]==='风急天高猿啸哀'&&__out.indexOf('第8句')>=0)?'OK':'BAD lines='+__lines.length+' all7='+__all7+' first='+__lines[0]);"],
     expect: ["CHECKER7 OK"],
     ref: "361 复核失败重做：七律预设原为杜甫《春望》，八句均五字（「国破山河在」）却标「七言律诗」，英文亦写 Seven-char。现换为《登高》（八句全七字）。探针 mock TBKit.preset.bar 抓取真实预设数据，断言第 2 个预设：8 行、每行去标点后 7 字、首句「风急天高猿啸哀」，且填入后 check() 输出「第8句」。旧预设首句 5 字 ⇒ all7=false 转红；默认四行示例诗不含「第8句」⇒ 零逃生。"
   },
