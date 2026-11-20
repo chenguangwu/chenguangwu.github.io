@@ -43,6 +43,9 @@ GATES = (
     ("static tests", ("python3", "_test_static.py")),
     ("dead-link audit", ("python3", "_audit_links.py", "--check")),
     ("asset audit", ("python3", "_audit_assets.py", "--check")),
+    # AGENTS.md §4.6：重定向存根最长保留 1 个月，到期须物理删除且必须登记。
+    # 本门禁把「未登记 / 超期未删 / 登记为已删但文件仍在」三类问题机器化。
+    ("redirect stub audit", ("python3", "scripts/audit_redirect_stubs.py", "--check")),
     # 纯前端数据安全红线（AGENTS.md §2）：localStorage/sessionStorage 允许，Cookie 与
     # IndexedDB 禁止，明文凭证禁止落盘，跨页字面量键禁止互相覆盖。扫正文 + js/**，
     # 显式不含 zh-tw/（繁体为构建产物），故不依赖 _build.py 产物即可在 CI 跑。
