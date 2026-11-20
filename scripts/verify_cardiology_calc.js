@@ -631,6 +631,18 @@ const CASES = [
   "inputs": { "sex": "f", "age": "0" },
   "expect": ["与0分同", "女性单独 1 分不增加卒中风险：此处风险按 0 分（0.2%）口径，通用分档 0.6% 仅适用于男性 1 分。"],
   "ref": "03-79 女性单纯性别分风险标注：默认 age=2(≥75岁)+sex=f → score=3（既有用例），本用例注入 age=0(<65)+sex=f → score=1（女性单独性别分）。旧版显示 0.6% 年风险却同屏建议「无需OAC/女性单独1分不增加卒中风险」，自相矛盾；本批 riskRate 改「与0分同」并加说明卡。「与0分同」旧版不产，强判别零逃生。"
+},
+{
+  "slug": "cardiology/calc-3",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/calc-3.html','utf8');var i=h.indexOf(\"labelEn:'Default'\");var seg=i>=0?h.slice(i,i+320):'';var ok=['hr','sbp','weight','anterior','delay','history'].every(function(k){return seg.indexOf(\"'\"+k+\"':false\")>=0;});document.getElementById('__tbProbe').textContent='C3RESET '+(ok?'OK':'BAD');})();"],
+  "expect": ["C3RESET OK"],
+  "ref": "第1335批·默认参数预设不清空已勾选危险因素修复源码形态强锚：原默认参数 values 只含 age/killip，从高危预设切回后六个 checkbox 仍勾选、得分残留 9 分高危；修复后默认参数显式写全六项 false。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "cardiology/coronary-calcium",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/coronary-calcium.html','utf8');var i=h.indexOf(\"labelEn:'Default'\");var seg=i>=0?h.slice(i,i+240):'';var ok=seg.indexOf(\"'followDate':''\")>=0;document.getElementById('__tbProbe').textContent='CACSDATE '+(ok?'OK':'BAD');})();"],
+  "expect": ["CACSDATE OK"],
+  "ref": "第1335批·默认参数预设不清空随访日期修复源码形态强锚：原默认参数 values 不含 followDate，从中危预设(2024-02-01)切回后旧日期残留；修复后默认参数显式写 followDate:'' 清空。旧版无 ⇒ BAD。"
 }
 ];
 async function main() {
