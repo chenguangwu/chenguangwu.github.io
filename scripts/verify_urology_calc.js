@@ -117,9 +117,10 @@ const CASES = [
 },
 {
   "slug": "urology/ipss-score",
-  "inputs": { "qol": "1" },
+  "inputs": {},
+  "clicks": ["document.getElementById('qol').value='1';__markScaleDirty();"],
   "expect": ["（满意）"],
-  "ref": "de-default: qol1→（满意）（strong 后纯净串，避回声）"
+  "ref": "de-default: qol1→（满意）；改为显式赋值+__markScaleDirty，避免 jsdom 不派发 change 时脏标志未置位。"
 },
 {
   "slug": "urology/rater-4",
