@@ -121,6 +121,13 @@ const CASES = [
 
   // ── 能量密度 = E/m（kJ/kg 与 kWh/kg） ──────────────────────────
   {
+    slug: "energy/energy-consumption",
+    inputs: { p: "1500", t: "3", price: "" },
+    expect: ["请填写功率、时长与电价后再计算。"],
+    ref: "电价留空：旧 num() 回退 0 静默输出 0 元；新增空值守卫后须提示。"
+  },
+
+  {
     slug: "energy/energy-density",
     inputs: { e: "5000000", m: "20" },
     expect: ["250.0", "0.0694"],
@@ -164,6 +171,13 @@ const CASES = [
   },
 
   // ── 燃料热值能量 Q = m × 低位热值 ───────────────────────────────
+  {
+    slug: "energy/solar-panel-power",
+    inputs: { a: "20", g: "1000", eta: "" },
+    expect: ["请填写面积、辐照度与效率后再计算。"],
+    ref: "效率留空：旧 num() 回退 0 静默输出 0 W；新增空值守卫后须提示。"
+  },
+
   {
     slug: "energy/fuel-heat-value",
     inputs: { m: "2000", h: "45000" },
