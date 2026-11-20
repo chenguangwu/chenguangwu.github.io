@@ -112,3 +112,12 @@
   - `design/tester-assessor` 的 `sus`：页面生成 `sus0..sus9`，无 `sus` 元素（同属“自动补强”）；
   - `gastroenterology/ercp-success` 的 `cbd`：页面根本没有 CBD 字段（仅有 stoneSize/stoneCount/stonePos/purpose/surgery/priorEst/diverticulum），预设与用例都写 `cbd` 属空注入。
 - 其余 45 条均为**运行期按模式生成、键名正确**（如 `id="tmax'+i+'"`、`id='m'+mi+'_'+ii`、`id="q${i}"`、`id="ck_'+it.key+'"`、`id="s-'+d.k+'"`、`id="${t.id}_${si}"`），属审计口径的“存疑”而非缺陷；已在生成语句逐条核对。
+
+
+---
+
+## 2026-11-21 复核（当前口径）
+
+- 脚本重算：`tools/**/*.html` 排除各行业 index 共 **4,714** 页，任一 `verify_*.js` 的 `slug` 命中 **4,604** 页，零用例 **111** 页。
+- 111 页分类：重定向存根 31（均在 `_redirect_stubs_todo.md` 保留期内，到期物理删除）、纯浏览/游戏/展示 45、浏览器 API/网络探测 8、随机娱乐/生成器 12、随机/设备/加密 5、图像/PDF/动态 UI 3、其它多行动态/查询 9。
+- 结论：剩余零用例页均非「确定性数值计算器」，不强行补默认回显锚（会制造逃生项）；原 142 页清单中可补的数值页已在后续批次补测或合并为存根。

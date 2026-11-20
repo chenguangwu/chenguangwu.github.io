@@ -60,7 +60,7 @@ const ready = (w) => new Promise((res) => {
 });
 
 const groups = new Map();   // msg -> [files]
-let ok = 0, noExtras = 0, threw = 0;
+let ok = 0, noExtras = 0, threw = 0, scoped = 0;
 
 for (const f of files) {
   if (!fs.existsSync(f)) continue;
@@ -79,6 +79,14 @@ for (const f of files) {
   }
   try {
     await ready(dom.window);
+    // 页面若真实引用了 /js/tool-kit.js，则先注入真实工具包，避免把
+    // parseList/normCdf/tP2/fP 等「页面运行时本就可用」的方法误判为缺失。
+    if (raw.includes('/js/tool-kit.js')) {
+      try { dom.window.eval(fs.readFileSync('js/tool-kit.js', 'utf8')); } catch (e) {}
+    }
+    // 函数若声明在 IIFE / DOMContentLoaded 闭包内，页内会自行调用；从外部 eval 得到
+    // undefined 属正常作用域，不是「页面 Extras 抛错」。只有全局可调用但执行抛错才算缺陷。
+    if (dom.window.eval('typeof ' + fn) !== 'function') { scoped++; continue; }
     dom.window.eval(fn + '()');
     ok++;
   } catch (e) {
@@ -92,7 +100,7 @@ for (const f of files) {
 }
 
 console.log(`\n===== Extras 可调用性审计 =====`);
-console.log(`页面 ${files.length} / 正常 ${ok} / 抛错 ${threw} / 无 Extras ${noExtras}`);
+console.log(`页面 ${files.length} / 正常 ${ok} / 抛错 ${threw} / 闭包内(页内自调) ${scoped} / 无 Extras ${noExtras}`);
 const sorted = [...groups.entries()].sort((a, b) => b[1].length - a[1].length);
 for (const [msg, arr] of sorted) {
   console.log(`\n[${arr.length}] ${msg}`);
