@@ -598,7 +598,7 @@ const CASES = [
     "expect": ["100.0", "超过职业暴露限值（85dB/8h）"],
     "ref": "能量叠加独立复算：10^(90/10)+10^(70/10)=1e9+1e7=1.01e9 ⇒ 总声压级 10·lg(1.01e9)=100.043 ⇒ 100.0 dB ≥85 ⇒「超过职业暴露限值（85dB/8h）」；默认 80/75 dB ⇒ 81.2 dB「较高，需采取降噪措施」，两锚均不命中（判别时清空 clicks 即回默认声源）。"
   },
-{ slug:"eco/battery-storage", inputs:{"av":"","ah":"","v":"","dod":""}, expect:["请填写电池容量"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
+{ slug:"eco/battery-storage", inputs:{"ah":"","v":"","dod":""}, expect:["请填写电池容量"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
 { slug:"eco/convert-air-aqi", inputs:{"c":""}, expect:["请填写PM2.5 浓度"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
 { slug:"eco/env-impact-score", inputs:{"energy":"","water":"","waste":"","emis":""}, expect:["请填写能源、水资源、废弃物、排放四项评分"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
 { slug:"eco/noise-addition", inputs:{"L1":"","L2":"","L3":""}, expect:["请填写三个声源的声压级"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },

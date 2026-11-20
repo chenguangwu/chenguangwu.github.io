@@ -943,8 +943,16 @@ const CASES = [
     "clicks": ["try{var a=getLunarHoliday({year:2025,month:12,day:29,isLeap:false});var b=getLunarHoliday({year:2025,month:12,day:30,isLeap:false});var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/legal/calendar.html','utf8');var ok=((a==='除夕')!==(b==='除夕'))&&h.indexOf('l.day===monthDays(l.year,12)')>=0&&h.indexOf('l.day===29 || l.day===30')<0&&h.indexOf('function hasLunarData')>=0&&h.split('hasLunarData(y, m, d)').length-1===3;document.getElementById('dayDetail').innerHTML='LUNARBOUND '+(ok?'OK':'BAD '+a+'/'+b);}catch(e){document.getElementById('dayDetail').innerHTML='LUNARBOUND ERR '+e.message;}"],
     "expect": ["LUNARBOUND OK"],
     "ref": "农历除夕按腊月实际天数（monthDays(l.year,12)）判定最后一日，腊月廿九与三十不得同时为除夕；农历数据基准 1900-01-31，两处取农历前经 hasLunarData 守卫，避免负偏移回退 1899。旧版两日同时命中除夕且无边界守卫 ⇒ 哨兵红；默认态不产生该哨兵。"
-  }
-
+  },
+{ slug:"legal/consumer-protection", inputs:{"price":""}, expect:["请填写商品价格或服务金额"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
+{ slug:"legal/late-payment-interest", inputs:{"principal":""}, expect:["请填写欠款本金"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
+{ slug:"legal/labor-compensation", inputs:{"workYears":"","monthlySalary":""}, expect:["请填写工作年限与月工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
+{ slug:"legal/labor-compensation-n1", inputs:{"workYears":"","monthlySalary":""}, expect:["请填写工作年限与月工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
+{ slug:"legal/severance-pay", inputs:{"workYears":"","monthlySalary":""}, expect:["请填写工作年限与月工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
+{ slug:"legal/child-support", inputs:{"monthlyIncome":""}, expect:["请填写支付方月收入"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
+{ slug:"legal/rent-deposit", inputs:{"monthlyRent":""}, expect:["请填写月租金"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
+{ slug:"legal/overtime-pay", inputs:{"monthlySalary":""}, expect:["请填写月工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
+{ slug:"legal/work-injury-compensation", inputs:{"monthlySalary":""}, expect:["请填写本人工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" }
 ];
 
 // ---------------------------------------------------------------- main
