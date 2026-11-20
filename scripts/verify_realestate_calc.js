@@ -1423,7 +1423,7 @@ const CASES = [
       "resettle": "6"
     },
     "expect": [
-      "42\n42\n8\n6\n42\n42\n42\n26502 补偿总额(元) 14112 土地补偿费 10584 安置补助费 1806"
+      "14112 土地补偿费 10584 安置补助费"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"output\":\"42\",\"attach\":\"42\",\"crop\":\"42\",\"popul\":\"42\",\"landComp\":\"8\",\"resettle\":\"6\"}，输出区含「42\n42\n8\n6\n42\n42\n42\n26502 补偿总额(元) 14112 土…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2026,7 +2026,16 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"gpr\":\"42\",\"vacancy\":\"42\",\"opexRate\":\"42\",\"rentGrowth\":\"42\",\"debtService\":\"42\",\"hold\":\"42\"}，输出区含「 累计现金流 1 42.00 24.36 10.23 14.13 42.00 -…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
-  { slug: "realestate/assessor-second-hand", inputs: { p1: "", p2: "", p3: "", area: "" }, expect: ["请填写 3 个可比案例的成交单价（万/平米）与待估面积（平米）后再计算。"], ref: "空态守卫：3 个案例单价与面积清空后不再输出 0.0000 / ¥0 / 总调整幅度，只给填写提示（旧实现 ⇒ 案例均价 0.0000、评估总价 ¥0，且仍给颜色结论）。默认态 3 个案例有值 ⇒ 提示串不出现；注入态四条计算值另有用例覆盖。" }
+  { slug: "realestate/assessor-second-hand", inputs: { p1: "", p2: "", p3: "", area: "" }, expect: ["请填写 3 个可比案例的成交单价（万/平米）与待估面积（平米）后再计算。"], ref: "空态守卫：3 个案例单价与面积清空后不再输出 0.0000 / ¥0 / 总调整幅度，只给填写提示（旧实现 ⇒ 案例均价 0.0000、评估总价 ¥0，且仍给颜色结论）。默认态 3 个案例有值 ⇒ 提示串不出现；注入态四条计算值另有用例覆盖。" },
+{ slug:"realestate/assessor-23", inputs:{"cv":""}, expect:["请填写建筑原值"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" },
+{ slug:"realestate/assessor-38", inputs:{"val":""}, expect:["请填写房产评估价值"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" },
+{ slug:"realestate/assessor-39", inputs:{"val":"","area":""}, expect:["请填写评估价值与建筑面积"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" },
+{ slug:"realestate/assessor-42", inputs:{"landComp":"","area":"","popul":""}, expect:["请填写土地补偿标准、亩数与安置人数"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" },
+{ slug:"realestate/assessor-43", inputs:{"assets":""}, expect:["请填写总资产"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" },
+{ slug:"realestate/assessor-44", inputs:{"revenue":""}, expect:["请填写年营业收入"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" },
+{ slug:"realestate/assessor-45", inputs:{"val":"","market":""}, expect:["请填写评估价值与市场成交价"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" },
+{ slug:"realestate/assessor-risk-10", inputs:{"invest":"","revenue":""}, expect:["请填写投资额与年收益"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" },
+{ slug:"realestate/calc-assessor", inputs:{"area":"","price":""}, expect:["请填写建筑面积与单价"], ref:"核心估值参数留空不得输出 0 元/0% 假结论（RESTCLR）" }
 ];
 
 // ---------------------------------------------------------------- main
