@@ -16,6 +16,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 const ROOT = path.resolve(__dirname, '..');
 const TOOLS = path.join(ROOT, 'tools');
@@ -53,8 +54,11 @@ for (const f of files) {
     if (/TOOLBOX-API-STUB/.test(code)) continue;
     checked++;
     try {
-      // 仅做语法解析（不执行）
-      new Function(code);
+      // 仅做语法解析（不执行）。必须用 vm.Script（Program 语义）而不是 new Function：
+      // new Function 会把代码包进函数体，顶层 `if(cond){ ...; return; }` 在函数体内合法，
+      // 于是「顶层 return」这类在浏览器 classic script 中必炸的写法会被误判为通过
+      // （2026-11-20 实例：tools/jewelry/convert-31.html 空态守卫顶层 return，页面整段脚本失效）。
+      new vm.Script(code, { filename: path.relative(ROOT, f) });
     } catch (err) {
       bad.push({ file: path.relative(ROOT, f), err: err.message });
       break; // 每页只报一次
