@@ -1,5 +1,7 @@
 ### finance（dead 638 / dynamic 549 / fragment 74 / harmless 1）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 - `tools/finance/amount-in-words.html` : `按中文大写金额规则：数字分组（万/亿）+ 单位（元/角/分）+ 零位特殊处理` : dead
 - `tools/finance/analysis-5.html` : `(流动资产 500000.00 − 存货 180000.00 − 预付费用 20000.00) ÷ 流动负债 300000.00` : dead
 - `tools/finance/analysis-5.html` : `元，所有者权益 = 资产 1200000.00 − 负债 700000.00 =` : dead

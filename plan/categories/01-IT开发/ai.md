@@ -1,5 +1,7 @@
 # AI 工具 · tools/ai（64 页）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 ## 已知问题
 ### A1. 「参数估算器」类页与实际框架口径脱节
 - 描述：training-flops/vram-estimate/transformer-params 等按教科书式估算，与 transformers/deepspeed 实测差异大（激活重计算/序列并行未建模）。

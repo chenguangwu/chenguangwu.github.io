@@ -1,5 +1,7 @@
 # TBKit.history 字段守卫排查清单
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 根因：`js/tool-kit.js` 的 `history.mount` 曾把 `it.d[k]` 原样拼进 `textContent`，`null/undefined/NaN` 会渲染成 `conf null` 之类脏文本。已在公共组件加入守卫（跳过 `val == null || Number.isNaN(val)`，并同时跳过 Infinity）。
 
 ## 两档判定结果

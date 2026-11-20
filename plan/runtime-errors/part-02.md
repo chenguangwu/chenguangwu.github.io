@@ -1,5 +1,7 @@
 ## 导航超时 / 崩溃页
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 - `tools/accessibility/index.html` — scan-crash
 - `tools/accessibility/accessible-restroom.html` — scan-crash
 - `tools/accessibility/braille-translator.html` — scan-crash

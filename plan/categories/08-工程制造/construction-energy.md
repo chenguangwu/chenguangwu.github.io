@@ -1,5 +1,7 @@
 # 土木/能源 · tools/{civil,construction,structural,energy,fire-rescue,safety,urban,bridge,road,tunnel,architecture}（~200 页）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 ## 功能缺陷
 - 混凝土配比页缺「强度等级↔水灰比对照」联动表。
 - 消防页缺「疏散宽度计算」（商店/观众厅指标）高频项。

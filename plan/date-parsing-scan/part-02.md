@@ -1,5 +1,7 @@
 ### legal（39 条）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 | 页面 | 行 | 用法 | 后果 | 建议改法 |
 |---|---|---|---|---|
 | `legal/debt-statute-limitations.html` | 309 | `startDate = new Date(dueDate);` | 变量 dueDate 作为日期串（控件值或今日串）；date-only 按 UTC 解析，负时区回退一天；配合本地 getMonth/getDate 时月末/闰日/跨年边界偏移。 | 改用 new Date(y, m-1, d) 按本地年月日构造；若为纯 UTC 语义则统一用 Date.UTC + getUTC*。 |

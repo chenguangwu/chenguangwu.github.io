@@ -1,5 +1,7 @@
 ### select 默认态输出全 0 且无提示（非真空态，可疑需人工复核）（67 页）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 - `tools/dermatology/leprosy-grading.html` — 空输入点「生成分级报告」（text_empty_sel_default｜select 默认 leprosyType=TT,n1=on,n2=on,n3=on,n4=on,n5=on,n6=on）→ 结果区 G0D0级残疾无感觉丧失和可见畸形 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/forensic-medicine/electrocution-injury.html` — 空输入点「分析电击伤」（text_empty_sel_default｜select 默认 f1=on,f2=on,f3=on,f4=on,f5=on,f6=on,f7=on,f8=on,f9=on,f10=on,currentType=ac,voltage=low,contactSite=hand）→ 结果区 0阳性特征数0%特征符合度 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/accessibility/braille-translator.html` — 空输入点「转译」（text_empty_sel_default｜select 默认 caseSel=keep）→ 结果区 原文：（空）字母 0 个 · 数字 0 个 · 盲文符号 0 格 ⏐ 📋 复制结果⬇️ 导出 TXT

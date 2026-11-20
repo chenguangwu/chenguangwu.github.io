@@ -493,7 +493,11 @@ const FORMULAS = {
     },desc:'物质波公式，h=6.62607015×10⁻³⁴ J·s'},
     {id:'ke_max',name:'光电效应',expr:'Eₖₘₐₓ = hf − W₀',vars:{Ekmax:'最大初动能 (J)',h:'普朗克常数',f:'频率 (Hz)',W0:'逸出功 (J)'},calc:(Ekmax,h,f,W0)=>{
       const hval = h.v || PHYS_CONST.H;
-      if(Ekmax.v===null&&f.v!==null&&W0.v!==null) return {Ekmax:hval*f.v-W0.v};
+      if(Ekmax.v===null&&f.v!==null&&W0.v!==null){
+        const __hf=hval*f.v, __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+        if(__hf < W0.v) return {_error:(__en?'Incident photon energy is below the work function: no photoelectron is emitted, so Eₖₘₐₓ does not apply.':'入射光子能量低于逸出功：无光电子逸出，最大初动能不适用。')};
+        return {Ekmax:__hf-W0.v};
+      }
       if(f.v===null&&Ekmax.v!==null&&W0.v!==null) return {f:(Ekmax.v+W0.v)/hval};
       if(W0.v===null&&f.v!==null&&Ekmax.v!==null) return {W0:hval*f.v-Ekmax.v};
       return null;

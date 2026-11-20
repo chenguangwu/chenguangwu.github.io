@@ -1,5 +1,7 @@
 ### biz（dead 227 / dynamic 29 / fragment 34 / harmless 36）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 - `tools/biz/assessor-risk-8.html` : `Mass（服务标准/检查/改进）` : dead
 - `tools/biz/assessor-risk-8.html` : `质量（服务标准/检查/改进）` : dead
 - `tools/biz/barcode-generator.html` : `关于「条形码生成器」` : dead

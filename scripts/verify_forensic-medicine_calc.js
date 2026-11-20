@@ -73,7 +73,7 @@ const CASES = [
   ],
   "ref": "auto-restore"
 },
-{ "slug": "forensic-medicine/death-time-estimation", "inputs": {"rectalTemp":"32", "ambientTemp":"20", "corneal":"2"}, "expect": ["Glaister 简化模型数值", "6.0 小时", "不据此换算时间"], "ref": "Glaister 简化演示：32°C 得 6.0 小时，角膜不参与计算。" },
+{ "slug": "forensic-medicine/death-time-estimation", "inputs": {"rectalTemp":"30", "ambientTemp":"20", "corneal":"2"}, "expect": ["8.4 小时"], "ref": "Glaister 简化演示：30°C 得 (37−30)/0.83≈8.4 小时；默认 32°C 为 6.0，避开静态说明串。" },
 { "slug":"forensic-medicine/death-time-estimation", "inputs":{"rectalTemp":"32","ambientTemp":"20","corneal":"3"}, "clicks":["calc();var c=document.getElementById('tempChart').innerHTML;var r=document.getElementById('result').innerHTML;var ok=c.indexOf('data-temp=\"32\"')>=0&&r.indexOf('6.0 小时')>=0;document.getElementById('rectalTemp').value='20';calc();ok=ok&&document.getElementById('tempChart').innerHTML==='';document.getElementById('__tbProbe').textContent='DTCURVE '+(ok?'OK':'BAD');"], "expect":["DTCURVE OK"], "ref":"曲线末点与实际直肠温一致，拒算时清空旧图。" },
 { "slug": "forensic-medicine/death-time-estimation", "inputs": {"rectalTemp":"37", "ambientTemp":"20"}, "expect": ["无法估算：直肠温度须低于 37°C 且高于环境温度"], "ref": "37°C 不允许估算。" },
 { "slug": "forensic-medicine/death-time-estimation", "inputs": {"rectalTemp":"20", "ambientTemp":"20"}, "expect": ["无法估算：直肠温度须低于 37°C 且高于环境温度"], "ref": "直肠温度不高于环境温度时拒算。" },

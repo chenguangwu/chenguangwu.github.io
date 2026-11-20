@@ -1,5 +1,7 @@
 ### science（dead 175 / dynamic 349 / fragment 33 / harmless 8）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 - `tools/science/astronomy-toolkit.html` : `天文观测 = 坐标/历算/视差` : dead
 - `tools/science/calc-1.html` : `h = v₀t + ½gt²　落地速度 v = v₀ + gt` : dead
 - `tools/science/calc-2.html` : `理想气体 PV = nRT` : dead

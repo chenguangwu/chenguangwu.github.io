@@ -1,5 +1,7 @@
 ### meteorology（dead 18 / dynamic 0 / fragment 5 / harmless 0）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 - `tools/meteorology/air-aqi.html` : `AQI = 逐污染物分段线性插值` : dead
 - `tools/meteorology/apparent-temperature.html` : `AT = 体感温度（温湿风综合）` : dead
 - `tools/meteorology/assessor-29.html` : `干旱评估用两类指标：降水距平百分率 Pa=(当前降水量−同期均值)÷同期均值×100%，按 Pa 阈值分级（≥−15% 无旱、−30% 轻旱、−50% 中旱、−70% 重旱、<−70% 特旱）；标准化降水指数 SPI=(当前−均值)÷标准差，按 SPI 阈值（≥−0.5 无旱、−1.0 轻旱、−1.5 中旱、−2.0 …(+27字)` : dead

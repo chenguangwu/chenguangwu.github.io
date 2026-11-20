@@ -1,5 +1,7 @@
 # 门禁「假绿」体检（2026-11-05）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 **触发**：`_test_static.py` 的汇总行在最后一个检查 `check_related_slug_map()` 之前打印，导致 `slug-en` 810 个游离键的告警不进 stdout 的 `⚠️ 警告` 计数，也不进退出码。
 
 **判红口径结论（先回答关键问题）**：`scripts/run_gates.py` 判红**只看子进程退出码**，不解析 stdout、也不读 JSON。证据：[run_gates.py:338](file:///Users/cgw/project/cgw/chenguangwu.github.io/scripts/run_gates.py#L338) `exit_code = completed.returncode`，之后仅按 `exit_code != 0` 收集失败。

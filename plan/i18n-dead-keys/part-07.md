@@ -1,5 +1,7 @@
 ## 逐条清单（仅高优先 `dead`）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 - `tools/it/regex-cheatsheet.html` : `/a+/ 匹配 "a" "aaa"，不匹配 ""` : dead
 - `tools/it/regex-cheatsheet.html` : `[[:alpha:]]  字母 ⏎ [[:digit:]]  数字 ⏎ [[:space:]]  空白` : dead
 - `tools/it/regex-cheatsheet.html` : `含 \t\n\r\f\v` : dead

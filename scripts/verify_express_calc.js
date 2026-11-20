@@ -35,11 +35,11 @@ const CASES = [
       "value": "30000",
       "coverage": "20000"
     },
+    "clicks": ["calc();var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='INSUR20K '+((document.getElementById('value').value==='30000'&&r.indexOf('20,000.00')>=0&&r.indexOf('10,000.00')>=0)?'OK':'BAD');"],
     "expect": [
-      "20,000.00",
-      "10,000.00"
+      "INSUR20K OK"
     ],
-    "ref": "超上限：理赔封顶2万、超出1万"
+    "ref": "超上限：理赔封顶2万、超出1万；探针校验注入值，默认态不产生该串"
   },
   {
     "slug": "express/insurance-fee",

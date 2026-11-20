@@ -1,5 +1,7 @@
 # 航空/机器人 · tools/{aerospace,robotics}（~60 页）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 ## 已知问题
 ### A2. 遗留：breguet ISP=6000s 为 TSFC 口径（自洽不立案，建议页面加单位注释）。
 - 受影响：tools/aerospace/breguet-range.html

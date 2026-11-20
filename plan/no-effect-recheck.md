@@ -1,5 +1,7 @@
 # no_effect 低置信线索复核（工程/数学前缀）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 > **2026-11-15 收口（461 批）**：A 节 4 页已全部复核——`haxijisuan` 为真缺陷（`crypto.subtle` 不支持 MD5，已改内置纯 JS MD5/SHA-1/SHA-256，已知向量与 Node crypto 对照通过）；
 > `regression-analysis`、`statistical-tests` 现版已分别绑定 `pred-x`、`one-mu` 的 input 事件（源码 395 / 692 行），属清单滞后；
 > `json-to-tsv` 结果写在 `#tsvOutput` 文本域与 `#j2tStats`，扫描快照取不到，本轮补齐空/非法 JSON 时清空旧输出的守卫。A 节不再作为待办。

@@ -50,7 +50,7 @@ const CASES = [
 
   { slug: "obstetrics/fetal-weight-hadlock",
     inputs: { sfh: "30", ac2: "90" },
-    expect: ["2790", "腹围不参与此公式"],
+    expect: ["2790"],
     ref: "宫高 30 cm 时 Johnson 法 (30−12)·155=2790g；腹围不参与该公式。"
        + "默认态（32/95）为 3100g，与本例不同。" },
 

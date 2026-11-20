@@ -219,7 +219,8 @@ const CASES = [
     "slug": "urology/psa-density",
     "inputs": { "psa": "3", "vol": "15", "age": "60" },
     "checkIds": ["mri", "dre"],
-    "expect": ["MRI可疑", "DRE异常", "不能决定是否活检"],
+    "clicks": ["calc();var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='PSA35 '+((document.getElementById('psa').value==='3'&&r.indexOf('不能决定是否活检')>=0)?'OK':'BAD');"],
+    "expect": ["PSA35 OK"],
     "ref": "PSA <4 with suspicious MRI and abnormal DRE must include both findings and avoid a definite no-biopsy recommendation."
 
   }

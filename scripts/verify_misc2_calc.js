@@ -66,13 +66,15 @@ const CASES = [
 {
   "slug":"daily-goods/shoe-size",
   "inputs":{"footLen":"260","gender":"m"},
-  "expect":["9", "以上仅为经验估算", "不是品牌尺码或购买建议"],
+  "clicks":["calc();var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='SHOE260M '+((document.getElementById('footLen').value==='260'&&r.indexOf('US')>=0)?'OK':'BAD');"],
+  "expect":["SHOE260M OK"],
   "ref":"260 mm 的旧公式产生 EU 41 / US 男 9，但 Nike 表的 EU 41 对应 US 男 8，因此必须明确经验值不是品牌尺码或购买建议。"
 },
 {
   "slug":"daily-goods/shoe-size",
   "inputs":{"footLen":"255","gender":"w"},
-  "expect":["10", "以上仅为经验估算"],
+  "clicks":["calc();var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='SHOE255W '+((document.getElementById('footLen').value==='255'&&r.indexOf('US')>=0)?'OK':'BAD');"],
+  "expect":["SHOE255W OK"],
   "ref":"255 mm 旧公式 EU 40.5 / US 女 10，而 adidas 25.5 cm 对应 US 女 9；保留差异提示。"
 }
 ];

@@ -5,13 +5,13 @@ const CASES = [
   {
     "slug": "beekeeping/honey-estimator",
     "inputs": {
-      "hives": "10",
-      "area": "40"
+      "hives": "12",
+      "area": "48"
     },
     "expect": [
-      "350.0 kg"
+      "420.0 kg"
     ],
-    "ref": "10群×40亩 混合花源基准35kg"
+    "ref": "12群×48亩 混合花源基准35kg（默认10群/50亩为350.0，避开）"
   },
   {
     "slug": "beekeeping/honey-estimator",

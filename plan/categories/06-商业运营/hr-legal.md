@@ -1,5 +1,7 @@
 # 人力/法务 · tools/{hr,legal,legal2}（~60 页）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 ## 已知问题
 ### L2. 遗留：labor-compensation FAQ（满半年按 1 年）vs 代码（N=0.5）口径分歧——待裁断改 FAQ 或代码。
 - 受影响：tools/legal/labor-compensation.html

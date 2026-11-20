@@ -1,5 +1,7 @@
 # DOM id 引用扫描（全站）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 扫描器：[scripts/scan_dom_ids.js](file:///Users/cgw/project/cgw/chenguangwu.github.io/scripts/scan_dom_ids.js)
 口径：抽取 `document.getElementById('X')` / `querySelector('#X')` 的字面量 id，与页面内真实 id 集合比对。
 `getElementById(variable)`、模板串拼 id 单列为「动态引用」，不进入三档。

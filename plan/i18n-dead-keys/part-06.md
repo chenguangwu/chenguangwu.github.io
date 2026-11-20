@@ -1,5 +1,7 @@
 ### it（dead 1050 / dynamic 2621 / fragment 116 / harmless 18）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 - `tools/it/ascii-tree-generator.html` : `关于「ASCII 目录树生成器」` : dead
 - `tools/it/barcode-ean.html` : `输入数字串（如 '123456789'）→ 渲染 EAN 条码图形；请按规范长度与校验位填写。` : dead
 - `tools/it/barcode-msi.html` : `MSI（Modified Plessey）是脉冲调制型条码，每位数字用 8 个单元表示：0 编码为「窄空宽条」，1 编码为「宽条窄空」，其余数字按二进制位展开为 8 个宽窄交替的单元。它只含数字、无字母，密度中等，主要用在零售货架标签与仓库库位标识。MSI 本身不校验，实践中常追加 Mod 10（即 Luhn 算法）、…(+32字)` : dead

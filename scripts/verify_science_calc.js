@@ -344,6 +344,12 @@ const CASES = [
     ref: "SMS（磁通量反解漏 cosθ）：Φ=BS cosθ，反解 B 须 B=Φ/(S·cosθ)。Φ=1 Wb、S=2 m²、θ=60° → B=1/(2×0.5)=1.0000 T；旧版 B=Φ/S=0.5000 T（漏 cosθ）。探针断言解出 B=1（且非旧版 0.5），旧版 ⇒ PHIBS_BAD，零逃生。",
   },
   {
+    slug: "science/physics-calculator",
+    clicks: ["currentCategory='modern';currentFormula=FORMULAS.modern.find(function(f){return f.id==='ke_max';});renderInputs();document.getElementById('var_f').value='1e14';document.getElementById('var_W0').value='3.204e-19';calculate();var h=String(document.getElementById('output').textContent||document.getElementById('output').innerHTML);document.getElementById('var_f').value='KEMAX_'+(h.indexOf('无光电子逸出')>=0?'OK':'BAD');"],
+    expect: ["KEMAX_OK"],
+    ref: "PQ-17 光电效应负动能：f=1e14 Hz、W₀=3.204e-19 J（2 eV）⇒ hf=6.626e-20 J < W₀，应提示「无光电子逸出、最大初动能不适用」；旧版直接输出 hf−W₀=−2.542e-19 J 的负动能。默认态无该提示 ⇒ 零逃生。",
+  },
+  {
     slug: "science/doppler-effect",
     inputs: { f: "1000", v: "343", vo: "-10", vs: "0" },
     expect: ["970.8 Hz 观测频率"],

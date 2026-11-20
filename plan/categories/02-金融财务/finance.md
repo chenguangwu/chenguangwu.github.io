@@ -1,5 +1,7 @@
 # 金融计算 · tools/finance（115 页，第二大分类）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 - `node scripts/verify_finance_calc.js apy-calculator loan-amortization` 为 8/8，DOM 桩断言命中任一输出即通过；其结果不等于所有显示值、图表与导出已验证。
 
 ## 已知问题

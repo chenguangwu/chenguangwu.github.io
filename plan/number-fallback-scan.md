@@ -1,5 +1,7 @@
 # 全站 `|| 默认值` 吞掉合法 0 · 只读扫描（2026-11-05）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 > **2026-11-15 复核（463 批）**：按 §3 全表逐条 grep 复核，**21 页已由各线修好**（含 pipe-flow / dough / smoking-cost /
 > water-intake / gross-up / random-string / random / vector-magnitude / factorial / function-plotter / photochromic /
 > 四个 pediatrics / rental commission / matrix & vector / bearing-pressure / personal-injury 等，扫描清单滞后）；

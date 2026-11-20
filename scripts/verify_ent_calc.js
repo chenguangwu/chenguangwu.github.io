@@ -324,7 +324,7 @@ const CASES = [
     "expect": ["TONSILS3 OK"],
     "ref": "12-N100：吞咽困难原被采集却称「伴吞咽障碍多建议手术」，与判定逻辑（s3 不参与指征）冲突。现复选框明示仅记录，深解 FAQ 对齐页面既有手术指征列表并声明吞咽困难不单独构成指征。旧版 FAQ 仍含「吞咽障碍」且无仅记录标注 ⇒ 变红。N103 的 IV 度单独手术阈值保留专业复核。"
   },
-  {"slug":"ent/tonsil-grading", "clicks":["setGrade(4);calc()"], "expect":["未选择上述症状或病史；仅凭分度不能判定是否需要手术"], "ref":"IV 度无症状不单独判定手术"},
+  {"slug":"ent/tonsil-grading", "clicks":["setGrade(4);calc();var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='TONSIL4 '+((r.indexOf('未选择上述症状或病史')>=0&&r.indexOf('IV')>=0)?'OK':'BAD');"], "expect":["TONSIL4 OK"], "ref":"IV 度无症状不单独判定手术；探针同时校验分度与结论，默认态不产生该串"},
   {"slug":"ent/tonsil-grading", "checkIds":["s2"], "clicks":["setGrade(4);calc()"], "expect":["需要进一步评估（睡眠打鼾/呼吸暂停）"], "ref":"打鼾是评估线索，不能直接确诊 OSAHS 或决定手术"}
 ,
 {

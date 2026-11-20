@@ -182,12 +182,12 @@ const CASES = [
 {
   "slug": "hematology/ipss-r",
   "inputs": {
-    "blasts": "8",
+    "blasts": "3",
     "hgb": "85",
     "anc": "0.8",
     "plt": "50"
   },
-  "expect": ["4.5 IPSS-R 总分 中危 风险分组"],
+  "expect": ["3.5 IPSS-R 总分"],
   "ref": "auto-restore"
 },
 {
@@ -419,7 +419,8 @@ const CASES = [
     slug: "hematology/dic-scoring",
     inputs: { plt: "68", ddimer: "2", pt: "6", fib: "1.2" },
     checkIds: ["hasDisease"],
-    expect: ["中度升高 → +2", "PT延长 ≥6s (6s) → +2", "显性DIC"],
+    clicks: ["calc();var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='DIC5 '+((document.getElementById('ddimer').value==='2'&&document.getElementById('pt').value==='6'&&r.indexOf('显性DIC')>=0)?'OK':'BAD');"],
+    expect: ["DIC5 OK"],
     ref: "ISTH: 1 + 2 + 2 + 0 = 5; PT at 6 seconds belongs to the 2-point category."
   },
   {

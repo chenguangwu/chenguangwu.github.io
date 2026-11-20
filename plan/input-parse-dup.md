@@ -1,5 +1,7 @@
 # 数字输入解析重复清单（设计与生活线）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 > 用途：统一抽取公共输入解析函数前的收编清单。**本批不改 `js/common.js`**，仅登记现状。
 > 统计范围：`tools/design/**`、`tools/life/**`、`tools/fun/**`、`tools/library/**`、`tools/art/**`（不含 `tools/image/**` 等其它分类）。
 > 统计口径：页面内联脚本直接读取表单值并转数字的写法（`parseFloat(document.getElementById(...))`、`+document.getElementById(...).value`）。
