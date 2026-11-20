@@ -4282,6 +4282,7 @@ function tbSeI18n(){
       docs: '嵌入文档',
       shareHint: '把这个工具分享给需要的人，或在社区推荐它',
       x: 'X', weibo: '微博', reddit: 'Reddit', mail: '邮件',
+      shareCard: '生成结果分享卡', cardSaved: '分享卡已生成', cardEmpty: '先在页面上算出结果，再来生成分享卡',
       tip: '嵌入代码自带一条可点击的署名回链，这正是嵌入能为 ToolBox 带来权重的部分，感谢支持'
     };
   }
@@ -4299,6 +4300,7 @@ function tbSeI18n(){
     docs: 'Embed docs',
     shareHint: 'Share this tool with someone who needs it, or recommend it in your community',
     x: 'X', weibo: 'Weibo', reddit: 'Reddit', mail: 'Email',
+    shareCard: 'Create a result card', cardSaved: 'Card saved', cardEmpty: 'Run the calculation first, then create a card',
     tip: 'The snippet includes a crawlable credit link — that is the only part of an embed that passes link equity. Thanks for the support'
   };
 }
@@ -4340,6 +4342,82 @@ function tbSeTrack(evt){
       global.ToolBox.Analytics.track(evt, { page: tbSePath() });
     }
   } catch(e){}
+}
+// G06-S4：结果分享卡（纯本地 canvas 合成，不上传任何数据）
+// 取「工具名 + 结果区前几行 + 站点地址」，导出 1200×630 PNG，方便发群/发圈。
+function tbSeResultLines(max){
+  var sels = ['.result-box', '.results', '.result', '.output', '#result', '#results'];
+  var box = null;
+  for (var i = 0; i < sels.length; i++) {
+    var el = document.querySelector(sels[i]);
+    if (el && el.textContent && el.textContent.trim()) { box = el; break; }
+  }
+  if (!box) return [];
+  // innerText 会跳过 display:none 的分步面板（很多计算页把多种模式的说明都塞在 .result-box 里），
+  // 只取用户当前真正看到的那一段，避免分享卡印上一堆无关说明。
+  var text = ((box.innerText || box.textContent || '') + '').replace(/\s+/g, ' ').trim();
+  if (!text) return [];
+  var parts = text.split(/(?:\\s{2,}|\\||；|;)/).filter(function(x){ return x.trim().length > 1; });
+  if (parts.length <= 1) {
+    // 兜底：按中英文句读切
+    parts = text.split(/(?:。|！|？|\\.\\s)/).filter(function(x){ return x.trim(); });
+  }
+  var out = [];
+  for (var j = 0; j < parts.length && out.length < (max || 3); j++) {
+    var p = parts[j].trim();
+    if (p.length > 34) p = p.slice(0, 33) + '…';
+    if (p) out.push(p);
+  }
+  return out;
+}
+function tbSeMakeCard(btn, i){
+  var tip = btn && btn.parentNode ? btn.parentNode.querySelector('.tb-se-card-tip') : null;
+  var lines = tbSeResultLines(3);
+  var t = tbSeTitle();
+  var zh = tbSeLang() === 'zh';
+  var name = zh ? t.zh : t.en;
+  if (!lines.length) {
+    if (tip) { tip.textContent = (i && i.cardEmpty) || ''; tip.className = 'tb-se-card-tip warn'; }
+    return;
+  }
+  var W = 1200, H = 630;
+  var cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  var ctx = cv.getContext('2d');
+  if (!ctx) return;
+  var grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, '#0f172a'); grad.addColorStop(1, '#1e3a8a');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(255,255,255,.08)';
+  ctx.beginPath(); ctx.arc(W - 90, 90, 170, 0, Math.PI * 2); ctx.fill();
+  // 站点标识
+  ctx.fillStyle = '#93c5fd'; ctx.font = '600 26px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.fillText('ToolBox · chenguangwu.github.io', 64, 86);
+  // 工具名
+  ctx.fillStyle = '#ffffff'; ctx.font = '700 52px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+  var title = name.length > 22 ? name.slice(0, 21) + '…' : name;
+  ctx.fillText(title, 64, 190);
+  // 结果
+  ctx.font = '500 34px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+  var y = 282;
+  for (var k = 0; k < lines.length; k++) {
+    ctx.fillStyle = k === 0 ? '#fde68a' : '#e2e8f0';
+    ctx.fillText(lines[k], 64, y); y += 58;
+  }
+  // 底栏
+  ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.font = '400 22px -apple-system, "PingFang SC", sans-serif';
+  ctx.fillText(zh ? '结果来自 ToolBox 在线工具，点这里自己算一遍 →' : 'Result from a ToolBox calculator — run your own numbers →', 64, H - 46);
+  var path = tbSePath().replace(/.*\//, '').replace(/\.html$/, '');
+  try {
+    var a = document.createElement('a');
+    a.download = 'toolbox-' + (path || 'result') + '-card.png';
+    a.href = cv.toDataURL('image/png');
+    a.click();
+    if (tip) { tip.textContent = (i && i.cardSaved) || ''; tip.className = 'tb-se-card-tip ok'; }
+    tbSeTrack('share_card_download');
+  } catch (e) {
+    if (tip) { tip.textContent = (i && i.cardEmpty) || ''; tip.className = 'tb-se-card-tip warn'; }
+  }
 }
 function injectShareEmbed(){
   try {
@@ -4409,6 +4487,10 @@ function injectShareEmbed(){
             '<a href="' + tbSeEsc(shareRd) + '" target="_blank" rel="noopener noreferrer">' + tbSeEsc(i.reddit) + '</a>' +
             '<a href="' + tbSeEsc(shareMail) + '">' + tbSeEsc(i.mail) + '</a>' +
           '</div>' +
+          '<div class="tb-se-card">' +
+            '<button class="tb-se-btn primary" type="button" data-act="share-card">' + tbSeEsc(i.shareCard) + '</button>' +
+            '<span class="tb-se-card-tip"></span>' +
+          '</div>' +
         '</div>' +
       '</div>';
 
@@ -4451,6 +4533,9 @@ function injectShareEmbed(){
       } else if (act === 'copy-link') {
         node = wrap.querySelector('.tb-se-link input');
         if (node) { val = node.value || ''; tbSeTrack('share_embed_copy_link'); }
+      } else if (act === 'share-card') {
+        tbSeMakeCard(btn, i);
+        return;
       }
       if (val && global.ToolBox && typeof global.ToolBox.copyText === 'function') global.ToolBox.copyText(val);
     });
