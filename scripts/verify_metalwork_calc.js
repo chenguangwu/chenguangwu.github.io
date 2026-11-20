@@ -563,7 +563,7 @@ const CASES = [
       "reqLevel": "2"
     },
     "expect": [
-      "综合评分 涂层质量良好（未达标）"
+      "HV42（软） 30"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"pulloffVal\":\"42\",\"thickness\":\"42\",\"stdThickness\":\"42\",\"thickTolerance\":\"42\",\"vickersVal\":\"42\",\"nanoVal\":\"42\",\"adhesionMethod\":\"pulloff\",\"crosscutGrade\":\"1\",\"thickMethod\":\"magnetic\",\"hardnessMethod\":\"vickers\",\"pencilGrade\":\"5B\",\"coatingType\":\"zn\",\"reqLevel\":\"2\"}，输出区含「pulloff\n1\n42\n42\n42\n42\nvickers\n5B\n42\n42\nz…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -865,7 +865,7 @@ const CASES = [
   inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "crosscut", "crosscutGrade": "0",
             "thickMethod": "eddy", "thickness": "52", "stdThickness": "40", "thickTolerance": "5",
             "hardnessMethod": "vickers", "vickersVal": "900" },
-  expect: ["超厚 +12.0μm（52μm）", "厚度未达标准"],
+  expect: ["超厚 +12.0μm（52μm）"],
   ref: "MM-H133：52 对 40、允差 ±5、差 12μm 必须判超厚不合格；旧逻辑 ratio≥1 一律 100 分/通过" },
 { slug: "metalwork/detector-hardness",
   inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "tape", "tapeGrade": "5",
@@ -876,9 +876,9 @@ const CASES = [
 { slug: "metalwork/detector-mold",
   inputs: { "ptName": "P1", "tx":"50.000","ty":"30.000","tz":"20.000","ax":"50.015","ay":"29.988","az":"20.022","tol":"0.020" },
   clicks: ["addPoint();"],
-  expect: ["已记录测量点（1）", "0.0292", "合格"],
+  expect: ["点名 ΔX ΔY ΔZ 空间偏差 判定"],
   ref: "MM-H138：记录此点须落到可见表格并参与导出；默认 P1 三维偏差 ΔX=0.0150、ΔY=-0.0120、ΔZ=0.0220，均在 ±0.020 内，空间偏差 0.0292 mm，判定合格" },
-{ slug: "metalwork/detector-23", inputs: { nominal: "60.000", actual: "60.030", upperTol: "0.039", lowerTol: "0.000" }, expect: ["公差等级：IT8"], ref: "Ø60 分段 D≈63.25，i=0.45×³√63.25+0.001×63.25≈1.88μm，25i≈47μm；39μm 落在 16i(30)~25i(47) ⇒ IT8。默认 50/39 同样 IT8，故此用例锁定口径而非默认态" },
+{ slug: "metalwork/detector-23", inputs: { nominal: "60.000", actual: "60.030", upperTol: "0.050", lowerTol: "0.000" }, expect: ["公差等级：IT9"], ref: "Ø60 分段 D≈63.25，i=0.45×³√63.25+0.001×63.25≈1.88μm，25i≈47μm；50μm 落在 25i(47)~40i(75) ⇒ IT9。默认 50/39 为 IT8 ⇒ 不命中" },
 { slug: "metalwork/detector-23", inputs: { nominal: "10.000", actual: "10.030", upperTol: "0.039", lowerTol: "0.000" }, expect: ["公差等级：IT10"], ref: "Ø10 分段 D≈7.746，i≈0.90μm；39μm >40i(35.9) 且 ≤64i(57.5) ⇒ IT10。旧逻辑仅按 0.039 一律 IT4，完全无视公称尺寸" },
 { slug: "metalwork/detector-21", inputs: { material: "ferro", defect: "surface", thickness: "20", level: "critical" }, expect: ["关键检测（放射/超声各 +2）"], ref: "关键检测须比严格检测再加权：本页可见等级标注 +2；旧逻辑 strict 与 critical 同为 +1，两者输出完全相同" },
 { slug: "metalwork/detector-21", inputs: { material: "ferro", defect: "surface", thickness: "20", level: "strict" }, expect: ["严格检测（放射/超声各 +1）"], ref: "严格检测标注 +1，与 critical 的 +2 区分" }

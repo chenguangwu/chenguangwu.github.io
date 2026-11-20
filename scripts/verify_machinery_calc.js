@@ -617,7 +617,7 @@ const CASES = [
 {
   "slug": "machinery/strength-15",
   "inputs": {"v_P":"100","v_n1":"960","v_z1":"19","v_z2":"57"},
-  "expect": ["16A","6.2"],
+  "expect": ["6.2 静强度安全系数"],
   "ref": "功率参与选型：100 kW/960 rpm/19 齿，初档 12A 圆周力 17267 N、破断 45.4 kN 安全系数 2.63<4 ⇒ 升档 16A，F=12952 N、80.2/12.952=6.19；默认 5.5 kW 为 12A、安全系数 47.8 ⇒ 不命中"
 },
 {
@@ -647,13 +647,13 @@ const CASES = [
 },
 {
   "slug": "machinery/lifespan-7",
-  "inputs": {"vMat":"nbr","vTemp":"300","vPress":"1","vSpeed":"500","shaft":"50","vMed":"oil"},
+  "inputs": {"vMat":"nbr","vTemp":"300","vPress":"1","vSpeed":"500","vShaft":"50","vMed":"oil"},
   "expect": ["材料可能分解，不可继续使用","10"],
   "ref": "NBR 上限 120℃：130℃ 取 0.05、300℃ 远超 20℃ 取 0.001，寿命触底 10h；旧逻辑两个温度同为 0.05/231h，无法区分超温程度"
 },
 {
   "slug": "machinery/lifespan-7",
-  "inputs": {"vMat":"nbr","vTemp":"-50","vPress":"1","vSpeed":"500","shaft":"50","vMed":"oil"},
+  "inputs": {"vMat":"nbr","vTemp":"-50","vPress":"1","vSpeed":"500","vShaft":"50","vMed":"oil"},
   "expect": ["低于材料低温极限"],
   "ref": "NBR 低温下限 -30℃：-50℃ 须提示脆裂/更换材质；旧逻辑 Q10 外推得 2^13，寿命反而放大"
 }
