@@ -392,7 +392,14 @@ function getDelayLevel() {
 
 function calc() {
   const d = document.getElementById('dest').value;
-  const days = +document.getElementById('days').value || 7;
+  const daysRaw = document.getElementById('days').value.trim();
+  const days = Number(daysRaw);
+  if(daysRaw === '' || !isFinite(days) || days < 1 || days > 365){
+    document.getElementById('plans').innerHTML='<div class="info-box">请输入 1–365 天的旅行天数后再对比方案。</div>';
+    document.getElementById('compareDetail').innerHTML='';
+    return;
+  }
+  const sportReq = document.getElementById('sport').value === 'yes';
   const focus = document.getElementById('focus').value;
   const list = plans[d];
   const ageMult = getAgeMultiplier();
@@ -408,10 +415,11 @@ function calc() {
     let priceMax = Math.round(p.basePrice[1] * factor * ageMult * sportMult);
     const price = priceMin + '-' + priceMax;
     
-    const rec = (focus === 'basic' && i === 0) || (focus === 'medical' && i === 1) || (focus === 'comprehensive' && i === 2);
+    const focusMatch = (focus === 'basic' && i === 0) || (focus === 'medical' && i === 1) || (focus === 'comprehensive' && i === 2);
+    const rec = focusMatch && (!sportReq || p.sport);
     
     let delayAmount = p.delay;
-    if (delayLevel === 'basic') delayAmount = Math.max(500, p.delay * 0.5);
+    if (delayLevel === 'basic') delayAmount = p.delay * 0.5;
     if (delayLevel === 'high') delayAmount = p.delay * 1.5;
     
     html += `<div class="plan-card ${rec ? 'recommended' : ''}">
@@ -447,6 +455,7 @@ function renderCompare() {
   
   let html = '';
   
+  const delayLevel = getDelayLevel();
   const features = [
     { name: '医疗保额', key: 'medical', unit: '万' },
     { name: '意外身故/伤残', key: 'accident', unit: '万' },
@@ -469,7 +478,13 @@ function renderCompare() {
       } else if (f.key === 'cancel' && p[f.key] === 0) {
         val = '不包含';
       } else {
-        val = (f.prefix || '') + p[f.key] + (f.unit || '');
+        var raw = p[f.key];
+        if (f.key === 'delay') {
+          if (delayLevel === 'basic') raw = raw * 0.5;
+          if (delayLevel === 'high') raw = raw * 1.5;
+          raw = Math.round(raw);
+        }
+        val = (f.prefix || '') + raw + (f.unit || '');
       }
       html += `<td>${val}</td>`;
     });
