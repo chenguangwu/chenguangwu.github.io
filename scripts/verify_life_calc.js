@@ -2865,7 +2865,13 @@ const CASES = [
     "expect": ["仅允许数字"],
     "ref": "非法字符：含字母直接拒绝并提示「仅允许数字及 +、空格、连字符」，不做部分解析。"
   }
-
+,
+{
+  "slug": 'life/generator-strength',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/life/generator-strength.html\',\'utf8\');var i=h.indexOf(\'function resetPwdState(){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+900):\'\';var ok=seg.indexOf("(\'pwdChart\'); if(chart) chart.innerHTML=\'\'")>=0&&seg.indexOf("\'#pwdTable tbody\'")>=0;document.getElementById(\'__tbProbe\').textContent=\'PWDCLR0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['PWDCLR0 OK'],
+  "ref": "第1342批·清空输入后图表/熵表残留修复源码形态强锚：旧版 resetPwdState 只清密码列表与强度条，基于字符池的熵曲线(#pwdChart)与熵值表(#pwdTable tbody)残留；修复后一并清空。旧版无 ⇒ BAD。"
+}
 ];
 
 // ---------------------------------------------------------------- main
