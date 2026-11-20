@@ -3232,7 +3232,7 @@ function buildUnifiedFooter(){
           '</ul>' +
         '</div>' +
       '</div>' +
-      '<div id="footerLaWidget" class="footer-la-widget" aria-label="ToolBox 实时访问数据" data-i18n-aria="foot.la_widget_aria"></div>' +
+      '<div id="footerLaWidget" class="footer-la-widget" role="status" aria-label="ToolBox 实时访问数据" data-i18n-aria="foot.la_widget_aria"></div>' +
       '<div class="footer-copy" data-i18n="footer.privacy" data-i18n-fb="© 2026 ToolBox · 纯前端在线工具 · 数据不上传，安全可靠">© 2026 ToolBox · 纯前端在线工具 · 数据不上传，安全可靠</div>' +
     '</div>';
 
