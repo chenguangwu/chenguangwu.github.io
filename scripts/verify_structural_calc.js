@@ -333,7 +333,15 @@ const CASES = [
   { slug: "structural/deflection-cantilever-udl", inputs: {"rcQ":"115"}, expect: ["未开裂（M_q ≤ M_cr）"], ref: "未开裂分支（M_q < M_cr）：同 91×87 截面、M_cr=0.2307kN·m；w_q=115N/m ⇒ M_q=(115/1000)×2²/2=0.23kN·m ≤ M_cr ⇒ B_s=E_c·I_0=150kN·m²、B=75kN·m²、δ_lt=(1/4)×0.23×10⁶×2000²/B=3.07mm。默认 rcQ=1000 为已开裂 ⇒ 该标签不命中。" },
   { slug: "structural/deflection-cantilever-udl", inputs: {"rcQ":"116"}, expect: ["5.89 RC 长期挠度 δ_lt (mm)"], ref: "跨过 M_cr：M_q=(116/1000)×2²/2=0.232kN·m > 0.2307 ⇒ 裂后 σ_s=57.8MPa、ψ=0.200、B_s=78.7kN·m²、B=39.4kN·m²；δ_lt=(1/4)×0.232×10⁶×2000²/B=5.89mm（默认 rcQ=1000 ⇒ 102.77mm，不命中）。" },
   { slug: "structural/ss-point-deflection", inputs: {"rcQ":"0.1"}, expect: ["未开裂（M_q ≤ M_cr）"], ref: "未开裂分支：截面 200×39、W_0=200×39²/6=50700mm³、M_cr=2.01×50700/10⁶=0.1019kN·m；P_q=0.1kN ⇒ M_q=0.1×2/4=0.05kN·m ≤ M_cr ⇒ B_s=E_c·I_0=30000×988650=2.966e10（30kN·m²）、B=15kN·m²、δ_lt=(1/12)×0.05×10⁶×2000²/B=1.12mm。默认 rcQ=10 为已开裂 ⇒ 该标签不命中。" },
-  { slug: "structural/ss-point-deflection", inputs: {"rcQ":"0.205"}, expect: ["5.81 RC 长期挠度 δ_lt (mm)"], ref: "跨过 M_cr：M_q=0.205×2/4=0.1025kN·m > 0.1019 ⇒ 裂后 h₀=29、ρ_te=58/(0.5×200×39)=0.01487、σ_s=0.1025×10⁶/(0.87×29×58)=70.0MPa、ψ_raw=−0.154⇒夹取 0.200、B_s=11.75kN·m²、B=5.88kN·m²；δ_lt=(1/12)×0.1025×10⁶×2000²/B=5.81mm（默认 rcQ=10 ⇒ 597.95mm，不命中）。" }
+  { slug: "structural/ss-point-deflection", inputs: {"rcQ":"0.205"}, expect: ["5.81 RC 长期挠度 δ_lt (mm)"], ref: "跨过 M_cr：M_q=0.205×2/4=0.1025kN·m > 0.1019 ⇒ 裂后 h₀=29、ρ_te=58/(0.5×200×39)=0.01487、σ_s=0.1025×10⁶/(0.87×29×58)=70.0MPa、ψ_raw=−0.154⇒夹取 0.200、B_s=11.75kN·m²、B=5.88kN·m²；δ_lt=(1/12)×0.1025×10⁶×2000²/B=5.81mm（默认 rcQ=10 ⇒ 597.95mm，不命中）。" },
+  { slug: "structural/section-modulus-circle",
+    inputs: { d: "" },
+    expect: ["请填写圆截面直径（须大于 0）后再计算。"],
+    ref: "直径留空：旧代码按 0 输出抗弯模量 0；新增守卫后须提示。" },
+  { slug: "structural/torsion-polar-j",
+    inputs: { d: "" },
+    expect: ["请填写圆截面直径（须大于 0）后再计算。"],
+    ref: "直径留空：旧代码按 0 输出极惯性矩 0；新增守卫后须提示。" },
 
 ];
 

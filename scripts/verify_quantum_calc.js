@@ -109,6 +109,11 @@ const CASES = [
     "ref": "998 波长正值守卫（PQ-22）：旧版负波长直接算出负能量与负 eV；修复后主区与明细同时拒绝。默认 500e-9 不含该串。"
   },
   { slug: "quantum/photon-flux",
+    inputs: { P: "1e-3", lam: "" },
+    expect: ["请填写光功率与波长后再计算。"],
+    ref: "波长留空：旧代码按 0 输出光子通量 0；新增守卫后须提示。" },
+
+  { slug: "quantum/photon-flux",
     inputs: { P: "2", lam: "400e-9" },
     expect: ["4.027e+18"],
     ref: "N=Pλ/(hc)=2×400e-9/(6.626e-34×2.998e8)=4.027e18 /s" },
@@ -124,6 +129,11 @@ const CASES = [
     inputs: { n1: "1", n2: "3" },
     expect: ["9.754e+6", "102.52"],
     ref: "1/λ=R(1/1²−1/3²)=1.0974e7×0.8889=9.754e6 m⁻¹；λ=102.52 nm" },
+  { slug: "quantum/spin-magnetic-moment",
+    inputs: { ml: "" },
+    expect: ["请填写磁量子数 m_l（−10 至 10 之间的整数）后再计算。"],
+    ref: "磁量子数留空：旧代码按 0 输出零磁矩；新增守卫后须提示。" },
+
   { slug: "quantum/spin-magnetic-moment",
     inputs: { ml: "2" },
     expect: ["1.855e-23"],
@@ -413,12 +423,12 @@ const CASES = [
   {
     "slug": "quantum/spin-magnetic-moment",
     "inputs": {
-      "ml": "42"
+      "ml": "3"
     },
     "expect": [
-      " μ (μ_B) 3.895e-22"
+      "3 磁矩 μ (μ_B) 2.782e-23"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"ml\":\"42\"}，输出区含「 μ (μ_B) 3.895e-22」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "m_l=3（非默认 1）：μ=3μ_B=2.782e-23 J/T，页面按 μ_B 口径显示 9.274e-24 每玻尔磁子；原哨兵 42 超出新增 −10 至 10 校验范围。"
   },
   {
     "slug": "quantum/thermal-de-broglie",
