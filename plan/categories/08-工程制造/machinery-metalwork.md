@@ -346,3 +346,10 @@
 - `machinery/calc-gear` 斜齿 zmin 修正为 2ha*cosβ/sin²αt（β20°→14.4）。
 - `metalwork/detector-hardness` 厚度按标准±允差判定、胶带法补 5B–0B 输入、合格线标经验阈值。
 - `metalwork/detector-mold` 记录点改可见表格并参与导出。
+
+
+## 2026-11-21 设备类型/丝杠精度/Q
+
+- `machinery/detector-194` 设备与运行模式参与阈值和清单。
+- `machinery/jingmishebeixuanxing` 导程精度按 C3/C5/C7/C10 等级取值。
+- `metalwork/calc-feed` 渲染 Q 并澄清为简化指数而非体积去除率。

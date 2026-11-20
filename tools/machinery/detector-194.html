@@ -203,26 +203,43 @@ function calc(){
  if(yearsRaw===''){document.getElementById("res").innerHTML='<div class="info-box"><strong>请填写使用年限（年）后再生成维修方案。</strong></div>';return;}
  var dev=parseInt(document.getElementById("v1").value);
  var fault=parseInt(document.getElementById("v2").value);
- var years=parseFloat(document.getElementById("v3").value)||0;
+ var yearsRaw=document.getElementById("v3").value.trim();
+ var years=parseFloat(yearsRaw);
  var run=parseInt(document.getElementById("v4").value);
  var devNames={1:"泵类",2:"电机",3:"阀门",4:"减速机",5:"换热器"};
  var faultNames={1:"异响振动",2:"泄漏渗油",3:"性能下降",4:"无法启动",5:"过热高温"};
  var runNames={1:"连续运行",2:"间歇运行",3:"备用状态",4:"频繁启停"};
- var shouldReplace=years>8;
+ if(!devNames[dev]||!faultNames[fault]||!runNames[run]||yearsRaw===''||!isFinite(years)||years<0){
+   document.getElementById("res").innerHTML='<p style="color:var(--danger);">请选择设备类型、故障现象、运行模式，并填写非负的使用年限</p>';
+   return;
+ }
+ // 不同运行模式给不同经济寿命阈值：频繁启停最耗损、备用状态最低
+ var life = run===4?5:run===2?6:run===3?10:8;
+ var shouldReplace=years>life;
  var html='<p style="margin-bottom:8px;">设备：<strong>'+devNames[dev]+'</strong> | 故障：<strong>'+faultNames[fault]+'</strong></p>';
- html+='<p style="margin-bottom:8px;">使用年限：'+years+'年 | 运行模式：'+runNames[run]+'</p>';
+ html+='<p style="margin-bottom:8px;">使用年限：'+years+'年 | 运行模式：'+runNames[run]+'（本页经济寿命阈值 '+life+' 年）</p>';
  var action=shouldReplace?"更换设备":"维修修复";
  var actionColor=shouldReplace?"var(--warning)":"var(--success)";
  html+='<p style="font-size:16px;font-weight:700;color:'+actionColor+';text-align:center;padding:10px;background:var(--result-bg);border-radius:8px;margin-top:8px;">建议方案：'+action+'</p>';
  html+='<p style="font-size:13px;margin-top:12px;font-weight:600;">维修/更换检查清单：</p><ul style="font-size:12px;color:var(--text-secondary);margin-top:4px;">';
- if(fault===1){html+='<li>检查轴承磨损，测量游隙是否超标</li><li>检查联轴器对中，校正偏差</li><li>检查地脚螺栓紧固情况</li><li>动平衡校验</li>';}
- else if(fault===2){html+='<li>检查密封件（O圈/机械密封）老化</li><li>检查密封面磨损</li><li>更换密封件，紧固法兰</li><li>试压检漏</li>';}
- else if(fault===3){html+='<li>检查叶轮/阀芯磨损</li><li>检查内部间隙</li><li>清洗流道结垢</li><li>性能测试对比</li>';}
- else if(fault===4){html+='<li>检查电源供电和电气连接</li><li>检查电机绕组绝缘</li><li>检查控制回路和保护元件</li><li>检查机械卡阻</li>';}
- else{html+='<li>检查冷却系统是否正常</li><li>检查润滑油位和品质</li><li>检查过载保护设置</li><li>检查散热器和风道</li>';}
+ var devChecks={
+   1:['检查泵体密封与机械密封','检查叶轮磨损与汽蚀','检查轴承游隙与润滑','检查联轴器对中'],
+   2:['检查电机绕组绝缘与温升','检查轴承与润滑脂','检查接线端子与电缆','检查冷却风扇与风道'],
+   3:['检查阀杆与阀座密封','检查执行机构与行程','检查填料/垫片泄漏','检查阀体腐蚀与流道'],
+   4:['检查齿轮啮合与点蚀','检查润滑油位与油质','检查轴承与输入轴密封','检查地脚螺栓与箱体变形'],
+   5:['检查换热管结垢与堵塞','检查管板与法兰垫片','检查壳体腐蚀与壁厚','检查进出口压差']
+ };
+ var faultChecks={
+   1:['复测振动速度/频谱，定位异常频率','复紧地脚与联轴器'],
+   2:['保压/试漏，确认泄漏点','更换密封并复装'],
+   3:['做性能对比测试（流量/扬程/效率）','清洗流道或更换磨损件'],
+   4:['检查供电与控制回路','手动盘车确认无卡阻'],
+   5:['检查冷却/润滑与过载保护','清理散热器与风道']
+ };
+ (devChecks[dev]||[]).concat(faultChecks[fault]||[]).forEach(function(t){html+='<li>'+t+'</li>';});
  html+='</ul>';
- if(shouldReplace){html+='<p style="font-size:12px;color:var(--warning);margin-top:8px;">设备使用超过8年，维修成本可能较高，建议评估更换经济性</p>';}
- else if(years>5){html+='<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">设备使用超过5年，维修后建议加强巡检频次</p>';}
+ if(shouldReplace){html+='<p style="font-size:12px;color:var(--warning);margin-top:8px;">设备使用已超过本页经济寿命阈值，维修成本可能较高，建议评估更换经济性</p>';}
+ else if(years>5){html+='<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">设备已接近经济寿命阈值，维修后建议加强巡检频次</p>';}
  const __g1=html;document.getElementById("res").innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyReport(){ToolBox.copyText(document.getElementById('res').innerText, i18nText('msg554'));}

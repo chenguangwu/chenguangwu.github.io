@@ -626,6 +626,24 @@ const CASES = [
   "clicks": ["document.querySelector('input[name=gearType][value=helical]').checked=true;calc();"],
   "expect": ["14.4","小于不根切最少齿数"],
   "ref": "斜齿根切最少齿数：αt=atan(tan20°/cos20°)=21.17°，zmin=2×1×cos20°/sin²αt=14.4；z=13 应判根切。旧式 cos³β 得 12.7，13 齿会被误判不根切"
+},
+{
+  "slug": "machinery/detector-194",
+  "inputs": {"v1":"3","v2":"2","v3":"6","v4":"4"},
+  "expect": ["更换设备","检查阀杆与阀座密封","经济寿命阈值 5 年"],
+  "ref": "MM-H80：设备类型/运行模式须参与判定。阀门+频繁启停、6 年 > 阈值 5 ⇒ 更换；清单应为阀杆/执行机构，不得再给泵的轴承/联轴器套话。若仍只按 years>8，则 6 年会判维修 ⇒ 不命中"
+},
+{
+  "slug": "machinery/detector-194",
+  "inputs": {"v1":"1","v2":"1","v3":"","v4":"1"},
+  "expect": ["请填写使用年限（年）后再生成维修方案"],
+  "ref": "空年限不得按 0 年输出「维修修复」结论"
+},
+{
+  "slug": "machinery/jingmishebeixuanxing",
+  "inputs": {"vAcc":"50","vLoad":"50","vStroke":"500","vSpeed":"15"},
+  "expect": ["C7","±50μm/300mm"],
+  "ref": "MM-H91：定位精度 50μm 判 C7，导程精度须随等级显示 ±50μm/300mm；旧逻辑按导程 5mm 显示 ±3μm/300mm，与 C7 自相矛盾。默认 acc10/lead5 为 C3/±3 ⇒ 不命中"
 }
 ];
 

@@ -83,8 +83,8 @@ const CASES = [
 
   { slug: "metalwork/calc-feed",
     inputs: { dia: "20", z: "4", vc: "100", fz: "0.1" },
-    expect: ["1592"],
-    ref: "n=1000×100/(π×20)=1591.5→1592 rpm（默认 vc120→1910，避开）" },
+    expect: ["1592","255"],
+    ref: "n=1000×100/(π×20)=1591.5→1592 rpm；Vf≈636.8 mm/min，Q=Vf×20×0.02≈254.7→255（默认 vc120→1910、Q≈305，避开）" },
 
   { slug: "metalwork/calc-gear-2",
     inputs: { module: "3", teeth: "20", method: "hob", vc: "60", feed: "1", material: "carbon" },

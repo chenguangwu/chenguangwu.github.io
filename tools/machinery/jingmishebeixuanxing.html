@@ -162,7 +162,7 @@
       <div class="tool-notes-title">⚠️ 注意事项</div>
       <ul>
         <li>导轨规格基于动额定负荷为负载6倍的安全系数推荐</li>
-        <li>丝杠精度等级：C3(≤10μm)、C5(≤20μm)、C7(≤50μm/300mm)</li>
+        <li>丝杠精度等级：C3(≤10μm)、C5(≤20μm)、C7(≤50μm)、C10(其余)；导程精度按等级取典型值（C3 ±3、C5 ±5、C7 ±50、C10 ±100 μm/300mm），实际随直径/导程/长度变化</li>
         <li>丝杠总长 = 行程 + 螺母长度 + 两端支撑余量（约行程×1.3）</li>
         <li>本工具纯前端运行，数据不会上传到服务器</li>
       </ul>
@@ -214,7 +214,8 @@ function calc(){
   var screwClass = acc<=10?'C3':(acc<=20?'C5':(acc<=50?'C7':'C10'));
   var screwLen=stroke*1.3;
   var screwDia = loadN>5000?'32mm':(loadN>2000?'25mm':(loadN>500?'20mm':'16mm'));
-  var leadError = lead===5?'±3μm/300mm':(lead===10?'±5μm/300mm':'±8μm/300mm');
+  var leadErrorMap={C3:'±3μm/300mm',C5:'±5μm/300mm',C7:'±50μm/300mm',C10:'±100μm/300mm'};
+  var leadError=leadErrorMap[screwClass]||'±100μm/300mm';
   var driveTorque = loadN*lead/(2*Math.PI*0.9*1000); // N·m, screw efficiency 0.9
   const __g2='<div class="data-grid">'+
     '<div class="data-card"><div class="num">HGR'+rail.sz+'</div><div class="label">推荐导轨规格</div></div>'+
@@ -226,7 +227,7 @@ function calc(){
     '<div class="data-card"><div class="num">'+screwLen.toFixed(0)+'</div><div class="label">丝杠总长 (mm)</div></div>'+
     '<div class="data-card"><div class="num">'+rpm.toFixed(0)+'</div><div class="label">所需转速 (rpm)</div></div>'+
     '<div class="data-card"><div class="num">'+driveTorque.toFixed(2)+'</div><div class="label">驱动扭矩 (N·m)</div></div>'+
-    '<div class="data-card"><div class="num" style="font-size:13px;">'+leadError+'</div><div class="label">导程精度</div></div>'+
+    '<div class="data-card"><div class="num" style="font-size:13px;">'+leadError+'</div><div class="label">导程精度（等级典型值）</div></div>'+
     '</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   lastResult='精密设备选型\n精度='+acc+'μm, 负载='+load+'kg, 行程='+stroke+'mm, 速度='+speed+'m/min\n导轨: HGR'+rail.sz+' (动额定'+rail.dr+'kN)\n丝杠: '+screwDia+'mm, 导程'+lead+'mm, 精度'+screwClass+'\n丝杠总长: '+screwLen.toFixed(0)+'mm\n转速: '+rpm.toFixed(0)+'rpm\n驱动扭矩: '+driveTorque.toFixed(2)+'N·m';
 }
@@ -401,7 +402,7 @@ else document.addEventListener('DOMContentLoaded', __jingmishebeixuanxingBoot);
 <li>方案校核：调整行程或速度后快速重算丝杠长度与扭矩</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：负载换牛顿 loadN = 负载×9.8；导轨动额定需求 = loadN×6/1000（kN），在 [7.7,13.6,17.6,27.5,35.1,51.4,74.4,101] 中取首个 ≥ 需求者，对应 HGR15~HGR65；丝杠导程按 速度×1000/3000 在 [5,10,20,32,40] 中取首个 ≥ 者；所需转速 = 速度×1000/导程；精度等级 ≤10μm 选 C3、≤20μm 选 C5、≤50μm 选 C7、否则 C10；丝杠总长 = 行程×1.3；丝杠直径按 loadN 分档（&gt;5000N 取 32mm、&gt;2000N 取 25mm、&gt;500N 取 20mm、否则 16mm）；驱动扭矩 = loadN×导程/(2π×0.9×1000)（N·m，0.9 为丝杠效率）。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：定位精度 10μm、负载 50kg、行程 500mm、速度 15m/min → loadN 490N、导轨 HGR15（动额定 7.7kN）、丝杠 16mm/导程 5mm、精度 C3、丝杠总长 650mm、转速 3000rpm、驱动扭矩 0.433N·m、导程精度 ±3μm/300mm。若负载 200kg、行程 800mm、速度 30m/min、精度 5μm → loadN 1960N、导轨 HGR20（13.6kN）、丝杠 20mm/导程 10mm、总长 1040mm、转速 3000rpm、扭矩 3.466N·m、导程精度 ±5μm/300mm。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：定位精度 10μm、负载 50kg、行程 500mm、速度 15m/min → loadN 490N、导轨 HGR15（动额定 7.7kN）、丝杠 16mm/导程 5mm、精度 C3、丝杠总长 650mm、转速 3000rpm、驱动扭矩 0.433N·m、导程精度按 C3 取 ±3μm/300mm。若负载 200kg、行程 800mm、速度 30m/min、精度 5μm → loadN 1960N、导轨 HGR20（13.6kN）、丝杠 20mm/导程 10mm、总长 1040mm、转速 3000rpm、扭矩 3.466N·m、导程精度按 C5 取 ±5μm/300mm。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>导程怎么在转速和推力之间取舍？</dt><dd>小导程推力大、分辨率高但同速度下需要更高转速；大导程反之。工具按最高 3000rpm 反推最小导程，若选中导程使转速顶到 3000rpm，说明应放大一号导程或降低速度要求。</dd>
