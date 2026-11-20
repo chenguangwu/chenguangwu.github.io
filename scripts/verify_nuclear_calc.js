@@ -68,6 +68,11 @@ const CASES = [
     ref: "λ=ln2/t½=0.69314718056/5.2e10=1.333e-11 s⁻¹" },
 
   { slug: "nuclear/decay-fraction",
+    inputs: { lam: "0.01", t: "" },
+    expect: ["请填写衰变常数与时间后再计算。"],
+    ref: "时间留空：旧代码按 0 输出衰变份额 0；新增守卫后须提示。" },
+
+  { slug: "nuclear/decay-fraction",
     inputs: { lam: "3e-9", t: "2e8" },
     expect: ["0.4512"],
     ref: "f=1−e^(−λt)=1−e^(−0.6)=0.4512（已衰变 45.12%）" },
@@ -111,6 +116,11 @@ const CASES = [
     inputs: { th: "2400" },
     expect: ["3462.47"],
     ref: "τ=t½/ln2=2400/0.69314718056=3462.47 年" },
+
+  { slug: "nuclear/mean-life-from-halflife",
+    inputs: { th: "" },
+    expect: ["请填写半衰期（须大于 0）后再计算。"],
+    ref: "半衰期留空：旧代码按 0 输出平均寿命 0；新增守卫后须提示。" },
 
   { slug: "nuclear/mean-life-from-halflife",
     inputs: { th: "1600" },

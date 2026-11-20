@@ -54,6 +54,11 @@ const CASES = [
     ref: "s=12×7=84.000 m" },
 
   { slug: "kinematics/relative-velocity-1d",
+    inputs: { v1: "5", v2: "" },
+    expect: ["请填写两个速度后再计算。"],
+    ref: "v₂ 留空：旧代码按 0 输出相对速度 5 m/s；新增守卫后须提示。" },
+
+  { slug: "kinematics/relative-velocity-1d",
     inputs: { v1: "25", v2: "32" },
     expect: ["-7.000"],
     ref: "v_rel=25−32=−7.000 m/s（负号表示物体1相对物体2后退）" },
@@ -133,6 +138,11 @@ const CASES = [
     ref: "v=ω·r=12×0.4=4.800 m/s" },
 
   { slug: "kinematics/tangential-accel",
+    inputs: { a: "2", r: "" },
+    expect: ["请填写角加速度与半径后再计算。"],
+    ref: "半径留空：旧代码按 0 输出切向加速度 0；新增守卫后须提示。" },
+
+  { slug: "kinematics/tangential-accel",
     inputs: { a: "3.5", r: "0.8" },
     expect: ["2.800"],
     ref: "a_t=α·r=3.5×0.8=2.800 m/s²" },
@@ -141,6 +151,11 @@ const CASES = [
     inputs: { n: "1500" },
     expect: ["157.080"],
     ref: "ω=2π×1500/60=157.080 rad/s" },
+
+  { slug: "kinematics/freq-from-omega",
+    inputs: { w: "" },
+    expect: ["请填写角速度（0 或以上）后再计算。"],
+    ref: "角速度留空：旧代码按 0 输出频率 0 Hz、周期兜底值；新增守卫后须提示。" },
 
   { slug: "kinematics/freq-from-omega",
     inputs: { w: "15.708" },
