@@ -535,6 +535,8 @@ const CASES = [
   { slug: "geometry/torus-volume", inputs: { R: "2", r: "5" }, expect: ["⚠ 主半径 R 与管半径 r 必须满足 R > r > 0。"], ref: "r>R 时套环公式对应纺锤形而不再按环面计算；新守卫要求 R>r>0。默认 5/1→19.739 不含该提示。" },
   { slug: "geometry/cone-volume", inputs: { r: "-3", h: "4" }, expect: ["⚠ 底面半径 r 与高 h 都必须大于 0。"], ref: "负半径平方后仍得正体积，掩盖非法输入；新守卫应拒绝。默认 3/4→37.6991 不含该提示。" },
   { slug: "geometry/cone-frustum-volume", inputs: { R: "0", r: "0", h: "4" }, expect: ["⚠ 高 h 必须大于 0，且两底半径不能同时为 0。"], ref: "两底半径为 0 时只剩一条轴线，体积 0 无几何意义；新守卫应拒绝。默认 3/1/4→52.909 不含该提示。" },
+  { slug: "geometry/sphere-volume", inputs: { r: "-3" }, expect: ["⚠ 半径不能为负。"], ref: "负半径的三次方得负体积 −113.097，且 L/cm³ 同步为负；新守卫应拒绝。默认 r=3→113.097 不含该提示。" },
+  { slug: "geometry/circle-circumference", inputs: { r: "-5" }, expect: ["⚠ 半径不能为负。"], ref: "负半径直接得负周长 −31.4159；新守卫应拒绝。默认 r=5→31.4159 不含该提示。" },
 
 ];
 
