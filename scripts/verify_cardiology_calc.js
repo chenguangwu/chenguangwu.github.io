@@ -499,13 +499,13 @@ const CASES = [
 {
   "slug": "cardiology/timi-score",
   "inputs": {
-    "s_age": "3", "s_bp": "3", "s_killip": "2", "s_wt": "2"
+    "s_age": "3", "s_bp": "5", "s_killip": "2", "s_wt": "1"
   },
   "checkIds": ["s_anterior", "s_dm", "s_time"],
   "expect": [
     "14/14"
   ],
-  "ref": "TIMI STEMI 满分为 14：年龄≥75(3)+SBP<100(3)+Killip II–IV(2)+体重<67kg(2)+前壁/LBBB(2)+危险因素(1)+就诊>4h(1)=14。修复前 SBP/Killip/体重/前壁被低估，满分最多 11，页面却写死 /14。"
+  "ref": "TIMI STEMI 满分为 14：年龄≥75(3)+SBP<100且HR>100(3+2)+Killip II–IV(2)+体重<67kg(1)+前壁/LBBB(1)+危险因素(1)+就诊>4h(1)=14。修复前 SBP/Killip/体重/前壁被低估，满分最多 11，页面却写死 /14。"
 },
 {
   "slug": "cardiology/echo-report",
