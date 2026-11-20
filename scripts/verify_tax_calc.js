@@ -77,6 +77,11 @@ const CASES = [
     expect: ["400.00", "40.00"],
     ref: "含税 440、税率 10%（默认 mode=incl）→ 税前价=440/1.1=400.00；税额=440−400=40.00（默认 110/10→100.00，避开）" },
 
+  { slug: "tax/gst-calculator",
+    inputs: { amt: "", rate: "10" },
+    expect: ["请填写金额与税率后再计算。"],
+    ref: "金额留空：旧 num() 回退 0 静默输出 0.00；新增空值守卫后须提示。" },
+
   { slug: "tax/interest-income-tax",
     inputs: { interest: "8000", r: "25" },
     expect: ["2000.00", "6000.00"],
@@ -112,10 +117,20 @@ const CASES = [
     expect: ["9000.00"],
     ref: "税额=1500000×0.006=9000.00（默认 800000/1.2→9600.00，避开）" },
 
+  { slug: "tax/capital-gains-effective",
+    inputs: { g: "100000", r: "" },
+    expect: ["请填写资本利得与税率后再计算。"],
+    ref: "税率留空：旧 num() 回退 0 静默输出税额 0；新增空值守卫后须提示。" },
+
   { slug: "tax/reverse-charge",
     inputs: { a: "8000", r: "0.05" },
     expect: ["400.00"],
     ref: "T=金额×征收率=8000×0.05=400.00（默认 5000/0.03→150.00，避开）" },
+
+  { slug: "tax/reverse-charge",
+    inputs: { a: "8000", r: "" },
+    expect: ["请填写代扣金额与征收率后再计算。"],
+    ref: "征收率留空：旧 num() 回退 0 静默输出 0.00；新增空值守卫后须提示。" },
 
   { slug: "tax/sales-tax-addon",
     inputs: { price: "250", r: "8" },
@@ -136,6 +151,11 @@ const CASES = [
     inputs: { amount: "2500000", r: "0.03" },
     expect: ["750.00"],
     ref: "税额=2500000×0.0003=750.00（默认 1000000/0.05→500.00，避开）" },
+
+  { slug: "tax/stamp-duty",
+    inputs: { amount: "1000000", r: "" },
+    expect: ["请填写凭证金额与税率后再计算。"],
+    ref: "税率留空：旧 num() 回退 0 静默输出税额 0；新增空值守卫后须提示。" },
 
   { slug: "tax/tax-credit",
     inputs: { t: "8000", c: "2500" },
