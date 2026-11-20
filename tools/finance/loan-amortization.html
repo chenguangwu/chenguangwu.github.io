@@ -192,7 +192,7 @@
     </div>
 
     <div class="toolbar" style="margin-top:16px;">
-      <div id="loan_amortizationPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__loan_amortizationExport()">导出明细 CSV</button>
+      <div id="loan_amortizationPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__loan_amortizationExport()">导出明细 CSV</button><button type="button" class="btn" onclick="shareLoanResult()" data-zh="分享结果">Share result</button>
       <button type="button" class="btn" onclick="togglePrepay()">提前还款</button>
       <button type="button" class="btn" onclick="exportCSV()">导出CSV</button>
     </div>
@@ -310,11 +310,13 @@ function __laTx(zh,txt){
   return e?txt:zh;
 }
 function __tbInputGuard(_ids,_labels){
+  _ids=_ids||[]; _labels=_labels||[];
   var __r=__tbInputGuardCore(_ids,_labels);
   if(__r){var __t=document.getElementById('loan_amortizationTable');if(__t)__t.innerHTML='';}
   return __r;
 }
 function __tbInputGuardCore(_ids,_labels){
+  _ids=_ids||[]; _labels=_labels||[];
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
@@ -716,6 +718,14 @@ function togglePrepay() {
   }
 }
 
+function shareLoanResult(){
+  var box=document.getElementById('resultBox');
+  var txt=(box?box.textContent:'').replace(/\s+/g,' ').trim();
+  if(!txt){ToolBox.showToast('请先计算后再分享');return;}
+  var payload={title:'贷款摊销计算结果 - ToolBox',text:txt+' | https://chenguangwu.github.io/tools/finance/loan-amortization.html'};
+  if(navigator.share){navigator.share(payload).catch(function(){copyText(payload.text,'结果已复制，可粘贴分享');});}
+  else{copyText(payload.text,'结果已复制，可粘贴分享');}
+}
 function calcPrepay() {
   var amount = +document.getElementById('loanAmount').value || 0;
   var annualRate = +document.getElementById('annualRate').value || 0;
@@ -758,6 +768,9 @@ function calcPrepay() {
     html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
     html += '<p>节省利息：<strong style="color:var(--success);">' + fmt(savedInterest) + '</strong> 元</p>';
     html += '<p>缩短期限：<strong style="color:var(--success);">' + (scheduleData.length - prepayMonth) + ' 期</strong></p>';
+    // 全部结清：明细与逐年汇总同步截断到提前还款当期，避免表格仍显示原计划
+    scheduleData = scheduleData.slice(0, prepayMonth);
+    renderSchedule(); drawLineChart(scheduleData);
     const __g6=html;document.getElementById('prepayResult').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
     return;
   }
@@ -856,6 +869,30 @@ function calcPrepay() {
   var isBalMode = (method === 'interest' || method === 'balloon');
   if (isBalMode) {
     savedInterest = prepayAmount * monthlyRate * remainingMonths;
+  }
+
+  // 提前还款后同步重建 scheduleData，并重绘逐期明细 / 逐年汇总 / 折线图
+  if (!isBalMode) {
+    var newSchedule = scheduleData.slice(0, prepayMonth);
+    var bal = newBalance;
+    var rowsN = (prepayType === 'reduceTerm') ? newMonths : remainingMonths;
+    var pmtNew;
+    if (method === 'principal') {
+      pmtNew = (prepayType === 'reduceTerm') ? (amount / (years * 12)) : (newBalance / remainingMonths);
+    } else {
+      pmtNew = (prepayType === 'reduceTerm') ? (scheduleData[0] ? scheduleData[0].payment : newPayment) : newPayment;
+    }
+    for (var j = 0; j < rowsN && bal > 0.01; j++) {
+      var intJ = bal * monthlyRate;
+      var priJ = (method === 'principal') ? pmtNew : (pmtNew - intJ);
+      if (priJ > bal) priJ = bal;
+      if (priJ < 0) priJ = 0;
+      bal -= priJ;
+      newSchedule.push({month: prepayMonth + j + 1, payment: priJ + intJ, principal: priJ, interest: intJ, balance: bal});
+    }
+    scheduleData = newSchedule;
+    renderSchedule();
+    drawLineChart(scheduleData);
   }
 
   var html = '';

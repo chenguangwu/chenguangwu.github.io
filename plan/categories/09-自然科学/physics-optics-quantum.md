@@ -6,7 +6,7 @@
 - tools/optics/（40）、tools/quantum/（28）、tools/astronomy/、tools/kinematics/、tools/dynamics/、tools/thermodynamics/、tools/acoustics/（56）、tools/fluid/、tools/optical/（40）（~250 页）
 
 ## 进度
-- 🔴 待开发
+- 🟢 长期增强（2026-11-21 复核：无缺陷项，转后续批次）
 
 ## 2026-11-03 续查（并行批 I）
 

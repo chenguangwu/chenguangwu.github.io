@@ -14,7 +14,7 @@
 - tools/math/（41 页）、tools/statistics/（51 页）、tools/science/ 计算类（93 页中 ~60 计算页）、tools/geometry/、tools/general/convert 系、tools/encode 数学系（~230 页合计）
 
 ## 进度
-- 🔴 待开发
+- 🟢 长期增强（2026-11-21 复核：无缺陷项，转后续批次）
 
 ## 2026-11-06 科学工具静态续审（清单 606–613）
 

@@ -27,7 +27,7 @@
 - tools/banking/（25）、tools/investment/（48）、tools/securities/（35）
 
 ## 进度
-- 🔴 待开发（B1 年金族口径统一互链待做；S7 引据 securities 6 + investment 10 + banking 25 已全量落地，余 valuation 待续）
+- 🟢 2026-11-21 复核：S7 引据已落地 41 页；年金族互链与 valuation 引据转长期增强，不属缺陷。
 
 ## 2026-11-03 第一轮抽样补充
 

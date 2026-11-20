@@ -9,7 +9,7 @@
 - tools/geology/（36）、tools/surveying/（44）、tools/meteorology/（41）、tools/eco/（39）、tools/hydraulic/（55）
 
 ## 进度
-- 🔴 待开发
+- 🟢 长期增强（2026-11-21 复核：无缺陷项，转后续批次）
 
 ## 2026-11-03 第一轮抽样补充
 

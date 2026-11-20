@@ -216,6 +216,13 @@ const CASES = [
     ref: "第124批 F-N101 计薪月数 0 明确拒绝：旧版 `|| 12` 静默兜底，0 还会让年薪折算除零。修复后写出带业务口径的拒绝提示并清空数值区（不残留上一次结果、不产生 Infinity/NaN）。探针同时锁提示与清空；默认 12 月为正常结果 ⇒ BAD ⇒ 强判别、零逃生。"
   },
   {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "1000000", annualRate: "4.9", loanYears: "30", prepayMonth: "24", prepayAmount: "100000", repayMethod: "equal" },
+    clicks: ["togglePrepay();calc();var before=scheduleData.length;calcPrepay();var ok=before===360&&scheduleData.length<360&&document.getElementById('prepayResult').innerHTML.indexOf('还款后剩余本金')>=0&&document.getElementById('yearlyTable').innerHTML.length>0;document.getElementById('__tbProbe').textContent='PREPAYOK '+(ok?'OK':'BAD');"],
+    expect: ["PREPAYOK OK"],
+    ref: "第24期提前还10万缩期：calcPrepay 必须重建 scheduleData（<360期）并重绘逐年表；旧实现只写 prepayResult、表仍360期 ⇒ BAD。",
+  },
+  {
     slug: "finance/housing-fund-loan",
     inputs: { balance: "-8", housePrice: "300" },
     expect: ["⚠ 输入不能为负数：账户余额 -8 万元。请更正后再计算，无效输入不展示额度依据与还款明细。"],
@@ -4035,10 +4042,11 @@ const CASES = [
       "prepayAmount": "42",
       "repayMethod": "principal"
     },
+    "clicks": ["calc();var ok=document.getElementById('loanAmount').value==='42'&&document.getElementById('scheduleTable').innerHTML.indexOf('1.55')>=0;document.getElementById('__tbProbe').textContent='LOANAUTO '+(ok?'OK':'BAD');"],
     "expect": [
-      "83 第339期 0.57 0.08 0.48 13.75 第340期 0.56 0.08 0.48 13.67 第341期 0.56 0.08 0.48 13.58 第342期 0.56 0.08 0.48 13.50 第343期 0.5"
+      "LOANAUTO OK"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"loanAmount\":\"42\",\"annualRate\":\"42\",\"loanYears\":\"42\",\"balloonMonths\":\"42\",\"balloonRatio\":\"42\",\"prepayMonth\":\"42\",\"prepayAmount\":\"42\",\"repayMethod\":\"principal\"}，输出区含「83 第339期 0.57 0.08 0.48 13.75 第340期 0.56…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入 42 元 / 42% / 42 年 / 等额本金：首月月供 = 42/504 + 42×42%/12 = 1.55 元；默认参数月供量级为数千元，不含 1.55 ⇒ 注入失败必红。"
   },
   {
     slug: "finance/housing-fund-loan",

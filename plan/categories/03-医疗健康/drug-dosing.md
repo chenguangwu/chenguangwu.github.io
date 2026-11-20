@@ -32,7 +32,7 @@
   - `medical/dosage-calculator`：同样两套能力接入；儿童（≤18 岁）显示参考体重核对并**偏差 >40% 时红字提示核对单位（kg/斤）**；
     15 种药按清除途径给出肝/肾分级减量建议（阿莫西林/头孢氨苄/万古霉素→肾，对乙酰氨基酚/布洛芬/苯妥英钠等→肝，头孢曲松/环磷酰胺→肝+肾）。
   - 数据源：WHO weight-for-age P50（0–18 岁）；清除途径按各药说明书主要消除途径归类，提示文案统一附「以说明书与药师核定为准」。
-- 🔴 待续：剩余剂量页（clinical-nursing 输液类等）按同一模板铺开——已扫：clinical-nursing 输液类页无年龄输入（评分/操作型为主），
+- 🟢 后续批次（2026-11-21 复核已扫，非缺陷）：剩余剂量页（clinical-nursing 输液类等）按同一模板铺开——已扫：clinical-nursing 输液类页无年龄输入（评分/操作型为主），
   health/healthcare/medical/pediatrics 含「年龄+剂量」且未铺 WHO 中位体重的页仅剩 `health/body-surface-area`（非剂量页），
   「同年龄参考体重」模板可铺页已全部铺完（03-2/47/48 三批）；
   「药品库 json 化（散在页内 JS → 集中 json）」涉及 40 页大重构且 fetch json 在 verify harness 不可达，暂缓待裁。

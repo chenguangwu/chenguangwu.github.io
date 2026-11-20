@@ -93,6 +93,11 @@ const CASES = [
     expect: ["「结案率 (%)」必须在 0–100 之间（当前 150）"],
     ref: "R-H9：结案率 >100% 使链梯最终赔款 2333 小于已付 3500、准备金为负；现在必须拒绝。默认 70 不含该文案。" },
 
+  { slug: "insurance/ibnr-estimate",
+    inputs: { ult: "100000", paid: "0.7", outstanding: "20000" },
+    expect: ["10000.00"],
+    ref: "纯 IBNR = 100000×0.3 − 20000 = 10000.00；总未付 30000，默认已报未结 0 不含 10000.00 ⇒ 强判别" },
+
   { slug: "insurance/ibnr-reserve",
     inputs: { reported: "2000000", factor: "0.625" },
     expect: ["「发展因子」不能小于 1（当前 0.625）"],

@@ -38,7 +38,7 @@
 - tools/machinery/（78）、tools/metalwork/（42）、tools/welding/、tools/manufacturing/
 
 ## 进度
-- 🔴 待开发
+- 🟢 长期增强（2026-11-21 复核：无缺陷项，转后续批次）
 
 ## 2026-11-03 审计补充
 

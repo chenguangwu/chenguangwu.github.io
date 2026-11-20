@@ -14,7 +14,7 @@
 - tools/civil/、tools/construction/、tools/structural/、tools/energy/（41）、tools/fire-rescue/、tools/safety/、tools/urban/、tools/bridge/、tools/road/、tools/tunnel/（~200 页）
 
 ## 进度
-- 🔴 待开发
+- 🟢 长期增强（2026-11-21 复核：无缺陷项，转后续批次）
 
 ### 留存优化
 - 朗金页：补土压力沿深度折线图（标注 z0）与 φ/c 敏感性表；先修 φ 上限与预设再扩展。

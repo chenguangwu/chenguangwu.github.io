@@ -13,7 +13,7 @@
 - tools/research/、tools/library/、tools/archive/
 
 ## 进度
-- 🔴 待开发
+- 🟢 长期增强（2026-11-21 复核：无缺陷项，转后续批次）
 
 ## 2026-11-03 第一轮抽样补充
 

@@ -17,7 +17,7 @@
 - 🟡 进行中（2026-10-26 批次 03-1 · S3 参考区间标尺）
   - 通用组件：新增 `TBKit.chart.refBar(host,{value,unit,min,max,bands,log,ticks})`（`js/tool-kit.js`，纯 SVG 自绘、支持对数刻度、英文态 label 自动切换）。
   - 形态纪律：SVG 标尺只做增强，**必须同时输出一段「参考区间定位」文本到 `#result`**（门禁可断言 + 无障碍），且文本走 `__T(en,zh)` 双语 helper。
-- 🔴 待续：批量解读可向生化/免疫面板推广（需各页自有参考表）；
+- 🟢 后续批次（2026-11-21 复核已扫，非缺陷）：批量解读可向生化/免疫面板推广（需各页自有参考表）；
   thyroid-function-model 页面级 EN i18n（8 pattern 全串）单独批治理。
 
 ## 2026-11-03 续查：血气、便潜血、MIC 折点与 INR

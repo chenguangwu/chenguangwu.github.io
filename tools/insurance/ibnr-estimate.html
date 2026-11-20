@@ -103,10 +103,10 @@
 
   <div class="card">
     <h2 data-zh="由终极赔款与已付比例估算未决赔款">IBNR Estimate</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入终极赔款与已付比例，求 IBNR 准备金。">Estimate incurred-but-not-reported reserves from ultimate claims and paid ratio.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入终极赔款、已付比例与已报未结准备金，分别求总未付赔款与纯 IBNR。">Estimate total unpaid claims and pure IBNR from ultimate claims, paid ratio and reported outstanding.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">IBNR 准备金（本页代码口径，已付按 0–1 比例直接输入而非金额）：IBNR=终极赔款×(1−已付比例)（元）；联动量：已付赔款=终极赔款×已付比例（元）、已付比例(%)=比例×100、终极赔款原值（元）。校验：无强校验，空值按 0 兜底。判据：无固定分级，已付比例 0.7 即已决七成、IBNR 占终极赔款余下 30%，比例越接近 1 未决责任越小。</div>
+      <div class="formula-eq">总未付赔款准备金=终极赔款×(1−已付比例)（元）；纯 IBNR=总未付−已报未结准备金（元，不小于 0）。已付赔款=终极赔款×已付比例；已付比例(%)=比例×100。未填已报未结按 0 处理。已付比例 0.7 即已决七成，总未付占 30%；纯 IBNR 需扣除已报未结后才是「已发生未报案」部分。</div>
       <p class="formula-desc">输入终极赔款与已付比例，求 IBNR 准备金。</p>
     </div>
 
@@ -118,6 +118,10 @@
       <div>
         <label for="paid">已付比例</label>
         <input type="number" id="paid" value="0.7" step="0.05" placeholder="如 0.7">
+      </div>
+      <div>
+        <label for="outstanding">已报未结准备金 (元，可留 0)</label>
+        <input type="number" id="outstanding" value="0" step="1000" placeholder="如 20000">
       </div>
     </div>
 
@@ -212,10 +216,13 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 /* TOOLBOX-REQ-GUARD */function __tbReq(ids,names){for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);var v=el?el.value:'';if(v===''||v==null||!isFinite(parseFloat(v))){ToolBox.setResult('result','<p class="tip-error">请填写「'+names[i]+'」后再计算。</p>');return false;}}return true;}
 function calcTool(){
    if(!__tbReq(['ult','paid'],['终极赔款','已付比例']))return;
-            const ult=num('ult'),paid=num('paid');
-            const ibnr=ult*(1-paid);
+            const ult=num('ult'),paid=num('paid'),outstanding=num('outstanding')||0;
+            const totalUnpaid=ult*(1-paid);
+            const ibnr=Math.max(0,totalUnpaid-outstanding);
             const __g1=dataGrid([
-                [ibnr.toFixed(2),'IBNR 准备金 (元)'],
+                [ibnr.toFixed(2),'纯 IBNR（已发生未报案，元）'],
+                [totalUnpaid.toFixed(2),'总未付赔款准备金（元）'],
+                [(outstanding).toFixed(2),'其中已报未结（元）'],
                 [(paid*100).toFixed(2), '已付赔款比例 (%)'],
                 [(ult*paid).toFixed(2), '已付赔款 (元)'],
                 [(ult).toFixed(2), '最终赔款 (元)']
@@ -223,6 +230,7 @@ function calcTool(){
         }
 function resetForm(){document.getElementById('ult').value = '100000';
       document.getElementById('paid').value = '0.7';
+      var o=document.getElementById('outstanding');if(o)o.value='0';
       calcTool();}
 calcTool();
 
@@ -230,20 +238,23 @@ function __ibnr_estimateNum(id){var e=document.getElementById(id);var v=e?parseF
 function __ibnr_estimateExtras(){
     function __ibnr_estimateRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var ult=num('ult'),paid=num('paid');
-    var ibnr=ult*(1-paid);
+    var ult=num('ult'),paid=num('paid'),outstanding=num('outstanding')||0;
+    var totalUnpaid=ult*(1-paid);
+    var ibnr=Math.max(0,totalUnpaid-outstanding);
     if (!isFinite(__ibnr_estimateNum('ult')) || !isFinite(__ibnr_estimateNum('paid'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#ibnr_estimateTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['IBNR 准备金 (元)', ibnr.toFixed(2)],
+            ['纯 IBNR（已发生未报案，元）', ibnr.toFixed(2)],
+            ['总未付赔款准备金（元）', totalUnpaid.toFixed(2)],
+            ['其中已报未结（元）', outstanding.toFixed(2)],
             ['已付赔款比例 (%)', (paid*100).toFixed(2)],
             ['已付赔款 (元)', (ult*paid).toFixed(2)],
             ['最终赔款 (元)', (ult).toFixed(2)],
         ]
     });
-    TBKit.history.record({ult:__ibnr_estimateRaw('ult'), paid:__ibnr_estimateRaw('paid'), ibnr:ibnr});
+    TBKit.history.record({ult:__ibnr_estimateRaw('ult'), paid:__ibnr_estimateRaw('paid'), outstanding:__ibnr_estimateRaw('outstanding'), ibnr:ibnr});
     function __ibnr_estimateRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#ibnr_estimateHist',function(rec){ __ibnr_estimateRestore(rec); calcTool(); });
     TBKit.util.diffBox('#ibnr_estimateDiff',['ibnr']);

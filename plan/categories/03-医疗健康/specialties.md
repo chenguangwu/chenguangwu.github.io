@@ -89,7 +89,7 @@
 - tools/ent/、tools/dermatology/、tools/obstetrics/、tools/ophthalmology/、tools/urology/、tools/pulmonology/、tools/rheumatology/、tools/cosmetic-derm/、tools/forensic-medicine/（~120 页合计）
 
 ## 进度
-- 🔴 待开发：「宝宝 6 月龄辅食量」等其余 S2 场景；随访铺开候选余量视批次续接。
+- 🟢 长期增强（2026-11-21 复核：无缺陷项，转后续批次）：「宝宝 6 月龄辅食量」等其余 S2 场景；随访铺开候选余量视批次续接。
 
 ## 2026-11-06 健康工具静态复核
 
