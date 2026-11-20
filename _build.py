@@ -21,6 +21,7 @@ import glob
 import hashlib
 import subprocess
 import html
+import atexit
 from concurrent.futures import ThreadPoolExecutor
 
 # 全站工具描述的唯一权威源：scripts/tool_desc_source.py
@@ -677,6 +678,17 @@ def normalize_tool_h1(html_str, zh_name='', dd_title=''):
     return html_str, n
 
 
+_G03_STATS = {'pages': 0}
+
+def _g03_report():
+    n = _G03_STATS['pages']
+    if n:
+        print('[G03 提示] 本轮 %d 个工具页的标题/首段由 i18n/tools/<ind>-body.json、_en_override.json 覆盖；'
+              '改这些页文案请改数据源，直接改 HTML 会在下次构建被还原。' % n)
+
+atexit.register(_g03_report)
+
+
 def _prerender_tool_body(content, entry):
     """构建期把英文 title/intro 预渲染进工具页 h2 + 首个 p，并加 data-zh 保存中文原文。
 
@@ -690,6 +702,7 @@ def _prerender_tool_body(content, entry):
     en_intro = (entry.get('intro') or '').strip()
     if not en_title and not en_intro:
         return content
+    _G03_STATS['pages'] += 1
 
     _cjk = re.compile(r'[\u4e00-\u9fff]')
     _script_re = re.compile(r'<script\b[\s\S]*?</script>', re.I)
