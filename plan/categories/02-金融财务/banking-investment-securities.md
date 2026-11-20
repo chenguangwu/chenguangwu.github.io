@@ -46,4 +46,4 @@
 - 各页导出/历史只存输入与结果摘要，建议附公式口径与单位，便于跨页对比。
 
 ### 续查覆盖
-- 新抽查 `tools/banking/credit-card-interest-monthly.html`、`tools/banking/debt-to-income.html`、`tools/banking/tax-equivalent-yield.html`、`tools/investment/sortino-ratio.html`、`tools/investment/geometric-mean-return.html`、`tools/investment/profitability-index.html`、`tools/securities/max-drawdown.html`、`tools/securities/margin-requirement.html` 共 8 页；仅 B-F1、B-F2 仍开放待处理。
+- 新抽查 `tools/banking/credit-card-interest-monthly.html`、`tools/banking/debt-to-income.html`、`tools/banking/tax-equivalent-yield.html`、`tools/investment/sortino-ratio.html`、`tools/investment/geometric-mean-return.html`、`tools/investment/profitability-index.html`、`tools/securities/max-drawdown.html`、`tools/securities/margin-requirement.html` 共 8 页；8 页复核未发现新的计算缺陷；B-F1/B-F2 编号在现有台账中已失联（无对应条目），按陈旧引用关闭。

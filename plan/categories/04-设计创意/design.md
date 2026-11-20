@@ -159,7 +159,7 @@
 
 **留存建议（tools/design/signature-pad.html）**：整改保留（高价值）。当前笔宽滑杆失效必须优先修；透明导出改为按笔画层重绘；把 `#spPresets` 与 `#spRefTbl` 移出 `touch-action:none` 的 `.canvas-wrap`。引据表还应把「Pointer Events」改成实际使用的 mouse/touch 事件（`:280-282` 对照 `:550-557`）。
 
-**留存建议（tools/design/colorblind-simulator.html）**：保留（本批功能最完整的页面）。建议按类型保存严重度、补真正的色相均分评分、去掉伪 AAA 列；D-N105 待处理。
+**留存建议（tools/design/colorblind-simulator.html）**：保留（本批功能最完整的页面）。D-N105 已修：非文本对比度无 AAA 档，代码将 `aaa` 置 null、表格显示「—」；色相均分与按类型保存严重度列为长期体验增强。
 
 ### 覆盖
 

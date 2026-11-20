@@ -97,7 +97,7 @@
 |---|---|---|---|
 | Q-1 | tools/it/html-entities-encode.html | 解码改纯文本实体替换，用户输入不再进 innerHTML | 无实体原样回显；越界码点回退原文 |
 | Q-2 | tools/it/basic-auth-generator.html | 历史仅存令牌长度，密码/Authorization/URL 明文不落盘 | 快照仅 1 键 |
-| F-05 | tools/clinical-lab/pcr-ct-interpretation.html | Ct=0/空值不判阴性；对照缺项判质控未完成 | 阈值文案统一 |
+| F-05 | tools/clinical-lab/pcr-ct-interpretation.html | Ct=0/空值不判阴性；对照缺项判质控不完整 | 阈值文案统一 |
 | F-06 | tools/finance/isbn-validator.html | 补 input 缺尖括号；非 978/979 判 EAN-13；仅有效源才转换 | 双向转换前置校验 |
 | F-07 | tools/finance/lease-payment-calculator.html | 输入校验、末期结清、手续费/首付计入、IRR 不重复计残值 | verify_finance 期初 IRR 10.03% |
 | F-08 | tools/finance/credit-card-interest.html | 删除假滞纳金开关；按月单利；负利率校验 | verify_finance 明细表头 |
