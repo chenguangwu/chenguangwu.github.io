@@ -179,6 +179,11 @@ const CASES = [
     ref: "R-H5 参数边界：i ≤ −1 时折现因子 v=1/(1+i) 无意义或为负，须拒绝（默认 i=0.03 合法）" },
 
   { slug: "insurance/expected-claim-loss",
+    inputs: { freq: "", sev: "5000" },
+    expect: ["请填写索赔频率与单次赔付额后再计算。"],
+    ref: "索赔频率留空：旧代码按 0 次输出期望损失 0，且出险间隔显示兜底值；新增守卫后须提示。" },
+
+  { slug: "insurance/expected-claim-loss",
     inputs: { freq: "2", sev: "150.4" },
     expect: ["300.80"],
     ref: "ECL = 频率×严重度 = 2×150.4 = 300.80（默认空→0 避开）" },
@@ -284,6 +289,11 @@ const CASES = [
     inputs: { lxt: "800", lx: "1000" },
     expect: ["0.8000"],
     ref: "ₜp_x = l_xt/l_x = 800/1000 = 0.8000（默认空→NaN 避开）" },
+
+  { slug: "insurance/uw-margin",
+    inputs: { LR: "", ER: "30" },
+    expect: ["请填写赔付率与费用率（0–100%）后再计算。"],
+    ref: "赔付率留空：旧代码按 0% 输出承保利润率 70%，把缺项当成零赔付；新增守卫后须提示。" },
 
   { slug: "insurance/uw-margin",
     inputs: { LR: "70", ER: "22" },

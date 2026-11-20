@@ -149,6 +149,11 @@ const CASES = [
     ref: "m=ρV=2700×0.0035=9.450 kg=9450.0 g" },
 
   { slug: "materials/specific-weight",
+    inputs: { rho: "" },
+    expect: ["请填写材料密度（须大于 0）后再计算。"],
+    ref: "密度留空：旧代码按 0 输出重度 0 N/m³；新增守卫后须提示。" },
+
+  { slug: "materials/specific-weight",
     inputs: { rho: "2400" },
     expect: ["23544.0", "23.54"],
     ref: "γ=ρg=2400×9.81=23544.0 N/m³=23.54 kN/m³" },
@@ -168,6 +173,11 @@ const CASES = [
     inputs: { k: "237", rho: "2700", c: "900" },
     expect: ["9.753e-5"],
     ref: "α=k/(ρc)=237/(2700×900)=9.753e-5 m²/s" },
+
+  { slug: "materials/specific-heat-capacity",
+    inputs: { m: "2", c: "" },
+    expect: ["请填写质量与比热容后再计算。"],
+    ref: "比热容留空：旧代码按 0 输出热容 0 J/K；新增守卫后须提示。" },
 
   { slug: "materials/specific-heat-capacity",
     inputs: { m: "5", c: "900" },

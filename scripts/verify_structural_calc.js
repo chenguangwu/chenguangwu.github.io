@@ -22,6 +22,11 @@ const CASES = [
   { slug: "structural/ss-point-deflection", inputs: { P: "2000", L: "4", E: "210e9", I: "2e-6" }, expect: ["6349.206 挠度"], ref: "δ=PL³/(48EI)" },
   { slug: "structural/ss-udl-moment", inputs: { w: "20", L: "6" }, expect: ["90.000 最大弯矩"], ref: "M=wL²/8=20×36/8=90" },
   { slug: "structural/stress-concentration", inputs: { Kt: "2.5", snom: "150" }, expect: ["375.00 最大应力"], ref: "σ_max=2.5×150=375" },
+  { slug: "structural/thermal-strain",
+    inputs: { a: "0.000012", dT: "" },
+    expect: ["请填写线膨胀系数与温差后再计算。"],
+    ref: "温差留空：旧代码按 0 输出热应变 0；新增守卫后须提示。" },
+
   { slug: "structural/thermal-strain", inputs: { a: "12e-6", dT: "200" }, expect: ["0.00240 热应变"], ref: "ε=αΔT=2.4e-3" },
   { slug: "structural/torsional-shear-shaft", inputs: { T: "1000", d: "0.06" }, expect: ["23.58 剪应力"], ref: "τ=16T/(πd³)" },
   { slug: "structural/von-mises-2d", inputs: { sx: "200e6", sy: "80e6", t: "50e6" }, expect: ["194.68 等效应力"], ref: "σ_vm=√(σx²-σxσy+σy²+3τ²)" },
