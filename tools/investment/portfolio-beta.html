@@ -106,7 +106,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入两资产权重 w₁、w₂ 与 β₁、β₂（w₁+w₂=1），求组合 β。">Compute portfolio beta β_p = Σ wᵢ·βᵢ from the weights and betas of two assets (w₁ + w₂ = 1).</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">两资产组合 β（本页代码口径）：β_p=w₁×β₁+w₂×β₂（w 权重、β 各资产贝塔）；联动量：资产 1 贡献=w₁×β₁、资产 2 贡献=w₂×β₂。校验：无强校验，空值按 0 兜底。判据：无固定分级，β&gt;1 放大市场波动、&lt;1 起缓冲作用，权重非负时组合 β 介于两资产 β 之间。</div>
+      <div class="formula-eq">两资产组合 β（本页代码口径）：β_p=w₁×β₁+w₂×β₂（w 权重、β 各资产贝塔）；联动量：资产 1 贡献=w₁×β₁、资产 2 贡献=w₂×β₂。校验：四项空值即提示；权重不得为负，β 可为负（0 合法）。判据：无固定分级，β&gt;1 放大市场波动、&lt;1 起缓冲作用，权重非负时组合 β 介于两资产 β 之间。</div>
       <p class="formula-desc">输入两资产权重 w₁、w₂ 与 β₁、β₂（w₁+w₂=1），求组合 β。</p>
     </div>
 
@@ -215,7 +215,11 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const w1=num('w1'),b1=num('b1'),w2=num('w2'),b2=num('b2');
+            const __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+            const __raw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+            if(__raw('w1')===''||__raw('b1')===''||__raw('w2')===''||__raw('b2')===''){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en?'Enter both weights and betas before calculating.':'请填写两项权重与两项 β 后再计算。')+'</p>');return;}
+            const w1=Number(__raw('w1')),b1=Number(__raw('b1')),w2=Number(__raw('w2')),b2=Number(__raw('b2'));
+            if(!Number.isFinite(w1)||!Number.isFinite(b1)||!Number.isFinite(w2)||!Number.isFinite(b2)||w1<0||w2<0){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en?'Weights cannot be negative; betas may be negative.':'权重不得为负，β 可为负值。')+'</p>');return;}
             const bp=w1*b1+w2*b2;
             const __g1=dataGrid([
                 [bp.toFixed(3),'组合 β_p'],

@@ -106,7 +106,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入净资产收益率 ROE 与留存收益率 b，求可持续增长率。">Compute the sustainable growth rate g = ROE × b from return on equity and retention ratio, assuming no new equity issuance.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">可持续增长率（本页代码口径，ROE 与留存率均按 % 输入先 ÷100）：g=ROE×留存率 b×100（%）；联动量：g÷(1−g)、股利支付率=100−留存率（%）、g 小数。校验：无强校验，空值按 0 兜底。判据：无固定分级，g 与 ROE、留存率均线性相关，留存率与股利支付率之和恒为 100%，主结果保留 2 位小数。</div>
+      <div class="formula-eq">可持续增长率（本页代码口径，ROE 与留存率均按 % 输入先 ÷100）：g=ROE×留存率 b×100（%）；联动量：g÷(1−g)、股利支付率=100−留存率（%）、g 小数。校验：两项空值即提示；ROE 不得为负、留存率须在 0–100% 内（0 合法）。判据：无固定分级，g 与 ROE、留存率均线性相关，留存率与股利支付率之和恒为 100%，主结果保留 2 位小数。</div>
       <p class="formula-desc">输入净资产收益率 ROE 与留存收益率 b，求可持续增长率。</p>
     </div>
 
@@ -205,7 +205,12 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const ROE=num('ROE')/100,b=num('b')/100;
+            const __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+            const __raw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+            if(__raw('ROE')===''||__raw('b')===''){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en?'Enter ROE and retention ratio before calculating.':'请填写 ROE 与留存收益率后再计算。')+'</p>');return;}
+            const ROE0=Number(__raw('ROE')),b0=Number(__raw('b'));
+            if(!Number.isFinite(ROE0)||!Number.isFinite(b0)||ROE0<0||b0<0||b0>100){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en?'ROE cannot be negative; retention ratio must be between 0 and 100%.':'ROE 不得为负，留存收益率须在 0–100% 之间。')+'</p>');return;}
+            const ROE=ROE0/100,b=b0/100;
             const g=ROE*b*100;
             const __g1=dataGrid([
                 [g.toFixed(2),'可持续增长率 g (%)'],

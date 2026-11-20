@@ -106,7 +106,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入未来值 FV、贴现率 r 与年数 n，求现值。">Compute present value from future amount FV, discount rate r and years n using PV = FV / (1+r)^n.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">现值折算（本页代码口径）：PV=FV÷(1+r)ⁿ（元，FV 未来值、r 每期贴现率、n 期数）；联动量：折现因子=1÷(1+r)ⁿ、贴现总额=FV−PV（元）。校验：无强校验，空值按 0 兜底。判据：无固定分级，贴现率越高或期限越长现值越低，正利率下折现因子恒小于 1。</div>
+      <div class="formula-eq">现值折算（本页代码口径）：PV=FV÷(1+r)ⁿ（元，FV 未来值、r 每期贴现率、n 期数）；联动量：折现因子=1÷(1+r)ⁿ、贴现总额=FV−PV（元）。校验：三项空值即提示；未来值与期数不得为负，贴现率须大于 −100%（0 合法）。判据：无固定分级，贴现率越高或期限越长现值越低，正利率下折现因子恒小于 1。</div>
       <p class="formula-desc">输入未来值 FV、贴现率 r 与年数 n，求现值。</p>
     </div>
 
@@ -214,7 +214,11 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const FV=num('FV'),r=num('r'),n=num('n');
+            const __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+            const __raw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+            if(__raw('FV')===''||__raw('r')===''||__raw('n')===''){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en?'Enter future value, discount rate and periods before calculating.':'请填写未来值、贴现率与期数后再计算。')+'</p>');return;}
+            const FV=Number(__raw('FV')),r=Number(__raw('r')),n=Number(__raw('n'));
+            if(!Number.isFinite(FV)||!Number.isFinite(r)||!Number.isFinite(n)||FV<0||n<0||r<=-1){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en?'Future value and periods cannot be negative; discount rate must exceed -100%.':'未来值与期数不得为负，贴现率须大于 -100%。')+'</p>');return;}
             const PV=FV/Math.pow(1+r,n);
             const __g1=dataGrid([
                 [PV.toFixed(2),'现值 PV (元)'],
