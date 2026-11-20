@@ -476,6 +476,13 @@ const CASES = [
   { slug: "accounting/depreciation-declining", inputs: { c: "200000", s: "250000", n: "5", yr: "2" }, expect: ["残值须在 0 与原值之间"], ref: "残值 250000 高于原值 200000，旧实现第 2 年给出 −20000 折旧并把账面值抬到 212000。默认 200000/20000 ⇒ 不命中。" },
   { slug: "accounting/depreciation-declining", inputs: { c: "200000", s: "20000", n: "5", yr: "6" }, expect: ["计算第几年须为 1–5 之间的整数"], ref: "yr=6 超过 5 年折旧期，旧实现静默给出 0 折旧；应拒绝。默认 yr=3 ⇒ 不命中。" },
   { slug: "accounting/depreciation-straight", inputs: { c: "200000", s: "250000", n: "8" }, expect: ["残值须在 0 与原值之间"], ref: "残值高于原值 ⇒ 年折旧 −6250.00 且折旧率 −3.13%；应拒绝。默认 100000/10000 ⇒ 不命中。" },
+  {
+    "slug": "accounting/split-bill",
+    "inputs": {"total": "480", "people": "0", "tip": "10"},
+    "expect": ["⚠ 账单金额须大于 0，人数须为 1–100 的整数，小费比例须在 0–100%。"],
+    "ref": "人数 0 曾被 Math.max(1) 静默改成 1 人，分账结果失真；新守卫应拒绝。默认 480/4/10 不含该提示。"
+  },
+
 ];
 
 async function main() {

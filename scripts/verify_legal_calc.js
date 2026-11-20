@@ -549,7 +549,7 @@ const CASES = [
     "slug": "legal/child-support",
     "inputs": {
       "monthlyIncome": "42",
-      "childAge": "42",
+      "childAge": "5",
       "livingCost": "42",
       "customRatio": "42",
       "specialExpense": "42",
@@ -983,6 +983,13 @@ const CASES = [
     inputs: { classCount: "" },
     expect: ["请填写商标类别数（须为 ≥1 的整数）后再计算。"],
     ref: "类别数留空：旧代码 parseInt||1 按 1 类报价，用户会拿到一份凭空假设 1 类的规费；新增守卫后须提示。" },
+  {
+    "slug": "legal/child-support",
+    "inputs": {"monthlyIncome": "-100", "childCount": "1", "childAge": "5", "livingCost": "2000", "paymentRatio": "0.3"},
+    "expect": ["⚠ 月收入与当地生活成本不能为负，子女年龄须在 0–18 岁。"],
+    "ref": "负月收入会算出负抚养费；新守卫应拒绝。默认 10000/1/5/2000 不含该提示。"
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
