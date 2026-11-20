@@ -848,6 +848,16 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/convergence-near-point.html','utf8');var i=h.indexOf('function calc(){');var j=h.indexOf('function ',i+10);var seg=(i>=0&&j>i)?h.slice(i,j):'';var n=(seg.split('distTable tbody').length-1);var ok=n>=3;document.getElementById('__tbProbe').textContent='CNPTBL '+(ok?'OK':'BAD');})();"],
   "expect": ["CNPTBL OK"],
   "ref": "第1328批·距离/瞳距无效未清参考表残留修复源码形态强锚：原 pd<=0 与 dist<=0 两守卫只更新主结果，#distTable 旧值留存；修复后两守卫均清 distTable tbody。calc 函数体内 distTable tbody 引用 before=1/fixed=3。按函数边界截取禁固定长度。"
+},
+{
+  "slug": "optical/blue-light-filter",
+  "inputs": {
+    "cutoff": ""
+  },
+  "expect": [
+    "请填写截止波长与陡度"
+  ],
+  "ref": "截止波长为空时清空阻隔率/保留率（BLFCLR）；旧实现只清曲线，47.1%/76.0% 仍显示"
 }
 ];
 

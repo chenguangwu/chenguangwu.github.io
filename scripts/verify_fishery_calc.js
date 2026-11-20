@@ -780,6 +780,16 @@ const CASES = [
     "请填写大于 0 的体长"
   ],
   "ref": "体长=0 时清空估重结果（FISHWCLR）；旧实现仅 toast，662.5 g 残留"
+},
+{
+  "slug": "fishery/harvest-size-price",
+  "inputs": {
+    "biomass": ""
+  },
+  "expect": [
+    "请填写大于 0 的存塘生物量"
+  ],
+  "ref": "存塘量为空时清空收益对比（HSPCLR）"
 }
 ];
 

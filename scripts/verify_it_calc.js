@@ -14452,6 +14452,46 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/it/normal-distribution.html\',\'utf8\');var i=h.indexOf(\'if(isNaN(a)||isNaN(b))\');var seg=i>=0?h.slice(i,i+520):\'\';var ok=seg.indexOf(\'if(a>b)\')>=0&&seg.indexOf(\'区间下限 a 不得大于上限 b\')>=0;document.getElementById(\'__tbProbe\').textContent=\'NORMAB \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['NORMAB OK'],
   "ref": "第1344批·区间概率负守卫源码形态强锚：旧版区间模式 P(a≤X≤b) 只判 isNaN，a>b 时 normalCDF(b)-normalCDF(a)<0 显示负概率；修复后 a>b 提示并 return。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "it/short-link-generator",
+  "inputs": {
+    "url": ""
+  },
+  "expect": [
+    "请输入 URL"
+  ],
+  "ref": "URL 为空时清掉上一批短链（ITGCLR）"
+},
+{
+  "slug": "it/tiny-url",
+  "inputs": {
+    "url": ""
+  },
+  "expect": [
+    "请输入 URL"
+  ],
+  "ref": "URL 为空时清掉上一批短链（ITGCLR）"
+},
+{
+  "slug": "it/url-qr",
+  "inputs": {
+    "url": ""
+  },
+  "expect": [
+    "请输入 URL"
+  ],
+  "ref": "URL 为空时清掉上一次二维码/文本（ITGCLR）"
+},
+{
+  "slug": "it/domain-name-generator",
+  "inputs": {
+    "kw": ""
+  },
+  "expect": [
+    "请输入关键词"
+  ],
+  "ref": "关键词为空时清掉上一批域名（ITGCLR）"
 }
 ];
 // ---------------------------------------------------------------- DOM stub
