@@ -436,7 +436,9 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"I\":\"42\"}，输出区含「强度 B (T) 2.217 B (mT) 5.2779e-5」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
 ,
-{ slug:"electromagnetism/ohms-law", inputs:{V:"",I:"",R:""}, expect:["请填写大于 0"], ref:"电压/电流/电阻全空时不得残留旧结果，须提示补填（OHMCLR）" }
+{ slug:"electromagnetism/ohms-law", inputs:{V:"",I:"",R:""}, expect:["请填写大于 0"], ref:"电压/电流/电阻全空时不得残留旧结果，须提示补填（OHMCLR）" },
+  { slug: "electromagnetism/force-wire-field", inputs: { B: "0.5", I: "10", L: "0.2", th: "270" }, expect: ["⚠ 请完整填写磁感应强度、电流、导线长度与夹角；前三项不能为负，夹角须在 0–180°。"], ref: "夹角 270° 无意义但 sin 仍给出 −1 倍力；新守卫应拒绝。默认 0.5/10/0.2/90→1.0000 不含该提示。" },
+
 ];
 
 
