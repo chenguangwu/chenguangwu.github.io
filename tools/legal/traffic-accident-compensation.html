@@ -143,7 +143,7 @@
     
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">交强险限额内不分责任比例（有责：医疗 1.8 万 / 死亡伤残 18 万 / 财产损失 2 千元；无责按无责限额），超出限额部分再由商业险/侵权人按责任比例承担；残疾赔偿金 = 可支配(或人均纯)收入 × 赔偿年限 × 伤残赔偿系数，误工费 = 月收入 ÷ 30 × 误工天数</div>
+      <div class="formula-eq">交强险限额内不分责任比例（有责：医疗 1.8 万 / 死亡伤残 18 万 / 财产损失 2 千元；无责按无责限额），超出限额部分再由商业险/侵权人按责任比例承担；残疾赔偿金 = 可支配(或人均纯)收入 × 赔偿年限 × 伤残赔偿系数，误工费 = 月收入 ÷ 30 × 误工天数。校验：年龄、可支配收入与当地职工平均工资留空即提示，不再按 0 兜底；年龄须在 0–120 之间，其余金额与天数不得为负。</div>
       <div class="formula-desc">先由交强险在分项限额内全额赔付且不按责任比例打折（有责限额：医疗费用 1.8 万元、死亡伤残 18 万元、财产损失 2000 元；无责按无责限额），超出各分项限额的损失合计再乘以事故责任比例，由商业三者险或侵权人承担。残疾赔偿金按受诉法院地上一年度城镇居民人均可支配收入，结合伤残等级赔偿系数与赔偿年限（60周岁以下20年，60–74周岁每增1岁减1年，75周岁以上5年）计算；医疗费、误工费（月收入÷30×误工天数）、住院伙食补助费与被扶养人生活费等先计入对应分项再按上述规则赔付。</div>
     </div>
 <div class="input-row">
@@ -323,6 +323,18 @@
 function taL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
 var __taD=null; var __taChart=null;
 function calculate(){
+var __lgEnC=null;function __lgEn(){if(__lgEnC!==null)return __lgEnC;try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())return __lgEnC=true;}catch(e){}return __lgEnC=/[?&]lang=en-US/.test(location.search);}
+function __lgRaw(id){var el=document.getElementById(id);return el?String(el.value).trim():'';}
+function __lgBad(msgZh,msgEn){document.getElementById('result').innerHTML='<p style="color:var(--danger)">'+(__lgEn()?msgEn:msgZh)+'</p>';}
+  for(const __id of ['age','disposableIncome','avgWage']){
+    if(__lgRaw(__id)===''){ __lgBad('请填写年龄、可支配收入与当地职工平均工资后再计算。','Please fill in age, disposable income and local average wage before calculating.'); return; }
+  }
+  for(const __id of ['age','disposableIncome','avgWage','dependentExpense','medicalExpense','hospitalDays','monthlyIncome','missedDays']){
+    const __raw=__lgRaw(__id); if(__raw==='') continue;
+    const __v=Number(__raw);
+    if(!Number.isFinite(__v)||__v<0||(__id==='age'&&__v>120)){ __lgBad('年龄须在 0–120 之间，其余金额与天数不得为负数。','Age must be 0–120; other amounts and days must be non-negative.'); return; }
+  }
+
   const liability = parseFloat(document.getElementById('liability').value);
   const injuryLevel = document.getElementById('injuryLevel').value;
   const age = parseInt(document.getElementById('age').value) || 0;

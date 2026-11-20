@@ -112,6 +112,11 @@ const CASES = [
     ref: "一级一次性伤残补助金=27×10000=270000；1-4级津贴=10000×90%=9000/月",
   },
   // ── 交通事故残疾赔偿金（伤残系数：一级100%/十级10%，修复倒置缺陷）──
+  { slug: "legal/traffic-accident-compensation",
+    inputs: { age: "", disposableIncome: "50000", avgWage: "8000" },
+    expect: ["请填写年龄、可支配收入与当地职工平均工资后再计算。"],
+    ref: "年龄留空：旧代码按 0 岁处理、赔偿年限取 20 年；新增守卫后须提示。" },
+
   {
     slug: "legal/traffic-accident-compensation",
     inputs: { liability: "1", injuryLevel: "1", age: "30", disposableIncome: "60000" },
@@ -953,7 +958,16 @@ const CASES = [
 { slug:"legal/child-support", inputs:{"monthlyIncome":""}, expect:["请填写支付方月收入"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
 { slug:"legal/rent-deposit", inputs:{"monthlyRent":""}, expect:["请填写月租金"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
 { slug:"legal/overtime-pay", inputs:{"monthlySalary":""}, expect:["请填写月工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
-{ slug:"legal/work-injury-compensation", inputs:{"monthlySalary":""}, expect:["请填写本人工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" }
+{ slug:"legal/work-injury-compensation", inputs:{"monthlySalary":""}, expect:["请填写本人工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
+  { slug: "legal/personal-injury",
+    inputs: { age: "", income: "50000", avgWage: "8000", medical: "10000", monthlyWage: "6000", missedDays: "30", nursingDays: "10", foodAllowance: "50", hospitalDays: "10" },
+    expect: ["请填写年龄、年收入与当地职工平均工资后再计算。"],
+    ref: "年龄留空：旧代码按 0 岁处理、赔偿年限取 20 年，残疾赔偿金被高估；新增守卫后须提示。" },
+  { slug: "legal/food-safety",
+    inputs: { foodPrice: "", damageAmount: "3000" },
+    checkIds: ["causedDamage"],
+    expect: ["请填写食品价款后再计算。"],
+    ref: "价款留空：旧代码按 0 计算仍触发 1000 元保底赔偿，凭空给出可主张 1000 元；新增守卫后须提示。" },
 ];
 
 // ---------------------------------------------------------------- main

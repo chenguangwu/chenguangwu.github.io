@@ -142,7 +142,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="《食品安全法》第148条：不符合食品安全标准可主张价款十倍赔偿">Compute the refund plus tenfold price compensation (minimum 1000 yuan) for non-compliant food under Food Safety Law Article 148.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">食品安全惩罚性赔偿：退还货款 = 价款；十倍赔偿 = max(价款×10, 1000)（不足 1000 元按 1000 元保底）；损失三倍赔偿 = 勾选造成损失时 损失×3 否则 0；惩罚性赔偿金 = max(十倍, 三倍)；可主张总额 = 价款 + (勾选时)损失 + 赔偿金。第148条例外：问题类型为「标签/说明书问题」且勾选「仅属标签瑕疵（不影响食品安全且不误导）」时，十倍赔偿归零，仅退还货款。校验：非数按 0 兜底，结果含 NaN/Infinity 时提示「请检查输入」。判据：十倍赔偿按保底计（≤1000 元）时显示保底角标；未勾选销售者明知且价款 &gt;0 时给出举证提示。</div>
+      <div class="formula-eq">食品安全惩罚性赔偿：退还货款 = 价款；十倍赔偿 = max(价款×10, 1000)（不足 1000 元按 1000 元保底）；损失三倍赔偿 = 勾选造成损失时 损失×3 否则 0；惩罚性赔偿金 = max(十倍, 三倍)；可主张总额 = 价款 + (勾选时)损失 + 赔偿金。第148条例外：问题类型为「标签/说明书问题」且勾选「仅属标签瑕疵（不影响食品安全且不误导）」时，十倍赔偿归零，仅退还货款。校验：食品价款留空即提示且须 &gt;0；勾选造成损失时损失金额留空即提示、不得为负；不再按 0 兜底。判据：十倍赔偿按保底计（≤1000 元）时显示保底角标；未勾选销售者明知且价款 &gt;0 时给出举证提示。</div>
       <p class="formula-desc">《食品安全法》第148条：不符合食品安全标准可主张价款十倍赔偿</p>
     </div>
     
@@ -291,6 +291,16 @@ function toggleDamage(){
 function fsL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
 var __fsD=null;
 function calculate(){
+var __lgEnC=null;function __lgEn(){if(__lgEnC!==null)return __lgEnC;try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())return __lgEnC=true;}catch(e){}return __lgEnC=/[?&]lang=en-US/.test(location.search);}
+function __lgRaw(id){var el=document.getElementById(id);return el?String(el.value).trim():'';}
+function __lgBad(msgZh,msgEn){document.getElementById('result').innerHTML='<p style="color:var(--danger)">'+(__lgEn()?msgEn:msgZh)+'</p>';}
+  if(__lgRaw('foodPrice')===''){ __lgBad('请填写食品价款后再计算。','Please fill in the food price before calculating.'); return; }
+  if(Number(__lgRaw('foodPrice'))<=0||!Number.isFinite(Number(__lgRaw('foodPrice')))){ __lgBad('食品价款须大于 0。','The food price must be greater than 0.'); return; }
+  if(document.getElementById('causedDamage').checked){
+    if(__lgRaw('damageAmount')===''){ __lgBad('已勾选造成实际损失，请填写损失金额后再计算。','Actual losses are selected; please fill in the loss amount before calculating.'); return; }
+    if(!Number.isFinite(Number(__lgRaw('damageAmount')))||Number(__lgRaw('damageAmount'))<0){ __lgBad('损失金额不得为负数。','The loss amount must be non-negative.'); return; }
+  }
+
   const price = parseFloat(document.getElementById('foodPrice').value) || 0;
   const damage = parseFloat(document.getElementById('damageAmount').value) || 0;
   const hasDamage = document.getElementById('causedDamage').checked;

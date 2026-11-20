@@ -142,7 +142,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="依据最高法人身损害赔偿司法解释计算（交通事故、打架斗殴、医疗事故等通用）">Estimate personal injury compensation from medical expenses, lost income and disability grade under tort liability rules.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">人身损害赔偿估额（本页代码口径）：赔偿年限按年龄分段——年龄&lt;60 取 20 年、60≤年龄&lt;75 取 20−(年龄−60) 年、≥75 取 5 年；赔偿比例按（11−等级值）÷10（一级=100%、十级=10%、不构成伤残=0，与伤残等级司法口径一致），死亡取 100%；残疾或死亡赔偿金=年收入×赔偿年限×赔偿比例；误工费=(月工资÷30)×误工天数；护理费=护理天数×150（固定 150 元/天）；伙食补助=每日伙食标准×住院天数；交通费固定估 1000 元；丧葬费=死亡时当地月平均工资×6；精神抚慰金=赔偿比例×50000（死亡固定 50000 元）；总额=医疗+误工+护理+伙食+交通+残疾或死亡+丧葬+精神八项之和。校验：无强校验，空值按 0 兜底，结果含无效值时提示检查输入。判据：未计被扶养人生活费、辅助器具费、营养费、后续治疗费，各地标准不同仅供参考。</div>
+      <div class="formula-eq">人身损害赔偿估额（本页代码口径）：赔偿年限按年龄分段——年龄&lt;60 取 20 年、60≤年龄&lt;75 取 20−(年龄−60) 年、≥75 取 5 年；赔偿比例按（11−等级值）÷10（一级=100%、十级=10%、不构成伤残=0，与伤残等级司法口径一致），死亡取 100%；残疾或死亡赔偿金=年收入×赔偿年限×赔偿比例；误工费=(月工资÷30)×误工天数；护理费=护理天数×150（固定 150 元/天）；伙食补助=每日伙食标准×住院天数；交通费固定估 1000 元；丧葬费=死亡时当地月平均工资×6；精神抚慰金=赔偿比例×50000（死亡固定 50000 元）；总额=医疗+误工+护理+伙食+交通+残疾或死亡+丧葬+精神八项之和。校验：年龄、年收入与当地职工平均工资留空即提示，不再按 0 兜底；年龄须在 0–120 之间，其余金额与天数不得为负。判据：未计被扶养人生活费、辅助器具费、营养费、后续治疗费，各地标准不同仅供参考。</div>
       <p class="formula-desc">依据最高法人身损害赔偿司法解释计算（交通事故、打架斗殴、医疗事故等通用）</p>
     </div>
     
@@ -303,6 +303,18 @@
 function piL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
 var __piD=null; var __piChart=null;
 function calculate(){
+var __lgEnC=null;function __lgEn(){if(__lgEnC!==null)return __lgEnC;try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())return __lgEnC=true;}catch(e){}return __lgEnC=/[?&]lang=en-US/.test(location.search);}
+function __lgRaw(id){var el=document.getElementById(id);return el?String(el.value).trim():'';}
+function __lgBad(msgZh,msgEn){document.getElementById('result').innerHTML='<p style="color:var(--danger)">'+(__lgEn()?msgEn:msgZh)+'</p>';}
+  for(const __id of ['age','income','avgWage']){
+    if(__lgRaw(__id)===''){ __lgBad('请填写年龄、年收入与当地职工平均工资后再计算。','Please fill in age, annual income and local average wage before calculating.'); return; }
+  }
+  for(const __id of ['age','income','avgWage','medical','monthlyWage','missedDays','nursingDays','foodAllowance','hospitalDays']){
+    const __raw=__lgRaw(__id); if(__raw==='') continue;
+    const __v=Number(__raw);
+    if(!Number.isFinite(__v)||__v<0||(__id==='age'&&__v>120)){ __lgBad('年龄须在 0–120 之间，其余金额与天数不得为负数。','Age must be 0–120; other amounts and days must be non-negative.'); return; }
+  }
+
   const level = document.getElementById('disabilityLevel').value;
   const age = parseInt(document.getElementById('age').value) || 0;
   const income = parseFloat(document.getElementById('income').value) || 0;
