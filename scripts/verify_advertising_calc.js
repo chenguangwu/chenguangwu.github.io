@@ -131,6 +131,12 @@ const CASES = [
   "inputs": { "targetDuration": "45" },
   "expect": ["还剩45秒空间", "-45 差异(秒)"],
   "ref": "默认 target=30 → 差异 -30 /「还剩30秒空间」；本例 harness 下 scenes 为空数组（总时长 0），diff=0-45=-45。原断言「还剩15秒空间」依赖兜底函数加载模板后才成立，属危险信号，改为只依赖注入键的真值。"
+},
+{
+  "slug": 'advertising/ad-size',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/advertising/ad-size.html\',\'utf8\');var i=h.indexOf(\'function copyResult(){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+900):\'\';var ok=seg.indexOf(\'if(!isFinite(dpi)||dpi<=0\')>=0&&seg.indexOf(\'请先填写有效的尺寸与 DPI 再复制\')>=0;document.getElementById(\'__tbProbe\').textContent=\'ADSCP0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['ADSCP0 OK'],
+  "ref": "第1341批·复制与页面结果不同源修复源码形态强锚：旧版 copyResult 另算一遍且无守卫，页面显示错误/—时复制仍输出 Infinity/0dB 假值；修复后 copyResult 补与 calc 同源守卫，无效时提示并 return。旧版无 ⇒ BAD。"
 }
 ];
 async function main() {

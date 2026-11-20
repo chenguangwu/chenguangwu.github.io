@@ -326,7 +326,25 @@ const CASES = [
   },
   {"slug":"ent/tonsil-grading", "clicks":["setGrade(4);calc()"], "expect":["未选择上述症状或病史；仅凭分度不能判定是否需要手术"], "ref":"IV 度无症状不单独判定手术"},
   {"slug":"ent/tonsil-grading", "checkIds":["s2"], "clicks":["setGrade(4);calc()"], "expect":["需要进一步评估（睡眠打鼾/呼吸暂停）"], "ref":"打鼾是评估线索，不能直接确诊 OSAHS 或决定手术"}
-
+,
+{
+  "slug": 'ent/ahi-severity',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/ent/ahi-severity.html\',\'utf8\');var i=h.indexOf(\'function copyResult(){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+900):\'\';var ok=seg.indexOf(\'var hours = +document.getElementById(\\\'sleepHours\\\').value || 1;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'AHICP0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['AHICP0 OK'],
+  "ref": "第1341批·复制与页面结果不同源修复源码形态强锚：旧版 copyResult 另算一遍且无守卫，页面显示错误/—时复制仍输出 Infinity/0dB 假值；修复后 copyResult 补与 calc 同源守卫，无效时提示并 return。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'ent/tympanic-perforation',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/ent/tympanic-perforation.html\',\'utf8\');var i=h.indexOf(\'function copyResult(){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+900):\'\';var ok=seg.indexOf(\'if(!isFinite(tmArea)||tmArea<=0)\')>=0&&seg.indexOf(\'请先填写有效的鼓膜尺寸再复制\')>=0;document.getElementById(\'__tbProbe\').textContent=\'TympCP0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['TympCP0 OK'],
+  "ref": "第1341批·复制与页面结果不同源修复源码形态强锚：旧版 copyResult 另算一遍且无守卫，页面显示错误/—时复制仍输出 Infinity/0dB 假值；修复后 copyResult 补与 calc 同源守卫，无效时提示并 return。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'ent/hearing-loss-classification',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/ent/hearing-loss-classification.html\',\'utf8\');var i=h.indexOf(\'function copyResult(){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+900):\'\';var ok=seg.indexOf(\'__ids.every(function(id)\')>=0&&seg.indexOf(\'请先填写听阈再复制\')>=0;document.getElementById(\'__tbProbe\').textContent=\'HLCCP0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['HLCCP0 OK'],
+  "ref": "第1341批·复制与页面结果不同源修复源码形态强锚：旧版 copyResult 另算一遍且无守卫，页面显示错误/—时复制仍输出 Infinity/0dB 假值；修复后 copyResult 补与 calc 同源守卫，无效时提示并 return。旧版无 ⇒ BAD。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);
