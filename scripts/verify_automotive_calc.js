@@ -1053,7 +1053,11 @@ const CASES = [
 { slug:"automotive/analysis-strength", inputs:{b:"",h:"",L:"",F:"",mat:"235|2.06e5|8e4",sf:"1.5",T:"20",beam:"simple"}, expect:["请填写截面宽、高、跨度与载荷"], ref:"几何/载荷缺失时不得给「安全系数 ∞ / 屈服风险」（STRCLR）" },
 { slug:"automotive/lux-1", inputs:{lm:"",pw:"",d:"",ang:"",eff:"30",lm2:"",type:"50|近光",dist:"1"}, expect:["请填写光通量、功率与光束角"], ref:"光通量/光束角缺失时不得判「明显不足」（LUXCLR）" },
 { slug:"automotive/recommender-6", inputs:{veh:"2.3|2.3",load:"0|0",season:"0",amb:"",p1:"",p2:"",ref:"25",alm:"0"}, expect:["请填写环境温度与前后轮实测胎压"], ref:"实测胎压缺失时不得给「推荐 2.3 bar」结论（REC6CLR）" },
-{ slug:"automotive/cycle-belt", inputs:{modelSel:"vw_ea888",curKm:"",lastKm:"",yearKm:"15000"}, expect:["请填写当前里程与上次更换里程"], ref:"里程缺失时不得输出建议间隔结论（BELTCLR）" }
+{ slug:"automotive/cycle-belt", inputs:{modelSel:"vw_ea888",curKm:"",lastKm:"",yearKm:"15000"}, expect:["请填写当前里程与上次更换里程"], ref:"里程缺失时不得输出建议间隔结论（BELTCLR）" },
+{ slug:"automotive/parking-fee-calculator", inputs:{firstMin:"60",firstFee:"10",unitMin:"30",unitFee:"5",parkMin:"100",cap:"0",freeMin:"30",freeMode:"deduct"}, expect:["应付 15 元"], ref:"第1063批 N239：免费 30 分钟按抵扣口径，计费 70 分钟 → 10 + ⌈10/30⌉×5 = 15；默认 freeMin=0/parkMin=180 为 30 元，锚不命中。" },
+{ slug:"automotive/parking-fee-calculator", inputs:{firstMin:"60",firstFee:"10",unitMin:"30",unitFee:"5",parkMin:"100",cap:"0",freeMin:"30",freeMode:"full"}, expect:["应付 20 元"], ref:"第1063批 N239：超时全额口径下 100 分钟从入场起算 → 10 + ⌈40/30⌉×5 = 20；抵扣口径为 15，默认态为 30，锚唯一。" },
+{ slug:"automotive/parking-fee-calculator", inputs:{firstMin:"60",firstFee:"10",unitMin:"30",unitFee:"5",parkMin:"4320",cap:"0",freeMin:"0",freeMode:"deduct"}, expect:["应付 720 元"], ref:"第1063批 N238：连续停 4320 分钟（3×24h）按 3 段各 240 元累加 = 720；旧实现若把单日费再乘以天数或按 0 天截断会偏离，默认 180 分钟为 30 元，锚不命中。" },
+{ slug:"automotive/voltage-2", inputs:{volt:"12",vreg:"15.5",cutin:"700",rpm:"2500",vbat:"12.4",rloop:"0.08",load:"10",len:"5",area:"2.5",mat:"0.0175"}, expect:["末端电压 14.8 V"], ref:"第1063批 N243：供电端取 max(发电 15.5, 电池 12.4)=15.5，压降 0.70 ⇒ 末端 14.8；若仍用标称 12 V 会得 11.3，默认 vreg=14.4 得 13.7，锚唯一。" }
 ];
 async function main() {
   const only = process.argv.slice(2);

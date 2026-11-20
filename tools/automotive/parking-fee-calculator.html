@@ -167,8 +167,11 @@
       <div><label>单日封顶 (元，0 表示不封顶)</label><input type="number" id="cap" value="60" oninput="calc()" min="0" step="1" placeholder="如 60"></div>
     </div>
     <div class="input-row">
-      <div><label>免费时长 (分钟，仅首次抵扣)</label><input type="number" id="freeMin" value="0" oninput="calc()" min="0" step="1" placeholder="如 0"></div>
-      <div>按入场起每 24 小时分段封顶，不适用于按自然日封顶。</div>
+      <div><label>免费时长 (分钟，仅首次进场)</label><input type="number" id="freeMin" value="0" oninput="calc()" min="0" step="1" placeholder="如 0"></div>
+      <div><label>免费时长计费口径</label><select id="freeMode" onchange="calc()">
+        <option value="deduct">抵扣（免费结束后起算）</option>
+        <option value="full">超时全额（从入场起算）</option>
+      </select></div>
     </div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__parking_fee_calculatorExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="parking_fee_calculatorTable"></div> <div id="parking_fee_calculatorDiff"></div> <div id="parking_fee_calculatorChart"></div> <div id="parking_fee_calculatorHist"></div>
     <div class="dist-grid" id="distGrid"></div>
@@ -196,7 +199,7 @@
       <h4>⏱️ 不足一单位怎么算</h4>
       <p>绝大多数车场对不足一个计费单位的部分按「进一法」收费，即停 61 分钟按 90 分钟计。本工具即按进一法计算。</p>
     </div>
-    <div class="info-box">💡 输入总停放分钟数；从入场起按每 24 小时分段计费并分别封顶，免费时长仅首次抵扣。自然日封顶或其他免费规则请以车场公示为准。</div>
+    <div class="info-box">💡 输入总停放分钟数；从入场起按每 24 小时分段计费并分别封顶，免费时长可切换「抵扣」或「超时全额」两种常见口径；自然日封顶或其他免费规则请以车场公示为准。</div>
   </div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -228,7 +231,7 @@
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>封顶是怎么算的？</dt><dd>封顶指单个自然日（或一次进场）费用不超过该上限，超过部分不再累加。跨天停放通常每日重新计封顶。</dd>
-<dt>免费时段怎么用？</dt><dd>多数商场消费满额免 1–2 小时，短停可借免费时段免单；超时按规则从进场起算，非从免费结束起算。</dd>
+<dt>免费时段怎么用？</dt><dd>免费时长常见两种口径：一是从免费结束起抵扣，二是超过免费时长后从入场起全额计费；本页可切换选择，具体以车场公示为准。</dd>
 </dl>
 </div>
 </section>
@@ -318,11 +321,19 @@ function calc(){
   if(!Number.isFinite(unitMin)||unitMin<=0||![firstFee,unitFee,cap,freeMin].every(function(x){return Number.isFinite(x)&&x>=0;})){
     R.innerHTML='<div class="safe-sub">请输入有效的时长与费率</div>';G.innerHTML='';F.innerHTML='';A.innerHTML='';return;
   }
-  var pay=Math.max(0,parkMin-freeMin), remaining=parkMin, freeLeft=freeMin;
+  var freeMode=str('freeMode')||'deduct';
+  var pay=0, remaining=parkMin, freeLeft=freeMin;
   var total=0, units=0, oneDay=0, cappedDay=0, cappedNow=false, segments=0;
   while(remaining>0){
-    var span=Math.min(remaining,1440), deduction=Math.min(span,freeLeft);
-    var bill=span-deduction; freeLeft-=deduction; remaining-=span; segments++;
+    var span=Math.min(remaining,1440), firstSeg=(segments===0), bill=0, deduction=0;
+    if(freeMode==='full'){
+      if(firstSeg && remaining<=freeMin){ bill=0; }
+      else { bill=span; }
+    } else {
+      deduction=Math.min(span,freeLeft);
+      bill=span-deduction; freeLeft-=deduction;
+    }
+    pay+=bill; remaining-=span; segments++;
     var extra=bill>0?Math.ceil(Math.max(0,bill-firstMin)/unitMin):0;
     var fee=bill>0?firstFee+extra*unitFee:0;
     var limited=cap>0?Math.min(fee,cap):fee;
@@ -337,7 +348,7 @@ function calc(){
     '<div class="dist-card"><div class="v">'+fmtLocal(firstFee,1)+'</div><div class="l">首段费用 (元)</div></div>'+
     '<div class="dist-card"><div class="v">'+fmtLocal(units*unitFee,1)+'</div><div class="l">后续费用 (元)</div></div>';G.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   const __g7='<div class="fb-title">分段计费规则</div>'+
-    '<div class="fb-row">按入场起每 24 小时分段；免费时长仅首次抵扣</div>'+
+    '<div class="fb-row">按入场起每 24 小时分段；免费时长口径：'+(freeMode==='full'?'超时后从入场起全额计费':'从免费结束起抵扣')+'</div>'+
     '<div class="fb-row">若计费时长 ≤ 首时段：费用 = 首时段费用</div>'+
     '<div class="fb-row">否则：费用 = 首时段费用 + 进一法（(计费时长 − 首时段) ÷ 单位时长）× 单位单价</div>'+
     '<div class="fb-row">单日费用 = min(分段费用, 单日封顶)</div>'+
