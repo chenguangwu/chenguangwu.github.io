@@ -3710,6 +3710,12 @@ const CASES = [
   expect: ["6寸 (4R) ✅ 像素充足（旋转后）"],
   ref: "相纸方向不匹配：6寸(4R) 10.2×15.2cm@300DPI 需 1205×1796px。横图 1800×1300 正向宽1800≥1205✓但高1300<1796✗，旧版固定宽对窄边判「基本可用」；旋转后宽1800≥1796✓且高1300≥1205✓应判「像素充足」。交换为 1300×1800 正向即充足，二者应同为充足。现 rotW 判定覆盖旋转方向并标注「旋转后」。锚定「6寸 (4R)」整行避免默认态 A4 旋转命中（默认 4000×3000 对 A4 2481×3508 也是旋转后充足）；默认 6寸正向充足不带「旋转后」⇒ 强判别。",
 },
+{
+  "slug": 'design/iso-noise-reference',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/design/iso-noise-reference.html\',\'utf8\');var i=h.indexOf(\'function switchTab(tab, btn) {\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if (!tab || !btn)\')>=0&&seg.indexOf(\'renderISO(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'ISONO0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['ISONO0 OK'],
+  "ref": "第1337批·历史恢复无参切换抛错修复源码形态强锚：旧版 function switchTab(tab, btn) { 无参调用解引用参数/全局event抛错被 catch 吞、结果不重算；修复后无参分支安全返回或重算主结果。旧版无 ⇒ BAD。"
+}
 ];
 
 // ---------------------------------------------------------------- main

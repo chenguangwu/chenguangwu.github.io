@@ -434,7 +434,13 @@ const CASES = [
   "expect": ["ELF14KANA hist=0"],
   "ref": "EL-F14：ゐ/ゑ 为历史假名，已从练习题库 getAllKana() 排除（仍保留在五十音图表中）。旧实现两者均在池内 ⇒ hist=2 必 FAIL。"
 }
-
+,
+{
+  "slug": 'language/german-gender-quiz',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/language/german-gender-quiz.html\',\'utf8\');var i=h.indexOf(\'function switchMode(mode) {\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!mode) return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'GERMH0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['GERMH0 OK'],
+  "ref": "第1337批·历史恢复无参切换抛错修复源码形态强锚：旧版 function switchMode(mode) { 无参调用解引用参数/全局event抛错被 catch 吞、结果不重算；修复后无参分支安全返回或重算主结果。旧版无 ⇒ BAD。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

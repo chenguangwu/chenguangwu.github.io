@@ -1646,6 +1646,12 @@ const CASES = [
     expect: ["2024-11-05 2025-01-09 2025-03-20"],
     ref: "仅勾iso/normalize/sort：提取ISO日期并规范化为YYYY-MM-DD后升序排序。",
   },
+{
+  "slug": 'biz/lorem-ipsum-advanced',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/biz/lorem-ipsum-advanced.html\',\'utf8\');var i=h.indexOf(\'function setMode(btn){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!btn)\')>=0&&seg.indexOf(\'generate(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'LOREM0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['LOREM0 OK'],
+  "ref": "第1337批·历史恢复无参切换抛错修复源码形态强锚：旧版 function setMode(btn){ 无参调用解引用参数/全局event抛错被 catch 吞、结果不重算；修复后无参分支安全返回或重算主结果。旧版无 ⇒ BAD。"
+}
 ];
 
 

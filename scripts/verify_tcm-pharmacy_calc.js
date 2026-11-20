@@ -341,6 +341,12 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-pharmacy/formula-song.html','utf8');var i=h.indexOf('function generateSong(){');var j=h.indexOf('function ',i+10);var seg=(i>=0&&j>i)?h.slice(i,j):'';var n=(seg.split('result.innerHTML').length-1);var ok=n>=4;document.getElementById('__tbProbe').textContent='FSONGCLR '+(ok?'OK':'BAD');})();"],
   "expect": ["FSONGCLR OK"],
   "ref": "第1328批·方歌缺必填未清上次结果修复源码形态强锚：原 !name/!herbStr 与 herbs.length<2 两分支只 toast 保留上次生成结果；修复后两分支均清 result.innerHTML。generateSong 函数体内 result.innerHTML 引用 before=2/fixed=4。按函数边界截取禁固定长度。"
+},
+{
+  "slug": 'tcm-pharmacy/four-qi-nature',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/tcm-pharmacy/four-qi-nature.html\',\'utf8\');var i=h.indexOf(\'function switchTab(tab, e){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!tab||!e)\')>=0&&seg.indexOf(\'judgeQi(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'FQNH0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['FQNH0 OK'],
+  "ref": "第1337批·历史恢复无参切换抛错修复源码形态强锚：旧版 function switchTab(tab, e){ 无参调用解引用参数/全局event抛错被 catch 吞、结果不重算；修复后无参分支安全返回或重算主结果。旧版无 ⇒ BAD。"
 }
 ];
 async function main() {
