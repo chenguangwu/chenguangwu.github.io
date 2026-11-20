@@ -453,7 +453,11 @@ const CASES = [
   "inputs": {"p":"500000","r":"0","y":"30","k":"60"},
   "expect": ["416666.67"],
   "ref": "零利率：B=P−P/N×k=500000−500000/360×60=416666.67；旧 Extras 的 emi 公式 0÷0 会得 NaN，表格与导出一并失真"
-}
+},
+  { slug: "banking/fisher-real-rate",
+    inputs: { nom: "", infl: "2" },
+    expect: ["请填写名义利率与通胀率后再计算。"],
+    ref: "名义利率留空：旧代码按 0% 输出实际利率约 −1.96%，把缺项当成零利率；新增守卫后须提示。" },
 
 ];
 async function main() {

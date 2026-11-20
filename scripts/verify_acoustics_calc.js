@@ -122,9 +122,19 @@ const CASES = [
     ref: "SPL=20·log₁₀(2/20e-6)=20·log₁₀(1e5)=100.00（默认 0.632→90.00，避开）" },
 
   { slug: "acoustics/sound-speed-air",
+    inputs: { T: "" },
+    expect: ["请填写气温（不低于 −273.15 °C）后再计算。"],
+    ref: "气温留空：旧代码按 0°C 静默输出 331.4 m/s 等一整套结果；新增守卫后须提示。" },
+
+  { slug: "acoustics/sound-speed-air",
     inputs: { T: "30" },
     expect: ["97.06"],
     ref: "v=331.4+0.6×30=349.40；km/h=349.40/3.6=97.06（默认 T=20→343.40，避开）" },
+
+  { slug: "acoustics/spl-add",
+    inputs: { L1: "80", L2: "" },
+    expect: ["请填写两个声压级后再计算。"],
+    ref: "L₂ 留空：旧代码按 0 dB 叠加，得出约 80 dB 的伪结果；新增守卫后须提示。" },
 
   { slug: "acoustics/spl-add",
     inputs: { L1: "90", L2: "84" },

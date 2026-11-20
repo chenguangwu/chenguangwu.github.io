@@ -18,6 +18,11 @@ const CASES = [
   { slug: "aerospace/lift-equation", inputs: { rho: "1.0", v: "100", CL: "1.2", A: "30" }, expect: ["180000.00"], ref: "L=½ρv²·CL·A=0.5×1×100²×1.2×30=180000.00 N（默认避开）" },
   { slug: "aerospace/drag-force", inputs: { rho: "1.0", v: "100", CD: "0.05", A: "20" }, expect: ["5000.00"], ref: "D=½ρv²·CD·A=0.5×1×100²×0.05×20=5000.00 N（默认避开）" },
   { slug: "aerospace/mach-number", inputs: { v: "400", t: "20", g: "1.4" }, expect: ["1.165", "343.2"], ref: "声速 a=√(γRT)=√(1.4×287×293.15)=343.2 m/s；M=400/343.2=1.165（默认 v=340 避开）" },
+  { slug: "aerospace/load-factor",
+    inputs: { phi: "" },
+    expect: ["请填写坡度/转弯角后再计算。"],
+    ref: "坡度角留空：旧代码按 0° 输出 n=1 的平飞结论；新增守卫后须提示。" },
+
   { slug: "aerospace/load-factor", inputs: { phi: "30" }, expect: ["1.15 等效"], ref: "n=1/cosφ=1/cos30°=1.15（默认 60 避开）" },
   { slug: "aerospace/thrust-to-weight", inputs: { T: "120000", W: "200000" }, expect: ["0.600"], ref: "T/W=120000/200000=0.600（默认 50000/80000 避开）" },
   { slug: "aerospace/specific-impulse", inputs: { f: "200000", mdot: "50" }, expect: ["407.7"], ref: "Isp=F/(ṁ·g₀)=200000/(50×9.81)=407.7 s（默认 100000/40 避开）" },

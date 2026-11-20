@@ -294,7 +294,11 @@ const CASES = [
  {"slug":"astronomy/atmospheric-refraction","inputs":{"h":"5"},"expect":["9.920","4.8347"],"ref":"视高度 5°：反求真高度约 4.834659°，R≈9.92047′；默认输入 0° 不产生 9.920，注入失败必红。"},
  {"slug":"astronomy/atmospheric-refraction","inputs":{"h":"5"},"expect":["9.920","4.8347"],"ref":"视高度 5°：真高度约 4.834659°，R≈9.92047′，验证数值反求。"},
  {"slug":"astronomy/atmospheric-refraction","inputs":{"h":"90"},"expect":["0.000","90.0000"],"ref":"天顶截除经验式微小负值。"},
- {"slug":"astronomy/convert-18","clicks":["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/astronomy/convert-18.html','utf8');var i=h.indexOf('function calc(){');var s=i>=0?h.slice(i,i+520):'';var ok=s.indexOf('m===\"p2h\"&&(!isFinite(v)||v<=0)')>=0&&s.indexOf('m!==\"p2h\"&&(!isFinite(v)||v>=44330)')>=0&&s.indexOf('海拔超出模型适用范围')>=0;document.getElementById('__tbProbe').textContent='ASTMOD '+(ok?'OK':'BAD');"],"expect":["ASTMOD OK"],"ref":"第1343批 模型边界守卫：p2h 模式气压<=0（Math.pow 负数 1/5.255→NaN）、h2p 模式海拔>=44330（1−v/44330<=0，Math.pow 负数 5.255→NaN）此前均显示 NaN；改为有限/范围守卫并显示提示后 return。"}
+ {"slug":"astronomy/convert-18","clicks":["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/astronomy/convert-18.html','utf8');var i=h.indexOf('function calc(){');var s=i>=0?h.slice(i,i+520):'';var ok=s.indexOf('m===\"p2h\"&&(!isFinite(v)||v<=0)')>=0&&s.indexOf('m!==\"p2h\"&&(!isFinite(v)||v>=44330)')>=0&&s.indexOf('海拔超出模型适用范围')>=0;document.getElementById('__tbProbe').textContent='ASTMOD '+(ok?'OK':'BAD');"],"expect":["ASTMOD OK"],"ref":"第1343批 模型边界守卫：p2h 模式气压<=0（Math.pow 负数 1/5.255→NaN）、h2p 模式海拔>=44330（1−v/44330<=0，Math.pow 负数 5.255→NaN）此前均显示 NaN；改为有限/范围守卫并显示提示后 return。"},
+  { slug: "astronomy/schwarzschild-radius",
+    inputs: { M: "" },
+    expect: ["请填写天体质量（须大于 0）后再计算。"],
+    ref: "质量留空：旧代码按 0 kg 输出 r_s=0 与视界面积 0；新增守卫后须提示。" },
 
 ];
 async function main() {
