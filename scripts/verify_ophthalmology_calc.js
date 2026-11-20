@@ -435,6 +435,24 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/vision-screening-21.html','utf8');var i=h.indexOf('window.__vsClearHist=');var seg=i>=0?h.slice(i,i+220):'';var ok=seg.indexOf(\"getElementById('__vsTrend')\")>=0&&seg.indexOf(\"__vt.innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='VSCLR '+(ok?'OK':'BAD');})();"],
   "expect": ["VSCLR OK"],
   "ref": "第1326批·清空历史未清趋势图修复源码形态强锚：原 __vsClearHist 只存空历史并重渲染，#__vsTrend 旧趋势留存；修复后同步清空趋势容器。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/strabismus-angle",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/strabismus-angle.html','utf8');var i=h.indexOf('function switchTab(name,btn){');var j=h.indexOf('conv();hirsch();combine();',i+10);var seg=i>=0?h.slice(i,j+40):'';var ok=seg.indexOf('if(!name||!btn)')>=0&&seg.indexOf('conv();hirsch();combine(); return;')>=0;document.getElementById('__tbProbe').textContent='STRASHIST '+(ok?'OK':'BAD');})();"],
+  "expect": ["STRASHIST OK"],
+  "ref": "第1334批·历史恢复无参 switchTab 抛错不重算修复源码形态强锚：原 switchTab(name,btn) 在恢复处被无参调用，btn.classList.add 抛 TypeError 被 catch 吞掉、三个结果区停留旧值；修复后无参分支安全重算 conv/hirsch/combine 并 return。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/astigmatism-chart",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/astigmatism-chart.html','utf8');var i=h.indexOf(\"$('asLines').addEventListener('change'\");var seg=i>=0?h.slice(i,i+520):'';var ok=seg.indexOf('S.marked = { left: [], right: [] }')>=0&&seg.indexOf('S.lines = parseInt(this.value, 10)')>=0;document.getElementById('__tbProbe').textContent='ASLINES '+(ok?'OK':'BAD');})();"],
+  "expect": ["ASLINES OK"],
+  "ref": "第1334批·切换射线数标记索引错位修复源码形态强锚：标记存射线索引、角度=索引×(360/条数)，24↔36 切换后同索引角度全变、旧标记被误读；修复后切条数即清两眼 marked。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/amsler-grid-test",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/amsler-grid-test.html','utf8');var a=h.indexOf(\"$('amEye').addEventListener('change'\");var b=h.indexOf('function goStep(st)');var s1=a>=0?h.slice(a,a+320):'';var s2=b>=0?h.slice(b,b+500):'';var ok=s1.indexOf('S.drawing = null; S.cursor = null;')>=0&&s2.indexOf('S.drawing = null; S.cursor = null;')>=0;document.getElementById('__tbProbe').textContent='AMDRAW '+(ok?'OK':'BAD');})();"],
+  "expect": ["AMDRAW OK"],
+  "ref": "第1334批·切换眼别未清未完成绘制串眼修复源码形态强锚：amEye change 与 goStep 两处切眼别只改 S.eye，正在绘制的 S.drawing 闭合后归到新眼；修复后两处均补清 S.drawing/S.cursor。旧版两处皆无 ⇒ BAD。"
 }
 ];
 async function main() {

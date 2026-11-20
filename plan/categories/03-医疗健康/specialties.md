@@ -49,7 +49,7 @@
 
 > 七页仅分析源码，未运行页面或做医学核验；医疗和验光解释须专业复核。
 
-- `tools/ophthalmology/strabismus-angle.html:129,139-149,154-158,303-312,315-328,428-440`：页面称 1Δ 在 1 米偏移 1cm，但转换网格算 `pd*0.5`；20Δ 因而显示 10cm 而非按页面定义的 20cm。`pd2` 瞳孔直径没有参与计算；Hirschberg 公式说明写 15Δ/mm，运行路径却用 7°/mm 后正切换算。历史恢复无参调用 `switchTab()`，先移除所有 tab 的 active 后在 `btn.classList` 抛错并被捕获，不重新计算。医学换算和适用性须复核。
+- `tools/ophthalmology/strabismus-angle.html`：历史恢复无参调用 `switchTab()` 抛错且不重算——第1334批已修（switchTab 无参分支安全重算 conv/hirsch/combine 并 return，源码形态强锚 `STRASHIST` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：页面称 1Δ 在 1 米偏移 1cm，但转换网格算 `pd*0.5`（20Δ 显示 10cm）；`pd2` 未参与计算；Hirschberg 说明写 15Δ/mm 而运行路径用 7°/mm——医学换算和适用性须复核。
 - `tools/ophthalmology/refraction-error.html`：单片或双镜任一数字清空即直接返回、旧处方仍显示——第1323批已修（calcSingle/calcCombine 空值分支清对应结果容器，源码形态强锚 `REFCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：散光分类仅看轴位而不看柱镜正负，互为转置的处方可能被标成不同类别；页内 180° 示例的 J0 算式也与其负号结果矛盾，专业判定须复核。
 - `tools/ophthalmology/tear-breakup-time.html`：清空首次值未清参考标尺 `resultRefBar`——第1323批已修（清空分支同步清 `resultRefBar`，源码形态强锚 `TBUTCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：只校验首次 BUT，即使填写平均 TBUT 仍要求首次值；负值可进入分级；10 秒在代码中为正常而表格写 >10 正常。干眼分级、用药建议和阈值须临床复核。
 - `tools/ophthalmology/vision-screening-21.html`：清空历史不清趋势容器、旧图留存——第1326批已修（__vsClearHist 同步清 `#__vsTrend`，源码形态强锚 `VSCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：左右眼散光负荷分别计算，但方向从两眼答案取最大值，一个眼的症状可决定另一眼的轴向提示；所有未答题默认“从不”，可直接连点生成完整结论。问卷到近视度数、置信带与散光轴位的医学有效性无本次证据，须专业复核。
@@ -62,9 +62,9 @@
 > 八页仅源码分析；未进行浏览器、图形、下载或医学标准核验，医疗问题均需临床复核。
 
 - 同页 `:717-729,698-706`：用户填写的 `ecRow` 原样存入记录，随后拼入 `innerHTML`，存在本地存储型 HTML/脚本注入路径；未实际执行载荷。
-- `tools/ophthalmology/astigmatism-chart.html:373-374,472-483,567-568`：标记数组保存射线索引而非角度，24 条改 36 条后，索引 6 从 90° 变为 60°，旧标记被解释为新方向；两眼数组都受影响。向量直接平均 180° 相反射线时会相互抵消，仍输出数值轴位；视觉意义及轴位解释须临床核验。
+- `tools/ophthalmology/astigmatism-chart.html`：切换射线数后旧标记按索引错位——第1334批已修（标记存的是射线索引、角度=索引×(360/条数)，24↔36 切换后同索引角度全变；修复后切条数即清两眼 marked 并同步读数，源码形态强锚 `ASLINES` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：向量直接平均 180° 相反射线时会相互抵消仍输出数值轴位，视觉意义及轴位解释须临床核验。
 - 同页 `:401-417,637-647` 的高亮扇形使用 `-a`，红射线却以从上方顺时针的 `sin(a),-cos(a)` 绘制，二者角度基准不一致；预览和快照都采用该写法。`goStep()`（`:579-594`）切眼时不重绘/更新读数，可能出现眼别与旧图不一致。均为代码推演。
-- `tools/ophthalmology/amsler-grid-test.html:197-209,570-584,593-605,620-620,738-748`：提示可点“完成”闭合，但工具栏未见完成按钮，实际只绑定双击或 Enter；保存只含已闭合标记，正在绘制的区域不会入快照。切换眼别也未清除 `S.drawing`，随后闭合会把未完成区域归入切换后的眼。触屏具体事件表现未实测。
+- `tools/ophthalmology/amsler-grid-test.html`：切换眼别未清 `S.drawing` 致未完成绘制串眼——第1334批已修（amEye change 与 goStep 两处切眼别均补清 S.drawing/S.cursor，源码形态强锚 `AMDRAW` 已落 ophthalmology verify；旧版两处皆无 ⇒ BAD）。余项：提示可点“完成”闭合但工具栏未见完成按钮，实际只绑定双击或 Enter；保存只含已闭合标记，正在绘制的区域不入快照；触屏事件表现未实测。
 - `tools/ophthalmology/axial-length.html`：仅检查 NaN，眼轴/声速为负或零仍参与运算（零声速致除零）——第1324批已修（calcCorr/calcSeg 两分支要求长度与声速均为正，源码形态强锚 `ALNEG` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：接触压平校正从测量长度减 0.15 mm，与压平造成测值缩短的方向可能矛盾，IOL 输出符号与深解“下调”描述亦需核对。专业假设及公式须临床核验。
 - `tools/ophthalmology/cd-ratio.html:302-327`：越界输入被静默夹到 0–1 而继续给分级；0.5 被单眼标为“青光眼疑似”，综合风险却仅在 `>0.5` 等条件成立，双眼同为 0.5 且未勾选时综合显示未见明显异常，存在自相矛盾。阈值及 ISNT 解释须临床核验。
 - `tools/ophthalmology/iop-correction.html`：清空必填时网格与公式区残留旧值——第1322批已修（`__tbInputGuard` 空值分支与越界分支一致，同步清 `grid`/`formulaList`，源码形态强锚 `IOPCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：各公式及临床适用性未核验。
