@@ -143,6 +143,12 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/advertising/reach-frequency.html\',\'utf8\');var i=h.indexOf(\'function calcMulti(){\');var s=i>=0?h.slice(i,i+420):\'\';var ok=s.indexOf(\'singlePct<0||singlePct>100\')>=0&&s.indexOf(\'multiResult\')>=0&&s.indexOf(\'单次到达率须在 0–100%\')>=0;document.getElementById(\'__tbProbe\').textContent=\'REACH100 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['REACH100 OK'],
   "ref": "第1344批·到达率越界守卫源码形态强锚：旧版 calcMulti 单次到达率>100% 时 notReached 变负、累计到达率振荡超 100%；修复后入口限制 0–100% 与轮次>=1，越界提示并 return。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'advertising/convert-26',
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+\"tools/advertising/convert-26.html\",'utf8');var i=h.indexOf('const px=+document.getElementById(\\\"px\\\")');var seg=i>=0?h.slice(i,i+240):'';var ok=seg.indexOf('!isFinite(dpi)||dpi<=0')>=0&&seg.indexOf('DPI 须为正数')>=0;document.getElementById('__tbProbe').textContent='PXDPIDIV '+(ok?'OK':'BAD');})();"],
+  "expect": ['PXDPIDIV OK'],
+  "ref": "第1346批·分母为零守卫源码形态强锚：旧版 dpi=0 时 mm=px*25.4/0=Infinity，主输出显示「物理尺寸 = Infinity mm」；修复后 dpi 非正提示并 return。旧版无 ⇒ BAD。"
 }
 ];
 async function main() {

@@ -1,5 +1,8 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
+globalThis.__tbRoot = process.cwd();
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -130,6 +133,12 @@ const CASES = [
   clicks: ["var calls=0;globalThis.TBKit={util:{isEn:function(){return false},exportTable:function(){calls++}},history:{record:function(){calls++}}};var d=document.getElementById('duration');d.value='0';generate();__video_converterExport();__video_converterExtras();var a=calls;d.value='10';__video_converterExport();document.getElementById('__tbProbe').textContent='VIDEXPORTV_'+(a===0&&calls===1?'OK':'BAD');"],
   expect: ["VIDEXPORTV_OK"],
   ref: "943再次复核：零时长禁止导出和保存，恢复有效时长后导出可用。"
+},
+{
+  slug: "video/video-speed",
+  clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+'tools/video/video-speed.html','utf8');var i=h.indexOf('const totalSec=totalMs/1000;');var s=i>=0?h.slice(i,i+380):'';var ok=s.indexOf('sp<=0')>=0&&s.indexOf('totalSec<=0')>=0&&s.indexOf('播放速度须为正数')>=0;document.getElementById('__tbProbe').textContent='VIDSPDIV '+(ok?'OK':'BAD');"],
+  expect: ["VIDSPDIV OK"],
+  ref: "第1346批·分母为零守卫：旧版 sp=0 时 newMs=totalMs/0=Infinity、totalSec=0 时 savePct=0/0=NaN%；修复后 sp 与 totalSec 非正均提示并 return。"
 },
 ];
 async function main() {
