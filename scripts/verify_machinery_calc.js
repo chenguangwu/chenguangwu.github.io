@@ -602,6 +602,18 @@ const CASES = [
   { slug: "machinery/lifespan-23", inputs: { vTemp: "130", vRpm: "9000" }, clicks: ["document.getElementById('vOil').value='ester';calc();"], expect: ["润滑寿命不足 500h"], ref: "短寿命提示（667）：寿命 23h < 500h ⇒ advice 追加「润滑寿命不足 500h，建议缩短换油/补油周期并按状态监测」（默认 1300h 不含该串）" },
   { slug: "machinery/power-16", inputs: { pVal: "5.5", n1: "1450", ratio: "10" }, expect: ["几何派生值不适用"], ref: "666 复核（超系列停止派生）：d₁×i=1250>800 ⇒ 中心距/带长/包角显示「—」，总结与复制文本标注几何派生值不适用；默认 i=2.5 不含该串" },
   { slug: "machinery/power-16", inputs: { pVal: "5.5", n1: "6000", ratio: "2" }, expect: ["增大带轮无法降速"], ref: "666 复核（高速不反向增轮）：n₁=6000 ⇒ 最小标准轮径 80mm 下带速 25.1>25；v 与 d₁ 正相关，旧 while 逐档增轮反把带速推高并推到 800mm，现明确提示无法降速；默认 1450rpm 不含该串" },
+{
+  "slug": "machinery/bearing-1",
+  "inputs": {"cVal":"50","pVal":"5","nVal":"1500","bType":"3","reli":"95","aisoVal":"0.8"},
+  "expect": ["512.0","5688.9"],
+  "ref": "C/P=10，L10=1000 百万转；a1(95%)=0.64、aISO=0.8 ⇒ Lnm=0.512×1000=512.0 百万转，Lnmh=512e6/(60×1500)=5688.9 h。默认 90%/aISO=1 得 1000/11111 ⇒ 不命中"
+},
+{
+  "slug": "machinery/bearing-1",
+  "inputs": {"cVal":"50","pVal":"5","nVal":"1500","bType":"3","reli":"90","aisoVal":"0"},
+  "expect": ["aISO 均需大于 0"],
+  "ref": "aISO=0 不得输出修正寿命 0"
+}
 ];
 
 async function main() {

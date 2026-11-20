@@ -331,3 +331,10 @@
 - `printing/analysis-7`、`box-area`、`carton-design`、`convert-gsm`、`ink-coverage`、`sheet-calc` 六页空值/负值/超界与 A4 面积口径已实修。
 - `plastic/blow-molding`、`injection-cycle`、`shrinkage-calc` 三页输入边界与失败态清空已实修。
 - 验证：printing 18/18、plastic 10/10。
+
+
+## 2026-11-21 材料标签/轴承/导线
+
+- `plastic/material-select` 特点标签可点击筛选并动态建项。
+- `machinery/bearing-1` 增加 a₁/aISO 修正寿命 Lnm。
+- `electrical/wire-gauge-selector` 截面扩展至 120 mm²。

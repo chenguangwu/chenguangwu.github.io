@@ -95,7 +95,9 @@
   <a href="../../guides/material-select-guide.html">📖 查看「塑料选型对照 使用指南」</a>
 </div>
 <div class="container">
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}.tag-btn{background:var(--result-bg);border:1px solid var(--border);border-radius:4px;padding:2px 7px;margin:2px;font-size:12px;cursor:pointer;color:var(--text);}
+.tag-btn:hover{border-color:var(--primary);color:var(--primary);}
+</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="chart">图表</button>
   <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
@@ -130,7 +132,7 @@
     </div>
 
     <div class="info-box">
-      <strong>选型提示：</strong>点击性能特点标签可快速筛选，价格仅供参考（相对值 1-5，1最低5最高）。
+      <strong>选型提示：</strong>点击表格中任一性能特点标签即可按该特点筛选；下拉框只列常用特点，标签可覆盖全部特点。价格仅供参考（相对值 1-5，1最低5最高）。
     </div>
 
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__material_selectExport()">导出明细 CSV</button></div><div id="tableArea"></div> <div id="material_selectTable"></div> <div id="material_selectDiff"></div> <div id="material_selectChart"></div> <div id="material_selectHist"></div>
@@ -240,11 +242,24 @@ function renderTable(data) {
   html += '</tr></thead><tbody>';
   data.forEach(function(row) {
     html += '<tr>';
-    row.forEach(function(cell) { html += '<td>' + cell + '</td>'; });
+    row.forEach(function(cell, idx) {
+      if (idx === 7) {
+        html += '<td>' + cell.split(',').map(function(tag) { return '<button type="button" class="tag-btn" onclick="setFilter(\'' + tag + '\')">' + tag + '</button>'; }).join('') + '</td>';
+      } else {
+        html += '<td>' + cell + '</td>';
+      }
+    });
     html += '</tr>';
   });
   html += '</tbody></table>';
   return html;
+}
+
+function setFilter(tag) {
+  var sel = document.getElementById('filterSelect');
+  var opt = Array.prototype.slice.call(sel.options).filter(function(o){ return o.value === tag; })[0];
+  if (!opt) { opt = document.createElement('option'); opt.value = tag; opt.textContent = tag; sel.appendChild(opt); }
+  sel.value = tag; filterData();
 }
 
 function filterData() {

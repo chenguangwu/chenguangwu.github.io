@@ -245,6 +245,12 @@ const CASES = [
   "ref": "需载流量 ≥ 1.25×32 = 40 A → 铜芯穿管序列 [12,18,25,34,45,…] 取 10 mm²（45 A）；45 m 双线压降 = 32×0.0175×45×2/10 = 5.04 V（避开默认 20 A/30 m）"
 },
 {
+  "slug": "electrical/wire-gauge-selector",
+  "inputs": {"I":"150","len":"30"},
+  "expect": ["95 mm² 推荐截面"],
+  "ref": "扩展至 120 mm² 后：1.25×150=187.5 A，铜芯穿管序列 95 mm²=195 A 命中；旧表最大 35 mm² 会直接报超限 ⇒ 强判别"
+},
+{
   "slug": "electrical/wire-resistance",
   "inputs": {
     "rho": "0.0172",

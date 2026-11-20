@@ -121,6 +121,10 @@
       <div><label>转速 n (rpm)</label><input type="number" id="nVal" value="1500" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="转速n" placeholder="如 1500"></div>
       <div><label>轴承类型</label><select id="bType" style="font-size:16px;" onchange="calc()" aria-label="轴承类型"><option value="3">球轴承 (p=3)</option><option value="3.333">滚子轴承 (p=10/3)</option></select></div>
     </div>
+    <div class="input-row">
+      <div><label>目标可靠度</label><select id="reli" style="font-size:16px;" onchange="calc()" aria-label="目标可靠度"><option value="90">90%（a₁=1）</option><option value="95">95%（a₁=0.64）</option><option value="96">96%（a₁=0.55）</option><option value="97">97%（a₁=0.47）</option><option value="98">98%（a₁=0.37）</option><option value="99">99%（a₁=0.25）</option></select></div>
+      <div><label>寿命修正系数 aISO</label><input type="number" id="aisoVal" value="1" step="any" min="0.01" style="font-size:16px;" oninput="calc()" aria-label="寿命修正系数aISO" placeholder="润滑/污染修正，默认 1"></div>
+    </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
@@ -163,22 +167,28 @@
 </div>
 <script>
 var lastResult='';
-var INPUT_IDS=['cVal','pVal','nVal','bType'];
+var INPUT_IDS=['cVal','pVal','nVal','bType','reli','aisoVal'];
 function num(id){var el=document.getElementById(id);var v=parseFloat(el.value);if(isNaN(v)||v<0){el.classList.add('input-error');el.setAttribute('aria-invalid','true');return NaN;}el.classList.remove('input-error');el.removeAttribute('aria-invalid');return v;}
 function getInputs(){var o={};INPUT_IDS.forEach(function(id){o[id]=document.getElementById(id).value;});return o;}
 function setInputs(o){INPUT_IDS.forEach(function(id){if(o[id]!==undefined)document.getElementById(id).value=o[id];});}
 function calc(){
   var C=num('cVal'),P=num('pVal'),n=num('nVal');
   var p=parseFloat(document.getElementById('bType').value);
-  if(isNaN(C)||isNaN(P)||isNaN(n)||C===0||P===0||n===0){
-    document.getElementById('res').innerHTML='<div class="history-empty">请输入有效的正数（C、P、n 均需大于 0）</div>';
+  var aiso=num('aisoVal');
+  if(isNaN(C)||isNaN(P)||isNaN(n)||C===0||P===0||n===0||isNaN(aiso)||aiso<=0){
+    document.getElementById('res').innerHTML='<div class="history-empty">请输入有效的正数（C、P、n 与 aISO 均需大于 0）</div>';
     lastResult='';return;
   }
+  var reli=parseFloat(document.getElementById('reli').value);
+  var a1Map={90:1,95:0.64,96:0.55,97:0.47,98:0.37,99:0.25};
+  var a1=a1Map[reli]||1;
   var ratio=C/P;
   var L10=Math.pow(ratio,p);
   var L10h=L10*1e6/(60*n);
   var L10y=L10h/8760;
   var revs=L10*1e6;
+  var Lnm=a1*aiso*L10;
+  var Lnmh=Lnm*1e6/(60*n);
   var pStr=p===3?'3':'10/3';
   var fmt=function(v){if(v>=1e8)return(v/1e8).toFixed(2)+' 亿';if(v>=1e4)return(v/1e4).toFixed(2)+' 万';return v.toFixed(1);};
   const __g2='<div class="data-grid">'+
@@ -191,11 +201,16 @@ function calc(){
     '<div class="data-card"><div class="num">'+L10y.toFixed(2)+'</div><div class="label">L₁₀y 寿命（年）</div></div>'+
     '<div class="data-card"><div class="num">'+pStr+'</div><div class="label">寿命指数 p</div></div>'+
     '</div>'+
-    '<div class="info-box" style="margin-top:10px;">📌 指数说明：球轴承 p=3；滚子轴承 p=10/3≈3.33。寿命按 90% 可靠度、24 小时连续运行估算。</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  lastResult='轴承额定寿命：\n载荷比 C/P = '+ratio.toFixed(2)+'\nL10 = '+L10.toFixed(1)+' 百万转\nL10h = '+fmt(L10h)+' 小时\nL10y = '+L10y.toFixed(2)+' 年';
+    '<div class="data-grid" style="margin-top:8px;">'+
+    '<div class="data-card"><div class="num">'+Lnm.toFixed(1)+'</div><div class="label">Lnm 修正寿命（百万转）</div></div>'+
+    '<div class="data-card"><div class="num">'+fmt(Lnmh)+'</div><div class="label">Lnmh 修正寿命（小时）</div></div>'+
+    '<div class="data-card"><div class="num">'+(a1*aiso).toFixed(3)+'</div><div class="label">a₁×aISO</div></div>'+
+    '</div>'+
+    '<div class="info-box" style="margin-top:10px;">📌 指数说明：球轴承 p=3；滚子轴承 p=10/3≈3.33。L₁₀ 按 90% 可靠度；Lnm=a₁×aISO×L₁₀，a₁ 随目标可靠度降低，aISO 由润滑/污染/载荷条件修正（默认 1 表示不作修正）。寿命按 24 小时连续运行估算。</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  lastResult='轴承额定寿命：\n载荷比 C/P = '+ratio.toFixed(2)+'\nL10 = '+L10.toFixed(1)+' 百万转\nL10h = '+fmt(L10h)+' 小时\nL10y = '+L10y.toFixed(2)+' 年\n修正寿命 Lnm = '+Lnm.toFixed(1)+' 百万转（可靠度 '+reli+'%，a1='+a1+'，aISO='+aiso+'）\nLnmh = '+fmt(Lnmh)+' 小时';
 }
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
-function resetAll(){document.getElementById('cVal').value=50;document.getElementById('pVal').value=5;document.getElementById('nVal').value=1500;document.getElementById('bType').value='3';INPUT_IDS.forEach(function(id){var el=document.getElementById(id);el.classList.remove('input-error');el.removeAttribute('aria-invalid');});calc();ToolBox.showToast(i18nText(),'info');}
+function resetAll(){document.getElementById('cVal').value=50;document.getElementById('pVal').value=5;document.getElementById('nVal').value=1500;document.getElementById('bType').value='3';document.getElementById('reli').value='90';document.getElementById('aisoVal').value='1';INPUT_IDS.forEach(function(id){var el=document.getElementById(id);el.classList.remove('input-error');el.removeAttribute('aria-invalid');});calc();ToolBox.showToast(i18nText(),'info');}
 function historyKey(){try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_bearing1';}}
 function historySummary(){return 'C='+document.getElementById('cVal').value+'kN  P='+document.getElementById('pVal').value+'kN  n='+document.getElementById('nVal').value+'rpm';}
 function saveHistory(){
@@ -352,7 +367,7 @@ function __bearing_1Export(){
 function __bearing_1Presets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#bearing_1Presets',[
-      {label:'默认参数',labelEn:'Default',values:{'cVal':'50', 'pVal':'5', 'nVal':'1500', 'bType':'3'}},
+      {label:'默认参数',labelEn:'Default',values:{'cVal':'50', 'pVal':'5', 'nVal':'1500', 'bType':'3', 'reli':'90', 'aisoVal':'1'}},
       {label:'电机端·6208球轴承·29kN·4kN·2900rpm',labelEn:'Motor side · 6208 ball · 29kN · 4kN · 2900rpm',values:{'cVal':'29', 'pVal':'4', 'nVal':'2900', 'bType':'3'}},
       {label:'输送机·22215滚子·155kN·25kN·500rpm',labelEn:'Conveyor · 22215 roller · 155kN · 25kN · 500rpm',values:{'cVal':'155', 'pVal':'25', 'nVal':'500', 'bType':'3.333'}},
       {label:'减速机·6206球轴承·19.5kN·3kN·1000rpm',labelEn:'Gearbox · 6206 ball · 19.5kN · 3kN · 1000rpm',values:{'cVal':'19.5', 'pVal':'3', 'nVal':'1000', 'bType':'3'}}
