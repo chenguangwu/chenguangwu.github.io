@@ -352,10 +352,13 @@ function __loan_remaining_balanceNum(id){var e=document.getElementById(id);var v
 function __loan_remaining_balanceExtras(){
     function __loan_remaining_balanceRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var P = num('p'), r = num('r') / 100 / 12, N = num('y') * 12, k = num('k');
-    var emi = P * r * Math.pow(1 + r, N) / (Math.pow(1 + r, N) - 1);
-    var B = P * Math.pow(1 + r, k) - emi * (Math.pow(1 + r, k) - 1) / r;
-    if (!isFinite(__loan_remaining_balanceNum('p')) || !isFinite(__loan_remaining_balanceNum('r')) || !isFinite(__loan_remaining_balanceNum('y')) || !isFinite(__loan_remaining_balanceNum('k'))) return;
+    var P = num('p'), r = num('r') / 100 / 12, N = Math.round(num('y') * 12), k = num('k');
+    if (!isFinite(__loan_remaining_balanceNum('p')) || !isFinite(__loan_remaining_balanceNum('r')) || !isFinite(__loan_remaining_balanceNum('y')) || !isFinite(__loan_remaining_balanceNum('k')) || !(P > 0) || !(N > 0) || r < 0 || k < 0 || k > N || k !== Math.round(k)) {
+        var tb0 = document.getElementById('loan_remaining_balanceTable'); if (tb0) tb0.innerHTML = '';
+        return;
+    }
+    var emi = r > 0 ? P * r * Math.pow(1 + r, N) / (Math.pow(1 + r, N) - 1) : P / N;
+    var B = r > 0 ? P * Math.pow(1 + r, k) - emi * (Math.pow(1 + r, k) - 1) / r : P - emi * k;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#loan_remaining_balanceTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -371,6 +374,11 @@ function __loan_remaining_balanceExtras(){
 }
 function __loan_remaining_balanceExport(){
     if (typeof TBKit === 'undefined') return;
+    var box=document.querySelector('#loan_remaining_balanceTable');
+    if(!box||!box.querySelector('tr')||/NaN|Infinity/.test(box.textContent||'')){
+        if(typeof ToolBox!=='undefined'&&ToolBox.showToast){ToolBox.showToast('当前无可导出的有效明细，请先修正输入并计算');}
+        return;
+    }
     try { TBKit.util.exportTable('#loan_remaining_balanceTable','loan-remaining-balance.csv'); } catch(e){}
 }
 function __loan_remaining_balancePresets(){

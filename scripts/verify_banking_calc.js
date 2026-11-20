@@ -447,7 +447,14 @@ const CASES = [
   "inputs": { "muni": "", "tax": "" },
   "expect": ["请填写「免税收益率」后再计算。"],
   "ref": "空态守卫：清空 muni/tax 后必须提示，不得渲染 0.000 结构化零值。"
+},
+{
+  "slug": "banking/loan-remaining-balance",
+  "inputs": {"p":"500000","r":"0","y":"30","k":"60"},
+  "expect": ["416666.67"],
+  "ref": "零利率：B=P−P/N×k=500000−500000/360×60=416666.67；旧 Extras 的 emi 公式 0÷0 会得 NaN，表格与导出一并失真"
 }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

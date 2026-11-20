@@ -47,3 +47,8 @@
 
 ### 续查覆盖
 - 新抽查 `tools/banking/credit-card-interest-monthly.html`、`tools/banking/debt-to-income.html`、`tools/banking/tax-equivalent-yield.html`、`tools/investment/sortino-ratio.html`、`tools/investment/geometric-mean-return.html`、`tools/investment/profitability-index.html`、`tools/securities/max-drawdown.html`、`tools/securities/margin-requirement.html` 共 8 页；8 页复核未发现新的计算缺陷；B-F1/B-F2 编号在现有台账中已失联（无对应条目），按陈旧引用关闭。
+
+
+## 2026-11-21 剩余本金零利率
+
+- `banking/loan-remaining-balance` 明细表补零利率分支；无效输入清空表；导出前校验有效行与 NaN/Infinity。

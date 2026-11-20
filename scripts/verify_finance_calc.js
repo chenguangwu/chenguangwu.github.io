@@ -5080,7 +5080,14 @@ const CASES = [
     ref: "第1344批 分支残留：凯利模式 ratio<=0 早退分支原只写 #res 就 return，#statGrid 保留上次合法计算的统计卡（martingale 分支有清，口径不一）；改为早退同步清空 statGrid。",
   },
 
-{ slug:"finance/profit-margin-calculator", inputs:{"revenue":"","cogs":"","sellingExp":"","adminExp":"","rdExp":"","finExp":"","da":"","taxRate":"","revRev":"","targetMargin1":"","expRatio1":"","costCost":"","targetMargin2":"","taxRate2":"","batchStart":"","batchEnd":"","batchStep":"","batchM1":"","batchM2":"","batchM3":"","batchM4":"","dupontNI":"","dupontRev":"","dupontAssets":"","dupontEquity":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"finance/profit-margin-calculator", inputs:{"revenue":"","cogs":"","sellingExp":"","adminExp":"","rdExp":"","finExp":"","da":"","taxRate":"","revRev":"","targetMargin1":"","expRatio1":"","costCost":"","targetMargin2":"","taxRate2":"","batchStart":"","batchEnd":"","batchStep":"","batchM1":"","batchM2":"","batchM3":"","batchM4":"","dupontNI":"","dupontRev":"","dupontAssets":"","dupontEquity":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+  {
+    slug: "finance/installment-real-rate",
+    inputs: { P: "12000", n: "12", r: "0.6" },
+    expect: ["不同期数对比", "36", "有效年化"],
+    ref: "多期数并排：同一本金与每期费率下列出 6/12/24/36 期的每期还款、总手续费与有效年化；锁定功能不回退。"
+  },
+
 ];
 
 // ---------------------------------------------------------------- main

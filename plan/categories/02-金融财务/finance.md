@@ -368,3 +368,8 @@
 
 - `finance/npv-calculator` 现金流补 id，历史可回放全部期数。
 - `finance/payroll-calculator` 输出年终奖单独/并入两种税额与更优方式。
+
+
+## 2026-11-21 分期多期数对比
+
+- `finance/installment-real-rate` 新增 6/12/24/36 期并排对比表。

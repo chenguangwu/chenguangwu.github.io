@@ -340,6 +340,33 @@ function calcTool(){const P=num('P'), nRaw=num('n'), n=Math.floor(nRaw);
    // 名义 vs 实际对比
    html += '<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+
      '名义费率年化 '+(nominal).toFixed(2)+'%　→　实际年化（有效，按月复利）'+(ear*100).toFixed(2)+'%　（放大 '+(ear*100/Math.max(nominal,0.0001)).toFixed(2)+' 倍）；单利近似 ×12 = '+irrAnnual.toFixed(2)+'%（仅供对照）</div>';
+   // 多期数并排（同一本金、同一每期费率）
+   function irrForTerm(m){
+     var pm=P/m+fee;
+     if(fee===0) return 0;
+     var lo=0, hi=1.0;
+     for(var it=0; it<80; it++){
+       var mid=(lo+hi)/2;
+       var pv=pm*(1-Math.pow(1+mid,-m))/mid;
+       if(pv>P) lo=mid; else hi=mid;
+     }
+     return (lo+hi)/2;
+   }
+   html += '<div style="margin-top:12px;font-size:13px;"><b>不同期数对比（本金与每期费率相同）</b></div>'+
+     '<table class="csv-prev" style="margin-top:6px;border-collapse:collapse;width:100%;font-size:12.5px;">'+
+     '<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">期数</th>'+
+     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">每期还款</th>'+
+     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">总手续费</th>'+
+     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">有效年化</th></tr>';
+   [6,12,24,36].forEach(function(m){
+     var im=irrForTerm(m), ea=(Math.pow(1+im,12)-1)*100;
+     html += '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+m+(m===n?'（当前）':'')+'</td>'+
+       '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+fmtMoney(P/m+fee)+'</td>'+
+       '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+fmtMoney(fee*m)+'</td>'+
+       '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+ea.toFixed(2)+'%</td></tr>';
+   });
+   html += '</table>';
+
    // 前 12 期还款明细表
    const showN=Math.min(n,12);
    html += '<div style="margin-top:12px;font-size:13px;"><b>还款明细（前 '+showN+' 期 / 共 '+n+' 期）</b></div>'+
