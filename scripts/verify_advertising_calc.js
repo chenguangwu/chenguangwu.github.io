@@ -149,6 +149,12 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+\"tools/advertising/convert-26.html\",'utf8');var i=h.indexOf('const px=+document.getElementById(\\\"px\\\")');var seg=i>=0?h.slice(i,i+240):'';var ok=seg.indexOf('!isFinite(dpi)||dpi<=0')>=0&&seg.indexOf('DPI 须为正数')>=0;document.getElementById('__tbProbe').textContent='PXDPIDIV '+(ok?'OK':'BAD');})();"],
   "expect": ['PXDPIDIV OK'],
   "ref": "第1346批·分母为零守卫源码形态强锚：旧版 dpi=0 时 mm=px*25.4/0=Infinity，主输出显示「物理尺寸 = Infinity mm」；修复后 dpi 非正提示并 return。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'advertising/reach-frequency',
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+\"tools/advertising/reach-frequency.html\",'utf8');var i=h.indexOf('function copyBasic(){');var s=i>=0?h.slice(i,i+320):'';var ok=s.indexOf('pop>0?(reach/pop*100):0')>=0&&s.indexOf('reach>0?(imp/reach):0')>=0;document.getElementById('__tbProbe').textContent='REACHCPY '+(ok?'OK':'BAD');"],
+  "expect": ['REACHCPY OK'],
+  "ref": "第1347批·复制与页面不同源：旧版 copyBasic 裸算 reach/pop 与 imp/reach，reach=0 时复制「频次:Infinity」；主 calcBasic 已用 reach>0 守卫。修复后 copyBasic 与 calcBasic 同源，零值取 0。"
 }
 ];
 async function main() {
