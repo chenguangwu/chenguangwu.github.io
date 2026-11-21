@@ -55,7 +55,7 @@
 - `tools/ophthalmology/tear-breakup-time.html`：清空首次值未清参考标尺 `resultRefBar`——第1323批已修（清空分支同步清 `resultRefBar`，源码形态强锚 `TBUTCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。10 秒在代码中为正常而表格/FAQ/图例写 >10 正常——第 130 批已统一为 ≥10（强锚 `TB10` 已落 ophthalmology verify）。干眼分级、用药建议和阈值仍须临床复核。
 - `tools/ophthalmology/vision-screening-21.html`：清空历史不清趋势容器、旧图留存——第1326批已修（__vsClearHist 同步清 `#__vsTrend`，源码形态强锚 `VSCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。所有未答题默认“从不”、可连点生成完整结论——第 128 批已修（频率下拉增加空占位，`recordCurrent` 未选齐左右眼即拦截并提示；运行时用例 `VSUNANS` 已落 ophthalmology verify）。问卷到近视度数、置信带与散光轴位的医学有效性无本次证据，须专业复核。
 - `tools/ophthalmology/visual-field-analysis.html`：仅检查 NaN，VFI 越界/PSD 负值仍进分级——第1325批已修（要求 PSD≥0、VFI∈[0,100]，MD 负值按习惯保留，源码形态强锚 `VFIDOM` 已落 ophthalmology verify；旧版无 ⇒ BAD）。HAP 等医学分期及界限须专业复核。
-- `tools/optical/accommodation-amplitude.html`：年龄清空经 `||0` 当成 0 岁继续出结果——第1318批已修（原始串判空+年龄正数守卫，强锚 `AAGUARD` 已落 optical verify；旧版无 `__ageRaw` ⇒ BAD）。余项：非正参考调节幅度对应近点被写成固定 999cm，60 岁还给出完全下加光建议；深解的 30 岁数值及引据表公式与实际公式不一致，医学适用性须验光专业复核。实测调节值为选填，本批未动。
+- `tools/optical/accommodation-amplitude.html`：年龄清空经 `||0` 当成 0 岁继续出结果——第1318批已修（原始串判空+年龄正数守卫，强锚 `AAGUARD` 已落 optical verify；旧版无 `__ageRaw` ⇒ BAD）。非正参考调节幅度对应近点被写成固定 999cm——第 136 批已将负幅度夹到 0、近点显示 ∞（用例已落 optical verify）。深解的 30 岁数值及引据表公式与实际公式不一致，医学适用性仍须验光专业复核。实测调节值为选填，未动。
 - `tools/optical/anti-fatigue-design.html`：基础模式空年龄默认 0、空或 0 工作距离默认 40cm——第1318批已修（年龄/距离/远用度数三处原始判空+年龄与距离正数守卫，远用度数允许 0 与负值，强锚 `AFGUARD` 已落 optical verify；旧版无 `__ageRaw` ⇒ BAD）。基础 ADD 先封顶 1D 使渐进片建议不可达——第 132 批已修（保留封顶前原始需求，`>1.00D` 提示改用渐进片；用例已落 optical verify）。余项：基础远用度数 `rx` 读取后未使用，进阶近距隐斜只展示不参与建议。所述验配方法、隐斜处理和建议须专业复核。
 
 ## 2026-11-06 眼科工具静态续审

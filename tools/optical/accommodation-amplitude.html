@@ -320,11 +320,12 @@ function calc(){
     return;
   }
   var measured = parseFloat(document.getElementById('measured').value);
-  var minA = hofMin(age);
-  var avgA = hofAvg(age);
-  var maxA = hofMax(age);
-  var npMin = minA > 0 ? 100/minA : 999;
-  var npAvg = avgA > 0 ? 100/avgA : 999;
+  // Hofstetter 线性公式在高龄会给出负幅度；生理幅度下限为 0，负值无意义，统一夹到 0。
+  var minA = Math.max(0, hofMin(age));
+  var avgA = Math.max(0, hofAvg(age));
+  var maxA = Math.max(0, hofMax(age));
+  var npMinTxt = minA > 0 ? (100/minA).toFixed(1) : '∞';
+  var npAvgTxt = avgA > 0 ? (100/avgA).toFixed(1) : '∞';
 
   var html = '<div class="data-grid">';
   html += '<div class="data-card"><div class="num" style="color:var(--danger);">'+minA.toFixed(2)+'</div><div class="label">最小调节幅度(D)</div></div>';
@@ -332,8 +333,8 @@ function calc(){
   html += '<div class="data-card"><div class="num" style="color:var(--success);">'+maxA.toFixed(2)+'</div><div class="label">最大调节幅度(D)</div></div>';
   html += '</div>';
   html += '<div class="stat-grid">';
-  html += '<div class="stat-card"><div class="val">'+npMin.toFixed(1)+'</div><div class="lbl">最小幅度近点(cm)</div></div>';
-  html += '<div class="stat-card"><div class="val">'+npAvg.toFixed(1)+'</div><div class="lbl">平均幅度近点(cm)</div></div>';
+  html += '<div class="stat-card"><div class="val">'+npMinTxt+'</div><div class="lbl">最小幅度近点(cm)</div></div>';
+  html += '<div class="stat-card"><div class="val">'+npAvgTxt+'</div><div class="lbl">平均幅度近点(cm)</div></div>';
   html += '</div>';
 
   if(!isNaN(measured) && measured > 0){
@@ -349,7 +350,7 @@ function calc(){
   }
 
   if(minA <= 0){
-    html += '<div class="tip-box tip-warn">该年龄最小调节幅度≤0，调节功能基本丧失，需完全下加光矫正近视力。</div>';
+    html += '<div class="tip-box tip-warn">该年龄最小调节幅度为 0（Hofstetter 公式已到/超过零线），调节功能基本丧失，需完全下加光矫正近视力；近点记为 ∞ 而非有限厘米数。</div>';
   }
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
   drawCurve(age);
