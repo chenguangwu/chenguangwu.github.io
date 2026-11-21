@@ -480,7 +480,14 @@ function applySupplyPreset(kind){
       {n:'糖浆',u:'瓶',s:3,r:0.5,p:'month',t:1}
     ]:null;
   if(!sc)return;
-  supplies=sc.map(function(x,i){return {id:Date.now()+i,name:x.n,unit:x.u,stock:x.s,rate:x.r,period:x.p,threshold:x.t,createdAt:Date.now()};});
+  // 预设只补充/同名更新，不再清空用户自建的其他用品
+  if(supplies.length && !confirm('已有用品清单，预设将补充缺少项并覆盖同名项，是否继续？')) return;
+  var byName={}; supplies.forEach(function(s){byName[s.name]=s;});
+  sc.forEach(function(x,i){
+    var hit=byName[x.n];
+    if(hit){hit.unit=x.u;hit.stock=x.s;hit.rate=x.r;hit.period=x.p;hit.threshold=x.t;}
+    else supplies.push({id:Date.now()+i,name:x.n,unit:x.u,stock:x.s,rate:x.r,period:x.p,threshold:x.t,createdAt:Date.now()});
+  });
   saveSup();render();
 }
 load();

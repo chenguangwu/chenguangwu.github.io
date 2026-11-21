@@ -219,15 +219,20 @@ function numberToChinese(num) {
   }
   return str.replace(/零+$/, '');
 }
+function moneyUpper(n){
+  return numberToChinese(n).replace(/零|一|二|三|四|五|六|七|八|九|十|百|千|万/g,function(c){
+    return ({'零':'零','一':'壹','二':'贰','三':'叁','四':'肆','五':'伍','六':'陆','七':'柒','八':'捌','九':'玖','十':'拾','百':'佰','千':'仟','万':'万'})[c];
+  });
+}
 function gen() {
   const unitPrice = parseFloat(document.getElementById('unitPrice').value);
   const qty = parseFloat(document.getElementById('qty').value);
   const taxRate = parseFloat(document.getElementById('taxRate').value);
   const discountRate = parseFloat(document.getElementById('discountRate').value);
-  const n = parseInt(document.getElementById('cnt').value);
+  const n = Number(document.getElementById('cnt').value);
   if (!isFinite(unitPrice) || !isFinite(qty) || !isFinite(taxRate) || !isFinite(discountRate) || !isFinite(n)
       || unitPrice < 0 || qty < 1 || Math.floor(qty) !== qty || taxRate < 0 || taxRate > 100
-      || discountRate < 0 || discountRate > 100 || n < 1 || n > 50) {
+      || discountRate < 0 || discountRate > 100 || !Number.isInteger(n) || n < 1 || n > 50) {
     document.getElementById('res').innerHTML = '<p style="color:var(--danger)">请输入完整的单价、数量（正整数）、税率（0–100%）与折扣率（0–100%），生成数量需为 1–50 的整数。</p>';
     return;
   }
@@ -244,7 +249,7 @@ function gen() {
     + '<span class="t-zh"><strong>计价明细</strong><br>'
     + '小计：' + fmt(subtotal) + ' 元；折扣（' + discountRate + '%）：−' + fmt(discountAmt) + ' 元；'
     + '税额（' + taxRate + '%）：+' + fmt(taxAmt) + ' 元<br>'
-    + '<strong>合同总额：¥' + fmt(total) + '</strong>（大写：' + numberToChinese(total) + '元整）<br>'
+    + '<strong>合同总额：¥' + fmt(total) + '</strong>（大写：' + moneyUpper(total) + '元整）<br>'
     + '预付款（30%）：¥' + fmt(deposit) + '；尾款：¥' + fmt(finalPrice) + '；违约金（10%）：¥' + fmt(penalty)
     + '</span><span class="t-en"><strong>Pricing breakdown</strong><br>'
     + 'Subtotal: CNY ' + fmt(subtotal) + '; discount (' + discountRate + '%): −' + fmt(discountAmt)
@@ -253,10 +258,11 @@ function gen() {
     + 'Deposit (30%): CNY ' + fmt(deposit) + '; balance: CNY ' + fmt(finalPrice) + '; penalty (10%): CNY ' + fmt(penalty)
     + '</span></span></div><p style="margin-bottom:8px;">合同条款草案：</p>';
   const services = ['网站开发','UI设计','品牌策划','法律咨询','翻译服务','摄影摄像','培训课程','家政保洁','搬家运输','设备维修'];
-  const serviceBatch = services.slice().sort(function(){ return Math.random() - 0.5; });
+  // 固定顺序而非随机排序：相同输入得到相同草案，便于核对与复现
+  const serviceBatch = services;
   for (let i = 0; i < n; i++) {
     const service = serviceBatch[i % serviceBatch.length];
-    const duration = randInt(7, 90);
+    const duration = 7 + ((i * 13 + Math.floor(total)) % 84);
     html += `<div style="margin:8px 0;padding:10px;background:var(--bg-hover);border-radius:8px;">
       <strong>${i+1}. 《${service}合同》草案</strong>
       <pre style="margin:6px 0 0;white-space:pre-wrap;word-break:break-all;font-size:12px;">合同编号：HT-${String(randInt(1000,9999)).padStart(4,'0')}-${String(randInt(1000,9999)).padStart(4,'0')}
@@ -265,7 +271,7 @@ function gen() {
 乙方为甲方提供${service}服务，具体需求以双方确认的《需求确认单》为准。
 
 第二条 合同金额
-本合同总金额为人民币 ${total.toLocaleString()} 元（大写：${numberToChinese(total)}元整），其中小计 ${fmt(subtotal)} 元、折扣 ${fmt(discountAmt)} 元、税额 ${fmt(taxAmt)} 元。
+本合同总金额为人民币 ${total.toLocaleString()} 元（大写：${moneyUpper(total)}元整），其中小计 ${fmt(subtotal)} 元、折扣 ${fmt(discountAmt)} 元、税额 ${fmt(taxAmt)} 元。
 
 第三条 付款方式
 1. 合同签订后 3 个工作日内，甲方向乙方支付预付款 ${deposit.toLocaleString()} 元；
