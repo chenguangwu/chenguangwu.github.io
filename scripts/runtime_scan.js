@@ -806,7 +806,7 @@ function ENTITY_ADD_FN() {
   });
   // 列表签名＝行数 + 列表容器文本（innerHTML 整块重渲染时行数可能不变，文本一定变）
   const snapList = () => {
-    const rows = document.querySelectorAll('table tbody tr, .item-row, .list-item, [role="listitem"], .row-item, [id*="list" i] > *').length;
+    const rows = document.querySelectorAll('.item-row, .list-item, .dynamic-row, .record-item').length;
     let txt = '';
     for (const box of document.querySelectorAll('[id*="list" i]')) txt += '|' + String(box.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 200);
     return { rows, sig: rows + '#' + txt };
@@ -946,7 +946,7 @@ function RESET_TEST_FN() {
           if (t === 'checkbox' || t === 'radio') return t + ':' + (x.checked ? '1' : '0');
           return String(x.value || '');
         });
-      const rows = document.querySelectorAll('table tbody tr, .item-row, .list-item').length;
+      const rows = document.querySelectorAll('.item-row, .list-item, .dynamic-row, .record-item').length;
       return vals.concat(['rows:' + rows]);
     };
     const v1 = read();
@@ -1020,6 +1020,11 @@ function EXPORT_TEST_FN() {
 
 async function scanInteract(page, rel) {
   const rec = { file: rel, status: 'ok', kind: 'ok', issues: [], inputs: 0, errors: [], empty: null, valid: null, buttons: {}, deadControls: [] };
+  // 重定向存根只有 meta refresh/跳转脚本，交互与重置都属于目标页，不应拿它当独立工具页记缺陷
+  try {
+    const source = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    if (/TOOLBOX-REDIRECT|http-equiv=["']refresh["']/i.test(source.slice(0, 6000))) { rec.kind = 'redirect'; return rec; }
+  } catch (_) {}
   const issue = (t) => { if (!rec.issues.includes(t)) rec.issues.push(t); };
   const PRIORITY = ['click_error', 'no_effect', 'empty_bogus', 'empty_conclusion', 'sel_default_zero', 'copy_dead', 'export_dead', 'reset_dead', 'no-primary-button'];
   const t0 = Date.now();
