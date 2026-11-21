@@ -425,6 +425,24 @@ const CASES = [
   "ref": "第1324批·负眼轴/负声速参与运算修复源码形态强锚：原两分支只拦 NaN，负声速/零声速可致除零与荒谬 IOL 影响；修复后眼轴与声速须为正数。旧版无 ⇒ BAD。"
 },
 {
+  "slug": "ophthalmology/axial-length",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/axial-length.html','utf8');var a=h.indexOf('function calcCorr(){'),b=h.indexOf('function calcSeg(){');var seg=a>=0?h.slice(a,b):'';var ok=seg.indexOf('alCorr+=comp')>=0&&seg.indexOf('约下调')>=0;document.getElementById('__tbProbe').textContent='ALFLAT '+(ok?'OK':'BAD');})();"],
+  "expect": ["ALFLAT OK"],
+  "ref": "第198批·接触压平方向修复源码形态强锚：压平使测得眼轴偏短，真值应加回 0.15mm；旧版 alCorr-=comp ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/astigmatism-chart",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/astigmatism-chart.html','utf8');var i=h.indexOf('function computeAxis(');var seg=i>=0?h.slice(i,i+1400):'';var ok=seg.indexOf('* 2 * Math.PI')>=0&&seg.indexOf('* 90 / Math.PI')>=0;document.getElementById('__tbProbe').textContent='ASDOUBLE '+(ok?'OK':'BAD');})();"],
+  "expect": ["ASDOUBLE OK"],
+  "ref": "第198批·散光轴位对侧射线抵消修复源码形态强锚：轴向数据先倍角再平均；旧版直接 sin/cos 单角 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/amsler-grid-test",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/amsler-grid-test.html','utf8');var i=h.indexOf(\"$('amSave').addEventListener('click'\");var seg=i>=0?h.slice(i,i+420):'';var ok=seg.indexOf('closePoly()')>=0&&seg.indexOf('不足 3 个点')>=0;document.getElementById('__tbProbe').textContent='AMSAVE '+(ok?'OK':'BAD');})();"],
+  "expect": ["AMSAVE OK"],
+  "ref": "第198批·未闭合区域不入快照修复源码形态强锚：保存前先闭合绘制中多边形，不足 3 点则提示不保存；旧版直接读取已闭合 anns ⇒ BAD。"
+},
+{
   "slug": "ophthalmology/visual-field-analysis",
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/visual-field-analysis.html','utf8');var ok=h.indexOf('psd<0||vfi<0||vfi>100')>=0&&h.indexOf('VFI 须在 0–100% 之间')>=0;document.getElementById('__tbProbe').textContent='VFIDOM '+(ok?'OK':'BAD');})();"],
   "expect": ["VFIDOM OK"],

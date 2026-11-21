@@ -425,21 +425,23 @@
   canvas.addEventListener('touchstart', onTap, { passive: false });
 
   /* ---------- 估算轴位 ---------- */
-  // 思路：把每条被标记的射线方向当作一个单位向量，求向量平均得到“模糊主方向”。
-  // 规则散光中，最模糊的线条所在经线 ≈ 散光轴位（即该方向屈光力最大/最不规则的方向）。
-  // 因此我们报告：模糊主方向(扇区角) 与 估算轴位(同一角度，记为该方向经线)。
+  // 思路：散光轴位是「轴向」数据（0° 与 180° 同义），不能直接把射线单位向量相加：
+  // 180° 相反的两条射线会互相抵消，得到无意义的平均方向。故先把角度加倍到
+  // 0–360 的圆上求平均，再除以 2 折回 0–180，得到对侧方向等价的模糊主轴。
   function computeAxis() {
     var m = getMarked();
     if (!m.length) { return null; }
     var sx = 0, sy = 0;
     for (var i = 0; i < m.length; i++) {
-      var a = angleOf(m[i]) * Math.PI / 180;
-      sx += Math.sin(a); sy += Math.cos(a); // 用 cos 表示“向上”分量，匹配 0=上
+      var a = angleOf(m[i]) * 2 * Math.PI / 180;
+      sx += Math.sin(a); sy += Math.cos(a);
     }
-    var ang = Math.atan2(sx, sy) * 180 / Math.PI; // 0=上，顺时针
-    if (ang < 0) { ang += 360; }
+    if (Math.abs(sx) < 1e-12 && Math.abs(sy) < 1e-12) { return null; }
+    var ang = Math.atan2(sx, sy) * 90 / Math.PI; // 加倍后再除以 2，结果落在 0–180
+    if (ang < 0) { ang += 180; }
     // 轴位规范到 0–180（验光惯例）
     var axis = ang % 180;
+    if (axis < 0) { axis += 180; }
     if (axis < 0) { axis += 180; }
     // 展开方向范围（最大-最小角度跨度，处理环绕）
     var sorted = m.map(angleOf).slice().sort(function (a, b) { return a - b; });
