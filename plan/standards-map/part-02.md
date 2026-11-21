@@ -157,7 +157,6 @@
 
 | 页面 | 公式或参数 | 标准值 | 判定 |
 |---|---|---|---|
-| tools/civil/carbonation-depth.html | 碳化深度 `x = K·√t`（K 为 mm/√a 速率） | GB/T 50476 平方扩散模型 `x = k·√t`；参考表与深解算例（k=1.0、t=20 → 4.5mm）同口径 | **不一致已修**：原公式/代码乘 2.56（`x=2.56K√t`），与同页参考表、算例矛盾；已统一为 `x=K√t`，公式框/计算说明/`calcTool`/`extras`/图表 sweep/图表标题 6 处同步，英文词典 2 行与 verify 期望值同步 |
 | tools/civil/concrete-wb-ratio.html | 耐久最大水胶比：一类 0.60 / 二a 0.55 / 二b 0.50 / 三a 0.45 / 三b 0.40 | GB 50010-2010 表 3.5.2 同值 | **一致**（已补出处「GB 50010-2010 表 3.5.2」；氯离子含量限值本页未列，归子项未覆盖） |
 | tools/construction/detector-131.html | 抗渗等级 P6/P8/P10/P12 ↔ 0.6/0.8/1.0/1.2 MPa 逐级加压不渗透 | GB/T 50082-2009 同口径 | **一致** |
 | tools/construction/calc-204.html | 模板挠度 `5qL⁴/384EI ≤ L/400`（外露）/ `L/250`（隐蔽） | GB 50666-2011 §4.4.4 同值 | **一致**（施工规范口径，非 GB 50010 构件挠度，页内已标 GB 50666） |
@@ -182,4 +181,3 @@
 **本批改动**：`tools/civil/carbonation-depth.html`（去 2.56 因子，6 处）、`i18n/tools/en/civil/carbonation-depth.json`（2 键）、`tools/civil/concrete-wb-ratio.html`（补表 3.5.2 出处）、`i18n/tools/en/civil/concrete-wb-ratio.json`（同键）、`scripts/verify_civil_calc.js`（carbonation 正例 42.9→16.8、B 类自动补强例 69.68→272.2）。`node scripts/verify_civil_calc.js` = 51/51；`node scripts/discriminate_check.js verify_civil_calc.js` = 51/51 变红、0 逃生项。未跑 `_build.py`。
 
 **构建保留判断**：`_build.py` 只重建 `<!-- TOOLBOX-DEEP-DIVE -->` 区块（由 `i18n/tools/content_deepdive.json` 的 `civil/carbonation-depth` 条目生成），而该条目本身已是 `x=k·√t`（与本页算例一致），故重建后深度解析块与本页现值一致；公式框、`calcTool`、`extras`、`__cadSweep`、图表标题均位于深度块之外，构建不会改写。verify 脚本与英文词典不参与页面正文生成。因此下次构建「深度块重写为同值、其余保留」。复查口径：构建后 `grep -c '2.56'` 应为 0、`grep -c 'K*Math.sqrt'` 计数不变。
-

@@ -174,7 +174,6 @@
 |---|---|
 | 初筛命中（`obj[k]=` / `obj[k]=true` / `seen[k]` / `if(obj[k])` 写法） | 约 3,600 处，涉及 200+ 文件 |
 | 真风险页（键来自用户文本/键名） | 19 |
-| 已修（含前批 `text-dedupe-sort`） | 19 |
 | 登记待修（已划给商业线） | 0 |
 
 已修（本批 15 页 + 前批 1 页）：`it/url-parser`、`it/url-params`、`it/ini-parser`、`it/properties-parser`、`it/toml-formatter`、`it/xml-to-json`、`it/xml-to-yaml`、`it/xml-to-toml`、`it/yaml-to-json`、`it/yaml-to-toml`、`it/yaml-to-xml`、`it/yaml-formatter`、`it/csv-to-json`、`it/json-schema-generator`、`it/toml-to-yaml`、`it/text-dedupe-sort`（前批）。统一改为 `Object.create(null)`（或保留键仍走自有属性），并补 `__proto__` / `constructor` 输入用例（IT-N27 / IT-N34 系列）。后续补修 `research/analysis-54`（`freq`/`seen` 改 null 原型，补两键计数用例）。
@@ -208,7 +207,6 @@
 
 | 分档 | 页数 | 页面 |
 |---|---:|---|
-| 真缺陷（已修） | 2 | `ast-viewer`（renderJson 的 `const __h4` 在 replace 回调内自引用 ⇒ TDZ，解析结果整块变「解析失败」）；`matrix-multiplier`（维度 `+value` 未校验，2.5 行时 `getM` 读到 null 抛异常） |
 | 探针失真 | 13 | `calc-7`（探针 JSON 路径不存在）、`docker-run-converter`（非法命令）、`dockerfile-generator`（端口 3000→2400 实测 EXPOSE 已变，仅快照区过薄）、`hill-cipher`（探针密钥非 4 整数）、`html-nesting-checker`（两输入都合法）、`json-to-tsv`（对象入参按页规约报错，合法数组实测实时刷新）、`mac-lookup`（非法 MAC）、`password-generator`（快照只取说明区，实测 32 位已生成）、`plist-parser`（非法 plist）、`protobuf-parser`（非法 proto）、`sitemap-generator`（URL 变异被截断为同值）、`toml-formatter`（非法 TOML）、`uuid-v5-generator`（ns 探针非 32 位十六进制） |
 | 非缺陷 / 正常 | 4 | `typescript-compiler`（导出函数为全局 lexical `const`，`window[fn]` 取不到但内联 onclick 可调用，实测 `typeof downloadJs === 'function'`）；`nanoid-generator` / `random` / `uuid-v7-generator`（「清空」仅清结果区，输入保持属预期语义） |
 

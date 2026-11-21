@@ -9,7 +9,6 @@
 - `tools/chinese/chinese-radical-lookup.html` — 按钮「查询」｜构造值 char [text] "abc 123" → "abc 123x"｜改前 未收录「a」，你可以提交 PR 补充更多常用字 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 未收录「a」，你可以提交 PR 补充更多常用字 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/chinese/stroke-order-viewer.html` — 按钮「查看笔顺」｜构造值 word [text] "abc 123" → "abc 123x"｜改前 a 未收录笔顺，可先按拼音/部首分解辅助书写。 ⏐ 笔序笔画状态该字未收录笔顺数据 → 点击后 a 未收录笔顺，可先按拼音/部首分解辅助书写。 ⏐ 笔序笔画状态该字未收录笔顺数据
 - `tools/data/pivot-table.html` — 按钮「📊 生成」｜构造值 inputData [textarea] "abc 123" → "probe-a\nprobe-b\nprob"｜改前 🔄 透视表 (sum) 地区 \ 产品 AB 合计 华北 210150 360 华东 200340 540 华南 12… → 点击后 🔄 透视表 (sum) 地区 \ 产品 AB 合计 华北 210150 360 华东 200340 540 华南 12…
-- `tools/design/farnsworth-d15-test.html` — 按钮「✅ 完成并分析」｜构造值 fdShuffle [select] "light" → "medium"｜改前 ⚠️ 非选择性排列错误（未检出明确混淆轴向）共有 10 处错位、混淆指数 C = 2.84，但误差向量在各方向上分布均匀… → 点击后 ⚠️ 非选择性排列错误（未检出明确混淆轴向）共有 10 处错位、混淆指数 C = 2.84，但误差向量在各方向上分布均匀…
 - `tools/design/flexbox-generator.html` — 按钮「计算」｜构造值 gap [number] "12" → "9.600000000000001"｜改前 生成的 CSS ⏐ 实时预览（3 个项目） ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 生成的 CSS ⏐ 实时预览（3 个项目） ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/design/mesh-gradient.html` — 按钮「生成」｜构造值 overlay [text] "abc 123" → "abc 123x"｜改前 background-color: #000000; background-image: radial-gradient… → 点击后 background-color: #000000; background-image: radial-gradient…
 - `tools/electrical/generator-23.html` — 按钮「生成」｜构造值 expr [text] "abc 123" → "abc 123x"｜改前 ⚠ 表达式解析失败：变量只支持单个字母 A–H：abc ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 ⚠ 表达式解析失败：变量只支持单个字母 A–H：abc ⏐ 📋 复制结果⬇️ 导出 TXT
@@ -32,7 +31,6 @@
 - `tools/it/docker-run-converter.html` — 按钮「计算」｜构造值 cmd [textarea] "abc 123" → "probe-a\nprobe-b\nprob"｜改前 docker-compose.yml ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 docker-compose.yml ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/it/dockerfile-generator.html` — 按钮「计算」｜构造值 port [number] "3000" → "2400"｜改前 Dockerfile ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 Dockerfile ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/it/hill-cipher.html` — 按钮「加密 ↑」｜构造值 key [text] "abc 123" → "abc 123x"｜改前 密钥矩阵3325行列式9 mod 26行列式逆元3逆矩阵1517209 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 密钥矩阵3325行列式9 mod 26行列式逆元3逆矩阵1517209 ⏐ 📋 复制结果⬇️ 导出 TXT
-- `tools/it/html-nesting-checker.html` — 按钮「检查」｜构造值 html [textarea] "<div><p>hi</p></div>" → "<div><span>x</span…｜改前 ✅ HTML 嵌套结构合法（无未闭合/错误嵌套标签） ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 📊 结果解读 结果含义… → 点击后 ✅ HTML 嵌套结构合法（无未闭合/错误嵌套标签） ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 📊 结果解读 结果含义…
 - `tools/it/json-to-tsv.html` — 按钮「转换 →」｜构造值 jsonInput [textarea] "{\"a\":1}" → "{\"a\":2}"｜改前 name age city Alice 30 New York Bob 25 London → 点击后 name age city Alice 30 New York Bob 25 London
 - `tools/it/mac-lookup.html` — 按钮「查询」｜构造值 macInput [text] "abc 123" → "abc 123x"｜改前 ❌ 长度错误：当前 6 个十六进制字符，应为 12 位 ⏐ 📋 复制结果⬇️ 导出 TXT → 点击后 ❌ 长度错误：当前 6 个十六进制字符，应为 12 位 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/it/password-generator.html` — 按钮「🎲 生成」｜构造值 length [number] "66" → "52.800000000000004"｜改前 16+ 推荐长度 4种 字符类型 90天 更换周期 2FA 双重验证 ⏐ ⚡ 效率工具栏 ✓ 本地处理 13 个参数 C… → 点击后 16+ 推荐长度 4种 字符类型 90天 更换周期 2FA 双重验证 ⏐ ⚡ 效率工具栏 ✓ 本地处理 13 个参数 C…
@@ -111,4 +109,3 @@
 > 仅列「控件 id 在整页脚本中零引用、且页面没有泛化读取控件」的页；如需与运行时交叉验证，见 JSON 的 `deadControlPages`。
 
 - `tools/legal/legal-calculator.html` — lit-type-labor(input/radio)、lit-type-ip(input/radio)
-

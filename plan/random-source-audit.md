@@ -26,22 +26,6 @@
 
 | 页面 | 用途 | 当前源（修复前 → 修复后） | 档位 | 处置 |
 |---|---|---|---|---|
-| `tools/it/cuid-generator.html` | CUID 标识 | Math.random → `crypto.getRandomValues` | B | 已修；`generate()` 无 crypto 显式提示 |
-| `tools/it/invite-code-generator.html` | 邀请码 | 同上 | B | 已修；保留装饰性 random（D） |
-| `tools/it/pin-generator.html` | PIN 码 | 同上 | B | 已修 |
-| `tools/it/nanoid-generator.html` | 短 ID / token | 同上 | B | 已修；`nanoid()` 直接 `getRandomValues(bytes)` |
-| `tools/it/uuid-generator.html` | UUIDv4 | Math.random → `crypto` | B | 已修；移除随机回退，无 crypto 返回空并提示 |
-| `tools/it/random-string.html` | 随机口令串 | Math.random → `crypto` + 逐字符拒绝采样 | B | 已修；同步更正说明与 en 字典 |
-| `tools/it/password-generator.html` | 密码生成 | Math.random → `crypto` | B | 已修；`generateRandomPassword` 无 crypto 返回 `''` |
-| `tools/it/captcha-generator.html` | 图形/批量验证码 | Math.random（含取字符）→ `crypto` | B | 已修；`generate()`/`batchGenerate()` 均加降级提示；噪点/弧线随机保留（D） |
-| `tools/safety/manager.html` | 保险箱密码 | Math.random → `crypto` | B | 已修；`genPassword()` 提示 |
-| `tools/safety/detector-strength.html` | 强度检测附带生成 | Math.random → `crypto`；`sort(()=>Math.random()-0.5)` → Fisher-Yates | B | 已修 |
-| `tools/data/random-3.html` | 强密码批量生成 | Math.random → `crypto` + 拒绝采样 | B | 已修；**另修**：字符集含 `& < >`，原样拼 `innerHTML` 会被解析成标签，现统一 `escHtml` 转义 |
-| `tools/data/random-4.html` | 验证码（数字/字母/混合） | Math.random → `crypto` | B | 已修（本批新发现） |
-| `tools/security/virtual-safe.html` | 加盐 | Math.random → `crypto` | B | 已修；`genSalt()` 无 crypto 返回 `null`，调用处 toast 中止 |
-| `tools/life/generator-strength.html` | 密码生成 | Math.random → `crypto` | B | 已修（本批新发现）；无 crypto 时结果区显式提示 |
-| `tools/fun/raffle-picker.html` | 抽奖防预测 / 公开抽取 | Math.random 种子 → `crypto` 自动种子 | B | 已修；保留用户可填种子（可复算），留空时 crypto 生成；失败显式提示 |
-| `tools/fun/random-picker.html` | 抽签防预测 | Math.random 种子 → `crypto` 自动种子 | B | 已修；同上 |
 
 > **B 页残留 `Math.random` 说明**：`captcha`（17 处）、`random-string`（4）、`nanoid`（3）、`raffle`/`random-picker`（各 2）、`invite`/`pin`/`manager`/`virtual-safe`（各 1）仍有残留，但均为**装饰动画/噪点/唯一 ID 后缀**（D 类用途），不生成任何安全凭证。`cuid`/`uuid`/`password`/`detector`/`random-3`/`random-4`/`generator-strength` 已 0 残留。
 

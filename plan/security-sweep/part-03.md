@@ -59,14 +59,12 @@
 | 库 | 版本 | 结论 |
 | --- | --- | --- |
 | pdf.js | 3.11.174 | **有公开 CVE：CVE-2024-4367**（字体处理缺失类型检查 → 任意 JS 执行；修复版 4.2.67）。使用页：office/pdf-split、pdf-rotate（本地渲染用户 PDF） |
-| mermaid | 10.9.8 | CVE-2026-71436 影响 `<10.9.8`，当前版本已在修复边界；另有 HTML 注入问题 10.9.6 已修 |
 | bcryptjs | 2.4.3 | 2.4.3 为末版（2021 后基本停更），未检索到针对该版本的公开 CVE |
 | markmap-lib / markmap-view | 0.17.2 | 版本较旧；未检索到针对该版本的公开 CVE |
 | pdf-lib | 1.17.1 | 维护缓慢；未检索到针对该版本的公开 CVE |
 | sql.js | 1.8.0 | 可用；未检索到针对该版本的公开 CVE |
 | typescript | 5.3.3 | 落后主线（5.x 已有更新版本），无已知 CVE |
 | less | 4.9.1 | 较新，未检索到 CVE |
-| js-yaml | 4.1.0 | 4.x 已修复旧的 merge-key 问题，未检索到新 CVE |
 | acorn | 8.19.0 | 维护中，无已知 CVE |
 | d3 | 7.9.2 | v7 末版，无已知 CVE |
 
@@ -130,7 +128,6 @@
 | 对象 | 结论档位 | 依据 |
 |---|---|---|
 | 68 个身份线索候选页 | **已核** | 真实浏览器逐页注入 PII 样例后读取 `tb_ux_*` / `tb_uxp_*`，17 页命中、0 加载错误。 |
-| 6 个真 PII 且自动持久化页 | **已修** | `edu2/exam-analysis`、`sports/stats-11`、`clinical-nursing/cycle-7`、`safety/reminder-cycle-protection`、`it/area-code-lookup`、`kids/memory-palace` 均已加 `<body data-no-persist>`。 |
 | 11 个假阳性页 | **判安全** | 命中项为数值字段、IPv6、UTM 参数、通用自由文本，字段无身份语义；自由文本「用户自行粘贴」的残余风险保留记录。 |
 | 显式保存页（`emergency-contacts` / `virtual-safe` / `manager-1` / `staff-schedule` / `tcm-medical-record` 等） | **判安全（功能所需）** | 均为用户主动点击保存的本地业务数据，非自动回填；全局隐私徽标已声明仅本机、不上传。 |
 | `reminder-cycle-protection` 一致性遗留 | **判安全** | `tb_ppe_cycle` 保存 PPE 队列属必须存；`data-no-persist` 仅关闭输入框冗余自动保存，队列功能不受影响。 |
@@ -281,4 +278,3 @@ RESULT 11/11
 - 计算回归：`verify_it_calc.js sqlite-runner`、`bcrypt`、`yaml-validator` 全过；office 两页无既有用例（0/0）。
 - 为拿到全量门禁计数，本批按用户指令跑了一次 `run_gates.py`（内含 `_build.py`），`zh-tw/` 与 `json/*.json` 因此被重建；按路径级提交纪律，构建产物与并行线未提交改动**均未纳入本批提交**。未 push。工具页 HTML / `js/ai-core.js` 改动在下次构建时随 SW 版本戳统一生效。
 - 新增入库文件：`scripts/audit_external_deps.py`、`vendor/sql.js/1.8.0/sql-wasm.js`、`vendor/sql.js/1.8.0/sql-wasm.wasm`；本地无头验证脚本放 `/tmp`，未入库。
-

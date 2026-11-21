@@ -134,7 +134,6 @@
 | 生活/文化线 | 11 | life/age-in-days、life/workday-calculator ×3（同源）、wedding/wedding-banquet、kids/stroke-order、music/ear-trainer、chess/xiangqi-endgame、language/idiom-solitaire、library/citation-format、text/convert-6、chinese-cook/wok-heat |
 | 设计/影像/内容线 | 6 | design/photo-print-size、image/nine-grid-cutter、film/color-grading、audio/audio-cut、beauty/calc-2、beauty/skincare-routine |
 | 杂项线 | 5 | admin/detector-time、pet/training-planner、startup/equity-calculator、legal/court-fee、cognition/human-benchmark、misc2/travel/luggage-size、paper/paper-grade |
-| 办公线（本线） | 0（已修） | office/mindmap（降级渲染 + 反向桩用例） |
 
 注：同源混合锚的修法统一为「把恒定值/默认值移出 `expect`，只留注入后才出现的变化值」；`expect≥3` 的三条（pressure-drop / daohongxi / qudao）需优先拆条。
 
@@ -300,4 +299,3 @@
 
 - 14 页回归清单：小批同进程、重复 2 次结果一致（31 条/9 页 → 21 条/8 页）；
 - 全站确定性替代口径：对 4912 个 HTML 做**静态文本节点**模拟同一算法，17 → 3（修复 14 节点/12 页，反向新增 0），与 jsdom 无关、可重复。
-

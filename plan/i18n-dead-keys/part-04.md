@@ -839,4 +839,3 @@
   - `tools/forestry/carbon-sequestration.html` : `年固CO₂总量(t/年)` : dynamic
   - `tools/forestry/carbon-sequestration.html` : `总固碳量 = 单公顷CO₂ × 面积；年固碳量 = 总固碳量 / 林龄` : fragment
   - `tools/forestry/carbon-sequestration.html` : `年均生长量(m³/ha·年)` : dynamic
-

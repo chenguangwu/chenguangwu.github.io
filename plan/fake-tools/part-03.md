@@ -44,4 +44,3 @@
 | 设计创意 | `tools/design/color-palette.html` | C | `:248,278` FAQ「会按 WCAG 算出对比度、未达标标红」+ 引据表 4.5:1 条目，全页无相对亮度/对比度计算与红标，仅 `lum>0.5` 选字；默认 #788EED 白字仅 3.05:1 | D-N229 | WCAG 校验承诺未实现 |
 | 设计创意 | `tools/design/gradient.html` | C | `:270` 引据表称「按 sRGB 或 oklab 插值，oklab 可用」，页面无 oklab 选项/代码，输出一律浏览器 sRGB 插值 | D-N233 | oklab 插值承诺未实现 |
 | 办公文档 | `tools/office/pdf-split.html` | C | `:568,455-466` 宣称「拆分 PDF 为多个小文件」「段数=ceil(总页数/每段页数)」「文件数=段数」，实际无「每段页数」输入且只产出 1 个 PDF | IT-D34 | 多文件拆分承诺未实现 |
-

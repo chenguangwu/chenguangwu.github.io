@@ -80,4 +80,3 @@
 ### 门禁
 - `scripts/verify_it_calc.js`：999/999 通过。
 - `discriminate_check.js verify_it_calc.js`：已检 999 / 正确变红 999 / 逃生 0 / 跳过 0。
-

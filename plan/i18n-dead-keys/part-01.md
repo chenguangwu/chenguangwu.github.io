@@ -855,4 +855,3 @@
 
 - `tools/beauty/skin-tewl.html` : `按经皮失水率分级：正常 < 10、轻度受损 10–20、重度 > 20 g/(m²·h)。问卷按紧绷、脱屑、刺痛频次映射到区间，高值提示屏障受损，需神经酰胺修护并暂停刷酸。` : dead
 - `tools/beauty/skincare-routine.html` : `高浓度原型VC（pH<3.5）+烟酰胺 = 可能转化为烟酸刺激皮肤` : dead
-

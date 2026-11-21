@@ -163,4 +163,3 @@
 |---|---|---|---|---|
 | `healthcare/bmi-calculator.html` | 650 | `	date:new Date().toISOString().split('T')[0],` | 展示/保存的日期取自 UTC，可能与本地日期差一天（需要 UTC 语义的时间戳除外）。 | 展示与按日分组改本地格式化；仅时间戳/ICS 明确保留 UTC。 |
 | `healthcare/tdee-calculator.html` | 778 | `	date:new Date().toISOString().split('T')[0],` | 展示/保存的日期取自 UTC，可能与本地日期差一天（需要 UTC 语义的时间戳除外）。 | 展示与按日分组改本地格式化；仅时间戳/ICS 明确保留 UTC。 |
-

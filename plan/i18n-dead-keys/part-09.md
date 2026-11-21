@@ -910,4 +910,3 @@
 ### 同期独立修复：重复键
 
 `life/ring-size-converter`、`life/bra-size-converter` 的 `map` 各含 2 个重复键：`请输入数据计算`、`港码 = 周长 − 40（…）`；两处值完全相同，去重保留首处、语义不变。已单独提交，`--check life` 70 页残留与基线逐页一致。
-

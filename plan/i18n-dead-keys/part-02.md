@@ -591,4 +591,3 @@
   - `tools/dermatology/gags-acne.html` : `胸部` : fragment
   - `tools/dermatology/gags-acne.html` : `上背` : fragment
   - `tools/dermatology/gags-acne.html` : `胸部/上背` : fragment
-

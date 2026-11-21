@@ -90,4 +90,3 @@
 - `node scripts/discriminate_check.js verify_structural_calc.js` = **54 变红、0 逃生、0 跳过**。
 - `_test_static.py` = 4705/4705，0 失败 0 告警；inline marker 0 违规。
 - 未跑 `_build.py`、未 push。
-

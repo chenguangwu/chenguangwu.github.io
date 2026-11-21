@@ -65,7 +65,6 @@
 
 | 页面 | 公式/参数现值 | 规范口径 | 复查结论 |
 |---|---|---|---|
-| tools/civil/one-way-slab.html | 深解 FAQ 写 `ρmin≈0.15%（HRB400）` | GB 50010-2010 表 8.5.1：`ρmin = max(0.20%, 45f_t/f_y)`，C25/C30 + HRB400 由 0.20% 控制 | **不一致已修**：改为 0.20% 并标表 8.5.1（深解 JSON + 页面 + 英文词典同步） |
 | tools/civil/beam-udl.html | 仅 `δ=5qL⁴/384EI`（弹性） | 挠度需 `B_s/B`、θ=2.0、表 3.4.3 分档限值 | **无法核**：弹性解本身正确，无 SLS 刚度与限值 |
 | tools/structural/deflection-cantilever-point.html | `δ=FL³/(3EI)` | 同上 | **无法核**：弹性解正确 |
 | tools/structural/deflection-cantilever-udl.html | `δ=wL⁴/(8EI)` | 同上 | **无法核**：弹性解正确 |
@@ -251,4 +250,3 @@
 - 英文探针：`structural/deflection-cantilever-point` / `-udl` / `ss-point-deflection` / `civil/rebar-anchorage` / `civil/two-way-slab` 全部 **0 残留**。
 - 资产门禁：`python3 _audit_assets.py --check` = 0 死链 / 0 lang 缺失 / 0 重复 id；`python3 _audit_links.py --check` = 0 死链；`node scripts/audit_inline_marker_placement.js` = 0 违规。
 - 构建保留判断：改动仅工具页内联脚本/表单/正文、英文词典与台账；按本批纪律**未跑 `_build.py`、未 push**，英文词典子树版本戳留待维护者构建时更新。
-

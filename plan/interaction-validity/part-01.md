@@ -13,7 +13,7 @@
 - 第 6、7 批（第 201–280 页）在停止浏览器前均已双跑完成，各次 40 页且 0 错，路径集合与桶位逐页一致：第 6 批 B 40；第 7 批 B 37、C 1、D-a 2。合计前 280 页：B 228、C 41、D-a 8、D-b 1、A 2。第 8 批第一遍 38 页有效、另 2 页隔离重试有效，第二遍中止，故该批不计双跑完成。
 - `edu/english-vocabulary` 探针 A 桶仅代表改动题数不会实时答题：源码 `startQuiz()` 才创建题目，`answer()` 处理选择、计分并延时进入下一题。该工具本就需要先开始再选择，静态证据不能推断浏览器实际交互或作为独立真值抽样。
 - 用户要求加速并只分析代码，已停止浏览器、后台探针及本地服务。余下 373 页未双跑，653 页完整迁移矩阵、独立 60 页运行态抽样和错分率未完成，旧分桶仍不能销账；后续静态复核只能标代码结论或待验证，不冒称真实浏览器验证。业务缺陷继续写入 `plan/categories/` 对应分类。
-- 静态续审首批：人工复核 `health/{pregnancy-due-date,ovulation-calculator,gfr-calculator,blood-pressure-classifier}` 4 页的输入事件、计算和结果路径；记录胎重、单位与分期、日历未知日期、安全输入和旧结果等问题，详见 `categories/03-医疗健康/specialties.md`。另更正 `units-datetime-family.md` 中两页日期解析的过时记录。代码复算非浏览器实测，不能计入双跑或错分率。
+- 静态续审首批：人工复核 `health/{pregnancy-due-date,ovulation-calculator,gfr-calculator,blood-pressure-classifier}` 4 页的输入事件、计算和结果路径；记录胎重、单位与分期、日历未知日期、安全输入和旧结果等问题，详见 `categories/03-医疗健康/specialties.md`。另更正 `已修复/2026-11-21-已收口任务/units-datetime-family.md` 中两页日期解析的过时记录。代码复算非浏览器实测，不能计入双跑或错分率。
 - 静态续审第二批：阅读 `gardening2/{fertilizer-ppm,watering-frequency}`、`geology/{mineral-hardness,richter-scale,rock-identify,stratum-correlation}`、`fun/{keyboard-heatmap,typing-rhythm}` 的主要交互及结果路径，共 8 页。记录浇水量默认值与打字 WPM 算式问题，复核并更正已过时的地震条目；不能将未发现其他问题等同运行通过。
 - 静态续审第三批：阅读 `health/{child-bmi-calculator,child-height-predictor,body-surface-area,cholesterol-ratio,calorie-needs}` 5 页主要输入及计算结果路径，记录身高参考公式不连续、清空后子结果残留、单位切换和选填输入用途问题，详见医疗分类。医疗结论仅代码确认，专业性须复核。
 - 静态续审第四批：阅读 `health/{alcohol-units,blood-sugar-converter,caffeine-limit,fracture-healing,ibw-calculator,protein-needs}` 6 页主要路径，记录酒精浓度单位量级、饮品累计、默认值和陈旧结果等问题，详见医疗分类。未运行页面、未验证临床标准，不计双跑。
@@ -78,4 +78,3 @@
 - 命中至少一类问题：**216**
 
 > 口径：① 有效性＝先填值→记录快照→**改一个输入为明显不同的合法值**→再点主按钮→比较前后快照（排除「加载时已自动算过一次」的假阴性）；② 空态＝清空所有输入后点主按钮，结果区给出 NaN/Infinity/undefined/null/0/空串或结论即为缺陷；③ 死控件＝控件 id 在全部 `<script>` 中从未出现（且页面无 `querySelectorAll('input')` / `FormData` 这类泛化读取，内联 oninput 绑定的不计）。快照优先取 `#result/#output/.result*` 等结果容器，无则回退整页正文（剔除控件内的当前值）。
-

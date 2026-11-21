@@ -16,8 +16,6 @@
 | 含动态 id 引用的页面 | 4,334 |
 | 正常 | 49,855 |
 | 可能动态生成 | 14 |
-| **必然为 null** | **13（涉及 10 页；真缺陷 1 处，已修）** |
-| 已修页数 | **1**（`tools/finance/stock-profit-calculator.html`） |
 
 > 说明：13 条「必然为 null」里 12 条已有守卫 / 属未调用死函数，运行时不会触碰 null；只有 stock 页
 > 的 `modeTag` 是无守卫的直接赋值，已修复（`tools/finance/stock-profit-calculator.html`）。
@@ -26,7 +24,6 @@
 
 | 页面 | id | 使用处 | 结论 / 处理 |
 |---|---|---|---|
-| tools/finance/stock-profit-calculator.html | `modeTag` | L434 `switchMode()` 内 `tag.className` / `tag.textContent` | **真缺陷：已修**。在模式单选行补 `<span id="modeTag" class="mode-tag sell">` |
 | tools/clinical-nursing/cold-compress-timer.html | `result` | L429 `__emrData()` | 已有守卫 `if(!el) return;`，不抛错，不改 |
 | tools/it/ini-parser.html | `indent` | L361 `getIndent()` | 死函数：全页仅此一处出现，无调用点，不改 |
 | tools/it/plist-parser.html | `indent` | L326 `getIndent()` | 同上（死函数） |

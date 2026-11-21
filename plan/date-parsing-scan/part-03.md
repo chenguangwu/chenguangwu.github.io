@@ -46,4 +46,3 @@
 |---|---|---|
 | `life/workday-calculator.html`、`life/age-in-days.html`、`life/date-diff.html`、`life/countdown.html`、`life/reminder-cycle.html`、`life/cycle-pruning-lawn.html` | — | ☑️ 判安全：本地年月日构造 / Date 克隆 / epoch 毫秒 / datetime 本地解析。 |
 | `design/farnsworth-d15-test.html`、`design/palette-cvd-checker.html`、`design/signature-pad.html` | — | ☑️ 判安全：仅导出元数据时间戳 / 文件名时间戳，不参与日期计算。 |
-

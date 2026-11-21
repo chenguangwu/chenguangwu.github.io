@@ -496,5 +496,3 @@
 - `tools/fengshui/zodiac-lookup.html` : `Good Day Selector - pick an activity and start date to see auspicious days from the Jian-Chu (十二建除) almanac. Cultural reference only.` : dead
 
   其它成因样例（共 1 条，仅列前 5）：
-  - `tools/fengshui/zodiac-lookup.html` : `✅ 六合 / 三合贵人` : dynamic
-

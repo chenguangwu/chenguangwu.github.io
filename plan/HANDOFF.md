@@ -5,14 +5,6 @@
 > **2026-11-03 修订**：原「2026-10-25 全站审计闭环」表述已过期——此后仓库又落地 **107 个 `feat(preset)` 提交（S2 场景预设，具体覆盖页数待复核）**，并新增暖通 13 页、删除 pets 6 个到期存根。当前进入「第一轮只读审计续作」，问题按分类与 G01-G09 归档；总进度见 `plan/MASTER.md`。
 > 下方「一、当前状态快照」先列 2026-11-03 最新状态，并保留 2026-10-25 历史快照备查（历史条目中的「领先 2 个提交」「待推送」均已不成立）。
 
-## 零、接手必读：已修复移交与复核规则
-
-- 修复方按批将已修记录移入 `plan/已修复/`；复核方只处理移交记录。
-- 复核通过的删除；失败的移入 `plan/复核失败/` 本批文件，同时从 `plan/已修复/` 删除，等待再次修复移交。
-- 未处理事项留在分类清单；不能确认的专业口径留待专业复核，不能当作通过或失败。全部处理完后 `plan/已修复/` 应为空。
-- 详细流程见 `plan/已修复交接规则.md`。
-
-
 ## 一、当前状态快照
 
 ### 2026-11-03（最新）
@@ -34,23 +26,6 @@
 | 问题 | 归档位置 | 要点 |
 |---|---|---|
 | O6 重金属迁移「食品中含量」虚高 1000 倍 | 12-长尾行业/_others.md | ✅ 2026-11-21 复核：已删除多余 ×1000，公式与量纲一致 |
-| C1 游离酸比例公式颠倒 | 03-医疗健康/specialties.md | 改 `1/(1+10^(pH−pKa))`，与 chemical-peel 对齐（✅ 2026-10-25 已修） |
-| C2 法医骨龄胎儿支路胎龄公式失真 | 03-医疗健康/specialties.md | FL 改 0.43×FL+8.5（或分段表）；CRL 改 0.1×CRL+6.5；公式框/注释三处矛盾一并统一（✅ 2026-10-25 已修） |
-| L4 鞋码 US/UK 偏大 8 码 | 05-生活消费/life.md | 代码改 `usM=eu−32; usW=eu−30.5; uk=eu−33`（公式框本来是对的）（✅ 2026-10-25 已修） |
-| E2 桥梁荷载 Pk 内插基线 270 应 180 | 08-工程制造/construction-energy.md | JTG D60-2015 表 4.3.1-2：L≤5m→180、L≥50m→360（✅ 2026-10-25 已修） |
-| Z1 unit-price-compare 固液量纲混用 | 06-商业运营/biz-startup.md | ml/L 与 g/kg 不可直接比单价（✅ 2026-10-25 已修） |
-| O1 dyeing/tester-9 输入 C 未参与计算 | 12-长尾行业/_others.md | GB/T 20944.2 口径（✅ 2026-10-25 已修） |
-| L1 bra-size 美码=英码且口径粗糙 | 05-生活消费/life.md | ✅ 2026-10-25 已修（EU→US/UK 等效 75→34；US 与 UK 同号，原「US=UK+2」与权威尺码表不符已按标准实现） |
-| E1 eco-10/16「万 kWh」量纲口径存疑 | 10-农业养殖/livestock-eco-forestry.md | ✅ 2026-10-25 已修（标「万 kWh」→「MWh（千 kWh）」，数值不动） |
-
-### P1 口径/标签矛盾——数字对但表述误导
-
-- **O7** fire/detector-44 硬编码 `new Date('2026-07-31')` → 改 `new Date()`（_others.md） ✅ 2026-10-25 已修
-- **L3** 年假折算 `ceil` 与页面例题/条例矛盾 → 统一 `floor`（06-商业运营/hr-legal.md） ✅ 2026-10-25 已修（半天粒度 `Math.floor(days*2)/2`，与页面例题 3.99→3.5、8.36→8 一致）
-- **F1** ratio-analysis 权益乘数误用产权比率定义 → `ta/eq`（02-金融财务/tax-accounting-audit.md） ✅ 2026-10-25 已修（公式框/代码统一为总资产÷股东权益，并列输出产权比率）
-- **Z2** cost-price-margin 利润率/加价率同值 → 利润率改 `(p−cost)/p`（marketing-sales.md） ✅ 2026-10-25 已修（两个分支的利润率均改为售价口径，公式框补「输入率为成本加成口径」说明）
-- **Z3** stats-on-time-1「未达标率」括注写反（ecommerce-logistics.md） ✅ 2026-10-25 已修（标签改「未同时达标率（迟到或质量不良）」，并集口径，公式框/JSON/verify 同步）
-- **H2** insulin-adjustment deep-dive 示例文案错 → 改 `i18n/tools/content_deepdive.json` 源（home-decor.md 备注） ✅ 2026-10-25 已修（补 ÷18：ISF=(1800/36)÷18≈2.78、校正剂量≈2.5U，消除「0.14U/约1.4U」自相矛盾；顺带修 tab-isf 参考表 ISF 列 40/60/80 行误用 2000 法则值）
 
 ### P2 专业口径复核记录（已转为边界提示 + 免责，不再作为未完成缺陷）
 
@@ -170,10 +145,8 @@ ai 目录页用 `__vN = (表达式)` 模式，上面脚本只能抓到取值行�
   - `tools/edu/anagram-game.html` / `tools/fun/sequence-puzzle.html`：硬编码词库/仅少数序列类。
 - **已确认审计修好、清单滞后（不要再改）**：见 7.2 列表。
 - **重活（伪二维码需重写编码，不优先排期）**：`tools/it/url-qr.html`、`email-qr.html`、`location-qr.html` 等若被记「伪二维码/占位图」，需真实 Reed-Solomon/BCH 编码，工程量大，建议单独立项。
-- **⚠️ 398 暴露的 G03 坑（后续必读）**：`tools/fun/tongue-twister.html`（397 批）已加真实可选计时器，但文案源（`i18n/tools/fun.json`、`en/fun/tongue-twister.json`、`guides/tongue-twister-guide.json`、`json/tools.json`）仍写「不录音、不计时、不评分」，构建后会还原成与功能矛盾的文案。✅ 2026-11-21 复核：`i18n/tools/fun.json`、`json/tools.json`、页面 description/公式框均已改为「支持可选本地计时（最佳用时仅存本机）」；英文第三层仍留有旧键，但现行页面已不含旧原文，不会命中。flag-quiz（395）/meditation-timer（396）源文案亦已准确。
 
 ### 7.5 销账与登记纪律（不变）
-- 修完**整条删除** fake-tools 对应行（不留 ✅ 占位）；
 - 每批写 `plan/已修复/YYYY-MM-DD-<批号>-<分类>-<主题>.md`（批号继续 399 起）；
 - 改源不改 HTML（deep-dive/FAQ/intro 走 `json/tools.json`、`i18n/tools/<ind>.json`、`i18n/tools/content_deepdive.json` 源；formula-eq 公式框可改页内首 `<div class="formula-desc">`）；
 - 改完 `python3 _build.py` 是提交前最后一步；收尾统一跑门禁 + push。

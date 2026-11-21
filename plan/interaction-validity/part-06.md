@@ -306,4 +306,3 @@ node scripts/runtime_scan.js --interact --files /tmp/pages.txt --timeout 10000
 ### 用例与判别
 - 新增/修正条数：biz 148→149、clinical-nursing 44→45、edu 88→89（含修正 1 条旧自动用例的连续序列期待）、fluid 46→50、printing 9→10、tcm-diagnosis 20→21、process 14→16。
 - 判别四项（`discriminate_check.js`，逐文件）：已检=正确变红，逃生项 0，跳过 0（biz 149 / nursing 45 / edu 89 / fluid 50 / printing 10 / tcm 21 / process 16）。
-

@@ -25,29 +25,10 @@
 - 描述：EN 态单位写法（如 m²、mg/dL、kcal）与千分位应随 locale；当前多为硬编码中文页口径。
 - 方案：低优先级；在 G06 重设计时统一。
 
-## 进度（2026-11-21）
-- 🟢 P1 ✅ 第三层词典缺口已量化并修复本轮命中页：30 个带词典的预设页 `_en_i18n_probe.mjs --check` 全部 0 残留；`finance/housing-fund-loan` 补 18 条漏译并修正 industry 字段，探针 0 残留。
-- 🟢 P2 ✅ 术语共用层 `i18n/tools/en/_common.json` 已承载跨页通用 UI 文案；本轮未发现同页术语自相矛盾，专业术语逐页复核转专业评审。
-- 🟢 P3 ✅ 繁体由 OpenCC `gen_opencc_locales.mjs` 全量生成并纳入构建门禁；专有名词生硬属译法优化，不再计为缺陷。
-- 🟢 P4 ✅ 单位/千分位本地化属低优先级体验优化，已并入 G06 设计升级 backlog，不作为待修缺陷。
-
 ## 2026-11-03 审计补充（只读审计）
 
 ### 待补门禁：预设按钮英文标签
 - 建议加入针对 `labelEn` 值包含汉字的静态门禁，防止英文态出现中英混排（见 G08）。
-
-### 疑似待验证 G05-B：第三层词典覆盖（✅ 2026-11-21 已量化：4,685/4,685）
-- 问题：P1（第三层词典覆盖缺口）仍无量化清单；本轮只能确认页面模板级 i18n 引用齐全（`common.js` 缺 `i18n.js` = 0），无法证明 3845 个 preset 页的说明文案在 EN 态全部命中。
-- 证据：`js/tool-i18n.js:613` 动态加载 `/js/tool-i18n-en.js`（681KB）；`i18n/tools/en/**` 按工具一文件；本轮未运行 EN 态真机探针（项目规则要求 `scripts/_en_i18n_probe.mjs --check`，属可执行门禁，本轮只读未跑）。
-- 影响：全站英文态。
-- **量化结果（2026-11-21）**：排除行业 index 后全站 4,685 个工具页，`i18n/tools/en/<ind>/<slug>.json` 覆盖 4,684（99.98%）；唯一缺口 `pet/grooming-guide` 已补空映射文件并实测探针 0 残留，现覆盖 4,685/4,685。抽样探针：insurance / health / metalwork / pet 本次改动与抽检页均 0 残留。
-
-### 已修 G05-D：heat-stress-index head 结构丢失实为陈旧 zh-tw 产物（2026-11-04）
-- 现象：集成线报「`<head>` 被整块替换，丢 WebApplication/FAQPage LD、privacy/统计/i18n 脚本、hreflang、`TOOLBOX-SECURITY`」，且 `zh-tw` 对应页同样缺失。
-- 核对：源页 `tools/livestock/heat-stress-index.html` 与 HEAD 逐字节一致（`git status` 干净），3 个 LD 块（WebApplication / BreadcrumbList / FAQPage）全部 `json.loads` 通过；`js/i18n.js` / `js/privacy.js` / `js/metrics.js` / `js/analytics.js` / `hreflang`×4 / `TOOLBOX-SECURITY` 计数均与 HEAD 同值。真正缺损的是 `zh-tw/` 构建产物（565 行、仅 1 个 LD、无脚本引用）——它在 22:46 源页处于损坏状态时被构建，源页 22:50 复原后未重建。
-- 处理：`node scripts/gen_opencc_locales.mjs` 重建 8333 个繁体页；该页恢复 3 个 LD + 全部脚本/hreflang/安全 meta（598 行），三块 LD 均可解析。
-- 英文态：`_en_i18n_probe.mjs --check livestock/heat-stress-index` 仅 4 条既有残留（1 条公式说明、3 条 placeholder），非整页回退中文；残留属第三层词典缺口，与本次 head 无关。
-- 教训：① 批量文案/结构脚本**禁止整段替换 head**，必须逐块解析、写盘前后比对结构计数（即 `opt_faq_ld_sync.py` 的六项守卫）；② 源页修复后必须重建 `zh-tw`，否则构建产物仍带旧缺陷，集成线会直接判红。
 
 ## 2026-11-05 只读扫描：英文元数据成批退化为占位串
 

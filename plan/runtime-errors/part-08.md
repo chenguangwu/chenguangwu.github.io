@@ -278,4 +278,3 @@
 - `tools/yi/yi-divination.html` — crash — Protocol error (Page.navigate): Session closed. Most likely the page has been closed.
 - `tools/yi/yi-yao.html` — crash — Protocol error (Page.navigate): Session closed. Most likely the page has been closed.
 - `tools/gardening/pot-capacity.html` — scan-crash
-

@@ -635,4 +635,3 @@
 
   其它成因样例（共 1 条，仅列前 5）：
   - `tools/investment/lifespan-12.html` : `全寿命节电量 (kWh)` : dynamic
-

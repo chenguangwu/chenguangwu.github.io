@@ -13,7 +13,6 @@
 | 真绿（含 4 道动态段 SKIP） | **220** | 其余全部门禁 |
 | 真红（依赖缺失，CI 由 npm ci 提供） | **1** | `build`（缺 opencc-js） |
 | 真红（他线在途，非本批） | **1** | `anti-regression: case discrimination`（ecommerce 4 条逃生项） |
-| 假红（依赖缺失即崩，**已修**） | **2 → 0** | `ai calc correctness`、`psych-kit behavior (jsdom)` |
 | 假绿（0 用例 / 0 文件仍 exit 0） | **0** | — |
 | 挂死（单道 >120s） | **0** | — |
 
@@ -78,4 +77,3 @@ export HOME=/tmp/gate-ci-home TMPDIR=/tmp/gate-ci-tmp
 - **门禁必须串行跑**：普查期间并发跑同一 worktree 时，`edu-unit-converter` 出现 `switchTab: event is not defined` 的 85/86（定时器/初始化串扰）；串行复跑稳定 86/86。CI 与本地都不应并行跑多个门禁进程。
 - **120s 只是普查上限**，不是 CI 限制；`build` 在 ubuntu runner 可能更慢，现有 CI job 已有整体超时兜底。本轮未发现挂死，故未给 `run_gates.py` 统一加短超时（避免把合法的慢构建误杀）。
 - 本轮只改 `scripts/` 门禁脚本，**未改工具页、未跑 `_build.py`、未 push**。
-

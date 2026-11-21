@@ -24,21 +24,8 @@
 
 ## 一、高危（Confirmed，可利用）
 
-| # | 页面 | 行号 | 风险类型 | 是否已修 |
 |---|---|---|---|---|
-| 1 | `tools/it/json-path.html` | 386（调用）、509（`eval`） | 动态执行：过滤表达式 `eval(filter)`，`?(@.price<10 || alert(1))` 可执行任意 JS | **已修**（改为受限解析：仅 `@.prop`、字面量、比较、`&& \|\| !`、括号） |
-| 2 | `tools/it/json-path.html` | 516–525（`highlightJSON`，落点 643/645） | DOM XSS：JSON 字符串值未 HTML 转义即拼 `innerHTML`，`<img onerror>` 触发 | **已修**（先转义 `& < >` 再做语法高亮） |
-| 3 | `tools/it/charset-detector.html` | 259–263（`#out` 落点 263） | DOM XSS：textarea 原文（修复输出）直接拼 `innerHTML`，页面一载入即执行 | **已修**（`extra`/`fixed` 均转义后拼装） |
-| 4 | `tools/sports/stats-11.html` | 245、246、250（`#res` 落点 254） | DOM XSS：姓名从「姓名,成绩」文本解析后未转义拼 `<td>` | **已修**（新增 `escHtml()` 覆盖表格/排名/摘要三处） |
-| 5 | `tools/math/equation-solver.html` | 433 | 动态执行：`eval(expr)` 直接求值用户多项式，且被迭代调用 | **已修**（移除 `eval`，改受限递归下降解析；表达式回显改 `ToolBox.escHtml`） |
-| 6 | `tools/math/function-plotter.html` | 291 | 动态执行：`new Function('x','with(Math){return ('+expr+')}')` 用户函数表达式 | **已修**（移除 `new Function`，改白名单递归下降，拒绝成员访问/未知标识符） |
-| 7 | `tools/math/calculus-tools.html` | 357 | 动态执行：`new Function('x','return '+replaced)` 用户函数 | **已修**（同上，按表达式缓存编译结果） |
-| 8 | `tools/science/calculator.html` | 409 | 动态执行：`new Function('_d2r','return '+expr)` 用户表达式 | **已修**（同上，保留角度/弧度三角函数与 `log`/`ln` 语义） |
-| 9 | `tools/clinical-lab/tumor-marker-doubling.html` | 291 | DOM XSS：非法输入的 `daysRaw` 原文拼进错误提示 `innerHTML` | **已修**（`ToolBox.escHtml(daysRaw)`） |
 | 10 | `tools/edu/exam-gpa-calculator.html` | 389–394（`${c.name}` 在 392） | DOM XSS：课程名未转义拼课程列表 `innerHTML` | 转交另一条线（该页 `.scale-btn` 崩溃修复中，按约定避让；无 `eval`/`new Function`） |
-| 11 | `tools/it/jwt-parser.html` | 390、393 | DOM XSS：`headerEl.textContent`（含 JWT payload 原文）二次拼回 `innerHTML` | **已修**（改 DOM：`createElement` + `textContent` + `createTextNode`） |
-| 12 | `tools/automotive/driver-license-validator.html` | 265 | DOM XSS：用户输入 `raw` 直拼结果 `innerHTML`（反射型） | **已修**（`ToolBox.escHtml(raw)`，校验逻辑与匹配结果不变） |
-| 13 | `tools/science/chemistry-calculator.html` | 588、596、822 | DOM XSS：分子式与历史记录（`h.type` / `resStr` / `h.time`）未转义拼 `innerHTML` | **已修**（三处均 `ToolBox.escHtml`；由安全线接手，集成线已跳过该页） |
 
 补充（同页 / 同因但未单列）：
 
@@ -55,34 +42,16 @@
 
 **已修（根因）**：`ToolBox.escHtml` 改为字符串级转义，同时编码 `& < > " '`；已核对全站 1436 处调用无「嵌套 `escHtml(escape(...))`」二次转义模式，53 页属性注入一次性收敛。无头浏览器抽查 4 个属性上下文页面（`url-encode`、`storyboard-timeline`、`visitor-route`、`utm-builder`）注入 `"` + 标签载荷：0 弹窗、0 pageerror、0 新属性/注入元素，正常文本回填不变。
 
-| 页面 | 行号 | 风险类型 | 是否已修 |
 |---|---|---|---|
-| `tools/advertising/storyboard-timeline.html` | 294、303、306、307 | 属性注入（`value=` + escHtml） | **已修（根因）** |
-| `tools/pr/press-conference.html` | 324、328、329 | 属性注入 | **已修（根因）** |
-| `tools/museum/visitor-route.html` | 274、275、308 | 属性注入 | **已修（根因）** |
-| `tools/marketing/utm-builder.html` | 490、491、492 | 属性注入 | **已修（根因）** |
-| `tools/it/url-encode.html` | 604、605 | 属性注入（参数键值回填输入框） | **已修（根因）** |
-| `tools/edu2/wrong-book.html` | 318、323 | 属性注入 | **已修（根因）** |
-| `tools/life/bill-splitter.html` | 384、490 | 属性注入 | **已修（根因）** |
-| `tools/hr/performance-score.html` | 267、280 | 属性注入 | **已修（根因）** |
-| `tools/edu/grade-calculator.html` | 401 | 属性注入 | **已修（根因）** |
-| `tools/edu/grade-weight-calculator.html` | 237 | 属性注入 | **已修（根因）** |
-| `tools/edu/gpa-calculator.html` | 463 | 属性注入 | **已修（根因）** |
-| `tools/restaurant/dish-cost-card.html` | 250 | 属性注入 | **已修（根因）** |
-| 其余 41 页（共 66 处，分布见下） | — | 属性注入 | **已修（根因）** |
 
 其余 41 页：`advertising/`、`pr/`、`marketing/`、`museum/`、`edu/edu2/`、`it/`、`life/`、`hr/`、`restaurant/`、`health/` 等目录下的表单回填页，均属同一根因；已统一修复 `js/common.js` 的 `escHtml`（补 `"` `'` 转义）后一次性收敛。
 
 ### 2.2 其它中危
 
-| 页面 | 行号 | 风险类型 | 是否已修 |
 |---|---|---|---|
-| `tools/it/js-formatter.html` | 465 | `new Function(src)`：仅编译不执行（无即时 RCE，但语法校验依赖动态编译） | **已修**（移除动态编译，改为括号配对/关键字静态检查，页内说明局限） |
-| `tools/aerospace/weight-balance.html` | 274–276、297 | escHtml 用于 `value="..."`（同 2.1 根因；当前仅静态默认值回填，暂未构成可达利用） | **已修（随 2.1 根因）** |
 | `tools/it/regex.html` | 约 520 | `new Worker(blobURL)`，worker 源码为页面内静态字符串，不含用户输入 | 无需修（已确认非可控） |
 | `tools/ophthalmology/astigmatism-chart.html` | 约 715 | `document.write` 弹窗，参数已 `esc()` | 无需修（已转义） |
 | `tools/ophthalmology/amsler-grid.html` | 约 706 | 同上 | 无需修（已转义） |
-| `tools/legal/will-template-generator.html` | 313 | `insertAdjacentHTML`，用户值经 `escapeAttr`（引号已转义，`&` 未转义） | **已修**（`escapeAttr` 补 `&` 转义；真机校验 `a&b"c<d>` → `a&amp;b&quot;c&lt;d&gt;`） |
 
 ### 2.3 iframe 沙箱 / outerHTML / document.domain（全站 grep）
 
@@ -103,23 +72,6 @@
   - `it/regex.html`（`postMessage` ×2）：消息只在页面与其自建 Blob Worker 之间传递，无跨源窗口。
   - `ophthalmology/astigmatism-chart.html`、`amsler-grid-test.html`（`document.write` ×2）：打印弹窗参数经 `esc()` 转义，快照 URL 来自 canvas。
 - **C 档（误报）**：其余约 21537 处，统一理由为：静态模板/常量表、已 `escHtml`/`escape`/`encodeURIComponent` 转义、`parseFloat`/`toFixed`/`Math` 数值化、或 `textContent` 赋值（非 HTML sink）。
-
----
-
-## 三、已修批次（本轮之前 8 页，复扫复核确认无回归）
-
-| 页面 | 原注入点 | 是否已修 |
-|---|---|---|
-| `tools/it/api-sign-generator.html` | 待签名串/签名结果拼 `innerHTML` | 已修（`escHtml` 转义） |
-| `tools/it/url-params.html` | `esc()` 未转义引号 → `value="..."` 属性注入 | 已修（补引号转义） |
-| `tools/it/math-evaluator.html` | 任意标识符 + `new Function`（原 291–320） | 已修（标识符白名单 + 拒绝成员访问；121 行仅为文档中的安全提示文本） |
-| `tools/fun/random-picker.html` | 选项与历史记录拼 `innerHTML` | 已修（`textContent`） |
-| `tools/biz/presentation-timer.html` | 历史主题/日期拼 `innerHTML` | 已修（`escHtml`） |
-| `tools/metalwork/analysis-35.html` | 试模名称拼结果表 | 已修（`escHtml`） |
-| `tools/sports/analysis-19.html` | 回合号拼结果表 | 已修（`escHtml`） |
-| `tools/biz/barcode-generator.html` | 条码内容/错误提示拼 `innerHTML` | 已修（`textContent` + DOM） |
-
-复扫复核结果：8 页均未再命中「未转义即拼 HTML」的可达路径；`url-params:356` 的 `insertAdjacentHTML` 仅替换空占位符（`{k}`/`{v}` → 空串），无可控内容。
 
 ---
 
@@ -301,4 +253,3 @@
 **合计 10 条**：已确认安全 3 条、接受风险 5 条、待处置 1 条、已处置 1 条。
 
 ---
-

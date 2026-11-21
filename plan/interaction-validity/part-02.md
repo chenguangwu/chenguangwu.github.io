@@ -159,4 +159,3 @@
 | 空输入直接给出结论（优秀/正常/合格…） | tools/ent/ 3、tools/leather/ 3、tools/agriculture/ 2、tools/biz/ 2、tools/eco/ 2、tools/electronics/ 2、tools/energy/ 2、tools/healthcare/ 2 |
 | 点击主按钮抛异常（含 console 报错） | tools/data/ 1 |
 | 导出/下载按钮 onclick 目标函数不存在（必死） | tools/it/ 1 → 2026-11-06 复核误报，销账（见 part-05） |
-

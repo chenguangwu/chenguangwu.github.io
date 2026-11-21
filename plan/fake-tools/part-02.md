@@ -12,45 +12,17 @@
 |---|---|---|---|
 | `tools/clinical-nursing/suction-pressure.html` | 假 | `:275-279,294-333` | 2026-11-06 Node 执行实际 `checkPressure()`：成人 150 提示过高，100 显示 80–120 区间内；未做浏览器验证，临床范围需专业复核。其他原记录见 D-N37。 |
 | `tools/pulmonology/lung-rads.html` | 假 | `:141-142,270-280` | 2026-11-06 Node 执行实际 `calc()`：部分实性总径 30 mm、实性成分 5/6/8 mm 分别输出 3/4A/4B，空值拦截；未做浏览器验证，阈值需专业复核。 |
-| `tools/clinical-lab/flow-cytometry-ratio.html` | 真 | `:154,260,302,316-330` | Treg 读入后全文未用（死输入）；NK 仅显示绝对值，异常 flags 无 NK 低值，NK 偏低仍报「各项指标在参考范围内」。 | ✅2026-11-21复核已修
-| `tools/clinical-lab/semen-analysis.html` | 真 | `:148,261-267,274` | IM 不在必填校验、不参与总活力；`setInterp('im',true,'')` 恒显 ✓ 正常。 | ✅2026-11-21复核已修
 | `tools/clinical-nursing/bag-valve-mask.html` | 部分 | `:153,323,189,257,282-283` | 球囊容量已接入但只驱动告警、不改变主参数（「不参算」部分成立）；`257` 的 8-10 次/分 与 `282-283` 婴儿 20-30 次/分 页面内冲突。 |
 | `tools/clinical-nursing/ostomy-bag-timing.html` | 假 | `:367-396` | 2026-11-06 Node 执行实际 `calc()`：7 天间隔在 70% 点前后分别显示预警时间与已进入预警期，超期后重算颜色复位；未做浏览器验证。其他问题见 D-N46。 |
 | `tools/healthcare/map.html` | 假 | `:238-265` | 2026-11-06 Node 执行实际 `calc()`：两项非正、两项超范围及舒张压大于收缩压均拦截分级；120/80 得 93.3。未做浏览器验证或医学标准核验。 |
 | `tools/healthcare/healthcare.html` | 假 | `:121,163-165,464` | 英文简介已改为体重折算+上限倍数；Clark/BSA 仅出现在引据表与「局限」FAQ，不再宣称三法实现。 |
 | `tools/nephrology/edema-grading.html` | 假 | `:289-302` | 2026-11-06 Node 执行实际 `calc()`：同为 2 mm 时 10 秒为 1+、120 秒为 4+；4 mm / 30 秒描述为 16–30 秒。未做浏览器验证，医学阈值需专业复核。 |
 | `tools/cardiology/coronary-calcium.html` | 假 | `:262-267,271-285` | 原始 Agatston 分段与 MESA 简化百分位重分类均已实现。 |
-| `tools/finance/housing-fund-loan.html` | 真 | `:205,292,366` | 利率 `RATE=0.031` 写死，无利率输入；正文/结果都按 3.1%（2024 参考）输出。 | ✅2026-11-21复核已修
-| `tools/finance/salary-after-tax.html` | 真 | `:261,266,294-298` | `months` 仅做守卫、不参算；brackets 7 档但展示表仅 5 档。 | ✅2026-11-21复核已修
-| `tools/marketing/marketing-ltv-calculator.html` | 真 | `:448-457,461` | `payback` 计算后未渲染；只展示 LTV:CAC 比率；简单模式回退 3 年。 | ✅2026-11-21复核已修
-| `tools/hr/bandwidth-1.html` | 真 | `:304-352` | calc 为通用模板（按标题正则算 `(a+b)/2`/`a*b`），与薪酬带宽/分位/Compa-ratio 无关。 | ✅2026-11-21复核已修
-| `tools/hr/attendance-stats.html` | 真 | `:137,142-152` | 无文件导入、无加班时长、无全勤奖；公式还明写「加班不参与计算」。 | ✅2026-11-21复核已修
-| `tools/legal/child-support.html` | 真 | `:320` | `childCount` 读入后未参与比例/金额计算，抚养费不随子女数变化。 | ✅2026-11-21复核已修
-| `tools/legal/court-fee.html` | 真 | `:320-323` | IP 案件有金额时仍 `min(500+1%,1000)` 封顶，未按财产案件累进。 | ✅2026-11-21复核已修
-| `tools/biz/stats-time-response.html` | 真 | `:200-211` | 仅均值/中位数/达标率，无 P90/FCR/分组。 | ✅2026-11-21复核已修
-| `tools/edu/chinese-zodiac.html` | 真 | `:353-355` | 只吃公历年取模，无日期/春节边界处理。 | ✅2026-11-21复核已修
-| `tools/edu/study-planner.html` | 真 | `:189-196,246` | 两个公式框重复；完成率/优先级仅文字，页面只统计完成任务数。 | ✅2026-11-21复核已修
-| `tools/research/analysis-49.html` | 真 | `:230-250` | 仅 Cronbach α；KMO/Bartlett 无实现。 | ✅2026-11-21复核已修
-| `tools/cognition/human-benchmark.html` | 真 | `:758,761,767-775` | 样本恰 84 字；textarea 无粘贴拦截，粘贴即可刷 WPM。 | ✅2026-11-21复核已修
 | `tools/museum/visitor-route.html` | 部分 | `:342-347,183` | 环路护栏已实现（原负权死循环已否定）；「必看节点/通行时间」仍无输入。 |
-| `tools/museum/index.html` | 真 | `:88,90,93` | 4 张卡片共用同一段「历史人文工具」模板文案（原记录写 3 张，实为 4 张）。 | ✅2026-11-21复核已修
 | `tools/language/translator.html` | 假 | `:185,281,625` | 当前文案只称「本地词表」，运行时显示实际条数；无「100+」与语种检测承诺。 |
-| `tools/language/grammar-checker.html` | 真 | `:264-275,335` | 纯字面正则匹配；无问题密度分级、无最小编辑距离。 | ✅2026-11-21复核已修
-| `tools/it/http-cookies.html` | 真 | `:165,169-171,177-185` | 英文简介称 Parse and build，实为静态速查+搜索+图表，无解析/构造入口。 | ✅2026-11-21复核已修
 | `tools/it/markdown-to-html.html` | 假 | `:313-316` | 图片规则已实现且在链接规则前，输出 `<img>`。 |
-| `tools/it/whitespace.html` | 真 | `:219-228,250-256,407` | 无「全压成一行」选项但 FAQ 承诺；删空行后逐行预览按索引比较导致错位。 | ✅2026-11-21复核已修
-| `tools/it/timestamp-converter.html` | 真 | `:416-426` | 固定 offset 表，无夏令时处理。 | ✅2026-11-21复核已修
-| `tools/design/gradient.html` | 真 | `:241` | FAQ 称计算 WCAG 对比度并标红，全文无对应代码。 | ✅2026-11-21复核已修
-| `tools/design/mesh-gradient.html` | 真 | `:204,252-256` | 无拖拽控制点、无图片/CSS 导出、无 WCAG 校验。 | ✅2026-11-21复核已修
 | `tools/finance/word-wrap.html` | 部分 | `:183-189,489-491,571-583` | CSV 只导表格不含换行结果（成立）；页签映射到分散元素、无独立面板（部分成立）。 |
-| `tools/electronics/capacitor-calculator.html` | 真 | `:352-354` | 时间常数写死 `tau=0.001`（5ms 假设），功率与 R/C 无关。 | ✅2026-11-21复核已修
-| `tools/acupuncture/acupoint-location.html` | 真 | `:399-400` | `revCun` 死变量；反算提示用目标寸数而非 X，公式错误。 | ✅2026-11-21复核已修
-| `tools/quantum/pair-production-threshold.html` | 真 | `:128-129,215-219,221` | `dummy` 假输入；输出为常量 2mₑc²；预设为空。 | ✅2026-11-21复核已修
 | `tools/life/countdown-timer.html` | 假 | `:514-521` | 春节预设走农历日期表逐年取值，`isLunar` 已使用。 |
-| `tools/life/stats-13.html` | 真 | `:291-293,218-251` | 承诺漏斗/时段峰值/占比，实际仅人数/份数/均值/金额。 | ✅2026-11-21复核已修
-| `tools/life/analysis-cost-9.html` | 真 | `:231-234` | 仅合计/均值/占比/极差；无固定-变动拆分与降本排序。 | ✅2026-11-21复核已修
-| `tools/life/assessor-target.html` | 真 | `:427,226,232` | `opt-guide` 通用套话；面积 `shopArea` 读入但未参与加权。 | ✅2026-11-21复核已修
-| `tools/rehabilitation/fim-scale.html` | 真 | `:576` | `opt-guide` 通用套话与实际下拉即时汇总流程不符。 | ✅2026-11-21复核已修
 
 ## Top 19 简析
 
@@ -113,8 +85,6 @@
 |---|---|---|---|
 | `tools/marketing/marketing-ltv-cac-ratio.html` | 部分成立 | `:430,456,476` | 回本周期仍按固定 36 个月摊算，但已展示在表格与指标卡，不再算「未展示」。 |
 | `tools/marketing/marketing-cac-calculator.html` | 已否定 | `:329,419` | 回收期已按 `cac/(ltv/36)` 计算并在明细表展示，原「不展示」不成立。 |
-| `tools/design/base64-to-image.html` | 真 | `:202,233` | FAQ 称按 data URI MIME 识别；魔数字节校验只出现在引据表，代码层无嗅探。 | ✅2026-11-21复核已修
-| `tools/edu/number-memory.html` | 真 | `:412` | 记录时间用 `toLocaleString('zh-CN')`，中英混排，原记录成立。 | ✅2026-11-21复核已修
 
 ### 复核反例（计划记录已过期，不计入清单）
 
@@ -122,7 +92,6 @@
 |---|---|---|
 | `tools/healthcare/bsa-calculator.html` | `drug-dosing.md:269`「年龄完全不参与计算」 | **不成立**：`:305-311` 读取 `age`，`<18` 走 Haycock、`≥18` 走 DuBois |
 | `tools/chinese/chinese-character.html` | `edu-language.md:281`「字库仅 20 字，曦查不到」 | **不成立**：`:285` `charDB` 实际 45+ 字，含「曦」 |
-| `tools/museum/visitor-route.html` | `research-library.md` 的 RL-K41「负权通道导致无限循环」 | **已修复**：2026-11-06 Node 执行页面实际 `compute()`，默认图边距设为 -100 后正常输出路线并提示按绝对值计算；回溯另有访问集合与步数上限。未做浏览器验证（其他问题未在本次复核） |
 | `tools/finance/word-search.html` | `finance.md:1255`「宣称自定义词表/网格/可打印」 | **文案已对齐**：工作区 meta/正文/FAQ 已改为「固定 12×12、不支持自定义/打印」，仅剩功能受限，不再算虚假承诺 |
 | `tools/edu/country-quiz.html` | `edu-language.md:1167`「宣称限时作答」 | **文案已对齐**：工作区 meta 已改为「共 10 题、无计时模式」，不再算名不副实 |
 
@@ -211,4 +180,3 @@
 | 农业养殖 | `tools/agriculture/calc-6.html` | A | `:126-127,278-281` 饲养周期仅参与 `cycle<=0` 校验，不进入任何算式；45 天与 120 天结果相同，公式说明「年批次数=365÷饲养周期×批次数」未实现 | `plan/categories/10-农业养殖/agriculture.md` 10-67 | 饲养周期死输入 |
 
 > 说明：`tools/biz/text-sort.html`（BS-N140）主体排序可用，仅图表/数据表/历史/导出因 `textarea.textContent` 恒空而全失效，按「部分成立」留待修复线复核，暂不计入假工具页数。
-

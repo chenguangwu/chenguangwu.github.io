@@ -694,4 +694,3 @@
 
   其它成因样例（共 1 条，仅列前 5）：
   - `tools/sales/target-breakdown.html` : `个人目标 = 总目标 × (个人权重 ÷ 权重总和)` : fragment
-

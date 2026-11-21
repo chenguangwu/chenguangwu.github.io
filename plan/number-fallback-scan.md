@@ -136,7 +136,6 @@ pat = re.compile(r'(?P<left>[^;{}\n]{0,180}?)\s*\|\|\s*(?P<dflt>%s)(?![0-9.eE])'
 | realestate | 30 | 22 | 面积/年限/套数 |
 | fitness | 30 | 10 | 体重/心率/次数 |
 | accounting | 28 | 8 | 期数/年限 |
-| agriculture | 24 | 12 | 面积/株数（已修的 `targetCN`/`gestation` 三例不再命中） |
 | tax | 24 | 10 | 税率分母/年数 |
 | dance | 24 | 6 | 拍数/人数 |
 | legal | 24 | 15 | 年限/赔偿基数 |

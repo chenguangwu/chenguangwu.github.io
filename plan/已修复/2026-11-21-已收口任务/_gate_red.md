@@ -8,9 +8,6 @@
 
 | 门禁 | 页面 slug | 错误摘要 | 归属线 | 状态 |
 | --- | --- | --- | --- | --- |
-| anti-regression: case discrimination | `agriculture/mulch-coverage` | 逃生项 2 > 基线 0；`expect` 含「0.0%」重叠率，默认态同样输出，回退默认后仍 PASS | 农业线 | 已修（删除静态锚，保留 7.20 / 50.0% / 17.7） |
-| anti-regression: case discrimination | `agriculture/greenhouse-rolling-time` | 逃生项；`expect` 含「卷膜通风」，命中页面静态「卷膜通风参考时间表」标题，回退默认后仍 PASS | 农业线 | 已修（改为动态原因串「温度26℃在合理范围，但湿度95%偏高…」） |
-| anti-regression: case discrimination | `agriculture/mulch-coverage` / `agriculture/greenhouse-rolling-time`（自动补强块） | 全 42 输入回显型锚，页面新增校验后失效 | 集成线 | 已修（改合法参数 + 派生数值锚：20000 地膜总长 / 12℃ 内外温差） |
 
 ### 说明
 - 本次 CI 失败在「Run ToolBox quality gates」，部署被跳过（未部署）。
@@ -20,12 +17,6 @@
 ## 2026-11-04 · 推送批（HEAD `e1395c893a`）
 
 **干净 worktree 全量门禁 219/219 通过（2:11.27），无红项，无需记录失败条目。**
-
-### 本轮已修但未入本批的红项
-
-| 门禁 | 页面 slug | 错误摘要 | 归属线 | 状态 |
-| --- | --- | --- | --- | --- |
-| general calc correctness | `agriculture/analysis-21` | 用例仍注入 DN 值 1200/800、42/42，页面已收紧 0–1 反射率校验 ⇒ 未匹配期望值 | 集成线 | 已修（改为 0.8/0.4 与 0.6/0.1，锚定实算 0.3333 / 0.7143，提交 `153b5c5a8b`） |
 
 ### 主工作区（脏树）发现、未纳入本批的红项
 
@@ -75,5 +66,3 @@
 - 抽查 3 个调用页（`it/api-sign-generator`、`advertising/storyboard-timeline`、`metalwork/analysis-35`）确含 `escHtml(` 调用。
 
 门禁位置：分类计算门禁之后、`anti-regression: no fake gates` 之前，编号 `[219/220]`；总数由 219 增至 **220**。
-
-

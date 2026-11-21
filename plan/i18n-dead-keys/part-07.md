@@ -17,8 +17,6 @@
 - `tools/it/text-to-hex.html` : `\\x 前缀` : dead
 - `tools/it/time-format-converter.html` : `同一时刻在不同时区显示的"墙钟时间"不同。请确认所选时区与你的日志来源一致，否则转换出的日期会差几小时。` : dead
 - `tools/it/time-format-converter.html` : `输入 Unix 秒级时间戳 '1690000000' → 输出 '2023-07-22 08:53:20 UTC'（按所选时区换算）。 ⏎ 反向：输入 '2023-07-22 08:53:20' + 时区 UTC → 输出 '1690000000'。` : dead
-- `tools/it/timestamp-converter.html` : `✅ 识别为微秒时间戳（16 位）→ 已同步填充秒、毫秒与日期时间` : dead
-- `tools/it/timestamp-converter.html` : `✅ 识别为毫秒时间戳（12 位）→ 已同步填充秒、毫秒与日期时间` : dead
 - `tools/it/timestamp-converter.html` : `东京 (GMT+9)` : dead
 - `tools/it/timestamp-converter.html` : `伦敦 (GMT+0)` : dead
 - `tools/it/timestamp-converter.html` : `北京 (GMT+8)` : dead
@@ -759,4 +757,3 @@
   - `tools/metalwork/cable-tray-sizing.html` : `所需面积已超过常规最大规格 600×200（120000 mm²），请改用定制桥架或双排并联，并按实际规格重新校核填充率。` : dynamic
   - `tools/metalwork/calc-gear-2.html` : `端面齿距 pt (mm)` : dynamic
   - `tools/metalwork/calc-gear-2.html` : `法向模数 mn (mm)` : dynamic
-

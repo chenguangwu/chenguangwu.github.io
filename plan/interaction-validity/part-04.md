@@ -35,7 +35,6 @@
 - `tools/insurance/annuity-present.html` — 空输入点「计算」（text_empty_sel_default｜select 默认 type=ordinary）→ 结果区 📋 计算明细年金类型：普通年金每期金额：¥0.00每期利率：0.00%期数：0计算公式：i=0 时，PV = FV = PMT × n年金现值 PV = ¥0.00年金终值 FV = ¥0.00 ⏐…
 - `tools/insurance/claim-reserve.html` — 空输入点「计算」（text_empty_sel_default｜select 默认 period=0.85）→ 结果区 📋 准备金明细当期已赚保费：¥0 万预期最终赔付率：0%损失率法：预期最终赔款 = 0 × 0% = ¥0 万IBNR = 0 - 0 - 0 = ¥0 万未决赔款准备金 = RBNS + IBNR…
 - `tools/it/code-runner.html` — 空输入点「▶ 运行」（text_empty_sel_default｜select 默认 sampleSelect=,autoRun=on,showConsole=on）→ 结果区 ⚡ 效率工具栏 ✓ 本地处理 0 字符 · 0 行 Ctrl/⌘ + Enter 快速运行
-- `tools/it/graphql-formatter.html` — 空输入点「校验」（text_empty_sel_default｜select 默认 indent=2）→ 结果区 ✅ GraphQL 语法正确 Tokens: 0 括号平衡 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/it/js-obfuscator.html` — 空输入点「🛡 执行混淆」（text_empty_sel_default｜select 默认 optVarRename=on,optStringEncrypt=on,optRemoveComments=on,optRemoveWhitespace=on,optNumberHex=on,optStringArray=on）→ 结果区 0 ⏐ 0 ⏐ -
 - `tools/it/json-formatter.html` — 空输入点「✨ 美化」（text_empty_sel_default｜select 默认 indent=2）→ 结果区 ⚡ 效率工具栏 ✓ 本地处理 0 字符 · 0 行 Ctrl/⌘ + Enter 快速运行 ⏐ 📋 复制结果⬇️ 导出 TXT ⏐ 等待输入...
 - `tools/it/jwt-parser.html` — 空输入点「Decode」（text_empty_sel_default｜select 默认 genAlg=HS256,genExp=3600）→ 结果区 ⚡ 效率工具栏 ✓ 本地处理 0 字符 · 0 行 Ctrl/⌘ + Enter 快速运行 ⏐ 📋 复制结果⬇️ 导出 TXT
@@ -70,4 +69,3 @@
 - `tools/sports/rater-motion.html` — 空输入点「计算评估」（text_empty_sel_default｜select 默认 unit=0）→ 结果区 0.00%变异系数(CV)0.000m平均成绩0.000标准差(SD)极稳定稳定性等级 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/sports/tester-8.html` — 空输入点「计算评估」（text_empty_sel_default｜select 默认 exercise=0）→ 结果区 0.0MAOD(ml/kg)0.0累积氧亏(L)较弱无氧能力0.0min运动时长 ⏐ 📋 复制结果⬇️ 导出 TXT
 - `tools/usedcar/detector-19.html` — 空输入点「检测泡水风险」（text_empty_sel_default｜select 默认 ck_smell=0,ck_carpet=0,ck_seatbelt=0,ck_seatrail=0,ck_ceiling=0,ck_dashboard=0,ck_electrics=0,ck_harness=0,ck_engbay=0,ck_silt=0,ck_fluid=0,ck_sparetire=0,ck_headlight=0,ck_waterline=0）→ 结果区 0%泡水风险指数未发现泡水痕迹检测结论0确认项数0可疑项数 ⏐ 📋 复制结果⬇️ 导出 TXT
-

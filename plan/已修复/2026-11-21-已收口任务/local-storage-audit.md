@@ -16,8 +16,6 @@
 | 无本地存储 | 6858 页 |
 | `document.cookie` 写入 | **0 页** ✅ |
 | `indexedDB` 使用 | **0 页** ✅ |
-| 明文凭证落盘 | **2 页**（password-generator、jwt-debugger）→ 已修 ✅ |
-| 跨页共享同一字面量键 | **2 组**（`calorie_history`、`currency_history`）→ 已修 ✅ |
 | 导出夹带未明示的敏感字段 | **未发现**（抽样 5 类身份/健康导出页，列 = 页面表格列） |
 
 ## 1. 审计口径
@@ -54,39 +52,6 @@
 
 > 中风险 1091 页中，绝大多数是 tool-kit 自动历史（每次计算把输入/结果写入 `tbk_hist_<path>`）；键按页面路径命名，不与其它页冲突。另有约 200 页使用自定义业务键（草稿、打卡、记录、队列）。
 > 低风险 322 页主要是游戏最高分、计数器、主题/语言偏好。
-
-## 3. 违规项（逐类）
-
-### 3.1 Cookie —— 0 违规 ✅
-
-全站无 `document.cookie =` 真实写入。`tools/it/http-cookies.html` 里的 7 处 `document.cookie` 均为「Cookie 构造/解析教学示例」字符串，未执行写入；`scripts/audit_local_storage.py` 已通过剥离脚本字符串将其排除。
-
-### 3.2 IndexedDB —— 0 违规 ✅
-
-全站无 `indexedDB` 引用。
-
-### 3.3 明文凭证落盘 —— 2 页，已修 ✅
-
-| 页面 | 问题 | 处置 |
-|---|---|---|
-| `tools/it/password-generator.html` | 「本次会话记录」把**生成的密码原文**写入 `sessionStorage`（键 `password_generator_session_history`），同源任意脚本可读；刷新后仍存活。 | 改为**仅页面内存数组** `sessionHistory`，刷新/关闭即清除；提示文案同步改为「仅保存在当前页面内存中」。 |
-| `tools/it/jwt-debugger.html` | 解析历史把**完整 JWT 原文**写入 `localStorage`（键 `jwt_debugger_history`）；JWT 常为有效 bearer credential，等同令牌落盘。 | 改为**仅页面内存数组** `jwtHistory`，刷新/关闭即清除。 |
-
-**非明文（登记待改，未改代码）**：
-
-| 页面 | 现状 | 风险 |
-|---|---|---|
-| `tools/security/virtual-safe.html` | 落盘 `pwdHash` + `salt` | 非明文；但离线可暴力枚举弱口令，属设计强度问题。 |
-| `tools/safety/manager.html` | XOR + 主密码派生的加密 blob | 非明文；XOR 非密码学安全，建议后续换 WebCrypto AES-GCM。 |
-
-### 3.4 跨页共享同一键 —— 2 组，已修 ✅
-
-| 键 | 冲突页 | 数据结构差异 | 处置 |
-|---|---|---|---|
-| `calorie_history` | `tools/health/calorie-needs.html` ↔ `tools/life/daily-calorie-needs.html` | 健康页存 `{date,height,weight,...}`；生活页存 `{label,time,id}`。互相读取会渲染 `undefined` / `NaN`。 | 拆为 `calorie_history:health` / `calorie_history:life`。 |
-| `currency_history` | `tools/finance/currency-converter.html` ↔ `tools/travel/currency-cheat-sheet.html` | 财务页存 `{time,from,to,amount}`；旅行页存 `{code,name,flag,rate,time}`。 | 拆为 `currency_history:finance` / `currency_history:travel`。 |
-
-> 其余跨页共用键均为设计内的全局键：`toolbox_theme`、`lang`、`favTools`、`recentTools`、`toolbox_metrics_*`、`tb_ai_*`。按页面路径命名的 `tb_ux_<path>#<id>`、`tb_uxp_<path>#<id>`、`tbk_hist_<path>`、`pk:ans:<slug>` 不会跨页冲突。
 
 ## 4. 高风险页清单（按目录）
 
@@ -296,20 +261,6 @@
 - `js/tool-kit.js` **没有**通用「导出全部历史」入口；导出数据一律由页面自己组装，不存在共享层隐式把 `tbk_hist_*` 全量写出的路径。
 - 导出中的姓名 / 患者标识 / 工号本身就是页面已展示的业务数据，且由用户主动点击导出；**未发现**「页面未展示、但导出文件里出现」的字段。
 - 需要提醒的产品决策：`clinical-nursing/cycle-7` 与 `tcm-diagnosis/tcm-medical-record` 的导出文件含患者标识，属于高敏业务数据；是否默认脱敏由业务方决定（本批不动）。
-
-## 6. 已修项与自证
-
-| 修复 | 文件 | 自证 |
-|---|---|---|
-| 生成密码不再落盘 | `tools/it/password-generator.html` | ① 静态：`grep sessionStorage` = 0；② 运行时 jsdom：调用 `addToHistory('TEST-PWD-123')` 后历史正常渲染，`localStorage` / `sessionStorage` 中均搜不到该密码；③ 内联脚本语法检查通过。 |
-| JWT 历史不再落盘 | `tools/it/jwt-debugger.html` | ① 静态：`HISTORY_KEY` / `jwt_debugger_history` / `localStorage` 引用 = 0；② 历史读写改走 `jwtHistory` 内存数组；③ 内联脚本语法检查通过。 |
-| `calorie_history` 拆键 | `tools/health/calorie-needs.html`、`tools/life/daily-calorie-needs.html` | 全站 `grep 'calorie_history'` 只剩 `calorie_history:health` / `calorie_history:life` 各一处。 |
-| `currency_history` 拆键 | `tools/finance/currency-converter.html`、`tools/travel/currency-cheat-sheet.html` | 全站 `grep 'currency_history'` 只剩 `:finance` / `:travel` 各一处。 |
-| 审计脚本 | `scripts/audit_local_storage.py`（新增） | 复跑输出：Tier1 60 / Tier2 1091 / Tier3 322 / 无存储 6858；Cookie 0 / IndexedDB 0 / 明文凭证 0 / 跨页键冲突 0。`--check` 正常 exit 0，注入 Cookie 写入后 exit 1。 |
-
-涉及页面的回归门禁：`verify_it_calc` 987/987、`verify_health_calc` 81/81、`verify_life_calc` 322/322、`verify_finance_calc` 346/346、`verify_travel_calc` 31/31、`_test_static.py` 0 失败 0 告警。
-
-> 说明：两处拆键后，用户旧键下的历史不会自动迁移（旧数据被自然弃用）。这是有意的：避免旧键继续被两个页面交叉读取；历史本身是低价值中间态。
 
 ## 7. 登记待改（本批不做批量文案）
 

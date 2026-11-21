@@ -209,4 +209,3 @@
   - 7 页：`image/wechat-cover-maker`、`image/gif-split`、`office/mindmap`、`pet/training-planner`、`restaurant/taste-preference`、`music/web-tuner`、`image/image-mosaic`。
 - **M（中等，74 页）**：已有公式/规则，但算例模板化或数字不可复算；只补真实算例与取值依据，不硬加段落。
 - 补充口径：R 的判据只用于「有真实表格内容」的页面；表格若是空壳/占位则归 S 或 M，不适用本条。
-

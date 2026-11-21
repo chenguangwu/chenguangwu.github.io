@@ -154,4 +154,3 @@
 | `textile/cost-calculator.html` | 402 | `	function saveRecord(){if(!window._lastCalc)return;const r={date:new Date().toISOString().split('T')[0],time:n` | 展示/保存的日期取自 UTC，可能与本地日期差一天（需要 UTC 语义的时间戳除外）。 | 展示与按日分组改本地格式化；仅时间戳/ICS 明确保留 UTC。 |
 | `textile/dye-mixer.html` | 346 | `	function saveRecord(){if(!window._lastCalc\|\|Object.keys(selected).length===0)return;const r={date:new Date().` | 展示/保存的日期取自 UTC，可能与本地日期差一天（需要 UTC 语义的时间戳除外）。 | 展示与按日分组改本地格式化；仅时间戳/ICS 明确保留 UTC。 |
 | `textile/pattern-calculator.html` | 343 | `	function saveRecord(){if(!window._lastCalc)return;const r={date:new Date().toISOString().split('T')[0],time:n` | 展示/保存的日期取自 UTC，可能与本地日期差一天（需要 UTC 语义的时间戳除外）。 | 展示与按日分组改本地格式化；仅时间戳/ICS 明确保留 UTC。 |
-

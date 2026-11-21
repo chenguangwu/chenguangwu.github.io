@@ -165,7 +165,6 @@
 grep -rlE "toBlob\(|toDataURL\(" tools --include='*.html' | sort
 grep -rlE "toBlob\(|toDataURL\(" js/tools --include='*.js' | sort
 
-# 2) 单页证据：调用点 ± 上下文、foreignObject / 外链 / accept
 #    （上一批用 /tmp/canvas_scan.py 一次性产出 JSON，未入库；复扫时按本文"一、扫描口径"重写即可）
 ```
 

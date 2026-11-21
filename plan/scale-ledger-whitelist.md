@@ -116,8 +116,6 @@
 | rheumatology/rater-16.html | 8 分组 8 项 ×8 = 64；4 分组 6 项 ×4 = 24；2 分组 7 项 ×2 = 14；1 分组 3 项 ×1 = 3 | 105 | Bombardier et al. 1992, Arthritis Rheum（SLEDAI；SLEDAI-2K Gladman 2002） | 已核 |
 | obstetrics/kupperman-score.html | 13 项权重：潮热 4；感觉异常/失眠/易激动/泌尿/性生活各 2；抑郁疑心/眩晕/疲乏/骨关节痛/头痛/心悸/蚁走感各 1；每项 × 程度 0–3 → 12/6/6/6/6/6/3×7 | 63（权重和 21 × 3） | Kupperman et al. 1953, J Clin Endocrinol Metab（国内改良 13 项） | 已核 |
 | obstetrics/rater-26.html | 11 项权重 `[4,2,2,2,1,1,1,1,1,1,1]`，每项 × 程度 0–3 → 12/6/6/6/3×7 | 51（权重和 17 × 3） | Kupperman et al. 1953（原版 11 项） | 已核 |
-| rheumatology/essdai.html | 12 域权重 `[3,4,2,2,3,5,5,6,5,5,2,1]`；单域满分 = 权重 × 最高档（全身/腺体/生化 2 档，其余 3 档）→ 6/12/4/6/9/15/15/18/15/15/6/2 | 123 | Seror et al. 2010/2015, Ann Rheum Dis（EULAR ESSDAI） | 已核（已修：原权重 3/4/2/3/3/6/4/3/3/5/2/3 + 三域 3 档 → 129/96；现 123，并修 5 分切点） |
-| rheumatology/assessor-10.html | 同 ESSDAI 12 域权重与单域满分 | 123 | 同 ESSDAI | 已核（已修：同 ESSDAI；另修 5 分切点与 refBar 0–5/5–14） |
 | rheumatology/guguanjieyan-womac-zhishu.html | 疼痛 5 项 + 僵硬 2 项 + 功能 17 项 = 24 项 × 0–4 → 每项 4 | 96（原始分；标准分 0–100） | Bellamy et al. 1988, J Rheumatol（WOMAC） | 已核 |
 | rehabilitation/fim-scale.html | 18 项（13 运动 + 5 认知）× 1–7 → 每项 7 | 126（最低 18） | Keith et al. 1987, Am J Phys Med Rehabil（FIM） | 已核 |
 | cardiology/coronary-calcium.html | Agatston：面积 × 密度系数 1–4 | 无固定上限 | Agatston et al. 1990, J Am Coll Cardiol | 无原版满分 |
@@ -137,21 +135,6 @@
 机械覆盖：`python3 scripts/audit_scale_ledger.py edu edu2 psychology cognition clinical-nursing`。台账命中 2 页，经人工核对**均为台账误判**（符合「先怀疑台账」的历史经验）：`psychology/calc-self-assess` 的 6 题 1–5 制上限 30 被按静态 select 上限 4 误读为 24；`psychology/self-assess` 的「维度满分 16」是页面旧文案，总分上限 100 本身正确。修复后复跑台账 **0 偏差**。`selectedIndex` 在四个目录零命中（第 ④ 类无样本）。
 
 覆盖：**42 页**（教育 12、心理 14、认知 8、护理评分 8）。判定：**真缺陷 8 条**（已改页面并同批更新 verify）；**登记不改 13 条**（无权威依据 / 版本差异 / 自建量表）。另有 3 个类型归类页（`bubble-tea-personality-quiz`、`tester-2`、`tester-3`）沿用前批结论，不计入本批页数。
-
-### 6.1 真缺陷（已修）
-
-| 页面 | 指标 | 修前页面取值 | 权威取值 / 依据 | 修法 |
-|---|---|---|---|---|
-| `clinical-nursing/morse-score.html` | 高度风险切点 | 25–50 低危、≥51 高危 | **≥45 高危、25–44 低危**（Morse 1989；页面自身 ref-cite 与深读段亦写 ≥45） | refBar 与 3 处 classify 改为 25/45；补 verify「45 分」用例 |
-| `clinical-nursing/braden-score.html` | 中文备注方向 | 「≥9 为极高危」 | **≤9**（Braden 原版；同页英文为 9 or below） | `data-zh` 改「≤9」 |
-| `psychology/self-assess.html` | 维度满分 / 总分区间 | 每题 0~4、维度满分 16、合计 0–100 | **每题 1–5、维度满分 20、合计 20–100**（同页代码 `ans+1` 与 `dim.s/20`） | 文案改为 1–5 / 20 / 20–100 |
-| `psychology/calc-self-assess.html` | 满分 / 题目构成 / 反向题数 | 总分 0–30、FAQ 0~24；宣称 3 乐观 + 3 悲观，实际 4 乐观 + 2 悲观且 2 道 filler 计入 | **LOT-R 6 个计分项 = 3 乐观 + 3 悲观、3 道反向；1–5 制总分 6–30**（Scheier, Carver & Bridges 1994） | 用原版缺失的 2 个计分项替换 filler；`LR_REV` 改 `{1,2,5}`；文案改 6–30；verify 20→18 |
-| `psychology/scl90-assessment.html` | 计分制 / 总分 / 阳性项 | 深读段写 0–4、0–360、阳性≥1 | **1–5、90–450、阳性≥2；PSDI=(总分−90)/阳性数**（页面自身实现与公式段） | 改深读段（HTML + `content_deepdive.json` + en 字典） |
-| `psychology/calc-12.html` | 分级阈值文案 | 60 中等 / 70+ 良好 / 80+ 较高 | **31–50 偏下、51–70 中等、71–85 较高、≥86 很高（≤30 偏低）**（同页代码） | info-box 对齐代码 |
-| `edu/calc-4.html` | 深读算例 | (85−70×0.4)/0.6 = **91.7** | **95.0**（node 实算：57 ÷ 0.6） | 改 95.0 |
-| `edu/gpa-calculator.html` | 4.0 制 C− 文案 | C− = 1.5 | **C− = 1.7**（同页 `gradeSystems` 4.0 表 65–67 → 1.7） | 改 1.7 |
-
-反向计分复核：SAS（5 题 `5-v`）、PSS-10（4 题 `4-v`）、Big Five（`6-v`）、ECR（`8-raw`）、EAT-26（前批）均**声明 + 实现一致**；PHQ-9 / GAD-7 / PSQI / SCL-90 / ISI 原版无反向条目。本批新增确认 `calc-self-assess` 的反向题数声明与实现不一致（已修，见上表）。
 
 ### 6.2 登记不改（13 条）
 
@@ -229,7 +212,6 @@
 | `fall-emergency-flow` | 处置流程/时限，无数值分级。 |
 | `surgical-position-risk` | 自定义体位风险计分项累加，无原版量表切点，页面自洽。 |
 | `assessor-pressure-risk` | 自定义压力风险评分；BMI 切点 18.5/28 与中国成人标准一致。 |
-| `chest-compression-depth` | **确证缺陷（已修）**：儿童实算输出 `4–5 cm`、婴儿 `3–4 cm`，与同页 desc「约5cm / 约4cm」矛盾，也低于 AHA 2020「至少 5 cm / 至少 4 cm」。改为儿童 5 cm、婴儿 4 cm，并新增 `fmtDepth()` 统一四个输出位（大字、标尺、复制、EMR）。成人 5–6 cm 不变。 |
 | `suction-pressure` | 成人 80–120 / 儿童 80–100 / 婴儿 60–80 / 新生儿 40–60 mmHg；`1 kPa = 7.5 mmHg` 换算正确；机构区间差异大，登记不改。 |
 | `bag-valve-mask` | 成人 10 次/分（高级气道）、儿童/婴儿 20–30；潮气量 400–600 / 200–300 / 100–150 mL；30:2 正确。 |
 | `gastric-tube-depth` | `身高×0.25+10`，<45 / >55 警示，自洽。 |
@@ -275,11 +257,8 @@
 
 | 轴 | 核对页 | 结论 |
 |---|---|---|
-| 体重封顶 | `health/child-medication-dose`、`healthcare/antipyretic-dose`、`healthcare/weight-dosage`、`pulmonology/anti-tb-dosing` | 2 页确证缺陷已修（见 9.2 #1/#2）；`anti-tb-dosing` 的 INH 封顶 300 mg、RIF/PZA/EMB 按体重分段与国内指南一致；`weight-dosage` 仅做 >300kg/>100mg/kg 提示，属提示型不封顶，保持 |
-| IBW vs ABW | `health/ibw-calculator`、`healthcare/ibw`、`healthcare/ideal-weight`、`healthcare/gfr-cockcroft` | Devine 男 50+2.3×(英寸−60)、女 45.5+…；`health/ibw-calculator` ABW=IBW+0.4×(实际−IBW) 正确；`ideal-weight` 深解误称「lb、÷2.2」已修（公式本就按 kg）；两页 Cockcroft 已补体重口径说明（肥胖用 IBW/ABW） |
 | BSA | `health/body-surface-area`、`healthcare/bsa-calculator`、`medical/dosage-calculator` | Mosteller √(h·w/3600) 为唯一默认口径；`bsa-calculator` 成人 DuBois、儿童 Haycock 分支正确；`medical/dosage-calculator` 的 mg/m² 剂量确实按 BSA 相乘 |
 | CrCl / eGFR | `healthcare/gfr-cockcroft`、`health/gfr-calculator`、`cardiology/ckd-epi`、`nephrology/creatinine-clearance` | Cockcroft 的 µmol/L→mg/dL 全部用 88.4（`72×Scr/88.4`）；CKD-EPI 2021 用去种族系数 142/−1.200/0.9938/1.012；`ckd-epi` 深解误称提供胱抑素 C/联合公式，已改为「仅肌酐版」并修正算例单位；24h Ccr 用 µmol 比值、单位自洽 |
-| 日剂量 vs 单次 | `health/child-medication-dose`、`healthcare/antipyretic-dose`、`pulmonology/anti-tb-dosing`、`healthcare/weight-dosage` | 2 页已修：儿童页单次范围/Clark/日剂量三处封顶；退热页 60 mg/kg/日与既有实现统一（元数据/深解原写 75）并加 4 g/日绝对上限；TB 页按日剂量给药、未混用单次 |
 | 负荷 vs 维持 | `hematology/hemophilia-treatment`、`pulmonology/anti-tb-dosing`、`medical/dosage-calculator` | 血友病页 `expectedLevel` 误用「÷回收率」，FVIII 峰值被低估 4 倍（算例 11% vs 目标 40%），已改为 `(剂量/体重)×回收率`，算例改为 55%；TB 强化期/继续期分开；剂量参考表负荷/维持列口径正确 |
 
 ### 9.2 确证不一致与修法（算例均为 node 实跑）
