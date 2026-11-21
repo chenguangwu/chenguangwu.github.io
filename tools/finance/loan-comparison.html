@@ -254,11 +254,15 @@ function calc() {
   if (!validArr.length) {
     tips = '<p style="color:var(--danger);">⚠ 没有有效方案：请至少填写一组贷款金额与月数后再比较。</p>';
   } else {
-    const best = validArr.reduce((min, cur) => (!min || cur.m < min.m) ? cur : min, null);
-    tips = '<p>月供最少：<strong style="color:var(--success);">' + best.id.toUpperCase() + ' 方案</strong>，' + best.m.toFixed(2) + ' 元</p>';
-    const mixed = validArr.some(s => s.principal !== best.principal || s.months !== best.months);
-    if (mixed) {
-      tips += '<p style="color:#ff9800;">⚠ 各方案的本金或期数不同，不能只按月供高低判断优劣，请同时比较总利息与还款总额。</p>';
+    const minMonthly = validArr.reduce((min, cur) => (!min || cur.m < min.m) ? cur : min, null);
+    const minInterest = validArr.reduce((min, cur) => (!min || cur.interest < min.interest) ? cur : min, null);
+    const sameTerms = validArr.every(s => s.principal === validArr[0].principal && s.months === validArr[0].months);
+    if (sameTerms) {
+      tips = '<p>总利息最少：<strong style="color:var(--success);">' + minInterest.id.toUpperCase() + ' 方案</strong>，' + minInterest.interest.toFixed(2) + ' 元</p>';
+    } else {
+      tips = '<p>月供最低：<strong style="color:var(--primary);">' + minMonthly.id.toUpperCase() + ' 方案</strong>，' + minMonthly.m.toFixed(2) + ' 元（仅反映月现金流，不代表总成本最低）</p>'
+        + '<p>总利息最低：<strong style="color:var(--success);">' + minInterest.id.toUpperCase() + ' 方案</strong>，' + minInterest.interest.toFixed(2) + ' 元</p>'
+        + '<p style="color:#ff9800;">⚠ 各方案的本金或期数不同，不能只按月供高低判断优劣，请以总利息与还款总额为主。</p>';
     }
   }
 
