@@ -182,6 +182,38 @@ const CASES = [
   "ref": "去默认化（原 expect「等待输入...」＝空输入分支，注入失败仍命中 → 逃生项）：注入 IANA 名 Asia/Tokyo，validate() 走 TIMEZONES[raw] 精确命中分支，输出名称「日本标准时间」+「UTC 偏移：+09:00（UTC+9）」；默认空输入只输出「等待输入...」。"
 },
 {
+  "slug": "travel/timezone-lookup",
+  "inputs": {
+    "input": "加尔各答"
+  },
+  "expect": [
+    "印度标准时间",
+    "代表城市：加尔各答/新德里"
+  ],
+  "ref": "重复键回归：TIMEZONES 原有两个 `Asia/Kolkata`，后者 city=新德里 覆盖前者的「加尔各答/新德里」，按城市搜「加尔各答」恒返回「未找到匹配的时区」。删除重复键后精确命中印度标准时间，且代表城市含加尔各答；默认态不含该串。"
+},
+{
+  "slug": "travel/timezone-lookup",
+  "inputs": {},
+  "clicks": [
+    "var R=Date;globalThis.Date=function(a,b,c,d,e,f,g){if(arguments.length===0)return new R(1704067200000);return new R(a,b,c,d,e,f,g);};globalThis.Date.prototype=R.prototype;globalThis.Date.now=R.now;document.getElementById('input').value='Asia/Tokyo';validate();globalThis.Date=R;"
+  ],
+  "expect": [
+    "09:00"
+  ],
+  "ref": "宿主时区双计修复：原公式 `now.getTime() + (now.getTimezoneOffset() + r.offset*60)*60000` 把宿主偏移再加一遍（UTC+8 主机查东京会得 17:00）。点击探针把 Date 固定到 2024-01-01T00:00:00Z 后注入 Asia/Tokyo，正确结果 09:00；旧实现按宿主偏移偏移，在 UTC+8 下为 17:00 即不命中。"
+},
+{
+  "slug": "travel/timezone-lookup",
+  "inputs": {
+    "input": "Asia/Almaty"
+  },
+  "expect": [
+    "+05:00（UTC+5）"
+  ],
+  "ref": "哈萨克斯坦 2024-03-01 起全国统一 UTC+5，阿拉木图原表仍写 UTC+6 属过期数据；改为 +05:00 后命中，旧值 +06:00（UTC+6）不命中。"
+},
+{
   "slug": "travel/travel-adapter-guide",
   "inputs": {
     "search": "日本"
