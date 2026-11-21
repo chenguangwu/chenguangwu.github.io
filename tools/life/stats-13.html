@@ -235,18 +235,22 @@ function calc(){
   });
   if(!rows.length){document.getElementById('res').innerHTML='<p>请粘贴接龙名单</p>';return;}
   if(!isFinite(price)||price<0){document.getElementById('res').innerHTML='<p>请填写有效单价</p>';return;}
-  const people=rows.length;
-  const total=rows.reduce(function(a,r){return a+r.qty;},0);
+  // 同名买家按同一人合并份数（与公式框「同名合并计数」口径一致）
+  const agg={};
+  rows.forEach(function(r){ if(!agg[r.name]) agg[r.name]={name:r.name,qty:0}; agg[r.name].qty+=r.qty; });
+  const mergedRows=Object.keys(agg).map(function(k){return agg[k];});
+  const people=mergedRows.length;
+  const total=mergedRows.reduce(function(a,r){return a+r.qty;},0);
   const mean=total/people;
-  const sorted=[...rows].sort(function(a,b){return a.qty-b.qty;});
+  const sorted=[...mergedRows].sort(function(a,b){return a.qty-b.qty;});
   const maxRow=sorted[sorted.length-1], minRow=sorted[0];
   const amount=total*price, perHead=amount/people;
-  const sortedDesc=[...rows].sort(function(a,b){return b.qty-a.qty;});
+  const sortedDesc=[...mergedRows].sort(function(a,b){return b.qty-a.qty;});
   const topN=Math.min(3,sortedDesc.length);
   const topParts=[];
   for(let i=0;i<topN;i++){ topParts.push(sortedDesc[i].name+' '+(sortedDesc[i].qty/total*100).toFixed(1)+'%'); }
   const buckets=[0,0,0];
-  rows.forEach(function(r){ if(r.qty<=1) buckets[0]++; else if(r.qty<=3) buckets[1]++; else buckets[2]++; });
+  mergedRows.forEach(function(r){ if(r.qty<=1) buckets[0]++; else if(r.qty<=3) buckets[1]++; else buckets[2]++; });
   const __g3='<p>接龙人数：<strong style="color:var(--primary);">'+people+'</strong> 人</p>'+
     '<p>合计份数：<strong style="color:var(--primary);">'+fmt(total,Number.isInteger(total)?0:2)+'</strong> 份</p>'+
     '<p>人均份数：<strong>'+fmt(mean)+'</strong> 份/人</p>'+
