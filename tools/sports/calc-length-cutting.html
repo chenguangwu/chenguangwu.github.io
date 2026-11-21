@@ -107,7 +107,7 @@
     <div class="input-row">
       <div>
         <label>贴扎部位</label>
-        <select id="part" onchange="calc()" aria-label="贴扎部位"></select>
+        <select id="part" onchange="syncShape()" aria-label="贴扎部位"></select>
       </div>
       <div>
         <label>测量长度（cm，肌腹/治疗区）</label>
@@ -120,6 +120,13 @@
           <option value="5" selected>5 cm（标准）</option>
           <option value="7.5">7.5 cm（宽）</option>
         </select>
+        <select id="shape" onchange="calc()" aria-label="裁剪形状">
+          <option value="I">I 直条（0 刀）</option>
+          <option value="Y">Y 分支（1 刀）</option>
+          <option value="X">X 四向（2 刀）</option>
+          <option value="扇形">扇形（4 刀）</option>
+        </select>
+
       </div>
     </div>
 
@@ -236,6 +243,13 @@ var PARTS={
   });
   sel.value='shoulder';
 })();
+function syncShape(){
+  var part=PARTS[document.getElementById('part').value];
+  var raw=part?part.shape:'I';
+  var shape=raw.indexOf('扇')>=0?'扇形':raw.indexOf('X')>=0?'X':raw.indexOf('Y')>=0?'Y':'I';
+  var sel=document.getElementById('shape'); if(sel) sel.value=shape;
+  calc();
+}
 function setInvalid(el,inv){if(!el)return;if(inv){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
 function calc(){
   var key=document.getElementById('part').value;
@@ -247,20 +261,21 @@ function calc(){
   var anchor=Math.max(4,width+1);
   var total=measured+2*anchor;
   var tailLen=measured;
-  var cutCount=part.shape.indexOf('Y')>=0?1:part.shape.indexOf('X')>=0?2:part.shape.indexOf('扇')>=0?4:0;
+  var shape=(document.getElementById('shape')||{}).value||part.shape;
+  var cutCount=shape==='扇形'?4:shape==='X'?2:shape==='Y'?1:0;
   var sHtml='<div class="data-card"><div class="num">'+total.toFixed(1)+'</div><div class="label">所需总长 cm</div></div>'+
     '<div class="data-card"><div class="num">'+anchor.toFixed(1)+'</div><div class="label">锚点(每端) cm</div></div>'+
-    '<div class="data-card"><div class="num">'+part.shape+'</div><div class="label">裁剪形状</div></div>'+
+    '<div class="data-card"><div class="num">'+shape+'</div><div class="label">裁剪形状</div></div>'+
     '<div class="data-card"><div class="num">'+tailLen.toFixed(1)+'</div><div class="label">分支长度 cm</div></div>'+
     '<div class="data-card"><div class="num">'+width+'</div><div class="label">贴布宽度 cm</div></div>'+
     '<div class="data-card"><div class="num">'+Math.ceil(total/250)+'</div><div class="label">建议贴布卷数*（每卷 2.5m）</div></div>';
   const __g4=sHtml;document.getElementById('summary').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   var g='<h3>贴扎指引：'+part.name+'</h3>';
   g+='<div class="data-grid" style="margin-top:4px;">'+
-    '<div class="data-card"><div class="num" style="font-size:18px;">'+part.shape+'</div><div class="label">裁剪形状</div></div>'+
+    '<div class="data-card"><div class="num" style="font-size:18px;">'+shape+'</div><div class="label">裁剪形状</div></div>'+
     '<div class="data-card"><div class="num" style="font-size:16px;">'+part.tension+'</div><div class="label">张力建议</div></div>'+
     '</div>';
-  g+='<p>裁剪方法：从贴布两端各留 <strong>'+anchor.toFixed(1)+' cm</strong> 作锚点（不裁剪），中间 <strong>'+tailLen.toFixed(1)+' cm</strong> 沿长度方向' +(cutCount>0?('纵切 '+cutCount+' 刀形成 '+part.shape):('不裁剪，保持 I 形'))+'。两端及分支末端剪成圆角。</p>';
+  g+='<p>裁剪方法：从贴布两端各留 <strong>'+anchor.toFixed(1)+' cm</strong> 作锚点（不裁剪），中间 <strong>'+tailLen.toFixed(1)+' cm</strong> 沿长度方向' +(cutCount>0?('纵切 '+cutCount+' 刀形成 '+shape):('不裁剪，保持 I 形'))+'。两端及分支末端剪成圆角。</p>';
   g+='<h4 style="margin-top:12px;">操作步骤</h4>';
   part.steps.forEach(function(s,i){g+='<div class="step-line"><strong>'+(i+1)+'</strong>. '+s+'</div>';});
   g+='<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">* 按 2.5m 卷估算所需卷数，实际依贴法而定。贴前清洁干燥皮肤，贴后抚压激活胶水。</p>';
@@ -276,6 +291,7 @@ function resetAll(){
   calc();ToolBox.showToast(i18nText(), 'info');
 }
 document.addEventListener('DOMContentLoaded',function(){
+  syncShape();
   var el=document.getElementById('measured');
   el.addEventListener('keydown',function(e){
     if(e.key==='Enter'){e.preventDefault();calc();}
