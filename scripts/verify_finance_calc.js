@@ -5106,6 +5106,14 @@ const CASES = [
     "expect": ["总利息最少： A 方案"],
     "ref": "同本金同期数：月供与总利息同序，直接以总利息最少作为结论；旧文案「月供最少」在相同条件下虽等价，但未点明比较维度。"
   },
+{
+  "slug": "finance/mortgage-calculator",
+  "inputs": {"loanAmount": "100", "rate": "4.9", "years": "30", "downPayment": "30"},
+  "clicks": ["var tb=document.getElementById('scheduleBody');var before=(tb.innerHTML.match(/<tr>/g)||[]).length;document.getElementById('scheduleToggle').fire('click');var after=(tb.innerHTML.match(/<tr>/g)||[]).length;var ok=before===24&&after===360;document.getElementById('__tbProbe').textContent='MCFULL '+before+'/'+after+(ok?' OK':' BAD');"],
+  "expect": ["MCFULL 24/360 OK"],
+  "ref": "30 年 360 期：默认只渲染前 24 期，点击‘显示全部期数’后应渲染 360 行；旧版无切换按钮且固定 slice(0,24)。"
+},
+
 ];
 
 // ---------------------------------------------------------------- main

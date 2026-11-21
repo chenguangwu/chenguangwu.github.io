@@ -254,7 +254,7 @@ table.amort th{position:sticky;top:0;background:#f5f7fa;z-index:1;}
   </div>
 
   <div class="card">
-    <h2>📅 还款明细（前 24 期）</h2>
+    <h2>📅 还款明细 <span id="scheduleHint" style="font-size:13px;font-weight:400;color:var(--text-muted);"></span></h2>
     <div class="amort-table">
       <table class="amort">
         <thead><tr><th>期数</th><th>月供</th><th>本金</th><th>利息</th><th>剩余本金</th></tr></thead>
@@ -262,6 +262,7 @@ table.amort th{position:sticky;top:0;background:#f5f7fa;z-index:1;}
       </table>
     </div>
     <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" id="scheduleToggle" onclick="toggleScheduleView()">显示全部期数</button>
       <button type="button" class="btn" onclick="exportCSV()">导出 CSV</button>
     </div>
   </div>
@@ -385,6 +386,7 @@ function calculate(){
   const monthlyRate = annualRate / 12;
 
   let schedule = [];
+  __mcSchedule = schedule;
   let totalInterest = 0;
   let monthlyPayment = 0;
 
@@ -419,7 +421,6 @@ function calculate(){
   }
 
   const totalPayment = amount + totalInterest;
-  const fmt = n => '¥' + n.toLocaleString('zh-CN', {maximumFractionDigits: 2, minimumFractionDigits: 2});
 
   document.getElementById('monthlyPay').textContent = fmt(monthlyPayment);
   document.getElementById('totalInterest').textContent = fmt(totalInterest);
@@ -437,9 +438,26 @@ function calculate(){
   const pie = document.getElementById('pieChart');
   pie.style.background = `conic-gradient(var(--primary) 0% ${principalPct}%, var(--danger) ${principalPct}% 100%)`;
 
-  // 表格
+  // 表格：默认只展示前 24 期，可切换为全部；CSV 始终导出全部期数。
+  __mcSchedule = schedule;
+  __mcShowAll = false;
+  renderScheduleTable();
+}
+
+function fmt(n){ return '¥' + n.toLocaleString('zh-CN', {maximumFractionDigits: 2, minimumFractionDigits: 2}); }
+
+function renderScheduleTable(){
   const tbody = document.getElementById('scheduleBody');
-  const __h0=schedule.slice(0, 24).map(s => `
+  const hint = document.getElementById('scheduleHint');
+  const btn = document.getElementById('scheduleToggle');
+  const total = __mcSchedule.length;
+  const list = __mcShowAll ? __mcSchedule : __mcSchedule.slice(0, 24);
+  if(hint) hint.textContent = total ? ('（共 ' + total + ' 期' + (__mcShowAll ? '' : '，当前显示前 24 期') + '）') : '';
+  if(btn) {
+    btn.style.display = total > 24 ? '' : 'none';
+    btn.textContent = __mcShowAll ? '收起（仅前 24 期）' : '显示全部期数';
+  }
+  const __h0=list.map(s => `
     <tr>
       <td>${s.month}</td>
       <td>${fmt(s.payment)}</td>
@@ -447,13 +465,23 @@ function calculate(){
       <td>${fmt(s.interest)}</td>
       <td>${fmt(s.balance)}</td>
     </tr>
-  `).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){tbody.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}tbody.innerHTML=__h0;
+  `).join('');
+  if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){tbody.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}
+  tbody.innerHTML = __h0;
+}
+
+function toggleScheduleView(){
+  __mcShowAll = !__mcShowAll;
+  renderScheduleTable();
 }
 
 function resetDisplay(msg){
   ['monthlyPay','totalInterest','totalPayment','totalRatio','effectiveRate','totalLoan','totalIntBar','pieTotal'].forEach(id => {
     document.getElementById(id).textContent = '--';
   });
+  __mcSchedule = []; __mcShowAll = false;
+  const hint = document.getElementById('scheduleHint'); if(hint) hint.textContent = '';
+  const toggle = document.getElementById('scheduleToggle'); if(toggle) toggle.style.display = 'none';
   // F-N95：清掉上一次的 conic-gradient，回退 CSS 默认全灰饼图，避免把旧比例当成新结果。
   const pie = document.getElementById('pieChart');
   if(pie && pie.style) pie.style.background = '';
@@ -504,6 +532,7 @@ function exportCSV(){
   URL.revokeObjectURL(url);
 }
 
+var __mcSchedule = [], __mcShowAll = false;
 calculate();
 </script><script>
 // tool-intro折叠交互

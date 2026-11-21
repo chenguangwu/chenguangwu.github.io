@@ -47,7 +47,7 @@
 （路径均相对 `tools/`）
 
 ### 留存优化（按页落点）
-- `finance/mortgage-calculator`：仅前 24 期；补首付+税费总成本与全表下载。
+- `finance/mortgage-calculator`：首付+税费总成本仍未纳入（全表展开与 CSV 全量导出已于第 139 批具备）。
 - `finance/housing-fund-loan`：规则硬编码 2024、年龄只提示；补利率可选与年龄压年限。
 - `banking/apy-calculator`：补单利/复利/连续复利三列与 %/小数双输入。
 - `finance/salary-calculator`：不可导出；补工资条导出与年终奖单独/合并对比。
