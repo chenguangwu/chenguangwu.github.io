@@ -103,7 +103,7 @@
     <h2 data-zh="💰 药物经济学(日治疗费用)比较器">Tcm Pharmacoeconomics</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="比较不同中成药/西药的日治疗费用(DDC)及疗程费用，辅助合理用药决策">Tcm Pharmacoeconomics</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">性价比 = 该药日治疗费用 ÷ 全部药品中最低日治疗费用 × 100%（四舍五入取整）；判色：等于 100% 为优，&gt; 300% 为差，&gt; 200% 为中，其余为提示。平均日费用 = Σ 日治疗费用 ÷ 药品数；柱状图条宽 = 该药日费用 ÷ 最高日费用 × 100%</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">费用指数 = 该药日治疗费用 ÷ 全部药品中最低日治疗费用 × 100%（四舍五入取整）；指数仅表示相对日费用高低，不表示疗效、安全性或综合性价比优劣。平均日费用 = Σ 日治疗费用 ÷ 药品数；柱状图条宽 = 该药日费用 ÷ 最高日费用 × 100%</div>
       <p class="formula-desc" data-zh="「比较不同中成药/西药的日治疗费用(DDC)及疗程费用，辅助合理用药决策」按输入参数进行专业计算并输出结果。">Tcm Pharmacoeconomics: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -173,8 +173,8 @@
       <p style="margin-top:4px;">反映完成一个治疗周期的总药费支出。</p>
     </div>
     <div class="ref-card">
-      <h4>性价比指数</h4>
-      <p>以最低日费用为基准(100)，其他药品数值越低说明相对越贵。</p>
+      <h4>费用指数（仅比较日费用）</h4>
+      <p>以最低日费用为基准(100)，数值越高表示日费用相对越高；不能据此判断疗效、安全性或综合性价比。</p>
     </div>
   </div>
 
@@ -221,13 +221,13 @@
       <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准">Source / Standard</th></tr></thead>
       <tbody>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="性价比">Cost ratio</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="性价比 = 日费 ÷ 最低日费 × 100%">Cost ratio = day cost ÷ min day cost × 100%</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="费用指数">Cost index</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="费用指数 = 日费 ÷ 最低日费 × 100%（仅表示相对日费，不含疗效）">Cost index = day cost ÷ min day cost × 100% (relative daily cost only, not efficacy)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Pharmacoeconomics</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="判色阈值">Color rule</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="≤100% 为优、超过200% 为中、超过300% 为差">≤100% good, over 200% mid, over 300% poor</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="相对日费档位">Relative daily-cost band</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="100% 为最低日费；超过 200% 为偏高、超过 300% 为显著偏高（仅费用提示，不代表疗效优劣）">100% is the lowest daily cost; over 200% high, over 300% markedly high (cost hint only, not a judgment of efficacy)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Pharmacoeconomics</td>
         </tr>
         <tr>
@@ -342,7 +342,7 @@ function renderResult(){
 
   var minDDC = Math.min.apply(null, drugList.map(function(d){ return d.ddc; }));
 
-  var html = '<table><thead><tr><th>药品名称</th><th>单价(元/粒)</th><th>日治疗费用</th><th>疗程费用</th><th>性价比</th><th>操作</th></tr></thead><tbody>';
+  var html = '<table><thead><tr><th>药品名称</th><th>单价(元/粒)</th><th>日治疗费用</th><th>疗程费用</th><th>费用指数</th><th>操作</th></tr></thead><tbody>';
   drugList.forEach(function(d, idx){
     var ratio = Math.round(d.ddc / minDDC * 100);
     html += '<tr>';
@@ -385,7 +385,7 @@ function renderResult(){
   // 建议
   var cheapest = drugList.filter(function(d){ return d.ddc === minDDC; })[0];
   html += '<div class="tip-box tip-success" style="margin-top:12px;">';
-  html += '💡 最经济方案：<strong>'+ToolBox.escHtml(cheapest.name)+'</strong>，日治疗费用仅 '+cheapest.ddc.toFixed(2)+' 元，疗程费用 '+cheapest.totalCost.toFixed(2)+' 元。';
+  html += '💡 最低日费用方案：<strong>'+ToolBox.escHtml(cheapest.name)+'</strong>，日治疗费用 '+cheapest.ddc.toFixed(2)+' 元，疗程费用 '+cheapest.totalCost.toFixed(2)+' 元。仅按日治疗费用排序，不代表疗效、安全性或综合性价比更优。';
   html += '</div>';
 
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h2;
