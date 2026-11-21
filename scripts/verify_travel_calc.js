@@ -252,6 +252,7 @@ const CASES = [
   "inputs": {
     "days": "11",
     "people": "2",
+    "nights": "6",
     "transport": "3000",
     "accommodation": "500",
     "food": "200",
@@ -260,7 +261,7 @@ const CASES = [
     "emergency": "1000"
   },
   "expect": [
-    "(22.2%)"
+    "(22.7%)"
   ],
   "ref": "auto-restore"
 },

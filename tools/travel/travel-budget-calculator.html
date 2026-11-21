@@ -153,13 +153,17 @@
 
     <div class="input-row">
       <div>
-        <div data-tb="preset" data-tb-presets='[{"label":"旅行天数7·出行人数2·✈️机票/交通3000·🏨住宿/…","labelEn":"days=7 · people=2 · transport=3000 · ac…","values":{"days":"7","people":"2","transport":"3000","accommodation":"500","food":"200","tickets":"800","shopping":"1000","emergency":"1000"}}]'></div>
+        <div data-tb="preset" data-tb-presets='[{"label":"旅行天数7·出行人数2·✈️机票/交通3000·🏨住宿/…","labelEn":"days=7 · people=2 · transport=3000 · ac…","values":{"days":"7","people":"2","nights":"6","transport":"3000","accommodation":"500","food":"200","tickets":"800","shopping":"1000","emergency":"1000"}}]'></div>
 <label>旅行天数</label>
         <input type="number" id="days" value="7" min="1" oninput="calc()" placeholder="如 7">
       </div>
       <div>
         <label>出行人数</label>
         <input type="number" id="people" value="2" min="1" oninput="calc()" placeholder="如 2">
+      </div>
+      <div>
+        <label>住宿晚数</label>
+        <input type="number" id="nights" value="6" min="0" max="365" oninput="calc()" placeholder="如 6（通常为天数−1）">
       </div>
     </div>
 
@@ -278,16 +282,25 @@
 const colors = ['#42a5f5','#66bb6a','#ffa726','#ef5350','#ab47bc','#26c6da'];
 function fmt(n){return '¥ ' + Math.round(n).toLocaleString('zh-CN');}
 function calc(){
-  const days=+document.getElementById('days').value||1;
-  const people=+document.getElementById('people').value||1;
-  const transport=+document.getElementById('transport').value||0;
-  const hotelPerNight=+document.getElementById('accommodation').value||0;
-  const foodPerDay=+document.getElementById('food').value||0;
-  const tickets=+document.getElementById('tickets').value||0;
-  const shopping=+document.getElementById('shopping').value||0;
-  const emergency=+document.getElementById('emergency').value||0;
-  const hotel=hotelPerNight*days;
-  const food=foodPerDay*days;
+  const days=+document.getElementById('days').value;
+  const people=+document.getElementById('people').value;
+  const nights=+document.getElementById('nights').value;
+  const transport=+document.getElementById('transport').value;
+  const hotelPerNight=+document.getElementById('accommodation').value;
+  const foodPerDay=+document.getElementById('food').value;
+  const tickets=+document.getElementById('tickets').value;
+  const shopping=+document.getElementById('shopping').value;
+  const emergency=+document.getElementById('emergency').value;
+  var bad = !isFinite(days)||days<1||!isFinite(people)||people<1||!isFinite(nights)||nights<0||nights>365
+    || [transport,hotelPerNight,foodPerDay,tickets,shopping,emergency].some(function(v){ return !isFinite(v)||v<0; });
+  if(bad){
+    document.getElementById('totalAmount').textContent='—';
+    document.getElementById('perDay').textContent='请检查天数/人数/晚数及费用：天数≥1、人数≥1、晚数0–365、各项费用≥0';
+    document.getElementById('breakdown').innerHTML='';
+    return;
+  }
+  const hotel=hotelPerNight*nights;
+  const food=foodPerDay*people*days;
   const total=transport+hotel+food+tickets+shopping+emergency;
   const perPerson=total/people;
   const perDay=perPerson/days;

@@ -175,7 +175,7 @@
           <option value="MOP,0.90,🇲🇴,MOP$,澳门元">澳门元 MOP</option>
           <option value="PHP,0.128,🇵🇭,₱,菲律宾比索">菲律宾比索 PHP</option>
         </select></div>
-        <div><label>汇率 (1外币=?CNY)</label><input type="number" id="rate" value="7.20" step="0.0001" oninput="gen()" placeholder="如 7.20"></div>
+        <div><label>汇率 (1外币=?CNY)</label><input type="number" id="rate" value="7.20" min="0.0001" step="0.0001" oninput="gen()" placeholder="如 7.20"></div>
       </div>
 
       <div class="input-row">
@@ -387,8 +387,9 @@ function __ccsExport(){
   var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var sel=document.getElementById('currency').value.split(',');
   var code=sel[0],defaultRate=+sel[1],sym=sel[3],fullName=sel[4];
-  var rateInput=+document.getElementById('rate').value||defaultRate;
-  if(!(rateInput>0)){ToolBox.showToast(en?'Please enter a valid rate':'请输入有效汇率');return;}
+  var rateRaw=document.getElementById('rate').value.trim();
+  var rateInput=rateRaw===''?NaN:parseFloat(rateRaw);
+  if(!isFinite(rateInput)||rateInput<=0){ToolBox.showToast(en?'Please enter a valid rate (> 0)':'请输入大于 0 的有效汇率');return;}
   var amounts=getAmounts();
   if(!amounts.length){ToolBox.showToast(en?'No amounts to export':'没有可导出的金额');return;}
   var tb=document.querySelector('#ccsHidden tbody');
@@ -443,7 +444,12 @@ function getAmounts() {
 function gen() {
   const sel = document.getElementById('currency').value.split(',');
   const code = sel[0], defaultRate = +sel[1], flag = sel[2], sym = sel[3], fullName = sel[4];
-  const rateInput = +document.getElementById('rate').value || defaultRate;
+  const rateRaw = document.getElementById('rate').value.trim();
+  const rateInput = rateRaw===''?NaN:parseFloat(rateRaw);
+  if(!isFinite(rateInput)||rateInput<=0){
+    document.getElementById('sheet').innerHTML='<p style="color:var(--danger)">请输入大于 0 的汇率（例如 1 外币 = ? CNY）；空值、0 或负数不会回退到默认牌价。</p>';
+    return;
+  }
   const amounts = getAmounts();
   const rmbAmounts = amounts;
   
