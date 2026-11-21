@@ -151,6 +151,7 @@
           <option value="0.9">新能源（纯电/插混）</option>
         </select>
       </div>
+      <div><label>纯电车型（无发动机）</label><label style="display:flex;align-items:center;gap:6px;font-weight:400;"><input type="checkbox" id="evMode" onchange="calc()"> 跳过机油、机滤、火花塞、正时皮带</label></div>
       <div><label>使用工况</label>
         <select id="cond" onchange="calc()">
           <option value="1.0">标准工况</option>
@@ -315,9 +316,11 @@ function calc(){
       F=document.getElementById('formulaBox'),A=document.getElementById('adviceBox');
   var km=val('km'), kmM=val('kmM'), mon=val('mon');
   var veh=val('veh'), cond=val('cond'), ahead=val('ahead');
+  var evMode=!!(document.getElementById('evMode')&&document.getElementById('evMode').checked);
   var op=str('oil').split('|');
   var oilKm=parseFloat(op[0]), oilMon=parseFloat(op[1]);
   var sd=str('sdate');
+  if(sd){var __sd=new Date(sd+'T00:00:00'); if(!isNaN(__sd.getTime())){var __now=new Date(); var __cal=(__now.getFullYear()-__sd.getFullYear())*12+(__now.getMonth()-__sd.getMonth())-(__now.getDate()<__sd.getDate()?1:0); mon=Math.max(0,__cal); var __monEl=document.getElementById('mon'); if(__monEl)__monEl.value=mon;}}
 
   var ITEMS=[
     ['机油 + 机油滤芯', oilKm, oilMon, cond],
@@ -334,15 +337,17 @@ function calc(){
   var rows='', soon=[], overdue=[], minLeft=Infinity, minName='';
   for(var i=0;i<ITEMS.length;i++){
     var name=ITEMS[i][0], base=ITEMS[i][1], monBase=ITEMS[i][2], k=ITEMS[i][3];
+    if(evMode&&/机油|机滤|火花塞|正时皮带/.test(name))continue;
     var cyc=base*k*veh;
     if(cyc<1000) cyc=1000;
     var next=Math.ceil(km/cyc)*cyc;
-    if(next<=km) next=km+cyc;
     var left=next-km;
-    var leftMon=(kmM>0)?left/kmM:Infinity;   // 月均里程 kmM 为每月里程，剩余月数 = 剩余里程 ÷ 月均里程
+    var timeLeft=monBase-mon;
+    var leftMon=(kmM>0)?left/kmM:Infinity;
+    if(isFinite(leftMon)&&isFinite(timeLeft))leftMon=Math.min(leftMon,timeLeft);
     var st, cls;
-    if(left<=0){ st='已逾期'; overdue.push(name); }
-    else if(left<=ahead){ st='即将到期'; soon.push(name); }
+    if(left===0||timeLeft<=0){ st='已到期'; overdue.push(name); }
+    else if(left<=ahead||timeLeft<=3){ st='即将到期'; soon.push(name); }
     else { st='正常'; }
     if(left<minLeft){ minLeft=left; minName=name; }
     rows+='<tr><td style="padding:5px 8px;">'+name+'</td>'

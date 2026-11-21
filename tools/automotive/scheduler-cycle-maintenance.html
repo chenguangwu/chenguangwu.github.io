@@ -366,12 +366,12 @@ function scItems(oilIv, cond){
     ['变速箱油', 70000, 48, cond*0.8+0.2],
     ['正时皮带', 80000, 60, 1.0]
   ];
-  var km=val('km'), out=[];
+  var km=val('km'), last=val('last'), out=[];
   for(var i=0;i<raw.length;i++){
     var cyc=raw[i][1]*raw[i][3];
     if(cyc<1000) cyc=1000;
-    var next=Math.ceil(km/cyc)*cyc;
-    if(next<=km) next=km+cyc;
+    var anchor=last>0?last:0;
+    var next=anchor+Math.max(1,Math.ceil((km-anchor)/cyc))*cyc;
     out.push({name:raw[i][0], cyc:cyc, monBase:raw[i][2], next:next, left:next-km});
   }
   return out;
@@ -388,11 +388,13 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   var ITEMS=scItems(oilIv,cond);
 
   var overdue=[], soon=[], ok=[];
+  var sinceKm=km-last;
   var rows='';
   for(var i=0;i<ITEMS.length;i++){
     var o=ITEMS[i], left=o.left;
     var st, col;
-    if(left<=0){ st='已逾期'; col='#dc2626'; overdue.push(o.name); }
+    if(left<=0&&sinceKm>o.cyc){ st='已逾期'; col='#dc2626'; overdue.push(o.name); }
+    else if(left<=0){ st='已到期'; col='#dc2626'; overdue.push(o.name); }
     else if(left<=ahead){ st='即将到期'; col='#d97706'; soon.push(o.name); }
     else { st='正常'; col='#059669'; ok.push(o.name); }
     var lm=kmM>0?left/kmM:Infinity;
@@ -404,7 +406,6 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
       +'<td style="padding:5px 8px;color:'+col+';">'+st+'</td></tr>';
   }
 
-  var sinceKm=km-last;
   const __g4='<div class="result-grid">'
     +'<div class="result-item"><div class="result-label">已逾期</div><div class="result-value">'+overdue.length+' 项</div></div>'
     +'<div class="result-item"><div class="result-label">即将到期</div><div class="result-value">'+soon.length+' 项</div></div>'

@@ -131,6 +131,7 @@
     <div class="input-row">
       <div style="flex:1;"><label>上次更换里程 (km)</label><input type="number" id="lastKm" value="0" min="0" placeholder="未更换填0"></div>
       <div style="flex:1;"><label>年均里程 (km)</label><input type="number" id="yearKm" value="15000" min="0" placeholder="如 15000"></div>
+      <div style="flex:1;"><label>自定义更换周期 (km)</label><input type="number" id="customInt" value="80000" min="1000" step="1000" oninput="calc()" disabled placeholder="如 80000"></div>
     </div>
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">🔍 计算更换周期</button>
@@ -267,10 +268,10 @@
 const KEY='tb_timing_belt_records';
 // 车型数据库 type: belt 皮带 / chain 链条
 const MODELS=[
-  {id:'vw_ea888',name:'大众 EA888（1.8T/2.0T）',type:'belt',interval:100000,note:'皮带 + 张紧轮 + 水泵建议同换'},
+  {id:'vw_ea888',name:'大众 EA888（1.8T/2.0T）',type:'chain',interval:0,note:'正时链条，注意张紧器与导板；早期个别机型以实车为准'},
   {id:'vw_ea211',name:'大众 EA211（1.4T/1.6L）',type:'belt',interval:100000,note:'正时皮带，配套更换张紧器'},
   {id:'psa_tu',name:'标致/雪铁龙 TU 系列',type:'belt',interval:80000,note:'老款 1.4/1.6 皮带，建议提前更换'},
-  {id:'nissan_hr16',name:'日产 HR16（轩逸 1.6L）',type:'belt',interval:150000,note:'正时链条，免维护；少数皮带版本15万km'},
+  {id:'nissan_hr16',name:'日产 HR16（轩逸 1.6L）',type:'chain',interval:0,note:'正时链条，免维护；若实车为皮带版本请选自定义并填手册里程'},
   {id:'toyota_nz',name:'丰田 NZ/AR 系列（卡罗拉/凯美瑞）',type:'chain',interval:0,note:'正时链条，设计免维护'},
   {id:'honda_l15',name:'本田 L15B（思域/飞度 1.5T）',type:'chain',interval:0,note:'正时链条，免维护'},
   {id:'mazda_sky',name:'马自达 创驰蓝天（2.0/2.5）',type:'chain',interval:0,note:'正时链条，免维护'},
@@ -297,9 +298,8 @@ function getModel(){return MODELS.find(m=>m.id===document.getElementById('modelS
 function onModelChange(){
   const m=getModel();
   // 自定义车型时允许编辑周期
-  if(m.id==='custom'){
-    // 保留输入
-  }
+  var ce=document.getElementById('customInt');
+  if(ce){ce.disabled = m.id!=='custom';}
   calc();
 }
 
@@ -308,7 +308,9 @@ function calc(){
   const curKm=Math.max(0,+document.getElementById('curKm').value||0);
   const lastKm=Math.max(0,+document.getElementById('lastKm').value||0);
   const yearKm=Math.max(1,+document.getElementById('yearKm').value||15000);
-  const isChain=m.type==='chain' && m.interval===0;
+  const custInt=Math.max(1000,parseInt((document.getElementById('customInt')||{}).value||'80000',10)||80000);
+  const interval=(m.id==='custom')?custInt:interval;
+  const isChain=m.type==='chain' && interval===0;
   // BELTCLR：当前/上次里程缺失时不得输出「建议换油间隔」类结论
   if(!document.getElementById('curKm').value.trim()||!document.getElementById('lastKm').value.trim()){
     document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写当前里程与上次更换里程</p>';
@@ -318,7 +320,7 @@ function calc(){
   let html=`<div class="card"><h2>📊 ${ToolBox.escHtml(m.name)} 计算结果</h2>`;
   html+=`<div class="stat-grid">
     <div class="stat-card"><div class="val">${ToolBox.formatNumber(curKm)}</div><div class="lbl">当前里程(km)</div></div>
-    <div class="stat-card"><div class="val">${ToolBox.formatNumber(m.interval)}</div><div class="lbl">建议间隔(km)</div></div>
+    <div class="stat-card"><div class="val">${ToolBox.formatNumber(interval)}</div><div class="lbl">建议间隔(km)</div></div>
     <div class="stat-card"><div class="val">${ToolBox.formatNumber(lastKm)}</div><div class="lbl">上次更换里程</div></div>
     <div class="stat-card"><div class="val">${ToolBox.formatNumber(yearKm)}</div><div class="lbl">年均里程</div></div>
   </div>`;
@@ -335,14 +337,14 @@ function calc(){
   }else{
     // 皮带计算
     const baseFrom=lastKm>0?lastKm:0;
-    const nextDue=baseFrom+m.interval;
+    const nextDue=baseFrom+interval;
     const remain=Math.max(0,nextDue-curKm);
-    const usedPct=m.interval>0?Math.min((curKm-baseFrom)/m.interval*100,100):0;
+    const usedPct=interval>0?Math.min((curKm-baseFrom)/interval*100,100):0;
     const dailyKm=yearKm/365;
     const days=remain>0?Math.round(remain/dailyKm):0;
     let status,statusClass,statusText,color;
     if(remain<=0){status='due';statusClass='grade-fail';statusText='已超期，立即更换';color='var(--danger)';}
-    else if(remain<=m.interval*0.1){status='soon';statusClass='grade-pass';statusText='即将到期';color='var(--warning)';}
+    else if(remain<=interval*0.1){status='soon';statusClass='grade-pass';statusText='即将到期';color='var(--warning)';}
     else{status='ok';statusClass='grade-excellent';statusText='状态正常';color='var(--success)';}
 
     html+=`<div class="stat-grid">
@@ -366,7 +368,7 @@ function calc(){
   }
   html+=`</div>`;
   const __g2=html;document.getElementById('resultArea').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  window._lastCalc={modelId:m.id,modelName:m.name,type:m.type,interval:m.interval,curKm,lastKm,yearKm};
+  window._lastCalc={modelId:m.id,modelName:m.name,type:m.type,interval:interval,curKm,lastKm,yearKm};
   __cbRenderCompare();
 }
 
@@ -385,18 +387,18 @@ function __cbRenderCompare(){
   var beltRemain=[];
   MODELS.forEach(function(m){
     var typeName=en?TYPE_EN[m.type]:TYPE_NAMES[m.type];
-    var intervalTxt=m.interval>0?ToolBox.formatNumber(m.interval)+' km':(en?'Maintenance-free':'免维护');
+    var intervalTxt=interval>0?ToolBox.formatNumber(interval)+' km':(en?'Maintenance-free':'免维护');
     var nextTxt='—',remainTxt='—',daysTxt='—',statusTxt;
-    if(m.interval>0){
-      var nextDue=lastKm+m.interval;
+    if(interval>0){
+      var nextDue=lastKm+interval;
       var remain=Math.max(0,nextDue-curKm);
       nextTxt=ToolBox.formatNumber(nextDue)+' km';
       remainTxt=ToolBox.formatNumber(remain)+' km';
       daysTxt=remain>0?Math.round(remain/dailyKm)+(en?' days':' 天'):'0';
       if(remain<=0)statusTxt=en?'Overdue':'已超期';
-      else if(remain<=m.interval*0.1)statusTxt=en?'Due soon':'即将到期';
+      else if(remain<=interval*0.1)statusTxt=en?'Due soon':'即将到期';
       else statusTxt=en?'OK':'正常';
-      beltRemain.push({name:m.name,id:m.id,remain:remain,interval:m.interval});
+      beltRemain.push({name:m.name,id:m.id,remain:remain,interval:interval});
     }else{
       statusTxt=en?'Maintenance-free':'免维护';
     }
@@ -496,7 +498,7 @@ function exportResult(){
 function renderDB(){
   let h='<table><thead><tr><th>车型</th><th>类型</th><th>更换里程</th><th>说明</th></tr></thead><tbody>';
   MODELS.filter(m=>m.id!=='custom').forEach(m=>{
-    h+=`<tr><td>${m.name}</td><td>${TYPE_NAMES[m.type]}</td><td>${m.interval>0?ToolBox.formatNumber(m.interval)+'km':'免维护'}</td><td style="font-size:12px;color:var(--text-light);">${m.note}</td></tr>`;
+    h+=`<tr><td>${m.name}</td><td>${TYPE_NAMES[m.type]}</td><td>${interval>0?ToolBox.formatNumber(interval)+'km':'免维护'}</td><td style="font-size:12px;color:var(--text-light);">${m.note}</td></tr>`;
   });
   h+='</tbody></table>';
   const __g5=h;document.getElementById('dbTable').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
