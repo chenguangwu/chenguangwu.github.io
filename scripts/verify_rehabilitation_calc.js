@@ -4,9 +4,6 @@ const fs = require("fs");
 globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "rehabilitation/berg-balance-scale", checks: ["4"],
-    expect: ["高于安全界值 45 分约 11 分"],
-    ref: "第六批 M-N19：14 项各 4 分 ⇒ 总分 56，高于 45 分界值 11 分。旧病历附加说明恒写「低于安全界值 45 分约 X 分」，56 分时显示「低于…约 0 分」自相矛盾。现按 <45 / =45 / >45 三分支如实描述，并注明临床阈值与「每分约 7%」线性估算须专业复核。默认态未作答不渲染病历 ⇒ 强判别。" },
   // 注：rehabilitation/analysis-time 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {
   "slug": "rehabilitation/asia-impairment-scale",
@@ -184,16 +181,6 @@ const CASES = [
     "身高 170cm · 体重 110kg · 坐高 85cm · 臀宽 40cm · 小腿长 40cm → 座宽 42cm · 座深 37cm · 座高 45cm · 靠背高 40cm · 承重 ≥165kg"
   ],
   "ref": "门诊记录：座宽=臀宽 40+2=42；座深=小腿长 40−3=37；座高=小腿长 40+5=45；靠背高=max(坐高 85−座高 45,25)=40；承重=ceil(110×1.5)=165。默认态 wcHeight 为空 ⇒ calcWheelchair 早退回「请输入身高、体重和臀宽」、不产生门诊记录，零交集。（本页三个 tab 各有独立计算函数，上方 orthoPart 用例覆盖矫形器分支，本条覆盖轮椅分支。）"
-},
-{
-  "slug": "rehabilitation/berg-balance-scale",
-  "checks": [
-    "4"
-  ],
-  "expect": [
-    "56 / 56分（已完成14/14项）"
-  ],
-  "ref": "14 项各按 4 分（checks 注入 input[name=itemN]:checked ⇒ value=4）⇒ 总分 56、已完成 14/14，串随勾选数/分值连续变化。默认态 answered=0 ⇒ 早退输出「请先为测试项目评分」，不含该串。原 expect「站立位原地360度转身」是 bbsItems 列表项名，默认恒在（常量型逃生项）。"
 },
 {
   "slug": "rehabilitation/boston-aphasia",
@@ -477,25 +464,6 @@ const CASES = [
     "clicks": ["calcUS();var h=String(document.getElementById('usResult').innerHTML).replace(/<[^>]+>/g,' ');var ok=h.indexOf('0.1')>=0&&h.indexOf('3.0')<0&&h.indexOf('时间为假设值')>=0;document.getElementById('__tbProbe').textContent='USMINTIME '+(ok?'OK':'BAD '+h.slice(0,100));"],
     "expect": ["USMINTIME OK"],
     "ref": "12-N126：usArea=1、头 10cm² 的理论时间 0.1 分钟，旧版 Math.max(time,3) 强制拉到 3 分钟使能量从 30J 虚增到 900J；现移除下限、按实际面积计算并提示核对治疗区。默认 usArea 为空 ⇒ calcUS 早退，零逃生。"
-  }
-  ,{
-    "slug": "rehabilitation/berg-balance-scale",
-    "checks": ["2"],
-    "expect": [
-      "【Berg 平衡量表（BBS · 14 项 · 满分 56）】 结果：总分 28/56，分级：中度平衡障碍，跌倒风险：中高跌倒风险",
-      "已完成 14/14 项；估算跌倒风险增加约 119%"
-    ],
-    "ref": "门诊记录（EMR note）：14 项各按 2 分（checks 注入 input[name=itemN]:checked ⇒ value=2）⇒ 总分 28 落 21–40 段「中度平衡障碍」/「中高跌倒风险」；跌倒风险估算 (45-28)×7=119%。默认态 answered=0 ⇒ 门诊记录整段不渲染（done<14 直接 return），零交集。"
-  },
-  {
-    "slug": "rehabilitation/berg-balance-scale",
-    "checks": ["3"],
-    "expect": [
-      "总分 42/56，分级：轻度平衡障碍，跌倒风险：中度跌倒风险",
-      "估算跌倒风险增加约 21%"
-    ],
-    "ref": "边界用例：14 项各 3 分 = 42 分，锁定 41–44 这一档（此前页面把该档写成「40–44」与「41–44」两种口径，已统一为 41–44 轻度障碍/中度跌倒风险）；跌倒风险估算 (45-42)×7=21%。"
-       + "默认态 answered=0 ⇒ 门诊记录整段不渲染，零交集；21–40 段（总分 28）返回「中高跌倒风险」，与本例「中度跌倒风险」互斥。"
   }
   ,{
     "slug": "rehabilitation/fim-scale",

@@ -191,7 +191,6 @@ const CASES = [
   ],
   "ref": "弱用例去默认化（BATCH117）：原锚默认 I 级「无需任何药物治疗」（判别力0）。clicks 改 grade=3 后 calc() 切到 III 级，expect 锚 III 级专属名「BNI III级」；默认态（I 级）与清 clicks 兜底遍历均不产出该串 ⇒ 零逃生项。"
 },
-{"slug":"neurology/twstrs","clicks":["var v={'m1':'2','m2':'1','m3':'1','m4':'0','m5':'0','m6':'2','m7':'1','m8':'1','m9':'2','m10':'2','d1':'2','d2':'2','d3':'2','d4':'2','d5':'2','d6':'2','p1':'4','p2':'3','p3':'3'};Object.keys(v).forEach(function(k){document.getElementById(k).value=v[k];});calc()"],"expect":["结果：总分 36/85，分级：中度","运动 14 分 · 失能 12 分 · 疼痛 10 分；得分率 42%"],"ref":"TWSTRS 原版三子量表：严重程度 10 项/35（持续时间项 ×2）、失能 6 项/30、疼痛 3 项/20，总分 85。注入严重 2+1+1+0+0+2×2+1+1+2+2=14、失能 12、疼痛 4+3+3=10 ⇒ 36/85，落 21–40「中度」；36/85=42%。默认态全 0 ⇒「总分 0/85，分级：轻度」「得分率 0%」，零交集。"},
 {
   "slug": "neurology/updrs",
   "inputs": {
@@ -403,36 +402,6 @@ const CASES = [
     "clicks": ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/UPDRS-III 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__UPDRS_RST_OK__':'__UPDRS_RST_FAIL__ '+__b;"],
     "expect": ["__UPDRS_RST_OK__"],
     "ref": "重置态：新增的「重置评分」按钮调 resetAll() ⇒ 14 项回默认 0、dirty 复位，决策文案消失。"
-  }
-  ,{
-      "slug": "neurology/twstrs",
-      "clicks": [
-          "var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/TWSTRS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__TWSTRS_DEF_OK__':'__TWSTRS_DEF_FAIL__ '+__b;"
-      ],
-      "expect": [
-          "__TWSTRS_DEF_OK__"
-      ],
-      "ref": "默认态（量表项全为 0=正常）：只出分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险。"
-  }
-  ,{
-      "slug": "neurology/twstrs",
-      "clicks": [
-          "var __e=document.getElementById('m1');__e.fire('change');var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/治疗建议/.test(__b)&&/TWSTRS 总分/.test(__b);document.getElementById('result').innerHTML=__ok?'__TWSTRS_MOD_OK__':'__TWSTRS_MOD_FAIL__ '+__b;"
-      ],
-      "expect": [
-          "__TWSTRS_MOD_OK__"
-      ],
-      "ref": "改动态：任一量表项触发 change ⇒ dirty 置位，分级/建议文案出现。"
-  }
-  ,{
-      "slug": "neurology/twstrs",
-      "clicks": [
-          "resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/TWSTRS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__TWSTRS_RST_OK__':'__TWSTRS_RST_FAIL__ '+__b;"
-      ],
-      "expect": [
-          "__TWSTRS_RST_OK__"
-      ],
-      "ref": "重置态：新增「重置评分」按钮 → resetAll() 先复位 dirty 再复算，决策文案消失。"
   }
   ,{
       "slug": "neurology/sara",

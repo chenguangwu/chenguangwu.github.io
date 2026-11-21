@@ -31,21 +31,6 @@ const CASES = [
   "ref": "体重分档边界回归：72 kg 属 >70 kg 档 ⇒ PZA 2000 mg、EMB 1250 mg（INH=min(72×5,300)=300、RIF=600）。页面旧实现以 75 kg 为档界，72 kg 落在 50–75 档输出 Z 1750 + E 1000；体重分档（中国指南/WHO ≥70 kg 档）应以 70 kg 为界。默认 55 kg 输出 Z 1750 + E 1000 ⇒ 零交集。"
 },
 {
-  // 默认 2.1/3.5 → 比值 60.0% 阻塞；注入 3.0/3.5 → 85.7% ≥0.70 → 无阻塞
-  "slug": "pulmonology/feigongneng-fev1-fvc-fenji",
-  "inputs": {
-    "fev1": "3.0",
-    "fvc": "3.5",
-    "fev1pred": "3.0",
-    "fvcpred": "2.0",
-    "age": "40"
-  },
-  "expect": [
-    "FEV1/FVC = 0.857 ≥ 0.70，无阻塞性通气障碍。"
-  ],
-  "ref": "auto-restore"
-},
-{
   // 默认 42/65/320/200 → 渗出液；注入 20/65/100/200 → 三项均不达标 → 漏出液
   "slug": "pulmonology/light-criteria",
   "inputs": {
@@ -631,18 +616,6 @@ const CASES = [
   "inputs": {"q1":"1","q2":"1","q3":"1","q4":"1","q5":"1","q6":"0"},
   "expect": ["中度依赖","需专业/药物辅助"],
   "ref": "5 分属中度依赖，卡片与分级应一致；旧卡片 >=6 才提示药物辅助。"
-},
-{
-  "slug": "pulmonology/feigongneng-fev1-fvc-fenji",
-  "inputs": {"fev1":"1.5","fvc":"2.0","fev1pred":"3.0","fvcpred":"","age":"40"},
-  "expect": ["限制性通气障碍可能","即使比值正常仍提示限制性可能"],
-  "ref": "比值 75% 正常但 FEV1%pred=50%，旧实现直接判「通气功能正常」；现提示限制性可能。"
-},
-{
-  "slug": "pulmonology/feigongneng-fev1-fvc-fenji",
-  "inputs": {"fev1":"4.0","fvc":"3.5","fev1pred":"4.0","fvcpred":"","age":"40"},
-  "expect": ["FEV1 不能大于 FVC"],
-  "ref": "数据一致性校验：FEV1>FVC 旧实现仍算出 114% 正常。"
 },
 {
   "slug": "pulmonology/anti-tb-dosing",

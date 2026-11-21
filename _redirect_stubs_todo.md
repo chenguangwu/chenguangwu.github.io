@@ -201,3 +201,11 @@
 | https://chenguangwu.github.io/tools/pulmonology/calc-48.html | https://chenguangwu.github.io/tools/pulmonology/oxygenation-index.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/rheumatology/assessor-10.html | https://chenguangwu.github.io/tools/rheumatology/essdai.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/rheumatology/rater-16.html | https://chenguangwu.github.io/tools/rheumatology/sledai.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/neurology/twstrs.html | https://chenguangwu.github.io/tools/neurology/rater-21.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/psychiatry/cdrisc-resilience.html | https://chenguangwu.github.io/tools/psychiatry/rater-24.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/psychiatry/asrs-adhd.html | https://chenguangwu.github.io/tools/psychiatry/self-assess-4.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/pulmonology/feigongneng-fev1-fvc-fenji.html | https://chenguangwu.github.io/tools/pulmonology/pulmonary-function.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/obstetrics/placenta-grading.html | https://chenguangwu.github.io/tools/obstetrics/taipanchengshudu-grannumfenji.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/ophthalmology/osdi-scale.html | https://chenguangwu.github.io/tools/ophthalmology/self-assess-2.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/rehabilitation/berg-balance-scale.html | https://chenguangwu.github.io/tools/rehabilitation/tester-rater.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/gastroenterology/hp-resistance.html | https://chenguangwu.github.io/tools/gastroenterology/detector-7.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |

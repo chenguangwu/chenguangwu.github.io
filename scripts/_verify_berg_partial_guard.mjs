@@ -24,7 +24,8 @@ const verbose = argv.includes('--verbose');
 const rootArg = argv.find((a) => a.startsWith('--root='));
 const BASE = rootArg ? rootArg.slice('--root='.length) : ROOT;
 
-const SLUG = 'berg-balance-scale';
+// 2026-11-21：berg-balance-scale 已合并至 tester-rater（重定向存根），防护锁跟随保留页。
+const SLUG = 'tester-rater';
 const CAT = 'rehabilitation';
 
 const anyStub = () => new Proxy({}, {
@@ -86,8 +87,9 @@ async function runCase(desc, setup, expectYes, expectNo) {
     await ready(dom.window);
     const w = dom.window;
     setup(w);
-    if (typeof w.calcScore === 'function') { try { w.calcScore(); } catch (e) {} }
-    const el = w.document.getElementById('resultBox');
+    const calcFn = (typeof w.calcScore === 'function') ? w.calcScore : w.calc;
+    if (typeof calcFn === 'function') { try { calcFn(); } catch (e) {} }
+    const el = w.document.getElementById('res');
     const got = String((el && el.textContent) || '');
     let ok = got.includes(expectYes);
     const leaked = expectNo.filter((s) => got.includes(s));
@@ -110,8 +112,8 @@ async function runCase(desc, setup, expectYes, expectNo) {
 await runCase(
   '仅第1项作答(=4) ⇒ 不出分级结论',
   (w) => {
-    const r = w.document.querySelector('input[name="item0"][value="4"]');
-    if (r) r.checked = true;
+    const sel = w.document.getElementById('b1');
+    if (sel) sel.value = '4';
   },
   '样本不足无法分级',
   ['严重平衡障碍', '高跌倒风险', '中高跌倒风险', '中度跌倒风险', '平衡良好', '平衡正常', '很低跌倒风险', '低跌倒风险'],
@@ -120,11 +122,9 @@ await runCase(
 await runCase(
   '全 0 分(14/14 完整) ⇒ 不出 >100% 伪造百分比',
   (w) => {
-    w.document.querySelectorAll('input[type="radio"]').forEach((el) => {
-      if (el.name && el.name.startsWith('item') && el.value === '0') el.checked = true;
-    });
+    for (let i = 1; i <= 14; i++) { const sel = w.document.getElementById('b' + i); if (sel) sel.value = '0'; }
   },
-  '低于安全界值',
+  '高跌倒风险',
   ['增加约', '315%', '287%', '245%', '210%', '175%', '140%', '105%'],
 );
 

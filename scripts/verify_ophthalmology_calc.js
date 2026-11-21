@@ -190,17 +190,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "ophthalmology/osdi-scale",
-  "checks": [
-    "2"
-  ],
-  "expect": [
-    "分级： 重度干眼",
-    "已答 12/12 题"
-  ],
-  "ref": "12 题 radio 由 buildQ() 运行期拼 innerHTML 生成（静态 HTML 无控件）。checks 声明所有 `:checked` 返回 value=2 ⇒ 每题 2 分；OSDI = (12×2)×100/(12×4) = 50 ⇒ ≥33 ⇒「重度干眼」，同时输出「已答 12/12 题」。默认未答 ⇒ 0 分「正常」+「已答 0/12 题」。原 expect「一半时间(2)」是 OPTS 选项标签文案（常量型逃生项）。"
-},
-{
   "slug": "ophthalmology/pterygium-measurement",
   "inputs": {
     "cd": "17.5",

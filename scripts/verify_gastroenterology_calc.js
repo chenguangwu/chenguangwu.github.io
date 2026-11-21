@@ -211,14 +211,6 @@ const CASES = [
     "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
-  "slug": "gastroenterology/hp-resistance",
-  "inputs": {
-    "clarithro": "resistant", "metronidazole": "resistant", "levo": "unknown", "history": "none"
-  },
-  "expect": ["克拉霉素：耐药", "已剔除含耐药/禁用药物（克拉霉素、甲硝唑）"],
-  "ref": "克拉霉素注入耐药、甲硝唑默认耐药、铋剂不可用 ⇒ 方案库剔除含克拉霉素/甲硝唑的方案，落到大剂量二联（艾司奥美拉唑 40mg qid + 阿莫西林 1g tid，14 天）。默认克拉霉素为敏感，首条锚不命中。原期望「bid/tid，14天（避开克拉霉素）」属旧方案文案，已随页面方案库重写更正。"
-},
-{
   "slug": "gastroenterology/ibd-nutrition",
   "inputs": {
     "bmi": "27.5",
@@ -286,20 +278,6 @@ const CASES = [
   "inputs": { "size": "", "paris": "Is", "kudo": "IIIL", "nice": "2" },
   "expect": ["留空不判读"],
   "ref": "息肉直径空值不得按 0 判为「微小息肉/低风险」：默认 8mm，注入空串后应显示「留空不判读」；回退默认 8 即不再命中。"
-},
-{
-  "slug": "gastroenterology/hp-resistance",
-  "inputs": {
-    "clarithro": "unknown",
-    "metronidazole": "unknown",
-    "levo": "unknown", "history": "none"
-  },
-  "expect": [
-    "克拉霉素：未检测",
-    "甲硝唑：未检测",
-    "未检测药物：克拉霉素、甲硝唑、左氧氟沙星"
-  ],
-  "ref": "三药全部未检测（默认 clar 敏感 / metro 耐药 / levo 未检测）：页面不再写「未检测按可能敏感」，改为列出未检测药物并降级方案可信度为「中」。原锚「中（存在未检测药物）」在默认态（仅 levo 未检测）同样出现 ⇒ 逃生；且 harness 的 expect 是「任一命中即 PASS」，`左氧氟沙星：未检测` 在默认态（levo=unknown）即出现 ⇒ 整条用例仍 PASS 残留逃生。删去该锚，只保留两条明细（clar/metro 默认分别为敏感/耐药，必不命中）与三药汇总句（默认仅 levo 未检测，汇总句为「未检测药物：左氧氟沙星」）。"
 },
 {
   "slug": "gastroenterology/hp-dob",
@@ -494,13 +472,6 @@ const CASES = [
   "inputs": { "stool": "2", "bleeding": "0", "endoscopy": "0", "physician": "0" },
   "expect": ["未达临床缓解（单项活动）"],
   "ref": "L-N57 核销：临床缓解须「总分 ≤2 且便次 ≤1 且无便血」，总分 2（便次 2 分）⇒ 未达临床缓解；旧实现仅看总分判「缓解期」。"
-},
-{
-  "slug": "gastroenterology/hp-resistance",
-  "inputs": { "clarithro": "resistant", "metronidazole": "resistant", "levo": "resistant", "history": "one" },
-  "clicks": ["document.getElementById('penicillin').checked=true;var b=document.getElementById('bismuthAvailable');if(b)b.checked=true;calc();"],
-  "expect": ["当前药敏/过敏组合下无安全的经验性方案"],
-  "ref": "L-N58 核销：青霉素过敏 + 克拉/甲硝唑/左氧全耐药时，方案池按禁用集过滤后为空 ⇒ 明确提示需药敏指导；旧实现青霉素分支不看药敏，仍推荐含克拉霉素/左氧的方案。"
 },
 {
   "slug": "gastroenterology/ibd-nutrition",

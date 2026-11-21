@@ -4560,13 +4560,6 @@ const CASES = [
     ref: "R-N6：模拟一次有效计算已把 __nspLast 置为旧保费 81763.70，再清空保额 B 重算触发必填守卫。修复后 __nspLast=null 已置于守卫之前，旧明细立即清空、不可再被导出或写历史（导出入口 if(!__nspLast) 阻断）；修复前守卫 return 早于旧代码里的 __nspLast=null，旧明细仍在 ⇒ R6_LAST=STALE、导出/历史残留旧值。断言贴回结果区的状态标记，旧保费数值不出现在判定串、非回显。",
   },
   {
-    slug: "rehabilitation/berg-balance-scale",
-    inputs: {},
-    clicks: ["window.TBKit={util:{isEn:function(){return false;},exportTable:function(){}}};__bbsExport();var tb=document.querySelector('#bbsTable tbody');var t=tb?tb.textContent:'';document.getElementById('resultBox').textContent='M19='+(t.indexOf('低于安全界值 45 分约')>=0?'LEAK':'OK');"],
-    expect: ["M19=OK"],
-    ref: "M-N19：默认（全部未评分）调用 __bbsExport，修复后 fallGap 仅完整作答（answered===14）时计算，CSV 风险行不再外泄「低于安全界值 45 分约 X 分，每分约 7% 线性估算」后缀；修复前未完成作答仍无条件追加该后缀（total=0 ⇒ fallGap=45）。断言贴回 resultBox 的标记，输入无关、非回显。",
-  },
-  {
     slug: "it/barcode-upc",
     inputs: { data: "12345678905" },
     clicks: ["generate()"],
