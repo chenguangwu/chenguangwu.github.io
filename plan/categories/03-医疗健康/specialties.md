@@ -67,7 +67,7 @@
 - 同页 `:401-417,637-647` 的高亮扇形使用 `-a`，红射线却以从上方顺时针的 `sin(a),-cos(a)` 绘制，二者角度基准不一致；预览和快照都采用该写法。`goStep()`（`:579-594`）切眼时不重绘/更新读数，可能出现眼别与旧图不一致。均为代码推演。
 - `tools/ophthalmology/amsler-grid-test.html`：切换眼别未清 `S.drawing` 致未完成绘制串眼——第1334批已修（amEye change 与 goStep 两处切眼别均补清 S.drawing/S.cursor，源码形态强锚 `AMDRAW` 已落 ophthalmology verify；旧版两处皆无 ⇒ BAD）。余项：提示可点“完成”闭合但工具栏未见完成按钮，实际只绑定双击或 Enter；保存只含已闭合标记，正在绘制的区域不入快照；触屏事件表现未实测。
 - `tools/ophthalmology/axial-length.html`：仅检查 NaN，眼轴/声速为负或零仍参与运算（零声速致除零）——第1324批已修（calcCorr/calcSeg 两分支要求长度与声速均为正，源码形态强锚 `ALNEG` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：接触压平校正从测量长度减 0.15 mm，与压平造成测值缩短的方向可能矛盾，IOL 输出符号与深解“下调”描述亦需核对。专业假设及公式须临床核验。
-- `tools/ophthalmology/cd-ratio.html:302-327`：越界输入被静默夹到 0–1 而继续给分级；0.5 被单眼标为“青光眼疑似”，综合风险却仅在 `>0.5` 等条件成立，双眼同为 0.5 且未勾选时综合显示未见明显异常，存在自相矛盾。阈值及 ISNT 解释须临床核验。
+- `tools/ophthalmology/cd-ratio.html`：越界输入被静默夹到 0–1 而继续给分级；0.5 分级与综合风险口径矛盾——第 126 批已统一为 `<=0.5` 临界、`>0.5` 疑似，阈值表同步改 `> 0.5 ~ 0.7`（强锚用例已落 ophthalmology verify）。ISNT 解释及阈值仍须临床核验。
 - `tools/ophthalmology/iop-correction.html`：清空必填时网格与公式区残留旧值——第1322批已修（`__tbInputGuard` 空值分支与越界分支一致，同步清 `grid`/`formulaList`，源码形态强锚 `IOPCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：各公式及临床适用性未核验。
 - `tools/ophthalmology/oct-rnfl.html`：只拦 NaN，负厚度或负年龄也产生分级——第1324批已修（年龄与各项厚度须为正，源码形态强锚 `OCTNEG` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：界面写 `S>I>N>T`，实际判定为 `s>i-5 && i>n && n>t`，例如 S=96、I=100、N=65、T=60 会判“符合”但并非 S>I。年龄模型与分级须专业核验。
 

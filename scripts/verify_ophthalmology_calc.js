@@ -472,6 +472,18 @@ const CASES = [
   "expect": ["GHTIDS OK"],
   "ref": "GHT 历史可恢复：三个 single-choice 原本没有 id，历史快照只收 input[id] 因而永远漏掉 GHT，恢复时保留当前选择并重算出不同结论。补 id 后快照能按 1/0 记录并恢复。同时修正重复的 aria-label。"
 },
+{
+  "slug": "ophthalmology/cd-ratio",
+  "inputs": {"od": "0.5", "os": "0.5"},
+  "expect": ["临界/可疑 (0.50)", "未见明显异常"],
+  "ref": "C/D 恰为 0.5 时单眼分级与综合风险必须同口径：单眼不再标‘青光眼疑似’，综合也不提示风险。阈值表述改为 >0.5。"
+},
+{
+  "slug": "ophthalmology/cd-ratio",
+  "inputs": {"od": "0.51", "os": "0.51"},
+  "expect": ["青光眼疑似 (0.51)", "提示青光眼视神经改变"],
+  "ref": ">0.5 时单眼与综合均提示可疑。"
+},
 
 ];
 async function main() {
