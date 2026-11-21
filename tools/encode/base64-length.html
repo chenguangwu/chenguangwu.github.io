@@ -119,7 +119,7 @@
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
-    <div class="formula-eq">Base64 每 3 字节编码为 4 字符<br>字符数 = ⌈n/3⌉ × 4（含填充）；余 1 字节补 2 个 =、余 2 字节补 1 个 =</div>
+    <div class="formula-eq">Base64 每 3 字节编码为 4 字符<br>含填充字符数 = ⌈n/3⌉ × 4；去填充 = 含填充 − 填充数（余 1 补 2 个 =、余 2 补 1 个 =）<br>CRLF 开销 = (⌈字符数/wrap⌉ − 1) × 2 字节（行间折行，不含末尾换行）<br>实际传输字节 = 字符数 + CRLF 开销</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">base64 不可缩短，仅作长度估算。</p>
   </div>
 </div>
@@ -259,13 +259,19 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   }
   let html = '';
   const __pv1 = ((3 - bytes % 3) % 3);
-  const __pv0 = padding===0 ? (Math.ceil(bytes/3)*4-__pv1) : Math.ceil(bytes/3)*4;
+  const __padChars = Math.ceil(bytes/3)*4;
+  const __noPadChars = __padChars-__pv1;
+  const __pv0 = padding===0 ? __noPadChars : __padChars;
   const __plabel = padding===0 ? (__b64en?'Encoded chars (no padding)':'编码字符数(去填充)') : (__b64en?'Encoded chars (with padding)':'编码字符数(含填充)');
   html += `<p>${__plabel}：<strong style="font-size:18px;color:var(--primary);">${__pv0.toFixed(0)}</strong> 字符</p>`;
+  html += `<p>含填充字符数：<strong style="font-size:18px;color:var(--primary);">${__padChars.toFixed(0)}</strong>；去填充字符数：<strong style="font-size:18px;color:var(--primary);">${__noPadChars.toFixed(0)}</strong></p>`;
   const __v1 = padding===0 ? 0 : __pv1;
   html += `<p>填充字符数：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(0)}</strong> 个</p>`;
   const __v2 = (wrap>0?Math.ceil(__pv0/wrap):1);
-  html += `<p>行数：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(0)}</strong> 行</p>`;
+  const __lines = (wrap>0 && __pv0>0) ? __v2-1 : 0;
+  const __wire = __pv0 + __lines*2;
+  html += `<p>行数：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(0)}</strong> 行（每 ${wrap>0?wrap.toFixed(0):'∞'} 字符折行）</p>`;
+  html += `<p>含 CRLF 实际传输字节：<strong style="font-size:18px;color:var(--primary);">${__wire.toFixed(0)}</strong> 字节（${__pv0.toFixed(0)} 字符 + ${__lines.toFixed(0)}×2 CRLF）</p>`;
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {

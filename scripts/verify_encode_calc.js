@@ -38,6 +38,11 @@ const CASES = [
     expect: ["68"],
     ref: "ceil(50/3)×4=17×4=68 字符（默认 bytes=100→136，避开）" },
 
+  { slug: "encode/base64-length",
+    inputs: { bytes: "300", padding: "1", wrap: "76" },
+    expect: ["含 CRLF 实际传输字节： 410 字节"],
+    ref: "字符=ceil(300/3)×4=400；行数=ceil(400/76)=6；CRLF=(6−1)×2=10；实际传输=410 字节（旧版只给行数 6，不给 CRLF 字节）" },
+
   { slug: "encode/base64-size",
     inputs: { kb: "200", header: "0", linebreak: "0" },
     expect: ["266.67"],
@@ -226,9 +231,9 @@ const CASES = [
       "wrap": "42"
     },
     "expect": [
-      "符 填充字符数： 0 个 行数： 2 行"
+      "去填充字符数： 56 填充字符数： 0 个 行数： 2 行"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"bytes\":\"42\",\"padding\":\"42\",\"wrap\":\"42\"}，输出区含「符 填充字符数： 0 个 行数： 2 行」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bytes\":\"42\",\"padding\":\"42\",\"wrap\":\"42\"}，输出区含「去填充字符数： 56 填充字符数： 0 个 行数： 2 行」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "encode/checksum-collision",
