@@ -14487,7 +14487,43 @@ const CASES = [
   ],
   "ref": "关键词为空时清掉上一批域名（ITGCLR）"
 },
-{ slug:"it/screen-size", inputs:{"width":"","height":"","diagonal":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"it/screen-size", inputs:{"width":"","height":"","diagonal":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+  {
+    "slug": "it/hmac-generator",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__hmac_generatorSnap);var ok=src.indexOf('e.id==='+q+'key'+q)>=0&&src.indexOf('e.id==='+q+'msg'+q)>=0&&src.indexOf('out[e.id]')>=0;document.getElementById('__tbProbe').textContent='HMACPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["HMACPRIV SAFE"],
+    "ref": "历史隐私回归：HMAC 密钥与消息原文原会整体进入 __hmac_generatorSnap() 并被 TBKit.history.record 持久化；修复后只保留长度。探针同时要求长度字段存在，querySelectorAll 失效时不会假绿。"
+  },
+  {
+    "slug": "it/pbkdf2",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__pbkdf2Snap);var ok=src.indexOf('e.id==='+q+'password'+q)>=0&&src.indexOf('out[e.id]')>=0;document.getElementById('__tbProbe').textContent='PBKDF2PRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["PBKDF2PRIV SAFE"],
+    "ref": "历史隐私回归：PBKDF2 口令原会写入本地历史；修复后跳过 password，仅保留密码长度。默认口令非空，长度字段可验证真实遍历。"
+  },
+  {
+    "slug": "it/des",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__desSnap);var ok=src.indexOf('e.id==='+q+'key'+q)>=0&&src.indexOf('e.id==='+q+'input'+q)>=0&&src.indexOf('e.id==='+q+'output'+q)>=0;document.getElementById('__tbProbe').textContent='DESPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["DESPRIV SAFE"],
+    "ref": "历史隐私回归：DES 密钥、明文/密文与结果原会进入本地历史；修复后只保留密钥/输入长度，output 直接跳过。三个敏感字段同时断言。"
+  },
+  {
+    "slug": "it/rc4",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__rc4Snap);var ok=src.indexOf('e.id==='+q+'key'+q)>=0&&src.indexOf('e.id==='+q+'input'+q)>=0&&src.indexOf('e.id==='+q+'output'+q)>=0;document.getElementById('__tbProbe').textContent='RC4PRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["RC4PRIV SAFE"],
+    "ref": "历史隐私回归：RC4 密钥、明文/密文与结果原会进入本地历史；修复后只保留长度并跳过 output。"
+  },
+  {
+    "slug": "it/xor-cipher",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__xor_cipherSnap);var ok=src.indexOf('e.id==='+q+'key'+q)>=0&&src.indexOf('e.id==='+q+'input'+q)>=0&&src.indexOf('e.id==='+q+'output'+q)>=0;document.getElementById('__tbProbe').textContent='XORPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["XORPRIV SAFE"],
+    "ref": "历史隐私回归：XOR 密钥、明文/密文与结果原会进入本地历史；修复后只保留长度并跳过 output。"
+  },
+  {
+    "slug": "it/aes-encryptor",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__aes_encryptorSnap);var ok=src.indexOf('e.id==='+q+'password'+q)>=0&&src.indexOf('e.id==='+q+'input'+q)>=0&&src.indexOf('e.id==='+q+'output'+q)>=0;document.getElementById('__tbProbe').textContent='AESPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["AESPRIV SAFE"],
+    "ref": "历史隐私回归：AES 此前只把 password 掩码为 ••••，明文 input 与密文 output 仍会入历史；修复后 password/input 只留长度，output 跳过。"
+  },
 ];
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
