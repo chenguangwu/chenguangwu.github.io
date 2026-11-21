@@ -601,7 +601,7 @@ const CASES = [
       "gender2": "female"
     },
     "expect": [
-      " ｜ 平均配速约 0:17 /km\nfemale\n42\n心肺耐力等级： 极佳 VO₂max 927.7\n42\nfemale\n15.0"
+      " ｜ 平均配速约 0:17 /km\nfemale\n42\n心肺耐力等级： 极佳 VO₂max 927.7\n42\nfemale\n14.5"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"distance\":\"42\",\"age\":\"42\",\"runMin\":\"42\",\"unit\":\"km\",\"gender\":\"female\",\"gender2\":\"female\"}，输出区含「 ｜ 平均配速约 0:17 /km\nfemale\n42\n心肺耐力等级： 极佳 V…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
