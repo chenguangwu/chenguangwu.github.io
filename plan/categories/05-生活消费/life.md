@@ -333,13 +333,6 @@
 - 影响：`tools/life/energy-converter.html`；物理习题/半导体场景的用户按搜索词进入后找不到所需单位，属文案与功能不符。
 - 方案：增加 `eV: 1.602176634e-19` 与对应选项（并补 keV/MeV），或删除 meta/英文简介中的 electronvolt。
 
-### LF-N70 英文简介宣称「BTU per hour」，实际只有 BTU 没有 BTU/h（低，确认缺陷）
-- 描述：英文简介写 `BTU per hour`，但下拉与系数只有功率单位 W/kW/MW/PS/hp，BTU/h 未实现；中文简介与公式也未提 BTU/h。
-- 证据：`tools/life/power-converter.html:159`（英文简介 BTU per hour）、`:168-175`（下拉五项）、`:273-279`（系数表）
-- 复现：选 1 kW → 实际得到 1000 W、1.3596 PS 等，无法得到 3412.142 BTU/h（期望提供该项或删除宣称）。
-- 影响：`tools/life/power-converter.html`；空调/制冷场景常用 BTU/h，英文用户会误以为可直接换算。
-- 方案：增加 `BTUh: 0.293072222` 与选项（1 BTU/h ≈ 0.293 W），或删除英文简介中的 BTU per hour。
-
 ### LF-N71 英文简介与引据表宣称质量流量 kg/s，实际只有体积流量且无密度输入（低，确认缺陷）
 - 描述：英文简介写 `volumetric and mass flow rates ... kg/s`，公式引据表也写「质量流量 = 体积流量 × 密度」，但下拉只有 L/s、L/min、m³/h、m³/s、gpm、cfm 六个体积单位，页面没有密度输入，无法计算 kg/s。
 - 证据：`tools/life/flow-rate-converter.html:159`（英文简介 kg/s）、`:250`（引据表质量流量公式）、`:168-175`（下拉六项体积单位）、`:274-281`（系数表）

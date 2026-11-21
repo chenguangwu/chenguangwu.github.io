@@ -1196,6 +1196,12 @@ const CASES = [
   },
   {
     slug: "life/power-converter",
+    inputs: { inputVal: "1", fromUnit: "btuh" },
+    expect: ["1 btuh = 0.293072222 W", "瓦特： 0.293072222 W"],
+    ref: '1 BTU/h = 0.293072222 W；旧版无 BTU/h 选项，英文简介却宣称支持 BTU per hour。'
+  },
+  {
+    slug: "life/power-converter",
     inputs: { inputVal: "2" },
     expect: ["0.002 kW"],
     ref: '1 W=0.001 kW ⇒ 2 W=2×0.001=0.002 kW'
