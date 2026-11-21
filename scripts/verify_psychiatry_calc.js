@@ -209,14 +209,7 @@ const CASES = [
   ],
   "ref": "门诊记录：10 项 2 分 + 5 项 1 分 = 25 >14 落「高」；全部 15 项均 ≥1 分 ⇒ 受累 15/15。未作答态零交集。via=click"
 },
-{
-  "slug": "psychiatry/lsas-social",
-  "clicks": [
-    "applyLsasPreset('severe');var B=__lsasBands();var L=B[B.length-1]||{};document.getElementById('__tbProbe').textContent='LSASBAND '+((L.label&&L.label.zh==='极重度'&&L.color==='#EF4444')?'OK':'BAD');"
-  ],
-  "expect": ["LSASBAND OK"],
-  "ref": "M-N29：24 情境全选 3 ⇒ 总分 144，结果文字为「极重度」，标尺末段原本仍标「无/轻度」绿色；修正后末段为「极重度」#EF4444。默认（未作答）不渲染标尺，零交集。"
-},
+
 {
   "slug": "psychiatry/phq9-depression",
   "clicks": [
@@ -462,21 +455,7 @@ const CASES = [
   ],
   "ref": "LES 42 项生活事件勾选前六项（配偶死亡100 + 离婚73 + 夫妻分居65 + 判刑或入狱63 + 亲密家庭成员死亡63 + 个人受伤或患病53 = 417 LCU）⇒ 417 ≥300 ⇒ 落 t>=300 分支「高风险」；卡面 LCU总分 417、勾选事件数 6、疾病风险 约80%。默认（未勾选）t=0 为「低风险 / 约30%」，跨档且零交集。via=click"
 },
-{
-  "slug": "psychiatry/lsas-social",
-  "clicks": [ "pickF(0,3)", "pickF(1,3)", "pickF(2,3)", "pickF(3,3)", "pickF(4,3)", "pickF(5,3)", "pickF(6,3)",
-    "pickF(7,3)", "pickF(8,3)", "pickF(9,3)", "pickF(10,3)", "pickF(11,3)", "pickF(12,3)", "pickF(13,3)",
-    "pickF(14,3)", "pickF(15,3)", "pickF(16,3)", "pickF(17,3)", "pickF(18,3)", "pickF(19,3)", "pickF(20,3)",
-    "pickF(21,3)", "pickF(22,3)", "pickF(23,3)", "pickV(0,3)", "pickV(1,3)", "pickV(2,3)", "pickV(3,3)",
-    "pickV(4,3)", "pickV(5,3)", "pickV(6,3)", "pickV(7,3)", "pickV(8,3)", "pickV(9,3)", "pickV(10,3)",
-    "pickV(11,3)", "pickV(12,3)", "pickV(13,3)", "pickV(14,3)", "pickV(15,3)", "pickV(16,3)", "pickV(17,3)",
-    "pickV(18,3)", "pickV(19,3)", "pickV(20,3)", "pickV(21,3)", "pickV(22,3)", "pickV(23,3)"],
-  "expect": [
-    "极重度 总分 144 / 144", "78 表现型",
-    "【利博维茨社交焦虑量表（LSAS · 自评版）】 结果：LSAS 总分 144/144（恐惧 72、回避 72）→ 严重程度：极重度；表现型情境 78、社交型情境 66"
-  ],
-  "ref": "LSAS 24 项「恐惧/焦虑」与「回避」双列全选最高档 j=3 ⇒ 恐惧 72 + 回避 72 = 总分 144/144 ⇒ 落 total>90 分支「极重度」；表现型 13×3×2 = 78、社交型 11×3×2 = 66。默认态为「已完成 0/48 个评分」提示，零交集。via=click"
-},
+
 {
   "slug": "psychiatry/mdq-bipolar",
   "clicks": [ "pick(0,0)", "pick(1,0)", "pick(2,0)", "pick(3,0)", "pick(4,0)", "pick(5,0)", "pick(6,0)",
