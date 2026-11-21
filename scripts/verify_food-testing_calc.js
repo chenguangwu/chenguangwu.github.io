@@ -105,15 +105,6 @@ const CASES = [
   "ref": "去默认化：POV = V×c×1000/m = 5×0.01×1000/10 = 5.00 meq/kg。默认态（AV）不命中。"
 },
 {
-  "slug": "food-testing/convert-37",
-  "inputs": {
-    "val": "1",
-    "from": "6.25"
-  },
-  "expect": [ "1 蛋白质" ],
-  "ref": "auto-restore"
-},
-{
   "slug": "food-testing/detector-3",
   "inputs": {
     "da0": "3.5",
@@ -162,21 +153,6 @@ const CASES = [
     "(23326.0000"
   ],
   "ref": "auto-restore"
-},
-{
-  "slug": "food-testing/generator-27",
-  "inputs": {
-    "sample": "熟肉制品",
-    "dil": "1000",
-    "vol": "1",
-    "c1": "156",
-    "c2": "144",
-    "unit": "CFU/g"
-  },
-  "expect": [
-    "1.5×10⁵ CFU/g"
-  ],
-  "ref": "确定性算例：两皿均落 30–300，平均 150 × 稀释 1000 ÷ 1 mL = 1.5×10⁵ CFU/g（两位有效数字）；默认 32/28×100 为 3.0×10³，注入态不含该串 ⇒ 区分真计算与随机样本。"
 },
 {
   "slug": "food-testing/heavy-metal-migration",
@@ -371,7 +347,6 @@ const CASES = [
 },
 { slug:"food-testing/assessor-risk-6", inputs:{"salmonella":"","staph":"","ecoli":"","listeria":"","vibrio":""}, expect:["请填写各类致病菌检出值"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
 { slug:"food-testing/colony-count", inputs:{"d1p1":"","d1p2":"","dil1":""}, expect:["请填写平皿菌落数与稀释度"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
-{ slug:"food-testing/convert-37", inputs:{"val":""}, expect:["请填写待换算数值"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
 { slug:"food-testing/ingredient-sorter", inputs:{"ingredients":""}, expect:["请填写配料表文本"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" }
 ];
 async function main() {

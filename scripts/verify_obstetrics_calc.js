@@ -105,10 +105,6 @@ const CASES = [
     expect: ["1/90"],
     ref: "年龄先验1/(1300·e^-0.18)=1/1085.9；afpLR(0.75<0.8→3)×hcgLR(1.7>1.5→2)×ue3LR(0.75<0.8→2)=12；调整后→riskN=round(1/(12/1085.9))=90→1/90,<1/270高风险（默认=25/1/1/1→1/1300；预设loadHigh=38/0.65/2.8/0.65→1/25，避开）" },
 
-  { slug: "obstetrics/calc-risk",
-    inputs: { age: "40", weight: "60", ga: "16", afp: "0.6", bhCG: "2.5" },
-    expect: ["1:28", "高风险"],
-    ref: "先验1/100×afpLR(0.6→1.6)×hcgLR(2.5→2.2)=0.0352→1/28；≥1/270→高风险（weight/ga仅作非空校验，默认空→请完整输入，避开）" },
   // ── §7.4 零用例加固：obstetrics 确定性数值页（注入非默认 + harness 实测锚）──
   { slug: "obstetrics/pearl-index",
     inputs: { preg: "5", wm: "15000" },
@@ -272,20 +268,6 @@ const CASES = [
       "测量记录\n暂无记录\n42\n当前周期天数： 第42天 ，属于 黄体后期 ，参考范围： 7-14mm\n42\nabc123测试"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cycleDay\":\"42\",\"thickness\":\"42\",\"measureDate\":\"abc123测试\",\"measureNote\":\"abc123测试\"}，输出区含「测量记录\n暂无记录\n42\n当前周期天数： 第42天 ，属于 黄体后期 ，参考范围…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "obstetrics/calc-risk",
-    "inputs": {
-      "age": "42",
-      "weight": "42",
-      "ga": "16",
-      "afp": "42",
-      "bhCG": "42"
-    },
-    "expect": [
-      "70） 风险分层 1.6239% 年龄先验风险 0.88 综合似然比"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"age\":\"42\",\"weight\":\"42\",\"ga\":\"42\",\"afp\":\"42\",\"bhCG\":\"42\"}，输出区含「70） 风险分层 1.6239% 年龄先验风险 0.88 综合似然比」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "obstetrics/down-screening",
@@ -506,17 +488,6 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"q1\":\"42\",\"q2\":\"42\",\"q3\":\"42\",\"q4\":\"42\",\"mvp\":\"42\"}，输出区含「判读结果 建议： 建议排查妊娠期糖尿病、胎儿消化道畸形、双胎输血综合征等，必要时…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
-  {
-    "slug": "obstetrics/kupperman-score",
-    "clicks": [
-      "document.querySelectorAll('.symptom-row').forEach(function(r){r.dataset.sev='3';});calc()"
-    ],
-    "expect": [
-      "总分 = 63",
-      "重度症状，明显影响生活"
-    ],
-    "ref": "改良 Kupperman 原版 13 项、权重合计 21（潮热出汗 ×4，泌尿系统症状与性生活困难各 ×2），各症状程度 0–3 ⇒ 满分 63。clicks 把 13 行全部置「重(3)」⇒ 21×3=63 落 ≥31「重度」；默认态 13 行程度全 0 ⇒ 总分 0「基本正常」，零交集。"
-  },
   { slug: "obstetrics/afi-normal",
     inputs: { ruq: "", luq: "", rlq: "", llq: "" },
     expect: ["请填写四个象限羊水暗区（cm）后再判读。"],
@@ -552,8 +523,7 @@ const CASES = [
   ],
   "ref": "心率/收缩压为空时清空休克指数（PPHSCLR）"
 },
-  { slug: "obstetrics/calc-risk", inputs: { age: "30", weight: "60", ga: "16", afp: "-1", bhCG: "1.5" }, expect: ["⚠ 年龄、体重、孕周或血清标志物超出合理范围"], ref: "负 AFP MoM 无物理意义；新守卫应拒绝并提示范围。默认 30/60/16/0.8/1.5 不含该提示。" },
-{
+  {
   "slug": "obstetrics/cycle-8",
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/obstetrics/cycle-8.html','utf8');var i=h.indexOf('// “最新”按测量日期取');var seg=i>=0?h.slice(i,i+320):'';var ok=seg.indexOf('db > da ? 1 : -1')>=0&&seg.indexOf('latest.day')>=0&&h.indexOf('sorted.length > 1 && !singleCycle')>=0&&h.indexOf('记录跨多个周期')>=0;document.getElementById('__tbProbe').textContent='CHLATEST '+(ok?'OK':'BAD');})();"],
   "expect": ["CHLATEST OK"],

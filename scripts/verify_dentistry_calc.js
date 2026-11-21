@@ -23,16 +23,6 @@ const CASES = [
 },
   // 注：dentistry/analysis-11 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {
-  "slug": "dentistry/assessor-5",
-  "inputs": {
-    "thk": "3.5"
-  },
-  "expect": [
-    "5.6%"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "dentistry/bite-contact",
   "inputs": {
     "lf": "38",

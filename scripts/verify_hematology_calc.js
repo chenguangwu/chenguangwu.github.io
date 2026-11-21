@@ -262,35 +262,6 @@ const CASES = [
     "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
-  "slug": "hematology/mpn-scoring",
-  "inputs": {
-    "age": "98",
-    "hgb": "95",
-    "wbc": "15",
-    "blasts": "2",
-    "plt": "100"
-  },
-  "expect": [
-    "65岁"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "hematology/pnh-flow",
-  "inputs": {
-    "flaerGran": "7",
-    "flaerMono": "0",
-    "rbc59": "0",
-    "rbc55": "0",
-    "gran59": "0",
-    "gran55": "0"
-  },
-  "expect": [
-    "红细胞CD59/CD55结果受近期输血影响"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "hematology/rater-5",
   "inputs": {
     "hb": "158",
@@ -389,19 +360,6 @@ const CASES = [
       + "该页用 querySelector(name:checked) 逐组取值，桩只能以 checks 统一注入 ⇒ 四组各 1 分、总分 4 分；"
       + "默认全勾为 8 分「确定」，两锚均不出现。"
   },
-  {
-    "slug": "hematology/generator-analysis",
-    "inputs": {
-      "lag": "3",
-      "ttp": "8",
-      "peak": "150",
-      "thalf": "8"
-    },
-    "expect": [
-      "= 2106.2 nM·min"
-    ],
-    "ref": "确定性算例：上升段 0.5×150×(8−3)=375.0，下降段 150×8/ln2=1731.2，ETP=2106.2 nM·min；默认 5/12/200/10 得 3585.4，注入态不含该串 ⇒ 区分真计算与随机参数。"
-  },
   { slug: "hematology/detector-5",
     inputs: { granCD59: "", granCD55: "", rbcCD59: "", monoCD59: "", type2: "", type3: "", ldh: "", hb: "" },
     expect: ["请填写全部流式指标（LDH、Hb 需大于 0）后再判读。"],
@@ -458,13 +416,6 @@ const CASES = [
     ref: "3 个月 BCR-ABL 15% >10% ⇒ 治疗失败。旧实现仅给「警告」，故该串为强判别；默认 12 月分支不出现。"
   },
   {
-    // 宣称 vs 实现：IPSS-MF/DIPSS/DIPSS-plus 原文均为「外周血原始细胞 ≥1%」计 1 分，旧实现用 >1 漏掉恰好 1%。
-    slug: "hematology/mpn-scoring",
-    inputs: { age: "65", hgb: "120", wbc: "9", blasts: "1", plt: "100" },
-    expect: ["1 总评分", "中危-1组"],
-    ref: "IPSS-MF：年龄 65 不外(+0)、HGB 120(+0)、WBC 9(+0)、原始 1%(+1) ⇒ 1 分「中危-1」。旧实现 >1% 才计分 ⇒ 0 分「低危」，总分与明细双向判别。若注入失败回退默认（HGB 95 +1、原始 2% +1 ⇒ 2 分），「1 总评分」不出现 ⇒ 无逃生。"
-  },
-  {
     slug: "hematology/rater-5",
     clicks: ["var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/MPN-10 症状总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('res').innerHTML=__ok?'__R5_DEF_OK__':'__R5_DEF_FAIL__ '+__b;"],
     expect: ["__R5_DEF_OK__"],
@@ -481,24 +432,6 @@ const CASES = [
     clicks: ["resetAll();var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/MPN-10 症状总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('res').innerHTML=__ok?'__R5_RST_OK__':'__R5_RST_FAIL__ '+__b;"],
     expect: ["__R5_RST_OK__"],
     ref: "批 3 重置态：resetAll() 先复位 dirty 再复算，决策文案消失。"
-  },
-  {
-    slug: "hematology/mpn-scoring",
-    clicks: ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/总评分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__MPN_DEF_OK__':'__MPN_DEF_FAIL__ '+__b;"],
-    expect: ["__MPN_DEF_OK__"],
-    ref: "批 3 默认态：只出总评分，结果区不含 分级/建议/诊断/治疗/风险。"
-  },
-  {
-    slug: "hematology/mpn-scoring",
-    inputs: { age: "80", hgb: "60", wbc: "40", blasts: "20", plt: "50", symptoms: "yes", transfusion: "yes", karyotype: "yes" },
-    expect: ["高危"],
-    ref: "批 3 改动态：各项均达高危区间 ⇒ 出现「高危」分级；确认 dirty 置位后决策文案才出现。"
-  },
-  {
-    slug: "hematology/mpn-scoring",
-    clicks: ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/总评分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__MPN_RST_OK__':'__MPN_RST_FAIL__ '+__b;"],
-    expect: ["__MPN_RST_OK__"],
-    ref: "批 3 重置态：resetAll() 复位标签页与参数后先清 dirty 再复算，决策文案消失。"
   },
   {
     slug: "hematology/rater-6",

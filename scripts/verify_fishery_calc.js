@@ -240,20 +240,6 @@ const CASES = [
   {"slug": "fishery/feed-protein-fat", "inputs": {"temp": "14"}, "clicks": ["document.getElementById('species').value='warm';document.getElementById('stage').value='fingerling';calc();"], "expect": ["30% 蛋白质 7% 脂肪 4.29 蛋脂比 11.82 可消化能(kJ/g)", "温水性鱼 · 鱼种期：蛋白 30%、脂肪 7%"], "ref": "独立复算：REQ.warm.fingerling = [32,7]；水温 14℃ < 18 ⇒ 温水鱼蛋白需求修正 p = 32−2 = 30（脂肪不修正，仍 7%）。蛋脂比 = 30/7 = 4.2857 ⇒ 4.29；可消化能 = (30×16.7 + 7×37.7 + 417.5)/100 = (501 + 263.9 + 417.5)/100 = 11.824 ⇒ 11.82 kJ/g（原代码 /1000，已修）。默认态（warm + fry + 25℃，无温度修正）为 38/7/5.43/13.16，两锚均不命中；本例与上一例互为对照，覆盖 warm 低温与 cold 高温两条修正分支。"},
 
 {
-    "slug": "fishery/calc-power",
-    "inputs": {
-      "v0": "100",
-      "v1": "10",
-      "v2": "24",
-      "v3": "100"
-    },
-    "expect": [
-      "48.46 kW 平均加热功率 P = Q÷t"
-    ],
-    "ref": "Q = 1.163×100×10÷(100/100) = 1163 kWh；P = 1163÷24 = 48.46 kW（保温效率 100%）。页面输出 '48.46 kW 平均加热功率 P = Q÷t'。默认效率 85% 时为 57.01 kW，不产生 48.46。"
-  },
-
-{
     "slug": "fishery/density-1",
     "inputs": {
       "v0": "10",

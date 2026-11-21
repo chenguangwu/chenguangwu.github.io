@@ -328,16 +328,6 @@ const CASES = [
   "ref": "D-N26 越界提示：身高 200 cm ⇒ 200×0.25+10 = 60 cm，超出成人常规 45–55 cm，须提示复核并用 X 线/抽吸确认。默认 53 cm 不命中。"
 },
 {
-  "slug": "clinical-nursing/generator-pressure",
-  "inputs": {
-    "cnt": "10"
-  },
-  "expect": [
-    "生成结果：共 6 条"
-  ],
-  "ref": "上限封顶：cnt=10 只允许 6 个分期各 1 条，输出「共 6 条」；默认 cnt=5 输出「共 5 条」，判别器清空 inputs 亦为 5 条 ⇒ 非逃生项，且不抓 Math.random 随机内容。"
-},
-{
   "slug": "clinical-nursing/iv-drip-rate",
   "inputs": {
     "volume": "250",
@@ -383,26 +373,6 @@ const CASES = [
   },
   "expect": ["约合 20 滴/mL 输液器 60 滴/分以上"],
   "ref": "D-N11 上阈值复核：300 mL/1 h ⇒ 泵速 300 mL/h > 180，判偏快（旧实现按 300 滴/分 > 60 也判偏快，结论一致，用于锁定新口径不丢偏快分支）。默认 125 mL/h 不命中。"
-},
-{
-  "slug": "clinical-nursing/morse-score",
-  "clicks": [
-    "selectScore('history',25);selectScore('gait',10)"
-  ],
-  "expect": [
-    "保持病区环境安全"
-  ],
-  "ref": "静态按钮量表页：selectScore 到 total=25+10=35 落「低度跌倒风险(25-44)」分支，其 desc 独有串「保持病区环境安全」。默认全 0 走「无跌倒风险」；零参兜底 total=NaN 落 else「高度跌倒风险」，两态均不含该串。"
-},
-{
-  "slug": "clinical-nursing/morse-score",
-  "clicks": [
-    "selectScore('history',25);selectScore('gait',20);var __lb=document.getElementById('totalLabel').textContent;document.getElementById('totalLabel').textContent=(__lb==='高度跌倒风险')?'__MORSE45_OK__':'__MORSE45_FAIL__'+__lb"
-  ],
-  "expect": [
-    "__MORSE45_OK__"
-  ],
-  "ref": "D-N115 阈值回归：Morse 原版切点 ≥45 高度风险；25+20=45 必须落「高度跌倒风险」（旧实现 >50 才高危，45 会落「低度跌倒风险」）。clicks 读取 totalLabel 并比对后再写标记，注入失败/兜底 NaN 都输出 FAIL 串。"
 },
 {
   "slug": "clinical-nursing/ostomy-bag-timing",
@@ -653,39 +623,6 @@ const CASES = [
   "ref": "预设按钮走 selectAge() 无参回调：旧实现直接把 currentAge 置为 undefined 并在 btn.classList 抛错，之后任何压力输入在 ranges[undefined].min 处崩溃、结果不再刷新；修复后无参调用沿用当前类别（儿童），并靠 data-age 回填高亮。clicks 先切儿童、再模拟预设无参调用，写 110 mmHg ⇒ 必须仍落儿童上限 100 mmHg 的「过高」文案；崩溃时该文案不出现。"
 },
 {
-  "slug": "clinical-nursing/surgical-position-risk",
-  "clicks": [
-    "selectPosition(\"lithotomy\",{classList:{add:function(){}}})"
-  ],
-  "expect": [
-    "体位 截石位压力点评估 · 压力点共 4 处（高 2 / 中 1 / 低 1）"
-  ],
-  "ref": "门诊记录：clicks 调 selectPosition('lithotomy', 哑 btn)（第二参需 classList 否则抛错），REC 内 typeof pos==='string' 守卫，输出截石位 4 个压力点的高/中/低分布。默认 supine ⇒「仰卧位压力点评估 · 压力点共 5 处（高 3 / 中 2 / 低 0）」，零交集。"
-},
-{
-  "slug": "clinical-nursing/surgical-position-risk",
-  "inputs": {
-    "opDuration": "5"
-  },
-  "clicks": [
-    "selectPosition('lithotomy',{classList:{add:function(){}}})"
-  ],
-  "expect": [
-    "≥4 小时按压力性损伤高危管理"
-  ],
-  "ref": "D-N58 时长参与：新增预计手术时长输入，5 h ⇒ 结果区提示「≥4 小时按压力性损伤高危管理」；默认 2 h 只显示「＞2 小时属重点预防对象」，不含该串。旧实现全页无时长输入、等级固定。"
-},
-{
-  "slug": "clinical-nursing/surgical-position-risk",
-  "clicks": [
-    "window.TBKit={util:{isEn:function(){return true;}},history:{record:function(){},mount:function(){}},matrix:{table:function(){}}};selectPosition('supine',{classList:{add:function(){}}})"
-  ],
-  "expect": [
-    "position Supine position; 5 pressure points (high 3, moderate 2, low 0)"
-  ],
-  "ref": "D-N60 英文态：把 TBKit.util.isEn 置为 true 后选仰卧位，门诊记录 Result 行与压力点名称/措施均走英文映射。旧实现英文态结果行仍输出「体位 仰卧位压力点评估」，压力点名称与防护措施全为中文。"
-},
-{
   "slug": "clinical-nursing/tracheostomy-dressing",
   "inputs": {
     "firstDressing": "08:00"
@@ -707,15 +644,6 @@ const CASES = [
   ],
   "ref": "D-N45 排程完整性：大量（4h）从首次 08:00 起应列 6 次（08/12/16/20/00/04），旧实现从 start+interval 开始且循环 break 少算，末次缺失。默认微量 8h ⇒ 3 次，不命中「第6次」。判别器实测「08:00」与「第1次换药（首次）」在默认快照也命中，已删这两条逃生锚。"
 }
-  ,{
-    "slug": "clinical-nursing/morse-score",
-    "clicks": ["selectScore('history',25);selectScore('diagnosis',15);selectScore('aid',30);selectScore('iv',20);selectScore('gait',20);selectScore('cognition',15);calc()"],
-    "expect": [
-      "【Morse 跌倒风险评估（6 维度）】 结果：总分 125/125，分级：高度跌倒风险",
-      "满分（各条目最高分之和）125；得分率 100%；条目明细见上"
-    ],
-    "ref": "门诊记录：6 维度全取最高档 25+15+30+20+20+15=125 ⇒ >50 落「高度跌倒风险」；满分 125、得分率 100%。默认态全 0 ⇒「总分 0/125，分级：无跌倒风险」「得分率 0%」，零交集。"
-  }
   ,{
     "slug": "clinical-nursing/barthel-index",
     "clicks": ["selectScore('eating',0);selectScore('bathing',0);selectScore('grooming',0);selectScore('dressing',0);selectScore('bowels',0);selectScore('bladder',0);selectScore('toilet',0);selectScore('transfer',0);selectScore('walking',0);selectScore('stairs',0);calc()"],

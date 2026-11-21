@@ -179,3 +179,17 @@
 | https://chenguangwu.github.io/tools/dentistry/rater-risk-2.html | https://chenguangwu.github.io/tools/dentistry/caries-risk.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/pediatrics/xinshengerhuangdan-xiaoshidanhongsu-quxian.html | https://chenguangwu.github.io/tools/pediatrics/neonatal-jaundice.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/clinical-nursing/convert-flow-concentration.html | https://chenguangwu.github.io/tools/clinical-nursing/oxygen-concentration.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/hematology/pnh-flow.html | https://chenguangwu.github.io/tools/hematology/detector-5.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/finance/calc-3.html | https://chenguangwu.github.io/tools/finance/npv-calculator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/clinical-nursing/morse-score.html | https://chenguangwu.github.io/tools/clinical-nursing/assessor-rater-risk.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/clinical-nursing/generator-pressure.html | https://chenguangwu.github.io/tools/clinical-nursing/pressure-injury-description.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/hematology/generator-analysis.html | https://chenguangwu.github.io/tools/hematology/thrombin-generation.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/food-testing/generator-27.html | https://chenguangwu.github.io/tools/food-testing/colony-count.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/obstetrics/calc-risk.html | https://chenguangwu.github.io/tools/obstetrics/down-screening.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/tcm-pharmacy/calc-time-concentration.html | https://chenguangwu.github.io/tools/tcm-pharmacy/medicinal-wine.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/food-testing/convert-37.html | https://chenguangwu.github.io/tools/food-testing/protein-kjeldahl.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/fishery/calc-power.html | https://chenguangwu.github.io/tools/fishery/winter-heating.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/dentistry/assessor-5.html | https://chenguangwu.github.io/tools/dentistry/zirconia-aesthetics.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/clinical-nursing/surgical-position-risk.html | https://chenguangwu.github.io/tools/clinical-nursing/assessor-pressure-risk.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/hematology/mpn-scoring.html | https://chenguangwu.github.io/tools/hematology/rater-5.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/obstetrics/kupperman-score.html | https://chenguangwu.github.io/tools/obstetrics/rater-26.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
