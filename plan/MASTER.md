@@ -9,7 +9,7 @@
 - 修复批次：第 102 批指南描述尾句、第 103 批时区工具、第 104 批自驾油费、第 105 批病情跟踪、第 106 批 Amsler 方格、第 107 批药物经济学、第 108 批 JWT 令牌隐私、第 109 批加密工具历史隐私、第 110 批第二批敏感工具历史隐私、第 111 批 WiFi/古典密码历史隐私、第 112 批文本统计总词数口径、第 113 批差异算法文案/换行并列/句首缩写、第 114 批 Markdown 解析三修、第 115 批透明背景对比度与 URL/nginx 隐私（均已本地提交）。
 - `plan/` 目录已撤销「把全部任务描述合并进 MASTER」的错误操作，恢复原任务文件；重建 `plan/已修复/`，删除 `plan/已修复归档/`，从任务清单移出 355 条已修条目并集中留档。
 - 本轮按老板要求，仅将 `HANDOFF.md`、`交接单-2026-11-14.md`、`已修复交接规则.md`、`门禁提速与工作协议.md` 四份交接/规则文档并入本文件附录；`worktree-plan.md`、`worktree-registry.md` 删除。
-- 当前代码基线：`_build.py` 4,426 页成功；内联脚本 12,102 段 0 语法错误；`_test_static.py` 4,705 通过 / 0 失败 / 0 警告。第 115 批后已启动 268 项全量门禁复跑，结果见文末追加记录。
+- 当前代码基线：`_build.py` 4,426 页成功；内联脚本 12,102 段 0 语法错误；`_test_static.py` 4,705 通过 / 0 失败 / 0 警告；第 118 批后全量门禁 **All 268 quality gates passed.**（2026-11-21，`/tmp/gates118.log`）。
 
 ## 体系结构
 
@@ -392,3 +392,7 @@ ai 目录页用 `__vN = (表达式)` 模式，上面脚本只能抓到取值行�
 5. **批量流程**：`--check <inds>` 解析残留页 → 批量 `--extract` → 只取 `kind=text` → 逐条语义翻译 → 写 per-tool 字典 → `--check` 补漏（双 key / 属性）→ `--roundtrip`（0 不一致）→ `--reindex` → `--smoke --en` 抽查 → 回归抽查已清零行业 → `python3 _build.py` 单步核验。
 6. **进度载体滞后**：`_en-i18n/pending/*.json` 与 `industries.md` 是 2026-11-04 快照，travel/logistics/usedcar/service/shipping/wedding/home/film 实测早已 0 残留却仍在清单里。**派工前用 `--scan` 重建，勿照清单**。`--mine` 实测 394 页 / 135 条唯一残留中复现 ≥3 的仅 3 条 ⇒ 补全局词表收益极低，须逐页 per-tool 翻译。
 7. **勿重复排查的结论**：全站死输入扫两遍（HTML 口径 + 纳入外部 JS 口径）16 页候选全为误报（`getElementsByName` / inline `this` / `getElementById('m'+i)` / `data-page-node-id` 被正则误当 id）；EN 态 placeholder 运行时已有翻译机制（`js/tool-i18n.js` 940 行起），残留是词条缺口不是机制缺失；29 个合并存根页在 HTML 链接与 sitemap.xml 中已零引用。
+
+## 全量门禁追加记录
+
+- 2026-11-21 第 118 批后：`env -u NODE_OPTIONS python3 scripts/run_gates.py --skip-build` → **All 268 quality gates passed.**；日志 `/tmp/gates118.log`。
