@@ -12118,7 +12118,7 @@ const CASES = [
       "textInput": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n5 总字符(字素) 5 码点数 3 字符(无空格) 0 中文字 0 英文词 3 行数 1 段落 1 句子 0 总词数 0 不同词 0分钟 阅读时间\n请输入文本"
+      "1 2 3\n5 总字符(字素) 5 码点数 3 字符(无空格) 0 中文字 0 英文词 3 行数 1 段落 1 句子 0 总词数 0 去停用词 0 不同词 0分钟 阅读时间\n请输入文本"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"textInput\":\"1\\n2\\n3\"}，输出区含「1 2 3\n5 总字符 3 字符(无空格) 0 中文字 0 英文词 3 行数 1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -14625,6 +14625,12 @@ const CASES = [
     "clicks": ["var q=String.fromCharCode(39),src=String(__vigenere_visualizerSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'key'+q)>=0&&src.indexOf(q+'input'+q)>=0;document.getElementById('__tbProbe').textContent='VIGENEREVISPRIV '+(ok?'SAFE':'LEAK');"],
     "expect": ["VIGENEREVISPRIV SAFE"],
     "ref": "历史隐私回归：vigenere-visualizer 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/text-statistics",
+    "inputs": { "textInput": "the" },
+    "expect": ["1 总词数", "0 去停用词"],
+    "ref": "口径回归：英文停用词 the 不计入词频，但总词数必须包含它。旧实现总词数过滤停用词，输入 the 会得到「英文词 1 / 总词数 0」；修复后总词数 1、去停用词 0。"
   },
 ];
 // ---------------------------------------------------------------- DOM stub
