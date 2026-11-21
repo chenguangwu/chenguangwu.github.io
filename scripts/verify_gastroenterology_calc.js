@@ -74,6 +74,22 @@ const CASES = [
 {
   "slug": "gastroenterology/colonoscopy-polyp",
   "inputs": {
+    "size": "12", "paris": "IIa", "kudo": "I", "nice": "3"
+  },
+  "expect": [ "高", "EUS评估浸润深度", "不宜直接按普通息肉内镜切除" ],
+  "ref": "NICE 3 = 深层 SM 癌：旧版只判「中-高」，综合建议落「内镜下完整切除」；新版必须判高风险并提示 EUS/外科评估。默认 nice=2、size=8 ⇒ 不命中。"
+},
+{
+  "slug": "gastroenterology/colonoscopy-polyp",
+  "inputs": {
+    "size": "25", "paris": "Is", "kudo": "IIIL", "nice": "2"
+  },
+  "expect": [ "ESD整块切除" ],
+  "ref": "≥20mm 大息肉：综合建议不得只写「内镜下完整切除」，应提示 ESD 整块切除。默认 8mm ⇒ 不命中。"
+},
+{
+  "slug": "gastroenterology/colonoscopy-polyp",
+  "inputs": {
     "size": "12", "paris": "Is", "kudo": "IIIL", "nice": "2"
   },
   "expect": [ "12 直径" ],
@@ -107,6 +123,22 @@ const CASES = [
     "曲张静脉大小：重度(D3)"
   ],
   "ref": "弱用例收紧：原注入 size=2 与页面默认值相同，且「中度(D2)」直接出现在 select 选项文案中 ⇒ 两态恒命中。改注入 size=3（默认 2）后，结果明细由 `sizeNames[size]` 生成「曲张静脉大小：重度(D3)」——注意结果用半角括号 `(D3)`，与 select 选项里的全角「重度（D3, 直径＞6mm）」不同，故注入失败（回退默认 size=2 →「中度(D2)」）必不命中。"
+},
+{
+  "slug": "gastroenterology/gastric-emptying",
+  "inputs": {
+    "r2": "60", "r4": "5", "r0": "100", "halfTime": "", "method": "scintigraphy", "meal": "solid"
+  },
+  "expect": [ "82.8", "由2h/4h残留率估算" ],
+  "ref": "T½ 自动估算：r0=100、r2=60、r4=5，留空 T½ 时按指数模型两点均值 k=( -ln(.6)/2 + -ln(.05)/4 )/2≈0.5021，T½=ln2/k≈82.8 分钟。旧版格空按 0 判「排空过快」，且从不估算。"
+},
+{
+  "slug": "gastroenterology/gastric-emptying",
+  "inputs": {
+    "r2": "65", "r4": "5", "r0": "100", "halfTime": "", "method": "scintigraphy", "meal": "solid"
+  },
+  "expect": [ "2小时残留率65%（＞60%）", "胃排空延迟（胃轻瘫）" ],
+  "ref": "2h 延迟纳入综合：r2=65>60、r4=5≤10、T½ 估约 86 分钟不超 90，旧版综合只看 4h/T½ 会判正常；新版必须判排空延迟。"
 },
 {
   "slug": "gastroenterology/gastric-emptying",

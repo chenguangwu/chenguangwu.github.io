@@ -469,6 +469,22 @@ const CASES = [
 {
   "slug": "pulmonology/tb-resistance",
   "clicks": [
+    "document.getElementById('smear').value='3+';document.getElementById('culture').value='pos';document.getElementById('xpert').value='rif_r';document.getElementById('d_rif').checked=false;calc();var r=document.getElementById('result');r.innerHTML+=' 列表一致='+(r.innerHTML.indexOf('利福平（GeneXpert 分子提示）')>=0&&r.innerHTML.indexOf('耐药：无')<0);"
+  ],
+  "expect": ["列表一致=true"],
+  "ref": "Xpert rif_r 已足以判 RR-TB，但药敏勾选未勾利福平时旧版耐药列表写「无」，同屏矛盾。新版列表补「利福平（GeneXpert 分子提示）」。"
+},
+{
+  "slug": "pulmonology/tb-resistance",
+  "clicks": [
+    "document.getElementById('smear').value='3+';document.getElementById('culture').value='pos';document.getElementById('xpert').value='rif_s';document.getElementById('d_rif').checked=false;document.getElementById('d_inh').checked=true;document.getElementById('d_fq').checked=true;calc();var r=document.getElementById('result');r.innerHTML+=' INHFQ='+(r.innerHTML.indexOf('常规「RZE + 氟喹诺酮」方案不适用')>=0)+' 含左氧='+(r.innerHTML.indexOf('左氧氟沙星')>=0);"
+  ],
+  "expect": ["INHFQ=true 含左氧=false"],
+  "ref": "INH 单耐药 + FQ 耐药：旧版固定推荐 RZE+氟喹诺酮，会把已耐药的左氧/莫西写进方案；新版必须提示方案不适用且结果不列左氧。"
+},
+{
+  "slug": "pulmonology/tb-resistance",
+  "clicks": [
     "document.getElementById('smear').value='3+';document.getElementById('culture').value='pos';document.getElementById('xpert').value='rif_r';document.getElementById('d_rif').checked=false;document.getElementById('d_inh').checked=true;document.getElementById('d_pza').checked=true;calc();var r=document.getElementById('result');r.innerHTML+=' 含PZA提示='+(r.innerHTML.indexOf('吡嗪酰胺')>=0&&r.innerHTML.indexOf('须避免含该药')>=0)+' 含Xpert确认='+(r.innerHTML.indexOf('需培养/表型药敏确认')>=0);"
   ],
   "expect": ["含PZA提示=true 含Xpert确认=true"],

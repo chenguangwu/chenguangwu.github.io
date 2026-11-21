@@ -108,7 +108,7 @@
     <h2 data-zh="🩻 胃肠动力（胃排空）测定器">Gastric Emptying</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据核素胃排空扫描数据计算胃排空率与半排时间，评估胃动力功能">Gastric Emptying</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">排空率 = 初始残留率 − 该时点残留率2h残留：&gt;60%延迟、30-60%正常、&lt;30%偏快；4h残留：&gt;10%延迟、≥0%正常；半排时间T½：&gt;90min延长、30-90min正常、&lt;30min缩短综合：4h残留&gt;10% 或 T½&gt;90min → 排空延迟(胃轻瘫)；2h残留&lt;30% 或 T½&lt;30min → 排空过快(倾倒综合征)；否则正常。</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">排空率 = 初始残留率 − 该时点残留率2h残留：&gt;60%延迟、30-60%正常、&lt;30%偏快；4h残留：&gt;10%延迟、≥0%正常；半排时间T½：留空时由 r2/r4 按 R(t)=r0·e^(-kt) 两点斜率均值估算；&gt;90min延长、30-90min正常、&lt;30min缩短。综合：4h残留&gt;10% 或 2h残留&gt;60% 或 T½&gt;90min → 排空延迟(胃轻瘫)；2h残留&lt;30% 或 T½&lt;30min → 排空过快(倾倒综合征)；否则正常。</div>
       <p class="formula-desc" data-zh="「根据核素胃排空扫描数据计算胃排空率与半排时间，评估胃动力功能」按输入参数进行专业计算并输出结果。">Gastric Emptying: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -137,7 +137,7 @@
     </div>
     <div class="input-row">
       <div><label>初始残留率 (%)</label><input type="number" id="r0" step="0.1" oninput="calc()" placeholder="如 100"></div>
-      <div><label>半排时间 T½ (分钟)</label><input type="number" id="halfTime" oninput="calc()" placeholder="如 90"></div>
+      <div><label>半排时间 T½（分钟，留空自动估算）</label><input type="number" id="halfTime" oninput="calc()" placeholder="留空则由 2h/4h 残留率估算"></div>
     </div>
 
     <div class="toolbar">
@@ -266,14 +266,28 @@
 function calc(){
   var method=document.getElementById('method').value;
   var meal=document.getElementById('meal').value;
-  if(method==='' || meal==='' || String(document.getElementById('r2').value||'').trim()==='' || String(document.getElementById('r4').value||'').trim()==='' || String(document.getElementById('halfTime').value||'').trim()===''){
-    document.getElementById('result').innerHTML='<div class="tip-box tip-info tb-guard">请选择检测方法与试餐类型，并填写 2 小时、4 小时残留率与半排时间。</div>';
+  if(method==='' || meal==='' || String(document.getElementById('r2').value||'').trim()==='' || String(document.getElementById('r4').value||'').trim()===''){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-info tb-guard">请选择检测方法与试餐类型，并填写 2 小时、4 小时残留率；T½ 可留空由残留率估算。</div>';
     return;
   }
   var r0=parseFloat(document.getElementById('r0').value)||100;
   var r2=parseFloat(document.getElementById('r2').value)||0;
   var r4=parseFloat(document.getElementById('r4').value)||0;
-  var halfTime=parseFloat(document.getElementById('halfTime').value)||0;
+  var halfRaw=String(document.getElementById('halfTime').value||'').trim();
+  var halfTime=halfRaw===''?NaN:parseFloat(halfRaw);
+  var halfEstimated=false;
+  // T½ 由 2h/4h 残留率按指数排空模型估算：R(t)=r0·e^(-kt)，取两点 k 的均值。
+  if(!(halfTime>0)){
+    if(r0>0 && r2>0 && r4>0 && r4<r2 && r2<r0){
+      var k=(-Math.log(r2/r0)/2 - Math.log(r4/r0)/4)/2;
+      if(k>0){ halfTime=Math.LN2/k; halfEstimated=true; }
+    }
+  }
+  if(!(halfTime>0)){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-info tb-guard">无法由当前残留率估算 T½：请确认 0h &gt; 2h &gt; 4h &gt; 0 且三者均为正数，或手动填写 T½。</div>';
+    return;
+  }
+  var halfText=halfEstimated?halfTime.toFixed(1):String(halfTime);
 
   // 计算2小时和4小时排空率
   var empty2=r0-r2;
@@ -298,18 +312,18 @@ function calc(){
   else{statusHalf='缩短';}
 
   // 综合判断
-  if(r4>10 || halfTime>90){
+  if(r4>10 || r2>60 || halfTime>90){
     overallStatus='胃排空延迟（胃轻瘫）';
     color='#EF4444';
-    advice='胃排空延迟。' +(r4>10?'4小时残留率'+r4+'%（＞10%），':'')+(halfTime>90?'半排时间'+halfTime+'分钟（＞90分钟），':'')+'符合胃轻瘫诊断。建议：1)排除机械性梗阻（胃镜）；2)优化血糖控制（糖尿病患者）；3)调整饮食（少食多餐、低脂低纤维）；4)促动力药（甲氧氯普胺/多潘立酮/红霉素）；5)严重者考虑胃电刺激或幽门肉毒素注射。';
+    advice='胃排空延迟。' +(r4>10?'4小时残留率'+r4+'%（＞10%），':'')+(r2>60?'2小时残留率'+r2+'%（＞60%），':'')+(halfTime>90?'半排时间'+halfText+'分钟（＞90分钟），':'')+'符合胃轻瘫诊断。建议：1)排除机械性梗阻（胃镜）；2)优化血糖控制（糖尿病患者）；3)调整饮食（少食多餐、低脂低纤维）；4)促动力药（甲氧氯普胺/多潘立酮/红霉素）；5)严重者考虑胃电刺激或幽门肉毒素注射。';
   }else if(r2<30 || halfTime<30){
     overallStatus='胃排空过快（倾倒综合征可能）';
     color='#F59E0B';
-    advice='胃排空过快。' +(r2<30?'2小时残留率仅'+r2+'%（＜30%），':'')+(halfTime<30?'半排时间仅'+halfTime+'分钟（＜30分钟），':'')+'提示倾倒综合征可能。建议：1)少食多餐、干湿分离饮食；2)避免高渗食物；3)早期倾倒可考虑生长抑素类似物；4)晚期倾倒（低血糖）可增加蛋白质摄入、阿卡波糖。';
+    advice='胃排空过快。' +(r2<30?'2小时残留率仅'+r2+'%（＜30%），':'')+(halfTime<30?'半排时间仅'+halfText+'分钟（＜30分钟），':'')+'提示倾倒综合征可能。建议：1)少食多餐、干湿分离饮食；2)避免高渗食物；3)早期倾倒可考虑生长抑素类似物；4)晚期倾倒（低血糖）可增加蛋白质摄入、阿卡波糖。';
   }else{
     overallStatus='胃排空正常';
     color='#10B981';
-    advice='胃排空功能正常。2小时残留率'+r2+'%，4小时残留率'+r4+'%，半排时间'+halfTime+'分钟，均在正常范围内。如仍有消化道症状，需考虑其他原因（功能性消化不良、肠易激综合征等）。';
+    advice='胃排空功能正常。2小时残留率'+r2+'%，4小时残留率'+r4+'%，半排时间'+halfText+'分钟，均在正常范围内。如仍有消化道症状，需考虑其他原因（功能性消化不良、肠易激综合征等）。';
   }
 
   var details=[];
@@ -318,10 +332,10 @@ function calc(){
   details.push('初始残留率：'+r0+'%');
   details.push('2小时残留率：'+r2+'% → 排空率'+empty2.toFixed(1)+'% ('+status2+')');
   details.push('4小时残留率：'+r4+'% → 排空率'+empty4.toFixed(1)+'% ('+status4+')');
-  details.push('半排时间T½：'+halfTime+'分钟 ('+statusHalf+')');
+  details.push('半排时间T½：'+halfText+'分钟 ('+statusHalf+')'+(halfEstimated?'（由2h/4h残留率估算）':'（手动填写）'));
 
   var html='<div class="stat-grid">';
-  html+='<div class="stat-card"><div class="val" style="color:'+color+';">'+halfTime+'</div><div class="lbl">T½(分钟) - '+statusHalf+'</div></div>';
+  html+='<div class="stat-card"><div class="val" style="color:'+color+';">'+halfText+'</div><div class="lbl">T½(分钟) - '+statusHalf+(halfEstimated?'（估算）':'')+'</div></div>';
   html+='<div class="stat-card"><div class="val" style="color:'+color+';">'+r2+'%</div><div class="lbl">2h残留 - '+status2+'</div></div>';
   html+='<div class="stat-card"><div class="val" style="color:'+color+';">'+r4+'%</div><div class="lbl">4h残留 - '+status4+'</div></div>';
   html+='<div class="stat-card"><div class="val" style="color:'+color+';font-size:14px;">'+overallStatus+'</div><div class="lbl">综合判断</div></div>';

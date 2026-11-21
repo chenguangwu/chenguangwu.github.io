@@ -167,10 +167,10 @@ const CASES = [
   "slug": "cardiology/cardiac-rehab-mets",
   "inputs": {
     "mets": "8",
-    "weight": "70"
+    "weight": "70", "duration": "30"
   },
   "expect": [
-    "1960"
+    "1960", "240 METs·min"
   ],
   "ref": "auto-restore"
 },
