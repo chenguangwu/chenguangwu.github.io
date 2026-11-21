@@ -164,6 +164,12 @@
         </select>
       </div>
     </div>
+    <div class="input-row">
+      <div>
+        <label for="density">介质密度（kg/L，水≈1，用于质量流量）</label>
+        <input type="number" id="density" value="1" step="any" min="0" oninput="convert()" placeholder="水≈1，汽油≈0.74">
+      </div>
+    </div>
 
     <div class="toolbar">
       <div id="flow_rate_converterPresets"></div><button type="button" class="btn primary" onclick="convert()">换算</button><button class="btn" type="button" onclick="__flow_rate_converterExport()">导出明细 CSV</button>
@@ -182,6 +188,7 @@
       <p>1 m³/s = 1000 L/s</p>
       <p>1 gpm ≈ 0.06309 L/s（美加仑）</p>
       <p>1 cfm ≈ 0.47195 L/s</p>
+      <p>质量流量（kg/s）= 体积流量（L/s）× 介质密度（kg/L）；例如水密度≈1 kg/L 时 1 L/s ≈ 1 kg/s</p>
     </div></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -289,6 +296,7 @@ function convert(){
     return;
   }
   const base = v * factors[from];
+  const rho = parseFloat(document.getElementById('density').value);
   let html = `<p>基准：<strong>${fmt(v)} ${syms[from]}</strong> = <strong>${fmt(base)} L/s</strong></p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
   Object.keys(factors).forEach(k => {
@@ -296,6 +304,11 @@ function convert(){
       html += `<p>${names[k]}：<strong>${fmt(base / factors[k])} ${syms[k]}</strong></p>`;
     }
   });
+  if(isFinite(rho) && rho > 0){
+    html += `<p>质量流量：<strong>${fmt(base * rho)} kg/s</strong>（密度 ${fmt(rho)} kg/L）</p>`;
+  }else{
+    html += '<p style="color:var(--text-muted);">质量流量：未填写有效密度，仅显示体积流量。</p>';
+  }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
 }
 

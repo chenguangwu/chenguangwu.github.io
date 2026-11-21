@@ -1047,37 +1047,37 @@ const CASES = [
   {
     slug: "life/flow-rate-converter",
     inputs: { inputVal: "2" },
-    expect: ["2\nLmin\n基准： 2 L/min = 0.03333333333 L/s 升每秒： 0.03333333333 L/s 立方米每时： 0.12 m³/h 立方米每秒： 0.00003333333333 m³/s 美加仑每分： 0.5283441047 gpm 立方英尺每分： 0.07062933347 cfm"],
+    expect: ["2\nLmin\n基准： 2 L/min = 0.03333333333 L/s 升每秒： 0.03333333333 L/s 立方米每时： 0.12 m³/h 立方米每秒： 0.00003333333333 m³/s 美加仑每分： 0.5283441047 gpm 立方英尺每分： 0.07062933347 cfm", "质量流量： 0.03333333333 kg/s"],
     ref: 'from=L/s, v=2, L/min=2/(1/60)=120'
   },
   {
     slug: "life/flow-rate-converter",
     inputs: { inputVal: "2" },
-    expect: ["2\nLmin\n基准： 2 L/min = 0.03333333333 L/s 升每秒： 0.03333333333 L/s 立方米每时： 0.12 m³/h 立方米每秒： 0.00003333333333 m³/s 美加仑每分： 0.5283441047 gpm 立方英尺每分： 0.07062933347 cfm"],
+    expect: ["2\nLmin\n基准： 2 L/min = 0.03333333333 L/s 升每秒： 0.03333333333 L/s 立方米每时： 0.12 m³/h 立方米每秒： 0.00003333333333 m³/s 美加仑每分： 0.5283441047 gpm 立方英尺每分： 0.07062933347 cfm", "质量流量： 0.03333333333 kg/s"],
     ref: 'from=L/s, v=2, m³/h=2/(1000/3600)=7.2'
   },
   {
     slug: "life/flow-rate-converter",
     inputs: { inputVal: "2" },
-    expect: ["2\nLmin\n基准： 2 L/min = 0.03333333333 L/s 升每秒： 0.03333333333 L/s 立方米每时： 0.12 m³/h 立方米每秒： 0.00003333333333 m³/s 美加仑每分： 0.5283441047 gpm 立方英尺每分： 0.07062933347 cfm"],
+    expect: ["2\nLmin\n基准： 2 L/min = 0.03333333333 L/s 升每秒： 0.03333333333 L/s 立方米每时： 0.12 m³/h 立方米每秒： 0.00003333333333 m³/s 美加仑每分： 0.5283441047 gpm 立方英尺每分： 0.07062933347 cfm", "质量流量： 0.03333333333 kg/s"],
     ref: 'from=L/s, v=2, gpm=2/0.0630901964'
   },
   {
     slug: "life/flow-rate-converter",
     inputs: { inputVal: "2" },
-    expect: ["2\nLmin\n基准： 2 L/min = 0.03333333333 L/s 升每秒： 0.03333333333 L/s 立方米每时： 0.12 m³/h 立方米每秒： 0.00003333333333 m³/s 美加仑每分： 0.5283441047 gpm 立方英尺每分： 0.07062933347 cfm"],
+    expect: ["2\nLmin\n基准： 2 L/min = 0.03333333333 L/s 升每秒： 0.03333333333 L/s 立方米每时： 0.12 m³/h 立方米每秒： 0.00003333333333 m³/s 美加仑每分： 0.5283441047 gpm 立方英尺每分： 0.07062933347 cfm", "质量流量： 0.03333333333 kg/s"],
     ref: 'from=L/s, v=2, cfm=2/0.471947443'
   },
   {
     slug: "life/flow-rate-converter",
     inputs: { inputVal: "3" },
-    expect: ["3\nLmin\n基准： 3 L/min = 0.05 L/s 升每秒： 0.05 L/s 立方米每时： 0.18 m³/h 立方米每秒： 0.00005 m³/s 美加仑每分： 0.7925161571 gpm 立方英尺每分： 0.1059440002 cfm"],
+    expect: ["3\nLmin\n基准： 3 L/min = 0.05 L/s 升每秒： 0.05 L/s 立方米每时： 0.18 m³/h 立方米每秒： 0.00005 m³/s 美加仑每分： 0.7925161571 gpm 立方英尺每分： 0.1059440002 cfm", "质量流量： 0.05 kg/s"],
     ref: 'from=L/s, v=3, L/min=3/(1/60)=180'
   },
   {
     slug: "life/flow-rate-converter",
     inputs: { inputVal: "3" },
-    expect: ["3\nLmin\n基准： 3 L/min = 0.05 L/s 升每秒： 0.05 L/s 立方米每时： 0.18 m³/h 立方米每秒： 0.00005 m³/s 美加仑每分： 0.7925161571 gpm 立方英尺每分： 0.1059440002 cfm"],
+    expect: ["3\nLmin\n基准： 3 L/min = 0.05 L/s 升每秒： 0.05 L/s 立方米每时： 0.18 m³/h 立方米每秒： 0.00005 m³/s 美加仑每分： 0.7925161571 gpm 立方英尺每分： 0.1059440002 cfm", "质量流量： 0.05 kg/s"],
     ref: 'from=L/s, v=3, m³/h=3/(1000/3600)=10.8'
   },
   {
@@ -1193,6 +1193,12 @@ const CASES = [
     inputs: { inputVal: "1", fromUnit: "molL", molarMass: "58.44" },
     expect: ["1 molL = 58440 ppm", "克每升： 58.44 gL"],
     ref: '1 mol/L NaCl（58.44 g/mol）= 58.44 g/L = 58440 ppm；旧版无 mol/L 选项与摩尔质量输入。'
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "1", fromUnit: "Lmin", density: "0.8" },
+    expect: ["0.01333333333 kg/s", "密度 0.8 kg/L"],
+    ref: '1 L/min = 0.01666666667 L/s；密度 0.8 kg/L ⇒ 质量流量 0.01333333333 kg/s。旧版无密度输入与质量流量输出。'
   },
   {
     slug: "life/power-converter",
@@ -1952,7 +1958,7 @@ const CASES = [
       "fromUnit": "Lmin"
     },
     "expect": [
-      "42\nLmin\n基准： 42 L/min = 0.7 L/s 升每秒： 0.7 L/s 立方米每时： 2.52"
+      "基准： 42 L/min = 0.7 L/s 升每秒： 0.7 L/s 立方米每时： 2.52"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"Lmin\"}，输出区含「42\nLmin\n基准： 42 L/min = 0.7 L/s 升每秒： 0.7 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },

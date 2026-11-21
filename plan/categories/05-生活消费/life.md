@@ -333,13 +333,6 @@
 - 影响：`tools/life/energy-converter.html`；物理习题/半导体场景的用户按搜索词进入后找不到所需单位，属文案与功能不符。
 - 方案：增加 `eV: 1.602176634e-19` 与对应选项（并补 keV/MeV），或删除 meta/英文简介中的 electronvolt。
 
-### LF-N71 英文简介与引据表宣称质量流量 kg/s，实际只有体积流量且无密度输入（低，确认缺陷）
-- 描述：英文简介写 `volumetric and mass flow rates ... kg/s`，公式引据表也写「质量流量 = 体积流量 × 密度」，但下拉只有 L/s、L/min、m³/h、m³/s、gpm、cfm 六个体积单位，页面没有密度输入，无法计算 kg/s。
-- 证据：`tools/life/flow-rate-converter.html:159`（英文简介 kg/s）、`:250`（引据表质量流量公式）、`:168-175`（下拉六项体积单位）、`:274-281`（系数表）
-- 复现：默认 1 L/min → 实际只输出 0.01666666667 L/s 等体积单位（期望若宣称质量流量，应能输入密度并输出 kg/s，例如水 1 kg/L 时 1 L/min = 0.01667 kg/s）。
-- 影响：`tools/life/flow-rate-converter.html`；需要质量流量的用户无法完成换算，且引据表公式与界面能力不一致。
-- 方案：删除 mass flow/kg/s 表述，或增加「介质密度」输入并按 `kg/s = L/s × kg/L` 输出一行质量流量。
-
 - 本轮实读 8 页：`tools/life/number-to-chinese.html`、`data-rate-converter.html`、`report-profit.html`、`frequency-converter.html`、`energy-converter.html`、`power-converter.html`、`flow-rate-converter.html`、`concentration-converter.html`；新增 11 条（高 1 / 中 4 / 低 6）。另抽读 `pressure-converter.html`、`angle-converter.html`、`density-converter.html` 做同类换算模板比对，未计入本轮条目。未覆盖：`analysis-23/74/80`、`analysis-cost-9/10`、`angle-converter`、`assessor-target`、`countdown`、`countdown-2`、`countdown-timer`、`cycle-4`、`cycle-pruning-lawn`、`density-converter`、`detector-checker-strength`、`generator-price`、`generator-random-1`、`magnet-converter`、`pressure-converter`、`radiation-converter`、`recommender-8`、`reminder-cycle`、`stats-13` 等。
 
 ## 2026-11-04 续查（并行批 N）
