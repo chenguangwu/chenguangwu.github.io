@@ -202,7 +202,7 @@
     <div class="rotate-drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
       <span class="dz-icon">📁</span>
       点击或拖拽图片到这里
-      <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;" onchange="handleFile(this.files[0])">
+      <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif" multiple style="display:none;" onchange="handleFiles(this.files)">
     </div>
 
     <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
@@ -265,6 +265,12 @@
         </select>
         <div id="image_rotatePresets"></div><button type="button" class="btn primary" onclick="downloadImage()">⬇ 下载旋转后图片</button><button class="btn" type="button" onclick="__image_rotateExport()">导出明细 CSV</button>
         <button type="button" class="btn" onclick="loadAnother()">📂 重新选择图片</button>
+      </div>
+      <div id="batchBar" style="display:none;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;">
+        <label style="font-size:13px;">当前预览：</label>
+        <select id="batchPick" onchange="showBatchItem(+this.value)" style="max-width:260px;"></select>
+        <button type="button" class="btn" onclick="downloadBatchZip()">📦 全部下载 ZIP（同一设置）</button>
+        <span id="batchHint" style="font-size:12px;color:var(--text-muted);"></span>
       </div>
 
       <!-- 图片信息 -->
@@ -419,6 +425,36 @@ var flipH = false;        // 水平翻转
 var flipV = false;        // 垂直翻转
 var bgColor = 'transparent'; // 背景填充
 var customColor = '#3b82f6'; // 自定义颜色
+var PREF_KEY = 'tb-rotate-prefs';
+
+function savePrefs(){
+  try {
+    localStorage.setItem(PREF_KEY, JSON.stringify({
+      angle: angle, bgColor: bgColor, customColor: customColor,
+      format: (document.getElementById('formatSelect') || {}).value || 'png'
+    }));
+  } catch(e){}
+}
+function restorePrefs(){
+  var p = null;
+  try { p = JSON.parse(localStorage.getItem(PREF_KEY) || 'null'); } catch(e){}
+  if(!p) return;
+  if(typeof p.angle === 'number' && isFinite(p.angle)) angle = normalizeAngle(p.angle);
+  if(typeof p.customColor === 'string' && /^#[0-9a-f]{6}$/i.test(p.customColor)) customColor = p.customColor;
+  if(typeof p.bgColor === 'string' && p.bgColor){ bgColor = (p.bgColor === 'custom') ? customColor : p.bgColor; }
+  var fmt = document.getElementById('formatSelect');
+  if(fmt && p.format){ fmt.value = p.format === 'jpeg' ? 'jpeg' : 'png'; }
+  var cc = document.getElementById('customColor');
+  if(cc) cc.value = customColor;
+  var sw = document.getElementById('customSwatch');
+  if(sw) sw.style.background = customColor;
+  var btns = document.querySelectorAll('.bg-option');
+  var want = (p.bgColor === 'custom') ? 'custom' : bgColor;
+  btns.forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-bg') === want); });
+  var row = document.getElementById('customRow');
+  if(row) row.classList.toggle('show', want === 'custom');
+  syncControls();
+}
 
 // 角度归一化到 -180~180
 function normalizeAngle(a){
@@ -437,42 +473,67 @@ function __svgFileBlocked(file){
   }
   return false;
 }
-function handleFile(file){
-  if(!file){
-    ToolBox.showToast(i18nText('toast.msg449'), 'warning');
-    return;
-  }
-  if(__svgFileBlocked(file)){ return; }
-  if(!file.type || !file.type.startsWith('image/')){
-    ToolBox.showToast(i18nText('toast.msg933'), 'error');
-    return;
-  }
-  var reader = new FileReader();
-  reader.onload = function(e){
-    var img = new Image();
-    img.onload = function(){
-      // 文件名只在解码成功后生效，避免「新文件名 + 旧像素」被导出。
-      fileName = (file.name || 'image').replace(/\.[^.]+$/, '');
-      originalImg = img;
-      // 重置变换状态
-      angle = 0;
-      flipH = false;
-      flipV = false;
-      syncControls();
-      document.getElementById('controls').style.display = '';
-      render();
-      ToolBox.showToast(i18nText('tool.image_load_ok'), 'success');
+var batchImages = []; // {img,name}
+var batchActive = 0;
+
+function decodeFile(file){
+  return new Promise(function(resolve, reject){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var img = new Image();
+      img.onload = function(){ resolve({ img: img, name: (file.name || 'image').replace(/\.[^.]+$/, '') }); };
+      img.onerror = function(){ reject(new Error('decode')); };
+      img.src = e.target.result;
     };
-    img.onerror = function(){
-      ToolBox.showToast(i18nText('tool.image_load_error'), 'error');
-    };
-    img.src = e.target.result;
-  };
-  reader.onerror = function(){
-    ToolBox.showToast(i18nText('toast.msg393'), 'error');
-  };
-  reader.readAsDataURL(file);
+    reader.onerror = function(){ reject(new Error('read')); };
+    reader.readAsDataURL(file);
+  });
 }
+
+function handleFiles(files){
+  var list = Array.prototype.slice.call(files || []);
+  if(!list.length){ ToolBox.showToast(i18nText('toast.msg449'), 'warning'); return; }
+  var accepted = [];
+  list.forEach(function(f){
+    if(__svgFileBlocked(f)) return;
+    if(!f.type || f.type.indexOf('image/') !== 0){ return; }
+    accepted.push(f);
+  });
+  if(!accepted.length){ ToolBox.showToast(i18nText('toast.msg933'), 'error'); return; }
+  Promise.all(accepted.map(function(f){ return decodeFile(f).catch(function(){ return null; }); }))
+    .then(function(items){
+      batchImages = items.filter(Boolean);
+      if(!batchImages.length){ ToolBox.showToast(i18nText('tool.image_load_error'), 'error'); return; }
+      batchActive = 0;
+      applyBatchItem(0);
+      renderBatchBar();
+      ToolBox.showToast('已载入 ' + batchImages.length + ' 张图片，可切换预览，批量导出使用当前角度/底色/格式', 'success');
+    });
+}
+
+function applyBatchItem(i){
+  if(i < 0 || i >= batchImages.length) return;
+  batchActive = i;
+  originalImg = batchImages[i].img;
+  fileName = batchImages[i].name;
+  document.getElementById('controls').style.display = '';
+  render();
+}
+
+function renderBatchBar(){
+  var bar = document.getElementById('batchBar');
+  var pick = document.getElementById('batchPick');
+  if(!bar || !pick) return;
+  if(batchImages.length < 2){ bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  pick.innerHTML = batchImages.map(function(it, i){
+    return '<option value="' + i + '">' + ToolBox.escHtml(it.name) + '</option>';
+  }).join('');
+  pick.value = String(batchActive);
+  document.getElementById('batchHint').textContent = '共 ' + batchImages.length + ' 张 · 第 ' + (batchActive+1) + ' 张预览中';
+}
+
+function showBatchItem(i){ applyBatchItem(i); renderBatchBar(); }
 
 // ===== 同步控件状态 =====
 function syncControls(){
@@ -487,12 +548,14 @@ function syncControls(){
 function onAngleInput(v){
   angle = parseInt(v, 10) || 0;
   document.getElementById('angleVal').textContent = angle + '°';
+  savePrefs();
   render();
 }
 
 // ===== 快捷旋转 =====
 function quickRotate(delta){
   angle = normalizeAngle(angle + delta);
+  savePrefs();
   syncControls();
   render();
 }
@@ -511,6 +574,7 @@ function resetTransform(){
   flipH = false;
   flipV = false;
   syncControls();
+  savePrefs();
   render();
   ToolBox.showToast(i18nText(), 'info');
 }
@@ -530,6 +594,7 @@ function setupBgOptions(){
         bgColor = bg;
         document.getElementById('customRow').classList.remove('show');
       }
+      savePrefs();
       render();
     });
   });
@@ -542,6 +607,7 @@ function setCustomBg(val){
   var active = document.querySelector('.bg-option.active');
   if(active && active.getAttribute('data-bg') === 'custom'){
     bgColor = val;
+    savePrefs();
     render();
   }
 }
@@ -575,8 +641,8 @@ function render(){
 }
 
 var lastFullW = 0, lastFullH = 0, lastPreviewScale = 1;
-function drawRotated(canvas, scale){
-  var w = originalImg.naturalWidth, h = originalImg.naturalHeight;
+function drawRotatedImage(canvas, img, scale){
+  var w = img.naturalWidth, h = img.naturalHeight;
   var rad = angle * Math.PI / 180;
   var ctx = canvas.getContext('2d');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -588,8 +654,9 @@ function drawRotated(canvas, scale){
   ctx.translate(canvas.width / 2, canvas.height / 2);
   ctx.rotate(rad);
   ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
-  ctx.drawImage(originalImg, -w * scale / 2, -h * scale / 2, w * scale, h * scale);
+  ctx.drawImage(img, -w * scale / 2, -h * scale / 2, w * scale, h * scale);
 }
+function drawRotated(canvas, scale){ drawRotatedImage(canvas, originalImg, scale); }
 
 // ===== 图片信息 =====
 function updateInfo(origW, origH, newW, newH){
@@ -653,6 +720,87 @@ function downloadImage(){
   }, mime, 0.92); } catch (e) { ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误")), 'error'); }
 }
 
+
+/* ---------- 批量导出 ---------- */
+var __rotCrcTable = null;
+function __rotCrc32(bytes){
+  if(!__rotCrcTable){
+    __rotCrcTable = new Uint32Array(256);
+    for(var n=0;n<256;n++){ var c=n; for(var k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); __rotCrcTable[n]=c>>>0; }
+  }
+  var crc=0xFFFFFFFF;
+  for(var i=0;i<bytes.length;i++) crc=(crc>>>8)^__rotCrcTable[(crc^bytes[i])&0xFF];
+  return (crc^0xFFFFFFFF)>>>0;
+}
+function __rotMakeZip(entries){
+  var enc=new TextEncoder(), parts=[], central=[], offset=0, dt=new Date();
+  var tm=((dt.getHours()&0x1F)<<11)|((dt.getMinutes()&0x3F)<<5)|((Math.floor(dt.getSeconds()/2))&0x1F);
+  var dd=(((dt.getFullYear()-1980)&0x7F)<<9)|(((dt.getMonth()+1)&0x0F)<<5)|(dt.getDate()&0x1F);
+  entries.forEach(function(e){
+    var nb=enc.encode(e.name), crc=__rotCrc32(e.bytes), size=e.bytes.length;
+    var lh=new Uint8Array(30+nb.length), dv=new DataView(lh.buffer);
+    dv.setUint32(0,0x04034b50,true); dv.setUint16(4,20,true); dv.setUint16(6,0x0800,true);
+    dv.setUint16(8,0,true); dv.setUint16(10,tm,true); dv.setUint16(12,dd,true);
+    dv.setUint32(14,crc,true); dv.setUint32(18,size,true); dv.setUint32(22,size,true);
+    dv.setUint16(26,nb.length,true); dv.setUint16(28,0,true); lh.set(nb,30);
+    parts.push(lh,e.bytes);
+    var cd=new Uint8Array(46+nb.length), cdv=new DataView(cd.buffer);
+    cdv.setUint32(0,0x02014b50,true); cdv.setUint16(4,20,true); cdv.setUint16(6,20,true);
+    cdv.setUint16(8,0x0800,true); cdv.setUint16(10,0,true); cdv.setUint16(12,tm,true); cdv.setUint16(14,dd,true);
+    cdv.setUint32(16,crc,true); cdv.setUint32(20,size,true); cdv.setUint32(24,size,true);
+    cdv.setUint16(28,nb.length,true); cdv.setUint16(30,0,true); cdv.setUint16(32,0,true);
+    cdv.setUint16(34,0,true); cdv.setUint16(36,0,true); cdv.setUint32(38,0,true); cdv.setUint32(42,offset,true);
+    cd.set(nb,46); central.push(cd); offset+=lh.length+size;
+  });
+  var cdSize=central.reduce(function(a,b){return a+b.length;},0);
+  var end=new Uint8Array(22), edv=new DataView(end.buffer);
+  edv.setUint32(0,0x06054b50,true); edv.setUint16(8,entries.length,true); edv.setUint16(10,entries.length,true);
+  edv.setUint32(12,cdSize,true); edv.setUint32(16,offset,true);
+  var all=parts.concat(central,[end]), total=all.reduce(function(a,b){return a+b.length;},0);
+  var out=new Uint8Array(total), p=0;
+  all.forEach(function(b){ out.set(b,p); p+=b.length; });
+  return new Blob([out],{type:'application/zip'});
+}
+function batchCanvas(img){
+  var w=img.naturalWidth, h=img.naturalHeight, rad=angle*Math.PI/180;
+  var cos=Math.abs(Math.cos(rad)), sin=Math.abs(Math.sin(rad));
+  var nw=Math.max(1,Math.ceil(w*cos+h*sin)), nh=Math.max(1,Math.ceil(w*sin+h*cos));
+  var msg=canvasExportError(nw,nh);
+  if(msg) throw new Error(msg);
+  var c=document.createElement('canvas'); c.width=nw; c.height=nh;
+  drawRotatedImage(c,img,1);
+  return c;
+}
+function downloadBatchZip(){
+  if(!batchImages.length){ ToolBox.showToast('请先上传图片。','warning'); return; }
+  var format=document.getElementById('formatSelect').value;
+  var mime=format==='jpeg'?'image/jpeg':'image/png', ext=format==='jpeg'?'jpg':'png';
+  var entries=[], chain=Promise.resolve();
+  batchImages.forEach(function(it, idx){
+    chain=chain.then(function(){
+      var c=batchCanvas(it.img);
+      if(format==='jpeg'&&bgColor==='transparent'){
+        var tmp=document.createElement('canvas'); tmp.width=c.width; tmp.height=c.height;
+        var tctx=tmp.getContext('2d'); tctx.fillStyle='#fff'; tctx.fillRect(0,0,tmp.width,tmp.height); tctx.drawImage(c,0,0); c=tmp;
+      }
+      return new Promise(function(res,rej){
+        c.toBlob(function(b){ b?res(b):rej(new Error('blob is null')); }, mime, 0.92);
+      }).then(function(b){ return b.arrayBuffer(); }).then(function(ab){
+        entries.push({ name: it.name + '-rotated-' + angle + 'deg.' + ext, bytes: new Uint8Array(ab) });
+      });
+    });
+  });
+  chain.then(function(){
+    var blob=__rotMakeZip(entries), url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download='rotated-batch-' + batchImages.length + '.zip';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    ToolBox.showToast('已导出 ' + entries.length + ' 张（ZIP）', 'success');
+  }).catch(function(err){
+    ToolBox.showToast('批量导出失败：' + ((err&&err.message)||'未知错误'), 'error');
+  });
+}
+
 // ===== 重新选择图片 =====
 function loadAnother(){
   document.getElementById('fileInput').value = '';
@@ -673,6 +821,9 @@ dz.addEventListener('drop', function(e){
 
 // ===== 初始化 =====
 setupBgOptions();
+try { restorePrefs(); } catch(e){}
+var fmtSel = document.getElementById('formatSelect');
+if(fmtSel) fmtSel.addEventListener('change', savePrefs);
 ToolBox.initToolTheme();
 
 // tool-intro 折叠交互

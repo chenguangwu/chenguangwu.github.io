@@ -392,6 +392,8 @@ function batch204StaticChecks(){
   out.push({name:"B204 platform presets",ok:src.indexOf('setPlatformSize(1242,1660')>=0&&src.indexOf('setPlatformSize(900,383')>=0&&src.indexOf('function setPlatformSize(w,h,label)')>=0});
   var cmp = fs.readFileSync("tools/image/image-compress.html","utf8");
   var rc = fs.readFileSync("tools/image/generator-15.html","utf8");
+  var rot2 = fs.readFileSync("tools/image/image-rotate.html","utf8");
+  out.push({name:"B212 rotate batch and memory",ok:rot2.indexOf("multiple style=")>=0&&rot2.indexOf("downloadBatchZip")>=0&&rot2.indexOf("localStorage.setItem(PREF_KEY")>=0&&rot2.indexOf("id=\"batchBar\"")>=0});
   var idc = fs.readFileSync("tools/image/id-photo-crop.html","utf8");
   out.push({name:"B211 id-photo crop view/dpi/zip",ok:idc.indexOf('id="cropZoom"')>=0&&idc.indexOf("function pngWithDpi")>=0&&idc.indexOf("function downloadAllPresets")>=0&&idc.indexOf("cropView.dx = clampNum")>=0});
   var col = fs.readFileSync("tools/image/image-collage.html","utf8");
@@ -406,7 +408,7 @@ function batch204StaticChecks(){
   out.push({name:"B207 id-photo onerror clears",ok:idp.indexOf('srcImg = null;')>=0&&idp.indexOf('无法解码该图片')>=0});
   var rot = fs.readFileSync("tools/image/image-rotate.html","utf8");
   out.push({name:"B208 rotate preview cap",ok:rot.indexOf("previewMax = 16000000")>=0&&rot.indexOf("function drawRotated(canvas, scale)")>=0&&rot.indexOf("if(lastPreviewScale < 1)")>=0});
-  out.push({name:"B207 rotate filename after decode",ok:(function(){var i=rot.indexOf('img.onload = function()');var j=rot.indexOf('fileName =',i);var k=rot.indexOf('img.onerror',i);return i>=0&&j>i&&k>j;})()});
+  out.push({name:"B207 rotate filename after decode",ok:(function(){var i=rot.indexOf('img.onload = function()');var j=rot.indexOf('resolve({ img: img, name:',i);var k=rot.indexOf('img.onerror',i);return i>=0&&j>i&&k>j&&rot.indexOf('fileName = batchImages[i].name')>=0;})()});
   var wc = fs.readFileSync("tools/image/wechat-cover-maker.html","utf8");
   out.push({name:"B207 cover sizes",ok:wc.indexOf('id="coverSize"')>=0&&wc.indexOf('Math.max(tw / c.width, th / c.height)')>=0&&wc.indexOf('const hasCJK')>=0});
   var flt = fs.readFileSync("tools/image/image-filter.html","utf8");
