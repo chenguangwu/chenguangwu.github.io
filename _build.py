@@ -5060,7 +5060,7 @@ def generate_category_indexes(tools):
         # Breadcrumb
         parts.append('<nav class="breadcrumb" aria-label="面包屑导航">\n  <a href="../../index.html" data-i18n="bc.home" data-i18n-fb="首页">首页</a>\n  <span class="bc-sep">‹</span>\n  <span class="bc-current tb-bi">%s <span class="t-zh">%s</span><span class="t-en">%s</span></span>\n</nav>\n' % (ind_icon, esc_html_py(ind_name), esc_html_py(en_name)))
         # Nav
-        parts.append('<div class="nav">\n  <a href="../../index.html">← ToolBox</a>\n  <span class="tb-bi">/ <span class="t-zh">%s工具</span><span class="t-en">%s Tools</span></span>\n  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>\n</div>\n' % (esc_html_py(ind_name), esc_html_py(en_name)))
+        parts.append('<div class="nav">\n  <a href="../../index.html">← ToolBox</a>\n  <span class="tb-bi">/ <span class="t-zh">%s工具</span><span class="t-en">%s Tools</span></span>\n  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题 Toggle theme" title="切换主题 / Toggle theme">🌙</button>\n</div>\n' % (esc_html_py(ind_name), esc_html_py(en_name)))
         # Content
         parts.append('<div class="container">\n  <div class="card">\n')
         parts.append('    <h2 class="tb-bi">%s <span class="t-zh">%s工具</span><span class="t-en">%s %s Tools</span></h2>\n' % (ind_icon, esc_html_py(ind_name), ind_icon, esc_html_py(en_name)))
