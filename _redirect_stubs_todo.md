@@ -174,3 +174,8 @@
 | https://chenguangwu.github.io/tools/life/date-diff.html | https://chenguangwu.github.io/tools/life/date-difference-calculator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/sports/youyonghuashuixiaolv-swolf.html | https://chenguangwu.github.io/tools/sports/swimming-stroke-efficiency.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/psychiatry/lsas-social.html | https://chenguangwu.github.io/tools/psychiatry/rater-23.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/clinical-nursing/braden-score.html | https://chenguangwu.github.io/tools/clinical-nursing/calc-rater-risk.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/finance/calc-2.html | https://chenguangwu.github.io/tools/finance/irr-calculator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/dentistry/rater-risk-2.html | https://chenguangwu.github.io/tools/dentistry/caries-risk.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/pediatrics/xinshengerhuangdan-xiaoshidanhongsu-quxian.html | https://chenguangwu.github.io/tools/pediatrics/neonatal-jaundice.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/clinical-nursing/convert-flow-concentration.html | https://chenguangwu.github.io/tools/clinical-nursing/oxygen-concentration.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |

@@ -92,26 +92,8 @@ const CASES = [
   ],
   "ref": "静态量表页(无input)：clicks 页面作用域直写 scores 十项=40 分，落「≥25 重度依赖」分支专属 desc（默认 100 分走「完全自理」、零参兜底 scores[undefined]=undefined→total=NaN 走 else 亦为另一分支，两者均不含该串）。"
 },
-{
-  "slug": "clinical-nursing/braden-score",
-  "clicks": [
-    "selectScore('sensory',3);selectScore('moisture',2);selectScore('activity',1);selectScore('mobility',2);selectScore('nutrition',2);selectScore('friction',2)"
-  ],
-  "expect": [
-    "每2小时翻身，气垫床，局部减压，加强营养"
-  ],
-  "ref": "D-N118 示例回归：感知 3 + 潮湿 2 + 活动 1 + 移动 2 + 营养 2 + 摩擦 2 = 12 分，落「10–12 高度风险」（旧深解示例称 12 分判极高危）；该 desc 串为高度风险分支独有。默认 23 分无风险、13 分走中度风险（每2小时翻身一次…），均不含本串。"
-},
-{
-  "slug": "clinical-nursing/braden-score",
-  "clicks": [
-    "selectScore('sensory',2);selectScore('moisture',2);selectScore('activity',2);selectScore('mobility',2);selectScore('nutrition',2);selectScore('friction',3)"
-  ],
-  "expect": [
-    "每2小时翻身一次"
-  ],
-  "ref": "静态按钮量表页：逐维 selectScore 到 total=2*5+3=13 落「中度风险(13-14)」分支，其 desc 独有串「每2小时翻身一次」。默认 total=23 走「无风险」；零参兜底 scores[undefined]=undefined→total=NaN 走 else「极度风险」(每1小时翻身)，两态均不含该串（故非逃生项）。"
-},
+
+
 {
   "slug": "clinical-nursing/calc-rater-risk",
   "inputs": {
@@ -228,58 +210,12 @@ const CASES = [
   "expect": ["COLDTSOK"],
   "ref": "D-N65 时间戳倒计时：把结束时间设为 11 分钟后（20 分钟总量、已过 9 分钟），tick 按 Date.now() 结算应显示 11:00；旧实现每秒自减，单次 tick 只会剩 19:59。默认 20:00 不命中。"
 },
-{
-  "slug": "clinical-nursing/convert-flow-concentration",
-  "inputs": {
-    "mode": "o2f",
-    "val": "40"
-  },
-  "expect": [
-    "【氧流量与吸入氧浓度换算】 结果：FiO₂ 40% → 等效氧流量 ≈ 4.75 L/min",
-    "较空气（21%）增氧 19.0 个百分点；换算仅适用于鼻导管低流量给氧"
-  ],
-  "ref": "门诊记录：反算模式 FiO₂ 40% ⇒ (40-21)/4 = 4.75 L/min，增氧 19.0 个百分点。默认态为正向模式（流量 2 L/min ⇒ 29%、增氧 8.0 个百分点），与本用例零交集。"
-},
-{
-  "slug": "clinical-nursing/convert-flow-concentration",
-  "inputs": {
-    "mode": "f2o",
-    "val": "10"
-  },
-  "expect": [
-    "FiO2 ≈ 61.0%（流量 10 L/min）"
-  ],
-  "ref": "去默认化：FiO2 = 21+4×10 = 61.0%。默认态不命中。"
-},
-{
-  "slug": "clinical-nursing/convert-flow-concentration",
-  "inputs": {
-    "mode": "o2f",
-    "val": "40"
-  },
-  "expect": [
-    "氧流量 ≈ 4.75 L/min（FiO2 40%）"
-  ],
-  "ref": "去默认化：FiO2 40% ⇒ 流量 = (40−21)/4 = 4.75 L/min。默认态不命中。"
-},
-{
-  "slug": "clinical-nursing/convert-flow-concentration",
-  "inputs": { "mode": "o2f", "val": "120" },
-  "expect": ["FiO₂ 须在 21%–100% 之间"],
-  "ref": "D-N18（2026-11-16）：反推方向旧实现只把负值钳到 0，FiO₂=120% 得 24.75 L/min 且无警示。现要求 21–100，越界直接拦截。默认 40% ⇒ 不命中。"
-},
-{
-  "slug": "clinical-nursing/convert-flow-concentration",
-  "inputs": { "mode": "o2f", "val": "100" },
-  "expect": ["氧流量 ≈ 19.75 L/min", "警示：所需流量 >15 L/min"],
-  "ref": "D-N18：FiO₂ 100% ⇒ (100−21)/4 = 19.75 L/min，超过页面自述 15 L/min 上限；现追加「鼻导管无法提供，请改用面罩/储氧面罩」。默认 40% ⇒ 4.75，两锚均失配。"
-},
-{
-  "slug": "clinical-nursing/convert-flow-concentration",
-  "inputs": { "mode": "f2o", "val": "20" },
-  "expect": ["鼻导管流量须在 0–15 L/min 之间"],
-  "ref": "D-N19（2026-11-16）：正向旧实现 20 L/min 直接封顶 100% 且无提示；现限制 0–15 并提示改用面罩。默认 2 L/min ⇒ 不命中。"
-},
+
+
+
+
+
+
 {
   "slug": "clinical-nursing/cvc-maintenance",
   "inputs": {
@@ -771,15 +707,6 @@ const CASES = [
   ],
   "ref": "D-N45 排程完整性：大量（4h）从首次 08:00 起应列 6 次（08/12/16/20/00/04），旧实现从 start+interval 开始且循环 break 少算，末次缺失。默认微量 8h ⇒ 3 次，不命中「第6次」。判别器实测「08:00」与「第1次换药（首次）」在默认快照也命中，已删这两条逃生锚。"
 }
-  ,{
-    "slug": "clinical-nursing/braden-score",
-    "clicks": ["selectScore('sensory',1);selectScore('moisture',1);selectScore('activity',1);selectScore('mobility',1);selectScore('nutrition',1);selectScore('friction',1);calc()"],
-    "expect": [
-      "【Braden 压疮风险评估（6 维度）】 结果：总分 6/23，分级：极度风险",
-      "满分（各条目最高分之和）23；得分率 26%；条目明细见上"
-    ],
-    "ref": "门诊记录（EMR note）：6 个维度各取最低档 1 分 ⇒ 总分 6 <10 落「极度风险」；满分 23 = 4+4+4+4+4+3，得分率 6/23≈26% ⇒ 建议每 1 小时翻身。默认态各维度取最高档（4/4/4/4/4/3=23）⇒「总分 23/23，分级：无风险」「得分率 100%」，与本用例零交集。"
-  }
   ,{
     "slug": "clinical-nursing/morse-score",
     "clicks": ["selectScore('history',25);selectScore('diagnosis',15);selectScore('aid',30);selectScore('iv',20);selectScore('gait',20);selectScore('cognition',15);calc()"],

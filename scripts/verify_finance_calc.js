@@ -1880,34 +1880,6 @@ const CASES = [
     ref: "月薪 20,000、五险一金基数同 20,000、专项附加扣除 1,000/月 ⇒ 应纳税所得额，个税 740.00 元、税后到手 14,760 元、公积金账户 4,800/月（个人+单位）。默认态不同 ⇒ 不命中。",
   },
   {
-    slug: "finance/calc-2",
-    inputs: { initial: "10000" },
-    clicks: ["calc()"],
-    expect: ["无法计算 IRR"],
-    ref: "只有初始投入、无后续现金流 ⇒ 符号未变化、数据不足 ⇒ 如实报 IRR 不可解（这正是该页的边界分支，不是缺陷）。默认态不同 ⇒ 不命中。",
-  },
-  {
-    slug: "finance/calc-2",
-    inputs: { initial: "-100", flows: "230,-132.5" },
-    clicks: ["calc();var __t=String(document.getElementById('res').innerHTML||'');document.getElementById('__tbProbe').textContent='C2NOROOT '+document.getElementById('initial').value+'/'+document.getElementById('flows').value+' '+((__t.indexOf('不能据此断定现金流无实根')>=0&&__t.indexOf('无法计算 IRR（现金流无实根）')<0)?'OK':'BAD');"],
-    expect: ["C2NOROOT -100/230,-132.5 OK"],
-    ref: "第211批口径复核：NPV(r)=−100+230/(1+r)−132.5/(1+r)² 判别式 −100<0，在 −99.99%~100000% 可搜索区间内无零点；修复后不再断言「现金流无实根」，而是明确「范围内未找到……可能存在范围外的实根；不能据此断定」。探针串绑定注入向量且要求旧绝对措辞消失；默认态（−100000 / 五期 30000，IRR≈15.24%）不命中 ⇒ 强判别、零逃生。",
-  },
-  {
-    slug: "finance/calc-2",
-    inputs: { initial: "-1000", flows: "500,500,500" },
-    clicks: ["calc()"],
-    expect: ["23.3752%"],
-    ref: "独立复算：−1000 + 500/(1+r) + 500/(1+r)² + 500/(1+r)³ = 0 ⇒ 1+r = 1.2337519…，IRR = 23.3752%（二分 200 次残差 |NPV| < 1e-6）。默认态（−100000 / 五期 30000，IRR≈15.24%）不同 ⇒ 不命中。",
-  },
-  {
-    slug: "finance/calc-2",
-    inputs: { initial: "-100", flows: "0.5" },
-    clicks: ["calc();var __t=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='C211LOW '+document.getElementById('initial').value+'/'+document.getElementById('flows').value+' '+((__t.indexOf('-99.5000%')>=0&&__t.indexOf('未找到')<0)?'OK':'BAD');"],
-    expect: ["C211LOW -100/0.5 OK"],
-    ref: "第211批复核失败重做：irr() 搜索下界由 −0.99 放宽到 −0.9999，与中英文失败提示「−99.99% 至 100000%」一致。现金流 −100/+0.5 的真根 = 0.5/100−1 = −99.5%，落在提示区间内但旧下界 −99% 之外 ⇒ 旧版输出「范围内未找到」、修复后算出 −99.5000%。探针绑定注入的 initial/flows，默认态（−100000/五期 30000）不含 C211LOW 串 ⇒ 强判别、零逃生。",
-  },
-  {
     slug: "finance/car-loan-calculator",
     inputs: { price: "200000", downPct: "20", rate: "", years: "5" },
     clicks: ["calculate();document.getElementById('__tbProbe').textContent='C462RATE '+document.getElementById('price').value+'/'+document.getElementById('downPct').value+'/'+document.getElementById('rate').value+' '+((document.getElementById('monthlyPay').textContent==='--')?'EMPTY':'NUM');document.getElementById('rate').value='0';calculate();document.getElementById('__tbProbe').textContent+=String(document.getElementById('monthlyPay').textContent)!=='--'?' ZOK':' ZBAD';"],
@@ -2710,17 +2682,7 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（8 或 11） ❌…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
-  {
-    "slug": "finance/calc-2",
-    "inputs": {
-      "initial": "42",
-      "flows": "abc123测试"
-    },
-    "expect": [
-      "42\nabc123测试\n请输入现金流"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"initial\":\"42\",\"flows\":\"abc123测试\"}，输出区含「42\nabc123测试\n请输入现金流」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
+  
   {
     "slug": "finance/calc-3",
     "inputs": {
@@ -5032,20 +4994,6 @@ const CASES = [
     clicks: ["var __g=document.getElementById('years'),__p=document.getElementById('__tbProbe');var a=__calc_4Score('');__g.value='0.01';var b=__calc_4Score('');__g.value='2.5';var c=__calc_4Score('');__p.textContent='C210C4CH '+((a===1&&b===0&&c===1)?'OK':'BAD');"],
     expect: ["C210C4CH OK"],
     ref: "第210批 贷款期限状态链：2.5 年（30 期）⇒ 1、0.01 年（0 期）⇒ 0、恢复 2.5 年 ⇒ 1。与上条拒绝态配合，三态不同值、恢复不残留。",
-  },
-  {
-    slug: "finance/calc-2",
-    inputs: { initial: "-100", flows: "2000" },
-    clicks: ["var __a=parseFloat(document.getElementById('initial').value),__fs=String(document.getElementById('flows').value).split(/[,\\s]+/).map(Number),__r=irr([__a].concat(__fs));document.getElementById('__tbProbe').textContent='C211IRR '+((typeof __r==='number'&&Math.abs(__r-19)<1e-6)?'OK':'BAD');"],
-    expect: ["C211IRR OK"],
-    ref: "第211批 IRR 超搜索范围：初始 -100、下期 2000 的数学 IRR=1900%（r=19）。旧 irr 上限 MAX=10 返回 null 并断言「现金流无实根」；修复后 MAX=1000（100000%）求得 19。探针读注入的 initial/flows 构造现金流、依赖输入；旧源码 null ⇒ BAD ⇒ 零逃生。",
-  },
-  {
-    slug: "finance/calc-2",
-    inputs: { initial: "100", flows: "-1,100" },
-    clicks: ["calc();var __t=String(document.getElementById('res').innerHTML||'');document.getElementById('__tbProbe').textContent='C211TXT '+((__t.indexOf('内未找到')>=0&&__t.indexOf('不能据此断定')>=0)?'OK':'BAD');"],
-    expect: ["C211TXT OK"],
-    ref: "第211批 求解失败文案：注入 100/-1/100（有正有负但 NPV 判别式<0、范围内无零点）走 rate==null 分支。旧 calc 断言「无法计算 IRR（现金流无实根）」；修复后明确「在可搜索利率范围（−99.99% 至 100000%）内未找到……不能据此断定现金流无实根」，区分求解失败与数学证明。旧源码无「内未找到/不能据此断定」⇒ BAD。",
   },
   {
     slug: "finance/npv-calculator",
