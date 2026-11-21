@@ -268,12 +268,14 @@ function genId() { return 'C' + Date.now().toString(36) + Math.random().toString
 
 function fmt(n, d) {
   d = d != null ? d : 2;
-  if (isNaN(n)) n = 0;
+  if (!isFinite(n)) return '—';
   return n.toLocaleString('zh-CN', {minimumFractionDigits: d, maximumFractionDigits: d});
 }
 
 function getChurnThreshold() {
-  return parseInt(document.getElementById('churnDays').value) || 90;
+  var n = parseInt(document.getElementById('churnDays').value, 10);
+  if (!isFinite(n)) n = 90;
+  return Math.min(365, Math.max(30, n));
 }
 
 function analyzeCust(cust) {
@@ -296,15 +298,17 @@ function analyzeCust(cust) {
   var firstDate = count > 0 ? new Date(purchases[0].date) : new Date();
   var lastDate = count > 0 ? new Date(purchases[purchases.length - 1].date) : new Date();
   var totalDays = (lastDate - firstDate) / (24 * 3600 * 1000);
-  var frequency = totalDays > 0 ? count / (totalDays / 30) : 0;
+  var frequency = (count >= 2 && totalDays >= 30) ? (count - 1) / (totalDays / 30) : null;
 
   // 预测下次购买
   var nextPurchaseDate = null;
   var daysSinceLast = null;
   var predictionConfidence = 'low';
+  if (count > 0) {
+    daysSinceLast = Math.round((new Date() - lastDate) / (24 * 3600 * 1000));
+  }
   if (count >= 2 && avgCycle > 0) {
     nextPurchaseDate = new Date(lastDate.getTime() + avgCycle * 24 * 3600 * 1000);
-    daysSinceLast = Math.round((new Date() - lastDate) / (24 * 3600 * 1000));
     // 置信度基于数据量和一致性
     if (count >= 5 && (maxCycle - minCycle) < avgCycle * 0.5) predictionConfidence = 'high';
     else if (count >= 3) predictionConfidence = 'medium';
@@ -409,8 +413,15 @@ function addPurchase() {
 function updatePurchase(i, field, val) {
   var cust = customers.find(function(c) { return c.id === currentCustId; });
   if (!cust) return;
-  if (field === 'amount') cust.purchases[i].amount = parseFloat(val) || 0;
-  else if (field === 'date') cust.purchases[i].date = val;
+  if (field === 'amount') {
+    var amt = parseFloat(val);
+    if (!isFinite(amt) || amt < 0) { ToolBox.showToast('金额须为非负数', 'warning'); renderPurchases(cust); return; }
+    cust.purchases[i].amount = amt;
+  } else if (field === 'date') {
+    var d = new Date(val);
+    if (!val || isNaN(d.getTime())) { ToolBox.showToast('日期无效，已恢复原值', 'warning'); renderPurchases(cust); return; }
+    cust.purchases[i].date = val;
+  }
   else cust.purchases[i].note = val;
   save();
 }
@@ -449,7 +460,7 @@ function analyzeCustomer() {
   html += '<div class="data-card"><div class="num">' + a.count + '</div><div class="label">购买次数</div></div>';
   html += '<div class="data-card"><div class="num">¥' + fmt(a.totalSpend) + '</div><div class="label">累计消费</div></div>';
   html += '<div class="data-card"><div class="num">' + fmt(a.avgCycle, 0) + '天</div><div class="label">平均复购周期</div></div>';
-  html += '<div class="data-card"><div class="num">' + fmt(a.frequency, 1) + '次/月</div><div class="label">购买频率</div></div>';
+  html += '<div class="data-card"><div class="num">' + (a.frequency===null?'—':fmt(a.frequency, 1)+'次/月') + '</div><div class="label">复购频率（不含首购）</div></div>';
   html += '</div>';
 
   // 客户分群
@@ -666,7 +677,7 @@ renderSummary();
   <div class="related-tools-grid">
     <a href="calc-79.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
-      <span class="rt-info"><span class="rt-name">增长率（同比/环比）计算</span><span class="rt-desc">输入本期与基期（去年同期或上期）数值，计算同比增长率与环比增长率，用于电商销售与运营指标的走势分析</span></span>
+      <span class="rt-info"><span class="rt-name">增长率计算（自选基期）</span><span class="rt-desc">输入本期值与自选基期值，计算增长率、增长额、比值与增长贡献；同比或环比取决于基期的选择</span></span>
     </a>
     <a href="stats-flow-conversion.html" class="related-tool-card">
       <span class="rt-icon">💧</span>
@@ -682,7 +693,7 @@ renderSummary();
     </a>
     <a href="response-2.html" class="related-tool-card">
       <span class="rt-icon">🎧</span>
-      <span class="rt-info"><span class="rt-name">客服（咨询/投诉）响应</span><span class="rt-desc">输入咨询或投诉量与响应时长，计算客服响应率与平均处理时长，用于电商客服团队的服务效率评估</span></span>
+      <span class="rt-info"><span class="rt-name">客服及时响应率计算</span><span class="rt-desc">输入咨询总量与 5 分钟内响应量，计算及时响应率、超时响应量与日均小时咨询量</span></span>
     </a>
     <a href="inventory-1.html" class="related-tool-card">
       <span class="rt-icon">🏬</span>

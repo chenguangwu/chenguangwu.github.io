@@ -113,7 +113,7 @@
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
       <div class="formula-eq">订单—采购单对接核对（订单数 A、采购单数 B）：单据匹配率 = B ÷ A × 100（%）、未匹配差异单数 = A − B、每订单采购笔数 = B ÷ A（4 位小数）。校验：两项非空守卫，非有限数值再报「请输入两个有效数值后再计算」。判据：A &gt;B 判「采购落后于订单」，否则判「采购领先于订单」。</div>
-      <p class="formula-desc">本工具按订单量、采购提前期与安全库存计算再订货点与补货建议，并生成订单-采购字段映射，辅助 ERP 协同。</p>
+      <p class="formula-desc">本工具按订单数与采购单数计算单据匹配率、绝对差异单数与每订单采购笔数，用于 ERP 订单-采购对账；不含再订货点、安全库存或字段映射。</p>
     </div>
     <div class="input-row">
       <div><label>订单数</label><input type="number" id="v0" value="480" step="any" oninput="calc()" enterkeyhint="done" aria-label="订单" placeholder="如 480"></div>
@@ -133,23 +133,9 @@
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准">Source / Standard</th></tr></thead>
-      <tbody>
-        <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="补货量">Reorder qty</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="(周期需求-库存)×安全">(cycle demand-stock)×safety</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">reorder point</td>
-        </tr>
-        <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="提前期">Lead time</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="下单到入库 天">Order-to-stock days</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">lead time</td>
-        </tr>
-        <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="安全库存">Safety stock</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="z·σ·√L">z·σ·√L</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">safety stock</td>
-        </tr>
-      </tbody>
+      <tbody><tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="单据匹配率">Match rate</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="采购单 ÷ 订单 ×100%">Purchase orders / orders ×100%</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);">ERP reconciliation</td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="差异单数">Difference</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="|订单 − 采购单|">|Orders − purchase orders|</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);">absolute variance</td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="每订单采购笔数">PO per order</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="采购单 ÷ 订单">Purchase orders / orders</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);">document ratio</td></tr>
     </table>
   </div>
 </div>
@@ -378,9 +364,9 @@ var e0=document.getElementById('v0'),e1=document.getElementById('v1');
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
   var items=[];
   items.push([(B/A*100).toFixed(2)+"%", "单据匹配率"]);
-  items.push([(A-B).toFixed(2), "未匹配差异单数"]);
+  items.push([Math.abs(A-B).toFixed(2), "差异单数（绝对差额）"]);
   items.push([(B/A).toFixed(4), "每订单采购笔数"]);
-  items.push([((A>B?"采购落后于订单":"采购领先于订单")), "对接状态判读"]);
+  items.push([(A>B?"采购落后于订单":(A<B?"采购领先于订单":"单据数量持平")), "对接状态判读"]);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
   html+='💡 单据匹配率 = 采购单 ÷ 订单 × 100%；差异单数 = 订单 − 采购单；每订单采购笔数 = 采购单 ÷ 订单。';
@@ -582,7 +568,7 @@ else document.addEventListener('DOMContentLoaded', __erp_dingdan_caigou_duijieBo
     </a>
     <a href="calc-79.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
-      <span class="rt-info"><span class="rt-name">增长率（同比/环比）计算</span><span class="rt-desc">输入本期与基期（去年同期或上期）数值，计算同比增长率与环比增长率，用于电商销售与运营指标的走势分析</span></span>
+      <span class="rt-info"><span class="rt-name">增长率计算（自选基期）</span><span class="rt-desc">输入本期值与自选基期值，计算增长率、增长额、比值与增长贡献；同比或环比取决于基期的选择</span></span>
     </a>
     <a href="cycle-15.html" class="related-tool-card">
       <span class="rt-icon">🔮</span>
@@ -601,12 +587,12 @@ else document.addEventListener('DOMContentLoaded', __erp_dingdan_caigou_duijieBo
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>纯前端处理，数据不上传服务器</li>
-      <li>算再订货点并生成字段映射</li>
+      <li>算订单-采购单据匹配率与差异</li>
       <li>实时显示结果，所见即所得</li>
       <li>支持复制和下载结果</li>
     </ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
-    <ul class="intro-scenes"><li>再订货点与补货预警</li><li>平台订单与 ERP 物料映射</li><li>采购提前期安全库存设定</li><li>断货风险排查</li></ul>
+    <ul class="intro-scenes"><li>订单-采购单据匹配率</li><li>采购领先/落后/持平判读</li><li>每订单采购笔数</li><li>ERP 对账差异排查</li></ul>
     </div>
 </div>
 <!-- /SEO 介绍区块 -->

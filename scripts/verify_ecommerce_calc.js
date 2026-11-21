@@ -27,7 +27,7 @@ const CASES = [
   {
     slug: "ecommerce/analysis-71",
     inputs: {data: "A,90,10,4.1,0\nB,100,20,4.2,0"},
-    clicks: ["calc();var h=document.getElementById('res').innerHTML;document.getElementById('res').textContent='N50_TIE='+[h.includes('时效差距：<strong>0 天'),h.includes('为发货时效标杆'),!h.includes('时效短板')].join('/');"],
+    clicks: ["calc();var h=document.getElementById('res').innerHTML;document.getElementById('res').textContent='N50_TIE='+[h.includes('时效差距：<strong>0 天'),h.includes('可作时效卖点'),!h.includes('时效短板')].join('/');"],
     expect: ["N50_TIE=true/true/true"],
     ref: "06-N50：两条均为 0 天时差距为 0，零值合法，不能凭空产生时效短板。",
   },
@@ -35,7 +35,7 @@ const CASES = [
   {
     slug: "ecommerce/analysis-71",
     inputs: {data: "K1,299,1500,4.5,4\nK2,259,2200,4.7,3\nK3,209,3100,4.9,2"},
-    clicks: ["calc();var h=document.getElementById('res').innerHTML;document.getElementById('res').textContent='N50='+[h.includes('发货最快：<strong>K3（2 天）'),h.includes('发货最慢：<strong>K1（4 天）'),h.includes('时效差距：<strong>2 天'),h.includes('以 K3 为发货时效标杆'),!h.includes('对 K3 等时效短板')].join('/');"],
+    clicks: ["calc();var h=document.getElementById('res').innerHTML;document.getElementById('res').textContent='N50='+[h.includes('发货最快：<strong>K3（2 天）'),h.includes('发货最慢：<strong>K1（4 天）'),h.includes('时效差距：<strong>2 天'),h.includes('K3 同时是质量标杆与销量标杆'),!h.includes('对 K3 等时效短板')].join('/');"],
     expect: ["N50=true/true/true/true/true"],
     ref: "06-N50：K3 2 天最快、K1 4 天最慢，相差 2 天，最快只作标杆，不能当短板。旧页缺最慢和差距且将 K3 写成短板。",
   },
