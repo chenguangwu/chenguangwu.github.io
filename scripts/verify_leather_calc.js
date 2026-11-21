@@ -164,6 +164,13 @@ const CASES = [
 },
 {
   "slug": "leather/time-34",
+  "inputs": {"thk": "", "act": "", "temp": "38"},
+  "clicks": ["calc()"],
+  "expect": ["请填写皮厚与酶活力后再计算软化时间。"],
+  "ref": "空皮厚/酶活力不得输出 0 min 与升温建议；默认 3/5000/38 不含该提示。"
+},
+{
+  "slug": "leather/time-34",
   "inputs": {
     "thk": "6",
     "act": "5000",
@@ -229,6 +236,13 @@ const CASES = [
   "clicks": ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='YIELDC0 '+(h.indexOf('废液铬浓度须大于 0')>=0&&h.indexOf('0.00%')<0?'OK':'BAD '+h.slice(0,80));"],
   "expect": ["YIELDC0 OK"],
   "ref": "N189 c0=0 守卫：旧版仅 setInvalid 标红仍算 rate=0「较差」并写历史；修复后早退提示「废液铬浓度须大于 0」且不出 0.00%。默认 c0=3000 合法不命中，零逃生。"
+},
+{
+  "slug": "leather/yield-rate",
+  "inputs": {"c0": "", "c1": "", "weight": "", "lr": "2.0"},
+  "clicks": ["calc()"],
+  "expect": ["请填写初始铬浓度与皮重后再计算吸收率。"],
+  "ref": "空初始铬浓度/皮重不得输出 0.00% 吸收率与「较差」；默认 5000/800/100/2.0 不含该提示。"
 },
 {
   "slug": "leather/yield-rate",

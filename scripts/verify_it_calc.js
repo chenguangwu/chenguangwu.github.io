@@ -2723,6 +2723,13 @@ const CASES = [
   },
   {
     slug: "it/regex-visualizer",
+    inputs: { pattern: "" },
+    clicks: ["render()"],
+    expect: ["请输入正则表达式后再可视化。"],
+    ref: "空正则不得输出「总状态：2 / S0 start / S1 accept」伪语法树；默认 ^a[0-9]+b$ 不含该提示。"
+  },
+  {
+    slug: "it/regex-visualizer",
     inputs: { pattern: "^a(z+)" },
     clicks: ["render()"],
     expect: ["3 --z--> 4"],
