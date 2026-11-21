@@ -388,8 +388,8 @@ function convert(){
   }
   document.getElementById('digitByDigit').textContent = digitStr;
 
-  // 大写金额
-  document.getElementById('moneyUpper').textContent = convertMoney(numStr, digits, units, bigUnits, isNeg, mode);
+  // 大写金额：固定用财务大写字符，避免简体小写模式把「十二元三角四分」也标成大写金额
+  document.getElementById('moneyUpper').textContent = convertMoney(numStr, DIGITS_UPPER, UNITS_UPPER, BIG_UNITS_UPPER, isNeg, 'upper', decPart);
 
   // 进制
   const num = parseFloat(input);
@@ -478,7 +478,7 @@ function convertGroup(group, digits, units){
   return result;
 }
 
-function convertMoney(numStr, digits, units, bigUnits, isNeg, mode){
+function convertMoney(numStr, digits, units, bigUnits, isNeg, mode, rawDec){
   const [intPart, decPart] = numStr.split('.');
 
   let intChinese = convertInt(intPart, digits, units, bigUnits);
@@ -495,6 +495,10 @@ function convertMoney(numStr, digits, units, bigUnits, isNeg, mode){
     if(jiao === 0 && fen === 0) result += '整';
   } else {
     result += '整';
+  }
+  // 厘位及以下不再静默丢弃：0.005 不能显示成「零元整」
+  if(rawDec && rawDec.length > 2 && /[1-9]/.test(rawDec.slice(2))){
+    result += '（厘位及以下不计：原值 ' + numStr + ' 元）';
   }
 
   return result;

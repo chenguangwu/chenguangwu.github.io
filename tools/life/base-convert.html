@@ -283,6 +283,7 @@
 
 <script>
 function loadBaseSample(v){
+  if(v==null||String(v).trim()==='') return;
   document.getElementById('input').value = v;
   convert();
 }
@@ -300,25 +301,23 @@ function toBase(n, base){
 }
 
 function convert(){
-  const input = document.getElementById('input').value.trim();
+  const inputEl = document.getElementById('input');
+  const input = String(inputEl && inputEl.value != null ? inputEl.value : '').trim();
   if(!input){
     ['bin','oct','dec','hex','custom'].forEach(id => document.getElementById(id).value='');
     return;
   }
   
-  let num;
-  if(input.startsWith('0x') || input.startsWith('0X')){
-    num = parseInt(input, 16);
-  } else if(input.startsWith('0b') || input.startsWith('0B')){
-    num = parseInt(input.slice(2), 2);
-  } else if(input.startsWith('0o') || input.startsWith('0O')){
-    num = parseInt(input.slice(2), 8);
-  } else {
-    num = parseInt(input, 10);
-  }
+  let num = NaN;
+  // 整串校验合法字符集，杜绝 parseInt('0b1012') 静默截断成 5
+  if(/^0[xX][0-9a-fA-F]+$/.test(input)) num = parseInt(input.slice(2), 16);
+  else if(/^0[bB][01]+$/.test(input)) num = parseInt(input.slice(2), 2);
+  else if(/^0[oO][0-7]+$/.test(input)) num = parseInt(input.slice(2), 8);
+  else if(/^-?\d+$/.test(input)) num = parseInt(input, 10);
   
   if(isNaN(num)){
-    ['bin','oct','dec','hex','custom'].forEach(id => document.getElementById(id).value='错误');
+    ['bin','oct','dec','hex','custom','ascii','unicode'].forEach(id => { var e=document.getElementById(id); if(e) e.value='错误'; });
+    var tx=document.getElementById('text'); if(tx) tx.value='';
     return;
   }
   
