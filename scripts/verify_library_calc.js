@@ -292,7 +292,8 @@ const CASES = [
   "clicks": ["document.getElementById('docType').value='web';onTypeChange();document.getElementById('title').value='数字图书馆标准规范';document.getElementById('seq').value='7';document.getElementById('date').value='2023-08-01';document.getElementById('cited').value='2024-01-10';document.getElementById('url').value='https://example.com/lib-standard';render()"],
   "expect": ["[7]", "[EB/OL]. (2023-08-01)[2024-01-10]. https://example.com/lib-standard."],
   "ref": "GB/T 7714-2015 电子资源著录：`[序号] 作者. 题名[EB/OL]. (更新日期)[引用日期]. URL.`。注入 docType=web、title=数字图书馆标准规范、seq=7、date=2023-08-01、cited=2024-01-10、url=https://example.com/lib-standard ⇒ `[7] … 数字图书馆标准规范[EB/OL]. (2023-08-01)[2024-01-10]. https://example.com/lib-standard.`。默认 journal 分支不含 `[EB/OL]`、`[引用日期]` 与示例 URL，两态不同；判别器清空 clicks 后回 journal，expect 失配。"
-}
+},
+{ "slug":"library/clc-classifier", "clicks":["document.getElementById('res').textContent='C='+clcData.reduce(function(a,c){return a.concat(c.subs.filter(function(x){return x.name.indexOf('眼科学')>=0;}).map(function(x){return x.code;}));},[]).join(',')"], "expect":["C=R77"], "ref":"RL-H20：R76 应为耳鼻咽喉科学、R77 为眼科学；搜索眼科学只返回 R77。" },
 ];
 async function main() {
   const only = process.argv.slice(2);

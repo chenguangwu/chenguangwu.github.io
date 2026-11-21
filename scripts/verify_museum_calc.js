@@ -455,7 +455,8 @@ const CASES = [
 } ,
 {dynDom:true, slug:"museum/audio-guide-timer", inputs:{exhibitCount:"3",perExhibit:"40",moveTime:"20",introTime:"0",available:"1.6666666666666667"},clicks:["calcQuick();"],expect:["减少讲解展品数至 2 件"],ref:"100 秒恰好容纳两件 40 秒讲解及一次 20 秒移动。"},
 {dynDom:true, slug:"museum/audio-guide-timer", inputs:{exhibitCount:"3",perExhibit:"50",moveTime:"20",introTime:"30",available:"1"},clicks:["calcQuick();"],expect:["剩余时间不足以安排一件展品的讲解"],ref:"开场 30 秒后剩余 30 秒，少于单件 50 秒。"},
-{ slug:"museum/exhibit-spacing", inputs:{"artWidth":"","artHeight":"","centerH":"","hAngle":"","vAngle":"","eyeH":"","viewers":"","shoulder":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"museum/exhibit-spacing", inputs:{"artWidth":"","artHeight":"","centerH":"","hAngle":"","vAngle":"","eyeH":"","viewers":"","shoulder":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ "slug":"museum/historical-calendar", "clicks":["document.getElementById('res').textContent='T1='+getSolarTerm(2024,12,21)+'/T2='+getSolarTerm(2024,12,22)+'/T3='+getSolarTerm(2024,8,22)"], "expect":["T1=冬至/T2=/T3=处暑"], "ref":"RL-K35：2024 年冬至为 12-21，12-22 不应再标冬至；处暑为 08-22。按太阳黄经逐年计算后不再用固定月日表。" },
 ];
 async function main() {
   const only = process.argv.slice(2);

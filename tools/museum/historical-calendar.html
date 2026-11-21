@@ -286,8 +286,6 @@ const HEAVENLY = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
 const EARTHLY = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
 const ZODIACS = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
 const SOLAR_TERMS = ['小寒','大寒','立春','雨水','惊蛰','春分','清明','谷雨','立夏','小满','芒种','夏至','小暑','大暑','立秋','处暑','白露','秋分','寒露','霜降','立冬','小雪','大雪','冬至'];
-const TERM_DATES = [5,20,4,19,5,20,5,20,5,21,5,21,7,22,7,23,7,23,8,23,7,22,7,22];
-
 const LUNAR_INFO = [
   0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,
   0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,
@@ -365,22 +363,42 @@ function getGanZhi(y) {
 
 function getZodiac(y) { return ZODIACS[((y - 4) % 12 + 12) % 12]; }
 
-function getSolarTerm(y, m, d) {
-  if (m === 1) return d === TERM_DATES[0] ? SOLAR_TERMS[0] : d === TERM_DATES[1] ? SOLAR_TERMS[1] : '';
-  if (m === 2) return d === TERM_DATES[2] ? SOLAR_TERMS[2] : d === TERM_DATES[3] ? SOLAR_TERMS[3] : '';
-  if (m === 3) return d === TERM_DATES[4] ? SOLAR_TERMS[4] : d === TERM_DATES[5] ? SOLAR_TERMS[5] : '';
-  if (m === 4) return d === TERM_DATES[6] ? SOLAR_TERMS[6] : d === TERM_DATES[7] ? SOLAR_TERMS[7] : '';
-  if (m === 5) return d === TERM_DATES[8] ? SOLAR_TERMS[8] : d === TERM_DATES[9] ? SOLAR_TERMS[9] : '';
-  if (m === 6) return d === TERM_DATES[10] ? SOLAR_TERMS[10] : d === TERM_DATES[11] ? SOLAR_TERMS[11] : '';
-  if (m === 7) return d === TERM_DATES[12] ? SOLAR_TERMS[12] : d === TERM_DATES[13] ? SOLAR_TERMS[13] : '';
-  if (m === 8) return d === TERM_DATES[14] ? SOLAR_TERMS[14] : d === TERM_DATES[15] ? SOLAR_TERMS[15] : '';
-  if (m === 9) return d === TERM_DATES[16] ? SOLAR_TERMS[16] : d === TERM_DATES[17] ? SOLAR_TERMS[17] : '';
-  if (m === 10) return d === TERM_DATES[18] ? SOLAR_TERMS[18] : d === TERM_DATES[19] ? SOLAR_TERMS[19] : '';
-  if (m === 11) return d === TERM_DATES[20] ? SOLAR_TERMS[20] : d === TERM_DATES[21] ? SOLAR_TERMS[21] : '';
-  if (m === 12) return d === TERM_DATES[22] ? SOLAR_TERMS[22] : d === TERM_DATES[23] ? SOLAR_TERMS[23] : '';
+function __sunLon(jd){
+  var T=(jd-2451545.0)/36525.0;
+  var L0=280.46646+36000.76983*T+0.0003032*T*T;
+  var M=(357.52911+35999.05029*T-0.0001537*T*T)*Math.PI/180;
+  var C=(1.914602-0.004817*T-0.000014*T*T)*Math.sin(M)+(0.019993-0.000101*T)*Math.sin(2*M)+0.000289*Math.sin(3*M);
+  var omega=(125.04-1934.136*T)*Math.PI/180;
+  var lam=L0+C-0.00569-0.00478*Math.sin(omega);
+  return ((lam%360)+360)%360;
+}
+function __termDate(y, idx){
+  // idx 0=小寒(285°) … 23=冬至(270+360°)；按太阳视黄经逐年推进求北京时间日期
+  var target=285+15*idx;
+  var jd0=Date.UTC(y,0,1,0,0,0)/86400000+2440587.5;
+  var lon0=__sunLon(jd0), prev=lon0, cum=lon0, day=0;
+  for(day=1; day<=370; day++){
+    var lon=__sunLon(jd0+day);
+    var delta=((lon-prev+540)%360)-180;
+    var nextCum=cum+delta;
+    if(nextCum>=target){
+      var frac=(target-cum)/(nextCum-cum||1);
+      var jd=jd0+(day-1)+frac;
+      var bj=new Date((jd-2440587.5)*86400000+8*3600000);
+      return (bj.getUTCMonth()+1)+'-'+bj.getUTCDate();
+    }
+    cum=nextCum; prev=lon;
+  }
   return '';
 }
-
+var __termCache={};
+function getSolarTerm(y, m, d){
+  if(!__termCache[y]){
+    __termCache[y]={};
+    for(var i=0;i<SOLAR_TERMS.length;i++){ __termCache[y][__termDate(y,i)]=SOLAR_TERMS[i]; }
+  }
+  return __termCache[y][m+'-'+d]||'';
+}
 const HISTORICAL_EVENTS = [
   { d: '01-01', e: '1912年 中华民国成立' },
   { d: '01-01', e: '1979年 中美正式建交' },
