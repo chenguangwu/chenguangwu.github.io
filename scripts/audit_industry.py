@@ -40,6 +40,11 @@ PLACEHOLDER_P = re.compile(
     r')', re.I | re.S)
 # 真·代号：slug 残留形态（小写字母-数字），或 "英文词 序号" 占位
 CODE_P = re.compile(r'[a-z]+-\d+|\b[A-Za-z]{2,} \d{1,3}\b')
+# 标准/术语白名单：含数字但属真实名称，不能当 slug 代号误报（2026-11-21 第320批）
+CODE_WHITELIST_P = re.compile(
+    r'(?:AATCC 100|Rule of 72|GB 150|ISO 286|MDRD 175|Carbon-14|2 or 3 Unknowns|PlGF/sFlt-1)'
+    r'|\bGB/T \d+|\bISO \d+|\bASTM [A-Z]\d+', re.I)
+
 # 套话判定（§4.5）
 FP = re.compile(r"统一复核|降低上手门槛|可追溯流程|边界样本建议单独标注|减少重复确认成本|"
                 r"标准化，再批量|可复核输出|沿用模板逐项核对|形成标准复核清单|统一口径|"
@@ -265,7 +270,8 @@ print("\n【8】英文态维度")
 b_intro_ph = [k for k, v in body.items() if isinstance(v, dict)
               and PLACEHOLDER_P.match(str(v.get('intro', '')).strip())]
 b_title_code = [k for k, v in body.items() if isinstance(v, dict)
-                and CODE_P.search(str(v.get('title', '')))]
+                and CODE_P.search(str(v.get('title', '')))
+                and not CODE_WHITELIST_P.search(str(v.get('title', '')))]
 print(f"  body intro 占位={len(b_intro_ph)}  body title 真·代号/全英文={len(b_title_code)}")
 if b_title_code[:12]:
     print("   title 命中样例:", [(k, body[k].get('title')) for k in b_title_code[:12]])
