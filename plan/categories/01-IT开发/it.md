@@ -64,14 +64,6 @@
 
 - 覆盖小结：本轮实读 8 页（adfgvx-cipher、affine-cipher、atbash-cipher、bacon-cipher、hill-cipher、playfair-cipher、rail-fence-cipher、vigenere-visualizer），新增 24 条（高 3 / 中 14 / 低 7），编号 IT-N143~IT-N166。未覆盖：本分区其余约 257 页（含全部编码/哈希/格式化/HTTP/Git/Docker 生成器与速查表）；未做浏览器、英文态、繁体、移动端、门禁与线上部署验证。
 
-## T 批 IT 第 1 轮覆盖（2026-11-04）
-- 本轮审计 24 页：`pdf-signature-checker`、`emoji-meaning`、`octal-encode`、`random-string`、`xml-to-json`、`mongodb-cheatsheet`、`vector-dot-product`、`ulid-generator`、`calc-subnet`、`generator-16`、`http-methods`、`gamertag-generator`、`sql-cheatsheet`、`stopwatch`、`ecdsa`、`barcode-itf`、`yaml-to-json`、`json-to-yaml`、`xml-validator`、`uuid-v7-generator`、`otp-generator`、`matrix-multiplier`、`url-encoder-advanced`、`hash`（均为 `tools/it/<slug>.html`）。
-- 新增 19 条（高 13 / 中 6），编号 IT-N315~IT-N333；上一批止于 IT-N314，本批无重号。
-- 假工具候选 2 页：`pdf-signature-checker`（类型 C：宣称 PKCS#7/证书链验签，实为 ByteRange+Contents 存在性匹配）、`generator-16`（类型 A：仅按数量轮转固定 15 条硬编码 .env 键值，无随机生成）。
-- 无高优、仅记录覆盖的页面：`emoji-meaning`、`mongodb-cheatsheet`、`vector-dot-product`、`ulid-generator`、`http-methods`、`sql-cheatsheet`、`stopwatch`、`ecdsa`、`xml-validator`、`uuid-v7-generator`、`url-encoder-advanced`（逐页读主流程与边界，未发现可复现的高优缺陷）。
-- 数值核验：MD5/CRC32/Adler-32 与 RFC 4226/6238 测试向量、base32 解码、PDF 头字节偏移、ByteRange 差值均用 `node -e` 实算（`md5("abc")=900150983cd24fb0d6963f7d28e17f72`、`crc32("abc")=352441c2`、`adler32("abc")=024d0127`、`HOTP(c=0)=755224`、`TOTP(t=59,8位)=94287082`）。
-- 未做浏览器/门禁/线上验证（未改工具页与构建产物、未跑 `_build.py`/`run_gates.py`、未做 git 写、未开浏览器）。
-
 ## T 批 IT 第 2 轮覆盖（2026-11-04）
 - 本轮审计 24 页：`binary-encode`、`baudot-code`、`c-string-escape`、`xxencode`、`uuencode`、`quoted-printable`、`html-entity-encoder`、`html-escape`、`js-escape`、`java-escape`、`go-escape`、`php-escape`、`rust-escape`、`sql-escape`、`css-escape`、`python-escape`、`text-to-binary`、`text-to-decimal`、`text-to-hex`、`text-to-octal`、`rot-cipher`、`xor-cipher`、`polybius-cipher`、`json-to-tsv`（均为 `tools/it/<slug>.html`）。
 - 新增 14 条（高 10 / 中 4），编号 IT-N334~IT-N347；第 1 轮止于 IT-N333，本批无重号。
@@ -79,38 +71,6 @@
 - 无高优、仅记录覆盖的页面：`binary-encode`、`quoted-printable`、`html-entity-encoder`、`js-escape`、`java-escape`、`sql-escape`、`css-escape`、`text-to-binary`、`text-to-decimal`、`rot-cipher`（逐页读主流程与边界，未发现可复现的高优缺陷）。
 - 数值核验：C/Go/PHP/Python 转义、HTML 实体、CSS 跳过、hex/octal 前缀拼接、hex 解析均用 `node` 复刻原函数实算（`\101`→`101`、`\x4e2d`→`N2d`、`&#55357;`、`48\\x69`、`110\\145`、`parseFloat("12345678901234567890")=12345678901234567000`）。
 - 未做浏览器/门禁/线上验证（未改工具页与构建产物、未跑 `_build.py`/`run_gates.py`、未做 git 写、未开浏览器）。
-
-## T 批 IT 第 3 轮覆盖（2026-11-04）
-- 本轮审计 8 页（均为 `tools/it/<slug>.html`）：`regex-visualizer`、`jwt-debugger`、`hash-identifier`、`json-repair`、`json-to-xml`、`yaml-to-xml`、`csv-to-yaml`、`toml-to-yaml`。
-- 新增 18 条（高 8 / 中 10），编号 IT-N348~IT-N365；第 2 轮止于 IT-N347，本批无重号。
-- 假工具候选 0 页：8 页均有真实转换/解析逻辑（JWT 生成器例外，见 IT-N349）。
-
-### 覆盖清单（T 批 IT 第 3 轮）
-- `jwt-debugger`：IT-N349（高）。
-- 方法声明：以上结论仅基于源码通读 + `node` 复刻页面原函数实算（json-repair / hash-identifier / yaml-to-xml / toml-to-yaml / csv-to-yaml / json-to-xml 的判定均给出「输入 → 实际 / 期望」），未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证；未修改任何工具页或构建产物。
-
-## T 批 IT 第 4 轮覆盖（2026-11-04）
-
-### 覆盖清单（T 批 IT 第 4 轮）
-- 方法声明：本轮仅基于上述 8 页源码通读 + `node` 在 `/tmp` 复刻页面原函数实算（每条均给出「输入 → 实际 / 期望」），**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。
-
-## U 批 · IT 查询/编码表（2026-11-04）
-
-### 覆盖清单（U 批 IT 查询/编码表）
-- `country-code-lookup`：IT-N423（中）；无高优缺陷（已收录条目的字段本身正确）。
-- 方法声明：本轮仅通读上述 10 页源码 + `node` 在 `/tmp` 复刻页面原函数实算（每条均给出「输入 → 实际 / 期望」），**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。
-
-## V 批 · IT 生成/校验/计算（2026-11-04）
-
-### 覆盖清单（V 批 IT 生成/校验/计算）
-- `sqlite-cheatsheet`：无高优/中优缺陷（命令语法、`.mode`/JSON1/窗口函数示例与版本注记抽查正确；Chart/Table 双视图与检索联动正常）。
-- 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数实算（`minify`、`parseData/calculate`、`PROPERTIES` 去重）并给出「输入 → 实际 / 期望」；**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。IT-N430 的引号未转义依据 HTML 文本节点序列化规则判定（`& < >` 转义、引号不转义），未做真机粘贴验证；两处 `</div`（缺 `>`，`meta-tags-generator.html:124`、`css-minify.html:127`）会吞掉紧随的 `<div class="toolbar">` 开标签，属结构/布局问题，未计入本批条目。
-
-## V 批 · IT 编辑器/安全/编码（2026-11-04）
-
-### 覆盖清单（V 批 IT 编辑器/安全/编码）
-- `code-runner`：IT-N453 经复核属浏览器同线程沙箱的固有边界——iframe 内 `while(true)` 无法由父页定时器中断；页面已明确披露「无超时终止、勿运行不可信代码」，且每次运行换新 iframe，不再作为代码缺陷。N451/N452 已由 srcdoc + 去 allow-same-origin + `<\/script` 转义修复。
-- 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数实算（`calcTool` 行数统计、`enc/dec`、`prettyHtml`、emoji 数组去重、`split('')` 反转）并给出「输入 → 实际 / 期望」；**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在审计日志追加本节。IT-N437 的事件属性执行、IT-N451 的沙箱逃逸依据 HTML 规范（`innerHTML` 插入的 `onerror` 会触发；`allow-scripts` + `allow-same-origin` 不提供来源隔离）判定，未做真机复现。
 
 ## W 批 · IT URL/签名/安全（2026-11-04）
 

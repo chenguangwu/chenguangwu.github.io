@@ -4676,6 +4676,13 @@ const CASES = [
   },
   {
     slug: "it/barcode-ean",
+    inputs: { data: "690123456789" },
+    clicks: ["document.getElementById('output').textContent='EANBITS '+buildEAN('690123456789').bits;"],
+    expect: ["EANBITS 10100010110100111011001100110110111101010001101010100111010100001000100100100011101001101100101"],
+    ref: "IT-D01：首位 6 → 奇偶 LGGGLL，左侧第 2/3/4 位必须用标准 G 表。完整 95 位应为 101 + L(9) G(0) G(1) G(2) + 01010 + R(3…9) + 101。旧实现 G=reverse(R) 得标准 G 的反码，默认码不可扫。",
+  },
+  {
+    slug: "it/barcode-ean",
     inputs: { data: "400638133393" },
     clicks: ["generate()"],
     expect: ["4006381333931"],
