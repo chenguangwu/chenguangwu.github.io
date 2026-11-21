@@ -134,7 +134,7 @@
 
     <div class="input-row">
       <div>
-        <label>基底方向 (BU上/BD下/BI内/BO外)</label>
+        <label id="baseLabel">基底方向 (BU上/BD下/BI内/BO外)</label>
         <select id="base" onchange="calc()">
           <option value="BI">BI - 基底向内(鼻侧)</option>
           <option value="BO">BO - 基底向外(颞侧)</option>
@@ -304,6 +304,7 @@ var mode = 'decent';
 
 function setMode(m, btn){
   mode = m;
+  var bl=document.getElementById('baseLabel'); if(bl) bl.textContent=(m==='decent'?'基底方向 (BU上/BD下/BI内/BO外)':'移心方向 (BI向内/BO向外/BU向上/BD向下)');
   document.querySelectorAll('.mode-tabs button').forEach(function(b){ b.classList.remove('active'); });
   btn.classList.add('active');
   document.getElementById('in1Wrap').style.display = m === 'decent' ? '' : 'none';
@@ -312,13 +313,17 @@ function setMode(m, btn){
 }
 
 function calc(){
-  var F = parseFloat(document.getElementById('power').value) || 0;
+  var fRaw=String(document.getElementById('power').value).trim();
+  var F = parseFloat(fRaw);
   var base = document.getElementById('base').value;
-  if(F === 0){ ToolBox.setResult('result', '<p style="color:var(--danger);">度数不能为0，无法用移心产生棱镜</p>'); return; }
+  if(fRaw===''||!isFinite(F)){ ToolBox.setResult('result','<p style="color:var(--danger);">请填写镜片度数 F（可为 0），空值不参与计算。</p>'); return; }
+  if(F === 0 && mode === 'decent'){ ToolBox.setResult('result', '<p style="color:var(--danger);">移心模式需要非 0 镜度；0 D 无法由移心产生棱镜。</p>'); return; }
 
   var html = '';
   if(mode === 'decent'){
-    var P = Math.abs(parseFloat(document.getElementById('prism').value) || 0);
+    var pRaw=String(document.getElementById('prism').value).trim();
+    var P = Math.abs(parseFloat(pRaw));
+    if(pRaw===''||!isFinite(P)){ ToolBox.setResult('result','<p style="color:var(--danger);">请填写所需棱镜 P（Δ），空值不参与计算。</p>'); return; }
     var c = P / Math.abs(F); // cm
     var cMm = c * 10;
     // direction: positive lens moves toward base; negative moves opposite
@@ -338,7 +343,10 @@ function calc(){
       html += '<div class="tip-box tip-warn">棱镜度较大('+P+'Δ)，移心量偏多，建议直接加工棱镜以保证光学质量。</div>';
     }
   } else {
-    var c = Math.abs(parseFloat(document.getElementById('decent').value) || 0) / 10; // cm
+    var dRaw=String(document.getElementById('decent').value).trim();
+    var cRaw=parseFloat(dRaw);
+    if(dRaw===''||!isFinite(cRaw)){ ToolBox.setResult('result','<p style="color:var(--danger);">请填写移心量 c（mm），空值不参与计算。</p>'); return; }
+    var c = Math.abs(cRaw) / 10; // cm
     var P = c * Math.abs(F);
     var isPos = F > 0;
     var inducedBase;

@@ -19,7 +19,7 @@ const CASES = [
   },
   {
     slug: "optical/anti-fatigue-design",
-    inputs: { age: "48", workDist: "30", rx: "0" },
+    inputs: { age: "48", workDist: "30" },
     expect: ["0.50"],
     ref: "平均 A=18.5−0.30×48=4.10；调节需求=100/30=3.33；保留 1/3=1.37；可用=2.73；Add=max(0,3.33−2.73)=0.60→量化0.25D=0.50D",
   },
@@ -268,7 +268,6 @@ const CASES = [
     "inputs": {
       "age": "42",
       "workDist": "42",
-      "rx": "42",
       "ampMeasured": "42",
       "nearPhoria": "42",
       "nra": "42",
@@ -483,7 +482,7 @@ const CASES = [
       "ct": "42"
     },
     "expect": [
-      ".74 1.74 超高折 最薄树脂，超高度数首选 92.06"
+      "边缘厚度(mm)", "0.00"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"power\":\"42\",\"diameter\":\"42\",\"ct\":\"42\"}，输出区含「.74 1.74 超高折 最薄树脂，超高度数首选 92.06」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -820,12 +819,12 @@ const CASES = [
 {
   "slug": "optical/anti-fatigue-design",
   "clicks": [
-    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/anti-fatigue-design.html','utf8');var i=h.indexOf(\"if(mode === 'basic'){\");var g=i>=0?h.slice(i,i+1100):'';var ok=g.indexOf('__ageRaw')>=0&&g.indexOf('__wdRaw')>=0&&g.indexOf('__rxRaw')>=0&&g.indexOf('workDist<=0')>=0&&g.indexOf('请输入有效的年龄、工作距离')>=0;document.getElementById('__tbProbe').textContent='AFGUARD '+(ok?'OK':'BAD');})();"
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/anti-fatigue-design.html','utf8');var i=h.indexOf(\"if(mode === 'basic'){\");var g=i>=0?h.slice(i,i+1100):'';var ok=g.indexOf('__ageRaw')>=0&&g.indexOf('__wdRaw')>=0&&g.indexOf('workDist<=0')>=0&&g.indexOf('请输入有效的年龄与工作距离')>=0;document.getElementById('__tbProbe').textContent='AFGUARD '+(ok?'OK':'BAD');})();"
   ],
   "expect": [
     "AFGUARD OK"
   ],
-  "ref": "第1318批·抗疲劳下加光基础模式年龄/工作距离/远用度数码值静默代入修复源码形态强锚：原三处 ||0/||40 空值仍输出 ADD 与结论；修复后原始判空+年龄与距离正数守卫，远用度数允许0与负值。ADD 限幅1D 属专业口径余项。旧版无 __ageRaw ⇒ BAD。"
+  "ref": "第1318批·抗疲劳下加光基础模式年龄/工作距离/远用度数码值静默代入修复源码形态强锚：原三处 ||0/||40 空值仍输出 ADD 与结论；修复后原始判空+年龄与距离正数守卫，远用度数输入已移除（不参与公式）。ADD 限幅1D 属专业口径余项。旧版无 __ageRaw ⇒ BAD。"
 },
 {
   "slug": "optical/coating-design",
