@@ -143,19 +143,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "transport/estimate-4",
-  "inputs": {
-    "boxL": "60",
-    "boxW": "30",
-    "boxH": "25",
-    "boxWt": "8"
-  },
-  "expect": [
-    "76.9%"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "transport/estimate-capacity",
   "inputs": {
     "laneW": "6.75",

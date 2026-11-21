@@ -403,3 +403,4 @@
 | https://chenguangwu.github.io/guides/text-summarization-guide.html | https://chenguangwu.github.io/tools/ai/index.html | 2026-11-21 | 2026-12-21 | 保留期内 | 无对应工具的AI指南重定向至AI工具分类 |
 | https://chenguangwu.github.io/guides/speech-to-text-guide.html | https://chenguangwu.github.io/tools/ai/index.html | 2026-11-21 | 2026-12-21 | 保留期内 | 无对应工具的AI指南重定向至AI工具分类 |
 | https://chenguangwu.github.io/tools/fire-rescue/calc-4.html | https://chenguangwu.github.io/tools/fire/extinguisher-calc.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/transport/estimate-4.html | https://chenguangwu.github.io/tools/automotive/container-loading.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
