@@ -73,16 +73,15 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  // 默认 copd/8/60 → 480 mL；注入 cardiac/10/70 → 700 mL
+  // 心源性肺水肿固定档：EPAP 8 + PS 5 = IPAP 13
   "slug": "pulmonology/niv-settings",
   "inputs": {
     "indication": "cardiac",
-    "vt": "10",
-    "ibw": "70",
     "ph": "7.30"
   },
   "expect": [
-    "目标潮气量 = 10 mL/kg × 70 kg = 700 mL"
+    "EPAP(呼气相正压)= 8 cmH₂O",
+    "压力支持 PS = IPAP − EPAP = 13 − 8 = 5 cmH₂O"
   ],
   "ref": "auto-restore"
 },
@@ -388,7 +387,7 @@ const CASES = [
     "q6": "0"
   },
   "expect": [
-    "依赖程度轻。以行为干预为主(识别触发情境、延迟技巧)"
+    "极低依赖。以行为干预为主"
   ],
   "ref": "auto-restore"
 },
@@ -632,7 +631,62 @@ const CASES = [
 async function main() {
   const only = process.argv.slice(2);
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
-  let pass = 0; const fails = [];
+  let pass = 0; const fails = [{
+  "slug": "pulmonology/lung-cancer-tnm",
+  "inputs": {"t":"T2b","n":"N0","m":"M0"},
+  "expect": ["分期 = ⅡA期"],
+  "ref": "AJCC 第 8 版 T2bN0M0 为 ⅡA；旧实现返回 ⅠB。"
+},
+{
+  "slug": "pulmonology/lung-cancer-tnm",
+  "inputs": {"t":"T3","n":"N2","m":"M0"},
+  "expect": ["分期 = ⅢB期"],
+  "ref": "AJCC 第 8 版 T3N2M0 为 ⅢB；旧实现落入 ⅢA。"
+},
+{
+  "slug": "pulmonology/calc-48",
+  "inputs": {"pao2":"60","fio2":"40"},
+  "expect": ["中重度 ARDS（P/F 100–200）"],
+  "ref": "P/F=150：旧实现 ≤200 一律重度，现应落 100–200 中重度档。"
+},
+{
+  "slug": "pulmonology/copd-cat",
+  "inputs": {"q0":"3","q1":"3","q2":"3","q3":"3","q4":"3","q5":"3","q6":"3","q7":"5"},
+  "expect": ["影响中等"],
+  "ref": "第 8 题反向计分：其余 7 题各 3 分 =21，q7=5（完全没有精力）计 5? 反向为 0，总分 21 中度；旧实现同向计 5 得 26 重度。"
+},
+{
+  "slug": "pulmonology/smoking-cessation",
+  "inputs": {"q1":"1","q2":"1","q3":"1","q4":"1","q5":"1","q6":"0"},
+  "expect": ["中度依赖","需专业/药物辅助"],
+  "ref": "5 分属中度依赖，卡片与分级应一致；旧卡片 >=6 才提示药物辅助。"
+},
+{
+  "slug": "pulmonology/feigongneng-fev1-fvc-fenji",
+  "inputs": {"fev1":"1.5","fvc":"2.0","fev1pred":"3.0","fvcpred":"","age":"40"},
+  "expect": ["限制性通气障碍可能","即使比值正常仍提示限制性可能"],
+  "ref": "比值 75% 正常但 FEV1%pred=50%，旧实现直接判「通气功能正常」；现提示限制性可能。"
+},
+{
+  "slug": "pulmonology/feigongneng-fev1-fvc-fenji",
+  "inputs": {"fev1":"4.0","fvc":"3.5","fev1pred":"4.0","fvcpred":"","age":"40"},
+  "expect": ["FEV1 不能大于 FVC"],
+  "ref": "数据一致性校验：FEV1>FVC 旧实现仍算出 114% 正常。"
+},
+{
+  "slug": "pulmonology/anti-tb-dosing",
+  "inputs": {"wt":"20","age":"30"},
+  "expect": ["体重 <30 kg 或年龄 <18 岁请按儿科 mg/kg 方案计算"],
+  "ref": "低体重不得套用成人固定剂量；旧实现 20 kg 给 PZA 1500（75 mg/kg）。"
+},
+{
+  "slug": "pulmonology/oxygenation-index",
+  "inputs": {"pao2":"65","fio2":"40","spo2":"92"},
+  "checkIds": ["peep"],
+  "expect": ["未满足柏林前提","未排除（不满足柏林前提）"],
+  "ref": "PEEP 已建立但未勾选非心源性：旧实现仍直接定级中度 ARDS；现拦截并提示前提未满足。"
+},
+];
   for (const c of cases) {
     try {
       const r = await runCase(c);

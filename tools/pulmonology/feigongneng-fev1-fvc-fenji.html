@@ -242,6 +242,10 @@ function calc(){
   elFV.classList.remove('input-error');
   if(isNaN(fev1pred)||fev1pred<=0){elFP.classList.add('input-error');document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效 FEV1 预计值</p>';return;}
   elFP.classList.remove('input-error');
+  if(fev1>fvc){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ FEV1 不能大于 FVC，请核对输入（FEV1 '+fev1+' L / FVC '+fvc+' L）。</p>';
+    return;
+  }
   var ratio=fev1/fvc;
   var ratioPct=ratio*100;
   var fev1PctPred=fev1/fev1pred*100;
@@ -259,6 +263,7 @@ function calc(){
     else{goldGrade='GOLD 4（极重度）';goldColor='var(--danger)';}
   }else{
     if(fvcpred!==null&&fvc<fvcpred*0.8){pattern='限制性通气障碍可能';patternColor='var(--warning)';}
+    else if(fev1PctPred<80){pattern='限制性通气障碍可能';patternColor='var(--warning)';}
     else{pattern='通气功能正常';patternColor='var(--success)';}
   }
   var html='<div class="data-grid">';
@@ -276,8 +281,9 @@ function calc(){
     });
     html+='</tbody></table>';
   }else{
-    html+='<div class="tip-box tip-success">✓ FEV1/FVC = '+ratio.toFixed(3)+' ≥ '+lln.toFixed(2)+'，无阻塞性通气障碍。';
-    if(fvcpred!==null&&fvc<fvcpred*0.8){html+=' 但 FVC 低于预计值 80%，提示限制性可能，建议查肺总量(TLC)与弥散(DLCO)。';}
+    html+='<div class="tip-box '+(pattern==='通气功能正常'?'tip-success':'tip-warn')+'">'+(pattern==='通气功能正常'?'✓ ':'⚠ ')+'FEV1/FVC = '+ratio.toFixed(3)+' ≥ '+lln.toFixed(2)+'，无阻塞性通气障碍。';
+    if(fvcpred!==null&&fvc<fvcpred*0.8){html+=' FVC 低于预计值 80%，提示限制性可能，建议查肺总量(TLC)与弥散(DLCO)。';}
+    else if(fev1PctPred<80){html+=' 但 FEV1 占预计值 '+fev1PctPred.toFixed(0)+'%（<80%），即使比值正常仍提示限制性可能，建议查 TLC 与 DLCO。';}
     html+='</div>';
   }
   if(fvcpred!==null){
