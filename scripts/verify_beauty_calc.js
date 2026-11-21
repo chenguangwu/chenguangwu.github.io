@@ -219,6 +219,13 @@ const CASES = [
 },
 {
   "slug": "beauty/recommender-face-shape",
+  "inputs": {"cnt": ""},
+  "clicks": ["gen()"],
+  "expect": ["请填写生成数量（1–50）。"],
+  "ref": "空生成数量必须提示，不得用 parseInt('')||5 静默按 5 条生成并输出脸型结论；默认 cnt=5 不含该提示。"
+},
+{
+  "slug": "beauty/recommender-face-shape",
   "inputs": {
     "cnt": "8"
   },

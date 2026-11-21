@@ -1041,6 +1041,7 @@ async function scanInteract(page, rel) {
     if (!text) return;
     if (/Failed to load resource|net::ERR_|the server responded with a status of|JSHandle@/i.test(text)) return;
     if (/Clipboard|Document is not focused|Write permission denied|NotAllowedError/i.test(text)) return; // 无头环境剪贴板噪音
+    if (/Permissions policy violation.*unload|unload is not allowed/i.test(text)) return; // Chrome 对页面 unload 的策略提示，不是页面报错
     rec.errors.push((rec._phase || 'load') + ' console: ' + text);
   };
   page.on('pageerror', onPageError);
