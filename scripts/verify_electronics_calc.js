@@ -18,6 +18,13 @@ const CASES = [
 },
 {
   "slug": "electronics/bandwidth",
+  "inputs": {"gain": "", "freq": ""},
+  "clicks": ["calc()"],
+  "expect": ["请填写增益与频率后再计算。"],
+  "ref": "空增益/频率不得输出 0.00e+0 的 GBP 与运放推荐；默认 10/100000 不含该提示。"
+},
+{
+  "slug": "electronics/bandwidth",
   "inputs": {
     "gain": "15",
     "freq": "100000"
@@ -58,6 +65,13 @@ const CASES = [
   },
   "expect": [ "1.50e-1 时间常数" ],
   "ref": "auto-restore"
+},
+{
+  "slug": "electronics/capacitance",
+  "inputs": {"cl": "", "cs": ""},
+  "clicks": ["calc()"],
+  "expect": ["请填写晶振负载电容 CL 后再计算。"],
+  "ref": "空 CL 不得输出 0.00 匹配电容与 8pF 标准值推荐；默认 CL=16/Cs=3 不含该提示。"
 },
 {
   "slug": "electronics/capacitance",
