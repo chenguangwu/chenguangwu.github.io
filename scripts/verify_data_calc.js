@@ -92,6 +92,13 @@ const CASES = [
 },
 {
   "slug": "data/data-cleaner",
+  "inputs": { "inputData": "ＡＢＣ　１２３", "outputData": "", "maxLen": "" },
+  "clicks": ["var btn=[].slice.call(document.querySelectorAll('.op-btn')).filter(function(b){return b.textContent.trim()==='全角转半角';})[0];if(btn)btn.click();"],
+  "expect": ["ABC 123", "全角转半角"],
+  "ref": "新增全角转半角：全角字母/数字转 ASCII，全角空格转普通空格；旧版无此操作，输入原样输出。"
+},
+{
+  "slug": "data/data-cleaner",
   "inputs": { "inputData": "abc\n\n", "outputData": "", "maxLen": "" },
   "expect": ["1\n1\n去空白 · 去空行 · 去重"],
   "ref": "尾随空行不计条数（2026-11-16）：`abc\\n\\n` 只剩 1 条，原始/清洗后都显示 1；旧实现 `split('\\n').length` 得 3。默认样例首尾都有空行，旧值不等于 1 ⇒ 强判别。"
@@ -123,6 +130,15 @@ const CASES = [
     "44.4%"
   ],
   "ref": "确定性算例：n=9、min=1、max=6、k=3 → h=1.6667，三组频数 3/2/4 → 频率 33.3%/22.2%/44.4%；默认 15 点 5 组最高 26.7%，注入态不含该串 ⇒ 区分真实分组与随机频数。"
+},
+{
+  "slug": "data/pivot-table",
+  "inputs": {
+    "inputData": "地区,产品,销量\nA,X,10\nA,Y,\nA,X,abc\nB,Y,5",
+    "rowField": "地区", "colField": "产品", "valField": "销量", "agg": "count"
+  },
+  "expect": ["A 1 0 1 B 0 1 1 合计 1 1 2"],
+  "ref": "count 只统计可解析数值：A/X 有 10 一个有效值、A/Y 空值 0、B/Y 5；旧实现按匹配行计数会把空值算成 1。"
 },
 {
   "slug": "data/pivot-table",

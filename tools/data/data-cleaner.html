@@ -37,7 +37,7 @@
 </style>
 
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "去重是按整行还是按列？", "acceptedAnswer": {"@type": "Answer", "text": "默认按整行内容判定重复；如需按某列去重，请先整理为单列或使用页面指定列功能（以页面为准）。"}}, {"@type": "Question", "name": "会改动原数据吗？", "acceptedAnswer": {"@type": "Answer", "text": "不会，清洗在本地生成新结果，原文本保留在输入框，可随时重新调整规则。"}}, {"@type": "Question", "name": "敏感数据安全吗？", "acceptedAnswer": {"@type": "Answer", "text": "全程浏览器本地处理、不上传，适合含手机号等信息的内部清单规整。"}}]}
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "去重是按整行还是按列？", "acceptedAnswer": {"@type": "Answer", "text": "默认按整行内容判定重复；本页不做多列 CSV 的按列去重，如需按某列去重请先整理为单列。"}}, {"@type": "Question", "name": "会改动原数据吗？", "acceptedAnswer": {"@type": "Answer", "text": "不会，清洗在本地生成新结果，原文本保留在输入框，可随时重新调整规则。"}}, {"@type": "Question", "name": "敏感数据安全吗？", "acceptedAnswer": {"@type": "Answer", "text": "全程浏览器本地处理、不上传，适合含手机号等信息的内部清单规整。"}}]}
 </script>
 
 <script type="application/ld+json">
@@ -124,7 +124,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="清理文本/CSV 数据 (去重/去空/格式化)">Data Cleaning</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">数据清洗按规则逐行处理：去重 = 按整行或指定列比对去重保留首次出现；去空 = 删除全空行与仅含空白字符的单元格；格式化 = 统一去除首尾空白、全角转半角、日期归一为 YYYY-MM-DD；清洗后行数 = 原行数 − 重复行数 − 空行数。</div>
+      <div class="formula-eq">数据清洗按行处理：去重 = 按整行精确匹配、保留首次出现；去空 = 删除全空行；格式化 = 去除首尾空白，可选全角转半角、大小写、去特殊字符、排序/打乱/限长。清洗后行数 = 原行数 − 重复行数 − 空行数。按列去重不在本页范围，需先整理为单列。</div>
   
 </div>
 
@@ -251,7 +251,8 @@ const OPS = [
   { id: 'noempty', name: '去空行', def: true },
   { id: 'lower', name: '转小写', def: false },
   { id: 'upper', name: '转大写', def: false },
-  { id: 'alpha', name: '去非字母', def: false },
+  { id: 'fullwidth', name: '全角转半角', def: false },
+  { id: 'alpha', name: '去特殊字符', def: false },
   { id: 'sort', name: '排序', def: false },
   { id: 'shuffle', name: '随机打乱', def: false },
 ];
@@ -281,10 +282,11 @@ function clean() {
 
   const applied = [];
   if (selected.has('trim')) { lines = lines.map(l => l.trim()); applied.push('去空白'); }
-  if (selected.has('noempty')) { lines = lines.filter(l => l.length > 0); applied.push('去空行'); }
+  if (selected.has('noempty')) { lines = lines.filter(l => l.trim().length > 0); applied.push('去空行'); }
   if (selected.has('dedup')) { lines = [...new Set(lines)]; applied.push('去重'); }
   if (selected.has('lower')) { lines = lines.map(l => l.toLowerCase()); applied.push('小写'); }
   if (selected.has('upper')) { lines = lines.map(l => l.toUpperCase()); applied.push('大写'); }
+  if (selected.has('fullwidth')) { lines = lines.map(l => l.replace(/[\uFF01-\uFF5E]/g, function(ch){ return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0); }).replace(/\u3000/g, ' ')); applied.push('全角转半角'); }
   if (selected.has('alpha')) { lines = lines.map(l => l.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '')); applied.push('去特殊字符'); }
   if (selected.has('sort')) { lines.sort((a, b) => a.localeCompare(b)); applied.push('排序'); }
   if (selected.has('shuffle')) { for (let i = lines.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i+1)); [lines[i], lines[j]] = [lines[j], lines[i]]; } applied.push('打乱'); }
