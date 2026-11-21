@@ -132,6 +132,38 @@
     <div id="veTable"></div>
     <div id="veDiff"></div>
     <div id="veHist"></div>
+
+    <div class="card" style="margin-top:18px;">
+      <h3>📋 主流开源模型速查</h3>
+      <p style="font-size:13px;color:var(--text-muted);">静态参数/权重体积对照，便于按显存档位选模型。权重 GB = 参数量 × 字节/参（FP16=2、INT8=1、INT4=0.5），不含 KV 缓存与激活。</p>
+      <div class="input-row" style="display:flex;gap:10px;flex-wrap:wrap;">
+        <input type="text" id="msSearch" placeholder="按模型名筛选，如 llama" oninput="renderModelSpecs()" style="flex:1;min-width:180px;padding:8px;border:1px solid var(--border);border-radius:6px;">
+        <select id="msSize" onchange="renderModelSpecs()" style="padding:8px;border:1px solid var(--border);border-radius:6px;">
+          <option value="all">全部规模</option>
+          <option value="lt10">&lt; 10B</option>
+          <option value="10to40">10–40B</option>
+          <option value="40to100">40–100B</option>
+          <option value="gte100">≥ 100B</option>
+        </select>
+      </div>
+      <div id="msSummary" style="font-size:13px;color:var(--text-muted);margin:8px 0;"></div>
+      <div style="overflow-x:auto;">
+        <table id="msTable" style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr>
+            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">模型</th>
+            <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">总参数 B</th>
+            <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">激活 B</th>
+            <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">层数</th>
+            <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">Hidden</th>
+            <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">上下文</th>
+            <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">FP16 GB</th>
+            <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">INT8 GB</th>
+            <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">INT4 GB</th>
+          </tr></thead>
+          <tbody id="msBody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -345,7 +377,53 @@ function __vePresets(){
 
 var __tb_ve0 = calc;
 calc = function(){ __tb_ve0(); try{ __veExtras(); }catch(e){} };
-function __veBoot(){ try{ __vePresets(); }catch(e){} try{ calc(); }catch(e){} }
+var __MS_MODELS=[
+  {name:'Llama 3.1 8B',p:8.0,active:8.0,layers:32,hidden:4096,ctx:131072},
+  {name:'Llama 3.1 70B',p:70.6,active:70.6,layers:80,hidden:8192,ctx:131072},
+  {name:'Mistral 7B v0.3',p:7.2,active:7.2,layers:32,hidden:4096,ctx:32768},
+  {name:'Qwen2.5 7B',p:7.6,active:7.6,layers:28,hidden:3584,ctx:131072},
+  {name:'Qwen2.5 72B',p:72.7,active:72.7,layers:80,hidden:8192,ctx:131072},
+  {name:'Gemma 2 9B',p:9.2,active:9.2,layers:42,hidden:3584,ctx:8192},
+  {name:'Phi-3.5 mini',p:3.8,active:3.8,layers:32,hidden:3072,ctx:131072},
+  {name:'Yi-1.5 34B',p:34.0,active:34.0,layers:60,hidden:7168,ctx:32768},
+  {name:'Mixtral 8x7B',p:46.7,active:12.9,layers:32,hidden:4096,ctx:32768},
+  {name:'DeepSeek-V3',p:671.0,active:37.0,layers:61,hidden:7168,ctx:131072}
+];
+function renderModelSpecs(){
+  var box=document.getElementById('msBody'); if(!box) return;
+  var q=((document.getElementById('msSearch')||{}).value||'').toLowerCase();
+  var sz=((document.getElementById('msSize')||{}).value||'all');
+  var rows=__MS_MODELS.filter(function(m){
+    if(q && m.name.toLowerCase().indexOf(q)<0) return false;
+    if(sz==='lt10') return m.p<10;
+    if(sz==='10to40') return m.p>=10 && m.p<40;
+    if(sz==='40to100') return m.p>=40 && m.p<100;
+    if(sz==='gte100') return m.p>=100;
+    return true;
+  });
+  var html='';
+  rows.forEach(function(m){
+    html+='<tr>'+
+      '<td style="padding:6px 8px;border-bottom:1px solid var(--border);">'+m.name+'</td>'+
+      '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">'+m.p.toFixed(1)+'</td>'+
+      '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">'+m.active.toFixed(1)+'</td>'+
+      '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">'+m.layers+'</td>'+
+      '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">'+m.hidden+'</td>'+
+      '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">'+(m.ctx/1024).toFixed(0)+'K</td>'+
+      '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">'+(m.p*2).toFixed(1)+'</td>'+
+      '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">'+(m.p*1).toFixed(1)+'</td>'+
+      '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">'+(m.p*0.5).toFixed(1)+'</td>'+
+    '</tr>';
+  });
+  box.innerHTML=html || '<tr><td colspan="9" style="padding:10px;color:var(--text-muted);">'+((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'No matching models. Adjust the filters.':'没有匹配的模型，请调整筛选条件。')+'</td></tr>';
+  var sum=rows.reduce(function(a,m){return a+m.p;},0);
+  var sm=document.getElementById('msSummary');
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  if(sm) sm.textContent=en
+    ? rows.length+' models · total '+sum.toFixed(1)+' B parameters · '+ (sum*2).toFixed(1)+' GB in FP16 weights (theoretical, excluding KV/activations)'
+    : '共 '+rows.length+' 个模型 · 总参数合计 '+sum.toFixed(1)+' B · FP16 权重合计 '+(sum*2).toFixed(1)+' GB（理论值，不含 KV/激活）';
+}
+function __veBoot(){ try{ __vePresets(); }catch(e){} try{ renderModelSpecs(); }catch(e){} try{ calc(); }catch(e){} }
 // readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
 // 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
 // ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
