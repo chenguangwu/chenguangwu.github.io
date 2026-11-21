@@ -4216,6 +4216,10 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             _dd_ul = re.search(r'<ul class="dd-list">(.*?)</ul>', content, re.S)
             if _dd_ul:
                 _extras.extend(re.findall(r'<li>(.*?)</li>', _dd_ul.group(1), re.S)[:3])
+            for _cls in ('intro-scenes', 'intro-features'):
+                _ul = re.search(r'<ul class="%s">(.*?)</ul>' % _cls, content, re.S)
+                if _ul:
+                    _extras.extend(re.findall(r'<li>(.*?)</li>', _ul.group(1), re.S)[:2])
             for _extra in _extras:
                 if len(_seo_desc_raw) >= 70:
                     break
