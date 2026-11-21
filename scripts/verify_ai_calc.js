@@ -267,7 +267,7 @@ const CASES = [
   // ── Token 估算与成本 ───────────────────────────────────────
   {
     slug: "ai/token",
-    inputs: { chars: "900", lang: "1", overlap: "1.5" },
+    inputs: { chars: "900", overlap: "1.5" },
     expect: ["600", "225", "0.0012"],
     ref: "AI-N12 统一英文参考口径：估算=ceil(900×1/1.5)=600；英文参考=ceil(900/4)=225（与页面「英文约 4 字符/token」一致，不再随 overlap 变化）；成本=600/1e6×2=0.0012 USD",
   },
@@ -1205,11 +1205,10 @@ const CASES = [
     "slug": "ai/token",
     "inputs": {
       "chars": "42",
-      "lang": "42",
       "overlap": "42"
     },
     expect: [
-      "Token 数： 42 个 英文参考： 11"
+      "Token 数： 1 个 英文参考： 11"
     ],
     "ref": "AI-N12 口径统一后重算：英文参考=ceil(42/4)=11；旧实现用 chars×0.3/overlap 得 9，且与主结果分母不一致。注入非默认输入{\"chars\":\"42\",\"lang\":\"42\",\"overlap\":\"42\"}，默认态不含该串 ⇒ 零逃生。"
   },
@@ -1334,7 +1333,7 @@ const HOST_CASES = [
     coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
     chart: "tkChart", table: "tkTable",
     extras: ["tkChart", "tkTable", "tkDiff", "tkHist", "tkPresets"],
-    inputs: { chars: "900", lang: "1", overlap: "1.5" },
+    inputs: { chars: "900", overlap: "1.5" },
     tableExpect: "600",
     restore: { inputId: "chars", historyKey: "chars" },
     exportFn: "__tkExport",
