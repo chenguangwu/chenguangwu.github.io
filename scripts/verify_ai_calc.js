@@ -276,6 +276,16 @@ const CASES = [
     ref: "权重显存=7×4=28.0 GB；总=28+1500/1000=29.5 GB",
   },
 
+  {
+    slug: "ai/vram-estimate",
+    chart: "veChart", table: "veTable",
+    extras: ["veChart", "veTable", "veDiff", "veHist", "vePresets"],
+    inputs: { params: "7", bytes: "4", act: "1500" },
+    expect: ["总显存估算： 29.5"],
+    tableExpect: "29.5",
+    exportFn: "__veExport",
+    ref: "结果容器修复后图表/明细/历史宿主必须存活；旧版 result.innerHTML 整体替换会删除 veChart/veTable/veHist，CSV 导出目标丢失。",
+  },
   // ── Dropout 期望值 ─────────────────────────────────────────
   {
     slug: "ai/dropout",
@@ -313,8 +323,8 @@ const CASES = [
   {
     slug: "ai/inference-throughput",
     inputs: { tokens: "900", sec: "6", batch: "2" },
-    expect: ["150.0", "75.0"],
-    ref: "吞吐=900/6=150.0 tokens/s；每样本吞吐=900/(6×2)=75.0",
+    expect: ["300.0", "150.0"],
+    ref: "单请求 900 tokens / 6s = 150.0 tokens/s；并发批量 2 ⇒ 总吞吐=900×2/6=300.0 tokens/s",
   },
 
   // ── 肘部法 WCSS 降幅 ───────────────────────────────────────
@@ -901,7 +911,7 @@ const CASES = [
       "batch": "42"
     },
     expect: [
-      "okens/s： 1.0 人均吞吐： 0.0"
+      "总吞吐 tokens/s： 42.0", "单请求吞吐 tokens/s： 1.0"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"tokens\":\"42\",\"sec\":\"42\",\"batch\":\"42\"}，输出区含「okens/s： 1.0 人均吞吐： 0.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1350,7 +1360,7 @@ const HOST_CASES = [
     chart: "itChart", table: "itTable",
     extras: ["itChart", "itTable", "itDiff", "itHist", "itPresets"],
     inputs: { tokens: "900", sec: "6", batch: "2" },
-    tableExpect: "150.0",
+    tableExpect: "300.0",
     exportFn: "__itExport",
   },
   {
