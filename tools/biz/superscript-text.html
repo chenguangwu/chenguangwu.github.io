@@ -178,6 +178,7 @@ E = mc2</textarea>
       <option value="super-all">全文上标</option>
       <option value="sub-all">全文下标</option>
       <option value="sub-digits">仅数字转下标</option>
+      <option value="html-digits">HTML 代码（数字上标/下标）</option>
     </select>
     <label style="margin-top:12px;">结果</label>
     <div class="result-box" id="result">请输入文本...</div>
@@ -288,6 +289,13 @@ subMap['+']='₊'; subMap['-']='₋'; subMap['=']='₌'; subMap['(']='₍'; subM
 
 var lastSuper = '';
 var lastSub = '';
+var lastHtml = '';
+function htmlDigits(text, tag){
+  return String(text).split(/(\d+)/).map(function(part){
+    if(/^\d+$/.test(part)) return '<'+tag+'>'+part+'</'+tag+'>';
+    return part.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }).join('');
+}
 
 function toSuperscript(text){
   var result = '';
@@ -322,6 +330,11 @@ function convert(){
     lastSuper = autoDigits(input, toSuperscript, toSubscript);
     lastSub = autoDigits(input, toSubscript, toSubscript);
     output = '上标（自动数字）:\n' + lastSuper + '\n\n下标（自动数字）:\n' + lastSub;
+  } else if(mode === 'html-digits'){
+    lastSuper = '';
+    lastSub = '';
+    lastHtml = 'HTML 上标:\n' + htmlDigits(input, 'sup') + '\n\nHTML 下标:\n' + htmlDigits(input, 'sub');
+    output = lastHtml;
   } else if(mode === 'auto-all'){
     lastSuper = toSuperscript(input);
     lastSub = toSubscript(input);
@@ -349,10 +362,10 @@ function convert(){
 }
 
 function copyResult(type){
-  var text = type === 'sub' ? lastSub : lastSuper;
+  var text = type === 'sub' ? lastSub : type === 'html' ? lastHtml : lastSuper;
   if(text){
-    var label = type === 'sub' ? '下标' : '上标';
-    ToolBox.copyText(text, i18nText('toast.copy_success') + (type === 'sub' ? i18nText('tool.subscript', '下标') : i18nText('tool.superscript', '上标')));
+    var label = type === 'sub' ? '下标' : type === 'html' ? 'HTML' : '上标';
+    ToolBox.copyText(text, i18nText('toast.copy_success') + label);
   } else {
     ToolBox.showToast(i18nText('toast.copy_target_missing'));
   }
@@ -363,6 +376,7 @@ function clearAll(){
   document.getElementById('result').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Please enter text...":"请输入文本...");
   lastSuper = '';
   lastSub = '';
+  lastHtml = '';
 }
 
 document.getElementById('mode').addEventListener('change', convert);

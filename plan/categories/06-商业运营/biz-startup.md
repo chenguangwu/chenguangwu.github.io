@@ -69,51 +69,6 @@
 
 只读审计 8 页商业文本工具（`text-to-banner` / `motto-generator` / `text-box-drawing` / `barcode-generator` / `markdown-quote` / `text-reverse-lines` / `superscript-text` / `fullwidth-halfwidth`），逐行读源码 + `node` 在 `/tmp` 复刻关键函数复算（含 Unicode 码位、UTF-16 代理对、条码校验位与标准码表）。**未修改工具页/代码/构建产物，未跑 `_build.py` / `run_gates.py`，未做 git 写操作。**
 
-### BS-N65 文字转横幅：宣称画布横幅/字体/配色/PNG 导出，实际只剩 ASCII 方框（高，确认缺陷）
-- 页面：`tools/biz/text-to-banner.html`
-- 问题：页面描述、公式说明英文段、深度解析与「公式与标准引据」均承诺「可调整配色与字体并导出图片」「canvas 绘制并导出 PNG」「内置 standard/banner/small 等 figlet 字体」；实际 DOM 只有样式下拉、左右/上下内边距、复制与 CSV 导出，无 canvas、无颜色/字体控件、无图片导出，也不生成 figlet 大字。
-- 证据：`tools/biz/text-to-banner.html:10`（description）、`:153`（英文 formula-desc）、`:160-169`（仅 8 个边框样式）、`:184-185`（仅 CSV/复制按钮）、`:232-236`（figlet 字体与「由字符拼成的大写 HI」示例）、`:254-260`（画布绘制/PNG 引据）、`:315-345`（`generate()` 仅字符串拼框）。
-- 复现：输入 `HELLO`、选「井号填充」、左右内边距 2 → 输出 `╔═════════╗` / `║  HELLO  ║` / `╚═════════╝`，仍是普通 `HELLO`；全页搜索无 `canvas` / `toDataURL` / `font` / `color` 控件。
-- 影响：用户按宣传寻找字体、配色与 PNG 导出全部落空；该页与 `text-box-drawing.html` 功能重复，属名不符实。
-- 是否假工具：**是**（核心的图片横幅能力未实现，仅剩文本方框）
-- 方案：二选一——① 真做 canvas 横幅（字体族/字号/前景背景色/PNG 下载）；② 若保留 ASCII 方框，则同步改写 title、description、深度解析与引据表，并去掉「字体/配色/导出图片」承诺。
-
-### BS-N72 条码生成：宽度缩放 0.5 被静默抬到 1，控件标称范围失效（中，确认缺陷）
-- 页面：`tools/biz/barcode-generator.html`
-- 问题：页面允许 `min="0.5" step="0.5"`，但渲染层 `normalizeOptions()` 用 `Math.max(1, Math.min(10, ...))`，0.5 永远变成 1；用户选最小档与选 1 输出像素完全相同。
-- 证据：`tools/biz/barcode-generator.html:184`（`min="0.5"`）、`js/barcode-lib.js:332`（`scale: Math.max(1, Math.min(10, parseFloat(o.scale) || 2))`）。
-- 复现：同一内容分别设缩放 `0.5` 与 `1` → canvas 宽度、模块宽度一致（node 按 `normalizeOptions` 复算）；期望 0.5 档真正减半或 UI 最小改 1。
-- 影响：小尺寸标签场景以为能缩到一半，实际仍按 1 倍输出，打印排版偏差。
-- 是否假工具：否
-- 方案：允许 `>=0.5`（配合 `dpr` 取整），或把输入 `min` 改为 1 并删除 0.5 档文案。
-
-### BS-N73 座右铭生成器：宣称「关键词/风格偏好」，实际只有 5 个类别下拉，FAQ 指向不存在的入口（中，确认缺陷）
-- 页面：`tools/biz/motto-generator.html`
-- 问题：description / og / formula-desc 均写「根据关键词或风格偏好随机生成」；UI 只有 `#cat`（中国古典/西方哲思/现代励志/人生感悟/求学修身）与数量滑块，无关键词、无风格/语气输入；深度解析还给出不存在的「专注」主题，FAQ 让用户在「主题/风格里标注严肃/活泼/古风」。
-- 证据：`tools/biz/motto-generator.html:10`、`:15`、`:164`（关键词/风格承诺）、`:168-174`（仅类别下拉）、`:213`（「主题选专注」示例）、`:217`（FAQ 指向主题/风格标注）。
-- 复现：页面无任何关键词/风格输入控件；`#cat` 选项无「专注」；输入不存在的风格词也无处可填。生成、去重、数量上限（min(设定, 库容量)）本身正常。
-- 影响：用户按宣传无法“按关键词生成”，FAQ 给出无法执行的步骤；属承诺未实现。
-- 是否假工具：否（随机抽取主逻辑真实）
-- 方案：新增关键词/风格输入并参与筛选（或给每条名言打标签），否则删除相关宣传与 FAQ 表述，并把「专注」示例改为实际类别。
-
-### BS-N79 上标文字：宣称生成 HTML `<sup>` 代码，实际只给 Unicode 字符（中，确认缺陷）
-- 页面：`tools/biz/superscript-text.html`
-- 问题：description、og、formula-desc 均写「生成可复制的 Unicode 或 HTML 上标代码」，但脚本只有 `toSuperscript()` 查 Unicode 映射表，全页无 `<sup>` 输出分支或 HTML 模式。
-- 证据：`tools/biz/superscript-text.html:10`、`:15`、`:156`（HTML 承诺）、`:231`（FAQ 提「借助富文本/HTML <sup>」）、`:301-319`（仅 Unicode 映射）。
-- 复现：输入 `x2` 任何模式 → 只有 `x²`；找不到 `<sup>2</sup>` 形式的结果或开关。
-- 影响：需要 HTML 上下标的网页/邮件用户按宣传找不到输出，只能拿 Unicode 自行包裹。
-- 是否假工具：否
-- 方案：增加「HTML 上标 / 下标」输出（如 `x<sup>2</sup>`、`H<sub>2</sub>O`）与复制按钮，或删除 HTML 承诺及 FAQ 相关句。
-
-### BS-N80 全角半角互转：可见「假名（仅日文）」复选框从未被读取，勾选无任何效果（中，确认缺陷）
-- 页面：`tools/biz/fullwidth-halfwidth.html`
-- 问题：页面提供 `#kana`「假名（仅日文）」复选框，但 `convert()` 只读 `#ascii` 与 `#space`，全页再无 `kana` 引用，也无半角/全角假名映射表（U+FF61–FF9F ↔ 平假名/片假名）。
-- 证据：`tools/biz/fullwidth-halfwidth.html:168`（唯一出现 `kana` 的复选框）、`:299-330`（转换循环仅 ascii/space 分支）。
-- 复现：勾选「假名」，输入半角片假名 `ｱｲｳ` 转全角 → 原样不变（期望 `アイウ`）；输入全角 `アイウ` 转半角 → 原样不变（期望 `ｱｲｳ`）。
-- 影响：日文混排用户以为能一并转换假名，实际只转了 ASCII/空格，需另找工具。
-- 是否假工具：否（ASCII/空格双向转换主体正常）
-- 方案：实现半角片假名（U+FF61–FF9F）与全角片假名/平假名映射并接入 `kana` 开关；不做就删除该复选框。
-
 ### V 批覆盖清单（8 页）
 - `tools/biz/text-to-banner.html`：3 条（BS-N65、BS-N66 高；BS-N67 中）。生成/复制/CSV 可运行，但页面身份与宣传严重不符。
 - `tools/biz/motto-generator.html`：1 条（BS-N73 中）。随机抽取、去重、条数上限与 CSV 正常；未发现 XSS（结果走 `textContent`）。
@@ -198,20 +153,6 @@
 
 > 只读审计：逐页读源码 + `node` 在 `/tmp` 复刻核心函数实算（脚本 `/tmp/w_biz_text_d.js`、`/tmp/w_biz_text_d2.js`、`/tmp/w_rand2.js`）。未开浏览器、未跑构建/门禁、未做 git 写操作。
 
-### BS-N111 随机话术：功能特点称「支持按场景筛选」，页面无该控件（中，承诺未实现）
-- 页面：`tools/biz/random-script.html`
-- 问题：简介功能列表写「从标准话术库随机抽取，支持按场景筛选」，但页面只有「生成数量」一个输入，无场景下拉/多选；`scene` 字段仅用于结果展示。
-- 证据：`tools/biz/random-script.html:273`（功能特点）、`:124`（唯一输入 `cnt`）。
-- 影响：用户无法按场景（问候/致歉/退换货）定向抽题；假工具：否。
-- 方案：补场景多选并接入 `pick` 前的过滤，或删除该条功能描述。
-
-### BS-N115 三页生成器描述承诺的关键词输入与释义/slogan 输出均未实现（中，承诺未实现）
-- 页面：`tools/biz/app-name-generator.html`、`tools/biz/brand-name-generator.html`、`tools/biz/product-name-generator.html`
-- 问题：meta 描述与英文简介承诺「结合行业关键词与命名风格」「附简短释义」「依据行业、调性与关键词」「提示可注册性思路」「结合品类、卖点与风格关键词」「附带 slogan 思路」，但三页实际只有「类别/风格/产品类型」下拉 +「数量」滑杆两个控件，输出仅有名字本身。
-- 证据：`tools/biz/app-name-generator.html:10`、`:164`；控件 `:168`、`:177`。`tools/biz/brand-name-generator.html:10`、`:164`；控件 `:168`、`:177`。`tools/biz/product-name-generator.html:10`、`:162`；控件 `:166`、`:175`。
-- 影响：用户按描述找不到关键词/卖点输入，也拿不到释义、可注册性提示或 slogan；搜索摘要与实际能力不一致。假工具：否（随机命名本体可用）。
-- 方案：补齐关键词/卖点输入与释义/slogan 输出，或把三处描述收敛为「按类别随机组合词库」。
-
 ### W 批覆盖清单（8 页）
 - `tools/biz/app-name-generator.html`：1 条（BS-N109 中）+ 共享 BS-N115。词库拼接、随机源 `crypto.getRandomValues`、转义输出主体正确。
 - `tools/biz/random-script.html`：1 条（BS-N111 中）。单次抽取不重复、数量 1–50 钳制正确，库容不足已有明确提示。
@@ -228,14 +169,6 @@
 ## X 批 · 商业文本收尾（2026-11-04）
 
 > 覆盖 `tools/biz/zalgo-text.html`、`strawberry-text.html`、`fancy-text.html`、`text-case-advanced.html`、`upside-down-text.html` 共 5 页。行号为源码行号；`/tmp` Node 复刻脚本 `/tmp/xprobe.js`。
-
-### BS-N127 装饰文字：标称「15+ / 数十种 / 含全角」，实际仅 14 种可用，另 3 张是点不动的占位卡（中，承诺未实现）
-- 页面：`tools/biz/fancy-text.html`
-- 问题：`styles` 共 17 项，其中 3 项值为字符串占位（区域指示符 / 颠倒 / 加点），点击只 `alert('该风格不可用')`；可真正转换的只有 14 种，少于 h2 的「15+」与 meta 的「数十种…含全角」。深解算例还宣称「全角样式输出「ＴｏｏｌＢｏｘ」」，而全页不存在全角（U+FF01–FF5E）映射。
-- 证据：`tools/biz/fancy-text.html:296-298`（三张占位卡）、`:349`（`text.includes('使用')` → alert）、`:176`（h2「15+」）、`:10`/`:15`（meta「数十种…全角」）、`:208`（深解「全角样式输出ＴｏｏｌＢｏｘ」）。
-- 复现：打开页面数出 17 张卡；点「🇫🇦🇳🇨🇾 区域指示符」「ɟɐuɔʎ 颠倒」「H̥e̥l̥l̥o̥ 加点」→ 一律 alert「该风格不可用」；输入 `ToolBox` 无任何全角结果可复制。
-- 影响：宣称能力与实物不符，3 张卡为死功能；主体 14 种映射可用，故假工具：否。
-- 方案：补全角与区域指示符映射，或删掉 3 张占位卡并把「15+/数十种/全角」文案改为实际 14 种。
 
 ### X 批覆盖清单（商业文本收尾 5 页）
 - `tools/biz/strawberry-text.html`：2 条（BS-N128/130 中）。复核通过项：包夹/前后/跳过空白三模式与公式一致、清空与复制接线正常。
