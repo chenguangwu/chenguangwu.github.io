@@ -110,7 +110,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按参数量与字节数估算权重显存。">Estimate the VRAM needed for model weights and inference from parameter count, precision bytes and activation overhead, to choose deployment hardware.</p>
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">显存估算（本页代码口径）：权重显存 W=参数量(十亿)×每参数字节数（FP32=4、FP16=2、INT8=1）；总显存=W+激活MB÷1000+KV缓存GB+优化器/梯度GB。目标显存可填 8/16/24/48GB，结果给出余量或超出量。校验：参数量、每参数字节&gt;0 才渲染图表；空值按 0 兜底。注意：这是理论估算，未建模激活重计算、ZeRO 分片、序列并行与框架额外开销，需以实测显存为准。</div>
+      <div class="formula-eq">显存估算（本页代码口径）：权重显存 W=参数量(十亿)×每参数字节数（FP32=4、FP16=2、INT8=1）；总显存=W+激活MB÷1000×重计算系数+KV缓存GB+优化器/梯度GB÷ZeRO卡数。目标显存可填 8/16/24/48GB，结果给出余量或超出量。校验：参数量、每参数字节&gt;0 才渲染图表；空值按 0 兜底。注意：这是理论估算，未建模激活重计算、ZeRO 分片、序列并行与框架额外开销，需以实测显存为准。</div>
       <div class="formula-desc">推理显存主要由权重决定：FP16 为 2 字节、INT8 为 1 字节、FP32 为 4 字节。训练还要加梯度与 Adam 状态（各再占 1 份与 2 份权重），加上随批量与序列长度增长的激活值，常是权重本身的数倍。</div>
     </div>
 <div class="input-row"><label>参数量(十亿)</label><input type="number" id="params" value="10" step="any" oninput="calc()" placeholder="如 10"></div>
@@ -119,6 +119,8 @@
     <div class="input-row"><label>KV 缓存 GB（推理，可选）</label><input type="number" id="kv" value="0" step="any" min="0" oninput="calc()" placeholder="如 2"></div>
     <div class="input-row"><label>优化器/梯度 GB（训练，可选）</label><input type="number" id="opt" value="0" step="any" min="0" oninput="calc()" placeholder="如 56"></div>
     <div class="input-row"><label>目标显存 GB</label><input type="number" id="vram" value="24" step="any" min="0" oninput="calc()" placeholder="如 24"></div>
+    <div class="input-row"><label>激活重计算</label><select id="recompute" onchange="calc()"><option value="1">关闭（完整激活）</option><option value="0.5">开启（激活约减半）</option></select></div>
+    <div class="input-row"><label>ZeRO 分片卡数（1=不开启）</label><input type="number" id="zero" value="1" step="1" min="1" oninput="calc()" placeholder="如 4"></div>
     <div id="vePresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
@@ -273,13 +275,16 @@ function calc(){
   const kv = +document.getElementById('kv').value || 0;
   const opt = +document.getElementById('opt').value || 0;
   const vram = +document.getElementById('vram').value || 0;
+  const recompute = +document.getElementById('recompute').value || 1;
+  const zero = Math.max(1, Math.floor(+document.getElementById('zero').value || 1));
   const __cvL=(typeof __veL==='function')?__veL:function(en,zh){return zh;};
   let html = '';
   const __v0 = (params*bytes);
-  const __actGB = act/1000;
-  const __v1 = (__v0 + __actGB + kv + opt);
+  const __actGB = act/1000*recompute;
+  const __optPer = opt/zero;
+  const __v1 = (__v0 + __actGB + kv + __optPer);
   html += `<p>${__cvL('Weight VRAM:','权重显存：')}<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(1)}</strong> GB</p>`;
-  html += `<p>${__cvL('Activations:','激活显存：')}<strong>${__actGB.toFixed(2)}</strong> GB · ${__cvL('KV cache:','KV 缓存：')}<strong>${kv.toFixed(1)}</strong> GB · ${__cvL('Optimizer/grad:','优化器/梯度：')}<strong>${opt.toFixed(1)}</strong> GB</p>`;
+  html += `<p>${__cvL('Activations:','激活显存：')}<strong>${__actGB.toFixed(2)}</strong> GB（${recompute<1?'重计算 ×0.5':'完整'}） · ${__cvL('KV cache:','KV 缓存：')}<strong>${kv.toFixed(1)}</strong> GB · ${__cvL('Optimizer/grad:','优化器/梯度：')}<strong>${__optPer.toFixed(1)}</strong> GB（ZeRO ×${zero}）</p>`;
   html += `<p>${__cvL('Total VRAM estimate:','总显存估算：')}<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(1)}</strong> GB</p>`;
   if(vram>0){
     const __margin=vram-__v1;
@@ -307,19 +312,21 @@ function __veExtras(){
     if(typeof TBKit==='undefined')return;
     try{
         var params=__veN('params'), bytes=__veN('bytes'), act=__veN('act'), kv=__veN('kv')||0, opt=__veN('opt')||0, vram=__veN('vram')||0;
+        var recompute=parseFloat((document.getElementById('recompute')||{}).value)||1;
+        var zero=Math.max(1,Math.floor(__veN('zero')||1));
         if(!(params>0&&bytes>0))return;
-        var w=params*bytes, actGB=act/1000, total=params*bytes+actGB+kv+opt;
+        var w=params*bytes, actGB=act/1000*recompute, optPer=opt/zero, total=params*bytes+actGB+kv+optPer;
         var ps=[1,3,7,13,30,70];
         var labels=ps.map(function(p){return p+'B';});
-        var data=ps.map(function(p){return p*bytes+actGB+kv+opt;});
+        var data=ps.map(function(p){return p*bytes+actGB+kv+optPer;});
         TBKit.chart.line('#veChart',{labels:labels,series:[{name:__veL('VRAM (GB)','显存 (GB)'),data:data}],height:230,title:__veL('Total VRAM vs model size','总显存随参数量增长')});
         var rows=__veL(
-            [['params (B)',params.toFixed(2)],['bytes per param',bytes.toFixed(1)],['weight VRAM (GB)',w.toFixed(1)],['activations (GB)',actGB.toFixed(2)],['KV cache (GB)',kv.toFixed(1)],['optimizer/grad (GB)',opt.toFixed(1)],['total VRAM (GB)',total.toFixed(1)],['target VRAM (GB)',vram?vram.toFixed(1):'—'],['headroom (GB)',vram?(vram-total).toFixed(1):'—']],
-            [['参数量 (B)',params.toFixed(2)],['每参数字节',bytes.toFixed(1)],['权重显存 (GB)',w.toFixed(1)],['激活显存 (GB)',actGB.toFixed(2)],['KV 缓存 (GB)',kv.toFixed(1)],['优化器/梯度 (GB)',opt.toFixed(1)],['总显存 (GB)',total.toFixed(1)],['目标显存 (GB)',vram?vram.toFixed(1):'—'],['余量 (GB)',vram?(vram-total).toFixed(1):'—']]);
+            [['params (B)',params.toFixed(2)],['bytes per param',bytes.toFixed(1)],['weight VRAM (GB)',w.toFixed(1)],['activations (GB)',actGB.toFixed(2)],['KV cache (GB)',kv.toFixed(1)],['optimizer/grad (GB)',optPer.toFixed(1)],['total VRAM (GB)',total.toFixed(1)],['target VRAM (GB)',vram?vram.toFixed(1):'—'],['headroom (GB)',vram?(vram-total).toFixed(1):'—']],
+            [['参数量 (B)',params.toFixed(2)],['每参数字节',bytes.toFixed(1)],['权重显存 (GB)',w.toFixed(1)],['激活显存 (GB)',actGB.toFixed(2)],['KV 缓存 (GB)',kv.toFixed(1)],['优化器/梯度 (GB)',optPer.toFixed(1)],['总显存 (GB)',total.toFixed(1)],['目标显存 (GB)',vram?vram.toFixed(1):'—'],['余量 (GB)',vram?(vram-total).toFixed(1):'—']]);
         TBKit.matrix.table('#veTable',{head:__veL(['Metric','Value'],['指标',((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Value":"数值")]),rows:rows});
-        TBKit.history.record({total:Number(total.toFixed(1)),params:params,bytes:bytes,act:act,kv:kv,opt:opt,vram:vram});
+        TBKit.history.record({total:Number(total.toFixed(1)),params:params,bytes:bytes,act:act,kv:kv,opt:opt,vram:vram,recompute:recompute,zero:zero});
         TBKit.util.diffBox('#veDiff',['total']);
-        TBKit.history.mount('#veHist',function(v){ if(v.total!=null){document.getElementById('params').value=v.params;document.getElementById('bytes').value=v.bytes;document.getElementById('act').value=v.act;document.getElementById('kv').value=v.kv||0;document.getElementById('opt').value=v.opt||0;document.getElementById('vram').value=v.vram||24;} calc(); });
+        TBKit.history.mount('#veHist',function(v){ if(v.total!=null){document.getElementById('params').value=v.params;document.getElementById('bytes').value=v.bytes;document.getElementById('act').value=v.act;document.getElementById('kv').value=v.kv||0;document.getElementById('opt').value=v.opt||0;document.getElementById('vram').value=v.vram||24;document.getElementById('recompute').value=v.recompute||1;document.getElementById('zero').value=v.zero||1;} calc(); });
     }catch(e){}
 }
 function __vePresets(){

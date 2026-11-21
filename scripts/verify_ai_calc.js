@@ -278,6 +278,12 @@ const CASES = [
 
   {
     slug: "ai/vram-estimate",
+    inputs: { params: "7", bytes: "4", act: "1500", kv: "2", opt: "10", vram: "24", recompute: "0.5", zero: "4" },
+    expect: ["总显存估算： 33.3", "激活显存： 0.75", "优化器/梯度： 2.5"],
+    ref: "7B×4B=28 + 激活1.5×0.5=0.75 + KV2 + 优化器10/4=2.5 ⇒ 33.25→33.3；旧版无重计算与 ZeRO 开关，固定 41.5GB。",
+  },
+  {
+    slug: "ai/vram-estimate",
     inputs: { params: "7", bytes: "4", act: "1500", kv: "2", opt: "10", vram: "24" },
     expect: ["总显存估算： 41.5", "超出： 17.5"],
     ref: "7B×4B=28GB + 激活1.5GB + KV2GB + 优化器10GB = 41.5GB；24GB 目标超出 17.5GB。旧版只有权重+激活，且固定 24GB 判据。",

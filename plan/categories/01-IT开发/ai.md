@@ -4,9 +4,9 @@
 
 ## 已知问题
 ### A1. 「参数估算器」类页与实际框架口径脱节
-- 描述：training-flops 已补「训练开销倍率」并修正单位，vram-estimate 已拆分权重/激活/KV/优化器并支持目标显存；仍缺 ZeRO 档位、序列并行开关与 N 卡实测对表。
+- 描述：training-flops 已补训练开销倍率并修正单位；vram-estimate 已拆分权重/激活/KV/优化器、支持目标显存、激活重计算与 ZeRO 分片。仍缺序列并行口径与 N 卡实测对表来源。
 - 受影响：tools/ai/training-flops.html、vram-estimate.html、transformer-params.html
-- 方案：继续补 ZeRO/序列并行口径开关，并在页面注明实测对表来源。
+- 方案：补序列并行的激活/显存修正说明，并在页面注明实测对表来源。
 
 ### A2. 概念演示页交互浅
 - 描述：softmax/k-means/attention 等页多为静态算例，滑杆联动少。
