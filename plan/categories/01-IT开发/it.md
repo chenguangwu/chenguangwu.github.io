@@ -64,27 +64,6 @@
 
 - 覆盖小结：本轮实读 8 页（adfgvx-cipher、affine-cipher、atbash-cipher、bacon-cipher、hill-cipher、playfair-cipher、rail-fence-cipher、vigenere-visualizer），新增 24 条（高 3 / 中 14 / 低 7），编号 IT-N143~IT-N166。未覆盖：本分区其余约 257 页（含全部编码/哈希/格式化/HTTP/Git/Docker 生成器与速查表）；未做浏览器、英文态、繁体、移动端、门禁与线上部署验证。
 
-### 承诺 vs 实际（R 批专项）
-- `tools/it/rabbit.html:201`："导出明细 CSV"导的是 `#rabbitTable`，而 `:441-443` 读 `#output`（**textarea**）的 `textContent`，textarea 的 textContent 是初始内容（恒空）→ 历史/图表/CSV 恒空（IT-N140 同型，不重复编号）。
-- `tools/it/rest-api-cheatsheet.html:558` 错误格式 syntax 非法 JSON（N236）；`:221` "POST 建"指向 `/users/{id}`（N237）。
-- `tools/it/md5.html:201`：称"支持任意大小文件"，但 `:338`/`:375` 的 `tail[14]=n*8` 只写低 32 位、未给高位字 `tail[15]` 赋值 → ≥512 MiB 文件摘要错误；且 `:417-426` 用 `readAsArrayBuffer` 全量读入内存，"任意大小"不成立。
-- `tools/it/md5.html:47`、`:606`：宣称"支持批量生成""MD5 碰撞检测参考"，实际无批量与碰撞功能（N240）。
-- `tools/it/binomial-distribution.html:176-178`：三个输入无上限/无小数校验（N241）；`:171` `≥5` 与 `:254` `>5` 冲突（N243）。
-- `tools/it/go-cheatsheet.html:341` 等 5 处 `--` 注释（N244）、`:365` 等 7 处 `...` 占位与未使用变量（N245），与"可复制示例"的定位冲突。
-- 通用：本批 5 页的"导出明细 CSV"（`tools/it/rabbit.html:201`、`tools/it/sms-qr.html:165`、`tools/it/hypothesis-test.html:181`、`tools/it/md5.html:191`、`tools/it/binomial-distribution.html:181`）导的都是历史表而非当前结果；其中 rabbit 的历史源文本取自 textarea 的 `textContent`，恒为空。
-
-### 覆盖
-- 实读 8 页：`tools/it/rabbit.html`、`tools/it/mysql-cheatsheet.html`、`tools/it/sms-qr.html`、`tools/it/hypothesis-test.html`、`tools/it/rest-api-cheatsheet.html`、`tools/it/md5.html`、`tools/it/binomial-distribution.html`、`tools/it/go-cheatsheet.html`。
-- 新增 21 条（高 4 / 中 10 / 低 7），编号 IT-N225~IT-N245；本批无重号（上一批止于 IT-N224）。
-- 未覆盖说明：只审计主流程、参数边界与文档口径，未逐条穷举 MySQL/Go 语法（仅抽检 GRANT、`INT[(M)]`/`ZEROFILL`、`VALUES()`、`--`、`...`）；Rabbit 未做官方向量比对（缺 RFC 4503 期望值，只证明了"进位/密钥装入偏离本页说明"）；sms-qr 未实际扫码；binomial 参数域抽样到 n=20000；rest-api/mysql 内容准确性对照 RFC 9110/9457 与 MySQL 8.0 手册，非逐条穷举。
-- 未做验证：未开浏览器、未构建、未跑门禁、未 git 写；全部结论为源码静态分析 + `node` 内存复算（临时脚本在 `/tmp`，未落仓库），未验证英文态 `?lang=en-US`/繁体/移动端。
-
-- `device-info`：普通/外部值仍走 escapeHtml 不回退安全。verify 无用例（依赖 navigator/screen 原生对象），真机 8/8 vs 旧 1/8。真机 9/9 vs 旧 2/9。
-
-- `hex-encode`：IT-N261 解码改为先剥分隔符、再全局 `replace(/0x/gi,'')`（每行/每字节 0x 的 hexdump 都能解，大小写 0X 兼容），编码侧勾选 prefix 时按字节加（`0x48 0x69`）；IT-N262 历史读取 F-N189 全站修复已覆盖（`#output` 是 textarea，现读 `r.value`），本批删掉 `__hex_encodeScore` 关键词判 0 启发式（恒 1，与 N246 同型，避免 "Error 404"/严格解码告警被误判无效）；IT-N263 改严格 UTF-8（`fatal:true,ignoreBOM:true`）+ 非法字节计数/Latin-1 对照/原始 hex 字节列表，`dec` 也包进 extras 并写「模式=编码/解码」，历史回放按方向选 `enc()`/`dec()`；真机 25/25 vs 旧 9/25（16 项红），verify 无用例（依赖 TextEncoder/TextDecoder 原生对象）。后续条目仍留清单
-
-- `json-schema-generator`：IT-N267 required 不再无条件收键——null 字段跳过（否则「必填且只能为 null」让任何真实响应校验失败），数组元素的多个对象取共有键（mergeSchemas 顺带保留 required），说明文案改为「单样本推断、多样本需人工合并」；IT-N268「描述注释」勾选框从死控件变成真输出 `description: 'The <key> field.'`（保留预设「描述+极值+标题」的承诺）；IT-N269 混合类型不再退化空 schema，输出去重后的 `anyOf` 且树视图同步展示；顺带修 `isIPv4` 逐段 0-255 + 拒前导零（999/256/01 段不再误标 ipv4）。en JSON required 说明键/英译同步。真机 21/21 vs 旧 6/21（15 项红），verify 无用例。承诺 vs 实际段其余项仍留清单
-
 ### 承诺 vs 实际（R 批专项·8 页）
 - `tools/it/qrcode.html:299`："最高版本 40 约存 2953 字节（数字模式）"——2953 是**字节模式**容量（数字模式为 7089 位），与同页 `:559` 的正确表注自相矛盾。
 - `tools/it/qrcode.html:11`、`:80-81`、`:169`、`:629`：宣称"识别/解析上传图片"，实际只有生成（N259）；`:629` 还多打了一个句号"。。"。
