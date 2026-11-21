@@ -190,12 +190,18 @@ function todayStr(){var d=new Date();d.setHours(0,0,0,0);return d;}
 function parseDate(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
 
 // 计算目标日期：若每年重复，则取今年的该日期；若已过则取明年
+function isLeapYear(y){return (y%4===0&&y%100!==0)||y%400===0;}
+function yearlyDate(year,month,day){
+  // 2 月 29 日在平年夹到 2 月 28 日，避免 Date 自动溢出成 3 月 1 日
+  if(month===1&&day===29&&!isLeapYear(year)) day=28;
+  return new Date(year,month,day);
+}
 function calcTarget(it){
   var base=parseDate(it.date);
   if(it.yearly){
     var now=todayStr();
-    var thisYear=new Date(now.getFullYear(),base.getMonth(),base.getDate());
-    if(thisYear<now){thisYear=new Date(now.getFullYear()+1,base.getMonth(),base.getDate());}
+    var thisYear=yearlyDate(now.getFullYear(),base.getMonth(),base.getDate());
+    if(thisYear<now){thisYear=yearlyDate(now.getFullYear()+1,base.getMonth(),base.getDate());}
     return {target:thisYear,isFuture:true,years:thisYear.getFullYear()-base.getFullYear()};
   }
   var now=todayStr();

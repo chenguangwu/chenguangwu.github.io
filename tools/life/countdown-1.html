@@ -219,8 +219,16 @@ function switchMode(m){
   syncUI();render();save();
 }
 function applyTarget(){
-  var m=Math.max(0,parseInt(document.getElementById('setMin').value)||0);
-  var sc=Math.max(0,Math.min(59,parseInt(document.getElementById('setSec').value)||0));
+  var rawM=Number(document.getElementById('setMin').value);
+  var rawS=Number(document.getElementById('setSec').value);
+  if(!Number.isInteger(rawM)||rawM<0||!Number.isInteger(rawS)||rawS<0||rawS>59){
+    ToolBox.showToast('请输入非负整数分钟、0–59 秒', 'warning');return;
+  }
+  var m=rawM, sc=rawS;
+  // 0 秒目标会让「开始」立即完成并响铃；至少要求 1 秒
+  if(m*60+sc < 1){m=0;sc=1;}
+  document.getElementById('setMin').value=m;
+  document.getElementById('setSec').value=sc;
   state.target=(m*60+sc)*1000;
   state.elapsed=0;state.frozen=0;
   render();save();
@@ -231,6 +239,13 @@ function quickSet(min){
   document.getElementById('setSec').value=0;
   applyTarget();
 }
+var finishTimer=null;
+function finishNow(){
+  if(!state.running) return;
+  state.elapsed=state.target;state.running=false;
+  if(rafId)cancelAnimationFrame(rafId);
+  syncUI();render();save();onFinish();
+}
 function toggleRun(){
   if(state.mode==='down'&&state.elapsed>=state.target){
     state.elapsed=0;state.frozen=0;
@@ -240,8 +255,14 @@ function toggleRun(){
     state.frozen=state.elapsed;
     state.baseTs=Date.now();
     if(rafId)cancelAnimationFrame(rafId);
+    // rAF 在后台标签页会停摆；到点提醒改由独立 setTimeout 保证按时触发
+    if(finishTimer){clearTimeout(finishTimer);finishTimer=null;}
+    if(state.mode==='down'&&state.target>state.elapsed){
+      finishTimer=setTimeout(finishNow,state.target-state.elapsed);
+    }
     tick();
   }else{
+    if(finishTimer){clearTimeout(finishTimer);finishTimer=null;}
     state.elapsed=curElapsed();
     state.frozen=state.elapsed;
   }
@@ -258,6 +279,7 @@ function tick(){
 }
 function resetTimer(){
   if(rafId)cancelAnimationFrame(rafId);
+  if(finishTimer){clearTimeout(finishTimer);finishTimer=null;}
   state.running=false;state.elapsed=0;state.frozen=0;state.laps=[];
   syncUI();render();save();
   ToolBox.showToast(i18nText());

@@ -253,7 +253,8 @@ function setTemplate(name){
 }
 function addSegment(){
   const name=prompt('阶段名称：')||'练习';
-  const mins=parseInt(prompt('时长(分钟)：','5'))||5;
+  const mins=Number(prompt('时长(分钟)：','5'));
+  if(!Number.isInteger(mins)||mins<=0){alert('时长须为正整数分钟');return;}
   segments.push({name,sec:mins*60});render();
 }
 function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
@@ -266,30 +267,41 @@ function render(){
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('segments').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('segments').innerHTML=__h0;
   document.getElementById('display').textContent=fmt(remaining||(segments[0]?.sec||0));
 }
+var endTs=0,segStartTs=0,practiceSec=0;
 function toggle(){
-  if(running){clearInterval(interval);running=false;document.getElementById('startBtn').textContent='▶️ 继续';}
+  if(running){clearInterval(interval);running=false;endTs=0;recordPractice();document.getElementById('startBtn').textContent='▶️ 继续';}
   else{
     if(remaining<=0&&currentSeg<segments.length)remaining=segments[currentSeg].sec;
-    running=true;document.getElementById('startBtn').textContent='⏸️ 暂停';
+    running=true;segStartTs=Date.now();document.getElementById('startBtn').textContent='⏸️ 暂停';
+    endTs=Date.now()+remaining*1000;
     interval=setInterval(()=>{
-      remaining--;render();
+      // 用墙钟重算剩余秒数：后台标签页被节流时不会按回调次数走慢
+      remaining=Math.max(0,Math.ceil((endTs-Date.now())/1000));render();
       if(remaining<=0){
         currentSeg++;
-        if(currentSeg>=segments.length){clearInterval(interval);running=false;alert('🎉 练习完成！');document.getElementById('startBtn').textContent='▶️ 开始';currentSeg=0;remaining=segments[0]?.sec||0;render();return;}
+        if(currentSeg>=segments.length){clearInterval(interval);running=false;endTs=0;recordPractice();alert('🎉 练习完成！');document.getElementById('startBtn').textContent='▶️ 开始';currentSeg=0;remaining=segments[0]?.sec||0;render();return;}
         remaining=segments[currentSeg].sec;
+        endTs=Date.now()+remaining*1000;
         try{const ac=new AudioContext();[523,659,784].forEach((f,i)=>setTimeout(()=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;o.connect(g);g.connect(ac.destination);g.gain.setValueAtTime(0.3,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.01,ac.currentTime+0.3);o.start();o.stop(ac.currentTime+0.3);},i*150));}catch(e){}
       }
     },1000);
   }
 }
-function reset(){clearInterval(interval);running=false;currentSeg=0;loadTemplate(Object.keys(templates)[0]);document.getElementById('startBtn').textContent='▶️ 开始';}
+function reset(){clearInterval(interval);running=false;currentSeg=0;practiceSec=0;segStartTs=0;window.__musicPracticeDirty=false;loadTemplate(Object.keys(templates)[0]);document.getElementById('startBtn').textContent='▶️ 开始';}
 loadTemplate('warmup');
+function recordPractice(){
+  if(!segStartTs) return;
+  practiceSec += Math.max(0, Math.round((Date.now()-segStartTs)/1000));
+  segStartTs = Date.now();
+  window.__musicPracticeDirty = true;
+  __tbn();
+}
 var __tbn=function(){
   if(typeof TBKit==='undefined')return;
-  var acc=(function(){return segments.reduce(function(s,x){return s+(x.sec||0);},0);})();
+  var acc=practiceSec;
   if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
   var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
-  var LBL=EN?'练习计划总时长(秒)':'练习计划总时长(秒)';
+  var LBL=EN?'Actual practice time (s)':'实际练习时长(秒)';
   var T=EN?{hist:'Practice History',sc:'Score',no:'#',time:'Time',exp:'Export CSV',file:'practice-history.csv'}
           :{hist:'练习成绩历史',sc:'成绩值',no:'序号',time:'时间',exp:'导出 CSV',file:'practice-history.csv'};
   var KEY='__tbn_practice_timer';
@@ -299,7 +311,7 @@ var __tbn=function(){
   if(!last||last.v!==acc){hist.push({t:Date.now(),v:acc});}
   if(hist.length>30)hist=hist.slice(-30);
   try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
-  var __rec={};__rec[LBL]=acc;if(TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);
+  var __rec={};__rec[LBL]=acc;if(window.__musicPracticeDirty&&TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);
   var host=document.getElementById('__tbnExtras');
   if(!host)return;
   if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+(EN?'Records appear after 2+ sessions.':'练习 2 次以上后显示成绩趋势图。')+'</p>';return;}
