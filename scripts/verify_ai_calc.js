@@ -336,8 +336,8 @@ const CASES = [
   {
     slug: "ai/token-usage",
     inputs: { cn: "240", enWords: "150", code: "40" },
-    expect: ["400 token"],
-    ref: "tokens=240/1.5+150/0.75+40=160+200+40=400",
+    expect: ["388 token"],
+    ref: "tokens=240/1.5+150×1.25+40=160+187.5+40=387.5，四舍五入 388",
   },
 
   // ── 卷积输出尺寸与感受野 ───────────────────────────────────
@@ -1203,9 +1203,9 @@ const CASES = [
       "code": "42"
     },
     expect: [
-      " tokens： 126 token"
+      " tokens： 123 token"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cn\":\"42\",\"enWords\":\"42\",\"code\":\"42\"}，输出区含「 tokens： 126 token」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cn\":\"42\",\"enWords\":\"42\",\"code\":\"42\"}，输出区含「 tokens： 123 token」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "ai/token",
@@ -1364,7 +1364,7 @@ const HOST_CASES = [
     chart: "tuChart", table: "tuTable",
     extras: ["tuChart", "tuTable", "tuDiff", "tuHist", "tuPresets"],
     inputs: { cn: "240", enWords: "150", code: "40" },
-    tableExpect: "400",
+    tableExpect: "388",
     // AI-N13：代码输入单位是已计数的 tokens，表格不能再写成「代码行数」。
     extraExpect: ["输入代码 tokens"],
     restore: { inputId: "cn", historyKey: "cn" },
