@@ -408,3 +408,7 @@
 | https://chenguangwu.github.io/tools/life/generator-random-1.html | https://chenguangwu.github.io/tools/it/random.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/life/generator-strength.html | https://chenguangwu.github.io/tools/it/password-generator.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/fluid/continuity-equation.html | https://chenguangwu.github.io/tools/hydraulic/continuity-pipe.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/food/convert-concentration.html | https://chenguangwu.github.io/tools/food/syrup-brix-converter.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/food/convert-19.html | https://chenguangwu.github.io/tools/food/wine-alcohol-converter.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/sports/generator-random-3.html | https://chenguangwu.github.io/tools/sports/yoga-pose-generator.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/design/generator-8.html | https://chenguangwu.github.io/tools/it/qrcode.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |

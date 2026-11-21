@@ -61,27 +61,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "food/convert-19",
-  "inputs": {
-    "og": "4.05",
-    "fg": "1.010"
-  },
-  "expect": [
-    "413.04"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "food/convert-concentration",
-  "inputs": {
-    "val": "30"
-  },
-  "expect": [
-    "1.129"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "food/convert-ratio-seasoning",
   "inputs": {
     "base": "15",
