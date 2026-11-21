@@ -4210,8 +4210,16 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         if len(_seo_desc_raw) < 70:
             _dd_slug = t['path'].replace('tools/', '').rsplit('.html', 1)[0]
             _dd_sc = (DEEP_DIVE.get(_dd_slug) or {}).get('scenarios') or []
+            _extras = []
             if _dd_sc:
-                _extra = re.sub(r'<[^>]+>', '', str(_dd_sc[0])).strip()
+                _extras.append(str(_dd_sc[0]))
+            _dd_ul = re.search(r'<ul class="dd-list">(.*?)</ul>', content, re.S)
+            if _dd_ul:
+                _extras.extend(re.findall(r'<li>(.*?)</li>', _dd_ul.group(1), re.S)[:3])
+            for _extra in _extras:
+                if len(_seo_desc_raw) >= 70:
+                    break
+                _extra = re.sub(r'<[^>]+>', '', _extra).strip()
                 _extra = re.sub(r'\s+', ' ', _extra).rstrip('。')
                 if len(_extra) >= 8 and _extra[:8] not in _seo_desc_raw:
                     _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。' + _extra
