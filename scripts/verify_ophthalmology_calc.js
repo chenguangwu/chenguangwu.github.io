@@ -520,6 +520,12 @@ const CASES = [
   "expect": ["S>I−5 且 I>N>T", "符合"],
   "ref": "S=96 比 I=100 低 4μm，代码 isntOk 以 s>i-5 容许该差异并判‘符合’，页面却标 S>I>N>T，字面会判违反；统一为 S>I−5 且 I>N>T。"
 },
+{
+  "slug": "ophthalmology/refraction-error",
+  "inputs": {"s": "-2", "c": "1", "ax": "180"},
+  "expect": ["顺规(WTR)", "按负柱镜轴 90° 判定"],
+  "ref": "S−2.00/C+1.00/ax180 等价于 S−1.00/C−1.00/ax90，属顺规；旧版只看 +C 的轴 180，误判逆规(ATR)。"
+},
 
 ];
 async function main() {
