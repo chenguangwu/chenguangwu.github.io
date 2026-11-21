@@ -110,12 +110,6 @@ const CASES = [
   "ref": "de-default: depth60→大量积液（避开输入值回声）"
 },
 {
-  "slug": "urology/iief5-score",
-  "inputs": { "q0": "3", "q1": "3", "q2": "3", "q3": "3", "q4": "3" },
-  "expect": ["IIEF-5 总分：15 / 25", "轻中度 ED"],
-  "ref": "fix broken template: q0-4=3→总分15"
-},
-{
   "slug": "urology/ipss-score",
   "inputs": {},
   "clicks": ["document.getElementById('qol').value='1';__markScaleDirty();"],

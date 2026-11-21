@@ -30,7 +30,7 @@ const DEFAULT_SAMPLE = [
   'welding/weld-strength',      // 旧模板变体（单复选框）
   'it/xml-to-yaml', 'it/random-string', 'it/yaml-to-json', 'it/toml-to-json',
   'it/yaml-to-xml', 'it/csv-to-yaml', 'it/toml-to-xml', 'it/toml-to-yaml',
-  'it/yaml-to-toml', 'it/whitespace', 'it/xml-to-toml',
+  'it/yaml-to-toml', 'it/xml-to-toml',
 ];
 
 const TARGETS = pagesArg

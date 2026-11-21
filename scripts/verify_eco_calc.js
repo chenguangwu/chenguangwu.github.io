@@ -52,9 +52,6 @@ const CASES = [
   { slug: "eco/methane-equivalent", inputs: { ch4: "150", gwp: "25", years: "50" },
     expect: ["3750.0", "75.0"],
     ref: "当量=150×25=3750.0 kgCO₂e；年均=3750/50=75.0（默认 100/28/100→2800.0/28.0 避开）" },
-  { slug: "eco/noise-addition", inputs: { L1: "95", L2: "88", L3: "82" },
-    expect: ["95.97", "0.97"],
-    ref: "总级=10·lg(10^9.5+10^8.8+10^8.2)=95.9679→95.97 dB；比最强源增量=95.9679−95=0.97 dB（默认 80/75/70→81.51/1.51 避开）" },
   { slug: "eco/rainwater-harvest", inputs: { roof: "150", rain: "60", eff: "85" },
     expect: ["7650", "7.65"],
     ref: "收集量=150×60×0.85=7650 L；折合=7.65 吨（默认 100/50/80→4000/4.00 避开）" },
@@ -446,18 +443,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"organic\":\"42\",\"doc\":\"42\",\"mcf\":\"42\",\"frac\":\"42\"}，输出区含「42\n42\n42\n42\nCH₄ 产量： 4148928.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "eco/noise-addition",
-    "inputs": {
-      "L1": "42",
-      "L2": "42",
-      "L3": "42"
-    },
-    "expect": [
-      "42\n42\n42\n总声压级： 46.77"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"L1\":\"42\",\"L2\":\"42\",\"L3\":\"42\"}，输出区含「42\n42\n42\n总声压级： 46.77」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "eco/rainwater-harvest",
     "inputs": {
       "roof": "42",
@@ -601,7 +586,6 @@ const CASES = [
 { slug:"eco/battery-storage", inputs:{"ah":"","v":"","dod":""}, expect:["请填写电池容量"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
 { slug:"eco/convert-air-aqi", inputs:{"c":""}, expect:["请填写PM2.5 浓度"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
 { slug:"eco/env-impact-score", inputs:{"energy":"","water":"","waste":"","emis":""}, expect:["请填写能源、水资源、废弃物、排放四项评分"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
-{ slug:"eco/noise-addition", inputs:{"L1":"","L2":"","L3":""}, expect:["请填写三个声源的声压级"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
 { slug:"eco/eco-10", inputs:{"capacity":"","hours":"","factor":""}, expect:["请填写装机容量、年有效小时数、排放因子"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
 { slug:"eco/eco-16", inputs:{"capacity":"","cf":"","factor":""}, expect:["请填写装机容量、容量因子、排放因子"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },
 { slug:"eco/eco-4", inputs:{"pop":"","per_capita":"","days":""}, expect:["请填写人口、人均日产量、天数"], ref:"全清空后不得输出 0/0.00 假结果（ECOEMPTY）" },

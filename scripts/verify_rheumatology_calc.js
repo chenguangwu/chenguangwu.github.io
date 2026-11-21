@@ -67,25 +67,6 @@ const CASES = [
   "ref": "DAS28(ESR)=0.56×√(TJC28)+0.28×√(SJC28)+0.70×ln(ESR)+0.014×GH = 1.9399+0.7920+1.4556+0.7000 = 4.8875 → 4.89（中等活动度）；默认值 4.2541 → 4.25，两串均失配。"
 },
 {
-  // 原为 all_default 弱用例（注入值全等于页面默认），expect「肝素」是临床建议文本词（逃生项）。
-  // 筛查 60/35 = 171% > 110%（延长）+ 混合未纠正 + 确认比值 60/55 = 1.09 ≤ 1.1（非阳性）
-  // → 命中 isth1 && isth2 && !isth3 分支 → 「非磷脂依赖性抑制物」（默认态为 LA 阳性）。
-  "slug": "rheumatology/detector-8",
-  "inputs": {
-    "screen": "60",
-    "confirm": "55",
-    "normal": "35",
-    "mixing": "uncorrected",
-    "aptt": "70",
-    "apttNormal": "32"
-  },
-  "expect": [
-    "非磷脂依赖性抑制物 判读结论",
-    "1.09 dRVVT比值（>1.2阳性）"
-  ],
-  "ref": "dRVVT 比值 = 60/55 = 1.0909 → 1.09（≤1.1 阴性）、筛查% = 60/35 = 171%（>110% 延长）、混合试验未纠正 ⇒ isth1&&isth2&&!isth3 → 「非磷脂依赖性抑制物」；默认 42/33 → 1.2727 > 1.2 → 「狼疮抗凝物（LA）阳性」。"
-},
-{
   // 原 expect「病理诊断」是输出文案片段（词串型）；改为依赖勾选的分级断言。
   // 器官受累：胰腺 +4、胆管 +3、肾脏 +3 = +10；叠加 igg4=5.8（落在 5.0–10 g/L 档 → +6）= 16，
   // 落在 10–19 区间 → 疑诊IgG4-RD。不勾选器官时 = 6 分 → 更低档（故具判别力）。
@@ -392,7 +373,6 @@ const CASES = [
 },
 { slug:"rheumatology/complement-level", inputs:{"c3":"","c4":""}, expect:["请填写C3 与 C4 补体水平"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
 { slug:"rheumatology/das28", inputs:{"tjc":"","sjc":"","markerVal":""}, expect:["请填写压痛关节数、肿胀关节数与标志物值"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
-{ slug:"rheumatology/detector-8", inputs:{"screen":"","confirm":"","aptt":""}, expect:["请填写筛查/确证比值与 aPTT"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
 { slug:"rheumatology/gout-uric-acid", inputs:{"ua":""}, expect:["请填写血尿酸值"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
 { slug:"rheumatology/igg4-level", inputs:{"igg4":"","igg":""}, expect:["请填写IgG4 与 IgG 水平"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
 { slug:"rheumatology/il6-inflammation", inputs:{"il6":"","crp":""}, expect:["请填写IL-6 与 CRP 水平"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },

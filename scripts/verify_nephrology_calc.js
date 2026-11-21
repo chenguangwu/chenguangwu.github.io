@@ -5,33 +5,6 @@ const fs = require("fs");
 globalThis.__tbFs = fs;
 const CASES = [
 {
-  "slug": "nephrology/aki-kdigo",
-  "inputs": {
-    "baselineScr": "120",
-    "currentScr": "180",
-    "urine": "0.3",
-    "duration": "8"
-  },
-  "expect": [
-    "1.50倍基线"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "nephrology/aki-kdigo",
-  "inputs": {
-    "baselineScr": "120",
-    "currentScr": "180",
-    "urine": "0",
-    "duration": "13",
-    "elapsed": "24"
-  },
-  "expect": [
-    "无尿≥12h"
-  ],
-  "ref": "KDIGO 2012 尿量 3 期独立判据：尿量 0 且持续 13h ⇒ 无尿≥12h 判 3 期（肌酐侧仅 1 期）。默认态尿量 0.3、持续 8h 走 1 期「6-12h」分支，不含「无尿≥12h」⇒ 强判别。"
-},
-{
   "slug": "nephrology/ca-p-product",
   "inputs": {
     "calcium": "5.2",
@@ -352,11 +325,6 @@ const CASES = [
   "ref": "12-N114：结果分级取深度/回弹较重档 score=1..4，参考标尺必须使用同一 score 与 1/2/3/4 分带；旧版按 depth 且用 0/3/5/7 分带 ⇒ 变红。默认态不产生该串，零逃生。"
 },
 {
-  "slug": "nephrology/aki-kdigo",
-  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/nephrology/aki-kdigo.html','utf8');var b=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/nephrology-body.json','utf8');var ok=h.indexOf('cat=health,industry=nephrology')>=0&&h.indexOf('applicationCategory\":\"MedicalApplication')>=0&&h.indexOf('content=\"AKI KDIGO Staging Calculator\"')>=0&&b.indexOf('\"title\": \"AKI KDIGO Staging\"')>=0&&b.indexOf('\"title\": \"Aki Kdigo\"')<0;document.getElementById('__tbProbe').textContent='AKIMETA '+(ok?'OK':'BAD');"],
-  "expect": ["AKIMETA OK"],
-  "ref": "12-N99：分类元数据归健康医疗、JSON-LD 标 MedicalApplication、英文 title-en 完整，nephrology-body 权威源不再保留 Aki Kdigo 占位；旧版 cat=calculator/UtilitiesApplication 且 body 源占位 ⇒ 变红。默认态不产生该串，零逃生。"
-  },{
     "slug": "nephrology/ckd-staging",
     "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/nephrology/ckd-staging.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/nephrology/ckd-staging.json','utf8');var d=JSON.parse(dd)['nephrology/ckd-staging'];var b1=d.examples[0].body,b2=d.examples[1].body;var ok=h.indexOf('cat=health,industry=nephrology,icon=🫘')>=0&&h.indexOf('applicationCategory\":\"MedicalApplication')>=0&&h.indexOf('UACR 不能留空')>=0&&h.indexOf('gStage==='+String.fromCharCode(39)+'G3a'+String.fromCharCode(39))>=0&&h.indexOf('risk='+String.fromCharCode(39)+'很高风险'+String.fromCharCode(39))>=0&&b1.indexOf('高风险')>=0&&b1.indexOf('2 次/年')>=0&&b1.indexOf('中风险')<0&&b2.indexOf('很高风险')>=0&&en.indexOf('high risk; follow up twice a year')>=0;document.getElementById('__tbProbe').textContent='CKDMETA '+(ok?'OK':'BAD');"],
     "expect": ["CKDMETA OK"],

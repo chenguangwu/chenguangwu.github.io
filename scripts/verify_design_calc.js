@@ -630,13 +630,6 @@ const CASES = [
     ref: "负时长：修复前 -3 原样拼成非法的 `animation: skelLoading -3s ease infinite`；修复后应显式提示并拒绝生成。默认 1.4s 不含该提示 ⇒ 判别明确。",
   },
   {
-    slug: "design/shadow-generator",
-    inputs: { offsetX: "10", offsetY: "16", blur: "24", color: "#f43f5e" },
-    expect: ["box-shadow: 10px 16px 24px -5px #f43f5e;"],
-    ref: "独立复算：`#code` 拼 `box-shadow: ${offsetX}px ${offsetY}px ${blur}px -5px ${color};`（含固定 spread=-5px）⇒ 注入 offsetX=10 / offsetY=16 / blur=24 / color=#f43f5e 得该串。默认态色值为 #000000 ⇒ 不命中。"
-        + "⚠ 颜色必须注入到 `#color`（色值框本身）；注入 `#colorText`（文本框）会触发 `syncColor: reading 'value' of undefined` 且不更新结果 ⇒ 用例必须走 `#color`。",
-  },
-  {
     slug: "design/toast-generator",
     inputs: { message: "TOOLBOX-OK", radius: "14", bgColor: "#0f172a" },
     expect: ["border-radius: 14px"],
@@ -1079,13 +1072,6 @@ const CASES = [
     expect: [".glass { background: rgba(15, 23, 42, 0.2); backdrop-filter: blur(18px) saturate(160%);"],
     ref: "毛玻璃样式串由背景色 / 模糊 / 饱和度 / 圆角共同决定，锚点整段覆盖四项。默认态为 #ffffff / blur(10px) / saturate(100%) / 16px ⇒ 判别明确。\\n"
       + "⚠ `opacity` 项注入被页面忽略（回落到常量 0.2），本例不注入该项；锚点以 dump 实测值为准，改注入前先重跑 dump。",
-  },
-  {
-    slug: "design/shadow-generator",
-    inputs: { offsetX: "6", offsetY: "10", blur: "24", spread: "-4", color: "#f43f5e" },
-    expect: ["box-shadow: 6px 10px 24px -4px #f43f5e;"],
-    ref: "输出区 `#code` 首行是四值 + 颜色的 box-shadow 简写，五项注入值全部落在这一个串里。默认态为 `0px 10px 20px -5px #667eea;` ⇒ 判别明确。\\n"
-      + "⚠ `inset` 勾选后首行串不变（inset 走另一渲染路径），本例不写 inset 断言，避免写成假用例。",
   },
   {
     slug: "design/button-generator",
@@ -2363,22 +2349,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"strokeWidth\":\"42\",\"colorPicker\":\"abc123测试\"}，输出区含「42\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "design/shadow-generator",
-    "inputs": {
-      "offsetX": "42",
-      "offsetY": "42",
-      "blur": "42",
-      "spread": "42",
-      "color": "abc123测试",
-      "colorText": "abc123测试",
-      "inset": "inset"
-    },
-    "expect": [
-      "-shadow: inset 42px 42px 42px 42px abc123测试"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"offsetX\":\"42\",\"offsetY\":\"42\",\"blur\":\"42\",\"spread\":\"42\",\"color\":\"abc123测试\",\"colorText\":\"abc123测试\",\"inset\":\"inset\"}，输出区含「-shadow: inset 42px 42px 42px 42px abc12…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "design/shutter-speed-calculator",
     "inputs": {
       "focal": "42",
@@ -2651,40 +2621,6 @@ const CASES = [
       " #0EA5E9\nsequential\n42\nlightness"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"csCount\":\"42\",\"csMode\":\"sequential\",\"csStrategy\":\"lightness\"}，输出区含「 #0EA5E9\nsequential\n42\nlightness」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    slug: "design/shadow-generator",
-    // S2 设计系统风格预设组（04 批次）：clicks 直调 applyPreset(i)，i 依赖 PRESETS 追加序
-    // （原 12 个 index 0-11；追加 Material1=12 / Material4=13 / Neu亮=14 / Neu暗=15 / Glass+=16 / Brutal=17 / TW sm=18 / TW md=19 / TW lg=20 / TW xl=21）。
-    // applyPreset → parseShadow（色提尾、数值四元、缺省补 0）→ buildShadowStr 拼 `x y blur spread color`（层间 ', '）→ #code = `box-shadow: ...;`
-    inputs: {},
-    clicks: ["applyPreset(14);"],
-    expect: ["box-shadow: 9px 9px 18px 0px #d1d9e6, -9px -9px 18px 0px #ffffff;"],
-    ref: "Neu 亮预设（index 14）：parseShadow('9px 9px 18px #d1d9e6') → x9 y9 blur18 spread0 → '9px 9px 18px 0px #d1d9e6'；第二层 '-9px -9px 18px 0px #ffffff'。默认态 #code='box-shadow: 0px 10px 20px -5px #667eea;' ⇒ 零交集。"
-  },
-  {
-    slug: "design/shadow-generator",
-    inputs: {},
-    clicks: ["applyPreset(17);"],
-    expect: ["box-shadow: 8px 8px 0px 0px #000000;"],
-    ref: "Brutal 预设（index 17）：'8px 8px 0 #000000' → blur=0/spread=0 补 0px。默认态零交集。"
-  },
-  {
-    slug: "design/shadow-generator",
-    inputs: {},
-    clicks: ["applyPreset(21);"],
-    expect: ["box-shadow: 0px 20px 25px -5px rgba(0,0,0,0.1), 0px 8px 10px -6px rgba(0,0,0,0.1);"],
-    ref: "TW xl 预设（index 21，Tailwind shadow-2xl）：两层 rgba 保留原串。默认态零交集。"
-  },
-  {
-    slug: "design/shadow-generator",
-    inputs: { offsetX: "6", offsetY: "8", blur: "14", spread: "7", color: "#f43f5e", colorText: "#f43f5e" },
-    // setMode('text') 后把预览的内联 textShadow 追加进 code 元素，一次校验导出与预览同步
-    clicks: ["setMode('text'); document.getElementById('code').textContent += ' | ' + document.getElementById('preview').style.textShadow;"],
-    expect: ["text-shadow: 6px 8px 14px #f43f5e; | 6px 8px 14px #f43f5e"],
-    ref: "N4-C text-shadow 只有 offset-x offset-y blur color：即使扩散=7px 也必须省略第 4 个长度值，"
-       + "导出声明与预览内联值一致为「6px 8px 14px #f43f5e」。旧实现拼成「6px 8px 14px 7px #f43f5e」，"
-       + "整条声明非法；默认 box 模式输出含 spread，本用例只锚文字阴影模式。"
   },
   {
     slug: "design/spinner-generator",

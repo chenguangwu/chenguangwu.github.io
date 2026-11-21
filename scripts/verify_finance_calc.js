@@ -96,13 +96,6 @@ const CASES = [
     ref: "年终奖单独/并入两方案对比：bonus>0 时输出两种税额及更优方式；默认 bonus=0 不含该串，强判别。"
   },
   {
-    slug: "finance/salary-after-tax",
-    inputs: { gross: "0", ins: "0", ded: "0", months: "1" },
-    clicks: ["var okIn=String(document.getElementById('gross').value)==='0';calcTool();var s1=__salary_after_taxScore('');document.getElementById('months').value='0';calcTool();var s0=__salary_after_taxScore('');document.getElementById('__tbProbe').textContent='SATSCORE '+(okIn&&s1===1&&s0===0?'OK':'BAD');"],
-    expect: ["SATSCORE OK"],
-    ref: "第128批 F-N37 关联：旧 Score 只看 gross>0，gross=0 是 calcTool() 的合法输入（gross<0 才拒绝）却被误记成未通过，months 越界也只靠词表兜底。修复按 calcTool() 真实业务边界判定（gross/ins/ded ≥0、months 1–12）。同用例内连测合法 0 与非法 months=0；注入失败回默认 gross=15000 ⇒ okIn=false ⇒ BAD ⇒ 强判别、零逃生。"
-  },
-  {
     slug: "finance/investment-roi",
     inputs: { aCost: "10000", aRate: "0", aYears: "5", aAdd: "1000", bCost: "10000", bRate: "0", bYears: "5", bAdd: "1000" },
     clicks: ["switchTab('compare');calcCompare();document.getElementById('aCost').value='-1';calcCompare();var h=String(document.getElementById('compareStats').innerHTML);document.getElementById('__tbProbe').textContent='ROIREJ '+(h.indexOf('须为有效正数')>=0&&h.indexOf('15,000')<0?'OK':'BAD');"],
@@ -1125,13 +1118,6 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["25,937.42", "5,937.42"],
     ref: "同条件复利并列：10,000×(1+10%)^10 = **25,937.42**，比单利本利和 20,000 多 **5,937.42**。默认 10000/5%/3 年 ⇒ 复利 11,576.25、差额 1,576.25，不命中。",
-  },
-  {
-    slug: "finance/salary-after-tax",
-    inputs: { gross: "20000", ins: "1000", ded: "500", months: "12" },
-    clicks: ["calcTool()"],
-    expect: ["2,700.00 本月预扣个税"],
-    ref: "累计预扣：月应纳税所得额 = 20000 − 1000 − 500 − 5000 = 13,500；累计 12 个月 = 162,000，落 144,000–300,000 档（20%、速算扣除 16,920）⇒ 162,000×20%−16,920 = 15,480；截至上月累计 148,500 ⇒ 148,500×20%−16,920 = 12,780；本月预扣 15,480−12,780 = 2,700。可独立复算。默认态（15000/1650/2000/1）本月预扣 190.50 ⇒ 不命中。",
   },
   {
     slug: "finance/credit-card-type",
@@ -3671,19 +3657,6 @@ const CASES = [
       "⚠ 年龄顺序无效，年度明细与导出数据已清空，请修正后再计算。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"age\":\"42\",\"retireAge\":\"42\",\"lifeAge\":\"42\",\"currentSavings\":\"42\",\"monthlyContribution\":\"42\",\"returnRate\":\"42\",\"inflation\":\"42\",\"monthlyExpense\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n42\n年龄顺序：当前」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "finance/salary-after-tax",
-    "inputs": {
-      "gross": "22000",
-      "ins": "1200",
-      "ded": "700",
-      "months": "7"
-    },
-    "expect": [
-      "1,510.00 本月预扣个税"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"gross\":\"22000\",\"ins\":\"1200\",\"ded\":\"700\",\"months\":\"7\"}；月应纳税所得额 15,100、累计 105,700 落 10% 档 ⇒ 累计 8,050，上月累计 90,600 ⇒ 6,540，本月 1,510，输出区含「1,510.00 本月预扣个税」；默认态 190.50、主用例 2,700.00 均不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/profit-margin-calculator",

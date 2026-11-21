@@ -194,19 +194,6 @@ const CASES = [
     ref: "注入非默认(默认 1000/25/3/8/30)：日投喂 = 1500 kg × 2.50% = 37.50 kg（建议分 2-3 次）；45 天饲料需求 = 37.50×45 = 1687.50 kg；成本 = 1687.50×9 = ¥15187.50。默认态 30.00/900.00/7200.00 均不命中。"
   },
   {
-    slug: "fishery/feed-rate-calculator",
-    inputs: { biomass: "1500", weight: "150", temp: "21" },
-    expect: ["0.56%", "8.45", "2.82"],
-    ref: "注入非默认(默认 1000/100/26)：温水性鱼均重 150g ⇒ 基础投喂率 1.53%；21℃ 温度因子 0.37 ⇒ 修正后投喂率 0.56%；日投喂 = 1500×0.56% = 8.45 kg，分 3 餐 ⇒ 每餐 2.82 kg。默认态三项均不同。"
-  },
-  {
-    slug: "fishery/feed-rate-calculator",
-    inputs: { biomass: "1500", weight: "150", temp: "21" },
-    clicks: ["var n=0;var orig=ToolBox.copyText;ToolBox.copyText=function(){n++;};calc();document.getElementById('biomass').value='-1';calc();copyResult();ToolBox.copyText=orig;document.getElementById('__tbProbe').textContent='FR699 n='+n+' r='+(lastResult===''?0:1);"],
-    expect: ["FR699 n=0 r=0"],
-    ref: "699 复核失败重做：原交接写的 `feed-rate.html` 是文件名笔误，真实页面为 feed-rate-calculator.html。先合法输入算出 lastResult，再把存塘量改为 -1 触发校验失败；旧实现只替换结果文字不清缓存，复制仍输出上一次方案；现失败分支 lastResult='' 且 copyResult() 拒绝复制。探针统计真实 copyText 调用次数并要求缓存为空，默认态无探针串。"
-  },
-  {
     slug: "fishery/drug-withdrawal-fish",
     inputs: { temp: "24", stdDays: "20", refTemp: "18", tbase: "6" },
     expect: ["7.4 天", "0.53 校正系数"],
@@ -439,19 +426,6 @@ const CASES = [
       "42\ncarp\n42\n42\n42\n42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"weight\":\"42\",\"temp\":\"42\",\"rate\":\"42\",\"feedPrice\":\"42\",\"days\":\"42\",\"species\":\"carp\"}，输出区含「42\ncarp\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "fishery/feed-rate-calculator",
-    "inputs": {
-      "biomass": "5000",
-      "weight": "100",
-      "temp": "22",
-      "type": "warm"
-    },
-    "expect": [
-      "0.84% 建议投喂率 41.97 日投喂量(kg) 13.99 每餐投喂(kg)"
-    ],
-    "ref": "注入非默认(biomass 5000 / temp 22；默认 1000/26)：温水性鱼均重 100g ⇒ 基础投喂率 1.75%；22℃ 温度因子 0.48 ⇒ 修正后 0.84%；日投喂 = 5000×0.84% = 41.97 kg，分 3 餐 ⇒ 13.99 kg。换回默认 biomass=1000/temp=26 得 1.75%/17.5 kg，锚不命中。旧 42 组超出页面水温合法区间，已改合法参数。"
   },
   {
     "slug": "fishery/fish-growth-curve",

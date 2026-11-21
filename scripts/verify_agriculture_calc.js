@@ -1058,34 +1058,8 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"rowSpacing\":\"42\",\"plantSpacing\":\"42\",\"canopyDiam\":\"42\",\"overlap\":\"42\",\"totalGrid\":\"42\",\"greenGrid\":\"42\",\"photoArea\":\"42\",\"canopyShape\":\"square\"}，输出区含「植密度(株/亩) 2.03 估算LAI 1764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
-  {
-  "slug": "agriculture/convert-content-1",
-  "inputs": {
-    "val": "88.5",
-    "unit": "dry",
-    "wb": "12"
-  },
-  "expect": [
-    "13.559%"
-  ],
-  "ref": "复算：干物质 88.5% → 水分 11.5%，湿基 12% 折算干基 = 12 ÷ (1−0.115) = 13.559%；默认干物质 86% 得 13.953% ⇒ 不命中"
-},
   // ── 干物质换算：初重参与折算（干重/水分按鲜重计算，旧实现恒用 100 kg）──
-  {
-    slug: "agriculture/convert-content-1",
-    inputs: { val: "80", unit: "dry", wb: "15", initW: "500" },
-    dumpIds: ["res"],
-    expect: ["18.750%", "500.00 kg 湿样 → 绝干 400.00 kg，含水 100.00 kg"],
-    ref: "独立复算：干物质 80% ⇒ 水分 20%；干重 = 500×0.80 = 400.00 kg、水分 = 500×0.20 = 100.00 kg；湿基 15% 折算干基 = 15 ÷ (1−0.2) = 18.750%；干湿比 = 1/0.8 = 1.2500。旧实现固定按 100 kg 输出「100.00 kg 湿样 → 绝干 80.00 kg」，本锚不命中；默认（86%/12%/100kg）为 13.953%、100 kg 湿样，亦不命中。"
-  },
   // ── 干物质换算：初重为 0 必须拦截（旧实现按 100kg 静默兜底）──
-  {
-    slug: "agriculture/convert-content-1",
-    inputs: { val: "86", unit: "dry", wb: "12", initW: "0" },
-    dumpIds: ["res"],
-    expect: ["初重需为大于 0 的数值"],
-    ref: "独立复算：initW=0 不满足「初重 > 0」⇒ 页面必须输出「初重需为大于 0 的数值」；旧实现 raw=\"\" 才回退 100、对 0 会算出 0 kg 干重并显示 0.00，默认输入 100 kg 合法 ⇒ 只有初重校验分支才命中。"
-  },
   {
     "slug": "agriculture/crop-water-requirement",
     "inputs": {

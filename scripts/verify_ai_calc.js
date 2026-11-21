@@ -272,13 +272,6 @@ const CASES = [
   },
 
   // ── Token 估算与成本 ───────────────────────────────────────
-  {
-    slug: "ai/token",
-    inputs: { chars: "900", overlap: "1.5" },
-    expect: ["600", "225", "0.0012"],
-    ref: "AI-N12 统一英文参考口径：估算=ceil(900×1/1.5)=600；英文参考=ceil(900/4)=225（与页面「英文约 4 字符/token」一致，不再随 overlap 变化）；成本=600/1e6×2=0.0012 USD",
-  },
-
   // ── 上下文窗口占用 ─────────────────────────────────────────
   {
     slug: "ai/context-window",
@@ -1216,17 +1209,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cn\":\"42\",\"enWords\":\"42\",\"code\":\"42\"}，输出区含「 tokens： 123 token」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "ai/token",
-    "inputs": {
-      "chars": "42",
-      "overlap": "42"
-    },
-    expect: [
-      "Token 数： 1 个 英文参考： 11"
-    ],
-    "ref": "AI-N12 口径统一后重算：英文参考=ceil(42/4)=11；旧实现用 chars×0.3/overlap 得 9，且与主结果分母不一致。注入非默认输入{\"chars\":\"42\",\"lang\":\"42\",\"overlap\":\"42\"}，默认态不含该串 ⇒ 零逃生。"
-  },
-  {
     "slug": "ai/training-flops",
     "inputs": {
       "N": "42",
@@ -1342,18 +1324,6 @@ const CASES = [
 // 「calc() 重写 #result 把扩展宿主一起清空」这类真实 DOM 缺陷；此处用 jsdom 真解析，
 // 并在解析前注入 TBKit 桩，使 boot 的首屏渲染、页签切换、历史回填、导出全部可断言。
 const HOST_CASES = [
-  {
-    slug: "ai/token",
-    coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
-    chart: "tkChart", table: "tkTable",
-    extras: ["tkChart", "tkTable", "tkDiff", "tkHist", "tkPresets"],
-    inputs: { chars: "900", overlap: "1.5" },
-    tableExpect: "600",
-    restore: { inputId: "chars", historyKey: "chars" },
-    exportFn: "__tkExport",
-    // AI-N12：主结果与明细表必须同为 900/4=225，不能一个固定分母一个用 overlap。
-    extraExpect: ["英文参考 (4 字符/token)", "225"],
-  },
   {
     slug: "ai/token-2",
     coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并

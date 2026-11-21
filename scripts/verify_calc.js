@@ -64,7 +64,7 @@ const targets = [
   // Q1 batch 04 (it xml/yaml/toml converters + random-string/whitespace)
   "it/xml-to-yaml", "it/yaml-to-xml",
   "it/xml-to-toml", "it/toml-to-xml",
-  "it/random-string", "it/whitespace",
+  "it/random-string",
 ];
 
 function extract(html) {

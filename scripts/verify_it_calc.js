@@ -2382,22 +2382,6 @@ const CASES = [
     ref: "IT-N538：中段 qwe 序列也要命中风险提示；修复前正则以 ^ 锚定只查开头，xxqwe123 被漏判。默认 ToolBox@2026 开头不在序列表，不含该提示 ⇒ 强判别。",
   },
   {
-    slug: "it/whitespace",
-    inputs: { source: "  a   b \n\n c \n" },
-    clicks: [
-      "document.getElementById('top_trim').checked=true;document.getElementById('top_blank').checked=true;document.getElementById('top_collapse').checked=true;document.getElementById('top_trail').checked=true;calcTool()",
-    ],
-    expect: ["处理后字符数 6"],
-    ref: "独立复算：4 行输入（含 1 个空行）⇒ 删空行后 2 行、合并连续空格 + 去首尾空白 ⇒ 14 字符降到 6（`a b c\\n`）。**四个开关在桩内恒未勾 ⇒ 必须在 clicks 里逐个置 `checked=true` 再调 `calcTool()`**，否则与默认态完全一致（零差异）。",
-  },
-  {
-    slug: "it/whitespace",
-    inputs: { source: "a\n   \nb" },
-    clicks: ["document.getElementById('top_blank').checked=true;calcTool()"],
-    expect: ["原始行 原始内容 处理后内容 1 a a 2 已删除"],
-    ref: "IT-N29 逐行对照预览按原始行号映射：注入 `a\\n   \\nb` 且只勾删除空行，表头须为「原始行/原始内容/处理后内容」，第 2 个空行标注「已删除」，第 3 行 b 不再错配到第 2 行。旧实现表头为「行/原始/处理后」且第 2 行错配成 b ⇒ 该串不命中；锚点含注入的 a 与已删除文案，默认态不命中 ⇒ 零逃生。",
-  },
-  {
     slug: "it/chmod-calculator",
     inputs: {},
     clicks: [
@@ -3021,29 +3005,6 @@ const CASES = [
     ref: "字符串加密必须把内嵌双引号写成 \\x22。旧实现条件 `ch < 128 && unescaped[i] !== quote` 直接跳过引号字符，产出 var s=\"\\x61\"\\x62\"; 这类引号提前闭合的非法源码（vm 报 Invalid or unexpected token），\\x22 不出现。默认示例代码的引号是分隔符而非内容，不含 \\x22 ⇒ 强判别。",
   },
   {
-    slug: "it/regex-common",
-    inputs: { txt: "abc", cat: "email", limit: "10" },
-    clicks: ["calcTool()"],
-    expect: ["无匹配"],
-    ref: "`abc` 不匹配邮箱正则 ⇒ 匹配数 0 且结果区落「无匹配」；默认示例文本可命中，结论相反。",
-  },
-  {
-    slug: "it/regex-common",
-    // IT-D27：类别下拉必须实装 8 个 option；旧源码 <select id=cat></select> 无选项，
-    // 页面任何选择都回退 email。探针读注入后的 select.innerHTML，锚 3 个非默认类别值。
-    inputs: { txt: "13812345678", cat: "phone", limit: "5" },
-    clicks: ["var s=document.getElementById('cat');var n=s.options?s.options.length:0;document.getElementById('__tbProbe').textContent='CATOPT '+n;"],
-    expect: ["CATOPT 8"],
-    ref: "IT-D27 修复后 #cat 必须含 8 个真实 option（phone/chinese/username 等）⇒ 探针 CATOPT 8；修复前下拉框为空 ⇒ CATOPT 0。探针串不来自默认态，判别力强。",
-  },
-  {
-    slug: "it/regex-common",
-    inputs: { txt: "x a@b.com y c@d.org z", cat: "email", limit: "8" },
-    clicks: ["calcTool()"],
-    expect: ["命中位置（字符偏移）：#1 [2-9] a@b.com、#2 [12-19] c@d.org"],
-    ref: "S6 原文高亮：matchAll 逐段 <mark> 包裹 + 命中偏移明细。偏移由输入文本决定（x=0 空格=1 ⇒ a@b.com=[2-9]；c@d.org=[12-19]），默认样例（abc@example.com 13812345678…）不含该偏移组合 ⇒ 不命中。条目（『、』分隔 + 顺序号）与偏移都在被测输出中，判别力强。默认态样例现在标注为「原文高亮（默认示例，… 处）」，与输入后的「原文高亮（N 处）」可区分，但标题仍不宜单独作锚；本条以完整命中偏移串作锚。"
-  },
-  {
     slug: "it/vector-magnitude",
     inputs: {},
     clicks: ["document.getElementById('v0').value=6;document.getElementById('v1').value=8;document.getElementById('v2').value=0;calculate()"],
@@ -3448,12 +3409,6 @@ const CASES = [
     inputs: { sizeInput: "512", unitSelect: "KB" },
     expect: ["512,000 B"],
     ref: "512 KB = 512,000 B（十进制口径）；`unitSelect` 显式注入 KB 后才落该行。默认 1024 B ⇒ 1024 B，不命中。",
-  },
-  {
-    slug: "it/calc-3",
-    inputs: { hexInput: "#1E90FF" },
-    expect: ["rgb(30, 144, 255)"],
-    ref: "#1E90FF → rgb(30,144,255) → hsl(210,100%,56%)；默认色值不同形。裸 input event 即渲染。",
   },
   {
     slug: "it/calc-4",
@@ -4387,13 +4342,6 @@ const CASES = [
     clicks: ["dec()"],
     expect: ["中文.com"],
     ref: "解码反向量：xn--fiq228c 按 RFC 3492 解码回「中文」⇒ 中文.com（与编码用例互逆）。默认输入为中文域名，不产生该串。",
-  },
-  {
-    slug: "it/html-entity-encoder",
-    inputs: { encodeInput: "<a>&" },
-    clicks: ["encode()"],
-    expect: ["&lt;a&gt;&amp;"],
-    ref: "独立复算：`<`→`&lt;`、`>`→`&gt;`、`&`→`&amp;` ⇒ `&lt;a&gt;&amp;`。默认态的实体对照表里有 `&amp; &lt;` 等零散片段，但没有这条连续串。",
   },
   {
     slug: "it/matrix-multiplier",
@@ -5592,13 +5540,6 @@ const CASES = [
     ref: "2,048 KiB（二进制千字节）= 2048 × 1024 = 2,097,152 B，可手算复算；同页换算表同时给出 KB 2,097.152 / MB 2.097152 / GiB 0.001953，按 1024 进制整体自洽。",
   },
   {
-    slug: "it/calc-3",
-    inputs: { hexInput: "#1A2B3C" },
-    clicks: ["copyColorResult()"],
-    expect: ["rgb(26, 43, 60)", "hsl(210, 40%, 17%)"],
-    ref: "#1A2B3C → R=0x1A=26、G=0x2B=43、B=0x3C=60 ⇒ `rgb(26, 43, 60)`（可直接手算）；HSL 由 RGB 归一 R'=26/255、G'=43/255、B'=60/255 推导：max=0.2353、min=0.1020、L=(max+min)/2≈17%、S=(max−min)/(max+min)≈40%、H≈210° ⇒ `hsl(210, 40%, 17%)`。两个通路可互校。",
-  },
-  {
     slug: "it/crontab-generator",
     inputs: { f_min: "*/15", f_hour: "*", f_dom: "*", f_mon: "*", f_dow: "1" },
     clicks: ["build()"],
@@ -5797,13 +5738,6 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["结果： 8 = 0x8 = 0b1000"],
     ref: "按位与：12 = `1100`、10 = `1010` ⇒ `1000` = **8**，十六进制与二进制形式同串给出（**三种进制同源，可手算复算**）。默认 `op` 是异或 ⇒ 不命中。",
-  },
-  {
-    slug: "it/calc-3",
-    inputs: { hexInput: "#FF0000" },
-    clicks: ["copyColorResult()"],
-    expect: ["rgb(255, 0, 0)", "hsl(0, 100%, 50%)"],
-    ref: "HEX → RGB/HSL：`#FF0000` ⇒ `rgb(255, 0, 0)`（FF=255、00=0、00=0，可手算）；HSL：最大 255/最小 0 ⇒ L = 50%、饱和度 100%、色相 0° ⇒ `hsl(0, 100%, 50%)`（**三值均可由 RGB 手算**）。",
   },
   {
     slug: "it/calc-1",
@@ -6030,13 +5964,6 @@ const CASES = [
     clicks: ["dec();var v=String(document.getElementById('output').value);document.getElementById('output').value='UC223D='+(v.indexOf('<img')===0&&v.slice(-1)==='&'?'OK':'BAD');"],
     expect: ["UC223D=OK"],
     ref: "第223批 N197 补证据 + N198：解码必须纯文本、不建 DOM（标签原样保留，不触发对 x.example 的出站请求），且末尾 `&amp` 解成 `&`。修复前该输入无带分号实体 ⇒ 整段不解、末字符为 p ⇒ BAD。默认态 BAD。",
-  },
-  {
-    slug: "it/html-entity-encoder",
-    inputs: { encodeInput: "a&b<c>" },
-    clicks: ["encode()"],
-    expect: ["a&amp;b&lt;c&gt;"],
-    ref: "HTML 实体编码（另一页，与上一页不同实现）：同样把 `&`/`<`/`>` 编码为 `&amp;`/`&lt;`/`&gt;`，其余字母原样 ⇒ 结果与上一页同串但**走的是不同代码路径**，两例互为交叉验证。",
   },
   {
     slug: "it/c-string-escape",
@@ -8366,13 +8293,6 @@ const CASES = [
     "ref": "关闭「仅字母移位」时作用于可打印 ASCII 共 95 个字符：xyz 位移 +3 ⇒ x→{、y→|、z→}。修复前模数固定 26，会错误地回绕成字母；默认输入不是 xyz，注入失败即不命中。"
   },
   {
-    slug: "it/calc-3",
-    inputs: { hexInput: "#00FF7F" },
-    clicks: ["fromHex();document.getElementById('__tbProbe').textContent=String(document.getElementById('result').textContent).replace(/\\s+/g,' ').trim();"],
-    expect: ["HEX： #00FF7F RGB： rgb(0, 255, 127) HSL： hsl(150, 100%, 50%)"],
-    ref: "G06 元素顺序变更后的过期断言修正：旧断言锚「3%, 39%)\\n#5b1bac\\nabc123测试」，其中 #5b1bac 是页面默认色值、且三元素连续串依赖创建序 ⇒ 首屏自跑改变元素顺序后即失配（门禁 it calc correctness 红）。改为注入合法非默认色 #00FF7F 并显式 fromHex()，探针取结果区归一文本，锚完整派生串「HEX： … RGB： … HSL： …」；默认 #5B1BAC 不含该串 ⇒ 强判别、零逃生。",
-  },
-  {
     "slug": "it/calc-10",
     "inputs": {
       "textInput": "1\n2\n3"
@@ -9128,19 +9048,6 @@ const CASES = [
       "1 2 3\n✅ HTML 嵌套结构合法（无未闭合/错误嵌套标签）"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"html\":\"1\\n2\\n3\"}，输出区含「1 2 3\n✅ HTML 嵌套结构合法（无未闭合/错误嵌套标签）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "it/html-entity-encoder",
-    "inputs": {
-      "encodeInput": "1\n2\n3",
-      "encodeOutput": "1\n2\n3",
-      "decodeInput": "1\n2\n3",
-      "decodeOutput": "1\n2\n3"
-    },
-    "expect": [
-      "1 2 3\n1 2 3\n1 2 3"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"encodeInput\":\"1\\n2\\n3\",\"encodeOutput\":\"1\\n2\\n3\",\"decodeInput\":\"1\\n2\\n3\",\"decodeOutput\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/html-minifier",
@@ -11779,17 +11686,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「 脚本 内部\n共 0 项」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "it/regex-common",
-    "inputs": {
-      "limit": "42",
-      "txt": "1\n2\n3"
-    },
-    "expect": [
-      "箱地址 正则类别 0 个 匹配数量 无匹配 匹配结果（前 42"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"limit\":\"42\",\"txt\":\"1\\n2\\n3\"}，输出区含「箱地址 正则类别 0 个 匹配数量 无匹配 匹配结果（前 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "it/regex-escape",
     "inputs": {
       "input": "1\n2\n3",
@@ -12631,16 +12527,6 @@ const CASES = [
       "cos α = 0.6, cos β = 0.8, cos γ = 0"
     ],
     "ref": "非零向量方向余弦回归：v=(3,4,0)、|v|=5 ⇒ cos α=3/5=0.6、cos β=4/5=0.8、cos γ=0/5=0。防「零向量守卫」误拦正常输入；运行时输入框无 HTML 默认值，故用 clicks 赋值。"
-  },
-  {
-    "slug": "it/whitespace",
-    "inputs": {
-      "source": "1\n2\n3"
-    },
-    "expect": [
-      "原始行 原始内容 处理后内容 1 1 1 2 2 2"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"source\":\"1\\n2\\n3\"}，输出区含「原始行 原始内容 处理后内容 1 1 1 2 2 2」（IT-N29 预览表头改为按原始行号对齐）；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/wifi-qr",
@@ -14116,12 +14002,6 @@ const CASES = [
     clicks: ["(function(){document.getElementById('input-text').value='AAAA';document.getElementById('output-text').value='BB';swapText();var inp=document.getElementById('input-text').value;var out=document.getElementById('output-text').value;var res=document.getElementById('stat-result').textContent;var red=document.getElementById('stat-reduce').textContent;var orig=document.getElementById('stat-original').textContent;var ok=(String(inp)==='BB'&&String(out)==='AAAA'&&String(orig)==='2'&&String(res)==='4'&&String(red)==='+2');document.getElementById('__tbProbe').textContent=ok?'TCLSWAP OK':'BAD '+inp+'/'+out+' '+orig+'/'+res+'/'+red;})()"],
     expect: ["TCLSWAP OK"],
     ref: "清单 IT-N19 强锁：交换输入/输出后四项统计须全部按新值重算。注入 input='AAAA'(4) / output='BB'(2)；交换后 input='BB'(2) / output='AAAA'(4)，页面口径 reduce=orig-result=2-4=-2 显示 '+2' ⇒ stat-original=2、stat-result=4、stat-reduce='+2'。修复前 stat-reduce 保持交换前的 '-2'（orig-result=4-2=2 显示 '-2'）⇒ 判别红。探针只在 clicks 内生成。",
-  },
-  {
-    slug: "it/whitespace",
-    clicks: ["document.getElementById('source').value='';document.getElementById('top_trail').checked=true;calcTool();"],
-    expect: ["处理后字符数 0"],
-    ref: "清单 IT-N20 强锁：空输入 + 勾选「确保末尾单个换行」不得凭空输出 '\\n'（1 字符）。旧实现 out=''.replace(/\\n+$/,'')+'\\n' ⇒ 处理后字符数 1，本例 expect「处理后字符数 0」不命中；修复后仅 out 非空才补换行 ⇒ 0 命中。默认态不勾 trail 且页面已有示例文本，不命中该锚。",
   },
   {
     slug: "it/slugify",

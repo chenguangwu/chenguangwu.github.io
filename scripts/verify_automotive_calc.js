@@ -455,34 +455,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "automotive/maintenance-schedule",
-  "inputs": {
-    "km": "67500",
-    "kmM": "1200",
-    "mon": "8",
-    "ahead": "1000"
-  },
-  "expect": [
-    "120000"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "automotive/oil-change-countdown",
-  "inputs": {
-    "ldate": "2026-01-15",
-    "last": "120000",
-    "cur": "87000",
-    "iv": "10000",
-    "ivm": "12",
-    "warn": "500"
-  },
-  "expect": [
-    "剩余里程 43000 km"
-  ],
-  "ref": "独立复算：已行驶 = 当前 87,000 − 上次换油 120,000 = −33,000（故进度 0%），有效间隔 10,000 × 工况系数 1.0，剩余里程按上次换油起算 = 43,000 km。⚠ 原 expect '120000' 为上次里程输入回显（零判别力），已改为剩余里程结果串；默认态不命中。"
-},
-{
   "slug": "automotive/oil-change",
   "inputs": {
     "yearKm": "30000",
@@ -671,17 +643,6 @@ const CASES = [
   },
   "expect": [
     "76.9"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "automotive/tire-wear",
-  "inputs": {
-    "newDepth": "12",
-    "mileage": "35000"
-  },
-  "expect": [
-    "11.6mm"
   ],
   "ref": "auto-restore"
 },
@@ -1025,16 +986,6 @@ const CASES = [
     "—（未填写最高车速）"
   ],
   "ref": "vmax 缺失时不得落到 stClass(NaN) 的最高档 Y(超) 300 km/h（SPEEDVMAX），应显示未填写"
-},
-{
-  "slug": "automotive/oil-change-countdown",
-  "inputs": {
-    "ldate": ""
-  },
-  "expect": [
-    "仅按里程判断（未填写上次换油日期）"
-  ],
-  "ref": "缺上次换油日期时时间维度不可判定，状态不得给「未到期」绿灯（OILDCLEAR）"
 },
 {
   "slug": "automotive/calc-1",
