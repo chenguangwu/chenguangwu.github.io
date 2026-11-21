@@ -3121,8 +3121,14 @@ def _rewrite_guide_desc(d, src):
     949 页指南共用同一段 41 字尾句，构成站内大规模重复描述。这里保留页面原本的
     信息核（工具名/用途），尾句换成正文首段去重后的第一句；正文只有套话的空壳指南
     保持原样，避免把描述改得更空。幂等：替换后不再含尾句。
+    2026-11-21：不再用「本指南整理核心功能…」等通用结构句补长度——该句曾出现在
+    625 个指南页描述/回退文本里，构成站内大规模重复；短描述保持页面专属内容。
     """
     d = (d or '').strip()
+    if _GUIDE_STRUCT_TAIL and _GUIDE_STRUCT_TAIL in d:
+        d = d.replace(_GUIDE_STRUCT_TAIL, '').strip()
+        if d and d[-1] not in '。！？':
+            d += '。'
     if _GUIDE_BOIL_TAIL not in d:
         return d
     if any(g in d for g in _GUIDE_GENERIC_SNIPPETS):
@@ -3134,7 +3140,7 @@ def _rewrite_guide_desc(d, src):
         core += '。'
     snip = _guide_first_distinct_para(src, core)
     if not snip:
-        return _close_guide_desc(core + _GUIDE_STRUCT_TAIL)
+        return _close_guide_desc(core)
     part = ''
     for sent in re.split(r'(?<=[。！？])', snip):
         sent = sent.strip()
@@ -3146,12 +3152,10 @@ def _rewrite_guide_desc(d, src):
         if len(core) + len(part) >= 70:
             break
     if not part:
-        return _close_guide_desc(core + _GUIDE_STRUCT_TAIL)
+        return _close_guide_desc(core)
     out = core + part
     if out[-1] not in '。！？':
         out += '。'
-    if len(out) < 70:
-        out += _GUIDE_STRUCT_TAIL
     if len(out) > 150:
         cut = out[:145]
         i = max(cut.rfind('，'), cut.rfind('、'), cut.rfind('；'))
