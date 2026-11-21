@@ -189,18 +189,20 @@ function readInputs(){
   ids.forEach(function(id,i){var bad=isNaN(vals[i])||vals[i]<30;setInvalid(document.getElementById(id),bad);if(bad)valid=false;});
   // 逻辑校验：恢复心率不应高于峰值
   if(valid&&(h1>p||h2>p||h3>p)){valid=false;ToolBox.showToast(i18nText(), 'warning');}
+  if(valid&&p<100)valid=false;
   return {p:isNaN(p)?0:p,h1:isNaN(h1)?0:h1,h2:isNaN(h2)?0:h2,h3:isNaN(h3)?0:h3,valid:valid};
 }
 function gradeHRR1(hrr1){
   if(hrr1>=30)return {g:'优秀',c:'grade-excellent',a:'心血管功能出色，恢复能力强，可承受高强度训练。'};
   if(hrr1>=20)return {g:'良好',c:'grade-good',a:'恢复能力较好，心血管功能高于平均水平。'};
-  if(hrr1>=12)return {g:'一般',c:'grade-pass',a:'恢复能力一般，建议加强有氧训练改善心肺功能。'};
+  if(hrr1>12)return {g:'一般',c:'grade-pass',a:'恢复能力一般，建议加强有氧训练改善心肺功能。'};
   return {g:'偏低',c:'grade-fail',a:'HRR 偏低，心血管风险可能升高，建议就医评估并循序渐进训练。'};
 }
 function calc(){
   var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请填写全部有效心率（恢复心率不得高于运动停止心率）</div>';
+    var msg = (iv.p>0 && iv.p<100) ? '峰值心率低于 100 bpm，不能作为恢复能力测试；请录入接近最大强度的运动后心率。' : '请填写全部有效心率（恢复心率不得高于运动停止心率）';
+    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">'+msg+'</div>';
     return;
   }
   var hrr1=iv.p-iv.h1,hrr2=iv.p-iv.h2,hrr3=iv.p-iv.h3;
