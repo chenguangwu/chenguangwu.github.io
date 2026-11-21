@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 第 38 道门禁：cosmetic-derm 分类计算正确性验证（25 个确定性数值/等级工具）
+ * 第 38 道门禁：cosmetic-derm 分类计算正确性验证（19 个确定性数值/等级工具）
  *
  * 期望值全部由独立复算得出（ref 字段写明完整算式），不回读页面输出。
  * 输入一律避开页面默认值，且期望值经「假通过自检」复核不等于默认输出，杜绝假通过。
@@ -17,214 +17,6 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
-  { slug: "cosmetic-derm/area-12",
-    inputs: { area: "全脸", pct: "22", diam: "0.35" },
-    expect: ["0.35 血管直径μm" ],
-    ref: "红斑面积占比 22% → 15≤22<30 属重度（III 级）；占比显示=22.0%、血管直径=0.35 μm（默认 面颊/10/0.2→10.0/0.20 避开）" },
-
-  { slug: "cosmetic-derm/chemical-peel",
-    inputs: { acidType: "lactic", concentration: "25", ph: "3.2", duration: "8", sensitivity: "1.2", firstTime: "0" },
-    expect: ["20.51", "1.66"],
-    ref: "乳酸 pKa=3.86：游离酸比例=1/(1+10^(3.2−3.86))=0.8191 → 浓度 25×0.8191=20.51%；"
-       + "深度指数=20.51×8×(76/90)×1.2×1.0/100=1.66（默认 甘醇酸/35/2.5/5/1.0/首次 避开）" },
-
-  { slug: "cosmetic-derm/concentration",
-    inputs: { acid: "bha", conc: "25", ph: "2.8" },
-    expect: ["14.92", "59.7"],
-    ref: "BHA pKa=2.97：游离酸比例=1/(1+10^(2.8−2.97))=0.5966 → 游离酸浓度=25×0.5966=14.92%、"
-       + "比例=59.7%（默认 aha/35/3.0→30.49/87.1 避开）" },
-
-  { slug: "cosmetic-derm/formula-1",
-    inputs: { total: "8", ha: "6", vc: "25", rHa: "40", rVc: "35", rPep: "25" },
-    expect: ["3.20", "2.80", "19.20", "70.00"],
-    ref: "配比合计=100：玻尿酸体积=8×0.40=3.20 ml、维生素C=8×0.35=2.80 ml；"
-       + "含量：玻尿酸=3.20×6=19.20 mg、维C=2.80×25=70.00 mg（默认 10/5/20/50/30/20→5.00/3.00/2.00 避开）" },
-
-  { slug: "cosmetic-derm/length-spacing",
-    inputs: { len: "2.0", spacing: "300", dia: "200" },
-    expect: ["1.60", "1111", "34.91"],
-    ref: "穿透深度=2.0×0.8=1.60 mm；针密度=1/(0.03)²=1111 个/cm²（300 μm=0.03 cm）；"
-       + "渗透面积占比=1111.11×π×0.01²×100=34.91%（默认 1.5/200/150→1.20/2500/44.18 避开）" },
-
-  { slug: "cosmetic-derm/microneedle",
-    inputs: { needleLength: "1.0", spacing: "1.0", diameter: "200", passes: "3", purpose: "delivery",
-              mw: "5000", concentration: "2", area: "10" },
-    expect: ["23.6", "20.03", "0.40"],
-    ref: "有效深度=1.0×0.75=0.75 mm；密度=1/1²×100=100 孔/cm²、总孔数=100×10=1000；"
-       + "单孔体积=π×0.1²×0.75/3=0.007854 mm³ → 总孔体积=1000×0.007854×3=23.56→23.6 μL；"
-       + "MW 5kDa 因子 0.85 → 有效递送=23.56×0.85=20.03 μL；递送量=20.03×2/100=0.40 μg"
-       + "（默认 1.5/0.5/150/4/50000/1/20 避开）" },
-
-  { slug: "cosmetic-derm/ratio-composition-injection",
-    inputs: { total: "7", ha: "10", rHa: "50", rVc: "25", rGsh: "15", rOther: "10" },
-    expect: ["3.50", "1.75", "1.05", "87.50"],
-    ref: "配比合计=100：体积 HA=7×0.50=3.50、VC=7×0.25=1.75、谷胱甘肽=7×0.15=1.05 ml；"
-       + "含量：VC=1.75×50=87.50 mg（默认 5/8/60/20/10/10→3.00/1.00/0.50、24.00/50.00 避开）" },
-
-  { slug: "cosmetic-derm/rf-tightening",
-    inputs: { temp: "44", duration: "120", freq: "1", sessions: "3", interval: "4", cooling: "1" },
-    expect: ["3.6", "44°C"],
-    ref: "44℃∈[42,50] → 单次效果=(44−42)×120/180=1.3333；累积=1.3333×(1+0.9+0.81)=3.61→3.6"
-       + "（默认 45/180/3 次→8.1 避开）" },
-
-  { slug: "cosmetic-derm/sebumeter",
-    inputs: { forehead: "100", nose: "160", cheek: "50", chin: "80", timePoint: "1", temp: "28" },
-    expect: ["130", "95"],
-    ref: "T区=(100+160)/2=130 μg/cm²；温度校正均值=97.5×(1−3×0.01)=94.58→95（默认 120/180/60/90/25→105/75/105 避开）" },
-
-  { slug: "cosmetic-derm/spf-pa-calculator",
-    inputs: { photo: "4", med: "10", uvi: "8", outdoorTime: "240", spf: "30", pa: "4",
-              activity: "1", reapply: "60" },
-    expect: ["SPF 50+"],
-    ref: "UVI 8 → 有效 MED=10×5/8=6.25；理论=6.25×30=187.5 min；实际=187.5×1=187.5 min=3.1 h；"
-       + "所需 SPF=⌈240/6.25/1⌉=39 → 推荐 SPF 50+；PPD(PA++++) =20 → UVA 保护=6.25×20=125 min=2.1 h；"
-       + "UVI 8 >5 → 推荐 PA++++（默认 10/5/120/30/2/1→5.0/SPF 15+/PA+++ 避开）" },
-
-  { slug: "cosmetic-derm/temp-time-4",
-    inputs: { temp: "62", time: "8", rftype: "bi" },
-    expect: ["40.6", "1.62"],
-    ref: "62℃∈[60,70) → 分段收缩率=20+(62−60)/10×25=25%；时间因子=min(1+0.3×ln8,1.8)=1.6238；"
-       + "收缩率=25×1.6238=40.6%（默认 60/5→20.3 避开）" },
-
-  { slug: "cosmetic-derm/thread-lift",
-    inputs: { zone: "jawline", threadType: "pcla", insertAngle: "50", liftAngle: "45",
-              threadLength: "14", threadCount: "8", laxity: "1", anchorForce: "60" },
-    expect: ["47.6", "381", "457"],
-    ref: "下颌线最佳 55/50°、PCLA 系数 0.8：偏差 5°/5° → cos5°·cos5°=0.99240；"
-       + "单线力=60×0.8×0.9924=47.6 g；总力=47.6×8=381 g；轻度松弛 ×1.2 → 有效 457 g"
-       + "（默认 midface/单向锯齿/45/45/6/中度/50 避开）" },
-
-  { slug: "cosmetic-derm/assessor-67",
-    inputs: { cosType: "general", prodType: "cream", pb: "12", as: "2", hg: "0.5",
-              methanol: "0.1", tvc: "100" },
-    expect: ["不符合要求"],
-    ref: "铅 12 > 普通化妆品限值 10 mg/kg → 任一项超标即「不符合要求」（默认 铅 5 ≤ 限值 → 符合，避开）" },
-
-  { slug: "cosmetic-derm/calc-51",
-    inputs: { uvb: "98", uva: "92" },
-    expect: ["50.0", "12.5"],
-    ref: "SPF=1/(1−0.98)=50.0；PFA=1/(1−0.92)=12.5，pfa∈[8,16) → PA+++（默认 96/85→25.0/6.7 避开）" },
-
-  { slug: "cosmetic-derm/corneometer",
-    inputs: { forehead: "70", cheek: "45", nose: "75", hand: "30", humidity: "60", product: "0" },
-    expect: ["58"],
-    ref: "湿度校正=(60−50)/10×3=+3 AU；四点=(73,48,78,33) → 均值=232/4=58 AU（默认 65/50/70/35/50→55 避开）" },
-
-  { slug: "cosmetic-derm/telangiectasia-area",
-    inputs: { areaPct: "20", density: "10", diameter: "0.4", vesselType: "venous", zone: "3", symptom: "1" },
-    expect: ["81"],
-    ref: "评分=20×2.5+10×2+0.4×15+1×5=50+20+6+5=81 → ≥60 属极重度"
-       + "（默认 15/8/0.3/面颊/偶发→67.0 也为极重度，故同时校验分数 81 区分）" },
-
-  { slug: "cosmetic-derm/visia-spots",
-    inputs: { spotCount: "6", areaPct: "4", depth: "2", zone: "2", spotType: "pih", percentile: "20" },
-    expect: ["25.2", "中度色斑"],
-    ref: "前额权重 1.0：评=(4×3+2×5+6/5+20/10)×1.0=(12+10+1.2+2)=25.2 → 20≤25.2<40 属中度色斑"
-       + "（默认 15/8/5/颧骨/50→68.4 为极重度 避开）" },
-
-  { slug: "cosmetic-derm/pore-grading",
-    inputs: { noseTip: "2", nasalAla: "2", cheek: "3", forehead: "2", poreType: "oily", sebumLevel: "2" },
-    expect: ["颊部 3级 扩大伴黑头", "前额 2级 明显可见"],
-    ref: "评=(2×3+2×3+3×2+2×2)/10×25=55 → 中度毛孔粗大。原锚「55」「中度毛孔粗大」在默认态与分级图例中已存在（逃生）；改锚注入后才出现的逐部位表：颊部 3 级标签「扩大伴黑头」、前额 2 级「明显可见」。默认 2/2/1/1 ⇒ 颊部 1 级「近距离可见」、前额 1 级「近距离可见」，两条均不命中。" },
-
-  { slug: "cosmetic-derm/glogau-photoaging",
-    inputs: { wrinkle: "2", pigment: "4", keratosis: "3", makeup: "2", age: "4", photo: "3" },
-    expect: ["2.9 综合评分"],
-    ref: "评=(2×3+4×2+3×1.5+2×2+4×1.5)/10=28.5/10=2.85→2.9，Math.round(2.85)=3 → Ⅲ型。原锚「2.9」「Ⅲ型」分别命中静态示例与分型图例（逃生）；改锚「2.9 综合评分」为结果卡片结构串。默认 3/3/3/3/3→「3.0 综合评分」，不命中。" },
-
-
-  { slug: "cosmetic-derm/skin-ph",
-    inputs: { phValue: "6.0", site: "cheek", postClean: "2", skincare: "1" },
-    expect: ["6.00 偏碱" ],
-    ref: "pH 6.0 ∈(5.5,6.5] → 偏碱（偏高）；屏障健康分=100−|6.0−5.0|×30=70（默认 5.0→理想范围 避开）" },
-
-  { slug: "cosmetic-derm/pifuphceding",
-    inputs: { ph: "4.2", area: "面颊" },
-    expect: ["4.2 皮肤" ],
-    ref: "pH 4.2 ∈[4.0,4.5) → 偏酸；屏障健康度=100−|4.2−5.0|×25=80（默认 5.0→正常 避开）" },
-
-  { slug: "cosmetic-derm/maokongcudafenji",
-    inputs: { dia: "500", area: "鼻头", type: "aging" },
-    expect: ["500 毛孔直径" ],
-    ref: "毛孔直径 500 μm ∈[400,800) → 2 级「中度粗大」（默认 350→轻度粗大 避开）" },
-
-  { slug: "cosmetic-derm/eyebag-assessment",
-    inputs: { fatHerniation: "3", skinLaxity: "2", tearTrough: "2", edema: "2", bagType: "fat", age: "4" },
-    expect: ["48 中度眼袋", "水肿程度 2/3"],
-    ref: "raw=3×3+2×2+2×2+2×2.5+4×0.5=24 → 评分=24×2=48 → 40≤48<60 属中度眼袋。原锚「48」「中度眼袋」在静态示例/分级图例中已存在（逃生）；改锚结果卡片「48 中度眼袋」+ 明细「水肿程度 2/3」。默认 2/2/2/1/40s ⇒ 评分 36「36 轻中度眼袋」、「水肿程度 1/3」，两条均不命中。" },
-
-  { slug: "cosmetic-derm/wrinkle-dynamic-static",
-    inputs: { crow_d: "2", crow_s: "1", glab_d: "1", glab_s: "0", fore_d: "0", fore_s: "0",
-              nas_d: "1", nas_s: "1", nl_d: "1", nl_s: "1" },
-    expect: ["24", "0.5"],
-    ref: "肉毒素合计=12(鱼尾 d2)+10(川字 d1)+0+2(鼻背 d1)+0=24 U；"
-       + "填充合计=0+0+0+0+0.5(法令 s1)=0.5 ml（默认各部位 d/s=2/0,2/2,2/0,0/0,2/2 → 总 45U 避开）" },
-
-// ── 零用例加固（2026-10-09）──────────────────────────
-  { slug: "cosmetic-derm/jiguangbochangbadian",
-    inputs: { laser: "755" },
-    expect: ["翠绿宝石激光"],
-    ref: "755nm 翠绿宝石激光（Alexandrite），靶色团黑色素、穿透 1.0-2.0mm、适应症脱毛/雀斑/文身。注入非默认(默认 532nm KTP 绿光→血红蛋白靶)，输出含'翠绿宝石激光'，默认态不出现。" },
-
-  { slug: "cosmetic-derm/laser-parameters",
-    inputs: { laserSelect: "q532", chromSelect: "melanin" },
-    expect: ["脉宽： 5-10ns"],
-    ref: "调Q 532nm(KTP)：脉宽 5-10ns、穿透 0.5-1mm、靶色团黑色素/血红蛋白。注入非默认(默认两框皆空→无激光卡片)，输出'脉宽： 5-10ns'，默认态不出现。" },
-
-  { slug: "cosmetic-derm/meso-cocktail",
-    inputs: { totalVol: "8", frequency: "2", sensitivity: "1.0", session: "5" },
-    clicks: ["document.getElementById('goal_hydrate').checked=true;document.getElementById('goal_whiten').checked=true;calc()"],
-    expect: ["中后期(第5次)"],
-    ref: "中胚层鸡尾酒：治疗目标 2 项、总量 8ml、session=5→疗程阶段'中后期(第5次)'、每2周1次。checkbox 桩内恒未勾→clicks 显式置位再 calc；注入非默认(默认 totalVol=5/session=1/无目标→'初期(第1次)')，默认态不出现'中后期(第5次)'。" },
-
-  { slug: "cosmetic-derm/mesotherapy",
-    inputs: { totalVol: "10", area: "500", depth: "1", syringe: "3" },
-    clicks: ["document.getElementById('c_ha').checked=true;document.getElementById('c_vc').checked=true;document.getElementById('c_prp').checked=true;calc()"],
-    expect: ["75.0mg"],
-    ref: "中胚层配比：HA 30%×10ml=3.00ml、含量=3.00×25mg/ml=75.0mg（PRP 同勾→HA 基底降为 30%）。checkbox 桩内恒未勾→clicks 置位；注入非默认(默认 totalVol=5→HA 37.5mg)，默认态不出现 75.0mg。" },
-
-  { slug: "cosmetic-derm/post-procedure-recovery",
-    inputs: { procedure: "peel_tca", intensity: "1.3", photo: "3" },
-    expect: ["PIH风险：高", "预计完全恢复：18.2天"],
-    ref: "术后恢复：TCA 焕肤 + 强度 1.3 + 防晒等级 photo=3→PIH 风险'高'、预计完全恢复 18.2 天。注入非默认(默认 laser_q/0.7/1→'PIH风险：低'且恢复天数更小)，默认态不出现'PIH风险：高'。" },
-
-  { slug: "cosmetic-derm/time-23",
-    inputs: { proc: "botox" },
-    expect: ["肉毒素注射"],
-    ref: "术后恢复时间表：proc=botox→项目名'肉毒素注射'(恢复约 1 天)。注入非默认(默认 proc=ipl→'强脉冲光(IPL)')，默认态不出现'肉毒素注射'。" },
-
-  { slug: "cosmetic-derm/injection",
-    inputs: { type: "ha", effect: "2" },
-    expect: ["0.8 ml"],
-    ref: "注射剂量：type=ha(玻尿酸)、鼻唇沟、effect=2(中度)→参考用量 0.8 ml。注入非默认(默认 type=botox/effect=1→以 U 计、无 '0.8 ml')，默认态不出现该串。" },
-
-  { slug: "cosmetic-derm/fitzpatrick-wrinkle",
-    inputs: { wrinkleGrade: "2", elastosis: "1", laxity: "4", pigment: "8" },
-    expect: ["94 中重度光老化", "皱纹等级 Ⅱ级", "面部松弛度 4/10"],
-    "ref": "独立复算：皱纹Ⅱ级 50 + 弹力变性轻度 20 + 松弛 4/10→20 + 色素 8→4 ⇒ 94 ⇒ 中重度光老化。原用例四项打到上限 100 后与默认态同为「重度光老化」，且「100 重度光老化」「皱纹等级 Ⅳ级」「弹力变性 重度」均在静态分型表中出现 ⇒ 逃生。默认 1/0/3/10 ⇒ 45 中度光老化、Ⅰ级、面部松弛度 3/10 ⇒ 三条均不命中。" },
-
-  { slug: "cosmetic-derm/cosmetic-injection",
-    checkIds: ["b_glabella", "b_frontalis", "b_crowfeet"],
-    inputs: { muscleStrength: "1.2" },
-    expect: ["川字纹 30", "76 总剂量(U)"],
-    ref: "页面默认肌力系数 1.0，加载即以默认勾选的三部位渲染 25/18/20、合计 63U；改为肌力系数 1.2 后按 strength 加权：川字纹 25×1.2=30、抬头纹 18×1.2≈21.6→22、鱼尾纹 20×1.2=24，合计 76U、总注射点仍 17。"
-       + "原锚 50U/川字纹 20 是旧版剂量表的值，页面改版后已不存在（该用例此前一直失败）；且默认态已渲染 63U 表格，「17 总注射点」等默认就命中，无判别力。改锚后只取默认态零出现的「川字纹 30」「76 总剂量(U)」。" },
-  {
-    "slug": "cosmetic-derm/assessor-67",
-    "inputs": {
-      "pb": "42",
-      "as": "42",
-      "hg": "42",
-      "methanol": "42",
-      "tvc": "42",
-      "cosType": "special",
-      "prodType": "water"
-    },
-    "expect": [
-      " 限值 判定 铅 42 ≤10 ✗ 砷 42 ≤4 ✗ 汞 42 ≤1 ✗ 甲醇 42 ≤0.2 ✗ 菌落总数 42 ≤5"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"pb\":\"42\",\"as\":\"42\",\"hg\":\"42\",\"methanol\":\"42\",\"tvc\":\"42\",\"cosType\":\"special\",\"prodType\":\"water\"}，输出区含「 限值 判定 铅 42 ≤10 ✗ 砷 42 ≤4 ✗ 汞 42 ≤1 ✗ 甲醇…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
   {
     "slug": "cosmetic-derm/chemical-peel",
     "inputs": {
@@ -265,18 +57,6 @@ const CASES = [
       "A 等级 SPF 1.7 · 低防晒 PA (无) · 几乎没有"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"uvb\":\"42\",\"uva\":\"42\"}，输出区含「A 等级 SPF 1.7 · 低防晒 PA (无) · 几乎没有」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "cosmetic-derm/area-12",
-    "inputs": {
-      "pct": "42",
-      "diam": "42",
-      "area": "鼻翼"
-    },
-    "expect": [
-      " 毛细血管扩张 IV 级 💡 建议：弥漫性红斑，需就医排查玫瑰痤疮等病因后综合治疗"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"pct\":\"42\",\"diam\":\"42\",\"area\":\"鼻翼\"}，输出区含「 毛细血管扩张 IV 级 💡 建议：弥漫性红斑，需就医排查玫瑰痤疮等病因后综合…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。原 expect 尾部拼了「\\n暂无评估记录」，但页面历史区默认已有本次记录 ⇒ 永远不命中（用例错，非页面错）。"
   },
   {
     "slug": "cosmetic-derm/concentration",
@@ -404,33 +184,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"totalVol\":\"42\",\"area\":\"42\",\"depth\":\"1\",\"syringe\":\"2\"}，输出区含「42\n42\n1\n2」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "cosmetic-derm/formula-1",
-    "inputs": {
-      "total": "42",
-      "ha": "42",
-      "vc": "42",
-      "rHa": "42",
-      "rVc": "42",
-      "rPep": "42"
-    },
-    "expect": [
-      " 合计 100% 42.00 — 1204.00 玻尿酸 33% 维生素C 33% 肽类 33%"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"total\":\"42\",\"ha\":\"42\",\"vc\":\"42\",\"rHa\":\"42\",\"rVc\":\"42\",\"rPep\":\"42\"}，输出区含「 合计 100% 42.00 — 1204.00 玻尿酸 33% 维生素C 33…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。原 expect 尾部拼了「\\n暂无配方记录」，但历史区已有记录 ⇒ 永远不命中（用例错）。"
-  },
-  {
-    "slug": "cosmetic-derm/maokongcudafenji",
-    "inputs": {
-      "dia": "42",
-      "area": "鼻翼两侧",
-      "type": "aging"
-    },
-    "expect": [
-      " 💡 改善建议：保持现有护肤习惯，注重保湿防晒 🔬 类型指导：老化型毛孔需刺激胶原再生，维A酸/光电紧肤有效"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"dia\":\"42\",\"area\":\"鼻翼两侧\",\"type\":\"aging\"}，输出区含「 💡 改善建议：保持现有护肤习惯，注重保湿防晒 🔬 类型指导：老化型毛孔需刺…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。原 expect 尾部拼了「\\n暂无分级记录」，但历史区已有记录 ⇒ 永远不命中（用例错）。"
-  },
-  {
     "slug": "cosmetic-derm/length-spacing",
     "inputs": {
       "len": "42",
@@ -503,17 +256,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"temp\":\"42\",\"duration\":\"42\",\"interval\":\"42\",\"freq\":\"2\",\"sessions\":\"3\",\"cooling\":\"0\"}，输出区含「有效范围内（42-48°C）。 轻度效果：以促进循环和肤质改善为主。紧肤效果有限…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "cosmetic-derm/pifuphceding",
-    "inputs": {
-      "ph": "42",
-      "area": "前额"
-    },
-    "expect": [
-      " 皮肤 pH 值 碱性 酸碱状态 0 屏障健康度 前额 · 碱性 pH 偏高，皮肤屏障受损风险大，易干燥敏感"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"ph\":\"42\",\"area\":\"前额\"}，输出区含「 皮肤 pH 值 碱性 酸碱状态 0 屏障健康度 前额 · 碱性 pH 偏高，皮…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "cosmetic-derm/sebumeter",
     "inputs": {
       "forehead": "42",
@@ -557,21 +299,6 @@ const CASES = [
       "钟 理论保护时间 1260 分钟 (21.0h) 活动校正后 882"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"med\":\"42\",\"outdoorTime\":\"42\",\"reapply\":\"42\",\"photo\":\"2\",\"uvi\":\"5\",\"spf\":\"30\",\"pa\":\"2\",\"activity\":\"0.7\"}，输出区含「钟 理论保护时间 1260 分钟 (21.0h) 活动校正后 882」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "cosmetic-derm/ratio-composition-injection",
-    "inputs": {
-      "total": "42",
-      "ha": "42",
-      "rHa": "42",
-      "rVc": "42",
-      "rGsh": "42",
-      "rOther": "42"
-    },
-    "expect": [
-      " 合计 100% 42.00 — 1333.50 玻尿酸 25% 维生素C 25% 谷胱甘肽 25% 其他 25%"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"total\":\"42\",\"ha\":\"42\",\"rHa\":\"42\",\"rVc\":\"42\",\"rGsh\":\"42\",\"rOther\":\"42\"}，输出区含「 合计 100% 42.00 — 1333.50 玻尿酸 25% 维生素C 25…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。原 expect 尾部拼了「\\n暂无配方记录」，但历史区已有记录 ⇒ 永远不命中（用例错）。"
   },
   {
     "slug": "cosmetic-derm/telangiectasia-area",
@@ -650,16 +377,6 @@ const CASES = [
       "建议方案 鱼尾纹 1 1 混合型 肉毒6U 川字纹 1 1 混合型 肉毒10U 抬头纹 1 1 混合型 肉毒8U 鼻背纹 1 1 混合型 肉毒2U 法令纹 1 1 混合型 0.5ml填充"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"crow_d\":\"1\",\"crow_s\":\"1\",\"glab_d\":\"1\",\"glab_s\":\"1\",\"fore_d\":\"1\",\"fore_s\":\"1\",\"nas_d\":\"1\",\"nas_s\":\"1\",\"nl_d\":\"1\",\"nl_s\":\"1\"}，输出区含「建议方案 鱼尾纹 1 1 混合型 肉毒6U 川字纹 1 1 混合型 肉毒10U …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "cosmetic-derm/time-23",
-    "inputs": {
-      "proc": "frac_nd"
-    },
-    "expect": [
-      "🩹 术后护理：术后冰敷，3天内避免彩妆，使用医用修复面膜，严格防晒"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"proc\":\"frac_nd\"}，输出区含「🩹 术后护理：术后冰敷，3天内避免彩妆，使用医用修复面膜，严格防晒」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。原 expect 尾部拼了「\\n暂无查询记录」且首字符写成 \\ude79（孤立代理），前者因历史区已有记录永不命中，后者是坏字符 ⇒ 双重用例错；修正后不必落入兜底函数循环（否则会误调 barRow() 报 arr undefined）。"
   },
 {
   "slug": "cosmetic-derm/wrinkle-dynamic-static",

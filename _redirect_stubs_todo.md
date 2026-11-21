@@ -165,3 +165,9 @@
 | https://chenguangwu.github.io/tools/science/factorial-calculator.html | https://chenguangwu.github.io/tools/math/factorial-calc.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/science/range-calculator.html | https://chenguangwu.github.io/tools/statistics/range-stat.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/statistics/variance-list.html | https://chenguangwu.github.io/tools/statistics/sample-variance.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/cosmetic-derm/time-23.html | https://chenguangwu.github.io/tools/cosmetic-derm/post-procedure-recovery.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/cosmetic-derm/area-12.html | https://chenguangwu.github.io/tools/cosmetic-derm/telangiectasia-area.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/cosmetic-derm/maokongcudafenji.html | https://chenguangwu.github.io/tools/cosmetic-derm/pore-grading.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/cosmetic-derm/pifuphceding.html | https://chenguangwu.github.io/tools/cosmetic-derm/skin-ph.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/cosmetic-derm/formula-1.html | https://chenguangwu.github.io/tools/cosmetic-derm/meso-cocktail.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/cosmetic-derm/ratio-composition-injection.html | https://chenguangwu.github.io/tools/cosmetic-derm/mesotherapy.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
