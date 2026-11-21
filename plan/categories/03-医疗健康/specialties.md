@@ -50,7 +50,7 @@
 
 > 七页仅分析源码，未运行页面或做医学核验；医疗和验光解释须专业复核。
 
-- `tools/ophthalmology/strabismus-angle.html`：历史恢复无参调用 `switchTab()` 抛错且不重算——第1334批已修（switchTab 无参分支安全重算 conv/hirsch/combine 并 return，源码形态强锚 `STRASHIST` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：页面称 1Δ 在 1 米偏移 1cm，但转换网格算 `pd*0.5`（20Δ 显示 10cm）；`pd2` 未参与计算；Hirschberg 说明写 15Δ/mm 而运行路径用 7°/mm——医学换算和适用性须复核。
+- `tools/ophthalmology/strabismus-angle.html`：历史恢复无参调用 `switchTab()` 抛错且不重算——第1334批已修（switchTab 无参分支安全重算 conv/hirsch/combine 并 return，源码形态强锚 `STRASHIST` 已落 ophthalmology verify；旧版无 ⇒ BAD）。页面称 1Δ 在 1 米偏移 1cm，但转换网格算 `pd*0.5`（20Δ 显示 10cm）；`pd2` 未参与；Hirschberg 说明 15Δ/mm 而运行用 7°/mm——第 133 批已修（偏移改为 `pd`、Hirschberg 改 `mm*15` 后经 PD 换算、`pd2` 补充偏移占比；强锚 `STRAMATH` 已落 ophthalmology verify）。医学换算和适用性仍须复核。
 - `tools/ophthalmology/refraction-error.html`：单片或双镜任一数字清空即直接返回、旧处方仍显示——第1323批已修（calcSingle/calcCombine 空值分支清对应结果容器，源码形态强锚 `REFCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：散光分类仅看轴位而不看柱镜正负，互为转置的处方可能被标成不同类别；页内 180° 示例的 J0 算式也与其负号结果矛盾，专业判定须复核。
 - `tools/ophthalmology/tear-breakup-time.html`：清空首次值未清参考标尺 `resultRefBar`——第1323批已修（清空分支同步清 `resultRefBar`，源码形态强锚 `TBUTCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。10 秒在代码中为正常而表格/FAQ/图例写 >10 正常——第 130 批已统一为 ≥10（强锚 `TB10` 已落 ophthalmology verify）。干眼分级、用药建议和阈值仍须临床复核。
 - `tools/ophthalmology/vision-screening-21.html`：清空历史不清趋势容器、旧图留存——第1326批已修（__vsClearHist 同步清 `#__vsTrend`，源码形态强锚 `VSCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。所有未答题默认“从不”、可连点生成完整结论——第 128 批已修（频率下拉增加空占位，`recordCurrent` 未选齐左右眼即拦截并提示；运行时用例 `VSUNANS` 已落 ophthalmology verify）。问卷到近视度数、置信带与散光轴位的医学有效性无本次证据，须专业复核。

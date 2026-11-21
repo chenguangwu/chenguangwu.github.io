@@ -115,7 +115,7 @@
 <div class="formula-box">
   
   
-<div class="formula-eq">斜视角度换算：1 棱镜度(PD) ≈ arctan(0.01) ≈ 0.573°（即 100cm 处偏移 1cm）；Hirschberg 法角膜光反射每偏离 1mm ≈ 15 PD（约 7.5°），斜视角 ≈ 偏离量 × 15 PD；Krimsky 法用三棱镜中和光反射，棱镜量即斜视量。</div></div>
+<div class="formula-eq">斜视角度换算：1 棱镜度(PD) ≈ arctan(0.01) ≈ 0.573°（即 100cm 处偏移 1cm）；Hirschberg 法角膜光反射每偏离 1mm ≈ 15 PD（按本页 PD=100·tanθ 换算约 8.5°），斜视角 ≈ 偏离量 × 15 PD；Krimsky 法用三棱镜中和光反射，棱镜量即斜视量。</div></div>
 
     <div class="tabs">
       <div id="strabismus_anglePresets"></div><button class="active" onclick="switchTab('conv',this)">单位换算</button><button class="btn" type="button" onclick="__strabismus_angleExport()">导出明细 CSV</button>
@@ -229,16 +229,16 @@
 <h2>📚 深度解析：斜视角换算（棱镜度↔度↔mm）</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>棱镜度 pd = 100×tan(度)；mm 法约 7°/mm；三棱镜中和求总角度。</li>
+<li>棱镜度 pd = 100×tan(度)；mm 法按 15Δ/mm 估算再由 PD 换算角度；三棱镜中和求总角度。</li>
 <li>斜视手术量规划。</li>
 <li>棱镜遮盖试验记录换算。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">测得 20△</div><div class="dd-ex-body">角度 = atan(20/100) = 11.3°；若以 mm 估（7°/mm）约 1.6mm 偏移。</div></div>
+<div class="dd-example"><div class="dd-ex-title">测得 20△</div><div class="dd-ex-body">角度 = atan(20/100) = 11.3°；若以 mm 估（15Δ/mm）约 1.3mm 偏移。</div></div>
 <div class="dd-example"><div class="dd-ex-title">三棱镜中和 3+4+5=12△</div><div class="dd-ex-body">总 = 12△，对应 ≈ atan(0.12)=6.8°，用于手术量估算。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>棱镜度与<a class="term-link" href="/tools/life/angle-converter.html">角度换算</a>？</dt><dd>1△ 使光线偏斜 1cm/米，即 tanθ=pd/100，故 θ=atan(pd/100)。</dd>
-<dt>mm 法为何是 7°/mm？</dt><dd>临床经验近似（每毫米眼外肌/注视偏移约 7°），用于粗略估角。</dd>
+<dt>mm 法为何按 15Δ/mm？</dt><dd>临床经验近似：角膜反光点每偏离 1mm 约 15Δ；本页再用 PD=100·tanθ 换算成约 8.5°。</dd>
 </dl>
 </div>
 </section>
@@ -297,15 +297,16 @@ function conv(){
   else{deg=v;pd=deg2pd(v);}
   const __h1='<div class="sq-cell"><div class="v">'+pd.toFixed(1)+'</div><div class="l">三棱镜 PD (Δ)</div></div>'+
     '<div class="sq-cell"><div class="v">'+deg.toFixed(2)+'</div><div class="l">角度 (°)</div></div>'+
-    '<div class="sq-cell"><div class="v">'+(pd*0.5).toFixed(1)+'</div><div class="l">1m处偏移(cm)</div></div>'+
+    '<div class="sq-cell"><div class="v">'+pd.toFixed(1)+'</div><div class="l">1m处偏移(cm)</div></div>'+
     '<div class="sq-cell"><div class="v">'+(deg/7).toFixed(1)+'</div><div class="l">约反光点(mm)</div></div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){$('convGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('convGrid').innerHTML=__h1;
 }
 
 function hirsch(){
   var mm=parseFloat($('mm').value);
   if(isNaN(mm)){const __h2='<p style="color:var(--text-muted);">请输入偏移</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){$('hirschResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('hirschResult').innerHTML=__h2;return;}
-  var deg=mm*7;            // 约 7°/mm
-  var pd=deg2pd(deg);
+  // Hirschberg：角膜反光点每偏离 1mm 约 15Δ；角度由棱镜度几何换算，避免 7°/mm 与 15Δ/mm 两套口径。
+  var pd=mm*15;
+  var deg=pd2deg(pd);
   var loc;
   if(mm<1)loc='近瞳孔中心';
   else if(mm<2)loc='瞳孔缘附近';
@@ -314,6 +315,7 @@ function hirsch(){
   var cls = pd>=60?'grade-fail':(pd>=30?'grade-pass':'grade-good');
   const __h3='<p>估算偏斜：<strong>'+deg.toFixed(0)+'°</strong> ≈ <strong>'+pd.toFixed(0)+' Δ</strong></p>'+
     '<p>反光点位置：'+loc+'</p>'+
+    (function(){var d=parseFloat($('pd2').value);return (isFinite(d)&&d>0)?('<p>偏移/瞳孔直径：'+(mm/d*100).toFixed(0)+'%</p>'):'';})()+
     '<p>分级：<span class="grade-tag '+cls+'">'+(pd>=60?'大度数斜视':(pd>=30?'中度斜视':'小度数斜视'))+'</span></p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){$('hirschResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('hirschResult').innerHTML=__h3;
 }
 

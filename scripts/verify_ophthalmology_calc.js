@@ -508,6 +508,12 @@ const CASES = [
   "expect": ["TB10 OK"],
   "ref": "BUT 分级代码为 >=10 正常（=10 归正常），表格/FAQ/图例却写 >10；统一为 ≥10，并断言旧 >10 文案已消失。"
 },
+{
+  "slug": "ophthalmology/strabismus-angle",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/strabismus-angle.html','utf8');var ok=h.indexOf('1m处偏移(cm)')>=0&&h.indexOf('pd*0.5')<0&&h.indexOf('var pd=mm*15;')>=0&&h.indexOf('mm*7')<0;document.getElementById('__tbProbe').textContent='STRAMATH '+(ok?'OK':'BAD');})();"],
+  "expect": ["STRAMATH OK"],
+  "ref": "1Δ=1cm/1m，20Δ 在 1m 处偏移 20cm；旧版 pd*0.5 显示 10cm。Hirschberg 旧版 7°/mm 与公式 15Δ/mm 两套口径，改为 pd=mm*15 再用 PD 换算角度。"
+},
 
 ];
 async function main() {
