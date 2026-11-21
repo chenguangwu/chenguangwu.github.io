@@ -113,7 +113,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据镜架前倾角(前倾)与面弯(包覆)计算倾斜诱导的柱镜与有效轴位变化">Correct and set the polarization axis angle for polarized sunglasses.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">配镜倾斜诱导（本页代码口径，前倾角与面弯双路）：等效球镜 D=sph+cyl÷2；前倾角诱导柱镜 cylPanto=D×tan²(前倾角)（@90°轴）、面弯诱导 cylWrap=D×tan²(面弯)（@180°轴）；总量 totalCyl=√(cylPanto²+cylWrap²)（两正交轴 RSS 合成）；球镜补偿 ΔS=D×(tan²前倾+tan²面弯)÷3、有效球镜=sph+ΔS。校验：无强校验，空值按 0 兜底。判据：轴位按主导方向——|cylPanto|&gt;2×|cylWrap| 取 90°、反向取 180°、否则 atan2 归 0–180°；totalCyl&gt;0.25D 提示需补偿，前倾角&gt;12° 提示调至 8–12°、面弯&gt;6° 建议定制补偿。</div>
+      <div class="formula-eq">配镜倾斜诱导（本页代码口径，前倾角与面弯双路）：等效球镜 D=sph+cyl÷2；前倾角诱导柱镜 cylPanto=D×tan²(前倾角)（@90°轴）、面弯诱导 cylWrap=D×tan²(面弯)（@180°轴）；总量 totalCyl=√(cylPanto²+cylWrap²)（两正交轴 RSS 合成）；球镜补偿 ΔS=D×(tan²前倾+tan²面弯)÷3、有效球镜=sph+ΔS。校验：球镜/柱镜/前倾/面弯须有效，原轴位须 0–179°（空值按 0）。判据：轴位按主导方向——|cylPanto|&gt;2×|cylWrap| 取 90°、反向取 180°、否则 atan2 归 0–180°；totalCyl&gt;0.25D 提示需补偿，前倾角&gt;12° 提示调至 8–12°、面弯&gt;6° 建议定制补偿。</div>
       <p class="formula-desc">根据镜架前倾角(前倾)与面弯(包覆)计算倾斜诱导的柱镜与有效轴位变化</p>
     </div>
 
@@ -128,7 +128,7 @@
         <input type="number" id="cyl" value="0" step="0.25" oninput="calc()" placeholder="如 0">
       </div>
       <div>
-        <label>原轴位 AXIS (°，选填)</label>
+        <label>原轴位 AXIS (°，选填，仅用于显示原柱镜)</label>
         <input type="number" id="axis" value="0" step="1" oninput="calc()" placeholder="如 0">
       </div>
     </div>
@@ -327,7 +327,12 @@ function calc(){
     ToolBox.setResult('result','<p style="color:var(--danger)">'+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter valid sphere, cylinder, tilt and wrap":"请输入有效的球镜、柱镜、前倾角与面弯")+'</p>');
     return;
   }
-  var axis = parseFloat(document.getElementById('axis').value) || 0;
+  var __axisRaw=String(document.getElementById('axis').value==null?'':document.getElementById('axis').value).trim();
+  var axis=__axisRaw===''?0:parseFloat(__axisRaw);
+  if(!isFinite(axis)||axis<0||axis>=180){
+    ToolBox.setResult('result','<p style="color:var(--danger)">'+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Original axis must be 0-179 degrees":"原轴位须在 0–179° 之间")+'</p>');
+    return;
+  }
 
   var D = sph + cyl/2; // equivalent sphere
   var tanP = Math.tan(panto * Math.PI/180);
@@ -363,6 +368,9 @@ function calc(){
   html += '<p>前倾角 '+panto+'° 诱导：柱镜 <strong>'+cylPanto.toFixed(2)+'D @90°</strong></p>';
   html += '<p>面弯 '+wrap+'° 诱导：柱镜 <strong>'+cylWrap.toFixed(2)+'D @180°</strong></p>';
   html += '<p>球镜增量(补偿)：ΔS = <strong>'+(sphereInc>=0?'+':'')+sphereInc.toFixed(2)+'D</strong></p>';
+  if(cyl !== 0){
+    html += '<p>原柱镜：<strong>'+cyl.toFixed(2)+'D @ '+axis+'°</strong>（仅作对照，不参与诱导柱镜合成）</p>';
+  }
   html += '</div>';
 
   if(totalCyl > 0.25){
