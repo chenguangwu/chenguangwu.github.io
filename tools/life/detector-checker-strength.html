@@ -106,7 +106,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入密码即时检测强度，分析字符组合与安全等级">Check a password against length, character variety, common patterns and repetition to estimate its strength and fix weak points.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">密码强度采用统一熵模型：按实际使用的字符池（小写 26、大写 26、数字 10、符号 32）计算单字符熵，再乘以去重后的字符个数得到有效熵（重复字符不增加信息量）；命中常见弱口令整词时把熵压到 10 bits，仅命中字典子串时扣减 15 bits。安全等级、进度条颜色、改进建议与「预估破解时间」全部由同一熵值推导（按每秒 10^10 次猜测折算），因此等级与破解时长不会互相矛盾。</div>
+      <div class="formula-eq">密码强度采用统一熵模型：按实际使用的字符池（小写 26、大写 26、数字 10、符号 32）计算单字符熵，再乘以密码长度得到信息熵；当去重字符占比低于 50% 时按该比例扣减，避免重复串被高估；命中常见弱口令整词时把熵压到 10 bits，仅命中字典子串时扣减 15 bits。安全等级、进度条颜色、改进建议与「预估破解时间」全部由同一熵值推导（按每秒 10^10 次猜测折算），因此等级与破解时长不会互相矛盾。</div>
   
 </div>
 
@@ -259,11 +259,13 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
   if(hasUpper)poolSize+=26;
   if(hasDigit)poolSize+=10;
   if(hasSymbol)poolSize+=32;
-  // 有效熵：去重字符数 × 单字符熵（重复字符不再贡献新信息）
+  // 信息熵：长度 × 单字符熵；字符种类过于单一时按去重比例扣减（避免 aaaaaaaa 被高估）
   var unique={};
   for(var ui=0;ui<len;ui++)unique[pwd.charAt(ui)]=1;
   var uniqueCount=Object.keys(unique).length;
-  var entropy=uniqueCount*Math.log2(poolSize||1);
+  var entropy=len*Math.log2(poolSize||1);
+  var uniqueRatio=len?uniqueCount/len:0;
+  if(uniqueRatio<0.5) entropy*=uniqueRatio;
   // 弱口令字典：整词命中压到 10 bits；仅含字典子串扣 15 bits
   var lowerPwd=pwd.toLowerCase();
   var isCommon=commonPasswords.indexOf(lowerPwd)>=0;
