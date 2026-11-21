@@ -199,6 +199,11 @@
         <input type="number" id="people" value="1" min="1" oninput="calc()" placeholder="如 1">
       </div>
     </div>
+    <div style="margin:8px 0 12px;">
+      <label style="display:inline-flex;align-items:center;gap:6px;font-weight:400;">
+        <input type="checkbox" id="serviceIncluded" onchange="calc()" style="width:auto;"> 账单已含服务费（以下比例为额外自愿小费）
+      </label>
+    </div>
 
     <div class="country-info" id="countryInfo"></div>
 
@@ -311,7 +316,11 @@ function calc(){
   const peopleRaw=document.getElementById('people').value.trim();
   const bill=billRaw===''?NaN:parseFloat(billRaw);
   const people=peopleRaw===''?NaN:parseInt(peopleRaw,10);
-  const symbol={USD:'$',EUR:'€',GBP:'£',JPY:'¥',CNY:'¥'}[document.getElementById('currency').value] || '';
+  const curCode=document.getElementById('currency').value;
+  const symbol={USD:'$',EUR:'€',GBP:'£',JPY:'¥',CNY:'¥'}[curCode] || '';
+  const decimals={USD:2,EUR:2,GBP:2,JPY:0,CNY:0}[curCode] ?? 2;
+  const money=v=>symbol + Number(v).toFixed(decimals);
+  const serviceIncluded=document.getElementById('serviceIncluded').checked;
   const d=tipData[c];
   const range=d && d[s];
   if(!isFinite(bill) || bill < 0 || !isFinite(people) || people < 1 || Math.floor(people) !== people || !range){
@@ -325,8 +334,8 @@ function calc(){
   // 页面没有房晚/行李件数，故只给单件/单晚口径，不虚构总额。
   if(s==='hotel' || s==='porter'){
     const unit = s==='hotel' ? '每房每晚' : '每件行李';
-    document.getElementById('countryInfo').innerHTML = `<strong>💡 当地贴士：</strong>${d.info}`;
-    document.getElementById('tipAmount').textContent = symbol + min + ' - ' + symbol + max + ' / ' + unit;
+    document.getElementById('countryInfo').innerHTML = `<strong>💡 当地贴士：</strong>${d.info}` + (serviceIncluded ? '<p style="color:var(--text-muted);font-size:12px;">账单已含服务费：以下为额外自愿小费，可按 0 或只补零头。</p>' : '');
+    document.getElementById('tipAmount').textContent = money(min) + ' - ' + money(max) + ' / ' + unit;
     document.getElementById('breakdown').innerHTML = `<p>${s==='hotel' ? '酒店客房服务/行李员通常按每房每晚或每次服务给固定小费' : '行李搬运通常按每件行李给固定小费'}，${symbol}${min}–${symbol}${max} 为常见区间，不按账单百分比计算。请在入住/搬运行李时按实际件数或晚数累加。</p>`;
     return;
   }
@@ -334,11 +343,11 @@ function calc(){
   const tipMax=bill*max/100;
   const tipAvg=(tipMin+tipMax)/2;
   const total=bill+tipAvg;
-  const __g0=`<strong>💡 当地贴士：</strong>${d.info}`;document.getElementById('countryInfo').innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
-  const __g1=`${symbol}${Math.round(tipMin)} - ${symbol}${Math.round(tipMax)}`;document.getElementById('tipAmount').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  const __g0=`<strong>💡 当地贴士：</strong>${d.info}`;document.getElementById('countryInfo').innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')) + (serviceIncluded ? '<p style="color:var(--text-muted);font-size:12px;">账单已含服务费：以下为额外自愿小费，可按 0 或只补零头。</p>' : '');
+  const __g1=`${money(tipMin)} - ${money(tipMax)}`;document.getElementById('tipAmount').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g4=`
-    <div style="padding:12px;background:#f8f9ff;border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:700;color:var(--primary);">${symbol}${Math.round(tipAvg/people)}</div><div style="font-size:11px;color:var(--text-muted);">人均小费</div></div>
-    <div style="padding:12px;background:#f8f9ff;border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:700;color:var(--primary);">${symbol}${Math.round(total)}</div><div style="font-size:11px;color:var(--text-muted);">含小费总计</div></div>
+    <div style="padding:12px;background:#f8f9ff;border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:700;color:var(--primary);">${money(tipAvg/people)}</div><div style="font-size:11px;color:var(--text-muted);">人均小费</div></div>
+    <div style="padding:12px;background:#f8f9ff;border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:700;color:var(--primary);">${money(total)}</div><div style="font-size:11px;color:var(--text-muted);">含小费总计</div></div>
     <div style="padding:12px;background:#f8f9ff;border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:700;color:var(--primary);">${min}-${max}%</div><div style="font-size:11px;color:var(--text-muted);">建议比例</div></div>
   `;document.getElementById('breakdown').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
