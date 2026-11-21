@@ -120,6 +120,9 @@
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
       <div><label>成交人次</label><input type="number" id="v1" value="164" step="any" oninput="calc()" enterkeyhint="done" aria-label="成交" placeholder="如 164"></div>
     </div>
+    <div class="input-row">
+      <div><label>成交金额 GMV（元，用于 GPM）</label><input type="number" id="v2" value="40000" min="0" step="any" oninput="calc()" aria-label="成交金额" placeholder="如 40000"></div>
+    </div>
     <div class="toolbar">
       <div id="conversion_4Presets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__conversion_4Export()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
@@ -376,15 +379,21 @@ var e0=document.getElementById('v0'),e1=document.getElementById('v1');
   var box=document.getElementById('res');
   if(!box)return;
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
-  if(B>A){box.innerHTML='<div class="info-box">成交人次不能多于观看人次（'+B+' > '+A+'），否则「未成交人次」会变成负数。</div>';return;}
+  if(A<=0||B<0||B>A){box.innerHTML='<div class="info-box" style="color:var(--danger)">观看人次须大于 0，成交人次须在 0 到观看人次之间。</div>';return;}
   var items=[];
   items.push([(B/A*100).toFixed(2)+"%", "转化率"]);
   items.push([(B/A*1000).toFixed(2), "千次观看成交（单）"]);
   items.push([(A-B).toFixed(2), "未成交人次"]);
-  items.push([(B>0?(A/B).toFixed(1):"-"), "平均几单观看成交一单"]);
+  items.push([(B>0?(A/B).toFixed(1):"-"), "每成交一单所需观看人次"]);
+  var e2=document.getElementById('v2');
+  if(e2&&String(e2.value).trim()!==''){
+    var GMV=parseFloat(e2.value);
+    if(!isFinite(GMV)||GMV<0){box.innerHTML='<div class="info-box" style="color:var(--danger)">成交金额须为非负数。</div>';return;}
+    items.push([(GMV/A*1000).toFixed(2), "GPM（元/千次观看）"]);
+  }
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 转化率 = 成交 ÷ 观看 × 100%；千次观看成交 = 成交 ÷ 观看 × 1000。';
+  html+='💡 转化率 = 成交 ÷ 观看 × 100%；千次观看成交单 = 成交 ÷ 观看 × 1000；GPM = 成交金额 ÷ 观看 × 1000。';
   const __g8=html;box.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }

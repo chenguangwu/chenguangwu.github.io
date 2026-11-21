@@ -408,20 +408,38 @@ function __analysis_conversion_funnelExtras(){
     __analysis_conversion_funnelRender(keys,rk,en);
 }
 function __analysis_conversion_funnelExport(){
-    if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#analysis_conversion_funnelTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__analysis_conversion_funnelSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __analysis_conversion_funnelRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#analysis_conversion_funnelTable','analysis-conversion-funnel.csv'); } catch(e){}
+  var raw=document.getElementById('steps').value||'';
+  var lines=raw.split(/\n+/).map(function(x){return x.trim();}).filter(Boolean);
+  var rows=[];
+  lines.forEach(function(ln){
+    var p=ln.split(/[,，、;；\t]+|\s+/).filter(Boolean);
+    var c=parseFloat(p[1]);
+    if(p.length>=2&&isFinite(c)&&c>=0) rows.push({name:p[0],c:c});
+  });
+  if(rows.length<2){ToolBox.showToast('至少录入两层漏斗后再导出','warning');return;}
+  var csv=['阶段,人数,相邻转化率(%),累计转化率(%),流失人数'];
+  rows.forEach(function(r,i){
+    var prev=i>0?rows[i-1].c:r.c;
+    var rate=i>0&&prev>0?r.c/prev*100:100;
+    var cum=rows[0].c>0?r.c/rows[0].c*100:0;
+    var lost=i>0?prev-r.c:0;
+    csv.push([r.name,r.c,rate.toFixed(2),cum.toFixed(2),lost].join(','));
+  });
+  var blob=new Blob(['\ufeff'+csv.join('\n')],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='conversion-funnel.csv';a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
 }
 function __analysis_conversion_funnelPresets(){
-    if (typeof TBKit === 'undefined') return;
+  var el=document.getElementById('analysis_conversion_funnelPresets');
+  if(!el) return;
+  var presets=[
+    ['电商下单','曝光,12000\n商品页,3600\n加购,900\n下单,300\n支付,240'],
+    ['直播转化','观看,8200\n进入商品卡,2100\n点击下单,420\n支付,164'],
+    ['B2B 线索','广告曝光,20000\n表单填写,1200\n有效线索,420\n商机,90\n签约,18']
+  ];
+  el.innerHTML='<div style="padding:12px;display:flex;gap:10px;flex-wrap:wrap;">'+presets.map(function(p,i){
+    return '<button class="btn" type="button" onclick="document.getElementById(\'steps\').value=\''+p[1].replace(/\n/g,'\\n')+'\';calc();">'+p[0]+'</button>';
+  }).join('')+'</div>';
 }
 var __analysis_conversion_funnel_f0=(typeof calc==='function')?calc:null;
 if(__analysis_conversion_funnel_f0){
