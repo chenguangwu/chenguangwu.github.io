@@ -1189,6 +1189,12 @@ const CASES = [
     ref: 'base=5000 ppm; ppb=base/0.001'
   },
   {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "1", fromUnit: "molL", molarMass: "58.44" },
+    expect: ["1 molL = 58440 ppm", "克每升： 58.44 gL"],
+    ref: '1 mol/L NaCl（58.44 g/mol）= 58.44 g/L = 58440 ppm；旧版无 mol/L 选项与摩尔质量输入。'
+  },
+  {
     slug: "life/power-converter",
     inputs: { inputVal: "2" },
     expect: ["0.002 kW"],
@@ -1769,9 +1775,10 @@ const CASES = [
       "fromUnit": "ppb"
     },
     "expect": [
-      "42\nppb\n基准： 42 ppb = 0.042 ppm 百万分之一： 0.042 ppm 万亿分之一： 42000"
+      "42\nppb\n基准： 42 ppb = 0.042 ppm",
+      "克每升： 0.000042 gL 摩尔每升： 7.186858316e-7 molL"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"ppb\"}，输出区含「42\nppb\n基准： 42 ppb = 0.042 ppm 百万分之一： 0.0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "42 ppb = 0.042 ppm；新增 gL/molL 后，58.44 g/mol 下 42 ppb = 0.000042 g/L = 7.186858316e-7 mol/L。旧版无 gL/molL 输出。"
   },
   {
     "slug": "life/countdown-timer",

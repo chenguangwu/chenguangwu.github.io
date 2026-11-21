@@ -2,7 +2,7 @@
 /* 数据来源：_build.py INDUSTRY_DEFS 短名（权威，268/268）+ 语义 emoji 映射；仅显示用短名，描述走页面 meta */
 window.INDUSTRY_INFO = {
   'it'                   : { name: 'IT 开发', icon: '💻', hot: 30327491 },
-  'life'                 : { name: '日常生活', icon: '🏠', hot: 11719560 },
+  'life'                 : { name: '日常生活', icon: '🏠', hot: 11719563 },
   'finance'              : { name: '金融财务', icon: '💰', hot: 9204980 },
   'design'               : { name: '设计创意', icon: '🎨', hot: 7162379 },
   'image'                : { name: '图像处理', icon: '🖼️', hot: 6073175 },

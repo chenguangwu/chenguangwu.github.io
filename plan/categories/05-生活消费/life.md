@@ -347,13 +347,6 @@
 - 影响：`tools/life/flow-rate-converter.html`；需要质量流量的用户无法完成换算，且引据表公式与界面能力不一致。
 - 方案：删除 mass flow/kg/s 表述，或增加「介质密度」输入并按 `kg/s = L/s × kg/L` 输出一行质量流量。
 
-### LF-N72 meta 与正文宣称 mol/L、g/L 及按密度换算，实际只有 ppm 质量比（低，确认缺陷）
-- 描述：meta description 写「在 ppm、mg/L、百分比与摩尔浓度间换算，依据溶液密度处理水溶液情形」，英文简介与深度解析也列 mol/L、g/L；但下拉只有 ppm/ppb/ppt/%/mg/L/μg/L，没有摩尔浓度或 g/L，也没有密度/摩尔质量输入。
-- 证据：`tools/life/concentration-converter.html:10`（meta 摩尔浓度/密度）、`:162`（英文简介 mol/L、g/L）、`:508`（深度解析 mol/L、g/L 需密度或摩尔质量）、`:171-178`（下拉六项）、`:277-284`（系数表）
-- 复现：输入 1% → 实际得 10000 ppm、10000 mg/L 等质量比（期望若支持 mol/L，应能按溶质摩尔质量换算，如 1 mol/L NaCl ≈ 58.44 g/L）；界面无 mol/L、g/L 选项，也无密度输入。
-- 影响：`tools/life/concentration-converter.html`；实验配比/水质检测用户按 meta 搜索进入后无法做摩尔浓度换算，文案承诺超出实现。
-- 方案：删除 mol/L、g/L 与「按密度」表述，明确「稀水溶液质量浓度近似」；或增加摩尔质量/密度输入并实现 mol/L、g/L 两项。
-
 - 本轮实读 8 页：`tools/life/number-to-chinese.html`、`data-rate-converter.html`、`report-profit.html`、`frequency-converter.html`、`energy-converter.html`、`power-converter.html`、`flow-rate-converter.html`、`concentration-converter.html`；新增 11 条（高 1 / 中 4 / 低 6）。另抽读 `pressure-converter.html`、`angle-converter.html`、`density-converter.html` 做同类换算模板比对，未计入本轮条目。未覆盖：`analysis-23/74/80`、`analysis-cost-9/10`、`angle-converter`、`assessor-target`、`countdown`、`countdown-2`、`countdown-timer`、`cycle-4`、`cycle-pruning-lawn`、`density-converter`、`detector-checker-strength`、`generator-price`、`generator-random-1`、`magnet-converter`、`pressure-converter`、`radiation-converter`、`recommender-8`、`reminder-cycle`、`stats-13` 等。
 
 ## 2026-11-04 续查（并行批 N）
