@@ -553,6 +553,12 @@ const CASES = [
   "ref": "心率/收缩压为空时清空休克指数（PPHSCLR）"
 },
   { slug: "obstetrics/calc-risk", inputs: { age: "30", weight: "60", ga: "16", afp: "-1", bhCG: "1.5" }, expect: ["⚠ 年龄、体重、孕周或血清标志物超出合理范围"], ref: "负 AFP MoM 无物理意义；新守卫应拒绝并提示范围。默认 30/60/16/0.8/1.5 不含该提示。" },
+{
+  "slug": "obstetrics/cycle-8",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/obstetrics/cycle-8.html','utf8');var i=h.indexOf('// “最新”按测量日期取');var seg=i>=0?h.slice(i,i+320):'';var ok=seg.indexOf('db > da ? 1 : -1')>=0&&seg.indexOf('latest.day')>=0&&h.indexOf('sorted.length > 1 && !singleCycle')>=0&&h.indexOf('记录跨多个周期')>=0;document.getElementById('__tbProbe').textContent='CHLATEST '+(ok?'OK':'BAD');})();"],
+  "expect": ["CHLATEST OK"],
+  "ref": "记录先第25天(2024-01-01)后第5天(2024-06-01)：最新厚度应按测量日期取第5天，而不是按天数取第25天；跨周期记录省略趋势线并提示。"
+},
 
 ];
 

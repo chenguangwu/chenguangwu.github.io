@@ -424,6 +424,16 @@ function renderChart(){
   }
 
   var sorted = records.slice().sort(function(a,b){ return a.day - b.day; });
+  // 同一天数在不同周期可能对应不同日期；日期与天数不再同向即视为跨周期。
+  var singleCycle = (function(){
+    var prevDate = '';
+    for (var __i = 0; __i < sorted.length; __i++) {
+      var __d = sorted[__i].date || '';
+      if (prevDate && __d && __d < prevDate) { return false; }
+      if (__d) { prevDate = __d; }
+    }
+    return true;
+  })();
   var W = 600;
   var H = 300;
   var padL = 45, padR = 20, padT = 20, padB = 45;
@@ -491,13 +501,17 @@ function renderChart(){
   }
   svg += '<text x="'+(padL+plotW/2)+'" y="'+(H-1)+'" text-anchor="middle" font-size="10" fill="var(--text-muted)">周期天数</text>';
 
-  // Line
-  if(sorted.length > 1){
+  // Line：只连接同一周期的记录；跨周期混在一条线上会把不同周期当成连续趋势。
+  if(sorted.length > 1 && singleCycle){
     var pathD = 'M '+dayToX(sorted[0].day).toFixed(1)+' '+valToY(sorted[0].thickness).toFixed(1);
     for(var p = 1; p < sorted.length; p++){
       pathD += ' L '+dayToX(sorted[p].day).toFixed(1)+' '+valToY(sorted[p].thickness).toFixed(1);
     }
     svg += '<path d="'+pathD+'" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+  }
+  if(sorted.length > 1 && !singleCycle){
+    svg += '<text x="'+(padL+plotW/2).toFixed(1)+'" y="'+(padT+26).toFixed(1)+'" text-anchor="middle" font-size="10" fill="#F59E0B">'+
+      ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Records span multiple cycles; trend line omitted':'记录跨多个周期，已省略趋势线')+'</text>';
   }
 
   // Points
@@ -530,7 +544,12 @@ function renderStats(){
   var maxV = Math.max.apply(null, vals);
   var minV = Math.min.apply(null, vals);
   var avgV = vals.reduce(function(a,b){return a+b;},0)/vals.length;
-  var latest = sorted[sorted.length - 1];
+  // “最新”按测量日期取，而不是按周期天数取最大：较早周期的第 25 天不是最新一次测量。
+  var latest = records.slice().sort(function(a,b){
+    var da = a.date || '0000-00-00', db = b.date || '0000-00-00';
+    if (da !== db) { return db > da ? 1 : -1; }
+    return b.day - a.day;
+  })[0];
   var latestPhase = getPhase(latest.day);
 
   const __h6='<div class="stat-card"><div class="val" style="color:var(--primary);">'+latest.thickness.toFixed(1)+'</div><div class="lbl">最新厚度 (第'+latest.day+'天)</div></div>' +
