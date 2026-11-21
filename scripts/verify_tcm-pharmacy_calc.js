@@ -338,6 +338,12 @@ const CASES = [
   "ref": "第1327批·切换药材标签内联display未解除修复源码形态强锚：原 switchTab 只切 active class，tab-standard 内联 display:block 不清除致两区同显；修复后同步设两 tab 内联 display。旧版无 ⇒ BAD。"
 },
 {
+  "slug": "tcm-pharmacy/herb-quality",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-pharmacy/herb-quality.html','utf8');var i=h.indexOf('function updateScoreDisplay(i){');var j=h.indexOf('function evaluate(){',i);var seg=(i>=0&&j>i)?h.slice(i,j):'';var ok=seg.indexOf(\"getElementById('evalResult')\")>=0&&seg.indexOf(\"style.display='none'\")>=0;document.getElementById('__tbProbe').textContent='HQSLIDERCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["HQSLIDERCLR OK"],
+  "ref": "第197批·滑块变化未清旧评分修复源码形态强锚：updateScoreDisplay 同步隐藏并清空 evalResult；旧版无 evalResult 清理 ⇒ BAD。"
+},
+{
   "slug": "tcm-pharmacy/formula-song",
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-pharmacy/formula-song.html','utf8');var i=h.indexOf('function generateSong(){');var j=h.indexOf('function ',i+10);var seg=(i>=0&&j>i)?h.slice(i,j):'';var n=(seg.split('result.innerHTML').length-1);var ok=n>=4;document.getElementById('__tbProbe').textContent='FSONGCLR '+(ok?'OK':'BAD');})();"],
   "expect": ["FSONGCLR OK"],

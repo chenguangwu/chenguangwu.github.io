@@ -4,20 +4,15 @@
 
 ## 2026-11-06 结石成分静态续审（清单 649）
 
-- `tools/urology/stone-composition.html:243-252,286-320`：成分筛选、搜索及选择卡片均有代码路径；Brushite 条目列“酸性尿”成因和“碱化尿液”预防，与磷酸钙结石管理可能冲突，须泌尿科专业人员依据现行指南核验，不据此自行改变尿液 pH 或用药。未运行页面，其他药物和阈值未做专业核验。
 
 ## 2026-11-06 中药工具静态续审（清单 630–633）
 
 - `tools/tcm-pharmacy/formula-song.html`：缺必填项时只 toast、保留上次生成结果——第1328批已修（generateSong 两处缺必填分支均清 result.innerHTML，源码形态强锚 `FSONGCLR` 已落 tcm-pharmacy verify；旧版段内引用 before=2/fixed=4，旧版无 ⇒ BAD）。原药材输入未转义注入路径已于第 951 批修复并真机验证。余项：方歌生成质量与方剂内容未做专业核验。
 - `tools/tcm-pharmacy/four-qi-nature.html:358-372,383-425,440-443`：畏寒对应 `qi:'热'`，计分只处理寒、温两种，单选畏寒时总分为 0，算法误判“寒热不显”且评分百分比为 NaN。症状到药性推荐和代表药须临床专业复核。
-- `tools/tcm-pharmacy/herb-quality.html`：切标签只切 class、内联 display 未解除致两区同显——第1327批已修（switchTab 同步设 tab-standard/tab-score 的内联 display，源码形态强锚 `HQTAB` 已落 tcm-pharmacy verify；旧版无 ⇒ BAD）。余项：滑块变化也不清理已生成评分；评分阈值与“符合药典标准、可入药使用”须专业复核。
-- `tools/tcm-pharmacy/tcm-pharmacoeconomics.html`：按最低日费用给出“最经济方案”和“性价比”，没有疗效或等效性数据，且不同疗程时最低日费未必对应最低总费用。费用/药物比较须临床专业复核，未运行页面。（原 CSV 隐藏表未转义注入路径已于第 951 批修复并真机验证，从待办删除。）
 
 ## 2026-11-06 中医问诊工具静态续审（清单 626–629）
 
-- `tools/tcm-diagnosis/disease-tracking.html`：未填写症状也可保存总分 0 并标「无症状」；不同记录填写的症状集合不同时仍直接比较总分给出好转/加重判断。（原症状/舌象/脉象/日期未经转义拼入时间线、趋势、汇总和导出 HTML 的注入路径已于第 951 批修复并真机验证，从待办删除。）
 - `tools/tcm-diagnosis/formula-matching.html`：天麻钩藤饮 `用法` 字段错配致详情用法为空——第1320批已修（数据对象 `用法`→`usage`，强锚 `FMUSAGE` 源码哨兵已落 tcm-diagnosis verify；旧版无该 `usage` ⇒ BAD）。余项：方剂内容及禁忌未做专业核验。
-- `tools/tcm-diagnosis/ten-questions.html`：重置未重置性别下拉——第1321批已修（resetForm 显式设 pGender='男'，源码形态强锚 `TQRESET` 已落 tcm-diagnosis verify；旧版无该重置 ⇒ BAD）。余项：改动输入后 300ms 静默生成完整记录；重置只改 DOM，不代表清除了通用输入持久化，隐私状态待验证。
 - `tools/tcm-diagnosis/treatment-principle.html:371-437,474-490`：选择项触发建议，全部未选则隐藏并拒绝导出；参考方药与治则映射可直接呈现具体治疗建议，须临床专业核验，不能据静态检查判医疗正确。四页均未运行浏览器。
 
 ## 2026-11-06 儿童疫苗排程静态续审
@@ -28,11 +23,7 @@
 
 > 六页仅静态分析，未运行页面或验证视光标准；专业建议须复核。
 
-- `tools/optical/photochromic-lens.html`：温度无下界致 `tempFactorDark` 为负、变深时间出现负秒——第1320批已修（因子非正即双语提示并中止，不做武断的下限钳制，真机负温用例已落 optical verify；旧版输出负时间 ⇒ BAD）。余项：清空温度仍按 25°C 输出结论；经验模型与适用温度范围须专业复核。
 - `tools/optical/polarized-axis.html`：球镜/柱镜/前倾角/面弯空值静默按 0——第1317批已修（四处原始判空+非有限数与角度范围守卫，强锚 `PAGUARD` 已落 optical verify；旧版无 `__sphRaw` ⇒ BAD）。余项：模型与处方补偿方法须专业复核（原轴位已按「仅对照显示」处理，不参与诱导柱镜合成）。
-- `tools/optical/polarized-stress.html:314-327,361-369`：表格色序数组相对 `COLORS` 索引错位：一级红（索引 4）标一级、二级紫（索引 5）也标一级，二级红（索引 9）标二级但三级紫（索引 10）标二级；末项高级粉白被标三级。等级及合格判断须专业复核。
-- `tools/optical/prism-decentration.html:126-153,316-322,325-366`：切换“已知移心”后下拉仍标“基底方向”，代码却把该值当移心方向，再对负镜取反作为基底；同一选项语义随模式变化，易误填。棱镜量或移心量清空当作 0，仍输出结果；0 镜度被一律拒绝，包含只求诱导量模式。方向与临床适用性须复核。
-- `tools/optical/progressive-corridor.html`：下加光/镜圈高度/瞳高空值静默代入——第1316批已修（三处原始判空+下加光非负、镜圈高度与瞳高正数守卫，强锚 `PCGUARD` 已落 optical verify；旧版无 `__addRaw` ⇒ BAD）。余项：图示中 `nearY-fitY` 为负，连接线使用负 CSS 高度，绘制效果待验证；通道策略与图示须视光师复核。
 - `tools/optical/tinted-lens.html`：基础透光率清空/0 回退 92%、未约束 0–100——第1314批已修（原始串判空+范围校验，无效清 tintGrid，强锚 `TINTVLT` 已落 optical verify）。余项：颜色系数及对夜间/驾驶使用的结论须按适用标准复核。
 
 ## 2026-11-06 视光工具静态续审（第三批）
@@ -42,7 +33,6 @@
 - `tools/optical/convergence-near-point.html`：瞳距空值按 0 计算——第1315批已修（原始串判空+正数守卫，强锚 `CNPGUARD` 已落 optical verify）。距离/瞳距无效未清参考表——第1328批已修（pd<=0 与 dist<=0 两守卫均清 #distTable tbody，源码形态强锚 `CNPTBL` 已落 optical verify；旧版 calc 段引用 before=1/fixed=3，旧版无 ⇒ BAD）。余项：PD=62mm/40cm 的每眼需求与双眼总量口径冲突须视光师复核。
 - `tools/optical/frame-pupillary.html`：A/DBL/PD 清空按 0 出匹配建议——第1315批已修（三处原始判空+正数守卫，强锚 `FPGUARD` 已落 optical verify；ED 为 0 回退 A 属选填默认，保留）。余项：移心过大时一律建议更大 DBL 与自身公式方向冲突，须视光师复核。
 - `tools/optical/frame-tilt.html`：倾角/瞳距/瞳高清空按 0——第1315批已修（原始串判空，pd 与瞳高正数守卫，倾角 0 仍合法，强锚 `FTGUARD` 已落 optical verify）。`shiftCm` 未展示英文简介所述棱镜效应且无镜度输入——第 131 批已补选填镜度并按 Prentice 输出 `|c×D|`，留空不改变原输出（用例已落 optical verify）。前倾光心移动与瞳高方向仍须专业复核。
-- `tools/optical/lens-refractive-index.html`：度数/直径/中心厚度空值静默代入——第1316批已修（三处原始判空+直径与中心厚度正数守卫，强锚 `LRGUARD` 已落 optical verify；旧版无 `__pRaw` ⇒ BAD）。余项：正负镜均对度数取绝对值并用明确标注“负镜”的边厚公式，正镜也显示中心加差的边厚。厚度模型适用范围须专业复核。
 - `tools/optical/peripheral-defocus.html`：中心/周边/偏心角空值静默按 0 或 20——第1317批已修（三处原始判空+偏心角正数守卫+无效时清 `vis` 示意图，强锚 `PDGUARD` 已落 optical verify；旧版无 `__centralRaw` ⇒ BAD）。RPD=0 主提示说信号微弱，方向卡和示意图却称远视性、促进眼轴增长——第 137 批已统一 ±0.5D 中性带（方向/图色/效能同口径，用例已落 optical verify）。离焦量和镜型直接映射具体防控百分比的临床有效性仍须专业复核。
 
 ## 2026-11-06 眼科与视光工具静态续审（第二批）
@@ -55,12 +45,6 @@
 - `tools/ophthalmology/vision-screening-21.html`：清空历史不清趋势容器、旧图留存——第1326批已修（__vsClearHist 同步清 `#__vsTrend`，源码形态强锚 `VSCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。所有未答题默认“从不”、可连点生成完整结论——第 128 批已修（频率下拉增加空占位，`recordCurrent` 未选齐左右眼即拦截并提示；运行时用例 `VSUNANS` 已落 ophthalmology verify）。问卷到近视度数、置信带与散光轴位的医学有效性无本次证据，须专业复核。
 - `tools/ophthalmology/visual-field-analysis.html`：仅检查 NaN，VFI 越界/PSD 负值仍进分级——第1325批已修（要求 PSD≥0、VFI∈[0,100]，MD 负值按习惯保留，源码形态强锚 `VFIDOM` 已落 ophthalmology verify；旧版无 ⇒ BAD）。HAP 等医学分期及界限须专业复核。
 - `tools/optical/accommodation-amplitude.html`：年龄清空经 `||0` 当成 0 岁继续出结果——第1318批已修（原始串判空+年龄正数守卫，强锚 `AAGUARD` 已落 optical verify；旧版无 `__ageRaw` ⇒ BAD）。非正参考调节幅度对应近点被写成固定 999cm——第 136 批已将负幅度夹到 0、近点显示 ∞（用例已落 optical verify）。深解的 30 岁数值及引据表公式与实际公式不一致，医学适用性仍须验光专业复核。实测调节值为选填，未动。
-- `tools/optical/anti-fatigue-design.html`：基础模式空年龄默认 0、空或 0 工作距离默认 40cm——第1318批已修（年龄/距离/远用度数三处原始判空+年龄与距离正数守卫，远用度数允许 0 与负值，强锚 `AFGUARD` 已落 optical verify；旧版无 `__ageRaw` ⇒ BAD）。基础 ADD 先封顶 1D 使渐进片建议不可达——第 132 批已修（保留封顶前原始需求，`>1.00D` 提示改用渐进片；用例已落 optical verify）。余项：基础远用度数 `rx` 读取后未使用，进阶近距隐斜只展示不参与建议。所述验配方法、隐斜处理和建议须专业复核。
-
-## 2026-11-06 眼科工具静态续审
-
-> 八页仅源码分析；未进行浏览器、图形、下载或医学标准核验，医疗问题均需临床复核。
-
 - 同页 `:717-729,698-706`：用户填写的 `ecRow` 原样存入记录，随后拼入 `innerHTML`，存在本地存储型 HTML/脚本注入路径；未实际执行载荷。
 - `tools/ophthalmology/astigmatism-chart.html`：切换射线数后旧标记按索引错位——第1334批已修（标记存的是射线索引、角度=索引×(360/条数)，24↔36 切换后同索引角度全变；修复后切条数即清两眼 marked 并同步读数，源码形态强锚 `ASLINES` 已落 ophthalmology verify；旧版无 ⇒ BAD）。高亮扇区镜像与分步切眼不重绘——第 127 批已修（新增 `sectorCenterAngle` 统一射线角与 canvas 弧角，`goStep` 内补重绘；强锚 `ASANGLE`/`ASSTEP` 已落 ophthalmology verify）。余项：向量直接平均 180° 相反射线时会相互抵消仍输出数值轴位，视觉意义及轴位解释须临床核验。
 - `tools/ophthalmology/amsler-grid-test.html`：切换眼别未清 `S.drawing` 致未完成绘制串眼——第1334批已修（amEye change 与 goStep 两处切眼别均补清 S.drawing/S.cursor，源码形态强锚 `AMDRAW` 已落 ophthalmology verify；旧版两处皆无 ⇒ BAD）。余项：提示可点“完成”闭合但工具栏未见完成按钮，实际只绑定双击或 Enter；保存只含已闭合标记，正在绘制的区域不入快照；触屏事件表现未实测。
@@ -71,8 +55,6 @@
 
 ## 2026-11-06 子宫内膜记录静态续审
 
-- `tools/obstetrics/cycle-8.html`：“最新厚度”与临床解读先按周期天数取最大、图表跨周期混在一条曲线——第 129 批已修（最新按测量日期降序取，跨周期省略趋势线并提示，强锚 `CHLATEST` 已落 obstetrics verify）。仅源码推演，**需临床复核**。
-- `tools/obstetrics/cycle-8.html:345-350,414-427,489-493`：仅凭固定周期日推定月经/增殖/排卵/分泌期并生成“正常范围”“警惕病变”解读，图表对所有日期统一显示 7–14mm；周期长度、实际排卵与临床背景未参与。是否适用及参考阈值须专业核验，不将静态模型视为医学结论。
 
 ## 功能缺陷
 - 产科预产期页缺「孕周时间轴可视化」（周数条+当前周胎儿大小描述）。

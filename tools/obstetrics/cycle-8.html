@@ -119,13 +119,17 @@
     <div class="card formula-box">
   <h3>📐 计算公式</h3>
   <div class="formula-eq">内膜厚度随周期：增殖期 4–12 mm、分泌期 10–14 mm；排卵前 ≥8 mm 利于着床</div>
-  <p class="formula-desc">按周期日数划分增殖期/分泌期，以该期参考范围评估内膜偏薄/正常/偏厚。</p>
+  <p class="formula-desc">按周期日数划分增殖期/分泌期，以该期参考范围评估内膜偏薄/正常/偏厚。<strong>分期仅由周期日数推定，未结合排卵、激素或超声；参考区间不构成诊断，异常或备孕请由妇产科结合临床判断。</strong></p>
 </div>
 <div class="input-row">
       <div>
         <div data-tb="preset" data-tb-presets='[{"label": "卵泡期第14天", "labelEn": "Cycle day 14", "values": {"cycleDay": 14, "thickness": 8.5, "measureDate": "2024-03-15", "measureNote": "阴道超声"}}]'></div>
 <label>月经周期第几天</label>
         <input type="number" id="cycleDay" placeholder="如：14" min="1" max="40" oninput="updatePhaseHint()">
+      </div>
+      <div>
+        <label>周期长度（天，可选）</label>
+        <input type="number" id="cycleLength" placeholder="默认 28" min="21" max="40">
       </div>
       <div>
         <label>内膜厚度 (mm)</label>
@@ -331,13 +335,19 @@ function todayStr(){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
-function getPhase(day){
+function getCycleLength(){
+  var el = document.getElementById('cycleLength');
+  var n = el ? parseInt(el.value) : NaN;
+  return (n >= 21 && n <= 40) ? n : 28;
+}
+function getPhase(day, cycleLength){
+  var cl = cycleLength || getCycleLength();
+  var ov = cl - 14; // 黄体期约 14 天，按周期长度反推排卵日
   if(day >= 1 && day <= 4) return { name:'月经期', cls:'phase-menstrual', min:2, max:5 };
-  if(day >= 5 && day <= 13) return { name:'增殖期', cls:'phase-proliferative', min:5, max:14 };
-  if(day === 14) return { name:'排卵期', cls:'phase-ovulation', min:9, max:14 };
-  if(day >= 15 && day <= 28) return { name:'分泌期', cls:'phase-secretory', min:7, max:14 };
-  if(day > 28) return { name:'黄体后期', cls:'phase-secretory', min:7, max:14 };
-  return { name:((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown":"未知"), cls:'phase-menstrual', min:0, max:0 };
+  if(day < ov) return { name:'增殖期', cls:'phase-proliferative', min:5, max:14 };
+  if(day === ov) return { name:'排卵期', cls:'phase-ovulation', min:9, max:14 };
+  if(day <= cl) return { name:'分泌期', cls:'phase-secretory', min:7, max:14 };
+  return { name:'黄体后期', cls:'phase-secretory', min:7, max:14 };
 }
 
 function updatePhaseHint(){
@@ -347,7 +357,7 @@ function updatePhaseHint(){
     const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){hint.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}hint.innerHTML=__h0;
     return;
   }
-  var phase = getPhase(day);
+  var phase = getPhase(day, getCycleLength());
   const __h1='<div class="tip-box tip-info">当前周期天数：<strong>第'+day+'天</strong>，属于 <span class="phase-badge '+phase.cls+'">'+phase.name+'</span>，参考范围：<strong>'+phase.min+'-'+phase.max+'mm</strong></div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){hint.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}hint.innerHTML=__h1;
 }
 
@@ -362,6 +372,7 @@ function addMeas(){
   records.push({
     id: Date.now(),
     day: day,
+    cycleLength: getCycleLength(),
     thickness: thick,
     date: date,
     note: note
@@ -413,7 +424,7 @@ function getInterp(thick, phase){
     }
     return { type:'warn', text:'内膜偏厚（>'+phase.max+'mm），高于'+phase.name+'参考范围，建议关注。' };
   }
-  return { type:'success', text:'内膜厚度在'+phase.name+'正常范围内（'+phase.min+'-'+phase.max+'mm），符合预期。' };
+  return { type:'success', text:'内膜厚度位于本页'+phase.name+'参考区间（'+phase.min+'-'+phase.max+'mm）；该区间为群体参考，不构成诊断。' };
 }
 
 function renderChart(){
@@ -459,11 +470,13 @@ function renderChart(){
   var svg = '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="max-width:100%;">';
 
   // Phase background bands
+  var __cl = (sorted.length && sorted[sorted.length-1].cycleLength) ? sorted[sorted.length-1].cycleLength : getCycleLength();
+  var __ov = __cl - 14;
   var phases = [
     {from:1,to:4,color:'rgba(239,68,68,0.05)',label:'月经'},
-    {from:5,to:13,color:'rgba(59,130,246,0.05)',label:'增殖'},
-    {from:14,to:14,color:'rgba(168,85,247,0.08)',label:'排卵'},
-    {from:15,to:28,color:'rgba(245,158,11,0.05)',label:'分泌'}
+    {from:5,to:Math.max(5,__ov-1),color:'rgba(59,130,246,0.05)',label:'增殖'},
+    {from:__ov,to:__ov,color:'rgba(168,85,247,0.08)',label:'排卵'},
+    {from:__ov+1,to:__cl,color:'rgba(245,158,11,0.05)',label:'分泌'}
   ];
   phases.forEach(function(p){
     if(p.from >= minDay && p.to <= maxDay + 1){
@@ -518,7 +531,7 @@ function renderChart(){
   sorted.forEach(function(r){
     var x = dayToX(r.day);
     var y = valToY(r.thickness);
-    var phase = getPhase(r.day);
+    var phase = getPhase(r.day, r.cycleLength);
     var interp = getInterp(r.thickness, phase);
     var color = interp.type === 'success' ? '#10B981' : (interp.type === 'error' ? '#EF4444' : (interp.type === 'warn' ? '#F59E0B' : '#3B82F6'));
     svg += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="5" fill="'+color+'" stroke="var(--card-bg)" stroke-width="2"/>';
@@ -550,7 +563,7 @@ function renderStats(){
     if (da !== db) { return db > da ? 1 : -1; }
     return b.day - a.day;
   })[0];
-  var latestPhase = getPhase(latest.day);
+  var latestPhase = getPhase(latest.day, latest.cycleLength);
 
   const __h6='<div class="stat-card"><div class="val" style="color:var(--primary);">'+latest.thickness.toFixed(1)+'</div><div class="lbl">最新厚度 (第'+latest.day+'天)</div></div>' +
     '<div class="stat-card"><div class="val">'+avgV.toFixed(1)+'</div><div class="lbl">平均厚度 (mm)</div></div>' +
@@ -573,7 +586,7 @@ function renderList(){
   var sorted = records.slice().sort(function(a,b){ return a.day - b.day; });
   var html = '';
   sorted.forEach(function(r){
-    var phase = getPhase(r.day);
+    var phase = getPhase(r.day, r.cycleLength);
     var interp = getInterp(r.thickness, phase);
     var color = interp.type === 'success' ? '#10B981' : (interp.type === 'error' ? '#EF4444' : (interp.type === 'warn' ? '#F59E0B' : '#3B82F6'));
     html += '<div class="meas-entry">';
@@ -599,7 +612,7 @@ function exportData(){
   if(records.length === 0){ ToolBox.showToast(i18nText(), 'warning'); return; }
   var lines = ['测量日期,周期天数,分期,内膜厚度(mm),参考范围下限,参考范围上限,备注'];
   records.slice().sort(function(a,b){return a.day-b.day;}).forEach(function(r){
-    var phase = getPhase(r.day);
+    var phase = getPhase(r.day, r.cycleLength);
     lines.push([r.date,r.day,phase.name,r.thickness.toFixed(1),phase.min,phase.max,r.note].map(ToolBox.csvCell).join(','));
   });
   var today = todayStr();

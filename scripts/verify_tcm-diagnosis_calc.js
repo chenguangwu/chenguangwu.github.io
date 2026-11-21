@@ -264,6 +264,12 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-diagnosis/ten-questions.html','utf8');var i=h.indexOf('function resetForm(){');var seg=i>=0?h.slice(i,i+560):'';var ok=seg.indexOf(\"getElementById('pGender')\")>=0&&seg.indexOf(\"value='男'\")>=0;document.getElementById('__tbProbe').textContent='TQRESET '+(ok?'OK':'BAD');})();"],
   "expect": ["TQRESET OK"],
   "ref": "第1321批·重置未清性别下拉修复源码形态强锚：原 resetForm 只清文本/单选，pGender 沿用上次值；修复后显式设 pGender='男'。旧版无该重置 ⇒ BAD。"
+},
+{
+  "slug": "tcm-diagnosis/ten-questions",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-diagnosis/ten-questions.html','utf8');var i=h.indexOf('function __tqLive(){');var j=h.indexOf('function __tqPresetView()',i);var seg=(i>=0&&j>i)?h.slice(i,j):'';var ok=seg.indexOf('__tqPresetView();')>=0&&seg.indexOf('generate(true)')<0;document.getElementById('__tbProbe').textContent='TQLIVE '+(ok?'OK':'BAD');})();"],
+  "expect": ["TQLIVE OK"],
+  "ref": "第197批·输入 300ms 静默生成完整记录修复源码形态强锚：__tqLive 只调用 __tqPresetView 出草稿，不再 auto generate(true)；旧版含 generate(true) ⇒ BAD。"
 }
 ];
 async function main() {
