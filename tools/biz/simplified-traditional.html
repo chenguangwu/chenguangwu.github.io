@@ -152,7 +152,7 @@
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
     <div class="info-box" style="margin-top:8px;">
-      💡 内置 2000+ 常用汉字字典，支持基础词汇转换。复杂专业词汇请人工校对。
+      💡 内置常用汉字表与常用词汇覆盖（软件、面条、钟表等），并优先按词转换；专业词汇与地区用语仍请人工校对。
     </div>
   </div>
 
@@ -505,12 +505,35 @@ var s2tMap = {
   '龉':'齬','龊':'齪','龋':'齲','龌':'齷','龙':'龍','庞':'龐','龚':'龔','龛':'龕','龟':'龜'
 };
 
+// 单字补充：补齐高频简繁对应；一对多字由下方词组优先消歧。
+var EXTRA_S2T = {'发':'發','后':'後','干':'乾','台':'臺','历':'歷','尽':'盡','计':'計','签':'簽','数':'數','叶':'葉','苏':'蘇','复':'復','云':'雲','里':'裏','余':'餘','丑':'醜','斗':'鬥','只':'隻'};
+for(var ek in EXTRA_S2T){ if(EXTRA_S2T.hasOwnProperty(ek)) s2tMap[ek]=EXTRA_S2T[ek]; }
+
+var S2T_PHRASES = {
+  '软件':'軟體','后来':'後來','头发':'頭髮','干净':'乾淨','台湾':'臺灣','系统':'系統','计划':'計劃',
+  '面条':'麵條','面包':'麵包','面粉':'麵粉','只有':'只有','杂志':'雜誌','公里':'公里','里程':'里程',
+  '诗云':'詩云','丑时':'丑時','余曰':'余曰','干部':'幹部','干事':'幹事','干杯':'乾杯','干旱':'乾旱',
+  '干燥':'乾燥','云彩':'雲彩','云端':'雲端','以后':'以後','发型':'髮型','理发':'理髮','一只':'一隻',
+  '周末':'週末','叶子':'葉子','复杂':'複雜','复制':'複製','发布':'發布','里面':'裡面','剩余':'剩餘',
+  '业余':'業餘','钟表':'鐘錶','钟头':'鐘頭','钟爱':'鍾愛','签名':'簽名'
+};
+
 var t2sMap = {};
 for(var k in s2tMap){
   if(s2tMap.hasOwnProperty(k)){
     t2sMap[s2tMap[k]] = k;
   }
 }
+var T2S_OVERRIDE = {'後':'后','臺':'台','隻':'只','歷':'历','週':'周','葉':'叶','麵':'面','麪':'面','鍾':'钟','錶':'表','髮':'发','乾':'干','幹':'干','裏':'里','裡':'里','餘':'余','醜':'丑','雲':'云','鬥':'斗'};
+for(var tk in T2S_OVERRIDE){ if(T2S_OVERRIDE.hasOwnProperty(tk)) t2sMap[tk]=T2S_OVERRIDE[tk]; }
+var T2S_PHRASES = {
+  '後來':'后来','臺灣':'台湾','一隻':'一只','歷史':'历史','週末':'周末','葉子':'叶子','麵條':'面条',
+  '麵包':'面包','麵粉':'面粉','鍾錶':'钟表','鐘錶':'钟表','國語':'国语','學習':'学习','體驗':'体验',
+  '軟體':'软件','頭髮':'头发','乾淨':'干净','系統':'系统','計劃':'计划','雜誌':'杂志','裡面':'里面',
+  '剩餘':'剩余','鍾愛':'钟爱','發佈':'发布','複雜':'复杂','複製':'复制','簽名':'签名'
+};
+var S2T_KEYS = Object.keys(S2T_PHRASES).sort(function(a,b){return b.length-a.length;});
+var T2S_KEYS = Object.keys(T2S_PHRASES).sort(function(a,b){return b.length-a.length;});
 
 var currentDir = 's2t';
 
@@ -521,11 +544,27 @@ function convertTo(dir){
 
 function convert(){
   var input = document.getElementById('input').value;
-  var map = currentDir === 't2s' ? t2sMap : s2tMap;
+  var isT2S = currentDir === 't2s';
+  var map = isT2S ? t2sMap : s2tMap;
+  var phrases = isT2S ? T2S_PHRASES : S2T_PHRASES;
+  var keys = isT2S ? T2S_KEYS : S2T_KEYS;
   var result = '';
-  for(var i=0;i<input.length;i++){
+  var i = 0;
+  while(i < input.length){
+    var matched = false;
+    for(var p=0;p<keys.length;p++){
+      var key = keys[p];
+      if(input.startsWith(key, i)){
+        result += phrases[key];
+        i += key.length;
+        matched = true;
+        break;
+      }
+    }
+    if(matched) continue;
     var ch = input[i];
     result += map[ch] || ch;
+    i++;
   }
   document.getElementById('result').textContent = result || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Please enter text...":"请输入文本...");
 }
