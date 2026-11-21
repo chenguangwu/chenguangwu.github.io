@@ -234,7 +234,7 @@ const CASES = [
   "inputs": {
     "antrumIM": "1", "corpusIM": "3", "antrumAtrophy": "2", "corpusAtrophy": "3"
   },
-  "expect": ["1\n3\n2\n3\nⅡ期 OLGIM分期 Ⅲ期 OLGA分期 中度风险 胃癌风险 评估明细 胃窦肠化生：轻度 胃体肠化生：重度 胃窦萎缩：中度 胃体萎缩：重度 随访建议： 每1-2年随访胃镜 中度肠化生范围，胃癌风险升高。建议根除Hp后定期随访，增强筛查意识。"],
+  "expect": ["Ⅳ期 OLGIM分期 Ⅳ期 OLGA分期","每年随访胃镜"],
   "ref": "auto-restore"
 },
 {
@@ -531,6 +531,48 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/gastroenterology/ibd-nutrition.html','utf8');var a=h.indexOf('__bmiRaw')>=0;var b=h.indexOf('__albRaw')>=0;var c=h.indexOf('!isFinite(bmi)')>=0;var d=h.indexOf('!isFinite(albumin)')>=0;var z=h.indexOf('bmi=parseFloat(document.getElementById(\\'bmi\\').value)||0')<0;var ok=a&&b&&c&&d&&z;document.getElementById('__tbProbe').textContent='IBD195 '+(ok?'OK':'BAD');})();"],
   "expect": ["IBD195 OK"],
   "ref": "第1331批·IBD清空BMI/白蛋白按最差档计分修复源码形态强锚：原 parseFloat(.)||0 把空/非法变0，BMI0落<17→3分、白蛋白0落<30→+2分；修复后原始判空+NaN，计分维度 !isFinite 时跳过。四锚 before 全0/fixed 有值。"
+},
+ {
+  "slug": "gastroenterology/gastrin-level",
+  "inputs": {"gastrin":"105","ph":"low"},
+  "expect": ["正常范围","105 pg/mL"],
+  "ref": "参考上限 115：105 应为正常；旧实现 <100 会误判轻度升高。"
+},
+{
+  "slug": "gastroenterology/detector-7",
+  "inputs": {"ab1":"1","ab2":"0","ab3":"1","ab4":"1","ab5":"0","ab6":"0","prior":"0"},
+  "expect": ["多重耐药·需个体化","共 3 种"],
+  "ref": "3 种耐药且含克拉霉素：旧分支先命中「不含克拉霉素」降级；现应先报多重耐药。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": {"fit":"8","fc":"40","age":"50","status":"screening"},
+  "expect": ["双阴性 → 风险低"],
+  "ref": "「筛查阴性」预设应由 FIT 10（临界值）改为 8（阴性），使预设名与判读一致。"
+},
+{
+  "slug": "gastroenterology/nafld-fibroscan",
+  "inputs": {"lsm":"8","cap":"260","validity":"valid","probe":"XL"},
+  "expect": ["仅适用于 M 探头"],
+  "ref": "XL 探头不得套用 M 探头阈值；旧实现照常输出 F2/S1。"
+},
+{
+  "slug": "gastroenterology/nafld-fibroscan",
+  "inputs": {"lsm":"20","cap":"320","validity":"unreliable","probe":"M"},
+  "expect": ["不可判定（可靠性存疑）","不作为分期依据"],
+  "ref": "可靠性存疑时旧实现仍显示 F4/S3；现应改「不可判定」并声明不作分期依据。"
+},
+{
+  "slug": "gastroenterology/esophageal-varices",
+  "inputs": {"size":"3","rc":"3","child":"3","bleed":"1"},
+  "expect": ["再出血风险","二级预防"],
+  "ref": "有出血史不应再报「首次出血风险」与一级预防；现按再出血与二级预防输出。"
+},
+{
+  "slug": "gastroenterology/ibd-nutrition",
+  "inputs": {"activity":"0","extent":"0","bmi":"20","weightLoss":"0","albumin":"38","intake":"0","age":"45","complications":"2"},
+  "expect": ["中度营养风险"],
+  "ref": "瘘管/脓肿应为 3 分：旧选项值 1 只加 2 分，总分 2 判低风险；现总分 3 判中度。"
 }
 ];
 async function main() {

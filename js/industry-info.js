@@ -96,7 +96,7 @@ window.INDUSTRY_INFO = {
   'welding'              : { name: '焊接工程', icon: '🔥', hot: 182132 },
   'electronics'          : { name: '电子电路', icon: '⚡', hot: 179973 },
   'urology'              : { name: '泌尿外科', icon: '🩺', hot: 176672 },
-  'gastroenterology'     : { name: '消化内科', icon: '🩻', hot: 172839 },
+  'gastroenterology'     : { name: '消化内科', icon: '🩻', hot: 172838 },
   'acupuncture'          : { name: '针灸推拿', icon: '🪡', hot: 169978 },
   'nutrition'            : { name: '营养膳食', icon: '🥗', hot: 165574 },
   'advertising'          : { name: '广告设计', icon: '📣', hot: 164498 },
