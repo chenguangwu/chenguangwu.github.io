@@ -14645,6 +14645,27 @@ const CASES = [
     "expect": ["NASA launched iOS app"],
     "ref": "句首大写保留专有缩写：旧实现整体 toLowerCase 后得到「Nasa launched ios app」；修复后保留 NASA 与 iOS，只把普通词降格并把句首大写。"
   },
+  {
+    "slug": "it/markdown-to-html",
+    "inputs": { "md": "`**x**`" },
+    "clicks": ["calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MDCODE '+((h.indexOf('<code>**x**</code>')>=0&&h.indexOf('<strong>')<0)?'OK':'BAD');"],
+    "expect": ["MDCODE OK"],
+    "ref": "行内代码优先级：反引号内 `**x**` 必须原样保留为 code；旧实现先转 code 再跑粗体，生成嵌套 <strong>。"
+  },
+  {
+    "slug": "it/markdown-to-html",
+    "inputs": { "md": "```c++\nint x;\n```" },
+    "clicks": ["calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MDFENCE '+((h.indexOf('<pre><code>int x;')>=0)?'OK':'BAD');"],
+    "expect": ["MDFENCE OK"],
+    "ref": "围栏语言标识：旧正则只允许 [a-zA-Z]*，c++/c# 等语言标记不匹配，整块退化为普通段落。修复后语言标识接受任意非换行串。"
+  },
+  {
+    "slug": "it/markdown-to-html",
+    "inputs": { "md": "a | b\n---|---\n1 | 2" },
+    "clicks": ["calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MDTABLE '+((h.indexOf('>a</th>')>=0&&h.indexOf('>1</td>')>=0)?'OK':'BAD');"],
+    "expect": ["MDTABLE OK"],
+    "ref": "GFM 无首竖线表格：旧实现要求行首为 |，`a | b` 表头被当普通段落。修复后按 | 切分且要求下一行每格为 3+ 个短横线，避免误伤普通文本。"
+  },
 ];
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
