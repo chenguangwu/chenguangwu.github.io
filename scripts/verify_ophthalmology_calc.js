@@ -408,7 +408,7 @@ const CASES = [
 },
 {
   "slug": "ophthalmology/tear-breakup-time",
-  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/tear-breakup-time.html','utf8');var i=h.indexOf('if(isNaN(but)){');var seg=i>=0?h.slice(i,i+220):'';var ok=seg.indexOf(\"('resultRefBar').innerHTML=''\")>=0&&seg.indexOf(\"('barWrap').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='TBUTCLR '+(ok?'OK':'BAD');})();"],
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/tear-breakup-time.html','utf8');var i=h.indexOf('if(!butOk && !tbutOk){');var seg=i>=0?h.slice(i,i+260):'';var ok=seg.indexOf(\"('resultRefBar').innerHTML=''\")>=0&&seg.indexOf(\"('barWrap').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='TBUTCLR '+(ok?'OK':'BAD');})();"],
   "expect": ["TBUTCLR OK"],
   "ref": "第1323批·泪膜破裂清空未清标尺修复源码形态强锚：原清空首次 BUT 只清 barWrap，resultRefBar 参考标尺留存；修复后同步清 resultRefBar。旧版无 ⇒ BAD。"
 },

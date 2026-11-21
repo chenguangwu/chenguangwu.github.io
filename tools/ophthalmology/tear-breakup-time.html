@@ -279,21 +279,27 @@
 function $(id){return document.getElementById(id);}
 
 function calc(){
-  var but=parseFloat($('but').value);
-  var tbut=parseFloat($('tbut').value);
-  var val=isNaN(tbut)?but:tbut;
-  if(isNaN(but)){
-    $('result').innerHTML='<p style="color:var(--text-muted);">请输入 BUT</p>';
+  var __butRaw=String($('but').value==null?'':$('but').value).trim();
+  var __tbutRaw=String($('tbut').value==null?'':$('tbut').value).trim();
+  var but=__butRaw===''?NaN:parseFloat(__butRaw);
+  var tbut=__tbutRaw===''?NaN:parseFloat(__tbutRaw);
+  var butOk=isFinite(but)&&but>=0;
+  var tbutOk=isFinite(tbut)&&tbut>=0;
+  // 平均 TBUT 是选填项，但不能因为首次值没填就拒绝；两项至少一项有效即可。
+  if(!butOk && !tbutOk){
+    $('result').innerHTML='<p style="color:var(--text-muted);">请输入有效的首次 BUT 或平均 TBUT（≥0 秒）</p>';
     $('barWrap').innerHTML='';
     $('resultRefBar').innerHTML='';
     return;
   }
+  var useAvg=tbutOk;
+  var val=useAvg?tbut:but;
   var grade,color,note,cls;
   if(val>=10){grade='正常';color='#10B981';note='泪膜稳定，未见明显干眼';cls='grade-excellent';}
   else if(val>=5){grade='泪膜不稳定';color='#F59E0B';note='提示轻-中度干眼，建议人工泪液并复查';cls='grade-pass';}
   else{grade='明显异常';color='#EF4444';note='中-重度干眼，建议专科评估与治疗';cls='grade-fail';}
 
-  var label=isNaN(tbut)?'BUT':'平均TBUT';
+  var label=useAvg?'平均TBUT':'BUT';
   const __g3='<p style="font-size:15px;">'+label+' = <strong>'+val.toFixed(1)+' 秒</strong></p>'+
     '<p>分级：<span class="grade-tag '+cls+'">'+grade+'</span></p>'+
     '<p style="color:var(--text-light);">'+note+'</p>';$('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
