@@ -302,6 +302,15 @@ input[type="range"]:disabled::-webkit-slider-thumb{cursor:not-allowed;}
         <span>更高质量</span>
       </div>
     </div>
+
+    <div class="setting-item" style="margin-top:14px;" id="target-size-row">
+      <div class="setting-head">
+        <label for="targetSize">目标体积（KB，选填）</label>
+        <span class="quality-val" id="target-size-note" style="font-size:12px;color:var(--text-muted);">不启用</span>
+      </div>
+      <input type="number" id="targetSize" min="1" max="20000" step="1" placeholder="如 200" oninput="onSettingsChange()">
+      <p style="font-size:11.5px;color:var(--text-muted);margin-top:6px;">填写后忽略质量滑杆，按目标体积二分搜索质量（JPEG/WebP）；PNG 为无损格式，不支持目标体积。</p>
+    </div>
   </div>
 
   <!-- 结果区 -->
@@ -557,10 +566,33 @@ function addFiles(fileList){
   renderResults();
 }
 
+function compressToTarget(img,s,targetBytes){
+  return new Promise(function(resolve,reject){
+    var lo=1, hi=95, best=null, tries=0;
+    function step(){
+      if(lo>hi || tries++>=7){
+        if(best){ resolve(best); }
+        else { reject(new Error('目标体积过小，当前尺寸下最低质量仍超出；请降低最大尺寸或放宽目标体积')); }
+        return;
+      }
+      var mid=Math.round((lo+hi)/2);
+      compressImage(img,{format:s.format,quality:mid/100,maxSize:s.maxSize}).then(function(res){
+        if(res.blob && res.blob.size<=targetBytes){ best=res; best.quality=mid; lo=mid+1; }
+        else { hi=mid-1; }
+        setTimeout(step,0);
+      }).catch(reject);
+    }
+    step();
+  });
+}
+
 function compressOne(item){
   if(!item.img || item.status==='error') return;
   var s = getSettings();
-  compressImage(item.img,s).then(function(res){
+  var targetKB = parseInt((document.getElementById('targetSize')||{}).value,10);
+  var useTarget = isFinite(targetKB) && targetKB>0 && s.format!=='png';
+  var task = useTarget ? compressToTarget(item.img,s,targetKB*1024) : compressImage(item.img,s);
+  task.then(function(res){
     if(item.compUrl) URL.revokeObjectURL(item.compUrl);
     item.blob = res.blob;
     item.compUrl = URL.createObjectURL(res.blob);
@@ -571,7 +603,7 @@ function compressOne(item){
     item.compType = (res.blob && res.blob.type) || res.type;
     item.compSize = res.blob.size;
     // 记录本次实际使用的质量；PNG 无损回归不适用质量参数
-    item.compQuality = (s.format === 'png') ? null : Math.round(s.quality * 100);
+    item.compQuality = (s.format === 'png') ? null : (res.quality != null ? res.quality : Math.round(s.quality * 100));
     item.status = 'done';
     renderResults();
   }).catch(function(e){
@@ -587,6 +619,12 @@ function recompressAll(){ ToolBox.showToast(i18nText('toast.msg981'),'info'); co
 function onSettingsChange(){
   var q = document.getElementById('quality');
   var fmt = document.getElementById('fmt').value;
+  var ts = document.getElementById('targetSize');
+  var note = document.getElementById('target-size-note');
+  if(ts && note){
+    var n = parseInt(ts.value,10);
+    note.textContent = (fmt==='png') ? 'PNG 不支持' : (isFinite(n)&&n>0 ? ('≤ ' + n + ' KB') : '不启用');
+  }
   document.getElementById('quality-val').textContent = (fmt==='png') ? '无损' : q.value + '%';
   var qRow = document.getElementById('quality-row');
   qRow.style.opacity = (fmt==='png') ? '0.45' : '1';

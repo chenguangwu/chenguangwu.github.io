@@ -387,6 +387,8 @@ function batch204StaticChecks(){
   var src = fs.readFileSync("tools/image/image-resize.html","utf8");
   var out=[];
   out.push({name:"B204 platform presets",ok:src.indexOf('setPlatformSize(1242,1660')>=0&&src.indexOf('setPlatformSize(900,383')>=0&&src.indexOf('function setPlatformSize(w,h,label)')>=0});
+  var cmp = fs.readFileSync("tools/image/image-compress.html","utf8");
+  out.push({name:"B205 target volume",ok:cmp.indexOf("function compressToTarget(img,s,targetBytes)")>=0&&cmp.indexOf("targetSize")>=0&&cmp.indexOf("tries++>=7")>=0});
   return out;
 }
 
