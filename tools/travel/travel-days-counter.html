@@ -234,24 +234,32 @@
 <script>
 function fmtDate(d){const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
 function parseLocalDate(s){const p=String(s).split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+function validDateStr(s){
+  var m=/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(String(s));
+  if(!m) return false;
+  var d=parseLocalDate(s);
+  return d.getFullYear()===+m[1] && d.getMonth()===+m[2]-1 && d.getDate()===+m[3];
+}
 function setStartToday(){document.getElementById('start').value=fmtDate(new Date());calc();}
 function setEndWeek(){const s=document.getElementById('start').value;if(s){const d=parseLocalDate(s);d.setDate(d.getDate()+7);document.getElementById('end').value=fmtDate(d);calc();}}
 function calc(){
   const s=document.getElementById('start').value;
   const e=document.getElementById('end').value;
   if(!s||!e){document.getElementById('result').innerHTML='<p style="text-align:center;color:var(--text-muted);padding:20px;">请选择出发和返回日期</p>';return;}
+  if(!validDateStr(s)||!validDateStr(e)){document.getElementById('result').innerHTML='<p style="color:var(--danger);text-align:center;padding:20px;">日期格式无效，请使用 YYYY-MM-DD（例如 2024-01-15）。</p>';return;}
   const start=parseLocalDate(s),end=parseLocalDate(e),now=new Date();
   const startD=Date.UTC(start.getFullYear(),start.getMonth(),start.getDate());
   const endD=Date.UTC(end.getFullYear(),end.getMonth(),end.getDate());
   const nowD=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
+  if(endD < startD){document.getElementById('result').innerHTML='<p style="color:var(--danger);text-align:center;padding:20px;">返回日期不能早于出发日期，请调整后再算。</p>';return;}
   const days=Math.round((endD-startD)/86400000)+1;
   const nights=days-1;
   const untilStart=Math.round((startD-nowD)/86400000);
   const sinceEnd=Math.round((nowD-endD)/86400000);
   let status='',statusColor='';
-  if(untilStart>0){status=`距离出发还有`;statusColor='#42a5f5';}
-  else if(now>=start&&now<=end){status=`旅行进行中！已出发`;statusColor='#66bb6a';}
-  else{status=`旅行已结束`;statusColor='#ef5350';}
+  if(nowD<startD){status=`距离出发还有 ${untilStart} 天`;statusColor='#42a5f5';}
+  else if(nowD<=endD){status=`旅行进行中（第 ${Math.round((nowD-startD)/86400000)+1} 天）`;statusColor='#66bb6a';}
+  else{status=`旅行已结束 ${sinceEnd} 天`;statusColor='#ef5350';}
   const hours=days*24,minutes=hours*60,weeks=Math.floor(days/7);
   let html=`<div class="countdown" style="background:linear-gradient(135deg,${statusColor},${statusColor}dd);"><div class="big">${days}</div><div>天 (${nights}晚)</div><div style="margin-top:8px;font-size:14px;opacity:0.9;">${status}</div></div>`;
   html+=`<div class="unit-grid">

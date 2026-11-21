@@ -1,5 +1,7 @@
 # 餐饮/旅行 · tools/{food,food-processing,restaurant,baking,travel}（~90 页）
 
+> 2026-11-21 第215批核销：旅行天数日历/状态、时区夏令时两轮偏移、配方分数解析与恢复全量重算、菜系/时间筛选已修。
+>
 > 2026-11-21 第214批核销：小费空值/负值、糖度逆算范围、营养零分母、预算晚数/餐饮人数、菜单毛利/汇率/成本边界已修；本文件其余项仍在。
 >
 > 以下仅保留仍待处理/待复核项；已修复项见 `plan/已修复/2026-11-21-*.md`。
@@ -21,45 +23,16 @@
 
 ## 2026-11-03 第一轮抽样补充
 
-### 旅行日期跨时区偏移及状态错误（高，确认函数缺陷）
-- 问题与证据：`tools/travel/travel-days-counter.html:246-267` 混用 UTC 日期解析、本地 setDate 和 UTC 输出；Node 模拟洛杉矶时区，2024-03-08 点击加 7 天返回得到 03-14 而非 03-15。上海时间 2024-05-12 10:00、返回日期 05-12 时已显示旅行结束；倒序日期亦可输出负天数。真实浏览器时区未复测。
-- 影响：`tools/travel/travel-days-counter.html`，行程与天数错误。
-- 方案：统一日历日期运算，明确返回日全天状态，拒绝倒序日期；回归夏令时及午夜。可允许用户主动本地保存并清除多个行程，展示倒计时和住宿晚数。
-
 ### 覆盖
 - 本次只读抽查以上 3 页，以页面原函数内存 DOM 桩执行为依据；其余餐饮旅行页、真实浏览器、移动端和线上未验证。
 
 ## 2026-11-03 续查（并行批）：餐饮与旅行
-
-### FT-N1 分数/负数量不缩放且被误读（高，确认）
-- 证据：`tools/food/cooking-converter.html:731` 正则只认 `[\d.]+` 开头。复现：`1/2 杯 糖`×1.5 → num=1、unit 空、name=`/2 杯 糖`，显示「1 杯 → 1.5 杯」；`½ 杯 糖`、`-100 克 面粉` 落 else 原样输出、不缩放无提示。
-- 影响：常见的半杯/半勺配方被静默放大，负数不报错。
-- 方案：解析混合分数与 Unicode 分数，负数显式拒绝；补单测。
-- 工具：`tools/food/cooking-converter.html`
-
-### FT-N2 菜系筛选无效、时间上限静默放宽（高，确认）
-- 证据：`tools/food/recipe-generator.html:448-451` 仅排除川/粤；`japanese/western/korean/thai` 的 `substring(0,2)` 永不命中中文标签，全部通过。预设「日料三文鱼」(`:652`) 走 fish 类目，实际出「清蒸鲈鱼/糖醋鲤鱼」。`:467-470` 无匹配时保留原列表，选「15 分钟」仍出 40/90 分钟菜谱。
-- 影响：筛选器等同装饰，用户误以为条件生效。
-- 方案：用显式菜系标签映射；无结果提示可选菜系；超时不静默回退。
-- 工具：`tools/food/recipe-generator.html`
-
-### FT-N4 夏令时切换日偏移取错 1 小时（高，确认）
-- 证据：`:367-375` 把当地时刻当 UTC 求偏移，`:338-339` 再回减。Node 复现：纽约 2024-03-10 03:00 → 偏移 -300 → UTC 08:00 → 显示 04:00；正确 UTC 07:00（EDT -240）。
-- 影响：DST 前后 1–2 小时误差，跨日可能错一天；与页面「自动处理夏令时」承诺不符。
-- 方案：用 `Intl` 两轮求当地时刻偏移（先估后校正），补 DST 边界回归。
-- 工具：`tools/travel/timezone-converter-advanced.html`
 
 ### FT-N5 饮食记录无日期边界、坏数据白屏（中，确认）
 - 证据：`tools/food/food-calorie-counter.html:309` 直接 `JSON.parse(localStorage)` 无 try；`:333-339` 只存时刻无日期，`:366` 仍叫「今日记录」，隔日继续累加；值被写坏即抛异常，`renderFoods()` 不执行。
 - 影响：跨日统计失真；一次写坏永久白屏。
 - 方案：按 `YYYY-MM-DD` 分桶并清理旧桶；解析失败回退空数组。
 - 工具：`tools/food/food-calorie-counter.html`
-
-### FT-N6 历史恢复只重算一个标签页（中，确认）
-- 证据：`tools/food/cooking-converter.html:820-831` 恢复全部输入后仅调 `calcIngredient()`；`volAllResult`、`tempMain`、`portionResult` 仍是旧值。
-- 影响：恢复的配方与显示结果不一致。
-- 方案：恢复后按当前 tab 调对应函数并刷新各 tab 汇总。
-- 工具：`tools/food/cooking-converter.html`
 
 ### FT-N7 英文态动态结果残留中文（中，确认）
 - 证据：`cooking-converter.html:537,645-652` 输出「常用单位换算：/重量约为：」；`recipe-generator.html:481-525` 输出中文菜名/食材/步骤；`travel-budget-calculator.html:306-309` 输出「人均…每天…/交通/住宿」；`timezone-converter-advanced.html:359-363` 拼接「源时区/目标时区/UTC 时刻」。第三层 `i18n/tools/en/{food,travel}/*.json` 无这些整句键，运行时整节点精确匹配无法命中。

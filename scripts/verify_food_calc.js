@@ -204,6 +204,13 @@ const CASES = [
   "ref": "菜系 cuisine=sichuan（默认 chinese）；生成器输出菜谱内容相同，仅菜系值随输入变化。「做法」为恒定标签（原逃生项），改锚定 sichuan。 [被覆盖的前条说明：⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。]"
 },
 {
+  "slug": "food/recipe-generator",
+  "inputs": { "mainIng": "三文鱼", "cuisine": "japanese", "difficulty": "any", "method": "any", "servings": "2", "time": "any" },
+  "clicks": ["generate()"],
+  "expect": ["没有符合当前条件的菜谱"],
+  "ref": "菜系显式映射：日料无对应标签菜谱时必须提示无结果，不得静默放宽成任意菜谱。旧实现 substring(0,2)=日料 永不命中中文标签，筛选等同失效。"
+},
+{
   "slug": "food/report-cost-profit",
   "inputs": {
     "rev": "50000",
@@ -368,6 +375,14 @@ const CASES = [
   "ref": "934 ABV 联动哨兵：读取页面结果容器，正确式 ABV=(1.093−1.023)×131.25=9.1%；旧版 ABV=21.3% 且含 0.931，哨兵为 BAD。锚定旧错值消失而非内联自算。"
 },
 
+{
+  "slug": "food/cooking-converter",
+  "afterLoad": true,
+  "inputs": { "origPeople": "2", "targetPeople": "3", "recipeInput": "1/2 杯 糖\n-100 克 面粉" },
+  "clicks": ["calcPortion()"],
+  "expect": ["0.75 杯", "负数/零数量不缩放"],
+  "ref": "分数解析：1/2 杯 ×1.5 = 0.75 杯；负数 -100 克拒绝缩放并明确提示。旧正则只认数字开头，会把 1/2 拆成 1 与 /2 杯 糖。"
+},
 {
   "slug": "food/cooking-converter",
   "afterLoad": true,

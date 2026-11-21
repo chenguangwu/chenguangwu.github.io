@@ -353,14 +353,32 @@ function convert(){
   `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
 }
 
+function tzParts(tz, ms){
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour12: false,
+    year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit'
+  }).formatToParts(new Date(ms));
+  const o = {};
+  parts.forEach(function(p){ if(p.type !== 'literal') o[p.type] = +p.value; });
+  if(o.hour === 24) o.hour = 0;
+  return o;
+}
+function tzOffsetAt(tz, ms){
+  const p = tzParts(tz, ms);
+  const asUTC = Date.UTC(p.year, p.month-1, p.day, p.hour, p.minute, p.second || 0);
+  return Math.round((asUTC - ms) / 60000);
+}
 function getOffsetMinutes(tz, y, m, d, h, min){
-  // 使用 toLocaleString 取出 UTC 时间
-  const date = new Date(Date.UTC(y, m-1, d, h, min));
-  const utcStr = date.toLocaleString('en-US', {timeZone:'UTC', hour12:false, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
-  const tzStr = date.toLocaleString('en-US', {timeZone:tz, hour12:false, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
-  const utcDate = parseUsDate(utcStr);
-  const tzDate = parseUsDate(tzStr);
-  return Math.round((tzDate - utcDate) / 60000);
+  // 两轮求偏移：先以“当地时刻当 UTC”估算，再用估算 UTC 回算真实偏移，
+  // 避免夏令时切换日把当地 03:00 误当成 EST（-300）而不是 EDT（-240）。
+  const wallUTC = Date.UTC(y, m-1, d, h, min);
+  let offset = tzOffsetAt(tz, wallUTC);
+  let utcMs = wallUTC - offset * 60000;
+  offset = tzOffsetAt(tz, utcMs);
+  utcMs = wallUTC - offset * 60000;
+  const corrected = tzOffsetAt(tz, utcMs);
+  return corrected;
 }
 
 function parseUsDate(s){

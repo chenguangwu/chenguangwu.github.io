@@ -716,19 +716,34 @@ function calcPortion(){
   let html = `<p><strong>调整比例：</strong>${origPeople}人 → ${targetPeople}人（×${fmt(ratio)}）</p>`;
   html += '<div style="margin-top:8px;">';
   
+  const FRACTIONS = {'½':0.5,'¼':0.25,'¾':0.75,'⅓':1/3,'⅔':2/3,'⅛':0.125,'⅜':0.375,'⅝':0.625,'⅞':0.875};
+  function parseQty(tok){
+    if(FRACTIONS[tok] !== undefined) return FRACTIONS[tok];
+    if(tok.indexOf('/') >= 0){
+      const p = tok.split('/');
+      return (+p[0]) / (+p[1]);
+    }
+    return +tok;
+  }
   lines.forEach(line => {
-    const match = line.match(/^([\d.]+)\s*(克|g|千克|kg|斤|两|毫升|ml|升|L|杯|汤匙|勺|茶匙|小勺|个|只|块|片|根|把|适量|少许)?\s*(.*)$/);
+    const match = line.match(/^([\-−]?)(?:(\d+)\s+)?([0-9]+(?:\.[0-9]+)?(?:\/[0-9]+)?|[½¼¾⅓⅔⅛⅜⅝⅞])\s*(克|g|千克|kg|斤|两|毫升|ml|升|L|杯|汤匙|勺|茶匙|小勺|个|只|块|片|根|把)?\s*(.*)$/);
     if(match){
-      const num = parseFloat(match[1]);
-      const unit = match[2] || '';
-      const name = match[3] || '';
+      const sign = match[1] === '-' || match[1] === '−' ? -1 : 1;
+      const whole = match[2] ? +match[2] : 0;
+      const num = sign * (whole + parseQty(match[3]));
+      const unit = match[4] || '';
+      const name = match[5] || '';
+      if(!isFinite(num) || num <= 0){
+        html += `<div class="recipe-item"><span style="color:var(--danger)">${ToolBox.escHtml(line)}</span><span>负数/零数量不缩放，请修正</span></div>`;
+        return;
+      }
       const newNum = num * ratio;
       html += `<div class="recipe-item">
         <span>${unit}${name}</span>
         <span><span class="orig">${fmt(num)} ${unit}</span> → <span class="new">${fmt(newNum)} ${unit}</span></span>
       </div>`;
     } else {
-      html += `<div class="recipe-item"><span>${ToolBox.escHtml(line)}</span><span>-</span></div>`;
+      html += `<div class="recipe-item"><span>${ToolBox.escHtml(line)}</span><span>未识别数量，保持原样</span></div>`;
     }
   });
   
@@ -825,6 +840,10 @@ function __cooking_converterRender(keys,rk,en){
                     else{e.value=rec[k];}
                 }
                 calcIngredient();
+                calcPortion();
+                convertVolume('from');
+                convertWeight('from');
+                convertTemp('C');
             }catch(e2){}
             __cooking_converter_skip=false;
         });

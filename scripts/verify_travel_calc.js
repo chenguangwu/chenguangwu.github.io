@@ -320,6 +320,12 @@ const CASES = [
   },
 {
   "slug": "travel/timezone-converter-advanced",
+  "inputs": { "fromTz": "America/New_York", "toTz": "Asia/Shanghai", "fromTime": "2024-03-10T03:00" },
+  "expect": ["目标时区 Asia/Shanghai： 2024/03/10 中国标准时间 15:00"],
+  "ref": "DST 切换日防守：纽约 2024-03-10 03:00 已是 EDT（-240），对应 UTC 07:00、上海 15:00。旧实现把当地时刻当 UTC 先取到 EST（-300）会显示 16:00，本锚可区分。"
+},
+{
+  "slug": "travel/timezone-converter-advanced",
   "inputs": { "fromTz": "Asia/Shanghai", "toTz": "America/New_York", "fromTime": "2026-03-15T09:00" },
   "expect": ["目标时区 America/New_York： 2026/03/14 北美东部夏令时间 21:00"],
   "ref": "去默认化（推翻 BATCH377「new Option()+select.add() 动态填充、harness 缺 Option 桩 ⇒ 结构性不可注入」误判）：本批次给 harness 补 globalThis.Option 构造器 + makeEl.add() 方法，initSelects() 的 new Option()/select.add() 不再抛错、fromTz/toTz 被正确填充。注入 fromTime 置末位触发 convert() 用全输入：上海 09:00（UTC+8）→ 纽约 EDT（UTC-4）显示前一日 21:00；默认态（init 用冻结日期 setNow）日期不同，注入失败即不命中。锚取「目标时区 America/New_York： 2026/03/14 北美东部夏令时间 21:00」整串（含具体日期，与默认态冻结日期天然区分）。"

@@ -429,14 +429,23 @@ function detectCategory(main) {
   return 'vegetable';
 }
 
+const CUISINE_TAGS = {
+  sichuan: ['川菜'],
+  cantonese: ['粤菜'],
+  western: ['西餐'],
+  japanese: ['日料', '日式'],
+  korean: ['韩餐', '韩式'],
+  thai: ['泰式', '东南亚']
+};
 function getAllRecipes(category, cuisine, difficulty, method) {
   const recipes = recipeDB[category] || [];
   return recipes.filter(r => {
     if (difficulty !== 'any' && r.diff !== difficulty) return false;
     if (method !== 'any' && r.method !== method) return false;
-    if (cuisine !== 'any' && cuisine !== 'chinese' && !r.tags.some(t => t.includes(cuisine.substring(0, 2)))) {
-      if (cuisine === 'sichuan' && !r.tags.includes('川菜')) return false;
-      if (cuisine === 'cantonese' && !r.tags.includes('粤菜')) return false;
+    if (cuisine !== 'any' && cuisine !== 'chinese') {
+      const wanted = CUISINE_TAGS[cuisine];
+      if (!wanted) return false;
+      if (!r.tags.some(t => wanted.indexOf(t) >= 0)) return false;
     }
     return true;
   });
@@ -454,13 +463,15 @@ function generate() {
   let recipes = getAllRecipes(category, cuisine, difficulty, method);
 
   if (timeLimit !== 'any') {
-    const filtered = recipes.filter(r => r.time <= +timeLimit);
-    if (filtered.length > 0) recipes = filtered;
+    recipes = recipes.filter(r => r.time <= +timeLimit);
   }
 
   if (recipes.length === 0) {
-    // 放宽条件
-    recipes = recipeDB[category] || recipeDB['vegetable'];
+    const cuisineName = document.getElementById('cuisine').selectedOptions[0].textContent;
+    document.getElementById('recipeOutput').innerHTML =
+      '<div class="recipe-card"><p style="color:var(--danger);font-weight:600;">没有符合当前条件的菜谱</p>' +
+      '<p style="font-size:13px;">食材分类、菜系（' + ToolBox.escHtml(cuisineName) + '）、难度、做法与时间上限同时生效。请减少限制，或把菜系/难度/做法改为“不限”。</p></div>';
+    return;
   }
 
   const recipe = recipes[Math.floor(Math.random() * recipes.length)];
