@@ -134,7 +134,6 @@
 | spectrum-visualizer | Web Audio + AnalyserNode FFT、峰值、麦克风（`:10`、`:155`、`:205`、`:208`） | 纯 sin 动画（`:258-305`）；`microphone=()` 显式禁用麦克风（`:71`） |
 | base64-to-image | 「也支持反向转换 / encode an image to Base64」（`:10`、`:15`、`:64`、`:160`）；「识别格式」（`:199`、`:202`） | 无上传/FileReader/btoa；无魔数/MIME 识别（`:256-258`） |
 | data-matrix | Reed-Solomon 纠错（`:155`、`:230`）、扫码得原文（`:201`）、可直接使用（`:205`） | 哈希+LCG 随机格，无编码/无纠错；finder 方向与 ISO 相反（`:276-281`） |
-| signature-pad | 导出 PNG 透明背景（`:10`） | 仅背景选「透明」时成立；白/网格背景被烘焙进导出（`:465-480`、`:532-537`） |
 | pixel-art | 一键生成/复制 CSS 代码（`:719`、`:724`） | 无 clipboard/CSS，仅 PNG 导出（`:628`、`:203-204`） |
 | tailwind-colors | 22 色 × 11 阶、点击复制多种格式（`:10`） | 数据与复制均真实；但「建议文字色」阈值错误（D-N142），CSS 变量名错误（D-N144） |
 | colorblind-simulator | 8 型、图片变换、WCAG、ΔE（`:16`） | 均真实；局部语义问题见 D-N151/D-N152/D-N153 |
@@ -157,7 +156,6 @@
 
 **留存建议（tools/design/pixel-art.html）**：保留。绘制/撤销/PNG 导出链路真实可用，导出透明且倍率可控；需修模板 history 语义、清理简介 CSS 套话、补 `touchcancel`。可再补「复制像素数据/PNG Data URL」提升复用。
 
-**留存建议（tools/design/signature-pad.html）**：整改保留（高价值）。当前笔宽滑杆失效必须优先修；透明导出改为按笔画层重绘；把 `#spPresets` 与 `#spRefTbl` 移出 `touch-action:none` 的 `.canvas-wrap`。引据表还应把「Pointer Events」改成实际使用的 mouse/touch 事件（`:280-282` 对照 `:550-557`）。
 
 **留存建议（tools/design/colorblind-simulator.html）**：保留（本批功能最完整的页面）。D-N105 已修：非文本对比度无 AAA 档，代码将 `aaa` 置 null、表格显示「—」；色相均分与按类型保存严重度列为长期体验增强。
 
@@ -180,7 +178,6 @@
 | checker | 大号文字 ≥18px / ≥14px 粗体（`:230`）；WCAG 2.1（`:123`、`:229`） | WCAG 为 18pt/14pt（24px/18.66px）；引据表又写 2.2（`:210`、`:215`、`:220`） |
 | analysis-64 | 优先补强取「负贡献且权重最高」（`:123`）、优势 TOP2（`:297`） | 优势不过滤正值（全落后仍列负贡献）；need 按最负排序（`:276-284`） |
 | css-border-radius | 可视化调节、实时生成、支持百分比（`:10`） | >100px 被隐藏滑杆 max=100 截断，预览/代码滞后于滑杆（`:213`、`:227`、`:418-426`） |
-| tester-assessor | 满意度 1–7 分（`:151`）、SUS 第4/10题子量表（`:335`） | 输入 8 可得 satScore 116.7（`:242`、`:262`）；子量表实际用第 5 题（`:335`）；标题/描述截断（`:10-11`） |
 
 - 未发现「批量处理」「限时」「自动识别」类承诺；本批 8 页的复制按钮同样未处理 `navigator.clipboard` 失败（无 `.catch`/降级），与 D-N127 同族，属低危共通项。
 
@@ -196,7 +193,6 @@
 
 **留存建议（tools/design/css-border-radius.html）**：保留（本批交互最完整的页面）。核心可用，需统一简单/进阶滑杆上限为 150、修未联动时的死滑杆、ResText 改读 textarea.value，并给预设条补宿主 div。
 
-**留存建议（tools/design/tester-assessor.html）**：整改保留。SUS 与任务绩效模型有价值，修 Q4/Q10 子量表、历史 12 键截断、标题/描述残句后即可用；满意度需夹取到 1–7。
 
 **留存建议（tools/design/aztec-code.html）**：必须整改后再保留（否则建议改名下架）。作为「Aztec 码」它不可扫描、无纠错、容量与版本均假；正解是接 Aztec 编码库，最小方案是改名「随机矩阵纹理生成器」并删除识读/容量承诺。
 
