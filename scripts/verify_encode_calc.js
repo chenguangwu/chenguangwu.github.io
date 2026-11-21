@@ -14,6 +14,10 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  { slug: "encode/convert-4",
+    inputs: { inp: "😀", mode: "1" },
+    expect: ["十六进制: U+1F600", "UTF-8: F0 9F 98 80", "UTF-8 字节数: 4"],
+    ref: "emoji 😀 = U+1F600；旧实现 charAt(0) 只取高代理 D83D ⇒ 错算 U+D83D、3 字节；改用 Array.from 取完整码点后 UTF-8 为 F0 9F 98 80 共 4 字节" },
   { slug: "encode/ascii-readability",
     inputs: { total: "200", nonAscii: "50", control: "10" },
     expect: ["75.0", "70.0"],
