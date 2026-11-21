@@ -27,9 +27,6 @@
 - 证据：`tools/finance/loan-comparison.html:134-151,266-278` 支持三个不同本金和期数并排、CSV 和复制，但排名仅按月供。
 - 影响：同页；方案：提示不同本金或期限的方案不可仅凭月供判优，给出总利息差、实际总还款及同本金/同期条件下比较入口；如补收费项应标明口径。
 
-### 留存优化：车贷费用与展示期间对齐（低，建议）
-- 证据：`tools/finance/car-loan-calculator.html:285-336,539-553` 支持保险年数，但结果标题固定称首年保险，代码按选定年数相乘。
-- 影响：`tools/finance/car-loan-calculator.html`；方案：按实际选中年数动态显示保险与车船税期间，并提供贷款期限内现金流合计和费用假设说明。
 
 ### 覆盖
 - 本次人工查 `tools/finance/loan-comparison.html`、`tools/finance/car-loan-calculator.html` 2 页；其余金融页未逐页复扫；历史已修声明未独立复验。

@@ -16,18 +16,6 @@
 - `tools/it/calc-4.html`：基准字号空值/0 时 `|| 16` 静默当 16、复制函数只查目标 px 不校验负基准两项已修（两处改原始串判空 + NaN，convertCss 守卫补 `isNaN(base)` 走提示并把预览固定 16px，copyCssResult 空值直接 return，公式框文案同步为「不静默取 16」）。第1308批源码形态强锚 `C4GUARD` 已落 `scripts/verify_it_calc.js`。
 - 余项：`rem` 恒用 16 除，而预设标注「18px根」，基准与目标均 18 时给出 1.125rem。此为该工具自定义「基准字号」与浏览器 html 根字号（默认 16px）的语义冲突，页面公式明确写 `rem = px ÷ 16`；是否引入独立根字号参数涉及专业口径，需裁断，未擅改。
 
-### JWT 解码后敏感令牌写入本地历史（中，实际影响待验证 · 部分修复余项）
-- `tools/it/calc-8.html:296-305,358-384,394-396` 和 `js/tool-kit.js:1066-1075,1088-1099`：解码成功后自动采集完整 `jwtInput` 并写 localStorage 历史，无明确的敏感令牌存储提示；不涉及上传结论。应避免持久保存原始令牌或提供明确控制。
-- 备注：同条目的 exp 判定子问题已修复并复核；本条仅余敏感令牌历史一项待评估。
-
-### 颜色对比页背景 alpha 被忽略（中 · 部分修复余项，口径待裁断）
-- `tools/it/color-converter.html` calcContrast 忽略背景 alpha，透明白色背景被当作不透明白色；应明确底层颜色并先合成背景，或拒绝透明背景。该口径需裁断（合成到底层白/黑，还是拒绝透明背景），未擅改。
-- 备注：同条目颜色选择器联动及 CSV 前景 alpha 口径已修复并复核；本条仅余背景 alpha 一项。
-
-### 文本统计总词数口径待裁断（中，口径待定）
-- `tools/it/text-statistics.html:264,284-297` 的「总词数」取过滤停用词后的 `allWords.length`，输入 `the` 的英文词数为 1、总词数却为 0；应将总词数与排除停用词后的词频统计分开标注或计算。页面 formula-eq 现明确写「总词数 = 中文单字 + 英文词（过滤停用词）」，改口径须三源同步并裁断，未擅动。
-- 备注：本条仅余总词数口径一项。
-
 ### 历史结论状态
 - 本批另阅读 SQL、SQLite、tmux 速查及字符串混淆主要交互，未穷举内容正确性或运行页面。
 - Rust 转义 IT-N338 旧字节串非法 `\u{}` 路径已变化，当前 `tools/it/rust-escape.html:287-295` 明确拒绝非 ASCII；未运行编译回归，不正式销账。本批另阅读 REST、Ruby、Rust 速查搜索、分类和复制，未穷举语法正确性或运行页面。
@@ -60,10 +48,6 @@
 ## 2026-11-03 续查（并行批 G）
 
 ### 留存优化
-- `tools/it/list-converter.html:262`：裸 CR 切分已支持（第260批补真机证据）；`map(trim).filter(Boolean)` 仍静默丢弃空项与行首/行尾缩进，需补「保留空项/缩进」开关。
-- `url-parser.html`：端口子问题——`b-port` 为 `type=number`，真机原生已挡非数字输入；但 1-65535 范围未校验，脚本注入超范围值仍可构造畸形端口，是否加范围校验待裁断。
-- `slugify.html`：15 字长键（297）因贪心上限 8（324）永远匹配不到，属冗余数据（清理性质，未处理）。
-- `case-converter.html:384` `toSentenceCase` 先整体小写，专有名词与缩写（NASA、iOS）会被降格，如需保留应改为逐句首字母处理。
 
 ### 续查覆盖
 - 本轮人工查看 `tools/it/properties-parser.html`、`url-parser.html`、`csv-validator.html`、`curl-parser.html`、`text-truncate.html`、`slugify.html`、`case-converter.html` 共 7 页，新增 8 条（高 3、中 4、低 1），编号续 IT-N10～N17，与既有 IT-N1～N9 无重复。
