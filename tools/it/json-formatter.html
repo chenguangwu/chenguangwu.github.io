@@ -239,8 +239,8 @@ body.dark .tree-null,.dark .tree-count{color:#a6adc8;} body.dark .tree-bracket,.
         <button type="button" class="btn" onclick="sortJSON()">🔀 排序</button>
       </div>
       <div class="btn-group">
-        <button type="button" class="btn" onclick="escapeJSON()">↔️ 转义</button>
-        <button type="button" class="btn" onclick="unescapeJSON()">↩️ 反转义</button>
+        <button type="button" class="btn" onclick="escapeJSON()">↔️ 转义为字符串</button>
+        <button type="button" class="btn" onclick="unescapeJSON()">↩️ 还原字符串</button>
         <button type="button" class="btn" onclick="extractJSON()">🧲 提取</button>
       </div>
       <div class="spacer"></div>
@@ -600,30 +600,22 @@ function sortKeys(obj) {
 }
 
 function escapeJSON() {
-  try {
-    const obj = JSON.parse(input.value);
-    const escaped = JSON.stringify(obj);
-    input.value = escaped;
-    ToolBox.showToast(i18nText('toast.msg308'));
-  } catch(e) {
-    const escaped = JSON.stringify(input.value);
-    input.value = escaped;
-    ToolBox.showToast(i18nText('toast.msg309'));
-  }
+  // 转义：把当前输入整体变成一个 JSON 字符串字面量（含外层引号与 \n、\" 等转义）
+  if (!input.value) { ToolBox.showToast(i18nText('toast.msg036')); return; }
+  input.value = JSON.stringify(input.value);
+  autoValidate();
+  ToolBox.showToast(i18nText('toast.msg308'));
 }
 
 function unescapeJSON() {
   try {
     const unescaped = JSON.parse(input.value);
-    if (typeof unescaped === 'string') {
-      input.value = unescaped;
-    } else {
-      input.value = JSON.stringify(unescaped, null, 2);
-    }
+    if (typeof unescaped !== 'string') throw new Error((document.documentElement.lang||'').toLowerCase().startsWith('en') ? 'Current content is not a JSON string literal.' : '当前内容不是 JSON 字符串字面量，无法还原');
+    input.value = unescaped;
     autoValidate();
     ToolBox.showToast(i18nText('toast.msg102'));
   } catch(e) {
-    ToolBox.showToast('❌ 反转义失败: ' + e.message);
+    ToolBox.showToast('❌ ' + (e.message || '还原失败'));
   }
 }
 

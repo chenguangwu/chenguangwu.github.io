@@ -9731,6 +9731,13 @@ const CASES = [
   },
   {
     "slug": "it/json-formatter",
+    "inputs": { "input": "{\"a\":1}", "indent": "2" },
+    "clicks": ["escapeJSON();var v=document.getElementById('input').value;document.getElementById('__tbProbe').textContent='JSONESC '+v;"],
+    "expect": ["JSONESC \"{\\\"a\\\":1}\""],
+    "ref": "转义语义：按钮必须把整段输入变成 JSON 字符串字面量（外层引号 + 内层引号转义），而不是压缩 JSON。旧实现合法 JSON 走 JSON.stringify(obj) 得到 `{\"a\":1}`，与压缩无异。"
+  },
+  {
+    "slug": "it/json-formatter",
     "inputs": {
       "input": "1\n2\n3",
       "indent": "4"
