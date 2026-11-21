@@ -166,7 +166,8 @@
         <label>解除情形</label>
         <select id="terminationType" onchange="calculate()">
           <option value="illegal">违法解除（2N）</option>
-          <option value="legal">合法解除（N或N+1）</option>
+          <option value="legal">合法解除（N，已提前通知）</option>
+          <option value="legal_plus">合法解除（N+1，未提前通知）</option>
         </select>
       </div>
     </div>
@@ -272,6 +273,7 @@ function calculate(){
   const years = parseFloat(document.getElementById('workYears').value) || 0;
   const salary = parseFloat(document.getElementById('monthlySalary').value) || 0;
   const cap = parseFloat(document.getElementById('salaryCap').value) || 0;
+  if(years < 0 || salary <= 0 || cap < 0){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 工作年限须≥0、月工资须>0、封顶基数须≥0。</p>';return;}
   const type = document.getElementById('terminationType').value;
   
   let effectiveSalary = salary;
@@ -294,8 +296,9 @@ function calculate(){
   
   const nCompensation = n * effectiveSalary;
   const illegalCompensation = nCompensation * 2;
-  const total = type === 'illegal' ? illegalCompensation : nCompensation;
-  const multiplier = type === 'illegal' ? seL('2N（违法解除）','2N (illegal dismissal)') : seL('N（合法解除）','N (legal dismissal)');
+  const noticePay = type === 'legal_plus' ? salary : 0;
+  const total = type === 'illegal' ? illegalCompensation : (nCompensation + noticePay);
+  const multiplier = type === 'illegal' ? seL('2N（违法解除）','2N (illegal dismissal)') : (type === 'legal_plus' ? seL('N+1（未提前通知）','N+1 (no notice)') : seL('N（合法解除，已通知）','N (legal, notified)'));
   
   const __h0=`
     <p>${seL('工作年限：','Work years:')}<strong>${years}</strong> ${seL('年 → 补偿年限','yr → tenure')} <strong>${n}</strong> ${seL('个月','months')}</p>
@@ -303,6 +306,7 @@ function calculate(){
     <p>${seL('赔偿标准：','Standard:')}<strong>${multiplier}</strong></p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
     <p>${seL('经济补偿金（N）：','Economic comp (N):')}${ToolBox.formatNumber(nCompensation)} ${seL('元','CNY')}</p>
+    ${noticePay ? '<p>'+seL('代通知金（+1）：','Notice pay (+1):')+ToolBox.formatNumber(noticePay)+' '+seL('元（按原月薪）','CNY (original salary)')+'</p>' : ''}
     <p>${seL('应支付总额：','Total payable:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> ${seL('元','CNY')}</p>
     ${type === 'illegal' ? ('<p style="color:var(--danger);font-size:13px;margin-top:8px;">'+seL('注：违法解除赔偿金已包含经济补偿金部分，不再另行支付N','Note: the illegal-dismissal penalty already includes economic compensation; N is not paid separately')+'</p>') : ''}
   `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}seD={workYears:years,monthlySalary:salary,effectiveSalary:Number(effectiveSalary.toFixed(2)),n:n,nCompensation:Number(nCompensation.toFixed(2)),total:Number(total.toFixed(2)),type:type};document.getElementById('result').innerHTML=__h0;
@@ -320,7 +324,7 @@ function seExtras(){
     TBKit.chart.bar('#seChart',{labels:labels,series:[{name:seL('金额 (元)','Amount (CNY)'),data:data}],height:240,title:seL('赔偿金构成','Severance breakdown')});
     var rows=[
       seL(['工作年限','补偿月数 N','月工资基数 (元)','赔偿标准','应支付总额 (元)'],['Work years','Tenure N (mo)','Monthly base (CNY)','Standard','Total (CNY)']),
-      seL([String(d.workYears),String(d.n),String(d.effectiveSalary.toFixed(2)),d.type==='illegal'?seL('2N 违法解除','2N illegal'):seL('N 合法解除','N legal'),String(d.total.toFixed(2))],[String(d.workYears),String(d.n),String(d.effectiveSalary.toFixed(2)),d.type==='illegal'?'2N illegal':'N legal',String(d.total.toFixed(2))])
+      seL([String(d.workYears),String(d.n),String(d.effectiveSalary.toFixed(2)),d.type==='illegal'?seL('2N 违法解除','2N illegal'):(d.type==='legal_plus'?seL('N+1 未通知','N+1 no notice'):seL('N 合法解除','N legal')),String(d.total.toFixed(2))],[String(d.workYears),String(d.n),String(d.effectiveSalary.toFixed(2)),d.type==='illegal'?'2N illegal':(d.type==='legal_plus'?'N+1 no notice':'N legal'),String(d.total.toFixed(2))])
     ];
     TBKit.matrix.table('#seTable',{head:rows[0],rows:[rows[1]]});
     TBKit.history.record({workYears:d.workYears,monthlySalary:d.monthlySalary,type:d.type,total:Number(d.total.toFixed(2))});

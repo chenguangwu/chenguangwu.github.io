@@ -212,6 +212,14 @@ function taxByTaxable(taxable) {
 function afterTaxToGross(afterTax, rate, threshold) {
   let low = afterTax;
   let high = Math.max(afterTax * 2 + 10000, 100000);
+  // 高税后 + 高社保率时上界可能不足，先倍增到净额覆盖目标
+  for (let k = 0; k < 40; k++) {
+    const mid = (low + high) / 2;
+    const taxable = Math.max(0, high * (1 - rate) - threshold);
+    const netHigh = high * (1 - rate) - taxByTaxable(taxable);
+    if (netHigh >= afterTax) break;
+    high *= 2;
+  }
   for (let i = 0; i < 100; i++) {
     const mid = (low + high) / 2;
     const taxable = Math.max(0, mid * (1 - rate) - threshold);
