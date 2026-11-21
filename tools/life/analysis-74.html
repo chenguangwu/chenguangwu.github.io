@@ -201,7 +201,9 @@ for(var i=0;i<lines.length;i++){
   var p=lines[i].split(/[,，\t ]+/);
   if(p.length<4) continue;
   var nm=p[0],pr=parseFloat(p[1]),sh=parseFloat(p[2]),gr=parseFloat(p[3]);
-  if(isNaN(pr)||isNaN(sh)||isNaN(gr)) continue;
+  if(isNaN(pr)||isNaN(sh)||isNaN(gr)||pr<0||sh<0||sh>100||gr<-100||gr>1000){
+    document.getElementById("res").innerHTML='<p style="color:var(--danger)">第 '+(i+1)+' 行数据越界：价格需 ≥0，份额 0–100%，增速 -100%–1000%。</p>';return;
+  }
   rows.push({n:nm,p:pr,s:sh,g:gr});
 }
 if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「竞品,价格,份额,增速」数据</p>";return;}
@@ -214,7 +216,8 @@ rows.forEach(function(r){
 var lo=rows.slice().sort(function(a,b){return a.p-b.p;})[0];
 var hi=rows.slice().sort(function(a,b){return b.s-a.s;})[0];
 var fast=rows.slice().sort(function(a,b){return b.g-a.g;})[0];
-var judge=ss>=80?"样本覆盖主要竞争面":(ss>=50?"覆盖过半市场":"仅覆盖部分竞品");
+if(ss>105){document.getElementById("res").innerHTML='<p style="color:var(--danger)">份额合计 '+ss.toFixed(2)+'%，超过 100% 容差，请核对是否重复计入或包含非目标市场。</p>';return;}
+var judge=ss>=95?"样本基本覆盖主要竞争面":(ss>=50?"覆盖过半市场":"仅覆盖部分竞品，份额合计偏低");
 var h="<p>竞品数：<strong>"+k+"</strong></p>";
 h+="<p>价格均值：<strong>"+(sp/k).toFixed(2)+"</strong></p>";
 h+="<p>份额合计：<strong>"+ss.toFixed(2)+"%</strong></p>";

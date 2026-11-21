@@ -202,12 +202,12 @@ var lines=document.getElementById("data").value.split("\n").map(function(s){retu
 var stdRaw=String(document.getElementById("std").value==null?'':document.getElementById("std").value).trim();
 var std=Number(stdRaw);
 if(stdRaw===''||!isFinite(std)||std<=0){document.getElementById("res").innerHTML='<p style="color:var(--danger)">⚠ 判定标准（日照间距系数）需为大于 0 的数值，已停止计算。</p>';return;}
-var arr=[];
-lines.forEach(function(ln){
+var arr=[],skipped=[];
+lines.forEach(function(ln,idx){
 var p=ln.split(/[,，\t ]+/);
-if(p.length<3)return;
+if(p.length<3){skipped.push((idx+1)+' 行列数不足');return;}
 var h=parseFloat(p[1]),d=parseFloat(p[2]);
-if(isNaN(h)||isNaN(d)||h<=0)return;
+if(isNaN(h)||isNaN(d)||h<=0||d<=0){skipped.push((idx+1)+' 行楼高/间距需为正数');return;}
 arr.push({name:p[0],h:h,d:d,k:d/h});
 });
 if(!arr.length){document.getElementById("res").innerHTML='<p>请输入至少一行「楼栋,楼高(m),间距(m)」</p>';return;}
@@ -225,6 +225,7 @@ const __g2='<p>楼栋数：<strong>'+n+'</strong>　判定标准（日照间距�
 '<p>最高：<strong>'+ks[n-1].toFixed(4)+'</strong>　最低：<strong>'+ks[0].toFixed(4)+'</strong>　极差：<strong>'+rng.toFixed(4)+'</strong></p>'+
 '<p>达标：<strong>'+ok+'</strong> 栋，达标率 <strong>'+(ok/n*100).toFixed(2)+'%</strong></p>'+
 '<p>间距评价：<strong>'+(ok===n?'全部达标':(ok/n>=0.6?'多数达标，个别楼栋间距偏窄':'间距普遍偏窄，需复核日照') )+'</strong></p>'+
+(skipped.length?'<p style="color:var(--danger)">已跳过 '+skipped.length+' 行：'+skipped.join('；')+'</p>':'')+
 '<p style="font-size:13px;color:var(--text-muted);">间距系数 = 相邻建筑间距 ÷ 建筑高度，是住宅日照与视距控制的常用指标；具体限值以当地规划技术规定为准。</p>'+
 '<table><thead><tr><th>楼栋</th><th>楼高 m</th><th>间距 m</th><th>间距系数</th><th>判定</th></tr></thead><tbody>'+rows+'</tbody></table>';document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
@@ -421,9 +422,9 @@ function __analysis_23Export(){
 function __analysis_23Presets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#analysis_23Presets',[{label:'默认参数',labelEn:'Default',values:{'std':'1.2'}},
-  {'label':'低波动','labelEn':'Low Volatility','values':{'std':'0.5'}},
-  {'label':'中波动','labelEn':'Medium Volatility','values':{'std':'1.2'}},
-  {'label':'高波动','labelEn':'High Volatility','values':{'std':'3.0'}}],function(){ calc(); });
+  {'label':'严格 1.5','labelEn':'Strict 1.5','values':{'std':'1.5'}},
+  {'label':'常规 1.2','labelEn':'Standard 1.2','values':{'std':'1.2'}},
+  {'label':'宽松 1.0','labelEn':'Relaxed 1.0','values':{'std':'1.0'}}],function(){ calc(); });
 }
 var __analysis_23_f0=(typeof calc==='function')?calc:null;
 if(__analysis_23_f0){
