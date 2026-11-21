@@ -517,6 +517,8 @@ async function loadPageCount(item){
   try{
     const buf = await item.file.arrayBuffer();
     const doc = await PDFDocument.load(buf, { ignoreEncryption: true });
+    // pdf-lib 的 ignoreEncryption 只是跳过密码检查，copyPages 并不能解密；显式标错并跳过。
+    if(doc.isEncrypted) throw new Error('encrypted');
     item.pages = doc.getPageCount();
     item.status = 'ok';
   }catch(err){
@@ -706,11 +708,24 @@ async function mergePDFs(){
     for(let i = 0; i < okItems.length; i++){
       const item = okItems[i];
       showProgress(i, total, `正在处理 (${i + 1}/${total})`, '读取：' + item.name);
-      const buf = await item.file.arrayBuffer();
-      const src = await PDFDocument.load(buf, { ignoreEncryption: true });
-      const indices = src.getPageIndices();
-      const copied = await merged.copyPages(src, indices);
-      copied.forEach(p => merged.addPage(p));
+      try{
+        const buf = await item.file.arrayBuffer();
+        const src = await PDFDocument.load(buf, { ignoreEncryption: true });
+        if(src.isEncrypted) throw new Error('encrypted');
+        const indices = src.getPageIndices();
+        const copied = await merged.copyPages(src, indices);
+        copied.forEach(p => merged.addPage(p));
+      }catch(err){
+        // 单个文件失败只标记该文件，继续合并其余文件（与页面承诺一致）。
+        item.status = 'error';
+        item.error = err && err.message === 'encrypted' ? 'encrypted' : 'unreadable';
+        renderList();
+        continue;
+      }
+    }
+    if(merged.getPageCount() === 0){
+      ToolBox.showToast((document.documentElement.lang||'').toLowerCase().startsWith('en') ? 'No readable pages to merge' : '没有可合并的页面，请检查文件是否加密或损坏', 'warning');
+      return;
     }
     showProgress(total, total, '正在生成 PDF 文件...', '');
     const outBytes = await merged.save();
