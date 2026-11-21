@@ -44,6 +44,41 @@ const CASES = [
     "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
+  "slug": "tcm-diagnosis/disease-tracking",
+  "inputs": {},
+  "clicks": [
+    "localStorage.removeItem(STORAGE_KEY);records=[];saveData();document.getElementById('recDate').value='2026-01-01';document.querySelectorAll('#symptomContainer .symptom-row').forEach(function(r){r.remove();});addRecord();document.getElementById('__tbProbe').textContent='EMPTY '+records.length;"
+  ],
+  "expect": [
+    "EMPTY 0"
+  ],
+  "ref": "空症状记录回归：原 addRecord 只校验日期，未填任何症状也保存 totalScore=0 并在汇总里标「无症状」；修复后至少一项症状才保存。探针清空记录与症状行后以合法日期保存，records.length 应保持 0；旧实现为 1 即不命中。"
+},
+{
+  "slug": "tcm-diagnosis/disease-tracking",
+  "inputs": {},
+  "clicks": [
+    "records=[{date:'2026-01-01',tongueBody:'',tongueCoat:'',pulse:'',symptoms:[{name:'头痛',score:2}],totalScore:2},{date:'2026-01-02',tongueBody:'',tongueCoat:'',pulse:'',symptoms:[{name:'咳嗽',score:1}],totalScore:1}];renderSummary();document.getElementById('__tbProbe').textContent='MISMATCH '+document.getElementById('summaryPanel').textContent;"
+  ],
+  "expect": [
+    "MISMATCH",
+    "症状项目不一致，总分不可直接比较"
+  ],
+  "ref": "不可比总分回归：两次记录分别为「头痛」2 分与「咳嗽」1 分，原实现直接比较总分得出「病情好转（下降 1 分）」，但症状集合不同，总分无直接可比性。修复后输出「症状项目不一致，总分不可直接比较」；旧实现只含「病情好转」即不命中。"
+},
+{
+  "slug": "tcm-diagnosis/disease-tracking",
+  "inputs": {},
+  "clicks": [
+    "records=[{date:'2026-01-01',tongueBody:'',tongueCoat:'',pulse:'',symptoms:[{name:'头痛',score:3}],totalScore:3},{date:'2026-01-02',tongueBody:'',tongueCoat:'',pulse:'',symptoms:[{name:'头痛',score:1}],totalScore:1}];renderSummary();document.getElementById('__tbProbe').textContent='SAME '+document.getElementById('summaryPanel').textContent;"
+  ],
+  "expect": [
+    "SAME",
+    "病情好转"
+  ],
+  "ref": "同症状集合仍可比较：两次都是「头痛」，3 分→1 分，修复后仍输出「病情好转（症状总分下降 2 分）」；防止把不可比判断误扩到可比较场景。"
+},
+{
   "slug": "tcm-diagnosis/eight-principles",
   "clicks": [
     "sel.biaoli='li';sel.hanre='re';sel.xushi='shi';sel.yinyang='yang';deduce()"

@@ -359,6 +359,12 @@ function addRecord() {
     if(name) symptoms.push({ name:name, score:score });
   });
 
+  if(symptoms.length === 0) {
+    var emptyMsg = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) ? 'Add at least one symptom' : '请至少填写一项症状';
+    ToolBox.showToast(emptyMsg, 'warning');
+    return;
+  }
+
   // 计算总分
   var totalScore = symptoms.reduce(function(s, sym){ return s + sym.score; }, 0);
 
@@ -522,12 +528,17 @@ function renderSummary() {
   var first = records[0];
   var last = records[records.length - 1];
   var scoreDiff = last.totalScore - first.totalScore;
+  var firstSymptoms = (first.symptoms || []).map(function(sym){ return sym.name; }).sort().join('|');
+  var lastSymptoms = (last.symptoms || []).map(function(sym){ return sym.name; }).sort().join('|');
+  var comparable = firstSymptoms !== '' && lastSymptoms !== '' && firstSymptoms === lastSymptoms;
 
   var html = '<h4>📋 病情变化分析</h4>';
   html += '<p><strong>首次记录：</strong>' + ToolBox.escHtml(first.date) + '，症状总分 ' + first.totalScore + '</p>';
   html += '<p><strong>最近记录：</strong>' + ToolBox.escHtml(last.date) + '，症状总分 ' + last.totalScore + '</p>';
 
-  if(scoreDiff < 0) {
+  if(!comparable) {
+    html += '<p><strong>趋势判断：</strong><span style="color:#F59E0B;font-weight:600;">症状项目不一致，总分不可直接比较</span>（请结合下方各症状趋势逐项对照）</p>';
+  } else if(scoreDiff < 0) {
     html += '<p><strong>趋势判断：</strong><span style="color:#10B981;font-weight:600;">病情好转</span>（症状总分下降 ' + Math.abs(scoreDiff) + ' 分）</p>';
   } else if(scoreDiff > 0) {
     html += '<p><strong>趋势判断：</strong><span style="color:#EF4444;font-weight:600;">病情加重</span>（症状总分上升 ' + scoreDiff + ' 分）</p>';
