@@ -502,6 +502,12 @@ const CASES = [
   "expect": ["VSUNANS OK"],
   "ref": "问卷频率选择增加空占位；未为左右眼各选频率时 next() 拦下并提示，不再默认‘从不’一路推进生成全阴性结论。"
 },
+{
+  "slug": "ophthalmology/tear-breakup-time",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/tear-breakup-time.html','utf8');var ok=h.indexOf('<tr><td>&ge;10</td><td>正常</td><td>泪膜稳定</td></tr>')>=0&&h.indexOf('&gt;10')<0&&h.indexOf('>10')<0;document.getElementById('__tbProbe').textContent='TB10 '+(ok?'OK':'BAD');})();"],
+  "expect": ["TB10 OK"],
+  "ref": "BUT 分级代码为 >=10 正常（=10 归正常），表格/FAQ/图例却写 >10；统一为 ≥10，并断言旧 >10 文案已消失。"
+},
 
 ];
 async function main() {
