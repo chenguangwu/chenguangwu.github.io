@@ -155,7 +155,7 @@ const CASES = [
     ref: "SF-N64：Epley 仅适用 1–10 次，原式对任意次数直接算（100kg×100 次给出 433.3 kg、强度 23.1%）。现 r>10 停算提示，Brzycki 对照同步收紧到 ≤12 次。默认 8 次正常出换算链 ⇒ 零逃生。" },
 
   // ── SF-N56/N57/N60/N61/N62/N66 量纲、适用范围与录入校验（G 批修复）──
-  { slug: "sports/sports-calculator", inputs: { "cyc-chainring": "50", "cyc-cassette": "11", "cyc-wheel": "2096", "cyc-cadence": "90" },
+  { slug: "sports/sports-calculator", inputs: { "cyc-chainring": "50", "cyc-cassette": "11", "cyc-wheel": "2096", "cyc-cadence": "91" },
     expect: ["119.4\" 齿轮英寸（轮周长换算直径）"],
     ref: "SF-N56：齿轮英寸 = 齿比 × 车轮直径(inch) = (50/11) × (2096÷π÷25.4) = 4.545 × 26.27 = 119.4\"；原式 wheel/25.4 把「周长」当「直径」⇒ 375.1\"，固定放大 π 倍。默认 48/16 组合不含 119.4 ⇒ 零逃生。" },
   { slug: "sports/sports-calculator", inputs: { "orm-weight": "80", "orm-reps": "36" },

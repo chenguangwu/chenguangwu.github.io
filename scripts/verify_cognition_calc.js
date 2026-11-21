@@ -248,10 +248,10 @@ const CASES = [
 {
   "slug": "cognition/time-perception",
   "inputs": {
-    "bSel": "90"
+    "bSel": "120"
   },
   "expect": [
-    "90"
+    "120"
   ],
     "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },

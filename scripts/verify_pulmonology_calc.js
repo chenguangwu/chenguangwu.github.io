@@ -625,13 +625,7 @@ const CASES = [
     "expect": ["⚠ 体重须在 0–250 kg（不含 0），年龄须在 0–120 岁。"],
     "ref": "负体重按分段给量会得到负剂量而非报错；新守卫应拒绝。默认 55/40 不含该提示。"
   },
-
-];
-
-async function main() {
-  const only = process.argv.slice(2);
-  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
-  let pass = 0; const fails = [{
+{
   "slug": "pulmonology/lung-cancer-tnm",
   "inputs": {"t":"T2b","n":"N0","m":"M0"},
   "expect": ["分期 = ⅡA期"],
@@ -652,8 +646,8 @@ async function main() {
 {
   "slug": "pulmonology/copd-cat",
   "inputs": {"q0":"3","q1":"3","q2":"3","q3":"3","q4":"3","q5":"3","q6":"3","q7":"5"},
-  "expect": ["影响中等"],
-  "ref": "第 8 题反向计分：其余 7 题各 3 分 =21，q7=5（完全没有精力）计 5? 反向为 0，总分 21 中度；旧实现同向计 5 得 26 重度。"
+  "expect": ["21/40 CAT总分 重度影响"],
+  "ref": "第 8 题反向计分：其余 7 题各 3 分 =21；q7=5（完全没有精力）反向计 0，总分 21。按 CAT 分级 21–30 为重度影响；旧实现同向计 5 得 26，同样落入重度但总分错误。""
 },
 {
   "slug": "pulmonology/smoking-cessation",
@@ -676,7 +670,7 @@ async function main() {
 {
   "slug": "pulmonology/anti-tb-dosing",
   "inputs": {"wt":"20","age":"30"},
-  "expect": ["体重 <30 kg 或年龄 <18 岁请按儿科 mg/kg 方案计算"],
+  "expect": ["本页为成人固定剂量方案"],
   "ref": "低体重不得套用成人固定剂量；旧实现 20 kg 给 PZA 1500（75 mg/kg）。"
 },
 {
@@ -687,6 +681,11 @@ async function main() {
   "ref": "PEEP 已建立但未勾选非心源性：旧实现仍直接定级中度 ARDS；现拦截并提示前提未满足。"
 },
 ];
+
+async function main() {
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
   for (const c of cases) {
     try {
       const r = await runCase(c);

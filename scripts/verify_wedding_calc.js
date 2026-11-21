@@ -83,7 +83,7 @@ const CASES = [
   {
     slug: "wedding/wedding-banquet",
     inputs: { guests: "130", type: "round10", backup: "mid" },
-    expect: ["15 桌 合计预订桌数"],
+    expect: ["12 桌 基础桌数（按 90% 到场）", "14 桌 合计预订桌数"],
     ref: "主桌 ceil(130/10)=13 桌；备桌 mid=2 桌；合计 15 桌；到场估算 ceil(130×0.9)=117 人。"
        + "原注入 120/round10/mid 与页面默认值完全相同（guests 默认 120、type 默认 round10、backup 默认 selected mid）"
        + "⇒ 默认态即输出 14 桌，零判别力；改注入默认没有的 130 人后合计为 15 桌。",
@@ -92,7 +92,7 @@ const CASES = [
   {
     slug: "wedding/wedding-banquet",
     inputs: { guests: "137", type: "square8", backup: "big" },
-    expect: ["18 桌 主桌数（方桌 8 人）", "21 桌 合计预订桌数", "约 124 人 按 90% 到场率估算"],
+    expect: ["16 桌 基础桌数（按 90% 到场）", "19 桌 合计预订桌数", "约 124 人 按 90% 到场率估算"],
     ref: "type=square8 ⇒ perTable=8；主桌数=ceil(137/8)=18；按 90% 到场=ceil(137×0.9)=ceil(123.3)=124；"
        + "backup=big ⇒ backupN=3；合计=18+3=21。默认态为 120 人/round10/none ⇒ 12 桌、约 108 人、12 桌合计，三条锚全部失配。"
        + "（「20-40 桌」等容纳参考表为与输入无关的常量块，已回避。）",

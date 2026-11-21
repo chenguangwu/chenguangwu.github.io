@@ -309,7 +309,7 @@ function calc(){
   const lastKm=Math.max(0,+document.getElementById('lastKm').value||0);
   const yearKm=Math.max(1,+document.getElementById('yearKm').value||15000);
   const custInt=Math.max(1000,parseInt((document.getElementById('customInt')||{}).value||'80000',10)||80000);
-  const interval=(m.id==='custom')?custInt:interval;
+  const interval=(m.id==='custom')?custInt:m.interval;
   const isChain=m.type==='chain' && interval===0;
   // BELTCLR：当前/上次里程缺失时不得输出「建议换油间隔」类结论
   if(!document.getElementById('curKm').value.trim()||!document.getElementById('lastKm').value.trim()){
@@ -385,20 +385,22 @@ function __cbRenderCompare(){
   var TYPE_EN={belt:'Timing belt',chain:'Timing chain'};
   var rows=[];
   var beltRemain=[];
+  var custInt=Math.max(1000,parseInt((document.getElementById('customInt')||{}).value||'80000',10)||80000);
   MODELS.forEach(function(m){
     var typeName=en?TYPE_EN[m.type]:TYPE_NAMES[m.type];
-    var intervalTxt=interval>0?ToolBox.formatNumber(interval)+' km':(en?'Maintenance-free':'免维护');
+    var iv=(m.id==='custom')?custInt:m.interval;
+    var intervalTxt=iv>0?ToolBox.formatNumber(iv)+' km':(en?'Maintenance-free':'免维护');
     var nextTxt='—',remainTxt='—',daysTxt='—',statusTxt;
-    if(interval>0){
-      var nextDue=lastKm+interval;
+    if(iv>0){
+      var nextDue=lastKm+iv;
       var remain=Math.max(0,nextDue-curKm);
       nextTxt=ToolBox.formatNumber(nextDue)+' km';
       remainTxt=ToolBox.formatNumber(remain)+' km';
       daysTxt=remain>0?Math.round(remain/dailyKm)+(en?' days':' 天'):'0';
       if(remain<=0)statusTxt=en?'Overdue':'已超期';
-      else if(remain<=interval*0.1)statusTxt=en?'Due soon':'即将到期';
+      else if(remain<=iv*0.1)statusTxt=en?'Due soon':'即将到期';
       else statusTxt=en?'OK':'正常';
-      beltRemain.push({name:m.name,id:m.id,remain:remain,interval:interval});
+      beltRemain.push({name:m.name,id:m.id,remain:remain,interval:iv});
     }else{
       statusTxt=en?'Maintenance-free':'免维护';
     }
@@ -498,7 +500,7 @@ function exportResult(){
 function renderDB(){
   let h='<table><thead><tr><th>车型</th><th>类型</th><th>更换里程</th><th>说明</th></tr></thead><tbody>';
   MODELS.filter(m=>m.id!=='custom').forEach(m=>{
-    h+=`<tr><td>${m.name}</td><td>${TYPE_NAMES[m.type]}</td><td>${interval>0?ToolBox.formatNumber(interval)+'km':'免维护'}</td><td style="font-size:12px;color:var(--text-light);">${m.note}</td></tr>`;
+    h+=`<tr><td>${m.name}</td><td>${TYPE_NAMES[m.type]}</td><td>${m.interval>0?ToolBox.formatNumber(m.interval)+'km':'免维护'}</td><td style="font-size:12px;color:var(--text-light);">${m.note}</td></tr>`;
   });
   h+='</tbody></table>';
   const __g5=h;document.getElementById('dbTable').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
