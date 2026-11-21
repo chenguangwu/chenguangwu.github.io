@@ -14684,6 +14684,19 @@ const CASES = [
     "expect": ["NGINXPRIV SAFE"],
     "ref": "历史隐私：私钥路径可能暴露主机目录结构；修复后只记录长度，域名/端口等非敏感项仍正常入历史。"
   },
+  {
+    "slug": "it/text-diff",
+    "clicks": ["var src=String(doDiff);var ok=src.indexOf('String(text1)')>=0&&src.indexOf('String(text2)')>=0&&src.indexOf('replace(')>=0;document.getElementById('__tbProbe').textContent='DIFFEOL '+(ok?'SAFE':'LEAK');"],
+    "expect": ["DIFFEOL SAFE"],
+    "ref": "行尾统一：旧实现 text1.split('\\n') 保留 CRLF 的 \\r，同一内容会每行都判修改。源码守卫断言 computeDiff 先用 String(...).replace 统一行尾。"
+  },
+  {
+    "slug": "it/text-diff",
+    "inputs": { "text1": "abc", "text2": "ABC", "ignoreCase": true },
+    "clicks": ["doDiff();var u=String(document.getElementById('unifiedDiff').innerHTML);document.getElementById('__tbProbe').textContent='DIFFNEW '+((u.indexOf('ABC')>=0&&u.indexOf('>  abc')<0)?'OK':'BAD');"],
+    "expect": ["DIFFNEW OK"],
+    "ref": "统一视图新值：忽略大小写时 abc 与 ABC 判为相同；旧实现 same 块只渲染 oldValue，统一视图仍显示 abc。修复后显示新文件侧 ABC。"
+  },
 ];
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

@@ -178,7 +178,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="⚖️ 文本对比工具">⚖️ Text Compare</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按选项对两文本的每一行做归一化（可选忽略空白、忽略大小写），再用最长公共子序列动态规划求行级差异：二维表第 i 行第 j 列在两行相同时取左上角加 1，否则取上方与左方的较大值；随后从右下角回溯，得到相同、新增、删除三类块序列。回溯结果再做一次合并：相邻的一对「删除 + 新增」合并为修改块。渲染时左右分栏逐块输出行号与内容，修改块按删除与新增分别高亮，新增块左侧留空、删除块右侧留空；开启字符级差异时，再对修改行的新旧文本做字符级对比后分别着色</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先把 CRLF/CR 行尾统一为 LF，再按选项对每一行做归一化（可选忽略空白、忽略大小写），再用最长公共子序列动态规划求行级差异：二维表第 i 行第 j 列在两行相同时取左上角加 1，否则取上方与左方的较大值；随后从右下角回溯，得到相同、新增、删除三类块序列。回溯结果再做一次合并：相邻的一对「删除 + 新增」合并为修改块。渲染时左右分栏逐块输出行号与内容，修改块按删除与新增分别高亮，新增块左侧留空、删除块右侧留空；开启字符级差异时，再对修改行的新旧文本做字符级对比后分别着色</div>
   <div class="formula-desc">对比两段文本并标出差异。</div>
   <ul class="formula-list">
     <li><b>算法</b>：使用最长公共子序列（LCS）动态规划求最小编辑脚本；本页实际实现为 LCS，未使用 Myers 差分。</li>
@@ -480,8 +480,9 @@ function doDiff() {
     charDiff: document.getElementById('charDiff').checked
   };
   
-  const lines1 = text1.split('\n');
-  const lines2 = text2.split('\n');
+  // 行尾统一为 LF：Windows CRLF 与 Unix LF 的同一文件不应因 \r 被判成每行都修改。
+  const lines1 = String(text1).replace(/\r\n?/g, '\n').split('\n');
+  const lines2 = String(text2).replace(/\r\n?/g, '\n').split('\n');
   
   const norm1 = lines1.map(l => normalizeText(l, options));
   const norm2 = lines2.map(l => normalizeText(l, options));
@@ -540,7 +541,8 @@ function renderUnifiedDiff(diff, options) {
         html += `<div class="diff-line add"><span class="ln">${newLn++}</span><span class="content">+ ${ToolBox.escHtml(chunk.newValue || '')}</span></div>`;
       }
     } else if (chunk.type === 'same') {
-      html += `<div class="diff-line same"><span class="ln">${oldLn++}</span><span class="content">  ${ToolBox.escHtml(chunk.oldValue || '')}</span></div>`;
+      // 统一 diff 采用新文件侧文本：忽略大小写/空白后判为相同，右侧新写法才是用户当前内容。
+      html += `<div class="diff-line same"><span class="ln">${oldLn++}</span><span class="content">  ${ToolBox.escHtml(chunk.newValue != null ? chunk.newValue : (chunk.oldValue || ''))}</span></div>`;
       newLn++;
     } else if (chunk.type === 'add') {
       html += `<div class="diff-line add"><span class="ln">${newLn++}</span><span class="content">+ ${ToolBox.escHtml(chunk.newValue || '')}</span></div>`;
@@ -627,7 +629,7 @@ function copyDiff() {
   let text = '';
   currentDiff.forEach(chunk => {
     if (chunk.type === 'same') {
-      text += '  ' + (chunk.oldValue || '') + '\n';
+      text += '  ' + (chunk.newValue != null ? chunk.newValue : (chunk.oldValue || '')) + '\n';
     } else if (chunk.type === 'add') {
       text += '+ ' + (chunk.newValue || '') + '\n';
     } else if (chunk.type === 'remove') {
