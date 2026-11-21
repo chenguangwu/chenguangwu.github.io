@@ -22,7 +22,6 @@
 
 ## 2026-11-06 儿童疫苗排程静态续审
 
-- `tools/pediatrics/vaccine-schedule.html`：清空出生日期只更新清单、主结果保留旧年龄——第1329批已修（!birthDate 分支补清 #result，源码形态强锚 `VACCLR` 已落 pediatrics verify；旧版分支段 getElementById( 引用 2/fixed 3，旧版无 ⇒ BAD）。余项：已接种至 0 月龄被 `||-1` 当成未填写；"逾期/当前应接种"月龄口径与页面说明不一致、导出不含接种状态、未来出生日期未拒绝——均涉疫苗排期与月龄口径须临床复核。
 - `:266-272,371-372`：固定排程及“缺几针补几针”建议未本次核对最新免疫规划、适龄范围或补种个体条件；应由预防接种专业人员核验，不以静态检查替代医学判断。
 
 ## 2026-11-06 视光工具静态续审（第四批）
@@ -93,23 +92,9 @@
 
 > 范围：`tools/health/{pregnancy-due-date,ovulation-calculator,gfr-calculator,blood-pressure-classifier}.html` 的输入事件、计算及结果路径；仅静态阅读和 Node 算式复算，未运行页面、检查浏览器或验证临床标准；医疗解释须专业人员复核。
 
-### 清空输入仍保留旧医疗结果（高 · 部分修复余项）
-- 已修：`gfr-calculator`（第1310批新增 `clearGfr()`，年龄/肌酐无效及 Cockcroft 缺体重均清 gfrVal/gfrStage/marker/statsGrid/wtInfo，强锚 `GFCLR` 已落 health verify）；`blood-pressure-classifier` 第1304批已补必填与舒>收校验并清空结果。
-- 余项：`ovulation-calculator` 清空周期/经期仍保留旧结果；`pregnancy-due-date` 切换预产期方式且目标日期为空仍保留前一方式结果。两页涉周期预测/临床口径，需专业裁断后同步清理与提示，未擅改。
-- 影响：当前输入不完整或方式已改变时仍可见旧结论。应同步清空结果、图示及相关导出，并给必填提示；代码审计不证明浏览器实际呈现，需后续交互验证。
-
-
 ## 2026-11-06 健康工具静态复核续批
 
 > 实读 `health/{child-bmi-calculator,child-height-predictor,body-surface-area,cholesterol-ratio,calorie-needs}` 的主要计算与输入路径，仅源码和算式复算，未做浏览器或临床标准核验。
-
-### 体表面积英制下的场景预设未换算（中，第1305批余项）
-- `tools/health/body-surface-area.html`：切换时换算已有输入值已于第1305批修复（setUnit 按 2.54/0.453592 换算）；但场景预设注入固定公制值（如「成年男性」175cm/75kg），在英制模式下点击会当 175 in/75 lb 使用，仍错位。
-- 建议让预设值按当前 unit 换算注入或预设按单位分组；明确显示单位与校验异常身高体重，涉及剂量计算需临床复核。
-
-### 儿童身高预测选填项未参与结果（低，代码确认）
-- `tools/health/child-height-predictor.html:195-202,483-506,521-543` 读取孩子年龄和当前身高，但主预测和百分位只使用父母身高、性别；两项仅供 CSV 导出。更改这两个字段不会影响显示的预测值，预设含这两项易让人误以为参与估算。
-- 建议明确标为记录用途或删除无计算作用的输入；若要引入生长预测，先经专业审查。
 
 ## 2026-11-06 健康工具静态复核第三批
 
@@ -117,26 +102,15 @@
 
 ### 血糖和理想体重清空后保留旧结果（中 · 部分修复余项）
 - 已修（第1309批）：`blood-sugar-converter.html` 新增 `clearGlucose()`，fromMmol/fromMgdl 空/非法输入同步清对方输入与状态、刻度、统计卡；假「换算系数」已于第1305批改恒为 18.02；强锚 `BSCLR` 已落 health verify。
-- 余项：`blood-sugar-converter` 负数仍进入低血糖分类（涉临床适用范围，待专业裁断）；`ibw-calculator.html` 清空身高直接返回、理想体重与实际体重比较仍是前次值，极小正身高可产生负理想体重，临床公式适用范围需专业核对，未擅改。
 
-### 蛋白质计算输入含义及边界需复核（中，代码确认）
-- `tools/health/protein-needs.html:169-173,202-207,373-407`：读取性别但不参与计算；来源系数可使推荐量超过页面标示的「安全上限」，例如 65 kg、竞技运动员 2.2 g/kg、纯植物系数 0.7 时推荐约 **204 g/天**，而上限约 **163 g/天**。这只是实现和标签之间的矛盾，不判断该上限的临床有效性。建议解释输入用途，核对来源系数、推荐范围及健康人群适用条件。
-- `health/fracture-healing` 的筛选、年龄对照、预设和图表代码已阅读；未发现上述同类确定性问题不等于交互或临床内容经验证。
 
 ## 2026-11-06 健康生活工具静态复核
 
 > 实读 `health/{sleep-cycle-calculator,smoking-cost-calculator,waist-hip-ratio,water-intake-calculator}` 的主要输入及结果路径，仅静态阅读和算式复算；未运行页面，医学适用性须复核。
 
-### 腰臀比与饮水计算清空后的结果未同步（中 · 部分修复余项）
-- 已修（第1309批）：`waist-hip-ratio.html` 无效输入在既有主卡清理基础上补清 waistVal/hipVal/whtrVal/bmiVal/riskContent，强锚 `WHCLR` 已落 health verify。
-- 余项：`water-intake-calculator.html` 清空体重或填 0 仍按 65 kg 计算，年龄无效时只更换主结果而杯数、范围、时间表保留旧值；页面接受 0 岁并生成成人式饮水时间表，使用场景与安全性须儿科专业复核，区分空值与 0、限制不适用人群涉及专业口径，未擅改。
-
 ## 2026-11-06 康复与呼吸计时器静态复核
 
 > 阅读 `health/{rehab-timer,breath-timer}` 的选择、计时及历史路径，以下为代码推断，未操作页面或验证真实计时。
-
-- `tools/health/rehab-timer.html`：删除当前或前面的项目后未同步重设 `itemId`，可能指向另一项目或不存在的项，后者开始时读取 `undefined.duration`——第1311批已修（splice 后重映射 itemId 并同步 remaining，强锚 `RHDEL` 已落 health verify）。余项：运行中更改下拉框不会切换当前计时项目，但下拉框仍可显示新选择；涉及运行中切换语义，待裁断。
-- 同页 `:542-558,590-597` 在开始和暂停后继续时立即调用 `tick()`，随后才设置每秒定时器，因此每次开始或恢复都立刻扣减 1 秒。建议维护稳定项目标识、删除时停止或重选、运行中锁定选择，并避免额外的立即扣秒。
 
 ## 2026-11-03 第一轮抽样补充
 
