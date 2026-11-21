@@ -4205,6 +4205,18 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             if _no_tail == _seo_desc_raw:
                 break
             _seo_desc_raw = _no_tail
+        # 描述过短时优先补该工具自己的真实使用场景（content_deepdive.scenarios），
+        # 不再拼全站同一句模板尾巴（2026-11-21）。
+        if len(_seo_desc_raw) < 70:
+            _dd_slug = t['path'].replace('tools/', '').rsplit('.html', 1)[0]
+            _dd_sc = (DEEP_DIVE.get(_dd_slug) or {}).get('scenarios') or []
+            if _dd_sc:
+                _extra = re.sub(r'<[^>]+>', '', str(_dd_sc[0])).strip()
+                _extra = re.sub(r'\s+', ' ', _extra).rstrip('。')
+                if len(_extra) >= 8 and _extra[:8] not in _seo_desc_raw:
+                    _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。' + _extra
+            if not _seo_desc_raw.endswith(('。', '！', '？')):
+                _seo_desc_raw += '。'
         app_desc = esc_html_py(_clip_zh_desc(_seo_desc_raw, 150))
         # JSON-LD 字符串安全（2026-09-23）：desc 含反斜杠字面量（转义类工具 \n \b…）或
         # 控制字符时，未转义会导致 WebApplication JSON 非法、整块被 Google 丢弃。
