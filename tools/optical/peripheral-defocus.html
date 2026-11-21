@@ -343,18 +343,20 @@ function calc(){
   // Estimated myopia control efficacy based on lens type and RPD
   var efficacy;
   if(lens === 'single'){
-    efficacy = rpd > 0 ? '轻度(0-20%)' : '无/可能加速';
+    efficacy = rpd > 0.5 ? '轻度(0-20%)' : '无/可能加速';
   } else if(lens === 'defocus'){
-    efficacy = rpd > 1 ? '良好(50-60%)' : rpd > 0 ? '中等(30-50%)' : '需调整';
+    efficacy = rpd > 1 ? '良好(50-60%)' : rpd > 0.5 ? '中等(30-50%)' : '需调整';
   } else { // ortho
-    efficacy = rpd > 1 ? '良好(40-60%)' : rpd > 0 ? '中等(30-50%)' : '需复查';
+    efficacy = rpd > 1 ? '良好(40-60%)' : rpd > 0.5 ? '中等(30-50%)' : '需复查';
   }
+  // 方向只在与主提示相同的 ±0.5D 阈值外成立；0 附近统一显示中性/微弱，避免“信号微弱”却标远视性。
+  var dirTxt = rpd > 0.5 ? '近视性' : (rpd < -0.5 ? '远视性' : '中性/微弱');
 
   var color = rpd > 0.5 ? 'var(--success)' : (rpd < -0.5 ? 'var(--danger)' : 'var(--warning)');
 
   var html = '<div class="data-grid">';
   html += '<div class="data-card"><div class="num" style="color:'+color+';">'+(rpd>=0?'+':'')+rpd.toFixed(2)+'D</div><div class="label">相对周边离焦RPD</div></div>';
-  html += '<div class="data-card"><div class="num" style="font-size:14px;color:'+color+';">'+(rpd>0?'近视性':'远视性')+'</div><div class="label">离焦方向</div></div>';
+  html += '<div class="data-card"><div class="num" style="font-size:14px;color:'+color+';">'+dirTxt+'</div><div class="label">离焦方向</div></div>';
   html += '<div class="data-card"><div class="num" style="font-size:14px;">'+efficacy+'</div><div class="label">预估防控效果</div></div>';
   html += '</div>';
 
@@ -380,13 +382,13 @@ function calc(){
   var rad = angle * Math.PI/180;
   var px = 50 + 38*Math.cos(-rad);
   var py = 50 + 38*Math.sin(-rad);
-  v += '<div class="pt" style="background:'+(rpd>0?'var(--success)':'var(--danger)')+';left:'+px+'%;top:'+py+'%;">周边</div>';
+  v += '<div class="pt" style="background:'+(rpd>0.5?'var(--success)':(rpd<-0.5?'var(--danger)':'var(--warning)'))+';left:'+px+'%;top:'+py+'%;">周边</div>';
   v += '</div>';
   v += '<div style="font-size:13px;color:var(--text-secondary);line-height:1.8;">';
   v += '中心屈光：<strong>'+central+'D</strong><br>';
   v += '周边屈光('+angle+'°)：<strong>'+periph+'D</strong><br>';
   v += 'RPD = 周边−中心 = <strong style="color:'+color+';">'+(rpd>=0?'+':'')+rpd.toFixed(2)+'D</strong><br>';
-  v += '<span style="font-size:12px;color:var(--text-muted);">'+(rpd>0?'近视性离焦→抑制眼轴增长':'远视性离焦→促进眼轴增长')+'</span>';
+  v += '<span style="font-size:12px;color:var(--text-muted);">'+(rpd>0.5?'近视性离焦→抑制眼轴增长':(rpd<-0.5?'远视性离焦→促进眼轴增长':'信号微弱→方向不明确'))+'</span>';
   v += '</div>';
   const __g2=v;vis.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }

@@ -44,7 +44,7 @@
 - `tools/optical/frame-pupillary.html`：A/DBL/PD 清空按 0 出匹配建议——第1315批已修（三处原始判空+正数守卫，强锚 `FPGUARD` 已落 optical verify；ED 为 0 回退 A 属选填默认，保留）。余项：移心过大时一律建议更大 DBL 与自身公式方向冲突，须视光师复核。
 - `tools/optical/frame-tilt.html`：倾角/瞳距/瞳高清空按 0——第1315批已修（原始串判空，pd 与瞳高正数守卫，倾角 0 仍合法，强锚 `FTGUARD` 已落 optical verify）。`shiftCm` 未展示英文简介所述棱镜效应且无镜度输入——第 131 批已补选填镜度并按 Prentice 输出 `|c×D|`，留空不改变原输出（用例已落 optical verify）。前倾光心移动与瞳高方向仍须专业复核。
 - `tools/optical/lens-refractive-index.html`：度数/直径/中心厚度空值静默代入——第1316批已修（三处原始判空+直径与中心厚度正数守卫，强锚 `LRGUARD` 已落 optical verify；旧版无 `__pRaw` ⇒ BAD）。余项：正负镜均对度数取绝对值并用明确标注“负镜”的边厚公式，正镜也显示中心加差的边厚。厚度模型适用范围须专业复核。
-- `tools/optical/peripheral-defocus.html`：中心/周边/偏心角空值静默按 0 或 20——第1317批已修（三处原始判空+偏心角正数守卫+无效时清 `vis` 示意图，强锚 `PDGUARD` 已落 optical verify；旧版无 `__centralRaw` ⇒ BAD）。余项：RPD=0 主提示说信号微弱，方向卡和示意图却称远视性、促进眼轴增长；离焦量和镜型直接映射具体防控百分比的临床有效性未验证，须专业复核。
+- `tools/optical/peripheral-defocus.html`：中心/周边/偏心角空值静默按 0 或 20——第1317批已修（三处原始判空+偏心角正数守卫+无效时清 `vis` 示意图，强锚 `PDGUARD` 已落 optical verify；旧版无 `__centralRaw` ⇒ BAD）。RPD=0 主提示说信号微弱，方向卡和示意图却称远视性、促进眼轴增长——第 137 批已统一 ±0.5D 中性带（方向/图色/效能同口径，用例已落 optical verify）。离焦量和镜型直接映射具体防控百分比的临床有效性仍须专业复核。
 
 ## 2026-11-06 眼科与视光工具静态续审（第二批）
 
