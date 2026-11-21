@@ -111,11 +111,13 @@
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
       <div class="formula-eq">模型量化估算（本页代码口径，十进制 MB——1MB=10⁶ 字节，非 1024² MiB）：原大小 MB=参数量(百万)×10⁶×原字节÷参÷10⁶，即 每参数字节数×参数量（百万）所得即 MB 数；新大小 MB 同式换用量化后字节；压缩比=原字节÷参 ÷ 量化字节÷参。校验：无强校验，空值按 0 兜底；结果非有限时提示「部分结果无定义」。判据：无固定分级，FP32→INT8 理论压缩 4 倍，字节减半体积即减半。</div>
-      <div class="formula-desc">量化通过降低权重数值精度（FP32→INT8 即 4:1）直接缩小体积与带宽需求，算力受限场景收益明显。但精度损失会体现在指标上，对异常值敏感的模型需做量化感知训练或逐通道校准。</div>
+      <div class="formula-desc">量化通过降低权重数值精度（FP32→INT8 即 4:1）直接缩小体积与带宽需求，算力受限场景收益明显。但精度损失会体现在指标上，对异常值敏感的模型需做量化感知训练或逐通道校准。注意 4× 只是权重理论上限：嵌入层与部分激活常仍以 FP16 保存，勾选「保留 FP16」并给出占比后，页面会按混合字节数计算实际体积与压缩比。</div>
     </div>
 <div class="input-row"><label>参数量(百万)</label><input type="number" id="params" value="7000" step="any" oninput="calc()" placeholder="如 7000"></div>
     <div class="input-row"><label>原字节/参</label><input type="number" id="fromB" value="4" step="any" oninput="calc()" placeholder="如 4"></div>
     <div class="input-row"><label>量化字节/参</label><input type="number" id="toB" value="1" step="any" oninput="calc()" placeholder="如 1"></div>
+    <div class="input-row"><label>嵌入/激活保留 FP16</label><select id="keepFp16" onchange="calc()"><option value="0">否（纯权重压缩）</option><option value="1">是</option></select></div>
+    <div class="input-row"><label>保留 FP16 的占比 %</label><input type="number" id="fp16Share" value="10" step="any" min="0" max="100" oninput="calc()" placeholder="如 10"></div>
     <div id="qrPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
@@ -236,14 +238,24 @@ function calc(){
   const params = +document.getElementById('params').value || 0;
   const fromB = +document.getElementById('fromB').value || 0;
   const toB = +document.getElementById('toB').value || 0;
+  const keep = +document.getElementById('keepFp16').value || 0;
+  const share = Math.min(Math.max(+document.getElementById('fp16Share').value || 0,0),100);
   let html = '';
   const __v0 = (params*1e6*fromB/1e6);
   html += `<p>原大小 MB：<strong style="font-size:18px;color:var(--primary);">${__fin(__v0)?__v0.toFixed(0):'—'}</strong> MB</p>`;
   const __v1 = (params*1e6*toB/1e6);
   html += `<p>新大小 MB：<strong style="font-size:18px;color:var(--primary);">${__fin(__v1)?__v1.toFixed(0):'—'}</strong> MB</p>`;
   const __v2 = (fromB/toB);
-  html += `<p>压缩比：<strong style="font-size:18px;color:var(--primary);">${__fin(__v2)?__v2.toFixed(1):'—'}</strong> ×</p>`;
-  const __bad = [__v0,__v1,__v2].some(v=>typeof v==='number'&&!Number.isFinite(v));
+  html += `<p>压缩比：<strong style="font-size:18px;color:var(--primary);">${__fin(__v2)?__v2.toFixed(1):'—'}</strong> ×（仅权重理论上限）</p>`;
+  const effB = keep ? toB*(1-share/100)+2*(share/100) : toB;
+  const __v3 = params*effB;
+  const __v4 = fromB/effB;
+  if(keep){
+    html += `<p>实际新大小（含 ${share.toFixed(0)}% FP16 保留）：<strong style="font-size:18px;color:var(--primary);">${__fin(__v3)?__v3.toFixed(0):'—'}</strong> MB</p>`;
+    html += `<p>实际压缩比：<strong style="font-size:18px;color:var(--primary);">${__fin(__v4)?__v4.toFixed(1):'—'}</strong> ×</p>`;
+    html += `<p style="font-size:13px;color:var(--text-muted);">嵌入/激活仍以 FP16（2 字节）保存时，4× 只是权重理论上限。</p>`;
+  }
+  const __bad = [__v0,__v1,__v2,__v3,__v4].some(v=>typeof v==='number'&&!Number.isFinite(v));
   if (__bad) html += '<p style="color:var(--danger);">⚠ 部分结果无定义（分母为 0 或输入为空），请检查输入。</p>';
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
@@ -267,8 +279,10 @@ function __qrExtras(){
     if(typeof TBKit==='undefined')return;
     try{
         var params=__qrN('params'), fromB=__qrN('fromB'), toB=__qrN('toB');
+        var keep=+((document.getElementById('keepFp16')||{}).value||0), share=+((document.getElementById('fp16Share')||{}).value||0);
         if(!(params>0&&fromB>0&&toB>0))return;
-        var before=params*fromB, after=params*toB, saved=before-after, ratio=fromB/toB;
+        var effB=keep?(toB*(1-share/100)+2*(share/100)):toB;
+        var before=params*fromB, after=params*effB, saved=before-after, ratio=fromB/effB;
         var grown=saved<0, delta=Math.abs(saved);
         // 反向填写（量化字节 > 原字节）时体积增加，不能再把负节省取绝对值后叫「节省」。
         TBKit.chart.pie('#qrChart',{items:[
@@ -276,16 +290,16 @@ function __qrExtras(){
             {label:grown?__qrL('size increase','体积增加'):__qrL('saved','节省'),value:delta}
         ],height:230,title:grown?__qrL('Size: kept vs increased','体积：保留 vs 增加'):__qrL('Size: kept vs saved','体积：保留 vs 节省')});
         var rows=__qrL(
-            [['params (M)',params.toFixed(0)],['from bytes/param',fromB.toFixed(1)],['to bytes/param',toB.toFixed(1)],['before (MB)',before.toFixed(0)],['after (MB)',after.toFixed(0)],['saved (MB)',saved.toFixed(0)],['compression ratio',ratio.toFixed(2)+'×'],['space saved',(saved/before*100).toFixed(1)+'%'],['ratio hint',ratio<1?'<1 means size grows':ratio===1?'=1 means size stays the same':'>1 means size shrinks']],
-            [['参数量 (M)',params.toFixed(0)],['量化前字节/参数',fromB.toFixed(1)],['量化后字节/参数',toB.toFixed(1)],['原体积 (MB)',before.toFixed(0)],['新体积 (MB)',after.toFixed(0)],['节省 (MB)',saved.toFixed(0)],['压缩比',ratio.toFixed(2)+'×'],['空间节省率',(saved/before*100).toFixed(1)+'%'],['压缩比判读',ratio<1?'<1 表示体积变大':ratio===1?'=1 表示体积不变':'>1 表示体积变小']]);
+            [['params (M)',params.toFixed(0)],['from bytes/param',fromB.toFixed(1)],['to bytes/param',toB.toFixed(1)],['keep FP16 share',keep?share.toFixed(0)+'%':'off'],['before (MB)',before.toFixed(0)],['after (MB)',after.toFixed(0)],['saved (MB)',saved.toFixed(0)],['compression ratio',ratio.toFixed(2)+'×'],['space saved',(saved/before*100).toFixed(1)+'%'],['ratio hint',ratio<1?'<1 means size grows':ratio===1?'=1 means size stays the same':'>1 means size shrinks']],
+            [['参数量 (M)',params.toFixed(0)],['量化前字节/参数',fromB.toFixed(1)],['量化后字节/参数',toB.toFixed(1)],['FP16 保留占比',keep?share.toFixed(0)+'%':'关闭'],['原体积 (MB)',before.toFixed(0)],['新体积 (MB)',after.toFixed(0)],['节省 (MB)',saved.toFixed(0)],['压缩比',ratio.toFixed(2)+'×'],['空间节省率',(saved/before*100).toFixed(1)+'%'],['压缩比判读',ratio<1?'<1 表示体积变大':ratio===1?'=1 表示体积不变':'>1 表示体积变小']]);
         if(grown){
-            rows[5]=[__qrL('increase (MB)','体积增加 (MB)'),delta.toFixed(0)];
-            rows[7]=[__qrL('size increase','体积增加率'),(-saved/before*100).toFixed(1)+'%'];
+            rows[6]=[__qrL('increase (MB)','体积增加 (MB)'),delta.toFixed(0)];
+            rows[8]=[__qrL('size increase','体积增加率'),(-saved/before*100).toFixed(1)+'%'];
         }
         TBKit.matrix.table('#qrTable',{head:__qrL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({ratio:Number(ratio.toFixed(2)),params:params,fromB:fromB,toB:toB}, 800);
+        TBKit.history.record({ratio:Number(ratio.toFixed(2)),params:params,fromB:fromB,toB:toB,keep:keep,share:share}, 800);
         TBKit.util.diffBox('#qrDiff',['ratio']);
-        TBKit.history.mount('#qrHist',function(v){ if(v.ratio!=null){document.getElementById('params').value=v.params;document.getElementById('fromB').value=v.fromB;document.getElementById('toB').value=v.toB;} calc(); });
+        TBKit.history.mount('#qrHist',function(v){ if(v.ratio!=null){document.getElementById('params').value=v.params;document.getElementById('fromB').value=v.fromB;document.getElementById('toB').value=v.toB;document.getElementById('keepFp16').value=v.keep||0;document.getElementById('fp16Share').value=v.share==null?10:v.share;} calc(); });
     }catch(e){}
 }
 function __qrPresets(){
