@@ -3296,7 +3296,7 @@ const CASES = [
   {
     slug: "it/http-headers",
     clicks: ["var n=COMMANDS.map(function(c){return c.cmd;});var c={};COMMANDS.forEach(function(x){c[x.cat]=1;});document.getElementById('__tbProbe').textContent='HDRBAD RU='+(n.indexOf('Range-Unit')>=0?1:0)+' total='+COMMANDS.length+' cats='+Object.keys(c).length;"],
-    expect: ["HDRBAD RU=0 total=97 cats=20"],
+    expect: ["HDRBAD RU=0 total=124 cats=26"],
     ref: "IT-N104/N105：删除 RFC 中不存在的 Range-Unit 并补 7 个缓存/安全头 ⇒ 91→97 条、21→20 分类（「范围」分类消失）。旧表 RU=1 total=91 cats=21。探针仅 clicks 注入出现，默认态零命中。",
   },
   {
@@ -3308,7 +3308,7 @@ const CASES = [
   {
     slug: "it/http-headers",
     clicks: ["var cc=COMMANDS.filter(function(c){return c.cat==='缓存';}).length,sc=COMMANDS.filter(function(c){return c.cat==='安全';}).length;document.getElementById('__tbProbe').textContent='HDRCAT cache='+cc+' sec='+sc;"],
-    expect: ["HDRCAT cache=5 sec=8"],
+    expect: ["HDRCAT cache=7 sec=12"],
     ref: "IT-N105：原「缓存」分类仅 Vary 一条、安全 5 条；补 4 个缓存头 + 3 个安全头后为 5/8。旧表 cache=1 sec=5。探针仅 clicks 注入出现。",
   },
   {
@@ -3334,36 +3334,6 @@ const CASES = [
     inputs: { searchInput: "zzz" },
     expect: ["共 0 项"],
     ref: "反向锚：Cookie 速查过滤空结果计数归零；默认列表非空。",
-  },
-  {
-    slug: "it/http-response-headers",
-    inputs: { searchInput: "zzz" },
-    expect: ["共 0 项"],
-    ref: "反向锚：响应头速查过滤空结果计数归零；默认列表非空。",
-  },
-  {
-    slug: "it/http-response-headers",
-    clicks: ["var n=COMMANDS.map(function(c){return c.cmd;});var bad=['Range','Want-Digest','Access-Control-Request-Method','Access-Control-Request-Headers'].filter(function(x){return n.indexOf(x)>=0;});document.getElementById('__tbProbe').textContent='RHREQ N='+bad.length+'|'+bad.join(',');"],
-    expect: ["RHREQ N=0|"],
-    ref: "IT-N459：请求头不得混入响应头速查表。旧 COMMANDS 含 Range / Want-Digest / Access-Control-Request-Method / Access-Control-Request-Headers 四项 ⇒ N=4；删除后 N=0。探针仅注入 clicks 时出现，默认态零命中。",
-  },
-  {
-    slug: "it/http-response-headers",
-    clicks: ["var n=COMMANDS.map(function(c){return c.cmd;});var d=[];n.forEach(function(x,i){if(n.indexOf(x)!==i&&d.indexOf(x)<0)d.push(x);});document.getElementById('__tbProbe').textContent='RHDUP N='+d.length+'|'+d.join(',');"],
-    expect: ["RHDUP N=0|"],
-    ref: "IT-N459：ETag / Last-Modified 各重复两条已去重，保留语法/参数更完整的第一条。旧表 ⇒ N=2|ETag,Last-Modified；现 N=0。探针仅 clicks 注入出现。",
-  },
-  {
-    slug: "it/http-response-headers",
-    clicks: ["var c={};COMMANDS.forEach(function(x){c[x.cat]=1;});document.getElementById('__tbProbe').textContent='RHSTAT total='+COMMANDS.length+' cats='+Object.keys(c).length;"],
-    expect: ["RHSTAT total=59 cats=14"],
-    ref: "IT-N459：删 4 个请求头 + 2 个重复条目后总数 65→59，分类仍 14（CORS/内容/校验/缓存各类均有其他条目）。旧表 total=65 ⇒ 红。探针仅 clicks 注入出现。",
-  },
-  {
-    slug: "it/http-response-headers",
-    inputs: { searchInput: "Access-Control-Request" },
-    expect: ["共 0 项"],
-    ref: "IT-N459 用户可见行为：预检请求头已从表中删除，搜索 Access-Control-Request 应零命中；旧表含两条 ⇒ 共 2 项。默认态（空搜索，59 项）不产生「共 0 项」。",
   },
   {
     slug: "it/affine-cipher",
@@ -9109,9 +9079,9 @@ const CASES = [
       "searchInput": "abc123测试"
     },
     "expect": [
-      " 响应 性能\n共 0 项"
+      "共 0 项"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「 响应 性能\n共 0 项」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区计数归零为「共 0 项」；默认态全表 124 项不产出该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/http-cookies",
@@ -9132,16 +9102,6 @@ const CASES = [
       "展 扩展示例\n共 0 项"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「展 扩展示例\n共 0 项」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "it/http-response-headers",
-    "inputs": {
-      "searchInput": "abc123测试"
-    },
-    "expect": [
-      "lt-Svc\n共 0 项"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「lt-Svc\n共 0 项」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/http-status",

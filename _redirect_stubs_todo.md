@@ -418,3 +418,5 @@
 | https://chenguangwu.github.io/guides/convert-17-guide.html | https://chenguangwu.github.io/tools/edu/convert-1.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后遗留指南 |
 | https://chenguangwu.github.io/guides/area-guide.html | https://chenguangwu.github.io/tools/construction/ac-size-guide.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后遗留指南 |
 | https://chenguangwu.github.io/guides/water-tds-evaluator-guide.html | https://chenguangwu.github.io/tools/energy/assessor-water-quality.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后遗留指南 |
+| https://chenguangwu.github.io/tools/it/http-response-headers.html | https://chenguangwu.github.io/tools/it/http-headers.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后旧页 |
+| https://chenguangwu.github.io/guides/http-response-headers-guide.html | https://chenguangwu.github.io/tools/it/http-headers.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后指南 |
