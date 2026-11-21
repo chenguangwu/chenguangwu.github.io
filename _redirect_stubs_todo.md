@@ -227,3 +227,6 @@
 | https://chenguangwu.github.io/tools/it/calc-3.html | https://chenguangwu.github.io/tools/it/color-converter.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/ai/token.html | https://chenguangwu.github.io/tools/ai/token-usage.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/elderly/medication-schedule.html | https://chenguangwu.github.io/tools/elderly/reminder-time.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/acoustics/spl-add.html | https://chenguangwu.github.io/tools/acoustics/combine-two-spl.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/acoustics/decibel-power.html | https://chenguangwu.github.io/tools/acoustics/decibel-power-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/acoustics/decibel-voltage.html | https://chenguangwu.github.io/tools/acoustics/decibel-voltage-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
