@@ -131,36 +131,6 @@
 
 > 范围：本轮阅读 3 页（`tools/ecommerce/inventory-1.html`、`tools/ecommerce/pingjia-chaping-tuihuo-lv.html`、`tools/logistics2/picking-route.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-### 06-N1 库存页负销量/提前期与 0 提前期照算，负再订货点配正覆盖天数（中，确认）
-- 描述：两项输入无 min 约束，`__tbInputGuard` 只拦空值、非数和分母 v0 恰为 0，负值全部放行；v1=0 也不拦（仅两项全 0 才报错）。负销量得到负再订货点/负安全库存，而“安全库存覆盖天数 = ss/A”因负负相除变正数。
-- 证据：`tools/ecommerce/inventory-1.html:130,132`（输入无 min）、`:660`（守卫）、`:667-672`（计算）
-- 复现：日均销量 -120、提前期 7 → 再订货点 -840.00、安全库存 -252.00、建议补货点 -1092.00，覆盖天数 2.1 天（期望拦截负数）；销量 120、提前期 0 → 四项全 0.00/0.0 天且无提示（期望提示“提前期需大于 0”）（node 复算）。
-- 影响：`tools/ecommerce/inventory-1.html`。误带负号的销量会生成负补货建议，同时“覆盖天数”仍显示正常正数，自相矛盾，可直接复制进补货单。
-- 方案：要求 `日均销量 > 0`、`提前期 > 0`（或至少 `≥ 0` 并显式提示 0 值），负值标红停止计算并跳过历史保存。
-
-### 06-N2 退货率页退货单数可超成交单数，退货率 150%、留存率 -50%（中，确认）
-- 描述：只拦成交单数为 0，未校验 `退货单数 ≤ 成交单数` 与两项非负；退货大于成交时退货率 >100%、成交留存率与未退货单数变负、千单退货量 >1000；负成交/负退货也照算。
-- 证据：`tools/ecommerce/pingjia-chaping-tuihuo-lv.html:130,132`（输入）、`:660`（守卫）、`:667-670`（四项结果）
-- 复现：成交 100、退货 150 → 退货率 150.00%、留存率 -50.00%、未退货 -50.00、千单退货量 1500.00（期望拦截）；成交 -2600、退货 96 → 退货率 -3.69%、留存率 103.69%、未退货 -2696.00、千单 -36.92（node 复算）。
-- 影响：`tools/ecommerce/pingjia-chaping-tuihuo-lv.html`。异常单据可产出“150% 退货率”与负留存，页面仍按正常指标卡展示。
-- 方案：要求 `成交单数 > 0`、`0 ≤ 退货单数 ≤ 成交单数`，越界提示并停止计算。
-
-### 06-N3 退货率页标题/简介承诺“差评率”，实际只有成交/退货两个输入（中，确认名实不符）
-- 描述：`<title>`、meta、`<h1>`/`<h2>`、公式说明、深解与 FAQ 均写“评价（差评/退货）率”“输入评价数与差评数计算差评率/好评率”，但页面实际输入只有“成交单数/退货单数”，输出仅退货率、成交留存率、未退货单数、千单退货量，没有任何差评/好评字段；深解算例“评价 1000、差评 30，差评率 3%”无处录入。
-- 证据：`tools/ecommerce/pingjia-chaping-tuihuo-lv.html:10-11,14`（meta/title）、`:122`（h2）、`:127`（formula-desc）、`:130,132`（实际输入）、`:818-828`（深解与 FAQ 差评率）
-- 复现：全页检索无“评价数/差评数”输入；按简介输入评价 1000、差评 30 → 无处填写，实际只能得到退货率（node/源码检查）。
-- 影响：`tools/ecommerce/pingjia-chaping-tuihuo-lv.html`。用户按标题与简介寻找差评率，工具只算退货率，SEO 摘要与实际功能不一致，信任度受损。
-- 方案：二选一——增加“评价数/差评数”输入并输出差评率、好评率；或把 title/meta/h1/h2/formula-desc/深解/FAQ 全部改为“退货率”，删除差评表述。按 §7 保 URL 不改名。
-
-### 06-N4 拣货路径页负通道间距/负拣货点数绕过校验，出现负距离与“节省 -173.9%”（中，确认）
-- 描述：守卫只校验 `aisles/aisleLen/speed > 0`，未校验 `aisleGap/pickTime/picksPerAisle ≥ 0`；负通道间距使通道间横向距离为负、总距离与总耗时变负；负拣货点数使拣货耗时为负。`savingPct` 分母用 `Math.max(...)`，两个总耗时都为负时“节省率”变负或超过 100%。
-- 证据：`tools/logistics2/picking-route.html:144,154,158`（输入，仅前端 min）、`:258-261`（读取）、`:263`（守卫）、`:276-291`（距离/耗时/节省率）、`:313-315,320-321`（展示）
-- 复现：8 通道、长 20m、间距 -100m、速度 1.2、单点 10s、每通道 3 点 → S 型总距离 -540.0 m、总耗时 -210.0 秒，页面显示“节省 -173.9%”；每通道拣货点数 -3 → 拣货点 -24、总耗时 -89.2 秒、“节省 301.9%”（期望拦截负参数）（node 复算）。
-- 影响：`tools/logistics2/picking-route.html`。负距离/负耗时与负节省率会被当作路径对比结论，仓储排线决策直接失真。
-- 方案：守卫补 `aisleGap ≥ 0`、`pickTime ≥ 0`、`picksPerAisle ≥ 0`；结果侧对距离/耗时取非负校验，`savingPct` 分母 ≤0 时显示“—”。
-
-- 本轮实读 3 页：`tools/ecommerce/inventory-1.html`、`tools/ecommerce/pingjia-chaping-tuihuo-lv.html`、`tools/logistics2/picking-route.html`；新增 4 条（高 0/中 4/低 0）；未覆盖：本轮未读 `tools/ecommerce` 其余页面及 `tools/logistics`、`tools/logistics2`、`tools/shipping`、`tools/express` 其余页面；与批 M 的 stats-flow/calc-78/storage-allocation 三页无重复，06-N1/N2 为两项输入关系校验族、06-N3 为名实不符族，均无重号。
-
 ## 2026-11-04 续查（并行批 O）
 
 > 范围：本轮阅读 3 页（`tools/ecommerce/conversion-4.html`、`tools/ecommerce/analysis-conversion-funnel.html`、`tools/ecommerce/calc-79.html`）。仅源码 + `node -e` 内存复算，未开浏览器/未做 EN/移动端/门禁验证。
