@@ -496,6 +496,12 @@ const CASES = [
   "expect": ["ASSTEP OK"],
   "ref": "分步指引直接切眼时只改 S.eye 不重绘，眼别与画面/读数会不一致；goStep 内补 render+updateReadout，选择器 change 只保留一次重绘。"
 },
+{
+  "slug": "ophthalmology/vision-screening-21",
+  "clicks": ["document.getElementById('vsStart').fire('click');document.getElementById('vsNext').fire('click');var q=document.getElementById('vsQnum').textContent,t=document.getElementById('vsToast');var ok=q.indexOf('1 /')>=0&&!!t&&t.textContent.indexOf('请先')>=0;document.getElementById('__tbProbe').textContent='VSUNANS '+(ok?'OK':'BAD');"],
+  "expect": ["VSUNANS OK"],
+  "ref": "问卷频率选择增加空占位；未为左右眼各选频率时 next() 拦下并提示，不再默认‘从不’一路推进生成全阴性结论。"
+},
 
 ];
 async function main() {
