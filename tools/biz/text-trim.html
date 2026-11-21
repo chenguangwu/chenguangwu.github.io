@@ -158,6 +158,7 @@
       <label><input type="checkbox" id="collapseSpaces"> 合并多个空格为单个</label>
       <label><input type="checkbox" id="trimTabs"> 去除所有 Tab</label>
       <label><input type="checkbox" id="trimAllSpaces"> 去除所有空格</label>
+      <label><input type="checkbox" id="includeFullWidth"> 全角/不间断空格也按空白处理</label>
     </div>
     <div class="toolbar">
       <div id="text_trimPresets"></div>
@@ -270,26 +271,29 @@ function trim() {
   var collapseSpaces = document.getElementById('collapseSpaces').checked;
   var trimTabs = document.getElementById('trimTabs').checked;
   var trimAllSpaces = document.getElementById('trimAllSpaces').checked;
+  var includeFullWidth = document.getElementById('includeFullWidth').checked;
+  function isBlank(l){ return l.trim() === ''; }
+  function trimOne(l){ return includeFullWidth ? l.trim() : l.replace(/^[ \t]+|[ \t]+$/g, ''); }
 
   var result = input;
 
   if (trimTabs) result = result.replace(/\t/g, '');
-  if (trimAllSpaces) result = result.replace(/[ \t]/g, '');
-  if (collapseSpaces) result = result.replace(/[ ]+/g, ' ');
+  if (trimAllSpaces) result = result.replace(includeFullWidth ? /[ \t\u3000\u00a0]/g : /[ \t]/g, '');
+  if (collapseSpaces) result = result.replace(includeFullWidth ? /[ \t\u3000\u00a0]+/g : /[ \t]+/g, ' ');
   if (trimLine || removeEmptyLines || removeDupEmpty) {
     var lines = result.split('\n');
-    if (trimLine) lines = lines.map(function(l) { return l.trim(); });
+    if (trimLine) lines = lines.map(trimOne);
     if (removeDupEmpty) {
       var newLines = [];
       var prevEmpty = false;
       for (var i = 0; i < lines.length; i++) {
-        var isEmpty = lines[i] === '';
+        var isEmpty = isBlank(lines[i]);
         if (!isEmpty || !prevEmpty) newLines.push(lines[i]);
         prevEmpty = isEmpty;
       }
       lines = newLines;
     }
-    if (removeEmptyLines) lines = lines.filter(function(l) { return l !== ''; });
+    if (removeEmptyLines) lines = lines.filter(function(l) { return !isBlank(l); });
     result = lines.join('\n');
   }
   if (trimStart) result = result.replace(/^\s+/, '');

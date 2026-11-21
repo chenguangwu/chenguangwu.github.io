@@ -337,17 +337,29 @@ const PINYIN_DICT = {
   '科':'ke','技':'ji','研':'yan','究':'jiu','发':'fa','明':'ming','创':'chuang','造':'zao'
 };
 
+const PINYIN_PHRASES = {
+  '重庆':'chong qing','银行':'yin hang','音乐':'yin yue','长沙':'chang sha','厦门':'xia men',
+  '重要':'zhong yao','重新':'chong xin','重量':'zhong liang','行长':'hang zhang','行业':'hang ye',
+  '长大':'zhang da','长城':'chang cheng','长江':'chang jiang','成长':'cheng zhang','还有':'hai you',
+  '还款':'huan kuan','归还':'gui huan','方便':'fang bian','便宜':'pian yi','处理':'chu li','地方':'di fang'
+};
+const PINYIN_PHRASE_KEYS = Object.keys(PINYIN_PHRASES).sort(function(a,b){return b.length-a.length;});
+
 function chineseToPinyin(text){
   let out = '';
   let i = 0;
   while(i < text.length){
-    // 尝试 2 字组合
-    const two = text.substr(i, 2);
-    if(PINYIN_DICT[two]){
-      out += PINYIN_DICT[two] + ' ';
-      i += 2;
-      continue;
+    // 先按最长词组匹配，处理「银行/重庆/音乐」等多音字；再退回单字表。
+    let matched = false;
+    for(const key of PINYIN_PHRASE_KEYS){
+      if(text.startsWith(key, i)){
+        out += PINYIN_PHRASES[key] + ' ';
+        i += key.length;
+        matched = true;
+        break;
+      }
     }
+    if(matched) continue;
     const one = text[i];
     const py = PINYIN_DICT[one] || PINYIN_EXT_MAP[one];
     if(py){
@@ -355,7 +367,7 @@ function chineseToPinyin(text){
       i += 1;
       continue;
     }
-    out += one;
+    out += 'u' + one.codePointAt(0).toString(16) + ' ';
     i += 1;
   }
   return out;

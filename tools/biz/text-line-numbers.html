@@ -280,10 +280,13 @@
 </div>
 
 <script>
-function padNum(num, width) {
-  var s = String(num);
-  while (s.length < width) s = '0' + s;
-  return s;
+function formatNum(num, width, padWidth, rightAlign) {
+  var neg = num < 0;
+  var digits = String(Math.abs(num));
+  while (digits.length < padWidth) digits = '0' + digits;
+  var n = (neg ? '-' : '') + digits;
+  if (rightAlign && n.length < width) n = ' '.repeat(width - n.length) + n;
+  return n;
 }
 
 function apply() {
@@ -296,22 +299,26 @@ function apply() {
   var separator = document.getElementById('separator').checked;
   var rightAlign = document.getElementById('rightAlign').checked;
 
+  if (!input.trim()) {
+    document.getElementById('result').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"(No content)":"（无内容）");
+    return;
+  }
   var lines = input.split('\n');
   var num = start;
   var result = [];
 
-  var numLines = lines.filter(function(l) { return !(skipEmpty && l === ''); }).length;
+  var numLines = lines.filter(function(l) { return !(skipEmpty && l.trim() === ''); }).length;
   var maxNum = start + (numLines - 1) * step;
   var autoWidth = String(maxNum).length;
-  var width = padWidth > 0 ? padWidth : autoWidth;
+  var width = Math.max(padWidth, autoWidth);
 
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
-    if (skipEmpty && line === '') {
+    if (skipEmpty && line.trim() === '') {
       result.push('');
       continue;
     }
-    var n = padNum(num, width);
+    var n = formatNum(num, width, padWidth, rightAlign);
     var prefix = '';
     switch (format) {
       case 'dot': prefix = n + '.'; break;
