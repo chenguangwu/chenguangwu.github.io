@@ -191,15 +191,15 @@
 <script>
 function calc(){
 var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
-var rows=[];
+var rows=[];var skipped=0;
 for(var i=0;i<lines.length;i++){
-  var p=lines[i].split(/[,，\t ]+/);
-  if(p.length<3) continue;
-  var nm=p[0],cur=parseFloat(p[1]),pre=parseFloat(p[2]);
-  if(isNaN(cur)||isNaN(pre)||pre===0) continue;
+  var p=lines[i].split(/[,，\t]+/);
+  if(p.length<3){skipped++;continue;}
+  var nm=p.slice(0,p.length-2).join(',').trim(),cur=parseFloat(p[p.length-2]),pre=parseFloat(p[p.length-1]);
+  if(!nm||!isFinite(cur)||!isFinite(pre)||pre===0){skipped++;continue;}
   rows.push({n:nm,c:cur,p:pre});
 }
-if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「指标,本期,上期」数据</p>";return;}
+if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「指标,本期,上期」数据（上期不能为 0）</p>";return;}
 var tb="",sum=0;
 rows.forEach(function(r){
   var g=(r.c-r.p)/r.p*100; sum+=g;
@@ -210,16 +210,27 @@ var avg=sum/rows.length;
 var up=rows.filter(function(r){return r.c>r.p;}).length;
 var dn=rows.filter(function(r){return r.c<r.p;}).length;
 var best=rows.slice().sort(function(a,b){return (b.c-b.p)/b.p-(a.c-a.p)/a.p;})[0];
+var worst=rows.slice().sort(function(a,b){return (a.c-a.p)/a.p-(b.c-b.p)/b.p;})[0];
+var bestLabel=best.c>=best.p?"增幅最大指标":"降幅最大指标";
+if(best.c<best.p){best=worst;}
 var judge=avg>=5?"整体上行":(avg<=-5?"整体下行":"基本平稳");
-var h="<p>指标数：<strong>"+rows.length+"</strong></p>";
+var h=(skipped?"<p style='color:var(--danger)'>"+skipped+" 行格式有误或上期为 0，已跳过。</p>":"")+"<p>指标数：<strong>"+rows.length+"</strong></p>";
 h+="<p>环比上升项：<strong>"+up+"</strong></p>";
 h+="<p>环比下降项：<strong>"+dn+"</strong></p>";
 h+="<p>平均环比：<strong>"+(avg>0?"+":"")+avg.toFixed(2)+"%</strong></p>";
-h+="<p>增幅最大指标：<strong>"+best.n+"</strong></p>";
+h+="<p>"+bestLabel+"：<strong>"+best.n+"</strong></p>";
 h+="<p>看板结论：<strong>"+judge+"</strong></p>";
 h+="<table><thead><tr><th>指标</th><th>本期</th><th>上期</th><th>环比</th><th>趋势</th></tr></thead><tbody>"+tb+"</tbody></table>";
 h+="<p style='font-size:12px;color:var(--text-muted);margin-top:8px;'>环比 = (本期 − 上期) ÷ 上期 × 100%；退货率等逆向指标下降为正向变化，请结合业务口径判读。</p>";
 const __g2=h;document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  var ch=document.getElementById('reportChart');
+  if(ch){
+    var maxAbs=Math.max.apply(null,rows.map(function(r){return Math.abs((r.c-r.p)/r.p*100);}).concat([1]));
+    ch.innerHTML='<div style="padding:12px;">'+rows.map(function(r){
+      var g=(r.c-r.p)/r.p*100, w=Math.min(100,Math.abs(g)/maxAbs*100);
+      return '<div style="margin:8px 0;"><div style="font-size:12px;display:flex;justify-content:space-between;"><span>'+ToolBox.escHtml(r.n)+'</span><span>'+(g>=0?'+':'')+g.toFixed(2)+'%</span></div><div style="height:10px;background:var(--border);border-radius:6px;overflow:hidden;"><div style="height:100%;width:'+w+'%;background:'+(g>=0?'var(--success,#10B981)':'var(--danger,#dc2626')+';"></div></div></div>';
+    }).join('')+'</div>';
+  }
 }
 function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
@@ -406,7 +417,16 @@ function __reportExport(){
     try { TBKit.util.exportTable(__biz,'report.csv'); } catch(e){}
 }
 function __reportPresets(){
-    if (typeof TBKit === 'undefined') return;
+  var el=document.getElementById('reportPresets');
+  if(!el) return;
+  var presets=[
+    ['电商月度','GMV,320000,300000\n订单数,4200,4000\n客单价,76.19,75.00\n退款率,3.2,2.8'],
+    ['广告投放','CTR,3.5,3.1\nCVR,2.0,2.2\n获客成本,28,25\nROI,4.2,4.5'],
+    ['直播间','观看人次,8200,7600\n成交人次,164,150\nGPM,4000,3800']
+  ];
+  el.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;">'+presets.map(function(p){
+    return '<button class="btn" type="button" onclick="document.getElementById(\'data\').value=\''+p[1].replace(/\n/g,'\\n')+'\';calc();">'+p[0]+'</button>';
+  }).join('')+'</div>';
 }
 var __report_f0=(typeof calc==='function')?calc:null;
 if(__report_f0){
