@@ -64,24 +64,6 @@
 
 - 覆盖小结：本轮实读 8 页（adfgvx-cipher、affine-cipher、atbash-cipher、bacon-cipher、hill-cipher、playfair-cipher、rail-fence-cipher、vigenere-visualizer），新增 24 条（高 3 / 中 14 / 低 7），编号 IT-N143~IT-N166。未覆盖：本分区其余约 257 页（含全部编码/哈希/格式化/HTTP/Git/Docker 生成器与速查表）；未做浏览器、英文态、繁体、移动端、门禁与线上部署验证。
 
-### 承诺 vs 实际（R 批专项·8 页）
-- `tools/it/qrcode.html:299`："最高版本 40 约存 2953 字节（数字模式）"——2953 是**字节模式**容量（数字模式为 7089 位），与同页 `:559` 的正确表注自相矛盾。
-- `tools/it/qrcode.html:11`、`:80-81`、`:169`、`:629`：宣称"识别/解析上传图片"，实际只有生成（N259）；`:629` 还多打了一个句号"。。"。
-- `tools/it/regex.html:345`、`:374`：建议用"原子组/独占量词"规避灾难性回溯——JS RegExp 两者都不支持（该建议只对 PCRE 有效），而本页正是 JS 正则测试器；且页面自述"应设超时保护"却未实现（N252）；`:654` 分享链接（N253）、`:599` 替换强制全局（N254）。
-- `tools/it/xml-to-yaml.html:415-417` + `:404-405`：`indent` 选"2 空格"时首层实际 4 空格、二层 6 空格（root 传 `pad+'  '` 而 `pad` 已是 2 空格），与缩进控件承诺不符；`:209` 把 `@`/`#text` 当推荐约定（N266）；`:151` 的 FAQ 说"同名重复元素转成数组"，但单次出现时仍输出标量（`:288`、`:291-293`），形状随样本数变化。
-- `tools/it/binary-to-text.html:203`：FAQ 关于空格/尾组的说明与实现相反（N248）；`:386` 导出的是从未填充的 `#binary_to_textTable`（N246）。
-- `tools/it/hex-encode.html:284`：勾选前缀只在整串首加一个 `0x`（`0x4869`），与"每字节 0x"的常见约定不同（N261）；`:421-423` 只包 `enc`，解码不进历史（N263）。
-- `tools/it/device-info.html:608-613`："复制全部信息"粘连无分隔（N257）；`:333-335` iPadOS 13+ 桌面模式 UA 只含 `Macintosh`/`Mac OS X` → 会判成 "macOS + 桌面设备"（待验证，本机无 iPad）；`:339-348` `isTouch` 取 `'ontouchstart' in window || maxTouchPoints>0`，两者可矛盾（显示"支持 (0 点)"，待验证）。
-- `tools/it/regex.html` 历史只在点"常用正则"卡片时记录（`:814-816` 包装的 `applyPreset`，而 `:760` 的历史回放调 `applyPreset()` 无参 → 抛 TypeError 被吞），直接输入正则不记录；TBKit 预设条点击走 `preset.bar(n,list)` 的空参 `after`（`:812`、`js/tool-kit.js:1042-1053`）→ `applyPreset(undefined)` 抛 TypeError 被 try/catch 吞掉，toast 与历史都不生效（结果因 `setValue` 派发 `input` 事件仍会刷新）。
-- 通用：本批 8 页的"导出明细 CSV"里，`binary-to-text`、`hex-encode` 两页导的是恒空的历史表（N246/N262）；`qrcode`、`device-info`、`chinese-name-generator` 的导出只在真正产生记录后才有效，无记录时无任何提示。
-- 通用（隐私口径）：`device-info` 页声称"所有数据仅在浏览器本地显示，不会上传"，源码中确无 `fetch/sendBeacon`（`js/analytics.js`、`js/metrics.js` 亦无网络调用），但模板 `:73` 左右统一注入第三方 `lf1-cdn-tos.bytegoofy.com` push.js（拿到完整 DOM 权限）——"不上传"应限定为"表单数据不上传"，或移除该第三方脚本。
-
-### 覆盖
-- 实读 8 页：`tools/it/binary-to-text.html`、`tools/it/chinese-name-generator.html`、`tools/it/regex.html`、`tools/it/device-info.html`、`tools/it/qrcode.html`、`tools/it/hex-encode.html`、`tools/it/xml-to-yaml.html`、`tools/it/json-schema-generator.html`（另读了 `js/qrcode.js`、`js/common.js`、`js/tool-kit.js` 的相关片段）。
-- 新增 24 条（高 5 / 中 15 / 低 4），编号 IT-N246~IT-N269；本批无重号（上一批止于 IT-N245）。
-- 未覆盖说明：只审计主流程、边界与文档口径，未逐条穷举 8 页全部输入域（binary/hex 只测分隔符、长度、非法 UTF-8/BOM 与 `0x` 前缀；regex 只测 ReDoS 计时、分享链接往返、强制 g 与 1000 条上限，未逐条验证所有 flag 组合与 `u`/`v` 语义；qrcode 只验证编码字节、容量估算与导出参数，未实际扫码；xml 用页面自身函数跑 6 组用例，未覆盖命名空间/CDATA 嵌套；schema 只验证 required/anyOf/描述/ipv4/验证按钮）。姓名池统计已全量（两池各 100 项），但未统计真实重名率（跨批不查重）。
-- 未做验证：未开浏览器、未构建、未跑门禁、未 git 写；结论为源码静态分析 + `node` 内存复算（临时脚本 `/tmp/audit_xml.js`、`/tmp/audit_name.js`，未落仓库）；未验证英文态 `?lang=en-US`、繁体与移动端；`IT-N251`（toast 文案）与 `device-info` 的 iPad/触摸两项标为待验证。
-
 ### 承诺 vs 实际（S 批专项）
 - `tools/it/phone-qr.html:201`、`:197`：承诺"使用标准 tel: URI，主流扫码器均支持/扫码唤起拨号"，实际生成随机噪点图、无数据编码与纠错（N273）；`:158` 承诺剥离全部空白，实际仅在补 `tel:` 时剥离（N274）。
 - `tools/it/protobuf-parser.html:161`、`:204-205`：承诺解析二进制结构与抓包排查 gRPC，实现只有 `.proto` 文本转 JSON（N278）；`:415` 的"校验"只数括号（N277）；`:290-305` 不支持 `map<...>`（N276）；`:12` 的 meta 口径（.proto→JSON）与正文自相矛盾。
