@@ -865,7 +865,13 @@ const CASES = [
     "clicks": ["document.querySelector('input[name=design][value=short]').checked=true;calc();"],
     "expect": ["短通道（11mm）", "建议改用 长通道（17mm）"],
     "ref": "选择与计算一致性：用户选短通道、ADD=3.00 时，旧实现偷偷用 17mm 计算而单选仍显示短通道；修复后按 11mm 实际计算，并仅提示建议改 17mm 长通道。"
-  },
+  },{
+  "slug": "optical/coating-design",
+  "inputs": { "wavelength": "550", "lensN": "1.60", "arMat": "1.46" },
+  "expect": ["SiO₂单层使反射率", "变为"],
+  "ref": "材料文案：选择 SiO₂ 时旧实现固定输出「MgF₂单层可使…降至」，与所选材料不符；修复后按折射率映射材料名，并把可能升高的反射率写成「变为」而非「降至」。"
+},
+
 ];
 
 async function main() {
