@@ -179,7 +179,7 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="强度解读">Strength reading</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="绝对值低于三成视为弱相关，七成以上视为强相关">below about 0.3 is weak and above about 0.7 is strong</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="绝对值低于 0.3 为极弱、0.3–0.5 弱、0.5–0.8 中、0.8 以上强">below 0.3 very weak, 0.3–0.5 weak, 0.5–0.8 moderate, above 0.8 strong</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Statistical practice">Statistical practice</td>
         </tr>
         <tr>
@@ -204,9 +204,11 @@
 <script>
 function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
 function calc(){
-  const xs=document.getElementById("px").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));
-  const ys=document.getElementById("py").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));
-  const n=Math.min(xs.length,ys.length);
+  const norm=s=>s.replace(/，/g,',').split(/[,\n\s]+/).map(x=>parseFloat(x.trim())).filter(v=>!isNaN(v));
+  const xs=norm(document.getElementById("px").value);
+  const ys=norm(document.getElementById("py").value);
+  if(xs.length!==ys.length){document.getElementById("res").innerHTML='<p>两组数据数量不一致：掌长 '+xs.length+' 个、身高 '+ys.length+' 个，请补齐或删减后再算</p>';return;}
+  const n=xs.length;
   if(n<2){document.getElementById("res").innerHTML='<p>请至少输入 2 组一一对应的掌长与身高</p>';return;}
   const X=xs.slice(0,n),Y=ys.slice(0,n);
   const mx=X.reduce((a,b)=>a+b,0)/n,my=Y.reduce((a,b)=>a+b,0)/n;
@@ -216,7 +218,7 @@ function calc(){
   const r=sxy/Math.sqrt(sxx*syy),r2=r*r;
   const b=sxy/sxx,a=my-b*mx;
   const ar=Math.abs(r);
-  const lv=ar>=0.7?'强线性相关':(ar>=0.4?'中等线性相关':(ar>=0.2?'弱线性相关':'几乎无线性相关'));
+  const lv=ar>=0.8?'强线性相关':(ar>=0.5?'中等线性相关':(ar>=0.3?'弱线性相关':'几乎无线性相关'));
   const __g3=`<p>有效样本数：<strong>${n}</strong> 组</p>`+
     `<p>掌长均值：<strong>${fmt(mx)}</strong> cm　·　身高均值：<strong>${fmt(my)}</strong> cm</p>`+
     `<p>皮尔逊相关系数 r：<strong style="color:var(--primary);">${r.toFixed(4)}</strong></p>`+

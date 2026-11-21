@@ -979,6 +979,15 @@
     var key = getNoteKey(noteIdx, octave);
     var note = activeNotes[key];
     if (!note) return;
+    if (isRecording) {
+      var offNow = Date.now() - recordingStartTime;
+      for (var ri = recordedNotes.length - 1; ri >= 0; ri--) {
+        if (recordedNotes[ri].noteKey === key && recordedNotes[ri].duration == null) {
+          recordedNotes[ri].duration = Math.max(0, offNow - recordedNotes[ri].time);
+          break;
+        }
+      }
+    }
 
     var ctx = ensureAudioCtx();
     var timbre = TIMBRES[currentTimbre];
@@ -1347,7 +1356,7 @@
 
       var offT = setTimeout(function() {
         noteOff(note.noteIdx, note.octave);
-      }, note.time + Math.min(noteDurations[i], 800));
+      }, note.time + (note.duration != null ? note.duration : Math.min(noteDurations[i], 800)));
 
       playTimeouts.push(onT, offT);
     });

@@ -678,8 +678,11 @@
   let schedulerTimer = null;
   let currentCellIndex = -1;
   let countdownTimer = null;
+  let pendingTimers = [];
 
   // ========== Audio Context ==========
+  function later(fn,ms){const id=setTimeout(()=>{pendingTimers=pendingTimers.filter(x=>x!==id);if(fn)fn();},ms);pendingTimers.push(id);}
+  function killAudio(){pendingTimers.forEach(clearTimeout);pendingTimers=[];try{if(audioCtx)audioCtx.close();}catch(e){}audioCtx=null;}
   function getAudioCtx() {
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -933,7 +936,7 @@
       // Visual highlight scheduling
       const cellIdx = i;
       const delay = (noteTime - now) * 1000;
-      setTimeout(() => {
+      later(() => {
         if (!isPlaying) return;
         highlightCell(cellIdx);
         // Update beat indicator
@@ -943,7 +946,7 @@
     }
 
     // Enable recording after count-in
-    setTimeout(() => {
+    later(() => {
       if (!isPlaying) return;
       isRecording = true;
       document.getElementById('tapBtn').disabled = false;
@@ -952,7 +955,7 @@
 
     // Schedule end
     const totalDuration = countInDuration + totalCells * cellDuration;
-    setTimeout(() => {
+    later(() => {
       if (!isPlaying) return;
       endTraining();
     }, totalDuration * 1000 + 200);
@@ -960,6 +963,7 @@
 
   function stopTraining() {
     isPlaying = false;
+    killAudio();
     isRecording = false;
     clearInterval(countdownTimer);
     if (currentCellIndex >= 0) {
@@ -975,6 +979,7 @@
 
   function endTraining() {
     isPlaying = false;
+    killAudio();
     isRecording = false;
     clearInterval(countdownTimer);
     clearBeatIndicator();

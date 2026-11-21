@@ -87,7 +87,7 @@ window.INDUSTRY_INFO = {
   'hematology'           : { name: '血液科', icon: '🩸', hot: 199073 },
   'metallurgy'           : { name: '冶金材料', icon: '🔩', hot: 196564 },
   'hvac'                 : { name: '暖通空调', icon: '❄️', hot: 195577 },
-  'music'                : { name: '音乐艺术', icon: '🎵', hot: 194950 },
+  'music'                : { name: '音乐艺术', icon: '🎵', hot: 194949 },
   'hr'                   : { name: '人力资源', icon: '👥', hot: 190675 },
   'clinical-lab'         : { name: '临床检验', icon: '🔬', hot: 186486 },
   'nephrology'           : { name: '肾脏内科', icon: '🩺', hot: 184386 },

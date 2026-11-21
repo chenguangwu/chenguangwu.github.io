@@ -249,9 +249,10 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-let target,tries,history;
+let target,tries,history,best;
 
 function start(){
+  loadBest();
   target=Math.floor(Math.random()*100)+1;
   tries=0;
   history=[];
@@ -270,10 +271,12 @@ function submitGuess(){
     return;
   }
   tries++;
+  window.__ngLastGuess=v; window.__ngTries=tries;
   history.push(v);
   let hint='';
   if(v===target){
-    hint=`<p class="hint win">🎉 猜对了！数字是 ${target}，共尝试 ${tries} 次</p>`;
+    if(!best||tries<best){best=tries;try{localStorage.setItem('toolbox_number_guess_best',String(best));}catch(e){}}
+    hint=`<p class="hint win">🎉 猜对了！数字是 ${target}，共尝试 ${tries} 次；最佳 ${best} 次</p>`;
   }else if(v<target){
     hint=`<p class="hint low">📈 太小了，请猜大一点</p>`;
   }else{
@@ -394,10 +397,13 @@ function __number_guessExtras(){
     if (__number_guess_skip) return;
     var snap=__number_guessSnap();
     var keys=Object.keys(snap);
-    if(!keys.length) return;
-    if(keys.length>12) keys=keys.slice(0,12);
     var res=__number_guessResText();
     if(!res) return;
+    if(!keys.length){
+        snap={'最近猜测':String(window.__ngLastGuess==null?'':window.__ngLastGuess),'累计次数':String(window.__ngTries||0)};
+        keys=['最近猜测','累计次数'];
+    }
+    if(keys.length>12) keys=keys.slice(0,12);
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();

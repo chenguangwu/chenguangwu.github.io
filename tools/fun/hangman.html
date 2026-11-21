@@ -258,6 +258,10 @@ const words=[
 ];
 const stages=['','O','O|','O/|','O/|\\','O/|\\<','O/|\\<\\'];
 let target,hint,guessed,wrong,maxWrong,over;
+let wins=0,losses=0,bestWrong=null;
+try{wins=parseInt(localStorage.getItem('toolbox_hangman_wins')||'0',10)||0;losses=parseInt(localStorage.getItem('toolbox_hangman_losses')||'0',10)||0;bestWrong=parseInt(localStorage.getItem('toolbox_hangman_best')||'',10);if(isNaN(bestWrong))bestWrong=null;}catch(e){}
+function recordResult(win,wrongCount){if(win){wins++;if(bestWrong===null||wrongCount<bestWrong)bestWrong=wrongCount;}else{losses++;}try{localStorage.setItem('toolbox_hangman_wins',String(wins));localStorage.setItem('toolbox_hangman_losses',String(losses));if(bestWrong!==null)localStorage.setItem('toolbox_hangman_best',String(bestWrong));}catch(e){}}
+function statsText(){var total=wins+losses;var rate=total?Math.round(wins*100/total):0;return '战绩：'+wins+' 胜 / '+losses+' 负（胜率 '+rate+'%）'+(bestWrong===null?'':' · 最少错误 '+bestWrong+' 次');}
 
 function start(){reset();newRound();}
 function reset(){
@@ -304,10 +308,12 @@ function guess(l){
   render();
   if(target.split('').every(c=>guessed.has(c))){
     over=true;
-    const __h2=`<p>🎉 恭喜！单词是 <strong>${target.toUpperCase()}</strong></p><p>错误次数：${wrong}</p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
+    recordResult(true,wrong);
+    const __h2=`<p>🎉 恭喜！单词是 <strong>${target.toUpperCase()}</strong></p><p>错误次数：${wrong}</p><p>${statsText()}</p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
   }else if(wrong>=maxWrong){
     over=true;
-    const __h3=`<p>💀 失败！正确单词是 <strong>${target.toUpperCase()}</strong></p>`;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h3;
+    recordResult(false,wrong);
+    const __h3=`<p>💀 失败！正确单词是 <strong>${target.toUpperCase()}</strong></p><p>${statsText()}</p>`;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h3;
   }else{
     document.getElementById('output').textContent=`剩余机会：${maxWrong-wrong}`;
   }

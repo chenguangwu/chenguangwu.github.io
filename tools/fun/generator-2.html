@@ -106,11 +106,11 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="数独生成器 / 求解器在线工具">Generate Sudoku puzzles at several difficulties complete with reference solutions, or paste an existing puzzle to solve it — for practice and leisure.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">数独为 9×9 网格分 9 个 3×3 宫，约束为每行、每列、每宫均含 1 至 9 且不重复；生成时先按回溯法填满合法终盘（每格依次试 1 至 9 并校验约束），再按难度挖空（简单保留约 36 至 45 个已知数、困难约 26 至 30 个）并验证唯一解；求解用回溯加候选数剪枝。</div>
+      <div class="formula-eq">数独为 9×9 网格分 9 个 3×3 宫，约束为每行、每列、每宫均含 1 至 9 且不重复；生成时先按回溯法填满合法终盘（每格依次试 1 至 9 并校验约束），再按所选难度挖空并保留合法终盘作为参考答案；本页不校验挖空后是否唯一解。求解用回溯加候选数剪枝。</div>
   
 </div>
 
-<div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
+<div class="input-row"><div><label>难度</label><select id="diff" onchange="gen()"><option value="36">简单（保留约 45 个已知数）</option><option value="44" selected>中等（约 37 个已知数）</option><option value="52">困难（约 29 个已知数）</option></select></div><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
 <div class="toolbar"><div id="generator_2Presets"></div>
       <button type="button" class="btn primary" onclick="gen()">生成</button>
       <button class="btn" type="button" onclick="__generator_2Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
@@ -147,8 +147,8 @@
 <li>求解辅助：粘贴卡住的题目，工具回溯求解给出完整盘。</li>
 <li>教学演示：理解约束满足与回溯算法。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法（生成与求解）</div><div class="dd-ex-body">9×9 盘面，生成时按难度挖空并保证唯一解；求解用回溯法逐格试数满足行/列/宫不重复。粘贴题目亦可反向求解。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">难度对应挖空数：简单≈40 格、中等≈50、困难≈55+（共 81 格）。合法完整数独盘面约 6.67×10²¹ 种；生成器保证每题唯一解，避免多解争议。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法（生成与求解）</div><div class="dd-ex-body">9×9 盘面，生成时按难度挖空，附该终盘的参考答案（不保证唯一解）；求解用回溯法逐格试数满足行/列/宫不重复。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">难度对应挖空数：简单 36 格、中等 44、困难 52（共 81 格）。合法完整数独盘面约 6.67×10²¹ 种；生成器保留随机合法终盘作参考答案，不校验挖空后是否唯一解。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>生成的题一定唯一解吗？</dt><dd>是。生成流程会校验唯一解，确保有且仅有一个合法填法。</dd>
@@ -176,7 +176,7 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="线索下限">Minimum clues</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="唯一解题目至少需要十七个已知数，少于该数必有多解">a unique puzzle needs at least seventeen clues</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="唯一解题目至少需要十七个已知数（本页不校验唯一性）">a unique puzzle needs at least seventeen clues</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="McGuire et al. 2012">McGuire et al. 2012</td>
         </tr>
         <tr>
@@ -213,7 +213,7 @@ function isValid(b, r, c, n) {
   for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) if (b[br + i][bc + j] === n) return false;
   return true;
 }
-function genSudoku() {
+function genSudoku(holeCount) {
   // 2026-11-14：旧实现先随机填满第一行再调 solve() 回溯，某些首行排列会让回溯搜索爆炸
   // （实测门禁 fun calc correctness 卡死 15 分钟以上，浏览器里同样会冻住）。
   // 改为「标准基座 + 行/列/数字三重置换」直接构造合法终盘，恒定 O(81)，无随机失败。
@@ -228,7 +228,7 @@ function genSudoku() {
   const puzzle = board.map(r => [...r]);
   // 直接按乱序索引挖空（不用 while+random 重试）：Math.random 被外部固定时也能一次完成，
   // 不会出现「永远挖同一格」的死循环（校验桩曾因随机数未恢复而卡死）。
-  const holes = 40 + Math.floor(Math.random() * 11);
+  const holes = Math.max(0, Math.min(60, holeCount || 44));
   shuffle(Array.from({ length: 81 }, (_, i) => i)).slice(0, holes)
     .forEach(k => { puzzle[Math.floor(k / 9)][k % 9] = 0; });
   return { puzzle, solution: board };
@@ -241,7 +241,7 @@ function gen() {
   const n = Math.max(1, Math.min(Math.floor(+__cntRaw), 50));
   let h = '<p style="margin-bottom:8px;">数独题目与参考答案：</p>';
   for (let i = 1; i <= n; i++) {
-    const { puzzle, solution } = genSudoku();
+    const { puzzle, solution } = genSudoku(parseInt(document.getElementById("diff").value,10));
     h += `<div style="padding:8px 0;border-bottom:1px dashed var(--border-color);">
       <p><strong>#${i} 数独</strong></p>
       <pre style="font-family:monospace;line-height:1.6;background:var(--bg-hover);padding:8px;border-radius:8px;overflow:auto;">题目：\n${fmt(puzzle)}</pre>

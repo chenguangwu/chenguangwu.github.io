@@ -309,7 +309,7 @@
 <li>为视频剪辑或课件提取某句台词、某段音效，按波形精确定位起止点。</li>
 <li>把一首曲子裁成铃声或铃声素材，避免手动再转码。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">精确裁剪与淡变示例</div><div class="dd-ex-body">一段 44100Hz 立体声音频，若要截取 30.000 秒到 35.250 秒，对应采样点区间为 44100×30=1,323,000 到 44100×35.25=1,554,225（每声道）。裁剪边界处建议加 5~10ms 线性淡入淡出，避免起点/终点因波形不连续产生爆音。导出 WAV 为非破坏性截取，原采样精度保留。</div></div>
+<div class="dd-example"><div class="dd-ex-title">精确裁剪与淡变示例</div><div class="dd-ex-body">一段 44100Hz 立体声音频，若要截取 30.000 秒到 35.250 秒，对应采样点区间为 44100×30=1,323,000 到 44100×35.25=1,554,225（每声道）。裁剪边界处建议加 5~10ms 线性淡入淡出，避免起点/终点因波形不连续产生爆音。导出 WAV 为 16-bit PCM；原音频若高于 16 位，位深不会被保留。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>剪切后为什么开头有咔哒一声？</dt><dd>当裁剪点落在波形非零位置，信号被硬切断会形成不连续的跳变产生爆音。在裁剪边界加极短的淡入淡出（几毫秒）即可消除，本工具在波形上拖选后导出即应用该处理。</dd>
@@ -918,8 +918,16 @@ function exportSelection() {
 
   var src = offline.createBufferSource();
   src.buffer = audioBuffer;
-  src.connect(offline.destination);
-  src.start(0, selStart, selEnd - selStart);
+  var fadeGain = offline.createGain();
+  var dur = selEnd - selStart;
+  var fade = Math.min(0.01, dur / 4);
+  fadeGain.gain.setValueAtTime(0, 0);
+  fadeGain.gain.linearRampToValueAtTime(1, fade);
+  fadeGain.gain.setValueAtTime(1, Math.max(fade, dur - fade));
+  fadeGain.gain.linearRampToValueAtTime(0, dur);
+  src.connect(fadeGain);
+  fadeGain.connect(offline.destination);
+  src.start(0, selStart, dur);
 
   offline.startRendering().then(function(rendered) {
     var blob = audioBufferToWav(rendered);

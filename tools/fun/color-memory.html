@@ -247,6 +247,7 @@
 <script>
 const pads=document.querySelectorAll('.pad');
 let seq,userIdx,level,playing,accepting;
+let cmTimers=[],cmAudio=null;
 
 pads.forEach(p=>p.addEventListener('click',()=>userClick(parseInt(p.dataset.c))));
 
@@ -256,6 +257,7 @@ function start(){
   nextRound();
 }
 function reset(){
+  cmTimers.forEach(clearTimeout);cmTimers=[];
   seq=[];
   userIdx=0;
   level=1;
@@ -272,7 +274,7 @@ function nextRound(){
   userIdx=0;
   document.getElementById('status').textContent=`第 ${level} 关：观察序列（${seq.length} 个）`;
   const __h0=`<p>第 ${level} 关，序列长度 ${seq.length}</p>`;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
-  setTimeout(()=>playSeq(0),700);
+  cmDelay(()=>playSeq(0),700);
 }
 function playSeq(i){
   if(i>=seq.length){
@@ -281,11 +283,14 @@ function playSeq(i){
     return;
   }
   flash(seq[i]);
-  setTimeout(()=>playSeq(i+1),600);
+  cmDelay(()=>playSeq(i+1),600);
 }
+function cmDelay(fn,ms){const id=setTimeout(()=>{cmTimers=cmTimers.filter(x=>x!==id);if(fn)fn();},ms);cmTimers.push(id);}
+function cmBeep(c){try{if(!cmAudio)cmAudio=new (window.AudioContext||window.webkitAudioContext)();if(cmAudio.state==='suspended')cmAudio.resume();const t=cmAudio.currentTime,o=cmAudio.createOscillator(),g=cmAudio.createGain();o.frequency.value=[523,587,659,784][c]||523;g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);o.connect(g);g.connect(cmAudio.destination);o.start(t);o.stop(t+0.2);}catch(e){}}
 function flash(c){
   pads[c].classList.add('active');
-  setTimeout(()=>pads[c].classList.remove('active'),300);
+  cmBeep(c);
+  cmDelay(()=>pads[c].classList.remove('active'),300);
 }
 function userClick(c){
   if(!accepting)return;
@@ -296,7 +301,7 @@ function userClick(c){
       accepting=false;
       level++;
       const __h1=`<p style="color:var(--success);">✅ 通关第 ${level-1} 关</p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
-      setTimeout(nextRound,1000);
+      cmDelay(nextRound,1000);
     }
   }else{
     accepting=false;
