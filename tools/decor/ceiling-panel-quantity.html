@@ -264,8 +264,9 @@ function escH(s){var d=document.createElement('div');const __g0=s==null?'':Strin
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){const L=num('L'), W=num('W'), pl=num('pl')/1000, pw=num('pw')/1000, loss=num('loss')/100;
-   if(L<=0||W<=0||pl<=0||pw<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的长、宽与板材规格。</p>');return;}
-   if(!isFinite(loss)||loss<0||loss>0.3){ToolBox.setResult('result','<p class="tip-error">损耗率需在 0–30% 之间。</p>');return;}
+   const en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+   if(L<=0||W<=0||pl<=0||pw<=0){ToolBox.setResult('result','<p class="tip-error">'+(en?'Enter valid room length, width and panel size.':'请输入有效的长、宽与板材规格。')+'</p>');return;}
+   if(!isFinite(loss)||loss<0||loss>0.3){ToolBox.setResult('result','<p class="tip-error">'+(en?'Waste rate must be 0–30%.':'损耗率需在 0–30% 之间。')+'</p>');return;}
    const area=L*W;
    const one=pl*pw;
    const base=Math.ceil(area/one);
@@ -280,26 +281,26 @@ function calcTool(){const L=num('L'), W=num('W'), pl=num('pl')/1000, pw=num('pw'
    const subBeam=Math.ceil(subMeters/3);
    const edgeBar=Math.ceil(edgeMeters/3);
    let html=dataGrid([
-     [area.toFixed(2)+' m²','吊顶面积'],
-     [one.toFixed(4)+' m²','单板面积'],
-     [base+' 块','净用量（无损耗）'],
-     [total+' 块','含损耗购买量'],
-     [extra+' 块','损耗余量'],
-     [mainMeters.toFixed(1)+' m / 约 '+mainBeam+' 根(3m)','主龙骨（1.2m 间距）'],
-     [subMeters.toFixed(1)+' m / 约 '+subBeam+' 根(3m)','副龙骨（0.6m 间距）'],
-     [edgeMeters.toFixed(2)+' m / 约 '+edgeBar+' 根(3m)','边角线']
+     [area.toFixed(2)+' m²',en?'Ceiling area':'吊顶面积'],
+     [one.toFixed(4)+' m²',en?'Panel area':'单板面积'],
+     [base+(en?' pcs':' 块'),en?'Net quantity (no waste)':'净用量（无损耗）'],
+     [total+(en?' pcs':' 块'),en?'Quantity to buy (with waste)':'含损耗购买量'],
+     [extra+(en?' pcs':' 块'),en?'Waste allowance':'损耗余量'],
+     [mainMeters.toFixed(1)+' m / '+(en?'about ':'约 ')+mainBeam+(en?' bars (3m)':' 根(3m)'),en?'Main runners (1.2m spacing)':'主龙骨（1.2m 间距）'],
+     [subMeters.toFixed(1)+' m / '+(en?'about ':'约 ')+subBeam+(en?' bars (3m)':' 根(3m)'),en?'Cross tees (0.6m spacing)':'副龙骨（0.6m 间距）'],
+     [edgeMeters.toFixed(2)+' m / '+(en?'about ':'约 ')+edgeBar+(en?' bars (3m)':' 根(3m)'),en?'Edge trim':'边角线']
    ]);
-   html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">按 '+pl*1000+'×'+pw*1000+'mm 板材、损耗率 '+Math.round(loss*100)+'% 估算。实际请以现场排板与商家计算为准，边角裁切较多时损耗率应上调。</p>';
+   html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">'+(en?'Estimated for '+pl*1000+'×'+pw*1000+'mm panels with '+Math.round(loss*100)+'% waste. Actual layout and supplier calculation may differ; raise the waste rate when many edge cuts are needed.':'按 '+pl*1000+'×'+pw*1000+'mm 板材、损耗率 '+Math.round(loss*100)+'% 估算。实际请以现场排板与商家计算为准，边角裁切较多时损耗率应上调。')+'</p>';
 
    // 常用板材规格参考表
-   html += '<div style="margin-top:12px;font-size:13px;"><b>常用吊顶板材规格参考</b></div>'+
+   html += '<div style="margin-top:12px;font-size:13px;"><b>'+(en?'Common ceiling panel sizes':'常用吊顶板材规格参考')+'</b></div>'+
      '<table class="csv-prev" style="margin-top:6px;border-collapse:collapse;width:100%;font-size:12.5px;">'+
-     '<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">类型</th>'+
-     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">规格</th>'+
-     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">适用场景</th></tr>'+
-     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">铝扣板</td><td style="border:1px solid #d1d5db;padding:5px 8px;">300×300 / 600×600</td><td style="border:1px solid #d1d5db;padding:5px 8px;">厨卫防潮</td></tr>'+
-     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">石膏板</td><td style="border:1px solid #d1d5db;padding:5px 8px;">1200×2400</td><td style="border:1px solid #d1d5db;padding:5px 8px;">客厅卧室造型</td></tr>'+
-     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">PVC 扣板</td><td style="border:1px solid #d1d5db;padding:5px 8px;">200 / 300 宽条</td><td style="border:1px solid #d1d5db;padding:5px 8px;">经济型厨卫</td></tr>'+
+     '<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">'+(en?'Type':'类型')+'</th>'+
+     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">'+(en?'Size':'规格')+'</th>'+
+     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">'+(en?'Best for':'适用场景')+'</th></tr>'+
+     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+(en?'Aluminum panel':'铝扣板')+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">300×300 / 600×600</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+(en?'Kitchen/bath, moisture-proof':'厨卫防潮')+'</td></tr>'+
+     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+(en?'Gypsum board':'石膏板')+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">1200×2400</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+(en?'Living room/bedroom designs':'客厅卧室造型')+'</td></tr>'+
+     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+(en?'PVC panel':'PVC 扣板')+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+(en?'200 / 300 wide strips':'200 / 300 宽条')+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+(en?'Budget kitchen/bath':'经济型厨卫')+'</td></tr>'+
      '</table>';
  
    const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));}

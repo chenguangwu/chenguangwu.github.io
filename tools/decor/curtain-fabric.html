@@ -133,7 +133,7 @@
       </div>
       <div>
         <label>窗帘成品高（m）</label>
-        <input type="number" id="curtainH" value="2.6" min="0.1" step="0.01" oninput="calc()" placeholder="如 2.6">
+        <input type="number" id="curtainH" value="2.5" min="0.1" step="0.01" oninput="calc()" placeholder="如 2.6">
       </div>
       <div>
         <label>褶皱倍数</label>
@@ -292,15 +292,16 @@ function calc(){
   var sideHem = num('sideHem');
   var topBottomHem = num('topBottomHem');
   var patternLoss = num('patternLoss');
+  var en=__curtainIsEn();
 
   if(rodW <= 0 || curtainH <= 0 || fabricW <= 0){
-    document.getElementById('bigResult').innerHTML='<div class="lbl">请输入有效尺寸</div>';
+    document.getElementById('bigResult').innerHTML='<div class="lbl">'+(en?'Enter valid dimensions':'请输入有效尺寸')+'</div>';
     document.getElementById('detail').innerHTML='';
     document.getElementById('tips').innerHTML='';
     return;
   }
   if(!isFinite(fullness)||fullness<1||!isFinite(sideHem)||sideHem<0||!isFinite(topBottomHem)||topBottomHem<0||!isFinite(patternLoss)||patternLoss<0){
-    document.getElementById('bigResult').innerHTML='<div class="lbl">褶皱倍数需 ≥1，缝边与对花损耗需 ≥0</div>';
+    document.getElementById('bigResult').innerHTML='<div class="lbl">'+(en?'Fullness must be ≥1; hem and pattern loss must be ≥0':'褶皱倍数需 ≥1，缝边与对花损耗需 ≥0')+'</div>';
     document.getElementById('detail').innerHTML='';
     document.getElementById('tips').innerHTML='';
     return;
@@ -314,6 +315,12 @@ function calc(){
   panels = Math.max(panels, 1);
   // 每幅用料长（含缝边与对花损耗）
   var panelLen = curtainH + topBottomHem + patternLoss;
+  if(panelLen > fabricW + 1e-9){
+    document.getElementById('bigResult').innerHTML='<div class="lbl">'+(en?'Each panel needs '+panelLen.toFixed(2)+'m but fabric is only '+fabricW+'m wide; choose wider fabric or reduce curtain height':'每幅需 '+panelLen.toFixed(2)+'m，超过幅宽 '+fabricW+'m，请换更宽幅面料或降低帘高')+'</div>';
+    document.getElementById('detail').innerHTML='';
+    document.getElementById('tips').innerHTML='';
+    return;
+  }
   // 总用料
   var totalLen = panels * panelLen;
   // 实际展开宽度
@@ -324,21 +331,38 @@ function calc(){
   var totalArea = totalLen * fabricW;
 
   const __g4='<div class="num">' + totalLen.toFixed(2) + ' m</div>' +
-    '<div class="lbl">需购布料总长（幅宽 ' + fabricW + 'm）</div>';document.getElementById('bigResult').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+    '<div class="lbl">'+(en?'Total fabric length to buy (fabric width '+fabricW+'m)':'需购布料总长（幅宽 ' + fabricW + 'm）')+'</div>';document.getElementById('bigResult').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 
-  const __g5='<p>窗帘杆宽：<strong>' + rodW + ' m</strong>，褶皱倍数 ' + fullness + '</p>' +
+  const __g5=(en?
+    '<p>Rod width: <strong>' + rodW + ' m</strong>, fullness ' + fullness + '</p>' +
+    '<p>Fabric width needed: ' + rodW + ' × ' + fullness + ' = <strong>' + needWidth.toFixed(2) + ' m</strong></p>' +
+    '<p>Panels needed: ' + needWidth.toFixed(2) + ' ÷ ' + effW.toFixed(2) + ' (width ' + fabricW + ' − side hems ' + (2*sideHem).toFixed(2) + ') = <strong>' + panels + ' panels</strong></p>' +
+    '<p>Length per panel: ' + curtainH + ' + ' + topBottomHem + ' (hems) + ' + patternLoss + ' (pattern repeat) = <strong>' + panelLen.toFixed(2) + ' m</strong></p>' +
+    '<p>Total fabric: ' + panels + ' × ' + panelLen.toFixed(2) + ' = <strong>' + totalLen.toFixed(2) + ' m</strong></p>' +
+    '<p>Finished width: ' + actualWidth.toFixed(2) + ' m, actual fullness ' + actualFullness.toFixed(2) + '</p>' +
+    '<p>Fabric area: <strong>' + totalArea.toFixed(2) + ' m²</strong></p>'
+    :
+    '<p>窗帘杆宽：<strong>' + rodW + ' m</strong>，褶皱倍数 ' + fullness + '</p>' +
     '<p>所需布料宽：' + rodW + ' × ' + fullness + ' = <strong>' + needWidth.toFixed(2) + ' m</strong></p>' +
     '<p>所需幅数：' + needWidth.toFixed(2) + ' ÷ ' + effW.toFixed(2) + '（幅宽 ' + fabricW + ' − 两侧缝边 ' + (2*sideHem).toFixed(2) + '）= <strong>' + panels + ' 幅</strong></p>' +
     '<p>每幅用料：' + curtainH + ' + ' + topBottomHem + '（缝边）+ ' + patternLoss + '（对花）= <strong>' + panelLen.toFixed(2) + ' m</strong></p>' +
     '<p>总用料：' + panels + ' × ' + panelLen.toFixed(2) + ' = <strong>' + totalLen.toFixed(2) + ' m</strong></p>' +
     '<p>实际展开宽：' + actualWidth.toFixed(2) + ' m，实际褶皱倍数 ' + actualFullness.toFixed(2) + '</p>' +
-    '<p>用料面积：<strong>' + totalArea.toFixed(2) + ' ㎡</strong></p>';document.getElementById('detail').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+    '<p>用料面积：<strong>' + totalArea.toFixed(2) + ' ㎡</strong></p>');
+  document.getElementById('detail').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 
-  const __g6='<p>💡 <strong>选购建议</strong></p>' +
+  const __g6=(en?
+    '<p>💡 <strong>Buying tips</strong></p>' +
+    '<p>• Buy the same dye lot in one order to avoid color mismatch</p>' +
+    '<p>• Buy extra ' + Math.max(0.2, panelLen*0.1).toFixed(2) + ' m as spare</p>' +
+    '<p>• Sheer curtains look better at 2.5-3× fullness</p>' +
+    '<p>• Patterned fabric needs pattern-repeat allowance</p>'
+    :
+    '<p>💡 <strong>选购建议</strong></p>' +
     '<p>• 同一花色一次购齐，避免色差</p>' +
     '<p>• 建议多买 ' + Math.max(0.2, panelLen*0.1).toFixed(2) + ' m 备用</p>' +
     '<p>• 纱帘褶皱倍数建议 2.5-3 倍更飘逸</p>' +
-    '<p>• 有花纹布料需计算对花损耗</p>' +
+    '<p>• 有花纹布料需计算对花损耗</p>') +
     ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>• Double layer (cloth+mesh) must be calculated separately then summed</p>":"<p>• 双层（布+纱）需分别计算后相加</p>");document.getElementById('tips').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -583,7 +607,7 @@ function __curtain_fabricExport(){
 }
 function __curtain_fabricPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#curtain_fabricPresets',[{label:'默认参数',labelEn:'Default',values:{'rodW':'2.5', 'curtainH':'2.6', 'fullness':'2', 'fabricW':'2.8', 'sideHem':'0.05', 'topBottomHem':'0.3', 'patternLoss':'0'}},{"label":"小规模","labelEn":"Small scale","values":{"rodW":"1.25"}},{"label":"大规模","labelEn":"Large scale","values":{"rodW":"3.75"}},{"label":"极端工况","labelEn":"Extreme case","values":{"rodW":"5"}}],function(){ calc(); });
+    TBKit.preset.bar('#curtain_fabricPresets',[{label:'默认参数',labelEn:'Default',values:{'rodW':'2.5', 'curtainH':'2.5', 'fullness':'2', 'fabricW':'2.8', 'sideHem':'0.05', 'topBottomHem':'0.3', 'patternLoss':'0'}},{"label":"3.6m 横厅","labelEn":"3.6m wide living room","values":{"rodW":"3.6","curtainH":"2.6"}},{"label":"小规模","labelEn":"Small scale","values":{"rodW":"1.25"}},{"label":"大规模","labelEn":"Large scale","values":{"rodW":"3.75"}},{"label":"极端工况","labelEn":"Extreme case","values":{"rodW":"5"}}],function(){ calc(); });
 }
 var __curtain_fabric_f0=(typeof calc==='function')?calc:null;
 if(__curtain_fabric_f0){
