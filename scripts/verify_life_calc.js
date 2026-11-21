@@ -134,6 +134,7 @@ const CASES = [
   {
     slug: "life/date-difference-calculator",
     inputs: { startDate: "2025-12-25", endDate: "2026-01-01" },
+    checkIds: ["includeWeekends", "includeStart"],
     expect: ["从 2025-12-25 到 2026-01-01", "1周0天"],
     ref: "getDaysDiff(12-25 → 01-01) = 7 天（含起始日）⇒ 锚「7 天」「从 2025-12-25 到 2026-01-01」「1周0天」——三者均基于**时间戳差**（两日期同时区同偏移⇒差恒定），跨时区稳定。"
        + "**不锚**「0年1月」（totalMonths 用本地 getFullYear/getMonth，UTC 之后时区把 12-25/01-01 同解析进 12 月⇒变 0年0月，属页面时区 bug，本页受众为 China/UTC 不受影响，留待页面层修复）。"
