@@ -53,7 +53,7 @@ window.INDUSTRY_INFO = {
   'fluid'                : { name: '流体力学', icon: '💧', hot: 392102 },
   'aerospace'            : { name: '航空航天', icon: '🚀', hot: 373680 },
   'banking'              : { name: '银行学', icon: '🏦', hot: 365384 },
-  'encode'               : { name: '编码转换', icon: '🔐', hot: 359426 },
+  'encode'               : { name: '编码转换', icon: '🔐', hot: 359431 },
   'dynamics'             : { name: '动力学', icon: '🌀', hot: 358011 },
   'ai'                   : { name: '人工智能', icon: '🤖', hot: 357008 },
   'astronomy'            : { name: '天文观测', icon: '🔭', hot: 345466 },

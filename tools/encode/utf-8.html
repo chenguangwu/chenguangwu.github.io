@@ -109,6 +109,7 @@
     <h2 data-zh="💾 UTF-8 字节数">💾 UTF-8 Byte Count</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据 ASCII 与多字节字符数量估算 UTF-8 编码字节数。">Estimate the UTF-8 byte size from counts of ASCII and multibyte characters (CJK, emoji) for storage estimation.</p>
     <div class="input-row"><label>ASCII 字符数</label><input type="number" id="ascii" value="100" min="0" step="1" oninput="calc()" placeholder="如 100"></div>
+    <div class="input-row"><label>拉丁/希腊等 2 字节字符数</label><input type="number" id="latin" value="0" min="0" step="1" oninput="calc()" placeholder="如 0"></div>
     <div class="input-row"><label>CJK 等 3 字节字符数</label><input type="number" id="cjk" value="20" min="0" step="1" oninput="calc()" placeholder="如 20"></div>
     <div class="input-row"><label>Emoji 等 4 字节字符数</label><input type="number" id="emoji" value="5" min="0" step="1" oninput="calc()" placeholder="如 5"></div>
     <div class="toolbar">
@@ -253,7 +254,7 @@ function __tbInputGuardCore(_ids,_labels){
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
-  var _REQ=['ascii', 'cjk', 'emoji'];
+  var _REQ=['ascii', 'latin', 'cjk', 'emoji'];
   for(var _i=0;_i<_ids.length;_i++){
     var _e=document.getElementById(_ids[_i]);
     if(!_e) continue;
@@ -304,22 +305,23 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 function calc(){
-    var __ig=__tbInputGuard(['ascii', 'cjk', 'emoji'],["ASCII 字符数", "CJK 等 3 字节字符数", "Emoji 等 4 字节字符数"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+    var __ig=__tbInputGuard(['ascii', 'latin', 'cjk', 'emoji'],["ASCII 字符数", "拉丁/希腊等 2 字节字符数", "CJK 等 3 字节字符数", "Emoji 等 4 字节字符数"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const ascii = +document.getElementById('ascii').value || 0;
+  const latin = +document.getElementById('latin').value || 0;
   const cjk = +document.getElementById('cjk').value || 0;
   const emoji = +document.getElementById('emoji').value || 0;
   var __u8en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
-  var __u8vals=[ascii,cjk,emoji];
+  var __u8vals=[ascii,latin,cjk,emoji];
   if(__u8vals.some(function(v,i){return !isFinite(v)||v<0||!Number.isInteger(v);})){
-    document.getElementById('result').innerHTML=__u8en?'<p style="color:var(--danger)">⚠ Character counts must be non-negative integers.</p>':'<p style="color:var(--danger)">⚠ 三类字符数均须为非负整数。</p>';
+    document.getElementById('result').innerHTML=__u8en?'<p style="color:var(--danger)">⚠ All four character counts must be non-negative integers.</p>':'<p style="color:var(--danger)">⚠ 三类字符数均须为非负整数。</p>';
     return;
   }
   let html = '';
-  const __v0 = (ascii+cjk*3+emoji*4);
+  const __v0 = (ascii+latin*2+cjk*3+emoji*4);
   html += `<p>总字节数：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(0)}</strong> 字节</p>`;
-  const __v1 = ((ascii+cjk*3+emoji*4)/(ascii+cjk+emoji));
+  const __v1 = ((ascii+latin*2+cjk*3+emoji*4)/(ascii+latin+cjk+emoji));
   html += `<p>平均字节/字符：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(2)}</strong> </p>`;
-  const __v2 = (((ascii+cjk*3+emoji*4)/(ascii+cjk+emoji)-1)*100);
+  const __v2 = (((ascii+latin*2+cjk*3+emoji*4)/(ascii+latin+cjk+emoji)-1)*100);
   html += `<p>较 ASCII 膨胀：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(2)}</strong> %</p>`;
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
@@ -448,10 +450,10 @@ function __utf_8Export(){
 }
 function __utf_8Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#utf_8Presets',[{label:'默认参数',labelEn:'Default',values:{'ascii':'100', 'cjk':'20', 'emoji':'5'}},
-  {"label":"中英混排文案","labelEn":"CN-EN mixed copy","values":{"ascii":60,"cjk":80,"emoji":4}},
-  {"label":"表情符号密集文本","labelEn":"Emoji heavy text","values":{"ascii":20,"cjk":10,"emoji":50}},
-  {"label":"纯 ASCII 日志","labelEn":"Pure ASCII log","values":{"ascii":1000,"cjk":0,"emoji":0}}],function(){ calc(); });
+    TBKit.preset.bar('#utf_8Presets',[{label:'默认参数',labelEn:'Default',values:{'ascii':'100', 'latin':'0', 'cjk':'20', 'emoji':'5'}},
+  {"label":"中英混排文案","labelEn":"CN-EN mixed copy","values":{"ascii":60,"latin":0,"cjk":80,"emoji":4}},
+  {"label":"表情符号密集文本","labelEn":"Emoji heavy text","values":{"ascii":20,"latin":0,"cjk":10,"emoji":50}},
+  {"label":"纯 ASCII 日志","labelEn":"Pure ASCII log","values":{"ascii":1000,"latin":0,"cjk":0,"emoji":0}}],function(){ calc(); });
 }
 var __utf_8_f0=(typeof calc==='function')?calc:null;
 if(__utf_8_f0){
