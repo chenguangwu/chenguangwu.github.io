@@ -4194,8 +4194,6 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 _seo_desc_raw = ('%s是一款免费的在线%s工具，输入参数即可实时得出结果；'
                                  '纯前端运行、数据不上传、无需注册，打开浏览器即可使用。'
                                  % (_d_name, ind_name))
-            if len(_seo_desc_raw) < 70:
-                _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。适合工程估算、日常换算与快速复核，结果可一键复制。'
         # 436（2026-11-16）：页面 meta / og / twitter / JSON-LD 的 description 不再保留
         # 生成器隐私尾句。卡片描述早已由 tool_desc_source.clean_zh_candidate 用同一正则
         # 清掉该句（json/tools.json 的 d 字段为 0），但历史构建源在三处主动把它拼回页面，
@@ -4207,8 +4205,6 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             if _no_tail == _seo_desc_raw:
                 break
             _seo_desc_raw = _no_tail
-        if len(_seo_desc_raw) < 70 and '适合工程估算' not in _seo_desc_raw:
-            _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。适合工程估算、日常换算与快速复核，结果可一键复制。'
         app_desc = esc_html_py(_clip_zh_desc(_seo_desc_raw, 150))
         # JSON-LD 字符串安全（2026-09-23）：desc 含反斜杠字面量（转义类工具 \n \b…）或
         # 控制字符时，未转义会导致 WebApplication JSON 非法、整块被 Google 丢弃。
