@@ -255,8 +255,9 @@
     <div id="imRefTbl" style="margin-top:12px;"></div>
       <div class="area-hint" id="area-hint" style="display:none;">
         <span class="ico">◆</span>
-        <span>在图片上按住拖拽即可框选要打码的区域；可反复拖拽调整，松手自动生效。</span>
-        <button type="button" class="btn" style="padding:5px 12px;font-size:12px;margin-left:auto;" onclick="clearSelection()">清除选区</button>
+        <span>在图片上按住拖拽框选区域，松手生效。勾选“累积多选区”后可继续拖拽，一次遮住姓名、电话、地址等多处。</span>
+        <label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;"><input type="checkbox" id="mosaicMulti" checked>累积多选区</label>
+        <button type="button" class="btn" style="padding:5px 12px;font-size:12px;margin-left:auto;" onclick="clearSelection()">清除全部选区</button>
       </div>
 
       <div class="canvas-wrap" id="canvas-wrap">
@@ -327,7 +328,7 @@
   var dispScale = 1;         // 显示画布 / 原图 的缩放比（预览块大小按此换算）
   var mode = 'full';         // 'full' | 'area'
   var blockSize = 10;
-  var currentRegion = null;  // {x,y,w,h} 显示坐标
+  var regions = [];          // 多个 {x,y,w,h} 显示坐标选区
   var isDragging = false;
   var dragStart = null;
   var dragRect = null;
@@ -393,7 +394,7 @@ window.__svgFileBlocked=__svgFileBlocked;
     srcDispCanvas.height = dispH;
     srcDispCanvas.getContext('2d').drawImage(sourceImg, 0, 0, dispW, dispH);
 
-    currentRegion = null;
+    regions = [];
     updateMeta();
     scheduleRender();
   }
@@ -402,8 +403,8 @@ window.__svgFileBlocked=__svgFileBlocked;
     var el = document.getElementById('meta-line');
     if(!sourceImg){ const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h0; return; }
     var nw = sourceImg.naturalWidth, nh = sourceImg.naturalHeight;
-    var regionTxt = (mode === 'area' && currentRegion)
-      ? Math.round(currentRegion.w) + '×' + Math.round(currentRegion.h)
+    var regionTxt = (mode === 'area' && regions.length)
+      ? (regions.length > 1 ? regions.length + ' 处 · 最后 ' : '') + Math.round(regions[regions.length-1].w) + '×' + Math.round(regions[regions.length-1].h)
       : '—';
     const __h1='<span>原图尺寸：<strong>' + nw + '×' + nh + '</strong></span>' +
       '<span>预览尺寸：<strong>' + dispW + '×' + dispH + '</strong></span>' +
@@ -418,13 +419,13 @@ window.__svgFileBlocked=__svgFileBlocked;
     document.getElementById('mode-area').classList.toggle('active', m === 'area');
     document.getElementById('area-hint').style.display = (m === 'area') ? 'flex' : 'none';
     wrap.classList.toggle('area', m === 'area');
-    if(m === 'full'){ currentRegion = null; }
+    if(m === 'full'){ regions = []; }
     updateMeta();
     scheduleRender();
   };
 
   window.clearSelection = function(){
-    currentRegion = null;
+    regions = [];
     updateMeta();
     scheduleRender();
     ToolBox.showToast(i18nText('toast.msg288'), 'info');
@@ -440,7 +441,7 @@ window.__svgFileBlocked=__svgFileBlocked;
     document.getElementById('block-size').value = 10;
     blockSize = 10;
     document.getElementById('block-val').textContent = '10 px';
-    currentRegion = null;
+    regions = [];
     setMode('full');
     scheduleRender();
     ToolBox.showToast('已恢复默认设置', 'info');
@@ -450,7 +451,7 @@ window.__svgFileBlocked=__svgFileBlocked;
     sourceImg = null;
     if(sourceUrl){ URL.revokeObjectURL(sourceUrl); sourceUrl = null; }
     srcDispCanvas = null;
-    currentRegion = null;
+    regions = [];
     document.getElementById('controls').style.display = 'none';
     document.getElementById('drop-zone').style.display = '';
     document.getElementById('file-input').value = '';
@@ -492,25 +493,23 @@ window.__svgFileBlocked=__svgFileBlocked;
       dctx.drawImage(srcDispCanvas, 0, 0);
       return;
     }
-    var region = (mode === 'area') ? (isDragging ? dragRect : currentRegion) : null;
-    var plan = planPreview(mode, region, blockSize, dispScale);
-    // 先画底图，再按需叠马赛克
-    if(plan.mosaic){
-      mosaicRegion(dctx, srcDispCanvas, plan.block, plan.region);
+    dctx.drawImage(srcDispCanvas, 0, 0);
+    var block = mapBlockToCanvas(blockSize, dispScale);
+    var active = (mode === 'area') ? (isDragging ? (dragRect ? [dragRect] : []) : regions) : [];
+    if(mode === 'full'){
+      mosaicRegion(dctx, srcDispCanvas, block, null, true);
     } else {
-      dctx.drawImage(srcDispCanvas, 0, 0);
+      active.forEach(function(r){
+        if(r && r.w >= 1 && r.h >= 1){ mosaicRegion(dctx, srcDispCanvas, block, r, true); }
+      });
     }
-
-    // 区域模式下绘制选区边框
-    if(plan.mosaic && plan.region){
-      drawSelectionRect(dctx, plan.region);
-    }
+    active.forEach(function(r){ if(r && r.w >= 1 && r.h >= 1){ drawSelectionRect(dctx, r); } });
   }
 
   // 核心：对指定区域打马赛克（基于中心像素采样填充块）
-  function mosaicRegion(ctx, srcCanvas, size, region){
+  function mosaicRegion(ctx, srcCanvas, size, region, skipBase){
     var W = srcCanvas.width, H = srcCanvas.height;
-    ctx.drawImage(srcCanvas, 0, 0);
+    if(!skipBase){ ctx.drawImage(srcCanvas, 0, 0); }
     if(size < 2){ return; }
 
     var rx = 0, ry = 0, rw = W, rh = H;
@@ -606,9 +605,9 @@ window.__svgFileBlocked=__svgFileBlocked;
     if(!isDragging){ return; }
     isDragging = false;
     if(dragRect && dragRect.w > 4 && dragRect.h > 4){
-      currentRegion = { x: dragRect.x, y: dragRect.y, w: dragRect.w, h: dragRect.h };
-    } else {
-      currentRegion = null;
+      var nr = { x: dragRect.x, y: dragRect.y, w: dragRect.w, h: dragRect.h };
+      var multi = document.getElementById('mosaicMulti');
+      if(!multi || multi.checked){ regions.push(nr); } else { regions = [nr]; }
     }
     dragRect = null;
     updateMeta();
@@ -659,27 +658,18 @@ window.__svgFileBlocked=__svgFileBlocked;
     out.height = H;
     var octx = out.getContext('2d');
 
-    // 将显示坐标的选区换算到原图坐标
-    var region = null;
-    if(mode === 'area' && currentRegion){
-      var kx = W / dispW, ky = H / dispH;
-      region = {
-        x: currentRegion.x * kx,
-        y: currentRegion.y * ky,
-        w: currentRegion.w * kx,
-        h: currentRegion.h * ky
-      };
-    } else if(mode === 'full'){
-      region = null;
-    }
+    // 将显示坐标的选区换算到原图坐标（支持多选区）
+    var kx = W / dispW, ky = H / dispH;
+    var regionsNat = (mode === 'area' ? regions : []).map(function(r){
+      return { x: r.x * kx, y: r.y * ky, w: r.w * kx, h: r.h * ky };
+    });
 
+    octx.drawImage(srcFull, 0, 0);
     if(mode === 'full'){
-      // 导出为原图 1:1，块大小即原图像素值（与预览按 dispScale 换算的值同源）
-      mosaicRegion(octx, srcFull, mapBlockToCanvas(blockSize, 1), null);
-    } else if(region){
-      mosaicRegion(octx, srcFull, mapBlockToCanvas(blockSize, 1), region);
-    } else {
-      octx.drawImage(srcFull, 0, 0);
+      mosaicRegion(octx, srcFull, mapBlockToCanvas(blockSize, 1), null, true);
+    } else if(regionsNat.length){
+      var blockNat = mapBlockToCanvas(blockSize, 1);
+      regionsNat.forEach(function(r){ mosaicRegion(octx, srcFull, blockNat, r, true); });
     }
 
     var type = format === 'jpeg' ? 'image/jpeg' : 'image/png';

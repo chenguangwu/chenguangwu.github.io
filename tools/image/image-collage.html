@@ -164,6 +164,12 @@ input[type="color"]:disabled{opacity:.45;cursor:not-allowed;}
     </div>
 
     <!-- 图片列表 -->
+    <div id="listToolbar" style="display:none;gap:8px;flex-wrap:wrap;margin-top:12px;">
+      <button type="button" class="btn" onclick="CollageTool.sortNames()">🔤 按名称排序</button>
+      <button type="button" class="btn" onclick="CollageTool.reverse()">↕ 反转顺序</button>
+      <button type="button" class="btn" onclick="CollageTool.undo()">↩ 撤销</button>
+      <span id="collageHistHint" style="font-size:12px;color:var(--text-muted);align-self:center;"></span>
+    </div>
     <div class="img-list" id="imgList"></div>
 
     <div class="section-title">⚙️ 合成设置</div>
@@ -340,7 +346,7 @@ input[type="color"]:disabled{opacity:.45;cursor:not-allowed;}
     </a>
     <a href="nine-grid-cutter.html" class="related-tool-card">
       <span class="rt-icon">🖼️</span>
-      <span class="rt-info"><span class="rt-name">九宫格切图</span><span class="rt-desc">上传图片后自动切成 3×3，并可分别下载。发朋友圈长图被压缩，想切成九宫格拼回大图。</span></span>
+      <span class="rt-info"><span class="rt-name">九宫格切图</span><span class="rt-desc">总边长按行列等比分配；3×3 选 3240 即每格 1080px。微信九宫格请按 1→9 顺序发布。</span></span>
     </a>
     <a href="wechat-cover-maker.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
@@ -392,11 +398,23 @@ var $ = function(id){ return document.getElementById(id); };
 function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 
 var images = []; // {img, url, name, w, h}
+var history = [];  // 顺序/删除操作快照，最多 20 步
 var dragIdx = null;
 
 /* ---------- 文件处理 ---------- */
 /* 按选择索引提交：解码完成的先后顺序不保证等于 FileList 顺序，
    因此每个文件先记录自己的 index，全部结束（成功或失败）后按 index 归并。 */
+function pushHistory(){
+  history.push(images.slice());
+  if(history.length > 20){ history.shift(); }
+  updateHistHint();
+}
+function updateHistHint(){
+  var h = $('collageHistHint'), tb = $('listToolbar');
+  if(tb){ tb.style.display = images.length ? 'flex' : 'none'; }
+  if(h){ h.textContent = history.length ? ('可撤销 ' + history.length + ' 步') : '暂无可撤销操作'; }
+}
+
 function orderLoaded(entries){
   var out = [];
   (entries || []).slice().sort(function(a, b){ return (a && a.index || 0) - (b && b.index || 0); })
@@ -475,6 +493,7 @@ function renderList(){
       div.addEventListener('drop', function(e){
         e.preventDefault(); div.classList.remove('drag-over');
         if(dragIdx!==null && dragIdx!==index){
+          pushHistory();
           var moved = images.splice(dragIdx,1)[0];
           images.splice(index,0,moved);
           renderList(); render();
@@ -484,22 +503,25 @@ function renderList(){
     })(idx);
     list.appendChild(div);
   });
+  updateHistHint();
 }
 
 function removeImg(idx){
   if(idx<0 || idx>=images.length) return;
-  URL.revokeObjectURL(images[idx].url);
+  pushHistory();
   images.splice(idx,1); renderList(); render();
 }
 function moveImg(idx, dir){
   var t = idx + dir;
   if(t<0 || t>=images.length) return;
+  pushHistory();
   var m = images.splice(idx,1)[0];
   images.splice(t,0,m);
   renderList(); render();
 }
 function clearAll(){
   if(!images.length){ ToolBox.showToast(i18nText('toast.msg344'), 'info'); return; }
+  pushHistory();
   images.forEach(function(i){ URL.revokeObjectURL(i.url); });
   images = []; renderList(); render(); ToolBox.showToast(i18nText('toast.msg276'));
 }
@@ -714,6 +736,23 @@ function download(type){
 
 /* ---------- 暴露 ---------- */
 window.CollageTool = {
+  sortNames: function(){
+    if(images.length < 2){ ToolBox.showToast('至少需要 2 张图片', 'info'); return; }
+    pushHistory();
+    images.sort(function(a,b){
+      var an = String(a.name||''), bn = String(b.name||'');
+      return an.localeCompare(bn, 'zh-Hans-CN', {numeric:true, sensitivity:'base'});
+    });
+    renderList(); render();
+  },
+  reverse: function(){
+    if(images.length < 2){ ToolBox.showToast('至少需要 2 张图片', 'info'); return; }
+    pushHistory(); images.reverse(); renderList(); render();
+  },
+  undo: function(){
+    if(!history.length){ ToolBox.showToast('没有可撤销的操作', 'info'); return; }
+    images = history.pop(); renderList(); render(); ToolBox.showToast('已撤销上一步');
+  },
   move: moveImg,
   remove: removeImg,
   fitPlan: fitPlan,

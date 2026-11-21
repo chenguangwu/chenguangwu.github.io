@@ -392,6 +392,10 @@ function batch204StaticChecks(){
   out.push({name:"B204 platform presets",ok:src.indexOf('setPlatformSize(1242,1660')>=0&&src.indexOf('setPlatformSize(900,383')>=0&&src.indexOf('function setPlatformSize(w,h,label)')>=0});
   var cmp = fs.readFileSync("tools/image/image-compress.html","utf8");
   var rc = fs.readFileSync("tools/image/generator-15.html","utf8");
+  var col = fs.readFileSync("tools/image/image-collage.html","utf8");
+  out.push({name:"B210 collage sort/reverse/undo",ok:col.indexOf("sortNames: function")>=0&&col.indexOf("images.reverse()")>=0&&col.indexOf("history.pop()")>=0&&col.indexOf('id="listToolbar"')>=0});
+  var mos = fs.readFileSync("tools/image/image-mosaic.html","utf8");
+  out.push({name:"B210 mosaic multiple regions",ok:mos.indexOf('id="mosaicMulti"')>=0&&mos.indexOf('regions.push(nr)')>=0&&mos.indexOf('regionsNat.forEach')>=0});
   var ngc = fs.readFileSync("tools/image/nine-grid-cutter.html","utf8");
   out.push({name:"B209 nine-grid output size",ok:ngc.indexOf('id="ngcOutSide"')>=0&&ngc.indexOf('var pieceW = outSide')>=0&&ngc.indexOf('3×3 选 3240 即每格 1080px')>=0});
   var cvr = fs.readFileSync("tools/image/image-converter.html","utf8");
