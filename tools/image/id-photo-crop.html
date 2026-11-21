@@ -134,11 +134,25 @@
         <label>文件名</label>
         <input id="filename" type="text" value="id-photo.png" oninput="render()">
       </div>
+      <div>
+        <label>输出 DPI（写入 PNG）</label>
+        <input id="dpi" type="number" min="72" max="600" step="1" value="300" oninput="render()">
+      </div>
     </div>
+    <div class="input-row">
+      <div>
+        <label>取景缩放 <span id="zoomVal">1.0×</span></label>
+        <input id="cropZoom" type="range" min="1" max="2.5" step="0.05" value="1" oninput="onCropView()">
+      </div>
+      <div style="align-self:end;">
+        <button class="btn" type="button" onclick="resetCropView()">↺ 重置取景</button>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);">在预览图上按住拖动可平移取景；滚轮或滑杆缩放。取景只影响裁剪填满模式。</p>
 
     <div class="toolbar">
       <button class="btn primary" onclick="render()">生成</button>
-      <div id="id_photo_cropPresets"></div><button class="btn" onclick="download()">下载</button><button class="btn" type="button" onclick="__id_photo_cropExport()">导出明细 CSV</button>
+      <div id="id_photo_cropPresets"></div><button class="btn" onclick="download()">下载当前规格</button><button class="btn" onclick="downloadAllPresets()">📦 多规格 ZIP</button><button class="btn" type="button" onclick="__id_photo_cropExport()">导出明细 CSV</button>
     </div>
 
     <div class="crop-grid">
@@ -203,7 +217,7 @@
     </a>
     <a href="nine-grid-cutter.html" class="related-tool-card">
       <span class="rt-icon">🖼️</span>
-      <span class="rt-info"><span class="rt-name">九宫格切图</span><span class="rt-desc">上传图片后自动切成 3×3，并可分别下载。发朋友圈长图被压缩，想切成九宫格拼回大图。</span></span>
+      <span class="rt-info"><span class="rt-name">九宫格切图</span><span class="rt-desc">总边长按行列等比分配；3×3 选 3240 即每格 1080px。微信九宫格请按 1→9 顺序发布。</span></span>
     </a>
     <a href="wechat-cover-maker.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
@@ -219,6 +233,26 @@
 let srcImg = null;
 let outW = 413;
 let outH = 531;
+let cropView = { dx: 0, dy: 0, zoom: 1 };
+
+function clampNum(v, lo, hi){ v = Number(v); if(!isFinite(v)) v = lo; return Math.max(lo, Math.min(hi, v)); }
+function getCropView(){
+  var z = document.getElementById('cropZoom');
+  return { dx: cropView.dx, dy: cropView.dy, zoom: clampNum(z ? z.value : cropView.zoom, 1, 2.5) };
+}
+function onCropView(){
+  var z = document.getElementById('cropZoom');
+  cropView.zoom = clampNum(z ? z.value : 1, 1, 2.5);
+  var lab = document.getElementById('zoomVal');
+  if(lab) lab.textContent = cropView.zoom.toFixed(2).replace(/0$/,'') + '×';
+  render();
+}
+function resetCropView(){
+  cropView = { dx: 0, dy: 0, zoom: 1 };
+  var z = document.getElementById('cropZoom');
+  if(z) z.value = '1';
+  onCropView();
+}
 
 function __svgFileBlocked(file) {
   var t = String(file.type || '').toLowerCase(), n = String(file.name || '').toLowerCase();
@@ -255,7 +289,7 @@ function parsePreset(v) {
   return { w: Number(w), h: Number(h), text };
 }
 
-function drawCropped(ctx, img, w, h, bg, fit) {
+function drawCropped(ctx, img, w, h, bg, fit, view) {
   const sw = img.width;
   const sh = img.height;
   ctx.fillStyle = bg;
@@ -268,18 +302,21 @@ function drawCropped(ctx, img, w, h, bg, fit) {
     ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
     return;
   }
-  // 裁剪填满（默认）：按目标比例居中裁切，不透明照片会盖满整框
+  // 裁剪填满（默认）：按目标比例居中裁切，再按取景缩放/平移调整
   const srcRatio = sw / sh;
   const dstRatio = w / h;
+  const z = clampNum(view && view.zoom !== undefined ? view.zoom : 1, 1, 2.5);
+  const nx = clampNum(view && view.dx !== undefined ? view.dx : 0, -1, 1);
+  const ny = clampNum(view && view.dy !== undefined ? view.dy : 0, -1, 1);
 
-  let sx = 0, sy = 0, swCrop = sw, shCrop = sh;
-  if (srcRatio > dstRatio) {
-    swCrop = sh * dstRatio;
-    sx = (sw - swCrop) / 2;
-  } else {
-    shCrop = sw / dstRatio;
-    sy = (sh - shCrop) / 2;
-  }
+  let swCrop = sw, shCrop = sh;
+  if (srcRatio > dstRatio) { swCrop = sh * dstRatio; }
+  else { shCrop = sw / dstRatio; }
+  swCrop = swCrop / z;
+  shCrop = shCrop / z;
+
+  const sx = clampNum((sw - swCrop) / 2 + nx * (sw - swCrop) / 2, 0, sw - swCrop);
+  const sy = clampNum((sh - shCrop) / 2 + ny * (sh - shCrop) / 2, 0, sh - shCrop);
 
   ctx.drawImage(img, sx, sy, swCrop, shCrop, 0, 0, w, h);
 }
@@ -314,7 +351,7 @@ function render() {
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  drawCropped(ctx, srcImg, dw, dh, document.getElementById('bgColor').value, getFitMode());
+  drawCropped(ctx, srcImg, dw, dh, document.getElementById('bgColor').value, getFitMode(), getCropView());
 
   const ratioText = (outW / outH).toFixed(2);
   const fitText = getFitMode() === 'contain' ? '完整留白（底色填充四周）' : '裁剪填满';
@@ -324,7 +361,175 @@ function render() {
     <p>宽高比：${ratioText}</p>
     <p>适配方式：${fitText}</p>
     <p>预览：${dw} × ${dh}</p>
+    <p>取景：${getCropView().zoom.toFixed(2)}× · 平移 ${Math.round(getCropView().dx*100)}% / ${Math.round(getCropView().dy*100)}%</p>
+    <p>输出 DPI：${clampNum(document.getElementById('dpi').value,72,600)}</p>
   `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){meta.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}meta.innerHTML=__h1;
+}
+
+/* 预览拖拽平移 / 滚轮缩放（仅 cover 模式生效） */
+(function(){
+  var cv = document.getElementById('canvas');
+  if(!cv) return;
+  var dragging = false, startX = 0, startY = 0, baseX = 0, baseY = 0;
+  cv.style.cursor = 'grab';
+  cv.style.touchAction = 'none';
+  cv.addEventListener('pointerdown', function(e){
+    if(!srcImg || getFitMode() !== 'cover') return;
+    dragging = true; startX = e.clientX; startY = e.clientY;
+    baseX = cropView.dx; baseY = cropView.dy;
+    cv.style.cursor = 'grabbing';
+    try { cv.setPointerCapture(e.pointerId); } catch(err){}
+    e.preventDefault();
+  });
+  cv.addEventListener('pointermove', function(e){
+    if(!dragging) return;
+    var r = cv.getBoundingClientRect();
+    cropView.dx = clampNum(baseX + ((e.clientX - startX) / Math.max(1, r.width)) * 2, -1, 1);
+    cropView.dy = clampNum(baseY + ((e.clientY - startY) / Math.max(1, r.height)) * 2, -1, 1);
+    render();
+  });
+  function stop(){ dragging = false; cv.style.cursor = 'grab'; }
+  cv.addEventListener('pointerup', stop);
+  cv.addEventListener('pointercancel', stop);
+  cv.addEventListener('wheel', function(e){
+    if(!srcImg || getFitMode() !== 'cover') return;
+    e.preventDefault();
+    var z = document.getElementById('cropZoom');
+    if(!z) return;
+    z.value = String(clampNum(Number(z.value) + (e.deltaY < 0 ? 0.05 : -0.05), 1, 2.5));
+    onCropView();
+  }, { passive: false });
+})();
+
+
+/* ---------- PNG DPI 写入（pHYs 块） ---------- */
+var __idCrcTable = null;
+function __idCrc32(bytes){
+  if(!__idCrcTable){
+    __idCrcTable = new Uint32Array(256);
+    for(var n=0;n<256;n++){
+      var c=n;
+      for(var k=0;k<8;k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      __idCrcTable[n] = c >>> 0;
+    }
+  }
+  var crc = 0xFFFFFFFF;
+  for(var i=0;i<bytes.length;i++) crc = (crc >>> 8) ^ __idCrcTable[(crc ^ bytes[i]) & 0xFF];
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+function __idPngChunk(type, data){
+  var typeBytes = new TextEncoder().encode(type);
+  var out = new Uint8Array(12 + data.length);
+  var dv = new DataView(out.buffer);
+  dv.setUint32(0, data.length, false);
+  out.set(typeBytes, 4);
+  out.set(data, 8);
+  var crcInput = new Uint8Array(4 + data.length);
+  crcInput.set(typeBytes, 0); crcInput.set(data, 4);
+  dv.setUint32(8 + data.length, __idCrc32(crcInput), false);
+  return out;
+}
+function pngWithDpi(blob, dpi){
+  dpi = Math.round(clampNum(dpi, 72, 600));
+  return blob.arrayBuffer().then(function(ab){
+    var buf = new Uint8Array(ab);
+    if(buf.length < 20 || buf[0] !== 0x89 || String.fromCharCode(buf[1],buf[2],buf[3]) !== 'PNG'){ return blob; }
+    var pos = 8, insertAt = -1;
+    while(pos + 12 <= buf.length){
+      var len = new DataView(buf.buffer).getUint32(pos, false);
+      var type = String.fromCharCode(buf[pos+4],buf[pos+5],buf[pos+6],buf[pos+7]);
+      if(type === 'IDAT'){ insertAt = pos; break; }
+      pos += 12 + len;
+    }
+    if(insertAt < 0){ return blob; }
+    var ppm = Math.round(dpi / 0.0254);
+    var data = new Uint8Array(9);
+    var dv = new DataView(data.buffer);
+    dv.setUint32(0, ppm, false); dv.setUint32(4, ppm, false); data[8] = 1;
+    var chunk = __idPngChunk('pHYs', data);
+    var out = new Uint8Array(buf.length + chunk.length);
+    out.set(buf.slice(0, insertAt), 0);
+    out.set(chunk, insertAt);
+    out.set(buf.slice(insertAt), insertAt + chunk.length);
+    return new Blob([out], { type: 'image/png' });
+  });
+}
+
+/* ---------- 最小 ZIP（STORE） ---------- */
+function __idMakeZip(entries){
+  var enc = new TextEncoder();
+  var parts = [], central = [], offset = 0;
+  var dt = new Date();
+  var tm = ((dt.getHours() & 0x1F) << 11) | ((dt.getMinutes() & 0x3F) << 5) | ((Math.floor(dt.getSeconds()/2)) & 0x1F);
+  var dd = (((dt.getFullYear()-1980) & 0x7F) << 9) | (((dt.getMonth()+1) & 0x0F) << 5) | (dt.getDate() & 0x1F);
+  entries.forEach(function(e){
+    var nb = enc.encode(e.name), crc = __idCrc32(e.bytes), size = e.bytes.length;
+    var lh = new Uint8Array(30 + nb.length), dv = new DataView(lh.buffer);
+    dv.setUint32(0,0x04034b50,true); dv.setUint16(4,20,true); dv.setUint16(6,0x0800,true);
+    dv.setUint16(8,0,true); dv.setUint16(10,tm,true); dv.setUint16(12,dd,true);
+    dv.setUint32(14,crc,true); dv.setUint32(18,size,true); dv.setUint32(22,size,true);
+    dv.setUint16(26,nb.length,true); dv.setUint16(28,0,true); lh.set(nb,30);
+    parts.push(lh, e.bytes);
+    var cd = new Uint8Array(46 + nb.length), cdv = new DataView(cd.buffer);
+    cdv.setUint32(0,0x02014b50,true); cdv.setUint16(4,20,true); cdv.setUint16(6,20,true);
+    cdv.setUint16(8,0x0800,true); cdv.setUint16(10,0,true); cdv.setUint16(12,tm,true); cdv.setUint16(14,dd,true);
+    cdv.setUint32(16,crc,true); cdv.setUint32(20,size,true); cdv.setUint32(24,size,true);
+    cdv.setUint16(28,nb.length,true); cdv.setUint16(30,0,true); cdv.setUint16(32,0,true);
+    cdv.setUint16(34,0,true); cdv.setUint16(36,0,true); cdv.setUint32(38,0,true); cdv.setUint32(42,offset,true);
+    cd.set(nb,46); central.push(cd); offset += lh.length + size;
+  });
+  var cdSize = central.reduce(function(a,b){return a+b.length;},0);
+  var end = new Uint8Array(22), edv = new DataView(end.buffer);
+  edv.setUint32(0,0x06054b50,true); edv.setUint16(8,entries.length,true); edv.setUint16(10,entries.length,true);
+  edv.setUint32(12,cdSize,true); edv.setUint32(16,offset,true);
+  var all = parts.concat(central,[end]);
+  var total = all.reduce(function(a,b){return a+b.length;},0);
+  var out = new Uint8Array(total), p = 0;
+  all.forEach(function(b){ out.set(b,p); p += b.length; });
+  return new Blob([out], {type:'application/zip'});
+}
+
+function __idSafeName(raw){
+  return String(raw||'').trim()
+    .replace(/[\\/:*?"<>|\u0000-\u001f]/g,'_').replace(/\s+/g,' ')
+    .replace(/^\.+/,'').slice(0,80)
+    .replace(/\.(png|jpg|jpeg|webp|bmp)$/i,'') || 'id-photo';
+}
+function __idCanvasBlob(c){ return new Promise(function(res, rej){ c.toBlob(function(b){ b ? res(b) : rej(new Error('blob is null')); }, 'image/png'); }); }
+
+function downloadAllPresets(){
+  if(!srcImg){ ToolBox.showToast('请先上传照片。','error'); return; }
+  var opts = Array.prototype.slice.call(document.querySelectorAll('#preset option'));
+  var base = __idSafeName(document.getElementById('filename').value);
+  var dpi = clampNum(document.getElementById('dpi').value, 72, 600);
+  var entries = [], chain = Promise.resolve();
+  opts.forEach(function(op){
+    chain = chain.then(function(){
+      var pre = parsePreset(op.value);
+      var c = document.createElement('canvas'); c.width = pre.w; c.height = pre.h;
+      drawCropped(c.getContext('2d'), srcImg, pre.w, pre.h, document.getElementById('bgColor').value, getFitMode(), getCropView());
+      return __idCanvasBlob(c).then(function(b){ return pngWithDpi(b, dpi); }).then(function(b){ return b.arrayBuffer(); })
+        .then(function(ab){
+          var label = String(pre.text||'').replace(/[（）()×*]/g,'_');
+          entries.push({ name: base + '_' + label + '_' + pre.w + 'x' + pre.h + '.png', bytes: new Uint8Array(ab) });
+        });
+    });
+  });
+  chain.then(function(){
+    entries.push({ name: base + '_manifest.json', bytes: new TextEncoder().encode(JSON.stringify({
+      dpi: dpi, fit: getFitMode(), view: getCropView(),
+      files: entries.map(function(e){ return e.name; })
+    }, null, 2)) });
+    var blob = __idMakeZip(entries);
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = base + '_multi-size.zip';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    ToolBox.showToast('已导出 ' + opts.length + ' 种规格（ZIP）', 'success');
+  }).catch(function(err){
+    ToolBox.showToast('多规格导出失败：' + ((err && err.message) || '未知错误'), 'error');
+  });
 }
 
 function download() {
@@ -337,22 +542,17 @@ function download() {
   c.width = preset.w;
   c.height = preset.h;
   const ctx = c.getContext('2d');
-  drawCropped(ctx, srcImg, preset.w, preset.h, document.getElementById('bgColor').value, getFitMode());
-  // 文件名安全化：剔除路径分隔符/控制字符等非法字符，扩展名固定为实际编码格式 PNG
-  const rawName = document.getElementById('filename').value.trim() || 'id-photo';
-  const safeName = rawName
-    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_')
-    .replace(/\s+/g, ' ')
-    .replace(/^\.+/, '')
-    .slice(0, 80)
-    .replace(/\.(png|jpg|jpeg|webp|bmp)$/i, '') || 'id-photo';
-  const name = safeName + '.png';
+  drawCropped(ctx, srcImg, preset.w, preset.h, document.getElementById('bgColor').value, getFitMode(), getCropView());
+  // 文件名安全化 + 写入 DPI（pHYs），扩展名固定为 PNG
+  const name = __idSafeName(document.getElementById('filename').value) + '.png';
+  var dpi = clampNum(document.getElementById('dpi').value, 72, 600);
   try { c.toBlob(function (blob) {
     if (!blob) {
       ToolBox.showToast('导出失败，请重试或更换浏览器。', 'error');
       return;
     }
-    const url = URL.createObjectURL(blob);
+    pngWithDpi(blob, dpi).then(function (withDpi) {
+    const url = URL.createObjectURL(withDpi);
     const a = document.createElement('a');
     a.href = url;
     a.download = name;
@@ -361,6 +561,9 @@ function download() {
     a.remove();
     // 延迟释放，避免点击后立即 revoke 导致部分浏览器取消下载
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }).catch(function (err) {
+      ToolBox.showToast('导出失败：' + ((err && err.message) || '未知错误'), 'error');
+    });
   }, 'image/png'); } catch (e) { ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误")), 'error'); }
 }
 

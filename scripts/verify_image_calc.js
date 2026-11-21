@@ -392,6 +392,8 @@ function batch204StaticChecks(){
   out.push({name:"B204 platform presets",ok:src.indexOf('setPlatformSize(1242,1660')>=0&&src.indexOf('setPlatformSize(900,383')>=0&&src.indexOf('function setPlatformSize(w,h,label)')>=0});
   var cmp = fs.readFileSync("tools/image/image-compress.html","utf8");
   var rc = fs.readFileSync("tools/image/generator-15.html","utf8");
+  var idc = fs.readFileSync("tools/image/id-photo-crop.html","utf8");
+  out.push({name:"B211 id-photo crop view/dpi/zip",ok:idc.indexOf('id="cropZoom"')>=0&&idc.indexOf("function pngWithDpi")>=0&&idc.indexOf("function downloadAllPresets")>=0&&idc.indexOf("cropView.dx = clampNum")>=0});
   var col = fs.readFileSync("tools/image/image-collage.html","utf8");
   out.push({name:"B210 collage sort/reverse/undo",ok:col.indexOf("sortNames: function")>=0&&col.indexOf("images.reverse()")>=0&&col.indexOf("history.pop()")>=0&&col.indexOf('id="listToolbar"')>=0});
   var mos = fs.readFileSync("tools/image/image-mosaic.html","utf8");
