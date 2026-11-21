@@ -23,7 +23,7 @@ def clean(text):
     """返回 (新文本, 删除块数)。非贪婪配对到最近的 </section>，避免误伤后续结构。"""
     removed = 0
     for cls in CLASSES:
-        pattern = re.compile(r'<section class="%s">.*?</section>\s*' % cls, re.S)
+        pattern = re.compile(r'<section[^>]*class="%s"[^>]*>.*?</section>\s*' % cls, re.S)
         text, n = pattern.subn("", text)
         removed += n
     return text, removed
@@ -48,11 +48,11 @@ def main():
     touched = []
     for f in sorted(files):
         t = open(f, encoding="utf-8").read()
-        before = sum(len(re.findall(r'<section class="%s">' % c, t)) for c in CLASSES)
+        before = sum(len(re.findall(r'<section[^>]*class="%s"[^>]*>' % c, t)) for c in CLASSES)
         if before == 0:
             continue
         new, removed = clean(t)
-        after = sum(len(re.findall(r'<section class="%s">' % c, new)) for c in CLASSES)
+        after = sum(len(re.findall(r'<section[^>]*class="%s"[^>]*>' % c, new)) for c in CLASSES)
         total_before += before
         total_after += after
         touched.append((f, before, after))
