@@ -317,7 +317,7 @@
     <ul>
       <li>本工具纯前端运行，GIF 文件不会上传到服务器</li>
       <li>支持 GIF87a 与 GIF89a 格式，自动处理透明色、隔行扫描与帧 disposal 合成</li>
-      <li>每帧可单独下载为 PNG，也可一键打包所有帧为 ZIP</li>
+      <li>每帧可单独下载为 PNG，也可一键打包所有帧为 ZIP（压缩包内附 frames.json，记录帧序号、延迟与尺寸）</li>
       <li>帧较多或尺寸较大时，解析与打包可能需要数秒，请耐心等待</li>
       <li>建议在主流浏览器（Chrome / Edge / Safari / Firefox）中使用</li>
     </ul>
@@ -1079,7 +1079,26 @@ function downloadAllZip(){
   });
 
   seq.then(function(){
-    $('zipStatus').textContent = __gsT('正在生成 ZIP...', 'Building ZIP...');
+    $('zipStatus').textContent = __gsT('正在生成 ZIP（含 frames.json）...', 'Building ZIP (with frames.json)...');
+    var manifest = {
+      source: gifData.fileName,
+      width: gifData.width,
+      height: gifData.height,
+      loopCount: gifData.loopCount,
+      frameCount: gifData.frames.length,
+      note: 'delay 为 GIF 百分之一秒（centiseconds），delayMs 为毫秒；index 从 1 开始。',
+      frames: gifData.frames.map(function(fr, i){
+        return {
+          index: i + 1,
+          file: base + '_frame_' + String(i+1).padStart(3,'0') + '.png',
+          delay: fr.delay,
+          delayMs: Math.round((fr.delay || 0) * 10),
+          width: gifData.width,
+          height: gifData.height
+        };
+      })
+    };
+    entries.push({ name: base + '_frames.json', bytes: new TextEncoder().encode(JSON.stringify(manifest, null, 2)) });
     var content = __gsMakeZip(entries);
     $('zipProgressFill').style.width = '100%';
     var url = URL.createObjectURL(content);
