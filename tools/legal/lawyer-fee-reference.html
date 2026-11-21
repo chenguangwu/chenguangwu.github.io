@@ -355,6 +355,9 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
   const amount = parseFloat(document.getElementById('amount').value) || 0;
   const stage = document.getElementById('stage').value;
   const regionFactor = region === 'other' ? 0.7 : 1;
+  if((type === 'civil' || type === 'admin') && amount <= 0){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请输入大于 0 的标的金额。</p>';return;}
+  if(type === 'hourly' && (parseFloat(document.getElementById('hours').value) || 0) <= 0){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请输入大于 0 的计时小时数。</p>';return;}
+  const stageFactor = (type === 'civil' || type === 'admin') && stage !== 'first' ? 0.5 : 1;
   
   let fee = 0;
 
@@ -372,13 +375,13 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
     }else{
       fee = 265000 + (amount - 10000000) * 0.01;
     }
-    fee *= regionFactor;
+    fee *= regionFactor * stageFactor;
   }else if(type === 'criminal'){
     const criminalStage = document.getElementById('criminalStageType').value;
     const criminalFees = {investigation: 6000, prosecution: 8000, trial: 15000, second: 20000};
     fee = criminalFees[criminalStage] * regionFactor;
   }else if(type === 'admin'){
-    fee = 8000 * regionFactor;
+    fee = 8000 * regionFactor * stageFactor;
   }else if(type === 'hourly'){
     const level = document.getElementById('lawyerLevel').value;
     const hours = parseFloat(document.getElementById('hours').value) || 0;
@@ -399,6 +402,7 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
   const lfTypeName = {civil:['民事案件','Civil case'], criminal:['刑事案件','Criminal case'], admin:['行政案件','Administrative case'], hourly:['计时收费','Hourly billing'], risk:['风险代理','Contingency']};
   let html = `<p>${lfL('案件类型：','Case type:')}<strong>${lfL(lfTypeName[type][0], lfTypeName[type][1])}</strong></p>`;
   html += `<p>${lfL('参考收费：','Reference fee:')}<strong>${ToolBox.formatNumber(fee)}</strong> ${lfL('元','yuan')}</p>`;
+  if(stageFactor < 1){ html += `<p style="font-size:12px;color:var(--text-muted);">${lfL('注：二审/再审/执行按一审标准的 50% 估算，具体以当地收费指导价为准。','Note: second instance/retrial/enforcement is estimated at 50% of the first-instance standard.')}</p>`; }
   if(type === 'risk' && window.__lfRisk){
     const r = window.__lfRisk;
     const zh = `费用构成：基础费 ${ToolBox.formatNumber(r.baseFee)} 元 + 标的额 ${ToolBox.formatNumber(amount)} 元 × ${r.ratio}% = ${ToolBox.formatNumber(r.contingency)} 元提成，合计 ${ToolBox.formatNumber(r.rawFee)} 元` + (r.capped ? `；已触及标的额 30% 上限（${ToolBox.formatNumber(r.cap)} 元），按上限计收` : `（未超标的额 30% 上限 ${ToolBox.formatNumber(r.cap)} 元）`) + '。';
@@ -434,14 +438,14 @@ function __lfExtras(){
 function __lfExport(){ TBKit.util.exportTable('#lfTable', 'lawyer-fee-reference.csv'); }
 function __lfPresets(){
   TBKit.preset.bar('#lfPresets', [
-    {label:'民事100万', labelEn:'Civil 1M', values:{caseType:'civil', region:'first', amount:'1000000', stage:'first'}},
-    {label:'刑事审判', labelEn:'Criminal trial', values:{caseType:'criminal', region:'first', amount:'0', stage:'first', criminalStageType:'trial'}},
-    {label:'计时高级20h', labelEn:'Senior 20h', values:{caseType:'hourly', region:'first', amount:'0', stage:'first', lawyerLevel:'senior', hours:'20'}},
-    {label:'风险代理', labelEn:'Contingency', values:{caseType:'risk', region:'first', amount:'500000', stage:'first', baseFee:'10000', riskRatio:'15'}}
+    {label:'民事100万', labelEn:'Civil 1M', values:{caseType:'civil', region:'bj', amount:'1000000', stage:'first'}},
+    {label:'刑事审判', labelEn:'Criminal trial', values:{caseType:'criminal', region:'bj', amount:'0', stage:'first', criminalStageType:'trial'}},
+    {label:'计时高级20h', labelEn:'Senior 20h', values:{caseType:'hourly', region:'bj', amount:'0', stage:'first', lawyerLevel:'senior', hours:'20'}},
+    {label:'风险代理', labelEn:'Contingency', values:{caseType:'risk', region:'bj', amount:'500000', stage:'first', baseFee:'10000', riskRatio:'15'}}
   ], function(){ calculate(); });
 }
 function __lfMountHist(){
-  TBKit.history.mount('#lfHist', function(rec){ if(rec && rec.d){ var d=rec.d; document.getElementById('caseType').value=d.type||'civil'; document.getElementById('region').value=d.region||'first'; document.getElementById('amount').value=d.amount||0; document.getElementById('stage').value=d.stage||'first'; calculate(); } }, 8);
+  TBKit.history.mount('#lfHist', function(rec){ if(rec && rec.d){ var d=rec.d; document.getElementById('caseType').value=d.type||'civil'; document.getElementById('region').value=d.region||'bj'; document.getElementById('amount').value=d.amount||0; document.getElementById('stage').value=d.stage||'first'; calculate(); } }, 8);
 }
 function __lfBoot(){
   if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __lfExtras(); __lfPresets(); __lfMountHist(); }); }
