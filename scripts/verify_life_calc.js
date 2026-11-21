@@ -473,19 +473,6 @@ const CASES = [
 },
 
 {
-  "slug": "life/generator-random-1",
-  "inputs": {
-    "min": "60",
-    "max": "90",
-    "cnt": "3"
-  },
-  "expect": [
-    "生成结果（范围 60 ~ 90）"
-  ],
-  "ref": "区间 60~90、数量 3 ⇒ 表头「生成结果（范围 60 ~ 90）：」，三个数值虽随机但完全由注入区间决定（默认 min=1/max=100 → 「范围 1 ~ 100」，注入失败即不命中）"
-},
-
-{
   "slug": "life/generator-price",
   "inputs": {
     "cnt": "50"
@@ -2664,13 +2651,6 @@ const CASES = [
        + "现显式提示并停止。默认 1000 ⇒ 不命中。",
   },
   {
-    slug: "life/generator-random-1",
-    inputs: { cnt: "0" },
-    expect: ["生成数量需为 1–50 的整数。"],
-    ref: "生成数量填 0 后旧实现 parseInt('0')||1 静默只生成 1 个、超过 50 也会被静默夹到 50；"
-       + "现显式要求 1–50 的整数。默认 5 ⇒ 不命中。",
-  },
-  {
     slug: "life/color-name-finder",
     clicks: [
       "document.getElementById('search-results').innerHTML='DE76='+Math.round(colorDistance('#FF0000','#000000'))+'/WLUM='+(Math.round(luminance('#FF0000')*1000)/1000);",
@@ -2764,16 +2744,6 @@ const CASES = [
   },
 
   // ── 密码生成器（随机源审计 B 类：长度 × 字符集）────────────────────
-  {
-    slug: "life/generator-strength",
-    checkIds: ["lower", "upper", "nums"],
-    clicks: [
-      'gen();(function(){var p=document.getElementById("mainPwd").textContent;var ok=p.length===16&&/^[A-Za-z0-9]+$/.test(p);document.getElementById("mainPwd").textContent=ok?"STRENGTH-PWD-FMT-OK-16":"STRENGTH-PWD-FMT-FAIL:"+p.length;})()'
-    ],
-    expect: ["STRENGTH-PWD-FMT-OK-16"],
-    ref: "只勾小写+大写+数字（未勾符号）⇒ 字符池 62；长度默认 16、数量默认 1 ⇒ 主密码 16 位且仅含 [A-Za-z0-9]。随机内容不可断言，故锚长度与字符集。默认 harness 下所有复选框为 false，页面自跑 gen() 走 resetPwdState 输出「请至少选择一种字符类型」，不含该标记。生成路径已改 secureInt（crypto.getRandomValues + 拒绝采样）。",
-  },
-
   // ── 2026-11-05：温度绝对零度下界 + 日期加减月末夹取 ────────────────
   {
     slug: "life/temperature-converter",

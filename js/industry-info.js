@@ -2,7 +2,7 @@
 /* 数据来源：_build.py INDUSTRY_DEFS 短名（权威，268/268）+ 语义 emoji 映射；仅显示用短名，描述走页面 meta */
 window.INDUSTRY_INFO = {
   'it'                   : { name: 'IT 开发', icon: '💻', hot: 30280205 },
-  'life'                 : { name: '日常生活', icon: '🏠', hot: 11696608 },
+  'life'                 : { name: '日常生活', icon: '🏠', hot: 11659128 },
   'finance'              : { name: '金融财务', icon: '💰', hot: 9162763 },
   'design'               : { name: '设计创意', icon: '🎨', hot: 7146656 },
   'image'                : { name: '图像处理', icon: '🖼️', hot: 6073175 },
@@ -49,7 +49,7 @@ window.INDUSTRY_INFO = {
   'fitness'              : { name: '健身运动', icon: '🏋️', hot: 398538 },
   'fire-rescue'          : { name: '消防救援', icon: '🚒', hot: 393518 },
   'fishery'              : { name: '渔业水产', icon: '🎣', hot: 393163 },
-  'fluid'                : { name: '流体力学', icon: '💧', hot: 392102 },
+  'fluid'                : { name: '流体力学', icon: '💧', hot: 375054 },
   'aerospace'            : { name: '航空航天', icon: '🚀', hot: 373680 },
   'acoustics'            : { name: '声学', icon: '🔊', hot: 368391 },
   'banking'              : { name: '银行学', icon: '🏦', hot: 365384 },
@@ -162,7 +162,6 @@ window.INDUSTRY_INFO = {
   'rubber'               : { name: '橡胶制品', icon: '🧴', hot: 60929 },
   'research'             : { name: '科研学术', icon: '🎓', hot: 60405 },
   'funeral'              : { name: '殡葬服务', icon: '⚱️', hot: 60330 },
-  'film'                 : { name: '电影影视', icon: '🎞️', hot: 59841 },
   'jewelry'              : { name: '珠宝首饰', icon: '💎', hot: 57848 },
   'stage'                : { name: '舞台演出', icon: '🎭', hot: 57232 },
   'procurement'          : { name: '采购供应', icon: '🛒', hot: 56384 },
@@ -176,6 +175,7 @@ window.INDUSTRY_INFO = {
   'admin'                : { name: '行政管理', icon: '🗂️', hot: 51385 },
   'floral'               : { name: '花艺设计', icon: '💐', hot: 50212 },
   'maritime'             : { name: '海事航运', icon: '⚓', hot: 48196 },
+  'film'                 : { name: '电影影视', icon: '🎞️', hot: 47104 },
   'legal2'               : { name: '劳动法律', icon: '⚖️', hot: 47010 },
   'cognition'            : { name: '认知与脑力训练', icon: '🧠', hot: 46930 },
   'chinese-cook'         : { name: '中式烹饪', icon: '🥘', hot: 44833 },
