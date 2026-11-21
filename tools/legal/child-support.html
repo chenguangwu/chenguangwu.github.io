@@ -303,13 +303,17 @@ function calculate(){
   const childCount = Math.max(1, parseInt(document.getElementById('childCount').value) || 1);
   const childAge = parseInt(document.getElementById('childAge').value) || 0;
   const livingCost = parseFloat(document.getElementById('livingCost').value) || 0;
-  if(income<0||livingCost<0||childAge<0||childAge>18){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 月收入与当地生活成本不能为负，子女年龄须在 0–18 岁。</p>';return;}
+  if(income<=0){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 月收入须大于 0；无固定收入请按当年总收入或同行业平均收入，或以财物折抵。</p>';return;}
+  if(livingCost<0||childAge<0||childAge>18){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 当地生活成本不能为负，子女年龄须在 0–18 岁。</p>';return;}
   const ratioSelect = document.getElementById('paymentRatio').value;
   const hasSpecial = document.getElementById('hasSpecialExpense').checked;
   
   let ratio;
   if(ratioSelect === 'custom'){
-    ratio = (parseFloat(document.getElementById('customRatio').value) || 25) / 100;
+    var __cr=String(document.getElementById('customRatio').value).trim();
+    if(__cr===''||isNaN(parseFloat(__cr))){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写有效的自定义比例（0–50%）。</p>';return;}
+    ratio = parseFloat(__cr) / 100;
+    if(ratio < 0.1){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 自定义比例须不低于 10%。</p>';return;}
   }else{
     ratio = parseFloat(ratioSelect);
   }
@@ -318,8 +322,8 @@ function calculate(){
   if(ratio < 0){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 抚养费支付比例不能为负。</p>';return;}
   if(ratio > 0.5) ratio = 0.5;
   
-  let baseSupport = income * ratio;
-  baseSupport = Math.max(baseSupport, livingCost);
+  const ratioSupport = income * ratio;
+  let baseSupport = Math.max(ratioSupport, livingCost);
   const perChildSupport = baseSupport / childCount;
   
   const yearsTo18 = Math.max(0, 18 - childAge);
@@ -332,15 +336,18 @@ function calculate(){
     specialMonthly = (specialAnnual * specialRatio) / 12;
   }
   
-  const totalMonthly = baseSupport + specialMonthly;
+  const totalMonthly = monthsTo18 > 0 ? (baseSupport + specialMonthly) : 0;
   const totalAll = totalMonthly * monthsTo18;
   
   let html = `<p>${csL('支付方月收入：','Payer monthly income:')}<strong>${ToolBox.formatNumber(income)}</strong> ${csL('元','CNY')}</p>`;
   html += `<p>${csL('支付比例：','Payment ratio:')}<strong>${Math.round(ratio*100)}%</strong>${ratio >= 0.5 ? ' '+csL('（已按 50% 上限计）','(capped at 50%)') : ''}</p>`;
+  if(childCount > 1 && ratio < 0.4){ html += `<p style="color:#ff9800;font-size:12px;">${csL('提示：两名及以上子女通常参考 40%–50%，当前比例偏低，可在上方切换。','Tip: two or more children usually reference 40%–50%; the current ratio is low.')}</p>`; }
   html += `<p>${csL('子女数量：','Number of children:')}<strong>${childCount}</strong> ${csL('名，每名子女/月：','child(ren), per child/month:')}<strong>${ToolBox.formatNumber(perChildSupport)}</strong> ${csL('元','CNY')}</p>`;
   html += `<p>${csL('子女年龄：','Child age:')}${childAge}${csL('岁，距成年还有','yr, years to adulthood:')} <strong>${yearsTo18}</strong> ${csL('年（','yr (')}${monthsTo18}${csL('个月）','mo)')}</p>`;
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>${csL('基础抚养费合计/月（全部子女）：','Total base support/mo (all children):')}<strong>${ToolBox.formatNumber(baseSupport)}</strong> ${csL('元','CNY')} ${baseSupport === livingCost ? '<span style="color:#ff9800;font-size:12px;">（'+csL('不低于当地生活水平','not below local living standard')+'）</span>' : ''}</p>`;
+  html += `<p>${csL('比例法金额/月：','Ratio-based amount/mo:')}<strong>${ToolBox.formatNumber(ratioSupport)}</strong> ${csL('元；当地生活水平参考下限：','CNY; local living floor:')}${ToolBox.formatNumber(livingCost)} ${csL('元，取较高者。','CNY, higher applies.')}</p>`;
+  html += `<p>${csL('基础抚养费合计/月（全部子女）：','Total base support/mo (all children):')}<strong>${ToolBox.formatNumber(baseSupport)}</strong> ${csL('元','CNY')} ${ratioSupport < livingCost ? '<span style="color:#ff9800;font-size:12px;">（'+csL('按当地生活水平下限计','at local living floor')+'）</span>' : ''}</p>`;
+  if(monthsTo18 === 0){ html += `<p style="color:#ff9800;">${csL('子女已满 18 岁，未来月付按 0 计；历史欠付请另行核算。','Child is 18 or older; future monthly support is 0. Arrears must be calculated separately.')}</p>`; }
   if(hasSpecial){
     html += `<p>${csL('教育/医疗分摊/月：','Edu/medical share/mo:')}${ToolBox.formatNumber(specialMonthly)} ${csL('元','CNY')}</p>`;
   }

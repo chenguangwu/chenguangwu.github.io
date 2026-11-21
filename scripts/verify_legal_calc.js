@@ -835,7 +835,7 @@ const CASES = [
       "calcType": "days"
     },
     "expect": [
-      "42\n20.83\n42\ndays\n42\n42\n日工资： 2.0"
+      "42\n20.83\n42\ndays\n42\n42\n42\n42\n42\n日工资： 2.0"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"monthlySalary\":\"42\",\"hoursPerDay\":\"42\",\"weekdayHours\":\"42\",\"weekendHours\":\"42\",\"holidayHours\":\"42\",\"weekendDays\":\"42\",\"holidayDays\":\"42\",\"workDays\":\"20.83\",\"calcType\":\"days\"}，输出区含「42\n20.83\n42\ndays\n42\n42\n日工资： 2.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -986,7 +986,7 @@ const CASES = [
   {
     "slug": "legal/child-support",
     "inputs": {"monthlyIncome": "-100", "childCount": "1", "childAge": "5", "livingCost": "2000", "paymentRatio": "0.3"},
-    "expect": ["⚠ 月收入与当地生活成本不能为负，子女年龄须在 0–18 岁。"],
+    "expect": ["⚠ 月收入须大于 0；无固定收入请按当年总收入或同行业平均收入，或以财物折抵。"],
     "ref": "负月收入会算出负抚养费；新守卫应拒绝。默认 10000/1/5/2000 不含该提示。"
   },
 
