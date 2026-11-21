@@ -282,6 +282,7 @@ function calc(){
     R.innerHTML='<div class="safe-val">--</div><div class="safe-sub">请输入有效的电压、电流与输出功率</div>';
     G.innerHTML='';F.innerHTML='';A.innerHTML='';return;
   }
+  if(pout>volt*cur){R.innerHTML='<div class="safe-val">--</div><div class="safe-sub">输出功率不能大于输入电功率 U×I，请核对同工况数据</div>';G.innerHTML='';F.innerHTML='';A.innerHTML='';return;}
   var pin=volt*cur;
   var eff=(pin>0)?pout/pin*100:0;
   var loss=pin-pout;
@@ -293,18 +294,19 @@ function calc(){
     '<div class="dist-card"><div class="v">'+fmtLocal(pout,0)+'</div><div class="l">输出机械功率 (W)</div></div>'+
     '<div class="dist-card"><div class="v">'+fmtLocal(eff,1)+'%</div><div class="l">起动机效率</div></div>'+
     '<div class="dist-card"><div class="v">'+fmtLocal(loss,0)+'</div><div class="l">发热损耗 (W)</div></div>'+
-    '<div class="dist-card"><div class="v">'+fmtLocal(res,4)+'</div><div class="l">等效回路电阻 (Ω)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtLocal(res,4)+'</div><div class="l">U/I 等效阻抗 (Ω，含反电动势)</div></div>'+
     '<div class="dist-card"><div class="v">'+fmtLocal(tq,2)+'</div><div class="l">输出扭矩 (N·m)</div></div>';G.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   const __g7='<div class="fb-title">核心公式</div>'+
     '<div class="fb-row">输入电功率 Pin = 端电压 U × 启动电流 I</div>'+
     '<div class="fb-row">起动机效率 η = 输出机械功率 Pout ÷ 输入电功率 Pin</div>'+
     '<div class="fb-row">发热损耗 = Pin − Pout（铜损 + 铁损 + 机械损耗）</div>'+
-    '<div class="fb-row">等效回路电阻 R = U ÷ I；由转速反推扭矩 T = 9550 × Pout ÷ n</div>'+
+    '<div class="fb-row">U/I 等效阻抗 R_eq = U ÷ I（含反电动势，不能当作线缆/电枢纯电阻）；由转速反推扭矩 T = 9550 × Pout ÷ n</div>'+
     '<div class="fb-row">本次：'+fmtLocal(volt,1)+' V × '+fmtLocal(cur,0)+' A = '+fmtLocal(pin,0)+' W，效率 '+fmtLocal(eff,1)+'%</div>';F.innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
   var ad='';
   if(eff<ref){ ad='<div class="tip-warn">⚠️ 效率 '+fmtLocal(eff,1)+'% 低于健康下限 '+fmtLocal(ref,0)+'%：优先排查电瓶端电压与线缆压降，再检查电枢、碳刷磨损与机械卡滞。</div>'; }
-  else if(eff>85){ ad='<div class="tip-warn">⚠️ 效率 '+fmtLocal(eff,1)+'% 明显高于直流起动机典型区间（60%~75%），请核对输出功率与电流是否为同一工况所测。</div>'; }
-  else{ ad='<div class="tip-success">✅ 效率 '+fmtLocal(eff,1)+'% 处于直流起动机典型区间（60%~75%），供电链路与起动机状态正常。</div>'; }
+  else if(eff>75){ ad='<div class="tip-warn">⚠️ 效率 '+fmtLocal(eff,1)+'% 高于直流起动机典型区间（60%~75%），若超过 85% 请核对 Pout 与 U/I 是否为同一工况所测。</div>'; }
+  else if(eff>=60){ ad='<div class="tip-success">✅ 效率 '+fmtLocal(eff,1)+'% 处于直流起动机典型区间（60%~75%）。</div>'; }
+  else{ ad='<div class="tip-warn">⚠️ 效率 '+fmtLocal(eff,1)+'% 低于直流起动机典型区间（60%~75%），先查电瓶端电压、线缆压降与机械卡滞。</div>'; }
   ad+='<div class="tip-info">ℹ️ 启动瞬间端电压跌破 9V 且带不动，多为电瓶亏电、桩头氧化或起动机卡滞；冷启动电流偏大、效率略低属正常。</div>';
   const __g8=ad;A.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
 }
