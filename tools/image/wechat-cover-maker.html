@@ -119,7 +119,17 @@
         <label>文字颜色</label>
         <input id="textColor" type="color" value="#ffffff" onchange="render()">
       </div>
+      <div>
+        <label>导出尺寸</label>
+        <select id="coverSize">
+          <option value="900x383">公众号首图 900×383</option>
+          <option value="200x200">次条 200×200</option>
+          <option value="1080x1080">分享卡 1080×1080</option>
+          <option value="360x200">缩略图 360×200</option>
+        </select>
+      </div>
     </div>
+    <p style="font-size:12.5px;color:var(--text-muted);margin-top:6px;">预览固定 900×383；下载时按所选尺寸等比放大后居中裁切，超出比例的部分会被裁掉。</p>
 
 <div id="wcPresets" style="margin:10px 0;"></div>
     <div class="toolbar">
@@ -191,20 +201,24 @@
 </div>
 <script>
 function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-  const words = String(text).split('');
+  const raw = String(text);
+  // 中文按字断行；纯英文/数字按词断行，避免把单词从中间截断。
+  const hasCJK = /[\u4e00-\u9fff]/.test(raw);
+  const tokens = hasCJK ? Array.from(raw) : raw.split(/(\s+)/).filter(function(t){ return t !== ''; });
   let line = '';
   let lines = [];
-  for (const ch of words) {
-    const test = line + ch;
+  for (const tk of tokens) {
+    if (!hasCJK && /^\s+$/.test(tk) && line === '') continue;
+    const test = line + tk;
     const w = ctx.measureText(test).width;
     if (w > maxWidth && line) {
-      lines.push(line);
-      line = ch;
+      lines.push(hasCJK ? line : line.replace(/\s+$/,''));
+      line = hasCJK ? tk : tk.replace(/^\s+/,'');
     } else {
       line = test;
     }
   }
-  if (line) lines.push(line);
+  if (line && line.trim()) lines.push(hasCJK ? line : line.replace(/\s+$/,''));
 
   lines.forEach((ln, i) => {
     ctx.fillText(ln, x, y + i * lineHeight);
@@ -254,14 +268,25 @@ function render() {
 
 function download() {
   const c = document.getElementById('cover');
-  try { c.toBlob(function (blob) {
+  const sel = document.getElementById('coverSize');
+  const parts = (sel ? sel.value : '900x383').split('x');
+  const tw = Math.max(1, parseInt(parts[0],10) || 900);
+  const th = Math.max(1, parseInt(parts[1],10) || 383);
+  const out = document.createElement('canvas');
+  out.width = tw; out.height = th;
+  const octx = out.getContext('2d');
+  // 等比放大到刚好覆盖目标画布，再居中裁切；不做非等比拉伸，避免标题变形。
+  const scale = Math.max(tw / c.width, th / c.height);
+  const dw = c.width * scale, dh = c.height * scale;
+  octx.drawImage(c, (tw - dw) / 2, (th - dh) / 2, dw, dh);
+  try { out.toBlob(function (blob) {
     if (!blob) { ToolBox.showToast('导出失败：浏览器未能生成 PNG（画布可能被污染）', 'error'); return; }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'wechat-cover.png';
+    a.download = 'wechat-cover-' + tw + 'x' + th + '.png';
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
   }, 'image/png'); } catch (e) { ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误")), 'error'); }
 }
 

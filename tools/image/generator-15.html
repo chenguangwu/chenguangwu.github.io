@@ -109,10 +109,13 @@
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🖼️ 圆角图片（生成带圆角的PNG）">Rounded Corner Image</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="生成带圆角的PNG">Rounded Corner Image - generate results in-browser quickly and keep all data local.</p>
-<div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
-<div class="toolbar"><div id="generator_15Presets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_15Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
-<div class="result-box" id="res"></div> <div id="generator_15Table"></div> <div id="generator_15Diff"></div> <div id="generator_15Chart"></div> <div id="generator_15Hist"></div>
-  </div>
+<div class="input-row">
+  <div><label>上传图片（可多选，最多 12 张）</label><input type="file" id="rcFiles" accept="image/png,image/jpeg,image/webp" multiple onchange="rcRender()"></div>
+  <div><label>圆角模式</label><select id="rcMode" onchange="rcRender()"><option value="pct">按短边百分比</option><option value="px">固定像素</option></select></div>
+  <div><label>圆角值</label><input type="number" id="rcRadius" value="20" min="0" max="100" step="1" oninput="rcRender()"></div>
+</div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="rcRender()">生成圆角图</button><button class="btn" type="button" onclick="rcDownloadAll()">全部下载</button><button class="btn" type="button" onclick="__generator_15Export()">导出明细 CSV</button></div>
+<div class="result-box" id="res"></div>  </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -186,35 +189,68 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function randColor() {
-  return '#' + Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, '0');
+var rcItems = [];
+function rcT(zh,en){ return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh; }
+function rcRadiusFor(w,h,val,mode){
+  var v = Math.max(0, parseFloat(val)||0);
+  if(mode==='pct'){ v = Math.min(50, v); return Math.round(Math.min(w,h)*v/100); }
+  return Math.round(Math.min(v, Math.min(w,h)/2));
 }
-function gen() {
-  if (!document.getElementById('cnt').value.trim()) { document.getElementById('res').innerHTML = '<p>请输入生成数量（1–50）后再生成。</p>'; return; }
-  const n = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
-  let html = '<p style="margin-bottom:8px;">生成圆角图片预览（共 ' + n + ' 张，右键可保存）：</p>';
-  html += '<div style="display:flex;flex-wrap:wrap;gap:12px;">';
-  const items = [];
-  for (let i = 1; i <= n; i++) {
-    const color = randColor();
-    const radius = Math.floor(Math.random() * 30) + 10;
-    const id = 'rc-' + i;
-    items.push({ id, color, radius });
-    html += `<div style="text-align:center;"><canvas id="${id}" width="120" height="120" style="display:block;margin:0 auto;background:#fff;border:1px solid var(--border-color);"></canvas><span style="font-size:12px;color:var(--text-muted);">r=${radius}px</span></div>`;
-  }
-  html += '</div>';
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;
-  for (const it of items) {
-    const canvas = document.getElementById(it.id);
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = it.color;
-    ctx.beginPath();
-    ctx.roundRect(10, 10, 100, 100, it.radius);
-    ctx.fill();
-  }
+function rcRender(){
+  var box=document.getElementById('res');
+  var files=document.getElementById('rcFiles').files;
+  var mode=document.getElementById('rcMode').value;
+  var val=document.getElementById('rcRadius').value;
+  if(!files || !files.length){ box.innerHTML='<p>'+rcT('请先上传 1–12 张图片；全程本地处理，不上传服务器。','Upload 1–12 images first; all processing stays local.')+'</p>'; rcItems=[]; return; }
+  if(!val.trim()){ box.innerHTML='<p style="color:var(--danger)">'+rcT('请填写圆角值。','Enter a radius value.')+'</p>'; return; }
+  var list=Array.prototype.slice.call(files).slice(0,12);
+  if(files.length>12){ ToolBox.showToast(rcT('一次最多处理 12 张，已取前 12 张','Max 12 images; using the first 12'),'warn'); }
+  rcItems=[]; box.innerHTML='<p>'+rcT('正在生成…','Generating…')+'</p>';
+  var seq=Promise.resolve();
+  list.forEach(function(f,idx){
+    seq=seq.then(function(){
+      return new Promise(function(resolve){
+        if(!/^image\/(png|jpeg|webp)$/.test(f.type)){ resolve(); return; }
+        var url=URL.createObjectURL(f); var img=new Image();
+        img.onload=function(){
+          var c=document.createElement('canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight;
+          var ctx=c.getContext('2d');
+          var r=rcRadiusFor(c.width,c.height,val,mode);
+          ctx.beginPath(); ctx.roundRect(0,0,c.width,c.height,r); ctx.clip();
+          ctx.drawImage(img,0,0);
+          var data=c.toDataURL('image/png');
+          var name=f.name.replace(/\.(png|jpe?g|webp)$/i,'')+'-rounded.png';
+          rcItems.push({canvas:c,name:name,data:data,r:r,w:c.width,h:c.height});
+          URL.revokeObjectURL(url); resolve();
+        };
+        img.onerror=function(){ URL.revokeObjectURL(url); ToolBox.showToast(rcT('无法解码：'+f.name,'Cannot decode: '+f.name),'error'); resolve(); };
+        img.src=url;
+      });
+    });
+  });
+  seq.then(function(){
+    if(!rcItems.length){ box.innerHTML='<p style="color:var(--danger)">'+rcT('没有可处理的图片（仅支持 PNG/JPEG/WebP）。','No processable images (PNG/JPEG/WebP only).')+'</p>'; return; }
+    var html='<p style="margin-bottom:8px;">'+rcT('已生成 '+rcItems.length+' 张，四角透明、可直接下载：','Generated '+rcItems.length+' transparent-corner PNGs:')+'</p><div style="display:flex;flex-wrap:wrap;gap:14px;">';
+    rcItems.forEach(function(it,i){
+      html+='<div style="text-align:center;max-width:220px;"><img alt="圆角预览" src="'+it.data+'" style="max-width:200px;max-height:200px;border:1px dashed var(--border-color);background:repeating-conic-gradient(#eee 0% 25%,#fff 0% 50%) 50%/12px 12px;"><br><span style="font-size:12px;color:var(--text-muted);">'+it.w+'×'+it.h+' · r='+it.r+'px</span><br><a class="btn" style="margin-top:6px;" download="'+it.name+'" href="'+it.data+'">下载 PNG</a></div>';
+    });
+    html+='</div>';
+    box.innerHTML=html;
+  });
 }
-gen();
-function copyRes() { ToolBox.copyText(document.getElementById('res').innerText); }
+function rcDownloadAll(){
+  if(!rcItems.length){ ToolBox.showToast(rcT('请先生成圆角图','Generate first'),'warn'); return; }
+  var i=0;
+  function next(){
+    if(i>=rcItems.length) return;
+    var it=rcItems[i++];
+    var a=document.createElement('a'); a.href=it.data; a.download=it.name; a.click();
+    setTimeout(next,400);
+  }
+  ToolBox.showToast(rcT('正在逐张下载，请允许浏览器「多文件下载」','Downloading one by one; allow multiple downloads'),'info');
+  next();
+}
+function copyRes(){ ToolBox.copyText(document.getElementById('res').innerText); }
 </script>
 
 <!-- SEO 介绍区块 -->

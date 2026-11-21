@@ -315,9 +315,21 @@ function renderPresets() {
 }
 
 function applyPreset(i) {
-  document.querySelectorAll('.filter-btn').forEach((b, idx) => b.classList.toggle('active', idx === i));
-  currentFilter = PRESETS[i].filter;
-  document.getElementById('preview-img').style.filter = currentFilter;
+  var preset = PRESETS[i].filter || '';
+  // 预设必须回写滑杆：否则下一次拖动任一滑杆会按旧滑杆值重建 filter，预设立即丢失。
+  ['brightness','contrast','saturate'].forEach(function(id){ document.getElementById(id).value = 100; });
+  ['grayscale','sepia','invert','blur','hue'].forEach(function(id){ document.getElementById(id).value = 0; });
+  var m;
+  if((m=preset.match(/brightness\((\d+)%\)/))) document.getElementById('brightness').value = m[1];
+  if((m=preset.match(/contrast\((\d+)%\)/))) document.getElementById('contrast').value = m[1];
+  if((m=preset.match(/saturate\((\d+)%\)/))) document.getElementById('saturate').value = m[1];
+  if((m=preset.match(/hue-rotate\((-?\d+)deg\)/))) document.getElementById('hue').value = m[1];
+  if((m=preset.match(/blur\((\d+(?:\.\d+)?)px\)/))) document.getElementById('blur').value = Math.round(parseFloat(m[1]));
+  if((m=preset.match(/grayscale\((\d+)%\)/))) document.getElementById('grayscale').value = m[1];
+  if((m=preset.match(/sepia\((\d+)%\)/))) document.getElementById('sepia').value = m[1];
+  if((m=preset.match(/invert\((\d+)%\)/))) document.getElementById('invert').value = m[1];
+  applyFilter();
+  document.querySelectorAll('.filter-btn').forEach(function(b, idx){ b.classList.toggle('active', idx === i); });
 }
 
 function applyFilter() {
@@ -360,7 +372,16 @@ function downloadFiltered() {
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
-  ctx.filter = currentFilter;
+  // 预览被 CSS 缩到 max-height:400px；同一个 blur(Npx) 在原图上视觉强度只有预览的 1/缩放倍。
+  // 导出时按 naturalWidth / 预览 clientWidth 放大 blur，使成图接近所见。
+  var previewEl = document.getElementById('preview-img');
+  var displayW = previewEl ? previewEl.clientWidth : 0;
+  var exportFilter = currentFilter;
+  if(displayW > 0 && w > displayW){
+    var scale = w / displayW;
+    exportFilter = exportFilter.replace(/blur\((\d+(?:\.\d+)?)px\)/g, function(_, n){ return 'blur(' + (parseFloat(n) * scale).toFixed(2) + 'px)'; });
+  }
+  ctx.filter = exportFilter;
   ctx.drawImage(originalImg, 0, 0, w, h);
   try { canvas.toBlob(blob => {
     if (!blob) {

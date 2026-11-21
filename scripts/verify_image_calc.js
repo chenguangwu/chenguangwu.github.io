@@ -5,13 +5,11 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
   "slug": "image/generator-15",
-  "inputs": {
-    "cnt": "8"
-  },
+  "clicks": ["document.getElementById('__tbProbe').textContent='RC '+rcRadiusFor(400,300,50,'pct')+'|'+rcRadiusFor(400,300,20,'px')+'|'+rcRadiusFor(100,100,80,'pct');"],
   "expect": [
-    "共 8 张"
+    "RC 150|20|50"
   ],
-  "ref": "auto-restore-structural（原断言为静态标题，注入失败仍命中 → 逃生项；改为断言条数/第8条）"
+  "ref": "第206批·真实圆角半径：400×300 短边 300 的 50%=150px；固定 20px=20；百分比上限 50% ⇒ 100×100 的 80% 被夹到 50px。旧随机半径实现无此函数 ⇒ 失败。"
 },
 {
   "slug": "image/id-photo-crop",
@@ -272,11 +270,16 @@ const CASES = [
 },
 {
   "slug": "image/generator-15",
-  "inputs": { "cnt": "" },
-  "expect": ["请输入生成数量（1–50）后再生成。"],
-  "ref": "空态回归：生成数量清空时旧实现 `parseInt||5` 仍生成 5 张预览；现要求提示且不出图。默认态含「共 5 张」不含该提示 ⇒ 强判别。"
-}
-,
+  "clicks": ["var f=document.getElementById('rcRadius');f.value='';var ff=document.getElementById('rcFiles');Object.defineProperty(ff,'files',{value:[],configurable:true});rcRender();"],
+  "expect": ["请先上传 1–12 张图片"],
+  "ref": "第206批·无文件空态：不生成任何随机色块，明确提示先上传；旧实现会直接画随机圆角色块 ⇒ 强判别。"
+},
+{
+  "slug": "image/image-filter",
+  "clicks": ["var i=PRESETS.findIndex(function(p){return p.name==='梦幻';});applyPreset(i);document.getElementById('__tbProbe').textContent='FLT '+document.getElementById('brightness').value+'|'+document.getElementById('blur').value+'|'+document.getElementById('saturate').value;"],
+  "expect": ["FLT 110|1|130"],
+  "ref": "第207批·预设回写滑杆：梦幻 preset 必须把亮度 110、模糊 1px、饱和 130 写回输入；旧 applyPreset 只改 CSS ⇒ 滑杆仍是默认 100|0|100，零交集。"
+},
 {
   "slug": "image/id-photo-crop",
   "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
@@ -388,6 +391,16 @@ function batch204StaticChecks(){
   var out=[];
   out.push({name:"B204 platform presets",ok:src.indexOf('setPlatformSize(1242,1660')>=0&&src.indexOf('setPlatformSize(900,383')>=0&&src.indexOf('function setPlatformSize(w,h,label)')>=0});
   var cmp = fs.readFileSync("tools/image/image-compress.html","utf8");
+  var rc = fs.readFileSync("tools/image/generator-15.html","utf8");
+  var idp = fs.readFileSync("tools/image/id-photo-crop.html","utf8");
+  out.push({name:"B207 id-photo onerror clears",ok:idp.indexOf('srcImg = null;')>=0&&idp.indexOf('无法解码该图片')>=0});
+  var rot = fs.readFileSync("tools/image/image-rotate.html","utf8");
+  out.push({name:"B207 rotate filename after decode",ok:(function(){var i=rot.indexOf('img.onload = function()');var j=rot.indexOf('fileName =',i);var k=rot.indexOf('img.onerror',i);return i>=0&&j>i&&k>j;})()});
+  var wc = fs.readFileSync("tools/image/wechat-cover-maker.html","utf8");
+  out.push({name:"B207 cover sizes",ok:wc.indexOf('id="coverSize"')>=0&&wc.indexOf('Math.max(tw / c.width, th / c.height)')>=0&&wc.indexOf('const hasCJK')>=0});
+  var flt = fs.readFileSync("tools/image/image-filter.html","utf8");
+  out.push({name:"B207 filter preset sync",ok:flt.indexOf("document.getElementById('brightness').value = m[1]")>=0&&flt.indexOf('exportFilter')>=0});
+  out.push({name:"B206 real rounded image",ok:rc.indexOf('id="rcFiles"')>=0&&rc.indexOf('function rcRender()')>=0&&rc.indexOf('function rcRadiusFor(')>=0&&rc.indexOf('function randColor()')<0});
   out.push({name:"B205 target volume",ok:cmp.indexOf("function compressToTarget(img,s,targetBytes)")>=0&&cmp.indexOf("targetSize")>=0&&cmp.indexOf("tries++>=7")>=0});
   return out;
 }
