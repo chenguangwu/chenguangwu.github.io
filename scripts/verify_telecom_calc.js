@@ -19,6 +19,12 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "telecom/ap-coverage",
+  "inputs": { "ptx": "20", "gt": "3", "freq": "5200", "prmin": "-82", "gr": "2", "extraLoss": "10", "fadeMargin": "8", "env": "2" },
+  "expect": [ "室内密集(隔墙多) / 5GHz 及以上", "保守布点半径" ],
+  "ref": "5GHz+室内密集：良好阈值 12×0.6=7.2m、一般 5×0.6=3m；结果必须显示环境/频段分档与 70% 保守半径，旧版固定 50/15/3m 且无频段折算。"
+},
+{
   "slug": "telecom/bandwidth-calculator",
   "inputs": {
     "bandwidth": "100",
