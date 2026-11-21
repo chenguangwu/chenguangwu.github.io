@@ -159,6 +159,8 @@ var sceneMeasures={
   data:'访问控制/数据加密/备份恢复/入侵检测/安全审计',
   production:'安全培训/设备点检/作业许可/防护装置/应急演练'
 };
+function escRisk(x){return String(x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
 function renderRows(){
   var c=document.getElementById('riskRows');
   c.innerHTML='';
@@ -166,7 +168,7 @@ function renderRows(){
     var div=document.createElement('div');
     div.style.cssText='border:1px solid var(--border-color);border-radius:12px;padding:10px;margin-bottom:8px;';
     const __g2='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'+
-      '<input type="text" value="'+r.name+'" placeholder="风险点名称" style="font-weight:600;border:none;background:transparent;font-size:16px;flex:1;" onchange="riskData['+i+'].name=this.value;calc()" aria-label="风险点名称">'+
+      '<input type="text" value="'+escRisk(r.name)+'" placeholder="风险点名称" style="font-weight:600;border:none;background:transparent;font-size:16px;flex:1;" onchange="riskData['+i+'].name=this.value;calc()" aria-label="风险点名称">'+
       '<button type="button" onclick="removeRisk('+i+')" style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:18px;margin-left:8px;" aria-label="删除">×</button>'+
       '</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'+
@@ -201,6 +203,10 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
     return{name:r.name,likelihood:r.likelihood,impact:r.impact,value:value,level:level,color:color,action:action};
   });
   results.sort(function(a,b){return b.value-a.value;});
+  if(results.length===0){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);font-weight:600;">未录入风险点，请先添加风险点后再评估；空表不代表低风险。</p>';
+    return;
+  }
   /* 统计 */
   var high=results.filter(function(r){return r.value>=10;}).length;
   var mid=results.filter(function(r){return r.value>=5&&r.value<10;}).length;
@@ -222,7 +228,7 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
   /* 风险列表 */
   html+='<table style="margin-top:10px;"><thead><tr><th>风险点</th><th>可能性</th><th>影响</th><th>风险值</th><th>等级</th><th>防控措施</th></tr></thead><tbody>';
   results.forEach(function(r){
-    html+='<tr style="background:'+(r.value>=10?'rgba(239,68,68,0.05)':'')+';"><td>'+r.name+'</td><td>'+r.likelihood+'</td><td>'+r.impact+'</td><td style="font-weight:700;color:'+r.color+';">'+r.value+'</td><td style="color:'+r.color+';font-weight:600;">'+r.level+'</td><td style="font-size:13px;">'+r.action+'</td></tr>';
+    html+='<tr style="background:'+(r.value>=10?'rgba(239,68,68,0.05)':'')+';"><td>'+escRisk(r.name)+'</td><td>'+r.likelihood+'</td><td>'+r.impact+'</td><td style="font-weight:700;color:'+r.color+';">'+r.value+'</td><td style="color:'+r.color+';font-weight:600;">'+r.level+'</td><td style="font-size:13px;">'+r.action+'</td></tr>';
   });
   html+='</tbody></table>';
 
@@ -247,7 +253,7 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
   html+='<strong>防控措施方向：</strong>'+sceneMeasures[scene]+'<br>';
   if(high>0){html+='<strong>优先处置：</strong>'+results.filter(function(r){return r.value>=10;}).map(function(r){return r.name;}).join('、')+'，需立即制定专项整改方案。';}
   html+='</div>';
-  const __g3=html;try{ if(typeof value==='number'&&isFinite(value)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:value,unit:'',bands:[{"lo":16,"hi":null,"label":{"zh":"极高风险","en":"Very high risk"},"color":"var(--danger)"},{"lo":10,"hi":16,"label":{"zh":"高风险","en":"High risk"},"color":"#E53935"},{"lo":5,"hi":10,"label":{"zh":"中风险","en":"Moderate risk"},"color":"var(--warning)"},{"lo":null,"hi":5,"label":{"zh":"低风险","en":"Low risk"},"color":"var(--success)"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+  const __g3=html;try{ if(typeof maxRisk==='number'&&isFinite(maxRisk)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:maxRisk,unit:'',bands:[{"lo":16,"hi":null,"label":{"zh":"极高风险","en":"Very high risk"},"color":"var(--danger)"},{"lo":10,"hi":16,"label":{"zh":"高风险","en":"High risk"},"color":"#E53935"},{"lo":5,"hi":10,"label":{"zh":"中风险","en":"Moderate risk"},"color":"var(--warning)"},{"lo":null,"hi":5,"label":{"zh":"低风险","en":"Low risk"},"color":"var(--success)"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){

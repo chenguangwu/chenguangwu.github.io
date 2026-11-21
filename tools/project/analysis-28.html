@@ -202,17 +202,25 @@ function renderSh(){
   var html='';
   shData.forEach(function(s,idx){
     html+='<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">';
-    html+='<input type="text" id="sn'+idx+'" value="'+ToolBox.escHtml(s.name)+'" placeholder="干系人名称" style="flex:2;padding:8px 10px;border-radius:10px;border:1px solid var(--border);font-size:14px;">';
-    html+='<select id="sp'+idx+'" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--border);font-size:14px;">'+opt(5,s.p,'p')+'</select>';
-    html+='<select id="si'+idx+'" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--border);font-size:14px;">'+opt(5,s.i,'i')+'</select>';
+    html+='<input type="text" id="sn'+idx+'" value="'+ToolBox.escHtml(s.name)+'" placeholder="干系人名称" oninput="syncSh()" style="flex:2;padding:8px 10px;border-radius:10px;border:1px solid var(--border);font-size:14px;">';
+    html+='<select id="sp'+idx+'" onchange="syncSh()" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--border);font-size:14px;">'+opt(5,s.p,'p')+'</select>';
+    html+='<select id="si'+idx+'" onchange="syncSh()" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--border);font-size:14px;">'+opt(5,s.i,'i')+'</select>';
     html+='<div onclick="delSh('+idx+')" title="删除" style="flex:0 0 36px;height:36px;line-height:34px;text-align:center;border-radius:10px;border:1px solid var(--border);color:var(--danger);cursor:pointer;">×</div>';
     html+='</div>';
   });
   const __g1=html;document.getElementById('shList').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function opt(n,v,kind){var h='';var lbl=kind==='p'?'权力':'利益';for(var k=1;k<=n;k++){h+='<option value="'+k+'"'+(k===v?' selected':'')+'>'+lbl+' '+k+'</option>';}return h;}
-function addSh(){shData.push({name:'',p:3,i:3});renderSh();}
-function delSh(i){if(shData.length<=1){ToolBox.showToast('至少保留一名干系人','warning');return;}shData.splice(i,1);renderSh();}
+function syncSh(){
+  shData.forEach(function(s,idx){
+    var n=document.getElementById('sn'+idx); var p=document.getElementById('sp'+idx); var i=document.getElementById('si'+idx);
+    if(n) s.name=n.value;
+    if(p) s.p=parseInt(p.value,10)||1;
+    if(i) s.i=parseInt(i.value,10)||1;
+  });
+}
+function addSh(){syncSh();shData.push({name:'',p:3,i:3});renderSh();}
+function delSh(i){syncSh();if(shData.length<=1){ToolBox.showToast('至少保留一名干系人','warning');return;}shData.splice(i,1);renderSh();}
 function calc(){
 // NUMCLR2：全部数值/日期输入为空时不输出 0 与结论
 var __ni=Array.prototype.slice.call(document.querySelectorAll('input[type=number],input[type=date]'));
@@ -229,13 +237,13 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
     else if(p<3&&i>=3){level='随时告知';strategy='周报/评审会保持信息透明';color='var(--info)';}
     else{level='监控观察';strategy='最低成本监测动态';color='var(--success)';}
     if(score>maxScore)maxScore=score;
-    if(score>=10)highList.push(name+'（'+score+'分）');
+    if(p>=3&&i>=3)highList.push(name+'（关注度 '+score+'）');
     rows.push([name,'权力'+p+'·利益'+i,score,level,strategy]);
   });
   var h='<p>最高关注度：<strong style="font-size:28px;color:var(--primary);">'+maxScore+'</strong> / 25</p>';
   h+=ToolBox.createTable(['干系人','权力·利益','关注度','象限','应对策略'],rows);
   if(highList.length>0){
-    h+='<div class="tip-box tip-warn">需重点应对（关注度≥10）：'+highList.join('、')+'。</div>';
+    h+='<div class="tip-box tip-warn">需重点管理（权力≥3 且利益≥3）：'+highList.join('、')+'。</div>';
   }else{
     h+='<div class="tip-box tip-success">暂无明显高风险相关方，建议定期复评。</div>';
   }
