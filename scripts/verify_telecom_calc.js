@@ -50,6 +50,12 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "telecom/ber-snr",
+  "inputs": { "ber": "1e-5", "mod": "qam64" },
+  "expect": [ "高 SNR 近似式", "Gray 映射" ],
+  "ref": "QAM 页面必须标注高 SNR 近似、Gray 映射与矩形星座假设；默认 qam64 BER=1e-5 反解 17.79 dB 同时带口径说明。"
+},
+{
   "slug": "telecom/convert-24",
   "inputs": {
     "snr": "5"
