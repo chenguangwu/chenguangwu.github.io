@@ -397,3 +397,8 @@
 | https://chenguangwu.github.io/guides/fitness-calc-3-guide.html | https://chenguangwu.github.io/tools/fitness/calc-3.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
 | https://chenguangwu.github.io/guides/qiaoliang-qiaodun-zhizuo-hezai-guide.html | https://chenguangwu.github.io/tools/bridge/load-calc.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
 | https://chenguangwu.github.io/guides/analysis-conversion-recruit-guide.html | https://chenguangwu.github.io/tools/hr/recruitment-funnel.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://chenguangwu.github.io/guides/ocr-guide.html | https://chenguangwu.github.io/tools/ai/index.html | 2026-11-21 | 2026-12-21 | 保留期内 | 无对应工具的AI指南重定向至AI工具分类 |
+| https://chenguangwu.github.io/guides/image-classification-guide.html | https://chenguangwu.github.io/tools/ai/index.html | 2026-11-21 | 2026-12-21 | 保留期内 | 无对应工具的AI指南重定向至AI工具分类 |
+| https://chenguangwu.github.io/guides/sentiment-analysis-guide.html | https://chenguangwu.github.io/tools/ai/index.html | 2026-11-21 | 2026-12-21 | 保留期内 | 无对应工具的AI指南重定向至AI工具分类 |
+| https://chenguangwu.github.io/guides/text-summarization-guide.html | https://chenguangwu.github.io/tools/ai/index.html | 2026-11-21 | 2026-12-21 | 保留期内 | 无对应工具的AI指南重定向至AI工具分类 |
+| https://chenguangwu.github.io/guides/speech-to-text-guide.html | https://chenguangwu.github.io/tools/ai/index.html | 2026-11-21 | 2026-12-21 | 保留期内 | 无对应工具的AI指南重定向至AI工具分类 |
