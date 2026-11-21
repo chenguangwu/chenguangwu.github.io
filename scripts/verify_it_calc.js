@@ -14666,6 +14666,24 @@ const CASES = [
     "expect": ["MDTABLE OK"],
     "ref": "GFM 无首竖线表格：旧实现要求行首为 |，`a | b` 表头被当普通段落。修复后按 | 切分且要求下一行每格为 3+ 个短横线，避免误伤普通文本。"
   },
+  {
+    "slug": "it/color-converter",
+    "inputs": { "fgInput": "#000000", "bgInput": "rgba(255,255,255,0.5)" },
+    "expect": ["背景色须为不透明（alpha = 1）"],
+    "ref": "背景 alpha 口径：旧实现忽略背景 alpha，把半透明白当作不透明白计算；修复后拒绝透明背景并提示，避免给出依赖未知底层的错误对比度。"
+  },
+  {
+    "slug": "it/url-encode",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__url_encodeSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'input'+q)>=0&&src.indexOf(q+'parseInput'+q)>=0&&src.indexOf(q+'builtUrl'+q)>=0;document.getElementById('__tbProbe').textContent='URLPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["URLPRIV SAFE"],
+    "ref": "历史隐私：待编码文本、含 user:pass 的 URL、生成 URL 都可能含凭据；旧快照原样入历史，修复后只记录长度。源码守卫断言 __tbPrivate 与三个敏感 id 存在。"
+  },
+  {
+    "slug": "it/nginx-config-generator",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__nginx_config_generatorSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'certKey'+q)>=0;document.getElementById('__tbProbe').textContent='NGINXPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["NGINXPRIV SAFE"],
+    "ref": "历史隐私：私钥路径可能暴露主机目录结构；修复后只记录长度，域名/端口等非敏感项仍正常入历史。"
+  },
 ];
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

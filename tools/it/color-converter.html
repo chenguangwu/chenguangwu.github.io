@@ -176,7 +176,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🎨 颜色转换器">🎨 Color Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">由当前颜色的红、绿、蓝与透明度出发，分别转换为 HEX（含大写形式）、RGB、RGBA、HSL、HSLA、CMYK、HWB 以及三个通道值与透明度。对比度计算：先把每个通道值除以 255，小于等于 0.03928 时取该值除以 12.92，否则取「(该值 + 0.055) ÷ 1.055」的 2.4 次方，得到线性分量后按 0.2126 × 红 + 0.7152 × 绿 + 0.0722 × 蓝 求相对亮度；对比度 = (较亮亮度 + 0.05) ÷ (较暗亮度 + 0.05)，再按 4.5:1 判普通文本 AA、7:1 判普通文本 AAA、3:1 判大文本 AA、4.5:1 判大文本 AAA 是否通过</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">由当前颜色的红、绿、蓝与透明度出发，分别转换为 HEX（含大写形式）、RGB、RGBA、HSL、HSLA、CMYK、HWB 以及三个通道值与透明度。对比度计算：先把每个通道值除以 255，小于等于 0.03928 时取该值除以 12.92，否则取「(该值 + 0.055) ÷ 1.055」的 2.4 次方，得到线性分量后按 0.2126 × 红 + 0.7152 × 绿 + 0.0722 × 蓝 求相对亮度；对比度 = (较亮亮度 + 0.05) ÷ (较暗亮度 + 0.05)，再按 4.5:1 判普通文本 AA、7:1 判普通文本 AAA、3:1 判大文本 AA、4.5:1 判大文本 AAA 是否通过。前景色带 alpha 时先按 alpha 合成到背景色；背景色必须为不透明（alpha = 1），否则真实对比度取决于未知底层，页面拒绝计算</div>
   <div class="formula-desc">在 RGB、HEX、HSL、HSV、CMYK 等颜色模型之间互转。</div>
   <ul class="formula-list">
     <li><b>RGB/HEX</b>：三通道 0–255，HEX 写作 <code>#RRGGBB</code>，<code>#RGB</code> 为简写形式。</li>
@@ -671,7 +671,16 @@ function calcContrast() {
     ['wcagAA', 'wcagAAA', 'wcagAALarge', 'wcagAAALarge'].forEach(id => mark(id, false));
     return;
   }
-  
+
+  // 背景 alpha < 1 时，真实对比度取决于未知的底层颜色；不能默认当作不透明背景。
+  if (clampAlpha(bg.a) < 1) {
+    ratioEl.textContent = '—';
+    levelEl.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Background must be opaque (alpha = 1)":"背景色须为不透明（alpha = 1），否则对比度取决于未知底层");
+    levelEl.className = 'level';
+    ['wcagAA', 'wcagAAA', 'wcagAALarge', 'wcagAAALarge'].forEach(id => mark(id, false));
+    return;
+  }
+
   const a = clampAlpha(fg.a);
   const fr = fg.r * a + bg.r * (1 - a);
   const fgc = fg.g * a + bg.g * (1 - a);
