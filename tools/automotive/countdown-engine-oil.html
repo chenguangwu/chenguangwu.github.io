@@ -393,10 +393,14 @@ function calc(){
   var left=iv-used;
   var pct=iv>0?Math.min(100,Math.max(0,used/iv*100)):0;
   var months = kmY>0 ? left/(kmY/12) : Infinity;
+  var odate=str('odate'), elapsedMon=null, timeLeft=null;
+  if(odate){var od=new Date(odate+'T00:00:00');
+    if(!isNaN(od.getTime())){var now=new Date();elapsedMon=(now.getFullYear()-od.getFullYear())*12+(now.getMonth()-od.getMonth())-(now.getDate()<od.getDate()?1:0);elapsedMon=Math.max(0,elapsedMon);timeLeft=mon-elapsedMon;}}
+  if(isFinite(months)&&timeLeft!==null)months=Math.min(months,timeLeft);
 
   var st,cls;
-  if(left<=0){ st='已超期，须立即更换'; cls='bad'; }
-  else if(left<=iv*0.15){ st='即将到期，尽快安排'; cls='warn'; }
+  if(left<=0||(timeLeft!==null&&timeLeft<=0)){ st='已超期，须立即更换'; cls='bad'; }
+  else if(left<=iv*0.15||(timeLeft!==null&&timeLeft<=1)){ st='即将到期，尽快安排'; cls='warn'; }
   else { st='正常'; cls='ok'; }
 
   const __g3='<div class="result-grid">'
@@ -409,7 +413,7 @@ function calc(){
   const __g4='<div class="dist-grid">'
     +'<div class="dist-card"><h4>周期进度</h4><p>'+fmtLocal(pct,1)+' %</p><p>已用 '+fmtLocal(used,0)+' / '+fmtLocal(iv,0)+' km</p></div>'
     +'<div class="dist-card"><h4>预计可用时长</h4><p>'+(isFinite(months)?fmtLocal(months,1)+' 个月':'—')+'</p><p>按年行驶 '+fmtLocal(kmY,0)+' km 折算</p></div>'
-    +'<div class="dist-card"><h4>时间上限</h4><p>'+fmtLocal(mon,0)+' 个月</p><p>与里程先到为准</p></div>'
+    +'<div class="dist-card"><h4>时间上限</h4><p>'+fmtLocal(mon,0)+' 个月</p><p>'+(elapsedMon!==null?('已过 '+fmtLocal(elapsedMon,0)+' 个月，时间剩余 '+(timeLeft>0?fmtLocal(timeLeft,0):'0')+' 个月'):'未填上次换油日期，仅按里程')+'</p></div>'
     +'<div class="dist-card"><h4>基础与系数</h4><p>'+oilName+' '+fmtLocal(base,0)+' km</p><p>习惯 ×'+fmtLocal(habit,2)+' · 涡轮 ×'+fmtLocal(turbo,2)+'</p></div>'
     +'</div>';G.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 
@@ -425,7 +429,7 @@ function calc(){
   const __g5='<div class="formula-title">📐 计算口径</div> <div class="formula-eq">有效换油间隔 = 基础里程 × 驾驶习惯系数 × 增压系数；已行驶 = 当前里程 − 上次换油里程；剩余里程 = 有效间隔 − 已行驶</div>'
     +'<div class="formula-line">建议换油间隔 = 机油基础周期 × 驾驶习惯系数 × 涡轮增压系数</div>'
     +'<div class="formula-line">剩余里程 = 建议间隔 − (当前里程 − 上次换油里程)</div>'
-    +'<div class="formula-line">预计可用时长 = 剩余里程 ÷ (年均里程 ÷ 12)</div>'
+    +'<div class="formula-line">预计可用时长 = min(剩余里程 ÷ (年均里程 ÷ 12), 时间上限 − 上次换油至今月数)</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;">'
     +'<tr><th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">机油类型</th>'
     +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">基础周期</th>'

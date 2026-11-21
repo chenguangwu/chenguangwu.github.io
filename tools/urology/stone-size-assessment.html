@@ -254,23 +254,24 @@ function calc(){
 
   // location adjustment
   var locFactor={renal:0.7,proximal:0.7,mid:0.9,distal:1.25,vu:1.4,bladder:1.0}[loc];
-  var prob=Math.round(Math.min(95,base*locFactor));
+  var prob=(loc==='bladder')?null:Math.round(Math.min(95,base*locFactor));
   var locName={renal:'肾结石',proximal:'输尿管上段',mid:'输尿管中段',distal:'输尿管下段',vu:'膀胱壁内段',bladder:'膀胱结石'}[loc];
 
   var strategy;
-  if(prob>=60){ strategy='可尝试保守排石（多饮水+α阻滞剂+运动），4周未排出复查。'; }
+  if(prob===null){strategy='膀胱结石不适用输尿管排石概率模型，请按膀胱结石处理原则（大小、症状、梗阻与感染）由泌尿外科评估。';}
+  else if(prob>=60){ strategy='可尝试保守排石（多饮水+α阻滞剂+运动），4周未排出复查。'; }
   else if(prob>=30){ strategy='可短期试保守，建议 ESWL 或输尿管镜碎石（URL）。'; }
   else { strategy='自发排石率低，建议外科干预（ESWL/URL/PCNL）'; }
 
   var urgent=fever||renal||pain;
-  var color= prob>=60?'var(--success)':(prob>=30?'var(--warning)':'var(--danger)');
+  var color= (prob===null)?'var(--text-muted)':(prob>=60?'var(--success)':(prob>=30?'var(--warning)':'var(--danger)'));
 
   var html='<p>结石情况：<strong>'+locName+'</strong>，最大径 <strong>'+size+' mm</strong></p>';
   if(urgent){
     html+='<p style="color:var(--danger);font-weight:600;">⚠️ 存在急诊指征：'+[fever?'伴发热/感染':'',renal?'孤立肾/肾功能不全':'',pain?'剧烈疼痛难控':''].filter(Boolean).join('、')+'</p>';
     html+='<p style="color:var(--danger);">建议：急诊处理（置入DJ支架或经皮肾造瘘），解除梗阻保护肾功能。</p>';
   }
-  html+='<p style="margin-top:8px;">自发排石概率：<strong style="font-size:26px;color:'+color+';">'+prob+'%</strong></p>';
+  html+='<p style="margin-top:8px;">'+(prob===null?'自发排石概率：<strong style="color:'+color+';">不适用（膀胱结石）</strong>':'自发排石概率：<strong style="font-size:26px;color:'+color+';">'+prob+'%</strong>')+'</p>';
   if(!urgent) html+='<p style="color:var(--text-muted);">处理建议：'+strategy+'</p>';
   html+='<p style="margin-top:6px;font-size:12px;color:var(--text-muted);">说明：下段结石排石率高于上段；膀胱壁内段最高。伴梗阻/感染需优先解除梗阻。</p>';
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));

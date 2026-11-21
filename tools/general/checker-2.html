@@ -101,11 +101,11 @@
     <h2 data-zh="♻️ 污水管道检查井与跌水井布置">♻️ Sewer Inspection Chamber Layout Checker</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据管径判定检查井最大间距合规性，计算管道跌水高度判定是否需设跌水井，并自查污水管道布置规范性。">Sewer Inspection Chamber Layout Checker - online utility on ToolBox.</p>
     <div class="formula-box">
-      <div class="formula-title">📐 判定依据与计算式</div> <div class="formula-eq">污水检查井布置与跌水核算<br>井间距标准同雨水：DN≤500 → 40m｜600-700 → 50m｜800-1000 → 65m｜1100-1500 → 80m｜≥1600 → 100m<br>总落差 = 上游管内底 − 下游管内底<br>管道坡降 = 坡度(‰) ÷ 1000 × 井间距(40m)<br>跌水高度 = 总落差 − 坡降（负值取 0）<br>跌水井判定：&lt;1m 不需设｜1~2m 需设跌水井｜≥2m 需设跌水井+消能设施<br>布置合规度 = Σ各项得分 ÷ (检查项数 × 2) × 100%<br>评级：≥90% 合格｜≥75% 基本合格｜≥60% 需整改｜&lt;60% 不合格</div>
+      <div class="formula-title">📐 判定依据与计算式</div> <div class="formula-eq">污水检查井布置与跌水核算<br>井间距标准同雨水：DN≤500 → 40m｜600-700 → 50m｜800-1000 → 65m｜1100-1500 → 80m｜≥1600 → 100m<br>总落差 = 上游管内底 − 下游管内底<br>管道坡降 = 坡度(‰) ÷ 1000 × 实际井间距 L<br>跌水高度 = 总落差 − 坡降（负值取 0）<br>跌水井判定：&lt;1m 不需设｜1~2m 需设跌水井｜≥2m 需设跌水井+消能设施<br>布置合规度 = Σ各项得分 ÷ (检查项数 × 2) × 100%<br>评级：≥90% 合格｜≥75% 基本合格｜≥60% 需整改｜&lt;60% 不合格</div>
       <div class="formula-desc">
         <p><strong>检查井最大间距（GB 50282）</strong>：DN≤500 → 40 m；DN600–700 → 50 m；DN800–1000 → 65 m；DN1100–1500 → 80 m；DN≥1600 → 100 m。判定合格条件为实际井间距 L ≤ 最大间距 L<sub>max</sub>。</p>
         <p><strong>超标整改</strong>：需增设井数 = ⌈L ÷ L<sub>max</sub>⌉ − 1，整改后间距 = L ÷ (增设井数 + 1)。</p>
-        <p><strong>跌水高度计算</strong>：总落差 Δ = 上游管底标高 − 下游管底标高（m）；管道坡降 = 坡度 i(‰) ÷ 1000 × 假设井间距（取 40 m）；跌水高度 h = Δ − 管道坡降，负值按 0 计。</p>
+        <p><strong>跌水高度计算</strong>：总落差 Δ = 上游管底标高 − 下游管底标高（m）；管道坡降 = 坡度 i(‰) ÷ 1000 × 实际井间距 L（同页“检查井间距”输入）；跌水高度 h = Δ − 管道坡降，负值按 0 计。</p>
         <p><strong>跌水井判定</strong>：h &lt; 1 m 不需设跌水井；1 m ≤ h &lt; 2 m 需设跌水井（竖管式或溢流堰式，井底设消力槛消能）；h ≥ 2 m 需设跌水井并配专用消能设施（消力槛/消力池），并验算大落差水流对管道的冲击力。</p>
       </div>
     </div>
@@ -133,7 +133,7 @@
             <option value="2000">DN≥2000</option>
           </select>
         </div>
-        <div><label>实际井间距 L（m）</label><input type="number" id="actual_l" value="40" step="0.1" oninput="calcSpacing()" placeholder="如 40"></div>
+        <div><label>实际井间距 L（m）</label><input type="number" id="actual_l" value="40" step="0.1" oninput="calcSpacing();calcDrop()" placeholder="如 40"></div>
       </div>
       <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">依据 GB 50282：DN≤500最大间距40m，DN600-700为50m，DN800-1000为65m，DN1100-1500为80m，DN≥1600为100m</p>
     </div>
@@ -260,7 +260,8 @@ function calcDrop(){
   }
   var totalDrop=upInv-dnInv; /* 总落差 m */
   var slopeDrop=0; /* 管道坡降（假设井间距约40m时） */
-  var L=40; /* 假设井间距 */
+  var L=parseFloat(document.getElementById('actual_l').value);
+  if(!(L>0)){document.getElementById('res').innerHTML='<p style="color:var(--danger);">请先在“检查井间距”页填写实际井间距 L（>0 m）。</p>';return;}
   slopeDrop=slope/1000*L; /* m */
   var dropH=totalDrop-slopeDrop; /* 跌水高度 */
   if(dropH<0) dropH=0;
@@ -547,7 +548,7 @@ function __checker_2Presets(){
     TBKit.preset.bar('#checker_2Presets',[{label:'默认参数',labelEn:'Default',values:{'pipe_dn':'200', 'actual_l':'40', 'up_inv':'52.5', 'dn_inv':'50.0', 'drop_dn':'400', 'pipe_slope':'3'}},
   {"label":"DN500 间距 50m 常规","labelEn":"DN500, 50m spacing","values":{"pipe_dn":"500","actual_l":50,"up_inv":48,"dn_inv":45.5,"drop_dn":600,"pipe_slope":2.5}},
   {"label":"DN800 间距 60m 主干","labelEn":"DN800, 60m trunk","values":{"pipe_dn":"800","actual_l":60,"up_inv":44,"dn_inv":41,"drop_dn":800,"pipe_slope":2}},
-  {"label":"DN300 间距 30m 支管","labelEn":"DN300, 30m branch","values":{"pipe_dn":"300","actual_l":30,"up_inv":52,"dn_inv":49.5,"drop_dn":300,"pipe_slope":3.5}}],function(){ calcSpacing(); });
+  {"label":"DN300 间距 30m 支管","labelEn":"DN300, 30m branch","values":{"pipe_dn":"300","actual_l":30,"up_inv":52,"dn_inv":49.5,"drop_dn":300,"pipe_slope":3.5}}],function(){ calcSpacing(); calcDrop(); });
 }
 var __checker_2_f0=(typeof calcSpacing==='function')?calcSpacing:null;
 if(__checker_2_f0){
