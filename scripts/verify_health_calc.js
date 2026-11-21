@@ -299,8 +299,8 @@ const CASES = [
     slug: "health/water-intake-calculator",
     inputs: { weight: "20", age: "0" },
     clicks: ["document.getElementById('weight').value='20';document.getElementById('age').value='0';calc()"],
-    expect: ["2650 ml"],
-    ref: "0 岁是合法值：修复前 `age||30` 把 0 吞成 30，按成人 35 ml/kg；修复后年龄 ≤1 岁取 120 ml/kg ⇒ 20×120=2400，×活动 1.1 = 2640 → 取整 50 的倍数 = 2650 ml。默认 65 kg/30 岁 ⇒ 2500 ml，注入失败不命中。",
+    expect: ["1 岁以下婴儿饮水量需儿科个体化，本页不适用"],
+    ref: "0 岁不再按成人或婴儿公式出量：本页明确不适用于 1 岁以下；修复前 `age||30` 把 0 吞成 30 并按成人公式继续输出 2500 ml。",
   },
   {"slug": "health/child-medication-dose", "inputs": {"age": "6", "weight": "24"}, "expect": ["Clark公式（按体重 24 kg） 每次剂量： 137.1 mg （约 6.9 ml）", "Young公式（按年龄6岁）： 133.3 mg/次", "每次剂量： 120.0 ~ 240.0 mg/次", "最大日剂量： 960 mg （约 48.0 ml）"], "ref": "独立复算（ibuprofen：adultDose=400、conc=20mg/ml、unitRange=[5,10]、maxDaily=40）：Clark = 24×400/70 = 137.14 ⇒ 137.1 mg；体积 = 137.14/20 = 6.86 ⇒ 6.9 ml；Young = 6×400/(6+12) = 133.33 ⇒ 133.3；标准范围 = 5×24 ~ 10×24 = 120.0 ~ 240.0；最大日剂量 = 40×24 = 960 mg、58… 页面给 48.0 ml（960/20）。默认态（age=3、weight=15）为 85.7 mg / 4.3 ml / 64.3 mg / 75.0~150.0 / 600 mg，四锚均不命中。"},
   {"slug": "health/child-medication-dose", "inputs": {"age": "9", "weight": "31"}, "clicks": ["document.getElementById('drugSelect').value='acetaminophen';calcDose();"], "expect": ["对乙酰氨基酚（泰诺林） 规格：32mg/1ml ｜ 用药间隔：4-6小时", "每次剂量： 221.4 mg （约 6.9 ml）", "Young公式（按年龄9岁）： 214.3 mg/次", "每次剂量： 310.0 ~ 465.0 mg/次", "最大日剂量： 1860 mg （约 58.1 ml）"], "ref": "独立复算（acetaminophen：adultDose=500、conc=32mg/ml、unitRange=[10,15]、maxDaily=60）：Clark = 31×500/70 = 221.43 ⇒ 221.4 mg；体积 = 221.43/32 = 6.92 ⇒ 6.9 ml；Young = 9×500/(9+12) = 214.29 ⇒ 214.3；标准范围 = 10×31 ~ 15×31 = 310.0 ~ 465.0；最大日剂量 = 60×31 = 1860 mg、体积 1860/32 = 58.125 ⇒ 58.1 ml。切换药物须走 clicks（select 无 option selected 桩、值写在 inputs 里会被 onchange 重置），药物名锚同时验证 conc/interval 联动。默认态为布洛芬 + age3/weight15，四锚均不命中。"},
@@ -910,7 +910,7 @@ const CASES = [
 {
   "slug": "health/body-surface-area",
   "clicks": [
-    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/blood-sugar-converter.html','utf8');var ok=h.indexOf('function clearGlucose(){')>=0&&h.indexOf('clearGlucose(); return;')>=0&&h.indexOf(`value = ''; clearGlucose();`)>=0;document.getElementById('__tbProbe').textContent='BSCLR '+(ok?'OK':'BAD');})();"
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/blood-sugar-converter.html','utf8');var ok=h.indexOf('function clearGlucose(){')>=0&&(h.indexOf('clearGlucose(); return;')>=0||h.indexOf('clearGlucose(); document.getElementById')>=0)&&h.indexOf(`value = ''; clearGlucose();`)>=0;document.getElementById('__tbProbe').textContent='BSCLR '+(ok?'OK':'BAD');})();"
   ],
   "expect": [
     "BSCLR OK"
@@ -1041,7 +1041,32 @@ const CASES = [
     "请填写体重大于 0"
   ],
   "ref": "体重为空时清空饮水建议（H1CLR）；旧实现仅 toast，2200 ml 仍显示"
-}
+},
+ {
+    slug: "health/water-intake-calculator",
+    inputs: { weight: "", age: "30" },
+    expect: ["请输入 20–200 kg 的体重"],
+    ref: "体重清空不再按 65 kg 兜底；空值/0 直接提示并清空时间表。"
+  },
+  {
+    slug: "health/ibw-calculator",
+    inputs: { height: "", actualWeight: "70" },
+    expect: ["请填写有效身高"],
+    ref: "身高清空时旧实现直接 return、IBW/ABW/差异/BMI 保留上次值；现清为 — 并提示。"
+  },
+  {
+    slug: "health/blood-sugar-converter",
+    inputs: { mmol: "-5" },
+    clicks: ["fromMmol()"],
+    expect: ["请输入大于 0 的血糖值"],
+    ref: "负血糖不再进入低血糖分级；旧实现 -5 mmol/L 会被标「低血糖」。"
+  },
+  {
+    slug: "health/ovulation-calculator",
+    inputs: { lmp: "", cycle: "", period: "" },
+    expect: ["请填写末次月经、周期长度与经期长度后再计算"],
+    ref: "清空日期/周期后旧实现沿用上次排卵日与日历；现清空并提示。"
+  }
 ];
 
 async function main() {

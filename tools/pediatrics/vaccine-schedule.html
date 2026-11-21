@@ -304,13 +304,16 @@ function calcAgeMonths(birthDate){
 
 function renderSchedule(){
   var birthDate=document.getElementById('birthDate').value;
-  var vaccMonth=parseFloat(document.getElementById('vaccinatedMonth').value)||-1;
+  var vRaw=String(document.getElementById('vaccinatedMonth').value).trim();
+  var vaccMonth=vRaw===''?null:parseFloat(vRaw);
+  if(vaccMonth!==null&&(!isFinite(vaccMonth)||vaccMonth<0)){document.getElementById('scheduleList').innerHTML='<p style="color:var(--danger)">已接种月龄须为 ≥0 的数字，或留空表示未填写。</p>';document.getElementById('result').innerHTML='';return;}
   if(!birthDate){
     const __h0='<div class="tip-box tip-warn">请输入出生日期</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('scheduleList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('scheduleList').innerHTML=__h0;
     document.getElementById('result').innerHTML='';
     return;
   }
   var ageMonths=calcAgeMonths(birthDate);
+  if(ageMonths<0){document.getElementById('scheduleList').innerHTML='<p style="color:var(--danger)">出生日期晚于今天，无法生成排程；请核对日期。</p>';document.getElementById('result').innerHTML='';return;}
   const __h1='<p style="font-size:13px;">当前年龄：约<strong style="color:var(--primary);">'+ageMonths+'</strong>月</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
 
   var html='<p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">当前月龄：<strong style="color:var(--primary);">'+ageMonths+'月</strong>。绿色=已接种，橙色=当前应接种，红色=逾期未种，灰色=未到接种时间。</p>';
@@ -318,11 +321,11 @@ function renderSchedule(){
   vaccineSchedule.forEach(function(stage){
     stage.doses.forEach(function(v){
       var status,statusClass,statusText;
-      if(vaccMonth>=0&&stage.month<=vaccMonth){
+      if(vaccMonth!==null&&stage.month<=vaccMonth){
         status='done';statusClass='done';statusText='已接种';
-      }else if(stage.month<=ageMonths){
+      }else if(stage.month<ageMonths){
         status='overdue';statusClass='overdue';statusText='逾期，尽快补种';
-      }else if(stage.month<=ageMonths+1){
+      }else if(stage.month===ageMonths){
         status='due';statusClass='due';statusText='当前应接种';
       }else{
         status='upcoming';statusClass='';statusText='未到时间';
@@ -346,9 +349,9 @@ function renderSchedule(){
   var dueCount=0,overdueCount=0;
   vaccineSchedule.forEach(function(s){
     s.doses.forEach(function(v){
-      if(vaccMonth<0||s.month>vaccMonth){
-        if(s.month<=ageMonths)overdueCount++;
-        else if(s.month<=ageMonths+1)dueCount++;
+      if(vaccMonth===null||s.month>vaccMonth){
+        if(s.month<ageMonths)overdueCount++;
+        else if(s.month===ageMonths)dueCount++;
       }
     });
   });
@@ -374,10 +377,15 @@ function copyResult(){
 }
 
 function exportSchedule(){
-  var content='儿童疫苗接种清单\n出生日期：'+document.getElementById('birthDate').value+'\n\n';
+  var birthDate=document.getElementById('birthDate').value;
+  var vRaw=String(document.getElementById('vaccinatedMonth').value).trim();
+  var vaccMonth=vRaw===''?null:parseFloat(vRaw);
+  var ageMonths=calcAgeMonths(birthDate);
+  var content='儿童疫苗接种清单\n出生日期：'+birthDate+'\n\n';
   vaccineSchedule.forEach(function(s){
     s.doses.forEach(function(v){
-      content+=s.month+'月龄 | '+v.name+' | '+v.disease+'\n';
+      var st=(vaccMonth!==null&&s.month<=vaccMonth)?'已接种':(s.month<ageMonths?'逾期未种':(s.month===ageMonths?'当前应接种':'未到时间'));
+      content+=s.month+'月龄 | '+v.name+' | '+v.disease+' | '+st+'\n';
     });
   });
   ToolBox.downloadText('疫苗接种清单.txt',content);

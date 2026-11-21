@@ -348,7 +348,13 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/tcm-pharmacy/four-qi-nature.html\',\'utf8\');var i=h.indexOf(\'function switchTab(tab, e){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!tab||!e)\')>=0&&seg.indexOf(\'judgeQi(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'FQNH0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['FQNH0 OK'],
   "ref": "第1337批·历史恢复无参切换抛错修复源码形态强锚：旧版 function switchTab(tab, e){ 无参调用解引用参数/全局event抛错被 catch 吞、结果不重算；修复后无参分支安全返回或重算主结果。旧版无 ⇒ BAD。"
-}
+},
+ {
+    "slug": "tcm-pharmacy/four-qi-nature",
+    "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-pharmacy/four-qi-nature.html','utf8');var ok=h.indexOf(\"chill:{qi:'温'\")>=0;document.getElementById('__tbProbe').textContent='FQOK '+(ok?'OK':'BAD');})();"],
+    "expect": ["FQOK OK"],
+    "ref": "畏寒映射源码锚：旧版 chill:{qi:'热'} 而计分只累加寒/温，单选畏寒总分 0、判寒热不显；现归温，配套 id=chill 使真机可勾选。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);
