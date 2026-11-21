@@ -2,7 +2,7 @@
 /* 数据来源：_build.py INDUSTRY_DEFS 短名（权威，268/268）+ 语义 emoji 映射；仅显示用短名，描述走页面 meta */
 window.INDUSTRY_INFO = {
   'it'                   : { name: 'IT 开发', icon: '💻', hot: 30327491 },
-  'life'                 : { name: '日常生活', icon: '🏠', hot: 11719560 },
+  'life'                 : { name: '日常生活', icon: '🏠', hot: 11696608 },
   'finance'              : { name: '金融财务', icon: '💰', hot: 9204980 },
   'design'               : { name: '设计创意', icon: '🎨', hot: 7162382 },
   'image'                : { name: '图像处理', icon: '🖼️', hot: 6073175 },
@@ -21,7 +21,7 @@ window.INDUSTRY_INFO = {
   'agriculture'          : { name: '农业种植', icon: '🌾', hot: 731967 },
   'statistics'           : { name: '统计学', icon: '📊', hot: 713154 },
   'machinery'            : { name: '机械制造', icon: '⚙️', hot: 706603 },
-  'sports'               : { name: '体育竞技', icon: '⚽', hot: 705696 },
+  'sports'               : { name: '体育竞技', icon: '⚽', hot: 700660 },
   'hydraulic'            : { name: '水利工程', icon: '💧', hot: 605469 },
   'math'                 : { name: '数学计算', icon: '🧮', hot: 592340 },
   'automotive'           : { name: '汽车交通', icon: '🚗', hot: 580800 },

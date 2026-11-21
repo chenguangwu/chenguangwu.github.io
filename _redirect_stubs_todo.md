@@ -171,3 +171,5 @@
 | https://chenguangwu.github.io/tools/cosmetic-derm/pifuphceding.html | https://chenguangwu.github.io/tools/cosmetic-derm/skin-ph.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/cosmetic-derm/formula-1.html | https://chenguangwu.github.io/tools/cosmetic-derm/meso-cocktail.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/cosmetic-derm/ratio-composition-injection.html | https://chenguangwu.github.io/tools/cosmetic-derm/mesotherapy.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/life/date-diff.html | https://chenguangwu.github.io/tools/life/date-difference-calculator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/sports/youyonghuashuixiaolv-swolf.html | https://chenguangwu.github.io/tools/sports/swimming-stroke-efficiency.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |

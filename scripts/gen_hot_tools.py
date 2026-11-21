@@ -55,7 +55,7 @@ HOT_TOOL_URLS = (
     'tools/design/image-format-converter.html',
     'tools/it/json-to-csv.html',
     'tools/life/world-clock.html',
-    'tools/life/date-diff.html',
+    'tools/life/date-difference-calculator.html',
     'tools/it/sha.html',
     'tools/image/image-converter.html',
     'tools/finance/currency-converter.html',
