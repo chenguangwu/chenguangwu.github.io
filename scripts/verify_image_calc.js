@@ -1,5 +1,6 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -382,6 +383,13 @@ const CASES = [
   "ref": "IM-N3 resize 页同类：旧版 __svgFileBlocked 及下载/导出/复制 toast 全硬编码中文。现统一 __imgEn() 中英切换（含「尺寸过大」「导出失败」「已下载」「复制失败」）。isEn 双断言，默认态不命中。"
 }
 ];
+function batch204StaticChecks(){
+  var src = fs.readFileSync("tools/image/image-resize.html","utf8");
+  var out=[];
+  out.push({name:"B204 platform presets",ok:src.indexOf('setPlatformSize(1242,1660')>=0&&src.indexOf('setPlatformSize(900,383')>=0&&src.indexOf('function setPlatformSize(w,h,label)')>=0});
+  return out;
+}
+
 async function main() {
   const only = process.argv.slice(2);
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
@@ -402,7 +410,10 @@ async function main() {
     }
   }
 
+  const __stat = batch204StaticChecks();
+  const __sf = __stat.filter(function(x){return !x.ok;});
+  for (const x of __sf) console.log("❌ [static] " + x.name);
   console.log("==== image calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (fails.length || __sf.length) process.exit(1);
 }
 if (require.main === module) main();
