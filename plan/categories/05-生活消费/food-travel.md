@@ -28,11 +28,6 @@
 
 ## 2026-11-03 续查（并行批）：餐饮与旅行
 
-### FT-N7 英文态动态结果残留中文（中，确认）
-- 证据：`cooking-converter.html:537,645-652` 输出「常用单位换算：/重量约为：」；`recipe-generator.html:481-525` 输出中文菜名/食材/步骤；`travel-budget-calculator.html:306-309` 输出「人均…每天…/交通/住宿」；`timezone-converter-advanced.html:359-363` 拼接「源时区/目标时区/UTC 时刻」。第三层 `i18n/tools/en/{food,travel}/*.json` 无这些整句键，运行时整节点精确匹配无法命中。
-- 进度（2026-11-21 第216批）：cooking-converter、travel-budget-calculator、timezone-converter-advanced 已改为生成时按语言选词；recipe-generator 的菜名/食材/步骤仍为中文数据，待下一批处理。
-- 影响：`?lang=en-US` 下 recipe-generator 核心输出仍中文。
-
 ### 留存优化（按页落点）
 - `cooking-converter.html`：保存「配方卡」（全 5 tab 值）+ 一键恢复并全量重算，导出 Markdown。
 - `food-calorie-counter.html`：日期分桶、保留最近 7 天、一键复制昨日一餐。
