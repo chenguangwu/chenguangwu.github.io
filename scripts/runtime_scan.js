@@ -954,11 +954,49 @@ function RESET_TEST_FN() {
     // 不能只看行数：工具页普遍带静态公式参考表，tbody 本来就有行，会污染判断。
     const emptyHint = /暂无[^，。\n]{0,10}(人员|项目|变量|药品|记录|数据|条目|结果)|还没有|尚未添加|empty-state|请添加[^，。\n]{0,12}(比较|项目|人员|变量|药品)/.test(document.body.innerText || '');
     const valsFilled = v1.slice(0, -1).some((v) => v !== '' && v !== 'checkbox:0' && v !== 'radio:0');
-    const hadContent = isFormReset ? valsFilled : !emptyHint;
+    let hadContent = isFormReset ? valsFilled : !emptyHint;
+    // 扫描到本阶段时表单往往已被前面的空态/改值流程恢复为默认值，直接点击「重置」自然看不出变化。
+    // 更关键的是页面常带语言/主题等全局控件，它们不归 resetForm 管；拿它们做探针必然误报。
+    // 因此只选「HTML 默认值非空」的业务字段，改成另一个值，再看重置后是否回到该默认值。
+    let target = null, targetDefault = null;
+    if (isFormReset) {
+      const fields = Array.from(document.querySelectorAll('input, select, textarea')).filter((x) => {
+        const t = (x.type || '').toLowerCase();
+        return !['button', 'submit', 'reset', 'file', 'hidden', 'image'].includes(t) && !x.disabled && x.getClientRects().length;
+      }).map((x) => {
+        const t = (x.type || '').toLowerCase();
+        let def;
+        if (t === 'checkbox' || t === 'radio') def = x.defaultChecked ? '1' : '0';
+        else if (x.tagName === 'SELECT') {
+          const opt = Array.from(x.options).find((o) => o.defaultSelected) || x.options[0];
+          def = opt ? opt.value : '';
+        } else def = String(x.defaultValue || '');
+        return { x, t, def };
+      });
+      const f = fields.find((o) => o.def !== '' && (o.t === 'number' || o.t === 'text' || o.t === 'search' || o.t === 'url' || o.t === 'email' || o.t === 'tel' || o.x.tagName === 'TEXTAREA' || o.x.tagName === 'SELECT'));
+      if (f) {
+        target = f.x; targetDefault = f.def;
+        try {
+          if (f.t === 'number') target.value = String((parseFloat(targetDefault) || 0) + 1);
+          else if (target.tagName === 'SELECT') {
+            const alt = Array.from(target.options).find((o) => o.value !== targetDefault && !o.disabled);
+            if (alt) target.value = alt.value; else target.value = targetDefault + '-probe';
+          }
+          else target.value = targetDefault + '-probe';
+          target.dispatchEvent(new Event('input', { bubbles: true }));
+          target.dispatchEvent(new Event('change', { bubbles: true }));
+          hadContent = true;
+        } catch (_) { target = null; }
+      }
+    }
+    const v0 = read();
     try { el.click(); } catch (e) { return { found: true, changed: false, hadContent, err: String(e && e.message || e) }; }
     await new Promise((r) => setTimeout(r, 300));
     const v2 = read();
-    return { found: true, label: (el.innerText || el.value || '').trim().slice(0, 24), hadContent, changed: v1.some((v, i) => v !== v2[i]) || v1.length !== v2.length };
+    const changed = target
+      ? String(target.type === 'checkbox' || target.type === 'radio' ? (target.checked ? '1' : '0') : target.value) === String(targetDefault)
+      : v0.some((v, i) => v !== v2[i]) || v0.length !== v2.length;
+    return { found: true, label: (el.innerText || el.value || '').trim().slice(0, 24), hadContent, changed };
   })();
 }
 

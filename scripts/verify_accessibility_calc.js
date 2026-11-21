@@ -6,6 +6,13 @@ globalThis.__tbFs = fs;
 const CASES = [
 {
   "slug": "accessibility/braille-translator",
+  "inputs": {"srcInput": ""},
+  "clicks": ["doTranslate()"],
+  "expect": ["请输入文本后再转译。"],
+  "ref": "空输入守卫：清空 srcInput 后点转译，必须给输入提示，不得输出「原文：（空）字母 0 个 · 数字 0 个 · 盲文符号 0 格」的伪统计；默认 hello 2026 不含该提示。"
+},
+{
+  "slug": "accessibility/braille-translator",
   "inputs": {
     "srcInput": "ab",
     "caseSel": "upper"
