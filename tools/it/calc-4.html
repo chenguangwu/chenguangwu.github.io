@@ -103,7 +103,7 @@
     <h2 data-zh="🔄 CSS单位换算（px / em / rem / pt / %）">🔄 CSS Unit Converter (px / em / rem / pt / %)</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="以基准字号为桥梁，在常见 CSS 长度单位之间快速换算。">Convert between CSS length units.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">基准字号取输入值（非法时提示，不静默取 16）；px 值须为有效数字、非负且基准字号大于 0，否则提示请输入有效的正数并把预览字号固定为 16px。换算：em = px ÷ 基准字号；rem = px ÷ 16；pt = px × 0.75；百分比 = px ÷ 基准字号 × 100。逐项以表格输出单位、数值与对应的 CSS 写法（font-size 声明），并把预览文字的字号设为该 px 值、内容改为「示例文字（px 值 + px）」</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">基准字号取输入值（基准字号与根字号均非法时提示，不静默取 16）；px 值须为有效数字、非负，且基准字号与 html 根字号均大于 0，否则提示请输入有效的正数并把预览字号固定为 16px。换算：em = px ÷ 基准字号；rem = px ÷ html 根字号（默认 16）；pt = px × 0.75；百分比 = px ÷ 基准字号 × 100。逐项以表格输出单位、数值与对应的 CSS 写法（font-size 声明），并把预览文字的字号设为该 px 值、内容改为「示例文字（px 值 + px）」</div>
   <div class="formula-desc">在 px、em、rem 等 CSS 长度单位之间换算，相对单位依赖基准字号。</div>
   <ul class="formula-list">
     <li><b>px</b>：CSS 参考像素，约等于 1/96 英寸，是绝对基准。</li>
@@ -117,6 +117,10 @@
       <div>
         <label for="baseSize">基准字号（px）</label>
         <input type="number" id="baseSize" value="16" min="1" step="any" oninput="convertCss()" placeholder="如 16">
+      </div>
+      <div>
+        <label for="rootSize">html 根字号（px）</label>
+        <input type="number" id="rootSize" value="16" min="1" step="any" oninput="convertCss()" placeholder="浏览器默认 16">
       </div>
       <div>
         <label for="pxInput">PX 值</label>
@@ -216,22 +220,25 @@
 function convertCss() {
   var __bsRaw=String(document.getElementById('baseSize').value==null?'':document.getElementById('baseSize').value).trim();
   const base = __bsRaw==='' ? NaN : parseFloat(__bsRaw);
+  var __rsRaw=String(document.getElementById('rootSize').value==null?'':document.getElementById('rootSize').value).trim();
+  const root = __rsRaw==='' ? NaN : parseFloat(__rsRaw);
   const px = parseFloat(document.getElementById('pxInput').value);
   const result = document.getElementById('result');
   const preview = document.getElementById('previewText');
 
-  if (isNaN(px) || px < 0 || isNaN(base) || base <= 0) {
+  if (isNaN(px) || px < 0 || isNaN(base) || base <= 0 || isNaN(root) || root <= 0) {
     const __h0='<p style="color:var(--danger)">请输入有效的正数。</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h0;
     preview.style.fontSize = '16px';
     return;
   }
 
   const em = px / base;
-  const rem = px / 16;
+  const rem = px / root;
   const pt = px * 0.75;
   const percent = (px / base) * 100;
 
-  const __h1='<p>基准字号：<strong>' + base + ' px</strong></p>'
+  const __h1='<p>父级/基准字号：<strong>' + base + ' px</strong>；html 根字号：<strong>' + root + ' px</strong></p>'
+    + (base!==root ? '<p style="color:var(--muted);font-size:13px">em 按基准字号换算，rem 按 html 根字号换算；两者不同时以各自分母为准。</p>' : '')
     + '<table style="margin-top:12px;"><thead><tr><th>单位</th><th>数值</th><th>示例写法</th></tr></thead><tbody>'
     + '<tr><td>px</td><td><strong>' + px + '</strong></td><td>font-size: ' + px + 'px;</td></tr>'
     + '<tr><td>em</td><td><strong>' + formatCss(em) + '</strong></td><td>font-size: ' + formatCss(em) + 'em;</td></tr>'
@@ -250,19 +257,22 @@ function formatCss(n) {
 
 function setBase(size) {
   document.getElementById('baseSize').value = size;
+  document.getElementById('rootSize').value = size;
   convertCss();
 }
 
 function copyCssResult() {
   var __bsRaw2=String(document.getElementById('baseSize').value==null?'':document.getElementById('baseSize').value).trim();
   const base = __bsRaw2==='' ? NaN : parseFloat(__bsRaw2);
+  var __rsRaw2=String(document.getElementById('rootSize').value==null?'':document.getElementById('rootSize').value).trim();
+  const root = __rsRaw2==='' ? NaN : parseFloat(__rsRaw2);
   const px = parseFloat(document.getElementById('pxInput').value);
-  if (isNaN(px) || px < 0 || isNaN(base) || base <= 0) return;
+  if (isNaN(px) || px < 0 || isNaN(base) || base <= 0 || isNaN(root) || root <= 0) return;
   const em = px / base;
-  const rem = px / 16;
+  const rem = px / root;
   const pt = px * 0.75;
   const percent = (px / base) * 100;
-  const text = px + 'px = ' + formatCss(em) + 'em = ' + formatCss(rem) + 'rem = ' + formatCss(pt) + 'pt = ' + formatCss(percent) + '%（基准 ' + base + 'px）';
+  const text = px + 'px = ' + formatCss(em) + 'em = ' + formatCss(rem) + 'rem = ' + formatCss(pt) + 'pt = ' + formatCss(percent) + '%（基准 ' + base + 'px，根字号 ' + root + 'px）';
   ToolBox.copyText(text);
 }
 
@@ -383,10 +393,10 @@ function __calc_4Export(){
 }
 function __calc_4Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#calc_4Presets',[{label:'默认参数',labelEn:'Default',values:{'baseSize':'16', 'pxInput':'16'}},
-  {"label":"18px根","labelEn":"18px base","values":{"baseSize":"18","pxInput":"18"}},
-  {"label":"14px根","labelEn":"14px base","values":{"baseSize":"14","pxInput":"28"}},
-  {"label":"20px根","labelEn":"20px base","values":{"baseSize":"20","pxInput":"40"}}],function(){ convertCss(); });
+    TBKit.preset.bar('#calc_4Presets',[{label:'默认参数',labelEn:'Default',values:{'baseSize':'16', 'rootSize':'16', 'pxInput':'16'}},
+  {"label":"18px根","labelEn":"18px base","values":{"baseSize":"18","rootSize":"18","pxInput":"18"}},
+  {"label":"14px根","labelEn":"14px base","values":{"baseSize":"14","rootSize":"14","pxInput":"28"}},
+  {"label":"20px根","labelEn":"20px base","values":{"baseSize":"20","rootSize":"20","pxInput":"40"}}],function(){ convertCss(); });
 }
 var __calc_4_f0=(typeof convertCss==='function')?convertCss:null;
 if(__calc_4_f0){

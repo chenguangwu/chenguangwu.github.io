@@ -3444,6 +3444,13 @@ const CASES = [
   },
   {
     slug: "it/calc-4",
+    // IT-CALC4-ROOT：rem 必须按独立 html 根字号换算，而不是恒用 16。
+    inputs: { baseSize: "16", rootSize: "18", pxInput: "18" },
+    expect: ["font-size: 1.125em;", "font-size: 1rem;", "html 根字号：<strong>18 px"],
+    ref: "18px ÷ 基准 16 = 1.125em；18px ÷ 根字号 18 = 1rem；默认根字号 16 时 rem 为 1.125，本例不命中。",
+  },
+  {
+    slug: "it/calc-4",
     inputs: { pxInput: "48" },
     expect: ["font-size: 48px;"],
     ref: "48px 换算推出 em/rem/pt/% 四行（3 / 3 / 36pt / 300%）；锚取注入值对应的 px 行写法。默认 16px 不命中。",
