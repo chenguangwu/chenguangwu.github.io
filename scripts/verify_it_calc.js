@@ -14572,6 +14572,60 @@ const CASES = [
     "expect": ["HASHPRIV SAFE"],
     "ref": "历史隐私回归：hash 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
   },
+  {
+    "slug": "it/wifi-qr-generator",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__wifi_qr_generatorSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'pass'+q)>=0;document.getElementById('__tbProbe').textContent='WIFIQRPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["WIFIQRPRIV SAFE"],
+    "ref": "历史隐私回归：wifi-qr-generator 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/wifi-qr",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__wifi_qrSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'pass'+q)>=0;document.getElementById('__tbProbe').textContent='WIFIQRSIMPLEPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["WIFIQRSIMPLEPRIV SAFE"],
+    "ref": "历史隐私回归：wifi-qr 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/rabbit",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__rabbitSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'key'+q)>=0&&src.indexOf(q+'input'+q)>=0;document.getElementById('__tbProbe').textContent='RABBITPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["RABBITPRIV SAFE"],
+    "ref": "历史隐私回归：rabbit 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/adfgvx-cipher",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__adfgvx_cipherSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'key'+q)>=0&&src.indexOf(q+'transKey'+q)>=0&&src.indexOf(q+'input'+q)>=0;document.getElementById('__tbProbe').textContent='ADFGVXPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["ADFGVXPRIV SAFE"],
+    "ref": "历史隐私回归：adfgvx-cipher 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/hill-cipher",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__hill_cipherSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'key'+q)>=0&&src.indexOf(q+'input'+q)>=0;document.getElementById('__tbProbe').textContent='HILLPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["HILLPRIV SAFE"],
+    "ref": "历史隐私回归：hill-cipher 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/polybius-cipher",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__polybius_cipherSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'key'+q)>=0&&src.indexOf(q+'input'+q)>=0;document.getElementById('__tbProbe').textContent='POLYBIUSPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["POLYBIUSPRIV SAFE"],
+    "ref": "历史隐私回归：polybius-cipher 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/playfair-cipher",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__playfair_cipherSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'key'+q)>=0&&src.indexOf(q+'input'+q)>=0;document.getElementById('__tbProbe').textContent='PLAYFAIRPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["PLAYFAIRPRIV SAFE"],
+    "ref": "历史隐私回归：playfair-cipher 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/xxtea",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__xxteaSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'key'+q)>=0&&src.indexOf(q+'input'+q)>=0;document.getElementById('__tbProbe').textContent='XXTEAPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["XXTEAPRIV SAFE"],
+    "ref": "历史隐私回归：xxtea 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/vigenere-visualizer",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__vigenere_visualizerSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'key'+q)>=0&&src.indexOf(q+'input'+q)>=0;document.getElementById('__tbProbe').textContent='VIGENEREVISPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["VIGENEREVISPRIV SAFE"],
+    "ref": "历史隐私回归：vigenere-visualizer 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
 ];
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
