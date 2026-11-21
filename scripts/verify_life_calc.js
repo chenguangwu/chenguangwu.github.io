@@ -1195,6 +1195,12 @@ const CASES = [
     ref: '1 mol/L NaCl（58.44 g/mol）= 58.44 g/L = 58440 ppm；旧版无 mol/L 选项与摩尔质量输入。'
   },
   {
+    slug: "life/frequency-converter",
+    inputs: { inputVal: "3000", fromUnit: "rpm" },
+    expect: ["基准： 3000 rpm = 50 Hz", "周期： 20 ms"],
+    ref: '3000 rpm = 50 Hz；T = 1/f = 0.02 s = 20 ms。旧版只输出频率单位，无周期字段。'
+  },
+  {
     slug: "life/flow-rate-converter",
     inputs: { inputVal: "1", fromUnit: "Lmin", density: "0.8" },
     expect: ["0.01333333333 kg/s", "密度 0.8 kg/L"],

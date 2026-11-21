@@ -319,13 +319,6 @@
 - 影响：`tools/life/report-profit.html`；财务工具出现负「未回款」和高于营收的现金流入，结论完全失真，且无任何越界提示。
 - 方案：`calc()` 内校验 `0 <= recv <= 100`，越界时在结果区提示并停止计算；`num` 对空值区分「未填」而非静默 0。
 
-### LF-N68 公式与 FAQ 承诺周期 T=1/f，结果区没有任何周期输出（低，确认缺陷）
-- 描述：公式区写明「周期与频率互为倒数 T = 1 ÷ f」并给出「3000 rpm = 50 Hz，对应周期 20 ms」，FAQ 也重复该关系；但结果只遍历 `factors` 输出 Hz/kHz/MHz/GHz/rpm，没有 T 或毫秒字段。
-- 证据：`tools/life/frequency-converter.html:157`（公式与 20 ms 示例）、`:224-225`（FAQ 重复）、`:298-305`（结果仅单位换算）
-- 复现：选 3000 rpm → 实际只显示「基准 3000 rpm = 50 Hz」及各频率单位（期望另显示「周期 20 ms」）；50 Hz 同理应显示 20 ms。
-- 影响：`tools/life/frequency-converter.html`；页面把周期作为核心卖点写进公式和 FAQ，用户按示例核对时找不到对应结果。
-- 方案：在结果区增加一行 `周期：fmt(1000 / base) ms`（base 为 Hz），零/负值时提示无效；或从公式与 FAQ 中删除周期承诺。
-
 ### LF-N69 meta 与英文简介宣称「电子伏特」，单位表实际没有 eV（低，确认缺陷）
 - 描述：页面 description/og/twitter 与英文简介都写支持 electronvolt，但下拉只有 J/kJ/cal/kcal/Wh/kWh/BTU 七项，`factors` 也没有 eV 键，用户无法进行 eV 换算。
 - 证据：`tools/life/energy-converter.html:10`（meta「电子伏特」）、`:159`（英文简介 `electronvolt`）、`:168-176`（下拉无 eV）、`:276-284`（系数表无 eV）
