@@ -352,9 +352,9 @@ const CASES = [
   // ── 推理吞吐 ───────────────────────────────────────────────
   {
     slug: "ai/inference-throughput",
-    inputs: { tokens: "900", sec: "6", batch: "2" },
-    expect: ["300.0", "150.0"],
-    ref: "单请求 900 tokens / 6s = 150.0 tokens/s；并发批量 2 ⇒ 总吞吐=900×2/6=300.0 tokens/s",
+    inputs: { tokens: "900", ttft: "1.2", tpot: "0.01", batch: "2" },
+    expect: ["176.6", "88.3"],
+    ref: "时延=1.2+899×0.01=10.19s；单请求=900/10.19=88.3 tokens/s；批量 2 ⇒ 总吞吐=176.6 tokens/s",
   },
 
   // ── 肘部法 WCSS 降幅 ───────────────────────────────────────
@@ -937,11 +937,12 @@ const CASES = [
     "slug": "ai/inference-throughput",
     "inputs": {
       "tokens": "42",
-      "sec": "42",
+      "ttft": "3",
+      "tpot": "0.5",
       "batch": "42"
     },
     expect: [
-      "总吞吐 tokens/s： 42.0", "单请求吞吐 tokens/s： 1.0"
+      "总吞吐 tokens/s： 75.1", "单请求吞吐 tokens/s： 1.8"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"tokens\":\"42\",\"sec\":\"42\",\"batch\":\"42\"}，输出区含「okens/s： 1.0 人均吞吐： 0.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1388,8 +1389,8 @@ const HOST_CASES = [
     restore: { inputId: "tokens", historyKey: "tokens" },
     chart: "itChart", table: "itTable",
     extras: ["itChart", "itTable", "itDiff", "itHist", "itPresets"],
-    inputs: { tokens: "900", sec: "6", batch: "2" },
-    tableExpect: "300.0",
+    inputs: { tokens: "900", ttft: "1.2", tpot: "0.01", batch: "2" },
+    tableExpect: "176.6",
     exportFn: "__itExport",
   },
   {

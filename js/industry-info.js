@@ -55,7 +55,7 @@ window.INDUSTRY_INFO = {
   'banking'              : { name: '银行学', icon: '🏦', hot: 365384 },
   'encode'               : { name: '编码转换', icon: '🔐', hot: 359426 },
   'dynamics'             : { name: '动力学', icon: '🌀', hot: 358011 },
-  'ai'                   : { name: '人工智能', icon: '🤖', hot: 357005 },
+  'ai'                   : { name: '人工智能', icon: '🤖', hot: 357008 },
   'astronomy'            : { name: '天文观测', icon: '🔭', hot: 345466 },
   'securities'           : { name: '证券投资', icon: '📈', hot: 335366 },
   'optics'               : { name: '光学', icon: '🔭', hot: 333974 },

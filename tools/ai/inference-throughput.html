@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=math,industry=ai,icon=🔮,bg=#ede9fe">
-<title>推理吞吐估算 - 辅助服务容量与并发规划</title>
+<title>推理吞吐估算 - 单请求吞吐和单请求时延</title>
 <link rel="canonical" href="https://chenguangwu.github.io/tools/ai/inference-throughput.html">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
@@ -17,17 +17,17 @@
 <meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
 <meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
-    <meta name="description" content="推理吞吐估算是一款免费的在线AI 人工智能工具，由单请求生成 token 数、单请求耗时与并发批量估算总吞吐和单请求吞吐(tokens/s)，辅助服务容量与并发规划">
-    <meta property="og:title" content="推理吞吐估算 - 辅助服务容量与并发规划">
-    <meta property="og:description" content="推理吞吐估算是一款免费的在线AI 人工智能工具，由单请求生成 token 数、单请求耗时与并发批量估算总吞吐和单请求吞吐(tokens/s)，辅助服务容量与并发规划">
+    <meta name="description" content="把端到端时延拆成首 token 延迟 TTFT 与每 token 间隔 TPOT，结合生成 token 数与并发批量估算总吞吐、单请求吞吐和单请求时延(tokens/s)，辅助容量规划">
+    <meta property="og:title" content="推理吞吐估算 - 单请求吞吐和单请求时延">
+    <meta property="og:description" content="把端到端时延拆成首 token 延迟 TTFT 与每 token 间隔 TPOT，结合生成 token 数与并发批量估算总吞吐、单请求吞吐和单请求时延(tokens/s)，辅助容量规划">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://chenguangwu.github.io/tools/ai/inference-throughput.html">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="推理吞吐估算 - 辅助服务容量与并发规划">
-    <meta name="twitter:description" content="推理吞吐估算是一款免费的在线AI 人工智能工具，由单请求生成 token 数、单请求耗时与并发批量估算总吞吐和单请求吞吐(tokens/s)，辅助服务容量与并发规划">
+    <meta name="twitter:title" content="推理吞吐估算 - 单请求吞吐和单请求时延">
+    <meta name="twitter:description" content="把端到端时延拆成首 token 延迟 TTFT 与每 token 间隔 TPOT，结合生成 token 数与并发批量估算总吞吐、单请求吞吐和单请求时延(tokens/s)，辅助容量规划">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"推理吞吐估算","url":"https://chenguangwu.github.io/tools/ai/inference-throughput.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"推理吞吐估算是一款免费的在线AI 人工智能工具，由单请求生成 token 数、单请求耗时与并发批量估算总吞吐和单请求吞吐(tokens/s)，辅助服务容量与并发规划","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"推理吞吐估算","url":"https://chenguangwu.github.io/tools/ai/inference-throughput.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"把端到端时延拆成首 token 延迟 TTFT 与每 token 间隔 TPOT，结合生成 token 数与并发批量估算总吞吐、单请求吞吐和单请求时延(tokens/s)，辅助容量规划","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -110,11 +110,12 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="由生成 token 与时延估算推理吞吐。">Estimate inference throughput in tokens per second from the generated token count and end-to-end latency, for capacity planning.</p>
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">推理总吞吐（本页代码口径）：总吞吐=单请求生成 tokens×并发批量÷单请求耗时秒（tokens/s）。校验：空值按 0 兜底，单请求耗时或并发为 0 使结果非有限时追加警示「部分结果无定义」。判据：无固定分级，总吞吐衡量服务整体利用率，结果保留 1 位小数、非有限时显示 —。</div>
-      <div class="formula-desc">推理服务的核心指标：总吞吐衡量集群利用率，单请求吞吐才是用户感知的快慢。本页按「单请求耗时不变」的线性口径估算总吞吐；实际 batching 会拉长单请求时延并受带宽瓶颈限制，请用实测耗时复核，再按 SLO 取舍。</div>
+      <div class="formula-eq">推理总吞吐（本页代码口径）：单请求时延=TTFT+（生成 tokens−1）×TPOT；总吞吐=tokens×并发批量÷单请求时延（tokens/s）；单请求吞吐=tokens÷单请求时延。校验：空值按 0 兜底，TTFT 可为 0，TPOT 或并发为 0 时结果非有限并追加警示「部分结果无定义」。判据：无固定分级，总吞吐衡量服务整体利用率，结果保留 1 位小数、非有限时显示 —。</div>
+      <div class="formula-desc">推理服务的核心指标：总吞吐衡量集群利用率，单请求吞吐才是用户感知的快慢。本页把端到端时延拆成「首 token 延迟 TTFT」与「每 token 间隔 TPOT」两段：TTFT 反映预填充与排队，TPOT 反映解码速度；总时延=TTFT+(tokens−1)×TPOT。实际 batching 会拉长 TTFT/TPOT 并受带宽瓶颈限制，请用实测两段时延复核，再按 SLO 取舍。</div>
     </div>
 <div class="input-row"><label>单请求生成 tokens</label><input type="number" id="tokens" value="200" step="any" oninput="calc()" placeholder="如 200"></div>
-    <div class="input-row"><label>单请求耗时 秒</label><input type="number" id="sec" value="4" step="any" oninput="calc()" placeholder="如 4"></div>
+    <div class="input-row"><label>首 token 延迟 TTFT 秒</label><input type="number" id="ttft" value="0.5" step="any" oninput="calc()" placeholder="如 0.5"></div>
+    <div class="input-row"><label>每 token 间隔 TPOT 秒</label><input type="number" id="tpot" value="0.02" step="any" oninput="calc()" placeholder="如 0.02"></div>
     <div class="input-row"><label>并发批量</label><input type="number" id="batch" value="1" step="any" oninput="calc()" placeholder="如 1"></div>
     <div id="itPresets"></div>
     <div class="toolbar">
@@ -131,7 +132,7 @@
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
-    <div class="formula-eq">单请求吞吐与时延（本页代码口径，与上方总吞吐互补）：单请求吞吐=单请求生成 tokens÷单请求耗时秒（tokens/s）；单请求时延=单请求耗时秒；每 token 毫秒=单请求耗时秒×1000÷单请求生成 tokens。校验：与总吞吐共用同一组输入，单请求耗时或并发为 0 时该项无定义并同样触发警示。判据：本页假设单请求耗时不变，不建模 batching 对单请求时延的拉长；实际容量规划须用实测 TTFT/TPOT 与带宽拐点复核。</div>
+    <div class="formula-eq">单请求吞吐与时延（本页代码口径，与上方总吞吐互补）：单请求时延=TTFT+（生成 tokens−1）×TPOT；单请求吞吐=生成 tokens÷单请求时延（tokens/s）；平均每 token 毫秒=单请求时延×1000÷生成 tokens；纯解码速度≈1000÷TPOT（ms/token）。校验：与总吞吐共用同一组输入，TPOT 或并发为 0 时该项无定义并同样触发警示。判据：本页不建模 batching 对 TTFT/TPOT 的拉长；实际容量规划须用实测 TTFT、TPOT 与带宽拐点复核。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">实际受批大小与排队影响。</p>
   </div>
 </div>
@@ -234,13 +235,16 @@
 function calc(){
   const __fin=(v)=>Number.isFinite(v);
   const tokens = +document.getElementById('tokens').value || 0;
-  const sec = +document.getElementById('sec').value || 0;
+  const ttft = +document.getElementById('ttft').value || 0;
+  const tpot = +document.getElementById('tpot').value || 0;
+  const sec = ttft + Math.max(tokens-1,0)*tpot;
   const batch = +document.getElementById('batch').value || 0;
   let html = '';
   const __v0 = (tokens*batch/sec);
   html += `<p>总吞吐 tokens/s：<strong style="font-size:18px;color:var(--primary);">${__fin(__v0)?__v0.toFixed(1):'—'}</strong> </p>`;
   const __v1 = (tokens/sec);
   html += `<p>单请求吞吐 tokens/s：<strong style="font-size:18px;color:var(--primary);">${__fin(__v1)?__v1.toFixed(1):'—'}</strong> </p>`;
+  html += `<p>单请求时延：<strong style="font-size:18px;color:var(--primary);">${__fin(sec)?sec.toFixed(2):'—'}</strong> 秒（TTFT ${ttft.toFixed(2)}s + ${Math.max(tokens-1,0)}×TPOT ${tpot.toFixed(3)}s）</p>`;
   const __bad = [__v0,__v1].some(v=>typeof v==='number'&&!Number.isFinite(v));
   if (__bad) html += '<p style="color:var(--danger);">⚠ 部分结果无定义（分母为 0 或输入为空），请检查输入。</p>';
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
@@ -264,27 +268,27 @@ function __itExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.expo
 function __itExtras(){
     if(typeof TBKit==='undefined')return;
     try{
-        var tokens=__itN('tokens'), sec=__itN('sec'), batch=__itN('batch');
-        if(!(tokens>0&&sec>0&&batch>0))return;
-        var tp=tokens*batch/sec, per=tokens/sec, lat=sec, mst=sec/tokens*1000;
+        var tokens=__itN('tokens'), ttft=__itN('ttft'), tpot=__itN('tpot'), batch=__itN('batch');
+        if(!(tokens>0&&ttft>=0&&tpot>0&&batch>0))return;
+        var lat=ttft+(tokens-1)*tpot, tp=tokens*batch/lat, per=tokens/lat, mst=lat/tokens*1000;
         var bs=[1,2,4,8,16];
-        TBKit.chart.bar('#itChart',{labels:bs.map(function(b){return 'b='+b;}),series:[{name:__itL('aggregate throughput (tok/s)','总吞吐 (tok/s)'),data:bs.map(function(b){return tokens*b/sec;})}],height:220,title:__itL('Aggregate throughput vs batch (linear estimate)','总吞吐随 batch 线性估算（未计带宽瓶颈）')});
+        TBKit.chart.bar('#itChart',{labels:bs.map(function(b){return 'b='+b;}),series:[{name:__itL('aggregate throughput (tok/s)','总吞吐 (tok/s)'),data:bs.map(function(b){return tokens*b/lat;})}],height:220,title:__itL('Aggregate throughput vs batch (linear estimate)','总吞吐随 batch 线性估算（未计带宽瓶颈）')});
         var rows=__itL(
-            [['tokens per request',tokens.toFixed(0)],['request latency (s)',sec.toFixed(2)],['batch size',batch.toFixed(0)],['aggregate throughput (tok/s)',tp.toFixed(1)],['per-request throughput (tok/s)',per.toFixed(1)],['per-request latency (s)',lat.toFixed(2)],['ms per token',mst.toFixed(1)]],
-            [['单请求生成 token 数',tokens.toFixed(0)],['单请求耗时 (s)',sec.toFixed(2)],['并发批量',batch.toFixed(0)],['总吞吐 (tok/s)',tp.toFixed(1)],['单请求吞吐 (tok/s)',per.toFixed(1)],['单请求时延 (s)',lat.toFixed(2)],['每 token 毫秒',mst.toFixed(1)]]);
+            [['tokens per request',tokens.toFixed(0)],['TTFT (s)',ttft.toFixed(2)],['TPOT (s)',tpot.toFixed(3)],['request latency (s)',lat.toFixed(2)],['batch size',batch.toFixed(0)],['aggregate throughput (tok/s)',tp.toFixed(1)],['per-request throughput (tok/s)',per.toFixed(1)],['per-request latency (s)',lat.toFixed(2)],['ms per token',mst.toFixed(1)]],
+            [['单请求生成 token 数',tokens.toFixed(0)],['TTFT (s)',ttft.toFixed(2)],['TPOT (s)',tpot.toFixed(3)],['单请求时延 (s)',lat.toFixed(2)],['并发批量',batch.toFixed(0)],['总吞吐 (tok/s)',tp.toFixed(1)],['单请求吞吐 (tok/s)',per.toFixed(1)],['单请求时延 (s)',lat.toFixed(2)],['每 token 毫秒',mst.toFixed(1)]]);
         TBKit.matrix.table('#itTable',{head:__itL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({tp:Number(tp.toFixed(1)),tokens:tokens,sec:sec,batch:batch}, 800);
+        TBKit.history.record({tp:Number(tp.toFixed(1)),tokens:tokens,ttft:ttft,tpot:tpot,batch:batch}, 800);
         TBKit.util.diffBox('#itDiff',['tp']);
-        TBKit.history.mount('#itHist',function(v){ if(v.tp!=null){document.getElementById('tokens').value=v.tokens;document.getElementById('sec').value=v.sec;document.getElementById('batch').value=v.batch;} calc(); });
+        TBKit.history.mount('#itHist',function(v){ if(v.tp!=null){document.getElementById('tokens').value=v.tokens;document.getElementById('ttft').value=v.ttft;document.getElementById('tpot').value=v.tpot;document.getElementById('batch').value=v.batch;} calc(); });
     }catch(e){}
 }
 function __itPresets(){
     if(typeof TBKit==='undefined')return;
     try{
         TBKit.preset.bar('#itPresets',[
-            {label:'慢速 200tok/4s/b1',labelEn:'Slow 200tok/4s/b1',values:{tokens:200,sec:4,batch:1}},
-            {label:'标准 2000tok/2s/b4',labelEn:'Standard 2000tok/2s/b4',values:{tokens:2000,sec:2,batch:4}},
-            {label:'快速 8000tok/1s/b8',labelEn:'Fast 8000tok/1s/b8',values:{tokens:8000,sec:1,batch:8}}
+            {label:'对话 200tok TTFT0.5s TPOT20ms/b1',labelEn:'Chat 200tok TTFT0.5s TPOT20ms/b1',values:{tokens:200,ttft:0.5,tpot:0.02,batch:1}},
+            {label:'标准 2000tok TTFT1s TPOT20ms/b4',labelEn:'Standard 2000tok TTFT1s TPOT20ms/b4',values:{tokens:2000,ttft:1,tpot:0.02,batch:4}},
+            {label:'批处理 8000tok TTFT2s TPOT10ms/b8',labelEn:'Batch 8000tok TTFT2s TPOT10ms/b8',values:{tokens:8000,ttft:2,tpot:0.01,batch:8}}
         ],function(){ calc(); });
     }catch(e){}
 }

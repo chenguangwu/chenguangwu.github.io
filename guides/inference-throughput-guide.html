@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>推理吞吐估算 使用指南 - ToolBox</title>
-<meta name="description" content="推理吞吐估算器，由生成 token 数与端到端时延估算大模型推理吞吐(tokens/s)，辅助服务容量与并发规划。显存带宽与算力是共享瓶颈，多请求竞争 KV 缓存与计算单元，边际吞吐递减；需实测找到拐点再定并发上限。">
+<meta name="description" content="推理吞吐估算器，把端到端时延拆成首 token 延迟 TTFT 与每 token 间隔 TPOT，结合生成 token 数与并发批量估算总吞吐、单请求吞吐和单请求时延(tokens/s)，辅助容量规划。显存带宽与算力是共享瓶颈，多请求竞争 KV 缓存与计算单元，边际吞吐递减；需实测找到拐点再定并发上限。">
 <meta property="og:title" content="推理吞吐估算 使用指南">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="ToolBox">
@@ -60,13 +60,13 @@ li{margin:8px 0;}
 <h1>推理吞吐估算 使用指南</h1>
 <p class="lead">推理吞吐估算器，由生成 token 数与端到端时延估算大模型推理吞吐(tokens/s)，辅助服务容量与并发规划。</p>
 <h2>计算公式与原理</h2>
-<p><strong>吞吐 = tokens / 秒；单请求吞吐 = tokens / (秒 × 并发批量)</strong></p><p>推理服务的核心指标：总吞吐衡量集群利用率，单请求吞吐才是用户感知的快慢。batching 能显著提升总吞吐但会拉长单请求延迟，在线服务通常需要在两者间按 SLO 折中。</p>
+<p><strong>单请求时延 = TTFT + (tokens−1) × TPOT；总吞吐 = tokens × 并发批量 / 单请求时延；单请求吞吐 = tokens / 单请求时延</strong></p><p>TTFT 反映预填充与排队，TPOT 反映逐 token 解码速度。batching 能提升总吞吐但会拉长 TTFT/TPOT，在线服务需按 SLO 折中。</p>
 <h2>使用步骤</h2>
-<ol><li>填写「生成 tokens」。</li><li>填写「耗时 秒」。</li><li>填写「并发数」。</li><li>结果区会即时更新；可一键复制结果用于记录或汇报。</li></ol>
+<ol><li>填写「生成 tokens」。</li><li>填写「首 token 延迟 TTFT 秒」（从请求到首个 token）。</li><li>填写「每 token 间隔 TPOT 秒」（后续每个 token 的平均间隔）。</li><li>填写「并发批量」。</li><li>结果区即时给出总吞吐、单请求吞吐与单请求时延；可复制或导出。</li></ol>
 <h2>典型使用场景</h2>
 <ul><li>吞吐≈生成 token 数 / 端到端时延(tokens/s)，衡量服务处理速度。</li><li>受模型大小、批大小、KV 缓存与硬件带宽共同影响，非仅由 FLOPs 决定。</li><li>容量规划用 吞吐×并发上限 估算峰值 QPS，需预留余量防雪崩。</li></ul>
 <h2>算例参考</h2>
-<ul><li><strong>单请求吞吐</strong>：生成 200 token 耗时 4s → 吞吐=50 tokens/s。若单卡支持 4 并发且各 50 tok/s，总吞吐≈200 tok/s；但实际共享 KV 缓存与带宽，并发增益低于线性。</li></ul>
+<ul><li><strong>单请求吞吐</strong>：生成 200 token，TTFT 0.5s、TPOT 20ms ⇒ 时延=0.5+199×0.02=4.48s，吞吐=200÷4.48≈44.6 tokens/s。若单卡 4 并发且各≈44.6 tok/s，理想总吞吐≈178 tok/s；实际共享 KV 缓存与带宽，并发增益低于线性。</li></ul>
 <h2>注意事项</h2>
 <p>结果为按上述公式得到的<strong>理论估算值</strong>，实际表现受数据分布、实现细节与运行环境影响，落地决策请以实测为准；本工具纯前端运行，输入不上传服务器。</p>
 <div class="related">
