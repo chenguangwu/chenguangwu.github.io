@@ -26,7 +26,7 @@ window.INDUSTRY_INFO = {
   'math'                 : { name: '数学计算', icon: '🧮', hot: 592340 },
   'automotive'           : { name: '汽车交通', icon: '🚗', hot: 580800 },
   'materials'            : { name: '材料科学', icon: '🧱', hot: 537632 },
-  'general'              : { name: '通用工程', icon: '🛠️', hot: 520274 },
+  'general'              : { name: '通用工程', icon: '🛠️', hot: 520280 },
   'optical'              : { name: '视光科学', icon: '👓', hot: 506043 },
   'meteorology'          : { name: '气象天气', icon: '🌤️', hot: 497748 },
   'realestate'           : { name: '房地产', icon: '🏘️', hot: 488597 },

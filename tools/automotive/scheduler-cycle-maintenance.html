@@ -158,6 +158,7 @@
     </div>
     <div class="input-row">
       <div><label>月均行驶里程 (km)</label><input type="number" id="kmM" value="1500" oninput="calc()" min="1" step="100" placeholder="如 1500"></div>
+      <div><label>上次保养日期</label><input type="date" id="lastDate" oninput="calc()"></div>
       <div><label>提醒提前量 (km)</label><input type="number" id="ahead" value="1000" oninput="calc()" min="0" step="100" placeholder="如 1000"></div>
     </div>
     <div class="input-row">
@@ -389,11 +390,15 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
 
   var overdue=[], soon=[], ok=[];
   var sinceKm=km-last;
+  var lastDate=str('lastDate'), elapsedMon=null;
+  if(lastDate){var ld=new Date(lastDate+'T00:00:00');
+    if(!isNaN(ld.getTime())){var now=new Date();elapsedMon=(now.getFullYear()-ld.getFullYear())*12+(now.getMonth()-ld.getMonth())-(now.getDate()<ld.getDate()?1:0);elapsedMon=Math.max(0,elapsedMon);}}
   var rows='';
   for(var i=0;i<ITEMS.length;i++){
     var o=ITEMS[i], left=o.left;
+    var timeLeft=(elapsedMon!==null&&o.monBase>0)?(o.monBase-elapsedMon):Infinity;
     var st, col;
-    if(left<=0&&sinceKm>o.cyc){ st='已逾期'; col='#dc2626'; overdue.push(o.name); }
+    if((left<=0&&sinceKm>o.cyc)||timeLeft<=0){ st='已逾期'; col='#dc2626'; overdue.push(o.name); }
     else if(left<=0){ st='已到期'; col='#dc2626'; overdue.push(o.name); }
     else if(left<=ahead){ st='即将到期'; col='#d97706'; soon.push(o.name); }
     else { st='正常'; col='#059669'; ok.push(o.name); }
@@ -403,6 +408,7 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
       +'<td style="padding:5px 8px;">'+fmtLocal(o.next,0)+'</td>'
       +'<td style="padding:5px 8px;color:'+col+';">'+fmtLocal(left,0)+'</td>'
       +'<td style="padding:5px 8px;">'+(isFinite(lm)&&lm>=0?fmtLocal(lm,1):'—')+'</td>'
+      +'<td style="padding:5px 8px;">'+(elapsedMon===null?'未填日期':(o.monBase>0?(timeLeft>0?fmtLocal(timeLeft,0)+' 个月':'已超 '+fmtLocal(-timeLeft,0)+' 个月'):'—'))+'</td>'
       +'<td style="padding:5px 8px;color:'+col+';">'+st+'</td></tr>';
   }
 
