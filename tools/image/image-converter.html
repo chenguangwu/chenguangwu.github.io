@@ -151,6 +151,11 @@
       <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;" onchange="handleFile(this.files[0])">
     </div>
 
+    <div class="input-row" style="margin-top:12px;">
+      <div><label>输出质量（JPEG/WebP）</label><input type="range" id="convQuality" min="1" max="100" value="85" oninput="document.getElementById('convQualityVal').textContent=this.value+'%';reconvert()"><span id="convQualityVal" style="font-size:13px;color:var(--text-muted);">85%</span></div>
+      <div><label>最长边（像素，0=原尺寸）</label><input type="number" id="convMaxSide" min="0" max="10000" value="0" step="1" oninput="reconvert()"></div>
+      <div><label>只转所选格式</label><label style="font-weight:400;display:inline-flex;gap:6px;margin-right:10px;"><input type="checkbox" class="convFmt" value="jpeg" checked onchange="reconvert()">JPEG</label><label style="font-weight:400;display:inline-flex;gap:6px;margin-right:10px;"><input type="checkbox" class="convFmt" value="png" checked onchange="reconvert()">PNG</label><label style="font-weight:400;display:inline-flex;gap:6px;"><input type="checkbox" class="convFmt" value="webp" checked onchange="reconvert()">WebP</label></div>
+    </div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__image_converterExport()">导出明细 CSV</button></div>
     <div id="result" style="display:none;">
       <div class="result-box" id="info"></div>
@@ -291,20 +296,35 @@ function handleFile(file) {
   originalImg.src = originalUrl;
 }
 
+function reconvert(){
+  if(originalImg && originalImg.naturalWidth) convertAll(__convertToken);
+}
 function convertAll(__token) {
   if (__token !== __convertToken) return;
-  const w = originalImg.naturalWidth;
-  const h = originalImg.naturalHeight;
+  if(!originalImg || !originalImg.naturalWidth) return;
+  var maxSide = parseInt((document.getElementById('convMaxSide')||{}).value,10);
+  maxSide = (isFinite(maxSide) && maxSide > 0) ? Math.min(maxSide, 10000) : 0;
+  var scale = maxSide ? Math.min(1, maxSide / Math.max(originalImg.naturalWidth, originalImg.naturalHeight)) : 1;
+  const w = Math.max(1, Math.round(originalImg.naturalWidth * scale));
+  const h = Math.max(1, Math.round(originalImg.naturalHeight * scale));
+  var quality = parseInt((document.getElementById('convQuality')||{}).value,10);
+  quality = (isFinite(quality) ? Math.min(100, Math.max(1, quality)) : 85) / 100;
+  var selected = {};
+  document.querySelectorAll('.convFmt').forEach(function(cb){ selected[cb.value] = cb.checked; });
+  if(!selected.jpeg && !selected.png && !selected.webp){
+    var grid0=document.getElementById('preview-grid'); if(grid0) grid0.innerHTML='<p style="color:var(--danger)">请至少勾选一种输出格式。</p>';
+    return;
+  }
 
   // 每次重转前释放上一批预览/下载用的 blob URL，避免反复转换累积内存
   cardUrls.forEach(u => URL.revokeObjectURL(u));
   cardUrls = [];
 
   const formats = [
-    { type: 'image/jpeg', ext: 'jpg', label: 'JPEG', lossy: true },
-    { type: 'image/png', ext: 'png', label: 'PNG', lossy: false },
-    { type: 'image/webp', ext: 'webp', label: 'WebP', lossy: true }
-  ];
+    { key:'jpeg', type: 'image/jpeg', ext: 'jpg', label: 'JPEG', lossy: true },
+    { key:'png', type: 'image/png', ext: 'png', label: 'PNG', lossy: false },
+    { key:'webp', type: 'image/webp', ext: 'webp', label: 'WebP', lossy: true }
+  ].filter(function(f){ return selected[f.key]; });
 
   const grid = document.getElementById('preview-grid');
   const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h1;
@@ -340,7 +360,7 @@ function convertAll(__token) {
         <a href="${url}" download="converted-${Date.now()}.${actualExt}" class="download">⬇ 下载</a>
       `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){card.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}card.innerHTML=__h2;
       grid.appendChild(card);
-    }, f.type, f.lossy ? 0.85 : undefined); } catch (e) { ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误")), 'error'); }
+    }, f.type, f.lossy ? quality : undefined); } catch (e) { ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误")), 'error'); }
   });
 }
 

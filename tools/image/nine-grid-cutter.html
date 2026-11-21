@@ -20,7 +20,7 @@
 </script>
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"九宫格切图","url":"https://chenguangwu.github.io/tools/image/nine-grid-cutter.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"九宫格切图是一款免费的在线图像处理工具，上传图片后自动切成 3×3，并可分别下载。发朋友圈长图被压缩，想切成九宫格拼回大图。做九格海报合集，每格独立保存。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"九宫格切图","url":"https://chenguangwu.github.io/tools/image/nine-grid-cutter.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"九宫格切图是一款免费的在线图像处理工具，总边长按行列等比分配；3×3 选 3240 即每格 1080px。微信九宫格请按 1→9 顺序发布。发朋友圈长图被压缩，想切成九宫格拼回大图。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -44,11 +44,11 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="description" content="九宫格切图是一款免费的在线图像处理工具，上传图片后自动切成 3×3，并可分别下载。发朋友圈长图被压缩，想切成九宫格拼回大图。做九格海报合集，每格独立保存。">
+<meta name="description" content="九宫格切图是一款免费的在线图像处理工具，总边长按行列等比分配；3×3 选 3240 即每格 1080px。微信九宫格请按 1→9 顺序发布。发朋友圈长图被压缩，想切成九宫格拼回大图。">
 <meta property="og:title" content="九宫格切图 - 免费在线图像处理工具">
-<meta property="og:description" content="九宫格切图是一款免费的在线图像处理工具，上传图片后自动切成 3×3，并可分别下载。发朋友圈长图被压缩，想切成九宫格拼回大图。做九格海报合集，每格独立保存。">
+<meta property="og:description" content="九宫格切图是一款免费的在线图像处理工具，总边长按行列等比分配；3×3 选 3240 即每格 1080px。微信九宫格请按 1→9 顺序发布。发朋友圈长图被压缩，想切成九宫格拼回大图。">
 <meta name="twitter:title" content="九宫格切图 - 免费在线图像处理工具">
-<meta name="twitter:description" content="九宫格切图是一款免费的在线图像处理工具，上传图片后自动切成 3×3，并可分别下载。发朋友圈长图被压缩，想切成九宫格拼回大图。做九格海报合集，每格独立保存。">
+<meta name="twitter:description" content="九宫格切图是一款免费的在线图像处理工具，总边长按行列等比分配；3×3 选 3240 即每格 1080px。微信九宫格请按 1→9 顺序发布。发朋友圈长图被压缩，想切成九宫格拼回大图。">
 <link rel="canonical" href="https://chenguangwu.github.io/tools/image/nine-grid-cutter.html">
 
 <meta property="og:type" content="website">
@@ -129,6 +129,13 @@
       </div>
       <div id="ngcInfo" style="font-size:12px;color:var(--text-muted);margin-top:8px;"></div>
       <div id="ngcWarn" role="alert" style="font-size:12px;color:var(--danger);margin-top:6px;"></div>
+      <label style="margin-top:10px;display:block;">总输出边长</label>
+      <select id="ngcOutSide" onchange="splitAndRender()" style="max-width:260px;">
+        <option value="0">原始分辨率</option>
+        <option value="3240">3240（3×3 时每格约 1080）</option>
+        <option value="4320">4320（3×3 时每格约 1440）</option>
+      </select>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">总边长按行列等比分配；3×3 选 3240 即每格 1080px。微信九宫格请按 1→9 顺序发布。</p>
       <div id="ngcPresets" style="margin:10px 0;"></div>
       <div id="ngcRefTbl" style="margin-top:12px;"></div>
     </div>
@@ -329,12 +336,16 @@ function splitAndRender() {
   const sy = (image.height - side) / 2;
   const cellW = side / ngcCols;
   const cellH = side / ngcRows;
+  var outSide = parseInt((document.getElementById('ngcOutSide')||{}).value,10);
+  outSide = (isFinite(outSide) && outSide > 0) ? Math.min(outSide, 6000) : 0;
+  var pieceW = outSide ? Math.round(outSide / ngcCols) : Math.round(cellW);
+  var pieceH = outSide ? Math.round(outSide / ngcRows) : Math.round(cellH);
 
   for (let r = 0; r < ngcRows; r++) {
     for (let c = 0; c < ngcCols; c++) {
       const cs = document.createElement('canvas');
-      cs.width = Math.round(cellW);
-      cs.height = Math.round(cellH);
+      cs.width = Math.max(1, pieceW);
+      cs.height = Math.max(1, pieceH);
       const ctx = cs.getContext('2d');
       ctx.drawImage(image, sx + c * cellW, sy + r * cellH, cellW, cellH, 0, 0, cs.width, cs.height);
       const index = r * ngcCols + c + 1;

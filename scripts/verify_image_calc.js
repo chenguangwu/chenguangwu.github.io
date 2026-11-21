@@ -392,6 +392,10 @@ function batch204StaticChecks(){
   out.push({name:"B204 platform presets",ok:src.indexOf('setPlatformSize(1242,1660')>=0&&src.indexOf('setPlatformSize(900,383')>=0&&src.indexOf('function setPlatformSize(w,h,label)')>=0});
   var cmp = fs.readFileSync("tools/image/image-compress.html","utf8");
   var rc = fs.readFileSync("tools/image/generator-15.html","utf8");
+  var ngc = fs.readFileSync("tools/image/nine-grid-cutter.html","utf8");
+  out.push({name:"B209 nine-grid output size",ok:ngc.indexOf('id="ngcOutSide"')>=0&&ngc.indexOf('var pieceW = outSide')>=0&&ngc.indexOf('3×3 选 3240 即每格 1080px')>=0});
+  var cvr = fs.readFileSync("tools/image/image-converter.html","utf8");
+  out.push({name:"B209 converter controls",ok:cvr.indexOf('id="convQuality"')>=0&&cvr.indexOf('id="convMaxSide"')>=0&&cvr.indexOf('class="convFmt"')>=0&&cvr.indexOf('f.lossy ? quality : undefined')>=0});
   var idp = fs.readFileSync("tools/image/id-photo-crop.html","utf8");
   out.push({name:"B207 id-photo onerror clears",ok:idp.indexOf('srcImg = null;')>=0&&idp.indexOf('无法解码该图片')>=0});
   var rot = fs.readFileSync("tools/image/image-rotate.html","utf8");
