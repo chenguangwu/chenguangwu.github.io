@@ -30,17 +30,16 @@
 > 六页仅静态分析，未运行页面或验证视光标准；专业建议须复核。
 
 - `tools/optical/photochromic-lens.html`：温度无下界致 `tempFactorDark` 为负、变深时间出现负秒——第1320批已修（因子非正即双语提示并中止，不做武断的下限钳制，真机负温用例已落 optical verify；旧版输出负时间 ⇒ BAD）。余项：清空温度仍按 25°C 输出结论；经验模型与适用温度范围须专业复核。
-- `tools/optical/polarized-axis.html`：球镜/柱镜/前倾角/面弯空值静默按 0——第1317批已修（四处原始判空+非有限数与角度范围守卫，强锚 `PAGUARD` 已落 optical verify；旧版无 `__sphRaw` ⇒ BAD）。余项：轴位 `axis` 被读取但未参与后续计算，改变原处方轴位不改变结果；模型与处方补偿方法须专业复核。
+- `tools/optical/polarized-axis.html`：球镜/柱镜/前倾角/面弯空值静默按 0——第1317批已修（四处原始判空+非有限数与角度范围守卫，强锚 `PAGUARD` 已落 optical verify；旧版无 `__sphRaw` ⇒ BAD）。余项：模型与处方补偿方法须专业复核（原轴位已按「仅对照显示」处理，不参与诱导柱镜合成）。
 - `tools/optical/polarized-stress.html:314-327,361-369`：表格色序数组相对 `COLORS` 索引错位：一级红（索引 4）标一级、二级紫（索引 5）也标一级，二级红（索引 9）标二级但三级紫（索引 10）标二级；末项高级粉白被标三级。等级及合格判断须专业复核。
 - `tools/optical/prism-decentration.html:126-153,316-322,325-366`：切换“已知移心”后下拉仍标“基底方向”，代码却把该值当移心方向，再对负镜取反作为基底；同一选项语义随模式变化，易误填。棱镜量或移心量清空当作 0，仍输出结果；0 镜度被一律拒绝，包含只求诱导量模式。方向与临床适用性须复核。
-- `tools/optical/progressive-corridor.html`：下加光/镜圈高度/瞳高空值静默代入——第1316批已修（三处原始判空+下加光非负、镜圈高度与瞳高正数守卫，强锚 `PCGUARD` 已落 optical verify；旧版无 `__addRaw` ⇒ BAD）。余项：选择短通道且 ADD≥2.5 时，代码直接把本次计算的通道改为 14mm（ADD≥3 改为 17mm），而单选仍显示用户选中的短通道；适配结果实际针对推荐方案而非当前选择；图示中 `nearY-fitY` 为负，连接线使用负 CSS 高度，绘制效果待验证。通道替换策略与图示须视光师复核。
+- `tools/optical/progressive-corridor.html`：下加光/镜圈高度/瞳高空值静默代入——第1316批已修（三处原始判空+下加光非负、镜圈高度与瞳高正数守卫，强锚 `PCGUARD` 已落 optical verify；旧版无 `__addRaw` ⇒ BAD）。余项：图示中 `nearY-fitY` 为负，连接线使用负 CSS 高度，绘制效果待验证；通道策略与图示须视光师复核。
 - `tools/optical/tinted-lens.html`：基础透光率清空/0 回退 92%、未约束 0–100——第1314批已修（原始串判空+范围校验，无效清 tintGrid，强锚 `TINTVLT` 已落 optical verify）。余项：颜色系数及对夜间/驾驶使用的结论须按适用标准复核。
 
 ## 2026-11-06 视光工具静态续审（第三批）
 
 > 八页仅源码推演，未运行浏览器或核验验光、光学标准；涉及专业结论须复核。
 
-- `tools/optical/coating-design.html`：波长/镜片折射率 0 与负值静默换默认（`||550`/`||1.6`）、清空只替换结果未清层系图——第1319批已修（原始判空+正数守卫，守卫与非法分支均清 `layerStack`，强锚 `CDGUARD` 已落 optical verify；旧版无 `__lamRaw` ⇒ BAD）。余项：选 SiO₂、ZrO₂ 等时结果说明仍固定称 MgF₂，且声称反射率“降至”但高折射率膜的计算结果可能更高。材料文案与反射率措辞须专业复核。
 - `tools/optical/convergence-near-point.html`：瞳距空值按 0 计算——第1315批已修（原始串判空+正数守卫，强锚 `CNPGUARD` 已落 optical verify）。距离/瞳距无效未清参考表——第1328批已修（pd<=0 与 dist<=0 两守卫均清 #distTable tbody，源码形态强锚 `CNPTBL` 已落 optical verify；旧版 calc 段引用 before=1/fixed=3，旧版无 ⇒ BAD）。余项：PD=62mm/40cm 的每眼需求与双眼总量口径冲突须视光师复核。
 - `tools/optical/frame-pupillary.html`：A/DBL/PD 清空按 0 出匹配建议——第1315批已修（三处原始判空+正数守卫，强锚 `FPGUARD` 已落 optical verify；ED 为 0 回退 A 属选填默认，保留）。余项：移心过大时一律建议更大 DBL 与自身公式方向冲突，须视光师复核。
 - `tools/optical/frame-tilt.html`：倾角/瞳距/瞳高清空按 0——第1315批已修（原始串判空，pd 与瞳高正数守卫，倾角 0 仍合法，强锚 `FTGUARD` 已落 optical verify）。余项：`shiftCm` 未展示英文简介所述棱镜效应且无镜度输入；前倾光心移动与瞳高方向须专业复核。
@@ -53,8 +52,8 @@
 
 - `tools/ophthalmology/strabismus-angle.html`：历史恢复无参调用 `switchTab()` 抛错且不重算——第1334批已修（switchTab 无参分支安全重算 conv/hirsch/combine 并 return，源码形态强锚 `STRASHIST` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：页面称 1Δ 在 1 米偏移 1cm，但转换网格算 `pd*0.5`（20Δ 显示 10cm）；`pd2` 未参与计算；Hirschberg 说明写 15Δ/mm 而运行路径用 7°/mm——医学换算和适用性须复核。
 - `tools/ophthalmology/refraction-error.html`：单片或双镜任一数字清空即直接返回、旧处方仍显示——第1323批已修（calcSingle/calcCombine 空值分支清对应结果容器，源码形态强锚 `REFCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：散光分类仅看轴位而不看柱镜正负，互为转置的处方可能被标成不同类别；页内 180° 示例的 J0 算式也与其负号结果矛盾，专业判定须复核。
-- `tools/ophthalmology/tear-breakup-time.html`：清空首次值未清参考标尺 `resultRefBar`——第1323批已修（清空分支同步清 `resultRefBar`，源码形态强锚 `TBUTCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：只校验首次 BUT，即使填写平均 TBUT 仍要求首次值；负值可进入分级；10 秒在代码中为正常而表格写 >10 正常。干眼分级、用药建议和阈值须临床复核。
-- `tools/ophthalmology/vision-screening-21.html`：清空历史不清趋势容器、旧图留存——第1326批已修（__vsClearHist 同步清 `#__vsTrend`，源码形态强锚 `VSCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：左右眼散光负荷分别计算，但方向从两眼答案取最大值，一个眼的症状可决定另一眼的轴向提示；所有未答题默认“从不”，可直接连点生成完整结论。问卷到近视度数、置信带与散光轴位的医学有效性无本次证据，须专业复核。
+- `tools/ophthalmology/tear-breakup-time.html`：清空首次值未清参考标尺 `resultRefBar`——第1323批已修（清空分支同步清 `resultRefBar`，源码形态强锚 `TBUTCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：10 秒在代码中为正常而表格写 >10 正常。干眼分级、用药建议和阈值须临床复核。
+- `tools/ophthalmology/vision-screening-21.html`：清空历史不清趋势容器、旧图留存——第1326批已修（__vsClearHist 同步清 `#__vsTrend`，源码形态强锚 `VSCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：所有未答题默认“从不”，可直接连点生成完整结论。问卷到近视度数、置信带与散光轴位的医学有效性无本次证据，须专业复核。
 - `tools/ophthalmology/visual-field-analysis.html`：仅检查 NaN，VFI 越界/PSD 负值仍进分级——第1325批已修（要求 PSD≥0、VFI∈[0,100]，MD 负值按习惯保留，源码形态强锚 `VFIDOM` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：GHT 单选项无 id，历史快照仅收 `input[id]`，恢复时保留当前 GHT 而非当次选择，可重算不同结论。HAP 等医学分期及界限须专业复核。
 - `tools/optical/accommodation-amplitude.html`：年龄清空经 `||0` 当成 0 岁继续出结果——第1318批已修（原始串判空+年龄正数守卫，强锚 `AAGUARD` 已落 optical verify；旧版无 `__ageRaw` ⇒ BAD）。余项：非正参考调节幅度对应近点被写成固定 999cm，60 岁还给出完全下加光建议；深解的 30 岁数值及引据表公式与实际公式不一致，医学适用性须验光专业复核。实测调节值为选填，本批未动。
 - `tools/optical/anti-fatigue-design.html`：基础模式空年龄默认 0、空或 0 工作距离默认 40cm——第1318批已修（年龄/距离/远用度数三处原始判空+年龄与距离正数守卫，远用度数允许 0 与负值，强锚 `AFGUARD` 已落 optical verify；旧版无 `__ageRaw` ⇒ BAD）。余项：基础远用度数 `rx` 读取后未使用，进阶近距隐斜只展示不参与建议；两个分支先把 ADD 限至 1D，因此 `add>1` 的渐进片建议永不可达。所述验配方法、隐斜处理和建议须专业复核。
