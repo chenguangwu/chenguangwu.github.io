@@ -466,6 +466,12 @@ const CASES = [
   "expect": ["VSAS OK"],
   "ref": "左右眼散光方向隔离：旧 astigVerdict 取 q11/q14/q17/q3 两眼的 Math.max，单眼症状可决定另一眼轴位方向；修复后按传入 eye 取本眼回答。拒绝 Math.max 两眼版本。"
 },
+{
+  "slug": "ophthalmology/visual-field-analysis",
+  "clicks": ["var a=document.getElementById('ghtNormal'),b=document.getElementById('ghtBorderline'),c=document.getElementById('ghtOutside');var src=String(__visual_field_analysisSnap);var ok=!!a&&!!b&&!!c&&src.indexOf('input[id]')>=0;document.getElementById('__tbProbe').textContent='GHTIDS '+(ok?'OK':'BAD');"],
+  "expect": ["GHTIDS OK"],
+  "ref": "GHT 历史可恢复：三个 single-choice 原本没有 id，历史快照只收 input[id] 因而永远漏掉 GHT，恢复时保留当前选择并重算出不同结论。补 id 后快照能按 1/0 记录并恢复。同时修正重复的 aria-label。"
+},
 
 ];
 async function main() {
