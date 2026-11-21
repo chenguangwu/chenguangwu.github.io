@@ -65,19 +65,6 @@
 - 覆盖小结：本轮实读 8 页（adfgvx-cipher、affine-cipher、atbash-cipher、bacon-cipher、hill-cipher、playfair-cipher、rail-fence-cipher、vigenere-visualizer），新增 24 条（高 3 / 中 14 / 低 7），编号 IT-N143~IT-N166。未覆盖：本分区其余约 257 页（含全部编码/哈希/格式化/HTTP/Git/Docker 生成器与速查表）；未做浏览器、英文态、繁体、移动端、门禁与线上部署验证。
 
 ### 承诺 vs 实际（S 批专项）
-- `tools/it/phone-qr.html:201`、`:197`：承诺"使用标准 tel: URI，主流扫码器均支持/扫码唤起拨号"，实际生成随机噪点图、无数据编码与纠错（N273）；`:158` 承诺剥离全部空白，实际仅在补 `tel:` 时剥离（N274）。
-- `tools/it/protobuf-parser.html:161`、`:204-205`：承诺解析二进制结构与抓包排查 gRPC，实现只有 `.proto` 文本转 JSON（N278）；`:415` 的"校验"只数括号（N277）；`:290-305` 不支持 `map<...>`（N276）；`:12` 的 meta 口径（.proto→JSON）与正文自相矛盾。
-- `tools/it/hmac-generator.html:219`：FAQ 把"编码不一致"列为签名失败主因，实际密钥固定按 UTF-8 文本编码、输出只有 hex（N280）；`:151` 的"输出长度=摘要长度"描述正确，无问题。
-- `tools/it/numeronym-generator.html:397` 承诺"结果展示缩写与各字母间字符数还原"，实际只有 `词 → 缩写` 对照、没有还原功能；`:193` 写"通常 7 字母以上才用"，`:262` 却对所有 ≥3 字母词生效（N286）。
-- `tools/it/clamp-calculator.html:169` 示例"320–1280px、16–24px：clamp(16px, 1rem+0.625vw, 24px)（约在 320px=16、1280px=24）"——按页面 `:275-278` 同参数实际生成 `clamp(16px, 2.5vw + 16px, 24px)`，320px 得 24px、≥320px 后一直被 max 截断，示例与算法不符（N291）。
-
-### 覆盖
-- 实读 8 页：`tools/it/gitignore-generator.html`、`tools/it/phone-qr.html`、`tools/it/protobuf-parser.html`、`tools/it/hmac-generator.html`、`tools/it/a1z26-cipher.html`、`tools/it/numeronym-generator.html`、`tools/it/markdown-editor.html`、`tools/it/clamp-calculator.html`（另读 `js/tool-kit.js` 的 `setValue`/`preset.bar`、`js/toolbox-stub.js` 的 `i18nText` 兜底）。
-- 新增 24 条（高 6 / 中 15 / 低 3），编号 IT-N270~IT-N293；上一批止于 IT-N269，本批无重号。
-- 未覆盖说明：只审计主流程、边界与文档口径，未穷举全部输入组合（gitignore 只核对模板全集与预设赋值，未逐栈检查每条规则是否过时；phone-qr 未实扫，结论为"无数据编码/纠错块"的构造性判定；protobuf 只测 map、非法文本、负数枚举与二进制输入，未覆盖 `extend`/`group`/aggregate option；hmac 未在非安全上下文实测 `crypto.subtle` 缺失路径；a1z26 只测大小写、重音、标点、数字与越界；numeronym 只测标点位置、短词与已有数字缩写；markdown 只做属性注入与 task list/# 层级；clamp 只算 3 组参数）。
-- 未做验证：未改代码、未构建、未跑门禁、未 git 写、未开浏览器；结论为源码静态分析 + `node` 内存复算（临时脚本 `/tmp/t1.js`、`/tmp/t2.js`、`/tmp/t3.js`，未落仓库）；未验证英文态 `?lang=en-US`、繁体与移动端。
-
-### 承诺 vs 实际（S 批专项）
 - `tools/it/des.html:166`、`:263`：承诺"3DES 密钥 112/168 位""维护老系统时解密历史数据"，实际密钥编排只剩 1 字节有效、输出与标准不兼容（N294、N295）；`:155` 的"解密时纯十六进制且偶数长度按 hex、否则 Base64"实现一致，但奇数 hex 会抛 `InvalidCharacterError`（N296）。
 - `tools/it/js-formatter.html:225` 承诺"纯格式化不会改变代码行为，AST 不变"，实际注释换行与 `return` ASI 均改变语义（N297）；`:167` 写"必须基于 AST 而非简单正则"，本页是手写词法 + 深度计数（`:163`），压缩还不补分号（N298）。
 - `tools/it/python-formatter.html:170` 承诺"统一空格"，实测 `x={1:2,3:4}` 原样输出；`:219` 示例"`x={1:2,3:4}` → `x = {1: 2, 3: 4}`"不成立；`:223` 的"成熟工具只做等价改写"不适用于本页（N300、N301）。
