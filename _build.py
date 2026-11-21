@@ -1472,7 +1472,7 @@ INDUSTRY_DEFS = {
     'forestry':      ('🌲', '林业资源'),
     'livestock':     ('🐄', '畜牧养殖'),
 
-    'accessibility': ('♿', '无障碍工具'),
+    'accessibility': ('♿', '无障碍辅助'),
     'accounting': ('🧾', '会计审计'),
     'acupuncture': ('🪡', '针灸推拿'),
     'admin': ('🗂️', '行政管理'),
@@ -1483,7 +1483,7 @@ INDUSTRY_DEFS = {
     'archaeology': ('🏺', '考古文博'),
     'archive': ('🗄️', '档案管理'),
     'astronomy': ('🔭', '天文观测'),
-    'audio': ('🎧', '音频工具'),
+    'audio': ('🎧', '音频处理'),
     'auto-beauty': ('🚘', '汽车美容'),
     'automation': ('🛠️', '工业自动化'),
     'baking': ('🧁', '烘焙甜点'),
