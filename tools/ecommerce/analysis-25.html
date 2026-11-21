@@ -190,16 +190,16 @@ B商品,199,189</textarea>
 </div>
 <script>
 function calc(){
-var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
-var rows=[];
+var lines=document.getElementById("data").value.split(/\n|;|；/).map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
+var rows=[];var skipped=0;
 for(var i=0;i<lines.length;i++){
-  var p=lines[i].split(/[,，\t ]+/);
-  if(p.length<3) continue;
-  var nm=p[0],mine=parseFloat(p[1]),riv=parseFloat(p[2]);
-  if(isNaN(mine)||isNaN(riv)||riv===0) continue;
+  var p=lines[i].split(/[,，\t]+/);
+  if(p.length<3){skipped++;continue;}
+  var nm=p.slice(0,p.length-2).join(',').trim(),mine=parseFloat(p[p.length-2]),riv=parseFloat(p[p.length-1]);
+  if(!nm||!isFinite(mine)||!isFinite(riv)||mine<=0||riv<=0){skipped++;continue;}
   rows.push({n:nm,m:mine,r:riv});
 }
-if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「商品,本店价,竞品价」数据</p>";return;}
+if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「商品,本店价,竞品价」数据（价格须大于 0）</p>";return;}
 var tb="",sum=0;
 rows.forEach(function(r){
   var d=r.m-r.r, pct=d/r.r*100; sum+=pct;
@@ -211,7 +211,7 @@ var adv=rows.filter(function(r){return r.m<r.r;}).length;
 var dis=rows.filter(function(r){return r.m>r.r;}).length;
 var low=rows.slice().sort(function(a,b){return (a.m-a.r)-(b.m-b.r);})[0];
 var judge=avg<-2?"整体价格占优":(avg>2?"整体价格偏高":"价格基本持平");
-var h="<p>对比商品数：<strong>"+rows.length+"</strong></p>";
+var h=(skipped?"<p style=\"color:var(--danger)\">"+skipped+" 行格式有误或价格 ≤0，已跳过。</p>":"")+"<p>对比商品数：<strong>"+rows.length+"</strong></p>";
 h+="<p>价格优势项：<strong>"+adv+"</strong></p>";
 h+="<p>价格劣势项：<strong>"+dis+"</strong></p>";
 h+="<p>平均价差率：<strong>"+(avg>0?"+":"")+avg.toFixed(2)+"%</strong></p>";

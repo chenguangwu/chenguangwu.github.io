@@ -274,35 +274,33 @@ function calcTool(){const target=num('target'), cut=num('cut'), cur=num('cur');
      html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">当前金额已达到满减门槛，无需再加购；如需叠加更高档位，请把「满减门槛」改成更高档位后重算。</p>';
      const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;
    }
-   // 找单件最优
-   let best=null;
-   cands.forEach(v=>{
-     if(v>=need){
-       const gap=v-need;
-       if(!best||gap<best.gap) best={items:[v],gap:gap,total:v};
-     }
-   });
-   // 两件组合最优（价格升序，双指针）
-   let lo=0,hi=cands.length-1;
-   while(lo<hi){
-     const sum=cands[lo]+cands[hi];
-     if(sum>=need){
-       const gap=sum-need;
-       if(!best||gap<best.gap) best={items:[cands[lo],cands[hi]],gap:gap,total:sum};
-       hi--;
-     }else{lo++;}
+   // 候选内子集和 ≥ need 的最小和（DFS + 后缀和剪枝，候选上限 22 个）
+   const sorted=cands.slice().sort((a,b)=>a-b);
+   if(sorted.length>22){ToolBox.setResult('result','<p class="tip-error">候选商品最多 22 个，请精简后再算。</p>');return;}
+   const suffix=new Array(sorted.length+1); suffix[sorted.length]=0;
+   for(let i=sorted.length-1;i>=0;i--) suffix[i]=suffix[i+1]+sorted[i];
+   let best={sum:Infinity,items:[]};
+   function dfs(i,sum,items){
+     if(sum>=need){ if(sum<best.sum) best={sum:sum,items:items.slice()}; return; }
+     if(i>=sorted.length||sum+suffix[i]<need) return;
+     dfs(i+1,sum,items);
+     items.push(sorted[i]); dfs(i+1,sum+sorted[i],items); items.pop();
    }
-   if(!best){
-     const sum=cands.reduce((a,b)=>a+b,0);
-     best={items:cands,gap:Math.max(0,sum-need),total:sum};
+   dfs(0,0,[]);
+   if(!isFinite(best.sum)){
+     const maxSum=sorted.reduce((a,b)=>a+b,0);
+     ToolBox.setResult('result','<p class="tip-error">候选不足：全部候选合计仅 '+maxSum.toFixed(2)+' 元，距门槛仍差 '+Math.max(0,need-maxSum).toFixed(2)+' 元，请补充商品或降低门槛。</p>');
+     return;
    }
-   const total=cur+best.total;
+   const bestTotal=best.sum;
+   const bestGap=bestTotal-need;
+   const total=cur+bestTotal;
    const finalPay=Math.max(0,total-cut);
    const effective=total>0?Math.max(0,Math.min(100,finalPay/total*100)):0;
    let html=dataGrid([
      ['差 '+need.toFixed(2)+' 元','距离满减差额'],
      [best.items.join(' + ')+' 元','推荐凑单'],
-     ['+'+best.gap.toFixed(2)+' 元','最小差额'],
+     ['+'+bestGap.toFixed(2)+' 元','超出门槛金额'],
      [fmtMoney(finalPay),'实付金额'],
      [effective.toFixed(2)+'%','实付比例（实付/总价）'],
      [(100-effective).toFixed(2)+'%','折扣力度（优惠/总价）']
