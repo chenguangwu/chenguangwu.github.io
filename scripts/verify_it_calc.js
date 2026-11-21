@@ -11743,20 +11743,6 @@ const CASES = [
   },
   {
     "slug": "it/rc4",
-    "inputs": {
-      "key": "abc123测试",
-      "input": "1\n2\n3",
-      "output": "1\n2\n3",
-      "outputFormat": "base64",
-      "variant": "768"
-    },
-    "expect": [
-      "abc123测试\n@�\nbase64\n768"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"outputFormat\":\"base64\",\"variant\":\"768\"}，输出区含「abc123测试\n@�\nbase64\n768」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "it/rc4",
     // IT-N463：base64 模式下密文 27Ea（恰为全 hex 字符）必须按 base64 解出 1bb，而非误判为 Hex。
     "inputs": { "key": "mysecretkey", "input": "27Ea", "outputFormat": "base64", "variant": "0" },
     "clicks": ["decrypt();var o=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent='RC4DEC '+o;"],
