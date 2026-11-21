@@ -68,7 +68,7 @@
 - `tools/ophthalmology/axial-length.html`：仅检查 NaN，眼轴/声速为负或零仍参与运算（零声速致除零）——第1324批已修（calcCorr/calcSeg 两分支要求长度与声速均为正，源码形态强锚 `ALNEG` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：接触压平校正从测量长度减 0.15 mm，与压平造成测值缩短的方向可能矛盾，IOL 输出符号与深解“下调”描述亦需核对。专业假设及公式须临床核验。
 - `tools/ophthalmology/cd-ratio.html`：越界输入被静默夹到 0–1 而继续给分级；0.5 分级与综合风险口径矛盾——第 126 批已统一为 `<=0.5` 临界、`>0.5` 疑似，阈值表同步改 `> 0.5 ~ 0.7`（强锚用例已落 ophthalmology verify）。ISNT 解释及阈值仍须临床核验。
 - `tools/ophthalmology/iop-correction.html`：清空必填时网格与公式区残留旧值——第1322批已修（`__tbInputGuard` 空值分支与越界分支一致，同步清 `grid`/`formulaList`，源码形态强锚 `IOPCLR` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：各公式及临床适用性未核验。
-- `tools/ophthalmology/oct-rnfl.html`：只拦 NaN，负厚度或负年龄也产生分级——第1324批已修（年龄与各项厚度须为正，源码形态强锚 `OCTNEG` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：界面写 `S>I>N>T`，实际判定为 `s>i-5 && i>n && n>t`，例如 S=96、I=100、N=65、T=60 会判“符合”但并非 S>I。年龄模型与分级须专业核验。
+- `tools/ophthalmology/oct-rnfl.html`：只拦 NaN，负厚度或负年龄也产生分级——第1324批已修（年龄与各项厚度须为正，源码形态强锚 `OCTNEG` 已落 ophthalmology verify；旧版无 ⇒ BAD）。界面写 `S>I>N>T`，实际判定为 `s>i-5 && i>n && n>t`——第 134 批已把可见文案统一为 `S>I−5 且 I>N>T` 并注明容差（用例已落 ophthalmology verify）。年龄模型与分级仍须专业核验。
 
 ## 2026-11-06 子宫内膜记录静态续审
 

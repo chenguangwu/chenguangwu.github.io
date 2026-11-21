@@ -514,6 +514,12 @@ const CASES = [
   "expect": ["STRAMATH OK"],
   "ref": "1Δ=1cm/1m，20Δ 在 1m 处偏移 20cm；旧版 pd*0.5 显示 10cm。Hirschberg 旧版 7°/mm 与公式 15Δ/mm 两套口径，改为 pd=mm*15 再用 PD 换算角度。"
 },
+{
+  "slug": "ophthalmology/oct-rnfl",
+  "inputs": {"age": "60", "g": "78", "s": "96", "i": "100", "n": "65", "t": "60"},
+  "expect": ["S>I−5 且 I>N>T", "符合"],
+  "ref": "S=96 比 I=100 低 4μm，代码 isntOk 以 s>i-5 容许该差异并判‘符合’，页面却标 S>I>N>T，字面会判违反；统一为 S>I−5 且 I>N>T。"
+},
 
 ];
 async function main() {
