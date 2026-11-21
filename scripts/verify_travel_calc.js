@@ -171,6 +171,30 @@ const CASES = [
   "ref": "总距离 750 km、油耗 8 L/100km ⇒ 所需油量 750×8/100=60.0 L；油费 60×7.5=¥450，加通行费 ¥200 ⇒ 总费用 ¥650；2 人分摊每人 ¥325。默认 500 km ⇒ 40.0 L / ¥500 / ¥250，三条锚均不命中（原期望「60.0L」缺空格，与页面「60.0 L」渲染不符，且无派生费用锚）。"
 },
 {
+  "slug": "travel/road-trip-gas-cost",
+  "inputs": {},
+  "clicks": [
+    "localStorage.removeItem(HISTORY_KEY);localStorage.removeItem(COMPARE_KEY);document.getElementById('carType').value='sedan';applyPreset();saveToHistory();document.getElementById('carType').value='ev';applyPreset();loadHistory(0);document.getElementById('__tbProbe').textContent='HIST '+document.getElementById('consLabel').textContent+'|'+document.getElementById('priceLabel').textContent;"
+  ],
+  "expect": [
+    "HIST 百公里油耗 (L/100km)|油价 (元/L)"
+  ],
+  "ref": "历史恢复标签回归：先保存一条燃油车记录，再切到纯电（标签变电耗/电价），loadHistory(0) 恢复燃油记录后原实现只调 calc()、不调 syncUnitLabels()，标签仍停在「百公里电耗/电价」，与输入和结果矛盾。修复后恢复燃油记录时标签同步回油耗/油价；默认态为燃油车，但注入探针串「HIST …」只在点击流程产生。"
+},
+{
+  "slug": "travel/road-trip-gas-cost",
+  "inputs": {},
+  "clicks": [
+    "clearCompare();document.getElementById('carType').value='ev';applyPreset();document.getElementById('distance').value='300';document.getElementById('consumption').value='15';document.getElementById('price').value='1.2';document.getElementById('tolls').value='100';document.getElementById('people').value='2';addToCompare();renderCompare();document.getElementById('__tbProbe').textContent='CMP '+document.getElementById('compareList').textContent;"
+  ],
+  "expect": [
+    "CMP",
+    "耗电量",
+    "45.0kWh"
+  ],
+  "ref": "EV 对比卡单位回归：纯电方案 300km×15kWh/100km ⇒ 45.0kWh，原 compare 卡固定渲染 `${item.fuel}L` / 「耗油量」/「油费」/「百公里油耗」，把电量与油量混用。修复后按 item.carType 输出 kWh、耗电量、电费、百公里电耗；旧实现不含「耗电量」「45.0kWh」即不命中。"
+},
+{
   "slug": "travel/timezone-lookup",
   "inputs": {
     "input": "Asia/Tokyo"
