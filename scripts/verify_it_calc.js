@@ -14524,6 +14524,54 @@ const CASES = [
     "expect": ["AESPRIV SAFE"],
     "ref": "历史隐私回归：AES 此前只把 password 掩码为 ••••，明文 input 与密文 output 仍会入历史；修复后 password/input 只留长度，output 跳过。"
   },
+  {
+    "slug": "it/otp-generator",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__otp_generatorSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'secret'+q)>=0;document.getElementById('__tbProbe').textContent='OTPPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["OTPPRIV SAFE"],
+    "ref": "历史隐私回归：otp-generator 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/jwt-parser",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__jwt_parserSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'jwtInput'+q)>=0&&src.indexOf(q+'secret'+q)>=0&&src.indexOf(q+'genSecret'+q)>=0&&src.indexOf(q+'genPayload'+q)>=0&&src.indexOf(q+'genOut'+q)>=0;document.getElementById('__tbProbe').textContent='JWPARSERPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["JWPARSERPRIV SAFE"],
+    "ref": "历史隐私回归：jwt-parser 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/jwt-debugger",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__jwt_debuggerSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'token-input'+q)>=0&&src.indexOf(q+'secret'+q)>=0&&src.indexOf(q+'gen-payload'+q)>=0&&src.indexOf(q+'gen-output'+q)>=0;document.getElementById('__tbProbe').textContent='JWDEBUGPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["JWDEBUGPRIV SAFE"],
+    "ref": "历史隐私回归：jwt-debugger 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/api-sign-generator",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__api_sign_generatorSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'secret'+q)>=0&&src.indexOf(q+'params'+q)>=0;document.getElementById('__tbProbe').textContent='APISIGNPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["APISIGNPRIV SAFE"],
+    "ref": "历史隐私回归：api-sign-generator 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/ecdsa",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__ecdsaSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'privKey'+q)>=0&&src.indexOf(q+'message'+q)>=0;document.getElementById('__tbProbe').textContent='ECDSAPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["ECDSAPRIV SAFE"],
+    "ref": "历史隐私回归：ecdsa 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/env-generator",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__env_generatorSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'importText'+q)>=0&&src.indexOf(q+'valInput'+q)>=0;document.getElementById('__tbProbe').textContent='ENVPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["ENVPRIV SAFE"],
+    "ref": "历史隐私回归：env-generator 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/md5",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__md5Snap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'hmacKey'+q)>=0&&src.indexOf(q+'hmacInput'+q)>=0&&src.indexOf(q+'textInput'+q)>=0;document.getElementById('__tbProbe').textContent='MD5PRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["MD5PRIV SAFE"],
+    "ref": "历史隐私回归：md5 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/hash",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__hashSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'hmacKey'+q)>=0&&src.indexOf(q+'textInput'+q)>=0;document.getElementById('__tbProbe').textContent='HASHPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["HASHPRIV SAFE"],
+    "ref": "历史隐私回归：hash 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
 ];
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
