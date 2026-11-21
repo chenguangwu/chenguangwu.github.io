@@ -424,7 +424,11 @@ function generate() {
       qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
     }
     var qr = qrcode(0, errorLevel.value);
-    qr.addData(text);
+    // 按内容选最省容量的模式：纯数字 → Numeric，QR 字母表 → Alphanumeric，其余 → Byte。
+    // 旧实现不传 mode，库默认 Byte，纯数字/大写字母会被不必要地抬到更高版本。
+    var qrMode = /^[0-9]+$/.test(text) ? 'Numeric'
+      : (/^[0-9A-Z $%*+\-./:]+$/.test(text) ? 'Alphanumeric' : 'Byte');
+    qr.addData(text, qrMode);
     qr.make();
 
     var moduleCount = qr.getModuleCount();
