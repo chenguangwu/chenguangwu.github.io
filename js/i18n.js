@@ -795,6 +795,9 @@ var LANG_REGISTRY = [
     if (!container || container.querySelector('.lang-switcher')) return;
     var wrap = document.createElement('div');
     wrap.className = 'lang-switcher nav-icon-btn';
+    // 外层是可点击的图标容器，语义是「语言选择组」而非按钮；内层 select 才可聚焦。
+    wrap.setAttribute('role', 'group');
+    wrap.setAttribute('aria-label', 'Language / 语言');
     wrap.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:0 10px;';
     var flag = document.createElement('span');
     flag.className = 'lang-flag-icon';
