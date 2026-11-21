@@ -559,27 +559,36 @@ function render(){
   // 自适应画布：旋转后外接矩形
   var newW = Math.max(1, Math.ceil(w * cos + h * sin));
   var newH = Math.max(1, Math.ceil(w * sin + h * cos));
+  lastFullW = newW; lastFullH = newH;
 
+  // 预览限制在 1600 万像素内，避免 4000×3000 转 45°（约 24.5MP）在 iOS Safari 直接空白。
+  // 下载时再按原尺寸单独渲染，预览降采样不影响导出分辨率。
+  var previewMax = 16000000;
+  lastPreviewScale = Math.min(1, Math.sqrt(previewMax / (newW * newH)));
   var canvas = document.getElementById('previewCanvas');
-  canvas.width = newW;
-  canvas.height = newH;
-  var ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, newW, newH);
-
-  // 填充背景（透明则跳过）
-  if(bgColor && bgColor !== 'transparent'){
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, newW, newH);
-  }
-
-  // 移动到画布中心，旋转，翻转，绘制
-  ctx.translate(newW / 2, newH / 2);
-  ctx.rotate(rad);
-  ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
-  ctx.drawImage(originalImg, -w / 2, -h / 2, w, h);
+  canvas.width = Math.max(1, Math.round(newW * lastPreviewScale));
+  canvas.height = Math.max(1, Math.round(newH * lastPreviewScale));
+  drawRotated(canvas, lastPreviewScale);
 
   // 更新信息
   updateInfo(w, h, newW, newH);
+}
+
+var lastFullW = 0, lastFullH = 0, lastPreviewScale = 1;
+function drawRotated(canvas, scale){
+  var w = originalImg.naturalWidth, h = originalImg.naturalHeight;
+  var rad = angle * Math.PI / 180;
+  var ctx = canvas.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if(bgColor && bgColor !== 'transparent'){
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate(rad);
+  ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+  ctx.drawImage(originalImg, -w * scale / 2, -h * scale / 2, w * scale, h * scale);
 }
 
 // ===== 图片信息 =====
@@ -601,6 +610,13 @@ function downloadImage(){
     return;
   }
   var canvas = document.getElementById('previewCanvas');
+  // 预览可能被降采样；导出重新按原尺寸渲染，保证下载分辨率不受预览上限影响。
+  if(lastPreviewScale < 1){
+    canvas = document.createElement('canvas');
+    canvas.width = lastFullW;
+    canvas.height = lastFullH;
+    drawRotated(canvas, 1);
+  }
   var format = document.getElementById('formatSelect').value;
   var mime = format === 'jpeg' ? 'image/jpeg' : 'image/png';
   var ext = format === 'jpeg' ? 'jpg' : 'png';
