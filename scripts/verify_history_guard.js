@@ -77,26 +77,6 @@ CASES.push({
   },
 });
 
-CASES.push({
-  name: "TDS 英文空值和越界状态无中文",
-  run() {
-    if (!JSDOM) return { skip: true, got: "jsdom 不可用: " + JSDOM_ERR };
-    const html = fs.readFileSync(path.join(ROOT, "tools/energy/water-tds-evaluator.html"), "utf8");
-    const dom = new JSDOM(html, { url: "http://localhost/?lang=en-US", runScripts: "outside-only" });
-    const win = dom.window;
-    win.TBKit = { util: { isEn: () => true } };
-    for (const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)) {
-      if (match[1].includes("function evaluate()")) win.eval(match[1]);
-    }
-    const states = [];
-    for (const value of ["5001", ""]) {
-      win.document.getElementById("tdsInput").value = value;
-      win.evaluate();
-      states.push(win.document.getElementById("result").textContent + win.document.getElementById("vizGrade").textContent);
-    }
-    return { ok: states.every(s => !/[\u4e00-\u9fff]/.test(s)), got: JSON.stringify(states) };
-  },
-});
 
 CASES.push({
   name: "向量清空分量不得当作零",

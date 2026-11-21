@@ -74,15 +74,6 @@ const CASES = [
 "ref": "复算：E = 10^(1.5×7+4.8) = 10^15.3 = 1.995e+15 J（≈0.477 百万吨 TNT）；默认 M=6 得 6.310e+13 J ⇒ 不命中"
 },
 {
-  "slug": "astronomy/convert-17",
-  "inputs": {
-    "val": "12:00",
-    "from": "-8"
-  },
-  "expect": ["12:00\n-8\n1\n21:00 同日"],
-  "ref": "auto-restore"
-},
-{
   "slug": "astronomy/convert-18",
   "inputs": { "val": "540", "mode": "p2h" },
   "expect": ["海拔 h = 5003.5 m"],

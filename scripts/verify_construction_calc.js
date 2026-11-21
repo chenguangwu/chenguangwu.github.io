@@ -417,16 +417,6 @@ const CASES = [
     "ref": "砌体体积 = 12×4×0.24 = 11.52 m³；砂浆量 = 11.52×0.23×1.05 = 2.782 m³；水泥 = 2.782×250/1000 = 0.70 t；中砂 = 2.782×1.5 = 4.17 t（t/m³ 密度口径）、体积≈2.78 m³。默认态 10/3/3 输出中砂 2.56 吨（约1.71m³）⇒ 不命中。原代码 sand=mortar×1.0 与同一行的 t→m³ 换算（÷1.5）自相矛盾，已按 1.5 t/m³ 修正。"
   },
   {
-    "slug": "construction/area",
-    "inputs": { "area": "35", "height": "3.2", "roomType": "200", "orient": "1.20" },
-    "expect": [
-      "9408 所需制冷量 (W)",
-      "3.76 计算匹数",
-      "西向"
-    ],
-    "ref": "注入非默认(默认 area=20/height=2.8/roomType=150/orient=1.15)。独立复算：heightFactor=1+max(0,(3.2-2.8)/0.1)×0.03=1.12；cooling=35×200×1.12×1.20=9408 W；pi=9408/2500=3.76 匹；grades 表取 ≥3.76 的最小档 = 4 匹。房间类型 200=卧室、朝向 1.20=西向。默认态 3450 W / 1.38 匹 / 南向，三条均不命中。⚠ 本例依赖 harness 对 select 的 options/selectedIndex 建模（页面 getParams 读 oEl.options[oEl.selectedIndex].text 取朝向标签），先于本批修复。"
-  },
-  {
     "slug": "construction/calc-area-lux",
     "inputs": { "area": "45", "cu": "0.6", "mf": "0.9", "lux": "300", "lamp": "60|24" },
     "expect": [ "25000 总光通量" ],

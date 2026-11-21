@@ -16,15 +16,6 @@ const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 
 const CASES = [
   {
-    cat: 'energy', slug: 'water-tds-evaluator',
-    // 清空 TDS ⇒ evaluate() 空分支只清 #result，必须同时把 #vizGrade（大号等级文字）
-    // 与 #tdsBar（彩色水位条）复位，否则残留上一次评估的「优质饮用水 / 15% 彩条」。
-    probe: `(function(){document.getElementById('tdsInput').value='';evaluate();
-      return document.getElementById('vizGrade').textContent+'|'+document.getElementById('tdsBar').textContent;})()`,
-    want: '输入TDS值开始评估|',
-    desc: '清空 TDS ⇒ 大号等级文字回占位、彩色水位条文本清空（修复前残留旧等级）',
-  },
-  {
     cat: 'automotive', slug: 'voltage-1',
     // 清空发电机额定电流 ⇒ altCurrent<=0 分支必须清 #res 并 return，否则用默认电压 14.4
     // 与内置 38A 负载算出「负载充足（grade-excellent）」等误导正向结论。

@@ -412,3 +412,9 @@
 | https://chenguangwu.github.io/tools/food/convert-19.html | https://chenguangwu.github.io/tools/food/wine-alcohol-converter.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/sports/generator-random-3.html | https://chenguangwu.github.io/tools/sports/yoga-pose-generator.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/design/generator-8.html | https://chenguangwu.github.io/tools/it/qrcode.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/astronomy/convert-17.html | https://chenguangwu.github.io/tools/edu/convert-1.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/energy/water-tds-evaluator.html | https://chenguangwu.github.io/tools/energy/assessor-water-quality.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/construction/area.html | https://chenguangwu.github.io/tools/construction/ac-size-guide.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/guides/convert-17-guide.html | https://chenguangwu.github.io/tools/edu/convert-1.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后遗留指南 |
+| https://chenguangwu.github.io/guides/area-guide.html | https://chenguangwu.github.io/tools/construction/ac-size-guide.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后遗留指南 |
+| https://chenguangwu.github.io/guides/water-tds-evaluator-guide.html | https://chenguangwu.github.io/tools/energy/assessor-water-quality.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后遗留指南 |
