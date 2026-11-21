@@ -453,6 +453,12 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/amsler-grid-test.html','utf8');var a=h.indexOf(\"$('amEye').addEventListener('change'\");var b=h.indexOf('function goStep(st)');var s1=a>=0?h.slice(a,a+320):'';var s2=b>=0?h.slice(b,b+500):'';var ok=s1.indexOf('S.drawing = null; S.cursor = null;')>=0&&s2.indexOf('S.drawing = null; S.cursor = null;')>=0;document.getElementById('__tbProbe').textContent='AMDRAW '+(ok?'OK':'BAD');})();"],
   "expect": ["AMDRAW OK"],
   "ref": "第1334批·切换眼别未清未完成绘制串眼修复源码形态强锚：amEye change 与 goStep 两处切眼别只改 S.eye，正在绘制的 S.drawing 闭合后归到新眼；修复后两处均补清 S.drawing/S.cursor。旧版两处皆无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/amsler-grid-test",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/amsler-grid-test.html','utf8');var i=h.lastIndexOf('amFinish');var seg=i>=0?h.slice(i,i+260):'';var ok=seg.indexOf('closePoly')>=0;document.getElementById('__tbProbe').textContent='AMFIN '+(ok?'OK':'BAD');})();"],
+  "expect": ["AMFIN OK"],
+  "ref": "完成按钮回归：页面提示「双击或点「完成」闭合」，但模式栏原先只有画区域/标点/擦除/撤销/清空，没有「完成」按钮，键盘与双击之外无法闭合。新增 amFinish 按钮并绑定 closePoly；旧版无该按钮/绑定即 BAD。"
 }
 ];
 async function main() {
