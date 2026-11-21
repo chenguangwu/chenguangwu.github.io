@@ -65,23 +65,6 @@
 - 覆盖小结：本轮实读 8 页（adfgvx-cipher、affine-cipher、atbash-cipher、bacon-cipher、hill-cipher、playfair-cipher、rail-fence-cipher、vigenere-visualizer），新增 24 条（高 3 / 中 14 / 低 7），编号 IT-N143~IT-N166。未覆盖：本分区其余约 257 页（含全部编码/哈希/格式化/HTTP/Git/Docker 生成器与速查表）；未做浏览器、英文态、繁体、移动端、门禁与线上部署验证。
 
 ### 承诺 vs 实际（Q 批专项）
-- `tools/it/ksuid-generator.html:479`：英文简介"20-byte random payload"，实现 16 字节（281-282）；同段"27-character"但 hex 选项输出 40 字符（170、267-269）。
-- `tools/it/calc-3.html:123`、`:187`：承诺 `#RGB` 简写与 8 位 alpha，`hexToRgb` 只收 6 位（238），`maxlength=7`（136）连 8 位都输不进。
-- `tools/it/matrix-transpose.html:175`：按钮"导出明细 CSV"实际导历史表（413-415），无 Aᵀ 结果。
-- `tools/it/http-cookies.html:169`：英文承诺 parse/build Set-Cookie 头，页面无解析器（仅 171 搜索 + 静态 `COMMANDS`）。
-- `tools/it/text-to-ascii.html:102`：承诺十六进制"两位"，实际 1 位（221）；`:119` 按钮"导出明细 CSV"实为历史表（327）。
-- `tools/it/shell-script-formatter.html:214`：FAQ"仅调整空白、不改行为"，但「压缩」插入 `;` 并对 `&&`/`|`/case/heredoc 产出非法脚本（323-325）。
-- `tools/it/unit-converter-advanced.html:108`：承诺"压强与能量"两类，下拉与因子表均无（118、222-230）。
-- `tools/it/html-entities-encode.html:141`、`:10`：标题/meta"完整编解码"，`NAMED` 仅 39 条（257-269），`&alpha;`/`&hearts;` 解码原样返回（307）。
-- 备注：`html-entities-encode` 的「导出明细 CSV」（431）与数据表恒空，属 `textarea` + `*ResText()` 读 `textContent` 的 IT-N140 模板缺陷，本批不重复编号；同页 `:317` 复制依赖全局 `event`，与 IT-N31 同模式，不重复计数；`calc-3.html:139-140`、`ksuid-generator` 等页面加载即写一条历史，属历史模板行为，未单列。
-
-### 覆盖
-- 实读 8 页：`tools/it/ksuid-generator.html`、`tools/it/calc-3.html`、`tools/it/matrix-transpose.html`、`tools/it/http-cookies.html`、`tools/it/text-to-ascii.html`、`tools/it/shell-script-formatter.html`、`tools/it/unit-converter-advanced.html`、`tools/it/html-entities-encode.html`。
-- 新增 32 条（高 2 / 中 18 / 低 12），编号 IT-N167~IT-N198。
-- 未覆盖说明：只审计主流程、边界与文档口径，未逐条核对 FAQ/JSON-LD 文案，未检查同模板其它 IT 页；`html-entities-encode` 的"完整实体覆盖"仅按 `NAMED` 表条目数与解码行为核对，未穷举 2000+ HTML5 命名实体。
-- 未做验证：未开浏览器（结论均为源码静态分析 + `node -e` 内存复算，Shell 压缩另用 `bash -n` 校验）、未验证英文态 `?lang=en-US`/繁体/移动端、未跑 `_test_static.py`/`_audit_links.py`/`_audit_assets.py`/`run_gates.py` 等门禁，未触发 `_build.py` 或任何 git 写操作。
-
-### 承诺 vs 实际（Q 批专项）
 - `tools/it/json-to-toml.html:10`、`:20`：宣称支持"ISO 日期字符串"，实际 `:271` 对所有字符串加引号，日期不会输出为 TOML 日期（见 N201）。
 - `tools/it/json-to-toml.html:172`："校验"按钮（`:321` `doValidate(){doToml();}`）只是再转换一次，不校验 TOML 语法，也不校验 JSON 语义（如重复键、超大数）。
 - `tools/it/json-to-toml.html:177-180`：缩进下拉与 `:439` Tab 预设无输出效果（见 N200）。

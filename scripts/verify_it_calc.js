@@ -5978,6 +5978,20 @@ const CASES = [
   },
   {
     slug: "it/html-entities-encode",
+    inputs: { input: "&alpha; &hearts; &NotEqualTilde;" },
+    clicks: ["dec();document.getElementById('output').value='ENTFULL='+String(document.getElementById('output').value);"],
+    expect: ["ENTFULL=α ♥ ≂̸"],
+    ref: "全量 HTML5 命名实体：alpha→α、hearts→♥、NotEqualTilde 为多码点实体（≂ + U+0338）。旧表仅 39 条，三者原样返回。默认样例不含该串。",
+  },
+  {
+    slug: "it/html-entities-encode",
+    inputs: { input: "é", all: true },
+    clicks: ["document.getElementById('all').checked=true;document.getElementById('mode').value='named';enc();document.getElementById('output').value='ENTENC='+String(document.getElementById('output').value);"],
+    expect: ["ENTENC=&eacute;"],
+    ref: "全量命名编码：é 在 HTML5 中对应 &eacute;；旧 NAMED 仅 39 条无 é，会回退十进制 &#233;。默认样例不含该串。",
+  },
+  {
+    slug: "it/html-entities-encode",
     inputs: { input: "&#65; &amp" },
     clicks: ["dec();document.getElementById('output').value='UC223A='+String(document.getElementById('output').value);"],
     expect: ["UC223A=A &"],
