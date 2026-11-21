@@ -318,27 +318,53 @@ function validate(){
       }
     }
   }
+const __TZ_NATIVE_DATE = Date;
+function __tzParts(tz, date){
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour12:false,
+    year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit',
+    timeZoneName:'short'
+  }).formatToParts(date);
+  const o = {};
+  parts.forEach(function(p){ if(p.type !== 'literal') o[p.type] = p.value; });
+  return o;
+}
+function tzNow(tz, now){
+  const p = __tzParts(tz, now);
+  if(p.hour === '24') p.hour = '00';
+  const d = new __TZ_NATIVE_DATE(0);
+  d.setUTCFullYear(+p.year, +p.month-1, +p.day);
+  d.setUTCHours(+p.hour, +p.minute, +p.second, 0);
+  const asUTC = d.getTime();
+  const mins = Math.round((asUTC - now.getTime()) / 60000);
+  const sign = mins >= 0 ? '+' : '-';
+  const abs = Math.abs(mins);
+  const label = 'UTC' + sign + String(Math.floor(abs/60)).padStart(2,'0') + ':' + String(abs%60).padStart(2,'0');
+  return { label: label, time: p.hour + ':' + p.minute + ':' + p.second, abbr: p.timeZoneName || '' };
+}
+
   let html = `<p data-zh="输入：${ToolBox.escHtml(raw)}">Time Zone Query</p>`;
   if(results.length === 0){
     html += `<p style="color:var(--danger);">❌ 未找到匹配的时区</p>`;
     html += `<p style="color:var(--text-muted);font-size:12px;">支持：IANA 时区名（如 Asia/Shanghai、Europe/London）或城市名</p>`;
   } else if(results.length === 1){
     const r = results[0];
-    // Current time in that timezone
     const now = new Date();
-    const localTime = new Date(now.getTime() + r.offset * 60 * 60000);
-    const timeStr = localTime.toISOString().substring(11,19);
+    const live = tzNow(r.key, now);
     html += `<p><strong>IANA 时区：</strong>${r.key}</p>`;
     html += `<p><strong>名称：</strong>${r.cn}</p>`;
     html += `<p><strong>代表城市：</strong>${r.city}</p>`;
     html += `<p><strong>国家代码：</strong>${r.cc}</p>`;
-    html += `<p><strong>UTC 偏移：</strong>${r.offsets}（UTC${r.offset >= 0 ? '+' : ''}${r.offset}）</p>`;
-    html += `<p><strong>当前时间（约）：</strong>${timeStr}（按标准偏移，未计 DST）</p>`;
+    html += `<p><strong>当前 UTC 偏移：</strong>${live.label}（标准偏移 ${r.offsets}；已按当前日期计算夏令时）</p>`;
+    html += `<p><strong>当前时间：</strong>${live.time}（${live.abbr || r.key}）</p>`;
     html += `<p style="color:var(--success);">✅ 找到 1 个匹配</p>`;
   } else {
     html += `<p><strong>找到 ${results.length} 个匹配：</strong></p>`;
+    const now = new Date();
     results.forEach(r => {
-      html += `<p>✅ ${r.key} - ${r.cn}（${r.city}），UTC${r.offset >= 0 ? '+' : ''}${r.offset} (${r.offsets})</p>`;
+      const live = tzNow(r.key, now);
+      html += `<p>✅ ${r.key} - ${r.cn}（${r.city}），当前 ${live.label}（标准 ${r.offsets}）</p>`;
     });
   }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;

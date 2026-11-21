@@ -296,7 +296,40 @@ const FOODS = {
   ],
 };
 
-let meals = (function(){try{return JSON.parse(localStorage.getItem('toolbox_meals') || '[]')}catch(e){try{localStorage.removeItem('toolbox_meals')}catch(_){}return []}})();
+function __fcToday(){
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+}
+function __fcLoad(){
+  const today = __fcToday();
+  let raw = null;
+  try { raw = JSON.parse(localStorage.getItem('toolbox_meals_by_date') || 'null'); } catch(e){ raw = null; }
+  // 旧版是扁平数组：迁移到今天的桶
+  if(Array.isArray(raw)){ raw = { [today]: raw }; }
+  if(!raw || typeof raw !== 'object'){ raw = {}; }
+  Object.keys(raw).forEach(function(k){
+    if(!Array.isArray(raw[k])){ delete raw[k]; return; }
+    raw[k] = raw[k].filter(function(m){ return m && typeof m.name === 'string' && isFinite(m.cal); });
+  });
+  // 只保留最近 7 个有记录的日期，避免无限增长
+  const keys = Object.keys(raw).sort().reverse().slice(0, 7);
+  const keep = {};
+  keys.forEach(function(k){ keep[k] = raw[k]; });
+  return { byDate: keep, today: today };
+}
+const __fcState = __fcLoad();
+let mealsByDate = __fcState.byDate;
+let meals = mealsByDate[__fcState.today] || [];
+function saveMeals(){
+  const today = __fcToday();
+  mealsByDate[today] = meals;
+  const keys = Object.keys(mealsByDate).sort().reverse().slice(0, 7);
+  const keep = {};
+  keys.forEach(function(k){ keep[k] = mealsByDate[k]; });
+  mealsByDate = keep;
+  try { localStorage.setItem('toolbox_meals_by_date', JSON.stringify(mealsByDate)); } catch(e){}
+}
 
 function renderFoods() {
   const container = document.getElementById('foodSections');
@@ -328,14 +361,14 @@ function addFood(category, idx) {
     emoji: food.emoji,
     time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
   });
-  localStorage.setItem('toolbox_meals', JSON.stringify(meals));
+  saveMeals();
   render();
   ToolBox.showToast(`+ ${food.cal} 千卡`, 'success');
 }
 
 function removeMeal(idx) {
   meals.splice(idx, 1);
-  localStorage.setItem('toolbox_meals', JSON.stringify(meals));
+  saveMeals();
   render();
 }
 
@@ -343,7 +376,7 @@ function clearMeals() {
   if (meals.length === 0) return;
   if (confirm('确定清空今日记录？')) {
     meals = [];
-    localStorage.setItem('toolbox_meals', JSON.stringify(meals));
+    saveMeals();
     render();
   }
 }

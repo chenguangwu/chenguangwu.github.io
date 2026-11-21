@@ -170,6 +170,7 @@
         <span style="font-size:13px;color:var(--text-light);padding:6px 0;">类型：</span>
         <span class="filter-chip active" onclick="filterType('all',this)">全部</span>
         <span class="filter-chip" onclick="filterType('free',this)">✅ 免签</span>
+        <span class="filter-chip" onclick="filterType('conditional',this)">🔑 有条件免签</span>
         <span class="filter-chip" onclick="filterType('arrival',this)">🛬 落地签</span>
         <span class="filter-chip" onclick="filterType('eta',this)">📱 电子签</span>
         <span class="filter-chip" onclick="filterType('required',this)">📋 需签证</span>
@@ -188,6 +189,7 @@
       <div class="stat-grid">
         <div class="stat-card"><div class="val" id="totalCount">0</div><div class="lbl">🌍 国家/地区总数</div></div>
         <div class="stat-card"><div class="val" id="freeCount">0</div><div class="lbl">✅ 免签</div></div>
+        <div class="stat-card"><div class="val" id="conditionalCount">0</div><div class="lbl">🔑 有条件免签</div></div>
         <div class="stat-card"><div class="val" id="arrivalCount">0</div><div class="lbl">🛬 落地签</div></div>
         <div class="stat-card"><div class="val" id="etaCount">0</div><div class="lbl">📱 电子签</div></div>
       </div>
@@ -201,6 +203,7 @@
         <h4>📋 签证类型说明</h4>
         <ul>
           <li><strong>免签（Visa Free）：</strong>无需提前申请签证，持有效护照即可入境，通常有停留天数限制</li>
+          <li><strong>有条件免签：</strong>本身不普遍免签，但持有效美/加/申根等签证或满足特定条件时可免签入境，未满足条件仍需提前申请签证</li>
           <li><strong>落地签（Visa on Arrival）：</strong>抵达目的地国家后在机场/口岸办理签证，通常需要准备照片、现金等</li>
           <li><strong>电子签（e-Visa / ETA）：</strong>提前在网上申请，通常1-3个工作日出签，无需邮寄护照</li>
           <li><strong>需签证（Visa Required）：</strong>需提前到使领馆申请贴纸签证，可能需要邀请函、财产证明等材料</li>
@@ -356,11 +359,11 @@ const countries = [
   { name: '白俄罗斯', type: 'free', days: '30天', note: '互免签证', region: '欧洲' },
   { name: '美国', type: 'required', days: '-', note: '需提前办理B1/B2签证，10年有效', region: '美洲' },
   { name: '加拿大', type: 'required', days: '-', note: '需提前办理签证，最长10年', region: '美洲' },
-  { name: '墨西哥', type: 'free', days: '180天', note: '持有效美/加/日等签证免签', region: '美洲' },
+  { name: '墨西哥', type: 'conditional', days: '180天', note: '持有效美/加/日等签证可免签，否则需申请签证', region: '美洲' },
   { name: '古巴', type: 'free', days: '30天', note: '免签（旅游卡）', region: '美洲' },
-  { name: '秘鲁', type: 'free', days: '180天', note: '持有效美/加等签证免签', region: '美洲' },
-  { name: '智利', type: 'free', days: '90天', note: '持有效美/加签证免签', region: '美洲' },
-  { name: '阿根廷', type: 'free', days: '30天', note: '持有效美/申根签证免签', region: '美洲' },
+  { name: '秘鲁', type: 'conditional', days: '180天', note: '持有效美/加等签证可免签，否则需申请签证', region: '美洲' },
+  { name: '智利', type: 'conditional', days: '90天', note: '持有效美/加签证可免签，否则需申请签证', region: '美洲' },
+  { name: '阿根廷', type: 'conditional', days: '30天', note: '持有效美/申根签证可免签，否则需申请签证', region: '美洲' },
   { name: '巴西', type: 'required', days: '-', note: '需提前办理签证', region: '美洲' },
   { name: '澳大利亚', type: 'eta', days: '-', note: '电子签证，一年/三年多次', region: '大洋洲' },
   { name: '新西兰', type: 'eta', days: '-', note: '电子签证', region: '大洋洲' },
@@ -387,6 +390,7 @@ const regions = [
 
 const typeInfo = {
   free: { cls: 'visa-free', badge: 'free', text: '免签' },
+  conditional: { cls: 'visa-free', badge: 'free', text: '有条件免签' },
   arrival: { cls: 'visa-arrival', badge: 'arrival', text: '落地签' },
   eta: { cls: 'eta', badge: 'eta', text: '电子签' },
   required: { cls: 'visa-required', badge: 'required', text: '需签证' }
@@ -472,18 +476,20 @@ function selectRegion(name) {
 function renderStats() {
   const total = countries.length;
   const free = countries.filter(c => c.type === 'free').length;
+  const conditional = countries.filter(c => c.type === 'conditional').length;
   const arrival = countries.filter(c => c.type === 'arrival').length;
   const eta = countries.filter(c => c.type === 'eta').length;
   const required = countries.filter(c => c.type === 'required').length;
 
   document.getElementById('totalCount').textContent = total;
   document.getElementById('freeCount').textContent = free;
+  document.getElementById('conditionalCount').textContent = conditional;
   document.getElementById('arrivalCount').textContent = arrival;
   document.getElementById('etaCount').textContent = eta;
 
   const regionStats = regions.map(r => {
     const rc = countries.filter(c => c.region === r.name);
-    const easy = rc.filter(c => c.type === 'free' || c.type === 'arrival').length;
+    const easy = rc.filter(c => c.type === 'free' || c.type === 'conditional' || c.type === 'arrival').length;
     return { name: r.name, icon: r.icon, total: rc.length, easy: easy, percent: rc.length ? Math.round(easy / rc.length * 100) : 0 };
   }).sort((a, b) => b.percent - a.percent);
 

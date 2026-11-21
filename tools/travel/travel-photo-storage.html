@@ -250,11 +250,19 @@ function fmtSize(mb){
   return (gb/1024).toFixed(2)+' TB';
 }
 function calc(){
-  const days=+document.getElementById('days').value||1;
-  const perDay=+document.getElementById('perDay').value||0;
+  const daysRaw=document.getElementById('days').value.trim();
+  const perDayRaw=document.getElementById('perDay').value.trim();
+  const vidRaw=document.getElementById('videoMin').value.trim();
+  const days=parseFloat(daysRaw), perDay=parseFloat(perDayRaw), vidMin=parseFloat(vidRaw);
+  if(daysRaw===''||perDayRaw===''||vidRaw===''||!isFinite(days)||!isFinite(perDay)||!isFinite(vidMin)
+     ||days<=0||perDay<0||vidMin<0||days!==Math.floor(days)||perDay!==Math.floor(perDay)){
+    document.getElementById('totalSize').textContent='—';
+    document.getElementById('breakdown').innerHTML='<p style="color:var(--danger)">请填写有效参数：旅行天数为大于 0 的整数，每天照片张数为 ≥0 的整数，视频分钟数为 ≥0；空值不会被当成 0。</p>';
+    document.getElementById('recommend').innerHTML='';
+    return;
+  }
   const cam=document.getElementById('camType').value;
   const vid=document.getElementById('video').value;
-  const vidMin=+document.getElementById('videoMin').value||0;
   const [minMB,maxMB]=camMB[cam];
   const avgMB=(minMB+maxMB)/2;
   const photos=days*perDay;
@@ -271,14 +279,12 @@ function calc(){
     <div style="padding:12px;background:#f8f9ff;border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:700;color:var(--primary);">${fmtSize(videoMBTotal)}</div><div style="font-size:11px;color:var(--text-muted);">视频占用</div></div>
     <div style="padding:12px;background:#f8f9ff;border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:700;color:var(--primary);">${fmtSize(minTotal)}-${fmtSize(maxTotal)}</div><div style="font-size:11px;color:var(--text-muted);">范围</div></div>
   `;document.getElementById('breakdown').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
-  const totalGB=totalMB/1024;
-  let rec='💡 存储卡建议：';
-  if(totalGB<16)rec+='16GB 卡足够';
-  else if(totalGB<32)rec+='建议 32GB 存储卡';
-  else if(totalGB<64)rec+='建议 64GB 存储卡';
-  else if(totalGB<128)rec+='建议 128GB 存储卡或备用卡';
-  else rec+='建议准备多张128GB卡或移动硬盘备份';
-  rec+=`<br>⚠️ 重要：建议准备 2-3 倍以上空间冗余，重要照片随时备份到云端或硬盘。`;
+  const needGB=(totalMB/1024)*1.3;
+  const cards=[16,32,64,128,256,512];
+  let card=cards.find(c=>c>=needGB);
+  let rec=`💡 存储卡建议：按需求量 ${fmtSize(totalMB)} 再留 30% 余量，约需 ${fmtSize(needGB*1024)}。`;
+  if(card)rec+=`单张 ${card}GB 卡可覆盖（实际可用容量小于标称）。`;
+  else rec+='超过 512GB，建议多张 256/512GB 卡 + 移动硬盘，重要照片随时双备份。';
   const __g3=rec;document.getElementById('recommend').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 calc();
