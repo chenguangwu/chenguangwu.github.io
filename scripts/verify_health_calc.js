@@ -616,6 +616,18 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"filterPart\":\"上肢\",\"filterAge\":\"young\"}，输出区含「肢 ▼ 愈合周期（青年）： 6-10」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "health/fracture-healing",
+    "inputs": {
+      "fuStart": "2026-01-01",
+      "fuType": "fracture"
+    },
+    "expect": [
+      "2026-01-15",
+      "2026-03-26"
+    ],
+    "ref": "第200批·随访计划：2026-01-01 起骨折复查，2周=01-15、12周=03-26；默认当天日期与骨折示例不产生该两串 ⇒ 强判别。"
+  },
+  {
     "slug": "health/gfr-calculator",
     "inputs": {
       "age": "42",

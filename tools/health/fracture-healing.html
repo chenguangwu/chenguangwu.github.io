@@ -293,6 +293,27 @@
     </table>
   </div>
 </div>
+  <div class="card" id="followUpPlan">
+    <h3>🗓️ 专科随访计划生成器（通用）</h3>
+    <p style="font-size:13px;color:var(--text-muted);">按起始日期生成复查时间表，便于提前请假/预约。具体复查频次与项目必须由主治医生按病情调整，本表不构成医嘱。</p>
+    <div class="input-row">
+      <div>
+        <label>起始日期（受伤/出院/诊断日）</label>
+        <input type="date" id="fuStart" onchange="buildFollowUpPlan()">
+      </div>
+      <div>
+        <label>随访类型</label>
+        <select id="fuType" onchange="buildFollowUpPlan()">
+          <option value="fracture">骨折/创伤复查</option>
+          <option value="surgery">术后复查</option>
+          <option value="chronic">慢病随访</option>
+          <option value="pediatric">儿童保健/发育随访</option>
+        </select>
+      </div>
+    </div>
+    <div class="result-box" id="fuResult" style="margin-top:12px;"></div>
+  </div>
+
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -663,5 +684,38 @@ document.addEventListener('DOMContentLoaded',function(){
     b.addEventListener('click',function(){try{tbkExport(b);}catch(e){}});
   });
 }catch(e){}})();
-</script></body>
+</script>
+<script>
+function __fuAddDays(base,days){
+  var d=new Date(base.getTime());
+  d.setDate(d.getDate()+days);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function buildFollowUpPlan(){
+  var raw=(document.getElementById('fuStart').value||'').trim();
+  var type=document.getElementById('fuType').value;
+  var box=document.getElementById('fuResult');
+  if(!box)return;
+  if(!raw){box.innerHTML='<p style="color:var(--danger)">请选择起始日期后再生成随访表。</p>';return;}
+  var d=new Date(raw+'T00:00:00');
+  if(isNaN(d.getTime())){box.innerHTML='<p style="color:var(--danger)">日期无效，请重新选择。</p>';return;}
+  var plans={
+    fracture:[['2 周','伤口/石膏或支具、肿胀与末梢血运'],['4 周','X 线复查骨痂、评估是否可部分负重'],['8 周','骨痂/对线、康复训练进度'],['12 周','临床愈合评估、是否拆除固定'],['6 月','功能与影像终评'],['12 月','遗留疼痛/关节功能复查']],
+    surgery:[['1 周','切口愈合、拆线/换药'],['2 周','病理或复查结果、用药调整'],['1 月','器官功能与并发症筛查'],['3 月','疗效评估、影像/化验'],['6 月','长期随访与康复计划']],
+    chronic:[['1 月','指标控制、药物不良反应'],['3 月','疗效与并发症评估'],['6 月','方案调整、化验/影像'],['12 月','年度总评、筛查并发症']],
+    pediatric:[['1 月','生长体重、喂养/发育里程碑'],['3 月','大运动/语言/社交筛查'],['6 月','视力/听力/贫血风险'],['9 月','发育评估与疫苗核对'],['12 月','年度体检、发育与营养评估']]
+  };
+  var rows=plans[type]||plans.fracture;
+  var html='<p><strong>起始日期：</strong>'+raw+'；<strong>类型：</strong>'+document.getElementById('fuType').options[document.getElementById('fuType').selectedIndex].text+'</p>';
+  html+='<table class="data-table" style="width:100%;margin-top:8px;"><thead><tr><th>时间点</th><th>建议日期</th><th>复查重点</th></tr></thead><tbody>';
+  var units={ '2 周':14,'4 周':28,'8 周':56,'12 周':84,'1 月':30,'3 月':90,'6 月':180,'9 月':270,'12 月':365,'1 周':7 };
+  rows.forEach(function(r){ html+='<tr><td>'+r[0]+'</td><td>'+__fuAddDays(d,units[r[0]]||0)+'</td><td>'+r[1]+'</td></tr>'; });
+  html+='</tbody></table><p style="font-size:12.5px;color:var(--text-muted);margin-top:8px;">日期按自然日顺延，遇节假日请提前与门诊确认；如出现发热、伤口渗液、疼痛加重或功能突然下降，应随时就诊而非等待计划日期。</p>';
+  box.innerHTML=html;
+}
+(function(){var el=document.getElementById('fuStart');if(el&&!el.value){var n=new Date();el.value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}})();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',buildFollowUpPlan);else buildFollowUpPlan();
+</script>
+
+</body>
 </html>

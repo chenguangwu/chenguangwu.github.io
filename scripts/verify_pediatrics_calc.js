@@ -76,6 +76,7 @@ const CASES = [
   "ref": "疫苗接种时间表：vaccinatedMonth=6 表示已接种至 6 月龄 → 0~6 月龄疫苗行的状态变为「已接种」（默认空 → 全部「逾期，尽快补种」）。锚点取随输入变化的具体行串「预防：乙型肝炎 已接种」（仅当该行状态为已接种时出现），避开页面恒定图例「绿色=已接种…」(含「已接种」三字，裸「已接种」会恒命中导致逃生项)。回退默认(空)该行为「逾期，尽快补种」→ 失配。"
 },
 {"slug":"pediatrics/developmental-milestones","inputs":{"age":"27"},"expect":["月龄 27 月，总体达成 0/8（0%）→ 多能区明显落后","说2-3字句"],"ref":"门诊记录：age=27 取出 27 月龄里程碑条目集（4 能区各 2 条 = 8 条）⇒「0/8（0%）」；达到率 0 落「多能区明显落后」段。默认 18 月龄 ⇒「月龄 18 月，总体达成 0/6」，与「0/8」零交集；「说2-3字句」为 27 月龄条目正文，默认 18 月龄不出现。注：里程碑勾选框由 renderMilestones 动态生成，stub DOM 无法勾选，故达成数恒 0；此处只锚「月龄→条目数」的映射。"},
+{"slug":"pediatrics/developmental-milestones","inputs":{"cfMonth":"12","cfWeight":"9"},"expect":["约 550 kcal","585 kcal/日"],"ref":"第199批·6–12月龄辅食量参考：12月龄补充食品约550 kcal、9kg按65 kcal/kg粗算585 kcal/日；默认6月龄为约200 kcal，零交集。"},
 {
   "slug": "pediatrics/hearing-screening",
   "inputs": {
