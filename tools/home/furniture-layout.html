@@ -306,9 +306,14 @@ function applyLayoutPreset(kind){
   document.getElementById('rl').value=p.rl;
   document.getElementById('rw').value=p.rw;
   items=[];
+  var curX=0.3, curY=0.3, rowH=0;
   p.furn.forEach(function(n){
     if(!FURNITURE[n]) return;
-    items.push({id:Date.now()+Math.random(),name:n,w:FURNITURE[n].w,h:FURNITURE[n].h,x:0.5,y:0.5,rotated:false});
+    var f=FURNITURE[n];
+    if(curX + f.w > p.rl - 0.1){ curX=0.3; curY += rowH + 0.2; rowH=0; }
+    items.push({id:Date.now()+Math.random(),name:n,w:f.w,h:f.h,x:curX,y:Math.min(curY, Math.max(0,p.rw-f.h)),rotated:false});
+    curX += f.w + 0.2;
+    rowH = Math.max(rowH, f.h);
   });
   renderItems();
 }
@@ -406,9 +411,44 @@ function __flRoom(){
   const rw = +document.getElementById('rw').value || 0;
   return {rl:rl, rw:rw, area:rl*rw};
 }
+function __flClamp(){
+  const rl = +document.getElementById('rl').value || 0;
+  const rw = +document.getElementById('rw').value || 0;
+  items.forEach(function(it){
+    const w = it.rotated ? it.h : it.w;
+    const h = it.rotated ? it.w : it.h;
+    it.x = Math.max(0, Math.min(Math.max(0, rl - w), it.x));
+    it.y = Math.max(0, Math.min(Math.max(0, rw - h), it.y));
+  });
+}
+function __flUnionArea(rl, rw){
+  const xs = [0], ys = [0];
+  items.forEach(function(it){
+    const w = it.rotated ? it.h : it.w, h = it.rotated ? it.w : it.h;
+    xs.push(Math.max(0, Math.min(rl, it.x)), Math.max(0, Math.min(rl, it.x + w)));
+    ys.push(Math.max(0, Math.min(rw, it.y)), Math.max(0, Math.min(rw, it.y + h)));
+  });
+  xs.push(rl); ys.push(rw);
+  const ux = xs.filter(function(v,i,a){ return a.indexOf(v)===i; }).sort(function(a,b){return a-b;});
+  const uy = ys.filter(function(v,i,a){ return a.indexOf(v)===i; }).sort(function(a,b){return a-b;});
+  let union = 0;
+  for(let i=0;i<ux.length-1;i++){
+    for(let j=0;j<uy.length-1;j++){
+      const cx=(ux[i]+ux[i+1])/2, cy=(uy[j]+uy[j+1])/2;
+      const inside=items.some(function(it){
+        const w=it.rotated?it.h:it.w, h=it.rotated?it.w:it.h;
+        return cx>=it.x && cx<=it.x+w && cy>=it.y && cy<=it.y+h;
+      });
+      if(inside) union += (ux[i+1]-ux[i])*(uy[j+1]-uy[j]);
+    }
+  }
+  return union;
+}
+
 function __flExport(){
   if(typeof TBKit==='undefined')return;
   if(!items.length) return;
+  __flClamp();
   const en = __flIsEn();
   const room = __flRoom();
   const t = document.getElementById('flTable'); if(!t)return;
@@ -416,8 +456,8 @@ function __flExport(){
   const th = t.querySelector('thead'); if(th) th.innerHTML = en
     ? '<tr><th>#</th><th>Item</th><th>Size (m)</th><th>Footprint (m²)</th><th>Share</th><th>Position</th><th>Rotated</th></tr>'
     : '<tr><th>序号</th><th>家具</th><th>尺寸(m)</th><th>占地面积(m²)</th><th>占房比</th><th>位置</th><th>已旋转</th></tr>';
-  let sum = 0;
-  items.forEach(function(it){ sum += __flArea(it); });
+  const sum = __flUnionArea(room.rl, room.rw);
+  const footprintSum = items.reduce(function(acc,it){ return acc + __flArea(it); }, 0);
   items.forEach(function(it, i){
     const w = it.rotated ? it.h : it.w;
     const h = it.rotated ? it.w : it.h;
@@ -430,11 +470,12 @@ function __flExport(){
     tb.appendChild(tr);
   });
   const rate = room.area > 0 ? (sum/room.area*100).toFixed(1)+'%' : '-';
-  const free = room.area > 0 ? (room.area - sum).toFixed(2) : '-';
+  const free = room.area > 0 ? Math.max(0, room.area - sum).toFixed(2) : '-';
+  const overlap = Math.max(0, footprintSum - sum);
   const summary = en
-    ? [['Room area','','','','','','' ],['Total footprint','','','','','','' ],['Occupancy rate','','','','','','' ],['Free floor area','','','','','','']]
-    : [['房间面积','','','','','','' ],['家具总占地','','','','','','' ],['占用率','','','','','','' ],['剩余活动面积','','','','','','']];
-  const svals = [room.area.toFixed(2)+' m²', sum.toFixed(2)+' m²', rate, (free==='-'?'-':free+' m²')];
+    ? [['Room area','','','','','','' ],['Union footprint','','','','','','' ],['Occupancy rate','','','','','','' ],['Free floor area','','','','','','' ],['Overlap area','','','','','','' ]]
+    : [['房间面积','','','','','','' ],['家具并集占地','','','','','','' ],['占用率','','','','','','' ],['剩余活动面积','','','','','','' ],['重叠面积','','','','','','' ]];
+  const svals = [room.area.toFixed(2)+' m²', sum.toFixed(2)+' m²', rate, (free==='-'?'-':free+' m²'), overlap.toFixed(2)+' m²'];
   summary.forEach(function(s, i){
     const tr=document.createElement('tr');
     [s[0], '', '', svals[i], '', '', ''].forEach(function(v){const td=document.createElement('td');td.textContent=v;tr.appendChild(td);});

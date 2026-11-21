@@ -80,7 +80,7 @@ const CASES = [
 {
   "slug": "home/renovation-budget",
   "clicks": [
-    "localStorage.getItem=function(){return JSON.stringify([{id:1,name:'瓷砖',price:8000,qty:12},{id:2,name:'地板',price:6000,qty:10}]);};renderItems();calc()"
+    "localStorage.setItem('home_budget_items',JSON.stringify([{id:1,name:'瓷砖',price:8000,qty:12},{id:2,name:'地板',price:6000,qty:10}]));renderItems();calc()"
   ],
   "expect": [
     "156,000",
