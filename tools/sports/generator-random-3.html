@@ -105,7 +105,11 @@
   
 <div class="formula-eq">瑜伽体式序列生成：从内置体式库（站姿/前屈/后弯/扭转/倒立/休息）按强度与时长随机抽取并排序，生成可跟随的居家练习序列。</div></div>
 
-<div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="15" oninput="gen()" placeholder="e.g. 5 (1–15)"></div></div>
+<div class="input-row">
+  <div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="15" oninput="gen()" placeholder="e.g. 5 (1–15)"></div>
+  <div><label>强度/难度</label><select id="lvl" onchange="gen()"><option value="all">全部</option><option value="基础">基础</option><option value="中等">中等</option><option value="进阶">进阶</option></select></div>
+  <div><label>目标时长</label><select id="dur" onchange="gen()"><option value="15">15 分钟</option><option value="30" selected>30 分钟</option><option value="45">45 分钟</option><option value="60">60 分钟</option></select></div>
+</div>
 <div class="toolbar"><div id="generator_random_3Presets"></div>
       <button type="button" class="btn primary" onclick="gen()">生成</button>
       <button class="btn" type="button" onclick="__generator_random_3Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
@@ -213,19 +217,29 @@ function gen() {
   // SF-N72：内置体式只有 poses.length 个；保留用户真实请求数用于提示，输出数量另行封顶到内置数量，
   // 避免「请求 50 个」把用户的真实请求数（如 100）吞掉。洗牌改 Fisher–Yates 保证等概率。
   const rawReq = parseInt((document.getElementById('cnt') || {}).value, 10);
-  const reqN = Math.min(Math.max(rawReq || 5, 1), 50);
-  const maxN = poses.length;
-  const n = Math.min(reqN, maxN);
-  const pool = [...poses];
-  for (let i = pool.length - 1; i > 0; i--) {
+  const reqN = Math.min(Math.max(rawReq || 5, 1), 15);
+  const lvl = (document.getElementById('lvl') || {}).value || 'all';
+  const targetMin = parseInt((document.getElementById('dur') || {}).value, 10) || 30;
+  const pool = poses.filter(p => lvl === 'all' || p.difficulty === lvl);
+  const maxN = pool.length;
+  const n = Math.min(reqN, maxN, Math.max(3, Math.round(targetMin / 4)));
+  const warm = ['山式','猫牛式','下犬式'], cool = ['婴儿式'];
+  function rank(p){ return cool.indexOf(p.name) >= 0 ? 2 : warm.indexOf(p.name) >= 0 ? 0 : 1; }
+  const shuffled = [...pool];
+  for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    const tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+    const tmp = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = tmp;
   }
-  let h = '<p style="margin-bottom:8px;">瑜伽体式随机序列：</p>';
-  if (reqN > maxN) {
-    h += '<p style="color:var(--warning);font-size:13px;">⚠ 内置体式共 ' + maxN + ' 个，已按 ' + maxN + ' 个输出（请求 ' + (isNaN(rawReq) ? reqN : rawReq) + ' 个）。</p>';
+  shuffled.sort((a,b) => rank(a) - rank(b));
+  function secRange(t){ const nums = String(t).match(/\d+/g) || ['30']; return [parseInt(nums[0],10), parseInt(nums[1]||nums[0],10)]; }
+  let sumLo = 0, sumHi = 0;
+  shuffled.slice(0, n).forEach(p => { const r = secRange(p.duration); sumLo += r[0]; sumHi += r[1]; });
+  let h = '<p style="margin-bottom:8px;">瑜伽体式序列（' + (lvl==='all'?'全部难度':lvl) + '，目标 ' + targetMin + ' 分钟）：</p>';
+  if (rawReq > maxN) {
+    h += '<p style="color:var(--warning);font-size:13px;">⚠ 该难度内置体式共 ' + maxN + ' 个，已按 ' + n + ' 个输出（请求 ' + (isNaN(rawReq) ? reqN : rawReq) + ' 个）。</p>';
   }
-  pool.slice(0, n).forEach((p, i) => {
+  h += '<p style="font-size:13px;color:var(--text-muted);">体式保持时间合计约 ' + Math.round(sumLo/60) + '–' + Math.round(sumHi/60) + ' 分钟，另需计入换式与休息时间。</p>';
+  shuffled.slice(0, n).forEach((p, i) => {
     h += `<p style="padding:6px 0;border-bottom:1px dashed var(--border-color);">${i + 1}. <strong>${p.name}</strong>（${p.sanskrit}） — ${p.difficulty}<br><span style="color:var(--text-muted);font-size:13px;">锻炼部位：${p.target}；建议时长：${p.duration}</span></p>`;
   });
   const __h0=h;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;
@@ -419,10 +433,10 @@ function __generator_random_3Export(){
 }
 function __generator_random_3Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#generator_random_3Presets',[{label:'默认参数',labelEn:'Default',values:{'cnt':'5'}},
-  {"label":"8 人抽签","labelEn":"8-player draw","values":{"cnt":8}},
-  {"label":"16 队分组","labelEn":"16-team grouping","values":{"cnt":16}},
-  {"label":"4 组双打配对","labelEn":"4 doubles pairings","values":{"cnt":4}}],function(){ gen(); });
+    TBKit.preset.bar('#generator_random_3Presets',[{label:'默认参数',labelEn:'Default',values:{'cnt':'5','lvl':'all','dur':'30'}},
+  {"label":"晨间基础 15 分钟","labelEn":"Morning basics 15 min","values":{"cnt":5,"lvl":"基础","dur":"15"}},
+  {"label":"舒缓放松 30 分钟","labelEn":"Gentle 30 min","values":{"cnt":8,"lvl":"基础","dur":"30"}},
+  {"label":"进阶力量 45 分钟","labelEn":"Advanced 45 min","values":{"cnt":10,"lvl":"进阶","dur":"45"}}],function(){ gen(); });
 }
 var __generator_random_3_f0=(typeof gen==='function')?gen:null;
 if(__generator_random_3_f0){
