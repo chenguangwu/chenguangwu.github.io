@@ -363,7 +363,8 @@
 
   function renderCanvas(bits, options) {
     var o = normalizeOptions(options);
-    var q = o.quiet;
+    // quiet 以「模块」为单位（EAN-13 左 11 / 右 7、Code 128 10、UPC 9），绘制时换算成像素
+    var q = o.quiet * o.scale;
     var textH = o.showText ? o.fontSize + 10 : 0;
     var width = bits.length * o.scale + q * 2;
     var height = o.height + textH;
@@ -393,7 +394,7 @@
 
   function renderSVG(bits, options) {
     var o = normalizeOptions(options);
-    var q = o.quiet;
+    var q = o.quiet * o.scale;
     var textH = o.showText ? o.fontSize + 10 : 0;
     var width = bits.length * o.scale + q * 2;
     var height = o.height + textH;
