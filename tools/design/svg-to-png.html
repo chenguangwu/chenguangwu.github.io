@@ -353,6 +353,13 @@ function generate(){
     preview.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"⚠ Width and height must be positive integers":"⚠ 宽度和高度必须为正整数");
     return;
   }
+  // 画布像素上限：超过约 1 亿像素时 Chrome/Safari 会静默失败并返回 data:,（0 字节）。
+  if(w * scale * h * scale > 100000000){
+    lastDataURL = '';
+    document.getElementById('exportMetaVal').textContent = '⚠ 输出像素超过 1 亿上限';
+    preview.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"⚠ Output exceeds 100 megapixels; lower size or scale":"⚠ 输出超过 1 亿像素，请降低宽高或倍率");
+    return;
+  }
   if(!svg){ lastDataURL = ''; preview.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter SVG code":"请输入 SVG 代码"); return; }
   const cleaned = __svgSanitize(svg);
   if(!cleaned.ok){
@@ -427,7 +434,7 @@ function downloadPNG(){
 }
 function copyResult(){
   if(!lastDataURL){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Nothing to copy":"无内容可复制")); return; }
-  navigator.clipboard.writeText(lastDataURL).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied Base64":"已复制 Base64")));
+  navigator.clipboard.writeText(lastDataURL).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied Base64":"已复制 Base64"))).catch(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copy failed; select the image and copy manually":"复制失败，请右键图片手动复制")));
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
@@ -579,7 +586,7 @@ function __svg_to_pngPresets(){
     TBKit.preset.bar('#svg_to_pngPresets',[{label:'默认参数',labelEn:'Default',values:{'width':'400', 'height':'400'}},
   {"label":"64px 图标转 400×400 PNG","labelEn":"Icon to 400 PNG","values":{"svgInput":"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"64\" height=\"64\" viewBox=\"0 0 64 64\"><rect width=\"64\" height=\"64\" rx=\"12\" fill=\"#667eea\"/><path d=\"M20 40 L32 20 L44 40 Z\" fill=\"#ffffff\"/></svg>","width":"400","height":"400"}},
   {"label":"横版 Logo 转 240×96","labelEn":"Logo to 240x96","values":{"svgInput":"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"48\" viewBox=\"0 0 120 48\"><rect width=\"120\" height=\"48\" fill=\"#0f172a\"/><text x=\"12\" y=\"30\" font-family=\"sans-serif\" font-size=\"18\" fill=\"#ffffff\">ToolBox</text></svg>","width":"240","height":"96"}},
-  {"label":"高清 2 倍图 800×800","labelEn":"Retina 800x800","values":{"svgInput":"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"64\" height=\"64\" viewBox=\"0 0 64 64\"><rect width=\"64\" height=\"64\" rx=\"12\" fill=\"#667eea\"/><path d=\"M20 40 L32 20 L44 40 Z\" fill=\"#ffffff\"/></svg>","width":"800","height":"800"}}],function(){ generate(); });
+  {"label":"高清 2 倍图 800×800","labelEn":"Retina 800x800","values":{"svgInput":"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"64\" height=\"64\" viewBox=\"0 0 64 64\"><rect width=\"64\" height=\"64\" rx=\"12\" fill=\"#667eea\"/><path d=\"M20 40 L32 20 L44 40 Z\" fill=\"#ffffff\"/></svg>","width":"800","height":"800","scale":"1"}}],function(){ generate(); });
 }
 var __svg_to_png_f0=(typeof downloadPNG==='function')?downloadPNG:null;
 if(__svg_to_png_f0){

@@ -518,6 +518,7 @@ var originalImgUrl = null;
 var loadToken = 0, blobToken = 0;
 function __imgEn(){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?true:false; }
 var MAX_SIDE = 10000;
+var MAX_PIXELS = 16000000; // 约 1600 万像素，兼容 Safari 画布上限
 
 var $ = function(id){ return document.getElementById(id); };
 
@@ -557,6 +558,9 @@ function setSizeError(msg){
 function validateTargetSize(w, h){
   if(!isFinite(w) || !isFinite(h) || w < 1 || h < 1 || w > MAX_SIDE || h > MAX_SIDE){
     return {valid:false, w:0, h:0, error:'请输入 1–' + MAX_SIDE + ' 之间的整数宽高。'};
+  }
+  if(w * h > MAX_PIXELS){
+    return {valid:false, w:0, h:0, error:'总像素不得超过 ' + (MAX_PIXELS/10000) + ' 万（约 ' + MAX_PIXELS + ' 像素），请降低宽高或缩放比例。'};
   }
   return {valid:true, w:Math.round(w), h:Math.round(h), error:''};
 }
@@ -702,6 +706,9 @@ function getTargetSize(){
     if(!isFinite(w) || !isFinite(h) || w < 1 || h < 1 || w > MAX_SIDE || h > MAX_SIDE){
       return {w:0,h:0,valid:false,error:'缩放后尺寸超出 1–' + MAX_SIDE + 'px 范围，请降低缩放比例。'};
     }
+    if(w * h > MAX_PIXELS){
+      return {w:0,h:0,valid:false,error:'缩放后总像素超过 ' + (MAX_PIXELS/10000) + ' 万，请降低尺寸或比例。'};
+    }
     return {w:w, h:h, valid:true, error:''};
   }
   var rawW = String($('targetW').value).trim();
@@ -785,7 +792,9 @@ function render(){
     resultCanvas = canvas;
     resultW = size.w;
     resultH = size.h;
-    resultFmt = fmt;
+    var actualMime = blob.type || fmt;
+    resultFmt = (actualMime === 'image/jpeg' || actualMime === 'image/webp') ? actualMime : (actualMime === 'image/png' ? 'image/png' : fmt);
+    var __fallbackFmt = resultFmt !== fmt;
     var scalePct = ((size.w * size.h) / (originalImg.naturalWidth * originalImg.naturalHeight) * 100).toFixed(1);
     var origSizeStr = originalFile ? formatSize(originalFile.size) : '—';
     var newSizeStr = formatSize(blob.size);
@@ -795,7 +804,7 @@ function render(){
     var __h2='<p>缩放比例：<strong>' + scalePct + '%</strong>（面积）</p>' +
       '<p>原始大小：<strong>' + origSizeStr + '</strong> → 缩放后：<strong>' + newSizeStr + '</strong></p>' +
       '<p>体积变化：<strong style="color:' + sizeColor + ';">' + sizeChangeStr + '</strong></p>' +
-      '<p>输出格式：<strong>' + fmtLabel(fmt) + '</strong>' + ((fmt === 'image/jpeg' || fmt === 'image/webp') ? '（质量 ' + (quality*100).toFixed(0) + '%）' : '（无损）') + '</p>' +
+      '<p>输出格式：<strong>' + fmtLabel(resultFmt) + '</strong>' + ((resultFmt === 'image/jpeg' || resultFmt === 'image/webp') ? '（质量 ' + (quality*100).toFixed(0) + '%）' : '（无损）') + (__fallbackFmt ? '（浏览器不支持所选格式，已回落为 ' + fmtLabel(resultFmt) + '）' : '') + '</p>' +
       ((originalFile && originalFile.type === 'image/gif') ? '<p>源图为 GIF 动图，本次输出为<strong>静态首帧</strong>。</p>' : '');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){$('resizeInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('resizeInfo').innerHTML=__h2;
   }, fmt, (fmt === 'image/png') ? undefined : quality); } catch (e) { ToolBox.showToast((__imgEn()?'Export failed: ':'导出失败：') + ((e && (e.name || e.message)) || (__imgEn()?"Unknown error":"未知错误")), 'error'); }
 }

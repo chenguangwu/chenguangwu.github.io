@@ -99,6 +99,22 @@ function metronomeStaticChecks() {
 }
 
 // 648 复核失败：DTD 内部子集被整段抽出的约定未覆盖空白压缩；CSV 的 ok 算了却没写进导出。
+function batch202StaticChecks(){
+  const out=[];
+  function chk(name, file, needles){
+    let src='';try{src=fs.readFileSync(file,'utf8');}catch(e){out.push({name:name,ok:false});return;}
+    const missing=needles.filter(n=>src.indexOf(n)<0);
+    out.push({name:name+(missing.length?(' missing:'+missing.join('|')):''),ok:missing.length===0});
+  }
+  chk('B202 svg pixel cap','tools/design/svg-to-png.html',['w * scale * h * scale > 100000000','"scale":"1"']);
+  chk('B202 px-to-rem multiply','tools/design/px-to-rem.html',['上表 rem 值直接乘以 1.6']);
+  chk('B202 compress min 1px','tools/image/image-compress.html',['Math.max(1, Math.round(s.maxSize/ratio))','Math.max(1, Math.round(s.maxSize*ratio))']);
+  chk('B202 resize area cap','tools/image/image-resize.html',['MAX_PIXELS = 16000000','w * h > MAX_PIXELS']);
+  chk('B202 converter token','tools/image/image-converter.html',['__convertToken','if (__token !== __convertToken) return;','源图透明通道原样保留']);
+  chk('B202 photo one-inch preset','tools/design/photo-print-size.html',['id:[296,414,300]','一寸证件照 296×414']);
+  return out;
+}
+
 function designRework648StaticChecks() {
   const src = fs.readFileSync(SVG_PATH, "utf8");
   const i = src.indexOf("function generate(");
@@ -3778,7 +3794,7 @@ async function main() {
     }
   }
 
-  const stat = designRework648StaticChecks().concat(metronomeStaticChecks(), asciiHistoryGuardChecks(), dotPatternEventBindingChecks(), colorDeepDiveContrastFaqChecks(), fontPairingCjkStackChecks(), fontPreviewPlatformChecks());
+  const stat = designRework648StaticChecks().concat(batch202StaticChecks(), metronomeStaticChecks(), asciiHistoryGuardChecks(), dotPatternEventBindingChecks(), colorDeepDiveContrastFaqChecks(), fontPairingCjkStackChecks(), fontPreviewPlatformChecks());
   const staticFails = stat.filter((s) => !s.ok);
   for (const s of staticFails) console.log("❌ [static] " + s.name);
 

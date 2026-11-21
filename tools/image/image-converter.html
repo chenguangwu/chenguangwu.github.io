@@ -249,6 +249,7 @@
 <script>
 let originalImg = null;
 let originalFile = null;
+let __convertToken = 0;
 let originalUrl = '';
 let cardUrls = [];
 
@@ -271,10 +272,12 @@ function handleFile(file) {
     return;
   }
   originalFile = file;
+  const __token = ++__convertToken;
   originalImg = new Image();
   const prevUrl = originalUrl;
   originalUrl = URL.createObjectURL(file);
   originalImg.onload = () => {
+    if (__token !== __convertToken) return;
     if (prevUrl) URL.revokeObjectURL(prevUrl);
     document.getElementById('result').style.display = '';
     const __h0=`
@@ -283,12 +286,13 @@ function handleFile(file) {
       <p>尺寸: <strong>${originalImg.naturalWidth} × ${originalImg.naturalHeight}px</strong></p>
       <p>大小: <strong>${formatSize(file.size)}</strong></p>
     `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('info').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('info').innerHTML=__h0;
-    convertAll();
+    convertAll(__token);
   };
   originalImg.src = originalUrl;
 }
 
-function convertAll() {
+function convertAll(__token) {
+  if (__token !== __convertToken) return;
   const w = originalImg.naturalWidth;
   const h = originalImg.naturalHeight;
 
@@ -316,6 +320,7 @@ function convertAll() {
     }
     ctx.drawImage(originalImg, 0, 0, w, h);
     try { canvas.toBlob(blob => {
+      if (__token !== __convertToken) return;
       if (!blob) {
         grid.innerHTML += `<div class="preview-card"><div>不支持 ${f.label}</div></div>`;
         return;
@@ -331,7 +336,7 @@ function convertAll() {
       card.className = 'preview-card';
       const __h2=`
         <img alt="转换结果预览"  src="${url}">
-        <div class="info"><strong>${f.label}${fallback ? `（已回落为 ${actualExt.toUpperCase()}）` : ''}</strong><br>${formatSize(blob.size)}<br><span class="alpha-note">${flatten ? '已铺白底' : '已保留透明'}</span></div>
+        <div class="info"><strong>${f.label}${fallback ? `（已回落为 ${actualExt.toUpperCase()}）` : ''}</strong><br>${formatSize(blob.size)}<br><span class="alpha-note">${flatten ? '已铺白底（JPEG 无透明）' : '未铺白底（源图透明通道原样保留）'}</span></div>
         <a href="${url}" download="converted-${Date.now()}.${actualExt}" class="download">⬇ 下载</a>
       `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){card.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}card.innerHTML=__h2;
       grid.appendChild(card);
