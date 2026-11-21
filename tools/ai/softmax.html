@@ -110,13 +110,14 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="将一组 logits 转换为概率分布。">Convert a set of logits into a probability distribution that sums to 1, the standard last step of a multi-class model.</p>
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">Softmax 概率 P_i = e^{z_i} ÷ Σ(e^{z_j}) ×100%（z 为各分类得分）。校验：至少输入一个有效实数。判据：将任意实数得分归一化为 0–100% 的概率分布，最大得分对应类别概率最高；常用于多分类输出层。</div>
+      <div class="formula-eq">Softmax 概率 P_i = e^{(z_i−max(z))/T} ÷ Σ(e^{(z_j−max(z))/T}) ×100%（T 为温度，默认 1）。校验：至少输入一个有效实数，T 下限 0.01；实现先减 max(z) 防止 exp 上溢。判据：T 越小分布越尖锐，T 越大越平缓；概率和为 100%。</div>
       <div class="formula-desc">Softmax 把 logits 变成和为 1 的概率分布，指数放大差距使最大值更突出。实现上通常先减去 max(z) 再取指数以避免上溢；输出概率并不等于模型置信度，未经校准的模型常过度自信。</div>
     </div>
 <div class="input-row"><label>Logit 1</label><input type="number" id="z1" value="2.0" step="any" oninput="calc()" placeholder="如 2.0"></div>
     <div class="input-row"><label>Logit 2</label><input type="number" id="z2" value="1.0" step="any" oninput="calc()" placeholder="如 1.0"></div>
     <div class="input-row"><label>Logit 3</label><input type="number" id="z3" value="0.5" step="any" oninput="calc()" placeholder="如 0.5"></div>
     <div class="input-row"><label>Logit 4</label><input type="number" id="z4" value="0.2" step="any" oninput="calc()" placeholder="如 0.2"></div>
+    <div class="input-row"><label>温度 T（越小越尖锐）</label><input type="number" id="temp" value="1" step="any" min="0.01" oninput="calc()" placeholder="如 1"><input type="range" id="tempRange" min="0.1" max="5" step="0.1" value="1" oninput="document.getElementById('temp').value=this.value;calc()" style="width:100%;margin-top:6px;"></div>
     <div id="smPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
@@ -264,15 +265,22 @@ function calc(){
   const z2 = +document.getElementById('z2').value || 0;
   const z3 = +document.getElementById('z3').value || 0;
   const z4 = +document.getElementById('z4').value || 0;
+  const T = Math.max(0.01, +document.getElementById('temp').value || 1);
+  const zs = [z1,z2,z3,z4];
+  const maxZ = Math.max.apply(null, zs);
+  // 平移不变 + 温度：先减 max 再除以 T，避免 exp 上溢
+  const es = zs.map(function(z){ return Math.exp((z - maxZ) / T); });
+  const sum = es.reduce(function(a,b){ return a+b; }, 0);
   let html = '';
-  const __v0 = (Math.exp(z1)/(Math.exp(z1)+Math.exp(z2)+Math.exp(z3)+Math.exp(z4))*100);
+  const __v0 = (es[0]/sum*100);
   html += `<p>P1：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(2)}</strong> %</p>`;
-  const __v1 = (Math.exp(z2)/(Math.exp(z1)+Math.exp(z2)+Math.exp(z3)+Math.exp(z4))*100);
+  const __v1 = (es[1]/sum*100);
   html += `<p>P2：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(2)}</strong> %</p>`;
-  const __v2 = (Math.exp(z3)/(Math.exp(z1)+Math.exp(z2)+Math.exp(z3)+Math.exp(z4))*100);
+  const __v2 = (es[2]/sum*100);
   html += `<p>P3：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(2)}</strong> %</p>`;
-  const __v3 = (Math.exp(z4)/(Math.exp(z1)+Math.exp(z2)+Math.exp(z3)+Math.exp(z4))*100);
+  const __v3 = (es[3]/sum*100);
   html += `<p>P4：<strong style="font-size:18px;color:var(--primary);">${__v3.toFixed(2)}</strong> %</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);">温度 T=${T.toFixed(2)}；实现已先减 max(z) 再取指数。</p>`;
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {

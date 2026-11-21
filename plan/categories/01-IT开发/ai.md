@@ -9,9 +9,9 @@
 - 方案：补序列并行的激活/显存修正说明，并在页面注明实测对表来源。
 
 ### A2. 概念演示页交互浅
-- 描述：softmax/k-means/attention 等页多为静态算例，滑杆联动少。
-- 受影响：tools/ai/softmax*.html、k-means、attention-flops 等（已补图表，交互待深）
-- 方案：统一加「拖拽数据点看输出即时变化」的最小交互（canvas 已具备）。
+- 描述：softmax 已补温度滑杆与实时联动；k-means、attention-flops 等页仍以静态算例为主，滑杆/数据点联动少。
+- 受影响：tools/ai/k-means*.html、attention-flops.html 等
+- 方案：继续为 k-means/attention 加最小交互（预设点集或滑杆看输出即时变化）。
 
 ## 功能缺陷
 - token 计数页与主流 tokenizer 口径未对齐（中文按字/词差异提示不足）。
