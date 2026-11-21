@@ -459,7 +459,14 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/amsler-grid-test.html','utf8');var i=h.lastIndexOf('amFinish');var seg=i>=0?h.slice(i,i+260):'';var ok=seg.indexOf('closePoly')>=0;document.getElementById('__tbProbe').textContent='AMFIN '+(ok?'OK':'BAD');})();"],
   "expect": ["AMFIN OK"],
   "ref": "完成按钮回归：页面提示「双击或点「完成」闭合」，但模式栏原先只有画区域/标点/擦除/撤销/清空，没有「完成」按钮，键盘与双击之外无法闭合。新增 amFinish 按钮并绑定 closePoly；旧版无该按钮/绑定即 BAD。"
-}
+},
+{
+  "slug": "ophthalmology/vision-screening-21",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/vision-screening-21.html','utf8');var i=h.indexOf('function astigVerdict(eye)');var seg=i>=0?h.slice(i,i+1200):'';var ok=seg.indexOf('a.q11[eye]')>=0&&seg.indexOf('a.q14[eye]')>=0&&seg.indexOf('a.q17[eye]')>=0&&seg.indexOf('a.q3[eye]')>=0&&seg.indexOf('Math.max(a.q11.l')<0;document.getElementById('__tbProbe').textContent='VSAS '+(ok?'OK':'BAD');})();"],
+  "expect": ["VSAS OK"],
+  "ref": "左右眼散光方向隔离：旧 astigVerdict 取 q11/q14/q17/q3 两眼的 Math.max，单眼症状可决定另一眼轴位方向；修复后按传入 eye 取本眼回答。拒绝 Math.max 两眼版本。"
+},
+
 ];
 async function main() {
   const only = process.argv.slice(2);
