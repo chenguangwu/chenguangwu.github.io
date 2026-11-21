@@ -271,6 +271,7 @@
 
   <div class="card">
     <h2>📜 历史记录</h2>
+    <p style="font-size:12px;color:var(--text-muted);margin:-6px 0 10px;">仅保存算法、方向与字符长度，不保存输入/输出内容。</p>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <span style="font-size:13px;color:var(--text-muted);">最近 10 条记录</span>
       <button type="button" class="btn danger" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空历史</button>
@@ -608,11 +609,12 @@
   function addHistory(input, output, action){
     try{
       var history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      // 隐私：历史只保留算法/方向/长度/时间，不落盘任何输入或输出内容。
       var item = {
         algo: currentAlgo,
         action: action,
-        input: input.substring(0, 200),
-        output: output.substring(0, 200),
+        inputLen: input.length,
+        outputLen: output.length,
         time: Date.now()
       };
       history.unshift(item);
@@ -628,6 +630,16 @@
     try{
       history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
     }catch(e){ history = []; }
+    // 迁移旧版历史：旧记录含 input/output 明文，读取时立即脱敏并回写。
+    history = history.map(function(item){
+      if(item && (item.input != null || item.output != null)){
+        return { algo: item.algo, action: item.action,
+          inputLen: (item.input || '').length, outputLen: (item.output || '').length,
+          time: item.time };
+      }
+      return item;
+    });
+    try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); }catch(e){}
     if(history.length === 0){
       const __h0='<p style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">暂无历史记录</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h0;
       return;
@@ -637,7 +649,7 @@
       var time = new Date(item.time);
       var timeStr = time.getHours().toString().padStart(2,'0') + ':' + time.getMinutes().toString().padStart(2,'0');
       html += '<div class="history-item" onclick="loadHistory(' + idx + ')">';
-      html += '<span class="h-src">' + ToolBox.escHtml(item.input.substring(0, 50)) + '</span>';
+      html += '<span class="h-src">输入 ' + (item.inputLen || 0) + ' 字符 → 输出 ' + (item.outputLen || 0) + ' 字符（未存内容）</span>';
       html += '<span class="h-meta"><span class="tag">' + item.algo.toUpperCase() + '</span><span class="tag">' + (item.action === 'encode' ? '编码' : '解码') + '</span>' + timeStr + '</span>';
       html += '</div>';
     });
@@ -651,10 +663,10 @@
       if(!item) return;
       setAlgo(item.algo);
       switchTab('text');
-      document.getElementById('input').value = item.input;
-      document.getElementById('output').value = item.output;
+      document.getElementById('input').value = '';
+      document.getElementById('output').value = '';
       onInputChange();
-      ToolBox.showToast(i18nText());
+      ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'History stores summaries only; paste the content again':'历史仅保留摘要，请重新粘贴内容');
     }catch(e){}
   }
 
