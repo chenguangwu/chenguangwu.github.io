@@ -484,6 +484,18 @@ const CASES = [
   "expect": ["青光眼疑似 (0.51)", "提示青光眼视神经改变"],
   "ref": ">0.5 时单眼与综合均提示可疑。"
 },
+{
+  "slug": "ophthalmology/astigmatism-chart",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/astigmatism-chart.html','utf8');var ok=h.indexOf('function sectorCenterAngle(rayDeg) { return rayDeg * Math.PI / 180 - Math.PI / 2; }')>=0&&h.indexOf('c.arc(center.x, center.y, R, sectorCenterAngle(')>=0&&h.indexOf('-a - half')<0;document.getElementById('__tbProbe').textContent='ASANGLE '+(ok?'OK':'BAD');"],
+  "expect": ["ASANGLE OK"],
+  "ref": "射线以正上方 0°、顺时针计量，canvas 弧角以正右方 0°、顺时针计量；高亮扇区必须用 a-90° 才能与红线同侧，旧写法 -a 会镜像到对侧。"
+},
+{
+  "slug": "ophthalmology/astigmatism-chart",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/astigmatism-chart.html','utf8');var i=h.indexOf('function goStep(st)');var seg=i>=0?h.slice(i,i+420):'';var ok=seg.indexOf('render(); updateReadout();')>=0&&h.indexOf('goStep(S.eye')>=0;document.getElementById('__tbProbe').textContent='ASSTEP '+(ok?'OK':'BAD');})();"],
+  "expect": ["ASSTEP OK"],
+  "ref": "分步指引直接切眼时只改 S.eye 不重绘，眼别与画面/读数会不一致；goStep 内补 render+updateReadout，选择器 change 只保留一次重绘。"
+},
 
 ];
 async function main() {

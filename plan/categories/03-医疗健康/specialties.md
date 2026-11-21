@@ -63,8 +63,7 @@
 > 八页仅源码分析；未进行浏览器、图形、下载或医学标准核验，医疗问题均需临床复核。
 
 - 同页 `:717-729,698-706`：用户填写的 `ecRow` 原样存入记录，随后拼入 `innerHTML`，存在本地存储型 HTML/脚本注入路径；未实际执行载荷。
-- `tools/ophthalmology/astigmatism-chart.html`：切换射线数后旧标记按索引错位——第1334批已修（标记存的是射线索引、角度=索引×(360/条数)，24↔36 切换后同索引角度全变；修复后切条数即清两眼 marked 并同步读数，源码形态强锚 `ASLINES` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：向量直接平均 180° 相反射线时会相互抵消仍输出数值轴位，视觉意义及轴位解释须临床核验。
-- 同页 `:401-417,637-647` 的高亮扇形使用 `-a`，红射线却以从上方顺时针的 `sin(a),-cos(a)` 绘制，二者角度基准不一致；预览和快照都采用该写法。`goStep()`（`:579-594`）切眼时不重绘/更新读数，可能出现眼别与旧图不一致。均为代码推演。
+- `tools/ophthalmology/astigmatism-chart.html`：切换射线数后旧标记按索引错位——第1334批已修（标记存的是射线索引、角度=索引×(360/条数)，24↔36 切换后同索引角度全变；修复后切条数即清两眼 marked 并同步读数，源码形态强锚 `ASLINES` 已落 ophthalmology verify；旧版无 ⇒ BAD）。高亮扇区镜像与分步切眼不重绘——第 127 批已修（新增 `sectorCenterAngle` 统一射线角与 canvas 弧角，`goStep` 内补重绘；强锚 `ASANGLE`/`ASSTEP` 已落 ophthalmology verify）。余项：向量直接平均 180° 相反射线时会相互抵消仍输出数值轴位，视觉意义及轴位解释须临床核验。
 - `tools/ophthalmology/amsler-grid-test.html`：切换眼别未清 `S.drawing` 致未完成绘制串眼——第1334批已修（amEye change 与 goStep 两处切眼别均补清 S.drawing/S.cursor，源码形态强锚 `AMDRAW` 已落 ophthalmology verify；旧版两处皆无 ⇒ BAD）。余项：提示可点“完成”闭合但工具栏未见完成按钮，实际只绑定双击或 Enter；保存只含已闭合标记，正在绘制的区域不入快照；触屏事件表现未实测。
 - `tools/ophthalmology/axial-length.html`：仅检查 NaN，眼轴/声速为负或零仍参与运算（零声速致除零）——第1324批已修（calcCorr/calcSeg 两分支要求长度与声速均为正，源码形态强锚 `ALNEG` 已落 ophthalmology verify；旧版无 ⇒ BAD）。余项：接触压平校正从测量长度减 0.15 mm，与压平造成测值缩短的方向可能矛盾，IOL 输出符号与深解“下调”描述亦需核对。专业假设及公式须临床核验。
 - `tools/ophthalmology/cd-ratio.html`：越界输入被静默夹到 0–1 而继续给分级；0.5 分级与综合风险口径矛盾——第 126 批已统一为 `<=0.5` 临界、`>0.5` 疑似，阈值表同步改 `> 0.5 ~ 0.7`（强锚用例已落 ophthalmology verify）。ISNT 解释及阈值仍须临床核验。

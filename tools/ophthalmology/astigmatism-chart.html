@@ -367,7 +367,7 @@
       var half = (Math.PI / n);
       ctx.beginPath();
       ctx.moveTo(center.x, center.y);
-      ctx.arc(center.x, center.y, R, -a - half, -a + half);
+      ctx.arc(center.x, center.y, R, sectorCenterAngle(angleOf(i)) - half, sectorCenterAngle(angleOf(i)) + half);
       ctx.closePath();
       ctx.fillStyle = 'rgba(239,68,68,.16)';
       ctx.fill();
@@ -452,7 +452,9 @@
     };
   }
 
-  function angularSpread(degArr) {
+  function sectorCenterAngle(rayDeg) { return rayDeg * Math.PI / 180 - Math.PI / 2; }
+
+function angularSpread(degArr) {
     // 在圆上找最大缺口，缺口补集即覆盖跨度
     var arr = degArr.slice().sort(function (a, b) { return a - b; });
     var maxGap = 0, gapStart = 0;
@@ -523,7 +525,7 @@
   });
 
   /* ---------- 控件 ---------- */
-  $('asEye').addEventListener('change', function () { S.eye = this.value; render(); updateReadout(); goStep(S.eye === 'left' ? 0 : 2); });
+  $('asEye').addEventListener('change', function () { S.eye = this.value; goStep(S.eye === 'left' ? 0 : 2); });
   $('asLines').addEventListener('change', function () {
     // 标记存的是射线索引，角度 = 索引×(360/条数)；24↔36 切换后同一索引代表的角度全变，
     // 旧标记会被解释成错误方向。射线数改变即扇区定义改变，清空两眼标记并同步读数。
@@ -548,6 +550,8 @@
     if (STEP_EYE[st]) {
       S.eye = STEP_EYE[st]; $('asEye').value = S.eye;
     }
+    // 分步指引可直接切眼，必须同步重绘与读数；只改 S.eye 会让眼别与画面/结果不一致。
+    render(); updateReadout();
     var hints = [
       '第 1 步：遮住右眼，左眼盯中心红点，逐条比较各方向射线是否一样清晰。',
       '第 2 步：点击所有“更模糊/更淡”的射线，系统实时估算轴位。',
@@ -606,7 +610,9 @@
       x2 = center.x + Math.sin(a) * R; y2 = center.y - Math.cos(a) * R;
       var half = (Math.PI / n);
       c.beginPath(); c.moveTo(center.x, center.y);
-      c.arc(center.x, center.y, R, -a - half, -a + half); c.closePath();
+      // 射线角 a 以“正上方为 0、顺时针”计量；canvas 弧角以正右方为 0、顺时针。
+      // 二者差 90°，用 a-90° 才能让高亮扇区与红线落在同一侧（旧写法 -a 会镜像到对侧）。
+      c.arc(center.x, center.y, R, sectorCenterAngle(i * (360 / n)) - half, sectorCenterAngle(i * (360 / n)) + half); c.closePath();
       c.fillStyle = 'rgba(239,68,68,.16)'; c.fill();
       c.strokeStyle = '#EF4444'; c.lineWidth = Math.max(2, SIZE / 200);
       c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
