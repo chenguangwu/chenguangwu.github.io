@@ -255,22 +255,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  // 原 expect「2.4-12.6」是 LH 参考范围静态文字，恒定出现 → 逃生项。
-  "slug": "endocrinology/sex-hormone-cycle",
-  "inputs": {
-    "lh": "9.9",
-    "fsh": "3.3",
-    "e2": "77",
-    "t": "88",
-    "prl": "22",
-    "p": "1.1"
-  },
-  "expect": [
-    "LH/FSH 比值： 3.00"
-  ],
-  "ref": "LH/FSH = 9.9 / 3.3 = 3.00（toFixed(2)）→ 页面末行「LH/FSH 比值： 3.00 （≥2，提示PCOS可能）」。默认 value 与兜底预设 loadPCOS（5.2/... 比值≠3.00）都不含该串。"
-},
-{
   // 原为 all_default 弱用例：11 个数字全等于页面默认，expect「P0.13-P3」是等级词。
   "slug": "endocrinology/short-stature-prediction",
   "inputs": {

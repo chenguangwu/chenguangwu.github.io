@@ -427,16 +427,6 @@ const CASES = [
     "ref": "注入非默认(默认 area=20/height=2.8/roomType=150/orient=1.15)。独立复算：heightFactor=1+max(0,(3.2-2.8)/0.1)×0.03=1.12；cooling=35×200×1.12×1.20=9408 W；pi=9408/2500=3.76 匹；grades 表取 ≥3.76 的最小档 = 4 匹。房间类型 200=卧室、朝向 1.20=西向。默认态 3450 W / 1.38 匹 / 南向，三条均不命中。⚠ 本例依赖 harness 对 select 的 options/selectedIndex 建模（页面 getParams 读 oEl.options[oEl.selectedIndex].text 取朝向标签），先于本批修复。"
   },
   {
-    "slug": "construction/calc-6",
-    "inputs": { "altitude": "80", "overhang": "1.2", "winH": "1.8", "orient": "0.60" },
-    "expect": [
-      "6.806 投影高度 (m)",
-      "0.400 综合遮阳系数",
-      "东向"
-    ],
-    "ref": "注入非默认(默认 altitude=60/overhang=0.8/winH=1.5/orient=1.00)。独立复算：投影高度 = overhang×tan(altitude) = 1.2×tan(80°)=1.2×5.671=6.806 m；遮挡率 = min(100, 投影/窗高×100)=min(100,6.806/1.8×100)=100%；遮阳效率 = 1-遮挡率/100=0；综合遮阳系数 = 遮阳效率×朝向修正(0.6)=0.400。朝向 0.60=东向/西向。默认态 1.386 m / 92.4% / 0.076 / 南向，三条均不命中。"
-  },
-  {
     "slug": "construction/calc-area-lux",
     "inputs": { "area": "45", "cu": "0.6", "mf": "0.9", "lux": "300", "lamp": "60|24" },
     "expect": [ "25000 总光通量" ],

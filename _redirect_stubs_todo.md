@@ -193,3 +193,11 @@
 | https://chenguangwu.github.io/tools/clinical-nursing/surgical-position-risk.html | https://chenguangwu.github.io/tools/clinical-nursing/assessor-pressure-risk.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/hematology/mpn-scoring.html | https://chenguangwu.github.io/tools/hematology/rater-5.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/obstetrics/kupperman-score.html | https://chenguangwu.github.io/tools/obstetrics/rater-26.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/endocrinology/sex-hormone-cycle.html | https://chenguangwu.github.io/tools/endocrinology/cycle-hormone.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/agriculture/calc-7.html | https://chenguangwu.github.io/tools/agriculture/fertigation-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/hvac/kongtiaolengfuhejisuan.html | https://chenguangwu.github.io/tools/hvac/cooling-load.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/construction/calc-6.html | https://chenguangwu.github.io/tools/construction/window-shading.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/optical/aspheric-design.html | https://chenguangwu.github.io/tools/optical/calc-47.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/pulmonology/calc-48.html | https://chenguangwu.github.io/tools/pulmonology/oxygenation-index.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/rheumatology/assessor-10.html | https://chenguangwu.github.io/tools/rheumatology/essdai.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/rheumatology/rater-16.html | https://chenguangwu.github.io/tools/rheumatology/sledai.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |

@@ -31,18 +31,6 @@ const CASES = [
   "ref": "体重分档边界回归：72 kg 属 >70 kg 档 ⇒ PZA 2000 mg、EMB 1250 mg（INH=min(72×5,300)=300、RIF=600）。页面旧实现以 75 kg 为档界，72 kg 落在 50–75 档输出 Z 1750 + E 1000；体重分档（中国指南/WHO ≥70 kg 档）应以 70 kg 为界。默认 55 kg 输出 Z 1750 + E 1000 ⇒ 零交集。"
 },
 {
-  // 默认 pao2=80/fio2=40 → P/F=200 重度 ARDS；注入 90/21 → P/F=429 → 氧合功能正常
-  "slug": "pulmonology/calc-48",
-  "inputs": {
-    "pao2": "90",
-    "fio2": "21"
-  },
-  "expect": [
-    "氧合功能正常，无需特殊氧疗支持。"
-  ],
-  "ref": "auto-restore"
-},
-{
   // 默认 2.1/3.5 → 比值 60.0% 阻塞；注入 3.0/3.5 → 85.7% ≥0.70 → 无阻塞
   "slug": "pulmonology/feigongneng-fev1-fvc-fenji",
   "inputs": {
@@ -592,11 +580,6 @@ const CASES = [
   "expect": ["具体死亡率不确定", "考虑ICU/HDU"],
   "ref": "Five criteria selected: retain high-risk assessment without assigning the conflicting 57% to the derivation cohort."
 },{
-  "slug": "pulmonology/calc-48",
-  "inputs": { "pao2": "80", "fio2": "150" },
-  "expect": ["FiO2 应在 21–100% 之间，请重新填写。"],
-  "ref": "03-162 FiO2 上限校验：旧版仅 isNaN||fio2<21 判下限，max=100 属性不阻止键入，150% 直接算出 P/F≈53「重度ARDS」+OI 被放大。本批加 fio2>100 拦截。默认 fio2=40 合法不命中，零逃生。"
-},{
   "slug": "pulmonology/oxygenation-index",
   "inputs": { "pao2": "65", "fio2": "150", "spo2": "95" },
   "expect": ["FiO2 应在 21–100% 之间，请重新填写。"],
@@ -636,12 +619,6 @@ const CASES = [
   "inputs": {"t":"T3","n":"N2","m":"M0"},
   "expect": ["分期 = ⅢB期"],
   "ref": "AJCC 第 8 版 T3N2M0 为 ⅢB；旧实现落入 ⅢA。"
-},
-{
-  "slug": "pulmonology/calc-48",
-  "inputs": {"pao2":"60","fio2":"40"},
-  "expect": ["中重度 ARDS（P/F 100–200）"],
-  "ref": "P/F=150：旧实现 ≤200 一律重度，现应落 100–200 中重度档。"
 },
 {
   "slug": "pulmonology/copd-cat",
