@@ -133,6 +133,10 @@
         <label>瞳高 (mm)</label>
         <input type="number" id="pupilHeight" value="22" step="0.5" oninput="calc()" placeholder="如 22">
       </div>
+      <div>
+        <label>镜片度数 D（选填）</label>
+        <input type="number" id="lensPower" step="0.25" oninput="calc()" placeholder="如 -3.00，用于估算棱镜">
+      </div>
     </div>
 
     <div class="tilt-vis">
@@ -342,15 +346,19 @@ function calc(){
   // 调整后瞳高 = 原瞳高 + 下移量
   var adjustedHeight = pupilHeight + shift;
 
-  // 棱镜效应估算（简化：使用Prentice法则 P = c*d/10）
-  // c为偏心量(cm), d为镜度(D) - 此处仅评估偏心影响
+  // 棱镜效应估算（Prentice 法则 P(Δ) = c(cm) × D）；镜度为选填，未填时不出棱镜数值。
+  var __lpRaw=String(document.getElementById('lensPower').value==null?'':document.getElementById('lensPower').value).trim();
+  var lensPower=__lpRaw===''?null:parseFloat(__lpRaw);
+  if(lensPower!==null&&!isFinite(lensPower)) lensPower=null;
   var shiftCm = shift / 10;
+  var prism = lensPower===null ? null : Math.abs(shiftCm * lensPower);
 
   var html = '';
   html += '<div class="data-grid">';
   html += '<div class="data-card"><div class="num">'+tilt.toFixed(1)+'°</div><div class="label">前倾角</div></div>';
   html += '<div class="data-card"><div class="num">'+shift.toFixed(1)+'</div><div class="label">光心下移量 (mm)</div></div>';
   html += '<div class="data-card"><div class="num">'+adjustedHeight.toFixed(1)+'</div><div class="label">调整后瞳高 (mm)</div></div>';
+  if(prism!==null){ html += '<div class="data-card"><div class="num">'+prism.toFixed(2)+'Δ</div><div class="label">估算棱镜效应</div></div>'; }
   html += '</div>';
 
   html += '<div class="result-box" style="margin-top:10px;">';
@@ -359,6 +367,9 @@ function calc(){
   html += '<p>调整后瞳高 = '+pupilHeight.toFixed(1)+' + '+shift.toFixed(1)+' = <strong>'+adjustedHeight.toFixed(1)+' mm</strong></p>';
   if(pd > 0){
     html += '<p>单眼瞳距：<strong>'+(pd/2).toFixed(1)+' mm</strong>（总PD '+pd+'mm）</p>';
+  }
+  if(prism!==null){
+    html += '<p>棱镜效应（Prentice 估算）：c = '+shiftCm.toFixed(2)+' cm，D = '+lensPower.toFixed(2)+' D ⇒ <strong>'+prism.toFixed(2)+'Δ</strong>（方向随镜片正负而相反）</p>';
   }
   html += '</div>';
 

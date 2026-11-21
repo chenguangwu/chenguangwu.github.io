@@ -877,6 +877,12 @@ const CASES = [
   "expect": ["原柱镜： -1.00D @ 90°"],
   "ref": "原轴位可见性：旧实现读取 axis 后完全不用，改动轴位对输出无任何影响；修复后按原柱镜显示「C @ axis」，并标注仅作对照、不参与诱导柱镜合成。轴位范围限定 0–179°。"
 },
+{
+  "slug": "optical/frame-tilt",
+  "inputs": {"tilt": "8", "pd": "62", "pupilHeight": "22", "lensPower": "-3"},
+  "expect": ["1.20Δ", "c = 0.40 cm，D = -3.00 D"],
+  "ref": "前倾 8° 下移 4mm => c=0.4cm；Prentice P=c×D=0.4×3=1.20Δ。旧版无 lensPower 输入、shiftCm 未使用，不输出该值。"
+},
 
 ];
 
