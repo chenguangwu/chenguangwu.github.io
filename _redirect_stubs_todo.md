@@ -230,3 +230,54 @@
 | https://chenguangwu.github.io/tools/acoustics/spl-add.html | https://chenguangwu.github.io/tools/acoustics/combine-two-spl.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/acoustics/decibel-power.html | https://chenguangwu.github.io/tools/acoustics/decibel-power-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/acoustics/decibel-voltage.html | https://chenguangwu.github.io/tools/acoustics/decibel-voltage-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/guides/convert-content-1-guide.html | https://chenguangwu.github.io/guides/dry-matter-conversion-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至dry-matter-conversion 使用指南 |
+| https://chenguangwu.github.io/guides/generator-4-guide.html | https://chenguangwu.github.io/tools/edu/summary-generator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至摘要生成器工具页 |
+| https://chenguangwu.github.io/guides/variance-list-guide.html | https://chenguangwu.github.io/guides/sample-variance-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至sample-variance 使用指南 |
+| https://chenguangwu.github.io/guides/period-pendulum-guide.html | https://chenguangwu.github.io/guides/pendulum-period-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至pendulum-period 使用指南 |
+| https://chenguangwu.github.io/guides/annuity-pv-inv-guide.html | https://chenguangwu.github.io/guides/annuity-present-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至annuity-present 使用指南 |
+| https://chenguangwu.github.io/guides/twstrs-guide.html | https://chenguangwu.github.io/guides/rater-21-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至rater-21 使用指南 |
+| https://chenguangwu.github.io/guides/rater-19-guide.html | https://chenguangwu.github.io/guides/updrs-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至updrs 使用指南 |
+| https://chenguangwu.github.io/guides/sex-hormone-cycle-guide.html | https://chenguangwu.github.io/guides/cycle-hormone-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至cycle-hormone 使用指南 |
+| https://chenguangwu.github.io/guides/feigongneng-fev1-fvc-fenji-guide.html | https://chenguangwu.github.io/guides/pulmonary-function-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至pulmonary-function 使用指南 |
+| https://chenguangwu.github.io/guides/calc-48-guide.html | https://chenguangwu.github.io/guides/oxygenation-index-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至oxygenation-index 使用指南 |
+| https://chenguangwu.github.io/guides/intensity-level-guide.html | https://chenguangwu.github.io/tools/acoustics/sound-intensity-level.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至声强级（L_I = 10·log₁₀(I / I₀)）工具页 |
+| https://chenguangwu.github.io/guides/decibel-voltage-guide.html | https://chenguangwu.github.io/tools/acoustics/decibel-voltage-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至电压分贝（L = 20·log₁₀(V / V₀)）工具页 |
+| https://chenguangwu.github.io/guides/decibel-power-guide.html | https://chenguangwu.github.io/tools/acoustics/decibel-power-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至功率分贝（L = 10·log₁₀(P / P₀)）工具页 |
+| https://chenguangwu.github.io/guides/spl-add-guide.html | https://chenguangwu.github.io/tools/acoustics/combine-two-spl.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至两声压级叠加（L = 10·log₁₀(10^(L₁/10)+10^(L₂/10))）工具页 |
+| https://chenguangwu.github.io/guides/calc-power-guide.html | https://chenguangwu.github.io/guides/winter-heating-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至winter-heating 使用指南 |
+| https://chenguangwu.github.io/guides/medication-schedule-guide.html | https://chenguangwu.github.io/tools/elderly/reminder-time.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至用药提醒表工具页 |
+| https://chenguangwu.github.io/guides/factorial-calculator-guide.html | https://chenguangwu.github.io/guides/factorial-calc-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至factorial-calc 使用指南 |
+| https://chenguangwu.github.io/guides/kongtiaolengfuhejisuan-guide.html | https://chenguangwu.github.io/guides/cooling-load-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至cooling-load 使用指南 |
+| https://chenguangwu.github.io/guides/convert-37-guide.html | https://chenguangwu.github.io/guides/protein-kjeldahl-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至protein-kjeldahl 使用指南 |
+| https://chenguangwu.github.io/guides/generator-27-guide.html | https://chenguangwu.github.io/guides/colony-count-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至colony-count 使用指南 |
+| https://chenguangwu.github.io/guides/kupperman-score-guide.html | https://chenguangwu.github.io/guides/rater-26-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至rater-26 使用指南 |
+| https://chenguangwu.github.io/guides/placenta-grading-guide.html | https://chenguangwu.github.io/guides/taipanchengshudu-grannumfenji-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至taipanchengshudu-grannumfenji 使用指南 |
+| https://chenguangwu.github.io/guides/calc-risk-guide.html | https://chenguangwu.github.io/guides/down-screening-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至down-screening 使用指南 |
+| https://chenguangwu.github.io/guides/noise-addition-guide.html | https://chenguangwu.github.io/guides/noise-superposition-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至noise-superposition 使用指南 |
+| https://chenguangwu.github.io/guides/detector-strength-guide.html | https://chenguangwu.github.io/tools/safety/password-strength.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至密码强度检测工具页 |
+| https://chenguangwu.github.io/guides/aspheric-design-guide.html | https://chenguangwu.github.io/guides/calc-47-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至calc-47 使用指南 |
+| https://chenguangwu.github.io/guides/pet-age-converter-guide.html | https://chenguangwu.github.io/guides/pet-age-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至pet-age 使用指南 |
+| https://chenguangwu.github.io/guides/token-guide.html | https://chenguangwu.github.io/guides/token-usage-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至token-usage 使用指南 |
+| https://chenguangwu.github.io/guides/calculator-calc-due-date-guide.html | https://chenguangwu.github.io/guides/pregnancy-due-date-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至pregnancy-due-date 使用指南 |
+| https://chenguangwu.github.io/guides/overtime-pay-calc-guide.html | https://chenguangwu.github.io/guides/overtime-pay-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至overtime-pay 使用指南 |
+| https://chenguangwu.github.io/guides/pv-annuity-guide.html | https://chenguangwu.github.io/guides/annuity-present-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至annuity-present 使用指南 |
+| https://chenguangwu.github.io/guides/salary-after-tax-guide.html | https://chenguangwu.github.io/tools/finance/salary-calculator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至工资税后计算器工具页 |
+| https://chenguangwu.github.io/guides/calculator-calc-constitution-guide.html | https://chenguangwu.github.io/guides/bmi-calculator-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至bmi-calculator 使用指南 |
+| https://chenguangwu.github.io/guides/osdi-scale-guide.html | https://chenguangwu.github.io/guides/self-assess-2-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至self-assess-2 使用指南 |
+| https://chenguangwu.github.io/guides/morse-score-guide.html | https://chenguangwu.github.io/guides/assessor-rater-risk-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至assessor-rater-risk 使用指南 |
+| https://chenguangwu.github.io/guides/surgical-position-risk-guide.html | https://chenguangwu.github.io/guides/assessor-pressure-risk-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至assessor-pressure-risk 使用指南 |
+| https://chenguangwu.github.io/guides/braden-score-guide.html | https://chenguangwu.github.io/guides/calc-rater-risk-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至calc-rater-risk 使用指南 |
+| https://chenguangwu.github.io/guides/generator-pressure-guide.html | https://chenguangwu.github.io/guides/pressure-injury-description-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至pressure-injury-description 使用指南 |
+| https://chenguangwu.github.io/guides/convert-flow-concentration-guide.html | https://chenguangwu.github.io/guides/oxygen-concentration-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至oxygen-concentration 使用指南 |
+| https://chenguangwu.github.io/guides/assessor-5-guide.html | https://chenguangwu.github.io/guides/zirconia-aesthetics-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至zirconia-aesthetics 使用指南 |
+| https://chenguangwu.github.io/guides/rater-risk-2-guide.html | https://chenguangwu.github.io/guides/caries-risk-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至caries-risk 使用指南 |
+| https://chenguangwu.github.io/guides/formula-1-guide.html | https://chenguangwu.github.io/guides/meso-cocktail-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至meso-cocktail 使用指南 |
+| https://chenguangwu.github.io/guides/maokongcudafenji-guide.html | https://chenguangwu.github.io/guides/pore-grading-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至pore-grading 使用指南 |
+| https://chenguangwu.github.io/guides/pifuphceding-guide.html | https://chenguangwu.github.io/tools/cosmetic-derm/skin-ph.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至皮肤pH测定工具页 |
+| https://chenguangwu.github.io/guides/ratio-composition-injection-guide.html | https://chenguangwu.github.io/tools/cosmetic-derm/mesotherapy.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至水光针配比计算工具页 |
+| https://chenguangwu.github.io/guides/time-23-guide.html | https://chenguangwu.github.io/guides/post-procedure-recovery-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至post-procedure-recovery 使用指南 |
+| https://chenguangwu.github.io/guides/area-12-guide.html | https://chenguangwu.github.io/guides/telangiectasia-area-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至telangiectasia-area 使用指南 |
+| https://chenguangwu.github.io/guides/mpn-scoring-guide.html | https://chenguangwu.github.io/guides/rater-5-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至rater-5 使用指南 |
+| https://chenguangwu.github.io/guides/pnh-flow-guide.html | https://chenguangwu.github.io/guides/detector-5-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至detector-5 使用指南 |
+| https://chenguangwu.github.io/guides/generator-analysis-guide.html | https://chenguangwu.github.io/guides/thrombin-generation-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至thrombin-generation 使用指南 |
+| https://chenguangwu.github.io/guides/calc-7-guide.html | https://chenguangwu.github.io/tools/agriculture/fertigation-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至水肥配比工具页 |
