@@ -130,7 +130,7 @@
     <h2 data-zh="📊 文本统计分析">📊 Text Statistics Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="统计字数、词频、阅读时间，支持中英文">Show statistics for your text in your browser — character, word and sentence counts.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">文本统计与词频分析<br>中文字符 = Unicode 4E00–9FA5 区间逐字匹配<br>中文词 = 连续汉字串拆分单字；英文词 = [a-zA-Z]+ 连续串转小写<br>总词数 = 中文单字 + 英文词（不去停用词）<br>去停用词 = 过滤停用词后的词数；不同词 = 去停用词后去重计数<br>句子 = 按 。！？.!? 分隔<br>段落 = 按空行分隔<br>阅读时间 = max(⌈中文字数÷300⌉, ⌈英文词数÷200⌋) 分钟<br>中文按 300 字/分、英文按 200 词/分计<br>词频 Top20 按次数降序，条形相对最高频归一化</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">文本统计与词频分析<br>中文字符 = Unicode 4E00–9FA5 区间逐字匹配<br>中文词 = 连续汉字串拆分单字；英文词 = [a-zA-Z]+ 连续串转小写<br>总词数 = 中文单字 + 英文词（不去停用词）<br>去停用词 = 过滤停用词后的词数；不同词 = 去停用词后去重计数<br>句子 = 按 。！？.!? 分隔<br>段落 = 按空行分隔<br>阅读时间 = 0（空文本）或 max(1, ⌈中文字数÷300 + 英文词数÷200⌉) 分钟<br>中文按 300 字/分、英文按 200 词/分计<br>词频 Top20 按次数降序，条形相对最高频归一化</div>
   <div class="formula-desc">统计文本的量化指标。</div>
   <ul class="formula-list">
     <li><b>维度</b>：字符数、词数、句数、段落数、行数、字节数与估算阅读时长。</li>
@@ -288,9 +288,9 @@ function analyze() {
   const lines = text.split(/\r\n|\r|\n/).length;
   const paragraphs = text.split(/\r\n|\r|\n\s*(?:\r\n|\r|\n)/).filter(p => p.trim()).length;
   const sentences = splitSentences(text).filter(s => s.trim()).length;
-  const chineseReadMin = Math.ceil(chineseChars / 300);
-  const englishReadMin = Math.ceil(englishWords.length / 200);
-  const readMin = Math.max(chineseReadMin, englishReadMin);
+  // 中英文混排的阅读时间应相加后一次取整；逐项 ceil 再 max 会把 300 汉字 + 200 英文词算成 1 分钟。
+  const readMinutesRaw = chineseChars / 300 + englishWords.length / 200;
+  const readMin = readMinutesRaw > 0 ? Math.max(1, Math.ceil(readMinutesRaw)) : 0;
   
   stats = {
     totalChars, codePoints, charsNoSpace, lines, paragraphs, sentences,

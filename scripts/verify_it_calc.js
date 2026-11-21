@@ -14697,6 +14697,12 @@ const CASES = [
     "expect": ["DIFFNEW OK"],
     "ref": "统一视图新值：忽略大小写时 abc 与 ABC 判为相同；旧实现 same 块只渲染 oldValue，统一视图仍显示 abc。修复后显示新文件侧 ABC。"
   },
+  {
+    "slug": "it/text-statistics",
+    "inputs": { "textInput": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字 word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word" },
+    "expect": ["2分钟"],
+    "ref": "混排阅读时间：300 汉字按 300 字/分需 1 分钟，200 英文词按 200 词/分需 1 分钟，合计 2 分钟。旧实现逐项 ceil 后取 max 只得 1 分钟。"
+  },
 ];
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
