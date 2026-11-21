@@ -124,6 +124,12 @@ const CASES = [
 },
 {
   "slug": "pr/risk-assessment",
+  "clicks": ["render()"],
+  "expect": ["请先添加风险项后再评估。"],
+  "ref": "空风险清单不得输出 0 风险总数/0 低风险/平均 0.0 的伪评估；默认 3 条风险项不含该提示。"
+},
+{
+  "slug": "pr/risk-assessment",
   "inputs": {
     "riskName": "供应链中断",
     "riskProb": "4",

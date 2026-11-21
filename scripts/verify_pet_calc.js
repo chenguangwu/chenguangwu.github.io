@@ -46,6 +46,13 @@ const CASES = [
 },
 {
   "slug": "pet/convert-25",
+  "inputs": {"species": "dog", "age": ""},
+  "clicks": ["calc()"],
+  "expect": ["请输入宠物年龄（岁）后再换算。"],
+  "ref": "空年龄不得输出「人类年龄 ≈ 0.0 岁」；默认 3 岁不含该提示。"
+},
+{
+  "slug": "pet/convert-25",
   "inputs": {
     "species": "dog",
     "age": "5"
