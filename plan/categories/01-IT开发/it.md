@@ -59,7 +59,6 @@
 - `tools/it/text-diff.html:412-421`：没有换行符统一选项，但 352 的 FAQ 建议“先统一换行符再比对”，本页无法完成该前置步骤；`renderUnifiedDiff:552-554` 的相同行只渲染旧文本，忽略大小写/空白时展示与右侧不一致。
 - `tools/it/text-diff.html:304`：统计卡宣称算法为 Myers，实际实现是 LCS 动态规划，文案与实现不一致。
 - `tools/it/line-ending-converter.html`：`299-305` 主换行符并列时固定优先报 CRLF 仍需裁断口径，保留。
-- `tools/it/list-converter.html:280`：quote 模式用 `\"` 转义双引号，与 FAQ（`201-206`）所述“CSV 双引号写两个”不一致，建议统一或改名。
 - `tools/it/ini-parser.html:321`：`getIndent` 读取不存在的 `#indent`，现为死代码，若被调用会抛错。
 - `tools/it/markdown-to-html.html:291-293`：行内代码先替换再跑粗体/斜体，`` `**x**` `` → `<code><strong>x</strong></code>`（Node 已复算）；`280` 代码块语言只允许字母，`c++`/`c#` 不被保护（Node：blocks 长度 0）；`310` 表格要求行首为 `|`，省略首竖线的 GFM 表格不识别。
 - `tools/it/text-dedupe-sort.html:380-385`：无 `input` 监听，“原始项数”在编辑时不更新；`500-503` 行号补零宽度只按总行数位数，跨 9/10 行时前缀宽度变化。
