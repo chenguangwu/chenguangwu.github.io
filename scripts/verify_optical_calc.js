@@ -883,6 +883,12 @@ const CASES = [
   "expect": ["1.20Δ", "c = 0.40 cm，D = -3.00 D"],
   "ref": "前倾 8° 下移 4mm => c=0.4cm；Prentice P=c×D=0.4×3=1.20Δ。旧版无 lensPower 输入、shiftCm 未使用，不输出该值。"
 },
+{
+  "slug": "optical/anti-fatigue-design",
+  "inputs": {"age": "50", "workDist": "20", "rx": "0"},
+  "expect": ["原始ADD需求超过1.00D", "1.00D"],
+  "ref": "50 岁平均调节幅度 3.5D、保留 1/3 后可用 2.33D，20cm 需求 5D ⇒ 原始 ADD 2.5D，页面按 1.00D 上限显示，但必须提示改用渐进片；旧版把 1.00D 判为‘接近上限’。"
+},
 
 ];
 
