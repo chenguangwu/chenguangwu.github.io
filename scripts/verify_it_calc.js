@@ -2236,6 +2236,12 @@ const CASES = [
   },
   {
     slug: "it/char-encoder",
+    inputs: { input: "例子.测试" },
+    expect: ["xn--fsqu00a.xn--0zwm56d"],
+    ref: "IT-N206b：Punycode 行把输入当域名交给 URL/IDNA ⇒ xn--fsqu00a.xn--0zwm56d。旧版描述列了 Punycode 但 formats 无此行。默认空输入不命中。",
+  },
+  {
+    slug: "it/char-encoder",
     inputs: { input: "AZ" },
     expect: ["ASCII 码 65 90"],
     ref: "IT-N205 第225批：纯 ASCII 文本 ASCII 行按码点输出 `65 90`（空格分隔十进制），不再错误标「多字节序列」也不带逗号。默认态 input 为空 ⇒ ASCII 行无值，不命中。",
@@ -13874,6 +13880,13 @@ const CASES = [
     clicks: ["renderPreview()", "var v=document.getElementById('output').value;document.getElementById('__tbProbe').textContent='CSVQ '+(v.indexOf('| a,b | c |')>=0?'OK':'BAD');"],
     expect: ["CSVQ OK"],
     ref: "IT-N217 第228批：双引号包裹的单元格 \"a,b\" 算 1 列，c 算第 2 列 ⇒ 表头行 `| a,b | c |`；旧实现按裸 split(',') 拆成 4 列。默认样例无引号逗号，不命中。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    inputs: { cols: "2", rows: "1", align: "left", headerLine: "a,b", bodyLine: "1,2" },
+    clicks: ["renderPreview();document.getElementById('output').value='MDCSV '+__mdTableCsv();"],
+    expect: ['MDCSV "a","b"'],
+    ref: "IT-N215：CSV 导出改为当前 Markdown 表格，表头 a/b 转成带引号 CSV；旧实现导历史表，当前结果根本不在导出源。默认样例为姓名/年龄/城市，不命中。",
   },
   {
     slug: "it/markdown-table-generator",

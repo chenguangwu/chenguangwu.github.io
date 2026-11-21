@@ -64,27 +64,6 @@
 
 - 覆盖小结：本轮实读 8 页（adfgvx-cipher、affine-cipher、atbash-cipher、bacon-cipher、hill-cipher、playfair-cipher、rail-fence-cipher、vigenere-visualizer），新增 24 条（高 3 / 中 14 / 低 7），编号 IT-N143~IT-N166。未覆盖：本分区其余约 257 页（含全部编码/哈希/格式化/HTTP/Git/Docker 生成器与速查表）；未做浏览器、英文态、繁体、移动端、门禁与线上部署验证。
 
-### 承诺 vs 实际（Q 批专项）
-- `tools/it/json-to-toml.html:10`、`:20`：宣称支持"ISO 日期字符串"，实际 `:271` 对所有字符串加引号，日期不会输出为 TOML 日期（见 N201）。
-- `tools/it/json-to-toml.html:172`："校验"按钮（`:321` `doValidate(){doToml();}`）只是再转换一次，不校验 TOML 语法，也不校验 JSON 语义（如重复键、超大数）。
-- `tools/it/json-to-toml.html:177-180`：缩进下拉与 `:439` Tab 预设无输出效果（见 N200）。
-- `tools/it/plist-parser.html:10`、`:164`：宣称支持 date/data，实际 `:273-274` 只取文本、`:283` 回写为 string（见 N202）。
-- `tools/it/char-encoder.html:174`：格式清单列出 **Punycode**，但 `:280` 起的 `formats` 数组与全文件均无 Punycode 实现/输出行（新增发现，未单列编号）。
-- `tools/it/markdown-table-generator.html:154`："导出明细 CSV"（`:418`）导的是历史表，且 `:339-345` 读取 `#output`（textarea）的 `textContent` 恒为空，历史/图表/导出实际无数据——属 IT-N140 模板缺陷，不重复编号。
-- `tools/it/wifi-qr-generator.html:103`：宣称"任何扫码 App 都能识别"；但 `:235-236` 不转义特殊字符（N218），隐藏网络字符串还缺 `;;`（N219），且 `:175` 与 `:110` 对"是否需要转义"自相矛盾。
-- `tools/it/wifi-qr-generator.html:83`、`:103`、`:105`：页面名为"二维码生成器"、简介称"生成二维码"，实际不生成 QR（N220）。
-- `tools/it/phone-screen-sizes.html:16`：宣称"输入参数即可实时得出结果"，但全页无 `input` 监听，只有"计算"按钮 `onclick`（`:147` 附近），属文案夸大（未单列）。
-- `tools/it/basic-auth-generator.html:8`：宣称"支持中文用户名"，实际 UTF-8 编码但不声明 charset，ISO-8859-1 服务端会乱码（N209）。
-- 通用：本批 8 页"导出明细 CSV"均为历史表导出（如 `json-to-toml.html:433`、`markdown-table-generator.html:418`），不导出当前结果；未单列编号。
-
-### 覆盖
-- 实读 8 页：`tools/it/json-to-toml.html`、`tools/it/plist-parser.html`、`tools/it/char-encoder.html`、`tools/it/basic-auth-generator.html`、`tools/it/nanoid-generator.html`、`tools/it/markdown-table-generator.html`、`tools/it/wifi-qr-generator.html`、`tools/it/phone-screen-sizes.html`。
-- 新增 26 条（高 2 / 中 17 / 低 7），编号 IT-N199~IT-N224；本批无重号（上一批止于 IT-N198）。
-- 未覆盖说明：只审计主流程、边界与文档口径，未逐条核对 FAQ/JSON-LD 文案（仅发现 `phone-screen-sizes` 描述整句重复并单列）；未穷举 plist 全部数据类型、未测试二进制 bplist00（页面已明确不支持）；WiFi QR 未实际扫码验证；屏幕参数表仅复算 PPI 与分辨率/尺寸自洽性，未核对 10 款机型官方规格的发布时间与市场版本。
-- 未做验证：未开浏览器（结论均为源码静态分析 + `node -e` 内存复算）、未验证英文态 `?lang=en-US`/繁体/移动端、未跑 `_test_static.py`/`_audit_links.py`/`_audit_assets.py`/`run_gates.py` 等门禁，未触发 `_build.py` 或任何 git 写操作。
-
-- 留存建议（tools/it/binomial-distribution.html）：正态近似可补连续性校正 `z=(k−np±0.5)/√(np(1−p))` 说明。
-
 ### 承诺 vs 实际（R 批专项）
 - `tools/it/rabbit.html:201`："导出明细 CSV"导的是 `#rabbitTable`，而 `:441-443` 读 `#output`（**textarea**）的 `textContent`，textarea 的 textContent 是初始内容（恒空）→ 历史/图表/CSV 恒空（IT-N140 同型，不重复编号）。
 - `tools/it/rest-api-cheatsheet.html:558` 错误格式 syntax 非法 JSON（N236）；`:221` "POST 建"指向 `/users/{id}`（N237）。

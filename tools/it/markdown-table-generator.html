@@ -426,18 +426,35 @@ function __markdown_table_generatorExtras(){
     TBKit.history.record(rec);
     __markdown_table_generatorRender(keys,rk,en);
 }
+function __mdTableCsv(){
+    // 把当前 Markdown 表格（#output）转成 CSV 文本；导出与自检共用。
+    var out=String(document.getElementById('output').value||'').trim();
+    if(!out) return '';
+    var rows=out.split(/\r?\n/).filter(function(line){
+        var s=line.trim();
+        return s && !/^\|?\s*:?-{3,}/.test(s);  // 去掉 GFM 分隔行
+    }).map(function(line){
+        var s=line.trim();
+        if(s.charAt(0)==='|') s=s.slice(1);
+        if(s.charAt(s.length-1)==='|') s=s.slice(0,-1);
+        return s.split('|').map(function(cell){
+            var v=cell.trim().replace(/\\\|/g,'|');
+            return '"'+v.replace(/"/g,'""')+'"';
+        }).join(',');
+    });
+    return rows.join('\r\n');
+}
 function __markdown_table_generatorExport(){
-    if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#markdown_table_generatorTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__markdown_table_generatorSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __markdown_table_generatorRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#markdown_table_generatorTable','markdown-table-generator.csv'); } catch(e){}
+    var csv=__mdTableCsv();
+    if(!csv){
+        ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Generate a table first':'请先生成表格');
+        return;
+    }
+    var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download='markdown-table.csv';
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},100);
 }
 function __markdown_table_generatorPresets(){
     if (typeof TBKit === 'undefined') return;
