@@ -269,6 +269,11 @@ const CASES = [
     ref: "弹性 = ΔQ/ΔP = 15/5 = 3.00（默认空→0 避开）" },
 
   { slug: "insurance/pure-premium",
+    inputs: { freq: "", sev: "" }, clicks: ["calcTool()"],
+    expect: ["请输入出险频率与案均赔款后再计算。"],
+    ref: "空频率/案均赔款不得输出 0.00 纯保费与 0.00 安全边际；默认 0.12/30000 不含该提示。" },
+
+  { slug: "insurance/pure-premium",
     inputs: { freq: "2", sev: "150.4" },
     expect: ["300.80"],
     ref: "纯保费 = 频率×严重度 = 2×150.4 = 300.80（默认空→0 避开）" },

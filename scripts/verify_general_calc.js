@@ -305,6 +305,13 @@ const CASES = [
   },
   {
     slug: "general/convert-22",
+    inputs: { val: "", from: "2", to: "8" },
+    clicks: ["calc()"],
+    expect: ["请输入要换算的数值。"],
+    ref: "空数值不得输出 0 无(基准)=0 无(基准)；默认 1 米不含该提示。"
+  },
+  {
+    slug: "general/convert-22",
     inputs: { val: "1000", from: "2", to: "8", batch: "100" },
     clicks: ["calc()"],
     expect: ["1000 2 = 250 8"],
