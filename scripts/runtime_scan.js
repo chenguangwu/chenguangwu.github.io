@@ -39,6 +39,7 @@ function arg(name, def) {
   return i >= 0 && args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : def;
 }
 const LIMIT = parseInt(arg('limit', '0'), 10) || 0;
+const OFFSET = parseInt(arg('offset', '0'), 10) || 0;
 const FILTER = arg('filter', '');
 const CONC = Math.min(10, Math.max(1, parseInt(arg('concurrency', '8'), 10) || 8));
 const AGG_ONLY = args.includes('--agg-only');
@@ -1538,6 +1539,7 @@ async function main() {
     console.error(`定向复扫：保留 ${kept.length} 条旧记录，重扫 ${pages.length} 页`);
   }
   // --limit 在 resume 过滤之后再截断：保证「待扫 N 页」是剩余页数，而不是全量前 N 页
+  if (OFFSET) pages = pages.slice(OFFSET);
   if (LIMIT) pages = pages.slice(0, LIMIT);
 
   await ensureServer();

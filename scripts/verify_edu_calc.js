@@ -752,6 +752,13 @@ const CASES = [
   },
   {
     slug: "edu/pinyin-converter",
+    inputs: { inputText: "" },
+    clicks: ["convert()"],
+    expect: ["请输入中文内容后再转换。"],
+    ref: "空输入点转换必须提示，不得输出「拼音结果」+0 字统计；默认「你好世界…」不含该提示。",
+  },
+  {
+    slug: "edu/pinyin-converter",
     clicks: ["var __w=[];localStorage.getItem=function(){return null;};localStorage.setItem=function(k,v){__w.push(v);};var t=document.getElementById('inputText');t.value='中';convert();t.value='中华';convert();t.value='中华人民共和国';convert();document.getElementById('__tbProbe').textContent='HISTDEBOUNCE '+__w.length;"],
     expect: ["HISTDEBOUNCE 0"],
     ref: "EL-F3：oninput 连续键入只实时转换、不落历史。旧版 convert() 末尾无条件 saveHistory ⇒ 3 次写入；改成输入确认（change/blur→commitHistory）后为 0。",
