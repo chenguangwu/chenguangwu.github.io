@@ -14632,6 +14632,19 @@ const CASES = [
     "expect": ["1 总词数", "0 去停用词"],
     "ref": "口径回归：英文停用词 the 不计入词频，但总词数必须包含它。旧实现总词数过滤停用词，输入 the 会得到「英文词 1 / 总词数 0」；修复后总词数 1、去停用词 0。"
   },
+
+  {
+    "slug": "it/line-ending-converter",
+    "inputs": { "leInput": "a\r\nb\nc\rd", "targetSel": "\n" },
+    "expect": ["混合（CRLF/LF/CR）"],
+    "ref": "并列口径：CRLF/LF/CR 各 1 次时旧实现固定先判 CRLF；修复后主换行符显示「混合（CRLF/LF/CR）」，不再把并列样本误报为 Windows 行尾。"
+  },
+  {
+    "slug": "it/case-converter",
+    "inputs": { "inputText": "NASA launched iOS app." },
+    "expect": ["NASA launched iOS app"],
+    "ref": "句首大写保留专有缩写：旧实现整体 toLowerCase 后得到「Nasa launched ios app」；修复后保留 NASA 与 iOS，只把普通词降格并把句首大写。"
+  },
 ];
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
