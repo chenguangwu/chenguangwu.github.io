@@ -4,9 +4,9 @@
 
 ## 已知问题
 ### A1. 「参数估算器」类页与实际框架口径脱节
-- 描述：training-flops/vram-estimate/transformer-params 等按教科书式估算，与 transformers/deepspeed 实测差异大（激活重计算/序列并行未建模）。
-- 受影响：tools/ai/training-flops.html、vram-estimate.html、transformer-params.html 等
-- 方案：增加「口径开关」（是否重计算/ZeRO 档位），并注明与 N 卡实测的对表来源。
+- 描述：training-flops 已补「训练开销倍率」并修正单位，vram-estimate 已拆分权重/激活/KV/优化器并支持目标显存；仍缺 ZeRO 档位、序列并行开关与 N 卡实测对表。
+- 受影响：tools/ai/training-flops.html、vram-estimate.html、transformer-params.html
+- 方案：继续补 ZeRO/序列并行口径开关，并在页面注明实测对表来源。
 
 ### A2. 概念演示页交互浅
 - 描述：softmax/k-means/attention 等页多为静态算例，滑杆联动少。
@@ -24,13 +24,10 @@
 - tools/ai/（64 页）
 
 ## 进度
-- 🟢 长期增强（2026-11-21 复核：无缺陷项，转后续批次）
 
 ## 2026-11-03 审计补充（静态源码复核）
 
 ### 留存优化（低，非确认缺陷）
-- `tools/ai/vram-estimate.html:124-129,313-314`：目前判据固定为 24GB，建议增加显存容量输入与 8/16/24/48GB 对比，展示余量；保留近似假设说明。
-- 同页 `:125,274-283`：总量只加权重和手填激活，建议区分推理 KV 缓存及训练优化器状态，展示各分项与假设，避免把训练预设误认为完整估算。
 
 ### 覆盖范围
 - 本次人工读取 1 页 `tools/ai/vram-estimate.html`；未对 `tools/ai/` 其他页面做逐页审计，未运行页面和门禁。

@@ -110,12 +110,13 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="用 Kaplan 缩放律估算训练总算力。">Estimate total training FLOPs from parameter count and training tokens using Kaplan-style scaling laws, for compute planning.</p>
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">训练 FLOPs ≈ 6·N·D（N 为参数量，D 为训练 token 数）；训练月数 ≈ 6ND / (卡数 × 单卡算力 × 3600 × 24 × 30)</div>
+      <div class="formula-eq">训练理论 FLOPs=6·N·D（N、D 均以「亿」输入，换算为 1e16 量级）；规划 FLOPs=理论×开销倍率（重计算/通信，建议 1.5–3）；训练月数=规划 FLOPs/(卡数×单卡算力×3600×24×30)。6ND 是理想乘加下界，不等于框架实测。</div>
       <div class="formula-desc">Transformer 训练的经验法则：前向 2N、反向约 4N，合计每 token 约 6N FLOPs，即 Chinchilla 系列缩放律推导的基础。再除以集群有效算力（须乘 MFU，实际常 30%–50%）得到训练周期。</div>
     </div>
 <div class="input-row"><label>参数量(亿)</label><input type="number" id="N" value="10" step="any" oninput="calc()" placeholder="如 10"></div>
     <div class="input-row"><label>训练 tokens(亿)</label><input type="number" id="D" value="200" step="any" oninput="calc()" placeholder="如 200"></div>
     <div class="input-row"><label>GPU 数</label><input type="number" id="gpus" value="8" step="any" oninput="calc()" placeholder="如 8"></div>
+    <div class="input-row"><label>训练开销倍率（1=理论下界）</label><input type="number" id="overhead" value="1.5" step="any" min="1" oninput="calc()" placeholder="重计算/通信建议 1.5–3"></div>
     <div id="tfPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
@@ -261,11 +262,15 @@ function calc(){
   const N = +document.getElementById('N').value || 0;
   const D = +document.getElementById('D').value || 0;
   const gpus = +document.getElementById('gpus').value || 0;
+  const overhead = +document.getElementById('overhead').value || 1;
   let html = '';
-  const __v0 = (6*N*D);
-  html += `<p>FLOPs(1e18)：<strong style="font-size:18px;color:var(--primary);">${__fin(__v0)?__v0.toFixed(2):'—'}</strong> ×1e18</p>`;
-  const __v1 = (6*N*D*1e18/(gpus*1e15*3600*24*30));
-  html += `<p>单卡月(1e15/s)：<strong style="font-size:18px;color:var(--primary);">${__fin(__v1)?__v1.toFixed(2):'—'}</strong> 月</p>`;
+  const __raw = (6*N*D*1e16);
+  const __v0 = (__raw/1e18);
+  const __v2 = (__raw*overhead/1e18);
+  html += `<p>理论 FLOPs：<strong style="font-size:18px;color:var(--primary);">${__fin(__v0)?__v0.toFixed(2):'—'}</strong> ×1e18</p>`;
+  html += `<p>含开销 FLOPs：<strong>${__fin(__v2)?__v2.toFixed(2):'—'}</strong> ×1e18（倍率 ${overhead.toFixed(2)}）</p>`;
+  const __v1 = (__raw*overhead/(gpus*1e15*3600*24*30));
+  html += `<p>单卡月(1e15/s)：<strong style="font-size:18px;color:var(--primary);">${__fin(__v1)?__v1.toFixed(3):'—'}</strong> 月</p>`;
   const __bad = [__v0,__v1].some(v=>typeof v==='number'&&!Number.isFinite(v));
   if (__bad) html += '<p style="color:var(--danger);">⚠ 部分结果无定义（分母为 0 或输入为空），请检查输入。</p>';
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
