@@ -13,13 +13,21 @@ def read(p):
 
 def audit_html(p, html):
     issues = collections.defaultdict(list)
-    title = re.search(r'<title>([^<]*)</title>', html)
+    title = re.search(r'<title\b[^>]*>([^<]*)</title>', html, re.I)
     t = title.group(1).strip() if title else ''
     if not t: issues['title_missing'].append(p)
     elif '- ToolBox' not in t: issues['title_suffix'].append(p)
     elif len(t) > 60: issues['title_too_long'].append(p)
-    desc = re.search(r'<meta name="description" content="([^"]*)"', html)
-    d = desc.group(1).strip() if desc else ''
+    # 属性值内允许出现 < >（如「<10 mm」），按引号边界取整条 meta，不能遇到 > 就截断
+    desc = None
+    for m in re.finditer(r'<meta\b(?:[^>"\']|"[^"]*"|\'[^\']*\')*>', html, re.I):
+        if re.search(r'name=["\']description["\']', m.group(0), re.I):
+            desc = m
+            break
+    d = ''
+    if desc:
+        cm = re.search(r'content=(["\'])(.*?)\1', desc.group(0), re.I | re.S)
+        d = cm.group(2).strip() if cm else ''
     if not d: issues['desc_missing'].append(p)
     elif len(d) < 30: issues['desc_short'].append(p)
     elif len(d) > 165: issues['desc_long'].append(p)
@@ -32,7 +40,7 @@ def audit_html(p, html):
     if not re.search(r'<meta name="twitter:title"', html): issues['tw_title'].append(p)
     if not re.search(r'<meta name="twitter:image"', html): issues['tw_image'].append(p)
     if 'application/ld+json' not in html: issues['jsonld'].append(p)
-    if not re.search(r'<html[^>]*lang="zh-CN"', html): issues['lang'].append(p)
+    if not re.search(r'<html[^>]*lang=["\']zh-CN["\']', html, re.I): issues['lang'].append(p)
     if 'viewport' not in html: issues['viewport'].append(p)
     if not re.search(r'<h1[^>]*>', html) and not re.search(r'<h2[^>]*>', html): issues['h1_h2'].append(p)
     return issues, (t, d)
