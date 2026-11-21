@@ -64,22 +64,6 @@
 
 - 覆盖小结：本轮实读 8 页（adfgvx-cipher、affine-cipher、atbash-cipher、bacon-cipher、hill-cipher、playfair-cipher、rail-fence-cipher、vigenere-visualizer），新增 24 条（高 3 / 中 14 / 低 7），编号 IT-N143~IT-N166。未覆盖：本分区其余约 257 页（含全部编码/哈希/格式化/HTTP/Git/Docker 生成器与速查表）；未做浏览器、英文态、繁体、移动端、门禁与线上部署验证。
 
-### 承诺 vs 实际（S 批专项）
-- `tools/it/des.html:166`、`:263`：承诺"3DES 密钥 112/168 位""维护老系统时解密历史数据"，实际密钥编排只剩 1 字节有效、输出与标准不兼容（N294、N295）；`:155` 的"解密时纯十六进制且偶数长度按 hex、否则 Base64"实现一致，但奇数 hex 会抛 `InvalidCharacterError`（N296）。
-- `tools/it/js-formatter.html:225` 承诺"纯格式化不会改变代码行为，AST 不变"，实际注释换行与 `return` ASI 均改变语义（N297）；`:167` 写"必须基于 AST 而非简单正则"，本页是手写词法 + 深度计数（`:163`），压缩还不补分号（N298）。
-- `tools/it/python-formatter.html:170` 承诺"统一空格"，实测 `x={1:2,3:4}` 原样输出；`:219` 示例"`x={1:2,3:4}` → `x = {1: 2, 3: 4}`"不成立；`:223` 的"成熟工具只做等价改写"不适用于本页（N300、N301）。
-- `tools/it/csv-to-html-table.html:128` 承诺"右侧实时预览渲染效果"、`:117` 承诺生成表头区与 th，实际产物在 `:314` 被覆盖成闭合标签（N303）。
-- `tools/it/latex.html:112` 承诺"输入关键词…即时筛选"，实际无 input 监听（N305）；`:160` 的"复制到编辑器即可渲染"对 `\matrix`、`\begin{cases}` 等片段（`:201`）不成立。
-- `tools/it/country-flag.html:235` 的引据写"国家码 1-3 位 / E.164"，数据无 dial 字段（N308）；数据仅 48 条却以"国家代码与旗帜"整体名义提供（N309）。
-- `tools/it/decimal-encode.html:10` 的 meta 写"每个字节 0–255"（与实现一致），但 `:147`/`:206` 写 Unicode 码点、`中`=20013（N311）；`:166` 提供"无分隔符"却产出自解码器拒绝的串（N310）。
-- `tools/it/hex-to-text.html:204` 承诺"不行再换 GBK"，页面无字符集选项（N313）；`:203` 的"奇数位缺位会报格式错误"实现正确。
-
-### 覆盖
-- 实读 8 页：`tools/it/country-flag.html`、`tools/it/js-formatter.html`、`tools/it/hex-to-text.html`、`tools/it/des.html`、`tools/it/latex.html`、`tools/it/decimal-encode.html`、`tools/it/python-formatter.html`、`tools/it/csv-to-html-table.html`。
-- 新增 21 条（高 8 / 中 9 / 低 4），编号 IT-N294~IT-N314；上一批止于 IT-N293，本批无重号。
-- 未覆盖说明：只审计主流程、边界与文档口径，未穷举全部输入组合（DES 只逐字节改 0x11 观察敏感性，未做全密钥空间统计；JS 只测 5 组输入；Python 只测自带 SAMPLE 与 2 个小例；CSV 只测默认数据与引号/换行字段；country 只做数据一致性与长度统计，未核对全部国名/首都时效）。
-- 未做验证：未改代码、未构建、未跑门禁、未 git 写、未开浏览器；结论为源码静态分析 + `node` 内存复算（临时脚本 `/tmp/audit_des.js`、`/tmp/audit_fmt.js`、`/tmp/audit_misc.js`，未落仓库）；DES 标准向量因本机 OpenSSL 无 `des-ecb` 采用 FIPS 公开值（key `0123456789ABCDEF` / 明文 `Now is t` → `3FA40E8A984D4815`）；未验证英文态 `?lang=en-US`、繁体与移动端。
-
 ## T 批 IT 第 1 轮覆盖（2026-11-04）
 - 本轮审计 24 页：`pdf-signature-checker`、`emoji-meaning`、`octal-encode`、`random-string`、`xml-to-json`、`mongodb-cheatsheet`、`vector-dot-product`、`ulid-generator`、`calc-subnet`、`generator-16`、`http-methods`、`gamertag-generator`、`sql-cheatsheet`、`stopwatch`、`ecdsa`、`barcode-itf`、`yaml-to-json`、`json-to-yaml`、`xml-validator`、`uuid-v7-generator`、`otp-generator`、`matrix-multiplier`、`url-encoder-advanced`、`hash`（均为 `tools/it/<slug>.html`）。
 - 新增 19 条（高 13 / 中 6），编号 IT-N315~IT-N333；上一批止于 IT-N314，本批无重号。

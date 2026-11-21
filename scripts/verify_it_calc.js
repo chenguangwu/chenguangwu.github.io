@@ -6164,6 +6164,14 @@ const CASES = [
   // 【判据】KSUID 本体随机不可锚；但导出函数源码形态与 randInt 死代码是否存在是确定性判别点。
   // harness stub DOM 无法驱动 clipboard/navigator.crypto，故用函数源码（String(fn)）+ typeof 探针。
   {
+    slug: "it/des",
+    inputs: { algo: "3des" },
+    // 直接测 3DES EDE 核心，避免 DOM 输入事件的加密/解密方向串扰。
+    clicks: ["var k=hexToBytes('0123456789abcdef23456789abcdef01456789abcdef0123');var p=hexToBytes('0123456789abcdef');var c=des3Ecb(p,k,false);var r=des3Ecb(c,k,true);document.getElementById('output').value='DES3CORE '+bytesToHex(c)+'|'+bytesToHex(r);"],
+    expect: ["DES3CORE f2afd84ee809e2b5|0123456789abcdef"],
+    ref: "3DES EDE 标准向量（Node des-ede3）：K1=0123…cdef、K2=2345…ef01、K3=4567…0123，明文 0123456789abcdef → f2afd84ee809e2b5；解密必须 D(K3)-E(K2)-D(K1) 才能还原。旧实现错用 D(K1)-E(K2)-D(K3)，第二段不是原文。默认参数为 3DES-CBC/Base64，不命中。",
+  },
+  {
     slug: "it/ksuid-generator",
     inputs: { count: "5", fmt: "base62" },
     clicks: ["var s=String(__ksuid_generatorExport);document.getElementById('__tbProbe').textContent='KSFN '+(/exportCsv/.test(s)&&/code-row/.test(s)?'OK':'BAD');"],
