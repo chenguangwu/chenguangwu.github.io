@@ -595,6 +595,13 @@ var holidayData = {
   '2027-10-07': {name:'国庆节', type:'guoqing'}
 };
 
+// 调休上班日（周末补班）：仅列出已正式公布的 2024–2025 安排；2026 起以国务院通知为准
+var makeupWorkdays = {
+  '2024-02-04':1,'2024-02-18':1,'2024-04-07':1,'2024-04-28':1,'2024-05-11':1,
+  '2024-09-14':1,'2024-09-29':1,'2024-10-12':1,
+  '2025-01-26':1,'2025-02-08':1,'2025-04-27':1,'2025-10-11':1
+};
+
 // ========== 24节气数据 (2024-2027) ==========
 var solarTermData = {
   // 2024
@@ -836,7 +843,7 @@ function renderCalendar() {
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('calGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('calGrid').innerHTML=__h1;
 
   // 月度信息
-  renderMonthInfo(lastDay.getDate(), monthHolidays, monthWeekends, monthSolarTerms);
+  renderMonthInfo(y, m, lastDay.getDate(), monthHolidays, monthWeekends, monthSolarTerms);
 
   // 右侧节日列表
   renderHolidayList(y, m);
@@ -846,9 +853,16 @@ function renderCalendar() {
 }
 
 // ========== 月度信息卡片 ==========
-function renderMonthInfo(totalDays, holidays, weekends, terms) {
-  var workdays = totalDays - weekends - holidays;
-  if (workdays < 0) workdays = 0;
+function renderMonthInfo(y, m, totalDays, holidays, weekends, terms) {
+  // 逐日判定：节假日落在周末不能和工作日重复扣减；调休补班的周末应计为工作日
+  var workdays = 0;
+  for(var d=1; d<=totalDays; d++){
+    var key = y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    var dow = new Date(y, m, d).getDay();
+    if(makeupWorkdays[key]){ workdays++; continue; }
+    if(holidayData[key]) continue;
+    if(dow!==0 && dow!==6) workdays++;
+  }
   const __h2='<div class="mi-card"><div class="mi-val">' + totalDays + '</div><div class="mi-lbl">总天数</div></div>' +
     '<div class="mi-card"><div class="mi-val">' + holidays + '</div><div class="mi-lbl">节假日</div></div>' +
     '<div class="mi-card"><div class="mi-val">' + workdays + '</div><div class="mi-lbl">工作日</div></div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('monthInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('monthInfo').innerHTML=__h2;

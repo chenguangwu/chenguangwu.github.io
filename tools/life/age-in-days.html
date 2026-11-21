@@ -276,7 +276,10 @@ function calc(nowArg){
   const seconds = Math.floor(diff / 1000);
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
+  // 已活天数按日历日差：今天出生=0 天，跨夏令时也不会少/多 1 天
+  const dayUTC = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const birthUTC = Date.UTC(birth.getFullYear(), birth.getMonth(), birth.getDate());
+  const days = Math.max(0, Math.round((dayUTC - birthUTC) / 86400000));
   const weeks = Math.floor(days / 7);
   const months = Math.floor(days / 30.4375);
   const years = (days / 365.25).toFixed(2);
@@ -286,8 +289,11 @@ function calc(nowArg){
   let d = now.getDate() - birth.getDate();
   if(d < 0){
     m--;
-    const lastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    d += lastMonth.getDate();
+    // 借上一个月的天数；出生日大于上月天数（如 1/31 → 3/1）时按上月最后一天夹住，避免出现负天数
+    const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    const prevDays = prevMonth.getDate();
+    const bd = Math.min(birth.getDate(), prevDays);
+    d = prevDays - bd + now.getDate();
   }
   if(m < 0){
     y--;
