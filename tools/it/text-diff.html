@@ -237,6 +237,8 @@
       </div>
     </div>
 
+    <div id="diffNotice" style="display:none;margin:10px 0;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--result-bg);font-size:13px;color:var(--text-muted);"></div>
+
     <div class="view-tabs">
       <div class="view-tab active" onclick="switchView('unified', this)">合并视图</div>
       <div class="view-tab" onclick="switchView('split', this)">并排视图</div>
@@ -358,7 +360,7 @@ c` → `b` 删、`c` 增。</div></div>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="最长公共子序列">LCS</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="编辑距离基于 LCS：d = |A| + |B| - 2·|LCS|">edit distance via LCS: d = |A| + |B| - 2*|LCS|</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Myers (1986)">Myers (1986)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="本页为 LCS 动态规划；Myers (1986) 为经典 diff 参考">LCS dynamic programming (this page); Myers (1986) reference</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="统一格式">Unified format</td>
@@ -427,28 +429,57 @@ function lcsLength(a, b) {
   return dp;
 }
 
+// LCS 矩阵按 (m+1)×(n+1) 分配；超过 400 万单元时二维 DP 既占内存又阻塞主线程，
+// 改用 O(m+n) 逐行位置对齐，并明确告知不再检测行移动。
+const MAX_DIFF_CELLS = 4000000;
 function backtrack(dp, a, b, i, j) {
-  if (i === 0 && j === 0) return [];
-  if (i === 0) {
-    return backtrack(dp, a, b, i, j - 1).concat([{ type: 'add', value: b[j - 1], newIndex: j - 1 }]);
+  const out = [];
+  // 迭代回溯：避免 4000 行级差异时递归深度超出调用栈。
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && a[i - 1] === b[j - 1]) {
+      out.push({ type: 'same', value: a[i - 1], oldIndex: i - 1, newIndex: j - 1 });
+      i--; j--;
+    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+      out.push({ type: 'add', value: b[j - 1], newIndex: j - 1 });
+      j--;
+    } else {
+      out.push({ type: 'remove', value: a[i - 1], oldIndex: i - 1 });
+      i--;
+    }
   }
-  if (j === 0) {
-    return backtrack(dp, a, b, i - 1, j).concat([{ type: 'remove', value: a[i - 1], oldIndex: i - 1 }]);
+  return out.reverse();
+}
+
+function alignedLineDiff(a, b) {
+  const out = [], len = Math.max(a.length, b.length);
+  for (let k = 0; k < len; k++) {
+    if (k < a.length && k < b.length) {
+      out.push(a[k] === b[k]
+        ? { type: 'same', value: a[k], oldIndex: k, newIndex: k }
+        : { type: 'modify', oldValue: a[k], newValue: b[k], oldIndex: k, newIndex: k });
+    } else if (k < a.length) out.push({ type: 'remove', value: a[k], oldIndex: k });
+    else out.push({ type: 'add', value: b[k], newIndex: k });
   }
-  if (a[i - 1] === b[j - 1]) {
-    return backtrack(dp, a, b, i - 1, j - 1).concat([{ type: 'same', value: a[i - 1], oldIndex: i - 1, newIndex: j - 1 }]);
-  }
-  if (dp[i - 1][j] > dp[i][j - 1]) {
-    return backtrack(dp, a, b, i - 1, j).concat([{ type: 'remove', value: a[i - 1], oldIndex: i - 1 }]);
-  } else {
-    return backtrack(dp, a, b, i, j - 1).concat([{ type: 'add', value: b[j - 1], newIndex: j - 1 }]);
-  }
+  return out;
+}
+
+const MAX_CHAR_CELLS = 250000;
+function showDiffNotice(msg) {
+  const el = document.getElementById('diffNotice');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.style.display = msg ? 'block' : 'none';
 }
 
 function charDiffLine(oldLine, newLine) {
   // 按码点切分：Array.from 不会把 emoji 的代理对拆成两个半体
   const oldChars = Array.from(oldLine);
   const newChars = Array.from(newLine);
+  // 单行过长时字符级 DP 同样会爆内存：退回整行删除/新增高亮。
+  if ((oldChars.length + 1) * (newChars.length + 1) > MAX_CHAR_CELLS) {
+    return { oldHtml: '<span style="background:rgba(244,67,54,0.3);text-decoration:line-through;">' + ToolBox.escHtml(oldLine) + '</span>',
+             newHtml: '<span style="background:rgba(76,175,80,0.3);">' + ToolBox.escHtml(newLine) + '</span>' };
+  }
   const dp = lcsLength(oldChars, newChars);
   const diff = backtrack(dp, oldChars, newChars, oldChars.length, newChars.length);
   
@@ -487,13 +518,32 @@ function doDiff() {
   const norm1 = lines1.map(l => normalizeText(l, options));
   const norm2 = lines2.map(l => normalizeText(l, options));
   
-  const dp = lcsLength(norm1, norm2);
-  let diff = backtrack(dp, norm1, norm2, norm1.length, norm2.length);
+  const cells = (norm1.length + 1) * (norm2.length + 1);
+  let diff;
+  if (cells > MAX_DIFF_CELLS) {
+    diff = alignedLineDiff(norm1, norm2);
+    showDiffNotice('文本规模超过 400 万单元（约 2000×2000 行），已切换为逐行位置对齐：只比较相同序号的行，不检测行移动。');
+  } else {
+    showDiffNotice('');
+    const dp = lcsLength(norm1, norm2);
+    diff = backtrack(dp, norm1, norm2, norm1.length, norm2.length);
+  }
+  // alignedLineDiff 直接给 modify；下面的 remove+add 合并只处理 LCS 结果。
+
   
   const result = [];
   let i = 0;
   while (i < diff.length) {
-    if (diff[i].type === 'remove' && i + 1 < diff.length && diff[i + 1].type === 'add') {
+    if (diff[i].type === 'modify') {
+      result.push({
+        type: 'modify',
+        oldValue: lines1[diff[i].oldIndex],
+        newValue: lines2[diff[i].newIndex],
+        oldIndex: diff[i].oldIndex,
+        newIndex: diff[i].newIndex
+      });
+      i++;
+    } else if (diff[i].type === 'remove' && i + 1 < diff.length && diff[i + 1].type === 'add') {
       result.push({
         type: 'modify',
         oldValue: lines1[diff[i].oldIndex],

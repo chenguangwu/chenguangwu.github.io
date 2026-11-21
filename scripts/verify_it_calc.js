@@ -5361,6 +5361,14 @@ const CASES = [
   },
   {
     slug: "it/text-diff",
+    // IT-D19：4000 行全不同文本曾触发递归栈溢出；改为迭代回溯 + 超 400 万单元降级。
+    inputs: {},
+    clicks: ["var d=alignedLineDiff(['a','b'],['x','y']);var src=String(backtrack);var ok=typeof MAX_DIFF_CELLS==='number'&&MAX_DIFF_CELLS===4000000&&src.indexOf('while (i > 0')>=0&&src.indexOf('return backtrack')<0&&d.length===2&&d[0].type==='modify'&&d[1].newValue==='y';document.getElementById('text1').value='DIFFSCALE '+(ok?'OK':'BAD');"],
+    expect: ["DIFFSCALE OK"],
+    ref: "规模保护三要素：MAX_DIFF_CELLS=400 万；backtrack 为 while 迭代（源码不再自调用）；alignedLineDiff 对两行全不同返回 2 个 modify。旧实现递归 backtrack、无 MAX_DIFF_CELLS ⇒ BAD。",
+  },
+  {
+    slug: "it/text-diff",
     inputs: { text1: "abc", text2: "abd" },
     clicks: ["doDiff()"],
     expect: ["- abc 1 + abd"],
