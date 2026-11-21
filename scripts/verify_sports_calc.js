@@ -1039,8 +1039,8 @@ const CASES = [
       "bodyPart": "chest"
     },
     "expect": [
-      "承受力：42N"],
-      "ref": "自动补强（B类零用例）：注入非默认输入{\"force\":\"42\",\"painTolerance\":\"42\",\"years\":\"42\",\"recovery\":\"42\",\"bodyPart\":\"chest\"}，输出区含「chest\n42\n42\n42\n42\n测试部位：胸部 承受力：42N (参考上限5」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+      "疼痛耐受 1–10"],
+      "ref": "自动补强（B类零用例）：注入非默认输入{\"force\":\"42\",\"painTolerance\":\"42\",\"years\":\"42\",\"recovery\":\"42\",\"bodyPart\":\"chest\"}，输入耐痛 42 超出 1–10，输出区应命中「疼痛耐受 1–10」校验提示；默认态无该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "sports/assessor-risk-2",
