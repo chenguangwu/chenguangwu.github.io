@@ -254,10 +254,13 @@
 </div>
 
 <script>
-function parseTime(str) {
+function parseTime(str, mode) {
+  str = String(str || '').trim();
   if (!str) return 0;
   var parts = str.split(':').map(Number);
-  if (parts.some(isNaN)) return 0;
+  if (parts.some(function(n){ return !isFinite(n) || n < 0; })) return NaN;
+  if (mode === 'hms' && parts.length !== 3) return NaN;
+  if (mode === 'ms' && parts.length > 2) return NaN;
   var secs = 0;
   if (parts.length === 3) { secs = parts[0]*3600 + parts[1]*60 + parts[2]; }
   else if (parts.length === 2) { secs = parts[0]*60 + parts[1]; }
@@ -274,13 +277,17 @@ function fmtTime(totalSec) {
 }
 
 function calc() {
-  var swim = parseTime(document.getElementById('swim-time').value);
-  var t1 = parseTime(document.getElementById('t1-time').value);
-  var bike = parseTime(document.getElementById('bike-time').value);
-  var t2 = parseTime(document.getElementById('t2-time').value);
-  var run = parseTime(document.getElementById('run-time').value);
+  var swim = parseTime(document.getElementById('swim-time').value, 'ms');
+  var t1 = parseTime(document.getElementById('t1-time').value, 'ms');
+  var bike = parseTime(document.getElementById('bike-time').value, 'hms');
+  var t2 = parseTime(document.getElementById('t2-time').value, 'ms');
+  var run = parseTime(document.getElementById('run-time').value, 'hms');
   var total = swim + t1 + bike + t2 + run;
 
+  if (isNaN(swim)||isNaN(t1)||isNaN(bike)||isNaN(t2)||isNaN(run)) {
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">时间格式有误：游泳/T1/T2 用「分:秒」，骑车/跑步用「时:分:秒」，且各段需为非负数字。</p>';
+    return;
+  }
   if (total <= 0) {
     document.getElementById('result').innerHTML='<p style="color:var(--danger);">请至少填写一项时间</p>';
     return;
