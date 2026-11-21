@@ -162,8 +162,8 @@ input,select { width:100%;padding:8px 10px;border:1px solid var(--border-color);
 
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">周训练量 = Σ(单次时长 × 强度系数)；高强度占比 ≤ 20%（80/20 极化）</div>
-      <div class="formula-desc">按目标(减脂/增肌/耐力)与水平自动排布一周训练：保证 1–2 次高强度、其余低强度，每周至少 1–2 天完全休息，强度系数按 RPE 或心率区间赋值。</div>
+      <div class="formula-eq">周训练量 = 训练日 × 单次时长；单次热量 = 模板 kcal × 输入时长 ÷ 45</div>
+      <div class="formula-desc">按目标(减脂/增肌/耐力)与水平排布一周训练，保证至少 1–2 天休息；本页只输出时长与模板热量，不采集 RPE/心率，也不计算强度系数或 80/20 极化占比。</div>
     </div>
 <div class="input-row">
       <div>
@@ -384,6 +384,7 @@ function generate() {
   const days = [0, 1, 2, 3, 4, 5, 6];
   // 均匀分布: 5天时取 0,2,3,4,6 等
   const daysActive = pickDays(freq);
+  let trainingIdx = 0;
 
   for (let i = 0; i < 7; i++) {
     const col = document.createElement('div');
@@ -393,8 +394,10 @@ function generate() {
     const dateStr = `${dayDate.getMonth() + 1}/${dayDate.getDate()}`;
 
     let item;
+    const trainPlans = template.plan.filter(p => !/休息|恢复|rest/i.test(p.type));
     if (daysActive.includes(i)) {
-      const plan = template.plan[i % template.plan.length];
+      const plan = trainPlans[trainingIdx % trainPlans.length];
+      trainingIdx++;
       const calMultiplier = duration / 45;
       const adjustedCal = Math.round(plan.cal * calMultiplier);
       item = `<div class="workout-item">
