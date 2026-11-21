@@ -105,7 +105,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按首重、续重和体积重估算运费。">Estimate shipping freight by weight, dimensions, and zone.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">计费重量 = max(实际重量, 体积重量)，抛重比 = 体积重量 ÷ 实际重量，超过 1 时按体积重量计费；体积重量(kg) = 长(cm) × 宽(cm) × 高(cm) ÷ 抛比系数（陆运常用 6000、空运 5000、快递 8000）；运费 = 首重费 +（计费重量 − 首重）× 续重单价（不足 1 kg 按 1 kg 计）；总费用另加保价费与偏远地区附加费。</div>
+      <div class="formula-eq">计费重量 = max(实际重量, 体积重量)，抛重比 = 体积重量 ÷ 实际重量，超过 1 时按体积重量计费；体积重量(kg) = 长(cm) × 宽(cm) × 高(cm) ÷ 抛比系数（陆运常用 6000、空运 5000、快递 8000）；运费 = 首重费 +（计费重量 − 首重）× 续重单价（不足 1 kg 按 1 kg 计）；本工具不含保价费与偏远附加费，需另行加计。</div>
   
 </div>
 
@@ -219,12 +219,18 @@ function calc() {
   const actualWeight = parseFloat(document.getElementById('actualWeight').value);
   const volumeWeight = parseFloat(document.getElementById('volumeWeight').value);
 
+  if(!isFinite(firstWeight)||!isFinite(firstFee)||!isFinite(stepFee)||!isFinite(actualWeight)||!isFinite(volumeWeight)||actualWeight<0||volumeWeight<0||firstWeight<=0||firstFee<0||stepFee<0){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger,#c0392b);font-weight:600;">重量与费用须为非负数，首重须大于 0，请修正后重算。</p>';
+    return;
+  }
   const chargeable = Math.max(actualWeight, volumeWeight);
+  const ratio = actualWeight > 0 ? volumeWeight / actualWeight : null;
   const extra = Math.max(0, chargeable - firstWeight);
   const extraBilled = Math.ceil(extra - 1e-9);
   const fee = firstFee + extraBilled * stepFee;
 
-  const __g1=`<p>计费重量：<strong>${chargeable.toFixed(2)} kg</strong></p>` +
+  const __g1=`<p>抛重比：<strong>${ratio===null?'—':ratio.toFixed(2)}</strong>（体积重 ÷ 实重，>1 按体积重计费）</p>` +
+    `<p>计费重量：<strong>${chargeable.toFixed(2)} kg</strong></p>` +
     `<p>超首重：<strong>${extra.toFixed(2)} kg</strong>（进位计费 ${extraBilled} kg）</p>` +
     `<p>预计运费：<strong style="color:var(--primary)">${fee.toFixed(2)} 元</strong></p>`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
