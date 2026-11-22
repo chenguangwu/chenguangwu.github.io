@@ -1,7 +1,7 @@
 /* 全站行业字典（中文名 + emoji 图标）—— 由 scripts/gen_industry_info.py 生成，勿手改 */
 /* 数据来源：_build.py INDUSTRY_DEFS 短名（权威，268/268）+ 语义 emoji 映射；仅显示用短名，描述走页面 meta */
 window.INDUSTRY_INFO = {
-  'it'                   : { name: 'IT 开发', icon: '💻', hot: 30274613 },
+  'it'                   : { name: 'IT 开发', icon: '💻', hot: 30274604 },
   'life'                 : { name: '日常生活', icon: '🏠', hot: 11659126 },
   'finance'              : { name: '金融财务', icon: '💰', hot: 9159741 },
   'design'               : { name: '设计创意', icon: '🎨', hot: 7127090 },
@@ -70,7 +70,7 @@ window.INDUSTRY_INFO = {
   'ophthalmology'        : { name: '眼科医学', icon: '👁️', hot: 261256 },
   'eco'                  : { name: '生态环保', icon: '🌱', hot: 253782 },
   'livestock'            : { name: '畜牧养殖', icon: '🐄', hot: 247135 },
-  'data'                 : { name: '数据分析', icon: '📊', hot: 244303 },
+  'data'                 : { name: '数据分析', icon: '📊', hot: 244301 },
   'accounting'           : { name: '会计审计', icon: '🧾', hot: 242208 },
   'process'              : { name: '过程控制', icon: '🏭', hot: 238692 },
   'insurance'            : { name: '保险计算', icon: '🛡️', hot: 235115 },
