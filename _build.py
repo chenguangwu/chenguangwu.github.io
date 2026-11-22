@@ -4030,6 +4030,51 @@ def _strip_redundant_app_ld(src):
     return out, True
 
 
+_LABEL_FOR_RE = re.compile(
+    r'(<label)([^>]*)>((?:(?!</label>).)*)</label>(\s*)'
+    r'(<(?:input|select|textarea)\b[^>]*?\bid="([^"]+)")', re.I | re.S)
+
+
+def _associate_labels(src):
+    """给紧邻表单控件的无 for 标签补 for，恢复可访问名称（2026-11-22）。
+
+    大量工具页写成 `<label>性别</label><select id="gender">`，标签与控件相邻
+    但没有 for，屏幕阅读器无法关联。仅处理“label 结束后紧跟空白 + 带 id 的
+    控件”这一确定结构；已有 for、控件无 id 或控件自带 aria-label 时不动。
+    """
+    def repl(match):
+        attrs = match.group(2) or ''
+        if re.search(r'\bfor\s*=', attrs, re.I):
+            return match.group(0)
+        control = match.group(5)
+        if re.search(r'\b(?:aria-label|aria-labelledby)\s*=', control, re.I):
+            return match.group(0)
+        return (match.group(1) + attrs + ' for="' + match.group(6) + '">'
+                + match.group(3) + '</label>' + match.group(4) + control)
+    return _LABEL_FOR_RE.sub(repl, src)
+
+
+_LABEL_TAG_RE = re.compile(r'<label\b([^>]*)>', re.I)
+
+
+def _fix_invalid_label_for(src):
+    """移除指向不存在 id 的 label for（2026-11-22）。
+
+    13 处历史标记把“多选组标题”写成 `<label for="top">`，页面上没有对应
+    控件，点击无目标、屏幕阅读器也读不出关系。仅在整页找不到该 id 时移除
+    for，保留标签文本；仍有目标的 label 不受影响。
+    """
+    ids = set(re.findall(r'\bid="([^"]+)"', src))
+
+    def repl(match):
+        attrs = match.group(1) or ''
+        fm = re.search(r'\s+for\s*=\s*"([^"]+)"', attrs, re.I)
+        if not fm or fm.group(1) in ids:
+            return match.group(0)
+        return '<label' + attrs.replace(fm.group(0), '') + '>'
+    return _LABEL_TAG_RE.sub(repl, src)
+
+
 def _sync_faq_ld(src):
     """用页面可见的 <dl class="dd-faq"> 重建 FAQPage JSON-LD。
 
@@ -4878,6 +4923,8 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         if not app_ld_found:
             content = content.replace('</head>', app_json_block + '\n</head>', 1)
         content, _redundant_app_removed = _strip_redundant_app_ld(content)
+        content = _associate_labels(content)
+        content = _fix_invalid_label_for(content)
 
         # 4. Add og:image / twitter:image (idempotent)
         if 'og:image' not in content:
