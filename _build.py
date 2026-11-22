@@ -3998,6 +3998,38 @@ _FAQ_SCRIPT_RE = re.compile(
     r'<script type="application/ld\+json">([\s\S]*?)</script>', re.S)
 
 
+def _strip_redundant_app_ld(src):
+    """同页已有 WebApplication 时移除旧 SoftwareApplication 块（2026-11-22）。
+
+    919 个页面同时输出 SoftwareApplication（旧模板）与 WebApplication（现行块），
+    两个实体名称/URL 相同，Google 可能视为重复应用。仅当页面存在 WebApplication
+    时删除 SoftwareApplication；只有 SoftwareApplication 的页面保持不动。
+    """
+    has_web = False
+    spans = []
+    for m in _FAQ_SCRIPT_RE.finditer(src):
+        try:
+            obj = json.loads(m.group(1))
+        except Exception:
+            continue
+        if not isinstance(obj, dict):
+            continue
+        if obj.get('@type') == 'WebApplication':
+            has_web = True
+        elif obj.get('@type') == 'SoftwareApplication':
+            spans.append(m.span())
+    if not has_web or not spans:
+        return src, False
+    out = src
+    for start, end in reversed(spans):
+        if start > 0 and out[start - 1] == '\n':
+            start -= 1
+        out = out[:start] + out[end:]
+    while '\n\n\n' in out:
+        out = out.replace('\n\n\n', '\n\n')
+    return out, True
+
+
 def _sync_faq_ld(src):
     """用页面可见的 <dl class="dd-faq"> 重建 FAQPage JSON-LD。
 
@@ -4845,6 +4877,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         content, app_ld_found = _replace_webapp_ld(content)
         if not app_ld_found:
             content = content.replace('</head>', app_json_block + '\n</head>', 1)
+        content, _redundant_app_removed = _strip_redundant_app_ld(content)
 
         # 4. Add og:image / twitter:image (idempotent)
         if 'og:image' not in content:
