@@ -3212,6 +3212,62 @@ def _close_guide_desc(d):
     return d.rstrip('，；：、,;: ') + '。'
 
 
+def sync_guide_article_ld():
+    """指南页 Article 结构化数据补齐 image / mainEntityOfPage（2026-11-22）。
+
+    3,247 个可索引指南的 Article 均无 image；592 个缺少 mainEntityOfPage。
+    两者都是 Google Article 富结果的可选但强烈建议字段。图片沿用页面 og:image，
+    mainEntityOfPage 指回指南自身规范 URL；只补缺失字段，已有值一律不动。
+    """
+    gdir = os.path.join(ROOT, 'guides')
+    if not os.path.isdir(gdir):
+        return 0
+    block_re = re.compile(r'(<script type="application/ld\+json">)(.*?)(</script>)', re.S)
+    updated = 0
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith('.html') or fn.endswith('.en.html'):
+            continue
+        fp = os.path.join(gdir, fn)
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'name="robots" content="noindex' in src or 'TOOLBOX-REDIRECT' in src:
+            continue
+        abs_url = 'https://chenguangwu.github.io/guides/%s' % fn
+        og_img = re.search(r'<meta property="og:image" content="([^"]+)"', src)
+        image_url = og_img.group(1) if og_img else 'https://chenguangwu.github.io/og-image.png'
+        changed = [0]
+
+        def _sub(m):
+            try:
+                obj = json.loads(m.group(2))
+            except Exception:
+                return m.group(0)
+            if not isinstance(obj, dict) or obj.get('@type') != 'Article':
+                return m.group(0)
+            dirty = False
+            if not obj.get('image'):
+                obj['image'] = image_url
+                dirty = True
+            if not obj.get('mainEntityOfPage'):
+                obj['mainEntityOfPage'] = {'@type': 'WebPage', '@id': abs_url}
+                dirty = True
+            if not dirty:
+                return m.group(0)
+            changed[0] += 1
+            return m.group(1) + json.dumps(obj, ensure_ascii=False, separators=(',', ':')) + m.group(3)
+
+        out = block_re.sub(_sub, src)
+        if changed[0]:
+            with open(fp, 'w', encoding='utf-8') as f:
+                f.write(out)
+            updated += 1
+    print('guides Article 字段补齐: %d 页' % updated)
+    return updated
+
+
 def inject_core_hreflang():
     """根级核心页补齐 hreflang（2026-11-22）。
 
@@ -5679,6 +5735,7 @@ def main():
     # 指南页 hreflang 补齐，同样须早于繁体站生成，zh-tw 复制时一并继承。
     inject_guide_hreflang()
     inject_core_hreflang()
+    sync_guide_article_ld()
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
