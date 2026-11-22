@@ -555,7 +555,14 @@
     }
 
     // 已由 data-i18n 管理的（6 个手工工具页）交给 I18n.apply，跳过避免冲突
-    var skipH2 = !!(h2 && (h2.querySelector('[data-i18n]') || isFormula(h2.textContent)));
+    // isFormula 对「英文标题里带 ×/μ/λ 等符号」也返回 true（如
+    // "Livestock Stocking Capacity Estimator (Area × Density)"），会把整页 H2
+    // 误判为公式标题而跳过中文还原（2026-11-23 实测 2 页）。仅当 H2 没有
+    // 连续英文词组时才算纯公式；带英文标题的仍按 data-zh 还原中文。
+    var _h2txt = h2 ? h2.textContent : '';
+    var _h2HasWords = /[A-Za-z]{3,}\s+[A-Za-z]{3,}/.test(_h2txt);
+    var skipH2 = !!(h2 && (h2.querySelector('[data-i18n]')
+      || (isFormula(_h2txt) && !_h2HasWords)));
     var skipIntro = !!(introP && introP.hasAttribute('data-i18n'));
 
     // 首次调用缓存原文（按字段独立判断，避免 h2 捕获定义 ORIG[slug] 后阻断 introP 捕获）。
@@ -593,6 +600,9 @@
 
     var body = BODY_MAP[ind] && BODY_MAP[ind][slug];
     if (!body) {
+      // 无 body 字典的页面同样要还原 data-zh（否则中文态 H2 停留英文，
+      // 2026-11-23 实测 agriculture/estimate-area-density、nuclear/gamma-attenuation）
+      if (!isEnglish()) restoreAllDataZh();
       // 即便该工具没有 body 数据，切到英文时也要把已就绪的短语应用上去
       if (isEnglish()) {
         loadCommonPhrases().then(function () { translateBodyPhrases(false); });

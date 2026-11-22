@@ -150,7 +150,7 @@ window.INDUSTRY_INFO = {
   'elderly'              : { name: '养老护理', icon: '👴', hot: 71768 },
   'museum'               : { name: '文博展陈', icon: '🏛️', hot: 69723 },
   'quality'              : { name: '质量管理', icon: '✅', hot: 69334 },
-  'parenting'            : { name: '育儿亲子', icon: '👶', hot: 69250 },
+  'parenting'            : { name: '育儿亲子', icon: '👶', hot: 69252 },
   'wedding'              : { name: '婚礼策划', icon: '💒', hot: 69213 },
   'road'                 : { name: '道路工程', icon: '🛣️', hot: 68884 },
   'rental'               : { name: '租赁管理', icon: '🔑', hot: 67780 },
