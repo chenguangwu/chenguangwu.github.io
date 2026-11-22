@@ -723,7 +723,9 @@ const CASES = [
     "expect": ["NIHSSGRADE OK"],
     "ref": "12-N71/N74/N75：deep-dive 算例与 FAQ 的 16~21/≥22 与表格/代码 16-20/≥21 冲突，改为同页统一口径；0 分由「无卒中」改「无可测神经功能缺损（不能排除卒中）」并与公式框同源；空表导出键上限 12→13 覆盖第 13 项 q11。权威源 content_deepdive.json + en map 同步，旧版四处旧串命中即红，默认态不产生该哨兵。"
   },
-{ slug:"neurology/psqi", inputs:{"bedTime":"","actualSleep":"","latency":""}, expect:["请填写就寝时间、实际睡眠时长与入睡潜伏期"], ref:"核心临床参数留空不得给出分级/风险结论（CLINCLR）" }
+{ slug:"neurology/psqi", inputs:{"bedTime":"","actualSleep":"","latency":""}, expect:["请填写就寝时间、实际睡眠时长与入睡潜伏期"], ref:"核心临床参数留空不得给出分级/风险结论（CLINCLR）" },
+{"slug":"neurology/rater-21","clicks":["['t1','t2','t3','t4','t5','t6','t7','t8','t9','t10','d1','d2','d3','d4','d5','d6','p2'].forEach(function(id){var s=document.getElementById(id);s.value=s.options[s.options.length-1].value;});document.getElementById('p1').value=10;document.getElementById('p3').value=5;calc()"],"expect":["总分 85/85，分级：重度"],"ref":"满分口径用例：严重程度取满 35（t1 4+t2 3+t3 3+t4 1+t5 1+t6 5×2+t7 2+t8 3+t9 4+t10 4）、失能 6×5=30、疼痛 10+5+5=20 ⇒ 85/85，落 61–85「重度」。默认全 0 ⇒ 0/85「轻度」，不命中，强判别；同时锁定页面自述 0–85 不再回退 75。"},
+
 ];
 async function main() {
   const only = process.argv.slice(2);
