@@ -3245,8 +3245,19 @@ def _extend_short_guide_desc(d, src):
                 out += '。'
     # 最后 128 页既无可用正文段、也无场景列表：补一句页面结构说明（不是全站
     # 949 页级重复尾句，仅这 128 页触发），保证搜索摘要完整可读。
+    # 幂等保护：历史构建可能已写入同一尾句，先折叠重复，再只在缺失时追加；
+    # 若单句仍不足 70 字，改用第二句补充，绝不重复同一句。
+    _tail = '页面提供详细操作步骤、参数说明与常见问题解答，可直接对照使用。'
+    _tail2 = '也可结合页面示例核对输入与输出，减少口径误用。'
+    while (_tail + _tail) in out:
+        out = out.replace(_tail + _tail, _tail)
+    while (_tail + '。' + _tail) in out:
+        out = out.replace(_tail + '。' + _tail, _tail)
     if len(out) < 70:
-        out = out.rstrip('。') + '。页面提供详细操作步骤、参数说明与常见问题解答，可直接对照使用。'
+        if _tail not in out:
+            out = out.rstrip('。') + '。' + _tail
+        if len(out) < 70 and _tail2 not in out:
+            out = out.rstrip('。') + '。' + _tail2
     return out
 
 
