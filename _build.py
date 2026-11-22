@@ -6004,6 +6004,47 @@ def generate_hot_tools():
         raise SystemExit('Hot tools build failed: %s' % exc)
 
 
+def ensure_og_image_dimensions():
+    """给所有带 og:image 的静态页补齐 1200x630 尺寸声明（2026-11-22）。
+
+    全站 og:image 统一为 og-image.png（1200×630）。缺 width/height 时，
+    Facebook/LinkedIn/Slack 等平台需要先下载图片才能确定比例，首屏卡片
+    可能被裁切或延迟渲染；补上后分享卡片稳定显示为大图。只处理源页面，
+    zh-tw/ 在随后生成时自然继承。
+    """
+    skip_dirs = {'.git', 'node_modules', 'zh-tw', '_en-i18n', '_site', 'dist'}
+    changed = 0
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames if d not in skip_dirs]
+        for fn in filenames:
+            if not fn.endswith('.html'):
+                continue
+            path = os.path.join(dirpath, fn)
+            try:
+                with open(path, encoding='utf-8') as f:
+                    txt = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if 'TOOLBOX-REDIRECT' in txt or 'http-equiv="refresh"' in txt:
+                continue
+            m = re.search(r'<meta\b[^>]*property="og:image"[^>]*>', txt, re.I)
+            if not m:
+                continue
+            inserts = []
+            if 'property="og:image:width"' not in txt:
+                inserts.append('\n<meta property="og:image:width" content="1200">')
+            if 'property="og:image:height"' not in txt:
+                inserts.append('\n<meta property="og:image:height" content="630">')
+            if not inserts:
+                continue
+            txt = txt[:m.end()] + ''.join(inserts) + txt[m.end():]
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(txt)
+            changed += 1
+    print('OG image dimensions: %d pages updated' % changed)
+    return changed
+
+
 def main():
     print('=== ToolBox Build ===')
     # 构建期写出 /js/toolbox-stub.js（ToolBox 早期 API 桩外链文件），供全站工具页共享引用，
@@ -6243,6 +6284,7 @@ def main():
     sync_guide_breadcrumb_names()
     sync_guide_faq_ld()
     inject_image_alt()
+    ensure_og_image_dimensions()
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
