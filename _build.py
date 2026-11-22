@@ -4275,12 +4275,13 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                     _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。' + _extra
             if not _seo_desc_raw.endswith(('。', '！', '？')):
                 _seo_desc_raw += '。'
-        app_desc = esc_html_py(_clip_zh_desc(_seo_desc_raw, 150))
-        # JSON-LD 字符串安全（2026-09-23）：desc 含反斜杠字面量（转义类工具 \n \b…）或
-        # 控制字符时，未转义会导致 WebApplication JSON 非法、整块被 Google 丢弃。
-        # 顺序：先 doubling 反斜杠，再去控制字符。
-        app_desc = app_desc.replace('\\', '\\\\').replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
-        app_json_block = '\n<!-- TOOLBOX-WEBAPP-LD -->\n<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"WebApplication","name":"%s","url":"https://chenguangwu.github.io/%s","applicationCategory":"%s","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":%s,"description":"%s","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}\n</script>' % (tool_name_esc, t['url'], app_cat, json.dumps(I18N_LOCALES, ensure_ascii=False), app_desc)
+        # JSON-LD 中 description 必须是字面文本，不能沿用 HTML meta 的实体转义：
+        # 否则 &quot; / &lt; / &amp; 会被搜索引擎当作正文显示（实测 48 页）。
+        # 先还原实体，再交给 json.dumps 负责引号、反斜杠与控制字符转义。
+        app_desc_ld = json.dumps(
+            html.unescape(_clip_zh_desc(_seo_desc_raw, 150)), ensure_ascii=False)
+        tool_name_ld = json.dumps(html.unescape(t['name']), ensure_ascii=False)
+        app_json_block = '\n<!-- TOOLBOX-WEBAPP-LD -->\n<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"WebApplication","name":%s,"url":"https://chenguangwu.github.io/%s","applicationCategory":"%s","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":%s,"description":%s,"image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}\n</script>' % (tool_name_ld, t['url'], app_cat, json.dumps(I18N_LOCALES, ensure_ascii=False), app_desc_ld)
 
         def _replace_webapp_ld(src):
             # 注意：标记注释位于 <script> 之外，必须一并纳入匹配范围，
