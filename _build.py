@@ -3254,6 +3254,12 @@ def sync_guide_article_ld():
             if not obj.get('mainEntityOfPage'):
                 obj['mainEntityOfPage'] = {'@type': 'WebPage', '@id': abs_url}
                 dirty = True
+            if not obj.get('publisher'):
+                obj['publisher'] = {
+                    '@type': 'Organization', 'name': 'ToolBox',
+                    'logo': {'@type': 'ImageObject',
+                             'url': 'https://chenguangwu.github.io/logo-512.png'}}
+                dirty = True
             if not dirty:
                 return m.group(0)
             changed[0] += 1
@@ -3360,6 +3366,69 @@ def sync_guide_breadcrumb_ld():
             f.write(out)
         updated += 1
     print('guides BreadcrumbList 补齐: %d 页' % updated)
+    return updated
+
+
+def sync_guide_breadcrumb_names():
+    """同步指南 BreadcrumbList 名称与可见面包屑（2026-11-22）。
+
+    6 个内容集群指南可见末项为「图片与视觉」「开发者工具」等短名，
+    JSON-LD 仍写「…内容集群」，属名称漂移。这里只改 `name`，保留 item / position。
+    """
+    gdir = os.path.join(ROOT, 'guides')
+    if not os.path.isdir(gdir):
+        return 0
+    block_re = re.compile(r'(<script type="application/ld\+json">)(.*?)(</script>)', re.S)
+    updated = 0
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith('.html') or fn.endswith('.en.html'):
+            continue
+        fp = os.path.join(gdir, fn)
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src or 'name="robots" content="noindex' in src:
+            continue
+        nav = re.search(r'<nav[^>]*class="breadcrumb"[^>]*>(.*?)</nav>', src, re.S)
+        if not nav:
+            continue
+        raw = nav.group(1)
+        names = [html.unescape(re.sub(r'<[^>]+>', '', m)).strip()
+                 for m in re.findall(r'<a[^>]*>(.*?)</a>|<span[^>]*>(.*?)</span>', raw, re.S)
+                 for m in m if m]
+        names = [n for n in names if n]
+        if not names:
+            continue
+        changed = [0]
+
+        def _sub(m):
+            try:
+                obj = json.loads(m.group(2))
+            except Exception:
+                return m.group(0)
+            if not isinstance(obj, dict) or obj.get('@type') != 'BreadcrumbList':
+                return m.group(0)
+            items = obj.get('itemListElement', [])
+            if len(items) != len(names):
+                return m.group(0)
+            dirty = False
+            for item, name in zip(items, names):
+                if isinstance(item, dict) and item.get('name') != name:
+                    item['name'] = name
+                    dirty = True
+            if not dirty:
+                return m.group(0)
+            changed[0] += 1
+            return m.group(1) + json.dumps(obj, ensure_ascii=False, separators=(',', ':')) + m.group(3)
+
+        out = block_re.sub(_sub, src)
+        if changed[0]:
+            with open(fp, 'w', encoding='utf-8') as f:
+                f.write(out)
+            updated += 1
+    print('guides 面包屑名称同步: %d 页' % updated)
     return updated
 
 
@@ -5833,6 +5902,7 @@ def main():
     sync_guide_article_ld()
     fix_guide_empty_breadcrumb()
     sync_guide_breadcrumb_ld()
+    sync_guide_breadcrumb_names()
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
