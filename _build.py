@@ -4901,6 +4901,17 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                         content = content[:_cend] + gl_html + content[_cend:]
                     elif '<div class="card">' in content:
                         content = content.replace('<div class="card">', gl_html + '<div class="card">', 1)
+        elif not _gitem and _tb in GUIDE_INDS and industry not in GUIDE_INDS[_tb]:
+            # 清理：basename 已确认归属别的行业，但本页仍残留历史按 basename
+            # 兜底注入的「使用指南」错链（如 general/calc-13 指向农业 calc-13
+            # 指南）。本行业没有对应指南时不再保留，避免把用户带到无关指南。
+            _blk = re.search(r'<div class="tool-guide-link"[^>]*>[\s\S]*?</div>\s*', content)
+            if _blk:
+                _hm = re.search(r'href="([^"]+)"', _blk.group(0))
+                _cur_rel = re.sub(r'^(?:\.\./)+|^/', '', _hm.group(1)) if _hm else ''
+                _owners = GUIDE_OWNERS.get(_cur_rel, set())
+                if _cur_rel and _owners and industry not in _owners:
+                    content = content.replace(_blk.group(0), '', 1)
         elif _gitem and _gitem[0]:
             # 自愈：历史构建在「跨行业重名」页面上按 basename 兜底注入过错链
             # （如 fitness/calc-2 → hydraulic 的 calc-2-guide.html）。注入本身幂等，
