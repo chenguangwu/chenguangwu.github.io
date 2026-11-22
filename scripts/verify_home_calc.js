@@ -131,6 +131,24 @@ const CASES = [
   "clicks": ["(function(){var hh=globalThis.__tbFs;var h1=hh.readFileSync(process.cwd()+'/tools/home/renovation-budget.html','utf8');var i1=h1.indexOf('function updateItem(');var sg=i1>=0?h1.slice(i1,i1+700):'';var okg=sg.indexOf('isFinite(num)')>=0&&sg.indexOf('num < 0')>=0&&sg.indexOf('totalEl.innerHTML')>=0&&h1.indexOf('data-id=')>=0;var h2=hh.readFileSync(process.cwd()+'/tools/hotel/tip-calculator.html','utf8');var i2=h2.indexOf('function copyResult()');var sg2=i2>=0?h2.slice(i2,i2+1200):'';var okt=sg2.indexOf('taxAmount')>=0&&sg2.indexOf('bill + taxAmount + tip')>=0&&sg2.indexOf('bill + tip')<0&&sg2.indexOf('tax < 0')>=0;document.getElementById('__tbProbe').textContent='RENITEM '+(okg?'OK':'BAD')+' TIPTAX '+(okt?'OK':'BAD');})();"],
   "expect": ["RENITEM OK TIPTAX OK"],
   "ref": "第1306批双源码形态强锚(承载页 home/renovation-budget)：①装修明细 updateItem 校验数值并定点刷该行 .total、行带 data-id；旧版空串入总计且只 calc 不刷行 ⇒ BAD。②tip-calculator copyResult 须含税(bill+taxAmount+tip)、同源并拦负税率；旧版 bill+tip 漏税 ⇒ BAD。真机交互由复核方覆盖。"
+},
+{
+  "slug": "home/water-filter-lifespan",
+  "inputs": { "cap": "4000", "daily": "8", "margin": "90", "price": "120" },
+  "expect": ["3060 L", "383 天", "0.95 支/年", "114 元/年", "0.0392 元/L"],
+  "ref": "新工具默认算例：有效 4000×0.85×0.90=3060 L；3060/8≈383 天；365/383≈0.95 支/年；120×0.95≈114 元/年；120/3060≈0.0392 元/L。五条同时命中，能区分错误系数或漏乘安全余量。"
+},
+{
+  "slug": "home/water-filter-lifespan",
+  "inputs": { "cap": "" },
+  "expect": ["请填写滤芯额定净水量、每日净水用量与安全余量后再计算。"],
+  "ref": "清空额定净水量必须出明确空态提示，不得把空串当 0 后显示大于 0 提示或静默给结论。"
+},
+{
+  "slug": "home/water-filter-lifespan",
+  "inputs": { "margin": "" },
+  "expect": ["请填写滤芯额定净水量、每日净水用量与安全余量后再计算。"],
+  "ref": "清空安全余量同样走必填提示，避免误报「需在 50%–100% 之间」。"
 }
 ];
 async function main() {
