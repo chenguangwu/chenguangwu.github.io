@@ -2369,6 +2369,20 @@ def _load_zh_desc_i18n(ind):
             _zh_desc_i18n_cache[ind] = {}
     return _zh_desc_i18n_cache[ind]
 
+_DEEP_DIVE_DESC = None
+
+
+def _deep_dive_desc():
+    """延迟加载深度解析数据，供 compute_zh_desc 补足短描述（与 fix_tool_pages_seo 的局部 DEEP_DIVE 解耦）。"""
+    global _DEEP_DIVE_DESC
+    if _DEEP_DIVE_DESC is None:
+        try:
+            _DEEP_DIVE_DESC = json.load(open(os.path.join(ROOT, 'i18n', 'tools', 'content_deepdive.json'), encoding='utf-8'))
+        except Exception:
+            _DEEP_DIVE_DESC = {}
+    return _DEEP_DIVE_DESC
+
+
 def compute_zh_desc(t):
     """中文描述（写入 tools.json 的 d，供搜索/首页/导航消费）。
 
@@ -2376,7 +2390,24 @@ def compute_zh_desc(t):
     （如「矩阵转置」），导致描述退化成名称。现统一走 TDS.zh_desc()，
     按 强desc → intro → 页面meta → 中文名 的优先级取真实描述。
     """
-    return TDS.zh_desc(t, max_len=80)
+    d = TDS.zh_desc(t, max_len=80)
+    # 短描述（<25 字）多为「名称 + 功能短语」，搜索卡片信息量不足。
+    # 从该工具自己的深度解析 scenarios 取一条非公式、含中文的真实使用场景补足，
+    # 不拼全站通用尾巴，避免 269 页描述同质化。
+    if len(d) < 25:
+        slug = t.get('path', '').replace('tools/', '').rsplit('.html', 1)[0]
+        dd = _deep_dive_desc().get(slug) or {}
+        cands = []
+        for sc in (dd.get('scenarios') or []):
+            sc = re.sub(r'<[^>]+>', '', str(sc)).strip()
+            sc = re.sub(r'\s+', ' ', sc).rstrip('。；;')
+            if 8 <= len(sc) <= 50 and re.search(r'[\u4e00-\u9fff]', sc) \
+                    and '=' not in sc and '＝' not in sc and sc not in d:
+                cands.append(sc)
+        if cands:
+            extra = max(cands, key=len)
+            d = TDS.clip(d.rstrip('。；;') + '；' + extra, 80)
+    return d
 
 
 def generate_split_jsons(tools):
