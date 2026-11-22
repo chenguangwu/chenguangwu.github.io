@@ -441,6 +441,7 @@ var LANG_REGISTRY = [
       'tool.aria.left_paren': 'Left parenthesis',
       'tool.aria.right_paren': 'Right parenthesis',
       'tool.aria.swap': 'Swap',
+      'tool.aria.play_recording': 'Play recording',
       'tool.ph.example_090_05_1': 'e.g. 0.9 (0.5–1)',
       'tool.ph.example_3_1_6': 'e.g. 3 (1–6)',
       'tool.ph.example_5000': 'e.g. 5000',
