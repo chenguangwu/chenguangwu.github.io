@@ -3212,6 +3212,74 @@ def _close_guide_desc(d):
     return d.rstrip('，；：、,;: ') + '。'
 
 
+def inject_core_hreflang():
+    """根级核心页补齐 hreflang（2026-11-22）。
+
+    sitemap.html / search.html / chains.html / about.html 均在常规 sitemap 中
+    且已有 zh-tw 静态副本，但历史模板没有 alternate 声明；与指南页同一收口。
+    index.html 已有 marker，由自身流程维护，不在本清单内。
+    """
+    names = ['sitemap.html', 'search.html', 'chains.html', 'about.html']
+    updated = 0
+    for fn in names:
+        fp = os.path.join(ROOT, fn)
+        if not os.path.isfile(fp):
+            continue
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if '<head' not in src:
+            continue
+        src = re.sub(r'<link[^>]*\bhreflang="[^"]+"[^>]*>\s*', '', src, flags=re.I)
+        src = re.sub(r'<meta property="og:locale(?::alternate)?" content="[^"]+">\s*', '', src, flags=re.I)
+        abs_url = 'https://chenguangwu.github.io/' + fn
+        out = inject_hreflang(src, abs_url)
+        if out != src:
+            with open(fp, 'w', encoding='utf-8') as f:
+                f.write(out)
+            updated += 1
+    print('core hreflang 补齐: %d 页' % updated)
+    return updated
+
+
+def inject_guide_hreflang():
+    """指南页补齐 hreflang / og:locale（2026-11-22）。
+
+    工具页均有 zh-CN / zh-TW / en-US / x-default 四组 alternate，而 guides/*.html
+    历史生成器未输出任何 hreflang；这些页面在常规 sitemap 中且已有 zh-tw 静态副本，
+    缺少 alternate 会让搜索引擎把简繁两版当重复内容。英文仍沿用 ?lang=en-US 约定。
+    """
+    gdir = os.path.join(ROOT, 'guides')
+    if not os.path.isdir(gdir):
+        return 0
+    updated = 0
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith('.html') or fn.endswith('.en.html'):
+            continue
+        fp = os.path.join(gdir, fn)
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src or '<head' not in src:
+            continue
+        abs_url = 'https://chenguangwu.github.io/guides/%s' % fn
+        # 部分指南历史模板只写了 zh-CN / x-default 两条 alternate，且无 marker；
+        # 先清掉旧 alternate 与 og:locale，再整体注入，避免重复 link。
+        src = re.sub(r'<link[^>]*\bhreflang="[^"]+"[^>]*>\s*', '', src, flags=re.I)
+        src = re.sub(r'<meta property="og:locale(?::alternate)?" content="[^"]+">\s*', '', src, flags=re.I)
+        out = inject_hreflang(src, abs_url)
+        if out != src:
+            with open(fp, 'w', encoding='utf-8') as f:
+                f.write(out)
+            updated += 1
+    print('guides hreflang 补齐: %d 页' % updated)
+    return updated
+
+
 def normalize_guide_descriptions():
     """指南页 description 收口（2026-11-14）。
 
@@ -5608,6 +5676,9 @@ def main():
 
     # 指南页描述收口（硬切补句号），须在繁体站生成之前，否则 zh-tw 会复制残句。
     normalize_guide_descriptions()
+    # 指南页 hreflang 补齐，同样须早于繁体站生成，zh-tw 复制时一并继承。
+    inject_guide_hreflang()
+    inject_core_hreflang()
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
