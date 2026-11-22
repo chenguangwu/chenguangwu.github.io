@@ -2750,6 +2750,18 @@ def generate_html_sitemap(tools):
 <meta name="desc-en" content="ToolBox sitemap: browse all 5000+ free online tools across 268 industry categories. Search and Traditional Chinese supported — quickly locate the calculator or converter you need.">
 <meta property="og:title" content="站点地图 - ToolBox 免费在线工具集合">
 <meta property="og:description" content="ToolBox 在线工具站点地图：按 268 个行业分类浏览全部 5000+ 免费在线工具，支持搜索与繁体中文，快速定位需要的计算器与转换器。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/sitemap.html">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="站点地图 - ToolBox 免费在线工具集合">
+<meta name="twitter:description" content="ToolBox 在线工具站点地图：按 268 个行业分类浏览全部 5000+ 免费在线工具，支持搜索与繁体中文，快速定位需要的计算器与转换器。">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
 <link rel="canonical" href="https://chenguangwu.github.io/sitemap.html">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="/css/site-chrome.css">
@@ -2813,6 +2825,7 @@ html:not([lang="en-US"]) .tool-link .t-en{display:none !important;}
 </body>
 </html>'''
     # 模板里的 ToolBox 桩为硬编码旧版，统一走升级函数，与 TOOLBOX_API_STUB 常量保持同步
+    html = inject_hreflang(html, 'https://chenguangwu.github.io/sitemap.html')
     return _upgrade_toolbox_api_stub(html)
 
 
@@ -6179,6 +6192,64 @@ def ensure_site_metadata():
     return changed
 
 
+def ensure_guide_article_og():
+    """给指南页补 article:published_time / article:modified_time（2026-11-22）。
+
+    3,247 个指南的 Article JSON-LD 已有 datePublished / dateModified，但
+    OpenGraph article 时间字段全部缺失；社交卡片和部分聚合器依赖这两项
+    判断内容新鲜度。日期统一补 T00:00:00+08:00，已有字段不动。
+    """
+    gdir = os.path.join(ROOT, 'guides')
+    if not os.path.isdir(gdir):
+        return 0
+    block_re = re.compile(r'<script type="application/ld\+json">(.*?)</script>', re.S)
+    updated = 0
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith('.html') or fn.endswith('.en.html'):
+            continue
+        fp = os.path.join(gdir, fn)
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src or 'name="robots" content="noindex' in src:
+            continue
+        dates = {}
+        for m in block_re.finditer(src):
+            try:
+                obj = json.loads(m.group(1))
+            except Exception:
+                continue
+            if isinstance(obj, dict) and obj.get('@type') == 'Article':
+                if obj.get('datePublished'):
+                    dates['published'] = obj['datePublished']
+                if obj.get('dateModified'):
+                    dates['modified'] = obj['dateModified']
+                break
+        if not dates:
+            continue
+        og_m = re.search(r'<meta property="og:type" content="article"[^>]*>', src)
+        if not og_m:
+            continue
+        inserts = []
+        for key, prop in (('published', 'article:published_time'), ('modified', 'article:modified_time')):
+            if key not in dates or ('property="%s"' % prop) in src:
+                continue
+            val = str(dates[key])
+            if len(val) == 10:
+                val += 'T00:00:00+08:00'
+            inserts.append('<meta property="%s" content="%s">' % (prop, val))
+        if not inserts:
+            continue
+        src = src[:og_m.end()] + '\n' + '\n'.join(inserts) + src[og_m.end():]
+        with open(fp, 'w', encoding='utf-8') as f:
+            f.write(src)
+        updated += 1
+    print('Guide article OG times: %d pages' % updated)
+    return updated
+
+
 def main():
     print('=== ToolBox Build ===')
     # 构建期写出 /js/toolbox-stub.js（ToolBox 早期 API 桩外链文件），供全站工具页共享引用，
@@ -6418,6 +6489,7 @@ def main():
     sync_guide_breadcrumb_names()
     sync_guide_faq_ld()
     inject_image_alt()
+    ensure_guide_article_og()
     ensure_og_image_dimensions()
     ensure_site_metadata()
     ensure_table_header_scope()
