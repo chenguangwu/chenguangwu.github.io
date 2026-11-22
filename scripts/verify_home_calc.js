@@ -215,8 +215,43 @@ const CASES = [
   "inputs": { "type": "fan", "start": "2018-01-01", "price": "0" },
   "expect": ["¥0 元/年", "2028-01-01"],
   "ref": "购买价 0 是合法输入（赠品/自装），不得被空态守卫拦死；电风扇参考 10 年，2018 首次使用 ⇒ 更换日期 2028-01-01，年均成本显示 ¥0/年。"
-}
-];
+},
+{
+  "slug": "home/repair-or-replace",
+  "inputs": { "type": "fridge", "age": "6", "repair": "600", "newPrice": "4000", "newLife": "10", "repairLife": "4", "saving": "0", "risk": "none" },
+  "expect": ["¥150 元/年", "¥400 元/年", "维修更划算"],
+  "ref": "冰箱剩 4 年、维修 600/4=150 元/年；新机 4000/10=400 元/年，维修更划算。注入新机价 4000 与默认 3000 不同，避免默认态命中。"
+},
+{
+  "slug": "home/repair-or-replace",
+  "inputs": { "type": "fridge", "age": "6", "repair": "1600", "newPrice": "3000", "newLife": "10", "repairLife": "2", "saving": "0", "risk": "none" },
+  "expect": ["¥800 元/年", "优先换新"],
+  "ref": "维修 1600 只能用 2 年 ⇒ 800 元/年，高于新机 300 元/年，必须判优先换新。"
+},
+{
+  "slug": "home/repair-or-replace",
+  "inputs": { "type": "waterHeater", "age": "9", "repair": "400", "newPrice": "1200", "newLife": "8", "repairLife": "2", "saving": "0", "risk": "sometimes" },
+  "expect": ["优先换新", "安全优先"],
+  "ref": "储水式热水器参考 8 年、已用 9 年且有偶发故障 ⇒ 安全优先，必须换新；不能只因维修 200 元/年低于新机 150 元/年就判维修。"
+},
+{
+  "slug": "home/repair-or-replace",
+  "inputs": { "type": "washer", "age": "" },
+  "expect": ["请填写家电类型、已用年限、维修报价、新机价格、新机寿命与维修后可用年限后再计算。"],
+  "ref": "清空已用年限必须提示，不得把空串当 0 后继续给出维修建议。"
+},
+{
+  "slug": "home/repair-or-replace",
+  "inputs": { "type": "fan", "age": "5", "repair": "0", "newPrice": "1000", "newLife": "10", "repairLife": "5", "saving": "0", "risk": "none" },
+  "expect": ["¥0 元/年", "维修更划算"],
+  "ref": "维修报价 0 是合法输入（保修内/免费维修），不得被空态守卫拦死；0 元维修必须判维修更划算。"
+},
+{
+  "slug": "home/repair-or-replace",
+  "inputs": { "type": "microwave", "age": "8", "repair": "-100" },
+  "expect": ["已用年限与维修报价不能为负；新机价格、新机寿命与维修后可用年限需大于 0。"],
+  "ref": "负维修报价非法，必须提示；不能按负成本算出维修永远更划算。"
+},];
 async function main() {
   const only = process.argv.slice(2);
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
