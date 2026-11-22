@@ -416,6 +416,7 @@ GATES = (
     ("site quality audit", ("python3", "scripts/audit_site_quality.py", "--check")),
     # 元数据覆盖（含单引号属性写法与迁移壳排除；2026-11-23 修正旧正则误报 177 页）。
     ("seo metadata audit", ("python3", "scripts/audit_seo.py", "--check")),
+    ("preset bounds audit", ("python3", "scripts/audit_preset_bounds.py", "--check")),
 )
 
 
