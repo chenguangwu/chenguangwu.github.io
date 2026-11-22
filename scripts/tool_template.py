@@ -54,6 +54,7 @@ CAT_ZH = {
     "aerospace": "航空航天",
     "automotive": "汽车工程",
     "accounting": "会计计算",
+    "railway": "铁路工程",
 }
 
 TEMPLATE = """<!DOCTYPE html>

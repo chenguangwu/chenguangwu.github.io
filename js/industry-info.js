@@ -204,8 +204,8 @@ window.INDUSTRY_INFO = {
   'bonding'              : { name: '粘接密封', icon: '🧷', hot: 31086 },
   'stats'                : { name: '统计分析', icon: '📈', hot: 28590 },
   'yi'                   : { name: '周易八卦', icon: '📐', hot: 27564 },
+  'railway'              : { name: '铁路工程', icon: '🚆', hot: 21128 },
   'express'              : { name: '快递物流', icon: '📦', hot: 11548 },
-  'railway'              : { name: '铁路工程', icon: '🚆', hot: 10078 },
   'beekeeping'           : { name: '蜜蜂养殖', icon: '🐝', hot: 8539 },
   'daily-goods'          : { name: '日用百货', icon: '🛒', hot: 8535 },
 };
