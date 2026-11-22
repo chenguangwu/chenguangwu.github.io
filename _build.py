@@ -4076,7 +4076,8 @@ def _fix_invalid_label_for(src):
 
 
 _CONTAINER_TAG_RE = re.compile(
-    r'(<div\b[^>]*\bclass="[^"]*\bcontainer\b[^"]*"[^>]*)>', re.I)
+    r'(<div\b[^>]*\bclass=(?:"[^"]*\bcontainer\b[^"]*"|\'[^\']*\bcontainer\b[^\']*\')[^>]*)>',
+    re.I)
 
 
 def _ensure_main_role(src):
