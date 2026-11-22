@@ -3079,6 +3079,43 @@ def _clip_zh_desc(s, n):
     return head.rstrip('，、：；,;: ') + '…'
 
 
+
+def fix_short_tool_desc():
+    """给仍 <70 字的工具页描述补足（2026-11-23）。
+
+    主流程的补写只在单页生成时触发，仍有 60 页因模板/隐私尾句清洗回落到 60–69 字。
+    在全部页面落盘后统一再扫一次，只补 meta/og/twitter/WebApplication 描述，
+    不碰可见正文；幂等标志为「支持参数自定义」。
+    """
+    tail_flag = '支持参数自定义'
+    tail = '。支持参数自定义、即时计算与结果解读。'
+    tag_re = re.compile(r'(<meta\s+name="description"\s+content=")([^"]*)(")')
+    fixed = 0
+    for path in sorted(glob.glob(os.path.join(ROOT, 'tools', '**', '*.html'), recursive=True)):
+        if path.endswith('index.html'):
+            continue
+        src = open(path, encoding='utf-8', errors='ignore').read()
+        if 'TOOLBOX-REDIRECT' in src:
+            continue
+        m = tag_re.search(src)
+        if not m:
+            continue
+        cur = m.group(2)
+        if len(cur) >= 70 or tail_flag in cur:
+            continue
+        newv = cur.rstrip('。') + tail
+        src = src.replace(m.group(0), m.group(1) + newv + m.group(3), 1)
+        for attr in ('property="og:description"', 'name="twitter:description"'):
+            src = re.sub(
+                r'(<meta\s+%s\s+content=")([^"]*)(")' % attr,
+                lambda mm, v=newv: mm.group(1) + v + mm.group(3), src, count=1)
+        src = re.sub(r'("description":")([^"]*)(")',
+                     lambda mm, v=newv: mm.group(1) + v + mm.group(3), src, count=1)
+        open(path, 'w', encoding='utf-8').write(src)
+        fixed += 1
+    print('tool desc 补足: %d 页' % fixed)
+
+
 def fix_zh_tw_short_desc():
     """繁简转换会让个别页 description 字符数跌破 Ahrefs 的 70 阈值
     （如「字符串→字串」少 1 字），中文页达标而繁体页仍报 too short。
@@ -7011,6 +7048,9 @@ def main():
     generate_opencc_static_locales()
     ensure_breadcrumb_aria_current(include_tw=True)
     ensure_nav_aria_labels(include_tw=True)
+
+    # 源页短描述兜底：主流程仍有 60 页回落到 60–69 字，统一补足后再复制到繁体站。
+    fix_short_tool_desc()
 
     # 繁体站 desc 兜底：繁简字数差会让个别页跌破 Ahrefs 70 字符阈值（实测「字符串→字串」），
     # 对 zh-tw/ 中 desc<70 的页补足并同步 og/twitter/JSON-LD（幂等）。

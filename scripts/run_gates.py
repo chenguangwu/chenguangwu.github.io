@@ -412,6 +412,8 @@ GATES = (
     # 第 59 批（2026-11-11）：EAT-26 高风险行为方向一致性 + 成人ADHD ★ 动态化防护锁。
     ("eat26 risk direction", ("node", "scripts/_verify_eat26_risk_direction.mjs")),
     ("asrs star dynamic", ("node", "scripts/_verify_asrs_star_dynamic.mjs")),
+    # 全站 SEO/内容质量回归锁：desc-en 退化、占位 formula-desc、临床页分类错配。
+    ("site quality audit", ("python3", "scripts/audit_site_quality.py", "--check")),
 )
 
 
