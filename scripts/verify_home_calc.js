@@ -251,7 +251,44 @@ const CASES = [
   "inputs": { "type": "microwave", "age": "8", "repair": "-100" },
   "expect": ["已用年限与维修报价不能为负；新机价格、新机寿命与维修后可用年限需大于 0。"],
   "ref": "负维修报价非法，必须提示；不能按负成本算出维修永远更划算。"
-},];
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "storage", "people": "4", "sim": "1", "minutes": "10", "flow": "8", "cold": "15", "target": "40", "tank": "60", "power": "2", "price": "0.6" },
+  "expect": ["80 L", "44 L", "60 L", "94 分钟", "11.6 kWh", "¥7.0 元/天"],
+  "ref": "4 人、1 人同时洗、10 分钟、8 L/min：混合 80 L，60°C 热水 80×(25/45)=44.4→44 L，储水 44.4/0.8=55.6→60 L；60 L×4.186×45/2 kW/60=94.2→94 分钟；4 人日能耗 11.6 kWh、电费 11.6×0.6=7.0 元。人数 4 与默认 3 不同，避开默认态。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "storage", "people": "3", "sim": "2", "minutes": "10", "flow": "8", "cold": "15", "target": "40", "tank": "60", "power": "2", "price": "0.6" },
+  "expect": ["160 L", "89 L", "120 L", "188 分钟"],
+  "ref": "两人同时洗：混合 160 L，热水 88.9→89 L，储水需求 111.1→120 L；整罐加热 120×4.186×45/2/60=188.4→188 分钟。同时洗澡人数 2 与默认 1 不同，能区分漏乘同时人数。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "gas", "people": "4", "sim": "2", "minutes": "10", "flow": "9", "cold": "10", "target": "40", "tank": "60", "power": "2", "price": "0.6" },
+  "expect": ["180 L", "108 L", "10.8 L/min", "24 L/min"],
+  "ref": "燃气：2 人同时、9 L/min、温升 30°C ⇒ 单淋浴额定 9×30/25=10.8 L/min，合计 21.6→24 L/min；混合 180 L、60°C 热水 108 L。类型与默认不同，能区分按 25°C 标定与漏乘同时人数。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "instant", "people": "1", "sim": "1", "minutes": "8", "flow": "7", "cold": "18", "target": "40", "tank": "60", "power": "8", "price": "0.6" },
+  "expect": ["10.7 kW", "12 kW", "63 A"],
+  "ref": "即热：7 L/min、温升 22°C ⇒ 7×4.186×22/60=10.74→10.7 kW，下一档 12 kW；电流 48.8 A×1.25=61.0→63 A 空开。类型与默认不同，能区分功率漏乘温升或空开未留余量。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "gas", "people": "" },
+  "expect": ["请填写家庭人数、淋浴参数与热水器设置后再计算。"],
+  "ref": "清空家庭人数必须提示，不得把空串当 0 后继续给容量建议。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "instant", "people": "1", "cold": "20", "target": "15" },
+  "expect": ["目标水温与储水温度需高于进水温度"],
+  "ref": "目标水温低于进水温度属非法，必须提示；不得用负温升算出负功率或无效结果。"
+}
+];
 async function main() {
   const only = process.argv.slice(2);
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
