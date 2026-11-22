@@ -421,3 +421,4 @@
 | https://chenguangwu.github.io/tools/it/http-response-headers.html | https://chenguangwu.github.io/tools/it/http-headers.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后旧页 |
 | https://chenguangwu.github.io/guides/http-response-headers-guide.html | https://chenguangwu.github.io/tools/it/http-headers.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后指南 |
 | https://chenguangwu.github.io/guides/generator-strength-guide.html | https://chenguangwu.github.io/guides/password-generator-guide.html | 2026-11-22 | 2026-12-22 | 保留期内 | 重复指南合并 |
+| https://chenguangwu.github.io/guides/vaccine-reminder-guide.html | https://chenguangwu.github.io/guides/reminder-vaccine-deworming-guide.html | 2026-11-22 | 2026-12-22 | 待删 | 繁体同理 |
