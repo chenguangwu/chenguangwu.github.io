@@ -549,12 +549,25 @@ def apply_page(page, dry=False):
     defaults = {}
     for iid in inputs:
         m = re.search(r'<(?:input|select|textarea)[^>]*\bid="%s"[^>]*\bvalue="([^"]*)"' % re.escape(iid), s0)
-        defaults[iid] = m.group(1) if m else ""
+        if m:
+            defaults[iid] = m.group(1)
+            continue
+        # select 没有 value 属性，取 selected 或首个 option；否则预设在点击后会把下拉清空
+        sm = re.search(r'<select[^>]*\bid="%s"[^>]*>(.*?)</select>' % re.escape(iid), s0, re.S)
+        if sm:
+            opts = re.findall(r'<option[^>]*\bvalue="([^"]*)"[^>]*>', sm.group(1))
+            sel = re.search(r'<option[^>]*\bvalue="([^"]*)"[^>]*\bselected', sm.group(1))
+            defaults[iid] = sel.group(1) if sel else (opts[0] if opts else "")
+        else:
+            defaults[iid] = ""
     # 预设值变体（数值缩放）
     def scale(v, f):
+        # 不能用 round(x,4)：1.2e-5 这类科学计数法默认值会被舍入成 0，
+        # 生成的「示例 2×/0.5×」预设全部变成 0，点击后直接得到无意义结果。
         try:
-            return str(round(float(v)*f, 4)).rstrip('0').rstrip('.')
-        except:
+            x = float(v) * f
+            return format(x, '.12g')
+        except Exception:
             return v
     presets = []
     presets.append({"label": "默认", "labelEn": "Default",

@@ -1053,6 +1053,17 @@
           if (pf) { matchedKey = pf; out = EN_PREFIX[pf]; }
         }
       }
+      if (!out) {
+        // 批量生成的输入守卫提示带动态字段名，无法穷举进字典；英文态用通用句式兜底，
+        // 避免 813 个工具的结果区在英文界面弹出中文提示。字段名不译也比中英混排好。
+        if (/^请填写「(.+)」后再计算。$/.test(key)) {
+          out = 'Please fill in the required field and calculate again.';
+        } else if (/^⚠ 「(.+)」是本计算的分母，不能为 0。$/.test(key)) {
+          out = '⚠ This input is used as a denominator and must not be zero.';
+        } else if (key === '⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。') {
+          out = '⚠ Inputs cannot all be zero: at least one non-zero value is required.';
+        }
+      }
       if (!out) out = convertPunct(key, parent);
       if (!out) {
         // GEN_UI_MAP 只被 translateGenericUI 全量扫描时使用，动态新增节点（如复制按钮改成
