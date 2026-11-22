@@ -6256,6 +6256,77 @@ def ensure_breadcrumb_aria_current(include_tw=False):
     return changed
 
 
+def ensure_nav_aria_labels(include_tw=False):
+    """给导航地标补 aria-label（2026-11-22）。
+
+    全站 8,106 个 <nav>，仅 4,832 个有 aria-label；3,244 个指南面包屑
+    `<nav class="breadcrumb">` 完全没有名称，读屏无法区分导航区域。
+    按 class 映射：breadcrumb→面包屑导航、navbar→主导航、
+    mobile-tabbar→移动端底部导航、guide-nav→指南导航，其余→页面导航。
+    script 内字符串不处理，已有 aria-label/aria-labelledby 的不动。
+    """
+    changed = 0
+    tags_added = 0
+    nav_re = re.compile(r'<nav\b[^>]*>')
+    label_map = {
+        'breadcrumb': '面包屑导航',
+        'navbar': '主导航',
+        'mobile-tabbar': '移动端底部导航',
+        'guide-nav': '指南导航',
+    }
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        skip = {'.git', 'node_modules', '_en-i18n', '_site', 'dist'}
+        if not include_tw:
+            skip.add('zh-tw')
+        dirnames[:] = [d for d in dirnames if d not in skip]
+        for fn in filenames:
+            if not fn.endswith('.html'):
+                continue
+            path = os.path.join(dirpath, fn)
+            try:
+                with open(path, encoding='utf-8') as f:
+                    src = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if '<nav' not in src or 'TOOLBOX-REDIRECT' in src or 'http-equiv="refresh"' in src:
+                continue
+            script_ranges = [(m.start(), m.end()) for m in
+                             re.finditer(r'<script\b[^>]*>.*?</script>', src, re.S | re.I)]
+            out = []
+            last = 0
+            n_add = 0
+            for m in nav_re.finditer(src):
+                if any(a <= m.start() < b for a, b in script_ranges):
+                    continue
+                tag = m.group(0)
+                low = tag.lower()
+                if 'aria-label' in low or 'aria-labelledby' in low:
+                    continue
+                label = '页面导航'
+                for cls, text in label_map.items():
+                    if 'class="' in low and cls in low.split('class="', 1)[1].split('"', 1)[0]:
+                        label = text
+                        break
+                new_tag = tag.rstrip()[:-1].rstrip() + ' aria-label="%s">' % label
+                out.append(src[last:m.start()])
+                out.append(new_tag)
+                last = m.end()
+                n_add += 1
+            if not n_add:
+                continue
+            out.append(src[last:])
+            try:
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(''.join(out))
+            except (PermissionError, OSError):
+                continue
+            changed += 1
+            tags_added += n_add
+    print('Nav aria-label: %d tags in %d pages' % (tags_added, changed))
+    return changed
+
+
+
 def ensure_guide_article_og():
     """给指南页补 article:published_time / article:modified_time（2026-11-22）。
 
@@ -6557,11 +6628,13 @@ def main():
     ensure_og_image_dimensions()
     ensure_site_metadata()
     ensure_breadcrumb_aria_current()
+    ensure_nav_aria_labels()
     ensure_table_header_scope()
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
     ensure_breadcrumb_aria_current(include_tw=True)
+    ensure_nav_aria_labels(include_tw=True)
 
     # 繁体站 desc 兜底：繁简字数差会让个别页跌破 Ahrefs 70 字符阈值（实测「字符串→字串」），
     # 对 zh-tw/ 中 desc<70 的页补足并同步 og/twitter/JSON-LD（幂等）。
