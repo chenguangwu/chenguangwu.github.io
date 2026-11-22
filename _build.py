@@ -3510,6 +3510,50 @@ def sync_guide_faq_ld():
     return updated
 
 
+def inject_image_alt():
+    """补齐指南与核心页分享图的 alt（2026-11-22）。
+
+    工具页已在第 436 批补齐；指南仍有 3,120 页缺 og:image:alt、480 页缺
+    twitter:image:alt，search/chains/about 也缺。分享图统一为站点 og-image.png，
+    alt 用与工具页一致的站点描述。
+    """
+    targets = []
+    gdir = os.path.join(ROOT, 'guides')
+    if os.path.isdir(gdir):
+        targets += [os.path.join(gdir, fn) for fn in sorted(os.listdir(gdir))
+                    if fn.endswith('.html') and not fn.endswith('.en.html')]
+    targets += [os.path.join(ROOT, fn) for fn in
+                ('search.html', 'chains.html', 'about.html')]
+    alt = 'ToolBox - 5000+免费在线工具'
+    updated = 0
+    for fp in targets:
+        if not os.path.isfile(fp):
+            continue
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src or 'name="robots" content="noindex' in src:
+            continue
+        out = src
+        for prop, needle in (('property', 'og:image'), ('name', 'twitter:image')):
+            alt_needle = '%s="%s:alt"' % (prop, needle)
+            if alt_needle in out:
+                continue
+            m = re.search(r'<meta %s="%s"[^>]*>\s*' % (prop, needle), out)
+            if not m:
+                continue
+            insert = '<meta %s="%s:alt" content="%s">\n' % (prop, needle, alt)
+            out = out[:m.end()] + insert + out[m.end():]
+        if out != src:
+            with open(fp, 'w', encoding='utf-8') as f:
+                f.write(out)
+            updated += 1
+    print('分享图 alt 补齐: %d 页' % updated)
+    return updated
+
+
 def inject_core_hreflang():
     """根级核心页补齐 hreflang（2026-11-22）。
 
@@ -5982,6 +6026,7 @@ def main():
     sync_guide_breadcrumb_ld()
     sync_guide_breadcrumb_names()
     sync_guide_faq_ld()
+    inject_image_alt()
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
