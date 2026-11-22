@@ -1,6 +1,6 @@
 # 过期指南台账（guidelines-map）
 
-> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+> **2026-11-22 状态复核**：本台账仍有 **3 项待核**（`ambulatory-bp`、`echo-report`、`colonoscopy-polyp`）；其余条目为现行口径或已标注替代关系。本文件继续作为指南版本台账维护，未清零前不删除。
 
 > 用途：逐页登记页面当前引用的指南/量表/公式版本、是否存在更新版、现行推荐版本，供后续批次增量追加与复查。
 > 维护口径：只登记「页面正文/公式框/引据表里明确出现过的指南或量表」；不确定的一律写「待核」，不臆测。
@@ -9,11 +9,11 @@
 | 页面路径 | 页面当前引用的指南与年份 | 是否有更新版 | 现行推荐版本 |
 |---|---|---|---|
 | `tools/cardiology/hypertension-jnc.html` | JNC-7（2003）血压分级与风险分层 | 有 | 2017 ACC/AHA 高血压指南；《中国高血压防治指南（2024 年修订版）》 |
-| `tools/cardiology/ambulatory-bp.html` | 2017 ACC/AHA 动态血压阈值 | 待核 | 2017 ACC/AHA（现行）；2024 ESC 动态血压分类可对照 |
-| `tools/cardiology/echo-report.html` | ASE 超声心动图测量与报告建议 | 待核 | ASE 2015/2019 更新版（待核具体篇目） |
+| `tools/cardiology/ambulatory-bp.html` | 2017 ACC/AHA 动态血压阈值 | 待核（2024 ESC 为欧洲替代口径，页面仍用 ACC/AHA） | 2017 ACC/AHA（现行）；2024 ESC 动态血压分类可对照 |
+| `tools/cardiology/echo-report.html` | ASE 超声心动图测量与报告建议 | 待核（2019 瓣膜病更新篇目未在页面标注） | ASE 2015/2019 更新版（待核具体篇目） |
 | `tools/cardiology/grace-score.html` | GRACE 风险评分（2006 原始模型） | 有 | GRACE 2.0（Fox 2014，Eur Heart J） |
 | `tools/cardiology/nyha-classification.html` | NYHA 心功能分级（1994 AHA 修订） | 无 | NYHA 分级仍为现行临床口径（AHA 1994） |
-| `tools/gastroenterology/colonoscopy-polyp.html` | 结肠镜息肉切除与随访建议 | 待核 | USMSTF 2020 息肉监测指南（现行） |
+| `tools/gastroenterology/colonoscopy-polyp.html` | 结肠镜息肉切除与随访建议 | 待核（页面未标注 USMSTF 2020 版本） | USMSTF 2020 息肉监测指南（现行） |
 | `tools/gastroenterology/hp-resistance.html` | 幽门螺杆菌根除与耐药处理 | 无 | Maastricht VI/Florence 共识（2022，Gut） |
 | `tools/nephrology/creatinine-clearance.html` | Cockcroft-Gault 肌酐清除率；KDIGO 2012 CKD 分期（仅对照说明） | 有 | KDIGO 2024 CKD 指南；eGFR 报告用 CKD-EPI 2021（去种族系数） |
 | `tools/nephrology/microalbuminuria.html` | KDIGO 2012 CKD 白蛋白尿 A1/A2/A3 分级 | 有 | KDIGO 2024 CKD 指南（A1/A2/A3 分级沿用） |
