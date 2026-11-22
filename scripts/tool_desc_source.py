@@ -314,11 +314,20 @@ def meta_desc(path):
 
 
 def clip(s, n):
-    """截断到 n 字并在末尾加省略号（不在标点/空格处留残尾）。"""
+    """截断到 n 字并在末尾加省略号（不在标点/空格处留残尾）。
+
+    英文按单词边界回退，避免搜索卡片出现 `merge a…`、`with corr…` 这类断词；
+    找不到足够靠后的空格时（长 URL、无空格串）才硬截。中文无空格，沿用硬截。
+    """
     s = (s or '').strip()
     if len(s) <= n:
         return s
-    return s[:n - 1].rstrip('，,。、；;：: ') + '…'
+    cut = s[:n - 1].rstrip('，,。、；;：: ')
+    if cut and re.search(r'[A-Za-z0-9]', cut[-1]):
+        boundary = max(cut.rfind(' '), cut.rfind('\t'), cut.rfind('-'), cut.rfind('/'), cut.rfind('('))
+        if boundary >= max(1, int((n - 1) * 0.55)):
+            cut = cut[:boundary].rstrip(' -–—/(,;:')
+    return cut + '…'
 
 
 def strip_ed_boilerplate(s):
