@@ -6112,6 +6112,264 @@ def _scope_tables(text):
     return _TABLE_TAG_RE.sub(repl, text)
 
 
+def strip_redundant_wrapped_control_aria():
+    """移除被 <label> 包裹控件的冗余 aria-label（2026-11-22）。
+
+    审计发现 276 个 checkbox/radio 的 aria-label 与包裹它的 label 文案错位
+    （如「SHA-1」复选框写成 aria-label="MD5"），会覆盖 label 的真实名称，
+    导致屏幕阅读器读错选项。包裹 label 本身就是最准确的名称，故对
+    label 内且有可见文字的 input/select/textarea 直接删除 aria-label；
+    label 内没有文字（纯图标）的保留原属性。script/style/pre 内不处理。
+    """
+    label_block = re.compile(r'<label\b[^>]*>.*?</label>', re.S | re.I)
+    ctrl_aria = re.compile(
+        r'<((?:input|select|textarea)\b[^>]*?)\s+aria-label="[^"]*"([^>]*)>', re.I)
+    protect = re.compile(r'<(script|style|pre)\b.*?</\1\s*>', re.I | re.S)
+    changed = 0
+    removed = 0
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames if d not in
+                       {'.git', 'node_modules', 'zh-tw', '_en-i18n', '_site', 'dist'}]
+        for fn in filenames:
+            if not fn.endswith('.html'):
+                continue
+            path = os.path.join(dirpath, fn)
+            try:
+                with open(path, encoding='utf-8') as f:
+                    src = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if '<label' not in src.lower() or 'aria-label' not in src:
+                continue
+
+            def _process(part):
+                nonlocal removed
+
+                def _label(m):
+                    nonlocal removed
+                    block = m.group(0)
+                    text = re.sub(r'<[^>]+>', '', block)
+                    text = re.sub(r'\s+', ' ', html.unescape(text)).strip()
+                    if len(text) < 2:
+                        return block
+
+                    def _drop(cm):
+                        nonlocal removed
+                        removed += 1
+                        return '<' + cm.group(1) + cm.group(2) + '>'
+                    return ctrl_aria.sub(_drop, block)
+                return label_block.sub(_label, part)
+
+            out = []
+            last = 0
+            for m in protect.finditer(src):
+                out.append(_process(src[last:m.start()]))
+                out.append(m.group(0))
+                last = m.end()
+            out.append(_process(src[last:]))
+            new_src = ''.join(out)
+            if new_src != src:
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(new_src)
+                changed += 1
+    print('Wrapped control aria cleanup: %d attrs in %d pages' % (removed, changed))
+    return removed
+
+
+def ensure_form_control_names():
+    """给缺少可访问名称的静态表单控件补 aria-label（2026-11-22）。
+
+    审计发现 256 个工具页仍有 553 个 input/select/textarea 没有 label/aria-label。
+    本批先处理目标明确、可从邻近文案推断的控件：range、color、file、time、date、
+    search。优先取控件前最近的 label / *-label / *-title 文案；推断不到时按
+    type 与 accept 给保守兜底名（如「选择图片文件」「选择日期」）。已有
+    aria-label / aria-labelledby / title 或 id 已被 label[for] 关联的一律不动。
+    script/style/pre/textarea 内的运行时字符串与示例不处理，保证幂等。
+    """
+    wanted = {'range', 'color', 'file', 'time', 'date', 'search'}
+    ctrl_re = re.compile(r'<(input|select|textarea)\b([^>]*)>', re.I)
+    attr_re = re.compile(r'([\w:-]+)\s*=\s*(["\'])(.*?)\2', re.S)
+    label_re = re.compile(r'<label\b[^>]*>(.*?)</label>', re.S | re.I)
+    aux_re = re.compile(
+        r'<(?:div|span|p)\b[^>]*class="[^"]*(?:label|title|hint|text)[^"]*"[^>]*>'
+        r'(.*?)</(?:div|span|p)>', re.S | re.I)
+    protect = re.compile(r'<(script|style|pre|textarea)\b.*?</\1\s*>', re.I | re.S)
+
+    # 少数控件的前文是说明而非名称，或同一名称被多个滑块复用；显式兜底。
+    by_path_id = {
+        ('image-rounded-corners.html', 'tlSlider'): '左上圆角半径滑块',
+        ('image-rounded-corners.html', 'trSlider'): '右上圆角半径滑块',
+        ('image-rounded-corners.html', 'blSlider'): '左下圆角半径滑块',
+        ('image-rounded-corners.html', 'brSlider'): '右下圆角半径滑块',
+        ('palette-cvd-checker.html', 'pcPick'): '配色颜色选择器',
+        ('color-temperature-converter.html', 'tempSlider'): '色温滑块',
+        ('colorfastness.html', 'origColor'): '原样颜色选择器',
+        ('colorfastness.html', 'testColor'): '测试样颜色选择器',
+        ('signature-pad.html', 'colorPicker'): '画笔颜色选择器',
+        ('pixel-art.html', 'colorPicker'): '自定义颜色选择器',
+        ('image-rotate.html', 'customColor'): '背景颜色选择器',
+        ('image-watermark.html', 'wmColor'): '水印颜色选择器',
+        ('image-watermark.html', 'wmFileInput'): '水印图片文件',
+        ('music-player.html', 'volume'): '音量滑块',
+        ('chord-progression.html', 'bpmSlider'): 'BPM 滑块',
+        ('web-audio-metronome.html', 'bpmSlider'): 'BPM 滑块',
+        ('flood-level.html', 'depthSlider'): '洪水深度滑块',
+        ('clamp-calculator.html', 'slider'): '数值滑块',
+        ('countdown-timer.html', 'event-date'): '事件日期',
+        ('countdown-timer.html', 'event-time'): '事件时间',
+        ('sports-stats.html', 'aDate'): '统计日期',
+        ('food-calorie-lookup.html', 'kw'): '搜索食物名称',
+        ('code-line-counter.html', 'codeFile'): '选择代码文件',
+        ('line-ending-converter.html', 'leFile'): '选择待转换文件',
+        ('npv-calculator.html', 'csvFile'): '选择现金流 CSV 文件',
+        ('csv-to-html-table.html', 'csvFile'): '选择 CSV 文件',
+        ('manager.html', 'importFile'): '选择导入文件',
+        ('image-compress.html', 'file-input'): '选择图片文件',
+        ('pdf-merge.html', 'fileInput'): '选择 PDF 文件',
+        ('pdf-rotate.html', 'fileInput'): '选择 PDF 文件',
+        ('pdf-split.html', 'fileInput'): '选择 PDF 文件',
+        ('video-trimmer.html', 'file-input'): '选择视频文件',
+    }
+    by_path_id.update({
+        ('base64-converter.html', 'fileInput'): '选择文件',
+        ('hash.html', 'fileInput'): '选择文件',
+        ('color-converter.html', 'colorPicker'): '自定义颜色选择器',
+        ('color-converter.html', 'palettePicker'): '调色板颜色选择器',
+        ('pdf-signature-checker.html', 'file'): '选择 PDF 文件',
+        ('color-palette.html', 'baseColor'): '基色选择器',
+        ('color-palette-generator.html', 'baseColor'): '基色选择器',
+        ('image-resize.html', 'qualitySlider'): '输出质量滑块',
+        ('step-stride.html', 'strRange'): '步长滑块',
+        ('step-stride.html', 'cadRange'): '步频滑块',
+        ('water-activity.html', 'awSlider'): '水分活度滑块',
+        ('reminder-time.html', 'time1'): '服药时间 1',
+        ('reminder-time.html', 'time2'): '服药时间 2',
+        ('reminder-time.html', 'time3'): '服药时间 3',
+    })
+    for n in range(1, 10):
+        by_path_id[('animal-welfare-score.html', 's%d' % n)] = '动物福利评分项 %d 滑块' % n
+
+    def clean(x):
+        x = re.sub(r'<[^>]+>', '', x)
+        return re.sub(r'\s+', ' ', html.unescape(x)).strip(' ：:')
+
+    def label_for(pre, typ, accept, path, cid):
+        key = (os.path.basename(path), cid)
+        if key in by_path_id:
+            return by_path_id[key]
+        cands = []
+        for m in label_re.finditer(pre):
+            c = clean(m.group(1))
+            if c:
+                cands.append((m.end(), c))
+        for m in aux_re.finditer(pre):
+            c = clean(m.group(1))
+            if c:
+                cands.append((m.end(), c))
+        cands = [(pos, c) for pos, c in cands
+                 if 2 <= len(c) <= 30 and not any(g in c for g in
+                 ('工作原理', '计算公式', '使用说明', '格式说明'))]
+        c = sorted(cands)[-1][1] if cands else ''
+        if c.startswith(('拖拽', '点击', '支持 ', '或输入')) or '·' in c:
+            c = ''
+        if typ == 'range':
+            return (c + '滑块') if c else '滑块'
+        if typ == 'color':
+            return (c + '选择器') if c else '颜色选择器'
+        if typ == 'file':
+            if c and ('文件' in c or '上传' in c or '图片' in c):
+                return c
+            if 'audio' in accept:
+                return '选择音频文件'
+            if 'image' in accept:
+                return '选择图片文件'
+            if 'csv' in accept:
+                return '选择 CSV 文件'
+            if 'video' in accept:
+                return '选择视频文件'
+            return '选择文件'
+        if typ == 'date':
+            return c or '选择日期'
+        if typ == 'time':
+            return c or '选择时间'
+        if typ == 'search':
+            return c or '搜索'
+        return c
+
+    changed = 0
+    tags = 0
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames if d not in
+                       {'.git', 'node_modules', 'zh-tw', '_en-i18n', '_site', 'dist'}]
+        for fn in filenames:
+            if not fn.endswith('.html'):
+                continue
+            path = os.path.join(dirpath, fn)
+            try:
+                with open(path, encoding='utf-8') as f:
+                    src = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if 'TOOLBOX-REDIRECT' in src:
+                continue
+            low = src.lower()
+            if not any(('<input' in low, '<select' in low, '<textarea' in low)):
+                continue
+            label_for_ids = set(re.findall(
+                r'<label\b[^>]*\bfor\s*=\s*["\']([^"\']+)', src, re.I))
+
+            def _process(part):
+                nonlocal changed, tags
+
+                def _sub(m):
+                    nonlocal changed, tags
+                    tag = m.group(1).lower()
+                    attrs = {k.lower(): v for k, q, v in attr_re.findall(m.group(2))}
+                    typ = attrs.get('type', 'text').lower() if tag == 'input' else tag
+                    if typ not in wanted:
+                        return m.group(0)
+                    key = (os.path.basename(path), attrs.get('id', ''))
+                    existing = attrs.get('aria-label')
+                    if existing:
+                        # 只纠正已知兜底键；其余人工 aria-label 一律不动。
+                        if key in by_path_id and existing != by_path_id[key]:
+                            esc = html.escape(by_path_id[key], quote=True)
+                            return re.sub(r'aria-label="[^"]*"',
+                                          'aria-label="%s"' % esc, m.group(0), count=1)
+                        return m.group(0)
+                    if (attrs.get('aria-labelledby') or attrs.get('title')
+                            or attrs.get('id') in label_for_ids):
+                        return m.group(0)
+                    pre = part[max(0, m.start() - 500):m.start()]
+                    name = label_for(pre, typ, attrs.get('accept', ''), path, attrs.get('id', ''))
+                    if not name:
+                        return m.group(0)
+                    esc = html.escape(name, quote=True)
+                    raw = m.group(0)
+                    if raw.rstrip().endswith('/>'):
+                        new = raw[:-2].rstrip() + ' aria-label="%s"/>' % esc
+                    else:
+                        new = raw[:-1].rstrip() + ' aria-label="%s">' % esc
+                    tags += 1
+                    return new
+                return ctrl_re.sub(_sub, part)
+
+            out = []
+            last = 0
+            for m in protect.finditer(src):
+                out.append(_process(src[last:m.start()]))
+                out.append(m.group(0))
+                last = m.end()
+            out.append(_process(src[last:]))
+            new_src = ''.join(out)
+            if new_src != src:
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(new_src)
+                changed += 1
+    print('Form control names: %d controls in %d pages' % (tags, changed))
+    return tags
+
+
 def ensure_table_header_scope():
     """给静态 HTML 表格的 th 补 scope 属性（2026-11-22）。
 
@@ -6634,6 +6892,8 @@ def main():
     ensure_breadcrumb_aria_current()
     ensure_nav_aria_labels()
     ensure_table_header_scope()
+    ensure_form_control_names()
+    strip_redundant_wrapped_control_aria()
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
