@@ -261,9 +261,9 @@ const CASES = [
   },
   {
     slug: "edu/capital-quiz",
-    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/capital-quiz.html','utf8');var ok=h.indexOf('点击「计算」或「生成」按钮')<0&&h.indexOf('点击「开始」抽题')>=0;document.getElementById('__tbProbe').textContent='JCFAQ:'+(ok?'OK':'BAD');"],
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/capital-quiz.html','utf8');var ok=h.indexOf('点击「计算」或「生成」按钮')<0&&h.indexOf('onclick=\"start()\"')>=0&&h.indexOf('>开始</button>')>=0;document.getElementById('__tbProbe').textContent='JCFAQ:'+(ok?'OK':'BAD');"],
     expect: ["JCFAQ:OK"],
-    ref: "EL-J84：使用说明与 FAQPage 结构化数据须与真实按钮（开始/重置）一致，不得沿用「点击计算或生成」模板套话；旧版两处都在 ⇒ BAD。"
+    ref: "EL-J84：FAQ 同步后旧文案「点击开始抽题」已随旧 FAQ 移除；改查真实「开始」按钮（onclick=start + 文案），并继续禁止「点击计算或生成」模板套话。"
   },
   {
     slug: "edu/word-count-pages",
