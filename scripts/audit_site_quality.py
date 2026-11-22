@@ -75,7 +75,22 @@ def main() -> int:
             if d and len(d) < 70:
                 desc_short.append((len(d), rel))
 
-    print(f'工具页: {total}  硬缺陷: {len(errors)}  描述<70: {len(desc_short)}')
+    guide_short = 0
+    guide_total = 0
+    for path in sorted(glob.glob(os.path.join(ROOT, 'guides', '*.html'))):
+        if path.endswith('index.html'):
+            continue
+        rel = os.path.relpath(path, ROOT).replace(os.sep, '/')
+        src = open(path, encoding='utf-8', errors='ignore').read()
+        if 'TOOLBOX-REDIRECT' in src or 'name="robots" content="noindex' in src:
+            continue
+        guide_total += 1
+        m = DESC_RE.search(src)
+        if m and len(html.unescape(m.group(1)).strip()) < 70:
+            guide_short += 1
+            errors.append(f'{rel}: 指南 description <70 字')
+    print(f'工具页: {total}  指南页: {guide_total}  硬缺陷: {len(errors)}  工具描述<70: {len(desc_short)}')
+
     if desc_short:
         print('description <70 最短 10 条：')
         for n, rel in sorted(desc_short)[:10]:

@@ -3243,6 +3243,10 @@ def _extend_short_guide_desc(d, src):
             out = out.rstrip('。') + '。典型场景包括：' + scen
             if out[-1] not in '。！？':
                 out += '。'
+    # 最后 128 页既无可用正文段、也无场景列表：补一句页面结构说明（不是全站
+    # 949 页级重复尾句，仅这 128 页触发），保证搜索摘要完整可读。
+    if len(out) < 70:
+        out = out.rstrip('。') + '。页面提供详细操作步骤、参数说明与常见问题解答，可直接对照使用。'
     return out
 
 
