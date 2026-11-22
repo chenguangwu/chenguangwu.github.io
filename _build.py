@@ -4029,11 +4029,13 @@ def _sync_faq_ld(src):
     payload = payload.replace('</', '<\\/')
     new_block = '<script type="application/ld+json">\n%s\n</script>' % payload
     spans = []
+    has_faq_block = False
     want = [(x['name'], x['acceptedAnswer']['text']) for x in qa]
     for m in _FAQ_SCRIPT_RE.finditer(src):
         raw = m.group(1)
         if '"FAQPage"' not in raw:
             continue
+        has_faq_block = True
         try:
             obj = json.loads(raw)
         except Exception:
@@ -4051,7 +4053,11 @@ def _sync_faq_ld(src):
             continue
         spans.append(m.span())
     if not spans:
-        return src, False
+        if has_faq_block or '</head>' not in src:
+            return src, False
+        # 可见 FAQ 存在但页面从未输出 FAQPage：补一块，插在 </head> 前。
+        out = src.replace('</head>', new_block + '\n</head>', 1)
+        return out, True
     out = src
     for start, end in reversed(spans):
         out = out[:start] + new_block + out[end:]
