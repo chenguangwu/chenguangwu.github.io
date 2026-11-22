@@ -417,6 +417,8 @@ GATES = (
     # 元数据覆盖（含单引号属性写法与迁移壳排除；2026-11-23 修正旧正则误报 177 页）。
     ("seo metadata audit", ("python3", "scripts/audit_seo.py", "--check")),
     ("preset bounds audit", ("python3", "scripts/audit_preset_bounds.py", "--check")),
+    # 指南页英文头部回归锁：119 个加载 guide-en-pack 的页面 head 键/词典/title/desc 必须完整。
+    ("guide en head audit", ("python3", "scripts/audit_guide_en_head.py")),
 )
 
 
