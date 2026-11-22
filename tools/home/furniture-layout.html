@@ -27,13 +27,13 @@
 <script src="../../js/common.js" defer></script>
 <style>
 .layout-wrap{display:grid;grid-template-columns:240px 1fr;gap:14px;}
-@media(max-width:700px){ .layout-wrap{grid-template-columns:1fr;} }
-.sidebar{background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:12px;}
+@media(max-width:700px){ .layout-wrap{grid-template-columns:minmax(0,1fr);} }
+.sidebar{background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:12px;min-width:0;}
 .sidebar h4{font-size:13px;color:var(--text-muted);margin-bottom:6px;}
 .furn-list{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;}
-.furn-btn{padding:6px;border:1px solid var(--border);background:var(--card-bg);border-radius:6px;cursor:pointer;font-size:12px;text-align:center;}
+.furn-btn{padding:6px;border:1px solid var(--border);background:var(--card-bg);border-radius:6px;cursor:pointer;font-size:12px;text-align:center;min-width:0;overflow-wrap:anywhere;}
 .furn-btn:hover{border-color:var(--primary);}
-.canvas-wrap{position:relative;background:#fafafa;border:2px dashed var(--border);border-radius:10px;overflow:hidden;aspect-ratio:1.4;min-height:400px;}
+.canvas-wrap{position:relative;background:#fafafa;border:2px dashed var(--border);border-radius:10px;overflow:hidden;aspect-ratio:1.4;min-height:400px;min-width:0;}
 .canvas-wrap.dark-bg{background:#0a0e14;}
 .placed{position:absolute;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:move;user-select:none;text-align:center;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,0.2);}
 .placed.selected{outline:2px solid var(--warning);}
@@ -278,6 +278,12 @@
 
 <script>
 const SCALE = 60;
+function roomScale(canvas, rl){
+ if(!window.innerWidth || window.innerWidth>700) return SCALE;
+ const host = canvas && canvas.parentElement;
+ const avail = (host ? host.clientWidth : rl * SCALE) - 4;
+ return Math.max(8, Math.min(SCALE, avail / Math.max(1, rl)));
+}
 const FURNITURE = {
  '床(双人)': {w:1.8, h:2.0},
  '床(单人)': {w:0.9, h:2.0},
@@ -369,8 +375,9 @@ function renderItems(){
  const canvas = document.getElementById('canvas');
  const rl = +document.getElementById('rl').value || 5;
  const rw = +document.getElementById('rw').value || 4;
- canvas.style.width = (rl * SCALE) + 'px';
- canvas.style.height = (rw * SCALE) + 'px';
+ const scale = roomScale(canvas, rl);
+ canvas.style.width = (rl * scale) + 'px';
+ canvas.style.height = (rw * scale) + 'px';
 
  document.getElementById('empty-tip').style.display = items.length ? 'none' : '';
 
@@ -382,10 +389,10 @@ function renderItems(){
   const h = it.rotated ? it.w : it.h;
   const el = document.createElement('div');
   el.className = 'placed' + (it.id === selectedId ? ' selected' : '');
-  el.style.width = (w * SCALE) + 'px';
-  el.style.height = (h * SCALE) + 'px';
-  el.style.left = (it.x * SCALE) + 'px';
-  el.style.top = (it.y * SCALE) + 'px';
+  el.style.width = (w * scale) + 'px';
+  el.style.height = (h * scale) + 'px';
+  el.style.left = (it.x * scale) + 'px';
+  el.style.top = (it.y * scale) + 'px';
   el.textContent = it.name;
   el.onclick = (e) => { e.stopPropagation(); selectedId = it.id; renderItems(); };
   el.onmousedown = (e) => startDrag(e, it);
@@ -404,8 +411,9 @@ function startDrag(e, item){
 
 function doDrag(e){
  if(!dragging) return;
- const dx = (e.clientX - dragging.startX) / SCALE;
- const dy = (e.clientY - dragging.startY) / SCALE;
+ const scale = roomScale(document.getElementById('canvas'), +document.getElementById('rl').value || 5);
+ const dx = (e.clientX - dragging.startX) / scale;
+ const dy = (e.clientY - dragging.startY) / scale;
  const rl = +document.getElementById('rl').value || 5;
  const rw = +document.getElementById('rw').value || 4;
  const it = dragging.item;
@@ -518,6 +526,7 @@ function exportLayout(){
 }
 
 document.getElementById('canvas').onclick = () => { selectedId = null; renderItems(); };
+window.addEventListener('resize', () => renderItems());
 
 var __fl0 = renderItems; renderItems = function(){ __fl0(); try{ __flExtras(); }catch(e){} };
 renderFurnList();
