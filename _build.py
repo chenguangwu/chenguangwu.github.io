@@ -3222,6 +3222,12 @@ def sync_guide_article_ld():
     gdir = os.path.join(ROOT, 'guides')
     if not os.path.isdir(gdir):
         return 0
+    lastmods = {}
+    try:
+        with open(os.path.join(ROOT, 'sitemap_lastmod.json'), encoding='utf-8') as f:
+            lastmods = json.load(f)
+    except Exception:
+        lastmods = {}
     block_re = re.compile(r'(<script type="application/ld\+json">)(.*?)(</script>)', re.S)
     updated = 0
     for fn in sorted(os.listdir(gdir)):
@@ -3260,6 +3266,14 @@ def sync_guide_article_ld():
                     'logo': {'@type': 'ImageObject',
                              'url': 'https://chenguangwu.github.io/logo-512.png'}}
                 dirty = True
+            _date = lastmods.get(abs_url)
+            if _date:
+                if not obj.get('datePublished'):
+                    obj['datePublished'] = _date
+                    dirty = True
+                if not obj.get('dateModified'):
+                    obj['dateModified'] = _date
+                    dirty = True
             if not dirty:
                 return m.group(0)
             changed[0] += 1
