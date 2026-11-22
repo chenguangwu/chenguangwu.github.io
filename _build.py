@@ -642,7 +642,7 @@ def normalize_tool_h1(html_str, zh_name='', dd_title=''):
                       re.finditer(r'<(script|style)\b[^>]*>[\s\S]*?</\1>', html_str, re.I)]
     # 解析可用中文名（先剥标签再反转义，避免实体被误当标签）
     cand = ''
-    bcs = re.findall(r'<span class="bc-current">([\s\S]*?)</span>', html_str)
+    bcs = re.findall(r'<span[^>]*class="bc-current"[^>]*>([\s\S]*?)</span>', html_str)
     for raw in ([bcs[-1]] if bcs else []) + [zh_name, dd_title]:
         t = html.unescape(_h1_text(raw))
         if _h1_name_ok(t):
@@ -4852,7 +4852,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             bc_ind_url = 'tools/' + industry + '/index.html'
             bc_tool_dir = 'tools/' + os.path.dirname(t['path'])
             bc_href = os.path.relpath(bc_ind_url, bc_tool_dir).replace(os.sep, '/')
-            bc_html = '\n<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">\n  <a href="../../index.html">首页</a>\n  <span class="bc-sep">‹</span>\n  <a href="%s">%s %s</a>\n  <span class="bc-sep">‹</span>\n  <span class="bc-current">%s</span>\n</nav>\n' % (bc_href, ind_icon, ind_name, tool_name_esc)
+            bc_html = '\n<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">\n  <a href="../../index.html">首页</a>\n  <span class="bc-sep">‹</span>\n  <a href="%s">%s %s</a>\n  <span class="bc-sep">‹</span>\n  <span class="bc-current" aria-current="page">%s</span>\n</nav>\n' % (bc_href, ind_icon, ind_name, tool_name_esc)
             if '<div class="container">' in content:
                 content = content.replace('<div class="container">', bc_html + '<div class="container">', 1)
             elif '<div class="card">' in content:
@@ -5903,7 +5903,7 @@ def generate_category_indexes(tools):
         parts.append('</head>\n<body>\n')
         parts.append('<h1 class="sr-only tb-bi"><span class="t-zh">%s %s工具</span><span class="t-en">%s %s Tools</span></h1>\n' % (ind_icon, esc_html_py(ind_name), ind_icon, esc_html_py(en_name)))
         # Breadcrumb
-        parts.append('<nav class="breadcrumb" aria-label="面包屑导航">\n  <a href="../../index.html" data-i18n="bc.home" data-i18n-fb="首页">首页</a>\n  <span class="bc-sep">‹</span>\n  <span class="bc-current tb-bi">%s <span class="t-zh">%s</span><span class="t-en">%s</span></span>\n</nav>\n' % (ind_icon, esc_html_py(ind_name), esc_html_py(en_name)))
+        parts.append('<nav class="breadcrumb" aria-label="面包屑导航">\n  <a href="../../index.html" data-i18n="bc.home" data-i18n-fb="首页">首页</a>\n  <span class="bc-sep">‹</span>\n  <span class="bc-current tb-bi" aria-current="page">%s <span class="t-zh">%s</span><span class="t-en">%s</span></span>\n</nav>\n' % (ind_icon, esc_html_py(ind_name), esc_html_py(en_name)))
         # Nav
         parts.append('<div class="nav">\n  <a href="../../index.html">← ToolBox</a>\n  <span class="tb-bi">/ <span class="t-zh">%s工具</span><span class="t-en">%s Tools</span></span>\n  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>\n</div>\n' % (esc_html_py(ind_name), esc_html_py(en_name)))
         # Content
@@ -6194,6 +6194,65 @@ def ensure_site_metadata():
                 continue
             changed += 1
     print('Site metadata: og:site_name +%d, theme-color +%d in %d pages' % (site_added, theme_added, changed))
+    return changed
+
+
+def ensure_breadcrumb_aria_current(include_tw=False):
+    """给可见面包屑当前项补 aria-current="page"（2026-11-22）。
+
+    4,813 个工具/指南页有 `class="bc-current"` 的面包屑末项，但全站
+    `aria-current="page"` 为 0；读屏用户无法判断当前所在层级。只处理
+    script 之外的静态标签，已有 aria-current 的不动，zh-tw/ 随后生成继承。
+    """
+    changed = 0
+    tags_added = 0
+    tag_re = re.compile(r'<[^>]*class="[^"]*bc-current[^"]*"[^>]*>')
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        skip = {'.git', 'node_modules', '_en-i18n', '_site', 'dist'}
+        if not include_tw:
+            skip.add('zh-tw')
+        dirnames[:] = [d for d in dirnames if d not in skip]
+        for fn in filenames:
+            if not fn.endswith('.html'):
+                continue
+            path = os.path.join(dirpath, fn)
+            try:
+                with open(path, encoding='utf-8') as f:
+                    src = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if 'bc-current' not in src or 'TOOLBOX-REDIRECT' in src or 'http-equiv="refresh"' in src:
+                continue
+            script_ranges = [(m.start(), m.end()) for m in
+                             re.finditer(r'<script\b[^>]*>.*?</script>', src, re.S | re.I)]
+            out = []
+            last = 0
+            n_add = 0
+            for m in tag_re.finditer(src):
+                if any(a <= m.start() < b for a, b in script_ranges):
+                    continue
+                tag = m.group(0)
+                if 'aria-current' in tag.lower():
+                    continue
+                if tag.rstrip().endswith('/>'):
+                    new_tag = tag.rstrip()[:-2].rstrip() + ' aria-current="page"/>'
+                else:
+                    new_tag = tag.rstrip()[:-1].rstrip() + ' aria-current="page">'
+                out.append(src[last:m.start()])
+                out.append(new_tag)
+                last = m.end()
+                n_add += 1
+            if not n_add:
+                continue
+            out.append(src[last:])
+            try:
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(''.join(out))
+            except (PermissionError, OSError):
+                continue
+            changed += 1
+            tags_added += n_add
+    print('Breadcrumb aria-current: %d tags in %d pages' % (tags_added, changed))
     return changed
 
 
@@ -6497,10 +6556,12 @@ def main():
     ensure_guide_article_og()
     ensure_og_image_dimensions()
     ensure_site_metadata()
+    ensure_breadcrumb_aria_current()
     ensure_table_header_scope()
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
+    ensure_breadcrumb_aria_current(include_tw=True)
 
     # 繁体站 desc 兜底：繁简字数差会让个别页跌破 Ahrefs 70 字符阈值（实测「字符串→字串」），
     # 对 zh-tw/ 中 desc<70 的页补足并同步 og/twitter/JSON-LD（幂等）。
