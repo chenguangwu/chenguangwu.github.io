@@ -3584,6 +3584,70 @@ def linkify_terms_html(text, own_slug='', state=None):
     return ''.join(out)
 
 
+_FAQ_SCRIPT_RE = re.compile(
+    r'<script type="application/ld\+json">([\s\S]*?)</script>', re.S)
+
+
+def _sync_faq_ld(src):
+    """用页面可见的 <dl class="dd-faq"> 重建 FAQPage JSON-LD。
+
+    Google 要求 FAQ 结构化数据与页面可见问答一致；历史页面的 LD 是旧模板，
+    与深度解析替换后的可见问答脱节（实测 236 页）。每次构建从可见内容重算，
+    保证二者永不漂移。
+
+    注意：必须逐个 <script> 块判断，不能用一个跨 script 的正则匹配 FAQPage；
+    页面通常先有 WebApplication 块，跨块匹配会把两块之间的整个 body 一起吞掉
+    （2026-11-22 构建曾因此截断 416 页）。
+    """
+    dl = re.search(r'<dl class="dd-faq">([\s\S]*?)</dl>', src)
+    if not dl:
+        return src, False
+    pairs = re.findall(r'<dt[^>]*>([\s\S]*?)</dt>\s*<dd[^>]*>([\s\S]*?)</dd>', dl.group(1))
+    qa = []
+    for q, a in pairs:
+        q = html.unescape(re.sub(r'<[^>]+>', '', q))
+        a = html.unescape(re.sub(r'<[^>]+>', '', a))
+        q = re.sub(r'\s+', ' ', q).strip()
+        a = re.sub(r'\s+', ' ', a).strip()
+        if q and a:
+            qa.append({'@type': 'Question', 'name': q,
+                       'acceptedAnswer': {'@type': 'Answer', 'text': a}})
+    if not qa:
+        return src, False
+    payload = json.dumps({'@context': 'https://schema.org', '@type': 'FAQPage',
+                          'mainEntity': qa}, ensure_ascii=False, indent=2)
+    payload = payload.replace('</', '<\\/')
+    new_block = '<script type="application/ld+json">\n%s\n</script>' % payload
+    spans = []
+    want = [(x['name'], x['acceptedAnswer']['text']) for x in qa]
+    for m in _FAQ_SCRIPT_RE.finditer(src):
+        raw = m.group(1)
+        if '"FAQPage"' not in raw:
+            continue
+        try:
+            obj = json.loads(raw)
+        except Exception:
+            continue
+        if not (isinstance(obj, dict) and obj.get('@type') == 'FAQPage'):
+            continue
+        cur = []
+        for q in obj.get('mainEntity') or []:
+            if not isinstance(q, dict):
+                continue
+            ans = q.get('acceptedAnswer') or {}
+            cur.append((str(q.get('name') or '').strip(),
+                        str(ans.get('text') or '').strip()))
+        if cur == want:
+            continue
+        spans.append(m.span())
+    if not spans:
+        return src, False
+    out = src
+    for start, end in reversed(spans):
+        out = out[:start] + new_block + out[end:]
+    return out, True
+
+
 def _build_deep_dive_html(d, own_slug=''):
     """构建「内容深度」区块 HTML：独有使用场景 / 实际示例 / FAQ，打掉模板化页过滤。"""
     if not isinstance(d, dict):
@@ -4866,6 +4930,9 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # Keep analytics last so hreflang normalization cannot discard it.
         if not _head_contains(content, '/js/analytics.js'):
             content = _inject_into_document_head(content, clarity_block)
+
+        # FAQPage 结构化数据与可见问答同步（构建期重算，防止旧模板漂移）。
+        content, _faq_synced = _sync_faq_ld(content)
 
         if content != original:
             with open(filepath, 'w', encoding='utf-8') as f:
