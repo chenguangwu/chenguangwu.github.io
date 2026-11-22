@@ -4879,7 +4879,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         app_desc_ld = json.dumps(
             html.unescape(_clip_zh_desc(_seo_desc_raw, 150)), ensure_ascii=False)
         tool_name_ld = json.dumps(html.unescape(t['name']), ensure_ascii=False)
-        app_json_block = '\n<!-- TOOLBOX-WEBAPP-LD -->\n<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"WebApplication","name":%s,"url":"https://chenguangwu.github.io/%s","applicationCategory":"%s","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":%s,"description":%s,"image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}\n</script>' % (tool_name_ld, t['url'], app_cat, json.dumps(I18N_LOCALES, ensure_ascii=False), app_desc_ld)
+        app_json_block = '\n<!-- TOOLBOX-WEBAPP-LD -->\n<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"WebApplication","name":%s,"url":"https://chenguangwu.github.io/%s","applicationCategory":"%s","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":%s,"description":%s,"image":"https://chenguangwu.github.io/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}\n</script>' % (tool_name_ld, t['url'], app_cat, json.dumps(I18N_LOCALES, ensure_ascii=False), app_desc_ld)
 
         def _replace_webapp_ld(src):
             # 注意：标记注释位于 <script> 之外，必须一并纳入匹配范围，
