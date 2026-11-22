@@ -3590,10 +3590,13 @@ def inject_core_hreflang():
             continue
         if '<head' not in src:
             continue
-        src = re.sub(r'<link[^>]*\bhreflang="[^"]+"[^>]*>\s*', '', src, flags=re.I)
-        src = re.sub(r'<meta property="og:locale(?::alternate)?" content="[^"]+">\s*', '', src, flags=re.I)
         abs_url = 'https://chenguangwu.github.io/' + fn
-        out = inject_hreflang(src, abs_url)
+        if I18N_HREFLANG_MARKER in src:
+            out = inject_hreflang(src, abs_url)
+        else:
+            src = re.sub(r'<link[^>]*\bhreflang="[^"]+"[^>]*>\s*', '', src, flags=re.I)
+            src = re.sub(r'<meta property="og:locale(?::alternate)?" content="[^"]+">\s*', '', src, flags=re.I)
+            out = inject_hreflang(src, abs_url)
         if out != src:
             with open(fp, 'w', encoding='utf-8') as f:
                 f.write(out)
@@ -3625,11 +3628,17 @@ def inject_guide_hreflang():
         if 'TOOLBOX-REDIRECT' in src or '<head' not in src:
             continue
         abs_url = 'https://chenguangwu.github.io/guides/%s' % fn
-        # 部分指南历史模板只写了 zh-CN / x-default 两条 alternate，且无 marker；
-        # 先清掉旧 alternate 与 og:locale，再整体注入，避免重复 link。
-        src = re.sub(r'<link[^>]*\bhreflang="[^"]+"[^>]*>\s*', '', src, flags=re.I)
-        src = re.sub(r'<meta property="og:locale(?::alternate)?" content="[^"]+">\s*', '', src, flags=re.I)
-        out = inject_hreflang(src, abs_url)
+        # 有 marker 的页交给 inject_hreflang 整体替换：它会连同旧 alternate 与
+        # og:locale 一起替换。旧实现先删 link 再注入，会留下"只有 marker 没有
+        # link"的半截块，使 inject_hreflang 走 end_pos 兜底分支，把 marker 到
+        # </head> 之间的 theme-color / JSON-LD 等内容一并清掉（2026-11-22 实测）。
+        if I18N_HREFLANG_MARKER in src:
+            out = inject_hreflang(src, abs_url)
+        else:
+            # 无 marker 的历史页：先清掉散落的旧 alternate 与 og:locale，再整体注入。
+            src = re.sub(r'<link[^>]*\bhreflang="[^"]+"[^>]*>\s*', '', src, flags=re.I)
+            src = re.sub(r'<meta property="og:locale(?::alternate)?" content="[^"]+">\s*', '', src, flags=re.I)
+            out = inject_hreflang(src, abs_url)
         if out != src:
             with open(fp, 'w', encoding='utf-8') as f:
                 f.write(out)
@@ -5816,6 +5825,7 @@ def generate_category_indexes(tools):
         parts.append('<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n')
         parts.append('<meta charset="UTF-8">\n')
         parts.append('<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">\n')
+        parts.append('<meta name="theme-color" content="#FF6B35">\n')
         parts.append('<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">\n')
         parts.append('<meta http-equiv="X-Content-Type-Options" content="nosniff">\n')
         parts.append('<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">\n')
@@ -6123,6 +6133,52 @@ def ensure_table_header_scope():
     print('Table header scope: %d cells in %d pages' % (cells, changed))
     return changed
 
+def ensure_site_metadata():
+    """补齐全站 og:site_name 与 theme-color（2026-11-22）。
+
+    审计发现 4,623 个页面缺 og:site_name，6,907 个页面缺 theme-color。
+    前者让 Facebook/LinkedIn 等卡片能稳定显示站点名，后者决定移动端
+    浏览器地址栏/状态栏的品牌色。已有值一律不动，保证幂等；zh-tw/
+    在随后生成时继承。
+    """
+    changed = 0
+    site_added = 0
+    theme_added = 0
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames if d not in {'.git', 'node_modules', 'zh-tw', '_en-i18n', '_site', 'dist'}]
+        for fn in filenames:
+            if not fn.endswith('.html'):
+                continue
+            path = os.path.join(dirpath, fn)
+            try:
+                with open(path, encoding='utf-8') as f:
+                    src = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if 'TOOLBOX-REDIRECT' in src or 'http-equiv="refresh"' in src:
+                continue
+            add = []
+            if 'property="og:site_name"' not in src and 'property="og:image"' in src:
+                add.append('<meta property="og:site_name" content="ToolBox">')
+                site_added += 1
+            if 'name="theme-color"' not in src:
+                add.append('<meta name="theme-color" content="#FF6B35">')
+                theme_added += 1
+            if not add:
+                continue
+            if '</head>' not in src:
+                continue
+            src = src.replace('</head>', '\n'.join(add) + '\n</head>', 1)
+            try:
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(src)
+            except (PermissionError, OSError):
+                continue
+            changed += 1
+    print('Site metadata: og:site_name +%d, theme-color +%d in %d pages' % (site_added, theme_added, changed))
+    return changed
+
+
 def main():
     print('=== ToolBox Build ===')
     # 构建期写出 /js/toolbox-stub.js（ToolBox 早期 API 桩外链文件），供全站工具页共享引用，
@@ -6363,6 +6419,7 @@ def main():
     sync_guide_faq_ld()
     inject_image_alt()
     ensure_og_image_dimensions()
+    ensure_site_metadata()
     ensure_table_header_scope()
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
