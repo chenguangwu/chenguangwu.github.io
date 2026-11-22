@@ -441,6 +441,8 @@ var LANG_REGISTRY = [
       'tool.aria.left_paren': 'Left parenthesis',
       'tool.aria.right_paren': 'Right parenthesis',
       'tool.aria.swap': 'Swap',
+      'tool.ph.example_090_05_1': 'e.g. 0.9 (0.5–1)',
+      'tool.ph.example_3_1_6': 'e.g. 3 (1–6)',
       'ux.clear_local': 'Clear local data',
       'foot.la_widget_aria': 'ToolBox real-time visit data',
       'about.stats_aria': 'Site statistics',
