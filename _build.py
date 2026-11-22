@@ -3168,6 +3168,76 @@ def _guide_first_distinct_para(src, core):
     return ''
 
 
+
+def _extend_short_guide_desc(d, src):
+    """短指南描述补足到 70 字以上（2026-11-23）。
+
+    792 页 description 短于 70 字（其中 414 页 40–49 字），搜索结果里只能显示
+    半句话。这里从页面正文取第一段与现有描述不重复的信息句追加，最多补到 150 字。
+    只追加正文里真实存在、已完整收句且不含套话的段落；取不到就保持原样，绝不
+    拼接全站通用模板，避免再次制造 949 页重复尾句。
+    """
+    if len(d) >= 70:
+        return d
+    snip = _guide_first_distinct_para(src, d)
+    extra = ''
+    if snip:
+        for sent in re.split(r'(?<=[。！？])', snip):
+            sent = sent.strip()
+            if not sent or sent in d:
+                continue
+            if len(d) + len(extra) + len(sent) > 150:
+                break
+            extra += sent
+            if len(d) + len(extra) >= 70:
+                break
+    out = d
+    if out and out[-1] not in '。！？':
+        out += '。'
+    if extra:
+        out += extra
+        if out[-1] not in '。！？':
+            out += '。'
+    # 正文首段与描述重复时，退而用「典型使用场景」列表项补足：这些条目是
+    # 页面独有内容，比拼接全站通用套话更能提升搜索摘要的信息量。
+    if len(out) < 70:
+        scen = _guide_scenario_snippet(src, out)
+        if scen and len(out) + len(scen) + 5 <= 150:
+            out = out.rstrip('。') + '。典型场景包括：' + scen
+            if out[-1] not in '。！？':
+                out += '。'
+    return out
+
+
+def _guide_scenario_snippet(src, core):
+    """从「典型使用场景 / 适用场景」列表取 1–2 条独有场景，拼成一句。"""
+    body = src.split('</head>', 1)[-1]
+    body = re.sub(r'<(script|style)\b[^>]*>[\s\S]*?</\1>', '', body, flags=re.I)
+    heads = list(re.finditer(r'<h2[^>]*>([\s\S]*?)</h2>', body, re.I))
+    picks = []
+    for i, hm in enumerate(heads):
+        title = re.sub(r'<[^>]+>', '', hm.group(1)).strip()
+        if not any(k in title for k in ('使用场景', '适用场景', '应用场景', '适用人群', '典型场景', '适用对象')):
+            continue
+        end = heads[i + 1].start() if i + 1 < len(heads) else len(body)
+        section = body[hm.end():end]
+        for raw in re.findall(r'<li[^>]*>([\s\S]*?)</li>', section, re.I):
+            t = html.unescape(re.sub(r'<[^>]+>', ' ', raw))
+            t = re.sub(r'\s+', ' ', t).strip().rstrip('。；;')
+            if len(t) < 8 or len(t) > 70:
+                continue
+            if any(g in t for g in _GUIDE_BOIL_MARKERS):
+                continue
+            if t in core or core in t:
+                continue
+            if t not in picks:
+                picks.append(t)
+            if len(picks) >= 2:
+                break
+        if picks:
+            break
+    return '；'.join(picks)
+
 def _rewrite_guide_desc(d, src):
     """用页面专属正文替换全站通用的「本指南整理…数据不上传」尾句（2026-11-14 409）。
 
@@ -3178,6 +3248,7 @@ def _rewrite_guide_desc(d, src):
     625 个指南页描述/回退文本里，构成站内大规模重复；短描述保持页面专属内容。
     """
     d = (d or '').strip()
+    d = _extend_short_guide_desc(d, src)
     if _GUIDE_STRUCT_TAIL and _GUIDE_STRUCT_TAIL in d:
         d = d.replace(_GUIDE_STRUCT_TAIL, '').strip()
         if d and d[-1] not in '。！？':
@@ -4966,6 +5037,14 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             'image': 'MultimediaApplication', 'design': 'MultimediaApplication',
         }
         app_cat = app_cat_map.get(t['cat'], 'UtilitiesApplication')
+        # 临床评分/分期页历史 meta cat 被误标 finance，导致 applicationCategory
+        # 输出 FinanceApplication（2026-11-23 扫描 17 页）。这里按行业纠正；
+        # 成本类（health/smoking-cost-calculator、tcm-pharmacy/tcm-pharmacoeconomics）
+        # 语义上仍属财务，保留 FinanceApplication。
+        if app_cat == 'FinanceApplication' and industry in {
+                'cardiology', 'neurology', 'nephrology', 'urology',
+                'psychiatry', 'hematology', 'rehabilitation'}:
+            app_cat = 'MedicalApplication'
         # 中文优先：JSON-LD description 与 meta 描述同源取中文（extract_zh_desc），
         # 避免中文模式页面结构化数据里塞英文 t['desc']（与 meta/og 描述保持一致）
         # SEO 描述统一治理（2026-09-23 续）：提取真实中文描述后，若字符数 < 70
@@ -5040,8 +5119,16 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 _extra = re.sub(r'\s+', ' ', _extra).rstrip('。')
                 if len(_extra) >= 8 and _extra[:8] not in _seo_desc_raw:
                     _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。' + _extra
+            # 无场景/特性列表可补的 76 页短描述（多为 55–69 字）：补一句真实产品能力，
+            # 避免搜索结果只显示半句。只在此兜底触发，不污染已有 70+ 的页面。
+            if len(_seo_desc_raw) < 70 and '支持参数自定义' not in _seo_desc_raw:
+                _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。支持参数自定义、即时计算与结果解读。'
             if not _seo_desc_raw.endswith(('。', '！', '？')):
                 _seo_desc_raw += '。'
+        # 最终兜底：上面模板+隐私尾句清洗可能把描述再次压到 70 字以下，
+        # 在落盘前统一补足一次，确保 meta / og / twitter / JSON-LD 四处同源达标。
+        if len(_seo_desc_raw) < 70 and '支持参数自定义' not in _seo_desc_raw:
+            _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。支持参数自定义、即时计算与结果解读。'
         # JSON-LD 中 description 必须是字面文本，不能沿用 HTML meta 的实体转义：
         # 否则 &quot; / &lt; / &amp; 会被搜索引擎当作正文显示（实测 48 页）。
         # 先还原实体，再交给 json.dumps 负责引号、反斜杠与控制字符转义。
@@ -5132,9 +5219,19 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # 关键修复：旧构建曾给「无覆盖页」注入退化 desc-en（如 "X - online utility on ToolBox."），
         # 而空 _en_desc 不会触发下方清理，导致退化串永久残留。此处补回退，确保每页 desc-en 非退化。
         _en_desc = _clean_en_desc(_seo_override.get('ed') or '')
+        # 退化守卫：_en_override 的 ed 有 3,539 条被生成器写成了工具名（与 en 完全相同），
+        # 直接采用会让 desc-en 与 title-en 重复、SEO 描述失去信息量。
+        # 此类与标题相同或短于 20 字的 ed 一律视为无效，回落到 TDS.en_desc（
+        # i18n en-US.intro → 人工精翻表 → _en_desc.json → 词典翻译，均为真实描述）。
+        if _en_desc and _en_t and _en_desc.strip() == _en_t.strip():
+            _en_desc = ''
+        if _en_desc and len(_en_desc.strip()) < 20:
+            _en_desc = ''
         if not _en_desc:
             _ed_fb = TDS.en_desc(t, max_len=160)
-            _en_desc = _ed_fb if _ed_fb and not TDS.has_cjk(_ed_fb) else ''
+            if _ed_fb and not TDS.has_cjk(_ed_fb):
+                if not (_en_t and _ed_fb.strip() == _en_t.strip()) and len(_ed_fb.strip()) >= 20:
+                    _en_desc = _ed_fb
         _m_t = re.search(r'<title>([^<]*)</title>', content)
         _obsolete_meta_names = []
         if _en_t:
