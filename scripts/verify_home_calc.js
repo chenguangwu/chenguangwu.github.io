@@ -173,6 +173,12 @@ const CASES = [
   "inputs": { "power": "1000", "price": "0" },
   "expect": ["¥0.00"],
   "ref": "电价 0 是合法输入（自发电/赠电场景），不得被空态守卫拦死，日电费应显示 0.00 元。"
+},
+{
+  "slug": "home/ac-energy-cost",
+  "inputs": { "hours": "20", "standbyHours": "10" },
+  "expect": ["每日运行小时与待机小时合计超过 24 小时，请核对，避免重复计算。"],
+  "ref": "交叉校验：运行 20 h + 待机 10 h = 30 h，超过一天，必须提示核对；不能默默把 30 小时都计入。"
 }
 ];
 async function main() {
