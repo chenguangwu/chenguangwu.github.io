@@ -4382,6 +4382,15 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         if 'og:image' not in content:
             image_meta = '\n<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">\n<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">\n<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">\n'
             content = content.replace('</head>', image_meta + '</head>', 1)
+        # 已有 og:image 但缺 alt 的页面（历史页面 86 个）：单独补齐，避免重复整块注入。
+        if 'og:image:alt' not in content:
+            content = content.replace(
+                '</head>',
+                '<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">\n</head>', 1)
+        if 'twitter:image:alt' not in content:
+            content = content.replace(
+                '</head>',
+                '<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">\n</head>', 1)
 
         # 4.0 中文优先 <title>（2026-08-29 反转：目标用户以中文为主）。
         # 初始 <title> 渲染为中文（per-industry 字典 zh-CN.title 或中文名），英文标题存
