@@ -4075,6 +4075,28 @@ def _fix_invalid_label_for(src):
     return _LABEL_TAG_RE.sub(repl, src)
 
 
+_CONTAINER_TAG_RE = re.compile(
+    r'(<div\b[^>]*\bclass="[^"]*\bcontainer\b[^"]*"[^>]*)>', re.I)
+
+
+def _ensure_main_role(src):
+    """无 <main> 时给主内容 .container 加 role="main"（2026-11-22）。
+
+    32 个自绘测试/工具页使用 `.container` 作主内容容器但缺少 main 地标，
+    屏幕阅读器无法跳转主内容。仅在整页既无 <main> 也无 role="main" 时，
+    给首个 .container 标签补 role；已有 role 的标签不动。
+    """
+    if re.search(r'<main\b|role\s*=\s*["\']main["\']', src, re.I):
+        return src
+    match = _CONTAINER_TAG_RE.search(src)
+    if not match:
+        return src
+    tag = match.group(1)
+    if re.search(r'\brole\s*=', tag, re.I):
+        return src
+    return src[:match.start(1)] + tag + ' role="main"' + src[match.end(1):]
+
+
 def _sync_faq_ld(src):
     """用页面可见的 <dl class="dd-faq"> 重建 FAQPage JSON-LD。
 
@@ -4925,6 +4947,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         content, _redundant_app_removed = _strip_redundant_app_ld(content)
         content = _associate_labels(content)
         content = _fix_invalid_label_for(content)
+        content = _ensure_main_role(content)
 
         # 4. Add og:image / twitter:image (idempotent)
         if 'og:image' not in content:
