@@ -231,7 +231,7 @@
 | https://chenguangwu.github.io/tools/acoustics/decibel-power.html | https://chenguangwu.github.io/tools/acoustics/decibel-power-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/acoustics/decibel-voltage.html | https://chenguangwu.github.io/tools/acoustics/decibel-voltage-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/guides/convert-content-1-guide.html | https://chenguangwu.github.io/guides/dry-matter-conversion-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至dry-matter-conversion 使用指南 |
-| https://chenguangwu.github.io/guides/generator-4-guide.html | https://chenguangwu.github.io/tools/edu/summary-generator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至摘要生成器工具页 |
+| https://chenguangwu.github.io/guides/generator-4-guide.html | https://chenguangwu.github.io/tools/it/summary-generator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至摘要生成器工具页 |
 | https://chenguangwu.github.io/guides/variance-list-guide.html | https://chenguangwu.github.io/guides/sample-variance-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至sample-variance 使用指南 |
 | https://chenguangwu.github.io/guides/period-pendulum-guide.html | https://chenguangwu.github.io/guides/pendulum-period-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至pendulum-period 使用指南 |
 | https://chenguangwu.github.io/guides/annuity-pv-inv-guide.html | https://chenguangwu.github.io/guides/annuity-present-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至annuity-present 使用指南 |
@@ -254,7 +254,7 @@
 | https://chenguangwu.github.io/guides/placenta-grading-guide.html | https://chenguangwu.github.io/guides/taipanchengshudu-grannumfenji-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至taipanchengshudu-grannumfenji 使用指南 |
 | https://chenguangwu.github.io/guides/calc-risk-guide.html | https://chenguangwu.github.io/guides/down-screening-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至down-screening 使用指南 |
 | https://chenguangwu.github.io/guides/noise-addition-guide.html | https://chenguangwu.github.io/guides/noise-superposition-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至noise-superposition 使用指南 |
-| https://chenguangwu.github.io/guides/detector-strength-guide.html | https://chenguangwu.github.io/tools/safety/password-strength.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至密码强度检测工具页 |
+| https://chenguangwu.github.io/guides/detector-strength-guide.html | https://chenguangwu.github.io/tools/it/password-strength.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至密码强度检测工具页 |
 | https://chenguangwu.github.io/guides/aspheric-design-guide.html | https://chenguangwu.github.io/guides/calc-47-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至calc-47 使用指南 |
 | https://chenguangwu.github.io/guides/pet-age-converter-guide.html | https://chenguangwu.github.io/guides/pet-age-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至pet-age 使用指南 |
 | https://chenguangwu.github.io/guides/token-guide.html | https://chenguangwu.github.io/guides/token-usage-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至token-usage 使用指南 |
