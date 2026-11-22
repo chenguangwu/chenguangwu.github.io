@@ -71,8 +71,42 @@
     }
   }
 
+
+  // 指南页 head 标签（title / description / og / twitter）英文映射。
+  // GUIDE_EN_PACK 内含 guide.<slug>.title / desc 等键，但此前只被脚本加载、无人消费；
+  // 这里按 data-i18n-head + data-i18n-head-fb 精确替换，避免英文态标题与描述仍是中文。
+  var HEAD_APPLIED = false;
+  function translateHead() {
+    var pack = window.GUIDE_EN_PACK;
+    if (!pack) return false;
+    var nodes = document.querySelectorAll('[data-i18n-head]');
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      var key = el.getAttribute('data-i18n-head');
+      if (!key || !pack[key]) continue;
+      var fb = el.getAttribute('data-i18n-head-fb') || '';
+      var attr = el.getAttribute('data-attr');
+      var val = pack[key] || fb;
+      if (!val) continue;
+      if (attr) el.setAttribute(attr, val);
+      else el.textContent = val;
+      HEAD_APPLIED = true;
+    }
+    return HEAD_APPLIED;
+  }
+  // 指南页的 guide-en-pack.js 可能比动态注入的 guide-i18n.js 晚到；
+  // 首次 apply 若 pack 未就绪会静默跳过，这里在 load 后与短延时内重试，保证标题/描述英文化。
+  function scheduleHead() {
+    translateHead();
+    if (HEAD_APPLIED || !isEnglish()) return;
+    setTimeout(translateHead, 0);
+    setTimeout(translateHead, 300);
+    setTimeout(translateHead, 1000);
+  }
+
   function applyEnDict() {
     if (!isEnglish()) return;
+    scheduleHead();
     if (!EN_DICT && !EN_COMMON) return;
     var roots = [];
     var main = document.querySelector('main'); if (main) roots.push(main);
@@ -111,6 +145,7 @@
 
   function apply() {
     if (!isEnglish()) return;
+    scheduleHead();
     if (APPLIED) { applyEnDict(); return; }
     loadCommon().then(function () { return loadDict(); }).then(function () {
       APPLIED = true;
@@ -123,5 +158,6 @@
   } else {
     apply();
   }
+  window.addEventListener('load', function () { scheduleHead(); });
   window.addEventListener('toolbox:langchange', function () { apply(); });
 })();
