@@ -2763,6 +2763,7 @@ def generate_html_sitemap(tools):
 <meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
 <link rel="canonical" href="https://chenguangwu.github.io/sitemap.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"站点地图 - ToolBox 免费在线工具集合","description":"ToolBox 在线工具站点地图：按 268 个行业分类浏览全部 5000+ 免费在线工具。","url":"https://chenguangwu.github.io/sitemap.html","inLanguage":"zh-CN","isPartOf":{"@type":"WebSite","name":"ToolBox","url":"https://chenguangwu.github.io/"}}</script>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="/css/site-chrome.css">
 <style>

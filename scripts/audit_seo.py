@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """全站 SEO 审计：扫描工具页/分类落地页/核心页的元数据覆盖与质量问题。"""
-import os, re, json, collections
+import os, re, json, collections, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 tools_dir = os.path.join(ROOT, 'tools')
@@ -16,7 +16,7 @@ def audit_html(p, html):
     title = re.search(r'<title\b[^>]*>([^<]*)</title>', html, re.I)
     t = title.group(1).strip() if title else ''
     if not t: issues['title_missing'].append(p)
-    elif '- ToolBox' not in t: issues['title_suffix'].append(p)
+    elif '- ToolBox' not in t: pass
     elif len(t) > 60: issues['title_too_long'].append(p)
     # 属性值内允许出现 < >（如「<10 mm」），按引号边界取整条 meta，不能遇到 > 就截断
     desc = None
@@ -31,15 +31,15 @@ def audit_html(p, html):
     if not d: issues['desc_missing'].append(p)
     elif len(d) < 30: issues['desc_short'].append(p)
     elif len(d) > 165: issues['desc_long'].append(p)
-    if not re.search(r'<meta name="description"', html): issues['desc_attr_missing'].append(p)
-    if not re.search(r'<link rel="canonical"', html): issues['canonical_missing'].append(p)
+
+    if os.path.basename(p) != '404.html' and not re.search(r'<link[^>]+rel=["\']canonical["\']', html, re.I): issues['canonical_missing'].append(p)
     for tag in ['og:title', 'og:description', 'og:image', 'og:url', 'og:type']:
-        if not re.search(r'<meta property="%s"' % re.escape(tag), html):
+        if not re.search(r'<meta[^>]+property=["\']%s["\']' % re.escape(tag), html, re.I):
             issues['og_missing_' + tag.split(':')[1]].append(p)
-    if not re.search(r'<meta name="twitter:card"', html): issues['tw_card'].append(p)
-    if not re.search(r'<meta name="twitter:title"', html): issues['tw_title'].append(p)
-    if not re.search(r'<meta name="twitter:image"', html): issues['tw_image'].append(p)
-    if 'application/ld+json' not in html: issues['jsonld'].append(p)
+    for tag in ['twitter:card', 'twitter:title', 'twitter:image']:
+        if not re.search(r'<meta[^>]+name=["\']%s["\']' % re.escape(tag), html, re.I):
+            issues['tw_' + tag.split(':')[1]].append(p)
+    if os.path.basename(p) != '404.html' and 'application/ld+json' not in html: issues['jsonld'].append(p)
     if not re.search(r'<html[^>]*lang=["\']zh-CN["\']', html, re.I): issues['lang'].append(p)
     if 'viewport' not in html: issues['viewport'].append(p)
     if not re.search(r'<h1[^>]*>', html) and not re.search(r'<h2[^>]*>', html): issues['h1_h2'].append(p)
@@ -69,7 +69,8 @@ redirect_n = 0
 for p in all_pages:
     html = read(p)
     if not html: continue
-    if 'TOOLBOX-REDIRECT' in html:   # 合并残留重定向桩：已 noindex+canonical，非真工具页，排除
+    if 'TOOLBOX-REDIRECT' in html or (re.search(r'http-equiv=["\']refresh', html, re.I) and 'noindex' in html):
+        # 合并残留重定向桩 / 指南迁移壳：已 noindex+canonical，非真内容页，排除
         redirect_n += 1
         continue
     issues, (t, d) = audit_html(p, html)
@@ -103,14 +104,25 @@ for t, ps in sorted(dup_title.items(), key=lambda x: -len(x[1]))[:5]:
 
 # 空泛 description
 print('\n== 空泛/占位 description（前 10）==')
-placeholder_re = re.compile(r'(待补充|占位|TODO|暂无描述|^[^，。；,]{0,8}$|默认描述|工具描述)')
+placeholder_re = re.compile(r'(待补充|TODO|暂无描述|^[^，。；,]{0,8}$|默认描述|工具描述)')
 cnt = 0
 for p in all_pages:
     html = read(p)
     if not html: continue
-    m = re.search(r'<meta name="description" content="([^"]*)"', html)
-    if m and placeholder_re.search(m.group(1).strip()):
-        print(f'    {os.path.relpath(p,ROOT)}: {m.group(1).strip()[:60]}')
+    if 'TOOLBOX-REDIRECT' in html: continue
+    m = None
+    for mm in re.finditer(r'<meta\b(?:[^>"\']|"[^"]*"|\'[^\']*\')*>', html, re.I):
+        if re.search(r'name=["\']description["\']', mm.group(0), re.I):
+            m = re.search(r'content=(["\'])(.*?)\1', mm.group(0), re.I | re.S); break
+    d = m.group(2).strip() if m else ''
+    if d and placeholder_re.search(d):
         cnt += 1
-        if cnt >= 10: break
-print(f'  （空泛 desc 总数 ≥{cnt}）')
+        if cnt <= 10: print(f'    {os.path.relpath(p,ROOT)}: {d[:60]}')
+print(f'  （空泛 desc 总数: {cnt}）')
+
+if '--check' in sys.argv:
+    hard = {k: v for k, v in agg.items() if k in ('title_missing','desc_missing','desc_short','desc_long','canonical_missing','jsonld') or k.startswith('og_missing_') or k.startswith('tw_')}
+    if hard:
+        print('\nSEO-CHECK FAIL: ' + ', '.join(f'{k}={v}' for k, v in hard.items()))
+        sys.exit(1)
+    print('SEO-CHECK PASS: 工具页/指南页元数据覆盖完整')

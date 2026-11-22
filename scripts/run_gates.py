@@ -414,6 +414,8 @@ GATES = (
     ("asrs star dynamic", ("node", "scripts/_verify_asrs_star_dynamic.mjs")),
     # 全站 SEO/内容质量回归锁：desc-en 退化、占位 formula-desc、临床页分类错配。
     ("site quality audit", ("python3", "scripts/audit_site_quality.py", "--check")),
+    # 元数据覆盖（含单引号属性写法与迁移壳排除；2026-11-23 修正旧正则误报 177 页）。
+    ("seo metadata audit", ("python3", "scripts/audit_seo.py", "--check")),
 )
 
 
