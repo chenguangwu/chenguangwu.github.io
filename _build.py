@@ -2776,6 +2776,7 @@ html:not([lang="en-US"]) .tool-link .t-en{display:none !important;}
 <script src="/js/common.js" defer></script>
 </head>
 <body>
+<main>
 <a href="/" class="back" data-i18n="sitemap.back" data-i18n-fb="← 返回首页">← 返回首页</a>
 <h1><a href="/">🧰 ToolBox</a></h1>
 <p class="subtitle"><span data-i18n="sitemap.subtitle_a" data-i18n-fb="站点地图 · 共 ">站点地图 · 共 </span>%d<span data-i18n="sitemap.subtitle_b" data-i18n-fb=" 个免费在线工具 · 更新于 "> 个免费在线工具 · 更新于 </span>%s</p>
@@ -2804,7 +2805,8 @@ html:not([lang="en-US"]) .tool-link .t-en{display:none !important;}
                 html += f'  <a class="tool-link" href="/{t["url"]}"><span class="t-zh">{t["icon"]} {t["name"]}</span><span class="t-en">{t["icon"]} {t.get("en") or t["name"]}</span></a>\n'
             html += '</div>\n'
     
-    html += '''<div class="footer">
+    html += '''</main>
+<div class="footer">
 <p><a href="/sitemap.xml">XML Sitemap</a> · <a href="/" data-i18n="sitemap.back_home" data-i18n-fb="返回首页">返回首页</a></p>
 <p data-i18n="sitemap.copyright" data-i18n-fb="© 2026 ToolBox - 免费在线工具集合">© 2026 ToolBox - 免费在线工具集合</p>
 </div>
