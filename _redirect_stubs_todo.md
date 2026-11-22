@@ -147,7 +147,7 @@
 | https://chenguangwu.github.io/tools/economics/pv-annuity.html | https://chenguangwu.github.io/tools/insurance/annuity-present.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/edu/generator-4.html | https://chenguangwu.github.io/tools/it/summary-generator.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/energy/electrical-power.html | https://chenguangwu.github.io/tools/electromagnetism/electric-power.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
-| https://chenguangwu.github.io/tools/finance/password.html | https://chenguangwu.github.io/tools/life/generator-strength.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
+| https://chenguangwu.github.io/tools/finance/password.html | https://chenguangwu.github.io/tools/it/password-generator.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/finance/word-counter.html | https://chenguangwu.github.io/tools/text/stats-1.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/fitness/calculator-calc-constitution.html | https://chenguangwu.github.io/tools/healthcare/bmi-calculator.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
 | https://chenguangwu.github.io/tools/hr/overtime-pay-calc.html | https://chenguangwu.github.io/tools/legal/overtime-pay.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
@@ -420,3 +420,4 @@
 | https://chenguangwu.github.io/guides/water-tds-evaluator-guide.html | https://chenguangwu.github.io/tools/energy/assessor-water-quality.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后遗留指南 |
 | https://chenguangwu.github.io/tools/it/http-response-headers.html | https://chenguangwu.github.io/tools/it/http-headers.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后旧页 |
 | https://chenguangwu.github.io/guides/http-response-headers-guide.html | https://chenguangwu.github.io/tools/it/http-headers.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后指南 |
+| https://chenguangwu.github.io/guides/generator-strength-guide.html | https://chenguangwu.github.io/guides/password-generator-guide.html | 2026-11-22 | 2026-12-22 | 保留期内 | 重复指南合并 |
