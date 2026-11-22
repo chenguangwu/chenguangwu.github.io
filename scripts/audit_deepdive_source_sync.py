@@ -47,7 +47,7 @@ LIST_RE = re.compile(r'<ul class="dd-list">(.*?)</ul>', re.S)
 LI_RE = re.compile(r"<li>(.*?)</li>", re.S)
 EXAMPLE_RE = re.compile(
     r'<div class="dd-example"><div class="dd-ex-title">(.*?)</div>'
-    r'<div class="dd-ex-body">(.*?)</div></div>',
+    r'<div class="dd-ex-body"[^>]*>(.*?)</div></div>',
     re.S,
 )
 FAQ_RE = re.compile(r'<dl class="dd-faq">(.*?)</dl>', re.S)

@@ -3589,8 +3589,12 @@ def _build_deep_dive_html(d, own_slug=''):
         body = e.get('body', '')
         body_html = (linkify_terms_html(body, state=_lk)
                      if _DD_FMT_BODY_RE.search(body) else linkify_terms(body, state=_lk))
-        parts.append('<div class="dd-example"><div class="dd-ex-title">%s</div><div class="dd-ex-body">%s</div></div>'
-                    % (linkify_terms(e.get('title', ''), state=_lk), body_html))
+        _ex_i18n = ''
+        if e.get('i18n'):
+            _ex_i18n = ' data-i18n="%s" data-i18n-fb="%s"' % (
+                e['i18n'], html.escape(e.get('body', ''), quote=True))
+        parts.append('<div class="dd-example"><div class="dd-ex-title">%s</div><div class="dd-ex-body"%s>%s</div></div>'
+                    % (linkify_terms(e.get('title', ''), state=_lk), _ex_i18n, body_html))
     _fq = d.get('faqs') or []
     if _fq:
         parts.append('<h3>❓ 常见问题（FAQ）</h3>')
