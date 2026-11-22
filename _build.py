@@ -3648,6 +3648,47 @@ def _sync_faq_ld(src):
     return out, True
 
 
+def _sync_breadcrumb_ld(src):
+    """用可见面包屑的当前项名称校正 BreadcrumbList JSON-LD 最后一项。
+
+    部分页面可见标题已补全（如「播种日期计算器（按收获日倒推）」），而结构化
+    面包屑仍是旧短名；Google 要求二者一致。只改最后一项 name，保留 url/position。
+    """
+    m = re.search(r'<span class="bc-current"[^>]*>([\s\S]*?)</span>', src)
+    if not m:
+        return src, False
+    name = html.unescape(re.sub(r'<[^>]+>', '', m.group(1)))
+    name = re.sub(r'\s+', ' ', name).strip()
+    if not name:
+        return src, False
+    spans = []
+    for sm in _FAQ_SCRIPT_RE.finditer(src):
+        raw = sm.group(1)
+        if '"BreadcrumbList"' not in raw:
+            continue
+        try:
+            obj = json.loads(raw)
+        except Exception:
+            continue
+        if not (isinstance(obj, dict) and obj.get('@type') == 'BreadcrumbList'):
+            continue
+        items = obj.get('itemListElement') or []
+        if not items or not isinstance(items[-1], dict):
+            continue
+        if str(items[-1].get('name') or '').strip() == name:
+            continue
+        items[-1]['name'] = name
+        new_block = '<script type="application/ld+json">\n%s\n</script>' % json.dumps(
+            obj, ensure_ascii=False, indent=2)
+        spans.append((sm.start(), sm.end(), new_block))
+    if not spans:
+        return src, False
+    out = src
+    for start, end, block in reversed(spans):
+        out = out[:start] + block + out[end:]
+    return out, True
+
+
 def _build_deep_dive_html(d, own_slug=''):
     """构建「内容深度」区块 HTML：独有使用场景 / 实际示例 / FAQ，打掉模板化页过滤。"""
     if not isinstance(d, dict):
@@ -4968,6 +5009,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
 
         # FAQPage 结构化数据与可见问答同步（构建期重算，防止旧模板漂移）。
         content, _faq_synced = _sync_faq_ld(content)
+        content, _bc_synced = _sync_breadcrumb_ld(content)
 
         if content != original:
             with open(filepath, 'w', encoding='utf-8') as f:
