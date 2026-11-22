@@ -179,6 +179,12 @@ const CASES = [
   "inputs": { "hours": "20", "standbyHours": "10" },
   "expect": ["每日运行小时与待机小时合计超过 24 小时，请核对，避免重复计算。"],
   "ref": "交叉校验：运行 20 h + 待机 10 h = 30 h，超过一天，必须提示核对；不能默默把 30 小时都计入。"
+},
+{
+  "slug": "home/water-filter-lifespan",
+  "inputs": { "start": "" },
+  "expect": ["请填写开始使用日期后再计算。"],
+  "ref": "清空开始使用日期必须提示，不得静默回退今天导致预计更换日期与用户输入不一致。"
 }
 ];
 async function main() {
