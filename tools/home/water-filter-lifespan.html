@@ -255,6 +255,7 @@
   </div>
 </div>
 <script>
+function isEN(){return /^en/i.test(document.documentElement.lang||'');}
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function csvDownload(name,rows){
@@ -268,8 +269,8 @@ function saveHist(key,obj){
 function renderHist(key){
   const el=document.getElementById('histBox');if(!el)return;
   let arr=[];try{arr=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){}
-  if(!arr.length){el.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}
-  el.innerHTML=arr.map(x=>'<div class="history-item"><span>'+x+'</span></div>').join('');
+  const en=isEN();if(!arr.length){el.innerHTML='<div class="history-empty">'+(en?'No calculations yet':'暂无计算记录')+'</div>';return;}
+  el.innerHTML=arr.map(x=>{let txt=String(x);if(en){txt=txt.replace('每天','per day').replace(' 天',' days').replace('元/年','CNY/year');}return '<div class="history-item"><span>'+txt+'</span></div>';}).join('');
 }
 function clearHist(){try{localStorage.removeItem(HIST_KEY);}catch(e){}renderHist(HIST_KEY);}
 const HIST_KEY='tb_history_water_filter_lifespan';
@@ -319,23 +320,23 @@ function exportCSV(){
   csvDownload('water-filter-lifespan.csv',[['项目','数值','单位'],['滤芯额定净水量',d.cap,'L'],['每日净水用量',d.daily,'L/天'],['水质等级',d.q.label,''],['安全余量',d.margin,'%'],['有效净水量',d.effective.toFixed(0),'L'],['可用天数',d.days.toFixed(0),'天'],['预计更换日期',addDays(d.start,d.days),''],['年更换次数',d.perYear.toFixed(2),'支/年'],['滤芯单价',d.price,'元'],['年均成本',d.annualCost.toFixed(0),'元/年'],['每升净水成本',d.costPerL.toFixed(4),'元/L']]);
 }
 function calcTool(){
-  if(hasBlankCore()){document.getElementById('result').innerHTML='<div class="result-placeholder">请填写滤芯额定净水量、每日净水用量与安全余量后再计算。</div>';return;}
-  if(hasBlankDate()){document.getElementById('result').innerHTML='<div class="result-placeholder">请填写开始使用日期后再计算。</div>';return;}
+  const en=isEN();if(hasBlankCore()){document.getElementById('result').innerHTML='<div class="result-placeholder">'+(en?'Enter rated capacity, daily filtered water use and safety margin before calculating.':'请填写滤芯额定净水量、每日净水用量与安全余量后再计算。')+'</div>';return;}
+  if(hasBlankDate()){document.getElementById('result').innerHTML='<div class="result-placeholder">'+(en?'Enter the start date before calculating.':'请填写开始使用日期后再计算。')+'</div>';return;}
   const d=calcData();
-  if(!(d.cap>0&&d.daily>0)){document.getElementById('result').innerHTML='<div class="result-placeholder">请输入大于 0 的额定净水量与每日用水量</div>';return;}
-  if(d.margin<50||d.margin>100){document.getElementById('result').innerHTML='<div class="result-placeholder">安全余量需在 50%–100% 之间</div>';return;}
+  if(!(d.cap>0&&d.daily>0)){document.getElementById('result').innerHTML='<div class="result-placeholder">'+(en?'Rated capacity and daily water use must be greater than 0.':'请输入大于 0 的额定净水量与每日用水量')+'</div>';return;}
+  if(d.margin<50||d.margin>100){document.getElementById('result').innerHTML='<div class="result-placeholder">'+(en?'Safety margin must be between 50% and 100%.':'安全余量需在 50%–100% 之间')+'</div>';return;}
   const replace=addDays(d.start,d.days);
-  const rows=[[d.effective.toFixed(0)+' L','有效净水量'],[d.days.toFixed(0)+' 天','预计可用天数'],[replace,'预计更换日期'],[d.perYear.toFixed(2)+' 支/年','年更换次数'],[d.annualCost.toFixed(0)+' 元/年','年均滤芯成本'],[d.costPerL.toFixed(4)+' 元/L','每升净水成本']];
+  const rows=[[d.effective.toFixed(0)+' L',en?'Effective water volume':'有效净水量'],[d.days.toFixed(0)+(en?' days':' 天'),en?'Expected usable days':'预计可用天数'],[replace,en?'Expected replacement date':'预计更换日期'],[d.perYear.toFixed(2)+(en?' cartridges/year':' 支/年'),en?'Cartridges per year':'年更换次数'],[d.annualCost.toFixed(0)+(en?' CNY/year':' 元/年'),en?'Annual cartridge cost':'年均滤芯成本'],[d.costPerL.toFixed(4)+(en?' CNY/L':' 元/L'),en?'Cost per liter':'每升净水成本']];
   let html=dataGrid(rows);
-  if(d.days>730)html+='<div class="info-box" style="margin-top:12px;">⚠️ 预计寿命超过 2 年，请确认额定净水量是否按该滤芯标注填写；RO 膜通常还应结合 TDS 去除率与产水量判断。</div>';
-  if(d.daily>d.effective/30)html+='<div class="info-box" style="margin-top:8px;">每日用水量较大，滤芯可能在 1 个月内耗尽，建议核对用水量或选择更大容量滤芯。</div>';
+  if(d.days>730)html+='<div class="info-box" style="margin-top:12px;">'+(en?'⚠️ Expected life exceeds 2 years: confirm the rated capacity is for this cartridge; RO membranes should also be checked against TDS rejection and permeate flow.':'⚠️ 预计寿命超过 2 年，请确认额定净水量是否按该滤芯标注填写；RO 膜通常还应结合 TDS 去除率与产水量判断。')+'</div>';
+  if(d.daily>d.effective/30)html+='<div class="info-box" style="margin-top:8px;">'+(en?'Daily use is high; the cartridge may run out within a month. Verify the water use or choose a larger cartridge.':'每日用水量较大，滤芯可能在 1 个月内耗尽，建议核对用水量或选择更大容量滤芯。')+'</div>';
   document.getElementById('result').innerHTML=html;
   drawChart(d);
-  saveHist(HIST_KEY,new Date().toLocaleTimeString()+' · '+d.cap+' L / 每天 '+d.daily+' L → '+d.days.toFixed(0)+' 天，'+d.annualCost.toFixed(0)+' 元/年');
+  saveHist(HIST_KEY,new Date().toLocaleTimeString()+' · '+d.cap+' L / '+(en?'per day ':'每天 ')+d.daily+' L → '+d.days.toFixed(0)+(en?' days, ':' 天，')+d.annualCost.toFixed(0)+(en?' CNY/year':' 元/年'));
 }
 function resetForm(){document.getElementById('cap').value=4000;document.getElementById('daily').value=8;document.getElementById('quality').value='fair';document.getElementById('margin').value=90;document.getElementById('price').value=120;document.getElementById('start').value=todayISO();calcTool();}
 document.getElementById('start').value=todayISO();
-renderHist(HIST_KEY);calcTool();
+renderHist(HIST_KEY);if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',calcTool);}else{calcTool();}window.addEventListener('toolbox:langchange',calcTool);
 </script>
 
 <section class="deep-dive" data-deep-dive="1">
