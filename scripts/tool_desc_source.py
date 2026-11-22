@@ -327,6 +327,15 @@ def clip(s, n):
         boundary = max(cut.rfind(' '), cut.rfind('\t'), cut.rfind('-'), cut.rfind('/'), cut.rfind('('))
         if boundary >= max(1, int((n - 1) * 0.55)):
             cut = cut[:boundary].rstrip(' -–—/(,;:')
+    elif cut and re.search(r'[\u4e00-\u9fff]', cut[-1]):
+        # 中文优先在句末标点收口，其次在逗号/顿号收口，避免 `文…`、`与…` 这类残字
+        sentence = max(cut.rfind('。'), cut.rfind('！'), cut.rfind('？'), cut.rfind('；'))
+        if sentence >= int((n - 1) * 0.4):
+            cut = cut[:sentence + 1]
+        else:
+            comma = max(cut.rfind('，'), cut.rfind('、'), cut.rfind('：'))
+            if comma >= int((n - 1) * 0.55):
+                cut = cut[:comma].rstrip('，、： ')
     return cut + '…'
 
 
