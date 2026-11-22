@@ -11,7 +11,7 @@
 | 2 UI 布局 | 全站 UX 8.64/9，薄弱页 0；新增 3 工具 UI 实测通过 | 无 |
 | 3 中英文 | 英文态 207 行业残留页 0 / 条 0；`desc-en` 退化 0 | 无 |
 | 4 SEO 文案 | 工具/指南描述 <70 = 0；270 项门禁含 SEO 元数据审计 | 无 |
-| 5 新增同类工具 | `trash-bag-size`、`winter-feed-syrup`、`box-fit`、`water-filter-lifespan` 已交付 | 无 |
+| 5 新增同类工具 | `trash-bag-size`、`winter-feed-syrup`、`box-fit`、`water-filter-lifespan`、`ac-energy-cost` 已交付 | 无 |
 | 6 无用脚本 | 累计清理 `_en-i18n` 1,017 + `scripts` 1,235 个 | 无 |
 | 7 批量误插 | 占位 `formula-desc` 0；65 页通用历史模块命名已统一 | 无 |
 | 8 其他 | 全站加载 0 缺陷；核心页元数据补齐 | 迁移壳未到期 |
