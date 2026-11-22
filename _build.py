@@ -3432,6 +3432,84 @@ def sync_guide_breadcrumb_names():
     return updated
 
 
+def sync_guide_faq_ld():
+    """指南 FAQPage 与可见问答同步 / 补齐（2026-11-22）。
+
+    583 个旧模板指南有可见「常见问题」<dl> 却没有 FAQPage；
+    另有 5 个已有 FAQPage 的答案文本被截断或与可见内容不一致。
+    这里从可见 <dt>/<dd> 重建 mainEntity，已有块只更新 mainEntity，缺块则插入。
+    """
+    gdir = os.path.join(ROOT, 'guides')
+    if not os.path.isdir(gdir):
+        return 0
+    block_re = re.compile(r'(<script type="application/ld\+json">)(.*?)(</script>)', re.S)
+    updated = 0
+
+    def _clean(x):
+        return re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', '', x))).strip()
+
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith('.html') or fn.endswith('.en.html'):
+            continue
+        fp = os.path.join(gdir, fn)
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src or 'name="robots" content="noindex' in src:
+            continue
+
+        faq = re.search(r'常见问题.*?<dl[^>]*>(.*?)</dl>', src, re.S)
+        if not faq:
+            faq = re.search(r'<dl class="faq">(.*?)</dl>', src, re.S)
+        if not faq:
+            div = re.search(r'<div class="faq">(.*?)</div>', src, re.S)
+            inner = re.search(r'<dl[^>]*>(.*?)</dl>', div.group(1), re.S) if div else None
+            faq = inner
+        if not faq:
+            continue
+
+        qs = [_clean(x) for x in re.findall(r'<dt[^>]*>(.*?)</dt>', faq.group(1), re.S)]
+        ans = [_clean(x) for x in re.findall(r'<dd[^>]*>(.*?)</dd>', faq.group(1), re.S)]
+        if not qs or len(qs) != len(ans):
+            continue
+        items = [{'@type': 'Question', 'name': q,
+                  'acceptedAnswer': {'@type': 'Answer', 'text': a}}
+                 for q, a in zip(qs, ans)]
+
+        changed = [0]
+        found = [False]
+
+        def _sub(m):
+            try:
+                obj = json.loads(m.group(2))
+            except Exception:
+                return m.group(0)
+            if not isinstance(obj, dict) or obj.get('@type') != 'FAQPage':
+                return m.group(0)
+            found[0] = True
+            if obj.get('mainEntity') == items:
+                return m.group(0)
+            obj['mainEntity'] = items
+            changed[0] += 1
+            return m.group(1) + json.dumps(obj, ensure_ascii=False, separators=(',', ':')) + m.group(3)
+
+        out = block_re.sub(_sub, src)
+        if not found[0]:
+            obj = {'@context': 'https://schema.org', '@type': 'FAQPage', 'mainEntity': items}
+            block = ('<script type="application/ld+json">%s</script>\n'
+                     % json.dumps(obj, ensure_ascii=False, separators=(',', ':')))
+            out = out.replace('</head>', block + '</head>', 1)
+            changed[0] += 1
+        if changed[0]:
+            with open(fp, 'w', encoding='utf-8') as f:
+                f.write(out)
+            updated += 1
+    print('guides FAQPage 同步/补齐: %d 页' % updated)
+    return updated
+
+
 def inject_core_hreflang():
     """根级核心页补齐 hreflang（2026-11-22）。
 
@@ -5903,6 +5981,7 @@ def main():
     fix_guide_empty_breadcrumb()
     sync_guide_breadcrumb_ld()
     sync_guide_breadcrumb_names()
+    sync_guide_faq_ld()
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
