@@ -4098,6 +4098,38 @@ def _ensure_main_role(src):
     return src[:match.start(1)] + tag + ' role="main"' + src[match.end(1):]
 
 
+_TAB_BUTTON_RE = re.compile(
+    r'(<button\b[^>]*\bclass="[^"]*\btab-btn\b[^"]*"[^>]*>)(\s*)(</button>)', re.I)
+_TAB_ARIA_LABELS = {
+    'chart': ('图表', 'tool.aria.chart'),
+    'table': ('表格', 'tool.aria.table'),
+    'out': ('输出', 'tool.aria.output'),
+    'guide': ('指南', 'tool.aria.guide'),
+}
+
+
+def _label_empty_tab_buttons(src):
+    """给空文本的 tab-btn 补可访问名称（2026-11-22）。
+
+    140 个页面写着 `<button class="tab-btn" data-v="chart"></button>`，按钮无
+    文本、无 aria-label，读屏只能读出“按钮”。仅处理带已知 data-v 且内部为空
+    的 tab-btn；已有 aria-label 或其他 data-v 不动。
+    """
+    def repl(match):
+        attrs = match.group(1)
+        if re.search(r'\baria-label\s*=', attrs, re.I):
+            return match.group(0)
+        dv = re.search(r'\bdata-v="([^"]+)"', attrs, re.I)
+        if not dv:
+            return match.group(0)
+        label = _TAB_ARIA_LABELS.get(dv.group(1))
+        if not label:
+            return match.group(0)
+        new_attrs = attrs[:-1] + ' aria-label="%s" data-i18n-aria="%s">' % label
+        return new_attrs + match.group(2) + match.group(3)
+    return _TAB_BUTTON_RE.sub(repl, src)
+
+
 def _sync_faq_ld(src):
     """用页面可见的 <dl class="dd-faq"> 重建 FAQPage JSON-LD。
 
@@ -4949,6 +4981,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         content = _associate_labels(content)
         content = _fix_invalid_label_for(content)
         content = _ensure_main_role(content)
+        content = _label_empty_tab_buttons(content)
 
         # 4. Add og:image / twitter:image (idempotent)
         if 'og:image' not in content:
