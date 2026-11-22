@@ -19,7 +19,7 @@
 - `plan/*.md`：现存任务文件或参考台账；只有仍含未结案条目的才是任务文件，全部清零后按第 6 条删除。
 - `plan/guidelines-map.md`：指南/量表版本参考台账，登记页面已标注的指南年份与替代关系。
 - `plan/units-factors.md`：单位与换算因子权威表，供页面、verify 与正文算例统一口径。
-- `plan/scale-ledger-whitelist.md`：量表加权与白名单审计档案，记录已核/豁免结论。
+- `plan/已修复/2026-11-23-量表总账白名单历史档案.md`：量表加权与白名单审计历史档案（原 `plan/scale-ledger-whitelist.md`，已归档）。
 - `plan/page-ledger.json`：页面处置批次与落库 commit 台账。
 - `plan/已修复/`：已修复记录档案，一批一文件。
 - `plan/复核失败/`：复核未通过条目，修复方重做后重新移交。
