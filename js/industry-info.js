@@ -1,9 +1,9 @@
 /* 全站行业字典（中文名 + emoji 图标）—— 由 scripts/gen_industry_info.py 生成，勿手改 */
 /* 数据来源：_build.py INDUSTRY_DEFS 短名（权威，268/268）+ 语义 emoji 映射；仅显示用短名，描述走页面 meta */
 window.INDUSTRY_INFO = {
-  'it'                   : { name: 'IT 开发', icon: '💻', hot: 30274679 },
+  'it'                   : { name: 'IT 开发', icon: '💻', hot: 30274680 },
   'life'                 : { name: '日常生活', icon: '🏠', hot: 11659126 },
-  'finance'              : { name: '金融财务', icon: '💰', hot: 9159741 },
+  'finance'              : { name: '金融财务', icon: '💰', hot: 9159735 },
   'design'               : { name: '设计创意', icon: '🎨', hot: 7127095 },
   'image'                : { name: '图像处理', icon: '🖼️', hot: 6073173 },
   'office'               : { name: '办公文档', icon: '📄', hot: 5005141 },
@@ -170,7 +170,7 @@ window.INDUSTRY_INFO = {
   'ceramics'             : { name: '陶瓷工艺', icon: '🏺', hot: 55261 },
   'packaging'            : { name: '包装工程', icon: '📦', hot: 55231 },
   'woodworking'          : { name: '木作工艺', icon: '🪚', hot: 53718 },
-  'glass'                : { name: '玻璃工艺', icon: '🪟', hot: 52727 },
+  'glass'                : { name: '玻璃工艺', icon: '🪟', hot: 52725 },
   'bridge'               : { name: '桥梁工程', icon: '🌉', hot: 52702 },
   'admin'                : { name: '行政管理', icon: '🗂️', hot: 51385 },
   'floral'               : { name: '花艺设计', icon: '💐', hot: 50212 },
@@ -196,7 +196,7 @@ window.INDUSTRY_INFO = {
   'gardening2'           : { name: '园艺养护', icon: '🌿', hot: 34693 },
   'chinese'              : { name: '中华文化', icon: '🀄', hot: 34182 },
   'antiques'             : { name: '古董鉴定', icon: '🏺', hot: 33208 },
-  'photo2'               : { name: '摄影后期', icon: '🎞️', hot: 33160 },
+  'photo2'               : { name: '摄影后期', icon: '🎞️', hot: 33159 },
   'edu2'                 : { name: '教学辅助', icon: '📚', hot: 32975 },
   'aquaculture'          : { name: '水产养殖', icon: '🐟', hot: 32180 },
   'fengshui'             : { name: '风水命理', icon: '🏔️', hot: 31782 },
