@@ -6341,6 +6341,10 @@ def ensure_form_control_names():
                             or attrs.get('id') in label_for_ids):
                         return m.group(0)
                     pre = part[max(0, m.start() - 500):m.start()]
+                    # 已被 <label> 包裹的控件由包裹 label 命名，避免补了又删的反复。
+                    if (len(re.findall(r'<label\b', pre, re.I))
+                            > len(re.findall(r'</label>', pre, re.I))):
+                        return m.group(0)
                     name = label_for(pre, typ, attrs.get('accept', ''), path, attrs.get('id', ''))
                     if not name:
                         return m.group(0)
