@@ -20,7 +20,8 @@
 - `plan/guidelines-map.md`：指南/量表版本参考台账，登记页面已标注的指南年份与替代关系。
 - `plan/units-factors.md`：单位与换算因子权威表，供页面、verify 与正文算例统一口径。
 - `plan/已修复/2026-11-23-量表总账白名单历史档案.md`：量表加权与白名单审计历史档案（原 `plan/scale-ledger-whitelist.md`，已归档）。
-- `plan/page-ledger.json`：页面处置批次与落库 commit 台账。
+- `plan/page-ledger.json`：在途页面处置台账（历史批次已归档 2026-11-23）。
+- `plan/scan-remaining-2026-11-23.md`：8 类全扫后仍剩余的条目（唯一现存扫描任务文件）。
 - `plan/已修复/`：已修复记录档案，一批一文件。
 - `plan/复核失败/`：复核未通过条目，修复方重做后重新移交。
 - `agent` 工作区、`/tmp`、构建产物不存放长期任务资料。
@@ -69,7 +70,7 @@
 
 ## 6. 文件索引
 
-- 参考台账：`guidelines-map.md`（指南版本）、`units-factors.md`（单位换算基准）、`scale-ledger-whitelist.md`（量表审计档案）、`page-ledger.json`（页面处置批次）。
+- 参考台账：`guidelines-map.md`（指南版本）、`units-factors.md`（单位换算基准）、`已修复/2026-11-23-量表总账白名单历史档案.md`（量表审计档案）、`page-ledger.json`（页面处置批次）。
 - 已修复档案：`plan/已修复/`，一批一文件，按日期与批次命名。
 - 复核失败：`plan/复核失败/`，复核未通过条目重做后重新移交。
 - 历史任务文件：全部条目已清零后已删除，原条目与结论保留在 `plan/已修复/`。
