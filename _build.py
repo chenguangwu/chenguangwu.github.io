@@ -2407,6 +2407,13 @@ def compute_zh_desc(t):
         if cands:
             extra = max(cands, key=len)
             d = TDS.clip(d.rstrip('。；;') + '；' + extra, 80)
+    # 仍不足 20 字（多为无深度解析场景的公式型工具）：回退到页面 meta 描述，
+    # 去掉「X 是一款免费的在线 Y 工具，」模板前缀，保留真实输入/输出/用途说明。
+    if len(d) < 20:
+        md = TDS.meta_desc(t.get('path', ''))
+        md = re.sub(r'^[^，]{1,80}?是一款免费的在线[^，]{1,30}工具，', '', md).strip()
+        if len(md) >= 20 and re.search(r'[\u4e00-\u9fff]', md) and not md.startswith('本页收录'):
+            d = TDS.clip(md, 80)
     return d
 
 
