@@ -36,7 +36,7 @@
 | `tools/pediatrics/growth-curve-zscore.html` | WHO Child Growth Standards（2006）；WHO 2007 生长参考（5–19 岁） | 无 | WHO 2006/2007 仍为现行儿童生长标准 |
 | `tools/ophthalmology/eye-chart-toolkit.html` | ISO 8596:2017 视标与视力表标准 | 无 | ISO 8596:2017 现行 |
 | `tools/ophthalmology/convert-42.html` | ISO 8596:2017；GB 11533-2011 标准对数视力表 | 无 | ISO 8596:2017 / GB 11533-2011 现行 |
-| `tools/pediatrics/pediatric-fever.html` | 未标注具体指南（退热药 mg/kg 建议） | — | 建议补注 AAP 2011 退热药使用建议；对乙酰氨基酚 10–15 mg/kg q4–6h、布洛芬 5–10 mg/kg q6–8h |
+| `tools/pediatrics/pediatric-fever.html` | AAP 2011 儿童发热与退热药使用（Sullivan & Farrar, Pediatrics 2011;127:580-587） | 无 | 页面已引用 AAP 2011；对乙酰氨基酚 10–15 mg/kg q4–6h、布洛芬 5–10 mg/kg q6–8h（≥6 月龄） |
 | `tools/pediatrics/pediatric-asthma.html` | GINA 哮喘控制评估（C-ACT / ACT 原量表） | 有 | GINA 2024/2025 年度更新（控制分级沿用 ACT/C-ACT 界值） |
 | `tools/clinical-nursing/assessor-rater-risk.html` | Morse Fall Scale（Morse 1989；6 项、满分 125，跌倒史 25 分） | 无 | Morse 仍为现行成人住院跌倒风险评估；分级 ≤24 / 25–44 / ≥45 |
 | `tools/neurology/alsfrs-r.html` | ALSFRS-R（Cedarbaum 1999；12 项、满分 48） | 无 | ALSFRS-R 仍为现行 ALS 功能评分（已剔除原页多出的非原版「坐姿」项） |
