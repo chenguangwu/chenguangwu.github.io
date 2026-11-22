@@ -3696,10 +3696,14 @@ def normalize_guide_descriptions():
         def _sub_meta(m):
             d = html.unescape(m.group(2))
             nd = _close_guide_desc(_rewrite_guide_desc(d, src))
-            if nd == d:
+            # 即使正文无需收口，也统一按属性值转义输出：description 里出现的
+            # `<10 mm`、`>20 mm` 等原始尖括号必须落成 &lt;/&gt;，否则社交抓取
+            # 与结构化校验会把它们当成标签边界。
+            esc = esc_html_py(nd)
+            if esc == m.group(2):
                 return m.group(0)
             changed[0] += 1
-            return m.group(1) + esc_html_py(nd) + m.group(3)
+            return m.group(1) + esc + m.group(3)
 
         def _sub_ld(m):
             try:
