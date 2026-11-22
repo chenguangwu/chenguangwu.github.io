@@ -3228,7 +3228,7 @@ def _close_guide_desc(d):
 
 
 def sync_guide_article_ld():
-    """指南页 Article 结构化数据补齐 image / mainEntityOfPage（2026-11-22）。
+    """指南页 Article 结构化数据补齐 image / mainEntityOfPage / inLanguage（2026-11-22）。
 
     3,247 个可索引指南的 Article 均无 image；592 个缺少 mainEntityOfPage。
     两者都是 Google Article 富结果的可选但强烈建议字段。图片沿用页面 og:image，
@@ -3257,6 +3257,8 @@ def sync_guide_article_ld():
         if 'name="robots" content="noindex' in src or 'TOOLBOX-REDIRECT' in src:
             continue
         abs_url = 'https://chenguangwu.github.io/guides/%s' % fn
+        lang_m = re.search(r'<html[^>]*\blang="([^"]+)"', src)
+        page_lang = lang_m.group(1) if lang_m else 'zh-CN'
         og_img = re.search(r'<meta property="og:image" content="([^"]+)"', src)
         image_url = og_img.group(1) if og_img else 'https://chenguangwu.github.io/og-image.png'
         changed = [0]
@@ -3274,6 +3276,9 @@ def sync_guide_article_ld():
                 dirty = True
             if not obj.get('mainEntityOfPage'):
                 obj['mainEntityOfPage'] = {'@type': 'WebPage', '@id': abs_url}
+                dirty = True
+            if not obj.get('inLanguage'):
+                obj['inLanguage'] = page_lang
                 dirty = True
             if not obj.get('publisher'):
                 obj['publisher'] = {
