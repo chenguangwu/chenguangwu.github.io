@@ -4918,6 +4918,13 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 content = content.replace('</head>', nav_inject + '</head>', 1)
                 fixed_nav += 1
 
+        # 主内容地标：全站 4,772 页只有一个 <div class="container"> 且无 <main>，
+        # 补 role="main" 供屏幕阅读器跳过导航直达正文（不改变任何布局）。
+        if ('<main' not in content and 'role="main"' not in content
+                and content.count('<div class="container"') == 1):
+            content = content.replace(
+                '<div class="container"', '<div class="container" role="main"', 1)
+
         # 3.5b Add generic tool UX enhancement (copy/download bar, validation hint, input persistence, a11y)
         ux_block = '\n<script src="/js/tool-ux.js" defer></script>\n<!-- TOOLBOX-TOOL-UX -->\n'
         if not _head_contains(content, '/js/tool-ux.js'):
@@ -5193,7 +5200,7 @@ def generate_category_indexes(tools):
         # Nav
         parts.append('<div class="nav">\n  <a href="../../index.html">← ToolBox</a>\n  <span class="tb-bi">/ <span class="t-zh">%s工具</span><span class="t-en">%s Tools</span></span>\n  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>\n</div>\n' % (esc_html_py(ind_name), esc_html_py(en_name)))
         # Content
-        parts.append('<div class="container">\n  <div class="card">\n')
+        parts.append('<div class="container" role="main">\n  <div class="card">\n')
         parts.append('    <h2 class="tb-bi">%s <span class="t-zh">%s工具</span><span class="t-en">%s %s Tools</span></h2>\n' % (ind_icon, esc_html_py(ind_name), ind_icon, esc_html_py(en_name)))
         parts.append('    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;"><span data-i18n="cat.total_prefix" data-i18n-fb="共">共</span> %d<span data-i18n="cat.total_suffix" data-i18n-fb="个免费在线工具">个免费在线工具</span></p>\n' % count)
         parts.append('    <div class="category-tool-list" data-ind="%s">\n' % ind)
