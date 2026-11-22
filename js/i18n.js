@@ -465,6 +465,7 @@ var LANG_REGISTRY = [
       'tool.ph.example_0': 'e.g. 0',
       'tool.ph.example_80000': 'e.g. 80000',
       'tool.ph.example_40000': 'e.g. 40000',
+      'tool.ph.gastric_halftime': 'Leave blank to estimate from 2 h/4 h retention',
       'tool.aria.energy_total': 'Total common utility cost',
       'tool.aria.total_area': 'Total floor area',
       'tool.aria.unit_area': 'Unit floor area',
