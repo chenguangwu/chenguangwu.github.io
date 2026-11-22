@@ -104,6 +104,44 @@
     setTimeout(translateHead, 1000);
   }
 
+
+  // 无 guide-en-pack 的指南页（约 3,300 页）也有 i18n/guides/<slug>.json 正文词典；
+  // 词典首键通常是「<工具名> 使用指南」，可复用来英文化 title / og:title / twitter:title。
+  // 描述则只替换首个完整句（词典通常收录该句），避免半句中文混排。
+  function normKey(x) { return String(x || '').replace(/\s+/g, ''); }
+  function lookupTitle(base) {
+    if (!EN_DICT) return null;
+    if (EN_DICT[base]) return EN_DICT[base];
+    var nb = normKey(base);
+    for (var k in EN_DICT) {
+      if (!Object.prototype.hasOwnProperty.call(EN_DICT, k)) continue;
+      if (normKey(k) === nb) return EN_DICT[k];
+    }
+    return null;
+  }
+  function translateHeadFromDict() {
+    if (!isEnglish() || HEAD_APPLIED || !EN_DICT) return;
+    // 先确认描述可完整英文化；描述缺失映射时连标题也不动，
+    // 避免出现「英文标题 + 中文描述」的混排页面。
+    var descEl = document.querySelector('meta[name="description"]');
+    if (!descEl) return;
+    var zh = descEl.getAttribute('content') || '';
+    var first = zh.split('。')[0];
+    var enDesc = EN_DICT[first + '。'] || EN_DICT[first];
+    if (!enDesc) return;
+    var titleEl = document.querySelector('title');
+    if (titleEl) {
+      var base = (titleEl.textContent || '').replace(/\s*-\s*ToolBox\s*$/i, '').trim();
+      var en = lookupTitle(base);
+      if (en) titleEl.textContent = en + ' - ToolBox';
+    }
+    descEl.setAttribute('content', enDesc);
+    var og = document.querySelector('meta[property="og:description"]'); if (og) og.setAttribute('content', enDesc);
+    var tw = document.querySelector('meta[name="twitter:description"]'); if (tw) tw.setAttribute('content', enDesc);
+    var ogt = document.querySelector('meta[property="og:title"]'); if (ogt) ogt.setAttribute('content', titleEl ? titleEl.textContent : '');
+    var twt = document.querySelector('meta[name="twitter:title"]'); if (twt) twt.setAttribute('content', titleEl ? titleEl.textContent : '');
+  }
+
   function applyEnDict() {
     if (!isEnglish()) return;
     scheduleHead();
@@ -140,6 +178,7 @@
         node.nodeValue = raw.slice(0, idx) + en + raw.slice(idx + k.length);
       }
     }
+    translateHeadFromDict();
     translateChrome();
   }
 
