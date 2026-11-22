@@ -4400,6 +4400,14 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         _seo_slug = _slug_of(t)
         _seo_override = EN_OVERRIDE.get(_seo_slug, {})
         _en_t = _seo_override.get('en')
+        if not _en_t:
+            # 38 个页面只有行业字典 en-US.title，没有 _en_override 条目；原先不会写
+            # title-en，导致 EN 态 document.title 无法切换。此处从行业字典回退。
+            _en_base = os.path.splitext(os.path.basename(t['path']))[0]
+            _en_entry = ((_ind_cache.get(industry, {}) or {}).get(_en_base, {}) or {}).get('en-US', {}) or {}
+            _en_title_fb = (_en_entry.get('title') if isinstance(_en_entry, dict) else '') or ''
+            if _en_title_fb and not TDS.has_cjk(_en_title_fb):
+                _en_t = _en_title_fb
         # 优先覆盖字典 ed；无覆盖时回落权威英文描述 TDS.en_desc（内含套话剥离 + CJK 防护）。
         # 关键修复：旧构建曾给「无覆盖页」注入退化 desc-en（如 "X - online utility on ToolBox."），
         # 而空 _en_desc 不会触发下方清理，导致退化串永久残留。此处补回退，确保每页 desc-en 非退化。
