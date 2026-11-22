@@ -4258,7 +4258,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             'text': 'DeveloperApplication', 'convert': 'UtilitiesApplication',
             'validator': 'UtilitiesApplication', 'reference': 'UtilitiesApplication',
             'calculator': 'UtilitiesApplication', 'math': 'UtilitiesApplication',
-            'finance': 'FinanceApplication', 'game': 'GamesApplication',
+            'finance': 'FinanceApplication', 'game': 'GameApplication',
             'health': 'MedicalApplication',
             'image': 'MultimediaApplication', 'design': 'MultimediaApplication',
         }
@@ -4354,10 +4354,21 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             pattern = re.compile(
                 r'(?:<!--\s*TOOLBOX-WEBAPP-LD\s*-->\s*)*'
                 r'<script type="application/ld\+json">.*?</script>', re.S)
-            matches = [
-                match for match in pattern.finditer(src)
-                if '"@type":"WebApplication"' in match.group(0)
-            ]
+            matches = []
+            for match in pattern.finditer(src):
+                # 不能只匹配紧凑串 `"@type":"WebApplication"`：历史页存在缩进
+                # 美化版 `"@type": "WebApplication"`，会被漏掉并再插一个新块，
+                # 造成同页两个 WebApplication（实测 17 页）。改为解析 JSON 判断。
+                sm = re.search(r'<script type="application/ld\+json">(.*?)</script>',
+                               match.group(0), re.S)
+                if not sm:
+                    continue
+                try:
+                    obj = json.loads(sm.group(1))
+                except Exception:
+                    continue
+                if isinstance(obj, dict) and obj.get('@type') == 'WebApplication':
+                    matches.append(match)
             if not matches:
                 return src, False
 
