@@ -4146,6 +4146,62 @@ def _label_empty_tab_buttons(src):
     return _TAB_BUTTON_RE.sub(repl, src)
 
 
+_FORM_TAG_RE = re.compile(
+    r'<(input|select|textarea)\b((?:[^>"\']|"[^"]*"|\'[^\']*\')*)>', re.I)
+
+
+def _placeholder_is_name(text):
+    """判断 placeholder 是否可作为稳定的控件名称（2026-11-22）。
+
+    排除示例值（“如 12”“高收入,2000”）、纯符号/纯数字（“?”、“#000000”）、
+    单字单位（“分”“秒”）；保留“采样率”“课程名称”“Area (m²)”这类字段名。
+    """
+    if not text or len(text) < 2:
+        return False
+    if text.startswith(('如', '例如', '例：', 'e.g.', 'E.g.')):
+        return False
+    if '\n' in text or ',' in text or '，' in text:
+        return False
+    if '<' in text or '>' in text:
+        return False
+    if len(re.findall(r'[A-Za-z\u4e00-\u9fff]', text)) < 2:
+        return False
+    return True
+
+
+def _label_placeholder_controls(src):
+    """给只有 placeholder 的控件补 aria-label（2026-11-22）。
+
+    434 个控件没有任何 label/aria 名称，其中约一半 placeholder 本身就是字段名
+    （采样率、课程名称、搜索证书名称…）。仅在这些情况下把 placeholder 提升为
+    aria-label；已有 for 关联、aria-label/title、或控件位于未闭合 label 内时不动。
+    """
+    label_ids = set(re.findall(r'<label[^>]+for="([^"]+)"', src))
+
+    def repl(match):
+        attrs = match.group(2) or ''
+        if re.search(r'\b(?:aria-label|aria-labelledby|title)\s*=', attrs, re.I):
+            return match.group(0)
+        pm = re.search(r'\bplaceholder="([^"]*)"', attrs, re.I)
+        if not pm:
+            return match.group(0)
+        ph = html.unescape(pm.group(1)).strip()
+        if not _placeholder_is_name(ph):
+            return match.group(0)
+        idm = re.search(r'\bid="([^"]+)"', attrs, re.I)
+        if idm and idm.group(1) in label_ids:
+            return match.group(0)
+        before = src[:match.start()]
+        if before.rfind('<label') > before.rfind('</label>'):
+            return match.group(0)
+        clean = attrs.rstrip()
+        if clean.endswith('/'):
+            clean = clean[:-1].rstrip()
+        return '<%s%s aria-label="%s">' % (match.group(1), clean,
+                                           ph.replace('"', '&quot;'))
+    return _FORM_TAG_RE.sub(repl, src)
+
+
 def _sync_faq_ld(src):
     """用页面可见的 <dl class="dd-faq"> 重建 FAQPage JSON-LD。
 
@@ -4995,6 +5051,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             content = content.replace('</head>', app_json_block + '\n</head>', 1)
         content, _redundant_app_removed = _strip_redundant_app_ld(content)
         content = _associate_labels(content)
+        content = _label_placeholder_controls(content)
         content = _fix_invalid_label_for(content)
         content = _ensure_main_role(content)
         content = _label_empty_tab_buttons(content)
