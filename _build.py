@@ -3268,6 +3268,101 @@ def sync_guide_article_ld():
     return updated
 
 
+def fix_guide_empty_breadcrumb():
+    """修复指南页可见面包屑末项为空（2026-11-22）。
+
+    16 个旧模板指南的 `<span>` 是空壳，页头实际显示「ToolBox / 使用指南 / 」。
+    以页面 h1 去掉末尾「使用指南」作为末项文本；保留 span 原属性。
+    """
+    gdir = os.path.join(ROOT, 'guides')
+    if not os.path.isdir(gdir):
+        return 0
+    fixed = 0
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith('.html') or fn.endswith('.en.html'):
+            continue
+        fp = os.path.join(gdir, fn)
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src:
+            continue
+        h1 = re.search(r'<h1[^>]*>(.*?)</h1>', src, re.S)
+        if not h1:
+            continue
+        title = html.unescape(re.sub(r'<[^>]+>', '', h1.group(1))).strip()
+        title = re.sub(r'\s*使用指南$', '', title).strip()
+        if not title:
+            continue
+        span_re = re.compile(r'(<nav[^>]*class="breadcrumb"[^>]*>.*?<span[^>]*>)(\s*)(</span>)', re.S)
+        m = span_re.search(src)
+        if not m or re.sub(r'<[^>]+>', '', m.group(2)).strip():
+            continue
+        out = src[:m.start(2)] + esc_html_py(title) + src[m.end(2):]
+        with open(fp, 'w', encoding='utf-8') as f:
+            f.write(out)
+        fixed += 1
+    print('guides 可见面包屑空项修复: %d 页' % fixed)
+    return fixed
+
+
+def sync_guide_breadcrumb_ld():
+    """为缺 BreadcrumbList 的可索引指南补结构化面包屑（2026-11-22）。
+
+    583 个旧模板指南只有可见面包屑、没有 BreadcrumbList。这里直接读取
+    `<nav class="breadcrumb">` 的链接与末项文本生成 itemListElement，
+    名称与可见导航保持一致；已有 BreadcrumbList 的页跳过。
+    """
+    gdir = os.path.join(ROOT, 'guides')
+    if not os.path.isdir(gdir):
+        return 0
+    updated = 0
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith('.html') or fn.endswith('.en.html'):
+            continue
+        fp = os.path.join(gdir, fn)
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src or 'name="robots" content="noindex' in src:
+            continue
+        if 'BreadcrumbList' in src or 'class="breadcrumb"' not in src:
+            continue
+        nav = re.search(r'<nav[^>]*class="breadcrumb"[^>]*>(.*?)</nav>', src, re.S)
+        if not nav:
+            continue
+        raw = nav.group(1)
+        links = re.findall(r'<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', raw, re.S)
+        span = re.search(r'<span[^>]*>(.*?)</span>', raw, re.S)
+        if len(links) < 2 or not span:
+            continue
+
+        def _txt(x):
+            return html.unescape(re.sub(r'<[^>]+>', '', x)).strip()
+
+        items = []
+        for i, (href, label) in enumerate(links, 1):
+            items.append({'@type': 'ListItem', 'position': i,
+                          'name': _txt(label), 'item': href})
+        items.append({'@type': 'ListItem', 'position': len(items) + 1,
+                      'name': _txt(span.group(1)),
+                      'item': 'https://chenguangwu.github.io/guides/%s' % fn})
+        obj = {'@context': 'https://schema.org', '@type': 'BreadcrumbList',
+               'itemListElement': items}
+        block = ('<script type="application/ld+json">%s</script>\n'
+                 % json.dumps(obj, ensure_ascii=False, separators=(',', ':')))
+        out = src.replace('</head>', block + '</head>', 1)
+        with open(fp, 'w', encoding='utf-8') as f:
+            f.write(out)
+        updated += 1
+    print('guides BreadcrumbList 补齐: %d 页' % updated)
+    return updated
+
+
 def inject_core_hreflang():
     """根级核心页补齐 hreflang（2026-11-22）。
 
@@ -5736,6 +5831,8 @@ def main():
     inject_guide_hreflang()
     inject_core_hreflang()
     sync_guide_article_ld()
+    fix_guide_empty_breadcrumb()
+    sync_guide_breadcrumb_ld()
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
