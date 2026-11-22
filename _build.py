@@ -6045,6 +6045,84 @@ def ensure_og_image_dimensions():
     return changed
 
 
+_TH_TAG_RE = re.compile(r'<th\b((?:[^>"\']|"[^"]*"|\'[^\']*\')*)>', re.I)
+_TR_TAG_RE = re.compile(r'<tr\b.*?</tr>', re.I | re.S)
+_TABLE_TAG_RE = re.compile(r'<table\b.*?</table>', re.I | re.S)
+
+
+def _scope_table_row(match):
+    """给一行内的 th 补 scope：整行 th 为列头，行首 th 且同行有 td 为行头。"""
+    row = match.group(0)
+    ths = list(_TH_TAG_RE.finditer(row))
+    if not ths:
+        return row
+    has_td = bool(re.search(r'<td\b', row, re.I))
+    out = []
+    last = 0
+    for m in ths:
+        out.append(row[last:m.start()])
+        attrs = m.group(1)
+        if re.search(r'\bscope\s*=', attrs, re.I):
+            out.append(m.group(0))
+        else:
+            prefix = row[:m.start()]
+            scope = 'row' if has_td and not re.search(r'<td\b', prefix, re.I) else 'col'
+            out.append('<th' + attrs + ' scope="' + scope + '">')
+        last = m.end()
+    out.append(row[last:])
+    return ''.join(out)
+
+
+def _scope_tables(text):
+    def repl(match):
+        table = match.group(0)
+        return _TR_TAG_RE.sub(_scope_table_row, table)
+    return _TABLE_TAG_RE.sub(repl, text)
+
+
+def ensure_table_header_scope():
+    """给静态 HTML 表格的 th 补 scope 属性（2026-11-22）。
+
+    4,605 个工具页含 18,700+ 个静态 th，绝大多数是列头但未声明 scope。
+    屏幕阅读器在复杂表格中需要 scope 才能把数据单元格正确归到行列标题；
+    这里按行推断：整行 th（表头行）为 col，行首 th 且同行有 td 为 row，
+    其余为 col。已有 scope 不动。脚本、style、pre、textarea 内的示意代码
+    不处理，避免改动运行时字符串和代码示例。
+    """
+    protect = re.compile(r'<(script|style|pre|textarea)\b.*?</\1\s*>', re.I | re.S)
+    changed = 0
+    cells = 0
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames if d not in {'.git', 'node_modules', 'zh-tw', '_en-i18n', '_site', 'dist'}]
+        for fn in filenames:
+            if not fn.endswith('.html'):
+                continue
+            path = os.path.join(dirpath, fn)
+            try:
+                with open(path, encoding='utf-8') as f:
+                    src = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if '<th' not in src.lower() or 'TOOLBOX-REDIRECT' in src:
+                continue
+            before = src.count('scope=')
+            out = []
+            last = 0
+            for m in protect.finditer(src):
+                out.append(_scope_tables(src[last:m.start()]))
+                out.append(m.group(0))
+                last = m.end()
+            out.append(_scope_tables(src[last:]))
+            new_src = ''.join(out)
+            after = new_src.count('scope=')
+            if after != before:
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(new_src)
+                changed += 1
+                cells += after - before
+    print('Table header scope: %d cells in %d pages' % (cells, changed))
+    return changed
+
 def main():
     print('=== ToolBox Build ===')
     # 构建期写出 /js/toolbox-stub.js（ToolBox 早期 API 桩外链文件），供全站工具页共享引用，
@@ -6285,6 +6363,7 @@ def main():
     sync_guide_faq_ld()
     inject_image_alt()
     ensure_og_image_dimensions()
+    ensure_table_header_scope()
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
