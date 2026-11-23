@@ -184,6 +184,27 @@ const CASES = [
 },
 {
   "slug": "home/water-filter-lifespan",
+  "inputs": { "cap": "4000", "daily": "8", "margin": "90", "price": "120", "start": "2026-01-01" },
+  "clicks": [
+    "calcTool();var c=document.getElementById('lifeChart');var ok1=c.style.display!=='none'&&String(document.getElementById('result').innerHTML).indexOf('L')>=0;document.getElementById('start').value='';calcTool();var ok2=c.style.display==='none'&&String(document.getElementById('result').innerHTML).indexOf('请填写开始使用日期后再计算。')>=0;document.getElementById('start').value='2026-02-01';calcTool();var ok3=c.style.display!=='none'&&String(document.getElementById('result').innerHTML).indexOf('预计更换日期')>=0;document.getElementById('__tbProbe').textContent='WLCHART '+(ok1&&ok2&&ok3?'OK':'BAD '+c.style.display);"
+  ],
+  "expect": ["WLCHART OK"],
+  "ref": "第531批：先有效计算显示图表，再清空日期计算必须隐藏并清除旧图，最后恢复日期再次显示。旧实现只替换 result 后 return，画布保留上次「预计可用天数/年换芯」柱状数据。"
+},
+{
+  "slug": "home/ac-energy-cost",
+  "inputs": { "power": "1000", "hours": "8", "days": "30", "months": "4", "price": "-1", "standby": "2", "standbyHours": "16" },
+  "expect": ["电价不能为负（可为 0）。"],
+  "ref": "第524批：负电价必须拒绝，不能靠 HTML min 属性；错误提示要明确 0 仍合法。"
+},
+{
+  "slug": "home/ac-energy-cost",
+  "inputs": { "power": "1000", "hours": "8", "days": "100", "months": "4", "price": "0.6", "standby": "2", "standbyHours": "16" },
+  "expect": ["每月使用天数需为 1–31 的整数。"],
+  "ref": "第524批：每月 100 天越界必须拒绝；计算与导出共用 inputError，避免只靠 max=31。"
+},
+{
+  "slug": "home/water-filter-lifespan",
   "inputs": { "start": "" },
   "expect": ["请填写开始使用日期后再计算。"],
   "ref": "清空开始使用日期必须提示，不得静默回退今天导致预计更换日期与用户输入不一致。"

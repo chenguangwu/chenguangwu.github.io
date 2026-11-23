@@ -58,7 +58,7 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 <meta name="title-en" content="Air Conditioner Energy Cost Calculator">
-<meta name="desc-en" content="Estimate hourly, daily, monthly and cooling-season energy use and cost from rated input power, run hours, days used, electricity price, usage intensity and stan">
+<meta name="desc-en" content="Estimate hourly, daily, monthly and cooling-season energy use and cost from rated power, run hours, days used, price, load and standby power.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/home/ac-energy-cost.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/home/ac-energy-cost.html">
@@ -285,6 +285,19 @@ function clearHist(){try{localStorage.removeItem(HIST_KEY);}catch(e){}renderHist
 const HIST_KEY='tb_history_ac_energy_cost';
 const FACTOR={eco:{f:0.85,label:'节能'},normal:{f:1,label:'标准'},high:{f:1.15,label:'高负荷'}};
 function hasBlankCore(){return ['power','hours','days','months','price','standby','standbyHours'].some(id=>{const el=document.getElementById(id);return !el||String(el.value).trim()==='';});}
+function inputError(){
+  const en=isEN();
+  if(hasBlankCore())return en?'Fill in rated power, daily run hours, days used, electricity price and standby parameters first.':'请填写额定功率、每日运行小时、使用天数、电价与待机参数后再计算。';
+  const d=calcData();
+  if(!(d.power>0))return en?'Rated power must be greater than 0 W.':'额定功率需大于 0 W。';
+  if(!(d.hours>=0&&d.hours<=24))return en?'Daily run hours must be within 0–24 h.':'每日运行小时需在 0–24 之间。';
+  if(!Number.isInteger(d.days)||d.days<1||d.days>31)return en?'Days used per month must be an integer from 1 to 31.':'每月使用天数需为 1–31 的整数。';
+  if(!Number.isInteger(d.months)||d.months<1||d.months>12)return en?'Cooling-season months must be an integer from 1 to 12.':'制冷季月数需为 1–12 的整数。';
+  if(!isFinite(d.price)||d.price<0)return en?'Electricity price cannot be negative (0 is allowed).':'电价不能为负（可为 0）。';
+  if(!isFinite(d.standby)||d.standby<0)return en?'Standby power cannot be negative (0 is allowed).':'待机功率不能为负（可为 0）。';
+  if(!(d.standbyHours>=0&&d.standbyHours<=24))return en?'Daily standby hours must be within 0–24 h.':'每日待机小时需在 0–24 之间。';
+  return '';
+}
 function calcData(){
   const power=num('power'),hours=num('hours'),days=num('days'),months=num('months'),price=num('price');
   const standby=num('standby'),standbyHours=num('standbyHours');
@@ -318,8 +331,8 @@ function applyPreset(type){
   calcTool();
 }
 function exportCSV(){
-  if(hasBlankCore()){alert('请先填写完整的额定功率、运行时长与电价');return;}
-  const d=calcData();if(!(d.power>0)){alert('额定功率需大于 0');return;}
+  const err=inputError();if(err){alert(err);return;}
+  const d=calcData();
   const en=isEN();
   const r=[
     [en?'Item':'项目',en?'Value':'数值',en?'Unit':'单位'],
@@ -337,9 +350,8 @@ function exportCSV(){
   csvDownload('ac-energy-cost.csv',r);
 }
 function calcTool(){
-  if(hasBlankCore()){document.getElementById('result').innerHTML='<div class="result-placeholder">请填写额定功率、每日运行小时、使用天数、电价与待机参数后再计算。</div>';return;}
+  const err=inputError();if(err){document.getElementById('result').innerHTML='<div class="result-placeholder">'+err+'</div>';return;}
   const d=calcData();
-  if(!(d.power>0)){document.getElementById('result').innerHTML='<div class="result-placeholder">额定功率需大于 0 W。</div>';return;}
   const en=isEN();
   const rows=[
     [d.avg.toFixed(0)+' W',en?'Average input power':'平均输入功率'],
