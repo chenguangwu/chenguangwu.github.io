@@ -778,7 +778,7 @@ function __url_encodeSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         // 隐私：待编码文本、含 user:pass 的 URL、生成 URL 都可能含凭据，只记录长度。
-        var __tbPrivate={'input':'输入长度','parseInput':'解析URL长度','builtUrl':'生成URL长度'};
+        var __tbPrivate={'input':'输入长度','parseInput':'解析URL长度','builtUrl':'生成URL长度','output':'输出长度'};
         if(__tbPrivate[e.id]){ if(e.value) out[__tbPrivate[e.id]]=(e.value||'').length+' 字符（未存原文）'; continue; }
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
@@ -850,6 +850,21 @@ function __url_encodeRender(keys,rk,en){
     }catch(e3){}
 }
 function __url_encodeExtras(){
+    if(!window.__tbPrivPurged){
+        window.__tbPrivPurged=true;
+        try{
+            var __k='tbk_hist_'+location.pathname, __a=JSON.parse(localStorage.getItem(__k)||'[]');
+            if(Array.isArray(__a)){
+                for(var __i=0;__i<__a.length;__i++){
+                    var __d=__a[__i]&&__a[__i].d;
+                    if(!__d) continue;
+                    if(typeof __d['结果']==='string'&&__d['结果'].indexOf('未存原文')<0) __d['结果']='已清理（原结果含敏感内容，未保留）';
+                    if(typeof __d['Result']==='string'&&__d['Result'].indexOf('not stored')<0) __d['Result']='Removed (sensitive result was not retained)';
+                }
+                localStorage.setItem(__k,JSON.stringify(__a));
+            }
+        }catch(e){}
+    }
     if (typeof TBKit === 'undefined') return;
     if (__url_encode_skip) return;
     var snap=__url_encodeSnap();
@@ -857,6 +872,8 @@ function __url_encodeExtras(){
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__url_encodeResText();
+    var __privSc=__url_encodeScore(res);
+    var __privRes=__privSc?'执行成功（结果 '+String(res).length+' 字符，未存原文）':'执行失败（详见结果区，未存原文）';
     if(!res) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
@@ -869,13 +886,13 @@ function __url_encodeExtras(){
         for(var i=0;i<keys.length;i++){
             if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
         }
-        if(same&&String(last[rk])===String(res)) return;
+        if(same&&String(last[rk])===String(__privRes)) return;
     }
     __url_encode_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
-    rec[rk]=res;
-    rec.__tbScore=__url_encodeScore(res);
+    rec[rk]=__privRes;
+    rec.__tbScore=__privSc;
     TBKit.history.record(rec);
     __url_encodeRender(keys,rk,en);
 }
