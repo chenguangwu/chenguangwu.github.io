@@ -444,9 +444,10 @@ function calc(){
   const w = __wRaw==='' ? NaN : parseFloat(__wRaw);
   if(!isFinite(w) || w<=0){
     // 体重空/非法时清掉全部派生上限，禁止静默按 65 kg 出结果
-    ['safeLimit','moderate','highRisk','cupsOfCoffee'].forEach(function(id){
+    ['safeLimit','moderate','highRisk','cupsOfCoffee','cafPct','cafStatus'].forEach(function(id){
       var el = document.getElementById(id); if(el) el.textContent = '--';
     });
+    var __bar=document.getElementById('cafBar'); if(__bar) __bar.style.width='0%';
     return;
   }
   const group = parseFloat(document.getElementById('group').value);
@@ -496,7 +497,14 @@ function calcTotal(){
     total += caf * qty;
   });
   
-  const safe = parseInt(document.getElementById('safeLimit').textContent)||400;
+  const safeRaw = String(document.getElementById('safeLimit').textContent||'').replace(/[^0-9.]/g,'');
+  const safe = parseFloat(safeRaw);
+  if(!isFinite(safe) || safe<=0){
+    document.getElementById('cafPct').textContent='--';
+    document.getElementById('cafBar').style.width='0%';
+    document.getElementById('cafStatus').textContent='请先填写有效体重，再查看风险判断';
+    return;
+  }
   const pct = Math.min(100, (total / safe) * 100);
   
   const __g6=total + ' mg';document.getElementById('totalCaf').textContent=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
