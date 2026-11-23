@@ -98,9 +98,9 @@ const CASES = [
     "setReact({stopPropagation:function(){}},0,'++');setReact({stopPropagation:function(){}},1,'+');setReact({stopPropagation:function(){}},2,'+++');genAdvice();"
   ],
   "expect": [
-    "阳性过敏原避免指南（共3项）"
+    "斑贴试验判读：阳性 3 项、可疑 0 项"
   ],
-  "ref": "选 3 个过敏原（0:++、1:+、2:+++）→ genAdvice 产出「阳性过敏原避免指南（共3项）」及强阳性计数。回退默认（selections 空）→ genAdvice 早返回提示「请点击选择阳性的过敏原及反应强度」，该串不命中。"
+  "ref": "选 3 个过敏原（0:++、1:+、2:+++）→ genAdvice 产出「斑贴试验判读：阳性 3 项、可疑 0 项」及各项规避建议；ICDRG 口径下 ?+ 不计阳性。回退默认（selections 空）→ genAdvice 早返回提示「请点击选择阳性的过敏原及反应强度」，该串不命中。"
 },
 {
   "slug": "dermatology/dermatoscopy-abcd",

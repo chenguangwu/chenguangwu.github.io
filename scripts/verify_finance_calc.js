@@ -2215,7 +2215,7 @@ const CASES = [
   {
     slug: "finance/credit-card-interest",
     inputs: { billAmount: "8000", dailyRate: "0.05", billDay: "2", dueDay: "20", minRatio: "10", repayType: "full" },
-    clicks: ["calc()"],
+    clicks: ["['billAmount','dailyRate','billDay','dueDay','minRatio'].forEach(function(id){document.getElementById(id).value={billAmount:'8000',dailyRate:'0.05',billDay:'2',dueDay:'20',minRatio:'10'}[id];});document.getElementById('repayType').value='full';calc()"],
     expect: ["38 免息天数"],
     ref: "信用卡免息期天数（账单日 2 号、还款日 20 号）：因 dueDay > billDay ⇒ 免息天数 = (还款日 − 账单日) + 20 = 20 − 2 + 20 = **38 天**，再经 `min(max(x,20),56)` 裁剪后仍为 38。刻意避开默认组（账单日 10 / 还款日 30 ⇒ 40 天）—— 首轮按默认值注入时该行恒为 40、默认态也命中 ⇒ 判逃生项，改账单日/还款日后才有判别力。全额还款 ⇒ 循环利息 0.00、应还 8,000.00 与「免息期内无息」自洽。",
   },
@@ -4463,7 +4463,7 @@ const CASES = [
     slug: "finance/credit-card-interest",
     inputs: { billAmount: "10000", dailyRate: "0.05", minRatio: "10", repayType: "installment", installmentFee: "0.75", installmentMonths: "12" },
     clicks: ["calc()"],
-    expect: ["16.22% 实际年化（单利近似 ×12） 17.48% 有效年化（按月复利）"],
+    expect: ["16.22% 实际年化（单利近似 ×12）", "17.48% 对照：按月复利有效年化"],
     ref: "F-N230：分期 10000 元 /12 期 /0.75% 手续费，每期 908.33 元，IRR 月利率二分 80 次 ⇒ 单利近似 ×12 = 16.22%、按月复利 EAR = 17.48%。旧实现只把 EAR 标成「实际年化利率」，与 `installment-real-rate` 的双列命名冲突；现两列并列。默认态为 minimum 模式、不出现这两个标签 ⇒ 零逃生。",
   },
   {
