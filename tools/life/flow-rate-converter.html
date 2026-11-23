@@ -140,7 +140,7 @@
       <div class="formula-title">📐 计算公式</div>
       <div class="formula-eq">以升每秒为基准换算：1 L/min = 1/60 L/s、1 m³/h = 1000/3600 ≈ 0.27778 L/s、1 m³/s = 1000 L/s、1 加仑每分 ≈ 0.06309 L/s、1 立方英尺每分 ≈ 0.47195 L/s；结果 = 输入值 × 目标系数 ÷ 源系数。</div>
     </div>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 L/s / L/min / m³/h / m³/s / gpm / cfm">Convert volumetric and mass flow rates such as L/s, m³/h, gal/min and kg/s between each other.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 L/s / L/min / m³/h / m³/s / gpm / cfm">Convert volumetric flow units such as L/s, m³/h and gal/min; with density, kg/s can be used as a source and mass flow is also output.</p>
 
     <div class="input-row">
       <div>
@@ -156,12 +156,13 @@
           <option value="m3s">立方米每秒 (m³/s)</option>
           <option value="gpm">美加仑每分 (gpm)</option>
           <option value="cfm">立方英尺每分 (cfm)</option>
+          <option value="kgs">千克每秒 (kg/s，需密度)</option>
         </select>
       </div>
     </div>
     <div class="input-row">
       <div>
-        <label for="density">介质密度（kg/L，水≈1，用于质量流量）</label>
+        <label for="density">介质密度（kg/L，水≈1，用于体积↔质量换算）</label>
         <input type="number" id="density" value="1" step="any" min="0" oninput="convert()" placeholder="水≈1，汽油≈0.74">
       </div>
     </div>
@@ -183,7 +184,7 @@
       <p>1 m³/s = 1000 L/s</p>
       <p>1 gpm ≈ 0.06309 L/s（美加仑）</p>
       <p>1 cfm ≈ 0.47195 L/s</p>
-      <p>质量流量（kg/s）= 体积流量（L/s）× 介质密度（kg/L）；例如水密度≈1 kg/L 时 1 L/s ≈ 1 kg/s</p>
+      <p>质量流量（kg/s）= 体积流量（L/s）× 介质密度（kg/L）；以 kg/s 为源单位时反向计算：体积流量（L/s）= 质量流量 ÷ 密度。例如水密度≈1 kg/L 时 1 L/s ≈ 1 kg/s</p>
     </div></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -271,9 +272,9 @@ const factors = {
   cfm: 0.471947443
 };
 const names = {Ls:'升每秒', Lmin:'升每分', m3h:'立方米每时',
-  m3s:'立方米每秒', gpm:'美加仑每分', cfm:'立方英尺每分'};
+  m3s:'立方米每秒', gpm:'美加仑每分', cfm:'立方英尺每分', kgs:'千克每秒'};
 const syms = {Ls:'L/s', Lmin:'L/min', m3h:'m³/h',
-  m3s:'m³/s', gpm:'gpm', cfm:'cfm'};
+  m3s:'m³/s', gpm:'gpm', cfm:'cfm', kgs:'kg/s'};
 
 function fmt(n){
   if(!isFinite(n)) return '--';
@@ -290,8 +291,17 @@ function convert(){
     const __h0='<p style="color:var(--danger);">请输入有效数值</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
     return;
   }
-  const base = v * factors[from];
   const rho = parseFloat(document.getElementById('density').value);
+  let base;
+  if(from === 'kgs'){
+    if(!isFinite(rho) || rho <= 0){
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">以 kg/s 为源单位时，需要填写大于 0 的介质密度才能反算体积流量。</p>';
+      return;
+    }
+    base = v / rho; // kg/s ÷ (kg/L) = L/s
+  }else{
+    base = v * factors[from];
+  }
   let html = `<p>基准：<strong>${fmt(v)} ${syms[from]}</strong> = <strong>${fmt(base)} L/s</strong></p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
   Object.keys(factors).forEach(k => {
