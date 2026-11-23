@@ -4345,12 +4345,32 @@ function tbSeTrack(evt){
 }
 // G06-S4：结果分享卡（纯本地 canvas 合成，不上传任何数据）
 // 取「工具名 + 结果区前几行 + 站点地址」，导出 1200×630 PNG，方便发群/发圈。
+function tbSeVisible(el){
+  if (!el || el.hidden || el.getAttribute('aria-hidden') === 'true') return false;
+  var cs = global.getComputedStyle ? global.getComputedStyle(el) : null;
+  if (cs && (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0)) return false;
+  var r = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+  return !!(r && r.width > 0 && r.height > 0);
+}
+function tbSeErrorState(el, text){
+  if (!el) return false;
+  if (el.matches && el.matches('.error,.invalid,.input-error,[role="alert"],[aria-invalid="true"]')) return true;
+  if (el.querySelector && el.querySelector('.error,.invalid,.input-error,[role="alert"],[aria-invalid="true"]')) {
+    var bad = el.querySelector('.error,.invalid,.input-error,[role="alert"],[aria-invalid="true"]');
+    if (tbSeVisible(bad)) return true;
+  }
+  return /^(❌|⚠️?|错误|失败|无效|请输入|请先|尚未|暂无结果|无结果|No result|Invalid|Error|Please (?:enter|select|input)|Run the calculation)/i.test(text);
+}
 function tbSeResultLines(max){
   var sels = ['.result-box', '.results', '.result', '.output', '#result', '#results'];
   var box = null;
   for (var i = 0; i < sels.length; i++) {
     var el = document.querySelector(sels[i]);
-    if (el && el.textContent && el.textContent.trim()) { box = el; break; }
+    if (!tbSeVisible(el)) continue;
+    var raw = ((el.innerText || el.textContent || '') + '').replace(/\s+/g, ' ').trim();
+    if (!raw) continue;
+    if (tbSeErrorState(el, raw)) return [];
+    box = el; break;
   }
   if (!box) return [];
   // innerText 会跳过 display:none 的分步面板（很多计算页把多种模式的说明都塞在 .result-box 里），

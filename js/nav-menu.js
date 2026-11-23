@@ -8,7 +8,9 @@
   const CLS_ACTIVE = 'active';
   const CLS_OPEN = 'open';
   let groups = [];        // 首屏瘦身版（json/nav-groups.json）：分类与子行业名/图标/数量
-  let fullGroups = null;  // 全量版（json/industry-groups.json）：含每个子行业 24 张工具卡
+  let fullGroups = null;
+  let fullStatus = 'idle'; // idle | loading | ready | error
+  let fullPromise = null;  // 全量版（json/industry-groups.json）：含每个子行业 24 张工具卡
   let activeGroupIndex = 0;
   let activeChildIndex = 0;
   let loaded = false;
@@ -84,25 +86,61 @@
     return loadGroups();
   }
 
-  async function loadGroups() {
-    if (fullGroups) { groups = fullGroups; loaded = true; return groups; }
-    try {
-      const res = await fetch(asset('/json/industry-groups.json'));
-      const data = await res.json();
-      fullGroups = Array.isArray(data) ? data : [];
-      groups = fullGroups;
-      loaded = true;
-    } catch (e) {
-      if (!groups.length) groups = [];
-    }
-    return groups;
+  async function loadGroups(force) {
+    if (fullGroups && !force) { groups = fullGroups; loaded = true; return groups; }
+    if (fullStatus === 'loading' && fullPromise) return fullPromise;
+    fullStatus = 'loading';
+    fullPromise = (async () => {
+      try {
+        const res = await fetch(asset('/json/industry-groups.json'));
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        fullGroups = Array.isArray(data) ? data : [];
+        groups = fullGroups;
+        loaded = true;
+        fullStatus = 'ready';
+      } catch (e) {
+        fullStatus = 'error';
+        if (!groups.length) groups = [];
+      } finally {
+        fullPromise = null;
+      }
+      return groups;
+    })();
+    return fullPromise;
   }
 
-  async function ensureFull() {
+  async function ensureFull(force) {
+    if (force) { fullGroups = null; fullStatus = 'idle'; }
     if (fullGroups) return fullGroups;
-    await loadGroups();
-    return fullGroups || [];
+    if (fullStatus === 'error') return groups || [];
+    return loadGroups(force);
   }
+
+  function fullErrorHtml() {
+    return '<div class="tb-megapanel-loading">' + (isEn() ? 'Failed to load full catalogue. ' : '完整目录加载失败，') +
+      '<button type="button" class="tb-megapanel-retry" style="margin-left:6px;padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text);cursor:pointer;">' + (isEn() ? 'Retry' : '重试') + '</button></div>';
+  }
+
+  function showFullError(container) {
+    if (!container) return;
+    container.innerHTML = fullErrorHtml();
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest ? e.target.closest('.tb-megapanel-retry') : null;
+    if (btn) { e.preventDefault(); e.stopPropagation(); window.__tbNavRetry(btn); }
+  }, true);
+
+  window.__tbNavRetry = function (btn) {
+    var container = btn && btn.closest ? btn.closest('.tb-megapanel-tools') : null;
+    if (!container) return;
+    container.innerHTML = '<div class="tb-megapanel-loading">' + (isEn() ? 'Loading…' : '载入中…') + '</div>';
+    ensureFull(true).then(function () {
+      if (fullGroups) setTimeout(function(){ selectChild(activeChildIndex || 0); }, 0);
+      else showFullError(container);
+    });
+  };
 
   // ---- 渲染顶部导航 ----
   function renderTopNav(container) {
@@ -235,7 +273,9 @@
       toolsCol.innerHTML = '<div class="tb-megapanel-loading">' + (isEn() ? 'Loading…' : '载入中…') + '</div>';
       const wantGroup = groupIndex;
       ensureFull().then(() => {
-        if (activeGroupIndex === wantGroup) selectChild(0);
+        if (activeGroupIndex !== wantGroup) return;
+        if (fullGroups) selectChild(0);
+        else if (fullStatus === 'error') showFullError(toolsCol);
       });
     }
   }
@@ -246,7 +286,14 @@
     const g = groups[activeGroupIndex];
     if (!panel || !g) return;
     if (!fullGroups) {
-      ensureFull().then(() => { if (activeChildIndex === childIndex) selectChild(childIndex); });
+      if (fullStatus === 'error') { showFullError(panel.querySelector('.tb-megapanel-tools')); return; }
+      const toolsCol = panel.querySelector('.tb-megapanel-tools');
+      if (toolsCol && fullStatus !== 'loading') toolsCol.innerHTML = '<div class="tb-megapanel-loading">' + (isEn() ? 'Loading…' : '载入中…') + '</div>';
+      ensureFull().then(() => {
+        if (activeChildIndex !== childIndex) return;
+        if (fullGroups) selectChild(childIndex);
+        else if (fullStatus === 'error') showFullError(panel.querySelector('.tb-megapanel-tools'));
+      });
       return;
     }
     const items = panel.querySelectorAll('.tb-megapanel-cat-item');
