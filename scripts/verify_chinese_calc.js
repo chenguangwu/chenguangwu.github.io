@@ -141,7 +141,19 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"poemSearch\":\"abc123测试\",\"idiomInput\":\"abc123测试\",\"strokeInput\":\"abc123测试\",\"biasSearch\":\"abc123测试\",\"quoteSearch\":\"abc123测试\"}，输出区含「abc123测试\nabc123测试\nabc123测试\nabc123测试\nabc1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
-
+,
+{
+  "slug": "chinese/lunar-calendar",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/chinese/lunar-calendar.html','utf8');var a=solarToLunar(1900,1,30),b=solarToLunar(1900,1,31),c=solarToLunar(2049,12,31),d=solarToLunar(2050,1,1),e=lunarToSolar(2049,12,7,false);var ok=a===null&&b&&b.year===1900&&b.month===1&&b.day===1&&c&&c.year===2049&&d===null&&e&&e.year&&e.month&&e.day&&h.indexOf('1900-01-31')>=0&&h.indexOf('2049-12-31')>=0;document.getElementById('__tbProbe').textContent='LUNBOUND '+(ok?'OK':'BAD');"],
+  "expect": ["LUNBOUND OK"],
+  "ref": "第280批：农历页实际支持 1900–2049，基准 1900-01-31。1900-01-30/2050-01-01 必须 null，1900-01-31 与 2049-12-31 正常；公历控件 min/max 锁定 1900-01-31/2049-12-31。旧版无 min/max 且文案写 2100 ⇒ BAD。"
+},
+{
+  "slug": "chinese/lunar-calendar",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/chinese/lunar-calendar.html','utf8');var zh=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/chinese.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/chinese/lunar-calendar.json','utf8');var ok=h.indexOf('1900-2100')<0&&h.indexOf('1900-2049')>=0&&zh.indexOf('1900-2100')<0&&zh.indexOf('1900-2049')>=0&&en.indexOf('1900-2100')<0&&en.indexOf('1900–2049')>=0;document.getElementById('__tbProbe').textContent='LUNRANGE '+(ok?'OK':'BAD');"],
+  "expect": ["LUNRANGE OK"],
+  "ref": "第280批：农历页正文、meta/OG/JSON-LD、卡片数据源与英文词典统一为 1900-2049；旧版多处写 1900-2100 ⇒ BAD。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

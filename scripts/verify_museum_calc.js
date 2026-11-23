@@ -167,7 +167,7 @@ const CASES = [
   "slug": "museum/historical-calendar",
   "clicks": ["document.getElementById('date-input').value='1899-12-31';update();"],
   "expect": [
-    "仅支持 1900–2099 年日期，请重新选择。"
+    "仅支持 1900-01-31 至 2099-12-31 的公历日期，请重新选择。"
   ],
   "ref": "年份越界（RL-K36）：solarToLunar 对 1899 年返回 null，旧版未判空直接读 lunar.y ⇒ TypeError 中断，详情与历史事件停留在上一次结果。修复后给出范围提示并清空事件列表；默认态为当前本地日期，不含该提示。"
 },
@@ -457,6 +457,18 @@ const CASES = [
 {dynDom:true, slug:"museum/audio-guide-timer", inputs:{exhibitCount:"3",perExhibit:"50",moveTime:"20",introTime:"30",available:"1"},clicks:["calcQuick();"],expect:["剩余时间不足以安排一件展品的讲解"],ref:"开场 30 秒后剩余 30 秒，少于单件 50 秒。"},
 { slug:"museum/exhibit-spacing", inputs:{"artWidth":"","artHeight":"","centerH":"","hAngle":"","vAngle":"","eyeH":"","viewers":"","shoulder":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
 { "slug":"museum/historical-calendar", "clicks":["document.getElementById('res').textContent='T1='+getSolarTerm(2024,12,21)+'/T2='+getSolarTerm(2024,12,22)+'/T3='+getSolarTerm(2024,8,22)"], "expect":["T1=冬至/T2=/T3=处暑"], "ref":"RL-K35：2024 年冬至为 12-21，12-22 不应再标冬至；处暑为 08-22。按太阳黄经逐年计算后不再用固定月日表。" },
+{
+  "slug": "museum/historical-calendar",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/museum/historical-calendar.html','utf8');var a=solarToLunar(1900,1,1),b=solarToLunar(1900,1,30),c=solarToLunar(1900,1,31),d=solarToLunar(2099,12,31),e=solarToLunar(2100,1,1);var ok=a===null&&b===null&&c&&c.y===1900&&c.m===1&&c.d===1&&d&&d.y===2099&&e===null&&h.indexOf('1900-01-31')>=0;document.getElementById('__tbProbe').textContent='HISTBOUND '+(ok?'OK':'BAD');"],
+  "expect": ["HISTBOUND OK"],
+  "ref": "第280批：LUNAR_INFO 基准为 1900-01-31，早于基准会得到负偏移/1899 年。solarToLunar 必须对 1900-01-01、1900-01-30 返回 null，1900-01-31 正常；2099-12-31 合法、2100-01-01 拒绝；日期控件 min 必须为 1900-01-31。旧版仅判 y<1900、min=1900-01-01 ⇒ BAD。"
+},
+{
+  "slug": "museum/historical-calendar",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/museum/historical-calendar.html','utf8');var deep=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/museum/historical-calendar.json','utf8');var dj=JSON.parse(deep)['museum/historical-calendar'];var djx=JSON.stringify(dj);var ok=h.indexOf('1900–2100')<0&&h.indexOf('1900-2100')<0&&h.indexOf('1900–2099')>=0&&djx.indexOf('1900–2100')<0&&djx.indexOf('1900–2099')>=0&&en.indexOf('1900–2100')<0&&en.indexOf('1900–2099')>=0;document.getElementById('__tbProbe').textContent='HISTRANGE '+(ok?'OK':'BAD');"],
+  "expect": ["HISTRANGE OK"],
+  "ref": "第280批：历史日历实际仅支持到 2099，正文、深解源与英文词典不得再称 1900–2100。旧版三处均写 2100 ⇒ BAD。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);
