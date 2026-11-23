@@ -303,18 +303,39 @@ function doBeautify(){ formatGraphQL(); }
 function doMinify(){ minifyGraphQL(); }
 function doValidate(){
   setErr('');
+  const src = document.getElementById('input').value;
+  if(!src.trim()){ setOut(''); setErr('❌ 请输入 GraphQL 文本后再校验。'); return; }
   try{
-    const tokens = tokenize(document.getElementById('input').value);
-    let depth = 0;
+    const tokens = tokenize(src);
+    const code = tokens.filter(tk => tk.t !== 'comment');
+    if(!code.length) throw new Error('没有可校验的 GraphQL 内容');
+    const pairs = {'}':'{', ']':'[', ')':'('};
+    const stack = [];
+    const opens = '{([';
+    const closes = '})]';
+    const allowedPunct = '{}[]():,.!=@&$|';
     for(const tk of tokens){
-      if(tk.v === '{' || tk.v === '[' || tk.v === '(') depth++;
-      if(tk.v === '}' || tk.v === ']' || tk.v === ')') depth--;
-      if(depth < 0) throw new Error('括号不匹配');
+      if(tk.t === 'punct' && !allowedPunct.includes(tk.v)) throw new Error('不支持的字符：' + tk.v);
+      if(tk.t === 'str'){
+        const q = tk.v[0];
+        if(tk.v.length < 2 || tk.v[tk.v.length-1] !== q) throw new Error('字符串未闭合');
+      }
+      if(opens.includes(tk.v)){ stack.push(tk.v); continue; }
+      if(closes.includes(tk.v)){
+        const want = pairs[tk.v];
+        if(!stack.length || stack[stack.length-1] !== want) throw new Error('括号类型不匹配：' + tk.v + ' 前缺少 ' + want);
+        stack.pop();
+      }
     }
-    if(depth !== 0) throw new Error('括号未闭合');
-    setOut('✅ GraphQL 语法正确\nTokens: ' + tokens.length + '\n括号平衡');
-    setErr('✅ 校验通过');
-  }catch(e){ setErr('❌ ' + e.message); }
+    if(stack.length) throw new Error('括号未闭合：缺少 ' + ({'{':'}','[':']','(':')'})[stack[stack.length-1]]);
+    const first = code[0];
+    const ops = ['query','mutation','subscription','fragment'];
+    if(!(first.v === '{' || (first.t === 'name' && ops.includes(first.v)))){
+      throw new Error('仅支持以 { 开头的查询，或 query / mutation / subscription / fragment 文档');
+    }
+    setOut('✅ 基础检查通过\nTokens: ' + tokens.length + '\n括号类型匹配、已闭合');
+    setErr('✅ 基础校验通过（括号/字符串检查，不含完整语法解析）');
+  }catch(e){ setOut(''); setErr('❌ ' + e.message); }
 }
 function getIndent(){const v=document.getElementById('indent').value;return v==='tab'?'\t':' '.repeat(parseInt(v));}
 function setOut(s){document.getElementById('output').textContent=s;}

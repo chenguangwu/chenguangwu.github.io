@@ -14635,8 +14635,45 @@ const CASES = [
   "expect": ["OGSITE OK"],
   "ref": "第459批：OG 生成器脚本第 315 行本身含 og:site_name 字符串，旧检测按全文匹配误判已存在，真实 head 却没有。必须只在 </head> 前命中 og:site_name，同时保留脚本示例。"
 }
+,
+{
+  "slug": "it/aes-encryptor",
+  "clicks": ["var hx=function(s){var a=new Uint8Array(s.length/2);for(var i=0;i<a.length;i++)a[i]=parseInt(s.substr(i*2,2),16);return a;};var pt=hx('6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710');var key=hx('2b7e151628aed2a6abf7158809cf4f3c');var iv=hx('000102030405060708090a0b0c0d0e0f');var ct=encryptCFB(pt,key,iv,128);var hex=Array.prototype.map.call(ct,function(x){return ('0'+x.toString(16)).slice(-2);}).join('');var back=decryptCFB(ct,key,iv,128);var dec=Array.prototype.every.call(back,function(x,i){return x===pt[i];});document.getElementById('__tbProbe').textContent='AESCFB '+hex+' dec='+(dec?'OK':'BAD');"],
+  "expect": ["AESCFB 3b3fd92eb72dad20333449f8e83cfb4ac8a64537a0b3a93fcde3cdad9f1ce58b26751f67a3cbb140b1808cf187a4f4dfc04b05357c5d1c0eeac4c66f9ff7f2e6 dec=OK"],
+  "ref": "第355批：NIST SP 800-38A AES-128-CFB128 标准向量，4 个完整分组（64 字节，超过 16 字节）必须逐字节得到 3b3f…f2e6，且 decryptCFB 必须还原原文；旧说明称“解密即再执行加密流程”，与 CFB 方向敏感的密文反馈不符。默认态不执行探针，输出区无 AESCFB ⇒ 零逃生。"
+},
+{
+  "slug": "design/pixel-art-generator",
+  "clicks": ["window.__pxSize=4;window.__pxGrid=[['','','',''],['','#f00','',''],['','','',''],['','','','']];var a=__pxCss();window.__pxGrid=[['#0f0','','',''],['','','',''],['','','',''],['','','','']];var b=__pxCss();window.__pxGrid=[['','','',''],['','','',''],['','','',''],['','','','']];var c=__pxCss();var ok=a.indexOf('background: transparent')>=0&&a.indexOf('16px 16px 0 #f00')>=0&&a.indexOf('0px 0px 0 #f00')<0&&b.indexOf('0px 0px 0 #0f0')>=0&&b.indexOf('background: transparent')>=0&&c.indexOf('画布为空')>=0;document.getElementById('__tbProbe').textContent='PIXCSS '+(ok?'OK':'BAD');"],
+  "expect": ["PIXCSS OK"],
+  "ref": "第518-539批：左上角为空而 (1,1) 有色时，旧实现把首个有色格颜色写进基础元素 background，CSS 会在 (0,0) 多画一块；修复后基础背景 transparent，所有像素只由 box-shadow 偏移绘制。同时验证左上有色仍保留 0,0 阴影、全空返回空画布提示。",
+  "inputs": {"gs": "4"}
+},
+{
+  "slug": "it/graphql-formatter",
+  "clicks": ["document.getElementById('output').textContent='STALE';document.getElementById('input').value='   ';doValidate();var o=document.getElementById('output').textContent,e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='GQLEMPTY '+((o===''&&e.indexOf('请输入 GraphQL 文本')>=0)?'OK':'BAD');"],
+  "expect": ["GQLEMPTY OK"],
+  "ref": "第304批：空白输入旧实现 tokenize 得 0 token，仍输出“GraphQL 语法正确/校验通过”且不清旧结果；修复后清空输出并提示输入。默认态不执行探针 ⇒ 零逃生。"
+},
+{
+  "slug": "it/graphql-formatter",
+  "clicks": ["document.getElementById('input').value='{]';doValidate();var o=document.getElementById('output').textContent,e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='GQLBRACK '+((o===''&&e.indexOf('括号类型不匹配')>=0)?'OK':'BAD:'+e);"],
+  "expect": ["GQLBRACK OK"],
+  "ref": "第304批：旧实现只按统一 depth 加减，{] 先加后减回到 0 即“校验通过”；修复后按 {[( 类型栈匹配，] 遇到 { 必须报括号类型不匹配。"
+},
+{
+  "slug": "it/graphql-formatter",
+  "clicks": ["document.getElementById('input').value='query Q($id: ID!) { user(id: $id) { id } }';doValidate();var o=document.getElementById('output').textContent,e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='GQLOK '+((o.indexOf('基础检查通过')>=0&&e.indexOf('基础校验通过')>=0&&e.indexOf('不含完整语法解析')>=0)?'OK':'BAD');"],
+  "expect": ["GQLOK OK"],
+  "ref": "第304批：合法 query 必须通过基础检查，并明确标注只做括号/字符串检查、不宣称完整语法正确。"
+},
+{
+  "slug": "it/graphql-formatter",
+  "clicks": ["document.getElementById('input').value='foo bar { baz }';doValidate();var e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='GQLNAME '+(e.indexOf('仅支持以 { 开头')>=0?'OK':'BAD:'+e);"],
+  "expect": ["GQLNAME OK"],
+  "ref": "第304批：非 GraphQL 任意名称旧实现括号平衡即通过；修复后文档首 token 只接受 { 或 query/mutation/subscription/fragment。"
+}
 ];
-// ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
   { measureText: () => ({ width: 0 }), createLinearGradient: () => ({ addColorStop() {} }), canvas: { width: 0, height: 0, clientWidth: 300, clientHeight: 300 } },
