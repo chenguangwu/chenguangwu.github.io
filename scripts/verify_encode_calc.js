@@ -34,7 +34,17 @@ const CASES = [
     ref: "总字节=32+4+1=37；Base58 长度=ceil(37×8/5.86)=ceil(50.51)=51（默认 25/4/1→30/41，避开）" },
 
   { slug: "encode/base64-length",
-    inputs: { bytes: "50", padding: "1", wrap: "76" },
+    inputs: { bytes: "", padding: "1", wrap: "0" },
+    expect: ["请填写字节数、填充标志（0/1）与折行宽度；空值不按 0 计算"],
+    ref: "单字段空值（仅 bytes 空）不得被 +value||0 当 0；默认 100/1/0 不含该提示。" },
+
+  { slug: "encode/base64-length",
+    inputs: { bytes: "100", padding: "2", wrap: "0" },
+    expect: ["填充标志只能为 0 或 1"],
+    ref: "填充标志只允许 1/0；旧实现把 2 也当含填充。默认 padding=1 不含该提示。" },
+
+  { slug: "encode/base64-length",
+    inputs: { bytes: "50", padding: "1", wrap: "76" }, 
     expect: ["68"],
     ref: "ceil(50/3)×4=17×4=68 字符（默认 bytes=100→136，避开）" },
 
@@ -227,13 +237,13 @@ const CASES = [
     "slug": "encode/base64-length",
     "inputs": {
       "bytes": "42",
-      "padding": "42",
+      "padding": "0",
       "wrap": "42"
     },
     "expect": [
       "去填充字符数： 56 填充字符数： 0 个 行数： 2 行"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"bytes\":\"42\",\"padding\":\"42\",\"wrap\":\"42\"}，输出区含「去填充字符数： 56 填充字符数： 0 个 行数： 2 行」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bytes\":\"42\",\"padding\":\"0\",\"wrap\":\"42\"}，输出区含「去填充字符数： 56 填充字符数： 0 个 行数： 2 行」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "encode/checksum-collision",
@@ -573,7 +583,7 @@ const CASES = [
   {
     "slug": "encode/base64-length",
     "inputs": { "bytes": "1.5", "padding": "1", "wrap": "0" },
-    "expect": ["字节数、含填充标记与换行数均须为非负整数"],
+    "expect": ["字节数与折行宽度须为非负整数，填充标志只能为 0 或 1"],
     "ref": "I-2 小数字节：旧版 bytes=1.5 算出填充数 1.5 个无意义。现三项非负整数守卫拦截；默认 100 不命中。"
   },
   {

@@ -143,7 +143,7 @@
     <h2 data-zh="🔤 Base64 编码长度">🔤 Base64 Encoded Length</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="计算字节数据经 Base64 编码后的字符数。">Measure the encoded length and byte size of inputs with quick local calculation.</p>
     <div class="input-row"><label for="bytes">原始字节数</label><input type="number" id="bytes" value="100" min="0" step="1" oninput="calc()" placeholder="如 100"></div>
-    <div class="input-row"><label for="padding">含填充 1/0</label><input type="number" id="padding" value="1" step="1" oninput="calc()" placeholder="如 1"></div>
+    <div class="input-row"><label for="padding">填充标志（1=含填充，0=不含）</label><input type="number" id="padding" value="1" step="1" oninput="calc()" placeholder="如 1"></div>
     <div class="input-row"><label for="wrap">换行字符数(0不换)</label><input type="number" id="wrap" value="0" step="any" oninput="calc()" placeholder="如 0"></div>
     <div class="toolbar">
       <div id="base64_lengthPresets"></div><button class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__base64_lengthExport()">导出明细 CSV</button>
@@ -283,12 +283,17 @@ function calc(){
 // NUMCLR：全部输入留空时不得输出 0/0.00 的假评估结果
 var __numReq=['bytes','padding','wrap'];
 if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
-  const bytes = +document.getElementById('bytes').value || 0;
-  const padding = +document.getElementById('padding').value || 0;
-  const wrap = +document.getElementById('wrap').value || 0;
   var __b64en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
-  if(![bytes,padding,wrap].every(function(v){return isFinite(v)&&v>=0&&Number.isInteger(v);})){
-    document.getElementById('result').innerHTML=__b64en?'<p style="color:var(--danger)">⚠ Byte count, padding flag and wrap must be non-negative integers.</p>':'<p style="color:var(--danger)">⚠ 字节数、含填充标记与换行数均须为非负整数。</p>';
+  var bytesRaw=String(document.getElementById('bytes').value).trim();
+  var paddingRaw=String(document.getElementById('padding').value).trim();
+  var wrapRaw=String(document.getElementById('wrap').value).trim();
+  if(bytesRaw===''||paddingRaw===''||wrapRaw===''){
+    document.getElementById('result').innerHTML=__b64en?'<p style="color:var(--danger)">⚠ Enter byte count, padding flag (0/1) and wrap width; empty is not treated as 0.</p>':'<p style="color:var(--danger)">⚠ 请填写字节数、填充标志（0/1）与折行宽度；空值不按 0 计算。</p>';
+    return;
+  }
+  const bytes = Number(bytesRaw), padding = Number(paddingRaw), wrap = Number(wrapRaw);
+  if(![bytes,padding,wrap].every(function(v){return isFinite(v)&&v>=0&&Number.isInteger(v);})||padding>1){
+    document.getElementById('result').innerHTML=__b64en?'<p style="color:var(--danger)">⚠ Byte count and wrap must be non-negative integers; padding flag must be 0 or 1.</p>':'<p style="color:var(--danger)">⚠ 字节数与折行宽度须为非负整数，填充标志只能为 0 或 1。</p>';
     return;
   }
   let html = '';
@@ -435,7 +440,7 @@ function __base64_lengthPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#base64_lengthPresets',[{label:'默认参数',labelEn:'Default',values:{'bytes':'100', 'padding':'1', 'wrap':'0'}},
   {"label":"100 字节短文本","labelEn":"100-byte text","values":{"bytes":100,"padding":1,"wrap":0}},
-  {"label":"5KB 图片数据","labelEn":"5KB image data","values":{"bytes":5000,"padding":2,"wrap":76}},
+  {"label":"5KB 图片数据","labelEn":"5KB image data","values":{"bytes":5000,"padding":1,"wrap":76}},
   {"label":"32 字节加密密钥","labelEn":"32-byte key","values":{"bytes":32,"padding":1,"wrap":64}}],function(){ calc(); });
 }
 var __base64_length_f0=(typeof calc==='function')?calc:null;
