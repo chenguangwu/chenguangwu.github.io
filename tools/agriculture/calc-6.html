@@ -137,8 +137,8 @@
     <h2 data-zh="📐 养殖存栏量估算">📐 Livestock Stocking Capacity Estimator</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">最大存栏量 = 栏舍面积 ÷ 每头占地面积；周期允许的最大批次数 = 365 ÷ 饲养周期；实际年出栏量 = 最大存栏量 × min(输入年批次数, 365 ÷ 饲养周期)；饲养密度 = 存栏量 ÷ 栏舍面积；日均出栏 = 年出栏量 ÷ 365。校验：面积、每头占地、饲养周期任一 ≤0 提示；年批次数 ≤0 按周期上限计；超过周期上限按上限计并提示。</div>
-      <div class="formula-desc">由圈舍面积与单头占地面积得同时饲养头数，再按饲养周期换算全年可排批次数（365 ÷ 周期），与用户填写的年批次数取较小者作为实际批次数，用于养殖场产能、饲料采购与粪污处理配套规划。周期越短，一年可排批次越多；周期长于 365 天时上限为 1 批。</div>
+      <div class="formula-eq">最大存栏量 = 栏舍面积 ÷ 每头占地面积；长期平均年周转批次 = 365 ÷ 饲养周期（可小于 1）；实际年出栏量 = 最大存栏量 × min(输入年批次数, 365 ÷ 饲养周期)；饲养密度 = 存栏量 ÷ 栏舍面积；日均出栏 = 年出栏量 ÷ 365。校验：面积、每头占地、饲养周期任一 ≤0 提示；年批次数 ≤0 按年周转上限计；超过年周转上限按上限计并提示。</div>
+      <div class="formula-desc">由圈舍面积与单头占地面积得同时饲养头数，再按饲养周期换算长期平均年周转批次（365 ÷ 周期），与用户填写的年批次数取较小者作为实际批次数，用于养殖场产能、饲料采购与粪污处理配套规划。周期越短，年周转批次越多；周期长于 365 天时年周转批次小于 1（如 730 天 = 0.5 批/年），年出栏量按多年平均折算，不等同于某一起始时点的当年实际出栏批数。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据圈舍面积、单头占地面积、饲养周期和年批次数，估算最大存栏量与年出栏量。">Estimate barn capacity and annual off-take.</p>
 
@@ -294,8 +294,8 @@ function calc(){
   var stock=area/space;
   var maxBatches=365/cycle;
   var usedBatches=batches, note='';
-  if(batches<=0){ usedBatches=maxBatches; note='未填写有效年批次数，已按「365 ÷ 饲养周期」的周期上限 '+maxBatches.toFixed(2)+' 批计算。'; }
-  else if(batches>maxBatches){ usedBatches=maxBatches; note='填写的年批次数 '+batches.toFixed(1)+' 超过「365 ÷ 饲养周期」的周期上限 '+maxBatches.toFixed(2)+' 批，已按上限计算。'; }
+  if(batches<=0){ usedBatches=maxBatches; note='未填写有效年批次数，已按「365 ÷ 饲养周期」的年周转上限 '+maxBatches.toFixed(2)+' 批/年计算（可小于 1，表示多年平均出一批）。'; }
+  else if(batches>maxBatches){ usedBatches=maxBatches; note='填写的年批次数 '+batches.toFixed(1)+' 超过「365 ÷ 饲养周期」的年周转上限 '+maxBatches.toFixed(2)+' 批/年，已按上限计算。'; }
   var annual=stock*usedBatches;
   var html='<div class="data-grid">';
   html+='<div class="data-card"><div class="num">'+ToolBox.formatNumber(stock,0)+'</div><div class="label">最大存栏量（头）</div></div>';
@@ -303,7 +303,7 @@ function calc(){
   html+='<div class="data-card"><div class="num">'+ToolBox.formatNumber(stock/area,1)+'</div><div class="label">饲养密度（头/m²）</div></div>';
   html+='<div class="data-card"><div class="num">'+ToolBox.formatNumber(annual/365,1)+'</div><div class="label">日均出栏（头）</div></div>';
   html+='</div>';
-  html+='<div class="tip-box '+(note?'tip-error':'tip-info')+'" style="margin-top:12px;"><strong>计算说明：</strong>存栏量 = '+area.toFixed(0)+' ÷ '+space.toFixed(2)+' = '+ToolBox.formatNumber(stock,0)+' 头；周期上限 = 365 ÷ '+cycle.toFixed(0)+' = '+maxBatches.toFixed(2)+' 批，实际采用 '+usedBatches.toFixed(2)+' 批；年出栏量 = 存栏量 × '+usedBatches.toFixed(2)+' 批'+(note?'。'+note:'')+'</div>';
+  html+='<div class="tip-box '+(note?'tip-error':'tip-info')+'" style="margin-top:12px;"><strong>计算说明：</strong>存栏量 = '+area.toFixed(0)+' ÷ '+space.toFixed(2)+' = '+ToolBox.formatNumber(stock,0)+' 头；年周转上限 = 365 ÷ '+cycle.toFixed(0)+' = '+maxBatches.toFixed(2)+' 批/年，实际采用 '+usedBatches.toFixed(2)+' 批；年出栏量 = 存栏量 × '+usedBatches.toFixed(2)+' 批'+(note?'。'+note:'')+'</div>';
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }
 function copyResult(){ ToolBox.copyText(document.getElementById('result').innerText, i18nText('toast.msg544')); }

@@ -140,7 +140,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据建筑面积、层数与防火分区，计算火灾报警区域与探测区域划分方案">Fire Alarm Zone</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">每层探测区数 = ⌈楼层面积 ÷ 500⌉；总探测区数 = 每层区数 × 层数（每区面积不超过 500 m²）</div>
+  <div class="formula-eq">每层探测区数 = ⌈楼层面积 ÷ 500⌉；总探测区数 = 每层区数 × 层数（每区面积不超过 500 m²）。探测器总数 = 每个探测区分别 ⌈该区面积 ÷ 单只保护面积 A⌉ 后求和 × 层数（不按整层面积一次性取整）</div>
       <p class="formula-desc" data-zh="探测器保护面积 A = f(探测器类型, 房间净高)：点型感烟净高≤6m 取 80㎡、>6m 递减；报警区域按防火分区划分，一个报警区域宜由一个防火分区或楼层组成。">Detector coverage area A = f(detector type, room clear height): spot smoke ≤6 m → 80 m², reduced above; alarm zone follows fire compartment, ideally one alarm zone per compartment or floor.</p>
     </div>
 
@@ -321,12 +321,14 @@ function calc(){
   var detectZonesPerFloor=Math.ceil(floorArea/500);
   var totalDetectZones=detectZonesPerFloor*effFloors;
 
-  // 探测器数量
-  var detectorsPerZone, totalDetectors;
+  // 探测器数量：探测区域每区不超过 500 m²，各区域分别向上取整后求和。
+  // 例如 501 m² 分为 500 + 1 m²，A=80 m² 时为 7 + 1 = 8，不能用整层 501/80=7。
+  var detectorsPerZone, totalDetectors, perFloorDetectors=0;
   if(protArea>0){
     detectorsPerZone=Math.ceil(500/protArea);
-    // 每个探测区域探测器数 × 探测区域数
-    var perFloorDetectors=Math.ceil(floorArea/protArea);
+    var fullZones=Math.floor(floorArea/500);
+    var remArea=floorArea-fullZones*500;
+    perFloorDetectors=fullZones*detectorsPerZone+(remArea>0?Math.ceil(remArea/protArea):0);
     totalDetectors=perFloorDetectors*effFloors;
   }else{
     detectorsPerZone=0;
@@ -342,6 +344,7 @@ function calc(){
   html+='<div class="stat-card"><div class="val">'+(effFloors*floorArea).toFixed(0)+'</div><div class="lbl">建筑总面积(m²)</div></div>';
   html+='</div>';
   html+=btypeNote;
+  html+='<div class="tip-box tip-warn" style="margin-top:8px;font-size:13px;">探测器数量为按面积均分的粗估：未建模房间隔墙、梁柱遮挡与探测区域实际形状；每区不超过 500 m² 仍需按现场分隔校核，不能直接作为施工配置数量。</div>';
 
   // 分区方案表
   var rows=[];
