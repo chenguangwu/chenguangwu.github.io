@@ -1,4 +1,4 @@
-# 全站剩余任务清单（2026-11-23 第 550 批后）
+# 全站剩余任务清单（2026-11-23 第 551 批后）
 
 > 8 类全扫与第 513–535 批修复记录见 `plan/已修复/`。
 > 本文件只保留**唯一仍未到期、不可提前执行**的迁移壳清理项。
@@ -8,7 +8,7 @@
 | 类别 | 已收口 | 剩余 |
 |---|---|---|
 | 1 功能 Bug | 4,925 页加载期 0 缺陷；120 页点击烟测 0；TWSTRS 满分口径已修；宠物喂食工具错配旧指南、连续性指南相关工具错配已修 | 无 |
-| 2 UI 布局 | 全站 UX 8.64/9；家具布局页与语言切换器 320px 已修；209 个行业首页 320px 横向溢出已修；热门工具前 100 页 320px 实扫，二维码生成器 343px 溢出已修 | 无 |
+| 2 UI 布局 | 全站 UX 8.64/9；家具布局页与语言切换器 320px 已修；209 个行业首页 320px 横向溢出已修；热门工具前 100 页 320px 实扫；第 551 批 4,822 个工具页 320px 全量实扫，19 页页面级横向溢出全部修复并复扫 scrollWidth=320 | 无 |
 | 3 中英文 | 16 个零词典指南已全量英文化；3,131 个指南页补齐英文标题/描述兜底，3,428 页相关工具链接、CTA 与导语已批量英文化；209 个行业首页中英文标题重复显示与英文重复 emoji 已修；第 548 批接入 `GUIDE_EN_PACK`、修复 data-i18n 重置、2,744 条公共免责声明入词典，119 个结构化指南英文态清零；全量 3,250 个有效指南扫描 61 页有中文，第 549 批已全部清零；第 550 批 4,822 个工具页正文英文态仅 1 页 1 条、128 页 head 中文，均已清零；工具与指南英文正文/标题/描述复扫 0 残留 | 无 |
 | 4 SEO 文案 | 工具/指南描述 <70 = 0；TWSTRS 工具与指南的 75 分残留已统一为 85 分制 | 无 |
 | 5 新增同类工具 | `trash-bag-size`、`winter-feed-syrup`、`box-fit`、`water-filter-lifespan`、`ac-energy-cost`、`appliance-lifespan`、`repair-or-replace`、`water-heater-sizing` 已交付 | 无 |
@@ -36,6 +36,13 @@
 - 工具页 head 扫描：128 页 description 中文、1 页 title 中文（实际为分类页旧值）。根因是 `tool_desc_source.en_desc()` 未读取第三层 `i18n/tools/en/<ind>/<slug>.json`。
 - `scripts/tool_desc_source.py` 增加第三层英文描述回退（缓存），`_build.py` 自动写 `desc-en`；3 个仍缺页（ovulation-calculator、citation-format、checker-assessor-1）补 `_en_override.json` 人工英文描述。
 - 验证：128 页 head 复扫 0 中文；工具页正文 1 页复扫 0；272 项门禁通过。
+
+## 第 551 批：工具页 320px 横向溢出清零（已完成，待本地提交）
+
+- 4,822 个有效工具页（排除 286 个迁移存根）在 320×800 下全量实扫，命中 19 页页面级 `scrollWidth > 320`：
+  agriculture/fertilizer-calculator、edu/exam-timer、music/web-tuner、music/music-player、urban/building-height、archaeology/site-grid、textile/pattern-calculator、biz/assessor-risk-8、cognition/schulte-table、rheumatology/basdai、it/summary-generator、science/cycle、life/data-unit-converter、life/holiday-calendar、beauty/makeup-shade、project/analysis-28、museum/visitor-route、finance/word-search、psychiatry/mmpi2-personality。
+- 修复方式：每页注入 `#mobile320-fix` 局部媒体查询，不新增公共依赖。NPK 三列改两列；计时器字号 `clamp(30px,11vw,64px)`；表格 `table-layout:fixed` + 单元格换行；音量行/设置行允许换行；建筑可视化柱宽 40→30；遗址输入框 `max-width:100%`；裁片行换行；风险行改单列；舒尔特控制区单列；BASDAI 标签 80→28；摘要详情行允许换行；元素周期表/日历/单词网格改 `minmax(0,1fr)` 并局部滚动；肤色卡 3 列压缩；干系人行改网格并压低下拉内边距；通道行改两行网格；MMPI 解释行换行。
+- 复扫：19 页 `document.documentElement.scrollWidth` 全部 = 320；6 页关键控件截图人工核对无截断（计时器、化肥、日历、单词、参观流线、MMPI）。
 
 ## R3：迁移壳到期清理（唯一按日期等待项）
 
