@@ -286,7 +286,7 @@ function fmt(x){
   return (Math.round(x*1e10)/1e10).toLocaleString();
 }
 
-function mag(v){ return Math.sqrt(v.reduce((s,x)=>s+x*x,0)); }
+function mag(v){ return Math.hypot.apply(Math,v); }
 /* 零向量判定按相对尺度：模与最大分量之比 ≤1e-12 或最大分量恰为 0 才算零向量。
    绝对阈值会把 (1e-13,0) 这类非零小向量误判为零向量。 */
 function __isZeroVec(v){
@@ -342,16 +342,18 @@ function calculate(){
     const v=op==='magA'?A:B, name=op==='magA'?'A':'B';
     const m=mag(v);
     html+='<div class="big-result">|'+name+'| = '+fmt(m)+'</div>';
-    html+='<div class="step-line">|'+name+'| = √('+v.map(x=>'('+fmt(x)+')²').join(' + ')+') = √'+fmt(v.reduce((s,x)=>s+x*x,0))+' = '+fmt(m)+'</div>';
+    html+='<div class="step-line">|'+name+'| = hypot('+v.map(x=>fmt(x)).join(', ')+') = '+fmt(m)+'</div>';
     resultScalar = m; opName = '|'+name+'|';
   } else if(op==='angle'){
-    const dp=dot(A,B), mA=mag(A), mB=mag(B);
+    const mA=mag(A), mB=mag(B);
     if(__isZeroVec(A)||__isZeroVec(B)){ html+='<p style="color:var(--danger);">零向量无法计算夹角。</p>'; }
     else{
-      const cosT=Math.max(-1,Math.min(1,dp/(mA*mB)));
+      // 先单位化再点乘，避免 |A||B| 或 A·B 在极小/极大分量下上溢或下溢
+      const uA=A.map(x=>x/mA), uB=B.map(x=>x/mB);
+      const cosT=Math.max(-1,Math.min(1,dot(uA,uB)));
       const rad=Math.acos(cosT), deg=rad*180/Math.PI;
       html+='<div class="big-result">θ = '+fmt(deg)+'° = '+fmt(rad)+' rad</div>';
-      html+='<div class="step-line">cos θ = (A·B)/(|A||B|) = '+fmt(dp)+' / ('+fmt(mA)+'×'+fmt(mB)+') = '+fmt(cosT)+'</div>';
+      html+='<div class="step-line">cos θ = (A/|A|)·(B/|B|) = '+fmt(cosT)+'（先单位化，避免极小分量下溢）</div>';
       html+='<div class="step-line">θ = arccos('+fmt(cosT)+') = '+fmt(deg)+'°</div>';
       resultScalar = deg; opName = '夹角(°)';
     }
@@ -359,13 +361,12 @@ function calculate(){
     const mB=mag(B);
     if(__isZeroVec(B)){ html+='<p style="color:var(--danger);">B 为零向量，无法投影。</p>'; }
     else{
-      const dp=dot(A,B);
-      const scalar=dp/(mB*mB);
-      const projVec=B.map(x=>x*scalar);
-      const projLen=dp/mB;
+      const uB=B.map(x=>x/mB);
+      const projLen=dot(A,uB);           // (A·B)/|B|，单位化后避免 |B|² 下溢
+      const projVec=uB.map(x=>x*projLen);
       html+='<div class="big-result">proj<sub>B</sub>A = '+vecStr(projVec)+'</div>';
-      html+='<div class="step-line">投影长度 = (A·B)/|B| = '+fmt(dp)+'/'+fmt(mB)+' = '+fmt(projLen)+'</div>';
-      html+='<div class="step-line">投影向量 = ((A·B)/|B|²)·B = '+fmt(scalar)+' × '+vecStr(B)+' = '+vecStr(projVec)+'</div>';
+      html+='<div class="step-line">投影长度 = (A·B)/|B| = '+fmt(projLen)+'</div>';
+      html+='<div class="step-line">投影向量 = 投影长度 × B/|B| = '+fmt(projLen)+' × '+vecStr(uB)+' = '+vecStr(projVec)+'</div>';
       resultVec = projVec; opName = 'proj_B(A)';
     }
   } else if(op==='scaleA'){
@@ -489,9 +490,9 @@ function drawVectorPlot(A, B, dim){
   else if(op==='proj'){
     const mB=mag(B);
     if(!__isZeroVec(B)){
-      const dp=dot(A,B);
-      const scalar=dp/(mB*mB);
-      resultVec = B.map(x=>x*scalar);
+      const uB=B.map(x=>x/mB);
+      const coef=dot(A,uB);
+      resultVec = uB.map(x=>x*coef);
     }
   } else if(op==='scaleA'){
     const __rawScalar = document.getElementById('scalar').value.trim();
