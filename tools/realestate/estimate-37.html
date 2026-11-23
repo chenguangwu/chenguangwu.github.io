@@ -219,9 +219,23 @@ var BENCH={residential:5,office:10,retail:8,industrial:7,hotel:25};
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function fmt(n,d){if(!isFinite(n))return '-';d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
 function calc(){
-  var gpr=num('gpr'),vac=num('vacancy')/100,col=num('collection')/100,con=num('concession')/100,oth=num('otherInc');
   var ptype=document.getElementById('ptype').value;
-  if(gpr<=0){document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入大于 0 的潜在毛租金。</p>';return;}
+  function fail(msg){document.getElementById('res').innerHTML='<p style="color:var(--danger);">'+msg+'</p>';return true;}
+  var gprRaw=document.getElementById('gpr').value.trim();
+  if(gprRaw===''){fail('请填写潜在毛租金 GPR；空值不会被当作 0 计算。');return;}
+  var gpr=parseFloat(gprRaw);
+  if(!isFinite(gpr)||gpr<=0){fail('请输入大于 0 的潜在毛租金。');return;}
+  var req=[['vacancy','空置率'],['collection','收账损失率'],['concession','让利/免租比例']];
+  for(var ri=0;ri<req.length;ri++){
+    var id=req[ri][0], label=req[ri][1], raw=document.getElementById(id).value.trim();
+    if(raw===''){fail('请填写'+label+'；留空不等于 0。');return;}
+    var val=parseFloat(raw);
+    if(!isFinite(val)||val<0||val>100){fail(label+'须在 0–100% 之间。');return;}
+  }
+  var vac=parseFloat(document.getElementById('vacancy').value)/100,col=parseFloat(document.getElementById('collection').value)/100,con=parseFloat(document.getElementById('concession').value)/100;
+  var othRaw=document.getElementById('otherInc').value.trim();
+  var oth=othRaw===''?0:parseFloat(othRaw);
+  if(!isFinite(oth)||oth<0){fail('其他收入须为 ≥0 的数值，或留空按 0。');return;}
   var vacLoss=gpr*vac;
   var afterVac=gpr-vacLoss;
   var colLoss=afterVac*col;
