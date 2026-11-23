@@ -105,7 +105,7 @@ window.INDUSTRY_INFO = {
   'tcm-diagnosis'        : { name: '中医诊断', icon: '🩺', hot: 150090 },
   'engineering'          : { name: '工程计算', icon: '⚙️', hot: 149497 },
   'psychology'           : { name: '心理咨询', icon: '💭', hot: 148776 },
-  'dermatology'          : { name: '皮肤性病', icon: '🧴', hot: 146959 },
+  'dermatology'          : { name: '皮肤性病', icon: '🧴', hot: 146961 },
   'cardiology'           : { name: '心血管科', icon: '🫀', hot: 145642 },
   'neurology'            : { name: '神经内科', icon: '🧠', hot: 145578 },
   'endocrinology'        : { name: '内分泌科', icon: '🧬', hot: 145430 },
