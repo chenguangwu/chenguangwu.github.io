@@ -164,11 +164,12 @@ const CASES = [
   "ref": "第1341批·复制与页面结果不同源修复源码形态强锚：旧版 copyResult 另算一遍且无守卫，页面显示错误/—时复制仍输出 Infinity/0dB 假值；修复后 copyResult 补与 calc 同源守卫，无效时提示并 return。旧版无 ⇒ BAD。"
 },
 {
-  "slug": 'advertising/reach-frequency',
-  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/advertising/reach-frequency.html\',\'utf8\');var i=h.indexOf(\'function calcMulti(){\');var s=i>=0?h.slice(i,i+900):\'\';var ok=s.indexOf(\'singlePct<0||singlePct>100\')>=0&&s.indexOf(\'multiResult\')>=0&&s.indexOf(\'单次到达率须在 0–100%\')>=0;document.getElementById(\'__tbProbe\').textContent=\'REACH100 \'+(ok?\'OK\':\'BAD\');})();'],
-  "expect": ['REACH100 OK'],
-  "ref": "第1344批·到达率越界守卫源码形态强锚：旧版 calcMulti 单次到达率>100% 时 notReached 变负、累计到达率振荡超 100%；修复后入口限制 0–100% 与轮次>=1，越界提示并 return。旧版无 ⇒ BAD。"
+  "slug": "advertising/reach-frequency",
+  "clicks": ["var c=[],t=[];var oc=ToolBox.copyText,ot=ToolBox.showToast;ToolBox.copyText=function(x){c.push(String(x))};ToolBox.showToast=function(m){t.push(String(m))};document.getElementById('population').value='100000';document.getElementById('reach').value='35000';document.getElementById('impressions').value='87500';document.getElementById('cost').value='50000';calcBasic();copyBasic();document.getElementById('population').value='';calcBasic();copyBasic();ToolBox.copyText=oc;ToolBox.showToast=ot;document.getElementById('__tbProbe').textContent='BASICCP '+((c.length===1&&c[0].indexOf('到达率:35.0%')>=0&&t.length===1&&t[0].indexOf('请先完成有效')>=0)?'OK':'BAD');"],
+  "expect": ["BASICCP OK"],
+  "ref": "第1347批·空输入复制假结果修复：先有效计算并复制（35.0%/2.50），再清空人口计算后复制应拒绝并提示；旧版 copyBasic 用默认值直接算 ⇒ 第二次仍复制且无提示，BAD。"
 },
+
 {
   "slug": 'advertising/convert-26',
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+\"tools/advertising/convert-26.html\",'utf8');var i=h.indexOf('const px=+document.getElementById(\\\"px\\\")');var seg=i>=0?h.slice(i,i+240):'';var ok=seg.indexOf('!isFinite(dpi)||dpi<=0')>=0&&seg.indexOf('DPI 须为正数')>=0;document.getElementById('__tbProbe').textContent='PXDPIDIV '+(ok?'OK':'BAD');})();"],
@@ -176,11 +177,12 @@ const CASES = [
   "ref": "第1346批·分母为零守卫源码形态强锚：旧版 dpi=0 时 mm=px*25.4/0=Infinity，主输出显示「物理尺寸 = Infinity mm」；修复后 dpi 非正提示并 return。旧版无 ⇒ BAD。"
 },
 {
-  "slug": 'advertising/reach-frequency',
-  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+\"tools/advertising/reach-frequency.html\",'utf8');var i=h.indexOf('function copyBasic(){');var s=i>=0?h.slice(i,i+320):'';var ok=s.indexOf('pop>0?(reach/pop*100):0')>=0&&s.indexOf('reach>0?(imp/reach):0')>=0;document.getElementById('__tbProbe').textContent='REACHCPY '+(ok?'OK':'BAD');"],
-  "expect": ['REACHCPY OK'],
-  "ref": "第1347批·复制与页面不同源：旧版 copyBasic 裸算 reach/pop 与 imp/reach，reach=0 时复制「频次:Infinity」；主 calcBasic 已用 reach>0 守卫。修复后 copyBasic 与 calcBasic 同源，零值取 0。"
+  "slug": "advertising/reach-frequency",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/advertising/reach-frequency.html','utf8');var i=h.indexOf('function copyBasic(){');var seg=i>=0?h.slice(i,i+500):'';var ok=h.indexOf('var lastBasicResult')>=0&&h.indexOf('到达率:')>=0&&seg.indexOf('if(!lastBasicResult)')>=0&&seg.indexOf('ToolBox.showToast')>=0&&seg.indexOf('ToolBox.copyText(lastBasicResult')>=0;document.getElementById('__tbProbe').textContent='BASICCP '+(ok?'OK':'BAD');"],
+  "expect": ["BASICCP OK"],
+  "ref": "第1347批·空输入复制假结果修复：calcBasic 末尾缓存有效结果到 lastBasicResult（缺参/无效值时保持空），copyBasic 只复制该缓存并在空时提示拒绝；旧版用默认值直接算 ⇒ BAD。真机有效复制 35.0%/2.50、清空人口后拒绝提示。"
 },
+
 {
   "slug": "advertising/estimate-cycle",
   "inputs": { "arpu": "50", "churn": "5", "margin": "", "cac": "200" },
