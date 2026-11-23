@@ -181,6 +181,7 @@
 - **英文内容区（`?lang=en-US`）走三层运行时字典，全部非构建产物**：① `js/tool-i18n-en.js`（`GEN_UI_MAP` 通用 UI + `BODY_PHRASE_MAP` 全站短语）；② `i18n/tools/<ind>-phrases.json` / `<ind>-body.json`（行业层）；③ `i18n/tools/en/<ind>/<slug>.json`（**一个工具一个文件**，优先级最高，`map` 为「简体原文 → 英文」译文），配 `_index.json` 资源守卫与 `en/_common.json` 共享层。**新增或修改第三层后必须重跑 `_build.py`**（版本戳已纳入该子树，见红线 3）。
 - **第三层字典的匹配口径**：运行时按 `el.textContent.trim()` 查表（key 与原文都 trim）；`[data-zh]` 元素用 `el.textContent = tr`，普通文本节点用 `raw.slice(0,idx) + en + raw.slice(idx+k.length)` 保留 DOM 与内链。碎片节点的译文必须带 DOM 空白约定（`"：xxx"`、`"（…）而非"`）。孤立中文标点由运行时字符级 `convertPunct()` 兜底（判据：含中文标点且不含汉字）。
 - **`translateBodyPhrases()` 禁止对含表单控件的容器做整节点 `textContent` 替换**：那会把容器内 `input`/`select`/`textarea` 一起删除，页面随后 `getElementById(id).value` 抛 `Cannot read properties of null`（英文态实测 7 页中招，简体/繁体态不跑运行时 i18n 故不受影响）。守卫条件：元素有子元素**且** `querySelector('input,select,textarea')` 非空则跳过，该段正文交第三层文本节点级替换处理。
+- **中文态 `restoreAllDataZh()` 是标签白名单**：当前覆盖 `p/h2/h3/th/td/span/label/summary/strong/button/div/li/option`。新增任何带 `data-zh` 的标签必须同步加进 `js/tool-i18n.js` 的选择器，否则中文默认态会继续显示构建期英文。`td/p` 带 `<sub>/<sup>/<code>` 子标记时走 HTML 级还原并缓存 `__tbEnHtml`，英文态由 `applyEnDict`/`restoreEn` 回填，勿改成整节点 `textContent`。门禁：`python3 scripts/audit_zh_data_restore.py`（已挂 `run_gates.py`）。
 - **英文文案统一美式拼写**（`color` / `center` / `favor` / `customize` / `summarize` / `fulfillment` / `jewelry`）。批量替换时**警惕规则自污染**：`fulfilment→fulfillment` 之后再跑 `fulfil→fulfill` 会得到三写 `fulfilllment` ⇒ 替换对须「长词优先 + 短词加否定前瞻」，扫描词表同样要写 `fulfil(?!l)`，否则美式 `fulfillment` 会被 `fulfil\w*` 误报。
 
 ### 内容质量

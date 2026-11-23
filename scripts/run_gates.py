@@ -419,6 +419,8 @@ GATES = (
     ("preset bounds audit", ("python3", "scripts/audit_preset_bounds.py", "--check")),
     # 指南页英文头部回归锁：119 个加载 guide-en-pack 的页面 head 键/词典/title/desc 必须完整。
     ("guide en head audit", ("python3", "scripts/audit_guide_en_head.py")),
+    # 中文态 data-zh 还原覆盖锁：新增标签/子标记必须纳入 restoreAllDataZh，防中文默认态英文回潮。
+    ("zh data-zh restore audit", ("python3", "scripts/audit_zh_data_restore.py")),
 )
 
 
