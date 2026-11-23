@@ -14698,7 +14698,15 @@ const CASES = [
   "clicks": ["document.getElementById('input').value='foo bar { baz }';doValidate();var e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='GQLNAME '+(e.indexOf('仅支持以 { 开头')>=0?'OK':'BAD:'+e);"],
   "expect": ["GQLNAME OK"],
   "ref": "第304批：非 GraphQL 任意名称旧实现括号平衡即通过；修复后文档首 token 只接受 { 或 query/mutation/subscription/fragment。"
-}
+},
+  {
+    "slug": "it/qrcode",
+    "inputs": { "textInput": "https://a.example\nhttps://b.example", "qrmargin": "0", "size": "256" },
+    "clicks": ["generate()"],
+    "expect": ["第 2 行：https://b.example", "qr-card"],
+    "ref": "F-QR367 批量恢复：两行输入生成两张 .qr-card，第二张标题含第二行原文；静区 0 生效。"
+  },
+
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
