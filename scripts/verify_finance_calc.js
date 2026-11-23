@@ -3977,6 +3977,12 @@ const CASES = [
     expect: ["输入无效已按 2.85% 计"],
     ref: "年利率 99% 超出 0–20% 有效区间：旧实现静默回退 2.85% 不告知；现显式标注「输入无效已按 2.85% 计」。默认 2.85% 且有效 ⇒ 不命中。"
   },
+  {
+    slug: "finance/housing-fund-loan",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/housing-fund-loan.html','utf8');var ok=h.indexOf('基于现行法律法规计算')<0&&h.indexOf('非官方实时政策')>=0&&h.indexOf('以当地公积金中心审批为准')>=0;document.getElementById('__tbProbe').textContent='HFDESC '+(ok?'OK':'BAD');"],
+    expect: ["HFDESC OK"],
+    ref: "第1384批·示例参数不得表述为现行法规：meta/OG/Twitter/JSON-LD/正文均不再出现「基于现行法律法规计算」，明确 2026-11 示例、非官方实时政策、以当地公积金中心审批为准。"
+  },
 
   {
     "slug": "finance/loan-amortization",

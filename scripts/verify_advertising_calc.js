@@ -43,6 +43,12 @@ const CASES = [
   "ref": "默认 #FF6B35 → 互补 #0094CA / CMYK C:0 M:58 Y:79 K:0 / 色相 16°；独立复算：k=1-187/255=0.2667，C=(1-0-0.2667)/0.7333=100、M=(1-114/255-0.2667)/0.7333=39、Y=0、K=27，HSL h=203°，互补=(255,141,68)=#FF8D44。注意不可用等级词「冷色」——兜底 randomColor() 在 harness 确定性 PRNG 下恒得 rgb(91,27,172)（h=266°，同为冷色），会成逃生项。"
 },
 {
+  "slug": "advertising/color-convert",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/advertising/color-convert.html','utf8');var i=h.indexOf('function fromRGB(){');var seg=i>=0?h.slice(i,i+520):'';var ok=seg.indexOf('rv===')>=0&&seg.indexOf('gv===')>=0&&seg.indexOf('bv===')>=0&&seg.indexOf('__clearColorOutputs')>=0;document.getElementById('__tbProbe').textContent='CCRGB0 '+(ok?'OK':'BAD');"],
+  "expect": ["CCRGB0 OK"],
+  "ref": "第1369批·RGB 空项按 0 计算修复：fromRGB 逐项校验 r/g/b，任一项空/非法即清空 hex/CMYK/HSL/LAB 与预览；旧版整表空才守卫、单空按 0 ⇒ BAD。"
+},
+{
   "slug": "advertising/convert-26",
   "inputs": { "px": "192", "dpi": "96" },
   "expect": ["物理尺寸 = 50.80 mm"],

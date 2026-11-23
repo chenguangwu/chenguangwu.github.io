@@ -287,13 +287,25 @@ function selectPantone(hex){
   fromHex();
 }
 
+function __clearColorOutputs(){
+  document.getElementById('result').innerHTML='';
+  document.getElementById('hex').value='';
+  ['cmyk','hsl','lab'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  var pv=document.getElementById('preview'); if(pv) pv.style.background='';
+}
 function fromRGB(){
-// NUMCLR2：全部数值/日期输入为空时不输出 0 与结论
-var __ni=Array.prototype.slice.call(document.querySelectorAll('input[type=number],input[type=date]'));
-if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
-  var r=clamp(+document.getElementById('r').value||0,0,255);
-  var g=clamp(+document.getElementById('g').value||0,0,255);
-  var b=clamp(+document.getElementById('b').value||0,0,255);
+  // NUMCLR2：RGB 逐项校验；任一项为空/非法即清理全部旧色值与预览
+  var rv=String(document.getElementById('r').value).trim();
+  var gv=String(document.getElementById('g').value).trim();
+  var bv=String(document.getElementById('b').value).trim();
+  if(rv===''||gv===''||bv===''||!isFinite(+rv)||!isFinite(+gv)||!isFinite(+bv)){
+    __clearColorOutputs();
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写完整的 RGB 三项（0–255）后再转换</p>';
+    return;
+  }
+  var r=clamp(+rv,0,255);
+  var g=clamp(+gv,0,255);
+  var b=clamp(+bv,0,255);
   var hex=toHex(r)+toHex(g)+toHex(b);
   document.getElementById('hex').value='#'+hex.toUpperCase();
   updateAll(r,g,b);
@@ -305,6 +317,8 @@ function fromHex(){
     hex=hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
   }
   if(hex.length!==6||!/^[0-9A-Fa-f]{6}$/.test(hex)){
+    __clearColorOutputs();
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请输入有效的 3 位或 6 位十六进制色值</p>';
     ToolBox.showToast(i18nText('toast.msg009'),'error');
     return;
   }

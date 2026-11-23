@@ -65,11 +65,16 @@ const CASES = [
     ],
     expect: ["设备点检缺失", "极高风险-需立即处置", "安全培训/设备点检/作业许可/防护装置/应急演练"],
     ref: "顶层 var riskData 用 clicks 覆写：5×4=20、4×4=16、2×2=4 ⇒ maxRisk=20 ⇒ 极高风险-需立即处置；"
-       + "scene=production（非默认 building）⇒ 防控方向=sceneMeasures['production']（独立复算）。"
-       + "原注入 scene=building 且沿默认 riskData（3×3=9/2×5=10/3×2=6 ⇒ maxRisk=10）⇒ 默认态同样命中「高风险-需优先整改」（all_default）。"
+       + "scene=production（非默认 building）⇒ 防控方向=sceneMeasures['production']（独立复算）。"       + "原注入 scene=building 且沿默认 riskData（3×3=9/2×5=10/3×2=6 ⇒ maxRisk=10）⇒ 默认态同样命中「高风险-需优先整改」（all_default）。"
        + "改后默认态为 高风险-需优先整改 + building 门禁措施，与本例三个锚点零交集。"
        + "注：兜底阶段会无参调用 removeRisk/addRisk 破坏 riskData（删首项、加「新风险点」），"
        + "但 expect 在 clicks 执行后立即判定（阶段 2），早于该破坏 ⇒ 「设备点检缺失」仍可命中。",
+  },
+  {
+    "slug": "biz/assessor-risk-8",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/biz/assessor-risk-8.html','utf8');var i=h.indexOf('function calc(){');var seg=i>=0?h.slice(i,i+320):'';var ok=seg.indexOf('riskData.some')>=0&&seg.indexOf('String(r.name).trim()')>=0;document.getElementById('__tbProbe').textContent='RISKNAME '+(ok?'OK':'BAD');"],
+    "expect": ["RISKNAME OK"],
+    "ref": "第1369/1371批·通用数字空态守卫不适用修复：calc 以真实必填项 riskData.name 判定，任一行名称为空即阻止等级/建议；旧版只查 number/date ⇒ 永不触发 ⇒ BAD。"
   },
 
   // ── 演示计时（总时长均分到每页）───────────────────────────────
