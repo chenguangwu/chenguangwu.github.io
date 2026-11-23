@@ -261,18 +261,32 @@ function afterTaxToGross(afterTax, rate, threshold) {
 }
 
 function calc() {
-  const afterTax = parseFloat(document.getElementById('afterTax').value) || 0;
-  const rate = parseFloat(document.getElementById('rate').value) || 0;
-  const thresholdRaw = (document.getElementById('threshold').value || '').trim();
-  // 起征点 0 是合法值（免税地区/专项扣除全额抵扣），只有空串/非数字才回退默认 5000
-  const threshold = thresholdRaw === '' || isNaN(parseFloat(thresholdRaw)) ? 5000 : parseFloat(thresholdRaw);
+  const afterTaxRaw = String(document.getElementById('afterTax').value == null ? '' : document.getElementById('afterTax').value).trim();
+  const rateRaw = String(document.getElementById('rate').value == null ? '' : document.getElementById('rate').value).trim();
+  const thresholdRaw = String(document.getElementById('threshold').value == null ? '' : document.getElementById('threshold').value).trim();
+  const afterTax = afterTaxRaw === '' ? NaN : parseFloat(afterTaxRaw);
+  const rate = rateRaw === '' ? NaN : parseFloat(rateRaw);
+  // 起征点 0 是合法值（免税地区/专项扣除全额抵扣），只有空串才回退默认 5000
+  const threshold = thresholdRaw === '' ? 5000 : parseFloat(thresholdRaw);
 
-  if (afterTax <= 0) {
+  if (!isFinite(afterTax) || afterTax <= 0) {
     document.getElementById('result').innerHTML='<p>请输入有效税后工资</p>';
+    return;
+  }
+  if (!isFinite(rate) || rate < 0 || rate > 0.5) {
+    document.getElementById('result').innerHTML='<p>社保/公积金比例须为 0–0.5 的有限数值</p>';
+    return;
+  }
+  if (!isFinite(threshold) || threshold < 0) {
+    document.getElementById('result').innerHTML='<p>起征点须为非负有限数值</p>';
     return;
   }
 
   const gross = afterTaxToGross(afterTax, rate, threshold);
+  if (!isFinite(gross) || gross <= 0) {
+    document.getElementById('result').innerHTML='<p>当前参数下无法反推税前工资，请检查税后金额、比例与起征点</p>';
+    return;
+  }
   const social = gross * rate;
   const taxable = Math.max(0, gross - social - threshold);
   const tax = taxByTaxable(taxable);
