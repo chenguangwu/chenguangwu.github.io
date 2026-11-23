@@ -3086,10 +3086,9 @@ def fix_short_tool_desc():
 
     主流程的补写只在单页生成时触发，仍有 60 页因模板/隐私尾句清洗回落到 60–69 字。
     在全部页面落盘后统一再扫一次，只补 meta/og/twitter/WebApplication 描述，
-    不碰可见正文；幂等标志为「支持参数自定义」。
+    不碰可见正文；幂等标志为「可按本页参数」。
     """
-    tail_flag = '支持参数自定义'
-    tail = '。支持参数自定义、即时计算与结果解读。'
+    tail_flag = '可按本页参数'
     tag_re = re.compile(r'(<meta\s+name="description"\s+content=")([^"]*)(")')
     fixed = 0
     for path in sorted(glob.glob(os.path.join(ROOT, 'tools', '**', '*.html'), recursive=True)):
@@ -3104,6 +3103,10 @@ def fix_short_tool_desc():
         cur = m.group(2)
         if len(cur) >= 70 or tail_flag in cur:
             continue
+        cur = cur.replace('支持参数自定义、即时计算与结果解读。','').rstrip('。')
+        mh = re.search(r'<h1[^>]*>(.*?)</h1>', src, re.S)
+        nm = re.sub(r'<[^>]+>', '', mh.group(1)).strip() if mh else os.path.splitext(os.path.basename(path))[0]
+        tail = '。可按本页参数完成「' + (nm or '本工具') + '」的快速估算与结果核对。'
         newv = cur.rstrip('。') + tail
         src = src.replace(m.group(0), m.group(1) + newv + m.group(3), 1)
         for attr in ('property="og:description"', 'name="twitter:description"'):
@@ -5105,6 +5108,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # 与下方 meta description 同源同口径，保证 JSON-LD 与 head 元数据完全一致。
         _seo_desc_raw = _dedupe_desc_boiler(
             extract_zh_desc(content, t, industry, entry) or t.get('name') or '')
+        _seo_desc_raw = _seo_desc_raw.replace('支持参数自定义、即时计算与结果解读。', '').rstrip()
         if len(_seo_desc_raw) < 70:
             _d_base = os.path.splitext(os.path.basename(t['path']))[0]
             # 主语优先用真实工具名（中文、非公式）：_zh_title_of 在部分页面返回的是
@@ -5174,14 +5178,14 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                     _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。' + _extra
             # 无场景/特性列表可补的 76 页短描述（多为 55–69 字）：补一句真实产品能力，
             # 避免搜索结果只显示半句。只在此兜底触发，不污染已有 70+ 的页面。
-            if len(_seo_desc_raw) < 70 and '支持参数自定义' not in _seo_desc_raw:
-                _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。支持参数自定义、即时计算与结果解读。'
+            if len(_seo_desc_raw) < 70 and '可按本页参数' not in _seo_desc_raw:
+                _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。可按本页参数完成「' + (t.get('name') or '本工具') + '」的快速估算与结果核对。'
             if not _seo_desc_raw.endswith(('。', '！', '？')):
                 _seo_desc_raw += '。'
         # 最终兜底：上面模板+隐私尾句清洗可能把描述再次压到 70 字以下，
         # 在落盘前统一补足一次，确保 meta / og / twitter / JSON-LD 四处同源达标。
-        if len(_seo_desc_raw) < 70 and '支持参数自定义' not in _seo_desc_raw:
-            _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。支持参数自定义、即时计算与结果解读。'
+        if len(_seo_desc_raw) < 70 and '可按本页参数' not in _seo_desc_raw:
+            _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。可按本页参数完成「' + (t.get('name') or '本工具') + '」的快速估算与结果核对。'
         # JSON-LD 中 description 必须是字面文本，不能沿用 HTML meta 的实体转义：
         # 否则 &quot; / &lt; / &amp; 会被搜索引擎当作正文显示（实测 48 页）。
         # 先还原实体，再交给 json.dumps 负责引号、反斜杠与控制字符转义。

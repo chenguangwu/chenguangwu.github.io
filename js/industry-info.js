@@ -61,7 +61,7 @@ window.INDUSTRY_INFO = {
   'astronomy'            : { name: '天文观测', icon: '🔭', hot: 329926 },
   'electrical'           : { name: '电气工程', icon: '🔌', hot: 324999 },
   'metalwork'            : { name: '金属加工', icon: '🔨', hot: 323109 },
-  'metrology'            : { name: '计量学', icon: '📏', hot: 308792 },
+  'metrology'            : { name: '计量学', icon: '📏', hot: 308795 },
   'textile'              : { name: '纺织服装', icon: '🧵', hot: 300388 },
   'geology'              : { name: '地质勘探', icon: '🪨', hot: 290157 },
   'food-testing'         : { name: '食品检测', icon: '🧫', hot: 281157 },
