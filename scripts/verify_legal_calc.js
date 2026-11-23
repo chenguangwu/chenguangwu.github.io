@@ -97,6 +97,12 @@ const CASES = [
     ref: "约定10%（≤3.45×4=13.8%受保护）；利息=150000×10%×1=15000；本息=165000（原 expect 写成默认 rate=12 的 112000/12000，与 ref 自相矛盾）",
   },
   // ── 法律援助资格（低保户免核查）────────────────────────────────────
+  {
+    slug: "legal/legal-aid-eligibility",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/legal/legal-aid-eligibility.html','utf8');var i=h.indexOf('function __aePresets()');var j=h.indexOf('function __aeMountHist',i);var seg=i>=0?h.slice(i,j>0?j:i+2000):'';var ok=['matter_hero','matter_labor','matter_marriage','matter_social','matter_state','matter_support','matter_traffic'].every(function(k){return seg.split(k).length-1>=4;});document.getElementById('__tbProbe').textContent='AEPRE0 '+(ok?'OK':'BAD');"],
+    expect: ["AEPRE0 OK"],
+    ref: "第1376批·预设残留修复：四个预设均显式写出全部事项复选框状态（各出现≥4次），切换预设会复位旧事项；旧版仅写自身事项 ⇒ BAD。"
+  },
   { slug: "legal/legal-aid-eligibility",
     inputs: { applicantType: "normal", monthlyIncome: "", localLowIncome: "3000" },
     checks: ["labor"],

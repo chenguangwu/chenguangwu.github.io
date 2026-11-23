@@ -112,6 +112,42 @@ const CASES = [
   "ref": "干物质 = 360 → 理论出粉 = 360/0.97 = 371.134 → 实际 = 371.134×0.95 = 352.577 → 352.6 kg/h（默认 204.2）"
 },
 {
+  "slug": "food-processing/quick-freeze-time",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/food-processing/quick-freeze-time.html','utf8');var i=h.indexOf('function copyResult(){');var seg=i>=0?h.slice(i,i+520):'';var ok=seg.indexOf('请先填写有效的物性参数（均须大于 0）再复制')>=0&&seg.indexOf('初始温度须高于冻结温度')>=0;document.getElementById('__tbProbe').textContent='QFTCP0 '+(ok?'OK':'BAD');"],
+  "expect": ["QFTCP0 OK"],
+  "ref": "第1389—1392批·非法输入复制绕过校验修复：copyResult 复用与 calc 同源的校验并拒绝复制，旧版无守卫 ⇒ BAD。"
+},
+{
+  "slug": "food-processing/residual-oxygen",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/food-processing/residual-oxygen.html','utf8');var i=h.indexOf('function copyResult(){');var seg=i>=0?h.slice(i,i+520):'';var ok=seg.indexOf('内容物体积须小于包装总体积，未复制')>=0&&seg.indexOf('包装总体积须大于 0，未复制')>=0;document.getElementById('__tbProbe').textContent='ROCP0 '+(ok?'OK':'BAD');"],
+  "expect": ["ROCP0 OK"],
+  "ref": "第1389—1392批·非法输入复制绕过校验修复：copyResult 复用与 calc 同源的校验并拒绝复制，旧版无守卫 ⇒ BAD。"
+},
+{
+  "slug": "food-processing/spray-drying",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/food-processing/spray-drying.html','utf8');var i=h.indexOf('function copyResult(){');var seg=i>=0?h.slice(i,i+520):'';var ok=seg.indexOf('固形物与成品含水率之和不能超过 100%，未复制')>=0&&seg.indexOf('成品含水率须在 0–100%，未复制')>=0;document.getElementById('__tbProbe').textContent='SDCP0 '+(ok?'OK':'BAD');"],
+  "expect": ["SDCP0 OK"],
+  "ref": "第1389—1392批·非法输入复制绕过校验修复：copyResult 复用与 calc 同源的校验并拒绝复制，旧版无守卫 ⇒ BAD。"
+},
+{
+  "slug": "food-processing/homogenization-pressure",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/food-processing/homogenization-pressure.html','utf8');var i=h.indexOf('function copyResult(){');var seg=i>=0?h.slice(i,i+520):'';var ok=seg.indexOf('参考压力、参考粒径与均质压力')>=0&&seg.indexOf('参考压力')>=0;document.getElementById('__tbProbe').textContent='HPCP0 '+(ok?'OK':'BAD');"],
+  "expect": ["HPCP0 OK"],
+  "ref": "第1389—1392批·非法输入复制绕过校验修复：copyResult 复用与 calc 同源的校验并拒绝复制，旧版无守卫 ⇒ BAD。"
+},
+{
+  "slug": "food-processing/shelf-life-aslt",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/food-processing/shelf-life-aslt.html','utf8');var i=h.indexOf('function copyResult(){');var seg=i>=0?h.slice(i,i+520):'';var ok=seg.indexOf('Q10 须不小于 1，未复制')>=0&&seg.indexOf('试验温度保质期与 Q10 值')>=0;document.getElementById('__tbProbe').textContent='SLCP0 '+(ok?'OK':'BAD');"],
+  "expect": ["SLCP0 OK"],
+  "ref": "第1389—1392批·非法输入复制绕过校验修复：copyResult 复用与 calc 同源的校验并拒绝复制，旧版无守卫 ⇒ BAD。"
+},
+{
+  "slug": "food-processing/shelf-life-aslt",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/food-processing/shelf-life-aslt.html','utf8');var i=h.indexOf('function calc(){');var seg=i>=0?h.slice(i,i+220):'';var ok=seg.indexOf('resultRefBar')>=0&&seg.indexOf('__rb.innerHTML=')>=0;document.getElementById('__tbProbe').textContent='SLRB0 '+(ok?'OK':'BAD');"],
+  "expect": ["SLRB0 OK"],
+  "ref": "第1389—1392批·参考标尺残留修复：calc 入口清空 resultRefBar，错误分支不再保留上一组保质期标尺。"
+},
+{
   // 非默认输入：T 110（默认 121.1）/t 40（15）；本页输入为 renderParams 动态渲染且未绑 oninput，
   // 注入后由框架兜底调用 calc() 命中（via=calc），判别力仍有效（换回默认 T=121.1/t=15 得 F=15）
   "slug": "food-processing/sterilization-f-value",
