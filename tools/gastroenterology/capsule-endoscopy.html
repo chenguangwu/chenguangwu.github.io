@@ -145,6 +145,7 @@
 
     <div class="checkbox-row">
       <label><input type="checkbox" id="completed" checked> 胶囊已排出</label>
+      <label><input type="checkbox" id="crossDay"> 事件跨越零点（次日）</label>
       <label><input type="checkbox" id="prep"> 使用促动力药（甲氧氯普胺）</label>
     </div>
 
@@ -290,15 +291,20 @@ function calc(){
   var excreteMin=timeToMinutes(document.getElementById('excrete').value);
   var completed=document.getElementById('completed').checked;
   var prep=document.getElementById('prep').checked;
+  var crossDayChecked=document.getElementById('crossDay').checked;
 
   if(ingestMin===null||duodenumMin===null||cecumMin===null){
     document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请填写完整的时间信息</p>';
     return;
   }
+  if(!crossDayChecked&&(duodenumMin<ingestMin||cecumMin<duodenumMin||(excreteMin!==null&&excreteMin<cecumMin))){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);font-weight:600;">⚠️ 事件时间出现倒序，请核对录入；若确实跨越零点，请勾选“事件跨越零点（次日）”。</p>';
+    ['capsule_endoscopyTable','capsule_endoscopyDiff','capsule_endoscopyChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});
+    return;
+  }
 
-  // 计算通过时间（分钟）；跨零点时加 1440 归一化，避免负值进入分级
+  // 仅在用户明确勾选跨日时，才把负时间差按次日顺延
   function elapsed(a,b){ var d=b-a; if(d<0) d+=1440; return d; }
-  var crossDay=(duodenumMin<ingestMin || cecumMin<duodenumMin);
   var gtt=elapsed(ingestMin,duodenumMin); // 胃通过时间（相对前一事件顺延）
   var sbtt=elapsed(duodenumMin,cecumMin); // 小肠通过时间（相对前一事件顺延）
   // 总时间必须等于各分段之和；不能再用吞服时刻直接对回盲瓣取模，
@@ -306,7 +312,7 @@ function calc(){
   var totalTransit=gtt+sbtt; // 至回盲瓣总时间
 
   var details=[];
-  if(crossDay) details.push('（时间跨越零点，已按每个事件相对前一事件顺延至次日计算）');
+  if(crossDayChecked) details.push('（已勾选事件跨日，按每个事件相对前一事件顺延至次日计算）');
   details.push('吞服时间：'+document.getElementById('ingest').value);
   details.push('到达十二指肠：'+document.getElementById('duodenum').value);
   details.push('到达回盲瓣：'+document.getElementById('cecum').value);
