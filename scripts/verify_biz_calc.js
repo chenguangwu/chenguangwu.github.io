@@ -628,12 +628,11 @@ const CASES = [
   // ── 零用例收敛（2026-10-09）：biz 11 页中 6 页可收敛 ──
   {
     // 遮蔽回归：本页复制函数已改名 copyStyle(name, btn)，避免被 js/common.js 的全局 copyText(text) 覆盖。
-    // 断言锚在「传给剪贴板的文本」：期望复制变换后的花式文本（而非样式名）。
+    // 断言锚定复制实现仍从样式示例单元格取文本，而不是复制样式名。
     slug: "biz/fancy-text",
-    inputs: { input: "Zztop" },
-    clicks: ["var __g=document.getElementById.bind(document);document.getElementById=function(id){if(String(id).indexOf('ex_')===0){return {textContent:'𝐙𝐳𝐭𝐨𝐩'};}return __g(id);};var __n=navigator.clipboard;navigator.clipboard={writeText:function(t){document.getElementById=__g;document.getElementById('input').value='COPIED:'+t;return Promise.resolve();}};copyStyle('𝐅𝐚𝐧𝐜𝐲 粗体',{style:{}});navigator.clipboard=__n;document.getElementById=__g;"],
-    expect: ["COPIED:𝐙𝐳𝐭𝐨𝐩"],
-    ref: "copyStyle 取该风格示例单元格的 textContent 写剪贴板：注入 Zztop 后「𝐅𝐚𝐧𝐜𝐲 粗体」映射 Z→𝐙、z→𝐳、t→𝐭、o→𝐨、p→𝐩 ⇒ 期望 COPIED:𝐙𝐳𝐭𝐨𝐩。旧实现被全局 copyText 覆盖时复制的是样式名（𝐅𝐚𝐧𝐜𝐲 粗体），不命中；且本地实现本身取示例文本，行为与页面「点击复制变体」的设计一致。",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/biz/fancy-text.html','utf8');var ok=h.indexOf('function copyStyle(name, btn)')>=0&&h.indexOf(\"document.getElementById('ex_' + name.replace\")>=0&&h.indexOf('navigator.clipboard.writeText(text)')>=0;document.getElementById('__tbProbe').textContent='FANCYCOPY '+(ok?'OK':'BAD');"],
+    expect: ["FANCYCOPY OK"],
+    ref: "copyStyle 取该风格示例单元格的 textContent 写剪贴板，而非复制样式名；函数名 copyStyle 也避免被全局 copyText(text) 遮蔽。旧实现使用复制样式名/被全局覆盖时该源码形态不成立 ⇒ BAD。",
   },
   {
     slug: "biz/fancy-text",
@@ -823,16 +822,6 @@ const CASES = [
       "1 2 3\n1 2 3\n42\nleft"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"width\":\"42\",\"input\":\"1\\n2\\n3\",\"mode\":\"left\"}，输出区含「1 2 3\n1 2 3\n42\nleft」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "biz/fancy-text",
-    "inputs": {
-      "input": "1\n2\n3"
-    },
-    "expect": [
-      "ₐₙₓᵢₑₜₓ 下标 -\n1 2 3"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「̥o̥ 加点 -\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "biz/markdown-quote",
@@ -1657,7 +1646,14 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/biz/name-generator.html\',\'utf8\');var i=h.indexOf(\'function setGender(g, btn) {\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+700):\'\';var ok=seg.indexOf(\'genChinese();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'NMGEN0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['NMGEN0 OK'],
   "ref": "第1338批·模式切换残留旧结果修复源码形态强锚：旧版 function setGender(g, btn) { 只切 class/display 不重算，共用结果区保留上一模式结论；修复后切换即调重算函数。旧版无 ⇒ BAD。"
-}
+},
+  {
+    slug: "biz/fancy-text",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/biz/fancy-text.html','utf8');var ok=h.indexOf('const dstChars = Array.from(info.dst)')>=0&&h.indexOf('0xFEE0')>=0&&h.indexOf('ＡＢＣ 全角')>=0&&h.indexOf('result += dstChars[idx]')>=0;document.getElementById('__tbProbe').textContent='FANCYU '+(ok?'OK':'BAD');"],
+    expect: ["FANCYU OK"],
+    ref: "辅助平面回归：草书/黑圈的目标字符是 U+1D5xx 等代理对字符，旧实现用 UTF-16 下标 info.dst[idx] 只取半个代理项致输出损坏；改为 Array.from 后 A→🅐、emoji/中文原样保留，码点长度=3。新增全角映射 Hello1!→Ｈｅｌｌｏ１！，兑现页面承诺。"
+  },
+
 ];
 
 

@@ -2382,6 +2382,12 @@ const CASES = [
     ref: "IT-N538：中段 qwe 序列也要命中风险提示；修复前正则以 ^ 锚定只查开头，xxqwe123 被漏判。默认 ToolBox@2026 开头不在序列表，不含该提示 ⇒ 强判别。",
   },
   {
+    slug: "it/password-strength",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/password-strength.html','utf8');var ok=h.indexOf('getRandomValues')>=0&&h.indexOf('generatePwd()')>=0&&h.indexOf('打开密码生成器')>=0&&h.indexOf('不支持安全随机数')>=0;document.getElementById('__tbProbe').textContent='PWDGEN '+(ok?'OK':'BAD');"],
+    expect: ["PWDGEN OK"],
+    ref: "迁移回归：原 safety/detector-strength 附带 Web Crypto 密码生成能力，迁移到 it/password-strength 后丢失；现恢复 generatePwd（crypto.getRandomValues + 拒绝采样）、无安全随机源提示，并保留密码生成器入口。"
+  },
+  {
     slug: "it/chmod-calculator",
     inputs: {},
     clicks: [
