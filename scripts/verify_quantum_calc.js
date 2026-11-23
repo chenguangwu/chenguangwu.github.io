@@ -531,7 +531,13 @@ const CASES = [
     "expect": ["PEDEEP OK"],
     "ref": "1001 复核重做：深度解析权威源须与低于阈值时的主结果一致——负值是 hf−Φ 能量差，没有逸出电子故 K_max 不适用；旧版正文写「K_max<0，无光电子 emission」，旧句不命中。harness 的 body 桩不含静态正文，故直接读构建后页面源码；探针仅在 clicks 注入后出现，且同时要求新句命中、旧句与混英文词消失。"
   }
-
+,
+{
+  "slug": "quantum/pair-production-threshold",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/quantum/pair-production-threshold.html','utf8');var ok=h.indexOf('9.10938356×10⁻³¹')<0&&h.indexOf('电子 9.1093837015×10⁻³¹ kg')>=0&&h.indexOf('e:9.1093837015e-31')>=0;document.getElementById('__tbProbe').textContent='QMASS '+(ok?'OK':'BAD');"],
+  "expect": ["QMASS OK"],
+  "ref": "第278批·公式框电子质量旧值残留修复：公式框改为 9.1093837015×10⁻³¹ kg，与 PAIR_MASS 及同页 CODATA 2018 说明一致；旧值 ⇒ BAD。"
+}
 ];
 
 "use strict";

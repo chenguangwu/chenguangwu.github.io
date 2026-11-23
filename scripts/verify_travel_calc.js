@@ -404,7 +404,19 @@ const CASES = [
        + "伦敦 2026-10-31 夏令时已于 10/25 结束 ⇒ 0、2026-06-01 ⇒ +1。旧 isDST() 按月份经验且从未被调用（死代码），伦敦 10/31 会误判 +1。"
        + "默认页面无该探测串 ⇒ 判别力来自注入。"
   }
-
+,
+{
+  "slug": "travel/luggage-size",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/travel/luggage-size.html','utf8');var ok=h.indexOf('多数可随身；28 寸')<0&&h.indexOf('20 寸约 50 × 34 × 24 cm')>=0&&h.indexOf('厚度 24cm 超过常见 20cm 随身限')>=0&&h.indexOf('短途可考虑 20 寸')>=0;document.getElementById('__tbProbe').textContent='LUGSYNC '+(ok?'OK':'BAD');"],
+  "expect": ["LUGSYNC OK"],
+  "ref": "第216批·20寸厚度与随身建议矛盾修复：公式框、场景列表与算例统一为 50×34×24、三边和108、厚度超常见20cm需核对航司；旧算例「多数可随身」与表项冲突 ⇒ BAD。"
+},
+{
+  "slug": "travel/international-tip-calculator",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/travel/international-tip-calculator.html','utf8');var i=h.indexOf('function __international_tip_calculatorPresets');var seg=i>=0?h.slice(i,i+700):'';var ok=seg.indexOf('USD')>=0&&seg.indexOf(String.fromCharCode(36))<0;document.getElementById('__tbProbe').textContent='TIPPRESET '+(ok?'OK':'BAD');"],
+  "expect": ["TIPPRESET OK"],
+  "ref": "第218批·默认预设 currency:'$' 非合法 option 修复：默认预设改为 USD，与下拉 option 对齐；旧值会把币种清空并回退无符号 ⇒ BAD。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

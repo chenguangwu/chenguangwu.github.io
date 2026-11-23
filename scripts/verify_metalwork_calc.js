@@ -881,7 +881,13 @@ const CASES = [
 { slug: "metalwork/detector-23", inputs: { nominal: "60.000", actual: "60.030", upperTol: "0.050", lowerTol: "0.000" }, expect: ["公差等级：IT9"], ref: "Ø60 分段 D≈63.25，i=0.45×³√63.25+0.001×63.25≈1.88μm，25i≈47μm；50μm 落在 25i(47)~40i(75) ⇒ IT9。默认 50/39 为 IT8 ⇒ 不命中" },
 { slug: "metalwork/detector-23", inputs: { nominal: "10.000", actual: "10.030", upperTol: "0.039", lowerTol: "0.000" }, expect: ["公差等级：IT10"], ref: "Ø10 分段 D≈7.746，i≈0.90μm；39μm >40i(35.9) 且 ≤64i(57.5) ⇒ IT10。旧逻辑仅按 0.039 一律 IT4，完全无视公称尺寸" },
 { slug: "metalwork/detector-21", inputs: { material: "ferro", defect: "surface", thickness: "20", level: "critical" }, expect: ["关键检测（放射/超声各 +2）"], ref: "关键检测须比严格检测再加权：本页可见等级标注 +2；旧逻辑 strict 与 critical 同为 +1，两者输出完全相同" },
-{ slug: "metalwork/detector-21", inputs: { material: "ferro", defect: "surface", thickness: "20", level: "strict" }, expect: ["严格检测（放射/超声各 +1）"], ref: "严格检测标注 +1，与 critical 的 +2 区分" }
+{ slug: "metalwork/detector-21", inputs: { material: "ferro", defect: "surface", thickness: "20", level: "strict" }, expect: ["严格检测（放射/超声各 +1）"], ref: "严格检测标注 +1，与 critical 的 +2 区分" },
+{
+  "slug": "metalwork/sheet-bend",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/metalwork/sheet-bend.html','utf8');var g=globalThis.__tbFs.readFileSync(process.cwd()+'/guides/sheet-bend-guide.html','utf8');var ok=h.indexOf('避免回弹误差')<0&&h.indexOf('用于展开料排样')>=0&&h.indexOf('另行试验')>=0&&g.indexOf('避免回弹误差')<0&&g.indexOf('另行试验')>=0;document.getElementById('__tbProbe').textContent='BENDSPR '+(ok?'OK':'BAD');"],
+  "expect": ["BENDSPR OK"],
+  "ref": "第277批·展开长度承诺避免回弹误差修复：正文与指南改为展开料排样，并明确回弹补偿需按材料/模具/工艺另行试验；旧句会误导下料 ⇒ BAD。"
+}
 ];
 
 async function main() {
