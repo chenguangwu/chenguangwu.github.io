@@ -295,6 +295,33 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/home/renovation-budget.html','utf8');var i=h.indexOf('function updateItem');var seg=i>=0?h.slice(i,i+700):'';var ok=seg.indexOf('inp.value = it[field]')>=0&&seg.indexOf('已恢复上次有效值')>=0&&h.indexOf('data-field')>=0&&h.indexOf('onchange')>=0;document.getElementById('__tbProbe').textContent='RENOV '+(ok?'OK':'BAD');"],
   "expect": ["RENOV OK"],
   "ref": "第1306批·非法价量显示与存储分裂修复：价/量改为 change 提交，空值/负数/非数时恢复控件上次有效值并提示；旧版直接 return，控件显示空/负而小计总额仍用旧值 ⇒ BAD。真机清空单价恢复 100，负数量恢复 2。"
+},
+{
+  "slug": "home/water-filter-lifespan",
+  "inputs": { "cap": "4000", "daily": "8", "margin": "40", "price": "120" },
+  "clicks": ["var oa=alert,msg='';alert=function(m){msg=String(m);};try{exportCSV();}catch(e){}alert=oa;document.getElementById('__tbProbe').textContent='WEXP '+(msg.indexOf('50%')>=0&&msg.indexOf('100%')>=0?'OK':'BAD')+' '+msg;"],
+  "expect": ["WEXP OK"],
+  "ref": "第522批：安全余量 40% 时计算已拒绝，导出必须走同一校验、不得输出 40% 的换芯日期与成本；旧版 exportCSV 只查容量/日用量 ⇒ BAD。"
+},
+{
+  "slug": "home/water-filter-lifespan",
+  "inputs": { "cap": "4000", "daily": "8", "margin": "90", "price": "-5" },
+  "clicks": ["var oa=alert,msg='';alert=function(m){msg=String(m);};try{exportCSV();}catch(e){}alert=oa;document.getElementById('__tbProbe').textContent='WNEG '+(msg.indexOf('负数')>=0?'OK':'BAD')+' '+msg;"],
+  "expect": ["WNEG OK"],
+  "ref": "第522批：滤芯单价为负时计算与导出都必须拒绝，不得输出负成本；旧版导出无价格校验 ⇒ BAD。"
+},
+{
+  "slug": "home/water-filter-lifespan",
+  "inputs": { "cap": "4000", "daily": "8", "margin": "90", "price": "0" },
+  "clicks": ["try{calcTool()}catch(e){};var t=String(document.getElementById('result').innerHTML);var oa=alert,msg='';alert=function(m){msg=String(m);};try{exportCSV();}catch(e){}alert=oa;var ok=t.indexOf('0 元/年')>=0&&t.indexOf('0.0000 元/L')>=0&&msg==='';document.getElementById('__tbProbe').textContent='WZERO '+(ok?'OK':'BAD');"],
+  "expect": ["WZERO OK"],
+  "ref": "第522批：单价 0 是合法输入（赠品/免费滤芯），必须正常算出 0 元/年、0.0000 元/L，且导出不报错；把 0 当空值会误拦 ⇒ BAD。"
+},
+{
+  "slug": "home/water-filter-lifespan",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/home/water-filter-lifespan.html','utf8');var parts=h.split('<script');var fb='';for(var k=1;k<parts.length;k++){var seg=parts[k].split('</script>')[0];if(seg.indexOf('FAQPage')>=0){fb=seg.slice(seg.indexOf('{'),seg.lastIndexOf('}')+1);break;}}var q=null;try{q=JSON.parse(fb);}catch(e){}var n=q&&q.mainEntity?q.mainEntity.length:0;var ro=q&&q.mainEntity&&q.mainEntity.some(function(x){return x.name==='RO 膜也要按这个算吗？'&&x.acceptedAnswer&&x.acceptedAnswer.text.indexOf('TDS')>=0&&x.acceptedAnswer.text.indexOf('安全余量设多少')<0;});var dd=h.split('<dt').length-1;var de=h.split('<dd').length-1;var di=h.indexOf('name=\"desc-en\"');var ds=di>=0?h.indexOf('content=\"',di)+9:-1;var deTxt=ds>=0?h.slice(ds,h.indexOf('\"',ds)):'';var trunc=['cartr','water','qualit'].some(function(w){return deTxt.slice(-w.length)===w;});var ok=n===4&&ro&&dd===4&&de===4&&deTxt.length<=160&&trunc===false;document.getElementById('__tbProbe').textContent='WFAQ '+(ok?'OK':'BAD')+' n='+n+' ro='+ro+' dt/dd='+dd+'/'+de+' en='+deTxt.length;"],
+  "expect": ["WFAQ OK"],
+  "ref": "第433批：可见 4 组 dt/dd 问答，FAQPage mainEntity 必须同为 4 项，RO 膜问答独立成项且答案不含上一题；第522批：desc-en 不得在 cartr 等词中间截断。旧版 3 项并把 RO 问答并入上一题、desc-en 截到 cartr ⇒ BAD。"
 }
 ];
 async function main() {

@@ -58,7 +58,7 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 <meta name="title-en" content="Water Filter Lifespan Calculator">
-<meta name="desc-en" content="Estimate filter life in days, replacement date, cartridges per year and annual cost from rated capacity, daily water use, water quality, safety margin and cartr">
+<meta name="desc-en" content="Estimate filter life and annual cost from rated capacity, daily use, water quality, safety margin and price; cost per liter for RO, PP and carbon filters.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/home/water-filter-lifespan.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/home/water-filter-lifespan.html">
@@ -108,7 +108,15 @@
       "name": "安全余量设多少合适？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "默认 90%。对口感敏感、家里有婴幼儿，或滤芯价格不高时，可设 80%–85% 提前更换；水质好且想用足容量时可设 95%，但不建议 100% 用到完全堵塞。 RO 膜也要按这个算吗？可以按额定净水量估算，但 RO 膜还受进水 TDS、温度和产水量影响。若 TDS 去除率明显下降、产水量变小或储水桶压力不足，应提前更换，不必等到容量用尽。"
+        "text": "默认 90%。对口感敏感、家里有婴幼儿，或滤芯价格不高时，可设 80%–85% 提前更换；水质好且想用足容量时可设 95%，但不建议 100% 用到完全堵塞。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "RO 膜也要按这个算吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "可以按额定净水量估算，但 RO 膜还受进水 TDS、温度和产水量影响。若 TDS 去除率明显下降、产水量变小或储水桶压力不足，应提前更换，不必等到容量用尽。"
       }
     }
   ]
@@ -313,18 +321,27 @@ function hasBlankCore(){
   return ids.some(id=>{const el=document.getElementById(id);return !el||String(el.value).trim()==='';});
 }
 function hasBlankDate(){const el=document.getElementById('start');return !el||String(el.value).trim()==='';}
+function inputError(){
+  const en=isEN();
+  if(hasBlankCore())return en?'Enter rated capacity, daily filtered water use and safety margin first.':'请填写滤芯额定净水量、每日净水用量与安全余量后再计算。';
+  if(hasBlankDate())return en?'Enter the start date first.':'请填写开始使用日期后再计算。';
+  const d=calcData();
+  if(!(d.cap>0&&d.daily>0))return en?'Rated capacity and daily water use must be greater than 0.':'请输入大于 0 的额定净水量与每日用水量。';
+  if(!isFinite(d.margin)||d.margin<50||d.margin>100)return en?'Safety margin must be between 50% and 100%.':'安全余量需在 50%–100% 之间。';
+  if(!isFinite(d.price))return en?'Enter the cartridge price (0 is allowed).':'请填写滤芯单价（可为 0）。';
+  if(d.price<0)return en?'Cartridge price cannot be negative.':'滤芯单价不能为负数。';
+  return '';
+}
 function exportCSV(){
-  if(hasBlankCore()){alert('请填写滤芯额定净水量、每日净水用量与安全余量后再导出');return;}
-  if(hasBlankDate()){alert('请填写开始使用日期后再导出');return;}
-  const d=calcData();if(!(d.cap>0&&d.daily>0)){alert('请输入大于 0 的额定净水量与每日用水量');return;}
+  const err=inputError();
+  if(err){alert(err);return;}
+  const d=calcData();
   csvDownload('water-filter-lifespan.csv',[['项目','数值','单位'],['滤芯额定净水量',d.cap,'L'],['每日净水用量',d.daily,'L/天'],['水质等级',d.q.label,''],['安全余量',d.margin,'%'],['有效净水量',d.effective.toFixed(0),'L'],['可用天数',d.days.toFixed(0),'天'],['预计更换日期',addDays(d.start,d.days),''],['年更换次数',d.perYear.toFixed(2),'支/年'],['滤芯单价',d.price,'元'],['年均成本',d.annualCost.toFixed(0),'元/年'],['每升净水成本',d.costPerL.toFixed(4),'元/L']]);
 }
 function calcTool(){
-  const en=isEN();if(hasBlankCore()){document.getElementById('result').innerHTML='<div class="result-placeholder">'+(en?'Enter rated capacity, daily filtered water use and safety margin before calculating.':'请填写滤芯额定净水量、每日净水用量与安全余量后再计算。')+'</div>';return;}
-  if(hasBlankDate()){document.getElementById('result').innerHTML='<div class="result-placeholder">'+(en?'Enter the start date before calculating.':'请填写开始使用日期后再计算。')+'</div>';return;}
+  const en=isEN();const err=inputError();
+  if(err){document.getElementById('result').innerHTML='<div class="result-placeholder">'+err+'</div>';return;}
   const d=calcData();
-  if(!(d.cap>0&&d.daily>0)){document.getElementById('result').innerHTML='<div class="result-placeholder">'+(en?'Rated capacity and daily water use must be greater than 0.':'请输入大于 0 的额定净水量与每日用水量')+'</div>';return;}
-  if(d.margin<50||d.margin>100){document.getElementById('result').innerHTML='<div class="result-placeholder">'+(en?'Safety margin must be between 50% and 100%.':'安全余量需在 50%–100% 之间')+'</div>';return;}
   const replace=addDays(d.start,d.days);
   const rows=[[d.effective.toFixed(0)+' L',en?'Effective water volume':'有效净水量'],[d.days.toFixed(0)+(en?' days':' 天'),en?'Expected usable days':'预计可用天数'],[replace,en?'Expected replacement date':'预计更换日期'],[d.perYear.toFixed(2)+(en?' cartridges/year':' 支/年'),en?'Cartridges per year':'年更换次数'],[d.annualCost.toFixed(0)+(en?' CNY/year':' 元/年'),en?'Annual cartridge cost':'年均滤芯成本'],[d.costPerL.toFixed(4)+(en?' CNY/L':' 元/L'),en?'Cost per liter':'每升净水成本']];
   let html=dataGrid(rows);
@@ -353,7 +370,7 @@ renderHist(HIST_KEY);if(document.readyState==='loading'){document.addEventListen
 <dl class="dd-faq">
 <dt>额定净水量和厂商建议的更换周期冲突时听谁的？</dt><dd>以先到者为准。滤芯标注的额定净水量是容量上限，厂商建议的 6–12 个月是时间上限；即使水量没用完，长期浸泡也可能滋生细菌或吸附饱和。</dd>
 <dt>水质系数为什么不是固定的？</dt><dd>市政自来水的余氯、泥沙和硬度差异很大。水质差时滤芯表面更快形成滤饼、活性炭更快吸附饱和，因此按较好 1.0、一般 0.85、较差 0.70 折减，结果更接近实际。</dd>
-<dt>安全余量设多少合适？</dt><dd>默认 90%。对口感敏感、家里有婴幼儿，或滤芯价格不高时，可设 80%–85% 提前更换；水质好且想用足容量时可设 95%，但不建议 100% 用到完全堵塞。</dt>
+<dt>安全余量设多少合适？</dt><dd>默认 90%。对口感敏感、家里有婴幼儿，或滤芯价格不高时，可设 80%–85% 提前更换；水质好且想用足容量时可设 95%，但不建议 100% 用到完全堵塞。</dd>
 <dt>RO 膜也要按这个算吗？</dt><dd>可以按额定净水量估算，但 RO 膜还受进水 TDS、温度和产水量影响。若 TDS 去除率明显下降、产水量变小或储水桶压力不足，应提前更换，不必等到容量用尽。</dd>
 </dl>
 </div>
