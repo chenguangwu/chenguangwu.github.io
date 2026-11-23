@@ -272,17 +272,26 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+var __loanTenureValid=false;
+function __loanTenureClearOutputs(){
+    __loanTenureValid=false;
+    var t=document.getElementById('loan_tenureTable'); if(t) t.innerHTML='';
+    var d=document.getElementById('loan_tenureDiff'); if(d) d.innerHTML='';
+    var c=document.getElementById('ltChart'); if(c) c.innerHTML='';
+}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
               var __ig=__tbInputGuard(['P', 'r', 'PMT'],["贷款本金 P (元)", "每期利率 r", "每期还款 PMT (元)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const P=num('P'),r=num('r'),PMT=num('PMT');
             // 零利率是合法输入（本页 r 不再被输入守卫拦截）：n = P / PMT
             if(!(P>0) || !(PMT>0)){
+                __loanTenureClearOutputs();
                 ToolBox.setResult('result','<p style="color:var(--danger);">请输入有效的贷款本金与每期还款额（均需 > 0）。</p>');
                 return;
             }
             const n = r > 1e-12 ? -Math.log(1-P*r/PMT)/Math.log(1+r) : P/PMT;
             if(!isFinite(n) || n <= 0){
+                __loanTenureClearOutputs();
                 ToolBox.setResult('result','<p style="color:var(--danger);">每期还款不足以覆盖当期利息（PMT ≤ 本金 × 利率），贷款永远还不完；请提高每期还款额或核对利率。</p>');
                 return;
             }
@@ -293,6 +302,7 @@ const P=num('P'),r=num('r'),PMT=num('PMT');
                 : P - PMT*(kPay-1);
             const finalAmt = balAfter * (1+r);
             const totalPay = PMT*(kPay-1) + finalAmt;
+            __loanTenureValid=true;
             const __g2=dataGrid([
                 [n.toFixed(1),'还款期数 n (期)'],
                 [kPay,'实际还款期数 (期)'],
@@ -356,8 +366,8 @@ function __loan_tenureExtras(){
     var P=num('P'),r=num('r'),PMT=num('PMT');
     // 与主计算同口径：零利率合法（n = P/PMT），并给出整数期数与末期结清额
     var n = r > 1e-12 ? -Math.log(1-P*r/PMT)/Math.log(1+r) : (PMT > 0 ? P/PMT : NaN);
-    if (!isFinite(__loan_tenureNum('P')) || !isFinite(__loan_tenureNum('r')) || !isFinite(__loan_tenureNum('PMT'))) return;
-    if (!isFinite(n) || n <= 0) return;
+    if (!isFinite(__loan_tenureNum('P')) || !isFinite(__loan_tenureNum('r')) || !isFinite(__loan_tenureNum('PMT'))) { __loanTenureClearOutputs(); return; }
+    if (!isFinite(n) || n <= 0) { __loanTenureClearOutputs(); return; }
     var kPay = Math.ceil(n - 1e-9);
     var balAfter = r > 1e-12
         ? P*Math.pow(1+r,kPay-1) - PMT*(Math.pow(1+r,kPay-1)-1)/r
@@ -382,6 +392,11 @@ function __loan_tenureExtras(){
 }
 function __loan_tenureExport(){
     if (typeof TBKit === 'undefined') return;
+    var t=document.getElementById('loan_tenureTable');
+    if(!__loanTenureValid || !t || !t.querySelector('table')){
+        if(ToolBox && ToolBox.toast) ToolBox.toast('请先完成有效计算再导出明细');
+        return;
+    }
     try { TBKit.util.exportTable('#loan_tenureTable','loan-tenure.csv'); } catch(e){}
 }
 function __loan_tenurePresets(){
