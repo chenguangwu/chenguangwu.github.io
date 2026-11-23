@@ -86,6 +86,37 @@ def _generated_desc(t):
     v = _load_generated().get(ind + '/' + slug)
     return v.strip() if isinstance(v, str) else ''
 
+# 第三层工具英文词典 i18n/tools/en/<industry>/<slug>.json 的缓存。
+# 部分老工具页没有 en-US.intro / _en_desc.json 条目，但第三层 map 里有完整英文说明；
+# 不接这一层会导致 desc-en 为空，英文态 meta description 退回中文（实测 128 页）。
+_THIRD_DESC_CACHE = {}
+
+def _third_layer_desc(t):
+    ind = t.get('industry', '')
+    slug = slug_of(t)
+    if not ind or not slug:
+        return ''
+    key = ind + '/' + slug
+    if key in _THIRD_DESC_CACHE:
+        return _THIRD_DESC_CACHE[key]
+    p = os.path.join(ROOT, 'i18n', 'tools', 'en', ind, slug + '.json')
+    val = ''
+    try:
+        d = json.load(open(p, encoding='utf-8'))
+        cands = []
+        for k, v in (d.get('map') or {}).items():
+            if not isinstance(v, str) or has_cjk(v) or len(v.strip()) < 40:
+                continue
+            if len(k.strip()) < 8:
+                continue
+            cands.append(v.strip())
+        if cands:
+            val = max(cands, key=len)
+    except Exception:
+        val = ''
+    _THIRD_DESC_CACHE[key] = val
+    return val
+
 # 人工补齐的中英文描述表：scripts/tool_desc_override.py -> DESC_OVERRIDE
 # key 为工具中文名 -> (中文描述, 英文描述)。属于「人工精翻」，优先级高于
 # tools.json 的脏 ed / 空 meta 回退。_build.py 与 gen_industry_groups.py
@@ -455,6 +486,12 @@ def en_desc(t, max_len=None, use_generated=True):
         if g:
             c = _clean_en(g, name_en) or g
             return clip(c, max_len) if max_len else c
+
+    # 2.5. 第三层工具英文词典（i18n/tools/en/<ind>/<slug>.json）中的完整英文说明。
+    # 老页面常缺 en-US.intro，但第三层已有真实英文正文，优先于此处的机器翻译。
+    c = _clean_en(_third_layer_desc(t), name_en)
+    if c:
+        return clip(c, max_len) if max_len else c
 
     # （不再读取 t['ed'] 自身：历史生成器套话，且会引入三端不一致，见函数 docstring）
 
