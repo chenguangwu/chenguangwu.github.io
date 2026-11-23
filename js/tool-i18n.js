@@ -329,9 +329,24 @@
   }
 
   var BODY_CHANGED = [];
+  function replaceTextNodeCore(el, core, tr) {
+    var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+    var n;
+    while ((n = w.nextNode())) {
+      var raw = n.nodeValue || '';
+      var at = raw.indexOf(core);
+      if (at < 0) continue;
+      BODY_CHANGED.push({ node: n, orig: raw });
+      n.nodeValue = raw.slice(0, at) + tr + raw.slice(at + core.length);
+      return true;
+    }
+    return false;
+  }
   function translateBodyPhrases(isZh) {
     for (var k = 0; k < BODY_CHANGED.length; k++) {
-      BODY_CHANGED[k].el.textContent = BODY_CHANGED[k].orig;
+      var ch = BODY_CHANGED[k];
+      if (ch.node) ch.node.nodeValue = ch.orig;
+      else ch.el.textContent = ch.orig;
     }
     BODY_CHANGED = [];
     if (isZh) return;
@@ -360,6 +375,24 @@
       if (BODY_PHRASE_MAP.hasOwnProperty(txt)) tr = BODY_PHRASE_MAP[txt];
       else if (COMMON_PHRASES.hasOwnProperty(txt)) tr = COMMON_PHRASES[txt];
       else if (indMap && indMap.hasOwnProperty(txt)) tr = indMap[txt];
+      if (!tr) {
+        // 标题常写成 <h4><span class="h4-icon">📝</span>工具简介</h4>，整节点 textContent
+        // 是「📝工具简介」，字典只有「工具简介」⇒ 精确匹配必然落空。剥离 emoji 前缀后
+        // 再查一次；命中时只替换文本节点，保留 .h4-icon 的图标与样式，不能整节点覆盖。
+        var sp = stripEmojiPrefix(txt);
+        if (sp.core && sp.core !== txt) {
+          var coreTr = BODY_PHRASE_MAP.hasOwnProperty(sp.core) ? BODY_PHRASE_MAP[sp.core]
+            : (COMMON_PHRASES.hasOwnProperty(sp.core) ? COMMON_PHRASES[sp.core]
+            : (indMap && indMap.hasOwnProperty(sp.core) ? indMap[sp.core] : null));
+          if (coreTr) {
+            if (el.children && el.children.length) {
+              if (replaceTextNodeCore(el, sp.core, coreTr)) continue;
+            } else {
+              tr = (sp.prefix ? sp.prefix + ' ' : '') + coreTr;
+            }
+          }
+        }
+      }
       if (tr) {
         BODY_CHANGED.push({ el: el, orig: txt });
         el.textContent = tr;
@@ -1085,6 +1118,15 @@
           out = '⚠ This input is used as a denominator and must not be zero.';
         } else if (key === '⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。') {
           out = '⚠ Inputs cannot all be zero: at least one non-zero value is required.';
+        }
+      }
+      if (!out) {
+        // 动态结果标签也可能是「📊 平均速度」这类带图标文本；文本节点本身含 emoji 时
+        // 精确查表落空，剥离前缀后用 core 查同一套字典，保留原 emoji。
+        var dsp = stripEmojiPrefix(key);
+        if (dsp.core && dsp.core !== key) {
+          var dctr = pickEn(dsp.core);
+          if (dctr) out = (dsp.prefix ? dsp.prefix + ' ' : '') + dctr;
         }
       }
       if (!out) out = convertPunct(key, parent);
