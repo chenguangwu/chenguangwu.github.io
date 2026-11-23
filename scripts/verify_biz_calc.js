@@ -1647,6 +1647,12 @@ const CASES = [
   "expect": ['NMGEN0 OK'],
   "ref": "第1338批·模式切换残留旧结果修复源码形态强锚：旧版 function setGender(g, btn) { 只切 class/display 不重算，共用结果区保留上一模式结论；修复后切换即调重算函数。旧版无 ⇒ BAD。"
 },
+{
+  "slug": 'biz/name-generator',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/biz/name-generator.html\',\'utf8\');var i=h.indexOf(\'function setEnGender(g, btn) {\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+700):\'\';var ok=seg.indexOf(\'genEnglish();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'NMGEN1 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['NMGEN1 OK'],
+  "ref": "英文性别切换残留强锚：旧版 setEnGender 只更新 enGender 与按钮状态，不刷新 #enResult，切到 Female 仍显示 Male 列表；修复后与中文一致，切换即调 genEnglish() 重算。"
+},
   {
     slug: "biz/fancy-text",
     clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/biz/fancy-text.html','utf8');var ok=h.indexOf('const dstChars = Array.from(info.dst)')>=0&&h.indexOf('0xFEE0')>=0&&h.indexOf('ＡＢＣ 全角')>=0&&h.indexOf('result += dstChars[idx]')>=0;document.getElementById('__tbProbe').textContent='FANCYU '+(ok?'OK':'BAD');"],

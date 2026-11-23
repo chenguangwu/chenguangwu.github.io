@@ -341,9 +341,21 @@ const CASES = [
   },
 {
   "slug": "food-testing/convert-36",
-  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/food-testing/convert-36.html','utf8');var i=h.indexOf('function calc(){');var s=i>=0?h.slice(i,i+420):'';var ok=s.indexOf('!isFinite(V)||V<=0||!isFinite(c)||c<=0||!isFinite(m)||m<=0')>=0&&s.indexOf('滴定体积、浓度与样品质量均须为正数')>=0;document.getElementById('__tbProbe').textContent='FOODDIV '+(ok?'OK':'BAD');"],
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/food-testing/convert-36.html','utf8');var i=h.indexOf('function calc(){');var s=i>=0?h.slice(i,i+700):'';var ok=s.indexOf('sv===\\\"\\\"||sc===\\\"\\\"||sm===\\\"\\\"')>=0&&s.indexOf('!isFinite(V)||V<0')>=0&&s.indexOf('滴定体积须 ≥0，浓度与样品质量须')>=0;document.getElementById('__tbProbe').textContent='FOODDIV '+(ok?'OK':'BAD');"],
   "expect": ["FOODDIV OK"],
-  "ref": "第1343批 除零守卫：样品质量 m=0/空/非数字时原 calc 走 V*c*56.1/0=Infinity，改为 V/c/m 有限正数守卫并显示提示后 return。"
+  "ref": "第1343批 空值/零值口径：空输入先提示；滴定体积 0 为合法测量，输出 0.00 而非报错；浓度与样品质量仍须 >0。"
+},
+{
+  "slug": "food-testing/convert-36",
+  "inputs": { "metric": "av", "v": "0", "c": "0.1", "m": "10" },
+  "expect": ["酸价 AV = 0.00 mg KOH/g", "符合 GB 2716"],
+  "ref": "零值合法：V=0、c=0.1、m=10 ⇒ AV = 0×0.1×56.1/10 = 0.00，低于 3 mg KOH/g 限值；旧守卫 V<=0 会报「均须为正数」。"
+},
+{
+  "slug": "food-testing/convert-36",
+  "inputs": { "metric": "av", "v": "", "c": "0.1", "m": "10" },
+  "expect": ["请填写滴定体积、浓度与样品质量"],
+  "ref": "空输入必须提示，不得按 0 参与计算；与 V=0 的合法零值区分。"
 },
 { slug:"food-testing/assessor-risk-6", inputs:{"salmonella":"","staph":"","ecoli":"","listeria":"","vibrio":""}, expect:["请填写各类致病菌检出值"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
 { slug:"food-testing/colony-count", inputs:{"d1p1":"","d1p2":"","dil1":""}, expect:["请填写平皿菌落数与稀释度"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
