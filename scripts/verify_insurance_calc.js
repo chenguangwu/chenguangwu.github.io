@@ -270,7 +270,7 @@ const CASES = [
 
   { slug: "insurance/pure-premium",
     inputs: { freq: "", sev: "" }, clicks: ["calcTool()"],
-    expect: ["请输入出险频率与案均赔款后再计算。"],
+    expect: ["请输入有效的出险频率（可为 0）与案均赔款（≥0 元）后再计算。"],
     ref: "空频率/案均赔款不得输出 0.00 纯保费与 0.00 安全边际；默认 0.12/30000 不含该提示。" },
 
   { slug: "insurance/pure-premium",
