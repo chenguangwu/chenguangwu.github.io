@@ -678,13 +678,23 @@ function downloadImage(){
     ToolBox.showToast(i18nText('tool.file_upload_hint'), 'warning');
     return;
   }
+  var outW = lastFullW || document.getElementById('previewCanvas').width;
+  var outH = lastFullH || document.getElementById('previewCanvas').height;
+  // 先按最终原尺寸校验平台画布上限，再分配画布/绘制，避免超限时在 try/catch 外失败。
+  var limitMsg = canvasExportError(outW, outH);
+  if(limitMsg){ ToolBox.showToast(limitMsg + '；可先缩小原图或改用分块导出。', 'error'); return; }
   var canvas = document.getElementById('previewCanvas');
   // 预览可能被降采样；导出重新按原尺寸渲染，保证下载分辨率不受预览上限影响。
   if(lastPreviewScale < 1){
-    canvas = document.createElement('canvas');
-    canvas.width = lastFullW;
-    canvas.height = lastFullH;
-    drawRotated(canvas, 1);
+    try {
+      canvas = document.createElement('canvas');
+      canvas.width = outW;
+      canvas.height = outH;
+      drawRotated(canvas, 1);
+    } catch(e) {
+      ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || '画布分配失败，请降低原图尺寸'), 'error');
+      return;
+    }
   }
   var format = document.getElementById('formatSelect').value;
   var mime = format === 'jpeg' ? 'image/jpeg' : 'image/png';
@@ -702,9 +712,6 @@ function downloadImage(){
     canvas = tmp;
     ToolBox.showToast(i18nText('toast.msg010'), 'info');
   }
-
-  var limitMsg = canvasExportError(canvas.width, canvas.height);
-  if(limitMsg){ ToolBox.showToast(limitMsg, 'error'); return; }
 
   try { canvas.toBlob(function(blob){
     if(!blob){
