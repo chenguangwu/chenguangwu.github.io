@@ -303,12 +303,18 @@ function calculate(){
   // LEGALCLR：核心金额/年限留空时不得输出 0 元结论
   var __lgReq=['monthlyIncome'];
   if(__lgReq.some(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写支付方月收入</p>';return;}
-  const income = parseFloat(document.getElementById('monthlyIncome').value) || 0;
-  const childCount = Math.max(1, parseInt(document.getElementById('childCount').value) || 1);
-  const childAge = parseInt(document.getElementById('childAge').value) || 0;
-  const livingCost = parseFloat(document.getElementById('livingCost').value) || 0;
-  if(income<=0){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 月收入须大于 0；无固定收入请按当年总收入或同行业平均收入，或以财物折抵。</p>';return;}
-  if(livingCost<0||childAge<0||childAge>18){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 当地生活成本不能为负，子女年龄须在 0–18 岁。</p>';return;}
+  const incomeRaw=String(document.getElementById('monthlyIncome').value).trim();
+  const income = parseFloat(incomeRaw);
+  const countRaw=String(document.getElementById('childCount').value).trim();
+  const childCount=Number(countRaw);
+  const ageRaw=String(document.getElementById('childAge').value).trim();
+  const childAge=Number(ageRaw);
+  const livingRaw=String(document.getElementById('livingCost').value).trim();
+  const livingCost=Number(livingRaw);
+  if(!isFinite(income)||income<=0){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 月收入须大于 0；无固定收入请按当年总收入或同行业平均收入，或以财物折抵。</p>';return;}
+  if(countRaw===''||!Number.isInteger(childCount)||childCount<1||childCount>10){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写 1–10 的整数子女数量。</p>';return;}
+  if(ageRaw===''||!Number.isInteger(childAge)||childAge<0||childAge>18){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写子女当前年龄（0–18 岁整数）；空值不等同于 0 岁。</p>';return;}
+  if(livingRaw===''||!isFinite(livingCost)||livingCost<0){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写当地实际生活水平（元/月，不能为负）；空值不按 0 元参与比较。</p>';return;}
   const ratioSelect = document.getElementById('paymentRatio').value;
   const hasSpecial = document.getElementById('hasSpecialExpense').checked;
   
@@ -335,8 +341,15 @@ function calculate(){
   
   let specialMonthly = 0;
   if(hasSpecial){
-    const specialAnnual = parseFloat(document.getElementById('specialExpense').value) || 0;
-    const specialRatio = parseFloat(document.getElementById('specialRatio').value);
+    const specialRaw=String(document.getElementById('specialExpense').value).trim();
+    const specialAnnual=Number(specialRaw);
+    const specialRatio=parseFloat(document.getElementById('specialRatio').value);
+    if(specialRaw===''||!isFinite(specialAnnual)||specialAnnual<0){
+      document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 勾选大额支出后，请填写有效的年度特殊支出（元，不能为负）。</p>';return;
+    }
+    if(!isFinite(specialRatio)||specialRatio<0||specialRatio>1){
+      document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 特殊支出分摊比例无效，请重新选择。</p>';return;
+    }
     specialMonthly = (specialAnnual * specialRatio) / 12;
   }
   
