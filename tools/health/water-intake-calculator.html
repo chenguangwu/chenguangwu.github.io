@@ -164,7 +164,7 @@
     
     <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label": "65kg·30岁·女性·轻活动", "labelEn": "65kg · 30y · female · light", "values": {"weight": "65", "age": "30", "gender": "female", "activity": "1.1", "weather": "1.0", "special": "1.0"}}]'></div>
-<label for="weight">体重 (kg)</label><input type="number" id="weight" value="65" min="20" max="200" oninput="calc()" placeholder="如 65（20–200）"></div>
+<label for="weight">体重 (kg)</label><input type="number" id="weight" value="65" min="5" max="200" oninput="calc()" placeholder="65"></div>
       <div><label for="age">年龄 (岁)</label><input type="number" id="age" value="30" min="0" max="100" oninput="calc()" placeholder="如 30（1–100）" data-i18n-ph="tool.ph.example_30_1_100"></div>
     </div>
     <div class="input-row">
@@ -397,14 +397,23 @@ function calc(){
   const age = aRaw===''?NaN:parseInt(aRaw,10);
   if(!Number.isFinite(age)||age<1||age>100){
     document.getElementById('waterVal').textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter age between 1 and 100 (not for infants under 1)":"请输入 1–100 岁的年龄；1 岁以下婴儿饮水量需儿科个体化，本页不适用");
-    document.getElementById('timeTable').innerHTML='';document.getElementById('foodList').innerHTML='';
+    document.getElementById('water_intake_calculatorTable').innerHTML='';document.getElementById('foodWaterList').innerHTML='';
     return;
   }
   const wRaw = document.getElementById('weight').value.trim();
   const w = parseFloat(wRaw);
-  if(wRaw===''||!isFinite(w)||w<20||w>200){
-    document.getElementById('waterVal').textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Enter weight between 20 and 200 kg':"请输入 20–200 kg 的体重，空值或 0 不会按 65 kg 估算");
-    document.getElementById('timeTable').innerHTML='';document.getElementById('foodList').innerHTML='';
+  // 体重允许范围按年龄分段：1–3 岁常见 10–15 kg，不能沿用成人 20 kg 下限
+  let wMin=20, wMax=200;
+  if(age<=3){wMin=5; wMax=40;}
+  else if(age<=6){wMin=8; wMax=60;}
+  else if(age<=10){wMin=12; wMax=90;}
+  else if(age<=14){wMin=18; wMax=120;}
+  if(wRaw===''||!isFinite(w)||w<wMin||w>wMax){
+    const wMsg = (typeof TBKit!=='undefined'&&TBKit.util.isEn())
+      ? ('Enter weight between '+wMin+' and '+wMax+' kg for age '+age)
+      : ('请输入 '+wMin+'–'+wMax+' kg 的体重（按 '+age+' 岁范围校验），空值或 0 不会按 65 kg 估算');
+    document.getElementById('waterVal').textContent=wMsg;
+    document.getElementById('water_intake_calculatorTable').innerHTML='';document.getElementById('foodWaterList').innerHTML='';
     return;
   }
   const gender = document.getElementById('gender').value;
