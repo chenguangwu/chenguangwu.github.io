@@ -717,6 +717,13 @@ function __fuAddDays(base,days){
   d.setDate(d.getDate()+days);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
+function __fuAddMonths(base,months){
+  var y=base.getFullYear(), m=base.getMonth()+months, day=base.getDate();
+  var first=new Date(y,m,1);
+  var lastDay=new Date(first.getFullYear(),first.getMonth()+1,0).getDate();
+  var d=new Date(first.getFullYear(),first.getMonth(),Math.min(day,lastDay));
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function buildFollowUpPlan(){
   var raw=(document.getElementById('fuStart').value||'').trim();
   var type=document.getElementById('fuType').value;
@@ -734,9 +741,15 @@ function buildFollowUpPlan(){
   var rows=plans[type]||plans.fracture;
   var html='<p><strong>起始日期：</strong>'+raw+'；<strong>类型：</strong>'+document.getElementById('fuType').options[document.getElementById('fuType').selectedIndex].text+'</p>';
   html+='<table class="data-table" style="width:100%;margin-top:8px;"><thead><tr><th>时间点</th><th>建议日期</th><th>复查重点</th></tr></thead><tbody>';
-  var units={ '2 周':14,'4 周':28,'8 周':56,'12 周':84,'1 月':30,'3 月':90,'6 月':180,'9 月':270,'12 月':365,'1 周':7 };
-  rows.forEach(function(r){ html+='<tr><td>'+r[0]+'</td><td>'+__fuAddDays(d,units[r[0]]||0)+'</td><td>'+r[1]+'</td></tr>'; });
-  html+='</tbody></table><p style="font-size:12.5px;color:var(--text-muted);margin-top:8px;">日期按自然日顺延，遇节假日请提前与门诊确认；如出现发热、伤口渗液、疼痛加重或功能突然下降，应随时就诊而非等待计划日期。</p>';
+  var weeks={ '1 周':7,'2 周':14,'4 周':28,'8 周':56,'12 周':84 };
+  var months={ '1 月':1,'3 月':3,'6 月':6,'9 月':9,'12 月':12 };
+  rows.forEach(function(r){
+    var when=r[0], date;
+    if(months[when]) date=__fuAddMonths(d,months[when]);
+    else date=__fuAddDays(d,weeks[when]||0);
+    html+='<tr><td>'+when+'</td><td>'+date+'</td><td>'+r[1]+'</td></tr>';
+  });
+  html+='</tbody></table><p style="font-size:12.5px;color:var(--text-muted);margin-top:8px;">周节点按自然日顺延；月节点按日历月计算，若目标月没有对应日则取该月最后一天。遇节假日请提前与门诊确认；如出现发热、伤口渗液、疼痛加重或功能突然下降，应随时就诊而非等待计划日期。</p>';
   box.innerHTML=html;
 }
 (function(){var el=document.getElementById('fuStart');if(el&&!el.value){var n=new Date();el.value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}})();

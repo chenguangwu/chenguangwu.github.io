@@ -628,6 +628,24 @@ const CASES = [
     "ref": "第200批·随访计划：2026-01-01 起骨折复查，2周=01-15、12周=03-26；默认当天日期与骨折示例不产生该两串 ⇒ 强判别。"
   },
   {
+    "slug": "health/fracture-healing",
+    "inputs": { "fuStart": "2026-01-01", "fuType": "chronic" },
+    "expect": ["1 月 2026-02-01", "12 月 2027-01-01"],
+    "ref": "月节点按日历月：2026-01-01 起慢性随访，1月=02-01、3月=04-01、6月=07-01、12月=2027-01-01；旧固定30天会得01-31。"
+  },
+  {
+    "slug": "health/fracture-healing",
+    "inputs": { "fuStart": "2026-01-31", "fuType": "chronic" },
+    "expect": ["1 月 2026-02-28", "3 月 2026-04-30"],
+    "ref": "月底规则：2026-01-31 起，目标月无31日则取月末（2月28日、4月30日）；旧 setMonth 会溢出到3月/5月。"
+  },
+  {
+    "slug": "health/fracture-healing",
+    "inputs": { "fuStart": "2024-02-29", "fuType": "chronic" },
+    "expect": ["12 月 2025-02-28"],
+    "ref": "闰日：2024-02-29 起12个日历月，2025-02-28（非闰年取月末）。"
+  },
+  {
     "slug": "health/gfr-calculator",
     "inputs": {
       "age": "42",

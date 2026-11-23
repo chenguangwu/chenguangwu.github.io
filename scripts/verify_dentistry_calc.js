@@ -106,10 +106,12 @@ const CASES = [
   "inputs": {
     "f1": "1"
   },
+  "clicks": ["document.getElementById('f1').value='1';__markScaleDirty();calc();"],
   "expect": [
-    "94%"
+    "1/27",
+    "自查提示：偏低"
   ],
-  "ref": "auto-restore"
+  "ref": "九项等权自查：f1=1 → 总分 1/27、偏低；旧加权实现 f1=1 输出 94% 避龋机会，已废弃。"
 },
 {
   "slug": "dentistry/complete-denture",
@@ -321,37 +323,37 @@ const CASES = [
 },
 {
   "slug": "dentistry/caries-risk",
-  "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/龋病风险分数/.test(__b)&&/当前为默认评分/.test(__b)&&!/风险等级|风险分级|建议|诊断|治疗/.test(__b);document.getElementById('result').innerHTML=__ok?'__CR_DEF_OK__':'__CR_DEF_FAIL__ '+__b;"],
+  "clicks": ["var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/九项因素总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/自查提示|风险等级|风险分级|建议|诊断|治疗/.test(__b);document.getElementById('result').innerHTML=__ok?'__CR_DEF_OK__':'__CR_DEF_FAIL__ '+__b;"],
   "expect": ["__CR_DEF_OK__"],
-  "ref": "批 4 默认态：只出龋病风险分数 0/100 与避免新龋机会，结果区不含风险等级/建议/诊断/治疗。"
+  "ref": "默认态：只出九项因素总分 0/27，结果区不含自查提示/建议/诊断/治疗。"
 },
 {
   "slug": "dentistry/caries-risk",
   "inputs": {"f1":"3","f2":"3","f3":"3","f4":"3","f5":"3","f6":"3","f7":"3","f8":"3","f9":"3"},
-  "expect": ["极高风险"],
-  "ref": "批 4 改动态：九项因素均取 3 分 ⇒ 加权总分 3 ⇒ 风险分 100 落「极高风险」；确认 dirty 置位后分级文案才出现。"
+  "expect": ["27/27", "自查提示：偏高"],
+  "ref": "九项均 3 分 ⇒ 总分 27/27，自查提示偏高；确认 dirty 后提示文案才出现。"
 },
 {
   "slug": "dentistry/caries-risk",
   "inputs": {"f1":"3","f2":"3","f3":"3","f4":"3","f5":"3","f6":"3","f7":"3","f8":"3","f9":"3"},
-  "clicks": ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/龋病风险分数/.test(__b)&&/当前为默认评分/.test(__b)&&!/风险等级|风险分级|建议|诊断|治疗/.test(__b);document.getElementById('result').innerHTML=__ok?'__CR_RST_OK__':'__CR_RST_FAIL__ '+__b;"],
+  "clicks": ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/九项因素总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/自查提示|风险等级|风险分级|建议|诊断|治疗/.test(__b);document.getElementById('result').innerHTML=__ok?'__CR_RST_OK__':'__CR_RST_FAIL__ '+__b;"],
   "expect": ["__CR_RST_OK__"],
-  "ref": "批 4 重置态：resetAll() 九项归 0 并清 dirty，风险等级与建议消失。"
+  "ref": "重置态：resetAll() 九项归 0 并清 dirty，自查提示与建议消失。"
 },
 
 
 
 {
   "slug": "dentistry/caries-risk",
-  "clicks": ["var v={f1:3,f2:1,f3:1,f4:2,f5:1,f6:2,f7:1,f8:1,f9:1};Object.keys(v).forEach(function(k){document.getElementById(k).value=String(v[k]);});__scaleDirty=true;calc();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='CR59 '+((t.indexOf('55')>=0&&t.indexOf('高风险')>=0&&t.indexOf('极高风险')<0)?'OK':'BAD');"],
+  "clicks": ["var v={f1:3,f2:3,f3:3,f4:3,f5:3,f6:3,f7:1,f8:1,f9:1};Object.keys(v).forEach(function(k){document.getElementById(k).value=String(v[k]);});__scaleDirty=true;calc();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='CR59 '+((t.indexOf('21/27')>=0&&t.indexOf('自查提示：偏高')>=0)?'OK':'BAD');"],
   "expect": ["CR59 OK"],
-  "ref": "高风险(CAMBRA)预设改为 f1=3、f4=2、f6=2、其余 1：加权总分 0.54+0.06+0.10+0.28+0.10+0.28+0.10+0.09+0.09=1.64 ⇒ 55 分，落「高风险(50-74)」；旧预设九项 3/2 混填得 98 分被判「极高风险」，与按钮名差一档。"
+  "ref": "九项等权：f1–f6=3、f7–f9=1 ⇒ 总分 21/27，自查提示偏高；旧加权 55 分口径已废弃。"
 },
 {
   "slug": "dentistry/caries-risk",
-  "clicks": ["var got='';var old=ToolBox.copyText;ToolBox.copyText=function(t){got=String(t);};try{copyResult();}catch(e){}ToolBox.copyText=old;var msg='';var oldT=ToolBox.showToast;ToolBox.showToast=function(m){msg=String(m);};try{resetAll();}catch(e){}ToolBox.showToast=oldT;document.getElementById('__tbProbe').textContent='CR63 '+((got.indexOf('龋病风险分数')>=0&&msg.indexOf('已重置')>=0)?'OK':'BAD');"],
+  "clicks": ["var got='';var old=ToolBox.copyText;ToolBox.copyText=function(t){got=String(t);};try{copyResult();}catch(e){}ToolBox.copyText=old;var msg='';var oldT=ToolBox.showToast;ToolBox.showToast=function(m){msg=String(m);};try{resetAll();}catch(e){}ToolBox.showToast=oldT;document.getElementById('__tbProbe').textContent='CR63 '+((got.indexOf('九项自查总分')>=0&&msg.indexOf('已重置')>=0)?'OK':'BAD');"],
   "expect": ["CR63 OK"],
-  "ref": "N63：`i18nText()` 无参调用改为中英直出文案——复制结果返回含「龋病风险分数」的完整文本，重置 toast 返回「已重置九项因素」；旧实现两个提示串都取不到 key。默认态不执行 clicks，不出现 CR63 探针。"
+  "ref": "N63：`i18nText()` 无参调用改为中英直出文案——复制结果返回含「九项自查总分」的完整文本，重置 toast 返回「已重置九项因素」；旧实现两个提示串都取不到 key。默认态不执行 clicks，不出现 CR63 探针。"
 },
 {
   "slug": "dentistry/periodontal-pocket",

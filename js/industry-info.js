@@ -113,7 +113,7 @@ window.INDUSTRY_INFO = {
   'property'             : { name: '物业管理', icon: '🏢', hot: 141461 },
   'beauty'               : { name: '美容护肤', icon: '💄', hot: 141375 },
   'pediatrics'           : { name: '儿科医学', icon: '🧒', hot: 140951 },
-  'dentistry'            : { name: '口腔医学', icon: '🦷', hot: 138782 },
+  'dentistry'            : { name: '口腔医学', icon: '🦷', hot: 138783 },
   'psychiatry'           : { name: '精神心理', icon: '🧠', hot: 137479 },
   'logistics'            : { name: '物流运输', icon: '🚚', hot: 136595 },
   'home'                 : { name: '家居装修', icon: '🏡', hot: 134106 },

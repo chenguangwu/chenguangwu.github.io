@@ -9844,6 +9844,7 @@ window.__TI18N_EN = {
     '齿轮基本参数计算': 'Gear basic parameter calculation',
     '齿轮类型计算': 'Gear type calculation',
     '龋病风险（Cariogram）评分': 'Caries risk (Cariogram) score',
+    '龋病风险九项自查': 'Caries Risk Nine-Factor Self-Check',
     '💝 最佳配对': '💝 Best match',
     '💡 公式提示：利润 = 收入 - 成本，利润率 = 利润 / 收入 × 100%': '💡 Formula tip: Profit = Revenue - Cost, Profit margin = Profit / Revenue x 100%',
     '💡 技巧提示': '💡 Tip',
