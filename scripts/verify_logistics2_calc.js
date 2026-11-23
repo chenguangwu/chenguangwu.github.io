@@ -34,13 +34,20 @@ const CASES = [
   "inputs": {
     "weight": "8",
     "dropH": "60",
-    "fragility": "40"
+    "fragility": "40",
+    "area": "800"
   },
   "expect": [
     "5.6 cm 建议厚度",
     "11.3 cm 总缓冲层厚度"
   ],
-  "ref": "原 all_default 弱用例（weight=3/dropH=80/fragility=60 恰等于页面默认）+ expect「跌落下不受损」是结论句常量。改为 8kg/60cm/G40（材料取默认 eps，系数 C=3.2）：厚度 t = C·h/G = 3.2×60/40 = 4.8 cm，重量修正 1+ln(8+1)×0.08 = 1.17578 ⇒ 5.6437 → 5.6 cm；总缓冲层 2t = 11.3 cm；静应力 = 8 ÷ (max(8×0.01, 0.02)×10000) = 0.0100 kg/cm²；脆值 40 < 50 ⇒ 等级「极易碎」。默认态 4.7 cm / 9.5 cm /「易碎」（脆值 60 落 50–80 档）跨档"
+  "ref": "8kg/60cm/G40（材料取默认 eps，C=3.2）：t=3.2×60/40=4.8 cm ×1.17578=5.6437→5.6 cm；总缓冲层11.3 cm；承压面积实填 800 cm²，静应力=8÷800=0.0100 kg/cm²；脆值40<50⇒「极易碎」。默认态4.7/9.5/「易碎」跨档"
+},
+{
+  "slug": "logistics2/packaging-cushion",
+  "inputs": { "weight": "8", "area": "", "dropH": "60", "fragility": "40" },
+  "expect": ["请填写实际承压面积（cm²，大于 0）；不再按重量自动估算。"],
+  "ref": "承压面积为空时停止计算并提示，不再回退 max(weight×100,200)；默认 300 cm² 不含该提示。"
 },
 {
   "slug": "logistics2/picking-route",
