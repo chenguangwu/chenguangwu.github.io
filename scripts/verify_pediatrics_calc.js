@@ -203,15 +203,15 @@ const CASES = [
 { slug:"pediatrics/pediatric-pneumonia", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pediatrics/pediatric-pneumonia.html','utf8');var i=h.indexOf('function calc(){');var seg=i>=0?h.slice(i,i+260):'';var ok=seg.indexOf('__EMR_SUM=null')>=0&&seg.indexOf('__EMR_NOTE=null')>=0;document.getElementById('__tbProbe').textContent='PNEEMR0 '+(ok?'OK':'BAD');"], expect:["PNEEMR0 OK"], ref:"第1360批·缺参旧门诊记录修复：calc 入口清空 __EMR_SUM/__EMR_NOTE，缺参时复制不再输出上轮肺炎结论；旧版保留旧摘要 ⇒ BAD。" },
 {
   slug: "pediatrics/xinshengerhuangdan-xiaoshidanhongsu-quxian",
-  inputs: { age: "48", bili: "14", unit: "mgdl" },
-  expect: ["239.5 μmol/L"],
-  ref: "恢复第351批旧页：14 mg/dL × 17.104 = 239.46 ⇒ 239.5 μmol/L；保留页仅接受 mg/dL，旧页补回双向输入。"
+  inputs: { age: "36", bili: "18", unit: "mgdl" },
+  expect: ["307.9 μmol/L"],
+  ref: "恢复第351批旧页（非默认检验值）：18 mg/dL × 17.104 = 307.87 ⇒ 307.9 μmol/L；保留页仅接受 mg/dL，旧页补回双向输入。"
 },
 {
   slug: "pediatrics/xinshengerhuangdan-xiaoshidanhongsu-quxian",
-  inputs: { age: "48", bili: "239.4", unit: "umol" },
-  expect: ["14.00 mg/dL"],
-  ref: "恢复第351批旧页反向路径：239.4 μmol/L ÷ 17.104 = 13.997 ⇒ 14.00 mg/dL；旧页 unit=umol 分支，保留页无此入口。"
+  inputs: { age: "36", bili: "300", unit: "umol" },
+  expect: ["17.54 mg/dL"],
+  ref: "恢复第351批旧页反向路径（非默认检验值）：300 μmol/L ÷ 17.104 = 17.54 mg/dL；旧页 unit=umol 分支，保留页无此入口。"
 }
 ];
 async function main() {

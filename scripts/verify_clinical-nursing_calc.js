@@ -718,9 +718,9 @@ const CASES = [
 
 {
   slug: "clinical-nursing/convert-flow-concentration",
-  inputs: { mode: "f2o", val: "2" },
-  expect: ["FiO2 ≈ 29.0%"],
-  ref: "恢复第351批旧页正向：鼻导管 2 L/min ⇒ 21+4×2=29.0%；保留页仅此方向。"
+  inputs: { mode: "f2o", val: "3" },
+  expect: ["FiO2 ≈ 33.0%"],
+  ref: "恢复第351批旧页正向（非默认流量）：鼻导管 3 L/min ⇒ 21+4×3=33.0%；保留页仅此方向。"
 },
 {
   slug: "clinical-nursing/convert-flow-concentration",

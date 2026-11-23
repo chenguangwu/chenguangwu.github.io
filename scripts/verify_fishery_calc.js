@@ -768,9 +768,9 @@ const CASES = [
 { slug:"fishery/water-oxygen", clicks:["var had=!!lastResult;['temp','sal','measured'].forEach(function(id){document.getElementById(id).value='';});lookup();var g='';ToolBox.copyText=function(t){g+=String(t)};copyResult();document.getElementById('__tbProbe').textContent='B616WO '+((had&&lastResult===''&&g==='')?'OK':'BAD g='+g.slice(0,40));"], expect:["B616WO OK"], ref:"第1365批空态缓存：默认结果后清空 temp/sal/measured，lookup 提前返回必须清 lastResult，复制不得输出旧溶氧结果。旧实现保留旧串 ⇒ BAD。" },
 {
   slug: "fishery/calc-power",
-  inputs: { v0: "100", v1: "10", v2: "24", v3: "85" },
-  expect: ["57.01 kW"],
-  ref: "恢复第353批旧页：100 m³ 水体由 10 ℃ 升至 24 ℃，24 h、85% 效率 ⇒ 1368.2 kWh ÷24 h ≈57.01 kW；winter-heating 只算持续散热，不能回答指定时间升温。"
+  inputs: { v0: "120", v1: "8", v2: "22", v3: "80" },
+  expect: ["63.44 kW"],
+  ref: "恢复第353批旧页（非默认工况）：120 m³ 水体由 8 ℃ 升至 22 ℃，22 h、80% 效率 ⇒ 1395.6 kWh ÷22 h ≈63.44 kW；winter-heating 只算持续散热，不能回答指定时间升温。"
 }
 ];
 

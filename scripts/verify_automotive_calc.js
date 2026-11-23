@@ -1009,9 +1009,9 @@ const CASES = [
 { slug:"automotive/voltage-2", inputs:{volt:"12",vreg:"15.5",cutin:"700",rpm:"2500",vbat:"12.4",rloop:"0.08",load:"10",len:"5",area:"2.5",mat:"0.0175"}, expect:["末端电压 14.8 V"], ref:"第1063批 N243：供电端取 max(发电 15.5, 电池 12.4)=15.5，压降 0.70 ⇒ 末端 14.8；若仍用标称 12 V 会得 11.3，默认 vreg=14.4 得 13.7，锚唯一。" },
 {
   slug: "automotive/tire-wear",
-  inputs: { newDepth: "8", mileage: "35000", tier: "0.12", alignment: "1", road: "1", driving: "1" },
-  expect: ["7.6", "498,333"],
-  ref: "恢复第356–358批旧页：8 mm 新胎、3.5 万 km、中端胎/正常定位/城市路/正常驾驶 ⇒ 磨损 0.12 mm/万 km，当前 7.6 mm，剩余可行驶 498,333 km；estimate-wear-tire 需当前花纹深度，无此估算模型。"
+  inputs: { newDepth: "8", mileage: "42000", tier: "0.15", alignment: "1", road: "1", driving: "1" },
+  expect: ["7.4", "384,667"],
+  ref: "恢复第356–358批旧页（非默认输入）：8 mm 新胎、4.2 万 km、经济型胎 ⇒ 磨损 0.15 mm/万 km，当前 7.4 mm，剩余可行驶 384,667 km；estimate-wear-tire 需当前花纹深度，无此估算模型。"
 },
 {
   slug: "automotive/oil-change-countdown",

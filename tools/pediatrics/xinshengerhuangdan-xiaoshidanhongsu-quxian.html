@@ -142,10 +142,36 @@
       <button class="btn primary" type="button" onclick="calc()">🧮 换算</button><button class="btn" type="button" onclick="__xinshengerhuangdan_xiaoshidanhongsu_quxianExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
+      <button class="btn" type="button" onclick="setPreset(14,'mgdl')" data-zh="示例 14 mg/dL">示例 14 mg/dL</button>
+      <button class="btn" type="button" onclick="setPreset(18,'mgdl')" data-zh="示例 18 mg/dL">示例 18 mg/dL</button>
+      <button class="btn" type="button" onclick="setPreset(239.4,'umol')" data-zh="示例 239.4 μmol/L">示例 239.4 μmol/L</button>
     </div>
 
     <div class="result-box" id="res"></div>
-    <div class="ref-card" data-zh="2022 AAP 指南适用于胎龄至少 35 周的新生儿；治疗阈值受胎龄、出生后小时数和神经毒性风险因素影响。本页不提供阈值或治疗判断。">The 2022 AAP guideline applies to infants born at 35 weeks or later; treatment thresholds depend on gestational age, postnatal hours and neurotoxicity risk factors. This page provides no thresholds or treatment decisions.</div>
+    <div class="tbk-tabbar" role="tablist" aria-label="Bilirubin reference views">
+      <button class="tbk-tab active" type="button" data-pane="tbl" onclick="showBiliPane('tbl')" data-zh="数值对照">数值对照</button>
+      <button class="tbk-tab" type="button" data-pane="chart" onclick="showBiliPane('chart')" data-zh="换算曲线">换算曲线</button>
+    </div>
+    <div class="tbk-panel" id="biliPaneTbl">
+      <h3 data-zh="mg/dL 与 μmol/L 数值对比">Compare mg/dL and μmol/L</h3>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr><th scope="col" style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="mg/dL">mg/dL</th><th scope="col" style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="μmol/L">μmol/L</th><th scope="col" style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="说明">说明</th></tr></thead>
+          <tbody>
+            <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);">5</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);">85.5</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="低值对照">Low-value reference</td></tr>
+            <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);">10</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);">171.0</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="常用换算点">Common conversion point</td></tr>
+            <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);">14</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);">239.5</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="页面默认示例">Page default example</td></tr>
+            <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);">18</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);">307.9</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="较高值对照">Higher-value reference</td></tr>
+            <tr><td style="padding:6px 8px;">20</td><td style="padding:6px 8px;">342.1</td><td style="padding:6px 8px;" data-zh="高值对照">High-value reference</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="tbk-panel" id="biliPaneChart" style="display:none">
+      <h3 data-zh="胆红素单位换算曲线">Bilirubin unit conversion curve</h3>
+      <div style="overflow-x:auto;"><canvas id="biliChart" width="620" height="240" aria-label="Bilirubin mg/dL to μmol/L conversion curve" role="img"></canvas></div>
+    </div>
+    <div class="ref-card" data-zh="2022 AAP 指南适用于胎龄至少 35 周的新生儿；治疗阈值受胎龄、出生后小时数和神经毒性风险因素影响。本页不提供阈值或治疗判断。">2022 AAP 指南适用于胎龄至少 35 周的新生儿；治疗阈值受胎龄、出生后小时数和神经毒性风险因素影响。本页不提供阈值或治疗判断。</div>
   </div>
 </div>
 
@@ -191,7 +217,45 @@ function calc(){
   }
   var other=unit==='umol'?value/17.104:value*17.104;
   box.textContent=(en?'Age: ':'日龄：')+age+(en?' hours; bilirubin: ':' 小时；胆红素：')+value+(unit==='umol'?' μmol/L ≈ ':' mg/dL ≈ ')+other.toFixed(unit==='umol'?2:1)+(unit==='umol'?' mg/dL':' μmol/L')+'。 '+(en?'Risk and treatment thresholds are unavailable.':'风险分区及治疗阈值暂停提供。');
+  try{localStorage.setItem('tb_bili_last',JSON.stringify({age:age,bili:value,unit:unit}));}catch(e){}
+  drawBiliChart(unit==='umol'?other:value,unit);
 }
+function setPreset(v,u){document.getElementById('bili').value=v;document.getElementById('unit').value=u;calc();}
+function showBiliPane(p){
+  var tbl=document.getElementById('biliPaneTbl'), chart=document.getElementById('biliPaneChart');
+  if(!tbl||!chart)return;
+  tbl.style.display=p==='tbl'?'':'none'; chart.style.display=p==='chart'?'':'none';
+  var tabs=document.querySelectorAll('#biliPaneTbl, #biliPaneChart');
+  var btns=document.querySelectorAll('.tbk-tabbar .tbk-tab');
+  for(var i=0;i<btns.length;i++){btns[i].classList.toggle('active',btns[i].getAttribute('data-pane')===p);}
+  if(p==='chart')drawBiliChart(parseFloat(document.getElementById('bili').value)||0,document.getElementById('unit').value);
+}
+function drawBiliChart(value,unit){
+  var c=document.getElementById('biliChart'); if(!c||!c.getContext)return;
+  try{
+    var ctx=c.getContext('2d'), w=c.width, h=c.height, pad=42, maxMg=30;
+    var en=/^en/i.test(document.documentElement.lang||'');
+    ctx.clearRect(0,0,w,h);
+    ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pad,h-pad); ctx.lineTo(w-pad,h-pad); ctx.moveTo(pad,pad); ctx.lineTo(pad,h-pad); ctx.stroke();
+    ctx.strokeStyle='#FF6B35'; ctx.lineWidth=2; ctx.beginPath();
+    for(var i=0;i<=maxMg;i++){
+      var x=pad+(w-2*pad)*i/maxMg, y=h-pad-(h-2*pad)*(i*17.104)/(maxMg*17.104);
+      if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    var mg=unit==='umol'?value/17.104:value;
+    if(mg>=0&&mg<=maxMg){
+      var px=pad+(w-2*pad)*mg/maxMg, py=h-pad-(h-2*pad)*mg/maxMg;
+      ctx.fillStyle='#1F2937'; ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#1F2937'; ctx.font='12px system-ui'; ctx.fillText((en?'Current ':'当前 ')+mg.toFixed(1)+' mg/dL',Math.min(px+8,w-pad-120),Math.max(py-8,pad+12));
+    }
+    ctx.fillStyle='#6B7280'; ctx.font='11px system-ui';
+    ctx.fillText(en?'mg/dL':'mg/dL',pad,h-14); ctx.fillText(en?'μmol/L':'μmol/L',w-pad-52,pad-16);
+    ctx.fillText(en?'Conversion line: μmol/L = mg/dL × 17.104':'换算曲线：μmol/L = mg/dL × 17.104',pad,pad-16);
+  }catch(e){}
+}
+function loadLast(){try{var v=JSON.parse(localStorage.getItem('tb_bili_last')||'null');if(v&&Number.isFinite(v.age)&&Number.isFinite(v.bili)){document.getElementById('age').value=v.age;document.getElementById('bili').value=v.bili;document.getElementById('unit').value=v.unit==='umol'?'umol':'mgdl';}}catch(e){}}
 function copyRes(){var t=document.getElementById('res').textContent;if(t) ToolBox.copyText(t);}
 function resetAll(){document.getElementById('age').value=48;document.getElementById('bili').value=14;document.getElementById('unit').value='mgdl';calc();}
 function __xinshengerhuangdan_xiaoshidanhongsu_quxianExport(){
@@ -199,7 +263,7 @@ function __xinshengerhuangdan_xiaoshidanhongsu_quxianExport(){
   var text=document.getElementById('res').textContent;
   ToolBox.downloadText('bilirubin-conversion.csv',(en?'Result':'结果')+'\n'+ToolBox.csvCell(text)+'\n','text/csv');
 }
-calc();
+loadLast();calc();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -398,15 +398,15 @@ const CASES = [
 },
 {
   slug: "cosmetic-derm/formula-1",
-  inputs: { total: "10", ha: "5", vc: "20", rHa: "50", rVc: "30", rPep: "20" },
-  expect: ["25.00", "60.00", "89.00"],
-  ref: "恢复第321批旧页：10 mL 总量、50/30/20 配比 ⇒ 5/3/2 mL；5 mg/mL 玻尿酸 25 mg、20 mg/mL VC 60 mg、2 mg/mL 肽 4 mg，合计 89 mg。"
+  inputs: { total: "12", ha: "8", vc: "25", rHa: "60", rVc: "25", rPep: "15" },
+  expect: ["57.60", "75.00", "136.20"],
+  ref: "恢复第321批旧页（非默认配方）：12 mL、60/25/15 ⇒ 7.2/3.0/1.8 mL；8 mg/mL 玻尿酸 57.6 mg、25 mg/mL VC 75 mg、2 mg/mL 肽 3.6 mg，合计 136.2 mg。"
 },
 {
   slug: "cosmetic-derm/ratio-composition-injection",
-  inputs: { total: "5", ha: "8", rHa: "60", rVc: "20", rGsh: "10", rOther: "10" },
-  expect: ["24.00", "91.50"],
-  ref: "恢复第321批旧页：5 mL、玻尿酸 60% 且原液 8 mg/mL ⇒ 3 mL×8=24 mg；四项含量合计 91.5 mg。mesotherapy 仅自动分配比例，不能输入原液浓度。"
+  inputs: { total: "6", ha: "10", rHa: "50", rVc: "25", rGsh: "15", rOther: "10" },
+  expect: ["30.00", "135.00"],
+  ref: "恢复第321批旧页（非默认配比）：6 mL、玻尿酸 50% 且原液 10 mg/mL ⇒ 3 mL×10=30 mg；四项含量合计 135 mg。mesotherapy 仅自动分配比例，不能输入原液浓度。"
 }
 ];
 

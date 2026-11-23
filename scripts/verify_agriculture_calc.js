@@ -1795,9 +1795,9 @@ const CASES = [
 
 {
   slug: "agriculture/calc-7",
-  inputs: { area: "10", waterPerMu: "20", targetConc: "150", fertContent: "46", ratioX: "100" },
-  expect: ["65.22 肥料商品", "15,000 mg/L"],
-  ref: "恢复第354批旧页：10 亩×20 m³/亩=200 m³；150 mg/L×200000 L=30 kg 纯养分 ÷46%=65.22 kg 商品肥；母液 1:100 ⇒ 15000 mg/L。fertigation-ratio 用 EC/水源 EC，不能按目标养分浓度算。"
+  inputs: { area: "12", waterPerMu: "25", targetConc: "180", fertContent: "45", ratioX: "80" },
+  expect: ["120.00 肥料商品", "14,400 mg/L"],
+  ref: "恢复第354批旧页（非默认输入）：12 亩×25 m³/亩=300 m³；180 mg/L×300000 L=54 kg 纯养分 ÷45%=120 kg 商品肥；母液 1:80 ⇒ 14400 mg/L。fertigation-ratio 用 EC/水源 EC，不能按目标养分浓度算。"
 },
 {
   slug: "agriculture/convert-content-1",

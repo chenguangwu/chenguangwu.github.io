@@ -344,9 +344,9 @@ const CASES = [
   },
 {
   slug: "tcm-pharmacy/calc-time-concentration",
-  inputs: { cat: "root", herb: "100", vol: "1000", abv: "50", target: "0.1" },
-  expect: ["0.100", "生药浓度 (g/mL)", "25.0"],
-  ref: "恢复第353批旧页：100 g 药材 / 1000 mL ⇒ 0.100 g/mL 生药浓度、25 mg/mL 浸出物；medicinal-wine 无目标生药浓度输入。"
+  inputs: { cat: "root", herb: "120", vol: "800", abv: "45", target: "0.15" },
+  expect: ["0.150", "37.5", "1:7"],
+  ref: "恢复第353批旧页（非默认配方）：120 g 药材 / 800 mL ⇒ 0.150 g/mL 生药浓度、药酒比 1:7、37.5 mg/mL 浸出物；medicinal-wine 无目标生药浓度输入。"
 }
 ];
 async function main() {
