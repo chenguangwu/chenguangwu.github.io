@@ -389,6 +389,22 @@ const CASES = [
     ref: "中文标题转拼音：内联 2108 字常用字表命中后按字分隔，空格再统一换成 '-' ⇒ '如何选择跑步鞋' → 'ru-he-xuan-ze-pao-bu-xie'。"
        + "修复前旧词表仅 ~300 字，'如何选择' 四字未收录被原样保留 ⇒ 输出半中半拼 '如何选择pao步鞋'，本例必 FAIL ⇒ 可防回退。默认态（该页预置英文示例）不含此串 ⇒ 强判别。",
   },
+  {
+    slug: 'biz/text-to-slug',
+    inputs: { input: "银行 ABC 123" },
+    checkIds: ["lowercase", "trimSep", "collapseSep"],
+    clicks: ["document.getElementById('chineseMode').value='pinyin';convert();"],
+    expect: ["yin-hang-abc-123"],
+    ref: "中英数字混排：多音词组「银行」→ yin hang，ASCII ABC 与数字 123 必须原样保留。旧兜底把每个未命中字符都转成 u+码位 ⇒ yin-hang-u20-u41-u42-u43-u20-u31-u32-u33；勾选小写/修剪/折叠后应得 yin-hang-abc-123。",
+  },
+  {
+    slug: 'biz/text-to-slug',
+    inputs: { input: "汉字𠀀 ABC" },
+    checkIds: ["lowercase", "trimSep", "collapseSep"],
+    clicks: ["document.getElementById('chineseMode').value='pinyin';convert();"],
+    expect: ["han-zi-u20000-abc"],
+    ref: "补充平面汉字按 Unicode 码点兜底：𠀀（U+20000）应输出 u20000 而非拆成代理对；常规汉字走拼音，ASCII 保留 ⇒ han-zi-u20000-abc。验证按码点遍历且只对汉字兜底。",
+  },
 
   {
     slug: "biz/text-reverse",

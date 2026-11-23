@@ -355,15 +355,24 @@ function chineseToPinyin(text){
       }
     }
     if(matched) continue;
-    const one = text[i];
+    const cp = text.codePointAt(i);
+    const one = String.fromCodePoint(cp);
     const py = PINYIN_DICT[one] || PINYIN_EXT_MAP[one];
     if(py){
       out += py + ' ';
-      i += 1;
+      i += one.length;
       continue;
     }
-    out += 'u' + one.codePointAt(0).toString(16) + ' ';
-    i += 1;
+    // 只有未收录的汉字才用码位兜底；ASCII、数字、标点和分隔符原样保留，
+    // 交给后续统一规范化，避免「银行 ABC」被转成 yin-hang-u20-u41…
+    const isHan = (cp >= 0x3400 && cp <= 0x4DBF) || (cp >= 0x4E00 && cp <= 0x9FFF) ||
+                  (cp >= 0xF900 && cp <= 0xFAFF) || (cp >= 0x20000 && cp <= 0x2FA1F);
+    if(isHan){
+      out += 'u' + cp.toString(16) + ' ';
+    }else{
+      out += one;
+    }
+    i += one.length;
   }
   return out;
 }
