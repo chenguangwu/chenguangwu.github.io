@@ -85,7 +85,7 @@
       "name": "已付比例高说明什么？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "已付 70% 说明理赔较成熟，IBNR 仅剩 30%；早期业务已付低 IBNR 占比大、不确定性高。"
+        "text": "已付 70% 说明理赔较成熟，总未付仅剩 30%；纯 IBNR 还要再扣已报未结，通常更小。早期业务已付低、未付占比大，不确定性更高。"
       }
     },
     {
@@ -93,7 +93,7 @@
       "name": "用已付比例估 IBNR 会低估吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "会。已付比例高仅代表钱付得快，未报案案件（reporting lag）仍可能大量存在。更稳的做法用已报案比例或链梯法同时估 IBNR 与已报未付。"
+        "text": "会。已付比例高仅代表钱付得快，未报案案件（reporting lag）仍可能大量存在；总未付≠纯 IBNR，必须扣除已报未结。更稳的做法用已报案比例或链梯法同时估 IBNR 与已报未付。"
       }
     }
   ]
@@ -327,39 +327,39 @@ else document.addEventListener('DOMContentLoaded', __ibnr_estimateBoot);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：IBNR 估算（终极×未付比例）</h2>
+<h2>📚 深度解析：总未付与纯 IBNR（终极×未付比例）</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>由终极赔款乘未付比例估已发生未报案准备金。</li>
+<li>由终极赔款乘未付比例得到总未付，再扣除已报未结得到纯 IBNR。</li>
 <li>做准备金充足性快速校验。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">终极 10 万、已付 70%</div><div class="dd-ex-body">IBNR = 100000×(1−0.7) = 30000。即尚待发生/未报约 3 万。</div></div>
+<div class="dd-example"><div class="dd-ex-title">终极 10 万、已付 70%、已报未结 2 万</div><div class="dd-ex-body">总未付 = 100000×(1−0.7) = 30000；纯 IBNR = 30000−20000 = 10000。3 万是全部未付（含已报未结），只有 1 万是尚未报案的 IBNR。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>已付比例高说明什么？</dt><dd>已付 70% 说明理赔较成熟，IBNR 仅剩 30%；早期业务已付低 IBNR 占比大、不确定性高。</dd>
-<dt>用已付比例估 IBNR 会低估吗？</dt><dd>会。已付比例高仅代表钱付得快，未报案案件（reporting lag）仍可能大量存在。更稳的做法用已报案比例或链梯法同时估 IBNR 与已报未付。</dd>
+<dt>已付比例高说明什么？</dt><dd>已付 70% 说明理赔较成熟，总未付仅剩 30%；纯 IBNR 还要再扣已报未结，通常更小。早期业务已付低、未付占比大，不确定性更高。</dd>
+<dt>用已付比例估 IBNR 会低估吗？</dt><dd>会。已付比例高仅代表钱付得快，未报案案件（reporting lag）仍可能大量存在；总未付≠纯 IBNR，必须扣除已报未结。更稳的做法用已报案比例或链梯法同时估 IBNR 与已报未付。</dd>
 </dl>
 </div>
 </section>
 <script>
 function __ibeSweep(){
-  var ult=num('ult');
+  var ult=num('ult'); var out=num('outstanding'); if(!isFinite(out)||out<0)out=0;
   if(!isFinite(ult)||ult<=0)return null;
-  var labels=[],dI=[],dP=[];
+  var labels=[],dI=[],dT=[];
   var pds=[0.1,0.25,0.4,0.55,0.7,0.85,0.95];
   for(var k=0;k<pds.length;k++){
-    var pdv=pds[k];
+    var pdv=pds[k], total=ult*(1-pdv);
     labels.push((pdv*100).toFixed(0)+'%');
-    dI.push(Math.round(ult*(1-pdv)*100)/100);
-    dP.push(Math.round(ult*pdv*100)/100);
+    dT.push(Math.round(total*100)/100);
+    dI.push(Math.round(Math.max(0,total-out)*100)/100);
   }
-  return {labels:labels,dI:dI,dP:dP};
+  return {labels:labels,dI:dI,dT:dT};
 }
 function __ibeChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var s=__ibeSweep(); if(!s)return;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-  TBKit.chart.line('#ibeChart',{title:en?'IBNR Reserve vs Paid Ratio (linear cross)':'IBNR 准备金随已付比例线性交叉',labels:s.labels,series:[{name:en?'IBNR reserve (¥)':'IBNR 准备金 (元)',data:s.dI},{name:en?'Paid claims (¥)':'已付赔款 (元)',data:s.dP}]});
+  TBKit.chart.line('#ibeChart',{title:en?'Pure IBNR and Total Unpaid vs Paid Ratio':'纯 IBNR 与总未付随已付比例变化',labels:s.labels,series:[{name:en?'Pure IBNR (¥)':'纯 IBNR (元)',data:s.dI},{name:en?'Total unpaid (¥)':'总未付 (元)',data:s.dT}]});
 }
 
 function __ibeShow(which){
