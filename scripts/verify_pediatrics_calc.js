@@ -197,7 +197,8 @@ const CASES = [
 { slug:"pediatrics/pediatric-fracture", inputs:{"age":""}, expect:["请填写年龄"], ref:"核心测量值留空不得给出分级/风险结论（PEDCLR）" },
 { slug:"pediatrics/pediatric-pneumonia", inputs:{"age":"","rr":"","spo2":""}, expect:["请填写月龄、呼吸频率与血氧"], ref:"核心测量值留空不得给出分级/风险结论（PEDCLR）" },
 { slug:"pediatrics/rater-27", inputs:{"ageMonth":"","weight":"","height":"","headCirc":""}, expect:["请填写月龄、体重、身长与头围"], ref:"核心测量值留空不得给出分级/风险结论（PEDCLR）" },
-{ slug:"pediatrics/seizure-classification", inputs:{"age":""}, expect:["请填写年龄"], ref:"核心测量值留空不得给出分级/风险结论（PEDCLR）" }
+{ slug:"pediatrics/seizure-classification", inputs:{"age":""}, expect:["请填写年龄"], ref:"核心测量值留空不得给出分级/风险结论（PEDCLR）" },
+{ slug:"pediatrics/neonatal-jaundice", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pediatrics/neonatal-jaundice.html','utf8');var ok=h.indexOf('24h TSB9 足月正常')<0&&h.indexOf('24h TSB9 term normal')<0&&h.indexOf('24h TSB9 足月 3400g')>=0;document.getElementById('__tbProbe').textContent='JAUNDPRESET '+(ok?'OK':'BAD');"], expect:["JAUNDPRESET OK"], ref:"24h TSB9 预设不得断言「正常」：页面只做单位换算，不判风险分区/治疗阈值；标签改为客观时龄、TSB、胎龄体重。" }
 ];
 async function main() {
   const only = process.argv.slice(2);

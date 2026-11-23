@@ -520,8 +520,10 @@ const CASES = [
   "inputs": {"top":"80","back":"80","right":"50","left":"50"},
   "expect": ["69% SALT S3"],
   "ref": "SALT 算例：0.40×80+0.24×80+0.18×50+0.18×50=69.2，显示 69%，S3 中重度（50–74%）；旧算例称 40%/两侧10% 得60%，实际未计后部为 19.6%。"
-}
+},
 
+{ slug:"dermatology/gags-acne", inputs:{loc0:"3",loc1:"3",loc2:"3",loc3:"2",loc4:"1",loc5:"0"}, expect:["21 GAGS 总分 / 中度"], ref:"中度痤疮预设应为 3,3,3,2,1,0：6+6+6+2+1=21，落 19–30 中度；旧预设 2,2,2,1,1,0 只有 14 分、显示轻度。" },
+{ slug:"dermatology/gags-acne", inputs:{loc0:"4",loc1:"4",loc2:"4",loc3:"3",loc4:"2",loc5:"1"}, expect:["32 GAGS 总分 / 重度"], ref:"重度痤疮预设应为 4,4,4,3,2,1：8+8+8+3+2+3=32，落 31–38 重度；旧预设 3,3,3,2,2,1 只有 25 分、显示中度。" }
 ];
 async function main() {
   const only = process.argv.slice(2);

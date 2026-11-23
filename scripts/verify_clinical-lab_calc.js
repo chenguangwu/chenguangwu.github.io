@@ -1569,7 +1569,9 @@ const CASES = [
   "clicks": ["(function(){function S(id,v){document.getElementById(id).value=v;}S('alt','200');S('alp','100');calc();var h1=String(document.getElementById('result').innerHTML);S('alt','40');S('alp','600');calc();var h2=String(document.getElementById('result').innerHTML);var ok=(h1.indexOf('6.00')>=0&&h2.indexOf('0.20')>=0);document.getElementById('__tbProbe').textContent='BIOR '+(ok?'OK':'BAD h1='+(h1.indexOf('6.00')>=0)+' h2='+(h2.indexOf('0.20')>=0));})()"],
   "expect": ["BIOR OK"],
   "ref": "第304批：统一 R 因子为权威定义 R=(ALT/ULN)/(ALP/ULN)=(ALT/40)/(ALP/120)（ALT 在分子）。formula-eq 旧写反为 (ALP/ULN)/(ALT/ULN)、info-box 旧写「ALB/ALP」。注入 ALT=200/ALP=100 ⇒ R=6.00；ALT=40/ALP=600 ⇒ R=0.20，两向复算锁定分子分母方向，默认态 R=1.20 不命中；若方向写反两值互换 ⇒ BAD。"
-}
+},
+{ slug:"clinical-lab/semen-analysis", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/clinical-lab/semen-analysis.html','utf8');var ok=h.indexOf('PR 32%（等于 32% 参考下限，判为参考内）')>=0&&h.indexOf('PR 32%（低于 32% 参考）')<0;document.getElementById('__tbProbe').textContent='SEMEN32 '+(ok?'OK':'BAD');"], expect:["SEMEN32 OK"], ref:"PR 32% 等于 WHO 第5版参考下限 32%，表与判读均以 <32% 才异常；示例不得写「低于 32%」或同时标活力偏低。" },
+{ slug:"clinical-lab/urinalysis-interpretation", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/clinical-lab/urinalysis-interpretation.html','utf8');var ok=h.indexOf('不含镜检 RBC/WBC')>=0&&h.indexOf('干化学与镜检条目')<0;document.getElementById('__tbProbe').textContent='UA11 '+(ok?'OK':'BAD');"], expect:["UA11 OK"], ref:"本工具仅 11 项干化学输入，不含镜检 RBC/WBC；说明不得再承诺「干化学与镜检条目」结构化解释。" }
 ];
 async function main() {
   const only = process.argv.slice(2);

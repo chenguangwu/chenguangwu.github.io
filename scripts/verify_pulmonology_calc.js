@@ -630,6 +630,7 @@ const CASES = [
   "expect": ["未满足柏林前提","未排除（不满足柏林前提）"],
   "ref": "PEEP 已建立但未勾选非心源性：旧实现仍直接定级中度 ARDS；现拦截并提示前提未满足。"
 },
+{ slug:"pulmonology/lung-rads", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pulmonology/lung-rads.html','utf8');var i=h.indexOf('部分实性 12mm 增大');var seg=h.slice(i,i+260);var ok=seg.indexOf('solidSize')>=0&&seg.indexOf('7')>=0;document.getElementById('__tbProbe').textContent='LRPRESET '+(ok?'OK':'BAD');"], expect:["LRPRESET OK"], ref:"部分实性 12mm 增大预设必须自带 solidSize=7；旧预设只设 type/size/grow，会继承前次实性成分或报缺值，同一预设无法独立复现。" }
 ];
 
 async function main() {
