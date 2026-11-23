@@ -19,7 +19,7 @@
 | 1 功能 Bug | 4,925 页加载期 0 缺陷；第 554 批 4,822 页全量点击烟测仅 1 处真实缺陷（猜数字 `loadBest`）已修；第 559 批 4,615 页默认值计算扫描仅正则可视化状态图 `undefined` 1 处真实缺陷，已修并复验 0；第 560 批电费页补齐阶梯/峰谷计算；TWSTRS 满分口径、宠物喂食与连续性指南错配已修 |
 | 2 UI 布局 | 全站 UX 8.64/9；行业首页 320px 已修；工具页 4,822 个 320px 全量复扫 0 真实溢出；非工具页 3,456 个复扫 0 真实溢出 |
 | 3 中英文 | 指南 3,250 有效页、工具 4,822 页英文正文/标题/描述复扫 0 中文残留；简体态 4,822 页全量扫描，真实缺中文 4 处已补，复验 0 |
-| 4 SEO 文案 | 工具/指南描述 <70 = 0；重复 title/desc = 0；TWSTRS 85 分制统一；4,615 工具页 / 207 分类页 / 3,250 指南页 canonical、og:image、JSON-LD 全覆盖 0 缺失 |
+| 4 SEO 文案 | 工具/指南描述 <70 = 0；重复 title/desc = 0；TWSTRS 85 分制统一；4,616 工具页 / 207 分类页 / 3,250 指南页 canonical、og:image、JSON-LD 全覆盖 0 缺失；4,616 工具页 FAQPage 4,616 个、重复 0 |
 | 5 新增同类工具 | 9 个纯前端工具已交付（trash-bag-size、winter-feed-syrup、box-fit、water-filter-lifespan、ac-energy-cost、appliance-lifespan、repair-or-replace、water-heater-sizing、ev-charging-cost） |
 | 6 无用脚本 | 累计清理 `_en-i18n` 1,017 个、`scripts` 1,235 个 |
 | 7 批量误插 | 占位 `formula-desc` 0；65 页通用历史模块命名统一；连续性指南无关相关工具已修 |
