@@ -25,7 +25,7 @@ const CASES = [
   "expect": [
     "CAD 模型长度（按 1:1 建模，cm）"
   ],
-  "ref": "独立复算：100 mm、1:100 纸面长度 ⇒ 实际 1 mm；CAD 单位 cm 时模型长度 1/10=0.10 cm。判别器把 cadUnit 回退为默认 m ⇒ 标签为「m」不命中 ⇒ 强判别；同时验证此前完全未被 calc 读取的 cadUnit 下拉已生效。"
+  "ref": "F-CAD：实际→图纸方向 100 mm、1:100 ⇒ 图纸 1 mm，但 1:1 CAD 模型应取实际长度 100 mm = 10.00 cm；旧实现误把图纸长度 1 mm 当模型长度。判别器回退 cadUnit=m 时不命中。"
 },
 {
   "slug": "construction/calc-1",
@@ -528,7 +528,20 @@ const CASES = [
     "请填写大于 0 的窗高与窗宽"
   ],
   "ref": "窗宽=0 时清空遮阳系数与辐射得热（WINSCLR）；旧实现仍显示 0.902 / 80359 W"
-}
+},
+  {
+    "slug": "construction/blueprint-tool",
+    "inputs": { "customScale": "100", "distance": "1000", "direction": "d2r", "unit": "mm", "cadUnit": "mm" },
+    "expect": ["CAD 模型长度（按 1:1 建模，mm）"],
+    "ref": "F-CAD 双向：图纸→实际 1000 mm、1:100 ⇒ 实际 100000 mm；CAD 1:1 模型长度应为 100000 mm，而非图纸 1000 mm。"
+  },
+  {
+    "slug": "construction/area-calculator",
+    "inputs": { "len1": "5", "wid1": "4", "shared": "100" },
+    "expect": ["公摊率须在 0%（含）到 100%（不含）之间。"],
+    "ref": "F-AREA 文案统一：越界提示由“公摊系数”改“公摊率”，与输入标签和 r/(100−r) 计算口径一致；100% 被拒绝。"
+  },
+
 ];
 async function main() {
   const only = process.argv.slice(2);

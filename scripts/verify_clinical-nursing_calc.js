@@ -702,7 +702,20 @@ const CASES = [
     "clicks": ["resetAll();var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/Braden/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('res').innerHTML=__ok?'__BRADEN_RST_OK__':'__BRADEN_RST_FAIL__ '+__b;"],
     "expect": ["__BRADEN_RST_OK__"],
     "ref": "重置态：新增「重置评分」按钮调 resetAll() ⇒ 6 维回页面默认档（21/23）、dirty 复位，决策文案消失。"
-  }
+  },
+{
+  "slug": "clinical-nursing/assessor-pressure-risk",
+  "inputs": { "position": "1", "duration": "1", "bmi": "27.9", "age": "50" },
+  "expect": ["风险评分 1 分"],
+  "ref": "F-BMI28 下界：BMI 27.9 不计肥胖分；仰卧位 1 分 ⇒ 总分 1。"
+},
+{
+  "slug": "clinical-nursing/assessor-pressure-risk",
+  "inputs": { "position": "1", "duration": "1", "bmi": "28", "age": "50" },
+  "expect": ["风险评分 3 分"],
+  "ref": "F-BMI28 切点：中国成人肥胖 BMI≥28，恰好 28 应加 2 分；仰卧位 1+2=3。旧实现 >28 漏计。"
+},
+
 ];
 async function main() {
   const only = process.argv.slice(2);
