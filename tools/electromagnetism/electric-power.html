@@ -137,11 +137,11 @@
 
   <div class="card">
     <h2 data-zh="电功率（P = V·I = V²/R = I²R）">Electric Power</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="由电压与电流求电功率。">Calculate DC electric power from voltage and current (or resistance) using P = V·I = V²/R = I²·R, with any form solvable.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="由电压与电流求电功率。">Calculate DC electric power from voltage and current using P = V × I, with kW and equivalent resistance when determinable; resistance is N/A when current or power is 0.</p>
 
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">电功率（本页实算口径）：P = V × I（W）；联动卡：P (kW) = P ÷ 1000、等效电阻 R = V ÷ (I||1) 与 V² ÷ (P||1)（Ω）。校验：空值即提示；电压与电流不得为负（0 合法，派生电阻分母按 1 兜底）。判据：无固定分级，V²/R 与 I²R 为同一功率的等价改写。</div>
+      <div class="formula-eq">电功率（本页实算口径）：P = V × I（W）；联动卡：P (kW) = P ÷ 1000、等效电阻 R = V ÷ I 与 V² ÷ P（Ω）。校验：空值即提示；电压与电流不得为负（0 合法）；I = 0 或 P = 0 时对应等效电阻显示“不适用”，不虚构有限电阻。判据：无固定分级，V²/R 与 I²R 为同一功率的等价改写。</div>
       <p class="formula-desc">由电压与电流求电功率。</p>
     </div>
 
@@ -238,11 +238,13 @@ function calcTool(){
             const V = Number(__rangeRaw('V')), I = Number(__rangeRaw('I'));
             if(!Number.isFinite(V)||!Number.isFinite(I)||V<0||I<0){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__rangeEn?'Voltage and current cannot be negative.':'电压与电流不得为负。')+'</p>');return;}
             const P = V * I;
+            const rText = I > 0 ? (V / I).toFixed(3) : (__rangeEn ? 'N/A (current is 0)' : '不适用（电流为 0）');
+            const r2Text = P > 0 ? (V * V / P).toFixed(4) : (__rangeEn ? 'N/A (power is 0)' : '不适用（功率为 0）');
             const __g1=dataGrid([
                 [P.toFixed(3), '功率 P (W)'],
                 [(P / 1000).toFixed(4), '功率 (kW)'],
-                [(V/(I||1)).toFixed(3), '等效电阻 R (ohm)'],
-                [(V*V/(P||1)).toFixed(4), '等效电阻 V^2/P (ohm)']
+                [rText, '等效电阻 R (ohm)'],
+                [r2Text, '等效电阻 V^2/P (ohm)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('V').value = '12';
@@ -263,8 +265,8 @@ function __electric_powerExtras(){
         rows: [
             ['功率 P (W)', P.toFixed(3)],
             ['功率 (kW)', (P / 1000).toFixed(4)],
-            ['等效电阻 R (ohm)', (V/(I||1)).toFixed(3)],
-            ['等效电阻 V^2/P (ohm)', (V*V/(P||1)).toFixed(4)],
+            ['等效电阻 R (ohm)', I > 0 ? (V / I).toFixed(3) : (en ? 'N/A (current is 0)' : '不适用（电流为 0）')],
+            ['等效电阻 V^2/P (ohm)', P > 0 ? (V * V / P).toFixed(4) : (en ? 'N/A (power is 0)' : '不适用（功率为 0）')],
         ]
     });
     TBKit.history.record({V:__electric_powerRaw('V'), I:__electric_powerRaw('I'), P:P});

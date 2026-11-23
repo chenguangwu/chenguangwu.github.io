@@ -288,13 +288,19 @@ function calc() {
     const tb = document.getElementById('production_efficiencyTable'); if (tb) tb.innerHTML = '';
     ToolBox.showToast(msg, 'error');
   };
-  const PT = +document.getElementById('plannedTime').value || 0;
-  const DT = +document.getElementById('downtime').value || 0;
-  const CT = +document.getElementById('cycleTime').value || 0;
-  const O = +document.getElementById('output').value || 0;
-  const G = +document.getElementById('goodOutput').value || 0;
-  if (PT<=0||CT<=0) { fail('请填写计划时间与节拍时间后再计算 OEE。'); return; }
-  if (DT<0||DT>=PT) { fail('停机时间须小于计划时间（且不能为负）。'); return; }
+  const readNum = (id) => {
+    const raw = String(document.getElementById(id).value == null ? '' : document.getElementById(id).value).trim();
+    return raw === '' ? NaN : parseFloat(raw);
+  };
+  const PT = readNum('plannedTime');
+  const DT = readNum('downtime');
+  const CT = readNum('cycleTime');
+  const O = readNum('output');
+  const G = readNum('goodOutput');
+  if (!isFinite(PT) || PT<=0 || !isFinite(CT) || CT<=0) { fail('请填写计划时间与节拍时间后再计算 OEE。'); return; }
+  if (!isFinite(DT) || !isFinite(O) || !isFinite(G)) { fail('停机时间、总产出与合格产出不能留空；没有停机或产出为 0 时请明确填写 0。'); return; }
+  if (DT<0 || DT>=PT) { fail('停机时间须小于计划时间（且不能为负）。'); return; }
+  if (O<0 || G<0) { fail('总产出与合格产出不能为负数。'); return; }
   if (G>O) { fail('合格产出不能大于总产出。'); return; }
 
   const runTime = PT - DT; // 实际运行时间(分钟)
