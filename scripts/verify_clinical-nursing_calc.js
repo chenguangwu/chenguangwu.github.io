@@ -580,6 +580,32 @@ const CASES = [
   "ref": "D-N39 空值拒绝：旧实现 `parseInt('')||1` 静默按 1 小时排程并写入记录；修复后空/越界值拒绝，排程区显示 1–24 小时提示，EMR 标「未填写」。默认 4 小时两串均不出现。"
 },
 {
+  "slug": "clinical-nursing/restraint-duration",
+  "inputs": {
+    "startTime": "08:00",
+    "totalHours": "2.1"
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "会越过约束结束时刻 10:06",
+    "按实际结束时刻终止，不再重新约束"
+  ],
+  "ref": "结束边界：2.1h 从 08:00 起，10:00 开始松解 15 分钟会到 10:15，晚于结束 10:06；修复后按实际结束终止、不生成 10:15 重新约束。默认 4h 无该文案 ⇒ 强判别。"
+},
+{
+  "slug": "clinical-nursing/restraint-duration",
+  "inputs": {
+    "startTime": "",
+    "totalHours": "4"
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "请填写有效的约束开始时间",
+    "不生成松解计划"
+  ],
+  "ref": "空开始时间：旧实现 split(':') 后 setHours(NaN) 仍排程；修复后拒绝并清空排程/图表。默认 08:00 不含该提示 ⇒ 强判别。"
+},
+{
   "slug": "clinical-nursing/suction-pressure",
   "inputs": {
     "currentPressure": "260"

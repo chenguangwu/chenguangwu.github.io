@@ -94,15 +94,15 @@
       "name": "图怎么看？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "从左到右的轨道即匹配路径。"
+        "text": "先看语法树的层级（分组、量词、分支嵌套），再看线性词元顺序核对 token 排列；后者不是匹配路径。"
       }
     },
     {
       "@type": "Question",
-      "name": "为什么图里出现了我没写的分支？",
+      "name": "能看出匹配路径或量词回路吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "多半是量词与可选符（?、*、{n,m}）造成的：它们在图上表现为「可跳过的回路」或「重复回路」，看起来像额外分支，其实是等价的表达。另外非捕获分组 (?:...) 与前瞻 (?=...) 在图上也有专门表示，容易与普通分组混淆。"
+        "text": "不能。本页不构造 NFA/DFA 状态图，量词只在语法树节点体现，线性词元顺序不含分支和回路；判断实际匹配请用实时匹配高亮或 new RegExp 测试。"
       }
     }
   ]
@@ -137,13 +137,13 @@
 </div>
 <div class="card">
     <h2 data-zh="🔍 正则可视化">🔍 Regex Expression Visualization</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入正则后，基于 token 展示简化状态转移文本图。">Test regular expressions with live match highlighting and an explained breakdown, all running locally in your browser.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入正则后，基于 token 展示线性词元顺序示意；匹配分支与量词请看语法树，本页不构造 NFA 匹配状态图。">Test regular expressions with live match highlighting and an explained breakdown, all running locally in your browser.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">可视化流程：先以 new RegExp 校验合法性，再分词为正则 token，构造含 start + accept 的状态集与转移边，逐状态列举标签与转移关系</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">可视化流程：先以 new RegExp 校验合法性，再分词为正则 token，输出语法树，并给出从左到右的线性词元顺序（仅示意 token 排列，不代表可执行的匹配路径）</div>
   <div class="formula-desc">把正则表达式解析为可视化流程图。</div>
   <ul class="formula-list">
-    <li><b>原理</b>：把正则分词为 token，构造含 start / accept 的状态集与转移边，输出 AST 层级树和线性状态链（当前版本只提供树与状态链，不提供逐分支的路径布局）。</li>
-    <li><b>价值</b>：以层级树呈现分组、量词与分支的嵌套结构，以状态链呈现转移顺序，便于理解复杂正则的组成。</li>
+    <li><b>原理</b>：把正则分词为 token，解析为 AST 层级树，并附一条线性词元顺序（仅示意 token 排列，不是可执行的状态转移图）。</li>
+    <li><b>价值</b>：以层级树呈现分组、量词与分支的嵌套结构；线性词元顺序用于快速核对 token 排列，匹配语义以 AST 与实际 new RegExp 测试为准。</li>
     <li><b>要素</b>：高亮分组范围、量词作用域与断言位置。</li>
     <li><b>用途</b>：调试与学习复杂表达式，降低理解和沟通成本。</li>
   </ul>
@@ -328,25 +328,9 @@ function renderAstTree(nodes){
   return '<ul class="ast-tree">'+nodes.map(li).join('')+'</ul>';
 }
 
+// 线性词元顺序：仅表示 token 从左到右的排列，不表示匹配状态或转移。
 function buildStates(tokens) {
-  const states = [{id:0,label:'start'}];
-  let id = 1;
-  for (const t of tokens) {
-    states.push({id, label: escapeHtml(t)});
-    id += 1;
-  }
-  states.push({id, label:'accept'});
-
-  const edges = [];
-  for (let i = 0; i < states.length - 1; i++) {
-    const from = states[i].id;
-    const to = states[i + 1].id;
-    // 末条边由最后一个 token 状态指向 accept，没有对应 token，用 ε 表示空转移；
-    // 此前直接取 tokens[i] 会得到 undefined，页面显示 "--undefined-->"。
-    const lab = (i < tokens.length ? escapeHtml(tokens[i]) : '') || 'ε';
-    edges.push(`${from} --${lab}--> ${to}`);
-  }
-  return {states, edges};
+  return {tokens: tokens.map(function(t){ return escapeHtml(t); })};
 }
 
 function render() {
@@ -365,16 +349,13 @@ function render() {
   }
 
   const tokens = tokenize(p);
-  const {states, edges} = buildStates(tokens);
-  // IT-D28: 先输出真实语法树层级，再保留既有线性状态链（兼容原有导出与用例）。
+  const {tokens: tokenLabels} = buildStates(tokens);
+  // IT-D28：语法树表达真实嵌套；线性词元顺序只做排列示意，不画伪状态转移。
   const ast = parseRegexAst(p);
   let html = '<div class="state">' + (__en ? 'Syntax tree (AST):' : '语法树（AST）：') + '</div>' + renderAstTree(ast);
-  html += '<div class="state">';
-  html += __en ? `Total states: ${states.length} (including start + accept)` : `总状态：${states.length}（含 start + accept）`;
-  html += '</div>';
-  html += states.map(s => `<div class="state">S${s.id}: ${s.label}</div>`).join('');
-  html += '<p style="margin-top:10px">转移：</p>';
-  html += `<div class="state">${edges.join('<br>')}</div>`;
+  html += '<div class="state" style="margin-top:12px;">' + (__en ? 'Linear token order (not a match-state graph):' : '线性词元顺序（非匹配状态图）：') + '</div>';
+  html += tokenLabels.length ? tokenLabels.map(function(t,i){ return '<span class="state" style="display:inline-block;margin:2px 4px 2px 0;">' + (i+1) + '. ' + t + '</span>'; }).join('') : '<span style="color:var(--text-muted)">' + (__en?'No tokens.':'无 token。') + '</span>';
+  html += '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">' + (__en ? 'This sequence does not encode branching or repetition. Use the AST and live match highlighting to judge matching behavior.' : '该顺序不表达分支与重复；判断匹配行为请以语法树与实时匹配高亮为准。') + '</div>';
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h1;
 }
 
@@ -539,14 +520,14 @@ else document.addEventListener('DOMContentLoaded', __regex_visualizerBoot);
 <h2>📚 深度解析：正则表达式可视化</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>把正则渲染成层级树与线性状态链理解结构。</li>
-<li>读懂别人留下的复杂正则：按层级树与状态链展开，看清分支、量词与分组的嵌套关系，再决定怎么改。</li>
+<li>用语法树核对分组、量词与分支的嵌套结构。</li>
+<li>读懂复杂正则：先看语法树分支/量词节点，再用线性词元顺序核对 token 排列；不把词元顺序当成匹配路径。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">可视化</div><div class="dd-ex-body">`a(b|c)*` → 起始 a，循环分支 b/c 的状态图。</div></div>
+<div class="dd-example"><div class="dd-ex-title">可视化</div><div class="dd-ex-body">`a(b|c)*`：语法树显示“分组 (b|c) 被 * 重复”的嵌套；线性词元顺序依次列出 a、(、b、|、c、)、*，仅示意 token 排列，不画循环回路。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>图怎么看？</dt><dd>从左到右的轨道即匹配路径。</dd>
-<dt>为什么图里出现了我没写的分支？</dt><dd>多半是量词与可选符（?、*、{n,m}）造成的：它们在图上表现为「可跳过的回路」或「重复回路」，看起来像额外分支，其实是等价的表达。另外非捕获分组 (?:...) 与前瞻 (?=...) 在图上也有专门表示，容易与普通分组混淆。</dd>
+<dt>图怎么看？</dt><dd>先看语法树的层级（分组、量词、分支嵌套），再看线性词元顺序核对 token 排列；后者不是匹配路径。</dd>
+<dt>能看出匹配路径或量词回路吗？</dt><dd>不能。本页不构造 NFA/DFA 状态图，量词只在语法树节点体现，线性词元顺序不含分支和回路；判断实际匹配请用实时匹配高亮或 new RegExp 测试。</dd>
 </dl>
 </div>
 </section>

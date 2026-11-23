@@ -113,6 +113,14 @@
         "@type": "Answer",
         "text": "上报处理。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "松解会跨过约束结束时刻怎么办？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "若本次松解时长会越过计划结束时刻，页面按实际结束时刻终止，不再生成结束后的重新约束；结束前应完成皮肤与末梢血运评估并记录。"
+      }
     }
   ]
 }
@@ -231,6 +239,7 @@
 <dt>能替代医嘱？</dt><dd>不能。</dd>
 <dt>最长？</dt><dd>每日复评续开。</dd>
 <dt>松解发现异常？</dt><dd>上报处理。</dd>
+<dt>松解会跨过约束结束时刻怎么办？</dt><dd>若本次松解时长会越过计划结束时刻，页面按实际结束时刻终止，不再生成结束后的重新约束；结束前应完成皮肤与末梢血运评估并记录。</dd>
 </dl>
 </div>
 </section>
@@ -306,9 +315,18 @@ function calc(){
     return;
   }
   
+  var parts = String(startStr || '').trim().split(':');
+  if(parts.length !== 2 || !/^\d{1,2}$/.test(parts[0]) || !/^\d{1,2}$/.test(parts[1]) ||
+     +parts[0] < 0 || +parts[0] > 23 || +parts[1] < 0 || +parts[1] > 59){
+    var __enStart = __emrEn();
+    document.getElementById('schedule').innerHTML = '<div class="schedule-item" style="border-color:var(--danger);"><span class="time">!</span><span class="action">' + (__enStart
+      ? 'Enter a valid restraint start time (HH:MM, e.g. 08:00). No release schedule is generated when the time is empty or invalid.'
+      : '请填写有效的约束开始时间（格式 HH:MM，例如 08:00），未填写或时间无效时不生成松解计划。') + '</span></div>';
+    ['restraint_durationTable','restraint_durationChart','restraint_durationDiff','restraint_durationHist'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
+    return;
+  }
   var start = new Date();
-  var parts = startStr.split(':');
-  start.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+  start.setHours(+parts[0], +parts[1], 0, 0);
   
   var endTime = new Date(start.getTime() + totalHours * 3600000);
   
@@ -319,6 +337,14 @@ function calc(){
     var loosenTime = new Date(start.getTime() + n * cfg.interval * 3600000);
     if(loosenTime >= endTime) break;
     var resumeTime = new Date(loosenTime.getTime() + cfg.duration * 60000);
+    if(resumeTime >= endTime){
+      var __enEnd = __emrEn();
+      scheduleHtml += '<div class="schedule-item"><span class="time">' + formatTime(loosenTime) + '</span><span class="action">' + (__enEnd
+        ? 'Start release and assess skin/perfusion; the ' + cfg.duration + '-minute release would pass the restraint end time ' + formatTime(endTime) + ', so it ends at the actual end time and is not re-applied.'
+        : '开始松解并评估皮肤及血运；本次松解 ' + cfg.duration + ' 分钟会越过约束结束时刻 ' + formatTime(endTime) + '，按实际结束时刻终止，不再重新约束。') + '</span></div>';
+      count++;
+      break;
+    }
     scheduleHtml += '<div class="schedule-item"><span class="time">' + formatTime(loosenTime) + '</span><span class="action">松解约束 ' + cfg.duration + '分钟，评估皮肤及血运（约 ' + formatTime(resumeTime) + ' 重新约束）</span></div>';
     count++;
   }

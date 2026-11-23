@@ -2722,16 +2722,16 @@ const CASES = [
     slug: "it/regex-visualizer",
     inputs: { pattern: "^a(z+)" },
     clicks: ["render()"],
-    expect: ["3 --z--> 4"],
-    ref: "默认 pattern 为 `^a[0-9]+b$`（含 a 转移、无 z 转移）⇒ 锚取注入态独有的 z 转移边；`1 --a--> 2` 在默认态同命中，不可用。",
+    expect: ["4. z"],
+    ref: "线性词元顺序：`^a(z+)` 的第 4 个 token 为 z；页面已不输出伪状态边，旧 `3 --z--> 4` 锚作废。默认 `^a[0-9]+b$` 不含独立 z token ⇒ 强判别。",
   },
   {
     // IT-N348 回归：正则内容进 innerHTML 前必须 HTML 转义，不能原样拼出可执行标签。
     slug: "it/regex-visualizer",
     inputs: { pattern: "a<b" },
     clicks: ["render()"],
-    expect: ["S2: &lt; S3: b"],
-    ref: "IT-N348：注入含 `<` 的 pattern `a<b`，状态标签里的 `<` 必须经 escapeHtml 变成 `&lt;`（裸 `<` 会被当作标签起始、在结果区不可见且存在注入风险）；默认 pattern `^a[0-9]+b$` 无 `<` 字符 ⇒ 该串仅注入态可见，强判别。",
+    expect: ["&lt;", "2. &lt;"],
+    ref: "IT-N348：注入含 `<` 的 pattern `a<b`，词元标签里的 `<` 必须经 escapeHtml 变成 `&lt;`（裸 `<` 会被当作标签起始、在结果区不可见且存在注入风险）；默认 pattern `^a[0-9]+b$` 无 `<` 字符 ⇒ 该串仅注入态可见。",
   },
   {
     slug: "it/regex-visualizer",
@@ -2740,6 +2740,13 @@ const CASES = [
     clicks: ["render()"],
     expect: ["ast-alt", "2 路择一", "ast-group"],
     ref: "注入 `a(b|c)*`：递归下降解析应产出分支节点（2 路择一）、捕获分组节点与 * 量词节点，AST 树用 ast-alt/ast-group class 渲染；默认 pattern `^a[0-9]+b$` 无分组与分支 ⇒ 这些串仅注入态可见。",
+  },
+  {
+    slug: "it/regex-visualizer",
+    inputs: { pattern: "a*[b-d]" },
+    clicks: ["render()"],
+    expect: ["ast-quant", "ast-class", "字符类"],
+    ref: "注入 `a*[b-d]`：语法树必须出现量词节点 ast-quant 与字符类节点 ast-class；线性词元顺序只列 a、*、[b-d]，不再伪造回路。默认 `^a[0-9]+b$` 无 a* 与 [b-d] ⇒ 三串仅注入态可见。",
   },
   {
     slug: "it/regex-visualizer",
@@ -5243,8 +5250,8 @@ const CASES = [
     slug: "it/regex-visualizer",
     inputs: { pattern: "a+" },
     clicks: ["render()"],
-    expect: ["总状态：4"],
-    ref: "状态机展开：`a+` ⇒ 总状态 4（含 start + accept），转移 S0--a-->S1、S1--+-->S2、S2--ε-->S3。默认样例模式不同。",
+    expect: ["2. +"],
+    ref: "线性词元顺序：`a+` 的第 2 个 token 为 +；页面不再输出伪状态计数与转移边。默认样例 `^a[0-9]+b$` 第 2 个 token 不同 ⇒ 强判别。",
   },
   {
     slug: "it/toml-formatter",
@@ -11679,9 +11686,9 @@ const CASES = [
       "pattern": "abc123测试"
     },
     "expect": [
-      "tart S1: a S2: b S3: c S4: 1 S5: 2 S6: 3 S7: 测 S8: 试 S9"
+      "8. 试"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"pattern\":\"abc123测试\"}，输出区含「tart S1: a S2: b S3: c S4: 1 S5: 2 S6: 3…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pattern\":\"abc123测试\"}，线性词元顺序第 8 项为「8. 试」；页面不再输出 S0/S1 伪状态链。默认 `^a[0-9]+b$` 不含该顺序 ⇒ 强判别。"
   },
   {
     "slug": "it/rest-api-cheatsheet",

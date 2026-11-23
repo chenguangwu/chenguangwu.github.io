@@ -209,6 +209,17 @@ const CASES = [
   },
   {
     slug: "finance/salary-calculator",
+    inputs: {
+      salary: "20000", baseSalary: "20000", housingBase: "20000", threshold: "5000", monthsPerYear: "12",
+      childrenEdu: "0", continuingEdu: "0", housingLoan: "0", housingRent: "0", elderly: "0", infant: "0",
+      currentMonth: "6", ytdIncome: "100000", ytdTaxWithheld: "2730", ytdInsurance: "22500"
+    },
+    clicks: ["calculate();var d=document.getElementById.bind(document);d('__tbProbe').textContent='CUMOK '+((d('cumTaxable').textContent==='¥6.30万'&&d('cumTax').textContent==='¥3,780.00'&&d('cumCurrentDue').textContent==='¥1,050.00'&&d('cumNet').textContent==='¥14,450.00')?'OK':'BAD');"],
+    expect: ["CUMOK OK"],
+    ref: "累计预扣复算：第 6 月、本月初累计收入 100000、已预扣 2730、累计五险一金 22500；本月 20000、社保 4500、起征 5000、专项 0。累计所得 = 120000−27000−30000=63000 ⇒ 63000×10%−2520=3780；本月应预扣 = 3780−2730=1050；本月税后 = 20000−4500−1050=14450。默认第 1 月/0 累计为另一态 ⇒ 强判别。",
+  },
+  {
+    slug: "finance/salary-calculator",
     inputs: { monthsPerYear: "0" },
     clicks: ["currentMode='monthly';var d=document.getElementById.bind(document);d('monthsPerYear').value='0';calculate();var b=String(d('salaryBaseNote').innerHTML),a=d('afterTaxAmount').textContent;d('__tbProbe').textContent='SALM0 '+(b.indexOf('每年计薪月数须为正数')>=0&&a==='--'?'OK':'BAD');"],
     expect: ["SALM0 OK"],

@@ -154,6 +154,14 @@
         "@type": "Answer",
         "text": "不能。页面为估算，实际以扣缴义务人申报与税务系统数据为准。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "累计预扣和普通月薪计算有什么区别？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "普通月薪计算按单月应纳税所得额套月度折算税率，适合快速估算；累计预扣按年初至本月的累计所得套年度税率表，再减去本月初已预扣税额，得到本月应预扣，结果与扣缴义务人按月申报口径一致。"
+      }
     }
   ]
 }
@@ -298,6 +306,44 @@
           <input type="number" id="monthsPerYear" value="12" oninput="calculate()" placeholder="如 12">
         </div>
       </div>
+    </div>
+
+    <div class="section-title collapsible" onclick="toggleSection('cumulative')">
+      <span>🧾 累计预扣（可选，按当前月薪回推）</span>
+    </div>
+    <div id="cumulativeSection" class="collapse-content">
+      <div class="input-row">
+        <div>
+          <label for="currentMonth" data-zh="当前月份（1–12）">Current month (1–12)</label>
+          <input type="number" id="currentMonth" value="1" min="1" max="12" step="1" oninput="calculate();__salaryCumulative()" placeholder="如 6" data-zh-ph="如 6">
+        </div>
+        <div>
+          <label for="ytdIncome" data-zh="本月初累计收入（元，不含本月）">YTD income before this month (CNY)</label>
+          <input type="number" id="ytdIncome" value="0" min="0" oninput="calculate();__salaryCumulative()" placeholder="如 100000">
+        </div>
+      </div>
+      <div class="input-row">
+        <div>
+          <label for="ytdTaxWithheld" data-zh="本月初已预扣个税（元）">Tax withheld before this month (CNY)</label>
+          <input type="number" id="ytdTaxWithheld" value="0" min="0" oninput="calculate();__salaryCumulative()" placeholder="如 3000">
+        </div>
+        <div>
+          <label for="ytdInsurance" data-zh="本月初累计五险一金（元，不含本月）">YTD social insurance before this month (CNY)</label>
+          <input type="number" id="ytdInsurance" value="0" min="0" oninput="calculate();__salaryCumulative()" placeholder="如 20000">
+        </div>
+      </div>
+      <div class="info-box" style="margin-top:10px;">
+        <strong>说明：</strong>按累计预扣法，累计应纳税所得额 = 本月初累计收入 + 本月收入 − 累计五险一金 − 累计减除费用（起征点 × 月份）− 累计专项附加扣除；本月应预扣 = 累计应纳税额 − 本月初已预扣。累计社保与专项附加扣除默认按本月金额 × 月份回推，若前期金额不同请直接填写累计值。
+      </div>
+      <div class="stat-grid" style="margin-top:12px;" id="cumulativeResult">
+        <div class="stat-card"><div class="val" id="cumTaxable">¥0</div><div class="lbl">累计应纳税所得额</div></div>
+        <div class="stat-card"><div class="val" id="cumTax">¥0</div><div class="lbl">累计应纳税额</div></div>
+        <div class="stat-card"><div class="val" id="cumWithheld">¥0</div><div class="lbl">本月初已预扣</div></div>
+        <div class="stat-card"><div class="val" id="cumCurrentDue">¥0</div><div class="lbl">本月应预扣</div></div>
+        <div class="stat-card"><div class="val" id="cumNet">¥0</div><div class="lbl">本月税后（按累计预扣）</div></div>
+        <div class="stat-card"><div class="val" id="cumMonths">0</div><div class="lbl">累计月份</div></div>
+      </div>
+      <div id="cumulativeNote" style="font-size:12.5px;color:var(--text-muted);padding:6px 0;"></div>
     </div>
   </div>
 
@@ -470,6 +516,7 @@
 <li>按累进税率测算个税、社保与实发工资</li>
 <li>比较不同缴费基数对到手工资的影响</li>
 <li>年终奖单独计税与并入综合所得的对比</li>
+<li>按累计预扣法核算本月应预扣个税（输入当前月份、本月初累计收入与已预扣税额）</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">示例：月薪 2 万按标准五险一金</div><div class="dd-ex-body">按各地比例与基数上下限测算社保<a class="term-link" href="/tools/finance/provident-fund.html">公积金</a>与个税后给出实发工资；对照工资条可核对缴费基数口径。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
@@ -477,6 +524,7 @@
 <dt>社保缴费基数怎么定？</dt><dd>一般以本人上年度月平均工资为基数，并受当地社平工资 60%–300% 上下限约束。</dd>
 <dt>专项附加扣除如何影响税额？</dt><dd>专项附加扣除先从应纳税所得额中减除，再按累进税率计税，可直接降低应纳税额。</dd>
 <dt>结果能作为纳税依据吗？</dt><dd>不能。页面为估算，实际以扣缴义务人申报与税务系统数据为准。</dd>
+<dt>累计预扣和普通月薪计算有什么区别？</dt><dd>普通月薪计算按单月应纳税所得额套月度折算税率，适合快速估算；累计预扣按年初至本月的累计所得套年度税率表，再减去本月初已预扣税额，得到本月应预扣，结果与扣缴义务人按月申报口径一致。</dd>
 </dl>
 </div>
 </section>
@@ -626,7 +674,7 @@ function __salaryClearResults(){
   ['afterTaxAmount','beforeTaxShow','taxShow','insuranceShow','grossSalary','pensionAmount',
    'medicalAmount','unemploymentAmount','injuryAmount','maternityAmount','housingAmount',
    'totalInsurance','taxAmount','netSalary','taxableIncome','marginalRate','effectiveRate',
-   'takeHomeRate','annualGross','annualInsurance','annualTax','annualNet'].forEach(function(id){
+   'takeHomeRate','annualGross','annualInsurance','annualTax','annualNet','cumTaxable','cumTax','cumWithheld','cumCurrentDue','cumNet','cumMonths'].forEach(function(id){
     var e = document.getElementById(id); if(e) e.textContent = '--';
   });
   var bar = document.getElementById('barChart'); if(bar) bar.innerHTML = '';
@@ -820,6 +868,56 @@ function calculate(){
 
   renderBarChart(displaySalary, displayInsurance, displayTax, displayNet);
   renderBracketTable(taxableMonthly, bracketIndex);
+  __salaryCumulative();
+}
+
+function __salaryCumulative(){
+  var elMonth=document.getElementById('currentMonth');
+  if(!elMonth) return;
+  var month=parseInt(elMonth.value,10);
+  var ytdIncome=__salaryNum('ytdIncome',0);
+  var ytdTax=__salaryNum('ytdTaxWithheld',0);
+  var ytdIns=__salaryNum('ytdInsurance',0);
+  var note=document.getElementById('cumulativeNote');
+  var ids=['cumTaxable','cumTax','cumWithheld','cumCurrentDue','cumNet','cumMonths'];
+  function blank(){ids.forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='--';});}
+  var en=__salaryModeIsEn();
+  if(!isFinite(month)||month<1||month>12){
+    blank(); if(note) note.innerHTML='<span style="color:var(--danger)">'+(en?'Current month must be an integer from 1 to 12.':'当前月份须为 1–12 的整数，累计预扣不计算。')+'</span>'; return;
+  }
+  if(!isFinite(ytdIncome)||ytdIncome<0||!isFinite(ytdTax)||ytdTax<0||!isFinite(ytdIns)||ytdIns<0){
+    blank(); if(note) note.innerHTML='<span style="color:var(--danger)">'+(en?'YTD income, withheld tax and insurance must be non-negative numbers.':'累计收入、已预扣税额与累计五险一金须为非负数字。')+'</span>'; return;
+  }
+  const salaryInput=__salaryNum('salary',0), monthsPerYear=__salaryNum('monthsPerYear',12);
+  if(!isFinite(monthsPerYear)||monthsPerYear<=0) return;
+  const monthlySalary=currentMode==='annual'?salaryInput/monthsPerYear:salaryInput;
+  const threshold=__salaryNum('threshold',5000);
+  const baseSalary=__salaryNum('baseSalary',monthlySalary), housingBase=__salaryNum('housingBase',monthlySalary);
+  const pension=baseSalary*getNum('pensionRate')/100, medical=baseSalary*getNum('medicalRate')/100;
+  const unemployment=baseSalary*getNum('unemploymentRate')/100, injury=baseSalary*getNum('injuryRate')/100;
+  const maternity=baseSalary*getNum('maternityRate')/100, housing=housingBase*getNum('housingRate')/100;
+  const monthlyIns=pension+medical+unemployment+injury+maternity+housing;
+  const childrenEdu=getNum('childrenEdu'), continuingEdu=getNum('continuingEdu');
+  const housingLoan=getNum('housingLoan'), housingRent=getNum('housingRent');
+  const housingDed=housingLoan>0&&housingRent>0?Math.max(housingLoan,housingRent):housingLoan+housingRent;
+  const monthlySpecial=childrenEdu+continuingEdu+housingDed+getNum('elderly')+getNum('infant');
+  const cumIncome=ytdIncome+monthlySalary;
+  const cumIns=ytdIns+monthlyIns;
+  const cumSpecial=monthlySpecial*month;
+  const cumThreshold=threshold*month;
+  const cumTaxable=Math.max(0,cumIncome-cumIns-cumThreshold-cumSpecial);
+  let cumTax=0;
+  for(let i=0;i<annualBrackets.length;i++){
+    if(cumTaxable<=annualBrackets[i].max||i===annualBrackets.length-1){cumTax=Math.max(0,cumTaxable*annualBrackets[i].rate-annualBrackets[i].deduction);break;}
+  }
+  const due=Math.max(0,cumTax-ytdTax);
+  const net=monthlySalary-monthlyIns-due;
+  var eTaxable=document.getElementById('cumTaxable'), eTax=document.getElementById('cumTax'), eWith=document.getElementById('cumWithheld'), eDue=document.getElementById('cumCurrentDue'), eNet=document.getElementById('cumNet'), eMon=document.getElementById('cumMonths');
+  if(eTaxable)eTaxable.textContent=fmtShort(cumTaxable); if(eTax)eTax.textContent=fmt(cumTax); if(eWith)eWith.textContent=fmt(ytdTax); if(eDue)eDue.textContent=fmt(due); if(eNet)eNet.textContent=fmt(net); if(eMon)eMon.textContent=String(month);
+  if(note){
+    var credit=cumTax<ytdTax;
+    note.innerHTML=credit?(en?'Cumulative tax is lower than tax already withheld: current withholding is 0; the excess is settled in the annual reconciliation.':'累计应纳税额低于已预扣税额，本月应预扣为 0；多缴部分在年度汇算时处理。'):(en?'Cumulative method assumes the same monthly salary, insurance and itemized deductions; actual prior amounts can be entered directly.':'累计预扣按本月工资、社保与专项附加扣除同口径回推；前期金额不同可直接填写累计值。');
+  }
 }
 
 function renderBarChart(gross, insurance, tax, net){
