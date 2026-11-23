@@ -366,9 +366,17 @@ function calc(){
   var ageBonus=age>=70?1:0;
 
   var totalScore=nutriScore+diseaseScore+ageBonus;
+  var missingItems=[];
+  if(!isFinite(bmi)) missingItems.push('BMI');
+  if(!isFinite(albumin)) missingItems.push('血清白蛋白');
+  var dataIncomplete = missingItems.length > 0;
 
   var riskLevel,color,advice;
-  if(totalScore>=5){
+  if(dataIncomplete){
+    riskLevel='资料不完整';
+    color='#6B7280';
+    advice='缺少 ' + missingItems.join('、') + '，当前总分只基于已填项目计算，不能据此判定营养风险等级，也不能排除风险。请补齐 ' + missingItems.join('、') + ' 后重新评估。';
+  }else if(totalScore>=5){
     riskLevel='重度营养风险';
     color='#EF4444';
     advice='存在重度营养风险。建议立即启动营养支持：首选肠内营养（EN），必要时联合肠外营养（PN）。CD患者考虑独家肠内营养（EEN）诱导缓解。纠正微营养素缺乏（铁、B12、叶酸、维生素D）。围手术期需术前7-14天营养优化。';
@@ -389,15 +397,15 @@ function calc(){
   var details=[];
   details.push('IBD活动度：'+activityNames[activity]);
   details.push('病变范围：'+extentNames[extent]);
-  details.push('BMI：'+bmi+' kg/m²');
+  details.push('BMI：'+(isFinite(bmi) ? bmi+' kg/m²' : '未填写'));
   details.push('体重下降：'+weightLoss+'%');
-  details.push('白蛋白：'+albumin+' g/L');
+  details.push('白蛋白：'+(isFinite(albumin) ? albumin+' g/L' : '未填写'));
   details.push('饮食摄入：'+intakeNames[intake]);
   details.push('年龄：'+age+'岁'+(ageBonus?' (加1分)':''));
   if(complications>0) details.push('并发症：'+['','短肠综合征/肠梗阻','瘘管/脓肿'][complications]);
 
   var html='<div class="stat-grid">';
-  html+='<div class="stat-card"><div class="val" style="color:'+color+';">'+totalScore+'</div><div class="lbl">总评分</div></div>';
+  html+='<div class="stat-card"><div class="val" style="color:'+color+';">'+(dataIncomplete?'—':totalScore)+'</div><div class="lbl">'+(dataIncomplete?'总评分（不完整）':'总评分')+'</div></div>';
   html+='<div class="stat-card"><div class="val" style="color:'+color+';">'+nutriScore+'</div><div class="lbl">营养状态分</div></div>';
   html+='<div class="stat-card"><div class="val" style="color:'+color+';">'+diseaseScore+'</div><div class="lbl">疾病严重度分</div></div>';
   html+='<div class="stat-card"><div class="val" style="color:'+color+';font-size:16px;">'+riskLevel+'</div><div class="lbl">营养风险</div></div>';
@@ -414,7 +422,7 @@ function calc(){
 
   html+='<div class="tip-box" style="border-color:'+color+';color:'+color+';background:'+color+'1a;">'+advice+'</div>';
 
-  const __g1=html;try{ if(typeof totalScore==='number'&&isFinite(totalScore)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:totalScore,unit:'',min:0,max:7,bands:[{"lo":0,"hi":3,"label":{"zh":"低营养风险","en":"Low risk"},"color":"#10B981"},{"lo":3,"hi":5,"label":{"zh":"中度营养风险","en":"Moderate risk"},"color":"#F59E0B"},{"lo":5,"hi":null,"label":{"zh":"重度营养风险","en":"High risk"},"color":"#EF4444"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+  const __g1=html;try{ if(!dataIncomplete&&typeof totalScore==='number'&&isFinite(totalScore)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:totalScore,unit:'',min:0,max:7,bands:[{"lo":0,"hi":3,"label":{"zh":"低营养风险","en":"Low risk"},"color":"#10B981"},{"lo":3,"hi":5,"label":{"zh":"中度营养风险","en":"Moderate risk"},"color":"#F59E0B"},{"lo":5,"hi":null,"label":{"zh":"重度营养风险","en":"High risk"},"color":"#EF4444"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
