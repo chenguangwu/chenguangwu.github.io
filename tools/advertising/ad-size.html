@@ -399,15 +399,23 @@ function getRatioName(r){
 }
 
 function copyResult(){
-  var w=+document.getElementById('width').value||0;
-  var h=+document.getElementById('height').value||0;
+  var rw=String(document.getElementById('width').value).trim();
+  var rh=String(document.getElementById('height').value).trim();
+  if(rw===''||rh===''){ ToolBox.showToast('请先填写宽度与高度再复制','warning'); return; }
+  var w=+rw, h=+rh;
+  var fromUnit=document.getElementById('fromUnit').value;
   var dpi=+document.getElementById('dpi').value;
-  // 与 calc 同源：DPI 无效/非正时拒绝复制，避免把 Infinity mm 写进剪贴板。
-  if(!isFinite(dpi)||dpi<=0||!isFinite(w)||!isFinite(h)){ ToolBox.showToast('请先填写有效的尺寸与 DPI 再复制','warning'); return; }
-  var wMM=w/dpi*25.4;
-  var hMM=h/dpi*25.4;
+  // 与 calc 同源：宽高须为正数，DPI 无效/非正时拒绝复制。
+  if(!isFinite(w)||!isFinite(h)||w<=0||h<=0||!isFinite(dpi)||dpi<=0){ ToolBox.showToast('请先填写有效的尺寸与 DPI 再复制','warning'); return; }
+  var wMM,hMM;
+  if(fromUnit==='px'){ wMM=w/dpi*25.4; hMM=h/dpi*25.4; }
+  else if(fromUnit==='mm'){ wMM=w; hMM=h; }
+  else if(fromUnit==='cm'){ wMM=w*10; hMM=h*10; }
+  else if(fromUnit==='inch'){ wMM=w*25.4; hMM=h*25.4; }
+  else { ToolBox.showToast('当前单位无效，未复制','warning'); return; }
   if(!isFinite(wMM)||!isFinite(hMM)){ ToolBox.showToast('尺寸换算无效，未复制','warning'); return; }
-  ToolBox.copyText('广告尺寸：'+w+'x'+h+'px | '+wMM.toFixed(0)+'x'+hMM.toFixed(0)+'mm @'+dpi+'DPI', i18nText('msg284'));
+  var wPX=Math.round(wMM/25.4*dpi), hPX=Math.round(hMM/25.4*dpi);
+  ToolBox.copyText('广告尺寸：'+w+'x'+h+' '+fromUnit+' | '+wPX+'x'+hPX+'px | '+wMM.toFixed(0)+'x'+hMM.toFixed(0)+'mm @'+dpi+'DPI', i18nText('msg284'));
 }
 
 renderPresets();

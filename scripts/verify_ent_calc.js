@@ -329,13 +329,13 @@ const CASES = [
 ,
 {
   "slug": 'ent/ahi-severity',
-  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/ent/ahi-severity.html\',\'utf8\');var i=h.indexOf(\'function copyResult(){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+900):\'\';var ok=seg.indexOf(\'var hours = +document.getElementById(\\\'sleepHours\\\').value || 1;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'AHICP0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/ent/ahi-severity.html\',\'utf8\');var i=h.indexOf(\'function copyResult(){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+900):\'\';var ok=seg.indexOf(\'请先填写必要的监测数据再复制\')>=0&&seg.indexOf(\'睡眠时长须大于 0\')>=0;document.getElementById(\'__tbProbe\').textContent=\'AHICP0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['AHICP0 OK'],
   "ref": "第1341批·复制与页面结果不同源修复源码形态强锚：旧版 copyResult 另算一遍且无守卫，页面显示错误/—时复制仍输出 Infinity/0dB 假值；修复后 copyResult 补与 calc 同源守卫，无效时提示并 return。旧版无 ⇒ BAD。"
 },
 {
   "slug": 'ent/tympanic-perforation',
-  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/ent/tympanic-perforation.html\',\'utf8\');var i=h.indexOf(\'function copyResult(){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+900):\'\';var ok=seg.indexOf(\'if(!isFinite(tmArea)||tmArea<=0)\')>=0&&seg.indexOf(\'请先填写有效的鼓膜尺寸再复制\')>=0;document.getElementById(\'__tbProbe\').textContent=\'TympCP0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/ent/tympanic-perforation.html\',\'utf8\');var i=h.indexOf(\'function copyResult(){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+900):\'\';var ok=seg.indexOf(\'请先填写完整的穿孔与鼓膜尺寸再复制\')>=0&&seg.indexOf(\'Math.min(100, perfArea/tmArea*100)\')>=0;document.getElementById(\'__tbProbe\').textContent=\'TympCP0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['TympCP0 OK'],
   "ref": "第1341批·复制与页面结果不同源修复源码形态强锚：旧版 copyResult 另算一遍且无守卫，页面显示错误/—时复制仍输出 Infinity/0dB 假值；修复后 copyResult 补与 calc 同源守卫，无效时提示并 return。旧版无 ⇒ BAD。"
 },

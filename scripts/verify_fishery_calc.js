@@ -748,6 +748,12 @@ const CASES = [
   "ref": "体长=0 时清空估重结果（FISHWCLR）；旧实现仅 toast，662.5 g 残留"
 },
 {
+  "slug": "fishery/fish-weight",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/fishery/fish-weight.html','utf8');var i=h.indexOf('function calc(){');var s=i>=0?h.slice(i,i+300):'';var ok=s.indexOf('lastResult =')>=0;document.getElementById('__tbProbe').textContent='FISHCP0 '+(ok?'OK':'BAD');"],
+  "expect": ["FISHCP0 OK"],
+  "ref": "第1354批·复制残留修复：calc 入口先清空 lastResult，体长/a/b 任一无效并 early return 后，copyResult 不再复制上一次的体重与等级。"
+},
+{
   "slug": "fishery/harvest-size-price",
   "inputs": {
     "biomass": ""

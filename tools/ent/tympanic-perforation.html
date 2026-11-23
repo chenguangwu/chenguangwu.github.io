@@ -335,13 +335,15 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
 }
 
 function copyResult(){
-  var pd = +document.getElementById('perfD').value, pw = +document.getElementById('perfW').value;
+  var raw=['perfD','perfW','tmD','tmW'].map(function(id){var e=document.getElementById(id);return e?String(e.value).trim():'';});
+  if(raw.some(function(v){return v==='';})){ ToolBox.showToast('请先填写完整的穿孔与鼓膜尺寸再复制','warning'); return; }
+  var pd=+raw[0], pw=+raw[1], td=+raw[2], tw=+raw[3];
+  if(![pd,pw,td,tw].every(function(v){return isFinite(v)&&v>=0;})){ ToolBox.showToast('尺寸须为非负数，未复制','warning'); return; }
   var perfArea = Math.PI*(pd/2)*(pw/2);
-  var td = +document.getElementById('tmD').value, tw = +document.getElementById('tmW').value;
   var tmArea = Math.PI*(td/2)*(tw/2);
-  // 与 calc 同源：鼓膜面积为 0/无效时拒绝复制，避免复制出 Infinity%。
+  // 与 calc 同源：鼓膜面积为 0/无效时拒绝复制，并对面积占比执行 100% 截断。
   if(!isFinite(tmArea)||tmArea<=0){ ToolBox.showToast('请先填写有效的鼓膜尺寸再复制','warning'); return; }
-  var pct = (perfArea/tmArea*100).toFixed(1);
+  var pct = Math.min(100, perfArea/tmArea*100).toFixed(1);
   ToolBox.copyText('鼓膜穿孔评估：面积='+perfArea.toFixed(1)+'mm², 占比='+pct+'%, 位置='+loc, '结果已复制');
 }
 
