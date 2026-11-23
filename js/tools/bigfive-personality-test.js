@@ -140,6 +140,27 @@
     { i: 60, f: 'ang', r: 0, zh: '我发过火之后常常后悔。', en: 'After losing my temper I often regret it.' }
   ];
 
+  // 题库自检：60 题、题号 1–60 唯一、15 子维度各 4 题、反向题恰为以下 16 条。
+  // 本页不是 BFI-44/NEO-PI-R 原版，题号与反向标记均按本页自编题库逐题核定。
+  var REVERSE_IDS = [3, 7, 11, 14, 16, 19, 23, 27, 31, 35, 39, 43, 47, 51, 55, 59];
+  function validateItems() {
+    if (ITEMS.length !== 60) throw new Error('Big Five item bank must contain 60 items');
+    var seen = {}, facetCount = {};
+    ITEMS.forEach(function (it) {
+      if (seen[it.i]) throw new Error('Duplicate item id ' + it.i);
+      seen[it.i] = true;
+      if (!FACET_MAP[it.f]) throw new Error('Unknown facet ' + it.f);
+      facetCount[it.f] = (facetCount[it.f] || 0) + 1;
+    });
+    for (var i = 1; i <= 60; i++) if (!seen[i]) throw new Error('Missing item id ' + i);
+    FACETS.forEach(function (f) {
+      if (facetCount[f.k] !== 4) throw new Error('Facet ' + f.k + ' must have 4 items');
+    });
+    var reverse = ITEMS.filter(function (it) { return it.r === 1; }).map(function (it) { return it.i; });
+    if (reverse.join(',') !== REVERSE_IDS.join(',')) throw new Error('Reverse-item markers drifted from the audited list');
+  }
+  validateItems();
+
   /* 常模参数（12 题维度 / 4 题子维度，1—5 计分） */
   var NORM_DIM = {
     O: { m: 42.0, sd: 6.4 }, C: { m: 41.0, sd: 7.0 }, E: { m: 38.0, sd: 7.4 },

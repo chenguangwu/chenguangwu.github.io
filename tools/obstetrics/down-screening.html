@@ -139,13 +139,13 @@
 
     <div class="card formula-box">
   <h3>📐 计算公式</h3>
-  <div class="formula-eq">风险值 = 背景风险(实龄/体重/孕周) × MoM 校正；MoM = 实测值 / 同实龄中位数（AFP、free β-hCG）</div>
+  <div class="formula-eq">风险值 = 年龄背景风险 × MoM 似然比连乘（简化模型）；孕周仅校验 15–20 周筛查窗口，体重仅记录；MoM 已由实验室按体重等校正。</div>
   <p class="formula-desc">唐氏筛查由实龄背景风险结合血清标志物 MoM 值核算，输出 1:N 的出生缺陷风险。</p>
 </div>
 <div class="input-row">
       <div><label for="age">孕妇年龄 (岁)</label><input type="number" id="age" value="30" min="14" max="50" oninput="calc()" placeholder="如 30（14–50）"></div>
       <div><label for="gw">孕周 (周)</label><input type="number" id="gw" value="17" min="15" max="20" oninput="calc()" placeholder="如 17（15–20）"></div>
-      <div><label for="weight">体重 (kg)</label><input type="number" id="weight" value="60" step="0.5" oninput="calc()" placeholder="如 60"></div>
+      <div><label for="weight">体重 (kg，仅记录)</label><input type="number" id="weight" value="60" min="20" max="300" step="0.5" oninput="calc()" placeholder="如 60（20–300，仅记录）"></div>
     </div>
     <div class="input-row">
       <div><label for="afp">AFP MoM值</label><input type="number" id="afp" value="0.8" step="0.01" oninput="calc()" placeholder="如 0.8"></div>
@@ -285,12 +285,28 @@ function loadHigh(){
 function loadLow(){
   document.getElementById('age').value=25;document.getElementById('afp').value=1.0;document.getElementById('bhcg').value=1.0;document.getElementById('ue3').value=1.0;calc();
 }
+var __dsValid=false;
+function __dsClear(){
+  document.getElementById('result').innerHTML='';
+  ['down_screeningTable','down_screeningDiff','down_screeningChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});
+}
+function __dsFail(msg){__dsValid=false;__dsClear();document.getElementById('result').innerHTML='<p style="color:var(--danger);font-weight:600;">⚠️ '+msg+'</p>';}
 function calc(){
-  var age=parseInt(document.getElementById('age').value);
-  var afp=parseFloat(document.getElementById('afp').value);
-  var bhcg=parseFloat(document.getElementById('bhcg').value);
-  var ue3=parseFloat(document.getElementById('ue3').value);
-  if(isNaN(age)||isNaN(afp)||isNaN(bhcg)||isNaN(ue3)){document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请填写完整信息</p>';return;}
+  var ids=['age','gw','weight','afp','bhcg','ue3'];
+  for(var i=0;i<ids.length;i++){if(document.getElementById(ids[i]).value.trim()===''){__dsFail('请填写完整信息（'+document.getElementById(ids[i]).parentNode.querySelector('label').textContent.replace(/[（(].*$/,'').trim()+'不能为空）');return;}}
+  var age=Number(document.getElementById('age').value);
+  var gw=Number(document.getElementById('gw').value);
+  var weight=Number(document.getElementById('weight').value);
+  var afp=Number(document.getElementById('afp').value);
+  var bhcg=Number(document.getElementById('bhcg').value);
+  var ue3=Number(document.getElementById('ue3').value);
+  if(![age,gw,weight,afp,bhcg,ue3].every(function(x){return isFinite(x);})){__dsFail('年龄、孕周、体重及 MoM 须为有限数值');return;}
+  if(!Number.isInteger(age)||age<14||age>50){__dsFail('孕妇年龄须为 14–50 岁的整数');return;}
+  if(gw<15||gw>20){__dsFail('孕周须在 15–20 周（中孕期三联筛查窗口）');return;}
+  if(weight<20||weight>300){__dsFail('体重须为 20–300 kg');return;}
+  var moms=[['afp','AFP'],['bhcg','free β-hCG'],['ue3','uE3']];
+  for(var j=0;j<moms.length;j++){var mv=Number(document.getElementById(moms[j][0]).value);if(mv<=0||mv>10){__dsFail(moms[j][1]+' MoM 须为大于 0 且不超过 10 的数值');return;}}
+  __dsValid=true;
 
   // 年龄相关背景风险(21三体): 近似 exp(0.28*(age-25)) * (1/1300) [粗略模型]
   var ageRisk=1/(1300*Math.exp(-0.06*(age-25)));
@@ -337,7 +353,7 @@ function calc(){
   html+='</div>';
 
   html+='<div class="ref-card"><h4>风险评估明细</h4><ul>';
-  html+='<li>孕妇年龄：'+age+'岁 (年龄背景风险 1/'+Math.round(1/ageRisk)+')</li>';
+  html+='<li>孕妇年龄：'+age+'岁 (年龄背景风险 1/'+Math.round(1/ageRisk)+')</li>';html+='<li>孕周：'+gw+' 周（筛查窗口 15–20 周）；体重：'+weight+' kg（仅记录，MoM 已按体重校正）</li>';
   html+='<li>AFP：'+afp+' MoM '+(afp<0.8?'↓(偏低)':(afp>2.5?'↑↑(NTD高风险)':'正常'))+'</li>';
   html+='<li>free β-hCG：'+bhcg+' MoM '+(bhcg>2.0?'↑(偏高)':'正常')+'</li>';
   html+='<li>uE3：'+ue3+' MoM '+(ue3<0.8?'↓(偏低)':'正常')+'</li>';
@@ -505,6 +521,7 @@ function __down_screeningRender(keys,rk,en){
 }
 function __down_screeningExtras(){
     if (typeof TBKit === 'undefined') return;
+    if (!__dsValid) return;
     if (__down_screening_skip) return;
     var snap=__down_screeningSnap();
     var keys=Object.keys(snap);
@@ -535,6 +552,7 @@ function __down_screeningExtras(){
 }
 function __down_screeningExport(){
     if (typeof TBKit === 'undefined') return;
+    if (!__dsValid) {__dsFail('请先填写合法的年龄、孕周、体重与 MoM 值');return;}
     try{
         var box=document.querySelector('#down_screeningTable');
         if(!box||!box.querySelector('tr')){
