@@ -162,6 +162,10 @@
         <input type="number" id="weight" step="0.1" min="0.5" oninput="calc()" enterkeyhint="done" placeholder="如 70">
       </div>
       <div>
+        <label for="hours">基线采血距当前 (小时)</label>
+        <input type="number" id="hours" step="1" min="0" oninput="calc()" enterkeyhint="done" placeholder="如 24；留空不能按肌酐确认">
+      </div>
+      <div>
         <label for="uo6">近 6 小时尿量 (mL)</label>
         <input type="number" id="uo6" value="" step="1" min="0" oninput="calc()" enterkeyhint="done" placeholder="选填">
       </div>
@@ -207,7 +211,7 @@
       <p style="margin-top:8px;">取血肌酐与尿量两者中较严重的一项作为最终分期。</p>
     </div>
 
-    <div class="tip-box tip-warn">⚠️ AKI 诊断需 48h 内肌酐升高 ≥26.5 μmol/L 或 7 天内升至基线 1.5 倍。本工具仅供辅助分期，不替代临床判断。</div>
+    <div class="tip-box tip-warn">⚠️ AKI 诊断需 48h 内肌酐升高 ≥26.5 μmol/L 或 7 天内升至基线 1.5 倍，因此必须填写基线采血距当前时间；留空时不能仅凭肌酐确认。本工具仅供辅助分期，不替代临床判断。</div>
   </div>
 </div>
 
@@ -276,6 +280,7 @@ function calc(){
   var uo6Str=document.getElementById('uo6').value,uo6=uo6Str===''?null:parseFloat(uo6Str);
   var uo12Str=document.getElementById('uo12').value,uo12=uo12Str===''?null:parseFloat(uo12Str);
   var uo24Str=document.getElementById('uo24').value,uo24=uo24Str===''?null:parseFloat(uo24Str);
+  var hoursStr=document.getElementById('hours').value,hours=hoursStr===''?null:parseFloat(hoursStr);
   var rrt=document.getElementById('rrt').value==='yes';
   var elB=document.getElementById('baseline'),elC=document.getElementById('current');
   if(document.getElementById('rrt').value===''||isNaN(base)||isNaN(cur)||isNaN(w)){
@@ -286,12 +291,17 @@ function calc(){
   elB.classList.remove('input-error');
   if(isNaN(cur)||cur<=0){elC.classList.add('input-error');document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效当前肌酐</p>';return;}
   elC.classList.remove('input-error');
+  if(hours!==null && (isNaN(hours)||hours<0)){document.getElementById('hours').classList.add('input-error');document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效的基线采血距当前时间（小时）</p>';return;}
+  document.getElementById('hours').classList.remove('input-error');
   var ratio=cur/base, delta=cur-base;
-  var crStage=0, crReason='无急性肾损伤（肌酐未达标准）';
+  var crStage=0, crReason='肌酐未达时间窗内标准', crUnknown=false, crWindow='';
   if(rrt){crStage=3;crReason='已开始肾脏替代治疗（RRT），直接判为 3 期';}
-  else if(ratio>=3||cur>=353.6){crStage=3;crReason='肌酐升至基线 '+(ratio.toFixed(2))+' 倍 '+(cur>=353.6?'且 ≥353.6 μmol/L ':'')+'（≥3倍 或 ≥353.6）';}
-  else if(ratio>=2){crStage=2;crReason='肌酐升至基线 '+ratio.toFixed(2)+' 倍（2.0-2.9 倍）';}
-  else if(ratio>=1.5||delta>=26.5){crStage=1;crReason=(ratio>=1.5?'肌酐升至基线 '+ratio.toFixed(2)+' 倍（1.5-1.9 倍）':'肌酐升高 '+delta.toFixed(1)+' μmol/L（≥26.5）');}
+  else if(hours===null){crUnknown=true;crWindow='缺失';crReason='未提供基线采血距当前时间：无法判断 48 小时 / 7 天时间窗，不能仅凭肌酐确认 AKI';}
+  else if(hours>168){crUnknown=true;crWindow='超出7天';crReason='距基线 '+hours+' 小时已超过 7 天，肌酐变化不满足 KDIGO 时间窗，不能据此确认 AKI';}
+  else if(ratio>=3||cur>=353.6){crStage=3;crReason='肌酐升至基线 '+(ratio.toFixed(2))+' 倍 '+(cur>=353.6?'且 ≥353.6 μmol/L ':'')+'（≥3倍 或 ≥353.6，时间窗 '+hours+'h）';}
+  else if(ratio>=2){crStage=2;crReason='肌酐升至基线 '+ratio.toFixed(2)+' 倍（2.0-2.9 倍，时间窗 '+hours+'h）';}
+  else if(ratio>=1.5){crStage=1;crReason='肌酐升至基线 '+ratio.toFixed(2)+' 倍（1.5-1.9 倍，时间窗 '+hours+'h）';}
+  else if(hours<=48&&delta>=26.5){crStage=1;crReason='肌酐升高 '+delta.toFixed(1)+' μmol/L（48 小时内 ≥26.5）';}
   var uoStage=0, uoReason='尿量未提供或未达标准';
   if(w>0){
     if(uo6!==null){var r6=uo6/(w*6); if(r6<0.5&&uoStage<1){uoStage=1;uoReason='近6h尿量 '+uo6+'mL（'+r6.toFixed(2)+' mL/kg/h，&lt;0.5 持续6-12h）→ 1 期';}}
@@ -300,7 +310,8 @@ function calc(){
   }
   var finalStage=Math.max(crStage,uoStage);
   var stageName,stageColor;
-  if(finalStage===0){stageName='无 AKI';stageColor='var(--success)';}
+  if(finalStage===0&&crUnknown){stageName='未确认（肌酐时间窗'+crWindow+'）';stageColor='var(--warning)';}
+  else if(finalStage===0){stageName='无 AKI';stageColor='var(--success)';}
   else if(finalStage===1){stageName='AKI 1 期';stageColor='var(--info)';}
   else if(finalStage===2){stageName='AKI 2 期';stageColor='var(--warning)';}
   else{stageName='AKI 3 期';stageColor='var(--danger)';}
@@ -317,14 +328,16 @@ function calc(){
   if(finalStage>0){
     var advice=['','监测尿量与肌酐，避免肾毒性药物，纠正容量','积极寻找病因，优化血流动力学，必要时转 ICU','紧急处理：考虑肾脏替代治疗(RRT)，监测电解质与容量'];
     html+='<div class="tip-box '+(finalStage===3?'tip-error':(finalStage===2?'tip-warn':'tip-info'))+'">'+(finalStage===3?'⚠️ ':'')+advice[finalStage]+'</div>';
+  }else if(crUnknown){
+    html+='<div class="tip-box tip-warn">⚠️ 肌酐时间窗缺失或已超出 7 天，不能仅凭肌酐确认或排除 AKI；请补充基线采血距当前时间，或结合尿量与 RRT 判定。</div>';
   }else{
-    html+='<div class="tip-box tip-success">✓ 当前肌酐与尿量未达 AKI 标准，建议继续监测。</div>';
+    html+='<div class="tip-box tip-success">✓ 当前肌酐与尿量未达 AKI 标准（肌酐已按时间窗校验），建议继续监测。</div>';
   }
   const __g3=html;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   saveHistory(base,cur,w,finalStage);
 }
 function copyRes(){var t=document.getElementById('res').innerText;if(!t||!t.trim()||/^请/.test(t.trim())||document.getElementById('res').querySelector('.tb-guard')){ToolBox.showToast(i18nText(), 'warning');return;}ToolBox.copyText(t);}
-function resetAll(){document.getElementById('baseline').value='';document.getElementById('current').value='';document.getElementById('weight').value='';document.getElementById('uo6').value='';document.getElementById('uo12').value='';document.getElementById('uo24').value='';document.getElementById('rrt').value='';calc();ToolBox.showToast(i18nText(), 'info');}
+function resetAll(){document.getElementById('baseline').value='';document.getElementById('current').value='';document.getElementById('weight').value='';document.getElementById('hours').value='';document.getElementById('uo6').value='';document.getElementById('uo12').value='';document.getElementById('uo24').value='';document.getElementById('rrt').value='';calc();ToolBox.showToast(i18nText(), 'info');}
 function hkey(){return 'tb_history_'+location.pathname;}
 function saveHistory(base,cur,w,stage){
   try{

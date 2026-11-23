@@ -128,11 +128,35 @@ const CASES = [
     "weight": "70",
     "uo6": "",
     "uo12": "",
-    "uo24": "", "rrt": "no"
+    "uo24": "", "hours": "24", "rrt": "no"
   },
   "expect": [
     "1.5-1.9"
   ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "nephrology/jixingshensunshang-kdigo-fenqi",
+  "inputs": {
+    "baseline": "80", "current": "110", "weight": "70", "hours": "48", "rrt": "no"
+  },
+  "expect": ["48 小时内 ≥26.5"],
+  "ref": "auto-restore"
+},
+{
+  "slug": "nephrology/jixingshensunshang-kdigo-fenqi",
+  "inputs": {
+    "baseline": "80", "current": "110", "weight": "70", "hours": "240", "rrt": "no"
+  },
+  "expect": ["未确认（肌酐时间窗超出7天）"],
+  "ref": "auto-restore"
+},
+{
+  "slug": "nephrology/jixingshensunshang-kdigo-fenqi",
+  "inputs": {
+    "baseline": "80", "current": "110", "weight": "70", "hours": "", "rrt": "no"
+  },
+  "expect": ["未确认（肌酐时间窗缺失）"],
   "ref": "auto-restore"
 },
 {

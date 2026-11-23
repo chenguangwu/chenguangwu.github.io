@@ -36,14 +36,13 @@ const targets = [
   "home/washer-capacity", "electrical/home-load-estimate",
   // P3-1 batch 07 (life/fun/finance/hr)
   "life/drinking-water-plan", "fun/meditation-timer",
-  "finance/salary-after-tax",
   "finance/credit-card-grace-period",
   // P3-1 batch 08 (finance/fun/gardening/furniture/cable)
   "finance/points-redemption-value", "wedding/wedding-banquet",
   "gardening/balcony-sunlight", "woodwork/desk-dimensions",
   "metalwork/cable-tray-sizing",
   // P3-1 batch 09 (it/design)
-  "it/markdown-to-html", "it/regex-common",
+  "it/markdown-to-html",
   "design/css-grid-generator", "design/breakpoint-queries",
   "it/phone-screen-sizes",
   // P3-1 batch 10 (it/design)

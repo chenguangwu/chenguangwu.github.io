@@ -9315,14 +9315,10 @@ const CASES = [
   },
   {
     "slug": "it/js-formatter",
-    "inputs": {
-      "input": "1\n2\n3",
-      "indent": "4"
-    },
-    "expect": [
-      "name}!`;\n4\n"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「name}!`;\n4\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "inputs": { "input": "import x from 'y';\nexport const a = x;", "indent": "4" },
+    "clicks": ["doMinify()"],
+    "expect": ["✅ 压缩成功"],
+    "ref": "模块语法回归：acorn 按 sourceType=module 静态解析压缩结果，import/export 不再被函数构造器拒绝；默认示例不含该串，旧实现报「含 import/export 模块语法，无法用函数构造器自检」⇒ 不命中。"
   },
   {
     "slug": "it/js-obfuscator",
@@ -14304,7 +14300,7 @@ const CASES = [
   {
     slug: "it/js-formatter",
     inputs: { input: "function f(){return/*\n*/1}\nreturn f()" },
-    clicks: ["doMinify();var o=String(document.getElementById('output').textContent);var nl=String.fromCharCode(10);var a,b;try{a=new Function(document.getElementById('input').value)();}catch(e){a='ERR';}try{b=new Function(o)();}catch(e){b='ERR';}document.getElementById('__tbProbe').textContent='MINASI out='+(o.indexOf('return'+nl+'1')>=0?'Y':'N')+' eq='+((a===b&&a===undefined)?'Y':'N')+' b='+b;"],
+    clicks: ["var nl=String.fromCharCode(10);document.getElementById('input').value='function f(){return/*'+nl+'*/1}'+nl+'return f()';doMinify();var o=String(document.getElementById('output').textContent);var a,b;try{a=new Function(document.getElementById('input').value)();}catch(e){a='ERR';}try{b=new Function(o)();}catch(e){b='ERR';}document.getElementById('__tbProbe').textContent='MINASI out='+(o.indexOf('return'+nl+'1')>=0?'Y':'N')+' eq='+((a===b&&a===undefined)?'Y':'N')+' b='+b;"],
     expect: ["MINASI out=Y eq=Y b=undefined"],
     ref: "221（第239批）复核失败重做：旧 minifyJs 直接跳过 comment token，`return/*\\n*/1` 被压成 `return 1`——输出可编译但语义从 return undefined 变成 return 1。现含换行的块注释在原位保留一个换行。探针同时检查输出含 `return\\n1`，并用 new Function 分别执行原文与压缩结果，两者都必须返回 undefined。默认无块注释 ⇒ 探针串零命中。"
   },
@@ -15433,6 +15429,11 @@ async function runCaseInner(c) {
   const file = path.join(TOOLS_DIR, c.slug + ".html");
   if (!fs.existsSync(file)) return { ok: false, why: "文件不存在" };
   const html = fs.readFileSync(file, "utf8");
+  // 页面若引用本地 acorn 解析器，harness 需把同一份 UMD 模块挂到 globalThis，
+  // 否则页面里 `acorn.parse(...)` 在桩环境未定义（真机由 <script> 加载）。
+  if (html.includes('/vendor/acorn/')) {
+    try { globalThis.acorn = require(path.join(__dirname, '..', 'vendor', 'acorn', '8.19.0', 'acorn.min.js')); } catch (e) { /* 缺文件时保持未定义，由页面报错 */ }
+  }
   // 重定向存根（TOOLBOX-REDIRECT）无 calcTool，跳过（与 scripts/verify_calc.js 既有逻辑一致）
   if (html.includes("TOOLBOX-REDIRECT")) return { ok: true, skipped: true, why: "redirect stub" };
 
@@ -15951,11 +15952,14 @@ async function runCaseInner(c) {
   // 未引用该库的页面拿到 undefined，行为与改造前一致，也不会跨页残留。
   try { globalThis.qrcode = pageQrcode; } catch (e) { /* 只读全局跳过 */ }
   try { globalThis.Aztec = pageAztec; } catch (e) { /* 只读全局跳过 */ }
+  const pageAcorn = /vendor\/acorn/.test(html)
+    ? (() => { try { return require(path.join(ROOT, "vendor", "acorn", "8.19.0", "acorn.min.js")); } catch (e) { return undefined; } })()
+    : undefined;
   const compiled = new Function(
-      "document", "window", "console", "navigator", "localStorage", "sessionStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date",
+      "document", "window", "console", "navigator", "localStorage", "sessionStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date", "acorn",
       `var __f={};\n${script}\n${expose}\n__f["__pageEval"]=function(c){return eval(String(c));};\n__f["__rebindGlobal"]=function(n){try{eval(n+' = window.'+n);}catch(e){}};\nreturn __f;`
     );
-    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, sessionStorage, toolboxArg, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate);
+    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, sessionStorage, toolboxArg, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate, pageAcorn);
   } catch (e) {
     return { ok: false, why: "初始化失败: " + e.message.slice(0, 80) };
   }

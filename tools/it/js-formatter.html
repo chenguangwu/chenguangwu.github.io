@@ -63,6 +63,7 @@
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"IT 开发","item":"https://chenguangwu.github.io/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"JavaScript 格式化","item":"https://chenguangwu.github.io/tools/it/js-formatter.html"}]}
 </script>
 
+<script src="/vendor/acorn/8.19.0/acorn.min.js" integrity="sha384-k86/6qSZBWP6lSNk7q01t+wW1dZOeVvgo5ChYaieq4IwoYxOR7aCwlR+toVQBza9" crossorigin="anonymous" defer></script>
 <script src="../../js/i18n.js" defer></script>
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
@@ -107,7 +108,7 @@
       "name": "格式化会改变代码行为吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "本工具保留原有换行，只重排缩进与空格，不会把 return 后的对象字面量合并到同一行；压缩同样保留必要换行并通过 JS 引擎编译自检。依赖模板字符串和正则字面量的代码仍建议在目标环境复测。"
+        "text": "本工具保留原有换行，只重排缩进与空格，不会把 return 后的对象字面量合并到同一行；压缩同样保留必要换行并通过 acorn 静态语法解析自检（不编译、不执行）。依赖模板字符串和正则字面量的代码仍建议在目标环境复测。"
       }
     }
   ]
@@ -145,7 +146,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📜 JavaScript 格式化">📜 JavaScript Format</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">手写词法分析：跳过多行与单行注释；识别单引号 / 双引号 / 模板字符串（模板内 ${} 按花括号配对跳过）、正则（依据前一个有效 token 是否为运算符或关键字判断上下文）、数字（含 0x、指数与下划线）、标识符与关键字；格式化保留原有换行，只在行首重排缩进并规范 token 间空格，避免改变 ASI；压缩删除注释与多余空格、保留必要换行，并用 JS 引擎编译自检；校验同样只编译不执行。历史记录时间按 月-日 时:分 补零格式化</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">手写词法分析：跳过多行与单行注释；识别单引号 / 双引号 / 模板字符串（模板内 ${} 按花括号配对跳过）、正则（依据前一个有效 token 是否为运算符或关键字判断上下文）、数字（含 0x、指数与下划线）、标识符与关键字；格式化保留原有换行，只在行首重排缩进并规范 token 间空格，避免改变 ASI；压缩删除注释与多余空格、保留必要换行，并用 acorn 静态语法解析自检；校验同样只做静态解析，不编译、不执行。历史记录时间按 月-日 时:分 补零格式化</div>
   <div class="formula-desc">按统一风格重新排版 JavaScript 代码。</div>
   <ul class="formula-list">
     <li><b>处理</b>：手写词法保留字符串/正则/模板字面量，按 token 重排行首缩进与空格；保留原换行，不补分号、不改引号，尽量不触发 ASI 变化。</li>
@@ -207,7 +208,7 @@ const total=calc(10,5)</textarea>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>会还原变量名吗？</dt><dd>不会，格式化不逆混淆。</dd>
-<dt>格式化会改变代码行为吗？</dt><dd>本工具保留原有换行，只重排缩进与空格，不会把 return 后的对象字面量合并到同一行；压缩同样保留必要换行并通过 JS 引擎编译自检。依赖模板字符串和正则字面量的代码仍建议在目标环境复测。</dd>
+<dt>格式化会改变代码行为吗？</dt><dd>本工具保留原有换行，只重排缩进与空格，不会把 return 后的对象字面量合并到同一行；压缩同样保留必要换行并通过 acorn 静态语法解析自检（不编译、不执行）。依赖模板字符串和正则字面量的代码仍建议在目标环境复测。</dd>
 </dl>
 </div>
 </section>
@@ -409,9 +410,8 @@ function minifyJs(){
     }
     out = out.replace(/[ \t]+$/gm, '').trim();
     if(!out) throw new Error('没有可压缩的 JavaScript');
-    if(/\b(import|export)\b/.test(src)) throw new Error('含 import/export 模块语法，无法用函数构造器自检');
-    // 只编译、不执行：压缩结果若语法非法，绝不交给用户复制。
-    try{ new Function(out); }
+    // 静态语法解析，不编译、不执行用户代码（CSP 禁止 unsafe-eval 时同样可用）。
+    try{ acorn.parse(out, {ecmaVersion:'latest', sourceType: /\b(import|export)\b/.test(src) ? 'module' : 'script', allowHashBang:true, allowReturnOutsideFunction:true}); }
     catch(e){ throw new Error('压缩结果自检失败：' + e.message); }
     setOut(out);
     setErr('✅ 压缩成功（保留必要换行，已通过语法自检）');
@@ -445,12 +445,11 @@ function doValidate(){
       setErr('⚠ 含 import/export 模块语法：以上仅为括号统计，请用 type=module 环境检查语法');
       return;
     }
-    // new Function 只编译、不执行代码，用来给出真实语法结论。
     try{
-      new Function(src);
-      setErr('✅ 语法检查通过（JS 引擎编译校验，未执行代码）');
+      acorn.parse(src, {ecmaVersion:'latest', sourceType: /\b(import|export)\b/.test(src) ? 'module' : 'script', allowHashBang:true, allowReturnOutsideFunction:true});
+      setErr('✅ 语法检查通过（acorn 静态解析，未编译、未执行代码）');
     }catch(e){
-      setErr('❌ 语法错误：' + e.message + '（JS 引擎编译校验，未执行代码）');
+      setErr('❌ 语法错误：' + e.message + '（acorn 静态解析，未执行代码）');
     }
   }catch(e){ setErr('❌ ' + e.message); }
 }
