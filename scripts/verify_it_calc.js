@@ -14223,6 +14223,24 @@ const CASES = [
     ref: "IT-N448 HTML 跨行注释：旧逐行 tokenize 中间行 b 为 hl-plain、末行 --> 为 hl-plain；新实现整段 tokenize ⇒ 三行均 hl-comment。默认示例无跨行 HTML 注释 ⇒ 探针串零逃生。",
   },
   {
+    slug: "it/code-highlighter",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/code-highlighter.html','utf8');var b=h.indexOf('<body>');var i=h.indexOf('container',b);var seg=h.slice(i-20,i+40);var ok=seg.indexOf('role=')>=0;document.getElementById('__tbProbe').textContent='HLMAIN '+(ok?'OK':'BAD '+seg);"],
+    expect: ["HLMAIN OK"],
+    ref: "第438批：页面示例代码含字面 <main>，原始文本扫描会误判已有主地标。真实 DOM 必须恰有 1 个 main/[role=main]，且就是 .container。",
+  },
+  {
+    slug: "it/html-tags",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/html-tags.html','utf8');var b=h.indexOf('<body>');var i=h.indexOf('container',b);var seg=h.slice(i-20,i+40);var ok=seg.indexOf('role=')>=0;document.getElementById('__tbProbe').textContent='HTAGMAIN '+(ok?'OK':'BAD '+seg);"],
+    expect: ["HTAGMAIN OK"],
+    ref: "第451批：标签示例库含 <main> 字符串但真实 DOM 无地标。修复后 .container 带 role=main，全页主地标唯一。",
+  },
+  {
+    slug: "it/html-minifier",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/html-minifier.html','utf8');var b=h.indexOf('<body>');var i=h.indexOf('container',b);var seg=h.slice(i-20,i+40);var ok=seg.indexOf('role=')>=0;document.getElementById('__tbProbe').textContent='HMINMAIN '+(ok?'OK':'BAD '+seg);"],
+    expect: ["HMINMAIN OK"],
+    ref: "第452批：压缩示例包含 <main> 与 <header>，旧文本检测误判。修复后 .container 带 role=main，且示例不影响 DOM 查询。",
+  },
+  {
     slug: "it/benchmark-builder",
     inputs: { type: 'array', ms: '5000' },
     clicks: ["var cap='';var old=ToolBox.copyText;ToolBox.copyText=function(s){cap=String(s);};copyCode();ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='BMCOPY '+(cap.indexOf('<5000')>=0&&cap.indexOf('a.sort')>=0&&cap.indexOf('array / 5000ms')>=0?'OK':'BAD '+cap.slice(0,120));"],

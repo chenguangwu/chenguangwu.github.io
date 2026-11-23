@@ -1542,6 +1542,12 @@ const CASES = [
     expect: ["ZFLOOR OK"],
     ref: "BS-N136：公式框写「上限放大后向下取整」，三档上限须先 Math.floor 再 +1 传给 rand；旧实现传小数使轻度档可超出文档上限。源码形态探针只在 clicks 注入出现 ⇒ 默认态零逃生。"
   },
+  {
+    slug: "biz/zalgo-text",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/biz/zalgo-text.html','utf8');var eq=h.slice(h.indexOf('formula-eq'),h.indexOf('</div>',h.indexOf('formula-eq')));var ok=eq.indexOf('0～⌊N × 强度 / 2⌋')>=0&&eq.indexOf('⌋ + 1)')<0;document.getElementById('__tbProbe').textContent='ZRANGE '+(ok?'OK':'BAD');"],
+    expect: ["ZRANGE OK"],
+    ref: "第479批：rand(n)=Math.floor(random×n)，rand(⌊upMax⌋+1) 的实际上界是 ⌊upMax⌋，不是 +1。公式框须写 0～⌊N×强度/2⌋，不得残留旧 +1 区间。",
+  },
 
 
 
