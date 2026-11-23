@@ -668,6 +668,8 @@ const CASES = [
   "expect": ["TIMIBASIS OK"],
   "ref": "TIMI STEMI 依据表权重与代码一致：体重<67kg 与前壁/LBBB 各 1 分，满分 14；旧表写 2 分、合计 16，与 calcSTEMI 的 14 分不符。"
 }
+,
+{"slug":"cardiology/ckd-epi","clicks":["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/ckd-epi.html','utf8');var ok=h.indexOf('胱抑素')<0&&h.indexOf('1.24 mg/dL')>=0&&h.indexOf('47.4')>=0&&h.indexOf('UACR 80 mg/g')>=0;document.getElementById('__tbProbe').textContent='CKD_ONLY_CREAT '+(ok?'OK':'BAD');"],"expect":["CKD_ONLY_CREAT OK"],"ref":"CKD-EPI 复核：页面只有血肌酐/UACR/年龄/性别，计算为 CKD-EPI 2021 肌酐版；深度解析、示例、FAQ 与 JSON-LD 全部禁止再写胱抑素 C/联合算法，示例必须用页面接受的 mg/dL 并按实现复算为 47.4（G3a/A2）。源码强判别，默认态无探针串。"}
 
 ];
 async function main() {

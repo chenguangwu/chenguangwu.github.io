@@ -523,7 +523,9 @@ const CASES = [
 },
 
 { slug:"dermatology/gags-acne", inputs:{loc0:"3",loc1:"3",loc2:"3",loc3:"2",loc4:"1",loc5:"0"}, expect:["21 GAGS 总分 / 中度"], ref:"中度痤疮预设应为 3,3,3,2,1,0：6+6+6+2+1=21，落 19–30 中度；旧预设 2,2,2,1,1,0 只有 14 分、显示轻度。" },
-{ slug:"dermatology/gags-acne", inputs:{loc0:"4",loc1:"4",loc2:"4",loc3:"3",loc4:"2",loc5:"1"}, expect:["32 GAGS 总分 / 重度"], ref:"重度痤疮预设应为 4,4,4,3,2,1：8+8+8+3+2+3=32，落 31–38 重度；旧预设 3,3,3,2,2,1 只有 25 分、显示中度。" }
+{ slug:"dermatology/gags-acne", inputs:{loc0:"4",loc1:"4",loc2:"4",loc3:"3",loc4:"2",loc5:"1"}, expect:["32 GAGS 总分 / 重度"], ref:"重度痤疮预设应为 4,4,4,3,2,1：8+8+8+3+2+3=32，落 31–38 重度；旧预设 3,3,3,2,2,1 只有 25 分、显示中度。" },
+{"slug":"dermatology/easi-eczema","clicks":["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/dermatology/easi-eczema.html','utf8');var dd=h.slice(h.indexOf('data-deep-dive'));var ok=dd.indexOf('四项严重度（各 0–3）')>=0&&dd.indexOf('四项严重度（各 0–4）')<0;document.getElementById('__tbProbe').textContent='EASIRANGE '+(ok?'OK':'BAD');"],"expect":["EASIRANGE OK"],"ref":"第261批：深度解析把四项严重度写成各 0–4，而同页选项与公式为各 0–3、满分 72；修复后深度解析必须统一为 0–3，且不得残留 0–4 旧文案。"}
+
 ];
 async function main() {
   const only = process.argv.slice(2);
