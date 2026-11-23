@@ -231,11 +231,17 @@ function calcData(){const type=document.getElementById('type').value;const t=TYP
 function statusText(v,en){return en?({repair:'Repair',borderline:'Borderline',replace:'Replace'}[v]):({repair:'维修更划算',borderline:'临界，建议比价',replace:'优先换新'}[v]);}
 function drawChart(d){const cv=document.getElementById('costChart');if(!cv)return;const ctx=cv.getContext('2d');if(!ctx)return;const W=cv.width,H=cv.height,en=isEN();ctx.clearRect(0,0,W,H);const pad=46,barW=W-pad*2,base=120,max=Math.max(d.repairAnnual,d.newAnnual,1);ctx.font='12px sans-serif';ctx.fillStyle='#64748b';ctx.fillText(en?'Annual cost comparison':'年均成本对比',pad,24);ctx.fillStyle='#f59e0b';ctx.fillRect(pad,base-90*(d.repairAnnual/max),barW*0.38,90*(d.repairAnnual/max));ctx.fillStyle='#10b981';ctx.fillRect(pad+barW*0.5,base-90*(Math.max(0,d.newAnnual)/max),barW*0.38,90*(Math.max(0,d.newAnnual)/max));ctx.fillStyle='#334155';ctx.fillText((en?'Repair ':'维修 ')+d.repairAnnual.toFixed(0)+(en?'/y':' 元/年'),pad,base+18);ctx.fillText((en?'New ':'新机 ')+d.newAnnual.toFixed(0)+(en?'/y':' 元/年'),pad+barW*0.5,base+18);}
 function applyPreset(type){const m={fridge:['fridge',8,500,3500,10,2,100,'none'],ac:['ac',10,900,3000,10,3,300,'none'],heater:['waterHeater',9,400,1200,8,2,0,'sometimes']};const p=m[type]||m.fridge;document.getElementById('type').value=p[0];document.getElementById('age').value=p[1];document.getElementById('repair').value=p[2];document.getElementById('newPrice').value=p[3];document.getElementById('newLife').value=p[4];document.getElementById('repairLife').value=p[5];document.getElementById('saving').value=p[6];document.getElementById('risk').value=p[7];calcTool();}
+function inputError(){
+  const en=isEN();
+  if(blankCore())return en?'Enter appliance type, age, repair quote, new price, new life and post-repair life before calculating.':'请填写家电类型、已用年限、维修报价、新机价格、新机寿命与维修后可用年限后再计算。';
+  const d=calcData();
+  if(d.age<0||d.repair<0||d.newPrice<=0||d.newLife<=0||d.repairLife<=0)return en?'Age and repair quote cannot be negative; new price, new life and post-repair life must be greater than 0.':'已用年限与维修报价不能为负；新机价格、新机寿命与维修后可用年限需大于 0。';
+  return '';
+}
 function calcTool(){
   const en=isEN();
-  if(blankCore()){document.getElementById('result').innerHTML='<div class="result-placeholder">'+(en?'Enter appliance type, age, repair quote, new price, new life and post-repair life before calculating.':'请填写家电类型、已用年限、维修报价、新机价格、新机寿命与维修后可用年限后再计算。')+'</div>';return;}
+  const err=inputError();if(err){document.getElementById('result').innerHTML='<div class="result-placeholder">'+err+'</div>';return;}
   const d=calcData();
-  if(d.age<0||d.repair<0||d.newPrice<=0||d.newLife<=0||d.repairLife<=0){document.getElementById('result').innerHTML='<div class="result-placeholder">'+(en?'Age and repair quote cannot be negative; new price, new life and post-repair life must be greater than 0.':'已用年限与维修报价不能为负；新机价格、新机寿命与维修后可用年限需大于 0。')+'</div>';return;}
   const rows=[
     [(en?d.t.nameEn:d.t.name),en?'Appliance type':'家电类型'],
     [d.remaining.toFixed(1)+(en?' years':' 年'),en?'Remaining safe life':'安全剩余年限'],
@@ -253,7 +259,7 @@ function calcTool(){
   saveHist(HIST_KEY,(en?d.t.nameEn:d.t.name)+' · '+(en?'repair ':'维修 ')+'¥'+d.repair+' → '+statusText(d.verdict,en));
 }
 function exportCSV(){
-  const en=isEN();if(blankCore()){alert(en?'Fill in the required fields first.':'请先填写必填项。');return;}const d=calcData();
+  const en=isEN();const err=inputError();if(err){alert(err);return;}const d=calcData();
   csvDownload('repair-or-replace.csv',[
     [en?'Item':'项目',en?'Value':'数值',en?'Unit':'单位'],
     [en?'Appliance':'家电类型',(en?d.t.nameEn:d.t.name),''],

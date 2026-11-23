@@ -211,6 +211,27 @@ const CASES = [
 },
 {
   "slug": "home/appliance-lifespan",
+  "inputs": { "type": "fridge", "start": "2099-01-01", "price": "3000" },
+  "clicks": ["var oa=alert,msg='';alert=function(m){msg=String(m);};try{exportCSV();}catch(e){}alert=oa;document.getElementById('__tbProbe').textContent='AEXP '+(msg==='首次使用日期不能晚于今天。'?'OK':'BAD '+msg);"],
+  "expect": ["AEXP OK"],
+  "ref": "第533批：未来首次使用日期在页面计算被拒，导出也必须共用 inputError 拒绝，不能生成 CSV。"
+},
+{
+  "slug": "home/appliance-lifespan",
+  "inputs": { "type": "fridge", "start": "2020-01-01", "price": "3000" },
+  "clicks": ["var oa=alert,msg='';alert=function(m){msg=String(m);};try{exportCSV();}catch(e){}alert=oa;document.getElementById('__tbProbe').textContent='AEXOK '+(msg===''?'OK':'BAD '+msg);"],
+  "expect": ["AEXOK OK"],
+  "ref": "合法日期必须可正常导出，不得被新增日期校验误伤；日期 2020-01-01 早于今天。"
+},
+{
+  "slug": "home/repair-or-replace",
+  "inputs": { "type": "fridge", "age": "6", "repair": "-100", "newPrice": "3000", "newLife": "10", "repairLife": "4", "risk": "none" },
+  "clicks": ["var oa=alert,msg='';alert=function(m){msg=String(m);};try{exportCSV();}catch(e){}alert=oa;document.getElementById('__tbProbe').textContent='REXP '+(msg.indexOf('维修报价不能为负')>=0?'OK':'BAD '+msg);"],
+  "expect": ["REXP OK"],
+  "ref": "第535批：负维修报价在页面计算被拒，导出也必须共用 inputError 拒绝，不能写出负成本 CSV。"
+},
+{
+  "slug": "home/appliance-lifespan",
   "inputs": { "type": "fridge", "start": "2020-01-01", "price": "3000" },
   "expect": ["2030-01-01", "¥300 元/年", "安全期内"],
   "ref": "固定首次使用日 2020-01-01、冰箱参考 10 年 ⇒ 建议更换日期恒为 2030-01-01；购买价 3000/10=300 元/年；2026 年当前仍在安全期。三条同时命中，能区分年限表错误、日期加年错误或年均成本算法错误。"

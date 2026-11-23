@@ -5,6 +5,13 @@ globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+  "slug": "neurology/rater-21",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/neurology/rater-21.html','utf8');var i=h.indexOf('28/35');var seg=h.slice(i-80,i+180);var ok=seg.indexOf('中重度')>=0&&seg.indexOf('颈肌张力障碍重度')<0;document.getElementById('__tbProbe').textContent='TWS60 '+(ok?'OK':'BAD '+seg);"],
+  "expect": ["TWS60 OK"],
+  "ref": "第540批：28+18+14=60/85 落在 41–60 区间，算例必须标中重度；旧文案标重度，与同页 calc() 的 41–60→中重度 冲突。"
+},
+
+{
   "slug": "neurology/abcd2",
   "inputs": {
     "age": "1"

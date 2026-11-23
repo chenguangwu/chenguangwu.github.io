@@ -346,8 +346,16 @@ function applyPreset(type){
   document.getElementById('start').value=d.getFullYear()+'-'+q(d.getMonth()+1)+'-'+q(d.getDate());
   document.getElementById('price').value=p[2];calcTool();
 }
+function inputError(){
+  if(hasBlankCore())return '请选择家电类型并填写首次使用日期后再计算。';
+  const d=calcData();const now=new Date();const sd=parseISO(d.start);
+  if(!sd)return '首次使用日期格式无效。';
+  if(sd>now)return '首次使用日期不能晚于今天。';
+  if(!isFinite(d.price)||d.price<0)return '购买价不能为负（可为 0）。';
+  return '';
+}
 function exportCSV(){
-  if(hasBlankCore()){alert('请先选择家电类型并填写首次使用日期');return;}
+  const err=inputError();if(err){alert(err);return;}
   const d=calcData();const en=isEN();
   csvDownload('appliance-lifespan.csv',[
     [en?'Item':'项目',en?'Value':'数值',en?'Unit':'单位'],
@@ -363,9 +371,8 @@ function exportCSV(){
   ]);
 }
 function calcTool(){
-  if(hasBlankCore()){document.getElementById('result').innerHTML='<div class="result-placeholder">请选择家电类型并填写首次使用日期后再计算。</div>';return;}
-  const d=calcData();const now=new Date();
-  if(parseISO(d.start)>now){document.getElementById('result').innerHTML='<div class="result-placeholder">首次使用日期不能晚于今天。</div>';return;}
+  const err=inputError();if(err){document.getElementById('result').innerHTML='<div class="result-placeholder">'+err+'</div>';return;}
+  const d=calcData();
   const en=isEN();
   const statusText=en?({safe:'Within safe life',near:'Replacement due soon',over:'Past safe life'}[d.status]):({safe:'安全期内',near:'临近更换',over:'已超安全年限'}[d.status]);
   const remainText=d.remain>0?(en?d.remain.toFixed(1)+' years':d.remain.toFixed(1)+' 年'):(en?'Over '+Math.abs(d.remain).toFixed(1)+' years':'已超 '+Math.abs(d.remain).toFixed(1)+' 年');
