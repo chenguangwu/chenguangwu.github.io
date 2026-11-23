@@ -599,7 +599,8 @@ function calc(){
     pmt = schedule[0].payment;
   }
 
-  var effectiveRate = calcIRR(principal, schedule, fv, timing, fee) * 12 * 100;
+  var irr = calcIRR(principal, schedule, fv, timing, fee);
+  var effectiveRate = (irr !== null && isFinite(irr)) ? irr * 12 * 100 : null;
 
   currentResult = {
     pv: pv,
@@ -663,7 +664,7 @@ function renderStats(r){
   var statHtml = '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(r.pmt, 0) + '</div><div class="lbl">' + (r.type === 'principal' ? '首月还款' : '每月还款') + '</div></div>'
     + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(r.totalPayment, 0) + '</div><div class="lbl">总还款额</div></div>'
     + '<div class="stat-card negative"><div class="val">¥' + ToolBox.formatNumber(r.totalInterest, 0) + '</div><div class="lbl">总利息</div></div>'
-    + '<div class="stat-card"><div class="val">' + r.effectiveRate.toFixed(2) + '%</div><div class="lbl">实际年化(IRR)</div></div>';
+    + '<div class="stat-card"><div class="val">' + (r.effectiveRate === null ? '不可计算' : r.effectiveRate.toFixed(2) + '%') + '</div><div class="lbl">实际年化(IRR)</div></div>';
   const __g2=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -685,7 +686,7 @@ function renderResult(r){
   resHtml += '<p>还款方式：<strong>' + (typeNames[r.type] || r.type) + '</strong> · ' + (timingNames[r.timing] || r.timing) + '</p>';
   resHtml += '<p>租期：<strong>' + r.months + '</strong> 期（' + (r.months/12).toFixed(1) + '年）</p>';
   resHtml += '<p>名义年利率：<strong>' + r.annualRate.toFixed(2) + '%</strong></p>';
-  resHtml += '<p>实际年化利率(IRR)：<strong style="color:var(--danger);">' + r.effectiveRate.toFixed(2) + '%</strong></p>';
+  resHtml += '<p>实际年化利率(IRR)：<strong style="color:var(--danger);">' + (r.effectiveRate === null ? '不可计算（净融资额或现金流无有效 IRR）' : r.effectiveRate.toFixed(2) + '%') + '</strong></p>';
   if(r.fee > 0){
     resHtml += '<p>手续费：<strong>¥' + ToolBox.formatNumber(r.fee, 2) + '</strong></p>';
   }

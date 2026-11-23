@@ -1112,10 +1112,14 @@ const CASES = [
   {
     "slug": "healthcare/tdee-calculator",
     "inputs": {"age": "5", "height": "170", "weight": "65", "bf": "", "act": "1.375"},
-    "expect": ["⚠ 年龄须在 10–120 岁，身高 100–250 cm，体重 20–300 kg；体脂率如填写须在 0–70%。"],
-    "ref": "5 岁儿童被当作成人套 Mifflin 公式仍出 TDEE；新守卫应拒绝。默认 30/170/65 不含该提示。"
+    "expect": ["本工具仅适用于 18–120 岁成年人"],
+    "ref": "5 岁儿童被当作成人套 Mifflin 公式仍出 TDEE；新守卫应拒绝并提示仅适用于 18–120 岁成年人。默认 30/170/65 不含该提示。"
   },
 
+
+{ slug:"healthcare/tdee-calculator", inputs:{age:"10",height:"140",weight:"35",bf:"",act:"1.55"}, expect:["本工具仅适用于 18–120 岁成年人"], ref:"TDEE 成人公式年龄边界：10 岁未填体脂不得套用 Mifflin-St Jeor 并生成减脂目标，必须拦截并提示未成年人改用儿童青少年方法或专业评估。" },
+{ slug:"healthcare/tdee-calculator", inputs:{age:"17",height:"170",weight:"60",bf:"",act:"1.55"}, expect:["本工具仅适用于 18–120 岁成年人"], ref:"17 岁为未成年人，即使身高体重接近成人也不得输出成人 TDEE/减脂建议；旧实现允许 10–120 岁 ⇒ 会算出结果。" },
+{ slug:"healthcare/tdee-calculator", inputs:{age:"18",height:"170",weight:"60",bf:"",act:"1.55"}, expect:["2446"], ref:"18 岁为允许的成人下边界：BMR 先取整 1578；TDEE=1578×1.55=2445.9 → 2446 kcal；旧实现虽允许 18 岁，但新增年龄上限后须仍放行。" }
 ];
 
 async function main() {
