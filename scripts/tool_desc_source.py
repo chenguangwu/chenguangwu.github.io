@@ -109,6 +109,8 @@ def _third_layer_desc(t):
                 continue
             if len(k.strip()) < 8:
                 continue
+            if re.match(r'^(Example|例如|示例)[:：]', v.strip()):
+                continue
             cands.append(v.strip())
         if cands:
             val = max(cands, key=len)

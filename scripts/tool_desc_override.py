@@ -1840,4 +1840,23 @@ DESC_OVERRIDE = {
     '精馏收率与物料平衡': ('', 'Distillation yield and mass balance'),
     # ---- 安全 ----（该工具 en 字段此前回退成中文名，英文态卡片无英文名/英文描述）
     '密码短语生成器': ('生成高熵随机密码短语', 'Passphrase generator'),
+    # ---- 英文描述回退纠正：ed 被算例正文污染的 18 个工具 ----
+    '制冷设备选型': ('按制冷量与蒸发/冷凝温度估算卡诺与实际 COP、输入功率和冷凝热负荷，并推荐压缩机与制冷剂', 'Estimate Carnot and actual COP, input power and condenser heat from cooling load and evaporating/condensing temperatures, then recommend compressor type and refrigerant'),
+    '化学配比安全计算': ('按化学品 A/B 配比与总量计算各组分用量和安全备料量，并估算反应放热与温升', 'Calculate component amounts and safe stock from an A/B mixing ratio, and estimate reaction heat release and temperature rise'),
+    '工业泵选型': ('按流量、扬程与介质计算轴功率和电机功率，并从标准电机序列推荐泵型、材质与转速', 'Calculate shaft and motor power from flow, head and fluid, then recommend pump type, material and speed from standard motor ratings'),
+    '水泵选型计算': ('按流量、扬程、介质密度与泵效率计算功率，并按比转速与标准电机等级推荐泵型', 'Calculate hydraulic, shaft and motor power from flow, head, density and efficiency, then recommend pump type and standard motor'),
+    '面料克重计算': ('按纱线 tex、经纬密度、织缩率与幅宽计算每平方米克重、每米重量与每匹总重', 'Calculate fabric GSM, weight per metre and weight per piece from yarn tex, warp/weft density, shrinkage and width'),
+    '减速机选型': ('按电机功率、输入转速、减速比与安全系数计算输入/输出扭矩和选型扭矩，并推荐机座号', 'Calculate input, output and selection torque from motor power, speed, ratio and safety factor, then recommend a gearbox frame size'),
+    '地基承载力计算': ('按太沙基公式由粘聚力、内摩擦角与重度计算条形基础极限承载力与特征值', 'Calculate ultimate and allowable bearing capacity of a strip footing from cohesion, friction angle and unit weight using Terzaghi bearing capacity factors'),
+    '快冷材料热疲劳': ('按 Coffin-Manson 低周疲劳公式结合冷却速率与线膨胀系数估算快冷热疲劳寿命', 'Estimate thermal fatigue life under rapid cooling from Coffin-Manson low-cycle fatigue, cooling rate and thermal expansion'),
+    '扭矩补偿计算': ('按额定扭矩、温度膨胀、磨损间隙与动载荷系数计算实际所需补偿扭矩', 'Calculate required compensation torque from rated torque, thermal expansion, wear clearance and dynamic load factor'),
+    '材料疲劳寿命': ('按 Goodman 修正与 Basquin 公式由应力幅、平均应力和抗拉强度估算疲劳寿命，并对比三种平均应力修正模型', 'Estimate fatigue life from stress amplitude, mean stress and tensile strength using Goodman correction and the Basquin equation, and compare three mean-stress correction models'),
+    '润滑油更换周期': ('按 Arrhenius 温度法则由油箱容量、工作温度与日运行时间估算矿物/半合成/全合成油换油周期', 'Estimate mineral, semi-synthetic and synthetic oil change intervals from tank volume, operating temperature and daily runtime using the Arrhenius rule'),
+    '液压缸选型计算': ('按缸径、杆径、行程与系统压力计算有效面积、推力/拉力、容积与所需流量', 'Calculate effective areas, push/pull force, stroke volume and required flow from bore, rod diameter, stroke and system pressure'),
+    '电子束焊接参数': ('按加速电压、束流与焊接速度计算束功率、线能量、功率密度与熔深估算', 'Calculate beam power, heat input, power density and penetration estimate from accelerating voltage, beam current and welding speed'),
+    '离子束溅射计算': ('按离子能量、入射角、靶材原子序数与电流密度估算溅射产额与刻蚀速率', 'Estimate sputtering yield and etch rate from ion energy, incidence angle, target atomic number and current density'),
+    '等离子切割厚度计算': ('按切割电流、速度、弧温与喷嘴孔径估算最大可切厚度、切缝宽度与线能量', 'Estimate maximum cut thickness, kerf width and heat input from cutting current, speed, arc temperature and nozzle diameter'),
+    '色差强度质量评估': ('按标准样与试样的 CIE Lab 计算 ΔE 及明度/饱和度/色相分量差，并评定灰卡色牢度等级', 'Calculate CIE Lab ΔE and lightness, chroma and hue differences, then grade grey-scale colorfastness'),
+    '设备租赁费率计算': ('按直线折旧、维护费率与目标利润率计算设备月租金、总租金收入与投资回报率', 'Calculate monthly rent, total rental income and ROI from straight-line depreciation, maintenance rate and target margin'),
+    '陶瓷轴承寿命计算': ('按 ISO 281 L10 公式由动载荷与转速计算钢轴承与混合陶瓷轴承额定寿命', 'Calculate ISO 281 L10 rating life for steel and hybrid ceramic bearings from dynamic load and speed'),
 }
