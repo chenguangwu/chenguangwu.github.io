@@ -230,17 +230,24 @@ function clearHist(){try{localStorage.removeItem(HIST_KEY);}catch(e){}renderHist
 const HIST_KEY='tb_history_box_fit';
 function applyPreset(type){const m={mailer:[20,15,8,25,20,15,1,0.3,5],carton:[30,20,15,50,40,30,2,0.5,10],shoebox:[33,22,12,35,25,15,1,0.3,5]};const p=m[type]||m.mailer;['il','iw','ih','bl','bw','bh','qty','gap','soft'].forEach((id,i)=>document.getElementById(id).value=p[i]);calcTool();}
 function dims(){
-  const gap=Math.max(0,num('gap')),soft=1+Math.max(0,Math.min(50,num('soft')))/100;
-  return {il:num('il')*soft+2*gap,iw:num('iw')*soft+2*gap,ih:num('ih')*soft+2*gap,bl:num('bl'),bw:num('bw'),bh:num('bh'),qty:Math.max(1,Math.round(num('qty')||1))};
+  const gap=num('gap'),soft=1+num('soft')/100;
+  return {il:num('il')*soft+2*gap,iw:num('iw')*soft+2*gap,ih:num('ih')*soft+2*gap,bl:num('bl'),bw:num('bw'),bh:num('bh'),qty:num('qty')};
 }
 function orientations(d){
   const item=[d.il,d.iw,d.ih],raw=[num('il'),num('iw'),num('ih')],box=[d.bl,d.bw,d.bh],perms=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
   return perms.map(p=>{const it=[item[p[0]],item[p[1]],item[p[2]]];const rawIt=[raw[p[0]],raw[p[1]],raw[p[2]]];const fit=it.every((v,i)=>v>0&&box[i]>=v);const counts=it.map((v,i)=>v>0?Math.floor(box[i]/v):0);const cnt=fit?counts[0]*counts[1]*counts[2]:0;return {p,it,raw:rawIt,fit,cnt,counts};});
 }
 function calcData(){
+  var ids=['il','iw','ih','bl','bw','bh','qty','gap','soft'],raw={};
+  ids.forEach(function(id){raw[id]=document.getElementById(id).value.trim();});
+  if(ids.some(function(id){return raw[id]==='';})) return {valid:false,msg:'请完整填写物品三维尺寸、纸箱内三维尺寸、数量、单侧间隙与缓冲余量'};
+  const il=num('il'),iw=num('iw'),ih=num('ih'),bl=num('bl'),bw=num('bw'),bh=num('bh'),qty=num('qty'),gap=num('gap'),soft=num('soft');
+  if(![il,iw,ih,bl,bw,bh,qty,gap,soft].every(isFinite)||il<=0||iw<=0||ih<=0||bl<=0||bw<=0||bh<=0||!Number.isInteger(qty)||qty<=0||gap<0||gap>5||soft<0||soft>50){
+    return {valid:false,msg:'参数无效：物品与纸箱三维尺寸须>0，数量须为正整数，单侧间隙 0–5 cm，缓冲余量 0–50%'};
+  }
   const d=dims(),os=orientations(d),best=os.slice().sort((a,b)=>b.cnt-a.cnt)[0];
-  const itemVol=num('il')*num('iw')*num('ih')/1000,boxVol=d.bl*d.bw*d.bh/1000;
-  return {d,os,best,itemVol,boxVol};
+  const itemVol=il*iw*ih/1000,boxVol=d.bl*d.bw*d.bh/1000;
+  return {valid:true,d,os,best,itemVol,boxVol};
 }
 function drawChart(d,os,best){
   const cv=document.getElementById('fitChart');if(!cv)return;const ctx=cv.getContext('2d');if(!ctx)return;const W=cv.width,H=cv.height,pad=40;
@@ -253,10 +260,10 @@ function drawChart(d,os,best){
 function fillOrientTable(os){
   const t=document.getElementById('orientTable');if(!t)return;t.innerHTML=os.map((o,i)=>'<tr><td>#'+(i+1)+'</td><td>'+o.raw[0].toFixed(1)+'</td><td>'+o.raw[1].toFixed(1)+'</td><td>'+o.raw[2].toFixed(1)+'</td><td>'+(o.fit?o.cnt+' 件':'装不下')+'</td></tr>').join('');
 }
-function exportCSV(){const d=calcData();if(!(d.d.bl>0&&d.d.bw>0&&d.d.bh>0)){alert('请输入大于 0 的纸箱内尺寸');return;}const rows=[['朝向','长向','宽向','高向','可放件数']];d.os.forEach((o,i)=>rows.push(['#'+(i+1),o.it[0].toFixed(1),o.it[1].toFixed(1),o.it[2].toFixed(1),o.fit?o.cnt:0]));csvDownload('box-fit-orientations.csv',rows);}
+function exportCSV(){const d=calcData();if(!d.valid){alert(d.msg);return;}const rows=[['朝向','长向','宽向','高向','可放件数']];d.os.forEach((o,i)=>rows.push(['#'+(i+1),o.it[0].toFixed(1),o.it[1].toFixed(1),o.it[2].toFixed(1),o.fit?o.cnt:0]));csvDownload('box-fit-orientations.csv',rows);}
 function calcTool(){
   const d=calcData();
-  if(!(d.d.bl>0&&d.d.bw>0&&d.d.bh>0&&d.d.il>0&&d.d.iw>0&&d.d.ih>0)){document.getElementById('result').innerHTML='<div class="result-placeholder">请输入大于 0 的物品尺寸与纸箱内尺寸</div>';return;}
+  if(!d.valid){document.getElementById('result').innerHTML='<div class="result-placeholder">'+d.msg+'</div>';return;}
   const best=d.best,needQty=d.d.qty,fit=best&&best.cnt>=needQty;
   const rows=[[fit?'✅ 可以装入':'❌ 装不下','装箱结论'],[best&&best.cnt?best.raw.map(x=>x.toFixed(0)).join(' × ')+' cm':'—','推荐朝向'],[best?best.cnt+' 件':'0 件','单箱最大数量'],[d.itemVol.toFixed(2)+' L','单件体积'],[d.boxVol.toFixed(1)+' L','纸箱容积'],[best&&best.cnt?((d.itemVol*Math.min(needQty,best.cnt)/d.boxVol)*100).toFixed(1)+' %':'—','空间利用率']];
   let html=dataGrid(rows);

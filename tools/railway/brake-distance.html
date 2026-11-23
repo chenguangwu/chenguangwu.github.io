@@ -147,7 +147,7 @@
       </div>
       <div>
         <label for="a">平均制动减速度 (m/s²)</label>
-        <input type="number" id="a" value="0.8" step="0.01" min="0.05">
+        <input type="number" id="a" value="0.8" step="0.01" min="0">
       </div>
     </div>
     <div class="input-row">
@@ -268,7 +268,7 @@ function applyPreset(type){
 function exportCSV(){
   const v=num('v'),tr=num('tr'),a=num('a'),g=num('g'),m=num('m');
   if(v<=0||a<=0){alert('请先输入大于 0 的速度与制动减速度');return;}
-  const vm=v/3.6,ae=Math.max(0.05,a+9.81*g/1000),dr=vm*tr,db=vm*vm/(2*ae),total=dr+db,tStop=tr+vm/ae,mu=ae/9.81,ke=0.5*m*1000*vm*vm/1e6;
+  const vm=v/3.6,ae=a+9.81*g/1000,dr=vm*tr,db=vm*vm/(2*ae),total=dr+db,tStop=tr+vm/ae,mu=ae/9.81,ke=0.5*m*1000*vm*vm/1e6;
   const rows=[['项目','数值','单位'],['运行速度',v,'km/h'],['反应时间',tr,'s'],['制动减速度',a,'m/s²'],['坡度',g,'‰'],['列车质量',m,'t'],['反应距离',dr.toFixed(1),'m'],['制动距离',db.toFixed(1),'m'],['总停车距离',total.toFixed(1),'m'],['停车总时间',tStop.toFixed(1),'s'],['所需粘着系数',mu.toFixed(3),''],['列车动能',ke.toFixed(1),'MJ']];
   const csv='\ufeff'+rows.map(r=>r.join(',')).join('\n');
   if(window.ToolBox&&typeof ToolBox.downloadText==='function'){ToolBox.downloadText('train-brake-distance.csv',csv);return;}
@@ -283,14 +283,14 @@ function drawChart(v,a,tr,g){
   ctx.clearRect(0,0,W,H);
   ctx.strokeStyle='#cbd5e1';ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(pad,10);ctx.lineTo(pad,H-pad);ctx.lineTo(W-10,H-pad);ctx.stroke();
-  const vmax=Math.max(120,v*1.4),dmax=(function(){const vm=vmax/3.6,ae=Math.max(0.05,a+9.81*g/1000);return vm*tr+vm*vm/(2*ae);})();
+  const vmax=Math.max(120,v*1.4),dmax=(function(){const vm=vmax/3.6,ae=a+9.81*g/1000;return vm*tr+vm*vm/(2*ae);})();
   const pts=[];
-  for(let i=1;i<=40;i++){const sp=vmax*i/40;const vm=sp/3.6,ae=Math.max(0.05,a+9.81*g/1000);const d=vm*tr+vm*vm/(2*ae);pts.push([sp,d]);}
+  for(let i=1;i<=40;i++){const sp=vmax*i/40;const vm=sp/3.6,ae=a+9.81*g/1000;const d=vm*tr+vm*vm/(2*ae);pts.push([sp,d]);}
   const X=sp=>pad+(sp/vmax)*(W-pad-10), Y=d=>H-pad-(d/dmax)*(H-pad-14);
   ctx.strokeStyle='#FF6B35';ctx.lineWidth=2;ctx.beginPath();
   pts.forEach(([sp,d],i)=>{const x=X(sp),y=Y(d);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();
   ctx.fillStyle='#FF6B35';ctx.beginPath();ctx.arc(X(v),Y(vmDist()),3.5,0,Math.PI*2);ctx.fill();
-  function vmDist(){const vm=v/3.6,ae=Math.max(0.05,a+9.81*g/1000);return vm*tr+vm*vm/(2*ae);}
+  function vmDist(){const vm=v/3.6,ae=a+9.81*g/1000;return vm*tr+vm*vm/(2*ae);}
   ctx.fillStyle='#64748b';ctx.font='12px sans-serif';
   ctx.fillText('速度 (km/h)',W-100,H-10);ctx.save();ctx.translate(10,80);ctx.rotate(-Math.PI/2);ctx.fillText('总停车距离 (m)',0,0);ctx.restore();
 }
@@ -310,10 +310,13 @@ function renderHist(){
 }
 function clearHist(){try{localStorage.removeItem('tb_history_brake_distance');}catch(e){}renderHist();}
 function calcTool(){
+  var raw={v:document.getElementById('v').value.trim(),tr:document.getElementById('tr').value.trim(),a:document.getElementById('a').value.trim(),g:document.getElementById('g').value.trim(),m:document.getElementById('m').value.trim()};
+  if(Object.keys(raw).some(function(k){return raw[k]==='';})){document.getElementById('result').innerHTML='<div class="result-placeholder">请完整填写速度、反应时间、制动减速度、坡度与列车质量</div>';return;}
   const v=num('v'), tr=num('tr'), a=num('a'), g=num('g'), m=num('m');
-  if(v<=0||a<=0){document.getElementById('result').innerHTML='<div class="result-placeholder">请输入大于 0 的速度与制动减速度</div>';return;}
+  if(![v,tr,a,g,m].every(isFinite)||v<=0||tr<0||a<=0||g<-60||g>60||m<=0){document.getElementById('result').innerHTML='<div class="result-placeholder">请输入有效参数：速度>0、反应时间≥0、制动减速度>0、坡度 −60~60‰、质量>0</div>';return;}
   const vm=v/3.6;
-  const ae=Math.max(0.05,a+9.81*g/1000);
+  const ae=a+9.81*g/1000;
+  if(ae<=0){document.getElementById('result').innerHTML='<div class="result-placeholder">净减速度 ≤ 0（坡度阻力已抵消制动减速度），不能得出有限停车距离；请提高制动减速度或减小下坡坡度。</div>';document.getElementById('brakeChart').getContext('2d').clearRect(0,0,9999,9999);return;}
   const dr=vm*tr;
   const db=vm*vm/(2*ae);
   const total=dr+db;
