@@ -194,7 +194,7 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="抑菌率">Reduction %</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="(B-C)/B ×100%">(B-C)/B ×100%</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="(C-B)/C ×100%（有 C 时）">(C-B)/C ×100% (with C)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">AATCC 100</td>
         </tr>
         <tr>
@@ -216,19 +216,21 @@
   <ul>
       <li>抑菌率 = (A − B) / A × 100%；抗菌活性值 R = log₁₀(A) − log₁₀(B)</li>
       <li>AATCC 100 要求 0h 接种量约 1×10⁵~3×10⁵ CFU/mL；抑菌率≥99%（R≥2）通常视为抗菌合格</li>
-      <li>若 B>A 说明试样无抗菌作用或菌已生长，抑菌率为负</li>
+      <li>若 B>对照（有 C 时 B>C，无 C 时 B>A），说明试样无抗菌作用或菌已生长，抑菌率为负</li>
       <li>纯前端运行，数据不会上传到服务器</li>
   </ul>
 </div>
 </div>
 <script>
 function calc(){
-  var A=+document.getElementById('A').value, B=+document.getElementById('B').value;
-  var C=+document.getElementById('C').value, bug=document.getElementById('bug').value, time=document.getElementById('time').value;
-  if(isNaN(A)||isNaN(B)||A<=0){ document.getElementById('res').innerHTML='<p style="color:var(--danger)">请输入有效的 0h 对照活菌数（A>0）</p>'; return; }
-  var refBase = (C>0) ? C : A;   // GB/T 20944.2 振荡法优先取 time h 对照 C；未填则回退 0h 对照 A（AATCC 100）
+  var aRaw=document.getElementById('A').value.trim(), bRaw=document.getElementById('B').value.trim(), cRaw=document.getElementById('C').value.trim();
+  var A=parseFloat(aRaw), B=parseFloat(bRaw), C=parseFloat(cRaw), bug=document.getElementById('bug').value, time=document.getElementById('time').value;
+  if(aRaw===''||bRaw===''||!isFinite(A)||!isFinite(B)||A<=0||B<0){ document.getElementById('res').innerHTML='<p style="color:var(--danger)">请输入有效的活菌数：A（0h 对照）须大于 0，B（试样）须为大于等于 0 的数值。</p>'; return; }
+  if(cRaw!==''&&(!isFinite(C)||C<=0)){ document.getElementById('res').innerHTML='<p style="color:var(--danger)">C（接触后对照）如填写须大于 0；不需要时请留空。</p>'; return; }
+  var refBase = (cRaw!=='' && C>0) ? C : A;   // GB/T 20944.2 振荡法优先取 time h 对照 C；未填则回退 0h 对照 A（AATCC 100）
   var rate = (refBase-B)/refBase*100;
-  var R = Math.log10(refBase) - Math.log10(B>0?B:1);
+  var R = B>0 ? Math.log10(refBase) - Math.log10(B) : Infinity;
+  var rText = B>0 ? R.toFixed(2) : '∞（B=0，无有限对数值）';
   var level,color,advice;
   if(rate>=99.9){ level='抗菌强效'; color='var(--success)'; advice='抑菌率≥99.9%，抗菌效果优异，符合高端抗菌纺织品要求，可标注强效抗菌。'; }
   else if(rate>=99){ level='抗菌合格'; color='#2563EB'; advice='抑菌率≥99%（对数减少≥2），达到 AATCC 100 常规抗菌合格线，可标注抗菌功能。'; }
@@ -236,13 +238,15 @@ function calc(){
   else if(rate>=70){ level='抗菌一般'; color='var(--warning)'; advice='抑菌率 70%-90%，抗菌效果偏弱，不宜宣称抗菌，需改进配方。'; }
   else { level='抗菌无效'; color='var(--danger)'; advice='抑菌率<70%，未见明显抗菌作用，应检查抗菌剂是否有效及加工均匀性。'; }
   var html='<p>抑菌率：<strong style="font-size:28px;color:'+color+';">'+rate.toFixed(2)+'%</strong></p>';
-  html+='<p>抗菌活性值 R = log('+((C>0)?'C':'A')+')−log(B) = <strong>'+R.toFixed(2)+'</strong></p>';
+  html+='<p>抗菌活性值 R = log('+((cRaw!==''&&C>0)?'C':'A')+')−log(B) = <strong>'+rText+'</strong></p>';
   html+='<table style="margin-top:6px;"><thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
   html+='<tr><td>测试菌种</td><td>'+bug+'</td></tr>';
   html+='<tr><td>接触时间</td><td>'+time+' h</td></tr>';
+  var method=(cRaw!==''&&C>0)?'GB/T 20944.2（C 为接触后对照）':'AATCC 100（A 为 0h 对照）';
+  html+='<tr><td>对照方法</td><td>'+method+'</td></tr>';
   html+='<tr><td>A（0h对照）</td><td>'+A.toLocaleString()+' CFU/mL</td></tr>';
   html+='<tr><td>B（'+time+'h试样）</td><td>'+B.toLocaleString()+' CFU/mL</td></tr>';
-  if(!isNaN(C)&&C>0) html+='<tr><td>C（'+time+'h对照）</td><td>'+C.toLocaleString()+' CFU/mL</td></tr>';
+  if(cRaw!==''&&C>0) html+='<tr><td>C（'+time+'h对照）</td><td>'+C.toLocaleString()+' CFU/mL</td></tr>';
   html+='</tbody></table>';
   html+='<p style="margin-top:8px;">判定：<strong style="color:'+color+';">'+level+'</strong></p>';
   html+='<div class="tip-box tip-'+(rate>=99?'success':rate>=70?'warn':'error')+'" style="margin-top:6px;"><strong>结果解读：</strong>'+advice+'</div>';
