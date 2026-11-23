@@ -279,52 +279,43 @@ function calcGDD(tmax, tmin, tbase, tupper, method){
   }
 }
 
-function calc(){
+function gddCollect(){
   var method = document.getElementById('method').value;
-  var tbase = +document.getElementById('tbase').value || 0;
-  var tupper = +document.getElementById('tupper').value || 30;
-  var targetGDD = +document.getElementById('targetGDD').value || 0;
-  if(!(targetGDD>0)){
-    document.getElementById('result').innerHTML='<div class="tip-box tip-error">目标积温必须大于0</div>';
-    return;
-  }
-  if(tbase<-20||tbase>40||tupper<=tbase||tupper>50){document.getElementById('result').innerHTML='<div class="tip-box tip-error">基础温度须在 −20–40 °C，上限温度须大于基础温度且不超过 50 °C。</div>';return;}
-
-  var partial = false, validDays = 0;
+  var tbRaw=String(document.getElementById('tbase').value||'').trim();
+  var tuRaw=String(document.getElementById('tupper').value||'').trim();
+  var tgRaw=String(document.getElementById('targetGDD').value||'').trim();
+  if(tbRaw===''||tuRaw===''||tgRaw==='') return {error:'请填写基础温度、上限温度与目标积温'};
+  var tbase=parseFloat(tbRaw),tupper=parseFloat(tuRaw),targetGDD=parseFloat(tgRaw);
+  if(!isFinite(tbase)||!isFinite(tupper)||!isFinite(targetGDD)) return {error:'温度与目标积温须为有效数字'};
+  if(!(targetGDD>0)) return {error:'目标积温必须大于0'};
+  if(tbase<-20||tbase>40||tupper<=tbase||tupper>50) return {error:'基础温度须在 −20–40 °C，上限温度须大于基础温度且不超过 50 °C。'};
+  var days=[];
   for(var i=0;i<dayCount;i++){
     var tm=document.getElementById('tmax'+i), tn=document.getElementById('tmin'+i);
     if(!tm||!tn) continue;
-    var maxEmpty = tm.value.trim()==='', minEmpty = tn.value.trim()==='';
-    if(maxEmpty && minEmpty) continue; // 整行未填写视为未使用，不按 0℃ 计入
-    if(maxEmpty || minEmpty){ partial = true; break; }
-    var __mx=parseFloat(tm.value),__mn=parseFloat(tn.value);
-    if(__mx<__mn){document.getElementById('result').innerHTML='<div class="tip-box tip-error">某天的最高气温不能低于最低气温，请检查逐日气温。</div>';return;}
-    if(__mx>60||__mn<-90){document.getElementById('result').innerHTML='<div class="tip-box tip-error">某天的气温超出合理范围（−90–60 °C），请检查逐日气温。</div>';return;}
-    validDays++;
+    var maxEmpty=tm.value.trim()==='',minEmpty=tn.value.trim()==='';
+    if(maxEmpty&&minEmpty) continue;
+    if(maxEmpty||minEmpty) return {error:'请补全已填写日期的最高/最低气温'};
+    var mx=parseFloat(tm.value),mn=parseFloat(tn.value);
+    if(!isFinite(mx)||!isFinite(mn)) return {error:'逐日气温须为有效数字'};
+    if(mx<mn) return {error:'某天的最高气温不能低于最低气温，请检查逐日气温。'};
+    if(mx>60||mn<-90) return {error:'某天的气温超出合理范围（−90–60 °C），请检查逐日气温。'};
+    days.push({day:i+1,tmax:mx,tmin:mn});
   }
-  if(partial){
-    document.getElementById('result').innerHTML='<div class="tip-box tip-error">请补全已填写日期的最高/最低气温</div>';
-    return;
-  }
-  if(validDays===0){
-    document.getElementById('result').innerHTML='<div class="tip-box tip-error">请至少完整填写一天的最高/最低气温</div>';
-    return;
-  }
+  if(days.length===0) return {error:'请至少完整填写一天的最高/最低气温'};
+  return {method:method,tbase:tbase,tupper:tupper,targetGDD:targetGDD,days:days};
+}
 
-  var totalGDD = 0;
-  var dailyGDDs = [];
-  for(var i=0;i<dayCount;i++){
-    var tmaxEl = document.getElementById('tmax'+i);
-    var tminEl = document.getElementById('tmin'+i);
-    if(!tmaxEl||!tminEl) continue;
-    if(tmaxEl.value.trim()===''||tminEl.value.trim()==='') continue; // 整行留空不计入
-    var tmax = +tmaxEl.value || 0;
-    var tmin = +tminEl.value || 0;
-    var gdd = calcGDD(tmax, tmin, tbase, tupper, method);
-    dailyGDDs.push({day:i+1, tmax:tmax, tmin:tmin, gdd:gdd});
-    totalGDD += gdd;
+function calc(){
+  var P=gddCollect();
+  if(P.error){document.getElementById('result').innerHTML='<div class="tip-box tip-error">'+P.error+'</div>';return;}
+  var method=P.method,tbase=P.tbase,tupper=P.tupper,targetGDD=P.targetGDD;
+  var totalGDD=0,dailyGDDs=[];
+  for(var k=0;k<P.days.length;k++){
+    var d0=P.days[k], g0=calcGDD(d0.tmax,d0.tmin,tbase,tupper,method);
+    dailyGDDs.push({day:d0.day,tmax:d0.tmax,tmin:d0.tmin,gdd:g0});
+    totalGDD+=g0;
   }
-
   var progress = targetGDD>0 ? (totalGDD / targetGDD) * 100 : 0;
   var remainGDD = Math.max(0, targetGDD - totalGDD);
   var avgGDD = dailyGDDs.length>0 ? totalGDD / dailyGDDs.length : 0;
@@ -365,12 +356,11 @@ function calc(){
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }
 function copyResult(){
-  var tbase=+document.getElementById('tbase').value||0;
-  var tupper=+document.getElementById('tupper').value||30;
-  var method=document.getElementById('method').value;
+  var P=gddCollect();
+  if(P.error){document.getElementById('result').innerHTML='<div class="tip-box tip-error">'+P.error+'</div>';return;}
   var totalGDD=0;
-  for(var i=0;i<dayCount;i++){var tmaxEl=document.getElementById('tmax'+i);var tminEl=document.getElementById('tmin'+i);if(!tmaxEl||!tminEl)continue;totalGDD+=calcGDD(+tmaxEl.value||0,+tminEl.value||0,tbase,tupper,method);}
-  ToolBox.copyText('生长度日GDD：\n累积GDD：'+totalGDD.toFixed(1)+'℃·d\n基础温度：'+tbase+'℃\n计算天数：'+dayCount+'天', i18nText('toast.msg544'));
+  for(var i=0;i<P.days.length;i++){totalGDD+=calcGDD(P.days[i].tmax,P.days[i].tmin,P.tbase,P.tupper,P.method);}
+  ToolBox.copyText('生长度日GDD：\n累积GDD：'+totalGDD.toFixed(1)+'℃·d\n基础温度：'+P.tbase+'℃\n计算天数：'+P.days.length+'天', i18nText('toast.msg544'));
 }
 renderDayRows();
 calc();
