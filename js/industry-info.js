@@ -34,7 +34,7 @@ window.INDUSTRY_INFO = {
   'surveying'            : { name: '测绘工程', icon: '📐', hot: 472489 },
   'geometry'             : { name: '几何', icon: '📐', hot: 465394 },
   'signal'               : { name: '信号系统', icon: '📡', hot: 462773 },
-  'energy'               : { name: '能源电力', icon: '⚡', hot: 461895 },
+  'energy'               : { name: '能源电力', icon: '⚡', hot: 461898 },
   'quantum'              : { name: '量子物理', icon: '⚛️', hot: 461575 },
   'chemistry'            : { name: '化学', icon: '🧪', hot: 457795 },
   'thermodynamics'       : { name: '热力学', icon: '🌡️', hot: 451588 },
