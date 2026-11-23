@@ -523,12 +523,23 @@
     for (var i = 0; i < list.length; i++) {
       var el = list[i];
       if (el.hasAttribute('data-i18n')) continue;
-      if (el.children && el.children.length) continue;
       var zh = el.getAttribute('data-zh');
       if (!zh || !/[\u4e00-\u9fff]/.test(zh)) continue;
       var cur = el.textContent;
-      if (!cur || /[\u4e00-\u9fff]/.test(cur)) continue;
-      if (cur === zh) continue;
+      if (cur && /[\u4e00-\u9fff]/.test(cur)) continue;
+      if (el.children && el.children.length) {
+        // 公式表格常见 <sub>/<sup> 结构：data-zh 是带同样标记的完整中文 HTML。
+        // 仅对 td/p 做 HTML 级还原，且拒绝 data-zh 内含交互控件/链接，避免破坏可访问性。
+        var tag = (el.tagName || '').toLowerCase();
+        if ((tag === 'td' || tag === 'p') && !/<(input|select|textarea|button|a)\b/i.test(zh)) {
+          if (el.__tbEnHtml === undefined) el.__tbEnHtml = el.innerHTML;
+          if (zh.indexOf('<') >= 0) el.innerHTML = zh;
+          else if (el.children.length === 1 && el.firstElementChild && el.firstElementChild.tagName === 'A') el.firstElementChild.textContent = zh;
+          else el.innerHTML = zh;
+        }
+        continue;
+      }
+      if (!cur || cur === zh) continue;
       // h2 中有一类是「公式标题」（PR = …、F = …），data-zh 是中文说明，但公式本体
       // 必须保留原样；主 h2 已由 applyToolBody() 的 ORIG.title 还原（cur 含汉字天然跳过）。
       // 仅对 h2 增加公式守卫，避免把公式标题替换成中文说明。
@@ -819,6 +830,7 @@
       var it = EN_ORIG[i];
       if (it.node) { if (it.node.parentNode) it.node.nodeValue = it.orig; }
       else if (it.el && it.attr) { if (it.el.parentNode) it.el.setAttribute(it.attr, it.orig); }
+      else if (it.el && it.html !== undefined) { it.el.innerHTML = it.html; }
       else if (it.el) { it.el.textContent = it.orig; }
     }
     EN_ORIG = [];
@@ -905,7 +917,13 @@
     // (a) [data-zh]：英文态下静态文本已是构建期预渲染的英文，中文原文保存在 data-zh
     var dzs = document.querySelectorAll('[data-zh]');
     for (var i = 0; i < dzs.length; i++) {
-      if (dzs[i].children && dzs[i].children.length) continue;   // 只处理纯文本元素，不动结构
+      if (dzs[i].children && dzs[i].children.length) {   // 只处理纯文本元素，不动结构；HTML 级还原的公式表格单独回填
+        if (dzs[i].__tbEnHtml !== undefined && dzs[i].innerHTML !== dzs[i].__tbEnHtml) {
+          EN_ORIG.push({ el: dzs[i], html: dzs[i].__tbEnHtml });
+          dzs[i].innerHTML = dzs[i].__tbEnHtml;
+        }
+        continue;
+      }
       var zh = dzs[i].getAttribute('data-zh');
       if (!zh) continue;
       var tr = pickEn(zh);
