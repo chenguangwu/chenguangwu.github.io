@@ -1,4 +1,4 @@
-# 全站剩余任务清单（2026-11-23 第 551 批后）
+# 全站剩余任务清单（2026-11-23 第 552 批后）
 
 > 8 类全扫与第 513–535 批修复记录见 `plan/已修复/`。
 > 本文件只保留**唯一仍未到期、不可提前执行**的迁移壳清理项。
@@ -8,7 +8,7 @@
 | 类别 | 已收口 | 剩余 |
 |---|---|---|
 | 1 功能 Bug | 4,925 页加载期 0 缺陷；120 页点击烟测 0；TWSTRS 满分口径已修；宠物喂食工具错配旧指南、连续性指南相关工具错配已修 | 无 |
-| 2 UI 布局 | 全站 UX 8.64/9；家具布局页与语言切换器 320px 已修；209 个行业首页 320px 横向溢出已修；热门工具前 100 页 320px 实扫；第 551 批 4,822 个工具页 320px 全量实扫，19 页页面级横向溢出全部修复并复扫 scrollWidth=320 | 无 |
+| 2 UI 布局 | 全站 UX 8.64/9；家具布局页与语言切换器 320px 已修；209 个行业首页 320px 横向溢出已修；热门工具前 100 页 320px 实扫；第 551 批 19 个工具页 320px 修复；第 552 批 3,456 个非工具页（指南/静态页）320px 实扫，`main` 长公式/长串换行兜底，指南 176 页残留全部清零；embed 页导航与转义双修 | 无 |
 | 3 中英文 | 16 个零词典指南已全量英文化；3,131 个指南页补齐英文标题/描述兜底，3,428 页相关工具链接、CTA 与导语已批量英文化；209 个行业首页中英文标题重复显示与英文重复 emoji 已修；第 548 批接入 `GUIDE_EN_PACK`、修复 data-i18n 重置、2,744 条公共免责声明入词典，119 个结构化指南英文态清零；全量 3,250 个有效指南扫描 61 页有中文，第 549 批已全部清零；第 550 批 4,822 个工具页正文英文态仅 1 页 1 条、128 页 head 中文，均已清零；工具与指南英文正文/标题/描述复扫 0 残留 | 无 |
 | 4 SEO 文案 | 工具/指南描述 <70 = 0；TWSTRS 工具与指南的 75 分残留已统一为 85 分制 | 无 |
 | 5 新增同类工具 | `trash-bag-size`、`winter-feed-syrup`、`box-fit`、`water-filter-lifespan`、`ac-energy-cost`、`appliance-lifespan`、`repair-or-replace`、`water-heater-sizing` 已交付 | 无 |
@@ -43,6 +43,14 @@
   agriculture/fertilizer-calculator、edu/exam-timer、music/web-tuner、music/music-player、urban/building-height、archaeology/site-grid、textile/pattern-calculator、biz/assessor-risk-8、cognition/schulte-table、rheumatology/basdai、it/summary-generator、science/cycle、life/data-unit-converter、life/holiday-calendar、beauty/makeup-shade、project/analysis-28、museum/visitor-route、finance/word-search、psychiatry/mmpi2-personality。
 - 修复方式：每页注入 `#mobile320-fix` 局部媒体查询，不新增公共依赖。NPK 三列改两列；计时器字号 `clamp(30px,11vw,64px)`；表格 `table-layout:fixed` + 单元格换行；音量行/设置行允许换行；建筑可视化柱宽 40→30；遗址输入框 `max-width:100%`；裁片行换行；风险行改单列；舒尔特控制区单列；BASDAI 标签 80→28；摘要详情行允许换行；元素周期表/日历/单词网格改 `minmax(0,1fr)` 并局部滚动；肤色卡 3 列压缩；干系人行改网格并压低下拉内边距；通道行改两行网格；MMPI 解释行换行。
 - 复扫：19 页 `document.documentElement.scrollWidth` 全部 = 320；6 页关键控件截图人工核对无截断（计时器、化肥、日历、单词、参观流线、MMPI）。
+
+## 第 552 批：非工具页 320px 与指南长公式换行（已完成，待本地提交）
+
+- 3,456 个非工具 HTML（3,428 指南 + 静态页）320×800 实扫，命中 4 页：`embed.html`、`.workbuddy/legal_en_evidence.html`、`.workbuddy/sv5_en_evidence.html`、`guides/generator-4-guide.html`。
+- 指南页真实根因是 `main` 缺 `overflow-wrap`：长公式/长数字串在 `li` 内把 `scrollWidth` 撑到 986。`css/common.css` 末尾加 `main{overflow-wrap:anywhere;word-break:break-word}`，3,250 个有效指南全部清零。
+- `embed.html` 两处真实缺陷：① 未引 `common.css` 的 `.desktop-only/.mobile-only` 显隐规则，桌面导航在 320px 溢出；② `data-i18n-html-fb` 里 `&lt;iframe&gt;` 被二次当 HTML 注入，生成空 iframe 撑宽页面。已补移动端显隐、双重转义、导航语言器限宽、`code/table` 换行。
+- `.workbuddy/**` 已被 `.gitignore` 排除，不进 Pages 产物，不计入线上；`generator-4-guide.html` 是 meta-refresh 存根，扫描实际跳到线上旧版 summary-generator，属误报。
+- 复扫：`embed.html` 320；有效指南 320；无本地真实残留。
 
 ## R3：迁移壳到期清理（唯一按日期等待项）
 
