@@ -403,6 +403,18 @@ const CASES = [
   "expect": ["TYPMWPM OK"],
   "ref": "第1306批·WPM虚增修复源码形态强锚：按 chars/总经过时间算，不再用平均间隔 m 当总时长。旧版 calcWpm(lastVal.length,m) ⇒ BAD；真机按键节奏由复核方覆盖。"
 },
+{
+  "slug": "fun/generator-3",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/fun/generator-3.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/fun/generator-3.json','utf8');var ov=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/_en_override.json','utf8');var ok=h.indexOf('支持网格尺寸调节')<0&&h.indexOf('改网格尺寸')<0&&h.indexOf('增大尺寸或减通道')<0&&h.indexOf('固定 15×11')>=0&&h.indexOf('递归回溯生成，保证全连通、必有解')>=0&&h.indexOf('BFS 自动求最短路径并高亮显示')>=0&&en.indexOf('grid size is adjustable')<0&&en.indexOf('change the grid size')<0&&en.indexOf('fixed at 15×11')>=0&&ov.indexOf('fixed 15×11 grid')>=0;document.getElementById('__tbProbe').textContent='MAZEINTRO '+(ok?'OK':'BAD');"],
+  "expect": ["MAZEINTRO OK"],
+  "ref": "第470批：迷宫页实际固定 15×11，旧简介只写“娱乐游戏工具/离线可玩”且元数据承诺“支持网格尺寸调节”。新版正文、meta/OG/JSON-LD、深解与英文词典统一为固定 15×11 + 递归回溯 + BFS；旧串任一命中即红。"
+},
+{
+  "slug": "fun/raffle-picker",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/fun/raffle-picker.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/fun/raffle-picker.json','utf8');var ov=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/_en_override.json','utf8');var ok=h.indexOf('导入或输入名单')<0&&h.indexOf('导入名单随机抽')<0&&h.indexOf('输入名单（每行一个名字）后随机抽取选中者')>=0&&h.indexOf('文本框逐行输入名单，无需文件导入')>=0&&h.indexOf('填写种子可复现同一抽取结果')>=0&&en.indexOf('import a list')<0&&en.indexOf('Import names one per line')<0&&en.indexOf('no file import needed')>=0&&ov.indexOf('entered one name per line')>=0;document.getElementById('__tbProbe').textContent='RAFFLEINTRO '+(ok?'OK':'BAD');"],
+  "expect": ["RAFFLEINTRO OK"],
+  "ref": "第470批：抽取页只有文本框，没有文件导入控件；旧简介/元数据承诺“导入或输入名单”。新版统一为“文本框输入名单（每行一个名字）+ 不放回 + 种子可复现”，英文同步删除 import 承诺；旧串任一命中即红。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);
