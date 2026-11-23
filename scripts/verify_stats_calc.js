@@ -76,6 +76,12 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/' +'tools/stats/regression-analysis.html','utf8');var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+'tools/stats/regression-analysis.html','utf8');var i=h.indexOf('if(xs.length !== ys.length');var s=i>=0?h.slice(i,i+900):'';var ok=s.indexOf('model = null')>=0&&(s.match(/getElementById\\('result'\\).innerHTML=''/g)||[]).length>=2&&s.indexOf('clearRect')>=0;document.getElementById('__tbProbe').textContent='REGCLR '+(ok?'OK':'BAD');})();"],
   "expect": ["REGCLR OK"],
   "ref": "第1345批 regression-analysis 两早退(样本不足/sxx|syy<=0)原只改 #equation，不清 #result/canvas/model；改为两处同步清空并重置 model。"
+},
+{
+  "slug": "stats/regression-analysis",
+  "clicks": ["var hh=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/stats/regression-analysis.html','utf8');var ci=hh.indexOf('function calc(){');var cs=ci>=0?hh.slice(ci,ci+500):'';var pi=hh.indexOf('function predictVal(){');var ps=pi>=0?hh.slice(pi,pi+320):'';var ok=cs.indexOf('__numReq')<0&&cs.indexOf('pred-result')>=0&&ps.indexOf('__raw===')>=0&&ps.indexOf('请先输入 X 值后再预测')>=0;document.getElementById('__tbProbe').textContent='REGROPT '+(ok?'OK':'BAD');"],
+  "expect": ["REGROPT OK"],
+  "ref": "第1345批·预测 X 空值早退残留修复：预测输入改为独立可选项，calc 不再用 pred-x 做必填早退，并在拟合时清空上轮预测；predictVal 空值时单独提示。旧版 calc 首部 pred-x 必填 ⇒ BAD。"
 }
 
 ];

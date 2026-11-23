@@ -266,9 +266,8 @@ function tCrit95(df){
 function parseNum(s){ return s.split(/[,\s\n]+/).map(x => +x).filter(x => !isNaN(x)); }
 
 function calc(){
-// NUMCLR：全部输入留空时不得输出 0/0.00 的假结果
-var __numReq=['pred-x'];
-if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
+ // 预测 X 是独立可选项：拟合不依赖它；每次拟合先清掉上一次预测文本
+ var __pr=document.getElementById('pred-result'); if(__pr) __pr.innerHTML='';
  const xs = parseNum(document.getElementById('x-data').value);
  const ys = parseNum(document.getElementById('y-data').value);
  if(xs.length !== ys.length || xs.length < 3){
@@ -383,9 +382,12 @@ function drawScatter(){
 }
 
 function predictVal(){
+ const __raw=String(document.getElementById('pred-x').value).trim();
+ if(__raw===''){if(document.getElementById('pred-result'))document.getElementById('pred-result').innerHTML='<p style="color:var(--danger)">请先输入 X 值后再预测。</p>';return;}
  if(!model) calc();
  if(!model) return;
- const x = +document.getElementById('pred-x').value;
+ const x = +__raw;
+ if(!isFinite(x)){document.getElementById('pred-result').innerHTML='<p style="color:var(--danger)">请输入有效的 X 数值。</p>';return;}
  const y = model.a + model.b * x;
  const __g3=`
   当 X = <strong>${x}</strong> 时:<br>

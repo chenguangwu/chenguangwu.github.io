@@ -49,6 +49,18 @@ const CASES = [
   "ref": "第1369批·RGB 空项按 0 计算修复：fromRGB 逐项校验 r/g/b，任一项空/非法即清空 hex/CMYK/HSL/LAB 与预览；旧版整表空才守卫、单空按 0 ⇒ BAD。"
 },
 {
+  "slug": "advertising/reach-frequency",
+  "clicks": ["document.getElementById('rounds').value='0';document.getElementById('singleReach').value='20';calcMulti()"],
+  "expect": ["投放轮次须为 ≥1 的整数。"],
+  "ref": "第1344批·0 轮被替换为 1 修复：注入 0 轮必须拒绝（旧版 +v||1 替换成 1 仍出一轮结果，命中「1轮」而非该提示）。"
+},
+{
+  "slug": "advertising/reach-frequency",
+  "clicks": ["document.getElementById('rounds').value='2';document.getElementById('singleReach').value='0';calcMulti()"],
+  "expect": ["0.0%"],
+  "ref": "第1344批·合法 0% 不得被当成空值：单次到达率 0%、2 轮 ⇒ 累计到达 0.0%，仍应正常出表；默认 25%/4 轮为 68.4%，不命中。"
+},
+{
   "slug": "advertising/convert-26",
   "inputs": { "px": "192", "dpi": "96" },
   "expect": ["物理尺寸 = 50.80 mm"],
@@ -153,7 +165,7 @@ const CASES = [
 },
 {
   "slug": 'advertising/reach-frequency',
-  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/advertising/reach-frequency.html\',\'utf8\');var i=h.indexOf(\'function calcMulti(){\');var s=i>=0?h.slice(i,i+420):\'\';var ok=s.indexOf(\'singlePct<0||singlePct>100\')>=0&&s.indexOf(\'multiResult\')>=0&&s.indexOf(\'单次到达率须在 0–100%\')>=0;document.getElementById(\'__tbProbe\').textContent=\'REACH100 \'+(ok?\'OK\':\'BAD\');})();'],
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/advertising/reach-frequency.html\',\'utf8\');var i=h.indexOf(\'function calcMulti(){\');var s=i>=0?h.slice(i,i+900):\'\';var ok=s.indexOf(\'singlePct<0||singlePct>100\')>=0&&s.indexOf(\'multiResult\')>=0&&s.indexOf(\'单次到达率须在 0–100%\')>=0;document.getElementById(\'__tbProbe\').textContent=\'REACH100 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['REACH100 OK'],
   "ref": "第1344批·到达率越界守卫源码形态强锚：旧版 calcMulti 单次到达率>100% 时 notReached 变负、累计到达率振荡超 100%；修复后入口限制 0–100% 与轮次>=1，越界提示并 return。旧版无 ⇒ BAD。"
 },

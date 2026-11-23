@@ -702,6 +702,12 @@ const CASES = [
     expect: ["FIXGUARD OK"],
     ref: "第1344批 守卫覆盖不全：calcFixed 固定风险模式原无 __tbInputGuard，非数字手续费经 getVal 静默转 0 产出错误结果（calcKelly 有守卫）；修复后 calcFixed 入口补六参数守卫。",
   },
+  {
+    slug: "securities/position-sizing",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/securities/position-sizing.html','utf8');var i=h.indexOf('function calcFixed(){');var s=i>=0?h.slice(i,i+1200):'';var ok=(s.match(/statGrid/g)||[]).length>=2;document.getElementById('__tbProbe').textContent='POSSTAT '+(ok?'OK':'BAD');"],
+    expect: ["POSSTAT OK"],
+    ref: "第1344批·守卫早退未清旧统计卡修复：calcFixed 的 __tbInputGuard 分支先清空 statGrid 再提示；旧版只更新 result，旧股数/仓位卡残留 ⇒ BAD。",
+  },
 { slug:"securities/beta-calc", inputs:{"riskFree":"","mktReturn":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
   { slug: "securities/annualized-vol", inputs: { sd: "-0.02" }, expect: ["⚠ 日波动率不能为负。"], ref: "负日波动率开方后仍为 −31.75% 年化，符号被掩盖；新守卫应拒绝。默认 0.01→15.87 不含该提示。" },
 
