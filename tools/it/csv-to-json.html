@@ -140,7 +140,7 @@
     <li><b>解析</b>：按分隔符与引号规则切分，首行作字段名，每行生成一个对象。</li>
     <li><b>类型</b>：可选择把纯数字与 true/false 自动转为对应类型，或全部保留字符串。</li>
     <li><b>分隔符</b>：支持逗号、制表符、分号；需正确处理引号包裹与转义双引号。</li>
-    <li><b>异常</b>：空行与列数不一致的行要明确策略（跳过或补 null）。</li>
+    <li><b>异常</b>：数据行字段数多于表头时直接报错并给出行号，不静默丢列；少于表头时缺列补空串。</li>
   </ul>
 </div>
 
@@ -498,20 +498,31 @@ function csvToJson() {
   
   try {
     const delimiter = getDelimiter();
-    const quoteChar = document.getElementById('csvQuote').value;
+    const quoteChar = document.getElementById('csvQuote').value || '"';
     const hasHeader = document.getElementById('hasHeader').checked;
     const trim = document.getElementById('trimFields').checked;
     const pretty = document.getElementById('prettyPrint').checked;
     
     const parsed = parseCSV(csvText, delimiter, quoteChar, hasHeader, trim);
+    const expectedCols = parsed.headers.length;
+    const badIdx = parsed.rows.findIndex(r => r.length > expectedCols);
+    if (badIdx >= 0) {
+      const lineNo = badIdx + (hasHeader ? 2 : 1);
+      throw new Error(`第 ${lineNo} 行有 ${parsed.rows[badIdx].length} 列，超过${hasHeader ? '表头' : '首行'} ${expectedCols} 列；请检查分隔符/引号，或先补齐/裁剪数据`);
+    }
     currentData = parsed;
     
     const json = toJSON(parsed, pretty);
     document.getElementById('jsonOutput').value = json;
+    document.getElementById('jsonOutput').placeholder = 'JSON 结果将显示在这里...';
     
     addToHistory('csv2json', csvText.substring(0, 100), parsed.rows.length);
     ToolBox.showToast(__csvLangEn() ? `Converted: ${parsed.rows.length} rows` : `转换成功：${parsed.rows.length} 行数据`);
   } catch(e) {
+    currentData = null;
+    const out = document.getElementById('jsonOutput');
+    out.value = '';
+    out.placeholder = '转换失败：' + e.message;
     ToolBox.showToast('转换失败：' + e.message, 'error');
   }
 }

@@ -16,6 +16,7 @@
 <meta name="description" content="在 CI、API、前端配置里常需要把 YAML（如 GitHub Actions、docker-compose）转成 JSON。粘贴即转，可设缩进">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/vendor/js-yaml/4.1.1/js-yaml.min.js" integrity="sha384-ZeqCzuWczURac3RacSufGD7oSbzeaX7xxnnOr3PTcYTLx4Av0qBj0kBq7AeCtHLA" crossorigin="anonymous"></script>
 <script src="../../js/common.js" defer></script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"IT开发","item":"https://chenguangwu.github.io/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"YAML 转 JSON 转换器","item":"https://chenguangwu.github.io/tools/it/yaml-to-json.html"}]}
@@ -120,7 +121,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#3B82F6;">
     <h2 data-zh="📄 YAML 转 JSON 转换器">📄 YAML to JSON Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">YAML 解析：逐行记录缩进量（行首空白长度），跳过空行与 # 注释；行以 - 开头时按同一缩进连续收集为数组，元素为空则递归解析子块、形如「键: 值」按映射解析、否则按标量；其余按 ^([^:]+):\s?(.*)$ 取键值对，值为空且下一行缩进更大时递归解析子块，否则取空对象。块标量：| / >（含 |- / >-）按缩进收集后续行，| 保留换行、> 折叠为空格，尾部 - 去掉末尾换行、默认保留一个。行内注释：值中引号外的「空格 + #」在解析前剥离，引号内 # 与紧贴值的 # 保留。标量还原：去成对引号，true/false 转布尔，null 与 ~ 转空，纯整数转 parseInt，纯小数转 parseFloat。输出 JSON 时缩进取 tab 或指定个数的空格（缺省 2），勾选排序时按键名字典序递归重排所有层级的键</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">YAML 解析由本地 js-yaml 4.1.1 完成：完整支持引号键、锚点/别名、块标量与行内注释，复杂键不再被静默丢弃；仅支持单文档，检测到 --- 多文档时直接报错。输出 JSON 缩进可选 tab 或 2/4 空格；勾选排序时按键名字典序递归重排所有层级的键</div>
   <div class="formula-desc">把 YAML 转换为 JSON。</div>
   <ul class="formula-list">
     <li><b>映射</b>：YAML 的映射与序列分别转为 JSON 对象与数组。</li>
@@ -390,8 +391,15 @@ function dumpYaml(node,pad,sort,isRoot){
 
 var src=document.getElementById('source').value||'';
 if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 YAML 文本</p>'; return; }
-var obj=parseYaml(src);
-if(obj && obj.__err){ const __g3='<p class="muted">解析失败：'+escH(obj.__err)+'</p>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')); return; }
+var obj;
+try{
+  if(typeof jsyaml==='undefined') throw new Error('js-yaml 解析库未加载，请刷新页面重试');
+  var docs=jsyaml.loadAll(src);
+  if(docs.length>1) throw new Error('检测到多份 YAML 文档（--- 分隔），请逐份转换');
+  obj=docs.length?docs[0]:null;
+}catch(e){
+  document.getElementById('result').innerHTML='<p class="muted">解析失败：'+escH(e.message)+'</p>'; return;
+}
 if(document.getElementById('sort').checked){
   obj=sortKeys(obj);
 }

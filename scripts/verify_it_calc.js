@@ -6606,14 +6606,19 @@ const CASES = [
     ref: "表头键名 `__proto__`：修复前每行对象 `obj[h]=v` 走原型 setter，JSON 丢键只剩 v；Object.create(null) 后保留自有键 ⇒ `{\"__proto__\":\"x\"`。输入是逗号分隔，不含 JSON 引号键形态。",
   },
   {
-    // ⚠ 存疑项：字段被引号包裹且内含分隔符时，页面把引号当普通字符切开，且后半段「y」丢失。
-    //   修页面后本条须同步更新。已留档上报，未擅改页面。
     slug: "it/csv-to-json",
     inputs: { csvInput: "a,b\n1,\"x,y\"" },
     clicks: ["document.getElementById('hasHeader').checked=true;csvToJson()"],
     dumpIds: ["jsonOutput"],
-    expect: ['[{"a":"1","b":"\\"x"}'],
-    ref: "默认 csvQuote 为双引号，含分隔符的字段本应整体保留为 b=\"x,y\"；页面实际切成 b='\"x' 且丢弃后半段。可能是 parseCSV 未实现引号解析，也可能是 harness 下 select.value 取空 —— 二者在 harness 内无法区分。已被 SEA 记为待查项，修复页面后此条须同步更新。",
+    expect: ['[{"a":"1","b":"x,y"}]'],
+    ref: "默认 csvQuote 为双引号，含分隔符的字段必须整体保留为 b=\"x,y\"；页面补 quoteChar 空值兜底后，真实浏览器与桩环境一致。旧断言记录的是被截断的 b=\"x（引号未生效），现改为正确值。",
+  },
+  {
+    slug: "it/csv-to-json",
+    inputs: { csvInput: "a,b\n1,2,3" },
+    clicks: ["document.getElementById('hasHeader').checked=true;document.getElementById('jsonOutput').value='STALE';var __old=ToolBox.showToast;var __msg='';ToolBox.showToast=function(m){__msg=String(m)};csvToJson();ToolBox.showToast=__old;document.getElementById('__tbProbe').textContent='XTRA '+((__msg.indexOf('第 2 行有 3 列')>=0&&document.getElementById('jsonOutput').value==='')?'OK':'BAD');"],
+    expect: ["XTRA OK"],
+    ref: "多列不静默：表头 a,b 仅 2 列，数据行 1,2,3 有 3 列 ⇒ 报错并指出第 2 行；旧输出被清空，不保留上一次 STALE 结果。旧实现静默丢第 3 列并输出 {a:1,b:2} ⇒ 探针 BAD。"
   },
   {
     slug: "it/url-encode",
@@ -7232,6 +7237,24 @@ const CASES = [
     "inputs": { "source": "title: probe\nserver:\n  host: 127.0.0.1\n  port: 5432" },
     "expect": ["\"title\": \"probe\"", "\"port\": 5432"],
     "ref": "YAML→JSON：注入嵌套映射（server.host / server.port），JSON.stringify(obj, null, 2) 应产出带引号键 `\"title\": \"probe\"`，且 port 按 YAML 标量类型推断为数值 5432（不带引号）。输入原文是 `title: probe`（无引号键），故 expect 形态不在输入中。默认 YAML 样例不含 probe/5432。"
+  },
+  {
+    "slug": "it/yaml-to-json",
+    "inputs": { "source": "\"x:y\": 1\nlist: [a, b]\n" },
+    "expect": ["\"x:y\": 1"],
+    "ref": "引号键回归：旧手写解析器按第一个冒号切键，`\"x:y\": 1` 会丢键或切错；js-yaml 保留完整键 x:y。输入原文含引号与转义，输出键为 JSON 转义后的 `\"x:y\": 1`。"
+  },
+  {
+    "slug": "it/yaml-to-json",
+    "inputs": { "source": "base: &b\n  a: 1\ncopy: *b\n" },
+    "expect": ["\"copy\": {", "\"a\": 1"],
+    "ref": "锚点/别名回归：base 定义 &b，copy 用 *b 展开为同一映射；旧解析器把 &b / *b 当普通字符串，输出 `\"copy\": \"*b\"`，本条两串均不命中。"
+  },
+  {
+    "slug": "it/yaml-to-json",
+    "inputs": { "source": "a: 1\n---\nb: 2\n" },
+    "expect": ["检测到多份 YAML 文档（--- 分隔）"],
+    "ref": "多文档策略：检测到 2 份文档时明确报错，不静默只取第一份。默认样例单文档不含该串。"
   },
   {
     "slug": "it/yaml-to-json",
@@ -9105,6 +9128,12 @@ const CASES = [
       " 响应 废弃\n共 0 项"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「 响应 废弃\n共 0 项」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/http-methods",
+    "inputs": { "searchInput": "TRACE" },
+    "expect": ["回显请求（诊断；因跨站追踪风险常被服务器禁用，RFC 9110 仍定义）", "共 1 项"],
+    "ref": "TRACE 说明回归：旧文案写「已废弃」，改为 RFC 9110 仍定义、常被禁用的准确表述；搜索 TRACE 只命中一项。默认列表无搜索词，不含该串。"
   },
   {
     "slug": "it/http-methods",
@@ -15955,6 +15984,10 @@ async function runCaseInner(c) {
   const pageAcorn = /vendor\/acorn/.test(html)
     ? (() => { try { return require(path.join(ROOT, "vendor", "acorn", "8.19.0", "acorn.min.js")); } catch (e) { return undefined; } })()
     : undefined;
+  const pageJsYaml = /vendor\/js-yaml/.test(html)
+    ? (() => { try { return require(path.join(ROOT, "vendor", "js-yaml", "4.1.1", "js-yaml.min.js")); } catch (e) { return undefined; } })()
+    : undefined;
+  try { globalThis.jsyaml = pageJsYaml; } catch (e) { /* 只读全局跳过 */ }
   const compiled = new Function(
       "document", "window", "console", "navigator", "localStorage", "sessionStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date", "acorn",
       `var __f={};\n${script}\n${expose}\n__f["__pageEval"]=function(c){return eval(String(c));};\n__f["__rebindGlobal"]=function(n){try{eval(n+' = window.'+n);}catch(e){}};\nreturn __f;`
