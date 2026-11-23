@@ -337,12 +337,42 @@ const CASES = [
   // ── 水质 TDS 分级（阈值分段判定，非算术） ────────────────────────
   {
     slug: "energy/assessor-water-quality",
-    inputs: { tds: "400", temp: "25" },
-    expect: ["合格饮用水", "727"],
-    ref: "400 mg/L 落在 (300,500] → 合格饮用水；电导率估算 = TDS/0.55 = 727 μS/cm",
+    inputs: { tds: "400", temp: "25", purpose: "industrial" },
+    expect: ["较高 TDS", "727"],
+    ref: "400 mg/L 落在 (300,500] → 较高 TDS（口感参考，非安全结论）；电导率估算 = TDS/0.55 = 727 μS/cm。",
   },
 
   // ── 空气净化器适用面积 ≈ CADR × 系数 ───────────────────────────
+  {
+    slug: "energy/assessor-water-quality",
+    inputs: { tds: "", temp: "20", purpose: "drink" },
+    expect: ["请填写 TDS 值后再计算"],
+    ref: "空态守卫：TDS 为空时不得把 0 当作合法输入输出极低 TDS 结果，必须只显示填写提示。"
+  },
+  {
+    slug: "energy/assessor-water-quality",
+    inputs: { tds: "51", temp: "25", purpose: "industrial" },
+    expect: ["低 TDS"],
+    ref: "TDS 51 落在 (50,100] → 低 TDS；不得输出可直饮/合格饮用水结论。"
+  },
+  {
+    slug: "energy/assessor-water-quality",
+    inputs: { tds: "101", temp: "25", purpose: "industrial" },
+    expect: ["中等 TDS"],
+    ref: "TDS 101 落在 (100,300] → 中等 TDS。"
+  },
+  {
+    slug: "energy/assessor-water-quality",
+    inputs: { tds: "1000", temp: "25", purpose: "industrial" },
+    expect: ["高 TDS", "≤1000 mg/L"],
+    ref: "TDS 1000 落在 (500,1000] → 高 TDS；限值参考写明 GB 5749 ≤1000 mg/L。"
+  },
+  {
+    slug: "energy/assessor-water-quality",
+    inputs: { tds: "1001", temp: "25", purpose: "industrial" },
+    expect: ["超过 TDS 限值"],
+    ref: "TDS 1001 >1000 → 超过限值，不再声称可饮用。"
+  },
   {
     slug: "energy/air-purifier-area",
     // 系数 factorInput 已修复为真正参与计算，故用例刻意取非默认系数 0.12：
@@ -452,7 +482,8 @@ const CASES = [
       "purpose": "pure"
     },
     "expect": [
-      "0mg/L TDS极低，几乎不含矿物质 适用于实验室和工业，长期饮用需补充矿物质"
+      "极低 TDS",
+      "TDS 低不等于无菌或安全"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"tds\":\"42\",\"temp\":\"42\",\"purpose\":\"pure\"}，输出区含「0mg/L TDS极低，几乎不含矿物质 适用于实验室和工业，长期饮用需补充矿物质」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
