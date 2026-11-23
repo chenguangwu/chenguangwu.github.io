@@ -2855,6 +2855,12 @@ const CASES = [
   "inputs": { "inputVal": "-1", "fromUnit": "g" },
   "expect": ["重量需为非负数值"],
   "ref": "第229批·负重量仍须拒绝：仅放开 0，负数提示非负；默认 42 不出现该提示。"
+},
+{
+  "slug": "life/holiday-calendar",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/life/holiday-calendar.html','utf8');var i=h.indexOf('// === 2027 ===');var b=i>=0?h.slice(i,i+1600):'';var m=h.indexOf('var makeupWorkdays');var mk=m>=0?h.slice(m,m+600):'';var ok=h.indexOf('2026-02-15')>=0&&h.indexOf('2026-02-23')>=0&&b.indexOf('2027-02-05')>=0&&b.indexOf('除夕')>=0&&b.indexOf('2027-02-13')>=0&&b.indexOf('2027-04-03')>=0&&b.indexOf('2027-04-06')<0&&b.indexOf('2027-06-09')>=0&&b.indexOf('2027-06-11')<0&&mk.indexOf('2026-02-14')>=0&&mk.indexOf('2027-01-31')>=0;document.getElementById('__tbProbe').textContent='HOLSYNC '+(ok?'OK':'BAD');"],
+  "expect": ["HOLSYNC OK"],
+  "ref": "第225/231批·2026春节缺2/23、2027春节漏除夕修复：2026 春节 2/15–23 并补 1/4、2/14、2/28 等补班；2027 春节 2/5–13（2/5 标除夕），清明 4/3–5、端午 6/9、中秋 9/15，补班 1/31 等。旧数据 2026 少 2/23、2027 从 2/6 起 ⇒ BAD。真机 2026-02 工作日 16、2027-02 工作日 15。"
 }
 ];
 
