@@ -699,6 +699,13 @@ var LANG_REGISTRY = [
       }
       l = reg ? reg.fallback : null;
     }
+    // 指南页英文包（js/guide-en-pack.js）只暴露 GUIDE_EN_PACK，不写入 PACKS；
+    // 其 guide.<slug>.* 键若未被消费，data-i18n 元素会在 init/语言切换时被重置回中文，
+    // 覆盖 guide-i18n.js 刚完成的正文翻译。EN 态下补查该包。
+    if (current === 'en-US' && window.GUIDE_EN_PACK &&
+        Object.prototype.hasOwnProperty.call(window.GUIDE_EN_PACK, key)) {
+      return window.GUIDE_EN_PACK[key];
+    }
     return (fb == null) ? key : fb;
   }
 
@@ -719,6 +726,8 @@ var LANG_REGISTRY = [
       }
       l = reg ? reg.fallback : null;
     }
+    if (current === 'en-US' && window.GUIDE_EN_PACK &&
+        Object.prototype.hasOwnProperty.call(window.GUIDE_EN_PACK, key)) return true;
     return false;
   }
 
