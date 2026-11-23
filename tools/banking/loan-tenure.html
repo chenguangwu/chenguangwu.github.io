@@ -405,7 +405,10 @@ function __ltSweep(){
   var labels=[],dN=[],dInt=[],rows=[];
   var pmts=[P*0.02,P*0.03,P*0.04,P*0.05,P*0.06,P*0.08,P*0.1,P*0.15];
   for(var k=0;k<pmts.length;k++){
-    var PMT=pmts[k], n=-Math.log(1-P*r/PMT)/Math.log(1+r);
+    var PMT=pmts[k];
+    if(PMT<=P*r) continue; // 月供不高于当期利息时本金永远还不清，不能进入对数与绘图
+    var n=-Math.log(1-P*r/PMT)/Math.log(1+r);
+    if(!isFinite(n)||n<=0) continue;
     labels.push((Math.round(PMT*100)/100).toFixed(0));
     dN.push(Math.round(n*100)/100);
     dInt.push(Math.round((PMT*n-P)*100)/100);
@@ -415,9 +418,9 @@ function __ltSweep(){
 }
 function __ltChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var s=__ltSweep(); if(!s)return;
+  var s=__ltSweep(); if(!s||s.dN.length<2)return;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-  TBKit.chart.line('#ltChart',{title:en?'Loan Tenure vs Payment (logarithmic decay n=-ln(1-Pr/PMT)/ln(1+r))':'贷款期数随月供对数反比下降（n=-ln(1-Pr/PMT)/ln(1+r)）',labels:s.labels,series:[{name:en?'Periods n':'期数 n',data:s.dN},{name:en?'Total interest (元)':'总利息 (元)',data:s.dInt}]});
+  TBKit.chart.line('#ltChart',{title:en?'Loan Tenure vs Payment (logarithmic decay n=-ln(1-Pr/PMT)/ln(1+r))':'贷款期数随月供对数反比下降（仅显示可还清且 n>0 的点，n=-ln(1-Pr/PMT)/ln(1+r)）',labels:s.labels,series:[{name:en?'Periods n':'期数 n',data:s.dN},{name:en?'Total interest (元)':'总利息 (元)',data:s.dInt}]});
 }
 
 function __ltShow(which){
