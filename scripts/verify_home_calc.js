@@ -134,9 +134,10 @@ const CASES = [
 },
 {
   "slug": "home/water-filter-lifespan",
-  "inputs": { "cap": "4000", "daily": "8", "margin": "90", "price": "120" },
-  "expect": ["3060 L", "383 天", "0.95 支/年", "114 元/年", "0.0392 元/L"],
-  "ref": "新工具默认算例：有效 4000×0.85×0.90=3060 L；3060/8≈383 天；365/383≈0.95 支/年；120×0.95≈114 元/年；120/3060≈0.0392 元/L。五条同时命中，能区分错误系数或漏乘安全余量。"
+  "inputs": { "cap": "5000", "daily": "10", "margin": "85", "price": "150" },
+  "clicks": ["try{calcTool()}catch(e){};var t=String(document.getElementById('result').innerHTML);var ok=['3613 L','361 天','1.01 支/年','152 元/年','0.0415 元/L'].every(function(x){return t.indexOf(x)>=0;});document.getElementById('__tbProbe').textContent='WALL '+(ok?'OK':'BAD');"],
+  "expect": ["WALL OK"],
+  "ref": "非默认算例：有效 5000×0.85×0.85≈3613 L；3613/10≈361 天；365/361≈1.01 支/年；150×1.01≈152 元/年；150/3613≈0.0415 元/L。组合探针要求五项全部命中，避免 expect 任一命中即通过的弱断言；默认 4000/8/90/120 不命中。"
 },
 {
   "slug": "home/water-filter-lifespan",
@@ -152,9 +153,10 @@ const CASES = [
 },
 {
   "slug": "home/ac-energy-cost",
-  "inputs": { "power": "1100", "hours": "8", "days": "30", "months": "4", "price": "0.6", "standby": "2", "standbyHours": "16" },
-  "expect": ["8.83 kWh", "265.0 kWh", "1059.8 kWh", "¥5.30", "¥158.98", "¥635.90", "615 kg"],
-  "ref": "默认算例：1100 W×8 h+2 W×16 h=8.832 kWh；月 264.96→265.0 kWh；季 1059.84→1059.8 kWh；日电费 5.2992→5.30 元；月 158.976→158.98 元；季 635.904→635.90 元；CO₂ 1059.84×0.58=614.7→615 kg。七条同时命中，能区分漏算待机或错乘月数。"
+  "inputs": { "power": "1200", "hours": "6", "days": "25", "months": "3", "price": "0.8", "standby": "3", "standbyHours": "18" },
+  "clicks": ["try{calcTool()}catch(e){};var t=String(document.getElementById('result').innerHTML);var ok=['7.25 kWh','181.3 kWh','544.0 kWh','¥5.80','¥145.08','¥435.24','316 kg'].every(function(x){return t.indexOf(x)>=0;});document.getElementById('__tbProbe').textContent='ACALL '+(ok?'OK':'BAD');"],
+  "expect": ["ACALL OK"],
+  "ref": "非默认算例：1200 W×6 h+3 W×18 h=7.254 kWh；月 181.35→181.3 kWh；季 544.05→544.0 kWh；日电费 5.8032→5.80 元；月 145.08 元；季 435.24 元；CO₂ 544.05×0.58=315.55→316 kg。组合探针要求七项全部命中；默认 1100/8/30/4/0.6 不命中。"
 },
 {
   "slug": "home/ac-energy-cost",
