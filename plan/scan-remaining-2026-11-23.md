@@ -1,62 +1,32 @@
-# 全站剩余任务清单（2026-11-23 第 552 批后）
+# 全站剩余任务清单（2026-11-23）
 
-> 8 类全扫与第 513–535 批修复记录见 `plan/已修复/`。
-> 本文件只保留**唯一仍未到期、不可提前执行**的迁移壳清理项。
+> 历史批次记录已归档到 `plan/已修复/`，本文件只保留**仍未到期、不可提前执行**的事项。
+> 8 类全量扫描结论见文末「已收口基线」，不再逐批重复展开。
 
-## 状态总览
+## 当前剩余
 
-| 类别 | 已收口 | 剩余 |
-|---|---|---|
-| 1 功能 Bug | 4,925 页加载期 0 缺陷；120 页点击烟测 0；TWSTRS 满分口径已修；宠物喂食工具错配旧指南、连续性指南相关工具错配已修 | 无 |
-| 2 UI 布局 | 全站 UX 8.64/9；家具布局页与语言切换器 320px 已修；209 个行业首页 320px 横向溢出已修；热门工具前 100 页 320px 实扫；第 551 批 19 个工具页 320px 修复；第 552 批 3,456 个非工具页（指南/静态页）320px 实扫，`main` 长公式/长串换行兜底，指南 176 页残留全部清零；embed 页导航与转义双修 | 无 |
-| 3 中英文 | 16 个零词典指南已全量英文化；3,131 个指南页补齐英文标题/描述兜底，3,428 页相关工具链接、CTA 与导语已批量英文化；209 个行业首页中英文标题重复显示与英文重复 emoji 已修；第 548 批接入 `GUIDE_EN_PACK`、修复 data-i18n 重置、2,744 条公共免责声明入词典，119 个结构化指南英文态清零；全量 3,250 个有效指南扫描 61 页有中文，第 549 批已全部清零；第 550 批 4,822 个工具页正文英文态仅 1 页 1 条、128 页 head 中文，均已清零；工具与指南英文正文/标题/描述复扫 0 残留 | 无 |
-| 4 SEO 文案 | 工具/指南描述 <70 = 0；TWSTRS 工具与指南的 75 分残留已统一为 85 分制 | 无 |
-| 5 新增同类工具 | `trash-bag-size`、`winter-feed-syrup`、`box-fit`、`water-filter-lifespan`、`ac-energy-cost`、`appliance-lifespan`、`repair-or-replace`、`water-heater-sizing` 已交付 | 无 |
-| 6 无用脚本 | 累计清理 `_en-i18n` 1,017 + `scripts` 1,235 个 | 无 |
-| 7 批量误插 | 占位 `formula-desc` 0；65 页通用历史模块命名已统一；连续性指南整块无关相关工具已修 | 无 |
-| 8 其他 | 全站加载 0 缺陷；核心页元数据补齐 | 迁移壳未到期 |
+| 事项 | 状态 | 可执行时间 | 处置口径 |
+|---|---|---|---|
+| `TOOLBOX-REDIRECT` 迁移壳清理 | 等待到期 | 最早 2026-12-14 | 到期后物理删除存根；部署成功后再用默认校验提交死链；同步更新 `_redirect_stubs_todo.md` 与 `sitemap-deadlinks.xml` |
 
-## 第 548 批：指南英文态根因修复（已本地提交）
+- 当前存根 109 个，最近创建于 2026-11-14 / 2026-11-22；按 1 个月保留期，**当前无一到期，禁止提前物理删除**。
+- 项目规则 AGENTS §4.6：物理删除后必须等线上部署 `success`，再执行 `python3 _submit_indexnow_deadlinks.py`，不得提前提交。
 
-- 根因：119 个结构化指南页把 `i18n.js` / `guide-i18n.js` / `guide-en-pack.js` 写死成 `https://chenguangwu.github.io/js/...`，本地改动测不到；同时 `js/i18n.js` 不消费 `GUIDE_EN_PACK`，`data-i18n` 在 init/语言切换时会把指南脚本刚译好的正文重置回中文。
-- 修复：指南页三处脚本改站内根相对路径；`resolve()`/`has()` 在 EN 态补查 `GUIDE_EN_PACK`；`scripts/audit_guide_en_head.py` 增加“禁止写死线上 JS 域名 + 必须消费 GUIDE_EN_PACK”回归锁。
-- 文案：2,744 条公共免责声明/迁移提示/教育类说明入各指南词典；`checker-manager` 八维评分说明补齐；`text-diff` 示例改英文；`unit-converter` 半中半英步骤修正。
-- 验证：119 个结构化指南英文态 0 中文；全量 3,250 个有效指南扫描 61 页残留，已清 10 个高残留页，余 51 页；272 项门禁通过。
+## 已收口基线（不再列为任务）
 
-## 第 549 批：指南英文正文长尾收口（已本地提交）
+| 类别 | 结论 |
+|---|---|
+| 1 功能 Bug | 4,925 页加载期 0 缺陷；120 页点击烟测 0；TWSTRS 满分口径、宠物喂食与连续性指南错配已修 |
+| 2 UI 布局 | 全站 UX 8.64/9；行业首页 320px 已修；工具页 4,822 个 320px 全量复扫 0 真实溢出；非工具页 3,456 个复扫 0 真实溢出 |
+| 3 中英文 | 指南 3,250 有效页、工具 4,822 页英文正文/标题/描述复扫 0 中文残留 |
+| 4 SEO 文案 | 工具/指南描述 <70 = 0；重复 title/desc = 0；TWSTRS 85 分制统一 |
+| 5 新增同类工具 | 8 个纯前端工具已交付（trash-bag-size、winter-feed-syrup、box-fit、water-filter-lifespan、ac-energy-cost、appliance-lifespan、repair-or-replace、water-heater-sizing） |
+| 6 无用脚本 | 累计清理 `_en-i18n` 1,017 个、`scripts` 1,235 个 |
+| 7 批量误插 | 占位 `formula-desc` 0；65 页通用历史模块命名统一；连续性指南无关相关工具已修 |
+| 8 其他 | 全站加载 0 缺陷；核心页元数据补齐 |
 
-- 工具页英文词典自动回填 63 条到 61 个残留指南。
-- 人工补齐 15 个高残留页（ratio-hormone、calc-39、chinese-zodiac、bandwidth-1、study-planner、agri-calculator、inference-throughput、cycle-6、calc-gear-2、assessor-1、visitor-route、xiangqi-endgame、step-stride、text-extract-html-tags、sequence-puzzle）。
-- 用“片段匹配”补齐剩余 44 页的 1–2 条专业说明；最后补 7 个工具标题（protein-needs、smoking-cost-calculator、tdee-calculator、waist-hip-ratio、vo2-max-calculator、pregnancy-due-date、stretch-generator）。
-- 验证：全量 3,250 个有效指南（排除 178 个 meta-refresh 迁移存根）英文态复扫 **0 页残留中文**；272 项门禁通过。
+## 参考文档（非任务）
 
-## 第 550 批：工具页英文正文与 head 清零（已本地提交）
-
-- 4,822 个工具页英文态正文扫描：仅 `agriculture/calc-15` 标题中文，补 `Sowing Date Calculator (count back from harvest date)`。
-- 工具页 head 扫描：128 页 description 中文、1 页 title 中文（实际为分类页旧值）。根因是 `tool_desc_source.en_desc()` 未读取第三层 `i18n/tools/en/<ind>/<slug>.json`。
-- `scripts/tool_desc_source.py` 增加第三层英文描述回退（缓存），`_build.py` 自动写 `desc-en`；3 个仍缺页（ovulation-calculator、citation-format、checker-assessor-1）补 `_en_override.json` 人工英文描述。
-- 验证：128 页 head 复扫 0 中文；工具页正文 1 页复扫 0；272 项门禁通过。
-
-## 第 551 批：工具页 320px 横向溢出清零（已完成，待本地提交）
-
-- 4,822 个有效工具页（排除 286 个迁移存根）在 320×800 下全量实扫，命中 19 页页面级 `scrollWidth > 320`：
-  agriculture/fertilizer-calculator、edu/exam-timer、music/web-tuner、music/music-player、urban/building-height、archaeology/site-grid、textile/pattern-calculator、biz/assessor-risk-8、cognition/schulte-table、rheumatology/basdai、it/summary-generator、science/cycle、life/data-unit-converter、life/holiday-calendar、beauty/makeup-shade、project/analysis-28、museum/visitor-route、finance/word-search、psychiatry/mmpi2-personality。
-- 修复方式：每页注入 `#mobile320-fix` 局部媒体查询，不新增公共依赖。NPK 三列改两列；计时器字号 `clamp(30px,11vw,64px)`；表格 `table-layout:fixed` + 单元格换行；音量行/设置行允许换行；建筑可视化柱宽 40→30；遗址输入框 `max-width:100%`；裁片行换行；风险行改单列；舒尔特控制区单列；BASDAI 标签 80→28；摘要详情行允许换行；元素周期表/日历/单词网格改 `minmax(0,1fr)` 并局部滚动；肤色卡 3 列压缩；干系人行改网格并压低下拉内边距；通道行改两行网格；MMPI 解释行换行。
-- 复扫：19 页 `document.documentElement.scrollWidth` 全部 = 320；6 页关键控件截图人工核对无截断（计时器、化肥、日历、单词、参观流线、MMPI）。
-
-## 第 552 批：非工具页 320px 与指南长公式换行（已完成，待本地提交）
-
-- 3,456 个非工具 HTML（3,428 指南 + 静态页）320×800 实扫，命中 4 页：`embed.html`、`.workbuddy/legal_en_evidence.html`、`.workbuddy/sv5_en_evidence.html`、`guides/generator-4-guide.html`。
-- 指南页真实根因是 `main` 缺 `overflow-wrap`：长公式/长数字串在 `li` 内把 `scrollWidth` 撑到 986。`css/common.css` 末尾加 `main{overflow-wrap:anywhere;word-break:break-word}`，3,250 个有效指南全部清零。
-- `embed.html` 两处真实缺陷：① 未引 `common.css` 的 `.desktop-only/.mobile-only` 显隐规则，桌面导航在 320px 溢出；② `data-i18n-html-fb` 里 `&lt;iframe&gt;` 被二次当 HTML 注入，生成空 iframe 撑宽页面。已补移动端显隐、双重转义、导航语言器限宽、`code/table` 换行。
-- `.workbuddy/**` 已被 `.gitignore` 排除，不进 Pages 产物，不计入线上；`generator-4-guide.html` 是 meta-refresh 存根，扫描实际跳到线上旧版 summary-generator，属误报。
-- 复扫：`embed.html` 320；有效指南 320；无本地真实残留。
-
-## R3：迁移壳到期清理（唯一按日期等待项）
-
-- `grep -rl TOOLBOX-REDIRECT tools guides --include='*.html'` 当前 109 个；最近一批创建于 2026-11-14 / 2026-11-22，按 1 个月保留期，**最早到期日 2026-12-14**。
-- 处置结论：**当前无一到期，禁止提前物理删除**。到期后按 AGENTS §4.6：
-  1. 物理删除存根；
-  2. 部署成功后再用默认校验 `python3 _submit_indexnow_deadlinks.py` 提交死链；
-  3. 同步更新 `_redirect_stubs_todo.md` 与 `sitemap-deadlinks.xml`；
-  4. 删除前复核搜索流量与目标页可用性。
+- `plan/guidelines-map.md`：指南与量表版本台账，供改医学/健康类页面前核对版本。
+- `plan/units-factors.md`：单位与换算因子基准，供农业/工程类页面复算。
+- `plan/page-ledger.json` 已清空并删除（无在途批次，不再保留空模板）。
