@@ -14605,7 +14605,19 @@ const CASES = [
   "expect": ["\"a\"\"b\""],
   "ref": "quote 模式按 CSV 引号规则：字段内双引号写两个，a\"b 应输出 \"a\"\"b\"，旧版用反斜杠转义得到 \"a\\\"b\" 与 FAQ 不一致。"
 },
-
+,
+{
+  "slug": "it/html-tags",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/html-tags.html','utf8');var head=h.slice(0,h.indexOf('</head>'));var parts=head.split('<script');var wb='';for(var k=1;k<parts.length;k++){var seg=parts[k].split('</script>')[0];if(seg.indexOf('WebApplication')>=0){wb=seg.slice(seg.indexOf('{'),seg.lastIndexOf('}')+1);break;}}var o=null;try{o=JSON.parse(wb);}catch(e){}var nm=o&&o.name;var ok=nm==='HTML 标签速查'&&nm.indexOf('字号更大')<0&&h.indexOf('<h1 class=\"sr-only\">HTML 标签速查</h1>')>=0;document.getElementById('__tbProbe').textContent='HTAGMETA '+(ok?'OK':'BAD')+' '+nm;"],
+  "expect": ["HTAGMETA OK"],
+  "ref": "第427批：HTML 标签页 FAQ 示例含 <h1> 文本，旧构建把示例后的 FAQ 文本拼进 WebApplication.name。真实 head 的 WebApplication.name 必须严格等于 H1“HTML 标签速查”，且不得含“字号更大”等示例文本。"
+},
+{
+  "slug": "it/og-meta-tag-generator",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/og-meta-tag-generator.html','utf8');var head=h.slice(0,h.indexOf('</head>'));var body=h.slice(h.indexOf('</head>'));var ok=head.indexOf('property=\"og:site_name\"')>=0&&head.indexOf('content=\"ToolBox\"')>=0&&body.indexOf(\"og:site_name\")>=0;document.getElementById('__tbProbe').textContent='OGSITE '+(ok?'OK':'BAD');"],
+  "expect": ["OGSITE OK"],
+  "ref": "第459批：OG 生成器脚本第 315 行本身含 og:site_name 字符串，旧检测按全文匹配误判已存在，真实 head 却没有。必须只在 </head> 前命中 og:site_name，同时保留脚本示例。"
+}
 ];
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
@@ -16182,7 +16194,7 @@ async function dumpMain(casefile) {
 async function main() {
   const only = process.argv.slice(2);
   if (only[0] === "--dump" && only[1]) return dumpMain(only[1]).then(() => 0);
-  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cases = (only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES).filter(Boolean);
   let pass = 0;
   const fails = [];
   for (const c of cases) {

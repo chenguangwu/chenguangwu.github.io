@@ -1976,6 +1976,13 @@ def extract_meta(content, key):
     m = re.search(r'<meta\s+name=["\']' + re.escape(key) + r'["\']\s+content=["\']([^"\']+)["\']', content, re.I)
     return m.group(1).strip() if m else None
 
+def strip_code_blocks_for_meta(html):
+    """元数据抽取前剥离 script/style，避免把 JS 字符串或 JSON-LD 示例里的 <h1> 当成页面标题。"""
+    html = re.sub(r'<script\b[^>]*>[\s\S]*?</script>', '', html, flags=re.I)
+    html = re.sub(r'<style\b[^>]*>[\s\S]*?</style>', '', html, flags=re.I)
+    return html
+
+
 def parse_toolbox_meta(content):
     meta = extract_meta(content, 'toolbox')
     if not meta:
@@ -2167,7 +2174,8 @@ def get_tool_info(filepath):
     # Title：优先页面内 <h1>（纯工具名，稳定、不被 SEO 标题修饰污染——<title> 会被
     # 构建期加功能修饰，若从 <title> 取 name 会导致修饰嵌套），其次 toolbox meta 的
     # name=，最后 <title>（兜底并幂等剥离 SEO 修饰）。
-    h1_m = re.search(r'<h1[^>]*>([\s\S]*?)</h1>', content)
+    meta_content = strip_code_blocks_for_meta(content)
+    h1_m = re.search(r'<h1[^>]*>([\s\S]*?)</h1>', meta_content)
     h1_title = re.sub(r'<[^>]+>', '', h1_m.group(1)).strip() if h1_m else ''
     h1_title = re.sub(r'^[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\u2190-\u21FF]+\s*', '', h1_title).strip()
     title_m = re.search(r'<title>(.+?)\s*-\s*ToolBox\s*</title>', content)
@@ -3104,7 +3112,7 @@ def fix_short_tool_desc():
         if len(cur) >= 70 or tail_flag in cur:
             continue
         cur = cur.replace('支持参数自定义、即时计算与结果解读。','').rstrip('。')
-        mh = re.search(r'<h1[^>]*>(.*?)</h1>', src, re.S)
+        mh = re.search(r'<h1[^>]*>(.*?)</h1>', strip_code_blocks_for_meta(src), re.S)
         nm = re.sub(r'<[^>]+>', '', mh.group(1)).strip() if mh else os.path.splitext(os.path.basename(path))[0]
         tail = '。可按本页参数完成「' + (nm or '本工具') + '」的快速估算与结果核对。'
         newv = cur.rstrip('。') + tail
@@ -3456,7 +3464,7 @@ def fix_guide_empty_breadcrumb():
             continue
         if 'TOOLBOX-REDIRECT' in src:
             continue
-        h1 = re.search(r'<h1[^>]*>(.*?)</h1>', src, re.S)
+        h1 = re.search(r'<h1[^>]*>(.*?)</h1>', strip_code_blocks_for_meta(src), re.S)
         if not h1:
             continue
         title = html.unescape(re.sub(r'<[^>]+>', '', h1.group(1))).strip()

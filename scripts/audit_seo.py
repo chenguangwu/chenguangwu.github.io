@@ -18,6 +18,13 @@ def audit_html(p, html):
     if not t: issues['title_missing'].append(p)
     elif '- ToolBox' not in t: pass
     elif len(t) > 60: issues['title_too_long'].append(p)
+    # 由字标题必须含真实工具名；公式标题不得停在 = / √ 等截断处
+    hm = re.search(r'<h1[^>]*>([\s\S]*?)</h1>', html, re.I)
+    h1 = re.sub(r'<[^>]+>', '', hm.group(1)).strip() if hm else ''
+    if t.startswith('由') and h1 and ('计算器' in h1 or '转换器' in h1) and h1 not in t:
+        issues['title_missing_toolname'].append(p)
+    if re.search(r'[=√]$', t):
+        issues['title_truncated_formula'].append(p)
     # 属性值内允许出现 < >（如「<10 mm」），按引号边界取整条 meta，不能遇到 > 就截断
     desc = None
     for m in re.finditer(r'<meta\b(?:[^>"\']|"[^"]*"|\'[^\']*\')*>', html, re.I):
@@ -121,7 +128,7 @@ for p in all_pages:
 print(f'  （空泛 desc 总数: {cnt}）')
 
 if '--check' in sys.argv:
-    hard = {k: v for k, v in agg.items() if k in ('title_missing','desc_missing','desc_short','desc_long','canonical_missing','jsonld') or k.startswith('og_missing_') or k.startswith('tw_')}
+    hard = {k: v for k, v in agg.items() if k in ('title_missing','title_missing_toolname','title_truncated_formula','desc_missing','desc_short','desc_long','canonical_missing','jsonld') or k.startswith('og_missing_') or k.startswith('tw_')}
     if hard:
         print('\nSEO-CHECK FAIL: ' + ', '.join(f'{k}={v}' for k, v in hard.items()))
         sys.exit(1)
