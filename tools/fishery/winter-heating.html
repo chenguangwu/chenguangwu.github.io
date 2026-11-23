@@ -31,7 +31,36 @@
     <meta name="twitter:description" content="输入水体体积、当前与目标越冬水温、水体散热系数及覆盖保温方式，计算弥补散热维持越冬水温所需的加热功率与持续供热量，辅助温室大棚、越冬池加热设备的选型与能耗估算">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "U 系数是什么？", "acceptedAnswer": {"@type": "Answer", "text": "传热系数 U 表示围护结构单位面积、单位温差的传热速率(W/m²·℃)；U 越小保温越好，双层/加保温层可显著降低热损失。"}}, {"@type": "Question", "name": "怎么降低加热能耗？", "acceptedAnswer": {"@type": "Answer", "text": "提高保温（双层膜+内保温被）、减小温差、用热泵替代直电热、夜间加盖，可大幅削减日耗电。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "U 系数是什么？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "传热系数 U 表示围护结构单位面积、单位温差的传热速率(W/m²·℃)；U 越小保温越好，双层/加保温层可显著降低热损失。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "怎么降低加热能耗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "提高保温（双层膜+内保温被）、减小温差、用热泵替代直电热、夜间加盖，可大幅削减日耗电。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "维持水温与一次升温有什么区别？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "维持水温按面积、传热系数和温差算稳态散热功率，只要热损失被补上即可保温；一次升温按水体体积、温升、时长和效率算把整池水升到目标温度所需的平均功率。两者需求不同，设备选型应分别核算，不能把两个功率简单相加。"
+      }
+    }
+  ]
+}
 </script>
 
 <script type="application/ld+json">
@@ -144,6 +173,26 @@
     </div>
   </div>
 
+<div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+  <h2 data-zh="🔥 一次升温功率计算（体积 × 温升 × 时长）">🔥 One-Time Heat-Up Power Calculator</h2>
+  <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按水体体积、目标温升、允许时长与加热效率，估算把整池水升到目标水温所需的平均功率；可再叠加散热补偿。">Estimate the average power needed to raise the whole water body to a target temperature, given volume, temperature rise, allowed time, heater efficiency and a heat-loss allowance.</p>
+  <div class="formula-box">
+    <div class="formula-title">📐 计算公式</div>
+    <div class="formula-eq">升温热量 = 水体体积 × 1000 × 4.186 × 温升 ÷ 3600（kWh）；平均有效功率 = 升温热量 ÷ 时长（kW）；需配置功率 = 平均有效功率 ÷ 加热效率 ×（1 + 散热补偿% ÷ 100）。校验：体积、温升、时长、效率均须大于 0，散热补偿 ≥ 0；空输入给出提示且不输出数值。</div>
+    <div class="formula-desc">本模式解决“限定时间内把水升到目标温度”的一次性升温需求，与上方“维持水温”的稳态散热计算是两件事。水体按 1000 kg/m³、比热 4.186 kJ/(kg·℃) 估算，未计管道与池壁蓄热。</div>
+  </div>
+  <div class="input-row">
+    <div><label for="huVolume">水体体积 (m³)</label><input type="number" id="huVolume" value="100" step="any" min="0" oninput="calcHeatUp()" placeholder="如 100"></div>
+    <div><label for="huRise">目标温升 (℃)</label><input type="number" id="huRise" value="10" step="any" min="0" oninput="calcHeatUp()" placeholder="如 10"></div>
+    <div><label for="huHours">允许升温时长 (小时)</label><input type="number" id="huHours" value="24" step="any" min="0" oninput="calcHeatUp()" placeholder="如 24"></div>
+  </div>
+  <div class="input-row">
+    <div><label for="huEff">加热效率 (%)</label><input type="number" id="huEff" value="85" step="any" min="0" max="100" oninput="calcHeatUp()" placeholder="如 85"></div>
+    <div><label for="huLoss">散热补偿 (%)</label><input type="number" id="huLoss" value="20" step="any" min="0" oninput="calcHeatUp()" placeholder="如 20"></div>
+  </div>
+  <div class="result-box" id="huResult"></div>
+</div>
+
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -169,12 +218,15 @@
 <li>温室/大棚水产越冬保温设计</li>
 <li>加热设备（热泵/电加热）选型</li>
 <li>能耗与运行成本测算</li>
+<li>新池/转池一次升温：按水体体积、目标温升与允许时长，估算需要配置的加热功率。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">双层薄膜温室保温</div><div class="dd-ex-body">双层薄膜 U=3、室内外温差 18.0℃：热损失约 12960 W；含 30% 余量需加热功率约 16.85 kW，日耗电约 404.4 kWh，能耗中等，注意加强保温减少散热。</div></div>
+<div class="dd-example"><div class="dd-ex-title">80 m³ 水体 20 小时升温 8℃</div><div class="dd-ex-body">体积 80 m³、温升 8℃、时长 20 h、加<a class="term-link" href="/tools/energy/thermal-efficiency.html">热效率</a> 90%、散热补偿 10%：升温热量约 744.2 kWh，平均有效功率 37.21 kW，需配置功率约 45.48 kW。该项是一次升温，与上方按散热计算的维持功率不能直接相加。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>U 系数是什么？</dt><dd>传热系数 U 表示围护结构单位面积、单位温差的传热速率(W/m²·℃)；U 越小保温越好，双层/加保温层可显著降低热损失。</dd>
 <dt>怎么降低加热能耗？</dt><dd>提高保温（双层膜+内保温被）、减小温差、用热泵替代直电热、夜间加盖，可大幅削减日耗电。</dd>
+<dt>维持水温与一次升温有什么区别？</dt><dd>维持水温按面积、传热系数和温差算稳态散热功率，只要热损失被补上即可保温；一次升温按水体体积、温升、时长和效率算把整池水升到目标温度所需的平均功率。两者需求不同，设备选型应分别核算，不能把两个功率简单相加。</dd>
 </dl>
 </div>
 </section>
@@ -269,8 +321,34 @@ ${txt}`;
     <div class="step-line">含 ${margin}% 余量，需加热功率 <strong>${power.toFixed(2)} kW</strong>，日耗电 ${dailyKwh.toFixed(1)} kWh（按 24 小时满功率运行估算，实际随温控间歇运行会更低）</div>
     ${power>=50?'<div class="tip-box tip-warn">能耗偏高，建议改用双层薄膜或保温板，并减小散热面积。</div>':''}`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
+let lastHeatResult='';
+function calcHeatUp(){
+  var box=document.getElementById('huResult'); if(!box) return;
+  var els=['huVolume','huRise','huHours','huEff','huLoss'];
+  var raw=els.map(function(id){var e=document.getElementById(id);return e?String(e.value).trim():'';});
+  if(raw.some(function(v){return v==='';})){lastHeatResult='';box.innerHTML='<p style="color:var(--danger,#EF4444);">请填写水体体积、目标温升、允许时长、加热效率与散热补偿后再计算。</p>';return;}
+  var V=+raw[0],dT=+raw[1],h=+raw[2],eff=+raw[3],loss=+raw[4];
+  if([V,dT,h,eff,loss].some(function(v){return !isFinite(v);})||V<=0||dT<=0||h<=0||eff<=0||eff>100||loss<0){
+    lastHeatResult='';box.innerHTML='<p style="color:var(--danger,#EF4444);">请检查输入：体积、温升、时长与效率须 &gt;0，效率 ≤100%，散热补偿 ≥0。</p>';return;
+  }
+  var en=/^en/i.test(document.documentElement.lang||'')||/lang=en-US/i.test(location.search);
+  var kwh=V*1000*4.186*dT/3600;
+  var useful=kwh/h;
+  var need=useful/(eff/100)*(1+loss/100);
+  var perC=kwh/dT;
+  lastHeatResult=(en?'One-time heat-up power':'一次升温功率')+'\n====================\n'+(en?'Water volume':'水体体积')+'：'+V+' m³  '+(en?'Rise':'温升')+'：'+dT+'℃  '+(en?'Duration':'时长')+'：'+h+' h\n'+(en?'Heat demand':'升温热量')+'：'+kwh.toFixed(1)+' kWh\n'+(en?'Average useful power':'平均有效功率')+'：'+useful.toFixed(2)+' kW\n'+(en?'Power to install':'需配置功率')+'：'+need.toFixed(2)+' kW ('+(en?'efficiency':'效率')+' '+eff+'%, '+(en?'heat-loss allowance':'散热补偿')+' '+loss+'%)';
+  var lbl=en?{heat:'Heat demand (kWh)',useful:'Average useful power (kW)',need:'Power to install (kW)',perC:'kWh per °C',note:'Heat demand = volume × 1000 × 4.186 × rise ÷ 3600; power to install = useful power ÷ efficiency × (1 + loss allowance). This excludes pipe and wall heat storage.'}:{heat:'升温热量 (kWh)',useful:'平均有效功率 (kW)',need:'需配置功率 (kW)',perC:'每℃热量 (kWh/℃)',note:'升温热量 = 体积 × 1000 × 4.186 × 温升 ÷ 3600；需配置功率 = 平均有效功率 ÷ 效率 ×（1 + 散热补偿）。未计管道与池壁蓄热。'};
+  box.innerHTML='<div class="stat-grid">'+
+    '<div class="stat-card"><div class="val">'+kwh.toFixed(1)+'</div><div class="lbl">'+lbl.heat+'</div></div>'+
+    '<div class="stat-card"><div class="val">'+useful.toFixed(2)+'</div><div class="lbl">'+lbl.useful+'</div></div>'+
+    '<div class="stat-card"><div class="val">'+need.toFixed(2)+'</div><div class="lbl">'+lbl.need+'</div></div>'+
+    '<div class="stat-card"><div class="val">'+perC.toFixed(1)+'</div><div class="lbl">'+lbl.perC+'</div></div></div>'+
+    '<div class="step-line">'+lbl.note+'</div>';
+}
+
 function copyResult(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
 calc();
+calcHeatUp();
 ToolBox.initToolTheme();
 </script>
 

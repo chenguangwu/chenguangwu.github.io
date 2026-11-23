@@ -276,22 +276,40 @@ document.addEventListener('DOMContentLoaded',function(){
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
 function calc(){
-  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
-  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1'),e2=document.getElementById('v2'),e3=document.getElementById('v3'),e4=document.getElementById('v4');
   var box=document.getElementById('res');
   if(!box)return;
-  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
-  if(A<0||A>100){box.innerHTML='<div class="info-box" style="color:var(--danger,#dc2626)">⚠ 本人得分须在 0–100 之间，请修正后再计算。</div>';return;}
-  if(!(B>0)||B>100){box.innerHTML='<div class="info-box" style="color:var(--danger,#dc2626)">⚠ 团队最高分须在 0–100 之间且大于 0，请修正后再计算。</div>';return;}
+  var raw=[e0,e1,e2,e3,e4].map(function(e){return e?String(e.value).trim():'';});
+  if(raw.some(function(v){return v==='';})){box.innerHTML='<div class="info-box">请填写本人得分、团队最高分、团队平均分、得分标准差与团队人数后再计算。</div>';return;}
+  var A=parseFloat(raw[0]),B=parseFloat(raw[1]),M=parseFloat(raw[2]),SD=parseFloat(raw[3]),N=parseFloat(raw[4]);
+  if(!isFinite(A)||!isFinite(B)||!isFinite(M)||!isFinite(SD)||!isFinite(N)){box.innerHTML='<div class="info-box">请输入有效数值后再计算。</div>';return;}
+  if(A<0||A>100||B<0||B>100||M<0||M>100){box.innerHTML='<div class="info-box" style="color:var(--danger,#dc2626)">⚠ 本人得分、团队最高分与团队平均分须在 0–100 之间。</div>';return;}
+  if(!(B>0)){box.innerHTML='<div class="info-box" style="color:var(--danger,#dc2626)">⚠ 团队最高分须大于 0。</div>';return;}
+  if(SD<0){box.innerHTML='<div class="info-box" style="color:var(--danger,#dc2626)">⚠ 得分标准差不能为负。</div>';return;}
+  if(!(N>=1)){box.innerHTML='<div class="info-box" style="color:var(--danger,#dc2626)">⚠ 团队人数须至少为 1。</div>';return;}
+  var en=/^en/i.test(document.documentElement.lang||'')||/lang=en-US/i.test(location.search);
+  var norm=Math.min(100,A/B*100);
+  var gap=B-A, gapPct=(B-A)/B*100;
+  var z=SD>0?(A-M)/SD:null;
+  var pct=z===null?null:normCdf(z);
+  var rank=pct===null?null:Math.max(1,Math.min(Math.round(N),Math.round(N*(1-pct))));
   var items=[];
-  items.push([(A/B*100).toFixed(2), "归一化得分（/100）"]);
-  items.push([((B-A)).toFixed(2), "与最高分差"]);
-  items.push([(B>0?((B-A)/B*100).toFixed(2)+"%":"-"), "相对差距"]);
-
+  items.push([norm.toFixed(2), en?'Normalized score (/100)':'归一化得分（/100）']);
+  items.push([gap.toFixed(2), en?'Gap to top score':'与最高分差']);
+  items.push([gapPct.toFixed(2)+'%', en?'Relative gap':'相对差距']);
+  items.push([z===null?'—':z.toFixed(2), en?'z score':'z 分数']);
+  items.push([pct===null?'—':(pct*100).toFixed(1)+'%', en?'Percentile (est.)':'百分位（估算）']);
+  items.push([rank===null?'—':(en?'~#'+rank+' of '+Math.round(N):'约第 '+rank+' 名 / '+Math.round(N)+' 人'), en?'Estimated rank':'估算名次']);
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 归一化得分 = 本人 ÷ 团队最高 × 100（上限 100）；相对差距 = (最高 − 本人) ÷ 最高。';
+  html+=en?'💡 Normalized score = score ÷ team top × 100 (capped at 100); relative gap = (top − score) ÷ top. Percentile and rank use the normal CDF from z score; when standard deviation is 0 they are not estimated.':'💡 归一化得分 = 本人 ÷ 团队最高 × 100（上限 100）；相对差距 = (最高 − 本人) ÷ 最高。百分位与名次由 z 分数按正态分布估算；标准差为 0 时不估算。';
   const __g7=html;box.innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function normCdf(z){
+  var x=Math.abs(z)/Math.SQRT2;
+  var t=1/(1+0.3275911*x);
+  var erf=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-x*x);
+  return 0.5*(1+(z>=0?erf:-erf));
 }
 function resetAll(){
   var a=document.getElementById('v0'),b=document.getElementById('v1');
