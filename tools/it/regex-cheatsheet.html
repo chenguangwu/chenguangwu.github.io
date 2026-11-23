@@ -162,6 +162,23 @@
     <div class="toolbar">
       <input type="search" id="searchInput" placeholder="搜索命令、描述或示例..." style="flex:1;min-width:200px;" aria-label="搜索命令、描述或示例...">
     </div>
+
+    <div class="card" style="margin:14px 0;padding:14px;" id="rxTester">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+        <h3 style="margin:0;font-size:15px;">🧪 示例测试器</h3>
+        <span id="rxDefaultBadge" style="font-size:12px;padding:2px 8px;border-radius:999px;background:var(--result-bg,#f1f5f9);color:var(--text-muted,#64748b);">默认示例</span>
+        <button type="button" class="btn" onclick="rxReset()" style="font-size:12px;">恢复默认示例</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr;gap:8px;">
+        <label for="rxPattern" style="font-size:13px;">正则表达式</label>
+        <input id="rxPattern" value="(\w+)@(\w+)\.[a-z]{2,}" oninput="rxTest()" spellcheck="false" style="font-family:ui-monospace,Menlo,Consolas,monospace;" aria-label="正则表达式">
+        <label for="rxText" style="font-size:13px;">测试文本</label>
+        <textarea id="rxText" oninput="rxTest()" rows="3" style="font-family:ui-monospace,Menlo,Consolas,monospace;" aria-label="测试文本">Contact: dev@example.com or support@test.cn; invalid: not-an-email</textarea>
+        <div><button type="button" class="btn primary" onclick="rxTest()">匹配并高亮</button></div>
+        <div id="rxHighlight" style="padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px;min-height:42px;line-height:1.8;word-break:break-word;"></div>
+        <div id="rxMatchStat" style="font-size:12.5px;color:var(--text-muted,#64748b);"></div>
+      </div>
+    </div>
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
@@ -676,6 +693,36 @@ function getCategories(){
   COMMANDS.forEach(c => { if(!cats.includes(c.cat)) cats.push(c.cat); });
   return cats;
 }
+function rxEscape(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function rxDefaultPattern(){return '(\\w+)@(\\w+)\\.[a-z]{2,}';}
+function rxDefaultText(){return 'Contact: dev@example.com or support@test.cn; invalid: not-an-email';}
+function rxReset(){
+  document.getElementById('rxPattern').value=rxDefaultPattern();
+  document.getElementById('rxText').value=rxDefaultText();
+  rxTest();
+}
+function rxTest(){
+  var pat=document.getElementById('rxPattern').value;
+  var text=document.getElementById('rxText').value;
+  var hl=document.getElementById('rxHighlight'), stat=document.getElementById('rxMatchStat'), badge=document.getElementById('rxDefaultBadge');
+  var isDefault=pat===rxDefaultPattern()&&text===rxDefaultText();
+  if(badge) badge.textContent=isDefault?'默认示例':'自定义示例';
+  try{
+    var re=new RegExp(pat,'g'), out='', last=0, m, count=0;
+    while((m=re.exec(text))!==null){
+      if(m[0]===''){re.lastIndex++;continue;}
+      out+=rxEscape(text.slice(last,m.index))+'<mark>'+rxEscape(m[0])+'</mark>';
+      last=m.index+m[0].length;count++;
+      if(count>500)break;
+    }
+    out+=rxEscape(text.slice(last));
+    hl.innerHTML=out||'<span style="color:var(--text-muted)">（文本为空）</span>';
+    stat.textContent='共 '+count+' 处匹配'+(count>500?'（已截断显示前 500 处）':'');
+  }catch(e){
+    hl.innerHTML='<span style="color:var(--danger)">正则无效：'+rxEscape(e.message)+'</span>';
+    stat.textContent='';
+  }
+}
 function renderCategories(){
   const cats = getCategories();
   const __h0=cats.map(c =>
@@ -738,6 +785,7 @@ document.getElementById('searchInput').addEventListener('input', e => {
 });
 renderCategories();
 renderCommands();
+rxTest();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

@@ -451,6 +451,30 @@ function __markdown_table_generatorExtras(){
     TBKit.history.record(rec);
     __markdown_table_generatorRender(keys,rk,en);
 }
+function __mdSplitRow(row){
+    // GFM 行拆分：只把未转义的 | 视为列分隔；\| 解码为 |，\\ 解码为 \，其他转义保留。
+    var s=String(row).trim();
+    if(s.charAt(0)==='|') s=s.slice(1);
+    if(s.charAt(s.length-1)==='|') s=s.slice(0,-1);
+    var cells=[], buf='', esc=false, i, c;
+    for(i=0;i<s.length;i++){
+        c=s.charAt(i);
+        if(esc){
+            if(c==='|'||c==='\\') buf+=c;
+            else buf+='\\'+c;
+            esc=false;
+        }else if(c==='\\'){
+            esc=true;
+        }else if(c==='|'){
+            cells.push(buf); buf='';
+        }else{
+            buf+=c;
+        }
+    }
+    if(esc) buf+='\\';
+    cells.push(buf);
+    return cells.map(function(cell){return cell.trim();});
+}
 function __mdTableCsv(){
     // 把当前 Markdown 表格（#output）转成 CSV 文本；导出与自检共用。
     var out=String(document.getElementById('output').value||'').trim();
@@ -459,11 +483,7 @@ function __mdTableCsv(){
         var s=line.trim();
         return s && !/^\|?\s*:?-{3,}/.test(s);  // 去掉 GFM 分隔行
     }).map(function(line){
-        var s=line.trim();
-        if(s.charAt(0)==='|') s=s.slice(1);
-        if(s.charAt(s.length-1)==='|') s=s.slice(0,-1);
-        return s.split('|').map(function(cell){
-            var v=cell.trim().replace(/\\\|/g,'|');
+        return __mdSplitRow(line).map(function(v){
             return '"'+v.replace(/"/g,'""')+'"';
         }).join(',');
     });

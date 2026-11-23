@@ -11671,6 +11671,25 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"flavor\":\"verbose\"}，输出区含「1 2 3\n1 2 3\nverbose」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    slug: "it/regex-cheatsheet",
+    inputs: { rxPattern: "(\\w+)@(\\w+)\\.[a-z]{2,}", rxText: "Contact: dev@example.com or support@test.cn; invalid: not-an-email" },
+    expect: ["共 2 处匹配", "默认示例"],
+    ref: "正则速查测试器：默认模式命中 dev@example.com 与 support@test.cn 两处，mark 节点 2 个，默认标识为「默认示例」。旧页无输入/高亮 ⇒ 该串不存在。",
+  },
+  {
+    slug: "it/regex-cheatsheet",
+    inputs: { rxPattern: "(", rxText: "abc" },
+    expect: ["正则无效"],
+    ref: "非法正则 `(` 必须捕获异常并提示「正则无效」；默认模式合法 ⇒ 不含该串。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    inputs: {},
+    clicks: ["document.getElementById('output').value='| A | B |\\n|---|---|\\n| a\\\\|b | c |';var csv=__mdTableCsv();document.getElementById('__tbProbe').textContent='MDOK '+((csv.indexOf('\"a|b\",\"c\"')>-1&&csv.indexOf('\"A\",\"B\"')>-1)?'OK':'BAD '+csv);"],
+    expect: ["MDOK OK"],
+    ref: "GFM 转义竖线：单元格 a\\|b 必须还原为 a|b，不能被拆成 3 列；修复后 CSV 含 \"A\",\"B\" 与 \"a|b\",\"c\"。默认表格无转义竖线 ⇒ 强判别。",
+  },
+  {
     "slug": "it/regex-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"
