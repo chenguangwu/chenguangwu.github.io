@@ -299,17 +299,20 @@ function calc(){
   // 计算通过时间（分钟）；跨零点时加 1440 归一化，避免负值进入分级
   function elapsed(a,b){ var d=b-a; if(d<0) d+=1440; return d; }
   var crossDay=(duodenumMin<ingestMin || cecumMin<duodenumMin);
-  var gtt=elapsed(ingestMin,duodenumMin); // 胃通过时间
-  var sbtt=elapsed(duodenumMin,cecumMin); // 小肠通过时间
-  var totalTransit=elapsed(ingestMin,cecumMin); // 全肠道通过（至回盲瓣）
+  var gtt=elapsed(ingestMin,duodenumMin); // 胃通过时间（相对前一事件顺延）
+  var sbtt=elapsed(duodenumMin,cecumMin); // 小肠通过时间（相对前一事件顺延）
+  // 总时间必须等于各分段之和；不能再用吞服时刻直接对回盲瓣取模，
+  // 否则多次跨日时会出现总时间小于分段之和的矛盾。
+  var totalTransit=gtt+sbtt; // 至回盲瓣总时间
 
   var details=[];
-  if(crossDay) details.push('（时间跨越零点，已按次日 24 小时制计算通过时间）');
+  if(crossDay) details.push('（时间跨越零点，已按每个事件相对前一事件顺延至次日计算）');
   details.push('吞服时间：'+document.getElementById('ingest').value);
   details.push('到达十二指肠：'+document.getElementById('duodenum').value);
   details.push('到达回盲瓣：'+document.getElementById('cecum').value);
   details.push('胃通过时间(GTT)：'+minutesToHoursMin(gtt)+' ('+gtt+'分钟)');
   details.push('小肠通过时间(SBTT)：'+minutesToHoursMin(sbtt)+' ('+sbtt+'分钟)');
+  details.push('至回盲瓣总时间(GTT+SBTT)：'+minutesToHoursMin(totalTransit)+' ('+totalTransit+'分钟)');
 
   var gttStatus,sbttStatus,overallColor;
   var gttColor,sbttColor;
@@ -358,7 +361,8 @@ function calc(){
 
   // 排出信息
   if(completed && excreteMin!==null){
-    var excreteTime=elapsed(ingestMin,excreteMin);
+    var excreteTransit=elapsed(cecumMin,excreteMin);
+    var excreteTime=totalTransit+excreteTransit;
     details.push('胶囊排出：'+document.getElementById('excrete').value);
     details.push('全肠道通过时间：'+minutesToHoursMin(excreteTime)+' ('+excreteTime+'分钟)');
     if(excreteTime>480){

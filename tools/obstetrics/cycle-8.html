@@ -461,13 +461,24 @@ function renderChart(){
   }
 
   var sorted = records.slice().sort(function(a,b){ return a.day - b.day; });
-  // 同一天数在不同周期可能对应不同日期；日期与天数不再同向即视为跨周期。
+  // 用「测量日期 − 周期天数」反推每条记录的周期起始日；起始日不一致或日期缺失
+  // 都不能确认属于同一周期，趋势线一律不连接。
   var singleCycle = (function(){
-    var prevDate = '';
+    function startKey(r){
+      var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(r.date || ''));
+      var day = parseInt(r.day, 10);
+      if(!m || !isFinite(day) || day < 1) return '';
+      var d = new Date(Date.UTC(+m[1], +m[2]-1, +m[3]));
+      if(isNaN(d.getTime())) return '';
+      d.setUTCDate(d.getUTCDate() - (day - 1));
+      return d.getUTCFullYear()+'-'+('0'+(d.getUTCMonth()+1)).slice(-2)+'-'+('0'+d.getUTCDate()).slice(-2);
+    }
+    var base = '';
     for (var __i = 0; __i < sorted.length; __i++) {
-      var __d = sorted[__i].date || '';
-      if (prevDate && __d && __d < prevDate) { return false; }
-      if (__d) { prevDate = __d; }
+      var key = startKey(sorted[__i]);
+      if (!key) return false;
+      if (!base) base = key;
+      else if (key !== base) return false;
     }
     return true;
   })();
