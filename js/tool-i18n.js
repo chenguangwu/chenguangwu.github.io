@@ -12,6 +12,10 @@
 (function () {
   'use strict';
   if (!window.I18n) return;
+  // 分类落地页（/tools/<industry>/index.html）不是工具页：其行业标题由构建期
+  // 双语层 .tb-bi 控制显隐，不能交给工具页运行时改写，否则会把两层文本拼成
+  // “中文+英文”并删除 .t-zh/.t-en 节点（2026-11-23 实测 209 页受影响）。
+  if (/\/tools\/[^/]+\/index\.html$/.test(location.pathname)) return;
   var I18n = window.I18n;
   function isEnglish() { return I18n.get() === 'en-US'; }
   function sharedI18nUrl(name) { return '/i18n/tools/' + name; }
