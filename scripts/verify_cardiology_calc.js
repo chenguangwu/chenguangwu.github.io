@@ -662,6 +662,13 @@ const CASES = [
   "ref": "第1335批·默认参数预设不清空随访日期修复源码形态强锚：原默认参数 values 不含 followDate，从中危预设(2024-02-01)切回后旧日期残留；修复后默认参数显式写 followDate:'' 清空。旧版无 ⇒ BAD。"
 },
 { slug:"cardiology/aspirin-prevention", inputs:{"age":"","ascvd":""}, expect:["请填写年龄与 10 年 ASCVD 风险"], ref:"核心临床参数留空不得给出分级/风险结论（CLINCLR）" }
+,{
+  "slug": "cardiology/timi-score",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/timi-score.html','utf8');var ok=h.indexOf('体重&lt;67kg 2')<0&&h.indexOf('weight &lt;67 kg = 2')<0&&h.indexOf('体重&lt;67kg 1')>=0&&h.indexOf('weight &lt;67 kg = 1')>=0&&h.indexOf('满分 14')>=0;document.getElementById('__tbProbe').textContent='TIMIBASIS '+(ok?'OK':'BAD');"],
+  "expect": ["TIMIBASIS OK"],
+  "ref": "TIMI STEMI 依据表权重与代码一致：体重<67kg 与前壁/LBBB 各 1 分，满分 14；旧表写 2 分、合计 16，与 calcSTEMI 的 14 分不符。"
+}
+
 ];
 async function main() {
   const only = process.argv.slice(2);

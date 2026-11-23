@@ -491,6 +491,37 @@ const CASES = [
   "ref": "12-N43 英文首屏介绍补全：英文 title/desc/h2/首个 p 不再退化为裸名 Pasi Score；旧版源码四处均为裸名 ⇒ 变红。harness 不加载构建后静态正文，按源码形态判别；默认态不产生该串，零逃生。"
 },
 { slug:"dermatology/scorad-index", inputs:{"c1":"","c2":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+,{
+  "slug": "dermatology/pasi-score",
+  "inputs": {"h_e":"4","h_i":"4","h_d":"4","h_a":"6","u_e":"4","u_i":"4","u_d":"4","u_a":"2","t_e":"0","t_i":"0","t_d":"0","t_a":"0","l_e":"0","l_i":"0","l_d":"0","l_a":"0"},
+  "expect": ["12.0 PASI 总分 / 中度"],
+  "ref": "PASI 边界：头颈 0.1×12×6=7.2 + 上肢 0.2×12×2=4.8 = 12.0；≤12 属中度。标尺 hi 原为 13，12.1–12.9 会显示重度而标尺仍在中度区间。"
+},
+{
+  "slug": "dermatology/pasi-score",
+  "inputs": {"h_e":"4","h_i":"4","h_d":"4","h_a":"6","u_e":"4","u_i":"4","u_d":"4","u_a":"2","t_e":"0","t_i":"0","t_d":"0","t_a":"0","l_e":"1","l_i":"0","l_d":"0","l_a":"1"},
+  "expect": ["12.4 PASI 总分 / 重度"],
+  "ref": "PASI 边界：12.0 + 下肢 0.4×1×1=0.4 = 12.4，>12 属重度；标尺同步 hi=12。"
+},
+{
+  "slug": "dermatology/scorad-index",
+  "inputs": {"area":"100","b1":"2","b2":"2","b3":"1","b4":"1","b5":"1","b6":"1","c1":"1","c2":"1"},
+  "expect": ["50.0 SCORAD 总分 / 中度"],
+  "ref": "SCORAD 边界：100/5=20 + 3.5×8=28 + 2 = 50.0；≤50 属中度。标尺 hi 原为 51，50.1–50.9 会显示重度而标尺仍在中度区间。"
+},
+{
+  "slug": "dermatology/scorad-index",
+  "inputs": {"area":"96","b1":"2","b2":"2","b3":"1","b4":"1","b5":"1","b6":"1","c1":"2","c2":"1"},
+  "expect": ["50.2 SCORAD 总分 / 重度"],
+  "ref": "SCORAD 边界：96/5=19.2 + 28 + 3 = 50.2，>50 属重度；标尺同步 hi=50。"
+},
+{
+  "slug": "dermatology/salt-alopecia",
+  "inputs": {"top":"80","back":"80","right":"50","left":"50"},
+  "expect": ["69% SALT S3"],
+  "ref": "SALT 算例：0.40×80+0.24×80+0.18×50+0.18×50=69.2，显示 69%，S3 中重度（50–74%）；旧算例称 40%/两侧10% 得60%，实际未计后部为 19.6%。"
+}
+
 ];
 async function main() {
   const only = process.argv.slice(2);
