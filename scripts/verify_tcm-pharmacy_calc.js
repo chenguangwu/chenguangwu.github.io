@@ -341,7 +341,13 @@ const CASES = [
     "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-pharmacy/four-qi-nature.html','utf8');var ok=h.indexOf(\"chill:{qi:'温'\")>=0;document.getElementById('__tbProbe').textContent='FQOK '+(ok?'OK':'BAD');})();"],
     "expect": ["FQOK OK"],
     "ref": "畏寒映射源码锚：旧版 chill:{qi:'热'} 而计分只累加寒/温，单选畏寒总分 0、判寒热不显；现归温，配套 id=chill 使真机可勾选。"
-  }
+  },
+{
+  slug: "tcm-pharmacy/calc-time-concentration",
+  inputs: { cat: "root", herb: "100", vol: "1000", abv: "50", target: "0.1" },
+  expect: ["0.100", "生药浓度 (g/mL)", "25.0"],
+  ref: "恢复第353批旧页：100 g 药材 / 1000 mL ⇒ 0.100 g/mL 生药浓度、25 mg/mL 浸出物；medicinal-wine 无目标生药浓度输入。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

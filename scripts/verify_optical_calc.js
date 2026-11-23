@@ -883,6 +883,12 @@ const CASES = [
   "ref": "RPD=0 落在 ±0.5D 微弱带内，方向卡与示意图必须与主提示同口径显示中性/不明确，不能标成远视性。"
 },
 
+{
+  slug: "optical/aspheric-design",
+  inputs: { n: "1.60", power: "-3.00", aperture: "60" },
+  expect: ["200.00", "-7.11"],
+  ref: "恢复第354批旧页：−3.00 D、n=1.60 ⇒ 曲率半径 R=(n−1)/|D|=0.6/3=200 mm；口径 60 mm 得消球差圆锥常数 K≈−7.11。calc-47 只从已知 R 与半口径出发，无屈光度入口。"
+}
 ];
 
 async function main() {

@@ -359,7 +359,19 @@ const CASES = [
 },
 { slug:"food-testing/assessor-risk-6", inputs:{"salmonella":"","staph":"","ecoli":"","listeria":"","vibrio":""}, expect:["请填写各类致病菌检出值"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
 { slug:"food-testing/colony-count", inputs:{"d1p1":"","d1p2":"","dil1":""}, expect:["请填写平皿菌落数与稀释度"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
-{ slug:"food-testing/ingredient-sorter", inputs:{"ingredients":""}, expect:["请填写配料表文本"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" }
+{ slug:"food-testing/ingredient-sorter", inputs:{"ingredients":""}, expect:["请填写配料表文本"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
+{
+  slug: "food-testing/convert-37",
+  inputs: { val: "1", from: "1", to: "6.25" },
+  expect: ["6.25 蛋白质 (%)"],
+  ref: "恢复第353批旧页并修正系数方向：1% 氮 ×6.25 = 6.25% 蛋白质；旧实现 v*f/t 得 0.16，已改为 v*t/f。"
+},
+{
+  slug: "food-testing/convert-37",
+  inputs: { val: "6.25", from: "6.25", to: "1" },
+  expect: ["1 氮含量 (%)"],
+  ref: "反向路径：6.25% 蛋白质 ÷6.25 = 1% 氮；旧实现得 39.06，修复后双向互为逆运算。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

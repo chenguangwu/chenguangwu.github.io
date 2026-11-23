@@ -116,7 +116,13 @@ const CASES = [
   "expect": ['BPTRH0 OK'],
   "ref": "第1336批·历史恢复无参切换函数抛错修复源码形态强锚：旧版 function switchTab(name, ev){ 无参调用解引用参数抛错被 catch 吞、结果不重算；修复后无参分支安全重算本页主结果并 return。旧版无 ⇒ BAD。"
 },
-{ slug:"elderly/assessor-35", inputs:{"age":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"elderly/assessor-35", inputs:{"age":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{
+  slug: "elderly/medication-schedule",
+  inputs: { startDate: "2026-03-01", days: "3" },
+  expect: ["2026-03-02", "00:00"],
+  ref: "恢复第356–358批旧页并按真实时间轴重写：8 h 间隔从 08:00 起 ⇒ 次日 00:00 属 2026-03-02，跨午夜不得回挂到 3-01；旧实现每日重置会重复 00:00。reminder-time 只有日内时间，无开始日期/观察天数。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

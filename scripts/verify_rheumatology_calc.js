@@ -381,7 +381,19 @@ const CASES = [
 { slug:"rheumatology/sapho-syndrome", inputs:{"age":"","vas":""}, expect:["请填写年龄与 VAS 评分"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
 { slug:"rheumatology/das28", inputs:{}, clicks:["document.getElementById('marker').value='esr';document.getElementById('markerVal').value='-5';document.getElementById('tjc').value='5';document.getElementById('sjc').value='3';document.getElementById('gh').value='30';calc();"], expect:["⚠ 压痛/肿胀关节数、整体健康评分不得为负，ESR 标志物值必须大于 0。"], ref:"ESR=−5 时 ln(负数) 无定义，DAS28 会被算成 −Infinity；旧实现用 Math.max(1) 静默改写为 1；新守卫应提示。默认 markerVal=20 不含该提示。" },
 
-{ slug:"rheumatology/das28", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/rheumatology/das28.html','utf8');var fn=h.slice(h.indexOf('function calc(){'),h.indexOf('function copyResult(){'));var ok=fn.indexOf(\"document.getElementById('resultRefBar').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='B616DAS '+(ok?'OK':'BAD');"], expect:["B616DAS OK"], ref:"第1362批：DAS28 缺参分支必须清空独立 resultRefBar；旧实现只换结果提示，缓解/活动度标尺继续显示上一轮值。桩内 TBKit.chart 不保证绘制标尺，故按项目先例用源码守卫断言 calc 起始清空 resultRefBar。" }
+{ slug:"rheumatology/das28", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/rheumatology/das28.html','utf8');var fn=h.slice(h.indexOf('function calc(){'),h.indexOf('function copyResult(){'));var ok=fn.indexOf(\"document.getElementById('resultRefBar').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='B616DAS '+(ok?'OK':'BAD');"], expect:["B616DAS OK"], ref:"第1362批：DAS28 缺参分支必须清空独立 resultRefBar；旧实现只换结果提示，缓解/活动度标尺继续显示上一轮值。桩内 TBKit.chart 不保证绘制标尺，故按项目先例用源码守卫断言 calc 起始清空 resultRefBar。" },
+{
+  slug: "rheumatology/detector-8",
+  inputs: { screen: "42", confirm: "33", normal: "35", mixing: "corrected", aptt: "38", apttNormal: "32" },
+  expect: ["因子缺乏（非LA）"],
+  ref: "恢复第356–358批旧页：筛查延长、比值 1.27 阳性但 1:1 混合纠正 ⇒ 因子缺乏而非 LA；lupus-anticoagulant 无混合试验输入。"
+},
+{
+  slug: "rheumatology/detector-8",
+  inputs: { screen: "42", confirm: "33", normal: "35", mixing: "uncorrected", aptt: "38", apttNormal: "32" },
+  expect: ["狼疮抗凝物（LA）阳性"],
+  ref: "同一输入改为 1:1 混合未纠正 ⇒ 提示抑制物、三步法全符合 ⇒ LA 阳性；与纠正态互斥，验证判读分支。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

@@ -1006,7 +1006,32 @@ const CASES = [
 { slug:"automotive/parking-fee-calculator", inputs:{firstMin:"60",firstFee:"10",unitMin:"30",unitFee:"5",parkMin:"100",cap:"0",freeMin:"30",freeMode:"deduct"}, expect:["应付 15 元"], ref:"第1063批 N239：免费 30 分钟按抵扣口径，计费 70 分钟 → 10 + ⌈10/30⌉×5 = 15；默认 freeMin=0/parkMin=180 为 30 元，锚不命中。" },
 { slug:"automotive/parking-fee-calculator", inputs:{firstMin:"60",firstFee:"10",unitMin:"30",unitFee:"5",parkMin:"100",cap:"0",freeMin:"30",freeMode:"full"}, expect:["应付 20 元"], ref:"第1063批 N239：超时全额口径下 100 分钟从入场起算 → 10 + ⌈40/30⌉×5 = 20；抵扣口径为 15，默认态为 30，锚唯一。" },
 { slug:"automotive/parking-fee-calculator", inputs:{firstMin:"60",firstFee:"10",unitMin:"30",unitFee:"5",parkMin:"4320",cap:"0",freeMin:"0",freeMode:"deduct"}, expect:["应付 720 元"], ref:"第1063批 N238：连续停 4320 分钟（3×24h）按 3 段各 240 元累加 = 720；旧实现若把单日费再乘以天数或按 0 天截断会偏离，默认 180 分钟为 30 元，锚不命中。" },
-{ slug:"automotive/voltage-2", inputs:{volt:"12",vreg:"15.5",cutin:"700",rpm:"2500",vbat:"12.4",rloop:"0.08",load:"10",len:"5",area:"2.5",mat:"0.0175"}, expect:["末端电压 14.8 V"], ref:"第1063批 N243：供电端取 max(发电 15.5, 电池 12.4)=15.5，压降 0.70 ⇒ 末端 14.8；若仍用标称 12 V 会得 11.3，默认 vreg=14.4 得 13.7，锚唯一。" }
+{ slug:"automotive/voltage-2", inputs:{volt:"12",vreg:"15.5",cutin:"700",rpm:"2500",vbat:"12.4",rloop:"0.08",load:"10",len:"5",area:"2.5",mat:"0.0175"}, expect:["末端电压 14.8 V"], ref:"第1063批 N243：供电端取 max(发电 15.5, 电池 12.4)=15.5，压降 0.70 ⇒ 末端 14.8；若仍用标称 12 V 会得 11.3，默认 vreg=14.4 得 13.7，锚唯一。" },
+{
+  slug: "automotive/tire-wear",
+  inputs: { newDepth: "8", mileage: "35000", tier: "0.12", alignment: "1", road: "1", driving: "1" },
+  expect: ["7.6", "498,333"],
+  ref: "恢复第356–358批旧页：8 mm 新胎、3.5 万 km、中端胎/正常定位/城市路/正常驾驶 ⇒ 磨损 0.12 mm/万 km，当前 7.6 mm，剩余可行驶 498,333 km；estimate-wear-tire 需当前花纹深度，无此估算模型。"
+},
+{
+  slug: "automotive/oil-change-countdown",
+  inputs: { ldate: "2026-01-15", last: "80000", cur: "87000", today: "2026-11-24", iv: "10000", ivm: "12", k: "1.0", warn: "500" },
+  expect: ["3000 km", "52 天"],
+  ref: "恢复第356–358批旧页自定义周期：上次 80000 km、当前 87000、周期 10000 ⇒ 剩 3000 km；2026-01-15 起 12 个月到期 2027-01-15，距 2026-11-24 共 52 天。countdown-engine-oil 由机油类型推断，无这些自定义字段。"
+},
+{
+  slug: "automotive/maintenance-schedule",
+  inputs: { km: "45000", kmM: "1200", sdate: "2026-01-01", mon: "8", veh: "1.0", cond: "1.0", oil: "10000|12", ahead: "1000" },
+  expect: ["火花塞", "4 项"],
+  ref: "恢复第356–358批旧页燃油分支：4.5 万 km、月均 1200 km、8 个月 ⇒ 最近到期火花塞，待办 4 项；纯电开关未勾选。"
+},
+{
+  slug: "automotive/maintenance-schedule",
+  checkIds: ["evMode"],
+  inputs: { km: "45000", kmM: "1200", sdate: "2026-01-01", mon: "8", veh: "0.9", evMode: "1", cond: "1.0", oil: "10000|12", ahead: "1000" },
+  expect: ["空气滤芯", "2 项"],
+  ref: "纯电分支：evMode 勾选后跳过发动机项目，待办降至 2 项且最近到期为空气滤芯；scheduler-cycle-maintenance 缺该分支。checkIds 还原真机勾选态。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

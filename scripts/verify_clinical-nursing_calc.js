@@ -716,6 +716,18 @@ const CASES = [
   "ref": "F-BMI28 切点：中国成人肥胖 BMI≥28，恰好 28 应加 2 分；仰卧位 1+2=3。旧实现 >28 漏计。"
 },
 
+{
+  slug: "clinical-nursing/convert-flow-concentration",
+  inputs: { mode: "f2o", val: "2" },
+  expect: ["FiO2 ≈ 29.0%"],
+  ref: "恢复第351批旧页正向：鼻导管 2 L/min ⇒ 21+4×2=29.0%；保留页仅此方向。"
+},
+{
+  slug: "clinical-nursing/convert-flow-concentration",
+  inputs: { mode: "o2f", val: "40" },
+  expect: ["4.75 L/min"],
+  ref: "恢复第351批旧页反推：FiO2 40% ⇒ (40−21)/4=4.75 L/min；保留页 oxygen-concentration 无 FiO2→流量入口。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

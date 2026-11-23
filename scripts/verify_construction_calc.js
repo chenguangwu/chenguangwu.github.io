@@ -542,6 +542,12 @@ const CASES = [
     "ref": "F-AREA 文案统一：越界提示由“公摊系数”改“公摊率”，与输入标签和 r/(100−r) 计算口径一致；100% 被拒绝。"
   },
 
+{
+  slug: "construction/calc-6",
+  inputs: { orient: "south", altitude: "60", overhang: "0.8", winH: "1.5" },
+  expect: ["0.076", "92.4%"],
+  ref: "恢复第354批旧页：已知太阳高度角 60°、挑出 0.8 m ⇒ 投影 0.8×tan60=1.386 m，遮住 1.5 m 窗高 92.4%，综合遮阳系数 0.076；原页要求纬度/月份/时间，不能直接用已测高度角。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

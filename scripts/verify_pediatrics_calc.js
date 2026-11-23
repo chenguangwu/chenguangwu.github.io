@@ -200,7 +200,19 @@ const CASES = [
 { slug:"pediatrics/seizure-classification", inputs:{"age":""}, expect:["请填写年龄"], ref:"核心测量值留空不得给出分级/风险结论（PEDCLR）" },
 { slug:"pediatrics/neonatal-jaundice", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pediatrics/neonatal-jaundice.html','utf8');var ok=h.indexOf('24h TSB9 足月正常')<0&&h.indexOf('24h TSB9 term normal')<0&&h.indexOf('24h TSB9 足月 3400g')>=0;document.getElementById('__tbProbe').textContent='JAUNDPRESET '+(ok?'OK':'BAD');"], expect:["JAUNDPRESET OK"], ref:"24h TSB9 预设不得断言「正常」：页面只做单位换算，不判风险分区/治疗阈值；标签改为客观时龄、TSB、胎龄体重。" },
 { slug:"pediatrics/chd-assessment", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pediatrics/chd-assessment.html','utf8');var i=h.indexOf('function calc(){');var seg=i>=0?h.slice(i,i+260):'';var ok=seg.indexOf('__EMR_SUM=null')>=0&&seg.indexOf('__EMR_NOTE=null')>=0&&seg.indexOf('resultRefBar')>=0;document.getElementById('__tbProbe').textContent='CHDEMR0 '+(ok?'OK':'BAD');"], expect:["CHDEMR0 OK"], ref:"第1360批·缺参旧门诊记录修复：calc 入口清空 __EMR_SUM/__EMR_NOTE 与风险标尺，包装器不再按旧摘要生成记录；旧版保留旧摘要 ⇒ BAD。" },
-{ slug:"pediatrics/pediatric-pneumonia", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pediatrics/pediatric-pneumonia.html','utf8');var i=h.indexOf('function calc(){');var seg=i>=0?h.slice(i,i+260):'';var ok=seg.indexOf('__EMR_SUM=null')>=0&&seg.indexOf('__EMR_NOTE=null')>=0;document.getElementById('__tbProbe').textContent='PNEEMR0 '+(ok?'OK':'BAD');"], expect:["PNEEMR0 OK"], ref:"第1360批·缺参旧门诊记录修复：calc 入口清空 __EMR_SUM/__EMR_NOTE，缺参时复制不再输出上轮肺炎结论；旧版保留旧摘要 ⇒ BAD。" }
+{ slug:"pediatrics/pediatric-pneumonia", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pediatrics/pediatric-pneumonia.html','utf8');var i=h.indexOf('function calc(){');var seg=i>=0?h.slice(i,i+260):'';var ok=seg.indexOf('__EMR_SUM=null')>=0&&seg.indexOf('__EMR_NOTE=null')>=0;document.getElementById('__tbProbe').textContent='PNEEMR0 '+(ok?'OK':'BAD');"], expect:["PNEEMR0 OK"], ref:"第1360批·缺参旧门诊记录修复：calc 入口清空 __EMR_SUM/__EMR_NOTE，缺参时复制不再输出上轮肺炎结论；旧版保留旧摘要 ⇒ BAD。" },
+{
+  slug: "pediatrics/xinshengerhuangdan-xiaoshidanhongsu-quxian",
+  inputs: { age: "48", bili: "14", unit: "mgdl" },
+  expect: ["239.5 μmol/L"],
+  ref: "恢复第351批旧页：14 mg/dL × 17.104 = 239.46 ⇒ 239.5 μmol/L；保留页仅接受 mg/dL，旧页补回双向输入。"
+},
+{
+  slug: "pediatrics/xinshengerhuangdan-xiaoshidanhongsu-quxian",
+  inputs: { age: "48", bili: "239.4", unit: "umol" },
+  expect: ["14.00 mg/dL"],
+  ref: "恢复第351批旧页反向路径：239.4 μmol/L ÷ 17.104 = 13.997 ⇒ 14.00 mg/dL；旧页 unit=umol 分支，保留页无此入口。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

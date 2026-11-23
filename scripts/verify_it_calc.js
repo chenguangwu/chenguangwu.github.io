@@ -14732,6 +14732,13 @@ const CASES = [
     "ref": "F-QR367 批量恢复：两行输入生成两张 .qr-card，第二张标题含第二行原文；静区 0 生效。"
   },
 
+{
+  slug: "it/regex-common",
+  inputs: { cat: "email", limit: "8", txt: "a@b.com c@d.cn 13812345678 10.0.0.1" },
+  clicks: ["calcTool()"],
+  expect: ["a@b.com、c@d.cn", "2 个"],
+  ref: "恢复第356–358批旧页交互匹配：邮箱类别对注入文本命中 2 个并按顿号拼接；regex-cheatsheet 仅静态速查表，不能测试文本。"
+}
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
