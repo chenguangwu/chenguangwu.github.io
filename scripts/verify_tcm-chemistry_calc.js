@@ -349,6 +349,12 @@ const CASES = [
   "ref": "12-N110 表格/导出筛选口径统一：filterRows 同时匹配名称/来源/类别，renderTable 与 exportData 各复用一次；空结果态误导性的历史导出按钮移除。旧版 exportData 只按名称且空态按钮存在 ⇒ 变红。默认态不产生该串，零逃生。"
 },
 {
+  "slug": "tcm-chemistry/solubility-guide",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-chemistry/solubility-guide.html','utf8');var deep=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/tcm-chemistry/solubility-guide.json','utf8');var parts=h.split('<script');var fb='';for(var k=1;k<parts.length;k++){var seg=parts[k].split('</script>')[0];if(seg.indexOf('FAQPage')>=0){fb=seg.slice(seg.indexOf('{'),seg.lastIndexOf('}')+1);break;}}var q=null;try{q=JSON.parse(fb);}catch(e){}var ans=q&&q.mainEntity&&q.mainEntity[0]?q.mainEntity[0].acceptedAnswer.text:'';var vis=h.indexOf('易溶/溶解/微溶/难溶/不溶五级')<0&&h.indexOf('本页按四级简化')>=0;var src=deep.indexOf('易溶/溶解/微溶/难溶/不溶五级')<0&&deep.indexOf('本页按四级简化')>=0;var enok=en.indexOf('Five grades: freely soluble')<0&&en.indexOf('four simplified grades')>=0;var ok=ans.indexOf('四级')>=0&&ans.indexOf('七级')>=0&&ans.indexOf('五级')<0&&vis&&src&&enok;document.getElementById('__tbProbe').textContent='SOLFAQ '+(ok?'OK':'BAD');"],
+  "expect": ["SOLFAQ OK"],
+  "ref": "第283批：页面正文、可见 FAQ、FAQPage、深解数据源与英文词典必须统一为“本页四级简化 vs 药典七级”，不得再出现“易溶/溶解/微溶/难溶/不溶五级”。旧版 FAQ/LD/源 JSON/英文均写五级 ⇒ BAD。"
+},
+{
   "slug": "tcm-chemistry/hplc-optimization",
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-chemistry/hplc-optimization.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/tcm-chemistry/hplc-optimization.json','utf8');var ok=h.indexOf('基于权威医学标准')<0&&h.indexOf('支持多种临床参数')<0&&h.indexOf('医疗数据不上传，保护隐私')<0&&h.indexOf('临床计算与评估辅助')<0&&h.indexOf('医学学习与考试备考')<0&&h.indexOf('健康监测参考')<0&&h.indexOf('按 HPLC 参数计算保留时间、柱效与分离度')>=0&&h.indexOf('支持等度与梯度洗脱条件评估')>=0&&h.indexOf('分析方法开发与色谱条件筛选')>=0&&h.indexOf('实验结果复核与方案比较')>=0&&en.indexOf('Compute retention time, column efficiency and resolution from HPLC parameters')>=0&&en.indexOf('Supports isocratic and gradient elution evaluation')>=0&&en.indexOf('Parameters are processed only in the browser and are never uploaded')>=0;document.getElementById('__tbProbe').textContent='HPLCINTRO '+(ok?'OK':'BAD');"],
   "expect": ["HPLCINTRO OK"],

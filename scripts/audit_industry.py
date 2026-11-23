@@ -15,14 +15,21 @@ import json, re, os, glob, sys, argparse
 from collections import Counter
 
 _ap = argparse.ArgumentParser(description='单分类八项基线审计')
-_ap.add_argument('--ind', required=True, help='分类目录名，如 energy')
+_ap.add_argument('--ind', help='分类目录名，如 energy')
+_ap.add_argument('--self-check', action='store_true', help='仅运行代号白名单回归自检')
 _args = _ap.parse_args()
+
+def is_code_title(t):
+    """标题是否像 slug 代号/占位序号；真实标准版本走白名单。"""
+    return bool(CODE_P.search(str(t))) and not bool(CODE_WHITELIST_P.search(str(t)))
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IND = _args.ind
-if not os.path.isdir(os.path.join(ROOT, 'tools', IND)):
+if not IND and not _args.self_check:
+    sys.exit('错误: 需要 --ind 或 --self-check')
+if not _args.self_check and not os.path.isdir(os.path.join(ROOT, 'tools', IND)):
     sys.exit('错误: tools/%s 不存在' % IND)
-TOOLS = os.path.join(ROOT, 'tools', IND)
+TOOLS = os.path.join(ROOT, 'tools', IND) if IND else ''
 I18N = os.path.join(ROOT, 'i18n', 'tools')
 GUIDES = os.path.join(ROOT, 'guides')
 
@@ -43,7 +50,24 @@ CODE_P = re.compile(r'[a-z]+-\d+|\b[A-Za-z]{2,} \d{1,3}\b')
 # 标准/术语白名单：含数字但属真实名称，不能当 slug 代号误报（2026-11-21 第320批）
 CODE_WHITELIST_P = re.compile(
     r'(?:AATCC 100|Rule of 72|GB 150|ISO 286|MDRD 175|Carbon-14|2 or 3 Unknowns|PlGF/sFlt-1)'
-    r'|\bGB/T \d+|\bISO \d+|\bASTM [A-Z]\d+', re.I)
+    r'|\bGB/T \d+|\bISO \d+|\bASTM [A-Z]\d+'
+    r'|\bDraft-(?:0\d|20[0-9]{2}-[0-9]{2})\b', re.I)
+
+if _args.self_check:
+    cases = [
+        ('JSON Schema Validator (Draft-07)', False),
+        ('JSON Schema Validator (Draft-2020-12)', False),
+        ('Generator 16', True),
+        ('calc-7', True),
+        ('Rule of 72 Calculator', False),
+        ('ISO 286 Fit Calculator', False),
+    ]
+    bad = [(t, want, is_code_title(t)) for t, want in cases if is_code_title(t) != want]
+    for t, want, got in bad:
+        print('FAIL:', t, 'want', want, 'got', got)
+    print('AUDIT-CODE-SELFCHECK', 'OK' if not bad else 'BAD', '(%d cases)' % len(cases))
+    sys.exit(0 if not bad else 1)
+
 
 # 套话判定（§4.5）
 FP = re.compile(r"统一复核|降低上手门槛|可追溯流程|边界样本建议单独标注|减少重复确认成本|"
@@ -270,14 +294,13 @@ print("\n【8】英文态维度")
 b_intro_ph = [k for k, v in body.items() if isinstance(v, dict)
               and PLACEHOLDER_P.match(str(v.get('intro', '')).strip())]
 b_title_code = [k for k, v in body.items() if isinstance(v, dict)
-                and CODE_P.search(str(v.get('title', '')))
-                and not CODE_WHITELIST_P.search(str(v.get('title', '')))]
+                and is_code_title(v.get('title', ''))]
 print(f"  body intro 占位={len(b_intro_ph)}  body title 真·代号/全英文={len(b_title_code)}")
 if b_title_code[:12]:
     print("   title 命中样例:", [(k, body[k].get('title')) for k in b_title_code[:12]])
 
 en_total = [k for k in enov if k.startswith(f'{IND}/')]
-en_code = [k for k in en_total if CODE_P.search(str(enov.get(k, {}).get('en', '')))]
+en_code = [k for k in en_total if is_code_title(enov.get(k, {}).get('en', ''))]
 print(f"  en_override {IND} 总={len(en_total)}  疑似代号 en={len(en_code)}")
 if en_code[:12]:
     print("   en 代号样例:", [(k, enov[k].get('en')) for k in en_code[:12]])
