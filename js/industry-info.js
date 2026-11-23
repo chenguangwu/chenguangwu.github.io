@@ -88,7 +88,7 @@ window.INDUSTRY_INFO = {
   'clinical-lab'         : { name: '临床检验', icon: '🔬', hot: 186505 },
   'hvac'                 : { name: '暖通空调', icon: '❄️', hot: 184539 },
   'welding'              : { name: '焊接工程', icon: '🔥', hot: 182130 },
-  'obstetrics'           : { name: '产科医学', icon: '🤱', hot: 180050 },
+  'obstetrics'           : { name: '产科医学', icon: '🤱', hot: 180051 },
   'electronics'          : { name: '电子电路', icon: '⚡', hot: 179973 },
   'pulmonology'          : { name: '呼吸内科', icon: '🫁', hot: 179955 },
   'nephrology'           : { name: '肾脏内科', icon: '🩺', hot: 179367 },
