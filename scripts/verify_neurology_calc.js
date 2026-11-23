@@ -4,6 +4,9 @@ const fs = require("fs");
 globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
+{"slug":"neurology/rater-21","clicks":["var v={'t1':'4','t2':'2','t3':'2','t4':'1','t5':'1','t6':'4','t7':'2','t8':'2','t9':'3','t10':'3','d1':'3','d2':'3','d3':'3','d4':'3','d5':'3','d6':'3','p1':'10','p2':'2','p3':'2'};Object.keys(v).forEach(function(k){document.getElementById(k).value=v[k];});calc()"],"expect":["总分 60/85，分级：中重度"],"ref":"第355批：60/85 落在 41–60 中重度，不得与 61–85 重度混淆；严重度 4+2+2+1+1+8+2+2+3+3=28，失能 3×6=18，疼痛 10+2+2=14，合计 60。"},
+{"slug":"neurology/rater-21","clicks":["var v={'t1':'4','t2':'2','t3':'2','t4':'1','t5':'1','t6':'4','t7':'2','t8':'2','t9':'3','t10':'3','d1':'3','d2':'3','d3':'3','d4':'3','d5':'3','d6':'3','p1':'10','p2':'2','p3':'3'};Object.keys(v).forEach(function(k){document.getElementById(k).value=v[k];});calc()"],"expect":["总分 61/85，分级：重度"],"ref":"第355批：61/85 进入 61–85 重度区间，验证分档边界 60→61 真实翻转。"},
+
 {
   "slug": "neurology/rater-21",
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/neurology/rater-21.html','utf8');var i=h.indexOf('28/35');var seg=h.slice(i-80,i+180);var ok=seg.indexOf('中重度')>=0&&seg.indexOf('颈肌张力障碍重度')<0;document.getElementById('__tbProbe').textContent='TWS60 '+(ok?'OK':'BAD '+seg);"],

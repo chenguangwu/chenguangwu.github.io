@@ -210,6 +210,30 @@ const CASES = [
   "ref": "清空开始使用日期必须提示，不得静默回退今天导致预计更换日期与用户输入不一致。"
 },
 {
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "storage", "people": "3", "sim": "1", "minutes": "10", "flow": "8", "cold": "15", "target": "70", "tank": "60", "power": "2", "price": "0.6" },
+  "expect": ["储水温度需不低于目标水温（当前 60°C，目标 70°C）。"],
+  "ref": "第537批：储水温度 60°C 低于目标 70°C 时不得把 hotFraction 截为 1 后给推荐，必须提示不可达。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "storage", "people": "3", "sim": "3", "minutes": "20", "flow": "8", "cold": "15", "target": "40", "tank": "60", "power": "2", "price": "0.6" },
+  "expect": ["超出可选规格上限 200 L"],
+  "ref": "第537批：3 人同时洗 20 分钟、8 L/min ⇒ 估算储水容量远超 200 L 上限，nextSize 旧实现仍返回 200 L；修复后必须提示无可用规格。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "gas", "people": "4", "sim": "3", "minutes": "10", "flow": "10", "cold": "10", "target": "35", "tank": "60", "power": "2", "price": "0.6" },
+  "expect": ["超出规格表上限 24 L/min"],
+  "ref": "第537批：3 路同时 10 L/min、温升 25°C ⇒ 需 30 L/min，超过燃气规格表 24 L/min 上限；旧实现仍推荐 24 L/min。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "instant", "people": "3", "sim": "2", "minutes": "10", "flow": "10", "cold": "15", "target": "40", "tank": "60", "power": "2", "price": "0.6" },
+  "expect": ["超出规格表上限（24 kW / 100 A）"],
+  "ref": "第537批：2 路同时 10 L/min、温升 25°C ⇒ 34.9 kW，超过即热规格表 24 kW 与空开 100 A 上限；旧实现返回 24 kW/100 A 并给出不足推荐。"
+},
+{
   "slug": "home/appliance-lifespan",
   "inputs": { "type": "fridge", "start": "2099-01-01", "price": "3000" },
   "clicks": ["var oa=alert,msg='';alert=function(m){msg=String(m);};try{exportCSV();}catch(e){}alert=oa;document.getElementById('__tbProbe').textContent='AEXP '+(msg==='首次使用日期不能晚于今天。'?'OK':'BAD '+msg);"],

@@ -60,7 +60,7 @@ let cases = 0, idTotal = 0, missingPage = 0;
 
 for (const file of targets) {
   const src = fs.readFileSync(file, "utf8");
-  const list = extractCases(src) || [];
+  const list = (extractCases(src) || []).filter(Boolean);
   const fname = path.basename(file);
   for (const c of list) {
     cases++;

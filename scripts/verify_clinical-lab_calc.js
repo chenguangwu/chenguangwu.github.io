@@ -42,7 +42,8 @@ function pcrDeepdiveConsistencyChecks() {
   ];
 }
 
-const CASES = [
+const CASES = [{ slug:"clinical-lab/semen-analysis", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/clinical-lab/semen-analysis.html','utf8');var ok=h.indexOf('id=\"lbl_volume\"')>=0&&h.indexOf('aria-labelledby=\"lbl_volume\"')>=0&&h.indexOf('aria-label=\"体积\"')<0;document.getElementById('__tbProbe').textContent='SEMVOL '+(ok?'OK':'BAD');"], expect:["SEMVOL OK"], ref:"第484/487批：精液量控件必须由可见标签「精液量 (mL)」提供无障碍名称，aria-labelledby 关联该标签；旧 aria-label=体积 缺项目与单位。" },
+
 {
     "slug": "clinical-lab/blood-gas-analysis",
     "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'ph',type:'text',value:''}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __r=document.getElementById('result');__r.textContent='请填写 pH、PaCO2、HCO3（均需大于 0）';__blood_gas_analysis_last=0;__blood_gas_analysisExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='BGAVAL score='+__blood_gas_analysisScore('请填写 pH、PaCO2、HCO3（均需大于 0）')+' n='+__cap.length;"],

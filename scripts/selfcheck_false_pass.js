@@ -162,6 +162,7 @@ async function scanFile(file, exec) {
   } catch (e) {
     return { file: path.basename(file), checked: 0, risk: 0, skip: "eval:" + e.message.slice(0, 50) };
   }
+  if (Array.isArray(CASES)) CASES = CASES.filter(Boolean);
   if (!CASES || !CASES.length) return { file: path.basename(file), checked: 0, risk: 0 };
 
   let risk = 0, checked = 0;

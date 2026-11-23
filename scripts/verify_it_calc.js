@@ -14623,7 +14623,6 @@ const CASES = [
   "expect": ["\"a\"\"b\""],
   "ref": "quote 模式按 CSV 引号规则：字段内双引号写两个，a\"b 应输出 \"a\"\"b\"，旧版用反斜杠转义得到 \"a\\\"b\" 与 FAQ 不一致。"
 },
-,
 {
   "slug": "it/html-tags",
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/html-tags.html','utf8');var head=h.slice(0,h.indexOf('</head>'));var parts=head.split('<script');var wb='';for(var k=1;k<parts.length;k++){var seg=parts[k].split('</script>')[0];if(seg.indexOf('WebApplication')>=0){wb=seg.slice(seg.indexOf('{'),seg.lastIndexOf('}')+1);break;}}var o=null;try{o=JSON.parse(wb);}catch(e){}var nm=o&&o.name;var ok=nm==='HTML 标签速查'&&nm.indexOf('字号更大')<0&&h.indexOf('<h1 class=\"sr-only\">HTML 标签速查</h1>')>=0;document.getElementById('__tbProbe').textContent='HTAGMETA '+(ok?'OK':'BAD')+' '+nm;"],
@@ -16184,7 +16183,10 @@ function extractCases(src) {
   if (end === -1) return null;
   const casesSrc = src.slice(start, end + 1).replace(marker, "[");
   // eslint-disable-next-line no-eval
-  return eval(casesSrc);
+  const arr = eval(casesSrc);
+  // 用例数组若被误插空槽（对象之间多一个逗号）会生成 undefined 元素：执行端已 filter，
+  // 但 selfcheck / audit_verify_input_ids 等消费者会读到 undefined 而崩溃 ⇒ 统一收口。
+  return Array.isArray(arr) ? arr.filter(Boolean) : arr;
 }
 
 // ---------------------------------------------------------------- main
