@@ -328,6 +328,33 @@
     }
   }
 
+  function pageToolNameEn() {
+    try {
+      var t = (document.title || '').trim();
+      if (!t || /[\u4e00-\u9fff]/.test(t)) return '';
+      t = t.split(' | ')[0].split(' - ')[0].trim();
+      return t;
+    } catch (e) { return ''; }
+  }
+  function patternPhraseTr(key) {
+    var sp = stripEmojiPrefix(key);
+    var core = sp.core || key;
+    var prefix = sp.prefix ? sp.prefix + ' ' : '';
+    if (/^关于「.+」$/.test(core)) {
+      var nm = pageToolNameEn();
+      return prefix + (nm ? 'About ' + nm : 'About this tool');
+    }
+    if (/^查看「.+」$/.test(core)) {
+      var nm2 = pageToolNameEn();
+      return prefix + (nm2 ? 'View the ' + nm2 + ' guide' : 'View the user guide');
+    }
+    var sm = /^步骤\s*(\d+)$/.exec(core);
+    if (sm) return prefix + 'Step ' + sm[1];
+    var pm = /^(\d+)分$/.exec(core);
+    if (pm) return prefix + pm[1] + ' points';
+    return null;
+  }
+
   var BODY_CHANGED = [];
   function replaceTextNodeCore(el, core, tr) {
     var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
@@ -392,6 +419,7 @@
             }
           }
         }
+        if (!tr) tr = patternPhraseTr(txt);
       }
       if (tr) {
         BODY_CHANGED.push({ el: el, orig: txt });
@@ -1129,6 +1157,7 @@
           if (dctr) out = (dsp.prefix ? dsp.prefix + ' ' : '') + dctr;
         }
       }
+      if (!out) out = patternPhraseTr(key);
       if (!out) out = convertPunct(key, parent);
       if (!out) {
         // GEN_UI_MAP 只被 translateGenericUI 全量扫描时使用，动态新增节点（如复制按钮改成
