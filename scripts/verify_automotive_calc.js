@@ -478,8 +478,7 @@ const CASES = [
     "unitFee": "5",
     "parkMin": "180",
     "cap": "60",
-    "freeMin": "0",
-    "days": "1"
+    "freeMin": "0"
   },
   "expect": [
     "8.3"
@@ -808,8 +807,7 @@ const CASES = [
       "unitFee": "5",
       "parkMin": "120",
       "cap": "50",
-      "freeMin": "0",
-      "days": "1"
+      "freeMin": "0"
     },
     "expect": [
       "应付 45 元"
