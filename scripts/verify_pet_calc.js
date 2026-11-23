@@ -48,8 +48,22 @@ const CASES = [
   "slug": "pet/convert-25",
   "inputs": {"species": "dog", "age": ""},
   "clicks": ["calc()"],
-  "expect": ["请输入宠物年龄（岁）后再换算。"],
+  "expect": ["请输入宠物年龄（岁，出生当天可填 0）后再换算。"],
   "ref": "空年龄不得输出「人类年龄 ≈ 0.0 岁」；默认 3 岁不含该提示。"
+},
+{
+  "slug": "pet/convert-25",
+  "inputs": {"species": "dog", "age": "0"},
+  "clicks": ["calc()"],
+  "expect": ["人类年龄 ≈ 0.0 岁", "出生/幼年期：按 0 岁计"],
+  "ref": "出生当天 0 岁合法：输出 0.0 岁且不显示年龄倍率（避免除零）；空串才提示。默认 3 岁不含该串。"
+},
+{
+  "slug": "pet/convert-25",
+  "inputs": {"species": "dog", "age": "-1"},
+  "clicks": ["calc()"],
+  "expect": ["请输入宠物年龄（岁，出生当天可填 0）后再换算。"],
+  "ref": "负年龄拦截；默认 3 岁不含该提示。"
 },
 {
   "slug": "pet/convert-25",

@@ -157,6 +157,15 @@ const CASES = [
 {
   "slug": "data/pivot-table",
   "inputs": {
+    "inputData": "地区,产品,销量\nA,X,12abc\nA,X,Infinity\nA,X,\nA,X,0\nA,X,2.5",
+    "rowField": "地区", "colField": "产品", "valField": "销量", "agg": "avg"
+  },
+  "expect": ["A 1.25 1.25"],
+  "ref": "整串数字校验：12abc / Infinity / 空值均跳过，仅 0 与 2.5 有效 ⇒ 均值 1.25；旧 parseFloat 会把 12abc 当 12，均值变成 4.83。"
+},
+{
+  "slug": "data/pivot-table",
+  "inputs": {
     "inputData": "地区,产品,销量\nA,X,10\nA,Y,20\nB,X,100\nB,Y,200\nB,X,300",
     "rowField": "地区", "colField": "产品", "valField": "销量", "agg": "avg"
   },
