@@ -147,7 +147,7 @@
     <h2 data-zh="🎁 活动随机抽取器">🎁 Event Raffle Picker</h2>
 <div class="disclaimer-banner" role="note" style="font-size:13px;line-height:1.6;color:#92400e;background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.35);border-radius:10px;padding:10px 14px;margin:10px 0 16px;">⚠️ 本工具为年会、课堂、团建等活动的随机抽取 / 号码生成辅助，过程公开可复现、结果随机，不涉及任何赌博、奖品或金钱交易。请勿用于博彩。</div>
     <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">参与者按换行分割去空白，≥2 人；中奖数 n 钳制 1–参与者数；20 轮 × 80ms 滚动后不放回抽取（抽中即 splice 移除）；抽取由随机种子驱动，同种子 + 同名单 + 同人数可复算同一结果；结果以间隔号连接，历史带本地时间前缀与种子</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">参与者按换行分割去空白，≥2 人；中奖数 n 钳制 1–参与者数；20 轮 × 80ms 滚动仅为视觉动画。种子留空时用 Web Crypto 安全随机逐人抽取（拒绝采样），不生成可复算种子；填写种子时进入可复现模式（结果可由种子预测），同种子 + 同名单 + 同人数复算一致；结果以间隔号连接，历史带本地时间与抽取方式</div>
   <p class="formula-desc" data-zh="本工具为纯前端在线工具，数据在浏览器本地处理、不上传服务器，依据对应领域标准与规范进行计算或处理，结果仅供参考。 工具名称：活动随机抽取器 - 娱乐游戏领域的在线工具。">Import or type in a name list and draw winners at random, with no-repeat draws, an explicit probability panel and a publicly reproducible process — for annual parties, classrooms and team events.</p>
 </div>
 
@@ -165,8 +165,8 @@
       <input type="number" id="count" value="1" min="1" placeholder="如 1" oninput="updateProbNote()">
     </div>
     <div class="input-row" style="max-width:260px;margin-top:6px;">
-      <label for="seed">随机种子（可选）：</label>
-      <input type="text" id="seed" placeholder="留空自动生成；填同一种子可复算">
+      <label for="seed">随机种子（可选，留空用安全随机）：</label>
+      <input type="text" id="seed" placeholder="留空=安全随机、不可复算；填写=可复现（同种子可预测）">
     </div>
     <p id="probNote" class="prob-note" style="font-size:12px;color:var(--text-muted);line-height:1.7;margin:4px 0 10px;"></p>
     <div class="winner" id="winner">—</div>
@@ -234,7 +234,7 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="可复现随机">Reproducible draw</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="工具提供随机种子输入框：同种子 + 同名单 + 同人数即可让第三方复算同一结果">the tool exposes a seed field: same seed, list and count let others recompute the same draw</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="工具提供随机种子输入框：留空使用安全随机；填写同种子 + 同名单 + 同人数可复算同一结果（因此可预测）">A seed field is provided: leave it blank for secure randomness; entering the same seed, list and winner count reproduces the same draw (and is therefore predictable)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Fair draw practice">Fair draw practice</td>
         </tr>
         <tr>
@@ -281,12 +281,25 @@ function updateProbNote(){
     + `<span>N=${N} · n=${n} · 1/N=${first}% · n/N=${anyOne}%</span>`;
 }
 function secureCrypto(){return (typeof crypto!=='undefined'&&crypto&&crypto.getRandomValues)?crypto:((typeof window!=='undefined'&&window.crypto&&window.crypto.getRandomValues)?window.crypto:null);}
-function secureSeed(){
+function secureIndex(n){
   const c=secureCrypto();
-  if(!c)return null;
+  if(!c)return -1;
+  const limit=Math.floor(4294967296/n)*n;
   const a=new Uint32Array(1);
-  c.getRandomValues(a);
-  return (a[0].toString(36)+Date.now().toString(36)).slice(-10);
+  do{c.getRandomValues(a);}while(a[0]>=limit);
+  return a[0]%n;
+}
+function rafflePickIndexesSecure(list,n){
+  const pool=uniqueNames([...list]);
+  const k=Math.max(1,Math.min(pool.length,parseInt(n,10)||1));
+  const out=[];
+  for(let i=0;i<k;i++){
+    const idx=secureIndex(pool.length);
+    if(idx<0)return null;
+    out.push(pool[idx]);
+    pool.splice(idx,1);
+  }
+  return out;
 }
 function hashSeed(s){
   let h=2166136261>>>0;
@@ -314,21 +327,28 @@ function rafflePickIndexes(list,n,seed){
   return out;
 }
 function pickAndShow(list,n,seed){
-  const s=(seed==null||String(seed).trim()==='')?secureSeed():String(seed).trim();
-  if(!s){
-    document.getElementById('winner').textContent='⚠ 当前浏览器不支持安全随机数';
-    document.getElementById('output').innerHTML='<p style="color:var(--danger)">当前浏览器不支持 Web Crypto 安全随机数，无法进行不可预测的抽取（也不会静默回落 Math.random）；请升级浏览器后重试。</p>';
-    spinning=false;
-    return;
+  const userSeed=(seed==null||String(seed).trim()==='')?'':String(seed).trim();
+  let winners;
+  if(userSeed){
+    winners=rafflePickIndexes(list,n,userSeed);
+  }else{
+    if(!secureCrypto()){
+      document.getElementById('winner').textContent='⚠ 当前浏览器不支持安全随机数';
+      document.getElementById('output').innerHTML='<p style="color:var(--danger)">当前浏览器不支持 Web Crypto 安全随机数，无法进行不可预测的抽取（也不会静默回落 Math.random）；请升级浏览器后重试，或填写种子进入可复现模式。</p>';
+      spinning=false;
+      return;
+    }
+    winners=rafflePickIndexesSecure(list,n);
   }
-  const winners=rafflePickIndexes(list,n,s);
+  if(!winners){document.getElementById('winner').textContent='⚠ 安全随机不可用';spinning=false;return;}
   document.getElementById('winner').textContent=winners.join('  🎉  ');
   const safe=winners.map(escH).join('、');
+  const modeText=userSeed?('用户种子模式：<code>'+escH(userSeed)+'</code>（可复现，因此结果可由种子预测；同名单 + 同人数 + 同种子复算一致）'):'随机方式：Web Crypto 安全随机（不生成可复算种子）';
   document.getElementById('output').innerHTML=`<p>🎊 恭喜被抽中者：<strong>${safe}</strong></p>`
-    +`<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">随机种子：<code>${escH(s)}</code>（同名单 + 同人数 + 同种子可复算同一结果）</p>`;
+    +`<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">${modeText}</p>`;
   const h=document.getElementById('history');
   const now=new Date().toLocaleTimeString();
-  h.innerHTML=`<div>[${now}] ${safe} · 种子 ${escH(s)}</div>`+h.innerHTML;
+  h.innerHTML=`<div>[${now}] ${safe} · ${userSeed?'种子 '+escH(userSeed):'安全随机'}</div>`+h.innerHTML;
   spinning=false;
   __raffle_picker_skip=false;
   if(typeof __raffle_pickerExtras==='function'){try{__raffle_pickerExtras();}catch(e){}}

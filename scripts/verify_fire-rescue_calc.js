@@ -207,10 +207,11 @@ const CASES = [
   "slug": "fire-rescue/fire-resistance-rating",
   "inputs": {
     "btype": "industrial",
-    "height": "12"
+    "height": "12",
+    "industryHazard": "丙"
   },
   "expect": [
-    "多层厂房耐火等级不应低于三级"
+    "丙类多层厂房耐火等级不应低于三级"
   ],
   "ref": "独立复算：单/多层厂房高度 12 m ≤ 24 m ⇒ 三级（GB 50016-2014 第 3.2.1 条，多层厂房不应低于三级）；判别器把 btype 回退到首个 option「住宅」时输出「多层住宅…」，与本串不符 ⇒ 强判别。"
 },
