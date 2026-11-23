@@ -80,7 +80,7 @@ const CASES = [
 {
   "slug": "home/renovation-budget",
   "clicks": [
-    "var __s='';localStorage.setItem=function(k,v){__s=v;};localStorage.getItem=function(){return __s;};setItems([{id:1,name:'瓷砖',price:8000,qty:12},{id:2,name:'地板',price:6000,qty:10}]);renderItems();calc()"
+    "getItems=function(){return [{id:1,name:'瓷砖',price:8000,qty:12},{id:2,name:'地板',price:6000,qty:10}];};renderItems();calc()"
   ],
   "expect": [
     "156,000",
@@ -128,7 +128,7 @@ const CASES = [
 },
 {
   "slug": "home/renovation-budget",
-  "clicks": ["(function(){var hh=globalThis.__tbFs;var h1=hh.readFileSync(process.cwd()+'/tools/home/renovation-budget.html','utf8');var i1=h1.indexOf('function updateItem(');var sg=i1>=0?h1.slice(i1,i1+700):'';var okg=sg.indexOf('isFinite(num)')>=0&&sg.indexOf('num < 0')>=0&&sg.indexOf('totalEl.innerHTML')>=0&&h1.indexOf('data-id=')>=0;var h2=hh.readFileSync(process.cwd()+'/tools/hotel/tip-calculator.html','utf8');var i2=h2.indexOf('function copyResult()');var sg2=i2>=0?h2.slice(i2,i2+1200):'';var okt=sg2.indexOf('taxAmount')>=0&&sg2.indexOf('bill + taxAmount + tip')>=0&&sg2.indexOf('bill + tip')<0&&sg2.indexOf('tax < 0')>=0;document.getElementById('__tbProbe').textContent='RENITEM '+(okg?'OK':'BAD')+' TIPTAX '+(okt?'OK':'BAD');})();"],
+  "clicks": ["(function(){var hh=globalThis.__tbFs;var h1=hh.readFileSync(process.cwd()+'/tools/home/renovation-budget.html','utf8');var i1=h1.indexOf('function updateItem(');var sg=i1>=0?h1.slice(i1,i1+1200):'';var okg=sg.indexOf('isFinite(num)')>=0&&sg.indexOf('num < 0')>=0&&sg.indexOf('totalEl.innerHTML')>=0&&h1.indexOf('data-id=')>=0;var h2=hh.readFileSync(process.cwd()+'/tools/hotel/tip-calculator.html','utf8');var i2=h2.indexOf('function copyResult()');var sg2=i2>=0?h2.slice(i2,i2+1200):'';var okt=sg2.indexOf('taxAmount')>=0&&sg2.indexOf('bill + taxAmount + tip')>=0&&sg2.indexOf('bill + tip')<0&&sg2.indexOf('tax < 0')>=0;document.getElementById('__tbProbe').textContent='RENITEM '+(okg?'OK':'BAD')+' TIPTAX '+(okt?'OK':'BAD');})();"],
   "expect": ["RENITEM OK TIPTAX OK"],
   "ref": "第1306批双源码形态强锚(承载页 home/renovation-budget)：①装修明细 updateItem 校验数值并定点刷该行 .total、行带 data-id；旧版空串入总计且只 calc 不刷行 ⇒ BAD。②tip-calculator copyResult 须含税(bill+taxAmount+tip)、同源并拦负税率；旧版 bill+tip 漏税 ⇒ BAD。真机交互由复核方覆盖。"
 },
@@ -289,6 +289,12 @@ const CASES = [
   "inputs": { "type": "instant", "people": "1", "cold": "20", "target": "15" },
   "expect": ["目标水温与储水温度需高于进水温度"],
   "ref": "目标水温低于进水温度属非法，必须提示；不得用负温升算出负功率或无效结果。"
+},
+{
+  "slug": "home/renovation-budget",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/home/renovation-budget.html','utf8');var i=h.indexOf('function updateItem');var seg=i>=0?h.slice(i,i+700):'';var ok=seg.indexOf('inp.value = it[field]')>=0&&seg.indexOf('已恢复上次有效值')>=0&&h.indexOf('data-field')>=0&&h.indexOf('onchange')>=0;document.getElementById('__tbProbe').textContent='RENOV '+(ok?'OK':'BAD');"],
+  "expect": ["RENOV OK"],
+  "ref": "第1306批·非法价量显示与存储分裂修复：价/量改为 change 提交，空值/负数/非数时恢复控件上次有效值并提示；旧版直接 return，控件显示空/负而小计总额仍用旧值 ⇒ BAD。真机清空单价恢复 100，负数量恢复 2。"
 }
 ];
 async function main() {

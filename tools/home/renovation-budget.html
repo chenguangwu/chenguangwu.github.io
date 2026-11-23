@@ -337,7 +337,13 @@ function updateItem(id, field, value){
    // 空值/负数不覆盖原值，避免空串参与乘法被当成 0、负数产生负金额
    const raw = String(value==null?'':value).trim();
    const num = parseFloat(raw);
-   if(raw === '' || !isFinite(num) || num < 0) return;
+   if(raw === '' || !isFinite(num) || num < 0){
+     const row = document.querySelector('.budget-row[data-id="' + id + '"]');
+     const inp = row && row.querySelector('input[data-field="' + field + '"]');
+     if(inp) inp.value = it[field];
+     ToolBox.showToast(field === 'price' ? '单价需为非负数，已恢复上次有效值' : '数量需为非负数，已恢复上次有效值','warn');
+     return;
+   }
    it[field] = num;
  }else{
    it[field] = value;
@@ -378,8 +384,8 @@ function renderItems(){
   ? '<div style="color:var(--text-muted);font-size:13px;padding:8px;">暂无项目,可加载模板或手动添加</div>'
   : list.map(it => `<div class="budget-row" data-id="${it.id}">
     <input type="text" value="${escapeAttr(it.name)}" oninput="updateItem(${it.id},'name',this.value)">
-    <input type="number" value="${it.price}" min="0" step="100" oninput="updateItem(${it.id},'price',this.value)" placeholder="e.g. ${it.price}">
-    <input type="number" value="${it.qty}" min="1" step="1" oninput="updateItem(${it.id},'qty',this.value)" placeholder="e.g. ${it.qty}">
+    <input type="number" data-field="price" value="${it.price}" min="0" step="100" onchange="updateItem(${it.id},'price',this.value)" placeholder="e.g. ${it.price}">
+    <input type="number" data-field="qty" value="${it.qty}" min="1" step="1" onchange="updateItem(${it.id},'qty',this.value)" placeholder="e.g. ${it.qty}">
     <div class="total">¥${(it.price*it.qty).toLocaleString()}</div>
     <div class="del" onclick="delItem(${it.id})">✕</div>
    </div>`).join('');document.getElementById('items').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));

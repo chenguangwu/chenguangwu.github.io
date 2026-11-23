@@ -704,18 +704,34 @@ function addItem() {
   ToolBox.showToast(i18nText('toast.msg994'), 'success');
 }
 
+function __stopRehabTimer(){
+  if (state.timer.intervalId) { clearInterval(state.timer.intervalId); state.timer.intervalId = null; }
+  state.timer.phase = 'idle';
+  state.timer._resumePhase = null;
+  state.timer.currentSet = 1;
+}
 function deleteItem(idx) {
   if (!confirm(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Delete this training item?":"确定删除该训练项目？"))) return;
+  var wasCurrent = state.timer.itemId === idx;
   state.items.splice(idx, 1);
   // IT-N212：删除后重映射当前计时项下标，避免仍指向别的动作或越界读 undefined.duration
   if (state.items.length === 0) {
+    __stopRehabTimer();
     state.timer.itemId = null;
+    state.timer.remaining = 0;
+    document.getElementById('timerText').textContent = '00:00';
+    document.getElementById('timerStatus').textContent = '请先添加训练项目';
+    document.getElementById('timerGroupInfo').textContent = '';
   } else if (state.timer.itemId !== null) {
-    if (idx === state.timer.itemId) state.timer.itemId = Math.min(idx, state.items.length - 1);
-    else if (idx < state.timer.itemId) state.timer.itemId--;
-    if (state.timer.itemId >= state.items.length) state.timer.itemId = state.items.length - 1;
-    var cur = state.items[state.timer.itemId];
-    if (cur) state.timer.remaining = cur.duration;
+    if (wasCurrent) {
+      // 删除当前项：停止 interval 并重置到相邻项目的完整首组
+      __stopRehabTimer();
+      state.timer.itemId = Math.min(idx, state.items.length - 1);
+      state.timer.remaining = state.items[state.timer.itemId].duration;
+    } else if (idx < state.timer.itemId) {
+      // 删除前面的其他项：仅下标前移，保留当前剩余时间与阶段
+      state.timer.itemId--;
+    }
   }
   saveItems();
   renderItemList();
