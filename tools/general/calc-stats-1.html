@@ -243,7 +243,17 @@ function normPdf(x,mu,s){return Math.exp(-Math.pow(x-mu,2)/(2*s*s))/(s*Math.sqrt
 function normCdf(z){var t=1/(1+0.2316419*Math.abs(z));var d=0.3989422804014327*Math.exp(-z*z/2);var p=d*t*(0.319381530+t*(-0.356563782+t*(1.781477937+t*(-1.821255978+t*1.330274429))));return z>=0?1-p:p;}
 function logFact(n){if(n<0||n!==Math.floor(n))return NaN;if(n<2)return 0;if(n<50){var s=0;for(var i=2;i<=n;i++)s+=Math.log(i);return s;}var x=n;return x*Math.log(x)-x+0.5*Math.log(2*Math.PI*x)+1/(12*x)-1/(360*x*x*x);}
 function poisPmf(lam,k){if(!isFinite(lam)||lam<0||k<0||k!==Math.floor(k))return NaN;if(lam===0)return k===0?1:0;return Math.exp(-lam+k*Math.log(lam)-logFact(k));}
-function poisCdf(lam,k){if(isNaN(poisPmf(lam,k)))return NaN;var p=Math.exp(-lam),s=0;for(var i=0;i<=k;i++){s+=p;p*=lam/(i+1);}return Math.min(1,s);}
+function poisCdf(lam,k){
+  if(!isFinite(lam)||lam<0||k<0||k!==Math.floor(k))return NaN;
+  if(lam===0)return 1;
+  // 从众数 m=floor(lambda) 出发向两侧递推，避免 exp(-lambda) 在大 lambda 下溢为 0。
+  var m=Math.floor(lam), logpm=-lam+m*Math.log(lam)-logFact(m), pm=Math.exp(logpm);
+  var cdf=0,p=pm,i;
+  for(i=m;i>=0;i--){cdf+=p;if(i>0)p*=i/lam;}
+  if(k>=m){p=pm;for(i=m+1;i<=k;i++){p*=lam/i;cdf+=p;}}
+  else{p=pm;for(i=m;i>k;i--){p*=i/lam;cdf-=p;}}
+  return Math.max(0,Math.min(1,cdf));
+}
 function binomPmf(n,p,k){if(!(n>=0)||p<0||p>1||k<0||k>n)return 0;if(p===0)return k===0?1:0;if(p===1)return k===n?1:0;return Math.exp(logFact(n)-logFact(k)-logFact(n-k)+k*Math.log(p)+(n-k)*Math.log(1-p));}
 function binomCdf(n,p,k){if(k<0)return 0;if(k>=n)return 1;var s=0;for(var i=0;i<=k;i++)s+=binomPmf(n,p,i);return Math.min(1,s);}
 function fmt(v,d){return (v===null||isNaN(v))?"—":v.toFixed(d==null?6:d);}
@@ -296,7 +306,7 @@ calc();
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>统计学分布计算器。输入参数后计算正态分布、泊松分布、二项分布的密度/概率与分位数，用于概率统计教学与数据分析的即时演算。</p>
+    <p>统计学分布计算器。输入参数后计算正态分布、泊松分布、二项分布的密度/概率与累积概率，用于概率统计教学与数据分析的即时演算。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>纯前端处理，数据不上传服务器</li>
