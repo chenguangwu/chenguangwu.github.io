@@ -389,8 +389,8 @@ const CASES = [
   },
   {
     slug: "hr/performance-score",
-    clicks: ["emps[0].scores[0]=-5;calc();"],
-    expect: ["评分须在 0–100 之间"],
+    clicks: ["dims=[{name:'业绩',weight:100}];emps=[{name:'张三',scores:[-5]}];renderDims();renderEmps();calc();"],
+    expect: ["评分须填写 0–100 之间的数值（当前输入：-5）"],
     ref: "把张三第一维业绩分改为 −5 ⇒ 旧实现照算（加权分被拉低、排名与强制分布失真，无提示）；现于计算前逐项校验并提示。默认全部分数在 0–100 内 ⇒ 不命中。",
   },
   {

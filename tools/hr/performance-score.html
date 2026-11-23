@@ -298,7 +298,7 @@ function renderEmps(){
     while(e.scores.length<dims.length) e.scores.push(80);
     e.scores.length = dims.length;
     dims.forEach(function(d, j){
-      scoreInps += '<div><label>'+ToolBox.escHtml(d.name)+'</label><input type="number" value="'+(e.scores[j]||0)+'" min="0" max="100" oninput="emps['+i+'].scores['+j+']=Math.max(0,Math.min(100,+this.value||0));calc()" placeholder="如 '+(e.scores[j]||0)+'（0–100）" aria-label="'+ToolBox.escHtml(d.name)+'"></div>';
+      scoreInps += '<div><label>'+ToolBox.escHtml(d.name)+'</label><input type="number" value="'+(e.scores[j]===0?0:(e.scores[j]||0))+'" min="0" max="100" oninput="emps['+i+'].scores['+j+']=(this.value===\'\'?\'\':+this.value);calc()" placeholder="如 80（0–100）" aria-label="'+ToolBox.escHtml(d.name)+'"></div>';
     });
     var delBtn = emps.length>1?'<button type="button" class="del-btn" onclick="delEmp('+i+')" aria-label="删除">×</button>':'';
     const __g4=nameInp+scoreInps+delBtn;row.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
@@ -340,12 +340,12 @@ function calc(){
     ? '<p style="color:#ff9800;margin:0 0 8px;"><span>⚠ 权重合计 </span>' + wSumRaw.toFixed(1) + '<span>%，与 100% 相差 </span>' + (wSumRaw-100).toFixed(1) + '<span>%，已按比例归一后计算。</span></p>'
     : '';
 
-  // 分数越界拦截：负分/超 100 会静默改变排名与强制分布，必须先提示而不是照算
+  // 分数越界拦截：保存原始输入，越界/空值直接拒绝，不做静默钳制
   for(var bi=0;bi<emps.length;bi++){
     for(var bj=0;bj<dims.length;bj++){
-      var bv=+emps[bi].scores[bj];
-      if(!isFinite(bv)||bv<0||bv>100){
-        document.getElementById('resultTable').innerHTML='<p style="color:var(--danger);">⚠ 评分须在 0–100 之间，请修正后再计算。</p>';
+      var bv=emps[bi].scores[bj];
+      if(bv===''||!isFinite(+bv)||+bv<0||+bv>100){
+        document.getElementById('resultTable').innerHTML='<p style="color:var(--danger);">⚠ 评分须填写 0–100 之间的数值（当前输入：'+(bv===''?'空值':ToolBox.escHtml(String(bv)))+'），请修正后再计算。</p>';
         return;
       }
     }
