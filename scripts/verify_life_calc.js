@@ -2831,6 +2831,30 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/life/generator-strength.html\',\'utf8\');var i=h.indexOf(\'function resetPwdState(){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+900):\'\';var ok=seg.indexOf("(\'pwdChart\'); if(chart) chart.innerHTML=\'\'")>=0&&seg.indexOf("\'#pwdTable tbody\'")>=0;document.getElementById(\'__tbProbe\').textContent=\'PWDCLR0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['PWDCLR0 OK'],
   "ref": "第1342批·清空输入后图表/熵表残留修复源码形态强锚：旧版 resetPwdState 只清密码列表与强度条，基于字符池的熵曲线(#pwdChart)与熵值表(#pwdTable tbody)残留；修复后一并清空。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "life/area-converter",
+  "inputs": { "inputVal": "0", "fromUnit": "m2" },
+  "expect": ["基准： 0 m² = 0 m²", "零值不参与尺度参照"],
+  "ref": "第229批·零面积被 v<=0 拒绝修复：0 为合法面积，应显示各单位 0 且不给出错误实物参照；旧版提示「面积需为大于 0」或按 1e-30 匹配出「≈1 平方米」⇒ BAD。"
+},
+{
+  "slug": "life/area-converter",
+  "inputs": { "inputVal": "-1", "fromUnit": "m2" },
+  "expect": ["面积需为非负数值"],
+  "ref": "第229批·负面积仍须拒绝：仅放开 0，负数提示非负；默认 42 不出现该提示。"
+},
+{
+  "slug": "life/weight-converter",
+  "inputs": { "inputVal": "0", "fromUnit": "g" },
+  "expect": ["基准： 0 克 = 0 克", "零值不参与尺度参照"],
+  "ref": "第229批·零重量被 v<=0 拒绝修复：0 为合法重量，应显示各单位 0 且不给出错误实物参照；旧版提示「重量需为大于 0」或按 1e-30 匹配出「≈1 克」⇒ BAD。"
+},
+{
+  "slug": "life/weight-converter",
+  "inputs": { "inputVal": "-1", "fromUnit": "g" },
+  "expect": ["重量需为非负数值"],
+  "ref": "第229批·负重量仍须拒绝：仅放开 0，负数提示非负；默认 42 不出现该提示。"
 }
 ];
 

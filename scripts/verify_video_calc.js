@@ -142,10 +142,16 @@ const CASES = [
 },
 {
   slug: "video/video-speed",
-  clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+'tools/video/video-speed.html','utf8');var i=h.indexOf('const fps=+document.getElementById');var s=i>=0?h.slice(i,i+260):'';var ok=s.indexOf('!isFinite(fps)||fps<=0')>=0&&s.indexOf('帧率须为正数')>=0;document.getElementById('__tbProbe').textContent='VIDFPSNEG '+(ok?'OK':'BAD');"],
+  clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+'tools/video/video-speed.html','utf8');var i=h.indexOf('var __fpsRaw=');var s=i>=0?h.slice(i,i+560):'';var ok=s.indexOf('__fpsRaw===')>=0&&s.indexOf('parseFloat(__fpsRaw)')>=0&&s.indexOf('!isFinite(fps)||fps<=0')>=0&&s.indexOf('帧率须为正数')>=0;document.getElementById('__tbProbe').textContent='VIDFPSNEG '+(ok?'OK':'BAD');"],
   expect: ["VIDFPSNEG OK"],
   ref: "第1348批·帧率为负守卫：旧版 fps=-1 时输出「总帧数 -300 @ -1fps / 帧时长 -1000ms」荒谬值（帧率须为正）；输入守卫只拦空与非数字不拦负数。修复后 fps 非正数提示并 return。"
 },
+{
+  "slug": "video/video-speed",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/video/video-speed.html','utf8');var i=h.indexOf('var __spRaw=');var s=i>=0?h.slice(i,i+260):'';var ok=s.indexOf('var __spRaw=')>=0&&s.indexOf('__spRaw===')>=0&&s.indexOf('parseFloat(__spRaw)')>=0;document.getElementById('__tbProbe').textContent='VSPDRAW '+(ok?'OK':'BAD');"],
+  "expect": ["VSPDRAW OK"],
+  "ref": "第1346批·速度 0 被 ||1 静默替换修复：速度改为原始串解析并去除 ||1；真机 speed=0 提示「播放速度须为正数」并拒绝。旧版 +value||1 ⇒ BAD。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);
