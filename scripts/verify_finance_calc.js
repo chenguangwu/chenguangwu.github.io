@@ -2500,8 +2500,8 @@ const CASES = [
   {
     slug: "finance/gst-validator",
     inputs: { input: "99AAPFU0939F1ZK" },
-    expect: ["❌ 州码 99 不在 GST 州/属地代码列表", "校验位： K（期望 K）"],
-    ref: "F-N170 高位非法码护栏：`99AAPFU0939F1ZK` 校验位正确但 99 未分配给任何州/UT（97 才是 Other Territory）⇒ 必须拒绝，防止只按数值范围放行。默认态 09 ⇒ 不命中。99 作为 CGST 特殊辖区码的口径争议见台账待裁断说明。",
+    expect: ["99 - Centre Jurisdiction (special)", "✅ GST 号码有效"],
+    ref: "F-GST99 口径统一：99 为 Centre Jurisdiction / Other Country 特殊注册码（与 gstin-validator 一致），不是未分配州码；校验位 K 正确 ⇒ 判格式有效。默认 09AABCU9603R1ZL 不含 99 ⇒ 不命中。",
   },
   {
     slug: "finance/gst-validator",

@@ -69,6 +69,18 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "neurology/edss",
+  "inputs": { "pyr": "0", "cer": "0", "bs": "0", "sen": "0", "bow": "0", "vis": "0", "cere": "0", "walk": "6" },
+  "expect": ["8.5", "⚠ 行走能力与功能系统评分不一致"],
+  "ref": "F-EDSS 行走优先：全部 FS=0 + 卧床，旧实现落 maxFs===0 分支输出 0 并称正常；现行走能力优先判 8.5 并提示矛盾输入。"
+},
+{
+  "slug": "neurology/edss",
+  "inputs": { "pyr": "3", "cer": "0", "bs": "0", "sen": "0", "bow": "0", "vis": "0", "cere": "0", "walk": "5" },
+  "expect": ["7.5", "⚠ 行走能力与功能系统评分不一致"],
+  "ref": "F-EDSS 跨分支：单 FS 3 分 + 轮椅，旧实现先命中 3.0 分支并称可独立行走；现按轮椅判 7.5 并提示 FS 与行走能力矛盾。"
+},
+{
   "slug": "neurology/house-brackmann",
   "clicks": [
     "selectGrade({classList:{add:function(){},remove:function(){}}}, 6)"
