@@ -751,7 +751,9 @@ const CASES = [
   ],
   "ref": "存塘量为空时清空收益对比（HSPCLR）"
 },
-{ slug:"fishery/fish-growth-curve", inputs:{"target":"","predDay":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"fishery/fish-growth-curve", inputs:{"target":"","predDay":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"fishery/fish-growth-curve", clicks:["var had=!!lastResult;['target','predDay'].forEach(function(id){document.getElementById(id).value='';});calc();var g='';ToolBox.copyText=function(t){g+=String(t)};copyResult();document.getElementById('__tbProbe').textContent='B616FISH '+((had&&lastResult===''&&g==='')?'OK':'BAD g='+g.slice(0,40));"], expect:["B616FISH OK"], ref:"第1364批空态缓存：先有默认结果，再清空 target/predDay，calc 提前返回时必须清 lastResult，copyResult 不得复制上一轮拟合结果。旧实现保留旧串 ⇒ BAD。" },
+{ slug:"fishery/water-oxygen", clicks:["var had=!!lastResult;['temp','sal','measured'].forEach(function(id){document.getElementById(id).value='';});lookup();var g='';ToolBox.copyText=function(t){g+=String(t)};copyResult();document.getElementById('__tbProbe').textContent='B616WO '+((had&&lastResult===''&&g==='')?'OK':'BAD g='+g.slice(0,40));"], expect:["B616WO OK"], ref:"第1365批空态缓存：默认结果后清空 temp/sal/measured，lookup 提前返回必须清 lastResult，复制不得输出旧溶氧结果。旧实现保留旧串 ⇒ BAD。" }
 ];
 
 async function main() {

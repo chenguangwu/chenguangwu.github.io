@@ -384,7 +384,8 @@ const CASES = [
     "请填写大于 0 的支数"
   ],
   "ref": "支数<=0 时清空 Tex/Nm/Ne/D 结果（THREADCLEAR）；旧实现仅 toast，旧换算值残留"
-}
+},
+{ slug:"textile/pattern-calculator", clicks:["calc();var had=!!window._lastCalc;['fabricWidth','fabricLength','seamAllowance'].forEach(function(id){document.getElementById(id).value='';});calc();document.getElementById('__tbProbe').textContent='B616PAT '+((had&&window._lastCalc===null)?'OK':'BAD last='+JSON.stringify(window._lastCalc));"], expect:["B616PAT OK"], ref:"第1368批空态缓存：默认排料后清空门幅/长度/缝份，calc 提前返回必须把 _lastCalc 置 null，复制与保存历史不得使用上一轮排料。旧实现保留对象 ⇒ BAD。" }
 ];
 async function main() {
   const only = process.argv.slice(2);
