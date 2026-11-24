@@ -1102,6 +1102,43 @@
   /* ============================ 历史记录 ============================ */
 
   var history = {};
+
+  // 双历史清理：不少页面同时保留旧版 tb_history_* 面板与共享 TBKit.history 面板，
+  // 两个「清空」各删各的键，用户会误以为该工具历史已全部删除。
+  // 在本页读取/删除旧键时登记归属，任一侧清空都同步清掉另一侧；只处理本页实际访问
+  // 过的旧键，不按前缀全量删除，避免误删其他工具数据。
+  var _legacyHistKeys = {};
+  function _markLegacyHistKey(k) {
+    if (typeof k === 'string' && k.indexOf('tb_history_') === 0) _legacyHistKeys[k] = 1;
+  }
+  (function patchStorageHistoryClear() {
+    try {
+      var proto = window.Storage && Storage.prototype;
+      if (!proto || proto.__tbHistClearPatched) return;
+      proto.__tbHistClearPatched = true;
+      var rawGet = proto.getItem, rawRemove = proto.removeItem;
+      proto.getItem = function (k) {
+        _markLegacyHistKey(k);
+        return rawGet.call(this, k);
+      };
+      proto.removeItem = function (k) {
+        _markLegacyHistKey(k);
+        rawRemove.call(this, k);
+        if (typeof k === 'string' && k.indexOf('tb_history_') === 0) {
+          try { rawRemove.call(this, hkey()); } catch (e) {}
+        }
+        return undefined;
+      };
+    } catch (e) {}
+  })();
+
+  function _clearLegacyHist() {
+    var ks = Object.keys(_legacyHistKeys);
+    for (var i = 0; i < ks.length; i++) {
+      try { localStorage.removeItem(ks[i]); } catch (e) {}
+    }
+  }
+
   function hkey() {
     try { return 'tbk_hist_' + (location.pathname || 'p'); } catch (e) { return 'tbk_hist_p'; }
   }
@@ -1116,6 +1153,7 @@
 
   history.clear = function () {
     try { localStorage.removeItem(hkey()); } catch (e) {}
+    _clearLegacyHist();
   };
 
   // AI-N5：情感分析/文本摘要两个页面已下架，但其历史键仍可能残留在老用户浏览器里
