@@ -8653,6 +8653,86 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"qtype\":\"single\"}，输出区含「1 2 3\n1 2 3\nsingle」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
   {
+    "slug": "it/c-string-escape",
+    "inputs": { "input": "\\x041" },
+    "clicks": ["unesc();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='CEX=['+document.getElementById('output').value+']'"],
+    "expect": ["CEX=[A]"],
+    "ref": "第770批：C 的 \\x 贪婪读取后续十六进制，\\x041 应解析为 0x41='A'，而不是旧实现的 U+0004 + '1'。"
+  },
+  {
+    "slug": "it/c-string-escape",
+    "inputs": { "input": "\\x41B" },
+    "clicks": ["unesc();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='CEXBAD=['+document.getElementById('output').value+'] N='+document.getElementById('cEscapeNotice').textContent"],
+    "expect": ["CEXBAD=[\\x41B] N=解析提示：", "超出单字节 0xFF"],
+    "ref": "第770批：\\x41B 按 C 词法读成 0x41B，超过单字节 0xFF，C 编译器会拒绝；工具必须保留原样并提示，不能静默截成 0x41。"
+  },
+  {
+    "slug": "it/c-string-escape",
+    "inputs": { "input": "x" },
+    "clicks": ["document.getElementById('input').value='  hi  ';unesc();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}var o=document.getElementById('output').value;p.textContent='CSP='+o.length+':'+o.charCodeAt(0)+','+o.charCodeAt(o.length-1)"],
+    "expect": ["CSP=6:32,32"],
+    "ref": "第770批：裸文本首尾空格必须保留；旧实现无条件 trim，输入 '  hi  ' 输出 'hi'，破坏往返。"
+  },
+  {
+    "slug": "it/c-string-escape",
+    "inputs": { "input": "x" },
+    "clicks": ["document.getElementById('input').value='\"  hi  \"';unesc();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}var o=document.getElementById('output').value;p.textContent='CSQ='+o.length+':'+o.charCodeAt(0)+','+o.charCodeAt(o.length-1)"],
+    "expect": ["CSQ=6:32,32"],
+    "ref": "第770批：带外层引号的字面量只去掉引号，引号内首尾空格仍须保留；旧实现先 trim 再剥引号。"
+  },
+  {
+    "slug": "it/c-string-escape",
+    "inputs": { "input": "\\377" },
+    "clicks": ["unesc();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='OCT='+document.getElementById('output').value.charCodeAt(0)"],
+    "expect": ["OCT=255"],
+    "ref": "第770批：八进制边界 0o377=255 是合法单字节，必须输出 U+00FF，不得误判越界。"
+  },
+  {
+    "slug": "it/c-string-escape",
+    "inputs": { "input": "\\q" },
+    "clicks": ["unesc();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='UNK=['+document.getElementById('output').value+'] N='+document.getElementById('cEscapeNotice').textContent"],
+    "expect": ["UNK=[\\q] N=解析提示：", "未知转义"],
+    "ref": "第770批：未知转义 \\q 必须保留反斜杠原样并提示；旧实现直接吞掉反斜杠输出 q，静默改变内容。"
+  },
+  {
+    "slug": "it/caa-record-generator",
+    "inputs": { "domain": "example.com" },
+    "clicks": ["document.getElementById('opt_iodef').checked=true;document.getElementById('iodefEmail').value='';gen();document.getElementById('__tbProbe').textContent='CAAEMPTY='+document.getElementById('output').value+'|'+document.getElementById('result').textContent"],
+    "expect": ["CAAEMPTY=|", "请填写真实的违规报告邮箱"],
+    "ref": "第770批：勾选 iodef 但邮箱为空时必须拒绝输出并提示；旧实现把 security@example.com 当真实邮箱写入记录，用户会把报告发到示例域名。"
+  },
+  {
+    "slug": "it/caa-record-generator",
+    "inputs": { "domain": "example.com" },
+    "clicks": ["document.getElementById('opt_iodef').checked=true;document.getElementById('iodefEmail').value='bad';gen();document.getElementById('__tbProbe').textContent='CAABAD='+document.getElementById('output').value+'|'+document.getElementById('result').textContent"],
+    "expect": ["CAABAD=|", "格式不正确"],
+    "ref": "第770批：非法邮箱必须拒绝输出并提示；旧实现不做任何邮箱格式校验。"
+  },
+
+  {
+    "slug": "it/caa-record-generator",
+    "inputs": { "domain": "bad domain" },
+    "clicks": ["document.getElementById('opt_iodef').checked=true;gen();document.getElementById('__tbProbe').textContent='CAADISP='+document.getElementById('iodefEmail').style.display"],
+    "expect": ["CAADISP=block"],
+    "ref": "第770批：域名无效时提前 return 会跳过邮箱显隐更新；勾选 iodef 后输入框必须在域名校验前就显示。"
+  },
+  {
+    "slug": "it/chmod-calculator",
+    "checkIds": ["r0","w0","x0","r1","w1","x1","r2","w2","x2"],
+    "inputs": {},
+    "clicks": ["document.getElementById('r0').checked=true;document.getElementById('w0').checked=true;document.getElementById('x0').checked=true;document.getElementById('r1').checked=true;document.getElementById('w1').checked=true;document.getElementById('x1').checked=true;document.getElementById('r2').checked=true;document.getElementById('w2').checked=true;document.getElementById('x2').checked=true;calc();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='CM777='+document.getElementById('numOut').textContent+' '+__chmod_calculatorScore(document.getElementById('result').textContent)"],
+    "expect": ["CM777=777 1"],
+    "ref": "第770批：777 是有效权限，安全警告不等于计算失败；旧评分把 ⚠️ 判失败，历史显示未通过。"
+  },
+
+  {
+    "slug": "it/barcode-codabar",
+    "inputs": { "data": "A12345B" },
+    "clicks": ["generate();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}var g=window.__codabarGeometry||{};p.textContent='CBQ='+g.quiet+' W='+g.width+' B='+g.barsWidth"],
+    "expect": ["CBQ=20 W=", "B="],
+    "ref": "第770批：Codabar 导出须左右各留 10 个窄模块静区（narrow=2 ⇒ 20px），画布宽 = 条码宽 + 40；旧实现画布宽仅条码宽，首条贴左边界。"
+  },
+  {
     "slug": "it/caa-record-generator",
     "inputs": {
       "domain": "abc123测试",
@@ -8661,7 +8741,7 @@ const CASES = [
       "flag": "128"
     },
     "expect": [
-      "abc123测试\n⚠ 请填写裸域名（如 example.com），不要带协议、空格或路径。\nabc123测试\n128"
+      "⚠ 请填写裸域名（如 example.com），不要带协议、空格或路径。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"domain\":\"abc123测试\",\"iodefEmail\":\"abc123测试\",\"output\":\"1\\n2\\n3\",\"flag\":\"128\"}，输出区含「abc123测试\n128\n请至少选择一个 CA\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
