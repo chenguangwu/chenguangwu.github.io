@@ -9322,21 +9322,21 @@ const CASES = [
   {
     "slug": "it/invite-code-generator",
     "inputs": {"verifyInput": "AB7"},
-    "clicks": ["verifyCode();var h=document.getElementById('output').innerHTML;document.getElementById('output').innerHTML='VER ok='+(h.indexOf('校验通过')>=0?1:0)+' q='+(document.getElementById('verifyInput').value==='AB7'?1:0);"],
+    "clicks": ["verifyCode();var h=document.getElementById('verifyOut').innerHTML;document.getElementById('output').innerHTML='VER ok='+(h.indexOf('校验通过')>=0?1:0)+' q='+(document.getElementById('verifyInput').value==='AB7'?1:0);"],
     "expect": ["VER ok=1 q=1"],
     "ref": "IT-N411：新增的校验入口必须对带正确校验位的码给出「校验通过」。修复前页面根本没有校验输入框与 verifyCode()，clicks 抛错 ⇒ 变红。q=1 绑注入值防静态逃生。"
   },
   {
     "slug": "it/invite-code-generator",
     "inputs": {"verifyInput": "AB8"},
-    "clicks": ["verifyCode();var h=document.getElementById('output').innerHTML;document.getElementById('output').innerHTML='VER bad='+(h.indexOf('校验失败')>=0?1:0)+' q='+(document.getElementById('verifyInput').value==='AB8'?1:0);"],
+    "clicks": ["verifyCode();var h=document.getElementById('verifyOut').innerHTML;document.getElementById('output').innerHTML='VER bad='+(h.indexOf('校验失败')>=0?1:0)+' q='+(document.getElementById('verifyInput').value==='AB8'?1:0);"],
     "expect": ["VER bad=1 q=1"],
     "ref": "IT-N411：把 AB7 末位改成 8 必须判「校验失败」，证明校验真的在算而不只是回显。修复前无校验入口 ⇒ 变红。"
   },
   {
     "slug": "it/invite-code-generator",
     "inputs": {"verifyInput": "INV-AB7"},
-    "clicks": ["verifyCode();var h=document.getElementById('output').innerHTML;document.getElementById('output').innerHTML='PFX ok='+(h.indexOf('校验通过')>=0?1:0)+' q='+(document.getElementById('verifyInput').value.indexOf('INV-')===0?1:0);"],
+    "clicks": ["verifyCode();var h=document.getElementById('verifyOut').innerHTML;document.getElementById('output').innerHTML='PFX ok='+(h.indexOf('校验通过')>=0?1:0)+' q='+(document.getElementById('verifyInput').value.indexOf('INV-')===0?1:0);"],
     "expect": ["PFX ok=1 q=1"],
     "ref": "IT-N411：勾选「加前缀」生成的码形如 INV-XXXXXXX，校验入口必须能剥掉前缀后验主体，否则该功能对默认开启前缀的用户不可用。"
   },

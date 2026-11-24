@@ -236,6 +236,8 @@ textarea:focus{border-color:#4338CA;}
         <input type="color" id="fgColor" value="#000000">
         <span style="font-size:13px;color:#666;" id="fgVal">#000000</span>
       </div>
+      <div id="qrRiskNote" role="status" style="font-size:12px;line-height:1.7;color:#92400E;background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.35);border-radius:8px;padding:8px 10px;margin:8px 0;display:none;"></div>
+      <button type="button" class="btn" onclick="__qrResetStyle()" style="width:auto;margin:0 0 10px;">恢复黑白配色与推荐静区</button>
       <div class="row">
         <label for="bgColor">背景</label>
         <input type="color" id="bgColor" value="#ffffff">
@@ -496,8 +498,30 @@ function __qrErrorText(e){
   if(typeof e==='string' && e.trim()) return e;
   return '内容超出二维码容量或包含无法编码的字符';
 }
+function __qrLum(hex){
+  var h=String(hex||'').replace('#',''); if(h.length!==6) return 0;
+  var rgb=[0,2,4].map(function(i){var c=parseInt(h.slice(i,i+2),16)/255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);});
+  return 0.2126*rgb[0]+0.7152*rgb[1]+0.0722*rgb[2];
+}
+function __qrContrast(a,b){var l1=__qrLum(a),l2=__qrLum(b);return (Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05);}
+function __qrRisk(){
+  var note=document.getElementById('qrRiskNote'); if(!note) return;
+  var ratio=__qrContrast(fgColor.value,bgColor.value);
+  var margin=__qrMarginValue();
+  var warns=[];
+  if(ratio<4.5) warns.push('前景/背景对比度约 '+ratio.toFixed(2)+':1，低于 4.5:1，屏幕和打印都可能难识别。');
+  if(__qrLum(bgColor.value) < __qrLum(fgColor.value)) warns.push('当前为反色（浅码深底），部分扫码器不支持。');
+  if(margin.ok && margin.value<4) warns.push('静区仅 '+margin.value+' 模块，推荐至少 4 模块；印刷裁切后可能贴边。');
+  note.style.display='block';
+  note.textContent = warns.length ? '⚠ 扫码风险：'+warns.join(' ')+' 仍可生成/下载，但请实机扫码确认。' : '配色与静区未发现明显风险；识别率仍受屏幕、打印尺寸和扫码器影响，请实机确认。';
+}
+function __qrResetStyle(){
+  fgColor.value='#000000'; bgColor.value='#ffffff'; document.getElementById('qrmargin').value='4';
+  fgVal.textContent='#000000'; bgVal.textContent='#ffffff'; generate();
+}
 function generate() {
   var container = document.getElementById('qrcode');
+  try { __qrRisk(); } catch(e) {}
   var marginInfo = __qrMarginValue();
   if (!marginInfo.ok) { __qrMarginInvalid(marginInfo.msg); return; }
   var marginHint=document.getElementById('qrMarginError');

@@ -149,7 +149,7 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
     <textarea id="msg" style="margin-bottom:12px;">Hello, this is a test message.</textarea>
     <div class="toolbar">
       <div id="sms_qrPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__sms_qrExport()">导出明细 CSV</button>
-      <button type="button" class="btn success" onclick="copyResult()">复制</button>
+      <button type="button" class="btn success" id="smsCopyBtn" onclick="copyResult()">复制</button>
     </div>
     <div class="result-box" id="output"></div> <div id="sms_qrTable"></div> <div id="sms_qrDiff"></div> <div id="sms_qrChart"></div> <div id="sms_qrHist"></div>
   </div>
@@ -254,22 +254,29 @@ function drawQR(text){
   for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))ctx.fillRect((c+margin)*cell,(r+margin)*cell,cell,cell);
   return canvas;
 }
+let __smsUri = '';
 function generate(){
   const out=document.getElementById('output');
+  const copyBtn=document.getElementById('smsCopyBtn');
   try{
-    const text=buildSms(), canvas=drawQR(text);
-    if(!canvas){out.innerHTML='<p style="color:var(--danger)">⚠ '+(smsEn()?'QR library failed to load; please refresh.':'二维码库加载失败，请刷新页面重试。')+'</p><div class="qr-text">'+escapeHtml(text)+'</div>';return;}
+    const text=buildSms();
+    __smsUri=text;
+    if(copyBtn) copyBtn.disabled=false;
+    const canvas=drawQR(text);
+    if(!canvas){out.innerHTML='<p style="color:var(--danger)">⚠ '+(smsEn()?'QR library failed to load; please refresh.':'二维码库加载失败，请刷新页面重试。')+'</p><div class="qr-text">'+escapeHtml(text)+'</div><p style="font-size:12px;color:var(--text-muted);">'+(smsEn()?'The SMS URI is still valid; you can copy it directly.':'短信 URI 仍有效，可直接复制。')+'</p>';return;}
     // 文本/URI 类结果不做 NaN 正则守卫：正文合法含 "NaN" 时也必须正常出码。
     out.innerHTML='<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(text)+'</div>';
     out.querySelector('.qr-wrap').appendChild(canvas);
   }catch(e){
+    __smsUri='';
+    if(copyBtn) copyBtn.disabled=true;
     out.innerHTML='<p style="color:var(--danger)">⚠ '+escapeHtml(e&&e.message?e.message:String(e))+'</p>';
   }
 }
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
-  const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
+  if(!__smsUri){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a valid phone number first":"请先输入有效电话号码")); return; }
+  navigator.clipboard.writeText(__smsUri).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制"))).catch(()=>alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Clipboard failed; copy manually":"复制失败，请手动复制")));
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
