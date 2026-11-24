@@ -176,6 +176,7 @@
     </div>
     
     <textarea class="trans-area" id="tgt-text" placeholder="翻译结果..." readonly aria-label="翻译结果..."></textarea>
+    <div class="trans-info" data-zh="本地词表仅做词和短语匹配，未匹配片段保留原文；不调用在线翻译服务。">The local dictionary matches words and phrases only; unmatched fragments stay in the source language. No online translation service is called.</div>
     
     <h3 style="font-size:14px;margin:16px 0 8px;color:var(--text-primary);">⚡ 快速选择</h3>
     <div class="quick-row" id="quick-row"></div>
@@ -598,6 +599,10 @@ function joinSegments(tokens, tgt) {
   return out.trim();
 }
 
+function isEnUi() {
+  try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return true; } catch (e) {}
+  try { return /lang=en-US/i.test(location.search); } catch (e) { return false; }
+}
 function refreshPairInfo() {
   const src = document.getElementById('src-lang').value;
   const tgt = document.getElementById('tgt-lang').value;
@@ -621,7 +626,9 @@ function trans() {
   const key = `${src}-${tgt}`;
   const dict = DICT[key];
   if (!dict) {
-    document.getElementById('tgt-text').value = `[暂不支持 ${src}→${tgt} 翻译,试试其他语言对]`;
+    document.getElementById('tgt-text').value = isEnUi()
+      ? `[Translation from ${src} to ${tgt} is not supported yet. Try another language pair.]`
+      : `[暂不支持 ${src}→${tgt} 翻译，试试其他语言对]`;
     return;
   }
   const lower = text.toLowerCase();
@@ -633,7 +640,12 @@ function trans() {
   } else {
     result = joinSegments(segmentText(text, dict, src), tgt);
   }
-  document.getElementById('tgt-text').value = result || `[词典中未找到"${text}",尝试中英互译]`;
+  // 仅补齐标点时输出与原文实质相同，说明没有命中任何词条；不能把原文回显当成译文
+  const norm = function(v) { return String(v).replace(/[。.!！？?，,；;：:\s]/g, ''); };
+  if (result && norm(result) === norm(text)) result = null;
+  document.getElementById('tgt-text').value = result || (isEnUi()
+    ? `[No entry found for "${text}" in the local dictionary. Try Chinese–English.]`
+    : `[词典中未找到“${text}”，试试中英互译]`);
 }
 
 renderPresets();
