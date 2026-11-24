@@ -136,7 +136,7 @@
     <h2 data-zh="✨ API 签名生成器">✨ API Signature Generator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="参数按 key 排序 + secret 拼接，支持 MD5 与 HMAC-SHA256。">API Signature Generator</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">API 签名生成（参数排序 + HMAC/MD5）<br>规范化串 = 参数按 key 字典序拼接 k=v&k=v…<br>待签名串 = 规范化串 + &secret= + 密钥<br>HMAC-SHA256：sign = HMAC(密钥, 规范化串)（十六进制）<br>MD5 模式：sign = MD5(待签名串)<br>签名串不含 secret，传输时与 secret 分离保管</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">API 签名生成（参数排序 + HMAC/MD5）<br>规范化串 = 参数按 key 字典序拼接 k=v&k=v…<br>HMAC-SHA256：sign = HMAC(密钥, 规范化串)（十六进制）<br>MD5 模式：实际输入 = 规范化串 + &amp;secret= + 密钥，但界面不显示含密钥的串<br>输出只展示规范化串与签名值，密钥始终不显示、不复制</div>
   <div class="formula-desc">为 API 请求生成防篡改签名：参数排序 → 拼接 → 摘要，服务端用同样规则复算比对。</div>
   <ul class="formula-list">
     <li><b>排序</b>：把请求参数（排除 sign 本身与空值）按参数名 ASCII 升序排列。</li>
@@ -154,14 +154,16 @@
       </select>
     </div>
     <div class="input-row">
-      <label for="secret">密钥 secret</label>
-      <input type="text" id="secret" value="test_secret">
+      <label for="secret">密钥 secret（默认隐藏）</label>
+      <input type="password" id="secret" value="test_secret" autocomplete="off" spellcheck="false">
+      <button class="btn" type="button" onclick="toggleSecret()" id="secretToggle" aria-controls="secret">显示密钥</button>
     </div>
     <div class="input-row">
-      <label for="params">参数（每行 key=value）</label>
+      <label for="params">参数（每行 key=value，或 a=1&amp;b=2）</label>
       <textarea id="params" style="width:100%;min-height:120px;">app_id=1001
 method=order.create
 amount=39.80</textarea>
+      <div id="paramNote" class="note" aria-live="polite">值原样参与签名，不做 URL 编码；值中的 &amp; 请写成 %26，或改为每行一个参数。重复 key 会直接报错，不会静默丢弃。</div>
     </div>
 
     <div class="toolbar">
@@ -295,27 +297,55 @@ async function hmacHex(secret, s) {
     .join('');
 }
 
-function parseParams() {
-  // IT-N462：同时支持每行一条（k=v\n）与 URL 查询串风格（k=v&k=v）两种输入，
-  // 预设里的 a=1&b=2&c=3 必须解析成 3 个参数，而不是 1 个 key 带 & 的值。
+function parseParamEntries() {
+  // 两种写法：每行一条 k=v，或 URL 查询串 k=v&k=v。值不做 trim、不做 URL 编解码，
+  // 保证「看到的值 = 参与签名的值」；但未编码的 & 无法区分分隔符与值内容，必须明确报错。
   const raw = (document.getElementById('params').value || '').replace(/\r/g, '');
-  const entries = raw.split(/[\n&]/);
-  const obj = {};
-  for (const line of entries) {
-    const t = line.trim();
-    if (!t) continue;
-    const i = t.indexOf('=');
-    if (i <= 0) continue;
-    const k = t.slice(0, i).trim();
-    const v = t.slice(i + 1).trim();
-    if (k) obj[k] = v;
+  const lines = raw.split('\n');
+  const entries = [];
+  const seen = Object.create(null);
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li];
+    if (line.trim() === '') continue;
+    const segs = line.indexOf('&') >= 0 ? line.split('&') : [line];
+    for (let si = 0; si < segs.length; si++) {
+      const seg = segs[si];
+      if (seg === '') {
+        throw new Error('第 ' + (li + 1) + ' 行出现空参数段（多余的 &）；值为空请写成 key=，值的 & 请编码为 %26');
+      }
+      const i = seg.indexOf('=');
+      if (i <= 0) {
+        throw new Error('第 ' + (li + 1) + ' 行参数缺少 key=value' + (line.indexOf('&') >= 0 ? '（值中的 & 必须编码为 %26，或改为每行一个参数）' : ''));
+      }
+      const key = seg.slice(0, i);
+      const value = seg.slice(i + 1);
+      if (key !== key.trim()) throw new Error('第 ' + (li + 1) + ' 行参数名首尾不能有空白：' + JSON.stringify(key));
+      if (seen[key]) throw new Error('重复参数 key：' + key + '。为保证签名顺序明确，重复键不被支持，请合并、改名或删除其中一项');
+      seen[key] = true;
+      entries.push({ key: key, value: value });
+    }
   }
+  if (!entries.length) throw new Error('请至少填写一个 key=value 参数');
+  return entries;
+}
+
+function parseParams() {
+  const obj = {};
+  parseParamEntries().forEach(function(e) { obj[e.key] = e.value; });
   return obj;
+}
+
+function toggleSecret() {
+  const el = document.getElementById('secret');
+  const btn = document.getElementById('secretToggle');
+  const showing = el.type === 'text';
+  el.type = showing ? 'password' : 'text';
+  if (btn) btn.textContent = showing ? '显示密钥' : '隐藏密钥';
 }
 
 function escHtml(s) {
   // 所有 & 一律转义：浏览器也会解析无分号实体（如 &copy → ©），只转义「带分号实体」
-  // 会让待签名串的显示值与实际参与签名的字节不一致。
+  // 会让规范化串的显示值与实际参与签名的字节不一致。
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -324,31 +354,48 @@ function escHtml(s) {
 async function runSign() {
   const algo = document.getElementById('algo').value;
   const secret = document.getElementById('secret').value || '';
-  const params = parseParams();
-  const base = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join('&');
-  const signText = base + '&secret=' + secret;
+  const out = document.getElementById('out');
+  const note = document.getElementById('paramNote');
+  let entries;
+  try {
+    entries = parseParamEntries();
+  } catch (e) {
+    out.innerHTML = '<p style="color:var(--danger)">⚠ ' + escHtml(e.message) + '</p>';
+    if (note) { note.textContent = '签名未生成：' + e.message; note.style.color = 'var(--danger)'; }
+    return;
+  }
+  const sorted = entries.slice().sort(function(a, b) { return a.key < b.key ? -1 : a.key > b.key ? 1 : 0; });
+  const base = sorted.map(function(e) { return e.key + '=' + e.value; }).join('&');
+  if (note) { note.textContent = '已按 key 排序，共 ' + entries.length + ' 个参数；值原样参与签名，不做 URL 编码。'; note.style.color = ''; }
 
   let sign;
   if (algo === 'sha256') {
     sign = await hmacHex(secret, base);
   } else {
-    sign = await md5Hex(signText);
+    sign = await md5Hex(base + '&secret=' + secret);
     if (!sign) {
-      const __h0='<p>当前环境不支持 MD5 近似计算，请改用 HMAC-SHA256。</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h0;
+      out.innerHTML = '<p>当前环境不支持 MD5 近似计算，请改用 HMAC-SHA256。</p>';
       return;
     }
   }
 
-  const __h1=`<p>待签名串：<strong>${escHtml(signText)}</strong></p>` +
-    `<p>签名结果：<strong style="word-break:break-all">${escHtml(sign)}</strong></p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h1;
+  const msgNote = algo === 'sha256'
+    ? 'HMAC-SHA256：消息 = 规范化串；密钥单独作为 HMAC key（密钥不显示）'
+    : 'MD5：实际输入 = 规范化串 + &quot;&amp;secret=&quot; + 密钥（密钥不显示）；上方规范化串不含密钥';
+  out.innerHTML =
+    '<p>规范化串（参与签名）：<strong style="word-break:break-all">' + escHtml(base) + '</strong></p>' +
+    '<p style="font-size:13px;color:var(--text-muted);">' + msgNote + '</p>' +
+    '<p>签名结果：<strong id="signValue" style="word-break:break-all">' + escHtml(sign) + '</strong></p>';
 }
 
 function copyResult() {
-  const text = document.getElementById('out').innerText || '';
-  if (!text.trim()) {
+  const signEl = document.getElementById('signValue');
+  const text = signEl ? String(signEl.textContent || '').trim() : '';
+  if (!text) {
     ToolBox.showToast(i18nText('toast.msg661'), 'warning');
     return;
   }
+  // 只复制签名值，绝不把规范化串或密钥一起复制。
   ToolBox.copyText(text, i18nText('msg326'));
 }
 
@@ -479,7 +526,7 @@ var __api_sign_generator_f0=(typeof copyResult==='function')?copyResult:null;
 if(__api_sign_generator_f0){
     copyResult=function(){ var __r=__api_sign_generator_f0.apply(null,arguments); try{ __api_sign_generatorExtras(); }catch(e){} return __r; };
 }
-function __api_sign_generatorBoot(){ try{ __api_sign_generatorPresets(); }catch(e){} try{ if(typeof runSign==='function') runSign(); }catch(e){} }
+function __api_sign_generatorBoot(){ try{ if(typeof TBKit!=='undefined'&&TBKit.history&&!localStorage.getItem('apiSignHistPurgedV2')){ TBKit.history.clear(); localStorage.setItem('apiSignHistPurgedV2','1'); } }catch(e){} try{ __api_sign_generatorPresets(); }catch(e){} try{ if(typeof runSign==='function') runSign(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __api_sign_generatorBoot();
 else document.addEventListener('DOMContentLoaded', __api_sign_generatorBoot);
 </script>

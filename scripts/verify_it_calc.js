@@ -1615,8 +1615,8 @@ const CASES = [
   {
     slug: "it/confidence-interval",
     inputs: { mean: "100", std: "15", n: "30", conf: "0.95" },
-    expect: ["[ 94.632 , 105.368 ]"],
-    ref: "独立复算：SE=s/√n=15/√30=2.7386；95% 双侧 z=1.960 ⇒ ME=1.960×2.7386=5.3677 ⇒ CI=[94.632, 105.368]。默认输入不同（区间两端数不同）⇒ 该串不出现。原第二条锚「临界值 z = 1.960」是 α=0.05 双侧常量、默认态即出现（静态文案），已删。",
+    expect: ["[ 94.398 , 105.602 ]"],
+    ref: "第762批：默认标准差来源为样本 s（σ 未知），自动模式改用 t；df=29 的 95% 双侧 t≈2.0452，SE=15/√30=2.7386 ⇒ ME≈5.602 ⇒ CI=[94.398, 105.602]。旧的「n≥30 自动 z」会得 [94.632, 105.368]，故可判别。",
   },
   {
     slug: "it/code-line-counter",
@@ -3162,8 +3162,8 @@ const CASES = [
     slug: "it/api-sign-generator",
     // IT-N460：待签名串里的 payload 必须转义为文本，不得生成可执行 <img onerror> 节点。
     inputs: { secret: "s", params: "<img src=x onerror=alert(1)>=1", algo: "sha256" },
-    expect: ["待签名串： &lt;img src=x onerror=alert(1)&gt;=1&amp;secret=s"],
-    ref: "注入 payload 参数 `<img src=x onerror=alert(1)>=1`：修复后 escHtml 把 < > & 全部转义（185 批复核），out.innerHTML 必含整段转义串 `&lt;img src=x onerror=alert(1)&gt;=1&secret=s` ⇒ 匹配。缺陷态（5640fa93c6^）原样拼接 ⇒ 裸 `<img onerror>` 入 DOM、无该转义串 ⇒ 不匹配。默认态 params 为正常键值、不含 payload ⇒ 判别明确。"
+    expect: ["规范化串（参与签名）： &lt;img src=x onerror=alert(1)&gt;=1"],
+    ref: "第762批：输出不再显示含密钥的待签名串，只显示规范化串；参数 payload 经 escHtml 全部转义为 `&lt;img src=x onerror=alert(1)&gt;=1`。旧实现显示 `...&secret=s` 且会泄露密钥。"
   },
   {
     slug: "it/api-sign-generator",
@@ -3824,9 +3824,9 @@ const CASES = [
   },
   {
     slug: "it/ascii-table",
-    clicks: ["showDetail(65);document.getElementById('__tbProbe').textContent='ASCIICOPY '+document.getElementById('detail').getAttribute('data-copied');"],
-    expect: ["ASCIICOPY 65"],
-    ref: "IT-N136：点击 65 号卡片后详情容器写入 data-copied=十进制编码，兑现 meta「点击即可复制」。旧实现无复制、无该属性 ⇒ ASCIICOPY null。剪贴板真调用与 toast 由 JSDOM 真机脚本覆盖。",
+    clicks: ["showDetail(65);copyAsciiCode(65);document.getElementById('detail').getAttribute('data-copied')"],
+    expect: ["65"],
+    ref: "第762批：查看详情与复制已拆分为两个操作；点击卡片只渲染详情，必须再调 copyAsciiCode(65) 才会写入 data-copied=65 并复制。旧实现点击即自动复制，无法只查看不复制。",
   },
   {
     slug: "it/ascii-tree-generator",
@@ -8003,13 +8003,13 @@ const CASES = [
     "slug": "it/api-sign-generator",
     "inputs": {
       "secret": "abc123测试",
-      "params": "1\n2\n3",
+      "params": "a=1\nb=2\nc=3",
       "algo": "sha256"
     },
     "expect": [
-      "sha256\nabc123测试\n1 2 3\n待签名串： &secret=abc123测试 签名结果： b652f9dbc2b4dd477559b3f0635242da8094a23d1c5b3eb9b8993ddae28f18c5"
+      "规范化串（参与签名）： a=1&amp;b=2&amp;c=3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"secret\":\"abc123测试\",\"params\":\"1\\n2\\n3\",\"algo\":\"sha256\"}，输出区含「abc123测试\n1 2 3\nsha256\n待签名串： &secret=abc1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第762批：规范化串按 key 排序为 a=1&b=2&c=3，HTML 中转义为 a=1&amp;b=2&amp;c=3；输出不显示密钥。旧实现显示含 secret 的待签名串，且无效参数行被静默跳过。"
   },
   {
     "slug": "it/ascii-table",
@@ -16285,6 +16285,84 @@ const CASES = [
     clicks: ["document.getElementById('codeCss').value='body{content:\"</style>\"}';document.getElementById('codeJs').value='console.log(\"</script>\")';executeInIframe(document.getElementById('codeHtml').value,document.getElementById('codeCss').value,document.getElementById('codeJs').value);var bs=String.fromCharCode(92);var doc=window.__lastPreviewDoc||'';var ok=doc.indexOf('<'+bs+'/script')>=0&&doc.indexOf('<'+bs+'/style')>=0&&doc.indexOf('console.log(\"</script>\")')<0;document.getElementById('codeHtml').value='SAFE '+(ok?'OK':'BAD');"],
     expect: ["SAFE OK"],
     ref: "第761批：JS 字符串中的 </script> 与 CSS 中的 </style> 必须先转义为 <\\/script、<\\/style，否则 HTML 解析器提前闭合导致代码截断。",
+  },
+
+  // ── 第762批 ──
+  {
+    slug: "it/api-sign-generator",
+    inputs: { secret: "s3cr3t", params: "a=1\na=2", algo: "sha256" },
+    clicks: ["runSign().then(function(){document.getElementById('algo').value='DUP '+(document.getElementById('out').innerHTML.indexOf('重复参数 key：a')>=0?'OK':'BAD');});"],
+    expect: ["DUP OK"],
+    ref: "第762批：重复 key a=1/a=2 必须明确报错并停止签名；旧实现对象覆盖静默只保留最后一个 a=2，签名结果看似正常。",
+  },
+  {
+    slug: "it/api-sign-generator",
+    inputs: { secret: "s3cr3t", params: "a=1&b", algo: "sha256" },
+    clicks: ["runSign().then(function(){document.getElementById('algo').value='AMP '+(document.getElementById('out').innerHTML.indexOf('%26')>=0?'OK':'BAD');});"],
+    expect: ["AMP OK"],
+    ref: "第762批：值里未编码的 & 会被当成分隔符，b 段无 key=value 必须报错并提示 %26；旧实现直接跳过 b 段，签名悄悄少一个参数。",
+  },
+  {
+    slug: "it/api-sign-generator",
+    inputs: { secret: "s3cr3t", params: "a=x+y&b=%E4%B8%AD%20z", algo: "sha256" },
+    clicks: ["runSign().then(function(){var o=document.getElementById('out').innerHTML;document.getElementById('algo').value='CANON '+(o.indexOf('a=x+y&amp;b=%E4%B8%AD%20z')>=0?'OK':'BAD');});"],
+    expect: ["CANON OK"],
+    ref: "第762批：参数值原样参与签名，不做 URL 解码或 re-encode；`x+y`、`%E4%B8%AD%20z` 必须保持字面值。旧实现 trim 并可能改变空格/顺序。",
+  },
+  {
+    slug: "it/api-sign-generator",
+    inputs: { secret: "s3cr3t", params: "a=1&b=2", algo: "sha256" },
+    clicks: ["runSign().then(function(){var o=document.getElementById('out').innerHTML;document.getElementById('algo').value='NOCANON '+(o.indexOf('s3cr3t')<0&&o.indexOf('&secret=')<0&&document.getElementById('signValue')?'OK':'BAD');});"],
+    expect: ["NOCANON OK"],
+    ref: "第762批：输出只显示规范化串（不含 secret）和签名；HMAC 文案不得误写成拼接 secret。旧实现对 HMAC 也展示 `规范化串&secret=密钥`，直接泄露密钥。",
+  },
+  {
+    slug: "it/api-sign-generator",
+    inputs: { secret: "s3cr3t", params: "a=1", algo: "sha256" },
+    clicks: ["var old=ToolBox.copyText;var copied='';ToolBox.copyText=function(t){copied=t;};runSign().then(function(){var sv=document.getElementById('signValue');if(sv)sv.textContent='deadbeef';copyResult();ToolBox.copyText=old;document.getElementById('algo').value='COPYM '+(copied==='deadbeef'?'OK':'BAD:'+copied);});"],
+    expect: ["COPYM OK"],
+    ref: "第762批：复制签名只能复制 #signValue 的签名值，不得把规范化串或密钥一起复制；旧实现复制整个结果区文本。",
+  },
+  {
+    slug: "it/confidence-interval",
+    inputs: { mean: "100", std: "15", n: "30", conf: "0.95", dist: "auto", stdType: "population" },
+    clicks: ["calc();document.getElementById('mean').value='POP '+(document.getElementById('ci').textContent.indexOf('94.632')>=0&&document.getElementById('ci').textContent.indexOf('105.368')>=0?'OK':'BAD')+' | '+document.getElementById('ci-label').textContent;"],
+    expect: ["POP OK | 95% 置信区间 · z 分布 · 临界值=1.960 · 总体 σ 已知"],
+    ref: "第762批：标准差来源明确选「已知总体 σ」时自动模式用 z；n=30/σ=15 ⇒ [94.632,105.368]，标签注明总体 σ 已知。旧实现只按 n≥30 自动 z 且不说明前提。",
+  },
+  {
+    slug: "it/confidence-interval",
+    inputs: { mean: "100", std: "15", n: "30", conf: "0.95", dist: "auto", stdType: "sample" },
+    clicks: ["calc();document.getElementById('mean').value='SAMPLE '+(document.getElementById('ci').textContent.indexOf('94.398')>=0&&document.getElementById('ci-label').textContent.indexOf('自由度 df=29')>=0?'OK':'BAD')+' | '+document.getElementById('ci-label').textContent;"],
+    expect: ["SAMPLE OK | 95% 置信区间 · t 分布 · 临界值=2.046 · 自由度 df=29"],
+    ref: "第762批：σ 未知（样本 s）时自动模式必须用 t，即使 n=30；df=29、t≈2.0456 ⇒ [94.398,105.602]，标签展示自由度。旧实现 n≥30 自动 z，系统性窄。",
+  },
+  {
+    slug: "it/confidence-interval",
+    inputs: { mean: "100", std: "15", n: "30", conf: "0.95", dist: "z", stdType: "sample" },
+    clicks: ["calc();document.getElementById('mean').value='APPROX '+(document.getElementById('ci-label').textContent.indexOf('近似：总体 σ 未知，以样本 s 代替')>=0?'OK':'BAD')+' | '+document.getElementById('ci-label').textContent;"],
+    expect: ["APPROX OK | 95% 置信区间 · z 分布 · 临界值=1.960 · 近似：总体 σ 未知，以样本 s 代替"],
+    ref: "第762批：σ 未知却手动选 z 时，必须明确标注「近似」而不是伪装成精确 z 区间。旧实现无任何提示。",
+  },
+  {
+    slug: "it/confidence-interval",
+    inputs: { mean: "50", std: "8", n: "1", conf: "0.95", dist: "auto", stdType: "population" },
+    clicks: ["calc();document.getElementById('mean').value='N1POP '+(document.getElementById('ci').textContent.indexOf('[ 34.320 , 65.680 ]')>=0?'OK':'BAD');"],
+    expect: ["N1POP OK"],
+    ref: "第762批：n=1 且总体 σ 已知时自动模式应允许 z；50±1.960×8=[34.320,65.680]。旧实现 n=1 自动必选 t 并拒绝。",
+  },
+  {
+    slug: "it/confidence-interval",
+    inputs: { mean: "50", std: "8", n: "7", conf: "0.95", dist: "t", stdType: "sample" },
+    clicks: ["calc();document.getElementById('mean').value='DF '+(document.getElementById('ci-label').textContent.indexOf('自由度 df=6')>=0?'OK':'BAD');"],
+    expect: ["DF OK"],
+    ref: "第762批：t 分布必须在明细中明确展示 df=n−1=6；旧实现只在 95% 的临界值括号里写 (0.025,6)，其他置信水平完全看不到自由度。",
+  },
+  {
+    slug: "it/ascii-table",
+    clicks: ["render();var g=document.getElementById('grid').innerHTML;var ok=/<button[^>]*class=\"ascii-card\"/.test(g)&&!/onclick=\"showDetail\\(65\\)\"[^>]*data-copied/.test(g);document.getElementById('search').value='A11Y '+(ok?'OK':'BAD');"],
+    expect: ["A11Y OK"],
+    ref: "第762批：字符卡片必须改为原生 button（可 Tab/Enter/Space），不能是仅有 onclick 的 div；旧实现键盘无法聚焦。",
   },
 
 ];
