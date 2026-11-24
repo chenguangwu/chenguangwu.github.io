@@ -91,7 +91,7 @@
       "name": "数据会上传吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "不会。生成与随机组合全部在浏览器本地完成，服务端不接收任何输入。"
+        "text": "不会。生成与合同条款组合全部在浏览器本地完成，服务端不接收任何输入。"
       }
     },
     {
@@ -99,7 +99,7 @@
       "name": "能固定某些条款吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "当前为随机组合生成，暂不支持锁定指定项；可先生成再从结果中挑选合适的条目手工拼接。"
+        "text": "当前按输入金额与固定顺序生成合同草案，服务项按内置列表循环使用；暂不支持锁定指定条款，可先生成后再按需手工调整。"
       }
     }
   ]
@@ -172,7 +172,7 @@
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>起草服务合同时批量生成条款与报价样例，作为初稿再逐条修改。</li>
-<li>给客户做报价前先生成几版不同服务项与价格的组合，供内部讨论取舍。</li>
+<li>给客户做报价前先生成几版不同生成数量的合同草案，供内部讨论取舍。</li>
 <li>整理<a class="term-link" href="/tools/legal/contract-templates.html">合同模板库</a>时，用生成的样例补充常见条款措辞。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">批量生成报价条款</div><div class="dd-ex-body">输入单价、数量、税率与<a class="term-link" href="/tools/marketing/marketing-discount-rate.html">折扣率</a>后生成草案：先计算小计并打折，再计税，按元取整得合同总额，并计算预付款、尾款与违约金；服务项从内置清单中选取。</div></div>
@@ -180,8 +180,8 @@
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>生成的内容能直接当合同用吗？</dt><dd>不能。生成的是措辞样例，条款效力、金额与权责需由双方确认并经法务审核，正式合同请以审定版本为准。</dd>
-<dt>数据会上传吗？</dt><dd>不会。生成与随机组合全部在浏览器本地完成，服务端不接收任何输入。</dd>
-<dt>能固定某些条款吗？</dt><dd>当前为随机组合生成，暂不支持锁定指定项；可先生成再从结果中挑选合适的条目手工拼接。</dd>
+<dt>数据会上传吗？</dt><dd>不会。生成与合同条款组合全部在浏览器本地完成，服务端不接收任何输入。</dd>
+<dt>能固定某些条款吗？</dt><dd>当前按输入金额与固定顺序生成合同草案，服务项按内置列表循环使用；暂不支持锁定指定条款，可先生成后再按需手工调整。</dd>
 </dl>
 </div>
 </section>
@@ -235,24 +235,38 @@ function randItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 function numberToChinese(num) {
-  // units 需覆盖到「万」位：本页金额取 1000–50000（最多 5 位），缺「万」会导致
-  // 5 位数在万位取到 units[4]=undefined，输出「二undefined…」。
-  const units = ['','十','百','千','万'];
-  const nums = ['零','一','二','三','四','五','六','七','八','九'];
+  // 人民币大写支持 0–999,999,999,999 元；按四位分组处理万、亿，避免大额取到 undefined 单位
+  const MAX = 999999999999;
+  const nums = ['零','壹','贰','叁','肆','伍','陆','柒','捌','玖'];
+  const radice = ['','拾','佰','仟'];
+  const units = ['','万','亿','万亿'];
+  num = Math.round(Number(num));
+  if (!isFinite(num) || num < 0 || num > MAX) return '—';
   if (num === 0) return '零';
-  let str = '';
-  let unitIdx = 0;
-  while (num > 0) {
-    const digit = num % 10;
-    if (digit !== 0) {
-      str = nums[digit] + units[unitIdx] + str;
-    } else if (str && str[0] !== '零') {
-      str = '零' + str;
+  function group(g) {
+    let out = '', zero = false;
+    for (let i = 0; i < g.length; i++) {
+      const d = +g[i], pos = g.length - 1 - i;
+      if (d === 0) { zero = true; continue; }
+      if (zero && out) out += '零';
+      out += nums[d] + radice[pos];
+      zero = false;
     }
-    num = Math.floor(num / 10);
-    unitIdx++;
+    return out;
   }
-  return str.replace(/零+$/, '');
+  let str = String(num);
+  const groups = [];
+  while (str.length) { groups.unshift(str.slice(-4)); str = str.slice(0, -4); }
+  let out = '';
+  groups.forEach((g, idx) => {
+    const big = units[groups.length - 1 - idx];
+    const gs = group(g);
+    if (gs) {
+      if (out && g[0] === '0') out += '零';
+      out += gs + big;
+    }
+  });
+  return out;
 }
 function moneyUpper(n){
   return numberToChinese(n).replace(/零|一|二|三|四|五|六|七|八|九|十|百|千|万/g,function(c){
@@ -276,6 +290,10 @@ function gen() {
   const net = subtotal - discountAmt;
   const taxAmt = net * taxRate / 100;
   const total = Math.round(net + taxAmt);
+  if (!isFinite(total) || total < 0 || total > 999999999999) {
+    document.getElementById('res').innerHTML = '<p style="color:var(--danger)">⚠ 合同总额超出可精确转写人民币大写的范围（上限 999,999,999,999 元），请降低单价、数量或税率。</p>';
+    return;
+  }
   const deposit = Math.round(total * 0.3);
   const finalPrice = total - deposit;
   const penalty = Math.round(total * 0.1);

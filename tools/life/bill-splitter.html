@@ -400,17 +400,25 @@ function calcSimple() {
   const outEl = document.getElementById('simple-result');
   const rawTotal = String(totalEl.value == null ? '' : totalEl.value).trim();
   const rawTip = String(tipEl.value == null ? '' : tipEl.value).trim();
-  // 空值按 0 计（并在结果区提示）；负数/非数字属非法输入
-  const total = rawTotal === '' ? 0 : Number(rawTotal);
+  // 空串不等同于 0：只提示补填，不输出分摊结论；数字 0 仍是合法金额
+  if (rawTotal === '') {
+    markField('total-amount', true);
+    markField('tip-percent', true);
+    outEl.innerHTML = '<p style="color:var(--danger)">⚠ 请先填写账单总金额；如需分摊 0 元账单，请输入 0。</p>';
+    return;
+  }
+  const total = Number(rawTotal);
   const tip = rawTip === '' ? 0 : Number(rawTip);
-  const okTotal = isFinite(total) && total >= 0;
-  const okTip = isFinite(tip) && tip >= 0;
+  // 上限同时约束金额与分值，避免超出安全整数后余数分配失控
+  const MAX_TOTAL = 1e11; // 1000 亿元；分值 1e13，仍在 Number 安全整数范围内
+  const okTotal = isFinite(total) && total >= 0 && total <= MAX_TOTAL;
+  const okTip = isFinite(tip) && tip >= 0 && tip <= 100;
   markField('total-amount', okTotal);
   markField('tip-percent', okTip);
   persons.forEach((_, i) => markField('person-share-' + i, true));
 
   if (!okTotal) {
-    outEl.innerHTML = `<p style="color:var(--danger)">⚠ 输入错误：总金额必须 ≥ 0 且为有效数字（当前 ${escHtml(rawTotal)}），已停止计算。</p>`;
+    outEl.innerHTML = `<p style="color:var(--danger)">⚠ 输入错误：总金额须为 0–${MAX_TOTAL.toLocaleString('zh-CN')} 元之间的有效数字（当前 ${escHtml(rawTotal)}），已停止计算。</p>`;
     return;
   }
   if (!okTip) {
@@ -430,7 +438,7 @@ function calcSimple() {
     return;
   }
   const totalShare = shares.reduce((s, x) => s + x, 0);
-  if (persons.length === 0 || totalShare <= 0) {
+  if (persons.length === 0 || !isFinite(totalShare) || totalShare <= 0) {
     outEl.innerHTML = '<p style="color:var(--danger)">⚠ 输入错误：至少需要 1 位参与人员，且份数之和必须大于 0，已停止计算。</p>';
     return;
   }
@@ -438,7 +446,11 @@ function calcSimple() {
   const totalWithTip = total * (1 + tip / 100);
   // 按「分」计算：先向下取整到分，再把余下的分逐一分给前 N 人（合计必然与账单一致）
   const totalCents = Math.round(totalWithTip * 100);
-  const exactCents = shares.map(s => totalCents * s / totalShare);
+  if (!isFinite(totalWithTip) || !Number.isSafeInteger(totalCents) || totalCents < 0 || totalCents > 1e13) {
+    outEl.innerHTML = `<p style="color:var(--danger)">⚠ 输入金额或小费超出可精确分摊的范围，已停止计算；请缩小金额或小费比例。</p>`;
+    return;
+  }
+  const exactCents = shares.map(s => totalCents * (s / totalShare));
   const cents = exactCents.map(x => Math.floor(x + 1e-7));
   let rem = totalCents - cents.reduce((a, b) => a + b, 0);
   if (rem < 0) rem = 0;
@@ -446,7 +458,6 @@ function calcSimple() {
 
   let html = `<p><strong>总金额：</strong>¥${total.toFixed(2)} + ${tip}%小费 = ¥${totalWithTip.toFixed(2)}</p>`;
   html += `<p><strong>总份数：</strong>${totalShare}份</p>`;
-  if (rawTotal === '') html += '<p style="font-size:12px;color:var(--text-muted);">提示：总金额为空，已按 ¥0.00 计算。</p>';
   html += `<div style="margin-top:12px;">`;
   persons.forEach((p, i) => {
     html += `<div class="result-person"><span>${escHtml(p.name)} (${shares[i]}份)</span><strong>¥${(cents[i] / 100).toFixed(2)}</strong></div>`;
