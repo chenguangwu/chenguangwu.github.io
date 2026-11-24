@@ -8945,14 +8945,14 @@ const CASES = [
   {
     "slug": "it/email-qr",
     "inputs": {
-      "to": "abc123测试",
+      "to": "abc@example.com",
       "subject": "abc123测试",
       "body": "1\n2\n3"
     },
     "expect": [
-      "mailto:abc123%E6%B5%8B%E8%AF%95?subject=abc123%E6%B5%8B%E8%AF%95"
+      "mailto:abc%40example.com?subject=abc123%E6%B5%8B%E8%AF%95"
     ],
-    "ref": "真实 QR 改造后输出区保留 mailto 链接：注入 to/subject=abc123测试、body=1\\n2\\n3，链接前缀为 mailto:abc123%E6%B5%8B%E8%AF%95?subject=abc123%E6%B5%8B%E8%AF%95（encodeURIComponent 结果；innerHTML 中后续 & 会转 &amp;，故断言只取前段）。默认样例收件箱为 a@b.com，不出现该串 ⇒ 强判别、零逃生。"
+    "ref": "第743批收件地址校验后，注入 to=abc@example.com、subject=abc123测试，链接前缀为 mailto:abc%40example.com?subject=abc123%E6%B5%8B%E8%AF%95；默认收件箱 a@b.com 不出现该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/email-normalizer",
@@ -11345,14 +11345,14 @@ const CASES = [
   {
     "slug": "it/phone-screen-sizes",
     "inputs": {
-      "diag": "42",
-      "resw": "42",
-      "resh": "42"
+      "diag": "5",
+      "resw": "1080",
+      "resh": "1920"
     },
     "expect": [
-      "参数反算 PPI 42.0 英寸 屏幕尺寸 42×42 分辨率 5"
+      "5.0 英寸 屏幕尺寸 1080×1920 分辨率 2203"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"diag\":\"42\",\"resw\":\"42\",\"resh\":\"42\"}，输出区含「参数反算 PPI 42.0 英寸 屏幕尺寸 42×42 分辨率 5」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第743批分辨率校验后，注入 diag5/1080×1920：√(1080²+1920²)=2202.9 ⇒ 2203 px，PPI≈440.6 ⇒ 441；42×42 已按字段级错误拒绝，不再产出无意义结果。"
   },
   {
     "slug": "it/phone-parser",
@@ -12649,9 +12649,9 @@ const CASES = [
       "maxLen": "42"
     },
     "expect": [
-      "abc123测试\n42\n42\nclassic\nabc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123测试 abc123"
+      "abc123测试\n42\n42\nclassic\nabc123测试"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"kw\":\"abc123测试\",\"count\":\"42\",\"maxLen\":\"42\"}，输出区含「abc123测试\n42\n42\nabc123测试 abc123测试 abc123测…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。IT-N557 新增 style 控件后 blob 字段序在 42/42 后多出 classic，按铁律①同批同步 expect。"
+    "ref": "自动补强（B类零用例）：注入关键词 abc123测试/count42/maxLen42 后，首候选保留关键词、配置摘要含 42/42/classic；第743批起重复候选追加后缀去重，故不再断言旧的整串重复。"
   },
   {
     "slug": "it/uuencode",
@@ -15441,6 +15441,38 @@ const CASES = [
     "clicks": ["try{localStorage.removeItem=function(){};localStorage.setItem=function(k,v){globalThis.__ccSaved=v;};}catch(e){};var ok=hex8(255,0,0,0.5)==='#ff000080'&&String(updateDisplay).indexOf('colorCss(currentColor)')>=0&&String(addToHistory).indexOf('a: a')>=0&&String(renderHistory).indexOf('fullHex')>=0;document.getElementById('__tbProbe').textContent='CALPHA '+(ok?'OK':'BAD');"],
     "expect": ["CALPHA OK"],
     "ref": "第742批：透明色预览用棋盘叠加 rgba，格式区给出 8 位 HEX，历史记录保存 alpha；旧预览/历史只保留六位 HEX，显示成不透明红色。"
+  },
+  {
+    "slug": "it/username-generator",
+    "inputs": {"kw": "dragon", "count": "10", "maxLen": "15"},
+    "clicks": ["document.getElementById('num').checked=false;document.getElementById('prefix').checked=false;document.getElementById('leet').checked=false;__username_generator_f0();var ok=__ugLastUsernames.length===10&&new Set(__ugLastUsernames).size===10&&__ugLastUsernames.every(function(x){return x.indexOf('dragon')===0;});document.getElementById('__tbProbe').textContent='UGUNIQ '+(ok?'OK':'BAD:'+__ugLastUsernames.join(','));"],
+    "expect": ["UGUNIQ OK"],
+    "ref": "第743批：关键词长度≥4 且关闭数字/前缀时，重复候选追加词根后缀去重；dragon 10 个候选必须全唯一且均以 dragon 开头。旧实现循环直接复用同一关键词，10 行完全相同。"
+  },
+  {
+    "slug": "it/email-qr",
+    "clicks": ["document.getElementById('to').value='a@b.com,c@d.com';document.getElementById('subject').value='';document.getElementById('body').value='';generate();var ok=__email_qrUri==='mailto:a%40b.com,c%40d.com?subject=&body='&&!document.getElementById('emailCopyBtn').disabled;document.getElementById('to').value='bad';generate();ok=ok&&__email_qrUri===''&&document.getElementById('emailCopyBtn').disabled;document.getElementById('__tbProbe').textContent='EMAILURI '+(ok?'OK':'BAD');"],
+    "expect": ["EMAILURI OK"],
+    "ref": "第743批：多个收件人按逗号拆分并逐段编码，URI 独立保存；非法地址清空 URI 并禁用复制，不再把错误提示复制成 mailto。旧实现不校验且复制整个输出区 textContent。"
+  },
+  {
+    "slug": "it/location-qr",
+    "clicks": ["document.getElementById('lat').value='39.9';document.getElementById('lng').value='116.4';document.getElementById('label').value='';generate();var ok=__location_qrUri.indexOf('geo:39.9,116.4')===0&&!document.getElementById('locationCopyBtn').disabled;document.getElementById('lat').value='999';generate();ok=ok&&__location_qrUri===''&&document.getElementById('locationCopyBtn').disabled;document.getElementById('__tbProbe').textContent='LOCURI '+(ok?'OK':'BAD');"],
+    "expect": ["LOCURI OK"],
+    "ref": "第743批：有效经纬度保存独立 geo URI 并允许复制；校验失败清空 URI、禁用复制，避免把 ⚠ 纬度范围提示当作链接复制。旧实现复制整个输出区。"
+  },
+  {
+    "slug": "it/phone-screen-sizes",
+    "inputs": {"diag": "5", "resw": "1080.5", "resh": "1920"},
+    "clicks": ["var bad=pssParams();document.getElementById('resw').value='99999';var huge=pssParams();document.getElementById('resw').value='1080';var good=pssParams();document.getElementById('__tbProbe').textContent='PSSVAL '+((!bad.ok&&bad.error.indexOf('整数')>=0&&!huge.ok&&good.ok&&Math.abs(good.ppi-441)<1)?'OK':'BAD');"],
+    "expect": ["PSSVAL OK"],
+    "ref": "第743批：分辨率必须为 240–10000 的整数，1080.5 与 99999 均按字段报错；合法 1080×1920/5 英寸得 PPI≈441。旧实现 parseFloat 直接接收小数/超大值并照常输出。"
+  },
+  {
+    "slug": "it/video-bitrate",
+    "clicks": ["document.getElementById('w').value='1920';document.getElementById('h').value='1080';document.getElementById('fps').value='29.97';document.getElementById('dur').value='10';document.getElementById('br').value='8';var good=videoParams();var ok=good.ok&&good.fps===29.97;document.getElementById('br').value='';var empty=videoParams();ok=ok&&!empty.ok&&empty.error.indexOf('码率需为大于 0')>=0;document.getElementById('br').value='-1';var neg=videoParams();ok=ok&&!neg.ok&&neg.error.indexOf('码率需为大于 0')>=0;document.getElementById('__tbProbe').textContent='VBVAL '+(ok?'OK':'BAD');"],
+    "expect": ["VBVAL OK"],
+    "ref": "第743批：帧率保留 29.97（不 floor 成 29），空/负码率按字段报错并停止出结论；旧实现 Math.floor 且空码率归 0、负码率产出负文件大小。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

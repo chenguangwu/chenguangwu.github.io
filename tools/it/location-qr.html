@@ -158,7 +158,7 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
     <input type="text" id="label" value="北京天安门" style="margin-bottom:12px;">
     <div class="toolbar">
       <div id="location_qrPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__location_qrExport()">导出明细 CSV</button>
-      <button type="button" class="btn success" onclick="copyResult()">复制</button>
+      <button type="button" class="btn success" id="locationCopyBtn" onclick="copyResult()">复制</button>
     </div>
     <div class="result-box" id="output"></div> <div id="location_qrTable"></div> <div id="location_qrDiff"></div> <div id="location_qrChart"></div> <div id="location_qrHist"></div>
   </div>
@@ -266,22 +266,23 @@ function drawQR(text){
   for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))ctx.fillRect((c+margin)*cell,(r+margin)*cell,cell,cell);
   return canvas;
 }
+let __location_qrUri='';
 function generate(){
-  const built=buildGeo();const out=document.getElementById('output');
-  if(built.error){out.innerHTML='<p style="color:var(--danger)">⚠ '+escapeHtml(built.error)+'</p>';return;}
+  const built=buildGeo();const out=document.getElementById('output'),btn=document.getElementById('locationCopyBtn');
+  if(built.error){__location_qrUri='';if(btn)btn.disabled=true;out.innerHTML='<p style="color:var(--danger)">⚠ '+escapeHtml(built.error)+'</p>';return;}
+  __location_qrUri=built.text;if(btn)btn.disabled=false;
   try{
     const canvas=drawQR(built.text);
-    const __h0='<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(built.text)+'</div>';
-    out.innerHTML=__h0;
+    out.innerHTML='<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(built.text)+'</div>';
     out.querySelector('.qr-wrap').appendChild(canvas);
   }catch(e){
-    out.innerHTML='<div class="qr-text">'+escapeHtml(built.text)+'</div><p style="color:var(--danger)">⚠ 无法生成二维码图形：'+escapeHtml(e.message)+'</p>';
+    out.innerHTML='<div class="qr-text">'+escapeHtml(built.text)+'</div><p style="color:var(--danger)">⚠ 无法生成二维码图形：'+escapeHtml(e.message)+'</p><p style="font-size:12px;color:var(--text-muted);">URI 仍有效，可直接复制。</p>';
   }
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
-  const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
+  if(!__location_qrUri){ alert('请输入合法经纬度并生成二维码'); return; }
+  navigator.clipboard.writeText(__location_qrUri).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制"))).catch(()=>alert('复制失败，请手动复制 URI'));
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');

@@ -297,8 +297,20 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function escH(s){var d=document.createElement('div');const __g0=s==null?'':String(s);d.textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){const w=num('w'), h=num('h'), fps=Math.floor(num('fps')), dur=num('dur'), br=num('br');
-   if(w<=0||h<=0||dur<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的分辨率与时长。</p>');return;}
+function videoParams(){
+   const raw=function(id){var e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+   const wR=raw('w'),hR=raw('h'),fR=raw('fps'),dR=raw('dur'),bR=raw('br');
+   const w=Number(wR),h=Number(hR),fps=Number(fR),dur=Number(dR),br=Number(bR);
+   if(!/^\d+$/.test(wR)||!isFinite(w)||w<16||w>10000) return {error:'分辨率宽需为 16–10000 之间的整数。'};
+   if(!/^\d+$/.test(hR)||!isFinite(h)||h<16||h>10000) return {error:'分辨率高需为 16–10000 之间的整数。'};
+   if(!fR||!isFinite(fps)||fps<1||fps>240) return {error:'帧率需为 1–240 之间的数字（支持 23.976/29.97 等小数）。'};
+   if(!dR||!isFinite(dur)||dur<=0) return {error:'时长需为大于 0 的有限数字（分钟）。'};
+   if(!bR||!isFinite(br)||br<=0) return {error:'码率需为大于 0 的有限数字（Mbps）。'};
+   return {ok:true,w,h,fps,dur,br};
+}
+function calcTool(){const v=videoParams();
+   if(!v.ok){ToolBox.setResult('result','<p class="tip-error">'+v.error+'</p>');return;}
+   const w=v.w,h=v.h,fps=v.fps,dur=v.dur,br=v.br;
    const pixels=w*h;
    const mbps=br;
    const fileMB=mbps*1000000/8/1024/1024*dur*60;
@@ -346,7 +358,8 @@ function __video_bitrateNum(id){var e=document.getElementById(id);var v=e?parseF
 function __video_bitrateExtras(){
     function __video_bitrateRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var w=num('w'), h=num('h'), fps=Math.floor(num('fps')), dur=num('dur'), br=num('br');
+    var v=videoParams(); if(!v.ok) return;
+    var w=v.w, h=v.h, fps=v.fps, dur=v.dur, br=v.br;
     var pixels=w*h;
     var mbps=br;
     var fileMB=mbps*1000000/8/1024/1024*dur*60;
@@ -360,8 +373,7 @@ function __video_bitrateExtras(){
     else if(px<=2560*1440) recBr=rec.p1440;
     else recBr=rec.p2160;
     var recSize=recBr*1000000/8/1024/1024*dur*60;
-    if (!isFinite(__video_bitrateNum('w')) || !isFinite(__video_bitrateNum('h')) || !isFinite(__video_bitrateNum('fps')) || !isFinite(__video_bitrateNum('dur')) || !isFinite(__video_bitrateNum('br'))) return;
-    var en=TBKit.util.isEn();
+        var en=TBKit.util.isEn();
     TBKit.matrix.table('#video_bitrateTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
