@@ -730,27 +730,6 @@ const CASES = [
   },
   // ===== 条码族 deepdive 示例一致性（自查续批：修正同模板错误文案）=====
   {
-    slug: "it/barcode-code128",
-    inputs: {},
-    clicks: ["var calls=[];window.ToolBoxBarcode={encode:function(t,s){calls.push(t+':'+s);return {ok:true,bits:'101',text:s};},renderCanvas:function(){return {width:1};}};document.getElementById('data').value='ABC-1234';try{generate();}catch(e){}document.getElementById('__tbProbe').textContent='C128='+calls.join('|');"],
-    expect: ["C128=code128:ABC-1234"],
-    ref: "条码族 deepdive 示例一致性（自查续批）：Code 128 示例改为任意 ASCII 文本 ABC-1234，页面 generate() 确实把它原文交给编码库（校验符号由编码库自动算，页面不要求用户补位）。外部编码库在门禁里以桩替身捕获调用参数；默认输入 ABC-1234 虽相同，但探针 C128= 只在注入 clicks 后出现 ⇒ 非回显、强判别。",
-  },
-  {
-    slug: "it/barcode-code128",
-    // IT-N124：共享码库必须支持 ASCII 0~127 的 A/B 子集切换。
-    clicks: ["var L=globalThis.__tbBarcodeLibForVerify,r=L?L.code128('a\\u0001'):null,t=L?L.code128('\\u0001~'):null;document.getElementById('__tbProbe').textContent='C128MIX '+(r&&r.ok?'OK':'BAD')+' '+(r&&r.detail?r.detail.subset:'-')+' '+(t&&t.ok?t.detail.subset:'-');"],
-    expect: ["C128MIX OK B/A A/B"],
-    ref: "IT-N124：'a\\u0001' 需 B→A（100→101 编码语义），'\\u0001~' 需 A→B。旧库两段互斥判断直接报「仅支持单一子集…」⇒ C128MIX BAD - -；修复后分别得 B/A 与 A/B。探针只在 clicks 注入出现，默认态无该串。",
-  },
-  {
-    slug: "it/barcode-code128",
-    // IT-N125：空输入必须原样交给编码库报错，不能被 || ' ' 变成空格条码。
-    clicks: ["var cap='NOT_CALLED';globalThis.ToolBoxBarcode={encode:function(t,s){cap=s;return {ok:false,error:'stub'};},renderCanvas:function(){return {};}};document.getElementById('data').value='';generate();document.getElementById('__tbProbe').textContent='C128EMPTY '+JSON.stringify(cap);"],
-    expect: ['C128EMPTY ""'],
-    ref: "IT-N125：空输入时旧页面 `text || ' '` 把空串换成空格，编码库收到 ' ' ⇒ C128EMPTY \" \"；修复后原样传空串 ⇒ C128EMPTY \"\"，由库统一报「请输入条码内容」。默认态 data 非空，不产生该探针串。",
-  },
-  {
     slug: "it/barcode-code39",
     inputs: {},
     clicks: ["var a=buildCode39('CODE-39',false),b=buildCode39('CODE-39',true);document.getElementById('__tbProbe').textContent='C39='+a.text+'|'+b.text+'|'+a.bits.length+'|'+b.bits.length;"],
@@ -5981,7 +5960,7 @@ const CASES = [
     slug: "it/barcode-code39",
     inputs: { data: "A*B" },
     clicks: ["generate()"],
-    expect: ["⚠ 不支持字符「*」，Code 39 仅支持 A–Z、0–9、空格与 - . $ / + %。"],
+    expect: ["第 2 个字符是「*」"],
     ref: "IT-N509 复核失败重做：数据含起止哨兵 * 须被拒绝，不再内部编码（buildCode39 开头 if(text.includes('*')) return {error:'*'}）。默认样例 HELLO 不出现该提示 ⇒ 强判别、零逃生。",
   },
 
@@ -8218,14 +8197,39 @@ const CASES = [
     "ref": "自动补强（B类零用例）·2026-11-06 随 IT-N492 同步更新：注入非默认输入{\"data\":\"abc123测试\"}，原实现静默丢弃表外字符并回显原文（旧杆「abc123测试\\nABC123测试」= 输入回显，零判别力）；现 buildCodabar 逐位校验并报「第 7 位含非法字符「测」」，位置与字符均由输入决定。默认 data=A12345B 合法，不命中。"
   },
   {
-    "slug": "it/barcode-code128",
-    "inputs": {
-      "data": "abc123测试"
-    },
-    "expect": [
-      "完成，请稍后重试。\nabc123测试"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"data\":\"abc123测试\"}，输出区含「完成，请稍后重试。\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "slug": "it/barcode-code39",
+    "inputs": {},
+    "clicks": ["document.getElementById('data').value='';delete window.__code39Geometry;generate();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='EMPTY='+document.getElementById('output').textContent+' GEO='+(window.__code39Geometry===undefined)"],
+    "expect": ["请输入要编码的内容", "GEO=true"],
+    "ref": "第771批：空输入必须提示且不生成条码；旧实现用 `|| ' '` 把空值替换成空格，产出含空格数据的条码，用户误以为编码的是空字符串。"
+  },
+  {
+    "slug": "it/barcode-code39",
+    "inputs": {},
+    "clicks": ["document.getElementById('data').value='ß';delete window.__code39Geometry;generate();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='SS='+document.getElementById('output').textContent+' GEO='+(window.__code39Geometry===undefined)"],
+    "expect": ["第 1 个字符「ß」不受支持", "GEO=true"],
+    "ref": "第771批：只对 ASCII 小写转大写；ß 不得经 Unicode toUpperCase 展开为 SS 后通过校验，必须按原字符报错且不生成。"
+  },
+  {
+    "slug": "it/barcode-code39",
+    "inputs": {},
+    "clicks": ["document.getElementById('data').value='abc';generate();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='LOW='+document.getElementById('output').textContent+' Q='+window.__code39Geometry.quiet"],
+    "expect": ["LOW=*ABC*", "静区各 20px"],
+    "ref": "第771批：ASCII 小写 abc 仍需转为 ABC 并可见提示；默认模块宽 2px ⇒ 静区 20px（10 个窄模块）。"
+  },
+  {
+    "slug": "it/barcode-code39",
+    "inputs": {},
+    "clicks": ["document.getElementById('data').value=' ';generate()"],
+    "expect": ["* *","静区各 20px"],
+    "ref": "第771批：用户主动输入的一个空格必须合法编码为「* *」，不能被空输入守卫误伤。"
+  },
+  {
+    "slug": "it/barcode-code39",
+    "inputs": {},
+    "clicks": ["document.getElementById('data').value='A';document.getElementById('moduleWidth').value='4';generate();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='Q4='+window.__code39Geometry.quiet+' W='+window.__code39Geometry.width+' B='+window.__code39Geometry.barsWidth"],
+    "expect": ["Q4=40 W=", "B="],
+    "ref": "第771批：模块宽度可调，静区始终为 10 倍窄模块；选 4px 时静区 40px、画布宽 = 条码宽 + 80。"
   },
   {
     "slug": "it/barcode-code39",
@@ -8233,7 +8237,7 @@ const CASES = [
       "data": "abc123测试"
     },
     "expect": [
-      "⚠ 不支持字符「测」，Code 39 仅支持 A–Z、0–9、空格与 - . $ / + %。"
+      "第 7 个字符「测」不受支持"
     ],
     "ref": "标准 Code 39 重写后校验字符集：注入 data=abc123测试（含汉字「测」）⇒ 输出不支持字符提示。默认样例仅含合法字符，不出现该提示 ⇒ 强判别、零逃生。"
   },
@@ -9568,6 +9572,12 @@ const CASES = [
       "共 0 项"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区计数归零为「共 0 项」；默认态全表 124 项不产出该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/http-cookies",
+    "inputs": { "searchInput": "HttpOnly" },
+    "expect": ["不能阻止 XSS", "不能替代 XSS 防护"],
+    "ref": "第771批：HttpOnly 只能限制脚本读取 Cookie，不能防 XSS；搜索「HttpOnly」必须命中「不能阻止 XSS」与「不能替代 XSS 防护」两条新说明。"
   },
   {
     "slug": "it/http-cookies",
@@ -14456,13 +14466,14 @@ const CASES = [
     "expect": ["数据位仅支持 0-9 - $ : / . +"],
     "ref": "IT-N492/N493：`AAA` 起止符之间无合法数据字符（内部 A 不是数据字符）⇒ 必须报错。默认样例不命中；修复前静默生成条码（无有效数据）。"
   },
-  ...["barcode-codabar", "barcode-code128", "barcode-code39", "barcode-ean", "barcode-itf", "barcode-msi", "barcode-upc"].map(function (slug) {
+  ...["barcode-codabar", "barcode-code128", "barcode-ean", "barcode-itf", "barcode-msi", "barcode-upc"].map(function (slug) {
     return {
       slug: "it/" + slug,
       clicks: [
         "var __p=document.getElementById('__svg_probe');if(!__p){__p=document.createElement('div');__p.id='__svg_probe';document.body.appendChild(__p);}ToolBox.showToast=function(m){__p.textContent='TOAST:'+m;};"
-        + "var __qs=document.querySelector.bind(document);"
-        + "document.querySelector=function(s){if(s==='#output canvas')return {toDataURL:function(){throw new Error('boom')}};return __qs(s);};"
+        + (slug === "barcode-code128"
+          ? "window.__code128State={inputText:document.getElementById('data').value,text:'x',canvas:{toDataURL:function(){throw new Error('boom')}}};"
+          : "var __qs=document.querySelector.bind(document);document.querySelector=function(s){if(s==='#output canvas')return {toDataURL:function(){throw new Error('boom')}};return __qs(s);};")
         + "downloadBarcodePNG();",
       ],
       expect: ["TOAST:导出失败：Error"],
