@@ -6293,7 +6293,7 @@ const CASES = [
   },
   {
     slug: "it/random-string",
-    clicks: ["var ids=['top_upper','top_lower','top_digit','top_sym'];ids.forEach(function(id){document.getElementById(id).checked=false;});document.getElementById('len').value='7';document.getElementById('cnt').value='2';resetForm();var s=ids.filter(function(id){return document.getElementById(id).checked;}).join(',');var h=String(document.getElementById('result').innerHTML||'');document.getElementById('__tbProbe').textContent='RSRST '+((s==='top_upper,top_lower,top_digit'&&document.getElementById('len').value==='16'&&document.getElementById('cnt').value==='5'&&h.indexOf('生成 5 个随机字符串')>=0&&h.indexOf('请至少选择一种字符集')<0)?'OK':'BAD');"],
+    clicks: ["var ids=['top_upper','top_lower','top_digit','top_sym'];ids.forEach(function(id){document.getElementById(id).checked=false;});document.getElementById('len').value='7';document.getElementById('cnt').value='2';resetForm();var s=ids.filter(function(id){return document.getElementById(id).checked;}).join(',');var h=String(document.getElementById('result').innerHTML||'');document.getElementById('__tbProbe').textContent='RSRST '+((s==='top_upper,top_lower,top_digit'&&document.getElementById('len').value==='16'&&document.getElementById('cnt').value==='5'&&h.indexOf('已生成 5 个随机字符串')>=0&&h.indexOf('请至少选择一种字符集')<0)?'OK':'BAD');"],
     expect: ["RSRST OK"],
     ref: "IT-N319：旧 resetForm 把四个 checkbox 全置 false，calcTool 落入空字符集分支只显示「请至少选择一种字符集」。修复后按 HTML 出厂默认恢复 upper/lower/digit=true、sym=false、len=16、cnt=5 并立即生成 5 条。默认态已是正常生成页，不会执行 clicks 探针串 ⇒ 零逃生。",
   },
@@ -11838,7 +11838,7 @@ const CASES = [
     },
     "checkIds": ["top_upper"],
     "clicks": ["calcTool()"],
-    "expect": ["生成数量至少为 1 个"],
+    "expect": ["生成数量需在 1–50 之间，当前为 0。"],
     "ref": "数量 0 的定义域不成立：旧实现 `parseInt(value||'5')||5` 双段兜底把 0 静默改成 5，与同函数 `if(cnt<1) cnt=1` 自相矛盾；修复后显式拒绝。默认 cnt=5 走正常生成路径，不含该提示。"
   },
   {
@@ -11849,7 +11849,7 @@ const CASES = [
     },
     "checkIds": ["top_upper"],
     "clicks": ["calcTool()"],
-    "expect": ["长度至少为 1 位"],
+    "expect": ["长度需在 1–128 之间，当前为 0。"],
     "ref": "长度 0 的定义域不成立：旧实现 `parseInt(value||'16')||16` 把 0 静默改成 16；修复后显式拒绝。默认 len=16 走正常生成路径，不含该提示。"
   },
   {
@@ -15581,6 +15581,42 @@ const CASES = [
     "clicks": ["document.getElementById('input').value='---';convert();document.getElementById('__tbProbe').value=(__binary_to_text_state==='invalid'&&document.getElementById('output').value==='')?'B2T OK':'B2T BAD';"],
     "expect": ["B2T OK"],
     "ref": "第747批：纯分隔符在规范化后为空，必须判无完整字节而不是成功输出空串；旧实现 ^[01]*$ 允许空串并标记 ok。"
+  },
+  {
+    "slug": "it/regex-visualizer",
+    "clicks": ["var bs=String.fromCharCode(92);var a=parseRegexAst(bs+'x41+');var labels=[];function walk(ns){ns.forEach(function(n){labels.push(n.label);walk(n.children||[]);});}walk(a);var toks=tokenize(bs+'x41+');document.getElementById('__tbProbe').value=(labels.indexOf(bs+'x41')>=0&&labels.indexOf('4')<0&&labels.indexOf('1')<0&&toks.length===2&&toks[0]===bs+'x41')?'REGEX OK':'REGEX BAD '+JSON.stringify(labels)+'/'+JSON.stringify(toks);"],
+    "expect": ["REGEX OK"],
+    "ref": "第748批：十六进制转义必须整体消费 4 个字符并作为一个原子参与量词；x41+ 的 AST 是量词 + 作用于 x41，词元也只有两个。旧实现固定消费 2 字符，把 x41 拆成三段。默认样例不含该串 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/regex-visualizer",
+    "clicks": ["var bs=String.fromCharCode(92);var a=parseRegexAst('(?<word>a)'+bs+'k<word>+');var labels=[];function walk(ns){ns.forEach(function(n){labels.push(n.label);walk(n.children||[]);});}walk(a);var u=[];function walk2(ns){ns.forEach(function(n){u.push(n.label);walk2(n.children||[]);});}walk2(parseRegexAst(bs+'u0041+'));document.getElementById('__tbProbe').value=(labels.indexOf(bs+'k<word>')>=0&&u.indexOf(bs+'u0041')>=0&&u.indexOf('1')<0)?'REGEX2 OK':'REGEX2 BAD '+JSON.stringify(labels)+'/'+JSON.stringify(u);"],
+    "expect": ["REGEX2 OK"],
+    "ref": "第748批：命名反向引用 k<name> 与四位 Unicode 转义均整体识别，量词绑定完整转义而非尾字符。旧实现各只消费 2 字符，后续 <name> / 0041 被拆成字面量。"
+  },
+  {
+    "slug": "it/camera-recorder",
+    "clicks": ["var p=camPickMime({isTypeSupported:function(t){return t==='video/mp4';}});var e1=camExtForMime('video/mp4;codecs=avc1'),e2=camExtForMime('video/x-matroska'),e3=camExtForMime('application/octet-stream'),e4=camExtForMime('');document.getElementById('__tbProbe').value=(p==='video/mp4'&&e1==='mp4'&&e2==='mkv'&&e3==='bin'&&e4==='webm')?'CAM OK':'CAM BAD '+p+'/'+e1+'/'+e2+'/'+e3+'/'+e4;"],
+    "expect": ["CAM OK"],
+    "ref": "第748批：按 isTypeSupported 选容器，扩展名由实际 mimeType 决定：mp4→.mp4、matroska→.mkv、未知→.bin、空→.webm。旧实现固定 Blob video/webm 与 .webm 下载。"
+  },
+  {
+    "slug": "it/benchmark-builder",
+    "clicks": ["var src=String(run);document.getElementById('__tbProbe').value=(src.indexOf('activeRun!==id')>=0&&src.indexOf('activeRun===id')>=0&&src.indexOf('runSeq')>=0&&src.indexOf('stopFlag')<0)?'BENCH OK':'BENCH BAD';"],
+    "expect": ["BENCH OK"],
+    "ref": "第748批：每次 run 取得递增 id 与 activeRun，旧 chunk 在 activeRun!==id 时直接返回；不再共享 stopFlag，停止后立即重启不会被旧回调续命或覆盖新结果。"
+  },
+  {
+    "slug": "it/qrcode",
+    "clicks": ["var c=document.getElementById('qrRememberText');document.getElementById('__tbProbe').value=(c.checked===false&&typeof qrForgetSaved==='function'&&document.getElementById('qrPrivacyStatus')!==null&&localStorage.getItem('tb_uxp_tools/it/qrcode.html#textInput')===null)?'QRPRIV OK':'QRPRIV BAD';"],
+    "expect": ["QRPRIV OK"],
+    "ref": "第748批：二维码正文默认不持久化（textarea/opt-in 均 data-no-persist），旧通用恢复脚本不再写入原文；opt-in 默认关闭并提供 qrForgetSaved 清除。旧实现无条件 localStorage 保存 textInput。"
+  },
+  {
+    "slug": "it/random-string",
+    "clicks": ["var src=String(__random_string_f0);document.getElementById('__tbProbe').value=(src.indexOf('长度必须为整数')>=0&&src.indexOf('生成数量需在')>=0&&src.indexOf('var len=Number(lenRaw)')>=0&&src.indexOf('len=128')<0&&src.indexOf('?16:parseInt')<0)?'RSVAL OK':'RSVAL BAD';"],
+    "expect": ["RSVAL OK"],
+    "ref": "第748批：长度/数量先做非空、纯整数、范围校验，5.5 与 129 均报错且不生成；不再 parseInt 截断或静默夹到上限。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

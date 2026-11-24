@@ -198,7 +198,10 @@ textarea:focus{border-color:#4338CA;}
     <div class="card qr-panel">
       <h3>⚙️ 内容与样式</h3>
       <label class="field-label" for="textInput">输入文本或网址（每行生成一个二维码，最多 20 行）</label>
-      <textarea id="textInput" placeholder="每行一个文本或 URL…" data-i18n-ph="ph.qrcode.input">https://toolbox.example.com</textarea>
+      <textarea id="textInput" data-no-persist placeholder="每行一个文本或 URL…" data-i18n-ph="ph.qrcode.input">https://toolbox.example.com</textarea>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin:0 0 6px;"><input type="checkbox" id="qrRememberText" data-no-persist style="width:auto;margin:0;"><span data-zh="在本机记住二维码正文（默认关闭）">Remember QR text on this device (off by default)</span></label>
+      <div style="font-size:12px;color:var(--text-secondary);margin:0 0 8px;" data-zh="二维码正文可能包含 Wi‑Fi 密码、联系方式或私密链接。开启后正文保存在本机 localStorage，共用设备请保持关闭并及时清除。">QR text may contain Wi‑Fi passwords, contact details or private links. When enabled it is stored in this browser's localStorage; keep it off on shared devices and clear it when done.</div>
+      <div style="display:flex;align-items:center;gap:8px;margin:0 0 8px;"><button type="button" class="btn" onclick="qrForgetSaved()" style="width:auto;" data-zh="清除本机已保存正文">Clear saved text</button><span id="qrPrivacyStatus" style="font-size:12px;color:var(--text-muted);" role="status"></span></div>
       <div style="font-size:12px;color:var(--text-secondary);margin:-4px 0 8px;" data-zh="单条模式原样编码（包括首尾空格）；批量模式按行拆分为多个码，可决定是否去掉每行首尾空白。">Single mode encodes the text exactly, including leading/trailing spaces. Batch mode splits by line and lets you trim each line.</div>
       <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin:0 0 8px;"><input type="checkbox" id="qrBatchTrim" checked style="width:auto;margin:0;"><span data-zh="批量模式去除每行首尾空白">Trim each line in batch mode</span></label>
       <div class="row">
@@ -751,6 +754,28 @@ document.addEventListener('DOMContentLoaded',function(){
 </div>
 <!-- /SEO 介绍区块 -->
 <script>
+(function(){
+  var NS="tools/it/qrcode.html", OPT='tb_qrq_remember', TEXT='tb_uxp_'+NS+'#textInput';
+  var cb=document.getElementById('qrRememberText'), ta=document.getElementById('textInput'), st=document.getElementById('qrPrivacyStatus');
+  function qrEn(){ return /(?:^|\?|&)lang=en/i.test(location.search) || !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()); }
+  function setStatus(msg){ if(st) st.textContent=msg||''; }
+  function saveText(){ try{ localStorage.setItem(TEXT, ta.value); }catch(e){} }
+  function dropText(){ try{ localStorage.removeItem(TEXT); }catch(e){} }
+  function syncPref(){ try{
+    if(cb&&cb.checked){ localStorage.setItem(OPT,'1'); saveText(); setStatus(qrEn()?'On: text is stored only in this browser; turn it off or use Clear to remove it.':'已开启：正文仅保存在本机；关闭或点击清除可删除。'); }
+    else { localStorage.removeItem(OPT); dropText(); setStatus(qrEn()?'Off: QR text is not saved in this browser.':'已关闭：不会在本机保存二维码正文。'); }
+  }catch(e){} }
+  try{
+    if(cb&&ta&&localStorage.getItem(OPT)==='1'){
+      cb.checked=true;
+      var v=localStorage.getItem(TEXT); if(v!==null) ta.value=v;
+      setStatus(qrEn()?'Saved text restored from this browser; clear it on shared devices.':'已恢复本机保存的正文；共用设备请及时清除。');
+    }else if(ta){ dropText(); if(cb) cb.checked=false; }
+  }catch(e){}
+  if(cb) cb.addEventListener('change', syncPref);
+  if(ta) ta.addEventListener('input', function(){ if(cb&&cb.checked) saveText(); });
+  window.qrForgetSaved=function(){ try{ localStorage.removeItem(OPT); dropText(); }catch(e){} if(cb) cb.checked=false; setStatus(qrEn()?'Saved text cleared; the current input was not changed.':'本机已保存正文已清除；当前输入框内容未改动。'); };
+})();
 (function(){try{
   var NS="tools/it/qrcode.html";
   function k(id){return 'tb_uxp_'+NS+'#'+id;}
@@ -760,7 +785,7 @@ document.addEventListener('DOMContentLoaded',function(){
     else{localStorage.setItem(k(el.id),el.value);}
   }catch(e){}}
   function restore(){try{
-    document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+    document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]):not([data-no-persist]),textarea:not([readonly]):not([disabled]):not([data-no-persist]),select').forEach(function(el){
       if(!el.id)return;
       var v=localStorage.getItem(k(el.id));if(v===null)return;
       try{
@@ -772,7 +797,7 @@ document.addEventListener('DOMContentLoaded',function(){
       }catch(e){}
     });
   }catch(e){}}
-  document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+  document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]):not([data-no-persist]),textarea:not([readonly]):not([disabled]):not([data-no-persist]),select').forEach(function(el){
     if(!el.id)return;
     el.addEventListener('input',function(){save(el);});
     el.addEventListener('change',function(){save(el);});

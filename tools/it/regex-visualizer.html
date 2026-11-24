@@ -224,16 +224,22 @@
   </div>
 </div>
 <script>
+function readRegexEscape(p, i){
+  // 返回转义序列的结束位置（不含）与原文。调用方已用 new RegExp 校验合法性。
+  const c=p[i+1];
+  if(c==='x' && /^[0-9a-fA-F]{2}$/.test(p.slice(i+2,i+4))) return {end:i+4,raw:p.slice(i,i+4)};
+  if(c==='u' && /^[0-9a-fA-F]{4}$/.test(p.slice(i+2,i+6))) return {end:i+6,raw:p.slice(i,i+6)};
+  if(c==='k' && p[i+2]==='<'){ const e=p.indexOf('>',i+3); if(e>i+3) return {end:e+1,raw:p.slice(i,e+1)}; }
+  if(c==='c' && i+2<p.length && /[A-Za-z]/.test(p[i+2])) return {end:i+3,raw:p.slice(i,i+3)};
+  if(c==='0'){ let j=i+2; while(j<p.length && j<i+4 && /[0-7]/.test(p[j])) j++; return {end:j,raw:p.slice(i,j)}; }
+  if(c>='1' && c<='9'){ let j=i+2; while(j<p.length && /\d/.test(p[j])) j++; return {end:j,raw:p.slice(i,j)}; }
+  return {end:i+2,raw:p.slice(i,i+2)};
+}
 function tokenize(p) {
   const tokens = [];
-  for (let i = 0; i < p.length; i++) {
-    const ch = p[i];
-    if (ch === '\\') {
-      tokens.push(p.slice(i, i + 2));
-      i += 1;
-    } else {
-      tokens.push(ch);
-    }
+  for (let i = 0; i < p.length; ) {
+    if (p[i] === '\\') { const e=readRegexEscape(p,i); tokens.push(e.raw); i=e.end; }
+    else { tokens.push(p[i]); i++; }
   }
   return tokens;
 }
@@ -305,9 +311,18 @@ function parseRegexAst(p){
       return {type:'class',label:'字符类',detail:raw+(raw.indexOf('[^')===0?'（取反）':''),children:[]};
     }
     if(c==='\\'){
-      const e=p.slice(i,i+2); i+=2;
-      const desc={d:'数字',D:'非数字',s:'空白',S:'非空白',w:'单词字符',W:'非单词字符',b:'单词边界',B:'非单词边界',n:'换行',t:'制表'}[e.charAt(1)]||'转义序列';
-      return {type:/^[bB]$/.test(e.charAt(1))?'anchor':'escape',label:e,detail:desc,children:[]};
+      const esc=readRegexEscape(p,i); i=esc.end;
+      const ch=esc.raw.charAt(1), rest=esc.raw.slice(2);
+      let desc={d:'数字',D:'非数字',s:'空白',S:'非空白',w:'单词字符',W:'非单词字符',b:'单词边界',B:'非单词边界',n:'换行',t:'制表',r:'回车',v:'垂直制表',f:'换页'}[ch];
+      if(!desc){
+        if(ch==='x') desc='十六进制字符转义';
+        else if(ch==='u') desc='Unicode 码点转义';
+        else if(ch==='k') desc='命名反向引用 '+rest;
+        else if(ch==='c') desc='控制字符转义';
+        else if(ch==='0'||/[1-9]/.test(ch)) desc='反向引用 / 八进制转义';
+        else desc='转义序列';
+      }
+      return {type:/^[bB]$/.test(ch)?'anchor':'escape',label:esc.raw,detail:desc,children:[]};
     }
     if(c==='^'||c==='$'){ i++; return {type:'anchor',label:c,detail:c==='^'?'行/串起始':'行/串结束',children:[]}; }
     if(c==='.'){ i++; return {type:'dot',label:'.',detail:'任意字符（换行除外）',children:[]}; }
@@ -352,7 +367,7 @@ function render() {
   const {tokens: tokenLabels} = buildStates(tokens);
   // IT-D28：语法树表达真实嵌套；线性词元顺序只做排列示意，不画伪状态转移。
   const ast = parseRegexAst(p);
-  let html = '<div class="state">' + (__en ? 'Syntax tree (AST):' : '语法树（AST）：') + '</div>' + renderAstTree(ast);
+  let html = '<div class="state">' + (__en ? 'Syntax tree (AST, parsed without the u flag):' : '语法树（AST，按无 u 标志解析）：') + '</div>' + renderAstTree(ast);
   html += '<div class="state" style="margin-top:12px;">' + (__en ? 'Linear token order (not a match-state graph):' : '线性词元顺序（非匹配状态图）：') + '</div>';
   html += tokenLabels.length ? tokenLabels.map(function(t,i){ return '<span class="state" style="display:inline-block;margin:2px 4px 2px 0;">' + (i+1) + '. ' + t + '</span>'; }).join('') : '<span style="color:var(--text-muted)">' + (__en?'No tokens.':'无 token。') + '</span>';
   html += '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">' + (__en ? 'This sequence does not encode branching or repetition. Use the AST and live match highlighting to judge matching behavior.' : '该顺序不表达分支与重复；判断匹配行为请以语法树与实时匹配高亮为准。') + '</div>';

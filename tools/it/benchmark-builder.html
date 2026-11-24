@@ -298,17 +298,25 @@
   </div>
 </div>
 <script>
-var running=false,stopFlag=false;
-function stopRun(){running=false;stopFlag=true;var b=document.getElementById('runBtn');if(b){b.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"▶ Start test":"▶ 开始测试");b.disabled=false;}}
+var running=false,runSeq=0,activeRun=0;
+function __benchEn(){return !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
+function stopRun(){
+  var wasRunning=running;
+  running=false;activeRun=0;
+  var b=document.getElementById('runBtn');if(b){b.textContent=(__benchEn()?"▶ Start test":"▶ 开始测试");b.disabled=false;}
+  if(wasRunning){document.getElementById('result').innerHTML='<p style="color:var(--warning)">'+(__benchEn()?'Test cancelled — no result recorded.':'测试已取消，未记录结果。')+'</p>';}
+}
 function run(){
   if(running)return;
-  running=true;stopFlag=false;
+  var id=++runSeq; activeRun=id; running=true;
   var type=document.getElementById('type').value;
   var duration=parseInt(document.getElementById('ms').value)||1000;
   var btn=document.getElementById('runBtn');
   btn.textContent='⏳ 测试中...';btn.disabled=true;
   var start=performance.now(),ops=0;
-  function finish(){
+  function finish(completed){
+    if(activeRun!==id) return;
+    activeRun=0;
     var elapsed=performance.now()-start;
     var rate=elapsed>0?Math.round(ops*1000/elapsed):0;
     document.getElementById('msOut').textContent=elapsed.toFixed(0)+' ms';
@@ -316,15 +324,16 @@ function run(){
     document.getElementById('rateOut').textContent=rate.toLocaleString()+' ops/s';
     var score=rate>1000000?'🚀 极快':rate>100000?'💪 很快':rate>10000?'👍 正常':rate>1000?'🐢 偏慢':'🪫 较慢（可能后台占用）';
     const __h0='<p>'+score+' · '+type+' 负载完成（'+elapsed.toFixed(0)+'ms / '+ops.toLocaleString()+' ops）</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
-    running=false;btn.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"▶ Start test":"▶ 开始测试");btn.disabled=false;
+    running=false;btn.textContent=(__benchEn()?"▶ Start test":"▶ 开始测试");btn.disabled=false;
+    if(!completed){document.getElementById('result').innerHTML='<p style="color:var(--warning)">'+(__benchEn()?'Test cancelled.':'已取消测试。')+'</p>';}
   }
   // IT-N454：旧实现在一个 setTimeout 回调里同步忙等整段时长，期间事件无法派发，
   // stopRun() 永远不会被调用 ⇒「停止」是死代码且 UI 冻结。改为每片最多 12ms 后让出主线程。
   function chunk(){
-    if(stopFlag){finish();return;}
+    if(activeRun!==id) return;
     var sliceStart=performance.now();
     try{
-      while(!stopFlag&&performance.now()-sliceStart<12&&performance.now()-start<duration){
+      while(activeRun===id&&performance.now()-sliceStart<12&&performance.now()-start<duration){
         switch(type){
           case 'int':{var s=0;for(var i=0;i<500;i++)s+=i*i;ops++;}break;
           case 'float':{var f=0;for(var j=0;j<500;j++)f+=Math.sin(j)*Math.cos(j)+Math.sqrt(j+1);ops++;}break;
@@ -334,7 +343,8 @@ function run(){
         }
       }
     }catch(e){}
-    if(stopFlag||performance.now()-start>=duration){finish();return;}
+    if(activeRun!==id) return;
+    if(performance.now()-start>=duration){finish(true);return;}
     setTimeout(chunk,0);
   }
   setTimeout(chunk,30);
