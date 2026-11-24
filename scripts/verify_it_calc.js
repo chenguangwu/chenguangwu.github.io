@@ -8443,9 +8443,36 @@ const CASES = [
       "tokenOut": "abc123测试"
     },
     "expect": [
-      "abc123测试\nabc123测试\n✅ 已生成 Basic 认证信息（令牌 36 字符） 含非 ASCII 字符时凭据按 UTF-8 编码，服务端须按 UTF-8 解码（RFC 7617 charset 参数）。\nAuthorization: Basic YWJjMTIz5rWL6K+VOmFiYzEyM+a1i+ivlQ==\nhttps://abc123%E6"
+      "abc123测试\nabc123测试\n✅ 已生成 Basic 认证信息（令牌 36 字符） 含非 ASCII 字符时凭据按 UTF-8 编码，服务端须按 UTF-8 解码（RFC 7617 charset 参数）。\nAuthorization: Basic YWJjMTIz5rWL6K+VOmFiYzEyM+a1i+ivlQ==\nYWJjMTIz5rWL6K+VOmFiYzEyM+a1i+ivlQ=="
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"f_user\":\"abc123测试\",\"f_pass\":\"abc123测试\",\"headerOut\":\"abc123测试\",\"urlOut\":\"abc123测试\",\"tokenOut\":\"abc123测试\"}，输出区含成功行 + IT-N209 charset 提示 + Authorization/URL；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。第226批 N209 新增 charset 提示后同批同步本 expect。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"f_user\":\"abc123测试\",\"f_pass\":\"abc123测试\",\"headerOut\":\"abc123测试\",\"urlOut\":\"abc123测试\",\"tokenOut\":\"abc123测试\"}，输出区含成功行 + IT-N209 charset 提示 + Authorization/token；第769批 URL 示例默认关闭，故不再出现 URL。默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/basic-auth-generator",
+    "inputs": { "f_user": "a\tb", "f_pass": "p" },
+    "expect": ["用户名或密码不能包含控制字符（如制表符、换行、删除字符）。"],
+    "ref": "第769批：用户名含制表符必须拒绝并提示，不得 Base64 生成含控制字符的无效凭证（RFC 7617/7230）；旧实现只查空值与冒号。"
+  },
+  {
+    "slug": "it/basic-auth-generator",
+    "inputs": { "f_user": "u", "f_pass": "p" },
+    "clicks": ["document.getElementById('result').textContent='URL=['+document.getElementById('urlOut').value+']'"],
+    "expect": ["URL=[]"],
+    "ref": "第769批：URL 示例默认关闭（避免凭据默认进入屏幕/历史/日志），未勾选时 urlOut 必须为空；旧实现默认生成 https://u:p@example.com/。"
+  },
+  {
+    "slug": "it/basic-auth-generator",
+    "inputs": { "f_user": "u", "f_pass": "p" },
+    "clicks": ["document.getElementById('f_showUrl').checked=true;generate();document.getElementById('result').textContent='URL=['+document.getElementById('urlOut').value+']'"],
+    "expect": ["URL=[https://u:p@example.com/]"],
+    "ref": "第769批：显式勾选后才生成固定 example.com 的示例 URL，功能保留但默认不暴露；旧实现无开关、始终输出。"
+  },
+  {
+    "slug": "it/basic-auth-generator",
+    "inputs": { "f_user": "", "f_pass": "" },
+    "clicks": ["var m='';var o=ToolBox.showToast;ToolBox.showToast=function(s){m=String(s)};copyField('headerOut');ToolBox.showToast=o;document.getElementById('result').textContent='TOAST='+m"],
+    "expect": ["TOAST=请先生成凭证后再复制"],
+    "ref": "第769批：未生成凭证时点击复制必须给出明确中英文提示；旧实现调用无参 i18nText() 得到空串，showToast 直接跳过，用户无反馈。"
   },
   {
     "slug": "it/bcrypt",
@@ -8461,7 +8488,50 @@ const CASES = [
   },
   {
     "slug": "it/baudot-code",
+    "inputs": { "input": "000012", "format": "binary", "output": "OLD-BAUDOT" },
+    "clicks": ["dec()"],
+    "expect": ["存在非法码组，未生成任何不完整结果：", "000012"],
+    "ref": "第769批：二进制码组必须严格 5 位 0/1；旧实现 parseInt('000012',2)=1 静默截断成合法码。点击 dec 后必须报错并清空旧输出。"
+  },
+  {
+    "slug": "it/baudot-code",
+    "inputs": { "input": "1G", "format": "hex", "output": "OLD-BAUDOT" },
+    "clicks": ["dec()"],
+    "expect": ["必须为 1–2 位十六进制数字", "1G"],
+    "ref": "第769批：十六进制只接受 1–2 位 hex；旧实现 parseInt('1G',16)=1 解析出前半段，跳过非法字符继续出结果。"
+  },
+  {
+    "slug": "it/baudot-code",
+    "inputs": { "input": "32", "format": "decimal", "output": "OLD-BAUDOT" },
+    "clicks": ["dec()"],
+    "expect": ["超出 0–31 范围", "32"],
+    "ref": "第769批：十进制必须限制 0–31；旧实现越界码直接 continue 跳过，导致后续换档状态错位且用户无提示。"
+  },
+  {
+    "slug": "it/baudot-code",
+    "inputs": { "input": "11011 00110", "format": "binary" },
+    "clicks": ["dec()"],
+    "expect": ["8"],
+    "ref": "第769批回归：合法二进制码组 11011(FIGS)+00110(8) 必须正常解码为 8，严格校验不得误伤合法输入。"
+  },
+  {
+    "slug": "it/baudot-code",
+    "inputs": { "input": "\u00dfA", "format": "binary" },
+    "clicks": ["enc()"],
+    "expect": ["ß (U+00DF)", "00011"],
+    "ref": "第769批：仅 ASCII 小写字母转大写；ß 不再被 Unicode toUpperCase 展开为 SS 混入编码，而是明确列入不支持清单，A 仍编码为 00011。"
+  },
+  {
+    "slug": "it/baudot-code",
+    "inputs": { "input": "ab", "format": "binary" },
+    "clicks": ["enc()"],
+    "expect": ["00011 11001"],
+    "ref": "第769批回归：ASCII 小写 ab 仍须转大写后编码为 A=00011、B=11001，逐字符 ASCII 大写化不得影响合法小写输入。"
+  },
+  {
+    "slug": "it/baudot-code",
     "inputs": { "input": "8", "format": "binary" },
+    "clicks": ["enc()"],
     "expect": ["11011 00110"],
     "ref": "IT-N334：ITA2 FIGS code 6 = 8。旧表缺 key 6，编码时未命中即静默丢弃，输入 8 输出空串；修复后先发 FIGS 切换(27=11011)再发 8(6=00110)。输入原文只有单字符 8，该串只在输出出现，非回显。"
   },
@@ -8472,10 +8542,11 @@ const CASES = [
       "output": "1\n2\n3",
       "format": "decimal"
     },
+    "clicks": ["dec();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='DEC=['+document.getElementById('output').value.replace(/\s+/g,' ')+']'"],
     "expect": [
-      "TRS LTRS\n1 2 3\ndecimal\nE A"
+      "DEC=[E A]"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"format\":\"decimal\"}，输出区含「TRS LTRS\n1 2 3\ndecimal\nE A」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第769批：十进制 1/2/3 解码为 E、换行、A；点击 dec 后以探针读取输出值并归一空白，断言严格校验未误伤合法十进制序列。旧 expect 依赖整页静态文本顺序，现改为只锚产物值。"
   },
   {
     "slug": "it/bayes-theorem",
