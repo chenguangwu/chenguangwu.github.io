@@ -15229,6 +15229,47 @@ const CASES = [
     clicks: ["gen();document.getElementById('__tbProbe').textContent='PORT '+(document.getElementById('portList').children.length===0?'EMPTY OK':'BAD');"],
     expect: ["PORT EMPTY OK"],
     ref: "第734批：数量 0 不再被 `||5` 静默改成 5；失败时清空列表并提示范围。"
+  },
+  {
+    slug: "it/timestamp-converter",
+    inputs: { dateInput: "2024-02-31" },
+    clicks: ["fromDate()"],
+    expect: ["日期无效", "2024-02-31"],
+    ref: "第735批：2 月 31 日不存在，旧实现交给 Date 后归一成 3 月 2 日；现严格核对年月日并清除秒/毫秒框。默认日期合法 ⇒ 不命中。"
+  },
+  {
+    slug: "it/timestamp-converter",
+    inputs: { smartInput: "946684800", smartUnit: "ms" },
+    clicks: ["smartConvert()"],
+    expect: ["识别为毫秒时间戳（9 位）", "2000-01-01T00:00:00.000Z"],
+    ref: "第735批：9 位整数自动判断会当秒（1999-12-31），显式选择毫秒后必须按 946684800ms 得到 2000-01-01。默认自动 ⇒ 不命中。"
+  },
+  {
+    slug: "it/timestamp-converter",
+    clicks: ["localStorage.removeItem('timestamp_converter_history');addToHistory(1700000000123);addToHistory(1700000000456);var h=JSON.parse(localStorage.getItem('timestamp_converter_history'));document.getElementById('__tbProbe').textContent='HIST '+h.length+' '+h[0].tsMs;"],
+    expect: ["HIST 2 1700000000456"],
+    ref: "第735批：同一秒内不同毫秒必须分别入历史并保留毫秒；旧实现 Math.floor 秒后去重，两条变一条且恢复成整秒。"
+  },
+  {
+    slug: "it/time-format-converter",
+    inputs: { inTime: "2024-02-31" },
+    clicks: ["convertTime()"],
+    expect: ["无法解析时间"],
+    ref: "第735批：2024-02-31 不再被 Date 归一为 3 月日期，严格核对日历日期后拒绝。默认 1700000000 合法 ⇒ 不命中。"
+  },
+  {
+    slug: "it/time-format-converter",
+    inputs: { inTime: "0099-01-01" },
+    clicks: ["convertTime()"],
+    expect: ["0099-01-01 00:00:00"],
+    ref: "第735批：0–99 年必须用 setFullYear 构造，避免 Date 把 99 当 1999；显示年份补齐四位。默认 1970 前不命中。"
+  },
+  {
+    slug: "it/date-duration",
+    inputs: { d1: "2026-10-01", d2: "2026-10-11", inc: "excl", weekendMode: "sat-sun", holidays: "2026-10-01,2026-10-02", makeup: "2026-10-10" },
+    clicks: ["calcTool()"],
+    expect: ["6 工作日"],
+    ref: "第735批：10 个自然日中先排除周末（7 个工作日），再扣 10-01/10-02 两个假日、补 10-10 周六调休 ⇒ 6。旧页面没有工作日功能。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

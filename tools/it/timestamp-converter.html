@@ -166,6 +166,13 @@
       <div class="input-row">
         <input type="text" id="smartInput" placeholder="粘贴任意时间戳或日期，如 1735660800 / 1735660800000 / 2024-01-01" oninput="smartConvert()" aria-label="智能识别输入">
         <button type="button" class="btn primary" onclick="smartConvert()">识别</button>
+        <select id="smartUnit" aria-label="时间戳单位" onchange="smartConvert()">
+          <option value="auto">自动判断单位</option>
+          <option value="sec">按秒</option>
+          <option value="ms">按毫秒</option>
+          <option value="us">按微秒</option>
+          <option value="ns">按纳秒</option>
+        </select>
       </div>
       <div id="smartHint" style="margin-top:6px;"></div>
 
@@ -440,22 +447,22 @@ function formatDateTime(date) {
   return `${date.getFullYear()}-${padZero(date.getMonth() + 1)}-${padZero(date.getDate())} ${padZero(date.getHours())}:${padZero(date.getMinutes())}:${padZero(date.getSeconds())}`;
 }
 
+function makeLocalDate(y,m,d,h,mi,sec){
+  if(![y,m,d,h,mi,sec].every(Number.isInteger)) return null;
+  if(m<1||m>12||d<1||d>31||h<0||h>23||mi<0||mi>59||sec<0||sec>59) return null;
+  var dt=new Date(0);
+  dt.setFullYear(y,m-1,d); dt.setHours(h,mi,sec,0);
+  if(dt.getFullYear()!==y||dt.getMonth()!==m-1||dt.getDate()!==d||dt.getHours()!==h||dt.getMinutes()!==mi||dt.getSeconds()!==sec) return null;
+  return dt;
+}
 function parseDate(str) {
   if (!str) return null;
   str = str.trim();
-  
-  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(str)) {
-    return new Date(str + 'T00:00:00');
+  var dm=/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/.exec(str);
+  if(dm){
+    var hasTime=dm[4]!==undefined;
+    return makeLocalDate(+dm[1],+dm[2],+dm[3],hasTime?+dm[4]:0,hasTime?+dm[5]:0,hasTime?(dm[6]?+dm[6]:0):0);
   }
-  
-  if (/^\d{4}-\d{1,2}-\d{1,2}[ T]\d{1,2}:\d{1,2}$/.test(str)) {
-    return new Date(str.replace(' ', 'T') + ':00');
-  }
-  
-  if (/^\d{4}-\d{1,2}-\d{1,2}[ T]\d{1,2}:\d{1,2}:\d{1,2}$/.test(str)) {
-    return new Date(str.replace(' ', 'T'));
-  }
-  
   const parsed = new Date(str);
   return isNaN(parsed.getTime()) ? null : parsed;
 }
@@ -485,19 +492,27 @@ function fromTimestamp(type) {
   document.getElementById('dateInput').value = formatDateTime(date);
   
   renderResults(date, ts);
-  addToHistory(ts);
+  addToHistory(date.getTime());
 }
 
 function fromDate() {
   const date = parseDate(document.getElementById('dateInput').value);
-  if (!date) return;
+  if (!date) {
+    var en = !!(window.I18n && window.I18n.get && window.I18n.get() === 'en-US');
+    document.getElementById('convertResults').innerHTML = '<p style="color:var(--danger)">' +
+      (en ? 'Invalid date: check month/day and time ranges (e.g. 2024-02-31 does not exist)' : '日期无效：请检查年月日与时间范围（如 2024-02-31 并不存在）') + '</p>';
+    document.getElementById('timezoneGrid').innerHTML = '';
+    document.getElementById('timestampSec').value = '';
+    document.getElementById('timestampMs').value = '';
+    return;
+  }
   
   const ts = date.getTime() / 1000;
   document.getElementById('timestampSec').value = Math.floor(ts);
   document.getElementById('timestampMs').value = date.getTime();
   
   renderResults(date, ts);
-  addToHistory(ts);
+  addToHistory(date.getTime());
 }
 
 function renderResults(date, tsSec) {
@@ -560,14 +575,23 @@ function smartConvert() {
     // 按位数判定单位（不能只用 n >= 1e12：2001-09-09 之前的毫秒戳只有 12 位，会被误判为秒）。
     // 用 BigInt 分档换算，避免 15–19 位数字先被 Number 截断再切分。
     const big = BigInt(tm[1] + tm[2]);
-    let unit, ms;
-    if (digits <= 10) { unit = '秒'; ms = Number(big * 1000n); }
-    else if (digits <= 13) { unit = '毫秒'; ms = Number(big); }
-    else if (digits <= 16) { unit = '微秒'; ms = Number(big / 1000n); }
-    else if (digits <= 19) { unit = '纳秒'; ms = Number(big / 1000000n); }
-    else {
-      hint.innerHTML = '<span style="color:var(--danger);">❌ 位数过多（' + digits + ' 位）：最多支持 19 位纳秒时间戳</span>';
-      return;
+    var selectedUnit=document.getElementById('smartUnit').value;
+    let unit, ms, auto=(selectedUnit==='auto');
+    if(auto){
+      if (digits <= 10) { unit = '秒'; ms = Number(big * 1000n); }
+      else if (digits <= 13) { unit = '毫秒'; ms = Number(big); }
+      else if (digits <= 16) { unit = '微秒'; ms = Number(big / 1000n); }
+      else if (digits <= 19) { unit = '纳秒'; ms = Number(big / 1000000n); }
+      else {
+        hint.innerHTML = '<span style="color:var(--danger);">❌ 位数过多（' + digits + ' 位）：最多支持 19 位纳秒时间戳</span>';
+        return;
+      }
+    }else{
+      if(digits>19){hint.innerHTML='<span style="color:var(--danger);">❌ 位数过多（'+digits+' 位）：显式单位也最多支持 19 位</span>';return;}
+      if(selectedUnit==='sec'){unit='秒';ms=Number(big*1000n);}
+      else if(selectedUnit==='ms'){unit='毫秒';ms=Number(big);}
+      else if(selectedUnit==='us'){unit='微秒';ms=Number(big/1000n);}
+      else {unit='纳秒';ms=Number(big/1000000n);}
     }
     const date = new Date(ms);
     if (isNaN(date.getTime())) {
@@ -579,8 +603,8 @@ function smartConvert() {
     document.getElementById('dateInput').value = formatDateTime(date);
     const ts = date.getTime() / 1000;
     renderResults(date, ts);
-    addToHistory(ts);
-    hint.innerHTML = '✅ 识别为' + unit + '时间戳（' + digits + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" digits) → synced seconds, milliseconds and datetime":" 位）→ 已同步填充秒、毫秒与日期时间");
+    addToHistory(date.getTime());
+    hint.innerHTML = '✅ 识别为' + unit + '时间戳（' + digits + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" digits) → synced seconds, milliseconds and datetime":" 位）→ 已同步填充秒、毫秒与日期时间") + (auto?'；单位由位数自动推断，若该整数另有含义请在上方选择明确单位。':'');
     return;
   }
 
@@ -721,12 +745,13 @@ function calculateDiff() {
   `;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('calcResult2').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('calcResult2').innerHTML=__h4;
 }
 
-function addToHistory(tsSec) {
+function addToHistory(tsMs) {
   try {
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    const ts = Math.floor(tsSec);
-    if (history.length > 0 && history[0].ts === ts) return;
-    history.unshift({ ts: ts, time: Date.now() });
+    const ms = Math.round(tsMs);
+    const latest = history.length ? (Number.isFinite(history[0].tsMs) ? history[0].tsMs : history[0].ts * 1000) : null;
+    if (latest !== null && latest === ms) return;
+    history.unshift({ tsMs: ms, time: Date.now() });
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY)));
   } catch(e) {}
 }
@@ -740,12 +765,13 @@ function renderHistory() {
       return;
     }
     const __h6=history.map(item => {
-      const date = new Date(item.ts * 1000);
+      const ms = Number.isFinite(item.tsMs) ? item.tsMs : item.ts * 1000;
+      const date = new Date(ms);
       return `
         <div class="history-item">
-          <span class="time-val">${item.ts}</span>
+          <span class="time-val">${ms}</span>
           <span class="time-label">${formatDateTime(date)}</span>
-          <button type="button" class="btn" style="padding:4px 8px;font-size:11px;" onclick="loadFromHistory(${item.ts})">加载</button>
+          <button type="button" class="btn" style="padding:4px 8px;font-size:11px;" onclick="loadFromHistory(${ms})">加载</button>
         </div>
       `;
     }).join('');if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h6;
@@ -754,9 +780,9 @@ function renderHistory() {
   }
 }
 
-function loadFromHistory(ts) {
-  document.getElementById('timestampSec').value = ts;
-  fromTimestamp('sec');
+function loadFromHistory(ms) {
+  document.getElementById('timestampMs').value = ms;
+  fromTimestamp('ms');
   switchTabWithIndex('convert');
 }
 
