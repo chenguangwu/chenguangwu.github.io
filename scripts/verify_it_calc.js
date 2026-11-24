@@ -9219,15 +9219,51 @@ const CASES = [
   },
   {
     "slug": "it/css-minifier",
-    "inputs": {
-      "input": "1\n2\n3",
-      "indentSize": "4"
-    },
-    "expect": [
-      ": 16px; }\n4\n1 2 3\n5\n5\n0.0%",
-      ": 16px; }\n1 2 3\n5\n5\n0.0%\n4"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indentSize\":\"4\"}，输出区含「: 16px; }\n4\n1 2 3\n5\n5\n0.0%」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "inputs": { "input": "a{width:0%;margin:0px}" },
+    "clicks": ["minify()"],
+    "dumpIds": ["output"],
+    "expect": ["a{width:0%;margin:0}"],
+    "ref": "IT-774 零值单位：百分比宽度 0% 不得被吞成 0（旧实现 :0(px|em|rem|%|pt) 命中 0%）；0px 可安全压成 0。默认示例不含该串。"
+  },
+  {
+    "slug": "it/css-minifier",
+    "inputs": { "input": ".nav :hover{color:red}" },
+    "clicks": ["minify()"],
+    "dumpIds": ["output"],
+    "expect": [".nav :hover{"],
+    "ref": "IT-774 后代伪类：选择器 .nav 与 :hover 之间的后代空格必须保留；旧实现全局 \s*([{}:;,])\s* 会删成 .nav:hover，语义变为「本身悬停」。"
+  },
+  {
+    "slug": "it/css-minifier",
+    "inputs": { "input": "#ffffff{color:#ff0000}" },
+    "clicks": ["minify()"],
+    "dumpIds": ["output"],
+    "expect": ["#ffffff{color:#f00}"],
+    "ref": "IT-774 颜色上下文：选择器 #ffffff 不得缩写；仅声明值 #ff0000 缩为 #f00。旧实现全局缩色会把选择器改成 #fff。"
+  },
+  {
+    "slug": "it/css-minifier",
+    "inputs": { "input": "a{color:#ffffff00}" },
+    "clicks": ["minify()"],
+    "dumpIds": ["output"],
+    "expect": ["color:#fff0"],
+    "ref": "IT-774 8 位透明色：仅当四组通道两两相同才缩为 4 位 #fff0；旧实现固定 6 位规则产出无效 #fff00。"
+  },
+  {
+    "slug": "it/css-minifier",
+    "inputs": { "input": "中文字a{}" },
+    "clicks": ["minify()"],
+    "dumpIds": ["origSize"],
+    "expect": ["12"],
+    "ref": "IT-774 字节统计：中文字a{} 的 UTF-8 字节为 3×3+1+2=12；旧实现 input.length=6 按 UTF-16 码元计。默认示例字节数不同。"
+  },
+  {
+    "slug": "it/css-minifier",
+    "inputs": { "input": "a{color:red}" },
+    "clicks": ["document.getElementById('indentSize').value='2';__cssApplyOptions({removeComments:false,removeEmpty:true,indentSize:'tab'});beautify();"],
+    "dumpIds": ["output", "indentSize"],
+    "expect": ["a {"],
+    "ref": "IT-774 历史选项：恢复历史必须还原当时 indentSize=tab 并按原操作重算；旧记录不存选项，恢复后沿用当前缩进。此处注入历史选项对象并断言缩进选择器已改为 tab、按美化重算。"
   },
   {
     "slug": "it/css-minify",
