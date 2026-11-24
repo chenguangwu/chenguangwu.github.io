@@ -160,6 +160,14 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "nephrology/jixingshensunshang-kdigo-fenqi",
+  "inputs": {
+    "baseline": "", "current": "", "weight": "", "hours": "-1", "rrt": "yes"
+  },
+  "expect": ["AKI 3 期", "已开始肾脏替代治疗"],
+  "ref": "auto-restore"
+},
+{
   "slug": "nephrology/manager-1",
   "inputs": {
     "patientAge": "83"
