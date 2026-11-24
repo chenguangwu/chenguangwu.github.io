@@ -2654,8 +2654,8 @@ const CASES = [
   {
     slug: "it/email-normalizer",
     inputs: { input: "A.B+tag@Google.com" },
-    expect: ["a.b+tag@google.com"],
-    ref: "小写化后输出（保留标签部分、未去点）；默认示例地址不同形，不命中。",
+    expect: ["A.B+tag@google.com"],
+    ref: "第734批：默认保留本地名原始大小写，仅域名转小写；旧实现整串 toLowerCase 得到 a.b+tag@google.com，可能改变非 Gmail 域收件地址。",
   },
   {
     slug: "it/protobuf-parser",
@@ -8321,7 +8321,7 @@ const CASES = [
     },
     "expect": [
       "abc123测试\nOR\nabc123测试",
-      "OR\nabc123测试\nabc123测试\n请输入有效的数值（支持 255 / 0xff / 0b1111）"
+      "OR\nabc123测试\nabc123测试\n请输入完整合法的数值（支持 255 / 0xff / 0b1111 / 0o17"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"abc123测试\",\"b\":\"abc123测试\",\"op\":\"OR\"}，输出区含「abc123测试\nOR\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
@@ -11308,7 +11308,7 @@ const CASES = [
       "batchTo": "2"
     },
     "expect": [
-      " 36进制 复制\n42\n1 2 3\n1 无效 无效\n2\n2"
+      "36进制 复制\n42\n1 无效 无效"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputValue\":\"abc123测试\",\"customBase\":\"42\",\"batchInput\":\"1\\n2\\n3\",\"batchOutput\":\"1\\n2\\n3\",\"inputBase\":\"8\",\"batchFrom\":\"2\",\"batchTo\":\"2\"}，输出区含「 36进制 复制\n42\n1 2 3\n1 无效 无效\n2\n2」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -15161,6 +15161,74 @@ const CASES = [
     clicks: ["document.getElementById('url').value='';generate();document.getElementById('__tbProbe').textContent='SL0 '+(__lastShortLinks.length===0?'OK':'BAD');"],
     expect: ["SL0 OK"],
     ref: "第733批：空 URL 生成失败后候选列表必须清空，复制不应包含错误提示。"
+  },
+  {
+    slug: "it/email-normalizer",
+    inputs: { input: "User@Example.COM" },
+    clicks: ["normalize()"],
+    expect: ["User@example.com"],
+    ref: "第734批：默认只把域名转小写、保留本地名原始大小写；旧实现整串 toLowerCase 得到 user@example.com。默认小写示例不命中。"
+  },
+  {
+    slug: "it/email-normalizer",
+    inputs: { input: "John.Doe+news@Gmail.com" },
+    clicks: ["document.getElementById('opt_gmail').checked=true;normalize()"],
+    expect: ["johndoe@gmail.com"],
+    ref: "第734批：Gmail 精确域名开启专项规则时才归一本地名（去点号与 + 标签）并转小写；非 Gmail 域不套用。默认示例不是 Gmail 域 ⇒ 不命中。"
+  },
+  {
+    slug: "it/roman-numeral-converter",
+    inputs: { number: "1.9", dir: "to" },
+    clicks: ["calcTool()"],
+    expect: ["不可为小数或空值"],
+    ref: "第734批：数字转罗马先校验有限整数；旧的 Math.floor 会把 1.9 静默变成 I。默认 1984 合法 ⇒ 不命中。"
+  },
+  {
+    slug: "it/roman-numeral-converter",
+    inputs: { number: "3999", dir: "to" },
+    clicks: ["calcTool()"],
+    expect: ["3999 = MMMCMXCIX"],
+    ref: "第734批护栏：合法上界 3999 仍正常输出 MMMCMXCIX。"
+  },
+  {
+    slug: "it/number-base-converter",
+    clicks: ["document.getElementById('batchOutput').value='OLD';document.getElementById('batchInput').value='';doBatchConvert();document.getElementById('__tbProbe').textContent='BASE '+((document.getElementById('batchOutput').value==='')?'CLEAR OK':'BAD');"],
+    expect: ["BASE CLEAR OK"],
+    ref: "第734批：批量输入为空时必须清除旧结果，复制/下载取不到过期值；旧实现只弹提示并保留 OLD。"
+  },
+  {
+    slug: "it/number-base-converter",
+    clicks: ["document.getElementById('batchInput').value='10';document.getElementById('batchFrom').value='10';document.getElementById('batchTo').value='16';doBatchConvert();document.getElementById('__tbProbe').textContent='BASE '+document.getElementById('batchOutput').value;"],
+    expect: ["BASE A"],
+    ref: "第734批护栏：合法批量 10→16 仍输出 A。"
+  },
+  {
+    slug: "it/bitwise-calculator",
+    inputs: { a: "0b102", b: "1", op: "AND" },
+    clicks: ["calc()"],
+    expect: ["请输入完整合法的数值"],
+    ref: "第734批：二进制字面量必须完整匹配 0/1，0b102 不再被 parseInt 静默截为 0b10。默认 0 ⇒ 不命中。"
+  },
+  {
+    slug: "it/bitwise-calculator",
+    inputs: { a: "0xff", b: "0", op: "AND" },
+    clicks: ["calc()"],
+    expect: ["结果： 0 = 0x0 = 0b0"],
+    ref: "第734批护栏：完整合法的 0xff 仍按 255 参与运算。"
+  },
+  {
+    slug: "it/random-port-generator",
+    inputs: { count: "2.9" },
+    clicks: ["gen();document.getElementById('__tbProbe').textContent='PORT '+(document.getElementById('portList').children.length===0?'EMPTY OK':'BAD');"],
+    expect: ["PORT EMPTY OK"],
+    ref: "第734批：生成数量必须是 1–20 的整数，2.9 不再被 parseInt 截成 2；失败时清空列表。默认 5 ⇒ 不命中。"
+  },
+  {
+    slug: "it/random-port-generator",
+    inputs: { count: "0" },
+    clicks: ["gen();document.getElementById('__tbProbe').textContent='PORT '+(document.getElementById('portList').children.length===0?'EMPTY OK':'BAD');"],
+    expect: ["PORT EMPTY OK"],
+    ref: "第734批：数量 0 不再被 `||5` 静默改成 5；失败时清空列表并提示范围。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
