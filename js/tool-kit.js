@@ -1136,8 +1136,36 @@
    * coalesceMs > 0 时，若上一条记录在 coalesceMs 毫秒内，则覆盖它而不是新增一条
    * ——多输入表单每改一个控件就重算一次，不合并会把一次评估拆成 N 条垃圾记录。
    */
+  // 历史快照的空字段：页面 Snap() 只写入非空值，恢复时若只遍历 record 的键，
+  // 旧记录中原本为空的字段不会被清空，后来输入会污染恢复结果（2026-11-24 扫描 3043 页）。
+  // 在写入时记录本页所有空控件 id，恢复前统一清空；字段列表存 __tbEmpty，不参与展示/对比。
+  function _tbBlankFields(ids) {
+    for (var i = 0; i < ids.length; i++) {
+      var e = document.getElementById(ids[i]);
+      if (!e) continue;
+      var t = (e.type || '').toLowerCase();
+      if (t === 'checkbox' || t === 'radio') e.checked = false;
+      else e.value = '';
+    }
+  }
+  function _tbEmptyFieldIds() {
+    var out = [];
+    try {
+      var els = document.querySelectorAll('input[id],select[id],textarea[id]');
+      for (var i = 0; i < els.length; i++) {
+        var e = els[i], t = (e.type || '').toLowerCase();
+        if (t === 'button' || t === 'submit' || t === 'hidden' || e.disabled) continue;
+        if ((t === 'checkbox' || t === 'radio') && !e.checked) out.push(e.id);
+        else if (t !== 'checkbox' && t !== 'radio' && e.value.trim() === '') out.push(e.id);
+      }
+    } catch (e2) {}
+    return out;
+  }
   history.record = function (obj, coalesceMs) {
     if (!obj) return;
+    try {
+      obj.__tbEmpty = _tbEmptyFieldIds();
+    } catch (e0) {}
     try {
       var arr = history.list();
       if (coalesceMs && arr.length && (Date.now() - (arr[0].t || 0)) < coalesceMs) {
@@ -1181,6 +1209,7 @@
     if (i1 < 0) return null;
     var cur = a[i0].d, prev = a[i1].d, out = {};
     (fields || Object.keys(cur)).forEach(function (f) {
+      if (f.indexOf('__') === 0) return;
       if (typeof cur[f] === 'undefined' || typeof prev[f] === 'undefined') return;
       if (num(prev[f]) === num(cur[f])) return;
       out[f] = { from: num(prev[f]), to: num(cur[f]), delta: num(cur[f]) - num(prev[f]) };
@@ -1224,11 +1253,32 @@
         // 对象字段（如把配置表整体存档）String() 后是 "[object Object]"，只保留数据供恢复、不参与展示。
         if (v == null || (typeof v === 'number' && !isFinite(v))) continue;
         if (typeof v === 'object' || typeof v === 'function') continue;
+        if (k.indexOf('__') === 0) continue;
         parts.push(k + ' ' + (typeof v === 'number' ? fmt(v) : v));
       }
       body.textContent = parts.join(' · ');
       btn.appendChild(when); btn.appendChild(body);
-      btn.addEventListener('click', function () { if (typeof onPick === 'function') { try { onPick(it.d); } catch (e) {} } });
+      btn.addEventListener('click', function () {
+        var d = it.d || {};
+        if (Array.isArray(d.__tbEmpty)) {
+          _tbBlankFields(d.__tbEmpty);
+        } else {
+          // 旧记录没有空字段清单：只能清空本页所有可编辑控件，避免旧空值被当前输入污染。
+          // 这是兼容路径，恢复时明确提示用户。
+          try {
+            var all = document.querySelectorAll('input[id],select[id],textarea[id]');
+            var ids = [];
+            for (var ai = 0; ai < all.length; ai++) {
+              var ae = all[ai], at = (ae.type || '').toLowerCase();
+              if (at === 'button' || at === 'submit' || at === 'hidden' || ae.disabled || at === 'search') continue;
+              ids.push(ae.id);
+            }
+            _tbBlankFields(ids);
+            if (window.ToolBox && ToolBox.showToast) ToolBox.showToast(isEn() ? 'Older record has no empty-field snapshot; page inputs were cleared before restore' : '该历史记录版本较旧，恢复前已清空本页输入', 'info');
+          } catch (e3) {}
+        }
+        if (typeof onPick === 'function') { try { onPick(d); } catch (e) {} }
+      });
       li.appendChild(btn);
       ul.appendChild(li);
     });
