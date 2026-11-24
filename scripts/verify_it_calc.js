@@ -14606,6 +14606,24 @@ const CASES = [
   },
   {
     slug: "it/md5",
+    clicks: ["var h=md5Bytes(new Uint8Array(65).fill(97));document.getElementById('__tbProbe').textContent='MD5B '+h;"],
+    expect: ["MD5B c743a45e0d2e6a95cb859adae0248435"],
+    ref: "第785批：65 字节 'a' 的 MD5 = c743a45e…（Python hashlib 参考），同时覆盖完整块与尾部填充；md5Bytes 改为增量上下文，长度高 32 位按 n/2^29 编码，512 MiB 以上不再丢高位。",
+  },
+  {
+    slug: "it/md5",
+    clicks: ["var h=md5('\ud800');document.getElementById('__tbProbe').textContent='MD5S '+h;"],
+    expect: ["MD5S 9b759040321a408a5c7768b4511287a6"],
+    ref: "第785批：孤立 UTF-16 代理码元按 WHATWG 规则替换为 U+FFFD 后按 UTF-8 计算；Python md5('\ufffd'.encode()) = 9b759040…。旧实现 encodeURIComponent 抛 URIError，文本摘要停留在旧值。",
+  },
+  {
+    slug: "it/md5",
+    clicks: ["__md5FileRaw='abc';var u=document.getElementById('uppercase');u.checked=false;refreshFileCase();var lo=document.getElementById('fileHash').textContent;u.checked=true;refreshFileCase();var up=document.getElementById('fileHash').textContent;document.getElementById('__tbProbe').textContent='MD5CASE '+((lo==='abc'&&up==='ABC')?'OK':'BAD '+lo+'/'+up);"],
+    expect: ["MD5CASE OK"],
+    ref: "第785批：文件摘要大小写切换直接复用已计算的原始摘要，无需重新读取文件；旧实现只重算文本/HMAC，文件结果保持旧大小写。",
+  },
+  {
+    slug: "it/md5",
     inputs: { textInput: "中文" },
     checkIds: ["uppercase"],
     clicks: ["calcText()"],
