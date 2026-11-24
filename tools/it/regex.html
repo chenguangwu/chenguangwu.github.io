@@ -176,7 +176,7 @@
     <label>正则表达式</label>
     <div class="input-row" style="align-items:center;">
       <span style="font-family:monospace;color:var(--text-muted);">/</span>
-      <input type="text" id="pattern" value="\\d+" placeholder="输入正则表达式" oninput="onPatternChange()" aria-label="输入正则表达式">
+      <input type="text" id="pattern" value="\d+" placeholder="输入正则表达式" oninput="onPatternChange()" aria-label="输入正则表达式">
       <span style="font-family:monospace;color:var(--text-muted);">/</span>
       <input type="text" id="flags" value="g" placeholder="flags" style="max-width:80px;" oninput="onFlagsChange()" aria-label="flags">
     </div>
@@ -222,7 +222,12 @@ IP: 192.168.1.1, 10.0.0.255
       <p style="font-size:12px;color:var(--text-muted);margin:-2px 0 12px;">使用浏览器 JavaScript 正则引擎；结果与前端 <code>RegExp</code> 行为一致。</p>
 
       <label>匹配结果</label>
-      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__regexExport()">导出明细 CSV</button></div><div id="matchResult" style="font-size:13px;color:var(--text-muted);">输入正则后将自动匹配...</div> <div id="regexTable"></div> <div id="regexDiff"></div> <div id="regexChart"></div> <div id="regexHist"></div>
+      <div class="toolbar" style="margin:8px 0;align-items:center;">
+        <label style="font-size:12px;color:var(--text-muted);margin:0;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="regexSaveText" style="width:auto;margin:0;"><span data-zh="历史记录保存测试文本（默认关闭，可能含日志或凭据）">Save test text in history (off by default; may contain logs or credentials)</span></label>
+        <button class="btn" type="button" onclick="__regexClearHistory()" data-zh="清除历史记录">Clear history</button>
+        <button class="btn" type="button" onclick="__regexExport()" data-zh="导出明细 CSV">Export CSV</button>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin:-4px 0 10px;" data-zh="历史记录仅保存在本机；默认只保存表达式、标志和结果摘要，测试文本默认不保存。导出 CSV 会包含历史表中的字段。">History is stored locally. By default only the pattern, flags and result summary are saved; test text is not saved unless enabled. CSV export includes the fields shown in the history table.</div><div id="matchResult" style="font-size:13px;color:var(--text-muted);">输入正则后将自动匹配...</div> <div id="regexTable"></div> <div id="regexDiff"></div> <div id="regexChart"></div> <div id="regexHist"></div>
       
       <label style="margin-top:16px;">高亮显示</label>
       <div id="highlight-output">高亮结果将显示在这里...</div>
@@ -249,8 +254,8 @@ Email: test@example.com
 
       <div class="replace-toolbar">
         <button type="button" class="btn primary" onclick="doReplace()">执行替换</button>
-        <button type="button" class="btn" onclick="copyReplaceResult()">复制结果</button>
-        <button type="button" class="btn" onclick="downloadReplaceResult()">下载结果</button>
+        <button type="button" class="btn" id="replaceCopyBtn" onclick="copyReplaceResult()">复制结果</button>
+        <button type="button" class="btn" id="replaceDownloadBtn" onclick="downloadReplaceResult()">下载结果</button>
       </div>
 
       <div class="stats-bar">
@@ -477,7 +482,14 @@ function getRxWorkerSrc(){
   return el ? el.textContent : '';
 }
 
-function runRegexGuarded(payload, done){
+// 每次请求递增对应通道的版本号；旧 Worker 回包时版本已过期则丢弃，避免覆盖新输入。
+const __rxSeq = Object.create(null);
+function __rxNext(key){ __rxSeq[key] = (__rxSeq[key] || 0) + 1; return __rxSeq[key]; }
+function __rxInvalidate(key){ __rxSeq[key] = (__rxSeq[key] || 0) + 1; }
+
+function runRegexGuarded(payload, done, key){
+  const seqKey = key || payload.mode;
+  const seq = __rxNext(seqKey);
   let worker, url, timer, finished = false;
   function finish(res){
     if(finished) return;
@@ -485,6 +497,7 @@ function runRegexGuarded(payload, done){
     clearTimeout(timer);
     try { worker.terminate(); } catch(e){}
     try { URL.revokeObjectURL(url); } catch(e){}
+    if(seq !== __rxSeq[seqKey]) return;
     done(res);
   }
   try {
@@ -512,6 +525,7 @@ function testRegex(){
   const highlightDiv = document.getElementById('highlight-output');
   
   if(!pattern){
+    __rxInvalidate('test');
     const __h1='<span style="color:var(--text-muted);">请输入正则表达式</span>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){resultDiv.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}resultDiv.innerHTML=__h1;
     highlightDiv.textContent = text || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Highlighted results will appear here...":"高亮结果将显示在这里...");
     document.getElementById('matchCount').textContent = '0';
@@ -585,7 +599,19 @@ function testRegex(){
     });
     highlighted += escapeHtml(text.substring(lastEnd));
     const __h5=highlighted;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){highlightDiv.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}highlightDiv.innerHTML=__h5;
-  });
+  }, 'test');
+}
+
+var replaceState = 'idle';
+var replaceResultText = '';
+function setReplaceState(state, text) {
+  replaceState = state;
+  replaceResultText = (state === 'success') ? String(text == null ? '' : text) : '';
+  const copyBtn = document.getElementById('replaceCopyBtn');
+  const dlBtn = document.getElementById('replaceDownloadBtn');
+  const disabled = state !== 'success';
+  if (copyBtn) copyBtn.disabled = disabled;
+  if (dlBtn) dlBtn.disabled = disabled;
 }
 
 function doReplace() {
@@ -602,18 +628,22 @@ function doReplace() {
   origLenEl.textContent = text.length;
   
   if (!pattern || !text) {
+    __rxInvalidate('replace');
+    setReplaceState('idle', '');
     outputEl.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a regex and test text":"请输入正则表达式和测试文本");
     countEl.textContent = '0';
     newLenEl.textContent = '0';
     return;
   }
   
+  setReplaceState('pending', '');
   // IT-N254：尊重用户 flags，不再强制补 g——匹配页只取首个时替换页也应只替首个
   runRegexGuarded({mode:'replace', pattern:pattern, flags:flags, text:text, repl:replaceWith}, function(res){
     if(!res.ok){
       const msg = res.err === '__timeout__'
         ? '⏱ 正则执行超过 ' + RX_TIMEOUT_MS + 'ms 已强制中止：该表达式可能触发灾难性回溯，请改写表达式或缩短文本后重试。'
         : '正则错误: ' + res.err;
+      setReplaceState('error', '');
       outputEl.innerHTML = '<span style="color:var(--danger);">❌ ' + escapeHtml(msg) + '</span>';
       countEl.textContent = '0';
       newLenEl.textContent = '0';
@@ -621,8 +651,9 @@ function doReplace() {
     }
     countEl.textContent = res.count;
     newLenEl.textContent = res.result.length;
+    setReplaceState('success', res.result);
     const __h7=escapeHtml(res.result);if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){outputEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}outputEl.innerHTML=__h7;
-  });
+  }, 'replace');
 }
 
 function escapeHtml(s){
@@ -648,7 +679,7 @@ function copyMatches(){
     if(!res.ok){ ToolBox.showToast(i18nText('toast.msg455')); return; }
     if(res.matches.length === 0){ ToolBox.showToast(i18nText('toast.msg475')); return; }
     ToolBox.copyText(res.matches.map(function(m){ return m.g[0]; }).join('\n'));
-  });
+  }, 'copy');
 }
 
 function copyPattern() {
@@ -671,7 +702,8 @@ function copyShareLink() {
 }
 
 function restoreSharedRegex() {
-  let encoded = new URLSearchParams(location.hash.slice(1)).get('regex');
+  const hash = (typeof location !== 'undefined' && location.hash) ? location.hash : '';
+  let encoded = new URLSearchParams(hash.replace(/^#/, '')).get('regex');
   if (!encoded) return;
   // IT-N253：URLSearchParams 把 base64 里的 + 解成空格。先按 base64url 逆变换；若来自旧版标准
   // base64 链接（+ 已被解成空格、- / 不存在），把空格还原成 + 以兼容旧链接。
@@ -690,20 +722,25 @@ function restoreSharedRegex() {
 }
 
 function copyReplaceResult() {
-  const output = document.getElementById('replaceOutput').textContent;
-  if (output && output !== ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a regex and test text":"请输入正则表达式和测试文本")) {
-    ToolBox.copyText(output);
+  if (replaceState !== 'success' || !replaceResultText) {
+    ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"No valid replacement result to copy":"没有可复制的有效替换结果"), 'warning');
+    return;
   }
+  ToolBox.copyText(replaceResultText);
 }
 
 function downloadReplaceResult() {
-  const output = document.getElementById('replaceOutput').textContent;
-  if (output && output !== ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a regex and test text":"请输入正则表达式和测试文本")) {
-    ToolBox.downloadText('result.txt', output);
+  if (replaceState !== 'success' || !replaceResultText) {
+    ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"No valid replacement result to download":"没有可下载的有效替换结果"), 'warning');
+    return;
   }
+  ToolBox.downloadText('result.txt', replaceResultText);
 }
 
 function clearAll(){
+  __rxInvalidate('test');
+  __rxInvalidate('replace');
+  setReplaceState('idle', '');
   document.getElementById('pattern').value = '';
   document.getElementById('testText').value = '';
   const __h9='<span style="color:var(--text-muted);">输入正则后将自动匹配...</span>';if((typeof __h9==='number'&&!isFinite(__h9))||/Infinity/.test(String(__h9))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h9)){document.getElementById('matchResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('matchResult').innerHTML=__h9;
@@ -717,6 +754,7 @@ restoreSharedRegex();
 initPresets();
 syncFlagButtons();
 testRegex();
+setReplaceState('idle', '');
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
@@ -731,15 +769,31 @@ document.addEventListener('DOMContentLoaded',function(){
 var __regex_last=0,__regex_skip=false;
 function __regexSnap(){
     var out={};
-    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
-    for(var i=0;i<els.length;i++){
-        var e=els[i];
+    var saveText = false;
+    var opt = document.getElementById('regexSaveText');
+    if(opt) saveText = !!opt.checked;
+    var ids=['pattern','flags','replaceWith','testText','replaceText'];
+    for(var i=0;i<ids.length;i++){
+        var e=document.getElementById(ids[i]);
+        if(!e) continue;
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
+        // 测试文本可能含日志或凭据，默认不写入历史；仅在用户显式勾选时保存。
+        if(!saveText && (e.id==='testText' || e.id==='replaceText')) continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
     return out;
+}
+
+function __regexClearHistory(){
+    try { if(typeof TBKit!=='undefined' && TBKit.history) TBKit.history.clear(); } catch(e){}
+    try {
+        var t=document.getElementById('regexTable'); if(t) t.innerHTML='';
+        var c=document.getElementById('regexChart'); if(c) c.innerHTML='';
+        var h=document.getElementById('regexHist'); if(h) h.innerHTML='';
+    } catch(e){}
+    __regex_last = 0;
 }
 function __regexResText(){
     var r=document.getElementById('matchResult');
@@ -843,7 +897,7 @@ function __regexExport(){
 }
 function __regexPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#regexPresets',[{label:'默认参数',labelEn:'Default',values:{'pattern':'d+', 'flags':'g', 'replaceWith':'[$&]'}},
+    TBKit.preset.bar('#regexPresets',[{label:'默认参数',labelEn:'Default',values:{'pattern':'\\d+', 'flags':'g', 'replaceWith':'[$&]'}},
   {"label":"数字替换N","labelEn":"Digits→N","values":{"pattern":"[0-9]+","flags":"g","replaceWith":"N","testText":"abc 123 def 456"}},
   {"label":"小写替换X","labelEn":"Lower→X","values":{"pattern":"[a-z]+","flags":"g","replaceWith":"X","testText":"Hello World 123"}},
   {"label":"空白转连字符","labelEn":"Space→-","values":{"pattern":"\\s+","flags":"g","replaceWith":"-","testText":"a   b    c"}}],function(){ applyPreset(); });

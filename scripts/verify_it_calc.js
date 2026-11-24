@@ -11841,6 +11841,34 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"flavor\":\"verbose\"}，输出区含「1 2 3\n1 2 3\nverbose」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    slug: "it/regex-escape",
+    inputs: { input: "a/b" + String.fromCharCode(92) + "c (v1)", flavor: "verbose" },
+    clicks: ["document.getElementById('slash').checked=true;esc();unesc();document.getElementById('__tbProbe').textContent='ROUNDTRIP725 '+document.getElementById('output').value;"],
+    expect: ["ROUNDTRIP725 a/b\\c (v1)"],
+    ref: "第726批：verbose 风味 + 转义斜杠开启时，`a/b\\c (v1)` 先转成 `a\\/b\\\\c \\(v1\\)` 再反转义，斜杠必须能还原；旧 unesc 只识别 META 不含 `/`，会残留 `\\/`。",
+  },
+  {
+    slug: "it/regex",
+    inputs: { pattern: "\\d+", testText: "abc 123 ddd 456" },
+    clicks: ["var p=document.getElementById('pattern').value;document.getElementById('__tbProbe').textContent='PAT725 '+p.length+' '+p.charCodeAt(0)+' '+(p[1]==='d'?'d':'x');"],
+    expect: ["PAT725 3 92 d"],
+    ref: "第726批：初始正则必须是单反斜杠 `\\d+`（长度 3、首字符码 92、次字符 d），不能再是 HTML 里写死两个反斜杠的 `\\\\d+`；默认文本 `abc 123 ddd 456` 会匹配 123/456 而非 ddd。",
+  },
+  {
+    slug: "it/regex",
+    inputs: { pattern: "(", testText: "abc" },
+    clicks: ["switchTab('replace');document.getElementById('replaceText').value='abc';document.getElementById('replaceWith').value='';doReplace();document.getElementById('__tbProbe').textContent='REPERR725 '+replaceState+' '+(document.getElementById('replaceCopyBtn').disabled?'D':'E')+' '+replaceResultText.length;"],
+    expect: ["REPERR725 error D 0"],
+    ref: "第726批：替换失败进入 error 状态，复制/下载按钮禁用且 replaceResultText 为空；旧实现只排除空内容与初始提示，错误提示可被复制。harness 中 Worker 缺失也会进入统一失败状态。",
+  },
+  {
+    slug: "it/regex",
+    inputs: { testText: "SECRET725", pattern: "\\d+" },
+    clicks: ["document.getElementById('regexSaveText').checked=false;var s=__regexSnap();var a=(s.testText?'bad':'ok')+' '+(s.pattern?'has':'no');document.getElementById('regexSaveText').checked=true;var s2=__regexSnap();document.getElementById('__tbProbe').textContent='HIST725 '+a+' '+(s2.testText?'yes':'no');"],
+    expect: ["HIST725 ok has yes"],
+    ref: "第726批：历史快照默认不得保存 testText（可能含日志或凭据），仅在显式勾选 regexSaveText 后才纳入；pattern 仍默认保存。",
+  },
+  {
     slug: "it/regex-cheatsheet",
     inputs: { rxPattern: "(\\w+)@(\\w+)\\.[a-z]{2,}", rxText: "Contact: dev@example.com or support@test.cn; invalid: not-an-email" },
     expect: ["共 2 处匹配", "默认示例"],
