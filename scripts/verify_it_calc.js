@@ -7460,6 +7460,34 @@ const CASES = [
   },
   {
     "slug": "it/cron",
+    "inputs": {},
+    "clicks": ["document.getElementById('nlInput').value='every Monday 09:15';parseHumanCron();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='MON='+document.getElementById('manualInput').value"],
+    "expect": ["MON=15 9 * * 1"],
+    "ref": "第772批：英文星期全称必须映射到 dow；旧实现只认「每周一」，every Monday 落到默认每天 `15 9 * * *`。"
+  },
+  {
+    "slug": "it/cron",
+    "inputs": {},
+    "clicks": ["var names=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sun','Mon','Tue','Wed','Thu','Fri','Sat'];var vals=[];names.forEach(function(n){document.getElementById('nlInput').value='every '+n+' 09:15';parseHumanCron();vals.push(document.getElementById('manualInput').value);});var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='DAYS='+vals.join('|')"],
+    "expect": ["DAYS=15 9 * * 0|15 9 * * 1|15 9 * * 2|15 9 * * 3|15 9 * * 4|15 9 * * 5|15 9 * * 6|15 9 * * 0|15 9 * * 1|15 9 * * 2|15 9 * * 3|15 9 * * 4|15 9 * * 5|15 9 * * 6"],
+    "ref": "第772批：英文星期全称与缩写共 14 种写法必须逐一映射（Sunday=0 … Saturday=6），不得有任一落到每天。"
+  },
+  {
+    "slug": "it/cron",
+    "inputs": {},
+    "clicks": ["document.getElementById('nlInput').value='every someday 09:00';parseHumanCron();var nb=document.getElementById('nlBox');var msg=nb.innerHTML;var val=document.getElementById('manualInput').value;nb.innerHTML='UNK='+(msg.indexOf('无法识别')>=0?'OK':'BAD')+' E='+val"],
+    "expect": ["UNK=OK E=* * * * *"],
+    "ref": "第772批：带英文未知修饰词（someday）但时间可解析时不得默认每天；必须报无法识别且不改写主表达式。"
+  },
+  {
+    "slug": "it/cron",
+    "inputs": {},
+    "clicks": ["document.getElementById('nlInput').value='every day 09:00';parseHumanCron();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='EVERY='+document.getElementById('manualInput').value"],
+    "expect": ["EVERY=0 9 * * *"],
+    "ref": "第772批：显式 every day 仍须解析为每天 `0 9 * * *`，不得被未知修饰词守卫误杀。"
+  },
+  {
+    "slug": "it/cron",
     "inputs": { "nlInput": "每天 08:30" },
     "expect": ["解析为： 30 8 * * * 含义：每天 08:30"],
     "ref": "人类语→表达式（S6 反向翻译）·每天+冒号时间：30 8 * * *。整串锚（表达式+归一化含义）全部由被测输入决定；默认 nlInput 空 ⇒ nlBox 清空零命中。注：parseHumanCron 成功后同步 parseToVisual，blob 含可视化面板产出，属预期噪音。"
@@ -8199,7 +8227,7 @@ const CASES = [
   {
     "slug": "it/barcode-code39",
     "inputs": {},
-    "clicks": ["document.getElementById('data').value='';delete window.__code39Geometry;generate();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='EMPTY='+document.getElementById('output').textContent+' GEO='+(window.__code39Geometry===undefined)"],
+    "clicks": ["document.getElementById('data').value='';delete window.__code39Geometry;generate();document.getElementById('results').innerHTML='<p >EMPTY='+document.getElementById('output').textContent+' GEO='+(window.__code39Geometry===undefined)+'</p>'"],
     "expect": ["请输入要编码的内容", "GEO=true"],
     "ref": "第771批：空输入必须提示且不生成条码；旧实现用 `|| ' '` 把空值替换成空格，产出含空格数据的条码，用户误以为编码的是空字符串。"
   },
@@ -9084,6 +9112,41 @@ const CASES = [
       " 现代 工程\n共 0 项"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「 现代 工程\n共 0 项」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/crc-calculator",
+    "inputs": {},
+    "clicks": ["document.getElementById('input').value='';calc();var r=document.getElementById('results');var m=r.innerHTML;r.innerHTML='<p>EMPTY='+(m.indexOf('计算空输入 CRC')>=0?'OK':'BAD')+' HAS0x='+(m.indexOf('0x')>=0)+'</p>'"],
+    "expect": ["EMPTY=OK HAS0x=false"],
+    "ref": "第772批：普通计算遇到空输入只提示并指引「计算空输入 CRC」，不再静默清空、也不误算；空串仍是合法边界，由显式入口触发。"
+  },
+  {
+    "slug": "it/crc-calculator",
+    "inputs": {},
+    "clicks": ["document.getElementById('input').value='';calcEmpty();var r=document.getElementById('results');var m=r.innerHTML;r.innerHTML='<p>ZERO='+(m.indexOf('0x00000000')>=0?'OK':'BAD')+'</p>'"],
+    "expect": ["ZERO=OK"],
+    "ref": "第772批：显式计算空字节序列时，CRC-32 按 init=FFFFFFFF/xorout=FFFFFFFF 得 0x00000000；旧实现遇到 length=0 直接 return，无法做协议空包边界测试。"
+  },
+  {
+    "slug": "it/crc-calculator",
+    "inputs": { "input": "123456789" },
+    "clicks": ["document.getElementById('hexInput').checked=true;calc();var r=document.getElementById('results');var m=r.innerHTML;r.innerHTML='<p>OPT='+(m.indexOf('十六进制输入须为偶数位')>=0?'OK':'BAD')+' OLD='+(m.indexOf('0x')>=0)+'</p>'"],
+    "expect": ["OPT=OK OLD=false"],
+    "ref": "第772批：十六进制开关、大小写与自定义参数改变必须触发重算；9 位输入切到 hex 后立即报奇数位错误并清掉旧卡片，不能继续复制旧校验值。"
+  },
+  {
+    "slug": "it/crc-calculator",
+    "inputs": { "input": "123456789", "cw": "8.5" },
+    "clicks": ["document.getElementById('customOn').checked=true;calc();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='BADW='+(document.getElementById('customError').textContent.indexOf('整数')>=0?'OK':'BAD')"],
+    "expect": ["BADW=OK"],
+    "ref": "第772批：自定义位宽 8.5 不能被 parseInt 截成 8 后静默计算；必须严格整数校验并在自定义区域提示，标准算法结果不受影响。"
+  },
+  {
+    "slug": "it/crc-calculator",
+    "inputs": { "input": "123456789", "cw": "8", "cp": "107" },
+    "clicks": ["document.getElementById('customOn').checked=true;calc();var p=document.getElementById('__tbProbe');if(!p){p=document.createElement('div');p.id='__tbProbe';document.body.appendChild(p);}p.textContent='WIDE='+(document.getElementById('customError').textContent.indexOf('超出所选位宽')>=0?'OK':'BAD')"],
+    "expect": ["WIDE=OK"],
+    "ref": "第772批：8 位模型的 poly 0x107 超出 8 位，必须明确拒绝；旧实现直接计算并可能与截断后的多项式混淆。"
   },
   {
     "slug": "it/crc-calculator",

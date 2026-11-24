@@ -706,14 +706,21 @@ function parseHumanCron() {
     const tm = __cronParseTime(s);
     if (tm) {
       const dowMap = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '日': 0, '天': 0 };
-      const dowName = { 0: en ? 'Sunday' : '日', 1: en ? 'Monday' : '一', 2: en ? 'Tuesday' : '二', 3: en ? 'Wednesday' : '三', 4: en ? 'Thursday' : '四', 5: en ? 'Friday' : '五', 6: en ? 'Saturday' : '六' };
+      const dowName = { 0: 'Sunday', 1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday' };
+      const dowZh = { 0: '日', 1: '一', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六' };
       let tail = '* * *';
       let note = en ? 'every day' : '每天';
       const wd = s.match(/每周([一二三四五六日天])/);
       const md = s.match(/每月\s*(\d{1,2})\s*[号日]/);
+      const enWeekMap = { monday:1, mon:1, tuesday:2, tue:2, tues:2, wednesday:3, wed:3, thursday:4, thu:4, thur:4, thurs:4, friday:5, fri:5, saturday:6, sat:6, sunday:0, sun:0 };
+      const ew = s.match(/\b(?:every\s+)?(monday|mon|tuesday|tue|tues|wednesday|wed|thursday|thu|thur|thurs|friday|fri|saturday|sat|sunday|sun)\b/i);
+      const englishDay = ew ? enWeekMap[ew[1].toLowerCase()] : undefined;
       if (wd && dowMap[wd[1]] !== undefined) {
         tail = '* * ' + dowMap[wd[1]];
-        note = en ? ('every ' + dowName[dowMap[wd[1]]]) : ('每周' + dowName[dowMap[wd[1]]]);
+        note = en ? ('every ' + dowName[dowMap[wd[1]]]) : ('每周' + dowZh[dowMap[wd[1]]]);
+      } else if (englishDay !== undefined) {
+        tail = '* * ' + englishDay;
+        note = en ? ('every ' + dowName[englishDay]) : ('每周' + dowZh[englishDay]);
       } else if (/工作日|weekdays?/i.test(s)) {
         tail = '* * 1-5';
         note = en ? 'weekdays' : '工作日';
@@ -721,6 +728,9 @@ function parseHumanCron() {
         const d = parseInt(md[1], 10);
         if (d >= 1 && d <= 31) { tail = d + ' * *'; note = (en ? 'day ' : '每月 ') + d + (en ? ' of month' : ' 号'); }
         else { box.innerHTML = fail; return; }
+      } else if (/[A-Za-z]/.test(s) && !/\b(every\s+day|daily)\b/i.test(s)) {
+        // 英文输入带时间但没有任何可识别的星期/每日修饰词（如 "every someday 09:00"）时不得默认每天。
+        box.innerHTML = fail; return;
       }
       expr = tm.m + ' ' + tm.h + ' ' + tail;
       noteFull = note + ' ' + __cronPad2(tm.h) + ':' + __cronPad2(tm.m);
@@ -732,7 +742,7 @@ function parseHumanCron() {
   // 写入主表达式并同步可视化面板与描述
   document.getElementById('manualInput').value = expr;
   parseToVisual(expr);
-  const __h0 = '<p><strong>' + (en ? 'Parsed:' : '✅ 解析为：') + '</strong><code style="font-weight:700;color:var(--primary);margin-left:6px;">' + expr + '</code></p><p style="font-size:12px;color:var(--text-muted);margin-top:4px;">' + (en ? 'Meaning: ' : '含义：') + noteFull + ' → 已同步到可视化面板</p>';
+  const __h0 = '<p><strong>' + (en ? 'Parsed:' : '✅ 解析为：') + '</strong><code style="font-weight:700;color:var(--primary);margin-left:6px;">' + expr + '</code></p><p style="font-size:12px;color:var(--text-muted);margin-top:4px;">' + (en ? 'Meaning: ' : '含义：') + noteFull + (en ? ' → synced to the visual builder' : ' → 已同步到可视化面板') + '</p>';
   if ((typeof __h0 === 'number' && !isFinite(__h0)) || /Infinity/.test(String(__h0)) || /(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)) { box.innerHTML = '<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>'; return; }
   box.innerHTML = __h0;
 }
