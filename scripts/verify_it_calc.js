@@ -4375,7 +4375,7 @@ const CASES = [
   {
     slug: "it/url-parser",
     inputs: { urlInput: "https://a.io/p?x=1&y=2" },
-    clicks: ["buildUrl()"],
+    clicks: ["parseUrl();buildUrl()"],
     expect: ["域名 复制 a.io"],
     ref: "独立复算：解析结果逐行给出「协议/源/域名/端口/主机/路径/查询字符串/哈希/查询参数」，锚取域名行（`a.io`）。默认示例 URL 不同，不命中。",
   },
@@ -13416,9 +13416,9 @@ const CASES = [
       "b-protocol": "http:"
     },
     "expect": [
-      "o bar 复制\nabc123测试\nhttp:\n42\nabc123测试\nabc123测试\nhttp://abc123测试:42/abc123测试?foo=bar#abc123测试\n× ×"
+      "http://xn--abc123-nf3nq86q:42/abc123%E6%B5%8B%E8%AF%95?query=value&foo=bar#abc123%E6%B5%8B%E8%AF%95"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"b-hostname\":\"abc123测试\",\"b-port\":\"42\",\"b-pathname\":\"abc123测试\",\"b-hash\":\"abc123测试\",\"urlInput\":\"1\\n2\\n3\",\"b-protocol\":\"http:\"}，输出区含「o bar 复制\nabc123测试\nhttp:\n42\nabc123测试\nabc1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入后按 URL API 构造，Unicode 主机按 IDN 转 punycode、中文路径/片段按 UTF-8 百分号编码 ⇒ http://xn--abc123-nf3nq86q:42/abc123%E6%B5%8B%E8%AF%95?query=value&foo=bar#abc123%E6%B5%8B%E8%AF%95；默认态 builtUrl 为 -，不命中。"
   },
   {
     "slug": "it/username-generator",
@@ -13669,6 +13669,30 @@ const CASES = [
     inputs: { urlInput: "https://x.test/p?q=<img src=x onerror=alert(1)>&tag=%3Cb%3E" },
     expect: ["q &lt;img src=x onerror=alert(1)&gt;"],
     ref: "IT-N12 转义：查询值经 URLSearchParams 解码为 <img src=x onerror=alert(1)>，渲染前必须转义成 &lt;img … &gt;；未转义时该串被当作标签剥掉、expect 不命中。默认示例查询值为 value/bar，同样不命中。",
+  },
+  {
+    slug: "it/url-parser",
+    clicks: ["var i=document.getElementById('urlInput');i.value='not a url';document.getElementById('copyJsonBtn').disabled=false;parseUrl();var c=document.getElementById('copyJsonBtn').disabled,s=document.getElementById('saveHistoryBtn').disabled;document.getElementById('__tbProbe').textContent='URLINV '+((parsed.href===undefined&&c&&s)?'OK':'BAD');"],
+    expect: ["URLINV OK"],
+    ref: "解析失败必须清空 parsed 并禁用复制/保存；旧实现只替换错误文案，parsed 保留上次结果 ⇒ BAD。",
+  },
+  {
+    slug: "it/url-parser",
+    clicks: ["localStorage.removeItem(HK);var i=document.getElementById('urlInput');i.value='https://user:pw@x.test/p?token=abc&q=1';parseUrl();saveToHistory();var raw=JSON.parse(localStorage.getItem(HK))[0].url;document.getElementById('__tbProbe').textContent='URLRED '+(raw.indexOf('pw')<0&&raw.indexOf('user')<0&&raw.indexOf('token=***')>=0?'OK':'BAD '+raw);"],
+    expect: ["URLRED OK"],
+    ref: "历史默认脱敏：移除 username/password，token 值替换为 ***；旧实现保存完整 URL ⇒ BAD。",
+  },
+  {
+    slug: "it/url-parser",
+    clicks: ["buildParams=[];document.getElementById('b-hostname').value='x.test';document.getElementById('b-pathname').value='/a?b';document.getElementById('b-hash').value='c d';var u=buildUrl();document.getElementById('__tbProbe').textContent='URLBUILD '+((u==='https://x.test/a%3Fb#c%20d')?'OK':'BAD '+u);"],
+    expect: ["URLBUILD OK"],
+    ref: "构建地址交给 URL API：路径中的 ? 应编码为 %3F、片段空格为 %20；旧字符串拼接会改变路径含义 ⇒ BAD。",
+  },
+  {
+    slug: "it/url-parser",
+    clicks: ["buildParams=[];document.getElementById('b-hostname').value='exa mple.com';var u=buildUrl(),t=document.getElementById('builtUrl').textContent;document.getElementById('__tbProbe').textContent='URLBADH '+((u===''&&/无效/.test(t))?'OK':'BAD '+u);"],
+    expect: ["URLBADH OK"],
+    ref: "域名含空格必须被 URL 解析器拒绝，返回空串并显示错误；旧实现直接拼接出 https://exa mple.com 并可复制 ⇒ BAD。",
   },
   {
     slug: "it/url-parser",
