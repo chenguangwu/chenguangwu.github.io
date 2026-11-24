@@ -3741,6 +3741,12 @@ document.addEventListener('DOMContentLoaded', enhanceNumberInputs);
     trigger.className = 'tb-select-trigger';
     trigger.setAttribute('aria-haspopup', 'listbox');
     trigger.setAttribute('aria-expanded', 'false');
+    var selLabel = sel.getAttribute('aria-label') || sel.getAttribute('title') || sel.getAttribute('placeholder') || '';
+    if (!selLabel && sel.id) {
+      var selLab = document.querySelector('label[for="' + sel.id.replace(/"/g, '\\"') + '"]');
+      if (selLab) selLabel = (selLab.textContent || '').trim();
+    }
+    trigger.setAttribute('aria-label', selLabel || '选择选项');
     var valSpan = document.createElement('span');
     valSpan.className = 'tb-select-value';
     var caret = document.createElement('span');

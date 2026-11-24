@@ -419,7 +419,7 @@
       var el = els[i];
       if (el.getAttribute('aria-label') || el.getAttribute('aria-labelledby')) continue;
       if (el.id && document.querySelector('label[for="' + el.id.replace(/"/g, '\\"') + '"]')) continue;
-      var t = (el.getAttribute('title') || '').trim();
+      var t = (el.getAttribute('title') || el.getAttribute('placeholder') || '').trim();
       if (t) el.setAttribute('aria-label', t);
     }
   }
@@ -450,6 +450,7 @@
     for (var i = 0; i < cand.length; i++) {
       var el = cand[i];
       if (el.getAttribute('tabindex') === '0') continue;
+      if (el.getAttribute('aria-hidden') === 'true' || el.closest('[aria-hidden="true"]')) continue;
       var cs = getComputedStyle(el);
       if (!/auto|scroll/.test(cs.overflowY + cs.overflowX)) continue;
       if (el.scrollHeight > el.clientHeight + 2 || el.scrollWidth > el.clientWidth + 2) {
