@@ -4077,6 +4077,62 @@ const CASES = [
     ref: "首尾空字段：每行 `,a,` / `,,` 都必须解析为 3 列，空字段是合法值 ⇒ 2 行 3 列无问题；旧实现按分隔符切分后可能吞掉尾部空列，本锚不命中。",
   },
   {
+    slug: "it/csv-to-json",
+    // 引号“无”必须真正关闭引号包裹，输入中的双引号应保留为字段内容。
+    clicks: ["var nl=String.fromCharCode(10),q=String.fromCharCode(34),el=document.getElementById('csvInput');el.value='a,b'+nl+'1,'+q+'x'+q;document.getElementById('hasHeader').checked=true;document.getElementById('csvQuote').selectedIndex=2;document.getElementById('csvQuote').value='';csvToJson();var o=JSON.parse(document.getElementById('jsonOutput').value);document.getElementById('__tbProbe').textContent='NOQ '+((o[0]&&o[0].b===q+'x'+q)?'OK':'FAIL');"],
+    expect: ["NOQ OK"],
+    ref: "引号“无”：`a,b` / `1,“x”` 在关闭引号包裹后，第二行应切成 `1` 与 `“x”` 两列，JSON 值为字面 `“x”`；旧实现 `value || 双引号` 强行回退双引号，本锚不命中。默认示例无字段内引号。",
+  },
+  {
+    slug: "it/csv-to-json",
+    // 自定义多字符分隔符必须整串匹配，不能逐字符比较。
+    clicks: ["var nl=String.fromCharCode(10),el=document.getElementById('csvInput');el.value='a||b'+nl+'1||2';document.getElementById('hasHeader').checked=true;document.getElementById('csvDelimiter').value='custom';document.getElementById('customDelimiter').value='||';csvToJson();var o=JSON.parse(document.getElementById('jsonOutput').value);document.getElementById('__tbProbe').textContent='MULTI '+((o[0]&&o[0].a==='1'&&o[0].b==='2')?'OK':'FAIL');"],
+    expect: ["MULTI OK"],
+    ref: "自定义 `||`：两行必须按完整字符串切成 a/b 与 1/2；旧实现只比较单个字符，`||` 永远匹配不到、整行成 1 列，本锚不命中。默认分隔符为逗号。",
+  },
+  {
+    slug: "it/csv-to-json",
+    // 重复表头不得静默覆盖；默认报错并在提示中给列号。
+    clicks: ["var nl=String.fromCharCode(10),el=document.getElementById('csvInput');el.value='a,a'+nl+'1,2';document.getElementById('hasHeader').checked=true;document.getElementById('csvQuote').value='\"';csvToJson();var o=document.getElementById('jsonOutput').value,p=document.getElementById('jsonOutput').placeholder;document.getElementById('__tbProbe').textContent='DUP '+((o===''&&p.indexOf('重复表头')>=0&&p.indexOf('第 2 列')>=0)?'OK':'FAIL');"],
+    expect: ["DUP OK"],
+    ref: "重复表头 `a,a`：不得静默让后者覆盖前者 ⇒ 默认报错、指出第 2 列重复并清空输出；勾选“按数组输出”才保留原始字段。旧实现输出 `{“a”:“2”}` 且无提示，本锚不命中。",
+  },
+  {
+    slug: "it/csv-to-json",
+    // 重复表头勾选数组模式后，原始字段按位置保留。
+    clicks: ["var nl=String.fromCharCode(10),el=document.getElementById('csvInput');el.value='a,a'+nl+'1,2';document.getElementById('hasHeader').checked=true;document.getElementById('arrayRows').checked=true;csvToJson();var o=JSON.parse(document.getElementById('jsonOutput').value);document.getElementById('__tbProbe').textContent='ARR '+((o[0]&&o[0][0]==='1'&&o[0][1]==='2')?'OK':'FAIL');"],
+    expect: ["ARR OK"],
+    ref: "数组模式：重复表头 `a,a` 勾选“按数组输出”后，数据行必须为 `[“1”,“2”]`，不丢第二列；旧实现无论选项都覆盖同名键，本锚不命中。",
+  },
+  {
+    slug: "it/csv-to-json",
+    // 全空记录默认忽略，勾选保留后必须出现在 JSON。
+    clicks: ["var nl=String.fromCharCode(10),el=document.getElementById('csvInput');el.value='a,b'+nl+'1,2'+nl+','+nl;document.getElementById('hasHeader').checked=true;document.getElementById('keepEmptyRows').checked=true;csvToJson();var o=JSON.parse(document.getElementById('jsonOutput').value);document.getElementById('__tbProbe').textContent='EMPTYROW '+((o.length===2&&o[1].a===''&&o[1].b==='')?'OK':'FAIL');"],
+    expect: ["EMPTYROW OK"],
+    ref: "全空记录：`a,b` / `1,2` / `,` 勾选保留后应有 2 条数据对象，第二条 a/b 均为空串；旧实现 `filter(r=>r.some(...))` 静默丢掉全空行，本锚不命中。默认示例无全空行。",
+  },
+  {
+    slug: "it/csv-to-json",
+    // 转换失败后切到预览不得解构 null。
+    clicks: ["var nl=String.fromCharCode(10);document.getElementById('csvInput').value='a,b'+nl+'1,2,3';document.getElementById('hasHeader').checked=true;document.getElementById('csvQuote').value='\"';csvToJson();var ok=true;try{renderPreview()}catch(e){ok=false}var t=document.getElementById('previewTable').innerHTML;document.getElementById('__tbProbe').textContent='PREVIEW '+((ok&&(t.indexOf('No data')>=0||t.indexOf('暂无数据')>=0))?'OK':'FAIL');"],
+    expect: ["PREVIEW OK"],
+    ref: "失败后预览：多列报错使 currentData=null，`renderPreview()` 必须走空态而不是解构 null 抛错；旧实现直接 `const {headers,rows}=currentData` 会抛 `Cannot destructure`，本锚不命中。",
+  },
+  {
+    slug: "it/csv-to-json",
+    // 引号“无”导出含分隔符字段必须拒绝，不得静默生成不可回读 CSV。
+    clicks: ["document.getElementById('jsonInput').value='[{\"a\":\"x,y\"}]';document.getElementById('outQuote').value='';jsonToCsv();document.getElementById('__tbProbe').textContent='LOSSY '+((document.getElementById('csvOutput').value===''&&csvExportSafe==='')?'OK':'FAIL');"],
+    expect: ["LOSSY OK"],
+    ref: "无引号导出：字段 `x,y` 含分隔符，引号“无”时不能无损回读 ⇒ 必须拒绝并清空输出/安全导出串；旧实现原样输出 `x,y`，本锚不命中。",
+  },
+  {
+    slug: "it/csv-to-json",
+    // 嵌套对象/数组默认转 JSON 字符串，不能退化成 [object Object]。
+    clicks: ["document.getElementById('jsonInput').value=JSON.stringify([{a:{b:1},c:[1,2,3]}]);document.getElementById('nestedJson').checked=true;document.getElementById('outQuote').value='\"';document.getElementById('quoteAll').checked=false;jsonToCsv();var o=document.getElementById('csvOutput').value;document.getElementById('__tbProbe').textContent='NEST '+((o.indexOf('[1,2,3]')>=0&&o.indexOf('[object Object]')<0)?'OK':'FAIL');"],
+    expect: ["NEST OK"],
+    ref: "嵌套结构：对象/数组默认 `JSON.stringify` 为单元格，数组保留 `[1,2,3]`，不得出现 `[object Object]`；旧实现 `String(val)` 直接丢失层级，本锚不命中。",
+  },
+  {
     slug: "it/csv-to-yaml",
     // 旧式单独 CR 必须切记录：直接测解析器，避免 textarea 把 CR 归一成 LF。
     clicks: ["var cr=String.fromCharCode(13);var rows=parseCsvRows('a,b'+cr+'1,2');document.getElementById('__tbProbe').textContent='YAMLCR '+((rows.length===2&&rows[0][1]==='b'&&rows[1][1]==='2')?'OK':'FAIL');"],
