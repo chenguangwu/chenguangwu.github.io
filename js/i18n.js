@@ -76,6 +76,8 @@ var LANG_REGISTRY = [
       'tool.copy': '📋 Copy Result',
       'tool.download': '💾 Download',
       'tool.sample': '📦 Example',
+      'btn.studyUndo': '↩ Undo sample',
+      'btn.presetUndo': '↩ Undo preset',
       'tool.clear': '🗑️ Clear',
       'tool.waiting': 'Waiting for input...',
       'tool.fav': 'Favorites',

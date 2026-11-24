@@ -157,7 +157,7 @@
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="loadSample()">载入示例</button>
+      <button type="button" class="btn primary" onclick="loadSample()">载入示例</button><button type="button" class="btn" id="study-undo-btn" onclick="undoSample()" style="display:none;" data-i18n="btn.studyUndo" data-i18n-fb="↩ 撤销示例">↩ 撤销示例</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
       <div id="study_progressPresets"></div><button type="button" class="btn" onclick="calc()">分析进度</button><button class="btn" type="button" onclick="__study_progressExport()">导出明细 CSV</button>
     </div>
@@ -252,13 +252,38 @@
 
 <script>
 var STORAGE_KEY = 'toolbox_study_progress';
+var UNDO_KEY = 'toolbox_study_progress_undo';
 var __study_progressDetail = [];
 var SAMPLE = '数学,45,80,1.5\n英语,30,60,1\n专业课,20,100,2\n政治,15,50,0.8';
 
+function __studyIsEn(){ try{ return !!(window.I18n && I18n.isEnglish && I18n.isEnglish()); }catch(e){ return false; } }
+function __studyUndoBtn(show){ var b=document.getElementById('study-undo-btn'); if(b) b.style.display=show?'inline-flex':'none'; }
+function __studySnapshot(){
+  return {subjects:document.getElementById('subjectInput').value,targetDate:document.getElementById('targetDate').value,dailyHours:document.getElementById('dailyHours').value,storage:(function(){try{return localStorage.getItem(STORAGE_KEY);}catch(e){return null;}})()};
+}
+function undoSample(){
+  var u=null; try{ u=JSON.parse(localStorage.getItem(UNDO_KEY)||'null'); }catch(e){}
+  if(!u||typeof u.subjects!=='string'){ ToolBox.showToast(__studyIsEn()?'No sample to undo':'没有可撤销的示例','info'); return; }
+  document.getElementById('subjectInput').value=u.subjects;
+  document.getElementById('targetDate').value=u.targetDate||'';
+  document.getElementById('dailyHours').value=u.dailyHours||'';
+  try{ if(u.storage==null) localStorage.removeItem(STORAGE_KEY); else localStorage.setItem(STORAGE_KEY,u.storage); }catch(e){}
+  localStorage.removeItem(UNDO_KEY);
+  calc(); __studyUndoBtn(false);
+  ToolBox.showToast(__studyIsEn()?'Sample undone; previous progress restored':'已撤销示例，恢复原学习进度','info');
+}
 function loadSample(){
+  var cur=document.getElementById('subjectInput').value.trim();
+  if(cur && cur!==SAMPLE){
+    if(!confirm(__studyIsEn()?'You already have study progress. Loading the sample replaces subjects, target date and daily hours. Continue?':'当前已有学习进度，载入示例会替换科目、目标日期和每日时长。确定替换？')) return;
+  }
+  var saved=false; try{ localStorage.setItem(UNDO_KEY, JSON.stringify(__studySnapshot())); saved=true; }catch(e){}
+  if(cur && !saved){ ToolBox.showToast(__studyIsEn()?'Browser storage unavailable; sample not loaded to avoid losing your data':'浏览器存储不可用，未载入示例以避免覆盖现有进度','warning'); return; }
   document.getElementById('subjectInput').value = SAMPLE;
   saveInput();
   calc();
+  __studyUndoBtn(true);
+  if(cur) ToolBox.showToast(__studyIsEn()?'Sample loaded. Use “Undo sample” to restore your data':'已载入示例，可用“撤销示例”恢复原数据','info');
 }
 function clearAll(){
   document.getElementById('subjectInput').value = '';
@@ -654,6 +679,7 @@ if(__study_progress_f0){
 function __study_progressBoot(){ try{ __study_progressPresets(); }catch(e){}  try{ var __sv=null; try{ __sv=localStorage.getItem(STORAGE_KEY); }catch(e){} if(!__sv && typeof loadSample==='function') loadSample(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __study_progressBoot();
 else document.addEventListener('DOMContentLoaded', __study_progressBoot);
+try{ if(localStorage.getItem(UNDO_KEY)) __studyUndoBtn(true); }catch(e){}
 </script>
 
 
