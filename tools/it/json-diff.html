@@ -127,7 +127,7 @@
       "name": "为什么数字 1 和字符串 \"1\" 被判为不同？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "因为 JSON 是有类型的，类型不同即视为不同值，这是严格比较的默认行为。若只关心结构差异，可开启「忽略类型」或先做规范化；同时注意 1.0 与 1 这类表示差异，以及对象键顺序——键序在语义上无意义，但朴素文本对比会把它当差异。"
+        "text": "因为 JSON 是有类型的，数字 1 与字符串 “1” 属于不同类型，本工具始终按严格类型比较，不提供类型宽松开关。若只关心字符串形式，可先把两侧都改成字符串再比较；同时注意 1.0 与 1 这类表示差异，以及对象键顺序——键序在语义上无意义，但朴素文本对比会把它当差异。"
       }
     }
   ]
@@ -278,7 +278,7 @@
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>数组顺序影响对比吗？</dt><dd>默认按位置比对；勾选「数组按内容匹配」后改为按元素内容对齐，元素换序不再被报成逐项修改。</dd>
-<dt>为什么数字 1 和字符串 &quot;1&quot; 被判为不同？</dt><dd>因为 <a class="term-link" href="/tools/data/calc-2.html">JSON</a> 是有类型的，类型不同即视为不同值，这是严格比较的默认行为。若只关心结构差异，可开启「忽略类型」或先做规范化；同时注意 1.0 与 1 这类表示差异，以及对象键顺序——键序在语义上无意义，但朴素<a class="term-link" href="/tools/it/text-diff.html">文本对比</a>会把它当差异。</dd>
+<dt>为什么数字 1 和字符串 &quot;1&quot; 被判为不同？</dt><dd>因为 <a class="term-link" href="/tools/data/calc-2.html">JSON</a> 是有类型的，数字 1 与字符串 “1” 属于不同类型，本工具始终按严格类型比较，不提供类型宽松开关。若只关心字符串形式，可先把两侧都改成字符串再比较；同时注意 1.0 与 1 这类表示差异，以及对象键顺序——键序在语义上无意义，但朴素<a class="term-link" href="/tools/it/text-diff.html">文本对比</a>会把它当差异。</dd>
 </dl>
 </div>
 </section>
@@ -412,7 +412,7 @@ function jdLcsPairs(ak, bk) {
   return pairs;
 }
 
-function deepDiff(a, b, path = '', arrayMatch = false) {
+function deepDiff(a, b, path = '', arrayMatch = false, pointer = '') {
   const diffs = [];
   if (a === b) return diffs;
   
@@ -420,7 +420,7 @@ function deepDiff(a, b, path = '', arrayMatch = false) {
   const tb = Array.isArray(b) ? 'array' : (b === null ? 'null' : typeof b);
   
   if (ta !== tb) {
-    diffs.push({ op: 'mod', path: path || '(root)', from: a, to: b });
+    diffs.push({ op: 'mod', path: path || '(root)', from: a, to: b, pointer: pointer });
     return diffs;
   }
   
@@ -431,14 +431,15 @@ function deepDiff(a, b, path = '', arrayMatch = false) {
     
     for (const k of allKeys) {
       const curPath = path ? path + '.' + k : k;
+      const curPointer = pointer + '/' + k.replace(/~/g, '~0').replace(/\//g, '~1');
       const inA = Object.prototype.hasOwnProperty.call(a, k);
       const inB = Object.prototype.hasOwnProperty.call(b, k);
       if (!inB) {
-        diffs.push({ op: 'del', path: curPath, value: a[k] });
+        diffs.push({ op: 'del', path: curPath, value: a[k], pointer: curPointer });
       } else if (!inA) {
-        diffs.push({ op: 'add', path: curPath, value: b[k] });
+        diffs.push({ op: 'add', path: curPath, value: b[k], pointer: curPointer });
       } else {
-        diffs.push(...deepDiff(a[k], b[k], curPath, arrayMatch));
+        diffs.push(...deepDiff(a[k], b[k], curPath, arrayMatch, curPointer));
       }
     }
     return diffs;
@@ -475,28 +476,29 @@ function deepDiff(a, b, path = '', arrayMatch = false) {
         const pendingB = restB.filter(j => !usedB.has(j));
         const k2 = Math.min(pendingA.length, pendingB.length);
         for (let t = 0; t < k2; t++) {
-          diffs.push(...deepDiff(a[pendingA[t]], b[pendingB[t]], path + '[' + pendingA[t] + ']', arrayMatch));
+          diffs.push(...deepDiff(a[pendingA[t]], b[pendingB[t]], path + '[' + pendingA[t] + ']', arrayMatch, pointer + '/' + pendingA[t]));
         }
-        for (let t = k2; t < pendingA.length; t++) diffs.push({ op: 'del', path: path + '[' + pendingA[t] + ']', value: a[pendingA[t]] });
-        for (let t = k2; t < pendingB.length; t++) diffs.push({ op: 'add', path: path + '[' + pendingB[t] + ']', value: b[pendingB[t]] });
+        for (let t = k2; t < pendingA.length; t++) diffs.push({ op: 'del', path: path + '[' + pendingA[t] + ']', value: a[pendingA[t]], pointer: pointer + '/' + pendingA[t] });
+        for (let t = k2; t < pendingB.length; t++) diffs.push({ op: 'add', path: path + '[' + pendingB[t] + ']', value: b[pendingB[t]], pointer: pointer + '/' + pendingB[t] });
         return diffs;
       }
     }
     const len = Math.max(a.length, b.length);
     for (let i = 0; i < len; i++) {
       const curPath = path + '[' + i + ']';
+      const curPointer = pointer + '/' + i;
       if (i >= a.length) {
-        diffs.push({ op: 'add', path: curPath, value: b[i] });
+        diffs.push({ op: 'add', path: curPath, value: b[i], pointer: curPointer });
       } else if (i >= b.length) {
-        diffs.push({ op: 'del', path: curPath, value: a[i] });
+        diffs.push({ op: 'del', path: curPath, value: a[i], pointer: curPointer });
       } else {
-        diffs.push(...deepDiff(a[i], b[i], curPath, arrayMatch));
+        diffs.push(...deepDiff(a[i], b[i], curPath, arrayMatch, curPointer));
       }
     }
     return diffs;
   }
   
-  diffs.push({ op: 'mod', path: path || '(root)', from: a, to: b });
+  diffs.push({ op: 'mod', path: path || '(root)', from: a, to: b, pointer: pointer });
   return diffs;
 }
 
@@ -513,17 +515,18 @@ function simpleDiff(a, b) {
     for (const k of keys) {
       const inA = Object.prototype.hasOwnProperty.call(a, k);
       const inB = Object.prototype.hasOwnProperty.call(b, k);
-      if (!inB) diffs.push({ op: 'del', path: k, value: a[k] });
-      else if (!inA) diffs.push({ op: 'add', path: k, value: b[k] });
-      else if (jdKey(a[k]) !== jdKey(b[k])) diffs.push({ op: 'mod', path: k, from: a[k], to: b[k] });
+      const cp = '/' + k.replace(/~/g, '~0').replace(/\//g, '~1');
+      if (!inB) diffs.push({ op: 'del', path: k, value: a[k], pointer: cp });
+      else if (!inA) diffs.push({ op: 'add', path: k, value: b[k], pointer: cp });
+      else if (jdKey(a[k]) !== jdKey(b[k])) diffs.push({ op: 'mod', path: k, from: a[k], to: b[k], pointer: cp });
     }
     return diffs;
   }
-  if (jdKey(a) !== jdKey(b)) diffs.push({ op: 'mod', path: '(root)', from: a, to: b });
+  if (jdKey(a) !== jdKey(b)) diffs.push({ op: 'mod', path: '(root)', from: a, to: b, pointer: '' });
   return diffs;
 }
 
-function countSame(a, b, path = '') {
+function countSame(a, b, arrayMatch = false) {
   let count = 0;
   if (a === b) return 1;
   
@@ -534,15 +537,31 @@ function countSame(a, b, path = '') {
   
   if (ta === 'object' && a !== null && b !== null) {
     for (const k of Object.keys(a)) {
-      if (Object.prototype.hasOwnProperty.call(b, k)) count += countSame(a[k], b[k], path ? path + '.' + k : k);
+      if (Object.prototype.hasOwnProperty.call(b, k)) count += countSame(a[k], b[k], arrayMatch);
     }
     return count;
   }
   
   if (ta === 'array') {
+    if (arrayMatch) {
+      const pool = new Map();
+      for (const item of b) {
+        const key = jdKey(item);
+        if (!pool.has(key)) pool.set(key, []);
+        pool.get(key).push(item);
+      }
+      for (const item of a) {
+        const key = jdKey(item);
+        const bucket = pool.get(key);
+        if (bucket && bucket.length) {
+          count += countSame(item, bucket.shift(), true);
+        }
+      }
+      return count;
+    }
     const len = Math.min(a.length, b.length);
     for (let i = 0; i < len; i++) {
-      count += countSame(a[i], b[i], path + '[' + i + ']');
+      count += countSame(a[i], b[i], false);
     }
     return count;
   }
@@ -554,33 +573,67 @@ function generateLineDiff(leftLines, rightLines) {
   const leftResult = [];
   const rightResult = [];
   const unifiedResult = [];
-  
-  const maxLen = Math.max(leftLines.length, rightLines.length);
-  
-  for (let i = 0; i < maxLen; i++) {
-    const l = i < leftLines.length ? leftLines[i] : null;
-    const r = i < rightLines.length ? rightLines[i] : null;
-    
-    if (l === r) {
-      leftResult.push({ type: 'eq', text: l });
-      rightResult.push({ type: 'eq', text: r });
-      unifiedResult.push({ type: 'eq', text: '  ' + l });
-    } else if (l === null) {
-      leftResult.push({ type: 'empty', text: '' });
-      rightResult.push({ type: 'add', text: r });
-      unifiedResult.push({ type: 'add', text: '+ ' + r });
-    } else if (r === null) {
-      leftResult.push({ type: 'del', text: l });
-      rightResult.push({ type: 'empty', text: '' });
-      unifiedResult.push({ type: 'del', text: '- ' + l });
-    } else {
+  const n = leftLines.length, m = rightLines.length;
+
+  function pushEq(text) {
+    leftResult.push({ type: 'eq', text: text });
+    rightResult.push({ type: 'eq', text: text });
+    unifiedResult.push({ type: 'eq', text: '  ' + text });
+  }
+  function pushBlock(l0, l1, r0, r1) {
+    const k = Math.min(l1 - l0, r1 - r0);
+    for (let t = 0; t < k; t++) {
+      const l = leftLines[l0 + t], r = rightLines[r0 + t];
       leftResult.push({ type: 'mod', text: l });
       rightResult.push({ type: 'mod', text: r });
       unifiedResult.push({ type: 'del', text: '- ' + l });
       unifiedResult.push({ type: 'add', text: '+ ' + r });
     }
+    for (let t = k; t < l1 - l0; t++) {
+      leftResult.push({ type: 'del', text: leftLines[l0 + t] });
+      rightResult.push({ type: 'empty', text: '' });
+      unifiedResult.push({ type: 'del', text: '- ' + leftLines[l0 + t] });
+    }
+    for (let t = k; t < r1 - r0; t++) {
+      leftResult.push({ type: 'empty', text: '' });
+      rightResult.push({ type: 'add', text: rightLines[r0 + t] });
+      unifiedResult.push({ type: 'add', text: '+ ' + rightLines[r0 + t] });
+    }
   }
-  
+
+  // 行级 LCS 对齐，避免插入/删除一行导致后续所有行连锁误报。
+  if (n * m > 250000) {
+    // 超大文本降级为同位置比较，避免 DP 占用过多内存；路径视图仍给出结构化差异。
+    const maxLen = Math.max(n, m);
+    for (let i = 0; i < maxLen; i++) pushBlock(i, Math.min(i + 1, n), i, Math.min(i + 1, m));
+    return { left: leftResult, right: rightResult, unified: unifiedResult };
+  }
+
+  const dp = [];
+  for (let i = 0; i <= n; i++) dp.push(new Int32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = leftLines[i] === rightLines[j]
+        ? dp[i + 1][j + 1] + 1
+        : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const anchors = [];
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (leftLines[i] === rightLines[j]) { anchors.push([i, j]); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) i++;
+    else j++;
+  }
+
+  let prevL = 0, prevR = 0;
+  for (const [ai, bj] of anchors) {
+    pushBlock(prevL, ai, prevR, bj);
+    pushEq(leftLines[ai]);
+    prevL = ai + 1;
+    prevR = bj + 1;
+  }
+  pushBlock(prevL, n, prevR, m);
   return { left: leftResult, right: rightResult, unified: unifiedResult };
 }
 
@@ -618,11 +671,30 @@ function __jdChart(addCount, delCount, modCount, sameCount) {
   });
 }
 
+function invalidateDiff() {
+  lastDiff = null;
+  lastLeft = null;
+  lastRight = null;
+  document.getElementById('leftDiff').textContent = '等待对比...';
+  document.getElementById('rightDiff').textContent = '等待对比...';
+  document.getElementById('unifiedDiff').textContent = '等待对比...';
+  document.getElementById('pathList').textContent = '等待对比...';
+  document.getElementById('jsonDiff').textContent = '等待对比...';
+  document.getElementById('diffSummary').style.display = 'none';
+  document.getElementById('countAdd').textContent = '0';
+  document.getElementById('countDel').textContent = '0';
+  document.getElementById('countMod').textContent = '0';
+  document.getElementById('countSame').textContent = '0';
+  const chart = document.getElementById('jdChart');
+  if (chart) chart.innerHTML = '';
+}
+
 function doDiff() {
   const leftVal = document.getElementById('left').value;
   const rightVal = document.getElementById('right').value;
   
   if (!leftVal.trim() || !rightVal.trim()) {
+    invalidateDiff();
     ToolBox.showToast(i18nText('toast.msg763'));
     return;
   }
@@ -640,13 +712,13 @@ function doDiff() {
     const amEl = document.getElementById('arrayMatch');
     const arrayMatch = !!(amEl && amEl.checked);
     
-    const diffs = mode === 'simple' ? simpleDiff(a, b) : deepDiff(a, b, '', arrayMatch);
+    const diffs = mode === 'simple' ? simpleDiff(a, b) : deepDiff(a, b, '', arrayMatch, '');
     lastDiff = diffs;
     
     const addCount = diffs.filter(d => d.op === 'add').length;
     const delCount = diffs.filter(d => d.op === 'del').length;
     const modCount = diffs.filter(d => d.op === 'mod').length;
-    const sameCount = countSame(a, b);
+    const sameCount = countSame(a, b, mode === 'deep' && arrayMatch);
     
     document.getElementById('diffSummary').style.display = 'flex';
     document.getElementById('countAdd').textContent = addCount;
@@ -673,6 +745,7 @@ function doDiff() {
           <span style="flex:1;">${escapeHtml(d.path)}</span>
           <span style="color:var(--text-muted);font-size:11px;">
             ${d.op === 'mod' ? escapeHtml(formatValue(d.from)) + ' → ' + escapeHtml(formatValue(d.to)) : escapeHtml(formatValue(d.value))}
+            ${d.pointer !== undefined ? `<code style="margin-left:8px;color:var(--text-muted);font-size:11px;">JSON Pointer: ${escapeHtml(d.pointer || '/')}</code>` : ''}
           </span>
         </div>
       `).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('pathList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('pathList').innerHTML=__h3;
@@ -684,6 +757,7 @@ function doDiff() {
     ToolBox.showToast(`对比完成：${diffs.length} 处差异`);
     
   } catch(e) {
+    invalidateDiff();
     ToolBox.showToast('❌ JSON 解析错误: ' + e.message);
   }
 }
@@ -704,7 +778,7 @@ function copyDiff() {
     text = diffs.map(d => {
       const icon = d.op === 'add' ? '+ ' : d.op === 'del' ? '- ' : '~ ';
       const val = d.op === 'mod' ? `${JSON.stringify(d.from)} → ${JSON.stringify(d.to)}` : JSON.stringify(d.value);
-      return `${icon}${d.path}: ${val}`;
+      return `${icon}${d.path} [${d.pointer || '/'}]: ${val}`;
     }).join('\n');
   }
   if (!text) { ToolBox.showToast(i18nText('toast.msg474')); return; }
@@ -723,15 +797,7 @@ function downloadDiff() {
 function clearAll() {
   document.getElementById('left').value = '';
   document.getElementById('right').value = '';
-  document.getElementById('leftDiff').textContent = '等待对比...';
-  document.getElementById('rightDiff').textContent = '等待对比...';
-  document.getElementById('unifiedDiff').textContent = '等待对比...';
-  document.getElementById('pathList').textContent = '等待对比...';
-  document.getElementById('jsonDiff').textContent = '等待对比...';
-  document.getElementById('diffSummary').style.display = 'none';
-  lastDiff = null;
-  lastLeft = null;
-  lastRight = null;
+  invalidateDiff();
 }
 
 function loadSample() {
