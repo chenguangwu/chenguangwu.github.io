@@ -4393,6 +4393,47 @@ const CASES = [
   },
   {
     slug: "it/js-formatter",
+    inputs: { input: "/}/.test(\"}\")" },
+    clicks: ["doValidate();var e=String(document.getElementById('err').textContent);document.getElementById('__tbProbe').textContent='JSREG '+((e.indexOf('语法检查通过')>=0&&e.indexOf('括号不平衡')<0&&e.indexOf('script')>=0)?'OK':'BAD '+e);"],
+    expect: ["JSREG OK"],
+    ref: "文件以含 `}` 的正则开头时不得被括号预检误杀；必须交给 acorn 解析，script 模式通过。旧实现用 token 括号计数先行报「括号不平衡」。"
+  },
+  {
+    slug: "it/js-formatter",
+    inputs: { input: 'const s = "import";' },
+    clicks: ["doValidate();var e=String(document.getElementById('err').textContent);document.getElementById('__tbProbe').textContent='JSIMPSTR '+((e.indexOf('语法检查通过')>=0&&e.indexOf('script')>=0&&e.indexOf('模块语法')<0)?'OK':'BAD '+e);"],
+    expect: ["JSIMPSTR OK"],
+    ref: "字符串里的 import 不得触发模块提示；按 script 模式真实解析通过。旧实现全文正则命中 import 即跳过检查。"
+  },
+  {
+    slug: "it/js-formatter",
+    inputs: { input: 'import x from "y";' },
+    clicks: ["doValidate();var e=String(document.getElementById('err').textContent);document.getElementById('__tbProbe').textContent='JSMOD '+((e.indexOf('语法检查通过')>=0&&e.indexOf('module')>=0)?'OK':'BAD '+e);"],
+    expect: ["JSMOD OK"],
+    ref: "真实静态 import 必须回退到 module 模式解析并通过，而不是只给括号统计提示。"
+  },
+  {
+    slug: "it/js-formatter",
+    clicks: ["var nl=String.fromCharCode(10);var src='const t=`a'+nl+nl+'  b  '+nl+'`;';document.getElementById('input').value=src;formatJs();var f=String(document.getElementById('output').textContent);minifyJs();var m=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='JSTPL '+((f.indexOf('a'+nl+nl+'  b  '+nl)>=0&&m.indexOf('a'+nl+nl+'  b  '+nl)>=0)?'OK':'BAD '+JSON.stringify(m));"],
+    expect: ["JSTPL OK"],
+    ref: "模板字符串内部的连续换行与行尾双空格必须原样保留；旧实现格式化/压缩后对整段输出做行尾 trim 与连续空行合并，改变了字符串值。"
+  },
+  {
+    slug: "it/js-formatter",
+    inputs: { input: "/a  b/.test(s)" },
+    clicks: ["minifyJs();var o=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='JSREG2 '+((o==='/a  b/.test(s)')?'OK':'BAD '+o);"],
+    expect: ["JSREG2 OK"],
+    ref: "文件开头正则内部双空格必须原样保留；旧词法器在无前置 token 时把 `/` 当普通运算符，随后空白 token 被压缩为单个空格。"
+  },
+  {
+    slug: "it/js-formatter",
+    inputs: { input: "function f(x){return x*2}" },
+    clicks: ["formatJs();var o=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='JSSINGLE '+((o.split(String.fromCharCode(10)).length===2&&o.indexOf('function f(x)')===0)?'OK':'BAD '+JSON.stringify(o));"],
+    expect: ["JSSINGLE OK"],
+    ref: "单行代码格式化后仍为单行（只补一个结尾换行），示例文案必须与真实行为一致；旧深度解析示例承诺自动拆成多行。"
+  },
+  {
+    slug: "it/js-formatter",
     // IT-N297：块注释内联保留，格式化结果仍是能算出 3 的合法 JS。
     clicks: ["var nl=String.fromCharCode(10);document.getElementById('input').value='const x = 1/*c*/+2'+nl+'console.log(x)';formatJs();var o=document.getElementById('output').textContent;var ok=false;try{ok=(new Function(o+'return x;')())===3;}catch(e){}document.getElementById('__tbProbe').textContent='ASI297 '+(ok?'OK':'BAD');"],
     inputs: { input: "const x = 1/*c*/+2\nconsole.log(x)", indent: "4" },
