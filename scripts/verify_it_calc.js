@@ -13792,6 +13792,44 @@ const CASES = [
   {
     "slug": "it/xml-formatter",
     "domParser": true,
+    "inputs": { "input": "<p>Hello <b>world</b> !</p>" },
+    "clicks": ["doBeautify();var f=String(document.getElementById('output').textContent);doMinify();var m=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='XMLMIX '+((f==='<p>Hello <b>world</b> !</p>'&&m===f)?'OK':'BAD '+f+'|'+m);"],
+    "expect": ["XMLMIX OK"],
+    "ref": "混合内容格式化/压缩必须原样保留文本空格：`Hello ` 与 ` !` 都不能被 trim 或插入换行；旧实现对文本节点 trim、对子元素插缩进。"
+  },
+  {
+    "slug": "it/xml-formatter",
+    "domParser": true,
+    "inputs": { "input": '<root xml:space="preserve"><p>  a  <b>b</b>  c  </p></root>' },
+    "clicks": ["doBeautify();var o=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='XMLSPACE '+((o.indexOf('  a  ')>=0&&o.indexOf('  c  ')>=0&&o.indexOf('preserve\">'+String.fromCharCode(10))<0)?'OK':'BAD '+o);"],
+    "expect": ["XMLSPACE OK"],
+    "ref": "`xml:space=\"preserve\"` 必须递归保留文本节点原始空白，不能按普通元素缩进或 trim。"
+  },
+  {
+    "slug": "it/xml-formatter",
+    "domParser": true,
+    "clicks": ["var I=document.getElementById('input');I.value='<root><parsererror>example</parsererror></root>';doValidate();var ok=String(document.getElementById('err').textContent);I.value='<root>';doValidate();var bad=String(document.getElementById('err').textContent);document.getElementById('__tbProbe').textContent='XMLELEM '+((ok.indexOf('有效 XML')>=0&&ok.indexOf('解析错误')<0&&bad.indexOf('解析错误')>=0)?'OK':'BAD');"],
+    "expect": ["XMLELEM OK"],
+    "ref": "合法同名 parsererror 元素不得被误判；Chrome 真正解析错误的结构是 xhtml 命名空间 parsererror 子节点，必须按该结构判错。"
+  },
+  {
+    "slug": "it/xml-formatter",
+    "domParser": true,
+    "inputs": { "input": '<!DOCTYPE root [<!ELEMENT root EMPTY><!ENTITY x "y">]><root/>' },
+    "clicks": ["doBeautify();var o=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='XMLDTD '+((o.indexOf('<!DOCTYPE root [<!ELEMENT root EMPTY><!ENTITY x \"y\">]>')>=0)?'OK':'BAD '+o);"],
+    "expect": ["XMLDTD OK"],
+    "ref": "DOCTYPE 内部子集必须原样保留（元素/实体声明），不能只输出名称和 PUBLIC/SYSTEM；未闭合时必须拒绝处理。"
+  },
+  {
+    "slug": "it/xml-formatter",
+    "domParser": true,
+    "clicks": ["var I=document.getElementById('input');I.value='<a/>';doBeautify();var enabled=!document.getElementById('copyBtn').disabled;I.value='<a>';invalidateXml();var stale=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='XMLSTALE '+((enabled&&document.getElementById('copyBtn').disabled&&document.getElementById('downloadBtn').disabled&&stale.indexOf('结果已过期')>=0)?'OK':'BAD '+enabled+'|'+stale);"],
+    "expect": ["XMLSTALE OK"],
+    "ref": "成功后复制/下载启用；输入或缩进变化必须失效旧结果、清空可复制内容并禁用按钮，避免复制「等待输入...」或旧 XML。"
+  },
+  {
+    "slug": "it/xml-formatter",
+    "domParser": true,
     "inputs": {
       "input": "<note><!-- 头部注释 --><to from=\"Alice\">Bob</to><body priority=\"high\">Hello<raw><![CDATA[<unparsed>text</unparsed>]]></raw></body><meta><date>2025-01-01</date></meta></note>",
       "indent": "2"
