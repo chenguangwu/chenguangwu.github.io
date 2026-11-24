@@ -412,6 +412,67 @@
     }
   }
 
+  /* ---------- 5) 表单可访问名称：title-only 控件补 aria-label ---------- */
+  function enhanceFormLabels() {
+    var els = document.querySelectorAll('select[title],input[title],textarea[title]');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (el.getAttribute('aria-label') || el.getAttribute('aria-labelledby')) continue;
+      if (el.id && document.querySelector('label[for="' + el.id.replace(/"/g, '\\"') + '"]')) continue;
+      var t = (el.getAttribute('title') || '').trim();
+      if (t) el.setAttribute('aria-label', t);
+    }
+  }
+
+  /* ---------- 6) 历史项：把容器点击下沉到 .info，避免按钮嵌套 ---------- */
+  function enhanceHistoryItems() {
+    var items = document.querySelectorAll('.history-item[onclick]');
+    for (var i = 0; i < items.length; i++) {
+      var el = items[i], info = el.querySelector('.info');
+      if (!info) continue;
+      var fn = el.onclick;
+      el.removeAttribute('onclick');
+      el.onclick = null;
+      info.setAttribute('role', 'button');
+      info.setAttribute('tabindex', '0');
+      (function (infoEl, fn0) {
+        infoEl.addEventListener('click', function (ev) { ev.stopPropagation(); if (fn0) fn0.call(infoEl, ev); });
+        infoEl.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); infoEl.click(); }
+        });
+      })(info, fn);
+    }
+  }
+
+  /* ---------- 7) 可滚动区域可聚焦 ---------- */
+  function enhanceScrollables() {
+    var cand = document.querySelectorAll('.result-box,[id*="result"],.code-output-body,.timeline-box,.vigenere-table-wrap,.ast-tree,.tabs,.diff-panel,pre,.table-wrap,.history-list');
+    for (var i = 0; i < cand.length; i++) {
+      var el = cand[i];
+      if (el.getAttribute('tabindex') === '0') continue;
+      var cs = getComputedStyle(el);
+      if (!/auto|scroll/.test(cs.overflowY + cs.overflowX)) continue;
+      if (el.scrollHeight > el.clientHeight + 2 || el.scrollWidth > el.clientWidth + 2) {
+        el.setAttribute('tabindex', '0');
+      }
+    }
+  }
+
+  function enhanceAllA11y() {
+    try { enhanceFormLabels(); } catch (e) {}
+    try { enhanceHistoryItems(); } catch (e) {}
+    try { enhanceScrollables(); } catch (e) {}
+  }
+
+  var a11yTimer = null;
+  function scheduleA11y() {
+    if (a11yTimer) return;
+    a11yTimer = setTimeout(function () {
+      a11yTimer = null;
+      enhanceAllA11y();
+    }, 300);
+  }
+
   function init() {
     try { enhanceResults(); } catch (e) {}
     try { enhanceValidation(); } catch (e) {}
@@ -419,6 +480,10 @@
     try { ensureClearButton(); } catch (e) {}
     try { enhanceTabs(); } catch (e) {}
     try { enhanceA11y(); } catch (e) {}
+    enhanceAllA11y();
+    try {
+      new MutationObserver(scheduleA11y).observe(document.body, { childList: true, subtree: true });
+    } catch (e) {}
     // 部分页面在 DOMContentLoaded 之后才重建标签栏，补一次延迟兜底。
     setTimeout(function () { try { enhanceTabs(); } catch (e) {} }, 350);
     window.addEventListener('load', function () { try { enhanceTabs(); } catch (e) {} });
