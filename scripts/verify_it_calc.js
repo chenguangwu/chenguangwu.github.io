@@ -15763,6 +15763,62 @@ const CASES = [
     ref: "第750批：二维码库缺失须报「库未加载」而非统一误称内容过长；复制仍取输入原文。",
   },
 
+  // ---- 第752批补充 ----
+  {
+    slug: "it/hill-cipher",
+    clicks: ["var i=document.getElementById('input'),k=document.getElementById('key'),o=document.getElementById('output'),n=document.getElementById('hillNote');i.value='HELLO';k.value='3,1,1,2';enc();document.getElementById('__tbProbe').textContent='HILLPAD '+((o.value==='ZPSHNI'&&n.textContent.indexOf('补 1 个 X')>=0&&n.textContent.indexOf('忽略 0 个')>=0)?'OK':'BAD '+o.value+'|'+n.textContent);"],
+    expect: ["HILLPAD OK"],
+    ref: "第752批：加密奇数明文补 1 个 X 后必须明确告知补位数量与末尾 X 歧义；旧实现静默补位，用户无法判断解出的末尾 X 是原文还是填充。",
+  },
+  {
+    slug: "it/hill-cipher",
+    clicks: ["var oa=alert,msg='';alert=function(m){msg+=String(m);};var i=document.getElementById('input'),o=document.getElementById('output');o.value='OLD';i.value='ABC';dec();alert=oa;document.getElementById('__tbProbe').textContent='HILLODD '+((o.value===''&&msg.indexOf('奇数')>=0&&msg.indexOf('不会自动补位')>=0)?'OK':'BAD '+o.value+'|'+msg);"],
+    expect: ["HILLODD OK"],
+    ref: "第752批：解密奇数长度密文必须拒绝并清空旧结果，明确说明不会自动补位；旧实现 padEnd 一个 X 后继续解密，输出用户无法察觉的伪明文。",
+  },
+  {
+    slug: "it/email-normalizer",
+    clicks: ["var i=document.getElementById('input'),g=document.getElementById('opt_gmail');g.checked=true;var bad=['a..b@example.com','a@-example.com','+tag@gmail.com'],res=[];bad.forEach(function(v){i.value=v;normalize();var r=document.getElementById('result').innerHTML;res.push(r.indexOf('邮箱格式无效')>=0?'Y':'N');});document.getElementById('__tbProbe').textContent='EMAILBAD '+res.join('');"],
+    expect: ["EMAILBAD YYY"],
+    ref: "第752批：本地名连续点、域名标签以连字符开头、Gmail +tag 前无邮箱名均须判无效并输出「邮箱格式无效」；旧实现只查 @ 与空格，三类坏地址都会通过并给出归一结果。",
+  },
+  {
+    slug: "it/email-normalizer",
+    clicks: ["document.getElementById('input').value='john.doe+tag@gmail.com';document.getElementById('opt_gmail').checked=true;normalize();document.getElementById('__tbProbe').textContent='EMAILOK '+document.getElementById('afterOut').textContent;"],
+    expect: ["EMAILOK johndoe@gmail.com"],
+    ref: "第752批：合法 Gmail 地址去点号与 +tag 后仍须得到有效本地名 johndoe；新校验在归一后复查派生 local，避免把合法地址误杀。",
+  },
+  {
+    slug: "it/code-highlighter",
+    clicks: ["var src=String(highlight);document.getElementById('__tbProbe').textContent='HLEN '+((src.indexOf('Lines')>=0&&src.indexOf('Non-empty')>=0&&src.indexOf('Characters')>=0&&src.indexOf('Language')>=0&&src.indexOf('行数')>=0)?'OK':'BAD');"],
+    expect: ["HLEN OK"],
+    ref: "第752批：英文态高亮统计须输出 Lines/Non-empty/Characters/Language；旧实现写死中文行数/非空行/字符数/语言，英文界面出现中文标签。",
+  },
+  {
+    slug: "it/code-highlighter",
+    clicks: ["var src=String(highlight)+String(clearAll);document.getElementById('__tbProbe').textContent='HLEN2 '+((src.indexOf('Paste or enter code')>=0&&src.indexOf('Click Highlight')>=0&&src.indexOf('请输入或粘贴代码')>=0&&src.indexOf('点击「高亮渲染」')>=0)?'OK':'BAD');"],
+    expect: ["HLEN2 OK"],
+    ref: "第752批：英文态空输入与清空后的占位提示必须全英文；旧实现两个分支都写死中文句子。",
+  },
+  {
+    slug: "it/charset-detector",
+    clicks: ["var t=document.getElementById('txt'),cap='';t.value='hello';detect();var oldCopy=ToolBox.copyText;ToolBox.copyText=function(x){cap=x;};copyResult();ToolBox.copyText=oldCopy;document.getElementById('__tbProbe').textContent='CHCOPY '+((cap==='hello'&&cap.indexOf('修复输出')<0&&cap.indexOf('字符构成')<0)?'OK':'BAD '+cap);"],
+    expect: ["CHCOPY OK"],
+    ref: "第752批：复制按钮必须复制修复后的正文 hello，而不是整段带「修复输出/字符构成」的报告；旧实现复制 out.innerText，用户粘贴到编辑器会带入报告。",
+  },
+  {
+    slug: "it/charset-detector",
+    clicks: ["var t=document.getElementById('txt');t.value='E4 B8 AD E6 96 87';detect();var n=(window.__charsetCandidates||[]).length,c=window.__charsetCopyText;document.getElementById('__tbProbe').textContent='CHBYTE '+n+'|'+c;"],
+    expect: ["CHBYTE 4|中文"],
+    ref: "第752批：六字节 UTF-8 串须给出 4 个候选并按可读性默认选 UTF-8 中文；复制取完整候选文本而非截断预览。",
+  },
+  {
+    slug: "it/captcha-generator",
+    clicks: ["var src=String(verify);var g=String(__captcha_generator_f0);document.getElementById('__tbProbe').textContent='CAPEN '+((src.indexOf('Verification succeeded')>=0&&src.indexOf('Verification failed')>=0&&src.indexOf('The correct answer is')>=0&&g.indexOf('Web Crypto is unavailable')>=0)?'OK':'BAD');"],
+    expect: ["CAPEN OK"],
+    ref: "第752批：英文态验证码成功/失败/数学错误提示均须英文，数学失败还要给出正确答案；旧实现三个分支写死中文。",
+  },
+
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
