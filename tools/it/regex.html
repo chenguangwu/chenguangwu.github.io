@@ -219,7 +219,11 @@ IP: 192.168.1.1, 10.0.0.255
         <button type="button" class="btn danger" onclick="clearAll()">清空</button>
       </div>
 
-      <p style="font-size:12px;color:var(--text-muted);margin:-2px 0 12px;">使用浏览器 JavaScript 正则引擎；结果与前端 <code>RegExp</code> 行为一致。</p>
+      <p style="font-size:12px;color:var(--text-muted);margin:-2px 0 8px;">使用浏览器 JavaScript 正则引擎；结果与前端 <code>RegExp</code> 行为一致。</p>
+      <div style="margin:0 0 12px;">
+        <label style="font-size:12px;color:var(--text-muted);margin:0;display:inline-flex;align-items:center;gap:6px;"><input type="checkbox" id="regexShareText" style="width:auto;margin:0;"><span data-zh="分享链接包含完整测试文本（默认关闭）">Include full test text in the share link (off by default)</span></label>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;" data-zh="默认只分享正则与标志；勾选后测试文本会编码进 URL 片段，编码不是加密，可能暴露日志或凭据，也会留在浏览器历史或剪贴板。">By default only the pattern and flags are shared. If enabled, the test text is encoded into the URL fragment; encoding is not encryption, so logs or credentials may be exposed and the link may remain in browser history or the clipboard.</div>
+      </div>
 
       <label>匹配结果</label>
       <div class="toolbar" style="margin:8px 0;align-items:center;">
@@ -564,10 +568,12 @@ function testRegex(){
       return;
     }
     
-    document.getElementById('matchCount').textContent = matches.length;
+    document.getElementById('matchCount').textContent = res.truncated ? ('≥' + (matches.length + 1)) : String(matches.length);
     document.getElementById('groupCount').textContent = matches[0] ? matches[0].length - 1 : 0;
     
-    let html = `<p style="margin-bottom:8px;">✅ 共匹配 <strong style="color:var(--primary);">${matches.length}</strong> 处</p>`;
+    let html = res.truncated
+      ? `<p style="margin-bottom:8px;">⚠ 共匹配<strong style="color:var(--primary);">至少 ${matches.length + 1}</strong> 处；仅展示并高亮前 ${matches.length} 条，复制/导出同样只覆盖这 ${matches.length} 条</p>`
+      : `<p style="margin-bottom:8px;">✅ 共匹配 <strong style="color:var(--primary);">${matches.length}</strong> 处</p>`;
     matches.slice(0, 100).forEach((m, i) => {
       const location = getLineColumn(text, m.index);
       html += `<div class="match-item"><span class="group">#${i+1}</span> <mark>${escapeHtml(m[0])}</mark>`;
@@ -586,7 +592,7 @@ function testRegex(){
       html += `<span style="color:var(--text-muted);font-size:11px;margin-left:8px;">位置: ${m.index}（第 ${location.line} 行，第 ${location.column} 列）</span></div>`;
     });
     if (matches.length > 100) {
-      html += `<p style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:8px;">仅显示前 100 条结果，共 ${matches.length} 条</p>`;
+      html += `<p style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:8px;">明细仅列出前 100 条${res.truncated ? '（总数至少 1001，已截断）' : '，共 ' + matches.length + ' 条'}</p>`;
     }
     const __h4=html;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){resultDiv.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}resultDiv.innerHTML=__h4;
     
@@ -598,6 +604,9 @@ function testRegex(){
       lastEnd = m.index + m[0].length;
     });
     highlighted += escapeHtml(text.substring(lastEnd));
+    if (matches.length > 500) {
+      highlighted += `<p style="color:var(--text-muted);font-size:12px;margin-top:8px;">高亮仅展示前 500 条${res.truncated ? '（总数至少 1001，已截断）' : ''}，当前共 ${matches.length} 条</p>`;
+    }
     const __h5=highlighted;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){highlightDiv.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}highlightDiv.innerHTML=__h5;
   }, 'test');
 }
@@ -678,7 +687,12 @@ function copyMatches(){
   runRegexGuarded({mode:'test', pattern:pattern, flags:flags, text:text, global:flags.includes('g')}, function(res){
     if(!res.ok){ ToolBox.showToast(i18nText('toast.msg455')); return; }
     if(res.matches.length === 0){ ToolBox.showToast(i18nText('toast.msg475')); return; }
-    ToolBox.copyText(res.matches.map(function(m){ return m.g[0]; }).join('\n'));
+    const copied = res.matches.map(function(m){ return m.g[0]; }).join('\n');
+    if(res.truncated){
+      ToolBox.copyText(copied, ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied first 1000 matches only — results were truncated":"仅复制前 1000 条匹配，结果已截断"));
+    } else {
+      ToolBox.copyText(copied);
+    }
   }, 'copy');
 }
 
@@ -689,16 +703,20 @@ function copyPattern() {
 }
 
 function copyShareLink() {
+  const includeText = !!(document.getElementById('regexShareText') && document.getElementById('regexShareText').checked);
   const payload = {
     p: document.getElementById('pattern').value,
-    f: document.getElementById('flags').value,
-    t: document.getElementById('testText').value
+    f: document.getElementById('flags').value
   };
+  if (includeText) payload.t = document.getElementById('testText').value;
   // IT-N253：标准 base64 的 + 会被 URLSearchParams 当成空格解开，改 base64url（+→- /→/ 去尾部 =）
   const standard = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
   const encoded = standard.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const url = location.href.split('#')[0] + '#regex=' + encoded;
-  ToolBox.copyText(url, '已复制分享链接');
+  const en = (typeof TBKit!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  ToolBox.copyText(url, includeText
+    ? (en ? 'Link copied — it includes the full test text; share only if safe' : '已复制分享链接，包含完整测试文本；请确认可安全分享')
+    : (en ? 'Link copied without test text' : '已复制分享链接，不含测试文本'));
 }
 
 function restoreSharedRegex() {
@@ -714,7 +732,8 @@ function restoreSharedRegex() {
     const payload = JSON.parse(decodeURIComponent(escape(atob(encoded))));
     if (typeof payload.p === 'string') document.getElementById('pattern').value = payload.p;
     if (typeof payload.f === 'string') document.getElementById('flags').value = payload.f;
-    if (typeof payload.t === 'string') document.getElementById('testText').value = payload.t;
+    // 链接未携带测试文本时显式清空，避免用户误以为当前默认文本也来自分享链接。
+    document.getElementById('testText').value = typeof payload.t === 'string' ? payload.t : '';
   } catch (error) {
     // 无效片段仅忽略，避免阻碍本地编辑。
     if (typeof console !== 'undefined' && console.warn) console.warn('[regex] 忽略无效分享片段', error);
@@ -916,14 +935,22 @@ self.onmessage = function(e){
   try {
     var re = new RegExp(d.pattern, d.flags);
     if (d.mode === 'test') {
-      var ms = [], m;
+      var ms = [], m, truncated = false;
+      var unicodeMode = d.flags.indexOf('u') >= 0 || d.flags.indexOf('v') >= 0;
       if (d.global) {
         while ((m = re.exec(d.text)) !== null) {
+          if (ms.length >= 1000) { truncated = true; break; }
           var g1 = {}, k1;
           if (m.groups) { for (k1 in m.groups) { if (Object.prototype.hasOwnProperty.call(m.groups, k1)) g1[k1] = m.groups[k1]; } }
           ms.push({ i: m.index, g: Array.prototype.slice.call(m), n: g1 });
-          if (m.index === re.lastIndex) re.lastIndex++;
-          if (ms.length > 1000) break;
+          if (m.index === re.lastIndex) {
+            if (unicodeMode) {
+              var cp = d.text.codePointAt(re.lastIndex);
+              re.lastIndex += (cp !== undefined && cp > 0xFFFF) ? 2 : 1;
+            } else {
+              re.lastIndex++;
+            }
+          }
         }
       } else {
         m = re.exec(d.text);
@@ -933,7 +960,7 @@ self.onmessage = function(e){
           ms.push({ i: m.index, g: Array.prototype.slice.call(m), n: g2 });
         }
       }
-      o = { ok: true, matches: ms };
+      o = { ok: true, matches: ms, truncated: truncated };
     } else {
       var re2 = new RegExp(d.pattern, d.flags);
       // IT-N254：非全局时 match() 的数组含捕获组（如 (\d) → 长度 2），不能当替换次数。

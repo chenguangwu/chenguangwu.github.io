@@ -5350,6 +5350,13 @@ const CASES = [
   },
   {
     slug: "it/regex-cheatsheet",
+    inputs: { searchInput: "非单词边界" },
+    clicks: ["var h=String(document.getElementById('cmdList').innerHTML);document.getElementById('__tbProbe').textContent='BND727 '+((h.indexOf('匹配 scat 中的 cat')>=0&&h.indexOf('匹配 category 中的 cat')<0)?'OK':'BAD');"],
+    expect: ["BND727 OK"],
+    ref: "第727批：`/\\Bcat/` 不能匹配 category 开头的 cat（该位置前是单词边界），示例改为 scat 中的 cat 并说明反例。旧示例「匹配 category 中的 cat」本身不成立。",
+  },
+  {
+    slug: "it/regex-cheatsheet",
     // IT-D30-b：POSIX [:alpha:] 在 JS 中不工作（node: /[[:alpha:]]/.test('abc')===false），
     // 原 params「部分引擎支持」过于含糊，须明确 JS 不支持。
     inputs: { searchInput: "POSIX 字符类" },
@@ -11860,6 +11867,12 @@ const CASES = [
     clicks: ["switchTab('replace');document.getElementById('replaceText').value='abc';document.getElementById('replaceWith').value='';doReplace();document.getElementById('__tbProbe').textContent='REPERR725 '+replaceState+' '+(document.getElementById('replaceCopyBtn').disabled?'D':'E')+' '+replaceResultText.length;"],
     expect: ["REPERR725 error D 0"],
     ref: "第726批：替换失败进入 error 状态，复制/下载按钮禁用且 replaceResultText 为空；旧实现只排除空内容与初始提示，错误提示可被复制。harness 中 Worker 缺失也会进入统一失败状态。",
+  },
+  {
+    slug: "it/regex",
+    clicks: ["var f=String(copyShareLink);var box=document.getElementById('regexShareText');document.getElementById('__tbProbe').textContent='SHARE727 '+((box&&box.checked===false&&f.indexOf('regexShareText')>=0&&f.indexOf('payload.t')>=0&&f.indexOf('if (includeText)')>=0)?'OK':'BAD');"],
+    expect: ["SHARE727 OK"],
+    ref: "第727批：分享链接默认只含 p/f，不把完整测试文本编码进 URL；仅显式勾选 regexShareText 后才携带 t。两种模式各复制一次并解码断言。",
   },
   {
     slug: "it/regex",
