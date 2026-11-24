@@ -15270,6 +15270,33 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["6 工作日"],
     ref: "第735批：10 个自然日中先排除周末（7 个工作日），再扣 10-01/10-02 两个假日、补 10-10 周六调休 ⇒ 6。旧页面没有工作日功能。"
+  },
+  {
+    slug: "it/color-converter",
+    inputs: { colorInput: "zzz" },
+    clicks: ["fromInput('zzz')"],
+    expect: ["无法识别当前输入，旧转换结果已清除"],
+    ref: "第736批：无效颜色必须清空格式卡与复制入口；旧实现静默保留旧色块/格式。默认 #4338CA 合法 ⇒ 不命中。"
+  },
+  {
+    slug: "it/color-converter",
+    inputs: { fgInput: "#ff0000", bgInput: "#ffffff" },
+    clicks: ["calcContrast();document.getElementById('__tbProbe').textContent='PICK '+document.getElementById('fgColor').value+' '+document.getElementById('bgColor').value;"],
+    expect: ["PICK #ff0000 #ffffff"],
+    ref: "第736批：文本框输入有效颜色后必须同步取色器；旧实现只算对比度，取色器仍停在上次颜色。默认前景白 ⇒ 不命中。"
+  },
+  {
+    slug: "it/qrcode",
+    clicks: ["__qrMarkStale('内容已修改，正在重新生成…');document.getElementById('__tbProbe').textContent='STALE '+document.getElementById('qrDownloadPng').disabled+' '+(document.getElementById('qrStaleNote')?'NOTE':'NONOTE');"],
+    expect: ["STALE true NOTE"],
+    ref: "第736批：输入变化后防抖期间必须立即禁用下载并提示结果过期；旧实现 500ms 内仍可下载旧码。默认加载后下载可用 ⇒ 不命中。"
+  },
+  {
+    slug: "it/qrcode",
+    inputs: { textInput: "A\n" + "x".repeat(3000) + "\nB", qrBatchTrim: "1" },
+    clicks: ["generate();document.getElementById('__tbProbe').textContent='BATCH '+qrItems.length;"],
+    expect: ["BATCH 2", "第 2 行生成失败"],
+    ref: "第736批：批量逐行生成，中间 3000 字符行超容量只标该行失败，前后有效行保留并可下载。旧实现共用 try/catch 清空全部。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

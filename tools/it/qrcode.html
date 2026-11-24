@@ -356,11 +356,13 @@ var errorLevel = document.getElementById('errorLevel');
 var lastQr = null;
 var lastCanvas = null;
 var qrItems = [];
+var qrStale = false;
 
 sizeEl.addEventListener('input', function() { sizeVal.textContent = sizeEl.value + 'px'; generate(); });
 fgColor.addEventListener('input', function() { fgVal.textContent = fgColor.value; generate(); });
 bgColor.addEventListener('input', function() { bgVal.textContent = bgColor.value; generate(); });
 errorLevel.addEventListener('change', generate);
+textInput.addEventListener('input', function(){ __qrMarkStale('内容已修改，正在重新生成…'); });
 textInput.addEventListener('input', debounce(generate, 500));
 document.getElementById('qrBatchTrim').addEventListener('change', generate);
 document.getElementById('qrmargin').addEventListener('input', generate);
@@ -384,6 +386,7 @@ var QR_BYTE_CAP = {
   H: [7, 14, 24, 34, 44, 58, 64, 84, 98, 119, 137, 155, 177, 194, 220, 250, 280, 310, 338, 382, 403, 439, 461, 511, 535, 593, 625, 658, 698, 742, 790, 842, 898, 958, 983, 1051, 1093, 1139, 1219, 1273]
 };
 function __qrBytes(str){
+  if(typeof str!=="string") return 0;
   var n = 0;
   for (var i = 0; i < str.length; i++) {
     var c = str.charCodeAt(i);
@@ -422,6 +425,7 @@ function __qrChart(){
 }
 
 function __qrBuild(text, margin, pixelSize){
+  if(typeof text!=="string") return null;
   if (qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
   var qr = qrcode(0, errorLevel.value);
   var mode = /^[0-9]+$/.test(text) ? 'Numeric' : (/^[0-9A-Z $%*+\-./:]+$/.test(text) ? 'Alphanumeric' : 'Byte');
@@ -469,6 +473,29 @@ function __qrPayloads(){
   }
   return lines.slice(0, 20);
 }
+function __qrSetButtons(enabled){
+  ['qrDownloadPng','qrDownloadSvg'].forEach(function(id){ var b=document.getElementById(id); if(b)b.disabled=!enabled; });
+}
+function __qrClearStaleNote(){
+  var n=document.getElementById('qrStaleNote'); if(n) n.remove();
+}
+function __qrMarkStale(reason){
+  qrStale=true;
+  __qrSetButtons(false);
+  var container=document.getElementById('qrcode');
+  var note=document.getElementById('qrStaleNote');
+  if(!note && container && container.parentNode){
+    note=document.createElement('p'); note.id='qrStaleNote';
+    note.style.cssText='color:#B45309;font-size:13px;margin:8px 0;';
+    container.parentNode.insertBefore(note,container);
+  }
+  if(note) note.textContent='⏳ '+reason+' 下载已暂时禁用，生成完成后恢复。';
+}
+function __qrErrorText(e){
+  if(e && e.message) return String(e.message);
+  if(typeof e==='string' && e.trim()) return e;
+  return '内容超出二维码容量或包含无法编码的字符';
+}
 function generate() {
   var container = document.getElementById('qrcode');
   var marginInfo = __qrMarginValue();
@@ -477,18 +504,22 @@ function generate() {
   if(marginHint){ marginHint.style.display='none'; marginHint.textContent=''; }
   var lines = __qrPayloads();
   if (!lines.length) {
-    lastQr = null; lastCanvas = null; qrItems = [];
+    lastQr = null; lastCanvas = null; qrItems = []; qrStale=false;
+    __qrClearStaleNote(); __qrSetButtons(false);
     container.innerHTML = '<p style="color:#999;">输入内容后自动生成二维码</p>';
-    ['qrDownloadPng','qrDownloadSvg'].forEach(function(id){ var b=document.getElementById(id); if(b)b.disabled=true; });
     try { __qrChart(); } catch(e){}
     return;
   }
-  try {
-    var margin = marginInfo.value;
-    var pixelSize = parseInt(sizeEl.value,10) || 256;
-    container.innerHTML = ''; qrItems = [];
-    for (var i = 0; i < lines.length; i++) {
-      var item = __qrBuild(lines[i], margin, pixelSize);
+  var margin = marginInfo.value;
+  var pixelSize = parseInt(sizeEl.value,10) || 256;
+  container.innerHTML = ''; qrItems = [];
+  var failures = [];
+  for (var i = 0; i < lines.length; i++) {
+    var item = null, err = null;
+    try { item = __qrBuild(lines[i], margin, pixelSize); }
+    catch (e) { err = e; }
+    if (item) {
+      var successIndex = qrItems.length;
       qrItems.push(item);
       var wrap;
       if (lines.length > 1) {
@@ -500,20 +531,31 @@ function generate() {
       wrap.appendChild(item.canvas);
       if (lines.length > 1) {
         var tb = document.createElement('div'); tb.className = 'toolbar'; tb.style.margin = '8px 0 0';
-        var b1 = document.createElement('button'); b1.type='button'; b1.className='btn'; b1.textContent='下载 PNG'; b1.setAttribute('onclick','downloadQR('+i+')');
-        var b2 = document.createElement('button'); b2.type='button'; b2.className='btn'; b2.textContent='下载 SVG'; b2.setAttribute('onclick','downloadSVG('+i+')');
+        var b1 = document.createElement('button'); b1.type='button'; b1.className='btn'; b1.textContent='下载 PNG'; b1.setAttribute('onclick','downloadQR('+successIndex+')');
+        var b2 = document.createElement('button'); b2.type='button'; b2.className='btn'; b2.textContent='下载 SVG'; b2.setAttribute('onclick','downloadSVG('+successIndex+')');
         tb.appendChild(b1); tb.appendChild(b2); wrap.appendChild(tb);
         container.appendChild(wrap);
       }
+    } else {
+      failures.push({ line: i + 1, msg: __qrErrorText(err) });
+      var card=document.createElement('div'); card.className='qr-card';
+      card.style.borderColor='#FCA5A5';
+      card.innerHTML='<div class="qr-head" style="color:#B91C1C;">第 '+(i+1)+' 行生成失败：'+String(lines[i]).slice(0,80).replace(/</g,'&lt;')+'</div><p style="color:#B91C1C;margin:8px 0 0;">'+failures[failures.length-1].msg.replace(/</g,'&lt;')+'</p>';
+      container.appendChild(card);
     }
-    lastQr = qrItems[0].qr; lastCanvas = qrItems[0].canvas;
-    ['qrDownloadPng','qrDownloadSvg'].forEach(function(id){ var b=document.getElementById(id); if(b)b.disabled=false; });
-    try { __qrChart(); } catch(e){}
-  } catch (e) {
-    lastQr = null; lastCanvas = null; qrItems = [];
-    container.innerHTML = '<p class="err">生成出错：' + e.message + '</p>';
-    console.error(e);
   }
+  if (qrItems.length) {
+    lastQr = qrItems[0].qr; lastCanvas = qrItems[0].canvas;
+    qrStale = false; __qrClearStaleNote(); __qrSetButtons(true);
+  } else {
+    lastQr = null; lastCanvas = null; qrStale=false; __qrClearStaleNote(); __qrSetButtons(false);
+  }
+  if(failures.length){
+    var note=document.createElement('p'); note.style.cssText='color:#B45309;font-size:13px;margin:10px 0 0;';
+    note.textContent='本次共 '+lines.length+' 行：成功 '+qrItems.length+' 行，失败 '+failures.length+' 行（第 '+failures.map(function(f){return f.line;}).join('、')+' 行）。成功项仍可单独下载。';
+    container.appendChild(note);
+  }
+  try { __qrChart(); } catch(e){}
 }
 function copyQRContent() {
   var lines = __qrPayloads();
@@ -524,7 +566,7 @@ function copyQRContent() {
 
 function downloadSVG(idx) {
   var item = qrItems[idx || 0];
-  if (!item || !lastQr) { ToolBox.showToast('请先生成有效二维码', 'warning'); return; }
+  if (qrStale || !item || !lastQr) { ToolBox.showToast(qrStale?'内容已修改，请等待重新生成后再下载':'请先生成有效二维码', 'warning'); return; }
   var qr = item.qr;
   var moduleCount = qr.getModuleCount();
   var pixelSize = item.pixelSize;
@@ -548,7 +590,7 @@ function downloadSVG(idx) {
 
 function downloadQR(idx) {
   var item = qrItems[idx || 0];
-  if (!item || !lastCanvas) { ToolBox.showToast('请先生成有效二维码', 'warning'); return; }
+  if (qrStale || !item || !lastCanvas) { ToolBox.showToast(qrStale?'内容已修改，请等待重新生成后再下载':'请先生成有效二维码', 'warning'); return; }
   var a = document.createElement('a');
   a.download = 'qrcode-' + Date.now() + (qrItems.length > 1 ? '-' + ((idx || 0) + 1) : '') + '.png';
   a.href = item.canvas.toDataURL('image/png');

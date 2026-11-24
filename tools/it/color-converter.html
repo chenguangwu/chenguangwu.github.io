@@ -182,12 +182,12 @@
 </div>
 
     
-    <div class="tabs">
-      <div class="tab active" data-tab="convert" onclick="switchTab('convert')">颜色转换</div>
-      <div class="tab" data-tab="palette" onclick="switchTab('palette')">调色板</div>
-      <div class="tab" data-tab="contrast" onclick="switchTab('contrast')">对比度</div>
-      <div class="tab" data-tab="common" onclick="switchTab('common')">常用颜色</div>
-      <div class="tab" data-tab="history" onclick="switchTab('history')">历史记录</div>
+    <div class="tabs" role="tablist" aria-label="颜色工具功能页签">
+      <button type="button" class="tab active" role="tab" aria-selected="true" data-tab="convert" onclick="switchTab('convert')">颜色转换</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-tab="palette" onclick="switchTab('palette')">调色板</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-tab="contrast" onclick="switchTab('contrast')">对比度</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-tab="common" onclick="switchTab('common')">常用颜色</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-tab="history" onclick="switchTab('history')">历史记录</button>
     </div>
 
     <div id="tab-convert" class="tab-content active">
@@ -394,12 +394,13 @@ const HISTORY_KEY = 'color_converter_history';
 const MAX_HISTORY = 30;
 
 let currentColor = { r: 102, g: 126, b: 234, a: 1 };
+let colorInputInvalid = false;
 
 function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   const selected = document.querySelector('.tab[data-tab="' + tab + '"]');
-  if (selected) selected.classList.add('active');
+  if (selected) { selected.classList.add('active'); selected.setAttribute('aria-selected','true'); }
   document.getElementById('tab-' + tab).classList.add('active');
   if (tab === 'palette') updatePalette(document.getElementById('palettePicker').value);
   if (tab === 'contrast') calcContrast();
@@ -418,6 +419,7 @@ function clampAlpha(v) {
 }
 
 function parseColor(str) {
+  if(typeof str!=="string") return null;
   str = str.trim().toLowerCase();
   
   if (/^#?[0-9a-f]{3}$/.test(str)) {
@@ -534,12 +536,17 @@ function fromPicker(hex) {
 function fromInput(str) {
   const color = parseColor(str);
   if (color) {
+    colorInputInvalid = false;
     currentColor = color;
     const hex = rgbToHex(color.r, color.g, color.b);
     document.getElementById('colorPicker').value = hex;
     updateDisplay();
     addToHistory(hex);
+    return;
   }
+  colorInputInvalid = true;
+  document.getElementById('colorPreview').style.background = 'repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 8px,#f9fafb 8px,#f9fafb 16px)';
+  document.getElementById('colorFormats').innerHTML = '<p style="color:var(--danger);padding:10px 0;">⚠️ 无法识别当前输入，旧转换结果已清除。支持 #fff、#ffffff、rgb(255,255,255)、rgba(255,255,255,0.5)、hsl(0,100%,50%)、hsla(0,100%,50%,0.5)。</p>';
 }
 
 function updateDisplay() {
@@ -576,6 +583,7 @@ function updateDisplay() {
 }
 
 function updatePalette(hex) {
+  if(typeof hex!=="string" || !hex) return;
   const color = parseColor(hex);
   if (!color) return;
   
@@ -616,13 +624,14 @@ function updatePalette(hex) {
 }
 
 function renderPalette(id, colors) {
+  if(!Array.isArray(colors)) return;
   const container = document.getElementById(id);
   const __h1=colors.map(c => {
     const rgb = hslToRgb(c.h, c.s, c.l);
     const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
     return `
       <div class="palette-item">
-        <div class="palette-swatch" style="background:${hex};" onclick="selectColor('${hex}')"></div>
+        <button type="button" class="palette-swatch" style="background:${hex};" aria-label="选择颜色 ${hex}" onclick="selectColor('${hex}')"></button>
         <div class="palette-name">${hex}</div>
       </div>
     `;
@@ -654,6 +663,8 @@ function calcContrast() {
   
   const fg = parseColor(fgStr);
   const bg = parseColor(bgStr);
+  if (fg) { var fgHex=rgbToHex(fg.r,fg.g,fg.b); document.getElementById('fgColor').value=fgHex; document.getElementById('fgColor').title=fg.a<1?'文本输入含透明度，取色器只显示不透明 RGB':'前景色取色器'; }
+  if (bg) { var bgHex=rgbToHex(bg.r,bg.g,bg.b); document.getElementById('bgColor').value=bgHex; document.getElementById('bgColor').title=bg.a<1?'背景输入含透明度，取色器只显示不透明 RGB':'背景色取色器'; }
   
   const ratioEl = document.getElementById('contrastRatio');
   const levelEl = document.getElementById('contrastLevel');
@@ -773,10 +784,10 @@ function renderHistory() {
       return;
     }
     const __h4=history.map(item => `
-      <div class="history-item" onclick="selectColor('${item.hex}')">
+      <button type="button" class="history-item" style="background:transparent;width:100%;font:inherit;text-align:left;color:inherit;" aria-label="选择历史颜色 ${item.hex}" onclick="selectColor('${item.hex}')">
         <div class="history-swatch" style="background:${item.hex};"></div>
         <span class="history-hex">${item.hex.toUpperCase()}</span>
-      </div>
+      </button>
     `).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h4;
   } catch(e) {
     const __h5='<p style="padding:24px;text-align:center;color:var(--text-muted);">加载历史记录失败</p>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h5;
@@ -791,6 +802,7 @@ function clearHistory() {
 
 function __ccExport(){
   if(typeof TBKit==='undefined') return;
+  if(colorInputInvalid){ if(ToolBox.showToast) ToolBox.showToast('当前颜色输入无效，请先修正后再导出','warning'); return; }
   try{
     var en=TBKit.util.isEn();
     var inputEl=document.getElementById('colorInput');
