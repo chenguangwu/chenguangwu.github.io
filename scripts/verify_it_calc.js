@@ -15366,6 +15366,30 @@ const CASES = [
     clicks: ["analyze();var p1=stats.paragraphs;document.getElementById('textInput').value='第一行'+String.fromCharCode(10,10)+'第二行';analyze();var p2=stats.paragraphs;document.getElementById('text1').value='PARA '+p1+' '+p2;"],
     expect: ["PARA 1 2"],
     ref: "第738批：CRLF 单换行属同段，空行才分段；旧正则把 CRLF 单换行当段落边界。"
+  },
+ {
+    slug: "it/caesar-cipher",
+    clicks: ["localStorage.removeItem(HISTORY_KEY);var long='A'.repeat(300);saveHistory(long,'B'.repeat(300),3,'encrypt');var h=JSON.parse(localStorage.getItem(HISTORY_KEY))[0];document.getElementById('input').value='FULL '+h.input.length+' '+h.output.length+' '+h.full;"],
+    expect: ["FULL 300 300 true"],
+    ref: "第739批：历史恢复必须保留完整文本，不能只存前 200 单元；列表预览才截断。旧实现保存 substring(0,200)。"
+  },
+  {
+    slug: "it/caesar-cipher",
+    clicks: ["document.getElementById('onlyAlpha').checked=true;document.getElementById('preserveCase').checked=false;toggleCaseWarning();var w=document.getElementById('caseWarning').style.display;var out=caesarShift('Ab',3,true,false,true);document.getElementById('input').value='IRREV '+w+' '+out;"],
+    expect: ["IRREV block DE"],
+    ref: "第739批：关闭保留大小写必须提示不可逆（Ab→DE，原 b 小写信息丢失）。旧实现无提示。"
+  },
+  {
+    slug: "it/typing-test",
+    clicks: ["text='ab';pos=0;keystrokes=0;mistakes=0;onKey({key:'x',ctrlKey:false,metaKey:false,altKey:false});pos=1;onKey({key:'b',ctrlKey:false,metaKey:false,altKey:false});document.getElementById('typingInput').value='ab';totalKeys=2;errors=0;startTime=Date.now()-1000;endTest();document.getElementById('input')||0;var probe=document.getElementById('finalErrors').textContent+' '+document.getElementById('finalKeyAcc').textContent+' '+keystrokes+' '+mistakes;document.getElementById('typingInput').value='KEY '+probe;"],
+    expect: ["KEY 1 50% 2 1"],
+    ref: "第739批：退格修正后仍保留累计按键错误，并区分最终文本准确率与按键准确率。旧实现把已修正错误清零。"
+  },
+  {
+    slug: "it/typing-test",
+    clicks: ["var e={p:false,preventDefault:function(){this.p=true}};var r=__typingBlockInput(e);document.getElementById('typingInput').value='PASTE '+e.p+' '+r;"],
+    expect: ["PASTE true false"],
+    ref: "第739批：测速模式拦截粘贴/拖放，防止一次粘贴完成题目产生虚高成绩；正常键入不受影响。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
