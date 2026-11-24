@@ -136,7 +136,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="📝 Lorem Ipsum 生成器">📝 Lorem Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按类型生成：words 逐词随机、sentences 逐句随机、paragraphs 逐段随机、chinese 逐句取中文占位句，数量严格等于 count（超出 1–100 时钳制并回写输入框）；句 / 段模式的句长由最小 / 最大词数区间决定；勾选以 Lorem ipsum 开头时首项替换为固定拉丁文句式（词模式首词固定 lorem，count≥2 时第二词固定 ipsum，句 / 段模式前缀接固定句）；段落以两个换行连接，中文句子以换行连接，词与句以空格连接</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq" data-zh="按类型生成：words 逐词随机、sentences 逐句随机、paragraphs 逐段随机、chinese 逐句取中文占位句，数量严格等于 count（1–100 的整数，越界或小数直接报错）；句 / 段模式的句长由 1–200 的最小 / 最大词数区间决定，倒置或越界直接报错；勾选以 Lorem ipsum 开头时首项替换为固定拉丁文句式（词模式首词固定 lorem，count≥2 时第二词固定 ipsum，句 / 段模式前缀接固定句）；段落以两个换行连接，中文句子以换行连接，词与句以空格连接">Generation by type: words are randomized word by word, sentences sentence by sentence, paragraphs paragraph by paragraph, and Chinese mode picks a Chinese placeholder sentence per sentence. Count is exact (integer 1–100; decimals or out-of-range values error out). Sentence/paragraph length is bounded by a 1–200 min/max word range; inverted or out-of-range bounds error out. When starting with Lorem ipsum, the first item is replaced by the fixed Latin opening: word mode fixes "lorem" first and "ipsum" second when count ≥ 2, while sentence/paragraph modes prepend the fixed sentence. Paragraphs are joined by two newlines, Chinese sentences by one newline, and words/sentences by spaces.</div>
   <div class="formula-desc">生成 Lorem ipsum 占位文本，用于设计与原型阶段填充版面。</div>
   <ul class="formula-list">
     <li><b>来源</b>：Lorem ipsum 是排版印刷业沿用的伪拉丁文，词序经过打乱，不具备可读语义。</li>
@@ -180,7 +180,7 @@
     </div>
 
     <label for="output">生成结果</label>
-    <textarea id="output" readonly style="min-height:240px;"></textarea> <div id="loremTable"></div> <div id="loremDiff"></div> <div id="loremChart"></div> <div id="loremHist"></div>
+    <textarea id="output" readonly style="min-height:240px;"></textarea><div id="loremStatus" role="status" style="font-size:13px;margin:6px 0 0;"></div> <div id="loremTable"></div> <div id="loremDiff"></div> <div id="loremChart"></div> <div id="loremHist"></div>
   </div>
 
   <div class="card">
@@ -341,14 +341,35 @@ function randomChineseSentence(){
   return chineseTexts[Math.floor(Math.random() * chineseTexts.length)] + '。';
 }
 
+function __loremEn(){return !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
+function __loremT(zh,en){return __loremEn()?en:zh;}
+function __loremStatus(msg,danger){var el=document.getElementById('loremStatus');if(el){el.textContent=msg||'';el.style.color=danger?'var(--danger)':'var(--text-muted)';}}
+var __lorem_stale=false;
+function __loremFail(msg){document.getElementById('output').value='';__lorem_stale=true;__loremStatus(msg,true);}
+function markLoremStale(){
+  if(!document.getElementById('output').value) return;
+  __lorem_stale=true;
+  __loremStatus(__loremT('参数已更改：当前结果对应旧设置，请点击“生成”后再复制或下载。','Settings changed: the visible result is from the previous settings. Generate again before copying or downloading.'),false);
+}
+function __loremVal(id){var el=document.getElementById(id);return el&&el.value!=null?String(el.value).trim():'';}
 function generate(){
-  var raw = parseInt(document.getElementById('count').value,10);
-  if(!isFinite(raw)) raw = 1;
-  const count = Math.max(1, Math.min(100, raw));
+  var countRaw=__loremVal('count');
+  if(countRaw===''){__loremFail(__loremT('请输入数量（1–100 的整数）。','Enter a count (integer from 1 to 100).'));return;}
+  if(!/^\d+$/.test(countRaw)){__loremFail(__loremT('数量必须是 1–100 的整数，不能是小数。','Count must be an integer from 1 to 100, not a decimal.'));return;}
+  var raw=Number(countRaw);
+  if(raw<1||raw>100){__loremFail(__loremT('数量需在 1–100 之间，当前为 '+countRaw+'。','Count must be between 1 and 100; got '+countRaw+'.'));return;}
+  var count=raw;
+  if(currentType==='sentences'||currentType==='paragraphs'){
+    var loRaw=__loremVal('minWords'),hiRaw=__loremVal('maxWords');
+    if(loRaw===''||hiRaw===''){__loremFail(__loremT('句长范围不能为空，请输入 1–200 的整数。','The sentence length range cannot be empty; enter integers from 1 to 200.'));return;}
+    if(!/^\d+$/.test(loRaw)||!/^\d+$/.test(hiRaw)){__loremFail(__loremT('句长上下限必须是整数，不能是小数。','The sentence length bounds must be integers, not decimals.'));return;}
+    var lo=Number(loRaw),hi=Number(hiRaw);
+    if(lo<1||lo>200||hi<1||hi>200){__loremFail(__loremT('句长上下限需在 1–200 之间。','Sentence length bounds must be between 1 and 200.'));return;}
+    if(lo>hi){__loremFail(__loremT('最小句长不能大于最大句长（当前 '+lo+' > '+hi+'）。','Minimum sentence length cannot exceed the maximum (currently '+lo+' > '+hi+').'));return;}
+  }
   document.getElementById('count').value = count;
   const startLorem = document.getElementById('startLorem').checked;
   let result = [];
-  
   for(let i=0;i<count;i++){
     if(currentType === 'words'){
       if(i === 0 && startLorem){
@@ -377,12 +398,14 @@ function generate(){
       result.push(p);
     }
   }
-  
   const output = currentType === 'paragraphs' ? result.join('\n\n') : (currentType === 'chinese' ? result.join('\n') : result.join(' '));
   document.getElementById('output').value = output;
+  __lorem_stale=false;
+  __loremStatus(__loremT('已按当前设置生成 '+count+' 项。','Generated '+count+' item(s) with the current settings.'),false);
 }
 
 function copyResult(ev){
+  if(__lorem_stale){__loremStatus(__loremT('结果已过期，请先点击“生成”。','The result is stale; generate again first.'),true);return;}
   const text = document.getElementById('output').value;
   if(!text) return;
   const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
@@ -392,6 +415,7 @@ function copyResult(ev){
 }
 
 function downloadTxt(){
+  if(__lorem_stale){__loremStatus(__loremT('结果已过期，请先点击“生成”。','The result is stale; generate again first.'),true);return;}
   const text = document.getElementById('output').value;
   if(!text) return;
   const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
@@ -403,6 +427,7 @@ function downloadTxt(){
   URL.revokeObjectURL(url);
 }
 
+['count','minWords','maxWords','startLorem'].forEach(function(id){var el=document.getElementById(id);if(!el)return;el.addEventListener('input',markLoremStale);el.addEventListener('change',markLoremStale);});
 generate();
 </script><script>
 // tool-intro折叠交互

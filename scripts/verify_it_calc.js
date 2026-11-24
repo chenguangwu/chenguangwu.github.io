@@ -3043,7 +3043,7 @@ const CASES = [
     // IT-E1 空态：六分量全空时不得输出 (0, 0, 0)。
     inputs: { a0: "", a1: "", a2: "", b0: "", b1: "", b2: "" },
     clicks: ["calculate()"],
-    expect: ["请输入向量 A 与 B"],
+    expect: ["请填写所有分量；缺少：A.x, A.y, A.z, B.x, B.y, B.z。"],
     ref: "空态口径：六分量全空 ⇒ 提示并 return，不给出零向量结论；修复前 getV 把空值 parseFloat 成 0，输出 `A × B = (0, 0, 0)`。默认示例 (1,2,3)×(4,5,6) 不含该提示。",
   },
   {
@@ -8700,10 +8700,10 @@ const CASES = [
       "search": "abc123测试"
     },
     "expect": [
-      "洲 大洋洲 非洲\nabc123测试\n未找到匹配项。当前仅收录 48 个常用国家/地区",
-      "共 0 个国家/地区（仅收录 48 个常用国家/地区）"
+      "洲 大洋洲 非洲\nabc123测试\n未找到匹配项。可尝试国家中英文名、ISO 两位/三位代码或首都中英文名。",
+      "共 0 个国家/地区"
     ],
-    "ref": "IT-N309 更新：注入不存在的国家名 abc123测试 ⇒ 空态提示须明确「仅收录 48 个常用国家/地区」（grid 与 count 双处）；默认态列表非空、不含该提示 ⇒ 强判别、零逃生。expect 是「或」：两条分别锚 grid 空态与 count 范围说明，缺一即红。"
+    "ref": "IT-N309 更新（第749批）：国家库扩至 250 条后，空态提示改为中英文名/ISO/首都检索指引，并保留 count 归零锚；不得再写死 48。"
   },
   {
     "slug": "it/crontab-generator",
@@ -15617,7 +15617,78 @@ const CASES = [
     "clicks": ["var src=String(__random_string_f0);document.getElementById('__tbProbe').value=(src.indexOf('长度必须为整数')>=0&&src.indexOf('生成数量需在')>=0&&src.indexOf('var len=Number(lenRaw)')>=0&&src.indexOf('len=128')<0&&src.indexOf('?16:parseInt')<0)?'RSVAL OK':'RSVAL BAD';"],
     "expect": ["RSVAL OK"],
     "ref": "第748批：长度/数量先做非空、纯整数、范围校验，5.5 与 129 均报错且不生成；不再 parseInt 截断或静默夹到上限。"
-  }
+  },
+  // ---- 第749批补充 ----
+  {
+    slug: "it/integer-base-converter",
+    clicks: ["document.getElementById('num').value='101010';document.getElementById('fromBase').value='2';document.getElementById('toBase').value='16';convert();var __mo=document.getElementById('mainOut');__mo.textContent='MAIN='+__mo.textContent+' P='+__integer_base_converterTarget;"],
+    expect: ["MAIN=2a P=16#2a"],
+    ref: "第749批：转换成功时历史/表格/CSV 的「结果」必须带目标进制前缀（16#2a），避免电子表格把 2a 当数字/日期；主输出仍只显示纯值 2a。",
+  },
+  {
+    slug: "it/triangle-calculator",
+    inputs: { a: "1e160", b: "1e160", c: "1e160" },
+    clicks: ["calcTool()"],
+    expect: ["4.330e319"],
+    ref: "第749批：等边 1e160 面积 4.330e319 超出 Number 上界，须按归一化海伦公式用科学计数法显示，角度仍为 60°；旧实现直接算 m*m 溢出得 Infinity。",
+  },
+  {
+    slug: "it/triangle-calculator",
+    inputs: { a: "1e-160", b: "1e-160", c: "1e-160" },
+    clicks: ["calcTool()"],
+    expect: ["4.330e-321"],
+    ref: "第749批：等边 1e-160 面积下溢到 0，须保留指数显示 4.330e-321，不能显示 0 让用户误判为零面积。",
+  },
+  {
+    slug: "it/triangle-calculator",
+    inputs: { a: "1e308", b: "1e308", c: "1e308" },
+    clicks: ["calcTool()"],
+    expect: ["4.330e615"],
+    ref: "第749批：等边 1e308 面积按对数给出 4.330e615，周长 3.000e308，角度仍 60°；不得因中间量溢出而拒绝给角度/类型。",
+  },
+  {
+    slug: "it/lorem",
+    inputs: { count: "2", minWords: "8", maxWords: "19" },
+    clicks: ["var __before=document.getElementById('output').value;document.getElementById('count').value='3';markLoremStale();"],
+    expect: ["参数已更改：当前结果对应旧设置"],
+    ref: "第749批：生成后改参数必须标记旧结果并提示，旧文本保留但复制/下载应拒绝；不得静默按旧参数结果继续导出。",
+  },
+  {
+    slug: "it/vector-cross-product",
+    inputs: { a0: "1", a1: "", a2: "", b0: "", b1: "", b2: "" },
+    clicks: ["calculate()"],
+    expect: ["缺少：A.y, A.z, B.x, B.y, B.z"],
+    ref: "第749批：只填 A.x 时须列出缺失字段并拒绝计算，不得把空分量当 0 得出叉积。",
+  },
+  {
+    slug: "it/vector-cross-product",
+    inputs: { a0: "0", a1: "0", a2: "0", b0: "1", b1: "0", b2: "0" },
+    clicks: ["calculate()"],
+    expect: ["A × B = (0, 0, 0)"],
+    ref: "第749批：显式填写 0 是合法分量，零向量应正常计算并说明平行，不得误判为未填写。",
+  },
+  {
+    slug: "it/country-flag",
+    inputs: { search: "Kabul" },
+    clicks: ["render()"],
+    expect: ["Afghanistan"],
+    ref: "第749批：扩充到 250 个国家/地区后，英文首都 Kabul 必须能搜到新增国家 Afghanistan。",
+  },
+  {
+    slug: "it/country-flag",
+    inputs: { search: "Tokyo" },
+    clicks: ["render()"],
+    expect: ["Japan"],
+    ref: "第749批：英文首都 Tokyo 应命中 Japan，修复前只能搜中文名/代码。",
+  },
+  {
+    slug: "it/country-flag",
+    inputs: { search: "" },
+    clicks: ["document.getElementById('__tbProbe').textContent='N='+COUNTRIES.length+' NOTE='+(document.getElementById('coverageNote').textContent.indexOf('250')>=0?1:0);"],
+    expect: ["N=250 NOTE=1"],
+    ref: "第749批：国家库扩至 250 条，页面覆盖说明需动态写 250 与数据快照，不得残留写死 48。",
+  },
+
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
