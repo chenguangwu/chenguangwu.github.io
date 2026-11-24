@@ -120,6 +120,8 @@
   <div class="formula-desc">把 CSV 数据转换为 YAML 格式。</div>
   <ul class="formula-list">
     <li><b>流程</b>：先按 CSV 解析为二维表，再按 YAML 缩进规则序列化为列表与映射。</li>
+    <li><b>校验</b>：有表头模式先校验表头唯一且非空、每行字段数不超过表头；默认报错并指出列号/行号，可勾选自动加后缀或保留为 extra1…。</li>
+    <li><b>行结束符</b>：引号外 LF、CRLF、单独 CR 均切记录；引号内换行与逗号原样保留。</li>
     <li><b>缩进</b>：YAML 依赖缩进表达层级，不能用 Tab，同层级必须严格对齐。</li>
     <li><b>类型</b>：形如 <code>no</code>、<code>0123</code> 的值会被推断为布尔或数字，需加引号保留字符串。</li>
     <li><b>用途</b>：配置文件生成、数据迁移与人工编辑场景。</li>
@@ -134,6 +136,8 @@
       <div>
         <label>无表头（按列数组输出）</label>
         <div style="display:flex;flex-wrap:wrap;gap:0 16px;"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;margin:4px 0;"><input type="checkbox" id="top_1" value="0" data-name="是">是</label></div>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;margin:4px 0;"><input type="checkbox" id="keepExtra" value="1">多余字段保留为 extra1…</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;margin:4px 0;"><input type="checkbox" id="dedupeHeader" value="1">重复/空表头自动加后缀</label>
       </div>
     </div>
     <div class="toolbar">
@@ -238,7 +242,8 @@ function yamlKey(k){
 // RFC 4180：整段扫描（引号内允许逗号与换行），双引号为字段起始才进入引用段，`""` 表示一个字面双引号。
 function parseCsvRows(text){
   text=(text||'').replace(/^\uFEFF/,'');
-  var rows=[],row=[],field='',inQ=false,line=1,quoteStartLine=0;
+  var rows=[],row=[],field='',inQ=false,line=1,quoteStartLine=0,rowStartLine=1,rowLines=[];
+  function endRow(){ row.push(field); rows.push(row); rowLines.push(rowStartLine); row=[]; field=''; }
   for(var i=0;i<text.length;i++){
     var c=text.charAt(i);
     if(inQ){
@@ -247,33 +252,65 @@ function parseCsvRows(text){
     }else{
       if(c==='"'){ if(field===''){inQ=true;quoteStartLine=line;} else field+='"'; }
       else if(c===','){ row.push(field); field=''; }
-      else if(c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; line++; }
-      else if(c==='\r'){ if(text.charAt(i+1)==='\n') i++; row.push(field); rows.push(row); row=[]; field=''; line++; }
+      else if(c==='\n'){ endRow(); line++; rowStartLine=line; }
+      else if(c==='\r'){ if(text.charAt(i+1)==='\n') i++; endRow(); line++; rowStartLine=line; }
       else { field+=c; }
     }
   }
   if(inQ) throw new Error((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search) ? 'Unclosed quote starting at line '+quoteStartLine+'; check that the quoted field closes with a matching quote' : '第 '+quoteStartLine+' 行有未闭合的引号；请检查该字段的引号是否成对');
-  if(field!==''||row.length){ row.push(field); rows.push(row); }
-  return rows.filter(function(r){ return r.length>1||(r.length===1&&r[0].trim()!==''); });
+  if(field!==''||row.length){ row.push(field); rows.push(row); rowLines.push(rowStartLine); }
+  var out=[],outLines=[];
+  for(var r=0;r<rows.length;r++){
+    if(rows[r].length>1||(rows[r].length===1&&rows[r][0].trim()!=='')){ out.push(rows[r]); outLines.push(rowLines[r]); }
+  }
+  out.lines=outLines;
+  return out;
 }
+function yamlShapeError(en,zh){ var e=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search); return new Error(e?en:zh); }
 function calcTool(){var raw=document.getElementById('csv').value||'';
 if(!raw.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 CSV 文本</p>'; return; }
 var rows;
 try{ rows=parseCsvRows(raw); }catch(e){ document.getElementById('result').innerHTML='<p class="tip-box tip-danger">⚠ '+escH(e.message)+'</p>'; return; }
+try{
 var nohead=document.getElementById('top_1') ? document.getElementById('top_1').checked : false;
+var keepExtra=document.getElementById('keepExtra') ? document.getElementById('keepExtra').checked : false;
+var dedupeHeader=document.getElementById('dedupeHeader') ? document.getElementById('dedupeHeader').checked : false;
+var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search);
 var yaml='';
 if(nohead){
   for(var r=0;r<rows.length;r++){ yaml+='- ['+rows[r].map(function(x){return JSON.stringify(x);}).join(', ')+']\n'; }
 }else{
-  var head=rows[0];
+  if(!rows.length){ document.getElementById('result').innerHTML='<p class="tip-box tip-danger">⚠ '+(en?'No data rows after the header':'表头之后没有数据行')+'</p>'; return; }
+  var head=rows[0],used={},seen=[];
+  for(var c=0;c<head.length;c++){
+    var h=String(head[c]);
+    if(h.trim()===''){
+      if(!dedupeHeader) throw yamlShapeError('Empty header at column '+(c+1)+'; enable “Auto-suffix duplicate/empty headers” to name it column'+(c+1),'表头第 '+(c+1)+' 列为空；请勾选「重复/空表头自动加后缀」以命名为 column'+(c+1));
+      h='column'+(c+1);
+    }
+    if(Object.prototype.hasOwnProperty.call(used,h)){
+      if(!dedupeHeader) throw yamlShapeError('Duplicate header “'+h+'” at columns '+(used[h]+1)+' and '+(c+1)+'; enable “Auto-suffix duplicate/empty headers”','表头第 '+(used[h]+1)+' 列与第 '+(c+1)+' 列重复：'+h+'；请勾选「重复/空表头自动加后缀」');
+      var n=2,nn=h; while(Object.prototype.hasOwnProperty.call(used,nn+'_'+n)) n++; nn=nn+'_'+n; h=nn;
+    } else { used[h]=c; }
+    seen.push(h);
+  }
   for(var r=1;r<rows.length;r++){
-    yaml+='- '+head.map(function(h,c){return yamlKey(h)+': '+JSON.stringify(rows[r][c]||'');}).join('\n  ')+'\n';
+    var line=rows.lines&&rows.lines[r]?rows.lines[r]:(r+1);
+    if(rows[r].length>head.length&&!keepExtra) throw yamlShapeError('Row at line '+line+' has '+rows[r].length+' fields but the header has '+head.length+'; enable “Keep extra fields as extra1…” to retain them','第 '+line+' 行有 '+rows[r].length+' 个字段，超过表头的 '+head.length+' 个；请勾选「多余字段保留为 extra1…」以免丢值');
+    var keys=seen.slice();
+    if(rows[r].length>head.length){
+      for(var x=head.length;x<rows[r].length;x++) keys.push('extra'+(x-head.length+1));
+    }
+    yaml+='- '+keys.map(function(k,c){return yamlKey(k)+': '+JSON.stringify(rows[r][c]==null?'':rows[r][c]);}).join('\n  ')+'\n';
   }
 }
+}catch(e){ document.getElementById('result').innerHTML='<p class="tip-box tip-danger">⚠ '+escH(e.message)+'</p>'; return; }
 var html='<div class="result-title">YAML 输出</div><pre class="code-block">'+escH(yaml)+'</pre>';
 const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('csv').value='name,age,city\nAlice,30,Beijing\nBob,25,Shanghai';
       document.getElementById('top_1').checked=false;
+      document.getElementById('keepExtra').checked=false;
+      document.getElementById('dedupeHeader').checked=false;
       calcTool();}
 calcTool();
 

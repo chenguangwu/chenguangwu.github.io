@@ -4157,6 +4157,48 @@ const CASES = [
   },
   {
     slug: "it/csv-to-yaml",
+    inputs: { csv: "a,b\n1,2,3" },
+    clicks: ["calcTool()"],
+    expect: ["第 2 行有 3 个字段", "超过表头的 2 个"],
+    ref: "多余字段默认报错：`a,b` 表头只有 2 列，次行 3 个字段不得被静默丢弃 ⇒ 报错指出第 2 行与字段数；旧实现 `rows[r][c]||''` 只遍历表头，第三项消失，本锚不命中。",
+  },
+  {
+    slug: "it/csv-to-yaml",
+    inputs: { csv: "a,b\n1,2,3" },
+    clicks: ["document.getElementById('keepExtra').checked=true;calcTool()"],
+    expect: ['extra1: "3"'],
+    ref: "多余字段保留：勾选后第三项须写入 `extra1: “3”`，不能丢值；只报错不提供保留选项则本锚不命中。",
+  },
+  {
+    slug: "it/csv-to-yaml",
+    inputs: { csv: "a,a\n1,2" },
+    clicks: ["calcTool()"],
+    expect: ["第 1 列与第 2 列重复", "a"],
+    ref: "重复表头默认报错：`a,a` 不得生成两个同名 YAML 键让解析器覆盖 ⇒ 报错指出第 1/2 列；旧实现直接输出两个 `a:`，本锚不命中。",
+  },
+  {
+    slug: "it/csv-to-yaml",
+    inputs: { csv: "a,a\n1,2" },
+    clicks: ["document.getElementById('dedupeHeader').checked=true;calcTool()"],
+    expect: ['a_2: "2"'],
+    ref: "重复表头加后缀：勾选后第二列须变成 `a_2`，两列值都保留；旧实现输出重复键 `a: “2”`，本锚不命中。",
+  },
+  {
+    slug: "it/csv-to-yaml",
+    inputs: { csv: "a,\n1,2" },
+    clicks: ["calcTool()"],
+    expect: ["第 2 列为空"],
+    ref: "空表头默认报错：`a,` 的空列名不能生成空 YAML 键 ⇒ 明确提示第 2 列；旧实现输出 `\"\": \"2\"`，本锚不命中。",
+  },
+  {
+    slug: "it/csv-to-yaml",
+    inputs: { csv: "a,\n1,2" },
+    clicks: ["document.getElementById('dedupeHeader').checked=true;calcTool()"],
+    expect: ['column2: "2"'],
+    ref: "空表头命名：勾选自动加后缀后空列须命名为 `column2`，值保留；旧实现输出空键，本锚不命中。",
+  },
+  {
+    slug: "it/csv-to-yaml",
     // IT-N362 护栏：含 `:` 的表头必须加引号，否则 YAML 会被解析成键 a、值 b: 1。
     inputs: { csv: "a:b,c\n1,2" },
     clicks: ["calcTool()"],

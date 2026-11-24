@@ -271,9 +271,11 @@
     </div>
 
     <div id="tab-history" class="tab-content">
-      <div class="toolbar">
+      <div class="toolbar" style="flex-wrap:wrap;gap:10px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" id="historyOptIn" onchange="setHistoryOptIn(this.checked)"> 保存转换摘要（仅类型、行数、时间，不含输入内容）</label>
         <button type="button" class="btn danger" onclick="clearHistory()">清空历史</button>
       </div>
+      <p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;" data-zh="默认不保存任何输入内容。开启后只记录转换类型、行数与时间，便于回看操作；可随时关闭并清空。">CSV JSON Converter</p>
       <div class="card" style="margin:0;padding:0;">
         <div id="historyList"></div>
       </div>
@@ -377,6 +379,7 @@
 
 <script>
 const HISTORY_KEY = 'csv_json_history';
+const HISTORY_OPTIN_KEY = 'csv_json_history_optin';
 const MAX_HISTORY = 20;
 
 let currentData = { headers: [], rows: [] };
@@ -582,7 +585,7 @@ function csvToJson() {
     document.getElementById('jsonOutput').value = json;
     document.getElementById('jsonOutput').placeholder = 'JSON 结果将显示在这里...';
     
-    addToHistory('csv2json', csvText.substring(0, 100), parsed.rows.length);
+    addToHistory('csv2json', parsed.rows.length);
     ToolBox.showToast(__csvLangEn() ? `Converted: ${parsed.rows.length} rows` : `转换成功：${parsed.rows.length} 行数据`);
   } catch(e) {
     currentData = null;
@@ -673,7 +676,7 @@ function jsonToCsv() {
     csvExportSafe = buildCsv(true);
     
     document.getElementById('csvOutput').value = csv;
-    addToHistory('json2csv', jsonText.substring(0, 100), rows.length);
+    addToHistory('json2csv', rows.length);
     ToolBox.showToast(__csvLangEn() ? `Converted: ${rows.length} rows` : `转换成功：${rows.length} 行数据`);
   } catch(e) {
     clearJsonCsvResult();
@@ -769,15 +772,31 @@ function loadSampleJson() {
   ], null, 2);
 }
 
-function addToHistory(type, preview, count) {
+function historyOptIn() {
+  try { return localStorage.getItem(HISTORY_OPTIN_KEY) === '1'; } catch(e) { return false; }
+}
+function setHistoryOptIn(on) {
+  try {
+    if (on) localStorage.setItem(HISTORY_OPTIN_KEY, '1');
+    else localStorage.removeItem(HISTORY_OPTIN_KEY);
+  } catch(e) {}
+  const en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) || /lang=en-US/i.test(location.search);
+  if (on) ToolBox.showToast(en ? 'Only the conversion type, row count and time are saved — never your input.' : '仅保存转换类型、行数与时间，不保存输入内容');
+  else ToolBox.showToast(en ? 'History is off; no new records will be saved.' : '已关闭历史记录，不再新增记录');
+}
+function sanitizeHistory() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    if (!Array.isArray(raw) || !raw.length) return;
+    const clean = raw.map(item => ({ type: item.type, count: item.count, time: item.time })).slice(0, MAX_HISTORY);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(clean));
+  } catch(e) {}
+}
+function addToHistory(type, count) {
+  if (!historyOptIn()) return;
   try {
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    history.unshift({
-      type: type,
-      preview: preview,
-      count: count,
-      time: Date.now()
-    });
+    history.unshift({ type: type, count: count, time: Date.now() });
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY)));
   } catch(e) {}
 }
@@ -796,7 +815,7 @@ function renderHistory() {
       const typeName = item.type === 'csv2json' ? 'CSV→JSON' : 'JSON→CSV';
       return `
         <div class="history-item">
-          <span class="name">${typeName} · ${item.count} 行 · ${ToolBox.escHtml(item.preview)}...</span>
+          <span class="name">${typeName} · ${item.count} 行</span>
           <span class="meta">${timeStr}</span>
         </div>
       `;
@@ -809,9 +828,12 @@ function renderHistory() {
 function clearHistory() {
   localStorage.removeItem(HISTORY_KEY);
   renderHistory();
-  ToolBox.showToast(i18nText());
+  const en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) || /lang=en-US/i.test(location.search);
+  ToolBox.showToast(en ? 'History cleared.' : '历史记录已清空');
 }
 
+sanitizeHistory();
+document.getElementById('historyOptIn').checked = historyOptIn();
 loadSampleCsv();
 try{ csvToJson(); }catch(e){}
 </script><script>
