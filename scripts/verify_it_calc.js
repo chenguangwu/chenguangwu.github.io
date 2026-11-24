@@ -15331,6 +15331,41 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["2 总行数 1 代码行 1 注释行 0 空行 50.0%"],
     ref: "第737批：同一行两组块注释都必须扫描完；纯注释行计注释，注释夹代码行计代码。旧实现只处理第一组，第一行被误判代码。"
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "a", text2: "b" },
+    clicks: ["localStorage.removeItem(HISTORY_KEY);switchView('split',document.getElementById('tab-split'));document.getElementById('saveHistory').checked=true;addToHistory('a','b',getDiffOptions());renderHistory();var u=document.getElementById('tab-unified'),sp=document.getElementById('tab-split');document.getElementById('text1').value='A11Y '+document.getElementById('view-split').style.display+' '+document.querySelectorAll('.history-item').length;"],
+    expect: ["A11Y block 1"],
+    ref: "第738批：视图页签与历史项必须是原生按钮并维护 aria-selected；旧实现为 div+onclick，键盘不可达。默认无历史 ⇒ 不命中。"
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "old", text2: "new" },
+    clicks: ["doDiff();var p=buildUnifiedPatch();document.getElementById('__tbProbe').textContent='PATCH '+p.split('\\n').slice(0,3).join('|')+' '+p.split('\\n')[3];"],
+    expect: ["PATCH --- a.txt|+++ b.txt|@@ -1,1 +1,1 @@ -old"],
+    ref: "第738批：导出标准 unified diff（文件头+hunk），不再把可读摘要冒充补丁。旧实现无 buildUnifiedPatch。"
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "same", text2: "same" },
+    clicks: ["localStorage.removeItem(HISTORY_KEY);document.getElementById('saveHistory').checked=true;document.getElementById('ignoreWhitespace').checked=true;addToHistory('a','b',getDiffOptions());addToHistory('a','b',getDiffOptions());var n1=JSON.parse(localStorage.getItem(HISTORY_KEY)).length;document.getElementById('ignoreWhitespace').checked=false;document.getElementById('ignoreCase').checked=true;loadHistory(0);document.getElementById('text1').value='HOPT '+n1+' '+document.getElementById('ignoreWhitespace').checked+' '+document.getElementById('ignoreCase').checked;"],
+    expect: ["HOPT 1 true false"],
+    ref: "第738批：历史去重与恢复必须包含对比选项；同文本同选项只存一条，恢复时还原选项。旧实现只存文本且不还原选项。"
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "x", text2: "y", charDiff: "true" },
+    clicks: ["var cd=charDiffLine('a'.repeat(600),'b'.repeat(600));document.getElementById('__tbProbe').textContent='DEGRADE '+cd.degraded+' '+((cd.oldHtml.match(/line-through/g)||[]).length);"],
+    expect: ["DEGRADE true 1"],
+    ref: "第738批：单行超过 25 万字符单元必须标记 degraded，供渲染提示整行高亮；旧实现静默降级。600×600 超阈值。"
+  },
+  {
+    slug: "it/text-statistics",
+    inputs: { textInput: "第一行\r\n第二行" },
+    clicks: ["analyze();var p1=stats.paragraphs;document.getElementById('textInput').value='第一行'+String.fromCharCode(10,10)+'第二行';analyze();var p2=stats.paragraphs;document.getElementById('text1').value='PARA '+p1+' '+p2;"],
+    expect: ["PARA 1 2"],
+    ref: "第738批：CRLF 单换行属同段，空行才分段；旧正则把 CRLF 单换行当段落边界。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

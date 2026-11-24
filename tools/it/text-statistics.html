@@ -264,8 +264,10 @@ function analyze() {
   const codePoints = Array.from(text).length;
   const charsNoSpace = graphemeCount(text.replace(/\s/g, ''));
   // IT-N39：裸 CR 也须切行；句子边界排除小数点（3.14）与常见缩写内的句点
-  const lines = text.split(/\r\n|\r|\n/).length;
-  const paragraphs = text.split(/\r\n|\r|\n\s*(?:\r\n|\r|\n)/).filter(p => p.trim()).length;
+  const normalized = text.replace(/\r\n?/g, '\n');
+  const lines = normalized.split('\n').length;
+  // 段落只按空行切分：单个换行属于同一段；CRLF/CR 先统一成 LF，空格空行也算分隔。
+  const paragraphs = normalized.split(/\n\s*\n/).filter(p => p.trim()).length;
   const sentences = splitSentences(text).filter(s => s.trim()).length;
   // 中英文混排的阅读时间应相加后一次取整；逐项 ceil 再 max 会把 300 汉字 + 200 英文词算成 1 分钟。
   const readMinutesRaw = chineseChars / 300 + englishWords.length / 200;
