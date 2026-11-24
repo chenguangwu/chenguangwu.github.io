@@ -414,13 +414,22 @@
 
   /* ---------- 5) 表单可访问名称：title-only 控件补 aria-label ---------- */
   function enhanceFormLabels() {
-    var els = document.querySelectorAll('select[title],input[title],textarea[title]');
+    var els = document.querySelectorAll('select[title],input[title],textarea[title],select[placeholder],input[placeholder],textarea[placeholder]');
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
-      if (el.getAttribute('aria-label') || el.getAttribute('aria-labelledby')) continue;
+      if (el.type === 'hidden') continue;
+      if (el.getAttribute('aria-labelledby')) continue;
+      // 只覆盖本函数自动生成的无障碍名称；手写 aria-label 不覆盖。
+      if (el.getAttribute('aria-label') && el.getAttribute('data-tb-auto-label') !== '1') continue;
       if (el.id && document.querySelector('label[for="' + el.id.replace(/"/g, '\\"') + '"]')) continue;
       var t = (el.getAttribute('title') || el.getAttribute('placeholder') || '').trim();
-      if (t) el.setAttribute('aria-label', t);
+      if (t) {
+        el.setAttribute('aria-label', t);
+        el.setAttribute('data-tb-auto-label', '1');
+      } else if (el.getAttribute('data-tb-auto-label') === '1') {
+        el.removeAttribute('aria-label');
+        el.removeAttribute('data-tb-auto-label');
+      }
     }
   }
 
@@ -488,6 +497,8 @@
     // 部分页面在 DOMContentLoaded 之后才重建标签栏，补一次延迟兜底。
     setTimeout(function () { try { enhanceTabs(); } catch (e) {} }, 350);
     window.addEventListener('load', function () { try { enhanceTabs(); } catch (e) {} });
+    // 语言切换后 placeholder / title 会变，自动 aria-label 需要同步刷新。
+    window.addEventListener('toolbox:langchange', scheduleA11y);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

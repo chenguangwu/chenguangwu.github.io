@@ -283,9 +283,18 @@
 function calc(){
   var __ids=['apneas','hypopneas','sleepHours','lowSpO2','odCount','arousals'];
   if(__ids.every(function(id){var __el=document.getElementById(id);return !__el||String(__el.value).trim()==='';})){var __rb=document.getElementById('result');if(__rb)__rb.innerHTML='<div class="info-box" style="color:var(--warning);">请先填写必要的监测数据（如呼吸暂停次数、睡眠时长等），再点击「计算评估」。</div>';return;}
+  var __hoursRaw = String(document.getElementById('sleepHours').value).trim();
+  var hours = Number(__hoursRaw);
+  if(__hoursRaw === '' || !isFinite(hours) || hours <= 0){
+    var __rb0=document.getElementById('result');
+    if(__rb0) __rb0.innerHTML='<div class="info-box" style="color:var(--warning);">睡眠时长必须填写大于 0 的有效数值，无法计算 AHI/ODI。</div>';
+    var __rc0=document.getElementById('resultRefBar');
+    if(__rc0) __rc0.innerHTML='';
+    ToolBox.showToast('睡眠时长须大于 0','warning');
+    return;
+  }
   var apneas = +document.getElementById('apneas').value || 0;
   var hypopneas = +document.getElementById('hypopneas').value || 0;
-  var hours = +document.getElementById('sleepHours').value || 1;
   var lowSpO2 = +document.getElementById('lowSpO2').value || 100;
   var odCount = +document.getElementById('odCount').value || 0;
   var arousals = +document.getElementById('arousals').value || 0;
@@ -334,10 +343,10 @@ function calc(){
 function copyResult(){
   var ids=['apneas','hypopneas','sleepHours','lowSpO2','odCount','arousals'];
   if(ids.every(function(id){var el=document.getElementById(id);return !el||String(el.value).trim()==='';})){ ToolBox.showToast('请先填写必要的监测数据再复制','warning'); return; }
+  var hoursRaw = String(document.getElementById('sleepHours').value).trim();
+  var hours = Number(hoursRaw);
+  if(hoursRaw === '' || !isFinite(hours) || hours <= 0){ ToolBox.showToast('睡眠时长须大于 0，未复制','warning'); return; }
   var apneas=+document.getElementById('apneas').value, hypopneas=+document.getElementById('hypopneas').value;
-  // 与 calc 同源：睡眠时长空/0 时按 1 小时兜底，避免复制出 Infinity 次/h。
-  var hours = +document.getElementById('sleepHours').value || 1;
-  if(!(hours>0)){ ToolBox.showToast('睡眠时长须大于 0，未复制','warning'); return; }
   var ahi=((apneas+hypopneas)/hours).toFixed(1);
   ToolBox.copyText('AHI='+ahi+'次/h', i18nText());
 }

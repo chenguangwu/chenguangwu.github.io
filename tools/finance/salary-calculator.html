@@ -874,18 +874,24 @@ function calculate(){
 function __salaryCumulative(){
   var elMonth=document.getElementById('currentMonth');
   if(!elMonth) return;
-  var month=parseInt(elMonth.value,10);
-  var ytdIncome=__salaryNum('ytdIncome',0);
-  var ytdTax=__salaryNum('ytdTaxWithheld',0);
-  var ytdIns=__salaryNum('ytdInsurance',0);
+  var monthRaw=String(elMonth.value==null?'':elMonth.value).trim();
+  var month=Number(monthRaw);
+  function __ytdRaw(id){
+    var e=document.getElementById(id);
+    var raw=String(e&&e.value!=null?e.value:'').trim();
+    return (raw===''||!isFinite(Number(raw))||Number(raw)<0)?null:Number(raw);
+  }
+  var ytdIncome=__ytdRaw('ytdIncome');
+  var ytdTax=__ytdRaw('ytdTaxWithheld');
+  var ytdIns=__ytdRaw('ytdInsurance');
   var note=document.getElementById('cumulativeNote');
   var ids=['cumTaxable','cumTax','cumWithheld','cumCurrentDue','cumNet','cumMonths'];
   function blank(){ids.forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='--';});}
   var en=__salaryModeIsEn();
-  if(!isFinite(month)||month<1||month>12){
+  if(monthRaw===''||!Number.isInteger(month)||month<1||month>12){
     blank(); if(note) note.innerHTML='<span style="color:var(--danger)">'+(en?'Current month must be an integer from 1 to 12.':'当前月份须为 1–12 的整数，累计预扣不计算。')+'</span>'; return;
   }
-  if(!isFinite(ytdIncome)||ytdIncome<0||!isFinite(ytdTax)||ytdTax<0||!isFinite(ytdIns)||ytdIns<0){
+  if(ytdIncome===null||ytdTax===null||ytdIns===null){
     blank(); if(note) note.innerHTML='<span style="color:var(--danger)">'+(en?'YTD income, withheld tax and insurance must be non-negative numbers.':'累计收入、已预扣税额与累计五险一金须为非负数字。')+'</span>'; return;
   }
   const salaryInput=__salaryNum('salary',0), monthsPerYear=__salaryNum('monthsPerYear',12);
@@ -916,7 +922,7 @@ function __salaryCumulative(){
   if(eTaxable)eTaxable.textContent=fmtShort(cumTaxable); if(eTax)eTax.textContent=fmt(cumTax); if(eWith)eWith.textContent=fmt(ytdTax); if(eDue)eDue.textContent=fmt(due); if(eNet)eNet.textContent=fmt(net); if(eMon)eMon.textContent=String(month);
   if(note){
     var credit=cumTax<ytdTax;
-    note.innerHTML=credit?(en?'Cumulative tax is lower than tax already withheld: current withholding is 0; the excess is settled in the annual reconciliation.':'累计应纳税额低于已预扣税额，本月应预扣为 0；多缴部分在年度汇算时处理。'):(en?'Cumulative method assumes the same monthly salary, insurance and itemized deductions; actual prior amounts can be entered directly.':'累计预扣按本月工资、社保与专项附加扣除同口径回推；前期金额不同可直接填写累计值。');
+    note.innerHTML=credit?(en?'Cumulative tax is lower than tax already withheld: current withholding is 0; the excess is settled in the annual reconciliation.':'累计应纳税额低于已预扣税额，本月应预扣为 0；多缴部分在年度汇算时处理。'):(en?'Cumulative income, withheld tax and insurance can use actual prior amounts; itemized deductions are estimated as this month\'s amount × month.':'累计收入、已预扣税额与累计五险一金可填写实际前期金额；专项附加扣除按本月金额 × 月份回推。');
   }
 }
 

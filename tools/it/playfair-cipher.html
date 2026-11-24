@@ -654,14 +654,15 @@ function __playfair_cipherScheduleHistory(input, output, key, mode){
 function saveHistory(input, output, key, mode){
   if(!input || !output) return;
   let history = getHistory();
+  // 安全：历史只保留长度与操作元信息，不持久化明文/密文/密钥原文。
   const item = {
-    input: input.substring(0, 200),
-    output: output.substring(0, 200),
-    key: key.substring(0, 50),
+    inputLen: input.length,
+    outputLen: output.length,
+    keyLen: key.length,
     mode,
     time: Date.now()
   };
-  var dup = history.findIndex(function(h){ return h.input === item.input && h.key === key && h.mode === mode; });
+  var dup = history.findIndex(function(h){ return h.inputLen === item.inputLen && h.outputLen === item.outputLen && h.keyLen === item.keyLen && h.mode === mode; });
   if(dup === 0) return;
   if(dup > 0) history.splice(dup, 1);
   history.unshift(item);
@@ -672,8 +673,29 @@ function saveHistory(input, output, key, mode){
 
 function getHistory(){
   try{
-    return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    var raw = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    if(!Array.isArray(raw)) raw = [];
+    var changed = false;
+    var clean = [];
+    for(var i=0; i<raw.length; i++){
+      var h = raw[i] || {};
+      if(h.input !== undefined || h.output !== undefined || h.key !== undefined){
+        changed = true;
+        clean.push({
+          inputLen: (typeof h.input === 'string') ? h.input.length : (Number(h.inputLen) || 0),
+          outputLen: (typeof h.output === 'string') ? h.output.length : (Number(h.outputLen) || 0),
+          keyLen: (typeof h.key === 'string') ? h.key.length : (Number(h.keyLen) || 0),
+          mode: h.mode === 'decrypt' ? 'decrypt' : 'encrypt',
+          time: Number(h.time) || Date.now()
+        });
+      } else {
+        clean.push(h);
+      }
+    }
+    if(changed){ localStorage.setItem(HISTORY_KEY, JSON.stringify(clean)); }
+    return clean;
   }catch(e){
+    try{ localStorage.removeItem(HISTORY_KEY); }catch(err){}
     return [];
   }
 }
@@ -686,27 +708,22 @@ function renderHistory(){
     return;
   }
   const __h6=history.map((item, idx) => {
-    const modeText = item.mode === 'encrypt' ? '加密' : '解密';
+    const modeText = item.mode === 'decrypt' ? '解密' : '加密';
     const time = new Date(item.time).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
     return `
-      <div class="history-item" onclick="loadHistory(${idx})">
+      <div class="history-item">
         <div class="info">
-          <div class="meta">密钥: ${escapeHtml(item.key)} · ${modeText} · ${time}</div>
-          <div class="text">${escapeHtml(item.input.substring(0, 60))}</div>
+          <div class="meta">密钥 ${Number(item.keyLen)||0} 字符 · ${modeText} · ${time}</div>
+          <div class="text">${Number(item.inputLen)||0} 字符 → ${Number(item.outputLen)||0} 字符</div>
         </div>
-        <button type="button" class="del-btn" onclick="event.stopPropagation();deleteHistory(${idx})">删除</button>
+        <button type="button" class="del-btn" onclick="deleteHistory(${idx})">删除</button>
       </div>
     `;
   }).join('');if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h6;
 }
 
 function loadHistory(idx){
-  const history = getHistory();
-  if(history[idx]){
-    document.getElementById('input').value = history[idx].input;
-    document.getElementById('key').value = history[idx].key;
-    setMode(history[idx].mode);
-  }
+  showToast('历史仅保留长度统计，不保存原文，无法回填');
 }
 
 function deleteHistory(idx){

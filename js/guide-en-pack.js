@@ -2553,7 +2553,7 @@ window.GUIDE_EN_PACK = {
   "guide.sitemap-generator.faqs.1.a": "Output includes <url><loc>...</loc></url>.",
   "guide.ipv4-range-expander.title": "IPv4 Range Expander",
   "guide.ipv4-range-expander.back": "Open IPv4 Range Expander (Free · client-side · no upload)",
-  "guide.ipv4-range-expander.desc": "IPv4 Range Expander Guide: enter a CIDR to compute network address, broadcast address, usable host count and first/last IP.",
+  "guide.ipv4-range-expander.desc": "IPv4 Range Expander Guide: enter a CIDR to compute network address, broadcast address, usable host count and first/last IP, and note that network and broadcast addresses cannot be assigned to hosts.",
   "guide.ipv4-range-expander.intro": "A CIDR like 192.168.1.0/24 denotes a contiguous block. This tool parses it into key subnet info, useful for subnetting and firewall checks. Local computation, nothing uploaded.",
   "guide.ipv4-range-expander.features.0": "CIDR parsing",
   "guide.ipv4-range-expander.features.1": "Network/broadcast address",

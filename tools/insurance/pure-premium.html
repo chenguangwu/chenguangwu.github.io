@@ -215,8 +215,8 @@
       <span class="rt-info"><span class="rt-name">ECL = 索赔频率 × 平均赔付额</span><span class="rt-desc">输入单位风险的索赔频率与平均赔付额，按 ECL = 频率 × 平均赔付额计算期望损失成本，用于厘定纯…</span></span>
     </a>
     <a href="ibnr-estimate.html" class="related-tool-card">
-      <span class="rt-icon">🛡️</span>
-      <span class="rt-info"><span class="rt-name">IBNR = 终极赔款 × (1 − 已付比例)</span><span class="rt-desc">输入事故年的终极赔款估计与当前已付比例，按 IBNR = 终极赔款 × (1 − 已付比例) 估算已…</span></span>
+      <span class="rt-icon">🔮</span>
+      <span class="rt-info"><span class="rt-name">纯 IBNR 估算（总未付扣除已报案未决）</span><span class="rt-desc">由终极赔款、已付比例与已报案未决估算纯 IBNR</span></span>
     </a>
     <a href="ibnr-reserve.html" class="related-tool-card">
       <span class="rt-icon">🛡️</span>
@@ -257,7 +257,11 @@ function __pure_premiumExtras(){
     function fmt(v){var neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return neg+p.join('.');}
     var f=num('freq'),s=num('sev');
     var pp=f*s;
-    if (!isFinite(__pure_premiumNum('freq')) || !isFinite(__pure_premiumNum('sev'))) return;
+    if (!isFinite(__pure_premiumNum('freq')) || !isFinite(__pure_premiumNum('sev'))) {
+        var t0=document.getElementById('pure_premiumTable'); if(t0)t0.innerHTML='';
+        var d0=document.getElementById('pure_premiumDiff'); if(d0)d0.innerHTML='';
+        return;
+    }
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#pure_premiumTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -329,8 +333,9 @@ else document.addEventListener('DOMContentLoaded', __pure_premiumBoot);
 </section>
 <script>
 function __ppuSweep(){
-  var f=num('freq');
-  if(!isFinite(f)||f<=0)return null;
+  var raw=String(document.getElementById('freq').value||'').trim();
+  var f=Number(raw);
+  if(raw===''||!isFinite(f)||f<0)return null;
   var labels=[],dP=[],dM=[];
   var svs=[10000,20000,30000,40000,50000];
   for(var k=0;k<svs.length;k++){
@@ -343,7 +348,8 @@ function __ppuSweep(){
 }
 function __ppuChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var s=__ppuSweep(); if(!s)return;
+  var s=__ppuSweep();
+  if(!s){ var c=document.getElementById('ppuChart'); if(c)c.innerHTML=''; return; }
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   TBKit.chart.line('#ppuChart',{title:en?'Pure Premium vs Severity (offset linear, +10% margin)':'纯保费随单次赔付额线性上升',labels:s.labels,series:[{name:en?'Pure premium (¥)':'纯保费 (元/单位)',data:s.dP},{name:en?'With 10% margin (¥)':'含10%安全边际 (元)',data:s.dM}]});
 }

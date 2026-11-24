@@ -3172,6 +3172,10 @@ def fix_zh_tw_short_desc():
 
 _GUIDE_BOIL_TAIL = ('本指南整理核心功能、适用场景、使用步骤与常见问题，'
                     '纯前端免费在线使用，数据不上传。')
+# 2026-11-24：另一条 325 页共用的通用尾句，和 _GUIDE_BOIL_TAIL 同等处理。
+# 它不属于页面专属信息，保留会在搜索结果与社交摘要中形成大规模重复。
+_GUIDE_AUX_BOIL_TAIL = '页面提供详细操作步骤、参数说明与常见问题解答，可直接对照使用。'
+_GUIDE_BOIL_TAILS = (_GUIDE_BOIL_TAIL, _GUIDE_AUX_BOIL_TAIL)
 _GUIDE_GENERIC_SNIPPETS = (
     '在线输入参数即可即时得到结果，无需安装与注册',
     '在线输入参数即可即时得到结果，无需安装或注册',
@@ -3251,26 +3255,47 @@ def _extend_short_guide_desc(d, src):
     # 页面独有内容，比拼接全站通用套话更能提升搜索摘要的信息量。
     if len(out) < 70:
         scen = _guide_scenario_snippet(src, out)
-        if scen and len(out) + len(scen) + 5 <= 150:
+        max_len = 150 - len(out) - 5
+        if scen and max_len > 12:
+            if len(scen) > max_len:
+                cut = max(scen.rfind('；', 0, max_len), scen.rfind('，', 0, max_len))
+                scen = scen[:cut] if cut > 8 else scen[:max_len]
+                scen = scen.rstrip('，；、 ') + '。'
             out = out.rstrip('。') + '。典型场景包括：' + scen
             if out[-1] not in '。！？':
                 out += '。'
-    # 最后 128 页既无可用正文段、也无场景列表：补一句页面结构说明（不是全站
-    # 949 页级重复尾句，仅这 128 页触发），保证搜索摘要完整可读。
-    # 幂等保护：历史构建可能已写入同一尾句，先折叠重复，再只在缺失时追加；
-    # 若单句仍不足 70 字，改用第二句补充，绝不重复同一句。
-    _tail = '页面提供详细操作步骤、参数说明与常见问题解答，可直接对照使用。'
-    _tail2 = '也可结合页面示例核对输入与输出，减少口径误用。'
-    while (_tail + _tail) in out:
-        out = out.replace(_tail + _tail, _tail)
-    while (_tail + '。' + _tail) in out:
-        out = out.replace(_tail + '。' + _tail, _tail)
     if len(out) < 70:
-        if _tail not in out:
-            out = out.rstrip('。') + '。' + _tail
-        if len(out) < 70 and _tail2 not in out:
-            out = out.rstrip('。') + '。' + _tail2
+        rel = _guide_related_snippet(src, out)
+        if rel and len(out) + len(rel) + 8 <= 150:
+            out = out.rstrip('。') + '。相关工具：' + rel
+            if out[-1] not in '。！？':
+                out += '。'
+    if len(out) < 70:
+        # 仅剩余个位数页面：正文确有算例与注意事项，用真实页面结构补足，
+        # 不再使用全站 325 页级通用描述。
+        out = out.rstrip('。') + '。页面含算例参考与注意事项。'
+    # 2026-11-24：删除“页面提供详细操作步骤……”通用尾句兜底。该句在 325 页
+    # 重复出现，属于站内大规模重复描述；宁可保留页面专属的短描述，也不再补套话。
     return out
+
+
+def _guide_related_snippet(src, core):
+    """取页面内 1–2 个相关工具名，作为短描述的页面专属补充。"""
+    body = src.split('</head>', 1)[-1]
+    body = re.sub(r'<(script|style)\b[^>]*>[\s\S]*?</\1>', '', body, flags=re.I)
+    names = []
+    for m in re.finditer(r'<a[^>]*class="tool-chip"[^>]*>([\s\S]*?)</a>', body, re.I):
+        t = html.unescape(re.sub(r'<[^>]+>', ' ', m.group(1)))
+        t = re.sub(r'\s+', ' ', t).strip()
+        if len(t) < 2 or len(t) > 32:
+            continue
+        if t in core or core in t or any(g in t for g in _GUIDE_BOIL_MARKERS):
+            continue
+        if t not in names:
+            names.append(t)
+        if len(names) >= 3:
+            break
+    return '、'.join(names)
 
 
 def _guide_scenario_snippet(src, core):
@@ -3288,15 +3313,22 @@ def _guide_scenario_snippet(src, core):
         for raw in re.findall(r'<li[^>]*>([\s\S]*?)</li>', section, re.I):
             t = html.unescape(re.sub(r'<[^>]+>', ' ', raw))
             t = re.sub(r'\s+', ' ', t).strip().rstrip('。；;')
-            if len(t) < 8 or len(t) > 70:
+            if len(t) < 4 or len(t) > 160:
                 continue
             if any(g in t for g in _GUIDE_BOIL_MARKERS):
                 continue
             if t in core or core in t:
                 continue
+            # 场景条目常超过 70 字，取到第一个冒号/逗号/分号为止，保留页面专属
+            # 场景名而不是整段丢弃（2026-11-24 短描述补足）。
+            if len(t) > 50:
+                cut = min([x for x in (t.find('：'), t.find('，'), t.find('；')) if x >= 12] or [48])
+                t = t[:cut].rstrip('，；：、 ')
+            if len(t) < 4:
+                continue
             if t not in picks:
                 picks.append(t)
-            if len(picks) >= 2:
+            if len(picks) >= 3:
                 break
         if picks:
             break
@@ -3312,43 +3344,26 @@ def _rewrite_guide_desc(d, src):
     625 个指南页描述/回退文本里，构成站内大规模重复；短描述保持页面专属内容。
     """
     d = (d or '').strip()
+    # 先剥通用尾句，再做短描述补足。反过来会让尾句把长度“撑”到 70 字以上，
+    # 从而跳过真正的页面专属补足（2026-11-24 325 页尾句清理时修正）。
+    for tail in _GUIDE_BOIL_TAILS:
+        if tail in d:
+            if any(g in d for g in _GUIDE_GENERIC_SNIPPETS):
+                return d
+            d = d.split(tail)[0].strip().rstrip('，；：、 ')
+            if d and d[-1] not in '。！？':
+                d += '。'
+            break
     d = _extend_short_guide_desc(d, src)
     if _GUIDE_STRUCT_TAIL and _GUIDE_STRUCT_TAIL in d:
         d = d.replace(_GUIDE_STRUCT_TAIL, '').strip()
         if d and d[-1] not in '。！？':
             d += '。'
-    if _GUIDE_BOIL_TAIL not in d:
-        return d
-    if any(g in d for g in _GUIDE_GENERIC_SNIPPETS):
-        return d
-    core = d.split(_GUIDE_BOIL_TAIL)[0].strip().rstrip('，；：、 ')
-    if not core:
-        return d
-    if core[-1] not in '。！？':
-        core += '。'
-    snip = _guide_first_distinct_para(src, core)
-    if not snip:
-        return _close_guide_desc(core)
-    part = ''
-    for sent in re.split(r'(?<=[。！？])', snip):
-        sent = sent.strip()
-        if not sent:
-            continue
-        if part and len(core) + len(part) + len(sent) > 150:
-            break
-        part += sent
-        if len(core) + len(part) >= 70:
-            break
-    if not part:
-        return _close_guide_desc(core)
-    out = core + part
-    if out[-1] not in '。！？':
-        out += '。'
-    if len(out) > 150:
-        cut = out[:145]
+    if d and len(d) > 150:
+        cut = d[:145]
         i = max(cut.rfind('，'), cut.rfind('、'), cut.rfind('；'))
-        out = (cut[:i] if i > 60 else cut) + '。'
-    return out
+        d = (cut[:i] if i > 60 else cut) + '。'
+    return _close_guide_desc(d)
 
 
 def _close_guide_desc(d):
@@ -3835,10 +3850,18 @@ def normalize_guide_descriptions():
             # `<10 mm`、`>20 mm` 等原始尖括号必须落成 &lt;/&gt;，否则社交抓取
             # 与结构化校验会把它们当成标签边界。
             esc = esc_html_py(nd)
-            if esc == m.group(2):
+            prefix = m.group(1)
+            # 同一 meta 的 data-i18n-head-fb 必须与最终 content 同值；否则英文态
+            # 字典缺键时会回退到旧描述，造成 description/OG/Twitter 三处分叉。
+            if 'data-i18n-head-fb=' in prefix:
+                prefix = re.sub(
+                    r'data-i18n-head-fb="(?:[^"\\]|\\.)*"',
+                    lambda mm: 'data-i18n-head-fb="' + esc + '"',
+                    prefix, count=1)
+            if prefix == m.group(1) and esc == m.group(2):
                 return m.group(0)
             changed[0] += 1
-            return m.group(1) + esc + m.group(3)
+            return prefix + esc + m.group(3)
 
         def _sub_ld(m):
             try:
