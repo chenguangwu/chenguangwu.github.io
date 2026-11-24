@@ -653,6 +653,7 @@ window.__TI18N_EN = {
     '⚠ 异常': '⚠ Abnormal', '✓ 正常': '✓ Normal',
     '⚠ 待改进': '⚠ Needs improvement', '⚠ 耐药': '⚠ Resistant', '✓ 敏感': '✓ Susceptible',
     '✗ 未达标': '✗ Not met', '△ 部分': '△ Partial',
+    '⚠ 薄弱': '⚠ Weak', '⚠ 不合格': '⚠ Fail', '⚠ 需维修': '⚠ Needs repair',
     '⬇️ 导出 TXT': '⬇️ Export TXT',
     '溶解': 'Soluble',
     '类别：': 'Category:',
