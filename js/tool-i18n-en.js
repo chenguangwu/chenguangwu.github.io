@@ -646,6 +646,13 @@ window.__TI18N_EN = {
   },
   BODY_PHRASE_MAP: {
     // —— 批次 671：英文态高频残留短语补齐 ——
+    // —— 批次 710：健康类表格状态整串（含符号，避免只靠颜色） ——
+    '⚠ 需整改': '⚠ Needs correction', '✓ 合格': '✓ Qualified',
+    '⚠ 重点介入': '⚠ Priority intervention', '△ 关注': '△ Monitor', '✓ 一般': '✓ General',
+    '⚠ 需改进': '⚠ Needs improvement', '✓ 达标': '✓ Meets standard',
+    '⚠ 异常': '⚠ Abnormal', '✓ 正常': '✓ Normal',
+    '⚠ 待改进': '⚠ Needs improvement', '⚠ 耐药': '⚠ Resistant', '✓ 敏感': '✓ Susceptible',
+    '✗ 未达标': '✗ Not met', '△ 部分': '△ Partial',
     '⬇️ 导出 TXT': '⬇️ Export TXT',
     '溶解': 'Soluble',
     '类别：': 'Category:',
