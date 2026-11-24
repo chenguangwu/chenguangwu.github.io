@@ -15390,6 +15390,27 @@ const CASES = [
     clicks: ["var e={p:false,preventDefault:function(){this.p=true}};var r=__typingBlockInput(e);document.getElementById('typingInput').value='PASTE '+e.p+' '+r;"],
     expect: ["PASTE true false"],
     ref: "第739批：测速模式拦截粘贴/拖放，防止一次粘贴完成题目产生虚高成绩；正常键入不受影响。"
+  },
+  {
+    slug: "it/bitwise-calculator",
+    inputs: { a: "9007199254740993", b: "0", op: "OR" },
+    clicks: ["calc()"],
+    expect: ["结果： 1 = 0x1 = 0b1"],
+    ref: "第740批：2^53+1 超过 Number 安全整数，旧 parseInt 会舍入成 2^53 使低 32 位变 0；BigInt 精确解析后低 32 位为 1。"
+  },
+  {
+    slug: "it/bitwise-calculator",
+    inputs: { a: "-8", b: "1", op: "USHR" },
+    clicks: ["calc()"],
+    expect: ["结果： 2147483644"],
+    ref: "第740批：补上说明中承诺的 >>>；-8 按 32 位无符号为 4294967288，右移 1 位 = 2147483644。"
+  },
+  {
+    slug: "it/unit-converter-advanced",
+    inputs: { cat: "data", val: "1", from: "KiB" },
+    clicks: ["calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='DATA '+(h.indexOf('1.024')>=0&&h.indexOf('0.001024')>=0?'OK':'BAD');"],
+    expect: ["DATA OK"],
+    ref: "第740批：1 KiB = 1024 B = 1.024 kB = 0.001024 MB；SI 与 IEC 前缀分列。旧表只有 1024 进制 KB。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

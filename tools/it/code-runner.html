@@ -417,7 +417,8 @@
   <ul class="formula-list">
     <li><b>执行方式</b>：<code>new Function</code>、Web Worker 或 iframe sandbox，隔离程度依次增强。</li>
     <li><b>安全</b>：运行不可信代码必须隔离，防止访问主页面 DOM、Cookie 与同源数据。</li>
-    <li><b>限制</b>：默认无网络与文件系统访问；本工具采用 iframe 沙箱但无超时终止，死循环会冻结当前标签页，请勿运行不可信或无限循环代码。</li>
+    <li><b>限制</b>：预览 iframe 不含 <code>allow-same-origin</code>，不能读取父页或本地文件；<b>sandbox 本身不阻断网络</b>，因此本工具在预览文档内注入 CSP <code>default-src 'none'</code>，默认禁止外部 fetch/图片/字体等出站请求，也<b>没有提供“允许网络”开关</b>。如代码需要外部资源，请自行在本地环境验证。</li>
+    <li><b>超时</b>：本工具无超时终止，死循环会冻结当前标签页，请勿运行不可信或无限循环代码。</li>
     <li><b>用途</b>：片段验证与教学演示，切勿执行来源不明的脚本。</li>
   </ul>
 </div>
@@ -570,7 +571,7 @@
       <h4><span class="h4-icon">&#128293;</span> 功能特点</h4>
       <ul class="intro-features">
         <li>三栏代码编辑（HTML / CSS / JS）</li>
-        <li>iframe 沙箱安全运行</li>
+        <li>iframe 沙箱隔离 + CSP 默认禁网</li>
         <li>console.log / warn / error 输出捕获</li>
         <li>实时预览模式（300ms 防抖）</li>
         <li>5 套内置示例代码</li>
@@ -668,6 +669,7 @@
 var autoRunEnabled = false;
 var autoRunTimer = null;
 var consoleCount = 0;
+var activePreviewFrame = null;
 var currentTab = 'html';
 
 /* ===== Sample Code ===== */
@@ -701,6 +703,7 @@ var samples = {
 
 /* ===== Tab Switching ===== */
 function switchTab(tab) {
+  if (!tab) return;
   currentTab = tab;
   var tabs = ['html', 'css', 'js'];
   tabs.forEach(function(t) {
@@ -734,8 +737,8 @@ function executeInIframe(html, css, js) {
   //    （切走「实时时钟」后每秒抛一次 getElementById(...) is null，控制台被刷屏）；
   // ② 全新 window 的 console 是原生状态，从根上杜绝重复 patch 造成递归。
   var oldFrame = document.getElementById('preview');
+  if (!oldFrame) return;
   var iframe = oldFrame.cloneNode(false);
-  oldFrame.parentNode.replaceChild(iframe, oldFrame);
   // 沙箱不含 allow-same-origin：iframe 为不透明源，父页无法通过 contentDocument 写文档，
   // 改用 srcdoc 注入本页拼好的源码；iframe 内的 postMessage 用 "*" 目标仍可送达父页。
 
@@ -770,17 +773,33 @@ function executeInIframe(html, css, js) {
     '}' +
     '<\/script>';
 
-  iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' + css + '</style></head><body>' + consoleScript + html + '<script>' + js + '<\/script></body></html>';
+  var doc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; img-src data: blob:; font-src data:; connect-src \'none\';"><style>' + css + '</style></head><body>' + consoleScript + html + '<script>' + js + '<\/script></body></html>';
+  window.__lastPreviewDoc = doc;
+  if (!oldFrame.parentNode || typeof oldFrame.parentNode.replaceChild !== 'function') {
+    // 测试桩/受限环境：没有 replaceChild 时直接更新现有 iframe，仍保持新文档与 CSP。
+    oldFrame.srcdoc = doc;
+    activePreviewFrame = oldFrame;
+    return;
+  }
+  oldFrame.parentNode.replaceChild(iframe, oldFrame);
+  activePreviewFrame = iframe;
+  iframe.srcdoc = doc;
 }
 
 /* ===== Console ===== */
 window.addEventListener('message', function(e) {
-  if (e.data && e.data.type === 'console') {
-    addConsoleLog(e.data.method, e.data.data);
-  }
+  // 只接受当前预览 iframe 的消息；窗口重建后旧窗口的延迟消息一律丢弃。
+  if (!activePreviewFrame || e.source !== activePreviewFrame.contentWindow) return;
+  if (!e.data || e.data.type !== 'console') return;
+  var method = e.data.method === 'warn' || e.data.method === 'error' ? e.data.method : 'log';
+  if (!Array.isArray(e.data.data)) return;
+  addConsoleLog(method, e.data.data.slice(0, 50));
 });
 
 function addConsoleLog(method, data) {
+  if (method !== 'log' && method !== 'warn' && method !== 'error') method = 'log';
+  if (!Array.isArray(data)) data = [];
+  data = data.slice(0, 50).map(function(d){ var s = String(d == null ? '' : d); return s.length > 2000 ? s.slice(0, 2000) + '…' : s; });
   var body = document.getElementById('consoleBody');
   /* Remove empty message */
   var emptyEl = body.querySelector('.console-empty');
