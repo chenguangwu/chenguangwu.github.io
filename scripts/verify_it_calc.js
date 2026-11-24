@@ -8131,6 +8131,33 @@ const CASES = [
   },
   {
     "slug": "it/emoji-meaning",
+    "inputs": { "searchInput": "smile" },
+    "clicks": ["isEnE=function(){return true;};searchQuery='smile';renderEmojis();"],
+    "expect": ["Grinning face", "emojis"],
+    "ref": "英文搜索：英文名/关键词接入后 `smile` 必须命中笑脸（英文名 Grinning face），并显示 `N emojis`；旧实现只匹配中文名/中文关键词，本锚不命中。中文搜索仍由既有用例覆盖。",
+  },
+  {
+    "slug": "it/emoji-meaning",
+    "inputs": { "searchInput": "thumbs up" },
+    "clicks": ["isEnE=function(){return true;};searchQuery='thumbs up';renderEmojis();"],
+    "expect": ["Thumbs up"],
+    "ref": "英文常用名称：`thumbs up` 应命中 👍 并显示英文名 Thumbs up；旧数据无英文名/关键词，本锚不命中。",
+  },
+  {
+    "slug": "it/emoji-meaning",
+    "inputs": { "searchInput": "China" },
+    "clicks": ["isEnE=function(){return true;};searchQuery='China';renderEmojis();"],
+    "expect": ["China", "🇨🇳"],
+    "ref": "旗帜英文：`China` 应命中 🇨🇳 并显示国名 China；旧旗帜只有中文名与 ISO 码，本锚不命中。",
+  },
+  {
+    "slug": "it/emoji-meaning",
+    "clicks": ["isEnE=function(){return true;};showDetail(0);"],
+    "expect": ["Name", "Category", "Smileys", "Keywords", "Copy emoji"],
+    "ref": "英文详情：名称/分类/关键词/复制按钮须英文化，分类显示 Smileys；旧实现脚本直接写中文，本锚不命中。",
+  },
+  {
+    "slug": "it/emoji-meaning",
     "clicks": ["showDetail(0);document.getElementById('__tbProbe').textContent='EMJDETAIL '+document.getElementById('detailInfo').innerHTML.slice(0,180);"],
     "expect": ["HTML 实体 &amp;#x1f600;"],
     "ref": "IT-N282 emoji 编码字面显示：htmlEntity(😀)=&#x1f600; 必须作为字面文本显示（HTML 转义为 &amp;#x1f600;），旧实现直接写入 innerHTML 被解析成 😀；JS/CSS 转义同理走事件委托传值，不从 onclick 属性二次解析。默认详情面板展示 😀 ⇒ 新有旧无。",
