@@ -13390,6 +13390,34 @@ const CASES = [
   },
   {
     "slug": "it/url-qr",
+    // 输入变化后旧预览必须失效，复制/下载禁用。
+    "clicks": ["var i=document.getElementById('url');i.value='https://github.com';generate();var old=lastQR&&lastQR.url;i.value='https://example.com';i.fire('input');var out=document.getElementById('output').innerHTML;document.getElementById('__tbProbe').textContent='QRSTALE '+((lastQR===null&&out.indexOf('github.com')<0&&document.getElementById('copyLinkBtn').disabled)?'OK':'BAD');"],
+    "expect": ["QRSTALE OK"],
+    "ref": "输入变化后必须清空 lastQR/旧预览并禁用复制下载；旧实现无 input 绑定 ⇒ 仍显示 github.com 二维码。"
+  },
+  {
+    "slug": "it/url-qr",
+    // 非法协议/主机名应明确报错，不生成二维码。
+    "clicks": ["var i=document.getElementById('url');i.value='javascript:alert(1)';generate();var t=document.getElementById('output').innerHTML;document.getElementById('__tbProbe').textContent='QRBAD '+(/合法/.test(t)?'OK':'BAD '+t.slice(0,40));"],
+    "expect": ["QRBAD OK"],
+    "ref": "非 http/https 或无法解析的地址必须验证失败并提示；旧实现直接补 https:// 后编码。"
+  },
+  {
+    "slug": "it/url-qr",
+    // 超容量必须与编码库缺失区分。
+    "clicks": ["var i=document.getElementById('url');i.value='https://x.test/'+'a'.repeat(2000);document.getElementById('ecl').value='H';generate();var t=document.getElementById('output').innerHTML;document.getElementById('__tbProbe').textContent='QRCAP '+((/超出/.test(t)&&/1273/.test(t))?'OK':'BAD '+t.slice(0,50));"],
+    "expect": ["QRCAP OK"],
+    "ref": "H 级最大 1273 字节，2000 字节必须提示超容量并指出上限；旧实现统一报编码库未加载。"
+  },
+  {
+    "slug": "it/url-qr",
+    // 复制只写规范化链接，不写结果区说明/字节数。
+    "clicks": ["var i=document.getElementById('url');i.value='github.com';generate();var wrote='';navigator.clipboard={writeText:function(t){wrote=String(t);return {then:function(){}};}};copyResult();document.getElementById('__tbProbe').textContent='QRCOPY '+(wrote==='https://github.com/'&&wrote===lastQR.url?'OK':'BAD '+wrote);"],
+    "expect": ["QRCOPY OK"],
+    "ref": "复制链接必须只写规范化 URL，不能带字节数/纠错等级说明；旧实现复制 output.textContent。"
+  },
+  {
+    "slug": "it/url-qr",
     // IT-N456：renderQR 必须走真实编码器 API——传 level、addData(原文)、切 UTF-8、返回 qr 对象。
     // 旧假实现自造 strHash/pseudoRandom 点阵，从不调用 qrcode ⇒ 探针全 NA 且返回数组。
     "inputs": { "url": "https://github.com" },
