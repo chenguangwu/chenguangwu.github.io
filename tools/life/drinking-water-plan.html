@@ -342,9 +342,21 @@ function resetForm(){document.getElementById('w').value='60';
 calcTool();
 
 function __drinking_water_planNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __dwpInputsValid(){
+    var w=num('w'), temp=num('temp');
+    var act=document.getElementById('act').value, stage=document.getElementById('stage').value;
+    return w!==null && isFinite(w) && w>0 && temp!==null && isFinite(temp) && !!act && !!stage;
+}
 function __drinking_water_planExtras(){
     function __drinking_water_planRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
+    if(!__dwpInputsValid()){
+      var __dt=document.getElementById('drinking_water_planTable');
+      if(__dt) __dt.innerHTML='';
+      var __dd=document.getElementById('drinking_water_planDiff');
+      if(__dd) __dd.innerHTML='';
+      return;
+    }
     var w=num('w'), act=document.getElementById('act').value, temp=num('temp'), stage=document.getElementById('stage').value; // 基础：30ml/kg（WHO 一般成人建议区间 30-35ml/kg）
     var base=w*30;
     var actAdd={none:0,light:200,mid:500,high:800}[act]||0;
@@ -353,7 +365,6 @@ function __drinking_water_planExtras(){
     var stageAdd={normal:0,preg:300,lact:700}[stage]||0;
     var total=base+actAdd+tempAdd+stageAdd;
     var cups=total/250; // 分段计划：7:00-22:00 每段 1.5h，按比例分配
-    if (!isFinite(__drinking_water_planNum('w')) || !isFinite(__drinking_water_planNum('temp')) || !__drinking_water_planRaw('act') || !__drinking_water_planRaw('stage')) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#drinking_water_planTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -371,6 +382,7 @@ function __drinking_water_planExtras(){
 }
 function __drinking_water_planExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!__dwpInputsValid()){ ToolBox.showToast('请输入有效的体重与气温后再导出'); return; }
     try { TBKit.util.exportTable('#drinking_water_planTable','drinking-water-plan.csv'); } catch(e){}
 }
 function __drinking_water_planPresets(){

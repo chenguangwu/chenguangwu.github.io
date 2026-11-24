@@ -1895,20 +1895,24 @@ const CASES = [
   },
   {
     "slug": "life/date-difference-calculator",
-    "inputs": {
-      "startDate": "abc123测试",
-      "endDate": "abc123测试",
-      "baseDate": "abc123测试",
-      "addYears": "42",
-      "addMonths": "42",
-      "addWeeks": "42",
-      "addDays": "42",
-      "addsubOp": "sub"
-    },
-    "expect": [
-      "⚠ 计算结果含无效值，请检查输入是否为有效正数。"
-    ],
-    "ref": "自动补强（B类零用例）：注入非法日期{\"startDate\":\"abc123测试\",\"endDate\":\"abc123测试\"} ⇒ diff 面板走 NaN 容错分支（「NaN 天」+「⚠ 计算结果含无效值」）。**只锚 diff 面板容错块**（时间戳无关的回显 + 固定告警串），且必须是「暂无历史记录」默认文案之后的连续三行（NaN 天 / 从…到… / ⚠告警），因历史记录区默认态插在输入回显与 NaN 之间会打断连续性——故跳过输入回显行、只取连续容错块。**不锚** addsub 尾部的「1978-01-13 / 周五 / 共 NNNNN 天」——其中「周五」由本地 getDay() 得出，UTC 之后时区会变「周四」（页面时区 bug，受众 China/UTC 不受影响）；其余串依赖 harness 把非法日期回退为冻结 now 的测试假象，均剔除。注：「暂无历史记录」是历史区默认文案、默认态也存在，不可做锚（会制造逃生项）。注入失败即不命中 NaN 容错块 ⇒ 强判别、零逃生。"
+    "inputs": {"baseDate": "2026-01-01", "addDays": "1.9", "addsubOp": "add"},
+    "clicks": ["calcAddSub()"],
+    "expect": ["加减量需为非负整数（不可为小数或负数）"],
+    "ref": "第731B批：输入 1.9 曾被 parseInt 静默截断为 1；现严格拒绝小数并清除结果。默认 0/30 天为整数 ⇒ 不命中。"
+  },
+  {
+    "slug": "life/date-difference-calculator",
+    "inputs": {"baseDate": "2026-01-01", "addYears": "-2", "addsubOp": "sub"},
+    "clicks": ["calcAddSub()"],
+    "expect": ["加减量需为非负整数（不可为小数或负数）"],
+    "ref": "第731B批：负数输入与控件 min=0 约束不一致，旧 parseInt 会照常计算并反向偏移；现拒绝。默认 0 ⇒ 不命中。"
+  },
+  {
+    "slug": "life/date-difference-calculator",
+    "inputs": {"baseDate": "2026-01-01", "addDays": "1", "addsubOp": "add"},
+    "clicks": ["calcAddSub()"],
+    "expect": ["2026-01-02"],
+    "ref": "第731B批护栏：合法整数 1 天仍应正常加一天，证明严格校验没有误伤合法输入。"
   },
   {
     "slug": "life/detector-checker-strength",
@@ -2617,7 +2621,7 @@ const CASES = [
   {
     slug: "life/date-difference-calculator",
     inputs: { baseDate: "2026-01-05", addYears: "abc" },
-    expect: ["加减量需为有效整数"],
+    expect: ["加减量需为非负整数（不可为小数或负数）"],
     ref: "加减量填非整数后旧实现 parseInt||0 静默按 0 处理 ⇒ 结果退回基准日期、用户误以为生效；"
        + "现显式提示。默认 addYears=0 ⇒ 不命中（默认无基准日期走「请选择基准日期」，亦不命中）。",
   },
@@ -2854,7 +2858,49 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/life/holiday-calendar.html','utf8');var i=h.indexOf('// === 2027 ===');var b=i>=0?h.slice(i,i+1600):'';var m=h.indexOf('var makeupWorkdays');var mk=m>=0?h.slice(m,m+600):'';var ok=h.indexOf('2026-02-15')>=0&&h.indexOf('2026-02-23')>=0&&b.indexOf('2027-02-05')>=0&&b.indexOf('除夕')>=0&&b.indexOf('2027-02-13')>=0&&b.indexOf('2027-04-03')>=0&&b.indexOf('2027-04-06')<0&&b.indexOf('2027-06-09')>=0&&b.indexOf('2027-06-11')<0&&mk.indexOf('2026-02-14')>=0&&mk.indexOf('2027-01-31')>=0;document.getElementById('__tbProbe').textContent='HOLSYNC '+(ok?'OK':'BAD');"],
   "expect": ["HOLSYNC OK"],
   "ref": "第225/231批·2026春节缺2/23、2027春节漏除夕修复：2026 春节 2/15–23 并补 1/4、2/14、2/28 等补班；2027 春节 2/5–13（2/5 标除夕），清明 4/3–5、端午 6/9、中秋 9/15，补班 1/31 等。旧数据 2026 少 2/23、2027 从 2/6 起 ⇒ BAD。真机 2026-02 工作日 16、2027-02 工作日 15。"
-}
+},
+  {
+    slug: "life/daily-calorie-needs",
+    inputs: { bmrGender: "male", bmrAge: "30", bmrHeight: "175", bmrWeight: "" },
+    clicks: ["calcBMR();var n=history.length;saveToHistory('bmr');document.getElementById('__tbProbe').textContent='SAVEBMR '+(history.length===n?'0 OK':'1 BAD');"],
+    expect: ["SAVEBMR 0 OK"],
+    ref: "第731B批：清空体重后 BMR 面板已提示无效，旧 saveToHistory 仍用空值重算并写入 NaN；现复用同一范围校验拒绝保存。默认有效体重 ⇒ 不命中。"
+  },
+  {
+    slug: "life/daily-calorie-needs",
+    inputs: { bmrGender: "male", bmrAge: "30", bmrHeight: "175", bmrWeight: "70" },
+    clicks: ["calcBMR();var n=history.length;saveToHistory('bmr');document.getElementById('__tbProbe').textContent='SAVEOK '+(history.length===n+1?'1 OK':'0 BAD');"],
+    expect: ["SAVEOK 1 OK"],
+    ref: "第731B批护栏：合法输入仍能保存一条历史，证明校验没有误伤正常保存。"
+  },
+  {
+    slug: "life/drinking-water-plan",
+    inputs: { w: "0", temp: "26", act: "mid", stage: "normal" },
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='DWP0 '+((document.getElementById('drinking_water_planTable').textContent.trim()===''&&document.getElementById('result').innerHTML.indexOf('有效')>=0)?'OK':'BAD');"],
+    expect: ["DWP0 OK"],
+    ref: "第731B批：体重 0 时主结果报错，旧 extras 仍按 0 生成明细表并写入历史；现统一正数校验、清空明细并停止记录。默认 60kg ⇒ 不命中。"
+  },
+  {
+    slug: "life/number-to-chinese",
+    inputs: { numInput: "10" },
+    clicks: ["document.querySelector('input[name=mode][value=upper]').checked=true;document.querySelector('input[name=mode][value=lower]').checked=false;convert()"],
+    expect: ["壹拾圆整"],
+    ref: "第731B批：财务大写 10 元旧实现删掉「壹」只剩「拾圆整」；现仅普通小写省略「一十」，大写保留壹拾圆整。默认小写 ⇒ 不命中。"
+  },
+  {
+    slug: "life/number-to-chinese",
+    inputs: { numInput: "100000" },
+    clicks: ["document.querySelector('input[name=mode][value=upper]').checked=true;document.querySelector('input[name=mode][value=lower]').checked=false;convert()"],
+    expect: ["壹拾万圆整"],
+    ref: "第731B批：财务大写 100000 旧实现同样丢首位壹，显示「拾万圆整」；现保留壹拾万圆整。"
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "24024", rate: "10", free: "0", cap: "0" },
+    clicks: ["calcTool()"],
+    expect: ["停放时长最多支持 1000 个计费日（24000 小时）"],
+    ref: "第731B批：旧 splitDays 最多生成 1000 日，24024 小时会静默丢掉最后 24 小时仍展示完整时长；现超限前置拒绝，不再给出低估结果。默认 3.5h ⇒ 不命中。"
+  }
 ];
 
 // ---------------------------------------------------------------- main
