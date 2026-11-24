@@ -192,11 +192,11 @@
 
     <div id="tabText" class="tab-content active">
       <div class="checkbox-row">
-        <label><input type="checkbox" id="urlSafe"> URL安全模式</label>
-        <label><input type="checkbox" id="autoDetect" checked> 解码时剥离 data: 前缀</label>
+        <label><input type="checkbox" id="urlSafe" onchange="__b64OptionChange()"> URL安全模式</label>
+        <label><input type="checkbox" id="autoDetect" checked onchange="__b64OptionChange()"> 解码时剥离 data: 前缀</label>
       </div>
       <label for="input">输入内容</label>
-      <textarea id="input" placeholder="输入要编码的文本，或要解码的 Base64/32/85 字符串..." oninput="onInputChange()">Hello, World! 你好，世界！</textarea>
+      <textarea id="input" placeholder="输入要编码的文本，或要解码的 Base64/32/85 字符串..." oninput="__b64OnInput()">Hello, World! 你好，世界！</textarea>
 
       <div data-tb="preset" data-tb-presets='[{"label":"中英混排","labelEn":"CN + EN","values":{"urlSafe":false,"autoDetect":true,"input":"Hello, World! 你好，世界！"}},{"label":"纯英文长文本","labelEn":"Long English text","values":{"urlSafe":false,"autoDetect":true,"input":"The quick brown fox jumps over the lazy dog."}},{"label":"URL 安全编码","labelEn":"URL-safe encoding","values":{"urlSafe":true,"autoDetect":false,"input":"https://example.com/search?q=toolbox#中文"}}]'></div>
 
@@ -357,6 +357,26 @@
 
   function __b64L(en,zh){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh; }
 
+  var __b64OutputValid = false;
+  function __b64HidePreview(){
+    var preview = document.getElementById('imagePreview');
+    if(preview) preview.style.display = 'none';
+  }
+  function __b64ClearOutput(){
+    var out = document.getElementById('output');
+    if(out) out.value = '';
+    __b64OutputValid = false;
+    __b64HidePreview();
+  }
+  function __b64OnInput(){
+    __b64ClearOutput();
+    onInputChange();
+  }
+  function __b64OptionChange(){
+    __b64ClearOutput();
+    onInputChange();
+  }
+
   var BASE32_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
   var BASE85_CHARS = '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstu';
 
@@ -368,6 +388,7 @@
     var urlSafe = document.getElementById('urlSafe');
     urlSafe.disabled = algo !== 'base64';
     urlSafe.parentElement.style.opacity = algo === 'base64' ? '1' : '0.5';
+    __b64ClearOutput();
     onInputChange();
   }
 
@@ -587,6 +608,16 @@
     return bytesToUtf8(bytes);
   }
 
+  function __b64ParseDataUrl(str){
+    if(!/^data:/i.test(str)) return null;
+    var idx=str.indexOf(',');
+    if(idx<0) return {malformed:true};
+    var meta=str.slice(5,idx);
+    var parts=meta.split(';').map(function(x){ return x.trim().toLowerCase(); });
+    var isBase64=parts.some(function(x){ return x==='base64'; });
+    return {isBase64:isBase64, data:str.slice(idx+1), mime:parts[0]||''};
+  }
+
   function looksLikeEncoded(str){
     str = str.trim();
     if(!str) return false;
@@ -683,39 +714,54 @@
 
   function encodeText(){
     var input = document.getElementById('input').value;
-    if(!input) return ToolBox.showToast(i18nText('toast.msg903'), 'warning');
+    __b64ClearOutput();
+    if(!input){ onInputChange(); return ToolBox.showToast(i18nText('toast.msg903'), 'warning'); }
     var urlSafe = document.getElementById('urlSafe').checked;
     try{
       var result = encode(input, urlSafe);
       document.getElementById('output').value = result;
+      __b64OutputValid = true;
       onInputChange();
       addHistory(input, result, 'encode');
     }catch(e){
+      onInputChange();
       ToolBox.showToast('编码失败：' + e.message, 'error');
     }
   }
 
   function decodeText(){
     var input = document.getElementById('input').value.trim();
-    if(!input) return ToolBox.showToast(i18nText('toast.msg906'), 'warning');
+    __b64ClearOutput();
+    if(!input){ onInputChange(); return ToolBox.showToast(i18nText('toast.msg906'), 'warning'); }
     var urlSafe = document.getElementById('urlSafe').checked;
     var autoDetect = document.getElementById('autoDetect').checked;
-    if(autoDetect && currentAlgo === 'base64' && /^data:[^;]+;base64,/.test(input)){
-      input = input.replace(/^data:[^;]+;base64,/,'');
+    if(autoDetect && currentAlgo === 'base64' && /^data:/i.test(input)){
+      var parsed = __b64ParseDataUrl(input);
+      if(!parsed || parsed.malformed){
+        onInputChange();
+        return ToolBox.showToast(__b64L('Malformed data URL: missing comma separator','data URL 格式无效：缺少逗号分隔'), 'error');
+      }
+      if(!parsed.isBase64){
+        onInputChange();
+        return ToolBox.showToast(__b64L('Only data URLs marked ";base64" are supported here','此处仅支持带 ";base64" 标记的 data URL'), 'error');
+      }
+      input = parsed.data;
     }
     try{
       var result = decode(input, urlSafe);
       document.getElementById('output').value = result;
+      __b64OutputValid = true;
       onInputChange();
       addHistory(input, result, 'decode');
     }catch(e){
+      onInputChange();
       ToolBox.showToast(__b64L('Decode failed: ','解码失败：') + ((e && e.message) || ('请输入有效的 ' + currentAlgo.toUpperCase() + ' 字符串')), 'error');
     }
   }
 
   function copyOutput(){
     var output = document.getElementById('output').value;
-    if(!output) return ToolBox.showToast(i18nText(), 'warning');
+    if(!__b64OutputValid || !output) return ToolBox.showToast(__b64L('No current result to copy; encode/decode successfully first','当前没有可复制的结果，请先成功执行编码或解码'), 'warning');
     ToolBox.copyText(output);
   }
 
@@ -725,12 +771,13 @@
     var tmp = input.value;
     input.value = output.value;
     output.value = tmp;
+    __b64OutputValid = true;
     onInputChange();
   }
 
   function clearAll(){
     document.getElementById('input').value = '';
-    document.getElementById('output').value = '';
+    __b64ClearOutput();
     onInputChange();
   }
 
@@ -931,6 +978,9 @@
   window.switchTab = switchTab;
   window.loadBase64Sample = loadBase64Sample;
   window.onInputChange = onInputChange;
+  window.__b64OnInput = __b64OnInput;
+  window.__b64IsValid = function(){ return __b64OutputValid; };
+  window.__b64OptionChange = __b64OptionChange;
   window.encodeText = encodeText;
   window.decodeText = decodeText;
   // 编码算法对比（供对比卡片跨算法实测输出长度）

@@ -1223,6 +1223,58 @@ const CASES = [
   },
   {
     slug: "it/base64-converter",
+    checkIds: ["autoDetect"],
+    inputs: { input: "data:text/plain;charset=utf-8;base64,aGVsbG8=" },
+    clicks: ["document.getElementById('autoDetect').checked=true;decodeText();"],
+    expect: ["hello"],
+    ref: "第767批：带 charset 参数的 data URL 必须按「第一个逗号」拆元信息与数据，识别 ;base64 后解码；aGVsbG8= → hello。旧正则 data:[^;]+;base64, 遇 text/plain;charset=utf-8;base64 不匹配 ⇒ 整串送 atob 失败。",
+  },
+  {
+    slug: "it/base64-converter",
+    checkIds: ["autoDetect"],
+    inputs: { input: "data:;base64,aGVsbG8=" },
+    clicks: ["document.getElementById('autoDetect').checked=true;decodeText();"],
+    expect: ["hello"],
+    ref: "第767批：省略媒体类型的 data:;base64, 也是合法形式，元信息为空、仅含 base64 标记，应剥离后解码得到 hello。旧正则要求 [^;]+ 非空媒体类型 ⇒ 不匹配。",
+  },
+  {
+    slug: "it/base64-converter",
+    checkIds: ["autoDetect"],
+    inputs: { input: "data:text/plain,hello%20world", output: "SENTINEL" },
+    clicks: ["document.getElementById('autoDetect').checked=true;decodeText();var o=document.getElementById('output');document.getElementById('__tbProbe').textContent='DATA out='+o.value+' valid='+window.__b64IsValid();"],
+    expect: ["DATA out= valid=false"],
+    ref: "第767批：非 Base64 的 data URL（逗号后是百分号编码文本，元信息无 ;base64）不能当 Base64 解码，必须明确提示不支持并清空输出；旧实现匹配失败后把整串送 atob，只得到模糊的非法字符错误。",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "aGVsbG8=" },
+    checkIds: ["autoDetect"],
+    clicks: ["document.getElementById('autoDetect').checked=true;decodeText();"],
+    expect: ["hello"],
+    ref: "第767批：普通 Base64 输入不因 data URL 解析改动而回归，仍直接解出 hello。",
+  },
+  {
+    slug: "it/base64-converter",
+    clicks: ["document.getElementById('input').value='hello';encodeText();var o=document.getElementById('output');var before=o.value;document.getElementById('input').value='changed';window.__b64OnInput();document.getElementById('__tbProbe').textContent='STALE before='+before+' after='+o.value+' valid='+window.__b64IsValid();"],
+    expect: ["STALE before=aGVsbG8= after= valid=false"],
+    ref: "第767批：成功编码 hello 得 aGVsbG8= 后，编辑输入触发 __b64OnInput，输出立即清空并置 __b64OutputValid=false，copyOutput 拒绝复制旧结果；旧实现 onInputChange 只更新统计，aGVsbG8= 仍可复制。",
+  },
+  {
+    slug: "it/base64-converter",
+    clicks: ["document.getElementById('input').value='hello';encodeText();var a=document.getElementById('output').value;document.getElementById('__tbProbe').textContent='A1='+a;setAlgo('base32');var b=document.getElementById('output').value;document.getElementById('__tbProbe').textContent+=' A2='+b+' V2='+window.__b64IsValid();encodeText();document.getElementById('__tbProbe').textContent+=' A3='+document.getElementById('output').value+' V3='+window.__b64IsValid();"],
+    expect: ["A1=aGVsbG8= A2= V2=false A3=NBSWY3DP V3=true"],
+    ref: "第767批：编码成功后切换算法 setAlgo('base32') 必须清空旧 Base64 结果并锁复制；再次编码 hello 才得到 Base32 NBSWY3DP 且恢复可复制。旧 setAlgo 只调 onInputChange，aGVsbG8= 仍留在输出区。",
+  },
+  {
+    slug: "it/base64-converter",
+    checkIds: ["autoDetect"],
+    inputs: { input: "DATA:;BASE64,aGVsbG8=" },
+    clicks: ["document.getElementById('autoDetect').checked=true;decodeText();"],
+    expect: ["hello"],
+    ref: "第767批：data URL 协议与 base64 标记大小写不敏感，DATA:;BASE64, 也应识别并解码为 hello；旧正则区分大小写且要求非空媒体类型 ⇒ 失败。",
+  },
+  {
+    slug: "it/base64-converter",
     clicks: ["document.getElementById('batchInput').value=' a \\n\\nb\\n';batchEncode();var r=window._batchResults||[];document.getElementById('__tbProbe').textContent='BATCH '+r.length+'|'+r.map(function(x){return x.line+':'+(x.ok?'K':'E')+':'+(x.blank?'B':'N');}).join(',')+'|'+r[0].dst;"],
     expect: ["BATCH 3|1:K:N,2:K:B,3:K:N|IGEg"],
     ref: "第766批：批量编码不得再用 trim() 过滤空白行。输入「 a \\n\\nb\\n」= 3 行：第 1 行仅含空格的文本编码为 IGEg（python base64.b64encode(b' a ') 独立核对），第 2 行是空行但保留位置并标 blank，第 3 行 b→Yg==；末尾换行只作为行终止符，不产生第 4 行。旧实现过滤后只剩 2 行且丢掉「 a 」。",
@@ -1254,15 +1306,6 @@ const CASES = [
     clicks: ["encodeText();"],
     expect: ["5L2g5aW977yM5LiW55WM", "15 B"],
     ref: "多字节 UTF-8：5 个字符占 15 字节（statInSize 15 B，不是 statInLen 5），编码得 20 字符 5L2g5aW977yM5LiW55WM，膨胀率 +33.3%",
-  },
-  {
-    // 原为只覆盖「Base64 标准编码」的弱覆盖页：解码方向、base32/base85 分支、URL-safe、
-    // 多字节字节数口径、非法输入保护均无用例，此处一次补齐 6 条，全部锚在派生量上。
-    slug: "it/base64-converter",
-    inputs: { input: "!!!not-base64!!!", output: "KEEP-THIS-VALUE-0123456789" },
-    clicks: ["decodeText();"],
-    expect: ["KEEP-THIS-VALUE-0123456789", "+62.5%"],
-    ref: "非法 base64 使 atob 抛异常：decodeText 只弹 toast、不改写输出区，预设输出 KEEP-THIS-VALUE-0123456789 原样保留（statOutLen 26，膨胀率 (26-16)/16 = +62.5%）",
   },
   {
     // IT-N502 回归：四套词库均为 14×14 且不含去重脚本残留的数字后缀（奶2/喵2/泡2）
@@ -8257,13 +8300,12 @@ const CASES = [
   {
     "slug": "it/base64-file",
     "inputs": {
-      "b64Out": "1\n2\n3",
       "b64In": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n�m\n✅ 已解码为文本（2 B）"
+      "�m\n✅ 已解码为文本（2 B）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"b64Out\":\"1\\n2\\n3\",\"b64In\":\"1\\n2\\n3\"}，输出区含「1 2 3\n�m\n✅ 已解码为文本（2 B）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第767批调整：只注入 b64In 的 3 字节非 Base64 输入（1\\n2\\n3），解码得 2 字节无效 UTF-8（�m）并提示「已解码为文本（2 B）」。旧版把 b64Out 也写进期望，但该页历史已改为不保存/不回填 b64Out，输出契约不再包含它 ⇒ 去掉偶发依赖，仍保留非默认输入判别。"
   },
   {
     "slug": "it/base64-file",
@@ -8305,6 +8347,18 @@ const CASES = [
     "clicks": ["document.body=document.body||{appendChild:function(){},removeChild:function(){}};var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='a'){e.click=function(){document.getElementById('result').innerHTML='DL:'+e.download;};}return e;};downloadB64();"],
     "expect": ["DL:file.jpg"],
     "ref": "IT-N406：第二个调用点（b64Out 的「还原为文件」）也必须走映射，文件名应是 file.jpg 而非 file.jpeg。用 createElement 桩在 a.click() 时捕获 a.download 写进结果区 ⇒ 真下载文件名契约。修复前 extFromMime 不存在 ⇒ 该分支抛错、结果区无 DL: 串。"
+  },
+  {
+    "slug": "it/base64-file",
+    "clicks": ["document.getElementById('opt_datauri').checked=false;window.__q=[];window.FileReader=function(){};FileReader.prototype.readAsDataURL=function(f){window.__q.push(this);};var A={name:'A.txt',size:3,type:'text/plain'},B={name:'B.txt',size:3,type:'text/plain'};fileToBase64(A);fileToBase64(B);__q[1].onload({target:{result:'data:text/plain;base64,QkJC'}});__q[0].onload({target:{result:'data:text/plain;base64,QUFB'}});var __ce=document.createElement.bind(document),DL='';document.createElement=function(t){var e=__ce(t);if(t==='a')e.click=function(){DL=e.download;};return e;};downloadB64();document.getElementById('__tbProbe').textContent='OUT '+document.getElementById('b64Out').value+' NAME '+lastB64File.name+' DL='+DL;"],
+    "expect": ["OUT QkJC NAME B.txt DL=b64-B.txt"],
+    "ref": "第767批：连续选文件 A→B 时，B 先读完、A 的迟到 onload 必须因 fileReadSeq 不匹配被丢弃，输出保持 B 的 QkJC，下载文件名也取 lastB64File=B.txt；旧实现无序号守卫，A 后到会把结果覆盖成 QUFB / A.txt。"
+  },
+  {
+    "slug": "it/base64-file",
+    "clicks": ["document.getElementById('opt_datauri').checked=false;lastFile={name:'B.txt',size:3,type:'text/plain'};lastB64='SECRETB64';document.getElementById('b64Out').value='QQ==';document.getElementById('b64In').value='SECRET-TEXT';var s=__base64_fileSnap();var j=JSON.stringify(s);document.getElementById('__tbProbe').textContent='SNAP '+j+' LEAK '+/B\.txt|SECRETB64|QQ==|SECRET-TEXT/.test(j);"],
+    "expect": ["SNAP {\"opt_datauri\":\"0\",\"fileType\":\"text/plain\",\"fileSize\":\"3 B\",\"status\":\"已转换\"} LEAK false"],
+    "ref": "第767批：历史快照只允许非敏感摘要（data URI 开关、媒体类型、大小、状态），不得把文件名 B.txt、Base64 SECRETB64、解码文本或 b64Out/b64In 控件值写入；旧实现对全部 input/select/textarea 取值 ⇒ 三项敏感值全部落盘。"
   },
   {
     "slug": "it/base85-encode",
