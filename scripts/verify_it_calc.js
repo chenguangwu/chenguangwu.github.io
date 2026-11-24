@@ -9114,6 +9114,41 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「 现代 工程\n共 0 项」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/cron",
+    "inputs": {},
+    "clicks": ["var m=document.getElementById('manualInput');m.value='99 * * * *';onManualInput();var d=document.getElementById('description').textContent;document.getElementById('description').textContent='BAD='+(d.indexOf('分钟字段')>=0?'OK':'NO')+'|'+(cronValid===false?'OFF':'ON')"],
+    "expect": ["BAD=OK|OFF"],
+    "ref": "第773批：手输 99 分钟必须按字段范围拒绝并作废旧表达式、禁用复制；旧实现只查段数，99 直接成为可复制表达式。"
+  },
+  {
+    "slug": "it/cron",
+    "inputs": {},
+    "clicks": ["var m=document.getElementById('manualInput');m.value='';onManualInput();document.getElementById('description').textContent='EMPTY='+((cronValid===false&&document.getElementById('description').textContent.indexOf('请输入')>=0)?'OK':'NO')+'|'+(document.getElementById('copyCronBtn').disabled?'OFF':'ON')"],
+    "expect": ["EMPTY=OK|OFF"],
+    "ref": "第773批：清空手输表达式必须立即作废旧结果并禁用复制；旧实现 `if(!expr) return` 保留上一条可复制表达式。"
+  },
+  {
+    "slug": "it/cron",
+    "inputs": {},
+    "clicks": ["var m=document.getElementById('manualInput');m.value='1-5/2 * * * *';onManualInput();var ok=matchesCron(new Date(2026,10,24,9,7),'1-5/2','*','*','*','*')===false&&matchesCron(new Date(2026,10,24,9,3),'1-5/2','*','*','*','*')===true;document.getElementById('description').textContent='RS='+((state.min.type==='every'&&document.getElementById('manualInput').value==='1-5/2 * * * *')?'OK':'NO')+'|'+(document.getElementById('cronNotice').textContent.indexOf('范围+步长')>=0?'NOTE':'MISS')+'|'+(ok?'MATCH':'BAD')"],
+    "expect": ["RS=OK|NOTE|MATCH"],
+    "ref": "第773批：范围步长 1-5/2 必须保留上界 5（7 不命中），且手输表达式原样保留、明确提示面板不支持组合，不能静默改写。"
+  },
+  {
+    "slug": "it/cron",
+    "inputs": {},
+    "clicks": ["var m=document.getElementById('manualInput');m.value='0 0 * * * 0';onManualInput();var six=validateCronExpr('0 0 * * * 0').ok===false;var sun=normalizeCronExpr('0 0 * * 7')==='0 0 * * 0';document.getElementById('description').textContent='Q='+(six?'5ONLY':'ACCEPT')+'|SUN='+(sun?'OK':'NO')"],
+    "expect": ["Q=5ONLY|SUN=OK"],
+    "ref": "第773批：6 段必须是「只接受 5 段」错误；周日写 7 按 Unix 惯例归一为 0，不得误判越界或当周日缺失。"
+  },
+  {
+    "slug": "it/cron",
+    "inputs": {},
+    "clicks": ["var m=document.getElementById('manualInput');m.value='0 8 1 1 1';onManualInput();var d=document.getElementById('description').textContent;document.getElementById('description').textContent='D='+(d.indexOf('每年1月')>=0?1:0)+'|'+(d.indexOf('每月1号')>=0?1:0)+'|'+(d.indexOf('每周一')>=0?1:0)"],
+    "expect": ["D=1|1|1"],
+    "ref": "第773批：月/日/周同时受限时描述必须同时写出「每年1月」「每月1号」「每周一」及 OR 关系；旧实现互斥分支只保留星期。"
+  },
+  {
     "slug": "it/crc-calculator",
     "inputs": {},
     "clicks": ["document.getElementById('input').value='';calc();var r=document.getElementById('results');var m=r.innerHTML;r.innerHTML='<p>EMPTY='+(m.indexOf('计算空输入 CRC')>=0?'OK':'BAD')+' HAS0x='+(m.indexOf('0x')>=0)+'</p>'"],
