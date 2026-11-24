@@ -14614,6 +14614,24 @@ const CASES = [
   },
   {
     slug: "it/sha",
+    clicks: ["__shaTextModel={successes:[{algo:'A',hex:'aa'},{algo:'B',hex:'bb'}],failures:[{algo:'C'}],text:'secret'};var g='';var old=ToolBox.copyText;ToolBox.copyText=function(t){g=t};copyAll();ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='SHACOPY '+((g==='aa'+String.fromCharCode(10)+'bb')?'OK':'BAD '+g);"],
+    expect: ["SHACOPY OK"],
+    ref: "第784批：复制全部只收集结构化成功摘要，失败算法不进入剪贴板；旧实现遍历所有 code，会把「不支持」错误文本一并复制。",
+  },
+  {
+    slug: "it/sha",
+    clicks: ["__shaTextModel={successes:[{algo:'SHA-256',hex:'aa'}],failures:[],text:'secret'};var a=__shaExportData(false),b=__shaExportData(true);document.getElementById('__tbProbe').textContent='SHAEXP '+((a&&a.header.indexOf('Input')<0&&a.rows[0].indexOf('secret')<0&&b&&b.header.indexOf('Input')>=0&&b.rows[0].indexOf('secret')>=0)?'OK':'BAD '+JSON.stringify(a)+' / '+JSON.stringify(b));"],
+    expect: ["SHAEXP OK"],
+    ref: "第784批：CSV 默认只含算法与摘要、不含原始输入；仅当用户显式勾选后才增加输入列。旧实现固定附加完整输入列，易把敏感原文一起分享。",
+  },
+  {
+    slug: "it/sha",
+    clicks: ["document.querySelectorAll('.algo-select input').forEach(function(c){c.checked=false;});calcText();document.getElementById('__tbProbe').textContent='SHANOALGO '+((__shaTextModel===null)?'OK':'BAD');"],
+    expect: ["SHANOALGO OK"],
+    ref: "第784批：取消全部算法后必须提示并清空结构化结果，复制/导出不可用；旧实现仅提示但仍可能保留旧摘要。",
+  },
+  {
+    slug: "it/sha",
     inputs: { textInput: "abc" },
     checks: ["SHA-384"],
     clicks: ["calcText()"],
