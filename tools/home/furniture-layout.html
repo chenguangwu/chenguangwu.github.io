@@ -167,6 +167,7 @@
  <button type="button" class="btn" onclick="applyLayoutPreset('bedroom')">主卧套装</button>
  <button type="button" class="btn" onclick="applyLayoutPreset('living')">客厅套装</button>
  <button type="button" class="btn" onclick="applyLayoutPreset('study')">书房套装</button>
+ <button type="button" class="btn" id="layout-undo-btn" onclick="undoLayoutPreset()" style="display:none;">↩ 撤销预设</button>
 </div>
 
 <div class="layout-wrap">
@@ -307,6 +308,7 @@ const FURNITURE = {
 let items = [];
 let selectedId = null;
 let dragging = null;
+let presetUndo = null;
 
 function renderFurnList(){
  document.getElementById('furn-list').innerHTML = Object.entries(FURNITURE).map(([name, sz]) =>
@@ -314,6 +316,15 @@ function renderFurnList(){
  ).join('');
 }
 
+function __layoutUndoBtn(show){ var b=document.getElementById('layout-undo-btn'); if(b) b.style.display=show?'inline-flex':'none'; }
+function undoLayoutPreset(){
+  if(!presetUndo){ ToolBox.showToast('没有可撤销的预设'); return; }
+  document.getElementById('rl').value=presetUndo.rl;
+  document.getElementById('rw').value=presetUndo.rw;
+  items=presetUndo.items;
+  selectedId=null; presetUndo=null; __layoutUndoBtn(false); renderItems();
+  ToolBox.showToast('已撤销预设，恢复原房间尺寸与家具');
+}
 function applyLayoutPreset(kind){
   if(!kind) return;
   var P={
@@ -323,6 +334,8 @@ function applyLayoutPreset(kind){
   };
   var p=P[kind];
   if(!p) return;
+  if(items.length && !confirm('当前已有 '+items.length+' 件家具。切换预设会替换房间尺寸和全部家具，确定继续？')) return;
+  presetUndo={rl:document.getElementById('rl').value, rw:document.getElementById('rw').value, items:items.map(function(x){return Object.assign({},x);})};
   document.getElementById('rl').value=p.rl;
   document.getElementById('rw').value=p.rw;
   items=[];
@@ -335,7 +348,8 @@ function applyLayoutPreset(kind){
     curX += f.w + 0.2;
     rowH = Math.max(rowH, f.h);
   });
-  renderItems();
+  renderItems(); __layoutUndoBtn(true);
+  ToolBox.showToast('已应用预设，可用“撤销预设”恢复原布局');
 }
 function addFurniture(name){
  const sz = FURNITURE[name];
