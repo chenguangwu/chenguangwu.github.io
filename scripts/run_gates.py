@@ -428,6 +428,8 @@ GATES = (
     ("en guide link structure", ("node", "scripts/_en_i18n_probe.mjs", "--links",
                                  "geometry/pyramid-volume", "finance/compound-interest",
                                  "accounting/cash-conversion-cycle", "dyeing/color-diff", "it/text-diff")),
+    # 指南 description 三处 content 必须与 data-i18n-head-fb 回退逐字一致（2026-11-24 第677批）。
+    ("guide desc fallback audit", ("python3", "scripts/audit_guide_desc_fb.py")),
 )
 
 

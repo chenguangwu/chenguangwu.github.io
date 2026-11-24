@@ -3835,10 +3835,18 @@ def normalize_guide_descriptions():
             # `<10 mm`、`>20 mm` 等原始尖括号必须落成 &lt;/&gt;，否则社交抓取
             # 与结构化校验会把它们当成标签边界。
             esc = esc_html_py(nd)
-            if esc == m.group(2):
+            prefix = m.group(1)
+            # 同一 meta 的 data-i18n-head-fb 必须与最终 content 同值；否则英文态
+            # 字典缺键时会回退到旧描述，造成 description/OG/Twitter 三处分叉。
+            if 'data-i18n-head-fb=' in prefix:
+                prefix = re.sub(
+                    r'data-i18n-head-fb="(?:[^"\\]|\\.)*"',
+                    lambda mm: 'data-i18n-head-fb="' + esc + '"',
+                    prefix, count=1)
+            if prefix == m.group(1) and esc == m.group(2):
                 return m.group(0)
             changed[0] += 1
-            return m.group(1) + esc + m.group(3)
+            return prefix + esc + m.group(3)
 
         def _sub_ld(m):
             try:

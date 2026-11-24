@@ -455,7 +455,13 @@ function __mdSplitRow(row){
     // GFM 行拆分：只把未转义的 | 视为列分隔；\| 解码为 |，\\ 解码为 \，其他转义保留。
     var s=String(row).trim();
     if(s.charAt(0)==='|') s=s.slice(1);
-    if(s.charAt(s.length-1)==='|') s=s.slice(0,-1);
+    // 末尾 | 只有在其前连续反斜杠为偶数个时才是未转义的边界分隔符；
+    // 奇数个说明该 | 是单元格内容（如 a\|），不能删除。
+    if(s.charAt(s.length-1)==='|'){
+        var bs=0;
+        for(var j=s.length-2;j>=0&&s.charAt(j)==='\\';j--) bs++;
+        if(bs%2===0) s=s.slice(0,-1);
+    }
     var cells=[], buf='', esc=false, i, c;
     for(i=0;i<s.length;i++){
         c=s.charAt(i);

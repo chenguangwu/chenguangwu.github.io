@@ -37,6 +37,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 CJK = re.compile(r'[一-鿿]')
 
+# 具体算例/输入清单不是工具功能介绍：英文描述回退时必须排除这类候选。
+_CASE_LIKE_RE = re.compile(r'^(?:Example|例如|示例|Input|输入|Case|算例|已知|Given)\s*[:：]', re.I)
+
 # ed / en-US.intro 里大量「Free online tool on ToolBox — 100% client-side」这类模板签名，
 # 直接展示会满屏套话（实测 1648 条中 1519 条、92% 是模板腔），先剥掉再判断有无实质内容
 ED_BOILERPLATE = [
@@ -109,7 +112,7 @@ def _third_layer_desc(t):
                 continue
             if len(k.strip()) < 8:
                 continue
-            if re.match(r'^(Example|例如|示例)[:：]', v.strip()):
+            if _CASE_LIKE_RE.match(k.strip()) or _CASE_LIKE_RE.match(v.strip()):
                 continue
             cands.append(v.strip())
         if cands:
@@ -396,6 +399,9 @@ def _clean_en(raw, name_en):
     """
     raw = (raw or '').strip()
     if not raw:
+        return ''
+    # 直接以 Input/Case/示例 开头的算例不是功能介绍，禁止进入 meta 回退。
+    if _CASE_LIKE_RE.match(raw):
         return ''
     if name_en and not has_cjk(name_en) and raw.startswith(name_en):
         raw = raw[len(name_en):].lstrip(' -–—:·|')

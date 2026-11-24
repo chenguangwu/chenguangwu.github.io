@@ -283,25 +283,42 @@ function calc(){
   var hoursStr=document.getElementById('hours').value,hours=hoursStr===''?null:parseFloat(hoursStr);
   var rrt=document.getElementById('rrt').value==='yes';
   var elB=document.getElementById('baseline'),elC=document.getElementById('current');
-  if(document.getElementById('rrt').value===''||isNaN(base)||isNaN(cur)||isNaN(w)){
-    document.getElementById('res').innerHTML='<div class="tip-box tip-info tb-guard">请填写基线血肌酐、当前血肌酐与体重，并选择是否已开始肾脏替代（RRT）。</div>';
+  if(document.getElementById('rrt').value===''){
+    document.getElementById('res').innerHTML='<div class="tip-box tip-info tb-guard">请选择是否已开始肾脏替代（RRT）。未开始 RRT 时还需填写基线血肌酐与当前血肌酐。</div>';
     return;
   }
-  if(isNaN(base)||base<=0){elB.classList.add('input-error');document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效基线肌酐</p>';return;}
-  elB.classList.remove('input-error');
-  if(isNaN(cur)||cur<=0){elC.classList.add('input-error');document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效当前肌酐</p>';return;}
-  elC.classList.remove('input-error');
+  // RRT 是独立 3 期标准：即使基线肌酐、当前肌酐或体重缺失，也应直接判 3 期。
+  if(!rrt){
+    if(isNaN(base)||base<=0){elB.classList.add('input-error');document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效基线肌酐</p>';return;}
+    elB.classList.remove('input-error');
+    if(isNaN(cur)||cur<=0){elC.classList.add('input-error');document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效当前肌酐</p>';return;}
+    elC.classList.remove('input-error');
+  }
   if(hours!==null && (isNaN(hours)||hours<0)){document.getElementById('hours').classList.add('input-error');document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效的基线采血距当前时间（小时）</p>';return;}
   document.getElementById('hours').classList.remove('input-error');
-  var ratio=cur/base, delta=cur-base;
+  var ratio=(isFinite(base)&&isFinite(cur)&&base>0)?cur/base:0;
+  var delta=(isFinite(base)&&isFinite(cur))?cur-base:0;
   var crStage=0, crReason='肌酐未达时间窗内标准', crUnknown=false, crWindow='';
   if(rrt){crStage=3;crReason='已开始肾脏替代治疗（RRT），直接判为 3 期';}
+  else if(!isFinite(base)||!isFinite(cur)){crUnknown=true;crWindow='缺失';crReason='未提供有效基线/当前肌酐，无法按肌酐确认 AKI';}
   else if(hours===null){crUnknown=true;crWindow='缺失';crReason='未提供基线采血距当前时间：无法判断 48 小时 / 7 天时间窗，不能仅凭肌酐确认 AKI';}
   else if(hours>168){crUnknown=true;crWindow='超出7天';crReason='距基线 '+hours+' 小时已超过 7 天，肌酐变化不满足 KDIGO 时间窗，不能据此确认 AKI';}
-  else if(ratio>=3||cur>=353.6){crStage=3;crReason='肌酐升至基线 '+(ratio.toFixed(2))+' 倍 '+(cur>=353.6?'且 ≥353.6 μmol/L ':'')+'（≥3倍 或 ≥353.6，时间窗 '+hours+'h）';}
-  else if(ratio>=2){crStage=2;crReason='肌酐升至基线 '+ratio.toFixed(2)+' 倍（2.0-2.9 倍，时间窗 '+hours+'h）';}
-  else if(ratio>=1.5){crStage=1;crReason='肌酐升至基线 '+ratio.toFixed(2)+' 倍（1.5-1.9 倍，时间窗 '+hours+'h）';}
-  else if(hours<=48&&delta>=26.5){crStage=1;crReason='肌酐升高 '+delta.toFixed(1)+' μmol/L（48 小时内 ≥26.5）';}
+  else {
+    // 先确认 AKI：7 天内升至基线 1.5 倍，或 48 小时内升高 ≥26.5 μmol/L。
+    // 只有确认 AKI 后，才应用 3 期绝对阈值 ≥353.6；稳定的高基线不是 AKI。
+    var akiConfirmed = (ratio>=1.5) || (hours<=48 && delta>=26.5);
+    if(!akiConfirmed){
+      crStage=0; crReason='肌酐变化未达到 AKI 确认标准（7 天内 <1.5 倍且 48 小时内升高 <26.5 μmol/L）';
+    } else if(ratio>=3 || cur>=353.6){
+      crStage=3; crReason='已确认 AKI；肌酐升至基线 '+ratio.toFixed(2)+' 倍'+(cur>=353.6?'且 ≥353.6 μmol/L':'')+'（≥3倍 或 ≥353.6，时间窗 '+hours+'h）';
+    } else if(ratio>=2){
+      crStage=2; crReason='已确认 AKI；肌酐升至基线 '+ratio.toFixed(2)+' 倍（2.0-2.9 倍，时间窗 '+hours+'h）';
+    } else if(ratio>=1.5){
+      crStage=1; crReason='已确认 AKI；肌酐升至基线 '+ratio.toFixed(2)+' 倍（1.5-1.9 倍，时间窗 '+hours+'h）';
+    } else {
+      crStage=1; crReason='已确认 AKI；肌酐升高 '+delta.toFixed(1)+' μmol/L（48 小时内 ≥26.5）';
+    }
+  }
   var uoStage=0, uoReason='尿量未提供或未达标准';
   if(w>0){
     if(uo6!==null){var r6=uo6/(w*6); if(r6<0.5&&uoStage<1){uoStage=1;uoReason='近6h尿量 '+uo6+'mL（'+r6.toFixed(2)+' mL/kg/h，&lt;0.5 持续6-12h）→ 1 期';}}

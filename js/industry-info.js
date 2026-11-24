@@ -73,7 +73,7 @@ window.INDUSTRY_INFO = {
   'data'                 : { name: '数据分析', icon: '📊', hot: 244306 },
   'accounting'           : { name: '会计审计', icon: '🧾', hot: 242215 },
   'process'              : { name: '过程控制', icon: '🏭', hot: 238692 },
-  'insurance'            : { name: '保险计算', icon: '🛡️', hot: 235125 },
+  'insurance'            : { name: '保险计算', icon: '🛡️', hot: 235117 },
   'food'                 : { name: '美食烹饪', icon: '🍳', hot: 230366 },
   'civil'                : { name: '土木工程', icon: '🏗️', hot: 229067 },
   'food-processing'      : { name: '食品加工', icon: '🏭', hot: 226757 },
