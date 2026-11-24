@@ -6569,6 +6569,26 @@ const CASES = [
   },
   {
     slug: "it/gitignore-generator",
+    checks: ["java"],
+    clicks: ["escH=function(s){return String(s==null?'':s);};calcTool();"],
+    expect: ["*.jar", "!**/gradle/wrapper/gradle-wrapper.jar", "build/"],
+    ref: "Java 模板：`*.jar` 后必须有 Gradle 包装器例外，否则新项目无法提交 gradle-wrapper.jar；仍需保留 build/ 与 *.jar 对普通产物生效。旧模板无例外，本锚的例外串不命中。",
+  },
+  {
+    slug: "it/gitignore-generator",
+    clicks: ["var __q=document.querySelectorAll;document.querySelectorAll=function(sel){if(sel==='input[data-name]:checked')return [];return __q.call(document,sel);};calcTool();document.querySelectorAll=__q;var r=document.getElementById('result');document.getElementById('__tbProbe').textContent='GIEMPTY '+((!r.getAttribute('data-stats')&&r.getAttribute('data-empty')==='1')?'OK':'BAD');"],
+    expect: ["GIEMPTY OK"],
+    ref: "空选择：必须清除 data-stats、标记 data-empty、禁用复制/下载，历史不得把上次栈数/规则数记成空结果；旧实现只换文案保留旧 data-stats，本锚不命中。",
+  },
+  {
+    slug: "it/gitignore-generator",
+    checks: ["node"],
+    clicks: ["escH=function(s){return String(s==null?'':s);};calcTool();document.getElementById('__tbProbe').textContent='GIBTN '+((!document.getElementById('copyIgnoreBtn').disabled&&!document.getElementById('downloadIgnoreBtn').disabled)?'OK':'BAD');"],
+    expect: ["GIBTN OK"],
+    ref: "生成成功后复制/下载按钮必须可用；旧页面只有 CSV 导出，无这两个入口，本锚不命中。",
+  },
+  {
+    slug: "it/gitignore-generator",
     checks: ["rust", "ide"],
     clicks: ["escH=function(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};calcTool();"],
     expect: ["**/*.rs.bk", "# IDE/编辑器"],
