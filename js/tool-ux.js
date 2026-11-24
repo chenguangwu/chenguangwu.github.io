@@ -334,6 +334,76 @@
     try { if (window.I18n && typeof window.I18n.apply === 'function') window.I18n.apply(clearBtn); } catch (e) {}
   }
 
+  /* ---------- 3.5) 标签栏语义与键盘操作 ---------- */
+  function enhanceTabs() {
+    var TAB_SEL = '[role="tab"],.tab,.tab-btn,.tbk-tab,[data-pane],[data-tab]';
+    $all('[role="tablist"], .tabs').forEach(function (bar) {
+      if (bar.__tbTabsReady) return;
+      var explicit = bar.hasAttribute('role');
+      var children = Array.prototype.slice.call(bar.children);
+      var candidates = children.filter(function (el) {
+        return el.matches && (el.matches(TAB_SEL) || (explicit && el.matches('button,a')));
+      });
+      if (!candidates.length) return;
+      // 混合容器（如 .tabs 里夹着预设 div / 导出按钮）不能冒充 tablist，
+      // 否则 aria-required-children 必失败；仅纯标签容器补语义。
+      if (children.length !== candidates.length) {
+        if (explicit) bar.removeAttribute('role');
+        return;
+      }
+      bar.__tbTabsReady = true;
+      var tabs = candidates;
+      if (!bar.hasAttribute('role')) bar.setAttribute('role', 'tablist');
+
+      var hasActive = tabs.some(function (t) { return t.classList.contains('active'); });
+      tabs.forEach(function (tab) {
+        tab.setAttribute('role', 'tab');
+        if (!tab.hasAttribute('aria-selected')) {
+          tab.setAttribute('aria-selected', tab.classList.contains('active') ? 'true' : 'false');
+        }
+        tab.setAttribute('tabindex', tab.classList.contains('active') ? '0' : '-1');
+        tab.addEventListener('click', function () { setTimeout(sync, 0); });
+        tab.addEventListener('keydown', function (e) {
+          if ((e.key === 'Enter' || e.key === ' ') && !tab.matches('button,a')) {
+            e.preventDefault();
+            tab.click();
+          }
+        });
+      });
+
+      function sync() {
+        var activeFound = false;
+        tabs.forEach(function (tab) {
+          var on = tab.classList.contains('active');
+          if (on) activeFound = true;
+          tab.setAttribute('aria-selected', on ? 'true' : 'false');
+          tab.setAttribute('tabindex', on ? '0' : '-1');
+        });
+        if (!activeFound) {
+          tabs[0].setAttribute('aria-selected', 'true');
+          tabs[0].setAttribute('tabindex', '0');
+        }
+      }
+
+      bar.addEventListener('keydown', function (e) {
+        var idx = tabs.indexOf(document.activeElement);
+        if (idx < 0) return;
+        var next = null;
+        if (e.key === 'ArrowRight') next = (idx + 1) % tabs.length;
+        else if (e.key === 'ArrowLeft') next = (idx - 1 + tabs.length) % tabs.length;
+        else if (e.key === 'Home') next = 0;
+        else if (e.key === 'End') next = tabs.length - 1;
+        if (next === null) return;
+        e.preventDefault();
+        tabs[next].focus();
+        tabs[next].click();
+      });
+
+      if (!hasActive) tabs[0].setAttribute('tabindex', '0');
+      sync();
+    });
+  }
+
   /* ---------- 4) 结果区可访问性 ---------- */
   function enhanceA11y() {
     var res = findResultContainer();
@@ -347,7 +417,11 @@
     try { enhanceValidation(); } catch (e) {}
     try { enhancePersistence(); } catch (e) {}
     try { ensureClearButton(); } catch (e) {}
+    try { enhanceTabs(); } catch (e) {}
     try { enhanceA11y(); } catch (e) {}
+    // 部分页面在 DOMContentLoaded 之后才重建标签栏，补一次延迟兜底。
+    setTimeout(function () { try { enhanceTabs(); } catch (e) {} }, 350);
+    window.addEventListener('load', function () { try { enhanceTabs(); } catch (e) {} });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

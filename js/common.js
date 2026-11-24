@@ -1984,10 +1984,10 @@ function showToast(msg, type){
   t.className = 'toast-msg';
   t.textContent = msg;
   var colors = {
-    success:'#10B981',
-    error:'#EF4444',
-    info:'#3B82F6',
-    warning:'#F59E0B'
+    success:'#047857',
+    error:'#B91C1C',
+    info:'#1D4ED8',
+    warning:'#B45309'
   };
   var bg = colors[type] || colors.success;
   t.style.cssText = 'background:' + bg + ';color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.2);white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis;';
@@ -3141,7 +3141,7 @@ function buildUnifiedHeader(){
     '</div>' +
     '<form class="nav-search" action="' + root + 'search.html" method="GET" onsubmit="if(!this.q.value.trim()){event.preventDefault();return false;}">' +
       '<svg class="nav-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>' +
-      '<input type="search" name="q" id="searchInputDesktop" placeholder="搜索工具、分类或功能..." data-i18n-ph="search.placeholder" oninput="if(window.onSearchInput)onSearchInput(event)">' +
+      '<input type="search" name="q" id="searchInputDesktop" placeholder="搜索工具、分类或功能..." aria-label="搜索工具、分类或功能" data-i18n-ph="search.placeholder" data-i18n-aria="search.placeholder" oninput="if(window.onSearchInput)onSearchInput(event)">' +
     '</form>' +
     '<div class="nav-actions">' +
       '<button class="nav-icon-btn" onclick="ToolBox.toggleToolTheme()" title="切换主题" aria-label="切换主题" data-i18n-title="nav.theme" data-i18n-aria="nav.theme"><span class="tb-theme-icon" style="font-size:18px">🌙</span><span class="nav-btn-label" data-i18n="nav.theme" data-i18n-fb="切换主题">切换主题</span></button>' +
@@ -3753,6 +3753,7 @@ document.addEventListener('DOMContentLoaded', enhanceNumberInputs);
     var popup = document.createElement('div');
     popup.className = 'tb-select-popup';
     popup.setAttribute('role', 'listbox');
+    popup.setAttribute('aria-label', '选项列表');
     wrap.appendChild(popup);
 
     function syncTrigger(){

@@ -148,11 +148,17 @@
     return inst.panel;
   }
 
+  function setExpanded(inst, open) {
+    if (!inst.input) return;
+    inst.input.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
   function close(inst) {
     if (!inst.panel) return;
     inst.panel.hidden = true;
     inst.panel.innerHTML = '';
     inst.active = -1;
+    setExpanded(inst, false);
   }
 
   function paint(inst, html) {
@@ -160,6 +166,7 @@
     p.innerHTML = html;
     p.hidden = false;
     inst.active = -1;
+    setExpanded(inst, true);
   }
 
   function refresh(inst) {
@@ -206,6 +213,8 @@
     input.setAttribute('autocomplete', 'off');
     input.setAttribute('aria-autocomplete', 'list');
     input.setAttribute('aria-expanded', 'false');
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-haspopup', 'listbox');
 
     var inst = {
       input: input,
@@ -236,6 +245,8 @@
       inst.panel.hidden = true;
       host.appendChild(inst.panel);
     }
+    if (!inst.panel.id) inst.panel.id = (input.id || 'tbSearch') + '-listbox';
+    input.setAttribute('aria-controls', inst.panel.id);
 
     input.addEventListener('input', function () {
       clearTimeout(inst.timer);
