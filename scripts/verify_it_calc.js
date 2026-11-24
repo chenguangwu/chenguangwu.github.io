@@ -9646,6 +9646,51 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「 JSON 有效\n4」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/json-formatter",
+    "inputs": {"input": "{\"id\":9007199254740993}"},
+    "clicks": ["formatJSON();document.getElementById('__tbProbe').textContent='BIG '+document.getElementById('input').value;"],
+    "expect": ["BIG { \"id\": 9007199254740993"],
+    "ref": "第722批：超出安全整数的大 ID 必须按原始字面量保留；旧实现 JSON.parse→stringify 后变成 9007199254740992。输入与默认样例均不含正确值 ⇒ 只有修复态命中。"
+  },
+  {
+    "slug": "it/json-formatter",
+    "inputs": {"input": "{\"10\":1,\"2\":2,\"a\":3}"},
+    "clicks": ["var __o='';try{var __m=document.getElementById('sortMode');if(__m)__m.value='lex';sortJSON();__o=document.getElementById('input').value;}catch(e){__o='ER '+e.message;}document.getElementById('__tbProbe').textContent='LEX '+__o;"],
+    "dumpIds": ["__tbProbe"],
+    "expect": ["LEX { \"10\": 1, \"2\": 2"],
+    "ref": "第722批：排序规则可选。字典序下 10 必须排在 2 前；旧实现虽先字符串排序，但普通对象枚举把整数键改回 2、10 顺序 ⇒ 断言不命中。"
+  },
+  {
+    "slug": "it/json-formatter",
+    "inputs": {"input": "{\"10\":1,\"2\":2,\"a\":3}"},
+    "clicks": ["document.getElementById('sortMode').value='natural';sortJSON();document.getElementById('__tbProbe').textContent='NAT '+document.getElementById('input').value;"],
+    "expect": ["NAT { \"2\": 2, \"10\": 1"],
+    "ref": "第722批：自然序把数字段按数值比较，2 必须排在 10 前。旧实现无自然序选项、sortMode 读取为空 ⇒ 永不产生该顺序。"
+  },
+  {
+    "slug": "it/json-formatter",
+    "inputs": {},
+    "clicks": ["var __a=[];for(var __i=0;__i<4000;__i++)__a.push(__i);document.getElementById('input').value=JSON.stringify(__a);autoValidate();var __v=document.getElementById('viewJson').innerHTML;var __s=document.getElementById('resultStat').textContent;document.getElementById('__tbProbe').textContent='TRUNC '+((__v.indexOf('结果已截断')>=0&&__s.indexOf('树已截断')>=0)?'OK':'BAD '+__s);"],
+    "expect": ["TRUNC OK"],
+    "ref": "第722批：大数组不得逐键全量渲染 DOM。超过 3000 行须截断并提示，完整内容仍可通过复制/下载获取；旧实现无上限 ⇒ viewJson 不含截断提示，探针 BAD。"
+  },
+  {
+    "slug": "it/json-formatter",
+    "inputs": {"input": "log {\"a\":1} mid {\"b\":2}"},
+    "clicks": ["extractJSON();applyExtractCandidate(1)"],
+    "dumpIds": ["input"],
+    "expect": ["\"b\": 2"],
+    "ref": "第722批：多个候选不得自动选最长并直接覆盖。页面先列出候选，applyExtractCandidate(1) 选第二个；旧实现无候选面板与 applyExtractCandidate ⇒ 调用抛错且输入仍为原文，断言不命中。"
+  },
+  {
+    "slug": "it/json-formatter",
+    "inputs": {"input": "log {\"a\":1} mid {\"b\":2}"},
+    "clicks": ["extractJSON();applyExtractCandidate(1);undoExtract()"],
+    "dumpIds": ["input"],
+    "expect": ["log {\"a\":1} mid {\"b\":2}"],
+    "ref": "第722批：提取后必须能撤销回原文。旧实现无 undoExtract ⇒ 抛错且输入停留在提取结果，整段原文不再出现。"
+  },
+  {
     "slug": "it/json-to-code",
     "inputs": {
       "rootName": "abc123测试",

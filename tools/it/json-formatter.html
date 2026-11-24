@@ -184,6 +184,8 @@ body.dark .tree-null,.dark .tree-count{color:#a6adc8;} body.dark .tree-bracket,.
   <div class="formula-desc">将 JSON 文本解析为对象树后重新序列化：美化按 2/4 空格缩进、保留层级；压缩去除空白；校验在解析失败时定位错误行列。支持语法高亮与层级折叠便于阅读。</div>
   <ul class="formula-list">
     <li>合法 JSON 要求双引号键、无尾逗号、无注释（JSON5 才支持）。</li>
+    <li>排序规则：默认字典序（Unicode 逐字符比较，10 排在 2 前）；可切换自然序（数字段按数值比较，2 排在 10 前）。整数形式键名也会按所选规则保持顺序，不会因 JavaScript 对象枚举改写。</li>
+    <li>超出 JavaScript 安全整数范围或有效数字过多的数字按原始字面量保留，避免大 ID 被悄悄改写。</li>
     <li>纯前端解析，粘贴内容不离开浏览器，适合脱敏前本地处理。</li>
   </ul>
 </div>
@@ -208,9 +210,16 @@ body.dark .tree-null,.dark .tree-count{color:#a6adc8;} body.dark .tree-bracket,.
       <div class="btn-group">
         <button type="button" class="btn" onclick="escapeJSON()">↔️ 转义为字符串</button>
         <button type="button" class="btn" onclick="unescapeJSON()">↩️ 还原字符串</button>
-        <button type="button" class="btn" onclick="extractJSON()">🧲 提取</button>
+        <button type="button" class="btn" onclick="extractJSON()" title="仅扫描 {...} / [...] 结构；裸字符串、数字等标量需自行包裹">🧲 提取</button>
+        <button type="button" class="btn" id="extractUndoBtn" style="display:none" onclick="undoExtract()">↩️ 撤销提取</button>
       </div>
       <div class="spacer"></div>
+      <label title="字典序：按 Unicode 逐字符比较，10 排在 2 前；自然序：数字段按数值比较，2 排在 10 前">排序规则
+        <select id="sortMode">
+          <option value="lex">字典序</option>
+          <option value="natural">自然序</option>
+        </select>
+      </label>
       <label>缩进
         <select id="indent" onchange="if(hasValidJSON) renderOutput()">
           <option value="2">2 空格</option>
@@ -220,6 +229,8 @@ body.dark .tree-null,.dark .tree-count{color:#a6adc8;} body.dark .tree-bracket,.
         </select>
       </label>
     </div>
+
+    <div id="extractPanel" style="display:none;margin:10px 0;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg,#fff);"></div>
 
     <div id="viewJson" class="json-output json-tree" aria-live="polite">等待输入...</div>
 
@@ -315,6 +326,13 @@ let lastValidJSON = null;
 let hasValidJSON = false;
 let lastValidText = '';
 let treeCopyValues = [];
+const JSON_KEY_ORDER = Symbol('jsonKeyOrder');
+function JsonNumber(raw){ this.raw = raw; }
+function __isJsonNumber(v){ return v instanceof JsonNumber; }
+function __jsonKeys(obj){
+  const ordered = obj[JSON_KEY_ORDER];
+  return ordered ? ordered.slice() : Object.keys(obj);
+}
 
 const input = document.getElementById('input');
 const viewJson = document.getElementById('viewJson');
@@ -327,8 +345,15 @@ function getIndent() {
   return parseInt(v);
 }
 
+let __jsonInputTimer = null;
 function onInputChange() {
-  autoValidate();
+  if (typeof __hideExtractPanel === 'function') __hideExtractPanel();
+  if (__jsonInputTimer) clearTimeout(__jsonInputTimer);
+  if (input.value.length > 50000) {
+    __jsonInputTimer = setTimeout(function(){ __jsonInputTimer = null; autoValidate(); }, 350);
+  } else {
+    autoValidate();
+  }
 }
 
 function autoValidate() {
@@ -345,13 +370,17 @@ function autoValidate() {
     return;
   }
   try {
-    const obj = JSON.parse(val);
+    const obj = __parseJsonPreserve(val);
     lastValidJSON = obj;
     hasValidJSON = true;
     lastValidText = val;
     const dups = __jsonDuplicateKeys(val);
-    if (dups.length) {
-      inputTag.textContent = (__jsonEn() ? '⚠ ' + dups.length + ' duplicate key(s)' : '⚠ 检测到 ' + dups.length + ' 个重复键') + (__jsonEn() ? '; converting keeps the last value' : '；格式化将保留最后一个值');
+    const rawNums = __jsonCountRaw(obj);
+    if (dups.length || rawNums) {
+      const parts = [];
+      if (dups.length) parts.push((__jsonEn() ? '⚠ ' + dups.length + ' duplicate key(s); converting keeps the last value' : '⚠ 检测到 ' + dups.length + ' 个重复键；格式化将保留最后一个值'));
+      if (rawNums) parts.push((__jsonEn() ? '⚠ ' + rawNums + ' high-precision number(s) kept as raw literals' : '⚠ ' + rawNums + ' 个高精度数字按原始字面量保留'));
+      inputTag.textContent = parts.join(__jsonEn() ? ' | ' : '；');
       inputTag.style.background = 'rgba(245,158,11,0.12)';
       inputTag.style.color = '#b45309';
     } else {
@@ -483,6 +512,139 @@ function __jsonDuplicateKeys(text) {
   return out;
 }
 
+function __isRiskyNumber(raw){
+  const num = Number(raw);
+  if(!isFinite(num)) return true;
+  const plainInt = !/[eE.]/.test(raw);
+  if(plainInt) return !Number.isSafeInteger(num);
+  if(Number.isInteger(num) && !Number.isSafeInteger(num)) return true;
+  const digits = raw.replace(/^-/, '').replace(/[eE].*$/, '').replace('.', '').replace(/^0+/, '');
+  return digits.length > 15;
+}
+
+function __parseJsonPreserve(text){
+  let i = 0;
+  const n = text.length;
+  function fail(msg){ throw new SyntaxError(msg + (__jsonEn() ? ' at position ' : '，位置 ') + i); }
+  function ws(){ while(i < n && /\s/.test(text[i])) i++; }
+  function readString(){
+    const start = i;
+    i++;
+    let esc = false;
+    while(i < n){
+      const c = text[i++];
+      if(esc){ esc = false; continue; }
+      if(c === '\\'){ esc = true; continue; }
+      if(c === '"') break;
+    }
+    if(i > n || text[i-1] !== '"') fail('Unterminated string');
+    const raw = text.slice(start, i);
+    try { return JSON.parse(raw); } catch(e){ fail('Invalid string escape'); }
+  }
+  function readNumber(){
+    const m = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/.exec(text.slice(i));
+    if(!m) fail('Invalid number');
+    const raw = m[0];
+    i += raw.length;
+    return __isRiskyNumber(raw) ? new JsonNumber(raw) : Number(raw);
+  }
+  function parseValue(){
+    ws();
+    if(i >= n) fail('Unexpected end of input');
+    const c = text[i];
+    if(c === '{'){
+      i++;
+      const obj = Object.create(null), keys = [];
+      ws();
+      if(text[i] === '}'){ i++; Object.defineProperty(obj, JSON_KEY_ORDER, {value: keys}); return obj; }
+      while(true){
+        ws();
+        if(text[i] !== '"') fail('Expected object key');
+        const key = readString();
+        ws();
+        if(text[i] !== ':') fail('Expected colon');
+        i++;
+        const val = parseValue();
+        if(!Object.prototype.hasOwnProperty.call(obj, key)) keys.push(key);
+        Object.defineProperty(obj, key, {value: val, enumerable: true, configurable: true, writable: true});
+        ws();
+        if(text[i] === ','){ i++; continue; }
+        if(text[i] === '}'){ i++; break; }
+        fail('Expected comma or closing brace');
+      }
+      Object.defineProperty(obj, JSON_KEY_ORDER, {value: keys});
+      return obj;
+    }
+    if(c === '['){
+      i++;
+      const arr = [];
+      ws();
+      if(text[i] === ']'){ i++; return arr; }
+      while(true){
+        arr.push(parseValue());
+        ws();
+        if(text[i] === ','){ i++; continue; }
+        if(text[i] === ']'){ i++; break; }
+        fail('Expected comma or closing bracket');
+      }
+      return arr;
+    }
+    if(c === '"') return readString();
+    if(c === '-' || (c >= '0' && c <= '9')) return readNumber();
+    if(text.slice(i, i+4) === 'true'){ i += 4; return true; }
+    if(text.slice(i, i+5) === 'false'){ i += 5; return false; }
+    if(text.slice(i, i+4) === 'null'){ i += 4; return null; }
+    fail('Unexpected token ' + c);
+  }
+  const val = parseValue();
+  ws();
+  if(i < n) fail('Unexpected trailing content');
+  return val;
+}
+
+function __jsonStringify(value, indent){
+  let unit = '';
+  if(indent === '\t') unit = '\t';
+  else if(indent !== 0 && indent !== '0' && indent != null){
+    const num = Number(indent);
+    if(isFinite(num) && num > 0) unit = ' '.repeat(Math.min(10, Math.floor(num)));
+  }
+  function fmt(v, depth){
+    if(__isJsonNumber(v)) return v.raw;
+    if(v === null) return 'null';
+    const t = typeof v;
+    if(t === 'string' || t === 'number' || t === 'boolean') return JSON.stringify(v);
+    if(Array.isArray(v)){
+      if(!v.length) return '[]';
+      if(!unit) return '[' + v.map(function(item){ return fmt(item, depth + 1); }).join(',') + ']';
+      const pad = '\n' + unit.repeat(depth + 1);
+      return '[' + pad + v.map(function(item){ return fmt(item, depth + 1); }).join(',' + pad) + '\n' + unit.repeat(depth) + ']';
+    }
+    if(t === 'object'){
+      const keys = __jsonKeys(v);
+      if(!keys.length) return '{}';
+      if(!unit) return '{' + keys.map(function(k){ return JSON.stringify(k) + ':' + fmt(v[k], depth + 1); }).join(',') + '}';
+      const pad = '\n' + unit.repeat(depth + 1);
+      return '{' + pad + keys.map(function(k){ return JSON.stringify(k) + ': ' + fmt(v[k], depth + 1); }).join(',' + pad) + '\n' + unit.repeat(depth) + '}';
+    }
+    return 'null';
+  }
+  return fmt(value, 0);
+}
+
+function __jsonCountRaw(v){
+  let count = 0, stack = [v];
+  while(stack.length){
+    const x = stack.pop();
+    if(__isJsonNumber(x)){ count++; continue; }
+    if(x && typeof x === 'object'){
+      if(Array.isArray(x)){ for(let j=0;j<x.length;j++) stack.push(x[j]); }
+      else __jsonKeys(x).forEach(function(k){ stack.push(x[k]); });
+    }
+  }
+  return count;
+}
+
 function __jsonParseChecked(text) {
   const dups = __jsonDuplicateKeys(text);
   if (dups.length) {
@@ -492,7 +654,7 @@ function __jsonParseChecked(text) {
       : '检测到重复键，格式化会静默保留后一个值：\n' + shown + '\n\n仍要继续？');
     if (!confirm(msg)) throw new Error(__jsonEn() ? 'Cancelled: duplicate keys detected' : '已取消：检测到重复键');
   }
-  return JSON.parse(text);
+  return __parseJsonPreserve(text);
 }
 
 function __setValidJSON(obj, text) {
@@ -502,7 +664,7 @@ function __setValidJSON(obj, text) {
 }
 
 function storeTreeCopy(value) {
-  treeCopyValues.push(String(value));
+  treeCopyValues.push(value);
   return treeCopyValues.length - 1;
 }
 
@@ -512,6 +674,7 @@ function treeToken(text, cssClass, copyValue, label) {
 }
 
 function renderValue(val) {
+  if (__isJsonNumber(val)) return treeToken(escapeHtml(val.raw), 'tree-number', val.raw, __jsonEn() ? 'high-precision number' : '高精度数字');
   if (val === null) return treeToken('null', 'tree-null', 'null', '值');
   if (typeof val === 'string') return treeToken(`&quot;${escapeHtml(val)}&quot;`, 'tree-string', val, '值');
   if (typeof val === 'number') return treeToken(String(val), 'tree-number', val, '值');
@@ -538,36 +701,53 @@ function toggleTree(id, button) {
 function copyTreePart(index, label) {
   const value = treeCopyValues[index];
   if (value == null) return;
-  ToolBox.copyText(value);
+  const text = (typeof value === 'object' && value.__lazy) ? __jsonStringify(value.__lazy, getIndent()) : String(value);
+  ToolBox.copyText(text);
   ToolBox.showToast(`已复制${label}`);
 }
 
-function renderTree(value, level = 0, key = null) {
+const __JSON_TREE_LINE_LIMIT = 3000;
+const __JSON_TREE_DEPTH_LIMIT = 100;
+
+function renderTree(value, level = 0, key = null, ctx = null) {
+  if (!ctx) ctx = { lines: 0, truncated: false, depthCut: false };
+  if (ctx.lines >= __JSON_TREE_LINE_LIMIT) { ctx.truncated = true; return ''; }
+  ctx.lines++;
   const hasKey = key !== null;
   const prefix = hasKey
     ? `${treeToken(`&quot;${escapeHtml(key)}&quot;`, 'tree-key', key, '键')}<span>: </span>`
     : '';
-  const isCollection = value !== null && typeof value === 'object';
+  const isCollection = value !== null && typeof value === 'object' && !__isJsonNumber(value);
   if (!isCollection) {
     return `<div class="tree-line" style="--tree-level:${level}"><span class="tree-spacer"></span>${prefix}${renderValue(value)}</div>`;
   }
 
   const isArray = Array.isArray(value);
-  const entries = isArray ? value : Object.keys(value);
+  const entries = isArray ? value : __jsonKeys(value);
   const id = `tree_${Math.random().toString(36).slice(2, 11)}`;
   const open = isArray ? '[' : '{';
   const close = isArray ? ']' : '}';
   const countLabel = `${entries.length} ${isArray ? '项' : '字段'}`;
-  const serialized = JSON.stringify(value, null, getIndent() || 2);
   let html = `<div class="tree-line" style="--tree-level:${level}">`;
   html += `<button type="button" class="tree-toggle" onclick="toggleTree('${id}', this)" aria-label="折叠">▼</button>${prefix}`;
   html += `<span class="tree-bracket">${open}</span><span class="tree-count">${countLabel}</span>`;
-  html += treeToken('复制', 'tree-container-copy', serialized, isArray ? '数组' : '对象');
+  html += treeToken('复制', 'tree-container-copy', {__lazy:value}, isArray ? '数组' : '对象');
+  if (level >= __JSON_TREE_DEPTH_LIMIT) {
+    ctx.depthCut = true;
+    html += `</div><div class="tree-line" style="--tree-level:${level + 1}"><span class="tree-spacer"></span><span class="tree-count">${__jsonEn() ? '… deeper levels hidden; copy this node for the full content' : '… 更深层级已省略；点击“复制”可获取完整内容'}</span></div>`;
+    return html;
+  }
   html += `</div><div id="${id}" class="tree-children">`;
   if (isArray) {
-    value.forEach((item) => { html += renderTree(item, level + 1); });
+    for (let j = 0; j < value.length; j++) {
+      if (ctx.truncated) break;
+      html += renderTree(value[j], level + 1, null, ctx);
+    }
   } else {
-    Object.keys(value).forEach((childKey) => { html += renderTree(value[childKey], level + 1, childKey); });
+    for (let j = 0; j < entries.length; j++) {
+      if (ctx.truncated) break;
+      html += renderTree(value[entries[j]], level + 1, entries[j], ctx);
+    }
   }
   html += `</div><div class="tree-line tree-close" style="--tree-level:${level}"><span class="tree-spacer"></span><span>${close}</span></div>`;
   return html;
@@ -575,18 +755,20 @@ function renderTree(value, level = 0, key = null) {
 
 function __jsonStats(v){
   var st={object:0,array:0,string:0,number:0,boolean:0,null:0,keys:0,maxDepth:1,total:0};
-  function walk(x,d){
+  var stack=[[v,1]];
+  while(stack.length){
+    var item=stack.pop(), x=item[0], d=item[1];
     st.total++;
     if(d>st.maxDepth)st.maxDepth=d;
-    if(x===null){st.null++;return;}
+    if(x===null){st.null++;continue;}
+    if(__isJsonNumber(x)){st.number++;continue;}
     var t=typeof x;
-    if(Array.isArray(x)){st.array++;x.forEach(function(i){walk(i,d+1);});return;}
-    if(t==='object'){st.object++;Object.keys(x).forEach(function(k){st.keys++;walk(x[k],d+1);});return;}
+    if(Array.isArray(x)){st.array++;for(var j=0;j<x.length;j++)stack.push([x[j],d+1]);continue;}
+    if(t==='object'){st.object++;var ks=__jsonKeys(x);st.keys+=ks.length;for(var k=0;k<ks.length;k++)stack.push([x[ks[k]],d+1]);continue;}
     if(t==='string')st.string++;
     else if(t==='number')st.number++;
     else if(t==='boolean')st.boolean++;
   }
-  walk(v,1);
   return st;
 }
 function __jsonExtras(){
@@ -604,7 +786,7 @@ function __jsonExtras(){
   var t=document.getElementById('jsonTable');if(!t)return;
   var tb=t.querySelector('tbody');tb.innerHTML='';
   var th=t.querySelector('thead');
-  var size=JSON.stringify(lastValidJSON).length;
+  var size=__jsonStringify(lastValidJSON, 0).length;
   var rows=[[en?'Total nodes':'总节点数',st.total,''],[en?'Max depth':'最大层级深度',st.maxDepth],[en?'Object key count':'对象键总数',st.keys],[en?'Value nodes':'值节点数',st.string+st.number+st.boolean+st.null],[en?'Serialized size (chars)':'序列化字符数',size]];
   if(th)th.innerHTML='<tr><th>'+(en?'Metric':'统计项')+'</th><th>'+(en?'Value':((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Value":"数值"))+'</th></tr>';
   rows.forEach(function(r){
@@ -634,12 +816,21 @@ function renderOutput() {
   if (!hasValidJSON) return;
   const ind = getIndent();
   treeCopyValues = [];
-  const __h0=renderTree(lastValidJSON);if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){viewJson.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}viewJson.innerHTML=__h0;
+  const ctx = { lines: 0, truncated: false, depthCut: false };
+  let html = renderTree(lastValidJSON, 0, null, ctx);
+  if (ctx.truncated || ctx.depthCut) {
+    const note = __jsonEn()
+      ? '… Output truncated: showing about ' + __JSON_TREE_LINE_LIMIT + ' lines' + (ctx.depthCut ? ', depth limited to ' + __JSON_TREE_DEPTH_LIMIT : '') + '. Use Copy / Download for the full JSON.'
+      : '… 结果已截断：仅渲染约 ' + __JSON_TREE_LINE_LIMIT + ' 行' + (ctx.depthCut ? '，层级限制 ' + __JSON_TREE_DEPTH_LIMIT : '') + '。完整内容请使用“复制结果”或“下载 JSON”。';
+    html += '<p style="padding:12px;color:var(--text-muted);font-size:12px;">' + note + '</p>';
+  }
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){viewJson.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}viewJson.innerHTML=__h0;
 
-  const size = JSON.stringify(lastValidJSON).length;
-  const lines = JSON.stringify(lastValidJSON, null, ind).split('\n').length;
+  const full = __jsonStringify(lastValidJSON, ind);
+  const size = full.length;
+  const lines = (full.match(/\n/g) || []).length + 1;
   const __en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) || /lang=en-US/i.test(location.search);
-  document.getElementById('resultStat').textContent = `${size.toLocaleString()} ${__en ? 'chars' : '字符'} · ${lines} ${__en ? 'lines' : '行'}`;
+  document.getElementById('resultStat').textContent = `${size.toLocaleString()} ${__en ? 'chars' : '字符'} · ${lines} ${__en ? 'lines' : '行'}${ctx.truncated || ctx.depthCut ? (__en ? ' · tree truncated' : ' · 树已截断') : ''}`;
   if(typeof __jsonExtras==='function'){try{__jsonExtras();}catch(e){}}
 }
 
@@ -648,7 +839,7 @@ function formatJSON() {
     const obj = __jsonParseChecked(input.value);
     __setValidJSON(obj, input.value);
     const ind = getIndent();
-    input.value = JSON.stringify(obj, null, ind);
+    input.value = __jsonStringify(obj, ind);
     autoValidate();
     ToolBox.showToast(i18nText('toast.msg554'));
   } catch(e) {
@@ -660,7 +851,7 @@ function minifyJSON() {
   try {
     const obj = __jsonParseChecked(input.value);
     __setValidJSON(obj, input.value);
-    input.value = JSON.stringify(obj);
+    input.value = __jsonStringify(obj, 0);
     autoValidate();
     ToolBox.showToast(i18nText('toast.msg096'));
   } catch(e) {
@@ -672,8 +863,8 @@ function validateJSON() {
   try {
     const obj = __jsonParseChecked(input.value);
     __setValidJSON(obj, input.value);
-    const type = Array.isArray(obj) ? '数组' : obj === null ? '空值' : typeof obj === 'object' ? '对象' : typeof obj;
-    const size = JSON.stringify(obj).length;
+    const type = __isJsonNumber(obj) ? '高精度数字' : Array.isArray(obj) ? '数组' : obj === null ? '空值' : typeof obj === 'object' ? '对象' : typeof obj;
+    const size = __jsonStringify(obj, 0).length;
     renderOutput();
     ToolBox.showToast(`✅ 有效 | ${type} | ${size.toLocaleString()} 字符`);
   } catch(e) {
@@ -684,24 +875,53 @@ function validateJSON() {
 function sortJSON() {
   try {
     const obj = __jsonParseChecked(input.value);
-    const sorted = sortKeys(obj);
+    const modeEl = document.getElementById('sortMode');
+    const mode = modeEl ? modeEl.value : 'lex';
+    const sorted = sortKeys(obj, mode);
     __setValidJSON(sorted, input.value);
     const ind = getIndent();
-    input.value = JSON.stringify(sorted, null, ind);
+    input.value = __jsonStringify(sorted, ind);
     renderOutput();
-    ToolBox.showToast(i18nText('toast.msg983'));
+    ToolBox.showToast(i18nText('toast.msg983') + (__jsonEn() ? (mode === 'natural' ? ' (natural order)' : ' (lexicographic)') : (mode === 'natural' ? '（自然序）' : '（字典序）')));
   } catch(e) {
     ToolBox.showToast('❌ ' + e.message);
   }
 }
 
-function sortKeys(obj) {
-  if (Array.isArray(obj)) return obj.map(sortKeys);
-  if (obj !== null && typeof obj === 'object') {
+function __naturalCompare(a, b) {
+  const sa = String(a), sb = String(b);
+  let ia = 0, ib = 0;
+  while (ia < sa.length && ib < sb.length) {
+    const ca = sa[ia], cb = sb[ib];
+    const da = /[0-9]/.test(ca), db = /[0-9]/.test(cb);
+    if (da && db) {
+      let ja = ia, jb = ib;
+      while (ja < sa.length && /[0-9]/.test(sa[ja])) ja++;
+      while (jb < sb.length && /[0-9]/.test(sb[jb])) jb++;
+      const na = sa.slice(ia, ja).replace(/^0+/, '') || '0';
+      const nb = sb.slice(ib, jb).replace(/^0+/, '') || '0';
+      if (na.length !== nb.length) return na.length < nb.length ? -1 : 1;
+      if (na !== nb) return na < nb ? -1 : 1;
+      if (ja - ia !== jb - ib) return (ja - ia) < (jb - ib) ? -1 : 1;
+      ia = ja; ib = jb;
+      continue;
+    }
+    if (ca !== cb) return ca < cb ? -1 : 1;
+    ia++; ib++;
+  }
+  return (sa.length - ia) - (sb.length - ib);
+}
+
+function sortKeys(obj, mode) {
+  if (Array.isArray(obj)) return obj.map(function(item){ return sortKeys(item, mode); });
+  if (obj !== null && typeof obj === 'object' && !__isJsonNumber(obj)) {
     const sorted = Object.create(null);
-    Object.keys(obj).sort().forEach(k => {
+    const keys = __jsonKeys(obj).slice();
+    keys.sort(mode === 'natural' ? __naturalCompare : function(a, b){ return a < b ? -1 : a > b ? 1 : 0; });
+    Object.defineProperty(sorted, JSON_KEY_ORDER, { value: keys });
+    keys.forEach(k => {
       Object.defineProperty(sorted, k, {
-        value: sortKeys(obj[k]),
+        value: sortKeys(obj[k], mode),
         enumerable: true,
         configurable: true,
         writable: true
@@ -732,13 +952,63 @@ function unescapeJSON() {
   }
 }
 
+let __extractCandidates = [];
+let __extractUndoTarget = '';
+
+function __hideExtractPanel(){
+  const panel = document.getElementById('extractPanel');
+  if(panel){ panel.style.display = 'none'; panel.innerHTML = ''; }
+}
+
+function __appendExtractNote(html){
+  return html + '<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">' + (__jsonEn() ? 'Only {…} and […] structures are scanned; bare strings, numbers, true/false/null need wrapping first.' : '仅扫描 {…} 与 […] 结构；裸字符串、数字、true/false/null 等标量需先自行包裹。') + '</div>';
+}
+
+function __showExtractPanel(){
+  const panel = document.getElementById('extractPanel');
+  if(!panel) return;
+  const n = __extractCandidates.length;
+  let html = '<div style="font-weight:600;margin-bottom:8px;">' + (__jsonEn() ? 'Found ' + n + ' JSON candidate(s). Choose one to format:' : '找到 ' + n + ' 个候选 JSON，请选择要格式化的片段：') + '</div>';
+  __extractCandidates.forEach(function(c, idx){
+    const preview = c.str.replace(/\s+/g, ' ').slice(0, 90) + (c.str.length > 90 ? '…' : '');
+    html += '<button type="button" class="btn" style="display:block;width:100%;text-align:left;margin:6px 0;white-space:normal;" onclick="applyExtractCandidate(' + idx + ')">#' + (idx + 1) + ' · ' + (__jsonEn() ? 'offset ' : '位置 ') + c.start + ' · ' + c.str.length + (__jsonEn() ? ' chars' : ' 字符') + ' · ' + escapeHtml(preview) + '</button>';
+  });
+  panel.innerHTML = __appendExtractNote(html);
+  panel.style.display = 'block';
+}
+
+function applyExtractCandidate(index){
+  const c = __extractCandidates[index];
+  if(!c) return;
+  __extractUndoTarget = input.value;
+  input.value = __jsonStringify(c.obj, getIndent());
+  __hideExtractPanel();
+  const btn = document.getElementById('extractUndoBtn');
+  if(btn) btn.style.display = '';
+  lastValidJSON = c.obj;
+  hasValidJSON = true;
+  lastValidText = input.value;
+  renderOutput();
+  autoValidate();
+  ToolBox.showToast((__jsonEn() ? 'Extracted candidate #' : '已提取候选 #') + (index + 1) + ' (' + c.str.length + (__jsonEn() ? ' chars)' : ' 字符)'));
+}
+
+function undoExtract(){
+  if(__extractUndoTarget === '') return;
+  input.value = __extractUndoTarget;
+  __extractUndoTarget = '';
+  const btn = document.getElementById('extractUndoBtn');
+  if(btn) btn.style.display = 'none';
+  autoValidate();
+  ToolBox.showToast(__jsonEn() ? 'Restored the original text' : '已恢复提取前的原文');
+}
+
 function extractJSON() {
   const text = input.value;
-  let match = null;
-  let maxLen = 0;
+  __hideExtractPanel();
+  __extractCandidates = [];
 
   // 扫描所有顶层 {…} / […] 片段：跟踪括号深度与字符串转义，避免贪婪正则只取到第一个。
-  const candidates = [];
   for(let i = 0; i < text.length; i++){
     const open = text[i];
     if(open !== '{' && open !== '[') continue;
@@ -759,7 +1029,8 @@ function extractJSON() {
         if(stack[stack.length - 1] !== c) break;
         stack.pop();
         if(stack.length === 0){
-          candidates.push(text.slice(i, j + 1));
+          const str = text.slice(i, j + 1);
+          try { __extractCandidates.push({ obj: __parseJsonPreserve(str), str: str, start: i }); } catch(e){}
           i = j;
           break;
         }
@@ -767,37 +1038,36 @@ function extractJSON() {
     }
   }
 
-  for(const str of candidates){
-    try{
-      const obj = __jsonParseChecked(str);
-      if(str.length > maxLen){ maxLen = str.length; match = { obj, str }; }
-    }catch(e){}
+  if(__extractCandidates.length === 1){
+    applyExtractCandidate(0);
+    return;
   }
-
-  if (match) {
-    lastValidJSON = match.obj;
-    input.value = JSON.stringify(match.obj, null, getIndent());
-    renderOutput();
-    autoValidate();
-    ToolBox.showToast(`提取成功 (${maxLen} 字符)`);
-  } else {
-    ToolBox.showToast(i18nText('toast.msg036'));
+  if(__extractCandidates.length > 1){
+    __showExtractPanel();
+    ToolBox.showToast((__jsonEn() ? 'Found ' + __extractCandidates.length + ' candidates; choose one below' : '找到 ' + __extractCandidates.length + ' 个候选，请在下方选择'));
+    return;
   }
+  ToolBox.showToast(i18nText('toast.msg036'));
 }
+
 function copyResult() {
-  const text = hasValidJSON ? JSON.stringify(lastValidJSON, null, getIndent()) : '';
+  const text = hasValidJSON ? __jsonStringify(lastValidJSON, getIndent()) : '';
   if (!text || text === '等待输入...') { ToolBox.showToast(i18nText('toast.msg474')); return; }
   ToolBox.copyText(text);
 }
 
 function downloadResult() {
   let text = '';
-  if (hasValidJSON) text = JSON.stringify(lastValidJSON, null, getIndent());
+  if (hasValidJSON) text = __jsonStringify(lastValidJSON, getIndent());
   if (!text) { ToolBox.showToast(i18nText('toast.msg473')); return; }
   ToolBox.downloadText('formatted.json', text, 'application/json');
 }
 
 function clearAll() {
+  __hideExtractPanel();
+  __extractUndoTarget = '';
+  const undoBtn = document.getElementById('extractUndoBtn');
+  if(undoBtn) undoBtn.style.display = 'none';
   input.value = '';
   // 同步清除本页自动保存的输入，避免明文 JSON 残留在 localStorage
   try { localStorage.removeItem('tb_uxp_tools/it/json-formatter.html#input'); } catch(e) {}
