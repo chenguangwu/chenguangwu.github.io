@@ -16075,6 +16075,67 @@ const CASES = [
     ref: "第756批：HTML 字符引用拒绝代理项码点 D800（55296），不能生成孤立代理。",
   },
 
+  // ── 第757批 ──
+  {
+    slug: "it/rich-text-editor",
+    clicks: ["var o=escapeMdText('# 标题 **粗体** [链接]', true);var bs=String.fromCharCode(92);document.getElementById('__tbProbe').textContent='MD757 '+((o.charCodeAt(0)===92&&o.indexOf(bs+'*')>0&&o.indexOf(bs+'[')>0)?'OK':'BAD '+o);"],
+    expect: ["MD757 OK"],
+    ref: "第757批：普通文本节点中的 #、*、[] 必须按 Markdown 语法转义，避免导出后变成标题/粗体/链接；修复前原样拼接 ⇒ 语义改变。",
+  },
+  {
+    slug: "it/rich-text-editor",
+    clicks: ["var o=escapeMdText('a*b_c[d]e', false);var bs=String.fromCharCode(92);document.getElementById('__tbProbe').textContent='MD757B '+((o==='a'+bs+'*b'+bs+'_c'+bs+'[d'+bs+']e')?'OK':'BAD '+o);"],
+    expect: ["MD757B OK"],
+    ref: "第757批：真正的 strong 仍输出 **；行内 code 内含反引号时围栏自动加长到两个，不能截断。",
+  },
+  {
+    slug: "it/binomial-distribution",
+    clicks: ["var r=[cdf(5,-1,0),cdf(5,0,0),sf(5,0,0),cdf(5,4,1),cdf(5,5,1),sf(5,5,1)];document.getElementById('__tbProbe').textContent='BINOM757 '+r.join(',');"],
+    expect: ["BINOM757 0,1,1,0,1,1"],
+    ref: "第757批：p=0 时 cdf(n,-1)=0、cdf(n,0)=1；p=1 时 cdf(n,n-1)=0、cdf(n,n)=1。修复前 p<=0 先返回 1，cdf(5,-1,0) 错为 1。",
+  },
+  {
+    slug: "it/qrcode",
+    clicks: ["var it=__qrBuild('x',4,20);document.getElementById('__tbProbe').textContent='QR757 '+[it.requestedSize,it.minPixel,it.pixelSize,it.canvas.width,it.upscaled].join(',');"],
+    expect: ["QR757 20,29,29,29,true"],
+    ref: "第757批：请求 20px 小于 29 模块的最小 29px 时自动提升并按整数边界绘制；修复前 ceil(cellSize) 会让相邻模块重叠。默认 256px 不触发。",
+  },
+  {
+    slug: "it/screen-size",
+    inputs: { width: "1080", height: "2400", diagonal: "6.7", viewDist: "40" },
+    clicks: ["calc();document.getElementById('__tbProbe').textContent='SCR757 '+document.getElementById('result').innerText;"],
+    expect: ["SCR757", "像素/度", "未填写观看距离"],
+    ref: "第757批：填写 40cm 后应输出角像素密度，不能把「未填写观看距离」提示同时留在结果区；不再出现 300/200 的视网膜/清晰评级。",
+  },
+  {
+    slug: "it/screen-size",
+    inputs: { width: "1920", height: "1080", diagonal: "24", viewDist: "" },
+    clicks: ["calc();document.getElementById('__tbProbe').textContent='SCR757B '+document.getElementById('result').innerText;"],
+    expect: ["SCR757B", "未填写观看距离", "不做清晰度结论"],
+    ref: "第757批：不填视距时只报告 PPI/点距/物理尺寸，不做清晰度结论；修复前固定 300/200 阈值输出「一般」。",
+  },
+  {
+    slug: "it/char-encoder",
+    inputs: { text: "example.com/path" },
+    clicks: ["convert();document.getElementById('__tbProbe').textContent='PUNY757 '+document.getElementById('results').innerText;"],
+    expect: ["PUNY757", "仅接受裸域名", "含路径/查询/片段"],
+    ref: "第757批：example.com/path 必须拒绝并说明含路径，不能静默输出 example.com 冒充整个输入域名。",
+  },
+  {
+    slug: "it/char-encoder",
+    inputs: { text: "user@example.com" },
+    clicks: ["convert();document.getElementById('__tbProbe').textContent='PUNY757B '+document.getElementById('results').innerText;"],
+    expect: ["PUNY757B", "仅接受裸域名", "含用户信息"],
+    ref: "第757批：user@example.com 必须拒绝并说明含用户信息，不能丢弃 @ 前内容只输出 example.com。",
+  },
+  {
+    slug: "it/char-encoder",
+    inputs: { text: "中文.中国" },
+    clicks: ["convert();document.getElementById('__tbProbe').textContent='PUNY757C '+document.getElementById('results').innerText;"],
+    expect: ["PUNY757C", "xn--"],
+    ref: "第757批：合法国际化裸域名仍应通过 URL/IDNA 转成 xn-- Punycode，严格校验不得误伤。",
+  },
+
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(

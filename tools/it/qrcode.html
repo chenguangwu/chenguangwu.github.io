@@ -242,6 +242,7 @@ textarea:focus{border-color:#4338CA;}
         <input type="number" id="qrmargin" min="0" max="10" step="1" value="4" style="width:90px;">
       </div>
       <p id="qrMarginError" role="alert" style="font-size:12px;color:var(--danger,#B91C1C);margin:-8px 0 10px;display:none;"></p>
+      <p id="qrSizeNote" role="status" aria-live="polite" style="font-size:12px;color:var(--text-muted);margin:-4px 0 10px;" data-zh="二维码尺寸不足以让每个模块占 1 像素时会自动提升到最小尺寸并在生成后提示。">If the requested size cannot give every module at least one pixel, the output is raised to the minimum and reported after generation.</p>
       <div class="row">
         <label for="fgColor">前景</label>
         <input type="color" id="fgColor" value="#000000">
@@ -453,6 +454,11 @@ function __qrBuild(text, margin, pixelSize){
   qr.addData(text, mode); qr.make();
   var moduleCount = qr.getModuleCount();
   var totalModules = moduleCount + margin * 2;
+  // 每个模块至少 1 像素，否则高版本二维码会出现 0 宽/重叠模块。
+  var minPixel = totalModules;
+  var requestedSize = pixelSize;
+  var upscaled = pixelSize < minPixel;
+  if (upscaled) pixelSize = minPixel;
   var cellSize = pixelSize / totalModules;
   var canvas = document.createElement('canvas');
   canvas.width = pixelSize; canvas.height = pixelSize;
@@ -460,9 +466,12 @@ function __qrBuild(text, margin, pixelSize){
   ctx.fillStyle = bgColor.value; ctx.fillRect(0, 0, pixelSize, pixelSize);
   ctx.fillStyle = fgColor.value;
   for (var r = 0; r < moduleCount; r++) for (var c = 0; c < moduleCount; c++) if (qr.isDark(r, c)) {
-    ctx.fillRect(Math.floor((c + margin) * cellSize), Math.floor((r + margin) * cellSize), Math.ceil(cellSize), Math.ceil(cellSize));
+    // 用相邻整数边界之差绘制：相邻黑模块共享同一条边界，不会向白模块扩散。
+    var x0 = Math.round((c + margin) * cellSize), x1 = Math.round((c + margin + 1) * cellSize);
+    var y0 = Math.round((r + margin) * cellSize), y1 = Math.round((r + margin + 1) * cellSize);
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
   }
-  return { qr: qr, canvas: canvas, text: text, margin: margin, pixelSize: pixelSize };
+  return { qr: qr, canvas: canvas, text: text, margin: margin, pixelSize: pixelSize, requestedSize: requestedSize, minPixel: minPixel, upscaled: upscaled };
 }
 function __qrMarginValue(){
   var raw = String(document.getElementById('qrmargin').value || '').trim();
@@ -578,12 +587,14 @@ function generate() {
   var margin = marginInfo.value;
   var pixelSize = parseInt(sizeEl.value,10) || 256;
   container.innerHTML = ''; qrItems = [];
-  var failures = [];
+  var failures = [], upscaledNeed = 0, reqSize = pixelSize, minNeeded = 0;
   for (var i = 0; i < lines.length; i++) {
     var item = null, err = null;
     try { item = __qrBuild(lines[i], margin, pixelSize); }
     catch (e) { err = e; }
     if (item) {
+      if (item.minPixel > minNeeded) minNeeded = item.minPixel;
+      if (item.upscaled && item.minPixel > upscaledNeed) upscaledNeed = item.minPixel;
       var successIndex = qrItems.length;
       qrItems.push(item);
       var wrap;
@@ -619,6 +630,12 @@ function generate() {
     var note=document.createElement('p'); note.style.cssText='color:#B45309;font-size:13px;margin:10px 0 0;';
     note.textContent='本次共 '+lines.length+' 行：成功 '+qrItems.length+' 行，失败 '+failures.length+' 行（第 '+failures.map(function(f){return f.line;}).join('、')+' 行）。成功项仍可单独下载。';
     container.appendChild(note);
+  }
+  var sizeNote = document.getElementById('qrSizeNote');
+  if (sizeNote) {
+    if (upscaledNeed) sizeNote.textContent = __qrT('请求尺寸 '+reqSize+'px 低于当前二维码的最小 '+upscaledNeed+'px（每模块至少 1 像素），已按 '+upscaledNeed+'px 输出；如需更小文件请缩短内容降低版本。','Requested '+reqSize+'px is below the current code\'s minimum '+upscaledNeed+'px (at least 1 pixel per module), so it was rendered at '+upscaledNeed+'px. Shorten the content to lower the version if you need a smaller image.');
+    else sizeNote.textContent = __qrT('当前二维码最小需 '+minNeeded+'px（每模块至少 1 像素）；本次按 '+reqSize+'px 输出，每模块约 '+(reqSize/Math.max(1,minNeeded)).toFixed(1)+'px。','Current code needs at least '+minNeeded+'px (1 pixel per module); rendered at '+reqSize+'px, about '+(reqSize/Math.max(1,minNeeded)).toFixed(1)+'px per module.');
+    sizeNote.style.color = upscaledNeed ? '#B45309' : 'var(--text-muted)';
   }
   try { __qrChart(); } catch(e){}
 }

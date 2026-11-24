@@ -286,10 +286,11 @@ function cdf(n,k,p){
   // IT-N241：对数域递推 P(i+1)=P(i)·(n−i)/(i+1)·p/(1−p)，O(n) 取代逐项 logComb 的 O(n²)。
   // 在对数域起步并递推，避免 n 大时 (1−p)^n / p^n 直接下溢为 0 导致 CDF 错成 0/1。
   // p 端点单独处理（避免 log(0)），与 pmf 端点语义一致。
-  if(p<=0) return 1;          // X 恒为 0，k≥0 ⇒ P(X≤k)=1
-  if(p>=1) return k>=n?1:0;   // X 恒为 n
+  // 先处理 k 超出支持范围，再处理 p 端点，避免 cdf(n,-1,0) 被 p<=0 提前返回 1。
   if(k<0) return 0;
   if(k>=n) return 1;
+  if(p<=0) return 1;          // X 恒为 0，k≥0 ⇒ P(X≤k)=1
+  if(p>=1) return 0;          // X 恒为 n，且此处 k<n ⇒ P(X≤k)=0
   const lp=Math.log(p), lq=Math.log(1-p);
   // 累积较短一侧：k 靠近 0 直接累加 P(0..k)；靠近 n 用 1−P(k+1..n)。
   if(k<=(n-1)/2){
