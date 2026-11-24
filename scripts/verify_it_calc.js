@@ -9411,6 +9411,31 @@ const CASES = [
     "expect": ["AM3 n=0 q=1"],
     "ref": "IT-N397：对象数组换序同样应判为无内容差异。比较键用排序后的规范序列化，故键序不同的 `{id:1}` 也能配对上。修复前是 `items[0].id`、`items[1].id` 两处 mod。"
   },
+  // ---- 第723批：JSON 差异重复键、大整数与顶层假值 ----
+  {
+    "slug": "it/json-diff",
+    "clicks": ["document.getElementById('left').value='{\"id\":9223372036854775807}';document.getElementById('right').value='{\"id\":9223372036854775808}';doDiff();var d=lastDiff;document.getElementById('__tbProbe').textContent='BIG723 exact='+((d.length===1&&d[0].from.raw==='9223372036854775807'&&d[0].to.raw==='9223372036854775808')?1:0);"],
+    "expect": ["BIG723 exact=1"],
+    "ref": "第723批：超出安全整数的 ID 必须保留原始字面量，深度对比、路径视图与 JSON 输出都不得出现舍入后的 9223372036854776000。"
+  },
+  {
+    "slug": "it/json-diff",
+    "clicks": ["document.getElementById('left').value='{\"a\":1,\"a\":2}';document.getElementById('right').value='{\"a\":2}';doDiff();var w=document.getElementById('jdWarn');document.getElementById('__tbProbe').textContent='DUP723 n='+(lastDup?lastDup.length:0)+' show='+w.style.display+' side='+(w.textContent.indexOf('\u5de6\u4fa7')>=0?1:0)+' pos='+(w.textContent.indexOf('@')>=0?1:0)+' same='+(w.textContent.indexOf('\u539f\u59cb\u6587\u672c\u5e76\u4e0d\u76f8\u540c')>=0?1:0);"],
+    "expect": ["DUP723 n=1 show=block side=1 pos=1 same=1"],
+    "ref": "第723批：重复键必须提示侧别与位置，即使后写覆盖后解析值相同，也不能把原始文本描述为完全相同。"
+  },
+  {
+    "slug": "it/json-diff",
+    "clicks": ["document.getElementById('left').value='false';document.getElementById('right').value='true';doDiff();switchView('side');var t=copyDiff();document.getElementById('__tbProbe').textContent='FALSE723 has='+((t.indexOf('false')>=0&&t.indexOf('true')>=0)?1:0);"],
+    "expect": ["FALSE723 has=1"],
+    "ref": "第723批：顶层 false/true 比较后普通视图复制不得再被假值判断拦掉，复制的差异文本应同时含旧值 false 与新值 true。"
+  },
+  {
+    "slug": "it/json-diff",
+    "clicks": ["document.getElementById('left').value='false';document.getElementById('right').value='false';doDiff();switchView('side');var t=copyDiff();document.getElementById('__tbProbe').textContent='EQ723 msg='+(/\u65e0\u5dee\u5f02/.test(t)?1:0);"],
+    "expect": ["EQ723 msg=1"],
+    "ref": "第723批：顶层同为 false 时零差异复制要给出明确的「无差异」说明，而不是提示没有可复制内容。"
+  },
   {
     "slug": "it/json-diff",
     "inputs": { "left": "{\"constructor\":1}", "right": "{}" },

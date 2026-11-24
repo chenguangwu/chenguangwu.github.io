@@ -42,7 +42,8 @@
 .diff-summary-item.mod .count { color:#92400E; }
 .diff-summary-item.same .count { color:#2196f3; }
 .tabs { display:flex; gap:4px; margin-bottom:12px; flex-wrap:wrap; }
-.tab { padding:8px 16px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-card); cursor:pointer; font-size:13px; color:var(--text-secondary); }
+.tab { padding:8px 16px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-card); cursor:pointer; font-size:13px; color:var(--text-secondary); font-family:inherit; }
+.tab:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
 .tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
 .path-list { max-height:400px; overflow:auto; }
 .path-item { padding:8px 12px; border-bottom:1px solid var(--border-color); font-family:'SF Mono',monospace; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:8px; }
@@ -127,7 +128,7 @@
       "name": "为什么数字 1 和字符串 \"1\" 被判为不同？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "因为 JSON 是有类型的，数字 1 与字符串 “1” 属于不同类型，本工具始终按严格类型比较，不提供类型宽松开关。若只关心字符串形式，可先把两侧都改成字符串再比较；同时注意 1.0 与 1 这类表示差异，以及对象键顺序——键序在语义上无意义，但朴素文本对比会把它当差异。"
+        "text": "因为 JSON 是有类型的，数字 1 与字符串 “1” 属于不同类型，本工具始终按严格类型比较，不提供类型宽松开关。数字按数值语义比较：1.0、1e0 与 1 视为相同；超出安全整数的大整数保留原始字面量，不会丢精度。对象键顺序在语义上无意义，不做差异。若同一对象出现重复键，工具会提示侧别、路径与位置，并按后写覆盖前值比较，因此不会把原始文本判定为完全相同。"
       }
     }
   ]
@@ -162,7 +163,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="📄 JSON Diff 深度对比">📄 JSON Diff Compare</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">左右文本各自 JSON.parse 后比对，产出路径级差异列表，按 op 分为 add（新增）、del（删除）、mod（修改）三类并分别计数，同时统计两侧相同的节点数；差异数为 0 时提示两个 JSON 完全相同。对比模式分两种：深度对比递归展开每一层（数组默认按下标逐项对齐），简单对比只看顶层键、嵌套变化合并成一处 mod。勾选「数组按内容匹配」后，数组改用「规范序列化键 + 最长公共子序列」先对齐相同元素再比对，元素换序不再被报成逐项修改。行级对照把两侧按缩进 2 空格序列化后按行切分，再做逐行差异生成左视图、右视图与合并视图。任一侧为空时提示输入完整</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">左右文本用保精度解析器解析后比对（超出安全整数的数字保留原始字面量，不会先转成浮点数丢精度），产出路径级差异列表，按 op 分为 add（新增）、del（删除）、mod（修改）三类并分别计数，同时统计两侧相同的节点数；数字按数值语义比较，1.0 与 1 视为相同；差异数为 0 时提示两个 JSON 完全相同。同一对象出现重复键时，会给出侧别、路径与位置警告，并按后写覆盖前值比较，不把原始文本判定为完全相同。对比模式分两种：深度对比递归展开每一层（数组默认按下标逐项对齐），简单对比只看顶层键、嵌套变化合并成一处 mod。勾选「数组按内容匹配」后，数组改用「规范序列化键 + 最长公共子序列」先对齐相同元素再比对，元素换序不再被报成逐项修改。行级对照把两侧按缩进 2 空格序列化后按行切分，再做逐行差异生成左视图、右视图与合并视图。任一侧为空时提示输入完整</div>
   <div class="formula-desc">对比两份 JSON 并标出差异。</div>
   <ul class="formula-list">
     <li><b>方法</b>：递归比较两棵 JSON 树，标记新增、删除与值变更的节点。</li>
@@ -177,8 +178,8 @@
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="doDiff()">开始对比</button>
       <button type="button" class="btn" onclick="swapInputs()">⇄ 交换</button>
-      <button type="button" class="btn success" onclick="copyDiff()">📋 复制结果</button>
-      <button type="button" class="btn" onclick="downloadDiff()">💾 下载报告</button>
+      <button type="button" class="btn success" id="jdCopyBtn" onclick="copyDiff()">📋 复制结果</button>
+      <button type="button" class="btn" id="jdDownloadBtn" onclick="downloadDiff()">💾 下载报告</button>
       <button type="button" class="btn danger" onclick="clearAll()">🗑️ 清空</button>
       <button type="button" class="btn" onclick="loadSample()">📦 示例</button>
       <div style="flex:1;"></div>
@@ -191,7 +192,14 @@
       <label style="font-size:13px;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;gap:6px;">
         <input type="checkbox" id="arrayMatch" onchange="doDiff()"> 数组按内容匹配
       </label>
+      <label style="font-size:13px;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;gap:6px;" title="关闭后不再把输入写入当前浏览器；已有草稿会被移除">
+        <input type="checkbox" id="jdSaveDrafts" checked onchange="toggleDraftSave(this.checked)"> 本机保存草稿
+      </label>
+      <button type="button" class="btn" onclick="clearSavedDrafts(true)">清除本地草稿</button>
     </div>
+    <p style="font-size:12px;color:var(--text-muted);margin:-2px 0 12px;line-height:1.6;" data-zh="输入只在本机处理，不会上传。开启“本机保存草稿”时，两侧 JSON 原文会保存到当前浏览器的 localStorage，刷新后可恢复；可随时关闭并清除。">
+      Processing happens entirely in this browser. When “Save draft locally” is on, both JSON texts are stored in this browser’s localStorage and restored after reload; you can turn it off and clear them at any time.
+    </p>
 
     <div data-tb="preset" data-tb-presets='[{"label":"字段新增","labelEn":"Field added","values":{"left":"{\"name\":\"张三\",\"age\":30}","right":"{\"name\":\"张三\",\"age\":30,\"city\":\"北京\"}","diffMode":"deep","arrayMatch":false}},{"label":"数值修改","labelEn":"Value changed","values":{"left":"{\"limit\":100,\"enabled\":true}","right":"{\"limit\":150,\"enabled\":true}","diffMode":"deep","arrayMatch":false}},{"label":"数组追加","labelEn":"Array appended","values":{"left":"{\"tags\":[\"a\",\"b\"]}","right":"{\"tags\":[\"a\",\"b\",\"c\"]}","diffMode":"deep","arrayMatch":false}},{"label":"键被删除","labelEn":"Key removed","values":{"left":"{\"user\":{\"name\":\"A\",\"email\":\"a@b.com\"}}","right":"{\"user\":{\"name\":\"A\"}}","diffMode":"deep","arrayMatch":false}},{"label":"数组换序（按内容匹配）","labelEn":"Reordered array (match by content)","values":{"left":"{\"tags\":[\"a\",\"b\"]}","right":"{\"tags\":[\"b\",\"a\"]}","diffMode":"deep","arrayMatch":true}}]'></div>
 
@@ -206,6 +214,7 @@
       </div>
     </div>
     
+    <div id="jdWarn" role="alert" style="display:none;margin-bottom:12px;padding:10px 12px;border:1px solid rgba(245,158,11,.45);border-radius:8px;background:rgba(245,158,11,.10);color:#b45309;font-size:13px;line-height:1.6;"></div>
     <div id="diffSummary" class="diff-summary" style="display:none;">
       <div class="diff-summary-item add"><span class="count" id="countAdd">0</span><span>新增</span></div>
       <div class="diff-summary-item del"><span class="count" id="countDel">0</span><span>删除</span></div>
@@ -216,14 +225,14 @@
   </div>
 
   <div class="card">
-    <div class="tabs">
-      <div class="tab active" onclick="switchView('side')">📊 并排对比</div>
-      <div class="tab" onclick="switchView('unified')">📝 合并视图</div>
-      <div class="tab" onclick="switchView('paths')">📁 差异路径</div>
-      <div class="tab" onclick="switchView('json')">📋 JSON 输出</div>
+    <div class="tabs" role="tablist" aria-label="差异结果视图">
+      <button type="button" class="tab active" id="tabSide" role="tab" aria-selected="true" aria-controls="viewSide" tabindex="0" onclick="switchView('side')">📊 并排对比</button>
+      <button type="button" class="tab" id="tabUnified" role="tab" aria-selected="false" aria-controls="viewUnified" tabindex="-1" onclick="switchView('unified')">📝 合并视图</button>
+      <button type="button" class="tab" id="tabPaths" role="tab" aria-selected="false" aria-controls="viewPaths" tabindex="-1" onclick="switchView('paths')">📁 差异路径</button>
+      <button type="button" class="tab" id="tabJson" role="tab" aria-selected="false" aria-controls="viewJson" tabindex="-1" onclick="switchView('json')">📋 JSON 输出</button>
     </div>
     
-    <div id="viewSide">
+    <div id="viewSide" role="tabpanel" aria-labelledby="tabSide">
       <div class="diff-container">
         <div>
           <div class="diff-panel-title">原始 (Left)</div>
@@ -236,15 +245,15 @@
       </div>
     </div>
     
-    <div id="viewUnified" style="display:none;">
+    <div id="viewUnified" role="tabpanel" aria-labelledby="tabUnified" style="display:none;">
       <div class="diff-panel" id="unifiedDiff" style="min-height:200px;">等待对比...</div>
     </div>
     
-    <div id="viewPaths" style="display:none;">
+    <div id="viewPaths" role="tabpanel" aria-labelledby="tabPaths" style="display:none;">
       <div class="path-list" id="pathList">等待对比...</div>
     </div>
     
-    <div id="viewJson" style="display:none;">
+    <div id="viewJson" role="tabpanel" aria-labelledby="tabJson" style="display:none;">
       <pre class="diff-panel" id="jsonDiff" style="min-height:200px;">等待对比...</pre>
     </div>
   </div>
@@ -278,7 +287,7 @@
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>数组顺序影响对比吗？</dt><dd>默认按位置比对；勾选「数组按内容匹配」后改为按元素内容对齐，元素换序不再被报成逐项修改。</dd>
-<dt>为什么数字 1 和字符串 &quot;1&quot; 被判为不同？</dt><dd>因为 <a class="term-link" href="/tools/data/calc-2.html">JSON</a> 是有类型的，数字 1 与字符串 “1” 属于不同类型，本工具始终按严格类型比较，不提供类型宽松开关。若只关心字符串形式，可先把两侧都改成字符串再比较；同时注意 1.0 与 1 这类表示差异，以及对象键顺序——键序在语义上无意义，但朴素<a class="term-link" href="/tools/it/text-diff.html">文本对比</a>会把它当差异。</dd>
+<dt>为什么数字 1 和字符串 &quot;1&quot; 被判为不同？</dt><dd>因为 <a class="term-link" href="/tools/data/calc-2.html">JSON</a> 是有类型的，数字 1 与字符串 “1” 属于不同类型，本工具始终按严格类型比较，不提供类型宽松开关。数字按数值语义比较：1.0、1e0 与 1 视为相同；超出安全整数的大整数保留原始字面量，不会丢精度。对象键顺序在语义上无意义，不做差异。若同一对象出现重复键，工具会提示侧别、路径与位置，并按后写覆盖前值比较，因此不会把原始文本判定为完全相同。</dd>
 </dl>
 </div>
 </section>
@@ -330,6 +339,232 @@ let currentView = 'side';
 let lastDiff = null;
 let lastLeft = null;
 let lastRight = null;
+let lastDup = null;
+
+const JD_NS = 'tools/it/json-diff.html';
+const JD_SAVE_KEY = 'tb_jd_save_drafts';
+
+function jdDraftKey(id) { return 'tb_uxp_' + JD_NS + '#' + id; }
+function jdDraftEnabled() {
+  try { return localStorage.getItem(JD_SAVE_KEY) !== '0'; } catch (e) { return false; }
+}
+function jdRemoveDrafts() {
+  try { localStorage.removeItem(jdDraftKey('left')); localStorage.removeItem(jdDraftKey('right')); } catch (e) {}
+}
+function jdSaveField(id, val, keepEmpty) {
+  if (!jdDraftEnabled()) return;
+  try {
+    if (val === '' && !keepEmpty) localStorage.removeItem(jdDraftKey(id));
+    else localStorage.setItem(jdDraftKey(id), val);
+  } catch (e) {}
+}
+function jdStoreEmptyDrafts() {
+  if (!jdDraftEnabled()) { jdRemoveDrafts(); return; }
+  jdSaveField('left', '', true);
+  jdSaveField('right', '', true);
+}
+function jdSaveBoth() {
+  if (!jdDraftEnabled()) { jdRemoveDrafts(); return; }
+  jdSaveField('left', document.getElementById('left').value);
+  jdSaveField('right', document.getElementById('right').value);
+}
+function toggleDraftSave(on) {
+  try { localStorage.setItem(JD_SAVE_KEY, on ? '1' : '0'); } catch (e) {}
+  const cb = document.getElementById('jdSaveDrafts');
+  if (cb) cb.checked = !!on;
+  if (on) jdSaveBoth(); else jdRemoveDrafts();
+  if (typeof ToolBox !== 'undefined' && ToolBox.showToast) {
+    ToolBox.showToast(jdIsEn()
+      ? (on ? 'Local draft saving is on: both texts stay in this browser.' : 'Local draft saving is off; saved drafts were cleared.')
+      : (on ? '已开启本机草稿保存：两侧文本会存到当前浏览器。' : '已关闭本机草稿保存，并清除已存草稿。'));
+  }
+}
+function clearSavedDrafts(notify) {
+  jdRemoveDrafts();
+  if (notify && typeof ToolBox !== 'undefined' && ToolBox.showToast) {
+    ToolBox.showToast(jdIsEn() ? 'Cleared the locally saved JSON drafts (current inputs are unchanged).' : '已清除本机保存的两侧 JSON 草稿（当前输入未清空）。');
+  }
+}
+function jdIsEn() {
+  try { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) || (document.documentElement.lang || '').toLowerCase().indexOf('en') === 0; } catch (e) { return false; }
+}
+function jdSideLabel(side) {
+  const en = jdIsEn();
+  if (side === 'left') return en ? 'Left' : '左侧';
+  return en ? 'Right' : '右侧';
+}
+function showDupWarning(dups) {
+  const el = document.getElementById('jdWarn');
+  if (!el) return;
+  if (!dups || !dups.length) { el.style.display = 'none'; el.textContent = ''; return; }
+  const en = jdIsEn();
+  const quote = en ? '"' : '「', quoteEnd = en ? '"' : '」';
+  const items = dups.slice(0, 5).map(d => `${jdSideLabel(d.side)}${quote}${d.path || '(root)'}${quoteEnd} @${d.offset}`).join(en ? ', ' : '、');
+  const more = dups.length > 5 ? (en ? ` … ${dups.length - 5} more` : ` …另有 ${dups.length - 5} 处`) : '';
+  el.textContent = en
+    ? `⚠ Duplicate object keys detected: ${items}${more}. Comparison uses the overwritten values; the raw texts are not identical. Fix the source JSON before treating them as equal.`
+    : `⚠ 检测到重复对象键：${items}${more}。以下对比使用的是「后写覆盖前值」后的结果，原始文本并不相同；请先修正源 JSON 的重复键。`;
+  el.style.display = 'block';
+}
+
+/* ---------- 保精度 JSON 解析（大整数/高有效位数不丢数字） ---------- */
+function JDNumber(raw) { this.raw = raw; }
+function jdIsNumber(v) { return v instanceof JDNumber || typeof v === 'number' || typeof v === 'bigint'; }
+function jdNumRaw(v) { return v instanceof JDNumber ? v.raw : String(v); }
+function jdNumKey(raw) {
+  raw = String(raw).trim();
+  let sign = '';
+  if (raw.charAt(0) === '-') { sign = '-'; raw = raw.slice(1); }
+  // 指数形式先还原成十进制字符串，避免 1e3 / 1000、1.0 / 1 被判成不同
+  const m = raw.match(/^([0-9]+)(?:\.([0-9]+))?([eE][+-]?[0-9]+)?$/);
+  if (!m) return sign + raw;
+  const int = m[1], frac = m[2] || '', exp = m[3] ? parseInt(m[3].slice(1), 10) : 0;
+  // 极端指数不展开成超长字符串，避免 1e999999 之类输入拖垮页面
+  if (exp > 400 || exp < -400) return (sign === '-' ? '-' : '') + raw.replace(/[eE]\+/, 'e');
+  let digits = int + frac;
+  let point = int.length + exp;
+  const lead = digits.match(/^0+/);
+  if (lead) { digits = digits.slice(lead[0].length); point -= lead[0].length; }
+  if (!digits) return '0';
+  digits = digits.replace(/0+$/, '');
+  let out;
+  if (point <= 0) out = '0.' + '0'.repeat(-point) + digits;
+  else if (point >= digits.length) out = digits + '0'.repeat(point - digits.length);
+  else out = digits.slice(0, point) + '.' + digits.slice(point);
+  return (sign === '-' ? '-' : '') + out;
+}
+
+function jdParse(text, side) {
+  let i = 0;
+  const dups = [];
+  const len = text.length;
+  function fail(msg) { throw new SyntaxError(msg + '（位置 ' + i + '）'); }
+  function ws() { while (i < len && /\s/.test(text.charAt(i))) i++; }
+  function readString() {
+    if (text.charAt(i) !== '"') fail('缺少字符串引号');
+    i++;
+    let out = '';
+    while (i < len) {
+      const c = text.charAt(i);
+      if (c === '"') { i++; return out; }
+      if (c === '\\') {
+        i++;
+        const e = text.charAt(i);
+        if (e === '"' || e === '\\' || e === '/' || e === 'b' || e === 'f' || e === 'n' || e === 'r' || e === 't') {
+          out += e === 'b' ? '\b' : e === 'f' ? '\f' : e === 'n' ? '\n' : e === 'r' ? '\r' : e === 't' ? '\t' : e;
+          i++;
+        } else if (e === 'u') {
+          const hex = text.slice(i + 1, i + 5);
+          if (!/^[0-9a-fA-F]{4}$/.test(hex)) fail('非法 Unicode 转义');
+          out += String.fromCharCode(parseInt(hex, 16));
+          i += 5;
+        } else { fail('非法转义'); }
+      } else if (c < ' ') {
+        fail('字符串包含控制字符');
+      } else { out += c; i++; }
+    }
+    fail('字符串未闭合');
+  }
+  function readNumber() {
+    const rest = text.slice(i);
+    const m = rest.match(/^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/);
+    if (!m) fail('非法数字');
+    i += m[0].length;
+    const raw = m[0];
+    const asNum = Number(raw);
+    if (/^-?[0-9]+$/.test(raw) && !Number.isSafeInteger(asNum)) return new JDNumber(raw);
+    if (raw.indexOf('.') >= 0) {
+      const sig = raw.replace(/^-/, '').replace(/\./, '').replace(/^0+/, '').replace(/0+/, '');
+      if (sig.length > 15) return new JDNumber(raw);
+    }
+    return asNum;
+  }
+  function parseValue(path) {
+    ws();
+    const c = text.charAt(i);
+    if (c === '{') return parseObject(path);
+    if (c === '[') return parseArray(path);
+    if (c === '"') return readString();
+    if (c === '-' || (c >= '0' && c <= '9')) return readNumber();
+    if (text.startsWith('true', i)) { i += 4; return true; }
+    if (text.startsWith('false', i)) { i += 5; return false; }
+    if (text.startsWith('null', i)) { i += 4; return null; }
+    fail('非法 JSON 值');
+  }
+  function parseObject(path) {
+    i++;
+    const obj = Object.create(null);
+    const seen = Object.create(null);
+    ws();
+    if (text.charAt(i) === '}') { i++; return obj; }
+    while (i < len) {
+      ws();
+      const keyStart = i;
+      const key = readString();
+      ws();
+      if (text.charAt(i) !== ':') fail('对象缺少冒号');
+      i++;
+      const cur = path ? path + '.' + key : key;
+      if (seen[key]) dups.push({ side: side, path: cur, offset: keyStart });
+      seen[key] = 1;
+      obj[key] = parseValue(cur);
+      ws();
+      if (text.charAt(i) === ',') { i++; continue; }
+      if (text.charAt(i) === '}') { i++; return obj; }
+      fail('对象缺少逗号或右花括号');
+    }
+    fail('对象未闭合');
+  }
+  function parseArray(path) {
+    i++;
+    const arr = [];
+    ws();
+    if (text.charAt(i) === ']') { i++; return arr; }
+    while (i < len) {
+      const ip = path + '[' + arr.length + ']';
+      arr.push(parseValue(ip));
+      ws();
+      if (text.charAt(i) === ',') { i++; continue; }
+      if (text.charAt(i) === ']') { i++; return arr; }
+      fail('数组缺少逗号或右方括号');
+    }
+    fail('数组未闭合');
+  }
+  const value = parseValue('');
+  ws();
+  if (i !== len) fail('JSON 结尾存在多余内容');
+  return { value: value, dups: dups };
+}
+
+function jdStringify(v, space) {
+  const gap = typeof space === 'number' ? ' '.repeat(space) : (typeof space === 'string' ? space : '');
+  const unit = gap;
+  function str(val, indent) {
+    if (val instanceof JDNumber) return val.raw;
+    if (val === null) return 'null';
+    const t = typeof val;
+    if (t === 'number') return isFinite(val) ? JSON.stringify(val) : 'null';
+    if (t === 'boolean') return val ? 'true' : 'false';
+    if (t === 'string') return JSON.stringify(val);
+    if (Array.isArray(val)) {
+      if (!val.length) return '[]';
+      const inner = unit ? '\n' + indent + unit : '';
+      const parts = val.map(function (x) { return inner + str(x, indent + unit); });
+      return '[' + parts.join(',') + (unit ? '\n' + indent : '') + ']';
+    }
+    if (t === 'object') {
+      const keys = Object.keys(val);
+      if (!keys.length) return '{}';
+      const inner = unit ? '\n' + indent + unit : '';
+      const parts = keys.map(function (k) {
+        return inner + JSON.stringify(k) + (unit ? ': ' : ':') + str(val[k], indent + unit);
+      });
+      return '{' + parts.join(',') + (unit ? '\n' + indent : '') + '}';
+    }
+    return 'null';
+  }
+  return str(v, '');
+}
 
 const SAMPLE_LEFT = JSON.stringify({
   name: "Alice",
@@ -355,8 +590,12 @@ const SAMPLE_RIGHT = JSON.stringify({
 
 function switchView(view) {
   currentView = view;
-  document.querySelectorAll('.tab').forEach((t, i) => {
-    t.classList.toggle('active', ['side', 'unified', 'paths', 'json'][i] === view);
+  const views = ['side', 'unified', 'paths', 'json'];
+  document.querySelectorAll('.tab[role="tab"]').forEach((t, i) => {
+    const on = views[i] === view;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+    t.tabIndex = on ? 0 : -1;
   });
   document.getElementById('viewSide').style.display = view === 'side' ? 'block' : 'none';
   document.getElementById('viewUnified').style.display = view === 'unified' ? 'block' : 'none';
@@ -370,12 +609,14 @@ function swapInputs() {
   const tmp = left.value;
   left.value = right.value;
   right.value = tmp;
-  if (lastDiff) doDiff();
+  jdSaveBoth();
+  if (lastDiff !== null) doDiff(); else invalidateDiff();
 }
 
 // 规范序列化：对象键排序后再 stringify，用作「数组元素是否相同」的比较键
 // （键序在 JSON 语义上无意义，直接 stringify 会把 {a:1,b:2} 与 {b:2,a:1} 判成不同）
 function jdCanon(v) {
+  if (jdIsNumber(v)) return { __jdNumber: jdNumKey(jdNumRaw(v)) };
   if (Array.isArray(v)) return v.map(jdCanon);
   if (v && typeof v === 'object') {
     // 必须用无原型对象：普通 {} 的 `o['__proto__'] = ...` 会触发原型 setter，
@@ -412,15 +653,27 @@ function jdLcsPairs(ak, bk) {
   return pairs;
 }
 
+function jdType(v) {
+  if (v instanceof JDNumber) return 'number';
+  return Array.isArray(v) ? 'array' : (v === null ? 'null' : typeof v);
+}
+
 function deepDiff(a, b, path = '', arrayMatch = false, pointer = '') {
   const diffs = [];
-  if (a === b) return diffs;
-  
-  const ta = Array.isArray(a) ? 'array' : (a === null ? 'null' : typeof a);
-  const tb = Array.isArray(b) ? 'array' : (b === null ? 'null' : typeof b);
-  
+  if (a === b && !(a instanceof JDNumber)) return diffs;
+
+  const ta = jdType(a), tb = jdType(b);
+
   if (ta !== tb) {
     diffs.push({ op: 'mod', path: path || '(root)', from: a, to: b, pointer: pointer });
+    return diffs;
+  }
+
+  // 数字按「数值语义」比较：大整数原样保留，1 / 1.0 / 1e0 视为同一个值
+  if (ta === 'number') {
+    if (jdNumKey(jdNumRaw(a)) !== jdNumKey(jdNumRaw(b))) {
+      diffs.push({ op: 'mod', path: path || '(root)', from: a, to: b, pointer: pointer });
+    }
     return diffs;
   }
   
@@ -505,7 +758,7 @@ function deepDiff(a, b, path = '', arrayMatch = false, pointer = '') {
 // 简单对比：只看顶层键，嵌套结构视为一个值（变化合并成一处 mod），不展开路径
 function simpleDiff(a, b) {
   const diffs = [];
-  const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+  const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v) && !(v instanceof JDNumber);
   if (isObj(a) && isObj(b)) {
     const keys = [];
     // 无原型对象：普通 {} 下 `seen['__proto__']` 命中 Object.prototype 而为 truthy，
@@ -528,10 +781,10 @@ function simpleDiff(a, b) {
 
 function countSame(a, b, arrayMatch = false) {
   let count = 0;
+  if (jdIsNumber(a) && jdIsNumber(b)) return jdNumKey(jdNumRaw(a)) === jdNumKey(jdNumRaw(b)) ? 1 : 0;
   if (a === b) return 1;
-  
-  const ta = Array.isArray(a) ? 'array' : (a === null ? 'null' : typeof a);
-  const tb = Array.isArray(b) ? 'array' : (b === null ? 'null' : typeof b);
+
+  const ta = jdType(a), tb = jdType(b);
   
   if (ta !== tb) return 0;
   
@@ -653,6 +906,7 @@ function escapeHtml(s) {
 }
 
 function __jdChart(addCount, delCount, modCount, sameCount) {
+  if (lastDiff === null) return;
   if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
   const host = document.getElementById('jdChart');
   if (!host) { return; }
@@ -671,10 +925,18 @@ function __jdChart(addCount, delCount, modCount, sameCount) {
   });
 }
 
+function jdSetExportState(has) {
+  const c = document.getElementById('jdCopyBtn'), d = document.getElementById('jdDownloadBtn');
+  if (c) c.disabled = !has;
+  if (d) d.disabled = !has;
+}
+
 function invalidateDiff() {
   lastDiff = null;
   lastLeft = null;
   lastRight = null;
+  lastDup = null;
+  showDupWarning([]);
   document.getElementById('leftDiff').textContent = '等待对比...';
   document.getElementById('rightDiff').textContent = '等待对比...';
   document.getElementById('unifiedDiff').textContent = '等待对比...';
@@ -687,6 +949,7 @@ function invalidateDiff() {
   document.getElementById('countSame').textContent = '0';
   const chart = document.getElementById('jdChart');
   if (chart) chart.innerHTML = '';
+  jdSetExportState(false);
 }
 
 function doDiff() {
@@ -700,9 +963,13 @@ function doDiff() {
   }
   
   try {
-    const a = JSON.parse(leftVal);
-    const b = JSON.parse(rightVal);
-    
+    const pa = jdParse(leftVal, 'left');
+    const pb = jdParse(rightVal, 'right');
+    const a = pa.value;
+    const b = pb.value;
+    lastDup = pa.dups.concat(pb.dups);
+    showDupWarning(lastDup);
+
     lastLeft = a;
     lastRight = b;
     
@@ -714,6 +981,7 @@ function doDiff() {
     
     const diffs = mode === 'simple' ? simpleDiff(a, b) : deepDiff(a, b, '', arrayMatch, '');
     lastDiff = diffs;
+    jdSetExportState(true);
     
     const addCount = diffs.filter(d => d.op === 'add').length;
     const delCount = diffs.filter(d => d.op === 'del').length;
@@ -726,8 +994,8 @@ function doDiff() {
     document.getElementById('countMod').textContent = modCount;
     document.getElementById('countSame').textContent = sameCount;
     
-    const leftStr = JSON.stringify(a, null, 2);
-    const rightStr = JSON.stringify(b, null, 2);
+    const leftStr = jdStringify(a, 2);
+    const rightStr = jdStringify(b, 2);
     const leftLines = leftStr.split('\n');
     const rightLines = rightStr.split('\n');
     
@@ -738,7 +1006,9 @@ function doDiff() {
     const __h2=renderLines(lineDiff.unified);if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('unifiedDiff').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('unifiedDiff').innerHTML=__h2;
     
     const __h3=diffs.length === 0 
-      ? '<div style="padding:20px;text-align:center;color:var(--success);">✅ 两个 JSON 完全相同</div>'
+      ? (lastDup.length
+          ? '<div style="padding:20px;text-align:center;color:#b45309;">' + (jdIsEn() ? '⚠ Parsed values are equal, but the raw texts contain duplicate keys that were overwritten; they are not identical as written.' : '⚠ 解析后的值相同，但原始文本含重复键（已被覆盖），不能视为原始文本完全相同。') + '</div>'
+          : '<div style="padding:20px;text-align:center;color:var(--success);">✅ 两个 JSON 完全相同</div>')
       : diffs.map(d => `
         <div class="path-item">
           <span class="path-type ${d.op}">${d.op === 'add' ? '新增' : d.op === 'del' ? '删除' : '修改'}</span>
@@ -750,7 +1020,7 @@ function doDiff() {
         </div>
       `).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('pathList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('pathList').innerHTML=__h3;
     
-    document.getElementById('jsonDiff').textContent = JSON.stringify(diffs, null, 2);
+    document.getElementById('jsonDiff').textContent = jdStringify(diffs, 2);
     
     try { __jdChart(addCount, delCount, modCount, sameCount); } catch(e) {}
 
@@ -764,31 +1034,46 @@ function doDiff() {
 
 function formatValue(v) {
   if (v === null) return 'null';
+  if (v instanceof JDNumber) return v.raw;
   if (typeof v === 'string') return `"${v}"`;
-  if (typeof v === 'object') return JSON.stringify(v).substring(0, 50) + (JSON.stringify(v).length > 50 ? '...' : '');
+  if (typeof v === 'object') {
+    const s = jdStringify(v);
+    return s.substring(0, 50) + (s.length > 50 ? '...' : '');
+  }
   return String(v);
+}
+
+function jdEmptyText() {
+  const en = jdIsEn();
+  if (lastDup && lastDup.length) {
+    return en ? 'Parsed values are equal, but the raw texts contain duplicate keys that were overwritten; they are not identical as written.'
+              : '解析后的值相同，但原始文本含重复键（已被覆盖），不能视为原始文本完全相同。';
+  }
+  return en ? 'No differences: both JSON documents are identical.' : '无差异：两个 JSON 文档完全相同。';
 }
 
 function copyDiff() {
   let text = '';
-  if (currentView === 'json' && lastDiff) {
-    text = JSON.stringify(lastDiff, null, 2);
-  } else if (lastLeft && lastRight) {
-    const diffs = lastDiff || [];
-    text = diffs.map(d => {
+  if (currentView === 'json' && lastDiff !== null) {
+    text = jdStringify(lastDiff, 2);
+  } else if (lastDiff !== null) {
+    const diffs = lastDiff;
+    if (!diffs.length) text = jdEmptyText();
+    else text = diffs.map(d => {
       const icon = d.op === 'add' ? '+ ' : d.op === 'del' ? '- ' : '~ ';
-      const val = d.op === 'mod' ? `${JSON.stringify(d.from)} → ${JSON.stringify(d.to)}` : JSON.stringify(d.value);
+      const val = d.op === 'mod' ? `${jdStringify(d.from)} → ${jdStringify(d.to)}` : jdStringify(d.value);
       return `${icon}${d.path} [${d.pointer || '/'}]: ${val}`;
     }).join('\n');
   }
-  if (!text) { ToolBox.showToast(i18nText('toast.msg474')); return; }
+  if (!text) { ToolBox.showToast(i18nText('toast.msg474')); return ''; }
   ToolBox.copyText(text);
+  return text;
 }
 
 function downloadDiff() {
   let text = '';
-  if (lastDiff) {
-    text = JSON.stringify(lastDiff, null, 2);
+  if (lastDiff !== null) {
+    text = jdStringify(lastDiff, 2);
   }
   if (!text) { ToolBox.showToast(i18nText('toast.msg473')); return; }
   ToolBox.downloadText('diff-result.json', text, 'application/json');
@@ -797,24 +1082,40 @@ function downloadDiff() {
 function clearAll() {
   document.getElementById('left').value = '';
   document.getElementById('right').value = '';
+  jdStoreEmptyDrafts();
   invalidateDiff();
 }
 
-function loadSample() {
+function loadSample(auto) {
   document.getElementById('left').value = SAMPLE_LEFT;
   document.getElementById('right').value = SAMPLE_RIGHT;
+  if (auto !== true) jdSaveBoth();
   doDiff();
 }
 
-loadSample();
+document.getElementById('jdSaveDrafts').checked = jdDraftEnabled();
+['left', 'right'].forEach(function (id) {
+  const el = document.getElementById(id);
+  el.addEventListener('input', function () { invalidateDiff(); });
+});
+loadSample(true);
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){
+  if(lastDiff===null)return;
   var a=+(document.getElementById('countAdd').textContent||0),
       d=+(document.getElementById('countDel').textContent||0),
       m=+(document.getElementById('countMod').textContent||0),
       s=+(document.getElementById('countSame').textContent||0);
   try{__jdChart(a,d,m,s);}catch(e){}
 });}
+window.addEventListener('storage', function (e) {
+  if (e.key === JD_SAVE_KEY) {
+    const cb = document.getElementById('jdSaveDrafts');
+    if (cb) cb.checked = jdDraftEnabled();
+    if (!jdDraftEnabled()) jdRemoveDrafts();
+  }
+});
 window.addEventListener('toolbox:langchange',function(){
+  if(lastDiff===null)return;
   var a=+(document.getElementById('countAdd').textContent||0),
       d=+(document.getElementById('countDel').textContent||0),
       m=+(document.getElementById('countMod').textContent||0),
@@ -886,12 +1187,14 @@ document.addEventListener('DOMContentLoaded',function(){
   var NS="tools/it/json-diff.html";
   function k(id){return 'tb_uxp_'+NS+'#'+id;}
   function save(el){try{
+    if(!jdDraftEnabled())return;
     if(el.type==='checkbox'){localStorage.setItem(k(el.id),el.checked?'1':'0');}
     else if(el.type==='radio'){if(el.checked)localStorage.setItem(k(el.id),el.value);}
     else{localStorage.setItem(k(el.id),el.value);}
   }catch(e){}}
   function restore(){try{
-    document.querySelectorAll('input:not([type=password]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+    if(!jdDraftEnabled())return;
+    document.querySelectorAll('input:not([type=password]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]):not([readonly]):not([disabled]):not(#jdSaveDrafts),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
       if(!el.id)return;
       var v=localStorage.getItem(k(el.id));if(v===null)return;
       try{
@@ -902,8 +1205,11 @@ document.addEventListener('DOMContentLoaded',function(){
         el.dispatchEvent(new Event('change',{bubbles:true}));
       }catch(e){}
     });
+    setTimeout(function(){
+      if(document.getElementById('left').value.trim() && document.getElementById('right').value.trim()) doDiff();
+    },0);
   }catch(e){}}
-  document.querySelectorAll('input:not([type=password]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+  document.querySelectorAll('input:not([type=password]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]):not([readonly]):not([disabled]):not(#jdSaveDrafts),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
     if(!el.id)return;
     el.addEventListener('input',function(){save(el);});
     el.addEventListener('change',function(){save(el);});
