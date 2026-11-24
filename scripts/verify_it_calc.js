@@ -7894,7 +7894,7 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\nInput: abc123测试 区号： 123 地区： 未知/非 NANP 区号 ❌ 未知区号"
+      "❌ 主号码含不支持的字符：只接受数字、空格、+、-、(、)、.；分机请用 ext / x / 分机 表示"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\nInput: abc123测试 区号： 123 地区： 未知/…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -7934,7 +7934,7 @@ const CASES = [
       "input": "2125550100"
     },
     "expect": [
-      "格式化： (212) 555-0100 ✅ 标准 10 位 NANP 号码"
+      "格式化： (212) 555-0100 ✅ 结构符合所检查的 NANP 规则"
     ],
     "ref": "回归护栏（修复前后同绿）：合法 212 号码在加入结构校验后仍须正常格式化并判标准有效，防止校验收紧误伤正常路径。默认态 021 为 3 位无格式化行 ⇒ 判别器仍判正确变红。"
   },
@@ -7984,7 +7984,7 @@ const CASES = [
       "input": "202"
     },
     "expect": [
-      "地区： Washington, DC ✅ 区号有效"
+      "地区： Washington, DC ✅ 区号结构有效"
     ],
     "ref": "回归护栏（修复前后同绿）：已收录的合法地理区号 202 在收紧校验后仍判有效；默认态 021 不命中。"
   },
@@ -12416,7 +12416,7 @@ const CASES = [
       "padDigits": "auto"
     },
     "expect": [
-      "* 42 052\n1 2 3\n,\nauto\nutf8\n061,012,062,012,063\n1 061 · 012 2 062 · 012 3 063\n3\n3\n3\n3"
+      "* 42 052\n1 2 3\n,\nauto\nutf8\n按严格 UTF-8 解码\n061,012,062,012,063\n1 061 · 012 2 062 · 012 3 063\n3\n3\n3\n3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"inputOct\":\"1\\n2\\n3\",\"outputText\":\"1\\n2\\n3\",\"encoding\":\"utf8\",\"sep\":\",\",\"padDigits\":\"auto\"}，输出区含「* 42 052\n1 2 3\n,\nauto\nutf8\n061,012,062,0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -15870,6 +15870,92 @@ const CASES = [
     clicks: ["var w=String(walk);document.getElementById('__tbProbe').textContent='RTE753F '+((w.indexOf('longest+2')>=0&&w.indexOf('new Array(longest')>=0)?'OK':'BAD');"],
     expect: ["RTE753F OK"],
     ref: "第753批：代码内容含三连反引号时围栏自动加长到四个，避免提前闭合；旧占位/固定三反引号会把代码截断。",
+  },
+
+  // ── 第754批 ──
+  {
+    slug: "it/integer-base-converter",
+    inputs: { num: "-1", fromBase: "10", toBase: "16" },
+    clicks: ["convert();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='NEG754 '+((h.indexOf('数值约 <strong>1</strong>')>=0&&h.indexOf('数值约 <strong>2</strong>')<0)?'OK':'BAD '+h.slice(0,80));"],
+    expect: ["NEG754 OK"],
+    ref: "第754批：十进制 -1 的数值部分只有 1 位，负号不得计入位数；修复前 v.toString().length=2 ⇒ BAD。默认 255 不命中。",
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "abc", text2: "abd" },
+    clicks: ["doDiff();var copied=false;ToolBox.copyText=function(){copied=true;};document.getElementById('text2').value='abe';markDiffStale();copyDiff();var b=document.getElementById('tdStale');document.getElementById('__tbProbe').textContent='STALE754 '+((!copied&&diffStale&&b&&b.style.display==='block')?'OK':'BAD');"],
+    expect: ["STALE754 OK"],
+    ref: "第754批：对比后修改任一文本，旧差异必须标记过期并阻止复制；修复前 copyDiff 仍复制上一次 currentDiff ⇒ BAD。默认未改文本不命中。",
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "abc", text2: "abd" },
+    clicks: ["doDiff();var stale='NO';document.getElementById('ignoreCase').checked=true;markDiffStale();stale=(diffStale?'YES':'NO');doDiff();var fresh=(!diffStale&&document.getElementById('tdStale').style.display==='none')?'OK':'BAD';document.getElementById('__tbProbe').textContent='STALE754B '+stale+' '+fresh;"],
+    expect: ["STALE754B YES OK"],
+    ref: "第754批：切换忽略大小写等影响计算的选项同样使旧差异过期；重新对比后必须清除过期标记与提示。",
+  },
+  {
+    slug: "it/text-to-octal",
+    inputs: { inputOct: "378", encoding: "utf8" },
+    clicks: ["convertOctToText();var n=document.getElementById('octNote');document.getElementById('__tbProbe').textContent='OCT754A '+((!document.getElementById('outputText').value&&/0–7/.test(n.textContent||''))?'OK':'BAD');"],
+    expect: ["OCT754A OK"],
+    ref: "第754批：八进制 378 超出单字节范围 0–377，必须报错且不输出文本；修复前 parseInt(378,8)=256 写入 Uint8Array 被截为 0 ⇒ BAD。",
+  },
+  {
+    slug: "it/text-to-octal",
+    inputs: { input: "中", encoding: "ascii" },
+    clicks: ["convert();var n=document.getElementById('octNote');document.getElementById('__tbProbe').textContent='OCT754B '+((!document.getElementById('output').value&&/ASCII/.test(n.textContent||''))?'OK':'BAD');"],
+    expect: ["OCT754B OK"],
+    ref: "第754批：ASCII 模式不得把中文按低 8 位静默改写，必须明确拒绝非 ASCII 字符；修复前 charCodeAt&0xff 输出错误八进制 ⇒ BAD。",
+  },
+  {
+    slug: "it/text-to-octal",
+    inputs: { inputOct: "110", encoding: "utf16" },
+    clicks: ["convertOctToText();var n=document.getElementById('octNote');document.getElementById('__tbProbe').textContent='OCT754D '+((!document.getElementById('outputText').value&&/偶数/.test(n.textContent||''))?'OK':'BAD');"],
+    expect: ["OCT754D OK"],
+    ref: "第754批：UTF-16BE 单字节无法配对，必须报偶数错误；修复前循环 len-1 直接返回空串并显示「解码成功」。",
+  },
+  {
+    slug: "it/text-to-octal",
+    inputs: { inputOct: "330 075 336 000", encoding: "utf16" },
+    clicks: ["convertOctToText();document.getElementById('__tbProbe').textContent='OCT754E '+(document.getElementById('outputText').value==='😀'?'OK':'BAD');"],
+    expect: ["OCT754E OK"],
+    ref: "第754批：UTF-16BE 代理对四个字节（D8 3D DE 00）须合并解码为 😀，严格校验不得误伤合法四字节代理对。",
+  },
+  {
+    slug: "it/text-to-octal",
+    inputs: { inputOct: "110 151", encoding: "utf8" },
+    clicks: ["convertOctToText();var h=document.getElementById('__tbProbe');h.textContent='OCT754C '+((document.getElementById('outputText').value==='Hi')?'OK':'BAD');"],
+    expect: ["OCT754C OK"],
+    ref: "第754批：UTF-8 严格解码正常双字节输入（110 151）仍需往返得到 Hi（110=72、151=105）；避免严格化误伤合法输入。",
+  },
+  {
+    slug: "it/area-code-lookup",
+    inputs: { input: "abc2125550100" },
+    clicks: ["validate();"],
+    expect: ["主号码含不支持的字符"],
+    ref: "第754批：字母不得被静默剔除成另一个号码；修复前 abc2125550100 剥非数字后可能显示标准 10 位 NANP ⇒ 不命中。",
+  },
+  {
+    slug: "it/area-code-lookup",
+    inputs: { input: "212-555-0100 ext 123" },
+    clicks: ["validate();"],
+    expect: ["分机： 123", "结构符合所检查的 NANP 规则"],
+    ref: "第754批：ext 分机单独解析、不参与主号码结构判断；结论改为结构符合所检查规则，明确不代表已分配或可接通。",
+  },
+  {
+    slug: "it/country-code-lookup",
+    inputs: { input: "Infinity" },
+    clicks: ["validate();"],
+    expect: ["未找到匹配的国家"],
+    ref: "第754批：Infinity 是普通搜索文本，不得触发数值无效守卫；修复前 final 正则把结果替换成「计算结果含无效值」⇒ 不命中。",
+  },
+  {
+    slug: "it/country-code-lookup",
+    inputs: { input: "NaN" },
+    clicks: ["validate();"],
+    expect: ["未找到匹配的国家"],
+    ref: "第754批：NaN 搜索同样应显示未找到，而不是数值错误；修复前独立 NaN 正则误判。",
   },
 
 ];

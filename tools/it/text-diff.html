@@ -216,6 +216,7 @@
       <button type="button" class="btn danger" onclick="clearAll()">清空</button>
       <button type="button" class="btn" onclick="window.__tdExport()">⬇️ 导出差异明细 CSV</button>
     </div>
+    <div id="tdStale" style="display:none;margin-top:10px;padding:9px 12px;border:1px solid var(--warning,#D97706);border-radius:8px;background:rgba(217,119,6,.08);font-size:13px;color:var(--text,#333);" data-zh="输入或对比选项已更改，下方旧差异已失效；请重新点击「开始对比」，复制与导出在重新对比前不可用。">Input or comparison options changed, so the diff below is stale. Run the diff again; copying and export stay disabled until you do.</div>
     <table id="tdHidden" style="display:none;"><thead><tr><th data-zh="类型" scope="col">Type</th><th scope="col">Old Line</th><th scope="col">New Line</th><th scope="col">Old Value</th><th scope="col">New Value</th></tr></thead><tbody></tbody></table>
 
     <div class="stat-grid" id="stats" style="display:none;margin-top:12px;">
@@ -394,6 +395,7 @@ const HISTORY_KEY = 'text_diff_history';
 const MAX_HISTORY = 10;
 
 let currentDiff = null;
+let diffStale = false;
 
 function switchView(view, tab) {
   document.querySelectorAll('.view-tab').forEach(t => {
@@ -633,12 +635,24 @@ function doDiff() {
   }
   
   currentDiff = result;
+  clearDiffStale();
   renderUnifiedDiff(result, options);
   renderSplitDiff(result, options);
   updateStats(result);
   addToHistory(text1, text2, options);
 }
 
+function markDiffStale(){
+  if(!currentDiff) return;
+  diffStale = true;
+  const b=document.getElementById('tdStale');
+  if(b) b.style.display='block';
+}
+function clearDiffStale(){
+  diffStale = false;
+  const b=document.getElementById('tdStale');
+  if(b) b.style.display='none';
+}
 function renderUnifiedDiff(diff, options) {
   if(!Array.isArray(diff)) return;
   const container = document.getElementById('unifiedDiff');
@@ -727,6 +741,7 @@ function updateStats(diff) {
 }
 
 function __tdExport(){
+  if(diffStale){ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?'Input or options changed; run the diff again before exporting.':'输入或选项已更改，请重新对比后再导出。','warning');return;}
   if(typeof TBKit==='undefined')return;
   var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   if(!currentDiff||currentDiff.length===0){ToolBox.showToast(en?'Please run diff first':'请先点击「开始对比」');return;}
@@ -742,6 +757,7 @@ function __tdExport(){
   TBKit.util.exportTable('#tdHidden',en?'text-diff.csv':'文本差异明细.csv');
 }
 function copyDiff() {
+  if (diffStale) { ToolBox.showToast(i18nText('toast.msg696'), 'warning'); return; }
   if (!currentDiff) {
     ToolBox.showToast(i18nText('toast.msg696'), 'warning');
     return;
@@ -782,6 +798,7 @@ function buildUnifiedPatch() {
 }
 
 function copyUnifiedPatch() {
+  if (diffStale) { ToolBox.showToast(i18nText('toast.msg696'), 'warning'); return; }
   const patch = buildUnifiedPatch();
   if (!patch) { ToolBox.showToast(i18nText('toast.msg696'), 'warning'); return; }
   ToolBox.copyText(patch, i18nText('msg235'));
@@ -803,6 +820,7 @@ function clearAll() {
   const __h5='';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('rightDiff').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('rightDiff').innerHTML=__h5;
   document.getElementById('stats').style.display = 'none';
   currentDiff = null;
+  clearDiffStale();
 }
 
 function loadSample() {
@@ -902,6 +920,7 @@ renderHistory();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
+  ['text1','text2','ignoreWhitespace','ignoreAllWhitespace','ignoreCase','charDiff'].forEach(function(id){var e=document.getElementById(id);if(e){e.addEventListener('input',markDiffStale);e.addEventListener('change',markDiffStale);}});
   var headers=document.querySelectorAll('.tool-intro-header');
   headers.forEach(function(h){
     h.addEventListener('click',function(){
