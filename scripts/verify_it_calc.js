@@ -11660,15 +11660,47 @@ const CASES = [
   
   {
     "slug": "it/random",
-    "inputs": {
-      "min": "42",
-      "max": "42",
-      "count": "42"
-    },
-    "expect": [
-      "42\n42\n42\n6\n反面\n红: 4 7 9 22"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"min\":\"42\",\"max\":\"42\",\"count\":\"42\"}，输出区含「42\n42\n42\n6\n反面\n红: 4 7 9 22」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "inputs": { "min": "42", "max": "42", "count": "42" },
+    "clicks": ["generateNumbers();var t=document.getElementById('singleResult').textContent;var parts=t.split(',');var all=parts.every(function(x){return x.trim()==='42';});document.getElementById('__tbProbe').textContent='SAME42 n='+parts.length+' all='+(all?1:0);"],
+    "expect": ["SAME42 n=42 all=1"],
+    "ref": "第724批：单值区间 42–42、数量 42（上限内）应生成 42 个 42，不再依赖骰子/彩票等随机输出做弱断言。"
+  },
+  {
+    "slug": "it/random",
+    "inputs": { "min": "", "max": "100", "count": "1" },
+    "clicks": ["generateNumbers();var h=document.getElementById('numberGrid').innerHTML;document.getElementById('__tbProbe').textContent='EMPTY724 '+(h.indexOf('请填写最小值')>=0?'Y':'N');"],
+    "expect": ["EMPTY724 Y"],
+    "ref": "第724批：最小值清空后不得回退成隐藏默认 0，必须明确提示填写。"
+  },
+  {
+    "slug": "it/random",
+    "inputs": { "min": "0", "max": "100", "count": "51" },
+    "clicks": ["generateNumbers();var h=document.getElementById('numberGrid').innerHTML;document.getElementById('__tbProbe').textContent='C51724 '+(h.indexOf('数量须为 1–50 的整数')>=0?'Y':'N');"],
+    "expect": ["C51724 Y"],
+    "ref": "第724批：数量上限 50 必须校验，51 不得继续生成。"
+  },
+  {
+    "slug": "it/random",
+    "inputs": { "min": "0.2", "max": "1.2", "count": "1" },
+    "checkIds": ["integer"],
+    "clicks": ["generateNumbers();document.getElementById('__tbProbe').textContent='INTFRAC724 r='+document.getElementById('singleResult').textContent;"],
+    "expect": ["INTFRAC724 r=1"],
+    "ref": "第724批：整数模式按 ceil(0.2)=1 到 floor(1.2)=1 抽取，只可能得到 1，不能再产生 0 或 2。"
+  },
+  {
+    "slug": "it/random",
+    "inputs": { "min": "0.1000006", "max": "0.1000007", "count": "1" },
+    "clicks": ["generateNumbers();var h=document.getElementById('numberGrid').innerHTML;document.getElementById('__tbProbe').textContent='DECNARROW724 '+(h.indexOf('没有 6 位小数精度的可表示值')>=0?'Y':'N');"],
+    "expect": ["DECNARROW724 Y"],
+    "ref": "第724批：6 位小数网格内无可表示值时必须报错，不能把结果舍入到 0.100001 越过上限。"
+  },
+  {
+    "slug": "it/random",
+    "inputs": { "min": "0", "max": "0.0000001", "count": "2" },
+    "checkIds": ["unique"],
+    "clicks": ["generateNumbers();var h=document.getElementById('numberGrid').innerHTML;document.getElementById('__tbProbe').textContent='DECCAP724 '+(h.indexOf('最多只能生成 1 个不重复小数')>=0?'Y':'N');"],
+    "expect": ["DECCAP724 Y"],
+    "ref": "第724批：唯一小数容量只有 1（0），请求 2 个必须立即报错，不能进入无界碰撞重试。"
   },
   {
     "slug": "it/random",
@@ -11691,7 +11723,7 @@ const CASES = [
     },
     "checkIds": ["integer"],
     "clicks": ["generateNumbers()"],
-    "expect": ["生成数量须为不小于 1 的整数"],
+    "expect": ["数量须为 1–50 的整数"],
     "ref": "数量 0 的定义域不成立：旧实现 `parseInt(...) || 1` 静默改成 1 并生成数字；修复后显式拒绝并说明原因。默认 count=1 走正常生成路径，不出现该提示。"
   },
   {

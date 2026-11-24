@@ -181,7 +181,7 @@ label{font-size:14px;color:#666;display:block;margin-bottom:6px;font-weight:500;
 <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🎲 随机数生成器">🎲 Random</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">通用随机数：结果 = 随机数 × (上限 − 下限) + 下限；整数模式对结果向下取整，小数模式保留 6 位小数。掷骰子取「随机数 × 6」向下取整再加 1，得到 1 到 6 的点数。抛硬币、彩票、百分比等其余模式按各自的范围与数量调用同一个随机数发生器</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">通用随机数：整数模式先把可取值限制在「⌈下限⌉ 到 ⌊上限⌋」的整数集合；小数模式按 1e-6 网格抽样，结果固定 6 位小数且不会因舍入越过上下限。不重复模式在可表示集合内无放回抽样，请求数量超过容量会直接提示；数量须为 1–50 的整数，空字段不会被默认值替代。掷骰子取「随机数 × 6」向下取整再加 1，得到 1 到 6 的点数。抛硬币、彩票、百分比等其余模式按各自的范围与数量调用同一个随机数发生器</div>
   <div class="formula-desc">生成随机数或随机序列。</div>
   <ul class="formula-list">
     <li><b>PRNG</b>：伪随机数由确定性算法生成，速度快、可复现，适合模拟与游戏。</li>
@@ -328,59 +328,122 @@ label{font-size:14px;color:#666;display:block;margin-bottom:6px;font-weight:500;
 </div>
 
 <script>
-function generateRandom(min, max, isInteger) {
-  const diff = max - min;
-  const random = Math.random() * diff + min;
-  return isInteger ? Math.floor(random) : parseFloat(random.toFixed(6));
+function randomIsEn(){
+  try { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) === true; } catch (e) { return false; }
+}
+function randomMsg(zh, en) { return randomIsEn() ? en : zh; }
+
+function parseRandomField(id, labelZh, labelEn) {
+  const raw = document.getElementById(id).value.trim();
+  if (raw === '') throw new Error(randomMsg('请填写' + labelZh, 'Please enter ' + labelEn));
+  const v = Number(raw);
+  if (!isFinite(v)) throw new Error(randomMsg(labelZh + '必须是有效数字', labelEn + ' must be a valid number'));
+  return v;
 }
 
-function numberField(id, fallback){
-  const raw = document.getElementById(id).value.trim();
-  if(raw === '') return fallback;
-  const v = parseFloat(raw);
-  return isNaN(v) ? fallback : v;
+function randomInt(lo, hi) {
+  return Math.floor(Math.random() * (hi - lo + 1)) + lo;
+}
+
+function sampleUniqueRange(lo, hi, count) {
+  const capacity = hi - lo + 1;
+  if (count > capacity) throw new Error(randomMsg('可选值不足', 'Not enough distinct values'));
+  const used = new Set();
+  const out = [];
+  const limit = count * 50 + 100;
+  let attempts = 0;
+  while (out.length < count && attempts < limit) {
+    attempts++;
+    const v = randomInt(lo, hi);
+    if (!used.has(v)) { used.add(v); out.push(v); }
+  }
+  if (out.length < count) {
+    // 碰撞重试有上限，剩余名额按确定顺序补齐，避免任何情况下死循环
+    let v = lo;
+    while (out.length < count) {
+      if (!used.has(v)) { used.add(v); out.push(v); }
+      v++;
+      if (v > hi) v = lo;
+    }
+  }
+  return out;
+}
+
+function sampleRange(lo, hi, count, unique) {
+  if (unique) return sampleUniqueRange(lo, hi, count);
+  const out = [];
+  for (let i = 0; i < count; i++) out.push(randomInt(lo, hi));
+  return out;
+}
+
+function randomEscape(s) {
+  return String(s).replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; });
+}
+
+function showRandomError(msg) {
+  const box = document.getElementById('resultBox');
+  const single = document.getElementById('singleResult');
+  const grid = document.getElementById('numberGrid');
+  box.style.display = 'block';
+  single.style.display = 'none';
+  single.textContent = '';
+  grid.style.display = 'block';
+  grid.innerHTML = '<p style="color:var(--danger);margin:0;">⚠ ' + randomEscape(msg) + '</p>';
+}
+
+function generateRandom(min, max, isInteger) {
+  // 保留旧入口：整数模式只返回 [ceil(min), floor(max)] 内的整数
+  if (isInteger) {
+    const lo = Math.ceil(min), hi = Math.floor(max);
+    if (hi < lo) return NaN;
+    return randomInt(lo, hi);
+  }
+  const scale = 1e6;
+  const lo = Math.ceil(min * scale - 1e-7), hi = Math.floor(max * scale + 1e-7);
+  if (hi < lo) return NaN;
+  return parseFloat((randomInt(lo, hi) / scale).toFixed(6));
 }
 
 function generateNumbers() {
-  const min = numberField('min', 0);
-  const max = numberField('max', 100);
-  const count = numberField('count', 1);
+  let min, max, count;
+  try {
+    min = parseRandomField('min', '最小值', 'minimum');
+    max = parseRandomField('max', '最大值', 'maximum');
+    count = parseRandomField('count', '数量', 'count');
+    if (count < 1 || count > 50 || !Number.isInteger(count)) {
+      throw new Error(randomMsg('数量须为 1–50 的整数', 'Count must be an integer from 1 to 50'));
+    }
+    if (min > max) throw new Error(randomMsg('最小值不能大于最大值', 'Minimum must not be greater than maximum'));
+  } catch (e) {
+    showRandomError(e.message);
+    return false;
+  }
+
   const isInteger = document.getElementById('integer').checked;
   const isUnique = document.getElementById('unique').checked;
+  const scale = 1e6;
 
-  if (count < 1 || Math.floor(count) !== count) {
-    const box = document.getElementById('resultBox');
-    box.style.display = 'block';
-    document.getElementById('singleResult').style.display = 'none';
-    document.getElementById('singleResult').textContent = '';
-    const grid = document.getElementById('numberGrid');
-    grid.style.display = 'grid';
-    grid.innerHTML = '<p style="color:var(--danger);margin:0;">生成数量须为不小于 1 的整数</p>';
-    return;
+  if (isInteger) {
+    const lo = Math.ceil(min), hi = Math.floor(max);
+    if (hi < lo) { showRandomError(randomMsg('该范围内没有整数，请调整边界', 'No integer exists in this range; adjust the bounds')); return false; }
+    const capacity = hi - lo + 1;
+    if (capacity > Number.MAX_SAFE_INTEGER) { showRandomError(randomMsg('整数范围过大，无法安全抽样', 'Integer range is too large to sample safely')); return false; }
+    if (isUnique && count > capacity) { showRandomError(randomMsg('范围内最多只能生成 ' + capacity + ' 个不重复整数', 'At most ' + capacity + ' distinct integers fit this range')); return false; }
+    const units = sampleRange(lo, hi, count, isUnique);
+    displayResults(units);
+    return true;
   }
 
-  if (min >= max) {
-    return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Minimum must be less than maximum":"最小值必须小于最大值"));
-  }
-  
-  if (isUnique && isInteger && (max - min + 1) < count) {
-    return alert(`范围 ${min}-${max} 内最多只能生成 ${Math.floor(max - min + 1)} 个不重复整数`);
-  }
-  
-  const results = [];
-  const used = new Set();
-  
-  for (let i = 0; i < count; i++) {
-    let num;
-    do {
-      num = generateRandom(min, isInteger ? max + 1 : max, isInteger);
-    } while (isUnique && used.has(num));
-    
-    used.add(num);
-    results.push(num);
-  }
-  
-  displayResults(results);
+  // 小数固定 6 位精度：先把范围映射到 1e-6 的整数网格，再在网格内抽样，
+  // 这样舍入不会越过用户给定的边界。
+  const lo = Math.ceil(min * scale - 1e-7), hi = Math.floor(max * scale + 1e-7);
+  if (hi < lo) { showRandomError(randomMsg('该范围内没有 6 位小数精度的可表示值，请调整范围或精度', 'No value at 6-decimal precision exists in this range; adjust the range or precision')); return false; }
+  const capacity = hi - lo + 1;
+  if (capacity > Number.MAX_SAFE_INTEGER) { showRandomError(randomMsg('小数范围过大，无法按 6 位精度安全抽样', 'Decimal range is too large to sample at 6-decimal precision')); return false; }
+  if (isUnique && count > capacity) { showRandomError(randomMsg('该精度下最多只能生成 ' + capacity + ' 个不重复小数', 'At most ' + capacity + ' distinct decimals fit this precision')); return false; }
+  const units = sampleRange(lo, hi, count, isUnique);
+  displayResults(units.map(function (u) { return parseFloat((u / scale).toFixed(6)); }));
+  return true;
 }
 
 function displayResults(results) {
