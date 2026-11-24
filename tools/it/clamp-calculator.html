@@ -152,7 +152,12 @@
       <div style="font-size:12px;color:var(--muted,#6B7280);margin-bottom:6px;">实时预览（拖动浏览器宽度观察字号变化）</div>
       <div id="preview" style="font-weight:700;color:var(--primary);">响应式字体效果预览</div>
       <input type="range" id="slider" min="320" max="1920" value="800" style="width:100%;margin-top:10px;" oninput="slide()" aria-label="数值滑块">
-      <div style="font-size:12px;color:var(--muted,#6B7280);margin-top:4px;">当前视口：<span id="vwNow">800</span>px</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--muted,#6B7280);">
+        <label for="previewVw">预览视口</label>
+        <input type="number" id="previewVw" value="800" min="200" max="4000" step="1" style="width:100px;" oninput="setPreviewVw(this.value)">
+        <span>px</span>
+        <span>当前视口：<span id="vwNow">800</span>px</span>
+      </div>
     </div>
     <div class="toolbar">
       <div id="clamp_calculatorPresets"></div><button class="btn primary" onclick="calc()">生成</button><button class="btn" type="button" onclick="__clamp_calculatorExport()">导出明细 CSV</button>
@@ -284,9 +289,16 @@
 </div>
 <script>
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function fmt(n){return Math.round(n*100)/100;}
-function fmtMath(n){return Math.round(n*1000)/1000;}
-function clampLine(s,r){return fmtMath(s)+'vw '+(r<0?'- '+fmtMath(-r):'+ '+fmtMath(r))+'px';}
+function trimNum(n,d){
+  if(!isFinite(n)) return String(n);
+  var s=Number(n).toFixed(d).replace(/0+$/,'').replace(/\.$/,'');
+  return s==='-0'?'0':s;
+}
+function fmt(n){return trimNum(n,2);}
+function fmtSize(n){return trimNum(n,4);}
+function fmtMathN(n,d){return trimNum(n,d);}
+function fmtMath(n){return fmtMathN(n,3);}
+function clampLine(s,r,d){return fmtMathN(s,d)+'vw '+(r<0?'- '+fmtMathN(-r,d):'+ '+fmtMathN(r,d))+'px';}
 function clampText(key){
   var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   var m={
@@ -299,6 +311,8 @@ function clampText(key){
     generated: en?'Generated expression: ':'生成表达式：',
     bounds: en?'Bounds: ':'边界校验：',
     mid: en?'midpoint ':'中点',
+    deviation: en?'Max deviation at the three breakpoints: ':'三个断点的最大偏差：',
+    precision: en?' (coefficient precision raised to {d} decimals)':'（系数精度已提升到 {d} 位小数）',
     rule: en?'Minimum at the smallest viewport, preferred at the midpoint, maximum at the largest viewport; the preview and expression share the same polyline.':'最小字号→最小视口，首选字号→视口中点，最大字号→最大视口；预览与表达式共用同一条折线。'
   };
   return m[key]||'';
@@ -318,23 +332,30 @@ function clampConfig(){
   if(m>p||p>x) return {err:clampText('range')};
   var mid=(a+b)/2;
   var single=Math.abs(p-(m+x)/2)<1e-9;
-  var s1,r1,s2,r2,inner,evaluate;
-  if(single){
-    s1=fmtMath((x-m)/(b-a)*100); r1=fmtMath(m-s1*a/100);
-    inner=clampLine(s1,r1);
-    evaluate=function(v){return Math.max(m,Math.min(x,s1*v/100+r1));};
-  }else{
-    s1=fmtMath(2*(p-m)/(b-a)*100); r1=fmtMath(m-s1*a/100);
-    s2=fmtMath(2*(x-p)/(b-a)*100); r2=fmtMath(p-s2*mid/100);
-    var join=s1>=s2?'min':'max';
-    inner=join+'('+clampLine(s1,r1)+', '+clampLine(s2,r2)+')';
-    evaluate=function(v){
-      var y1=s1*v/100+r1, y2=s2*v/100+r2;
-      return Math.max(m,Math.min(x,join==='min'?Math.min(y1,y2):Math.max(y1,y2)));
-    };
+  var chosen=null;
+  for(var d=3;d<=8;d++){
+    var s1,r1,s2,r2,inner,evaluate;
+    if(single){
+      s1=fmtMathN((x-m)/(b-a)*100,d); r1=fmtMathN(m-s1*a/100,d);
+      inner=clampLine(s1,r1,d);
+      evaluate=(function(n1,q1){return function(v){return Math.max(m,Math.min(x,n1*v/100+q1));};})(Number(s1),Number(r1));
+    }else{
+      s1=fmtMathN(2*(p-m)/(b-a)*100,d); r1=fmtMathN(m-s1*a/100,d);
+      s2=fmtMathN(2*(x-p)/(b-a)*100,d); r2=fmtMathN(p-s2*mid/100,d);
+      var join=Number(s1)>=Number(s2)?'min':'max';
+      inner=join+'('+clampLine(s1,r1,d)+', '+clampLine(s2,r2,d)+')';
+      evaluate=(function(n1,q1,n2,q2,j){return function(v){
+        var y1=n1*v/100+q1, y2=n2*v/100+q2;
+        return Math.max(m,Math.min(x,j==='min'?Math.min(y1,y2):Math.max(y1,y2)));
+      };})(Number(s1),Number(r1),Number(s2),Number(r2),join);
+    }
+    var dev=Math.max(Math.abs(evaluate(a)-m),Math.abs(evaluate(mid)-p),Math.abs(evaluate(b)-x));
+    chosen={min:m,pref:p,max:x,vwMin:a,vwMax:b,mid:mid,inner:inner,
+      expr:'clamp('+fmtSize(m)+'px, '+inner+', '+fmtSize(x)+'px)',evaluate:evaluate,precision:d,maxDev:dev};
+    // 三位小数通常足够；若断点偏差超过 0.005px，则逐位提高系数精度，避免斜率被舍成 0。
+    if(dev<=0.005) break;
   }
-  return {min:m,pref:p,max:x,vwMin:a,vwMax:b,mid:mid,inner:inner,
-    expr:'clamp('+fmt(m)+'px, '+inner+', '+fmt(x)+'px)',evaluate:evaluate};
+  return chosen;
 }
 function calc(){
   var cfg=clampConfig();
@@ -345,21 +366,47 @@ function calc(){
     return;
   }
   var lo=fmt(cfg.evaluate(cfg.vwMin)), mid=fmt(cfg.evaluate(cfg.mid)), hi=fmt(cfg.evaluate(cfg.vwMax));
+  var devTxt=fmt(cfg.maxDev)+'px';
   var html='<p>'+clampText('generated')+'<code style="background:rgba(0,0,0,.05);padding:4px 10px;border-radius:8px;font-size:14px;">'+escH(cfg.expr)+'</code></p>'+
     '<p style="font-size:12px;color:var(--muted,#6B7280);">'+clampText('bounds')+fmt(cfg.vwMin)+'px='+lo+'px · '+clampText('mid')+fmt(cfg.mid)+'px='+mid+'px · '+fmt(cfg.vwMax)+'px='+hi+'px</p>'+
+    '<p style="font-size:12px;color:var(--muted,#6B7280);">'+clampText('deviation')+devTxt+(cfg.maxDev>0.005?(clampText('precision').replace('{d}',cfg.precision)):'')+'</p>'+
     '<p style="font-size:12px;color:var(--muted,#6B7280);">'+clampText('rule')+'</p>';
   document.getElementById('result').innerHTML=html;
   window._clamp=cfg.expr;
   window.__clampConfig=cfg;
+  updateSliderRange(cfg);
+  slide();
+}
+function updateSliderRange(cfg){
+  var slider=document.getElementById('slider'), pv=document.getElementById('previewVw');
+  if(!slider||!cfg||cfg.err) return;
+  slider.min=String(cfg.vwMin); slider.max=String(cfg.vwMax);
+  if(pv){pv.min=String(cfg.vwMin);pv.max=String(cfg.vwMax);}
+  var cur=Number(slider.value);
+  if(!isFinite(cur)) cur=cfg.mid;
+  cur=Math.min(cfg.vwMax,Math.max(cfg.vwMin,cur));
+  slider.value=String(cur);
+  if(pv) pv.value=String(cur);
+}
+function setPreviewVw(v){
+  var cfg=window.__clampConfig;
+  if(!cfg||cfg.err) return;
+  var n=Number(v);
+  if(!isFinite(n)) return;
+  n=Math.min(cfg.vwMax,Math.max(cfg.vwMin,n));
+  var slider=document.getElementById('slider');
+  if(slider) slider.value=String(n);
+  var pv=document.getElementById('previewVw'); if(pv) pv.value=String(n);
   slide();
 }
 function slide(){
   var el=document.getElementById('slider');
-  var w=parseInt(el&&el.value,10); if(!isFinite(w))w=800;
+  var w=Number(el&&el.value); if(!isFinite(w))w=800;
   document.getElementById('vwNow').textContent=String(w);
+  var pvInput=document.getElementById('previewVw'); if(pvInput) pvInput.value=String(w);
   var cfg=window.__clampConfig||clampConfig();
   var pv=document.getElementById('preview');
-  if(cfg.err||!cfg.evaluate){pv.style.fontSize='';return;}
+  if(cfg.err||!cfg.evaluate){pv.style.fontSize='';pv.textContent=clampText('previewSize');return;}
   var size=fmt(cfg.evaluate(w));
   pv.style.fontSize=size+'px';
   pv.textContent=clampText('previewSize')+'('+size+'px)';

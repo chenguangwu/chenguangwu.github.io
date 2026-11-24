@@ -430,6 +430,13 @@ const CASES = [
   },
   {
     "slug": "it/css-escape",
+    "inputs": {"input": "-", "mode": "identifier"},
+    "clicks": ["esc();var e=String(document.getElementById('output').value);var bs=String.fromCharCode(92);document.getElementById('__tbProbe').textContent='CSHY '+((e.indexOf(bs+'2d')>=0||e.indexOf(bs+'00002d')>=0)?'OK':'BAD '+e);"],
+    "expect": ["CSHY OK"],
+    "ref": "IT-775 单连字符：单独的 - 不是合法 CSS 标识符，必须转义（旧实现原样输出 -，选择器无法匹配）。输出 \\2d 或 \\00002d 均可。默认输入 my.class 不命中。"
+  },
+  {
+    "slug": "it/css-escape",
     "inputs": {"input": "1abc", "mode": "identifier"},
     "clicks": ["esc();var before=String(document.getElementById('output').value||'');document.getElementById('mode').value='string';var ok=typeof __cssEscapeModeChange==='function';if(ok)__cssEscapeModeChange();var after=String(document.getElementById('output').value||'');document.getElementById('__tbProbe').textContent='CSMODE '+(ok&&before!==after?'OK':'BAD');"],
     "expect": ["CSMODE OK"],
@@ -7279,6 +7286,20 @@ const CASES = [
     ref: "IT-N293 三类非法输入依次注入；旧实现把空 min 静默回退 16、min>max 只给「首选值必须介于…」且保留旧 _clamp，三段串无法同时命中。"
   },
   {
+    slug: "it/clamp-calculator",
+    inputs: { min: "16", pref: "16.01", max: "32", vwMin: "200", vwMax: "4000" },
+    clicks: ["calc();var c=window.__clampConfig;document.getElementById('__tbProbe').textContent='CLPT '+(c&&c.expr.indexOf('0vw')<0&&c.maxDev<=0.005?'OK':'BAD '+(c&&c.expr));"],
+    expect: ["CLPT OK"],
+    ref: "IT-775 高精度：200–4000px 视口、16→16.01px 首选差，3 位系数会被舍成 0vw；修复后按断点偏差动态提高精度，表达式不含 0vw 且最大偏差 ≤0.005px。默认参数不命中。"
+  },
+  {
+    slug: "it/clamp-calculator",
+    inputs: { min: "16", pref: "24", max: "48", vwMin: "200", vwMax: "2560" },
+    clicks: ["calc();setPreviewVw('2000');var c=window.__clampConfig;var pv=parseFloat(document.getElementById('preview').style.fontSize);document.getElementById('__tbProbe').textContent='CLPS '+document.getElementById('slider').min+'/'+document.getElementById('slider').max+' '+document.getElementById('vwNow').textContent+' '+pv;"],
+    expect: ["CLPS 200/2560 2000"],
+    ref: "IT-775 滑块范围：合法最小/最大视口必须同步到 range 与直输框；直输 2000px 后预览字号取同一条折线。默认 375–1440 不命中。"
+  },
+  {
     slug: "it/hypergeometric-distribution",
     inputs: { N: "50", K: "20", n: "10", k: "4" },
     expect: ["28.0059%"],
@@ -8658,18 +8679,21 @@ const CASES = [
   },
   {
     "slug": "it/box-shadow-generator",
-    "inputs": {
-      "x": "42",
-      "y": "42",
-      "blur": "42",
-      "spread": "42",
-      "color": "abc123测试",
-      "alpha": "42"
-    },
-    "expect": [
-      "-shadow: 42px 42px 42px 42px rgba(171,193,35,0.42);\n偏移 42px 42px · 模糊 42px · 扩散 42"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"x\":\"42\",\"y\":\"42\",\"blur\":\"42\",\"spread\":\"42\",\"color\":\"abc123测试\",\"alpha\":\"42\"}，输出区含「-shadow: 42px 42px 42px 42px rgba(171,19…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "inputs": { "x": "1.5", "y": "2", "blur": "0", "spread": "3" },
+    "expect": ["box-shadow: 1.5px 2px 0px 3px"],
+    "ref": "IT-775 合法值与预览一致：零模糊与小数偏移必须保留（旧实现 parseInt 截成 1px、空值 ||0 静默归零）。默认样例为 0/4/12/0，不命中。"
+  },
+  {
+    "slug": "it/box-shadow-generator",
+    "inputs": { "blur": "-1" },
+    "expect": ["模糊半径不能为负数"],
+    "ref": "IT-775 负模糊：min=0 只是浏览器提示，旧实现直接输出负模糊的无效 box-shadow；现在拒绝并清空预览/复制。默认 blur=12 合法，不命中。"
+  },
+  {
+    "slug": "it/box-shadow-generator",
+    "inputs": { "x": "" },
+    "expect": ["偏移、模糊与扩散不能为空"],
+    "ref": "IT-775 空输入：旧实现 `parseInt(...)||0` 把空 x 静默当 0；现在显式提示且不生成旧预览。默认 x=0 非空，不命中。"
   },
   {
     "slug": "it/c-string-escape",
