@@ -7980,6 +7980,20 @@ const CASES = [
     "ref": "IT-N353：文档表格承诺「键无引号 → 补双引号」，修复前无此规则（结果仍 `{probeKey:7}` 判不合法）。expect 为补好引号后的形态，输入无引号 ⇒ 非回显；修复前输出不含 `\"probeKey\"` ⇒ 必红灯。"
   },
   {
+    "slug": "it/json-repair",
+    "inputs": { "src": "{\"value\":\"Infinity and NaN\",\"NaN\":\"ok\"}" },
+    "clicks": ["calcTool();var t=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='JRSTR '+(t.indexOf('Infinity and NaN')>=0&&t.indexOf('\"NaN\"')>=0&&t.indexOf('—')<0?'OK':'BAD');"],
+    "expect": ["JRSTR OK"],
+    "ref": "合法 JSON 字符串里的 Infinity/NaN 必须原样显示；旧 escH 全局替换为破折号，复制后数据被改。默认样例不含这些词 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/json-repair",
+    "inputs": { "src": "{\"v\":NaN}" },
+    "clicks": ["calcTool();var t=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='JRINV '+((t.indexOf('无法解析')>=0&&t.indexOf('合法')<0)?'OK':'BAD '+t.slice(0,40));"],
+    "expect": ["JRINV OK"],
+    "ref": "裸 NaN 不是合法 JSON，必须报无法解析；修复不能靠把 NaN 替换成破折号伪装成合法。"
+  },
+  {
     "slug": "it/toml-to-xml",
     "inputs": { "source": "app = \"probe\"\n[srv]\nhost = \"127.0.0.1\"\nport = 5432" },
     "expect": ["&lt;app&gt;probe&lt;/app&gt;"],
@@ -10768,6 +10782,20 @@ const CASES = [
   },
   {
     "slug": "it/json-to-yaml",
+    "inputs": { "input": "[[],{}]" },
+    "clicks": ["var o=toYaml([[],{}],0),n=String.fromCharCode(10),e='- []'+n+'- {}';document.getElementById('__tbProbe').textContent='YEMPTY '+(o===e?'OK':'BAD '+JSON.stringify(o));"],
+    "expect": ["YEMPTY OK"],
+    "ref": "数组元素为空容器时必须在 `-` 后直接输出 [] / {}；旧实现把空容器递归结果另起一行且不缩进，生成无法解析的 YAML。"
+  },
+  {
+    "slug": "it/json-to-yaml",
+    "inputs": { "input": "{\"a\":[[]],\"b\":{\"c\":{}}}" },
+    "clicks": ["var o=toYaml({\"a\":[[]],\"b\":{\"c\":{}}},0),n=String.fromCharCode(10),e='a: '+n+'  - []'+n+'b: '+n+'  c: {}';document.getElementById('__tbProbe').textContent='YNEST '+(o===e?'OK':'BAD '+JSON.stringify(o));"],
+    "expect": ["YNEST OK"],
+    "ref": "多级空容器必须按层级缩进：a 的数组元素为空数组、b.c 为空对象；旧实现输出 `- \n[]`/`{}` 脱离层级，YAML 解析失败。"
+  },
+  {
+    "slug": "it/json-to-yaml",
     "inputs": { "input": "{\"a\":{\"b\":1}}" },
     "clicks": ["doMinYaml();var o=String(document.getElementById('output').textContent||'');document.getElementById('__tbProbe').textContent='YMIN '+(o.indexOf(String.fromCharCode(10)+'  b: 1')>=0?'OK':'BAD');"],
     "expect": ["YMIN OK"],
@@ -10784,6 +10812,12 @@ const CASES = [
       "} ] }\n4\n--- app"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「se } ] }\n4\n✅ 转换成功」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
+  },
+  {
+    "slug": "it/json-to-tsv",
+    "clicks": ["var bs=String.fromCharCode(92),j='[{\"a'+bs+'tb\":1,\"c'+bs+'nd\":2}]';document.getElementById('jsonInput').value=j;document.getElementById('j2tHeader').value='true';jsonToTsv();var o=document.getElementById('tsvOutput').value;var h=o.split(String.fromCharCode(10))[0];document.getElementById('__tbProbe').textContent='TSVHDR '+((h==='a b'+String.fromCharCode(9)+'c d'&&o.split(String.fromCharCode(10)).length===2)?'OK':'BAD '+JSON.stringify(o));"],
+    "expect": ["TSVHDR OK"],
+    "ref": "表头键含制表符/换行时不能破坏列结构：统一替换为空格，保持一行两列；旧实现 keys.join('\t') 让表头变三列/两行。"
   },
   {
     "slug": "it/json-to-tsv",

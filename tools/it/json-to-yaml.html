@@ -284,7 +284,14 @@ function toYaml(v, indent){
   if(typeof v !== 'object' || v === null) return yamlScalar(v);
   if(Array.isArray(v)){
     if(v.length === 0) return '[]';
-    return v.map(item => pad + '- ' + (typeof item === 'object' && item !== null ? '\n' + toYaml(item, indent + 1) : yamlScalar(item))).join('\n');
+    return v.map(item => {
+      if(typeof item === 'object' && item !== null){
+        var empty = Array.isArray(item) ? item.length === 0 : Object.keys(item).length === 0;
+        if(empty) return pad + '- ' + (Array.isArray(item) ? '[]' : '{}');
+        return pad + '-' + '\n' + toYaml(item, indent + 1);
+      }
+      return pad + '- ' + yamlScalar(item);
+    }).join('\n');
   }
   const keys = Object.keys(v);
   if(keys.length === 0) return '{}';
