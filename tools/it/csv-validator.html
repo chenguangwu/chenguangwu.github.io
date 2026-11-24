@@ -244,7 +244,7 @@ function calcTool(){function parseCSV(text,sep){
     }
     // RFC 4180：双引号仅在字段起始位置开启引用段，字段中间的 `"` 是普通字符。
     if(c==='"'){ if(cur===''){q=true;} else {cur+='"';} pending=true; }
-    else if(c===sep){endField();pending=true;}
+    else if(sep && text.substr(i,sep.length)===sep){endField();i+=sep.length-1;pending=true;}
     else if(c==='\n'||c==='\r'){
       if(c==='\r'&&text.charAt(i+1)==='\n'){i++;}
       physLine++;
@@ -259,7 +259,9 @@ function calcTool(){function parseCSV(text,sep){
   return records;
 }
 var src=document.getElementById('src').value;
-var sep=document.getElementById('sep').value||',';
+var sep=document.getElementById('sep').value;
+if(sep===''){document.getElementById('result').innerHTML='<div class="result-title">分隔符无效</div><p style="color:var(--danger);">分隔符不能为空，请填写单个字符（如 , 或 ; 或 \t）或多字符分隔符（如 ||）。</p>';return;}
+if(/[\r\n"]/.test(sep)){document.getElementById('result').innerHTML='<div class="result-title">分隔符无效</div><p style="color:var(--danger);">分隔符不能包含换行或双引号，请改用其他单/多字符组合。</p>';return;}
 var lines=parseCSV(src,sep);
 if(!lines.length){document.getElementById('result').innerHTML='<div class="result-title">提示</div><p class="muted">请粘贴 CSV。</p>';return;}
 var expect=lines[0].fields.length;

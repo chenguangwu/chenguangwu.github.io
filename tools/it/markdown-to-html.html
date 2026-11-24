@@ -310,13 +310,45 @@ function calcTool(){const md=document.getElementById('md').value||'';
      t=t.replace(/`([^`]+)`/g,function(_,c){ codes.push('<code>'+c+'</code>'); return '\x01CODE'+(codes.length-1)+'\x01'; });
      t=t.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
      t=t.replace(/\*([^*]+)\*/g,'<em>$1</em>');
-     // 图片规则必须在链接规则之前，否则 ![alt](url) 的 [alt](url) 会被链接规则先吃掉
-     t=t.replace(/!\[([^\]]*)\]\(([^)]*)\)/g,function(_,alt,url){
-       return '<img src="'+attrEsc(safeUrl(url))+'" alt="'+attrEsc(unesc(alt))+'" loading="lazy">';
-     });
-     t=t.replace(/\[([^\]]+)\]\(([^)]+)\)/g,function(_,txt,url){
-       return '<a href="'+attrEsc(safeUrl(url))+'" target="_blank" rel="noopener noreferrer">'+txt+'</a>';
-     });
+     // 链接/图片按字符扫描解析：目标地址允许成对括号（如 Function_(mathematics)）与反斜杠转义，
+     // 不能再用「匹配到第一个右括号」的正则，否则带括号的 URL 会被截断。
+     const parseLinks=function(text){
+       let out='',i=0;
+       const unescapeMd=function(x){return x.replace(/\\([\\\[\]()])/g,'$1');};
+       while(i<text.length){
+         const img=text.charAt(i)==='!'&&text.charAt(i+1)==='[';
+         if(img||text.charAt(i)==='['){
+           const start=i+(img?1:0);
+           let j=start+1,alt='',closed=false;
+           for(;j<text.length;j++){
+             const ch=text.charAt(j);
+             if(ch==='\\'&&j+1<text.length){alt+=ch+text.charAt(j+1);j++;continue;}
+             if(ch===']'){closed=true;break;}
+             alt+=ch;
+           }
+           if(closed&&j+1<text.length&&text.charAt(j+1)==='('){
+             let k=j+2,dest='',depth=1,ok=false;
+             for(;k<text.length;k++){
+               const ch=text.charAt(k);
+               if(ch==='\\'&&k+1<text.length){dest+=ch+text.charAt(k+1);k++;continue;}
+               if(ch==='(')depth++;
+               else if(ch===')'){depth--;if(depth===0){ok=true;break;}}
+               dest+=ch;
+             }
+             if(ok&&dest.trim()!==''){
+               const altRaw=unescapeMd(alt),urlRaw=unescapeMd(dest.trim());
+               out+=img
+                 ?'<img src="'+attrEsc(safeUrl(urlRaw))+'" alt="'+attrEsc(altRaw)+'" loading="lazy">'
+                 :'<a href="'+attrEsc(safeUrl(urlRaw))+'" target="_blank" rel="noopener noreferrer">'+altRaw+'</a>';
+               i=k+1;continue;
+             }
+           }
+         }
+         out+=text.charAt(i);i++;
+       }
+       return out;
+     };
+     t=parseLinks(t);
      t=t.replace(/\x01CODE(\d+)\x01/g,function(_,i){ return codes[parseInt(i,10)]||''; });
      return t;
    };

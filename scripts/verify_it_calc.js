@@ -15053,6 +15053,58 @@ const CASES = [
     clicks: ["enc()"],
     expect: ["a ≡ -9007199254740993 mod 26 = 19", "b ≡ -1 mod 26 = 25"],
     ref: "第730批：负超大整数旧取模先舍入；现 BigInt 精确归一化 a≡19、b≡25，且两值均与 26 互素/合法。默认 a=5/b=8 不命中。"
+  },
+  {
+    slug: "it/markdown-to-html",
+    inputs: { md: "[文档](https://example.com/a_(b))\n\n![图](https://example.com/i_(1).png)" },
+    clicks: ["document.getElementById('__tbProbe').textContent='MDLINK '+((document.getElementById('result').innerHTML.indexOf('https://example.com/a_(b)')>=0&&document.getElementById('result').innerHTML.indexOf('https://example.com/i_(1).png')>=0)?'OK':'BAD');"],
+    expect: ["MDLINK OK"],
+    ref: "第732批：目标地址含成对括号时，旧正则在第一个右括号处截断；现按字符扫描配对括号并保留完整 URL。默认示例不含该地址 ⇒ 不命中。"
+  },
+  {
+    slug: "it/markdown-to-html",
+    inputs: { md: "[坏链接](javascript:alert(1))" },
+    clicks: ["document.getElementById('__tbProbe').textContent='MDSAFE '+((document.getElementById('result').innerHTML.indexOf('href=\"#\"')>=0&&document.getElementById('result').innerHTML.indexOf('javascript:')<0)?'OK':'BAD');"],
+    expect: ["MDSAFE OK"],
+    ref: "第732批护栏：新的成对括号解析仍必须保留危险协议过滤，javascript: 协议退回 #。"
+  },
+  {
+    slug: "it/csv-validator",
+    inputs: { src: "a||b\n1||2||3", sep: "||" },
+    expect: ["第 2 行：列数 3（应为 2）"],
+    ref: "第732批：旧 parseCSV 逐字符比较完整分隔符，'||' 永远匹配不到，两行都算 1 列；现按完整字符串匹配并正确推进，第二行检出 3 列。默认逗号 CSV 合法 ⇒ 不命中。"
+  },
+  {
+    slug: "it/csv-validator",
+    inputs: { src: "a,b\n1,2", sep: "" },
+    expect: ["分隔符不能为空"],
+    ref: "第732批：旧实现把空分隔符静默替换成逗号，用户误以为按自己的配置校验；现前置拒绝并说明。"
+  },
+  {
+    slug: "it/basic-auth-generator",
+    inputs: { f_user: "admin", f_pass: "" },
+    clicks: ["document.getElementById('f_allowEmptyPass').checked=true;generate()"],
+    expect: ["YWRtaW46"],
+    ref: "第732批：admin + 空密码 ⇒ Base64('admin:')=YWRtaW46；旧实现 !pass 直接拒绝。默认密码 secret ⇒ 令牌不含该串。"
+  },
+  {
+    slug: "it/basic-auth-generator",
+    inputs: { f_user: "admin", f_pass: "" },
+    clicks: ["document.getElementById('f_allowEmptyPass').checked=false;generate()"],
+    expect: ["请填写用户名和密码后再生成"],
+    ref: "第732批护栏：未勾选「使用空密码」时仍须区分「尚未填写」与「有意空密码」，保持原提示。"
+  },
+  {
+    slug: "it/binomial-distribution",
+    inputs: { n: "100", p: "0.5", k: "100" },
+    expect: ["7.88860905e-31"],
+    ref: "第732批：P(X≥100)=2^-100=7.888609052e-31；旧实现 1−CDF(99) 在双精度下相消为 0。默认 n=10/k=3 ⇒ 不命中。"
+  },
+  {
+    slug: "it/hypothesis-test",
+    inputs: { mean: "110", mu0: "100", sigma: "10", n: "100", alpha: "0.05", tail: "left" },
+    expect: ["观测效应与所选单尾备择方向相反"],
+    ref: "第732批：左尾检验却观测到 +10 的正向效应，旧实现只用 |diff|≥MDE 就称「设计足以分辨」；现保留方向，明确当前检验不能据此支持该方向。默认双侧 ⇒ 不命中。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

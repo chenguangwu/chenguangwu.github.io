@@ -144,6 +144,7 @@
     <div class="input-row">
       <div><label for="f_user">用户名</label><input type="text" id="f_user" placeholder="admin" value="admin" oninput="generate()"></div>
       <div><label for="f_pass">密码</label><input type="password" id="f_pass" placeholder="••••••" value="secret" oninput="generate()"></div>
+      <div><label for="f_allowEmptyPass"><input type="checkbox" id="f_allowEmptyPass" onchange="generate()"> 使用空密码（生成 user: 凭据）</label></div>
     </div>
     <div class="result-box" id="result"></div> <div id="basic_auth_generatorTable"></div> <div id="basic_auth_generatorDiff"></div> <div id="basic_auth_generatorChart"></div> <div id="basic_auth_generatorHist"></div>
     <div style="display:flex;flex-direction:column;gap:10px;">
@@ -296,10 +297,11 @@ function copyField(id){var el=document.getElementById(id);var v=el.value.trim();
 function generate(){
   var user=document.getElementById('f_user').value;
   var pass=document.getElementById('f_pass').value;
+  var allowEmptyPass=!!document.getElementById('f_allowEmptyPass').checked;
   var out=document.getElementById('result');
   var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var clear=function(){['headerOut','urlOut','tokenOut'].forEach(function(id){document.getElementById(id).value='';});};
-  if(!user||!pass){clear();out.innerHTML='<p style="color:var(--danger)">⚠ '+(en?'Enter a username and password before generating.':'请填写用户名和密码后再生成。')+'</p>';return;}
+  if(!user||(!pass&&!allowEmptyPass)){clear();out.innerHTML='<p style="color:var(--danger)">⚠ '+(en?'Enter a username and password before generating.':'请填写用户名和密码后再生成。')+'</p>';return;}
   // IT-N208：RFC 7617 规定 user-id 不得含冒号，否则服务端按首个冒号切分导致认证错位
   if(user.indexOf(':')>=0){
     clear();
@@ -311,6 +313,9 @@ function generate(){
   document.getElementById('urlOut').value='https://'+encodeURIComponent(user)+':'+encodeURIComponent(pass)+'@example.com/';
   document.getElementById('tokenOut').value=token;
   var html='<p>✅ '+(en?'Basic credentials generated (token ':'已生成 Basic 认证信息（令牌 ')+token.length+(en?' characters)':' 字符）')+'</p>';
+  if(!pass){
+    html+='<p style="color:var(--warning,#92400E);font-size:12px;">'+(en?'Empty password is used intentionally; the server may still reject this credential.':'已按你的选择使用空密码（user:）；部分服务端仍会拒绝该凭据。')+'</p>';
+  }
   // IT-N209：非 ASCII 凭据按 UTF-8 编码，服务端须按 UTF-8 解码（RFC 7617 charset 参数）
   if(/[^\x00-\x7F]/.test(user+pass)){
     html+='<p style="color:var(--warning,#92400E);font-size:12px;">'+(en?'Non-ASCII credentials are UTF-8 encoded; the server must decode them as UTF-8 (RFC 7617 charset).':'含非 ASCII 字符时凭据按 UTF-8 编码，服务端须按 UTF-8 解码（RFC 7617 charset 参数）。')+'</p>';
