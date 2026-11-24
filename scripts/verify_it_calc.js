@@ -3723,7 +3723,7 @@ const CASES = [
     // IT-E3 空态：清空输入后不得只留效率工具栏的空结果。
     inputs: { input: "" },
     clicks: ["toCSV()"],
-    expect: ["请输入非空 JSON 数组"],
+    expect: ["请输入非空 JSON 对象数组"],
     ref: "空态口径：输入为空 ⇒ 结果区提示；修复前空分支 `out.innerHTML=''`，既不报错也无提示，结果区只剩效率工具栏的「0 个参数」。默认示例已预填 JSON，不命中。",
   },
   {
@@ -3731,7 +3731,7 @@ const CASES = [
     // IT-N6 回归：非空但长度为 0 的数组 [] 不得保留上一次的有效 CSV。
     inputs: { input: "[]" },
     clicks: ["toCSV()"],
-    expect: ["请输入非空 JSON 数组"],
+    expect: ["请输入非空 JSON 对象数组"],
     ref: "独立复算：输入 []（非空字符串、但 parsed 数组 length=0）⇒ 走 !data.length 分支，结果区提示且 output.value/__jsonToCsvExportSafe 必须被清空（修复前此分支不清空，旧 CSV 残留在 output 与导出串，复制/下载会误读旧数据）。默认样例是有效 JSON，不命中。",
   },
   {
@@ -8716,18 +8716,11 @@ const CASES = [
   {
     "slug": "it/csv-to-json",
     "inputs": {
-      "customDelimiter": "abc123测试",
-      "csvInput": "1\n2\n3",
-      "jsonOutput": "1\n2\n3",
-      "jsonInput": "1\n2\n3",
-      "csvOutput": "1\n2\n3",
-      "csvDelimiter": "\\t",
-      "outDelimiter": "\\t"
+      "jsonInput": "[{\"a\":1,\"b\":\"x\"}]"
     },
-    "expect": [
-      " column1 1 1 2 2 3 3\n3\n1\n是"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"customDelimiter\":\"abc123测试\",\"csvInput\":\"1\\n2\\n3\",\"jsonOutput\":\"1\\n2\\n3\",\"jsonInput\":\"1\\n2\\n3\",\"csvOutput\":\"1\\n2\\n3\",\"csvDelimiter\":\"\\\\t\",\"outDelimiter\":\"\\\\t\"}，输出区含「 column1 1 1 2 2 3 3\n3\n1\n是」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "clicks": ["jsonToCsv(); var __old=csvExportSafe; document.getElementById('jsonInput').value='[oops]'; jsonToCsv(); document.getElementById('__tbProbe').textContent='XTRA '+((__old&&document.getElementById('csvOutput').value===''&&csvExportSafe==='')?'OK':'BAD');"],
+    "expect": ["XTRA OK"],
+    "ref": "第721批：先成功转换生成 CSV，再输入非法 JSON 转换。失败分支必须清空 #csvOutput 与 csvExportSafe，复制/下载不得再取旧结果。探针串只在「旧结果曾存在且失败后被清空」时出现 ⇒ 旧实现 csvExportSafe 残留、探针 BAD。"
   },
   {
     "slug": "it/cuid-generator",

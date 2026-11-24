@@ -377,6 +377,25 @@ const MAX_HISTORY = 20;
 
 let currentData = { headers: [], rows: [] };
 let csvExportSafe = '';
+function clearJsonCsvResult(){
+  csvExportSafe = '';
+  const out = document.getElementById('csvOutput');
+  if (out) out.value = '';
+  currentData = { headers: [], rows: [] };
+  const table = document.getElementById('previewTable');
+  if (table) table.innerHTML = '<p style="padding:40px;text-align:center;color:var(--text-muted);">' + (__csvLangEn() ? 'No data yet — please convert first.' : '暂无数据，请先进行转换') + '</p>';
+  const rowsEl = document.getElementById('previewRows');
+  if (rowsEl) rowsEl.textContent = '0';
+  const colsEl = document.getElementById('previewCols');
+  if (colsEl) colsEl.textContent = '0';
+  const headEl = document.getElementById('previewHeader');
+  if (headEl) headEl.textContent = __csvLangEn() ? 'No' : '否';
+}
+document.getElementById('jsonInput').addEventListener('input', clearJsonCsvResult);
+['outDelimiter','outQuote','outHeader','quoteAll'].forEach(function(id){
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', clearJsonCsvResult);
+});
 
 document.getElementById('csvDelimiter').addEventListener('change', function() {
   document.getElementById('customDelimWrap').style.display = this.value === 'custom' ? 'block' : 'none';
@@ -544,6 +563,7 @@ function __csvLangEn() {
 function jsonToCsv() {
   const jsonText = document.getElementById('jsonInput').value;
   if (!jsonText.trim()) {
+    clearJsonCsvResult();
     ToolBox.showToast(i18nText('toast.msg749'), 'warning');
     return;
   }
@@ -610,6 +630,7 @@ function jsonToCsv() {
     addToHistory('json2csv', jsonText.substring(0, 100), rows.length);
     ToolBox.showToast(__csvLangEn() ? `Converted: ${rows.length} rows` : `转换成功：${rows.length} 行数据`);
   } catch(e) {
+    clearJsonCsvResult();
     ToolBox.showToast('JSON 解析失败：' + e.message, 'error');
   }
 }
@@ -681,8 +702,7 @@ function clearCsv() {
 
 function clearJson() {
   document.getElementById('jsonInput').value = '';
-  document.getElementById('csvOutput').value = '';
-  csvExportSafe = '';
+  clearJsonCsvResult();
 }
 
 function loadSampleCsv() {
