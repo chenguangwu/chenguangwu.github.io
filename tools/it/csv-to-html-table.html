@@ -294,20 +294,21 @@ Carol,31,Shenzhen</textarea>
 <script>
 function parseCSV(text,sep){
   text=(text||'').replace(/^\uFEFF/,'');
-  var rows=[];var row=[];var field='';var inQ=false;
+  var rows=[];var row=[];var field='';var inQ=false;var line=1;var quoteStartLine=0;
   for(var i=0;i<text.length;i++){
     var c=text.charAt(i);
     if(inQ){
       if(c==='"'){ if(text.charAt(i+1)==='"'){field+='"';i++;} else {inQ=false;} }
-      else field+=c;
+      else { if(c==='\n') line++; field+=c; }
     }else{
       // RFC 4180：双引号只有出现在字段起始位置时才开启引用段；字段中间的 `"` 是普通字符。
-      if(c==='"'){ if(field===''){inQ=true;} else {field+='"';} }
+      if(c==='"'){ if(field===''){inQ=true;quoteStartLine=line;} else {field+='"';} }
       else if(c===sep){row.push(field);field='';}
-      else if(c==='\n'){row.push(field);rows.push(row);row=[];field='';}
+      else if(c==='\n'){row.push(field);rows.push(row);row=[];field='';line++;}
       else if(c!=='\r'){field+=c;}
     }
   }
+  if(inQ) throw new Error((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search) ? 'Unclosed quote starting at line '+quoteStartLine+'; check that the quoted field closes with a matching quote' : '第 '+quoteStartLine+' 行有未闭合的引号；请检查该字段的引号是否成对');
   if(field!==''||row.length){row.push(field);rows.push(row);}
   return rows.filter(function(r){return r.length>1||(r.length===1&&r[0].trim()!=='');});
 }
@@ -323,7 +324,14 @@ function calcTool(){
   }
   var sep=document.getElementById('sepSel').value;
   var header=document.getElementById('withHeader').checked;
-  var rows=parseCSV(raw,sep);
+  var rows;
+  try{ rows=parseCSV(raw,sep); }catch(e){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    document.getElementById('htmlOut').value='';
+    document.getElementById('result').innerHTML='';
+    document.getElementById('previewBox').innerHTML='<p class="tip-box tip-danger">⚠ '+escH(e.message)+'</p>';
+    return;
+  }
   if(!rows.length){document.getElementById('htmlOut').value=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<!-- Empty data -->":"<!-- 空数据 -->");document.getElementById('previewBox').innerHTML='<p class="tip-mini" style="color:var(--text-muted);">未解析到有效数据。</p>';return;}
   var h='';
   var dataStart=0;

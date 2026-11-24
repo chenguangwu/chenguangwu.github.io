@@ -404,11 +404,14 @@ function parseCSV(text, delimiter, quoteChar, hasHeader, trim) {
   let currentField = '';
   let inQuotes = false;
   let i = 0;
+  let line = 1;
+  let quoteStartLine = 0;
   
   while (i < text.length) {
     const ch = text[i];
     
     if (inQuotes) {
+      if (ch === '\n') { line++; currentField += ch; i++; continue; }
       if (ch === quoteChar) {
         if (text[i + 1] === quoteChar) {
           currentField += quoteChar;
@@ -428,6 +431,7 @@ function parseCSV(text, delimiter, quoteChar, hasHeader, trim) {
     
     if (ch === quoteChar && quoteChar && currentField === '') {
       inQuotes = true;
+      quoteStartLine = line;
       i++;
       continue;
     }
@@ -444,6 +448,7 @@ function parseCSV(text, delimiter, quoteChar, hasHeader, trim) {
       rows.push(currentRow);
       currentRow = [];
       currentField = '';
+      line++;
       i++;
       continue;
     }
@@ -457,6 +462,9 @@ function parseCSV(text, delimiter, quoteChar, hasHeader, trim) {
     i++;
   }
   
+  if (inQuotes) {
+    throw new Error(__csvLangEn() ? `Unclosed quote starting at line ${quoteStartLine}; check that the quoted field closes with a matching quote` : `第 ${quoteStartLine} 行有未闭合的引号；请检查该字段的引号是否成对`);
+  }
   if (currentField !== '' || currentRow.length > 0) {
     currentRow.push(trim ? currentField.trim() : currentField);
     rows.push(currentRow);
@@ -522,8 +530,9 @@ function csvToJson() {
     currentData = null;
     const out = document.getElementById('jsonOutput');
     out.value = '';
-    out.placeholder = '转换失败：' + e.message;
-    ToolBox.showToast('转换失败：' + e.message, 'error');
+    const errPrefix = __csvLangEn() ? 'Conversion failed: ' : '转换失败：';
+    out.placeholder = errPrefix + e.message;
+    ToolBox.showToast(errPrefix + e.message, 'error');
   }
 }
 

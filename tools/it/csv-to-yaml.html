@@ -238,25 +238,27 @@ function yamlKey(k){
 // RFC 4180：整段扫描（引号内允许逗号与换行），双引号为字段起始才进入引用段，`""` 表示一个字面双引号。
 function parseCsvRows(text){
   text=(text||'').replace(/^\uFEFF/,'');
-  var rows=[],row=[],field='',inQ=false;
+  var rows=[],row=[],field='',inQ=false,line=1,quoteStartLine=0;
   for(var i=0;i<text.length;i++){
     var c=text.charAt(i);
     if(inQ){
       if(c==='"'){ if(text.charAt(i+1)==='"'){field+='"';i++;} else inQ=false; }
-      else field+=c;
+      else { if(c==='\n') line++; field+=c; }
     }else{
-      if(c==='"'){ if(field===''){inQ=true;} else field+='"'; }
+      if(c==='"'){ if(field===''){inQ=true;quoteStartLine=line;} else field+='"'; }
       else if(c===','){ row.push(field); field=''; }
-      else if(c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if(c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; line++; }
       else if(c!=='\r'){ field+=c; }
     }
   }
+  if(inQ) throw new Error((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search) ? 'Unclosed quote starting at line '+quoteStartLine+'; check that the quoted field closes with a matching quote' : '第 '+quoteStartLine+' 行有未闭合的引号；请检查该字段的引号是否成对');
   if(field!==''||row.length){ row.push(field); rows.push(row); }
   return rows.filter(function(r){ return r.length>1||(r.length===1&&r[0].trim()!==''); });
 }
 function calcTool(){var raw=document.getElementById('csv').value||'';
 if(!raw.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 CSV 文本</p>'; return; }
-var rows=parseCsvRows(raw);
+var rows;
+try{ rows=parseCsvRows(raw); }catch(e){ document.getElementById('result').innerHTML='<p class="tip-box tip-danger">⚠ '+escH(e.message)+'</p>'; return; }
 var nohead=document.getElementById('top_1') ? document.getElementById('top_1').checked : false;
 var yaml='';
 if(nohead){
