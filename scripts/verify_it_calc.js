@@ -1577,8 +1577,8 @@ const CASES = [
   {
     slug: "it/adfgvx-cipher",
     clicks: ["var k=document.getElementById('key');k.value='KEY';renderGrid();document.getElementById('__tbProbe').textContent='ADKEY '+document.getElementById('keyStatus').textContent;"],
-    expect: ["ADKEY 已回退默认方阵（当前 3/36 字符，需 36 个不重复的 0-9A-Z）"],
-    ref: "IT-N145：key 长度不足 36 时 getGrid() 静默回退，页面必须显式提示当前字符数与要求，不能让用户误以为 KEY 已生效。旧实现无 #keyStatus ⇒ 探针串不落。",
+    expect: ["ADKEY 自定义方阵须恰好包含 A–Z 与 0–9 各一次", "长度 3/36"],
+    ref: "第759批修订 IT-N145：长度不足不再提示「已回退默认方阵」，而是直接报自定义方阵非法并列出长度/缺失/重复；加解密同时阻止。旧断言「已回退」正是本批要消除的静默回退语义。",
   },
   {
     slug: "it/binomial-distribution",
@@ -4612,8 +4612,8 @@ const CASES = [
     slug: "it/a1z26-cipher",
     inputs: { input: "42!" },
     clicks: ["enc();document.getElementById('__tbProbe').textContent='N282 '+document.getElementById('output').value;"],
-    expect: ["N282 42!"],
-    ref: "IT-N282：非字母（数字/标点）须原样保留、不静默丢弃，也不产生空词分隔符。修复前 enc 对非字母 return '' 后 filter ⇒ 输出空串；现按连续非字母段整体保留（42! → 42!，与 `hello 42!` ⇒ `8-5-12-12-15/42!` 同口径）。默认样例为字母词，不命中。",
+    expect: ["N282 ~34-~32-~21"],
+    ref: "第759批修订 IT-N282：为保证可逆，非字母不再裸写，改为 ~加十六进制码点：4→~34、!→~21，42! ⇒ ~34-~32-~21。旧口径 42! 原样保留会被解码成 4→?、2→?、!→? 而无法还原，已废弃。",
   },
   {
     slug: "it/a1z26-cipher",
@@ -7851,16 +7851,10 @@ const CASES = [
   },
   {
     "slug": "it/a1z26-cipher",
-    "inputs": {
-      "input": "1\n2\n3",
-      "output": "1\n2\n3",
-      "sep": " ",
-      "wordSep": "  "
-    },
-    "expect": [
-      "1 2 3\nA B C"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"sep\":\" \",\"wordSep\":\"  \"}，输出区含「1 2 3\nA B C」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "inputs": { "input": "1 2 3", "sep": " " },
+    "clicks": ["document.getElementById('wordSep').value='  ';dec();document.getElementById('__tbProbe').textContent='A1Z759D '+document.getElementById('output').value;"],
+    "expect": ["A1Z759D ABC"],
+    "ref": "第759批：双空格词分隔下整串视为一个词，内部单空格是字母分隔，1 2 3 应解码为 A B C；修复前按 \s+ 也把单空格当词边界，结果相同但双空格场景被拆散，现精确切分。"
   },
   {
     "slug": "it/affine-cipher",
@@ -7874,19 +7868,6 @@ const CASES = [
       "✗ a 必须与 26 互素（可取值：1,3,5,7,9,11,15,17,19,21,23,25）\n1 2 3\n1 2 3"
     ],
     "ref": "自动补强（B类零用例）·2026-11-12 随 IT-N146~N148 同步：注入 a=42/b=42/input=1\n2\n3。42%26=16 与 26 不互素，统一 readParams 校验后映射表提前返回红字提示（不再先输出矩阵）；默认态不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "it/adfgvx-cipher",
-    "inputs": {
-      "key": "abc123测试",
-      "transKey": "abc123测试",
-      "input": "1\n2\n3",
-      "output": "1\n2\n3"
-    },
-    "expect": [
-      " U V X Y\nabc123测试\n1 2 3\nG A V A F D X X"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"transKey\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「 U V X Y\nabc123测试\n1 2 3\nG A V A F D X X」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/area-code-lookup",
@@ -16177,6 +16158,57 @@ const CASES = [
     clicks: ["document.getElementById('__tbProbe').textContent='WIFI758 '+decode('WIFI:T:WPA;S:Cafe%20WiFi;P:abc%21;;');"],
     expect: ["WIFI758", "Cafe%20WiFi", "abc%21"],
     ref: "第758批：WiFi 字段百分号是 SSID/密码字面字符，不能 URL 解码；修复前显示 Cafe WiFi / abc!，配网凭据被改写。",
+  },
+
+  // ── 第759批 ──
+  {
+    slug: "it/a1z26-cipher",
+    inputs: { input: "A1", sep: "-", wordSep: "/" },
+    clicks: ["enc();var e=document.getElementById('output').value;document.getElementById('input').value=e;dec();document.getElementById('__tbProbe').textContent='A1Z759 '+e+' => '+document.getElementById('output').value;"],
+    expect: ["A1Z759 1-~31 => A1"],
+    ref: "第759批：原文数字 1 必须转义为 ~31，不能与字母 A 的 1 连成 11（解码成 K）；往返应还原 A1。",
+  },
+  {
+    slug: "it/a1z26-cipher",
+    inputs: { input: "APPLE BANANA", sep: " " },
+    clicks: ["document.getElementById('wordSep').value='  ';enc();var e=document.getElementById('output').value;document.getElementById('input').value=e;dec();document.getElementById('__tbProbe').textContent='A1Z759B '+e+' => '+document.getElementById('output').value;"],
+    expect: ["A1Z759B 1 16 16 12 5", "2 1 14 1 14 1 => APPLE BANANA"],
+    ref: "第759批：双空格词分隔不能再按 \\s+ 切分；修复前单空格也被当词边界，解码成 A P P L E B A N A N A。",
+  },
+  {
+    slug: "it/a1z26-cipher",
+    inputs: { input: "éß", sep: "-", wordSep: "/" },
+    clicks: ["enc();var e=document.getElementById('output').value;document.getElementById('input').value=e;dec();document.getElementById('__tbProbe').textContent='A1Z759C '+e+' => '+document.getElementById('output').value;"],
+    expect: ["A1Z759C ~E9-~DF => éß"],
+    ref: "第759批：不得 toUpperCase+NFD 把 é 变 E、ß 变 SS；改为非 ASCII 按码点转义，往返保留原文。",
+  },
+  {
+    slug: "it/adfgvx-cipher",
+    inputs: { key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", transKey: "CIPHER", input: "ATTACKATDAWN" },
+    clicks: ["enc();document.getElementById('__tbProbe').textContent='ADF759 '+document.getElementById('output').value+'|'+document.getElementById('keyStatus').textContent;"],
+    expect: ["ADF759 |", "重复", "A×36"],
+    ref: "第759批：36 个 A 的方阵必须拒绝并列出重复，不能静默接受后让其他字符找不到而丢字；输出应清空。",
+  },
+  {
+    slug: "it/adfgvx-cipher",
+    inputs: { transKey: "CIPHER", input: "ATTACKATDAWN" },
+    clicks: ["enc();var e=document.getElementById('output').value;document.getElementById('input').value=e;dec();document.getElementById('__tbProbe').textContent='ADF759B '+document.getElementById('output').value+'|'+document.getElementById('decNote').textContent;"],
+    expect: ["ADF759B ATTACKATDAWN|"],
+    ref: "第759批：合法默认方阵与 ~P 标记往返仍应还原 ATTACKATDAWN，且无旧密文提示。",
+  },
+  {
+    slug: "it/adfgvx-cipher",
+    inputs: { transKey: "CIPHER", input: "AAAAAZ AAAAAZ AAAAAZ AAAAAZ AAAAAZ AAAAAZ~P0" },
+    clicks: ["dec();document.getElementById('__tbProbe').textContent='ADF759C '+document.getElementById('output').value+'|'+document.getElementById('decNote').textContent;"],
+    expect: ["ADF759C |", "非法字符"],
+    ref: "第759批：Z 不在 ADFGVX 字符集内，必须拒绝并指出列/字符；不能跳过 Z 后输出看似成功的结果。",
+  },
+  {
+    slug: "it/adfgvx-cipher",
+    inputs: { transKey: "CIPHER", input: "AAAAAA AAAAAA AAAAAA AAAAAA AAAAAA AAAAAA~P9" },
+    clicks: ["dec();document.getElementById('__tbProbe').textContent='ADF759D '+document.getElementById('output').value+'|'+document.getElementById('decNote').textContent;"],
+    expect: ["ADF759D |", "~P 补位数字非法"],
+    ref: "第759批：补位数 9 大于等于列数 6，必须判非法并清空结果，不能把有效密文截空。",
   },
 
 ];

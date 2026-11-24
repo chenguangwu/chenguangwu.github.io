@@ -139,6 +139,7 @@
     <li><b>方阵</b>：6×6 格填入 26 字母 + 10 数字，行列均以 A D F G V X 标记。</li>
     <li><b>代换</b>：每个明文字符映射为「行标+列标」，如 A 在第 1 行第 1 列即 <code>AD</code>。</li>
     <li><b>置换</b>：代换结果按行写入宽度为密钥长度的表格，按密钥字母序重排列，再按列读出密文。</li>
+    <li><b>校验</b>：自定义方阵须恰好包含 A–Z 与 0–9 各一次，非法时列出缺失/重复并阻止加解密，不再静默回退默认方阵；密文只接受 ADFGVX 字符、等长列与合法 ~P 补位标记，非法时清空结果并说明原因。</li>
     <li><b>安全性</b>：属古典密码，可用重合指数配合列置换分析破译，仅作教学用途。</li>
   </ul>
 </div>
@@ -162,7 +163,9 @@
     <textarea id="input" placeholder="输入要加密的明文或要解密的密文...">ATTACKATDAWN</textarea>
 
     <label style="margin-top:16px;" for="output">输出结果</label>
-    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea> <div id="adfgvx_cipherTable"></div> <div id="adfgvx_cipherDiff"></div> <div id="adfgvx_cipherChart"></div> <div id="adfgvx_cipherHist"></div>
+    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea>
+    <div id="decNote" style="font-size:12.5px;margin-top:8px;color:var(--text-muted);"></div>
+    <div id="adfgvx_cipherTable"></div> <div id="adfgvx_cipherDiff"></div> <div id="adfgvx_cipherChart"></div> <div id="adfgvx_cipherHist"></div>
   </div>
 
   <div class="card">
@@ -239,10 +242,30 @@
 const HEADER = 'ADFGVX';
 const DEFAULT_KEY = 'NA1C3H8TB2OME5WRPD4F6G7I9J0KLMQSUVXYZ';
 
+const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+function checkGrid(){
+  const raw = document.getElementById('key').value.toUpperCase().replace(/[^0-9A-Z]/g,'');
+  if(raw === '') return {ok:true,isDefault:true,grid:DEFAULT_KEY,missing:[],dups:[]};
+  const seen = {}, missing = [], dups = [];
+  for(const ch of ALPHABET){ if(raw.indexOf(ch) < 0) missing.push(ch); }
+  for(const ch of raw){ seen[ch] = (seen[ch]||0)+1; }
+  for(const ch in seen){ if(seen[ch] > 1) dups.push(ch+'×'+seen[ch]); }
+  if(raw.length !== 36 || missing.length || dups.length){
+    return {ok:false,isDefault:false,grid:DEFAULT_KEY,missing,dups,raw:raw};
+  }
+  return {ok:true,isDefault:false,grid:raw,missing:[],dups:[]};
+}
 function getGrid(){
-  const k = document.getElementById('key').value.toUpperCase().replace(/[^0-9A-Z]/g,'');
-  if(k.length === 36) return k;
-  return DEFAULT_KEY;
+  const c = checkGrid();
+  return c.ok ? c.grid : DEFAULT_KEY;
+}
+function gridErrorText(c){
+  const en = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  const parts=[];
+  if(c.raw!==undefined && c.raw.length !== 36) parts.push(en?('length '+c.raw.length+'/36'):('长度 '+c.raw.length+'/36'));
+  if(c.dups.length) parts.push((en?'duplicates: ':'重复：')+c.dups.join(', '));
+  if(c.missing.length) parts.push((en?'missing: ':'缺失：')+c.missing.join(', '));
+  return (en?'Custom grid must contain A–Z and 0–9 exactly once. ':'自定义方阵须恰好包含 A–Z 与 0–9 各一次。')+parts.join(en?'; ':'；');
 }
 
 function findInGrid(grid, ch){
@@ -264,7 +287,9 @@ function getTransOrder(key){
 function enc(){
   const text = document.getElementById('input').value.toUpperCase().replace(/[^0-9A-Z]/g,'');
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter text to encrypt":"请输入要加密的文本"));
-  const grid = getGrid();
+  const gc = checkGrid();
+  if(!gc.ok){ document.getElementById('output').value=''; renderGrid(); return alert(gridErrorText(gc)); }
+  const grid = gc.grid;
   const transKey = document.getElementById('transKey').value;
   if(!transKey) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter the permutation key":"请输入置换密钥"));
   let intermediate = '';
@@ -294,21 +319,41 @@ function enc(){
   document.getElementById('output').value = out.trim() + '~P' + padCount;
 }
 
+function decFail(msg){
+  document.getElementById('output').value = '';
+  const note = document.getElementById('decNote');
+  if(note){ note.textContent = '⚠ ' + msg; note.style.color = 'var(--danger,#B91C1C)'; }
+  return alert(msg);
+}
 function dec(){
   let text = document.getElementById('input').value.trim();
-  if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter ciphertext to decrypt":"请输入要解密的密文"));
+  const en = (typeof TBKit!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  if(!text) return decFail(en?'Enter ciphertext to decrypt':'请输入要解密的密文');
+  const gc = checkGrid();
+  if(!gc.ok) return decFail(gridErrorText(gc));
   // IT-N144: 分离并解析 ~P<n> 补位标记（兼容无标记的旧密文，padCount 默认 0）
-  let padCount = 0;
+  let padCount = 0, hasPad = false;
   const pm = text.match(/~P(\d+)\s*$/);
-  if(pm){ padCount = parseInt(pm[1], 10) || 0; text = text.replace(/~P\d+\s*$/, '').trim(); }
+  if(pm){ hasPad = true; padCount = parseInt(pm[1], 10) || 0; text = text.replace(/~P\d+\s*$/, '').trim(); }
   const transKey = document.getElementById('transKey').value;
-  if(!transKey) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter the permutation key":"请输入置换密钥"));
-  const grid = getGrid();
-  const cols = text.split(/\s+/);
+  if(!transKey) return decFail(en?'Enter the permutation key':'请输入置换密钥');
+  const grid = gc.grid;
+  const cols = text.split(/\s+/).filter(Boolean);
   const numCols = transKey.length;
-  if(cols.length !== numCols) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Ciphertext columns do not match permutation key length":"密文列数与置换密钥长度不匹配"));
+  if(cols.length !== numCols) return decFail(en?'Ciphertext columns do not match permutation key length':'密文列数与置换密钥长度不匹配');
+  for(const col of cols){
+    for(let i=0;i<col.length;i++){
+      if(HEADER.indexOf(col[i]) < 0) return decFail((en?'Invalid ciphertext character at column ':'密文含非法字符，列 ')+(cols.indexOf(col)+1)+': '+col[i]);
+    }
+  }
+  const lens = cols.map(c=>c.length);
+  const maxLen = Math.max(...lens), minLen = Math.min(...lens);
+  if(maxLen !== minLen) return decFail(en?'Ciphertext columns have unequal lengths':'密文各列长度不一致');
+  const total = maxLen * numCols;
+  if(hasPad && (padCount >= numCols || padCount > total)) return decFail(en?'Invalid ~P padding count':'~P 补位数字非法（须小于列数且不超过总字符数）');
+  if(hasPad && (total - padCount) % 2 !== 0) return decFail(en?'Padded ciphertext length is not even':'扣除补位后密文长度不是偶数，无法按两字符一组解密');
+  if(!hasPad && total % 2 !== 0) return decFail(en?'Ciphertext length is not even (missing ~P marker?)':'密文总长度为奇数（缺少 ~P 补位标记？）');
   const order = getTransOrder(transKey);
-  const maxLen = Math.max(...cols.map(c => c.length));
   let matrix = Array.from({length: maxLen}, () => new Array(numCols).fill(''));
   for(let i = 0; i < cols.length; i++){
     const targetCol = order.indexOf(i);
@@ -329,9 +374,11 @@ function dec(){
   for(let i = 0; i + 1 < intermediate.length; i += 2){
     const r = HEADER.indexOf(intermediate[i]);
     const c = HEADER.indexOf(intermediate[i+1]);
-    if(r === -1 || c === -1) continue;
+    if(r === -1 || c === -1) return decFail(en?'Decoded stream contains invalid ADFGVX pair':'解码流含非法 ADFGVX 字符对');
     out += grid[r * 6 + c];
   }
+  const note = document.getElementById('decNote');
+  if(note){ note.textContent = hasPad ? '' : (en?'Legacy ciphertext without ~P marker: padding was not stripped.':'旧密文无 ~P 标记：未剥离补位字符，末尾可能出现填充字符。'); note.style.color = 'var(--text-muted)'; }
   document.getElementById('output').value = out;
 }
 
@@ -340,12 +387,11 @@ function renderGrid(){
   var keyStat = document.getElementById('keyStatus');
   if(keyStat){
     var en = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
-    var k = document.getElementById('key').value.toUpperCase().replace(/[^0-9A-Z]/g,'');
-    var ok = k.length === 36;
-    keyStat.textContent = en
-      ? (ok ? '36/36 characters — custom grid active' : 'Using default grid (' + k.length + '/36 characters; 36 required)')
-      : (ok ? '36/36 字符，自定义方阵已生效' : '已回退默认方阵（当前 ' + k.length + '/36 字符，需 36 个不重复的 0-9A-Z）');
-    keyStat.style.color = ok ? 'var(--accent,#1D4ED8)' : 'var(--danger,#B91C1C)';
+    var gc = checkGrid();
+    keyStat.textContent = gc.ok
+      ? (gc.isDefault ? (en?'Default grid (no custom key entered)':'默认方阵（未填写自定义密钥）') : (en?'36/36 unique — custom grid active':'36/36 且不重复，自定义方阵已生效'))
+      : gridErrorText(gc);
+    keyStat.style.color = gc.ok ? (gc.isDefault ? 'var(--text-muted)' : 'var(--accent,#1D4ED8)') : 'var(--danger,#B91C1C)';
   }
   const grid = getGrid();
   let html = '<table><thead><tr><th></th>';
