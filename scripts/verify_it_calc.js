@@ -2133,11 +2133,58 @@ const CASES = [
   },
   {
     slug: "it/sql-formatter",
+    inputs: { input: "select * from t where a>=1 and b<>2 order by id desc" },
+    clicks: ["formatSql();var t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='SQLOP '+((t.indexOf('a >= 1')>=0&&t.indexOf('b <> 2')>=0&&t.indexOf('\\nORDER BY\\n')>=0)?'OK':'BAD '+t);"],
+    expect: ["SQLOP OK"],
+    ref: "多字符比较符必须整体保留（>= / <> 不能拆成 > =）、ORDER BY 必须识别为双词子句并单独换行；旧实现逐字符输出且多词子句被空白 token 挡住。"
+  },
+  {
+    slug: "it/sql-formatter",
+    clicks: ["document.getElementById('__tbProbe').textContent='SQLLEX '+((sqlLexError(\"select 'x\",'standard')==='string'&&sqlLexError('select /* x','standard')==='block comment'&&sqlLexError('select `x','mysql')==='backtick identifier'&&sqlLexError('select 1','standard')==='')?'OK':'BAD');"],
+    expect: ["SQLLEX OK"],
+    ref: "无法闭合的字符串、块注释与反引号必须明确判定为词法错误并拒绝格式化，不能把剩余全文吞成字符串继续输出。"
+  },
+  {
+    slug: "it/sql-formatter",
+    // textarea 无 oninput ⇒ 注入不触发重算，必须在 clicks 里显式调 formatSql()。
+    inputs: { input: "select 'a--b', 'a  b' -- note\nfrom t" },
+    clicks: ["formatSql();var t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='SQLSTR '+((t.indexOf(\"'a--b'\")>=0&&t.indexOf(\"'a  b'\")>=0&&t.indexOf('-- note')>=0)?'OK':'BAD '+t);"],
+    expect: ["SQLSTR OK"],
+    ref: "字符串内的 -- 与连续空格、行注释都必须保留；旧实现先正则删注释，`'a--b'` 被截成 `'a`，空格也被折叠。"
+  },
+  {
+    slug: "it/sql-formatter",
+    inputs: { input: "select 'a  b' from t -- keep\nwhere x=1" },
+    clicks: ["minifySql();var t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='SQLMIN '+((t.indexOf(\"'a  b'\")>=0&&t.indexOf('-- keep')>=0)?'OK':'BAD '+t);"],
+    expect: ["SQLMIN OK"],
+    ref: "压缩也必须词法感知：字符串内双空格不动、注释保留；旧实现全局空白折叠+删注释会同时破坏两者。"
+  },
+  {
+    slug: "it/sql-formatter",
+    inputs: { input: 'select information,on_time,"on" from t' },
+    clicks: ["formatSql();var t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='SQLKW '+((t.indexOf('information')>=0&&t.indexOf('on_time')>=0&&t.indexOf('\"on\"')>=0)?'OK':'BAD '+t);"],
+    expect: ["SQLKW OK"],
+    ref: "关键字替换必须按完整词元：information / on_time 不能被 ON 命中拆分，带引号标识符不能被大写；旧实现 \\bON\\b 仍可拆 `on_time` 且会改引号内文本。"
+  },
+  {
+    slug: "it/sql-formatter",
+    clicks: ["var m=sqlTokenize('select `a b` from t # c','mysql'),s=sqlTokenize('select `a b` from t','standard'),sv=sqlTokenize('select [a b] from t','sqlserver'),pg=sqlTokenize('select $$a--b$$ from t','postgresql');var has=function(a,t,x){return a.some(function(k){return k.type===t&&k.text===x;});};document.getElementById('__tbProbe').textContent='SQLDIAL '+((has(m,'ident','`a b`')&&has(m,'comment','# c')&&!has(s,'ident','`a b`')&&has(sv,'ident','[a b]')&&has(pg,'string','$$a--b$$'))?'OK':'BAD');"],
+    expect: ["SQLDIAL OK"],
+    ref: "方言必须真实参与词法：MySQL 反引号标识符+# 注释、SQL Server 方括号、PostgreSQL 美元引用；旧实现完全不读 dialect，四种输入用同一套正则。"
+  },
+  {
+    slug: "it/sql-formatter",
+    clicks: ["localStorage.removeItem('sql_formatter_history');document.getElementById('saveSqlHistory').checked=false;addToHistory('格式化','select secret_token from t');var n=JSON.parse(localStorage.getItem('sql_formatter_history')||'[]').length;document.getElementById('saveSqlHistory').checked=true;var long='select '+String.fromCharCode(60)+'img'+String.fromCharCode(62)+' from t where a=1';addToHistory('格式化',long);renderHistory();var h=JSON.parse(localStorage.getItem('sql_formatter_history')||'[]'),html=document.getElementById('history-list').innerHTML;document.getElementById('input').value='';loadH(0);document.getElementById('__tbProbe').textContent='SQLHIST '+((n===0&&h[0].text===long&&document.getElementById('input').value===long&&html.indexOf('&lt;img')>=0&&html.indexOf('<img')<0)?'OK':'BAD '+n+'|'+h[0].text+'|'+html.slice(0,40));"],
+    expect: ["SQLHIST OK"],
+    ref: "历史默认关闭不落盘；主动开启后保存完整原文并可完整恢复，摘要必须 HTML 转义；旧实现默认存 80 字符且按 HTML 插入、恢复截断串。"
+  },
+  {
+    slug: "it/sql-formatter",
     // textarea 无 oninput ⇒ 注入不触发重算，必须在 clicks 里显式调 formatSql()。
     inputs: { input: "select a,b from t where a=1" },
-    clicks: ["formatSql()"],
-    expect: ["SELECT a, b FROM t WHERE a=1"],
-    ref: "独立复算：关键字大写 + `a,b` 逗号后补空格 ⇒ `SELECT a, b FROM t WHERE a=1`（值 `a=1` 不加空格，与输入一致）。默认示例是长联表 SQL，不命中。",
+    clicks: ["formatSql();var t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='SQLFMT '+((t.indexOf('SELECT')===0&&t.indexOf('FROM')>0&&t.indexOf('a = 1')>=0)?'OK':'BAD '+t);"],
+    expect: ["SQLFMT OK"],
+    ref: "关键字大写、逗号后换行缩进、a=1 变为 a = 1；默认示例是长联表 SQL，不命中。",
   },
   {
     slug: "it/slugify",
@@ -13029,15 +13076,13 @@ const CASES = [
   {
     "slug": "it/sql-formatter",
     "inputs": {
-      "input": "1\n2\n3",
+      "input": "select 1,2 from t",
       "dialect": "mysql",
       "indentSize": "4"
     },
-    "expect": [
-      "'active';\nmysql\n4\n1 2 3",
-      "'active';\n4\n1 2 3\nmysql"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"dialect\":\"mysql\",\"indentSize\":\"4\"}，输出区含「'active';\nmysql\n4\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
+    "clicks": ["formatSql();var t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='SQLAUTO '+((t.indexOf('SELECT')>=0&&t.indexOf('1,')>=0&&t.indexOf('2')>=0)?'OK':'BAD '+t);"],
+    "expect": ["SQLAUTO OK"],
+    "ref": "注入 MySQL 方言+4 空格缩进后真实格式化，断言关键字与逗号结构；旧自动用例只比对元素创建序拼出的标签串，新增历史复选框即失效。"
   },
   {
     "slug": "it/standard-deviation",
