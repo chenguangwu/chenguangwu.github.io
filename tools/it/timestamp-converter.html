@@ -138,7 +138,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="⏲️ 时间戳转换器">⏲️ Timestamp Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">日期时间计算<br>在起始日期上叠加：天 ±n｜周 ±7n｜月 setMonth±n｜年 setFullYear±n｜时 ±n｜分 ±n<br>Unix 时间戳(秒) = floor(结果日期 getTime() ÷ 1000)（毫秒转秒）<br>月份加减按日历月语义（1月31日 +1月 → 2月28/29日自动归一）</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">日期时间计算<br>在起始日期上叠加：天 ±n｜周 ±7n｜月 setMonth±n｜年 setFullYear±n｜时 ±n｜分 ±n<br>Unix 时间戳(秒) = floor(结果日期 getTime() ÷ 1000)（毫秒转秒）<br>月/年默认按目标月最后一天截断（1月31日 +1月 → 2月28/29日），可选原生溢出</div>
   <div class="formula-desc">Unix 时间戳与日期时间互转。</div>
   <ul class="formula-list">
     <li><b>定义</b>：Unix 时间戳是自 1970-01-01 00:00:00 UTC 起经过的<b>秒</b>数。</li>
@@ -243,6 +243,13 @@
             <option value="year">年</option>
             <option value="hour">小时</option>
             <option value="minute">分钟</option>
+          </select>
+        </div>
+        <div>
+          <label for="calcMonthRule">月底规则</label>
+          <select id="calcMonthRule">
+            <option value="clamp" selected>截断到目标月末（推荐）</option>
+            <option value="overflow">允许溢出到下月</option>
           </select>
         </div>
       </div>
@@ -580,26 +587,26 @@ function smartConvert() {
     // 用 BigInt 分档换算，避免 15–19 位数字先被 Number 截断再切分。
     const big = BigInt(tm[1] + tm[2]);
     var selectedUnit=document.getElementById('smartUnit').value;
-    let unit, ms, auto=(selectedUnit==='auto');
+    let unit,unitEn, ms, auto=(selectedUnit==='auto');
     if(auto){
-      if (digits <= 10) { unit = '秒'; ms = Number(big * 1000n); }
-      else if (digits <= 13) { unit = '毫秒'; ms = Number(big); }
-      else if (digits <= 16) { unit = '微秒'; ms = Number(big / 1000n); }
-      else if (digits <= 19) { unit = '纳秒'; ms = Number(big / 1000000n); }
+      if (digits <= 10) { unit = '秒'; unitEn='seconds'; ms = Number(big * 1000n); }
+      else if (digits <= 13) { unit = '毫秒'; unitEn='milliseconds'; ms = Number(big); }
+      else if (digits <= 16) { unit = '微秒'; unitEn='microseconds'; ms = Number(big / 1000n); }
+      else if (digits <= 19) { unit = '纳秒'; unitEn='nanoseconds'; ms = Number(big / 1000000n); }
       else {
-        hint.innerHTML = '<span style="color:var(--danger);">❌ 位数过多（' + digits + ' 位）：最多支持 19 位纳秒时间戳</span>';
+        hint.innerHTML = '<span style="color:var(--danger);">❌ '+tsT('位数过多（'+digits+' 位）：最多支持 19 位纳秒时间戳','Too many digits ('+digits+'): up to 19-digit nanosecond timestamps are supported')+'</span>';
         return;
       }
     }else{
-      if(digits>19){hint.innerHTML='<span style="color:var(--danger);">❌ 位数过多（'+digits+' 位）：显式单位也最多支持 19 位</span>';return;}
-      if(selectedUnit==='sec'){unit='秒';ms=Number(big*1000n);}
-      else if(selectedUnit==='ms'){unit='毫秒';ms=Number(big);}
-      else if(selectedUnit==='us'){unit='微秒';ms=Number(big/1000n);}
-      else {unit='纳秒';ms=Number(big/1000000n);}
+      if(digits>19){hint.innerHTML='<span style="color:var(--danger);">❌ '+tsT('位数过多（'+digits+' 位）：显式单位也最多支持 19 位','Too many digits ('+digits+'): even an explicit unit supports at most 19 digits')+'</span>';return;}
+      if(selectedUnit==='sec'){unit='秒';unitEn='seconds';ms=Number(big*1000n);}
+      else if(selectedUnit==='ms'){unit='毫秒';unitEn='milliseconds';ms=Number(big);}
+      else if(selectedUnit==='us'){unit='微秒';unitEn='microseconds';ms=Number(big/1000n);}
+      else {unit='纳秒';unitEn='nanoseconds';ms=Number(big/1000000n);}
     }
     const date = new Date(ms);
     if (isNaN(date.getTime())) {
-      hint.innerHTML = '<span style="color:var(--danger);">❌ 数值超出可表示的时间范围</span>';
+      hint.innerHTML = '<span style="color:var(--danger);">❌ '+tsT('数值超出可表示的时间范围','Timestamp is outside the supported date range')+'</span>';
       return;
     }
     document.getElementById('timestampMs').value = String(ms);
@@ -608,7 +615,7 @@ function smartConvert() {
     const ts = date.getTime() / 1000;
     renderResults(date, ts);
     addToHistory(date.getTime());
-    hint.innerHTML = '✅ 识别为' + unit + '时间戳（' + digits + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" digits) → synced seconds, milliseconds and datetime":" 位）→ 已同步填充秒、毫秒与日期时间") + (auto?'；单位由位数自动推断，若该整数另有含义请在上方选择明确单位。':'');
+    hint.innerHTML = '✅ '+tsT('识别为'+unit+'时间戳（'+digits+' 位）→ 已同步填充秒、毫秒与日期时间','Recognized as '+unitEn+' timestamp ('+digits+' digits) → seconds, milliseconds and datetime synced') + (auto?tsT('；单位由位数自动推断，若该整数另有含义请在上方选择明确单位。','; the unit was inferred from digit count — choose an explicit unit above if this integer means something else.'):'');
     return;
   }
 
@@ -619,7 +626,7 @@ function smartConvert() {
     return;
   }
 
-  hint.innerHTML = '<span style="color:var(--danger);">❌ 无法识别：请输入纯数字时间戳（秒/毫秒）或 YYYY-MM-DD 格式日期</span>';
+  hint.innerHTML = '<span style="color:var(--danger);">❌ '+tsT('无法识别：请输入纯数字时间戳（秒/毫秒）或 YYYY-MM-DD 格式日期','Unrecognized input: enter a numeric timestamp (seconds/milliseconds) or a YYYY-MM-DD date')+'</span>';
 }
 
 function quickTs(type) {
@@ -690,9 +697,23 @@ function calculateDate() {
     result=new Date(start);
     if(unit==='day') result.setDate(result.getDate()+sign*amount);
     else if(unit==='week') result.setDate(result.getDate()+sign*amount*7);
-    else if(unit==='month') result.setMonth(result.getMonth()+sign*amount);
-    else result.setFullYear(result.getFullYear()+sign*amount);
-    method=tsT('天/周/月/年按当地日历推进，跨夏令时实际可能经过 23/25 小时；若目标时刻不存在，浏览器会顺延到下一有效时刻。','Days/weeks/months/years advance on the local calendar; across DST the elapsed time may be 23/25 hours. Nonexistent local times roll forward to the next valid time.');
+    else {
+      const months=sign*amount*(unit==='year'?12:1);
+      const ruleEl=document.getElementById('calcMonthRule');
+      const rule=ruleEl?ruleEl.value:'clamp';
+      const h=start.getHours(),mi=start.getMinutes(),sec=start.getSeconds(),ms=start.getMilliseconds();
+      if(rule==='overflow'){
+        result=new Date(start.getFullYear(),start.getMonth()+months,start.getDate(),h,mi,sec,ms);
+        method=tsT('月/年使用浏览器原生 setMonth/setFullYear：目标月不存在该日期时会溢出到下月（如 1月31日 +1月 → 3月2/3日）。','Months/years use the browser native setMonth/setFullYear: if the target month lacks that day, the date overflows into the next month (e.g. Jan 31 + 1 month → Mar 2/3).');
+      }else{
+        const probe=new Date(start.getFullYear(),start.getMonth()+months,1,h,mi,sec,ms);
+        const ty=probe.getFullYear(),tm=probe.getMonth();
+        const lastDay=new Date(ty,tm+1,0).getDate();
+        result=new Date(ty,tm,Math.min(start.getDate(),lastDay),h,mi,sec,ms);
+        method=tsT('月/年按目标月最后一天截断：1月31日 +1月 → 2月28/29日；闰日 +1年 → 2月28日。跨夏令时实际可能经过 23/25 小时。','Months/years clamp to the last day of the target month: Jan 31 + 1 month → Feb 28/29; Feb 29 + 1 year → Feb 28. Across DST the elapsed time may be 23/25 hours.');
+      }
+    }
+    if(unit==='day'||unit==='week') method=tsT('天/周按当地日历推进，跨夏令时实际可能经过 23/25 小时；若目标时刻不存在，浏览器会顺延到下一有效时刻。','Days/weeks advance on the local calendar; across DST the elapsed time may be 23/25 hours. Nonexistent local times roll forward to the next valid time.');
   }
   if(isNaN(result.getTime())){ out.innerHTML='<p style="color:var(--danger)">'+tsT('结果超出可表示范围。','Result is outside the supported range.')+'</p>'; return; }
   window.__lastCalcResult=result.getTime();

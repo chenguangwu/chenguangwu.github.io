@@ -15545,6 +15545,42 @@ const CASES = [
     "clicks": ["document.getElementById('size').value=2;build();document.getElementById('a0').value='1';document.getElementById('a1').value='2';document.getElementById('a2').value='2';document.getElementById('a3').value='4';calculate();var t=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').value=t.indexOf('奇异矩阵')>=0?'INVSING OK':'INVSING BAD len='+t.length;"],
     "expect": ["INVSING OK"],
     "ref": "第746批：真奇异 [[1,2],[2,4]] 在消元后第 2 列全零，仍返回奇异并停止。"
+  },
+  {
+    "slug": "it/timestamp-converter",
+    "clicks": ["var src=String(smartConvert);document.getElementById('__tbProbe').value=(src.indexOf('unitEn')>=0&&src.indexOf('Recognized as')>=0&&src.indexOf('the unit was inferred')>=0&&src.indexOf('识别为')>=0)?'TSEN OK':'TSEN BAD';"],
+    "expect": ["TSEN OK"],
+    "ref": "第747批：英文态智能识别按 tsEn() 生成完整英文提示；10 位秒戳显示 seconds、无「秒/识别为」中文。旧实现只翻译后半句，前缀与单位仍是中文。"
+  },
+  {
+    "slug": "it/timestamp-converter",
+    "clicks": ["var src=String(__timestamp_converter_f0);document.getElementById('__tbProbe').value=(src.indexOf('calcMonthRule')>=0&&src.indexOf('lastDay')>=0&&src.indexOf('Math.min(start.getDate(),lastDay)')>=0&&src.indexOf('overflow')>=0)?'TSMONTH OK':'TSMONTH BAD';"],
+    "expect": ["TSMONTH OK"],
+    "ref": "第747批：月底明确提供两种规则；clamp 分支计算目标月最后一天并用 Math.min 截断，overflow 分支保留原生 setMonth 溢出。旧实现只有 setMonth/setFullYear 且无说明。"
+  },
+  {
+    "slug": "it/stopwatch",
+    "clicks": ["globalThis.cancelAnimationFrame=globalThis.cancelAnimationFrame||function(){};globalThis.requestAnimationFrame=globalThis.requestAnimationFrame||function(){};var seq=[1000,3000,5000];var i=0;swNow=function(){return seq[Math.min(i++,seq.length-1)];};swReset();swStart();var t0=swState.elapsed;swLap();var l1=swState.laps[0].total;swLap();var l2=swState.laps[1].lap;swPause();var after=swState.elapsed;document.getElementById('__tbProbe').value=(after===4000&&l1===4000&&l2===0)?'SW OK':'SW BAD '+t0+'/'+l1+'/'+l2+'/'+after;"],
+    "expect": ["SW OK"],
+    "ref": "第747批：暂停/计圈即时用单调时钟重算，而不是沿用上一帧：now 序列 1000→3000→5000，lap1=3000、lap2=2000、暂停后 elapsed=4000。旧实现 laps 用上次 rAF 的 elapsed，会少一帧。"
+  },
+  {
+    "slug": "it/hex-encode",
+    "clicks": ["var o=document.getElementById('output');document.getElementById('input').value='40x1';dec();var bad=(o.value===''&&__hex_encode_state==='invalid');document.getElementById('input').value='0x41 0x42';dec();var ok=o.value==='AB';document.getElementById('input').value='---';dec();var sep=(o.value===''&&__hex_encode_state==='invalid');document.getElementById('input').value='0x';dec();var prefix=(o.value===''&&__hex_encode_state==='invalid');document.getElementById('input').value='';dec();var empty=(o.value===''&&__hex_encode_state==='empty');document.getElementById('__tbProbe').value=(bad&&ok&&sep&&prefix&&empty)?'HEX OK':'HEX BAD '+bad+'/'+ok+'/'+sep+'/'+prefix+'/'+empty;"],
+    "expect": ["HEX OK"],
+    "ref": "第747批：0x 只允许位于字节边界；40x1 拒绝、0x41 0x42 解出 AB、纯分隔符与单独 0x 拒绝、空输入清空旧值。旧实现全局删 0x 把 40x1 当 41 解出 A，并把 --- 当空串成功。"
+  },
+  {
+    "slug": "it/binary-encode",
+    "clicks": ["var o=document.getElementById('output');document.getElementById('input').value='11111111';dec();var strict=(__binary_encode_state==='fail'&&o.value.indexOf('非法 UTF-8')>=0);document.getElementById('input').value='---';dec();var sep=(__binary_encode_state==='invalid'&&o.value==='');document.getElementById('__tbProbe').value=(strict&&sep)?'BINENC OK':'BINENC BAD '+strict+'/'+sep;"],
+    "expect": ["BINENC OK"],
+    "ref": "第747批：二进制编解码页改用严格 UTF-8，11111111 报非法字节并给原始字节；纯分隔符 --- 判无完整字节、清空旧结果。旧实现 new TextDecoder() 宽松解码并成功输出空串。"
+  },
+  {
+    "slug": "it/binary-to-text",
+    "clicks": ["document.getElementById('input').value='---';convert();document.getElementById('__tbProbe').value=(__binary_to_text_state==='invalid'&&document.getElementById('output').value==='')?'B2T OK':'B2T BAD';"],
+    "expect": ["B2T OK"],
+    "ref": "第747批：纯分隔符在规范化后为空，必须判无完整字节而不是成功输出空串；旧实现 ^[01]*$ 允许空串并标记 ok。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
