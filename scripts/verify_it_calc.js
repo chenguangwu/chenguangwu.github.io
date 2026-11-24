@@ -4997,6 +4997,13 @@ const CASES = [
   },
   {
     slug: "it/barcode-ean",
+    inputs: { data: "4006381333931" },
+    clicks: ["var cap=[];var of=document.createElement;document.createElement=function(t){if(t==='canvas'){return {width:0,height:0,getContext:function(){return {fillStyle:'',font:'',textAlign:'',fillRect:function(){},fillText:function(txt,x,y){cap.push([txt,x,y]);}};}};}return of.call(document,t);};var r=buildEAN('4006381333931');var cv=drawBarcode(r.bits,r.d);document.createElement=of;var ok=cap.length===3&&cap[0][0]==='4'&&Math.abs(cap[0][1]-16.5)<0.01&&Math.abs(cap[1][1]-105)<0.01&&Math.abs(cap[2][1]-246)<0.01&&cv.width===339&&cv.height===157;document.getElementById('__tbProbe').textContent='EANPOS '+(ok?'OK':'BAD:'+JSON.stringify(cap.map(function(c){return [c[0],c[1]];})));"],
+    expect: ["EANPOS OK"],
+    ref: "EAN-13 数字定位：首位应在左静区中线 x=16.5，左六位在起始保护条后 42 模块中点 x=33+(3+21)*3=105，右六位在中间保护条后 21 模块中点 x=33+(3+42+5+21)*3=246；画布 339×157（含保护条向下延长 5 模块）。旧实现首位 x=39、右六位 x=144，本锚不命中。",
+  },
+  {
+    slug: "it/barcode-ean",
     inputs: { data: "123456789012" },
     clicks: ["generate()"],
     expect: ["1234567890128"],
