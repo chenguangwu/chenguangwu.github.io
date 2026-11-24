@@ -35,11 +35,11 @@ function canvasLangStaticChecks() {
     {
       name: "时间感知双击直方图标题双语且可按语言重绘",
       ok: /function tpHistLabel\(\)/.test(time)
-        && /drawHist\(\$\('dHist'\), intervals, '#10B981', tpHistLabel\(\)\)/.test(time)
+        && /drawHist\(\$\('dHist'\), intervals, '#065F46', tpHistLabel\(\)\)/.test(time)
         && /window\.__tpDoubleIntervals=intervals\.slice\(\)/.test(time)
         && /window\.__tpRedraw=function\(\)/.test(time)
         && /addEventListener\('toolbox:langchange'/.test(time)
-        && !/drawHist\(\$\('dHist'\), intervals, '#10B981', '双击间隔\(ms\)'\)/.test(time),
+        && !/drawHist\(\$\('dHist'\), intervals, '#065F46', '双击间隔\(ms\)'\)/.test(time),
     },
   ];
 }

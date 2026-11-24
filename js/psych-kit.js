@@ -81,7 +81,7 @@
     '.pk-resume{border:1px solid #FCD34D;background:rgba(245,158,11,.10);border-radius:14px;padding:12px;margin:0 0 12px;font-size:14px;color:#92400E;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}',
     '.pk-hotline{border:1px solid #FDBA74;background:rgba(249,115,22,.12);border-radius:14px;padding:14px;margin:0 0 12px;font-size:15px;line-height:1.8;color:#9A3412;}',
     '.pk-hotline .pk-hl-title{font-weight:700;display:block;margin-bottom:4px;}',
-    '.pk-hotline a{color:#C2410C;font-weight:700;text-decoration:underline;}',
+    '.pk-hotline a{color:#B23A08;font-weight:700;text-decoration:underline;}',
     '.pk-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;color:#fff;font-size:14px;font-weight:600;}',
     '.pk-score{font-size:30px;font-weight:800;line-height:1.1;}',
     '.pk-scorecard{border:1px solid var(--border,#E5E7EB);border-radius:16px;padding:16px;margin:0 0 12px;background:var(--card-bg,#fff);}',

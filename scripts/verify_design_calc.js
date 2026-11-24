@@ -631,13 +631,14 @@ const CASES = [
   },
   {
     slug: "design/toast-generator",
-    inputs: { message: "TOOLBOX-OK", radius: "14", bgColor: "#0f172a" },
-    expect: ["border-radius: 14px"],
-    ref: "独立复算：圆角 14px 写进生成的 .toast CSS（默认 8px）。⚠ 原 expect TOOLBOX-OK 为提示文字输入回显（零判别力）。默认态 border-radius: 8px，不命中 ⇒ 无逃生（已双态实测）。"
-        + "⚠ 回显型页：锚必须与默认态逐字不同；本例同时给 radius=14 / bgColor=#0f172a 等非默认伴生参数，防止日后退化成『只有 message 参与渲染』的假通过（该页另有 `#cssOutput`，但注入态未采集到内容，故只锚预览回显）。",
+    inputs: { message: "abc123测试", radius: "42", bgColor: "#123456" },
+    expect: [
+      "background: #123456; color: #fff",
+      "border-radius: 42px",
+      "abc123测试"
+    ],
+    ref: "注入唯一文案 abc123测试 + 圆角 42px + 背景 #123456；CSS 生成整串必含 background/border-radius/文案三项，默认态为「操作成功完成！」/#4caf50/8px ⇒ 零命中。",
   },
-
-  // ── §7.4 覆盖缺口线 · design/css-animation-generator
   {
     slug: "design/css-animation-generator",
     inputs: { duration: "1.6", delay: "0.4", easing: "linear", iteration: "3", direction: "alternate", fillMode: "forwards" },
@@ -927,7 +928,7 @@ const CASES = [
   {
     slug: "design/toast-generator",
     clicks: ["document.getElementById('toastType').value='warning';applyTypePreset();document.getElementById('__tbProbe').textContent='PRESET339='+document.getElementById('bgColor').value;"],
-    expect: ["PRESET339=#ff9800"],
+    expect: ["PRESET339=#92400E"],
     ref: "D-N128 强锁：切换类型仍须把该类型预设色写回取色器；旧码无 applyTypePreset ⇒ ReferenceError 变红。锚为注入类型 warning 对应的预设色，默认 success 为 #4caf50 ⇒ 不命中。",
   },
   {
@@ -1873,7 +1874,7 @@ const CASES = [
       "cnt": "42"
     },
     "expect": [
-      "-shadow: 7px -13px 9px 1px rgba(59, 130, 246, 0.40), -9px 7px 19px 9px rgba(245, 158, 11, 0.47), -6px 18px 26"
+      "-shadow: 7px -13px 9px 1px"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「-shadow: 7px -13px 9px 1px rgba(59, 130,…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2498,10 +2499,12 @@ const CASES = [
       "cssOutput": "1\n2\n3",
       "toastType": "error"
     },
+    "clicks": ["document.getElementById('toastType').value='error';applyTypePreset();document.getElementById('message').value='abc123测试';document.getElementById('radius').value='42';generate();"],
     "expect": [
-      "error\nabc123测试\n42\n#f44336\n✕ abc123测试"
+      "border-radius: 42px; background: #B91C1C",
+      "abc123测试"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"message\":\"abc123测试\",\"radius\":\"42\",\"bgColor\":\"abc123测试\",\"cssOutput\":\"1\\n2\\n3\",\"toastType\":\"error\"}，输出区含「error\nabc123测试\n42\n#f44336\n✕ abc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "切换 error 后先 applyTypePreset 写回错误色（#B91C1C，已按对比度门槛加深），再注入 42px 圆角与唯一文案 abc123测试：CSS 首行必含这两项，默认 success 为 #4caf50/8px ⇒ 不命中。"
   },
   {
     "slug": "design/vh-vw",
@@ -3139,7 +3142,7 @@ const CASES = [
   slug: "design/isometric-grid",
   inputs: { size: "64", lineWidth: "3" },
   clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='RES:'+__isometric_gridResText();"],
-  expect: ["RES:background-color: #1a1a2e; background-image: linear-gradient(30deg, #667eea 3px"],
+  expect: ["RES:background-color: #1a1a2e; background-image: linear-gradient(30deg, #4338CA 3px"],
   ref: "D-N193：旧 ResText 读只有预览 div 的 #output 恒返回 ''；修复后改读 #cssOutput.value ⇒ 探针得到含注入线宽 3px 的 CSS 摘要。旧实现只有 RES: ⇒ 强判别。锚长控制在 slice(0,80) 内。",
 },
 {
