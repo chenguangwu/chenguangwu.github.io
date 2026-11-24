@@ -170,7 +170,7 @@
       <div class="checkbox-row">
         <div data-tb="preset" data-tb-presets='[{"label": "编码示例文本", "labelEn": "Encode text", "values": {"input": "Hello World! 你好，世界？"}}, {"label": "解码示例URL", "labelEn": "Decode URL", "values": {"input": "https%3A%2F%2Fexample.com%2Fsearch%3Fq%3Dhello%20world"}}, {"label": "中文查询参数", "labelEn": "Chinese query params", "values": {"input": "搜索关键词=在线工具&城市=上海"}}, {"label": "特殊符号转义", "labelEn": "Special chars", "values": {"input": "订单号 SO-2026-1103，备注：A&B=C 加急"}}]'></div>
 <label><input type="checkbox" id="fullUrl"> 完整 URL 模式（保留协议域名）</label>
-        <label><input type="checkbox" id="plusSpace"> 空格编码为 +</label>
+        <label><input type="checkbox" id="plusSpace"> 空格在查询参数中编码为 +</label>
       </div>
       <label for="input">输入内容</label>
       <textarea id="input" placeholder="输入要编码的文本或要解码的 URL 字符串..." oninput="onUserInput()">https://toolbox.example.com/search?q=你好 世界</textarea>
@@ -499,6 +499,15 @@
     }catch(e){}
   }
 
+  function __urlQuerySlice(s, fn){
+    var h=s.indexOf('#');
+    var head=h>=0?s.slice(0,h):s;
+    var hash=h>=0?s.slice(h):'';
+    var q=head.indexOf('?');
+    if(q<0) return s;
+    return head.slice(0,q+1)+fn(head.slice(q+1))+hash;
+  }
+
   function encodeUrl(){
     var text = document.getElementById('input').value;
     if(text === '') return ToolBox.showToast(i18nText('toast.msg903'), 'warning');
@@ -509,10 +518,12 @@
       if(fullUrl && /^https?:\/\//i.test(text)){
         try{ result = new URL(text).toString(); }
         catch(e){ result = encodeMode === 'uri' ? encodeURI(text) : encodeURIComponent(text); }
+        // 完整地址：+ 只表示查询参数中的空格，路径/片段里的空格保持 %20，字面 + 不动。
+        if(plusSpace) result = __urlQuerySlice(result, function(q){ return q.replace(/\+/g, '%2B').replace(/%20/g, '+'); });
       } else {
         result = encodeMode === 'uri' ? encodeURI(text) : encodeURIComponent(text);
+        if(plusSpace) result = result.replace(/%20/g, '+');
       }
-      if(plusSpace) result = result.replace(/%20/g, '+');
     }catch(e){
       __urlClearResult();
       return ToolBox.showToast(i18nText('toast.msg589'), 'error');
@@ -527,7 +538,14 @@
     var text = document.getElementById('input').value;
     if(text === '') return ToolBox.showToast(i18nText('toast.msg906'), 'warning');
     try{
-      var decoded = document.getElementById('plusSpace').checked ? text.replace(/\+/g, '%20') : text;
+      var plusSpace = document.getElementById('plusSpace').checked;
+      var fullUrl = document.getElementById('fullUrl').checked;
+      var decoded = text;
+      if(plusSpace){
+        decoded = (fullUrl && /^https?:\/\//i.test(text))
+          ? __urlQuerySlice(text, function(q){ return q.replace(/\+/g, '%20'); })
+          : text.replace(/\+/g, '%20');
+      }
       decoded = encodeMode === 'uri' ? decodeURI(decoded) : decodeURIComponent(decoded);
       document.getElementById('output').value = decoded;
       __urlResultValid = true;
@@ -817,7 +835,7 @@ function __url_encodeSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         // 隐私：待编码文本、含 user:pass 的 URL、生成 URL 都可能含凭据，只记录长度。
-        var __tbPrivate={'input':'输入长度','parseInput':'解析URL长度','builtUrl':'生成URL长度','output':'输出长度'};
+        var __tbPrivate={'input':'输入长度','baseUrl':'基础URL长度','parseInput':'解析URL长度','builtUrl':'生成URL长度','output':'输出长度'};
         if(__tbPrivate[e.id]){ if(e.value) out[__tbPrivate[e.id]]=(e.value||'').length+' 字符（未存原文）'; continue; }
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
@@ -899,6 +917,8 @@ function __url_encodeExtras(){
                     if(!__d) continue;
                     if(typeof __d['结果']==='string'&&__d['结果'].indexOf('未存原文')<0) __d['结果']='已清理（原结果含敏感内容，未保留）';
                     if(typeof __d['Result']==='string'&&__d['Result'].indexOf('not stored')<0) __d['Result']='Removed (sensitive result was not retained)';
+                    if(typeof __d.baseUrl==='string'&&__d.baseUrl.indexOf('已清理')<0){__d.baseUrl='已清理（原基础地址未保留）';}
+                    if(typeof __d['基础URL长度']==='string'&&__d['基础URL长度'].indexOf('已清理')<0){__d['基础URL长度']='已清理（原基础地址未保留）';}
                 }
                 localStorage.setItem(__k,JSON.stringify(__a));
             }

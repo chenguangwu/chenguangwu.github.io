@@ -8266,6 +8266,19 @@ const CASES = [
   },
   {
     "slug": "it/url-params",
+    "clicks": ["var p=splitUrlParts('https://example.com/?a=1#top');document.getElementById('__tbProbe').textContent='HASHSPLIT '+((p.base==='https://example.com/'&&p.query==='a=1'&&p.hash==='#top')?'OK':'BAD '+p.base+'|'+p.query+'|'+p.hash);"],
+    "expect": ["HASHSPLIT OK"],
+    "ref": "片段必须与查询串分开：`?a=1#top` 的值为 1、片段为 #top；旧实现按 ? 切分后把 1#top 当参数值。"
+  },
+  {
+    "slug": "it/url-params",
+    "inputs": { "urlInput": "https://example.com/path#top?x=1" },
+    "clicks": ["var r=renderUrl();document.getElementById('__tbProbe').textContent='HASHKEEP '+((r==='https://example.com/path#top?x=1'&&r.indexOf('%23')<0)?'OK':'BAD '+r);"],
+    "expect": ["HASHKEEP OK"],
+    "ref": "片段（含片段内的 ?）必须原样保留在重建结果末尾，不能被编码成 %23 或挪进查询。"
+  },
+  {
+    "slug": "it/url-params",
     "inputs": { "urlInput": "https://example.com/zzpath?zz=7" },
     "expect": ["https://example.com/zzpath"],
     "ref": "注入非默认 URL。默认态 urlInput 为 example.com/search?q=toolbox… ⇒ 基 URL 行 'https://example.com/search'；注入后基 URL 行变 'https://example.com/zzpath'，默认态完全不含该串 ⇒ 0 逃生。注：删除参数功能(delParam)在桩下报错，但 URL 拆分与基 URL 解析为纯字符串，结果可靠。纯前端无随机。"
@@ -13352,6 +13365,22 @@ const CASES = [
   },
   {
     "slug": "it/url-encode",
+    "inputs": { "input": "https://example.com/a b?q=c d&x=1+2#f g" },
+    "checkIds": ["plusSpace", "fullUrl"],
+    "clicks": ["encodeUrl();var o=document.getElementById('output').value;document.getElementById('__tbProbe').textContent='SPACE '+((o==='https://example.com/a%20b?q=c+d&x=1%2B2#f%20g')?'OK':'BAD '+o);"],
+    "expect": ["SPACE OK"],
+    "ref": "完整地址 +「空格编码为 +」只能改查询串：路径/片段空格保持 %20，查询里的字面 + 不动；旧实现全局 %20→+ 会把路径变成 a+b。"
+  },
+  {
+    "slug": "it/url-encode",
+    "inputs": { "input": "https://example.com/a%20b?q=c+d&x=1%2B2#f%20g" },
+    "checkIds": ["plusSpace", "fullUrl"],
+    "clicks": ["decodeUrl();var o=document.getElementById('output').value;document.getElementById('__tbProbe').textContent='SPACEDEC '+((o==='https://example.com/a b?q=c d&x=1+2#f g')?'OK':'BAD '+o);"],
+    "expect": ["SPACEDEC OK"],
+    "ref": "完整地址解码同样只把查询串的 + 当空格；路径/片段中的字面 + 不能被改成空格。"
+  },
+  {
+    "slug": "it/url-encode",
     "inputs": {
       "baseUrl": "abc123测试",
       "parseInput": "abc123测试",
@@ -13364,6 +13393,12 @@ const CASES = [
       "5 B\n+0.0%"
     ],
     "ref": "派生量锚：注入 '1\\n2\\n3'（5 字符 / 5 字节）后统计卡渲染输入大小 5 B、膨胀率 +0.0%（输出长度与输入字节数相等，按页面口径 (5−5)/5×100）。2026-11-05 同批修正：真实 localStorage 桩下注入即写历史并重渲染，原自动补强 expect 里的「暂无历史记录」不再出现（旧空桩把 setItem 吞掉才侥幸保留）；改为锚结果区统计值、绕开 #historyList（历史行含运行时刻，必然漂移）。默认输入为长 URL 样例 ⇒ 不出现 5 B / +0.0%。"
+  },
+  {
+    "slug": "it/url-encoder-advanced",
+    "clicks": ["document.getElementById('mode').value='query';document.getElementById('input').value='a=x%26b%3Dy&q=hello+world';dec();var o=document.getElementById('output').value;var h=document.getElementById('queryDecoded').innerHTML;document.getElementById('__tbProbe').textContent='QDEC '+((o==='a=x&b=y&q=hello world'&&h.indexOf('x&amp;b=y')>=0&&/参数边界/.test(h))?'OK':'BAD '+o+'|'+h.slice(0,50));"],
+    "expect": ["QDEC OK"],
+    "ref": "Query 解码必须按 & 和首个 = 逐项解码，并用表格显示值内的 &/=；旧实现整串 decodeURIComponent 后 a=x&b=y 的边界已丢失且无提示。"
   },
   {
     "slug": "it/url-encoder-advanced",
@@ -15827,9 +15862,9 @@ const CASES = [
   },
   {
     "slug": "it/url-encode",
-    "clicks": ["var q=String.fromCharCode(39),src=String(__url_encodeSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'input'+q)>=0&&src.indexOf(q+'parseInput'+q)>=0&&src.indexOf(q+'builtUrl'+q)>=0;document.getElementById('__tbProbe').textContent='URLPRIV '+(ok?'SAFE':'LEAK');"],
+    "clicks": ["var q=String.fromCharCode(39),src=String(__url_encodeSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'input'+q)>=0&&src.indexOf(q+'parseInput'+q)>=0&&src.indexOf(q+'builtUrl'+q)>=0&&src.indexOf(q+'baseUrl'+q)>=0;document.getElementById('__tbProbe').textContent='URLPRIV '+(ok?'SAFE':'LEAK');"],
     "expect": ["URLPRIV SAFE"],
-    "ref": "历史隐私：待编码文本、含 user:pass 的 URL、生成 URL 都可能含凭据；旧快照原样入历史，修复后只记录长度。源码守卫断言 __tbPrivate 与三个敏感 id 存在。"
+    "ref": "历史隐私：待编码文本、含 user:pass 的 URL、生成 URL 都可能含凭据；旧快照原样入历史，修复后只记录长度。源码守卫断言 __tbPrivate 与四个敏感 id（input/parseInput/builtUrl/baseUrl）存在。"
   },
   {
     "slug": "it/nginx-config-generator",
