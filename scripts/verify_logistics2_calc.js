@@ -46,8 +46,8 @@ const CASES = [
 {
   "slug": "logistics2/packaging-cushion",
   "inputs": { "weight": "8", "area": "", "dropH": "60", "fragility": "40" },
-  "expect": ["请填写实际承压面积（cm²，大于 0）；不再按重量自动估算。"],
-  "ref": "承压面积为空时停止计算并提示，不再回退 max(weight×100,200)；默认 300 cm² 不含该提示。"
+  "expect": ["请填写实际承压面积（cm²，大于 0）；面积由用户直接填写。"],
+  "ref": "承压面积为空时停止计算并提示，面积只由用户直接填写；默认 300 cm² 不含该提示。"
 },
 {
   "slug": "logistics2/picking-route",
