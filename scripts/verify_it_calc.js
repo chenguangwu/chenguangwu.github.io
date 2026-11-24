@@ -14331,9 +14331,9 @@ const CASES = [
   },
   {
     slug: "it/qr-decoder",
-    clicks: ["var v=wifiValue('%E4%B8%AD%E6%96%87');document.getElementById('__tbProbe').textContent=(v==='中文'?'WIFICN OK':'BAD '+v);"],
+    clicks: ["var v=wifiValue('%E4%B8%AD%E6%96%87');document.getElementById('__tbProbe').textContent=(v==='%E4%B8%AD%E6%96%87'?'WIFICN OK':'BAD '+v);"],
     expect: ["WIFICN OK"],
-    ref: "IT-D04 WiFi 百分号解码：unescape 按 Latin-1 逐字节解 %E4%B8%AD → ä¸­ 乱码；修复后 decodeURIComponent 得 UTF-8 中文。探针喂 %E4%B8%AD%E6%96%87（中文），断言精等于「中文」⇒ WIFICN OK；默认态不含哨兵。",
+    ref: "第758批修订 IT-D04：WiFi 字段百分号是字面字符，必须原样保留；探针喂 %E4%B8%AD%E6%96%87 断言输出与输入完全相同 ⇒ WIFICN OK。旧断言要求解成「中文」属错误语义，已废弃。",
   },
   {
     slug: "it/qr-decoder",
@@ -16134,6 +16134,49 @@ const CASES = [
     clicks: ["convert();document.getElementById('__tbProbe').textContent='PUNY757C '+document.getElementById('results').innerText;"],
     expect: ["PUNY757C", "xn--"],
     ref: "第757批：合法国际化裸域名仍应通过 URL/IDNA 转成 xn-- Punycode，严格校验不得误伤。",
+  },
+
+  // ── 第758批 ──
+  {
+    slug: "it/octal-encode",
+    inputs: { input: "377" },
+    clicks: ["dec();document.getElementById('__tbProbe').textContent='OCT758 '+document.getElementById('output').value+'|'+document.getElementById('decodeNote').textContent;"],
+    expect: ["OCT758 |", "合法 UTF-8", "ff"],
+    ref: "第758批：单字节 ff 不是合法 UTF-8，必须清空结果并展示原始字节，不能输出替换字符后仍可复制。",
+  },
+  {
+    slug: "it/octal-encode",
+    inputs: { input: "344 270 255" },
+    clicks: ["dec();document.getElementById('__tbProbe').textContent='OCT758B '+document.getElementById('output').value+'|'+document.getElementById('decodeNote').textContent;"],
+    expect: ["OCT758B 中|"],
+    ref: "第758批：合法 UTF-8 三字节仍应正常解码为「中」，错误提示清空。",
+  },
+  {
+    slug: "it/decimal-encode",
+    inputs: { input: "255" },
+    clicks: ["dec();document.getElementById('__tbProbe').textContent='DEC758 '+document.getElementById('output').value+'|'+document.getElementById('decodeNote').textContent;"],
+    expect: ["DEC758 |", "合法 UTF-8", "ff"],
+    ref: "第758批：十进制 255 非法 UTF-8 必须清空旧结果并展示原始字节 ff。",
+  },
+  {
+    slug: "it/decimal-encode",
+    inputs: { input: "228 184 173" },
+    clicks: ["dec();document.getElementById('__tbProbe').textContent='DEC758B '+document.getElementById('output').value+'|'+document.getElementById('decodeNote').textContent;"],
+    expect: ["DEC758B 中|"],
+    ref: "第758批：合法 UTF-8 解码仍为「中」，无残留错误提示。",
+  },
+  {
+    slug: "it/rail-fence-cipher",
+    inputs: { input: "😀ab中", depth: "2" },
+    clicks: ["enc();var c=document.getElementById('output').value;document.getElementById('input').value=c;dec();document.getElementById('__tbProbe').textContent='RAIL758 '+document.getElementById('output').value;"],
+    expect: ["RAIL758 😀ab中"],
+    ref: "第758批：按 UTF-16 下标拆分会把 emoji 代理项拆开；改为按码点排列后 emoji 往返无损。",
+  },
+  {
+    slug: "it/qr-decoder",
+    clicks: ["document.getElementById('__tbProbe').textContent='WIFI758 '+decode('WIFI:T:WPA;S:Cafe%20WiFi;P:abc%21;;');"],
+    expect: ["WIFI758", "Cafe%20WiFi", "abc%21"],
+    ref: "第758批：WiFi 字段百分号是 SSID/密码字面字符，不能 URL 解码；修复前显示 Cafe WiFi / abc!，配网凭据被改写。",
   },
 
 ];

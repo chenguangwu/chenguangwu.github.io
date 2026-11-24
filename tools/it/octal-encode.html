@@ -168,7 +168,9 @@
     <textarea id="input" placeholder="输入要编码的文本或要解码的八进制字符串...">Hi</textarea>
 
     <label style="margin-top:16px;" for="output">输出结果</label>
-    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea> <div id="octal_encodeTable"></div> <div id="octal_encodeDiff"></div> <div id="octal_encodeChart"></div> <div id="octal_encodeHist"></div>
+    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea>
+    <div id="decodeNote" style="font-size:12.5px;margin-top:8px;color:var(--text-muted);"></div>
+    <div id="octal_encodeTable"></div> <div id="octal_encodeDiff"></div> <div id="octal_encodeChart"></div> <div id="octal_encodeHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -284,7 +286,16 @@ function dec(){
     }
     bytes[i] = v;
   }
-  document.getElementById('output').value = new TextDecoder().decode(bytes);
+  const note=document.getElementById('decodeNote');
+  try{
+    document.getElementById('output').value = new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+    if(note) note.innerHTML='';
+  }catch(e){
+    document.getElementById('output').value='';
+    const hex=Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join(' ');
+    const en=(typeof TBKit!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+    if(note) note.innerHTML='⚠ '+(en?'Not valid UTF-8; result cleared. Raw bytes (hex): ':'字节不是合法 UTF-8，已清空结果。原始字节（十六进制）：')+'<code>'+hex+'</code>';
+  }
 }
 
 function copyResult(ev){
