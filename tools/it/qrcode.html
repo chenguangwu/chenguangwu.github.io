@@ -202,8 +202,15 @@ textarea:focus{border-color:#4338CA;}
       <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin:0 0 6px;"><input type="checkbox" id="qrRememberText" data-no-persist style="width:auto;margin:0;"><span data-zh="在本机记住二维码正文（默认关闭）">Remember QR text on this device (off by default)</span></label>
       <div style="font-size:12px;color:var(--text-secondary);margin:0 0 8px;" data-zh="二维码正文可能包含 Wi‑Fi 密码、联系方式或私密链接。开启后正文保存在本机 localStorage，共用设备请保持关闭并及时清除。">QR text may contain Wi‑Fi passwords, contact details or private links. When enabled it is stored in this browser's localStorage; keep it off on shared devices and clear it when done.</div>
       <div style="display:flex;align-items:center;gap:8px;margin:0 0 8px;"><button type="button" class="btn" onclick="qrForgetSaved()" style="width:auto;" data-zh="清除本机已保存正文">Clear saved text</button><span id="qrPrivacyStatus" style="font-size:12px;color:var(--text-muted);" role="status"></span></div>
-      <div style="font-size:12px;color:var(--text-secondary);margin:-4px 0 8px;" data-zh="单条模式原样编码（包括首尾空格）；批量模式按行拆分为多个码，可决定是否去掉每行首尾空白。">Single mode encodes the text exactly, including leading/trailing spaces. Batch mode splits by line and lets you trim each line.</div>
-      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin:0 0 8px;"><input type="checkbox" id="qrBatchTrim" checked style="width:auto;margin:0;"><span data-zh="批量模式去除每行首尾空白">Trim each line in batch mode</span></label>
+      <div style="font-size:12px;color:var(--text-secondary);margin:-4px 0 8px;" data-zh="单条模式把整段文本（包括换行与首尾空格）编码为一个码，适合 vCard 名片、Wi‑Fi 等；批量模式按行拆分为多个码，可决定是否去掉每行首尾空白。">Single mode encodes the whole text, including line breaks and leading/trailing spaces, as one QR code — ideal for vCards and Wi‑Fi. Batch mode splits by line into multiple codes and can trim each line.</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;">
+        <label for="qrMode" style="font-size:13px;color:var(--text-secondary);margin:0;" data-zh="多行处理:">Multi-line:</label>
+        <select id="qrMode" style="width:auto;padding:6px 10px;font-size:13px;">
+          <option value="single" selected data-zh="单条完整内容（保留换行，适合名片）">Single complete value (keep line breaks; ideal for vCards)</option>
+          <option value="batch" data-zh="逐行批量（每行一个码）">Batch by line (one code per line)</option>
+        </select>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin:0;"><input type="checkbox" id="qrBatchTrim" checked style="width:auto;margin:0;"><span data-zh="批量模式去除每行首尾空白">Trim each line in batch mode</span></label>
+      </div>
       <div class="row">
         <label for="contentTemplate">内容模板</label>
         <select id="contentTemplate" style="flex:1;">
@@ -370,6 +377,7 @@ errorLevel.addEventListener('change', generate);
 textInput.addEventListener('input', function(){ __qrMarkStale('内容已修改，正在重新生成…'); });
 textInput.addEventListener('input', debounce(generate, 500));
 document.getElementById('qrBatchTrim').addEventListener('change', generate);
+document.getElementById('qrMode').addEventListener('change', function(){window.__qrForceMode=null;generate();});
 document.getElementById('qrmargin').addEventListener('input', generate);
 document.getElementById('qrmargin').addEventListener('change', generate);
 
@@ -472,10 +480,17 @@ function __qrMarginInvalid(msg){
   if(hint){ hint.textContent=msg; hint.style.display='block'; }
   try { __qrChart(); } catch(e){}
 }
+function __qrSetMode(mode){
+  window.__qrForceMode = (mode === 'batch') ? 'batch' : 'single';
+  var el=document.getElementById('qrMode');
+  if(el) el.value = window.__qrForceMode;
+  return window.__qrForceMode;
+}
 function __qrPayloads(){
   var raw = textInput.value;
   if (raw.length === 0) return [];
-  if (raw.indexOf('\n') < 0 && raw.indexOf('\r') < 0) return [raw];
+  var mode = window.__qrForceMode || (document.getElementById('qrMode') || {}).value || 'single';
+  if (mode !== 'batch') return [raw];
   var trimBox = document.getElementById('qrBatchTrim');
   var lines = raw.split(/\r?\n/);
   if (!trimBox || trimBox.checked) {

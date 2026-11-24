@@ -584,6 +584,18 @@ const CASES = [
     ref: "IT-N376 复核重做（对照组）：显式选 z 且总体标准差已知时 n=1 可算；50 ± 1.960×8 = [34.320, 65.680]。默认 n=30/d auto 区间不同，不命中。",
   },
   {
+    slug: "it/color-converter",
+    clicks: ["fromInput('这是红色 rgb(255,0,0)')"],
+    expect: ["无法识别当前输入", "不能夹带其他文字"],
+    ref: "第751批：颜色函数必须完整匹配，前后夹带任意文字都拒绝；旧正则未锚定，会从「这是红色 rgb(255,0,0)」中抠出红色并静默成功。默认合法色不含错误提示 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/qrcode",
+    clicks: ["var NL=String.fromCharCode(10);var t=document.getElementById('textInput');t.value='BEGIN:VCARD'+NL+'VERSION:3.0'+NL+'FN:张三'+NL+'END:VCARD';__qrSetMode('single');var p=__qrPayloads();document.getElementById('__tbProbe').textContent='QRSINGLE '+p.length+' '+((p.length===1&&p[0].indexOf(NL+'END:VCARD')>=0)?'OK':'BAD');"],
+    expect: ["QRSINGLE 1 OK"],
+    ref: "第751批：默认单条模式把整段多行文本编码为一个码，vCard 的换行必须保留；旧实现见换行即按行拆成多个码，名片被撕成多张。显式切批量仍可逐行生成。",
+  },
+  {
     slug: "it/margin-of-error",
     inputs: {"n": "1000.9", "p": "0.5", "conf": "0.95", "N": "1000"},
     expect: ["n must be an integer ≥ 2 (decimals are not accepted)."],
@@ -2357,8 +2369,8 @@ const CASES = [
   {
     slug: "it/password-strength",
     inputs: { pwd: "Abcdef1!" },
-    expect: ["良好"],
-    ref: "独立复算：8 位、含大小写+数字+特殊符号、非键盘序列、非弱密码 ⇒ 评分 4/5 档「良好」（页面另给熵 52 bit 与破解耗时）。默认示例是更长的弱串，落另一档，不命中。",
+    expect: ["一般"],
+    ref: "第751批口径：8 位含大小写/数字/符号得 4 项清单分，但 abcdef 属键盘连续序列再扣 1 ⇒ 3 级「一般」；旧实现只提示不扣分，错标「良好」。默认示例是更长的弱串，不落该档。",
   },
   {
     slug: "it/password-strength",
@@ -2386,6 +2398,18 @@ const CASES = [
     clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/password-strength.html','utf8');var ok=h.indexOf('getRandomValues')>=0&&h.indexOf('generatePwd()')>=0&&h.indexOf('打开密码生成器')>=0&&h.indexOf('不支持安全随机数')>=0;document.getElementById('__tbProbe').textContent='PWDGEN '+(ok?'OK':'BAD');"],
     expect: ["PWDGEN OK"],
     ref: "迁移回归：原 safety/detector-strength 附带 Web Crypto 密码生成能力，迁移到 it/password-strength 后丢失；现恢复 generatePwd（crypto.getRandomValues + 拒绝采样）、无安全随机源提示，并保留密码生成器入口。"
+  },
+  {
+    "slug": "it/country-flag",
+    "clicks": ["document.getElementById('search').value='Japan';render();var c=document.getElementById('grid').querySelector('.country-card');document.getElementById('__tbProbe').value='CFCARD '+c.tagName+' '+c.getAttribute('data-code');"],
+    "expect": ["CFCARD BUTTON JP"],
+    "ref": "第751批：国家卡片改为原生 button（可 Tab 聚焦、Enter/Space 原生触发），并带 data-code 供键盘委托读取；旧 div+onclick 无法用键盘打开详情。默认列表含多张卡，注入筛选后只 1 张。"
+  },
+  {
+    "slug": "it/camera-recorder",
+    "clicks": ["var n=0;camStopTracks({getTracks:function(){return [{stop:function(){n++}},{stop:function(){n++}}];}});var src=String(__f0_startRec);document.getElementById('__tbProbe').value='CAMREL '+n+' '+((src.indexOf('camStopTracks(s)')>=0&&src.indexOf('录制器启动失败')>=0&&src.indexOf('预览启动失败')>=0)?'OK':'BAD');"],
+    "expect": ["CAMREL 2 OK"],
+    "ref": "第751批：录制器构造/start 抛错或预览绑定失败时，必须停止刚获取的全部轨道并复位按钮，不能再把「已拿到流但初始化失败」笼统报成无法访问摄像头；camStopTracks 逐轨 stop。旧 catch 不释放媒体流，摄像头指示灯常亮。"
   },
   {
     slug: "it/chmod-calculator",
@@ -4408,7 +4432,7 @@ const CASES = [
   },
   {
     slug: "it/qrcode",
-    clicks: ["var t=document.getElementById('textInput');t.value=' A ';var a=__qrPayloads();t.value=' a \\n b ';document.getElementById('qrBatchTrim').checked=true;var b=__qrPayloads();document.getElementById('qrBatchTrim').checked=false;var c=__qrPayloads();document.getElementById('__tbProbe').textContent='QRPAY727 '+JSON.stringify(a)+'|'+JSON.stringify(b)+'|'+JSON.stringify(c);"],
+    clicks: ["var t=document.getElementById('textInput');t.value=' A ';var a=__qrPayloads();__qrSetMode('batch');t.value=' a \\n b ';document.getElementById('qrBatchTrim').checked=true;var b=__qrPayloads();document.getElementById('qrBatchTrim').checked=false;var c=__qrPayloads();document.getElementById('__tbProbe').textContent='QRPAY727 '+JSON.stringify(a)+'|'+JSON.stringify(b)+'|'+JSON.stringify(c);"],
     expect: ['QRPAY727 [" A "]|["a","b"]|[" a "," b "]'],
     ref: "第728批：单条模式必须原样编码首尾空格；批量模式按行拆分，勾选去空白得到 a/b，取消后保留每行空格。旧实现无条件 trim，三组都会变。",
   },
@@ -11323,13 +11347,9 @@ const CASES = [
   },
   {
     "slug": "it/password-strength",
-    "inputs": {
-      "pwd": "abc123测试"
-    },
-    "expect": [
-      "abc123测试\n✅ 长度>=8位 ⚠️ 建议至少12位 ❌ 应同时包含大小写字母 ✅ 包含数字 ✅ 包含特殊符号 ⚠️ 包含键盘连续序列（如123、abc、qwe） ❌ 包含常见弱密码片段\n一般"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"pwd\":\"abc123测试\"}，输出区含「abc123测试\n✅ 长度>=8位 ⚠️ 建议至少12位 ❌ 应同时包含大小写字…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "clicks": ["var src=String(check);document.getElementById('__tbProbe').textContent='PWDPEN '+((src.indexOf('penalties+=3')>=0&&src.indexOf('penalties+=1')>=0&&src.indexOf('score-penalties')>=0)?'OK':'BAD');"],
+    "expect": ["PWDPEN OK"],
+    "ref": "第751批：常见弱口令片段必须实际扣分（−3），键盘连续序列再扣 1；abc123测试 由 3 项清单分扣到 1 级「非常弱」。旧实现只提示不扣分，仍显示「一般」。默认 ToolBox@2026 不含评分 −3 文案 ⇒ 零逃生。"
   },
   {
     "slug": "it/phone-screen-sizes",
@@ -11720,6 +11740,7 @@ const CASES = [
       "contentTemplate": "https://example.com",
       "errorLevel": "M"
     },
+    "clicks": ["__qrSetMode('batch');generate()"],
     "expect": [
       "mple.com\n42\n42px\nabc123测试\nabc123测试\nabc123测试\nabc123测试\nM"
     ],
@@ -13040,14 +13061,14 @@ const CASES = [
   {
     slug: "it/color-converter",
     clicks: ["fromInput('rgb(300, 0, 0)')"],
-    expect: ["#ff0000"],
-    ref: "IT-N46 RGB 范围钳制：300 应钳制为 255 得到 #ff0000；旧实现生成非法 #12c0000。默认颜色为 #667eea。",
+    expect: ["无法识别当前输入", "RGB 通道 0–255"],
+    ref: "第751批（口径变更，替代旧 IT-N46 钳制）：超出 0–255 的 RGB 通道不再静默钳制，直接判为无效并清空旧结果；带多余文字的颜色串同样拒绝。旧实现 300 被钳成 255，用户看不到输入错误。",
   },
   {
     slug: "it/color-converter",
     clicks: ["fromInput('rgba(0, 0, 0, 1.5)')"],
-    expect: ["rgba(0, 0, 0, 1)"],
-    ref: "IT-N46 Alpha 钳制：1.5 应钳制到 1；旧实现输出 rgba(0, 0, 0, 1.5)。默认颜色 alpha 为 1 但 RGB 不同。",
+    expect: ["无法识别当前输入", "透明度 0–1"],
+    ref: "第751批（口径变更，替代旧 IT-N46 钳制）：alpha 1.5 越界直接判无效，不再静默钳成 1；同时支持 rgb(0 0 0 / 1) 现代空格语法。",
   },
   {
     slug: "it/color-converter",
@@ -14961,7 +14982,7 @@ const CASES = [
   {
     "slug": "it/qrcode",
     "inputs": { "textInput": "https://a.example\nhttps://b.example", "qrmargin": "0", "size": "256" },
-    "clicks": ["generate()"],
+    "clicks": ["__qrSetMode('batch');generate()"],
     "expect": ["第 2 行：https://b.example", "qr-card"],
     "ref": "F-QR367 批量恢复：两行输入生成两张 .qr-card，第二张标题含第二行原文；静区 0 生效。"
   },
@@ -15283,7 +15304,7 @@ const CASES = [
   {
     slug: "it/qrcode",
     inputs: { textInput: "A\n" + "x".repeat(3000) + "\nB", qrBatchTrim: "1" },
-    clicks: ["generate();document.getElementById('__tbProbe').textContent='BATCH '+qrItems.length;"],
+    clicks: ["__qrSetMode('batch');generate();document.getElementById('__tbProbe').textContent='BATCH '+qrItems.length;"],
     expect: ["BATCH 2", "第 2 行生成失败"],
     ref: "第736批：批量逐行生成，中间 3000 字符行超容量只标该行失败，前后有效行保留并可下载。旧实现共用 try/catch 清空全部。"
   },
@@ -15409,7 +15430,7 @@ const CASES = [
   },
   {
     "slug": "it/qrcode",
-    "clicks": ["var cap=null;globalThis.TBKit={util:{isEn:function(){return false;}},chart:{bar:function(sel,opt){cap=opt}}};document.getElementById('textInput').value='123456789012345678901234567890';document.getElementById('qrmargin').value='4';__qrChart();var one=cap.series[0].data;document.getElementById('textInput').value='123456789012345678901234567890\\n987654321098765432109876543210';__qrChart();document.getElementById('__tbProbe').textContent='QRCAP '+JSON.stringify(one)+'|'+JSON.stringify(cap.series[0].data)+'|'+(cap.title.indexOf('共 2 个二维码')>=0?'BATCH':'NO');"],
+    "clicks": ["var cap=null;globalThis.TBKit={util:{isEn:function(){return false;}},chart:{bar:function(sel,opt){cap=opt}}};document.getElementById('textInput').value='123456789012345678901234567890';document.getElementById('qrmargin').value='4';__qrChart();var one=cap.series[0].data;document.getElementById('textInput').value='123456789012345678901234567890\\n987654321098765432109876543210';__qrSetMode('batch');__qrChart();document.getElementById('__tbProbe').textContent='QRCAP '+JSON.stringify(one)+'|'+JSON.stringify(cap.series[0].data)+'|'+(cap.title.indexOf('共 2 个二维码')>=0?'BATCH':'NO');"],
     "expect": ["QRCAP [1,1,2,2]|[1,1,2,2]|BATCH"],
     "ref": "第742批：容量图改为逐行调用实际编码器并按 Numeric/Alphanumeric/Byte 模式取版本；30 位纯数字在 L/M/Q/H 实际为 v1/v1/v2/v2，旧按 UTF-8 字节查表会高估。两行只取最大版本并标明 2 个二维码。"
   },

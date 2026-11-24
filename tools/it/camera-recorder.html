@@ -284,54 +284,84 @@ function camExtForMime(mime){
   if(base==='video/ogg')return 'ogv';
   return base?'bin':'webm';
 }
+function camStopTracks(s){ if(s&&s.getTracks)s.getTracks().forEach(function(t){try{t.stop();}catch(e){}}); }
+function __camErrReason(e){
+  var name=(e&&e.name)||'';
+  if(name==='NotAllowedError'||name==='PermissionDeniedError') return __camEn()?'Camera/microphone permission was denied':'摄像头/麦克风权限被拒绝';
+  if(name==='NotFoundError'||name==='DevicesNotFoundError') return __camEn()?'No camera or microphone was found':'未找到摄像头或麦克风设备';
+  if(name==='NotReadableError'||name==='TrackStartError') return __camEn()?'The camera is busy or cannot be started':'摄像头被其他程序占用或无法启动';
+  return __camEn()?'Could not access the camera':'无法访问摄像头';
+}
 function startRec(){
   var out=document.getElementById('result');
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
     out.innerHTML='<p style="color:var(--danger)">当前浏览器不支持摄像头访问（需 HTTPS 环境）</p>';return;
   }
+  if(stream||mediaRecorder){ try{ stopRec(false); }catch(e){} }
   var request=++camRequest;
   camSession=null;
   navigator.mediaDevices.getUserMedia({video:true,audio:true}).then(function(s){
-    if(request!==camRequest){s.getTracks().forEach(function(t){t.stop();});return;}
+    if(request!==camRequest){camStopTracks(s);return;}
     stream=s;
     var v=document.getElementById('preview');
-    v.srcObject=s;v.play().catch(function(){});
+    try{ v.srcObject=s; v.play().catch(function(){}); }
+    catch(err){
+      camStopTracks(s);
+      if(stream===s)stream=null;
+      try{ v.srcObject=null; }catch(e){}
+      document.getElementById('startBtn').disabled=false;
+      document.getElementById('stopBtn').disabled=true;
+      out.innerHTML='<p style="color:var(--danger)">'+(__camEn()?'Preview failed to start: ':'预览启动失败：')+escH((err&&err.message)||err)+(__camEn()?' Camera and microphone were closed.':' 已关闭摄像头与麦克风，可重试。')+'</p>';
+      return;
+    }
     if(window.MediaRecorder){
-      camSession=session;
-      var chosen=camPickMime(window.MediaRecorder);
       var session={chunks:[],save:true};
-      try{ mediaRecorder=chosen?new MediaRecorder(s,{mimeType:chosen}):new MediaRecorder(s); }
-      catch(e){ mediaRecorder=new MediaRecorder(s); }
-      session.mime=mediaRecorder.mimeType||chosen||'';
-      mediaRecorder.ondataavailable=function(e){if(e.data&&e.data.size)session.chunks.push(e.data);};
-      mediaRecorder.onstop=function(){
-        if(!session.save){
-          if(camSession===session)out.innerHTML=__camEn()?'<p>Recording stopped and camera closed (no file downloaded)</p>':'<p>⏹ 录制已停止，摄像头已关闭（未下载文件）</p>';
-          return;
-        }
-        var mime=session.mime||'';
-        var ext=camExtForMime(mime);
-        var blob=new Blob(session.chunks,{type:mime||'video/webm'});
-        var a=document.createElement('a');
-        a.href=URL.createObjectURL(blob);
-        a.download='recording-'+Date.now()+'.'+ext;
-        document.body.appendChild(a);a.click();document.body.removeChild(a);
-        URL.revokeObjectURL(a.href);
-        var note='';
-        if(!mime) note=__camEn()?' Browser did not report the actual container; the file is named .webm and may need a compatible player.':' 浏览器未报告实际容器，已按 .webm 命名，播放器可能无法识别。';
-        else if(ext==='bin') note=__camEn()?' Unrecognized container; the file uses .bin — check the player.':' 未能识别的容器，已按 .bin 下载，请用兼容播放器打开。';
-        if(camSession===session)out.innerHTML='<p style="color:var(--success)">✅ '+(__camEn()?'Recording saved: ':'录制完成，已下载 ')+Math.round(blob.size/1024)+' KB ('+escH(mime||'unknown')+', .'+ext+')'+note+'</p>';
-      };
-      mediaRecorder.start(250);
+      try{
+        var chosen=camPickMime(window.MediaRecorder);
+        mediaRecorder=chosen?new MediaRecorder(s,{mimeType:chosen}):new MediaRecorder(s);
+        session.mime=mediaRecorder.mimeType||chosen||'';
+        mediaRecorder.ondataavailable=function(e){if(e.data&&e.data.size)session.chunks.push(e.data);};
+        mediaRecorder.onstop=function(){
+          if(!session.save){
+            if(camSession===session)out.innerHTML=__camEn()?'<p>Recording stopped and camera closed (no file downloaded)</p>':'<p>⏹ 录制已停止，摄像头已关闭（未下载文件）</p>';
+            return;
+          }
+          var mime=session.mime||'';
+          var ext=camExtForMime(mime);
+          var blob=new Blob(session.chunks,{type:mime||'video/webm'});
+          var a=document.createElement('a');
+          a.href=URL.createObjectURL(blob);
+          a.download='recording-'+Date.now()+'.'+ext;
+          document.body.appendChild(a);a.click();document.body.removeChild(a);
+          URL.revokeObjectURL(a.href);
+          var note='';
+          if(!mime) note=__camEn()?' Browser did not report the actual container; the file is named .webm and may need a compatible player.':' 浏览器未报告实际容器，已按 .webm 命名，播放器可能无法识别。';
+          else if(ext==='bin') note=__camEn()?' Unrecognized container; the file uses .bin — check the player.':' 未能识别的容器，已按 .bin 下载，请用兼容播放器打开。';
+          if(camSession===session)out.innerHTML='<p style="color:var(--success)">✅ '+(__camEn()?'Recording saved: ':'录制完成，已下载 ')+Math.round(blob.size/1024)+' KB ('+escH(mime||'unknown')+', .'+ext+')'+note+'</p>';
+        };
+        mediaRecorder.start(250);
+      }catch(err){
+        camStopTracks(s);
+        if(stream===s)stream=null;
+        mediaRecorder=null;camSession=null;
+        v.srcObject=null;
+        document.getElementById('startBtn').disabled=false;
+        document.getElementById('stopBtn').disabled=true;
+        out.innerHTML='<p style="color:var(--danger)">'+(__camEn()?'Camera opened, but the recorder failed to start: ':'摄像头已打开，但录制器启动失败：')+escH((err&&err.message)||err)+(__camEn()?' Camera and microphone were closed.':' 已关闭摄像头与麦克风，可重试。')+'</p>';
+        return;
+      }
+      camSession=session;
       document.getElementById('startBtn').disabled=true;
       document.getElementById('stopBtn').disabled=false;
       out.innerHTML='<p style="color:var(--success)">🔴 正在录制...</p>';
     }else{
-      out.innerHTML='<p style="color:var(--warning)">当前浏览器不支持 MediaRecorder，仅可预览</p>';
+      document.getElementById('startBtn').disabled=true;
+      document.getElementById('stopBtn').disabled=true;
+      out.innerHTML='<p style="color:var(--warning)">'+(__camEn()?'MediaRecorder is not supported; preview only. Use "Close camera" to release the device.':'当前浏览器不支持 MediaRecorder，仅可预览；请点击“关闭摄像头”释放设备。')+'</p>';
     }
   }).catch(function(e){
     if(request!==camRequest)return;
-    out.innerHTML='<p style="color:var(--danger)">无法访问摄像头：'+escH((e&&e.message)||e)+'（请检查权限设置）</p>';
+    out.innerHTML='<p style="color:var(--danger)">'+__camErrReason(e)+'：'+escH((e&&e.message)||e)+(__camEn()?' (check permissions)':'（请检查权限与设备占用）')+'</p>';
   });
 }
 function __camEn(){ return (typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function')?!!TBKit.util.isEn():false; }
@@ -340,7 +370,7 @@ function stopRec(save){
   if(mediaRecorder&&camSession)camSession.save=(save!==false);
   var out=document.getElementById('result');
   if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();
-  if(stream)stream.getTracks().forEach(function(t){t.stop();});
+  camStopTracks(stream);
   mediaRecorder=null;stream=null;
   document.getElementById('startBtn').disabled=false;
   document.getElementById('stopBtn').disabled=true;

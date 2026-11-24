@@ -517,6 +517,7 @@ var LANG_REGISTRY = [
       'tool.aria.left_paren': 'Left parenthesis',
       'tool.aria.right_paren': 'Right parenthesis',
       'tool.aria.swap': 'Swap',
+      'tool.aria.color_tabs': 'Color tool tabs',
       'tool.aria.play_recording': 'Play recording',
       'tool.aria.play': 'Play',
       'tool.aria.sqrt': 'Square root',

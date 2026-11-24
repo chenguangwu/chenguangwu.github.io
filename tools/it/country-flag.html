@@ -27,8 +27,9 @@
 <script src="../../js/common.js" defer></script>
 <style>
 .country-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-top:12px;}
-.country-card{padding:12px;background:#f8f9ff;border-radius:8px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:10px;}
+.country-card{padding:12px;background:#f8f9ff;border:0;border-radius:8px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;color:inherit;}
 .country-card:hover{background:var(--primary);color:#fff;}
+.country-card:focus-visible{outline:3px solid var(--primary);outline-offset:2px;}
 .country-card .flag{font-size:32px;}
 .country-card .info{flex:1;}
 .country-card .name{font-weight:600;font-size:13px;}
@@ -298,6 +299,16 @@ function init(){
   var note=document.getElementById('coverageNote');if(note){var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());note.textContent=(en?'Coverage: '+COUNTRIES.length+' countries/territories · ISO 3166-1 · data snapshot 2026-11 (mledoze/countries). Search names, ISO alpha-2/alpha-3 and capitals in Chinese or English.':'覆盖范围：'+COUNTRIES.length+' 个国家/地区 · ISO 3166-1 · 数据快照 2026-11（mledoze/countries）。支持中英文名称、ISO 两位/三位代码与首都搜索。');}
   const cats = ['all', ...new Set(COUNTRIES.map(c => c.cat))];
   const __h0=cats.map(c => `<button class="${c==='all'?'active':''}" onclick="setCat('${c}')">${c==='all'?'全部':c}</button>`).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('catTabs').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('catTabs').innerHTML=__h0;
+  var gridEl=document.getElementById('grid');
+  if(gridEl && !gridEl.__cfKeyBound){
+    gridEl.__cfKeyBound=true;
+    gridEl.addEventListener('keydown',function(e){
+      if((e.key==='Enter'||e.key===' '||e.key==='Spacebar') && e.target && e.target.classList && e.target.classList.contains('country-card')){
+        e.preventDefault();
+        showDetail(e.target.getAttribute('data-code'));
+      }
+    });
+  }
   render();
 }
 function setCat(c){ currentCat = c; document.querySelectorAll('#catTabs button').forEach(b => b.classList.toggle('active', b.textContent === (c==='all'?'全部':c))); render(); }
@@ -311,16 +322,16 @@ function render(){
     (!q || c.cn.includes(q) || c.en.toLowerCase().includes(q) || c.code.toLowerCase().includes(q) || __cfCapitalZh(c).toLowerCase().includes(q) || __cfCapitalEn(c).toLowerCase().includes(q) || c.iso.toLowerCase().includes(q))
   );
   const __h1=filtered.map(c => `
-    <div class="country-card" onclick="showDetail('${c.code}')">
-      <span class="flag">${c.flag}</span>
-      <div class="info">
-        <div class="name">${en?c.en:c.cn}</div>
-        <div class="code">${c.code} · ${c.en}</div>
-      </div>
-    </div>
+    <button type="button" class="country-card" data-code="${c.code}" onclick="showDetail('${c.code}')" aria-label="${en?c.en:c.cn} ${en?'— view details':'— 查看详情'}">
+      <span class="flag" aria-hidden="true">${c.flag}</span>
+      <span class="info">
+        <span class="name">${en?c.en:c.cn}</span>
+        <span class="code">${c.code} · ${c.en}</span>
+      </span>
+    </button>
   `).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('grid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}
   if(!filtered.length && q){
-    document.getElementById('grid').innerHTML='<p style="color:var(--text-muted);">'+(en?'No match. This tool covers 48 common countries/regions only; the ISO alpha-2/alpha-3 code may still be useful.':'未找到匹配项。可尝试国家中英文名、ISO 两位/三位代码或首都中英文名。')+'</p>';
+    document.getElementById('grid').innerHTML='<p style="color:var(--text-muted);">'+(en?'No match. Try an English/Chinese name, ISO alpha-2/alpha-3 code, or a capital in either language.':'未找到匹配项。可尝试国家中英文名、ISO 两位/三位代码或首都中英文名。')+'</p>';
   }else{
     document.getElementById('grid').innerHTML=__h1;
   }
