@@ -391,6 +391,10 @@ const TIMEZONES = [
   { name: '洛杉矶', zone: 'America/Los_Angeles' },
   { name: '夏威夷', zone: 'Pacific/Honolulu' }
 ];
+function tsEn(){ try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) return !!TBKit.util.isEn(); }catch(e){} try{ if(window.I18n&&I18n.get) return I18n.get()==='en-US'; }catch(e){} return false; }
+function tsT(zh,en){ return tsEn()?en:zh; }
+function tsLocale(){ return tsEn()?'en-US':'zh-CN'; }
+function formatSecMs(ms){ const n=Number(ms); if(!isFinite(n)) return ''; return String(Number((n/1000).toFixed(3))); }
 function formatInZone(date, zone){
   if(!zone) return formatDateTime(date);
   try{
@@ -404,7 +408,7 @@ function formatInZone(date, zone){
   }catch(e){ return formatDateTime(date); }
 }
 function zoneLabel(zone, date){
-  if(!zone) return '本地时间';
+  if(!zone) return tsT('本地时间','Local time');
   try{
     // 必须按目标日期取偏移：夏令时地区（如纽约）冬夏偏移不同，用 new Date() 会全年显示当前偏移
     const parts = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName:'shortOffset' }).formatToParts(date || new Date());
@@ -468,29 +472,28 @@ function parseDate(str) {
 }
 
 function fromTimestamp(type) {
-  let ts;
+  let ms;
   if (type === 'sec') {
-    ts = parseFloat(document.getElementById('timestampSec').value);
-    if (isNaN(ts)) return;
-    document.getElementById('timestampMs').value = Math.floor(ts * 1000);
+    const sec = parseFloat(document.getElementById('timestampSec').value);
+    if (isNaN(sec)) return;
+    ms = Math.round(sec * 1000);
+    document.getElementById('timestampMs').value = String(ms);
   } else {
-    ts = parseFloat(document.getElementById('timestampMs').value);
-    if (isNaN(ts)) return;
-    document.getElementById('timestampSec').value = Math.floor(ts / 1000);
-    ts = ts / 1000;
+    ms = parseFloat(document.getElementById('timestampMs').value);
+    if (isNaN(ms)) return;
+    document.getElementById('timestampSec').value = formatSecMs(ms);
   }
-  
-  const date = new Date(ts * 1000);
+  const ts = ms / 1000;
+  const date = new Date(ms);
   if(isNaN(date.getTime())){
     document.getElementById('dateInput').value = '';
-    var en = !!(window.I18n && window.I18n.get && window.I18n.get() === 'en-US');
+    var en = tsEn();
     document.getElementById('convertResults').innerHTML = '<p style="color:var(--danger)">' +
       (en ? 'Timestamp is outside the supported range (about ±8.64e15 ms)' : '时间戳超出可表示范围（约 ±8.64e15 毫秒）') + '</p>';
     document.getElementById('timezoneGrid').innerHTML = '';
     return;
   }
   document.getElementById('dateInput').value = formatDateTime(date);
-  
   renderResults(date, ts);
   addToHistory(date.getTime());
 }
@@ -508,7 +511,7 @@ function fromDate() {
   }
   
   const ts = date.getTime() / 1000;
-  document.getElementById('timestampSec').value = Math.floor(ts);
+  document.getElementById('timestampSec').value = formatSecMs(date.getTime());
   document.getElementById('timestampMs').value = date.getTime();
   
   renderResults(date, ts);
@@ -516,33 +519,34 @@ function fromDate() {
 }
 
 function renderResults(date, tsSec) {
+  const en=tsEn(), locale=tsLocale();
+  const weekdayEn=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][date.getDay()];
   const formats = [
-    { label: 'Unix 秒', value: Math.floor(tsSec) },
-    { label: 'Unix 毫秒', value: date.getTime() },
+    { label: tsT('Unix 秒','Unix seconds'), value: formatSecMs(date.getTime()) },
+    { label: tsT('Unix 毫秒','Unix milliseconds'), value: date.getTime() },
     { label: 'ISO 8601', value: date.toISOString() },
     { label: 'RFC 2822', value: date.toUTCString() },
-    { label: '本地日期', value: date.toLocaleDateString('zh-CN') },
-    { label: '本地时间', value: date.toLocaleTimeString('zh-CN') },
-    { label: '完整本地', value: date.toLocaleString('zh-CN') },
-    { label: 'UTC 时间', value: date.toUTCString() },
-    { label: '年-月-日', value: `${date.getFullYear()}-${padZero(date.getMonth() + 1)}-${padZero(date.getDate())}` },
-    { label: '时:分:秒', value: `${padZero(date.getHours())}:${padZero(date.getMinutes())}:${padZero(date.getSeconds())}` },
-    { label: '星期', value: '星期' + '日一二三四五六'[date.getDay()] },
-    { label: '一年中第几天', value: getDayOfYear(date) }
+    { label: tsT('本地日期','Local date'), value: date.toLocaleDateString(locale) },
+    { label: tsT('本地时间','Local time'), value: date.toLocaleTimeString(locale) },
+    { label: tsT('完整本地','Full local'), value: date.toLocaleString(locale) },
+    { label: tsT('UTC 时间','UTC time'), value: date.toUTCString() },
+    { label: tsT('年-月-日','Date (Y-M-D)'), value: `${date.getFullYear()}-${padZero(date.getMonth() + 1)}-${padZero(date.getDate())}` },
+    { label: tsT('时:分:秒','Time (H:M:S)'), value: `${padZero(date.getHours())}:${padZero(date.getMinutes())}:${padZero(date.getSeconds())}` },
+    { label: tsT('星期','Weekday'), value: en?weekdayEn:('星期' + '日一二三四五六'[date.getDay()]) },
+    { label: tsT('一年中第几天','Day of year'), value: getDayOfYear(date) }
   ];
-  
+  window.__lastTsDate=date; window.__lastTsSec=tsSec;
   document.getElementById('convertResults').innerHTML = `
     <div class="format-list">
       ${formats.map(f => `
         <div class="format-item">
           <span class="fmt-label">${f.label}</span>
           <span class="fmt-value">${ToolBox.escHtml(String(f.value))}</span>
-          <button type="button" class="btn" onclick="ToolBox.copyText('${String(f.value).replace(/'/g, "\\'")}')">复制</button>
+          <button type="button" class="btn" onclick="ToolBox.copyText('${String(f.value).replace(/'/g, "\\'")}')">${tsT('复制','Copy')}</button>
         </div>
       `).join('')}
     </div>
   `;
-  
   renderTimezones(date);
 }
 
@@ -599,7 +603,7 @@ function smartConvert() {
       return;
     }
     document.getElementById('timestampMs').value = String(ms);
-    document.getElementById('timestampSec').value = String(Math.floor(ms / 1000));
+    document.getElementById('timestampSec').value = formatSecMs(ms);
     document.getElementById('dateInput').value = formatDateTime(date);
     const ts = date.getTime() / 1000;
     renderResults(date, ts);
@@ -652,13 +656,14 @@ function quickTs(type) {
   }
   
   const ts = target.getTime() / 1000;
+  document.getElementById('quickResult').setAttribute('data-type', type);
   const __h2=`
-    <p><strong>时间戳（秒）:</strong> ${Math.floor(ts)}</p>
-    <p><strong>时间戳（毫秒）:</strong> ${target.getTime()}</p>
-    <p><strong>日期时间:</strong> ${formatDateTime(target)}</p>
+    <p><strong>${tsT('时间戳（秒）','Timestamp (s)')}:</strong> ${formatSecMs(target.getTime())}</p>
+    <p><strong>${tsT('时间戳（毫秒）','Timestamp (ms)')}:</strong> ${target.getTime()}</p>
+    <p><strong>${tsT('日期时间','Date & time')}:</strong> ${formatDateTime(target)}</p>
   `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('quickResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('quickResult').innerHTML=__h2;
   
-  document.getElementById('timestampSec').value = Math.floor(ts);
+  document.getElementById('timestampSec').value = formatSecMs(target.getTime());
   document.getElementById('timestampMs').value = target.getTime();
   document.getElementById('dateInput').value = formatDateTime(target);
   renderResults(target, ts);
@@ -666,43 +671,36 @@ function quickTs(type) {
 
 function calculateDate() {
   const start = parseDate(document.getElementById('calcStartDate').value);
-  if (!start) {
-    ToolBox.showToast(i18nText('toast.msg854'), 'error');
-    return;
-  }
-  
+  const out=document.getElementById('calcResult1');
+  if (!start) { ToolBox.showToast(i18nText('toast.msg854'), 'error'); return; }
   const op = document.getElementById('calcOp').value;
-  const amount = parseInt(document.getElementById('calcAmount').value) || 0;
   const unit = document.getElementById('calcUnit').value;
-  
-  const result = new Date(start);
+  const raw = document.getElementById('calcAmount').value.trim();
+  if(raw===''){ out.innerHTML='<p style="color:var(--danger)">'+tsT('数量不能为空；如需加 0，请明确输入 0。','Amount is required; enter 0 explicitly if you want no change.')+'</p>'; return; }
+  const amount=Number(raw);
+  if(!isFinite(amount)||amount<0||amount>100000){ out.innerHTML='<p style="color:var(--danger)">'+tsT('数量需为 0–100000 的有限数字；减小请把“操作”改为“减”。','Amount must be a finite number between 0 and 100000; use Subtract for negative direction.')+'</p>'; return; }
+  if(['day','week','month','year'].includes(unit)&&!Number.isInteger(amount)){ out.innerHTML='<p style="color:var(--danger)">'+tsT('天/周/月/年只支持整数数量；小时/分钟支持小数。','Days/weeks/months/years require an integer; hours/minutes accept decimals.')+'</p>'; return; }
   const sign = op === 'add' ? 1 : -1;
-  
-  switch(unit) {
-    case 'day':
-      result.setDate(result.getDate() + sign * amount);
-      break;
-    case 'week':
-      result.setDate(result.getDate() + sign * amount * 7);
-      break;
-    case 'month':
-      result.setMonth(result.getMonth() + sign * amount);
-      break;
-    case 'year':
-      result.setFullYear(result.getFullYear() + sign * amount);
-      break;
-    case 'hour':
-      result.setHours(result.getHours() + sign * amount);
-      break;
-    case 'minute':
-      result.setMinutes(result.getMinutes() + sign * amount);
-      break;
+  let result, method;
+  if(unit==='hour'||unit==='minute'){
+    const delta=(unit==='hour'?3600000:60000)*sign*amount;
+    result=new Date(start.getTime()+delta);
+    method=tsT('小时/分钟按真实经过时长（毫秒）计算，跨夏令时不会改变实际经过的分钟数。','Hours/minutes use real elapsed milliseconds, so DST transitions do not change the elapsed duration.');
+  }else{
+    result=new Date(start);
+    if(unit==='day') result.setDate(result.getDate()+sign*amount);
+    else if(unit==='week') result.setDate(result.getDate()+sign*amount*7);
+    else if(unit==='month') result.setMonth(result.getMonth()+sign*amount);
+    else result.setFullYear(result.getFullYear()+sign*amount);
+    method=tsT('天/周/月/年按当地日历推进，跨夏令时实际可能经过 23/25 小时；若目标时刻不存在，浏览器会顺延到下一有效时刻。','Days/weeks/months/years advance on the local calendar; across DST the elapsed time may be 23/25 hours. Nonexistent local times roll forward to the next valid time.');
   }
-  
-  const __h3=`
-    <p><strong>计算结果:</strong> ${formatDateTime(result)}</p>
-    <p><strong>时间戳:</strong> ${Math.floor(result.getTime() / 1000)} 秒</p>
-  `;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('calcResult1').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('calcResult1').innerHTML=__h3;
+  if(isNaN(result.getTime())){ out.innerHTML='<p style="color:var(--danger)">'+tsT('结果超出可表示范围。','Result is outside the supported range.')+'</p>'; return; }
+  window.__lastCalcResult=result.getTime();
+  out.innerHTML=`
+    <p><strong>${tsT('计算结果','Result')}:</strong> ${formatDateTime(result)}</p>
+    <p><strong>${tsT('时间戳','Timestamp')}:</strong> ${formatSecMs(result.getTime())} ${tsT('秒','s')}</p>
+    <p style="font-size:12px;color:var(--text-muted);">${method}</p>
+  `;
 }
 
 function calculateDiff() {
@@ -734,14 +732,15 @@ function calculateDiff() {
   if (yearProbe > later) wholeYears--;
   wholeYears = Math.max(0, wholeYears);
 
+  const loc=tsLocale();
   const __h4=`
-    <p><strong>相差天数:</strong> ${diffDay.toLocaleString()} 天</p>
-    <p><strong>相差周数:</strong> ${diffWeek.toLocaleString()} 周</p>
-    <p><strong>相差整月数:</strong> ${wholeMonths} 个月</p>
-    <p><strong>相差整年数:</strong> ${wholeYears} 年</p>
-    <p><strong>相差小时:</strong> ${diffHour.toLocaleString()} 小时</p>
-    <p><strong>相差分钟:</strong> ${diffMin.toLocaleString()} 分钟</p>
-    <p><strong>相差秒数:</strong> ${diffSec.toLocaleString()} 秒</p>
+    <p><strong>${tsT('相差天数','Whole days')}:</strong> ${diffDay.toLocaleString(loc)} ${tsT('天','days')}</p>
+    <p><strong>${tsT('相差周数','Whole weeks')}:</strong> ${diffWeek.toLocaleString(loc)} ${tsT('周','weeks')}</p>
+    <p><strong>${tsT('相差整月数','Whole months')}:</strong> ${wholeMonths.toLocaleString(loc)} ${tsT('个月','months')}</p>
+    <p><strong>${tsT('相差整年数','Whole years')}:</strong> ${wholeYears.toLocaleString(loc)} ${tsT('年','years')}</p>
+    <p><strong>${tsT('相差小时','Whole hours')}:</strong> ${diffHour.toLocaleString(loc)} ${tsT('小时','hours')}</p>
+    <p><strong>${tsT('相差分钟','Whole minutes')}:</strong> ${diffMin.toLocaleString(loc)} ${tsT('分钟','minutes')}</p>
+    <p><strong>${tsT('相差秒数','Whole seconds')}:</strong> ${diffSec.toLocaleString(loc)} ${tsT('秒','seconds')}</p>
   `;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('calcResult2').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('calcResult2').innerHTML=__h4;
 }
 
@@ -761,7 +760,7 @@ function renderHistory() {
   try {
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
     if (history.length === 0) {
-      const __h5='<p style="padding:24px;text-align:center;color:var(--text-muted);">暂无历史记录</p>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h5;
+      const __h5='<p style="padding:24px;text-align:center;color:var(--text-muted);">'+tsT('暂无历史记录','No history yet')+'</p>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h5;
       return;
     }
     const __h6=history.map(item => {
@@ -771,12 +770,12 @@ function renderHistory() {
         <div class="history-item">
           <span class="time-val">${ms}</span>
           <span class="time-label">${formatDateTime(date)}</span>
-          <button type="button" class="btn" style="padding:4px 8px;font-size:11px;" onclick="loadFromHistory(${ms})">加载</button>
+          <button type="button" class="btn" style="padding:4px 8px;font-size:11px;" onclick="loadFromHistory(${ms})">${tsT('加载','Load')}</button>
         </div>
       `;
     }).join('');if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h6;
   } catch(e) {
-    const __h7='<p style="padding:24px;text-align:center;color:var(--text-muted);">加载历史记录失败</p>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h7;
+    const __h7='<p style="padding:24px;text-align:center;color:var(--text-muted);">'+tsT('加载历史记录失败','Failed to load history')+'</p>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h7;
   }
 }
 
@@ -802,6 +801,13 @@ function clearHistory() {
 }
 
 getNowSec();
+document.addEventListener('toolbox:langchange', function(){
+  try{ if(window.__lastTsDate && document.getElementById('convertResults')) renderResults(window.__lastTsDate, window.__lastTsSec); }catch(e){}
+  try{ renderHistory(); }catch(e){}
+  try{ if(document.getElementById('calcResult1') && document.getElementById('calcResult1').innerHTML.trim()) calculateDate(); }catch(e){}
+  try{ if(document.getElementById('calcResult2') && document.getElementById('calcResult2').innerHTML.trim()) calculateDiff(); }catch(e){}
+  try{ if(document.getElementById('quickResult') && document.getElementById('quickResult').innerHTML.trim()) { var q=document.getElementById('quickResult').getAttribute('data-type'); if(q) quickTs(q); } }catch(e){}
+});
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

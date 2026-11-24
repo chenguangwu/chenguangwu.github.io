@@ -15473,6 +15473,24 @@ const CASES = [
     "clicks": ["document.getElementById('w').value='1920';document.getElementById('h').value='1080';document.getElementById('fps').value='29.97';document.getElementById('dur').value='10';document.getElementById('br').value='8';var good=videoParams();var ok=good.ok&&good.fps===29.97;document.getElementById('br').value='';var empty=videoParams();ok=ok&&!empty.ok&&empty.error.indexOf('码率需为大于 0')>=0;document.getElementById('br').value='-1';var neg=videoParams();ok=ok&&!neg.ok&&neg.error.indexOf('码率需为大于 0')>=0;document.getElementById('__tbProbe').textContent='VBVAL '+(ok?'OK':'BAD');"],
     "expect": ["VBVAL OK"],
     "ref": "第743批：帧率保留 29.97（不 floor 成 29），空/负码率按字段报错并停止出结论；旧实现 Math.floor 且空码率归 0、负码率产出负文件大小。"
+  },
+  {
+    "slug": "it/timestamp-converter",
+    "clicks": ["document.getElementById('timestampMs').value='1234';fromTimestamp('ms');var a=document.getElementById('timestampSec').value;document.getElementById('timestampMs').value='-1234';fromTimestamp('ms');var b=document.getElementById('timestampSec').value;document.getElementById('timestampSec').value='1.234';fromTimestamp('sec');var c=document.getElementById('timestampMs').value;document.getElementById('__tbProbe').textContent='TSPREC '+((a==='1.234'&&b==='-1.234'&&c==='1234')?'OK':'BAD:'+a+'|'+b+'|'+c);"],
+    "expect": ["TSPREC OK"],
+    "ref": "第744批：毫秒→秒字段保留 3 位小数（1234→1.234，-1234→-1.234），秒→毫秒四舍五入到整数（1.234→1234）。旧 Math.floor 对正数丢 234ms、对负数向负无穷舍成 -2。"
+  },
+  {
+    "slug": "it/timestamp-converter",
+    "clicks": ["globalThis.TBKit={util:{isEn:function(){return true;}}};document.getElementById('timestampMs').value='1704067200000';try{fromTimestamp('ms');}catch(e){}var t=document.getElementById('convertResults').textContent;document.getElementById('__tbProbe').textContent='';"],
+    "expect": ["Unix seconds", "Copy"],
+    "ref": "第744批：英文态转换结果使用 Unix seconds/Local date/Copy 等标签并按 en-US 格式化；快捷时间结果源代码使用 Timestamp (s)。旧脚本硬编码中文标签和 zh-CN。"
+  },
+  {
+    "slug": "it/color-converter",
+    "clicks": ["var src=String(__ccExport);var ok=src.indexOf('clampAlpha(bg.a)<1')>=0&&src.indexOf('Not exported')>=0&&src.indexOf('不导出：背景含透明度')>=0;document.getElementById('__tbProbe').textContent='CCEXP '+(ok?'OK':'BAD');"],
+    "expect": ["CCEXP OK"],
+    "ref": "第744批：CSV 与页面共用背景 alpha 校验；背景 alpha<1 时导出只写“不导出：背景含透明度/Not exported”，不再按 RGB 当不透明输出 WCAG 结论。旧导出忽略 bg.a。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
