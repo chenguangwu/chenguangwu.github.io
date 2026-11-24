@@ -267,8 +267,10 @@
   <div class="card">
     <h2>📜 历史记录</h2>
     <div class="toolbar">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0;"><input type="checkbox" id="saveHistory" style="width:auto;margin:0;"> 主动保存完整文本到本机历史（默认关闭）</label>
       <button type="button" class="btn danger" onclick="clearHistory()">清空历史</button>
     </div>
+    <p style="font-size:12px;color:var(--text-muted);margin:8px 0 0;">关闭时对比不会写入 localStorage；开启后完整两侧文本仅保存在当前浏览器，可随时用“清空历史”删除。</p>
     <div style="margin-top:12px;" id="historyList">
       <p style="padding:24px;text-align:center;color:var(--text-muted);">暂无历史记录</p>
     </div>
@@ -395,6 +397,8 @@ function switchView(view, tab) {
 }
 
 function normalizeText(text, options) {
+  if(typeof text!=="string") return "";
+  options=options||{};
   let result = text;
   if (options.ignoreWhitespace) {
     result = result.replace(/[ \t]+/g, ' ').replace(/^ +| +$/gm, '');
@@ -406,6 +410,7 @@ function normalizeText(text, options) {
 }
 
 function lcsLength(a, b) {
+  if(!Array.isArray(a)||!Array.isArray(b)) return [];
   const m = a.length;
   const n = b.length;
   const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
@@ -445,6 +450,7 @@ function backtrack(dp, a, b, i, j) {
 }
 
 function alignedLineDiff(a, b) {
+  if(!Array.isArray(a)||!Array.isArray(b)) return [];
   const out = [], len = Math.max(a.length, b.length);
   for (let k = 0; k < len; k++) {
     if (k < a.length && k < b.length) {
@@ -453,6 +459,45 @@ function alignedLineDiff(a, b) {
         : { type: 'modify', oldValue: a[k], newValue: b[k], oldIndex: k, newIndex: k });
     } else if (k < a.length) out.push({ type: 'remove', value: a[k], oldIndex: k });
     else out.push({ type: 'add', value: b[k], newIndex: k });
+  }
+  return out;
+}
+
+function anchoredLineDiff(normA, normB, a, b) {
+  if(!Array.isArray(normA)||!Array.isArray(normB)) return [];
+  // 大文本不建 LCS 矩阵：用滑动窗口向前找 500 行内的插入/删除锚点。
+  // 开头插入一行时，后续内容仍能逐行命中，避免按行号比较导致的连锁 modify。
+  const out = [];
+  const LOOK = 500;
+  let i = 0, j = 0;
+  while (i < normA.length || j < normB.length) {
+    if (i < normA.length && j < normB.length && normA[i] === normB[j]) {
+      out.push({ type: 'same', value: a[i], oldIndex: i, newIndex: j }); i++; j++; continue;
+    }
+    let addCount = -1, removeCount = -1;
+    // b 侧多出若干行：A 当前行出现在 B 的后面 ⇒ 先把 B 前面的新增行输出。
+    for (let k = 1; k <= LOOK && j + k < normB.length && i < normA.length; k++) {
+      if (normA[i] === normB[j + k]) { addCount = k; break; }
+    }
+    // a 侧多出若干行：B 当前行出现在 A 的后面 ⇒ 先把 A 前面的删除行输出。
+    for (let k = 1; k <= LOOK && i + k < normA.length && j < normB.length; k++) {
+      if (normA[i + k] === normB[j]) { removeCount = k; break; }
+    }
+    if (addCount > 0 && (removeCount < 0 || addCount <= removeCount)) {
+      for (let k = 0; k < addCount; k++) { out.push({ type: 'add', value: b[j], newIndex: j }); j++; }
+      continue;
+    }
+    if (removeCount > 0) {
+      for (let k = 0; k < removeCount; k++) { out.push({ type: 'remove', value: a[i], oldIndex: i }); i++; }
+      continue;
+    }
+    if (i < normA.length && j < normB.length) {
+      out.push({ type: 'modify', oldValue: a[i], newValue: b[j], oldIndex: i, newIndex: j }); i++; j++;
+    } else if (i < normA.length) {
+      out.push({ type: 'remove', value: a[i], oldIndex: i }); i++;
+    } else {
+      out.push({ type: 'add', value: b[j], newIndex: j }); j++;
+    }
   }
   return out;
 }
@@ -466,6 +511,7 @@ function showDiffNotice(msg) {
 }
 
 function charDiffLine(oldLine, newLine) {
+  if(typeof oldLine!=="string"||typeof newLine!=="string") return {oldHtml:"",newHtml:""};
   // 按码点切分：Array.from 不会把 emoji 的代理对拆成两个半体
   const oldChars = Array.from(oldLine);
   const newChars = Array.from(newLine);
@@ -515,8 +561,8 @@ function doDiff() {
   const cells = (norm1.length + 1) * (norm2.length + 1);
   let diff;
   if (cells > MAX_DIFF_CELLS) {
-    diff = alignedLineDiff(norm1, norm2);
-    showDiffNotice('文本规模超过 400 万单元（约 2000×2000 行），已切换为逐行位置对齐：只比较相同序号的行，不检测行移动。');
+    diff = anchoredLineDiff(norm1, norm2, lines1, lines2);
+    showDiffNotice('文本规模超过 400 万单元（约 2000×2000 行），已切换为滑动窗口锚点对齐：在 500 行范围内识别插入/删除，超出窗口的内容仍会降级为按位置比较。');
   } else {
     showDiffNotice('');
     const dp = lcsLength(norm1, norm2);
@@ -566,6 +612,7 @@ function doDiff() {
 }
 
 function renderUnifiedDiff(diff, options) {
+  if(!Array.isArray(diff)) return;
   const container = document.getElementById('unifiedDiff');
   let html = '';
   let oldLn = 1;
@@ -599,6 +646,7 @@ function renderUnifiedDiff(diff, options) {
 }
 
 function renderSplitDiff(diff, options) {
+  if(!Array.isArray(diff)) return;
   const leftContainer = document.getElementById('leftDiff');
   const rightContainer = document.getElementById('rightDiff');
   let leftHtml = '';
@@ -633,6 +681,7 @@ function renderSplitDiff(diff, options) {
 }
 
 function updateStats(diff) {
+  if(!Array.isArray(diff)) return;
   let add = 0, remove = 0, same = 0, modify = 0;
   
   diff.forEach(chunk => {
@@ -726,6 +775,8 @@ console.log(fibonacci(20));`;
 }
 
 function addToHistory(t1, t2) {
+  const saveBox=document.getElementById('saveHistory');
+  if(!saveBox || !saveBox.checked) return;
   try {
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
     const preview = t1.substring(0, 50) + ' → ' + t2.substring(0, 50);

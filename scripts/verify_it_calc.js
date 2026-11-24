@@ -15297,6 +15297,40 @@ const CASES = [
     clicks: ["generate();document.getElementById('__tbProbe').textContent='BATCH '+qrItems.length;"],
     expect: ["BATCH 2", "第 2 行生成失败"],
     ref: "第736批：批量逐行生成，中间 3000 字符行超容量只标该行失败，前后有效行保留并可下载。旧实现共用 try/catch 清空全部。"
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "x", text2: "y" },
+    clicks: ["var a=['l1','l2','l3','l4','l5'];var b=['new','l1','l2','l3','l4','l5'];var d=anchoredLineDiff(a,b,a,b);document.getElementById('text1').value='ANCHOR '+d.length+' '+d[0].type+' '+d.filter(function(x){return x.type==='same';}).length;"],
+    expect: ["ANCHOR 6 add 5"],
+    ref: "第737批：大文本开头插入一行后，后续 5 行必须仍判 same，而不是按行号全部 modify。旧 alignedLineDiff 得 6 modify/0 same。"
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "secret-a", text2: "secret-b", saveHistory: "false" },
+    clicks: ["localStorage.removeItem(HISTORY_KEY);doDiff();var n1=(JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]')).length;document.getElementById('saveHistory').checked=true;doDiff();var n2=(JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]')).length;document.getElementById('__tbProbe').textContent='SAVE '+n1+' '+n2;"],
+    expect: ["SAVE 0 1"],
+    ref: "第737批：默认不持久化完整文本；勾选主动保存后才写 localStorage。旧实现每次对比自动保存。"
+  },
+  {
+    slug: "it/code-line-counter",
+    clicks: ["var a=__applyDetectedLanguage('sample.py');var v1=document.getElementById('langSel').value;a=__applyDetectedLanguage('sample.unknown');var v2=document.getElementById('langSel').value;document.getElementById('__tbProbe').textContent='LANG '+v1+' '+v2;"],
+    expect: ["LANG py auto"],
+    ref: "第737批：按 option value 设置语言，Python 文件得到 py，未知扩展名保持 auto；旧 selectedIndex=2 会把 Python 设成 C 系。"
+  },
+  {
+    slug: "it/code-line-counter",
+    inputs: { codeInput: "   " },
+    clicks: ["calcTool()"],
+    expect: ["空输入不会自动加载示例"],
+    ref: "第737批：清空输入只显示空态，不再偷偷统计 // demo 示例。默认示例合法 ⇒ 不命中。"
+  },
+  {
+    slug: "it/code-line-counter",
+    inputs: { codeInput: "/* first */ /* second */\n/* a */ const x=1; /* b */", langSel: "js" },
+    clicks: ["calcTool()"],
+    expect: ["2 总行数 1 代码行 1 注释行 0 空行 50.0%"],
+    ref: "第737批：同一行两组块注释都必须扫描完；纯注释行计注释，注释夹代码行计代码。旧实现只处理第一组，第一行被误判代码。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
