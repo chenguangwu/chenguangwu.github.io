@@ -15105,6 +15105,62 @@ const CASES = [
     inputs: { mean: "110", mu0: "100", sigma: "10", n: "100", alpha: "0.05", tail: "left" },
     expect: ["观测效应与所选单尾备择方向相反"],
     ref: "第732批：左尾检验却观测到 +10 的正向效应，旧实现只用 |diff|≥MDE 就称「设计足以分辨」；现保留方向，明确当前检验不能据此支持该方向。默认双侧 ⇒ 不命中。"
+  },
+  {
+    slug: "it/text-similarity",
+    inputs: { textA: "constructor", textB: "constructor", tokenMode: "word" },
+    clicks: ["calculate()"],
+    expect: ["1.0000"],
+    ref: "第733批：相同文本词袋余弦应为 1；旧词频对象读 vec.constructor 命中原型函数，计数变 NaN ⇒ 余弦 0。默认文本不含 constructor ⇒ 不命中。"
+  },
+  {
+    slug: "it/text-truncate",
+    inputs: { input: "abcdef", limit: "0" },
+    clicks: ["document.getElementById('limit').value='0';truncate();document.getElementById('__tbProbe').textContent='TRUNC0 '+((__lastTruncated===''&&document.getElementById('result').textContent.indexOf('有效的保留数量')>=0)?'OK':'BAD');"],
+    expect: ["TRUNC0 OK"],
+    ref: "第733批：数量 0 时只应留错误提示，复制数据必须为空；旧 copyResult 直接复制结果区提示。默认 limit=20 合法 ⇒ 不命中。"
+  },
+  {
+    slug: "it/text-truncate",
+    inputs: { input: "abcdef", limit: "3", mode: "chars" },
+    clicks: ["document.getElementById('mode').value='chars';document.getElementById('ellipsis').value='';document.getElementById('wordBoundary').checked=false;document.getElementById('fromEnd').checked=false;document.getElementById('perLine').checked=false;document.getElementById('limit').value='3';truncate();document.getElementById('__tbProbe').textContent='TRUNCOK '+((__lastTruncated.indexOf('abc')===0&&__lastTruncated.length<=3)?'OK':'BAD');"],
+    expect: ["TRUNCOK OK"],
+    ref: "第733批护栏：合法截断仍写入复制数据，结果不超过 3 个字符（含省略符预算）。"
+  },
+  {
+    slug: "it/keyword-density",
+    inputs: { inputText: "北京天气", tokenMode: "bigram", minLen: "1" },
+    clicks: ["analyze()"],
+    expect: ["北京", "天气"],
+    ref: "第733批：连续汉字应先合成片段再生成相邻二元组；旧实现逐字入 segments，每个片段长度 1 ⇒ 二元词项恒为空。默认长中文样本不产生这两个短词 ⇒ 不命中。"
+  },
+  {
+    slug: "it/text-dedupe-sort",
+    inputs: { input: "a|b|a", separator: "custom", customSep: "|" },
+    clicks: ["document.getElementById('input').value='a|b|a';document.getElementById('separator').value='custom';document.getElementById('customSep').value='|';onCustomSepChange();applyOp('dedupe',null);document.getElementById('__tbProbe').textContent='DEDUPE '+document.getElementById('statCurrent').textContent+(String(document.getElementById('statCurrent').textContent)==='2'?' OK':' BAD');"],
+    expect: ["DEDUPE 2 OK"],
+    ref: "第733批：自定义分隔符变化后必须重建快照；旧实现只重绘，整串 a|b|a 仍是一项，去重后只剩 1 项。默认换行分隔 ⇒ 不命中。"
+  },
+  {
+    slug: "it/short-link-generator",
+    inputs: { url: "https://example.com/page", count: "3" },
+    clicks: ["document.getElementById('url').value='https://example.com/page';document.getElementById('count').value='3';document.getElementById('len').value='6';generate();document.getElementById('__tbProbe').textContent='SL '+((__lastShortLinks.length===3&&__lastShortLinks.every(function(x){return x.indexOf('\\n')<0;}))?'3 OK':'BAD');"],
+    expect: ["SL 3 OK"],
+    ref: "第733批：批量复制改为读取候选链接数组并按行拼接，旧实现读 textContent 会把相邻 div 粘连。默认生成 5 条 ⇒ 不命中。"
+  },
+  {
+    slug: "it/short-link-generator",
+    inputs: { url: "https://example.com/page", custom: "true", customSlug: "my-link" },
+    clicks: ["document.getElementById('url').value='https://example.com/page';document.getElementById('custom').checked=true;document.getElementById('customSlug').value='my-link';generate();document.getElementById('__tbProbe').textContent='SLC '+((__lastShortLinks.length===1&&__lastShortLinks[0].indexOf('my-link')>=0&&__lastShortLinks[0].indexOf('example.com/page')<0)?'OK':'BAD');"],
+    expect: ["SLC OK"],
+    ref: "第733批：自定义 slug 只复制候选短链接，不得夹带「原始 URL」说明；默认未勾选自定义 ⇒ 不命中。"
+  },
+  {
+    slug: "it/short-link-generator",
+    inputs: { url: "" },
+    clicks: ["document.getElementById('url').value='';generate();document.getElementById('__tbProbe').textContent='SL0 '+(__lastShortLinks.length===0?'OK':'BAD');"],
+    expect: ["SL0 OK"],
+    ref: "第733批：空 URL 生成失败后候选列表必须清空，复制不应包含错误提示。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

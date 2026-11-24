@@ -289,15 +289,17 @@ function toggleToolTheme(){
   }
 })();
 
+var __lastTruncated='';
 function truncate(){
   const text = document.getElementById('input').value;
   const result = document.getElementById('result');
-  if(!text){ result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Please enter text...":"请输入文本..."); return; }
+  if(!text){ __lastTruncated=''; result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Please enter text...":"请输入文本..."); return; }
 
   const mode = document.getElementById('mode').value;
   const rawLimit = document.getElementById('limit').value.trim();
   const limit = Number(rawLimit);
   if(!Number.isInteger(limit) || limit < 1){
+    __lastTruncated='';
     result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a valid keep count (positive integer, at least 1).":"请输入有效的保留数量（正整数，且不少于 1）。");
     return;
   }
@@ -388,21 +390,25 @@ function truncate(){
     return s;
   }
 
+  let outText;
   if(perLine && mode !== 'lines'){
     const lines = text.split('\n');
-    result.textContent = lines.map(truncOne).join('\n');
+    outText = lines.map(truncOne).join('\n');
   }else{
-    result.textContent = truncOne(text);
+    outText = truncOne(text);
   }
+  result.textContent = outText;
+  __lastTruncated = outText;  // 复制只认有效结果，错误提示不进入剪贴板
 }
 
 function copyResult(ev){
-  const text = document.getElementById('result').textContent;
-  if(!text || text === ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Please enter text...":"请输入文本...")){ alert('请先截断文本'); return; }
+  const text = __lastTruncated;
+  if(!text){ alert('请先输入有效文本与保留数量后再复制'); return; }
   const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
+  if(!navigator.clipboard || !navigator.clipboard.writeText){ alert('当前环境不支持剪贴板，请手动复制'); return; }
   navigator.clipboard.writeText(text).then(() => {
     if(btn){ const old = btn.textContent; btn.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"✅ Copied":"✅ 已复制"); setTimeout(() => btn.textContent = old, 1500); }
-  });
+  }).catch(() => alert('复制失败，请手动选择结果复制'));
 }
 
 function clearAll(){
