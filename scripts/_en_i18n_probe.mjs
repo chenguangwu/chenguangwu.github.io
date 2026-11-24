@@ -501,7 +501,7 @@ async function check(targets) {
 
 // ---------- 模式：links（英文态 DOM 结构回归） ----------
 // 指南链接块的外层 div 若被整句字典/模板命中，旧实现会 el.textContent = tr，
-// 把内部 <a> 一并删掉，链接退化成不可点击纯文本（2026-11-24 第672批实测 3302 页中 16 页）。
+// 把内部 <a> 一并删掉，链接退化成不可点击纯文本（2026-11-24 第676批实测 3302 页中 16 页）。
 // 本模式在英文态断言 .tool-guide-link 内 <a> 数量、href 与静态源一致，并验证切回中文仍完整。
 async function links(targets) {
   let bad = 0;

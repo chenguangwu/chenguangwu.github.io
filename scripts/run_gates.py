@@ -424,7 +424,7 @@ GATES = (
     # 英文单页词典 index 双向一致性：列出的文件必须存在、存在的文件必须列出，
     # 防止运行时按 _index.json 发请求时出现必然 404，或新词典漏挂索引永不生效。
     ("en dict index audit", ("python3", "scripts/audit_en_dict_index.py")),
-    # 英文态 DOM 结构回归锁：指南块整句翻译不得把内部 <a> 覆盖成纯文本（2026-11-24 第672批）。
+    # 英文态 DOM 结构回归锁：指南块整句翻译不得把内部 <a> 覆盖成纯文本（2026-11-24 第676批）。
     ("en guide link structure", ("node", "scripts/_en_i18n_probe.mjs", "--links",
                                  "geometry/pyramid-volume", "finance/compound-interest",
                                  "accounting/cash-conversion-cycle", "dyeing/color-diff", "it/text-diff")),
