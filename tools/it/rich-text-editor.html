@@ -532,18 +532,9 @@ function toMarkdown(html){
     div = document.createElement('div');
     div.innerHTML = sanitizeHtmlFallback(String(html || ''));
   }
-  // 代码块先占位，避免内部被二次处理
-  var codes = [];
-  var pres = div.querySelectorAll('pre');
-  for(var i=0;i<pres.length;i++){
-    codes.push(pres[i].textContent || '');
-    pres[i].setAttribute('data-md-code', String(i));
-  }
+  // 代码块直接由 walk() 输出围栏，不再用可碰撞的固定文本占位后全局替换。
   var out = walk(div);
   out = out.replace(/\n{3,}/g, '\n\n').trim();
-  out = out.replace(/__CODE_(\d+)__/g, function(m, idx){
-    return '\n```\n' + (codes[parseInt(idx,10)] || '') + '\n```\n';
-  });
   return out;
 }
 function walk(node){
@@ -555,8 +546,13 @@ function walk(node){
     if(n.nodeType !== 1) continue;
     var tag = n.tagName.toLowerCase();
     var inner = walk(n);
-    if(tag === 'pre' && n.hasAttribute('data-md-code')){
-      md += '\n\n__CODE_' + n.getAttribute('data-md-code') + '__\n\n';
+    if(tag === 'pre'){
+      var code = n.textContent || '';
+      var fence = '```';
+      var runs = code.match(/`+/g) || [];
+      var longest = runs.reduce(function(m,r){return Math.max(m,r.length);},0);
+      if(longest >= 3) fence = new Array(longest+2).join('`');
+      md += '\n\n' + fence + '\n' + code + '\n' + fence + '\n\n';
     } else if(/^h([1-6])$/.test(tag)){
       var lv = parseInt(tag.slice(1),10);
       md += '\n\n' + new Array(lv+1).join('#') + ' ' + inner.trim() + '\n\n';

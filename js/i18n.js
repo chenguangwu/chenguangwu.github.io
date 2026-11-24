@@ -564,6 +564,7 @@ var LANG_REGISTRY = [
       'tool.aria.parentheses': 'Parentheses',
       'tool.aria.power': 'Power',
       'tool.aria.toggle_password': 'Show or hide password',
+      'tool.aria.benchmark_warmup': 'Warm-up duration (ms)',
       'tool.ph.browser_default_16': 'Browser default 16',
       'tool.ph.country_search': 'Search country name (CN/EN), ISO code, capital (CN/EN)...',
       'tool.title.code_preview': 'Code output preview',

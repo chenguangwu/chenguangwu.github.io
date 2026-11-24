@@ -2376,8 +2376,8 @@ const CASES = [
     slug: "it/password-strength",
     inputs: { pwd: "abc123测试" },
     clicks: ["check()"],
-    expect: ["在线破解（10亿次/秒）： 3 天"],
-    ref: "IT-N536：在线档按 10 亿次/秒计算，48 bit 口令约 3 天；修复前基准是 2×10¹⁰ 次/秒，仅 3 小时。标签与除数必须一致。默认 ToolBox@2026 的耗时不同，注入失败回退后不命中。",
+    expect: ["在线猜测（限速 1–100 次/秒）："],
+    ref: "第753批（替代 IT-N536 的固定 10 亿次/秒在线档）：在线猜测改为限速 1–100 次/秒的区间，离线 GPU 另列 1e9–1e11 次/秒，并声明熵模型假设；不再把 10 亿次/秒当作在线场景。",
   },
   {
     slug: "it/password-strength",
@@ -14577,9 +14577,9 @@ const CASES = [
   {
     slug: "it/benchmark-builder",
     inputs: { ms: '20', type: 'int' },
-    clicks: ["run();stopRun();var r=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='BMSTOP '+(r.indexOf('ops')>=0&&r.indexOf('负载完成')>=0?'OK':'BAD '+r.slice(0,80));"],
+    clicks: ["run();stopRun();var r=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='BMSTOP '+(r.indexOf('ops/s')>=0&&r.indexOf('实测')>=0?'OK':'BAD '+r.slice(0,80));"],
     expect: ["BMSTOP OK"],
-    ref: "IT-N454 停止保留已完成部分：短时长测试后调 stopRun()，结果区仍须写出已完成 ops 与「负载完成」；旧实现停止只在忙等循环里判断、结果区由同一回调收尾，UI 冻结期间根本无法触发停止。探针串只在注入 20ms + int 时出现 ⇒ 零逃生。",
+    ref: "第753批口径：停止/短测试后结果区仍须写出已完成 ops、实测耗时与 ops/s，但不再附「极快/较慢」统一评级；旧实现同一回调同步忙等，UI 冻结期间无法触发停止。",
   },
   {
     slug: "it/js-formatter",
@@ -15817,6 +15817,59 @@ const CASES = [
     clicks: ["var src=String(verify);var g=String(__captcha_generator_f0);document.getElementById('__tbProbe').textContent='CAPEN '+((src.indexOf('Verification succeeded')>=0&&src.indexOf('Verification failed')>=0&&src.indexOf('The correct answer is')>=0&&g.indexOf('Web Crypto is unavailable')>=0)?'OK':'BAD');"],
     expect: ["CAPEN OK"],
     ref: "第752批：英文态验证码成功/失败/数学错误提示均须英文，数学失败还要给出正确答案；旧实现三个分支写死中文。",
+  },
+
+  // ---- 第753批补充 ----
+  {
+    slug: "it/benchmark-builder",
+    clicks: ["var src=String(run)+String(__benchmark_builderWorkload);document.getElementById('__tbProbe').textContent='BM753 '+((src.indexOf('warmupMs')>=0&&src.indexOf('measureStart')>=0&&src.indexOf('极快')<0&&src.indexOf('较慢')<0&&src.indexOf('每个操作')>=0)?'OK':'BAD');"],
+    expect: ["BM753 OK"],
+    ref: "第753批：移除跨负载统一的 ops/s 阈值评级，改为展示每个负载的操作定义、原始耗时与 ops/s，并支持预热、排除 30ms 启动等待；旧实现把 500 次整数运算与 100 次拼接都套同一「极快/正常/较慢」标准。",
+  },
+  {
+    slug: "it/password-strength",
+    clicks: ["document.getElementById('pwd').value='Tq7!mK9@pL2#';check();var h=document.getElementById('crackText').innerHTML;document.getElementById('__tbProbe').textContent='PWD753 '+((h.indexOf('在线猜测')>=0&&h.indexOf('离线 GPU')>=0&&h.indexOf('假设每位字符')>=0&&h.indexOf('无法破解')<0)?'OK':'BAD '+h.slice(0,120));"],
+    expect: ["PWD753 OK"],
+    ref: "第753批：破解时间必须区分在线限速与离线 GPU 区间，并声明「每位字符独立均匀随机」的假设；不再用固定单点速率或「无法破解」绝对结论。",
+  },
+  {
+    slug: "it/password-strength",
+    clicks: ["document.getElementById('pwd').value='A'.repeat(80);check();var h=document.getElementById('crackText').innerHTML;document.getElementById('__tbProbe').textContent='PWD753B '+((h.indexOf('远超可枚举范围')>=0&&h.indexOf('宇宙级')<0)?'OK':'BAD '+h.slice(0,80));"],
+    expect: ["PWD753B OK"],
+    ref: "第753批：超长口令按当前速率也给「远超可枚举范围（按该速率）」，不再输出「宇宙级/无法破解」的绝对安全结论。",
+  },
+  {
+    slug: "it/bayes-theorem",
+    inputs: { prior: "0.01", likelihood: "0.95", falsePositive: "0.05" },
+    clicks: ["calculate()"],
+    expect: ["证据强度说明： 后验百分点变化同时取决于先验"],
+    ref: "第753批：删除按 10 个百分点判定「强力/轻微支持」的通用结论，改为同时展示 BF、先验与后验百分点变化，并明确同一 BF 在不同先验下变化不同。",
+  },
+  {
+    slug: "it/bayes-theorem",
+    inputs: { prior: "0", likelihood: "0.5", falsePositive: "0.5" },
+    clicks: ["calculate()"],
+    expect: ["后验恒为 0"],
+    ref: "第753批边界：先验为 0 时后验保持 0，解读不得再出现「强力/轻微」证据标签；边界说明保留。",
+  },
+  {
+    slug: "it/bluetooth-version",
+    inputs: { v: "5.2", v2: "5.0", scene: "audio" },
+    clicks: ["calcTool()"],
+    expect: ["音频兼容检查清单", "不能证明两端互通"],
+    ref: "第753批：版本 5.2 只能说明规范引入 LE Audio/LC3，不能推断具体设备支持；结果区新增音频兼容检查清单（LE Audio/LC3、经典音频、配置文件、实测），删除「选购看 BLE 版本即可」。",
+  },
+  {
+    slug: "it/rich-text-editor",
+    clicks: ["var w=String(walk),t=String(toMarkdown);document.getElementById('__tbProbe').textContent='RTE753 '+((w.indexOf(\"tag === 'pre'\")>=0&&w.indexOf('longest')>=0&&w.indexOf('__CODE_')<0&&t.indexOf('__CODE_')<0)?'OK':'BAD');"],
+    expect: ["RTE753 OK"],
+    ref: "第753批：正文中的 __CODE_0__ 必须原样保留，不能再被代码块占位符全局替换；代码块直接递归输出围栏，正文与代码内容互不污染。",
+  },
+  {
+    slug: "it/rich-text-editor",
+    clicks: ["var w=String(walk);document.getElementById('__tbProbe').textContent='RTE753F '+((w.indexOf('longest+2')>=0&&w.indexOf('new Array(longest')>=0)?'OK':'BAD');"],
+    expect: ["RTE753F OK"],
+    ref: "第753批：代码内容含三连反引号时围栏自动加长到四个，避免提前闭合；旧占位/固定三反引号会把代码截断。",
   },
 
 ];
