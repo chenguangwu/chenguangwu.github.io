@@ -418,7 +418,9 @@ function calcSimple() {
   persons.forEach((_, i) => markField('person-share-' + i, true));
 
   if (!okTotal) {
-    outEl.innerHTML = `<p style="color:var(--danger)">⚠ 输入错误：总金额须为 0–${MAX_TOTAL.toLocaleString('zh-CN')} 元之间的有效数字（当前 ${escHtml(rawTotal)}），已停止计算。</p>`;
+    outEl.innerHTML = (!isFinite(total) || total < 0)
+      ? `<p style="color:var(--danger)">⚠ 输入错误：总金额必须 ≥ 0 且为有效数字（当前 ${escHtml(rawTotal)}），已停止计算。</p>`
+      : `<p style="color:var(--danger)">⚠ 输入错误：总金额须为 0–${MAX_TOTAL.toLocaleString('zh-CN')} 元之间的有效数字（当前 ${escHtml(rawTotal)}），已停止计算。</p>`;
     return;
   }
   if (!okTip) {
@@ -519,9 +521,10 @@ function addItem() {
 /** 逐项分摊核心：按人员索引（身份）累积，再以「分」为单位用最大余数法配平到账单总额 */
 function __advSplitAmounts(items, personCount, tipMultiplier, totalCents){
   const result = new Array(personCount).fill(0);
-  items.forEach(item=>{
-    const perPerson = item.amount / (item.involved.length||1);
-    item.involved.forEach(idx=>{
+  (items||[]).forEach(item=>{
+    const involved = (item && Array.isArray(item.involved)) ? item.involved : [];
+    const perPerson = (Number(item && item.amount) || 0) / (involved.length||1);
+    involved.forEach(idx=>{
       if(idx>=0 && idx<personCount) result[idx] += perPerson * tipMultiplier;
     });
   });

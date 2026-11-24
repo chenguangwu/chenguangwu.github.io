@@ -267,8 +267,11 @@ function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,ma
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 const RATE_MAX_PCT = 100;   // 每期手续费率合理上限（%）
 
-function calcTool(){const P=num('P'), nRaw=num('n'), n=Math.floor(nRaw);
-   const ratePct=num('r');
+function calcTool(){
+   __installment_real_rate_skip=false;
+   const P=num('P'), nRaw=num('n'), n=Math.floor(nRaw);
+   const rawR=String(document.getElementById('r').value==null?'':document.getElementById('r').value).trim();
+   const ratePct=rawR===''?NaN:Number(rawR);
    const rateErr=document.getElementById('rateError');
    function setRateErr(msg){
      if(!rateErr) return;
@@ -276,6 +279,15 @@ function calcTool(){const P=num('P'), nRaw=num('n'), n=Math.floor(nRaw);
      if(rateErr.style)rateErr.style.display=msg?'flex':'none';
    }
    setRateErr('');
+   if(rawR===''){
+     setRateErr('请填写每期手续费率；无手续费请显式填 0。');
+     __installment_real_rate_skip=true;
+     document.getElementById('installment_real_rateChart').innerHTML='';
+     document.getElementById('installment_real_rateTable').innerHTML='';
+     ToolBox.setResult('result','<p class="tip-error">请填写每期手续费率；无手续费请显式填 0，不能留空按 0% 计算。</p>');
+     return;
+   }
+   if(!isFinite(ratePct)){setRateErr('每期手续费率须为有效数字。');ToolBox.setResult('result','<p class="tip-error">每期手续费率须为有效数字。</p>');return;}
    if(P<=0||n<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的本金与期数。</p>');return;}
    // 期数必须为整数：小数期数不得静默向下取整
    if(nRaw!==n){ToolBox.setResult('result','<p class="tip-error">分期期数须为正整数（当前 '+nRaw+' 期，不按小数折算）。</p>');return;}
