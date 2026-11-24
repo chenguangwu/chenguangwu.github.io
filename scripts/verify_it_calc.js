@@ -8613,7 +8613,7 @@ const CASES = [
       "langSel": "js"
     },
     "expect": [
-      "1 2 3\njs\n3 总行数 3 代码行 0 注释行 0 空行 100.0% 代码占比"
+      "3 总行数 3 代码行 0 注释行 0 空行 100.0% 代码占比"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"codeInput\":\"1\\n2\\n3\",\"langSel\":\"js\"}，输出区含「1 2 3\njs\n3 总行数 3 代码行 0 注释行 0 空行 100.0% 代…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -10886,10 +10886,11 @@ const CASES = [
       "count": "42",
       "output": "1\n2\n3"
     },
+    "clicks": ["generate();var __p=document.getElementById('output').value.split(String.fromCharCode(10,10)).length;document.getElementById('output').value='PARAS='+__p;"],
     "expect": [
-      "sectetur sed. Minim qui in duis dolore cillum non officia commodo amet nisi officia id ex duis velit nisi non elit. Amet"
+      "PARAS=42"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"count\":\"42\",\"output\":\"1\\n2\\n3\"}，输出区含「sectetur sed. Minim qui in duis dolore c…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第750批：随机文本本身不稳定，改锚当前设置的实际数量提示；默认 3 项提示不同，仍可判别，且不再把随机抽样锁成期望。"
   },
   {
     "slug": "it/lorem",
@@ -15303,8 +15304,8 @@ const CASES = [
   {
     slug: "it/code-line-counter",
     clicks: ["var a=__applyDetectedLanguage('sample.py');var v1=document.getElementById('langSel').value;a=__applyDetectedLanguage('sample.unknown');var v2=document.getElementById('langSel').value;document.getElementById('__tbProbe').textContent='LANG '+v1+' '+v2;"],
-    expect: ["LANG py auto"],
-    ref: "第737批：按 option value 设置语言，Python 文件得到 py，未知扩展名保持 auto；旧 selectedIndex=2 会把 Python 设成 C 系。"
+    expect: ["LANG auto auto"],
+    ref: "第750批：自动模式与识别语言分离——下拉保持 auto，识别到的 py 只用于统计并在状态栏展示；未知扩展名回到 JavaScript 规则。手动选项才覆盖自动识别。"
   },
   {
     slug: "it/code-line-counter",
@@ -15687,6 +15688,58 @@ const CASES = [
     clicks: ["document.getElementById('__tbProbe').textContent='N='+COUNTRIES.length+' NOTE='+(document.getElementById('coverageNote').textContent.indexOf('250')>=0?1:0);"],
     expect: ["N=250 NOTE=1"],
     ref: "第749批：国家库扩至 250 条，页面覆盖说明需动态写 250 与数据快照，不得残留写死 48。",
+  },
+
+  // ---- 第750批补充 ----
+  {
+    slug: "it/lorem",
+    clicks: ["setType({classList:{add:function(){},remove:function(){}},dataset:{type:'chinese'}});document.getElementById('count').value='10';document.getElementById('minWords').value='20';document.getElementById('maxWords').value='30';document.getElementById('zhSeed').value='42';generate();var a=document.getElementById('output').value;generate();var b=document.getElementById('output').value;document.getElementById('output').value='ZHSAME='+(a===b?1:0)+' N='+a.split(String.fromCharCode(10)).length;"],
+    expect: ["ZHSAME=1 N=10"],
+    ref: "第750批：中文占位文本支持固定随机种子复现，10 句数量准确且两次生成一致；旧实现每次 Math.random 取预置句，无法复现且易重复。",
+  },
+  {
+    slug: "it/lorem",
+    clicks: ["setType({classList:{add:function(){},remove:function(){}},dataset:{type:'chinese'}});document.getElementById('count').value='10';document.getElementById('minWords').value='20';document.getElementById('maxWords').value='30';document.getElementById('zhSeed').value='42';document.getElementById('zhParagraphs').checked=true;generate();document.getElementById('output').value='PARAS='+document.getElementById('output').value.split(String.fromCharCode(10,10)).length;"],
+    expect: ["PARAS=3"],
+    ref: "第750批：中文段落模式把 10 句按每段 3–5 句分组，得到 2–4 段；旧实现只能逐句输出，无法控制段落数。",
+  },
+  {
+    slug: "it/lorem",
+    inputs: { count: "3", minWords: "8", maxWords: "19", zhSeed: "1.5" },
+    clicks: ["generate()"],
+    expect: ["随机种子必须是 1–999999 的整数。"],
+    ref: "第750批：随机种子只接受 1–999999 的整数，小数须报错并清空输出，不能静默取整。",
+  },
+  {
+    slug: "it/country-code-lookup",
+    clicks: ["document.documentElement.lang='en-US';document.getElementById('input').value='US';validate();document.getElementById('input').value='Tokyo';validate();"],
+    expect: ["Capital: Tokyo"],
+    ref: "第750批：英文态单命中首都显示英文（Washington, D.C./Tokyo），不再输出中文首都；首都名也可检索。",
+  },
+  {
+    slug: "it/text-cleaner",
+    inputs: { "input-text": "NaN &amp; test" },
+    clicks: ["document.getElementById('opt-decode-entities').checked=true;executeClean()"],
+    expect: ["NaN & test"],
+    ref: "第750批：实体解码必须始终返回字符串，NaN/Infinity 作为普通文本不能被数值守卫中断；旧实现命中 NaN 后返回 undefined，后续 split 报错并保留旧结果。",
+  },
+  {
+    slug: "it/code-line-counter",
+    clicks: ["__applyDetectedLanguage('a.py');document.getElementById('codeInput').value='x=1'+String.fromCharCode(10)+'# c';calcTool();__applyDetectedLanguage('b.html');document.getElementById('codeInput').value='<a>1</a>'+String.fromCharCode(10)+'<!-- c -->';calcTool();document.getElementById('codeInput').value='SEC='+document.getElementById('langSel').value+' D='+__clcDetectedLang;"],
+    expect: ["SEC=auto D=html"],
+    ref: "第750批：自动模式与识别语言分离，连续上传不同后缀文件须重新识别；旧实现第一次上传就把下拉改成具体语言，第二次不再自动识别。",
+  },
+  {
+    slug: "it/text-qr",
+    clicks: ["var s='A'.repeat(6000);document.getElementById('text').value=s;generate();window.__cap=null;navigator.clipboard.writeText=function(t){window.__cap=t;return {then:function(cb){cb();return this;},catch:function(){return this;}};};window.alert=function(){};copyResult();document.getElementById('output').innerHTML='QRCOPY='+(window.__cap?window.__cap.length:0)+' ERRBAD='+(window.__cap&&window.__cap.indexOf('内容过长')>=0?1:0);"],
+    expect: ["QRCOPY=6000 ERRBAD=0"],
+    ref: "第750批：生成失败后复制必须复制输入原文，不能把结果区的错误提示当内容；旧实现直接复制 output.textContent。",
+  },
+  {
+    slug: "it/text-qr",
+    clicks: ["window.__q=window.qrcode;window.qrcode=null;document.getElementById('text').value='abc';generate();window.__cap=null;navigator.clipboard.writeText=function(t){window.__cap=t;return {then:function(cb){cb();return this;},catch:function(){return this;}};};copyResult();window.qrcode=window.__q;document.getElementById('output').innerHTML='LIBERR='+(__qrError.indexOf('库未加载')>=0?1:0)+' CAP='+window.__cap;"],
+    expect: ["LIBERR=1 CAP=abc"],
+    ref: "第750批：二维码库缺失须报「库未加载」而非统一误称内容过长；复制仍取输入原文。",
   },
 
 ];

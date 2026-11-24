@@ -145,7 +145,7 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
       <div data-tb="preset" data-tb-presets='[{"label":"代码/**\n * 示例：计算两数之和\n */\nfuncti…","labelEn":"codeInput=/**\n * 示例：计算两数之和\n */\nfunction…","values":{"codeInput":"/**\n * 示例：计算两数之和\n */\nfunction add(a, b) {\n  // 返回和\n  return a + b;\n}\n\n// 空行上方是一个空行\nconsole.log(add(1, 2));","langSel":"auto"}}]'></div>
 <label for="langSel">语言</label>
-      <select id="langSel" onchange="calcTool()" style="width:auto;padding:9px 12px;font-size:13px;">
+      <select id="langSel" onchange="__clcLangChanged();calcTool()" style="width:auto;padding:9px 12px;font-size:13px;">
         <option value="auto">自动识别（按扩展名）</option>
         <option value="js">JavaScript / TypeScript</option>
         <option value="c">C / C++ / Java / Go / Rust</option>
@@ -158,6 +158,7 @@
       <button type="button" class="btn" onclick="document.getElementById('codeFile').click()">选择文件</button>
       <input type="file" id="codeFile" accept=".js,.ts,.c,.cpp,.java,.go,.rs,.py,.html,.xml,.sql,.sh,.bash,.css,.scss,.json,.md" style="display:none;" aria-label="选择代码文件">
     </div>
+    <div id="langStatus" role="status" style="font-size:12px;color:var(--text-muted);margin:-4px 0 10px;"></div>
     <div class="text-block">
       <label for="codeInput">代码</label>
       <textarea id="codeInput" rows="12" spellcheck="false" style="font-family:'SF Mono',monospace;font-size:12.5px;" oninput="calcTool()">/**
@@ -397,6 +398,26 @@ function __scanBlockComments(text, inBlock, rules){
   }
   return {code:code,inBlock:inBlock,hadBlock:hadBlock};
 }
+var __clcAutoMode=true,__clcDetectedLang=null,__clcFileName='';
+function __clcIsEn(){return !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
+function __clcUpdateStatus(){
+  var el=document.getElementById('langStatus');if(!el)return;
+  var en=__clcIsEn(),name=__clcFileName||'';
+  if(document.getElementById('langSel').value!=='auto'){
+    el.textContent=en?'Manual language override; auto detection is paused.':'已手动选择语言，自动识别暂停。';
+    return;
+  }
+  if(__clcDetectedLang){
+    el.textContent=(en?'Auto-detected: ':'自动识别：')+__clcDetectedLang.toUpperCase()+(name?' ('+name+')':'')+(en?'; choose a language to override.':'；可手动选择语言覆盖。');
+  }else{
+    el.textContent=(en?'Auto mode: no recognized file extension, using JavaScript rules.':'自动模式：未识别文件扩展名，按 JavaScript 规则统计。');
+  }
+}
+function __clcLangChanged(){
+  __clcAutoMode=document.getElementById('langSel').value==='auto';
+  if(!__clcAutoMode)__clcDetectedLang=null;
+  __clcUpdateStatus();
+}
 function calcTool(){
   var raw=document.getElementById('codeInput').value||'';
   if(!raw.trim()){
@@ -404,7 +425,7 @@ function calcTool(){
     return;
   }
   var sel=document.getElementById('langSel').value;
-  var lang=sel==='auto'?'js':sel;
+  var lang=sel==='auto'?(__clcDetectedLang||'js'):sel;
   var lineRules=LANGS[lang]?LANGS[lang].line:[];
   var blockRules=LANGS[lang]?LANGS[lang].block:[];
   var lines=raw.split('\n');
@@ -438,7 +459,9 @@ function calcTool(){
 function __applyDetectedLanguage(name){
   if(typeof name!=="string" || !name) return null;
   var l=detectLang(name);
-  document.getElementById('langSel').value=(l && LANGS[l])?l:'auto';
+  __clcDetectedLang=(l && LANGS[l])?l:null;
+  __clcFileName=name;
+  __clcUpdateStatus();
   return l;
 }
 document.getElementById('codeFile').addEventListener('change',function(){
@@ -446,14 +469,18 @@ document.getElementById('codeFile').addEventListener('change',function(){
   var r=new FileReader();
   r.onload=function(e){
     document.getElementById('codeInput').value=e.target.result;
+    __clcFileName=f.name;
     if(document.getElementById('langSel').value==='auto'){
-      var l=detectLang(f.name);
       __applyDetectedLanguage(f.name);
+    }else{
+      __clcDetectedLang=null;
+      __clcUpdateStatus();
     }
     calcTool();
   };
   r.readAsText(f);
 });
+__clcUpdateStatus();
 calcTool();
 
 var __code_line_counter_last=0,__code_line_counter_skip=false;
