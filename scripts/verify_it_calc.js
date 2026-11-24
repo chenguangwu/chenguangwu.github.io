@@ -10716,18 +10716,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「 示例 事件\n共 0 项」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "it/line-ending-converter",
-    "inputs": {
-      "leInput": "1\n2\n3",
-      "leOutput": "1\n2\n3",
-      "targetSel": "&#10;"
-    },
-    "expect": [
-      "1 2 3\n&#10;\n1&#10;2&#10;3"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"leInput\":\"1\\n2\\n3\",\"leOutput\":\"1\\n2\\n3\",\"targetSel\":\"&#10;\"}，输出区含「1 2 3\n&#10;\n1&#10;2&#10;3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "it/list-converter",
     "inputs": {
       "input": "1\n2\n3",
@@ -14846,8 +14834,8 @@ const CASES = [
   {
     "slug": "it/line-ending-converter",
     "inputs": { "leInput": "a\r\nb\nc\rd", "targetSel": "\n" },
-    "expect": ["混合（CRLF/LF/CR）"],
-    "ref": "并列口径：CRLF/LF/CR 各 1 次时旧实现固定先判 CRLF；修复后主换行符显示「混合（CRLF/LF/CR）」，不再把并列样本误报为 Windows 行尾。"
+    "expect": ["混合换行（无明显主类型"],
+    "ref": "第746批更新：CRLF/LF/CR 各 1 次时判混合且无主类型，并列出三种数量；旧实现只在最高数量并列时显示「混合（CRLF/LF/CR）」，1 CRLF + 3 LF 会误报 LF。"
   },
   {
     "slug": "it/case-converter",
@@ -15521,6 +15509,42 @@ const CASES = [
     "clicks": ["var a=__sgDiag.splitSentences('第一句。结论待定');var b=__sgDiag.splitSentences('结论待定');document.getElementById('__tbProbe').textContent='SUM '+(a.length===2&&b.length===1?'OK':'BAD:'+a.length+'/'+b.length);"],
     "expect": ["SUM OK"],
     "ref": "第745批：分句保留非空短句，末尾无标点“结论待定”（4 个 UTF-16 单元）也进入候选；单句文本返回 1 句。旧尾句要求 ≥5、带标点句要求 >1，会丢掉该结论。"
+  },
+  {
+    "slug": "it/line-ending-converter",
+    "clicks": ["var crlf=String.fromCharCode(13,10),LF=String.fromCharCode(10);var t='a'+crlf+'b'+LF+'c'+LF+'d'+LF;var c=countLE(t);document.getElementById('__tbProbe').textContent='LE '+mainLE(c);"],
+    "expect": ["LE 混合换行（主类型 LF"],
+    "ref": "第746批：只要出现两种以上换行就判混合并列出各自数量；1 CRLF + 3 LF 不再因最高数量唯一而只报 LF。"
+  },
+  {
+    "slug": "it/line-ending-converter",
+    "clicks": ["document.getElementById('leInput').value='A'+String.fromCharCode(10)+'B';__leRaw=null;calcTool();document.getElementById('targetSel').value=String.fromCharCode(13,10);calcTool();document.getElementById('leOutput').value='TARGET '+((__leOut.charCodeAt(1)===13&&__leOut.charCodeAt(2)===10)?'OK':'BAD:'+__leOut.charCodeAt(1));"],
+    "expect": ["TARGET OK"],
+    "ref": "第746批：目标下拉框绑定 change 后立即重算；A\\nB 切到 CRLF 后内部结果第 2/3 字节为 13/10。旧实现不重算，复制仍是 LF。"
+  },
+  {
+    "slug": "it/line-ending-converter",
+    "clicks": ["var crlf=String.fromCharCode(13,10),cr=String.fromCharCode(13),LF=String.fromCharCode(10);var raw='A'+crlf+'B'+LF+'C'+cr+'D';calcTool(raw);document.getElementById('targetSel').value=crlf;calcTool();document.getElementById('__tbProbe').textContent='FILE '+((__leOut==='A'+crlf+'B'+crlf+'C'+crlf+'D')?'OK':'BAD');"],
+    "expect": ["FILE OK"],
+    "ref": "第746批：calcTool 保留原始文件字符串，检测/输出/复制不再经 textarea 规范化；CRLF+LF+CR 混合原文可原样转成目标字节。"
+  },
+  {
+    "slug": "it/matrix-transpose",
+    "clicks": ["document.getElementById('rows').value=2;document.getElementById('cols').value=2;build();document.getElementById('a0').value='0.123456789012345';document.getElementById('a1').value='9007199254740993';document.getElementById('a2').value='-0';document.getElementById('a3').value='1e-7';calculate();document.getElementById('__tbProbe').textContent='T '+__lastTransposeRaw.map(function(r){return r.join('|');}).join(',');"],
+    "expect": ["T 0.123456789012345|-0,9007199254740993|1e-7"],
+    "ref": "第746批：转置只搬移元素，原始输入字符串随元素一起转置；长小数、超安全整数、负零和科学计数法均原样输出。旧 Number + toPrecision(12) 会改写末位。"
+  },
+  {
+    "slug": "it/matrix-inverter",
+    "clicks": ["document.getElementById('size').value=2;build();document.getElementById('a0').value='1';document.getElementById('a1').value='0';document.getElementById('a2').value='0';document.getElementById('a3').value='1e-13';calculate();var t=String(document.getElementById('output').innerHTML);document.getElementById('size').value=(t.indexOf('可逆但严重病态')>=0&&t.indexOf('条件数')>=0)?'INVSCALE OK':'INVSCALE BAD';"],
+    "expect": ["INVSCALE OK"],
+    "ref": "第746批：diag(1,1e-13) 可逆但严重病态，输出逆矩阵、条件数 κ∞≈1e13 与病态警告，不再报奇异。"
+  },
+  {
+    "slug": "it/matrix-inverter",
+    "clicks": ["document.getElementById('size').value=2;build();document.getElementById('a0').value='1';document.getElementById('a1').value='2';document.getElementById('a2').value='2';document.getElementById('a3').value='4';calculate();var t=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').value=t.indexOf('奇异矩阵')>=0?'INVSING OK':'INVSING BAD len='+t.length;"],
+    "expect": ["INVSING OK"],
+    "ref": "第746批：真奇异 [[1,2],[2,4]] 在消元后第 2 列全零，仍返回奇异并停止。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
