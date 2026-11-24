@@ -199,6 +199,8 @@ textarea:focus{border-color:#4338CA;}
       <h3>⚙️ 内容与样式</h3>
       <label class="field-label" for="textInput">输入文本或网址（每行生成一个二维码，最多 20 行）</label>
       <textarea id="textInput" placeholder="每行一个文本或 URL…" data-i18n-ph="ph.qrcode.input">https://toolbox.example.com</textarea>
+      <div style="font-size:12px;color:var(--text-secondary);margin:-4px 0 8px;" data-zh="单条模式原样编码（包括首尾空格）；批量模式按行拆分为多个码，可决定是否去掉每行首尾空白。">Single mode encodes the text exactly, including leading/trailing spaces. Batch mode splits by line and lets you trim each line.</div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin:0 0 8px;"><input type="checkbox" id="qrBatchTrim" checked style="width:auto;margin:0;"><span data-zh="批量模式去除每行首尾空白">Trim each line in batch mode</span></label>
       <div class="row">
         <label for="contentTemplate">内容模板</label>
         <select id="contentTemplate" style="flex:1;">
@@ -228,6 +230,7 @@ textarea:focus{border-color:#4338CA;}
         <label for="qrmargin">静区（模块，0–10）</label>
         <input type="number" id="qrmargin" min="0" max="10" step="1" value="4" style="width:90px;">
       </div>
+      <p id="qrMarginError" role="alert" style="font-size:12px;color:var(--danger,#B91C1C);margin:-8px 0 10px;display:none;"></p>
       <div class="row">
         <label for="fgColor">前景</label>
         <input type="color" id="fgColor" value="#000000">
@@ -257,8 +260,8 @@ textarea:focus{border-color:#4338CA;}
         <p id="qrCapNote" style="font-size:12px;color:var(--text-muted,#888);margin-top:8px;line-height:1.7;"></p>
       </div>
       <div class="toolbar" style="margin-top:16px;margin-bottom:0;justify-content:center;">
-        <button type="button" class="btn" onclick="downloadQR()">下载 PNG</button>
-        <button type="button" class="btn" onclick="downloadSVG()">下载 SVG</button>
+        <button type="button" class="btn" id="qrDownloadPng" onclick="downloadQR()">下载 PNG</button>
+        <button type="button" class="btn" id="qrDownloadSvg" onclick="downloadSVG()">下载 SVG</button>
         <button type="button" class="btn" onclick="copyQRContent()">复制内容</button>
       </div>
     </div>
@@ -359,6 +362,9 @@ fgColor.addEventListener('input', function() { fgVal.textContent = fgColor.value
 bgColor.addEventListener('input', function() { bgVal.textContent = bgColor.value; generate(); });
 errorLevel.addEventListener('change', generate);
 textInput.addEventListener('input', debounce(generate, 500));
+document.getElementById('qrBatchTrim').addEventListener('change', generate);
+document.getElementById('qrmargin').addEventListener('input', generate);
+document.getElementById('qrmargin').addEventListener('change', generate);
 
 function applyTemplate() {
   var value = document.getElementById('contentTemplate').value;
@@ -392,7 +398,7 @@ function __qrChart(){
   if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
   var host = document.getElementById('qrChart');
   if (!host) { return; }
-  var text = document.getElementById('textInput').value.trim();
+  var text = document.getElementById('textInput').value;
   if (!text) { host.innerHTML = ''; return; }
   var bytes = __qrBytes(text);
   var en = TBKit.util.isEn();
@@ -433,18 +439,52 @@ function __qrBuild(text, margin, pixelSize){
   }
   return { qr: qr, canvas: canvas, text: text, margin: margin, pixelSize: pixelSize };
 }
+function __qrMarginValue(){
+  var raw = String(document.getElementById('qrmargin').value || '').trim();
+  if (raw === '') return { ok: false, msg: '静区不能为空，请输入 0–10 的整数。' };
+  if (!/^\d+$/.test(raw)) return { ok: false, msg: '静区必须是 0–10 的整数（不支持小数、负号或科学计数法）。' };
+  var n = Number(raw);
+  if (!isFinite(n) || n < 0 || n > 10) return { ok: false, msg: '静区超出范围，请输入 0–10 的整数。' };
+  return { ok: true, value: n };
+}
+function __qrMarginInvalid(msg){
+  lastQr = null; lastCanvas = null; qrItems = [];
+  var container = document.getElementById('qrcode');
+  if (container) container.innerHTML = '<p class="err">静区无效：' + msg + ' 已清除旧二维码，修正后会自动重新生成。</p>';
+  ['qrDownloadPng','qrDownloadSvg'].forEach(function(id){ var b=document.getElementById(id); if(b)b.disabled=true; });
+  var hint=document.getElementById('qrMarginError');
+  if(hint){ hint.textContent=msg; hint.style.display='block'; }
+  try { __qrChart(); } catch(e){}
+}
+function __qrPayloads(){
+  var raw = textInput.value;
+  if (raw.length === 0) return [];
+  if (raw.indexOf('\n') < 0 && raw.indexOf('\r') < 0) return [raw];
+  var trimBox = document.getElementById('qrBatchTrim');
+  var lines = raw.split(/\r?\n/);
+  if (!trimBox || trimBox.checked) {
+    lines = lines.map(function(x){ return x.trim(); }).filter(function(x){ return x.length > 0; });
+  } else {
+    lines = lines.filter(function(x){ return x.length > 0; });
+  }
+  return lines.slice(0, 20);
+}
 function generate() {
   var container = document.getElementById('qrcode');
-  var raw = textInput.value.trim();
-  if (!raw) {
+  var marginInfo = __qrMarginValue();
+  if (!marginInfo.ok) { __qrMarginInvalid(marginInfo.msg); return; }
+  var marginHint=document.getElementById('qrMarginError');
+  if(marginHint){ marginHint.style.display='none'; marginHint.textContent=''; }
+  var lines = __qrPayloads();
+  if (!lines.length) {
     lastQr = null; lastCanvas = null; qrItems = [];
     container.innerHTML = '<p style="color:#999;">输入内容后自动生成二维码</p>';
+    ['qrDownloadPng','qrDownloadSvg'].forEach(function(id){ var b=document.getElementById(id); if(b)b.disabled=true; });
     try { __qrChart(); } catch(e){}
     return;
   }
   try {
-    var lines = raw.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean).slice(0,20);
-    var margin = Math.min(10, Math.max(0, parseInt(document.getElementById('qrmargin').value,10) || 0));
+    var margin = marginInfo.value;
     var pixelSize = parseInt(sizeEl.value,10) || 256;
     container.innerHTML = ''; qrItems = [];
     for (var i = 0; i < lines.length; i++) {
@@ -467,6 +507,7 @@ function generate() {
       }
     }
     lastQr = qrItems[0].qr; lastCanvas = qrItems[0].canvas;
+    ['qrDownloadPng','qrDownloadSvg'].forEach(function(id){ var b=document.getElementById(id); if(b)b.disabled=false; });
     try { __qrChart(); } catch(e){}
   } catch (e) {
     lastQr = null; lastCanvas = null; qrItems = [];
@@ -475,14 +516,15 @@ function generate() {
   }
 }
 function copyQRContent() {
-  var text = textInput.value.trim();
-  if (!text) { ToolBox.showToast('请先输入二维码内容', 'warning'); return; }
-  ToolBox.copyText(text, '已复制二维码内容');
+  var lines = __qrPayloads();
+  if (!lines.length) { ToolBox.showToast('请先输入二维码内容', 'warning'); return; }
+  var text = lines.join('\n');
+  ToolBox.copyText(text, lines.length > 1 ? '已复制批量二维码内容（按行分隔，未额外去空白）' : '已复制二维码内容（原样，包括首尾空格）');
 }
 
 function downloadSVG(idx) {
   var item = qrItems[idx || 0];
-  if (!item) { ToolBox.showToast('请先生成二维码', 'warning'); return; }
+  if (!item || !lastQr) { ToolBox.showToast('请先生成有效二维码', 'warning'); return; }
   var qr = item.qr;
   var moduleCount = qr.getModuleCount();
   var pixelSize = item.pixelSize;
@@ -506,7 +548,7 @@ function downloadSVG(idx) {
 
 function downloadQR(idx) {
   var item = qrItems[idx || 0];
-  if (!item) { ToolBox.showToast('请先生成二维码', 'warning'); return; }
+  if (!item || !lastCanvas) { ToolBox.showToast('请先生成有效二维码', 'warning'); return; }
   var a = document.createElement('a');
   a.download = 'qrcode-' + Date.now() + (qrItems.length > 1 ? '-' + ((idx || 0) + 1) : '') + '.png';
   a.href = item.canvas.toDataURL('image/png');

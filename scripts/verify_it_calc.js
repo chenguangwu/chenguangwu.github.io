@@ -4372,6 +4372,30 @@ const CASES = [
     ref: "二维码矩阵在桩内画不出来（`qrcode is not defined`），但**内容串本身先已写进结果区** ⇒ 直接锚内容串。用长串避免「超短串命中面过大」。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
   {
+    slug: "it/qrcode",
+    clicks: ["var t=document.getElementById('textInput');t.value=' A ';var a=__qrPayloads();t.value=' a \\n b ';document.getElementById('qrBatchTrim').checked=true;var b=__qrPayloads();document.getElementById('qrBatchTrim').checked=false;var c=__qrPayloads();document.getElementById('__tbProbe').textContent='QRPAY727 '+JSON.stringify(a)+'|'+JSON.stringify(b)+'|'+JSON.stringify(c);"],
+    expect: ['QRPAY727 [" A "]|["a","b"]|[" a "," b "]'],
+    ref: "第728批：单条模式必须原样编码首尾空格；批量模式按行拆分，勾选去空白得到 a/b，取消后保留每行空格。旧实现无条件 trim，三组都会变。",
+  },
+  {
+    slug: "it/qrcode",
+    clicks: ["var m=document.getElementById('qrmargin');var r=[];m.value='';r.push(__qrMarginValue().ok);m.value='1.5';r.push(__qrMarginValue().ok);m.value='11';r.push(__qrMarginValue().ok);m.value='4';r.push(__qrMarginValue().ok);document.getElementById('__tbProbe').textContent='QMARGIN727 '+r.join(',');"],
+    expect: ["QMARGIN727 false,false,false,true"],
+    ref: "第728批：静区 0–10 整数校验。空、1.5、11 均拒绝，4 接受；旧 parseInt(...)||0 会把空当 0、1.5 当 1，造成显示值与预览不一致。",
+  },
+  {
+    slug: "it/qr-beautify",
+    clicks: ["var a=__qrGeometry(21),b=__qrGeometry(177);document.getElementById('__tbProbe').textContent='QRGEO727 '+[a.quiet,a.cell,a.size,b.quiet,b.cell,b.size].join(',');"],
+    expect: ["QRGEO727 4,17,493,4,2,370"],
+    ref: "第728批：v1 21 模块 + 两侧 4 静区 ⇒ cell=⌊520/29⌋=17、size=493；v40 177 模块 ⇒ cell=⌊520/185⌋=2、size=370。均为整数像素并保留静区；旧实现 size=min(520,count*8) 无静区且 v1 cell=24.76 分数。",
+  },
+  {
+    slug: "it/qr-beautify",
+    clicks: ["document.getElementById('__tbProbe').textContent='QRCTR727 '+[__qrContrastRatio('#000000','#ffffff')>20,__qrContrastRatio('#eeeeee','#ffffff')<3,__qrContrastRatio('#777777','#ffffff')>4].join(',');"],
+    expect: ["QRCTR727 true,true,true"],
+    ref: "第728批：对比度阈值 3:1。黑白约 21、#777/白约 4.48 通过，#eee/白约 1.16 触发低对比提示；旧实现无对比度判定。",
+  },
+  {
     slug: "it/unit-converter-advanced",
     inputs: { cat: "length", from: "m", val: "100" },
     clicks: ["calcTool()"],
@@ -11588,13 +11612,13 @@ const CASES = [
       "bg": "#ffffff"
     },
     "expect": [
-      "✅ 已生成 29 × 29 模块 · 容错 H · 232px"
+      "✅ 已生成 29 × 29 模块 · 容错 H · 518px · 含 4 模块静区"
     ],
     "ref": "第390批重写（原为自动补强弱用例，anchor 依赖旧环境 'qrcode is not defined' 报错串）：harness 注入真实 qrcode 后该串不复存在，改为锚「已生成 N × N 模块 · 容错 H」这类由内容与纠错等级共同决定的派生量；20 字节 ASCII 在 H 级必须升到比默认样例更大的版本，默认态（Hello World + M）不命中。"
   },
   {
     "slug": "it/qr-beautify",
-    "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};var c=document.getElementById('qrCanvas');c.width=100;c.toDataURL=function(){throw new Error('boom')};downloadPng();"],
+    "clicks": ["var __p=document.getElementById('__svg_probe');if(!__p){__p=document.createElement('div');__p.id='__svg_probe';document.body.appendChild(__p);}ToolBox.showToast=function(m){__p.textContent='TOAST:'+m;};var c=document.getElementById('qrCanvas');c.width=100;c.toDataURL=function(){throw new Error('boom')};downloadPng();"],
     "expect": [
       "TOAST:导出失败：Error"
     ],
@@ -14074,7 +14098,7 @@ const CASES = [
     return {
       slug: "it/" + slug,
       clicks: [
-        "ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};"
+        "var __p=document.getElementById('__svg_probe');if(!__p){__p=document.createElement('div');__p.id='__svg_probe';document.body.appendChild(__p);}ToolBox.showToast=function(m){__p.textContent='TOAST:'+m;};"
         + "var __qs=document.querySelector.bind(document);"
         + "document.querySelector=function(s){if(s==='#output canvas')return {toDataURL:function(){throw new Error('boom')}};return __qs(s);};"
         + "downloadBarcodePNG();",
@@ -14088,7 +14112,7 @@ const CASES = [
   {
     slug: "it/captcha-generator",
     clicks: [
-      "ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};"
+      "var __p=document.getElementById('__svg_probe');if(!__p){__p=document.createElement('div');__p.id='__svg_probe';document.body.appendChild(__p);}ToolBox.showToast=function(m){__p.textContent='TOAST:'+m;};"
       + "document.getElementById('captchaCanvas').toDataURL=function(){throw new Error('boom')};"
       + "exportImage();",
     ],

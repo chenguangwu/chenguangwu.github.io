@@ -133,7 +133,7 @@
 <div class="card">
     <h2 data-zh="🔳 二维码美化生成器">🔳 QR Code Beautify Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">画布边长 = min(520, 模块数 × 8) px；单元格边长 = 画布 ÷ 模块数；圆角模式半径 = 单元格 × 0.35（arcTo 四角圆角）；按容错等级（L / M / Q / H）调用 qrcode 生成后逐模块绘制</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">画布按整数像素模块生成：单元格边长 = max(1, ⌊520 ÷（模块数 + 8）⌋) px，四周各留 4 模块静区；圆角模式半径 = 单元格 × 0.35；按容错等级（L / M / Q / H）调用 qrcode 生成后逐模块绘制</div>
   <div class="formula-desc">在保持可扫描性的前提下美化二维码。</div>
   <ul class="formula-list">
     <li><b>结构</b>：二维码由定位图案、校正图案、时序图案、格式信息与数据区组成。</li>
@@ -335,8 +335,8 @@ function draw(){
     qr.make();
   }catch(e){const __h1='<p style="color:var(--danger)">内容过长或无效：'+escH((e.message)||e)+'</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
   var count=qr.getModuleCount();
-  var size=Math.min(520,count*8);
-  var cell=size/count;
+  var geo=__qrGeometry(count);
+  var quiet=geo.quiet, cell=geo.cell, size=geo.size;
   canvas.width=size;canvas.height=size;
   ctx.fillStyle=bg;
   ctx.fillRect(0,0,size,size);
@@ -345,7 +345,7 @@ function draw(){
   for(var row=0;row<count;row++){
     for(var col=0;col<count;col++){
       if(!qr.isDark(row,col))continue;
-      var x=col*cell,y=row*cell;
+      var x=(col+quiet)*cell,y=(row+quiet)*cell;
       if(r>0){
         ctx.beginPath();
         ctx.moveTo(x+r,y);
@@ -361,9 +361,43 @@ function draw(){
     }
   }
   drawLogoOverlay(ctx,size,ecc);
-  const __h2='<p>✅ 已生成 <strong>'+count+' × '+count+'</strong> 模块 · 容错 <strong>'+ecc+'</strong> · '+size+'px'+(__qrLogoImg?' · 已嵌中心 logo（'+Math.round(__logoMax*100)+'% 宽）':'')+'</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
+  var en=__qrIsEn();
+  var msg=en
+    ? '<p>✅ Generated <strong>'+count+' × '+count+'</strong> modules · ECC <strong>'+ecc+'</strong> · '+size+'px · 4-module quiet zone'+(__qrLogoImg?' · centered logo ('+Math.round(__logoMax*100)+'% width)':'')+'</p>'
+    : '<p>✅ 已生成 <strong>'+count+' × '+count+'</strong> 模块 · 容错 <strong>'+ecc+'</strong> · '+size+'px · 含 4 模块静区'+(__qrLogoImg?' · 已嵌中心 logo（'+Math.round(__logoMax*100)+'% 宽）':'')+'</p>';
+  var warns=[];
+  if(__qrContrastRatio(fg,bg)<3) warns.push(en?'Contrast is below 3:1; scanning may fail under uneven lighting or low-quality printing':'前景与背景对比度低于 3:1，复杂光照或低质量打印可能无法识别');
+  if(round) warns.push(en?'Rounded modules soften module edges; verify with multiple scanners after printing':'圆角会软化模块边界，打印后请用多款扫码器实测');
+  if(__qrLogoImg) warns.push(en?'The center logo covers modules; confirm the ECC level and test scanning':'中心 logo 遮挡码点，请确认容错级别并实测扫描');
+  if(warns.length) msg+='<p style="color:#B45309;font-size:12px;line-height:1.7;">⚠ '+warns.join(en?'; ':'；')+'.</p>';
+  out.innerHTML=msg;
 }
+function __qrIsEn(){
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) return !!TBKit.util.isEn(); }catch(e){}
+  try{ if(/lang=en-US/i.test(location.search)) return true; }catch(e){}
+  return !!(document.documentElement&&/^en/i.test(document.documentElement.lang||''));
+}
+function __qrGeometry(count){
+  var quiet=4;
+  var cell=Math.max(1,Math.floor(520/(count+quiet*2)));
+  return {quiet:quiet,cell:cell,size:cell*(count+quiet*2)};
+}
+function __qrLum(hex){
+  var h=String(hex||'').replace('#','');
+  if(h.length===3)h=h.charAt(0)+h.charAt(0)+h.charAt(1)+h.charAt(1)+h.charAt(2)+h.charAt(2);
+  if(!/^[0-9a-fA-F]{6}$/.test(h))return 0;
+  var c=[0,2,4].map(function(i){var v=parseInt(h.slice(i,i+2),16)/255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);});
+  return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2];
+}
+function __qrContrastRatio(a,b){
+  var l1=__qrLum(a),l2=__qrLum(b);
+  var hi=Math.max(l1,l2),lo=Math.min(l1,l2);
+  return (hi+0.05)/(lo+0.05);
+}
+window.__qrGeometry=__qrGeometry;
+window.__qrContrastRatio=__qrContrastRatio;
 
+window.addEventListener('toolbox:langchange',function(){try{draw();}catch(e){}});
 // ── 中心 logo：上传 → 白底圆角块内居中嵌入，宽度按容错级别限幅（可遮挡比例）──
 var __qrLogoImg=null;
 var __logoMax=0;
