@@ -41,6 +41,7 @@ var LANG_REGISTRY = [
       'app.name': 'ToolBox',
       'nav.search': 'Search',
       'nav.theme': 'Toggle theme',
+      'ast.tree': 'AST syntax tree',
       'nav.hot': 'Hot tools',
       'nav.recent': 'Recent',
       'nav.fav': 'Favorites',

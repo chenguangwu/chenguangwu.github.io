@@ -305,14 +305,18 @@ function build(){
       // 把树形前缀「│   」/「|   」折算成 4 空格，与普通缩进统一计量
       while(/^[│|]\s{3}/.test(t)) t='    '+t.slice(4);
       var lead=t.length-t.replace(/^\s+/,'').length;
-      var name=t.slice(lead).replace(/^(?:├──|└──|\+--|`--|--)\s*/,'').trim();
-      return {lead:lead,name:name};
+      var after=t.slice(lead);
+      var name=after.replace(/^(?:├──|└──|\+--|`--|--)\s*/,'').trim();
+      return {lead:lead,leadText:after,name:name};
     });
     var steps=parsed.map(function(x){return x.lead;}).filter(function(v){return v>0;});
     var unit=steps.length?Math.min.apply(null,steps):2;   // 最小非零缩进 = 一级
     var stack=[];
     parsed.forEach(function(it){
-      var depth=it.lead?Math.max(1,Math.round(it.lead/unit)):0;
+      // 标准 tree 输出（src/ 后接 ├── a.js）连接符在行首、缩进为 0；
+      // 连接符本身代表一级父子关系，必须计入层级，否则子项被误判为根节点。
+      var connector=/^(?:├──|└──|\+--|`--|--)\s*/.test(it.leadText || '');
+      var depth=(it.lead?Math.max(1,Math.round(it.lead/unit)):0)+(connector?1:0);
       while(stack.length&&stack[stack.length-1].depth>=depth)stack.pop();
       var parent=stack.length?stack[stack.length-1].children:tree;
       var isDir=/\/$/.test(it.name), nm=it.name.replace(/\/$/,'');

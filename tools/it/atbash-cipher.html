@@ -350,7 +350,7 @@ function atbash(ch){
 
 function transform(){
   const text = document.getElementById('input').value;
-  if(!text){ document.getElementById('output').value = ''; return; }
+  if(!text){ document.getElementById('output').value = ''; cancelHistory(); return; }
   const result = text.replace(/[a-zA-Z]/g, c => atbash(c));
   document.getElementById('output').value = result;
   
@@ -391,6 +391,7 @@ function swapText(){
 }
 
 function clearAll(){
+  cancelHistory();
   document.getElementById('input').value = '';
   document.getElementById('output').value = '';
 }
@@ -403,6 +404,9 @@ function escapeHtml(text){
 
 // IT-N150: 500ms 防抖，停止输入后才写一条完整结果
 var __atbashHistoryTimer = null;
+function cancelHistory(){
+  if(__atbashHistoryTimer){ clearTimeout(__atbashHistoryTimer); __atbashHistoryTimer=null; }
+}
 function __atbash_cipherScheduleHistory(input, output, mode){
   if(__atbashHistoryTimer){ clearTimeout(__atbashHistoryTimer); __atbashHistoryTimer=null; }
   __atbashHistoryTimer = setTimeout(function(){ __atbashHistoryTimer=null; saveHistory(input, output, mode); }, 500);
@@ -410,11 +414,13 @@ function __atbash_cipherScheduleHistory(input, output, mode){
 function saveHistory(input, output, mode){
   if(!input || !output) return;
   let history = getHistory();
+  // 保存完整输入/输出；截断会让回填内容与真实结果不符，也会把同前缀长文本误判为同一条。
   const item = {
-    input: input.substring(0, 200),
-    output: output.substring(0, 200),
+    input: String(input),
+    output: String(output),
     mode,
-    time: Date.now()
+    time: Date.now(),
+    truncated: false
   };
   var dup = history.findIndex(function(h){ return h.input === item.input && h.mode === item.mode; });
   if(dup === 0) return;
@@ -443,7 +449,7 @@ function renderHistory(){
   const __h2=history.map((item, idx) => {
     const time = new Date(item.time).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
     return `
-      <div class="history-item" onclick="loadHistory(${idx})">
+      <div class="history-item" onclick="loadHistory(${idx})" title="${escapeHtml(item.input)}">
         <div class="info">
           <div class="meta">${time}</div>
           <div class="text">${escapeHtml(item.input.substring(0, 60))}</div>
@@ -471,6 +477,7 @@ function deleteHistory(idx){
 
 function clearHistory(){
   if(!confirm(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Clear all history?":"确定清空所有历史记录吗？"))) return;
+  cancelHistory();
   localStorage.removeItem(HISTORY_KEY);
   renderHistory();
 }

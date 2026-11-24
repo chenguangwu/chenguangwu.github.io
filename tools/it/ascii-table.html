@@ -140,10 +140,11 @@
   <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🔤 ASCII 字符表">🔤  ASCII Code Table</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">码位显示：十进制值 + 0x 两位大写十六进制；0–31 显示控制字符名、32 显示 ␣、127 显示 DEL；搜索同时匹配十进制、十六进制与字符本身</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">码位显示：十进制值 + 0x 两位大写十六进制；0–31 显示控制字符名、32 显示 ␣、127 显示 DEL；详情同时给出 Latin-1 单字节 0xXX 与 UTF-8 URL 百分号编码（如 é → %C3%A9），搜索同时匹配十进制、十六进制与字符本身</div>
   <div class="formula-desc">ASCII 用 7 位二进制表示 128 个字符，是早期计算机与通信中最基础的字符编码。</div>
   <ul class="formula-list">
-    <li><b>分区</b>：0–31 与 127 为控制字符（如 LF=10、CR=13、ESC=27），32–126 为可打印字符。</li>
+    <li><b>分区</b>：0–31 与 127 为控制字符（如 LF=10、CR=13、ESC=27，DEL=127），32–126 为可打印字符。</li>
+    <li><b>编码口径</b>：详情中的「Latin-1 字节」是 ISO-8859-1 单字节值；「URL 编码（UTF-8）」按浏览器实际使用的 UTF-8 百分号编码输出，例如 é(U+00E9) 为 <code>%C3%A9</code>，不是 <code>%E9</code>。</li>
     <li><b>规律</b>：数字 0–9 为 48–57，大写 A–Z 为 65–90，小写 a–z 为 97–122。</li>
     <li><b>大小写</b>：同一字母的大小写码点相差 32（如 <code>A</code>=65、<code>a</code>=97）。</li>
     <li><b>局限</b>：ASCII 仅覆盖英文与基本符号，中文等字符需 UTF-8 等多字节编码。</li>
@@ -154,7 +155,7 @@
 <input type="text" id="search" placeholder="输入十进制/十六进制/字符查询..." oninput="render()" style="margin-bottom:12px;" aria-label="输入十进制/十六进制/字符查询...">
     <div class="cat-tabs">
       <button class="active" onclick="setCat('all', this)">全部</button>
-      <button onclick="setCat('ctrl', this)">控制字符 (0-31)</button>
+      <button onclick="setCat('ctrl', this)">控制字符 (0-31, 127)</button>
       <button onclick="setCat('print', this)">可打印 (32-126)</button>
       <button onclick="setCat('extended', this)">Latin-1 (128-255)</button>
     </div>
@@ -266,7 +267,7 @@ function setCat(c, btn){
   render();
 }
 function getRange(){
-  if(currentCat === 'ctrl') return [0, 32];        // 0-31 控制字符
+  if(currentCat === 'ctrl') return [0, 128];       // 0-31 + 127；32-126 在循环内跳过
   if(currentCat === 'print') return [32, 127];     // 32-126；127=DEL 归入控制字符，不计入可打印
   if(currentCat === 'extended') return [128, 256];
   return [0, 256];
@@ -277,13 +278,14 @@ function render(){
   const grid = document.getElementById('grid');
   let html = '';
   for(let i = start; i < end; i++){
+    if(currentCat === 'ctrl' && i >= 32 && i < 127) continue; // 控制字符分类只含 0-31 与 DEL=127
     const ch = String.fromCharCode(i);
     const dec = i, hex = '0x' + i.toString(16).toUpperCase().padStart(2,'0');
     let display = i < 32 ? CTRL_NAMES[i] : i === 127 ? 'DEL' : ch;
     if(display === ' ') display = '␣';
     if(i > 127 && i < 161) display = '·';
     if(q){
-      const matches = String(dec).includes(q) || hex.toLowerCase().includes(q) || ch.toLowerCase() === q || (i < 32 && CTRL_NAMES[i].toLowerCase().includes(q));
+      const matches = String(dec).includes(q) || hex.toLowerCase().includes(q) || ch.toLowerCase() === q || (i < 32 && CTRL_NAMES[i].toLowerCase().includes(q)) || (i === 127 && 'del'.includes(q));
       if(!matches) continue;
     }
     html += `<button type="button" class="ascii-card" onclick="showDetail(${i})" aria-label="${(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?('View character '+escapeHtml(display)+' details, decimal '+dec):('查看字符 '+escapeHtml(display)+' 详情，十进制 '+dec)}">
@@ -293,6 +295,12 @@ function render(){
     </button>`;
   }
   const __h0=html || '<p style="color:var(--text-muted);" data-zh="无匹配项">No matching entries.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h0;
+}
+function urlEncodeChar(code){
+  // 以 UTF-8 百分号编码展示；Latin-1 的 é(U+00E9) 应为 %C3%A9，而不是单字节 %E9。
+  // encodeURIComponent 保留 A-Z a-z 0-9 - _ . ! ~ * ' ( )，与浏览器 URL 编码一致。
+  try { return encodeURIComponent(String.fromCharCode(code)); }
+  catch(e) { return '%' + code.toString(16).toUpperCase().padStart(2,'0'); }
 }
 function showDetail(code){
   const ch = String.fromCharCode(code);
@@ -308,7 +316,8 @@ function showDetail(code){
     <div class="detail-item"><div class="lbl">八进制</div><div class="v">\\${code.toString(8)}</div></div>
     <div class="detail-item"><div class="lbl">二进制</div><div class="v">${code.toString(2).padStart(8,'0')}</div></div>
     <div class="detail-item"><div class="lbl">HTML 实体</div><div class="v">&amp;#${code};</div></div>
-    <div class="detail-item"><div class="lbl">URL 编码</div><div class="v">%${code.toString(16).toUpperCase().padStart(2,'0')}</div></div>
+    <div class="detail-item"><div class="lbl">Latin-1 字节</div><div class="v">0x${code.toString(16).toUpperCase().padStart(2,'0')}</div></div>
+    <div class="detail-item"><div class="lbl">URL 编码（UTF-8）</div><div class="v">${urlEncodeChar(code)}</div></div>
     <div class="detail-item"><div class="lbl">${copyLabel}</div><div class="v" id="asciiCopyVal">${code}</div><button class="btn" type="button" onclick="copyAsciiCode(${code})" aria-label="${isEn?'Copy decimal code '+code:'复制十进制编码 '+code}">${isEn?'Copy decimal code':'复制十进制编码'}</button></div>
     <div class="detail-item"><div class="lbl">分类</div><div class="v" style="font-size:13px;">${cls}</div></div>
   `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('detail').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('detail').innerHTML=__h1;

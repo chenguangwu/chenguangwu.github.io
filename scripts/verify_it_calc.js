@@ -16402,6 +16402,55 @@ const CASES = [
     ref: "第763批：路径列表第二行偶然带两个前导空格，自动识别仍按路径列表处理（含 / 且不是整份缩进），首尾空白被忽略；旧实现只要任意行以空格开头就整份改按缩进树，斜杠路径变成单个名称。",
   },
 
+  // ── 第764批 ──
+  {
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "src/\n├── a.js\n└── b.js" },
+    clicks: ["build()"],
+    expect: ["src/ ├── a.js └── b.js"],
+    ref: "第764批：标准 tree 输出中连接符位于行首、缩进为 0；连接符本身代表一级子节点。旧实现仅按连接符前空白算层级，两个文件都被当成与 src 同级的根节点。",
+  },
+  {
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "src/\n├── a.js\n└── lib/\n    └── u.js" },
+    clicks: ["build()"],
+    expect: ["src/ ├── a.js └── lib/ └── u.js"],
+    ref: "第764批：`└── lib/` 是一级子目录，`    └── u.js` 的 4 空格缩进 + 连接符是二级子节点；旧实现把 lib 与 u.js 都当根级或错层，层级关系丢失。",
+  },
+  {
+    slug: "it/ascii-table",
+    inputs: { search: "" },
+    clicks: ["currentCat='ctrl';render();var g=document.getElementById('grid').innerHTML;document.getElementById('search').value='CTRL '+(g.indexOf('>127<')>=0&&g.indexOf('>65<')<0?'OK':'BAD');"],
+    expect: ["CTRL OK"],
+    ref: "第764批：控制字符分类必须包含 0–31 与 DEL=127，且不含可打印的 65(A)。旧实现 getRange 返回 [0,32)，筛选后看不到 DEL。",
+  },
+  {
+    slug: "it/ascii-table",
+    clicks: ["showDetail(233);var d=document.getElementById('detail').innerHTML;document.getElementById('search').value='U8 '+(d.indexOf('%C3%A9')>=0&&d.indexOf('0xE9')>=0?'OK':'BAD');"],
+    expect: ["U8 OK"],
+    ref: "第764批：é(U+00E9) 的 UTF-8 URL 编码应为 %C3%A9，同时单独展示 Latin-1 字节 0xE9。旧实现只显示单字节 %E9，复制出来是错误 URL。",
+  },
+  {
+    slug: "it/ast-viewer",
+    inputs: {},
+    clicks: ["window.acorn={parse:function(){return {type:'Program',body:[{type:'Literal',value:BigInt(1),bigint:'1',raw:'1n'}]}}};document.getElementById('btnParse').fire('click');var j=document.getElementById('astJson').innerHTML;document.getElementById('codeInput').value='BIG '+(j.indexOf('BigInt')>=0&&j.indexOf('__type')>=0?'OK':'BAD');"],
+    expect: ["BIG OK"],
+    ref: "第764批：AST 的 BigInt literal 不能被原生 JSON.stringify 序列化；新序列化把 bigint 转为 {\"__type\":\"BigInt\",\"value\":\"1\"}，JSON 视图可见且不丢精度。旧实现 catch 后回退 String(ast)，只得到 [object Object]。",
+  },
+  {
+    slug: "it/atbash-cipher",
+    clicks: ["var a='A'.repeat(250);var b='A'.repeat(249)+'B';saveHistory(a,'Z'.repeat(250),'encrypt');saveHistory(b,'Y'.repeat(250),'encrypt');var h=getHistory().filter(function(x){return x.input&&x.input.length===250;});document.getElementById('input').value='HIST '+((h.length===2&&h[0].input!==h[1].input)?'OK':'BAD');"],
+    expect: ["HIST OK"],
+    ref: "第764批：历史必须保存完整输入/输出，不再截断到 200 字符；两条前 249 字符相同的长文本是不同记录。旧实现都截成前 200 字符，后一条被当作重复而覆盖。",
+  },
+  {
+    slug: "it/atbash-cipher",
+    inputs: { input: "RACE" },
+    clicks: ["cancelHistory();localStorage.removeItem('atbash_history');window.__cb=null;var st=window.setTimeout,ct=window.clearTimeout;window.setTimeout=function(fn){window.__cb=fn;return 1;};window.clearTimeout=function(){window.__cb=null;};__atbash_cipherScheduleHistory('RACE','RACE','encrypt');clearAll();var ok=(window.__cb===null);window.setTimeout=st;window.clearTimeout=ct;document.getElementById('input').value='RACE '+(ok?'OK':'BAD');"],
+    expect: ["RACE OK"],
+    ref: "第764批：清空输入时必须取消尚未执行的 500ms 历史写入；旧实现定时器仍会触发，刚清空的记录随后又出现。",
+  },
+
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
