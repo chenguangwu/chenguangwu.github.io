@@ -273,6 +273,13 @@ const CASES = [
   ],
   "ref": "auto-restore"
 }
+,
+{
+  "slug": "electronics/smt-stencil",
+  "inputs": {"padW":"3.5","padL":"2.0","reduce":"10","pitch":"0.5","transfer":"0"},
+  "expect": ["0.68040 mm³ 理论焊膏", "0.00000 mm³ 实际焊膏"],
+  "ref": "焊膏转移率 0 合法：开孔 3.15×1.80 mm、面积 5.67 mm²、钢网 0.12 mm ⇒ 理论焊膏 0.68040 mm³，实际转移 0；旧实现 `||70` 会得到 0.47628 mm³。默认 70 不命中 0.00000。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

@@ -408,6 +408,13 @@ const CASES = [
   expect: ["30.00", "135.00"],
   ref: "恢复第321批旧页（非默认配比）：6 mL、玻尿酸 50% 且原液 10 mg/mL ⇒ 3 mL×10=30 mg；四项含量合计 135 mg。mesotherapy 仅自动分配比例，不能输入原液浓度。"
 }
+,
+{
+  "slug": "cosmetic-derm/corneometer",
+  "inputs": {"forehead":"50","cheek":"50","nose":"50","hand":"50","humidity":"0","product":"0"},
+  "expect": ["35平均含水量 (AU) · 干燥", "环境湿度 0%，已做校正"],
+  "ref": "环境湿度 0% 合法：四个部位均 50 AU，湿度校正 (0−50)/10×3 = −15 ⇒ 各部位 35、平均 35（干燥）。旧 `||50` 会按 50% 得 50，两锚均不命中。"
+}
 ];
 
 async function main() {

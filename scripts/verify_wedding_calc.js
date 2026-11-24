@@ -111,6 +111,13 @@ const CASES = [
     expect: ["距离 9月9日 周一 婚礼", "86", "天后举行"],
     ref: "婚期 2024-09-09、基准日冻结 2024-06-15 ⇒ dayDiff = 86 ⇒ 主卡「距离 9月9日 周一 婚礼 / 86 / 天后举行」；同时生成 6 个里程碑（订婚/领证/策划/试妆/彩排/当天）。默认 state.weddingDate 为空 ⇒ emptyCard 显示、heroBox 置空，三锚均不命中（判别时清空 clicks 即回默认态）。"
   },
+{
+  "slug": "wedding/wedding-budget-planner",
+  "inputs": {"totalBudget":"0","spent":"0"},
+  "clicks": ["resetBudget()"],
+  "expect": ["¥0总预算¥0已分配¥0剩余", "当前预算为 0，暂无已分配支出项"],
+  "ref": "总预算 0 后重置分配：所有分类金额应为 0，结果卡总额/已分配/剩余均为 ¥0；旧 renderItems 的 `||100000` 会重新填入 ¥100,000 分类金额。默认 100000 不命中。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);
