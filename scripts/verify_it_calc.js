@@ -1223,6 +1223,12 @@ const CASES = [
   },
   {
     slug: "it/base64-converter",
+    clicks: ["document.getElementById('batchInput').value=' a \\n\\nb\\n';batchEncode();var r=window._batchResults||[];document.getElementById('__tbProbe').textContent='BATCH '+r.length+'|'+r.map(function(x){return x.line+':'+(x.ok?'K':'E')+':'+(x.blank?'B':'N');}).join(',')+'|'+r[0].dst;"],
+    expect: ["BATCH 3|1:K:N,2:K:B,3:K:N|IGEg"],
+    ref: "第766批：批量编码不得再用 trim() 过滤空白行。输入「 a \\n\\nb\\n」= 3 行：第 1 行仅含空格的文本编码为 IGEg（python base64.b64encode(b' a ') 独立核对），第 2 行是空行但保留位置并标 blank，第 3 行 b→Yg==；末尾换行只作为行终止符，不产生第 4 行。旧实现过滤后只剩 2 行且丢掉「 a 」。",
+  },
+  {
+    slug: "it/base64-converter",
     inputs: { input: "hello world" },
     clicks: ["document.getElementById('urlSafe').parentElement.style={};setAlgo('base85');encodeText();"],
     expect: ["+63.6%", "11 B"],

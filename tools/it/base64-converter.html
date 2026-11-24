@@ -38,13 +38,16 @@
 .batch-item .dst{flex:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'SF Mono','Courier New','Fira Code',monospace;color:var(--primary);}
 .batch-item button{padding:4px 10px;font-size:12px;flex-shrink:0;}
 .history-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:12px;cursor:pointer;transition:all 0.2s;font-size:13px;border:1px solid var(--border);margin-bottom:8px;background:var(--card-bg);}
+.history-item.history-readonly{cursor:default;}
+.history-item.history-readonly:hover{transform:none;}
 .history-item:hover{background:var(--result-bg);border-color:var(--primary);transform:translateX(2px);}
 .history-item .h-src{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-light);margin-right:10px;}
 .history-item .h-meta{flex-shrink:0;color:var(--text-muted);font-size:12px;display:flex;align-items:center;gap:8px;}
 .history-item .h-meta .tag{padding:2px 8px;border-radius:20px;background:var(--result-bg);font-size:11px;font-weight:500;border:1px solid var(--border);}
 .preview-box{text-align:center;padding:16px;border:1px solid var(--border);border-radius:12px;margin-top:12px;background:var(--result-bg);}
 .preview-box img{max-width:100%;max-height:300px;border-radius:8px;}
-.file-drop{border:2px dashed var(--border);border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;color:var(--text-muted);background:var(--card-bg);}
+.file-drop{display:block;width:100%;box-sizing:border-box;font-family:inherit;border:2px dashed var(--border);border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;color:var(--text-muted);background:var(--card-bg);}
+.file-drop:focus-visible{outline:3px solid var(--primary);outline-offset:2px;}
 .file-drop:hover,.file-drop.drag{border-color:var(--primary);color:var(--primary);background:var(--bg-hover);}
 .file-drop p{font-size:14px;margin-bottom:4px;font-weight:500;}
 .file-drop .hint{font-size:12px;}
@@ -224,11 +227,11 @@
     </div>
 
     <div id="tabFile" class="tab-content">
-      <div id="fileDrop" class="file-drop">
-        <p>📁 点击选择文件，或拖拽文件到这里</p>
-        <p class="hint">支持图片、文档等各类文件</p>
-        <input type="file" id="fileInput" style="display:none" aria-label="选择文件">
-      </div>
+      <button type="button" id="fileDrop" class="file-drop">
+        <span style="display:block;font-size:14px;font-weight:500;margin-bottom:4px;">📁 点击选择文件，或拖拽文件到这里</span>
+        <span class="hint">支持图片、文档等各类文件</span>
+      </button>
+      <input type="file" id="fileInput" style="display:none" aria-label="选择文件">
 
       <div id="fileResult" style="display:none;">
         <div class="file-info">
@@ -251,7 +254,7 @@
 
     <div id="tabBatch" class="tab-content">
       <label for="batchInput">每行一条文本</label>
-      <textarea id="batchInput" placeholder="line1&#10;line2&#10;line3" style="min-height:120px;"></textarea>
+      <textarea id="batchInput" placeholder="line1&#10;line2&#10;line3" style="min-height:120px;" oninput="__batchInvalidate()"></textarea>
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="batchEncode()">批量编码</button>
         <button type="button" class="btn primary" onclick="batchDecode()">批量解码</button>
@@ -661,26 +664,12 @@
     history.forEach(function(item, idx){
       var time = new Date(item.time);
       var timeStr = time.getHours().toString().padStart(2,'0') + ':' + time.getMinutes().toString().padStart(2,'0');
-      html += '<div class="history-item" onclick="loadHistory(' + idx + ')">';
+      html += '<div class="history-item history-readonly" title="历史仅保留摘要，不保存输入输出内容">';
       html += '<span class="h-src">输入 ' + (item.inputLen || 0) + ' 字符 → 输出 ' + (item.outputLen || 0) + ' 字符（未存内容）</span>';
       html += '<span class="h-meta"><span class="tag">' + item.algo.toUpperCase() + '</span><span class="tag">' + (item.action === 'encode' ? '编码' : '解码') + '</span>' + timeStr + '</span>';
       html += '</div>';
     });
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
-  }
-
-  function loadHistory(idx){
-    try{
-      var history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-      var item = history[idx];
-      if(!item) return;
-      setAlgo(item.algo);
-      switchTab('text');
-      document.getElementById('input').value = '';
-      document.getElementById('output').value = '';
-      onInputChange();
-      ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'History stores summaries only; paste the content again':'历史仅保留摘要，请重新粘贴内容');
-    }catch(e){}
   }
 
   function clearHistory(){
@@ -829,17 +818,30 @@
     document.getElementById('fileOutput').value = '';
   }
 
+  function __batchLines(raw){
+    // 保留行位置：仅把 CRLF/CR 归一为 LF，并只剥掉「末尾换行符」造成的一个空行；
+    // 行内空格/制表符与中间连续空行原样保留（空白本身也是合法文本）。
+    var text = String(raw).replace(/\r\n?/g, '\n');
+    var lines = text.split('\n');
+    if(lines.length && lines[lines.length - 1] === '') lines.pop();
+    return lines;
+  }
+  function __batchInvalidate(){
+    window._batchResults = null;
+    var box = document.getElementById('batchResult');
+    if(box) box.innerHTML = '<p style="padding:16px;text-align:center;color:var(--text-muted);">结果将显示在这里</p>';
+  }
   function batchEncode(){
     var input = document.getElementById('batchInput').value;
-    var lines = input.split('\n').filter(function(l){ return l.trim(); });
+    var lines = __batchLines(input);
     if(lines.length === 0) return ToolBox.showToast(i18nText('toast.msg904'), 'warning');
     var urlSafe = document.getElementById('urlSafe').checked;
     var results = [];
-    lines.forEach(function(line){
+    lines.forEach(function(line, idx){
       try{
-        results.push({src: line, dst: encode(line, urlSafe), ok: true});
+        results.push({line: idx + 1, src: line, dst: encode(line, urlSafe), ok: true, blank: line === ''});
       }catch(e){
-        results.push({src: line, dst: e.message, ok: false});
+        results.push({line: idx + 1, src: line, dst: ((e && e.message) || __b64L('Encode failed','编码失败')), ok: false, blank: false});
       }
     });
     renderBatchResult(results);
@@ -847,15 +849,19 @@
 
   function batchDecode(){
     var input = document.getElementById('batchInput').value;
-    var lines = input.split('\n').filter(function(l){ return l.trim(); });
+    var lines = __batchLines(input);
     if(lines.length === 0) return ToolBox.showToast(i18nText('toast.msg907'), 'warning');
     var urlSafe = document.getElementById('urlSafe').checked;
     var results = [];
-    lines.forEach(function(line){
+    lines.forEach(function(line, idx){
+      if(line.trim() === ''){
+        results.push({line: idx + 1, src: line, dst: '', ok: true, blank: true});
+        return;
+      }
       try{
-        results.push({src: line, dst: decode(line.trim(), urlSafe), ok: true});
+        results.push({line: idx + 1, src: line, dst: decode(line.trim(), urlSafe), ok: true, blank: false});
       }catch(e){
-        results.push({src: line, dst: ((e && e.message) || __b64L('Decode failed','解码失败')), ok: false});
+        results.push({line: idx + 1, src: line, dst: ((e && e.message) || __b64L('Decode failed','解码失败')), ok: false, blank: false});
       }
     });
     renderBatchResult(results);
@@ -865,11 +871,16 @@
     var container = document.getElementById('batchResult');
     var html = '';
     results.forEach(function(r, i){
-      html += '<div class="batch-item">';
-      html += '<span class="src" title="' + ToolBox.escHtml(r.src) + '">' + ToolBox.escHtml(r.src.substring(0, 30)) + '</span>';
+      html += '<div class="batch-item" data-line="' + r.line + '">';
+      html += '<span class="line-no" style="min-width:2.5em;color:var(--text-muted);font-variant-numeric:tabular-nums;" title="行号">' + r.line + '.</span>';
+      html += '<span class="src" title="' + ToolBox.escHtml(r.src) + '">' + (r.blank ? '<i style="color:var(--text-muted);">（空行）</i>' : ToolBox.escHtml(r.src.substring(0, 30))) + '</span>';
       html += '<span style="color:var(--text-muted);">→</span>';
-      html += '<span class="dst" style="color:' + (r.ok ? 'var(--primary)' : 'var(--danger)') + '" title="' + ToolBox.escHtml(r.dst) + '">' + ToolBox.escHtml(r.dst.substring(0, 40)) + '</span>';
-      html += '<button type="button" class="btn success" style="padding:4px 8px;font-size:11px;" onclick="copyBatchItem(' + i + ')">复制</button>';
+      html += '<span class="dst" style="color:' + (r.ok ? 'var(--primary)' : 'var(--danger)') + '" title="' + ToolBox.escHtml(r.dst) + '">' + (r.ok ? (r.blank ? '<i style="color:var(--text-muted);">（空行）</i>' : ToolBox.escHtml(r.dst.substring(0, 40))) : ToolBox.escHtml(r.dst.substring(0, 40))) + '</span>';
+      if(r.ok && !r.blank){
+        html += '<button type="button" class="btn success" style="padding:4px 8px;font-size:11px;" onclick="copyBatchItem(' + i + ')">复制</button>';
+      }else if(!r.ok){
+        html += '<span class="tag" style="color:var(--danger);font-size:11px;">失败</span>';
+      }
       html += '</div>';
     });
     const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h2;
@@ -878,19 +889,30 @@
 
   function copyBatchItem(idx){
     if(!window._batchResults || !window._batchResults[idx]) return;
-    ToolBox.copyText(window._batchResults[idx].dst);
+    var r = window._batchResults[idx];
+    if(!r.ok || r.blank) return;
+    ToolBox.copyText(r.dst);
   }
 
+  function __batchCopyText(){
+    if(!window._batchResults) return '';
+    return window._batchResults.filter(function(r){ return r.ok && !r.blank; }).map(function(r){ return r.dst; }).join('\n');
+  }
   function copyBatchResult(){
     if(!window._batchResults || window._batchResults.length === 0) return ToolBox.showToast(i18nText(), 'warning');
-    var text = window._batchResults.map(function(r){ return r.dst; }).join('\n');
-    ToolBox.copyText(text);
+    var good = window._batchResults.filter(function(r){ return r.ok && !r.blank; });
+    if(good.length === 0) return ToolBox.showToast(__b64L('No successful rows to copy','没有可复制的成功行'), 'warning');
+    var failed = window._batchResults.filter(function(r){ return !r.ok; });
+    ToolBox.copyText(__batchCopyText());
+    ToolBox.showToast(__b64L(
+      'Copied ' + good.length + ' successful row(s)' + (failed.length ? '; skipped ' + failed.length + ' failed row(s) on line ' + failed.map(function(r){return r.line;}).join(', ') : ''),
+      '已复制 ' + good.length + ' 条成功结果' + (failed.length ? '；已跳过 ' + failed.length + ' 条失败行（第 ' + failed.map(function(r){return r.line;}).join('、') + ' 行）' : '')
+    ));
   }
 
   function clearBatch(){
     document.getElementById('batchInput').value = '';
-    const __h3='<p style="padding:16px;text-align:center;color:var(--text-muted);">结果将显示在这里</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('batchResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('batchResult').innerHTML=__h3;
-    window._batchResults = null;
+    __batchInvalidate();
   }
 
   function loadBase64Sample(kind){
@@ -929,7 +951,8 @@
   window.copyBatchItem = copyBatchItem;
   window.copyBatchResult = copyBatchResult;
   window.clearBatch = clearBatch;
-  window.loadHistory = loadHistory;
+  window.__batchInvalidate = __batchInvalidate;
+  window.__batchCopyText = __batchCopyText;
   window.clearHistory = clearHistory;
 
   initFileDrop();
