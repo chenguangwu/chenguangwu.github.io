@@ -343,6 +343,7 @@ const CASES = [
   {
     slug: "it/json-to-toml",
     inputs: { input: '{"d":"1900-02-29"}' },
+    checkIds: ["inferDates"],
     clicks: ["var o=document.getElementById('input'),p=document.getElementById('output'),q=String.fromCharCode(34);doToml();var bad=String(p.textContent).indexOf(q+'1900-02-29'+q)>=0;o.value=JSON.stringify({d:'2020-02-29'});doToml();var ok=String(p.textContent).indexOf('d = 2020-02-29')>=0;document.getElementById('__tbProbe').textContent='UC224LEAP '+((bad&&ok)?'OK':'BAD');"],
     expect: ["UC224LEAP OK"],
     ref: "第224批闰年判据+连续输入：1900-02-29（世纪平年）须带引号，2020-02-29（400 倍数闰年）须为裸值。修复前两者都裸值 ⇒ bad=false ⇒ BAD。"
@@ -350,6 +351,7 @@ const CASES = [
   {
     slug: "it/json-to-toml",
     inputs: { input: '{"d":"2020-01-01T00:00:00+08:00"}' },
+    checkIds: ["inferDates"],
     clicks: ["doToml();var t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='UC224OFF '+((t.indexOf('d = 2020-01-01T00:00:00+08:00')>=0)?'OK':'BAD');"],
     expect: ["UC224OFF OK"],
     ref: "第224批配套护栏：合法偏移 +08:00 仍须按 TOML 原生 datetime 输出裸值，防止校验过度把合法偏移也拒成字符串。与 UC224BAD2 形成对照；默认样例无该字段 ⇒ 不命中。"
@@ -5272,6 +5274,28 @@ const CASES = [
   },
   {
     slug: "it/json-to-toml",
+    inputs: { input: '{"v":"2024-01-02"}' },
+    clicks: ["doToml();var q=String.fromCharCode(34),t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='TOMLSTR '+((t.indexOf('v = '+q+'2024-01-02'+q)>=0&&t.indexOf('v = 2024-01-02')<0)?'OK':'BAD '+t);"],
+    expect: ["TOMLSTR OK"],
+    ref: "默认必须保留 JSON 字符串类型：2024-01-02 输出带引号字符串；旧实现无条件转 TOML 日期，tomllib 读回成 datetime。"
+  },
+  {
+    slug: "it/json-to-toml",
+    inputs: { input: '{"v":"2024-01-02"}' },
+    checkIds: ["inferDates"],
+    clicks: ["doToml();var t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='TOMLDATE '+((t.indexOf('v = 2024-01-02')>=0)?'OK':'BAD '+t);"],
+    expect: ["TOMLDATE OK"],
+    ref: "勾选「将 ISO 字符串推断为 TOML 日期」后才输出原生日期裸值；选项必须真实参与转换，而不是只加说明。"
+  },
+  {
+    slug: "it/json-to-toml",
+    inputs: { input: '{"v":"a\\u007fb","a\\u007fb":1}' },
+    clicks: ["doToml();var t=String(document.getElementById('output').textContent),del=String.fromCharCode(127);document.getElementById('__tbProbe').textContent='TOMLDEL '+((t.indexOf(String.fromCharCode(92)+'u007F')>=0&&t.indexOf(del)<0)?'OK':'BAD '+JSON.stringify(t));"],
+    expect: ["TOMLDEL OK"],
+    ref: "JSON 字符串里的 DEL（U+007F）必须转成 TOML \\u007F；JSON.stringify 不转义 DEL，旧实现直接输出原始控制字符，tomllib 报非法字符。值和键都要覆盖。"
+  },
+  {
+    slug: "it/json-to-toml",
     inputs: { input: '{"a":1,"b":{"c":2}}' },
     clicks: ["doToml()"],
     expect: ["c = 2"],
@@ -5294,6 +5318,7 @@ const CASES = [
   {
     slug: "it/json-to-toml",
     inputs: { input: '{"d":"2020-01-01T00:00:00Z"}' },
+    checkIds: ["inferDates"],
     clicks: ["doToml();document.getElementById('output').textContent='UC224D='+String(document.getElementById('output').textContent);"],
     expect: ["UC224D=d = 2020-01-01T00:00:00Z"],
     ref: "第224批 IT-N201：严格 ISO 8601 日期时间按 TOML 原生 datetime 输出为裸值（不加引号），兑现页面「支持 ISO 日期字符串」的宣称。修复前字符串一律 JSON.stringify ⇒ `d = \"2020-01-01T00:00:00Z\"`。默认 SAMPLE 无该字段 ⇒ 不命中。",
