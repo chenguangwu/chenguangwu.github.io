@@ -130,6 +130,21 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="徒手肌力评定(MMT) 0-5级分级标准查询，根据测试条件确定肌力等级">Mmt Grading</p>
 
     <h3>测试条件选择</h3>
+    <div class="input-row">
+      <div>
+        <label for="muscleInput">评定肌群/部位（选填）</label>
+        <input type="text" id="muscleInput" placeholder="如 股四头肌 / 腕伸肌" maxlength="40">
+      </div>
+      <div>
+        <label for="sideSelect">侧别</label>
+        <select id="sideSelect">
+          <option value="">未指定</option>
+          <option value="左侧">左侧</option>
+          <option value="右侧">右侧</option>
+          <option value="双侧/中线">双侧/中线</option>
+        </select>
+      </div>
+    </div>
     <div class="ref-card">
       <div class="checkbox-row">
         <label><input type="radio" name="grade" value="0" onchange="window.evaluate()"> 0级：无可观察到的肌肉收缩</label>
@@ -316,7 +331,8 @@ function saveRecord() {
   var selected = document.querySelector('input[name="grade"]:checked');
   if (!selected) { ToolBox.showToast(i18nText(), 'error'); return; }
   var grade = parseInt(selected.value);
-  var muscle = document.getElementById('muscleInput') ? document.getElementById('muscleInput').value : '';
+  var muscle = document.getElementById('muscleInput') ? document.getElementById('muscleInput').value.trim() : '';
+  var side = document.getElementById('sideSelect') ? document.getElementById('sideSelect').value : '';
 
   var records = [];
   try { records = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e) {}
@@ -324,11 +340,13 @@ function saveRecord() {
     date: new Date().toLocaleDateString('zh-CN'),
     grade: grade,
     name: mmtData[grade].name,
-    muscle: muscle || '未指定'
+    muscle: muscle || '未指定',
+    side: side || '未指定'
   });
   if (records.length > 100) records = records.slice(0, 100);
   try { localStorage.setItem(STORE_KEY, JSON.stringify(records)); } catch(e) {}
   renderHistory();
+  try { __emrData(); } catch(e) {}
   ToolBox.showToast(i18nText(), 'success');
 }
 
@@ -344,7 +362,8 @@ function renderHistory() {
     var d = mmtData[r.grade];
     html += '<div class="history-item" style="cursor:default;">';
     html += '<div class="time">' + r.date + '</div>';
-    html += '<div class="summary">' + r.muscle + ' ｜ 肌力 ' + r.grade + '级（' + r.name + '）</div>';
+    var where = [r.side && r.side !== '未指定' ? r.side : '', r.muscle || '未指定'].filter(Boolean).join(' ');
+    html += '<div class="summary">' + where + ' ｜ 肌力 ' + r.grade + '级（' + r.name + '）</div>';
     html += '</div>';
   });
   const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('historyList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('historyList').innerHTML=__h3;
@@ -424,12 +443,18 @@ var __emrData=function(){
     result:'MMT '+d.grade+' 级（'+d.name+'）· 正常肌力比例 '+d.pct,
     resultEn:'MMT grade '+d.grade+' ('+d.eng+'); '+d.pct+' of normal strength',
     noPos:true, hintZh:hz, hintEn:he,
-    extra:'分级标准：'+d.desc+'；功能表现：'+d.func+'；康复建议：'+d.training+'。评定部位/侧别：__________',
-    extraEn:'criteria: '+descEn[g]+'; training: '+trainEn[g]+'. Muscle/side assessed: __________'});
+    extra:'分级标准：'+d.desc+'；功能表现：'+d.func+'；康复建议：'+d.training+'。评定部位/侧别：'+((document.getElementById('sideSelect')||{}).value||'')+((document.getElementById('muscleInput')||{}).value||'未填写'),
+    extraEn:'criteria: '+descEn[g]+'; training: '+trainEn[g]+'. Muscle/side assessed: '+((document.getElementById('sideSelect')||{}).value||'')+((document.getElementById('muscleInput')||{}).value||'not specified')});
 };
 var __emrW0=(typeof evaluate==='function')?evaluate:null;
 if(__emrW0){ evaluate=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
 try{ __emrData(); }catch(e){}
+['muscleInput','sideSelect'].forEach(function(id){
+  var e=document.getElementById(id);
+  if(!e) return;
+  e.addEventListener('input',function(){ try{ __emrData(); }catch(_){} });
+  e.addEventListener('change',function(){ try{ __emrData(); }catch(_){} });
+});
 </script>
 
 <div class="mmt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
