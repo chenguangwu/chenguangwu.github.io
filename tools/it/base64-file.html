@@ -138,6 +138,8 @@
       <button class="btn primary" onclick="b64ToFile()">还原为文件</button>
       <button class="btn" onclick="b64ToText()">尝试以文本解码</button>
     </div>
+    <label for="b64TextOut" style="margin-top:12px;">文本解码结果</label>
+    <textarea id="b64TextOut" readonly placeholder="仅在字节可严格按 UTF-8 解码时显示文本" aria-label="文本解码结果"></textarea>
     <p style="font-size:12px;color:var(--muted,#9CA3AF);margin-top:10px;">🔒 所有转换均在浏览器本地完成，文件绝不上传。大文件（>50MB）建议直接使用文件系统工具。</p>
   </div>
 </div>
@@ -374,6 +376,8 @@ function b64ToFile(){
 function b64ToText(){
   var v=document.getElementById('b64In').value.trim();
   var out=document.getElementById('result');
+  var textOut=document.getElementById('b64TextOut');
+  if(textOut) textOut.value='';
   if(!v){const __h5='';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h5;return;}
   var parts=v.split(',');
   var data=parts.length>1?parts.slice(1).join(','):v;
@@ -381,8 +385,16 @@ function b64ToText(){
     var bin=atob(data);
     var bytes=new Uint8Array(bin.length);
     for(var i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
-    var text=new TextDecoder('utf-8').decode(bytes);
-    document.getElementById('b64In').value=text;
+    var text;
+    try{
+      text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+    }catch(err){
+      var hex=[];for(var hi=0;hi<Math.min(bytes.length,4096);hi++)hex.push(bytes[hi].toString(16).padStart(2,'0'));
+      if(bytes.length>4096)hex.push('…（仅显示前 4096 字节，共 '+bytes.length+' 字节）');
+      const __hBad='<p style="color:var(--danger)">'+__b64FileL('Not valid UTF-8 text; original input was kept. Bytes (hex):','不是有效 UTF-8 文本；原始输入未被覆盖。字节（十六进制）：')+' '+escH(hex.join(' '))+'</p>';
+      out.innerHTML=__hBad;return;
+    }
+    document.getElementById('b64TextOut').value=text;
     const __h6='<p style="color:var(--success)">✅ 已解码为文本（'+fmtSize(bytes.length)+'）</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h6;
   }catch(e){const __h7='<p style="color:var(--danger)">解码失败（可能不是文本内容）：'+escH((e.message)||e)+'</p>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h7;}
 }

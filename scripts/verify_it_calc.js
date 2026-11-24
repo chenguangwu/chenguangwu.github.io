@@ -1275,6 +1275,38 @@ const CASES = [
   },
   {
     slug: "it/base64-converter",
+    clicks: ["window.__q=[];window.FileReader=function(){};FileReader.prototype.readAsDataURL=function(f){window.__q.push(this);};var A={name:'A.txt',size:3,type:'text/plain'},B={name:'B.txt',size:3,type:'text/plain'};handleFile(A);handleFile(B);__q[1].onload({target:{result:'data:text/plain;base64,QkJC'}});__q[0].onload({target:{result:'data:text/plain;base64,QUFB'}});var o=document.getElementById('fileOutput');document.getElementById('__tbProbe').textContent='FILE '+o.value+' NAME '+document.getElementById('fileName').textContent+' STATE '+window.__fileState().algo+':'+window.__fileState().name;"],
+    expect: ["FILE data:text/plain;base64,QkJC NAME B.txt STATE base64:B.txt"],
+    ref: "第768批：文件模式连续选 A→B 时，B 先完成、A 迟到回调必须被 fileReadSeq 丢弃；文件名/内容/算法状态一致对应 B。旧实现无读取序号，A 后到会用 B 文件名展示 A 的 QUFB。",
+  },
+  {
+    slug: "it/base64-converter",
+    clicks: ["window.__q=[];window.FileReader=function(){};FileReader.prototype.readAsDataURL=function(f){window.__q.push(this);};var B={name:'B.txt',size:3,type:'text/plain'};handleFile(B);__q[0].onload({target:{result:'data:text/plain;base64,QkJC'}});setAlgo('base32');__q[1].onload({target:{result:'data:text/plain;base64,QkJC'}});var o=document.getElementById('fileOutput');var dl='';ToolBox.downloadText=function(n){dl=n;};downloadResult();document.getElementById('__tbProbe').textContent='ALGO '+o.value+' STATE '+window.__fileState().algo+' DL '+dl;"],
+    expect: ["ALGO IJBEE=== STATE base32 DL B.txt.base32.txt"],
+    ref: "第768批：文件编码后切到 Base32 必须用同一文件重算，输出 IJBEE===、状态 algo=base32，下载名 B.txt.base32.txt；旧实现只改 currentAlgo，Base64 结果仍在，下载却按当前算法命名。",
+  },
+  {
+    slug: "it/base64-converter",
+    clicks: ["window.__q=[];window.FileReader=function(){};FileReader.prototype.readAsDataURL=function(f){window.__q.push(this);};var A={name:'A.txt',size:3,type:'text/plain'};handleFile(A);clearFile();__q[0].onload({target:{result:'data:text/plain;base64,QUFB'}});var o=document.getElementById('fileOutput');document.getElementById('__tbProbe').textContent='CLEAR out='+o.value+' state='+window.__fileState();"],
+    expect: ["CLEAR out= state=null"],
+    ref: "第768批：读取中按清空必须递增 fileReadSeq 作废旧任务，旧 onload 不得把结果重新显示；旧实现清空后迟到的 onload 仍写 fileOutput。",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "/w==" },
+    clicks: ["decodeText();var o=document.getElementById('output');var fb=document.getElementById('byteFallback');var hx=document.getElementById('byteHex');document.getElementById('__tbProbe').textContent='UTF8 out='+o.value+' fb='+fb.style.display+' hex='+hx.value;"],
+    expect: ["UTF8 out= fb=block hex=ff"],
+    ref: "第768批：Base64 /w== 是单字节 FF，不是合法 UTF-8；严格解码必须清空文本结果、显示十六进制 ff，不得用 U+FFFD 静默替换后报成功。",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "5L2g5aW9" },
+    clicks: ["decodeText();var o=document.getElementById('output');var fb=document.getElementById('byteFallback');document.getElementById('__tbProbe').textContent='UTF8 out='+o.value+' fb='+fb.style.display;"],
+    expect: ["UTF8 out=你好 fb=none"],
+    ref: "第768批：合法中文 UTF-8（你 好）必须照常解码，fallback 隐藏，证明严格模式未误伤正常文本。",
+  },
+  {
+    slug: "it/base64-converter",
     clicks: ["document.getElementById('batchInput').value=' a \\n\\nb\\n';batchEncode();var r=window._batchResults||[];document.getElementById('__tbProbe').textContent='BATCH '+r.length+'|'+r.map(function(x){return x.line+':'+(x.ok?'K':'E')+':'+(x.blank?'B':'N');}).join(',')+'|'+r[0].dst;"],
     expect: ["BATCH 3|1:K:N,2:K:B,3:K:N|IGEg"],
     ref: "第766批：批量编码不得再用 trim() 过滤空白行。输入「 a \\n\\nb\\n」= 3 行：第 1 行仅含空格的文本编码为 IGEg（python base64.b64encode(b' a ') 独立核对），第 2 行是空行但保留位置并标 blank，第 3 行 b→Yg==；末尾换行只作为行终止符，不产生第 4 行。旧实现过滤后只剩 2 行且丢掉「 a 」。",
@@ -8299,13 +8331,23 @@ const CASES = [
   // 多字节 UTF-8/非法输入），故移除该无效补强，不留无判别力用例。
   {
     "slug": "it/base64-file",
-    "inputs": {
-      "b64In": "1\n2\n3"
-    },
-    "expect": [
-      "�m\n✅ 已解码为文本（2 B）"
-    ],
-    "ref": "第767批调整：只注入 b64In 的 3 字节非 Base64 输入（1\\n2\\n3），解码得 2 字节无效 UTF-8（�m）并提示「已解码为文本（2 B）」。旧版把 b64Out 也写进期望，但该页历史已改为不保存/不回填 b64Out，输出契约不再包含它 ⇒ 去掉偶发依赖，仍保留非默认输入判别。"
+    "inputs": { "b64In": "1\n2\n3" },
+    "expect": ["不是有效 UTF-8 文本；原始输入未被覆盖"],
+    "ref": "第768批：b64In 注入 3 字节非 Base64 文本（1\\n2\\n3），严格 UTF-8 解码失败时必须提示「不是有效 UTF-8 文本；原始输入未被覆盖」，且不把 b64In 覆盖成替换字符。旧实现用非严格 TextDecoder 静默替换并显示成功。"
+  },
+  {
+    "slug": "it/base64-file",
+    "inputs": { "b64In": "/w==" },
+    "clicks": ["b64ToText();var t=document.getElementById('b64TextOut');document.getElementById('__tbProbe').textContent='T out='+t.value+' in='+document.getElementById('b64In').value;"],
+    "expect": ["T out= in=/w=="],
+    "ref": "第768批：/w== 解出单字节 FF，不是 UTF-8 文本；文本输出区必须为空，原始 b64In 保持 /w== 不被覆盖。旧实现把 b64In 改为替换字符。",
+  },
+  {
+    "slug": "it/base64-file",
+    "inputs": { "b64In": "5L2g5aW9" },
+    "clicks": ["b64ToText();var t=document.getElementById('b64TextOut');"],
+    "expect": ["你好"],
+    "ref": "第768批：合法中文 UTF-8 必须正常写入独立文本输出区，不受严格校验误伤。",
   },
   {
     "slug": "it/base64-file",
@@ -8371,6 +8413,25 @@ const CASES = [
       "1 2 3\n1 2 3\nz85"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"variant\":\"z85\"}，输出区含「1 2 3\n1 2 3\nz85」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/base85-encode",
+    "clicks": ["var a='',b='',c='';try{decodeAscii85('!');a='NO'}catch(e){a=e.message;}try{decodeAscii85('<~!!');b='NO'}catch(e){b=e.message;}try{decodeAscii85('!!~>');c='NO'}catch(e){c=e.message;}document.getElementById('output').value='B85 '+a+'|'+b+'|'+c;"],
+    "expect": ["B85 末尾单字符无法表示完整字节|Ascii85 标记必须成对出现 <~ … ~>|Ascii85 标记必须成对出现 <~ … ~>"],
+    "ref": "第768批：Ascii85 单字符尾组 ! 必须报错而不是解出空字节；只带 <~ 或只带 ~> 的单边标记也必须报错。旧实现分别移除两端标记并补 u 解码，三种输入都不报错。"
+  },
+  {
+    "slug": "it/base85-encode",
+    "clicks": ["var a=decodeAscii85('<~!!~>').length,b=decodeAscii85('!!!').length,c=decodeAscii85('z').length;document.getElementById('__tbProbe').textContent='B85LEN '+a+' '+b+' '+c;"],
+    "expect": ["B85LEN 1 2 4"],
+    "ref": "第768批：合法 2 字符尾组解 1 字节、3 字符尾组解 2 字节、z 解 4 个零字节；证明新增单字符/标记校验未误伤合法尾组与 z。"
+  },
+  {
+    "slug": "it/base85-encode",
+    "inputs": { "input": "!", "output": "OLD-B85" },
+    "clicks": ["dec();document.getElementById('__tbProbe').textContent='DEC out='+document.getElementById('output').value;"],
+    "expect": ["DEC out="],
+    "ref": "第768批：输入非法 Ascii85 尾组时 dec() 必须先清空旧输出，不得把 OLD-B85 当当前结果保留；旧实现只 alert、输出区保留旧值。"
   },
   {
     "slug": "it/basic-auth-generator",
