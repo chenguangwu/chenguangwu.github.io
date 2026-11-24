@@ -3318,6 +3318,32 @@ const CASES = [
   },
   {
     slug: "it/http-status",
+    // 499：非标准 Nginx 码必须可查询，并带明确出处标记。
+    clicks: ["var s=statusCodes.find(function(x){return x.code===499;});document.getElementById('__tbProbe').textContent='HTTP499 '+(s&&/Nginx/.test(s.detail)&&/非标准/.test(s.detail)&&s.name==='Client Closed Request'?'OK':'BAD');"],
+    expect: ["HTTP499 OK"],
+    ref: "499 任务：注入探针查 499 条目，要求 detail 同时含「Nginx」与「非标准」且英文名为 Client Closed Request；旧态无 499 ⇒ HTTP499 BAD。",
+  },
+  {
+    slug: "it/http-status",
+    // 403/401 语义：403 不得再被绝对化为「已认证但无权限」。
+    clicks: ["var s=statusCodes.find(function(x){return x.code===403;});document.getElementById('__tbProbe').textContent='HTTP403 '+(/理解请求但拒绝履行/.test(s.detail)&&!/^服务器拒绝请求（已认证但无权限）。$/.test(s.detail)&&/refuses/.test(s.detailEn)?'OK':'BAD');"],
+    expect: ["HTTP403 OK"],
+    ref: "403 任务：detail 按 RFC 9110 表述为服务器理解请求但拒绝履行，英文 detailEn 同步；旧态 detail 为「服务器拒绝请求（已认证但无权限）。」且无英文 ⇒ BAD。",
+  },
+  {
+    slug: "it/http-headers",
+    clicks: ["renderCategories();var t=document.querySelectorAll('.category-tab');document.getElementById('__tbProbe').textContent='HCAT '+(t.length>1&&t[0].tagName==='BUTTON'&&t[0].getAttribute('aria-pressed')!==null?'OK':'BAD');"],
+    expect: ["HCAT OK"],
+    ref: "HTTP 头速查键盘任务：renderCategories 生成的分类必须是 button 且带 aria-pressed；旧态为 div ⇒ BAD。",
+  },
+  {
+    slug: "it/http-methods",
+    clicks: ["renderCategories();var t=document.querySelectorAll('.category-tab');document.getElementById('__tbProbe').textContent='MCAT '+(t.length>1&&t[0].tagName==='BUTTON'&&t[0].getAttribute('aria-pressed')!==null?'OK':'BAD');"],
+    expect: ["MCAT OK"],
+    ref: "HTTP 方法速查键盘任务：分类必须是 button 且带 aria-pressed；旧态为 div ⇒ BAD。",
+  },
+  {
+    slug: "it/http-status",
     // IT-N102：401 统一为「未认证」，detail 明确与 403 的权限差异。
     clicks: ["var s=statusCodes.find(function(x){return x.code===401;});document.getElementById('__tbProbe').textContent='N102A '+(s&&s.desc==='未认证'&&/403/.test(s.detail)?'OK':'BAD');"],
     expect: ["N102A OK"],
