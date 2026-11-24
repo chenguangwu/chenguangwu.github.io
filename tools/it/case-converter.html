@@ -235,7 +235,7 @@
   <div class="formula-desc">在多种命名风格之间转换文本，是代码与文案整理的常用工具。</div>
   <ul class="formula-list">
     <li><b>风格</b>：lower、UPPER、Title Case、camelCase、PascalCase、snake_case、kebab-case、CONSTANT_CASE。</li>
-    <li><b>分词</b>：先按空格、下划线、连字符及大小写边界切词，再按目标风格重新拼接。</li>
+    <li data-zh="分词：先按空格、下划线、连字符、标点及大小写边界切词，再按目标风格重新拼接；命名格式可选择保留或去除标点。"><b>Tokenization</b>: split on spaces, underscores, hyphens, punctuation and case boundaries, then rejoin in the target style; naming styles can optionally keep punctuation.</li>
     <li><b>规则</b>：camelCase 首词全小写、后续词首字母大写；snake/kebab 用 <code>_</code>/<code>-</code> 连接并统一大小写。</li>
     <li><b>注意</b>：缩写词（ID、URL、API）可能被拆散，转换后需人工校对。</li>
   </ul>
@@ -244,6 +244,8 @@
     <div class="input-row">
       <label for="inputText">输入文本</label>
       <textarea id="inputText" placeholder="在此输入或粘贴文本，例如：Hello World Test Case" oninput="convert()">Hello World Test Case</textarea>
+      <label style="display:inline-flex;align-items:center;gap:6px;margin:8px 0 2px;font-size:13px;"><input type="checkbox" id="stripPunct" checked onchange="convert()"> <span data-zh="命名格式去除标点并只保留字母/数字">Strip punctuation for naming styles (letters/digits only)</span></label>
+      <div id="identifierNote" style="font-size:12px;color:var(--text-muted);margin:4px 0 8px;" data-zh="命名格式会把标点、空格等切成词边界；结果若以数字开头或与目标语言关键字重名，仍需自行改名。本工具不校验目标语言标识符合法性。">Naming styles split on punctuation and spaces. A result starting with a digit, or colliding with a target-language keyword, still needs manual renaming; this tool does not validate identifier legality.</div>
       <div data-tb="preset" data-tb-presets='[{"label":"默认例句","labelEn":"Default sample","values":{"inputText":"Hello World Test Case"}},{"label":"蛇形命名","labelEn":"Snake case sample","values":{"inputText":"order id created at updated at"}},{"label":"中文混排","labelEn":"CN + EN sample","values":{"inputText":"ToolBox 在线工具 2026"}},{"label":"长句文本","labelEn":"Long sentence","values":{"inputText":"The quick brown fox jumps over the lazy dog"}}]'></div>
       <div class="char-stats">
         <span id="statChars">&#128196; 0 字符</span>
@@ -342,15 +344,25 @@ const conversions = [
   { id: 'swapcase',      label: '反转大小写',     tag: 'sWAP cASE',       fn: toSwapCase },
 ];
 
+let stripPunct = true;
+function getStripPunct(){var e=document.getElementById('stripPunct');return e?!!e.checked:true;}
 // 从文本中智能分词
-function tokenize(text) {
+function tokenize(text, strip) {
+  strip = (strip == null) ? getStripPunct() : strip;
   // 按常见分隔符拆分，同时处理已有驼峰/帕斯卡的边界
   // 先将驼峰/帕斯卡的边界插入空格
   let s = text
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
   // 按分隔符拆分并过滤空词
-  const tokens = s.split(/[\s_\-./\\]+/).filter(t => t.length > 0);
+  const parts = s.split(/[\s_\-./\\]+/).filter(t => t.length > 0);
+  if(!strip) return parts;
+  // 命名格式只保留 Unicode 字母/数字：逗号、冒号、括号、感叹号等不再拼进标识符。
+  const tokens = [];
+  parts.forEach(function(part){
+    const segs = part.match(/[\p{L}\p{N}]+/gu);
+    if(segs) tokens.push.apply(tokens, segs);
+  });
   return tokens;
 }
 

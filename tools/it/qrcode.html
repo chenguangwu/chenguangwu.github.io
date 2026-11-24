@@ -197,7 +197,7 @@ textarea:focus{border-color:#4338CA;}
   <div class="qr-workbench">
     <div class="card qr-panel">
       <h3>⚙️ 内容与样式</h3>
-      <label class="field-label" for="textInput">输入文本或网址（每行生成一个二维码，最多 20 行）</label>
+      <label class="field-label" for="textInput" data-zh="输入文本或网址（批量模式每行一个码，单次最多 20 行）">Text or URL (batch mode: one code per line, at most 20 lines per run)</label>
       <textarea id="textInput" data-no-persist placeholder="每行一个文本或 URL…" data-i18n-ph="ph.qrcode.input">https://toolbox.example.com</textarea>
       <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin:0 0 6px;"><input type="checkbox" id="qrRememberText" data-no-persist style="width:auto;margin:0;"><span data-zh="在本机记住二维码正文（默认关闭）">Remember QR text on this device (off by default)</span></label>
       <div style="font-size:12px;color:var(--text-secondary);margin:0 0 8px;" data-zh="二维码正文可能包含 Wi‑Fi 密码、联系方式或私密链接。开启后正文保存在本机 localStorage，共用设备请保持关闭并及时清除。">QR text may contain Wi‑Fi passwords, contact details or private links. When enabled it is stored in this browser's localStorage; keep it off on shared devices and clear it when done.</div>
@@ -211,6 +211,7 @@ textarea:focus{border-color:#4338CA;}
         </select>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin:0;"><input type="checkbox" id="qrBatchTrim" checked style="width:auto;margin:0;"><span data-zh="批量模式去除每行首尾空白">Trim each line in batch mode</span></label>
       </div>
+      <div id="qrBatchLimitNote" role="status" aria-live="polite" style="font-size:12px;color:var(--text-secondary);margin:0 0 8px;" data-zh="批量模式单次最多生成 20 个二维码；超出的非空行会在此明确提示，可分批粘贴生成。">Batch mode generates at most 20 QR codes per run; extra non-empty lines are reported here so you can generate them in batches.</div>
       <div class="row">
         <label for="contentTemplate">内容模板</label>
         <select id="contentTemplate" style="flex:1;">
@@ -498,7 +499,21 @@ function __qrPayloads(){
   } else {
     lines = lines.filter(function(x){ return x.length > 0; });
   }
+  __qrBatchTotal = lines.length;
+  __qrBatchOverflow = Math.max(0, lines.length - 20);
   return lines.slice(0, 20);
+}
+var __qrBatchTotal = 0, __qrBatchOverflow = 0;
+function __qrRenderBatchNote(shown){
+  var n=document.getElementById('qrBatchLimitNote');
+  if(!n) return;
+  if(__qrBatchOverflow > 0){
+    n.textContent=__qrT('输入共有 '+__qrBatchTotal+' 个非空行，本次只生成前 20 个，另有 '+__qrBatchOverflow+' 个未生成；请分批粘贴或删减到 20 行以内。','The input has '+__qrBatchTotal+' non-empty lines; this run generated the first 20 and left '+__qrBatchOverflow+' ungenerated. Paste in batches or reduce to 20 lines.');
+    n.style.color='#B45309';
+  } else {
+    n.textContent=__qrT('批量模式单次最多生成 20 个二维码；当前 '+(shown||0)+' 个非空行，未超出上限。','Batch mode generates at most 20 QR codes per run; currently '+(shown||0)+' non-empty line(s), within the limit.');
+    n.style.color='var(--text-secondary)';
+  }
 }
 function __qrSetButtons(enabled){
   ['qrDownloadPng','qrDownloadSvg'].forEach(function(id){ var b=document.getElementById(id); if(b)b.disabled=!enabled; });
@@ -552,6 +567,7 @@ function generate() {
   var marginHint=document.getElementById('qrMarginError');
   if(marginHint){ marginHint.style.display='none'; marginHint.textContent=''; }
   var lines = __qrPayloads();
+  __qrRenderBatchNote(lines.length);
   if (!lines.length) {
     lastQr = null; lastCanvas = null; qrItems = []; qrStale=false;
     __qrClearStaleNote(); __qrSetButtons(false);

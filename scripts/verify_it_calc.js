@@ -8952,7 +8952,7 @@ const CASES = [
       "count": "42"
     },
     "expect": [
-      "abc123测试\n42\nabc123."
+      "abc123测试\n已从关键词忽略 2 个非 ASCII/标点字符「测试」，实际使用「abc123」；中文请改输入拼音或拉丁字母。生成的是候选域名，不查询注册状态。\n42\nabc123."
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"kw\":\"abc123测试\",\"count\":\"42\"}，输出区含「abc123测试\n42\nabc123.」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -15956,6 +15956,51 @@ const CASES = [
     clicks: ["validate();"],
     expect: ["未找到匹配的国家"],
     ref: "第754批：NaN 搜索同样应显示未找到，而不是数值错误；修复前独立 NaN 正则误判。",
+  },
+
+  // ── 第755批 ──
+  {
+    slug: "it/case-converter",
+    inputs: { inputText: "hello, world!" },
+    checkIds: ["stripPunct"],
+    clicks: ["document.getElementById('inputText').value='hello, world!';convert();document.getElementById('__tbProbe').textContent='CASE755 '+document.getElementById('val-camelcase').textContent;"],
+    expect: ["CASE755 helloWorld"],
+    ref: "第755批：命名格式默认去除标点，hello, world! ⇒ helloWorld；修复前 token 保留逗号/感叹号 ⇒ hello,World!。",
+  },
+  {
+    slug: "it/case-converter",
+    inputs: { inputText: "hello, world!" },
+    clicks: ["document.getElementById('stripPunct').checked=false;convert();document.getElementById('__tbProbe').textContent='CASE755B '+document.getElementById('val-camelcase').textContent;"],
+    expect: ["CASE755B hello,World!"],
+    ref: "第755批：关闭「去标点」后保留旧分词口径，说明该选项可选而非强制改写。",
+  },
+  {
+    slug: "it/domain-name-generator",
+    inputs: { kw: "我的app" },
+    clicks: ["generate();document.getElementById('__tbProbe').textContent='DOM755 '+document.getElementById('kwNote').textContent;"],
+    expect: ["DOM755 已从关键词忽略 2 个非 ASCII/标点字符「我的」，实际使用「app」"],
+    ref: "第755批：中文关键词不再静默删除；提示被忽略字符与实际使用关键词；修复前直接 replace 成 app 且无任何提示。",
+  },
+  {
+    slug: "it/domain-name-generator",
+    inputs: { kw: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+    clicks: ["generate();document.getElementById('__tbProbe').textContent='DOM755B '+((document.getElementById('output').innerHTML.indexOf('超过 DNS 单标签 63 字符上限')>=0)?'OK':'BAD');"],
+    expect: ["DOM755B OK"],
+    ref: "第755批：关键词自身超过 63 字符必须明确拒绝，不再生成非法长标签候选。",
+  },
+  {
+    slug: "it/qrcode",
+    inputs: { textInput: Array.from({length:21},(_,i)=>'line'+(i+1)).join('\n') },
+    clicks: ["__qrSetMode('batch');generate();document.getElementById('__tbProbe').textContent='QR755 '+document.getElementById('qrBatchLimitNote').textContent;"],
+    expect: ["QR755 输入共有 21 个非空行，本次只生成前 20 个，另有 1 个未生成"],
+    ref: "第755批：批量超过 20 行必须明确提示总数与遗漏数；修复前 slice(0,20) 静默丢弃第 21 行。",
+  },
+  {
+    slug: "it/bacon-cipher",
+    inputs: { input: "IUVJ", mode: "01" },
+    clicks: ["document.getElementById('variant').value='24';buildTables('24');document.getElementById('group5').checked=false;enc();document.getElementById('__tbProbe').textContent='BACON755 '+document.getElementById('output').value;"],
+    expect: ["BACON755 01000100111001101000"],
+    ref: "第755批：24 字母模式 I 与 J 同码、U 与 V 同码；I/U 不再被丢弃。I=01000、U=10011、V=10011、J=01000 ⇒ 01000100111001101000，修复前只剩 J/V ⇒ 长度减半。",
   },
 
 ];
