@@ -3222,6 +3222,16 @@ def _guide_first_distinct_para(src, core):
 
 
 
+def _collapse_scenario_prefix(d):
+    """折叠历史构建留下的多个“典型场景包括：”前缀。"""
+    p = '典型场景包括：'
+    if d.count(p) <= 1:
+        return d
+    head, *rest = d.split(p)
+    body = '；'.join(r.strip('。； ') for r in rest if r.strip('。； '))
+    return head + p + body
+
+
 def _extend_short_guide_desc(d, src):
     """短指南描述补足到 70 字以上（2026-11-23）。
 
@@ -3230,6 +3240,7 @@ def _extend_short_guide_desc(d, src):
     只追加正文里真实存在、已完整收句且不含套话的段落；取不到就保持原样，绝不
     拼接全站通用模板，避免再次制造 949 页重复尾句。
     """
+    d = _collapse_scenario_prefix(d)
     if len(d) >= 70:
         return d
     snip = _guide_first_distinct_para(src, d)
@@ -3261,7 +3272,10 @@ def _extend_short_guide_desc(d, src):
                 cut = max(scen.rfind('；', 0, max_len), scen.rfind('，', 0, max_len))
                 scen = scen[:cut] if cut > 8 else scen[:max_len]
                 scen = scen.rstrip('，；、 ') + '。'
-            out = out.rstrip('。') + '。典型场景包括：' + scen
+            if '典型场景包括：' in out:
+                out = out.rstrip('。') + '；' + scen
+            else:
+                out = out.rstrip('。') + '。典型场景包括：' + scen
             if out[-1] not in '。！？':
                 out += '。'
     if len(out) < 70:
