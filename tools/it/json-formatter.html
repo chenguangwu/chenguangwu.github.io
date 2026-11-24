@@ -212,7 +212,7 @@ body.dark .tree-null,.dark .tree-count{color:#a6adc8;} body.dark .tree-bracket,.
       </div>
       <div class="spacer"></div>
       <label>缩进
-        <select id="indent" onchange="if(lastValidJSON) renderOutput()">
+        <select id="indent" onchange="if(hasValidJSON) renderOutput()">
           <option value="2">2 空格</option>
           <option value="4">4 空格</option>
           <option value="tab">Tab</option>
@@ -312,6 +312,8 @@ body.dark .tree-null,.dark .tree-count{color:#a6adc8;} body.dark .tree-bracket,.
 
 <script>
 let lastValidJSON = null;
+let hasValidJSON = false;
+let lastValidText = '';
 let treeCopyValues = [];
 
 const input = document.getElementById('input');
@@ -332,32 +334,171 @@ function onInputChange() {
 function autoValidate() {
   const val = input.value.trim();
   if (!val) {
-    inputTag.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input":"等待输入");
+    inputTag.textContent = __jsonEn() ? 'Waiting for input' : '等待输入';
     inputTag.className = 'tag';
+    inputTag.style.background = '';
+    inputTag.style.color = '';
     lastValidJSON = null;
+    hasValidJSON = false;
+    lastValidText = '';
     renderEmpty();
     return;
   }
   try {
     const obj = JSON.parse(val);
     lastValidJSON = obj;
-    inputTag.textContent = ((typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) || /lang=en-US/i.test(location.search)) ? '✅ Valid JSON' : '✅ JSON 有效';
+    hasValidJSON = true;
+    lastValidText = val;
+    const dups = __jsonDuplicateKeys(val);
+    if (dups.length) {
+      inputTag.textContent = (__jsonEn() ? '⚠ ' + dups.length + ' duplicate key(s)' : '⚠ 检测到 ' + dups.length + ' 个重复键') + (__jsonEn() ? '; converting keeps the last value' : '；格式化将保留最后一个值');
+      inputTag.style.background = 'rgba(245,158,11,0.12)';
+      inputTag.style.color = '#b45309';
+    } else {
+      inputTag.textContent = __jsonEn() ? '✅ Valid JSON' : '✅ JSON 有效';
+      inputTag.style.background = 'rgba(16,185,129,0.10)';
+      inputTag.style.color = 'var(--success)';
+    }
     inputTag.className = 'tag';
-    inputTag.style.background = 'rgba(16,185,129,0.10)';
-    inputTag.style.color = 'var(--success)';
     renderOutput();
   } catch(e) {
     lastValidJSON = null;
-    inputTag.textContent = '❌ ' + e.message.substring(0, 40);
-    inputTag.style.background = 'rgba(239,68,68,0.10)';
-    inputTag.style.color = 'var(--danger)';
+    hasValidJSON = false;
+    lastValidText = '';
+    renderInvalid(e.message);
   }
 }
 
 function renderEmpty() {
   treeCopyValues = [];
-  viewJson.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");
+  viewJson.textContent = __jsonEn() ? 'Waiting for input...' : '等待输入...';
   document.getElementById('resultStat').textContent = '';
+}
+
+function renderInvalid(message) {
+  treeCopyValues = [];
+  viewJson.innerHTML = '<p style="color:var(--danger);margin:0;">' + (__jsonEn() ? '❌ Current input is invalid; no result generated.' : '❌ 当前输入无效，未生成结果。') + '</p>';
+  document.getElementById('resultStat').textContent = '';
+  inputTag.textContent = '❌ ' + String(message || '').substring(0, 60);
+  inputTag.className = 'tag';
+  inputTag.style.background = 'rgba(239,68,68,0.10)';
+  inputTag.style.color = 'var(--danger)';
+}
+
+function __jsonEn() {
+  return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) || /lang=en-US/i.test(location.search);
+}
+
+function __jsonDuplicateKeys(text) {
+  const out = [];
+  const stack = [];
+  let i = 0;
+  const n = text.length;
+
+  function skipWs() {
+    while (i < n && /\s/.test(text[i])) i++;
+  }
+
+  function readString() {
+    const start = i;
+    i++;
+    let esc = false;
+    while (i < n) {
+      const c = text[i++];
+      if (esc) { esc = false; continue; }
+      if (c === '\\') { esc = true; continue; }
+      if (c === '"') break;
+    }
+    const raw = text.slice(start, i);
+    try { return JSON.parse(raw); } catch (e) { return raw.slice(1, -1); }
+  }
+
+  function markValue() {
+    const top = stack[stack.length - 1];
+    if (top && top.type === 'obj') top.expect = 'after';
+    else if (top) top.expect = 'after';
+  }
+
+  function pathOf(currentKey) {
+    const segs = [];
+    stack.forEach(function(ctx) {
+      if (ctx.segment != null) segs.push(ctx.segment);
+    });
+    if (currentKey != null) segs.push('.' + String(currentKey).replace(/\./g, '\\.').replace(/\[/g, '\\['));
+    return segs.join('') || '$';
+  }
+
+  while (i < n) {
+    skipWs();
+    if (i >= n) break;
+    const c = text[i];
+    const top = stack[stack.length - 1];
+
+    if (c === '{') {
+      const ctx = { type: 'obj', expect: 'key', keys: new Set(), segment: null, count: 0 };
+      markValue();
+      stack.push(ctx); i++;
+      continue;
+    }
+    if (c === '[') {
+      const ctx = { type: 'arr', expect: 'value', index: -1, segment: null };
+      markValue();
+      stack.push(ctx); i++;
+      continue;
+    }
+    if (c === '}' || c === ']') {
+      stack.pop(); i++; markValue();
+      continue;
+    }
+    if (c === ',') {
+      if (top && top.type === 'obj') { top.expect = 'key'; }
+      else if (top) { top.expect = 'value'; top.index++; }
+      i++;
+      continue;
+    }
+    if (c === ':') {
+      if (top && top.type === 'obj') top.expect = 'value';
+      i++;
+      continue;
+    }
+    if (c === '"') {
+      if (top && top.type === 'obj' && top.expect === 'key') {
+        const key = readString();
+        if (top.keys.has(key)) out.push({ path: pathOf(key), key: key });
+        top.keys.add(key);
+        top.segment = '.' + String(key).replace(/\./g, '\\.').replace(/\[/g, '\\[');
+        top.expect = 'colon';
+      } else {
+        readString();
+        markValue();
+        if (top && top.type === 'arr') top.index++;
+      }
+      continue;
+    }
+    // 数字、true、false、null 等标量：跳到分隔符，避免把内部字符当结构
+    while (i < n && !/[\s,}\]]/.test(text[i])) i++;
+    markValue();
+    if (top && top.type === 'arr') top.index++;
+  }
+  return out;
+}
+
+function __jsonParseChecked(text) {
+  const dups = __jsonDuplicateKeys(text);
+  if (dups.length) {
+    const shown = dups.slice(0, 5).map(function(d) { return '• ' + d.path; }).join('\n');
+    const msg = (__jsonEn()
+      ? 'Duplicate keys detected; converting will silently keep the last value:\n' + shown + '\n\nContinue?'
+      : '检测到重复键，格式化会静默保留后一个值：\n' + shown + '\n\n仍要继续？');
+    if (!confirm(msg)) throw new Error(__jsonEn() ? 'Cancelled: duplicate keys detected' : '已取消：检测到重复键');
+  }
+  return JSON.parse(text);
+}
+
+function __setValidJSON(obj, text) {
+  lastValidJSON = obj;
+  hasValidJSON = true;
+  lastValidText = text;
 }
 
 function storeTreeCopy(value) {
@@ -450,7 +591,7 @@ function __jsonStats(v){
 }
 function __jsonExtras(){
   if(typeof TBKit==='undefined')return;
-  if(typeof lastValidJSON==='undefined'||lastValidJSON===null)return;
+  if(!hasValidJSON)return;
   var en=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   var st=__jsonStats(lastValidJSON);
   var names={object:[en?'Object':'对象',st.object],array:[en?'Array':'数组',st.array],string:[en?'String':'字符串',st.string],number:[en?'Number':'数字',st.number],boolean:[en?'Boolean':'布尔',st.boolean],null:[en?'Null':'空值',st.null]};
@@ -482,7 +623,7 @@ function __jsonExtras(){
 }
 function __jsonExport(){
   if(typeof TBKit==='undefined')return;
-  if(typeof lastValidJSON==='undefined'||lastValidJSON===null){
+  if(!hasValidJSON){
     ToolBox.showToast((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Please load valid JSON first':'请先输入或加载有效 JSON','warning');return;
   }
   __jsonExtras();
@@ -490,7 +631,7 @@ function __jsonExport(){
   if(t&&t.querySelector('tbody').children.length){TBKit.util.exportTable('#jsonTable','json_structure_stats.csv');}
 }
 function renderOutput() {
-  if (!lastValidJSON) return;
+  if (!hasValidJSON) return;
   const ind = getIndent();
   treeCopyValues = [];
   const __h0=renderTree(lastValidJSON);if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){viewJson.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}viewJson.innerHTML=__h0;
@@ -504,34 +645,34 @@ function renderOutput() {
 
 function formatJSON() {
   try {
-    const obj = JSON.parse(input.value);
-    lastValidJSON = obj;
+    const obj = __jsonParseChecked(input.value);
+    __setValidJSON(obj, input.value);
     const ind = getIndent();
     input.value = JSON.stringify(obj, null, ind);
     autoValidate();
     ToolBox.showToast(i18nText('toast.msg554'));
   } catch(e) {
-    ToolBox.showToast('❌ ' + e.message);
+    if (!String(e.message || '').startsWith('已取消')) ToolBox.showToast('❌ ' + e.message);
   }
 }
 
 function minifyJSON() {
   try {
-    const obj = JSON.parse(input.value);
-    lastValidJSON = obj;
+    const obj = __jsonParseChecked(input.value);
+    __setValidJSON(obj, input.value);
     input.value = JSON.stringify(obj);
     autoValidate();
     ToolBox.showToast(i18nText('toast.msg096'));
   } catch(e) {
-    ToolBox.showToast('❌ ' + e.message);
+    if (!String(e.message || '').startsWith('已取消')) ToolBox.showToast('❌ ' + e.message);
   }
 }
 
 function validateJSON() {
   try {
-    const obj = JSON.parse(input.value);
-    lastValidJSON = obj;
-    const type = Array.isArray(obj) ? '数组' : typeof obj === 'object' ? '对象' : typeof obj;
+    const obj = __jsonParseChecked(input.value);
+    __setValidJSON(obj, input.value);
+    const type = Array.isArray(obj) ? '数组' : obj === null ? '空值' : typeof obj === 'object' ? '对象' : typeof obj;
     const size = JSON.stringify(obj).length;
     renderOutput();
     ToolBox.showToast(`✅ 有效 | ${type} | ${size.toLocaleString()} 字符`);
@@ -542,9 +683,9 @@ function validateJSON() {
 
 function sortJSON() {
   try {
-    const obj = JSON.parse(input.value);
+    const obj = __jsonParseChecked(input.value);
     const sorted = sortKeys(obj);
-    lastValidJSON = sorted;
+    __setValidJSON(sorted, input.value);
     const ind = getIndent();
     input.value = JSON.stringify(sorted, null, ind);
     renderOutput();
@@ -557,9 +698,14 @@ function sortJSON() {
 function sortKeys(obj) {
   if (Array.isArray(obj)) return obj.map(sortKeys);
   if (obj !== null && typeof obj === 'object') {
-    const sorted = {};
+    const sorted = Object.create(null);
     Object.keys(obj).sort().forEach(k => {
-      sorted[k] = sortKeys(obj[k]);
+      Object.defineProperty(sorted, k, {
+        value: sortKeys(obj[k]),
+        enumerable: true,
+        configurable: true,
+        writable: true
+      });
     });
     return sorted;
   }
@@ -623,7 +769,7 @@ function extractJSON() {
 
   for(const str of candidates){
     try{
-      const obj = JSON.parse(str);
+      const obj = __jsonParseChecked(str);
       if(str.length > maxLen){ maxLen = str.length; match = { obj, str }; }
     }catch(e){}
   }
@@ -639,14 +785,14 @@ function extractJSON() {
   }
 }
 function copyResult() {
-  const text = lastValidJSON ? JSON.stringify(lastValidJSON, null, getIndent()) : '';
+  const text = hasValidJSON ? JSON.stringify(lastValidJSON, null, getIndent()) : '';
   if (!text || text === '等待输入...') { ToolBox.showToast(i18nText('toast.msg474')); return; }
   ToolBox.copyText(text);
 }
 
 function downloadResult() {
   let text = '';
-  if (lastValidJSON) text = JSON.stringify(lastValidJSON, null, getIndent());
+  if (hasValidJSON) text = JSON.stringify(lastValidJSON, null, getIndent());
   if (!text) { ToolBox.showToast(i18nText('toast.msg473')); return; }
   ToolBox.downloadText('formatted.json', text, 'application/json');
 }
@@ -656,6 +802,8 @@ function clearAll() {
   // 同步清除本页自动保存的输入，避免明文 JSON 残留在 localStorage
   try { localStorage.removeItem('tb_uxp_tools/it/json-formatter.html#input'); } catch(e) {}
   lastValidJSON = null;
+  hasValidJSON = false;
+  lastValidText = '';
   renderEmpty();
   autoValidate();
 }
