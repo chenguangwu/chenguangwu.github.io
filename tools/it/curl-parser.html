@@ -137,13 +137,13 @@
     <h2 data-zh="📊 curl 命令解析器">📊 curl Command Parser</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="从 curl 命令提取 URL、方法、Header 与 Body。">curl Command Parser</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先按「双引号包裹串 / 单引号包裹串 / 非空白串」三种形态做引号感知切词；再按「选项是否带值」映射表成对消费参数：-X/--request 取方法，-H/--header 收请求头，-d/--data/--data-raw/--data-binary/--data-urlencode 取请求体，-F/--form 取表单字段，-u/-o/-A/-b/-T 等带值选项只消费值不参与 URL；未显式 -X 而带数据时按 curl 语义默认 POST；首个非选项词作为 URL；所有输出统一 HTML 转义，并附结构化 JSON</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先按「双引号包裹串 / 单引号包裹串 / 非空白串」三种形态做引号感知切词；再按「选项是否带值」映射表成对消费参数：-X/--request 取方法，-H/--header 收请求头，-d/--data/--data-raw/--data-binary/--data-urlencode 取请求体，-F/--form 取表单字段，-u/-o/-A/-b/-T 等带值选项只消费值不参与 URL；-G/--get 把数据追加到查询串（默认 GET），-I/--head 默认 HEAD；未显式 -X 而带数据时按 curl 语义默认 POST，-T 上传默认 PUT；-u/-b/-A/-e 保留为认证、Cookie、User-Agent、Referer 语义；首个非选项词作为 URL；凭据默认脱敏，所有输出统一 HTML 转义，并附结构化 JSON</div>
   <div class="formula-desc">把 curl 命令解析为结构化的请求信息。</div>
   <ul class="formula-list">
     <li><b>参数</b>：<code>-X</code> 方法、<code>-H</code> 请求头、<code>-d/--data</code> 请求体、<code>-F</code> 表单、<code>-u</code> 认证、<code>--compressed</code>。</li>
     <li><b>难点</b>：需正确处理 shell 引号（单/双引号）与反斜杠续行。</li>
-    <li><b>输出</b>：URL、方法、头部、请求体，可转换为 fetch 或 Python requests 代码。</li>
-    <li><b>局限</b>：含 shell 变量或管道的命令无法静态求值。</li>
+    <li><b>输出</b>：URL、方法、头部、请求体，可生成并复制 fetch 或 Python requests 代码；认证/Cookie 默认脱敏，需自行替换占位。</li>
+    <li><b>局限</b>：含 shell 变量或管道的命令无法静态求值；代理、证书、超时、输出文件等无法静态还原的选项会列在“未纳入请求”中。</li>
   </ul>
 </div>
 
@@ -155,8 +155,20 @@
     <div class="toolbar">
       <div id="curl_parserPresets"></div><button class="btn primary" onclick="parse()">解析</button><button class="btn" type="button" onclick="__curl_parserExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" type="button" onclick="genFetch()">生成 fetch</button>
+      <button class="btn" type="button" onclick="genPython()">生成 Python</button>
     </div>
-    <div class="result-box" id="out"></div> <div id="curl_parserTable"></div> <div id="curl_parserDiff"></div> <div id="curl_parserChart"></div> <div id="curl_parserHist"></div>
+    <div class="result-box" id="out"></div>
+    <div id="codeBox" style="display:none;margin-top:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <h3 style="margin:0;font-size:15px;">fetch 代码</h3><button class="btn" type="button" onclick="copyCode('codeFetch')">复制 fetch</button>
+      </div>
+      <pre class="code-block" id="codeFetch" style="white-space:pre-wrap"></pre>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:12px;">
+        <h3 style="margin:0;font-size:15px;">Python requests 代码</h3><button class="btn" type="button" onclick="copyCode('codePython')">复制 Python</button>
+      </div>
+      <pre class="code-block" id="codePython" style="white-space:pre-wrap"></pre>
+    </div> <div id="curl_parserTable"></div> <div id="curl_parserDiff"></div> <div id="curl_parserChart"></div> <div id="curl_parserHist"></div>
   </div>
 </div>
 
@@ -255,6 +267,29 @@ const CURL_VALUE_OPTS = {
   '-w': 'writeOut', '--write-out': 'writeOut', '--resolve': 'resolve',
 };
 
+function maskAuth(v){
+  const s=String(v||''); const i=s.indexOf(':');
+  return i>=0 ? s.slice(0,i)+':***' : s;
+}
+function maskCookie(v){
+  return String(v||'').split(';').map(function(p){
+    const i=p.indexOf('='); return i>=0 ? p.slice(0,i)+'=***' : p.trim()+'=***';
+  }).join(';');
+}
+function maskHeader(h){
+  const s=String(h||''); const i=s.indexOf(':');
+  if(i<0) return s;
+  const name=s.slice(0,i).trim().toLowerCase();
+  if(/^(authorization|proxy-authorization|cookie|x-api-key|x-auth-token)$/.test(name)) return s.slice(0,i+1)+' ***';
+  return s;
+}
+function appendQuery(url,data){
+  const s=String(url||''), h=s.indexOf('#');
+  const base=h>=0?s.slice(0,h):s, hash=h>=0?s.slice(h):'';
+  if(!base) return s;
+  const sep=base.indexOf('?')>=0 ? (/[?&]$/.test(base)?'':'&') : '?';
+  return base+sep+data+hash;
+}
 function looksLikeUrl(t) {
   const s = String(t == null ? '' : t);
   return /^[a-z][a-z0-9+.-]*:\/\//i.test(s) ||
@@ -262,7 +297,10 @@ function looksLikeUrl(t) {
     /^[\w-]+(?:\.[\w-]+)+(?::\d+)?(?:[/?#]|$)/.test(s);
 }
 
+function isEnPage(){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search); }
 function parse() {
+  const en = isEnPage();
+  const T = function(zh,enT){ return en ? enT : zh; };
   const raw0 = document.getElementById('cmd').value || '';
   // shell 续行：未引用或双引号内的「\ + 换行」删除二者（不插入空格），
   // 这样 `exa\`+换行+`mple.com` 拼成 `example.com`；单引号内反斜杠与换行都是字面内容。
@@ -293,8 +331,12 @@ function parse() {
   const headers = [];
   const formFields = [];
   const unknown = [];
+  const omitted = [];
+  const warnings = [];
   let data = '';
   let hasData = false;
+  let getMode = false, headMode = false, uploadMode = false;
+  let auth = '', cookies = [], uploadFile = '';
   let url = '';
 
   for (let i = 0; i < tokens.length; i++) {
@@ -321,6 +363,9 @@ function parse() {
         val = t.slice(2);
         inline = true;
       }
+      if (name === '-G' || name === '--get') { getMode = true; continue; }
+      if (name === '-I' || name === '--head') { headMode = true; continue; }
+      if (name === '--compressed') { omitted.push(T('--compressed（响应压缩协商，无法静态还原）','--compressed (response compression negotiation; cannot be restored statically)')); continue; }
       const kind = CURL_VALUE_OPTS[name];
       if (kind) {
         if (!inline) {
@@ -337,7 +382,19 @@ function parse() {
           hasData = true;
         }
         else if (kind === 'form') { formFields.push(val); hasData = true; }
-        // 其余带值选项（认证/输出文件/代理等）只消费值，不参与 URL
+        else if (kind === 'user') auth = val;
+        else if (kind === 'cookie') cookies.push(val);
+        else if (kind === 'userAgent') headers.push('User-Agent: ' + val);
+        else if (kind === 'referer') headers.push('Referer: ' + val);
+        else if (kind === 'upload') { uploadFile = val; uploadMode = true; omitted.push(T('-T/--upload-file 上传文件：仅标记 PUT，文件内容无法静态读取','-T/--upload-file uploads a file: only PUT is marked; file contents cannot be read statically')); }
+        else if (kind === 'output') omitted.push(T('-o/--output 响应写入文件，不是请求字段','-o/--output writes the response to a file; it is not a request field'));
+        else if (kind === 'cookieJar') omitted.push(T('-c/--cookie-jar 仅写出 Cookie 文件，不是请求字段','-c/--cookie-jar only writes a cookie file; it is not a request field'));
+        else if (kind === 'proxy') omitted.push(T('-x/--proxy 代理设置，无法静态还原','-x/--proxy proxy setting; cannot be restored statically'));
+        else if (kind === 'maxTime' || kind === 'connectTimeout') omitted.push(T(name + ' 超时设置，不影响请求内容', name + ' timeout setting; does not affect request content'));
+        else if (kind === 'cert' || kind === 'key' || kind === 'cacert' || kind === 'capath') omitted.push(T(name + ' TLS 证书设置，无法静态还原', name + ' TLS certificate setting; cannot be restored statically'));
+        else if (kind === 'writeOut') omitted.push(T('-w/--write-out 仅控制输出格式','-w/--write-out only controls output formatting'));
+        else if (kind === 'range') omitted.push(T('-r/--range 字节范围请求头，未自动写入','-r/--range byte-range header; not added automatically'));
+        else if (kind === 'resolve') omitted.push(T('--resolve DNS 映射，无法静态还原','--resolve DNS mapping; cannot be restored statically'));
         continue;
       }
       // 未识别选项：不把它的值当 URL；仅当紧随其后的词不像 URL 时才跳过该词并提示
@@ -351,18 +408,40 @@ function parse() {
     if (!url) url = trimQuote(t);
   }
 
-  // curl 语义：未显式 -X 而带 -d/--data*/-F/--form 时默认改用 POST
-  if (hasData && !explicitMethod) method = 'POST';
+  if (getMode && data) {
+    url = appendQuery(url, data);
+    data = '';
+    hasData = formFields.length > 0;
+  }
+  if (getMode && formFields.length) warnings.push(T('-G 与 -F 组合：表单字段未自动并入查询串，请人工确认','-G with -F: form fields were not merged into the query string; please verify manually'));
+  if (headMode && getMode) warnings.push(T('-I 与 -G 同时出现：按 HEAD 处理，数据去向请人工确认','-I with -G: treated as HEAD; verify where the data should go'));
 
-  const __h0=`<p>方法：<strong>${esc(method)}</strong></p>` +
-    `<p>URL：<strong>${esc(url || '未识别')}</strong></p>` +
-    `<p>Headers：</p>` +
-    `<div>${headers.length ? headers.map(h => `<p>${esc(h)}</p>`).join('') : '<p>无</p>'}</div>` +
-    `<p>Body：</p>` +
-    `<pre style="white-space:pre-wrap">${esc(data || '无')}</pre>` +
-    (formFields.length ? `<p>Form：</p><div>${formFields.map(f => `<p>${esc(f)}</p>`).join('')}</div>` : '') +
-    (unknown.length ? `<p>提示：</p><div><p>${esc('已跳过未识别选项：' + unknown.join('、'))}</p></div>` : '') +
-    `<p>结构化结果：</p><pre style="white-space:pre-wrap">${esc(JSON.stringify({ method, url, headers, body: data, form: formFields }, null, 2))}</pre>`;
+  // curl 语义：显式 -X 优先；否则 -I => HEAD，-G => GET，-T => PUT，带数据 => POST。
+  if (!explicitMethod) {
+    if (headMode) method = 'HEAD';
+    else if (getMode) method = 'GET';
+    else if (uploadMode) method = 'PUT';
+    else if (hasData) method = 'POST';
+  }
+  const maskedHeaders = headers.map(maskHeader);
+  const authMasked = auth ? maskAuth(auth) : '';
+  const cookieMasked = cookies.length ? cookies.map(maskCookie) : [];
+  const req = { method, url, headers: maskedHeaders, body: data, form: formFields, auth: authMasked, cookies: cookieMasked, omitted, warnings };
+  lastRequest = req;
+
+  const __h0=`<p>${T('方法：','Method: ')}<strong>${esc(method)}</strong></p>` +
+    `<p>${T('URL：','URL: ')}<strong>${esc(url || T('未识别','not detected'))}</strong></p>` +
+    `<p>${T('Headers：','Headers: ')}</p>` +
+    `<div>${maskedHeaders.length ? maskedHeaders.map(h => `<p>${esc(h)}</p>`).join('') : '<p>'+T('无','None')+'</p>'}</div>` +
+    `<p>${T('Body：','Body: ')}</p>` +
+    `<pre style="white-space:pre-wrap">${esc(data || T('无','None'))}</pre>` +
+    (formFields.length ? `<p>${T('Form：','Form: ')}</p><div>${formFields.map(f => `<p>${esc(f)}</p>`).join('')}</div>` : '') +
+    `<p>${T('认证：','Authentication: ')}</p><p>${esc(authMasked ? authMasked + T('（密码默认脱敏）',' (password masked by default)') : T('无','None'))}</p>` +
+    `<p>${T('Cookie：','Cookie: ')}</p><p>${esc(cookieMasked.length ? cookieMasked.join(T('；','; ')) + T('（值默认脱敏）',' (values masked by default)') : T('无','None'))}</p>` +
+    (unknown.length ? `<p>${T('提示：','Notice: ')}</p><div><p>${esc(T('已跳过未识别选项：','Skipped unknown options: ') + unknown.join(T('、',', ')))}</p></div>` : '') +
+    (omitted.length ? `<p>${T('未纳入请求：','Not included in the request: ')}</p><div>${omitted.map(x => `<p>${esc(x)}</p>`).join('')}</div>` : '') +
+    (warnings.length ? `<p>${T('需人工确认：','Needs manual review: ')}</p><div>${warnings.map(x => `<p>${esc(x)}</p>`).join('')}</div>` : '') +
+    `<p>${T('结构化结果：','Structured result: ')}</p><pre style="white-space:pre-wrap">${esc(JSON.stringify(req, null, 2))}</pre>`;
   if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h0;
 }
 
@@ -382,6 +461,52 @@ function urlEncodeData(v) {
   const eq = v.indexOf('=');
   if (eq < 0) return enc(v);
   return v.slice(0, eq) + '=' + enc(v.slice(eq + 1));
+}
+
+let lastRequest = null;
+function headersObject(req){
+  const o = {};
+  (req.headers || []).forEach(function(h){ const i = String(h).indexOf(':'); if(i > 0) o[String(h).slice(0,i).trim()] = String(h).slice(i+1).trim(); });
+  return o;
+}
+function genFetch() {
+  const req = lastRequest || { method: 'GET', url: '', headers: [], body: '' };
+  const o = { method: req.method };
+  const hs = headersObject(req);
+  if (Object.keys(hs).length) o.headers = hs;
+  if (req.body && req.method !== 'GET' && req.method !== 'HEAD') o.body = req.body;
+  const code = 'const options = ' + JSON.stringify(o, null, 2) + ';\n\n' +
+    'fetch(' + JSON.stringify(req.url || 'https://example.com') + ', options)\n' +
+    '  .then(r => r.text())\n' +
+    '  .then(console.log);' +
+    (req.auth || req.cookies.length ? '\n\n// ' + (isEnPage() ? 'Credentials/cookies are masked; replace *** before running.' : '认证/Cookie 已脱敏，请替换 *** 后再运行。') : '');
+  document.getElementById('codeFetch').textContent = code;
+  document.getElementById('codePython').textContent = pyCode(req);
+  document.getElementById('codeBox').style.display = 'block';
+}
+function pyStr(v){ return JSON.stringify(String(v == null ? '' : v)); }
+function pyCode(req) {
+  const hs = headersObject(req);
+  let code = 'import requests\n\nurl = ' + pyStr(req.url || 'https://example.com') + '\n';
+  code += 'headers = ' + JSON.stringify(hs, null, 2) + '\n\n';
+  code += 'response = requests.request(' + pyStr(req.method) + ', url, headers=headers';
+  if (req.body && req.method !== 'GET' && req.method !== 'HEAD') code += ', data=' + pyStr(req.body);
+  code += ')\nprint(response.status_code)\nprint(response.text)';
+  if (req.auth || req.cookies.length) code += '\n\n# ' + (isEnPage() ? 'Credentials/cookies are masked; replace *** before running.' : '认证/Cookie 已脱敏，请替换 *** 后再运行。');
+  return code;
+}
+function genPython() {
+  const req = lastRequest || { method: 'GET', url: '', headers: [], body: '', auth: '', cookies: [] };
+  const cf = document.getElementById('codeFetch');
+  if (!cf.textContent || cf.textContent.indexOf('fetch(') < 0) cf.textContent = 'const options = ' + JSON.stringify({ method: req.method }, null, 2) + ';' + '\n// 先点“生成 fetch”查看完整代码。';
+  document.getElementById('codePython').textContent = pyCode(req);
+  document.getElementById('codeBox').style.display = 'block';
+}
+function copyCode(id) {
+  const el = document.getElementById(id);
+  const text = el ? (el.textContent || '') : '';
+  if (!text.trim()) { ToolBox.showToast(i18nText('toast.msg668'), 'warning'); return; }
+  ToolBox.copyText(text, i18nText('msg346'));
 }
 
 function copyResult() {

@@ -13634,6 +13634,43 @@ const CASES = [
   },
   {
     slug: "it/curl-parser",
+    inputs: { cmd: "curl -G -d 'q=x' https://example.com/search" },
+    expect: ['"url": "https://example.com/search?q=x"', '"body": ""'],
+    ref: "-G/--get：数据必须追加到查询串、请求体为空，方法默认 GET；旧实现把 -G 当未知选项且把 -d 留在 body，输出 `https://example.com/search` + body `q=x`，本锚不命中。",
+  },
+  {
+    slug: "it/curl-parser",
+    inputs: { cmd: "curl -I https://example.com" },
+    expect: ['"method": "HEAD"'],
+    ref: "-I/--head：必须输出 HEAD；旧实现忽略 -I，固定 GET，本锚不命中。",
+  },
+  {
+    slug: "it/curl-parser",
+    inputs: { cmd: "curl -u alice:secret https://e.test/" },
+    expect: ["认证： alice:***"],
+    ref: "-u/--user：认证语义须保留且密码默认脱敏，输出 `alice:***` 且不出现明文 secret；旧实现只消费值、结果完全无认证信息，本锚不命中。",
+  },
+  {
+    slug: "it/curl-parser",
+    inputs: { cmd: "curl -b 'session=abc; theme=dark' -A 'Probe/1' -e 'https://ref.test/' https://e.test/" },
+    expect: ["Cookie： session=***", "User-Agent: Probe/1", "Referer: https://ref.test/"],
+    ref: "-b/-A/-e：Cookie 值须脱敏、User-Agent 与 Referer 须进入请求头；旧实现三者都只消费值不输出，本锚不命中。",
+  },
+  {
+    slug: "it/curl-parser",
+    inputs: { cmd: "curl -o out.json -x http://proxy:8080 https://e.test/" },
+    expect: ["未纳入请求", "-o/--output 响应写入文件", "-x/--proxy 代理设置"],
+    ref: "-o/-x：无法静态还原的选项须明确列出“未纳入请求”，不能静默丢弃；旧实现只消费值且无提示，本锚不命中。",
+  },
+  {
+    slug: "it/curl-parser",
+    inputs: { cmd: "curl -X POST 'https://e.test/api' -H 'Content-Type: application/json' -d '{\"a\":1}'" },
+    clicks: ["genFetch();genPython();"],
+    expect: ["fetch(", "requests.request(", "data="],
+    ref: "代码生成：点击按钮必须产出 fetch 与 Python requests 代码，含 URL、POST 与 data；旧实现没有入口，本锚不命中。",
+  },
+  {
+    slug: "it/curl-parser",
     // IT-D31：shell 反斜杠续行须折叠，不得把 `\` 当成 URL。
     inputs: { cmd: "curl -X POST \\\n https://api.example.com/users" },
     expect: ['"url": "https://api.example.com/users"'],
