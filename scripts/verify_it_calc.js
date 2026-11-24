@@ -15411,6 +15411,36 @@ const CASES = [
     clicks: ["calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='DATA '+(h.indexOf('1.024')>=0&&h.indexOf('0.001024')>=0?'OK':'BAD');"],
     expect: ["DATA OK"],
     ref: "第740批：1 KiB = 1024 B = 1.024 kB = 0.001024 MB；SI 与 IEC 前缀分列。旧表只有 1024 进制 KB。"
+  },
+  {
+    "slug": "it/text-truncate",
+    "clicks": ["var i=document.getElementById('input'),m=document.getElementById('mode'),l=document.getElementById('limit'),f=document.getElementById('fromEnd'),r=document.getElementById('result');i.value='  hello world';m.value='words';l.value='1';f.checked=false;__text_truncate_f0();var fwd=r.textContent;f.checked=true;__text_truncate_f0();var back=r.textContent;document.getElementById('__tbProbe').textContent='TRUNC '+((back==='...world'&&String(__text_truncate_f0).indexOf('words[limit-1].end')>=0&&String(__text_truncate_f0).indexOf('words[words.length-limit].start')>=0)?'OK':'BAD:'+fwd+'|'+back);"],
+    "expect": ["TRUNC OK"],
+    "ref": "第742批：单词模式按实际非空白词位置截取，首尾空白不计为词；旧 split(/\\s+/) 会把开头空白当空词，limit=1 时只输出省略符。默认示例 limit=20 不截断 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/qrcode",
+    "clicks": ["var cap=null;globalThis.TBKit={util:{isEn:function(){return false;}},chart:{bar:function(sel,opt){cap=opt}}};document.getElementById('textInput').value='123456789012345678901234567890';document.getElementById('qrmargin').value='4';__qrChart();var one=cap.series[0].data;document.getElementById('textInput').value='123456789012345678901234567890\\n987654321098765432109876543210';__qrChart();document.getElementById('__tbProbe').textContent='QRCAP '+JSON.stringify(one)+'|'+JSON.stringify(cap.series[0].data)+'|'+(cap.title.indexOf('共 2 个二维码')>=0?'BATCH':'NO');"],
+    "expect": ["QRCAP [1,1,2,2]|[1,1,2,2]|BATCH"],
+    "ref": "第742批：容量图改为逐行调用实际编码器并按 Numeric/Alphanumeric/Byte 模式取版本；30 位纯数字在 L/M/Q/H 实际为 v1/v1/v2/v2，旧按 UTF-8 字节查表会高估。两行只取最大版本并标明 2 个二维码。"
+  },
+  {
+    "slug": "it/text-statistics",
+    "clicks": ["document.getElementById('textInput').value='鿿𠀀A';analyze();document.getElementById('__tbProbe').textContent='HAN '+(stats.chineseChars===2&&stats.totalWords===3?'OK':'BAD:'+stats.chineseChars+'/'+stats.totalWords);"],
+    "expect": ["HAN OK"],
+    "ref": "第742批：汉字识别改用 Unicode Han 脚本，覆盖 U+9FFF 与扩展 B 的 U+20000；旧仅 4E00–9FA5 会漏算这两个字与对应词数。默认示例不含扩展汉字 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/text-diff",
+    "clicks": ["var all=normalizeText('a b',{ignoreAllWhitespace:true}),count=normalizeText('a b',{ignoreWhitespace:true});document.getElementById('__tbProbe').textContent='DIFFALL '+(all==='ab'&&count==='a b'?'OK':'BAD:'+all+'|'+count);"],
+    "expect": ["DIFFALL OK"],
+    "ref": "第742批：「忽略所有空白」删除行内全部空白，使 a b 与 ab 判为相同；「忽略空白数量」仅合并连续空白并去行首尾，仍保留词间空格。旧选项只有后者且命名误导。"
+  },
+  {
+    "slug": "it/color-converter",
+    "clicks": ["try{localStorage.removeItem=function(){};localStorage.setItem=function(k,v){globalThis.__ccSaved=v;};}catch(e){};var ok=hex8(255,0,0,0.5)==='#ff000080'&&String(updateDisplay).indexOf('colorCss(currentColor)')>=0&&String(addToHistory).indexOf('a: a')>=0&&String(renderHistory).indexOf('fullHex')>=0;document.getElementById('__tbProbe').textContent='CALPHA '+(ok?'OK':'BAD');"],
+    "expect": ["CALPHA OK"],
+    "ref": "第742批：透明色预览用棋盘叠加 rgba，格式区给出 8 位 HEX，历史记录保存 alpha；旧预览/历史只保留六位 HEX，显示成不透明红色。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

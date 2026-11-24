@@ -403,29 +403,36 @@ function __qrChart(){
   if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
   var host = document.getElementById('qrChart');
   if (!host) { return; }
-  var text = document.getElementById('textInput').value;
-  if (!text) { host.innerHTML = ''; return; }
-  var bytes = __qrBytes(text);
+  var lines = __qrPayloads();
+  if (!lines.length) { host.innerHTML = ''; return; }
   var en = TBKit.util.isEn();
   var levels = ['L', 'M', 'Q', 'H'];
-  var labels = [], data = [];
+  var labels = [], data = [], over = [];
   levels.forEach(function(lv){
-    var cap = QR_BYTE_CAP[lv];
-    var v = 0;
-    for (var i = 0; i < cap.length; i++) { if (cap[i] >= bytes) { v = i + 1; break; } }
-    // IT-N260：超出 v40 容量时标 41（图例说明 41=超出 v40），不再错误压成 10
-    if (v === 0) v = 41;
+    var maxV = 0, failed = 0;
+    lines.forEach(function(line){
+      try{
+        var mode = /^[0-9]+$/.test(line) ? 'Numeric' : (/^[0-9A-Z $%*+\-./:]+$/.test(line) ? 'Alphanumeric' : 'Byte');
+        var qr = qrcode(0, lv); qr.addData(line, mode); qr.make();
+        var v = (qr.getModuleCount() - 17) / 4;
+        if (v > maxV) maxV = v;
+      }catch(e){ failed++; }
+    });
     labels.push(lv);
-    data.push(v);
+    data.push(failed ? 41 : maxV);
+    if (failed) over.push(lv);
   });
+  var title = (en ? 'Max minimum QR version across ' : '共 ')
+    + lines.length + (en ? ' code(s), computed per line with actual encoding mode: ' : ' 个二维码，按每行实际编码模式计算所需最大版本：')
+    + (en ? '(41 = beyond v40' : '（41 = 超出 v40')
+    + (over.length ? (en ? '; failed: ' : '；超限级别：') + over.join('/') : '')
+    + (en ? ')' : '）');
   TBKit.chart.bar('#qrChart', {
-    title: (en ? 'Minimum QR version needed per error-correction level (' : '各纠错级别下编码当前内容所需最小版本（')
-      + bytes + (en ? ' bytes, 41 = beyond v40)' : ' 字节，41 = 超出 v40）'),
+    title: title,
     labels: labels,
     series: [{ name: en ? 'Version' : '版本', data: data }]
   });
 }
-
 function __qrBuild(text, margin, pixelSize){
   if(typeof text!=="string") return null;
   if (qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];

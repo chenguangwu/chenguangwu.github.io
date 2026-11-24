@@ -529,7 +529,7 @@ function fromPicker(hex) {
   if (color) {
     currentColor = color;
     updateDisplay();
-    addToHistory(hex);
+    addToHistory(hex, 1);
   }
 }
 
@@ -541,7 +541,7 @@ function fromInput(str) {
     const hex = rgbToHex(color.r, color.g, color.b);
     document.getElementById('colorPicker').value = hex;
     updateDisplay();
-    addToHistory(hex);
+    addToHistory(hex, color.a);
     return;
   }
   colorInputInvalid = true;
@@ -549,6 +549,8 @@ function fromInput(str) {
   document.getElementById('colorFormats').innerHTML = '<p style="color:var(--danger);padding:10px 0;">⚠️ 无法识别当前输入，旧转换结果已清除。支持 #fff、#ffffff、rgb(255,255,255)、rgba(255,255,255,0.5)、hsl(0,100%,50%)、hsla(0,100%,50%,0.5)。</p>';
 }
 
+function colorCss(c){ return 'rgba('+c.r+', '+c.g+', '+c.b+', '+(c.a==null?1:c.a)+')'; }
+function hex8(r,g,b,a){ var h=rgbToHex(r,g,b); if(a>=1) return h; return h+clampChannel(a*255).toString(16).padStart(2,'0'); }
 function updateDisplay() {
   const { r, g, b, a } = currentColor;
   const hex = rgbToHex(r, g, b);
@@ -556,11 +558,13 @@ function updateDisplay() {
   const cmyk = rgbToCmyk(r, g, b);
   const hwb = rgbToHwb(r, g, b);
   
-  document.getElementById('colorPreview').style.background = hex;
+  var preview=document.getElementById('colorPreview');
+  if(a<1){ preview.style.background=hex; preview.style.backgroundImage='linear-gradient('+colorCss(currentColor)+', '+colorCss(currentColor)+'), repeating-conic-gradient(#e5e7eb 0% 25%, #f9fafb 0% 50%)'; preview.style.backgroundSize='auto, 14px 14px'; }
+  else { preview.style.background=hex; preview.style.backgroundImage=''; preview.style.backgroundSize=''; }
   
   const formats = [
-    { label: 'HEX', value: hex, copy: hex },
-    { label: 'HEX (大写)', value: hex.toUpperCase(), copy: hex.toUpperCase() },
+    { label: 'HEX', value: a<1?hex8(r,g,b,a):hex, copy: a<1?hex8(r,g,b,a):hex },
+    { label: 'HEX (大写)', value: (a<1?hex8(r,g,b,a):hex).toUpperCase(), copy: (a<1?hex8(r,g,b,a):hex).toUpperCase() },
     { label: 'RGB', value: `rgb(${r}, ${g}, ${b})`, copy: `rgb(${r}, ${g}, ${b})` },
     { label: 'RGBA', value: `rgba(${r}, ${g}, ${b}, ${a})`, copy: `rgba(${r}, ${g}, ${b}, ${a})` },
     { label: 'HSL', value: `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`, copy: `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)` },
@@ -573,7 +577,8 @@ function updateDisplay() {
     { label: 'Alpha', value: a, copy: a }
   ];
   
-  document.getElementById('colorFormats').innerHTML = formats.map(f => `
+  var alphaNote = a<1 ? '<p style="grid-column:1/-1;font-size:12px;color:var(--text-muted);margin:6px 0 0;">ℹ CMYK / HWB 不支持透明度，以上值未包含 Alpha；复制透明色请用 RGBA、HSLA 或 8 位 HEX。</p>' : '';
+  document.getElementById('colorFormats').innerHTML = alphaNote + formats.map(f => `
     <div class="format-card">
       <div class="lbl">${f.label}</div>
       <div class="val">${f.value}</div>
@@ -639,13 +644,13 @@ function renderPalette(id, colors) {
 }
 
 function selectColor(hex) {
-  document.getElementById('colorPicker').value = hex;
-  document.getElementById('colorInput').value = hex;
   const color = parseColor(hex);
+  document.getElementById('colorInput').value = hex;
   if (color) {
+    document.getElementById('colorPicker').value = rgbToHex(color.r, color.g, color.b);
     currentColor = color;
     updateDisplay();
-    addToHistory(hex);
+    addToHistory(rgbToHex(color.r, color.g, color.b), color.a);
   }
   ToolBox.showToast('已选择颜色 ' + hex);
 }
@@ -766,11 +771,12 @@ function renderCommonColors() {
   `).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('commonColors').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('commonColors').innerHTML=__h2;
 }
 
-function addToHistory(hex) {
+function addToHistory(hex, alpha) {
   try {
+    const a = alpha==null ? 1 : clampAlpha(alpha);
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    const filtered = history.filter(h => h.hex.toLowerCase() !== hex.toLowerCase());
-    filtered.unshift({ hex: hex, time: Date.now() });
+    const filtered = history.filter(h => h.hex.toLowerCase() !== hex.toLowerCase() || (h.a==null?1:h.a) !== a);
+    filtered.unshift({ hex: hex, a: a, time: Date.now() });
     localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered.slice(0, MAX_HISTORY)));
   } catch(e) {}
 }
@@ -783,12 +789,18 @@ function renderHistory() {
       const __h3='<p style="padding:24px;text-align:center;color:var(--text-muted);">暂无历史记录</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h3;
       return;
     }
-    const __h4=history.map(item => `
-      <button type="button" class="history-item" style="background:transparent;width:100%;font:inherit;text-align:left;color:inherit;" aria-label="选择历史颜色 ${item.hex}" onclick="selectColor('${item.hex}')">
-        <div class="history-swatch" style="background:${item.hex};"></div>
-        <span class="history-hex">${item.hex.toUpperCase()}</span>
-      </button>
-    `).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h4;
+    const __h4=history.map(item => {
+      const a=item.a==null?1:item.a;
+      const parsed=parseColor(item.hex)||{r:0,g:0,b:0};
+      const fullHex=hex8(parsed.r,parsed.g,parsed.b,a);
+      const css=colorCss({r:parsed.r,g:parsed.g,b:parsed.b,a:a});
+      const swatch= a<1 ? 'background:'+css+';background-image:linear-gradient('+css+','+css+'),repeating-conic-gradient(#e5e7eb 0% 25%,#f9fafb 0% 50%);background-size:auto,10px 10px;' : 'background:'+fullHex+';';
+      return `
+      <button type="button" class="history-item" style="background:transparent;width:100%;font:inherit;text-align:left;color:inherit;" aria-label="选择历史颜色 ${fullHex}" onclick="selectColor('${fullHex}')">
+        <div class="history-swatch" style="${swatch}"></div>
+        <span class="history-hex">${fullHex.toUpperCase()}</span>
+      </button>`;
+    }).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h4;
   } catch(e) {
     const __h5='<p style="padding:24px;text-align:center;color:var(--text-muted);">加载历史记录失败</p>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h5;
   }

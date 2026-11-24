@@ -199,7 +199,8 @@
     </div>
 
     <div class="checkbox-row" style="margin-top:12px;">
-      <label><input type="checkbox" id="ignoreWhitespace"> 忽略空白字符</label>
+      <label><input type="checkbox" id="ignoreWhitespace"> 忽略空白数量（合并连续空白、去行首尾）</label>
+      <label><input type="checkbox" id="ignoreAllWhitespace"> 忽略所有空白（a b 与 ab 视为相同）</label>
       <label><input type="checkbox" id="ignoreCase"> 忽略大小写</label>
       <label><input type="checkbox" id="charDiff"> 逐字符对比</label>
     </div>
@@ -306,7 +307,7 @@
       <li><strong>合并视图:</strong> 以统一的格式显示差异，+表示新增，-表示删除</li>
       <li><strong>并排视图:</strong> 左右两栏分别显示原始文本和修改文本，便于对照</li>
       <li><strong>应用场景:</strong> 代码审查、文档版本对比、配置文件差异分析</li>
-      <li><strong>忽略空白:</strong> 忽略空格、制表符等空白字符的差异，专注于内容变化</li>
+      <li><strong>忽略空白数量:</strong> 合并连续空格/制表符并去掉行首尾空白，但保留词间空格；<strong>忽略所有空白:</strong> 删除全部空白，使 <code>a b</code> 与 <code>ab</code> 视为相同。</li>
     </ul>
   </div>
 
@@ -408,6 +409,7 @@ function switchView(view, tab) {
 function getDiffOptions() {
   return {
     ignoreWhitespace: document.getElementById('ignoreWhitespace').checked,
+    ignoreAllWhitespace: document.getElementById('ignoreAllWhitespace').checked,
     ignoreCase: document.getElementById('ignoreCase').checked,
     charDiff: document.getElementById('charDiff').checked
   };
@@ -427,7 +429,9 @@ function normalizeText(text, options) {
   if(typeof text!=="string") return "";
   options=options||{};
   let result = text;
-  if (options.ignoreWhitespace) {
+  if (options.ignoreAllWhitespace) {
+    result = result.replace(/\s+/g, '');
+  } else if (options.ignoreWhitespace) {
     result = result.replace(/[ \t]+/g, ' ').replace(/^ +| +$/gm, '');
   }
   if (options.ignoreCase) {
@@ -827,7 +831,7 @@ function addToHistory(t1, t2, options) {
   try {
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
     const preview = t1.substring(0, 50) + ' → ' + t2.substring(0, 50);
-    const opts = options ? { ignoreWhitespace: !!options.ignoreWhitespace, ignoreCase: !!options.ignoreCase, charDiff: !!options.charDiff } : null;
+    const opts = options ? { ignoreWhitespace: !!options.ignoreWhitespace, ignoreAllWhitespace: !!options.ignoreAllWhitespace, ignoreCase: !!options.ignoreCase, charDiff: !!options.charDiff } : null;
     if (history.length > 0 && history[0].t1 === t1 && history[0].t2 === t2 && JSON.stringify(history[0].options || null) === JSON.stringify(opts)) return;
     history.unshift({
       t1: t1,
@@ -858,7 +862,7 @@ function renderHistory() {
         <button type="button" class="history-item" onclick="loadHistory(${i})">
           <div class="h-info">
             <div class="h-preview">${ToolBox.escHtml(item.preview)}</div>
-            <div class="h-options">${item.options ? (item.options.ignoreWhitespace ? '忽略空白 · ' : '') + (item.options.ignoreCase ? '忽略大小写 · ' : '') + (item.options.charDiff ? '逐字符' : '逐行') : '旧记录：未保存对比选项'}</div>
+            <div class="h-options">${item.options ? (item.options.ignoreAllWhitespace ? '忽略所有空白 · ' : (item.options.ignoreWhitespace ? '忽略空白数量 · ' : '')) + (item.options.ignoreCase ? '忽略大小写 · ' : '') + (item.options.charDiff ? '逐字符' : '逐行') : '旧记录：未保存对比选项'}</div>
             <div class="h-time">${timeStr}</div>
           </div>
         </button>
@@ -878,6 +882,7 @@ function loadHistory(index) {
       const opt = history[index].options;
       if (opt) {
         document.getElementById('ignoreWhitespace').checked = !!opt.ignoreWhitespace;
+        document.getElementById('ignoreAllWhitespace').checked = !!opt.ignoreAllWhitespace;
         document.getElementById('ignoreCase').checked = !!opt.ignoreCase;
         document.getElementById('charDiff').checked = !!opt.charDiff;
       }

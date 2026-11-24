@@ -342,10 +342,12 @@ function truncate(){
       }
       return cps.slice(0, keep).join('') + ellipsis;
     }else if(mode === 'words'){
-      const words = s.split(/\s+/);
+      // 按非空白词的实际位置截取：不把首尾/连续空白误计为词，也不重排原有空格与换行。
+      const words=[]; const re=/\S+/g; let m;
+      while((m=re.exec(s))) words.push({start:m.index,end:m.index+m[0].length});
       if(words.length > limit){
-        const out = fromEnd ? words.slice(words.length - limit).join(' ') : words.slice(0, limit).join(' ');
-        return fromEnd ? ellipsis + out : out + ellipsis;
+        if(fromEnd) return ellipsis + s.slice(words[words.length-limit].start);
+        return s.slice(0, words[limit-1].end) + ellipsis;
       }
     }else if(mode === 'lines'){
       const lines = s.split('\n');
