@@ -1195,7 +1195,7 @@
   }
 
   /** 挂载历史面板；onPick 回调用于回填 */
-  history.mount = function (host, onPick, limit) {
+  history.mount = function (host, onPick, limit, onClear) {
     var box = $(host);
     if (!box) return null;
     var arr = history.list().slice(0, limit || 6);
@@ -1206,7 +1206,7 @@
     var t = el('span', {}); t.textContent = tt('hist');
     var clr = el('button', { type: 'button', class: 'tbk-link-btn', 'aria-label': isEn() ? 'Clear history' : '清空历史' });
     clr.textContent = tt('clear');
-    clr.addEventListener('click', function () { history.clear(); box.innerHTML = ''; });
+    clr.addEventListener('click', function () { history.clear(); try { if (typeof onClear === 'function') onClear(); } catch (e) {} box.innerHTML = ''; });
     hd.appendChild(t); hd.appendChild(clr);
     wrap.appendChild(hd);
     var ul = el('ul', { class: 'tbk-history-list' });

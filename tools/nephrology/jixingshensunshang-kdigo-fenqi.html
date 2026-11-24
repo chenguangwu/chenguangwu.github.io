@@ -351,38 +351,17 @@ function calc(){
     html+='<div class="tip-box tip-success">✓ 当前肌酐与尿量未达 AKI 标准（肌酐已按时间窗校验），建议继续监测。</div>';
   }
   const __g3=html;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-  saveHistory(base,cur,w,finalStage);
 }
 function copyRes(){var t=document.getElementById('res').innerText;if(!t||!t.trim()||/^请/.test(t.trim())||document.getElementById('res').querySelector('.tb-guard')){ToolBox.showToast(i18nText(), 'warning');return;}ToolBox.copyText(t);}
 function resetAll(){document.getElementById('baseline').value='';document.getElementById('current').value='';document.getElementById('weight').value='';document.getElementById('hours').value='';document.getElementById('uo6').value='';document.getElementById('uo12').value='';document.getElementById('uo24').value='';document.getElementById('rrt').value='';calc();ToolBox.showToast(i18nText(), 'info');}
-function hkey(){return 'tb_history_'+location.pathname;}
-function saveHistory(base,cur,w,stage){
-  try{
-    var list=JSON.parse(localStorage.getItem(hkey())||'[]');
-    var now=new Date();
-    var name=['无AKI','1期','2期','3期'][stage];
-    list.unshift({base:base,cur:cur,w:w,stage:name,time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit'})});
-    if(list.length>5)list=list.slice(0,5);
-    localStorage.setItem(hkey(),JSON.stringify(list));renderHistory();
-  }catch(e){}
-}
-function renderHistory(){
-  var box=document.getElementById('historyBox');if(!box)return;
-  try{
-    var list=JSON.parse(localStorage.getItem(hkey())||'[]');
-    if(!list.length){box.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}
-    var html='';
-    list.forEach(function(h){
-      html+='<div class="history-item" onclick="restoreHistory('+h.base+','+h.cur+','+h.w+')">'+
-        '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">基线 '+h.base+' → 当前 '+h.cur+' μmol/L</div>'+
-        '<div class="detail">分期：'+ToolBox.escHtml(h.stage)+'</div></div></div>';
-    });
-    const __g5=html;box.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
-  }catch(e){box.innerHTML='<div class="history-empty">读取记录失败</div>';}
-}
-function restoreHistory(base,cur,w){document.getElementById('baseline').value=base;document.getElementById('current').value=cur;document.getElementById('weight').value=w;calc();ToolBox.showToast(i18nText(), 'info');}
-function clearHistory(){try{localStorage.removeItem(hkey());renderHistory();ToolBox.showToast(i18nText(), 'info');}catch(e){}}
-document.addEventListener('DOMContentLoaded',function(){renderHistory();calc();});
+function clearLegacyHistory(){try{localStorage.removeItem('tb_history_'+location.pathname);}catch(e){}}
+document.addEventListener('DOMContentLoaded',function(){
+  clearLegacyHistory();
+  calc();
+  setTimeout(function(){
+    try { __jixingshensunshang_kdigo_fenqiRender(['baseline','current','weight','hours','uo6','uo12','uo24','rrt'],'结果',false); } catch(e) {}
+  },0);
+});
 
 var __jixingshensunshang_kdigo_fenqi_last=0,__jixingshensunshang_kdigo_fenqi_skip=false;
 function __jixingshensunshang_kdigo_fenqiSnap(){
@@ -402,12 +381,12 @@ function __jixingshensunshang_kdigo_fenqiResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
+    if(/^(等待输入|请输入文本|请选择|请填写|请先填写|Waiting for input|Please enter text|Please select|Please fill)/.test(t)) return '';
     return t.slice(0,80);
 }
 function __jixingshensunshang_kdigo_fenqiScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|请选择|请填写|请先填写|Invalid|Failed|must be|Please enter|Please select|Please fill|请输入|等待输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __jixingshensunshang_kdigo_fenqiTime(t){
@@ -432,6 +411,10 @@ function __jixingshensunshang_kdigo_fenqiRender(keys,rk,en){
         TBKit.history.mount('#jixingshensunshang_kdigo_fenqiHist',function(rec){
             __jixingshensunshang_kdigo_fenqi_skip=true;
             try{
+                // 历史快照会省略空字段；恢复前先清空本页全部输入，避免旧记录里的空值被当前残留值覆盖
+                ['baseline','current','weight','hours','uo6','uo12','uo24','rrt'].forEach(function(id){
+                    var e=document.getElementById(id); if(e) e.value='';
+                });
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
@@ -443,7 +426,7 @@ function __jixingshensunshang_kdigo_fenqiRender(keys,rk,en){
                 calc();
             }catch(e2){}
             __jixingshensunshang_kdigo_fenqi_skip=false;
-        });
+        }, 6, clearLegacyHistory);
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
             var v=parseFloat(arr[j].d.__tbScore);
