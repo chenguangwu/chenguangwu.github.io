@@ -16211,6 +16211,26 @@ const CASES = [
     ref: "第759批：补位数 9 大于等于列数 6，必须判非法并清空结果，不能把有效密文截空。",
   },
 
+  // ── 第760批 ──
+  {
+    slug: "it/aes-encryptor",
+    clicks: ["var a=0;try{hexToBytes('abc')}catch(e){a=1};var b=0;try{pkcs7Unpad(new Uint8Array([1,2,3]))}catch(e){b=1};document.getElementById('__tbProbe').textContent='AESSTRICT '+a+b;"],
+    expect: ["AESSTRICT 11"],
+    ref: "第760批：Hex 奇数位必须报错（不再补前导 0），无效 PKCS7 必须抛出（不再原样返回伪明文）；两项均严格才为 11。",
+  },
+  {
+    slug: "it/aes-encryptor",
+    clicks: ["var bad=0;document.getElementById('iv').value='00';try{getIV('CBC',false)}catch(e){bad=1};document.getElementById('reuseParams').checked=true;var bad2=0;document.getElementById('iv').value='00';try{getIV('CBC',true)}catch(e){bad2=1};document.getElementById('__tbProbe').textContent='AESIV '+bad+bad2;"],
+    expect: ["AESIV 11"],
+    ref: "第760批：解密与手动复用加密的 IV 都必须是 16 字节；1 字节 IV 在两条路径都必须报错，不能再补零。",
+  },
+  {
+    slug: "it/aes-encryptor",
+    clicks: ["var src=String(__aes_encryptor_d0||decrypt);var ok=src.indexOf('parseMetaBytes')>=0&&src.indexOf('metaIv')>=0&&src.indexOf('bytesToHex(metaIv)')>=0;document.getElementById('__tbProbe').textContent='AESMETA '+(ok?'OK':'BAD');"],
+    expect: ["AESMETA OK"],
+    ref: "第760批：Base64 元数据的 IV 必须经 parseMetaBytes 解析并按统一 Hex 写回；测试桩无法直接访问该局部函数，改断言 decrypt 源码同时含 parseMetaBytes(parts[1]) 与 bytesToHex(metaIv) ⇒ 旧实现缺两处。",
+  },
+
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
