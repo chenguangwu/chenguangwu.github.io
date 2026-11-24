@@ -4200,7 +4200,7 @@ document.addEventListener('DOMContentLoaded', enhanceNumberInputs);
     var box = document.createElement('div');
     box.className = 'tool-disclaimer';
     box.setAttribute('style',
-      'margin:0 0 14px 0;padding:12px 14px;border:1px solid #F59E0B;border-radius:12px;background:rgba(245,158,11,0.12);color:#92400E;line-height:1.6;');
+      'margin:0 0 14px 0;padding:12px 14px;border:1px solid #F59E0B;border-radius:12px;background:rgba(245,158,11,0.12);color:var(--tb-text-warning,#92400E);line-height:1.6;');
     // data-i18n-fb 内联完整中文（含行业相关提示 msg），英文态由 i18n 字典覆盖；
     // apply(box) 后两种语言各自正确（zh 走 fb，en 走 pack）。
     var _msgEsc = String(msg).replace(/"/g, '&quot;').replace(/</g, '&lt;');
