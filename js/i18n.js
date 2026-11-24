@@ -1061,14 +1061,20 @@ var LANG_REGISTRY = [
     try {
       var ogT = document.querySelector('meta[property="og:title"]');
       var ogD = document.querySelector('meta[property="og:description"]');
+      var twT = document.querySelector('meta[name="twitter:title"]');
+      var twD = document.querySelector('meta[name="twitter:description"]');
       if (current === 'en-US') {
         var tEn = document.querySelector('meta[name="title-en"]');
         var dEn = document.querySelector('meta[name="desc-en"]');
         if (ogT && tEn && tEn.getAttribute('content')) ogT.setAttribute('content', tEn.getAttribute('content'));
         if (ogD && dEn && dEn.getAttribute('content')) ogD.setAttribute('content', dEn.getAttribute('content'));
+        if (twT && tEn && tEn.getAttribute('content')) twT.setAttribute('content', tEn.getAttribute('content'));
+        if (twD && dEn && dEn.getAttribute('content')) twD.setAttribute('content', dEn.getAttribute('content'));
       } else {
         if (ogT && _ogZh && _ogZh.t) ogT.setAttribute('content', _ogZh.t);
         if (ogD && _ogZh && _ogZh.d) ogD.setAttribute('content', _ogZh.d);
+        if (twT && _ogZh && _ogZh.t) twT.setAttribute('content', _ogZh.t);
+        if (twD && _ogZh && _ogZh.d) twD.setAttribute('content', _ogZh.d);
       }
     } catch (e) {}
   }
