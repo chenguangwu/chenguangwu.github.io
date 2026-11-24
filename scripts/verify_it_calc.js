@@ -3998,7 +3998,7 @@ const CASES = [
     slug: "it/csv-validator",
     inputs: { src: "a,b\n\"open,2", sep: "," },
     clicks: ["calcTool()"],
-    expect: ["第 2 行：引号未闭合"],
+    expect: ["第 2 行第 1 列：引号未闭合"],
     ref: "独立复算：未闭合引号的记录起始于第 2 行 ⇒ 报「第 2 行：引号未闭合」；行号取记录起始物理行，多行字段场景不会错位。默认示例无此文案。",
   },
   {
@@ -4011,11 +4011,31 @@ const CASES = [
   },
   {
     slug: "it/csv-to-html-table",
-    // IT-N25 回归：字段中间的 `\"` 是普通字符，不得开启引用段吞掉后续分隔符。
-    inputs: { csvInput: 'a,b\n1,x"y,2' },
-    clicks: ["calcTool()"],
-    expect: ['<td>x"y</td>'],
-    ref: "独立复算：RFC 4180 只允许字段起始处的双引号开启引用段 ⇒ 第二行是 3 个单元格 `1` / `x\"y` / `2`；修复前把中间双引号当引用起点，输出 `xy,2` 一个单元格（`<td>xy,2</td>`），本锚不命中。默认示例无引号。",
+    // 严格引号：未引用字段中间的双引号必须报错并清空旧输出，不得按普通字符生成表格。
+    clicks: ["var nl=String.fromCharCode(10);var el=document.getElementById('csvInput');el.value='a,b'+nl+'1,x\"y,2';calcTool();var p=document.getElementById('previewBox').innerHTML;var h=document.getElementById('htmlOut').value;document.getElementById('__tbProbe').textContent=(p.indexOf('未转义的双引号')>=0&&h===''?'BADQUOTE-OK':'BADQUOTE-FAIL');"],
+    expect: ["BADQUOTE-OK"],
+    ref: "严格字段状态：未引用字段中间出现 `\"` 属于格式错误 ⇒ 预览报第 2 行未转义双引号，HTML 输出清空防止复制/下载错误表格；旧实现把它当普通字符输出 `<td>x\"y</td>`，本锚不命中。默认示例无引号。",
+  },
+  {
+    slug: "it/csv-to-html-table",
+    // 旧式单独 CR 必须作为记录边界，不能与下一行合并。
+    clicks: ["var cr=String.fromCharCode(13);var rows=parseCSV('a,b'+cr+'1,2',',');document.getElementById('__tbProbe').textContent=((rows.length===2&&rows[0][1]==='b'&&rows[1][1]==='2')?'CR-OK':'CR-FAIL');"],
+    expect: ["CR-OK"],
+    ref: "旧式 CR 记录边界：`a,b\r1,2` 必须解析为 2 行 2 列；修复前单独 CR 被丢弃，两行合并成 `a` / `b1` / `2`，本锚不命中。默认示例用 LF。",
+  },
+  {
+    slug: "it/csv-to-html-table",
+    // 首尾空白与全空字段必须原样保留，空行不得被过滤。
+    clicks: ["var nl=String.fromCharCode(10);var el=document.getElementById('csvInput');el.value=' a , b '+nl+' , '+nl+'1,2'+nl;document.getElementById('withHeader').checked=false;calcTool();var p=document.getElementById('previewBox').innerHTML;var h=document.getElementById('htmlOut').value;document.getElementById('__tbProbe').textContent=((p.indexOf('预览（3 行）')>=0&&h.indexOf('<td> a </td>')>=0&&h.indexOf('<td> b </td>')>=0&&h.indexOf('<td> </td>')>=0)?'SPACE-OK':'SPACE-FAIL');"],
+    expect: ["SPACE-OK"],
+    ref: "空白与空记录：首尾空格必须在单元格内保留，` , ` 全空字段行必须作为第 2 条记录存在 ⇒ 3 行；修复前整段 `trim()` 并过滤空白单字段行，空格和空行都会丢失，本锚不命中。",
+  },
+  {
+    slug: "it/csv-to-html-table",
+    // 混合 CRLF / CR / LF 都要切记录；未闭合引号与闭合后多余字符都要报错清空输出。
+    clicks: ["var nl=String.fromCharCode(10),cr=String.fromCharCode(13),el=document.getElementById('csvInput');var rows=parseCSV('a,b'+cr+nl+'1,2'+cr+'3,4'+nl+'5,6',',');var ok1=rows.length===4&&rows[3][1]==='6';el.value='name,city'+nl+'Alice,\"Shanghai';calcTool();var p2=document.getElementById('previewBox').innerHTML,h2=document.getElementById('htmlOut').value;el.value='a,b'+nl+'\"x\"bad,z';calcTool();var p3=document.getElementById('previewBox').innerHTML,h3=document.getElementById('htmlOut').value;var ok2=p2.indexOf('引号未闭合')>=0&&h2==='';var ok3=p3.indexOf('引号闭合后只能接分隔符或换行')>=0&&h3==='';document.getElementById('__tbProbe').textContent='MIX '+((ok1&&ok2&&ok3)?'OK':'FAIL');"],
+    expect: ["MIX OK"],
+    ref: "混合行结束符 `CRLF/CR/LF` 均切记录 ⇒ 4 行并保留 5/6；未闭合引号报第 2 行并清空 HTML；闭合引号后接普通字符报错并清空 HTML。旧实现三种非法/混合场景均有静默或合并，本锚不命中。",
   },
   {
     slug: "it/csv-to-html-table",
@@ -4024,6 +4044,44 @@ const CASES = [
     inputs: { csvInput: "v\nNaN\nInfinity Labs\nNaNValue", sepSel: ",", withHeader: true },
     expect: ["N304 OK EMPTY OK"],
     ref: "IT-N304 合法文本含 NaN/Infinity 必须原样进入 HTML 与预览；随后清空输入必须清掉输出与示例，提示输入为空。旧实现两态均红；默认 Alice/Bob 样例不命中。"
+  },
+  {
+    slug: "it/csv-validator",
+    // 未引用字段中间的未转义双引号必须报错，不得判无问题。
+    inputs: { src: 'a,b\nx"y,z', sep: "," },
+    clicks: ["calcTool()"],
+    expect: ["第 2 行第 2 列：未引用字段内出现未转义的双引号"],
+    ref: "严格引号状态：`x\"y` 位于未引用字段中间 ⇒ 必须报第 2 行未转义双引号；旧实现把 `\"` 当普通字符并显示“未发现问题”，本锚不命中。默认示例无字段内引号。",
+  },
+  {
+    slug: "it/csv-validator",
+    // 闭合引号后只能接分隔符或记录边界，紧接普通字符必须报错。
+    inputs: { src: 'a,b\n"x"bad,z', sep: "," },
+    clicks: ["calcTool()"],
+    expect: ["第 2 行第 4 列：引号闭合后只能接分隔符或换行"],
+    ref: "闭合引号后接 `bad` 属于非法字符 ⇒ 报第 2 行；旧实现静默接受 `\"x\"bad`，本锚不命中。默认示例不出现该错误。",
+  },
+  {
+    slug: "it/csv-validator",
+    // 旧式单独 CR 必须切记录：直接测解析器，避免 textarea 把 CR 归一成 LF。
+    clicks: ["var cr=String.fromCharCode(13);var p=parseCSV('a,b'+cr+'1,2',',');document.getElementById('__tbProbe').textContent='VCR '+((p.records.length===2&&p.records[0].fields.length===2&&p.records[1].fields[1]==='2'&&p.errors.length===0)?'OK':'FAIL');"],
+    expect: ["VCR OK"],
+    ref: "旧式 CR 记录边界：直接调用 parseCSV(`a,b\r1,2`) ⇒ 2 条记录、每条 2 列、无错误；修复前单独 CR 被跳过，两行合并成 1 行且列数错位，本锚不命中。默认示例为 LF。",
+  },
+  {
+    slug: "it/csv-validator",
+    // 首尾空字段必须保留为列，不能因为空串丢列。
+    inputs: { src: ",a,\n,,\n", sep: "," },
+    clicks: ["calcTool()"],
+    expect: ["2 行数", "3 标准列数", "✅ 未发现列数/引号问题。"],
+    ref: "首尾空字段：每行 `,a,` / `,,` 都必须解析为 3 列，空字段是合法值 ⇒ 2 行 3 列无问题；旧实现按分隔符切分后可能吞掉尾部空列，本锚不命中。",
+  },
+  {
+    slug: "it/csv-to-yaml",
+    // 旧式单独 CR 必须切记录：直接测解析器，避免 textarea 把 CR 归一成 LF。
+    clicks: ["var cr=String.fromCharCode(13);var rows=parseCsvRows('a,b'+cr+'1,2');document.getElementById('__tbProbe').textContent='YAMLCR '+((rows.length===2&&rows[0][1]==='b'&&rows[1][1]==='2')?'OK':'FAIL');"],
+    expect: ["YAMLCR OK"],
+    ref: "单独 CR 记录边界：直接调用 parseCsvRows(`a,b\r1,2`) ⇒ 2 行、首行第二列 `b`、次行第二列 `2`；修复前 CR 被丢弃、两行合并，本锚不命中。默认示例为 LF。",
   },
   {
     slug: "it/csv-to-yaml",
@@ -4054,6 +4112,13 @@ const CASES = [
     inputs: { csvInput: "name,age\nTom,3" },
     expect: ['[{"column1":"name","column2":"age"}'],
     ref: "走「无表头」分支（桩内 checkbox 恒未勾，与真实用户未勾表头一致）⇒ 表头占位列名 column1/column2，产物是整条 JSON 数组。用整条数组做锚避免撞默认样例。",
+  },
+  {
+    slug: "it/csv-to-json",
+    // 旧式单独 CR 必须切记录：直接测解析器，避免 textarea 把 CR 归一成 LF。
+    clicks: ["var cr=String.fromCharCode(13),q=String.fromCharCode(34),p=parseCSV('a,b'+cr+'1,2',',',q,false,false);document.getElementById('__tbProbe').textContent='JSONCR '+((p.rows.length===2&&p.rows[0][1]==='b'&&p.rows[1][1]==='2')?'OK':'FAIL');"],
+    expect: ["JSONCR OK"],
+    ref: "单独 CR 记录边界：直接调用 parseCSV(`a,b\r1,2`, 逗号, 双引号, 无表头) ⇒ 2 行、首行第二列 `b`、次行第二列 `2`；修复前 CR 被直接跳过，两行并成 `a`/`b1`/`2`，本锚不命中。默认示例为 LF。",
   },
   {
     slug: "it/csv-to-json",

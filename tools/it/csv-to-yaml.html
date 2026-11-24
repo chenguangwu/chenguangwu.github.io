@@ -116,7 +116,7 @@
     <h2 data-zh="📄 CSV 转 YAML 转换器">📄 CSV to YAML Converter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="在配置、CI、Kubernetes 等场景常需要在 CSV 与 YAML 之间互转。首行会被当作字段名生成键值对；若首行也想要数组，可勾选“无表头”。">CSV to YAML Converter - Paste CSV text and convert to YAML lists (first row as header) or plain arrays. Supports quoted fields. Free, browser-only.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先去掉回车符再按换行切分并过滤空行。逐行做引号感知的切分：遇到引号时，若其后紧跟另一个引号则写入一个引号字符并跳过，否则切换引号状态；不在引号内且遇到逗号时切分字段；其余字符累加到当前字段。无表头模式时每行输出为一个短横线加方括号包裹的列表项，各字段以 JSON 字符串形式逗号分隔。有表头模式时首行作为键名，其余每行输出为「短横线 + 空格」开头、各键与对应值按 JSON 字符串逐行缩进排列，键值之间以冒号加空格连接</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">引号外把 LF、CRLF 与单独 CR 都视为记录边界，引号内换行原样保留；逐行做引号感知的切分：遇到引号时，若其后紧跟另一个引号则写入一个引号字符并跳过，否则切换引号状态；不在引号内且遇到逗号时切分字段；其余字符累加到当前字段。无表头模式时每行输出为一个短横线加方括号包裹的列表项，各字段以 JSON 字符串形式逗号分隔。有表头模式时首行作为键名，其余每行输出为「短横线 + 空格」开头、各键与对应值按 JSON 字符串逐行缩进排列，键值之间以冒号加空格连接</div>
   <div class="formula-desc">把 CSV 数据转换为 YAML 格式。</div>
   <ul class="formula-list">
     <li><b>流程</b>：先按 CSV 解析为二维表，再按 YAML 缩进规则序列化为列表与映射。</li>
@@ -248,7 +248,8 @@ function parseCsvRows(text){
       if(c==='"'){ if(field===''){inQ=true;quoteStartLine=line;} else field+='"'; }
       else if(c===','){ row.push(field); field=''; }
       else if(c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; line++; }
-      else if(c!=='\r'){ field+=c; }
+      else if(c==='\r'){ if(text.charAt(i+1)==='\n') i++; row.push(field); rows.push(row); row=[]; field=''; line++; }
+      else { field+=c; }
     }
   }
   if(inQ) throw new Error((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search) ? 'Unclosed quote starting at line '+quoteStartLine+'; check that the quoted field closes with a matching quote' : '第 '+quoteStartLine+' 行有未闭合的引号；请检查该字段的引号是否成对');
