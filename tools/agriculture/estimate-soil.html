@@ -245,9 +245,18 @@ function restoreHistory(idx){
     calc();ToolBox.showToast(i18nText('toast.history_restored'),'info');
   }catch(e){}
 }
-function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText('toast.history_cleared'),'info');}catch(e){}}
+function clearHistory(){
+  try{
+    localStorage.removeItem(historyKey());
+    try{ TBKit.history.clear(); }catch(e){}
+    var shared=document.getElementById('estimate_soilHist'); if(shared) shared.innerHTML='';
+    renderHistory();
+    ToolBox.showToast(i18nText('toast.history_cleared'),'info');
+  }catch(e){}
+}
 document.addEventListener('DOMContentLoaded',function(){
   renderHistory();
+  setTimeout(function(){ try { __estimate_soilRender(['years','init','rate','threshold'],'结果',false); } catch(e) {} }, 0);
   document.querySelectorAll('input').forEach(function(el){el.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();calc();saveHistory();}});});
   document.getElementById('historyBox').addEventListener('click',function(e){var item=e.target.closest('[data-idx]');if(item)restoreHistory(parseInt(item.getAttribute('data-idx'),10));});
 });
@@ -301,6 +310,7 @@ function __estimate_soilRender(keys,rk,en){
         TBKit.history.mount('#estimate_soilHist',function(rec){
             __estimate_soil_skip=true;
             try{
+                ['years','init','rate','threshold'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
@@ -312,7 +322,7 @@ function __estimate_soilRender(keys,rk,en){
                 calc();
             }catch(e2){}
             __estimate_soil_skip=false;
-        });
+        }, 6, clearHistory);
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
             var v=parseFloat(arr[j].d.__tbScore);
