@@ -16231,6 +16231,62 @@ const CASES = [
     ref: "第760批：Base64 元数据的 IV 必须经 parseMetaBytes 解析并按统一 Hex 写回；测试桩无法直接访问该局部函数，改断言 decrypt 源码同时含 parseMetaBytes(parts[1]) 与 bytesToHex(metaIv) ⇒ 旧实现缺两处。",
   },
 
+  // ── 第761批 ──
+  {
+    slug: "it/uniform-distribution",
+    clicks: ["document.getElementById('a').value='0';document.getElementById('b').value='1';document.getElementById('x').value='2';document.getElementById('c').value='0';document.getElementById('d').value='1';calculate();var o=document.getElementById('output').innerHTML;document.getElementById('x').value='OUTSIDE '+(o.indexOf('f(2) = 0')>=0?'A':'a')+(o.indexOf('区间内常数密度')>=0?'B':'b');"],
+    expect: ["OUTSIDE AB"],
+    ref: "第761批：U(0,1) 取 x=2 在区间外，f(x) 必须为 0，同时单独展示区间内常数密度 1/(b-a)。",
+  },
+  {
+    slug: "it/uniform-distribution",
+    clicks: ["document.getElementById('a').value='0';document.getElementById('b').value='1';document.getElementById('x').value='';calculate();var o=document.getElementById('output').innerHTML;document.getElementById('x').value='EMPTY '+(o.indexOf('请输入有效的有限数值 x')>=0||o.indexOf('Enter a valid finite value for x')>=0?'OK':'BAD');"],
+    expect: ["EMPTY OK"],
+    ref: "第761批：x 为空/非有限值必须明确报错，不能把 NaN 带进结果区。",
+  },
+  {
+    slug: "it/uniform-distribution",
+    clicks: ["document.getElementById('a').value='0';document.getElementById('b').value='1';document.getElementById('x').value='0';document.getElementById('c').value='0';document.getElementById('d').value='1';calculate();document.getElementById('__tbProbe').textContent=document.getElementById('output').textContent;"],
+    expect: ["f(0) = 1"],
+    ref: "第761批：闭区间端点 a=0 按区间内计，密度仍为 1/(b-a)，不能因为边界判断把端点误判为 0。",
+  },
+  {
+    slug: "it/color-converter",
+    clicks: ["document.getElementById('colorInput').value='hsv(120, 100%, 100%)';fromInput('hsv(120, 100%, 100%)');document.getElementById('colorInput').value=document.getElementById('colorFormats').textContent;"],
+    expect: ["#00ff00", "hsv(120, 100%, 100%)"],
+    ref: "第761批：新增 HSV/HSB 输入解析；hsv(120,100%,100%) 必须得到纯绿 #00ff00，并在结果区回显 HSV。",
+  },
+  {
+    slug: "it/color-converter",
+    clicks: ["document.getElementById('colorInput').value='cmyk(0%, 100%, 100%, 0%)';fromInput('cmyk(0%, 100%, 100%, 0%)');document.getElementById('colorInput').value=document.getElementById('colorFormats').textContent;"],
+    expect: ["#ff0000", "cmyk(0%, 100%, 100%, 0%)"],
+    ref: "第761批：新增 CMYK 输入解析；cmyk(0,100,100,0) 必须得到纯红 #ff0000，并在结果区回显 CMYK。",
+  },
+  {
+    slug: "it/color-converter",
+    clicks: ["document.getElementById('colorInput').value='hsv(0, 101%, 100%)';fromInput('hsv(0, 101%, 100%)');document.getElementById('colorInput').value=document.getElementById('colorFormats').textContent;"],
+    expect: ["hsv(0,100%,100%)"],
+    ref: "第761批：HSV 饱和度 101% 超范围必须拒绝并给出支持格式，不能静默截断成 100%。",
+  },
+  {
+    slug: "it/code-runner",
+    clicks: ["var t=document.getElementById('codeHtml');t.value='a\\nb';t.selectionStart=0;t.selectionEnd=3;applyTabIndent(t,false);var v1=t.value;t.selectionStart=0;t.selectionEnd=t.value.length;applyTabIndent(t,true);t.value='TAB '+v1.replace(/\\n/g,'|').replace(/ /g,'·')+' '+t.value.replace(/\\n/g,'|').replace(/ /g,'·');"],
+    expect: ["TAB ··a|··b a|b"],
+    ref: "第761批：多行选区 Tab 必须给每行加两个空格且保留选区，Shift+Tab 必须完整反缩进回原文；旧实现用选区替换成两个空格会删掉内容。",
+  },
+  {
+    slug: "it/code-runner",
+    clicks: ["var t=document.getElementById('codeCss');t.value='  x';t.setSelectionRange(2,2);applyTabIndent(t,true);t.value='OUT '+JSON.stringify(t.value);"],
+    expect: ["OUT \"x\""],
+    ref: "第761批：单光标 Shift+Tab 必须删除行首两个空格并把光标前移，不能只把选区替换掉。",
+  },
+  {
+    slug: "it/code-runner",
+    clicks: ["document.getElementById('codeCss').value='body{content:\"</style>\"}';document.getElementById('codeJs').value='console.log(\"</script>\")';executeInIframe(document.getElementById('codeHtml').value,document.getElementById('codeCss').value,document.getElementById('codeJs').value);var bs=String.fromCharCode(92);var doc=window.__lastPreviewDoc||'';var ok=doc.indexOf('<'+bs+'/script')>=0&&doc.indexOf('<'+bs+'/style')>=0&&doc.indexOf('console.log(\"</script>\")')<0;document.getElementById('codeHtml').value='SAFE '+(ok?'OK':'BAD');"],
+    expect: ["SAFE OK"],
+    ref: "第761批：JS 字符串中的 </script> 与 CSS 中的 </style> 必须先转义为 <\\/script、<\\/style，否则 HTML 解析器提前闭合导致代码截断。",
+  },
+
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(

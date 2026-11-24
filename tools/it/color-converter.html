@@ -171,7 +171,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🎨 颜色转换器">🎨 Color Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">由当前颜色的红、绿、蓝与透明度出发，分别转换为 HEX（含大写形式）、RGB、RGBA、HSL、HSLA、CMYK、HWB 以及三个通道值与透明度。对比度计算：先把每个通道值除以 255，小于等于 0.03928 时取该值除以 12.92，否则取「(该值 + 0.055) ÷ 1.055」的 2.4 次方，得到线性分量后按 0.2126 × 红 + 0.7152 × 绿 + 0.0722 × 蓝 求相对亮度；对比度 = (较亮亮度 + 0.05) ÷ (较暗亮度 + 0.05)，再按 4.5:1 判普通文本 AA、7:1 判普通文本 AAA、3:1 判大文本 AA、4.5:1 判大文本 AAA 是否通过。前景色带 alpha 时先按 alpha 合成到背景色；背景色必须为不透明（alpha = 1），否则真实对比度取决于未知底层，页面拒绝计算</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">由当前颜色的红、绿、蓝与透明度出发，接受 HEX、RGB(A)、HSL(A)、HSV/HSB、CMYK 输入，统一转换为 HEX（含大写形式）、RGB、RGBA、HSL、HSLA、HSV、CMYK、HWB 以及三个通道值与透明度。对比度计算：先把每个通道值除以 255，小于等于 0.03928 时取该值除以 12.92，否则取「(该值 + 0.055) ÷ 1.055」的 2.4 次方，得到线性分量后按 0.2126 × 红 + 0.7152 × 绿 + 0.0722 × 蓝 求相对亮度；对比度 = (较亮亮度 + 0.05) ÷ (较暗亮度 + 0.05)，再按 4.5:1 判普通文本 AA、7:1 判普通文本 AAA、3:1 判大文本 AA、4.5:1 判大文本 AAA 是否通过。前景色带 alpha 时先按 alpha 合成到背景色；背景色必须为不透明（alpha = 1），否则真实对比度取决于未知底层，页面拒绝计算</div>
   <div class="formula-desc">在 RGB、HEX、HSL、HSV、CMYK 等颜色模型之间互转。</div>
   <ul class="formula-list">
     <li><b>RGB/HEX</b>：三通道 0–255，HEX 写作 <code>#RRGGBB</code>，<code>#RGB</code> 为简写形式。</li>
@@ -195,7 +195,7 @@
       
       <div class="color-picker-row">
         <input type="color" id="colorPicker" value="#4338CA" oninput="fromPicker(this.value)" aria-label="自定义颜色选择器">
-        <input type="text" id="colorInput" value="#4338CA" placeholder="输入颜色值 (HEX, RGB, HSL...)" oninput="fromInput(this.value)" aria-label="颜色值">
+        <input type="text" id="colorInput" value="#4338CA" data-i18n-ph="colorConverter.inputPlaceholder" placeholder="输入颜色值 (HEX、RGB、HSL、HSV、CMYK)" oninput="fromInput(this.value)" aria-label="颜色值">
       </div>
 
       <div data-tb="preset" data-tb-presets='[{"label":"品牌蓝","labelEn":"Brand blue","values":{"colorInput":"#4338CA"}},{"label":"警示红","labelEn":"Alert red","values":{"colorInput":"rgb(239, 68, 68)"}},{"label":"天空蓝","labelEn":"Sky blue","values":{"colorInput":"hsl(210, 80%, 45%)"}},{"label":"深灰","labelEn":"Dark gray","values":{"colorInput":"#374151"}}]'></div>
@@ -452,6 +452,22 @@ function parseColor(str) {
     return { r: rgb.r, g: rgb.g, b: rgb.b, a: alpha };
   }
   
+  const hsvMatch = str.match(/^(?:hsv|hsb)\(\s*([0-9]+(?:\.[0-9]+)?)(?:deg)?\s*(?:,\s*|\s+)([0-9]+(?:\.[0-9]+)?)%\s*(?:,\s*|\s+)([0-9]+(?:\.[0-9]+)?)%\s*\)$/);
+  if (hsvMatch) {
+    const h=+hsvMatch[1],sat=+hsvMatch[2],val=+hsvMatch[3];
+    if(h<0||h>360||sat<0||sat>100||val<0||val>100) return null;
+    const rgb = hsvToRgb(h,sat,val);
+    return { r: rgb.r, g: rgb.g, b: rgb.b, a: 1 };
+  }
+
+  const cmykMatch = str.match(/^cmyk\(\s*([0-9]+(?:\.[0-9]+)?)%\s*(?:,\s*|\s+)([0-9]+(?:\.[0-9]+)?)%\s*(?:,\s*|\s+)([0-9]+(?:\.[0-9]+)?)%\s*(?:,\s*|\s+)([0-9]+(?:\.[0-9]+)?)%\s*\)$/);
+  if (cmykMatch) {
+    const c=+cmykMatch[1],m=+cmykMatch[2],y=+cmykMatch[3],k=+cmykMatch[4];
+    if(c<0||c>100||m<0||m>100||y<0||y>100||k<0||k>100) return null;
+    const rgb = cmykToRgb(c,m,y,k);
+    return { r: rgb.r, g: rgb.g, b: rgb.b, a: 1 };
+  }
+
   return null;
 }
 
@@ -505,6 +521,46 @@ function hslToRgb(h, s, l) {
   return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
 }
 
+function rgbToHsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d !== 0) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  const s = max === 0 ? 0 : d / max;
+  return { h: Math.round(h), s: Math.round(s * 100), v: Math.round(max * 100) };
+}
+
+function hsvToRgb(h, s, v) {
+  h = ((h % 360) + 360) % 360;
+  s /= 100; v /= 100;
+  const c = v * s;
+  const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+  const m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) { r = c; g = x; }
+  else if (h < 120) { r = x; g = c; }
+  else if (h < 180) { r = 0; g = c; b = x; }
+  else if (h < 240) { r = 0; g = x; b = c; }
+  else if (h < 300) { r = x; g = 0; b = c; }
+  else { r = c; g = 0; b = x; }
+  return { r: Math.round((r + m) * 255), g: Math.round((g + m) * 255), b: Math.round((b + m) * 255) };
+}
+
+function cmykToRgb(c, m, y, k) {
+  c /= 100; m /= 100; y /= 100; k /= 100;
+  return {
+    r: Math.round(255 * (1 - c) * (1 - k)),
+    g: Math.round(255 * (1 - m) * (1 - k)),
+    b: Math.round(255 * (1 - y) * (1 - k))
+  };
+}
+
 function rgbToCmyk(r, g, b) {
   r /= 255; g /= 255; b /= 255;
   const k = 1 - Math.max(r, g, b);
@@ -546,8 +602,8 @@ function fromInput(str) {
   colorInputInvalid = true;
   document.getElementById('colorPreview').style.background = 'repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 8px,#f9fafb 8px,#f9fafb 16px)';
   var en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
-  var msgZh = '⚠️ 无法识别当前输入，旧转换结果已清除。请输入完整颜色值（不能夹带其他文字）；支持 #fff、#ffffff、rgb(255,255,255)、rgb(255 0 0 / 0.5)、rgba(255,255,255,0.5)、hsl(0,100%,50%)、hsla(0,100%,50%,0.5)；RGB 通道 0–255、HSL 色相 0–360 / 饱和度与明度 0–100%、透明度 0–1。';
-  var msgEn = '⚠️ Unrecognized input; previous results were cleared. Enter a complete color value with no extra text. Supported: #fff, #ffffff, rgb(255,255,255), rgb(255 0 0 / 0.5), rgba(255,255,255,0.5), hsl(0,100%,50%), hsla(0,100%,50%,0.5). RGB channels 0–255; HSL hue 0–360, saturation/lightness 0–100%, alpha 0–1.';
+  var msgZh = '⚠️ 无法识别当前输入，旧转换结果已清除。请输入完整颜色值（不能夹带其他文字）；支持 #fff、#ffffff、rgb(255,255,255)、rgb(255 0 0 / 0.5)、rgba(255,255,255,0.5)、hsl(0,100%,50%)、hsla(0,100%,50%,0.5)、hsv(0,100%,100%)、cmyk(0%,100%,100%,0%)；RGB 通道 0–255、HSL/HSV 色相 0–360、饱和度/明度/CMYK 各分量 0–100%、透明度 0–1。';
+  var msgEn = '⚠️ Unrecognized input; previous results were cleared. Enter a complete color value with no extra text. Supported: #fff, #ffffff, rgb(255,255,255), rgb(255 0 0 / 0.5), rgba(255,255,255,0.5), hsl(0,100%,50%), hsla(0,100%,50%,0.5), hsv(0,100%,100%), cmyk(0%,100%,100%,0%). RGB channels 0–255; HSL/HSV hue 0–360; saturation/lightness/value and CMYK components 0–100%; alpha 0–1.';
   document.getElementById('colorFormats').innerHTML = '<p style="color:var(--danger);padding:10px 0;">' + (en ? msgEn : msgZh) + '</p>';
 }
 
@@ -557,6 +613,7 @@ function updateDisplay() {
   const { r, g, b, a } = currentColor;
   const hex = rgbToHex(r, g, b);
   const hsl = rgbToHsl(r, g, b);
+  const hsv = rgbToHsv(r, g, b);
   const cmyk = rgbToCmyk(r, g, b);
   const hwb = rgbToHwb(r, g, b);
   
@@ -571,6 +628,7 @@ function updateDisplay() {
     { label: 'RGBA', value: `rgba(${r}, ${g}, ${b}, ${a})`, copy: `rgba(${r}, ${g}, ${b}, ${a})` },
     { label: 'HSL', value: `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`, copy: `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)` },
     { label: 'HSLA', value: `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${a})`, copy: `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${a})` },
+    { label: 'HSV', value: `hsv(${hsv.h}, ${hsv.s}%, ${hsv.v}%)`, copy: `hsv(${hsv.h}, ${hsv.s}%, ${hsv.v}%)` },
     { label: 'CMYK', value: `cmyk(${cmyk.c}%, ${cmyk.m}%, ${cmyk.y}%, ${cmyk.k}%)`, copy: `cmyk(${cmyk.c}%, ${cmyk.m}%, ${cmyk.y}%, ${cmyk.k}%)` },
     { label: 'HWB', value: `hwb(${hwb.h}, ${hwb.w}%, ${hwb.b}%)`, copy: `hwb(${hwb.h}, ${hwb.w}%, ${hwb.b}%)` },
     { label: 'R', value: r, copy: r },
