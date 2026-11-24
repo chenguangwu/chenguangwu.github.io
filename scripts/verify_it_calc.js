@@ -16003,6 +16003,78 @@ const CASES = [
     ref: "第755批：24 字母模式 I 与 J 同码、U 与 V 同码；I/U 不再被丢弃。I=01000、U=10011、V=10011、J=01000 ⇒ 01000100111001101000，修复前只剩 J/V ⇒ 长度减半。",
   },
 
+  // ── 第756批 ──
+  {
+    slug: "it/case-converter",
+    inputs: { inputText: '"hello world" 中文。下一句' },
+    clicks: ["document.getElementById('inputText').value='\"hello world\" 中文。下一句';convert();document.getElementById('__tbProbe').textContent='SENT756 '+document.getElementById('val-sentencecase').textContent;"],
+    expect: ["SENT756 \"Hello world\" 中文。下一句"],
+    ref: "第756批：句首大写跳过开头的引号，把引号后的 h 大写；修复前正则只认行首/句号后紧接 [a-z] ⇒ 引号后不生效。",
+  },
+  {
+    slug: "it/case-converter",
+    inputs: { inputText: "école est belle" },
+    clicks: ["document.getElementById('inputText').value='école est belle';convert();document.getElementById('__tbProbe').textContent='SENT756B '+document.getElementById('val-sentencecase').textContent;"],
+    expect: ["SENT756B École est belle"],
+    ref: "第756批：非 ASCII 字母 é 也能作为句首字母大写；修复前 [a-z] 边界不匹配，保持 école。",
+  },
+  {
+    slug: "it/text-to-binary",
+    inputs: { input: "中", encoding: "ascii" },
+    clicks: ["convert();document.getElementById('__tbProbe').textContent='BIN756 '+((!document.getElementById('output').value&&document.getElementById('viz').innerHTML.indexOf('ASCII 模式无法表示字符「中」')>=0&&document.getElementById('viz').innerHTML.indexOf('第 1 个字符')>=0)?'OK':'BAD');"],
+    expect: ["BIN756 OK"],
+    ref: "第756批：ASCII 编码不再把「中」截成 0x2d，必须拒绝并指出第 1 个字符与码点；默认 255 字符均为 ASCII 不命中。",
+  },
+  {
+    slug: "it/text-to-binary",
+    inputs: { inputBin: "10000000", encoding: "ascii" },
+    clicks: ["convertBinToText();var p=document.getElementById('outputText').placeholder;document.getElementById('__tbProbe').textContent='BIN756B '+((document.getElementById('outputText').value===''&&p.indexOf('ASCII 解码遇到 128')>=0)?'OK':'BAD '+p);"],
+    expect: ["BIN756B OK"],
+    ref: "第756批：ASCII 解码遇到 128 必须报超出 0–127，不能显示成字符；修复前 String.fromCharCode(128) 静默输出。",
+  },
+  {
+    slug: "it/text-to-hex",
+    inputs: { input: "😀", encoding: "ascii" },
+    clicks: ["convert();document.getElementById('__tbProbe').textContent='HEX756 '+((!document.getElementById('output').value&&document.getElementById('viz').innerHTML.indexOf('ASCII 模式无法表示字符')>=0)?'OK':'BAD');"],
+    expect: ["HEX756 OK"],
+    ref: "第756批：十六进制 ASCII 模式对 emoji 同样严格拒绝，不能按低 8 位截断。",
+  },
+  {
+    slug: "it/text-to-hex",
+    inputs: { inputHex: "80", encoding: "ascii" },
+    clicks: ["convertHexToText();var p=document.getElementById('outputText').placeholder;document.getElementById('__tbProbe').textContent='HEX756B '+((document.getElementById('outputText').value===''&&p.indexOf('ASCII 解码遇到 128')>=0)?'OK':'BAD '+p);"],
+    expect: ["HEX756B OK"],
+    ref: "第756批：十六进制 ASCII 解码 0x80 同样报错，避免把扩展字节当可见字符。",
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "  a", text2: " a" },
+    clicks: ["window.TBKit={util:{isEn:function(){return false;},downloadText:function(f,c){window.__csv=c;}}};doDiff();window.__csv='';__tdExport();document.getElementById('__tbProbe').textContent='CSV756 '+((window.__csv.indexOf('\"  a\"')>=0&&window.__csv.indexOf('\" a\"')>=0&&window.__csv.indexOf('\"a\"')<0)?'OK':'BAD');"],
+    expect: ["CSV756 OK"],
+    ref: "第756批：CSV 直接从差异数据生成并保留行首尾空格；旧 exportTable 读 DOM 时 trim 成 a，两行可能变成相同。",
+  },
+  {
+    slug: "it/text-to-decimal",
+    inputs: { input: "中😀", sep: "&#" },
+    clicks: ["convert();document.getElementById('__tbProbe').textContent='DEC756 '+document.getElementById('output').value;"],
+    expect: ["DEC756 &#20013;&#128512;"],
+    ref: "第756批：HTML 字符引用按 Unicode 码点输出，中=20013、😀=128512；修复前按 UTF-8 字节输出 &#228;&#184;&#173;… 无法还原。",
+  },
+  {
+    slug: "it/text-to-decimal",
+    inputs: { inputDec: "&#20013;&#128512;", sep: "&#" },
+    clicks: ["convertDecToText();document.getElementById('__tbProbe').textContent='DEC756B '+document.getElementById('outputText').value;"],
+    expect: ["DEC756B 中😀"],
+    ref: "第756批：HTML 字符引用反向按码点解析，支持 &#20013; 与代理对码点 &#128512;；修复前按 0–255 字节解析直接失败。",
+  },
+  {
+    slug: "it/text-to-decimal",
+    inputs: { inputDec: "&#55296;", sep: "&#" },
+    clicks: ["convertDecToText();var p=document.getElementById('outputText').placeholder;document.getElementById('__tbProbe').textContent='DEC756C '+((document.getElementById('outputText').value===''&&p.indexOf('代理项')>=0)?'OK':'BAD '+p);"],
+    expect: ["DEC756C OK"],
+    ref: "第756批：HTML 字符引用拒绝代理项码点 D800（55296），不能生成孤立代理。",
+  },
+
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(

@@ -745,16 +745,20 @@ function __tdExport(){
   if(typeof TBKit==='undefined')return;
   var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   if(!currentDiff||currentDiff.length===0){ToolBox.showToast(en?'Please run diff first':'请先点击「开始对比」');return;}
-  var tb=document.querySelector('#tdHidden tbody');
-  tb.innerHTML='';
+  // 直接从 diff 数据生成 CSV：保留行首尾空白、制表符与换行，避免 exportTable 读取 DOM 时 trim 掉真实差异。
+  function csvCell(v){
+    var t=(v==null?'':String(v));
+    // 电子表格公式注入：以 = + - @ 开头的单元格前置单引号，Excel 按文本显示。
+    if(/^[=+\-@]/.test(t)) t="'"+t;
+    return '"'+t.replace(/"/g,'""')+'"';
+  }
+  var rows=[['type','oldLine','newLine','oldValue','newValue'].map(csvCell).join(',')];
   currentDiff.forEach(function(ch){
-    var tr=document.createElement('tr');
     var oldLn=ch.oldIndex!=null?ch.oldIndex+1:'';
     var newLn=ch.newIndex!=null?ch.newIndex+1:'';
-    tr.innerHTML='<td>'+ch.type+'</td><td>'+oldLn+'</td><td>'+newLn+'</td><td>'+ToolBox.escHtml(ch.oldValue||'')+'</td><td>'+ToolBox.escHtml(ch.newValue||'')+'</td>';
-    tb.appendChild(tr);
+    rows.push([ch.type,oldLn,newLn,ch.oldValue==null?'':ch.oldValue,ch.newValue==null?'':ch.newValue].map(csvCell).join(','));
   });
-  TBKit.util.exportTable('#tdHidden',en?'text-diff.csv':'文本差异明细.csv');
+  TBKit.util.downloadText(en?'text-diff.csv':'文本差异明细.csv',rows.join('\r\n'),'text/csv;charset=utf-8');
 }
 function copyDiff() {
   if (diffStale) { ToolBox.showToast(i18nText('toast.msg696'), 'warning'); return; }
