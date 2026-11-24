@@ -8028,7 +8028,7 @@ const CASES = [
       "output": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n✅ 已生成 3 行目录树（3 个路径）\n1 2 3"
+      "1 2 3\n✅ 已生成 3 行目录树（3 个路径）\nauto\n1 2 3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"paths\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n✅ 已生成 3 行目录树（3 个路径）\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -16363,6 +16363,43 @@ const CASES = [
     clicks: ["render();var g=document.getElementById('grid').innerHTML;var ok=/<button[^>]*class=\"ascii-card\"/.test(g)&&!/onclick=\"showDetail\\(65\\)\"[^>]*data-copied/.test(g);document.getElementById('search').value='A11Y '+(ok?'OK':'BAD');"],
     expect: ["A11Y OK"],
     ref: "第762批：字符卡片必须改为原生 button（可 Tab/Enter/Space），不能是仅有 onclick 的 div；旧实现键盘无法聚焦。",
+  },
+
+  // ── 第763批 ──
+  {
+    slug: "it/ascii-art",
+    inputs: { input: "hi" },
+    clicks: ["generate();var a=document.getElementById('output').innerHTML;document.getElementById('input').value='HI';generate();document.getElementById('input').value='UP '+(a===document.getElementById('output').innerHTML?'OK':'BAD');"],
+    expect: ["UP OK"],
+    ref: "第763批：内置字模只有大写，输入统一自动转大写；`hi` 与 `HI` 必须生成完全相同的点阵。旧实现无条件转大写后又读无效开关，开关无法改变行为。",
+  },
+  {
+    slug: "it/ascii-art",
+    inputs: { input: "A中" },
+    clicks: ["generate();document.getElementById('input').value='UNS '+document.getElementById('unsupportedNote').textContent;"],
+    expect: ["UNS ⚠ 不支持的字符：中（第 2 个字符）；已用 ? 字形替代，复制前请确认。"],
+    ref: "第763批：中文字符不在字模中时必须提示字符与位置并用 ? 替代；旧实现静默渲染为空白，复制结果与输入不完整对应。",
+  },
+  {
+    slug: "it/ascii-art",
+    inputs: { input: "A" },
+    clicks: ["generate();document.getElementById('input').value='BTN '+(document.getElementById('fontGrid').innerHTML.indexOf('<button')>=0?'OK':'BAD');"],
+    expect: ["BTN OK"],
+    ref: "第763批：字体卡片必须是原生 button（可 Tab/Enter 选择），并用 aria-pressed 表示选中态；旧实现是仅支持点击的 div 且无读屏状态。",
+  },
+  {
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "constructor/file.js\n__proto__/x.txt" },
+    clicks: ["build()"],
+    expect: ["constructor/ └── file.js __proto__/ └── x.txt"],
+    ref: "第763批：constructor/__proto__ 是合法目录名。旧实现用普通对象 node[p] 判断，命中 Object.prototype 继承属性，节点缺失或访问 _children 报错；改用无原型字典 + 自有属性判断后正确生成子树。",
+  },
+  {
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "src/a.js\n  src/b.js" },
+    clicks: ["build()"],
+    expect: ["src/ ├── a.js └── b.js"],
+    ref: "第763批：路径列表第二行偶然带两个前导空格，自动识别仍按路径列表处理（含 / 且不是整份缩进），首尾空白被忽略；旧实现只要任意行以空格开头就整份改按缩进树，斜杠路径变成单个名称。",
   },
 
 ];
