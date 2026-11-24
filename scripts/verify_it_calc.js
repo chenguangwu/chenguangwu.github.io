@@ -15491,6 +15491,36 @@ const CASES = [
     "clicks": ["var src=String(__ccExport);var ok=src.indexOf('clampAlpha(bg.a)<1')>=0&&src.indexOf('Not exported')>=0&&src.indexOf('不导出：背景含透明度')>=0;document.getElementById('__tbProbe').textContent='CCEXP '+(ok?'OK':'BAD');"],
     "expect": ["CCEXP OK"],
     "ref": "第744批：CSV 与页面共用背景 alpha 校验；背景 alpha<1 时导出只写“不导出：背景含透明度/Not exported”，不再按 RGB 当不透明输出 WCAG 结论。旧导出忽略 bg.a。"
+  },
+  {
+    "slug": "it/hill-cipher",
+    "clicks": ["document.getElementById('input').value='HI';document.getElementById('key').value='2,0,0,2';document.getElementById('output').value='';__hill_cipher_f0();document.getElementById('__tbProbe').textContent='HILL '+(document.getElementById('output').value===''?'BLOCKED':'BAD');"],
+    "expect": ["HILL BLOCKED"],
+    "ref": "第745批：加密前调用 inverseMatrix，det=4 与 26 不互素 ⇒ 拒绝生成；旧 enc 只校验格式，会输出 IR 这类无法解密的密文。"
+  },
+  {
+    "slug": "it/bacon-cipher",
+    "clicks": ["var src=String(dec);document.getElementById('output').value=(src.indexOf('Invalid character at position')>=0&&src.indexOf('只允许 0/1/a/b 与空白分隔符')>=0?'BACON-OK':'BACON-BAD');"],
+    "expect": ["BACON-OK"],
+    "ref": "第745批：解码只允许 0/1/a/b 与空白；aaaaaXbbbbb 的 X 在第 6 位，停止且不输出。旧 replace 删除 X 后继续按 10 位解出。"
+  },
+  {
+    "slug": "it/morse",
+    "clicks": ["document.getElementById('input').value='A中B';convert();document.getElementById('__tbProbe').textContent='MORSE '+(document.getElementById('result').textContent.indexOf('无法编码')>=0?'BLOCKED':'BAD');"],
+    "expect": ["MORSE BLOCKED"],
+    "ref": "第745批：编码前收集不支持字符并报出首个位置；A中B 含“中” ⇒ 停止编码并提示。旧 map 把“中”变空串过滤后静默输出 A、B。"
+  },
+  {
+    "slug": "it/domain-name-generator",
+    "clicks": ["document.getElementById('kw').value='cloud';document.getElementById('count').value='20';document.getElementById('prefix').checked=false;document.getElementById('suffix').checked=false;document.getElementById('blend').checked=false;document.querySelectorAll('.tld').forEach(function(c){c.checked=c.value==='com';});__domain_name_generator_f0();var actual=__domainLast.length;__domainLast=['a.com','b.com'];var clip='';try{Object.defineProperty(navigator,'clipboard',{value:{writeText:async function(t){clip=t;}},configurable:true});}catch(e){}copyResult();document.getElementById('__tbProbe').textContent='DOMAIN '+actual+'|'+clip.split(String.fromCharCode(10)).join(',');"],
+    "expect": ["DOMAIN 1|a.com,b.com"],
+    "ref": "第745批：候选存入数组并逐行复制；关闭前缀/后缀/混合且只留 .com 时仅 1 个唯一候选，实际数量 1。旧 copy 读父容器 textContent 会粘连成 a.comb.com。"
+  },
+  {
+    "slug": "it/summary-generator",
+    "clicks": ["var a=__sgDiag.splitSentences('第一句。结论待定');var b=__sgDiag.splitSentences('结论待定');document.getElementById('__tbProbe').textContent='SUM '+(a.length===2&&b.length===1?'OK':'BAD:'+a.length+'/'+b.length);"],
+    "expect": ["SUM OK"],
+    "ref": "第745批：分句保留非空短句，末尾无标点“结论待定”（4 个 UTF-16 单元）也进入候选；单句文本返回 1 句。旧尾句要求 ≥5、带标点句要求 >1，会丢掉该结论。"
   }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

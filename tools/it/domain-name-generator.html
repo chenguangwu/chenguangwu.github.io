@@ -259,6 +259,7 @@ const SUFFIXES=['ly','ify','hub','lab','base','ster','io','fy','ster2','ly2','ki
 const WORDS=['nova','flux','mint','pulse','spark','wave','beam','core','edge','forge','sphere','grid','byte','bit','sync','loop'];
 function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
 function pick(arr){return arr[randInt(arr.length)];}
+let __domainLast=[];
 function generate(){
   const kw=document.getElementById('kw').value.trim().toLowerCase().replace(/[^a-z0-9]/g,'');
   if(!kw){// ITGCLR：输入为空时必须清掉上一批生成结果
@@ -270,6 +271,7 @@ function generate(){
   const suffix=document.getElementById('suffix').checked;
   const blend=document.getElementById('blend').checked;
   const names=new Set();
+  __domainLast=[];
   let attempts=0;
   while(names.size<count&&attempts<count*10){
     attempts++;
@@ -280,14 +282,23 @@ function generate(){
     const tld=tlds[randInt(tlds.length)];
     names.add(name+'.'+tld);
   }
+  __domainLast=Array.from(names);
   let html='';
-  for(const n of names)html+='<div class="code-row">'+escapeHtml(n)+'</div>';
+  for(const n of __domainLast)html+='<div class="code-row">'+escapeHtml(n)+' <button type="button" class="btn" style="padding:2px 6px;font-size:11px;" onclick="copyOne(\''+n+'\')">'+( (typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Copy':'复制')+'</button></div>';
+  if(__domainLast.length<count){
+    html+='<p style="color:#B45309;font-size:12.5px;line-height:1.7;margin-top:8px;">⚠ '+( (typeof TBKit!=='undefined'&&TBKit.util.isEn())
+      ? ('Only '+__domainLast.length+' of '+count+' unique names generated — the selected prefix/suffix/blend/TLD combinations are insufficient or too repetitive. Add options or reduce the count.')
+      : ('仅生成 '+__domainLast.length+' / '+count+' 个唯一域名：当前前缀/后缀/混合/TLD 组合空间不足或重复过多。请增加组合选项或减少数量。'))+'</p>';
+  }
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
-  const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
+  if(!__domainLast.length){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Generate domains first":"请先生成域名")); return; }
+  navigator.clipboard.writeText(__domainLast.join('\n')).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制"))).catch(()=>alert('复制失败，请手动复制'));
+}
+function copyOne(name){
+  if(navigator.clipboard) navigator.clipboard.writeText(name).then(()=>alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制"))).catch(()=>{});
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
