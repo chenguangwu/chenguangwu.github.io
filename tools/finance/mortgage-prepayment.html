@@ -273,10 +273,11 @@ function calc() {
   const p = parseFloat(pEl.value) || 0;
   const annualRaw = parseFloat(rateEl.value);
   const annual = (isFinite(annualRaw) ? annualRaw : 0) / 100;
-  const monthsRaw = parseInt(monthsEl.value, 10);
+  const monthsRaw = Number(String(monthsEl.value).trim());
   const months = isFinite(monthsRaw) ? monthsRaw : 0;
   const mp = parseFloat(mpEl.value) || 0;
-  const prepay = parseFloat(prepayEl.value) || 0;
+  const prepayRaw = String(prepayEl.value).trim();
+  const prepay = prepayRaw === '' ? NaN : Number(prepayRaw);
   let fixed = 2, precisionWarn = '';
   const fixedRaw = parseInt(document.getElementById('precision').value, 10);
   if (isFinite(fixedRaw)) {
@@ -289,9 +290,9 @@ function calc() {
 
   const pOk = p > 0;
   const rateOk = isFinite(annualRaw) && annualRaw >= 0 && annualRaw <= 100;
-  const monthsOk = months > 0;
+  const monthsOk = Number.isInteger(months) && months > 0 && months <= 1200;
   const mpOk = mp > 0;
-  const prepayOk = prepay >= 0;
+  const prepayOk = prepayRaw !== '' && isFinite(prepay) && prepay >= 0;
   pEl.classList.toggle('input-error', !pOk);
   rateEl.classList.toggle('input-error', !rateOk);
   monthsEl.classList.toggle('input-error', !monthsOk);
@@ -299,7 +300,7 @@ function calc() {
   prepayEl.classList.toggle('input-error', !prepayOk);
 
   if (!pOk || !rateOk || !monthsOk || !mpOk || !prepayOk) {
-    document.getElementById('result').innerHTML='<p>请输入完整有效参数（每月还款须大于 0，利率 0–100，提前还款金额不小于 0）。</p>';
+    document.getElementById('result').innerHTML='<p>'+(Number.isInteger(months)?'':'剩余月数须为 1–1200 的整数；')+'请填写完整有效参数（每月还款须大于 0，利率 0–100，提前还款金额不小于 0）。'+(prepayRaw===''?'<br>本次不提前还款请显式填写 0。':'')+'</p>';
     return;
   }
 
@@ -322,8 +323,12 @@ function calc() {
   // 容差 0.005：应还月供常由用户输入四舍五入而来（如 536.82），不得自己提示自己
   // F-N91：高于应还月供同样要提示（旧版只对低月供告警，用户多还时看不出对照口径已变）。
   // F-N92：低月供告警双语化，避免 EN 态结果区泄漏中文。
+  const firstInterest = p * annual / 12;
+  const coversInterest = mp > firstInterest + 1e-9;
   const mpWarn = mp < requiredMp - 0.005
-    ? '<p style="color:var(--danger);">' + __mpTx('⚠ 输入的月供低于原方案应还月供 <strong>' + requiredMp.toFixed(2) + '</strong> 元，原方案将出现负摊还，对比结果仅供参考', '⚠ The entered payment is below the contractual payment of <strong>' + requiredMp.toFixed(2) + '</strong> CNY; the baseline amortizes negatively, so the comparison is indicative only.') + '</p>'
+    ? (coversInterest
+      ? '<p style="color:var(--warning,#b45309);">' + __mpTx('⚠ 输入的月供低于合同应还月供 <strong>' + requiredMp.toFixed(2) + '</strong> 元，还款期会延长；但月供仍高于首期利息 ' + firstInterest.toFixed(2) + ' 元，仍能偿还部分本金，不是负摊还。', '⚠ The entered payment is below the contractual payment of <strong>' + requiredMp.toFixed(2) + '</strong> CNY, so the term extends; it is still above first-month interest of ' + firstInterest.toFixed(2) + ' CNY and does reduce principal. This is not negative amortization.') + '</p>'
+      : '<p style="color:var(--danger);">' + __mpTx('⚠ 输入的月供 <strong>' + mp.toFixed(2) + '</strong> 元不高于首期利息 <strong>' + firstInterest.toFixed(2) + '</strong> 元，出现负摊还，贷款无法按此月供还清；请提高月供或核对输入。', '⚠ The entered payment of <strong>' + mp.toFixed(2) + '</strong> CNY is not above first-month interest of <strong>' + firstInterest.toFixed(2) + '</strong> CNY; this is negative amortization and the loan cannot be repaid at this payment.') + '</p>')
     : (mp > requiredMp + 0.005
       ? '<p style="font-size:13px;color:var(--text-muted);">' + __mpTx('提示：填写的月供高于合同应还月供 <strong>' + requiredMp.toFixed(2) + '</strong> 元，对照方案按实际填写的月供计算，会比合同更快还清；节省额只归因于本次提前还款。', 'Note: the entered payment is above the contractual payment of <strong>' + requiredMp.toFixed(2) + '</strong> CNY. The baseline uses the payment you entered and pays off faster than the contract; savings are attributed only to this prepayment.') + '</p>'
       : '');
@@ -686,37 +691,43 @@ else document.addEventListener('DOMContentLoaded', __mortgage_prepaymentBoot);
     var firstInterest = d.p * m;
     var firstPrincipal = d.mp - firstInterest;
     var firstIntRatio = firstInterest / d.mp;
-    // 临界点：已还期数超过 1/3 总期后，提前还款省息效果大幅下降
-    var oneThird = d.months / 3;
-    // 提前还款占本金比例
     var prepayRatio = d.prepay / d.p;
     var badgeTxt = en ? 'Early repayment' : '提前还款';
     var valTxt = en
-      ? 'First-month interest is ' + (firstIntRatio * 100).toFixed(1) + '% of your payment — most of early payments go to interest.'
-      : '首月利息占月供的 ' + (firstIntRatio * 100).toFixed(1) + '%，前期还款大多在还利息。';
+      ? 'Next payment estimate: interest ' + (firstInterest).toFixed(2) + ', principal ' + (firstPrincipal).toFixed(2) + '; interest is ' + (firstIntRatio * 100).toFixed(1) + '% of the payment.'
+      : '下一期估算：利息 ' + firstInterest.toFixed(2) + ' 元，本金 ' + firstPrincipal.toFixed(2) + ' 元；利息占月供 ' + (firstIntRatio * 100).toFixed(1) + '%。';
     var html = '';
     html += __finRow(
-      en ? 'First-month interest share' : '首月利息占月供比',
-      __finPct(firstIntRatio * 100) + (en ? ' (top-heavy)' : '（前重后轻）')
+      en ? 'Next-month interest estimate' : '下一期利息估算',
+      '¥' + firstInterest.toFixed(2)
     );
     html += __finRow(
-      en ? 'When prepaying pays off most' : '提前还款最划算的时点',
-      en ? 'Best within the first 1/3 of the term (' + oneThird.toFixed(0) + ' of ' + d.months + ' months)'
-         : '最好在前 1/3 期限内（共 ' + d.months + ' 期中的前 ' + oneThird.toFixed(0) + ' 期）'
+      en ? 'Next-month principal estimate' : '下一期本金估算',
+      (firstPrincipal < 0 ? (en ? '-¥' : '-¥') : '¥') + Math.abs(firstPrincipal).toFixed(2) + (firstPrincipal < 0 ? (en ? ' (negative amortization)' : '（负摊还）') : (firstPrincipal === 0 ? (en ? ' (interest only)' : '（仅付利息）') : ''))
+    );
+    html += __finRow(
+      en ? 'First-month interest share' : '首月利息占月供比',
+      __finPct(firstIntRatio * 100) + (en ? '' : '')
+    );
+    html += __finRow(
+      en ? 'Best prepayment timing' : '提前还款最划算的时点',
+      en ? 'Cannot be judged from the remaining term alone; consider payments already made, total term, prepayment penalty, fees and your opportunity cost.'
+         : '不能仅凭剩余期数判断；需结合已还期数、合同总期限、提前还款违约金、手续费与个人机会成本。'
     );
     html += __finRow(
       en ? 'Strategy: shorten term vs lower payment' : '策略：缩短期限 vs 减少月供',
-      en ? 'Shortening the term saves more total interest than lowering the monthly payment.'
-         : '同样一笔提前还款，「缩短期限」比「减少月供」省下的总利息更多。'
+      en ? 'Under unchanged rate/term and no prepayment penalty, shortening the term usually saves more total interest than lowering the payment; verify the contract.'
+         : '在利率、期限不变且无违约金的简化条件下，缩短期限通常比减少月供省更多总利息；仍需核对合同。'
     );
     if (d.prepay > 0) {
       html += __finRow(
         en ? 'This prepayment amount' : '本次提前还款额',
-        en ? (prepayRatio * 100).toFixed(1) + '% of principal — the earlier you do it, the more interest you skip.'
-           : '占本金 ' + (prepayRatio * 100).toFixed(1) + '%，越早还省的利息越多。'
+        en ? (prepayRatio * 100).toFixed(1) + '% of principal; actual savings depend on the results above and the contract.'
+           : '占本金 ' + (prepayRatio * 100).toFixed(1) + '%；实际节省以结果表与合同为准。'
       );
     }
     rows.innerHTML = html;
+    box.textContent = valTxt;
     bar.innerHTML = __finBar(firstIntRatio, '#6366f1');
     badge.textContent = badgeTxt;
     badge.style.background = '#6366f1';
@@ -724,8 +735,8 @@ else document.addEventListener('DOMContentLoaded', __mortgage_prepaymentBoot);
   function __finInit(){
     var en = __finIsEn();
     document.getElementById('__charMpTitle').textContent = en ? '🏠 What early repayment actually saves' : '🏠 提前还款到底能省什么';
-    document.getElementById('__charMpDesc').textContent = en ? 'With equal principal-and-interest loans, early payments are mostly interest. Prepaying early skips the most expensive interest; how you prepay matters too.' : '等额本息贷款前期还款大多是利息。越早提前还，跳过的是最贵的利息；而且怎么还也有讲究。';
-    document.getElementById('__charMpNote').textContent = en ? 'After about the first third of the term, most interest is already paid, so prepaying saves far less. Choosing to shorten the term (rather than lower the monthly payment) cuts more total interest for the same lump sum.' : '大约过了前 1/3 期限，大部分利息已经还完，再提前还省得很少。同样一笔钱，「缩短期限」比「减少月供」能多省总利息。';
+    document.getElementById('__charMpDesc').textContent = en ? 'This section estimates only the next payment from the current balance, rate and payment. It does not claim a fixed “interest-heavy” share or a best time to prepay.' : '这里只按当前剩余本金、利率与月供估算“下一期”利息和本金，不对“利息占比高”或“最佳提前还款时点”下固定结论。';
+    document.getElementById('__charMpNote').textContent = en ? 'Whether prepayment pays off depends on remaining balance, rate, payments already made, total term, prepayment penalty, fees and your opportunity cost. Shortening the term usually saves more total interest than lowering the payment for the same lump sum, but verify the contract.' : '提前还款是否划算取决于剩余本金、利率、已还期数、合同总期限、违约金、手续费与个人机会成本；同样一笔钱“缩短期限”通常比“减少月供”省更多总利息，但仍需核对合同。';
     __finUpdate();
     var IDS = ['principal', 'rate', 'months', 'monthly', 'prepay'];
     IDS.forEach(function(id){
