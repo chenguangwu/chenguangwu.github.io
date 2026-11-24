@@ -614,15 +614,46 @@ document.addEventListener('click', function(e){
   }
 });
 
+function parseMoneyStrict(raw){
+  var s=String(raw==null?'':raw).trim();
+  if(s==='') return null;
+  var neg=s.charAt(0)==='-';
+  var body=s.replace(/^[+\-]/, '');
+  // 只接受普通十进制与规范千分位（1,234.56）；拒绝字母、科学计数法、错位逗号。
+  if(!/^(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?$/.test(body) && !/^\.\d+$/.test(body)) return null;
+  var num=Number((neg?'-':'')+body.replace(/,/g,''));
+  return isFinite(num)?num:null;
+}
+function parseBatchInput(){
+  var input=document.getElementById('batchInput').value.trim();
+  var lines=input.split('\n').filter(function(l){return l.trim()!=='';});
+  var rows=[],errors=[];
+  lines.forEach(function(line,i){
+    var v=parseMoneyStrict(line);
+    rows.push(v);
+    if(v===null) errors.push({line:i+1,raw:line.trim()});
+  });
+  return {lines:lines,rows:rows,errors:errors};
+}
 function calc(){
-  var amt = parseFloat(document.getElementById('fromAmount').value) || 0;
+  var amt = parseMoneyStrict(document.getElementById('fromAmount').value);
+  if(amt===null){
+    document.getElementById('toAmount').value='';
+    document.getElementById('resultDisplay').innerHTML='<div class="empty-history" style="color:var(--danger)">金额不是有效数字：请输入十进制金额（可含规范千分位，如 1,234.56；不支持字母或科学计数法）</div>';
+    return;
+  }
   var result = convert(amt, fromCurrency, toCurrency);
   document.getElementById('toAmount').value = result ? result.toFixed(4) : '';
   updateResultDisplay(amt, fromCurrency, result, toCurrency);
 }
 
 function calcReverse(){
-  var amt = parseFloat(document.getElementById('toAmount').value) || 0;
+  var amt = parseMoneyStrict(document.getElementById('toAmount').value);
+  if(amt===null){
+    document.getElementById('fromAmount').value='';
+    document.getElementById('resultDisplay').innerHTML='<div class="empty-history" style="color:var(--danger)">金额不是有效数字：请输入十进制金额（可含规范千分位，如 1,234.56；不支持字母或科学计数法）</div>';
+    return;
+  }
   var result = convert(amt, toCurrency, fromCurrency);
   document.getElementById('fromAmount').value = result ? result.toFixed(4) : '';
   updateResultDisplay(result, fromCurrency, amt, toCurrency);
@@ -656,7 +687,8 @@ function swapCurrencies(){
 }
 
 function saveHistory(){
-  var amt = parseFloat(document.getElementById('fromAmount').value) || 0;
+  var amt = parseMoneyStrict(document.getElementById('fromAmount').value);
+  if(amt===null){ ToolBox.showToast('金额不是有效数字，无法保存历史', 'warning'); return; }
   if(!amt){ ToolBox.showToast(i18nText('toast.msg920'), 'warning'); return; }
   var record = {
     time: new Date().toISOString(),
@@ -749,8 +781,8 @@ function resetCalc(){
 }
 
 function calcBatch(){
-  var input = document.getElementById('batchInput').value.trim();
-  var lines = input.split('\n').filter(function(l){ return l.trim() !== ''; });
+  var parsed = parseBatchInput();
+  var lines = parsed.lines;
   if(!lines.length){
     document.getElementById('batchResult').innerHTML='<div class="empty-history">请输入金额</div>';
     return;
@@ -758,13 +790,21 @@ function calcBatch(){
   var fromC = getCurrency(batchFromCurrency);
   var toC = getCurrency(batchToCurrency);
   var html = '<table><thead><tr><th>序号</th><th>' + fromC.code + '</th><th>' + toC.code + '</th></tr></thead><tbody>';
+  if(parsed.errors.length){
+    html += '<tr><td colspan="3" style="color:var(--danger)">发现 ' + parsed.errors.length + ' 行无效金额：' + parsed.errors.map(function(e){return '第 '+e.line+' 行「'+e.raw+'」';}).join('、') + '。无效行不参与换算。</td></tr>';
+  }
   lines.forEach(function(line, i){
-    var amt = parseFloat(line.trim()) || 0;
-    var result = convert(amt, batchFromCurrency, batchToCurrency);
+    var amt = parsed.rows[i];
     html += '<tr>';
     html += '<td>' + (i+1) + '</td>';
-    html += '<td>' + ToolBox.formatNumber(amt, 2) + ' ' + fromC.flag + '</td>';
-    html += '<td><strong>' + ToolBox.formatNumber(result, 4) + ' ' + toC.flag + '</strong></td>';
+    if(amt===null){
+      html += '<td style="color:var(--danger)">' + line.trim() + '</td>';
+      html += '<td style="color:var(--danger)">不是有效金额</td>';
+    } else {
+      var result = convert(amt, batchFromCurrency, batchToCurrency);
+      html += '<td>' + ToolBox.formatNumber(amt, 2) + ' ' + fromC.flag + '</td>';
+      html += '<td><strong>' + ToolBox.formatNumber(result, 4) + ' ' + toC.flag + '</strong></td>';
+    }
     html += '</tr>';
   });
   html += '</tbody></table>';
@@ -772,14 +812,15 @@ function calcBatch(){
 }
 
 function exportBatchCSV(){
-  var input = document.getElementById('batchInput').value.trim();
-  var lines = input.split('\n').filter(function(l){ return l.trim() !== ''; });
+  var parsed = parseBatchInput();
+  var lines = parsed.lines;
   if(!lines.length){ ToolBox.showToast(i18nText('toast.empty_export'), 'warning'); return; }
+  if(parsed.errors.length){ var e0=parsed.errors[0]; ToolBox.showToast('第 '+e0.line+' 行「'+e0.raw+'」不是有效金额，请先修正后再导出', 'error'); return; }
   var fromC = getCurrency(batchFromCurrency);
   var toC = getCurrency(batchToCurrency);
   var csv = '\uFEFF序号,' + fromC.code + '(' + fromC.name + '),' + toC.code + '(' + toC.name + ')\n';
   lines.forEach(function(line, i){
-    var amt = parseFloat(line.trim()) || 0;
+    var amt = parsed.rows[i];
     var result = convert(amt, batchFromCurrency, batchToCurrency);
     csv += (i+1) + ',' + amt + ',' + result.toFixed(4) + '\n';
   });
@@ -788,15 +829,16 @@ function exportBatchCSV(){
 }
 
 function copyBatchResult(){
-  var input = document.getElementById('batchInput').value.trim();
-  var lines = input.split('\n').filter(function(l){ return l.trim() !== ''; });
+  var parsed = parseBatchInput();
+  var lines = parsed.lines;
   if(!lines.length){ ToolBox.showToast(i18nText('toast.msg487'), 'warning'); return; }
+  if(parsed.errors.length){ var e0=parsed.errors[0]; ToolBox.showToast('第 '+e0.line+' 行「'+e0.raw+'」不是有效金额，请先修正后再复制', 'error'); return; }
   var fromC = getCurrency(batchFromCurrency);
   var toC = getCurrency(batchToCurrency);
   var text = '货币换算（' + fromC.code + ' → ' + toC.code + '）\n';
   text += '序号\t' + fromC.code + '\t' + toC.code + '\n';
   lines.forEach(function(line, i){
-    var amt = parseFloat(line.trim()) || 0;
+    var amt = parsed.rows[i];
     var result = convert(amt, batchFromCurrency, batchToCurrency);
     text += (i+1) + '\t' + amt + '\t' + result.toFixed(4) + '\n';
   });

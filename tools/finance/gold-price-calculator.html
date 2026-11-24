@@ -484,12 +484,31 @@ function fromGrams(grams, unit){
 }
 
 // ===== 价格换算主函数 =====
+function readGoldNum(id,label){
+  var raw=String(document.getElementById(id).value==null?'':document.getElementById(id).value).trim();
+  if(raw==='') return {ok:false,empty:true,msg:label+'不能为空'};
+  if(!/^[+\-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+\-]?\d+)?$/.test(raw)||!isFinite(Number(raw))) return {ok:false,msg:label+'必须是有限数值'};
+  return {ok:true,value:Number(raw)};
+}
+function goldError(msg){
+  document.getElementById('priceResult').innerHTML='<p style="color:var(--danger)">✗ '+msg+'</p>';
+}
 function calcAll(){
-  var goldPrice = parseFloat(document.getElementById('goldPrice').value) || 0;
-  var usdRate = parseFloat(document.getElementById('usdRate').value) || 0;
+  var rp = readGoldNum('goldPrice','黄金单价');
+  if(!rp.ok) return goldError(rp.msg);
+  var goldPrice = rp.value;
+  if(!(goldPrice > 0)) return goldError('黄金单价必须大于 0（否则总价/重量无法换算）');
+  var usdRaw = String(document.getElementById('usdRate').value==null?'':document.getElementById('usdRate').value).trim();
+  var usdRate = 0, usdOk = false;
+  if(usdRaw !== ''){
+    if(!/^[+\-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+\-]?\d+)?$/.test(usdRaw)||!isFinite(Number(usdRaw))||Number(usdRaw)<=0) return goldError('美元汇率必须是大于 0 的有限数值；不换算美元请留空');
+    usdRate=Number(usdRaw); usdOk=true;
+  }
   var purity = parseFloat(document.getElementById('puritySel').value) || 0.9999;
-  var discountRaw = parseFloat(document.getElementById('discountRate').value);
-  var discountBad = isNaN(discountRaw) || discountRaw < 0 || discountRaw > 100;
+  var rd = readGoldNum('discountRate','回收折价率');
+  if(!rd.ok) return goldError(rd.msg);
+  var discountRaw = rd.value;
+  var discountBad = !isFinite(discountRaw) || discountRaw < 0 || discountRaw > 100;
   var discountEl = document.getElementById('discountRate');
   if(discountEl){
     discountEl.classList.toggle('input-error', discountBad);
@@ -506,42 +525,48 @@ function calcAll(){
 
   if(currentMode === 'wt'){
     // 按重量算总价
-    var rawWeight = parseFloat(document.getElementById('weightInput').value) || 0;
+    var rw = readGoldNum('weightInput','黄金重量');
+    if(!rw.ok) return goldError(rw.msg);
+    var rawWeight = rw.value;
+    if(!(rawWeight > 0)) return goldError('黄金重量必须大于 0（空值不能被当作 0 克）');
     var unit = document.getElementById('weightUnit').value;
     var grams = toGrams(rawWeight, unit);
     var pureGrams = grams * purity;                 // 纯金当量（克）
     var totalCny = pureGrams * goldPrice;           // 总价（人民币）
-    var totalUsd = usdRate > 0 ? totalCny / usdRate : 0;
+    var totalUsd = usdOk ? totalCny / usdRate : null;
     var recycleCny = totalCny * discount / 100;     // 回收价
-    var recycleUsd = usdRate > 0 ? recycleCny / usdRate : 0;
+    var recycleUsd = usdOk ? recycleCny / usdRate : null;
 
     html += '<div class="gold-main-amt">¥ ' + fmt(totalCny, 2) + '</div>';
-    html += '<div class="gold-sub-amt">约 <strong>$ ' + fmt(totalUsd, 2) + '</strong> 美元</div>';
+    html += usdOk ? '<div class="gold-sub-amt">约 <strong>$ ' + fmt(totalUsd, 2) + '</strong> 美元</div>' : '<div class="gold-sub-amt">美元金额未计算（美元汇率留空）</div>';
     html += '<div class="gold-grid">';
     html += gcell(fmt(grams, 4), '实际重量（克）');
     html += gcell(fmt(pureGrams, 4), '纯金当量（克）');
     html += gcell('¥ ' + fmt(effPricePerGram, 2), purityName + ' 每克价');
     html += gcell(fmt(rawWeight, 4) + ' ' + UNIT_NAMES[unit], '输入重量');
     html += gcell('¥ ' + fmt(recycleCny, 2), '回收估价（' + discount + '%）');
-    html += gcell('$ ' + fmt(recycleUsd, 2), '回收估价（美元）');
+    html += gcell(usdOk ? '$ ' + fmt(recycleUsd, 2) : '未计算（无汇率）', '回收估价（美元）');
     html += '</div>';
     html += '<div class="hint-line" style="margin-top:12px;">';
     html += '计算式：' + fmt(rawWeight, 4) + UNIT_NAMES[unit] + ' = ' + fmt(grams, 4) + '克 × 含金量' + (purity*100).toFixed(2) + '% × ¥' + fmt(goldPrice, 2) + '/克 = ¥' + fmt(totalCny, 2);
     html += '</div>';
   } else {
     // 按总价反算重量
-    var totalPrice = parseFloat(document.getElementById('totalInput').value) || 0;
-    var pureGrams = goldPrice > 0 ? totalPrice / goldPrice : 0;       // 纯金当量
+    var rt = readGoldNum('totalInput','黄金总价');
+    if(!rt.ok) return goldError(rt.msg);
+    var totalPrice = rt.value;
+    if(totalPrice < 0) return goldError('黄金总价不能为负数');
+    var pureGrams = totalPrice / goldPrice;       // 纯金当量（goldPrice 已校验 >0）
     var actualGrams = purity > 0 ? pureGrams / purity : 0;            // 实际重量（克）
-    var totalUsd = usdRate > 0 ? totalPrice / usdRate : 0;
+    var totalUsd = usdOk ? totalPrice / usdRate : null;
     var recycleCny = totalPrice * discount / 100;
-    var recycleUsd = usdRate > 0 ? recycleCny / usdRate : 0;
+    var recycleUsd = usdOk ? recycleCny / usdRate : null;
 
     html += '<div class="gold-main-amt">' + fmt(actualGrams, 4) + ' 克</div>';
-    html += '<div class="gold-sub-amt">' + purityName + ' · 纯金当量 <strong>' + fmt(pureGrams, 4) + ' 克</strong></div>';
+    html += '<div class="gold-sub-amt">' + purityName + ' · 纯金当量 <strong>' + fmt(pureGrams, 4) + ' 克</strong>' + (usdOk ? '' : ' · 美元金额未计算（美元汇率留空）') + '</div>';
     html += '<div class="gold-grid">';
     html += gcell('¥ ' + fmt(totalPrice, 2), '总价（人民币）');
-    html += gcell('$ ' + fmt(totalUsd, 2), '总价（美元）');
+    html += gcell(usdOk ? '$ ' + fmt(totalUsd, 2) : '未计算（无汇率）', '总价（美元）');
     html += gcell(fmt(actualGrams, 4), '实际重量（克）');
     html += gcell(fmt(pureGrams, 4), '纯金当量（克）');
     html += gcell(fmt(fromGrams(actualGrams, 'oz'), 4), '折合盎司');
@@ -566,7 +591,10 @@ function fmt(n, decimals){
 
 // ===== 重量单位换算 =====
 function convWeight(){
-  var input = parseFloat(document.getElementById('convInput').value) || 0;
+  var raw = String(document.getElementById('convInput').value==null?'':document.getElementById('convInput').value).trim();
+  if(raw===''){ document.getElementById('convResult').innerHTML='<div class="empty-history">请输入重量</div>'; return; }
+  var input = Number(raw);
+  if(!isFinite(input)||input<0){ document.getElementById('convResult').innerHTML='<p style="color:var(--danger)">重量必须是非负有限数值</p>'; return; }
   var unit = document.getElementById('convUnit').value;
   var grams = toGrams(input, unit);
   var html = '<div class="kv-list">';
