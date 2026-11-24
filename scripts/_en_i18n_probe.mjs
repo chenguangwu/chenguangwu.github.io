@@ -10,6 +10,7 @@
  *   node scripts/_en_i18n_probe.mjs --extract <industry>/<slug>       输出待译明细 _en-i18n/work/<ind>/<slug>.json
  *   node scripts/_en_i18n_probe.mjs --keysrc <industry>/<slug>        EN 残留 ↔ zh 源文按 DOM 路径配对（坑 23 半译键自查）
  *   node scripts/_en_i18n_probe.mjs --check <industry>[/<slug>]       验收：英文态残留必须为 0
+ *   node scripts/_en_i18n_probe.mjs --links <industry>[/<slug> ...]    验收：英文态指南链接 DOM 结构不丢 <a>/href
  *   node scripts/_en_i18n_probe.mjs --roundtrip <industry>[/<slug>]   往返回归：zh-CN→en-US→zh-CN 文本必须逐条一致
  *   node scripts/_en_i18n_probe.mjs --reindex <industry>              重建 i18n/tools/en/<ind>/_index.json
  *   node scripts/_en_i18n_probe.mjs --done <industry>/<slug>           单工具验收通过后从 pending 清单移除（逐工具记账）
@@ -498,6 +499,42 @@ async function check(targets) {
   process.exitCode = bad ? 1 : 0;
 }
 
+// ---------- 模式：links（英文态 DOM 结构回归） ----------
+// 指南链接块的外层 div 若被整句字典/模板命中，旧实现会 el.textContent = tr，
+// 把内部 <a> 一并删掉，链接退化成不可点击纯文本（2026-11-24 第672批实测 3302 页中 16 页）。
+// 本模式在英文态断言 .tool-guide-link 内 <a> 数量、href 与静态源一致，并验证切回中文仍完整。
+async function links(targets) {
+  let bad = 0;
+  let total = 0;
+  for (const target of targets) {
+    const seg = target.split('/');
+    const ind = seg[0];
+    const tools = seg[1] ? [{ slug: seg[1], file: path.join(ROOT, BASE, ind, seg[1] + '.html') }] : industryTools(ind);
+    for (const t of tools) {
+      if (!fs.existsSync(t.file)) { console.error('缺失: ' + t.file); bad++; continue; }
+      total++;
+      const { w, getPending } = probePage(t.file, 'en-US');
+      const before = Array.from(w.document.querySelectorAll('.tool-guide-link a')).map((a) => a.getAttribute('href') || '');
+      await settleStable(w, getPending);
+      const after = Array.from(w.document.querySelectorAll('.tool-guide-link a'));
+      const errs = [];
+      if (after.length !== before.length) errs.push(`英文态 <a> 数量 ${after.length} ≠ 源 ${before.length}`);
+      for (let i = 0; i < Math.min(before.length, after.length); i++) {
+        if ((after[i].getAttribute('href') || '') !== before[i]) errs.push(`第 ${i + 1} 个 href 被改: ${before[i]} → ${after[i].getAttribute('href')}`);
+        if (RESIDUAL_RE.test(after[i].textContent || '')) errs.push(`第 ${i + 1} 个链接仍含中文: ${(after[i].textContent || '').trim().slice(0, 60)}`);
+      }
+      w.I18n.set('zh-CN', { persist: false });
+      await settleStable(w, getPending);
+      const back = w.document.querySelectorAll('.tool-guide-link a').length;
+      if (back !== before.length) errs.push(`切回中文后 <a> 数量 ${back} ≠ 源 ${before.length}`);
+      w.close();
+      if (errs.length) { bad++; console.log('❌ ' + ind + '/' + t.slug); for (const e of errs) console.log('     · ' + e); }
+    }
+  }
+  console.log('\n[links] 共 ' + total + ' 页，结构异常 ' + bad + ' 页');
+  process.exitCode = bad ? 1 : 0;
+}
+
 // ---------- 模式：roundtrip（中文态还原性回归） ----------
 async function roundtrip(targets) {
   let bad = 0;
@@ -791,6 +828,7 @@ if (argv.indexOf('--tw') > -1) BASE = 'zh-tw/tools';   // 校验繁体构建产�
     case '--extract': await extract(args[0]); break;
     case '--keysrc': await keysrc(args[0]); break;
     case '--check': await check(args); break;
+    case '--links': await links(args); break;
     case '--roundtrip': await roundtrip(args); break;
     case '--smoke': await smoke(args, { en: argv.indexOf('--en') > -1 }); break;
     case '--reindex': reindex(args[0]); break;

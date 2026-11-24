@@ -188,6 +188,10 @@
       // random-string 复选框 <label><input>是</label>、diff 的 leftDiff/rightDiff 等），
       // 使页面 JS 读 getElementById(id) 时抛 "Cannot read properties of null"。
       if (el.children && el.children.length && el.querySelector('input,select,textarea,[id]')) continue;
+      // 指南链接块「<div class=tool-guide-link><a>…</a></div>」的整句可能命中字典键。
+      // 整节点 el.textContent = tr 会把 <a> 删掉、链接退化成不可点击纯文本；容器一律跳过，
+      // 由下一轮 <a> 叶子节点完成翻译（href 与可点击性保持不变）。
+      if (el.querySelector && el.querySelector('a')) continue;
       // 【相关卡片污染修复 2026-10-08】相关工具卡片由 translateRelatedTools 专属管辖：
       // 本函数若先改写卡片文案，RT_ORIG 会把英文误存为「中文原文」，切回中文还原出英文。
       if (el.closest && el.closest('.related-tools')) continue;
@@ -397,6 +401,10 @@
       // 「原始文本」命中短语映射，整节点替换抹掉了 leftDiff 容器。
       // 这类容器的正文交由第三层 per-tool 字典（文本节点级替换，applyEnDict）处理，不丢译。
       if (el.children && el.children.length && el.querySelector('input,select,textarea,[id]')) continue;
+      // 指南链接块「<div class=tool-guide-link><a>…</a></div>」的整句可能命中字典键。
+      // 整节点 el.textContent = tr 会把 <a> 删掉、链接退化成不可点击纯文本；容器一律跳过，
+      // 由下一轮 <a> 叶子节点完成翻译（href 与可点击性保持不变）。
+      if (el.querySelector && el.querySelector('a')) continue;
       var txt = el.textContent.trim();
       var tr = null;
       if (BODY_PHRASE_MAP.hasOwnProperty(txt)) tr = BODY_PHRASE_MAP[txt];
@@ -419,7 +427,22 @@
             }
           }
         }
-        if (!tr) tr = patternPhraseTr(txt);
+        if (!tr) {
+          var patTr = patternPhraseTr(txt);
+          if (patTr) {
+            if (el.children && el.children.length) {
+              // 模板译文常命中「📖 查看「…」」的外层 .tool-guide-link 容器。
+              // 直接 el.textContent = tr 会把容器内的 <a> 一起删掉，链接变成不可点击纯文本。
+              // 有子元素时只在「文本节点」层面替换，保留 <a>/<span> 结构与 href。
+              if (replaceTextNodeCore(el, txt, patTr)) continue;
+              var psp = stripEmojiPrefix(txt);
+              var pcoreTr = (psp.core && psp.core !== txt) ? patternPhraseTr(psp.core) : null;
+              if (pcoreTr && replaceTextNodeCore(el, psp.core, pcoreTr)) continue;
+            } else {
+              tr = patTr;
+            }
+          }
+        }
       }
       if (tr) {
         BODY_CHANGED.push({ el: el, orig: txt });
