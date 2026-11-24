@@ -156,12 +156,14 @@
 
     <div class="input-row" style="margin-top:12px;">
       <div><label for="convQuality">输出质量（JPEG/WebP）</label><input type="range" id="convQuality" min="1" max="100" value="85" oninput="document.getElementById('convQualityVal').textContent=this.value+'%';reconvert()"><span id="convQualityVal" style="font-size:13px;color:var(--text-muted);">85%</span></div>
-      <div><label for="convMaxSide">最长边（像素，0=原尺寸）</label><input type="number" id="convMaxSide" min="0" max="10000" value="0" step="1" oninput="reconvert()"></div>
+      <div><label for="convMaxSide">最长边（像素，留空或 0=原尺寸，1–10000 整数）</label><input type="number" id="convMaxSide" min="0" max="10000" value="0" step="1" oninput="reconvert()"></div>
       <div><label>只转所选格式</label><label style="font-weight:400;display:inline-flex;gap:6px;margin-right:10px;"><input type="checkbox" class="convFmt" value="jpeg" checked onchange="reconvert()">JPEG</label><label style="font-weight:400;display:inline-flex;gap:6px;margin-right:10px;"><input type="checkbox" class="convFmt" value="png" checked onchange="reconvert()">PNG</label><label style="font-weight:400;display:inline-flex;gap:6px;"><input type="checkbox" class="convFmt" value="webp" checked onchange="reconvert()">WebP</label></div>
     </div>
+    <div id="convMaxSideError" role="alert" style="display:none;color:var(--danger);font-size:13px;margin-top:6px;"></div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__image_converterExport()">导出明细 CSV</button></div>
     <div id="result" style="display:none;">
       <div class="result-box" id="info"></div>
+      <div class="info-box" id="convOutSize" style="display:none;margin-top:8px;"></div>
       <h3>转换结果（点击下载）</h3>
       <div class="preview-grid" id="preview-grid"></div>
     </div>
@@ -269,6 +271,36 @@ function __svgFileBlocked(file) {
   }
   return false;
 }
+/* 最长边解析：留空或 0 = 保持原尺寸；负数 / 小数 / 超上限给出明确错误，不再 parseInt 静默截断 */
+function resolveMaxSide(raw){
+  var s = (raw == null ? '' : String(raw)).trim();
+  if(s === '') return {value:0, valid:true, unlimited:true, error:''};
+  var n = Number(s);
+  if(!isFinite(n)) return {value:0, valid:false, unlimited:false, error:'最长边请输入数字；留空或填 0 表示保持原尺寸。'};
+  if(n < 0) return {value:0, valid:false, unlimited:false, error:'最长边不能为负数（当前“' + s + '”）；留空或填 0 表示保持原尺寸。'};
+  if(n === 0) return {value:0, valid:true, unlimited:true, error:''};
+  if(Math.floor(n) !== n) return {value:0, valid:false, unlimited:false, error:'最长边必须是整数像素（当前“' + s + '”），请取整后再转换。'};
+  if(n > 10000) return {value:0, valid:false, unlimited:false, error:'最长边上限为 10000 像素（当前“' + s + '”）；自动按 10000 输出会改变你的设定，请改为 10000 以内。'};
+  return {value:n, valid:true, unlimited:false, error:''};
+}
+/* 下载文件名：保留来源名（清洗非法字符）+ 实际输出尺寸 + 有损格式质量，便于多图 / 多尺寸结果与来源对应 */
+function makeDownloadName(origName, ext, w, h, qualityPct){
+  var base = String(origName == null ? '' : origName)
+    .replace(/[?#].*$/, '')
+    .split(/[\\\/]/).pop()
+    .replace(/\.(png|jpe?g|webp|gif|bmp|tiff?|heic|heif|avif)$/i, '')
+    .replace(/[\u0000-\u001f\u007f<>:"|?*]/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/^[_\.]+|[_\.]+$/g, '');
+  if(base.length > 40) base = base.slice(0, 40).replace(/[_\.]+$/g, '');
+  if(!base) base = 'image';
+  var suffix = w + 'x' + h;
+  if(qualityPct != null && isFinite(qualityPct)) suffix += '-q' + Math.round(qualityPct);
+  return base + '-' + suffix + '.' + String(ext || 'png').toLowerCase();
+}
+/* 仅测试钩子：供 verify 用例调用，不参与任何运行时分支 */
+window.__convResolveMaxSide = resolveMaxSide;
+window.__convDownloadName = makeDownloadName;
 function handleFile(file) {
   if (!file) {
     ToolBox.showToast(i18nText('toast.msg933'), 'warn');
@@ -305,11 +337,27 @@ function reconvert(){
 function convertAll(__token) {
   if (__token !== __convertToken) return;
   if(!originalImg || !originalImg.naturalWidth) return;
-  var maxSide = parseInt((document.getElementById('convMaxSide')||{}).value,10);
-  maxSide = (isFinite(maxSide) && maxSide > 0) ? Math.min(maxSide, 10000) : 0;
+  var maxSideInfo = resolveMaxSide((document.getElementById('convMaxSide')||{}).value);
+  var sideErrEl = document.getElementById('convMaxSideError');
+  if(sideErrEl){ sideErrEl.textContent = maxSideInfo.error; sideErrEl.style.display = maxSideInfo.error ? '' : 'none'; }
+  var sideInp = document.getElementById('convMaxSide');
+  if(sideInp) sideInp.setAttribute('aria-invalid', maxSideInfo.valid ? 'false' : 'true');
+  if(!maxSideInfo.valid){
+    cardUrls.forEach(u => URL.revokeObjectURL(u)); cardUrls = [];
+    var sideGrid = document.getElementById('preview-grid');
+    if(sideGrid) sideGrid.innerHTML = '<p style="color:var(--danger)">' + maxSideInfo.error + '</p>';
+    var sideOut = document.getElementById('convOutSize'); if(sideOut){ sideOut.textContent = ''; sideOut.style.display = 'none'; }
+    return;
+  }
+  var maxSide = maxSideInfo.value;
   var scale = maxSide ? Math.min(1, maxSide / Math.max(originalImg.naturalWidth, originalImg.naturalHeight)) : 1;
   const w = Math.max(1, Math.round(originalImg.naturalWidth * scale));
   const h = Math.max(1, Math.round(originalImg.naturalHeight * scale));
+  var outSizeEl = document.getElementById('convOutSize');
+  if(outSizeEl){
+    outSizeEl.style.display = '';
+    outSizeEl.textContent = '实际输出尺寸：' + w + ' × ' + h + ' px（原始 ' + originalImg.naturalWidth + ' × ' + originalImg.naturalHeight + ' px）';
+  }
   var quality = parseInt((document.getElementById('convQuality')||{}).value,10);
   quality = (isFinite(quality) ? Math.min(100, Math.max(1, quality)) : 85) / 100;
   var selected = {};
@@ -360,7 +408,7 @@ function convertAll(__token) {
       const __h2=`
         <img alt="转换结果预览"  src="${url}">
         <div class="info"><strong>${f.label}${fallback ? `（已回落为 ${actualExt.toUpperCase()}）` : ''}</strong><br>${formatSize(blob.size)}<br><span class="alpha-note">${flatten ? '已铺白底（JPEG 无透明）' : '未铺白底（源图透明通道原样保留）'}</span></div>
-        <a href="${url}" download="converted-${Date.now()}.${actualExt}" class="download">⬇ 下载</a>
+        <a href="${url}" download="${makeDownloadName(originalFile && originalFile.name, actualExt, w, h, f.lossy ? Math.round(quality*100) : null)}" class="download">⬇ 下载</a>
       `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){card.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}card.innerHTML=__h2;
       grid.appendChild(card);
     }, f.type, f.lossy ? quality : undefined); } catch (e) { ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误")), 'error'); }
