@@ -252,7 +252,7 @@
       <span class="dz-icon">🖼️</span>
       <div style="font-size:15px;font-weight:600;color:var(--text-primary);">点击或拖拽图片到这里</div>
       <div class="dz-hint">支持 PNG / JPEG / WebP / GIF / BMP，图片仅在本地处理</div>
-      <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;" onchange="handleFile(this.files[0])" aria-label="选择图片文件">
+      <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,.bmp" style="display:none;" onchange="handleFile(this.files[0])" aria-label="选择图片文件">
     </div>
 
     <!-- 源图格式提示（GIF 首帧） -->
@@ -289,7 +289,7 @@
 
       <!-- 指定尺寸 -->
       <div class="tab-content" id="tab-size">
-        <label>目标尺寸（像素）</label>
+        <label>目标尺寸（像素，仅支持 1–10000 的整数）</label>
         <div class="size-row">
           <div class="size-field">
             <label for="targetW">宽度</label>
@@ -568,10 +568,14 @@ function validateTargetSize(w, h){
   if(!isFinite(w) || !isFinite(h) || w < 1 || h < 1 || w > MAX_SIDE || h > MAX_SIDE){
     return {valid:false, w:0, h:0, error:'请输入 1–' + MAX_SIDE + ' 之间的整数宽高。'};
   }
+  // 宽高必须是整数像素：小数会被四舍五入，导出的尺寸与用户填写的值不再一致（100.4 → 100）
+  if(Math.floor(w) !== w || Math.floor(h) !== h){
+    return {valid:false, w:0, h:0, error:'宽高必须是整数像素（当前 ' + w + '×' + h + '），小数会改变宽高比，请改成 ' + Math.round(w) + '×' + Math.round(h) + ' 或调整锁定比例。'};
+  }
   if(w * h > MAX_PIXELS){
     return {valid:false, w:0, h:0, error:'总像素不得超过 ' + (MAX_PIXELS/10000) + ' 万（约 ' + MAX_PIXELS + ' 像素），请降低宽高或缩放比例。'};
   }
-  return {valid:true, w:Math.round(w), h:Math.round(h), error:''};
+  return {valid:true, w:w, h:h, error:''};
 }
 
 function clearResult(){
@@ -673,13 +677,15 @@ function setPercent(pct){
 
 function onSizeInput(dim){
   if(!originalImg) return;
-  var w = parseInt($('targetW').value, 10);
-  var h = parseInt($('targetH').value, 10);
+  // 不用 parseInt 预截断：小数原样保留给校验函数，由它给出「必须为整数」的明确提示
+  var rawW = String($('targetW').value).trim();
+  var rawH = String($('targetH').value).trim();
+  var w = Number(rawW), h = Number(rawH);
   if(lockAspect){
-    if(dim === 'w' && w > 0){
-      $('targetH').value = Math.round(w / aspectRatio);
-    } else if(dim === 'h' && h > 0){
-      $('targetW').value = Math.round(h * aspectRatio);
+    if(dim === 'w' && rawW !== '' && isFinite(w) && Math.floor(w) === w && w > 0){
+      $('targetH').value = Math.max(1, Math.round(w / aspectRatio));
+    } else if(dim === 'h' && rawH !== '' && isFinite(h) && Math.floor(h) === h && h > 0){
+      $('targetW').value = Math.max(1, Math.round(h * aspectRatio));
     }
   }
   render();

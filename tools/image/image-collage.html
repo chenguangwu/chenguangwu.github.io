@@ -422,6 +422,35 @@ input[type="color"]:disabled{opacity:.45;cursor:not-allowed;}
 var $ = function(id){ return document.getElementById(id); };
 function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 
+/* 自定义网格的行/列：必须是 1–20 的整数。空值、小数、越界一律明确报错并阻止生成，
+   不再用 clamp(+value||1) 静默修正——2.5 列会让 Math.floor(idx/cols) 排不出完整网格。 */
+function resolveGridAxis(raw, label){
+  var s = (raw == null ? '' : String(raw)).trim();
+  if(s === '') return {valid:false, value:0, error:label + '不能为空，请填写 1–20 的整数。'};
+  var n = Number(s);
+  if(!isFinite(n)) return {valid:false, value:0, error:label + '请输入 1–20 的整数（当前“' + s + '”）。'};
+  if(Math.floor(n) !== n) return {valid:false, value:0, error:label + '必须是整数（当前“' + s + '”），小数无法排出完整网格。'};
+  if(n < 1 || n > 20) return {valid:false, value:0, error:label + '需在 1–20 之间（当前“' + s + '”）。'};
+  return {valid:true, value:n, error:''};
+}
+function resolveGridSize(rowsRaw, colsRaw){
+  var r = resolveGridAxis(rowsRaw, '行数'), c = resolveGridAxis(colsRaw, '列数');
+  return {
+    valid: r.valid && c.valid,
+    rows: r.valid ? r.value : 0,
+    cols: c.valid ? c.value : 0,
+    rowsValid: r.valid,
+    colsValid: c.valid,
+    error: r.error || c.error
+  };
+}
+function showGridError(msg){
+  var canvas = $('canvas'), empty = $('previewEmpty'), info = $('infoBox');
+  if(canvas) canvas.style.display = 'none';
+  if(empty) empty.style.display = 'none';
+  if(info){ info.style.display = 'block'; info.innerHTML = '<p style="color:var(--danger)">⚠️ ' + msg + '</p>'; }
+}
+
 var images = []; // {img, url, name, w, h}
 var history = [];  // 顺序/删除操作快照，最多 20 步
 var dragIdx = null;
@@ -633,7 +662,13 @@ function render(){
   else if(layout==='h') dims = { type:'sh', rows:1, cols:images.length };
   else if(layout==='2x2') dims = { type:'grid', rows:2, cols:2 };
   else if(layout==='3x3') dims = { type:'grid', rows:3, cols:3 };
-  else dims = { type:'grid', rows:clamp(+$('rows').value||1,1,20), cols:clamp(+$('cols').value||1,1,20) };
+  else {
+    var gs = resolveGridSize($('rows').value, $('cols').value);
+    if($('rows')) $('rows').setAttribute('aria-invalid', gs.rowsValid ? 'false' : 'true');
+    if($('cols')) $('cols').setAttribute('aria-invalid', gs.colsValid ? 'false' : 'true');
+    if(!gs.valid){ showGridError(gs.error); return; }
+    dims = { type:'grid', rows:gs.rows, cols:gs.cols };
+  }
 
   var plan;
   if(dims.type==='sv'){
@@ -735,6 +770,11 @@ function render(){
 /* ---------- 下载 ---------- */
 function download(type){
   if(!images.length){ ToolBox.showToast(i18nText('toast.msg644'), 'error'); return; }
+  // 自定义网格行列非法时不得导出上一份陈旧预览
+  if($('layout').value === 'custom'){
+    var gsDl = resolveGridSize($('rows').value, $('cols').value);
+    if(!gsDl.valid){ ToolBox.showToast(gsDl.error, 'error'); return; }
+  }
   var src = $('canvas');
   var transparent = $('transparentBg').checked;
   var mime = type==='png' ? 'image/png' : 'image/jpeg';
@@ -781,7 +821,8 @@ window.CollageTool = {
   move: moveImg,
   remove: removeImg,
   fitPlan: fitPlan,
-  orderLoaded: orderLoaded
+  orderLoaded: orderLoaded,
+  gridSize: resolveGridSize
 };
 
 /* ---------- 初始化 ---------- */

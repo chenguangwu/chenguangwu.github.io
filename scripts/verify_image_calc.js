@@ -384,6 +384,30 @@ const CASES = [
   "clicks": ["var cap='';ToolBox.showToast=function(m){cap=String(m);};TBKit={util:{isEn:function(){return true;}}};__svgFileBlocked({type:'image/svg+xml',name:'x.svg'});var en=cap;TBKit={util:{isEn:function(){return false;}}};__svgFileBlocked({type:'image/svg+xml',name:'x.svg'});var zh=cap;document.getElementById('__svg_probe').textContent='IMN3R '+(en.indexOf('SVG images are not supported')>=0&&zh.indexOf('不支持 SVG 图片')>=0?'OK':'BAD '+en+'|'+zh);"],
   "expect": ["IMN3R OK"],
   "ref": "IM-N3 resize 页同类：旧版 __svgFileBlocked 及下载/导出/复制 toast 全硬编码中文。现统一 __imgEn() 中英切换（含「尺寸过大」「导出失败」「已下载」「复制失败」）。isEn 双断言，默认态不命中。"
+},
+{
+  "slug": "image/image-resize",
+  "clicks": ["var r0=window.__resizeValidate(100.4,200);var r1=window.__resizeValidate(100,200.75);var r2=window.__resizeValidate(100,200);document.getElementById('sizeError').textContent='I731A:'+(r0.valid?'1':'0')+'|'+(r1.valid?'1':'0')+'|'+r2.w+'x'+r2.h+'|'+r0.error;"],
+  "expect": ["I731A:0|0|100x200|宽高必须是整数像素（当前 100.4×200），小数会改变宽高比，请改成 100×200 或调整锁定比例。"],
+  "ref": "第731A批·小数尺寸不再静默取整：旧 validateTargetSize 对 100.4 四舍五入成 100（用户填 100.4 却导出 100），现小数直接判无效并给出实际取整建议；合法 100×200 仍通过。默认态 sizeError 无文本 ⇒ 不命中。"
+},
+{
+  "slug": "image/image-converter",
+  "clicks": ["var a=window.__convResolveMaxSide('800');var b=window.__convResolveMaxSide('800.5');var c=window.__convResolveMaxSide('0');var d=window.__convResolveMaxSide('12000');var e=window.__convResolveMaxSide('-5');document.getElementById('convMaxSideError').textContent='M731A:'+a.value+'|'+(b.valid?'1':'0')+'|'+c.value+'|'+(d.valid?'1':'0')+'|'+(e.valid?'1':'0')+'|'+b.error;"],
+  "expect": ["M731A:800|0|0|0|0|最长边必须是整数像素（当前“800.5”），请取整后再转换。"],
+  "ref": "第731A批·最长边不再 parseInt 截断：旧实现 800.5→800、12000→静默夹到 10000、负数→不限制。现合法整数 800 通过，留空/0 仍表示原尺寸，小数与超限明确报错。默认态 convMaxSideError 无文本 ⇒ 不命中。"
+},
+{
+  "slug": "image/image-converter",
+  "clicks": ["var n0=window.__convDownloadName('照片 a.png','webp',800,600,85);var n1=window.__convDownloadName('a/b:c*?.jpg','png',100,100,null);var n2=window.__convDownloadName('','jpg',10,10,null);document.getElementById('convMaxSideError').textContent='F731A:'+n0+'|'+n1+'|'+n2;"],
+  "expect": ["F731A:照片_a-800x600-q85.webp|bc-100x100.png|image-10x10.jpg"],
+  "ref": "第731A批·下载文件名带来源：旧名恒为 converted-时间戳.扩展名，多图混在一起无法对应。现保留清洗后的来源名（去路径/非法字符）+ 实际输出尺寸 + 有损质量；中文名、非法字符、空名三种输入都落到可辨识且安全的名字。"
+},
+{
+  "slug": "image/image-collage",
+  "clicks": ["var a=CollageTool.gridSize('2.5','3');var b=CollageTool.gridSize('','3');var c=CollageTool.gridSize('4','5');var d=CollageTool.gridSize('21','3');document.getElementById('infoBox').textContent='G731A:'+(a.valid?'1':'0')+'|'+(b.valid?'1':'0')+'|'+c.rows+'x'+c.cols+'|'+(d.valid?'1':'0')+'|'+a.error;"],
+  "expect": ["G731A:0|0|4x5|0|行数必须是整数（当前“2.5”），小数无法排出完整网格。"],
+  "ref": "第731A批·自定义网格行列严格整数：旧实现 clamp(+value||1,1,20) 让 2.5 列照常参与 Math.floor(idx/cols)，空值静默变 1、21 静默变 20。现小数/空值/越界均判无效并给出对应提示，1–20 整数正常通过（4×5）。"
 }
 ];
 function batch204StaticChecks(){
@@ -415,6 +439,9 @@ function batch204StaticChecks(){
   out.push({name:"B207 filter preset sync",ok:flt.indexOf("document.getElementById('brightness').value = m[1]")>=0&&flt.indexOf('exportFilter')>=0});
   out.push({name:"B206 real rounded image",ok:rc.indexOf('id="rcFiles"')>=0&&rc.indexOf('function rcRender()')>=0&&rc.indexOf('function rcRadiusFor(')>=0&&rc.indexOf('function randColor()')<0});
   out.push({name:"B205 target volume",ok:cmp.indexOf("function compressToTarget(img,s,targetBytes)")>=0&&cmp.indexOf("targetSize")>=0&&cmp.indexOf("tries++>=7")>=0});
+  out.push({name:"B731A resize BMP accept",ok:src.indexOf('accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,.bmp"')>=0&&src.indexOf('支持 PNG / JPEG / WebP / GIF / BMP')>=0});
+  out.push({name:"B731A converter maxside/outsize/filename",ok:cvr.indexOf("function resolveMaxSide(")>=0&&cvr.indexOf("function makeDownloadName(")>=0&&cvr.indexOf('id="convOutSize"')>=0&&cvr.indexOf('id="convMaxSideError"')>=0&&cvr.indexOf('converted-${Date.now()')<0});
+  out.push({name:"B731A collage grid integer",ok:col.indexOf("function resolveGridSize(")>=0&&col.indexOf("gridSize: resolveGridSize")>=0&&col.indexOf("layout').value === 'custom'")>=0});
   return out;
 }
 
