@@ -9290,9 +9290,9 @@ const CASES = [
       "tail": "left"
     },
     "expect": [
-      "42\n42\n42\n42\n42\nleft\nα 必须在 (0, 0.5]"
+      "显著性水平 α 必须在 (0, 0.5] 之间（如 0.05）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"mean\":\"42\",\"mu0\":\"42\",\"sigma\":\"42\",\"n\":\"42\",\"alpha\":\"42\",\"tail\":\"left\"}，输出区含「42\n42\n42\n42\n42\nleft\nα 必须在 (0, 0.5]」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"mean\":\"42\",\"mu0\":\"42\",\"sigma\":\"42\",\"n\":\"42\",\"alpha\":\"42\",\"tail\":\"left\"}，输出区含「显著性水平 α 必须在 (0, 0.5] 之间（如 0.05）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/invite-code-generator",
@@ -10935,9 +10935,9 @@ const CASES = [
       "conf": "0.95"
     },
     "expect": [
-      "p 必须在 0~1 之间\n42\n42\n0.95\n42"
+      "p̂ 必须在 0~1 之间（含 0 与 1）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"p\":\"42\",\"N\":\"42\",\"conf\":\"0.95\"}，输出区含「42\n42\n42\n0.95\np 必须在 0~1 之间」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"p\":\"42\",\"N\":\"42\",\"conf\":\"0.95\"}，输出区含「p̂ 必须在 0~1 之间（含 0 与 1）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/markdown-lint",
@@ -14983,7 +14983,77 @@ const CASES = [
   clicks: ["calcTool()"],
   expect: ["a@b.com、c@d.cn", "2 个"],
   ref: "恢复第356–358批旧页交互匹配：邮箱类别对注入文本命中 2 个并按顿号拼接；regex-cheatsheet 仅静态速查表，不能测试文本。"
-}
+  },
+  {
+    slug: "it/hypothesis-test",
+    inputs: { mean: "105", mu0: "100", sigma: "15", n: "10.9", alpha: "0.05", tail: "two" },
+    clicks: ["calculate()"],
+    expect: ["样本数 n 必须是 ≥ 1 的十进制整数"],
+    ref: "第730批：n=10.9 旧 parseInt 静默截成 10 后照常出 Z/p；现严格校验样本量为十进制整数，小数直接定位字段报错。默认 n=36 合法，不命中外层提示。"
+  },
+  {
+    slug: "it/hypothesis-test",
+    inputs: { mean: "", mu0: "100", sigma: "15", n: "36", alpha: "0.05", tail: "two" },
+    clicks: ["calculate()"],
+    expect: ["样本均值 x̄ 不能为空"],
+    ref: "第730批：空值旧 parseFloat 得 NaN 只给笼统提示；现逐字段定位「样本均值 x̄ 不能为空」，且不输出 Z/p。"
+  },
+  {
+    slug: "it/hypergeometric-distribution",
+    inputs: { N: "52.9", K: "13", n: "5", k: "2" },
+    clicks: ["calculate()"],
+    expect: ["总体大小 N 必须是十进制整数"],
+    ref: "第730批：N=52.9 旧 parseInt 截成 52 后照常算概率；现拒绝小数并直指 N 字段。默认 N=52 合法，不命中。"
+  },
+  {
+    slug: "it/hypergeometric-distribution",
+    inputs: { N: "1e3", K: "13", n: "5", k: "2" },
+    clicks: ["calculate()"],
+    expect: ["总体大小 N 必须是十进制整数"],
+    ref: "第730批：科学计数法 1e3 旧 parseInt 得 1、把总体静默变成 1；现要求十进制整数并直接拒绝。默认 N=52 不命中。"
+  },
+  {
+    slug: "it/margin-of-error",
+    inputs: { n: "1000", p: "0", conf: "0.95", N: "" },
+    clicks: ["calculate()"],
+    expect: ["Wilson 95% 置信区间 = [0, 0.00382676]", "Wilson score 区间（边界 p̂=0 或 1）"],
+    ref: "第730批：0 次成功时 Wald 标准误为 0、旧输出 ±0；现改用 Wilson score 区间，n=1000/z=1.96 得 [0, 0.00382676]，明确非零宽度。默认 p=0.5 不命中。"
+  },
+  {
+    slug: "it/margin-of-error",
+    inputs: { n: "1000", p: "1", conf: "0.95", N: "" },
+    clicks: ["calculate()"],
+    expect: ["Wilson 95% 置信区间 = [0.99617324, 1]"],
+    ref: "第730批：全成功 p=1 时旧输出 ±0；Wilson 区间对称得 [0.99617324, 1]（边界区间独立高点精度显示），明确非零宽度。默认 p=0.5 不命中。"
+  },
+  {
+    slug: "it/vector-dot-product",
+    inputs: { dim: "2", a0: "-1", a1: "0", b0: "1", b1: "0" },
+    clicks: ["calculate()"],
+    expect: ["标量投影（带符号） = (A·B)/|B| = -1 / 1 = -1", "投影长度（非负） = |(A·B)/|B|| = 1", "投影向量 proj<sub>B</sub>A = ((A·B)/|B|²) × B = -1 × B = (-1, 0)"],
+    ref: "第730批：A=(-1,0)、B=(1,0) 反向时旧页面把 (A·B)/|B|=-1 标成投影长度；现分离带符号标量投影 -1、非负长度 1 与投影向量 (-1,0)。默认 A=(1,0…)、B=(0,1…) 不命中。"
+  },
+  {
+    slug: "it/vector-dot-product",
+    inputs: { dim: "3", a0: "1", a1: "", a2: "3", b0: "4", b1: "5", b2: "6" },
+    clicks: ["calculate()"],
+    expect: ["请填写向量 A 与 B 的每个坐标分量，不能留空：向量 A 第 2 个分量（y）"],
+    ref: "第730批：空坐标旧 getV 填 0 后仍输出点积/正交结论；现逐分量定位空值并拒绝计算，数值 0 仍合法。默认坐标齐备不命中。"
+  },
+  {
+    slug: "it/affine-cipher",
+    inputs: { a: "9007199254740993", b: "8", input: "HELLO" },
+    clicks: ["enc()"],
+    expect: ["a ≡ 9007199254740993 mod 26 = 7", "FKHHC"],
+    ref: "第730批：9007199254740993 超过 Number.MAX_SAFE_INTEGER，旧 Number 先舍入成 …992 再取模；现 BigInt 精确归一化 a≡7，a=7/b=8 加密 HELLO 得 FKHHC。默认 a=5 不命中。"
+  },
+  {
+    slug: "it/affine-cipher",
+    inputs: { a: "-9007199254740993", b: "-1", input: "ABC" },
+    clicks: ["enc()"],
+    expect: ["a ≡ -9007199254740993 mod 26 = 19", "b ≡ -1 mod 26 = 25"],
+    ref: "第730批：负超大整数旧取模先舍入；现 BigInt 精确归一化 a≡19、b≡25，且两值均与 26 互素/合法。默认 a=5/b=8 不命中。"
+  }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
