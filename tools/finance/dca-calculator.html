@@ -306,7 +306,7 @@ function __tbInputGuardCore(_ids,_labels){
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"monthly": "monthly"};
+  var __D={}; // 月投入可以为 0：初始本金仍可按复利增长，不能把 monthly 当分母拒绝
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -381,6 +381,16 @@ function __dcaSyncTiming(){
 }
 
 function calcMonthlyData(){
+    // 月投入可以为 0，但只要初始本金 > 0 仍能计算复利增长；两项均为 0 才无意义，给专门提示。
+    var __mRaw=String(document.getElementById('monthly').value==null?'':document.getElementById('monthly').value).trim();
+    var __iRaw=String(document.getElementById('initial').value==null?'':document.getElementById('initial').value).trim();
+    if(__mRaw!==''&&__iRaw!==''&&Number(__mRaw)===0&&Number(__iRaw)===0){
+      var __cids0=['statGrid','tableWrap','dca_calculatorTable','dca_calculatorDiff','dca_calculatorChart','dca_calculatorHist'];
+      for(var __ci0=0;__ci0<__cids0.length;__ci0++){var __ce0=document.getElementById(__cids0[__ci0]);if(__ce0)__ce0.innerHTML='';}
+      var __tm0=document.getElementById('totalMonths');if(__tm0)__tm0.textContent='';
+      ToolBox.setResult("res",'<p style="color:var(--danger)">⚠ 初始本金与每月定投均为 0：没有可增长的本金，无法计算定投收益。</p>');
+      return;
+    }
     var __ig=__tbInputGuard(['monthly', 'years', 'rate', 'initial'],["每月定投金额(元)", "定投年限", "预期年化收益率(%)", "初始本金(元)"]);if(__ig){
       // 第157批：拒绝态必须停算并清所有结果载体，防上一次成功计算的统计卡/图表/明细表/期数旧结果复活。
       var __cids=['statGrid','tableWrap','dca_calculatorTable','dca_calculatorDiff','dca_calculatorChart','dca_calculatorHist'];

@@ -4881,9 +4881,9 @@ const CASES = [
   {
     slug: "finance/dca-calculator",
     inputs: { monthly: "0", years: "10", rate: "8", initial: "0" },
-    clicks: ["calc();var __o=document.getElementById('res'),__sg=document.getElementById('statGrid'),__tw=document.getElementById('tableWrap'),__tm=document.getElementById('totalMonths');document.getElementById('__tbProbe').textContent='C157DCA0 '+((__dca_calculatorScore('')===0&&__sg.innerHTML===''&&__tw.innerHTML===''&&__tm.textContent===''&&String(__o.innerHTML||'').indexOf('不能为 0')>=0)?'OK':'BAD');"],
+    clicks: ["calc();var __o=document.getElementById('res'),__sg=document.getElementById('statGrid'),__tw=document.getElementById('tableWrap'),__tm=document.getElementById('totalMonths');document.getElementById('__tbProbe').textContent='C157DCA0 '+((__dca_calculatorScore('')===0&&__sg.innerHTML===''&&__tw.innerHTML===''&&__tm.textContent===''&&String(__o.innerHTML||'').indexOf('初始本金与每月定投均为 0')>=0)?'OK':'BAD');"],
     expect: ["C157DCA0 OK"],
-    ref: "第157批 定投 monthly=0：守卫显示「「monthly」是本计算的分母，不能为 0」并停算，旧全文词表不含该提示 ⇒ 误记 1；修复后 Score 按真实业务边界 ⇒ 0，且拒绝态同步清 statGrid/tableWrap/totalMonths（本轮补强，防上次成功结果的旧载体复活）。",
+    ref: "第731C批改口径：monthly=0 且 initial=0 才是无本金可增长的无意义输入，提示「初始本金与每月定投均为 0」并清空统计/表格/期数；月投入单项为 0、初始本金 >0 应正常计算（见下条）。旧口径把 monthly 一律当分母拒绝，与复利模型不符。",
   },
   {
     slug: "finance/dca-calculator",
@@ -5024,7 +5024,49 @@ const CASES = [
 
 
 { slug:"finance/lease-payment-calculator", inputs:{pv:"100000",downPct:"0",rate:"6",months:"36",fv:"0",fee:"100000",type:"equal",timing:"end"}, clicks:["calc()"], expect:["不可计算（净融资额或现金流无有效 IRR）"], ref:"租赁物 100000、首付 0、手续费 100000 ⇒ 净融资额 0，后续付款全为正、现金流无符号变化，IRR 无解；旧实现 calcIRR 返回 NaN 后仍 toFixed 输出 NaN%。" },
-{ slug:"finance/lease-payment-calculator", inputs:{pv:"100000",downPct:"0",rate:"0",months:"12",fv:"0",fee:"0",type:"equal",timing:"end"}, clicks:["calc()"], expect:["实际年化利率(IRR)： 0.00%"], ref:"名义利率 0、无手续费、12 期等额还款：现金流 −100000 后按月收回，IRR=0，应输出 0.00% 而非不可计算；防止无解守卫误伤合法零利率。" }
+{ slug:"finance/lease-payment-calculator", inputs:{pv:"100000",downPct:"0",rate:"0",months:"12",fv:"0",fee:"0",type:"equal",timing:"end"}, clicks:["calc()"], expect:["实际年化利率(IRR)： 0.00%"], ref:"名义利率 0、无手续费、12 期等额还款：现金流 −100000 后按月收回，IRR=0，应输出 0.00% 而非不可计算；防止无解守卫误伤合法零利率。" },
+  {
+    slug: "finance/dca-calculator",
+    inputs: { monthly: "0", years: "1", rate: "12", initial: "12000", target: "0" },
+    clicks: ["switchTiming('begin')","calc()"],
+    expect: ["期末总资产： ¥13,521.90", "累计收益： +¥1,521.90"],
+    ref: "第731C批：monthly=0、initial=12000、1 年、12% 期初复利 ⇒ 12000×1.01^12=13,521.90，收益 1,521.90；旧守卫把 monthly 当分母拒绝 0，导致初始本金单独增长也无法计算。默认 monthly=1000 ⇒ 不命中。"
+  },
+  {
+    slug: "finance/sharpe-ratio",
+    inputs: { returns: "5\n5", riskFree: "0", annualize: "1" },
+    clicks: ["calc()"],
+    expect: ["标准差必须大于0：当前收益率序列的标准差为 0"],
+    ref: "第731C批：序列 5,5 标准差为 0，旧实现把夏普直接置 0 并评级；现拒绝并清空统计卡，说明夏普无定义。默认收益序列有波动 ⇒ 不命中。"
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: { fromAmount: "12abc", batchInput: "100\n12abc\n1,234.56" },
+    clicks: ["calc();calcBatch()"],
+    expect: ["金额不是有效数字", "第 2 行「12abc」", "不是有效金额", "1,234.56"],
+    ref: "第731C批：主分支 12abc 旧 parseFloat 得 12；现严格拒绝。批量第 2 行 12abc 标红且不换算，合法千分位 1,234.56 仍正常。默认金额合法 ⇒ 不命中。"
+  },
+  {
+    slug: "finance/gold-price-calculator",
+    inputs: { goldPrice: "650", usdRate: "", discountRate: "95", weightInput: "", totalInput: "6500", puritySel: "0.9999", weightUnit: "g" },
+    clicks: ["calcAll()"],
+    expect: ["黄金重量不能为空", "美元金额未计算（美元汇率留空）"],
+    ref: "第731C批：重量留空旧实现按 0 克显示 ¥0；现明确报空值。美元汇率留空不得显示 $0，改为未计算。默认重量 10、汇率 7.25 ⇒ 不命中。"
+  },
+  {
+    slug: "finance/gold-price-calculator",
+    inputs: { goldPrice: "0", usdRate: "7.25", discountRate: "95", weightInput: "10", totalInput: "6500", puritySel: "0.9999", weightUnit: "g" },
+    clicks: ["calcAll()"],
+    expect: ["黄金单价必须大于 0"],
+    ref: "第731C批：金价为 0 时反算重量会出现除零；现前置拒绝并说明，不输出 0 克/零元。默认金价 650 ⇒ 不命中。"
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { monthly: "1000", freq: "monthly", annualRate: "-12", period: "1" },
+    clicks: ["calcRegular()"],
+    expect: ["-752.1"],
+    ref: "第731C批：定投年化 -12%、月投 1000、1 年 ⇒ 期初投入终值 11,247.9、累计投入 12,000、亏损 752.1；旧模板固定加 + 号并上绿色，现按亏损显示负号/红色。默认 8% 正收益 ⇒ 不命中。"
+  }
 ];
 
 // ---------------------------------------------------------------- main
