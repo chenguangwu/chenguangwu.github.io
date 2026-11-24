@@ -352,6 +352,8 @@
   var HISTORY_KEY = 'base64_history';
   var MAX_HISTORY = 10;
 
+  function __b64L(en,zh){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh; }
+
   var BASE32_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
   var BASE85_CHARS = '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstu';
 
@@ -461,11 +463,26 @@
     var pad = padMatch ? padMatch[0].length : 0;
     if(pad > 6) throw new Error(__b64L('Invalid Base32 padding: at most 6 "=" characters','Base32 填充无效（最多 6 个等号）'));
     str = pad ? raw.slice(0, raw.length - pad) : raw;
-    if(pad && str.length % 8 !== 0){
-      var expectPad = 8 - (str.length % 8);
+    // 填充必须让「含等号的总长度」恰为 8 的倍数，且等号数量由末组有效字符数决定：
+    // 完整 8 字符组（rem=0）后不得再补等号，否则 MZXW6YTB= / MZXW6YTB====== 会被当成合法串。
+    var rem = str.length % 8;
+    var validRem = {2:1,4:1,5:1,7:1};
+    if(pad){
+      if(raw.length % 8 !== 0){
+        throw new Error(__b64L('Invalid Base32 padding: padded length must be a multiple of 8','Base32 填充无效（含等号的总长度须为 8 的倍数）'));
+      }
+      if(rem === 0){
+        throw new Error(__b64L('Invalid Base32 padding: a complete 8-character group must not be padded','Base32 填充无效（完整 8 字符组后不应再有等号）'));
+      }
+      if(!validRem[rem]){
+        throw new Error(__b64L('Invalid Base32 length (incomplete final group)','Base32 长度无效（末组不完整）'));
+      }
+      var expectPad = 8 - rem;
       if(pad !== expectPad){
         throw new Error(__b64L('Invalid Base32 padding: expected '+expectPad+' "=" characters','Base32 填充数量无效（应为 '+expectPad+' 个等号）'));
       }
+    } else if(rem === 1 || rem === 3 || rem === 6){
+      throw new Error(__b64L('Invalid Base32 length (incomplete final group without padding)','Base32 长度无效（末组不完整且缺少填充）'));
     }
     var bytes = [];
     var buffer = 0;

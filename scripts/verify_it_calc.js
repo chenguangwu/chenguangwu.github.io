@@ -1202,6 +1202,27 @@ const CASES = [
   },
   {
     slug: "it/base64-converter",
+    inputs: { input: "MZXW6YTB=", output: "SENTINEL" },
+    clicks: ["document.getElementById('urlSafe').parentElement.style={};setAlgo('base32');decodeText();"],
+    expect: ["SENTINEL"],
+    ref: "第765批：完整 8 字符组 MZXW6YTB（fooba）后追加 1 个等号，含等号总长 9 不是 8 的倍数 ⇒ 必须拒绝。decodeText 只 toast、不改写输出，SENTINEL 保留即证明拒绝；旧实现剥掉尾部等号后按长度 8 跳过校验，输出 fooba ⇒ 不命中。",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "MZXW6YTB======", output: "SENTINEL" },
+    clicks: ["document.getElementById('urlSafe').parentElement.style={};setAlgo('base32');decodeText();"],
+    expect: ["SENTINEL"],
+    ref: "第765批：完整 8 字符组后追加 6 个等号，总长 14 仍不是 8 的倍数 ⇒ 拒绝。修复前 MZXW6YTB====== 也能解出 fooba（任务报告的原始复现串），修复后 SENTINEL 保留；与上一条共同覆盖「完整组后错误填充」的 1 与 6 个等号边界。",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "MZXW6YQ=" },
+    clicks: ["document.getElementById('urlSafe').parentElement.style={};setAlgo('base32');decodeText();"],
+    expect: ["foob"],
+    ref: "第765批正向回归：7 个有效字符 + 1 个等号（末组 4 字节，应补 1 个 =，总长 8）是合法 RFC 4648 串，解出 foob；证明收紧填充校验未误伤合法输入。",
+  },
+  {
+    slug: "it/base64-converter",
     inputs: { input: "hello world" },
     clicks: ["document.getElementById('urlSafe').parentElement.style={};setAlgo('base85');encodeText();"],
     expect: ["+63.6%", "11 B"],
@@ -1328,6 +1349,27 @@ const CASES = [
     ref: "IT-N112：预设页签必须有 3 条可用预设且回调真能跑（中文测试经 UTF-8 Base32 = 4S4K3ZUWQ7TLLC7IV6KQ====，node 独立复算）。旧实现 preset.bar 从不调用 ⇒ NONE、哨兵不被覆盖。探针仅 clicks 注入出现。",
   },
   {
+    slug: "it/base32-encode",
+    // 第765批：失败必须清空旧结果并锁住复制。
+    clicks: ["var i=document.getElementById('input'),o=document.getElementById('output'),h=document.getElementById('b32Hex');i.value='Hello';encode32();o.value='SENTINEL';i.value='74!';decode32();document.getElementById('__tbProbe').textContent='B32STALE out='+o.value+' hex='+h.value+' valid='+__b32Valid;"],
+    expect: ["B32STALE out= hex= valid=false"],
+    ref: "第765批：先成功编码 Hello，再把输出改为哨兵 SENTINEL，随后解码含非法字符 ! 的 Base32；失败必须清空输出/Hex 并置 __b32Valid=false（copyResult 被拒），不能保留旧结果供复制。旧实现只 alert，SENTINEL 保留 ⇒ 不命中。",
+  },
+  {
+    slug: "it/base32-encode",
+    // 第765批：非 UTF-8 字节不再静默替换，文本留空、Hex 保留原始字节。
+    clicks: ["var i=document.getElementById('input'),o=document.getElementById('output'),h=document.getElementById('b32Hex'),n=document.getElementById('b32Notice');i.value='74======';o.value='SENTINEL';decode32();document.getElementById('__tbProbe').textContent='B32FAT out='+o.value+' hex='+h.value+' notice='+(/不是有效 UTF-8/.test(n.textContent)?'Y':'N')+' valid='+__b32Valid;"],
+    expect: ["B32FAT out= hex=FF notice=Y valid=false"],
+    ref: "第765批：74====== 的 8 个字符解出单字节 FF，不是合法 UTF-8。修复前 TextDecoder 默认宽松解码产出 U+FFFD 并写入输出；修复后严格 fatal 解码失败：文本留空、Hex=FF、提示非 UTF-8、valid=false，重新编码/复制不会假装成功。",
+  },
+  {
+    slug: "it/base32-encode",
+    // 第765批：编码成功时 Hex 字段给出 UTF-8 输入字节，往返可核对。
+    clicks: ["var i=document.getElementById('input'),h=document.getElementById('b32Hex'),o=document.getElementById('output');i.value='fooba';encode32();document.getElementById('__tbProbe').textContent='B32HEX '+o.value+' hex='+h.value;"],
+    expect: ["B32HEX MZXW6YTB hex=66 6F 6F 62 61"],
+    ref: "第765批：'fooba' 的 UTF-8 字节为 66 6F 6F 62 61，RFC 4648 Base32 无填充 8 字符为 MZXW6YTB。Hex 字段与编码结果同时出现，便于把输出直接按字节核对。",
+  },
+  {
     slug: "it/base58-encode",
     inputs: { input: "hello" },
     expect: ["Cn8eVZg"],
@@ -1341,10 +1383,31 @@ const CASES = [
   },
   {
     slug: "it/base58-encode",
-    // IT-N119：非 UTF-8 载荷必须明确报错，不能静默产出 U+FFFD。
-    clicks: ["var e=encodeBase58([0x80,0xff]),i=document.getElementById('input'),o=document.getElementById('output'),msg='',oa=alert;i.value=e;o.value='KEEP';alert=function(m){msg=String(m);};try{dec();}catch(x){}alert=oa;document.getElementById('__tbProbe').textContent='B58FAT '+(/非 UTF-8/.test(msg)?'ERR':'NO')+' '+o.value;"],
-    expect: ["B58FAT ERR KEEP"],
-    ref: "IT-N119：把 [0x80,0xFF] 编成 Base58 再解码。修复后用 fatal:true 的 TextDecoder 拒绝并弹「载荷含非 UTF-8 字节」，输出哨兵 KEEP 不被 U+FFFD 覆盖 ⇒ B58FAT ERR KEEP；旧实现默认非严格解码 ⇒ msg 空且 out=两个 U+FFFD ⇒ B58FAT NO，判别明确。默认态无探针。",
+    // IT-N119 修订（第765批）：非 UTF-8 载荷不再弹窗后保留旧结果，而是清空文本结果并给出原始字节 Hex。
+    clicks: ["var e=encodeBase58([0x80,0xff]),i=document.getElementById('input'),o=document.getElementById('output'),h=document.getElementById('b58Hex'),n=document.getElementById('b58Notice');i.value=e;o.value='KEEP';dec();document.getElementById('__tbProbe').textContent='B58FAT out='+o.value+' hex='+h.value+' notice='+(/不是有效 UTF-8/.test(n.textContent)?'Y':'N');"],
+    expect: ["B58FAT out= hex=80 FF notice=Y"],
+    ref: "IT-N119 修订：把 [0x80,0xFF] 编成 Base58 再解码。修复后严格 UTF-8 失败：文本结果清空（不再保留哨兵 KEEP，也不会产出 U+FFFD）、Hex 字段保留 80 FF、提示非 UTF-8 ⇒ 命中；旧实现只弹窗保留 KEEP 且无 Hex ⇒ out=KEEP hex= notice=N，判别明确。",
+  },
+  {
+    slug: "it/base58-encode",
+    // 第765批：Hex 字节模式必须支持任意字节并保留前导零，编码再解码可无损往返。
+    clicks: ["var i=document.getElementById('input'),o=document.getElementById('output'),h=document.getElementById('b58Hex');__b58HexMode=true;i.value='00 00 FF 66 6F 6F';enc();var e1=o.value;i.value=e1;dec();document.getElementById('__tbProbe').textContent='B58HEX enc='+e1+' dec='+o.value+' hex='+h.value;"],
+    expect: ["B58HEX enc=117XeFTk dec=00 00 FF 66 6F 6F hex=00 00 FF 66 6F 6F"],
+    ref: "第765批：字节 00 00 FF 66 6F 6F 在 Bitcoin 字母表下编码为 117XeFTk（前导两个零字节各编码一个 '1'；node 独立复算），Hex 模式解码回同一字节序列并逐字节显示，证明前导零与任意二进制均保留。旧实现无 Hex 模式 ⇒ 输入被当作文本、输出不可往返。",
+  },
+  {
+    slug: "it/base58-encode",
+    // 第765批：失败后必须清空旧结果并锁住复制，不得让用户复制上一次的结果。
+    clicks: ["var i=document.getElementById('input'),o=document.getElementById('output'),h=document.getElementById('b58Hex'),v=document.getElementById('__tbProbe');i.value='hello';enc();o.value='SENTINEL';i.value='0OIl';dec();v.textContent='B58STALE out='+o.value+' hex='+h.value+' valid='+__b58Valid;"],
+    expect: ["B58STALE out= hex= valid=false"],
+    ref: "第765批：先成功编码 hello，再把输出改成哨兵 SENTINEL，随后输入含非法字符 0/O/I/l 的 Base58，dec 失败必须清空输出、Hex 并置 valid=false（copyResult 被拒），不能保留旧结果供复制 ⇒ 命中；旧实现只弹窗，哨兵仍在且可复制 ⇒ SENTINEL，判别明确。",
+  },
+  {
+    slug: "it/base58-encode",
+    // 第765批：切换字母表后旧结果必须立即失效。
+    clicks: ["var i=document.getElementById('input'),o=document.getElementById('output'),v=document.getElementById('variant');i.value='hello';enc();o.value='KEEP';v.value='ripple';__b58Invalidate();document.getElementById('__tbProbe').textContent='B58VAR out='+o.value+' valid='+__b58Valid;"],
+    expect: ["B58VAR out= valid=false"],
+    ref: "第765批：字母表从 bitcoin 切到 ripple 时 onchange 调 __b58Invalidate，旧结果与 Hex 清空、valid=false，避免把 Bitcoin 字母表的结果误当作 Ripple 结果复制。旧实现切换不处理，KEEP 保留 ⇒ 不命中。真机另验 select 事件确实触发。",
   },
   {
     slug: "it/hex-encode",
@@ -8162,9 +8225,9 @@ const CASES = [
       "output": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\nGEFDECRT"
+      "GEFDECRT"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\nGEFDECRT」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第765批修订：注入非默认输入「1\\n2\\n3」后，输入事件会先清空旧输出（本批新增的过期结果防护），再编码为 GEFDECRT；因此不再断言旧哨兵「1 2 3」残留，只断言当前输入的真实编码结果。默认态（Hello）输出 JBSWY3DP，不含 GEFDECRT ⇒ 判别力保留。"
   },
   {
     "slug": "it/base58-encode",
@@ -8174,9 +8237,10 @@ const CASES = [
       "variant": "ripple"
     },
     "expect": [
-      "1 2 3\naXuwMCY\nripple"
+      "aXuwMCY",
+      "ripple"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"variant\":\"ripple\"}，输出区含「1 2 3\naXuwMCY\nripple」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第765批修订：注入「1\\n2\\n3」+ ripple 后，输入事件先清空旧输出再编码，得到 aXuwMCY；旧哨兵「1 2 3」不再保留，故只断言真实编码结果与字母表回显。默认态（Hello / Bitcoin）输出 Cn8eVZg，不含 aXuwMCY ⇒ 判别力保留。"
   },
   // 已移除：it/base64-converter 的「自动补强（B类零用例）」用例（原 3813-3825 行）。
   // 原因：其输入目标为 textarea#input，harness 对 textarea 的注入会被页面 init 默认样例
