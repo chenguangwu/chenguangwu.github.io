@@ -146,7 +146,7 @@
     <h2 data-zh="🔄 纱支密度换算">Thread Count</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="英制支数/公制支数/旦尼尔/针数/克重">Thread Count</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">纱支换算与密度克重<br>特克斯制：Tex = 1000 ÷ 公制支数 Nm = 590.5 ÷ 英制支数 Ne = 旦尼尔 D ÷ 9<br>反向换算：Nm = 1000 ÷ Tex；Ne = 590.5 ÷ Tex；D = Tex × 9<br>旦尼尔估纤维直径：直径(μm) = 12.74 × √(D ÷ 密度ρ)，涤纶 ρ≈1.14 g/cm³<br>织物密度：经纱总根数 = 经密 × 幅宽 ÷ 10；纬纱总根数(每米) = 纬密 × 100<br>克重估算：经向克重 = 经密 × 经纱Tex ÷ 100；纬向克重 = 纬密 × 纬纱Tex ÷ 100<br>总克重 = 经向 + 纬向；实际克重 = 总克重 × 1.05（含 5% 加工损耗）</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">纱支换算与密度克重<br>特克斯制：Tex = 1000 ÷ 公制支数 Nm = 590.5 ÷ 英制支数 Ne = 旦尼尔 D ÷ 9<br>反向换算：Nm = 1000 ÷ Tex；Ne = 590.5 ÷ Tex；D = Tex × 9<br>旦尼尔估纤维直径：直径(μm) = 12.74 × √(D ÷ 密度ρ)，涤纶 ρ≈1.14 g/cm³<br>织物密度：经纱总根数 = 经密 × 幅宽 ÷ 10（沿幅宽）；纬纱总根数 = 纬密 × 布长(m) × 100 ÷ 10（沿布长）；两者不可混用幅宽相加<br>克重估算：经向克重 = 经密 × 经纱Tex ÷ 100；纬向克重 = 纬密 × 纬纱Tex ÷ 100<br>总克重 = 经向 + 纬向；实际克重 = 总克重 × 1.05（含 5% 加工损耗）</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：Math.round((w + f) × width ÷ 10)；Math.round(w × width ÷ 10)；Math.round(f × width ÷ 10)">Key formulas: Math.round((w + f) × width ÷ 10); Math.round(w × width ÷ 10); Math.round(f × width ÷ 10)</p>
     </div>
 
@@ -286,6 +286,7 @@ function renderParams() {
       <div class="input-row"><label for="warp">经密 (根/10cm)</label><input type="number" id="warp" value="200" placeholder="如 200"></div>
       <div class="input-row"><label for="weft">纬密 (根/10cm)</label><input type="number" id="weft" value="180" placeholder="如 180"></div>
       <div class="input-row"><label for="width">幅宽 (cm)</label><input type="number" id="width" value="150" placeholder="如 150"></div>
+      <div class="input-row"><label for="length">布长 (m)</label><input type="number" id="length" value="10" placeholder="如 10"></div>
     `;
   } else if (cur === 'gsm') {
     p.innerHTML=`
@@ -331,7 +332,8 @@ function calc() {
     `;document.getElementById('result').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   } else if (cur === 'denier') {
     const d = +document.getElementById('d').value || 0;
-    const rho = parseFloat(document.getElementById('rho').value) || 1.14;
+    const rho = parseFloat(document.getElementById('rho').value);
+    if (!Number.isFinite(rho) || rho<=0) { document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请选择有效的纤维密度（须为正数）</p>'; ToolBox.showToast(i18nText() ,'error'); return; } // THREADCLEAR
     if (d<=0) { document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写大于 0 的旦尼尔值</p>'; ToolBox.showToast(i18nText() ,'error'); return; } // THREADCLEAR
     // 纤维直径 μm = sqrt(4*D/(π*ρ*10^6)) * 10^4 ≈ 12 * sqrt(D/ρ)
     // 简化: 直径 μm
@@ -350,15 +352,16 @@ function calc() {
       </div>
     `;document.getElementById('result').innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
   } else if (cur === 'density') {
-    const w = +document.getElementById('warp').value || 0;
-    const f = +document.getElementById('weft').value || 0;
-    const width = +document.getElementById('width').value || 0;
-    if (w<=0||f<=0) { document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写经纬密度（须为正数）</p>'; ToolBox.showToast(i18nText() ,'error'); return; } // THREADCLEAR
-    // 总根数
-    const total = Math.round((w + f) * width / 10);
+    const w = +document.getElementById('warp').value;
+    const f = +document.getElementById('weft').value;
+    const width = +document.getElementById('width').value;
+    const length = +document.getElementById('length').value;
+    if (!Number.isFinite(w) || w<=0 || !Number.isFinite(f) || f<=0) { document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写大于 0 的经纬密度</p>'; ToolBox.showToast(i18nText() ,'error'); return; } // THREADCLEAR
+    if (!Number.isFinite(width) || width<=0 || !Number.isFinite(length) || length<=0) { document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写大于 0 的幅宽与布长</p>'; ToolBox.showToast(i18nText() ,'error'); return; } // THREADCLEAR
+    // 经纱沿幅宽计数，纬纱沿布长计数
     const totalWarp = Math.round(w * width / 10);
-    const totalWeft = Math.round(f * width / 10);
-    // 总针数 (假设每 cm 5 行)
+    const totalWeft = Math.round(f * length * 100 / 10);
+    const total = totalWarp + totalWeft;
     const __g8=`
       <h3 style="text-align:center;margin-bottom:12px;">🔄 织物密度</h3>
       <div class="result-block">
@@ -374,13 +377,18 @@ function calc() {
         <div class="result-value">${totalWarp.toLocaleString()}</div>
       </div>
       <div class="result-block">
-        <div class="result-label">纬纱总根数 (每米)</div>
-        <div class="result-value">${f*100} 根/米</div>
+        <div class="result-label">每米纬纱根数</div>
+        <div class="result-value">${f*10} 根/米</div>
       </div>
       <div class="result-block">
-        <div class="result-label">总针数</div>
+        <div class="result-label">纬纱总根数（按 ${length} m 布长）</div>
+        <div class="result-value">${totalWeft.toLocaleString()}</div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">纬密 ${f} 根/10cm × 布长 ${length} m</p>
+      </div>
+      <div class="result-block">
+        <div class="result-label">经纬纱总根数</div>
         <div class="result-value">${total.toLocaleString()}</div>
-        <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">${w} + ${f} = ${w+f} 根/10cm</p>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">经 ${totalWarp.toLocaleString()} + 纬 ${totalWeft.toLocaleString()}；非织造针数</p>
       </div>
     `;document.getElementById('result').innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
   } else if (cur === 'gsm') {
