@@ -126,7 +126,7 @@ input,select{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius
 <div class="card">
 <h2 data-zh="🧮 输入参数">🧮 Inputs</h2>
 <div class="input-row">
-<div><label for="type">热水器类型</label><select id="type" onchange="syncFields();calcTool();">
+<div><label for="type">热水器类型</label><select id="type" onchange="syncFields();calcTool(false);">
 <option value="storage">储水式电热水器</option>
 <option value="gas">燃气热水器</option>
 <option value="instant">即热式电热水器</option>
@@ -234,7 +234,8 @@ function inputError(){
   if(d.type==='instant'&&(!d.recPower||!d.breaker))return en?'Required instantaneous power '+d.powerNeed.toFixed(1)+' kW or breaker '+d.breakerNeed.toFixed(0)+' A exceeds the 24 kW / 100 A list limit; reduce simultaneous demand or use storage/gas.':'所需即热功率 '+d.powerNeed.toFixed(1)+' kW / 空开 '+d.breakerNeed.toFixed(0)+' A 超出规格表上限（24 kW / 100 A），请降低同时用水或改用储水/燃气。';
   return '';
 }
-function calcTool(){
+function calcTool(save){
+  if(save===undefined)save=true;
   const en=isEN();
   const err=inputError();if(err){document.getElementById('result').innerHTML='<div class="result-placeholder">'+err+'</div>';return;}
   const d=calcData();
@@ -264,7 +265,7 @@ function calcTool(){
   else if(d.type==='gas')html+='<div class="info-box" style="margin-top:12px;">'+(en?'Gas ratings use a 25°C rise; actual winter flow is rated × 25 ÷ actual temperature rise. Two showers at once need the combined flow.':'燃气升数按温升 25°C 标定；冬季实际流量 = 额定 × 25 ÷ 实际温升。双卫同时使用需按总流量选。')+'</div>';
   else html+='<div class="info-box" style="margin-top:12px;">'+(en?'Instantaneous electric units need a dedicated circuit; the breaker and wire size must be checked by a licensed electrician against the nameplate and service capacity.':'即热式需独立专线；空开与线径须由持证电工按铭牌与入户容量复核。')+'</div>';
   document.getElementById('result').innerHTML=html;
-  saveHist(HIST_KEY,(en?d.t.nameEn:d.t.name)+' · '+(en?'mixed ':'混合 ')+d.mixed.toFixed(0)+' L → '+(d.type==='storage'?(en?'tank ':'储水 ')+d.recTank+' L':d.type==='gas'?(en?'gas ':'燃气 ')+d.recGas+' L/min':(en?'power ':'功率 ')+d.recPower+' kW'));
+  if(save) saveHist(HIST_KEY,(en?d.t.nameEn:d.t.name)+' · '+(en?'mixed ':'混合 ')+d.mixed.toFixed(0)+' L → '+(d.type==='storage'?(en?'tank ':'储水 ')+d.recTank+' L':d.type==='gas'?(en?'gas ':'燃气 ')+d.recGas+' L/min':(en?'power ':'功率 ')+d.recPower+' kW'));
 }
 function exportCSV(){
   const en=isEN();const err=inputError();if(err){alert(err);return;}const d=calcData();
@@ -294,9 +295,9 @@ function exportCSV(){
   csvDownload('water-heater-sizing.csv',rows);
 
 }
-function applyPreset(type){const m={family:['storage',3,1,10,8,15,40,60,2,0.6],gas:['gas',4,2,10,9,10,40,60,2,0.6],instant:['instant',1,1,8,7,18,40,60,8,0.6]};const p=m[type]||m.family;document.getElementById('type').value=p[0];document.getElementById('people').value=p[1];document.getElementById('sim').value=p[2];document.getElementById('minutes').value=p[3];document.getElementById('flow').value=p[4];document.getElementById('cold').value=p[5];document.getElementById('target').value=p[6];document.getElementById('tank').value=p[7];document.getElementById('power').value=p[8];document.getElementById('price').value=p[9];syncFields();calcTool();}
-function resetForm(){document.getElementById('type').value='storage';document.getElementById('people').value=3;document.getElementById('sim').value=1;document.getElementById('minutes').value=10;document.getElementById('flow').value=8;document.getElementById('cold').value=15;document.getElementById('target').value=40;document.getElementById('tank').value=60;document.getElementById('power').value=2;document.getElementById('price').value=0.6;syncFields();calcTool();}
-renderHist(HIST_KEY);if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){syncFields();calcTool();});}else{syncFields();calcTool();}window.addEventListener('toolbox:langchange',calcTool);
+function applyPreset(type){const m={family:['storage',3,1,10,8,15,40,60,2,0.6],gas:['gas',4,2,10,9,10,40,60,2,0.6],instant:['instant',1,1,8,7,18,40,60,8,0.6]};const p=m[type]||m.family;document.getElementById('type').value=p[0];document.getElementById('people').value=p[1];document.getElementById('sim').value=p[2];document.getElementById('minutes').value=p[3];document.getElementById('flow').value=p[4];document.getElementById('cold').value=p[5];document.getElementById('target').value=p[6];document.getElementById('tank').value=p[7];document.getElementById('power').value=p[8];document.getElementById('price').value=p[9];syncFields();calcTool(false);}
+function resetForm(){document.getElementById('type').value='storage';document.getElementById('people').value=3;document.getElementById('sim').value=1;document.getElementById('minutes').value=10;document.getElementById('flow').value=8;document.getElementById('cold').value=15;document.getElementById('target').value=40;document.getElementById('tank').value=60;document.getElementById('power').value=2;document.getElementById('price').value=0.6;syncFields();calcTool(false);}
+renderHist(HIST_KEY);if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){syncFields();calcTool(false);});}else{syncFields();calcTool(false);}window.addEventListener('toolbox:langchange',function(){calcTool(false);});
 </script>
 </body>
 </html>

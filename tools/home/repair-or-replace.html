@@ -230,7 +230,7 @@ function blankCore(){return ['type','age','repair','newPrice','newLife','repairL
 function calcData(){const type=document.getElementById('type').value;const t=TYPES[type]||TYPES.fridge;const age=num('age'),repair=num('repair'),newPrice=num('newPrice'),newLife=num('newLife'),repairLife=num('repairLife'),saving=num('saving');const risk=document.getElementById('risk').value;const remaining=Math.max(0,t.life-age);const expired=remaining<=0;const post=expired?0:Math.min(repairLife,remaining);const repairAnnual=post>0?repair/post:null;const newAnnual=newPrice/newLife-saving;const gap=repairAnnual===null?null:repairAnnual-newAnnual;let riskScore=(risk==='obvious'?2:risk==='sometimes'?1:0)+(age>=t.life?2:0)+(t.critical&&risk!=='none'?1:0);let verdict='borderline';if(risk==='obvious'||(t.critical&&age>=t.life)||riskScore>=3){verdict='replace';}else if(expired){verdict='inspect';}else if(repairAnnual<=newAnnual*0.8&&post>=2){verdict='repair';}else if(repairAnnual>=newAnnual*1.2){verdict='replace';}return{expired,type,t,age,repair,newPrice,newLife,repairLife,saving,risk,remaining,post,repairAnnual,newAnnual,gap,riskScore,verdict};}
 function statusText(v,en){return en?({repair:'Repair',borderline:'Borderline',replace:'Replace',inspect:'Safe life used up: inspect first'}[v]):({repair:'维修更划算',borderline:'临界，建议比价',replace:'优先换新',inspect:'参考安全年限已用完，先专业检查'}[v]);}
 function drawChart(d){const cv=document.getElementById('costChart');if(!cv)return;const ctx=cv.getContext('2d');if(!ctx)return;const W=cv.width,H=cv.height,en=isEN();ctx.clearRect(0,0,W,H);const pad=46,barW=W-pad*2,base=120,max=Math.max(d.repairAnnual,d.newAnnual,1);ctx.font='12px sans-serif';ctx.fillStyle='#64748b';ctx.fillText(en?'Annual cost comparison':'年均成本对比',pad,24);ctx.fillStyle='#92400E';ctx.fillRect(pad,base-90*((d.repairAnnual||0)/max),barW*0.38,90*(d.repairAnnual/max));ctx.fillStyle='#065F46';ctx.fillRect(pad+barW*0.5,base-90*(Math.max(0,d.newAnnual)/max),barW*0.38,90*(Math.max(0,d.newAnnual)/max));ctx.fillStyle='#334155';ctx.fillText(d.repairAnnual===null?(en?'Repair: N/A (inspect first)':'维修：不适用（先检查）'):(en?'Repair ':'维修 ')+d.repairAnnual.toFixed(0)+(en?'/y':' 元/年'),pad,base+18);ctx.fillText((en?'New ':'新机 ')+d.newAnnual.toFixed(0)+(en?'/y':' 元/年'),pad+barW*0.5,base+18);}
-function applyPreset(type){const m={fridge:['fridge',8,500,3500,10,2,100,'none'],ac:['ac',10,900,3000,10,3,300,'none'],heater:['waterHeater',9,400,1200,8,2,0,'sometimes']};const p=m[type]||m.fridge;document.getElementById('type').value=p[0];document.getElementById('age').value=p[1];document.getElementById('repair').value=p[2];document.getElementById('newPrice').value=p[3];document.getElementById('newLife').value=p[4];document.getElementById('repairLife').value=p[5];document.getElementById('saving').value=p[6];document.getElementById('risk').value=p[7];calcTool();}
+function applyPreset(type){const m={fridge:['fridge',8,500,3500,10,2,100,'none'],ac:['ac',10,900,3000,10,3,300,'none'],heater:['waterHeater',9,400,1200,8,2,0,'sometimes']};const p=m[type]||m.fridge;document.getElementById('type').value=p[0];document.getElementById('age').value=p[1];document.getElementById('repair').value=p[2];document.getElementById('newPrice').value=p[3];document.getElementById('newLife').value=p[4];document.getElementById('repairLife').value=p[5];document.getElementById('saving').value=p[6];document.getElementById('risk').value=p[7];calcTool(false);}
 function inputError(){
   const en=isEN();
   if(blankCore())return en?'Enter appliance type, age, repair quote, new price, new life and post-repair life before calculating.':'请填写家电类型、已用年限、维修报价、新机价格、新机寿命与维修后可用年限后再计算。';
@@ -238,7 +238,8 @@ function inputError(){
   if(d.age<0||d.repair<0||d.newPrice<=0||d.newLife<=0||d.repairLife<=0)return en?'Age and repair quote cannot be negative; new price, new life and post-repair life must be greater than 0.':'已用年限与维修报价不能为负；新机价格、新机寿命与维修后可用年限需大于 0。';
   return '';
 }
-function calcTool(){
+function calcTool(save){
+  if(save===undefined)save=true;
   const en=isEN();
   const err=inputError();if(err){document.getElementById('result').innerHTML='<div class="result-placeholder">'+err+'</div>';return;}
   const d=calcData();
@@ -258,7 +259,7 @@ function calcTool(){
   else if(d.verdict==='repair')html+='<div class="info-box" style="margin-top:12px;">'+(en?'Repair is favored on current inputs: confirm the repair warranty covers the same fault for at least 6–12 months and that parts are available.':'按当前输入维修更划算：确认维修质保至少覆盖同一故障 6–12 个月，并核实配件供应。')+'</div>';
   else html+='<div class="info-box" style="margin-top:12px;">'+(en?'Borderline: compare repair warranty, call-out visits, downtime and efficiency. If the same fault has repeated, lean toward replacement.':'处于临界：把维修质保、上门次数、停机时间与能效一起比较；同一故障已反复出现时，偏向换新。')+'</div>';
   document.getElementById('result').innerHTML=html;drawChart(d);
-  saveHist(HIST_KEY,(en?d.t.nameEn:d.t.name)+' · '+(en?'repair ':'维修 ')+'¥'+d.repair+' → '+statusText(d.verdict,en));
+  if(save) saveHist(HIST_KEY,(en?d.t.nameEn:d.t.name)+' · '+(en?'repair ':'维修 ')+'¥'+d.repair+' → '+statusText(d.verdict,en));
 }
 function exportCSV(){
   const en=isEN();const err=inputError();if(err){alert(err);return;}const d=calcData();
@@ -276,8 +277,8 @@ function exportCSV(){
     [en?'Verdict':'建议',statusText(d.verdict,en),'']
   ]);
 }
-function resetForm(){document.getElementById('type').value='fridge';document.getElementById('age').value=6;document.getElementById('repair').value=600;document.getElementById('newPrice').value=3000;document.getElementById('newLife').value=10;document.getElementById('repairLife').value=4;document.getElementById('saving').value=0;document.getElementById('risk').value='none';calcTool();}
-renderHist(HIST_KEY);if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',calcTool);}else{calcTool();}window.addEventListener('toolbox:langchange',calcTool);
+function resetForm(){document.getElementById('type').value='fridge';document.getElementById('age').value=6;document.getElementById('repair').value=600;document.getElementById('newPrice').value=3000;document.getElementById('newLife').value=10;document.getElementById('repairLife').value=4;document.getElementById('saving').value=0;document.getElementById('risk').value='none';calcTool(false);}
+renderHist(HIST_KEY);if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){calcTool(false);});}else{calcTool(false);}window.addEventListener('toolbox:langchange',function(){calcTool(false);});
 </script>
 </body>
 </html>

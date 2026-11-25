@@ -455,17 +455,20 @@ function __length_converterExtras(){
     __length_converterRender(keys,rk,en);
 }
 function __length_converterExport(){
-    if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#length_converterTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__length_converterSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __length_converterRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#length_converterTable','length-converter.csv'); } catch(e){}
+    if (typeof TBKit === 'undefined' || !TBKit.util || !TBKit.util.exportCsv) return;
+    var en=!!(TBKit.util.isEn&&TBKit.util.isEn());
+    var v=parseFloat(document.getElementById('inputVal').value);
+    var from=document.getElementById('fromUnit').value;
+    if(!isFinite(v)||!factors[from]){
+        if(typeof ToolBox!=='undefined'&&ToolBox.showToast) ToolBox.showToast(en?'Enter a valid number before exporting.':'请输入有效数值后再导出。','warning');
+        return;
+    }
+    var base=v*factors[from];
+    var rows=[[en?'Unit':'单位',en?'Value in source unit':'源单位数值',en?'Base value (meter)':'基准值（米）']];
+    Object.keys(factors).forEach(function(k){
+        rows.push([en?((typeof namesEn!=='undefined'&&namesEn[k])?namesEn[k]:k):(names[k]||k),fmt(v*factors[from]/factors[k]),fmt(base)]);
+    });
+    TBKit.util.exportCsv('length-converter.csv',rows);
 }
 function __length_converterPresets(){
     if (typeof TBKit === 'undefined') return;
