@@ -18596,6 +18596,45 @@ const CASES = [
     "ref": "第809批：immutable 不是永不过期，只是新鲜期内不发条件请求；表格描述改为该口径。旧文案「资源永不过期，无需验证」与同条示例 max-age=31536000 自相矛盾。搜索 immutable 仅保留该行，默认全量排序不出现该短语。"
   },
 
+  // ---- 第810批：MAC 地址类型、NATO 数字反向、PIN 失败/换行、MSI 过期图 ----
+  {
+    "slug": "it/mac-generator",
+    "inputs": { "cnt": "6" },
+    "clicks": ["var __mr=Math.random;Math.random=function(){return 0.9;};calcTool();Math.random=__mr;var ls=(typeof __macLastLines!=='undefined'?__macLastLines:[]);var bad=ls.filter(function(x){var b=parseInt(x.slice(0,2),16);return !(b>=0)||((b&1)!==0)||((b&2)===0);});document.getElementById('__tbProbe').textContent='MACLOCAL '+(ls.length===6&&!bad.length?'OK':'BAD:'+ls.join('|'));"],
+    "expect": ["MACLOCAL OK"],
+    "ref": "第810批：随机 MAC 默认必须是本地管理单播：首字节 bit0(I/G)=0、bit1(U/L)=1。探针固定 Math.random=0.9 生成 6 条并逐条检查位；旧实现首字节完全随机 ⇒ 至少一条命中组播/全球管理位而失败。默认样例 5 条不产生探针。"
+  },
+  {
+    "slug": "it/nato-alphabet",
+    "inputs": { "input": "Zero One Two Tree Fife Niner" },
+    "checks": ["from"],
+    "clicks": ["convert();"],
+    "dumpIds": ["output"],
+    "expect": ["012359"],
+    "ref": "第810批：数字音标必须可反向还原。旧 REV 只由 A–Z 生成 ⇒ Zero/One/Two/Tree/Fife/Niner 全部输出 ?。输入是音标词，输出是数字串 012359 ⇒ 非回显；默认 Hello World 正向输出不含数字串。"
+  },
+  {
+    "slug": "it/pin-generator",
+    "inputs": { "len": "2", "count": "3" },
+    "clicks": ["document.getElementById('noSeq').checked=true;var q=0;randInt=function(){return q++%10;};generate();var t=document.getElementById('output').innerHTML;document.getElementById('__tbProbe').textContent='PINEH '+((typeof __pinLastFailed!=='undefined'&&__pinLastFailed===3&&__pinLastGenerated===0&&(typeof __pinLastRows!=='undefined'&&__pinLastRows.length===0)&&t.indexOf('已跳过')>=0)?'OK':'BAD:'+__pinLastGenerated+'/'+__pinLastFailed+'/'+t.slice(0,30));"],
+    "expect": ["PINEH OK"],
+    "ref": "第810批：noSeq 连续 50 次失败后不得输出最后一个违规候选。探针替换 randInt 为 0,1,2,… 的递增序列（任意 2 位都相邻），3 个请求必然全部耗尽重试；要求失败 3、成功 0、无 .pin-row、结果区含「已跳过」。旧实现仍输出 3 条违规 PIN 且无提示。"
+  },
+  {
+    "slug": "it/pin-generator",
+    "inputs": { "len": "4", "count": "3" },
+    "clicks": ["var q=0;randInt=function(){return q++%10;};generate();var t=(typeof __pinLastRows!=='undefined'?__pinLastRows.join('\\n'):'');var ct=pinCopyText();document.getElementById('__tbProbe').textContent='PINNL '+((t.split('\\n').length===3&&ct.indexOf('\\n')>=0)?'OK':'BAD:'+JSON.stringify(ct));"],
+    "expect": ["PINNL OK"],
+    "ref": "第810批：批量复制必须以换行连接每条 PIN。旧 copyResult 取容器 textContent，块级 .pin-row 会被直接拼成一串。探针要求 3 条结果含 2 个换行；默认 5 条同样不含换行 ⇒ 旧实现失败。"
+  },
+  {
+    "slug": "it/barcode-msi",
+    "inputs": { "data": "1234567" },
+    "clicks": ["generate();var a=!__msiStale;var d=document.getElementById('data');d.value='7654321';__msiMarkStale();document.getElementById('__tbProbe').textContent='MSISTALE '+((a&&__msiStale)?'OK':'BAD:'+a+'/'+__msiStale);"],
+    "expect": ["MSISTALE OK"],
+    "ref": "第810批：输入变化后必须把旧画布标记为过期，下载不得再取旧图。探针先生成（stale=false），再修改 data 并触发 input，要求 stale 回到 true；旧实现无任何过期标记 ⇒ 第二次断言为 false。"
+  },
+
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
