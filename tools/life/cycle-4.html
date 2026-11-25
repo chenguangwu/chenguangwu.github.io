@@ -378,10 +378,18 @@ function addLog() {
   if (!date) { ToolBox.showToast(i18nText(), 'error'); return; }
   var sup = supplies.find(function(s){ return s.id === supId; });
   if (!sup) return;
-  // 扣减库存
-  sup.stock = Math.max(0, sup.stock - amount);
+  // 超库存时先确认，按实际可扣减量记账，避免日志数量大于真实扣减。
+  var deducted = amount;
+  if (amount > sup.stock) {
+    var en = (typeof TBKit!=='undefined' && TBKit.util.isEn && TBKit.util.isEn());
+    var ok = confirm(en ? ('Only ' + sup.stock + ' ' + sup.unit + ' in stock. Record a deduction of ' + sup.stock + ' instead?') : ('当前库存仅 ' + sup.stock + ' ' + sup.unit + '，是否按 ' + sup.stock + ' 扣减并记录？'));
+    if (!ok) return;
+    deducted = sup.stock;
+  }
+  sup.stock = Math.max(0, sup.stock - deducted);
+  var stockAfter = sup.stock;
   saveSup();
-  logs.push({ id: Date.now(), supId: supId, supName: sup.name, unit: sup.unit, amount: amount, date: date });
+  logs.push({ id: Date.now(), supId: supId, supName: sup.name, unit: sup.unit, amount: deducted, requestedAmount: amount, stockAfter: stockAfter, date: date });
   saveLogs();
   document.getElementById('logAmount').value = '';
   render();
@@ -389,6 +397,20 @@ function addLog() {
 }
 
 function delLog(id) {
+  var log = logs.find(function(l){ return l.id === id; });
+  if (log) {
+    var sup = supplies.find(function(s){ return s.id === log.supId; });
+    if (sup) {
+      // 只有库存仍等于该次扣减后的值才自动回滚；若用户之后手动改过库存，避免叠加错误。
+      if (typeof log.stockAfter === 'number' && Math.abs(sup.stock - log.stockAfter) < 1e-9) {
+        sup.stock += (typeof log.amount === 'number' ? log.amount : 0);
+        saveSup();
+      } else {
+        var en = (typeof TBKit!=='undefined' && TBKit.util.isEn && TBKit.util.isEn());
+        ToolBox.showToast(en ? 'Stock was adjusted after this entry; stock not auto-restored.' : '该记录之后库存已手动调整，未自动回滚库存。', 'info');
+      }
+    }
+  }
   logs = logs.filter(function(l){ return l.id !== id; });
   saveLogs();
   render();

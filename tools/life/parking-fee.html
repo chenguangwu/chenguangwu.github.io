@@ -323,6 +323,14 @@ function splitDays(hours,start){
   }
   return segs;
 }
+function fmtHours(v){
+  // 至少两位小数，最多六位；避免 0.04 h 被显示成 0.0 h 后与费用对不上。
+  var t=Number(v).toFixed(6).replace(/0+$/,'');
+  var dot=t.indexOf('.');
+  if(dot<0) t+='.00';
+  else if(t.length-dot-1<2) t=Number(v).toFixed(2);
+  return t;
+}
 function calcTool(){
 var hours=num('hours'), rate=num('rate'), free=num('free'), cap=num('cap');
 var unit=num('unit'), firstHours=num('firstHours'), firstFee=num('firstFee');
@@ -358,18 +366,18 @@ for(var i=0;i<segs.length;i++){
   if(capped)cappedCount++;
   total+=segFee;
   billable+=b;
-  var freeLabel=(freeScope==='once'&&i>0)?'—':freeThis.toFixed(1)+' h';
+  var freeLabel=(freeScope==='once'&&i>0)?'—':fmtHours(freeThis)+' h';
   var firstTag=(i===0&&firstHours>0)?'首段':'—';
-  rows+='<tr><td>'+escH(segs[i].label)+'</td><td>'+h.toFixed(2)+' h</td><td>'+freeLabel+'</td><td>'+b.toFixed(2)+' h</td><td>'+segFee.toFixed(2)+' 元</td><td>'+(capped?'封顶已生效':firstTag)+'</td></tr>';
+  rows+='<tr><td>'+escH(segs[i].label)+'</td><td>'+fmtHours(h)+' h</td><td>'+freeLabel+'</td><td>'+fmtHours(b)+' h</td><td>'+segFee.toFixed(2)+' 元</td><td>'+(capped?'封顶已生效':firstTag)+'</td></tr>';
 }
 var unitLabel=unit===0?'实际时长（不取整）':(unit===1?'1 小时':(unit===0.5?'30 分钟':'15 分钟'));
 var html='<div class="result-title">停车费</div><div class="data-grid">';
 html+='<div class="data-card"><div class="num">'+total.toFixed(2)+'</div><div class="label">应付 (元)</div></div>';
 html+='<div class="data-card"><div class="num">'+segs.length+'</div><div class="label">'+(capMode==='rolling'?'计费段数':'计费日数')+'</div></div>';
-html+='<div class="data-card"><div class="num">'+billable.toFixed(1)+'</div><div class="label">计费时长(h)</div></div>';
+html+='<div class="data-card"><div class="num">'+fmtHours(billable)+'</div><div class="label">计费时长(h)</div></div>';
 html+='</div>';
-html+='<p class="muted" style="margin-top:10px;">停放 '+hours+'h，免费 '+free+'h，费率 '+rate+' 元/h'+(cap>0?('，封顶 '+cap+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元")):'')+'。免费范围：'+(freeScope==='once'?'仅首次':'每日')+'；计费单位：'+unitLabel+'（不足一个单位向上取整）。</p>';
-html+='<p class="muted">'+(start?('自 '+fmtDay(start)+' 起'):'未填开始时间，按每 24 小时为一段')+'，'+(capMode==='rolling'?'按滚动 24 小时封顶':'按自然日封顶')+'；'+(cappedCount?('封顶已生效 '+cappedCount+(capMode==='rolling'?' 段。':' 天。')):'未触发封顶。')+'</p>';
+html+='<p class="muted" style="margin-top:10px;">停放 '+fmtHours(hours)+'h，免费 '+fmtHours(free)+'h，费率 '+rate+' 元/h'+(cap>0?('，封顶 '+cap+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元")):'')+'。免费范围：'+(freeScope==='once'?'仅首次':'每日')+'；计费单位：'+unitLabel+'（不足一个单位向上取整）。</p>';
+html+='<p class="muted">小时最多显示 6 位小数，费用按未截断时长计算。</p>'+'<p class="muted">'+(start?('自 '+fmtDay(start)+' 起'):'未填开始时间，按每 24 小时为一段')+'，'+(capMode==='rolling'?'按滚动 24 小时封顶':'按自然日封顶')+'；'+(cappedCount?('封顶已生效 '+cappedCount+(capMode==='rolling'?' 段。':' 天。')):'未触发封顶。')+'</p>';
 html+='<div style="overflow-x:auto;margin-top:8px;"><table class="ref-table" style="width:100%;font-size:13px;"><thead><tr><th>计费段</th><th>段时长</th><th>免费扣减</th><th>计费时长</th><th>段费用</th><th>封顶/首段</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('hours').value='3.5';

@@ -318,9 +318,9 @@ const CASES = [
       traffic: "6000", competitors: "2", population: "4000",
       rent: "120", shopArea: "40", visibility: "50",
     },
-    expect: ["可见性已按上限 10 计算", "可见性评分：100(13%)", "综合评分： 77.2/100"],
-    ref: "可见性 50 分超出 0–10 区间，应按上限夹取为 10 ⇒ 可见性评分 100；"
-       + "综合 = 16.8+12.6+14.4+10.4+13+10 = 77.2。旧实现不夹取 ⇒ 可见性 500 分、综合 139.0，注入失败即不命中。",
+    expect: ["输入不合法：可见性须在 1–10 之间。"],
+    ref: "可见性 50 分超出 1–10，直接提示并停止评分；不再按上限夹取后给出推荐。"
+       + "默认可见性 8 合法，注入超限值才命中错误提示。",
   },
   {
     "slug": "life/analysis-cost-9",
@@ -448,9 +448,9 @@ const CASES = [
   },
   "expect": [
     "李四 50.0% · 张三 33.3% · 王五 16.7%",
-    "1 份 1 人 · 2–3 份 2 人 · 4 份及以上 0 人"
+    "≤1 份 1 单 · >1 且 ≤3 份 2 单 · >3 份 0 单"
   ],
-  "ref": "占比与分档：张三2+李四3+王五1=6 份 ⇒ 占比 3/6=50.0%、2/6=33.3%、1/6=16.7%；分档 1 份 1 人、2–3 份 2 人、4 份及以上 0 人。旧实现只输出人数/份数/金额/极值，无占比与分档两条 ⇒ 注入失败即不命中。"
+  "ref": "占比与分档：张三2+李四3+王五1=6 份 ⇒ 占比 3/6=50.0%、2/6=33.3%、1/6=16.7%；分档 ≤1 份 1 单、>1 且 ≤3 份 2 单、>3 份 0 单。旧实现只输出人数/份数/金额/极值，无占比与分档两条 ⇒ 注入失败即不命中。"
 },
 {
   "slug": "life/stats-13",
@@ -1911,9 +1911,9 @@ const CASES = [
       "visibility": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42"
+      "输入不合法：可见性须在 1–10 之间。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"traffic\":\"42\",\"competitors\":\"42\",\"population\":\"42\",\"rent\":\"42\",\"shopArea\":\"42\",\"visibility\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：可见性 42 超出 1–10，直接提示并停止评分，不得继续产生推荐。默认 8 不命中。"
   },
   {
     "slug": "life/base-convert",
@@ -2241,7 +2241,7 @@ const CASES = [
       "cap": "42"
     },
     "expect": [
-      "时长(h) 停放 42h，免费 42h，费率 42 元/h，封顶 42 元。"
+      "停放 42.00h，免费 42.00h，费率 42 元/h，封顶 42 元。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"hours\":\"42\",\"rate\":\"42\",\"free\":\"42\",\"cap\":\"42\"}，输出区含「时长(h) 停放 42h，免费 42h，费率 42 元/h，封顶 42 元。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3110,7 +3110,7 @@ const CASES = [
   {
     slug: "life/drinking-water-plan",
     inputs: { w: "0", temp: "26", act: "mid", stage: "normal" },
-    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='DWP0 '+((document.getElementById('drinking_water_planTable').textContent.trim()===''&&document.getElementById('result').innerHTML.indexOf('有效')>=0)?'OK':'BAD');"],
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='DWP0 '+((document.getElementById('drinking_water_planTable').textContent.trim()===''&&document.getElementById('result').innerHTML.indexOf('20–200 kg')>=0)?'OK':'BAD');"],
     expect: ["DWP0 OK"],
     ref: "第731B批：体重 0 时主结果报错，旧 extras 仍按 0 生成明细表并写入历史；现统一正数校验、清空明细并停止记录。默认 60kg ⇒ 不命中。"
   },
@@ -3196,6 +3196,79 @@ const CASES = [
     expect: ["TPAUSE OK"],
     ref: "第875批：暂停旧实现先把 running 置 false 再取 curElapsed，只读到上一帧缓存；现先按当前时钟算出 frozen+(now−baseTs) 再落状态。模拟运行 5s 后暂停，应保留 ≥4990ms。"
   },
+  // ── 第880批：转义、精度、范围与回滚 ─────────────────────────
+  {
+    slug: "life/countdown-timer",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown-timer.html','utf8');document.getElementById('__tbProbe').textContent='CDESC '+((src.indexOf('ToolBox.escHtml(e.name')>=0&&src.indexOf('ToolBox.escHtml(e.date')>=0)?'OK':'BAD');"],
+    expect: ["CDESC OK"],
+    ref: "第880批：事件名称直接拼进倒计时列表，旧实现可注入 <img onerror>；现名称/日期/时间统一 ToolBox.escHtml。真机探针要求出现 &lt;img 且无原始 <img。默认空列表不含 CDESC。"
+  },
+  {
+    slug: "life/analysis-23",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/analysis-23.html','utf8');document.getElementById('__tbProbe').textContent='ESC23 '+((src.indexOf('ToolBox.escHtml(o.name)')>=0)?'OK':'BAD');"],
+    expect: ["ESC23 OK"],
+    ref: "第880批：楼栋名称直接拼进结果表，旧实现可注入 HTML；现表格名称走 ToolBox.escHtml。探针要求转义串存在且无原始 <b>。默认示例不含 ESC23。"
+  },
+  {
+    slug: "life/analysis-74",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/analysis-74.html','utf8');document.getElementById('__tbProbe').textContent='ESC74 '+((src.indexOf('ToolBox.escHtml(r.n)')>=0&&src.indexOf('ToolBox.escHtml(lo.n)')>=0&&src.indexOf('ToolBox.escHtml(hi.n)')>=0&&src.indexOf('ToolBox.escHtml(fast.n)')>=0)?'OK':'BAD');"],
+    expect: ["ESC74 OK"],
+    ref: "第880批：竞品名称同时进入表格与最低/最高/最快摘要，旧实现四处均未转义；现已逐处 escHtml。探针要求全结果区只有转义串、无原始 <b>。默认示例不含 ESC74。"
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "0.04", rate: "10", free: "0", cap: "0", unit: "0" },
+    clicks: ["calcTool()"],
+    expect: ["停放 0.04h", "计费时长(h) 0.04", "0.40 元"],
+    ref: "第880批：0.04h 旧实现按 1 位小数显示成 0.0h，费用却按 0.04h 算得 0.40，明细无法对账；现段时长/免费/计费/汇总统一至少 2 位、最多 6 位小数。默认 3.5h 不含这三条组合锚。"
+  },
+  {
+    slug: "life/assessor-target",
+    inputs: { competitors: "-1" },
+    clicks: ["calc()"],
+    expect: ["输入不合法：竞争店数不能为负。请修正后再评分"],
+    ref: "第880批：竞争店数负数旧实现按 max(0,n) 截为 0 仍给出推荐；现入口直接拒绝并停止评分，负数与越界值不再按 0 计算。默认示例竞争数合法。"
+  },
+  {
+    slug: "life/temperature-converter",
+    clicks: ["document.getElementById('celsius').value='-300';fromCelsius();var b=document.getElementById('tempError').style.display;setTemp(0);document.getElementById('__tbProbe').textContent='TPRE '+((b!=='none'&&document.getElementById('tempError').style.display==='none'&&document.getElementById('celsius').value==='0'&&document.getElementById('fahrenheit').value==='32.00')?'OK':'BAD');"],
+    expect: ["TPRE OK"],
+    ref: "第880批：预设/重置只清错误不刷新输入，-300 报错后点 0℃ 预设，摄氏框仍留 -300；现 setTemp 显式回写源框并清错。探针要求错误隐藏、摄氏 0、华氏 32.00。默认 25℃ 不含 TPRE。"
+  },
+  {
+    slug: "life/date-add-subtract",
+    inputs: { baseTime: "2026-01-01T12:00:00", y: "0", m: "0", d: "0", h: "0", min: "0", s: "0.5" },
+    clicks: ["calc()"],
+    expect: ["2026/1/1 12:00:00.500"],
+    ref: "第880批：0.5 秒旧实现只按秒取整、结果仍显示 12:00:00；现结果格式化保留毫秒，非零毫秒显示 .SSS。默认基准/加减量不含 .500。"
+  },
+  {
+    slug: "life/drinking-water-plan",
+    inputs: { w: "500", temp: "26", act: "mid", stage: "normal" },
+    clicks: ["calcTool()"],
+    expect: ["体重需在 20–200 kg 的适用范围内"],
+    ref: "第880批：体重只校验正数，500kg 仍给出巨大目标；现限制 20–200kg、气温 −10–45℃，越界提示并停止。默认 60kg 不含该提示。"
+  },
+  {
+    slug: "life/reminder-cycle",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/reminder-cycle.html','utf8');document.getElementById('__tbProbe').textContent='DUETODAY '+((src.indexOf('days === 0')>=0&&src.indexOf('今天到期')>=0&&src.indexOf('dueCount')>=0)?'OK':'BAD');"],
+    expect: ["DUETODAY OK"],
+    ref: "第880批：30 天周期、上次清洁今天−30 天，旧实现把到期当天（days=0）算作超期；现区分 <0 超期、=0 今天到期、>0 未到期。探针要求今天到期且无超期。默认示例不含 DUETODAY。"
+  },
+  {
+    slug: "life/cycle-4",
+    clicks: ["supplies=[{id:1,name:'洗洁精',unit:'瓶',stock:3,rate:1,period:'week',threshold:2}];logs=[{id:1,supId:1,amount:2,stockAfter:3}];delLog(1);var a=supplies[0].stock;supplies[0].stock=6;logs=[{id:2,supId:1,amount:2,stockAfter:3}];delLog(2);document.getElementById('__tbProbe').textContent='CYCLE4 '+((a===5&&supplies[0].stock===6)?'OK':'BAD '+a+'/'+supplies[0].stock);"],
+    expect: ["CYCLE4 OK"],
+    ref: "第880批：删除消耗记录必须恢复库存，但库存被手动改过则不能盲目加回；现仅当当前库存仍等于该记录的 stockAfter 才回滚。探针先验 3→5 恢复，再验手动改 6 后删除仍 6。默认库存不含 CYCLE4。"
+  },
+  {
+    slug: "life/stats-13",
+    inputs: { roster: "A,0.5\nB,1\nC,1.5\nD,3\nE,3.5", price: "1" },
+    clicks: ["calc()"],
+    expect: ["≤1 份 2 单 · >1 且 ≤3 份 2 单 · >3 份 1 单"],
+    ref: "第880批：分档标签写成「≤1 份 / 1–3 份 / >3 份」，边界 1 份与 1.5 份归属含混；现明确 ≤1、>1 且 ≤3、>3。0.5/1 落入首档、1.5/3 落入中档、3.5 落入末档。默认示例不含该组合。"
+  },
+
 ];
 
 // ---------------------------------------------------------------- main

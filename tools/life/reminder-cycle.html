@@ -265,7 +265,8 @@ function getDaysUntil(date) {
 }
 
 function getUrgency(days) {
-  if (days <= 0) return { level: 'over', label: '需清洁', color: 'var(--danger)' };
+  if (days < 0) return { level: 'over', label: '已超期', color: 'var(--danger)' };
+  if (days === 0) return { level: 'due', label: '今天到期', color: 'var(--warning)' };
   if (days <= 7) return { level: 'soon', label: '即将到期', color: 'var(--warning)' };
   return { level: 'ok', label: '正常', color: 'var(--success)' };
 }
@@ -327,11 +328,13 @@ function renderAppls() {
     return { appl: a, next: next, days: days };
   }).sort(function(a, b) { return a.days - b.days; });
 
-  var overCount = sorted.filter(function(i){ return i.days <= 0; }).length;
+  var overCount = sorted.filter(function(i){ return i.days < 0; }).length;
+  var dueCount = sorted.filter(function(i){ return i.days === 0; }).length;
   var soonCount = sorted.filter(function(i){ return i.days > 0 && i.days <= 7; }).length;
-  if (overCount || soonCount) {
+  if (overCount || dueCount || soonCount) {
     var html = '<div class="tip-box tip-warn" style="margin-bottom:12px;">';
     if (overCount) html += '🚨 有 ' + overCount + ' 件家电已超期需要清洁；';
+    if (dueCount) html += '⏰ 有 ' + dueCount + ' 件家电今天到期；';
     if (soonCount) html += '⚠️ 有 ' + soonCount + ' 件家电即将到期';
     html += '</div>';
   } else {
@@ -342,7 +345,7 @@ function renderAppls() {
     var a = item.appl;
     var type = getType(a.type);
     var urgency = getUrgency(item.days);
-    var dayText = item.days <= 0 ? '已超期' + Math.abs(item.days) + '天' : item.days + ' 天';
+    var dayText = item.days < 0 ? '已超期' + Math.abs(item.days) + '天' : (item.days === 0 ? '今天到期' : item.days + ' 天');
     html += '<div class="appl-card">';
     html += '<div class="appl-head"><span class="appl-name">' + type.icon + ' ' + ToolBox.escHtml(a.name) + '</span><span class="urgency-badge urgency-' + urgency.level + '">' + urgency.label + '</span></div>';
     html += '<div class="appl-meta">' + type.name + ' · 推荐周期 ' + type.cycle + ' ' + type.unit + '</div>';
@@ -350,7 +353,7 @@ function renderAppls() {
     html += '<span>上次清洁：<b>' + a.lastClean + '</b></span>';
     html += '<span>下次清洁：<b>' + fmtDate(item.next) + '</b></span>';
     html += '</div>';
-    html += '<div class="countdown-box"><span class="days" style="color:' + urgency.color + ';">' + dayText + '</span><span style="color:var(--text-secondary);">' + (item.days <= 0 ? '建议尽快清洁' : '距下次清洁') + '</span></div>';
+    html += '<div class="countdown-box"><span class="days" style="color:' + urgency.color + ';">' + dayText + '</span><span style="color:var(--text-secondary);">' + (item.days < 0 ? '建议尽快清洁' : (item.days === 0 ? '今天应清洁' : '距下次清洁')) + '</span></div>';
     html += '<div style="margin-top:8px;"><span class="tip-toggle" onclick="toggleTip(' + a.id + ')">💡 查看清洁技巧</span> <button class="mini-btn" style="margin-left:12px;" onclick="markCleaned(' + a.id + ')">✅ 标记今日已清洁</button> <button class="mini-btn" onclick="delAppl(' + a.id + ')" style="color:var(--danger);">删除</button></div>';
     html += '<div class="tip-detail" id="tip_' + a.id + '">' + type.tip + '</div>';
     html += '</div>';
