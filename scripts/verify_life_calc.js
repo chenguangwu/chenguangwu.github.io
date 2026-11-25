@@ -3582,6 +3582,72 @@ const CASES = [
     clicks: ["convert();var t=String(document.getElementById('__charRefBox').innerHTML);document.getElementById('__tbProbe').textContent='LENNEG '+((t.indexOf('输入为负长度')>=0&&t.indexOf('💡 ≈')<0)?'OK':'BAD');"],
     expect: ["LENNEG OK"],
     ref: "第906批：负长度被按绝对值匹配正实物并写成“你的输入 ≈ 1 米”；现负值保留负号、不显示近似比较，只提示实物参照仅适用于非负值。"
+  },
+  {
+    slug: "life/birthday-paradox",
+    inputs: { n: "2", d: "2" },
+    expect: ["至少 3 人即可让概率超过 50%"],
+    ref: "第907批：D=2、n=2 时重复概率恰好 50%，旧循环用 >=0.5 判为超过并说 2 人；现严格 >0.5，2 人只是达到 50%，超过需要 3 人。"
+  },
+  {
+    slug: "life/percentage-calculator",
+    inputs: { isWhatX: "0", isWhatY: "100" },
+    clicks: ["calcIsWhat()"],
+    expect: ["0 是 100 的 0%"],
+    ref: "第907批：fmt 对 |n|<0.0001 走科学计数法，0 会显示 0.0000e+0；现零值优先返回 0。"
+  },
+  {
+    slug: "life/temperature-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/temperature-converter.html','utf8');document.getElementById('__tbProbe').textContent='TEMPEXP '+((src.indexOf('var exact=_lastExact, source=_lastSource')>=0&&src.indexOf('toPrecision(12)')>=0&&src.indexOf('fx(source.value)')>=0)?'OK':'BAD');"],
+    expect: ["TEMPEXP OK"],
+    ref: "第907批：导出原读取显示用两位小数再反算；现用 _lastExact 内部精确值、fx(toPrecision(12)) 并单列原始输入。"
+  },
+  {
+    slug: "life/generator-price",
+    inputs: { unitPrice: "1e307", qty: "1", taxRate: "100", discountRate: "0" },
+    clicks: ["gen()"],
+    expect: ["金额中间值溢出"],
+    ref: "第907批：1e307 单价 × 100% 税使中间值达 2e307；现计算后立即校验各中间值有限且不超过 Number.MAX_SAFE_INTEGER。"
+  },
+  {
+    slug: "life/date-difference-calculator",
+    inputs: { startDate: "0001-01-01", endDate: "0001-01-03" },
+    checkIds: ["includeWeekends", "includeStart"],
+    expect: ["从 0001-01-01 到 0001-01-03", "2 天"],
+    ref: "第907批：new Date(1,...) 会把 0001 年解释为 1901 年；现先构造 2000 年再用 setFullYear 写回。"
+  },
+  {
+    slug: "life/candle-burn-time",
+    inputs: { weight: "200", wicks: "1", temp: "1.0", diameter: "", dailyHours: "3" },
+    clicks: ["globalThis.TBKit={util:{isEn:function(){return false;}}};calc();"],
+    expect: ["每天3小时可用8天", "另余"],
+    ref: "第907批：旧实现固定每天 4 小时并向下取整，3 小时会显示 0 天；现允许输入每天使用小时数，200g 约 24.3h、每天 3h 为 8 天另余 0.3h。"
+  },
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "2026-01-01", endDate: "2026-01-31", holidays: "2026-2-17" },
+    checkIds: ["skipSat", "skipSun"],
+    expect: ["第 1 行", "请修正节假日/调休日期"],
+    ref: "第907批：节假日逐项只查 YYYY-MM-DD 字符形态，2026-2-17 被静默丢弃；现逐行校验格式与真实日期，指出行号并阻止结果。"
+  },
+  {
+    slug: "life/analysis-cost-10",
+    inputs: { data: "坏<img src=x onerror=alert(1)>,100,200" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='C10ESC '+((h.indexOf('<img')>=0)?'RAW':'ESC');"],
+    expect: ["C10ESC ESC"],
+    ref: "第907批：最大超支项摘要直接拼 worst 进 innerHTML；现本地 esc 转义，表格与摘要都只显示原文。"
+  },
+  {
+    slug: "life/countdown",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown.html','utf8');document.getElementById('__tbProbe').textContent='CDWEND '+((src.indexOf('下个周末开始')>=0&&src.indexOf('本周六')<0)?'OK':'BAD');"],
+    expect: ["CDWEND OK"],
+    ref: "第907批：周末预设固定跳下周六却叫本周六；现按钮与事件名统一为下个周末开始。"
+  },
+  {
+    slug: "life/countdown-2",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown-2.html','utf8');document.getElementById('__tbProbe').textContent='CD2TODAY '+((src.indexOf('var isToday=!past && dayDiff(now,c.target)===0')>=0&&src.indexOf('就是今天')>=0)?'OK':'BAD');"],
+    expect: ["CD2TODAY OK"],
+    ref: "第907批：目标日期等于今天时卡片显示即将/0 天后；现按 dayDiff=0 显示今天/就是今天，当天不再渲染即将徽章。"
   }
 
 ];

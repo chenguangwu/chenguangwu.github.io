@@ -287,15 +287,25 @@ function parseLocalDate(s){
   calc();
 })();
 
-function parseDateSet(id){
+function parseDateSet(id, label){
   const el = document.getElementById(id);
   const txt = (el && el.value) || '';
-  const set = new Set();
-  txt.split(/\s+/).forEach(s => {
-    s = s.trim();
-    if(/^\d{4}-\d{2}-\d{2}$/.test(s)) set.add(s);
+  const set = new Set(), errors = [], duplicates = [];
+  txt.split(/\r?\n/).forEach((raw, i) => {
+    const s = String(raw || '').trim();
+    if(!s) return;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(s)){
+      errors.push('第 ' + (i + 1) + ' 行「' + s + '」格式应为 YYYY-MM-DD');
+      return;
+    }
+    if(isNaN(parseLocalDate(s).getTime())){
+      errors.push('第 ' + (i + 1) + ' 行「' + s + '」不是真实存在的日期');
+      return;
+    }
+    if(set.has(s)){ duplicates.push(s); return; }
+    set.add(s);
   });
-  return set;
+  return { set, errors, duplicates, label };
 }
 
 function calc(){
@@ -317,8 +327,16 @@ function calc(){
   }
   const skipSat = document.getElementById('skipSat').checked;
   const skipSun = document.getElementById('skipSun').checked;
-  const holidays = parseDateSet('holidays');
-  const makeupDays = parseDateSet('workdays');
+  const holidayParsed = parseDateSet('holidays', '法定节假日');
+  const makeupParsed = parseDateSet('workdays', '调休上班日');
+  const badInputs = [].concat(holidayParsed.errors, makeupParsed.errors);
+  if(badInputs.length){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请修正节假日/调休日期后再计算：</p><p style="color:var(--danger);">'+badInputs.slice(0,8).join('；')+(badInputs.length>8?' 等 '+badInputs.length+' 项':'')+'</p><p class="muted">日期须为真实存在的 YYYY-MM-DD（如 2026-02-17，不能写 2026-2-17 或 2026-02-30）。</p>';
+    return;
+  }
+  const holidays = holidayParsed.set;
+  const makeupDays = makeupParsed.set;
+  const duplicateNotes = holidayParsed.duplicates.concat(makeupParsed.duplicates);
   const conflicts = [];
   holidays.forEach(function(key){ if(makeupDays.has(key)) conflicts.push(key); });
   if(conflicts.length){
@@ -364,6 +382,7 @@ function calc(){
     <p>周末（已排除）：<strong>${weekends}</strong> 天</p>
     <p>法定节假日：<strong>${holidayCount}</strong> 天</p>
     <p>调休上班日（周末补班、计入工作日）：<strong>${makeupCount}</strong> 天</p>
+    ${duplicateNotes.length ? '<p style="font-size:12px;color:var(--text-muted);">重复日期已自动去重：'+duplicateNotes.slice(0,8).join('、')+(duplicateNotes.length>8?' 等 '+duplicateNotes.length+' 项':'')+'</p>' : ''}
     ${weekdayMakeupCount ? '<p style="color:var(--warning);">另有 '+weekdayMakeupCount+' 个普通工作日被填入「调休上班日」，它们本来就是工作日，不会额外增加工作日数，请核实是否填错。</p>' : ''}
     <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">预计完成时间：约 ${Math.ceil(workDays / 5)} 周</p>
   `;document.getElementById('resultBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));

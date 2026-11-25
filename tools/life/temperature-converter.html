@@ -549,16 +549,20 @@ function clearHistory(){if(confirm('确定清空？')){localStorage.removeItem(H
 function __tempExport(){
   if(typeof TBKit==='undefined')return;
   var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
-  var c=parseFloat(document.getElementById('celsius').value);
-  if(!isFinite(c)){ToolBox.showToast(en?'Invalid input':'请输入有效温度');return;}
-  if(belowAbsoluteZero(c)){ToolBox.showToast(en?'Temperature cannot be below absolute zero':'温度不能低于绝对零度');return;}
-  var f=c*9/5+32,k=c+273.15,r=f+459.67,re=c*0.8;
+  var exact=_lastExact, source=_lastSource;
+  if(!exact || !source || !isFinite(exact.c)){ToolBox.showToast(en?'No valid result to export':'无有效温度可导出');return;}
+  if(belowAbsoluteZero(exact.c)){ToolBox.showToast(en?'Temperature cannot be below absolute zero':'温度不能低于绝对零度');return;}
+  var c=exact.c,f=exact.f,k=exact.k,r=exact.r,re=exact.re;
+  var unitMap={c:[en?'Celsius':'摄氏度','°C'],f:[en?'Fahrenheit':'华氏度','°F'],k:[en?'Kelvin':'开尔文','K'],r:[en?'Rankine':'兰金度','°R'],re:[en?'Reaumur':'列氏度','°Ré']};
+  var srcName=unitMap[source.unit]||unitMap.c;
+  var fx=function(n){ return String(Number(Number(n).toPrecision(12))); };
   var rows=[
-    [en?'Celsius':'摄氏度','°C',c.toFixed(2),en?'Base scale (water freezes at 0)':'基准温标（水冰点 0）'],
-    [en?'Fahrenheit':'华氏度','°F',f.toFixed(2),en?'F = C x 9/5 + 32':'°F = °C × 9/5 + 32'],
-    [en?'Kelvin':'开尔文','K',k.toFixed(2),en?'K = C + 273.15 (absolute zero 0K)':'K = °C + 273.15（绝对零度 0K）'],
-    [en?'Rankine':'兰金度','°R',r.toFixed(2),en?'R = F + 459.67':'°R = °F + 459.67'],
-    [en?'Reaumur':'列氏度','°Ré',re.toFixed(2),en?'Re = C x 0.8':'°Ré = °C × 0.8']
+    [srcName[0]+(en?' (original input)':'（原始输入）'),srcName[1],fx(source.value),en?'Last valid input, full precision':'最后一次有效输入，按原始精度'],
+    [en?'Celsius':'摄氏度','°C',fx(c),en?'Base scale (water freezes at 0)':'基准温标（水冰点 0）'],
+    [en?'Fahrenheit':'华氏度','°F',fx(f),en?'F = C x 9/5 + 32':'°F = °C × 9/5 + 32'],
+    [en?'Kelvin':'开尔文','K',fx(k),en?'K = C + 273.15 (absolute zero 0K)':'K = °C + 273.15（绝对零度 0K）'],
+    [en?'Rankine':'兰金度','°R',fx(r),en?'R = F + 459.67':'°R = °F + 459.67'],
+    [en?'Reaumur':'列氏度','°Ré',fx(re),en?'Re = C x 0.8':'°Ré = °C × 0.8']
   ];
   var refs=[[-273.15,en?'Absolute zero':'绝对零度'],[0,en?'Water freezing point':'水冰点'],[20,en?'Room temperature':'室温'],[36.5,en?'Human body temperature':'人体体温'],[100,en?'Water boiling point':'水沸点']];
   var tb=document.querySelector('#tempHidden tbody');

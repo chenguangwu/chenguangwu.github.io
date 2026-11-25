@@ -189,6 +189,11 @@
       </select>
     </div>
 
+    <div class="input-row">
+      <label for="dailyHours">每天使用小时数</label>
+      <input type="number" id="dailyHours" value="4" min="0.1" max="24" step="0.1" oninput="calc()" placeholder="如 4">
+    </div>
+
     <div class="toolbar">
       <div id="candle_burn_timePresets"></div><button type="button" class="btn primary" onclick="calc()">估算燃烧时间</button><button class="btn" type="button" onclick="__candle_burn_timeExport()">导出明细 CSV</button>
       <button type="button" class="btn" id="copyBurnBtn" onclick="copyResult()">复制结果</button>
@@ -366,6 +371,8 @@ function calc(){
   const diameter = diameterRaw === '' ? 0 : parseFloat(diameterRaw);
   const wicks = parseInt(document.getElementById('wicks').value);
   const tempFactor = parseFloat(document.getElementById('temp').value);
+  const dailyRaw = document.getElementById('dailyHours') ? String(document.getElementById('dailyHours').value).trim() : '4';
+  const daily = dailyRaw === '' ? 4 : parseFloat(dailyRaw);
   const wax = WAX_TYPES.find(t => t.id === selectedType) || WAX_TYPES[0];
   const copyBtn = document.getElementById('copyBurnBtn');
 
@@ -379,6 +386,13 @@ function calc(){
   if(diameterRaw !== '' && (!isFinite(diameter) || diameter <= 0)){
     document.getElementById('burnResult').textContent = '--';
     document.getElementById('burnDesc').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Diameter must be a positive number, or leave it blank":"直径须为大于 0 的数值，或留空");
+    document.getElementById('burnStats').innerHTML='';
+    if(copyBtn) copyBtn.disabled = true;
+    return;
+  }
+  if(!isFinite(daily) || daily <= 0 || daily > 24){
+    document.getElementById('burnResult').textContent = '--';
+    document.getElementById('burnDesc').textContent = (typeof TBKit!=='undefined'&&TBKit.util.isEn()) ? 'Daily use hours must be between 0.1 and 24' : '每天使用小时数须为 0.1–24 之间的数值';
     document.getElementById('burnStats').innerHTML='';
     if(copyBtn) copyBtn.disabled = true;
     return;
@@ -414,10 +428,12 @@ function calc(){
   const totalMinutes = Math.round(burnHours * 60);
   const hours = Math.floor(totalMinutes / 60);
   const mins = totalMinutes % 60;
-  const days = Math.floor(burnHours / 4); // 假设每天燃烧4小时
+  const days = Math.floor(burnHours / daily);
+  const remainHours = Math.max(0, burnHours - days * daily);
 
   const __g5=burnHours.toFixed(1) + (en?' h':' 小时');document.getElementById('burnResult').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
-  const __g6=(en?`About ${hours} h ${mins} min · ${days} days at 4 h/day<br>${diameterNote}`:`约 ${hours}小时${mins}分钟 · 每天4小时可用${days}天<br>${diameterNote}`);document.getElementById('burnDesc').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  const remainText = remainHours > 0.05 ? (en?` (plus ${remainHours.toFixed(1)} h left over)`:`（另余 ${remainHours.toFixed(1)} 小时）`) : '';
+  const __g6=(en?`About ${hours} h ${mins} min · ${days} days at ${daily} h/day${remainText}<br>${diameterNote}`:`约 ${hours}小时${mins}分钟 · 每天${daily}小时可用${days}天${remainText}<br>${diameterNote}`);document.getElementById('burnDesc').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
 
   // 进度条展示
   const maxBurn = 100; // 假设100小时为满
@@ -425,7 +441,7 @@ function calc(){
 
   const __g7=`
     <div class="stat-card"><div class="val">${burnHours.toFixed(1)}</div><div class="lbl">${en?'Total burn (h)':'总燃烧(小时)'}</div></div>
-    <div class="stat-card"><div class="val">${days}</div><div class="lbl">${en?'Days (4 h/day)':'可用天数(4h/天)'}</div></div>
+    <div class="stat-card"><div class="val">${days}</div><div class="lbl">${en?'Days ('+daily+' h/day)':'可用天数('+daily+'h/天)'}</div></div>
     <div class="stat-card"><div class="val">${burnRate.toFixed(1)}</div><div class="lbl">${en?'Burn rate (g/h)':'综合燃速(g/h)'}</div></div>
     <div class="stat-card"><div class="val">${usableWeight.toFixed(0)}</div><div class="lbl">${en?'Usable wax (g)':'有效蜡量(g)'}</div></div>
   `;document.getElementById('burnStats').innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
