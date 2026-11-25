@@ -14201,10 +14201,13 @@ const CASES = [
       "output": "1\n2\n3",
       "outputFormat": "hex"
     },
+    "clicks": ["encrypt()"],
     "expect": [
-      "abc123测试\n10f886e5c502677a4385b14f\nhex"
+      "abc123测试",
+      "10f886e5c502677a4385b14f",
+      "hex"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"outputFormat\":\"hex\"}，输出区含「abc123测试\n����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。IT-N558/N559 顺带修 i18nText() 空参数后 encrypt 不再抛错，输出由乱码解密态变为 hex 密文态，按铁律①同批同步 expect。"
+    "ref": "第816批补充 clicks=encrypt() 固定输出，新增密钥模式说明会隔开 key/输出，expect 拆为三段：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"outputFormat\":\"hex\"}，输出区含「abc123测试\n����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。IT-N558/N559 顺带修 i18nText() 空参数后 encrypt 不再抛错，输出由乱码解密态变为 hex 密文态，按铁律①同批同步 expect。"
   },
   {
     "slug": "it/xxencode",
@@ -15370,6 +15373,62 @@ const CASES = [
     clicks: ["process()"],
     expect: ["61e19e"],
     ref: "第815批：同一组字节切到十六进制输出必须逐字节保留 61 e1 9e，证明字节层异或没有被文本解码破坏。",
+  },
+  {
+    slug: "it/xxtea",
+    inputs: { key: "abcdefghijklmnopQRST", input: "ABC" },
+    clicks: ["var a=bytesToHex(longToBytes(xxteaEncrypt(toUint32Array('ABC'),keyToLongs('abcdefghijklmnopQRST','fold')),false)),b=bytesToHex(longToBytes(xxteaEncrypt(toUint32Array('ABC'),keyToLongs('abcdefghijklmnopQRST','first16')),false));document.getElementById('__tbProbe').textContent='XX816='+(a!==b?'Y':'N');"],
+    expect: ["XX816=Y"],
+    ref: "第816批：20 字节长密钥下，页面 fold 派生与只取前 16 字节的常见实现必须产生不同密文；界面明确展示两种规则。",
+  },
+  {
+    slug: "it/xxtea",
+    inputs: { key: "abcdefghijklmnopQRST", input: "ABC" },
+    clicks: ["var a=bytesToHex(longToBytes(xxteaEncrypt(toUint32Array('ABC'),keyToLongs('abcdefghijklmnopQRST','first16')),false)),b=bytesToHex(longToBytes(xxteaEncrypt(toUint32Array('ABC'),keyToLongs('abcdefghijklmnopXXXX','first16')),false));document.getElementById('__tbProbe').textContent='XX816B='+(a===b?'Y':'N');"],
+    expect: ["XX816B=Y"],
+    ref: "第816批：first16 互通模式明确只使用前 16 字节，因此前 16 字节相同、后 4 字节不同的密钥会得到相同密文；这是显式选择的兼容行为，不再是静默折叠。",
+  },
+  {
+    slug: "it/xxtea",
+    inputs: { key: "KY", input: "ABC" },
+    clicks: ["document.getElementById('outputFormat').value='hex';encrypt();var c=document.getElementById('output').value;document.getElementById('input').value=c;document.getElementById('inputFormat').value='auto';decrypt();document.getElementById('__tbProbe').textContent='XX816C='+(document.getElementById('output').value.indexOf('同时符合 Hex 与 Base64')>=0?'Y':'N');"],
+    expect: ["XX816C=Y"],
+    ref: "第816批：Hex 密文若同时满足 Base64 字符集与长度（如 24 位 hex），自动识别必须报歧义并要求显式选择，不能默认按 Hex 解码。",
+  },
+  {
+    slug: "it/xxtea",
+    inputs: { key: "KY", input: "ABC" },
+    clicks: ["document.getElementById('outputFormat').value='hex';encrypt();var c=document.getElementById('output').value;document.getElementById('input').value=c;document.getElementById('inputFormat').value='hex';decrypt();document.getElementById('__tbProbe').textContent='XX816D='+(document.getElementById('output').value==='ABC'?'Y':'N');"],
+    expect: ["XX816D=Y"],
+    ref: "第816批：显式选 Hex 后同一段密文必须正确还原 ABC；配合严格 UTF-8 解码，失败时旧结果会被标记失效而不是静默保留。",
+  },
+  {
+    slug: "it/wifi-qr",
+    inputs: { ssid: "NaN;Infinity", pass: "Infinity" },
+    clicks: ["generate()"],
+    expect: ["WIFI:T:WPA;S:NaN\\;Infinity;P:Infinity;H:false;;"],
+    ref: "第816批：SSID/密码里的 NaN、Infinity 是普通文字，必须原样进入配网串；旧实现对整个结果做数值替换会改成「—」。",
+  },
+  {
+    slug: "it/wifi-qr",
+    inputs: { ssid: "Cafe;WiFi", pass: "p;q" },
+    clicks: ["generate();document.getElementById('__tbProbe').textContent='WQR816='+(document.querySelector('#output canvas')?'Y':'N');"],
+    expect: ["WQR816=Y"],
+    ref: "第816批：页面必须本地生成真实二维码画布，而不是只输出配网字符串；分号由 escapeSemi 转义。",
+  },
+  {
+    slug: "it/wifi-qr-generator",
+    inputs: { ssid: "NaN;Infinity", pass: "NaN" },
+    clicks: ["calcTool()"],
+    expect: ["WIFI:T:WPA;S:NaN\\;Infinity;P:NaN;;"],
+    ref: "第816批：生成器的 escH 不得把字符串里的 NaN/Infinity 当数值替换；分号按 WIFI URI 规范转义。",
+  },
+  {
+    slug: "it/wifi-qr-generator",
+    inputs: { ssid: "Cafe", pass: "pw" },
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='WQG816='+(document.querySelector('#wifiQrWrap canvas')?'Y':'N');"],
+    expect: ["WQG816=Y"],
+    ref: "第816批：生成器必须直接渲染二维码画布；旧页面只给字符串并要求另找工具。",
   },
   // —— 时间族 / 进制族 / 字符集族：独立标准实现交叉验证（2026-11-04 批次）——
   {
