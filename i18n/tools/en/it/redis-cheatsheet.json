@@ -10,16 +10,13 @@
     "过期": "Expiration",
     "：EXPIRE、TTL、PERSIST；持久化方式为 RDB 快照与 AOF 日志。": ": EXPIRE, TTL, PERSIST; persistence via RDB snapshots and AOF logs.",
     "：生产环境禁用": ": Disable in production",
-    "（会阻塞主线程），改用 SCAN 游标迭代。": " (blocks the main thread); use SCAN cursor iteration instead.",
     "📚 深度解析：Redis 命令速查": "📚 Deep Dive: Redis Command Cheat Sheet",
     "查阅 string/hash/list/zset 命令。": "Look up string/hash/list/zset commands.",
-    "排查缓存问题：用 TTL 查键的剩余有效期、用 SCAN 安全遍历（避免 KEYS 阻塞主线程），确认缓存是否按预期失效。": "Troubleshoot cache issues: use TTL to check a key's remaining lifetime, use SCAN for safe traversal (avoid KEYS blocking the main thread), and confirm the cache expires as expected.",
     "查 zset": "Query zset",
     "`ZADD leader 100 tom` 加分；`ZREVRANGE leader 0 9` 取前 10。": "`ZADD leader 100 tom` adds a score; `ZREVRANGE leader 0 9` gets the top 10.",
     "Redis 持久化？": "Redis persistence?",
     "RDB 快照 + AOF 日志。": "RDB snapshots + AOF logs.",
     "为什么线上不能用 KEYS？": "Why is KEYS forbidden in production?",
-    "因为 KEYS 会一次性遍历整个键空间，时间复杂度 O(N)，在百万级键的实例上会阻塞主线程数十毫秒到数秒，导致所有请求排队。应改用 SCAN 渐进式遍历（游标分批、不阻塞），并用 count 参数控制单次扫描量。生产环境建议直接禁用 KEYS。": "Because KEYS traverses the entire key space at once, with O(N) complexity; on instances with millions of keys it blocks the main thread for tens of milliseconds to seconds, queuing all requests. Use SCAN for incremental traversal (batched by cursor, non-blocking) and the count parameter to control each scan's size. Disabling KEYS in production is recommended.",
     "关于「Redis 命令速查」": "About \"Redis Command Cheat Sheet\"",
     "Redis 命令速查。专为开发者打造的在线工具，纯前端运行，代码不离开浏览器。": "Redis command cheat sheet. An online tool built for developers, runs entirely in the browser; your code never leaves the device.",
     "$ 最新": "$ latest",
@@ -50,7 +47,6 @@
     "清空所有库": "Flush all databases",
     "危险": "Dangerous",
     "列出所有 key（生产禁用）": "List all keys (do not use in production)",
-    "增量扫描 key": "Incrementally scan keys",
     "查看 key 类型": "Show the type of a key",
     "检查 key 是否存在": "Check whether a key exists",
     "返回存在的数量": "Returns how many exist",
@@ -123,6 +119,11 @@
     "执行 Lua": "Run Lua",
     "查看编码": "Show the encoding",
     "查看内存": "Show memory usage",
-    "按分类聚合条目：遍历条目列表，首次出现的分类记入有序数组并把计数置 1，后续同分类累加；柱状图以分类名为横轴、条目数为数据（图高 300），明细表逐行输出序号、分类名、该分类条目数与该分类前 2 条代表命令（以「 / 」连接）。分类名在英文态下按内置映射表替换为英文（Redis 命令）": "Aggregates entries by category: it walks the entry list, records a category into an ordered array with a count of 1 on first appearance, and increments for later entries in the same category; the bar chart uses category names as the horizontal axis and entry counts as data (chart height 300), and the detail table outputs, row by row, the index, category name, entry count for that category, and the first 2 representative commands of that category (joined with \" / \"). In English mode category names are replaced by the built-in mapping table (Redis commands)"
+    "按分类聚合条目：遍历条目列表，首次出现的分类记入有序数组并把计数置 1，后续同分类累加；柱状图以分类名为横轴、条目数为数据（图高 300），明细表逐行输出序号、分类名、该分类条目数与该分类前 2 条代表命令（以「 / 」连接）。分类名在英文态下按内置映射表替换为英文（Redis 命令）": "Aggregates entries by category: it walks the entry list, records a category into an ordered array with a count of 1 on first appearance, and increments for later entries in the same category; the bar chart uses category names as the horizontal axis and entry counts as data (chart height 300), and the detail table outputs, row by row, the index, category name, entry count for that category, and the first 2 representative commands of that category (joined with \" / \"). In English mode category names are replaced by the built-in mapping table (Redis commands)",
+    "因为 KEYS 会一次性遍历整个键空间，时间复杂度 O(N)，在百万级键的实例上会阻塞主线程数十毫秒到数秒，导致所有请求排队。应改用 SCAN 游标渐进遍历：它把一次大遍历拆成多次小调用，能降低单次阻塞时长与内存压力，但并不保证完全不阻塞——每次调用仍会占用主线程/事件循环时间，COUNT 越大占用越久。COUNT 只是给 Redis 的工作量提示，不是严格返回条数上限；同一游标下结果可能为空、也可能重复，游标返回 0 才表示遍历结束。生产环境应禁用 KEYS，并对 SCAN 限速、去重、观察实例延迟，优先用已知前缀或索引结构缩小扫描范围。": "Because KEYS traverses the entire key space at once with O(N) complexity; on instances with millions of keys it can block the main thread for tens of milliseconds to seconds, queuing all requests. Use SCAN cursor iteration instead: splitting one large traversal into many smaller calls reduces per-call blocking time and memory pressure, but does NOT guarantee zero blocking — each call still consumes main-thread/event-loop time, and a larger COUNT means longer occupancy. COUNT is a workload hint, not a strict maximum number of returned items; results may be empty or duplicated, and traversal ends only when the cursor returns 0. In production, disable KEYS, rate-limit and deduplicate SCAN, watch instance latency, and narrow the scan with known prefixes or index structures first.",
+    "（O(N) 一次性阻塞），改用 SCAN 游标迭代；SCAN 只降低单次压力，不保证零阻塞，需限速与去重。": " (O(N) one-shot blocking); use SCAN cursor iteration instead. SCAN only lowers per-call pressure and does not guarantee zero blocking, so rate-limit it and deduplicate results.",
+    "排查缓存问题：用 TTL 查键的剩余有效期、用 SCAN 渐进遍历（避免 KEYS 的 O(N) 阻塞；SCAN 仍可能占用执行时间，需限速并处理重复结果），确认缓存是否按预期失效。": "Troubleshoot cache issues: use TTL to check a key's remaining lifetime, use SCAN for incremental traversal (avoid KEYS' O(N) blocking; SCAN still consumes execution time, so rate-limit it and handle duplicate results), and confirm the cache expires as expected.",
+    "游标渐进遍历 key（降低单次阻塞，不保证零阻塞）": "Iterate keys with a cursor (lowers per-call blocking, not zero-blocking)",
+    "游标返回 0 才结束；COUNT 是工作量提示而非严格上限；结果可能为空或重复": "Traversal ends only when the cursor returns 0; COUNT is a workload hint, not a strict limit; results may be empty or duplicated"
   }
 }

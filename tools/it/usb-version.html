@@ -127,7 +127,7 @@
 <!-- TOOLBOX-POLISH -->
 
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按版本查表取出速率、接口形态与供电能力做并排对比（所有可选项均有独立数据，未匹配时明确提示未知版本）。接口提示：USB-C 在 3.1 Gen2 及以上支持全速率，USB 2.0 可跑满 480 Mbps，1.x 仅低速/全速；Type-A 时版本 ≤ 3.0 判常见、否则少见需转 C；Micro 时版本 ≤ 2.0 判常见、否则已淘汰。总体建议按数值比较：主版本号 ≥ 对比版本号判较新速率更高，否则判旧版兼容更广</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按版本查表取出速率、接口形态与供电能力做并排对比（所有可选项均有独立数据，未匹配时明确提示未知版本）。比较只说明「标称上限」与「版本号高低」，不据此直接推断实际接口速率：实际链路速率取设备两端、线缆与端口的最低共同能力。接口形状（Type-A / Type-C / Micro）只是物理形态，不承诺速率档位；同版本比较给出相同档位结论，不再把「≥」误写成「速率更高」。</div>
   <div class="formula-desc">USB 各代速率与供电对照（速查）：USB 2.0 = 480 Mbps；USB 3.0/3.1 Gen1 = 5 Gbps；USB 3.1 Gen2 = 10 Gbps；USB 3.2 = 20 Gbps；USB4 = 40 Gbps（2.0 版达 80 Gbps 单向）。接口形态含 Type-A/B/C。</div>
   <ul class="formula-list">
     <li>供电：USB 2.0 约 0.5A/5V；BC 1.2 达 1.5A；Type-C PD 可达 3A/5A（100W/240W）。</li>
@@ -310,7 +310,7 @@ const USB_INFO={
   '4.0':['40 Gbps','USB-C','最高 240W（PD 3.1）','雷电兼容']
 };
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
+function escH(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){const v=document.getElementById('v').value||'3.2';
@@ -319,9 +319,17 @@ function calcTool(){const v=document.getElementById('v').value||'3.2';
    const info=USB_INFO;
    if(!info[v]||!info[v2]){ToolBox.setResult('result','<p style="color:var(--danger)">未知 USB 版本，请重新选择。</p>');return;}
    const row=info[v], row2=info[v2];
-   const pv=parseFloat(v);
-   const connNote={usbc:pv>=3.1?'USB-C 支持全速率':(pv===2?'USB-C 可承载 USB 2.0 全速（480 Mbps）':'USB-C 可承载低速 / 全速（12 Mbps）'),typea:pv<=3.0?'Type-A 常见':'Type-A 少见（需 C）',micro:pv<=2.0?'Micro 常见':'Micro 已淘汰'}[conn]||'';
-   const adv=parseFloat(v)>=parseFloat(v2)?'较新，速率更高':'旧版，兼容更广';
+   const pv=parseFloat(v), pv2=parseFloat(v2);
+   // 接口形态只是物理形状，不承诺速率；USB-C 也不自动等于某个速率档位。
+   const connNote={
+     usbc: pv===2 ? 'USB-C 可承载 USB 2.0 全速（480 Mbps），但实际速率仍由协议、线缆与端口共同决定' : 'USB-C 是接口形态，不承诺速率；需看协议代际、线缆与端口能力',
+     typea: 'Type-A 是接口形态，常见于旧设备；速率由协议与线缆决定，不由形状决定',
+     micro: 'Micro 是接口形态，多见于旧设备；速率由协议与线缆决定，不由形状决定'
+   }[conn]||'';
+   const same=pv===pv2;
+   const adv=same
+     ? '同版本档位；标称上限相同，实际速率取两端设备、线缆与端口的最低共同能力'
+     : (pv>pv2 ? '版本号更高，标称上限更高；但实际速率取两端设备、线缆与端口的最低共同能力，不能仅凭版本号推断' : '版本号较低，兼容面通常更广；实际速率同样取链路最低共同能力');
    let html=dataGrid([
      ['USB '+v+' vs '+v2,'版本对比'],
      [row[0]+' / '+row2[0],'最大速率'],
@@ -343,8 +351,8 @@ function calcTool(){const v=document.getElementById('v').value||'3.2';
      '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">4.0</td><td style="border:1px solid #d1d5db;padding:5px 8px;">40 Gbps</td><td style="border:1px solid #d1d5db;padding:5px 8px;">USB-C</td><td style="border:1px solid #d1d5db;padding:5px 8px;">PD 3.1 最高 240W</td></tr>'+
      '</table>';
    html += '<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+
-     'USB 4 基于 Thunderbolt 3 协议，兼容 USB 3.2/2.0；实际速率受线缆与设备双端支持限制。</div>';
-   const __g2=html;ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));}
+     'USB 4 基于 Thunderbolt 3 协议，兼容 USB 3.2/2.0。链路实际速率 = min(设备 A 能力, 设备 B 能力, 线缆/端口支持)；接口形状（Type-A / Type-C / Micro）不等于协议速率。</div>';
+   ToolBox.setResult('result',html);}
 function resetForm(){document.getElementById('v').value='3.2';
       document.getElementById('v2').value='2.0';
       document.getElementById('conn').value='usbc';

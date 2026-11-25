@@ -287,8 +287,22 @@
 <script>
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function render(){
-  var w=parseInt(document.getElementById('w').value)||400;if(w<10)w=10;if(w>2000)w=2000;
-  var h=parseInt(document.getElementById('h').value)||200;if(h<10)h=10;if(h>2000)h=2000;
+  var wRaw=document.getElementById('w').value.trim();
+  var hRaw=document.getElementById('h').value.trim();
+  var w=Number(wRaw), h=Number(hRaw);
+  var preview=document.getElementById('preview');
+  var result=document.getElementById('result');
+  var svgCode=document.getElementById('svgCode');
+  function fail(msg){
+    svgCode.value='';
+    preview.innerHTML='<p style="color:var(--danger)">⚠ '+escH(msg)+'</p>';
+    result.innerHTML='<p style="color:var(--danger)">尺寸无效，未生成 SVG</p>';
+  }
+  if(wRaw===''||!Number.isFinite(w)){ fail('宽度必须是有效数字'); return; }
+  if(hRaw===''||!Number.isFinite(h)){ fail('高度必须是有效数字'); return; }
+  w=Math.round(w); h=Math.round(h);
+  if(w<10||w>2000){ fail('宽度须在 10–2000 之间'); return; }
+  if(h<10||h>2000){ fail('高度须在 10–2000 之间'); return; }
   var text=document.getElementById('txt').value||(w+' × '+h);
   var bg=document.getElementById('bg').value||'#f3f4f6';
   var fg=document.getElementById('fg').value||'#6b7280';
@@ -297,9 +311,11 @@ function render(){
     '<rect width="100%" height="100%" fill="'+bg+'"/>'+
     '<text x="50%" y="50%" fill="'+fg+'" font-size="'+fs+'" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif">'+escH(text)+'</text>'+
     '</svg>';
-  document.getElementById('svgCode').value=svg;
-  const __h0=svg;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h0;
-  const __h1='<p>SVG 尺寸 <strong>'+w+' × '+h+'</strong> · 文件约 <strong>'+(new Blob([svg]).size)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"</strong> bytes</p>":"</strong> 字节</p>");if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
+  // 预览、复制、下载都使用同一份已验证的 svg 字符串；文字里的 NaN/Infinity 是普通内容，不做数值替换。
+  svgCode.value=svg;
+  preview.innerHTML=svg;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  result.innerHTML='<p>SVG 尺寸 <strong>'+w+' × '+h+'</strong> · 文件约 <strong>'+(new Blob([svg]).size)+(en?'</strong> bytes</p>':'</strong> 字节</p>');
 }
 function copySvg(){
   var v=document.getElementById('svgCode').value;

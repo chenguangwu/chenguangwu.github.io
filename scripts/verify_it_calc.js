@@ -15430,6 +15430,38 @@ const CASES = [
     expect: ["WQG816=Y"],
     ref: "第816批：生成器必须直接渲染二维码画布；旧页面只给字符串并要求另找工具。",
   },
+  {
+    slug: "it/sql-cheatsheet",
+    clicks: ["globalThis.TBKit={util:{isEn:function(){return true;}}};renderCommands();var st=document.getElementById('stats').textContent||'';var li=document.getElementById('cmdList').innerHTML||'';var ph=document.getElementById('searchInput').placeholder||'';document.getElementById('__tbProbe').textContent='SQEN '+(/^48 commands$/.test(st)?'S':'N')+(li.indexOf('Create table')>=0&&li.indexOf('建表')<0?'D':'N')+(/Search commands/.test(ph)?'P':'N');"],
+    expect: ["SQEN SDP"],
+    ref: "IT-N136：英文态动态列表必须整体英文化：计数 48 commands、CREATE TABLE 描述 Create table、搜索框占位英文。旧实现列表硬编码中文（共 48 项/建表/中文占位）⇒ SQEN NNN。",
+  },
+  {
+    slug: "it/sql-cheatsheet",
+    clicks: ["globalThis.TBKit={util:{isEn:function(){return true;}}};searchQuery='pagination';renderCommands();var st=document.getElementById('stats').textContent||'';var li=document.getElementById('cmdList').innerHTML||'';document.getElementById('__tbProbe').textContent='SQSE '+(/command/.test(st)?'S':'N')+(li.indexOf('Pagination')>=0?'D':'N')+(li.indexOf('分页')<0?'E':'C');"],
+    expect: ["SQSE SDE"],
+    ref: "IT-N136：英文态搜索须同时匹配英文描述/分类；搜 pagination 应命中分页相关命令并显示英文描述，不再要求用户输入中文。旧实现只搜中文 ⇒ 0 命中。",
+  },
+  {
+    slug: "it/sql-cheatsheet",
+    clicks: ["globalThis.TBKit={util:{isEn:function(){return true;}}};searchQuery='zzzz-no-hit';renderCommands();var li=document.getElementById('cmdList').innerHTML||'';var has=/Clear filters/.test(li)&&/No commands match/.test(li);clearSqlFilters();var st=document.getElementById('stats').textContent||'';var back=/^48 commands$/.test(st)&&searchQuery===''&&currentCategory==='全部';document.getElementById('__tbProbe').textContent='SQCLR '+(has?'H':'N')+(back?'R':'N');"],
+    expect: ["SQCLR HR"],
+    ref: "IT-N136：无结果时须有本地化提示与「清除筛选」入口，点击后恢复全部 48 条并清空关键字。旧实现只显示「共 0 项」且无出口。",
+  },
+  {
+    slug: "it/svg-placeholder-generator",
+    inputs: { w: "300", h: "150", txt: "NaN Infinity" },
+    clicks: ["render();var p=document.getElementById('preview').innerHTML||'';var c=document.getElementById('svgCode').value||'';document.getElementById('__tbProbe').textContent='SVGTXT '+(p.indexOf('NaN Infinity')>=0?'T':'N')+(p.indexOf('无效值')<0?'G':'B')+(c===p?'S':'D');"],
+    expect: ["SVGTXT TGS"],
+    ref: "IT-N137：文案里的 NaN/Infinity 是普通文字，不能触发整串数值校验；预览、复制源、下载源必须是同一份 SVG。旧实现对整串 svg 跑 /Infinity|NaN/ ⇒ 误报「计算结果含无效值」且预览为空。",
+  },
+  {
+    slug: "it/usb-version",
+    inputs: { v: "3.1", v2: "3.1", conn: "usbc" },
+    clicks: ["calcTool();var s=document.getElementById('result').innerHTML||'';document.getElementById('__tbProbe').textContent='USBSAME '+(/同版本档位/.test(s)?'S':'N')+(/最低共同能力/.test(s)?'M':'N')+(/速率更高/.test(s)?'B':'G')+(/USB-C 是接口形态，不承诺速率/.test(s)?'C':'N');"],
+    expect: ["USBSAME SMGC"],
+    ref: "IT-N137：同版本比较不得判「较新，速率更高」；接口形状不承诺速率，结论须落到两端设备/线缆/端口的最低共同能力。",
+  },
   // —— 时间族 / 进制族 / 字符集族：独立标准实现交叉验证（2026-11-04 批次）——
   {
     slug: "it/time-format-converter",
