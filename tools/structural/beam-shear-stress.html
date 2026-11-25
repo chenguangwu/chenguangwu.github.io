@@ -301,15 +301,19 @@ function __tbInputGuardCore(_ids,_labels){
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['V', 'A'],["剪力 (kN)", "截面积 (m²)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const V = num('V') * 1000, A = num('A');
+              if(['V','A'].some(function(id){var e=document.getElementById(id);return !e||String(e.value).trim()==='';})){ToolBox.setResult('result','<p style="color:var(--danger)">请填写剪力 V 与截面积 A 后再计算；剪力 0 合法。</p>');return;}
+const Vraw = num('V'), A = num('A');
+            if(!(A>0)||!isFinite(A)||!isFinite(Vraw)){ToolBox.setResult('result','<p style="color:var(--danger)">截面积 A 必须为 &gt; 0 的有限值，剪力 V 必须为有限数值。</p>');return;}
+            const V = Math.abs(Vraw) * 1000;
             const t = 1.5 * V / A;
+            const ratio=V===0?'未定义（0/0）':(t/(V/A)).toFixed(3);
             const __g2=dataGrid([
                 [(t / 1e6).toFixed(3), '最大剪应力 τ (MPa)'],
                 [(t / 1e3).toFixed(2), 'τ (kPa)'],
                 [(V/A/1e6).toFixed(3), '平均剪应力 (MPa)'],
-                [(t/(V/A)).toFixed(3), '峰值/平均 剪应力比']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+                [ratio, '峰值/平均 剪应力比（矩形截面 1.5 倍）']
+            ]);
+            ToolBox.setResult('result',String(__g2).replace(/Infinity|NaN/g,'—')+'<div class="tip-box" style="margin-top:8px;">τ_max = 1.5·V/A 仅适用于<strong>矩形截面</strong>中性轴处；圆截面约 4/3·V/A，工字形/圆管需按截面剪应力分布积分，不能套用 1.5 倍。</div>');
         }
 function resetForm(){document.getElementById('V').value = '5';
       document.getElementById('A').value = '0.1';
@@ -322,7 +326,7 @@ function __beam_shear_stressExtras(){
     if (typeof TBKit === 'undefined') return;
     var V = num('V') * 1000, A = num('A');
     var t = 1.5 * V / A;
-    if (!isFinite(__beam_shear_stressNum('V')) || !isFinite(__beam_shear_stressNum('A'))) return;
+    if (!isFinite(__beam_shear_stressNum('V')) || !isFinite(__beam_shear_stressNum('A')) || __beam_shear_stressNum('A')<=0) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#beam_shear_stressTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -330,7 +334,7 @@ function __beam_shear_stressExtras(){
             ['最大剪应力 τ (MPa)', (t / 1e6).toFixed(3)],
             ['τ (kPa)', (t / 1e3).toFixed(2)],
             ['平均剪应力 (MPa)', (V/A/1e6).toFixed(3)],
-            ['峰值/平均 剪应力比', (t/(V/A)).toFixed(3)],
+            ['峰值/平均 剪应力比（矩形截面 1.5 倍）', V===0?'未定义（0/0）':(t/(V/A)).toFixed(3)],
         ]
     });
     TBKit.history.record({V:__beam_shear_stressRaw('V'), A:__beam_shear_stressRaw('A'), t:t});

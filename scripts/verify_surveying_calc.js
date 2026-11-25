@@ -109,6 +109,60 @@ const CASES = [
     ref: "正弦定理 b=a·sinB/sinA=100×sin90°/sin30°=200.000（默认 100/45/60 避开）",
   },
   {
+    slug: "surveying/bearing-from-coordinates",
+    inputs: { dN: "100", dE: "" },
+    expect: ["请分别填写北增量"],
+    ref: "单个增量清空时旧版 parseFloat('')→0，把缺项当 0 计算；现分别校验、留空即停，0 仍合法。"
+  },
+  {
+    slug: "surveying/bearing-from-coordinates",
+    inputs: { dN: "0", dE: "0" },
+    expect: ["未定义（重合点）", "重合点（方向未定义）"],
+    ref: "ΔN=ΔE=0 时旧版显示方位角 0.00°、第一象限；现方位角未定义、象限标重合点。"
+  },
+  {
+    slug: "surveying/bearing-from-coordinates",
+    inputs: { dN: "0", dE: "100" },
+    expect: ["正东轴线（ΔN=0）"],
+    ref: "ΔN=0、ΔE=100 旧版归入「第一象限」；现标正东轴线，避免把轴线当象限。"
+  },
+  {
+    slug: "surveying/analysis-17",
+    inputs: { r: "30", L: "0" },
+    expect: ["1.00 倍"],
+    ref: "L=0 时线缓冲面积=点缓冲面积，旧版显示 0 倍；现按实际两面积求倍数=1.00。默认 L=100 不命中。"
+  },
+  {
+    slug: "surveying/analysis-17",
+    inputs: { r: "30", L: "" },
+    expect: ["留空不等于 0"],
+    ref: "线长留空旧版 parseFloat('')→0 当零长度；现提示必填。"
+  },
+  {
+    slug: "surveying/analysis-17",
+    inputs: { r: "30", L: "-5" },
+    expect: ["线长必须为 ≥ 0"],
+    ref: "负线长旧版算出小于点缓冲的负面积；现拒绝负长度。"
+  },
+  {
+    slug: "surveying/end-area-volume",
+    inputs: { A1: "10", A2: "10", L: "50", Am: "10" },
+    expect: ["500.00", "500.00 棱柱法"],
+    ref: "等断面 10㎡、间距 50、中截面 10 ⇒ 平均断面法与棱柱法均应 500.00；旧棱柱式用 √(A1A2) 也得 500，但不等断面的错误无法暴露，故另加不等断面用例。"
+  },
+  {
+    slug: "surveying/end-area-volume",
+    inputs: { A1: "10", A2: "20", L: "50", Am: "5" },
+    expect: ["416.67 棱柱法", "-333.33 棱柱法−平均断面法"],
+    ref: "棱柱法 V=L/6(A1+4Am+A2)=50/6×(10+4×5+20)=50/6×50=416.67；平均断面法=(10+20)/2×50=750，差=-333.33。旧 √(A1A2) 版本得 750，与平均断面法相同，无法命中 416.67。"
+  },
+  {
+    slug: "surveying/end-area-volume",
+    inputs: { A1: "10", A2: "20", L: "50", Am: "" },
+    expect: ["需填中间断面 A_m"],
+    ref: "未填中截面时不得用几何平均冒充棱柱法；只输出平均断面法并提示需要 A_m。"
+  },
+  {
     slug: "surveying/end-area-volume",
     inputs: { A1: "20", A2: "40", L: "60" },
     expect: ["1800.00"],
@@ -621,10 +675,11 @@ const CASES = [
     "inputs": {
       "A1": "42",
       "A2": "42",
-      "L": "42"
+      "L": "42",
+      "Am": "42"
     },
     "expect": [
-      "42\n42\n42\n1764"
+      "42\n42\n42\n42\n1764"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"A1\":\"42\",\"A2\":\"42\",\"L\":\"42\"}，输出区含「42\n42\n42\n1764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
