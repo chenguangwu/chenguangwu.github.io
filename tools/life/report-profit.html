@@ -304,7 +304,18 @@ function calc(){
   var cflow=inflow-outflow;
   var cashBasis=(actualRecv!==null?'实际回款':'按回款率估算')+' / '+(actualPaid!==null?'实际付现':'进货+费用全额付现');
   var cashEnd=cash0+cflow;
-  var diag=(opProfit>0&&cflow<0)?'盈利但现金净流出，通常为赊销占款或压货偏多，建议加强回款与库存周转。':((opProfit>0&&cflow>0)?'盈利且现金同步回正，经营质量较好。':((opProfit<=0&&cflow>0)?'现金为正但账面亏损，需核查是否存在折旧摊销等未录入费用或不计成本收入。':'亏损并伴随现金流出，应优先压缩人工与房租等刚性支出。'));
+  var pSign=opProfit>0?1:(opProfit<0?-1:0);
+  var cSign=cflow>0?1:(cflow<0?-1:0);
+  var diag='';
+  if(pSign>0 && cSign<0) diag='盈利但现金净流出，通常与赊销占款或压货偏多有关，可优先核查回款与库存周转。';
+  else if(pSign>0 && cSign>0) diag='盈利且现金同步净流入，本期经营质量较好。';
+  else if(pSign>0 && cSign===0) diag='盈利但现金收支恰好平衡，利润尚未转化为现金净增加，建议核对回款与付款时点。';
+  else if(pSign===0 && cSign>0) diag='账面利润持平，但现金净流入；可能来自回款高于当期确认收入，需结合应收变化判断。';
+  else if(pSign===0 && cSign===0) diag='利润与现金流均为零，本期收支完全持平。';
+  else if(pSign===0 && cSign<0) diag='账面利润持平，但现金净流出；需核查应付、预付或成本确认时点。';
+  else if(pSign<0 && cSign>0) diag='账面亏损但现金净流入；需核查折旧摊销等未录入费用、回款时点或不计成本收入。';
+  else if(pSign<0 && cSign===0) diag='账面亏损但现金收支恰好平衡，亏损尚未体现为现金净流出。';
+  else diag='亏损并伴随现金净流出，应优先压缩人工与房租等刚性支出。';
   var html='<p>营业收入：<strong>'+fmt(rev)+' 元</strong></p>'+
     '<p>进货成本：<strong>'+fmt(cog)+' 元</strong></p>'+
     '<p>毛利：<strong style="color:var(--primary);">'+fmt(gross)+' 元</strong>（毛利率 '+(gm===null?'不适用（收入为 0）':fmt(gm)+'%')+'）</p>'+

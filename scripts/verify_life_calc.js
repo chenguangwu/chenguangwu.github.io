@@ -3687,9 +3687,9 @@ const CASES = [
   },
   {
     slug: "life/base-convert",
-    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/base-convert.html','utf8');document.getElementById('__tbProbe').textContent='BCEXP '+((src.indexOf('var num=BigInt(dec)')>=0&&src.indexOf('当前输入无效，导出已取消')>=0&&src.indexOf('cb=Math.max(2,Math.min(36,cb))')>=0)?'OK':'BAD');"],
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/base-convert.html','utf8');document.getElementById('__tbProbe').textContent='BCEXP '+((src.indexOf('var num=BigInt(dec)')>=0&&src.indexOf('当前输入无效，导出已取消')>=0&&src.indexOf('validateCustomBase()')>=0&&src.indexOf('导出共用校验')<0&&src.indexOf('ToolBox.showToast(cbr.msg')>=0)?'OK':'BAD');"],
     expect: ["BCEXP OK"],
-    ref: "第908批：导出原重新 parseInt 自行解析，0b1012 等非法输入可绕过页面校验；现导出只复用页面有效十进制结果，无效/空输入提示取消，自定义进制夹到 2–36。"
+    ref: "第908批：导出原重新 parseInt 自行解析，0b1012 等非法输入可绕过页面校验；现导出只复用页面有效十进制结果，无效/空输入提示取消。第915批起自定义进制统一走 validateCustomBase，2–62 完整整数，非法值提示且不导出。"
   },
   {
     slug: "life/area-converter",
@@ -3904,6 +3904,50 @@ const CASES = [
     clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/bra-size-converter.html','utf8');document.getElementById('__tbProbe').textContent='BRAJP '+((src.indexOf('日码')<0&&src.indexOf('国际、美、英、欧、法码')>=0)?'OK':'BAD');"],
     expect: ["BRAJP OK"],
     ref: "第914批：搜索描述不再承诺日码，改为实际提供的国际/美/英/欧/法码。"
+  }
+,
+  {
+    slug: "life/candle-burn-time",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/candle-burn-time.html','utf8');document.getElementById('__tbProbe').textContent='WAXKEY '+((src.indexOf('role=\"radio\"')>=0&&src.indexOf('role=\"radiogroup\"')>=0&&src.indexOf('aria-checked')>=0&&src.indexOf('moveType(')>=0)?'OK':'BAD');"],
+    expect: ["WAXKEY OK"],
+    ref: "第915批：蜡种卡片改原生 button + radiogroup/radio 语义，焦点可见，方向键循环切换并重新计算。"
+  },
+  {
+    slug: "life/phone-lookup",
+    inputs: { input: "+861" },
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/phone-lookup.html','utf8');document.getElementById('__tbProbe').textContent='PHBAD '+((src.indexOf('号码长度/格式与国家代码不符')>=0&&src.indexOf('nationalNum')>=0&&src.indexOf('normalized.length > 15')>=0)?'OK':'BAD');"],
+    expect: ["PHBAD OK"],
+    ref: "第915批：+861 只有 1 位国内号码，按中国号码规则判为不完整，不再显示国家信息。"
+  },
+  {
+    slug: "life/countdown-timer",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown-timer.html','utf8');document.getElementById('__tbProbe').textContent='LUNAR '+((src.indexOf(\"name: '春节', lunarName\")>=0&&src.indexOf(\"'端午节':{2025\")>=0&&src.indexOf(\"'中秋节':{2025\")>=0)?'OK':'BAD');"],
+    expect: ["LUNAR OK"],
+    ref: "第915批：节日列表加入春节、端午、中秋，按 2025–2035 农历公历对照表取下一次日期。"
+  },
+  {
+    slug: "life/unit-converter",
+    clicks: ["document.getElementById('fromValue').value='1';document.getElementById('fromUnit').value='meter';document.getElementById('toUnit').value='centimeter';convertFrom('from');document.getElementById('__tbProbe').textContent='UNITRES '+((__unit_converterResText().indexOf('米 = 100')>=0&&__unit_converterResText().indexOf('换算')<0)?'OK':'BAD '+__unit_converterResText());"],
+    expect: ["UNITRES OK"],
+    ref: "第915批：自动历史改为读取真实换算字段（分类/输入/结果/单位），不再抓首个静态说明框。"
+  },
+  {
+    slug: "life/event-countdown",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/event-countdown.html','utf8');document.getElementById('__tbProbe').textContent='EXPIRE '+((src.indexOf('日期表暂未覆盖')>=0&&src.indexOf('QINGMING_DATES[y] || 5')<0&&src.indexOf('法定放假安排与节日日期并不相同')>=0)?'OK':'BAD');"],
+    expect: ["EXPIRE OK"],
+    ref: "第915批：表外农历/清明不再猜 4 月 5 日，保留条目并说明暂不可计算，同时区分节日日期与法定放假。"
+  },
+  {
+    slug: "life/temperature-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/temperature-converter.html','utf8');document.getElementById('__tbProbe').textContent='TEMPEN '+((src.indexOf(\"tempIsEn()?'Temperature conversion'\")>=0&&src.indexOf(\"tempIsEn()?'No records yet'\")>=0&&src.indexOf('try{ renderHistory(); }')>=0)?'OK':'BAD');"],
+    expect: ["TEMPEN OK"],
+    ref: "第915批：复制前缀、历史空态、删除/清空确认按当前语言输出，语言切换后历史重渲染。"
+  },
+  {
+    slug: "life/report-profit",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/report-profit.html','utf8');document.getElementById('res').textContent='ZERODIAG '+((src.indexOf('pSign===0 && cSign===0')>=0&&src.indexOf('利润与现金流均为零，本期收支完全持平')>=0&&src.indexOf('opProfit<=0&&cflow>0')<0)?'OK':'BAD');"],
+    expect: ["ZERODIAG OK"],
+    ref: "第915批：利润与现金流均为 0 时不再落入亏损+流出，改为收支完全持平；其余八种符号组合分别描述。"
   }
 
 ];

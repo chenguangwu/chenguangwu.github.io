@@ -254,6 +254,22 @@ const CC_DB = {
   '61':'澳大利亚','62':'印度尼西亚','63':'菲律宾','64':'新西兰','65':'新加坡',
   '66':'泰国','81':'日本','82':'韩国','84':'越南','90':'土耳其','91':'印度','92':'巴基斯坦'
 };
+
+// 离线格式规则：仅用于格式层面的明显错误，不证明号码真实存在。
+const NATIONAL_RULES = {
+  '86': { test: n => /^1[3-9]\d{9}$/.test(n) || /^[1-9]\d{9,11}$/.test(n), msgZh: '中国大陆号码应为 11 位手机号，或 10–12 位固话（国内长途前缀 0 可省略）', msgEn: 'Mainland China numbers should be an 11-digit mobile or a 10–12 digit landline (the trunk 0 may be omitted)' },
+  '1':  { test: n => /^\d{10}$/.test(n), msgZh: '美国/加拿大国内号码应为 10 位', msgEn: 'US/Canada national numbers should be 10 digits' },
+  '44': { test: n => /^\d{10}$/.test(n), msgZh: '英国国内号码（去掉前导 0）应为 10 位', msgEn: 'UK national numbers without the leading 0 should be 10 digits' },
+  '81': { test: n => /^\d{9,10}$/.test(n), msgZh: '日本国内号码应为 9–10 位', msgEn: 'Japanese national numbers should be 9–10 digits' },
+  '82': { test: n => /^\d{9,10}$/.test(n), msgZh: '韩国国内号码应为 9–10 位', msgEn: 'South Korean national numbers should be 9–10 digits' },
+  '61': { test: n => /^\d{9}$/.test(n), msgZh: '澳大利亚国内号码应为 9 位（去掉前导 0）', msgEn: 'Australian national numbers without the leading 0 should be 9 digits' },
+  '65': { test: n => /^\d{8}$/.test(n), msgZh: '新加坡号码应为 8 位', msgEn: 'Singapore numbers should be 8 digits' },
+  '91': { test: n => /^\d{10}$/.test(n), msgZh: '印度号码应为 10 位', msgEn: 'Indian numbers should be 10 digits' },
+  '33': { test: n => /^\d{9}$/.test(n), msgZh: '法国国内号码应为 9 位（去掉前导 0）', msgEn: 'French national numbers without the leading 0 should be 9 digits' },
+  '49': { test: n => /^\d{6,11}$/.test(n), msgZh: '德国国内号码应为 6–11 位（去掉前导 0）', msgEn: 'German national numbers without the leading 0 should be 6–11 digits' },
+  '39': { test: n => /^\d{9,10}$/.test(n), msgZh: '意大利号码应为 9–10 位', msgEn: 'Italian numbers should be 9–10 digits' }
+};
+
 const CN_AREA_CODES = {
   '10':'北京','21':'上海','22':'天津','23':'重庆','20':'广州','755':'深圳',
   '25':'南京','28':'成都','29':'西安','24':'沈阳','311':'石家庄','371':'济南',
@@ -317,8 +333,27 @@ function validate(){
       const __h2=`<p style="color:var(--danger);">❌ 无法识别国家代码</p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
       return;
     }
+    const en = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    if(!nationalNum){
+      out.innerHTML = `<p style="color:var(--danger);">${en?'❌ Only a country code was found; the national number is empty, so the country result is withheld.':'❌ 只识别到国家代码，国家码后的号码为空，无法确认号码归属。'}</p>`;
+      return;
+    }
+    if(normalized.length > 15){
+      out.innerHTML = `<p style="color:var(--danger);">${en?'❌ An international number can contain at most 15 digits, so this number is not valid E.164 format.':'❌ 国际号码总长最多 15 位，当前号码超出，不能按有效 E.164 格式处理。'}</p>`;
+      return;
+    }
+    const rule = NATIONAL_RULES[cc];
+    if(rule && !rule.test(nationalNum)){
+      out.innerHTML = `<p style="color:var(--danger);">${en?'❌ Number length/format does not match this country code: ':'❌ 号码长度/格式与国家代码不符：'}${en?rule.msgEn:rule.msgZh}</p>`;
+      return;
+    }
     html += `<p><strong>国家代码：</strong>+${cc} - ${country}</p>`;
     html += `<p><strong>国内号码：</strong>${nationalNum}</p>`;
+    if(rule){
+      html += `<p><strong>${en?'Format check:':'格式检查：'}</strong>${en?'passed the offline length/prefix rule; this does not prove the number exists.':'通过本地长度/前缀规则；这不代表号码真实存在。'}</p>`;
+    } else {
+      html += `<p><strong>${en?'Format check:':'格式检查：'}</strong>${en?'country prefix parsed only; validity unknown.':'仅解析国家前缀，号码有效性未知。'}</p>`;
+    }
     if(cc === '86') html += chinaInference(nationalNum, true);
   } else {
     nationalNum = normalized;
@@ -326,6 +361,8 @@ function validate(){
     html += `<p><strong>号码：</strong>${nationalNum}</p>`;
     // Heuristic: Chinese mobile or landline without country code
     if(/^1[3-9]\d{9}$/.test(nationalNum)) country = '中国';
+    const en2 = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    html += `<p style="font-size:12px;color:var(--text-muted);">${en2?'Local-format parsing only; the number validity is unknown.':'仅作本地格式解析，号码有效性未知。'}</p>`;
     html += chinaInference(nationalNum, false);
   }
   // Format display

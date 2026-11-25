@@ -510,7 +510,7 @@ function setTemp(c){showTempError(false);var el=document.getElementById('celsius
 function resetForm(){setTemp(25);}
 function saveRecord(){
   if(!_lastExact||!_lastSource||!_lastVal){ToolBox.showToast(tempIsEn()?'No valid temperature to save':'无有效温度可保存');return;}
-  const r={time:new Date().toLocaleString('zh-CN'),c:_lastExact.c,f:_lastExact.f,k:_lastExact.k,r:_lastExact.r,re:_lastExact.re,unit:_lastSource.unit,value:_lastSource.value};
+  const r={time:new Date().toLocaleString(tempIsEn()?'en-US':'zh-CN'),c:_lastExact.c,f:_lastExact.f,k:_lastExact.k,r:_lastExact.r,re:_lastExact.re,unit:_lastSource.unit,value:_lastSource.value};
   let h=getHistory();
   h.unshift(r);if(h.length>20)h=h.slice(0,20);
   localStorage.setItem(HK,JSON.stringify(h));
@@ -519,17 +519,18 @@ function saveRecord(){
 function getHistory(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch(e){return[];}}
 function copyResult(){
   if(!_lastVal){ToolBox.showToast(tempIsEn()?'No valid result to copy':'无有效结果可复制');return;}
-  ToolBox.copyText(`🌡️ 温度转换：${_lastVal.c}°C = ${_lastVal.f}°F = ${_lastVal.k}K = ${_lastVal.r}°R = ${_lastVal.re}°Ré`,'tool.copy_ok');
+  const prefix=tempIsEn()?'Temperature conversion':'温度转换';
+  ToolBox.copyText(`🌡️ ${prefix}: ${_lastVal.c}°C = ${_lastVal.f}°F = ${_lastVal.k}K = ${_lastVal.r}°R = ${_lastVal.re}°Ré`,'tool.copy_ok');
 }
 function renderHistory(){
   const h=getHistory();
   const l=document.getElementById('historyList');
-  if(h.length===0){const __h1='<div class="history-empty">暂无记录</div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){l.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}l.innerHTML=__h1;return;}
+  if(h.length===0){const __h1='<div class="history-empty">'+(tempIsEn()?'No records yet':'暂无记录')+'</div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){l.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}l.innerHTML=__h1;return;}
   const __fmt=n=>isFinite(Number(n))?String(Number(Number(n).toFixed(2))):'—';
   const __h2=h.map((r,i)=>{
     const u=({c:'°C',f:'°F',k:'K',r:'°R',re:'°Ré'})[r.unit];
     const head=(r.unit&&r.value!==undefined)?`${r.value}${u} → `:'';
-    return `<div class="history-item" role="button" tabindex="0" aria-label="恢复 ${r.time} 的温度换算记录" onclick="loadHistory(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();loadHistory(${i});}"><div class="time">${r.time}</div><div class="summary">${head}${__fmt(r.c)}°C = ${__fmt(r.f)}°F = ${__fmt(r.k)}K</div><div class="detail">${getFeel(r.c).text} <button type="button" onclick="event.stopPropagation();delHistory(${i})" aria-label="删除该条历史记录" style="float:right;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12px;">删除</button></div></div>`;
+    return `<div class="history-item" role="button" tabindex="0" aria-label="${tempIsEn()?'Restore':'恢复'} ${r.time} ${tempIsEn()?'temperature record':'的温度换算记录'}" onclick="loadHistory(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();loadHistory(${i});}"><div class="time">${r.time}</div><div class="summary">${head}${__fmt(r.c)}°C = ${__fmt(r.f)}°F = ${__fmt(r.k)}K</div><div class="detail">${getFeel(r.c).text} <button type="button" onclick="event.stopPropagation();delHistory(${i})" aria-label="${tempIsEn()?'Delete this record':'删除该条历史记录'}" style="float:right;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12px;">${tempIsEn()?'Delete':'删除'}</button></div></div>`;
   }).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){l.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}l.innerHTML=__h2;
 }
 function loadHistory(i){
@@ -544,7 +545,7 @@ function loadHistory(i){
   } else { const c=Number(rec.c); if(isFinite(c)&&!belowAbsoluteZero(c)) setTemp(c); else showTempError(true,true); }
 }
 function delHistory(i){let h=getHistory();h.splice(i,1);localStorage.setItem(HK,JSON.stringify(h));renderHistory();}
-function clearHistory(){if(confirm('确定清空？')){localStorage.removeItem(HK);renderHistory();ToolBox.showToast(i18nText());}}
+function clearHistory(){if(confirm(tempIsEn()?'Clear all temperature history?':'确定清空全部温度历史记录？')){localStorage.removeItem(HK);renderHistory();ToolBox.showToast(i18nText());}}
 
 function __tempExport(){
   if(typeof TBKit==='undefined')return;
@@ -587,7 +588,7 @@ function __tempChart(){
   for(var c=-40;c<=120;c+=10){labels.push(c+'°C');data.push(+(c*9/5+32).toFixed(1));}
   TBKit.chart.line('#tempChart',{title:en?'Celsius to Fahrenheit curve':'摄氏度 → 华氏度 换算曲线',labels:labels,series:[{name:en?'°F':'°F',data:data}]});
 }
-window.addEventListener('toolbox:langchange', function(){ try{ __tempChart(); }catch(e){} });
+window.addEventListener('toolbox:langchange', function(){ try{ __tempChart(); }catch(e){} try{ renderHistory(); }catch(e){} });
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded', function(){ try{ __tempChart(); }catch(e){} });}else{ __tempChart(); }
 
 fromCelsius();renderHistory();

@@ -303,7 +303,7 @@ const events = [
   {name:'元旦', getNext: y => new Date(y, 0, 1)},
   {name:'春节（农历新年）', getNext: y => getLunarEvent(y, 'spring')},
   {name:'元宵节', getNext: y => getLunarEvent(y, 'lantern')},
-  {name:'清明节', getNext: y => new Date(y, 3, QINGMING_DATES[y] || 5)},
+  {name:'清明节', getNext: y => QINGMING_DATES[y] ? new Date(y, 3, QINGMING_DATES[y]) : null},
   {name:'劳动节', getNext: y => new Date(y, 4, 1)},
   {name:'端午节', getNext: y => getLunarEvent(y, 'dragon')},
   {name:'七夕节', getNext: y => getLunarEvent(y, 'qixi')},
@@ -327,13 +327,24 @@ function render(){
   now.setHours(0,0,0,0);
   const list = events.map(e => {
     const d = getNextEvent(e.getNext);
-    if(!d) return null;
+    if(!d) return {name:e.name, unavailable:true};
     const diff = Math.round((d - now) / 86400000);
     return {name:e.name, date:d, diff};
-  }).filter(Boolean).sort((a, b) => a.diff - b.diff);
+  }).sort((a, b) => (a.unavailable?1:0)-(b.unavailable?1:0) || (a.diff||0)-(b.diff||0));
 
   let html = '';
+  const unavailable = list.filter(it => it.unavailable).length;
+  if(unavailable){
+    html += `<p style="font-size:12px;color:var(--text-muted);">农历/节气日期表仅覆盖 2023–2030 年；表外节日保留条目但不输出确定日期，请手动核对。法定放假安排与节日日期并不相同。</p>`;
+  }
   list.forEach(it => {
+    if(it.unavailable){
+      html += `<div class="event-item" style="opacity:.75;">
+        <div><div class="event-name">${it.name}</div><div class="event-date">日期表暂未覆盖，暂不可计算</div></div>
+        <div class="event-count">—<span class="unit"></span></div>
+      </div>`;
+      return;
+    }
     const past = it.diff < 0;
     html += `<div class="event-item ${past ? 'event-past' : ''}">
       <div>
