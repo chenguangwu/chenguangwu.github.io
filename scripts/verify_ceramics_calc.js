@@ -23,6 +23,13 @@ const CASES = [
   "ref": "S干=(150−135)/150=10.00%、S烧=(135−120)/135=11.11%、S总=(150−120)/150=20.00%（独立复算）；反向 L₀=L₂/(1−S总)=200/(1−0.18)=243.90 mm。默认 120/112/100 ⇒ 6.67% / 10.71% / 16.67%、L₀=116.28 ⇒ 四个锚点全不命中。原 expect「公式」是 calcReverse 的 step-line 标签常量（默认态同样渲染）⇒ 已替换。"
 },
 {
+  "slug": "ceramics/clay-shrinkage",
+  "inputs": {"wet":"100","dry":"120","fired":"130"},
+  "clicks": ["calc();"],
+  "expect": ["尺寸需满足 湿坯 ≥ 干坯 ≥ 烧成"],
+  "ref": "注入 100/120/130（干坯大于湿坯、烧成大于干坯），calc() 报「尺寸需满足 湿坯 ≥ 干坯 ≥ 烧成」且不产生 .big-result；默认 120/112/100 合法 ⇒ 不含该错误串。"
+},
+{
   "slug": "ceramics/glaze-ratio",
   "inputs": {
     "totalW": "1500",
@@ -32,6 +39,21 @@ const CASES = [
     "375.0"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "ceramics/clay-shrinkage",
+  "inputs": {"wet":"100","dry":"120","fired":"130"},
+  "clicks": ["calc();"],
+  "expect": ["尺寸需满足 湿坯 ≥ 干坯 ≥ 烧成"],
+  "ref": "注入 100/120/130（干坯大于湿坯、烧成大于干坯），calc() 报「尺寸需满足 湿坯 ≥ 干坯 ≥ 烧成」且不产生 .big-result；默认 120/112/100 合法 ⇒ 不含该错误串。"
+},
+{
+  "slug": "ceramics/glaze-ratio",
+  "clicks": ["MATS[4].pct='-5';calc();"],
+  "expect": [
+    "比例须为 0–100 的有限数"
+  ],
+  "ref": "第 5 项氧化锌比例注入 -5，calc() 逐行校验后列出「第 5 项「氧化锌」比例须为 0–100 的有限数（当前 -5）」并清空称量表；默认全 0–100 合法 ⇒ 不出现该文案。"
 },
 {
   "slug": "ceramics/glaze-temp",
@@ -47,9 +69,9 @@ const CASES = [
   "slug": "ceramics/kiln-firing",
   "clicks": ["switchTab('porcelain');"],
   "expect": [
-    "峰值温度 1300°C，总烧成时间 约 12~15 小时。"
+    "峰值温度 1300°C；可计算段：升温 18.3 h + 保温 2.5–3.0 h + 慢冷 6.3 h = 约 27.0–27.5 小时（不含自然冷却段）。"
   ],
-  "ref": "独立复算：SCHED.porcelain = {peak:1300, totalDesc:'约 12~15 小时'}；switchTab() 把 cur 换成 'porcelain' 后 render() 从 SCHED[cur] 取峰值与总时长，渲染「峰值温度 1300°C，总烧成时间 约 12~15 小时。」；默认 cur='bisque'（980°C / 约 8~10 小时）⇒ 串不同。switchTab(t,btn) 的 btn 有 if(btn) 判空，可省略。"
+  "ref": "独立复算 porcelain：升温 (150−25)/50=2.5 +(600−150)/70=6.43 +(950−600)/100=3.5 +(1100−950)/50=3 +(1300−1100)/70=2.86 =18.29，保温 排湿1.5+氧化0.5+高保温0.5~1=2.5~3，慢冷 (1300−800)/80=6.25，合计 27.04~27.54 ⇒ 27.0–27.5 h；自然冷却未计入。switchTab() 切到 porcelain 后 render() 由 __kfEstimate 逐段按温度区间÷速率计保温，不再取静态 totalDesc。"
 },
 {
   "slug": "ceramics/wheel-speed",

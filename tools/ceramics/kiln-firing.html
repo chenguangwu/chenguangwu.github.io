@@ -270,6 +270,26 @@ var SCHED={
     ['❄️','冷却','1040→60°C','自然冷却','—']
   ]}
 };
+
+function __kfFmt(n){return (Math.round(n*10)/10).toFixed(1);}
+function __kfStageEst(st){
+  var temp=String(st[2]||''),rate=String(st[3]||''),hold=String(st[4]||''),name=String(st[1]||'');
+  var heat=0,holdH=0,cool=0,unknown=false;
+  var norm=temp.replace(/室温/,'25');
+  var m=norm.match(/(\d+(?:\.\d+)?)\s*→\s*(\d+(?:\.\d+)?)/);
+  var rm=rate.match(/([\d.]+)\s*°C\/h/);
+  if(m&&rm){var h=Math.abs(parseFloat(m[2])-parseFloat(m[1]))/parseFloat(rm[1]);if(/冷/.test(name)||/慢冷/.test(name))cool+=h;else heat+=h;}
+  else if(/自然冷却/.test(rate)){unknown=true;}
+  var hm=hold.match(/保温\s*([\d.]+)(?:\s*~\s*([\d.]+))?\s*h/);
+  if(hm){var h0=parseFloat(hm[1]),h1=hm[2]?parseFloat(hm[2]):h0;holdH+=h0;}
+  return {heat:heat,hold:holdH,cool:cool,unknown:unknown,h0:h0||0,h1:h1||0};
+}
+function __kfEstimate(s){
+  var heat=0,holdMin=0,holdMax=0,cool=0,unknown=false;
+  s.stages.forEach(function(st){var e=__kfStageEst(st);heat+=e.heat;holdMin+=e.h0;holdMax+=e.h1;cool+=e.cool;if(e.unknown)unknown=true;});
+  var min=heat+holdMin+cool,max=heat+holdMax+cool;
+  return {heat:heat,holdMin:holdMin,holdMax:holdMax,cool:cool,min:min,max:max,unknown:unknown};
+}
 var cur='bisque';
 function switchTab(t,btn){
   cur=t;
@@ -279,7 +299,10 @@ function switchTab(t,btn){
 }
 function render(){
   var s=SCHED[cur];
-  var html='<div class="tip-box tip-info" style="margin-bottom:12px;"><strong>'+s.name+'</strong>　峰值温度 '+s.peak+'°C，总烧成时间 '+s.totalDesc+'。</div>';
+  var est=__kfEstimate(s);
+  var total=(est.min===est.max?'约 '+__kfFmt(est.min):'约 '+__kfFmt(est.min)+'–'+__kfFmt(est.max))+' 小时'+(est.unknown?'（不含自然冷却段）':'');
+  var part='可计算段：升温 '+__kfFmt(est.heat)+' h + 保温 '+__kfFmt(est.holdMin)+(est.holdMax!==est.holdMin?'–'+__kfFmt(est.holdMax):'')+' h'+(est.cool?' + 慢冷 '+__kfFmt(est.cool)+' h':'');
+  var html='<div class="tip-box tip-info" style="margin-bottom:12px;"><strong>'+s.name+'</strong>　峰值温度 '+s.peak+'°C；'+part+' = '+total+'。<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">按各段温度区间÷升温速率并计入保温；自然冷却受窑型、装窑量与环境影响，未计入固定总时长。</div></div>';
   s.stages.forEach(function(st){
     html+='<div class="stage-card"><div class="s-ico">'+st[0]+'</div><div class="s-info"><div class="s-name">'+st[1]+'　'+st[2]+'</div><div class="s-meta">升温速率 '+st[3]+'　'+st[4]+'</div></div></div>';
   });

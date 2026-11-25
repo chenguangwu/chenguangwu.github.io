@@ -334,14 +334,24 @@ function renderCurve(){
     ];
   }
 
-  const totalTime = stages.reduce((sum, s) => {
-    const m = s.time.match(/约([\d.]+)h/);
-    return sum + (m ? parseFloat(m[1]) : 0);
-  }, 0);
+  stages.forEach(s => { s.kind = (s.name === '保温') ? 'hold' : (s.name === '降温' ? 'cool' : 'heat'); });
+  const parseDur = (t) => {
+    const range = t.match(/约\s*([\d.]+)\s*[-–]\s*([\d.]+)\s*(h|min)/i);
+    if (range) { const div = range[3].toLowerCase() === 'min' ? 60 : 1; return [parseFloat(range[1])/div, parseFloat(range[2])/div]; }
+    const one = t.match(/约\s*([\d.]+)\s*(h|min)/i);
+    if (one) { const v = parseFloat(one[1]) / (one[2].toLowerCase() === 'min' ? 60 : 1); return [v, v]; }
+    return [0, 0];
+  };
+  const sumKind = (kind) => stages.filter(s => s.kind === kind).reduce((a, s) => { const d = parseDur(s.time); return [a[0] + d[0], a[1] + d[1]]; }, [0, 0]);
+  const heat = sumKind('heat'), hold = sumKind('hold'), cool = sumKind('cool');
+  const totalTime = [heat[0] + hold[0] + cool[0], heat[1] + hold[1] + cool[1]];
+  const fmtH = (n) => (Math.round(n * 10) / 10).toFixed(1);
+  const totalText = Math.abs(totalTime[0] - totalTime[1]) < 1e-9 ? '约' + fmtH(totalTime[0]) + '小时' : '约' + fmtH(totalTime[0]) + '–' + fmtH(totalTime[1]) + '小时';
 
   const __h1=`
     <p style="font-size:14px;">陶土：<strong>${clay.icon} ${clay.name}</strong> · 烧制：<strong>${isGlaze ? '釉烧' : '素烧'}</strong></p>
-    <p style="font-size:13px;margin-top:6px;">峰值温度：<strong style="color:var(--primary);">${peakTemp}°C</strong> · 预计总时长：<strong style="color:var(--primary);">约${totalTime.toFixed(1)}小时</strong></p>
+    <p style="font-size:13px;margin-top:6px;">峰值温度：<strong style="color:var(--primary);">${peakTemp}°C</strong> · 完整周期：<strong style="color:var(--primary);">${totalText}</strong></p>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">分段合计：升温 ${fmtH(heat[0])}–${fmtH(heat[1])} h + 保温 ${fmtH(hold[0])}–${fmtH(hold[1])} h + 冷却 ${fmtH(cool[0])}–${fmtH(cool[1])} h；冷却段按方案估算到 200°C，实际受窑型、装窑量与环境影响。</p>
     <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">${clay.desc}</p>
   `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('summaryBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('summaryBox').innerHTML=__h1;
 
@@ -367,7 +377,8 @@ function copyResult(){
   const fireType = document.getElementById('fireType').value;
   const isGlaze = fireType === 'glaze';
   const peakTemp = isGlaze ? clay.maxTemp - 80 : clay.maxTemp;
-  const text = `${clay.name} ${isGlaze?'釉烧':'素烧'}方案\n峰值温度：${peakTemp}°C\n陶土说明：${clay.desc}`;
+  const summary = document.querySelector('#summaryBox');
+  const text = `${clay.name} ${isGlaze?'釉烧':'素烧'}方案\n峰值温度：${peakTemp}°C\n${summary ? summary.textContent.trim() : ''}\n陶土说明：${clay.desc}`;
   ToolBox.copyText(text, i18nText('msg501'));
 }
 

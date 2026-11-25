@@ -246,7 +246,7 @@ function renderMats(){
 }
 function updateMat(idx,field,val){
   if(field==='name')MATS[idx].name=val;
-  else MATS[idx].pct=parseFloat(val)||0;
+  else MATS[idx].pct=val;
   calc();
 }
 function addMat(){MATS.push({name:'新原料',pct:0});renderMats();calc();}
@@ -256,24 +256,31 @@ function calc(){
   var ratio=parseFloat(document.getElementById('method').value);
   var out=document.getElementById('result');
   if(isNaN(total)||total<=0){out.innerHTML='<p style="color:var(--danger)">请输入有效干釉料总重</p>';return;}
-  var sum=0,items=[];
-  MATS.forEach(function(m){
-    var w=total*m.pct/100;
-    sum+=m.pct;
-    items.push({name:m.name,pct:m.pct,w:w});
-    var wEl=document.getElementById('w_'+MATS.indexOf(m));
-    if(wEl)wEl.value=w.toFixed(1)+' g';
+  var sum=0,items=[],errs=[];
+  MATS.forEach(function(m,idx){
+    var raw=String(m.pct==null?'':m.pct).trim();
+    if(raw===''){errs.push('第 '+(idx+1)+' 项「'+m.name+'」比例为必填');return;}
+    var pct=Number(raw);
+    if(!isFinite(pct)||pct<0||pct>100){errs.push('第 '+(idx+1)+' 项「'+m.name+'」比例须为 0–100 的有限数（当前 '+raw+'）');return;}
+    sum+=pct; items.push({name:m.name,pct:pct,w:total*pct/100});
   });
+  if(errs.length){
+    MATS.forEach(function(m,idx){var wEl=document.getElementById('w_'+idx);if(wEl)wEl.value='—';});
+    out.innerHTML='<p style="color:var(--danger)">⚠ 请先修正以下比例，未生成称量表：</p><ul style="color:var(--danger);font-size:13px;line-height:1.8;margin-left:18px;">'+errs.map(function(e){return '<li>'+e+'</li>';}).join('')+'</ul>';
+    return;
+  }
+  items.forEach(function(it,idx){var wEl=document.getElementById('w_'+idx);if(wEl)wEl.value=it.w.toFixed(1)+' g';});
   var water=total*ratio;
   var slipVol=(total+water)/1.55; // 估算釉浆体积 mL (浸釉比重~1.55)
   var sumGrade=Math.abs(sum-100)<0.5?'grade-excellent':'grade-pass';
+  var sumMsg=Math.abs(sum-100)<0.5?'配方百分比合计为 100%，比例正确（允许 ±0.5% 舍入）':(sum<100?'配方百分比合计 '+sum.toFixed(1)+'%，低于 100%，请补足':'配方百分比合计 '+sum.toFixed(1)+'%，高于 100%，请扣减');
   var html='<div class="big-result">干釉料总重 '+total.toFixed(0)+' g（配方合计 '+sum.toFixed(1)+'%）</div>';
   html+='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val">'+sum.toFixed(1)+'%</div><div class="lbl">配方合计</div></div>';
   html+='<div class="stat-card"><div class="val">'+water.toFixed(0)+' g</div><div class="lbl">需加水量</div></div>';
   html+='<div class="stat-card"><div class="val">'+(total+water).toFixed(0)+' g</div><div class="lbl">釉浆总重</div></div>';
   html+='</div>';
-  html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--result-bg);border-radius:10px;margin:6px 0;border-left:4px solid '+(Math.abs(sum-100)<0.5?'var(--success)':'var(--warning)')+';"><div style="flex:1;font-size:13px;">'+(Math.abs(sum-100)<0.5?'配方百分比合计为 100%，比例正确':'配方百分比合计 '+sum.toFixed(1)+'%，未达 100%，请调整')+'</div><span class="grade-tag '+sumGrade+'">'+(Math.abs(sum-100)<0.5?'合格':'待校')+'</span></div>';
+  html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--result-bg);border-radius:10px;margin:6px 0;border-left:4px solid '+(Math.abs(sum-100)<0.5?'var(--success)':'var(--warning)')+';"><div style="flex:1;font-size:13px;">'+(Math.abs(sum-100)<0.5?'配方百分比合计为 100%，比例正确（允许 ±0.5% 舍入）':(sum<100?'配方百分比合计 '+sum.toFixed(1)+'%，低于 100%，请补足':'配方百分比合计 '+sum.toFixed(1)+'%，高于 100%，请扣减'))+'</div><span class="grade-tag '+sumGrade+'">'+(Math.abs(sum-100)<0.5?'合格':'待校')+'</span></div>';
   html+='<h3 style="margin-top:14px;">原料称量表</h3>';
   html+='<table><thead><tr><th>原料</th><th>百分比(%)</th><th>称量(g)</th><th>称量(kg)</th></tr></thead><tbody>';
   items.forEach(function(it){
@@ -289,7 +296,8 @@ function calc(){
 }
 function copyResult(){
   var r=document.querySelector('#result .big-result');
-  ToolBox.copyText(r?r.textContent:'釉料配比结果', i18nText('tool.copy_ok'));
+  if(!r){ToolBox.showToast('当前没有有效称量结果，请先修正输入','warn');return;}
+  ToolBox.copyText(r.textContent, i18nText('tool.copy_ok'));
 }
 renderMats();
 calc();

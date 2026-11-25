@@ -160,7 +160,7 @@
       <div><label for="targetFired">目标成品尺寸 (mm)</label><input type="number" id="targetFired" value="100" min="0.1" step="0.1" oninput="calcReverse()" placeholder="如 100"></div>
       <div><label for="totalShrink">总收缩率 (%)</label><input type="number" id="totalShrink" value="14" min="0" max="50" step="0.5" oninput="calcReverse()" placeholder="如 14（0–50）"></div>
     </div>
-    <div class="toolbar"><button type="button" class="btn primary" onclick="calcReverse()">反算制作尺寸</button></div>
+    <div class="toolbar"><button type="button" class="btn primary" onclick="calcReverse()">反算制作尺寸</button><button type="button" class="btn" onclick="copyReverse()">复制反算结果</button></div>
     <div class="result-box" id="reverseResult"></div>
   </div>
   <div class="card">
@@ -247,15 +247,16 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
+var clayForwardOk=false,clayReverseOk=false;
 function calc(){
   var L0=parseFloat(document.getElementById('wet').value);
   var L1=parseFloat(document.getElementById('dry').value);
   var L2=parseFloat(document.getElementById('fired').value);
   var out=document.getElementById('result');
   if([L0,L1,L2].some(function(x){return isNaN(x);})||L0<=0||L1<=0||L2<=0){
-    out.innerHTML='<p style="color:var(--danger)">请输入有效尺寸</p>';return;
+    clayForwardOk=false;out.innerHTML='<p style="color:var(--danger)">请输入有效尺寸</p>';return;
   }
-  if(L2>L1||L1>L0){out.innerHTML='<p style="color:var(--danger)">尺寸需满足 湿坯 ≥ 干坯 ≥ 烧成，请检查输入</p>';return;}
+  if(L2>L1||L1>L0){clayForwardOk=false;out.innerHTML='<p style="color:var(--danger)">尺寸需满足 湿坯 ≥ 干坯 ≥ 烧成，请检查输入</p>';return;}
   var Sd=(L0-L1)/L0*100;
   var Sf=(L1-L2)/L1*100;
   var St=(L0-L2)/L0*100;
@@ -270,6 +271,7 @@ function calc(){
   html+='<div class="step-line"><strong>烧成收缩</strong>　S烧 = (L₁−L₂)/L₁ = ('+L1+'−'+L2+')/'+L1+' = '+Sf.toFixed(2)+'%</div>';
   html+='<div class="step-line"><strong>总收缩</strong>　S总 = (L₀−L₂)/L₀ = ('+L0+'−'+L2+')/'+L0+' = '+St.toFixed(2)+'%</div>';
   html+='<div class="step-line" style="border-color:var(--success);background:rgba(16,185,129,0.08);"><strong>结论</strong>　该泥料干燥收缩 '+Sd.toFixed(1)+'%、烧成收缩 '+Sf.toFixed(1)+'%、总收缩 '+St.toFixed(1)+'%。每 100mm 湿坯烧成后约 '+(100*(1-St/100)).toFixed(1)+'mm。</div>';
+  clayForwardOk=true;
   const __g3=html;out.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 function calcReverse(){
@@ -285,11 +287,19 @@ function calcReverse(){
   html+='<div class="stat-card"><div class="val">'+L0.toFixed(2)+'</div><div class="lbl">湿坯尺寸(mm)</div></div>';
   html+='</div>';
   html+='<div class="step-line" style="border-color:var(--success);background:rgba(16,185,129,0.08);margin-top:10px;"><strong>公式</strong>　L₀ = L₂ / (1 − S总) = '+tf+' / (1 − '+st/100+') = '+L0.toFixed(2)+' mm</div>';
+  clayReverseOk=true;
   const __g5=html;out.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){
-  var r=document.querySelector('#result .big-result');
-  ToolBox.copyText(r?r.textContent:'泥料收缩率结果', i18nText('tool.copy_ok'));
+  if(!clayForwardOk){ToolBox.showToast('当前没有有效的正向收缩率结果，请先修正输入','warn');return;}
+  var L0=parseFloat(document.getElementById('wet').value),L1=parseFloat(document.getElementById('dry').value),L2=parseFloat(document.getElementById('fired').value);
+  var Sd=(L0-L1)/L0*100,Sf=(L1-L2)/L1*100,St=(L0-L2)/L0*100;
+  ToolBox.copyText('泥料收缩率：湿坯 L₀='+L0+' mm，干坯 L₁='+L1+' mm，烧成 L₂='+L2+' mm；干燥收缩 '+Sd.toFixed(2)+'%，烧成收缩 '+Sf.toFixed(2)+'%，总收缩 '+St.toFixed(2)+'%。口径：Sd=(L₀−L₁)/L₀，Sf=(L₁−L₂)/L₁，St=(L₀−L₂)/L₀。', i18nText('tool.copy_ok'));
+}
+function copyReverse(){
+  if(!clayReverseOk){ToolBox.showToast('当前没有有效的反算结果，请先修正输入','warn');return;}
+  var tf=parseFloat(document.getElementById('targetFired').value),st=parseFloat(document.getElementById('totalShrink').value),L0=tf/(1-st/100);
+  ToolBox.copyText('成品反算湿坯：目标成品 L₂='+tf+' mm，总收缩率 '+st+'%，湿坯 L₀='+L0.toFixed(2)+' mm。口径：L₀=L₂/(1−S总)。', i18nText('tool.copy_ok'));
 }
 calc();
 calcReverse();
