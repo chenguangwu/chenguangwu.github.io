@@ -442,6 +442,24 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/home/renovation-budget.html','utf8');var ok=h.indexOf('<button type=\"button\" class=\"del\" aria-label=\"删除')>=0&&h.indexOf('undoPresetBtn')>=0&&h.indexOf('本工具不设预算上限')>=0&&h.indexOf('能设预算上限、跟踪实际支出吗？')>=0;document.getElementById('__tbProbe').textContent='RENA11Y '+(ok?'OK':'BAD');"],
   "expect": ["RENA11Y OK"],
   "ref": "删除控件须为带项目名 aria-label 的真实 button；文案统一声明不设预算上限、不跟踪实际支出，并保留撤销入口。"
+},
+{
+  "slug": "home/washer-capacity",
+  "inputs": {"people": "4"},
+  "expect": ["8–9 kg", "81 L"],
+  "ref": "第867批：4 人按对照表推荐 8–9 kg，用水按上限 9 kg × 滚筒 9L/kg = 81L；旧实现 4×2.5=10kg 与 FAQ 8–9kg 冲突。"
+},
+{
+  "slug": "home/washer-capacity",
+  "inputs": {"people": "2.5"},
+  "expect": ["家庭人口必须为正整数"],
+  "ref": "第867批：小数人数不再被 Math.floor 静默取整，明确提示必须为正整数。"
+},
+{
+  "slug": "home/furniture-layout",
+  "clicks": ["document.getElementById('rl').value='1';document.getElementById('rw').value='1';addFurniture('床(双人)');__flClamp();var m=__flMetrics();document.getElementById('__tbProbe').textContent='FLMET '+m.overlap.toFixed(2)+'|'+m.outside.toFixed(2);"],
+  "expect": ["FLMET 0.00|2.60"],
+  "ref": "第867批：1×1m 房间放 1.8×2m 床，旧算法把房外 2.60m² 算成重叠；现房内重叠 0.00、越界 2.60。"
 }
 ];
 async function main() {

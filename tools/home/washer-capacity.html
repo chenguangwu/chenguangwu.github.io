@@ -127,7 +127,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">买洗衣机容量怎么选？按家庭人口数推荐 5–10kg 区间，并结合是否有大件床品/窗帘判断是否需要更大容量，顺带估算单次用水。</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">洗衣机容量按人口与洗涤物推荐：单人 3 至 5 kg、2 至 3 人 6 至 7 kg、4 至 5 人 8 至 9 kg、5 人以上 10 kg；需洗床品或窗帘时容量上浮约 2 kg（双人被套展开后约占 4 至 5 kg 容量）；单次用水约为 容量(kg) × 10 至 15 L（波轮偏高、滚筒偏低）；选型建议按日常需求 × 1.2 预留余量。</div>
+      <div class="formula-eq">洗衣机容量按家庭人口区间推荐：1 至 2 人 5 至 6 kg、3 人 7 至 8 kg、4 人 8 至 9 kg、5 人及以上 10 kg；需洗床品或窗帘等大件时，容量至少 8 kg，再按大件数量上修。结果中的用水估算取推荐区间上限；单次用水约为 容量(kg) × 9 L（滚筒）或 × 30 L（波轮）。家庭人口必须为正整数，避免小数人数被静默取整。</div>
   
 </div>
 
@@ -247,7 +247,7 @@
     </a>
     <a href="furniture-layout.html" class="related-tool-card">
       <span class="rt-icon">🛋️</span>
-      <span class="rt-info"><span class="rt-name">家具布局</span><span class="rt-desc">在浏览器本地拖拽床、沙发、桌子等家具到户型平面图中，按房间尺寸实时摆放与避让，估算通道与空间利用率；</span></span>
+      <span class="rt-info"><span class="rt-name">家具布局</span><span class="rt-desc">在浏览器本地拖拽床、沙发、桌子等家具到户型平面图中，按房间尺寸摆放，计算占用率、重叠面积与越界面积；</span></span>
     </a>
     <a href="paint-calculator.html" class="related-tool-card">
       <span class="rt-icon">📐</span>
@@ -271,21 +271,25 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){const people=Math.floor(num('people'));
-   if(people<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效人口数。</p>');return;}
+function calcTool(){
+   const raw=document.getElementById('people').value.trim();
+   if(!/^\d+$/.test(raw)||+raw<=0){ToolBox.setResult('result','<p class="tip-error">家庭人口必须为正整数，请输入 1 及以上的人数。</p>');return;}
+   const people=+raw;
    const big=document.getElementById('big').value;
    const type=document.getElementById('type').value;
-   let rec=Math.min(10,Math.max(5,people*2.5));
-   if(big==='yes'&&rec<8) rec=8;
-   if(rec>10) rec=10;
+   let lo,hi;
+   if(people<=2){lo=5;hi=6;} else if(people===3){lo=7;hi=8;} else if(people===4){lo=8;hi=9;} else {lo=10;hi=10;}
+   if(big==='yes'&&hi<8){lo=8;hi=9;}
+   const rec=hi;
    const water=type==='drum'?Math.round(rec*9):Math.round(rec*30);
+   let recLabel=lo===hi?(lo+' kg'):(lo+'–'+hi+' kg');
    let html=dataGrid([
-     [rec+' kg','推荐容量'],
+     [recLabel,'推荐容量'],
      [water+' L','单次参考用水'],
      [people+' 人','家庭人口'],
      [type==='drum'?'滚筒':'波轮','机型']
    ]);
-   html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">按人均 2.5kg 衣物估算：'+people+' 口之家约需 '+rec+'kg。滚筒省水（约 9L/kg）、对衣物磨损小；波轮洗净力强但费水（约 30L/kg）。洗 4 件套床品建议 ≥8kg。</p>';
+   html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">按家庭人口对照表推荐 '+recLabel+'（用水估算取区间上限 '+rec+'kg）：'+people+' 口之家建议选 '+recLabel+'。滚筒省水（约 9L/kg）、对衣物磨损小；波轮洗净力强但费水（约 30L/kg）。洗四件套床品或窗帘等大件时，容量至少 8kg，必要时按大件上修。</p>';
 
    // 容量与人口对照表
    html += '<div style="margin-top:12px;font-size:13px;"><b>容量与家庭人口对照</b></div>'+
@@ -310,19 +314,21 @@ function __washer_capacityNum(id){var e=document.getElementById(id);var v=e?pars
 function __washer_capacityExtras(){
     function __washer_capacityRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var people=Math.floor(num('people'));
+    var raw=String(__washer_capacityRaw('people')).trim();
+    if(!/^\d+$/.test(raw)||+raw<=0||!__washer_capacityRaw('big')||!__washer_capacityRaw('type'))return;
+    var people=+raw;
     var big=document.getElementById('big').value;
     var type=document.getElementById('type').value;
-    var rec=Math.min(10,Math.max(5,people*2.5));
-    if(big==='yes'&&rec<8) rec=8;
-    if(rec>10) rec=10;
+    var lo,hi;
+    if(people<=2){lo=5;hi=6;} else if(people===3){lo=7;hi=8;} else if(people===4){lo=8;hi=9;} else {lo=10;hi=10;}
+    if(big==='yes'&&hi<8){lo=8;hi=9;}
+    var rec=hi, recLabel=lo===hi?(lo+' kg'):(lo+'–'+hi+' kg');
     var water=type==='drum'?Math.round(rec*9):Math.round(rec*30);
-    if (!isFinite(__washer_capacityNum('people')) || !__washer_capacityRaw('big') || !__washer_capacityRaw('type')) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#washer_capacityTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['推荐容量', rec+' kg'],
+            ['推荐容量', recLabel],
             ['单次参考用水', water+' L'],
             ['家庭人口', people+' 人'],
             ['机型', type==='drum'?'滚筒':'波轮'],
