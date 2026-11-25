@@ -3856,7 +3856,56 @@ const CASES = [
     clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/temperature-converter.html','utf8');document.getElementById('__tbProbe').textContent='TEMPHIST '+((src.indexOf('tabindex')>=0&&src.indexOf('keydown')>=0&&src.indexOf('aria-label')>=0)?'OK':'BAD');"],
     expect: ["TEMPHIST OK"],
     ref: "第913批：历史恢复项原为不可聚焦 div；现 role=button、tabindex=0、Enter/Space 恢复，删除按钮独立并带 aria-label。"
+  },
+  {
+    slug: "life/cycle-4",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/cycle-4.html','utf8');document.getElementById('__tbProbe').textContent='NULL999 '+((src.indexOf('return null;')>=0&&src.indexOf('return 999')<0&&src.indexOf('days === null')>=0&&src.indexOf('d===null')>=0)?'OK':'BAD');"],
+    expect: ["NULL999 OK"],
+    ref: "第914批：零消耗不再复用 999 哨兵；改返回 null，列表按未设消耗展示且排在末尾，正消耗即使超过 999 天也按实际天数显示；图表/表格/导出均显式判 null。"
+  },
+  {
+    slug: "life/angle-converter",
+    inputs: { inputVal: "0" },
+    expect: ["0° 表示没有转动方向，不匹配实物参照。"],
+    ref: "第914批：0° 不匹配最近参照；不再显示约 6°。"
+  },
+  {
+    slug: "life/angle-converter",
+    inputs: { inputVal: "3600" },
+    expect: ["不表示近似相等"],
+    ref: "第914批：3600° 与周角相差 10 倍，改按倍数说明、不写约等于。"
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "0.9", fromUnit: "pct", molarMass: "" },
+    expect: ["未填写摩尔质量"],
+    ref: "第914批：摩尔质量初始留空，未填时跳过 mol/L 并提示，不再默认 NaCl 58.44。"
+  },
+  {
+    slug: "life/event-countdown",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/event-countdown.html','utf8');document.getElementById('__tbProbe').textContent='EVZH '+((src.indexOf('data-zh=\"国务院办公厅节假日安排\"')>=0&&src.indexOf('data-zh=\"State Council holiday arrangements\"')<0)?'OK':'BAD');"],
+    expect: ["EVZH OK"],
+    ref: "第914批：引据表来源列中文态恢复准确中文，英文保留在正文。"
+  },
+  {
+    slug: "life/report-profit",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/report-profit.html','utf8');document.getElementById('__tbProbe').textContent='OPRATE '+((src.indexOf('简化营业利润率')>=0&&src.indexOf('（净利率 ')<0)?'OK':'BAD');"],
+    expect: ["OPRATE OK"],
+    ref: "第914批：仅扣进货/人工/房租/杂费的简化利润改标简化营业利润率，不再称净利率。"
+  },
+  {
+    slug: "life/detector-checker-strength",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/detector-checker-strength.html','utf8');document.getElementById('__tbProbe').textContent='PWREF '+((src.indexOf('安全系数 = 极限强度')<0&&src.indexOf('材料分项系数')<0&&src.indexOf('字符池熵估算')>=0)?'OK':'BAD');"],
+    expect: ["PWREF OK"],
+    ref: "第914批：公式引据表删除材料工程条目，改为字符池熵、重复/常见口令与破解时间假设。"
+  },
+  {
+    slug: "life/bra-size-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/bra-size-converter.html','utf8');document.getElementById('__tbProbe').textContent='BRAJP '+((src.indexOf('日码')<0&&src.indexOf('国际、美、英、欧、法码')>=0)?'OK':'BAD');"],
+    expect: ["BRAJP OK"],
+    ref: "第914批：搜索描述不再承诺日码，改为实际提供的国际/美/英/欧/法码。"
   }
+
 ];
 
 // ---------------------------------------------------------------- main

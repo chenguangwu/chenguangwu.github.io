@@ -287,7 +287,7 @@ function getDaysPerPeriod(period) {
 
 // 计算预计耗尽天数
 function getDaysUntilEmpty(sup) {
-  if (sup.rate <= 0) return 999;
+  if (sup.rate <= 0) return null;
   var periodDays = getDaysPerPeriod(sup.period);
   var dailyRate = sup.rate / periodDays;
   var days = Math.floor(sup.stock / dailyRate);
@@ -313,6 +313,7 @@ function getStockStatus(sup) {
   var days = getDaysUntilEmpty(sup);
   if (sup.stock <= 0) return { level: 'out', label: '已耗尽', color: 'var(--danger)' };
   if (sup.stock <= sup.threshold) return { level: 'low', label: '库存不足', color: 'var(--warning)' };
+  if (days === null) return { level: 'ok', label: '库存充足', color: 'var(--success)' };
   if (days <= 7) return { level: 'low', label: '即将耗尽', color: 'var(--warning)' };
   return { level: 'ok', label: '库存充足', color: 'var(--success)' };
 }
@@ -446,6 +447,8 @@ function renderSupplies() {
   if (!supplies.length) { const __h2='<div class="empty">暂无清洁用品，请先添加</div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h2; return; }
   var sorted = supplies.slice().sort(function(a, b) {
     var da = getDaysUntilEmpty(a), db = getDaysUntilEmpty(b);
+    if(da===null) return 1;
+    if(db===null) return -1;
     return da - db;
   });
   var html = '';
@@ -453,7 +456,7 @@ function renderSupplies() {
     var status = getStockStatus(sup);
     var days = getDaysUntilEmpty(sup);
     var periodName = sup.period === 'week' ? '每周' : '每月';
-    var dayText = days >= 999 ? '未设消耗' : (days <= 0 ? '已耗尽' : days + ' 天');
+    var dayText = days === null ? '未设消耗' : (days <= 0 ? '已耗尽' : days + ' 天');
     var barPct = Math.min((sup.stock / (sup.threshold * 3 || 1)) * 100, 100);
     var barColor = status.level === 'ok' ? 'var(--success)' : (status.level === 'low' ? 'var(--warning)' : 'var(--danger)');
     html += '<div class="supply-card">';
@@ -597,7 +600,7 @@ function __supplyExtras(){
   list.forEach(function(s,i){
     var nm=s.name||'用品';
     labels.push(en?(fb?(enNames[nm]||('Item '+(i+1))):('Item '+(i+1))):nm);
-    var d=getDaysUntilEmpty(s); if(!isFinite(d))d=0;
+    var d=getDaysUntilEmpty(s); if(d===null)d=0;
     if(d>365)d=365;
     data.push(d);
   });
@@ -620,7 +623,7 @@ function __supplyTable(){
   var list=supplies||[];
   if(!list.length){list=[{name:'洗洁精',unit:'瓶',stock:3,rate:0.5,period:'month'},{name:'抽纸',unit:'提',stock:6,rate:2,period:'month'},{name:'洗衣液',unit:'瓶',stock:2,rate:0.3,period:'month'}];}
   tb.innerHTML=list.map(function(s,i){
-    var d=getDaysUntilEmpty(s);if(!isFinite(d))d=0;if(d>365)d=365;
+    var d=getDaysUntilEmpty(s);if(d===null)d=0;if(d>365)d=365;
     return '<tr><td>'+(i+1)+'</td><td>'+ToolBox.escHtml(s.name||'用品')+'</td><td>'+ToolBox.escHtml(s.unit||'')+'</td><td>'+(+s.stock||0)+'</td><td>'+(+s.rate||0)+'</td><td>'+d+'</td></tr>';
   }).join('');
 }
@@ -638,7 +641,7 @@ function __supplyExport(){
   var en=__supplyIsEn();
   var rows=supplies.map(function(s){
     var d=getDaysUntilEmpty(s);
-    var left=isFinite(d)?(d>365?'≥365':d.toFixed(0)+' 天'):'—';
+    var left=(d===null)?'未设消耗':(d>365?'≥365':d.toFixed(0)+' 天');
     return [s.name||'用品', s.unit||'', s.stock!=null?s.stock:'', s.rate!=null?s.rate:'', s.period||'', s.threshold!=null?s.threshold:'', left];
   });
   var t=document.createElement('table');
