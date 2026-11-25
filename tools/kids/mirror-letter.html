@@ -178,7 +178,7 @@
     <div class="input-row">
       <div>
         <label for="typeSel">练习内容</label>
-        <select id="typeSel" onchange="nextRound()">
+        <select id="typeSel" onchange="resetGame()">
           <option value="letter" selected>字母 A-Z</option>
           <option value="number">数字 0-9</option>
           <option value="mixed">字母 + 数字</option>
@@ -194,7 +194,7 @@
       </div>
       <div>
         <label for="diffSel">难度</label>
-        <select id="diffSel" onchange="nextRound()">
+        <select id="diffSel" onchange="resetGame()">
           <option value="easy" selected>简单（单字符）</option>
           <option value="hard">困难（双字符）</option>
         </select>
@@ -216,7 +216,7 @@
     </div>
 
     <div class="toolbar">
-      <div id="mirror_letterPresets"></div><button type="button" class="btn primary" onclick="nextRound()">下一题</button><button class="btn" type="button" onclick="__mirror_letterExport()">导出明细 CSV</button>
+      <div id="mirror_letterPresets"></div><button type="button" class="btn primary" onclick="skipQuestion()">下一题</button><button class="btn" type="button" onclick="__mirror_letterExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="resetGame()">重新开始</button>
       <button type="button" class="btn success" onclick="showGuide()">辨识技巧</button>
     </div>
@@ -299,7 +299,9 @@
 <script>
 var KEY = 'kids_mirror_stats';
 var stats = { total:0, right:0, bestStreak:0 };
-var round = { idx:0, target:'R', mirrored:false, streak:0, answered:false, limit:10, right:0, total:0, nextId:null };
+var MIR_EN=/[?&]lang=en-US/.test(location.search);
+function mirL(en,zh){ return MIR_EN ? en : zh; }
+var round = { idx:0, target:'R', mirrored:false, streak:0, answered:false, limit:10, right:0, total:0, skipped:0, nextId:null };
 
 function loadStats(){
   try{ var s = JSON.parse(localStorage.getItem(KEY)); if(s) stats = Object.assign(stats, s); }catch(e){}
@@ -330,16 +332,23 @@ function genTarget(){
   return s;
 }
 
-function nextRound(){
+function nextRound(skip){
   if(round.nextId){ clearTimeout(round.nextId); round.nextId = null; }
   var limit = parseInt(document.getElementById('roundSel').value);
-  if(limit > 0 && round.idx >= limit){
-    var acc = round.total > 0 ? Math.round(round.right / round.total * 100) : 0;
-    ToolBox.showToast('练习完成！本轮正确率 ' + acc + '%（' + round.right + '/' + round.total + '）', 'success');
+  if(limit > 0 && round.idx >= limit && round.answered){
+    if(round.total > 0){
+      var acc = Math.round(round.right / round.total * 100);
+      ToolBox.showToast(mirL('Round complete! Accuracy ' + acc + '% (' + round.right + '/' + round.total + ', skipped ' + round.skipped + ')','练习完成！本轮正确率 ' + acc + '%（' + round.right + '/' + round.total + '，跳过 ' + round.skipped + ' 题）'), 'success');
+    } else {
+      ToolBox.showToast(mirL('No scored answers this round; accuracy is not calculated (skipped ' + round.skipped + ').','本轮没有有效作答，不计算正确率（跳过 ' + round.skipped + ' 题）'), 'info');
+    }
     resetGame();
     return;
   }
-  round.idx++;
+  if(!skip){
+    if(round.idx === 0 && !round.answered) round.idx = 1;
+    else if(round.answered) round.idx++;
+  }
   round.target = genTarget();
   round.mirrored = Math.random() < 0.5;
   round.answered = false;
@@ -352,6 +361,14 @@ function nextRound(){
   const __h1='&nbsp;';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('feedback').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('feedback').innerHTML=__h1;
   document.querySelectorAll('.opt-row .opt').forEach(function(b){ b.classList.remove('correct','wrong'); b.disabled = false; });
   renderStats();
+}
+
+function skipQuestion(){
+  if(round.answered){ nextRound(); return; }
+  if(!confirm(mirL('This question is unanswered. Skip it? Skipped questions do not count toward the round.','当前题尚未作答，确定跳过？跳过的题不计入完成题数。'))) return;
+  round.skipped++;
+  ToolBox.showToast(mirL('Question skipped; skipped questions do not count toward the round.','已跳过当前题；跳过的题不计入完成题数。'),'info');
+  nextRound(true);
 }
 
 function answer(userMirror){
@@ -389,6 +406,7 @@ function resetGame(){
   round.streak = 0;
   round.right = 0;
   round.total = 0;
+  round.skipped = 0;
   renderStats();
   nextRound();
 }

@@ -311,6 +311,7 @@ var state = {
   paused: false,
   endAt: 0,
   presetIdx: 1,
+  goal: 4,
   circumference: 2 * Math.PI * 88
 };
 
@@ -335,8 +336,18 @@ function saveStats(){
   try{ localStorage.setItem(KEY, JSON.stringify(stats)); }catch(e){}
 }
 
+function readFocusInt(id,min,max){
+  var raw=String(document.getElementById(id).value).trim();
+  if(!/^\d+$/.test(raw)) return null;
+  var n=+raw;
+  return (n>=min&&n<=max)?n:null;
+}
+function focusError(msg){ ToolBox.showToast(msg,'error'); }
+
 function renderStats(){
-  var goal = parseInt(document.getElementById('goalCount').value) || 4;
+  var goal = readFocusInt('goalCount',1,12);
+  if(goal===null){ focusError(ft('Goal must be an integer from 1 to 12.','目标番茄数必须为 1–12 的整数。')); return; }
+  state.goal = goal;
   var html = '';
   html += '<div class="stat-card"><div class="val">' + stats.done + '</div><div class="lbl">' + ft('Sessions today','今日番茄') + '</div></div>';
   html += '<div class="stat-card"><div class="val">' + goal + '</div><div class="lbl">' + ft('Goal today','今日目标') + '</div></div>';
@@ -348,6 +359,7 @@ function renderStats(){
 }
 
 function renderTomatos(goal){
+  goal=Math.max(1,Math.min(12,goal||state.goal||4));
   var html = '';
   for(var i = 0; i < goal; i++){
     html += '<span class="t' + (i < stats.done ? ' done' : '') + '">🍅</span>';
@@ -376,14 +388,20 @@ function selectPreset(i){
 }
 
 function applyCustom(keepPreset){
+  var focus=readFocusInt('focusMin',5,45), rest=readFocusInt('restMin',1,20), goal=readFocusInt('goalCount',1,12);
+  if(focus===null){ focusError(ft('Focus length must be an integer from 5 to 45 minutes.','专注时长必须为 5–45 的整数分钟。')); return false; }
+  if(rest===null){ focusError(ft('Break length must be an integer from 1 to 20 minutes.','休息时长必须为 1–20 的整数分钟。')); return false; }
+  if(goal===null){ focusError(ft('Goal must be an integer from 1 to 12.','目标番茄数必须为 1–12 的整数。')); return false; }
   if(!keepPreset) state.presetIdx = 3;
-  state.focusSec = (parseInt(document.getElementById('focusMin').value) || 15) * 60;
-  state.restSec = (parseInt(document.getElementById('restMin').value) || 5) * 60;
+  state.focusSec = focus * 60;
+  state.restSec = rest * 60;
+  state.goal = goal;
   if(state.phase === 'idle' || state.phase === 'done'){
     state.remaining = state.focusSec;
     updateDisplay();
   }
   renderPresets();
+  return true;
 }
 
 function updateDisplay(){
@@ -424,6 +442,7 @@ function toggleStart(){
 }
 
 function start(){
+  if(!applyCustom(true)) return;
   if(state.phase === 'idle' || state.phase === 'done'){
     state.phase = 'focus';
     state.remaining = state.focusSec;
