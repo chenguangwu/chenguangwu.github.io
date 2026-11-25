@@ -135,7 +135,7 @@
     <h2 data-zh="🌡️ 结晶(溶剂/温度)收率预测器">Crystallization Yield</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据溶解度随温度变化预测冷却结晶收率，优化结晶工艺">Crystallization Yield</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">冷却/反溶剂结晶收率预测<br>高温可溶量 = 高温溶解度(g/100mL) × 溶剂体积(mL) ÷ 100<br>实际溶解量 = min(投料量, 高温可溶量)；未溶量 = 投料量 − 实际溶解量<br>低温残留量 = 低温溶解度 × 溶剂体积 ÷ 100<br>理论结晶量 = max(0, 实际溶解量 − 低温残留量)<br>实际结晶量 = 理论结晶量 × (1 − 结晶损失率 ÷ 100)<br>结晶收率 = 实际结晶量 ÷ 投料量 × 100%<br>纯度提升倍数 = 高温溶解度 ÷ 低温溶解度（理想 ≥5:1）<br>过饱和度 = 实际溶解量 ÷ 低温残留量（&gt;5 易生细晶或油析）</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">冷却/反溶剂结晶收率预测<br>高温可溶量 = 高温溶解度(g/100mL) × 溶剂体积(mL) ÷ 100<br>实际溶解量 = min(投料量, 高温可溶量)；未溶量 = 投料量 − 实际溶解量<br>低温残留量 = 低温溶解度 × 溶剂体积 ÷ 100<br>理论结晶量 = max(0, 实际溶解量 − 低温残留量)<br>实际结晶量 = 理论结晶量 × (1 − 结晶损失率 ÷ 100)<br>收率（占投料） = 实际结晶量 ÷ 投料量 × 100%<br>收率（占已溶量） = 实际结晶量 ÷ 实际溶解量 × 100%<br>纯度提升倍数 = 高温溶解度 ÷ 低温溶解度（理想 ≥5:1）<br>过饱和度 = 实际溶解量 ÷ 低温残留量（&gt;5 易生细晶或油析）</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：max(0, actualDissolved - remainLow)；theoreticalCrystal × (1 - lossRate÷100)；(actualCrystal ÷ feed) × 100">Key formulas: max(0, actualDissolved - remainLow); theoreticalCrystal × (1 - lossRate÷100); (actualCrystal ÷ feed) × 100</p>
     </div>
 
@@ -345,7 +345,10 @@ const method = document.getElementById('method').value;
   const vol = +document.getElementById('solventVol').value || 0;
   const lossRate = +document.getElementById('lossRate').value || 0;
 
-  if(feed <= 0 || vol <= 0 || solHigh <= 0){ ToolBox.showToast(i18nText(), 'error'); return; }
+  if(!(feed>0) || !(vol>0) || !(solHigh>0)){ document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 投料量、溶剂量与高温溶解度须大于 0</p>'; ToolBox.showToast(i18nText(), 'error'); return; }
+  if(!isFinite(solLow) || solLow < 0){ document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 低温溶解度不能为负，请填写 ≥0 的数值</p>'; ToolBox.showToast(i18nText(), 'error'); return; }
+  if(!isFinite(lossRate) || lossRate < 0 || lossRate > 100){ document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 结晶损失率须在 0–100% 之间（100% 表示全部损失，不能为负或超过 100）</p>'; ToolBox.showToast(i18nText(), 'error'); return; }
+  if(solLow > solHigh){ document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 低温溶解度不应高于高温溶解度，请检查温度与溶解度数据</p>'; ToolBox.showToast(i18nText(), 'error'); return; }
 
   // 高温可溶解的量
   const maxDissolveHigh = solHigh * vol / 100;
@@ -362,6 +365,7 @@ const method = document.getElementById('method').value;
   const actualCrystal = theoreticalCrystal * (1 - lossRate/100);
   // 收率
   const yieldPct = (actualCrystal / feed) * 100;
+  const yieldDissolved = actualDissolved>0 ? (actualCrystal / actualDissolved) * 100 : 0;
   // 纯度提升倍数
   const purityFactor = solHigh / solLow;
 
@@ -372,7 +376,8 @@ const method = document.getElementById('method').value;
 
   let html = '<h3 style="text-align:center;margin-bottom:12px;">结晶收率预测</h3>';
   html += '<div class="stat-grid">';
-  html += `<div class="stat-card"><div class="val">${yieldPct.toFixed(2)}%</div><div class="lbl">结晶收率</div></div>`;
+  html += `<div class="stat-card"><div class="val">${yieldPct.toFixed(2)}%</div><div class="lbl">收率（占投料）</div></div>`;
+  html += `<div class="stat-card"><div class="val">${yieldDissolved.toFixed(2)}%</div><div class="lbl">收率（占已溶量）</div></div>`;
   html += `<div class="stat-card"><div class="val">${actualCrystal.toFixed(3)}</div><div class="lbl">结晶量(g)</div></div>`;
   html += `<div class="stat-card"><div class="val">${theoreticalCrystal.toFixed(3)}</div><div class="lbl">理论结晶量(g)</div></div>`;
   html += `<div class="stat-card"><div class="val">${supersaturation.toFixed(2)}</div><div class="lbl">过饱和度</div></div>`;
@@ -387,7 +392,9 @@ const method = document.getElementById('method').value;
   html += `低温${tLow}°C下溶解度 ${solLow} g/100mL，残留 <strong>${remainLow.toFixed(3)} g</strong><br>`;
   html += `理论结晶量 = ${actualDissolved.toFixed(3)} - ${remainLow.toFixed(3)} = <strong>${theoreticalCrystal.toFixed(3)} g</strong><br>`;
   html += `扣除${lossRate}%损失后，实际结晶量 = <strong>${actualCrystal.toFixed(3)} g</strong><br>`;
-  html += `结晶收率 = ${actualCrystal.toFixed(3)} / ${feed} × 100% = <strong>${yieldPct.toFixed(2)}%</strong>`;
+  html += `收率（占投料）= ${actualCrystal.toFixed(3)} / ${feed} × 100% = <strong>${yieldPct.toFixed(2)}%</strong><br>`;
+  html += `收率（占已溶量）= ${actualCrystal.toFixed(3)} / ${actualDissolved.toFixed(3)} × 100% = <strong>${yieldDissolved.toFixed(2)}%</strong><br>`;
+  if(undissolved > 0) html += `未溶投料 ${undissolved.toFixed(3)} g 未进入结晶过程，占投料收率因此低于占已溶量收率。`;
   html += '</div>';
 
   // 优化建议
@@ -414,7 +421,7 @@ const method = document.getElementById('method').value;
   html += `<div class="tip-box tip-warn"><strong>优化建议：</strong><br>${suggestions.join('<br>')}</div>`;
 
   // 溶解度差比
-  html += `<div class="tip-box tip-info"><strong>溶解度分析：</strong>高低温溶解度比为 ${purityFactor.toFixed(2)}:1。比值越大，结晶收率越高、纯化效果越好。理想比值应≥5:1。</div>`;
+  html += `<div class="tip-box tip-info"><strong>溶解度分析：</strong>高低温溶解度比为 ${purityFactor.toFixed(2)}:1。比值越大，结晶收率越高、纯化效果越好。理想比值应≥5:1。上述均为模型估算，不等于实测收率；实际收率受晶型、降温速率、搅拌、过滤与干燥损失影响。</div>`;
 
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }

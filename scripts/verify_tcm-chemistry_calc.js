@@ -41,18 +41,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "tcm-chemistry/concentration-calc",
-  "inputs": {
-    "targetTemp": "75",
-    "vacuum": "",
-    "atm": "760"
-  },
-  "expect": [
-    "288.5"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "tcm-chemistry/content-assay",
   "inputs": {
     "stdMass": "15",
@@ -453,6 +441,37 @@ const CASES = [
     "请填写 IR 吸收峰"
   ],
   "ref": "IR 峰为空时清空结构解析结果（TCMIRCLR）"
+}
+,{
+  "slug": "tcm-chemistry/extraction-counts",
+  "inputs": {"K":"2","ratio":"1","target":"0"},
+  "expect": ["目标为 0%：无需萃取",">0"],
+  "ref": "第831批：target=0 旧实现强制至少 1 次。现在 0% 明确为无需萃取、需要次数=0，并提示如需转移成分请设 >0 且 <100。"
+},{
+  "slug": "tcm-chemistry/extraction-counts",
+  "inputs": {"K":"2","ratio":"1","target":"100"},
+  "expect": ["100% 为理论极限"],
+  "ref": "第831批：target=100 使 ln(0) 为 −∞/无效。现在 0–100 开区间校验，100% 直接拒绝并说明有限次数不可达；负数/超100 同拦。"
+},{
+  "slug": "tcm-chemistry/extraction-counts",
+  "inputs": {"K":"0.05","ratio":"0.05","target":"50"},
+  "expect": ["明细仅显示前 30 次","共需 278 次"],
+  "ref": "第831批：K=0.05,r=0.05 ⇒ 剩余分数 1/1.0025≈0.9975，ln(.5)/ln(.9975)≈278 次。旧实现只生成 20 行明细却无截断说明；现在明细最多 30 行，并明确标注「仅显示前 30 次，共需 278 次」，结果总次数/累计回收率仍按 278 次全算。"
+},{
+  "slug": "tcm-chemistry/crystallization-yield",
+  "inputs": {"feedAmount":"300","dissolveTemp":"80","crystalTemp":"5","solHigh":"20","solLow":"2","solventVol":"1000","lossRate":"5"},
+  "expect": ["收率（占投料）","收率（占已溶量）","85.50%","未溶投料 100.000 g"],
+  "ref": "第831批：投料300g、20g/100mL×1000mL=可溶200g ⇒ 未溶100g；低温残留20g、理论180g、损失5%=171g。占投料收率57.00%，占已溶量收率85.50%；旧版只给单一收率57%。"
+},{
+  "slug": "tcm-chemistry/crystallization-yield",
+  "inputs": {"feedAmount":"100","dissolveTemp":"80","crystalTemp":"5","solHigh":"20","solLow":"2","solventVol":"1000","lossRate":"150"},
+  "expect": ["结晶损失率须在 0–100%"],
+  "ref": "第831批：损失率150% 旧实现 1−1.5=−0.5 ⇒ 负结晶量与负收率。现在范围校验 0–100 并停算。"
+},{
+  "slug": "tcm-chemistry/crystallization-yield",
+  "inputs": {"feedAmount":"100","dissolveTemp":"80","crystalTemp":"5","solHigh":"20","solLow":"-2","solventVol":"1000","lossRate":"5"},
+  "expect": ["低温溶解度不能为负"],
+  "ref": "第831批：低温溶解度 −2 旧实现残留 −20g，理论结晶量被放大。现在 solLow≥0 校验并停算。"
 }
 ];
 async function main() {

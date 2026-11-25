@@ -175,7 +175,7 @@
     </div>
 
     <div class="tip-box tip-info" style="margin-top:12px;">
-      工具根据关键词将投诉自动分类。未匹配关键词的投诉归入「其他」类。可根据分析结果聚焦高频问题制定改进措施。
+      工具仅按关键词做字面命中，不做语义理解；一条投诉命中多个类别时<strong>全部保留为多标签</strong>，各类别按「投诉条数」分别计数，因此类别占比合计可超过 100%。未命中任何关键词的投诉归入「其他」。请人工复核标签后再用于复盘。
     </div>
   </div>
 
@@ -287,28 +287,30 @@ function calc(){
 
   var classified=lines.map(function(line){
     var lower=line.toLowerCase();
-    var matched=null;
-    for(var i=0;i<catNames.length;i++){
-      var words=cats[catNames[i]];
-      for(var j=0;j<words.length;j++){
-        if(lower.indexOf(words[j])>=0){ matched=catNames[i]; break; }
-      }
-      if(matched) break;
-    }
-    return {text:line,cat:matched||'其他'};
+    var matched=[];
+    catNames.forEach(function(c){
+      var words=cats[c];
+      if(words.some(function(w){return lower.indexOf(w)>=0;})) matched.push(c);
+    });
+    return {text:line, cats:matched, cat:matched.length?matched.join(' / '):'其他'};
   });
 
   var counts={};
   catNames.forEach(function(c){counts[c]=0;});
   counts['其他']=0;
-  classified.forEach(function(c){counts[c.cat]=(counts[c.cat]||0)+1;});
+  var multiLabel=0;
+  classified.forEach(function(c){
+    if(c.cats.length>1) multiLabel++;
+    if(c.cats.length){ c.cats.forEach(function(x){counts[x]=(counts[x]||0)+1;}); }
+    else counts['其他']=(counts['其他']||0)+1;
+  });
   var total=classified.length;
 
   var color=total>0?'var(--primary)':'var(--text-muted)';
   const __g1='<div class="stat-card"><div class="val" style="color:'+color+';">'+total+'</div><div class="lbl">投诉总数</div></div>'+
     '<div class="stat-card"><div class="val">'+catNames.length+'</div><div class="lbl">问题类型</div></div>'+
     '<div class="stat-card"><div class="val">'+(total>0?(counts['其他']||0):0)+'</div><div class="lbl">未分类</div></div>'+
-    '<div class="stat-card"><div class="val">'+(total>0?((total-counts['其他'])/total*100).toFixed(0):'0')+'%</div><div class="lbl">分类覆盖率</div></div>';document.getElementById('stats').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    '<div class="stat-card"><div class="val">'+(total>0?((total-counts['其他'])/total*100).toFixed(0):'0')+'%</div><div class="lbl">分类覆盖率（有至少 1 个命中）</div></div>'+'<div class="stat-card"><div class="val">'+multiLabel+'</div><div class="lbl">多标签投诉</div></div>';document.getElementById('stats').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
   var sortedCats=Object.keys(counts).map(function(k){return {name:k,count:counts[k]};}).filter(function(c){return c.count>0;}).sort(function(a,b){return b.count-a.count;});
   var maxCount=sortedCats.length?sortedCats[0].count:1;

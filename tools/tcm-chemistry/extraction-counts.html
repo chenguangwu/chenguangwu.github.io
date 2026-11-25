@@ -249,41 +249,35 @@
 function calc(){
   const K = +document.getElementById('K').value || 0;
   const ratio = +document.getElementById('ratio').value || 0;
-  const target = +document.getElementById('target').value || 0;
-  const total = +document.getElementById('total').value || 100;
+  const targetRaw = document.getElementById('target').value;
+  const target = targetRaw===''?NaN:parseFloat(targetRaw);
+  const totalRaw = document.getElementById('total').value;
+  const total = totalRaw===''?100:parseFloat(totalRaw);
 
-  if(K <= 0 || ratio <= 0){ document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写大于 0 的分配系数与相比</p>'; ToolBox.showToast(i18nText(), 'error'); return; } // TCMEXTRCLR
+  if(K <= 0 || ratio <= 0){ document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写大于 0 的分配系数与相比</p>'; ToolBox.showToast(i18nText(), 'error'); return; }
+  if(!isFinite(target) || target < 0 || target >= 100){ document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 目标回收率须在 0–100% 之间；100% 为理论极限，有限萃取次数无法达到</p>'; ToolBox.showToast(i18nText(), 'error'); return; }
+  if(!isFinite(total) || total <= 0){ document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 初始总量如填写须大于 0</p>'; return; }
 
-  // 每次萃取后水相中剩余分数 = 1/(1+K*ratio)
   const remainFraction = 1 / (1 + K * ratio);
-  const extractFraction = 1 - remainFraction; // 每次萃取率
+  const extractFraction = 1 - remainFraction;
 
-  // 计算需要的萃取次数
-  let neededN = 1;
-  let cumRecovery = 0;
-  let remainNow = 1;
+  let neededN;
+  if(target === 0){ neededN = 0; }
+  else {
+    neededN = Math.ceil(Math.log(1 - target/100) / Math.log(remainFraction));
+    if(!isFinite(neededN) || neededN < 1){ document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 当前参数下所需次数无效，请检查分配系数、相比与目标</p>'; return; }
+    if(neededN > 1000){ document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 所需萃取次数超过 1000 次（目标接近 100% 或单次剩余分数过大），工程上不可行；请提高 K/相比或降低目标回收率</p>'; return; }
+  }
+
+  let cumRecovery = 0, remainNow = 1;
   const steps = [];
-
-  for(let n = 1; n <= 20; n++){
+  const displayN = Math.min(neededN + 2, 30);
+  for(let n = 1; n <= (neededN>0?Math.max(displayN,5):0); n++){
     const extractedThisTime = remainNow * extractFraction;
     remainNow *= remainFraction;
     cumRecovery = (1 - remainNow) * 100;
-    steps.push({
-      n: n,
-      extracted: extractedThisTime * total,
-      remain: remainNow * total,
-      cumRecovery: cumRecovery,
-      thisRecovery: extractFraction * remainNow / (1 - Math.pow(remainFraction, n-1)) * 100 / 100 * extractFraction * 100
-    });
-    if(cumRecovery >= target && neededN === 1){
-      neededN = n;
-    }
-    if(n >= 15 && cumRecovery >= 99.9) break;
+    steps.push({n:n, extracted:extractedThisTime*total, remain:remainNow*total, cumRecovery:cumRecovery});
   }
-
-  // 重新精确计算 neededN
-  neededN = Math.ceil(Math.log(1 - target/100) / Math.log(remainFraction));
-  if(neededN < 1) neededN = 1;
 
   // 单次萃取（用全部溶剂）的回收率
   const singleRatio = ratio * neededN;
@@ -303,25 +297,34 @@ function calc(){
     累计回收率为 <strong>${((1-Math.pow(remainFraction,neededN))*100).toFixed(2)}%</strong>。
   </div>`;
 
-  html += `<div class="tip-box tip-warn" style="margin-top:8px;">
-    <strong>对比：</strong>若将全部溶剂一次性加入（相比 ${singleRatio.toFixed(2)}），回收率仅为 <strong>${singleRecovery.toFixed(2)}%</strong>。
-    分多次萃取效率更高（少量多次原则）。
-  </div>`;
+  if(neededN > 0){
+    html += `<div class="tip-box tip-warn" style="margin-top:8px;">
+      <strong>对比：</strong>若将全部溶剂一次性加入（相比 ${singleRatio.toFixed(2)}），回收率仅为 <strong>${singleRecovery.toFixed(2)}%</strong>。
+      分多次萃取效率更高（少量多次原则）。
+    </div>`;
+  }
 
   html += '<h4 style="margin:16px 0 8px;">逐次萃取明细</h4>';
   html += '<div style="overflow-x:auto;"><table><thead><tr><th>次数</th><th>本次萃取量(mg)</th><th>水相剩余(mg)</th><th>累计回收率(%)</th><th>回收进度</th></tr></thead><tbody>';
-  steps.slice(0, Math.max(neededN + 2, 5)).forEach(s => {
+  steps.forEach(s => {
     const bar = `<div class="progress-bar" style="margin:0;"><div class="progress-fill" style="width:${s.cumRecovery}%"></div></div>`;
     html += `<tr><td><strong>${s.n}</strong></td><td>${s.extracted.toFixed(2)}</td><td>${s.remain.toFixed(2)}</td><td>${s.cumRecovery.toFixed(2)}%</td><td style="min-width:120px;">${bar}</td></tr>`;
   });
   html += '</tbody></table></div>';
+  if(neededN > 30){
+    html += `<p style="font-size:12px;color:var(--text-muted);">明细仅显示前 30 次，共需 ${neededN} 次；后续每次仍按剩余分数 ${remainFraction.toFixed(4)} 累乘，结果中的总次数与累计回收率按全部 ${neededN} 次计算。</p>`;
+  }
+  if(target === 0){
+    html += '<div class="tip-box tip-info" style="margin-top:10px;">目标为 0%：无需萃取，0 次累计回收率为 0%；如仍需转移目标成分，请把目标设为大于 0 且小于 100%。</div>';
+  }
 
   html += '<div class="tip-box tip-info" style="margin-top:12px;">';
   html += '<strong>计算公式：</strong><br>';
   html += `每次萃取后剩余分数 = 1 / (1 + K × V有/V水) = 1/(1+${K}×${ratio}) = ${remainFraction.toFixed(4)}<br>`;
   html += `n次萃取后总剩余 = [1/(1+K×r)]^n = ${remainFraction.toFixed(4)}^n<br>`;
   html += `n次累计回收率 = 1 - ${remainFraction.toFixed(4)}^n<br>`;
-  html += `达到${target}%需要 n = ln(1-${target/100}) / ln(${remainFraction.toFixed(4)}) = ${neededN} 次`;
+  if(target>0) html += `达到${target}%需要 n = ln(1-${target/100}) / ln(${remainFraction.toFixed(4)}) = ${neededN} 次`;
+  else html += '目标 0%：n = 0 次（无需萃取）';
   html += '</div>';
 
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));

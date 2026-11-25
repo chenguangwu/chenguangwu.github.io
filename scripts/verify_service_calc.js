@@ -163,6 +163,22 @@ const CASES = [
   "expect": ["TPX true"],
   "ref": "修复前明细表把工单名直接拼进 innerHTML（注入路径），且空列表时 __tpExtras 提前 return 使明细表残留旧行；现明细表名经 ToolBox.escHtml 转义、空列表分支先清空 tbody 再返回。harness 的 escHtml 桩为恒等函数且 #tpChart 缺失导致 __tpTable 提前返回，故转义与清表用源码形态判定，空态 DOM 另行校验。默认 6 条工单不产生该探针串。"
 }
+  ,{
+  "slug": "service/complaint-analysis",
+  "inputs": {"complaintText":"快递延误五天还没到货，客服也不理人，要求退款。"},
+  "expect": ["多标签投诉","1"],
+  "ref": "第831批：同一条投诉同时命中物流/服务/售后，旧实现只取配置顺序第一个类别。现在全部保留为多标签，统计卡显示多标签投诉=1；各类别分别计数，页面说明占比合计可>100%。"
+},{
+  "slug": "service/response-time",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/service/response-time.html','utf8');document.getElementById('__tbProbe').textContent='TICKET831 '+((h.indexOf(\"status:'pending'\")>=0&&h.indexOf(\"t.solve>0\")>=0&&h.indexOf('响应时长有效样本/总数')>=0)?'OK':'BAD');"],
+  "expect": ["TICKET831 OK"],
+  "ref": "第831批：新增工单旧默认 resolved+空时长，会抬高解决率。现在默认 pending（处理中）且不计入已解决；结果新增响应/解决有效样本卡。探针断源码默认态与 >0 样本口径及有效样本卡存在。"
+},{
+  "slug": "service/csat-score",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/service/csat-score.html','utf8');document.getElementById('__tbProbe').textContent='CSAT831 '+((h.indexOf('单期快照')>=0&&h.indexOf('NPS 趋势参考')<0&&h.indexOf('不生成趋势线')>=0)?'OK':'BAD');"],
+  "expect": ["CSAT831 OK"],
+  "ref": "第831批：页面只算当前一组星级，无多期趋势。删除 SEO/正文的「NPS 趋势参考」，统一为「星级代理、单期快照」「不生成趋势线」；探针同时要求旧串消失。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);
