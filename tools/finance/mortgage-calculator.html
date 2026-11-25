@@ -364,9 +364,9 @@ function calculate(){
                         '⚠ House price must be positive (current: ' + loanRaw + ' ×10,000 CNY); correct it to see results.'));
     return;
   }
-  if(!isFinite(annualRate) || annualRate < 0){
-    resetDisplay(__mcTx('⚠ 年利率须为不小于 0 的数字（当前输入 ' + rateRaw + '%），请更正后再查看结果。',
-                        '⚠ Annual rate must be a non-negative number (current: ' + rateRaw + '%); correct it to see results.'));
+  if(!isFinite(annualRate) || annualRate < 0 || annualRate > 1){
+    resetDisplay(__mcTx('⚠ 年利率须为 0%（含）至 100%（含）之间的数字（当前输入 ' + rateRaw + '%），超出范围不支持计算。',
+                        '⚠ Annual rate must be between 0% and 100% inclusive (current: ' + rateRaw + '%); out-of-range values are not supported.'));
     return;
   }
   if(!years || years <= 0){
@@ -390,6 +390,8 @@ function calculate(){
 
   const months = years * 12;
   const monthlyRate = annualRate / 12;
+  // 极低利率下 (1+r)^n 与 1 的差会因浮点精度归零；低于该阈值按零利率处理，避免 Infinity。
+  const payRate = monthlyRate < 1e-9 ? 0 : monthlyRate;
 
   let schedule = [];
   __mcSchedule = schedule;
@@ -398,15 +400,15 @@ function calculate(){
 
   if(method === 'equal-payment'){
     // 等额本息
-    if(monthlyRate === 0){
+    if(payRate === 0){
       monthlyPayment = amount / months;
     } else {
-      const factor = Math.pow(1 + monthlyRate, months);
-      monthlyPayment = amount * monthlyRate * factor / (factor - 1);
+      const factor = Math.pow(1 + payRate, months);
+      monthlyPayment = amount * payRate * factor / (factor - 1);
     }
     let balance = amount;
     for(let i = 1; i <= months; i++){
-      const interest = balance * monthlyRate;
+      const interest = balance * payRate;
       const principal = monthlyPayment - interest;
       balance -= principal;
       totalInterest += interest;
@@ -417,7 +419,7 @@ function calculate(){
     const monthlyPrincipal = amount / months;
     let balance = amount;
     for(let i = 1; i <= months; i++){
-      const interest = balance * monthlyRate;
+      const interest = balance * payRate;
       const payment = monthlyPrincipal + interest;
       balance -= monthlyPrincipal;
       totalInterest += interest;
@@ -508,13 +510,14 @@ function exportCSV(){
   if(amount <= 0) return;
   const months = years * 12;
   const monthlyRate = annualRate / 12;
+  const payRate = monthlyRate < 1e-9 ? 0 : monthlyRate;
 
   let rows = [['期数','月供','本金','利息','剩余本金']];
   let balance = amount;
 
   if(method === 'equal-payment'){
     const factor = Math.pow(1 + monthlyRate, months);
-    const mp = monthlyRate === 0 ? amount/months : amount * monthlyRate * factor / (factor - 1);
+    const mp = payRate === 0 ? amount/months : amount * payRate * factor / (factor - 1);
     for(let i = 1; i <= months; i++){
       const interest = balance * monthlyRate;
       const principal = mp - interest;

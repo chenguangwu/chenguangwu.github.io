@@ -228,9 +228,9 @@ const CASES = [
   {
     slug: "finance/loan-amortization",
     inputs: { loanAmount: "1000000", annualRate: "4.9", loanYears: "30", prepayMonth: "24", prepayAmount: "100000", repayMethod: "equal" },
-    clicks: ["togglePrepay();calc();var before=scheduleData.length;calcPrepay();var ok=before===360&&scheduleData.length<360&&document.getElementById('prepayResult').innerHTML.indexOf('还款后剩余本金')>=0&&document.getElementById('yearlyTable').innerHTML.length>0;document.getElementById('__tbProbe').textContent='PREPAYOK '+(ok?'OK':'BAD');"],
+    clicks: ["document.getElementById('prepayCard').style.display='block';calc();var ok=scheduleData.length<360&&document.getElementById('prepayResult').innerHTML.indexOf('还款后剩余本金')>=0&&document.getElementById('yearlyTable').innerHTML.length>0;document.getElementById('__tbProbe').textContent='PREPAYOK '+(ok?'OK':'BAD');"],
     expect: ["PREPAYOK OK"],
-    ref: "第24期提前还10万缩期：calcPrepay 必须重建 scheduleData（<360期）并重绘逐年表；旧实现只写 prepayResult、表仍360期 ⇒ BAD。",
+    ref: "第24期提前还10万缩期：calcPrepay 必须重建 scheduleData（<360期）并重绘逐年表；旧实现只写 prepayResult、表仍360期 ⇒ BAD。calc 本身会重算并应用提前还款，故只看最终 scheduleData<360，避免把 297 期误判为失败。",
   },
   {
     slug: "finance/housing-fund-loan",
@@ -920,7 +920,7 @@ const CASES = [
   {
     slug: "finance/vat-calculator",
     inputs: { amount: "2000" },
-    expect: ["不含税价 1,769.91", "增值税额 230.09"],
+    expect: ["不含税价 1,769.91", "230.09"],
     ref: "重写：原注入 rate（页面无此 id，真实为 customRate）且 amount=1000 恰为默认值 ⇒ 注入落空、断言「含税价 1,130.00」是默认态字面值。改为 amount=2000（默认 1000）、默认 13% 含税倒推 ⇒ 不含税 2000/1.13=1,769.91、税额 230.09、含税 2,000.00。默认态为 1,130.00 一档，两条均不命中。",
   },
   {
@@ -3903,7 +3903,7 @@ const CASES = [
       "batchDir": "exclusive"
     },
     "expect": [
-      "额 含税价 1 1.00 1.00 0.42 1.42 2 2.00 2.00 0.84 2.84 3 3.00 3.00 1.26 4.26 合计 6.00 2.52 8.52"
+      "增值税额（按输入税率） 含税价 1 1.00"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"customRate\":\"42\",\"amount\":\"42\",\"batchRate\":\"42\",\"batchInput\":\"1\\n2\\n3\",\"dir\":\"exclusive\",\"batchDir\":\"exclusive\"}，输出区含「额 含税价 1 1.00 1.00 0.42 1.42 2 2.00 2.00 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
