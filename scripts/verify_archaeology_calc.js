@@ -13,11 +13,46 @@ const CASES = [
     "base": "6"
   },
   "expect": [
-    "800.0 近似体积 cm³",
+    "800.0 包围盒体积 cm³",
     "0.40 厚宽比 T/W",
     "2.00 口底比"
   ],
   "ref": "非默认输入（默认 12.0/8.0/3.0/240/9.0/5.0）：近似体积 = 20×10×4 = 800.0 cm³；密度 = 800÷800 = 1.00 g/cm³；长宽比 = 20÷10 = 2.00；厚宽比 = 4÷10 = 0.40；口底比 = 12÷6 = 2.00。默认态为 288.0 / 0.83 / 1.50 / 0.38 / 1.80（三串均不含）。注：材质 select、编号/名称文本框与密度参考行只回显静态值 ⇒ 不锚。"
+},
+{
+  "slug": "archaeology/artifact-measurement",
+  "inputs": { "len": "12", "wid": "8", "thk": "3", "mass": "240", "rim": "-1", "base": "5" },
+  "clicks": ["calc();"],
+  "expect": ["口径须为大于 0 的数值"],
+  "ref": "口径填 -1 时明确报错并清空结果，不再生成负口底比或复制记录；留空仍可计算其他指标。"
+},
+{
+  "slug": "archaeology/artifact-measurement",
+  "inputs": { "len": "12", "wid": "8", "thk": "3", "mass": "240", "rim": "", "base": "-2" },
+  "clicks": ["calc();"],
+  "expect": ["底径须为大于 0 的数值"],
+  "ref": "底径填 -2 时明确报错；口径留空不影响其他指标。"
+},
+{
+  "slug": "archaeology/artifact-measurement",
+  "inputs": { "len": "12", "wid": "8", "thk": "3", "mass": "240", "rim": "9", "base": "5", "volMeas": "250" },
+  "clicks": ["calc();"],
+  "expect": ["实测密度 g/cm³", "参考密度（陶器）", "实测 250.0cm³"],
+  "ref": "实测体积 250 cm³ ⇒ 密度 240/250 = 0.96，标记为实测密度，可与参考范围对照；不再使用包围盒 288 cm³ 的表观值。"
+},
+{
+  "slug": "archaeology/artifact-measurement",
+  "inputs": { "len": "12", "wid": "8", "thk": "3", "mass": "240" },
+  "clicks": ["calc();"],
+  "expect": ["表观密度 g/cm³（包围盒估算）", "不能与材料参考密度直接比较", "包围盒估算 288.0cm³"],
+  "ref": "未填实测体积时密度明确标为包围盒表观值，并说明不可直接与材质参考密度比较；复制记录同样带估算前提。"
+},
+{
+  "slug": "archaeology/artifact-measurement",
+  "inputs": { "len": "0", "wid": "8", "thk": "3", "mass": "240" },
+  "clicks": ["calc();var v=window._recordValid;document.getElementById('__tbProbe').textContent='RV '+(v?'BAD':'OK');"],
+  "expect": ["RV OK"],
+  "ref": "无效输入时记录有效状态为 false，复制函数按状态拒绝，不再依赖中英文提示开头文本；英文提示也不会被当记录复制。"
 },
 {
   "slug": "archaeology/site-grid",
@@ -77,41 +112,32 @@ const CASES = [
 },
 {
   "slug": "archaeology/stats-density",
-  "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
-  },
-  "expect": [
-    "80_X"
-  ],
-  "ref": "auto-restore"
+  "inputs": { "data": "1,0.4\n2,2" },
+  "clicks": ["calc();"],
+  "expect": ["第 1 行：0.4000 ㎡ 出土 1 件", "2.50 件/㎡", "合计：3 件 / 2.400 ㎡"],
+  "ref": "面积 0.4 ㎡ 不再显示为 0 ㎡：单条保留 4 位小数，密度按原始 0.4 得 2.50；合计面积 2.4 保留精度。"
 },
 {
   "slug": "archaeology/stats-density",
-  "inputs": {
-    "data": "10abc,10\n20,5"
-  },
-  "expect": [
-    "第 1 行格式无效已拒绝"
-  ],
-  "ref": "修复前 parseFloat('10abc')=10 被当有效；现件数须为≥0整数、面积须正数，逐行拒绝并报行号。第 2 行 20/5=4.00 件/㎡ 正常参与合计。"
+  "inputs": { "data": "\n10abc,10;20,5" },
+  "clicks": ["calc();"],
+  "expect": ["第 2 行第 1 条「10abc,10」", "第 2 行第 2 条：5.000 ㎡ 出土 20 件"],
+  "ref": "空行不再吞掉行号；同一行用分号分隔的多条分别标为“第 2 行第 1/2 条”，错误定位对应原始输入位置。"
 },
 {
   "slug": "archaeology/stats-density",
-  "inputs": {
-    "data": "-10,10"
-  },
-  "expect": [
-    "件数须为≥0整数"
-  ],
-  "ref": "修复前 -10 件/10 ㎡ 得 -1 件/㎡；现整行拒绝并提示格式要求（默认合法数据不含该文案）。"
+  "inputs": { "data": "-10,10" },
+  "clicks": ["calc();"],
+  "expect": ["第 1 行「-10,10」", "件数须为≥0整数"],
+  "ref": "负件数整条拒绝，提示原始输入与格式要求，不再算出 -1 件/㎡。"
 },
 {
   "slug": "archaeology/stats-density",
   "clicks": [
-    "var got=null;TBKit={util:{isEn:function(){return false;}},export:{csv:function(f,r){got=r;}}};document.getElementById('data').value='12,4\\n6,3';__stats_densityExport();var ok=!!got&&got.length===4&&got[0][0]==='件数'&&got[1][0]===12&&got[1][1]===4&&Math.abs(parseFloat(got[1][2])-3)<1e-9&&got[2][0]===6&&got[3][0]==='合计'&&Math.abs(parseFloat(got[3][2])-2.57)<0.005;document.getElementById('__tbProbe').textContent='SDEXP '+(ok?'OK':'BAD:'+JSON.stringify(got));"
+    "var got=null;TBKit={util:{isEn:function(){return false;}},export:{csv:function(f,r){got=r;}}};document.getElementById('data').value='12,4\\n6,3\\nABC,2';__stats_densityExport();var ok=!!got&&got.length===5&&got[0][0]==='类型'&&got[1][0]==='明细'&&got[1][2]===12&&got[1][3]===4&&Math.abs(parseFloat(got[1][4])-3)<1e-9&&got[2][2]===6&&got[3][0]==='拒绝'&&got[3][5]==='ABC,2'&&got[4][0]==='合计'&&got[4][2]===18&&got[4][3]===7&&Math.abs(parseFloat(got[4][4])-2.57)<0.005;document.getElementById('__tbProbe').textContent='SDEXP '+(ok?'OK':'BAD:'+JSON.stringify(got));"
   ],
   "expect": ["SDEXP OK"],
-  "ref": "修复前导出读 #stats_densityTable（历史记录表），与当前输入无关；现按当前 textarea 逐行重算，导出 件数/面积/密度（按密度降序）并附合计行。默认态无 TBKit.export.csv 调用、也无该探针串。"
+  "ref": "导出按当前输入逐条输出，含类型列：明细/拒绝/合计；合计行件数列为总件数 18、面积 7、总密度 2.57，拒绝行保留原始输入，不再把“合计”占在件数列致总件数丢失。"
 },
 {
   "slug": "archaeology/stratum-identify",

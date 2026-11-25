@@ -202,28 +202,48 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
+var PAGE_EN=/[?&]lang=en-US(?:&|$)/.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
 function fmt(n,d){d=d==null?2:d;return ToolBox.formatNumber(n,d);}
-function calc(){
-  var txt=document.getElementById('data').value.trim();
-  if(!txt){document.getElementById('res').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter excavation unit data</p>":"<p>请输入探方数据</p>");return;}
-  var lines=txt.split(/[\n;；]+/).map(function(s){return s.trim();}).filter(Boolean);
-  var rows=[],totC=0,totA=0,rejects=[];
-  lines.forEach(function(ln,idx){
-    var parts=ln.split(/[,，\s]+/).filter(Boolean);
-    var c=Number(parts[0]),a=Number(parts[1]);
-    var ok=parts.length===2 && /^\d+$/.test(parts[0]) && /^\d+(\.\d+)?$/.test(parts[1]) && isFinite(c) && isFinite(a) && c>=0 && a>0;
-    if(!ok){rejects.push(idx+1);return;}
-    rows.push({c:c,a:a,d:c/a});totC+=c;totA+=a;
+function fmtArea(v){if(!isFinite(v))return '--';if(v>=100)return fmt(v,2);if(v>=1)return fmt(v,3);return fmt(v,4);}
+function parseDensityInput(){
+  var txt=(document.getElementById('data')||{}).value||'';
+  var lines=txt.split(/\n/),rows=[],rejects=[],totC=0,totA=0;
+  lines.forEach(function(raw,li){
+    var lineNo=li+1,segs=raw.split(/[;；]/);
+    segs.forEach(function(seg,si){
+      var ln=seg.trim();if(!ln)return;
+      var pos='第 '+lineNo+' 行'+(segs.length>1?'第 '+(si+1)+' 条':'');
+      var posEn='Line '+lineNo+(segs.length>1?' item '+(si+1):'');
+      var parts=ln.split(/[,，\s]+/).filter(Boolean);
+      var c=Number(parts[0]),a=Number(parts[1]);
+      var ok=parts.length===2 && /^\d+$/.test(parts[0]) && /^\d+(\.\d+)?$/.test(parts[1]) && isFinite(c) && isFinite(a) && c>=0 && a>0;
+      if(!ok){rejects.push({pos:pos,posEn:posEn,raw:ln});return;}
+      rows.push({pos:pos,posEn:posEn,c:c,a:a,d:c/a});totC+=c;totA+=a;
+    });
   });
-  if(!rows.length){document.getElementById('res').innerHTML='<p style="color:var(--danger);">未识别到有效行（每行需：件数, 面积㎡；件数须为≥0整数、面积须为正数）'+(rejects.length?'，已拒绝第 '+rejects.join('、')+' 行':'')+'</p>';return;}
+  return {rows:rows,rejects:rejects,totC:totC,totA:totA};
+}
+function calc(){
+  var en=PAGE_EN;
+  var txt=document.getElementById('data').value.trim();
+  if(!txt){document.getElementById('res').innerHTML=(en?"<p>Enter excavation unit data</p>":"<p>请输入探方数据</p>");return;}
+  var p=parseDensityInput(),rows=p.rows,rejects=p.rejects,totC=p.totC,totA=p.totA;
+  if(!rows.length){document.getElementById('res').innerHTML='<p style="color:var(--danger);">'+(en?'No valid records (each record: count, area m²; count must be a non-negative integer and area a positive number)':'未识别到有效记录（每条需：件数, 面积㎡；件数须为≥0整数、面积须为正数）')+(rejects.length?'；'+(en?'rejected: ':'已拒绝：')+rejects.map(function(r){return r.pos+'「'+r.raw+'」';}).join('、'):'')+'</p>';return;}
   var totalD=totA>0?totC/totA:0;
   var html='';
-  rows.forEach(function(r){
-    html+='<p>'+fmt(r.a,0)+' ㎡ 出土 '+fmt(r.c,0)+' 件 → 密度 <strong style="color:var(--primary);">'+fmt(r.d,2)+' 件/㎡</strong></p>';
-  });
-  html+='<p style="margin-top:6px;">合计：'+fmt(totC,0)+' 件 / '+fmt(totA,0)+' ㎡ → 总密度 <strong style="color:var(--danger);">'+fmt(totalD,2)+' 件/㎡</strong></p>';
-  if(rejects.length)html+='<p style="font-size:12px;color:var(--danger);">注：第 '+rejects.join('、')+' 行格式无效已拒绝（件数须为≥0整数，面积须为正数，且每行仅两列）。</p>';
-  const __g3=html;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  rows.forEach(function(r){html+='<p>'+r.pos+'：'+fmtArea(r.a)+' ㎡ 出土 '+fmt(r.c,0)+' 件 → 密度 <strong style="color:var(--primary);">'+fmt(r.d,2)+' 件/㎡</strong></p>';});
+  html+='<p style="margin-top:6px;">合计：'+fmt(totC,0)+' 件 / '+fmtArea(totA)+' ㎡ → 总密度 <strong style="color:var(--danger);">'+fmt(totalD,2)+' 件/㎡</strong></p>';
+  html+='<p style="font-size:12px;color:var(--text-muted);">面积显示最多 4 位小数，密度按未舍入的原始面积计算。</p>';
+  if(rejects.length)html+='<p style="font-size:12px;color:var(--danger);">注：已拒绝 '+rejects.map(function(r){return r.pos+'「'+r.raw+'」';}).join('、')+'（件数须为≥0整数，面积须为正数，且每条仅两列）。</p>';
+  document.getElementById('res').innerHTML=html;
+  if(en){
+    var eh='';
+    rows.forEach(function(r){eh+='<p>'+r.posEn+': '+fmtArea(r.a)+' m² yielded '+fmt(r.c,0)+' items → density <strong style="color:var(--primary);">'+fmt(r.d,2)+' items/m²</strong></p>';});
+    eh+='<p style="margin-top:6px;">Total: '+fmt(totC,0)+' items / '+fmtArea(totA)+' m² → density <strong style="color:var(--danger);">'+fmt(totalD,2)+' items/m²</strong></p>';
+    eh+='<p style="font-size:12px;color:var(--text-muted);">Area is shown to at most 4 decimals; density uses the unrounded original area.</p>';
+    if(rejects.length)eh+='<p style="font-size:12px;color:var(--danger);">Note: rejected '+rejects.map(function(r){return r.posEn+' "'+r.raw+'"';}).join(', ')+' (count must be a non-negative integer, area a positive number, and each record must have exactly two columns).</p>';
+    document.getElementById('res').innerHTML=eh;
+  }
 }
 function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
 calc();
@@ -401,22 +421,15 @@ function __stats_densityExtras(){
 }
 function __stats_densityExport(){
     if (typeof TBKit === 'undefined') return;
-    var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-    var txt=(document.getElementById('data')||{}).value||'';
-    var lines=txt.split(/[\n;；]+/).map(function(s){return s.trim();}).filter(Boolean);
-    var rows=[],totC=0,totA=0;
-    lines.forEach(function(ln){
-        var parts=ln.split(/[,，\s]+/).filter(Boolean);
-        var c=Number(parts[0]),a=Number(parts[1]);
-        var ok=parts.length===2 && /^\d+$/.test(parts[0]) && /^\d+(\.\d+)?$/.test(parts[1]) && isFinite(c) && isFinite(a) && c>=0 && a>0;
-        if(!ok) return;
-        rows.push([c,a,c/a]);totC+=c;totA+=a;
-    });
-    if(!rows.length) return;
-    rows.sort(function(p,q){return q[2]-p[2];});
-    var out=rows.map(function(r){return [r[0],r[1],fmt(r[2],2)];});
-    out.unshift([en?'Count':'件数',en?'Area (m2)':'面积(㎡)',en?'Density (pcs/m2)':'密度(件/㎡)']);
-    out.push([en?'Total':'合计',fmt(totA,0),fmt(totC/totA,2)]);
+    var en=PAGE_EN;
+    var p=parseDensityInput(),rows=p.rows,rejects=p.rejects,totC=p.totC,totA=p.totA;
+    if(!rows.length && !rejects.length) return;
+    var out=[];
+    out.push([en?'Type':'类型',en?'Position':'行位置',en?'Count':'件数',en?'Area (m2)':'面积(㎡)',en?'Density (pcs/m2)':'密度(件/㎡)',en?'Note / raw input':'说明/原始输入']);
+    rows.sort(function(a,b){return b.d-a.d;});
+    rows.forEach(function(r){out.push([en?'Record':'明细',en?r.posEn:r.pos,r.c,Number(r.a.toFixed(6)),fmt(r.d,2),'']);});
+    rejects.forEach(function(r){out.push([en?'Rejected':'拒绝',en?r.posEn:r.pos,'','','',r.raw]);});
+    out.push([en?'Total':'合计','',totC,Number(totA.toFixed(6)),fmt(totA>0?totC/totA:0,2),en?'Total count / total area / total density':'总件数 / 总面积 / 总密度']);
     try { TBKit.export.csv('stats-density.csv',out); } catch(e){}
 }
 function __stats_densityPresets(){

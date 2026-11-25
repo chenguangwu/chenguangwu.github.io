@@ -145,6 +145,7 @@
       <div><label for="mass">重量 (g)</label><input type="number" id="mass" value="240" step="0.1" min="0" oninput="calc()" placeholder="如 240"></div>
       <div><label for="rim">口径 (cm，选填)</label><input type="number" id="rim" value="9.0" step="0.1" min="0" oninput="calc()" placeholder="如 9.0"></div>
       <div><label for="base">底径 (cm，选填)</label><input type="number" id="base" value="5.0" step="0.1" min="0" oninput="calc()" placeholder="如 5.0"></div>
+      <div><label for="volMeas">实测体积 (cm³，选填)</label><input type="number" id="volMeas" value="" step="0.1" min="0" oninput="calc()" placeholder="排水法实测，如 250"></div>
     </div>
     <div class="toolbar" style="margin-top:14px;">
       <div id="artifact_measurementPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__artifact_measurementExport()">导出明细 CSV</button>
@@ -233,45 +234,78 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
+var PAGE_EN=/[?&]lang=en-US(?:&|$)/.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+var MAT_EN={陶器:'pottery',石器:'stone',骨角器:'bone/antler',金属器:'metal',其他:'other'};
 var DENS_REF={陶器:'1.6—2.4',石器:'2.4—3.2','骨角器':'1.7—2.0',金属器:'7.0—9.0',其他:'—'};
 function v(id){return parseFloat(document.getElementById(id).value);}
 function calc(){
-  var L=v('len'),W=v('wid'),T=v('thk'),m=v('mass'),rim=v('rim'),base=v('base');
+  var L=v('len'),W=v('wid'),T=v('thk'),m=v('mass');
+  var rimRaw=String(document.getElementById('rim').value).trim(),baseRaw=String(document.getElementById('base').value).trim(),volRaw=String(document.getElementById('volMeas').value).trim();
+  var rim=rimRaw===''?null:+rimRaw,base=baseRaw===''?null:+baseRaw,volMeas=volRaw===''?null:+volRaw;
   var grid=document.getElementById('grid'),rec=document.getElementById('record'),hint=document.getElementById('hint');
-  if(!L||!W||!T||!m||L<=0||W<=0||T<=0||m<=0){grid.innerHTML='';rec.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Fill in valid length, width, thickness and weight":"请填写有效的长、宽、厚与重量");hint.textContent='';return;}
-  var vol=L*W*T;
+  window._recordValid=false;
+  function fail(msg){grid.innerHTML='';rec.textContent=msg;hint.textContent='';}
+  if(!L||!W||!T||!m||L<=0||W<=0||T<=0||m<=0)return fail((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Fill in valid length, width, thickness and weight":"请填写有效的长、宽、厚与重量");
+  if(rim!==null&&(!isFinite(rim)||rim<=0))return fail('口径须为大于 0 的数值；未填写可留空。');
+  if(base!==null&&(!isFinite(base)||base<=0))return fail('底径须为大于 0 的数值；未填写可留空。');
+  if(volMeas!==null&&(!isFinite(volMeas)||volMeas<=0))return fail('实测体积须为大于 0 的数值；未实测可留空。');
+  var bboxVol=L*W*T;
+  var useMeas=volMeas!==null;
+  var vol=useMeas?volMeas:bboxVol;
   var dens=m/vol;
   var lw=L/W,tw=T/W;
-  var rb=(rim&&base&&base>0)?(rim/base):null;
-  var cards='<div class="result-item"><div class="val">'+vol.toFixed(1)+'</div><div class="lbl">近似体积 cm³</div></div>'+
-    '<div class="result-item"><div class="val">'+dens.toFixed(2)+'</div><div class="lbl">密度 g/cm³</div></div>'+
+  var rb=(rim!==null&&base!==null)?(rim/base):null;
+  var cards='<div class="result-item"><div class="val">'+bboxVol.toFixed(1)+'</div><div class="lbl">包围盒体积 cm³</div></div>'+
+    '<div class="result-item"><div class="val">'+dens.toFixed(2)+'</div><div class="lbl">'+(useMeas?'实测密度 g/cm³':'表观密度 g/cm³（包围盒估算）')+'</div></div>'+
     '<div class="result-item"><div class="val">'+lw.toFixed(2)+'</div><div class="lbl">长宽比 L/W</div></div>'+
     '<div class="result-item"><div class="val">'+tw.toFixed(2)+'</div><div class="lbl">厚宽比 T/W</div></div>';
   if(rb!==null)cards+='<div class="result-item"><div class="val">'+rb.toFixed(2)+'</div><div class="lbl">口底比</div></div>';
   const __g4=cards;grid.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
-  var dt=document.getElementById('dt').value||new Date().toISOString().slice(0,10);
+  var now=new Date();
+  var dt=document.getElementById('dt').value||(now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0'));
   var dims='长'+L.toFixed(1)+'×宽'+W.toFixed(1)+'×厚'+T.toFixed(1)+'cm';
-  if(rim)dims+=' 口径'+rim.toFixed(1)+'cm';
-  if(base)dims+=' 底径'+base.toFixed(1)+'cm';
+  if(rim!==null)dims+=' 口径'+rim.toFixed(1)+'cm';
+  if(base!==null)dims+=' 底径'+base.toFixed(1)+'cm';
+  var volTxt=useMeas?'实测 '+volMeas.toFixed(1)+'cm³':'包围盒估算 '+bboxVol.toFixed(1)+'cm³';
   var line='编号 '+document.getElementById('no').value.trim()+
     ' ｜ 名称 '+document.getElementById('nm').value.trim()+
     ' ｜ 材质 '+document.getElementById('mat').value+
     ' ｜ 尺寸 '+dims+
     ' ｜ 重量 '+m.toFixed(1)+'g'+
-    ' ｜ 密度 '+dens.toFixed(2)+'g/cm³'+
+    ' ｜ '+(useMeas?'实测密度':'表观密度（包围盒估算）')+' '+dens.toFixed(2)+'g/cm³（'+volTxt+'）'+
     ' ｜ 长宽比 '+lw.toFixed(2)+
     ' ｜ 记录日期 '+dt;
-  const __g5=line;rec.textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  rec.textContent=line;
   var ref=DENS_REF[document.getElementById('mat').value]||'—';
-  const __g6='参考密度（'+document.getElementById('mat').value+'）：'+ref+' g/cm³。体积按长×宽×厚近似估算，实际可器物应结合排水法测定。';hint.textContent=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  hint.textContent=useMeas?'参考密度（'+document.getElementById('mat').value+'）：'+ref+' g/cm³。当前采用实测体积，可与参考范围对照；注意材质鉴别仍需结合成分、显微结构等证据。':'参考密度（'+document.getElementById('mat').value+'）：'+ref+' g/cm³。当前密度为长×宽×厚包围盒估算的表观值，器物常不规则或中空，不能与材料参考密度直接比较；材料鉴别请填写排水法实测体积。';
+  window._recordValid=true;
+  if(PAGE_EN){
+    grid.innerHTML='<div class="result-item"><div class="val">'+bboxVol.toFixed(1)+'</div><div class="lbl">Bounding-box volume cm³</div></div>'+
+      '<div class="result-item"><div class="val">'+dens.toFixed(2)+'</div><div class="lbl">'+(useMeas?'Measured density g/cm³':'Apparent density g/cm³ (bounding-box estimate)')+'</div></div>'+
+      '<div class="result-item"><div class="val">'+lw.toFixed(2)+'</div><div class="lbl">Length/width L/W</div></div>'+
+      '<div class="result-item"><div class="val">'+tw.toFixed(2)+'</div><div class="lbl">Thickness/width T/W</div></div>';
+    if(rb!==null)grid.innerHTML+='<div class="result-item"><div class="val">'+rb.toFixed(2)+'</div><div class="lbl">Rim/base ratio</div></div>';
+    var enDims='L '+L.toFixed(1)+' × W '+W.toFixed(1)+' × T '+T.toFixed(1)+' cm';
+    if(rim!==null)enDims+='; rim '+rim.toFixed(1)+' cm';
+    if(base!==null)enDims+='; base '+base.toFixed(1)+' cm';
+    rec.textContent='No. '+document.getElementById('no').value.trim()+
+      ' | Name '+(document.getElementById('nm').value.trim()==='陶罐'?'pottery jar':document.getElementById('nm').value.trim())+
+      ' | Material '+(MAT_EN[document.getElementById('mat').value]||document.getElementById('mat').value)+
+      ' | Dimensions '+enDims+
+      ' | Mass '+m.toFixed(1)+' g'+
+      ' | '+(useMeas?'Measured density':'Apparent density (bounding-box estimate)')+' '+dens.toFixed(2)+' g/cm³ ('+(useMeas?'measured '+volMeas.toFixed(1)+' cm³':'bounding-box estimate '+bboxVol.toFixed(1)+' cm³')+')'+
+      ' | L/W '+lw.toFixed(2)+
+      ' | Record date '+dt;
+    hint.textContent=useMeas?'Reference density for '+(MAT_EN[document.getElementById('mat').value]||document.getElementById('mat').value)+': '+ref+' g/cm³. The measured volume is used, so the value can be compared with this range; material identification still requires composition and microstructure evidence.':'Reference density for '+(MAT_EN[document.getElementById('mat').value]||document.getElementById('mat').value)+': '+ref+' g/cm³. This density is an apparent value from the L×W×T bounding box; irregular or hollow artefacts cannot be compared directly with material reference densities. Enter a water-displacement measured volume for material identification.';
+  }
 }
 function copyRecord(){
   var t=document.getElementById('record').textContent;
-  if(!t||t.indexOf('请填写')===0){ToolBox.showToast(i18nText('toast.msg618'),'warning');return;}
+  if(!window._recordValid||!t){ToolBox.showToast(i18nText('toast.msg618'),'warning');return;}
   ToolBox.copyText(t, i18nText('msg350'));
 }
 function clearAll(){
-  ['len','wid','thk','mass','rim','base'].forEach(function(id){document.getElementById(id).value='';});
+  ['len','wid','thk','mass','rim','base','volMeas'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('no').value='';document.getElementById('nm').value='';
   calc();
 }
