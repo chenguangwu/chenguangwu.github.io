@@ -132,7 +132,7 @@ const CASES = [
   {
     slug: "life/bra-size-converter",
     inputs: { under: "70", upper: "82.5" },
-    expect: ["上下胸围差： 12.5 cm", "国际码： 70E", "罩杯： E 杯"],
+    expect: ["上下胸围差： 12.5 cm", "国际/中国码： 70B", "罩杯： B 杯"],
     ref: "差 82.5−70 = 12.5 → cupIdx = round(12.5/2.5)−1 = 4 → cups[5] = E；下围 70 (<73) → 国际码 70E"
        + "（默认 75/90 → 差 15.0 cm、75F，注入失败即不命中）",
   },
@@ -1945,7 +1945,7 @@ const CASES = [
       "upper": "42"
     },
     "expect": [
-      " 下胸围尺码： 70 罩杯： AA 杯 国际码： 70AA 美码： 32AA"
+      " 下胸围尺码： 70 罩杯： AA 杯 国际/中国码： 70AA 美码： 32AA"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"under\":\"42\",\"upper\":\"42\"}，输出区含「 下胸围尺码： 70 罩杯： AA 杯 国际码： 70AA 美码： 32AA」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2134,7 +2134,7 @@ const CASES = [
     },
     "expect": [
       "安全等级： 弱",
-      "预估破解时间：不到 1 秒"
+      "破解时间量级（粗略）：不足 1 分钟"
     ],
     "ref": "N4-A 弱口令一致性：9 位重复字符（7×a + 2×1）按去重熵模型仅 10.3 bits，等级必须为「弱」且破解时间为「不到 1 秒」，不得再显示「极强」。旧模型给 aaaaaaa111 打出 100/100 极强、破解 4 天，两者自相矛盾；默认态无输入不产出该串 ⇒ 强判别。"
   },
@@ -2611,14 +2611,14 @@ const CASES = [
   {
     slug: "life/detector-checker-strength",
     inputs: { pwdInput: "abcdefghijk" },
-    expect: ["安全等级： 一般", "预估破解时间：4 天"],
+    expect: ["安全等级： 一般", "破解时间量级（粗略）：数天"],
     ref: "N4-A 等级与破解时长同源：11 位不重复小写字母熵 51.7 bits，按 10^10 次/秒折算约 4 天；"
        + "4 天量级必须判「一般」而非旧模型的「极强」，两条输出同时命中才算一致。",
   },
   {
     slug: "life/detector-checker-strength",
     inputs: { pwdInput: "Password1!" },
-    expect: ["安全等级： 一般", "预估破解时间：29 分钟"],
+    expect: ["安全等级： 一般", "破解时间量级（粗略）：数分钟"],
     ref: "N4-A 字典子串惩罚：Password1! 含四类字符但包含常见词 password，熵 59.0−15=44.0 bits ⇒"
        + " 等级「一般」、破解约 29 分钟；旧模型给极强/4 天，等级与时长矛盾。",
   },
@@ -3901,7 +3901,7 @@ const CASES = [
   },
   {
     slug: "life/bra-size-converter",
-    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/bra-size-converter.html','utf8');document.getElementById('__tbProbe').textContent='BRAJP '+((src.indexOf('日码')<0&&src.indexOf('国际、美、英、欧、法码')>=0)?'OK':'BAD');"],
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/bra-size-converter.html','utf8');document.getElementById('resultBox').textContent='BRAJP '+((src.indexOf('日码')<0&&src.indexOf('国际、美、英、欧、法码')>=0)?'OK':'BAD');"],
     expect: ["BRAJP OK"],
     ref: "第914批：搜索描述不再承诺日码，改为实际提供的国际/美/英/欧/法码。"
   }
@@ -3948,6 +3948,71 @@ const CASES = [
     clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/report-profit.html','utf8');document.getElementById('res').textContent='ZERODIAG '+((src.indexOf('pSign===0 && cSign===0')>=0&&src.indexOf('利润与现金流均为零，本期收支完全持平')>=0&&src.indexOf('opProfit<=0&&cflow>0')<0)?'OK':'BAD');"],
     expect: ["ZERODIAG OK"],
     ref: "第915批：利润与现金流均为 0 时不再落入亏损+流出，改为收支完全持平；其余八种符号组合分别描述。"
+  }
+,
+  {
+    slug: "life/age-calculator",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/age-calculator.html','utf8');document.getElementById('ageMain').textContent='AGE '+((src.indexOf('while(anniv > now)')>=0&&src.indexOf('remMs -= days * 86400000')>=0&&src.indexOf('days += prevMonth')<0)?'OK':'BAD');"],
+    expect: ["AGE OK"],
+    ref: "第916批：年龄改为生日周年 + 逐月锚定出生日 + 剩余毫秒拆天时分秒；不再单次借位产生负天数。"
+  },
+  {
+    slug: "life/analysis-cost-9",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/analysis-cost-9.html','utf8');document.getElementById('res').textContent='COSTUN '+((src.indexOf('尚有未分类成本')>=0&&src.indexOf('无法给出完整盈亏平衡产量')>=0)?'OK':'BAD');"],
+    expect: ["COSTUN OK"],
+    ref: "第916批：存在未分类成本时不再输出确定平衡产量，改为提示先分类；平衡结论补充固定成本/单位变动成本期间假设。"
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "0" },
+    clicks: ["convert()"],
+    expect: ["0 bps 表示没有数据传输，不与任何参考速率作近似比较。"],
+    ref: "第916批：0 bps 不与正数参照约等，明确表示没有数据传输。"
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "-1000" },
+    clicks: ["convert()"],
+    expect: ["负的数据速率没有物理意义，请改为非负数值。"],
+    ref: "第916批：负速率不再取绝对值匹配正数参照，明确提示无物理意义。"
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "100000000000000" },
+    clicks: ["convert()"],
+    expect: ["仅作数量级比较，不表示近似相等。"],
+    ref: "第916批：远超参考范围时只报最近参照及倍数，不用约等号。"
+  },
+  {
+    slug: "life/temperature-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/temperature-converter.html','utf8');document.getElementById('feelBox').textContent='TEMPF '+((src.indexOf('Temperature band (rough reference)')>=0&&src.indexOf('不等同于实际体感')>=0&&src.indexOf('textEn')<0)?'OK':'BAD');"],
+    expect: ["TEMPF OK"],
+    ref: "第916批：体感改为气温档位粗略参考，中英文动态输出并说明未考虑湿度/风速/衣着。"
+  },
+  {
+    slug: "life/analysis-cost-10",
+    inputs: { data: "办公,10,20,30\n差旅,1,000,1,200" },
+    clicks: ["calc()"],
+    expect: ["第1行：应为 3 列（成本项,预算,实际），实际 4 列"],
+    ref: "第916批：预算数据严格三列 CSV，四列行不并入名称并报原始行号；无引号千分位可合并识别。"
+  },
+  {
+    slug: "life/music-practice-timer",
+    clicks: ["segments=[{name:'Infinity Etude',sec:300},{name:'NaN Study',sec:600}];render()"],
+    expect: ["1. Infinity Etude", "2. NaN Study"],
+    ref: "第916批：阶段名不再参与 Infinity/NaN 字符串守卫，含 Infinity/NaN 的名称正常显示。"
+  },
+  {
+    slug: "life/detector-checker-strength",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/detector-checker-strength.html','utf8');document.getElementById('res').textContent='PWHEUR '+((src.indexOf('破解时间量级（粗略）')>=0&&src.indexOf('预估破解时间')<0&&src.indexOf('启发式参考')>=0&&src.indexOf('不足 1 分钟')>=0)?'OK':'BAD');"],
+    expect: ["PWHEUR OK"],
+    ref: "第916批：破解时间只给量级与攻击速度假设，标明启发式评分局限，不再输出看似精确的破解秒数。"
+  },
+  {
+    slug: "life/bra-size-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/bra-size-converter.html','utf8');document.getElementById('resultBox').textContent='BRAREG '+((src.indexOf('US_CUPS')>=0&&src.indexOf('UK_CUPS')>=0&&src.indexOf('品牌尺码表')>=0)?'OK':'BAD');"],
+    expect: ["BRAREG OK"],
+    ref: "第916批：E 杯不再直接把 EU 字母套到美/英码，US 显示 DD、UK 显示 DD，并提示大杯命名差异。"
   }
 
 ];

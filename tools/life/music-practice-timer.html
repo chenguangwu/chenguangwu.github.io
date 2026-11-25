@@ -286,12 +286,16 @@ function addSegment(){
 }
 function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 function render(){
-  let html='';
+  let html='', invalid=0;
   segments.forEach((seg,i)=>{
     const cls=i===currentSeg && running?'style="background:var(--primary);color:#fff;"':'';
-    html+=`<div class="segment" ${cls}><span>${i+1}. ${seg.name}</span><span>${fmt(seg.sec)}</span></div>`;
+    const ok=isFinite(seg.sec)&&seg.sec>=0;
+    if(!ok) invalid++;
+    const name=(typeof ToolBox!=='undefined'&&ToolBox.escHtml)?ToolBox.escHtml(seg.name):String(seg.name).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    html+=`<div class="segment" ${cls}><span>${i+1}. ${name}</span><span>${ok?fmt(seg.sec):'--'}</span></div>`;
   });
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('segments').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('segments').innerHTML=__h0;
+  if(invalid) html='<p style="color:var(--danger)">⚠ 有 '+invalid+' 个阶段时长无效，请改为非负整数分钟。</p>'+html;
+  document.getElementById('segments').innerHTML=html;
   document.getElementById('display').textContent=fmt(remaining||(segments[0]?.sec||0));
   const rs=document.getElementById('roundStatus');
   const en=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?true:false);

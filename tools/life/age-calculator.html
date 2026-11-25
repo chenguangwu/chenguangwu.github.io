@@ -509,22 +509,21 @@ function calc(){
     return;
   }
 
+  // 按日历逐步推进：先取最后一个已到的生日，再按月锚定出生日（月末自动夹到当月最后一天），
+  // 剩余时间再拆天/时/分/秒，避免单次借位后出现负天数。
   let years = now.getFullYear() - birth.getFullYear();
-  let months = now.getMonth() - birth.getMonth();
-  let days = now.getDate() - birth.getDate();
-  let hours = now.getHours() - birth.getHours();
-  let mins = now.getMinutes() - birth.getMinutes();
-  let secs = now.getSeconds() - birth.getSeconds();
-
-  if(secs < 0){ secs += 60; mins--; }
-  if(mins < 0){ mins += 60; hours--; }
-  if(hours < 0){ hours += 24; days--; }
-  if(days < 0){
-    months--;
-    const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
-    days += prevMonth;
+  let anniv = makeClampedDate(birth.getFullYear()+years, birth.getMonth(), birth.getDate(), bh, bmin, bs);
+  while(anniv > now){ years--; anniv = makeClampedDate(birth.getFullYear()+years, birth.getMonth(), birth.getDate(), bh, bmin, bs); }
+  let months = 0, cursor = anniv;
+  for(let k=1;k<=12;k++){
+    const c = makeClampedDate(birth.getFullYear()+years, birth.getMonth()+k, birth.getDate(), bh, bmin, bs);
+    if(c <= now){ months = k; cursor = c; } else break;
   }
-  if(months < 0){ months += 12; years--; }
+  let remMs = now - cursor;
+  let days = Math.floor(remMs / 86400000); remMs -= days * 86400000;
+  let hours = Math.floor(remMs / 3600000); remMs -= hours * 3600000;
+  let mins = Math.floor(remMs / 60000); remMs -= mins * 60000;
+  let secs = Math.floor(remMs / 1000);
 
   const __g11=`<span class="live-dot"></span>${years} 岁 ${months} 个月 ${days} 天`;document.getElementById('ageMain').innerHTML=(typeof __g11==='number'?(isFinite(__g11)?__g11:'—'):String(__g11).replace(/Infinity|NaN/g,'—'));
   const __g12=`出生于 ${by} 年 ${bm} 月 ${bd} 日 ${String(birth.getHours()).padStart(2,'0')}:${String(birth.getMinutes()).padStart(2,'0')}:${String(birth.getSeconds()).padStart(2,'0')}（${getWeekday(birth)}）`;document.getElementById('ageSub').textContent=(typeof __g12==='number'?(isFinite(__g12)?__g12:'—'):String(__g12).replace(/Infinity|NaN/g,'—'));

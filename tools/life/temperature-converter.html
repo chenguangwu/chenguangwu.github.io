@@ -403,17 +403,24 @@ function switchTab(tab,btn){
 }
 
 function getFeel(c){
-  if(c<-20)return{text:'极寒',cls:'feel-freezing'};
-  if(c<0)return{text:'寒冷',cls:'feel-cold'};
-  if(c<15)return{text:'凉爽',cls:'feel-cool'};
-  if(c<25)return{text:'舒适',cls:'feel-comfortable'};
-  if(c<30)return{text:'温暖',cls:'feel-warm'};
-  if(c<37)return{text:'炎热',cls:'feel-hot'};
-  return{text:'酷热',cls:'feel-extreme'};
+  const pairs=[
+    {max:-20,zh:'极寒',en:'Extreme cold',cls:'feel-freezing'},
+    {max:0,zh:'寒冷',en:'Cold',cls:'feel-cold'},
+    {max:15,zh:'凉爽',en:'Cool',cls:'feel-cool'},
+    {max:25,zh:'舒适',en:'Comfortable',cls:'feel-comfortable'},
+    {max:30,zh:'温暖',en:'Warm',cls:'feel-warm'},
+    {max:37,zh:'炎热',en:'Hot',cls:'feel-hot'},
+    {max:Infinity,zh:'酷热',en:'Very hot',cls:'feel-extreme'}
+  ];
+  const row=pairs.find(p=>c<p.max)||pairs[pairs.length-1];
+  return {text:tempIsEn()?row.en:row.zh,cls:row.cls};
 }
 function updateFeel(c){
   const f=getFeel(c);
-  const __h0=`<div class="result-box"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><span style="font-size:14px;">当前体感：</span><span class="feel-tag ${f.cls}">${f.text}</span><span style="font-size:12px;color:var(--text-muted);">${c.toFixed(1)}°C</span></div></div>`;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('feelBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('feelBox').innerHTML=__h0;
+  const en=tempIsEn();
+  const label=en?'Temperature band (rough reference):':'当前气温档位（粗略参考）：';
+  const note=en?'This band uses temperature only; humidity, wind, clothing and individual differences are not included.':'该档位仅按气温划分，未考虑湿度、风速、衣着与个体差异，不等同于实际体感。';
+  const __h0=`<div class="result-box"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><span style="font-size:14px;">${label}</span><span class="feel-tag ${f.cls}">${f.text}</span><span style="font-size:12px;color:var(--text-muted);">${c.toFixed(1)}°C</span></div><div style="font-size:12px;color:var(--text-muted);margin-top:6px;">${note}</div></div>`;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('feelBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('feelBox').innerHTML=__h0;
 }
 function updateThermometer(c){
   const pct=Math.max(0,Math.min(100,(c+50)/150*100));
@@ -588,7 +595,7 @@ function __tempChart(){
   for(var c=-40;c<=120;c+=10){labels.push(c+'°C');data.push(+(c*9/5+32).toFixed(1));}
   TBKit.chart.line('#tempChart',{title:en?'Celsius to Fahrenheit curve':'摄氏度 → 华氏度 换算曲线',labels:labels,series:[{name:en?'°F':'°F',data:data}]});
 }
-window.addEventListener('toolbox:langchange', function(){ try{ __tempChart(); }catch(e){} try{ renderHistory(); }catch(e){} });
+window.addEventListener('toolbox:langchange', function(){ try{ __tempChart(); }catch(e){} try{ renderHistory(); }catch(e){} try{ if(_lastVal) updateFeel(_lastVal.c); }catch(e){} });
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded', function(){ try{ __tempChart(); }catch(e){} });}else{ __tempChart(); }
 
 fromCelsius();renderHistory();

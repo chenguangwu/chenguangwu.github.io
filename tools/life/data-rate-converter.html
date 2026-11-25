@@ -555,7 +555,7 @@ else document.addEventListener('DOMContentLoaded', __data_rate_converterBoot);
     if(!inp||!sel) return;
     var v=parseFloat(inp.value);
     var from=sel.value;
-    if(!isFinite(v)||v<0||!F[from]){ box.innerHTML=''; return; }
+    if(!isFinite(v)||!F[from]){ box.innerHTML=''; return; }
     var base=v*F[from];
     var best=null, bd=1e18;
     for(var i=0;i<REFS.length;i++){
@@ -570,8 +570,18 @@ else document.addEventListener('DOMContentLoaded', __data_rate_converterBoot);
     html+='<div class="card" style="margin-top:0;">';
     html+='<h3>'+(en?'Scale sense: how big is it really?':'📐 尺度感知：这到底有多大')+'</h3>';
     html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
-    if(best){
-      html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+    if(v<0){
+      html+='<p style="font-weight:600;color:var(--text-muted);">'+(en?'A negative data rate has no physical meaning; enter a non-negative rate.':'负的数据速率没有物理意义，请改为非负数值。')+'</p>';
+    } else if(base===0){
+      html+='<p style="font-weight:600;color:var(--text-muted);">'+(en?'0 bps means no data transfer; it is not comparable to any reference rate.':'0 bps 表示没有数据传输，不与任何参考速率作近似比较。')+'</p>';
+    } else if(best){
+      var ratio=base/best.v;
+      if(ratio>=0.1&&ratio<10){
+        html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+      }else{
+        var times=ratio>=1?ratio:1/ratio;
+        html+='<p style="font-weight:600;color:var(--primary);">'+(en?'Nearest reference: ':'最近参照：')+best[en?'en':'zh']+' ('+best.d+' '+bname+')'+(en?' — about ':'，约为其 ')+fmt(times)+(en?' times this size, not a close match.':' 倍；仅作数量级比较，不表示近似相等。')+'</p>';
+      }
     }
     html+='<details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--primary);">'+(en?'Typical real-world references':'常见实物参照')+'</summary><ul style="font-size:13px;line-height:1.8;margin:6px 0 0;padding-left:18px;">';
     for(var j=0;j<REFS.length;j++){
