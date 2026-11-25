@@ -421,7 +421,7 @@ function __mrssSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        out[e.id]=(v==null?'':String(v));
     }
     return out;
 }
@@ -460,12 +460,28 @@ function __mrssRender(keys,rk,en){
         TBKit.history.mount('#mrssHist',function(rec){
             __mrss_skip=true;
             try{
+                var __els=document.querySelectorAll('input[id],select[id],textarea[id]');
+                var __cur=[];
+                for(var __i=0;__i<__els.length;__i++){
+                    var __e=__els[__i]; var __t=(__e.type||'').toLowerCase();
+                    if(__t==='button'||__t==='submit'||__t==='hidden') continue;
+                    __cur.push(__e);
+                }
+                var __missing=__cur.some(function(__e){return !Object.prototype.hasOwnProperty.call(rec,__e.id);});
+                if(rec.__schema!=='full-v1'||__missing){
+                    if(typeof ToolBox!=='undefined'&&ToolBox.showToast) ToolBox.showToast('该历史记录不完整，无法可靠还原，请重新评估。','warning');
+                    __mrss_skip=false; return;
+                }
+                for(var __j=0;__j<__cur.length;__j++){
+                    var __e2=__cur[__j]; var __t2=(__e2.type||'').toLowerCase();
+                    if(__t2==='checkbox'||__t2==='radio'){__e2.checked=false;}else{__e2.value='';}
+                }
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='__schema'||k==='__fields') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
-                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    if(t==='checkbox'||t==='radio'){e.checked=(rec[k]!==''&&(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true));}
                     else{e.value=rec[k];}
                 }
                 calc();
@@ -486,9 +502,9 @@ function __mrssExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__mrss_skip) return;
     var snap=__mrssSnap();
-    var keys=Object.keys(snap);
-    if(!keys.length) return;
-    if(keys.length>12) keys=keys.slice(0,12);
+    var allKeys=Object.keys(snap);
+    if(!allKeys.length) return;
+    var keys=allKeys.filter(function(k){return snap[k]!==''&&snap[k]!=null;});
     var res=__mrssResText();
     if(!res) return;
     var en=TBKit.util.isEn();
@@ -506,7 +522,9 @@ function __mrssExtras(){
     }
     __mrss_last=now;
     var rec={};
-    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    for(var i=0;i<allKeys.length;i++) rec[allKeys[i]]=snap[allKeys[i]];
+    rec.__schema='full-v1';
+    rec.__fields=allKeys.length;
     rec[rk]=res;
     rec.__tbScore=__mrssScore(res);
     TBKit.history.record(rec);
@@ -518,8 +536,7 @@ function __mrssExport(){
         var box=document.querySelector('#mrssTable');
         if(!box||!box.querySelector('tr')){
             var snap=__mrssSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+                    var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __mrssRender(keys,en?'Result':'结果',en);
         }
     }catch(e){}
