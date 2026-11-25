@@ -83,19 +83,15 @@ const CASES = [
   {
     slug: "wedding/wedding-banquet",
     inputs: { guests: "130", type: "round10", backup: "mid" },
-    expect: ["12 桌 基础桌数（按 90% 到场）", "14 桌 合计预订桌数"],
-    ref: "主桌 ceil(130/10)=13 桌；备桌 mid=2 桌；合计 15 桌；到场估算 ceil(130×0.9)=117 人。"
-       + "原注入 120/round10/mid 与页面默认值完全相同（guests 默认 120、type 默认 round10、backup 默认 selected mid）"
-       + "⇒ 默认态即输出 14 桌，零判别力；改注入默认没有的 130 人后合计为 15 桌。",
+    expect: ["12 桌 按预计到场 117 人订桌", "13 桌 全部受邀 130 人都到场", "14 桌 合计预订桌数"],
+    ref: "130 人受邀、90% 到场 ⇒ 预计 117 人，ceil(117/10)=12 桌；全部到场 ceil(130/10)=13 桌；备桌 mid=2 ⇒ 合计 14 桌。默认 120 人 ⇒ 11/12/13 桌，不命中。",
   },
 
   {
     slug: "wedding/wedding-banquet",
     inputs: { guests: "137", type: "square8", backup: "big" },
-    expect: ["16 桌 基础桌数（按 90% 到场）", "19 桌 合计预订桌数", "约 124 人 按 90% 到场率估算"],
-    ref: "type=square8 ⇒ perTable=8；主桌数=ceil(137/8)=18；按 90% 到场=ceil(137×0.9)=ceil(123.3)=124；"
-       + "backup=big ⇒ backupN=3；合计=18+3=21。默认态为 120 人/round10/none ⇒ 12 桌、约 108 人、12 桌合计，三条锚全部失配。"
-       + "（「20-40 桌」等容纳参考表为与输入无关的常量块，已回避。）",
+    expect: ["16 桌 按预计到场 124 人订桌", "18 桌 全部受邀 137 人都到场", "19 桌 合计预订桌数", "约 124 人 预计到场（受邀 × 90%）"],
+    ref: "type=square8 ⇒ perTable=8；预计到场 ceil(137×0.9)=124 ⇒ ceil(124/8)=16 桌；全部到场 ceil(137/8)=18 桌；backup=big ⇒ 3 桌 ⇒ 合计 19 桌。默认 120/round10/mid ⇒ 11/12/14 桌，不命中。",
   },
 
   {
@@ -117,6 +113,42 @@ const CASES = [
   "clicks": ["resetBudget()"],
   "expect": ["¥0总预算¥0已分配¥0剩余", "当前预算为 0，暂无已分配支出项"],
   "ref": "总预算 0 后重置分配：所有分类金额应为 0，结果卡总额/已分配/剩余均为 ¥0；旧 renderItems 的 `||100000` 会重新填入 ¥100,000 分类金额。默认 100000 不命中。"
+},
+{
+  "slug": "wedding/countdown-timeline",
+  "clicks": ["document.getElementById('weddingDate').value='2027-01-01';document.getElementById('weddingTime').value='00:30';calc();"],
+  "expect": ["前一天", "21:30"],
+  "ref": "跨日显示：仪式 00:30，化妆造型 offset -180 ⇒ 前一日 21:30；旧版负数取模输出 -3:30 或无日期提示。默认 10:00 当天不命中。"
+},
+{
+  "slug": "wedding/seating-chart",
+  "clicks": ["document.getElementById('guestName').value='测试宾客';addGuest();var g=guests[guests.length-1];toggleMain(g.id);"],
+  "expect": ["主桌（1人）", "主桌"],
+  "ref": "手动指定主桌：新宾客添加后勾选主桌，主桌卡应含 1 人；旧版主桌只按家族顺序自动填充，无勾选入口。默认空名单不命中。"
+},
+{
+  "slug": "wedding/seating-chart",
+  "clicks": ["document.getElementById('guestName').value='持久化宾客';addGuest();document.getElementById('__tbProbe').textContent='SEATSAVE '+(loadState()?'OK':'BAD');"],
+  "expect": ["SEATSAVE OK"],
+  "ref": "本地保存：添加宾客后 saveState 写入 localStorage，loadState 能读回；旧版刷新即丢失。默认空态不命中。"
+},
+{
+  "slug": "wedding/seating-chart",
+  "clicks": ["document.getElementById('guestName').value='锁桌宾客';addGuest();var g=guests[guests.length-1];lockGuest(g.id,'第二桌');"],
+  "expect": ["第二桌", "锁桌宾客"],
+  "ref": "手动调桌：lockGuest 指定第二桌后宾客落在该桌卡片，不再按分组自动分配。默认空名单不命中。"
+},
+{
+  "slug": "wedding/wedding-budget-planner",
+  "clicks": ["document.getElementById('spent').value='-1000';calc();"],
+  "expect": ["以下金额须为有限非负数（允许 0）：已花费（≥0）"],
+  "ref": "负金额守卫：总预算 100000、已花费 -1000 旧版显示剩余 101000；现在停止并逐项提示。默认 spent=0 不命中。"
+},
+{
+  "slug": "wedding/wedding-car-route",
+  "clicks": ["stops=[{name:'A',dur:0,distance:100,drive:20},{name:'B',dur:0,distance:0,drive:0}];renderStops();document.getElementById('departTime').value='08:00';document.getElementById('avgSpeed').value='30';document.getElementById('bufferMin').value='5';calc();"],
+  "expect": ["08:25", "已填逐段预计行驶分钟的路段优先用你的估时"],
+  "ref": "逐段估时：A→B 段距离 100km、预计行驶填 20 分钟，虽 30km/h 理论需 200 分钟，仍按 20+5 缓冲 ⇒ 08:00 出发 08:25 到达；旧版固定按距离/30 估算得 11:25。默认路线无 drive 值不命中。"
 }
 ];
 async function main() {

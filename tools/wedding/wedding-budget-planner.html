@@ -125,7 +125,7 @@
     <h2 data-zh="💰 婚礼预算">Wedding Budget Planner</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="婚礼预算分配与超支预警">Budget Planner</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">婚礼预算分配与执行监控<br>各项占比 = 该项预算 ÷ 总预算 × 100%<br>已分配合计 = Σ各项预算｜剩余 = 总预算 − 已花费<br>超支判定：已花费 > 总预算<br>超分配判定：已分配 > 总预算<br>单项预警：实际 > 建议占比×总预算 × 1.2 → 标 over 样式<br>已花费进度 = 已花费 ÷ 总预算（≤100% 截断）<br>支出排行按金额降序<br>输出最大支出项及金额</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">婚礼预算分配与执行监控<br>各项占比 = 该项预算 ÷ 总预算 × 100%<br>已分配合计 = Σ各项预算｜剩余 = 总预算 − 已花费<br>超支判定：已花费 > 总预算<br>超分配判定：已分配 > 总预算<br>单项预警：实际 > 建议占比×总预算 × 1.2 → 标 over 样式<br>已花费进度 = 已花费 ÷ 总预算（≤100% 截断）<br>所有金额（总预算/已花费/分类）须为有限非负数，允许 0；无效输入停止汇总并逐项提示<br>支出排行按金额降序<br>输出最大支出项及金额</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：min(100,r.pct)">Key formulas: min(100,r.pct)</p>
     </div>
 
@@ -262,14 +262,27 @@ function calc(){
     document.getElementById('result').innerHTML='<p style="color:var(--danger,#c0392b);font-weight:600;">'+(en?'Please fill in ':'请填写 ')+miss.join(en?', ':'、')+(en?' before calculating.':' 后再计算')+'</p>';
     return;
   }
-  var total=+document.getElementById('totalBudget').value;
-  var spent=+document.getElementById('spent').value;
+  var __en=/^en/i.test(document.documentElement.lang||'');
+  function __readNum(id){var v=String(document.getElementById(id).value==null?'':document.getElementById(id).value).trim();return v===''?0:parseFloat(v);}
+  var total=__readNum('totalBudget');
+  var spent=__readNum('spent');
+  var __neg=[];
+  if(!isFinite(total)||total<0)__neg.push('总预算（≥0）');
+  if(!isFinite(spent)||spent<0)__neg.push('已花费（≥0）');
+  CATEGORIES.forEach(function(c,i){
+    var v=__readNum('cat-'+i);
+    if(!isFinite(v)||v<0)__neg.push(c.name+'（≥0）');
+  });
+  if(__neg.length){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger,#c0392b);font-weight:600;">⚠ '+(__en?'These amounts must be finite non-negative numbers: ':'以下金额须为有限非负数（允许 0）：')+__neg.join(__en?', ':'、')+'</p>';
+    return;
+  }
   var allocated=0;
   var rows=[];
   var maxItem={name:'',amount:0};
 
   CATEGORIES.forEach(function(c,i){
-    var amount=+document.getElementById('cat-'+i).value||0;
+    var amount=__readNum('cat-'+i);
     allocated+=amount;
     var pct=total>0?(amount/total*100):0;
     const __g2=pct.toFixed(0)+'%';document.getElementById('pct-'+i).textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));

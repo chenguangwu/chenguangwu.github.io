@@ -240,6 +240,7 @@
 </div>
 <script>
 var guests=[];
+var SEAT_KEY='toolbox_seating_chart_v1';
 var GROUP_NAMES={
   family:'男方家属',
   family2:'女方家属',
@@ -255,29 +256,59 @@ var GROUP_COLORS={
   other:'tag-other'
 };
 
+function saveState(){
+  try{localStorage.setItem(SEAT_KEY,JSON.stringify({guests:guests,perTable:document.getElementById('perTable').value,mainTable:document.getElementById('mainTable').value}));}catch(e){}
+}
+function loadState(){
+  try{
+    var d=JSON.parse(localStorage.getItem(SEAT_KEY)||'null');
+    if(d&&Array.isArray(d.guests)){
+      guests=d.guests;
+      if(d.perTable)document.getElementById('perTable').value=d.perTable;
+      if(d.mainTable)document.getElementById('mainTable').value=d.mainTable;
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+function toggleMain(id){
+  var g=guests.filter(function(x){return x.id===id;})[0];
+  if(!g)return;
+  g.main=!g.main;
+  saveState();renderGuestList();render();
+}
+function lockGuest(id,tableName){
+  var g=guests.filter(function(x){return x.id===id;})[0];
+  if(!g)return;
+  if(tableName)g.manualTable=tableName;else delete g.manualTable;
+  saveState();render();
+}
+
 function addGuest(){
   var name=document.getElementById('guestName').value.trim();
   var group=document.getElementById('guestGroup').value;
   if(!name){ToolBox.showToast(i18nText() ,'error');return;}
   guests.push({name:name,group:group,id:Date.now()+Math.random()});
   document.getElementById('guestName').value='';
-  renderGuestList();
+  saveState();renderGuestList();
   render();
 }
 
 function removeGuest(id){
   guests=guests.filter(function(g){return g.id!==id;});
-  renderGuestList();
+  saveState();renderGuestList();
   render();
 }
 
 function clearGuests(){
+  if(guests.length&&typeof confirm==='function'&&!confirm('确定清空全部宾客与手动排桌？'))return;
   guests=[];
-  renderGuestList();
+  saveState();renderGuestList();
   render();
 }
 
 function loadSample(){
+  if(guests.length&&typeof confirm==='function'&&!confirm('加载示例会替换当前名单，确定继续？'))return;
   guests=[
     {name:'新郎父亲',group:'family',id:1},
     {name:'新郎母亲',group:'family',id:2},
@@ -303,7 +334,7 @@ function loadSample(){
     {name:'亲戚黄伯',group:'family',id:22},
     {name:'亲戚何婶',group:'family2',id:23}
   ];
-  renderGuestList();
+  saveState();renderGuestList();
   render();
 }
 
@@ -317,6 +348,7 @@ function renderGuestList(){
       return '<div class="guest-list-item">'+
         '<span style="flex:1;">'+ToolBox.escHtml(g.name)+'</span>'+
         '<span class="guest-tag '+GROUP_COLORS[g.group]+'">'+GROUP_NAMES[g.group]+'</span>'+
+        '<label style="font-size:11px;display:flex;align-items:center;gap:3px;margin-right:4px;"><input type="checkbox" '+(g.main?'checked':'')+' onchange="toggleMain('+g.id+')">主桌</label>'+
         '<button type="button" class="btn danger" style="padding:4px 10px;font-size:12px;" onclick="removeGuest('+g.id+')">删除</button>'+
       '</div>';
     }).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('guestList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('guestList').innerHTML=__h1;
@@ -335,15 +367,13 @@ function render(){
   Object.keys(GROUP_NAMES).forEach(function(k){groups[k]=[];});
   guests.forEach(function(g){groups[g.group].push(g);});
 
-  // 主桌：新郎新娘 + 双方父母 + 伴郎伴娘
+  // 主桌：先放手动勾选者，再用双方家族长辈补足容量
   var mainTable=[];
+  guests.forEach(function(g){if(g.main&&mainTable.length<mainTableCount)mainTable.push(g);});
+  var mainIds={};mainTable.forEach(function(g){mainIds[g.id]=1;});
   var familyMerged=(groups.family||[]).concat(groups.family2||[]);
-  // 优先安排长辈
   familyMerged.forEach(function(g){
-    if(mainTable.length<mainTableCount){
-      var idx=guests.indexOf(g);
-      if(idx>=0) mainTable.push(g);
-    }
+    if(mainTable.length<mainTableCount&&!mainIds[g.id]&&!g.manualTable){mainTable.push(g);mainIds[g.id]=1;}
   });
 
   var assigned=new Set(mainTable.map(function(g){return g.id;}));
@@ -355,10 +385,23 @@ function render(){
   if(mainTable.length>0){
     tables.push({name:'主桌',guests:mainTable});
   }
+  function getTable(name){
+    for(var i=0;i<tables.length;i++){if(tables[i].name===name)return tables[i];}
+    var t={name:name,guests:[]};tables.push(t);return t;
+  }
+  // 手动指定桌号优先落座（允许超员，渲染时标出）
+  guests.forEach(function(g){
+    if(assigned.has(g.id))return;
+    if(g.manualTable){getTable(g.manualTable).guests.push(g);assigned.add(g.id);}
+  });
 
   // 按关系组排桌，同组尽量同桌
   var groupOrder=['family','family2','colleague','friend','other'];
-  var currentTable={name:tableNames[tables.length]||('第'+(tables.length+1)+'桌'),guests:[]};
+  var usedNames={};
+  tables.forEach(function(t){usedNames[t.name]=1;});
+  var curName=tableNames[tables.length]||('第'+(tables.length+1)+'桌');
+  while(usedNames[curName]){curName='第'+(Object.keys(usedNames).length+1)+'桌';}
+  var currentTable={name:curName,guests:[]};
 
   groupOrder.forEach(function(gk){
     (groups[gk]||[]).forEach(function(g){
@@ -394,12 +437,16 @@ function render(){
     '<h3 style="margin-top:16px;">座位安排</h3>'+
     tables.map(function(t){
       return '<div class="table-card">'+
-        '<h4>🪑 '+t.name+'（'+t.guests.length+'人）</h4>'+
+        '<h4>🪑 '+t.name+'（'+t.guests.length+'人'+(t.guests.length>perTable?' · 超员':'')+'）</h4>'+
         t.guests.map(function(g){
-          return '<div class="table-guest"><span>'+ToolBox.escHtml(g.name)+'</span><span class="guest-tag '+GROUP_COLORS[g.group]+'" style="font-size:10px;">'+GROUP_NAMES[g.group]+'</span></div>';
+          var opts='<option value="">自动</option>'+tables.map(function(x){
+            return '<option value="'+x.name+'" '+(g.manualTable===x.name?'selected':'')+'>'+x.name+'</option>';
+          }).join('');
+          return '<div class="table-guest"><span>'+ToolBox.escHtml(g.name)+'</span><span class="guest-tag '+GROUP_COLORS[g.group]+'" style="font-size:10px;">'+GROUP_NAMES[g.group]+'</span><select style="font-size:11px;margin-left:6px;" onchange="lockGuest('+g.id+',this.value)">'+opts+'</select></div>';
         }).join('')+
       '</div>';
     }).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h3;
+  saveState();
 }
 
 renderGuestList();
@@ -595,7 +642,7 @@ var __seating_chart_f0=(typeof render==='function')?render:null;
 if(__seating_chart_f0){
     render=function(){ var __r=__seating_chart_f0.apply(null,arguments); try{ __seating_chartExtras(); }catch(e){} return __r; };
 }
-function __seating_chartBoot(){ try{ __seating_chartPresets(); }catch(e){}  try{ if(typeof loadSample==='function') loadSample(); }catch(e){} }
+function __seating_chartBoot(){ try{ __seating_chartPresets(); }catch(e){}  try{ if(!loadState()) guests=[]; renderGuestList(); render(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __seating_chartBoot();
 else document.addEventListener('DOMContentLoaded', __seating_chartBoot);
 </script>

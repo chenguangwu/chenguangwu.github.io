@@ -138,7 +138,7 @@
     <h2 data-zh="💒 婚车路线">Wedding Car Route</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="婚车路线与接亲时间规划，多节点时间推算">Wedding Car Route</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">婚车路线时间轴规划<br>行驶分钟 = 站间距离 ÷ 平均车速 × 60<br>　城区平均车速 30 km/h<br>每站停留 = 该站设置时长（分钟）<br>每站行驶缓冲 = 5 分钟<br>总耗时 = Σ行驶 + Σ停留 + 缓冲×(站数−1)<br>到达时间 = 出发时刻 + 总耗时（跨日自动进位）<br>总耗时 &gt;180 分钟触发精简路线提示<br>编队建议：头车/新人父母/伴娘/新人父母/亲友</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">婚车路线时间轴规划<br>行驶分钟 = 逐段预计行驶分钟（>0 时优先）或 站间距离 ÷ 平均车速 × 60<br>　平均车速与每段缓冲均可调整（默认 30 km/h、5 分钟）<br>每站停留 = 该站设置时长（分钟）<br>总耗时 = Σ行驶 + Σ停留 + 缓冲×(站数−1)<br>到达时间 = 出发时刻 + 总耗时（跨日自动进位）<br>总耗时 &gt;180 分钟触发精简路线提示<br>编队建议：头车/新人父母/伴娘/新人父母/亲友</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：Math.round(stops[i].distance÷avgSpeed×60)；curMin-(+parts[0]×60+ +parts[1])；+parts[0]×60+ +parts[1]">Key formulas: Math.round(stops[i].distance÷avgSpeed×60); curMin-(+parts[0]×60+ +parts[1]); +parts[0]×60+ +parts[1]</p>
     </div>
 
@@ -151,6 +151,10 @@
         <label for="carCount">婚车数量</label>
         <input type="number" id="carCount" value="6" min="1" max="20" oninput="calc()" placeholder="如 6（1–20）" data-i18n-ph="ph.carRoute.carCount">
       </div>
+    </div>
+    <div class="input-row">
+      <div><label for="avgSpeed">平均车速 (km/h)</label><input type="number" id="avgSpeed" value="30" min="1" step="1" oninput="calc()"></div>
+      <div><label for="bufferMin">每段缓冲 (分钟)</label><input type="number" id="bufferMin" value="5" min="0" step="1" oninput="calc()"></div>
     </div>
 
     <p style="font-size:13px;margin:16px 0 8px;">路线节点（起点→经停点→终点）</p>
@@ -303,10 +307,10 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 var stops=[
-  {name:'新郎家',dur:10,distance:0},
-  {name:'新娘家',dur:40,distance:8},
-  {name:'外景拍摄地',dur:30,distance:5},
-  {name:'婚宴酒店',dur:0,distance:6}
+  {name:'新郎家',dur:10,distance:0,drive:0},
+  {name:'新娘家',dur:40,distance:8,drive:0},
+  {name:'外景拍摄地',dur:30,distance:5,drive:0},
+  {name:'婚宴酒店',dur:0,distance:6,drive:0}
 ];
 
 function renderStops(){
@@ -319,7 +323,8 @@ function renderStops(){
         (isLast?'':
           '<div style="display:flex;gap:8px;">'+
             '<div style="flex:1;"><input type="number" value="'+s.dur+'" placeholder="停留分钟" data-i18n-ph="ph.carRoute.stay" data-i18n-aria="ph.carRoute.stay" min="0" style="font-size:12px;" oninput="updateStop('+i+',\'dur\',this.value)" aria-label="Stay minutes"><label style="font-size:11px;">停留(分)</label></div>'+
-            '<div style="flex:1;"><input type="number" value="'+s.distance+'" placeholder="距下站（km）" data-i18n-ph="ph.carRoute.distance" data-i18n-aria="ph.carRoute.distance" min="0" style="font-size:12px;" oninput="updateStop('+i+',\'distance\',this.value)" aria-label="停留(分)"><label style="font-size:11px;">距下站(km)</label></div>'+
+            '<div style="flex:1;"><input type="number" value="'+s.distance+'" placeholder="距下站（km）" data-i18n-ph="ph.carRoute.distance" data-i18n-aria="ph.carRoute.distance" min="0" style="font-size:12px;" oninput="updateStop('+i+',\'distance\',this.value)" aria-label="距下站公里数"><label style="font-size:11px;">距下站(km)</label></div>'+
+            '<div style="flex:1;"><input type="number" value="'+(s.drive||0)+'" placeholder="预计行驶分" min="0" style="font-size:12px;" oninput="updateStop('+i+',\'drive\',this.value)" aria-label="预计行驶分"><label style="font-size:11px;">预计行驶(分，0=按车速算)</label></div>'+
           '</div>'
         )+
         (stops.length>2?'<button type="button" class="btn danger" style="padding:4px 10px;font-size:11px;margin-top:4px;" onclick="removeStop('+i+')">删除</button>':'')+
@@ -340,7 +345,7 @@ function updateStop(i,field,val){
 
 function addStop(){
   var lastIdx=stops.length-1;
-  stops.splice(lastIdx,0,{name:'经停点'+lastIdx,dur:20,distance:3});
+  stops.splice(lastIdx,0,{name:'经停点'+lastIdx,dur:20,distance:3,drive:0});
   renderStops();
 }
 
@@ -355,8 +360,15 @@ var departStr=document.getElementById('departTime').value||'07:00';
   var carCount=+document.getElementById('carCount').value||1;
   var parts=departStr.split(':');
   var curMin=+parts[0]*60+ +parts[1];
-  var avgSpeed=30; // km/h 城区平均
-  var buffer=5; // 每站缓冲5分钟
+  var speedRaw=String(document.getElementById('avgSpeed').value==null?'':document.getElementById('avgSpeed').value).trim();
+  var bufRaw=String(document.getElementById('bufferMin').value==null?'':document.getElementById('bufferMin').value).trim();
+  var avgSpeed=speedRaw===''?NaN:parseFloat(speedRaw);
+  var buffer=bufRaw===''?NaN:parseFloat(bufRaw);
+  var routeErr=[];
+  if(!isFinite(avgSpeed)||avgSpeed<=0)routeErr.push('平均车速须为正数');
+  if(!isFinite(buffer)||buffer<0)routeErr.push('每段缓冲须为非负数');
+  stops.forEach(function(st,i){if(!isFinite(st.distance)||st.distance<0)routeErr.push(st.name+' 的距下站公里数须为非负数');if(!isFinite(st.dur)||st.dur<0)routeErr.push(st.name+' 的停留分钟须为非负数');if(st.drive&&(!isFinite(st.drive)||st.drive<0))routeErr.push(st.name+' 的预计行驶分钟须为非负数');});
+  if(routeErr.length){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ '+routeErr.join('；')+'。</p>';return;}
 
   var timeline=[];
   var totalDist=0;
@@ -368,7 +380,7 @@ var departStr=document.getElementById('departTime').value||'07:00';
     timeline.push({name:stops[i].name,time:timeStr,type:'到达'});
 
     if(i<stops.length-1){
-      var driveMin=Math.round(stops[i].distance/avgSpeed*60);
+      var driveMin=stops[i].drive>0?Math.round(stops[i].drive):Math.round(stops[i].distance/avgSpeed*60);
       totalDriveMin+=driveMin;
       totalDist+=stops[i].distance;
 
@@ -392,7 +404,7 @@ var departStr=document.getElementById('departTime').value||'07:00';
     '<div class="stat-card"><div class="val">'+carCount+'</div><div class="lbl">婚车数量</div></div>'+
     '</div>'+
     '<p>总耗时：<strong>'+formatDuration(totalMin)+'</strong>（行驶'+formatDuration(totalDriveMin)+' + 停留'+formatDuration(totalStopMin)+' + 缓冲'+formatDuration(buffer*(stops.length-1))+'）</p>'+
-    '<p>建议平均车速：<strong>30 km/h</strong>（城区）</p>'+
+    '<p>估算口径：平均车速 <strong>'+avgSpeed+' km/h</strong>，每段缓冲 <strong>'+buffer+' 分钟</strong>；已填逐段预计行驶分钟的路段优先用你的估时。</p>'+
     (totalMin>180?'<div class="tip-box tip-warn" style="margin-top:8px;">⚠️ 路线较长，建议精简经停点或提前出发</div>':'')+
 
     '<h3 style="margin-top:16px;">时间轴</h3>'+
