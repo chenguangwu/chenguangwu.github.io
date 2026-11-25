@@ -141,7 +141,7 @@
 
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">滑动摩擦力：F_k = μ_k × N（N）；联动卡：正压力与摩擦系数比 = N ÷ max(μ,10⁻⁹)、摩擦力(kgf) = μ·N ÷ 9.80665、μ²。校验：空值或非数值输入会提示并中止计算，不按 0 兜底；仅做非空与数值检查，不做范围校验。判据：无固定分级，F_k 与正压力线性联动，μ 由接触面材料决定。</div>
+      <div class="formula-eq">动摩擦力大小：F_k = μ_k × N（N）。校验：动摩擦系数 μ_k 与正压力 N 均为必填，须非负且有限；空值会提示并中止，不按 0 兜底，μ_k=0 时“正压力/摩擦系数”显示无定义。判据：F_k 与正压力线性联动，μ_k 由接触面材料决定；本页只算滑动摩擦力大小，不判断物体是否已经滑动。</div>
       <p class="formula-desc">滑动摩擦力等于动摩擦系数乘正压力。</p>
     </div>
 
@@ -255,7 +255,7 @@
     </a>
     <a href="work-energy-theorem.html" class="related-tool-card">
       <span class="rt-icon">⚡</span>
-      <span class="rt-info"><span class="rt-name">动能定理计算器</span><span class="rt-desc">输入质量与初末速度按 W=½m(v₂²−v₁²) 求动能变化(合外力功)，用于功与能分析</span></span>
+      <span class="rt-info"><span class="rt-name">动能定理计算器</span><span class="rt-desc">输入质量与初末速度，按 W=½m(v₂²−v₁²) 求动能变化（合外力功）；</span></span>
     </a>
     <a href="momentum.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
@@ -293,12 +293,23 @@ function __tbInputGuardCore(_ids,_labels){
 function __tbClear(ids){for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}}
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __dynEn(){try{if(/[?&]lang=en-US/.test(location.search))return true;}catch(e){}try{return !!(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}catch(e){return false;}}
+function __dynMsg(zh,en){return __dynEn()?en:zh;}
 function calcTool(){
+            window.__kfrValid=false;
             var __ig=__tbInputGuard(['mu','N'],['动摩擦系数 μ_k','正压力 N (N)']);if(__ig){__tbClear(['kinetic_frictionTable','kfrChart']);const __g0='<p style="color:var(--danger)">⚠ '+__ig+'</p>';ToolBox.setResult('result',(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')));return;}
             const mu = num('mu'), N = num('N');
+            if(!isFinite(mu)||!isFinite(N)||mu<0||N<0){
+              __tbClear(['kinetic_frictionTable','kfrChart']);
+              var __c=document.getElementById('kfrChart'); if(__c)__c.style.display='none';
+              const __gBad='<p style="color:var(--danger)">⚠ '+__dynMsg('动摩擦系数 μ_k 与正压力 N 必须为非负有限数值；空值不等于 0。','The kinetic friction coefficient μ_k and normal force N must be non-negative finite values; blank is not treated as 0.')+'</p>';
+              ToolBox.setResult('result',__gBad);return;
+            }
+            window.__kfrValid=true;
+            var __cv=document.getElementById('kfrChart'); if(__cv)__cv.style.display='';
             const __g1=dataGrid([
                 [(mu * N).toFixed(2), '动摩擦力 F_k (N)'],
-                [(N/Math.max(mu,1e-9)).toFixed(4), '正压力与摩擦系数之比'],
+                [mu>0 ? (N/mu).toFixed(4) : __dynMsg('无定义（μ=0）','undefined (μ=0)'), '正压力与摩擦系数之比'],
                 [(mu*N/9.80665).toFixed(4), '摩擦力 (kgf 千克力)'],
                 [(mu*mu).toFixed(4), '摩擦系数平方']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
@@ -312,6 +323,7 @@ function __kinetic_frictionNum(id){var e=document.getElementById(id);var v=e?par
 function __kinetic_frictionExtras(){
     function __kinetic_frictionRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
+    if (window.__kfrValid !== true) { var __vt=document.getElementById('kinetic_frictionTable'); if(__vt)__vt.innerHTML=''; return; }
     var mu = num('mu'), N = num('N');
     if (!isFinite(__kinetic_frictionNum('mu')) || !isFinite(__kinetic_frictionNum('N'))) return;
     var en=TBKit.util.isEn();
@@ -319,7 +331,7 @@ function __kinetic_frictionExtras(){
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['动摩擦力 F_k (N)', (mu * N).toFixed(2)],
-            ['正压力与摩擦系数之比', (N/Math.max(mu,1e-9)).toFixed(4)],
+            ['正压力与摩擦系数之比', mu>0 ? (N/mu).toFixed(4) : (en?'undefined (μ=0)':'无定义（μ=0）')],
             ['摩擦力 (kgf 千克力)', (mu*N/9.80665).toFixed(4)],
             ['摩擦系数平方', (mu*mu).toFixed(4)],
         ]
@@ -388,6 +400,7 @@ else document.addEventListener('DOMContentLoaded', __kinetic_frictionBoot);
 </section>
 <script>
 function __kfrSweep(){
+  if(window.__kfrValid!==true)return null;
   var mu=num('mu');
   if(!isFinite(mu)||mu<=0)return null;
   var labels=[], dF=[], dK=[];
