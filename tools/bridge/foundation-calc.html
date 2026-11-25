@@ -302,11 +302,34 @@
 </div>
 <script>
 function fmt(v,d){if(!isFinite(v))return '--';return Number(v).toFixed(d!=null?d:2);}
-function num(id){var v=parseFloat(document.getElementById(id).value);return isFinite(v)?v:0;}
+function rawVal(id){var el=document.getElementById(id);return el?String(el.value).trim():'';}
+function readNum(id,label,min,allowZero){
+  var raw=rawVal(id);
+  if(raw==='') return {ok:false,msg:label+'不能为空'};
+  var v=Number(raw);
+  if(!isFinite(v)) return {ok:false,msg:label+'必须是有效数字'};
+  if(v<min||(min===0&&!allowZero&&v===0)) return {ok:false,msg:label+'必须'+(allowZero?'不小于 ':'大于 ')+min};
+  return {ok:true,val:v};
+}
+function clearResult(msg){
+  window._lastResult=null;
+  ['resRa','resSide','resTip','resNum'].forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='--';});
+  var r=document.getElementById('result');
+  if(r)r.innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';
+}
 function calc(){
-  var d=num('inD'),L=num('inL'),qp=num('inQp');
-  var qs1=num('inQs1'),l1=num('inL1'),qs2=num('inQs2'),l2=num('inL2'),qs3=num('inQs3'),Nload=num('inN');
-  if(!d||d<=0)return;
+  var dR=readNum('inD','桩径 d（m）',0,false);
+  var LR=readNum('inL','桩长 L（m）',0,false);
+  var qpR=readNum('inQp','桩端阻力 qp（kPa）',0,true);
+  var qs1R=readNum('inQs1','第 1 层侧阻力（kPa）',0,true);
+  var l1R=readNum('inL1','第 1 层厚度（m）',0,true);
+  var qs2R=readNum('inQs2','第 2 层侧阻力（kPa）',0,true);
+  var l2R=readNum('inL2','第 2 层厚度（m）',0,true);
+  var qs3R=readNum('inQs3','第 3 层侧阻力（kPa）',0,true);
+  var NR=readNum('inN','上部荷载 N（kN）',0,true);
+  var __tbChecks=[dR,LR,qpR,qs1R,l1R,qs2R,l2R,qs3R,NR];
+  for(var i=0;i<__tbChecks.length;i++){ if(!__tbChecks[i].ok){ clearResult(__tbChecks[i].msg+'，请补全后再计算。'); return; } }
+  var d=dR.val,L=LR.val,qp=qpR.val,qs1=qs1R.val,l1=l1R.val,qs2=qs2R.val,l2=l2R.val,qs3=qs3R.val,Nload=NR.val;
   var up=Math.PI*d;
   var Ap=Math.PI*d*d/4;
   var rem=Math.max(0,L);
@@ -317,7 +340,11 @@ function calc(){
   var totalSide=up*sideSum;
   var totalTip=qp*Ap;
   var Ra=totalSide+totalTip;
-  var nPile=Nload>0&&Ra>0?Math.ceil(Nload/Ra):0;
+  if(Nload>0&&Ra<=0){
+    clearResult('单桩承载力不大于 0，无法计算所需桩数；请检查桩径、桩长、侧阻与端阻。');
+    return;
+  }
+  var nPile=Nload>0?Math.ceil(Nload/Ra):0;
   const __g1=fmt(Ra,1)+' kN';document.getElementById('resRa').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=fmt(totalSide,1)+' kN';document.getElementById('resSide').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   const __g3=fmt(totalTip,1)+' kN';document.getElementById('resTip').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
@@ -328,9 +355,9 @@ function calc(){
     '<p><strong>总侧阻力：</strong>'+fmt(totalSide,1)+' kN（侧阻合计 '+fmt(sideSum,1)+' kPa·m）</p>'+
     '<p><strong>总端阻力：</strong>'+fmt(totalTip,1)+' kN（qp='+qp+' kPa）</p>'+
     '<p><strong>单桩承载力特征值 Ra：</strong>'+fmt(Ra,1)+' kN</p>'+
-    '<p><strong>侧阻占比：</strong>'+fmt(totalSide/Ra*100,1)+'%，端阻占比：'+fmt(totalTip/Ra*100,1)+'%</p>'+
+    (Ra>0?'<p><strong>侧阻占比：</strong>'+fmt(totalSide/Ra*100,1)+'%，端阻占比：'+fmt(totalTip/Ra*100,1)+'%</p>':'<p><strong>侧阻占比：</strong>--，端阻占比：--（Ra 不大于 0）</p>')+
     (Nload>0?'<p><strong>上部荷载：</strong>'+fmt(Nload,0)+' kN</p>'+
-    '<p><strong>需要桩数：</strong>'+nPile+' 根（单桩承担 '+fmt(Nload/nPile,1)+' kN）</p>':'');document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+    '<p><strong>需要桩数：</strong>'+nPile+' 根（单桩承担 '+fmt(Nload/nPile,1)+' kN）</p>':'<p><strong>需要桩数：</strong>--（上部荷载为 0，无需按承载力布桩）</p>');document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   window._lastResult={d:d,L:L,Ra:Ra,totalSide:totalSide,totalTip:totalTip,nPile:nPile,Nload:Nload};
 }
 function copyResult(){

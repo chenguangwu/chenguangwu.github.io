@@ -21,9 +21,9 @@ const CASES = [
     ref: "up = π×1.2 = 3.770 m；Ap = π×1.2²/4 = 1.1310 m²；有效层厚 e1=min(10,15)=10、e2=min(10,15−10)=5、e3=15−10−5=0；侧阻合计 = 45×10+60×5+80×0 = 750 kPa·m；总侧阻 = 3.770×750 = 2827.4 kN；端阻 = 1200×1.1310 = 1357.2 kN；Ra = 4184.6 kN；桩数 = ceil(20000/4184.6) = 5 根，单桩承担 4000.0 kN。默认 d=1.2/L=25 得 Ra=6823.5，不命中。" },
   // 原为 all_default 弱用例 + expect「活载」是标签片段（逃生项）。
   // factor(等级) 与 laneReduction(车道数) 双系数同时切换：Ⅱ级 0.75、4 车道 0.67（默认 Ⅰ级 1.0、3 车道 0.78）。
-  { slug: "bridge/load-calc", inputs: {"inL":"40","inB":"10","inG":"150","inGrade":"2","inLane":"4","inQp":"4.0","inBw":"1.5"},
-    expect: ["跨中弯矩 M： 39021.0 kN·m（均布 36621.0 + 集中 2400.0）", "支点剪力 V： 3782.1 kN", "集中荷载 Pk： 240.0 kN"],
-    ref: "qk = 10.5×0.75 = 7.875 kN/m；Pk = (180+180×(40−5)/45)×0.75 = 320×0.75 = 240.0 kN；qLane = 7.875×4×0.67 = 21.105 → 21.11；qPeople = 4.0×(1.5×2) = 12.0；qTotal = 183.105；M均布 = 183.105×40²/8 = 36621.0、M集中 = 240×40/4 = 2400.0、M = 39021.0；V = 183.105×40/2 + 240/2 = 3782.1。默认（Ⅰ级/3 车道）M=19714.1、V=2488.6，三串均失配。" },
+  { slug: "bridge/load-calc", inputs: {"inL":"40","inB":"10","inG":"150","inGrade":"2","inLane":"4","inQp":"4.0","inBw":"1.5"}, clicks: ["calc()"],
+    expect: ["组合跨中弯矩 M： 48629.4 kN·m（均布 45269.4 + 集中 3360.0）", "组合支点剪力 V： 4694.9 kN", "集中荷载 Pk： 336.0 kN"],
+    ref: "标准值：qk=7.875、Pk=240；qLane=21.105、qPeople=12、qTotal=183.105。按 1.2 恒载 + 1.4 活载：qDesign=1.2×150+1.4×(21.105+12)=226.347、PkDesign=336；M=226.347×40²/8+336×40/4=45269.4+3360=48629.4；V=226.347×20+168=4694.9。旧版把标准值当组合值（39021.0/3782.1），三串均失配。默认（Ⅰ级/3 车道）亦不同。" },
   // 原为 all_default 弱用例 + expect「万元」是单位词（逃生项）。
   // 主梁混凝土 = 面积×跨径×梁数×孔数；铺装 = 桥宽×跨径×厚度×孔数；钢筋 = 混凝土×含筋率/1000；
   // 造价 = 混凝土量×单价 + 钢筋吨数×单价。
@@ -33,7 +33,7 @@ const CASES = [
   // 原为 all_default 弱用例 + expect「单孔总荷载」是标签片段（逃生项）。
   // 注意：harness 的 select 默认取**首个 option**（simple），而真机取 `selected`（continuous）⇒ 必须显式注入 inType。
   // 连续梁：内支点 M = wL²/12、跨中 M = wL²/24（简支则为 wL²/8）—— 注入后走连续梁分支。
-  { slug: "bridge/span-calc", inputs: {"inLt":"400","inN":"4","inType":"continuous","inG":"180","inQ":"80"},
+  { slug: "bridge/span-calc", inputs: {"inLt":"400","inN":"4","inType":"continuous","inG":"180","inQ":"80"}, clicks: ["calc()"],
     expect: ["内支点最大弯矩： 216666.7 kN·m（M=(g+q)L²/12）", "单孔总荷载： 26000.0 kN", "桥墩数： 3 个（含 4 个墩台位置）"],
     ref: "L = 400/4 = 100.00 m、桥墩 = 4−1 = 3 个；w = 180+80 = 260.0 kN/m；内支点 M = 260×100²/12 = 216666.7、跨中 M = 260×100²/24 = 108333.3；单孔总荷载 = 260×100 = 26000.0 kN。默认（300/5/150/60，harness 取首个 option=simple）落在简支分支：L=60.00、桥墩 4 个、跨中 M=94500.0、单孔总荷载 12600.0，三串均失配。" },
   {
@@ -81,10 +81,11 @@ const CASES = [
       "inBw": "42",
       "inGrade": "2"
     },
+    "clicks": ["calc();document.getElementById('__tbProbe').textContent='LANEBAD '+document.getElementById('resM').textContent;"],
     "expect": [
-      "42\n42\n42\n2\n42\n42\n42\n829879.7 kN·m\n78913.2 kN\n3751.9 kN/m\n246.0 kN"
+      "LANEBAD --"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"inL\":\"42\",\"inB\":\"42\",\"inG\":\"42\",\"inLane\":\"42\",\"inQp\":\"42\",\"inBw\":\"42\",\"inGrade\":\"2\"}，输出区含「42\n42\n42\n2\n42\n42\n42\n829879.7 kN·m\n78913.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "车道数 42 越界（合法 1–8），calc 必须清空 resM 为 --；原自动用例按未校验的 42 车道算 829879.7 kN·m。默认 3 车道为 24899.0，不命中该探针值。"
   },
   {
     "slug": "bridge/span-calc",
@@ -95,10 +96,13 @@ const CASES = [
       "inQ": "42",
       "inType": "continuous"
     },
+    "clicks": ["calc()"],
     "expect": [
-      "42\n42\ncontinuous\n42\n42\n1.00 m\n41 个\n7.0 kN·m\n3.5"
+      "单孔跨径 L： 1.00 m",
+      "桥墩数： 41 个（含 42 个墩台位置）",
+      "内支点最大弯矩： 7.0 kN·m"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"inLt\":\"42\",\"inN\":\"42\",\"inG\":\"42\",\"inQ\":\"42\",\"inType\":\"continuous\"}，输出区含「42\n42\ncontinuous\n42\n42\n1.00 m\n41 个\n7.0 k…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "L=42/42=1.00 m、桥墩 41 个；w=84、M内支点=84×1²/12=7.0。显式 clicks 调 calc，避免桩环境初始调用差异；默认 300/5 得 60.00 m、4 个、63000.0，三串均失配。"
   },
   {
     "slug": "bridge/material-qty",
@@ -124,7 +128,84 @@ const CASES = [
     "expect": ["BRIDGEEX OK"],
     "ref": "12-G6 算例纠偏：q=20、L=6、EI=2e8 按页内式 5qL⁴/(384EI)=1.69e-6 m≈0.0017 mm，旧深度解析误写「10.1 mm、L/594」（差约6000倍）。源码形态断言旧错串消失、新正确值出现；默认态不执行 clicks ⇒ 零逃生。"
   }
-
+,
+{
+  "slug": "bridge/foundation-calc",
+  "inputs": {"inD":"1.2","inL":"25","inQp":"1200","inQs1":"45","inL1":"10","inQs2":"60","inL2":"10","inQs3":"80","inN":"12000"},
+  "clicks": ["calc();document.getElementById('inL').value='';calc();document.getElementById('__tbProbe').textContent='FDMISS '+document.getElementById('resRa').textContent+' '+(window._lastResult===null);"],
+  "expect": ["FDMISS -- true"],
+  "ref": "先算出有效结果，再清空桩长：calc 必须清空 resRa 为 -- 且 _lastResult=null，防止复制/历史沿用旧值。默认 L=25 为 6823.5 kN，不命中。"
+},
+{
+  "slug": "bridge/foundation-calc",
+  "inputs": {"inD":"1.2","inL":"25","inQp":"0","inQs1":"0","inL1":"10","inQs2":"0","inL2":"10","inQs3":"0","inN":"12000"},
+  "clicks": ["calc();document.getElementById('__tbProbe').textContent='FDZERO '+document.getElementById('resNum').textContent+' '+(window._lastResult===null);"],
+  "expect": ["FDZERO -- true"],
+  "ref": "qp 与各层侧阻均为 0 ⇒ Ra=0，正荷载 12000 kN 下必须提示无法计算桩数，不再显示 0 根；resNum=-- 且不保留结果快照。"
+},
+{
+  "slug": "bridge/foundation-calc",
+  "inputs": {"inD":"1.2","inL":"25","inQp":"1200","inQs1":"45","inL1":"10","inQs2":"60","inL2":"10","inQs3":"80","inN":"0"},
+  "clicks": ["calc();document.getElementById('__tbProbe').textContent='FDN0 '+(window._lastResult&&window._lastResult.nPile);"],
+  "expect": ["FDN0 0"],
+  "ref": "上部荷载 0 为合法零：Ra=6823.5 正常，nPile=0（无需按承载力布桩），不再因 N=0 早退。"
+},
+{
+  "slug": "bridge/material-qty",
+  "inputs": {"inL":"30","inNbeam":"6","inArea":"1.2","inB":"12","inT":"0.15","inSpan":"5","inRatio":"120","inPc":"600","inPs":"4500"},
+  "clicks": ["calc();document.getElementById('inL').value='';calc();document.getElementById('__tbProbe').textContent='MQMISS '+document.getElementById('resConc').textContent+' '+(window._lastResult===null);"],
+  "expect": ["MQMISS -- true"],
+  "ref": "先算出有效结果，再清空桥梁长度：必须清空混凝土结果与复制快照，避免复制与当前输入不符的旧工程量。"
+},
+{
+  "slug": "bridge/material-qty",
+  "inputs": {"inL":"30","inNbeam":"6.5","inArea":"1.2","inB":"12","inT":"0.15","inSpan":"5","inRatio":"120","inPc":"600","inPs":"4500"},
+  "clicks": ["calc();document.getElementById('__tbProbe').textContent='MQDEC '+document.getElementById('resConc').textContent+' '+(window._lastResult===null);"],
+  "expect": ["MQDEC -- true"],
+  "ref": "主梁片数 6.5 不是整数（原 parseInt 会截成 6 继续算），现拒绝并清空结果。"
+},
+{
+  "slug": "bridge/load-calc",
+  "inputs": {"inL":"30","inB":"12","inG":"0","inGrade":"1","inLane":"3","inQp":"3.0","inBw":"2"},
+  "clicks": ["calc();document.getElementById('__tbProbe').textContent='LDG0 '+(window._lastResult?window._lastResult.qDesign.toFixed(3):'null');"],
+  "expect": ["LDG0 51.198"],
+  "ref": "恒载 0 为合法零（仅有活载）：qDesign=1.2×0+1.4×(24.57+12)=51.198 kN/m，不再因 g=0 早退。默认 g=120 的 qDesign=195.198，不命中。"
+},
+{
+  "slug": "bridge/load-calc",
+  "inputs": {"inL":"30","inB":"12","inG":"","inGrade":"1","inLane":"3","inQp":"3.0","inBw":"2"},
+  "clicks": ["calc();document.getElementById('__tbProbe').textContent='LDMISS '+document.getElementById('resM').textContent+' '+(window._lastResult===null);"],
+  "expect": ["LDMISS -- true"],
+  "ref": "恒载为空（区别于合法 0）必须拒绝并清空结果/快照。"
+},
+{
+  "slug": "bridge/span-calc",
+  "inputs": {"inLt":"300","inN":"1","inType":"continuous","inG":"150","inQ":"60"},
+  "clicks": ["calc();document.getElementById('__tbProbe').textContent='SPC1 '+document.getElementById('resL').textContent+' '+(window._lastResult===null);"],
+  "expect": ["SPC1 -- true"],
+  "ref": "连续梁 1 跨没有内支点，必须拒绝并提示改选简支梁；resL=-- 且不输出 L²/12、L²/24 系数。"
+},
+{
+  "slug": "bridge/span-calc",
+  "inputs": {"inLt":"300","inN":"1","inType":"simple","inG":"150","inQ":"60"},
+  "clicks": ["calc();document.getElementById('__tbProbe').textContent='SPS1 '+document.getElementById('resL').textContent+' '+document.getElementById('resMmid').textContent;"],
+  "expect": ["SPS1 300.00 m 2362500.0 kN·m"],
+  "ref": "简支梁单跨合法：L=300 m、M=(150+60)×300²/8=2362500.0 kN·m，不受连续梁最少两跨限制。"
+},
+{
+  "slug": "bridge/deflection-calc",
+  "inputs": {"inL":"20","inE":"32.5","inI":"0.15","inQ":"0","inP":"200","inLimit":"400"},
+  "clicks": ["calcMode='uniform';calc();document.getElementById('__tbProbe').textContent='DFQ0 '+document.getElementById('resF').textContent+' '+document.getElementById('resRatio').textContent;"],
+  "expect": ["DFQ0 0.000 mm ∞（f=0）"],
+  "ref": "均布荷载 0 合法：f=0，挠跨比显示 ∞（f=0），不再因 q=0 拒绝或除零。默认 q=30 得 12.821 mm，不命中。"
+},
+{
+  "slug": "bridge/deflection-calc",
+  "inputs": {"inL":"20","inE":"32.5","inI":"0.15","inQ":"","inP":"200","inLimit":"400"},
+  "clicks": ["calcMode='uniform';calc();document.getElementById('__tbProbe').textContent='DFMISS '+document.getElementById('resF').textContent+' '+(window._lastResult===null);"],
+  "expect": ["DFMISS -- true"],
+  "ref": "均布荷载为空（区别于合法 0）必须拒绝并清空结果/快照。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

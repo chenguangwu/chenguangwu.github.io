@@ -195,22 +195,22 @@
 <div class="stat-grid-2">
   <div class="stat-card"><div class="val" id="resM">--</div><div class="lbl">跨中弯矩 M</div></div>
   <div class="stat-card"><div class="val" id="resV">--</div><div class="lbl">支点剪力 V</div></div>
-  <div class="stat-card"><div class="val" id="resW">--</div><div class="lbl">总均布荷载</div></div>
-  <div class="stat-card"><div class="val" id="resPk">--</div><div class="lbl">集中荷载 Pk</div></div>
+  <div class="stat-card"><div class="val" id="resW">--</div><div class="lbl">组合均布荷载</div></div>
+  <div class="stat-card"><div class="val" id="resPk">--</div><div class="lbl">组合集中荷载</div></div>
 </div>
 
 <div class="result-box" id="result"></div> <div id="load_calcTable"></div> <div id="load_calcDiff"></div> <div id="load_calcChart"></div> <div id="load_calcHist"></div>
 
 <div class="formula-box">
   <strong>📐 计算公式（简支梁）</strong>
-  <div class="formula">M = q·L²/8 + P·L/4　，　V = q·L/2 + P/2</div>
+  <div class="formula">q_d = 1.2·g + 1.4·(q_lane+q_people)，P_d = 1.4·Pk<br>M = q_d·L²/8 + P_d·L/4　，　V = q_d·L/2 + P_d/2</div>
   <p>公路-Ⅰ级：均布荷载 qk=10.5 kN/m，集中荷载 Pk 随跨径取 180~360 kN<br>
   公路-Ⅱ级：按 0.75 倍 Ⅰ 级取值<br>
   车道荷载折减：多车道按规范折减（2车道1.0，3车道0.78，4车道0.67）<br>
   恒载 + 活载组合按承载能力极限状态 S = 1.2·Sg + 1.4·Sq</p>
 </div>
 
-<div class="tip-box tip-info">💡 本工具为简化估算，未考虑冲击系数、横向分布系数及组合系数细化，实际设计按《公路桥涵设计通用规范》执行。</div>
+<div class="tip-box tip-info">💡 本工具按简支梁跨中/支点简化包络并采用恒载 1.2、活载 1.4 的基本组合；未考虑冲击系数、横向分布、影响线最不利布置及组合系数细化，实际设计按《公路桥涵设计通用规范》执行。桥面宽度仅用于车道+人行道几何校核，不直接改变按单梁线荷载计算的内力。</div>
 
 <div class="toolbar">
   <div id="load_calcPresets"></div><button type="button" class="btn primary" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__load_calcExport()">导出明细 CSV</button>
@@ -269,12 +269,12 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="荷载组合">Load combo</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="恒载活载人群叠加">qTotal = g + qLane + qPeople</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="恒载活载人群组合">q_d = 1.2·g + 1.4·(qLane+qPeople)；P_d = 1.4·Pk</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Ultimate limit state combination</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="内力">Internal force</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="跨中弯矩与支点剪力">M = qTotal·L²/8 + Pk·L/4; V = qTotal·L/2 + Pk/2</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="跨中弯矩与支点剪力">M = q_d·L²/8 + P_d·L/4; V = q_d·L/2 + P_d/2</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Simply-supported beam analysis</td>
         </tr>
       </tbody>
@@ -300,15 +300,34 @@ function laneReduction(n){
   if(n===5)return 0.6;
   return 0.55;
 }
+function ldRaw(id){var e=document.getElementById(id);return e?String(e.value).trim():'';}
+function ldNum(id,label,min,allowZero,integer){
+  var raw=ldRaw(id);
+  if(raw==='') return {ok:false,msg:label+'不能为空'};
+  var v=Number(raw);
+  if(!isFinite(v)) return {ok:false,msg:label+'必须是有效数字'};
+  if(integer&&!Number.isInteger(v)) return {ok:false,msg:label+'必须是整数'};
+  if(v<min||(min===0&&!allowZero&&v===0)) return {ok:false,msg:label+'必须'+(allowZero?'不小于 ':'大于 ')+min};
+  return {ok:true,val:v};
+}
+function ldFail(msg){
+  window._lastResult=null;
+  ['resM','resV','resW','resPk'].forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='--';});
+  var r=document.getElementById('result'); if(r) r.innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';
+}
 function calc(){
-  var L=parseFloat(document.getElementById('inL').value);
-  var B=parseFloat(document.getElementById('inB').value);
-  var g=parseFloat(document.getElementById('inG').value);
+  var LR=ldNum('inL','计算跨径 L（m）',0,false,false);
+  var BR=ldNum('inB','桥面宽度 B（m）',0,false,false);
+  var GR=ldNum('inG','恒载集度 g（kN/m）',0,true,false);
+  var laneR=ldNum('inLane','设计车道数',1,false,true);
+  var qpR=ldNum('inQp','人群荷载 qp（kN/m²）',0,true,false);
+  var bwR=ldNum('inBw','人行道宽 bw（m）',0,true,false);
   var grade=parseInt(document.getElementById('inGrade').value,10);
-  var lane=parseInt(document.getElementById('inLane').value,10);
-  var qp=parseFloat(document.getElementById('inQp').value);
-  var bw=parseFloat(document.getElementById('inBw').value);
-  if(!L||!g||L<=0)return;
+  if(grade!==1&&grade!==2) grade=1;
+  var __tbChecks=[LR,BR,GR,laneR,qpR,bwR];
+  for(var i=0;i<__tbChecks.length;i++){ if(!__tbChecks[i].ok){ ldFail(__tbChecks[i].msg+'，请修正后再计算。'); return; } }
+  var L=LR.val,B=BR.val,g=GR.val,lane=laneR.val,qp=qpR.val,bw=bwR.val;
+  if(lane>8){ ldFail('设计车道数必须在 1–8 之间。'); return; }
   var factor=grade===1?1:0.75;
   var qk=10.5*factor;
   var Pk;
@@ -319,29 +338,37 @@ function calc(){
   var qLane=qk*lane*red;
   var qPeople=qp*bw*2;
   var qTotal=g+qLane+qPeople;
-  var Mq=qTotal*L*L/8;
-  var Mp=Pk*L/4;
-  var M=Mq+Mp;
-  var V=qTotal*L/2+Pk/2;
+  var Mstd=qTotal*L*L/8+Pk*L/4;
+  var Vstd=qTotal*L/2+Pk/2;
+  // 承载能力极限状态：恒载 1.2、活载（车道+人群+集中）1.4
+  var qDesign=1.2*g+1.4*(qLane+qPeople);
+  var PkDesign=1.4*Pk;
+  var M=qDesign*L*L/8+PkDesign*L/4;
+  var V=qDesign*L/2+PkDesign/2;
+  var needB=lane*3.0+2*bw;
+  var widthOK=B>=needB;
   const __g1=fmt(M,1)+' kN·m';document.getElementById('resM').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=fmt(V,1)+' kN';document.getElementById('resV').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  const __g3=fmt(qTotal,1)+' kN/m';document.getElementById('resW').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-  const __g4=fmt(Pk,1)+' kN';document.getElementById('resPk').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  const __g3=fmt(qDesign,1)+' kN/m';document.getElementById('resW').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  const __g4=fmt(PkDesign,1)+' kN';document.getElementById('resPk').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   const __g5='<p><strong>计算跨径：</strong>'+fmt(L,1)+' m</p>'+
     '<p><strong>恒载集度：</strong>'+fmt(g,1)+' kN/m</p>'+
     '<p><strong>车道均布荷载 qk：</strong>'+fmt(qk,2)+' kN/m × '+lane+' 车道 × 折减 '+red+' = '+fmt(qLane,2)+' kN/m</p>'+
     '<p><strong>集中荷载 Pk：</strong>'+fmt(Pk,1)+' kN</p>'+
     '<p><strong>人群荷载：</strong>'+fmt(qp,1)+' kN/m² × '+fmt(bw*2,1)+' m = '+fmt(qPeople,1)+' kN/m</p>'+
-    '<p><strong>总均布荷载：</strong>'+fmt(qTotal,2)+' kN/m</p>'+
-    '<p><strong>跨中弯矩 M：</strong>'+fmt(M,1)+' kN·m（均布 '+fmt(Mq,1)+' + 集中 '+fmt(Mp,1)+'）</p>'+
-    '<p><strong>支点剪力 V：</strong>'+fmt(V,1)+' kN</p>'+
-    '<p><strong>承载能力组合值：</strong>1.2×'+fmt(g,0)+'·L + 1.4×活载</p>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
-  window._lastResult={L:L,M:M,V:V,qTotal:qTotal,Pk:Pk,qLane:qLane};
+    '<p><strong>标准值均布荷载：</strong>'+fmt(qTotal,2)+' kN/m（恒载 '+fmt(g,1)+' + 车道 '+fmt(qLane,2)+' + 人群 '+fmt(qPeople,1)+'）</p>'+
+    '<p><strong>承载能力组合均布荷载：</strong>'+fmt(qDesign,2)+' kN/m（1.2×恒载 + 1.4×活载）</p>'+
+    '<p><strong>标准值跨中弯矩：</strong>'+fmt(Mstd,1)+' kN·m；<strong>标准值支点剪力：</strong>'+fmt(Vstd,1)+' kN</p>'+
+    '<p><strong>组合跨中弯矩 M：</strong>'+fmt(M,1)+' kN·m（均布 '+fmt(qDesign*L*L/8,1)+' + 集中 '+fmt(PkDesign*L/4,1)+'）</p>'+
+    '<p><strong>组合支点剪力 V：</strong>'+fmt(V,1)+' kN</p>'+
+    '<p><strong>桥面宽度校核：</strong>B='+fmt(B,1)+' m；按每车道 3.0 m + 两侧人行道 '+fmt(bw*2,1)+' m，最小占用 '+fmt(needB,1)+' m，'+(widthOK?'满足。':'不足（仅作几何提示，不改变按单梁线荷载计算的内力）。')+'</p>'+
+    '<p><strong>简化条件：</strong>按简支梁跨中弯矩与支点剪力的简化包络计算，未考虑冲击系数、横向分布与影响线最不利布置。</p>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  window._lastResult={L:L,M:M,V:V,Mstd:Mstd,Vstd:Vstd,qTotal:qTotal,qDesign:qDesign,Pk:Pk,PkDesign:PkDesign,qLane:qLane};
 }
 function copyResult(){
   if(!window._lastResult)return;
   var r=window._lastResult;
-  ToolBox.copyText('桥梁荷载计算结果：\n跨径 L: '+fmt(r.L,1)+' m\n总均布荷载: '+fmt(r.qTotal,2)+' kN/m\n集中荷载 Pk: '+fmt(r.Pk,1)+' kN\n跨中弯矩 M: '+fmt(r.M,1)+' kN·m\n支点剪力 V: '+fmt(r.V,1)+' kN');
+  ToolBox.copyText('桥梁荷载计算结果：\n跨径 L: '+fmt(r.L,1)+' m\n标准值均布荷载: '+fmt(r.qTotal,2)+' kN/m\n组合均布荷载: '+fmt(r.qDesign,2)+' kN/m\n集中荷载标准值 Pk: '+fmt(r.Pk,1)+' kN\n组合跨中弯矩 M: '+fmt(r.M,1)+' kN·m\n组合支点剪力 V: '+fmt(r.V,1)+' kN');
 }
 function resetForm(){
   document.getElementById('inL').value=30;

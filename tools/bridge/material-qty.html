@@ -303,17 +303,34 @@
 </div>
 <script>
 function fmt(v,d){if(!isFinite(v))return '--';return Number(v).toFixed(d!=null?d:2);}
+function mqRaw(id){var e=document.getElementById(id);return e?String(e.value).trim():'';}
+function mqNum(id,label,min,allowZero,integer){
+  var raw=mqRaw(id);
+  if(raw==='') return {ok:false,msg:label+'不能为空'};
+  var v=Number(raw);
+  if(!isFinite(v)) return {ok:false,msg:label+'必须是有效数字'};
+  if(integer&&!Number.isInteger(v)) return {ok:false,msg:label+'必须是整数'};
+  if(v<min||(min===0&&!allowZero&&v===0)) return {ok:false,msg:label+'必须'+(allowZero?'不小于 ':'大于 ')+min};
+  return {ok:true,val:v};
+}
+function mqFail(msg){
+  window._lastResult=null;
+  ['resConc','resSteel','resPave','resCost'].forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='--';});
+  var r=document.getElementById('result'); if(r) r.innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';
+}
 function calc(){
-  var L=parseFloat(document.getElementById('inL').value);
-  var nBeam=parseInt(document.getElementById('inNbeam').value,10);
-  var area=parseFloat(document.getElementById('inArea').value);
-  var B=parseFloat(document.getElementById('inB').value);
-  var t=parseFloat(document.getElementById('inT').value);
-  var span=parseInt(document.getElementById('inSpan').value,10);
-  var ratio=parseFloat(document.getElementById('inRatio').value);
-  var pc=parseFloat(document.getElementById('inPc').value);
-  var ps=parseFloat(document.getElementById('inPs').value);
-  if(!L||!area||!B||!t||!ratio)return;
+  var LR=mqNum('inL','桥梁长度 L（m）',0,false,false);
+  var nR=mqNum('inNbeam','主梁片数',1,false,true);
+  var aR=mqNum('inArea','单片主梁截面积（m²）',0,false,false);
+  var BR=mqNum('inB','桥面宽度 B（m）',0,false,false);
+  var tR=mqNum('inT','铺装厚度 t（m）',0,false,false);
+  var sR=mqNum('inSpan','孔数',1,false,true);
+  var ratioR=mqNum('inRatio','含筋率（kg/m³）',0,true,false);
+  var pcR=mqNum('inPc','混凝土单价（元/m³）',0,true,false);
+  var psR=mqNum('inPs','钢筋单价（元/t）',0,true,false);
+  var __tbChecks=[LR,nR,aR,BR,tR,sR,ratioR,pcR,psR];
+  for(var i=0;i<__tbChecks.length;i++){ if(!__tbChecks[i].ok){ mqFail(__tbChecks[i].msg+'，请修正后再计算。'); return; } }
+  var L=LR.val,nBeam=nR.val,area=aR.val,B=BR.val,t=tR.val,span=sR.val,ratio=ratioR.val,pc=pcR.val,ps=psR.val;
   var vBeamPer=area*L*nBeam;
   var vBeam=vBeamPer*span;
   var vPave=B*L*t*span;
@@ -328,7 +345,7 @@ function calc(){
     '<p><strong>全桥主梁混凝土：</strong>'+fmt(vBeam,2)+' m³（'+span+' 孔）</p>'+
     '<p><strong>桥面铺装混凝土：</strong>'+fmt(vPave,2)+' m³（厚 '+t+' m）</p>'+
     '<p><strong>混凝土总量：</strong>'+fmt(vTotal,2)+' m³</p>'+
-    '<p><strong>钢筋用量：</strong>'+fmt(wSteel*ratio*0+ vBeam*ratio,0)+' kg = '+fmt(wSteel,2)+' t（含筋率 '+ratio+' kg/m³）</p>'+
+    '<p><strong>钢筋用量：</strong>'+fmt(vBeam*ratio,0)+' kg = '+fmt(wSteel,2)+' t（含筋率 '+ratio+' kg/m³）</p>'+
     '<p><strong>每延米混凝土用量：</strong>'+fmt(vTotal/(L*span),2)+' m³/m</p>'+
     '<p><strong>每平米桥面混凝土用量：</strong>'+fmt(vTotal/(L*span*B),3)+' m³/m²</p>'+
     '<p><strong>材料造价：</strong>混凝土 '+fmt(vTotal*pc/10000,2)+' 万 + 钢筋 '+fmt(wSteel*ps/10000,2)+' 万 = '+fmt(cost/10000,2)+' 万元</p>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));

@@ -285,13 +285,31 @@
 </div>
 <script>
 function fmt(v,d){if(!isFinite(v))return '--';return Number(v).toFixed(d!=null?d:2);}
+function spRaw(id){var e=document.getElementById(id);return e?String(e.value).trim():'';}
+function spNum(id,label,min,allowZero,integer){
+  var raw=spRaw(id);
+  if(raw==='') return {ok:false,msg:label+'不能为空'};
+  var v=Number(raw);
+  if(!isFinite(v)) return {ok:false,msg:label+'必须是有效数字'};
+  if(integer&&!Number.isInteger(v)) return {ok:false,msg:label+'必须是整数'};
+  if(v<min||(min===0&&!allowZero&&v===0)) return {ok:false,msg:label+'必须'+(allowZero?'不小于 ':'大于 ')+min};
+  return {ok:true,val:v};
+}
+function spFail(msg){
+  window._lastResult=null;
+  ['resL','resPier','resMmax','resMmid'].forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='--';});
+  var r=document.getElementById('result'); if(r) r.innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';
+}
 function calc(){
-  var Lt=parseFloat(document.getElementById('inLt').value);
-  var n=parseInt(document.getElementById('inN').value,10);
+  var LtR=spNum('inLt','桥梁总长（m）',0,false,false);
+  var nR=spNum('inN','跨数',1,false,true);
+  var gR=spNum('inG','恒载集度（kN/m）',0,true,false);
+  var qR=spNum('inQ','活载集度（kN/m）',0,true,false);
   var type=document.getElementById('inType').value;
-  var g=parseFloat(document.getElementById('inG').value);
-  var q=parseFloat(document.getElementById('inQ').value);
-  if(!Lt||!n||Lt<=0||n<=0)return;
+  var __tbChecks=[LtR,nR,gR,qR];
+  for(var i=0;i<__tbChecks.length;i++){ if(!__tbChecks[i].ok){ spFail(__tbChecks[i].msg+'，请修正后再计算。'); return; } }
+  var Lt=LtR.val,n=nR.val,g=gR.val,q=qR.val;
+  if(type==='continuous'&&n<2){ spFail('等跨连续梁至少需要 2 跨；单跨请选择“简支梁桥”模型。'); return; }
   var L=Lt/n;
   var piers=n-1;
   var w=g+q;
@@ -318,7 +336,7 @@ function calc(){
     (type==='simple'?
       '<p><strong>跨中弯矩：</strong>'+fmt(Mmid,1)+' kN·m（M=(g+q)L²/8）</p>':
       '<p><strong>内支点最大弯矩：</strong>'+fmt(Mmax,1)+' kN·m（M=(g+q)L²/12）</p>'+
-      '<p><strong>跨中弯矩：</strong>'+fmt(Mmid,1)+' kN·m（M=(g+q)L²/24）</p>')+
+      '<p><strong>跨中弯矩：</strong>'+fmt(Mmid,1)+' kN·m（按内跨/等跨近似 M=(g+q)L²/24；边跨与支承条件不同时需另行分析）</p>')+
     '<p><strong>单孔总荷载：</strong>'+fmt(w*L,1)+' kN</p>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   window._lastResult={type:typeName,L:L,n:n,piers:piers,Mmax:Mmax,Mmid:Mmid};
 }

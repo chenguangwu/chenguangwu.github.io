@@ -322,11 +322,12 @@ function calc(){
   if(calcMode==='uniform'){
     var qEl=document.getElementById('inQ');
     var q=parseFloat(qEl.value)*1000; // N/m
-    var qOk=isFinite(q)&&q>0;
+    var qRaw=String(qEl.value).trim();
+    var qOk=qRaw!==''&&isFinite(q)&&q>=0;
     setInvalid(qEl,!qOk);
     if(!qOk){
       clearResults();
-      document.getElementById('result').innerHTML='<p style="color:var(--danger,#B91C1C);">请输入有效的均布荷载 q（需大于 0）。</p>';
+      document.getElementById('result').innerHTML='<p style="color:var(--danger,#B91C1C);">请输入有效的均布荷载 q（可为 0，但不能为空或为负）。</p>';
       return;
     }
     f=5*q*Math.pow(L,4)/(384*EI);
@@ -337,11 +338,12 @@ function calc(){
   }else{
     var pEl=document.getElementById('inP');
     var P=parseFloat(pEl.value)*1000; // N
-    var pOk=isFinite(P)&&P>0;
+    var pRaw=String(pEl.value).trim();
+    var pOk=pRaw!==''&&isFinite(P)&&P>=0;
     setInvalid(pEl,!pOk);
     if(!pOk){
       clearResults();
-      document.getElementById('result').innerHTML='<p style="color:var(--danger,#B91C1C);">请输入有效的集中荷载 P（需大于 0）。</p>';
+      document.getElementById('result').innerHTML='<p style="color:var(--danger,#B91C1C);">请输入有效的集中荷载 P（可为 0，但不能为空或为负）。</p>';
       return;
     }
     f=P*Math.pow(L,3)/(48*EI);
@@ -353,15 +355,17 @@ function calc(){
   var fLim=L/limitN;
   var ratio=f/L;
   var ok=f<=fLim;
+  var ratioText=f>0?'1/'+fmt(L/f,0):'∞（f=0）';
   const __g1=fmt(f*1000,3)+' mm';document.getElementById('resF').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=fmt(fLim*1000,2)+' mm';document.getElementById('resLimit').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  const __g3='1/'+fmt(L/f,0);document.getElementById('resRatio').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  const __g3=ratioText;document.getElementById('resRatio').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   const __g4='<span class="grade-tag '+(ok?'grade-excellent':'grade-fail')+'">'+(ok?'满足':'不满足')+'</span>';document.getElementById('resCheck').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   const __g5=detail+
     '<p><strong>允许挠度 [f]：</strong>'+fmt(fLim*1000,2)+' mm（L/'+limitN+'）</p>'+
-    '<p><strong>挠跨比：</strong>1/'+fmt(L/f,0)+' （限值 1/'+limitN+'）</p>'+
-    '<p><strong>校核结果：</strong>'+(ok?'满足要求':'不满足，需增大截面或减小跨度')+'</p>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
-  window._lastResult={mode:calcMode,f:f,fLim:fLim,ratio:L/f,ok:ok,loadDesc:loadDesc};
+    '<p><strong>挠跨比：</strong>'+ratioText+' （限值 1/'+limitN+'）</p>'+
+    '<p><strong>校核结果：</strong>'+(ok?'满足要求':'不满足，需增大截面或减小跨度')+'</p>'+
+    '<p><strong>计算边界：</strong>仅计入当前输入的'+(calcMode==='uniform'?'均布荷载 q':'跨中集中荷载 P')+'，未计入结构自重、二期恒载、预应力、收缩徐变与冲击作用；f=0 仅表示该输入荷载下的弹性挠度为零。</p>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  window._lastResult={mode:calcMode,f:f,fLim:fLim,ratio:ratioText,ok:ok,loadDesc:loadDesc};
 }
 function copyResult(){
   if(!window._lastResult)return;
