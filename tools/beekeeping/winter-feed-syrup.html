@@ -258,7 +258,16 @@ function calcTool(){
   let html=dataGrid(rows);
   if(d.ratio>2.5)html+='<div class="info-box" style="margin-top:12px;">⚠️ 糖水比 '+d.ratio+':1 偏浓，冷却后易结晶，建议控制在 2.5:1 以内并分次饲喂。</div>';
   if(d.ratio<1)html+='<div class="info-box" style="margin-top:8px;">糖水比低于 1:1，水分偏高，越冬期易发酵；弱群短期奖励饲喂可用，但不宜作为主要越冬饲料。</div>';
-  html+='<div class="info-box" style="margin-top:8px;">按计划 '+d.days+' 天饲喂，平均每天约需白糖 '+d.perDaySugar.toFixed(1)+' kg；建议分 2–3 次投喂，避免糖浆积存。</div>';
+  var gapPer=d.daily*d.days-d.vol; // 计划期需糖浆 − 实备糖浆（L/群）
+  var gapTotal=gapPer*d.n;
+  if(gapPer>0){
+    html+='<div class="tip-box tip-warn" style="margin-top:8px;"><strong>计划与备料不匹配：</strong>计划 '+d.days+' 天按每日 '+d.daily+' L/群需糖浆 '+(d.daily*d.days).toFixed(1)+' L/群，当前仅备 '+d.vol.toFixed(1)+' L/群，缺口 <strong>'+gapPer.toFixed(1)+' L/群</strong>（合计 '+gapTotal.toFixed(1)+' L）。请增加补饲量、延长备料或缩短计划天数。</div>';
+  } else if(gapPer<0){
+    html+='<div class="tip-box tip-info" style="margin-top:8px;"><strong>计划与备料不匹配：</strong>按每日 '+d.daily+' L/群，当前 '+d.vol.toFixed(1)+' L/群约可消耗 '+d.feedDays.toFixed(1)+' 天，计划 '+d.days+' 天将剩余 <strong>'+Math.abs(gapPer).toFixed(1)+' L/群</strong>（合计 '+Math.abs(gapTotal).toFixed(1)+' L）。可延长饲喂天数或减少备料，剩余糖浆需防发酵。</div>';
+  } else {
+    html+='<div class="tip-box tip-info" style="margin-top:8px;">计划 '+d.days+' 天与预计消耗 '+d.feedDays.toFixed(1)+' 天一致（按每日 '+d.daily+' L/群恒定消耗假设）。</div>';
+  }
+  html+='<div class="info-box" style="margin-top:8px;">「预计消耗天数」按每日消耗恒定估算；「计划天数」是您打算投喂的周期，两者不是同一口径。按计划 '+d.days+' 天摊薄，平均每天约需白糖 '+d.perDaySugar.toFixed(1)+' kg；建议分 2–3 次投喂，并观察采食与结晶情况。</div>';
   document.getElementById('result').innerHTML=html;
   drawChart(d);
   saveHist(HIST_KEY,new Date().toLocaleTimeString()+' · '+d.n+' 群 / '+d.vol+' L → 白糖 '+d.sugar.toFixed(1)+' kg');
@@ -276,7 +285,7 @@ fillRatioTable();renderHist(HIST_KEY);calcTool();
 <li>弱群复壮：弱群用 1:1 稀糖浆少量多次奖励饲喂，促进产卵与造脾，但要注意防盗蜂。</li>
 <li>饲喂计划安排：按每日消耗量估算几天喂完，把补饲安排在晴暖午后，避免低温期糖浆积在箱底。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：10 群、每群 6 L、糖水比 2:1</div><div class="dd-ex-body">糖质量分数 = 2 ÷ (2 + 1) = 66.7%；2:1 糖浆密度约 1.34 kg/L，总糖浆重量 = 10 × 6 × 1.34 = 80.4 kg；白糖 = 80.4 × 66.7% = 53.6 kg；加水 = 26.8 kg；按 6 元/kg 计成本约 322 元；每群每日 0.4 L 时约 15 天吃完，建议分 3 次、每次 2 L 饲喂。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：10 群、每群 6 L、糖水比 2:1</div><div class="dd-ex-body">糖质量分数 = 2 ÷ (2 + 1) = 66.7%；2:1 糖浆密度约 1.34 kg/L，总糖浆重量 = 10 × 6 × 1.34 = 80.4 kg；白糖 = 80.4 × 66.7% = 53.6 kg；加水 = 26.8 kg；按 6 元/kg 计成本约 322 元；每群每日 0.4 L 时约 15 天吃完；若计划只喂 7 天，按同一消耗速度会剩余约 3.2 L/群，需延长饲喂或减少备料。建议分 3 次、每次 2 L 饲喂。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>越冬糖浆为什么常用 2:1？</dt><dd>2:1（糖:水，按重量）糖分高、水分少，蜜蜂酿制负担小，低温下不易发酵，是多数地区越冬补饲的常用浓度；具体仍要看当地气候与群势。</dt>

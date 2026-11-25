@@ -150,7 +150,7 @@
     <h2 data-zh="🔮 养蜂采蜜量估算">Honey Estimator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据蜂箱数量、花源面积和蜜源类型估算年度产蜜量">Honey Estimator</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">需求花源 = 蜂群数 × 4 亩/群；总产蜜 = 蜜源基数 × 群数 × 气候系数 × 经验系数 × 面积因子；面积因子 = min(1, 花源 ÷ 需求花源)，超 3 倍需求取 1.1</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">需求花源 = 蜂群数 × 4 亩/群；总产蜜 = 蜜源基数 × 群数 × 气候系数 × 经验系数 × 面积因子；面积因子 = min(1, 花源 ÷ 需求花源)，达到需求后不再额外加成</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：totalHoney × 2；totalHoney × 40；hives × 4">Key formulas: totalHoney × 2; totalHoney × 40; hives × 4</p>
     </div>
 
@@ -269,7 +269,7 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="面积折减">Area factor</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="花源不足按比例折减，充足略加成">areaFactor = area/need (short); 1.1 (ample)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="花源不足按比例折减；达到需求后为 1.0">areaFactor = area/need (short); 1.1 (ample)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Colony management guideline</td>
         </tr>
         <tr>
@@ -361,9 +361,8 @@ function calc(){
   let areaFactor = 1.0;
   if(area < needArea){
     areaFactor = area / needArea; // 花源不足，按比例折减
-  } else if(area > needArea * 3){
-    areaFactor = 1.1; // 花源充足略有加成
   }
+  // 面积达到经验需求后不再加成，避免「刚好 3 倍」阈值附近产量突然跳增。
 
   const totalHoney = source.base * hives * climate * exp * areaFactor;
   window.__honeyLast = {hives:hives,area:area,source:source.name,totalHoney:totalHoney};
@@ -376,7 +375,7 @@ function calc(){
   const __g3=totalHoney.toFixed(1) + ' kg';document.getElementById('honeyResult').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   const __g4=`预估年度产蜜量（约${jinTotal.toFixed(0)}斤）`;document.getElementById('honeyDesc').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 
-  let areaNote = areaFactor < 1 ? '花源偏少，建议扩大蜜源或减少蜂群' : '花源面积充足（产量仍受天气、流蜜期与蜂群状态影响）';
+  let areaNote = areaFactor < 1 ? '花源偏少，建议扩大蜜源或减少蜂群' : '面积达到经验需求，但不代表采蜜有保障：花期、天气、竞争蜂群与农药仍会影响产量';
 
   const __g5=`
     <div class="stat-card"><div class="val">${perHive.toFixed(1)}</div><div class="lbl">单群产蜜(kg)</div></div>

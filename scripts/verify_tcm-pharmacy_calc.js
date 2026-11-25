@@ -348,6 +348,22 @@ const CASES = [
   expect: ["0.150", "37.5", "1:7"],
   ref: "恢复第353批旧页（非默认配方）：120 g 药材 / 800 mL ⇒ 0.150 g/mL 生药浓度、药酒比 1:7、37.5 mg/mL 浸出物；medicinal-wine 无目标生药浓度输入。"
 }
+  ,{
+  "slug": "tcm-pharmacy/granule-equivalent",
+  "inputs": {"herbSelect":"石膏","decoctionDose":"45","bagEquiv":"","bagWeight":""},
+  "expect": ["未计算袋数","参考颗粒量（按参考当量）"],
+  "ref": "第829批：产品标签当量/袋重均空时不得再按数据库 conc 猜 1g/3g 袋重输出袋数；只显示参考颗粒量并明确「未计算袋数」。"
+},{
+  "slug": "tcm-pharmacy/granule-equivalent",
+  "inputs": {"herbSelect":"石膏","decoctionDose":"45","bagEquiv":"10","bagWeight":"3"},
+  "expect": ["4.50袋","13.50g"],
+  "ref": "第829批：按产品标签每袋相当于饮片 10g、每袋 3g ⇒ 45÷10=4.50 袋，4.50×3=13.50g；袋数只在同时填写两项标签时输出。"
+},{
+  "slug": "tcm-pharmacy/calc-time-concentration",
+  "inputs": {"cat":"herb","herb":"100","vol":"1000","abv":"50","target":"0.1"},
+  "expect": ["不提供服用剂量","0.100"],
+  "ref": "第829批：移除按浓度分档的每次/每日用量；输出只保留浓度、浸出物浓度、浸泡时间与目标反算，并固定显示「不提供服用剂量」警示。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

@@ -146,6 +146,14 @@
           <label for="decoctionDose">饮片用量(g)</label>
           <input type="number" id="decoctionDose" value="10" min="0" step="0.5" oninput="calcSingle()" placeholder="如 10">
         </div>
+        <div>
+          <label for="bagEquiv">产品标签：每袋相当于饮片(g)</label>
+          <input type="number" id="bagEquiv" min="0" step="0.1" oninput="calcSingle()" placeholder="如 10（按说明书）">
+        </div>
+        <div>
+          <label for="bagWeight">产品标签：每袋装量(g)</label>
+          <input type="number" id="bagWeight" min="0" step="0.1" oninput="calcSingle()" placeholder="如 3（按说明书）">
+        </div>
       </div>
       <div class="toolbar">
         <div id="granule_equivalentPresets"></div><button type="button" class="btn primary" onclick="calcSingle()">折算</button><button class="btn" type="button" onclick="__granule_equivalentExport()">导出明细 CSV</button>
@@ -371,26 +379,38 @@ function calcSingle(){
   }
 
   var d = granuleDB[herb];
-  var granuleDose = dose / d.ratio;
-  // 计算袋数（假设每袋1g或2g）
-  var bagSize = d.conc.match(/每袋装([\d.]+)g/);
-  var bagG = bagSize ? parseFloat(bagSize[1]) : 1;
-  var bags = granuleDose / bagG;
+  var refGranule = dose / d.ratio;
+  var eqRaw = String(document.getElementById('bagEquiv').value || '').trim();
+  var wtRaw = String(document.getElementById('bagWeight').value || '').trim();
+  var bagEquiv = eqRaw === '' ? NaN : parseFloat(eqRaw);
+  var bagWeight = wtRaw === '' ? NaN : parseFloat(wtRaw);
+  var hasBagInfo = eqRaw !== '' && wtRaw !== '' && isFinite(bagEquiv) && isFinite(bagWeight) && bagEquiv > 0 && bagWeight > 0;
+  var bagPartial = (eqRaw !== '' || wtRaw !== '') && !hasBagInfo;
+  var bags = hasBagInfo ? dose / bagEquiv : null;
+  var actualGranule = hasBagInfo ? bags * bagWeight : null;
 
   result.style.display = 'block';
   var html = '<h3 style="margin-bottom:10px;">💊 '+herb+' 配方颗粒折算</h3>';
   html += '<div class="data-grid">';
   html += '<div class="data-card"><div class="num">'+dose+'g</div><div class="label">饮片用量</div></div>';
-  html += '<div class="data-card"><div class="num" style="color:var(--secondary);">1:'+d.ratio+'</div><div class="label">当量比</div></div>';
-  html += '<div class="data-card"><div class="num" style="color:var(--primary);">'+granuleDose.toFixed(2)+'g</div><div class="label">颗粒用量</div></div>';
-  html += '<div class="data-card"><div class="num" style="color:var(--accent);">'+bags.toFixed(1)+'袋</div><div class="label">约'+bagG+'g/袋</div></div>';
+  html += '<div class="data-card"><div class="num" style="color:var(--secondary);">1:'+d.ratio+'</div><div class="label">参考当量比（需核对产品）</div></div>';
+  html += '<div class="data-card"><div class="num" style="color:var(--primary);">'+refGranule.toFixed(2)+'g</div><div class="label">参考颗粒量（按参考当量）</div></div>';
+  if(hasBagInfo){
+    html += '<div class="data-card"><div class="num" style="color:var(--accent);">'+bags.toFixed(2)+'袋</div><div class="label">按产品标签：每袋 '+bagWeight+'g ≈ 饮片 '+bagEquiv+'g</div></div>';
+    html += '<div class="data-card"><div class="num">'+actualGranule.toFixed(2)+'g</div><div class="label">按产品标签折算颗粒总量</div></div>';
+  }
   html += '</div>';
 
   html += '<div class="tip-box tip-info" style="margin-top:10px;">';
-  html += '<p><strong>规格：</strong>'+ToolBox.escHtml(d.conc)+'</p>';
+  html += '<p><strong>数据库参考规格：</strong>'+ToolBox.escHtml(d.conc)+'（仅作通用参考，不同厂家/批号可能不同）</p>';
   html += '<p style="margin-top:4px;"><strong>功效：</strong>'+ToolBox.escHtml(d.note)+'</p>';
-  html += '<p style="margin-top:6px;"><strong>折算公式：</strong>'+dose+'g ÷ '+d.ratio+' = '+granuleDose.toFixed(2)+'g</p>';
-  html += '<p style="margin-top:6px;font-size:12px;">配方颗粒无需煎煮，直接用开水冲服即可。先煎/后下/包煎等特殊煎法在配方颗粒中可省略。</p>';
+  html += '<p style="margin-top:6px;"><strong>参考折算：</strong>'+dose+'g ÷ '+d.ratio+' = '+refGranule.toFixed(2)+'g（未按具体产品核对）</p>';
+  if(hasBagInfo){
+    html += '<p style="margin-top:6px;"><strong>按产品标签：</strong>'+dose+'g ÷ '+bagEquiv+'g/袋 = '+bags.toFixed(2)+' 袋；'+bags.toFixed(2)+' × '+bagWeight+'g/袋 = '+actualGranule.toFixed(2)+'g 颗粒。</p>';
+  } else {
+    html += '<p style="margin-top:6px;color:var(--danger);"><strong>未计算袋数：</strong>'+(bagPartial?'请同时填写有效的产品标签「每袋相当于饮片」与「每袋装量」。':'请按具体产品说明书填写每袋当量饮片量与每袋装量，或由药师核定后再换算袋数。')+'</p>';
+  }
+  html += '<p style="margin-top:6px;font-size:12px;">配方颗粒是否可替代先煎、后下、烊化、冲服等特殊煎法，需由开方医师/药师判断；含挥发性成分或需先煎减毒的药材不可自行省略。</p>';
   html += '</div>';
 
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h2;
@@ -473,7 +493,7 @@ function calcFormula(){
   // 服用方法
   html += '<div class="tip-box tip-info" style="margin-top:10px;">';
   html += '<p><strong>服法：</strong>将以上配方颗粒混合，加开水150-200ml搅拌溶解后温服，每日一剂，分1-2次服。</p>';
-  html += '<p style="margin-top:4px;font-size:12px;">注：不同厂家当量比可能有差异，实际使用以说明书为准。</p>';
+  html += '<p style="margin-top:4px;font-size:12px;">注：以上为按参考当量比折算的处方核对，未按具体产品标签/批号核定，不可直接作为调配依据；实际使用以说明书并咨询药师为准。</p>';
   html += '</div>';
 
   const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h3;

@@ -31,7 +31,7 @@ const CASES = [
       "area": "200"
     },
     "expect": [
-      "385.0 kg"
+      "350.0 kg"
     ],
     "ref": "花源充足(>3倍需求)加成1.1"
   },
@@ -76,6 +76,18 @@ const CASES = [
     "clicks": ["var c=0;var old=clearChart;clearChart=function(){c++;};document.getElementById('n').value='';calcTool();clearChart=old;document.getElementById('__tbProbe').textContent='TB828W '+((c>0&&document.getElementById('result').innerHTML.indexOf('请完整填写')>=0)?'OK':'BAD');"],
     "expect": ["TB828W OK"],
     "ref": "第828批：无效输入时旧实现只替换结果文字，上一次的成功柱状图仍留在 canvas。现在无效分支调用 clearChart() 清空画布；探针包裹 clearRect 计数并要求提示同时出现。"
+  }
+  ,{
+    "slug": "beekeeping/honey-estimator",
+    "inputs": {"hives":"10","area":"120"},
+    "expect": ["350.0 kg"],
+    "ref": "第829批：10 群需求 40 亩，120 亩恰为 3 倍。旧实现面积 >3 倍才加成、刚超阈值即 +10%，现达到需求后固定 1.0，10×35=350.0 kg；与 200 亩同值，证明无阈值跳变。"
+  },
+  {
+    "slug": "beekeeping/winter-feed-syrup",
+    "inputs": { "n":"5","vol":"4","ratio":"2","price":"5","daily":"0.5","days":"10" },
+    "expect": ["缺口 1.0 L/群","合计 5.0 L","计划与备料不匹配"],
+    "ref": "第829批：计划 10 天×0.5 L/群=5 L/群，实备 4 L/群 ⇒ 缺口 1.0 L/群、合计 5.0 L。旧实现只显示「按计划10天」与消耗15天，不比较两者。"
   }
 ];
 
