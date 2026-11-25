@@ -8183,6 +8183,48 @@ const CASES = [
     "ref": "第799批：三个尾随空格不是合法硬换行，必须报 MD009，避免豁免放宽成所有空白。"
   },
   {
+    "slug": "it/markdown-editor",
+    "inputs": { "mdInput": "[guide](guide.md) ![pic](./img/a.png) [up](../x.md) [bad](javascript:alert(1))" },
+    "clicks": ["var h=__mdParse(document.getElementById('mdInput').value);document.getElementById('__tbProbe').textContent='MREL '+((h.indexOf('href=\"guide.md\"')>=0&&h.indexOf('src=\"./img/a.png\"')>=0&&h.indexOf('href=\"../x.md\"')>=0&&h.indexOf('javascript:')<0)?'OK':'BAD:'+h.slice(0,140));"],
+    "expect": ["MREL OK"],
+    "ref": "第800批：无前缀相对文件、./、../ 必须保留为链接/图片，危险协议仍拦截。旧 safeUrl 白名单只认 http(s)/mailto/根路径/./../，`guide.md` 被丢成纯文本。"
+  },
+  {
+    "slug": "it/markdown-editor",
+    "inputs": { "mdInput": "```c++\nint x = 1;\n```" },
+    "clicks": ["var h=__mdParse(document.getElementById('mdInput').value);document.getElementById('__tbProbe').textContent='MFENCE '+((h.indexOf('language-c++')>=0&&h.indexOf('int x = 1;')>=0&&h.indexOf('<p><pre')<0&&h.indexOf('c++int')<0)?'OK':'BAD:'+h.slice(0,140));"],
+    "expect": ["MFENCE OK"],
+    "ref": "第800批：围栏信息串按首个非空白 token 取语言，`c++` 不再被 `\w*` 截成 c 后把 `++` 塞进代码；代码块作为独立块输出，不包进段落。"
+  },
+  {
+    "slug": "it/markdown-editor",
+    "inputs": { "mdInput": "| a | b |\n| --- | --- |\n| x\\|y | z |" },
+    "clicks": ["var h=__mdParse(document.getElementById('mdInput').value);var td=(h.match(/<td>/g)||[]).length;document.getElementById('__tbProbe').textContent='MTABLE '+((h.indexOf('<td>x|y</td>')>=0&&td===2)?'OK':'BAD td='+td+' '+h.slice(0,120));"],
+    "expect": ["MTABLE OK"],
+    "ref": "第800批：转义竖线 `x\\|y` 必须作为单元格内的字面 `|`，不能拆列。旧实现直接 `split('|')` ⇒ 3 列并残留反斜杠；现逐字符扫描，`\\|` 只输出 `|`。"
+  },
+  {
+    "slug": "it/markdown-editor",
+    "inputs": { "mdInput": "- parent\n  - child\n  - child2\n\n3. three\n4. four" },
+    "clicks": ["var h=__mdParse(document.getElementById('mdInput').value);document.getElementById('__tbProbe').textContent='MLIST '+((h.indexOf('<li>parent<ul><li>child')>=0&&h.indexOf('<ol start=\"3\">')>=0)?'OK':'BAD:'+h.slice(0,160));"],
+    "expect": ["MLIST OK"],
+    "ref": "第800批：缩进子项必须进入父项 `<li>` 内部，有序列表保留起始编号 3。旧实现只认行首列表，子项变普通段落、`<ol>` 永远从 1 开始。"
+  },
+  {
+    "slug": "it/markdown-editor",
+    "inputs": { "mdInput": "# New" },
+    "clicks": ["var old=ToolBox.copyText;window.__cp='';ToolBox.copyText=function(t){window.__cp=t};copyHtml();ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='MCOPY '+((window.__cp.indexOf('<h1>New</h1>')>=0)?'OK':'BAD:'+window.__cp.slice(0,80));"],
+    "expect": ["MCOPY OK"],
+    "ref": "第800批：复制 HTML 必须解析当前编辑内容，而不是读取 200ms 防抖前的旧 preview。旧实现 `preview.innerHTML` 在快速输入后立即复制会得到上一版。"
+  },
+  {
+    "slug": "it/markdown-editor",
+    "checks": ["__mdDraftKey"],
+    "clicks": ["localStorage.setItem(__mdDraftKey,'');var ok=__mdLoadDraft();document.getElementById('__tbProbe').textContent='MDRAFT '+((ok&&document.getElementById('mdInput').value==='')?'OK':'BAD');"],
+    "expect": ["MDRAFT OK"],
+    "ref": "第800批：空字符串草稿是合法草稿，必须被加载而不是回退示例。旧 `if(draft)` 把 '' 当无草稿 ⇒ 刷新后被示例覆盖；现 `draft!==null` 且 loadDraft 返回是否命中。"
+  },
+  {
     "slug": "it/dockerfile-generator",
     "inputs": { "base": "python:3.12-slim", "port": "8000", "cmd": "gunicorn app:app" },
     "expect": ["FROM python:3.12-slim", "CMD [\"gunicorn app:app\"]"],
