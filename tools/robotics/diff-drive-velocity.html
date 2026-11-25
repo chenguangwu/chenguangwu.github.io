@@ -302,12 +302,16 @@ function __tbInputGuardCore(_ids,_labels){
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){if(!Array.isArray(rows))return '<div class="data-grid"><div class="data-card"><div class="num">—</div><div class="label">渲染异常</div></div></div>';let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
+              var __Lraw=String(document.getElementById('L').value).trim();
+              if(__Lraw!==''&&isFinite(parseFloat(__Lraw))&&parseFloat(__Lraw)<=0){ToolBox.setResult('result','<p style="color:var(--danger)">轮距 L 必须是有限正数（> 0 m）；L=0 会使角速度除零，负轮距没有物理意义。</p>');return;}
               var __ig=__tbInputGuard(['vl', 'vr', 'L'],["左轮速 v_l (m/s)", "右轮速 v_r (m/s)", "轮距 L (m)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const vl = num('vl'), vr = num('vr'), L = num('L');
+            if(!isFinite(L)||L<=0){ToolBox.setResult('result','<p style="color:var(--danger)">轮距 L 必须是有限正数（> 0 m）；L=0 会使角速度除零，负轮距没有物理意义。</p>');return;}
             const v = (vr + vl) / 2, w = (vr - vl) / L;
             const __g2=dataGrid([
                 [v.toFixed(4), '线速度 v (m/s)'],
-                [w.toFixed(4), '角速度 ω (rad/s)']
+                [w.toFixed(4), '角速度 ω (rad/s)（逆时针为正）'],
+                [vl.toFixed(4)+' / '+vr.toFixed(4), '左/右轮有符号速度 (m/s)']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('vl').value = '0.5';
@@ -321,20 +325,25 @@ function __diff_drive_velocityExtras(){
     function __diff_drive_velocityRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var vl = num('vl'), vr = num('vr'), L = num('L');
-    var v = (vr + vl) / 2, w = (vr - vl) / L;
-    if (!isFinite(__diff_drive_velocityNum('vl')) || !isFinite(__diff_drive_velocityNum('vr')) || !isFinite(__diff_drive_velocityNum('L'))) return;
     var en=TBKit.util.isEn();
+    if (!isFinite(__diff_drive_velocityNum('vl')) || !isFinite(__diff_drive_velocityNum('vr')) || !isFinite(__diff_drive_velocityNum('L')) || !(L > 0)) {
+        try { TBKit.matrix.table('#diff_drive_velocityTable',{head: en?['Item','Value']:['项目','数值'],rows:[]}); } catch(e){}
+        return;
+    }
+    var v = (vr + vl) / 2, w = (vr - vl) / L;
     TBKit.matrix.table('#diff_drive_velocityTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['线速度 v (m/s)', v.toFixed(4)],
             ['角速度 ω (rad/s)', w.toFixed(4)],
+            ['左轮 v_l (m/s)', vl.toFixed(4)],
+            ['右轮 v_r (m/s)', vr.toFixed(4)],
         ]
     });
-    TBKit.history.record({vl:__diff_drive_velocityRaw('vl'), vr:__diff_drive_velocityRaw('vr'), L:__diff_drive_velocityRaw('L'), v:v});
+    TBKit.history.record({vl:__diff_drive_velocityRaw('vl'), vr:__diff_drive_velocityRaw('vr'), L:__diff_drive_velocityRaw('L'), v:v, w:w});
     function __diff_drive_velocityRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#diff_drive_velocityHist',function(rec){ __diff_drive_velocityRestore(rec); calcTool(); });
-    TBKit.util.diffBox('#diff_drive_velocityDiff',['v']);
+    TBKit.util.diffBox('#diff_drive_velocityDiff',['v','w']);
 }
 function __diff_drive_velocityExport(){
     if (typeof TBKit === 'undefined') return;

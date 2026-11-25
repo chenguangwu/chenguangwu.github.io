@@ -293,9 +293,9 @@ const CASES = [
       "L2": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n0.00 θ₁ (°) 90.00 θ₂ (°)"
+      "42\n42\n42\n42\n0.00 θ₁ 解A（肘下，θ₂>0） 90.00 θ₂ 解A（肘下）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"x\":\"42\",\"y\":\"42\",\"L1\":\"42\",\"L2\":\"42\"}，输出区含「42\n42\n42\n42\n0.00 θ₁ (°) 90.00 θ₂ (°)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"x\":\"42\",\"y\":\"42\",\"L1\":\"42\",\"L2\":\"42\"}，输出区含「42\n42\n42\n42\n0.00 θ₁ 解A（肘下，θ₂>0） 90.00 θ₂ 解A（肘下）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "robotics/lead-screw-speed",
@@ -460,7 +460,14 @@ const CASES = [
 async function main() {
   const only = process.argv.slice(2);
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
-  let pass = 0; const fails = [];
+  let pass = 0; const fails = [{ slug:"robotics/inverse-kinematics-2r", inputs:{x:"1.3",y:"1.2",L1:"1",L2:"1"}, expect:["14.91","55.60","70.51","-55.60","正运动学"], ref:"两组配对解：肘下 θ₁≈14.91°、θ₂≈55.60°；肘上 θ₁≈70.51°、θ₂≈−55.60°；两组均回代校验。旧实现附加表给出 θ₂ 肘上却不给配对 θ₁。" },
+{ slug:"robotics/inverse-kinematics-2r", inputs:{x:"1.3",y:"1.2",L1:"0",L2:"1"}, expect:["杆长 L₁、L₂ 必须是有限正数"], ref:"零杆长旧实现分母为 0 仍算；新实现拒绝 ≤0 杆长。" },
+{ slug:"robotics/diff-drive-velocity", inputs:{vl:"0.5",vr:"1",L:"0"}, expect:["轮距 L 必须是有限正数"], ref:"零轮距旧实现 ω=∞ 并写历史；新实现阻断。" },
+{ slug:"robotics/diff-drive-velocity", inputs:{vl:"0.5",vr:"1",L:"-0.4"}, expect:["负轮距没有物理意义"], ref:"负轮距旧实现得出反向角速度；新实现拒绝。" },
+{ slug:"robotics/battery-runtime", inputs:{ah:"2",V:"12",P:"0"}, expect:["零功率下续航无限"], ref:"P=0 旧实现除零得 Infinity；新实现阻断并清表。" },
+{ slug:"robotics/battery-runtime", inputs:{ah:"-2",V:"12",P:"24"}, expect:["负参数没有物理意义"], ref:"负容量旧实现算出负续航；新实现要求容量≥0、电压/功率>0。" },
+{ slug:"robotics/battery-runtime", inputs:{ah:"0",V:"12",P:"24"}, expect:["0.00 续航时间"], ref:"零容量是合法输入（空电池），续航 0 h，不应被空态守卫误拦。" },
+];
   for (const c of cases) {
     try {
       const r = await runCase(c);
