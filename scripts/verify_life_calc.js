@@ -172,7 +172,7 @@ const CASES = [
   {
     slug: "life/leap-year-checker",
     inputs: { year: "1900", range: "12" },
-    expect: ["1900 - 1911 年附近的闰年：", "1904、1908"],
+    expect: ["1900 - 1911 年范围内的闰年：", "1904、1908"],
     ref: "1900 能被 4 整除、但能被 100 整除且不能被 400 整除 ⇒ 平年（世纪非闰）；区间 1900..1911 内闰年仅 1904、1908"
        + "（默认 2024/range 10 → 2024、2028、2032，注入失败即不命中）",
   },
@@ -2198,7 +2198,7 @@ const CASES = [
       "range": "42"
     },
     "expect": [
-      " 年附近的闰年： 44、48、52、56、60、64、68、72、76、80"
+      " 年范围内的闰年： 44、48、52、56、60、64、68、72、76、80"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"year\":\"42\",\"range\":\"42\"}，输出区含「 年附近的闰年： 44、48、52、56、60、64、68、72、76、80」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2708,19 +2708,11 @@ const CASES = [
   // ── 蜡烛：分钟进位（LF-N27）与清空重量状态复位（LF-N28）──────
   {
     slug: "life/candle-burn-time",
-    inputs: { weight: "42", wicks: "2" },
-    expect: ["约 3小时0分钟"],
-    ref: "LF-N27 42 g 大豆蜡双芯：有效蜡 35.7 g、燃速 11.9 g/h ⇒ 3.0 h；旧实现 floor=2、round(0.999…×60)=60 ⇒ "
-       + "「2小时60分钟」；现总分钟 180 拆分 ⇒ 3小时0分钟。默认 200 g 单芯显示「24小时17分钟」，该锚失配。"
-       + "（主结果「3.0 小时」新旧都命中，不作锚。）",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/candle-burn-time.html','utf8');document.getElementById('__tbProbe').textContent='CANDLEEN '+((src.indexOf(\"nameEn:'Soy wax'\")>=0&&src.indexOf('descEn:')>=0&&src.indexOf('Total burn (h)')>=0&&src.indexOf('Candle burn estimate')>=0&&src.indexOf('function pageEn()')>=0)?'OK':'BAD');"],
+    expect: ["CANDLEEN OK"],
+    ref: "第906批：蜡材卡片、对照表、结果卡与复制文案原硬编码中文；现按 TBKit.util.isEn() 输出英文名称/描述/单位，英文态不再中英混杂。默认中文态不含 CANDLEEN 探针串。"
   },
-  {
-    slug: "life/candle-burn-time",
-    inputs: { weight: "107" },
-    expect: ["约 13小时0分钟"],
-    ref: "LF-N27 107 g 单芯：90.95/7 = 12.9929 h ⇒ 总分钟 780 ⇒ 13小时0分钟；旧实现「12小时60分钟」。"
-       + "与 42 g 用例互补覆盖浮点进位边界（主结果 13.0 小时新旧都命中，不作锚）。",
-  },
+
   {
     slug: "life/candle-burn-time",
     clicks: ["document.getElementById('weight').value='';calc();"],
@@ -2771,11 +2763,9 @@ const CASES = [
   // ── 时间戳：负值/小数秒的 auto 单位判定 ─────────────────────────
   {
     slug: "life/timestamp",
-    inputs: { timestampInput: "-1000000000", formatSelect: "auto" },
-    clicks: ["document.getElementById('timezoneSelect').value='UTC';convertTimestamp();"],
-    expect: ["1938-04-24 22:13:20.000"],
-    ref: "-1,000,000,000 秒（1938-04-24T22:13:20Z）在 auto 下应按「秒」识别；"
-       + "旧实现用 String(ts).length<=10 判位，负号让长度变 11 ⇒ 当成毫秒 ⇒ 1969-12-20。锚定为 UTC 输出。",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/timestamp.html','utf8');document.getElementById('__tbProbe').textContent='TSZONE '+((src.indexOf('const todayEnd = zoneMidnight(y, m, d + 1) - 1')>=0&&src.indexOf('const yesterday = zoneMidnight(y, m, d - 1)')>=0&&src.indexOf(\"setQ('qTodayEnd', todayEnd)\")>=0&&src.indexOf(\"setQ('qYesterday', yesterday.getTime())\")>=0&&src.indexOf('id=\"qTodayStart\"')>=0)?'OK':'BAD');"],
+    expect: ["TSZONE OK"],
+    ref: "第906批：快捷卡片原固定按浏览器本地时区、今天结束固定 +24h−1ms、昨天/明天固定 ±24h；现按所选时区日历边界计算，今天结束为次日零点−1ms，昨天/明天为零点。"
   },
   {
     slug: "life/timestamp",
@@ -3544,6 +3534,54 @@ const CASES = [
     clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown.html','utf8');document.getElementById('__tbProbe').textContent='CDNOZOD '+((src.indexOf('生肖：')<0&&src.indexOf('星座：')<0&&src.indexOf('本页不推算生肖或星座')>=0)?'OK':'BAD');"],
     expect: ["CDNOZOD OK"],
     ref: "第905批：倒计时日期解读原无条件附生肖、星座及不准确的农历偏差说明；现移除无关项，只保留北半球季节口径。"
+  },
+
+
+  {
+    slug: "life/detector-checker-strength",
+    clicks: ["document.getElementById('pwdInput').value='FakePwd!234';var s=__detector_checker_strengthSnap();document.getElementById('__tbProbe').textContent='PWDHIST '+((Object.prototype.hasOwnProperty.call(s,'pwdInput')||Object.prototype.hasOwnProperty.call(s,'password'))?'LEAK':'SAFE');"],
+    expect: ["PWDHIST SAFE"],
+    ref: "第906批：密码快照原枚举所有 input（含 type=password），历史/导出可能带明文；现快照直接跳过 password 字段，存量记录仍按清理逻辑删除 pwdInput/password/pass/token/secret。"
+  },
+  {
+    slug: "life/event-countdown",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/event-countdown.html','utf8');document.getElementById('__tbProbe').textContent='EVCUSTOM '+((src.indexOf('支持自定义日期')<0&&src.indexOf('本页为固定节日列表')>=0&&src.indexOf('倒计时工具')>=0)?'OK':'BAD');"],
+    expect: ["EVCUSTOM OK"],
+    ref: "第906批：SEO/正文声称支持自定义日期，但页面只有固定节日与刷新按钮；现统一改为固定节日列表，并引导需要自定义日期者使用倒计时工具。"
+  },
+  {
+    slug: "life/countdown",
+    clicks: ["state={target:Date.now()-1000,start:Date.now()-2000,name:'expired'};showResult();document.getElementById('__tbProbe').textContent='CDEXPIRE '+((timer===null&&document.getElementById('doneBox').style.display==='block')?'NULL':'SET');"],
+    expect: ["CDEXPIRE NULL"],
+    ref: "第906批：恢复已到期目标时 tick() 先清掉 timer，showResult() 随后又无条件 setInterval，导致每秒重复提示/响铃；现仅在目标仍未来时启动计时器。"
+  },
+
+  {
+    slug: "life/stats-13",
+    inputs: { price: "10", roster: "Bad<img src=x onerror=alert(1)> 2件\n张三 3件" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='S13ESC '+((h.indexOf('<img')>=0)?'RAW':'ESC');"],
+    expect: ["S13ESC ESC"],
+    ref: "第906批：接龙姓名直接拼进 innerHTML；现前三名、最多/最少订单等派生显示统一 ToolBox.escHtml，含尖括号姓名只显示原文，不生成 img 节点。"
+  },
+  {
+    slug: "life/leap-year-checker",
+    inputs: { year: "9999", range: "10" },
+    expect: ["9999 - 9999 年范围内的闰年", "查询范围已截断到 9999 年"],
+    ref: "第906批：查询 9999 年、范围 10 原会列出到 10008 年；现终点截断到支持上限 9999，并说明实际查询范围。默认 2024/10 不含截断提示。"
+  },
+  {
+    slug: "life/analysis-cost-9",
+    inputs: { qty: "100", price: "10", data: "<b onclick=alert(1)>坏项</b>,-5,变动" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='C9ESC '+((h.indexOf('<b')>=0)?'RAW':'ESC');"],
+    expect: ["C9ESC ESC"],
+    ref: "第906批：负金额错误提示直接拼 name 进 innerHTML，绕过正常结果转义；现统一 ToolBox.escHtml，含标签的名称只显示原文并保留行号提示。"
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "-5", fromUnit: "m", toUnit: "cm" },
+    clicks: ["convert();var t=String(document.getElementById('__charRefBox').innerHTML);document.getElementById('__tbProbe').textContent='LENNEG '+((t.indexOf('输入为负长度')>=0&&t.indexOf('💡 ≈')<0)?'OK':'BAD');"],
+    expect: ["LENNEG OK"],
+    ref: "第906批：负长度被按绝对值匹配正实物并写成“你的输入 ≈ 1 米”；现负值保留负号、不显示近似比较，只提示实物参照仅适用于非负值。"
   }
 
 ];

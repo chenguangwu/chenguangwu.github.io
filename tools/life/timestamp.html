@@ -150,7 +150,7 @@
       <div class="input-row" style="margin-top:12px;">
         <div>
           <label for="timezoneSelect">显示与解析时区</label>
-          <select id="timezoneSelect" onchange="refreshLastResult()">
+          <select id="timezoneSelect" onchange="refreshLastResult();initQuickTimestamps();">
             <option value="local">浏览器本地时区</option>
             <option value="UTC">UTC（+00:00）</option>
             <option value="480">中国标准时间（UTC+08:00）</option>
@@ -220,30 +220,31 @@
 
   <div class="card">
     <h2>📅 常用时间戳速查</h2>
+    <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">快捷值按上方所选时区的日历边界计算；昨天/明天指昨天/明天零点，跨夏令时也保留零点。</p>
     <div class="quick-grid">
       <div class="quick-item">
         <p class="qlabel">今天开始</p>
-        <p class="qvalue" onclick="copyText(this.textContent)">--</p>
+        <p class="qvalue" id="qTodayStart" onclick="copyText(this.textContent)">--</p>
       </div>
       <div class="quick-item">
         <p class="qlabel">今天结束</p>
-        <p class="qvalue" onclick="copyText(this.textContent)">--</p>
+        <p class="qvalue" id="qTodayEnd" onclick="copyText(this.textContent)">--</p>
       </div>
       <div class="quick-item">
         <p class="qlabel">本周一</p>
-        <p class="qvalue" onclick="copyText(this.textContent)">--</p>
+        <p class="qvalue" id="qMonday" onclick="copyText(this.textContent)">--</p>
       </div>
       <div class="quick-item">
         <p class="qlabel">本月1号</p>
-        <p class="qvalue" onclick="copyText(this.textContent)">--</p>
+        <p class="qvalue" id="qMonthStart" onclick="copyText(this.textContent)">--</p>
       </div>
       <div class="quick-item">
-        <p class="qlabel">昨天此刻</p>
-        <p class="qvalue" onclick="copyText(this.textContent)">--</p>
+        <p class="qlabel">昨天零点</p>
+        <p class="qvalue" id="qYesterday" onclick="copyText(this.textContent)">--</p>
       </div>
       <div class="quick-item">
-        <p class="qlabel">明天此刻</p>
-        <p class="qvalue" onclick="copyText(this.textContent)">--</p>
+        <p class="qlabel">明天零点</p>
+        <p class="qvalue" id="qTomorrow" onclick="copyText(this.textContent)">--</p>
       </div>
     </div>
   </div>
@@ -525,23 +526,37 @@ function updateNowCards() {
 }
 
 function initQuickTimestamps() {
+  const zone = selectedZone();
+  const offset = zone === 'local' ? null : (zone === 'UTC' ? 0 : Number(zone));
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(todayStart.getTime() + 86400000 - 1);
-  const monday = new Date(todayStart);
-  monday.setDate(todayStart.getDate() - todayStart.getDay() + (todayStart.getDay() === 0 ? -6 : 1));
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const yesterday = new Date(now.getTime() - 86400000);
-  const tomorrow = new Date(now.getTime() + 86400000);
+  let y, m, d, weekday;
+  if(offset === null){
+    y = now.getFullYear(); m = now.getMonth(); d = now.getDate();
+    weekday = new Date(y, m, d).getDay();
+  } else {
+    const shifted = new Date(now.getTime() + offset * 60000);
+    y = shifted.getUTCFullYear(); m = shifted.getUTCMonth(); d = shifted.getUTCDate();
+    weekday = new Date(Date.UTC(y, m, d)).getUTCDay();
+  }
+  function zoneMidnight(yy, mm, dd){
+    if(offset === null) return new Date(yy, mm, dd, 0, 0, 0, 0);
+    return new Date(Date.UTC(yy, mm, dd, 0, 0, 0, 0) - offset * 60000);
+  }
+  const todayStart = zoneMidnight(y, m, d);
+  const todayEnd = zoneMidnight(y, m, d + 1) - 1;
+  const mondayOffset = weekday === 0 ? -6 : 1 - weekday;
+  const monday = zoneMidnight(y, m, d + mondayOffset);
+  const monthStart = zoneMidnight(y, m, 1);
+  const yesterday = zoneMidnight(y, m, d - 1);
+  const tomorrow = zoneMidnight(y, m, d + 1);
 
-  const quickEls = document.querySelectorAll('.qvalue');
-  if(quickEls.length < 6) return;
-  quickEls[0].textContent = todayStart.getTime();
-  quickEls[1].textContent = todayEnd.getTime();
-  quickEls[2].textContent = monday.getTime();
-  quickEls[3].textContent = monthStart.getTime();
-  quickEls[4].textContent = yesterday.getTime();
-  quickEls[5].textContent = tomorrow.getTime();
+  const setQ = function(id, v){ var el=document.getElementById(id); if(el) el.textContent=v; };
+  setQ('qTodayStart', todayStart.getTime());
+  setQ('qTodayEnd', todayEnd);
+  setQ('qMonday', monday.getTime());
+  setQ('qMonthStart', monthStart.getTime());
+  setQ('qYesterday', yesterday.getTime());
+  setQ('qTomorrow', tomorrow.getTime());
 }
 
 initQuickTimestamps();
