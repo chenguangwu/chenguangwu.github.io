@@ -225,7 +225,7 @@
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function dataGrid(rows){if(!Array.isArray(rows))return '';let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){function escXml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function escAttr(s){return escXml(s).replace(/"/g,'&quot;');}
 // XML 实体解码：XML 语义上的 `&amp;` 就是 `&`，不解码会把实体当正文写进 TOML（双重转义）
@@ -248,55 +248,80 @@ function xDecode(s){
     }
   });
 }
+function xmlWellFormed(xml){
+  var s=String(xml==null?'':xml).replace(/<!--[\s\S]*?-->/g,'').replace(/<!\[CDATA\[[\s\S]*?\]\]>/g,'').replace(/<\?[\s\S]*?\?>/g,'');
+  var re=/<\s*(\/?)\s*([A-Za-z_][\w:.-]*)([^>]*?)(\/?)>/g,m,stack=[];
+  while((m=re.exec(s))){
+    if(m[1]){ if(stack.pop()!==m[2]) return false; }
+    else if(m[4]!=='/' && m[2].toLowerCase()!=='!doctype') stack.push(m[2]);
+  }
+  if(stack.length) return false;
+  if(s.replace(re,'').indexOf('<')>=0) return false;
+  return true;
+}
+function xmlParseFailed(doc){
+  var root=doc && doc.documentElement;
+  if(!root) return true;
+  var pe=doc.getElementsByTagName('parsererror');
+  for(var i=0;i<pe.length;i++){
+    var ns=pe[i].namespaceURI||'';
+    if(ns==='http://www.w3.org/1999/xhtml' || ns.indexOf('mozilla.org/newlayout/xml/parsererror')>=0) return true;
+    if(!pe[i].parentNode && /XML 解析错误|error/i.test(String(pe[i].textContent||pe[i]._text||''))) return true;
+  }
+  return false;
+}
+function xmlSet(obj,k,v){
+  if(Object.prototype.hasOwnProperty.call(obj,k)){
+    if(Array.isArray(obj[k])) obj[k].push(v); else obj[k]=[obj[k],v];
+  }else{
+    Object.defineProperty(obj,k,{value:v,enumerable:true,writable:true,configurable:true});
+  }
+}
+function xmlNodeValue(node){
+  if(!node) return '';
+  var obj=Object.create(null);
+  if(node.attributes && node.attributes.length){
+    Array.from(node.attributes).forEach(function(a){ Object.defineProperty(obj,'@'+a.name,{value:a.value,enumerable:true,writable:true,configurable:true}); });
+  }
+  var kids=Array.from(node.childNodes||[]).filter(function(c){return c.nodeType===1||c.nodeType===3||c.nodeType===4;});
+  var texts=[], elems=0, content=[], nAttrs=(node.attributes?node.attributes.length:0);
+  kids.forEach(function(c){
+    if(c.nodeType===1){
+      elems++;
+      var v=xmlNodeValue(c);
+      xmlSet(obj,c.tagName,v);
+      var pair=Object.create(null); Object.defineProperty(pair,c.tagName,{value:v,enumerable:true,writable:true,configurable:true});
+      content.push(pair);
+    }else{
+      var raw=String(c.nodeValue!=null?c.nodeValue:(c.textContent||''));
+      if(raw.trim()){ texts.push(raw); content.push(raw); }
+    }
+  });
+  var text=texts.join('').trim();
+  if(text) obj['#text']=text;
+  if(elems && text) obj['#content']=content;
+  if(!elems){
+    if(nAttrs){ if(text) obj['#text']=text; return obj; }
+    return text;
+  }
+  return obj;
+}
+function xmlUnsafe(node){
+  if(node && typeof node==='object'){
+    for(var k in node){ if(k==='#content'||k.indexOf(':')>=0) return true; if(xmlUnsafe(node[k])) return true; }
+  }
+  return false;
+}
 function xmlToJson(xml){
-  xml=xml.replace(/<!--[\s\S]*?-->/g,'').replace(/<\?[\s\S]*?\?>/g,'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,function(m,c){return c;});
-  var pos=0;
-  function skipws(){ while(pos<xml.length && /\s/.test(xml[pos])) pos++; }
-  function parseEl(){
-    var gt=xml.indexOf('>',pos); if(gt<0) return null;
-    var head=xml.slice(pos+1,gt); pos=gt+1;
-    var selfClose=false;
-    if(head.slice(-1)==='/'){ selfClose=true; head=head.slice(0,-1); }
-    var sp=head.search(/\s/);
-    var name= sp<0? head : head.slice(0,sp);
-    var attrStr= sp<0? '' : head.slice(sp+1);
-    var attrs={};
-    var re=/([\w:-]+)\s*=\s*"([^"]*)"/g, m;
-    while((m=re.exec(attrStr))){ attrs[m[1]]=xDecode(m[2]); }
-    if(selfClose) return {name:name, val:nodeVal(name,attrs,null,'')};
-    var children=[]; var text='';
-    while(pos<xml.length){
-      if(xml[pos]==='<'){
-        if(xml.substr(pos,2)==='</'){ var cgt=xml.indexOf('>',pos); pos=cgt+1; break; }
-        var ch=parseEl(); if(ch) children.push(ch);
-      } else {
-        var nxt=xml.indexOf('<',pos); if(nxt<0) nxt=xml.length;
-        var tx=xml.slice(pos,nxt); pos=nxt;
-        if(tx.trim()!=='') text+=tx;
-      }
-    }
-    return {name:name, val:nodeVal(name,attrs,children,text)};
-  }
-  function nodeVal(name,attrs,children,text){
-    if(children && children.length){
-      var obj=Object.create(null);
-      for(var a in attrs){ if(attrs.hasOwnProperty(a)) obj['@'+a]=attrs[a]; }
-      var groups=Object.create(null);
-      for(var k=0;k<children.length;k++){ var c=children[k]; (groups[c.name]=groups[c.name]||[]).push(c.val); }
-      for(var g in groups){ obj[g]= groups[g].length===1? groups[g][0] : groups[g]; }
-      if(text && text.trim()) obj['#text']=xDecode(text.trim());
-      return obj;
-    }
-    var v=text?xDecode(text.trim()):'';
-    if(Object.keys(attrs).length){ var o={}; for(var a2 in attrs)o['@'+a2]=attrs[a2]; if(v)o['#text']=v; return o; }
-    return v;
-  }
-  skipws();
-  if(xml[pos]!=='<') return {__err:'输入不是合法的 XML（未找到根元素）'};
-  var root=parseEl();
-  if(!root) return {__err:'XML 解析失败'};
-  var out={}; out[root.name]=root.val;
-  return out;
+  try{
+    if(!xmlWellFormed(xml)) throw new Error('XML 解析错误');
+    var doc=new DOMParser().parseFromString(String(xml==null?'':xml),'application/xml');
+    if(xmlParseFailed(doc)) throw new Error('XML 解析错误');
+    var root=doc.documentElement;
+    var out=Object.create(null);
+    Object.defineProperty(out,root.tagName,{value:xmlNodeValue(root),enumerable:true,writable:true,configurable:true});
+    return out;
+  }catch(e){ return {__err:e.message||'XML 解析失败'}; }
 }
 function jsonToXml(obj){
   function ser(name,val){
@@ -397,9 +422,9 @@ var src=document.getElementById('source').value||'';
 if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 XML 文本</p>'; return; }
 var obj=xmlToJson(src);
 if(obj && obj.__err){ const __g3='<p class="muted">解析失败：'+escH(obj.__err)+'</p>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')); return; }
-var sort=document.getElementById('top_1').checked;
+var warn=xmlUnsafe(obj);var sort=document.getElementById('top_1').checked;
 var toml=dumpToml(obj,sort);
-const __g4='<div class="result-title">TOML 输出</div><pre class="code-block">'+escH(toml)+'</pre>';document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}
+const __g4=(warn?'<p class="muted">⚠️ 检测到命名空间或混合内容，已按约定归一化，可能无法无损还原。</p>':'')+'<div class="result-title">TOML 输出</div><pre class="code-block">'+escH(toml)+'</pre>';document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('source').value='<config>\n  <name>demo</name>\n  <port>8080</port>\n  <db url="x" pool="16"/>\n</config>';
       document.getElementById('top_1').checked=false;
       calcTool();}

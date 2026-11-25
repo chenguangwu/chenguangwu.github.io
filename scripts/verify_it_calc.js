@@ -7972,6 +7972,7 @@ const CASES = [
   },
   {
     "slug": "it/xml-to-yaml",
+    "htmlDom": true,
     "inputs": { "source": "<root><item><c><d>1</d></c></item><item><c><d>2</d></c></item></root>" },
     "clicks": ["calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='XMLNEST '+((h.indexOf('- c:')>=0&&h.indexOf('d: \"1\"')>=0)?'OK':'BAD:'+h.replace(/ /g,'.').slice(0,90));"],
     "expect": ["XMLNEST OK"],
@@ -7979,6 +7980,7 @@ const CASES = [
   },
   {
     "slug": "it/xml-to-yaml",
+    "htmlDom": true,
     clicks: ["var sel=document.getElementById('indent');document.getElementById('__tbProbe').textContent='XMLTAB '+(sel&&sel.options&&sel.options.length===2?'OK':'BAD:'+(sel&&sel.options?sel.options.length:'no'));"],
     "expect": ["XMLTAB OK"],
     "ref": "214 复核失败重做：YAML 规范禁止 Tab 缩进，页面却提供「Tab」档并原样输出 \\t。现移除该档，仅保留 2/4 空格；历史值 tab 走 parseInt('tab') → 回退 2 空格。探针断言缩进下拉只有 2 个 option。"
@@ -8021,15 +8023,75 @@ const CASES = [
   },
   {
     "slug": "it/xml-to-yaml",
+    "htmlDom": true,
     "inputs": { "source": "<root><item id=\"1\">Alpha</item><item id=\"2\">Beta</item></root>" },
+    "clicks": ["calcTool();"],
     "expect": ["\"@id\": \"1\" \"#text\": Alpha", "\"@id\": \"2\" \"#text\": Beta"],
     "ref": "XML→YAML：注入含属性的同名兄弟节点。页面把属性写作 `@id`、文本写作 `#text`，重复元素收敛为序列 `- `；IT-N266 后这两个键按 YAML 1.2 加双引号（`@` 是保留指示符、`#` 起始即注释），输出形态为 `\"@id\": \"1\" \"#text\": Alpha`。输入 XML 是 `id=\"1\"` 与裸文本，不含带引号的 YAML 键形态 ⇒ 零回显、强判别。默认样例为不同的 XML。"
   },
   {
     "slug": "it/xml-to-yaml",
+    "htmlDom": true,
     "inputs": { "source": "<root><__proto__>v</__proto__></root>" },
+    "clicks": ["calcTool();"],
     "expect": ["__proto__: v"],
     "ref": "元素名 `__proto__`：修复前 groups 是普通 `{}`，`groups['__proto__']` 从原型继承后进入分支，`obj[g]` 也不产生自有键，输出丢该元素；groups/obj 改用 Object.create(null) 后保留为 `__proto__: v`（单字标量不加引号）。输入 XML 只有标签，不含冒号形态。"
+  },
+  {
+    "slug": "it/xml-to-json",
+    "htmlDom": true,
+    "inputs": { "input": "<__proto__><x>1</x></__proto__>" },
+    "clicks": ["doBeautify();"],
+    "expect": ["\"__proto__\": {", "\"x\": \"1\""],
+    "ref": "第796批：特殊根节点名 `__proto__` 必须成为 JSON 自有键。旧实现用普通对象/赋值，根与子键被原型链吞掉，输出为空或丢字段；现 Object.create(null)+defineProperty 保留。输入是 XML 标签形态，输出是带引号的 JSON 键 ⇒ 非回显。"
+  },
+  {
+    "slug": "it/xml-to-json",
+    "htmlDom": true,
+    "inputs": { "input": "<root><msg><![CDATA[a < b & c]]></msg></root>" },
+    "clicks": ["doBeautify();"],
+    "expect": ["\"msg\": \"a < b & c\""],
+    "ref": "第796批：CDATA 段必须按文本处理，不能被丢弃或把尖括号当标签。旧遍历只收 nodeType 1/3，CDATA(nodeType 4) 被跳过 ⇒ msg 为空；现纳入 4 并取 nodeValue。输入是 `<![CDATA[...]]>` 包裹形态，输出是 JSON 字符串 ⇒ 判别明确。"
+  },
+  {
+    "slug": "it/xml-to-json",
+    "htmlDom": true,
+    "inputs": { "input": "<root><parsererror>ok</parsererror></root>" },
+    "clicks": ["doBeautify();"],
+    "expect": ["\"parsererror\": \"ok\""],
+    "ref": "第796批：合法嵌套的 `<parsererror>` 只是普通元素名，不能按浏览器解析错误整页拒绝。旧实现只按标签名 getElementsByTagName 判定 ⇒ 误报 XML 解析错误；现按命名空间/无父节点+错误文案判定。输入 XML 合法，输出应含该字段。"
+  },
+  {
+    "slug": "it/xml-to-toml",
+    "htmlDom": true,
+    "inputs": { "source": "<item id='1'/>" },
+    "clicks": ["calcTool();"],
+    "expect": ["\"@id\" = \"1\""],
+    "ref": "第796批：单引号属性在 XML 中合法，旧手写正则只认双引号 ⇒ 属性丢失。现改用 DOMParser，单/双引号统一由 DOM 解码。输入是 `id='1'`，输出是 TOML 键值 `\"@id\" = \"1\"` ⇒ 非回显。"
+  },
+  {
+    "slug": "it/xml-to-yaml",
+    "htmlDom": true,
+    "inputs": { "source": "<a></b>" },
+    "clicks": ["calcTool();var h=String(document.getElementById('result').innerHTML||'');document.getElementById('__tbProbe').textContent='YERR '+((h.indexOf('解析失败')>=0&&h.indexOf('a:')<0)?'OK':'BAD:'+h.slice(0,80));"],
+    "expect": ["YERR OK"],
+    "ref": "第796批：错误闭合标签必须报解析失败，不能把 `<a></b>` 当两个元素静默转换。旧手写解析器遇 `</b>` 不校验名字直接闭合 ⇒ 输出 `a:` 空值。探针断言结果区含「解析失败」且不含 `a:`；输入 XML 与提示文案无交集 ⇒ 判别明确。"
+  },
+  {
+    "slug": "it/xml-to-toml",
+    "htmlDom": true,
+    "inputs": { "source": "<a></b>" },
+    "clicks": ["calcTool();var h=String(document.getElementById('result').innerHTML||'');document.getElementById('__tbProbe').textContent='TERR '+((h.indexOf('解析失败')>=0&&h.indexOf('a =')<0)?'OK':'BAD:'+h.slice(0,80));"],
+    "expect": ["TERR OK"],
+    "ref": "第796批：错误闭合标签必须拒绝，不能把 `<a></b>` 当合法 XML 输出空键。旧手写解析器不校验闭合名 ⇒ 静默得到空节点。探针断言结果区含「解析失败」且不含 `a =` ⇒ 判别明确。"
+  },
+  {
+    "slug": "it/xml-to-yaml",
+    "htmlDom": true,
+    "inputs": { "source": "<msg>A &amp; B</msg>" },
+    "clicks": ["calcTool();"],
+    "expect": ["msg: A & B"],
+    "ref": "第796批：YAML 侧实体也必须解码。旧手写解析器把 `&amp;` 原样留在文本 ⇒ 输出 `msg: A &amp; B`（再被 HTML 转义成 `&amp;amp;`）。现由 DOMParser 解码，输出 `msg: A & B`。输入实体形态与输出裸 `&` 不同 ⇒ 非回显。"
   },
   {
     "slug": "it/dockerfile-generator",
@@ -8153,44 +8215,58 @@ const CASES = [
   },
   {
     "slug": "it/xml-to-toml",
+    "htmlDom": true,
     "inputs": { "source": "<srv><host>127.0.0.1</host><port>5432</port></srv>" },
+    "clicks": ["calcTool();"],
     "expect": ["[srv]", "port = \"5432\""],
     "ref": "XML→TOML：根元素 `<srv>` 落成 TOML 表 `[srv]`，叶子落成键值。⚠️ XML 无标量类型信息，页面保守地把 `5432` 当作字符串 ⇒ 输出 `port = \"5432\"` 带引号（对照 it/yaml-to-toml 的 `port = 5432` 无引号：YAML 有类型推断，两者都正确，不构成缺陷）。带 `port = ` 前缀的形态在输入 XML 中不存在。"
   },
   {
     "slug": "it/xml-to-toml",
+    "htmlDom": true,
     "inputs": { "source": "<root><__proto__>v</__proto__></root>" },
+    "clicks": ["calcTool();"],
     "expect": ["__proto__ = \"v\""],
     "ref": "元素名 `__proto__`：groups/obj 为普通 `{}` 时该键被原型吞掉、TOML 输出丢行；Object.create(null) 后保留为 `__proto__ = \"v\"`。输入 XML 仅含标签，不含等号形态。"
   },
   // ---- IT-N391（xml-to-toml 侧）/ IT-N394 / IT-N395 ----
   {
     "slug": "it/xml-to-toml",
+    "htmlDom": true,
     "inputs": { "source": "<name>Tom &amp; Jerry</name>" },
+    "clicks": ["calcTool();"],
     "expect": ["name = \"Tom &amp; Jerry\""],
     "ref": "IT-N394：XML 实体必须解码成对应字符。修复前原文直取 ⇒ TOML 里留着字面 `&amp;`（双重转义，回读值不是 `Tom & Jerry`）。注意结果是 `<pre>` + escH，故修复后 blob 里的 `&` 读作 `&amp;`；修复前是 `&amp;amp;`，两者互不包含 ⇒ 判别明确。"
   },
   {
     "slug": "it/xml-to-toml",
+    "htmlDom": true,
     "inputs": { "source": "<t>&#65;&#x42;</t>" },
+    "clicks": ["calcTool();"],
     "expect": ["t = \"AB\""],
     "ref": "IT-N394：数字字符引用（`&#65;` / `&#x42;`）也要解码。修复前整串原样进 TOML ⇒ `t = \"&#65;&#x42;\"`。输入 XML 里的实体形态与输出 `AB` 无交集。"
   },
   {
     "slug": "it/xml-to-toml",
+    "htmlDom": true,
     "inputs": { "source": "<a url=\"x&amp;y\"/>" },
+    "clicks": ["calcTool();"],
     "expect": ["\"@url\" = \"x&amp;y\""],
     "ref": "IT-N394：属性值同样要解码（`attrs[m[1]]=m[2]` 原文直取）。修复前 TOML 属性值是 `x&amp;y` 字面量 ⇒ blob 里是 `x&amp;amp;y`；修复后是 `x&amp;y`（escH 转义一次）。"
   },
   {
     "slug": "it/xml-to-toml",
+    "htmlDom": true,
     "inputs": { "source": "<config><item><a>1</a></item><item><a>2</a></item></config>" },
+    "clicks": ["calcTool();"],
     "expect": ["[[config.item]]"],
     "ref": "IT-N395：嵌套表内的同名兄弟元素必须生成带父前缀的表数组头。修复前表数组分支固定写 `'[['+tKey(k)+']]'`（忽略 prefix）⇒ 输出 `[config]` 空表 + 两条 `[[item]]`，回读后 `config` 下没有 `item`。默认样例无重复元素。"
   },
   {
     "slug": "it/xml-to-toml",
+    "htmlDom": true,
     "inputs": { "source": "<r><a.b><c.d><e>1</e></c.d></a.b></r>" },
+    "clicks": ["calcTool();"],
     "expect": ["[r.\"a.b\".\"c.d\"]"],
     "ref": "IT-N395：表头路径必须**逐段**转义。修复前递归只把上一层的 `tKey(k)` 用在末段，往下传的 prefix 却是原始键名拼接 ⇒ 深层表头写成 `[r.a.b.\"c.d\"]`（TOML 会读成 r→a→b→c.d 五层，而非 r→\"a.b\"→\"c.d\" 三层）。XML 允许元素名带点号，故该输入合法。"
   },
