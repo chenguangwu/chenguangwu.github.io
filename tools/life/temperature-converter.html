@@ -420,8 +420,9 @@ function updateThermometer(c){
   document.getElementById('mercury').style.height=pct+'%';
 }
 function updateAll(c,sourceUnit,sourceValue){
+  if(!isFinite(c)){ showTempError(true,false); return; }
   if(sourceUnit) _lastSource={unit:sourceUnit,value:(sourceValue!==undefined?sourceValue:c)};
-  const srcId=({c:'celsius',f:'fahrenheit',k:'kelvin',r:'rankine',re:'reaumur'})[_lastSource.unit]||'';
+  const srcId=({c:'celsius',f:'fahrenheit',k:'kelvin',r:'rankine',re:'reaumur'})[(_lastSource&&_lastSource.unit)||'c']||'';
   const f=c*9/5+32;
   const k=c+273.15;
   const r=f+459.67;
@@ -451,11 +452,21 @@ function tempIsEn(){
   try{ if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn) return TBKit.util.isEn(); }catch(e){}
   return /^en/i.test(document.documentElement.lang||'');
 }
+function invalidateTemp(){
+  _lastVal=null; _lastExact=null; _lastSource=null;
+  const active=document.activeElement;
+  ['celsius','fahrenheit','kelvin','rankine','reaumur'].forEach(function(id){
+    const el=document.getElementById(id); if(el && el!==active) el.value='';
+  });
+  const feel=document.getElementById('feelBox'); if(feel) feel.innerHTML='<div class="result-box" style="color:var(--text-muted);">无有效结果，请修正输入。</div>';
+  const mercury=document.getElementById('mercury'); if(mercury) mercury.style.height='0%';
+}
 function showTempError(on, belowAbs){
   const el=document.getElementById('tempError');
   if(!el) return;
   el.style.display=on?'block':'none';
   if(!on){el.textContent='';return;}
+  invalidateTemp();
   const en=tempIsEn();
   el.textContent=belowAbs
     ?(en?'Temperature cannot be below absolute zero (−273.15 °C / 0 K / −459.67 °F).':'温度不能低于绝对零度（−273.15 ℃ / 0 K / −459.67 ℉）')
@@ -498,6 +509,7 @@ function fromReaumur(){
 function setTemp(c){showTempError(false);var el=document.getElementById('celsius');if(el)el.value=String(c);updateAll(c,'c',c);}
 function resetForm(){setTemp(25);}
 function saveRecord(){
+  if(!_lastExact||!_lastSource||!_lastVal){ToolBox.showToast(tempIsEn()?'No valid temperature to save':'无有效温度可保存');return;}
   const r={time:new Date().toLocaleString('zh-CN'),c:_lastExact.c,f:_lastExact.f,k:_lastExact.k,r:_lastExact.r,re:_lastExact.re,unit:_lastSource.unit,value:_lastSource.value};
   let h=getHistory();
   h.unshift(r);if(h.length>20)h=h.slice(0,20);
@@ -506,6 +518,7 @@ function saveRecord(){
 }
 function getHistory(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch(e){return[];}}
 function copyResult(){
+  if(!_lastVal){ToolBox.showToast(tempIsEn()?'No valid result to copy':'无有效结果可复制');return;}
   ToolBox.copyText(`🌡️ 温度转换：${_lastVal.c}°C = ${_lastVal.f}°F = ${_lastVal.k}K = ${_lastVal.r}°R = ${_lastVal.re}°Ré`,'tool.copy_ok');
 }
 function renderHistory(){

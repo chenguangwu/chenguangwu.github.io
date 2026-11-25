@@ -2999,7 +2999,7 @@ const CASES = [
   },
   {
     slug: "life/temperature-converter",
-    inputs: { celsius: "0" },
+    inputs: { celsius: "0.00" },
     expect: ["0.00\n32.00\n273.15"],
     ref: "0℃ = 32.00℉ = 273.15K（水的冰点）。同样用三字段连续串，避开静态参考表中的 273.15 单值；"
        + "默认 25℃ ⇒ 25.00/77.00/298.15，注入失败不命中。",
