@@ -140,7 +140,7 @@
     <h2 data-zh="🌐 带宽下载时间速算">Bandwidth Calculator</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">下载时间 = 文件大小 × 8 ÷（带宽 × 有效利用率）；1 Byte = 8 bit，故 Mbps 与 MB/s 相差 8 倍；如 100 Mbps 下 1 GB 文件理论约 82 秒、按 80% 有效带宽约 102 秒；用于网络传输与体验评估。</div>
+      <div class="formula-eq">下载时间 = 文件字节数 × 8 ÷（带宽(Mbps) × 10⁶ × 有效利用率）；1 Byte = 8 bit，故 Mbps 与 MB/s 相差 8 倍。注意 1 GB=10⁹ B、1 GiB=2³⁰ B 差约 7.4%：100 Mbps 下 1 GB 理论 80 秒、1 GiB 约 86 秒；按 80% 有效带宽分别为 100 秒与 107 秒。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="Mbps 与下载时间换算，计算指定带宽下载文件所需时间及实际下载速度。">Bandwidth Calculator</p>
     <div class="input-row">
@@ -155,14 +155,18 @@
       <div><label for="fileSize">文件大小</label><input type="number" id="fileSize" value="4.7" min="0.001" step="0.001" oninput="calc()" placeholder="如 4.7"></div>
       <div><label for="sizeUnit">文件单位</label>
         <select id="sizeUnit" onchange="calc()">
-          <option value="1">MB</option>
-          <option value="1024" selected>GB</option>
-          <option value="0.0009765625">KB</option>
-          <option value="1048576">TB</option>
+          <option value="1">B</option>
+          <option value="1000">KB（10³ B）</option>
+          <option value="1000000">MB（10⁶ B）</option>
+          <option value="1000000000">GB（10⁹ B）</option>
+          <option value="1024">KiB（2¹⁰ B）</option>
+          <option value="1048576">MiB（2²⁰ B）</option>
+          <option value="1073741824" selected>GiB（2³⁰ B）</option>
+          <option value="1099511627776">TiB（2⁴⁰ B）</option>
         </select>
       </div>
     </div>
-    <p style="font-size:12px;color:var(--text-muted);margin:6px 2px 0;" data-zh="📐 口径说明：文件大小统一二进制 1024 进制（1 KB=1024 B、1 GB=1024 MB），与操作系统显示一致；带宽为比特系恒 1000 进制（1 Gbps=1000 Mbps）。">📐 Units: file sizes use binary (1024-based) prefixes; bandwidth is decimal (1000-based) as per telecom convention.</p>
+    <p style="font-size:12px;color:var(--text-muted);margin:6px 2px 0;" data-zh="📐 口径说明：文件大小可选十进制（KB/MB/GB，10³/10⁶/10⁹ B）或二进制（KiB/MiB/GiB，2¹⁰/2²⁰/2³⁰ B），Windows 显示的「GB」多数其实是 GiB；带宽按电信惯例用十进制（1 Mbps=10⁶ bit/s）。">📐 Units: file sizes use binary (1024-based) prefixes; bandwidth is decimal (1000-based) as per telecom convention.</p>
     <div class="input-row">
       <div><label for="efficiency">线路效率/利用率 (%)</label><input type="number" id="efficiency" value="85" min="1" max="100" step="1" oninput="calc()" placeholder="如 85（1–100）"></div>
     </div>
@@ -279,30 +283,37 @@ function calc(){
     out.innerHTML='<p style="color:var(--danger)">'+(eff>1?'传输效率需在 1–100% 之间':((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter valid parameters":"请输入有效参数"))+'</p>';return;
   }
   var bwMbps=bw*bwUnit;
-  var bytesMB=fSize*sUnit;
+  var bytes=fSize*sUnit;
+  var bytesMB=bytes/1e6;
+  var bytesMiB=bytes/1048576;
   var dlSpeedMBps=bwMbps*eff/8;
-  var seconds=bytesMB/dlSpeedMBps;
+  var seconds=bytes*8/(bwMbps*1e6*eff);
   var bwMbpsNum=bwMbps;
   var html='<div class="big-result">'+L('下载耗时：','Download time: ')+fmtTime(seconds)+'</div>';
   html+='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val">'+bwMbpsNum.toFixed(bwMbpsNum<10?2:0)+'</div><div class="lbl">带宽 (Mbps)</div></div>';
   html+='<div class="stat-card"><div class="val">'+dlSpeedMBps.toFixed(2)+'</div><div class="lbl">实际下载速度 (MB/s)</div></div>';
-  html+='<div class="stat-card"><div class="val">'+bytesMB.toFixed(1)+'</div><div class="lbl">文件大小 (MB)</div></div>';
+  html+='<div class="stat-card"><div class="val">'+bytesMiB.toFixed(1)+'</div><div class="lbl">文件大小 (MiB)</div></div>';
   html+='<div class="stat-card"><div class="val">'+fmtTime(seconds)+'</div><div class="lbl">预计耗时</div></div>';
   html+='</div>';
   html+='<h3 style="margin-top:14px;">分步计算</h3>';
   html+='<div class="step-line"><strong>步骤1</strong>　带宽换算：'+bw+' × '+bwUnit+' = '+bwMbpsNum.toFixed(2)+' Mbps = '+(bwMbpsNum/8).toFixed(2)+' MB/s（理论）</div>';
   html+='<div class="step-line"><strong>步骤2</strong>　实际下载速度 = 带宽 × 效率 / 8 = '+bwMbpsNum.toFixed(2)+' × '+(eff*100).toFixed(0)+'% / 8 = '+dlSpeedMBps.toFixed(3)+' MB/s</div>';
-  html+='<div class="step-line"><strong>步骤3</strong>　文件大小换算：'+fSize+' '+sizeLabel(sUnit)+' = '+bytesMB.toFixed(2)+' MB</div>';
-  html+='<div class="step-line"><strong>步骤4</strong>　下载时间 = 文件大小 / 下载速度 = '+bytesMB.toFixed(2)+' / '+dlSpeedMBps.toFixed(2)+' = '+seconds.toFixed(1)+' 秒 ≈ '+fmtTime(seconds)+'</div>';
+  html+='<div class="step-line"><strong>步骤3</strong>　文件大小换算：'+fSize+' '+sizeLabel(sUnit)+' = '+bytes.toFixed(0)+' B = '+bytesMB.toFixed(2)+' MB（十进制 10⁶） = '+bytesMiB.toFixed(2)+' MiB（二进制 2²⁰）</div>';
+  html+='<div class="step-line"><strong>步骤4</strong>　下载时间 = 字节数×8 /（带宽×10⁶×效率） = '+bytes.toFixed(0)+'×8 / ('+bwMbps.toFixed(2)+'×10⁶×'+(eff*100).toFixed(0)+'%) = '+seconds.toFixed(1)+' 秒 ≈ '+fmtTime(seconds)+'</div>';
   const __g2=html;out.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
-function sizeLabel(u){return u===1?'MB':u===1024?'GB':u===0.0009765625?'KB':'TB';}
+function sizeLabel(u){
+  var m={1:'B',1000:'KB',1000000:'MB',1000000000:'GB',1024:'KiB',1048576:'MiB',1073741824:'GiB',1099511627776:'TiB'};
+  return m[u]||'B';
+}
 function fmtTime(s){
-  if(s<60) return s.toFixed(1)+(isEnPage()?" s":" 秒");
-  if(s<3600) return isEnPage()?(Math.floor(s/60)+' min '+Math.round(s%60)+' s'):(Math.floor(s/60)+' 分 '+Math.round(s%60)+' 秒');
+  s=Math.round(s);
+  if(s<60) return s+(isEnPage()?" s":" 秒");
+  if(s<3600) return isEnPage()?(Math.floor(s/60)+' min '+(s%60)+' s'):(Math.floor(s/60)+' 分 '+(s%60)+' 秒');
   var h=Math.floor(s/3600);
-  var m=Math.floor((s%3600)/60);
+  var m=Math.floor((s%3600)/60), sec=s%60;
+  if(sec>=30) m+=1; if(m>=60){h+=1;m-=60;}
   return isEnPage()?(h+' h '+m+' min'):(h+' 时 '+m+' 分');
 }
 function copyResult(){
@@ -487,7 +498,7 @@ function __bandwidth_calculatorExport(){
 }
 function __bandwidth_calculatorPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#bandwidth_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'bandwidth':'100', 'bwUnit':'1', 'fileSize':'4.7', 'sizeUnit':'1024', 'efficiency':'85'}},{"label":"小规模","labelEn":"Small scale","values":{"bandwidth":"50"}},{"label":"大规模","labelEn":"Large scale","values":{"bandwidth":"150"}},{"label":"极端工况","labelEn":"Extreme case","values":{"bandwidth":"200"}}],function(){ calc(); });
+    TBKit.preset.bar('#bandwidth_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'bandwidth':'100', 'bwUnit':'1', 'fileSize':'4.7', 'sizeUnit':'1073741824', 'efficiency':'85'}},{"label":"小规模","labelEn":"Small scale","values":{"bandwidth":"50"}},{"label":"大规模","labelEn":"Large scale","values":{"bandwidth":"150"}},{"label":"极端工况","labelEn":"Extreme case","values":{"bandwidth":"200"}}],function(){ calc(); });
 }
 var __bandwidth_calculator_f0=(typeof calc==='function')?calc:null;
 if(__bandwidth_calculator_f0){

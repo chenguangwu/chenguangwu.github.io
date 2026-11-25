@@ -32,17 +32,33 @@ const CASES = [
     "efficiency": "85"
   },
   "expect": [ "7884.8 文件大小" ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（7.7 GiB = 7884.8 MiB；输出卡标签改为 MiB）"
 },
 {
   "slug": "telecom/bandwidth-calculator",
   "clicks": [
-    "document.getElementById('sizeUnit').value='0.0009765625'; document.getElementById('fileSize').value='2048'; document.getElementById('bandwidth').value='4'; document.getElementById('efficiency').value='100'; calc();"
+    "document.getElementById('sizeUnit').value='1024'; document.getElementById('fileSize').value='2048'; document.getElementById('bandwidth').value='4'; document.getElementById('efficiency').value='100'; calc();"
   ],
   "expect": [
-    "2048 KB = 2.00 MB"
+    "2048 KiB = 2097152 B = 2.10 MB（十进制 10⁶） = 2.00 MiB（二进制 2²⁰）"
   ],
-  "ref": "E2 口径统一（byte 系 1024）：KB 选项 value=1/1024，2048 KB = 2048×0.0009765625 = 2.00 MB（step3 回显含 sizeLabel）。判别态 clicks 清空回默认 GB/4.7 → 「4.7 GB = 4812.80 MB」零交集。"
+  "ref": "单位双口径：sizeUnit 的 value 统一为每单位字节数（KiB=1024），2048 KiB=2,097,152 B=2.10 MB=2.00 MiB；同时校验十进制与二进制两条换算，旧实现把 KiB 当 MB、把 MB/GB 当 1024 倍。"
+},
+{
+  "slug": "telecom/bandwidth-calculator",
+  "clicks": [
+    "document.getElementById('result').textContent='T '+fmtTime(119.6);"
+  ],
+  "expect": [ "T 2 分 0 秒" ],
+  "ref": "时间进位回归：119.6 秒旧实现 Math.floor(119.6/60)=1 + Math.round(59.6)=60 ⇒「1 分 60 秒」；新实现先四舍五入总秒再拆分 ⇒ 120 秒=2 分 0 秒。与默认 4.7 GiB/100Mbps 大耗时零交集。"
+},
+{
+  "slug": "telecom/bandwidth-calculator",
+  "clicks": [
+    "document.getElementById('sizeUnit').value='1000000000'; document.getElementById('fileSize').value='1'; document.getElementById('bandwidth').value='100'; document.getElementById('efficiency').value='100'; calc();"
+  ],
+  "expect": [ "1 GB = 1000000000 B = 1000.00 MB（十进制 10⁶） = 953.67 MiB（二进制 2²⁰）" ],
+  "ref": "十进制 GB 与二进制 GiB 区分：1 GB=10⁹ B=1000 MB=953.67 MiB，旧实现 sizeUnit=1024 把 GB 当 1024 MB。"
 },
 {
   "slug": "telecom/ber-snr",
@@ -162,6 +178,12 @@ const CASES = [
 },
 {
   "slug": "telecom/ber-snr",
+  "inputs": { "ber": "1e-5abc", "mod": "qam64" },
+  "expect": [ "BER 格式无效" ],
+  "ref": "严格解析回归：parseFloat('1e-5abc') 旧实现静默取 1e-5 并算出 17.79 dB；新实现用完整数字/科学计数正则拒绝尾随字符。合法 1e-5 不出现提示。"
+},
+{
+  "slug": "telecom/ber-snr",
   "inputs": {
     "ber": "0.1",
     "mod": "bpsk"
@@ -197,6 +219,12 @@ const CASES = [
   "inputs": { "freq": "2400", "dist": "1", "ptx": "" },
   "expect": [ "未填写发射功率" ],
   "ref": "页面文案声明 Pt/Gt/Gr 可空，但旧守卫把 ptx 列入必填清单、空值直接拦截，与「跳过链路预算」分支矛盾；改为只强制 freq/dist 后空 Pt 走该提示。默认 Pt=20 不出现。"
+},
+{
+  "slug": "telecom/ap-coverage",
+  "inputs": { "ptx": "20", "gt": "3", "freq": "2412", "prmin": "-82", "gr": "2", "extraLoss": "-10", "fadeMargin": "8" },
+  "expect": [ "环境附加损耗与衰落余量必须 ≥ 0 dB" ],
+  "ref": "负损耗回归：旧实现直接把 -10 dB 计入 totalLoss，MAPL 被抬高、覆盖半径虚高；新实现拒绝负附加损耗与负衰落余量。默认 10/8 不出现该提示。"
 },
 {
   "slug": "telecom/bandwidth-calculator",
