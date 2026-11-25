@@ -154,7 +154,7 @@
     <h2 data-zh="🪵 榫头尺寸计算">Mortise & Tenon Dimension Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="计算常见榫卯结构的榫头长宽深尺寸，适配不同板厚与连接方式">Mortise Size</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">榫卯尺寸计算<br>实际厚比 = 榫型基准厚比 × 用户比例 ÷ 0.4<br>榫厚 = 板厚 × 实际厚比 × 木材硬度因子<br>榫宽 = 板宽 × 榫型宽比<br>榫深 = 板厚 × 榫型深比<br>两侧肩宽 = (板宽 − 榫宽) ÷ 2（每侧）<br>上下颊高 = (板厚 − 榫厚) ÷ 2（每侧）<br>燕尾榫另输出倾角<br>软木提示：榫厚建议 +10% 或加木楔防松动<br>尺寸取整到毫米，实际按含水率纹理微调</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">榫卯尺寸计算<br>实际厚比 = 榫型基准厚比 × 用户倍率（1.0 = 该榫型标准）<br>榫厚 = 板厚 × 实际厚比 × 木材硬度因子<br>榫宽 = 板宽 × 榫型宽比<br>榫深 = 板厚 × 榫型深比<br>两侧肩宽 = (板宽 − 榫宽) ÷ 2（每侧）<br>上下颊高 = (板厚 − 榫厚) ÷ 2（每侧）<br>燕尾榫另输出倾角<br>软木提示：榫厚建议 +10% 或加木楔防松动<br>尺寸取整到毫米，实际按含水率纹理微调</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：Math.round(t×actualRatio×hf)；Math.round((w-tenonWidth)÷2)；Math.round((t-tenonThick)÷2)">Key formulas: Math.round(t×actualRatio×hf); Math.round((w-tenonWidth)÷2); Math.round((t-tenonThick)÷2)</p>
     </div>
 
@@ -182,11 +182,11 @@
 
     <div class="input-row">
       <div>
-        <label for="ratio">榫头比例（板厚比）</label>
+        <label for="ratio">榫厚倍率（相对该榫型基准）</label>
         <select id="ratio" onchange="calc()">
-          <option value="0.3">30%（薄榫）</option>
-          <option value="0.4" selected>40%（标准）</option>
-          <option value="0.5">50%（厚榫）</option>
+          <option value="0.75">0.75× 基准（薄榫）</option>
+          <option value="1" selected>1.0× 基准（标准）</option>
+          <option value="1.25">1.25× 基准（厚榫）</option>
           <option value="0.33">1/3（传统）</option>
         </select>
       </div>
@@ -312,13 +312,17 @@ var JOINT_PARAMS={
 var HARDNESS_FACTOR={soft:1.1,medium:1.0,hard:0.9};
 function calc(){
   var jt=$('jointType').value;
-  var t=parseFloat($('thickness').value)||20;
-  var w=parseFloat($('width').value)||80;
+  var t=parseFloat($('thickness').value);
+  var w=parseFloat($('width').value);
   var ratio=parseFloat($('ratio').value);
   var hardness=$('hardness').value;
   var hf=HARDNESS_FACTOR[hardness];
   var p=JOINT_PARAMS[jt];
-  var actualRatio=p.thickRatio*ratio/0.4;
+  if(!isFinite(t)||t<=0||!isFinite(w)||w<=0||!isFinite(ratio)||ratio<=0){
+    $('dataGrid').innerHTML='';$('mortiseVis').innerHTML='';
+    $('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写大于 0 的板厚、板宽与榫厚倍率，已清除旧结果</p>';return;
+  }
+  var actualRatio=p.thickRatio*ratio;
   var tenonThick=Math.round(t*actualRatio*hf);
   var tenonWidth=Math.round(w*p.widthRatio);
   var tenonDepth=Math.round(t*p.depthRatio);
@@ -332,7 +336,7 @@ function calc(){
   var hardName={soft:'软木',medium:'中硬',hard:'硬木'}[hardness];
   var html='<p>榫卯类型：<strong>'+p.name+'</strong> | 木材：<strong>'+hardName+'</strong></p>'+
     '<p>板厚：<strong>'+t+' mm</strong>，板宽：<strong>'+w+' mm</strong></p>'+
-    '<p>榫厚：<strong>'+tenonThick+' mm</strong>（板厚 × '+(tenonThick/t*100).toFixed(0)+'%）</p>'+
+    '<p>榫厚：<strong>'+tenonThick+' mm</strong>（实际板厚比 '+(tenonThick/t*100).toFixed(0)+'%；'+p.name+'基准 '+p.thickRatio*100+'% × '+ratio+' 倍率 × 硬度因子 '+hf+'）</p>'+
     '<p>榫宽：<strong>'+tenonWidth+' mm</strong>（板宽 × '+(tenonWidth/w*100).toFixed(0)+'%）</p>'+
     '<p>榫深：<strong>'+tenonDepth+' mm</strong>（板厚 × '+p.depthRatio.toFixed(1)+'）</p>'+
     '<p>两侧肩宽：<strong>'+shoulderWidth+' mm</strong>（每侧）</p>'+
@@ -561,7 +565,7 @@ function __mortise_sizeExport(){
 }
 function __mortise_sizePresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#mortise_sizePresets',[{label:'默认参数',labelEn:'Default',values:{'jointType':'through', 'thickness':'20', 'width':'80', 'ratio':'0.4', 'hardness':'medium'}},{"label":"小规模","labelEn":"Small scale","values":{"thickness":"10"}},{"label":"大规模","labelEn":"Large scale","values":{"thickness":"30"}},{"label":"极端工况","labelEn":"Extreme case","values":{"thickness":"40"}}],function(){ calc(); });
+    TBKit.preset.bar('#mortise_sizePresets',[{label:'默认参数',labelEn:'Default',values:{'jointType':'through', 'thickness':'20', 'width':'80', 'ratio':'1', 'hardness':'medium'}},{"label":"小规模","labelEn":"Small scale","values":{"thickness":"10"}},{"label":"大规模","labelEn":"Large scale","values":{"thickness":"30"}},{"label":"极端工况","labelEn":"Extreme case","values":{"thickness":"40"}}],function(){ calc(); });
 }
 var __mortise_size_f0=(typeof calc==='function')?calc:null;
 if(__mortise_size_f0){

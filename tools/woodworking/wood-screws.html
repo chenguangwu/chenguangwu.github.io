@@ -302,22 +302,29 @@ var SCREW_SIZES=[
   {gauge:'#14',dia:6.3,softPilot:4.0,hardPilot:4.8,minLen:25,maxLen:125}
 ];
 function recommend(){
-  var total=parseFloat($('totalThick').value)||30;
-  var top=parseFloat($('topThick').value)||15;
+  var total=parseFloat($('totalThick').value);
+  var top=parseFloat($('topThick').value);
   var hardness=$('woodHardness').value;
   var joint=$('jointType').value;
   var head=$('headType').value;
+  if(!isFinite(total)||!isFinite(top)||total<=0||top<=0||top>=total){
+    var msg='<p style="color:var(--danger)">⚠ 请填写有效板厚，且上层厚度必须小于总厚度（下层需有可连接厚度）</p>';
+    $('screwRec').innerHTML=msg;$('result').innerHTML=msg;return;
+  }
   var bottom=total-top;
-  if(bottom<6){bottom=total-top;}
   var idealLen;
   if(joint==='pocket'){
     idealLen=top+bottom*0.7;
   }else{
     idealLen=top+bottom*0.67;
   }
-  idealLen=Math.min(idealLen,total-2);
-  idealLen=Math.max(idealLen,12);
-  var roundedLen=Math.ceil(idealLen/5)*5;
+  var maxLen=Math.floor((total-2)/5)*5;
+  idealLen=Math.min(idealLen,maxLen);
+  var roundedLen=Math.min(maxLen,Math.ceil(idealLen/5)*5);
+  if(roundedLen<12||roundedLen>total-2){
+    var bad='<p style="color:var(--danger)">⚠ 总厚 '+total+'mm 无法选到不穿透的标准长度（需 ≥12mm 且 ≤ 总厚−2mm）；请增加板厚、减薄上层，或改用胶接/夹板等连接方式</p>';
+    $('screwRec').innerHTML=bad;$('result').innerHTML=bad;return;
+  }
   var screwGauge;
   if(total<=12){screwGauge=SCREW_SIZES[0];}
   else if(total<=20){screwGauge=SCREW_SIZES[2];}
@@ -348,7 +355,7 @@ function recommend(){
   if(joint==='edge'){tips.push('端面连接强度较低，建议增加螺丝数量或使用木销辅助。');}
   if(joint==='pocket'){tips.push('口袋螺丝需专用口袋夹具与角度钻孔，通常15°斜角。');}
   if(head==='flat'){tips.push('平头螺丝需打沉头孔，使螺丝表面与木材齐平。');}
-  if(roundedLen>=total){tips.push('警告：螺丝长度接近总板厚，请确认不会穿透底面。');}
+  if(roundedLen>total-2){tips.push('警告：螺丝长度接近总板厚，请确认不会穿透底面。');}
   tips.push('螺丝间距建议为板厚的10-15倍，边缘距离至少为螺丝直径的5倍。');
   $('result').innerHTML+='<div class="tip-box tip-info" style="margin-top:10px;"><strong>💡 使用建议</strong><br>'+tips.map(function(t){return '• '+t;}).join('<br>')+'</div>';
   $('result').innerHTML+='<p style="color:var(--text-muted);font-size:12px;margin-top:8px;">* 推荐基于通用木工标准，实际选型需结合具体受力与结构要求。</p>';
