@@ -119,7 +119,7 @@
     <h2 data-zh="🖥️ Nginx 配置生成器">🖥️ Nginx Config Generator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="Nginx 常用于托管静态站点或反向代理后端。选择场景并填参数，本工具生成标准 server 块，复制到站点配置即可启用。">Nginx Config Generator - Pick static site or reverse proxy and fill params to emit a server block config. Free, browser-only.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按模式取值：域名为空时用下划线占位，站点根目录或上游地址为空时用默认路径，端口取输入值向下取整（无效时取 80）。静态模式生成 server 块，依次写入监听端口、服务名、根目录、默认首页，以及「依次尝试请求路径、路径作为目录、否则返回 404」的 location；反向代理模式生成 server 块，依次写入监听端口、服务名，以及把请求转发到所填上游地址的 location，并设置转发请求头中的主机名与客户端真实地址。输出时对整段配置做 HTML 转义后在代码块中展示</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按模式取值：域名为空时用下划线占位；域名逐项校验只允许字母/数字/点/连字符/下划线/通配符；静态目录与证书路径校验为以 / 开头的可打印 ASCII 且不得含分号、大括号、$ 或控制字符，含空格的路径输出时加双引号并按 Nginx 语法转义引号与反斜杠；反向代理地址用 URL 解析校验 http/https；端口必须是 1–65535 的整数。静态模式生成 server 块，依次写入监听端口、服务名、根目录、默认首页，以及「依次尝试请求路径、路径作为目录、否则返回 404」的 location；反向代理模式生成 server 块，依次写入监听端口、服务名，以及把请求转发到所填上游地址的 location，并设置转发请求头中的主机名与客户端真实地址。输出时对整段配置做 HTML 转义后在代码块中展示</div>
   <div class="formula-desc">按场景生成 Nginx server 配置。</div>
   <ul class="formula-list">
     <li><b>场景</b>：静态站点、反向代理、HTTPS、负载均衡、单页应用（SPA）回退。</li>
@@ -254,37 +254,75 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function nginxMark(id,on){var e=document.getElementById(id);if(e)e.style.borderColor=on?'#B91C1C':'';}
 function nginxIsEn(){return typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn();}
 function nginxError(zh,en){return '<div class="result-title">nginx 配置</div><p style="color:#B91C1C;">⚠️ ' + (nginxIsEn() ? en : '配置错误：' + zh) + '</p>';}
-function calcTool(){var mode=document.getElementById('mode').value;
-var domain=document.getElementById('domain').value.trim()||'_';
-var root=document.getElementById('root').value.trim();
-var cert=document.getElementById('cert').value.trim();
-var certKey=document.getElementById('certKey').value.trim();
-var portRaw=document.getElementById('port').value.trim();
+function nginxBad(v){return /[\x00-\x1F\x7F]/.test(String(v))||/[;{}]/.test(String(v))||String(v).indexOf('$')>=0;}
+function nginxToken(v){v=String(v);if(/[\s"'\\]/.test(v))return '"'+v.replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"';return v;}
+function nginxDomainList(v){
+  var raw=String(v).trim();if(!raw)return {ok:true,value:'_'};
+  if(nginxBad(raw))return {ok:false};
+  var parts=raw.split(/[\s,]+/).filter(Boolean),out=[];
+  for(var i=0;i<parts.length;i++){
+    var d=parts[i];
+    if(!/[^\x21-\x7E]/.test(d)&&d!=='_'&&!/^(\*\.)?[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?$/.test(d))return {ok:false};
+    if(/[^\x21-\x7E]/.test(d))return {ok:false};
+    out.push(d);
+  }
+  return {ok:true,value:out.join(' ')||'_'};
+}
+function nginxPath(v,needSlash){
+  v=String(v).trim();
+  if(!v)return {ok:false,why:'empty'};
+  if(nginxBad(v))return {ok:false,why:'bad'};
+  if(!/^[\x20-\x7E]+$/.test(v))return {ok:false,why:'nonascii'};
+  if(needSlash&&v.charAt(0)!=='/')return {ok:false,why:'slash'};
+  return {ok:true,value:v};
+}
+function nginxUpstream(v){
+  v=String(v).trim();
+  if(!v)return {ok:false,why:'empty'};
+  if(nginxBad(v)||!/^https?:\/\/[^\s]+$/.test(v))return {ok:false,why:'scheme'};
+  try{var u=new URL(v);if(u.protocol!=='http:'&&u.protocol!=='https:')return {ok:false,why:'scheme'};}catch(e){return {ok:false,why:'scheme'};}
+  return {ok:true,value:v};
+}
+function nginxFail(id,zh,en){nginxMark(id,true);document.getElementById('result').innerHTML=nginxError(zh,en);}
+function calcTool(){var mode=String((document.getElementById('mode')||{}).value||'static');
+var domainRaw=document.getElementById('domain').value;
+var root=document.getElementById('root').value;
+var cert=document.getElementById('cert').value;
+var certKey=document.getElementById('certKey').value;
+var portRaw=String(document.getElementById('port').value||'').trim();
 ['mode','domain','root','port','cert','certKey'].forEach(function(id){nginxMark(id,false);});
 var port=Number(portRaw);
 if(!/^\d+$/.test(portRaw)||port<1||port>65535){nginxMark('port',true);document.getElementById('result').innerHTML=nginxError('监听端口必须是 1–65535 的整数。','Listen port must be an integer from 1 to 65535.');return;}
+var dom=nginxDomainList(domainRaw);
+if(!dom.ok){nginxFail('domain','域名只能包含字母、数字、点、连字符、下划线或通配符 *，多个域名用逗号/空格分隔；不得包含分号、大括号、井号、引号或控制字符。','server_name may contain only letters, digits, dots, hyphens, underscores or a wildcard *, separated by commas/spaces; semicolons, braces, quotes and control characters are not allowed.');return;}
+var domain=dom.value;
 if(mode==='proxy'){
-  if(!root){nginxMark('root',true);document.getElementById('result').innerHTML=nginxError('反向代理模式必须填写上游地址（如 http://127.0.0.1:8080）。','Reverse proxy mode requires an upstream address (e.g. http://127.0.0.1:8080).');return;}
-  if(!/^https?:\/\/[^\s]+$/.test(root)){nginxMark('root',true);document.getElementById('result').innerHTML=nginxError('上游地址必须以 http:// 或 https:// 开头。','The upstream address must start with http:// or https://.');return;}
+  var up=nginxUpstream(root);
+  if(!up.ok){nginxFail('root','反向代理上游必须是合法的 http:// 或 https:// 地址，且不得包含空格、分号、大括号、$ 或控制字符。','The upstream must be a valid http:// or https:// URL without spaces, semicolons, braces, $ or control characters.');return;}
+  root=up.value;
 }else{
-  if(!root){nginxMark('root',true);document.getElementById('result').innerHTML=nginxError('静态根目录不能为空。','The static root directory cannot be empty.');return;}
-  if(root.charAt(0)!=='/'){nginxMark('root',true);document.getElementById('result').innerHTML=nginxError('静态根目录必须以 / 开头。','The static root directory must start with /.');return;}
+  var path=nginxPath(root,true);
+  if(!path.ok){nginxFail('root','静态根目录必须以 / 开头，且不得包含分号、大括号、$ 或控制字符。','The static root must start with / and must not contain semicolons, braces, $ or control characters.');return;}
+  root=path.value;
   if(mode==='https'){
-    if(!cert){nginxMark('cert',true);document.getElementById('result').innerHTML=nginxError('HTTPS 场景必须填写 SSL 证书路径。','HTTPS mode requires an SSL certificate path.');return;}
-    if(!certKey){nginxMark('certKey',true);document.getElementById('result').innerHTML=nginxError('HTTPS 场景必须填写 SSL 私钥路径。','HTTPS mode requires an SSL private key path.');return;}
+    var cp=nginxPath(cert,true),kp=nginxPath(certKey,true);
+    if(!cp.ok){nginxFail('cert','SSL 证书路径必须以 / 开头，且不得包含分号、大括号、$ 或控制字符。','The SSL certificate path must start with / and must not contain semicolons, braces, $ or control characters.');return;}
+    if(!kp.ok){nginxFail('certKey','SSL 私钥路径必须以 / 开头，且不得包含分号、大括号、$ 或控制字符。','The SSL private key path must start with / and must not contain semicolons, braces, $ or control characters.');return;}
+    cert=cp.value;certKey=kp.value;
   }
 }
 var cfg;
 if(mode==='static'){
-  cfg='server {\n  listen '+port+';\n  server_name '+domain+';\n  root '+root+';\n  index index.html;\n  location / {\n    try_files $uri $uri/ =404;\n  }\n}';
+  cfg='server {\n  listen '+port+';\n  server_name '+domain+';\n  root '+nginxToken(root)+';\n  index index.html;\n  location / {\n    try_files $uri $uri/ =404;\n  }\n}';
 }else if(mode==='https'){
-  cfg='server {\n  listen '+port+' ssl;\n  server_name '+domain+';\n  ssl_certificate '+cert+';\n  ssl_certificate_key '+certKey+';\n  root '+root+';\n  index index.html;\n  location / {\n    try_files $uri $uri/ =404;\n  }\n}';
+  cfg='server {\n  listen '+port+' ssl;\n  server_name '+domain+';\n  ssl_certificate '+nginxToken(cert)+';\n  ssl_certificate_key '+nginxToken(certKey)+';\n  root '+nginxToken(root)+';\n  index index.html;\n  location / {\n    try_files $uri $uri/ =404;\n  }\n}';
 }else{
-  cfg='server {\n  listen '+port+';\n  server_name '+domain+';\n  location / {\n    proxy_pass '+root+';\n    proxy_set_header Host $host;\n    proxy_set_header X-Real-IP $remote_addr;\n  }\n}';
+  cfg='server {\n  listen '+port+';\n  server_name '+domain+';\n  location / {\n    proxy_pass '+nginxToken(root)+';\n    proxy_set_header Host $host;\n    proxy_set_header X-Real-IP $remote_addr;\n  }\n}';
 }
 var html='<div class="result-title">nginx 配置</div>';
 html+='<pre class="code-box" style="white-space:pre;font-size:12.5px;overflow-x:auto;">'+escH(cfg)+'</pre>';
-const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}
+html+='<p class="muted">'+(nginxIsEn()?'Paths containing spaces are quoted per nginx syntax. Always run nginx -t before reloading.':'含空格的路径已按 Nginx 语法加引号；部署前请务必运行 nginx -t 检查语法，再 reload。')+'</p>';
+document.getElementById('result').innerHTML=html;}
 function resetForm(){document.getElementById('mode').selectedIndex=0;
       document.getElementById('domain').value='example.com';
       document.getElementById('root').value='/var/www/html';

@@ -18699,6 +18699,36 @@ const CASES = [
     expect: ["MIMEEN OK"],
     ref: "第812批：英文态动态分类、计数、空态必须全英文。强制 isEn=true 后断言分类栏无「全部」、含 All，计数为 0 results，空态为 No matching MIME types；旧实现分类/计数/空态均为中文 ⇒ BAD。",
   },
+  {
+    slug: "it/nginx-config-generator",
+    clicks: ["var a=nginxToken('/var/www/my site'),b=nginxToken('/var/www/a'+String.fromCharCode(34)+'b');document.getElementById('__tbProbe').textContent='NGTOKEN '+a+'|'+b;"],
+    expect: ["NGTOKEN \"/var/www/my site\"|\"/var/www/a\\\"b\""],
+    ref: "第813批：含空格的路径必须按 Nginx 语法加双引号，内部双引号与反斜杠转义。nginxToken 输出 \"/var/www/my site\" 与 \"/var/www/a\\\"b\"；旧实现直接拼接 ⇒ 空格把路径拆成多个参数、引号可注入。",
+  },
+  {
+    slug: "it/nginx-config-generator",
+    clicks: ["var a=nginxDomainList('a.test, *.b.test'),b=nginxDomainList('x.test;}'),c=nginxPath('/var/www/ok',true),d=nginxPath('/var/www/x;y',true),e=nginxUpstream('http://127.0.0.1:8080'),f=nginxUpstream('http://x;}');document.getElementById('__tbProbe').textContent='NGVALID '+a.ok+'|'+b.ok+'|'+c.ok+'|'+d.ok+'|'+e.ok+'|'+f.ok;"],
+    expect: ["NGVALID true|false|true|false|true|false"],
+    ref: "第813批：域名多值合法、含分号/大括号拒绝；路径合法、含分号拒绝；上游 http 合法、含注入字符拒绝。旧实现只检查前缀/开头，后四项本应全部放行 ⇒ 不命中。",
+  },
+  {
+    slug: "it/nginx-config-generator",
+    inputs: { domain: "probe.test", root: "/var/www/my site", port: "8080" },
+    expect: ["root &quot;/var/www/my site&quot;;", "部署前请务必运行 nginx -t"],
+    ref: "第813批：静态根目录含空格时输出必须带引号，否则 nginx 会把路径拆成 root 与多余参数导致配置错误。断言转义后的 `root \"/var/www/my site\";` 与 nginx -t 提示；旧实现输出裸路径 ⇒ 不命中。",
+  },
+  {
+    slug: "it/nginx-cheatsheet",
+    clicks: ["var a=COMMANDS.filter(function(x){return x.cmd==='limit_req';})[0],b=COMMANDS.filter(function(x){return x.cmd==='limit_conn';})[0];var ok=!!a&&!!b&&a.example.indexOf('http {')===0&&a.example.indexOf('limit_req_zone')>0&&a.example.indexOf('server {')>0&&a.example.indexOf('location /')>0&&b.example.indexOf('http {')===0&&b.example.indexOf('limit_conn_zone')>0&&b.example.indexOf('location /download/')>0;document.getElementById('__tbProbe').textContent='NGCONTEXT '+(ok?'OK':'BAD');"],
+    expect: ["NGCONTEXT OK"],
+    ref: "第813批：limit_req_zone/limit_conn_zone 必须放在 http 上下文，引用指令在 server/location。两条示例都已改为含 http + server + location 的最小完整配置；旧示例把 zone 定义与 location 平铺 ⇒ BAD。",
+  },
+  {
+    slug: "it/nginx-cheatsheet",
+    clicks: ["globalThis.TBKit={util:{isEn:function(){return true;}}};currentCategory='全部';searchQuery='limit_req';renderCommands();var h=document.getElementById('cmdList').innerHTML;document.getElementById('__tbProbe').textContent='NGCTXEN '+((h.indexOf('Context:')>=0&&h.indexOf('limit_req_zone: http')>=0&&h.indexOf('上下文：')<0)?'OK':'BAD');"],
+    expect: ["NGCTXEN OK"],
+    ref: "第813批：英文态必须显示 Context: 与英文上下文说明，不能回退中文「上下文：」。强制 isEn=true 后搜索 limit_req，断言列表含 Context: 与 limit_req_zone: http 且无中文标签；旧实现无上下文行 ⇒ BAD。",
+  },
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
