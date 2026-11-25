@@ -139,7 +139,7 @@
     <h2 data-zh="🔩 拉坯转速计算">Wheel Speed</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">转速 n = 线速度 v ÷ (π × D)，其中 D 为坯体直径(m)、v 为轮缘线速度(m/min)；各阶段线速度取值为开盘 60 至 90、提拉 40 至 70、收口 20 至 40 m/min；换算转速 rpm 后取整；坯体越大转速应越低（离心力与直径成正比），大件收口时转速可低至 60 至 100 rpm 以防离心变形。</div>
+      <div class="formula-eq">转速 n = 线速度 v ÷ (π × D)，其中 D 为坯体直径(m)、v 为轮缘线速度(m/min)；各阶段线速度取经验中值（定中心 80、开孔 65、提拉 55、收口 40 m/min，源自常见 60–90 / 40–70 / 20–40 区间），换算转速后取整；设备最低/最高转速可自行填写，超出时限幅并显示理论值、实际值与偏差。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据坯体直径与拉坯阶段，推荐拉坯机转速，保持合适的线速度（切向速度）以兼顾成形与稳定。">Wheel Speed</p>
     <div class="input-row">
@@ -159,6 +159,8 @@
           <option value="1.1">偏快（效率优先）</option>
         </select>
       </div>
+      <div><label for="minRpm">设备最低转速 (rpm)</label><input type="number" id="minRpm" value="30" min="1" max="500" step="1" oninput="calc()"></div>
+      <div><label for="maxRpm">设备最高转速 (rpm)</label><input type="number" id="maxRpm" value="320" min="1" max="2000" step="10" oninput="calc()"></div>
     </div>
     <div class="toolbar">
       <div id="wheel_speedPresets"></div><button type="button" class="btn primary" onclick="calc()">计算转速</button><button class="btn" type="button" onclick="__wheel_speedExport()">导出明细 CSV</button>
@@ -255,30 +257,36 @@ function calc(){
   var D=parseFloat(document.getElementById('diameter').value);
   var stage=document.getElementById('stage').value;
   var pref=parseFloat(document.getElementById('pref').value);
+  var minRpm=parseFloat(document.getElementById('minRpm').value);
+  var maxRpm=parseFloat(document.getElementById('maxRpm').value);
   var out=document.getElementById('result');
   if(isNaN(D)||D<=0){out.innerHTML='<p style="color:var(--danger)">请输入有效坯体直径</p>';return;}
+  if(!isFinite(minRpm)||!isFinite(maxRpm)||minRpm<1||maxRpm<1||minRpm>maxRpm){out.innerHTML='<p style="color:var(--danger)">请输入有效的设备转速范围（最低 ≥1 rpm 且不高于最高转速）</p>';return;}
   var vRim=STAGE[stage]*pref;                 // m/min
   var Dm=D/100;                               // 直径(m)
-  var rpm=vRim/(Math.PI*Dm);                  // rpm
-  rpm=Math.round(rpm);
-  if(rpm>320)rpm=320;
-  if(rpm<30)rpm=30;
+  var theoryRpm=vRim/(Math.PI*Dm);            // 理论 rpm
+  var theoryRound=Math.round(theoryRpm);
+  var rpm=Math.min(maxRpm,Math.max(minRpm,theoryRound));
+  var clamped=theoryRound!==rpm;
   var rimActual=Math.PI*Dm*rpm;                // 实际线速度 m/min
   var tipMs=rimActual/60;                      // m/s
-  var html='<div class="big-result">推荐转速 ≈ '+rpm+' rpm</div>';
+  var devPct=vRim>0?(rimActual-vRim)/vRim*100:0;
+  var html='<div class="big-result">可用转速 ≈ '+rpm+' rpm（设备限幅后）</div>';
   html+='<div class="stat-grid">';
-  html+='<div class="stat-card"><div class="val">'+rpm+'</div><div class="lbl">转速 (rpm)</div></div>';
-  html+='<div class="stat-card"><div class="val">'+tipMs.toFixed(2)+'</div><div class="lbl">线速度 (m/s)</div></div>';
-  html+='<div class="stat-card"><div class="val">'+rimActual.toFixed(1)+'</div><div class="lbl">线速度 (m/min)</div></div>';
+  html+='<div class="stat-card"><div class="val">'+theoryRpm.toFixed(1)+'</div><div class="lbl">理论转速 (rpm)</div></div>';
+  html+='<div class="stat-card"><div class="val">'+rpm+'</div><div class="lbl">设备可用转速 (rpm)</div></div>';
+  html+='<div class="stat-card"><div class="val">'+rimActual.toFixed(1)+'</div><div class="lbl">实际线速度 (m/min)</div></div>';
+  html+='<div class="stat-card"><div class="val">'+(devPct>=0?'+':'')+devPct.toFixed(0)+'%</div><div class="lbl">相对目标偏差</div></div>';
   html+='</div>';
   var range=D<10?'小件':(D<25?'中件':'大件');
-  html+='<div class="tip-box tip-info" style="margin-top:10px;">当前为'+range+'（D='+D+'cm），'+STAGE_NAME[stage]+'阶段，推荐转速 '+rpm+' rpm。'+(D>25?'大件注意降低转速防止晃动。':'')+'</div>';
+  var rangeWarn=theoryRound<minRpm?('理论转速 '+theoryRpm.toFixed(1)+' rpm 低于设备最低 '+minRpm+' rpm，已限幅；实际线速度比目标低 '+Math.abs(devPct).toFixed(0)+'%。'):(theoryRound>maxRpm?('理论转速 '+theoryRpm.toFixed(1)+' rpm 超过设备最高 '+maxRpm+' rpm，已限幅；实际线速度比目标高 '+devPct.toFixed(0)+'%。'):'');
+  html+='<div class="tip-box '+(clamped?'tip-warn':'tip-info')+'" style="margin-top:10px;">当前为'+range+'（D='+D+'cm），'+STAGE_NAME[stage]+'阶段。'+(rangeWarn||('理论转速在设备 '+minRpm+'–'+maxRpm+' rpm 范围内，未触发限幅。'))+' '+(D>25?'大件注意降低转速防止晃动。':'')+'</div>';
   html+='<h3 style="margin-top:14px;">分步计算</h3>';
-  html+='<div class="step-line"><strong>步骤1</strong>　目标线速度 v = '+STAGE[stage]+' × '+pref+' = '+vRim.toFixed(0)+' m/min（'+STAGE_NAME[stage]+'阶段）</div>';
+  html+='<div class="step-line"><strong>步骤1</strong>　目标线速度 v = '+STAGE[stage]+' × '+pref+' = '+vRim.toFixed(0)+' m/min（'+STAGE_NAME[stage]+'阶段经验中值，非标准值）</div>';
   html+='<div class="step-line"><strong>步骤2</strong>　坯体直径 D = '+D+' cm = '+Dm.toFixed(3)+' m，周长 = π·D = '+(Math.PI*Dm).toFixed(3)+' m</div>';
-  html+='<div class="step-line"><strong>步骤3</strong>　转速 n = v / (π·D) = '+vRim.toFixed(0)+' / '+(Math.PI*Dm).toFixed(3)+' = '+(vRim/(Math.PI*Dm)).toFixed(1)+' rpm</div>';
-  html+='<div class="step-line"><strong>步骤4</strong>　限幅后取整 → '+rpm+' rpm，实际线速度 '+rimActual.toFixed(1)+' m/min（'+tipMs.toFixed(2)+' m/s）</div>';
-  html+='<div class="step-line" style="border-color:var(--success);background:rgba(16,185,129,0.08);"><strong>结论</strong>　'+D+'cm 坯体'+STAGE_NAME[stage]+'阶段推荐约 '+rpm+' rpm，可在此基础上根据泥料软硬与稳定度微调。</div>';
+  html+='<div class="step-line"><strong>步骤3</strong>　理论转速 n = v / (π·D) = '+vRim.toFixed(0)+' / '+(Math.PI*Dm).toFixed(3)+' = '+theoryRpm.toFixed(1)+' rpm → 取整 '+theoryRound+' rpm</div>';
+  html+='<div class="step-line"><strong>步骤4</strong>　按设备范围 '+minRpm+'–'+maxRpm+' rpm 限幅 → '+rpm+' rpm；实际线速度 '+rimActual.toFixed(1)+' m/min（'+tipMs.toFixed(2)+' m/s，偏差 '+(devPct>=0?'+':'')+devPct.toFixed(0)+'%）</div>';
+  html+='<div class="step-line" style="border-color:var(--success);background:rgba(16,185,129,0.08);"><strong>结论</strong>　'+D+'cm 坯体'+STAGE_NAME[stage]+'阶段在设备 '+minRpm+'–'+maxRpm+' rpm 范围内可用约 '+rpm+' rpm；实际线速度 '+rimActual.toFixed(1)+' m/min。请按泥料软硬、坯体稳定度与设备实际档位微调，本页不保证成形效果。</div>';
   const __g2=html;out.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){

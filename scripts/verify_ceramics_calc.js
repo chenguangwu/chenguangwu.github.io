@@ -83,6 +83,20 @@ const CASES = [
   ],
   "ref": "auto-restore"
 }
+,
+{
+  "slug": "ceramics/glaze-ratio",
+  "clicks": ["MATS.forEach(function(m){m.pct=0;});MATS[0].pct=90;calc();var h=String(document.getElementById('result').innerHTML);var w=document.getElementById('w_0');document.getElementById('__tbProbe').textContent='TB828G '+((h.indexOf('低于 100%')>=0&&h.indexOf('不再用输入总重估算加水')>=0&&h.indexOf('需加水量')<0&&w&&w.value==='—')?'OK':'BAD');"],
+  "expect": ["TB828G OK"],
+  "ref": "第828批：配方合计 90% 时旧实现仍按输入总重算加水与釉浆。现在 |sum−100|>0.5 即停算，列出补足/扣减百分点表并把称量输入置 —，不输出需加水量。"
+},
+{
+  "slug": "ceramics/wheel-speed",
+  "inputs": {"diameter":"23","maxRpm":"60"},
+  "expect": ["超过设备最高 60 rpm", "可用转速 ≈ 60 rpm（设备限幅后）"],
+  "ref": "第828批：23cm 开孔标准偏好理论约 90 rpm，设备最高 60 rpm 时限幅到 60；旧实现硬编码 30–320 且仍称推荐。现在显示理论/可用/实际/偏差并明确限幅，探针断超限说明与可用转速文案。"
+}
+
 ];
 async function main() {
   const only = process.argv.slice(2);

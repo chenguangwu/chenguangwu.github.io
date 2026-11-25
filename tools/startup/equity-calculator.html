@@ -434,21 +434,31 @@ function calc(){
   });
 
   if(mode === 'funding'){
-    const roundRows = document.querySelectorAll('#rounds .round-row');
-    roundRows.forEach(r => {
-      const rname = r.querySelector('.r-name').value || '融资轮';
-      const pre = parseFloat(r.querySelector('.r-pre').value) || 0;
-      const amount = parseFloat(r.querySelector('.r-amount').value) || 0;
-      if(pre < 0 || amount < 0){ ToolBox.showToast(i18nText(), 'error'); return; }
-      if(pre + amount <= 0) return;
-      const keepRatio = pre / (pre + amount); // 现有股东保留比例
-      const newInvPct = amount / (pre + amount) * 100;
+    const roundRows = Array.prototype.slice.call(document.querySelectorAll('#rounds .round-row'));
+    const parsed = [];
+    let roundError = '';
+    roundRows.forEach((r, idx) => {
+      const nameRaw = String(r.querySelector('.r-name').value || '').trim();
+      const preRaw = String(r.querySelector('.r-pre').value || '').trim();
+      const amtRaw = String(r.querySelector('.r-amount').value || '').trim();
+      const pre = preRaw === '' ? NaN : parseFloat(preRaw);
+      const amount = amtRaw === '' ? NaN : parseFloat(amtRaw);
+      const label = '第 ' + (idx + 1) + ' 轮' + (nameRaw ? '（' + nameRaw + '）' : '');
+      if(preRaw === '' || amtRaw === '') { roundError = label + '：投前估值与投资额都必须填写（空值不按 0 处理）'; return; }
+      if(!isFinite(pre) || !isFinite(amount) || pre <= 0 || amount <= 0) { roundError = label + '：投前估值与投资额都必须是大于 0 的数值'; return; }
+      parsed.push({name: nameRaw || '融资轮', pre, amount, label});
+    });
+    if(roundError){
+      document.getElementById('result').innerHTML='<p style="color:var(--danger);">⚠ '+esc(roundError)+'。本轮及后续轮次未计入股权结果，请修正后重算。</p>';
+      ToolBox.showToast(i18nText(), 'error');
+      return;
+    }
+    parsed.forEach(p => {
+      const keepRatio = p.pre / (p.pre + p.amount);
+      const newInvPct = p.amount / (p.pre + p.amount) * 100;
       table.forEach(t => { t.initPct = t.initPct * keepRatio; });
-      table.push({name: rname + '投资人', isInvestor: true, initPct: newInvPct, rounds: []});
-      capHistory.push({
-        stage: rname + '后',
-        rows: table.map(t => ({name: t.name, pct: t.initPct}))
-      });
+      table.push({name: p.name + '投资人', isInvestor: true, initPct: newInvPct, rounds: []});
+      capHistory.push({stage: p.name + '后', rows: table.map(t => ({name: t.name, pct: t.initPct}))});
     });
   }
 

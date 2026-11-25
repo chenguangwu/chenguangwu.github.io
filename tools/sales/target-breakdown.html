@@ -298,7 +298,7 @@ function renderMembers(){
   members.forEach(function(m, i){
     var row = document.createElement('div');
     row.className = 'member-row';
-    var nameInp = '<div style="flex:1;"><label>姓名</label><input type="text" value="'+ToolBox.escHtml(m.name)+'" oninput="members['+i+'].name=this.value" aria-label="姓名"></div>';
+    var nameInp = '<div style="flex:1;"><label>姓名</label><input type="text" value="'+ToolBox.escHtml(m.name)+'" oninput="members['+i+'].name=this.value;calc()" aria-label="姓名"></div>';
     var weightInp = mode==='weight'
       ? '<div class="w-input"><label>权重</label><input type="number" class="w-input" value="'+m.weight+'" min="0" oninput="members['+i+'].weight=+this.value;calc()" placeholder="如 '+m.weight+'" aria-label="权重"></div>'
       : '';
@@ -349,9 +349,13 @@ function calc(){
   var rows = members.map(function(m, i){
     return [m.name||'未命名', mode==='weight'?m.weight:'—', fmt(targets[i])+' '+unit, pcts[i].toFixed(1)+'%'];
   });
-  rows.push([__tbSt('合计','Total'), mode==='weight'?sumWeight:'—', fmt(totalR)+' '+unit, '100.0%']);
-  const __g4=ToolBox.createTable(
-    ['成员', mode==='weight'?'权重':'—', '分解目标', ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Share":"占比")], rows);document.getElementById('resultTable').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  var totalRow=[__tbSt('合计','Total'), mode==='weight'?sumWeight:'—', fmt(totalR)+' '+unit, '100.0%'];
+  var heads=['成员', mode==='weight'?'权重':'—', '分解目标', ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Share":"占比")];
+  var thtml='<table><thead><tr>'+heads.map(function(h){return '<th>'+ToolBox.escHtml(h)+'</th>';}).join('')+'</tr></thead><tbody>';
+  rows.forEach(function(r){thtml+='<tr>'+r.map(function(c){return '<td>'+ToolBox.escHtml(String(c==null?'':c))+'</td>';}).join('')+'</tr>';});
+  thtml+='<tr style="font-weight:600;background:var(--bg-hover,var(--result-bg));">'+totalRow.map(function(c,i){return '<td>'+(i===0?'<strong>'+ToolBox.escHtml(String(c))+'</strong>':ToolBox.escHtml(String(c==null?'':c)))+'</td>';}).join('')+'</tr>';
+  thtml+='</tbody></table>';
+  document.getElementById('resultTable').innerHTML=thtml;
 }
 
 // 目标按两位小数取整，并把尾差归入目标最大项，保证逐行合计 = 总目标

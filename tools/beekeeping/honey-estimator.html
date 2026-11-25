@@ -341,16 +341,17 @@ function calc(){
   const exp = parseFloat(document.getElementById('experience').value);
   const source = HONEY_SOURCES.find(s => s.id === selectedSource);
 
-  const hivesOk = isFinite(hives) && hives > 0 && hives <= 1000;
+  const hivesOk = isFinite(hives) && hives > 0 && hives <= 1000 && Math.abs(hives-Math.round(hives)) < 1e-9;
   const areaOk = isFinite(area) && area > 0 && area <= 10000;
   setInvalid(hivesEl, !hivesOk);
   setInvalid(areaEl, !areaOk);
 
   if(!hivesOk || !areaOk){
     window.__honeyInvalid = true;
+    window.__honeyLast = null;
     document.getElementById('honeyResult').textContent = '--';
     document.getElementById('honeyStats').innerHTML = '';
-    document.getElementById('honeyDesc').textContent = '请输入有效参数：蜂箱数量须为 1–1000 群，花源面积须大于 0 且不超过 10000 亩';
+    document.getElementById('honeyDesc').textContent = '请输入有效参数：蜂箱数量须为 1–1000 的整数群，花源面积须大于 0 且不超过 10000 亩';
     return;
   }
   window.__honeyInvalid = false;
@@ -365,6 +366,7 @@ function calc(){
   }
 
   const totalHoney = source.base * hives * climate * exp * areaFactor;
+  window.__honeyLast = {hives:hives,area:area,source:source.name,totalHoney:totalHoney};
   const perHive = totalHoney / hives;
   const jinTotal = totalHoney * 2; // 斤
 
@@ -374,7 +376,7 @@ function calc(){
   const __g3=totalHoney.toFixed(1) + ' kg';document.getElementById('honeyResult').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   const __g4=`预估年度产蜜量（约${jinTotal.toFixed(0)}斤）`;document.getElementById('honeyDesc').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 
-  let areaNote = areaFactor < 1 ? '花源偏少，建议扩大蜜源或减少蜂群' : '花源充足，蜂群采蜜有保障';
+  let areaNote = areaFactor < 1 ? '花源偏少，建议扩大蜜源或减少蜂群' : '花源面积充足（产量仍受天气、流蜜期与蜂群状态影响）';
 
   const __g5=`
     <div class="stat-card"><div class="val">${perHive.toFixed(1)}</div><div class="lbl">单群产蜜(kg)</div></div>
@@ -383,15 +385,16 @@ function calc(){
     <div class="stat-card"><div class="val">${needArea}</div><div class="lbl">建议花源(亩)</div></div>
   `;document.getElementById('honeyStats').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 
-  const __g6=`预估年度产蜜量（约${jinTotal.toFixed(0)}斤）· ${areaNote}`;document.getElementById('honeyDesc').textContent=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  const __g6=`预估年度产蜜量（约${jinTotal.toFixed(0)}斤）· ${areaNote}。假设：蜜源基础产量与气候/经验系数固定，未计病虫害、盗蜂、极端天气与市场价格波动。`;document.getElementById('honeyDesc').textContent=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
 }
 
 function copyResult(){
-  const hives = document.getElementById('hives').value;
-  const area = document.getElementById('area').value;
-  const source = HONEY_SOURCES.find(s => s.id === selectedSource);
-  const totalHoney = parseFloat(document.getElementById('honeyResult').textContent) || 0;
-  const text = `养蜂产蜜估算：${hives}群蜂 / ${area}亩花源 / ${source.name}\n预估年产蜜量：${totalHoney}kg（约${(totalHoney*2).toFixed(0)}斤）`;
+  if(window.__honeyInvalid || !window.__honeyLast){
+    ToolBox.showToast('请先补全有效的蜂箱数量与花源面积后再复制；无效输入不会复制 0 产量。', 'warning');
+    return;
+  }
+  const d=window.__honeyLast;
+  const text = `养蜂产蜜估算：${d.hives}群蜂 / ${d.area}亩花源 / ${d.source}\n预估年产蜜量：${d.totalHoney.toFixed(1)}kg（约${(d.totalHoney*2).toFixed(0)}斤）\n说明：按蜜源基础产量、气候/经验系数与花源承载假设估算，不代表产量保证。`;
   ToolBox.copyText(text, i18nText('msg137'));
 }
 

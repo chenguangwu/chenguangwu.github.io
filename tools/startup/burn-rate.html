@@ -127,7 +127,7 @@
     <h2 data-zh="💰 烧钱率计算器">Startup Burn Rate Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="创业公司现金消耗分析，计算月净消耗、现金跑道与资金耗尽日期">Burn Rate - online utility on ToolBox.</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">创业公司烧钱率与现金跑道<br>月总支出 = 工资 + 房租 + 营销 + 其他<br>月净消耗 = 月总支出 − 月收入<br>总烧钱率（毛消耗）= 月总支出<br>现金跑道 = 现金 ÷ 月净消耗（月）<br>净消耗 ≤ 0 时跑道为 ∞，资金不会耗尽<br>资金耗尽日期 = 当前日期 + ⌊跑道⌋ 个月（不足 1 个月按天显示，月末自动对齐当月最后一天）<br>预警分级：跑道 <6 月 高危｜<9 月 加速｜<12 月 提示｜其他 充裕<br>融资需求建议：目标 18 个月跑道，需求 = 月净消耗 × 18 − 现金<br>需求 ≤ 0 表示现金已可支撑 18 个月以上<br>建议储备 6-12 个月应急资金（已盈利情形）</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">创业公司烧钱率与现金跑道<br>月总支出 = 工资 + 房租 + 营销 + 其他<br>月净消耗 = 月总支出 − 月收入<br>总烧钱率（毛消耗）= 月总支出<br>现金跑道 = 现金 ÷ 月净消耗（月）<br>净消耗 <0 为净流入、=0 为收支持平，两者均不按「消耗」跑道计算，且都不等同盈利<br>资金耗尽日期 = 当前日期 + 跑道整月 + 小数月×30 天（近似；月末对齐当月最后一天）<br>预警分级：跑道 <6 月 高危｜<9 月 加速｜<12 月 提示｜其他 充裕<br>融资需求建议：目标 18 个月跑道，需求 = 月净消耗 × 18 − 现金<br>需求 ≤ 0 表示现金已可支撑 18 个月以上<br>建议储备 6-12 个月应急资金（净流入/收支持平情形）</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：netBurn × 18">Key formulas: netBurn × 18</p>
     </div>
 
@@ -278,14 +278,8 @@ function fmt(n){
 function esc(s){ return ToolBox.escHtml(s); }
 
 function getInputs(){
-  return {
-    cash: parseFloat(document.getElementById('cash').value) || 0,
-    income: parseFloat(document.getElementById('income').value) || 0,
-    salary: parseFloat(document.getElementById('salary').value) || 0,
-    rent: parseFloat(document.getElementById('rent').value) || 0,
-    marketing: parseFloat(document.getElementById('marketing').value) || 0,
-    other: parseFloat(document.getElementById('other').value) || 0
-  };
+  function rv(id){var el=document.getElementById(id);var raw=el?String(el.value).trim():'';return raw===''?NaN:parseFloat(raw);}
+  return { cash:rv('cash'), income:rv('income'), salary:rv('salary'), rent:rv('rent'), marketing:rv('marketing'), other:rv('other') };
 }
 
 // 加 N 个月并把目标日 clamp 到当月最后一天，避免 1/31 + 1 个月溢出到 3/3
@@ -306,18 +300,24 @@ function calc(){
 var __numReq=['cash','income','salary','rent','marketing','other'];
 if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
   const d = getInputs();
-  if(d.cash < 0 || d.income < 0 || d.salary < 0 || d.rent < 0 || d.marketing < 0 || d.other < 0){
-    ToolBox.showToast(i18nText(), 'error');
+  var badKeys=[];
+  ['cash','income','salary','rent','marketing','other'].forEach(function(k){var el=document.getElementById(k);var bad=!isFinite(d[k])||d[k]<0;if(el)el.classList.toggle('input-error',bad);if(bad)badKeys.push(k);});
+  if(badKeys.length){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写有效的非负数值：期初现金、月收入、工资、房租、营销与其他支出。空值不按 0 处理（确为 0 请明确填 0）。</p>';
     return;
   }
   const expense = d.salary + d.rent + d.marketing + d.other;
   const netBurn = expense - d.income;
   const grossBurn = expense;
   let runway, endDate, warn = '', advice = '';
-  if(netBurn <= 0){
+  if(netBurn < 0){
     runway = Infinity;
-    endDate = '资金不会耗尽（已有正向现金流）';
-    advice = '公司已实现盈利或现金流转正，可持续运营，建议储备 6-12 个月应急资金。';
+    endDate = '按当前净流入不会耗尽（恒定假设下）';
+    advice = '月收入大于月支出，净现金流为正；这不等于会计盈利（未计折旧、税费、一次性资本开支与应收账期），建议按 6–12 个月支出储备应急资金。';
+  } else if(netBurn === 0){
+    runway = Infinity;
+    endDate = '按当前收支持平，现金不增不减（恒定假设下）';
+    advice = '月收入与月支出持平，跑道无法按「消耗」计算；收支持平不能推断已盈利或现金流转正，仍需预留应急资金并核对一次性支出。';
   } else {
     runway = d.cash / netBurn;
     const now = new Date();
@@ -327,7 +327,9 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
         ? '现金已耗尽（今天）'
         : `约 ${days} 天后（${addDays(now, days).toLocaleDateString('zh-CN')}）`;
     } else {
-      endDate = addMonthsClamped(now, Math.floor(runway)).toLocaleDateString('zh-CN');
+      const whole=Math.floor(runway), fracDays=Math.round((runway-whole)*30);
+      const approx=addDays(addMonthsClamped(now, whole), fracDays);
+      endDate = '约 '+approx.toLocaleDateString('zh-CN')+'（按恒定月净消耗近似，整月+小数月×30天）';
     }
     if(runway < 6){
       warn = `<p style="color:var(--danger);font-weight:600;">⚠️ 高危预警：跑道不足 6 个月，需立即融资或大幅削减开支！</p>`;
@@ -387,7 +389,7 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
 
 function saveSnapshot(){
   const d = getInputs();
-  if(d.cash < 0 || d.income < 0){ ToolBox.showToast(i18nText(), 'error'); return; }
+  if(['cash','income','salary','rent','marketing','other'].some(function(k){return !isFinite(d[k])||d[k]<0;})){ ToolBox.showToast('请先填写全部有效的非负数值（空值不按 0 处理）', 'error'); return; }
   const expense = d.salary + d.rent + d.marketing + d.other;
   const netBurn = expense - d.income;
   const snap = {
