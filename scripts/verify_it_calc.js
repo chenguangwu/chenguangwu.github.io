@@ -6938,7 +6938,7 @@ const CASES = [
     inputs: { parseInput: "550e8400-e29b-41d4-a716-446655440000" },
     clicks: ["parseUuid()"],
     dumpIds: ["parseResult"],
-    expect: ["版本号 4 (随机数)", "变体 RFC 4122（标准）", "time_low (32位): 550e8400", "clock_seq_hi_and_res (8位): a7", "node (48位): 446655440000"],
+    expect: ["版本号 4 (随机数)", "v4 随机 UUID：除版本号与变体位外均为随机数，没有 time_low/clock_seq/node 语义"],
     ref: "RFC 4122 示例 UUID v4 的解析产物：version nibble = 4（随机数），variant nibble = 8（RFC 4122），time_low = 550e8400、clock_seq_hi_and_res = a7、node = 446655440000。默认态 parseInput 为空 → parseUuid() 首行即 return，parseResult 无内容，不命中。",
   },
   {
@@ -6994,10 +6994,62 @@ const CASES = [
     inputs: { parseInput: "f47ac10b-58cc-4372-a567-0e02b2c3d479" },
     clicks: ["parseUuid()"],
     dumpIds: ["parseResult"],
-    expect: ["time_hi_and_version (16位): 4372", "clock_seq_hi_and_res (8位): a5", "node (48位): 0e02b2c3d479"],
-    ref: "常被当作 v1 示例的 UUID 实际 version nibble 为 4（4372 首字符），页面据实判为「4 (随机数)」；本例只锚分段切分（v1 取值号段），避免与版本名串重叠。",
+    expect: ["标准格式 f47ac10b-58cc-4372-a567-0e02b2c3d479", "版本号 4 (随机数)"],
+    ref: "常被当作 v1 示例的 UUID 实际 version nibble 为 4（4372 首字符）。v4 不展示 time_low/clock_seq/node 字段（这些字段只对 v1 有意义），只锚标准格式与版本判定，避免把随机 UUID 误读成时间型。",
   },
 
+  // —— 第801批：UUID 生成器输入校验 / 批量语义 / 历史结构 / v4+v5 行分隔 ——
+  {
+    slug: "it/uuid-generator",
+    inputs: { count: "abc" },
+    clicks: ["generateUuid();var e=document.getElementById('uuidError').textContent;document.getElementById('output').value='CNT bad='+(e.indexOf('整数')>=0?1:0)+' empty='+(document.getElementById('output').value===''?1:0);"],
+    expect: ["CNT bad=1 empty=1"],
+    ref: "第801批：数量非整数（abc）必须进入字段错误并中止，不能像旧实现 parseInt||1 静默按 1 条生成。断言同时要求错误文案含“整数”且输出区被清空。默认数量 1 合法，不出现该提示。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: { count: "3" },
+    clicks: ["generateUuid();var h=JSON.parse(localStorage.getItem('uuid_generator_history')||'[]');document.getElementById('output').value='HIST items='+(h[0]&&h[0].items?h[0].items.length:0)+' count='+(h[0]?h[0].count:0);"],
+    expect: ["HIST items=3 count=3"],
+    ref: "第801批：批量生成 3 条后历史记录必须保存完整 items 数组与 count，而不是只留首个 UUID。默认数量 1 时 items=1，不命中；旧实现只存 uuid 字段则 items=0。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: { version: "v1", count: "1" },
+    clicks: ["var u=generateUuidV1();var b=parseInt(u.split('-')[4].slice(0,2),16);document.getElementById('output').value='NODE bit='+((b&1)===1?1:0)+' ver='+(u.charAt(14)==='1'?1:0);"],
+    expect: ["NODE bit=1 ver=1"],
+    ref: "第801批 / RFC 9562 §6.10：随机节点 48 位的首字节最低位必须置 1（组播位），以区别于真实网卡地址。旧实现随机字节该位约一半为 0；本例同时断言版本位仍为 1。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: { version: "v5", namespace: "6ba7b810-9dad-11d1-80b4-00c04fd430c8", name: "example.com", count: "2" },
+    awaitClicks: true,
+    clicks: ["generateUuid().then(function(){var v=document.getElementById('output').value.split('\\n');document.getElementById('output').value='V5B same='+(v.length===2&&v[0]===v[1]?1:0);})"],
+    expect: ["V5B same=1"],
+    ref: "第801批：v5 批量不再给名称追加 :0/:1 后缀。相同命名空间 + 相同名称生成 2 条必须完全相同（DNS/example.com = cfbff0d1-9375-5685-968c-48ce8b15ae17）。旧实现第二条为 :1 派生值，两行不同 ⇒ same=0。",
+  },
+  {
+    slug: "it/uuid-v4-generator",
+    inputs: { count: "3" },
+    clicks: ["generate();var t=lastCopyLines.join('\\n');document.getElementById('output').value='V4LINES n='+lastCopyLines.length+' sep='+t.split('\\n').length;"],
+    expect: ["V4LINES n=3 sep=3"],
+    ref: "第801批：v4 批量复制必须按结构化结果 lastCopyLines 逐行 join('\\n')，不能直接取容器 textContent（相邻 div 无换行会粘成一串）。旧实现没有结构化数组，lastCopyLines 为空 ⇒ 探针不出现。",
+  },
+  {
+    slug: "it/uuid-v5-generator",
+    inputs: { ns: "6ba7b810-9dad-11d1-80b4-00c04fd430c8", name: "example.com" },
+    awaitClicks: true,
+    clicks: ["generate().then(function(){var t=lastCopyLines.join('\\n');document.getElementById('output').value='V5LINES n='+lastCopyLines.length+' sep='+t.split('\\n').length+' first='+t.split('\\n')[0].slice(0,12);})"],
+    expect: ["V5LINES n=2 sep=2 first=example.com"],
+    ref: "第801批：v5 复制按「名称 → UUID」逐行序列化（lastCopyLines），明确保留名称与结果的对应关系；不能取容器 textContent 把多行粘连。旧实现没有结构化数组 ⇒ 探针不出现。",
+  },
+  {
+    slug: "it/uuid-v5-generator",
+    inputs: { ns: "abc", name: "example.com" },
+    clicks: ["document.getElementById('output').value='NS bad='+(parseNs('abc')===null?1:0)+' compact='+(parseNs('6ba7b8109dad11d180b400c04fd430c8')?1:0);"],
+    expect: ["NS bad=1 compact=1"],
+    ref: "第801批：命名空间只接受 8-4-4-4-12 或 32 位连续十六进制。旧 parseNs 先删掉所有非 hex 字符再数长度，'abc' 被补零后当合法；现 abc 返回 null，而 32 位连续形式仍支持。",
+  },
   // —— it/uuid-v5-generator：纯 JS SHA-1 派生，RFC 4122 v5 标准实现（顶层全局函数，clicks 可直接调用）——
   {
     slug: "it/uuid-v5-generator",
@@ -13897,7 +13949,7 @@ const CASES = [
   {
     "slug": "it/uuid-generator",
     "inputs": {"version": "v5", "namespace": "abc", "name": "example.com", "count": "1"},
-    "clicks": ["generateUuid();var v=document.getElementById('output').value;document.getElementById('output').value='NS5 bad='+(v.indexOf('格式非法')>=0?1:0)+' q='+(document.getElementById('namespace').value==='abc'?1:0);"],
+    "clicks": ["generateUuid();var e=document.getElementById('uuidError').textContent;document.getElementById('output').value='NS5 bad='+(e.indexOf('格式非法')>=0?1:0)+' q='+(document.getElementById('namespace').value==='abc'?1:0);"],
     "expect": ["NS5 bad=1 q=1"],
     "ref": "IT-N409：v5 命名空间 'abc' 必须在结果区明确报「格式非法」并中止，不能静默产出看似合法的 UUID。修复前 uuidToBytes('abc') 得 [0xab,0x0c,0,0,…] 后照常哈希 ⇒ 无错误提示。q=1 绑注入的非法命名空间。"
   },
@@ -19320,7 +19372,12 @@ async function runCaseInner(c) {
     // ⇒ 点击代码能读写页面私有状态（等价用户点选）。无 __pageEval 时回退全局 new Function。
     const pageEval = typeof fns.__pageEval === "function" ? fns.__pageEval : (code) => new Function(String(code))();
     for (const code of c.clicks) {
-      try { pageEval(code); }
+      try {
+        const __ret = pageEval(code);
+        // opt-in：异步生成（crypto.subtle / Promise）页面需要等每条点击 code 落盘再断言，
+        // 否则紧接着读 output 只会读到上一轮/空值。默认不启用，既有用例零影响。
+        if (c.awaitClicks && __ret && typeof __ret.then === "function") await __ret;
+      }
       catch (e) { errs.push("click:" + String(code).slice(0, 24) + ": " + e.message.slice(0, 40)); }
     }
     await Promise.allSettled(pending);
