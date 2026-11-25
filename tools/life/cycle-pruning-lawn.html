@@ -282,8 +282,9 @@ function load() {
   try { lawns = JSON.parse(localStorage.getItem(LAWNS_KEY)) || []; } catch(e) { lawns = []; }
   try { logs = JSON.parse(localStorage.getItem(LOGS_KEY)) || []; } catch(e) { logs = []; }
 }
-function saveLawns() { localStorage.setItem(LAWNS_KEY, JSON.stringify(lawns)); }
-function saveLogs() { localStorage.setItem(LOGS_KEY, JSON.stringify(logs)); }
+function saveLawns() { try { localStorage.setItem(LAWNS_KEY, JSON.stringify(lawns)); return true; } catch(e) { return false; } }
+function saveLogs() { try { localStorage.setItem(LOGS_KEY, JSON.stringify(logs)); return true; } catch(e) { return false; } }
+function __saveFail(){ ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Could not save: browser storage is unavailable. Change was rolled back.':'保存失败：浏览器本地存储不可用，本次修改已撤销。'),'error'); }
 
 function fmtDate(d) {
   if (typeof d === 'number') d = new Date(d);
@@ -360,8 +361,9 @@ function addLawn() {
   var start = document.getElementById('lawnStart').value;
   if (!name) { ToolBox.showToast(i18nText('toast.msg776'), 'error'); return; }
   if (!start) { ToolBox.showToast(i18nText('toast.msg952'), 'error'); return; }
+  var __prev=lawns.slice();
   lawns.push({ id: Date.now(), name: name, type: type, start: start, createdAt: Date.now() });
-  saveLawns();
+  if(!saveLawns()){ lawns=__prev; __saveFail(); return; }
   document.getElementById('lawnName').value = '';
   document.getElementById('lawnStart').value = '';
   render();
@@ -370,8 +372,9 @@ function addLawn() {
 
 function delLawn(id) {
   if (!confirm(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Delete this lawn? Related maintenance records will be kept.":"确定删除此草坪？相关维护记录将保留。"))) return;
+  var __prev=lawns.slice();
   lawns = lawns.filter(function(l){ return l.id !== id; });
-  saveLawns();
+  if(!saveLawns()){ lawns=__prev; __saveFail(); return; }
   render();
   ToolBox.showToast(i18nText());
 }
@@ -380,8 +383,9 @@ function quickLog(lawnId, taskId) {
   var lawn = lawns.find(function(l){ return l.id === lawnId; });
   if (!lawn) return;
   var task = TASKS[taskId];
+  var __prev=logs.slice();
   logs.push({ id: Date.now(), lawnId: lawnId, lawnName: lawn.name, type: taskId, typeName: task.name, date: todayStr(), note: '快速记录' });
-  saveLogs();
+  if(!saveLogs()){ logs=__prev; __saveFail(); return; }
   render();
   ToolBox.showToast(lawn.name + ' ' + task.name + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" recorded":" 已记录"));
 }
@@ -395,16 +399,18 @@ function addLog() {
   if (!date) { ToolBox.showToast(i18nText(), 'error'); return; }
   var lawn = lawns.find(function(l){ return l.id === lawnId; });
   var task = TASKS[type];
+  var __prev=logs.slice();
   logs.push({ id: Date.now(), lawnId: lawnId, lawnName: lawn ? lawn.name : ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown":"未知"), type: type, typeName: task.name, date: date, note: note || '无' });
-  saveLogs();
+  if(!saveLogs()){ logs=__prev; __saveFail(); return; }
   document.getElementById('logNote').value = '';
   render();
   ToolBox.showToast(i18nText('toast.msg547'));
 }
 
 function delLog(id) {
+  var __prevLogs=logs.slice();
   logs = logs.filter(function(l){ return l.id !== id; });
-  saveLogs();
+  if(!saveLogs()){ logs=__prevLogs; __saveFail(); return; }
   render();
   ToolBox.showToast(i18nText());
 }

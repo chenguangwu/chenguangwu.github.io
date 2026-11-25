@@ -230,7 +230,11 @@ var APPLIANCES = [
 function load() {
   try { appliances = JSON.parse(localStorage.getItem(KEY)) || []; } catch(e) { appliances = []; }
 }
-function save() { localStorage.setItem(KEY, JSON.stringify(appliances)); }
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(appliances)); return true; }
+  catch(e) { return false; }
+}
+function __saveFail(){ ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Could not save: browser storage is unavailable. Change was rolled back.':'保存失败：浏览器本地存储不可用，本次修改已撤销。'),'error'); }
 
 function fmtDate(d) {
   if (typeof d === 'number') d = new Date(d);
@@ -278,8 +282,9 @@ function addAppl() {
   if (!name) { ToolBox.showToast(i18nText('toast.msg787'), 'error'); return; }
   if (!type) { ToolBox.showToast(i18nText('toast.msg935'), 'error'); return; }
   if (!lastClean) { ToolBox.showToast(i18nText('toast.msg930'), 'error'); return; }
+  var __prev=appliances.slice();
   appliances.push({ id: Date.now(), name: name, type: type, lastClean: lastClean, createdAt: Date.now() });
-  save();
+  if(!save()){ appliances=__prev; __saveFail(); return; }
   document.getElementById('applName').value = '';
   document.getElementById('applLastClean').value = '';
   render();
@@ -288,8 +293,9 @@ function addAppl() {
 
 function delAppl(id) {
   if (!confirm(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Delete this appliance record?":"确定删除此家电记录？"))) return;
+  var __prev=appliances.slice();
   appliances = appliances.filter(function(a){ return a.id !== id; });
-  save();
+  if(!save()){ appliances=__prev; __saveFail(); return; }
   render();
   ToolBox.showToast(i18nText());
 }
@@ -297,8 +303,9 @@ function delAppl(id) {
 function markCleaned(id) {
   var appl = appliances.find(function(a){ return a.id === id; });
   if (!appl) return;
+  var __prev=appl.lastClean;
   appl.lastClean = todayStr();
-  save();
+  if(!save()){ appl.lastClean=__prev; __saveFail(); return; }
   render();
   ToolBox.showToast(appl.name + ' 已记录清洁');
 }

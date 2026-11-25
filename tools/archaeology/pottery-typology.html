@@ -433,15 +433,16 @@ function __pottery_typologyExtras(){
 function __pottery_typologyExport(){
     if (typeof TBKit === 'undefined') return;
     try{
-        var box=document.querySelector('#pottery_typologyTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__pottery_typologySnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __pottery_typologyRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#pottery_typologyTable','pottery-typology.csv'); } catch(e){}
+        var kw=document.getElementById('search').value.trim().toLowerCase(); var sf=document.getElementById('stageFilter').value; var rows=DATA.filter(function(d){ if(sf!=='all'&&d.stage!==sf)return false; if(kw){var blob=(d.name+d.quality+d.color+d.decoration+d.shape+(d.nameEn||'')+(d.qualityEn||'')+(d.colorEn||'')+(d.decorationEn||'')+(d.shapeEn||'')).toLowerCase(); if(blob.indexOf(kw)<0)return false;} return true; });
+        if(!rows.length){ ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'No matching entries to export':'当前筛选无匹配条目，未导出'),'warning'); return; }
+        var __h=['名称', '阶段', '年代', '陶质', '陶色', '纹饰', '典型器形'];
+        var __f=['name', 'stage', 'era', 'quality', 'color', 'decoration', 'shape'];
+        function __esc(v){ v=String(v==null?'':v); return '"'+v.replace(/"/g,'""')+'"'; }
+        var __lines=[__h.map(__esc).join(',')];
+        rows.forEach(function(d){ __lines.push(__f.map(function(k){return __esc(d[k]);}).join(',')); });
+        var __blob=new Blob(['\ufeff'+__lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+        var __a=document.createElement('a'); __a.href=URL.createObjectURL(__blob); __a.download='pottery-typology-detail.csv'; document.body.appendChild(__a); __a.click(); setTimeout(function(){URL.revokeObjectURL(__a.href);__a.remove();},500);
+    }catch(e){ ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Export failed':'导出失败，请重试'),'error'); }
 }
 function __pottery_typologyPresets(){
     if (typeof TBKit === 'undefined') return;

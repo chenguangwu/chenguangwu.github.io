@@ -366,8 +366,16 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 var __matrix_inverter_last=0,__matrix_inverter_skip=false;
+function __mxWarn(){ try{ if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast('该历史记录缺少完整矩阵单元格（可能为旧版截断记录），无法完整恢复，未改动当前矩阵','warning'); }catch(e){} }
+function __mxRestore(rec){
+    try{
+        var need=+rec.size; if(!need||need<1||need>6) return false; var cells=[]; for(var i=0;i<need*need;i++){ if(!Object.prototype.hasOwnProperty.call(rec,'a'+i)){ __mxWarn(); return true; } cells.push(rec['a'+i]); } document.getElementById('size').value=need; build(); for(var j=0;j<cells.length;j++){ var el=document.getElementById('a'+j); if(el) el.value=cells[j]; } calculate(); return true;
+    }catch(e){ return false; }
+}
 function __matrix_inverterSnap(){
     var out={};
+    var __cells=document.querySelectorAll('#inputArea .cell');
+    for(var __i=0;__i<__cells.length;__i++){ out[__cells[__i].id]=__cells[__i].value; }
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
     for(var i=0;i<els.length;i++){
         var e=els[i];
@@ -411,6 +419,7 @@ function __matrix_inverterRender(keys,rk,en){
         TBKit.matrix.table('#matrix_inverterTable',{head:head,rows:rows});
         TBKit.util.diffBox('#matrix_inverterDiff');
         TBKit.history.mount('#matrix_inverterHist',function(rec){
+            if(__mxRestore(rec)) return;
             __matrix_inverter_skip=true;
             try{
                 for(var k in rec){
@@ -441,7 +450,6 @@ function __matrix_inverterExtras(){
     var snap=__matrix_inverterSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
-    if(keys.length>12) keys=keys.slice(0,12);
     var res=__matrix_inverterResText();
     if(!res) return;
     var en=TBKit.util.isEn();
@@ -471,8 +479,7 @@ function __matrix_inverterExport(){
         var box=document.querySelector('#matrix_inverterTable');
         if(!box||!box.querySelector('tr')){
             var snap=__matrix_inverterSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+                    var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __matrix_inverterRender(keys,en?'Result':'结果',en);
         }
     }catch(e){}
