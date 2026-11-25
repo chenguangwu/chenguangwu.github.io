@@ -214,6 +214,10 @@
         </select>
       </div>
       <div class="sc-field">
+        <label>练习提示</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;"><input type="checkbox" id="scHint"> 高亮下一个正确格（默认关闭）</label>
+      </div>
+      <div class="sc-field">
         <label>操作</label>
         <button class="btn btn-primary" id="scStart" style="height:40px">开始训练</button>
       </div>
@@ -245,7 +249,7 @@
       <canvas class="sc-chart" id="scChart" width="560" height="280"></canvas>
       <div class="sc-empty" id="scHistEmpty" style="display:none">暂无该规格的练习记录，先完成一组训练吧。</div>
       <div id="scHistTable"></div>
-      <table id="scHidden" style="display:none;"><thead><tr><th data-zh="日期" scope="col">Date</th><th scope="col">Grid</th><th data-zh="模式" scope="col">Mode</th><th scope="col">Order</th><th scope="col">Time (s)</th><th scope="col">Errors</th><th scope="col">Rate (/s)</th></tr></thead><tbody></tbody></table>
+      <table id="scHidden" style="display:none;"><thead><tr><th data-zh="日期" scope="col">Date</th><th scope="col">Grid</th><th data-zh="模式" scope="col">Mode</th><th scope="col">Order</th><th scope="col">Time (s)</th><th scope="col">Errors</th><th data-zh="提示" scope="col">Hint</th><th scope="col">Rate (/s)</th></tr></thead><tbody></tbody></table>
     </div>
   </div>
 </div>
@@ -369,7 +373,7 @@
     grid.style.gridTemplateColumns = 'repeat(' + G.order + ',1fr)';
     var html = '';
     for (var i = 0; i < G.n; i++) {
-      var isNext = (G.seq[i] === G.expected) && !G.finished;
+      var isNext = $('scHint').checked && (G.seq[i] === G.expected) && !G.finished;
       var cls = 'sc-cell' + (G.color[i] ? ' sc-cell nocolor' : '') + (isNext ? ' next' : '');
       var style = G.color[i] ? (' style="color:' + G.color[i] + ';background:' + G.bg[i] + '"') : '';
       html += '<div class="' + cls + '" data-i="' + i + '"' + style + '>' + G.label[i] + '</div>';
@@ -406,12 +410,14 @@
       cell.classList.remove('next');
       G.clicked++;
       if (G.dir === 'asc') { G.expected++; } else { G.expected--; }
-      // 标记新的 next
-      var grid = $('scGrid');
-      var cells = grid.children;
-      for (var c = 0; c < cells.length; c++) {
-        var ci = parseInt(cells[c].getAttribute('data-i'), 10);
-        if (G.seq[ci] === G.expected) { cells[c].classList.add('next'); break; }
+      // 仅开启练习提示时才标记新的 next
+      if ($('scHint').checked) {
+        var grid = $('scGrid');
+        var cells = grid.children;
+        for (var c = 0; c < cells.length; c++) {
+          var ci = parseInt(cells[c].getAttribute('data-i'), 10);
+          if (G.seq[ci] === G.expected) { cells[c].classList.add('next'); break; }
+        }
       }
       var t = (performance.now() - G.startTime) / 1000;
       updateStats(t);
@@ -437,7 +443,7 @@
       err: G.errors,
       rate: Math.round(rate * 100) / 100,
       order: G.order, mode: G.mode, dir: G.dir,
-      at: new Date().toISOString()
+      at: new Date().toISOString(), hint: $('scHint').checked
     };
     pushRecord(spec, rec);
 
@@ -449,7 +455,7 @@
     $('scResult').classList.add('on');
     const __h1='<p>本组完成：<strong>' + G.n + ' 格</strong> · 用时 <strong>' + timeSec.toFixed(2) + ' 秒</strong> · 错误 <strong>' + G.errors + '</strong> 次</p>' +
       '<p>点击速率：<strong>' + rate.toFixed(2) + ' 个/秒</strong> · 平均每格 <strong>' + (timeSec / G.n).toFixed(2) + ' 秒</strong></p>' +
-      '<p>该规格最佳：<span class="sc-best">' + (isFinite(best) ? best.toFixed(2) + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" s":" 秒") : '—') + '</span> · 平均 ' + avg.toFixed(2) + ' 秒 · 共 ' + list.length + ' 组</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){$('scResultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('scResultBox').innerHTML=__h1;
+      '<p>本组模式：<strong>'+($('scHint').checked?'练习提示：开':'练习提示：关')+'</strong> · 该规格最佳：<span class="sc-best">' + (isFinite(best) ? best.toFixed(2) + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" s":" 秒") : '—') + '</span> · 平均 ' + avg.toFixed(2) + ' 秒 · 共 ' + list.length + ' 组</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){$('scResultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('scResultBox').innerHTML=__h1;
 
     const __h2=buildSuggestion(G.order, G.mode, G.dir, rate, G.errors);if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){$('scSuggest').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('scSuggest').innerHTML=__h2;
     refreshSpecOptions(spec);
@@ -564,11 +570,11 @@
     var all = loadHistory();
     var list = (all[spec] || []).slice(-10).reverse();
     if (!list.length) { const __h5='';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){$('scHistTable').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('scHistTable').innerHTML=__h5; return; }
-    var h = '<table class="sc-table"><thead><tr><th>序号</th><th>时间</th><th>错误</th><th>速率</th><th>日期</th></tr></thead><tbody>';
+    var h = '<table class="sc-table"><thead><tr><th>序号</th><th>时间</th><th>错误</th><th>速率</th><th>提示</th><th>日期</th></tr></thead><tbody>';
     list.forEach(function (r, i) {
       var d = new Date(r.at);
       var ds = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
-      h += '<tr><td>' + (all[spec].length - i) + '</td><td>' + r.t.toFixed(2) + '″</td><td>' + (r.err || 0) + '</td><td>' + r.rate.toFixed(2) + '</td><td>' + ds + '</td></tr>';
+      h += '<tr><td>' + (all[spec].length - i) + '</td><td>' + r.t.toFixed(2) + '″</td><td>' + (r.err || 0) + '</td><td>' + r.rate.toFixed(2) + '</td><td>' + (r.hint ? '开' : '关') + '</td><td>' + ds + '</td></tr>';
     });
     h += '</tbody></table>';
     const __h6=h;if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){$('scHistTable').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('scHistTable').innerHTML=__h6;
@@ -626,6 +632,11 @@
   // 只读诊断钩子：评级口径按每格耗时归一，供判别用例直接传入速率复算
   window.__scLevel = function (order, mode, dir, rate, err) { return buildSuggestion(order, mode, dir, rate, err); };
   // 颜色名模式探针：字义、墨水色、中性底三者必须彼此区分且可读
+  window.__scHintProbe = function (on) {
+    document.getElementById('scHint').checked = !!on;
+    buildSequence(); renderGrid();
+    return document.querySelectorAll('.sc-cell.next').length;
+  };
   window.__scColorProbe = function () {
     G.mode = 'color'; buildSequence();
     var i = G.seq.indexOf(1);
@@ -657,7 +668,7 @@ window.__scExport=function(){
     var mode=en?(__SC_MODE_EN[r.mode]||r.mode):({num:'数字',letter:'字母',hanzi:'汉字',color:'颜色名'}[r.mode]||r.mode);
     var dir=r.dir==='desc'?(en?'Descending':'倒序'):(en?'Ascending':'正序');
     var tr=document.createElement('tr');
-    var cells=[String(r.at||'').slice(0,10),grid,mode,dir,(+r.t).toFixed(2),String(r.err||0),(+r.rate).toFixed(2)];
+    var cells=[String(r.at||'').slice(0,10),grid,mode,dir,(+r.t).toFixed(2),String(r.err||0),r.hint?'1':'0',(+r.rate).toFixed(2)];
     cells.forEach(function(v){
       var td=document.createElement('td');td.textContent=v;tr.appendChild(td);
     });

@@ -196,6 +196,12 @@ const CASES = [
   "ref": "真实按键模拟（W6-B）：10 信号里 7 次命中、3 次漏报；10 噪声里 3 次误报、7 次正确拒绝 ⇒ 正确 14/20 = 70%。命中/正确拒绝/漏报/误报四类口径同时被覆盖，旧实现漏报与误报外的空响应处理使结果不符。"
 },
 {
+  "slug": "cognition/digit-span-test",
+  "clicks": ["window.__dsResult={fwd:0,bwd:null,seq:null,total:0,done:1,trials:6,norms:{fwd:6.5,bwd:5.5,seq:5.0}}; __dsEmr();"],
+  "expect": ["总广度 0.0（已完成 1 项均值）", "正背 0.0（参考 6.5，-6.5）"],
+  "ref": "零广度是合法结果：旧版 push 用 if(!(v>0)) return 丢掉 0，门诊记录只剩「分条件广度：未完成」；现按 null 判缺失、0 照常输出，并计入已完成项数。"
+},
+{
   "slug": "cognition/schulte-table",
   "inputs": {
     "scMode": "letter"
@@ -222,6 +228,12 @@ const CASES = [
   "clicks": ["var p=window.__scColorProbe();document.getElementById('__tbProbe').textContent='INK '+p.label+'|'+p.ink+'|'+p.bg;"],
   "expect": ["INK 红|#EC4899|#1F2937"],
   "ref": "颜色名模式：旧版白字配词义色底（黄/白/银格不可读），且字义与底色同色不存在 Stroop 冲突。现字义「红」、墨水色错开 7 位为粉 #EC4899，中性底按墨水亮度选深底 #1F2937 保证对比。默认态无 INK 串。"
+},
+{
+  "slug": "cognition/schulte-table",
+  "clicks": ["window.__c0=window.__scHintProbe(false);window.__c1=window.__scHintProbe(true);document.getElementById('__tbProbe').textContent='HINT '+window.__c0+'/'+window.__c1;"],
+  "expect": ["HINT 0/1"],
+  "ref": "提示默认关闭：旧版总是给下一格加 .next 高亮，等于免费提示；现默认 0 个高亮，勾选「练习提示」后才 1 个。probe 依赖两次真实开始后的 DOM 类计数。"
 },
 {
   "slug": "cognition/stroop-test",
