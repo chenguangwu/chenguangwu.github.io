@@ -126,7 +126,12 @@ const CASES = [
 { slug:"hotel/tip-calculator", inputs:{"bill":"10","tipPct":"0","people":"3","tax":"0"}, clicks:["document.getElementById('currency').value='JPY';calc();"], expect:["4","3","3"], ref:"日元 0 位小数：10 元 3 人按 1 元最小单位分为 4/3/3，合计 10；验证货币精度切换。" },
 { slug:"hotel/tip-calculator", inputs:{"bill":"100","tipPct":"15","people":"2.5","tax":"0"}, expect:["用餐人数必须是 ≥1 的整数"], ref:"人数 2.5 旧实现 parseInt 截成 2 人继续算；现完整数值校验拒绝小数。" },
 { slug:"hotel/tip-calculator", inputs:{"bill":"100","tipPct":"15","people":"1e2","tax":"0"}, clicks:["calc();"], expect:["100","人均"], ref:"科学计数法 1e2 是合法 100 人，不能截成 1 人；验证 Number 完整转换。" },
-{ slug:"hotel/tip-calculator", inputs:{"bill":"","tipPct":"","people":"","tax":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"hotel/tip-calculator", inputs:{"bill":"","tipPct":"","people":"","tax":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+  { slug: "hotel/tip-calculator",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/hotel/tip-calculator.html','utf8');var ok=h.indexOf('data-zh=\"通用小费算式（本工具定义）\"')>=0&&h.indexOf('data-zh=\"支付总额 = 消费额 + 小费（本工具定义）\"')>=0&&h.indexOf('data-zh=\"人均分摊 = 支付总额 ÷ 人数（本工具定义）\"')>=0;document.getElementById('__tbProbe').textContent='TIPSRC '+(ok?'OK':'BAD');"],
+    expect: ["TIPSRC OK"],
+    ref: "第827批：中文态「来源 / 标准」三行原只剩英文 tip calculation/total payment/bill splitting；现补 data-zh 明示为通用小费算式（本工具定义），不冒充外部标准。默认态无源码探针 ⇒ 零逃生。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

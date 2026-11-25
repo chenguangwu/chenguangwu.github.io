@@ -160,7 +160,7 @@
     <h2 data-zh="📋 地震震害综合评估">📋 Comprehensive Earthquake Damage Assessment</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="评估地震对建筑、生命线工程和地质环境的破坏程度，计算震害指数并给出损失等级与应急建议。">Assess damage to buildings, lifeline engineering and the geological environment, compute the damage index and output a loss grade with emergency advice.</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">震害综合评估（建筑+生命线+地质灾害）<br>建筑震害指数 = (0.1×轻微 + 0.3×中等 + 0.5×严重 + 0.7×局部倒塌 + 1.0×倒塌) ÷ 建筑总数（上限 1）<br>生命线评分 = (供水处数÷10 + 供电 + 燃气÷5 + 道路 + 通讯) ÷ 5（各自上限 100%）<br>地质灾害评分 = (滑坡万m²÷20 + 崩塌处÷50 + 裂缝km÷10 + 液化万m²÷10) ÷ 4（各自上限 100）<br>综合震害指数 = 建筑×0.40 + 生命线×0.35 + 地质灾害×0.25<br>等级：≥0.7 毁灭性｜≥0.5 特大｜≥0.3 严重｜≥0.1 中等｜<0.1 轻微<br>倒塌率 = (局部倒塌+倒塌) ÷ 建筑总数 × 100%<br>需安置人口比例粗估 = 倒塌率×5 + 严重破坏率×2</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">震害综合评估（建筑+生命线+地质灾害）<br>建筑震害指数 = (0.1×轻微 + 0.3×中等 + 0.5×严重 + 0.7×局部倒塌 + 1.0×倒塌) ÷ 建筑总数（受损合计须 ≤ 建筑总数，超限停算）<br>生命线评分 = (供水处数÷10 + 供电 + 燃气÷5 + 道路 + 通讯) ÷ 5（各自上限 100%）<br>地质灾害评分 = (滑坡万m²÷20 + 崩塌处÷50 + 裂缝km÷10 + 液化万m²÷10) ÷ 4（各自上限 100）<br>综合震害指数 = 建筑×0.40 + 生命线×0.35 + 地质灾害×0.25<br>等级：≥0.7 毁灭性｜≥0.5 特大｜≥0.3 严重｜≥0.1 中等｜<0.1 轻微<br>倒塌率 = (局部倒塌+倒塌) ÷ 建筑总数 × 100%<br>需安置人口比例粗估 = 倒塌率×5 + 严重破坏率×2</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(minor×0.1+moderate×0.3+severe×0.5+partial×0.7+total×1.0)÷totalBldg；bldgScore÷100×0.40+lifelineScore÷100×0.35+geoScore÷100×0.25；(waterScore+powerScore+gasScore+roadScore+commScore)÷5">Key formulas: (minor×0.1+moderate×0.3+severe×0.5+partial×0.7+total×1.0)÷totalBldg; bldgScore÷100×0.40+lifelineScore÷100×0.35+geoScore÷100×0.25; (waterScore+powerScore+gasScore+roadScore+commScore)÷5</p>
     </div>
 
@@ -248,40 +248,38 @@
 </div>
 <script>
 function calc(){
-  var totalBldg=parseFloat(document.getElementById('totalBldg').value);
-  var minor=parseFloat(document.getElementById('minorDmg').value)||0;
-  var moderate=parseFloat(document.getElementById('moderateDmg').value)||0;
-  var severe=parseFloat(document.getElementById('severeDmg').value)||0;
-  var partial=parseFloat(document.getElementById('partialCol').value)||0;
-  var total=parseFloat(document.getElementById('totalCol').value)||0;
-  var water=parseFloat(document.getElementById('water').value)||0;
-  var power=parseFloat(document.getElementById('power').value)||0;
-  var gas=parseFloat(document.getElementById('gas').value)||0;
-  var road=parseFloat(document.getElementById('road').value)||0;
-  var comm=parseFloat(document.getElementById('comm').value)||0;
-  var landslide=parseFloat(document.getElementById('landslide').value)||0;
-  var rockfall=parseFloat(document.getElementById('rockfall').value)||0;
-  var cracks=parseFloat(document.getElementById('cracks').value)||0;
-  var liquefaction=parseFloat(document.getElementById('liquefaction').value)||0;
-
-  var tbEl=document.getElementById('totalBldg');
-  var tbBad=!isFinite(totalBldg)||totalBldg<=0;
-  if(tbEl)tbEl.classList.toggle('input-error',tbBad);
-  if(tbBad){document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 请输入大于 0 的建筑总数（栋）</p>';return;}
-  var countList=[['minorDmg',minor],['moderateDmg',moderate],['severeDmg',severe],['partialCol',partial],['totalCol',total],['water',water],['power',power],['gas',gas],['road',road],['comm',comm],['landslide',landslide],['rockfall',rockfall],['cracks',cracks],['liquefaction',liquefaction]];
-  var negBad=false;
-  countList.forEach(function(p){var bad=p[1]<0;if(bad)negBad=true;var el=document.getElementById(p[0]);if(el)el.classList.toggle('input-error',bad);});
-  if(negBad){document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 各项破坏数量不得为负数</p>';return;}
+  var IDS=['totalBldg','minorDmg','moderateDmg','severeDmg','partialCol','totalCol','water','power','gas','road','comm','landslide','rockfall','cracks','liquefaction'];
+  var RAW={},MISSING=[];
+  IDS.forEach(function(id){
+    var el=document.getElementById(id);
+    var raw=el?String(el.value).trim():'';
+    if(raw===''){MISSING.push(id);RAW[id]=NaN;}else{RAW[id]=parseFloat(raw);}
+    if(el)el.classList.toggle('input-error',raw===''||!isFinite(RAW[id]));
+  });
+  if(MISSING.length){document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 调查资料不完整：请补全建筑、生命线与地质灾害的全部 '+IDS.length+' 项。未知数据不能按 0 处理，资料不全时不出具震害等级或应急响应结论。</p>';return;}
+  var totalBldg=RAW.totalBldg,minor=RAW.minorDmg,moderate=RAW.moderateDmg,severe=RAW.severeDmg,partial=RAW.partialCol,total=RAW.totalCol;
+  var water=RAW.water,power=RAW.power,gasp=RAW.gas,road=RAW.road,comm=RAW.comm;
+  var landslide=RAW.landslide,rockfall=RAW.rockfall,cracks=RAW.cracks,liquefaction=RAW.liquefaction;
+  var badIds=[];
+  IDS.forEach(function(id){
+    var v=RAW[id];
+    var intReq=['totalBldg','minorDmg','moderateDmg','severeDmg','partialCol','totalCol','rockfall'];
+    if(!isFinite(v)||v<0||(intReq.indexOf(id)>=0&&Math.abs(v-Math.round(v))>1e-9)) badIds.push(id);
+  });
+  ['power','road','comm'].forEach(function(id){if(RAW[id]>100)badIds.push(id);});
+  if(badIds.length){badIds.forEach(function(id){var e=document.getElementById(id);if(e)e.classList.add('input-error');});document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 输入无效：建筑栋数与崩塌处数须为非负整数，power/road/comm 为 0–100% 损坏率，其余数量不得为负。请修正标红项。</p>';return;}
+  if(totalBldg<=0){document.getElementById('totalBldg').classList.add('input-error');document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 请输入大于 0 的建筑总数（栋）</p>';return;}
+  var sumDmg=minor+moderate+severe+partial+total;
+  if(sumDmg>totalBldg){['minorDmg','moderateDmg','severeDmg','partialCol','totalCol'].forEach(function(id){document.getElementById(id).classList.add('input-error');});document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 建筑受损类别合计 '+sumDmg+' 栋已超过建筑总数 '+totalBldg+' 栋（各类别应互斥）。请核对后重填，不再截断指数。</p>';return;}
 
   /* 建筑震害指数 */
   var bldgDI=(minor*0.1+moderate*0.3+severe*0.5+partial*0.7+total*1.0)/totalBldg;
-  bldgDI=Math.min(bldgDI,1.0);
   var bldgScore=bldgDI*100; /* 转百分制，越高破坏越严重 */
 
   /* 生命线破坏评分（0-100） */
   var waterScore=Math.min(water/10*100,100);
   var powerScore=Math.min(power,100);
-  var gasScore=Math.min(gas/5*100,100);
+  var gasScore=Math.min(gasp/5*100,100);
   var roadScore=Math.min(road,100);
   var commScore=Math.min(comm,100);
   var lifelineScore=(waterScore+powerScore+gasScore+roadScore+commScore)/5;
@@ -298,11 +296,11 @@ function calc(){
 
   /* 等级 */
   var level,color,advice;
-  if(overallDI>=0.7){level='毁灭性震害';color='#7B181C';advice='建筑大面积倒塌，生命线全面瘫痪，地质灾害严重。启动I级应急响应，全力搜救。';}
-  else if(overallDI>=0.5){level='特大震害';color='#B71C1C';advice='建筑大量倒塌，生命线严重损坏，地质灾害多发。启动I级响应，紧急调拨救援力量。';}
-  else if(overallDI>=0.3){level='严重震害';color='#B91C1C';advice='建筑严重破坏，生命线较大损坏，存在地质灾害。启动II级响应，组织抢险救灾。';}
-  else if(overallDI>=0.1){level='中等震害';color='var(--warning)';advice='建筑中等损坏，生命线局部受损，少量地质灾害。启动III级响应，排查隐患。';}
-  else{level='轻微震害';color='var(--success)';advice='建筑轻微损坏，生命线基本正常。启动IV级响应，恢复正常秩序。';}
+  if(overallDI>=0.7){level='毁灭性震害';color='#7B181C';advice='建筑大面积倒塌，生命线全面瘫痪，地质灾害严重。参考 I 级应急响应方向，全力搜救。';}
+  else if(overallDI>=0.5){level='特大震害';color='#B71C1C';advice='建筑大量倒塌，生命线严重损坏，地质灾害多发。参考 I 级响应方向，紧急调拨救援力量。';}
+  else if(overallDI>=0.3){level='严重震害';color='#B91C1C';advice='建筑严重破坏，生命线较大损坏，存在地质灾害。参考 II 级响应方向，组织抢险救灾。';}
+  else if(overallDI>=0.1){level='中等震害';color='var(--warning)';advice='建筑中等损坏，生命线局部受损，少量地质灾害。参考 III 级响应方向，排查隐患。';}
+  else{level='轻微震害';color='var(--success)';advice='建筑轻微损坏，生命线基本正常。参考 IV 级响应方向，恢复正常秩序。';}
 
   var html='<div class="data-grid">';
   html+='<div class="data-card"><div class="num" style="color:'+color+';">'+(overallDI*100).toFixed(0)+'</div><div class="label">综合震害指数</div></div>';
@@ -333,7 +331,7 @@ function calc(){
   html+='<tr><td>地质灾害风险</td><td>'+geoScore.toFixed(0)+'</td><td>'+(geoScore>=50?'高风险，需转移':geoScore>=25?'中等风险':'低风险')+'</td></tr>';
   html+='<tr><td>需安置人口比例(粗估)</td><td>'+Math.min(displacedPop,100)+'%</td><td>按倒塌率×5 + 严重破坏占比×2 粗略估算，仅供参考</td></tr>';
   html+='</tbody></table>';
-  html+='<div class="tip-box '+(overallDI>=0.5?'tip-error':overallDI>=0.3?'tip-warn':'tip-info')+'" style="margin-top:10px;"><strong>评估结论：</strong>'+advice+'</div>';
+  html+='<div class="tip-box '+(overallDI>=0.5?'tip-error':overallDI>=0.3?'tip-warn':'tip-info')+'" style="margin-top:10px;"><strong>评估结论：</strong>'+advice+'<br><span style="font-size:12px;">本页等级阈值与权重为固定演示规则，应急响应级别须由专业人员结合当地预案、现场核查与权威震害评估核定，工具不直接下达响应指令。</span></div>';
   const __g1=html;try{ if(typeof overallDI==='number'&&isFinite(overallDI)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:overallDI,unit:'',bands:[{"lo":0.7,"hi":null,"label":{"zh":"毁灭性震害","en":"Devastating damage"},"color":"#7B181C"},{"lo":0.5,"hi":0.7,"label":{"zh":"特大震害","en":"Very heavy damage"},"color":"#B71C1C"},{"lo":0.3,"hi":0.5,"label":{"zh":"严重震害","en":"Heavy damage"},"color":"#B91C1C"},{"lo":0.1,"hi":0.3,"label":{"zh":"中等震害","en":"Moderate damage"},"color":"var(--warning)"},{"lo":null,"hi":0.1,"label":{"zh":"轻微震害","en":"Slight damage"},"color":"var(--success)"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }

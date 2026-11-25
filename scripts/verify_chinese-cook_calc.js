@@ -70,7 +70,20 @@ const CASES = [
   "clicks": ["calc()"],
   "expect": ["请填写两项数值后再计算。"],
   "ref": "空态：两项清空后不再按 0 计算，改为提示；默认 500/20 ⇒ 100.00，不命中。"
-}
+},
+
+  { slug: "chinese-cook/estimate-16", inputs: { v1: "200", v2: "15" },
+    expect: ["200 的 15% = 30.00"],
+    ref: "第827批：中文态「求部分值」不再硬编码英文 of；200×15%=30.00，默认 100/20=20.00 不含该串。" },
+  { slug: "chinese-cook/estimate-16", inputs: { v1: "10", v2: "0" },
+    clicks: ["m='percent';calc();"],
+    expect: ["整体值为 0，不能作为分母计算百分比，请修改「整体」"],
+    ref: "第827批：求百分比模式分母是「整体」(v2)；整体为 0 时旧提示误指「百分比为 0」。现明确指整体，默认模式不会出现该串。" },
+  { slug: "chinese-cook/estimate-16", inputs: { v1: "0", v2: "10" },
+    clicks: ["m='change';calc();"],
+    expect: ["原值为 0，无法计算增长率，请修改「原值」"],
+    ref: "第827批：增长率模式原值(v1)为 0 时旧提示误称「整体值为 0」；现按当前字段指向原值。"
+  },
 
 ];
 async function main() {

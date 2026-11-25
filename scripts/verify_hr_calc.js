@@ -450,7 +450,13 @@ const CASES = [
     "expect": [" · —"],
     "ref": "边界负例：漏斗上一阶段为 0 时转化率 0/0 无定义，旧实现 `count || 1` 会把分母兜成 1 并给出 0% 或放大比率；现显示 —（不可计算）。默认各阶段人数均为正、全部比率有限，不出现「 · —」。"
   },
-{ slug:"hr/assessor-training-hr", inputs:{"trainees":"","hours":"","preScore":"","postScore":"","satisfaction":"","passRate":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"hr/assessor-training-hr", inputs:{"trainees":"","hours":"","preScore":"","postScore":"","satisfaction":"","passRate":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+  {
+    slug: "hr/stats-funnel-recruit",
+    clicks: ["var __rec=null,__mount=null;if(typeof TBKit==='undefined'){globalThis.TBKit={};}TBKit.util=TBKit.util||{};TBKit.util.isEn=function(){return false;};TBKit.util.diffBox=TBKit.util.diffBox||function(){};TBKit.history=TBKit.history||{};TBKit.history.last=function(){return null;};TBKit.history.list=function(){return [];};TBKit.history.record=function(r){__rec=r;};TBKit.history.mount=function(sel,fn){__mount=fn;};TBKit.matrix=TBKit.matrix||{};TBKit.matrix.table=function(){};function __fv(id,v){document.getElementById(id).value=v;}__fv('c1name','渠道A');__fv('c1cost','100');__fv('c1resume','20');__fv('c1interview','10');__fv('c1offer','5');__fv('c1hire','2');__fv('c2name','渠道B');__fv('c2cost','80');__fv('c2resume','10');__fv('c2interview','5');__fv('c2offer','3');__fv('c2hire','1');__fv('c3name','渠道C');__fv('c3cost','60');__fv('c3resume','8');__fv('c3interview','4');__fv('c3offer','2');__fv('c3hire','1');__stats_funnel_recruitResText=function(){return 'TESTRES';};__stats_funnel_recruit_last=0;try{__stats_funnel_recruitExtras();}catch(e){}var n=__rec?Object.keys(__rec).filter(function(k){return FUNNEL_KEYS.indexOf(k)>=0;}).length:0;var savedC3=__rec&&__rec.c3hire, savedN=n;document.getElementById('c3name').value='当前C';document.getElementById('c3hire').value='9';if(__mount){__mount({c1name:'旧A',c1cost:'10',c1resume:'5',c1interview:'3',c1offer:'2',c1hire:'1'});}var restored=document.getElementById('c1name').value==='旧A'&&document.getElementById('c3name').value===''&&document.getElementById('c3hire').value==='';document.getElementById('__tbProbe').textContent='FUNNEL '+(savedC3==='1'&&savedN===18&&restored?'OK':'BAD n='+savedN+' c3='+savedC3+' restored='+restored);"],
+    expect: ["FUNNEL OK"],
+    ref: "第827批：三组渠道 18 字段全部写入历史（旧实现 slice(0,12) 丢掉第三组）。探针校验记录字段数 18 且 c3hire=1（非默认 5）；默认态不执行 clicks ⇒ 零逃生。并校验不完整旧记录恢复前清空 18 字段、仅回填已有键（c3 不再混入当前值）。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

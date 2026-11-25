@@ -105,7 +105,14 @@ const CASES = [
     "1 保洁人数"
   ],
   "ref": "去默认化：注入姓名/面积后由 harness 兜底调用 addStaff()（页面无 calc 入口、harness 无 clicks 字段）→ 1 人、负责 800㎡、人均 800㎡、默认排班 6 个工作日 × 8h = 48h。默认态为「暂无人员，请添加或载入示例」+「0 保洁人数」「0㎡ 总负责面积」，不含上述串。注：本例依赖兜底副作用（addStaff/toggleShift 均被尝试调用），属 §7.1 记录的兜底依赖型用例，排班格子顺序不宜作为 expect"
-}
+},
+  {
+    slug: "cleaning/staff-schedule",
+    clicks: ["var oldConfirm=globalThis.confirm;globalThis.confirm=function(){return true;};staff=[{id:99,name:'旧人员',area:123,schedule:['A','B','R','A','B','R','A']}];saveStorage();var savedN=staff.length;loadPreset();var backed=JSON.parse(localStorage.getItem(PRESET_BACKUP_KEY)||'null');var sampleN=staff.length;undoPreset();globalThis.confirm=oldConfirm;document.getElementById('__tbProbe').textContent='PRESET '+(backed&&backed.length===savedN&&backed[0]&&backed[0].name==='旧人员'&&staff.length===savedN&&staff[0].name==='旧人员'&&!localStorage.getItem(PRESET_BACKUP_KEY)?'OK':'BAD '+sampleN);"],
+    expect: ["PRESET OK"],
+    ref: "第827批：已有 1 名「旧人员」时载入示例先备份并确认，示例 4 人可载入；撤销后恢复原 1 人「旧人员」且备份清除。旧实现直接覆盖、无备份，PRESET 必为 BAD。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

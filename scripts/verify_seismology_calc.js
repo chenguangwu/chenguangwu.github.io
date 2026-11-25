@@ -91,7 +91,10 @@ const CASES = [
   "expect": ["K 与 p 须大于 0"],
   "ref": "12-G8：c=-10,t=10 使 t+c=0，旧版显示 Infinity 后被清洗为破折号，修复后参数守卫提示；默认 c=1 不命中。"
 },
-{ slug:"seismology/assessor-30", inputs:{"pga":"","pgv":"","damageIndex":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"seismology/assessor-30", inputs:{"pga":"","pgv":"","damageIndex":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+  { slug: "seismology/assessor-31", inputs: { power: "" }, expect: ["调查资料不完整"], ref: "第827批：生命线供电损坏率留空原按 0 参与评分并仍给出震害等级；现 15 项必须全部填写，未知数据不按 0 处理、不出结论。默认 power=30 ⇒ 不命中。" },
+  { slug: "seismology/assessor-31", inputs: { totalBldg: "10", minorDmg: "4", moderateDmg: "3", severeDmg: "2", partialCol: "1", totalCol: "1" }, expect: ["建筑受损类别合计 11 栋已超过建筑总数 10 栋"], ref: "第827批：受损类别互斥，4+3+2+1+1=11 超过 10；旧实现把指数 Math.min 截到 1 并继续判「毁灭性」，现直接停算并列出合计。默认 57≤100 ⇒ 不命中。" },
+  { slug: "seismology/assessor-31", inputs: { totalBldg: "10.5" }, expect: ["建筑栋数与崩塌处数须为非负整数"], ref: "第827批：建筑总数为小数时旧实现照算并显示 100% 等结论；现要求栋数/崩塌处数为非负整数。默认 100 ⇒ 不命中。" }
 ];
 async function main() {
   const only = process.argv.slice(2);

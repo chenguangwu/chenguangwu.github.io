@@ -458,15 +458,12 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 var __stats_funnel_recruit_last=0,__stats_funnel_recruit_skip=false;
+var FUNNEL_KEYS=['c1name','c1cost','c1resume','c1interview','c1offer','c1hire','c2name','c2cost','c2resume','c2interview','c2offer','c2hire','c3name','c3cost','c3resume','c3interview','c3offer','c3hire'];
 function __stats_funnel_recruitSnap(){
     var out={};
-    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
-    for(var i=0;i<els.length;i++){
-        var e=els[i];
-        var t=(e.type||'').toLowerCase();
-        if(t==='button'||t==='submit'||t==='hidden') continue;
-        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+    for(var i=0;i<FUNNEL_KEYS.length;i++){
+        var e=document.getElementById(FUNNEL_KEYS[i]);
+        out[FUNNEL_KEYS[i]]=e?String(e.value):'';
     }
     return out;
 }
@@ -504,18 +501,26 @@ function __stats_funnel_recruitRender(keys,rk,en){
         TBKit.util.diffBox('#stats_funnel_recruitDiff');
         TBKit.history.mount('#stats_funnel_recruitHist',function(rec){
             __stats_funnel_recruit_skip=true;
+            var missing=[];
             try{
+                for(var q=0;q<FUNNEL_KEYS.length;q++){
+                    var ke=FUNNEL_KEYS[q],el=document.getElementById(ke);
+                    if(el) el.value='';
+                    if(!(ke in rec)) missing.push(ke);
+                }
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
-                    var t=(e.type||'').toLowerCase();
-                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
-                    else{e.value=rec[k];}
+                    e.value=rec[k];
                 }
                 calc();
             }catch(e2){}
             __stats_funnel_recruit_skip=false;
+            if(missing.length && typeof ToolBox!=='undefined' && ToolBox.showToast){
+                var enW=TBKit.util.isEn();
+                ToolBox.showToast(enW?('This historical record is incomplete ('+missing.length+' fields missing). Missing fields were cleared; please re-check.'):('该历史记录不完整（缺 '+missing.length+' 个字段），缺失字段已清空，请重新核对渠道数据。'),'warning');
+            }
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
@@ -533,7 +538,6 @@ function __stats_funnel_recruitExtras(){
     var snap=__stats_funnel_recruitSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
-    if(keys.length>12) keys=keys.slice(0,12);
     var res=__stats_funnel_recruitResText();
     if(!res) return;
     var en=TBKit.util.isEn();
@@ -563,7 +567,6 @@ function __stats_funnel_recruitExport(){
         var box=document.querySelector('#stats_funnel_recruitTable');
         if(!box||!box.querySelector('tr')){
             var snap=__stats_funnel_recruitSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
             var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __stats_funnel_recruitRender(keys,en?'Result':'结果',en);
         }

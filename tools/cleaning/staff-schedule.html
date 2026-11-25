@@ -172,6 +172,7 @@
 
     <div class="toolbar">
       <button type="button" class="btn" onclick="loadPreset()">载入示例</button>
+      <button type="button" class="btn" id="undoPresetBtn" onclick="undoPreset()" style="display:none;">撤销载入</button>
       <button type="button" class="btn" onclick="autoSchedule()">自动排班</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
@@ -273,6 +274,7 @@
 
 <script>
 var STORAGE_KEY = 'cleaning_staff_schedule';
+var PRESET_BACKUP_KEY = 'cleaning_staff_schedule_preset_backup';
 var staff = [];
 var DAYS = ['周一','周二','周三','周四','周五','周六','周日'];
 var SHIFTS = {A:'早班', B:'中班', R:'休息'};
@@ -285,6 +287,26 @@ function loadStorage(){
 }
 function saveStorage(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(staff)); }catch(e){}
+}
+function refreshUndoBtn(){
+  var b=document.getElementById('undoPresetBtn');
+  if(!b) return;
+  var has=false;
+  try{ has=!!localStorage.getItem(PRESET_BACKUP_KEY); }catch(e){}
+  b.style.display=has?'inline-block':'none';
+}
+function undoPreset(){
+  var raw=null;
+  try{ raw=localStorage.getItem(PRESET_BACKUP_KEY); }catch(e){}
+  if(!raw){ ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'No backup to restore.':'没有可撤销的载入记录。'), 'warning'); refreshUndoBtn(); return; }
+  try{
+    staff=JSON.parse(raw)||[];
+    saveStorage();
+    localStorage.removeItem(PRESET_BACKUP_KEY);
+    render();
+    ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Previous schedule restored.':'已恢复载入示例前的排班。'));
+  }catch(e){ ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Backup is corrupted.':'备份数据损坏，无法撤销。'), 'warning'); }
+  refreshUndoBtn();
 }
 
 function addStaff(){
@@ -326,14 +348,24 @@ function clearAll(){
 }
 
 function loadPreset(){
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  if(staff.length){
+    var ok=confirm(en?('There are '+staff.length+' staff records. Loading the sample will replace them. A backup will be kept so you can undo. Continue?'):('当前已有 '+staff.length+' 名人员。载入示例会覆盖现有排班；系统会保留备份，可点「撤销载入」恢复。是否继续？'));
+    if(!ok) return;
+    try{ localStorage.setItem(PRESET_BACKUP_KEY, JSON.stringify(staff)); }catch(e){}
+  }else{
+    try{ localStorage.removeItem(PRESET_BACKUP_KEY); }catch(e){}
+  }
+  var base=Date.now();
   staff = [
-    {id:1, name:'张阿姨', area:200, schedule:['A','A','A','A','A','R','B']},
-    {id:2, name:'李阿姨', area:200, schedule:['B','B','B','B','R','A','A']},
-    {id:3, name:'王师傅', area:150, schedule:['A','A','R','A','B','B','B']},
-    {id:4, name:'赵阿姨', area:150, schedule:['R','B','B','B','A','A','A']}
+    {id:base+1, name:'张阿姨', area:200, schedule:['A','A','A','A','A','R','B']},
+    {id:base+2, name:'李阿姨', area:200, schedule:['B','B','B','B','R','A','A']},
+    {id:base+3, name:'王师傅', area:150, schedule:['A','A','R','A','B','B','B']},
+    {id:base+4, name:'赵阿姨', area:150, schedule:['R','B','B','B','A','A','A']}
   ];
   saveStorage();
   render();
+  refreshUndoBtn();
   ToolBox.showToast(i18nText('toast.msg316'));
 }
 
@@ -417,6 +449,7 @@ document.getElementById('newArea').addEventListener('keydown', function(e){
 });
 
 loadStorage();
+refreshUndoBtn();
 render();
 </script>
 <script>
