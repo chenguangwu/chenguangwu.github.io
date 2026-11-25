@@ -160,6 +160,10 @@
     <label for="inGreen">绿地面积 (m²)</label>
     <input type="number" id="inGreen" value="17500" min="0" step="100" oninput="calc()" placeholder="如 17500">
   </div>
+  <div>
+    <label for="inOverlap">绿地与树冠重叠面积 (m²)</label>
+    <input type="number" id="inOverlap" value="0" min="0" step="100" oninput="calc()" placeholder="留空按 0，重叠时填写">
+  </div>
 </div>
 <div class="input-row">
   <div>
@@ -301,11 +305,19 @@ function calc(){
   var total=parseFloat(document.getElementById('inTotal').value);
   var green=parseFloat(document.getElementById('inGreen').value);
   var canopy=parseFloat(document.getElementById('inCanopy').value);
+  var overlapRaw=String(document.getElementById('inOverlap').value).trim();
+  var overlap=overlapRaw===''?0:+overlapRaw;
   var type=document.getElementById('inType').value;
   var pop=parseFloat(document.getElementById('inPop').value);
-  if(!total||total<=0)return;
+  function fail(msg){['resRatio','resCoverage','resPerCap','resCheck'].forEach(function(id){document.getElementById(id).textContent='--';});document.getElementById('bars').innerHTML='';document.getElementById('result').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ '+msg+'</p>';window._lastResult=null;}
+  if(!isFinite(total)||total<=0||!isFinite(green)||green<0||!isFinite(canopy)||canopy<0||!isFinite(overlap)||overlap<0)return fail('请填写有效的总面积、绿地面积、树冠投影面积（均 ≥0，总面积 >0）。');
+  if(green>total)return fail('绿地面积不能大于总用地面积。');
+  if(canopy>total)return fail('树冠投影面积不能大于总用地面积。');
+  if(overlap>Math.min(green,canopy))return fail('重叠面积不能超过绿地面积与树冠投影面积中的较小值。');
+  var union=green+canopy-overlap;
+  if(union>total)return fail('扣除重叠后的覆盖面积仍大于总用地面积，请检查各面积口径。');
   var ratio=green/total*100;
-  var coverage=(green+canopy)/total*100;
+  var coverage=union/total*100;
   var perCap=pop>0?green/pop:0;
   var std=STD[type];
   var ok=ratio>=std.min&&(std.perCapMin<=0||perCap>=std.perCapMin);
@@ -332,7 +344,8 @@ function calc(){
     '<p><strong>居住人口：</strong>'+(pop||0)+' 人</p>'+
     '<p><strong>规划区类型：</strong>'+std.name+'</p>'+
     '<p><strong>绿地率：</strong>'+green.toLocaleString()+' ÷ '+total.toLocaleString()+' × 100% = '+fmt(ratio,2)+' %</p>'+
-    '<p><strong>绿化覆盖率：</strong>('+green.toLocaleString()+'+'+canopy.toLocaleString()+') ÷ '+total.toLocaleString()+' × 100% = '+fmt(coverage,2)+' %</p>'+
+    '<p><strong>绿化覆盖率：</strong>('+green.toLocaleString()+'+'+canopy.toLocaleString()+'−'+overlap.toLocaleString()+') ÷ '+total.toLocaleString()+' × 100% = '+fmt(coverage,2)+' %</p>'+
+    '<p style="font-size:12px;color:var(--text-muted);">覆盖面积按绿地与树冠投影的并集计算：绿地 + 树冠 − 重叠。'+(overlapRaw===''?'重叠面积留空按 0 计算，若树冠落在绿地上会高估覆盖率。':'重叠面积已按填写值扣除。')+'</p>'+
     (pop>0?'<p><strong>人均绿地：</strong>'+green.toLocaleString()+' ÷ '+pop+' = '+fmt(perCap,2)+' m²/人</p>':'')+
     '<p><strong>标准要求：</strong>绿地率 ≥ '+std.min+'%'+(std.perCapMin>0?'，人均绿地 ≥ '+std.perCapMin+' m²':'')+'</p>'+
     '<p><strong>校核：</strong>'+(ok?((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Meets planning standard":"符合规划标准"):(ratio<std.min?'绿地率不足（差'+fmt(std.min-ratio,1)+'%）':'')+(pop>0&&std.perCapMin>0&&perCap<std.perCapMin?'；人均绿地不足':''))+'</p>';document.getElementById('result').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
@@ -347,6 +360,7 @@ function resetForm(){
   document.getElementById('inTotal').value=50000;
   document.getElementById('inGreen').value=17500;
   document.getElementById('inCanopy').value=22000;
+  document.getElementById('inOverlap').value=0;
   document.getElementById('inType').value='residential_new';
   document.getElementById('inPop').value=3000;
   calc();

@@ -210,6 +210,13 @@
   </div>
   <div class="input-row">
     <div>
+      <label for="inGround">建筑地面标高 (m)</label>
+      <input type="number" id="inGround" value="0" step="1" oninput="calc()" placeholder="如 100（与跑道同一高程基准）">
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);align-self:center;">可用高度 = 限制面标高 − 建筑地面标高</div>
+  </div>
+  <div class="input-row">
+    <div>
       <label for="inSlope">起降航段坡度</label>
       <select id="inSlope" onchange="calc()">
         <option value="0.02" selected>1:50（起飞爬升面）</option>
@@ -351,6 +358,7 @@ H_limit = 50 + 2000 × 0.015 − 10 = 50 + 30 − 10 = 70 m。
 <!-- /注意事项区块 -->
 </div>
 <script>
+var PAGE_EN=/[?&]lang=en-US(?:&|$)/.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
 var calcMode='sun';
 function fmt(v,d){if(!isFinite(v))return '--';return Number(v).toFixed(d!=null?d:1);}
 function coeffByLat(lat){
@@ -376,7 +384,7 @@ function drawBuildings(hMax,floorH,floors){
   for(var i=0;i<maxFloors;i++){
     vis+='<div class="bldg" style="height:'+(floorH*(i+1)*1.5)+'px;">'+(i+1)+'</div>';
   }
-  return '<div class="building-vis">'+vis+'</div><div style="margin-top:8px;font-size:13px;color:var(--text-light);">'+floors+'层 × '+floorH+'m = '+(floors*floorH).toFixed(1)+'m</div>';
+  return '<div class="building-vis">'+vis+'</div><div style="margin-top:8px;font-size:13px;color:var(--text-light);">'+floors+(PAGE_EN?' floors × ':'层 × ')+floorH+'m = '+(floors*floorH).toFixed(1)+'m</div>';
 }
 function calc(){
   if(calcMode==='sun')calcSun();
@@ -384,6 +392,7 @@ function calc(){
   else calcFloor();
 }
 function calcSun(){
+  var en=PAGE_EN?true:false;
   var D=parseFloat(document.getElementById('inD').value);
   var lat=parseInt(document.getElementById('inLat').value,10);
   var coeffSel=document.getElementById('inCoeff').value;
@@ -393,10 +402,10 @@ function calcSun(){
   var hMax=D/coeff;
   var floors=Math.floor(hMax/floorH);
   const __g1=fmt(hMax,1)+' m';document.getElementById('resH').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
-  const __g2=floors+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" layers":" 层");document.getElementById('resFloor').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  const __g2=floors+(PAGE_EN?" layers":" 层");document.getElementById('resFloor').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   const __g3=coeff.toFixed(2);document.getElementById('resExtra').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   document.getElementById('resExtraLbl').textContent='间距系数 L';
-  const __g5='<span class="grade-tag grade-good">'+fmt(hMax/floorH,1)+' 层</span>';document.getElementById('resCheck').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  const __g5='<span class="grade-tag grade-good">'+fmt(hMax/floorH,1)+(en?' layers':' 层')+'</span>';document.getElementById('resCheck').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   const __g6=drawBuildings(hMax,floorH,floors);document.getElementById('diagram').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   const __g7='H_max = D / L = '+D+' / '+coeff.toFixed(2);document.getElementById('formulaText').textContent=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
   const __g8='H_max：日照间距允许最大建筑高度(m)；D：日照间距(m)；L：日照间距系数<br>日照间距系数与纬度'+lat+'°N对应：'+coeff.toFixed(2);document.getElementById('formulaDesc').innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
@@ -406,44 +415,74 @@ function calcSun(){
     '<p><strong>层高：</strong>'+floorH+' m</p>'+
     '<p><strong>允许最大高度：</strong>H = '+D+' ÷ '+coeff.toFixed(2)+' = '+fmt(hMax,1)+' m</p>'+
     '<p><strong>可建层数：</strong>'+fmt(hMax/floorH,1)+' → 取 '+floors+' 层（'+(floors*floorH).toFixed(1)+' m）</p>';document.getElementById('result').innerHTML=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
+  if(en){document.getElementById('result').innerHTML=
+    '<p><strong>Daylight spacing:</strong>'+D+' m</p>'+
+    '<p><strong>Latitude:</strong>'+lat+'°N</p>'+
+    '<p><strong>Spacing coefficient:</strong>'+coeff.toFixed(2)+(coeffSel==='auto'?' (auto)':' (manual)')+'</p>'+
+    '<p><strong>Floor height:</strong>'+floorH+' m</p>'+
+    '<p><strong>Maximum allowed height:</strong>H = '+D+' ÷ '+coeff.toFixed(2)+' = '+fmt(hMax,1)+' m</p>'+
+    '<p><strong>Buildable floors:</strong>'+fmt(hMax/floorH,1)+' → '+floors+' floors ('+(floors*floorH).toFixed(1)+' m)</p>';}
   window._lastResult={type:'日照间距限高',hMax:hMax,floors:floors,coeff:coeff,D:D};
 }
 function calcAviation(){
+  var en=PAGE_EN?true:false;
   var H0=parseFloat(document.getElementById('inH0').value);
   var L=parseFloat(document.getElementById('inL').value);
+  var ground=parseFloat(document.getElementById('inGround').value);
   var slope=parseFloat(document.getElementById('inSlope').value);
   var safety=parseFloat(document.getElementById('inSafety').value);
-  if(!isFinite(H0)||!isFinite(L))return;
-  var hLimit=H0+L*slope-safety;
-  const __g10=fmt(hLimit,1)+' m';document.getElementById('resH').textContent=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));
-  const __g11=Math.floor(hLimit/3)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" layers":" 层");document.getElementById('resFloor').textContent=(typeof __g11==='number'?(isFinite(__g11)?__g11:'—'):String(__g11).replace(/Infinity|NaN/g,'—'));
-  const __g12=fmt(L*slope,1)+' m';document.getElementById('resExtra').textContent=(typeof __g12==='number'?(isFinite(__g12)?__g12:'—'):String(__g12).replace(/Infinity|NaN/g,'—'));
-  document.getElementById('resExtraLbl').textContent='超高控制';
-  const __g14='<span class="grade-tag '+(hLimit>0?'grade-good':'grade-fail')+'">'+(hLimit>0?'可行':'禁建')+'</span>';document.getElementById('resCheck').innerHTML=(typeof __g14==='number'?(isFinite(__g14)?__g14:'—'):String(__g14).replace(/Infinity|NaN/g,'—'));
+  function fail(msg){document.getElementById('resH').textContent='--';document.getElementById('resFloor').textContent='--';document.getElementById('resExtra').textContent='--';document.getElementById('resCheck').innerHTML='<span class="grade-tag grade-fail">无法计算</span>';document.getElementById('diagram').innerHTML='';document.getElementById('result').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ '+msg+'</p>';window._lastResult=null;}
+  if(!isFinite(H0)||H0<0||!isFinite(L)||L<0||!isFinite(ground)||!isFinite(safety)||safety<0)return fail('跑道标高、距离、地面标高须为有效数值，安全超高须 ≥0。');
+  if(!isFinite(slope)||slope<=0)return fail('起降坡度无效，请重新选择。');
+  var hLimit=H0+L*slope-safety;          // 限制面标高（绝对高程）
+  var available=hLimit-ground;           // 地面以上可用高度
+  const __g10=fmt(available,1)+' m';document.getElementById('resH').textContent=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('resHLbl').textContent='地面以上可用高度';
+  const __g11=(available>0?Math.floor(available/3):0)+(PAGE_EN?" layers":" 层");document.getElementById('resFloor').textContent=(typeof __g11==='number'?(isFinite(__g11)?__g11:'—'):String(__g11).replace(/Infinity|NaN/g,'—'));
+  const __g12=fmt(hLimit,1)+' m';document.getElementById('resExtra').textContent=(typeof __g12==='number'?(isFinite(__g12)?__g12:'—'):String(__g12).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('resExtraLbl').textContent='限制面标高（绝对高程）';
+  const __g14='<span class="grade-tag '+(available>0?'grade-good':'grade-fail')+'">'+(available>0?'可行':'禁建/无可用高度')+'</span>';document.getElementById('resCheck').innerHTML=(typeof __g14==='number'?(isFinite(__g14)?__g14:'—'):String(__g14).replace(/Infinity|NaN/g,'—'));
   var floorH=3;
-  const __g15=drawBuildings(hLimit,floorH,Math.floor(hLimit/3));document.getElementById('diagram').innerHTML=(typeof __g15==='number'?(isFinite(__g15)?__g15:'—'):String(__g15).replace(/Infinity|NaN/g,'—'));
-  document.getElementById('formulaText').textContent='H_limit = H0 + L × slope − safety';
-  document.getElementById('formulaDesc').innerHTML='H_limit：航空限高(m)；H0：跑道标高(m)；L：距跑道端距离(m)；slope：起降航段坡度<br>实际建筑高度不得超过此限高值';
+  const __g15=available>0?drawBuildings(available,floorH,Math.floor(available/3)):'';document.getElementById('diagram').innerHTML=(typeof __g15==='number'?(isFinite(__g15)?__g15:'—'):String(__g15).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('formulaText').textContent='H_surface = H0 + L × slope − safety;  H_available = H_surface − ground';
+  document.getElementById('formulaDesc').innerHTML='H_surface：限制面标高（绝对高程）；H0：跑道标高；L：距跑道端距离；slope：起降坡度；ground：建筑地面标高<br>建筑地面以上可用高度 = 限制面标高 − 地面标高，两个基准不得混用；本模型为简化估算，须以当地航空限高规定与专业审批为准。';
   const __g18='<p><strong>跑道标高：</strong>'+H0+' m</p>'+
     '<p><strong>距跑道端距离：</strong>'+L+' m</p>'+
     '<p><strong>起降坡度：</strong>'+slope+' ('+fmt(slope*100,1)+'%)</p>'+
     '<p><strong>安全超高：</strong>'+safety+' m</p>'+
-    '<p><strong>航空限高：</strong>H = '+H0+' + '+L+'×'+slope+' − '+safety+' = '+fmt(hLimit,1)+' m</p>'+
-    '<p><strong>参考层数：</strong>'+Math.floor(hLimit/3)+' 层（按3m层高）</p>'+
-    '<p><strong>校核：</strong>'+(hLimit>0?'区域内建筑高度不得超过 '+fmt(hLimit,1)+' m':'该区域禁止建设')+'</p>';document.getElementById('result').innerHTML=(typeof __g18==='number'?(isFinite(__g18)?__g18:'—'):String(__g18).replace(/Infinity|NaN/g,'—'));
-  window._lastResult={type:'航空限高',hLimit:hLimit,L:L,slope:slope};
+    '<p><strong>限制面标高：</strong>'+H0+' + '+L+'×'+slope+' − '+safety+' = '+fmt(hLimit,1)+' m（绝对高程）</p>'+
+    '<p><strong>建筑地面标高：</strong>'+ground+' m</p>'+
+    '<p><strong>地面以上可用高度：</strong>'+fmt(hLimit,1)+' − '+ground+' = '+fmt(available,1)+' m</p>'+
+    (available>0?'<p><strong>参考层数：</strong>'+Math.floor(available/3)+' 层（按 3 m 层高）</p><p><strong>校核：</strong>地面以上建筑高度不得超过 '+fmt(available,1)+' m</p>':'<p style="color:var(--danger);"><strong>校核：</strong>限制面标高不高于建筑地面标高，无可建高度，应禁建或另行申请评估。</p>');document.getElementById('result').innerHTML=(typeof __g18==='number'?(isFinite(__g18)?__g18:'—'):String(__g18).replace(/Infinity|NaN/g,'—'));
+  if(en){document.getElementById('resHLbl').textContent='Usable height above ground';document.getElementById('resExtraLbl').textContent='Limiting surface elevation (absolute)';
+    document.getElementById('resCheck').innerHTML='<span class="grade-tag '+(available>0?'grade-good':'grade-fail')+'">'+(available>0?'Feasible':'No buildable height')+'</span>';
+    document.getElementById('result').innerHTML=
+    '<p><strong>Runway elevation:</strong>'+H0+' m</p>'+
+    '<p><strong>Distance from runway end:</strong>'+L+' m</p>'+
+    '<p><strong>Approach slope:</strong>'+slope+' ('+fmt(slope*100,1)+'%)</p>'+
+    '<p><strong>Safety clearance:</strong>'+safety+' m</p>'+
+    '<p><strong>Limiting surface elevation:</strong>'+H0+' + '+L+'×'+slope+' − '+safety+' = '+fmt(hLimit,1)+' m (absolute)</p>'+
+    '<p><strong>Building ground elevation:</strong>'+ground+' m</p>'+
+    '<p><strong>Usable height above ground:</strong>'+fmt(hLimit,1)+' − '+ground+' = '+fmt(available,1)+' m</p>'+
+    (available>0?'<p><strong>Indicative floors:</strong>'+Math.floor(available/3)+' floors (at 3 m floor height)</p><p><strong>Check:</strong> above-ground building height must not exceed '+fmt(available,1)+' m</p>':'<p style="color:var(--danger);"><strong>Check:</strong> the limiting surface is not above the building ground elevation, so there is no buildable height; construction should be prohibited or a separate assessment requested.</p>');}
+  window._lastResult={type:'航空限高',hLimit:hLimit,available:available,ground:ground,L:L,slope:slope};
 }
 function calcFloor(){
+  var en=PAGE_EN?true:false;
   var limit=parseFloat(document.getElementById('inLimit').value);
   var floorH=parseFloat(document.getElementById('inFloorH2').value);
   var diff=parseFloat(document.getElementById('inDiff').value);
   var parapet=parseFloat(document.getElementById('inParapet').value);
-  if(!limit||!floorH)return;
+  function fail(msg){document.getElementById('resH').textContent='--';document.getElementById('resFloor').textContent='--';document.getElementById('resExtra').textContent='--';document.getElementById('resCheck').innerHTML='<span class="grade-tag grade-fail">无可建楼层</span>';document.getElementById('diagram').innerHTML='';document.getElementById('result').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ '+msg+'</p>';window._lastResult=null;}
+  if(!isFinite(limit)||limit<=0||!isFinite(floorH)||floorH<2.4||floorH>6)return fail('规划限高须 >0，层高须在 2.4–6 m 之间。');
+  if(!isFinite(diff)||diff<0||diff>3||!isFinite(parapet)||parapet<0||parapet>3)return fail('室内外高差与女儿墙高度须在 0–3 m 之间。');
   var buildH=limit-diff-parapet;
+  if(buildH<=1e-9)return fail('限高 '+limit+' m 小于等于室内外高差与女儿墙之和 '+(diff+parapet).toFixed(1)+' m，可用于楼层的高度 ≤0，无可建楼层。');
   var floors=Math.floor(buildH/floorH);
+  if(floors<=0)return fail('可用于楼层的高度 '+fmt(buildH,1)+' m 不足一个层高 '+floorH+' m，无可建楼层。');
   var actualH=floors*floorH+diff+parapet;
   const __g19=fmt(buildH,1)+' m';document.getElementById('resH').textContent=(typeof __g19==='number'?(isFinite(__g19)?__g19:'—'):String(__g19).replace(/Infinity|NaN/g,'—'));
-  const __g20=floors+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" layers":" 层");document.getElementById('resFloor').textContent=(typeof __g20==='number'?(isFinite(__g20)?__g20:'—'):String(__g20).replace(/Infinity|NaN/g,'—'));
+  const __g20=floors+(PAGE_EN?" layers":" 层");document.getElementById('resFloor').textContent=(typeof __g20==='number'?(isFinite(__g20)?__g20:'—'):String(__g20).replace(/Infinity|NaN/g,'—'));
   const __g21=fmt(actualH,1)+' m';document.getElementById('resExtra').textContent=(typeof __g21==='number'?(isFinite(__g21)?__g21:'—'):String(__g21).replace(/Infinity|NaN/g,'—'));
   document.getElementById('resExtraLbl').textContent='实际高度';
   const __g23='<span class="grade-tag '+(actualH<=limit?'grade-excellent':'grade-fail')+'">'+(actualH<=limit?'满足':'超限')+'</span>';document.getElementById('resCheck').innerHTML=(typeof __g23==='number'?(isFinite(__g23)?__g23:'—'):String(__g23).replace(/Infinity|NaN/g,'—'));
@@ -459,6 +498,17 @@ function calcFloor(){
     '<p><strong>实际建筑高度：</strong>'+floors+'×'+floorH+'+'+diff+'+'+parapet+' = '+fmt(actualH,1)+' m</p>'+
     '<p><strong>校核：</strong>'+fmt(actualH,1)+' m '+(actualH<=limit?'≤':'>')+' '+limit+' m '+
     '<span class="grade-tag '+(actualH<=limit?'grade-excellent':'grade-fail')+'">'+(actualH<=limit?'满足限高':'超限！')+'</span></p>';document.getElementById('result').innerHTML=(typeof __g27==='number'?(isFinite(__g27)?__g27:'—'):String(__g27).replace(/Infinity|NaN/g,'—'));
+  if(en){document.getElementById('resExtraLbl').textContent='Actual height';
+    document.getElementById('resCheck').innerHTML='<span class="grade-tag '+(actualH<=limit?'grade-excellent':'grade-fail')+'">'+(actualH<=limit?'Compliant':'Over limit')+'</span>';
+    document.getElementById('result').innerHTML=
+    '<p><strong>Planning height limit:</strong>'+limit+' m</p>'+
+    '<p><strong>Floor height:</strong>'+floorH+' m</p>'+
+    '<p><strong>Indoor-outdoor difference:</strong>'+diff+' m</p>'+
+    '<p><strong>Parapet height:</strong>'+parapet+' m</p>'+
+    '<p><strong>Usable floor height:</strong>'+limit+' − '+diff+' − '+parapet+' = '+fmt(buildH,1)+' m</p>'+
+    '<p><strong>Buildable floors:</strong>'+fmt(buildH/floorH,1)+' → '+floors+' floors</p>'+
+    '<p><strong>Actual building height:</strong>'+floors+'×'+floorH+'+'+diff+'+'+parapet+' = '+fmt(actualH,1)+' m</p>'+
+    '<p><strong>Check:</strong>'+fmt(actualH,1)+' m '+(actualH<=limit?'≤':'>')+' '+limit+' m</p>';}
   window._lastResult={type:'楼层估算',limit:limit,floors:floors,actualH:actualH,ok:actualH<=limit};
 }
 function copyResult(){
@@ -481,6 +531,7 @@ function resetForm(){
   document.getElementById('inL').value=3000;
   document.getElementById('inSlope').value='0.02';
   document.getElementById('inSafety').value=0;
+  document.getElementById('inGround').value=0;
   document.getElementById('inLimit').value=60;
   document.getElementById('inFloorH2').value=3;
   document.getElementById('inDiff').value=0.6;
@@ -642,7 +693,7 @@ function __building_heightExtras(){
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__building_heightResText();
     if(!res) return;
-    var en=TBKit.util.isEn();
+    var en=PAGE_EN;
     var rk=en?'Result':'结果';
     var now=Date.now();
     if(now-__building_height_last<1000) return;
@@ -670,7 +721,7 @@ function __building_heightExport(){
         if(!box||!box.querySelector('tr')){
             var snap=__building_heightSnap(); var keys=Object.keys(snap);
             if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            var en=PAGE_EN?true:false;
             __building_heightRender(keys,en?'Result':'结果',en);
         }
     }catch(e){}
