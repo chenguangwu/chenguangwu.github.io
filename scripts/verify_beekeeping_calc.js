@@ -88,7 +88,14 @@ const CASES = [
     "inputs": { "n":"5","vol":"4","ratio":"2","price":"5","daily":"0.5","days":"10" },
     "expect": ["缺口 1.0 L/群","合计 5.0 L","计划与备料不匹配"],
     "ref": "第829批：计划 10 天×0.5 L/群=5 L/群，实备 4 L/群 ⇒ 缺口 1.0 L/群、合计 5.0 L。旧实现只显示「按计划10天」与消耗15天，不比较两者。"
+  },
+  {
+    "slug": "beekeeping/winter-feed-syrup",
+    "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/beekeeping/winter-feed-syrup.html','utf8');var ok=h.indexOf('../agriculture/cycle-honey.html')>=0&&h.indexOf('../agriculture/detector-13.html')>=0&&h.indexOf('../agriculture/estimate-area-yield.html')>=0&&h.indexOf('../it/gitignore-generator.html')<0&&h.indexOf('../it/ast-viewer.html')<0;document.getElementById('__tbProbe').textContent='TB852R '+(ok?'OK':'BAD');})();"],
+    "expect": ["TB852R OK"],
+    "ref": "第852批：越冬补饲的 5 个开发工具推荐（.gitignore / properties / API 签名 / ASCII 树 / AST）全部替换为养蜂与农业相关页，保留养蜂采蜜量估算；探针断言旧 /it/ 链接已消失。"
   }
+
 ];
 
 
