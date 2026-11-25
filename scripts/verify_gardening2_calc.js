@@ -33,9 +33,9 @@ const CASES = [
     "currentFilter='before';render();"
   ],
   "expect": [
-    "去除内膛枝。 🤍 茉莉花"
+    "🤍 茉莉花 花前修剪 早春重剪"
   ],
-  "ref": "顺序保持型筛选 ⇒ 锚过滤后跨条目相邻串（同 office/excel-formula-reference 口径）。currentFilter 是模块级 var、render() 是顶层函数，可直接赋值重渲；注意不可调 setFilter(filter,btn)（btn 为 undefined 时 btn.classList 抛错）。全表 18 条中 timing==='before' 仅桂花(第8条)与茉莉花(第12条)，默认全量渲染中间隔茶花/杜鹃/海棠 3 条 ⇒ 边界串「去除内膛枝。 🤍 茉莉花」仅过滤态成立；单条目内容（如「花前修剪（秋季前）」）默认态必有，不可锚。"
+  "ref": "顺序保持型筛选 ⇒ 锚过滤后跨条目相邻串（同 office/excel-formula-reference 口径）。currentFilter 是模块级 var、render() 是顶层函数，可直接赋值重渲；注意不可调 setFilter(filter,btn)（btn 为 undefined 时 btn.classList 抛错）。桂花已改为「花后至早春」，timing==='before' 只剩茉莉花 1 条 ⇒ 过滤态首张卡即茉莉花，旧跨条目串不再成立；改锚茉莉花自身「花前修剪 早春重剪」。全量默认态中间隔多张卡，仍可判别。"
 },
 {
   "slug": "gardening2/watering-frequency",
@@ -62,12 +62,18 @@ const CASES = [
   "clicks": ["document.getElementById('mode').value='calcPpm';document.getElementById('targetPpm').value='1';document.getElementById('waterAmount').value='1.5';document.getElementById('nutrientPct').value='20';calc();var lab=document.getElementById('targetPpmLabel');var inp=document.getElementById('targetPpm');var h=String(document.getElementById('result').innerHTML);var ok=!!lab&&lab.textContent==='实际肥料用量 (g)'&&inp.placeholder==='如 1'&&h.indexOf('133 ppm')>=0&&h.indexOf('用量 1g')>=0;document.getElementById('__tbProbe').textContent='REVPPM '+(ok?'OK':'BAD '+(lab?lab.textContent:'nolabel')+' ph='+inp.placeholder+' '+h.slice(0,120));"],
   "expect": ["REVPPM OK"],
   "ref": "第1090批 J8：反算模式把 targetPpm 输入框当克数用，旧版标签仍写「目标浓度 (ppm)」/占位「如 200」，用户按标签填 200 会得到 40000ppm。修复后切 calcPpm 时标签动态改「实际肥料用量 (g)」、占位「如 1」，且预设值 1g/1.5L/20% → ppm=1×0.2×1e6÷1.5÷1000=133、结果回显「用量 1.000g」。旧版 label 无 id ⇒ lab 为 null，哨兵必然 BAD。"
-}
+},
+{ slug:"gardening2/fertilizer-ppm", inputs:{targetPpm:"200",waterAmount:"1",nutrientPct:"200"}, clicks:["calc()"], expect:["养分含量须在 0–100%"], ref:"养分 200% 旧实现按 200% 求用量，得到半量误导；新实现拒绝 >100%。默认 20 不出现。" },
+{ slug:"gardening2/fertilizer-ppm", clicks:["document.getElementById('mode').value='calcPpm';document.getElementById('nutrientPct').value='200';document.getElementById('targetPpm').value='1';document.getElementById('waterAmount').value='1';calc();"], expect:["养分含量须在 0–100%"], ref:"反算模式同样校验养分 ≤100%，旧实现只查 >0。" },
+{ slug:"gardening2/pruning-time", inputs:{}, clicks:["var g=PLANTS.filter(function(x){return x.name==='桂花';})[0];document.getElementById('__tbProbe').textContent='GH '+g.timing+' '+g.timingText;"], expect:["GH after 花后至早春"], ref:"桂花从「花前修剪」改正为「花后至早春」，避开秋季花芽期；旧数据同时写「花前修剪（秋季前）」和「秋季花前不修剪」自相矛盾。" },
+{ slug:"gardening2/lawn-height", clicks:["currentGrass=2;currentSeason='spring';renderGrass();renderHeight();"], expect:["5 cm 早熟禾","春季"], ref:"早熟禾春季留茬由 4 cm 改 5 cm，落入同页说明的 5–8 cm；旧值 4 cm 低于说明下限。" },
+{ slug:"gardening2/lawn-height", clicks:["var n=document.querySelectorAll('#grassGrid button.grass-card').length;var p=document.querySelectorAll('#grassGrid button[aria-pressed]').length;document.getElementById('__tbProbe').textContent='BTN '+n+' '+p;"], expect:["BTN 8 8"], ref:"草种卡改为原生 button（可 Tab/Enter/空格），每张带 aria-pressed；旧实现为 div+onclick，键盘不可选。" },
+{ slug:"gardening2/pest-control", clicks:["document.getElementById('pcCrop').value='果树';__pcCropNote();"], expect:["本页不判断某产品是否在该作物上登记"], ref:"新增作物选择只用于提醒核对登记范围，不据此给通用安全期；旧页面直接给固定药剂/间隔/采收期。" },
 ];
 async function main() {
   const only = process.argv.slice(2);
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
-  let pass = 0; const fails = [];
+  let pass = 0; const fails = []
   for (const c of cases) {
     try {
       const r = await runCase(c);
