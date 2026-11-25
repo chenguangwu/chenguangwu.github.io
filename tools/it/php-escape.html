@@ -301,11 +301,29 @@ function unesc(){
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter PHP string to unescape":"请输入要反转义的 PHP 字符串"));
   text = text.trim();
   const mode = text.startsWith("'") ? 'single' : 'double';
+  const open = text[0], close = text[text.length - 1];
+  if((open === "'" || open === '"') && close !== open){
+    __phpUnescErr(text.slice(0, 12) + (text.length > 12 ? '…' : ''));
+    return;
+  }
   if((text.startsWith("'") && text.endsWith("'")) || (text.startsWith('"') && text.endsWith('"'))){
     text = text.slice(1, -1);
   }
   if(mode === 'single'){
-    document.getElementById('output').value = text.replace(/\\(.)/g, '$1');
+    // 第804批：PHP 单引号只解析 \\ 与 \'，其它反斜杠序列保留反斜杠
+    let single = '';
+    let j = 0;
+    while(j < text.length){
+      const ch = text[j];
+      if(ch === '\\' && j + 1 < text.length){
+        const nx = text[j+1];
+        if(nx === '\\' || nx === "'"){ single += nx; j += 2; }
+        else { single += '\\'; j += 1; }
+      } else {
+        single += ch; j++;
+      }
+    }
+    document.getElementById('output').value = single;
     return;
   }
   let out = '';

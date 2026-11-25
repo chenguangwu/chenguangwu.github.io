@@ -324,6 +324,17 @@ function unesc(){
   text = text.trim();
   // 原始字符串以 r"..." / r#"..."# / r##"..."## 结尾；只认结尾的裸双引号会把
   // r#"q'""# 误判为非 raw（末尾是 #），导致反转义原样回显。
+  // 第804批：先认原始字节串 br"…" / br#"…"#，再认普通原始串 r"…"
+  const rawByteMatch = text.match(/^br(#*)"/);
+  if(rawByteMatch && text.endsWith('"' + rawByteMatch[1])){
+    const hashes = rawByteMatch[1];
+    const inner = text.slice(3 + hashes.length, text.length - (hashes.length + 1));
+    for(const ch of inner){
+      if(ch.codePointAt(0) > 0x7F){ __rustUnescErr(text.slice(0, 12) + (text.length > 12 ? '…' : '')); return; }
+    }
+    document.getElementById('output').value = inner;
+    return;
+  }
   const rawMatch = text.match(/^r(#*)"/);
   if(rawMatch && text.endsWith('"' + rawMatch[1])){
     const hashes = rawMatch[1];
