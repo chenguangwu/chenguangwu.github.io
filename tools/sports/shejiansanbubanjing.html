@@ -211,16 +211,21 @@
 
 <script>
 var lastResult='';
+var lastParseError='';
 function setInvalidEl(b){var el=document.getElementById('data');if(b){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
 function parseData(){
   var raw=document.getElementById('data').value.trim();
   if(!raw){setInvalidEl(true);return null;}
   var lines=raw.split(/\n+/).map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
-  var pts=[];
+  var pts=[];lastParseError='';
   for(var i=0;i<lines.length;i++){
-    var p=lines[i].split(/[,，\s]+/).map(function(x){return parseFloat(x);});
-    if(p.length<2||isNaN(p[0])||isNaN(p[1])){setInvalidEl(true);return null;}
-    pts.push({x:p[0],y:p[1]});
+    var p=lines[i].split(/[,，\s]+/).filter(function(x){return x!=='';});
+    var numRe=/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
+    if(p.length!==2||!p.every(function(x){return numRe.test(x)&&isFinite(Number(x));})){
+      lastParseError='第 '+(i+1)+' 行「'+lines[i]+'」不是恰好两列完整数值（格式 x,y；不接受字母后缀或第三列）';
+      setInvalidEl(true);return null;
+    }
+    pts.push({x:Number(p[0]),y:Number(p[1])});
   }
   if(pts.length<3){setInvalidEl(true);return null;}
   setInvalidEl(false);
@@ -243,7 +248,7 @@ function percentile(arr,p){
 function calc(){
   var pts=parseData();
   if(!pts){
-    document.getElementById('res').innerHTML='<div class="info-box" style="color:var(--danger);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请输入至少 3 支箭的有效坐标（格式 x,y）</div>';
+    document.getElementById('res').innerHTML='<div class="info-box" style="color:var(--danger);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">'+(lastParseError||'请输入至少 3 支箭的有效坐标（格式 x,y）')+'</div>';
     return;
   }
   var n=pts.length;

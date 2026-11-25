@@ -121,6 +121,12 @@
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
       <div><label for="v1">下劈得分</label><input type="number" id="v1" value="4" step="any" oninput="calc()" enterkeyhint="done" aria-label="下劈" placeholder="e.g. 4"></div>
     </div>
+    <div class="input-row">
+      <div><label for="aTry">横踢尝试次数</label><input type="number" id="aTry" value="10" min="0" step="1" oninput="calc()" placeholder="如 10"></div>
+      <div><label for="aHit">横踢有效次数</label><input type="number" id="aHit" value="6" min="0" step="1" oninput="calc()" placeholder="如 6"></div>
+      <div><label for="bTry">下劈尝试次数</label><input type="number" id="bTry" value="8" min="0" step="1" oninput="calc()" placeholder="如 8"></div>
+      <div><label for="bHit">下劈有效次数</label><input type="number" id="bHit" value="4" min="0" step="1" oninput="calc()" placeholder="如 4"></div>
+    </div>
     <div class="toolbar">
       <div id="taiquandao_hengti_xiapi_defenPresets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -270,19 +276,42 @@ document.addEventListener('DOMContentLoaded',function(){
 </script>
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function readCount(id,label){
+  var e=document.getElementById(id);var raw=String(e?e.value:'').trim();
+  if(raw==='')return {err:'请填写「'+label+'」；未记录请明确填 0'};
+  var v=Number(raw);
+  if(!isFinite(v)||v<0||Math.floor(v)!==v)return {err:'「'+label+'」须为非负整数（当前 '+raw+'）'};
+  return {v:v};
+}
 function calc(){
   var e0=document.getElementById('v0'),e1=document.getElementById('v1');
   var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
   var box=document.getElementById('res');
   if(!box)return;
-  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!isFinite(A)||!isFinite(B)||A<0||B<0){box.innerHTML='<div class="info-box">两个得分须为非负有效数值。</div>';return;}
+  var at=readCount('aTry','横踢尝试次数'),ah=readCount('aHit','横踢有效次数'),bt=readCount('bTry','下劈尝试次数'),bh=readCount('bHit','下劈有效次数');
+  var ce=at.err||ah.err||bt.err||bh.err;if(ce){box.innerHTML='<div class="info-box" style="color:var(--danger)">'+ce+'</div>';return;}
+  if(ah.v>at.v||bh.v>bt.v){box.innerHTML='<div class="info-box" style="color:var(--danger)">有效次数不能超过尝试次数。</div>';return;}
+  var totalTry=at.v+bt.v,totalHit=ah.v+bh.v;
+  var overall=totalTry>0?totalHit/totalTry*100:null;
+  var aRate=at.v>0?ah.v/at.v*100:null,bRate=bt.v>0?bh.v/bt.v*100:null;
+  var aShare=totalTry>0?at.v/totalTry*100:null,bShare=totalTry>0?bt.v/totalTry*100:null;
   var items=[];
   items.push([(A+B).toFixed(1), "总分"]);
   items.push([((A+B)/2).toFixed(1), "平均分"]);
   items.push([(Math.abs(A-B)).toFixed(1), "分差"]);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 总分 = 横踢 + 下劈；平均分 = 总分 ÷ 2。';
+  html+='<div class="data-grid" style="margin-top:8px;">'+
+    '<div class="data-card"><div class="num">'+totalTry+'</div><div class="label">总尝试次数</div></div>'+
+    '<div class="data-card"><div class="num">'+totalHit+'</div><div class="label">总有效次数</div></div>'+
+    '<div class="data-card"><div class="num">'+(overall===null?'—':overall.toFixed(1)+'%')+'</div><div class="label">整体击打成功率</div></div>'+
+    '</div>'+
+    '<table style="margin-top:10px;"><thead><tr><th>技术</th><th>尝试</th><th>有效</th><th>成功率</th><th>尝试占比</th></tr></thead><tbody>'+
+    '<tr><td>横踢</td><td>'+at.v+'</td><td>'+ah.v+'</td><td>'+(aRate===null?'—':aRate.toFixed(1)+'%')+'</td><td>'+(aShare===null?'—':aShare.toFixed(1)+'%')+'</td></tr>'+
+    '<tr><td>下劈</td><td>'+bt.v+'</td><td>'+bh.v+'</td><td>'+(bRate===null?'—':bRate.toFixed(1)+'%')+'</td><td>'+(bShare===null?'—':bShare.toFixed(1)+'%')+'</td></tr>'+
+    '</tbody></table>';
+  html+='💡 总分 = 横踢 + 下劈；平均分 = 总分 ÷ 2；成功率 = 有效次数 ÷ 尝试次数；尝试占比 = 该技术尝试 ÷ 总尝试。尝试为 0 时成功率显示「—」，不按 0 计。';
   const __g6=html;box.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }

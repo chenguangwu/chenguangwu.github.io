@@ -172,11 +172,8 @@
 <div class="input-row">
       <div>
         <label for="daily-gain">每日最大上升高度 (米)</label>
-        <select id="daily-gain" onchange="generate()">
-          <option value="300">300 米（保守，推荐高海拔）</option>
-          <option value="500" selected>500 米（标准）</option>
-          <option value="800">800 米（激进，有经验者）</option>
-        </select>
+        <input type="number" id="daily-gain" value="500" min="1" step="50" oninput="generate()" placeholder="常用 300 / 500 / 800">
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">默认 500 米（标准）；300 保守、800 激进。高于区间限额时按 3000/5500 米分段自动截断。</div>
       </div>
     </div>
 
@@ -294,10 +291,25 @@
 </div>
 
 <script>
+function dailyGainFor(current,daily){
+  // 跨 3000/5500 当日分段限额：先走到门槛，再按高一级区间限额继续
+  if(current<3000){
+    if(current+daily<=3000) return daily;
+    return (3000-current)+Math.min(300,daily-(3000-current));
+  }
+  if(current<5500){
+    var mid=Math.min(daily,300);
+    if(current+mid<=5500) return mid;
+    return (5500-current)+Math.min(200,daily-(5500-current));
+  }
+  return Math.min(daily,200);
+}
 function generate() {
   var startAlt = parseInt(document.getElementById('start-alt').value) || 0;
   var targetAlt = parseInt(document.getElementById('target-alt').value) || 0;
-  var dailyGain = parseInt(document.getElementById('daily-gain').value) || 500;
+  var dailyRaw = String(document.getElementById('daily-gain').value==null?'':document.getElementById('daily-gain').value).trim();
+  var dailyGain = dailyRaw===''?NaN:Number(dailyRaw);
+  if(!isFinite(dailyGain)||dailyGain<=0){document.getElementById('result').innerHTML='<p style="color:var(--danger);">每日上升幅度须为大于0的有限数；留空不会自动按 500m 计算。</p>';return;}
 
   if (startAlt < 0 || targetAlt <= startAlt) {
     const __h0='<div class="result-box"><p style="color:var(--danger);">请输入有效的起始和目标海拔（目标海拔需大于起始海拔）</p></div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
@@ -313,21 +325,8 @@ function generate() {
     dayNum++;
     var prevAlt = currentAlt;
 
-    // Calculate today's gain based on altitude rules
-    var gain = dailyGain;
-
-    // Above 3000m, reduce daily gain for acclimatization
-    if (currentAlt >= 3000 && currentAlt < 5500) {
-      gain = Math.min(dailyGain, 300);
-      // Every 1000m above 3000m, add a rest day
-      var gainFrom3k = currentAlt - 3000;
-      var blocks = Math.floor(gainFrom3k / 1000);
-      if (gainFrom3k > 0 && (currentAlt - 3000) % 1000 < gain) {
-        // Near a 1000m milestone, might need rest
-      }
-    } else if (currentAlt >= 5500) {
-      gain = Math.min(dailyGain, 200);
-    }
+    // 按当天起点所在区间起算，跨 3000/5500 当日分段限额
+    var gain = dailyGainFor(currentAlt, dailyGain);
 
     currentAlt = Math.min(currentAlt + gain, targetAlt);
     var isRest = false;
@@ -402,6 +401,7 @@ function generate() {
   html += '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:4px;">';
   html += '<span>' + startAlt + 'm</span><span>2500m</span><span>3500m</span><span>5500m</span><span>' + targetAlt + 'm</span>';
   html += '</div>';
+  html += '<div class="tip-box tip-warn" style="margin-top:14px;"><strong>安排口径：</strong>表中海拔按<strong>过夜/睡眠海拔</strong>估算；当日攀登最高点应更高，并按计划回撤到表中过夜海拔。跨 3000m / 5500m 的当天先走到门槛，再按更高区间限额增加，不把整日增幅都按低区间处理。本计划是通用演示，<strong>不能替代个人健康评估、既往高原病史筛查、向导与现场安全判断</strong>；出现严重高原反应应立即下降海拔并就医。</div>';
 
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
 }

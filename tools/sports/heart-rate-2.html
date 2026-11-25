@@ -200,8 +200,18 @@
 
 <script>
 function parseRR(str){
-  if(!str)return [];
-  return str.split(/[\s,;\n]+/).map(function(x){return parseFloat(x);}).filter(function(x){return !isNaN(x)&&x>0;});
+  str=String(str==null?'':str).trim();
+  if(!str)return {vals:[],error:'请输入 R-R 间期'};
+  var tokens=str.split(/[\s,;\n]+/);
+  var vals=[];
+  var numRe=/^(?:\d+(?:\.\d+)?|\.\d+)$/;
+  for(var i=0;i<tokens.length;i++){
+    var tk=tokens[i].trim();
+    if(tk==='')return {vals:[],error:'第 '+(i+1)+' 个间期为空，请补全或删除多余分隔符'};
+    if(!numRe.test(tk)||!isFinite(Number(tk))||Number(tk)<=0)return {vals:[],error:'第 '+(i+1)+' 个间期「'+tk+'」无效：须为完整正数（如 800），不能含字母后缀或缺失'};
+    vals.push(Number(tk));
+  }
+  return {vals:vals,error:null};
 }
 function std(arr){
   if(arr.length<2)return 0;
@@ -211,8 +221,10 @@ function std(arr){
 }
 function calc(){
   var raw=document.getElementById('rrData').value;
-  var rr=parseRR(raw);
+  var P=parseRR(raw);
+  var rr=P.vals;
   var el=document.getElementById('rrData');
+  if(P.error){el.classList.add('input-error');document.getElementById('res').innerHTML='<div class="info-box" style="color:var(--danger);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">'+P.error+'</div>';return;}
   if(rr.length<2){
     el.classList.add('input-error');
     document.getElementById('res').innerHTML='<div class="info-box" style="color:var(--danger);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请输入至少 2 个有效的 R-R 间期（单位 ms）</div>';
@@ -251,6 +263,7 @@ function calc(){
     '<div class="data-card"><div class="num">'+cvrr.toFixed(1)+'%</div><div class="label">CVRR</div></div>'+
     '</div>'+
     '<div style="margin-top:10px;"><span class="grade-tag '+gradeCls+'">自主神经恢复：'+grade+'</span> <span style="font-size:12px;color:var(--text-muted);">（基于RMSSD，共'+n+'个间期）</span></div>'+
+    '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">数据质量提示：指标仅基于本次连续输入的 '+n+' 个间期；伪差、漏搏、异位搏动、呼吸与记录长度都会影响 RMSSD/SDNN，结果不能用于医疗诊断。</p>'+
     '<div class="info-box" style="margin-top:10px;">📌 '+advise+'</div>';try{ if(typeof rmssd==='number'&&isFinite(rmssd)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:rmssd,unit:'',bands:[{"lo":60,"hi":null,"label":{"zh":"优秀","en":"Excellent"},"color":"#065F46"},{"lo":40,"hi":60,"label":{"zh":"良好","en":"Good"},"color":"#84CC16"},{"lo":20,"hi":40,"label":{"zh":"一般","en":"Fair"},"color":"#92400E"},{"lo":null,"hi":20,"label":{"zh":"偏低","en":"Low"},"color":"#F97316"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   saveHistory(n,meanHR,sdnn,rmssd,pnn50);

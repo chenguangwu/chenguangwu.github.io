@@ -210,16 +210,23 @@
 
 <script>
 var lastResult='';
+var lastParseError='';
 function parseData(){
   var raw=document.getElementById('data').value.trim();
   var setInvalid=function(b){var el=document.getElementById('data');if(b){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}};
   if(!raw){setInvalid(true);return null;}
   var lines=raw.split(/\n+/).map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
-  var pts=[];
+  var pts=[];lastParseError='';
   for(var i=0;i<lines.length;i++){
-    var p=lines[i].split(/[,，\s]+/).map(function(x){return parseFloat(x);});
-    if(p.length<2||isNaN(p[0])||isNaN(p[1])||p[0]<=0||p[1]<=0){setInvalid(true);return null;}
-    pts.push({ve:p[0],vo2:p[1]});
+    var p=lines[i].split(/[,，\s]+/).filter(function(x){return x!=='';});
+    var numRe=/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
+    if(p.length!==2||!p.every(function(x){return numRe.test(x)&&isFinite(Number(x));})){
+      lastParseError='第 '+(i+1)+' 行「'+lines[i]+'」不是恰好两列完整数值（格式 VE,VO2；不接受字母后缀或第三列）';
+      setInvalid(true);return null;
+    }
+    var ve=Number(p[0]),vo2=Number(p[1]);
+    if(ve<=0||vo2<=0){lastParseError='第 '+(i+1)+' 行 VE 与 VO2 须均大于 0';setInvalid(true);return null;}
+    pts.push({ve:ve,vo2:vo2});
   }
   if(pts.length<4){setInvalid(true);return null;}
   setInvalid(false);
@@ -228,7 +235,7 @@ function parseData(){
 function calc(){
   var pts=parseData();
   if(!pts){
-    document.getElementById('res').innerHTML='<div class="info-box" style="color:var(--danger);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请输入至少 4 组有效的 VE,VO2 数据（按强度递增）</div>';
+    document.getElementById('res').innerHTML='<div class="info-box" style="color:var(--danger);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">'+(lastParseError||'请输入至少 4 组有效的 VE,VO2 数据（按强度递增）')+'</div>';
     return;
   }
   // 计算 VE/VO2

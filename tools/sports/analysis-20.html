@@ -209,6 +209,7 @@ function calc(){
   const raw=(document.getElementById("shots").value||'').split(/[,，、;；\s\n]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));
   if(raw.length<2){box.innerHTML='<p>请至少录入 2 发环值。</p>';return;}
   let bad=raw.filter(v=>v<0||v>max);
+  if(bad.length){box.innerHTML='<p style="color:var(--danger);">存在 '+bad.length+' 发环值超出 0~'+max+' 范围，请先修正后再计算。</p>';return;}
   const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;
   const sorted=[...raw].sort((a,b)=>a-b);
   const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;
@@ -219,16 +220,15 @@ function calc(){
   const hi=raw.filter(v=>v>=max-0.5).length;
   const over=raw.filter(v=>v>=mean).length;
   let grade='';
-  if(sd<0.5)grade='优秀（动作一致性高）';else if(sd<1.0)grade='良好';else if(sd<1.5)grade='一般（需强化据枪与击发一致性）';else grade='较差（散布大，建议先稳定姿势与呼吸）';
+  if(sd<0.5)grade='环值波动小';else if(sd<1.0)grade='环值波动中等';else if(sd<1.5)grade='环值波动较大';else grade='环值波动大';
   let extra='';
-  if(bad.length)extra='<p class="muted">'+bad.length+' 发环值超出 0~'+max+' 范围，仍按原值计入，请核对录入。</p>';
   const __g2='<p>发数：<strong>'+n+'</strong>　总环：<strong style="color:var(--primary);">'+fmt(sum,1)+'</strong>　平均环：<strong>'+fmt(mean,2)+'</strong></p>'
    +'<p>最好：<strong>'+fmt(sorted[n-1],1)+'</strong>　最差：<strong>'+fmt(sorted[0],1)+'</strong>　极差：<strong>'+fmt(range,1)+'</strong>　中位数：<strong>'+fmt(med,1)+'</strong></p>'
    +'<p>样本标准差 SD：<strong style="color:var(--primary);">'+fmt(sd,3)+'</strong>　变异系数 CV：<strong>'+fmt(cv,2)+'%</strong></p>'
-   +'<p>稳定度评级：<strong>'+grade+'</strong></p>'
+   +'<p>环值波动分级（仅统计环值）：<strong>'+grade+'</strong></p>'
    +'<p>接近满环（≥'+fmt(max-0.5,1)+'）发数：<strong>'+hi+'</strong>（'+fmt(hi/n*100,1)+'%）　不低于平均环的发数：<strong>'+over+'</strong>（'+fmt(over/n*100,1)+'%）</p>'
    +extra
-   +'<p class="muted">SD 越小说明弹着越集中；CV 便于在不同计分制式之间比较稳定性。</p>';box.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+   +'<p class="muted">SD/CV 只描述各发环值的数值波动，环值不含落点方向；SD 为 0 仅表示各发环值相同，不能证明弹着集中。弹着空间散布需另录每发二维落点坐标。</p>';box.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 calc();
