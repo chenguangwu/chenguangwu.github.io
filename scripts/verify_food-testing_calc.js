@@ -172,11 +172,11 @@ const CASES = [
   "slug": "food-testing/ingredient-sorter",
   "inputs": {
     "foodName": "",
-    "ingredients": "小麦粉, 55\n水, 20\n白砂糖, 10\n植物油, 8\n酵母, 2\n食盐, 1\n食用香精, 0.5",
-    "sortMode": "asc"
+    "ingredients": "小麦粉, 55\n水, 20\n白砂糖, 10\n植物油, 8\n酵母, 2\n食盐, 1\n食用香精, 0.5"
   },
-  "expect": [ "1 脱脂奶粉" ],
-  "ref": "配料排序 sortMode=asc（默认 desc）；排序结果内容相同、仅排序模式串随输入变化。「96.5%」为恒定合计占比（原逃生项），改锚定 asc。"
+  "clicks": ["document.getElementById('sortMode').value='asc';calc();"],
+  "expect": [ "1 食用香精 0.5%", "7 小麦粉 55%" ],
+  "ref": "配料排序 sortMode=asc：全部明确数值统一升序，0.5% 食用香精居首、55% 小麦粉居末；旧实现把主配料与小配料分组拼接，递增时仍主配料在前。"
 },
 {
   "slug": "food-testing/nitrite-colorimetric",
@@ -371,7 +371,16 @@ const CASES = [
   inputs: { val: "6.25", from: "6.25", to: "1" },
   expect: ["1 氮含量 (%)"],
   ref: "反向路径：6.25% 蛋白质 ÷6.25 = 1% 氮；旧实现得 39.06，修复后双向互为逆运算。"
-}
+},
+{ slug:"food-testing/ingredient-sorter", inputs:{"ingredients":"水, 90\n盐, 1"}, clicks:["document.getElementById('minorMode').value='keep';calc();"], expect:["水、盐","已标明合计 91%"], ref:"≤2% 配料选「保持原序（仍按递减）」时，旧实现 sortedList 只拼 major、漏掉 minor，盐被丢但仍计入合计；现全部条目按递减输出，盐保留。" },
+{ slug:"food-testing/ingredient-sorter", inputs:{"foodName":"<b>测试</b>","ingredients":"水, 90\n盐, 1"}, clicks:["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='TB853X '+((h.indexOf('&lt;b&gt;测试&lt;/b&gt;')>=0&&h.indexOf('<b>测试</b>')<0)?'OK':'BAD');"], expect:["TB853X OK"], ref:"食品名称与配料名只作文本插入：`<b>测试</b>` 在结果区显示为转义后的 &lt;b&gt;，不再生成真实加粗元素；旧实现直接拼 innerHTML。" },
+{ slug:"food-testing/ingredient-sorter", inputs:{"ingredients":"水, 90\n盐, 1"}, clicks:["document.getElementById('sortMode').value='asc';document.getElementById('minorMode').value='end';calc();"], expect:["盐、水","未使用≤2%末尾例外"], ref:"递增模式对全部明确数值统一升序：1% 盐在 90% 水之前；即使 minorMode=end 也不把盐拉到末尾，并明确提示该顺序不对应 GB 7718 递减要求。" },
+{ slug:"food-testing/ingredient-sorter", inputs:{"ingredients":"牛油、复合调味料（花椒、八角、桂皮）、盐, 2"}, clicks:["document.getElementById('compoundMode').value='expand';calc();"], expect:["复合调味料（展开：花椒、八角、桂皮；比例未标明）","未分配各自比例"], ref:"展开模式列出括号内子成分但明确比例未标明，不推测复配比例；bracket 模式保留整体括号、none 模式按原文。" },
+{ slug:"food-testing/ingredient-sorter", inputs:{"ingredients":"水, abc\n糖, 0\n油, 120\n盐, -2"}, clicks:["var t=['水, abc','糖, 0','油, 120','盐, -2'].join(String.fromCharCode(10));document.getElementById('ingredients').value=t;calc();"], expect:["第1行：水 百分比「abc」不是有效数字","第3行：油 百分比「120」须在 0–100 之间","第4行：盐 百分比「-2」须在 0–100 之间"], ref:"逐行区分缺失/明确 0/无效：abc、120、-2 分别提示行号与原因并停止排序；糖,0 合法且作为≤2%小配料参与排序。旧实现 parseFloat||0 把 abc 与 0 混为未标明、负数/超 100 继续计算。" },
+{ slug:"food-testing/ingredient-sorter", inputs:{"ingredients":"水,90\n盐,20"}, clicks:["calc();"], expect:["合计 110%，超过 100%"], ref:"已标明合计超过 100% 时停止输出排序，避免把录入错误当有效配料表；旧实现只显示合计不阻断。" },
+{ slug:"food-testing/ingredient-sorter", inputs:{"ingredients":"水、大豆、小麦、食盐、白砂糖、谷氨酸钠"}, clicks:["calc();"], expect:["水、大豆、小麦、食盐、白砂糖、谷氨酸钠"], ref:"内置酱油预设为单行顿号分隔：解析为 6 个未标明比例配料，不静默丢片段。" },
+{ slug:"food-testing/ingredient-sorter", inputs:{"ingredients":"水,白砂糖,果葡糖浆,柠檬酸,食用香精"}, clicks:["calc();"], expect:["水、白砂糖、果葡糖浆、柠檬酸、食用香精"], ref:"内置果汁预设为单行逗号分隔且无百分比：全部识别为 5 个未标明比例配料；旧实现只取第一段「水」。" }
+
 ];
 async function main() {
   const only = process.argv.slice(2);
