@@ -8122,6 +8122,67 @@ const CASES = [
     "ref": "第798批：速查页解码器不能只认 6 个命名实体。现由表内全部 ENTITIES 建立 NAMED_MAP，`&copy;`、`&frac12;`、`&sup2;` 与大小写十六进制引用均可解，未知名保持原文。"
   },
   {
+    "slug": "it/html-nesting-checker",
+    "inputs": { "html": "<script>const x = 1;</script>" },
+    "clicks": ["check();var h=String(document.getElementById('result').innerHTML||'');var r=String(document.getElementById('report').innerHTML||'');document.getElementById('__tbProbe').textContent='NEST1 '+((h.indexOf('合法')>=0&&r.indexOf('多余')<0)?'OK':'BAD:'+h+r);"],
+    "expect": ["NEST1 OK"],
+    "ref": "第799批：原始文本元素 `<script>…</script>` 必须成对处理，脚本体内的标签样文本不参与扫描。旧实现跳过开始标签却仍处理结束标签 ⇒ 报「多余闭合标签」。"
+  },
+  {
+    "slug": "it/html-nesting-checker",
+    "inputs": { "html": "<div data-x=\"<span>\"><!-- <b> --></div>" },
+    "clicks": ["check();var h=String(document.getElementById('result').innerHTML||'');var r=String(document.getElementById('report').innerHTML||'');document.getElementById('__tbProbe').textContent='NEST2 '+((h.indexOf('合法')>=0&&r.indexOf('未闭合')<0)?'OK':'BAD:'+h+r);"],
+    "expect": ["NEST2 OK"],
+    "ref": "第799批：属性值引号内的 `<span>` 与注释内的 `<b>` 都不是真实标签。旧正则按 `<...>` 直接匹配 ⇒ 把两者入栈制造未闭合误报；新状态机跳过引号内容与注释。"
+  },
+  {
+    "slug": "it/html-nesting-checker",
+    "inputs": { "html": "<div><span></div>" },
+    "clicks": ["check();var r=String(document.getElementById('report').innerHTML||'');document.getElementById('__tbProbe').textContent='NEST3 '+((r.indexOf('隐式闭合')>=0&&r.indexOf('span')>=0)?'OK':'BAD:'+r.slice(0,90));"],
+    "expect": ["NEST3 OK"],
+    "ref": "第799批：真实错误嵌套 `<div><span></div>` 必须报告 span 被隐式闭合。旧实现重置后虽能报，但前置死循环会先累积错误再丢弃；新状态机单遍扫描保留行号与错误。"
+  },
+  {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": { "htmlInput": "<p><code>a`b</code></p>" },
+    "clicks": ["convert();var v=String(document.getElementById('mdOutput').value);document.getElementById('__tbProbe').textContent='MDTICK '+((v.indexOf('``a`b``')>=0)?'OK':'BAD:'+v.slice(0,80));"],
+    "expect": ["MDTICK OK"],
+    "ref": "第799批：行内代码内容含反引号时，定界符必须比内容中最长连续反引号更长。旧实现固定单反引号 ⇒ `a`b` 会提前闭合；现 longestBacktickRun+1。"
+  },
+  {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": { "htmlInput": "<pre><code>x\n```\ny</code></pre>" },
+    "clicks": ["convert();var v=String(document.getElementById('mdOutput').value);document.getElementById('__tbProbe').textContent='MDFENCE '+((v.indexOf('````')>=0&&v.indexOf('x')>=0&&v.indexOf('```')>=0)?'OK':'BAD:'+v.slice(0,120));"],
+    "expect": ["MDFENCE OK"],
+    "ref": "第799批：代码块内容含独立三反引号行时，围栏必须加长到 4 个。旧实现固定 ``` ⇒ 内容中的 ``` 提前关闭代码块；现 fence=max(3,最长连续反引号+1)。"
+  },
+  {
+    "slug": "it/markdown-lint",
+    "inputs": { "src": "line1  \nline2" },
+    "checkIds": ["allowHardBreak"],
+    "clicks": ["calcTool();var h=String(document.getElementById('result').innerHTML||'');document.getElementById('__tbProbe').textContent='ML1 '+((h.indexOf('MD009')<0&&h.indexOf('未发现')>=0)?'OK':'BAD:'+h.slice(0,100));"],
+    "expect": ["ML1 OK"],
+    "ref": "第799批：行尾恰好两个空格是 CommonMark 硬换行，默认不应报 MD009。旧实现所有 `[ \\t]+$` 一律报错。"
+  },
+  {
+    "slug": "it/markdown-lint",
+    "inputs": { "src": "line1  \nline2" },
+    "checkIds": ["allowHardBreak"],
+    "clicks": ["document.getElementById('allowHardBreak').checked=false;calcTool();var h=String(document.getElementById('result').innerHTML||'');document.getElementById('__tbProbe').textContent='ML2 '+((h.indexOf('MD009')>=0)?'OK':'BAD:'+h.slice(0,100));"],
+    "expect": ["ML2 OK"],
+    "ref": "第799批：关闭硬换行豁免后，两个尾随空格必须按普通 MD009 报错，体现规则可配置。"
+  },
+  {
+    "slug": "it/markdown-lint",
+    "inputs": { "src": "line1   \nline2" },
+    "checkIds": ["allowHardBreak"],
+    "clicks": ["calcTool();var h=String(document.getElementById('result').innerHTML||'');document.getElementById('__tbProbe').textContent='ML3 '+((h.indexOf('MD009')>=0)?'OK':'BAD:'+h.slice(0,100));"],
+    "expect": ["ML3 OK"],
+    "ref": "第799批：三个尾随空格不是合法硬换行，必须报 MD009，避免豁免放宽成所有空白。"
+  },
+  {
     "slug": "it/dockerfile-generator",
     "inputs": { "base": "python:3.12-slim", "port": "8000", "cmd": "gunicorn app:app" },
     "expect": ["FROM python:3.12-slim", "CMD [\"gunicorn app:app\"]"],
