@@ -471,9 +471,20 @@ function getVal(id){
   return el ? (+el.value || 0) : 0;
 }
 
+function __mfRaw(id){ var e=document.getElementById(id); return e ? String(e.value).trim() : ''; }
+function __mfFail(msg){
+  currentResult = null; yearlyData = [];
+  var grid=document.getElementById('statGrid'); if(grid) grid.innerHTML='';
+  var res=document.getElementById('res'); if(res) res.innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';
+  var table=document.getElementById('tableWrap'); if(table) table.innerHTML='';
+  var canvas=document.getElementById('chart');
+  if(canvas){ var ctx=canvas.getContext('2d'); if(ctx) ctx.clearRect(0,0,canvas.width,canvas.height); }
+}
 function calc(){
+  var req=[['monthly','每月定投金额'],['years','定投年限'],['rate','预期年化收益率'],['initial','初始投入'],['buyFee','申购费率'],['manageFee','管理费率'],['custodyFee','托管费率'],['sellFee','赎回费率']];
+  for(var i=0;i<req.length;i++){ if(__mfRaw(req[i][0])===''){ __mfFail('请填写'+req[i][1]+'；留空不计算，数字 0 才表示真实零值。'); return; } }
   var monthly = getVal('monthly');
-  var years = Math.max(1, Math.min(50, Math.floor(getVal('years'))));
+  var yearsRaw = Number(__mfRaw('years'));
   var annualRate = getVal('rate');
   var initial = getVal('initial');
   var buyFee = getVal('buyFee') / 100;
@@ -483,11 +494,20 @@ function calc(){
   var reinvest = document.getElementById('reinvest').checked;
   var monthStart = document.getElementById('monthStart').checked;
 
+  if(!isFinite(monthly) || monthly < 0){ __mfFail('每月定投金额须为非负数字。'); return; }
+  if(!isFinite(initial) || initial < 0){ __mfFail('初始投入须为非负数字。'); return; }
+  if(!Number.isInteger(yearsRaw) || yearsRaw < 1 || yearsRaw > 50){ __mfFail('定投年限须为 1–50 的整数年，不支持小数或越界值。'); return; }
+  if(!isFinite(annualRate) || annualRate < -50 || annualRate > 100){ __mfFail('预期年化收益率须在 -50%–100% 之间。'); return; }
+  var fees=[['申购费率',buyFee],['管理费率',manageFee],['托管费率',custodyFee],['赎回费率',sellFee]];
+  for(var j=0;j<fees.length;j++){ if(!isFinite(fees[j][1]) || fees[j][1] < 0 || fees[j][1] > 1){ __mfFail(fees[j][0]+'须在 0%–100% 之间。'); return; } }
+  var years = yearsRaw;
+
   var months = years * 12;
   var monthlyRate = annualRate / 100 / 12;
   var monthlyManageFee = manageFee / 12;
   var monthlyCustodyFee = custodyFee / 12;
   var netMonthlyRate = monthlyRate - monthlyManageFee - monthlyCustodyFee;
+  if(netMonthlyRate <= -1){ __mfFail('年化收益率扣除管理费/托管费后过低，净值会归零或为负，无法生成有效结果。'); return; }
 
   var totalInvest = initial;
   var totalFees = 0;

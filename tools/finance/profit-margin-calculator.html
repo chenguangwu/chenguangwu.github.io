@@ -401,49 +401,53 @@ function calc(){
 var __numReq=['revenue','cogs','sellingExp','adminExp','rdExp','finExp','da','taxRate','revRev','targetMargin1','expRatio1','costCost','targetMargin2','taxRate2','batchStart','batchEnd','batchStep','batchM1','batchM2','batchM3','batchM4','dupontNI','dupontRev','dupontAssets','dupontEquity'];
 if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
   var p = getParams();
+  var __pmEn = false;
+  try { __pmEn = !!(typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); } catch(e) {}
+  var __pmUndef = __pmEn ? 'Undefined' : '未定义';
+  function __pmRatio(v, den, dec){ return den > 0 ? (v / den * 100).toFixed(dec == null ? 2 : dec) + '%' : __pmUndef; }
   var r = p.revenue;
   var cogs = p.cogs;
   var gp = r - cogs;
-  var gpm = r > 0 ? gp / r * 100 : 0;
+  var gpm = r > 0 ? gp / r * 100 : NaN;
   
   var opExp = p.sellingExp + p.adminExp + p.rdExp;
   var opProfit = gp - opExp - p.da;
-  var opMargin = r > 0 ? opProfit / r * 100 : 0;
+  var opMargin = r > 0 ? opProfit / r * 100 : NaN;
   
   var ebit = opProfit;
   var ebitda = ebit + p.da;
-  var ebitdaMargin = r > 0 ? ebitda / r * 100 : 0;
+  var ebitdaMargin = r > 0 ? ebitda / r * 100 : NaN;
   
   var ebt = ebit - p.finExp;
   var tax = ebt > 0 ? ebt * p.taxRate / 100 : 0;
   var np = ebt - tax;
-  var npm = r > 0 ? np / r * 100 : 0;
+  var npm = r > 0 ? np / r * 100 : NaN;
   
   var marginHtml = '';
-  marginHtml += '<div class="margin-card"><div class="val">' + gpm.toFixed(2) + '%</div><div class="lbl">毛利率</div><div class="sub">毛利润 ' + formatMoney(gp) + '</div></div>';
-  marginHtml += '<div class="margin-card"><div class="val">' + opMargin.toFixed(2) + '%</div><div class="lbl">营业利润率</div><div class="sub">营业利润 ' + formatMoney(opProfit) + '</div></div>';
-  marginHtml += '<div class="margin-card"><div class="val">' + ebitdaMargin.toFixed(2) + '%</div><div class="lbl">EBITDA利润率</div><div class="sub">EBITDA ' + formatMoney(ebitda) + '</div></div>';
-  marginHtml += '<div class="margin-card"><div class="val">' + npm.toFixed(2) + '%</div><div class="lbl">净利率</div><div class="sub">净利润 ' + formatMoney(np) + '</div></div>';
+  marginHtml += '<div class="margin-card"><div class="val">' + __pmRatio(gp, r) + '</div><div class="lbl">毛利率</div><div class="sub">毛利润 ' + formatMoney(gp) + '</div></div>';
+  marginHtml += '<div class="margin-card"><div class="val">' + __pmRatio(opProfit, r) + '</div><div class="lbl">营业利润率</div><div class="sub">营业利润 ' + formatMoney(opProfit) + '</div></div>';
+  marginHtml += '<div class="margin-card"><div class="val">' + __pmRatio(ebitda, r) + '</div><div class="lbl">EBITDA利润率</div><div class="sub">EBITDA ' + formatMoney(ebitda) + '</div></div>';
+  marginHtml += '<div class="margin-card"><div class="val">' + __pmRatio(np, r) + '</div><div class="lbl">净利率</div><div class="sub">净利润 ' + formatMoney(np) + '</div></div>';
   const __g1=marginHtml;document.getElementById('marginGrid').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   
   var html = '';
   html += '<p><strong>利润表摘要：</strong></p>';
   html += '<div class="bar-row"><span class="bar-lbl">营业收入</span><div class="bar-bg"><div class="bar-fill" style="width:100%;background:#4338CA;">' + formatMoney(r) + '</div></div></div>';
   html += '<div class="bar-row"><span class="bar-lbl">营业成本</span><div class="bar-bg"><div class="bar-fill" style="width:' + (r > 0 ? cogs / r * 100 : 0) + '%;background:#f44336;">' + formatMoney(cogs) + '</div></div></div>';
-  html += '<div class="bar-row"><span class="bar-lbl">毛利润</span><div class="bar-bg"><div class="bar-fill" style="width:' + (r > 0 ? gp / r * 100 : 0) + '%;background:#4caf50;">' + formatMoney(gp) + ' (' + gpm.toFixed(1) + '%)</div></div></div>';
+  html += '<div class="bar-row"><span class="bar-lbl">毛利润</span><div class="bar-bg"><div class="bar-fill" style="width:' + (r > 0 ? gp / r * 100 : 0) + '%;background:#4caf50;">' + formatMoney(gp) + ' (' + __pmRatio(gp, r, 1) + ')</div></div></div>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
   html += '<p><strong>期间费用：</strong></p>';
-  html += '<p>销售费用：' + formatMoney(p.sellingExp) + ' 元（占收入 ' + (r > 0 ? (p.sellingExp / r * 100).toFixed(2) : 0) + '%）</p>';
-  html += '<p>管理费用：' + formatMoney(p.adminExp) + ' 元（占收入 ' + (r > 0 ? (p.adminExp / r * 100).toFixed(2) : 0) + '%）</p>';
-  html += '<p>研发费用：' + formatMoney(p.rdExp) + ' 元（占收入 ' + (r > 0 ? (p.rdExp / r * 100).toFixed(2) : 0) + '%）</p>';
-  html += '<p>财务费用：' + formatMoney(p.finExp) + ' 元（占收入 ' + (r > 0 ? (p.finExp / r * 100).toFixed(2) : 0) + '%）</p>';
-  html += '<p>折旧摊销：' + formatMoney(p.da) + ' 元（占收入 ' + (r > 0 ? (p.da / r * 100).toFixed(2) : 0) + '%）</p>';
+  html += '<p>销售费用：' + formatMoney(p.sellingExp) + ' 元（占收入 ' + __pmRatio(p.sellingExp, r) + '）</p>';
+  html += '<p>管理费用：' + formatMoney(p.adminExp) + ' 元（占收入 ' + __pmRatio(p.adminExp, r) + '）</p>';
+  html += '<p>研发费用：' + formatMoney(p.rdExp) + ' 元（占收入 ' + __pmRatio(p.rdExp, r) + '）</p>';
+  html += '<p>财务费用：' + formatMoney(p.finExp) + ' 元（占收入 ' + __pmRatio(p.finExp, r) + '）</p>';
+  html += '<p>折旧摊销：' + formatMoney(p.da) + ' 元（占收入 ' + __pmRatio(p.da, r) + '）</p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  html += '<p>营业利润：<strong style="color:' + (opProfit >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + formatMoney(opProfit) + '</strong> 元（营业利润率 ' + opMargin.toFixed(2) + '%）</p>';
-  html += '<p>EBITDA：<strong>' + formatMoney(ebitda) + '</strong> 元（EBITDA利润率 ' + ebitdaMargin.toFixed(2) + '%）</p>';
+  html += '<p>营业利润：<strong style="color:' + (opProfit >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + formatMoney(opProfit) + '</strong> 元（营业利润率 ' + __pmRatio(opProfit, r) + '）</p>';
+  html += '<p>EBITDA：<strong>' + formatMoney(ebitda) + '</strong> 元（EBITDA利润率 ' + __pmRatio(ebitda, r) + '）</p>';
   html += '<p>利润总额：' + formatMoney(ebt) + ' 元</p>';
   html += '<p>所得税（' + p.taxRate + '%）：' + formatMoney(tax) + ' 元</p>';
-  html += '<p style="font-size:16px;">净利润：<strong style="color:' + (np >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + formatMoney(np) + '</strong> 元（净利率 ' + npm.toFixed(2) + '%）</p>';
+  html += '<p style="font-size:16px;">净利润：<strong style="color:' + (np >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + formatMoney(np) + '</strong> 元（净利率 ' + __pmRatio(np, r) + '）</p>';
   
   const __g2=html;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   
