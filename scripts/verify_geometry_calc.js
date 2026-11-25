@@ -537,6 +537,126 @@ const CASES = [
   { slug: "geometry/cone-frustum-volume", inputs: { R: "0", r: "0", h: "4" }, expect: ["⚠ 高 h 必须大于 0，且两底半径不能同时为 0。"], ref: "两底半径为 0 时只剩一条轴线，体积 0 无几何意义；新守卫应拒绝。默认 3/1/4→52.909 不含该提示。" },
   { slug: "geometry/sphere-volume", inputs: { r: "-3" }, expect: ["⚠ 半径不能为负。"], ref: "负半径的三次方得负体积 −113.097，且 L/cm³ 同步为负；新守卫应拒绝。默认 r=3→113.097 不含该提示。" },
   { slug: "geometry/circle-circumference", inputs: { r: "-5" }, expect: ["⚠ 半径不能为负。"], ref: "负半径直接得负周长 −31.4159；新守卫应拒绝。默认 r=5→31.4159 不含该提示。" },
+{
+  "slug": "geometry/regular-polygon-area",
+  "inputs": {"n": "3.5", "s": "3"},
+  "expect": ["整数"],
+  "ref": "边数必须为整数；3.5 边形在几何上不存在，旧实现只判 n<3 仍会算出面积。"
+},
+{
+  "slug": "geometry/polygon-interior-angle",
+  "inputs": {"n": "2.5"},
+  "expect": ["整数"],
+  "ref": "内角和/单角公式只对 n≥3 的整数边形成立；2.5 边形无意义。"
+},
+{
+  "slug": "geometry/parabola-vertex",
+  "inputs": {"a": "2", "b": "", "c": "1"},
+  "expect": ["请完整填写"],
+  "ref": "b 留空被 num() 当 0 会算出错误顶点；必须把空串与合法 0 区分。"
+},
+{
+  "slug": "geometry/parabola-vertex",
+  "inputs": {"a": "1", "b": "0", "c": "0"},
+  "expect": ["0.000", "顶点"],
+  "ref": "a=1,b=0,c=0 是合法抛物线，顶点 (0,0)，不能因空值守卫误伤显式 0。"
+},
+{
+  "slug": "geometry/sphere-surface-area",
+  "inputs": {"r": "0"},
+  "expect": ["0.000", "不适用"],
+  "ref": "r=0 时体积为 0，表面积/体积比无定义；旧实现用 1e-9 兜底得到 3e9 的伪值。"
+},
+{
+  "slug": "geometry/dot-product-2d",
+  "inputs": {"ax": "", "ay": "2", "bx": "3", "by": "4"},
+  "expect": ["请完整填写"],
+  "ref": "缺 ax 被当 0 会静默算错点积；必须区分空输入与合法 0。"
+},
+{
+  "slug": "geometry/cylinder-volume",
+  "inputs": {"r": "", "h": "5"},
+  "expect": ["请填写"],
+  "ref": "缺半径被当 0 会输出 0 体积；空串不是合法 0。"
+},
+{
+  "slug": "geometry/cylinder-volume",
+  "inputs": {"r": "-2", "h": "5"},
+  "expect": ["非负"],
+  "ref": "负半径平方后仍得正体积，掩盖非法输入；圆柱需校验非负。"
+},
+{
+  "slug": "geometry/cone-frustum-volume",
+  "inputs": {"R": "", "r": "1", "h": "4"},
+  "expect": ["请完整填写"],
+  "ref": "缺上底半径会被当 0 退化成圆锥；空串必须与合法 0 区分。"
+},
+{
+  "slug": "geometry/cone-frustum-volume",
+  "inputs": {"R": "-1", "r": "1", "h": "4"},
+  "expect": ["非负"],
+  "ref": "负半径平方后可能得到伪正体积；圆台需校验半径非负。"
+},
+{
+  "slug": "geometry/arc-length",
+  "inputs": {"r": "-5", "deg": "90"},
+  "expect": ["非负"],
+  "ref": "负半径会得到负弧长；必须先拒绝负半径。"
+},
+{
+  "slug": "geometry/arc-length",
+  "inputs": {"r": "5", "deg": "400"},
+  "expect": ["0–360"],
+  "ref": "本页按给定圆心角计算，不提供大弧选择；超过 360° 会造成语义混淆。"
+},
+{
+  "slug": "geometry/chord-length",
+  "inputs": {"r": "5", "deg": "-90"},
+  "expect": ["0–360"],
+  "ref": "负圆心角会得到负半弦或错误弦长；需拒绝。"
+},
+{
+  "slug": "geometry/sector-area",
+  "inputs": {"r": "-3", "deg": "90"},
+  "expect": ["非负"],
+  "ref": "负半径的平方会得到正扇形面积；必须拒绝负半径。"
+},
+{
+  "slug": "geometry/ellipse-area",
+  "inputs": {"a": "4", "b": "1"},
+  "expect": ["12.566", "πab"],
+  "ref": "椭圆面积 πab=4π=12.566；等面积圆面积也应为 πab，不是 π√(ab)。"
+},
+{
+  "slug": "geometry/ellipse-area",
+  "inputs": {"a": "-2", "b": "3"},
+  "expect": ["大于 0"],
+  "ref": "半轴必须为正；负半轴会因乘积为负得到负面积。"
+},
+{
+  "slug": "geometry/angle-between-vectors",
+  "inputs": {"ax": "1", "ay": "0", "bx": "", "by": "1"},
+  "expect": ["请完整填写"],
+  "ref": "缺 bx 被当 0 会得到错误夹角；空输入必须报缺失。"
+},
+{
+  "slug": "geometry/point-line-distance",
+  "inputs": {"A": "3", "B": "4", "C": "", "x0": "1", "y0": "2"},
+  "expect": ["请完整填写"],
+  "ref": "缺 C 被当 0 会算成过原点直线；空串必须与合法 0 区分。"
+},
+{
+  "slug": "geometry/midpoint-2d",
+  "inputs": {"x1": "2", "y1": "2", "x2": "2", "y2": "2"},
+  "expect": ["2.000", "x_M"],
+  "ref": "重合点 P1=P2 时线段退化，中点仍为 (2,2)；页面需显示代入步骤且不报错。"
+},
+{
+  "slug": "geometry/parabola-vertex",
+  "inputs": {"a": "2", "b": "-6", "c": "1"},
+  "expect": ["1.5000", "x_v", "parabola_vertexPlot"],
+  "ref": "合法抛物线应同时显示顶点值、代入步骤和坐标图画布；大数/退化不能把画布/步骤清空。"
+}
 
 ];
 

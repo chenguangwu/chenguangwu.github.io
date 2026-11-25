@@ -111,7 +111,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入两向量分量，求点积与 a 在 b 上的投影长度。">Compute the dot product a·b = a_x·b_x + a_y·b_y of two 2D vectors, including the projection length of a onto b.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">二维点积：a·b = a_x·b_x + a_y·b_y；a 在 b 上投影长度 = a·b ÷ |b|（|b| = √(b_x²+b_y²)）。校验：|b| = 0 时报「向量 b 为零向量，投影方向无定义（|b| 不能为 0）」并返回，其余空值按 0。判据：无固定分级，投影带符号，点积为 0 即两向量垂直。</div>
+      <div class="formula-eq">二维点积：a·b = a_x·b_x + a_y·b_y；a 在 b 上投影长度 = a·b ÷ |b|（|b| = √(b_x²+b_y²)）。校验：a、b 的四个坐标均必填，空白不等于 0；|b|=0 时点积照常输出，投影长度显示“无定义”。判据：无固定分级，投影带符号，点积为 0 即两向量垂直。</div>
       <p class="formula-desc">输入两向量分量，求点积与 a 在 b 上的投影长度。</p>
     </div>
 
@@ -215,15 +215,16 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
+            const __raw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+            if(__raw('ax')===''||__raw('ay')===''||__raw('bx')===''||__raw('by')===''){ToolBox.setResult('result','<p style="color:var(--danger)">请完整填写向量 a 与 b 的四个坐标；空白不等于 0。</p>');var __dt=document.getElementById('dot_product_2dTable');if(__dt)__dt.innerHTML='';return;}
             const ax=num('ax'),ay=num('ay'),bx=num('bx'),by=num('by');
             const dot=ax*bx+ay*by, nb=Math.hypot(bx,by);
             if (nb === 0) {
-                ToolBox.setResult('result', '<p style="color:var(--danger);">向量 b 为零向量，投影方向无定义（|b| 不能为 0）。</p>');
-                return;
+                const __g0=dataGrid([[dot.toFixed(3),'点积 a·b'],['—','有符号标量投影（b 为零向量，|b|=0，无定义）']]);ToolBox.setResult('result',__g0);return;
             }
             const __g1=dataGrid([
                 [dot.toFixed(3),'点积 a·b'],
-                [(dot/nb).toFixed(3),'a 在 b 上投影长度']
+                [(dot/nb).toFixed(3),'a 在 b 上的有符号标量投影']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('ax').value = '3';
@@ -238,14 +239,15 @@ function __dot_product_2dExtras(){
     function __dot_product_2dRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var ax=num('ax'),ay=num('ay'),bx=num('bx'),by=num('by');
-    var dot=ax*bx+ay*by, nb=Math.hypot(bx,by);
+    if(String(__dot_product_2dRaw('ax')).trim()===''||String(__dot_product_2dRaw('ay')).trim()===''||String(__dot_product_2dRaw('bx')).trim()===''||String(__dot_product_2dRaw('by')).trim()==='') return;
     if (!isFinite(__dot_product_2dNum('ax')) || !isFinite(__dot_product_2dNum('ay')) || !isFinite(__dot_product_2dNum('bx')) || !isFinite(__dot_product_2dNum('by'))) return;
+    var dot=ax*bx+ay*by, nb=Math.hypot(bx,by);
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#dot_product_2dTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['点积 a·b', dot.toFixed(3)],
-            ['a 在 b 上投影长度', (dot/nb).toFixed(3)],
+            ['a 在 b 上的有符号标量投影', nb===0?'—（|b|=0，无定义）':(dot/nb).toFixed(3)],
         ]
     });
     TBKit.history.record({ax:__dot_product_2dRaw('ax'), ay:__dot_product_2dRaw('ay'), bx:__dot_product_2dRaw('bx'), by:__dot_product_2dRaw('by'), dot:dot});
@@ -302,7 +304,7 @@ else document.addEventListener('DOMContentLoaded', __dot_product_2dBoot);
 <li>图形学：判定两<a class="term-link" href="/tools/geometry/angle-between-vectors.html">向量夹角</a>锐/钝、做相似性度量</li>
 <li>几何分析：由投影长度理解向量在基上的分量</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：点积 a·b = ax·bx + ay·by；a 在 b 上的投影长度（带符号）= a·b / |b|，|b| = √(bx²+by²)，例如 b=(3,4) 时 |b|=5。投影为正表示与 b 同向分量、为负表示反向。要求 b 非零。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：点积 a·b = ax·bx + ay·by；a 在 b 上的投影长度（带符号）= a·b / |b|，|b| = √(bx²+by²)，例如 b=(3,4) 时 |b|=5。投影为正表示与 b 同向分量、为负表示反向；b=0 时点积仍输出、投影显示无定义。四个坐标均必填，空白不等于 0。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：a=(3,4)、b=(1,0) → a·b=3、|b|=1.000、投影=3.000（即 a 在 x 轴上的投影等于其 x 分量）。若 a=(1,2)、b=(3,4) → a·b=11、|b|=5.000、投影=2.200；点积&gt;0 说明两向量夹角为锐角。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
