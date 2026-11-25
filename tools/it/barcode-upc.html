@@ -256,7 +256,7 @@ function buildUPC(input){
 function drawBarcode(bits,digits){
   const N=bits.length;const modW=3;const barH=120;const textH=22;
   // UPC-A 首位数字系统字符按规范印在左静区，需给它留出足够宽度。
-  const leftQuiet=24,rightQuiet=10;
+  const leftQuiet=30,rightQuiet=30; // 第811批：UPC-A 静区要求每侧至少 9 模块；模块宽 3px，取 10 模块（30px）留余量
   const w=N*modW+leftQuiet+rightQuiet;const h=barH+textH;
   const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
   const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
@@ -288,8 +288,11 @@ function generate(){
   const out=document.getElementById('output');
   const built=buildUPC(input);
   if(built.error){
-    const msg={empty:'请输入 11 或 12 位数字（UPC-A）',nonDigit:'输入含非数字字符，请只填写数字',length:'位数不对：UPC-A 需要 11 或 12 位数字',check:'校验位错误：正确的第 12 位应为 '+built.expect};
-    out.innerHTML='<p style="color:var(--danger)">⚠ '+(msg[built.error]||'输入无效')+'</p>';
+    const en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    const msg=en
+      ? {empty:'Enter 11 or 12 digits (UPC-A).',nonDigit:'Input contains non-digits; use digits only.',length:'UPC-A requires 11 or 12 digits.',check:'Check digit is wrong; the 12th digit should be '+built.expect+'.'}
+      : {empty:'请输入 11 或 12 位数字（UPC-A）',nonDigit:'输入含非数字字符，请只填写数字',length:'位数不对：UPC-A 需要 11 或 12 位数字',check:'校验位错误：正确的第 12 位应为 '+built.expect};
+    out.innerHTML='<p style="color:var(--danger)">⚠ '+(msg[built.error]||(en?'Invalid input':'输入无效'))+'</p>';
     return;
   }
   const canvas=drawBarcode(built.bits,built.d);

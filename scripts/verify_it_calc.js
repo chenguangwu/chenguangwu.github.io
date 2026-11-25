@@ -6875,9 +6875,27 @@ const CASES = [
   },
   {
     slug: "it/barcode-itf",
-    clicks: ["document.getElementById('data').value='ITF1234';generate();var h=String(document.getElementById('output').innerHTML||'');var cap='';var old=navigator.clipboard;navigator.clipboard={writeText:function(t){cap=String(t);return Promise.resolve();}};copyResult();navigator.clipboard=old;document.getElementById('__tbProbe').textContent='ITFNORM '+((__itfLastNormalized==='1234'&&h.indexOf('>1234<')>=0&&h.indexOf('ITF1234')<0&&cap==='1234')?'OK':'BAD');"],
-    expect: ["ITFNORM OK"],
-    ref: "IT-N325：规范化数字串（去非数字、奇数前补 0）是唯一真值。注入 ITF1234，断言页面 .bar-text、复制内容、__itfLastNormalized 均为 1234 且原始输入不再出现；旧态 bar-text/复制均为 ITF1234、奇数位也不补零 ⇒ BAD。默认态不执行 clicks ⇒ 零逃生。",
+    clicks: ["document.getElementById('data').value='ITF1234';generate();var h=String(document.getElementById('output').innerHTML||'');document.getElementById('__tbProbe').textContent='ITFREJECT '+((h.indexOf('非数字')>=0&&h.indexOf('<canvas')<0)?'OK':'BAD');"],
+    expect: ["ITFREJECT OK"],
+    ref: "第811批：非数字输入必须报错且不出图，不再静默剥离成 1234。注入 ITF1234，断言提示含「非数字」、输出无 canvas、原始串仍出现在错误信息中；旧实现静默改写并出图 ⇒ BAD。",
+  },
+  {
+    slug: "it/barcode-itf",
+    clicks: ["document.getElementById('data').value='12345678901234';generate();var h=String(document.getElementById('output').innerHTML||'');document.getElementById('__tbProbe').textContent='ITFCHK '+((h.indexOf('第 14 位应为 1')>=0&&h.indexOf('<canvas')<0)?'OK':'BAD');"],
+    expect: ["ITFCHK OK"],
+    ref: "第811批：ITF-14 输入 14 位时必须核对 GTIN-14 校验位。12345678901234 前 13 位的校验位为 1，末位 4 错误 ⇒ 报「第 14 位应为 1」且不出图。旧实现不校验、直接编码 ⇒ BAD。",
+  },
+  {
+    slug: "it/barcode-itf",
+    clicks: ["document.getElementById('data').value='1234567890123';generate();var h=String(document.getElementById('output').innerHTML||'');document.getElementById('__tbProbe').textContent='ITFAPPEND '+((__itfLastNormalized==='12345678901231'&&h.indexOf('12345678901231')>=0&&h.indexOf('校验位：1')>=0)?'OK':'BAD');"],
+    expect: ["ITFAPPEND OK"],
+    ref: "第811批：输入 13 位时按 GTIN-14 自动补第 14 位校验位并明确提示。1234567890123 ⇒ 12345678901231，页面 bar-text 与提示均出现校验位 1；旧实现原样编码 13 位 ⇒ BAD。",
+  },
+  {
+    slug: "it/barcode-upc",
+    clicks: ["var s=String(drawBarcode);var i=s.indexOf('rightQuiet=30');document.getElementById('__tbProbe').textContent='UPCQUIET '+((i>=0&&s.indexOf('leftQuiet=30')>=0)?'OK':'BAD');"],
+    expect: ["UPCQUIET OK"],
+    ref: "第811批：UPC-A 左右静区都应满足规范约 9 模块。旧实现 rightQuiet=10（约 3.3 模块）、左侧仅 8 模块；现左右均 30px（10 模块），满足 UPC-A 每侧至少 9 模块的静区要求。默认态不执行 clicks ⇒ 零逃生。",
   },  // —— BATCH284：哈希计算器多算法 / 批量 / 校验分支 + JSON 与 TSV 双向转换 ——
   {
     slug: "it/hash",
@@ -9075,9 +9093,9 @@ const CASES = [
       "data": "abc123测试"
     },
     "expect": [
-      "abc123测试\n0123"
+      "输入含非数字字符：ITF 仅支持 0–9"
     ],
-    "ref": "IT-N325 口径同步：注入非默认输入 abc123测试，页面只保留数字并规范化为偶数位 0123 作为唯一真值，输出区不再回显原始输入（仅输入框保留原值）；新版 expect 锚定带换行的 abc123测试 / 0123，旧实现回显两次原始输入 ⇒ 强判别、零逃生。"
+    "ref": "第811批口径同步：含非数字的输入必须明确报错、不出图，不再静默剥离成 0123。旧用例把「去非数字 + 补零」当成唯一真值，实际掩盖了输入被静默改写的问题；现锚定错误提示，默认样例为纯数字不命中。"
   },
   {
     "slug": "it/barcode-upc",
@@ -18635,6 +18653,33 @@ const CASES = [
     "ref": "第810批：输入变化后必须把旧画布标记为过期，下载不得再取旧图。探针先生成（stale=false），再修改 data 并触发 input，要求 stale 回到 true；旧实现无任何过期标记 ⇒ 第二次断言为 false。"
   },
 
+  {
+    slug: "it/sitemap-generator",
+    inputs: { urls: "https://a.test\nhttps://b.test" },
+    clicks: ["calcTool()"],
+    expect: ["lastmod：未填写（输出中省略）", "sitemap.xml 2 URL 数"],
+    ref: "第811批：未填 lastmod 时不得虚构当天日期。注入两条 URL，断言输出无 lastmod 字段且统计仍为 2 URL 数；旧实现无条件写入当天日期 ⇒ BAD。",
+  },
+  {
+    slug: "it/sitemap-generator",
+    inputs: { urls: "https://a.test\nnot a url\nhttps://a.test\ntel:123", lastmod: "2026-11-25" },
+    clicks: ["calcTool()"],
+    expect: ["sitemap.xml 1 URL 数", "已跳过 2 行无效 URL", "已去重 1 条重复 URL", "lastmod：2026-11-25"],
+    ref: "第811批：逐行按 URL 解析校验协议、去重、列出无效行；填写 lastmod 时使用用户日期而不是当天。4 行输入中 2 行无效（非 URL、tel:），1 条重复 ⇒ 只剩 1 URL，并输出 2026-11-25。旧实现静默丢弃且写当天日期 ⇒ BAD。",
+  },
+  {
+    slug: "it/sitemap-generator",
+    inputs: { urls: "https://a.test", lastmod: "2026-13-40" },
+    clicks: ["calcTool();var h=String(document.getElementById('result').innerHTML||'');document.getElementById('__tbProbe').textContent='SITEMAPBADATE '+(h.indexOf('日期无效')>=0?'OK':'BAD');"],
+    expect: ["SITEMAPBADATE OK"],
+    ref: "第811批：lastmod 必须是真实 YYYY-MM-DD 日期。2026-13-40 非法 ⇒ 明确报「日期无效」且不输出 sitemap；旧实现对此输入静默使用当天日期 ⇒ BAD。",
+  },
+  {
+    slug: "it/robots-txt-generator",
+    inputs: { sitemap: "https://a.io/sitemap.xml" },
+    expect: ["共 2 组；预览首条规则：User-agent: Googlebot；Sitemap 已独立置于末尾"],
+    ref: "第811批：不得在开头无条件多写一组 User-agent: *。默认两组规则（Googlebot、*）本应直接从 Googlebot 开始；旧实现会在最前面多塞一组 * ⇒ 预览首条规则变成 User-agent: *。页面摘要显示组数、首条规则与 Sitemap 位置，锚定摘要即可判别。",
+  },
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
