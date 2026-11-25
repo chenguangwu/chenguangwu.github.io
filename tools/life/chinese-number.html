@@ -303,23 +303,52 @@ function numberToUpperChinese(n){
   return intToChinese(n, upperDigits, '零');
 }
 
-// 人民币大写金额：先量化到分，再按元/角/分拼接，元与角之间补零
-function toRMB(n){
-  if(!isFinite(n)) return '--';
-  const neg = n < 0;
-  const cents = Math.round(Math.abs(n) * 100);
-  if(cents === 0) return '零元整';
-  const yuan = Math.floor(cents / 100);
-  const jiao = Math.floor((cents % 100) / 10);
-  const fen = cents % 10;
+// 按十进制字符串转换，避免超过 Number 安全整数后丢位。
+function intStrToChinese(str, upper){
+  str = String(str).replace(/^0+/, '');
+  if(!str) return '零';
+  if(str.length > 16) return null;
+  const segs = [];
+  for(let end = str.length; end > 0; end -= 4){
+    segs.unshift(str.slice(Math.max(0, end - 4), end));
+  }
+  let result = '', needZero = false;
+  segs.forEach((seg, i) => {
+    const unit = bigUnits[segs.length - 1 - i];
+    const nseg = Number(seg);
+    if(nseg === 0){
+      if(result) needZero = true;
+      return;
+    }
+    if(result && (needZero || nseg < 1000)) result += '零';
+    result += seg4ToChinese(seg, upper) + unit;
+    needZero = false;
+  });
+  return result || '零';
+}
+
+// 人民币大写金额：按字符串量化到分，避免浮点误差；角为零而分非零时补「零」。
+function toRMBStr(raw){
+  let str = String(raw).trim();
+  const neg = str.charAt(0) === '-';
+  if(neg) str = str.slice(1);
+  let [intPart, decPart=''] = str.split('.');
+  intPart = intPart.replace(/^0+/, '') || '0';
+  if(intPart.length > 16) return null;
+  const first2 = (decPart + '00').slice(0, 2);
+  let cents = BigInt(intPart) * 100n + BigInt(first2);
+  if(decPart.length > 2 && decPart.charAt(2) >= '5') cents += 1n;
+  const yuan = cents / 100n, jiao = (cents / 10n) % 10n, fen = cents % 10n;
   let rmb = '';
-  if(yuan > 0) rmb += numberToUpperChinese(yuan) + '元';
-  if(jiao > 0) rmb += upperDigits[jiao] + '角';
-  else if(yuan > 0 && fen > 0) rmb += '零';
-  if(fen > 0) rmb += upperDigits[fen] + '分';
-  if(fen === 0) rmb += '整';
+  if(yuan > 0n) rmb += intStrToChinese(String(yuan), true) + '元';
+  else rmb += '零元';
+  if(jiao > 0n) rmb += upperDigits[Number(jiao)] + '角';
+  else if(fen > 0n) rmb += '零';
+  if(fen > 0n) rmb += upperDigits[Number(fen)] + '分';
+  if(fen === 0n) rmb += '整';
   return (neg ? '负' : '') + rmb;
 }
+function toRMB(n){ return isFinite(n) ? toRMBStr(String(n)) : '--'; }
 
 // 中文转数字
 const chMap = {
@@ -386,15 +415,26 @@ function convert(){
     const dotPos = absStr.indexOf('.');
     const intStr = dotPos < 0 ? absStr : absStr.slice(0, dotPos);
     const decStr = dotPos < 0 ? '' : absStr.slice(dotPos + 1);
-    const intVal = parseInt(intStr, 10) || 0;
+    if(intStr.replace(/^0+/, '').length > 16){
+      inputEl.classList.add('input-error');
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">整数部分最多支持 16 位，请缩短后再转换。</p>';
+      return;
+    }
     const sign = neg ? '负' : '';
     const decSimple = decStr ? '点' + decStr.split('').map(d => simpleDigits[parseInt(d, 10)]).join('') : '';
     const decUpper = decStr ? '点' + decStr.split('').map(d => upperDigits[parseInt(d, 10)]).join('') : '';
+    const intSimple = intStrToChinese(intStr, false), intUpper = intStrToChinese(intStr, true), rmb = toRMBStr(v);
+    if(intSimple === null || intUpper === null || rmb === null){
+      inputEl.classList.add('input-error');
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">整数部分最多支持 16 位，请缩短后再转换。</p>';
+      return;
+    }
     let html = `<p>阿拉伯数字：<strong>${v}</strong></p>`;
     html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-    html += `<p>简体中文：<strong>${sign}${numberToSimpleChinese(intVal)}${decSimple}</strong></p>`;
-    html += `<p>大写中文：<strong>${sign}${numberToUpperChinese(intVal)}${decUpper}</strong></p>`;
-    html += `<p>人民币大写：<strong>${toRMB(n)}</strong></p>`;
+    html += `<p>简体中文：<strong>${sign}${intSimple}${decSimple}</strong></p>`;
+    html += `<p>大写中文：<strong>${sign}${intUpper}${decUpper}</strong></p>`;
+    html += `<p>人民币大写：<strong>${rmb}</strong></p>`;
+    if(decStr.length > 2) html += `<p style="font-size:12px;color:var(--text-muted);">人民币金额按「分」四舍五入，厘位及以下不计。</p>`;
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
   } else if(/^[负〇零一二壹贰两三叁四肆五伍六陆七柒八捌九玖十拾百佰千仟万亿元兆整角分点]+$/i.test(v)){
     const n = chineseToNumber(v);

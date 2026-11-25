@@ -2109,7 +2109,7 @@ const CASES = [
       "fromUnit": "gcm3"
     },
     "expect": [
-      "42\ngcm3\n基准： 42 g/cm³ = 42000 kg/m³ 千克每立方米： 42000 kg/m³ 克每毫升： 42"
+      "42\ngcm3\n基准： 42 g/cm³ = 42000 kg/m³ 千克每立方米： 42000 kg/m³ 克每升： 42000 g/L 克每毫升： 42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"gcm3\"}，输出区含「42\ngcm3\n基准： 42 g/cm³ = 42000 kg/m³ 千克每立方…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2174,7 +2174,7 @@ const CASES = [
       "temp": "42"
     },
     "expect": [
-      "l 每日饮水目标 6.6"
+      "2,160.00 ml 每日饮水目标 8.6 杯"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"w\":\"42\",\"temp\":\"42\"}，输出区含「l 每日饮水目标 6.6」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3267,6 +3267,99 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["≤1 份 2 单 · >1 且 ≤3 份 2 单 · >3 份 1 单"],
     ref: "第880批：分档标签写成「≤1 份 / 1–3 份 / >3 份」，边界 1 份与 1.5 份归属含混；现明确 ≤1、>1 且 ≤3、>3。0.5/1 落入首档、1.5/3 落入中档、3.5 落入末档。默认示例不含该组合。"
+  },
+
+  // ── 第881批：补货语义、完整月、导出、大数、单位与冲突 ───────
+  {
+    slug: "life/cycle-4",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/cycle-4.html','utf8');document.getElementById('__tbProbe').textContent='REORDER '+((src.indexOf('getDaysUntilThreshold(sup)')>=0&&src.indexOf('(sup.stock - sup.threshold) / dailyRate')>=0&&src.indexOf('getDaysUntilThreshold')>=0)?'OK':'BAD');"],
+    expect: ["REORDER OK"],
+    ref: "第881批：库存 12、月耗 6、阈值 4，旧文案把「阈值到耗尽」20 天误说成「距触及阈值」；现在分别显示距阈值 (12−4)/0.2=40 天、阈值库存可维持 4/0.2=20 天。默认示例不含 REORDER。"
+  },
+  {
+    slug: "life/date-difference-calculator",
+    inputs: { startDate: "2026-01-31", endDate: "2026-02-01" },
+    checkIds: ["includeStart", "includeWeekends"],
+    clicks: ["calcDiff()"],
+    expect: ["0年0月 完整年月", "0 完整月数"],
+    ref: "第881批：1/31→2/1 仅跨月份边界，不是完整一个月；旧月份编号差显示 1 个月。现按月末夹取逐月推进，完整月数为 0，并明确标注「完整年月/完整月数」。默认示例不含该组合。"
+  },
+  {
+    slug: "life/date-difference-calculator",
+    inputs: { startDate: "2024-01-31", endDate: "2024-02-29" },
+    checkIds: ["includeStart", "includeWeekends"],
+    clicks: ["calcDiff()"],
+    expect: ["0年1月 完整年月", "1 完整月数"],
+    ref: "第881批护栏：闰年 1/31 + 1 月夹取到 2/29，恰好不超过结束日，完整月数应为 1；与 2026 平年 2/1 用例互为判别。"
+  },
+  {
+    slug: "life/drinking-water-plan",
+    inputs: { w: "60", temp: "26", act: "mid", stage: "normal" },
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/drinking-water-plan.html','utf8');document.getElementById('__tbProbe').textContent='DWPEXP '+((src.indexOf(\"table.id='__dwpExportTable'\")>=0&&src.indexOf(\"rows.push(['合计'\")>=0&&src.indexOf('07:00-08:30')>=0)?'OK':'BAD');"],
+    expect: ["DWPEXP OK"],
+    ref: "第881批：旧导出只含四行摘要，没有分时计划；现临时生成「条件 + 每日目标 + 十个时段 + 合计」表再导出并移除。探针捕获导出选择器内容，要求含首个时段、合计与每日目标。默认无导出不含 DWPEXP。"
+  },
+  {
+    slug: "life/chinese-number",
+    inputs: { inputVal: "1000000000000001" },
+    clicks: ["convert()"],
+    expect: ["简体中文： 一千万亿零一", "人民币大写： 壹仟万亿零壹元整"],
+    ref: "第881批：超过 Number 安全整数的 1000000000000001 旧实现 parseInt 后丢位；现按十进制字符串分组转换，整数为「一千万亿零一」。金额同用 BigInt 到分，必然出现「壹仟万亿零壹元零壹分」。默认 123 不含该串。"
+  },
+  {
+    slug: "life/chinese-number",
+    inputs: { inputVal: "100.01" },
+    clicks: ["convert()"],
+    expect: ["人民币大写： 壹佰元零壹分"],
+    ref: "第881批：角为零、分非零时必须在元与分之间补「零」；旧实现输出「壹佰元壹分」。默认 123 元整，不含该串。"
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "1000", fromUnit: "gL" },
+    clicks: ["convert()"],
+    expect: ["基准： 1000 g/L = 1000 kg/m³", "克每升： 1000 g/L"],
+    ref: "第881批：英文简介承诺 g/L 但源/结果单位缺失；现新增 g/L（1 g/L = 1 kg/m³）。输入 1000 g/L 应等于 1000 kg/m³；默认 kg/m³ 不含该组合。"
+  },
+  {
+    slug: "life/percentage-calculator",
+    inputs: { isWhatX: "1e308", isWhatY: "1" },
+    clicks: ["calcIsWhat()"],
+    expect: ["结果超出可表示范围", "0%"],
+    ref: "第881批：1e308/1×100 溢出为 Infinity，旧实现结果 -- 但进度条仍夹到 100% 形成满格错误结论；现检测非有限值，提示超范围并把进度条清零。默认 30/150 不含该提示。"
+  },
+  {
+    slug: "life/age-in-days",
+    inputs: { birthDate: "2024-02-01" },
+    expect: ["生肖（按公历年）：龙（春节前出生者传统生肖可能属上一年）", "未做农历换算"],
+    ref: "第881批：生肖只按公历年份推算，春节前出生者传统生肖可能属上一年；旧说明称只差约 1 天，误导。现在行内直接标注口径并在脚注说明未做农历换算。默认日期不含该标签。"
+  },
+  {
+    slug: "life/number-to-chinese",
+    inputs: { numInput: "100.01" },
+    clicks: ["document.querySelector('input[name=mode][value=upper]').checked=true;document.querySelector('input[name=mode][value=lower]').checked=false;convert()"],
+    expect: ["壹佰圆零壹分"],
+    ref: "第881批：角为零、分非零时必须补「零」，旧实现输出「壹佰圆壹分」；现财务大写为「壹佰圆零壹分」。默认 10 元整不含该串。"
+  },
+  {
+    slug: "life/report-profit",
+    inputs: { rev: "100", cog: "-100", payroll: "0", rent: "0", misc: "0", recv: "100", cash0: "0" },
+    clicks: ["calc()"],
+    expect: ["进货成本不能为负。退款/冲销请冲减营业收入"],
+    ref: "第881批：负进货成本旧实现算成毛利/营业利润 200，并把负成本当负付现支出；现逐项拒绝成本费用负数并提示正确冲减位置。默认示例成本为正。"
+  },
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "2026-01-01", endDate: "2026-01-05", holidays: "2026-01-01", workdays: "2026-01-01" },
+    clicks: ["calc()"],
+    expect: ["以下日期同时出现在法定节假日和调休上班日，请先修正： 2026-01-01"],
+    ref: "第881批：同一日期既是法定节假日又是调休补班时，旧实现静默优先补班、无提示；现检测交集并列出具体日期后停止计算。默认无冲突日期。"
+  },
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "2026-01-01", endDate: "2026-01-05", holidays: "2026-01-01", workdays: "2026-01-02" },
+    clicks: ["calc()"],
+    expect: ["另有 1 个普通工作日被填入「调休上班日」"],
+    ref: "第881批：普通工作日填进调休列表本来不增加工作日，旧实现仍计为「调休上班日 1 天」；现只统计真正落在周末的补班，普通工作日单独提示核实。默认无补班日期。"
   },
 
 ];

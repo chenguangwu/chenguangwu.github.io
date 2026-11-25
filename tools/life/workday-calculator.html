@@ -180,7 +180,7 @@
     <div class="result-box">
       <p>默认排除周六、周日</p>
       <p>法定节假日：列出放假日（如国庆、春节假期），逐日扣减</p>
-      <p>调休上班日：填入周末补班日期，即使为周六/周日也强制计为工作日</p>
+      <p>调休上班日：填入周末补班日期，即使为周六/周日也强制计为工作日；若与法定节假日重复会提示冲突，普通工作日填入会提示核实</p>
       <p>含起始日与结束日（如周一到周五 = 5 个工作日；同一天 = 1 个自然日）</p>
       <p>2026 年中国法定节假日参考：</p>
       <p style="font-size:12px;color:var(--text-muted);">1/1 元旦，2/15-2/22 春节假期，4/4-4/6 清明，5/1-5/5 劳动节，6/19-6/21 端午，9/25-9/27 中秋+国庆</p>
@@ -319,6 +319,12 @@ function calc(){
   const skipSun = document.getElementById('skipSun').checked;
   const holidays = parseDateSet('holidays');
   const makeupDays = parseDateSet('workdays');
+  const conflicts = [];
+  holidays.forEach(function(key){ if(makeupDays.has(key)) conflicts.push(key); });
+  if(conflicts.length){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">以下日期同时出现在法定节假日和调休上班日，请先修正：<strong>'+conflicts.slice(0,8).join('、')+'</strong>'+(conflicts.length>8?' 等 '+conflicts.length+' 天':'')+'。</p>';
+    return;
+  }
   // 整周算术统计周末，再只遍历用户填写的假期/调休集合；避免超大跨度逐日循环阻塞页面。
   const totalDays = Math.round((end - start) / 86400000) + 1;
   function countDow(dow){
@@ -331,8 +337,12 @@ function calc(){
   let holidayCount = 0, makeupCount = 0;
   const startKey = fmtLocalDate(start), endKey = fmtLocalDate(end);
   function inRange(key){ return key >= startKey && key <= endKey; }
+  let weekdayMakeupCount = 0;
   makeupDays.forEach(function(key){
-    if(inRange(key)) makeupCount++;
+    if(!inRange(key)) return;
+    const dow = parseLocalDate(key).getDay();
+    if((skipSat && dow === 6) || (skipSun && dow === 0)) makeupCount++;
+    else if(dow !== 6 && dow !== 0) weekdayMakeupCount++; // 普通工作日填进「调休」不会增加工作日，仅提示核实
   });
   holidays.forEach(function(key){
     if(!inRange(key) || makeupDays.has(key)) return;
@@ -353,7 +363,8 @@ function calc(){
     <p>工作日数：<strong style="color:var(--success);">${workDays}</strong> 天</p>
     <p>周末（已排除）：<strong>${weekends}</strong> 天</p>
     <p>法定节假日：<strong>${holidayCount}</strong> 天</p>
-    <p>调休上班日（计入工作日）：<strong>${makeupCount}</strong> 天</p>
+    <p>调休上班日（周末补班、计入工作日）：<strong>${makeupCount}</strong> 天</p>
+    ${weekdayMakeupCount ? '<p style="color:var(--warning);">另有 '+weekdayMakeupCount+' 个普通工作日被填入「调休上班日」，它们本来就是工作日，不会额外增加工作日数，请核实是否填错。</p>' : ''}
     <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">预计完成时间：约 ${Math.ceil(workDays / 5)} 周</p>
   `;document.getElementById('resultBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }

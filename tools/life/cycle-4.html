@@ -165,8 +165,8 @@
     <h3>➕ 添加清洁用品</h3>
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">日耗量 = 消耗速率 ÷ 周期天数（周=7 / 月=30）；可用天数 = ⌊库存 ÷ 日耗量⌋；补货周期 = ⌊补货阈值 ÷ 日耗量⌋</div>
-      <div class="formula-desc">把「每周期消耗量」折算为日耗量后，用当前库存估算可用天数、用补货阈值估算应下单的间隔。库存 ≤ 补货阈值判为「库存不足」，可用天数 ≤ 7 天判为「即将耗尽」。</div>
+      <div class="formula-eq">日耗量 = 消耗速率 ÷ 周期天数（周=7 / 月=30）；可用天数 = ⌊库存 ÷ 日耗量⌋；距触及阈值 = ⌊(库存 − 补货阈值) ÷ 日耗量⌋；阈值库存可维持 = ⌊补货阈值 ÷ 日耗量⌋</div>
+      <div class="formula-desc">把「每周期消耗量」折算为日耗量后，用当前库存估算可用天数、「距触及阈值」是库存降到阈值还需的天数；「阈值库存可维持」是从阈值降到 0 的天数（订货提前期的安全垫）。库存 ≤ 补货阈值判为「库存不足」，可用天数 ≤ 7 天判为「即将耗尽」。</div>
     </div>
 <div class="input-row">
       <div>
@@ -291,14 +291,19 @@ function getDaysUntilEmpty(sup) {
   return days;
 }
 
-// 计算补货周期天数（按阈值到库存满）
+// 距触及补货阈值的天数：库存高于阈值时，消耗到阈值还需多少天。
+function getDaysUntilThreshold(sup) {
+  if (sup.rate <= 0) return null;
+  var dailyRate = sup.rate / getDaysPerPeriod(sup.period);
+  if (sup.stock <= sup.threshold) return 0;
+  return Math.max(0, Math.floor((sup.stock - sup.threshold) / dailyRate));
+}
+
+// 阈值库存还能维持的天数（从阈值消耗到 0），用于估算下单后的安全垫。
 function getReorderCycle(sup) {
   if (sup.rate <= 0) return 0;
-  var periodDays = getDaysPerPeriod(sup.period);
-  var dailyRate = sup.rate / periodDays;
-  // 从阈值到耗尽的时间
-  var days = Math.floor(sup.threshold / dailyRate);
-  return days;
+  var dailyRate = sup.rate / getDaysPerPeriod(sup.period);
+  return Math.floor(sup.threshold / dailyRate);
 }
 
 function getStockStatus(sup) {
@@ -456,6 +461,9 @@ function renderSupplies() {
     html += '</div>';
     html += '<div class="supply-info">';
     html += '<span>预计耗尽：<b style="color:' + status.color + ';">' + dayText + '</b></span>';
+    var untilThreshold = getDaysUntilThreshold(sup);
+    html += '<span>距触及阈值：<b>' + (untilThreshold === null ? '未设消耗' : (untilThreshold === 0 ? '已触及' : untilThreshold + ' 天')) + '</b></span>';
+    html += '<span>阈值库存可维持：<b>' + (sup.rate <= 0 ? '—' : getReorderCycle(sup) + ' 天') + '</b></span>';
     html += '</div>';
     html += '<div style="margin-top:6px;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">库存水平</div>';
     html += '<div class="progress-bar"><div class="progress-fill" style="width:' + barPct + '%;background:' + barColor + ';"></div></div></div>';
@@ -704,7 +712,7 @@ render();
 <li>家庭或办公室盘点耗材时，把临近补货阈值的用品一次性列出来，集中采购。</li>
 <li>根据实际消耗修正速率参数，让补货提醒更贴合真实使用节奏。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">纸巾还能用多久</div><div class="dd-ex-body">库存 12 卷、消耗速率 6 卷/月、补货阈值 4 卷：日耗量 = 6÷30 = 0.2 卷/天，可用天数 = ⌊12÷0.2⌋ = 60 天，补货周期 = ⌊4÷0.2⌋ = 20 天；即约 20 天后库存触及阈值，应安排下单。</div></div>
+<div class="dd-example"><div class="dd-ex-title">纸巾还能用多久</div><div class="dd-ex-body">库存 12 卷、消耗速率 6 卷/月、补货阈值 4 卷：日耗量 = 6÷30 = 0.2 卷/天，可用天数 = ⌊12÷0.2⌋ = 60 天；距触及阈值 = ⌊(12−4)÷0.2⌋ = 40 天，即约 40 天后库存降到阈值；阈值库存还能维持 ⌊4÷0.2⌋ = 20 天，可作为下单到货的安全垫。</div></div>
 <div class="dd-example"><div class="dd-ex-title">不同周期口径的换算</div><div class="dd-ex-body">某用品按「周」设置速率 3 件、库存 10 件：日耗量 = 3÷7 ≈ 0.43 件/天，可用约 23 天；同一用品若误按「月」填 3 件，可用天数会被算成约 100 天，口径填错会显著高估可用时间。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
