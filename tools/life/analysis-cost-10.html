@@ -237,7 +237,7 @@ function norm(s){
   // 不在此处合并千分位：会把「办公 用品,100,120」误并成 100120，交给下面的字段正则区分
   return s;
 }
-var rows='',tb=0,ta=0,n=0,over=0,under=0,worst="—",worstV=0,skipped=[];
+var rows='',tb=0,ta=0,n=0,over=0,under=0,worst="—",worstV=0,skipped=[],neg=[];
 function esc(s){return (typeof ToolBox!=='undefined'&&ToolBox.escHtml)?ToolBox.escHtml(String(s)):String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 lines.forEach(function(raw){
 // 名称允许含空格：先归一化全角数字/千分位/单位后缀，再取行末两个数字作为预算/实际
@@ -246,13 +246,14 @@ var m=ln.match(/^(.+?)[\s,，\t;；]+(-?\d{1,3}(?:,\d{3})*|-?\d+(?:\.\d+)?)[\s,�
 if(!m){skipped.push(raw);return;}
 var name=m[1].trim(),b=parseFloat(String(m[2]).replace(/,/g,'')),a=parseFloat(String(m[3]).replace(/,/g,''));
 if(isNaN(b)||isNaN(a)){skipped.push(ln);return;}
+if(b<0||a<0){neg.push(ln);return;}
 var d=a-b,dr=b!==0?(d/b*100).toFixed(2)+'%':'—（预算为 0）';
 n++;tb+=b;ta+=a;
 if(d>0){over++;if(d>worstV){worstV=d;worst=name;}}else if(d<0){under++;}
 rows+='<tr><td>'+esc(name)+'</td><td>'+b.toFixed(2)+'</td><td>'+a.toFixed(2)+'</td><td>'+(d>0?'+':'')+d.toFixed(2)+'</td><td>'+dr+'</td><td>'+(d>0?'超支':(d<0?'节约':'持平'))+'</td></tr>';
 });
 if(!n){document.getElementById("res").innerHTML='<p>请按「成本项,预算,实际」逐行输入</p>';return;}
-var diff=ta-tb,rateText=tb>0?(ta/tb*100).toFixed(2)+'%':'—（预算合计为 0）';
+var diff=ta-tb,rateText=tb>0?(ta/tb*100).toFixed(2)+'%':(tb===0?'不适用（预算合计为 0）':'—（预算合计为负，已按无效处理）');
 const __g2='<p>成本项数：<strong>'+n+'</strong></p>'+
 '<p>预算合计：<strong>'+tb.toFixed(2)+'</strong> 元</p>'+
 '<p>实际合计：<strong>'+ta.toFixed(2)+'</strong> 元</p>'+
@@ -261,6 +262,7 @@ const __g2='<p>成本项数：<strong>'+n+'</strong></p>'+
 '<p>最大超支项：<strong>'+worst+'</strong>（超支 '+worstV.toFixed(2)+' 元）</p>'+
 '<p>超支项数：<strong>'+over+'</strong>　节约项数：<strong>'+under+'</strong></p>'+
 (skipped.length?'<p style="color:var(--warning);">存在无法解析的行，已跳过。</p><p class="muted">'+skipped.map(esc).join('；')+'</p>':'')+
+(neg.length?'<p style="color:var(--warning);">预算或实际为负的行已按无效处理（成本预算不能为负）：</p><p class="muted">'+neg.map(esc).join('；')+'</p>':'')+
 '<table><thead><tr><th>成本项</th><th>预算（元）</th><th>实际（元）</th><th>差异</th><th>差异率</th><th>判定</th></tr></thead><tbody>'+rows+'</tbody></table>';document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}

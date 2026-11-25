@@ -406,6 +406,10 @@ function switchTab(tab){
   });
 }
 
+function say(zh, en){
+  return ((typeof TBKit!=='undefined'&&TBKit.util.isEn()) ? en : zh);
+}
+
 function fmt(n){
   if(!isFinite(n)) return '--';
   if(Math.abs(n) >= 1e10) return n.toExponential(4);
@@ -436,7 +440,7 @@ function calcIsWhat(){
   
   const result = (x / y) * 100;
   document.getElementById('isWhatResult').textContent = fmt(result) + '%';
-  document.getElementById('isWhatDesc').textContent = `${fmt(x)} 是 ${fmt(y)} 的 ${fmt(result)}%`;
+  document.getElementById('isWhatDesc').textContent = say(`${fmt(x)} 是 ${fmt(y)} 的 ${fmt(result)}%`, `${fmt(x)} is ${fmt(result)}% of ${fmt(y)}`);
   
   const barPct = Math.min(100, Math.max(0, result));
   document.getElementById('isWhatFill').style.width = barPct + '%';
@@ -470,8 +474,9 @@ function calcIncrease(){
   const result = x * (1 + pct / 100);
   const diff = result - x;
   document.getElementById('incResult').textContent = fmt(result);
-  document.getElementById('incDesc').textContent = 
-    `${fmt(x)} 增加 ${fmt(pct)}% = ${fmt(result)}（增加 ${fmt(diff)}）`;
+  document.getElementById('incDesc').textContent = say(
+    `${fmt(x)} 增加 ${fmt(pct)}% = ${fmt(result)}（增加 ${fmt(diff)}）`,
+    `${fmt(x)} increased by ${fmt(pct)}% = ${fmt(result)} (increase ${fmt(diff)})`);
 }
 
 function calcDecrease(){
@@ -487,8 +492,9 @@ function calcDecrease(){
   const result = x * (1 - pct / 100);
   const diff = x - result;
   document.getElementById('decResult').textContent = fmt(result);
-  document.getElementById('decDesc').textContent = 
-    `${fmt(x)} 减少 ${fmt(pct)}% = ${fmt(result)}（减少 ${fmt(diff)}）`;
+  document.getElementById('decDesc').textContent = say(
+    `${fmt(x)} 减少 ${fmt(pct)}% = ${fmt(result)}（减少 ${fmt(diff)}）`,
+    `${fmt(x)} decreased by ${fmt(pct)}% = ${fmt(result)} (decrease ${fmt(diff)})`);
 }
 
 function calcChange(){
@@ -515,8 +521,9 @@ function calcChange(){
   
   document.getElementById('chgResult').textContent = (result >= 0 ? '+' : '') + fmt(result) + '%';
   document.getElementById('chgResult').style.color = result >= 0 ? '#f44336' : '#4caf50';
-  document.getElementById('chgDesc').textContent = 
-    `从 ${fmt(oldVal)} 到 ${fmt(newVal)}，${upOrDown} ${fmt(Math.abs(result))}%（差 ${fmt(diff)}）`;
+  document.getElementById('chgDesc').textContent = say(
+    `从 ${fmt(oldVal)} 到 ${fmt(newVal)}，${upOrDown} ${fmt(Math.abs(result))}%（差 ${fmt(diff)}）`,
+    `From ${fmt(oldVal)} to ${fmt(newVal)}, ${result >= 0 ? 'increased' : 'decreased'} by ${fmt(Math.abs(result))}% (difference ${fmt(diff)})`);
 }
 
 function initQuickGrid(){
@@ -554,40 +561,69 @@ function applyQuick(idx){
 }
 
 function saveHistory(type){
-  let item = { id: Date.now(), type, time: new Date().toLocaleString('zh-CN') };
-  
+  const item = { id: Date.now(), ts: Date.now(), type };
   if(type === 'isWhat'){
-    const x = document.getElementById('isWhatX').value;
-    const y = document.getElementById('isWhatY').value;
-    const result = (x / y) * 100;
-    item.label = `${x} 是 ${y} 的 ${fmt(result)}%`;
+    item.x = numVal('isWhatX'); item.y = numVal('isWhatY');
   } else if(type === 'ofWhat'){
-    const pct = document.getElementById('ofWhatPct').value;
-    const y = document.getElementById('ofWhatY').value;
-    const result = (pct / 100) * y;
-    item.label = `${pct}% × ${y} = ${fmt(result)}`;
+    item.pct = numVal('ofWhatPct'); item.y = numVal('ofWhatY');
   } else if(type === 'increase'){
-    const x = document.getElementById('incX').value;
-    const pct = document.getElementById('incPct').value;
-    const result = x * (1 + pct / 100);
-    item.label = `${x} + ${pct}% = ${fmt(result)}`;
+    item.x = numVal('incX'); item.pct = numVal('incPct');
   } else if(type === 'decrease'){
-    const x = document.getElementById('decX').value;
-    const pct = document.getElementById('decPct').value;
-    const result = x * (1 - pct / 100);
-    item.label = `${x} - ${pct}% = ${fmt(result)}`;
+    item.x = numVal('decX'); item.pct = numVal('decPct');
   } else if(type === 'change'){
-    const oldVal = document.getElementById('chgOld').value;
-    const newVal = document.getElementById('chgNew').value;
-    const result = ((newVal - oldVal) / oldVal) * 100;
-    item.label = `${oldVal} → ${newVal} = ${result >= 0 ? '+' : ''}${fmt(result)}%`;
+    item.oldVal = numVal('chgOld'); item.newVal = numVal('chgNew');
   }
-  
+  if(Object.keys(item).some(k => k !== 'id' && k !== 'ts' && k !== 'type' && !isFinite(item[k]))){
+    ToolBox.showToast(i18nText());
+    return;
+  }
   history.unshift(item);
   if(history.length > 50) history = history.slice(0, 50);
   saveHistoryStorage();
   renderHistory();
   ToolBox.showToast(i18nText());
+}
+
+function legacyItem(label){
+  const t=String(label||'').trim();
+  let m=t.match(/^(.+?) 是 (.+?) 的 ([\d.eE+-]+)%$/);
+  if(m) return {type:'isWhat',x:Number(m[1].replace(/,/g,'')),y:Number(m[2].replace(/,/g,''))};
+  m=t.match(/^([\d.eE+-]+)% × (.+?) = /);
+  if(m) return {type:'ofWhat',pct:Number(m[1]),y:Number(m[2].replace(/,/g,''))};
+  m=t.match(/^(.+?) 增加 ([\d.eE+-]+)% = /);
+  if(m) return {type:'increase',x:Number(m[1].replace(/,/g,'')),pct:Number(m[2])};
+  m=t.match(/^(.+?) 减少 ([\d.eE+-]+)% = /);
+  if(m) return {type:'decrease',x:Number(m[1].replace(/,/g,'')),pct:Number(m[2])};
+  m=t.match(/^从 (.+?) 到 (.+?)，(增加|减少) ([\d.eE+-]+)%/);
+  if(m) return {type:'change',oldVal:Number(m[1].replace(/,/g,'')),newVal:Number(m[2].replace(/,/g,''))};
+  return null;
+}
+
+function historyLabel(h){
+  if(!h) return '';
+  if(!h.type){
+    const parsed=legacyItem(h.label);
+    if(parsed) return historyLabel(parsed);
+    return h.label || '';
+  }
+  if(h.type === 'isWhat'){
+    return say(`${fmt(h.x)} 是 ${fmt(h.y)} 的 ${fmt((h.x / h.y) * 100)}%`, `${fmt(h.x)} is ${fmt((h.x / h.y) * 100)}% of ${fmt(h.y)}`);
+  }
+  if(h.type === 'ofWhat'){
+    return `${fmt(h.pct)}% × ${fmt(h.y)} = ${fmt((h.pct / 100) * h.y)}`;
+  }
+  if(h.type === 'increase'){
+    return say(`${fmt(h.x)} 增加 ${fmt(h.pct)}% = ${fmt(h.x * (1 + h.pct / 100))}`, `${fmt(h.x)} increased by ${fmt(h.pct)}% = ${fmt(h.x * (1 + h.pct / 100))}`);
+  }
+  if(h.type === 'decrease'){
+    return say(`${fmt(h.x)} 减少 ${fmt(h.pct)}% = ${fmt(h.x * (1 - h.pct / 100))}`, `${fmt(h.x)} decreased by ${fmt(h.pct)}% = ${fmt(h.x * (1 - h.pct / 100))}`);
+  }
+  if(h.type === 'change'){
+    if(h.oldVal === 0) return say(`从 0 到 ${fmt(h.newVal)}（基数 0，增长率无定义）`, `From 0 to ${fmt(h.newVal)} (undefined growth rate)`);
+    const r = ((h.newVal - h.oldVal) / h.oldVal) * 100;
+    return say(`从 ${fmt(h.oldVal)} 到 ${fmt(h.newVal)}，${r >= 0 ? '增加' : '减少'} ${fmt(Math.abs(r))}%`, `From ${fmt(h.oldVal)} to ${fmt(h.newVal)}, ${r >= 0 ? 'increased' : 'decreased'} by ${fmt(Math.abs(r))}%`);
+  }
+  return h.label || '';
 }
 
 function deleteHistory(id){
@@ -619,14 +655,14 @@ function loadHistory(){
 function renderHistory(){
   const list = document.getElementById('historyList');
   if(history.length === 0){
-    const __h1='<p style="color:var(--text-muted);font-size:13px;padding:12px 0;">暂无历史记录</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
+    const __h1='<p style="color:var(--text-muted);font-size:13px;padding:12px 0;">'+say('暂无历史记录','No history yet')+'</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
     return;
   }
   const __h2=history.map(h => `
     <div class="history-item">
       <div>
-        <div><strong>${ToolBox.escHtml(h.label)}</strong></div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${ToolBox.escHtml(h.time)}</div>
+        <div><strong>${ToolBox.escHtml(historyLabel(h))}</strong></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${ToolBox.escHtml(h.ts ? new Date(h.ts).toLocaleString(say('zh-CN','en-US')) : h.time)}</div>
       </div>
       <span class="del" onclick="deleteHistory(${h.id})">✕</span>
     </div>
@@ -637,6 +673,17 @@ initQuickGrid();
 loadHistory();
 renderHistory();
 calcIsWhat();
+
+function refreshLanguageView(){
+  renderHistory();
+  ['calcIsWhat','calcOfWhat','calcIncrease','calcDecrease','calcChange'].forEach(function(fn){
+    if(typeof window[fn] === 'function'){ try{ window[fn](); }catch(e){} }
+  });
+}
+document.addEventListener('toolbox:langchange', refreshLanguageView);
+document.addEventListener('DOMContentLoaded', refreshLanguageView);
+window.addEventListener('load', refreshLanguageView);
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

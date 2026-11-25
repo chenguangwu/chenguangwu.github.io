@@ -84,6 +84,13 @@ const CASES = [
     ref: "输入归一化：全角数字 １２００、千分位 2,000 归一后为 1200/2000 ⇒ 60%；"
        + "旧实现 parseFloat('１，２００')=NaN ⇒ 显示 --，注入失败即不命中。",
   },
+  {
+    slug: "life/percentage-calculator",
+    inputs: { incX: "100", incPct: "15" },
+    clicks: ["TBKit={util:{isEn:function(){return true;}}};calcIncrease();var __d=document.getElementById('incDesc').textContent;document.getElementById('__tbProbe').textContent='PCTEN '+__d;"],
+    expect: ["PCTEN 100 increased by 15% = 115 (increase 15)"],
+    ref: "英文态动态说明：100 增加 15% 应输出英文完整句，而不是「100 增加 15%」。旧实现模板串写死中文，注入英文态后探针仍含汉字；默认中文态不含 PCTEN 前缀。"
+  },
   // ── 温度换算（°F = °C×9/5+32）────────────────────────────────
   {
     slug: "life/temperature-converter",
@@ -452,11 +459,22 @@ const CASES = [
     "price": "40"
   },
   "expect": [
-    "合计份数： 3.50",
-    "预售金额： 140.00",
-    "赵敏 57.1%"
+    "名单含多种单位，无法直接合计数量与金额",
+    "各单位小计： 箱 2（1 人） · 份 1.50（1 人）"
   ],
-  "ref": "带单位写法解析：名单「赵敏,2 箱」与「钱芳,1.5 份」按姓名/份数合并后 ⇒ 赵敏 2 份、钱芳 1.5 份，合计 3.50 份，金额 3.5×40 = 140.00 元，赵敏占比 2/3.5 = 57.1%。旧实现把「2 箱」「1.5 份」整行当姓名、份数回落 1，合计变 2 份、金额 80.00，三条断言全不命中；默认名单为另一组三人，注入失败即不命中。"
+  "ref": "混合单位不得直接相加：2 箱与 1.5 份没有换算关系，旧实现把 3.5 当作「份」再乘 40 得 140.00，金额无意义。修复后按单位分别小计并提示无法合计；默认名单为三人同单位，注入混合单位才命中两条提示。"
+},
+{
+  "slug": "life/stats-13",
+  "inputs": {
+    "roster": "张三,2箱\n李四,3箱",
+    "price": "40"
+  },
+  "expect": [
+    "合计箱数： 5",
+    "预售金额： 200.00"
+  ],
+  "ref": "单一非默认单位：2 箱 + 3 箱 = 5 箱，单价 40 元/箱 ⇒ 200.00；标签随单位显示「合计箱数」。旧实现把箱统一折算成「份」显示，单位口径丢失。"
 },
 
 
@@ -2442,6 +2460,20 @@ const CASES = [
        + "直接读取表内年份秒验；默认态不含 SPRING2027 前缀。",
   },
 
+  {
+    slug: "life/countdown-timer",
+    inputs: {},
+    clicks: ["document.getElementById('set-minutes').value='5';startTimer();pauseTimer();document.getElementById('set-minutes').value='10';onTimerInput();startTimer();pauseTimer();document.getElementById('__tbProbe').textContent='CDNEW '+totalSeconds+'/'+remainingSeconds;"],
+    expect: ["CDNEW 600/"],
+    ref: "暂停后修改输入再开始必须按新时长重算：5 分钟开始→暂停→改为 10 分钟→开始，totalSeconds/remainingSeconds 均应为 600。旧实现仅在 remainingSeconds<=0 时读输入，会继续用 300，探针不命中。"
+  },
+  {
+    slug: "life/countdown-timer",
+    inputs: {},
+    clicks: ["document.getElementById('set-minutes').value='1.5';startTimer();document.getElementById('__tbProbe').textContent='CDBAD '+isRunning+'/'+totalSeconds;"],
+    expect: ["CDBAD false/0"],
+    ref: "非整数分钟应拒绝启动：1.5 不是合法整数，startTimer 校验后不得进入运行态，也不得把 totalSeconds 改成 90；默认态 totalSeconds=0、isRunning=false，注入非法值仍保持。"
+  },
   // ── 卡路里：BMR/TDEE 数值范围校验（LF-N23）───────────────────
   {
     slug: "life/daily-calorie-needs",
