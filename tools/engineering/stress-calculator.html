@@ -311,72 +311,74 @@ function getSelectedMaterial() {
 function calc() {
   const mat = getSelectedMaterial();
   let stress = 0, info = '';
+  function rv(id){var el=document.getElementById(id);var v=el?String(el.value==null?'':el.value).trim():'';return {raw:v,val:v===''?NaN:parseFloat(v)};}
+  function fail(msg){document.getElementById('stressViz').innerHTML='';document.getElementById('result').innerHTML='<p style="color:var(--danger);font-weight:600;">⚠ '+msg+'</p>';}
 
   if (selectedType === 'tension') {
-    const F = +document.getElementById('F').value || 0;
-    const A = +document.getElementById('A').value || 0;
-    if (A === 0) { document.getElementById('stressViz').innerHTML=''; document.getElementById('result').innerHTML=''; ToolBox.showToast(i18nText('toast.msg921'), 'error'); return; }
-    stress = F * 1000 / A;  // MPa (kN / mm² = MPa)
-    const strain = stress / mat.E / 1000;  // F = E·A·ε
+    var Fr=rv('F'), Ar=rv('A');
+    if(isNaN(Fr.val)){fail('请输入轴力 F（kN，可为负表示受压）。');return;}
+    if(!isFinite(Ar.val)||Ar.val<=0){fail('截面积 A 必须为正数（mm²）。');return;}
+    const F=Fr.val, A=Ar.val;
+    stress = F * 1000 / A;
     info = `σ = F/A = ${F}kN / ${A}mm² = ${stress.toFixed(2)} MPa`;
   } else if (selectedType === 'shear') {
-    const V = +document.getElementById('V').value || 0;
-    const A = +document.getElementById('A').value || 0;
-    if (A === 0) { document.getElementById('stressViz').innerHTML=''; document.getElementById('result').innerHTML=''; ToolBox.showToast(i18nText('toast.msg921'), 'error'); return; }
+    var Vr=rv('V'), As=rv('A');
+    if(isNaN(Vr.val)){fail('请输入剪力 V（kN）。');return;}
+    if(!isFinite(As.val)||As.val<=0){fail('截面积 A 必须为正数（mm²）。');return;}
+    const V=Vr.val, A=As.val;
     stress = V * 1000 / A;
     info = `τ = V/A = ${V}kN / ${A}mm² = ${stress.toFixed(2)} MPa`;
   } else if (selectedType === 'bending') {
-    const M = +document.getElementById('M').value || 0;  // N·m
-    const W = +document.getElementById('W').value || 0;  // cm³
-    if (W === 0) { document.getElementById('stressViz').innerHTML=''; document.getElementById('result').innerHTML=''; ToolBox.showToast(i18nText('toast.msg798'), 'error'); return; }
-    // σ = M / W, M in N·m, W in cm³ → σ in N/cm²
-    // 1 N·m = 100 N·cm = 1000 N·mm; 1 cm³ = 1000 mm³
-    // σ(MPa) = M(N·m) * 1000 / W(cm³) * 1000 = M / W * 10⁶ / 10³ = M*10³/W
-    stress = M * 1000 / W;  // N·m / cm³ × 1000 = N·m/10⁻⁶ m³ = 10⁶ Pa
-    stress = stress / 1e6 * 1e6;  // 实际: σ = M / (W*1e-6) Pa
-    stress = M / (W * 1e-6) / 1e6;  // MPa
+    var Mr=rv('M'), Wr=rv('W');
+    if(isNaN(Mr.val)){fail('请输入弯矩 M（N·m）。');return;}
+    if(!isFinite(Wr.val)||Wr.val<=0){fail('截面模量 W 必须为正数（cm³）。');return;}
+    const M=Mr.val, W=Wr.val;
+    stress = M / (W * 1e-6) / 1e6;
     info = `σ = M/W = ${M}N·m / ${W}cm³ = ${stress.toFixed(2)} MPa`;
   } else if (selectedType === 'torsion') {
-    const T = +document.getElementById('T').value || 0;
-    const D = +document.getElementById('D').value || 0;
-    const d = +document.getElementById('d').value || 0;
-    if (D === 0) { document.getElementById('stressViz').innerHTML=''; document.getElementById('result').innerHTML=''; ToolBox.showToast(i18nText('toast.msg892'), 'error'); return; }
-    // 极惯性矩 J = π(D⁴ - d⁴) / 32
-    const J = Math.PI * (Math.pow(D, 4) - Math.pow(d, 4)) / 32;  // mm⁴
-    // τ = T / (J / r) = T·r / J
+    var Tr=rv('T'), Dr=rv('D'), dr=rv('d');
+    if(isNaN(Tr.val)){fail('请输入扭矩 T（N·m）。');return;}
+    if(!isFinite(Dr.val)||Dr.val<=0){fail('外径 D 必须为正数（mm）。');return;}
+    if(dr.raw===''||!isFinite(dr.val)||dr.val<0||dr.val>=Dr.val){fail('内径 d 须为 0 或小于外径的正数（mm，实心填 0）。');return;}
+    const T=Tr.val, D=Dr.val, d=dr.val;
+    if(D*D-(d*d)<=0){fail('内径必须小于外径，当前截面无效。');return;}
+    const J = Math.PI * (Math.pow(D, 4) - Math.pow(d, 4)) / 32;
     const r = D / 2;
-    // T in N·m = 1000 N·mm; J in mm⁴
-    stress = T * 1000 * r / J;  // N/mm² = MPa
+    stress = T * 1000 * r / J;
     info = `τ = T·r/J = ${T}N·m × ${r}mm / ${J.toFixed(0)}mm⁴ = ${stress.toFixed(2)} MPa`;
   }
 
-  // 安全评估
-  const allowStress = mat.yield / 1.5;  // 简化安全系数 1.5
-  const safetyFactor = mat.yield / stress;
-  const safe = stress < mat.yield;
-  const ratio = stress / mat.yield;
+  // 统一按应力幅值与许用应力比较（受压/反向荷载不得因负号被判安全）
+  const absStress = Math.abs(stress);
+  const isShear = selectedType === 'shear' || selectedType === 'torsion';
+  const strengthBasis = isShear ? mat.yield / Math.sqrt(3) : mat.yield; // 剪切屈服 ≈ 0.577σs
+  const allowStress = strengthBasis / 1.5;
+  const allowLabel = isShear ? '许用剪应力 [τ]=0.577σs/1.5' : '许用应力 [σ]=σs/1.5';
+  const safe = absStress <= allowStress;
+  const ratio = absStress / allowStress;
+  const safetyFactor = absStress === 0 ? Infinity : allowStress / absStress;
   const barWidth = Math.min(100, ratio * 100);
 
   const __g3=`
     <svg viewBox="0 0 240 100" width="100%">
       <rect x="40" y="40" width="160" height="20" fill="var(--bg-hover)" stroke="currentColor" stroke-width="1"/>
       <rect x="40" y="40" width="${barWidth * 1.6}" height="20" fill="${safe ? '#065F46' : '#B91C1C'}" opacity="0.7"/>
-      <text x="120" y="30" text-anchor="middle" font-size="12" fill="currentColor">应力比例 ${(ratio*100).toFixed(0)}%</text>
-      <line x1="${40 + 0.6 * 160}" y1="35" x2="${40 + 0.6 * 160}" y2="65" stroke="#B91C1C" stroke-dasharray="3 2"/>
-      <text x="${40 + 0.6 * 160}" y="80" text-anchor="middle" font-size="10" fill="currentColor">屈服</text>
+      <text x="120" y="30" text-anchor="middle" font-size="12" fill="currentColor">应力/许用 ${(ratio*100).toFixed(0)}%</text>
+      <line x1="${40 + 160}" y1="35" x2="${40 + 160}" y2="65" stroke="#B91C1C" stroke-dasharray="3 2"/>
+      <text x="${40 + 0.6 * 160}" y="80" text-anchor="middle" font-size="10" fill="currentColor">许用</text>
     </svg>
     <div style="font-size:11px;color:var(--text-muted);">${TYPES.find(t => t.id === selectedType).name}</div>
   `;document.getElementById('stressViz').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   const __g4=`
     <h3 style="text-align:center;margin-bottom:12px;">⚙️ 应力结果</h3>
-    <div class="result-block"><div class="result-label">计算应力</div><div class="result-value" style="color:${safe ? '#065F46' : '#dc2624'};">${stress.toFixed(2)} MPa</div></div>
-    <div class="result-block"><div class="result-label">屈服强度</div><div class="result-value" style="font-size:14px;">${mat.yield} MPa</div></div>
-    <div class="result-block"><div class="result-label">许用应力 [σ]=σs/1.5</div><div class="result-value" style="font-size:14px;">${allowStress.toFixed(0)} MPa</div></div>
-    <div class="result-block"><div class="result-label">安全系数 n</div><div class="result-value" style="font-size:14px;color:${safe ? '#065F46' : '#B91C1C'};">${safetyFactor.toFixed(2)}</div></div>
+    <div class="result-block"><div class="result-label">计算应力</div><div class="result-value" style="color:${safe ? '#065F46' : '#dc2624'};">${absStress.toFixed(2)} MPa${stress<0?'（受压）':''}</div></div>
+    <div class="result-block"><div class="result-label">${isShear ? '剪切强度依据 0.577σs' : '屈服强度 σs'}</div><div class="result-value" style="font-size:14px;">${strengthBasis.toFixed(0)} MPa</div></div>
+    <div class="result-block"><div class="result-label">${allowLabel}</div><div class="result-value" style="font-size:14px;">${allowStress.toFixed(0)} MPa</div></div>
+    <div class="result-block"><div class="result-label">安全系数 n</div><div class="result-value" style="font-size:14px;color:${safe ? '#065F46' : '#B91C1C'};">${isFinite(safetyFactor)?safetyFactor.toFixed(2):'∞（应力 0）'}</div></div>
     <div class="result-block" style="background:${safe ? 'rgba(16,185,129,0.1)' : 'rgba(220,38,38,0.1)'};">
       <div class="result-label">验算</div>
-      <div class="result-value" style="color:${safe ? '#065F46' : '#B91C1C'};font-size:14px;">${safe ? '✅ 安全' : '❌ 超过屈服强度'}</div>
+      <div class="result-value" style="color:${safe ? '#065F46' : '#B91C1C'};font-size:14px;">${safe ? '✅ 安全（≤许用应力）' : '❌ 超过许用应力'}</div>
     </div>
     <div class="result-block"><div class="result-label">公式</div><div class="result-value" style="font-size:11px;font-family:monospace;">${info}</div></div>
   `;document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
