@@ -155,7 +155,7 @@
     <h2 data-zh="💾 数据存储单位换算">💾 Data Storage Unit Converter</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">数据存储单位换算：先化字节——bit ÷ 8、B 取原值、KB~EB 按 数值 × mode^档位序号（mode 为 1024 二进制或 1000 十进制，Tab 切换）；再反出 bits = bytes×8 与各档 = bytes ÷ mode^(i+1)（KB~EB 共 6 档）。校验：数值非数或 &lt;0 提示「请输入有效的非负数值」。判据：无固定分级，二进制口径 1MiB = 1024²B 比十进制大 4.9%，字节数 1~8 时另给逐字节 8 位二进制展开。</div>
+      <div class="formula-eq">数据存储单位换算：先化字节——bit ÷ 8、B 取原值、KB~EB 按 数值 × mode^档位序号（mode 为 1024 二进制或 1000 十进制，Tab 切换）；再反出 bits = bytes×8 与各档 = bytes ÷ mode^(i+1)（KB~EB 共 6 档）。校验：数值非数或 &lt;0 提示「请输入有效的非负数值」。判据：无固定分级，二进制口径 1MiB = 1024²B 比十进制大 4.9%，二进制区固定给出 1 B = 8 bit 与字节数量本身的二进制，不把数量推断为文件内容。</div>
     </div>
     <div class="mode-tabs">
       <div id="data_unit_converterPresets"></div><button class="mode-tab active" id="tabBinary" onclick="setMode(1024)">二进制（1024）</button><button class="btn" type="button" onclick="__data_unit_converterExport()">导出明细 CSV</button>
@@ -188,8 +188,8 @@
     <label style="margin-top:12px;">换算结果</label>
     <div class="unit-grid" id="result"></div> <div id="data_unit_converterTable"></div> <div id="data_unit_converterDiff"></div> <div id="data_unit_converterChart"></div> <div id="data_unit_converterHist"></div>
 
-    <label style="margin-top:16px;">二进制表示</label>
-    <div class="binary-box" id="binary">输入数值后将显示二进制表示</div>
+    <label style="margin-top:16px;">数值本身的二进制（不代表文件内容）</label>
+    <div class="binary-box" id="binary">输入数值后将显示数量换算与二进制的区别</div>
   </div>
 
   <div class="card">
@@ -364,8 +364,10 @@ function convert(){
   html += `<div class="unit-card bit"><div class="name">bit <span class="full">比特</span></div><div class="value">${formatNumber(bits)} bit</div></div>`;
   // B
   html += `<div class="unit-card"><div class="name">B <span class="full">字节</span></div><div class="value">${formatNumber(bytes)} B</div></div>`;
-  // 其他
-  const labels = [['KB','Kilobyte'],['MB','Megabyte'],['GB','Gigabyte'],['TB','Terabyte'],['PB','Petabyte'],['EB','Exabyte']];
+  // 其他：1024 模式使用 IEC 的 KiB/MiB 规范名称，1000 模式使用 SI 的 KB/MB
+  const labels = mode === 1024
+    ? [['KiB','Kibibyte'],['MiB','Mebibyte'],['GiB','Gibibyte'],['TiB','Tebibyte'],['PiB','Pebibyte'],['EiB','Exbibyte']]
+    : [['KB','Kilobyte'],['MB','Megabyte'],['GB','Gigabyte'],['TB','Terabyte'],['PB','Petabyte'],['EB','Exabyte']];
   for(let i = 0; i < labels.length; i++){
     const v = bytes / Math.pow(mode, i+1);
     html += `<div class="unit-card"><div class="name">${labels[i][0]} <span class="full">${labels[i][1]}</span></div><div class="value">${formatNumber(v)} ${labels[i][0]}</div></div>`;
@@ -377,20 +379,18 @@ function convert(){
   binText += `原始值：${val} ${unit}\n`;
   binText += `= ${formatNumber(bits)} bit\n`;
   binText += `= ${formatNumber(bytes)} B\n`;
-  if(bytes >= 1){
-    const intBytes = Math.floor(bytes);
-    if(intBytes > 0 && intBytes <= 8){
-      // 显示完整二进制
-      binText += `\n二进制（${intBytes} 字节）：\n`;
-      for(let b = 0; b < intBytes; b++){
-        const byteVal = (Math.floor(bytes / Math.pow(256, intBytes - 1 - b)) % 256);
-        binText += byteVal.toString(2).padStart(8,'0') + ' ';
-      }
-      binText += '\n';
-    }
+  binText += `\n1 B = 8 bit（固定关系，与 1000/1024 前缀无关）`;
+  if(bytes >= 1 && bytes <= Number.MAX_SAFE_INTEGER){
+    binText += `\n字节数量本身的二进制：0b${Math.floor(bytes).toString(2)}（仅表示数量，不是文件内容逐字节）`;
   }
-  binText += `\n计算基准：1 ${unit === 'bit' ? 'B' : unit === 'B' ? 'KB' : unit} = ${mode} ${unit === 'bit' ? 'bit' : unit === 'B' ? 'B' : '低一级单位'}`;
-  binText += `\n1 KB = ${mode} B = ${mode*8} bit`;
+  if(unit === 'bit'){
+    binText += `\n计算基准：8 bit = 1 B；${mode === 1024 ? '1 KiB = 1024 B = 8192 bit' : '1 KB = 1000 B = 8000 bit'}`;
+  } else if(unit === 'B'){
+    binText += `\n计算基准：1 B = 8 bit；${mode === 1024 ? '1 KiB = 1024 B' : '1 KB = 1000 B'}`;
+  } else {
+    const suffix = mode === 1024 ? 'iB' : 'B';
+    binText += `\n计算基准：1 ${unit} = ${mode} B = ${mode*8} bit（${unit.replace('B','')}${suffix} 口径）`;
+  }
 
   binaryBox.textContent = binText;
 }
