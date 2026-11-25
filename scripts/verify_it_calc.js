@@ -13423,7 +13423,7 @@ const CASES = [
     },
     "expect": [
       "1 2 3\n1 2 3\npostgres",
-      "1 2 3\npostgres\n1 2 3"
+      "1 2 3\npostgres\nbackslash\n1 2 3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"dialect\":\"postgres\"}，输出区含「1 2 3\n1 2 3\npostgres」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
@@ -15245,6 +15245,76 @@ const CASES = [
     ref: "MySQL 转义集完整性：mysql_real_escape_string 要求转义 Ctrl-Z（0x1A）为 \\Z；页面已覆盖 NUL/\\n/\\r/\\Z/引号/反斜杠六类必需字符。默认 O'Brien 样例不含 Ctrl-Z。",
   },
 
+  {
+    slug: "it/python-formatter",
+    inputs: { input: "if True:\n# comment\n    pass" },
+    clicks: ["doValidate();document.getElementById('__tbProbe').textContent='PY814='+(document.getElementById('err').textContent.indexOf('通过')>=0?'OK':'BAD');"],
+    expect: ["PY814=OK"],
+    ref: "第814批：注释行不得参与缩进判断。旧实现对 # comment 也做缩进/pendingBlock 检查，注释后 4 空格 pass 被误报未缩进；修复后合法代码通过。",
+  },
+  {
+    slug: "it/python-formatter",
+    inputs: { input: "print(\"(\")\nprint(']')" },
+    clicks: ["doValidate();document.getElementById('__tbProbe').textContent='PY814B='+(document.getElementById('err').textContent.indexOf('通过')>=0?'OK':'BAD');"],
+    expect: ["PY814B=OK"],
+    ref: "第814批：字符串内的括号不得进入括号栈。旧实现 stripCommentAndString 保留字符串内容，print(\"(\") 会留下一个未闭合左括号而误报；修复后字符串被剥离，两个 print 均平衡。",
+  },
+  {
+    slug: "it/python-formatter",
+    inputs: { input: "if (]:\n    pass" },
+    clicks: ["doValidate();document.getElementById('__tbProbe').textContent='PY814C='+(document.getElementById('err').textContent.indexOf('括号类型不匹配')>=0?'Y':'N');"],
+    expect: ["PY814C=Y"],
+    ref: "第814批：括号只计数不校验类型会漏掉 ( 与 ] 的错配；修复后按栈校验类型并报「括号类型不匹配」。",
+  },
+  {
+    slug: "it/python-formatter",
+    inputs: { input: "x = '''unclosed\nprint(1)" },
+    clicks: ["doValidate();document.getElementById('__tbProbe').textContent='PY814D='+(document.getElementById('err').textContent.indexOf('三引号字符串未闭合')>=0?'Y':'N');"],
+    expect: ["PY814D=Y"],
+    ref: "第814批：三引号跨行状态要保留到文件末尾；未闭合时明确报错，不能静默通过。",
+  },
+  {
+    slug: "it/shell-script-formatter",
+    inputs: { input: "cat <<'EOF'\n  $HOME\n\nEOF\necho done", indent: "2" },
+    clicks: ["formatShell();var L=document.getElementById('output').textContent.split('\\n');document.getElementById('__tbProbe').textContent='SH814='+(L[1]==='  $HOME'&&L[2]===''&&L[3]==='EOF'?'Y':'N');"],
+    expect: ["SH814=Y"],
+    ref: "第814批：here-doc 定界符允许引号形式 cat <<'EOF'；正文与空行必须逐字保留（缩进和变量展开语义都不能改）。旧实现只识别裸标识符，<<'EOF' 不进入 heredoc 态，正文会被 trim。",
+  },
+  {
+    slug: "it/shell-script-formatter",
+    inputs: { input: "echo \"line1\n  line2\"\necho done", indent: "2" },
+    clicks: ["formatShell();var L=document.getElementById('output').textContent.split('\\n');document.getElementById('__tbProbe').textContent='SH814B='+(L[1]==='  line2\"'?'Y':'N');"],
+    expect: ["SH814B=Y"],
+    ref: "第814批：跨行双引号字符串要保留内部行原文；旧实现逐行 trim，会把第二行前导空格删掉、改变字符串值。",
+  },
+  {
+    slug: "it/shell-script-formatter",
+    inputs: { input: "echo \"line1\n  line2\"\n    echo next", indent: "2" },
+    clicks: ["minifyShell();var L=document.getElementById('output').textContent.split('\\n');document.getElementById('__tbProbe').textContent='SH814C='+(L[1]==='  line2\"'&&L[2]==='echo next'?'Y':'N');"],
+    expect: ["SH814C=Y"],
+    ref: "第814批：压缩也要跨行跟踪引号；字符串内部行不得 trim，字符串结束后的普通行仍应去空白。",
+  },
+  {
+    slug: "it/shell-script-formatter",
+    inputs: { input: "echo \"unclosed\nnext", indent: "2" },
+    clicks: ["doValidate();document.getElementById('__tbProbe').textContent='SH814D='+(document.getElementById('err').textContent.indexOf('引号未闭合')>=0?'Y':'N');"],
+    expect: ["SH814D=Y"],
+    ref: "第814批：无法安全分析时必须提示，不能把后续脚本当成字符串静默吞掉。",
+  },
+  {
+    slug: "it/sql-escape",
+    inputs: { input: "O'Brien\\path", dialect: "mysql", mysqlMode: "no_backslash" },
+    clicks: ["esc()"],
+    expect: ["O''Brien\\path"],
+    ref: "第814批：MySQL NO_BACKSLASH_ESCAPES 下反斜杠不是转义符，单引号必须双写；旧实现固定输出 O\\'Brien\\\\path，在该模式下会留下反斜杠并提前闭合字符串。",
+  },
+  {
+    slug: "it/sql-escape",
+    inputs: { input: "O''Brien\\path", dialect: "mysql", mysqlMode: "no_backslash" },
+    clicks: ["unesc()"],
+    expect: ["O'Brien\\path"],
+    ref: "第814批：NO_BACKSLASH_ESCAPES 反转义只还原 ''，不能把反斜杠当转义；旧实现会把 \\p 的 p 吃掉。",
+  },
   // —— 时间族 / 进制族 / 字符集族：独立标准实现交叉验证（2026-11-04 批次）——
   {
     slug: "it/time-format-converter",
