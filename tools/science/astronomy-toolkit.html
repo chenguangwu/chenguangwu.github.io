@@ -877,12 +877,23 @@ var UTM_K0 = 0.9996;
 function degToRad(d) { return d * Math.PI / 180; }
 function radToDeg(r) { return r * 180 / Math.PI; }
 
+function __utmZoneFor(lat,lon){
+  var z=Math.max(1,Math.min(60,Math.floor((lon+180)/6)+1));
+  if(lat>=56&&lat<64&&lon>=3&&lon<12) z=32;
+  else if(lat>=72&&lat<=84){
+    if(lon>=0&&lon<9) z=31;
+    else if(lon>=9&&lon<21) z=33;
+    else if(lon>=21&&lon<33) z=35;
+    else if(lon>=33&&lon<42) z=37;
+  }
+  return z;
+}
 function latLonToUTM(lat, lon) {
   var latRad = degToRad(lat);
   var lonRad = degToRad(lon);
 
   // UTM 带号合法范围 1~60；lon=180° 落在第 60 带，不越界成 61
-  var zone = Math.max(1, Math.min(60, Math.floor((lon + 180) / 6) + 1));
+  var zone = __utmZoneFor(lat, lon);
   var lon0 = (zone - 1) * 6 - 180 + 3; // central meridian
 
   var N = UTM_A / Math.sqrt(1 - UTM_E2 * Math.sin(latRad) * Math.sin(latRad));
@@ -966,7 +977,8 @@ function convertLatLonToUTM() {
 }
 
 function convertUTMToLatLon() {
-  var zone = parseInt(document.getElementById('utmZone').value);
+  var zoneRaw = Number(document.getElementById('utmZone').value);
+  var zone = (isFinite(zoneRaw) && Math.floor(zoneRaw) === zoneRaw) ? zoneRaw : NaN;
   var hemi = document.getElementById('utmHemisphere').value;
   var easting = parseFloat(document.getElementById('utmEasting').value);
   var northing = parseFloat(document.getElementById('utmNorthing').value);

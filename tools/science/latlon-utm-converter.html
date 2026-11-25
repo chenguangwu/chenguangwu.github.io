@@ -336,6 +336,17 @@ function setNewYork(){
 }
 
 // 经纬度 → UTM
+function __utmZoneFor(lat,lon){
+  var z=Math.max(1,Math.min(60,Math.floor((lon+180)/6)+1));
+  if(lat>=56&&lat<64&&lon>=3&&lon<12) z=32;
+  else if(lat>=72&&lat<=84){
+    if(lon>=0&&lon<9) z=31;
+    else if(lon>=9&&lon<21) z=33;
+    else if(lon>=21&&lon<33) z=35;
+    else if(lon>=33&&lon<42) z=37;
+  }
+  return z;
+}
 function convertLL2UTM(){
   const lat = parseFloat(document.getElementById('lat').value);
   const lon = parseFloat(document.getElementById('lon').value);
@@ -349,7 +360,7 @@ function convertLL2UTM(){
   const lonRad = lon * DEG2RAD;
 
   // 计算UTM带号：合法范围 1~60，经度 +180° 归入第 60 带，不越界成 61
-  const zone = Math.max(1, Math.min(60, Math.floor((lon + 180) / 6) + 1));
+  const zone = __utmZoneFor(lat, lon);
   const centralMeridian = ((zone - 1) * 6 - 180 + 3) * DEG2RAD;
   const hemisphere = lat >= 0 ? 'N' : 'S';
 
@@ -427,7 +438,8 @@ function convertLL2UTM(){
 
 // UTM → 经纬度
 function convertUTM2LL(){
-  const zone = parseInt(document.getElementById('utmZone').value);
+  const zoneRaw = Number(document.getElementById('utmZone').value);
+  const zone = Number.isInteger(zoneRaw) ? zoneRaw : NaN;
   const hemisphere = document.getElementById('utmHemisphere').value;
   const easting = parseFloat(document.getElementById('utmEasting').value);
   const northing = parseFloat(document.getElementById('utmNorthing').value);
