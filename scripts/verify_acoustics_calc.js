@@ -120,6 +120,14 @@ const CASES = [
     inputs: { T: "30" },
     expect: ["97.06"],
     ref: "v=331.4+0.6×30=349.40；km/h=349.40/3.6=97.06（默认 T=20→343.40，避开）" },
+  { slug: "acoustics/critical-distance",
+    inputs: { V: "200", rt: "0", Q: "1" },
+    expect: ["不能为 0"],
+    ref: "rt=0 会让 Q·V/rt 除零；须拒绝并说明三个参数均须为正，而不是输出 Infinity。" },
+  { slug: "acoustics/acoustic-impedance",
+    inputs: { rho: "1.2", c: "0" },
+    expect: ["密度和声速都必须大于 0"],
+    ref: "c=0 时 1/c 无定义；旧实现用 c||1 伪造 1 s/m，须拒绝。" },
   { slug: "acoustics/sound-speed-air",
     inputs: { T: "100" },
     expect: ["超出 −40～50 ℃ 线性近似适用范围"],
@@ -182,9 +190,9 @@ const CASES = [
       "f2": "42"
     },
     "expect": [
-      "at (s) 0.000"
+      "拍频为 0，拍周期无有限值"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"f1\":\"42\",\"f2\":\"42\"}，输出区含「at (s) 0.000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "等频 f1=f2=42：拍频 0、平均 42.00；拍周期 1/0 无有限值，页面显示「—」并明确说明，不再输出 Infinity/0。默认 440/444 不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "acoustics/combine-two-spl",

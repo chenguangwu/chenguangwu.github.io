@@ -1206,6 +1206,13 @@ const CASES = [
   },
   {
     "slug": "science/vector-calculator",
+    "inputs": { "dim": "3", "op": "add", "a0": "1", "a1": "2", "a2": "", "b0": "4", "b1": "5", "b2": "6" },
+    "clicks": ["calculate()"],
+    "expect": ["空值不等于 0"],
+    "ref": "清空 A 的 z 分量后旧实现按 0 计算并输出 A+B；现须阻止计算并提示缺失，0 仍可作为合法输入。"
+  },
+  {
+    "slug": "science/vector-calculator",
     "inputs": { "dim": "3", "op": "dot", "a0": "1", "a1": "2", "a2": "0", "b0": "3", "b1": "4", "b2": "0" },
     "clicks": ["calculate()"],
     "expect": ["A · B = 11"],
@@ -1266,6 +1273,13 @@ const CASES = [
     "clicks": ["document.getElementById('diam').value='77.7';document.getElementById('vel').value='2';calc();saveHistory();document.getElementById('diam').value='11.1';loadHistory(0);document.getElementById('diam').value='HISPROBE_'+(document.getElementById('diam').value==='77.7'?'Y':'N')+'_'+document.getElementById('diam').value;"],
     "expect": ["HISPROBE_Y_77.7"],
     "ref": "SMS-143 清账：原 saveHistory 只存派生量、loadHistory 切模式后用当前输入重算（假恢复）。现 saveHistory 连同 14 个输入/单位字段一并存入 inputs，loadHistory 逐项回填后再 calc。探针存 diam=77.7 后改为 11.1，loadHistory(0) 后断言 diam 回填为 77.7；旧版保持 11.1 ⇒ N，零逃生。"
+  },
+  {
+    "slug": "science/matrix-calculator",
+    "inputs": { "size": "2", "op": "transpose", "a0": "1", "a1": "", "a2": "3", "a3": "4" },
+    "clicks": ["calculate()"],
+    "expect": ["空值不等于 0"],
+    "ref": "清空矩阵单元后旧实现按 0 转置并输出结果；现须阻止计算并提示缺失。"
   },
   {
     "slug": "science/matrix-calculator",

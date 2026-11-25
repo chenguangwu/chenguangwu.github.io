@@ -274,9 +274,9 @@ document.getElementById('op').addEventListener('change', ()=>{
 });
 
 function getV(prefix,d){
-  const v=[];
-  for(let i=0;i<d;i++){ const x=parseFloat(document.getElementById(prefix+i).value); v.push(isNaN(x)?0:x); }
-  return v;
+  const v=[]; let missing=false;
+  for(let i=0;i<d;i++){ const el=document.getElementById(prefix+i); const raw=el?el.value.trim():''; const x=raw===''?NaN:parseFloat(raw); if(!isFinite(x)){missing=true;v.push(0);} else v.push(x); }
+  return missing?null:v;
 }
 
 function fmt(x){
@@ -305,6 +305,7 @@ function calculate(){
   const d=+document.getElementById('dim').value;
   const op=document.getElementById('op').value;
   const A=getV('a',d), B=getV('b',d);
+  if(!A||!B){ document.getElementById('output').innerHTML='<p style="color:var(--danger)">请填写全部向量分量后再计算；空值不等于 0。</p>'; return; }
   let html='<p><strong>A = </strong>'+vecStr(A)+'</p><p><strong>B = </strong>'+vecStr(B)+'</p>';
   let resultVec = null;
   let resultScalar = null;
@@ -371,7 +372,9 @@ function calculate(){
     }
   } else if(op==='scaleA'){
     const __rawScalar = document.getElementById('scalar').value.trim();
-    const k = (__rawScalar === '' || isNaN(parseFloat(__rawScalar))) ? 1 : parseFloat(__rawScalar);
+    const __scalarVal = parseFloat(__rawScalar);
+    if(__rawScalar === '' || !isFinite(__scalarVal)){ document.getElementById('output').innerHTML='<p style="color:var(--danger)">请填写有效标量 k 后再做数乘；空值不按 1 处理。</p>'; return; }
+    const k = __scalarVal;
     const C = A.map(x=>x*k);
     html+='<div class="big-result">'+fmt(k)+'·A = '+vecStr(C)+'</div>';
     html+='<div class="step-line">数乘：每个分量乘以标量 k = '+fmt(k)+'</div>';
@@ -397,6 +400,7 @@ function calculate(){
 function showPlot(){
   const d=+document.getElementById('dim').value;
   const A=getV('a',d), B=getV('b',d);
+  if(!A||!B){ document.getElementById('output').innerHTML='<p style="color:var(--danger)">请填写全部向量分量后再绘图；空值不等于 0。</p>'; return; }
   let html = '<h3 style="margin-bottom:10px;">📈 向量可视化</h3>';
   html += '<canvas id="vecCanvas" class="vec-canvas" width="500" height="500"></canvas>';
   html += '<p style="text-align:center;font-size:12px;color:var(--text-muted);">' + (d===2?'二维向量图':'三维向量示意图（投影到xy平面）') + '</p>';
@@ -496,7 +500,9 @@ function drawVectorPlot(A, B, dim){
     }
   } else if(op==='scaleA'){
     const __rawScalar = document.getElementById('scalar').value.trim();
-    const k = (__rawScalar === '' || isNaN(parseFloat(__rawScalar))) ? 1 : parseFloat(__rawScalar);
+    const __scalarVal = parseFloat(__rawScalar);
+    if(__rawScalar === '' || !isFinite(__scalarVal)){ document.getElementById('output').innerHTML='<p style="color:var(--danger)">请填写有效标量 k 后再做数乘；空值不按 1 处理。</p>'; return; }
+    const k = __scalarVal;
     resultVec = A.map(x=>x*k);
   } else if(op==='unitA'){
     const mA = mag(A);

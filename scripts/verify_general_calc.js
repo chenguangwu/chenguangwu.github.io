@@ -618,6 +618,13 @@ const CASES = [
     ref: "运动粘度实测 3 mm²/s 低于标准区间 28~32 mm²/s ⇒ 不合格。",
   },
   {
+    slug: "general/detector-200",
+    inputs: { v1: "30", v2: "-1", v3: "0.05" },
+    clicks: ["calc()"],
+    expect: ["所有项目不得为负"],
+    ref: "负水分在旧实现会被判 ≤0.05% 合格；现须按物理范围拒绝，且合法的 0 仍通过。"
+  },
+  {
     slug: "general/detector-205",
     inputs: { v1: "3", v2: "3", v3: "3" },
     clicks: ["calc()"],
@@ -637,6 +644,13 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["脱模力 3 N ≤50N 合格", "残留量 3 mg/dm² ≤10mg/dm² 合格"],
     ref: "脱模力 3 N ≤50 N、残留量 3 mg/dm² ≤10 mg/dm² ⇒ 两项均合格（同场环保达标率 3% ≥90% 为不合格，不混锚）。",
+  },
+  {
+    slug: "chemical/detector-211",
+    inputs: { v1: "", v2: "0.1", v3: "0.05" },
+    clicks: ["calc()"],
+    expect: ["空值不等于 0"],
+    ref: "纯度留空时旧实现按 0 参与判定并可能生成综合结论；现须拒绝缺项。"
   },
   {
     slug: "chemical/detector-211",
