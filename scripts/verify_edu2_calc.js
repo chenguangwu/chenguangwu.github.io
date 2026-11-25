@@ -255,7 +255,41 @@ const CASES = [
   "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/exam-countdown.html','utf8');var ok=h.indexOf('var studyDays = workdays + (countWeekend ? weekends : 0);')>=0&&h.indexOf('周末计入可复习天数')>=0&&h.indexOf('可复习天数（含周末）')>=0&&h.indexOf('workdays--')<0;document.getElementById('__tbProbe').textContent='EXCWKND '+(ok?'OK':'BAD');"],
   "expect": ["EXCWKND OK"],
   "ref": "R 批承诺复核：旧版 countWeekend 只改卡片显示，可复习天数不随勾选变化；节假日在 weekday 分支 workdays-- 后又 workdays++，实际未扣减。现 studyDays 按勾选含/不含周末，标签与说明同步，节假日只计一次不再错扣；源码哨兵，旧版必红。"
-}
+},
+{
+    "slug": "edu2/schedule-conflict",
+    "inputs": {"courseInput":"课程A,张老师,A101,1,1,100000000"},
+    "clicks": ["detect();"],
+    "expect": ["节次超出1-20","已拒绝"],
+    "ref": "第866批：节次上限 20，10^8 不再进入逐节网格循环，直接拒绝并提示行号。"
+  },
+  {
+    "slug": "edu2/schedule-conflict",
+    "inputs": {"courseInput":"课程A,张老师,A101,1,1,4\n课程B,张老师,B202,1,3,5"},
+    "clicks": ["detect();"],
+    "expect": ["第3-4节","重叠区间","课程1 第1-4节","课程2 第3-5节"],
+    "ref": "第866批：教师冲突明细显示实际交集 3-4 节，而不是第一门课的完整 1-4 节。"
+  },
+  {
+    "slug": "edu2/schedule-conflict",
+    "inputs": {"courseInput":"课程A,toString,constructor,1,1,2"},
+    "clicks": ["detect();"],
+    "expect": ["未检测到任何冲突"],
+    "ref": "第866批：单门课的教师/教室名为 toString/constructor 时，Set 去重不应把原型属性当作已有值而误报冲突。"
+  },
+  {
+    "slug": "edu2/study-progress",
+    "inputs": {"subjectInput":"数学,0,1e308,1e308","dailyHours":"4","targetDate":""},
+    "expect": ["累计剩余工时过大"],
+    "ref": "第866批：1e308×1e308 溢出为 Infinity，旧实现逐日循环不终止；现校验乘积与 needsDays 上限并提示。"
+  },
+  {
+    "slug": "edu2/study-progress",
+    "inputs": {"subjectInput":"数学,0,1,1","dailyHours":"1","targetDate":""},
+    "clicks": ["document.getElementById('targetDate').value=fmtDate(new Date());calc();"],
+    "expect": ["没有可用工作日"],
+    "ref": "第866批：目标为今天时 workdaysUntil 不含今天，旧页面落入通用建议；现明确说明没有可用工作日、按当前规则无法完成。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

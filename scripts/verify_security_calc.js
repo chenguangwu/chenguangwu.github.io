@@ -219,13 +219,34 @@ const CASES = [
     "wc": "8"
   },
   "clicks": ["generate();"],
-  "expect": ["约 59.2 位熵（基于 169 词库 / 8 词）"],
+  "expect": ["约 59.1 位熵（168 词库 × 8 词；大小写与分隔符为固定变换，不计额外熵）"],
   "ref": "口令短语本身由 crypto.getRandomValues 逐词随机（无种子、无锚，不可断言）；但同一次渲染里的熵值行 "
      + "`熵 = log₂(WORDS.length) × wc` 是确定性派生量：WORDS 实测 169 词（页面 FORMULA 写的 170 为陈旧说明，以数组长度为准），"
      + "log₂(169) = 7.40088 ⇒ 8 × 7.40088 = 59.207 → toFixed(1) = 59.2，文本为「约 59.2 位熵（基于 169 词库 / 8 词）」。"
      + "默认 wc=5 且页面加载不自动生成 ⇒ 输出区为空；判别态清空 clicks ⇒ generate() 不执行，同样为空 ⇒ 零逃生。"
 },
-{ slug:"security/detector-45", inputs:{"resistTime":"","steelThick":"","lockTime":"","envScore":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"security/detector-45", inputs:{"resistTime":"","steelThick":"","lockTime":"","envScore":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{
+    "slug": "security/passphrase-generator",
+    "inputs": {"wc":"5"},
+    "clicks": ["generate();var ok=(typeof TBKit==='undefined')?true:(TBKit.history&&TBKit.history.list().length===0);document.getElementById('__tbProbe').textContent='TB866P '+(ok?'OK':'BAD');"],
+    "expect": ["TB866P OK"],
+    "ref": "第866批：口令敏感，生成后不得写入 TBKit.history，历史为空。"
+  },
+  {
+    "slug": "security/passphrase-generator",
+    "inputs": {"wc":"5"},
+    "clicks": ["generate();var cap='';var old=navigator.clipboard.writeText;navigator.clipboard.writeText=function(s){cap=s;return Promise.resolve();};copyResult();navigator.clipboard.writeText=old;document.getElementById('__tbProbe').textContent='TB866C '+((cap&&cap.indexOf('位熵')<0)?'OK':'BAD');"],
+    "expect": ["TB866C OK"],
+    "ref": "第866批：复制只取当前口令，不把熵说明一起复制。"
+  },
+  {
+    "slug": "security/emergency-contacts",
+    "inputs": {"customName": "测试联系人", "customPhone": "13800000000"},
+    "clicks": ["var ok=false;try{var raw=JSON.parse(localStorage.getItem('tb_emergency_contacts')||'[]');var store=localStorage;var old=store.setItem;store.setItem=function(){throw new Error('quota');};document.getElementById('customName').value='测试联系人';document.getElementById('customPhone').value='13800000000';addCustom();store.setItem=old;ok=(document.getElementById('customName').value==='测试联系人'&&JSON.parse(localStorage.getItem('tb_emergency_contacts')||'[]').length===raw.length);}catch(e){ok=false;}document.getElementById('__tbProbe').textContent='TB866E '+(ok?'OK':'BAD');"],
+    "expect": ["TB866E OK"],
+    "ref": "第866批：模拟 localStorage 写入抛错，addCustom 必须保留姓名/号码输入且不渲染成功，列表长度不变。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

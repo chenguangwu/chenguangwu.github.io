@@ -350,7 +350,9 @@ function fmtDate(d){
   return y+'-'+m+'-'+day;
 }
 // 按工作日（周一至周五）推进 n 个学习日，跳过周六日；与"按工作日计"的说明一致。
+var MAX_NEED_DAYS=3650, MAX_TARGET_SPAN=36500;
 function addWorkdays(from, n){
+  if(!isFinite(n)||n<0||n>MAX_NEED_DAYS) return null;
   var d = new Date(from);
   var left = n;
   while(left > 0){
@@ -362,6 +364,8 @@ function addWorkdays(from, n){
 }
 // 从今天到目标日期之间的工作日数（含目标日、不含今天）；用于目标评估的"可用学习日"。
 function workdaysUntil(from, to){
+  var span=(to.getTime()-from.getTime())/(24*60*60*1000);
+  if(!isFinite(span)||span>MAX_TARGET_SPAN) return null;
   var d = new Date(from);
   var n = 0;
   while(d < to){
@@ -401,6 +405,11 @@ function calc(){
   var today = new Date();
   today.setHours(0,0,0,0);
   var needDays = Math.ceil(totalRemainHours / dailyHours);
+  if(!isFinite(totalRemainHours)||!isFinite(needDays)||needDays>MAX_NEED_DAYS){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">累计剩余工时过大（需超过 '+MAX_NEED_DAYS+' 个工作日），已超出本工具的计算范围，请检查科目数量、任务数与单项工时。</p>';
+    document.getElementById('result').style.display='block';
+    return;
+  }
   // 按工作日推进完成日（跳过周六日），与"按工作日计"说明一致。
   var estDate = addWorkdays(today, needDays);
   var estStr = fmtDate(estDate);
@@ -409,12 +418,14 @@ function calc(){
   var targetDate = null;
   var daysToTarget = null;
   var calendarDaysToTarget = null;
+  var targetOutOfRange = false;
   if(targetStr){
     targetDate = new Date(targetStr + 'T00:00:00');
     if(!isNaN(targetDate.getTime())){
       calendarDaysToTarget = Math.ceil((targetDate.getTime() - today.getTime())/(24*60*60*1000));
       daysToTarget = workdaysUntil(today, targetDate);
-      onTrack = calendarDaysToTarget >= 0 && needDays <= daysToTarget;
+      targetOutOfRange = daysToTarget===null || Math.abs(calendarDaysToTarget)>MAX_TARGET_SPAN;
+      if(!targetOutOfRange) onTrack = calendarDaysToTarget >= 0 && needDays <= daysToTarget;
     }
   }
 
@@ -429,10 +440,11 @@ function calc(){
   html += '<div class="stat-card"><div class="val">'+estStr+'</div><div class="lbl">预计完成日</div></div>';
   if(targetDate){
     var overdue = calendarDaysToTarget < 0;
-    var trackTag = overdue ? 'grade-fail' : (onTrack ? 'grade-excellent' : 'grade-fail');
-    var trackText = overdue ? '目标已逾期' : (onTrack ? '进度正常' : '进度滞后');
+    var noWorkday = !targetOutOfRange && !overdue && daysToTarget===0 && needDays>0;
+    var trackTag = (overdue||targetOutOfRange||noWorkday) ? 'grade-fail' : (onTrack ? 'grade-excellent' : 'grade-fail');
+    var trackText = targetOutOfRange ? '目标超出范围' : (overdue ? '目标已逾期' : (noWorkday ? '无可用工作日' : (onTrack ? '进度正常' : '进度滞后')));
     html += '<div class="stat-card"><div class="val"><span class="grade-tag '+trackTag+'">'+trackText+'</span></div><div class="lbl">相对目标</div></div>';
-    html += '<div class="stat-card"><div class="val">'+(overdue ? '已逾期 '+Math.abs(calendarDaysToTarget)+' 天' : calendarDaysToTarget)+'</div><div class="lbl">距目标天数</div></div>';
+    html += '<div class="stat-card"><div class="val">'+(targetOutOfRange ? '超出 '+MAX_TARGET_SPAN+' 天' : (overdue ? '已逾期 '+Math.abs(calendarDaysToTarget)+' 天' : calendarDaysToTarget))+'</div><div class="lbl">距目标天数</div></div>';
   }
   html += '</div>';
 
@@ -457,8 +469,14 @@ function calc(){
   });
 
   // 建议
-  if(targetDate && calendarDaysToTarget < 0){
+  if(targetDate && targetOutOfRange){
+    html += '<div class="tip-box tip-error" style="margin-top:12px;">目标日期 <strong>'+targetStr+'</strong> 距今天超过 <strong>'+MAX_TARGET_SPAN+' 天</strong>，已超出本工具的计算范围，请选择更近的目标日期。</div>';
+  } else if(targetDate && calendarDaysToTarget < 0){
     html += '<div class="tip-box tip-error" style="margin-top:12px;">目标日期 <strong>'+targetStr+'</strong> 已过去 <strong>'+Math.abs(calendarDaysToTarget)+' 天</strong>，当前剩余 '+totalRemainHours.toFixed(1)+' 小时尚未完成。请重设目标日期，或按当前节奏尽快补齐。</div>';
+  } else if(targetDate && totalRemainHours===0){
+    html += '<div class="tip-box tip-success" style="margin-top:12px;">全部任务已完成，无需再按目标日期安排学习。</div>';
+  } else if(targetDate && daysToTarget===0){
+    html += '<div class="tip-box tip-warn" style="margin-top:12px;">目标日期 <strong>'+targetStr+'</strong> 之前没有可用工作日（工具按“从明天起算、跳过周末”的规则计算），当前仍有 <strong>'+totalRemainHours.toFixed(1)+' 小时</strong>未完成，按当前规则无法在目标日前完成。请把目标日期改到至少下一个工作日之后，或增加每日学习时长。</div>';
   } else if(targetDate && !onTrack && daysToTarget > 0){
     var needDaily = (totalRemainHours / daysToTarget).toFixed(1);
     html += '<div class="tip-box tip-error" style="margin-top:12px;">进度滞后！按目标日期 <strong>'+targetStr+'</strong> 计算（剩余 '+daysToTarget+' 个工作日），需每日学习 <strong>'+needDaily+' 小时</strong>（当前 '+dailyHours+' 小时）。建议增加每日时长或调整目标。</div>';

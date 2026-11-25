@@ -84,7 +84,32 @@ const CASES = [
     expect: ["原值为 0，无法计算增长率，请修改「原值」"],
     ref: "第827批：增长率模式原值(v1)为 0 时旧提示误称「整体值为 0」；现按当前字段指向原值。"
   },
-
+{
+    "slug": "chinese-cook/sauce-ratio",
+    "inputs": {"sauce":"tangcu","spoons":"0.001"},
+    "expect": ["0.0030 勺","0.045 ml","用量过小"],
+    "ref": "第866批：基准 0.001 勺时糖 3×0.001=0.003 勺，旧实现显示 0.00 勺；现按 2 位有效数字显示 0.0030，并提示用量过小建议放大或改用克/毫升。"
+  },
+  {
+    "slug": "chinese-cook/sauce-ratio",
+    "inputs": {"sauce":"tangcu","spoons":"3"},
+    "expect": ["糖9.00 勺","糖3:醋3:酱油1:料酒1:水2","tangcu = 3:3:1:1:2"],
+    "ref": "第866批：公式、表格与 SAUCES 实际预设统一为糖:醋:酱油:料酒:水=3:3:1:1:2。"
+  },
+  {
+    "slug": "chinese-cook/ingredient-substitute",
+    "inputs": {"search":"butter"},
+    "clicks": ["doSearch();"],
+    "expect": ["黄油","0.8:1","植物油"],
+    "ref": "第866批：英文别名 butter 可命中黄油；植物油替代比例统一为按体积 0.8:1，并标注起酥/打发不适用。"
+  },
+  {
+    "slug": "chinese-cook/ingredient-substitute",
+    "inputs": {"search":"heavy cream"},
+    "clicks": ["doSearch();"],
+    "expect": ["淡奶油","牛奶+融化黄油","不可打发"],
+    "ref": "第866批：补淡奶油条目及牛奶+黄油替代，注明仅煮制/烘焙面糊、不可打发。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

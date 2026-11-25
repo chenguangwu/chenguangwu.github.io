@@ -240,8 +240,16 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-const WORDS=["apple","brave","bread","bridge","brush","butter","candle","chair","circle","cloud","coffee","corner","cotton","dance","diamond","dolphin","dragon","dream","earth","elephant","emerald","engine","feather","field","fire","flower","forest","friend","garden","ghost","glass","gold","green","hammer","happy","heart","helmet","honey","horse","house","island","jungle","keyboard","kingdom","knight","lemon","light","lion","lizard","market","meadow","metal","minute","mirror","monkey","moon","mountain","mouse","music","nature","needle","nest","night","ocean","office","orange","orchard","panda","paper","parrot","pencil","penguin","phone","piano","pillow","planet","plastic","pocket","police","potato","prince","puzzle","queen","rabbit","rain","rainbow","river","rocket","saddle","sailor","salad","school","season","shadow","silver","sky","snake","snow","soccer","spring","square","star","stone","storm","summer","sun","sweater","table","tiger","tower","town","train","tree","truck","turtle","umbrella","valley","village","violet","water","whale","wheel","wind","window","winter","wolf","wood","yellow","zebra","zephyr","zone","zoom","breeze","canyon","cliff","crystal","daisy","desert","dune","falcon","frost","globe","harbor","ivory","jaguar","jester","kettle","lantern","lava","lily","maple","marble","meadow","nectar","oasis","opal","pearl","pepper","quartz","quasar","ripple","sapphire","scarlet","thunder","tundra","vortex","walnut","willow","yarrow"];
-function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
+const WORDS_RAW=["apple","brave","bread","bridge","brush","butter","candle","chair","circle","cloud","coffee","corner","cotton","dance","diamond","dolphin","dragon","dream","earth","elephant","emerald","engine","feather","field","fire","flower","forest","friend","garden","ghost","glass","gold","green","hammer","happy","heart","helmet","honey","horse","house","island","jungle","keyboard","kingdom","knight","lemon","light","lion","lizard","market","meadow","metal","minute","mirror","monkey","moon","mountain","mouse","music","nature","needle","nest","night","ocean","office","orange","orchard","panda","paper","parrot","pencil","penguin","phone","piano","pillow","planet","plastic","pocket","police","potato","prince","puzzle","queen","rabbit","rain","rainbow","river","rocket","saddle","sailor","salad","school","season","shadow","silver","sky","snake","snow","soccer","spring","square","star","stone","storm","summer","sun","sweater","table","tiger","tower","town","train","tree","truck","turtle","umbrella","valley","village","violet","water","whale","wheel","wind","window","winter","wolf","wood","yellow","zebra","zephyr","zone","zoom","breeze","canyon","cliff","crystal","daisy","desert","dune","falcon","frost","globe","harbor","ivory","jaguar","jester","kettle","lantern","lava","lily","maple","marble","meadow","nectar","oasis","opal","pearl","pepper","quartz","quasar","ripple","sapphire","scarlet","thunder","tundra","vortex","walnut","willow","yarrow"];
+const WORDS=Array.from(new Set(WORDS_RAW));
+function randInt(max){
+  if(!(max>0)) return 0;
+  const a=new Uint32Array(1);
+  const limit=Math.floor(0x100000000/max)*max;
+  do{crypto.getRandomValues(a);}while(a[0]>=limit);
+  return a[0]%max;
+}
+var currentPhrase='';
 function generate(){
   const wc=parseInt(document.getElementById('wc').value);
   const cap=document.getElementById('cap').checked,uc=document.getElementById('uc').checked;
@@ -257,14 +265,20 @@ function generate(){
   if(num){parts.splice(randInt(parts.length+1),0,String(randInt(1000)));}
   if(sym){const syms=['!','@','#','$','%','&','*','?','+','='];parts.splice(randInt(parts.length+1),0,syms[randInt(syms.length)]);}
   const phrase=parts.join(sep);
-  const entropy=Math.log2(WORDS.length)*wc;
+  currentPhrase=phrase;
+  var entropy=Math.log2(WORDS.length)*wc;
+  if(num) entropy += Math.log2(1000)+Math.log2(wc+1);
+  if(sym) entropy += Math.log2(10)+Math.log2(wc+(num?1:0)+1);
   const __h0='<div class="pw-result">'+escapeHtml(phrase)+'</div>'+
-    '<div class="entropy">约 '+entropy.toFixed(1)+' 位熵（基于 '+WORDS.length+' 词库 / '+wc+' 词）</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
+    '<div class="entropy">约 '+entropy.toFixed(1)+' 位熵（'+WORDS.length+' 词库 × '+wc+' 词'+(num?' + 数字':'')+(sym?' + 符号':'')+'；大小写与分隔符为固定变换，不计额外熵）</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
 }
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
-  const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
+  if(!currentPhrase){alert((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Generate a passphrase first':'请先生成密码短语');return;}
+  navigator.clipboard.writeText(currentPhrase).then(function(){
+    if(typeof ToolBox!=='undefined'&&ToolBox.showToast) ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Copied passphrase only':'已复制口令（仅口令，不含熵说明）','success');
+    else alert((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Copied passphrase only':'已复制口令（仅口令）');
+  });
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
@@ -312,6 +326,7 @@ function __passphrase_generatorSnap(){
     return out;
 }
 function __passphrase_generatorResText(){
+    return ''; // 口令不进入本地历史/表格/导出
     var r=document.getElementById('output');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
@@ -376,6 +391,8 @@ function __passphrase_generatorRender(keys,rk,en){
 }
 function __passphrase_generatorExtras(){
     if (typeof TBKit === 'undefined') return;
+    try{TBKit.history.clear();}catch(e){}
+    return; // 口令敏感：不写入历史、表格或导出
     if (__passphrase_generator_skip) return;
     var snap=__passphrase_generatorSnap();
     var keys=Object.keys(snap);
@@ -428,7 +445,7 @@ var __passphrase_generator_f0=(typeof generate==='function')?generate:null;
 if(__passphrase_generator_f0){
     generate=function(){ var __r=__passphrase_generator_f0.apply(null,arguments); try{ __passphrase_generatorExtras(); }catch(e){} return __r; };
 }
-function __passphrase_generatorBoot(){ try{ __passphrase_generatorPresets(); }catch(e){} }
+function __passphrase_generatorBoot(){ try{TBKit.history.clear();}catch(e){} try{ __passphrase_generatorPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __passphrase_generatorBoot();
 else document.addEventListener('DOMContentLoaded', __passphrase_generatorBoot);
 </script>
@@ -452,7 +469,7 @@ else document.addEventListener('DOMContentLoaded', __passphrase_generatorBoot);
     </a>
     <a href="virtual-safe.html" class="related-tool-card">
       <span class="rt-icon">🛡️</span>
-      <span class="rt-info"><span class="rt-name">虚拟保险箱</span><span class="rt-desc">使用密码加密文本并存储在本地浏览器中，保护你的私密信息。</span></span>
+      <span class="rt-info"><span class="rt-name">虚拟保险箱</span><span class="rt-desc">教学演示型网络安全工具：用简化口令哈希与异或流模拟本地保险箱流程，只用于理解加密原理。</span></span>
     </a>
     <a href="detector-45.html" class="related-tool-card">
       <span class="rt-icon">⚖️</span>
@@ -477,7 +494,7 @@ else document.addEventListener('DOMContentLoaded', __passphrase_generatorBoot);
     <h4><span class="h4-icon">📝</span>工具简介</h4>
     <p data-zh="密码短语生成器。网络安全工具，专业计算，数据本地处理。">Generate memorable high-entropy passphrases from a word list, choosing the number of words and the separator, all locally.</p>    <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">熵(bit) = log₂(词库容量) × 单词数（词库共 170 词，约 7.41 bit/词），熵仅按词库×词数计算，随机插入的数字（0–999）与符号（!@#$%&amp;*?+= 之一）未计入熵值；口令短语 = 各词按分隔符 join，可选手工项为首字母大写或全大写。校验：无强校验，单词数按整数解析。判据：熵值越高抗暴力破解越强，建议 4 词以上；附加数字/符号主要提升社工字典命中难度。</div>
+      <div class="formula-eq">熵(bit) = 单词数 × log₂(去重后词库容量) + 数字/符号的取值与插入位置熵；数字（0–999）计入 log₂(1000) 加插入位置 log₂(词数+1)，符号（10 选 1）再计入 log₂(10) 加插入位置；首字母大写/全大写与固定分隔符是确定性变换，不额外增加熵。口令短语 = 各词按分隔符 join；选了数字/符号会随机插入。校验：单词数按整数解析。判据：熵值越高抗暴力破解越强，建议 4 词以上；附加数字/符号主要提升社工字典命中难度，但不应替代足够的词数。</div>
       <div class="formula-desc">口令强度用熵度量：n 为词数、W 为词表大小（如 7776 词）。叠加大小写变换、数字与符号替换会进一步提高熵，但需按实际可选集重新估算。</div>
     </div>
 
