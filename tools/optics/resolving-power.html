@@ -73,7 +73,28 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "R 越大越好？", "acceptedAnswer": {"@type": "Answer", "text": "R 大→可分辨更小波长差，光谱仪分辨邻近谱线能力更强。"}}, {"@type": "Question", "name": "与瑞利角分辨关系？", "acceptedAnswer": {"@type": "Answer", "text": "二者同源：瑞利给最小分辨角，分辨本领 R=λ/Δλ=D/(1.22λ)。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "角分辨本领越大越好？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "1/θ_min 越大→可分辨的角距离越小；本页不把它当作光谱分辨本领 λ/Δλ。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "与瑞利角分辨关系？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "二者相关但不同：瑞利判据给 θ_min=1.22λ/D；光谱分辨本领 λ/Δλ 需要色散系统参数，不能仅由 D 与 λ 得到。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
@@ -111,7 +132,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入孔径直径 D 与波长 λ（纳米），求分辨本领。">Compute resolving power and limiting resolution angle from circular aperture diameter D and wavelength λ in nanometres. For telescopes, microscopes and camera resolution.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">瑞利判据分辨本领（本页代码口径）：R = D÷(1.22×λ)（1/m，D 孔径 m、λ 波长按 nm 输入×10⁻⁹ 转 m，1.22 为圆孔艾里斑系数）；联动量：最小分辨角 = 1.22×λ÷max(D,10⁻¹²)（rad）、角秒 = ×206265、R(1/mm) = R÷1000。校验：两项输入空值守卫，空值即提示；D 为 0 时分母按 10⁻¹² 兜底。判据：无固定分级，口径越大或波长越短分辨率越高，角秒值越小分辨能力越强。</div>
+      <div class="formula-eq">瑞利角分辨（本页代码口径）：最小分辨角 θ_min = 1.22×λ÷D（rad；D 孔径 m、λ 按 nm 输入×10⁻⁹ 转 m，1.22 为圆孔艾里斑系数）；角分辨本领 = 1÷θ_min = D÷(1.22×λ)（rad⁻¹，数值上等于每弧度可分辨的极限线对）；角秒 = θ_min×206265。校验：D、λ 必填且均须大于 0，不做分母兜底。判据：θ_min 越小角分辨本领越高；本页的 D÷(1.22×λ) 不是光谱分辨本领 λ/Δλ。</div>
       <p class="formula-desc">输入孔径直径 D 与波长 λ（纳米），求分辨本领。</p>
     </div>
 
@@ -301,16 +322,17 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __optLabel(s){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()){var m={'最小分辨角 θ_min (rad)':'Minimum resolvable angle θ_min (rad)','最小分辨角 (角秒)':'Minimum resolvable angle (arcsec)','角分辨本领 1/θ_min (rad⁻¹)':'Angular resolution power 1/θ_min (rad⁻¹)','项目':'Item','数值':'Value'};if(m[s])return m[s];}}catch(e){}return s;}
+function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){r[1]=__optLabel(String(r[1]));h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
               var __ig=__tbInputGuard(['D', 'lam'],["孔径 D (米)", "波长 λ (纳米)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const D=num('D'),lam=num('lam')*1e-9;
-            const R=D/(1.22*lam);
+const D=Number(num('D')),lam=Number(num('lam'))*1e-9;
+            if(!isFinite(D)||D<=0||!isFinite(lam)||lam<=0){ToolBox.setResult('result','<p style="color:var(--danger)">孔径 D 与波长 λ 必须大于 0；D=0 时最小分辨角无定义。</p>');return;}
+            const theta=1.22*lam/D;
             const __g2=dataGrid([
-                [R.toFixed(0),'分辨本领 R (1/m)'],
-                [(1.22*lam/Math.max(D,1e-12)).toExponential(3), '最小分辨角 (rad)'],
-                [(1.22*lam/Math.max(D,1e-12)*206265).toFixed(4), '最小分辨角 (角秒)'],
-                [(R/1e3).toFixed(3), '分辨本领 (1/mm)']
+                [theta.toExponential(3),__optLabel('最小分辨角 θ_min (rad)')],
+                [(theta*206265).toFixed(4), __optLabel('最小分辨角 (角秒)')],
+                [(1/theta).toFixed(0), __optLabel('角分辨本领 1/θ_min (rad⁻¹)')]
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('D').value = '0.1';
@@ -322,17 +344,17 @@ function __resolving_powerNum(id){var e=document.getElementById(id);var v=e?pars
 function __resolving_powerExtras(){
     function __resolving_powerRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var D=num('D'),lam=num('lam')*1e-9;
-    var R=D/(1.22*lam);
-    if (!isFinite(__resolving_powerNum('D')) || !isFinite(__resolving_powerNum('lam'))) return;
+    if (__resolving_powerRaw('D').trim()==='' || __resolving_powerRaw('lam').trim()==='') return;
+    var D=Number(__resolving_powerRaw('D')),lam=Number(__resolving_powerRaw('lam'))*1e-9;
+    if (!isFinite(D)||D<=0||!isFinite(lam)||lam<=0) return;
+    var theta=1.22*lam/D;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#resolving_powerTable',{
-        head: en?['Item','Value']:['项目','数值'],
+        head: en?['Item','Value']:[__optLabel('项目'),__optLabel('数值')],
         rows: [
-            ['分辨本领 R (1/m)', R.toFixed(0)],
-            ['最小分辨角 (rad)', (1.22*lam/Math.max(D,1e-12)).toExponential(3)],
-            ['最小分辨角 (角秒)', (1.22*lam/Math.max(D,1e-12)*206265).toFixed(4)],
-            ['分辨本领 (1/mm)', (R/1e3).toFixed(3)],
+            [__optLabel('最小分辨角 θ_min (rad)'), theta.toExponential(3)],
+            [__optLabel('最小分辨角 (角秒)'), (theta*206265).toFixed(4)],
+            [__optLabel('角分辨本领 1/θ_min (rad⁻¹)'), (1/theta).toFixed(0)],
         ]
     });
     TBKit.history.record({D:__resolving_powerRaw('D'), lam:__resolving_powerRaw('lam'), R:R});
@@ -389,12 +411,12 @@ else document.addEventListener('DOMContentLoaded', __resolving_powerBoot);
 <li>最小可分辨波长差计算。</li>
 <li>光谱仪色分辨设计。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">口径 0.1m，λ=550nm</div><div class="dd-ex-body">R=D/(1.22λ)=0.1/(1.22×550e-9)=1.49e5。可分辨 Δλ≈λ/R≈3.7e-3nm。</div></div>
-<div class="dd-example"><div class="dd-ex-title">口径 1m</div><div class="dd-ex-body">R=0.1/(1.22×550e-9)... 修正 D=1：R=1/(6.71e-7)=1.49e6。</div></div>
+<div class="dd-example"><div class="dd-ex-title">口径 0.1m，λ=550nm</div><div class="dd-ex-body">θ_min=1.22λ/D=1.22×550e-9/0.1=6.71e-6 rad（约 1.38″）。1/θ_min≈1.49e5 rad⁻¹ 是角分辨本领，不是光谱分辨本领 λ/Δλ。</div></div>
+<div class="dd-example"><div class="dd-ex-title">口径 1m</div><div class="dd-ex-body">D=1m、λ=550nm：θ_min=1.22×550e-9/1=6.71e-7 rad（约 0.138″），1/θ_min≈1.49e6 rad⁻¹；口径增大，角分辨极限变小。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>R 越大越好？</dt><dd>R 大→可分辨更小波长差，光谱仪分辨邻近谱线能力更强。</dd>
-<dt>与瑞利角分辨关系？</dt><dd>二者同源：瑞利给最小分辨角，分辨本领 R=λ/Δλ=D/(1.22λ)。</dd>
+<dt>角分辨本领越大越好？</dt><dd>1/θ_min 越大→可分辨的角距离越小；本页不把它当作光谱分辨本领 λ/Δλ。</dd>
+<dt>与瑞利角分辨关系？</dt><dd>二者相关但不同：瑞利判据给 θ_min=1.22λ/D；光谱分辨本领 λ/Δλ 需要色散系统参数，不能仅由 D 与 λ 得到。</dd>
 </dl>
 </div>
 </section>

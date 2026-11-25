@@ -249,9 +249,9 @@ const CASES = [
       "c": "42"
     },
     "expect": [
-      "42\n42\n42\n8.400e+1"
+      "|v/c| 必须小于 1"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"f\":\"42\",\"v\":\"42\",\"c\":\"42\"}，输出区含「42\n42\n42\n8.400e+1」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "f=42,v=42,c=42 ⇒ v/c=1，相对速度达到光速，页面应拒绝而不是给出有限频移；默认态不含该提示。"
   },
   {
     "slug": "optics/fresnel-reflectance",
@@ -348,9 +348,9 @@ const CASES = [
       "lam": "42"
     },
     "expect": [
-      " R (1/m) 1.220e-9"
+      "1.220e-9 最小分辨角 θ_min (rad)"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"D\":\"42\",\"lam\":\"42\"}，输出区含「 R (1/m) 1.220e-9」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "D=42m、λ=42nm ⇒ θ_min=1.22×42e-9/42=1.220e-9 rad；页面按角分辨极限输出，不再标成 1/m 的 R。"
   },
   {
     "slug": "optics/single-slit-diffraction",
@@ -409,9 +409,9 @@ const CASES = [
       "d": "42"
     },
     "expect": [
-      "间距 (rad) 1000000.00 视场条纹数"
+      "23.8095 条纹密度"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"lam\":\"42\",\"L\":\"42\",\"d\":\"42\"}，输出区含「间距 (rad) 1000000.00 视场条纹数」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "λ=42nm、L=42m、d=42mm ⇒ Δy=0.042mm，条纹密度=1/Δy=23.8095 1/mm；不再用屏距冒充视场宽度。"
   },
   {
     "slug": "optics/thin-lens-equation",
@@ -420,7 +420,7 @@ const CASES = [
       "do": "43"
     },
     "expect": [
-      "像距 d_i = 1806.0000 m（正） 横向放大率 m = -42.0000"
+      "1806.0000", "-42.0000"
     ],
     "ref": "焦点边界重做同批同步：原自动补强用例用 f=42 / d_o=42 恰好落在焦点上，修复后该输入改走「出射光平行、像在无穷远」分支，旧的 dataGrid 断言必然漂移 ⇒ inputs 改为非焦点的 42/43。1/dᵢ=1/42−1/43 ⇒ dᵢ=1806.0000 m、m=−42.0000，expect 取真实派生结论串（依赖两个注入值；默认态 f0.1/d_o0.3 不含）⇒ 强判别、零逃生。"
   },
@@ -458,6 +458,30 @@ const CASES = [
     "expect": ["PRISMBAD OK"],
     "ref": "1001 棱镜明细同步主区 n>0 校验：旧版 n=-1、A=10° 仍写 4 行明细并记历史；修复后清表且不记录。默认 n=1.5 不含该串。"
   }
+
+,
+{ slug: "optics/focal-length-mirror", inputs: { R: "-20" }, expect: ["-10.00", "-10.0000"], ref: "凸面镜 R=-20cm ⇒ f=-10cm，光焦度=100/(-10)=-10 D；负号必须保留。" },
+{ slug: "optics/focal-length-mirror", inputs: { R: "0" }, expect: ["不能为 0"], ref: "R=0 是平面镜，焦距无有限值；不能除零后给伪光焦度。" },
+{ slug: "optics/focal-length-mirror", inputs: { R: "" }, expect: ["请填写曲率半径"], ref: "空白不等于 0；旧实现按 0 算会得到 f=0 与巨大光焦度。" },
+{ slug: "optics/young-fringe", inputs: { lam: "600", L: "1.2", d: "0.4" }, expect: ["1.800", "0.5556", "条纹密度"], ref: "Δy=550e-9×1/(0.5e-3)=1.1e-3m=1.100mm；密度=1/1.1=0.9091 1/mm。" },
+{ slug: "optics/mirror-equation", inputs: { f: "0.3", do: "0.8" }, expect: ["0.4800", "实像"], ref: "凹面镜 f=0.2、d_o=0.5 ⇒ d_i=0.3333m>0，本页约定为镜前实像。" },
+{ slug: "optics/mirror-equation", inputs: { f: "-0.2", do: "0.5" }, expect: ["-0.1429", "虚像"], ref: "凸面镜 f=-0.2、d_o=0.5 ⇒ d_i=-0.1429m<0，镜后虚像；不能按与 f 同号判实像。" },
+{ slug: "optics/mirror-equation", inputs: { f: "0.2", do: "0.2" }, expect: ["无有限像距"], ref: "物在焦点 ⇒ 1/f-1/d_o=0，出射平行，不能给有限 d_i。" },
+{ slug: "optics/brewster-angle", inputs: { n1: "1.0", n2: "1.6" }, expect: ["57.995", "反射角 θ_r", "折射角 θ_t"], ref: "θ_B=arctan(1.5)=56.310°；反射角=θ_B，折射角=90-θ_B=33.690°，互补角不是反射光方向角。" },
+{ slug: "optics/doppler-optical", inputs: { f: "5e14", v: "1.2e6", c: "3e8" }, expect: ["5.020e+14", "蓝移（接近）"], ref: "v>0 约定为接近，f′=f(1+v/c)=5.005e14，频率升高为蓝移。" },
+{ slug: "optics/doppler-optical", inputs: { f: "5e14", v: "-300000", c: "3e8" }, expect: ["4.995e+14", "红移（远离）"], ref: "v<0 约定为远离，频率降低为红移；与正速度方向相反。" },
+{ slug: "optics/doppler-optical", inputs: { f: "5e14", v: "0", c: "3e8" }, expect: ["无频移"], ref: "零速度应输出无频移，不能因 v=0 被判空值。" },
+{ slug: "optics/doppler-optical", inputs: { f: "5e14", v: "1e8", c: "3e8" }, expect: ["|v/c|≥0.1"], ref: "v/c=0.333，经典一阶近似误差明显，页面应提示改用相对论公式。" },
+{ slug: "optics/magnification-optics", inputs: { do: "0.3", di: "-0.3" }, expect: ["无有限焦距"], ref: "d_o+d_i=0 时等效焦距分母为零，不能替换为 1 后给 -0.09。" },
+{ slug: "optics/magnification-optics", inputs: { do: "0.5", di: "0.2" }, expect: ["-0.400", "0.1429"], ref: "M=-0.15/0.3=-0.500；f=0.3×0.15/(0.45)=0.1000m。" },
+{ slug: "optics/combined-lens-focal", inputs: { f1: "0.1", f2: "-0.1" }, expect: ["无焦系统", "等效焦距→∞"], ref: "密接双镜光焦度 10+(-10)=0，等效焦距趋于无穷；不能只显示 —。" },
+{ slug: "optics/separated-lenses-focal", inputs: { f1: "10", f2: "-10", d: "0" }, expect: ["无焦系统", "等效焦距→∞"], ref: "分离双镜在 d=0 时退化为密接，f1/f2 异号等值 ⇒ 组合光焦度为 0。" },
+{ slug: "optics/resolving-power", inputs: { D: "0.2", lam: "600" }, expect: ["3.660e-6", "角分辨本领 1/θ_min"], ref: "θ_min=1.22×550e-9/0.1=6.71e-6 rad；1/θ≈1.49e5 rad⁻¹，不能标成 1/m。" },
+{ slug: "optics/resolving-power", inputs: { D: "0", lam: "550" }, expect: ["必须大于 0"], ref: "D=0 时最小分辨角无定义，不能以 1e-12 兜底。" },
+{ slug: "optics/angular-magnification", inputs: { N: "250", f: "-20" }, expect: ["均须大于 0"], ref: "负焦距不适用于简单放大镜 M=N/f 模型，旧 Math.max 会给出伪正比值。" },
+{ slug: "optics/angular-magnification", inputs: { N: "200", f: "8" }, expect: ["25.00", "0.040000"], ref: "M=250/25=10.00；f/N=0.100000；不得用 max 改写负值。" },
+{ slug: "optics/thin-lens-equation", inputs: { f: "-0.1", do: "0.3" }, expect: ["-0.0750", "虚像", "光路图仅支持凸透镜"], ref: "凹透镜 f=-0.1、d_o=0.3 ⇒ d_i=-0.075m 虚像；主计算保留，光路图明确提示不支持。" },
+{ slug: "optics/thin-lens-equation", inputs: { f: "0.2", do: "0.5" }, expect: ["0.3333"], ref: "凸透镜 f=0.1、d_o=0.3 ⇒ d_i=0.15m 实像，回归主路径。" }
 
 ];
 

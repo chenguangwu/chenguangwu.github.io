@@ -132,7 +132,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入两透镜焦距 f₁、f₂ 与间距 d，求组合焦距。">Compute the equivalent focal length of two thin lenses with separation d. For compound lenses and telescope eyepiece group design.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">分离双镜组等效焦距（本页代码口径）：1÷F=1÷f₁+1÷f₂−d÷(f₁×f₂)（cm，d 为两镜间距、f₁/f₂ 单位 cm）；联动量：第一/二镜光焦度=1÷f₁、1÷f₂。校验：三项输入空值/非法值即提示并中止。判据：无固定分级，d=0 时退化为薄透镜密接式 1÷F=1÷f₁+1÷f₂，间距增大等效焦距变长。</div>
+      <div class="formula-eq">分离双镜组等效焦距（本页代码口径）：1÷F=1÷f₁+1÷f₂−d÷(f₁×f₂)（cm，d 为两镜间距、f₁/f₂ 单位 cm）；联动量：第一/二镜光焦度=1÷f₁、1÷f₂。校验：f₁、f₂ 必填且均不能为 0，d 须为有限数；组合光焦度为零时显示“无焦系统，等效焦距趋于无穷”，不显示“—”。判据：无固定分级，d=0 时退化为薄透镜密接式 1÷F=1÷f₁+1÷f₂，间距增大等效焦距变长。</div>
       <p class="formula-desc">输入两透镜焦距 f₁、f₂ 与间距 d，求组合焦距。</p>
     </div>
 
@@ -282,16 +282,20 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __optLabel(s){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()){var m={'组合焦距 F (厘米)':'Combined focal length F (cm)','第一镜光焦度 (1/cm)':'First lens power (1/cm)','第二镜光焦度 (1/cm)':'Second lens power (1/cm)','项目':'Item','数值':'Value'};if(m[s])return m[s];}}catch(e){}return s;}
+function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){r[1]=__optLabel(String(r[1]));h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
+  var __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
               var __ig=__tbInputGuard(['f1', 'f2', 'd'],["焦距 f₁ (厘米)", "焦距 f₂ (厘米)", "间距 d (厘米)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const f1=num('f1'),f2=num('f2'),d=num('d');
+const f1=Number(num('f1')),f2=Number(num('f2')),d=Number(num('d'));
+            if(!isFinite(f1)||f1===0||!isFinite(f2)||f2===0||!isFinite(d)){ToolBox.setResult('result','<p style="color:var(--danger)">f₁、f₂ 须为非零有限数，间距 d 须为有限数。</p>');return;}
             const invF=1/f1+1/f2-d/(f1*f2);
+            if(invF===0){const __g0=dataGrid([[__en?'Afocal system (combined power = 0, equivalent focal length → ∞)':'无焦系统（组合光焦度=0，等效焦距→∞）',__optLabel('组合焦距 F (厘米)')],[(1/f1).toFixed(5),__optLabel('第一镜光焦度 (1/cm)')],[(1/f2).toFixed(5),__optLabel('第二镜光焦度 (1/cm)')]]);ToolBox.setResult('result',__g0);return;}
             const F=1/invF;
             const __g2=dataGrid([
-                [F.toFixed(3),'组合焦距 F (厘米)'],
-                [(1/f1).toFixed(5), '第一镜光焦度 (1/cm)'],
-                [(1/f2).toFixed(5), '第二镜光焦度 (1/cm)']
+                [F.toFixed(3),__optLabel('组合焦距 F (厘米)')],
+                [(1/f1).toFixed(5), __optLabel('第一镜光焦度 (1/cm)')],
+                [(1/f2).toFixed(5), __optLabel('第二镜光焦度 (1/cm)')]
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('f1').value = '10';
@@ -304,17 +308,17 @@ function __separated_lenses_focalNum(id){var e=document.getElementById(id);var v
 function __separated_lenses_focalExtras(){
     function __separated_lenses_focalRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var f1=num('f1'),f2=num('f2'),d=num('d');
-    var invF=1/f1+1/f2-d/(f1*f2);
-    var F=1/invF;
-    if (!isFinite(__separated_lenses_focalNum('f1')) || !isFinite(__separated_lenses_focalNum('f2')) || !isFinite(__separated_lenses_focalNum('d'))) return;
+    if (__separated_lenses_focalRaw('f1').trim()==='' || __separated_lenses_focalRaw('f2').trim()==='' || __separated_lenses_focalRaw('d').trim()==='') return;
+    var f1=Number(__separated_lenses_focalRaw('f1')),f2=Number(__separated_lenses_focalRaw('f2')),d=Number(__separated_lenses_focalRaw('d'));
+    if (!isFinite(f1)||f1===0||!isFinite(f2)||f2===0||!isFinite(d)) return;
+    var invF=1/f1+1/f2-d/(f1*f2); if(invF===0) return; var F=1/invF;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#separated_lenses_focalTable',{
-        head: en?['Item','Value']:['项目','数值'],
+        head: en?['Item','Value']:[__optLabel('项目'),__optLabel('数值')],
         rows: [
-            ['组合焦距 F (厘米)', F.toFixed(3)],
-            ['第一镜光焦度 (1/cm)', (1/f1).toFixed(5)],
-            ['第二镜光焦度 (1/cm)', (1/f2).toFixed(5)],
+            [__optLabel('组合焦距 F (厘米)'), F.toFixed(3)],
+            [__optLabel('第一镜光焦度 (1/cm)'), (1/f1).toFixed(5)],
+            [__optLabel('第二镜光焦度 (1/cm)'), (1/f2).toFixed(5)],
         ]
     });
     TBKit.history.record({f1:__separated_lenses_focalRaw('f1'), f2:__separated_lenses_focalRaw('f2'), d:__separated_lenses_focalRaw('d'), invF:invF});

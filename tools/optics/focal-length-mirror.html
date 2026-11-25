@@ -132,7 +132,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入球面镜曲率半径 R，求焦距。">Derive the focal length of a concave or convex mirror from its radius of curvature using f = R/2. For geometrical optics, telescopes and reflector design.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">球面镜焦距 f = 曲率半径 R ÷ 2（厘米）；联动卡：曲率半径 = R × 10（mm）、光焦度 D = 100 ÷ max(f, 10⁻⁹)、以及 1 ÷ max(f, 10⁻⁹) 与 100 ÷ max(R, 10⁻⁹) 两张倒数参考卡（除零兜底 10⁻⁹）。校验：无强校验，非数输入按 0 参与计算。判据：f 恒为 R 的一半，焦距越短光焦度越大、会聚能力越强。</div>
+      <div class="formula-eq">球面镜焦距 f = 曲率半径 R ÷ 2（厘米）；联动卡：曲率半径 = R × 10（mm）、光焦度 D = 100 ÷ f、焦距倒数 = 1 ÷ f、曲率半径倒数 = 100 ÷ R（均保留正负号，不做除零兜底）。校验：R 必填且不能为 0；空值与非有限数提示，负 R 按凸面镜符号约定保留负焦距与负光焦度。判据：f 恒为 R 的一半，焦距越短光焦度越大、会聚能力越强。</div>
       <p class="formula-desc">输入球面镜曲率半径 R，求焦距。</p>
     </div>
 
@@ -216,16 +216,22 @@
 </div>
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __optLabel(s){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()){var m={'焦距 f (厘米)':'Focal length f (cm)','曲率半径 (毫米)':'Radius of curvature (mm)','光焦度 (D)':'Optical power (D)','焦距倒数 (1/cm)':'Reciprocal focal length (1/cm)','曲率半径倒数 (1/mm)':'Reciprocal radius (1/mm)','项目':'Item','数值':'Value'};if(m[s])return m[s];}}catch(e){}return s;}
+function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){r[1]=__optLabel(String(r[1]));h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const R=num('R');
+            const __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+            const __raw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+            if(__raw('R')===''){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'Enter the radius of curvature R. Blank is not 0.':'请填写曲率半径 R；空白不等于 0。')+'</p>');return;}
+            const R=Number(__raw('R'));
+            if(!Number.isFinite(R)){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'R must be a finite number.':'曲率半径 R 须为有限数。')+'</p>');return;}
+            if(R===0){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'R cannot be 0: a plane mirror has no finite focal length.':'曲率半径不能为 0：平面镜没有有限焦距，光焦度为 0。')+'</p>');return;}
             const f=R/2;
             const __g1=dataGrid([
-                [f.toFixed(2),'焦距 f (厘米)'],
-                [(R*10).toFixed(4), '曲率半径 (毫米)'],
-                [(100/Math.max(f,1e-9)).toFixed(4), '光焦度 (D)'],
-                [(1/Math.max(f,1e-9)).toFixed(6), '焦距倒数 (1/cm)'],
-                [(100/Math.max(R,1e-9)).toFixed(6), '曲率半径倒数 (1/mm)']
+                [f.toFixed(2),__en?'Focal length f (cm)':__optLabel('焦距 f (厘米)')],
+                [(R*10).toFixed(4), __en?'Radius of curvature (mm)':__optLabel('曲率半径 (毫米)')],
+                [(100/f).toFixed(4), __en?'Optical power (D)':__optLabel('光焦度 (D)')],
+                [(1/f).toFixed(6), __en?'Reciprocal focal length (1/cm)':__optLabel('焦距倒数 (1/cm)')],
+                [(100/R).toFixed(6), __en?'Reciprocal radius (1/mm)':__optLabel('曲率半径倒数 (1/mm)')]
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('R').value = '20';
@@ -236,18 +242,19 @@ function __focal_length_mirrorNum(id){var e=document.getElementById(id);var v=e?
 function __focal_length_mirrorExtras(){
     function __focal_length_mirrorRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var R=num('R');
+    if (__focal_length_mirrorRaw('R').trim()==='') return;
+    var R=Number(__focal_length_mirrorRaw('R'));
+    if (!isFinite(R) || R===0) return;
     var f=R/2;
-    if (!isFinite(__focal_length_mirrorNum('R'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#focal_length_mirrorTable',{
-        head: en?['Item','Value']:['项目','数值'],
+        head: en?['Item','Value']:[__optLabel('项目'),__optLabel('数值')],
         rows: [
-            ['焦距 f (厘米)', f.toFixed(2)],
-            ['曲率半径 (毫米)', (R*10).toFixed(4)],
-            ['光焦度 (D)', (100/Math.max(f,1e-9)).toFixed(4)],
-            ['焦距倒数 (1/cm)', (1/Math.max(f,1e-9)).toFixed(6)],
-            ['曲率半径倒数 (1/mm)', (100/Math.max(R,1e-9)).toFixed(6)],
+            [__optLabel('焦距 f (厘米)'), f.toFixed(2)],
+            [__optLabel('曲率半径 (毫米)'), (R*10).toFixed(4)],
+            [__optLabel('光焦度 (D)'), (100/f).toFixed(4)],
+            [__optLabel('焦距倒数 (1/cm)'), (1/f).toFixed(6)],
+            [__optLabel('曲率半径倒数 (1/mm)'), (100/R).toFixed(6)],
         ]
     });
     TBKit.history.record({R:__focal_length_mirrorRaw('R'), f:f});
@@ -329,7 +336,7 @@ function __flmChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var s=__flmSweep(); if(!s)return;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-  TBKit.chart.line('#flmChart',{title:en?'Mirror Focal Length vs Radius (linear f=R/2)':'球面镜焦距随曲率半径线性增长（f=R/2）',labels:s.labels,series:[{name:en?'Focal length f (cm)':'焦距 f (cm)',data:s.dF},{name:en?'Optical power (D)':'光焦度 (D)',data:s.dP}]});
+  TBKit.chart.line('#flmChart',{title:en?'Mirror Focal Length vs Radius (linear f=R/2)':'球面镜焦距随曲率半径线性增长（f=R/2）',labels:s.labels,series:[{name:en?'Focal length f (cm)':'焦距 f (cm)',data:s.dF},{name:en?'Optical power (D)':__optLabel('光焦度 (D)'),data:s.dP}]});
 }
 
 function __flmShow(which){
