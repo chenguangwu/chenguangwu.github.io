@@ -194,6 +194,7 @@ var lastResult='';
 var LN4=Math.log(4);
 function getNum(id){return parseFloat(document.getElementById(id).value);}
 function setInvalid(el,invalid){if(!el)return;if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
+function __trainEn(){return /^en/i.test(document.documentElement.lang||'')||/[?&]lang=en/i.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
 function readInputs(){
   var load=getNum('load'),rest=getNum('rest'),adapt=parseFloat(document.getElementById('adapt').value);
   var valid=!isNaN(load)&&load>0&&!isNaN(rest)&&rest>0&&!isNaN(adapt)&&adapt>0;
@@ -202,9 +203,10 @@ function readInputs(){
   return {load:load,rest:rest,adapt:adapt,valid:valid};
 }
 function calc(){
+  var en=__trainEn();
   var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<div class="info-box" style="color:var(--danger);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请填写有效的训练负荷与恢复时间</div>';
+    document.getElementById('res').innerHTML='<div class="info-box" style="color:var(--danger);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">'+(en?'Enter a valid training load and recovery time.':'请填写有效的训练负荷与恢复时间')+'</div>';
     return;
   }
   // 模型参数
@@ -225,27 +227,27 @@ function calc(){
   var fatiguePct=fatigue/F0*100;
   // 阶段判定
   var phase,phaseCls,advise;
-  if(fatiguePct>50){phase='疲劳期';phaseCls='grade-fail';advise='疲劳尚未充分消除，此时训练易过度累积，建议继续休息恢复。';}
-  else if(t<tPeak*0.8){phase='恢复上升期';phaseCls='grade-pass';advise='疲劳基本消除，超量恢复尚未达峰，可进行低强度训练或再等待。';}
-  else if(t<=tPeak*1.2){phase='超量恢复峰值期';phaseCls='grade-excellent';advise='处于超量恢复峰值附近，是安排下次高质量训练的最佳时机！';}
-  else if(t<tPeak*2){phase='超量回落期';phaseCls='grade-good';advise='超量收益开始回落，仍可训练但叠加效应减弱，建议尽快安排。';}
-  else{phase='回落结束期';phaseCls='grade-pass';advise='超量恢复已基本消退，回到基线，训练叠加效应消失。';}
+  if(fatiguePct>50){phase=en?'Fatigue phase':'疲劳期';phaseCls='grade-fail';advise=en?'Fatigue is not fully cleared. Training now risks excessive accumulation; continue recovering.':'疲劳尚未充分消除，此时训练易过度累积，建议继续休息恢复。';}
+  else if(t<tPeak*0.8){phase=en?'Rising recovery':'恢复上升期';phaseCls='grade-pass';advise=en?'Fatigue is largely cleared but supercompensation has not peaked. Do light training or wait longer.':'疲劳基本消除，超量恢复尚未达峰，可进行低强度训练或再等待。';}
+  else if(t<=tPeak*1.2){phase=en?'Supercompensation peak':'超量恢复峰值期';phaseCls='grade-excellent';advise=en?'You are near the supercompensation peak: the best window for the next high-quality session.':'处于超量恢复峰值附近，是安排下次高质量训练的最佳时机！';}
+  else if(t<tPeak*2){phase=en?'Supercompensation decline':'超量回落期';phaseCls='grade-good';advise=en?'Supercompensation is declining. Training is still possible but stacking benefits are weaker; schedule soon.':'超量收益开始回落，仍可训练但叠加效应减弱，建议尽快安排。';}
+  else{phase=en?'Return to baseline':'回落结束期';phaseCls='grade-pass';advise=en?'Supercompensation has mostly faded back to baseline; training stacking effects are gone.':'超量恢复已基本消退，回到基线，训练叠加效应消失。';}
   // 建议下次训练时机
   var nextWindow=Math.max(Math.round(tPeak*10)/10, iv.rest);
   const __g2='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+tPeak.toFixed(1)+'</div><div class="label">超量恢复峰值 h</div></div>'+
-    '<div class="data-card"><div class="num">'+(tPeak/24).toFixed(1)+'</div><div class="label">折合 天</div></div>'+
-    '<div class="data-card"><div class="num">'+tFatigueClear.toFixed(1)+'</div><div class="label">疲劳消除 h</div></div>'+
+    '<div class="data-card"><div class="num">'+tPeak.toFixed(1)+'</div><div class="label">'+(en?'Supercompensation peak (h)':'超量恢复峰值 h')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+(tPeak/24).toFixed(1)+'</div><div class="label">'+(en?'Equivalent days':'折合 天')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+tFatigueClear.toFixed(1)+'</div><div class="label">'+(en?'Fatigue clearance (h)':'疲劳消除 h')+'</div></div>'+
     '</div>'+
     '<div class="data-grid" style="margin-top:8px;">'+
-    '<div class="data-card"><div class="num">'+fatigue.toFixed(0)+'</div><div class="label">当前残余疲劳</div></div>'+
-    '<div class="data-card"><div class="num">'+gain.toFixed(0)+'</div><div class="label">当前超量增益</div></div>'+
-    '<div class="data-card"><div class="num">'+(net>=0?'+':'')+net.toFixed(0)+'</div><div class="label">净体能变化</div></div>'+
+    '<div class="data-card"><div class="num">'+fatigue.toFixed(0)+'</div><div class="label">'+(en?'Current residual fatigue':'当前残余疲劳')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+gain.toFixed(0)+'</div><div class="label">'+(en?'Current supercompensation gain':'当前超量增益')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+(net>=0?'+':'')+net.toFixed(0)+'</div><div class="label">'+(en?'Net fitness change':'净体能变化')+'</div></div>'+
     '</div>'+
-    '<div style="margin-top:10px;"><span class="grade-tag '+phaseCls+'">当前阶段：'+phase+'（疲劳残余 '+fatiguePct.toFixed(0)+'%）</span></div>'+
+    '<div style="margin-top:10px;"><span class="grade-tag '+phaseCls+'">'+(en?'Current phase: ':'当前阶段：')+phase+(en?' (residual fatigue '+fatiguePct.toFixed(0)+'%)':'（疲劳残余 '+fatiguePct.toFixed(0)+'%）')+'</span></div>'+
     '<div class="info-box" style="margin-top:10px;">📌 '+advise+'</div>'+
-    '<div class="info-box" style="margin-top:8px;background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.25);color:#1D4ED8;">⏰ 建议下次高质量训练时机：训练后 '+nextWindow+' h（约 '+(nextWindow/24).toFixed(1)+' 天）</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  lastResult='超量恢复负荷安排\n训练负荷: '+iv.load+' rTSS\n适应系数: '+iv.adapt+'\n超量恢复峰值: '+tPeak.toFixed(1)+' h ('+(tPeak/24).toFixed(1)+'天)\n疲劳消除时间: '+tFatigueClear.toFixed(1)+' h\n计划恢复时间: '+iv.rest+' h\n当前残余疲劳: '+fatigue.toFixed(0)+' ('+fatiguePct.toFixed(0)+'%)\n当前超量增益: '+gain.toFixed(0)+'\n净体能变化: '+(net>=0?'+':'')+net.toFixed(0)+'\n当前阶段: '+phase+'\n建议下次训练: 训练后 '+nextWindow+' h';
+    '<div class="info-box" style="margin-top:8px;background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.25);color:#1D4ED8;">⏰ '+(en?'Next high-quality session: '+nextWindow+' h after training (about '+(nextWindow/24).toFixed(1)+' days)':'建议下次高质量训练时机：训练后 '+nextWindow+' h（约 '+(nextWindow/24).toFixed(1)+' 天）')+'</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  lastResult=(en?'Supercompensation load plan\nTraining load: ':'超量恢复负荷安排\n训练负荷: ')+iv.load+' rTSS\n'+(en?'Adaptation factor: ':'适应系数: ')+iv.adapt+'\n'+(en?'Supercompensation peak: ':'超量恢复峰值: ')+tPeak.toFixed(1)+' h ('+(tPeak/24).toFixed(1)+(en?' days':'天')+')\n'+(en?'Fatigue clearance time: ':'疲劳消除时间: ')+tFatigueClear.toFixed(1)+' h\n'+(en?'Planned recovery time: ':'计划恢复时间: ')+iv.rest+' h\n'+(en?'Current residual fatigue: ':'当前残余疲劳: ')+fatigue.toFixed(0)+' ('+fatiguePct.toFixed(0)+'%)\n'+(en?'Current supercompensation gain: ':'当前超量增益: ')+gain.toFixed(0)+'\n'+(en?'Net fitness change: ':'净体能变化: ')+(net>=0?'+':'')+net.toFixed(0)+'\n'+(en?'Current phase: ':'当前阶段: ')+phase+'\n'+(en?'Next session: ':'建议下次训练: ')+nextWindow+' h';
   saveHistory(iv,tPeak,tFatigueClear,fatigue,gain,net,phase,nextWindow);
 }
 function copyRes(){
@@ -274,21 +276,22 @@ function saveHistory(iv,tPeak,tFatigueClear,fatigue,gain,net,phase,nextWindow){
   }catch(e){}
 }
 function renderHistory(){
+  var en=__trainEn();
   var box=document.getElementById('historyBox');
   if(!box)return;
   try{
     var list=JSON.parse(localStorage.getItem(historyKey())||'[]');
-    if(list.length===0){box.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}
+    if(list.length===0){box.innerHTML=(en?'<div class="history-empty">No calculation history</div>':'<div class="history-empty">暂无计算记录</div>');return;}
     var html='';
     list.forEach(function(h,idx){
       html+='<div class="history-item" data-idx="'+idx+'">'+
         '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div>'+
-        '<div class="summary">负荷'+h.load+'rTSS · 恢复'+h.rest+'h · 适应'+h.adapt+'</div>'+
+        '<div class="summary">'+(en?'Load ':'负荷')+h.load+'rTSS · '+(en?'Recovery ':'恢复')+h.rest+'h · '+(en?'Adaptation ':'适应')+h.adapt+'</div>'+
         '<div class="summary" style="color:var(--primary);">峰值'+h.tp+'h · 净体能'+h.n+' · '+h.p+'</div></div>'+
-        '<span style="font-size:12px;color:var(--primary);">恢复</span></div>';
+        '<span style="font-size:12px;color:var(--primary);">'+(en?'Restore':'恢复')+'</span></div>';
     });
     const __g4=html;box.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
-  }catch(e){box.innerHTML='<div class="history-empty">读取记录失败</div>';}
+  }catch(e){box.innerHTML=(en?'<div class="history-empty">Failed to load history</div>':'<div class="history-empty">读取记录失败</div>');}
 }
 function restoreHistory(idx){
   try{

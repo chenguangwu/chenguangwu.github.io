@@ -442,6 +442,7 @@ let maxStreak = 0;
 let correctCount = 0;
 let hintsUsed = 0;
 let timeLeft = 60;
+let gameDeadline = 0;
 let timerInterval = null;
 let gameActive = false;
 let submitLocked = false; // 答对后到 nextWord 的 800ms 窗口内锁定提交，防重复计分（FE-N68）
@@ -476,6 +477,7 @@ function startGame(){
   correctCount = 0;
   hintsUsed = 0;
   timeLeft = 60;
+  gameDeadline = Date.now() + 60000;
   gameActive = true;
   usedWords = [];
   
@@ -487,13 +489,13 @@ function startGame(){
   
   if(timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(()=>{
-    timeLeft--;
+    timeLeft = Math.max(0, Math.ceil((gameDeadline - Date.now()) / 1000));
     document.getElementById('timer').textContent = timeLeft;
     document.getElementById('timeBar').style.width = (timeLeft/60*100) + '%';
     if(timeLeft <= 0){
       endGame();
     }
-  }, 1000);
+  }, 250);
   
   nextWord();
 }
@@ -501,6 +503,9 @@ function startGame(){
 function endGame(){
   if(!gameActive) return; // 未开局/已结束不可重复结算，避免写入 0 分空局战绩（FE-N69）
   gameActive = false;
+  timeLeft = 0;
+  document.getElementById('timer').textContent = '0';
+  document.getElementById('timeBar').style.width = '0%';
   if(timerInterval){
     clearInterval(timerInterval);
     timerInterval = null;
@@ -577,6 +582,7 @@ function renderScrambled(word){
 
 function submitAnswer(){
   if(!gameActive || !currentWord) return;
+  if(gameDeadline && Date.now() >= gameDeadline){ endGame(); return; }
   if(submitLocked) return; // 答对后 800ms 内锁定，避免重复提交重复计分（FE-N68）
   
   const input = document.getElementById('answerInput').value.trim().toLowerCase();
