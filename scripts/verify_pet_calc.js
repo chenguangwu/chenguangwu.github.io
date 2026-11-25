@@ -254,6 +254,68 @@ const CASES = [
     "ref": "负年龄此前不触发 isNaN 守卫；新守卫应拒绝。默认 3/38.5/10 不含该提示。"
   },
 
+{
+  "slug": "pet/fish-tank-volume",
+  "clicks": ["document.getElementById('length').value='-90';document.getElementById('width').value='-30';document.getElementById('height').value='35';document.getElementById('substrate').value='5';calc();document.getElementById('__tbProbe').textContent='TANK '+document.getElementById('volResult').textContent+'|'+document.getElementById('volDesc').textContent+'|'+(document.getElementById('fishRecList').innerHTML.length===0);"],
+  "expect": ["TANK --", "已清除旧结果与推荐", "true"],
+  "ref": "双负尺寸不再因负负得正得到正水量；结果清空、旧设备建议与鱼只推荐一并清除。"
+},
+{
+  "slug": "pet/fish-tank-volume",
+  "clicks": ["document.getElementById('height').value='35';document.getElementById('substrate').value='5';calc();var before=document.getElementById('fishRecList').innerHTML.length;document.getElementById('length').value='';calc();document.getElementById('__tbProbe').textContent='TANKEMPTY '+(before>0)+' '+(document.getElementById('fishRecList').innerHTML.length===0);"],
+  "expect": ["TANKEMPTY true true"],
+  "ref": "有效→清空长度：先产生推荐，再清空必填尺寸 ⇒ 推荐列表清空，不再保留旧说明。"
+},
+{
+  "slug": "pet/pet-age",
+  "inputs": {"petAge":"-2"},
+  "expect": ["宠物年龄必须为不小于 0 的有限数值"],
+  "ref": "负年龄不再按 0 岁换算并给出生命阶段；结果区提示并清空。"
+},
+{
+  "slug": "pet/pet-age",
+  "inputs": {"petAge":""},
+  "expect": ["请填写宠物年龄，已清除旧结果"],
+  "ref": "空值与合法 0 岁区分；空值只提示，不输出人类年龄/阶段。"
+},
+{
+  "slug": "pet/pet-age",
+  "inputs": {"petAge":"16"},
+  "clicks": ["var p=document.getElementById('petStats').innerHTML;document.getElementById('__tbProbe').textContent='AGE '+p.includes('预估剩余')+' '+p.includes('平均寿命参考');"],
+  "expect": ["AGE false true"],
+  "ref": "16 岁猫不再显示「预估剩余 0 岁」；平均寿命只作为群体参考卡片。"
+},
+{
+  "slug": "pet/kennel-space",
+  "inputs": {"count":"","days":"7"},
+  "expect": ["请分别填写宠物数量和寄养天数"],
+  "ref": "单项留空不再默认按 1 只计算；提示并清空旧尺寸/活动区建议。"
+},
+{
+  "slug": "pet/kennel-space",
+  "inputs": {"count":"3.5","days":"7"},
+  "expect": ["宠物数量必须是 1–50 的整数"],
+  "ref": "非整数数量拒绝，不再向下参与面积计算。"
+},
+{
+  "slug": "pet/pet-feeding-calc",
+  "inputs": {"weight":"10","calDensity":"0"},
+  "expect": ["热量密度必须为大于 0 的有限数值"],
+  "ref": "热量密度 0 不再静默回退 3.5；清空旧喂食克数与餐次。"
+},
+{
+  "slug": "pet/pet-feeding-calc",
+  "inputs": {"weight":"10","calDensity":"-2"},
+  "expect": ["热量密度必须为大于 0 的有限数值"],
+  "ref": "负密度不产生负喂食量。"
+},
+{
+  "slug": "pet/aquarium-light",
+  "inputs": {"searchInput":"水榕"},
+  "clicks": ["searchQuery='水榕';renderPlants();var n=document.querySelectorAll('#levelGrid button').length;var on=0;document.querySelectorAll('#levelGrid button').forEach(function(b){if(b.getAttribute('aria-pressed')==='true')on++;});var old=ToolBox.copyText,out='';ToolBox.copyText=function(t){out=t;};copyResult();ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='AQ '+n+' '+on+' '+(document.querySelectorAll('#plantList .plant-row').length===1)+' '+((out.match(/- /g)||[]).length===1);"],
+  "expect": ["AQ 4 1 true true"],
+  "ref": "4 个原生 button 等级筛选项、仅 1 个 aria-pressed=true；搜索「水榕」后列表 1 行，复制也仅 1 行。"
+},
 ];
 async function main() {
   const only = process.argv.slice(2);
