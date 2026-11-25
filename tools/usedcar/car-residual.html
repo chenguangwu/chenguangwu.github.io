@@ -341,7 +341,6 @@ function __tbInputGuardCore(_ids,_labels){
 var RULE_RATES = [0.15, 0.12, 0.10, 0.08, 0.06];
 
 function calc(){
-    var __ig=__tbInputGuard(['price', 'years', 'life', 'salvage'],["新车购置价（元）", "已使用年限（年）", "折旧年限（年）", "残值率（%）"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 var method = document.getElementById('method').value;
   var price = parseFloat(document.getElementById('price').value);
   var years = parseFloat(document.getElementById('years').value);
@@ -352,19 +351,24 @@ var method = document.getElementById('method').value;
     document.getElementById('result').innerHTML='<p style="color:var(--danger);">新车购置价需为有效的非负数值</p>';
     return;
   }
+  if(price === 0){
+    document.getElementById('result').innerHTML='<p style="color:var(--warning);">⚠ 新车购置价为 0：残值为 ¥0.00，累计折旧率与保值率均不可定义（不做除以零）。</p>';
+    return;
+  }
   if(isNaN(years) || years < 0 || years > 30){
     document.getElementById('result').innerHTML='<p style="color:var(--danger);">已使用年限需在 0–30 年之间</p>';
     return;
   }
 
-  var life = parseFloat(document.getElementById('life').value);
-  var salvage = parseFloat(document.getElementById('salvage').value);
-  if(isNaN(life) || life < 1 || life > 30){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">折旧年限需在 1–30 年之间</p>';
+  var needLife = (method === 'straight' || method === 'double');
+  var life = needLife ? parseFloat(document.getElementById('life').value) : NaN;
+  var salvage = needLife ? parseFloat(document.getElementById('salvage').value) : NaN;
+  if(needLife && (!isFinite(life) || life < 1 || life > 30)){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">当前折旧方法需要折旧年限（1–30 年）；阶梯折旧法不使用该字段。</p>';
     return;
   }
-  if(isNaN(salvage) || salvage < 0 || salvage > 100){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">残值率需在 0–100 之间</p>';
+  if(needLife && (!isFinite(salvage) || salvage < 0 || salvage > 100)){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">当前折旧方法需要残值率（0–100%）；阶梯折旧法不使用该字段。</p>';
     return;
   }
 

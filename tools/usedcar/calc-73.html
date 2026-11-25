@@ -215,10 +215,13 @@ function mileageFactor(actual,bench,age){
   }
   return 1;
 }
+function raw(id){var v=String(document.getElementById(id).value||'').trim();return {raw:v,n:v===''?NaN:parseFloat(v)};}
 function calc(){
-  var price=num('price'),age=num('age'),km=num('mileage'),bench=num('annualBench');
+  var pr=raw('price'),ag=raw('age'),mi=raw('mileage'),be=raw('annualBench');
   var brand=document.getElementById('brand').value,cond=document.getElementById('condition').value;
-  if(price<=0||age<0){document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效的购车价与车龄。</p>';return;}
+  var bad=!isFinite(pr.n)||pr.n<=0||!isFinite(ag.n)||ag.n<0||!isFinite(mi.n)||mi.n<0||!isFinite(be.n)||be.n<=0;
+  if(bad){document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 请填写新车购置价（>0）、已使用年限（≥0）、当前里程（≥0）与年均里程基准（>0）。</p>';window.__calc73Valid=null;return;}
+  var price=pr.n,age=ag.n,km=mi.n,bench=be.n;
   var ret=retained(age);
   var bf=BRAND[brand],cf=COND[cond],mf=mileageFactor(km,bench,age);
   var value=price*ret*bf*cf*mf;
@@ -231,13 +234,12 @@ function calc(){
     '<div class="stat-card"><div class="val">'+fmt(ret*100,1)+'%</div><div class="lbl">基础贬值系数</div></div>'+
     '</div>';
 
-  var startYear=Math.floor(age);
   var rows=[];
   for(var y=0;y<=5;y++){
-    var yr=startYear+y;
+    var yr=age+y;
     var r=retained(yr)*bf*cf*mileageFactor(km+bench*y,bench,yr);
     var v=price*r;
-    rows.push([yr+' 年',fmt(v,2),fmt(r*100,1)+'%']);
+    rows.push([(Number.isInteger(yr)?yr.toFixed(0):yr.toFixed(1))+' 年',fmt(v,2),fmt(r*100,1)+'%']);
   }
   var tbl=ToolBox.createTable(['使用年限','估值（万元）','保值率'],rows);
 

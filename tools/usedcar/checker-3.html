@@ -253,6 +253,7 @@ var items=[
   ]}
 ];
 var statusOpts=[
+  {v:0,label:'未检查（请选择）',color:'var(--text-muted)',score:0},
   {v:4,label:'好（无问题）',color:'var(--success)',score:100},
   {v:3,label:'一般（轻微磨损）',color:'var(--warning)',score:70},
   {v:2,label:'差（明显问题）',color:'var(--danger)',score:40},
@@ -285,13 +286,16 @@ if(__dtReq.some(function(k){var e=document.getElementById(k);return !e||String(e
   var mileage=+document.getElementById('mileage').value||0;
   var carAge=+document.getElementById('carAge').value||0;
 
-  var totalWeight=0, totalScore=0, problems=[];
+  var totalWeight=0, totalScore=0, problems=[], totalItems=0, checkedItems=0;
   var groupResults=[];
   items.forEach(function(g){
-    var gScore=0, gWeight=0, gProblems=[];
+    var gScore=0, gWeight=0, gProblems=[], gChecked=0;
     g.list.forEach(function(it){
+      totalItems++;
       var v=+document.getElementById('ck_'+it.key).value;
       var opt=statusOpts.find(function(o){return o.v===v;})||statusOpts[0];
+      if(v===0){gProblems.push({name:it.name,level:'未检查',color:'var(--text-muted)',v:0,unchecked:true});return;}
+      gChecked++;checkedItems++;
       var itemScore=opt.score*it.weight;
       gScore+=itemScore;
       gWeight+=it.weight;
@@ -302,20 +306,26 @@ if(__dtReq.some(function(k){var e=document.getElementById(k);return !e||String(e
         problems.push({name:it.name,level:opt.label,color:opt.color,v:v,weight:it.weight,group:g.group});
       }
     });
-    groupResults.push({group:g.group,score:Math.round(gScore/gWeight),problems:gProblems});
+    groupResults.push({group:g.group,score:gWeight>0?Math.round(gScore/gWeight):null,problems:gProblems,checked:gChecked,total:g.list.length});
   });
+  if(totalWeight<=0){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 尚未检查任何项目。请逐项选择检查结果后再生成报告；未检查项目不会被当作正常。</p>';
+    return;
+  }
   var overallScore=Math.round(totalScore/totalWeight);
+  var coverage=Math.round(checkedItems/totalItems*100);
 
   var level,color,interp;
-  if(overallScore>=85){level='优秀';color='var(--success)';interp='底盘状况优秀，结构完整无明显锈蚀和异响，可放心购买。';}
-  else if(overallScore>=65){level='良好';color='var(--success)';interp='底盘状况良好，存在轻微磨损或表面锈蚀，不影响正常使用，建议关注维护。';}
-  else if(overallScore>=45){level='一般';color='var(--warning)';interp='底盘状况一般，存在明显问题需要维修，建议议价后考虑购买。';}
-  else{level='较差';color='var(--danger)';interp='底盘状况较差，存在严重锈蚀/变形/渗漏等问题，维修成本高，不建议购买。';}
+  if(overallScore>=85){level='优秀';color='var(--success)';interp='已检查项目状况优秀，结构完整无明显锈蚀和异响。';}
+  else if(overallScore>=65){level='良好';color='var(--success)';interp='已检查项目状况良好，存在轻微磨损或表面锈蚀，不影响正常使用，建议关注维护。';}
+  else if(overallScore>=45){level='一般';color='var(--warning)';interp='已检查项目状况一般，存在明显问题需要维修，建议议价后考虑购买。';}
+  else{level='较差';color='var(--danger)';interp='已检查项目状况较差，存在严重锈蚀/变形/渗漏等问题，维修成本高，不建议购买。';}
 
   var html='<h3 style="margin-bottom:10px;">底盘检查报告</h3>';
   html+='<div class="stat-grid">'+
     '<div class="stat-card"><div class="val" style="font-size:36px;color:'+color+';">'+overallScore+'</div><div class="lbl">底盘综合评分（满分100）</div></div>'+
-    '<div class="stat-card"><div class="val" style="font-size:16px;color:'+color+';">'+level+'</div><div class="lbl">底盘评级</div></div>'+
+    '<div class="stat-card"><div class="val" style="font-size:16px;color:'+color+';">'+(coverage<100?'初步·':'')+level+'</div><div class="lbl">底盘评级</div></div>'+
+    '<div class="stat-card"><div class="val">'+coverage+'%</div><div class="lbl">已检查 '+checkedItems+'/'+totalItems+' 项</div></div>'+
     '<div class="stat-card"><div class="val">'+problems.length+'</div><div class="lbl">问题项数</div></div>'+
     '<div class="stat-card"><div class="val">'+(problems.filter(function(p){return p.v===1;}).length)+'</div><div class="lbl">严重问题数</div></div>'+
     '</div>';
@@ -329,13 +339,15 @@ if(__dtReq.some(function(k){var e=document.getElementById(k);return !e||String(e
       });
     }
   });
-  if(problems.length===0){
+  if(problems.length===0 && checkedItems===totalItems){
     html+='<tr><td colspan="2" style="text-align:center;color:var(--success);">所有检查项均正常，无发现问题</td></tr>';
   }
   html+='</table>';
+  if(coverage<100){html+='<div class="info-box" style="margin-top:10px;border-left-color:var(--warning);">⚠ 本次仅检查 '+checkedItems+'/'+totalItems+' 项（'+coverage+'%）。评级只代表已检查范围，未检查项目未按正常处理，不构成完整车况结论；建议补检后再决定购买。</div>';}
 
   html+='<h3 style="margin:14px 0 8px;">各系统评分</h3>';
   groupResults.forEach(function(g){
+    if(g.score===null){html+='<div class="bar-row"><span class="bar-lbl">'+g.group+'</span><div class="bar-bg"><div class="bar-fill" style="width:0;background:var(--border-color);">未检查</div></div></div>';return;}
     var c=g.score>=75?'var(--success)':g.score>=50?'var(--warning)':'var(--danger)';
     html+='<div class="bar-row"><span class="bar-lbl">'+g.group+'</span><div class="bar-bg"><div class="bar-fill" style="width:'+g.score+'%;background:'+c+';">'+g.score+'分</div></div></div>';
   });
@@ -357,7 +369,7 @@ if(__dtReq.some(function(k){var e=document.getElementById(k);return !e||String(e
 
   html+='<div class="info-box" style="margin-top:12px;border-left-color:var(--primary);">'+
     '<strong>综合评估：'+level+'（'+overallScore+'分）</strong><br><br>'+
-    interp+'<br><br>'+
+    interp+(coverage<100?'（仅覆盖已检查的 '+checkedItems+'/'+totalItems+' 项，不构成完整车况结论）':'')+'<br><br>'+
     '<strong>车龄/里程参考：</strong><br>'+
     '车龄'+carAge+'年，行驶'+mileage+'万公里<br>';
   if(carAge>=10||mileage>=15)html+='车龄较长/里程较高，底盘老化属正常现象，关注锈蚀和橡胶件老化<br>';

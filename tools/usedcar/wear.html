@@ -205,9 +205,12 @@
 var HKEY='tb_mileage_wear_history';
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function fmt(n,d){if(!isFinite(n))return '-';d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function raw(id){var v=String(document.getElementById(id).value||'').trim();return {raw:v,n:v===''?NaN:parseFloat(v)};}
 function calc(){
-  var odo=num('odo'),age=num('age'),bench=num('bench'),unit=num('unit'),val=num('value'),tol=num('tol')/100;
-  if(odo<0||age<=0||bench<=0){document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效里程、车龄与基准（车龄、基准须大于 0）。</p>';return;}
+  var o=raw('odo'),a=raw('age'),b=raw('bench'),u=raw('unit'),v=raw('value'),t=raw('tol');
+  var bad=!isFinite(o.n)||o.n<0||!isFinite(a.n)||a.n<=0||!isFinite(b.n)||b.n<=0||!isFinite(u.n)||u.n<0||!isFinite(v.n)||v.n<0||!isFinite(t.n)||t.n<0||t.n>100;
+  if(bad){document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 请填写里程（≥0）、车龄（>0）、年均基准（>0）、单价（≥0）、估值（≥0）与容忍区间（0–100%）；无效输入已清空旧结果。</p>';window.__wearValid=null;return;}
+  var odo=o.n,age=a.n,bench=b.n,unit=u.n,val=v.n,tol=t.n/100;
   var expected=bench*age;
   var excess=Math.max(0,odo-expected);
   var shortage=Math.max(0,expected-odo);

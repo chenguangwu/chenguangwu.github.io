@@ -333,39 +333,50 @@ function syncProfile(){
   save();
 }
 
-// 计算截至当前里程应完成的所有保养项目（去重）
+// 各保养项目的实际周期（km）：由 EXPECTED 里程阶梯展开，机油每 5000、滤芯每 10000 等
+const ITEM_INTERVAL={
+  '机油+机滤':5000,'空调滤芯':10000,'空气滤芯':10000,'火花塞':20000,'刹车油':20000,
+  '变速箱油':30000,'刹车片':40000,'防冻液':40000,'正时皮带':60000,'轮胎':60000,'蓄电池':80000
+};
+
+// 截至当前里程，每个项目最近一次应保养的里程与状态（covered 本周期内已做 / overdue 逾期 / missing 无记录）
 function expectedItems(curKm){
-  const set=new Set();
-  EXPECTED.filter(e=>curKm>=e.km).forEach(e=>e.items.forEach(i=>set.add(i)));
-  return Array.from(set);
+  const out=[];
+  const last={};
+  records.forEach(r=>{if(r.km<=curKm&&(!last[r.item]||r.km>last[r.item].km))last[r.item]=r;});
+  EXPECTED.forEach(e=>e.items.forEach(item=>{
+    if(out.some(x=>x.item===item))return;
+    const interval=ITEM_INTERVAL[item]||e.km;
+    const dueKm=Math.floor(curKm/interval)*interval;
+    if(dueKm<=0)return;
+    const rec=last[item];
+    const status=!rec?'missing':(rec.km>=dueKm?'covered':'overdue');
+    const weight=rec?(rec.shop==='4s'?1.0:0.85):0;
+    out.push({item,dueKm,status,lastKm:rec?rec.km:null,shop:rec?rec.shop:null,weight});
+  }));
+  return out;
 }
 
-// 计算完整度
+// 计算完整度：只把「本周期内已保养」算覆盖，逾期与从未保养分别列出
 function calcCompleteness(){
   const curKm=profile.curKm;
   const expected=expectedItems(curKm);
-  if(!expected.length){const hasRec=records.length>0;return {score:hasRec?100:0,grade:hasRec?'excellent':'fail',gradeText:hasRec?'优秀':'暂无保养记录',covered:[],missing:[],expectedCount:0};}
-  // 每个期望项目检查是否有记录（记录里程 <= curKm 视为已做）
-  const covered=[];
-  const missing=[];
-  expected.forEach(item=>{
-    const recs=records.filter(r=>r.item===item && r.km<=curKm);
-    if(recs.length){
-      // 4S 权重 1.0，汽修厂 0.85
-      const best=recs.reduce((m,r)=>Math.max(m,r.shop==='4s'?1.0:0.85),0);
-      covered.push({item,weight:best,shop:recs[0].shop});
-    }else{
-      missing.push(item);
-    }
+  if(!expected.length){const hasRec=records.length>0;return {score:hasRec?100:0,grade:hasRec?'excellent':'fail',gradeText:hasRec?'优秀':'暂无保养记录',covered:[],overdue:[],missing:[],expectedCount:0};}
+  const covered=[],overdue=[],missing=[];
+  expected.forEach(x=>{
+    if(x.status==='covered')covered.push(x);
+    else if(x.status==='overdue')overdue.push(x);
+    else missing.push(x.item);
   });
-  const totalWeight=covered.reduce((s,c)=>s+c.weight,0);
+  let totalWeight=0;
+  expected.forEach(x=>{totalWeight+=x.status==='covered'?x.weight:(x.status==='overdue'?x.weight*0.5:0);});
   const score=expected.length>0?Math.round(totalWeight/expected.length*100):100;
   let grade,gradeText;
   if(score>90){grade='excellent';gradeText='优秀';}
   else if(score>=70){grade='good';gradeText='良好';}
   else if(score>=50){grade='pass';gradeText='一般';}
   else{grade='fail';gradeText='差';}
-  return {score,grade,gradeText,covered,missing,expectedCount:expected.length};
+  return {score,grade,gradeText,covered,overdue,missing,expectedCount:expected.length};
 }
 
 function addRecord(){
@@ -433,6 +444,11 @@ function render(){
   scoreHtml+=`<div class="tip-box tip-${c.grade==='excellent'?'success':c.grade==='good'?'info':c.grade==='pass'?'warn':'error'}">
     <strong>${T('保值影响估算：','Value retention estimate:')}</strong>${T('当前估值','Current valuation')} ¥${ToolBox.formatNumber(profile.carValue)}，${T('按保养完整度','maintenance completeness')} ${c.score}%（${EN()?({excellent:'Excellent',good:'Good',pass:'Fair',fail:'Poor'}[c.grade]||c.gradeText):c.gradeText}），${valueImpact>=0?T('预计可增值','estimated appreciation'):T('预计可能贬值','estimated depreciation')} <strong style="color:${valueImpact>=0?'var(--success)':'var(--danger)'};">¥${ToolBox.formatNumber(Math.abs(valueImpact))}</strong>，${T('估算交易价','estimated transaction price')} <strong>¥${ToolBox.formatNumber(newValue)}</strong>。
   </div>`;
+  if(c.overdue.length){
+    scoreHtml+=`<div class="tip-box tip-warn" style="margin-top:8px;">
+      ⏰ ${T('已逾期项目：','Overdue items:')}${c.overdue.map(x=>x.item+'（应于 '+ToolBox.formatNumber(x.dueKm)+'km 前完成，最近 '+ToolBox.formatNumber(x.lastKm)+'km）').join('；')}
+    </div>`;
+  }
   if(c.missing.length){
     scoreHtml+=`<div class="tip-box tip-warn" style="margin-top:8px;">
       ⚠️ ${T('缺失保养项目：','Missing maintenance items:')}${c.missing.join('、')}。${T('补充这些记录可提升完整度评分与残值。','Adding these records improves the completeness score and residual value.')}
@@ -481,6 +497,7 @@ function exportReport(){
   txt+=`=== ${T('完整度评估','Completeness Assessment')} ===\n`;
   txt+=`${T('完整度评分','Completeness score')}：${c.score} ${T('分','pts')}（${EN()?({excellent:'Excellent',good:'Good',pass:'Fair',fail:'Poor'}[c.grade]||c.gradeText):c.gradeText}）\n`;
   txt+=`${T('应保养项目','Expected items')}：${c.expectedCount} ${T('项','items')}\n${T('已记录项目','Recorded')}：${c.covered.length} ${T('项','items')}\n${T('缺失项目','Missing')}：${c.missing.length} ${T('项','items')}\n`;
+  if(c.overdue.length)txt+=`${T('逾期明细','Overdue details')}：${c.overdue.map(x=>x.item+'（应于 '+x.dueKm+'km 前完成，最近 '+x.lastKm+'km）').join('、')}\n`;
   if(c.missing.length)txt+=`${T('缺失明细','Missing details')}：${c.missing.join('、')}\n`;
   txt+=`\n${T('保值影响','Value impact')}：${valueImpact>=0?T('增值','appreciation'):T('贬值','depreciation')} ¥${ToolBox.formatNumber(Math.abs(valueImpact))}（${((valuePct*100).toFixed(1))}%）\n`;
   txt+=`${T('估算交易价','Estimated transaction price')}：¥${ToolBox.formatNumber(profile.carValue+valueImpact)}\n\n`;
