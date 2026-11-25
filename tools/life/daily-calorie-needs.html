@@ -194,7 +194,7 @@
         </div>
         <div>
           <label for="bmiAge">年龄</label>
-          <input type="number" id="bmiAge" value="25" min="1" max="120" placeholder="如 25（1–120）">
+          <input type="number" id="bmiAge" value="25" min="18" max="120" placeholder="如 25（18–120）">
         </div>
         <div>
           <label for="bmiHeight">身高 (cm)</label>
@@ -240,7 +240,7 @@
         </div>
         <div>
           <label for="bmrAge">年龄</label>
-          <input type="number" id="bmrAge" value="25" min="1" max="120" placeholder="如 25（1–120）">
+          <input type="number" id="bmrAge" value="25" min="18" max="120" placeholder="如 25（18–120）">
         </div>
         <div>
           <label for="bmrHeight">身高 (cm)</label>
@@ -283,7 +283,7 @@
         </div>
         <div>
           <label for="tdeeAge">年龄</label>
-          <input type="number" id="tdeeAge" value="25" min="1" max="120" placeholder="如 25（1–120）">
+          <input type="number" id="tdeeAge" value="25" min="18" max="120" placeholder="如 25（18–120）">
         </div>
         <div>
           <label for="tdeeHeight">身高 (cm)</label>
@@ -529,7 +529,7 @@ let selectedActivity = 'moderate';
 let selectedGoal = 'maintain';
 let history = [];
 
-const RANGE_MSG = '请输入有效数据：年龄 1–120、身高 50–250、体重 10–300';
+const RANGE_MSG = '请输入有效数据：年龄 18–120（仅成人）、身高 50–250、体重 10–300';
 function fieldInRange(id, min, max){
   const val = parseFloat(document.getElementById(id).value);
   const ok = isFinite(val) && val >= min && val <= max;
@@ -548,14 +548,19 @@ function switchTab(tab){
 function calcBMI(){
   const height = parseFloat(document.getElementById('bmiHeight').value);
   const weight = parseFloat(document.getElementById('bmiWeight').value);
+  const age = parseFloat(document.getElementById('bmiAge').value);
   const hOk = isFinite(height) && height >= 50 && height <= 250;
   const wOk = isFinite(weight) && weight >= 10 && weight <= 300;
+  const ageOk = isFinite(age) && age >= 18 && age <= 120;
   document.getElementById('bmiHeight').classList.toggle('input-error', !hOk);
   document.getElementById('bmiWeight').classList.toggle('input-error', !wOk);
+  document.getElementById('bmiAge').classList.toggle('input-error', !ageOk);
 
-  if(!hOk || !wOk){
+  if(!hOk || !wOk || !ageOk){
     document.getElementById('bmiValue').textContent = '--';
-    document.getElementById('bmiStatus').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter valid data":"请输入有效数据");
+    document.getElementById('bmiStatus').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())
+      ? (ageOk?"Enter valid data":"Adult BMI only: age 18–120")
+      : (ageOk?"请输入有效数据":"成人 BMI 仅适用于 18–120 岁"));
     document.getElementById('bmiStats').innerHTML = '';
     return;
   }
@@ -583,17 +588,11 @@ function calcBMI(){
   const idealMax = 23.9 * ((height / 100) ** 2);
 
   // 体脂率改用 Deurenberg 公式（与 BMR 面板 Katch-McArdle 同源），并限定 2%–60%
-  const age = parseFloat(document.getElementById('bmiAge').value);
   const gender = document.getElementById('bmiGender').value;
-  const ageOk = isFinite(age) && age >= 1 && age <= 120;
-  document.getElementById('bmiAge').classList.toggle('input-error', !ageOk);
-  let bodyFatText = '--';
-  if(ageOk){
-    const bodyFat = gender === 'male'
-      ? 1.20 * bmi + 0.23 * age - 16.2
-      : 1.20 * bmi + 0.23 * age - 5.4;
-    bodyFatText = (bodyFat >= 2 && bodyFat <= 60) ? bodyFat.toFixed(1) + '%' : '超出估算范围';
-  }
+  const bodyFat = gender === 'male'
+    ? 1.20 * bmi + 0.23 * age - 16.2
+    : 1.20 * bmi + 0.23 * age - 5.4;
+  const bodyFatText = (bodyFat >= 2 && bodyFat <= 60) ? bodyFat.toFixed(1) + '%' : '超出估算范围';
 
   let __h0=`
     <div class="stat-card"><div class="v">${idealMin.toFixed(1)}-${idealMax.toFixed(1)}</div><div class="l">理想体重(kg)</div></div>
@@ -601,7 +600,7 @@ function calcBMI(){
     <div class="stat-card"><div class="v">${(height - 105).toFixed(1)}</div><div class="l">简单标准体重(kg)</div></div>
     <div class="stat-card"><div class="v">${bodyFatText}</div><div class="l">体脂率估算</div></div>
   `;
-  if(!ageOk) __h0+=`<p style="font-size:12px;color:var(--danger);margin-top:8px;">⚠ 年龄需在 1–120 之间才能估算体脂率，当前未计入。</p>`;
+  __h0 += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">适用人群：18 岁及以上非孕期成人。儿童青少年、孕期/哺乳期、运动员及疾病患者不适用成人 BMI 分类与固定热量目标，请咨询专业人士；体脂率为公式估算，存在个体差异。</p>';
   if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('bmiStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('bmiStats').innerHTML=__h0;
 }
 
@@ -615,7 +614,7 @@ function setBmrFormula(formula){
 
 function calcBMR(){
   const gender = document.getElementById('bmrGender').value;
-  const ageChk = fieldInRange('bmrAge', 1, 120);
+  const ageChk = fieldInRange('bmrAge', 18, 120);
   const heightChk = fieldInRange('bmrHeight', 50, 250);
   const weightChk = fieldInRange('bmrWeight', 10, 300);
   
@@ -701,7 +700,7 @@ function selectGoal(id){
 
 function calcTDEE(){
   const gender = document.getElementById('tdeeGender').value;
-  const ageChk = fieldInRange('tdeeAge', 1, 120);
+  const ageChk = fieldInRange('tdeeAge', 18, 120);
   const heightChk = fieldInRange('tdeeHeight', 50, 250);
   const weightChk = fieldInRange('tdeeWeight', 10, 300);
   
@@ -729,15 +728,19 @@ function calcTDEE(){
   const target = tdee + goal.cal;
   
   document.getElementById('tdeeValue').textContent = Math.round(tdee) + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" kcal":" 千卡");
+  const belowBmr = target < bmr;
   document.getElementById('tdeeDesc').textContent = 
-    `目标：${goal.name}（${goal.cal > 0 ? '+' : ''}${goal.cal} 千卡） → 每日约 ${Math.round(target)} 千卡`;
+    `目标：${goal.name}（${goal.cal > 0 ? '+' : ''}${goal.cal} 千卡） → 每日约 ${Math.round(target)} 千卡`
+    + (belowBmr ? '；目标低于基础代谢，不建议长期执行' : '')
+    + '（仅 18 岁以上成人估算）';
   
-  const __h6=`
+  let __h6=`
     <div class="stat-card"><div class="v">${Math.round(bmr)}</div><div class="l">基础代谢</div></div>
     <div class="stat-card"><div class="v">${Math.round(target)}</div><div class="l">目标摄入</div></div>
     <div class="stat-card"><div class="v">${Math.round(tdee * 7)}</div><div class="l">每周消耗</div></div>
-    <div class="stat-card"><div class="v">${(goal.cal / 7700 * 7).toFixed(2)}kg</div><div class="l">每周体重变化</div></div>
-  `;if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('tdeeStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('tdeeStats').innerHTML=__h6;
+    <div class="stat-card"><div class="v">${(goal.cal / 7700 * 7).toFixed(2)}kg</div><div class="l">理论周变化（估算）</div></div>
+  `;
+  __h6 += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">体重变化按每 7700 千卡约 1 kg 的固定换算，仅用于理解热量差；实际受代谢适应、水分、活动量与依从性影响，个体差异很大，不应作为医疗或减重处方。</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('tdeeStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('tdeeStats').innerHTML=__h6;
 }
 
 function initFoodTables(){
@@ -766,11 +769,12 @@ function saveToHistory(type){
   if(type === 'bmi'){
     const h = parseFloat(document.getElementById('bmiHeight').value);
     const w = parseFloat(document.getElementById('bmiWeight').value);
-    valid = isFinite(h) && h >= 50 && h <= 250 && isFinite(w) && w >= 10 && w <= 300;
+    const a = parseFloat(document.getElementById('bmiAge').value);
+    valid = isFinite(h) && h >= 50 && h <= 250 && isFinite(w) && w >= 10 && w <= 300 && isFinite(a) && a >= 18 && a <= 120;
   } else if(type === 'bmr'){
-    valid = fieldInRange('bmrAge', 1, 120).ok && fieldInRange('bmrHeight', 50, 250).ok && fieldInRange('bmrWeight', 10, 300).ok;
+    valid = fieldInRange('bmrAge', 18, 120).ok && fieldInRange('bmrHeight', 50, 250).ok && fieldInRange('bmrWeight', 10, 300).ok;
   } else if(type === 'tdee'){
-    valid = fieldInRange('tdeeAge', 1, 120).ok && fieldInRange('tdeeHeight', 50, 250).ok && fieldInRange('tdeeWeight', 10, 300).ok;
+    valid = fieldInRange('tdeeAge', 18, 120).ok && fieldInRange('tdeeHeight', 50, 250).ok && fieldInRange('tdeeWeight', 10, 300).ok;
   }
   if(!valid){
     ToolBox.showToast('请输入有效数据后再保存');

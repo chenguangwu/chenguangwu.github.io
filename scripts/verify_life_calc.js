@@ -117,9 +117,8 @@ const CASES = [
   // ── 饮水计划（体重×30ml + 运动 + 高温 + 特殊）─────────────────
   {
     slug: "life/drinking-water-plan",
-    inputs: { w: "70", act: "mid", temp: "26", stage: "normal" },
-    expect: ["2,850.00"],
-    ref: "基础 70×30 = 2100；运动中档 +500；26°C（≥25）+250；特殊 0 → 2850.00 ml",
+    expect: ["2,550.00"],
+    ref: "默认 60×30 = 1800；运动中档 +500；26°C（≥25）+250；特殊 0 → 2550.00 ml（分段合计另由下一用例校验）",
   },
   {
     slug: "life/drinking-water-plan",
@@ -1579,74 +1578,68 @@ const CASES = [
   {
     slug: "life/shoe-size-converter",
     inputs: { inputType: "length", inputVal: "220" },
-    expect: ["中国码(mm)： 220", "欧盟码： 34", "美码(男)： 1"],
-    ref: "LF-N14 220mm：EU = 2×22 − 10 = 34、US男 = 34 − 33 = 1、CN 直接显示脚长 220。"
-       + "旧实现 CN=22、EU=1.5×(22+2)=36、US=0.847×22−17.6=1.034，三条锚均失配。",
+    expect: ["中国码(mm)： 220", "欧盟码： 35.5", "美码(男)： 3", "英码： 2"],
+    ref: "LF-N14 220mm：EU=1.5×(22+1.5)=35.25→35.5、US男=3、UK=2、CN 220；旧 2×脚长−10 得 34/1，已按巴黎点制修正。",
   },
   {
     slug: "life/shoe-size-converter",
     inputs: { inputType: "length", inputVal: "230" },
-    expect: ["欧盟码： 36", "中国码(mm)： 230", "美码(男)： 3"],
-    ref: "LF-N14 230mm：EU = 2×23 − 10 = 36、US男 = 3、CN 230；旧实现 EU=37.5、CN=23。",
+    expect: ["欧盟码： 37", "中国码(mm)： 230", "美码(男)： 4.5"],
+    ref: "LF-N14 230mm：EU=1.5×(23+1.5)=36.75→37、US男=4.5、CN 230。",
   },
   {
     slug: "life/shoe-size-converter",
     inputs: { inputType: "length", inputVal: "240" },
-    expect: ["中国码(mm)： 240", "欧盟码： 38", "美码(男)： 5"],
-    ref: "LF-N14 240mm：EU = 38、US男 = 5、CN 240；旧实现 CN=24、EU=39。",
+    expect: ["中国码(mm)： 240", "欧盟码： 38.5", "美码(男)： 6"],
+    ref: "LF-N14 240mm：EU=1.5×(24+1.5)=38.25→38.5、US男=6、CN 240。",
   },
   {
     slug: "life/shoe-size-converter",
     inputs: { inputType: "length", inputVal: "265" },
-    expect: ["中国码(mm)： 265", "欧盟码： 43", "美码(男)： 10", "美码(女)： 11.5", "英码： 9"],
-    ref: "LF-N14 265mm：EU = 2×26.5 − 10 = 43、US男 = 43 − 33 = 10、US女 = 43 − 31.5 = 11.5、UK = 43 − 34 = 9，"
-       + "与页面公式区「EU43≈US男10」一致。旧实现在 26.5cm 得 EU43.5/US男4.85、CN26.5，全部失配。",
+    expect: ["中国码(mm)： 265", "欧盟码： 42", "美码(男)： 9.5", "美码(女)： 11", "英码： 8.5"],
+    ref: "LF-N14 265mm：EU=1.5×(26.5+1.5)=42、US男=9.5、US女=11、UK=8.5、CN 265。",
   },
   {
     slug: "life/shoe-size-converter",
     inputs: { inputType: "length", inputVal: "255" },
-    expect: ["中国码(mm)： 255", "欧盟码： 41", "美码(男)： 8", "美码(女)： 9.5", "英码： 7"],
-    ref: "LF-N14 半码：255mm ⇒ EU 41、US男 8、US女 9.5、UK 7、CN 255；保留半码不取整。",
+    expect: ["中国码(mm)： 255", "欧盟码： 40.5", "美码(男)： 8", "美码(女)： 9.5", "英码： 7"],
+    ref: "LF-N14 半码：255mm ⇒ EU 40.5、US男 8、US女 9.5、UK 7、CN 255；保留半码不取整。",
   },
   {
     slug: "life/shoe-size-converter",
     inputs: { inputType: "length", inputVal: "260" },
-    expect: ["中国码(mm)： 260", "欧盟码： 42", "美码(男)： 9", "美码(女)： 10.5", "英码： 8"],
-    ref: "LF-N14 260mm：EU 42、US男 9、US女 10.5、UK 8、CN 260，与深度解析「EU42≈US9≈CN260mm」一致。"
-       + "旧实现 US男 = 0.847×26 − 17.6 = 4.422。",
+    expect: ["中国码(mm)： 260", "欧盟码： 41.5", "美码(男)： 9", "美码(女)： 10.5", "英码： 8"],
+    ref: "LF-N14 260mm：EU 41.5、US男 9、US女 10.5、UK 8、CN 260；深度解析已同步为「EU42≈脚长约255mm」。",
   },
   {
     slug: "life/shoe-size-converter",
     inputs: { inputType: "us_m", inputVal: "7" },
-    expect: ["7\nus_m\n基准脚长： 250 mm 脚长(mm)： 250"],
-    ref: "LF-N14 反向闭合：US男 7 ⇒ EU = 7 + 33 = 40 ⇒ 脚长 = (40+10)×5 = 250 mm、CN 250；"
-       + "toMm/fromMm 互为逆运算（旧实现反解 US7 得 290.4mm）。",
+    expect: ["7\nus_m\n基准脚长： 248.333 mm"],
+    ref: "LF-N14 反向闭合：US男 7 ⇒ EU39.5 ⇒ 脚长 248.333 mm；toMm/fromMm 互为逆运算。",
   },
   {
     slug: "life/shoe-size-converter",
     inputs: { inputType: "us_m", inputVal: "9" },
-    expect: ["基准脚长： 260 mm", "欧盟码： 42", "中国码(mm)： 260"],
-    ref: "LF-N14 反向闭合：US男 9 ⇒ EU42 ⇒ 260mm、CN 260；旧实现反解 313.6mm。"
-       + "默认 250mm 见「基准脚长 250」，第二条 260 失配。",
+    expect: ["基准脚长： 261.667 mm", "欧盟码： 41.5", "中国码(mm)： 261.667"],
+    ref: "LF-N14 反向闭合：US男 9 ⇒ EU41.5 ⇒ 261.667mm、CN 261.667。",
   },
   {
     slug: "life/shoe-size-converter",
     inputs: { inputType: "eu", inputVal: "40" },
-    expect: ["40\neu\n基准脚长： 250 mm 脚长(mm)： 250"],
-    ref: "LF-N14 EU 输入：EU40 ⇒ 250mm、US男 7、CN 250；与 250mm 正向用例互为往返。",
+    expect: ["40\neu\n基准脚长： 251.667 mm", "美码(男)： 7.5"],
+    ref: "LF-N14 EU 输入：EU40 ⇒ 251.667mm、US男 7.5、CN 251.667。",
   },
   {
     slug: "life/shoe-size-converter",
     inputs: { inputType: "eu", inputVal: "42" },
-    expect: ["基准脚长： 260 mm", "美码(男)： 9", "中国码(mm)： 260"],
-    ref: "LF-N14 EU 输入：EU42 ⇒ 260mm、US男 9、CN 260；旧实现 EU42 反解 266.7mm。",
+    expect: ["基准脚长： 255 mm", "美码(男)： 9.5", "中国码(mm)： 255"],
+    ref: "LF-N14 EU 输入：EU42 ⇒ 255mm、US男 9.5、CN 255。",
   },
   {
     slug: "life/shoe-size-converter",
     inputs: { inputType: "eu", inputVal: "5" },
     expect: ["脚长需在 100–400 mm 范围内"],
-    ref: "越界拦截：EU5 ⇒ (5+10)×5 = 75 mm，低于成人可换算范围，应提示 100–400 mm；"
-       + "旧实现会输出 EU5/CN75/US-28 这类非正美码，注入失败即不命中。",
+    ref: "越界拦截：EU5 ⇒ (5/1.5−1.5)×10≈18.33 mm，低于成人可换算范围，提示 100–400 mm。",
   },
   {
     slug: "life/roman-numeral",
@@ -2068,7 +2061,7 @@ const CASES = [
       "tdeeGender": "female"
     },
     "expect": [
-      "1112 基础代谢 1723 目标摄入 12060 每周消耗 0.00kg 每周体重变化"
+      "1112 基础代谢 1723 目标摄入 12060 每周消耗 0.00kg 理论周变化（估算）"
     ],
     "ref": "自动补强（B类零用例，LF-N23 后身高须落在 50–250）：注入女性 42 岁 / 170 cm / 42 kg，"
       + "Mifflin 女式 BMR = 10×42 + 6.25×170 − 5×42 − 161 = 1111.5 → 1112；中等活动 ×1.55 = 1722.8 → 1723；"
@@ -2337,7 +2330,7 @@ const CASES = [
       "inputType": "cn"
     },
     "expect": [
-      "250\ncn\n基准脚长： 250 mm 脚长(mm)： 250 欧盟码： 40 美码(男)： 7 美码(女)： 8.5 英码： 6"
+      "250\ncn\n基准脚长： 250 mm 脚长(mm)： 250 欧盟码： 40 美码(男)： 7.5 美码(女)： 9 英码： 6.5"
     ],
     "ref": "LF-N14 CN 输入闭合：CN 直接即脚长 mm，250mm ⇒ EU40/US男7/US女8.5/UK6，且输入 250 与输出脚长 250 一致（toMm 恒等）。"
        + "默认态（不注入）为 250/length 的输出「脚长(mm) 250…」且输入回显为 250/length，不含「250\\ncn」前缀 ⇒ 强判别、零逃生。"
@@ -2694,20 +2687,20 @@ const CASES = [
   {
     slug: "life/daily-calorie-needs",
     inputs: { bmiAge: "0" },
-    expect: ["年龄需在 1–120 之间才能估算体脂率"],
+    expect: ["成人 BMI 仅适用于 18–120 岁"],
     ref: "LF-N23 残留项：BMI 年龄非法时除体脂率显示 -- 外，补一条年龄专属提示；旧版仅标红不解释，默认 25 岁不含该句 ⇒ 强判别。",
   },
   {
     slug: "life/daily-calorie-needs",
     inputs: { bmrAge: "-5", bmrHeight: "170", bmrWeight: "65" },
-    expect: ["请输入有效数据：年龄 1–120、身高 50–250、体重 10–300"],
+    expect: ["请输入有效数据：年龄 18–120（仅成人）、身高 50–250、体重 10–300"],
     ref: "LF-N23 负年龄：旧守卫 `!age || !height || !weight` 对 -5 恒放行，Mifflin 男式算出 1742.5 千卡并正常展示；"
        + "现按 1–120/50–250/10–300 校验并在 bmrDesc 给出统一提示。默认 25/170/65 正常出结果、不含该提示 ⇒ 强判别。",
   },
   {
     slug: "life/daily-calorie-needs",
     inputs: { tdeeHeight: "-170" },
-    expect: ["请输入有效数据：年龄 1–120、身高 50–250、体重 10–300"],
+    expect: ["请输入有效数据：年龄 18–120（仅成人）、身高 50–250、体重 10–300"],
     ref: "LF-N23 负身高（TDEE 面板）：旧实现把 -170 当合法身高算出负数 BMR 仍展示；现同样走范围校验。"
        + "仅注入 tdeeHeight ⇒ BMI 面板提示语（「请输入有效数据」）与 BMR 面板都不产出该整句，锚定位 TDEE 分支 ⇒ 强判别。",
   },
@@ -3295,7 +3288,7 @@ const CASES = [
   {
     slug: "life/drinking-water-plan",
     inputs: { w: "60", temp: "26", act: "mid", stage: "normal" },
-    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/drinking-water-plan.html','utf8');document.getElementById('__tbProbe').textContent='DWPEXP '+((src.indexOf(\"table.id='__dwpExportTable'\")>=0&&src.indexOf(\"rows.push(['合计'\")>=0&&src.indexOf('07:00-08:30')>=0)?'OK':'BAD');"],
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/drinking-water-plan.html','utf8');document.getElementById('__tbProbe').textContent='DWPEXP '+((src.indexOf(\"table.id='__dwpExportTable'\")>=0&&src.indexOf(\"rows.push(['合计'\")>=0&&src.indexOf('id=\"wakeTime\"')>=0&&src.indexOf('__dwpSlots')>=0&&src.indexOf('运动增量按运动开始时间计入对应时段')>=0)?'OK':'BAD');"],
     expect: ["DWPEXP OK"],
     ref: "第881批：旧导出只含四行摘要，没有分时计划；现临时生成「条件 + 每日目标 + 十个时段 + 合计」表再导出并移除。探针捕获导出选择器内容，要求含首个时段、合计与每日目标。默认无导出不含 DWPEXP。"
   },

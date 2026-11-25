@@ -782,17 +782,23 @@ function getFestivalDate(festival, year){
   return new Date(year, month - 1, day);
 }
 
+function localDayNumber(d){
+  return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+}
+
 function renderFestivals(){
   const now = new Date();
   const thisYear = now.getFullYear();
+  const todayNum = localDayNumber(now);
   const grid = document.getElementById('festivalGrid');
   
   const festivalsWithDate = FESTIVALS.map(f => {
     let date = getFestivalDate(f, thisYear);
-    if(date < new Date(now.getFullYear(), now.getMonth(), now.getDate())){
+    if(localDayNumber(date) < todayNum){
       date = getFestivalDate(f, thisYear + 1);
     }
-    const days = Math.ceil((date - now) / (1000 * 60 * 60 * 24));
+    // 用本地日历日序号相减，不用绝对毫秒差：跨越夏令时的一天可能是 23/25 小时。
+    const days = localDayNumber(date) - todayNum;
     return { ...f, date, days };
   }).sort((a, b) => a.days - b.days);
   

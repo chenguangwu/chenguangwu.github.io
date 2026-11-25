@@ -152,7 +152,7 @@
     <h2 data-zh="🔮 蜡烛燃烧时间估算">Candle Burn Time</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据蜡烛重量和蜡材类型估算燃烧时间">Candle Burn Time</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">蜡烛燃烧时间估算<br>有效燃烧蜡量 = 总重 × 0.85（15% 残留）<br>烛芯因子：1 根 1.0｜2 根 1.7｜3 根 2.3（非线性）<br>综合燃速 = 蜡型基准燃速 × 烛芯因子 × 温度因子（g/h）<br>燃烧小时 = 有效蜡量 ÷ 综合燃速<br>可用天数 = 小时 ÷ 4（每天 4 小时）<br>直径影响：&lt;50mm 效率高｜&gt;100mm 防隧道效应<br>进度条以 100 小时为满标<br>输出：总燃烧小时、可用天数、燃速、有效蜡量</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">蜡烛燃烧时间估算<br>有效燃烧蜡量 = 总重 × 0.85（15% 残留）<br>烛芯因子：1 根 1.0｜2 根 1.7｜3 根 2.3（非线性）<br>综合燃速 = 蜡型基准燃速 × 烛芯因子 × 温度因子（g/h）<br>燃烧小时 = 有效蜡量 ÷ 综合燃速<br>可用天数 = 小时 ÷ 4（每天 4 小时）<br>直径仅作提示，不参与时长计算<br>进度条以 100 小时为满标<br>输出：总燃烧小时、可用天数、燃速、有效蜡量</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：min(100, (burnHours ÷ maxBurn) × 100)；总分钟 = Math.round(burnHours × 60)；小时 = Math.floor(总分钟 ÷ 60)；分钟 = 总分钟 mod 60；Math.floor(burnHours ÷ 4)">Key formulas: min(100, (burnHours ÷ maxBurn) × 100); total minutes = Math.round(burnHours × 60); hours = Math.floor(total minutes ÷ 60); minutes = total minutes mod 60; Math.floor(burnHours ÷ 4)</p>
     </div>
 
@@ -167,6 +167,7 @@
     <div class="input-row">
       <label for="diameter">蜡烛直径（mm，可选）</label>
       <input type="number" id="diameter" value="70" min="1" step="1" oninput="calc()" placeholder="如 70">
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">直径仅用于提示，不参与燃烧时长估算；燃烧是否均匀还取决于烛芯规格、蜡配方与环境。</div>
     </div>
 
     <div class="input-row">
@@ -357,7 +358,8 @@ function selectType(id){
 function calc(){
   const weightRaw = document.getElementById('weight').value.trim();
   const weight = parseFloat(weightRaw);
-  const diameter = parseFloat(document.getElementById('diameter').value) || 0;
+  const diameterRaw = document.getElementById('diameter').value.trim();
+  const diameter = diameterRaw === '' ? 0 : parseFloat(diameterRaw);
   const wicks = parseInt(document.getElementById('wicks').value);
   const tempFactor = parseFloat(document.getElementById('temp').value);
   const wax = WAX_TYPES.find(t => t.id === selectedType);
@@ -366,6 +368,13 @@ function calc(){
   if(!isFinite(weight) || weight <= 0){
     document.getElementById('burnResult').textContent = '--';
     document.getElementById('burnDesc').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter candle weight (g)":"请输入蜡烛重量（g）");
+    document.getElementById('burnStats').innerHTML='';
+    if(copyBtn) copyBtn.disabled = true;
+    return;
+  }
+  if(diameterRaw !== '' && (!isFinite(diameter) || diameter <= 0)){
+    document.getElementById('burnResult').textContent = '--';
+    document.getElementById('burnDesc').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Diameter must be a positive number, or leave it blank":"直径须为大于 0 的数值，或留空");
     document.getElementById('burnStats').innerHTML='';
     if(copyBtn) copyBtn.disabled = true;
     return;
@@ -390,11 +399,11 @@ function calc(){
 
   // 直径影响（大直径蜡烛燃烧效率略低）
   let diameterNote = '';
-  if(diameter > 0){
-    if(diameter < 50) diameterNote = '小直径蜡烛燃烧效率高';
-    else if(diameter > 100) diameterNote = '大直径蜡烛可能产生隧道效应，建议多烛芯';
-    else diameterNote = '标准直径，燃烧均匀';
-  }
+  if(diameterRaw === '') diameterNote = '未填写直径，不做直径提示。';
+  else if(diameter < 50) diameterNote = '小直径（<50mm）通常更易燃烧充分，但这只是经验提示。';
+  else if(diameter > 100) diameterNote = '大直径（>100mm）可能出现隧道效应，建议多烛芯或实测燃速校准。';
+  else diameterNote = '中等直径（50–100mm）仅为提示，不能据此断定燃烧均匀。';
+  diameterNote += ' 直径不参与时长计算，燃烧是否均匀还受烛芯规格、蜡配方与环境影响。';
 
   // 统一按分钟取整后再拆分，避免四舍五入出「N小时60分钟」
   const totalMinutes = Math.round(burnHours * 60);

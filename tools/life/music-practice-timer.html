@@ -150,10 +150,10 @@
     </div>
     <h3 style="font-size:14px;margin:16px 0 8px;">🎯 练习模板</h3>
     <div class="preset-grid">
-      <button type="button" class="preset-btn active" onclick="setTemplate('warmup')">热身 5+5</button>
-      <button type="button" class="preset-btn" onclick="setTemplate('scales')">音阶 10分钟</button>
-      <button type="button" class="preset-btn" onclick="setTemplate('pieces')">曲目 20分钟</button>
-      <button type="button" class="preset-btn" onclick="setTemplate('full')">完整练习</button>
+      <button type="button" class="preset-btn active" data-preset="warmup" aria-pressed="true" onclick="setTemplate('warmup', this)">热身 5+5</button>
+      <button type="button" class="preset-btn" data-preset="scales" aria-pressed="false" onclick="setTemplate('scales', this)">音阶 10分钟</button>
+      <button type="button" class="preset-btn" data-preset="pieces" aria-pressed="false" onclick="setTemplate('pieces', this)">曲目 20分钟</button>
+      <button type="button" class="preset-btn" data-preset="full" aria-pressed="false" onclick="setTemplate('full', this)">完整练习</button>
     </div>
     <div class="input-row" style="max-width:320px;margin:12px auto 4px;">
       <div><label for="rounds" data-zh="循环轮次">Rounds</label><input type="number" id="rounds" value="1" min="1" max="9" step="1" onchange="onRoundsChange()" placeholder="1–9"></div>
@@ -250,9 +250,15 @@ pieces:[{name:'曲目慢练',sec:600},{name:'休息',sec:180},{name:'曲目提�
 full:[{name:'热身',sec:300},{name:'音阶练习',sec:600},{name:'休息',sec:120},{name:'练习曲',sec:900},{name:'休息',sec:300},{name:'曲目',sec:1200}]
 };
 let segments=[],currentSeg=0,running=false,remaining=0,interval=null,rounds=1,currentRound=1,finished=false;
-function loadTemplate(name){
+function loadTemplate(name, btn){
   segments=JSON.parse(JSON.stringify(templates[name]));
-  currentSeg=0;currentRound=1;finished=false;remaining=segments[0]?.sec||0;render();
+  currentSeg=0;currentRound=1;finished=false;remaining=segments[0]?.sec||0;
+  document.querySelectorAll('.preset-btn').forEach(function(b){
+    var on=(b===btn)||(!btn&&b.getAttribute('data-preset')===name);
+    b.classList.toggle('active',on);
+    b.setAttribute('aria-pressed',on?'true':'false');
+  });
+  render();
 }
 function getRounds(){
   const n=Number(document.getElementById('rounds').value);
@@ -266,16 +272,17 @@ function onRoundsChange(){
   if(fresh){rounds=n;render();}
   else{alert(running?(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Round changes apply after this session ends':'轮次修改将在本次计时结束后生效')):(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Round changes apply after reset':'轮次修改将在重置后生效')));}
 }
-function setTemplate(name){
-  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
-  event.target.classList.add('active');
-  loadTemplate(name);
+function setTemplate(name, btn){
+  var target=btn||document.querySelector('.preset-btn[data-preset="'+name+'"]');
+  loadTemplate(name, target);
 }
 function addSegment(){
   const name=prompt('阶段名称：')||'练习';
   const mins=Number(prompt('时长(分钟)：','5'));
   if(!Number.isInteger(mins)||mins<=0){alert('时长须为正整数分钟');return;}
-  segments.push({name,sec:mins*60});render();
+  segments.push({name,sec:mins*60});
+  document.querySelectorAll('.preset-btn').forEach(function(b){b.classList.remove('active');b.setAttribute('aria-pressed','false');});
+  render();
 }
 function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 function render(){
@@ -319,7 +326,7 @@ function toggle(){
     },1000);
   }
 }
-function reset(){clearInterval(interval);running=false;currentSeg=0;currentRound=1;finished=false;practiceSec=0;segStartTs=0;window.__musicPracticeDirty=false;loadTemplate(Object.keys(templates)[0]);document.getElementById('startBtn').textContent='▶️ 开始';}
+function reset(){clearInterval(interval);running=false;currentSeg=0;currentRound=1;finished=false;practiceSec=0;segStartTs=0;window.__musicPracticeDirty=false;loadTemplate('warmup');document.getElementById('startBtn').textContent='▶️ 开始';render();}
 loadTemplate('warmup');
 function recordPractice(){
   if(!segStartTs) return;

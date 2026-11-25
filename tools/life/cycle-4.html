@@ -245,6 +245,7 @@
       <button class="btn" onclick="fillToday()">⏰ 填入今天</button>
     </div>
     <div id="logList" style="margin-top:12px;"></div>
+    <div id="logPager" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;"></div>
   </div>
 
   <div class="card">
@@ -262,6 +263,8 @@ var SUP_KEY = 'tb_clean_supplies';
 var LOG_KEY = 'tb_clean_supply_logs';
 var supplies = [];
 var logs = [];
+var logPage = 0;
+var LOG_PAGE_SIZE = 30;
 
 function load() {
   try { supplies = JSON.parse(localStorage.getItem(SUP_KEY)) || []; } catch(e) { supplies = []; }
@@ -395,6 +398,7 @@ function addLog() {
   var stockAfter = sup.stock;
   saveSup();
   logs.push({ id: Date.now(), supId: supId, supName: sup.name, unit: sup.unit, amount: deducted, requestedAmount: amount, stockAfter: stockAfter, date: date });
+  logPage = 0;
   saveLogs();
   document.getElementById('logAmount').value = '';
   render();
@@ -480,13 +484,30 @@ function renderLogList() {
   var list = document.getElementById('logList');
   var sel = document.getElementById('logSupply');
   const __h4='<option value="">请选择用品</option>' + supplies.map(function(s){ return '<option value="' + s.id + '">' + ToolBox.escHtml(s.name) + '</option>'; }).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){sel.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}sel.innerHTML=__h4;
-  if (!logs.length) { const __h5='<div class="empty">暂无消耗记录</div>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h5; return; }
+  if (!logs.length) { const __h5='<div class="empty">暂无消耗记录</div>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h5; var pg0=document.getElementById('logPager');if(pg0)pg0.innerHTML=''; return; }
   var sorted = logs.slice().sort(function(a, b){ return new Date(b.date) - new Date(a.date); });
-  var html = '';
-  sorted.slice(0, 30).forEach(function(l) {
+  var total = sorted.length;
+  var pages = Math.max(1, Math.ceil(total / LOG_PAGE_SIZE));
+  if (logPage < 0) logPage = 0;
+  if (logPage >= pages) logPage = pages - 1;
+  var start = logPage * LOG_PAGE_SIZE;
+  var end = Math.min(total, start + LOG_PAGE_SIZE);
+  var html = '<div class="log-meta" style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">显示第 ' + (start + 1) + '–' + end + ' 条，共 ' + total + ' 条（每页 ' + LOG_PAGE_SIZE + ' 条）</div>';
+  sorted.slice(start, end).forEach(function(l) {
     html += '<div class="log-row"><span class="log-date">' + ToolBox.escHtml(l.date) + '</span><span class="log-supply">' + ToolBox.escHtml(l.supName) + '</span><span class="log-amt">-' + l.amount + ' ' + ToolBox.escHtml(l.unit) + '</span><button class="mini-btn" onclick="delLog(' + l.id + ')" style="color:var(--danger);margin-left:auto;">删除</button></div>';
   });
   const __h6=html;if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h6;
+  var pager = document.getElementById('logPager');
+  if (pager) {
+    pager.innerHTML = '<button class="mini-btn" type="button" onclick="goLogPage(-1)" ' + (logPage <= 0 ? 'disabled' : '') + '>← 上一页</button>'
+      + '<span>第 ' + (logPage + 1) + ' / ' + pages + ' 页</span>'
+      + '<button class="mini-btn" type="button" onclick="goLogPage(1)" ' + (logPage >= pages - 1 ? 'disabled' : '') + '>下一页 →</button>';
+  }
+}
+
+function goLogPage(delta) {
+  logPage += delta;
+  renderLogList();
 }
 
 function renderShopList() {
