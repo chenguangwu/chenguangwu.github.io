@@ -272,12 +272,21 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
             var __ig=__tbInputGuard(['v0','a','dx'],['初速度 v₀ (m/s)','加速度 a (m/s²)','位移 Δx (m)']);if(__ig){const __g0='<p style="color:var(--danger)">⚠ '+__ig+'</p>';ToolBox.setResult('result',(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')));return;}
             const v0 = num('v0'), a = num('a'), dx = num('dx');
-            const v = Math.sqrt(v0 * v0 + 2 * a * dx);
+            const rad = v0*v0 + 2*a*dx;
+            if(!isFinite(rad)||rad < 0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 该位移在当前初速度与加速度下不可达（v²−v₀² = '+rad.toFixed(3)+' < 0），请检查位移方向或加速度。</p>');return;}
+            const speed = Math.sqrt(rad);
+            let signed, branch, dv;
+            if(a === 0){ signed = v0.toFixed(3); branch = '加速度为 0，速度保持初速度'; dv = '0.000'; }
+            else if(v0 >= 0){ signed = speed.toFixed(3); branch = '初速度非负，取正向分支'; dv = (speed-v0).toFixed(3); }
+            else if(a <= 0){ signed = (-speed).toFixed(3); branch = '初速度为负且不加速，取负向分支'; dv = (-speed-v0).toFixed(3); }
+            else { signed = '±'+speed.toFixed(3); branch = '初速度为负、加速度为正，可能已反向；有符号速度需结合运动过程判断'; dv = '无法唯一确定（存在 ±'+speed.toFixed(3)+' 两个分支）'; }
             const __g1=dataGrid([
-                [v.toFixed(3), '末速度 v (m/s)'],
-                [(v*v-v0*v0).toFixed(3), '速度平方增量 v²−v₀²'],
-                [(v-v0).toFixed(3), '速度增量 Δv (m/s)']
-            ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+                [speed.toFixed(3), '速率 |v| (m/s)'],
+                [signed, '有符号速度 v (m/s)'],
+                [(rad).toFixed(3), '速度平方增量 v²−v₀²'],
+                [(speed-Math.abs(v0)).toFixed(3), '速率增量 |v|−|v₀| (m/s)'],
+                [dv, '速度增量 Δv (m/s)']
+            ])+'<div class="info-box" style="margin-top:12px;">'+branch+'。平方根只给出速率，方向须由初速度与加速度判断。</div>';ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('v0').value = '0';
       document.getElementById('a').value = '9.8';
