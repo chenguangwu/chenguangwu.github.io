@@ -245,13 +245,34 @@ var __EN=((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-
 var __T=function(en,zh){return __EN?en:zh;};
 var __cropEn={'小麦':'Wheat','水稻':'Rice','玉米':'Maize','大豆':'Soybean','油菜':'Rapeseed','花生':'Peanut'};
 var method=$('method').value;var area=parseFloat($('area').value)||0;var moisture=parseFloat($('moisture').value);if(isNaN(moisture))moisture=13;
-var yieldPerMu=0;
-if(method==='spike'){var spikes=parseFloat($('spikes').value)||0;var grains=parseFloat($('grains').value)||0;var w=parseFloat($('weight').value)||0;yieldPerMu=spikes*grains*w/100;}
-else if(method==='sample'){var sArea=parseFloat($('sampleArea').value)||1;var sWeight=parseFloat($('sampleWeight').value)||0;var dry=parseFloat($('dryFactor').value)||0.85;yieldPerMu=sWeight*dry*666.67/sArea;}
-else{var harvestWeight=parseFloat($('harvestWeight').value)||0;yieldPerMu=area>0?harvestWeight/area:0;}
-if(!(area>0)||!(yieldPerMu>0)){$('result').innerHTML='<div class="tip-box tip-error">请填写测产所需的面积与产量参数（均须大于0）</div>';return;}
-if(moisture<0||moisture>100){$('result').innerHTML='<div class="tip-box tip-error">含水量应在0~100%之间</div>';return;}
-var stdMoisture=13;var adjYield=yieldPerMu*(100-moisture)/(100-stdMoisture);
+// 先切换输入区，再校验；否则切换方法后校验失败，用户看不到对应表单
+$('spikeInputs').style.display=method==='spike'?'block':'none';
+$('sampleInputs').style.display=method==='sample'?'block':'none';
+$('weightInputs').style.display=method==='weight'?'block':'none';
+var yieldPerMu=0,adjYield=0,sampleDry=false;
+if(method==='spike'){
+  var spikes=parseFloat($('spikes').value)||0;var grains=parseFloat($('grains').value)||0;var w=parseFloat($('weight').value)||0;
+  yieldPerMu=spikes*grains*w/100;
+  if(moisture<0||moisture>100){$('result').innerHTML='<div class="tip-box tip-error">含水量应在0~100%之间</div>';return;}
+  adjYield=yieldPerMu*(100-moisture)/87;
+}else if(method==='sample'){
+  var sArea=parseFloat($('sampleArea').value),sWeight=parseFloat($('sampleWeight').value),dryRaw=String($('dryFactor').value).trim();
+  var dry=dryRaw===''?NaN:Number(dryRaw);
+  if(!(sArea>0)){$('result').innerHTML='<div class="tip-box tip-error">样方面积须大于0</div>';return;}
+  if(!(sWeight>0)){$('result').innerHTML='<div class="tip-box tip-error">样方鲜重须大于0</div>';return;}
+  if(!isFinite(dry)||dry<0.5||dry>1){$('result').innerHTML='<div class="tip-box tip-error">折干系数须为 0.5–1.0 的干物质率（如 0.85）</div>';return;}
+  yieldPerMu=sWeight*dry*666.67/sArea; // 干物质 kg/亩
+  adjYield=yieldPerMu/(1-0.13);        // 只折一次到 13% 标准水分
+  sampleDry=true;
+}else{
+  var harvestWeight=parseFloat($('harvestWeight').value),hwRaw=String($('harvestWeight').value).trim();
+  if(hwRaw===''){$('result').innerHTML='<div class="tip-box tip-error">请填写实收总重量</div>';return;}
+  yieldPerMu=area>0?harvestWeight/area:0;
+  if(moisture<0||moisture>100){$('result').innerHTML='<div class="tip-box tip-error">含水量应在0~100%之间</div>';return;}
+  adjYield=yieldPerMu*(100-moisture)/87;
+}
+if(!(area>0)||!(yieldPerMu>0)||!(adjYield>0)){$('result').innerHTML='<div class="tip-box tip-error">请填写测产所需的面积与产量参数（均须大于0）</div>';return;}
+var stdMoisture=13;
 var totalYield=adjYield*area;
 var cropName=$('crop').options[$('crop').selectedIndex].text;
 const __g3='<h3 style="text-align:center;margin-bottom:12px;">🌾 '+(__EN?(__cropEn[cropName]||cropName):cropName)+__T(' Yield Result',' 测产结果')+'</h3>'+
@@ -259,9 +280,10 @@ const __g3='<h3 style="text-align:center;margin-bottom:12px;">🌾 '+(__EN?(__cr
 '<div class="data-card"><div class="num">'+adjYield.toFixed(1)+'</div><div class="label">'+__T('Yield (kg/mu)','亩产量(kg)')+'</div></div>'+
 '<div class="data-card"><div class="num">'+totalYield.toFixed(0)+'</div><div class="label">'+__T('Total (kg)','总产量(kg)')+'</div></div>'+
 '<div class="data-card"><div class="num">'+(totalYield/1000).toFixed(2)+'</div><div class="label">'+__T('Total (t)','总产量(吨)')+'</div></div>'+
-'<div class="data-card"><div class="num">'+moisture+'%</div><div class="label">'+__T('Moisture','含水量')+'</div></div>'+
+'<div class="data-card"><div class="num">'+(sampleDry?'13%':moisture+'%')+'</div><div class="label">'+__T('Moisture','含水量')+'</div></div>'+
 '</div>'+
-'<div class="tip-box tip-success" style="margin-top:12px;"><strong>'+__T('📊 Yield Grade','📊 产量等级')+'</strong>: '+getYieldGrade(cropName,adjYield,__EN,__T)+'</div>';$('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+'<div class="tip-box tip-success" style="margin-top:12px;"><strong>'+__T('📊 Yield Grade','📊 产量等级')+'</strong>: '+getYieldGrade(cropName,adjYield,__EN,__T)+'</div>'+
+(sampleDry?'<div class="tip-box tip-info" style="margin-top:8px;">样方法：折干系数按干物质率处理，已直接折算到 13% 标准水分；上方“水分含量”不参与样方法，避免二次折算。</div>':'');$('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 $('spikeInputs').style.display=method==='spike'?'block':'none';
 $('sampleInputs').style.display=method==='sample'?'block':'none';
 $('weightInputs').style.display=method==='weight'?'block':'none';
@@ -283,11 +305,12 @@ function saveHistory(){
     raw=(parseFloat($('spikes').value)||0)*(parseFloat($('grains').value)||0)*(parseFloat($('weight').value)||0)/100;
   }else if(method==='sample'){
     var sArea=parseFloat($('sampleArea').value)||1;
-    raw=(parseFloat($('sampleWeight').value)||0)*(parseFloat($('dryFactor').value)||0.85)*666.67/sArea;
+    var dry=parseFloat($('dryFactor').value);if(isNaN(dry))dry=0.85;
+    raw=(parseFloat($('sampleWeight').value)||0)*dry*666.67/sArea/(1-0.13);
   }else{
     raw=area>0?(parseFloat($('harvestWeight').value)||0)/area:0;
   }
-  var adj=raw*(100-moisture)/(100-13);
+  var adj=method==='sample'?raw:raw*(100-moisture)/(100-13);
   var r={
     time:new Date().toLocaleString('zh-CN'),
     crop:$('crop').options[$('crop').selectedIndex].text,

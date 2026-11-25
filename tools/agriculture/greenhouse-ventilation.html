@@ -136,12 +136,8 @@
     <h3 style="font-size:15px;margin:16px 0 10px;">通风参数</h3>
     <div class="input-row">
       <label for="airChanges">目标换气次数(次/小时)</label>
-      <select id="airChanges" onchange="calc()">
-        <option value="15">15 (冬季保温)</option>
-        <option value="25" selected>25 (春秋季标准)</option>
-        <option value="40">40 (夏季降温)</option>
-        <option value="60">60 (高温强通风)</option>
-      </select>
+      <input type="number" id="airChanges" value="25" min="1" step="1" oninput="calc()" placeholder="常用 15 / 25 / 40 / 60">
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">默认 25 次/时（春秋季标准）；15 冬季保温、40 夏季降温、60 高温强通风，可自行填入。</div>
     </div>
     <div class="input-row">
       <label for="windSpeed">进风口风速(m/s)</label>
@@ -237,10 +233,13 @@ function calc(){
   var ghLen = +document.getElementById('ghLen').value || 0;
   var ghWid = +document.getElementById('ghWid').value || 0;
   var ghHeight = +document.getElementById('ghHeight').value || 0;
-  var airChanges = +document.getElementById('airChanges').value || 25;
+  var airRaw = String(document.getElementById('airChanges').value).trim();
+  var airChanges = Number(airRaw);
   var windSpeed = +document.getElementById('windSpeed').value;
   var fanEff = +document.getElementById('fanEff').value;
 
+  if(airRaw===''){ ToolBox.setResult('result','<p style="color:var(--danger);">请填写换气次数/时；留空不会自动按 25 次/时计算</p>'); return; }
+  if(!isFinite(airChanges)||airChanges<=0){ ToolBox.setResult('result','<p style="color:var(--danger);">换气次数须为大于0的有限数（当前 '+airRaw+'）</p>'); return; }
   if(ghLen<=0||ghWid<=0||ghHeight<=0){ ToolBox.setResult('result','<p style="color:var(--danger);">请输入有效的温室尺寸</p>'); return; }
   if(!isFinite(windSpeed)||windSpeed<=0){ ToolBox.setResult('result','<p style="color:var(--danger);">进风口风速必须大于 0（0 m/s 无法形成自然通风，风口面积不是 0 而是无穷大）</p>'); return; }
   if(!isFinite(fanEff)||fanEff<=0||fanEff>100){ ToolBox.setResult('result','<p style="color:var(--danger);">风机/风口效率应在 1–100% 之间</p>'); return; }
@@ -301,7 +300,8 @@ function calc(){
   html += '温室体积 = 长 × 宽 × 高<br>';
   html += '所需通风量 = 体积 × 换气次数<br>';
   html += '风口面积 = 通风量(m³/s) ÷ (风速 × 风机效率)<br>';
-  html += '风机数量 = 通风量 ÷ 单台风机排风量(35000m³/h)';
+  html += '风机数量 = 通风量 ÷ 单台风机排风量(35000m³/h)<br>';
+  html += '假设：进风口风速稳定、风机效率含百叶与管道损失；实际选型还需按温室结构、遮阳与作物耐热性复核。';
   html += '</div>';
   const __g0=html;ToolBox.setResult('result',(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')));
 }
@@ -309,9 +309,11 @@ function copyResult(){
   var ghLen=+document.getElementById('ghLen').value||0;
   var ghWid=+document.getElementById('ghWid').value||0;
   var ghHeight=+document.getElementById('ghHeight').value||0;
-  var airChanges=+document.getElementById('airChanges').value||25;
+  var airRaw=String(document.getElementById('airChanges').value).trim();
+  var airChanges=Number(airRaw);
   var windSpeed=+document.getElementById('windSpeed').value;
   var fanEff=+document.getElementById('fanEff').value;
+  if(airRaw===''||!isFinite(airChanges)||airChanges<=0){ ToolBox.showToast('换气次数须为大于0的有限数','warning'); return; }
   if(!isFinite(windSpeed)||windSpeed<=0||!isFinite(fanEff)||fanEff<=0||fanEff>100){ ToolBox.showToast('进风口风速须大于 0，风机效率须在 1–100% 之间','warning'); return; }
   var volume=ghLen*ghWid*ghHeight;
   var requiredAirflow=volume*airChanges;

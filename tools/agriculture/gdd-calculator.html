@@ -259,18 +259,23 @@ function removeDay(){ if(dayCount>1){ dayCount--; renderDayRows(); calc(); } }
 function calcGDD(tmax, tmin, tbase, tupper, method){
   var tavg = (tmax + tmin) / 2;
   if(method === 'single'){
-    // 单正弦法近似
-    if(tmin >= tupper) return tupper - tbase;
-    if(tmax <= tbase) return 0;
+    // 单正弦法：T(θ)=Tavg+α sinθ，θ∈[-π/2,π/2]；同时按基温截底、按上限截顶
+    if(tmin >= tupper) return tupper - tbase; // 全日在上限平台
+    if(tmax <= tbase) return 0;              // 全日低于基温
     var alpha = (tmax - tmin) / 2;
-    var theta1 = Math.asin((tbase - (tmax+tmin)/2) / alpha);
-    var theta2 = Math.asin((tupper - (tmax+tmin)/2) / alpha);
-    if(isNaN(theta1)) theta1 = -Math.PI/2;
-    if(isNaN(theta2)) theta2 = Math.PI/2;
-    // 单正弦法：对高于基温的半个正弦周期积分（标准式系数为 α，非 2α）
-    var gdd = ((tmax+tmin)/2 - tbase) * (theta2 - theta1) + alpha * (Math.cos(theta1) - Math.cos(theta2));
-    gdd = gdd / Math.PI;
-    return Math.max(0, gdd);
+    var tavg2 = (tmax + tmin) / 2;
+    var lo = -Math.PI/2, hi = Math.PI/2;
+    var theta1 = tbase <= tmin ? lo : Math.asin((tbase - tavg2) / alpha);
+    var theta2 = tupper >= tmax ? hi : Math.asin((tupper - tavg2) / alpha);
+    if(isNaN(theta1)) theta1 = lo;
+    if(isNaN(theta2)) theta2 = hi;
+    theta1 = Math.max(lo, Math.min(hi, theta1));
+    theta2 = Math.max(lo, Math.min(hi, theta2));
+    if(theta2 <= theta1) return 0;
+    // 基温截底区间积分 + 上限以上的平台贡献（平台段宽度 π/2-θ2）
+    var gdd = (tavg2 - tbase) * (theta2 - theta1) + alpha * (Math.cos(theta1) - Math.cos(theta2));
+    gdd += (tupper - tbase) * (hi - theta2);
+    return Math.max(0, gdd / Math.PI);
   } else {
     // 简单平均法
     var gdd = tavg - tbase;
@@ -350,8 +355,8 @@ function calc(){
   html += '<div class="tip-box tip-info" style="margin-top:10px;">';
   html += '<strong>计算公式：</strong><br>';
   html += '简单平均法：GDD = max(0, ((Tmax+Tmin)/2) − Tbase)<br>';
-  html += '当平均温度超过上限温度时，取上限温度计算<br>';
-  html += '累积GDD = Σ 每日GDD';
+  html += '单正弦法：T(θ)=日均温 + 振幅×sinθ；低于基温部分不计，高于上限部分按上限平台 (Tupper−Tbase) 计<br>';
+  html += '简单平均法在上限处同样截顶；累积GDD = Σ 每日GDD';
   html += '</div>';
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }

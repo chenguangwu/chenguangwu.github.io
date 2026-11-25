@@ -228,15 +228,28 @@
 </div>
 
 <script>
+function __lossDetail(){
+  var ids=['headerLoss','threshLoss','scatterLoss','transportLoss'];
+  var names=['割台/掉穗','脱粒/清选','夹带/抛撒','运输/仓储'];
+  var out=[],filled=0;
+  for(var i=0;i<ids.length;i++){
+    var raw=String(document.getElementById(ids[i]).value).trim();
+    if(raw===''){out.push(null);continue;}
+    var v=Number(raw);
+    if(!isFinite(v)||v<0) return {error:names[i]+'损失须为非负数；留空表示未观测，不能按 0 计入' };
+    out.push(v);filled++;
+  }
+  return {vals:out,filled:filled};
+}
 function calc(){
   var theoryRaw=String(document.getElementById('theoryYield').value).trim();
   var actualRaw=String(document.getElementById('actualYield').value).trim();
   var theory = theoryRaw===''?NaN:Number(theoryRaw);
   var actual = actualRaw===''?NaN:Number(actualRaw);
-  var header = +document.getElementById('headerLoss').value || 0;
-  var thresh = +document.getElementById('threshLoss').value || 0;
-  var scatter = +document.getElementById('scatterLoss').value || 0;
-  var transport = +document.getElementById('transportLoss').value || 0;
+  var D=__lossDetail();
+  if(D.error){ ToolBox.setResult('result','<p style="color:var(--danger);">'+D.error+'</p>'); return; }
+  var header=D.vals[0], thresh=D.vals[1], scatter=D.vals[2], transport=D.vals[3];
+  var detailComplete=D.filled===4;
 
   if(!isFinite(theory)||theory<=0){ ToolBox.setResult('result','<p style="color:var(--danger);">理论产量必须大于0</p>'); return; }
   // 实际产量为 0 是合法值（颗粒无收、损失率 100%），仅空串/非数为无效；仍拒绝负数和超过理论值
@@ -245,8 +258,9 @@ function calc(){
 
   var totalLoss = theory - actual;
   var lossRate = (totalLoss / theory) * 100;
-  var detailLoss = header + thresh + scatter + transport;
+  var detailLoss = (header||0)+(thresh||0)+(scatter||0)+(transport||0);
   var detailRate = (detailLoss / theory) * 100;
+  var detailOver = detailLoss > totalLoss + 0.01;
 
   var sources = [
     {name:'割台/掉穗', loss:header, color:'#B91C1C'},
@@ -260,11 +274,13 @@ function calc(){
   var tipType = lossRate<=3?'tip-success':lossRate<=5?'tip-info':lossRate<=8?'tip-warn':'tip-error';
 
   var tips = [];
-  if(header/theory*100 > 1.5) tips.push('割台损失偏高：建议调整割台高度，降低作业速度');
-  if(thresh/theory*100 > 1) tips.push('脱粒损失偏高：检查脱粒间隙和滚筒转速');
-  if(scatter/theory*100 > 1.5) tips.push('夹带损失偏高：调整清选风量和筛网开度');
-  if(transport/theory*100 > 1) tips.push('运输仓储损失偏高：加强运输和仓储管理');
-  if(tips.length===0) tips.push('各环节损失均在合理范围内，继续维持当前作业标准');
+  if(header!==null&&header/theory*100 > 1.5) tips.push('割台损失偏高：建议调整割台高度，降低作业速度');
+  if(thresh!==null&&thresh/theory*100 > 1) tips.push('脱粒损失偏高：检查脱粒间隙和滚筒转速');
+  if(scatter!==null&&scatter/theory*100 > 1.5) tips.push('夹带损失偏高：调整清选风量和筛网开度');
+  if(transport!==null&&transport/theory*100 > 1) tips.push('运输仓储损失偏高：加强运输和仓储管理');
+  if(!detailComplete) tips.push('仅填写 '+D.filled+'/4 个损失环节，未填环节按「未观测」处理，不按 0 计，也不判定各环节正常。');
+  if(detailOver) tips.push('明细损失合计 '+detailLoss.toFixed(1)+'kg/亩 已大于总损失 '+totalLoss.toFixed(1)+'kg/亩，请核对称量与折算口径。');
+  if(tips.length===0) tips.push('四个环节均已填写且分项损失合计不超过总损失，各环节损失均在合理范围内。');
 
   var html = '<div class="data-grid">';
   html += '<div class="data-card"><div class="num">'+totalLoss.toFixed(1)+'</div><div class="label">总损失量(kg/亩)</div></div>';
@@ -280,11 +296,11 @@ function calc(){
   html += '<h3 style="font-size:14px;margin:16px 0 10px;">损失来源分析</h3>';
   for(var i=0;i<sources.length;i++){
     var s = sources[i];
-    var pct = theory>0 ? (s.loss/theory*100) : 0;
-    var barW = theory>0 ? (s.loss/Math.max(detailLoss,1)*100) : 0;
+    var pct = (theory>0 && s.loss!==null) ? (s.loss/theory*100) : null;
+    var barW = (s.loss!==null && detailLoss>0) ? (s.loss/detailLoss*100) : 0;
     html += '<div class="bar-row"><div class="bar-lbl">'+s.name+'</div>';
-    html += '<div class="bar-bg"><div class="bar-fill" style="width:'+barW+'%;background:'+s.color+';">'+s.loss+'kg</div></div>';
-    html += '<span style="font-size:12px;color:var(--text-muted);width:50px;">'+pct.toFixed(2)+'%</span></div>';
+    html += '<div class="bar-bg"><div class="bar-fill" style="width:'+barW+'%;background:'+s.color+';">'+(s.loss===null?'未填':s.loss+'kg')+'</div></div>';
+    html += '<span style="font-size:12px;color:var(--text-muted);width:50px;">'+(pct===null?'—':pct.toFixed(2)+'%')+'</span></div>';
   }
 
   html += '<div class="tip-box '+tipType+'" style="margin-top:12px;">';
@@ -299,8 +315,11 @@ function copyResult(){
   var theory=theoryRaw===''?NaN:Number(theoryRaw);
   var actual=actualRaw===''?NaN:Number(actualRaw);
   if(!isFinite(theory)||theory<=0||actualRaw===''||!isFinite(actual)||actual<0||actual>theory){ToolBox.showToast('请先输入有效的理论产量与非负实际产量（0 表示颗粒无收，实际不得高于理论）','warning');return;}
+  var D=__lossDetail();
+  if(D.error){ToolBox.showToast(D.error,'warning');return;}
   var lossRate=((theory-actual)/theory)*100;
-  ToolBox.copyText('收获损失率评估：\n理论产量：'+theory+'kg/亩\n实际产量：'+actual+'kg/亩\n总损失：'+(theory-actual).toFixed(1)+'kg/亩\n损失率：'+lossRate.toFixed(2)+'%', i18nText('toast.msg544'));
+  var detail=D.vals.map(function(v){return v===null?'未填':v+'kg';}).join(' / ');
+  ToolBox.copyText('收获损失率评估：\n理论产量：'+theory+'kg/亩\n实际产量：'+actual+'kg/亩\n总损失：'+(theory-actual).toFixed(1)+'kg/亩\n损失率：'+lossRate.toFixed(2)+'%\n分项(割台/脱粒/夹带/运输)：'+detail+'\n分项填写 '+D.filled+'/4，未填项不按 0 计', i18nText('toast.msg544'));
 }
 calc();
 </script>
