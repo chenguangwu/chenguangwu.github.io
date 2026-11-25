@@ -287,22 +287,25 @@ function calc(nowArg){
   const weeks = Math.floor(days / 7);
   const months = Math.floor(days / 30.4375);
   const years = (days / 365.25).toFixed(2);
-  // 年月日分解
+  // 年月日分解：与“下次生日”使用同一周年日期规则。
+  // 2/29 出生者在平年按 2/28 计；否则会出现“今天已到生日、周岁仍差 1 天”的矛盾。
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const anniversaryOf = (year) => new Date(year, birth.getMonth(),
+    Math.min(birth.getDate(), daysInMonth(year, birth.getMonth())));
   let y = now.getFullYear() - birth.getFullYear();
-  let m = now.getMonth() - birth.getMonth();
-  let d = now.getDate() - birth.getDate();
+  if(today < anniversaryOf(now.getFullYear())) y--;
+  const base = anniversaryOf(birth.getFullYear() + y);
+  let m = now.getMonth() - base.getMonth();
+  let d = now.getDate() - base.getDate();
   if(d < 0){
     m--;
-    // 借上一个月的天数；出生日大于上月天数（如 1/31 → 3/1）时按上月最后一天夹住，避免出现负天数
+    // 借上一个自然月的实际天数；出生日大于上月天数时按上月最后一天夹住。
     const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
     const prevDays = prevMonth.getDate();
-    const bd = Math.min(birth.getDate(), prevDays);
+    const bd = Math.min(base.getDate(), prevDays);
     d = prevDays - bd + now.getDate();
   }
-  if(m < 0){
-    y--;
-    m += 12;
-  }
+  if(m < 0){ if(y > 0) y--; m += 12; }
   // 下一个生日：按「日历日」比较，生日当天为 0 天；2/29 出生在平年按 2/28 计
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   let next = new Date(now.getFullYear(), birth.getMonth(),

@@ -1313,37 +1313,37 @@ const CASES = [
   {
     slug: "life/magnet-converter",
     inputs: { inputVal: "2" },
-    expect: ["2\nAm\n磁场强度 H 基准： 2 A/m = 2 A/m 奥斯特： 0.02513274123 Oe 真空下对应磁感应强度 B ≈ 0.02513274123 G"],
+    expect: ["2\nAm\n1\n磁场强度 H 基准： 2 A/m = 2 A/m 奥斯特： 0.02513274123 Oe 真空下对应磁感应强度 B ≈ 0.02513274123 G"],
     ref: 'H 类换算：base=v*A/m; 1 Oe=79.5774715 A/m; 真空 B≈μ0H*1e4 G'
   },
   {
     slug: "life/magnet-converter",
     inputs: { inputVal: "10" },
-    expect: ["10\nAm\n磁场强度 H 基准： 10 A/m = 10 A/m 奥斯特： 0.1256637061 Oe 真空下对应磁感应强度 B ≈ 0.1256637061 G"],
+    expect: ["10\nAm\n1\n磁场强度 H 基准： 10 A/m = 10 A/m 奥斯特： 0.1256637061 Oe 真空下对应磁感应强度 B ≈ 0.1256637061 G"],
     ref: 'base=10 A/m; Oe=base/79.5774715'
   },
   {
     slug: "life/magnet-converter",
     inputs: { inputVal: "20" },
-    expect: ["20\nAm\n磁场强度 H 基准： 20 A/m = 20 A/m 奥斯特： 0.2513274123 Oe 真空下对应磁感应强度 B ≈ 0.2513274123 G"],
+    expect: ["20\nAm\n1\n磁场强度 H 基准： 20 A/m = 20 A/m 奥斯特： 0.2513274123 Oe 真空下对应磁感应强度 B ≈ 0.2513274123 G"],
     ref: 'H 基准：v Am = v A/m'
   },
   {
     slug: "life/magnet-converter",
     inputs: { inputVal: "100" },
-    expect: ["100\nAm\n磁场强度 H 基准： 100 A/m = 100 A/m 奥斯特： 1.256637061 Oe 真空下对应磁感应强度 B ≈ 1.256637061 G"],
+    expect: ["100\nAm\n1\n磁场强度 H 基准： 100 A/m = 100 A/m 奥斯特： 1.256637061 Oe 真空下对应磁感应强度 B ≈ 1.256637061 G"],
     ref: 'base=100 A/m; Oe=base/79.5774715'
   },
   {
     slug: "life/magnet-converter",
     inputs: { inputVal: "500" },
-    expect: ["500\nAm\n磁场强度 H 基准： 500 A/m = 500 A/m 奥斯特： 6.283185307 Oe 真空下对应磁感应强度 B ≈ 6.283185307 G"],
+    expect: ["500\nAm\n1\n磁场强度 H 基准： 500 A/m = 500 A/m 奥斯特： 6.283185307 Oe 真空下对应磁感应强度 B ≈ 6.283185307 G"],
     ref: 'H 基准：v Am = v A/m'
   },
   {
     slug: "life/magnet-converter",
     inputs: { inputVal: "2000" },
-    expect: ["2000\nAm\n磁场强度 H 基准： 2000 A/m = 2000 A/m 奥斯特： 25.13274123 Oe 真空下对应磁感应强度 B ≈ 25.13274123 G"],
+    expect: ["2000\nAm\n1\n磁场强度 H 基准： 2000 A/m = 2000 A/m 奥斯特： 25.13274123 Oe 真空下对应磁感应强度 B ≈ 25.13274123 G"],
     ref: 'base=2000 A/m; Oe=base/79.5774715'
   },
   {
@@ -2221,7 +2221,7 @@ const CASES = [
       "fromUnit": "Oe"
     },
     "expect": [
-      "42\nOe\n磁场强度 H 基准： 42 Oe = 3342.253805 A/m 安培每米： 3342.253805 A/m 真空下对应磁感应强度 B ≈ 42 G"
+      "42\nOe\n1\n磁场强度 H 基准： 42 Oe = 3342.253805 A/m 安培每米： 3342.253805 A/m 真空下对应磁感应强度 B ≈ 42 G"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"Oe\"}，输出区含「强度 H 基准： 42 Oe = 3342.253803 A/m 安培每米： 3…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3472,7 +3472,80 @@ const CASES = [
   clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown-timer.html','utf8');document.getElementById('__tbProbe').textContent='CDNAME '+((src.indexOf('el.innerHTML=__h1')>=0)?'OK':'BAD');"],
   expect: ["CDNAME OK"],
   ref: "第883批：事件名含「NaN」等文字时旧正则守卫误报计算无效；现名称已 escHtml，列表直接渲染，不再用 HTML 文本指纹拦截。"
-}
+},
+  // ── 第905批 ───────────────────────────────────────────────
+  {
+    slug: "life/volume-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/volume-converter.html','utf8');document.getElementById('__tbProbe').textContent='VOLUNIT '+((src.indexOf('cup_metric')>=0&&src.indexOf('公制量杯')>=0&&src.indexOf('美制杯')>=0&&src.indexOf('1 美制杯 = 236.5882365')>=0)?'OK':'BAD');"],
+    expect: ["VOLUNIT OK"],
+    ref: "第905批：杯/汤匙/茶匙原未标体系；现标注美制并新增公制量杯 250mL、公制汤匙 15mL、公制茶匙 5mL，公式与速查同步。默认页面不含 VOLUNIT。"
+  },
+  {
+    slug: "life/number-to-chinese",
+    inputs: { numInput: "9999999999999999.1" },
+    clicks: ["convert()"],
+    expect: ["仅整数支持"],
+    ref: "第905批：parseFloat 会把 9999999999999999.1 舍入为整数，旧实现静默丢掉 .1；现按原始小数位判断，非零小数明确显示仅整数支持。"
+  },
+  {
+    slug: "life/age-calculator",
+    inputs: { by: "1990", bm: "1", bd: "1", bh: "24", bmin: "0", bs: "0" },
+    clicks: ["calc()"],
+    expect: ["请输入有效的出生时间", "小时须为 0–23"],
+    ref: "第905批：24 时旧实现交给 Date 自动滚到次日；现校验时分秒为范围内整数，留空按 0，错误时清空旧结果。"
+  },
+  {
+    slug: "life/age-in-days",
+    inputs: { birthDate: "2024-02-29" },
+    clicks: ["calc(new Date(2025,1,28,12,0,0))"],
+    expect: ["1 岁 0 月 0 天", "距离下一个生日：0 天"],
+    ref: "第905批：2/29 出生在平年按 2/28 计；2025-02-28 应同时是 1 周岁和生日当天，旧分解仍显示 0 岁 11 月 28 天。"
+  },
+  {
+    slug: "life/daily-calorie-needs",
+    inputs: { bmiAge: "30", bmiHeight: "170", bmiWeight: "60", bmiGender: "female" },
+    clicks: ["calcBMI()"],
+    expect: ["处于区间内"],
+    ref: "第905批：BMI 18.5–23.9 对 170cm 为 53.5–69.1kg，60kg 在区间内；旧实现固定用体重减上限显示负数，现区间内只显示“处于区间内”。"
+  },
+  {
+    slug: "life/unit-converter",
+    clicks: ["switchCategory('speed');var src=__tbFs.readFileSync(process.cwd()+'/tools/life/unit-converter.html','utf8');document.getElementById('__tbProbe').textContent='SPEEDNOTE '+((src.indexOf('马赫（15°C 干空气）')>=0&&src.indexOf('音速（15°C 干空气）')>=0&&src.indexOf('343')>=0)?'OK':'BAD');"],
+    expect: ["SPEEDNOTE OK"],
+    ref: "第905批：马赫原固定 340.29m/s、音速 343m/s 且无条件；现两者统一按 15°C 干空气 343m/s，选项与说明标注条件。默认长度分类不含 SPEEDNOTE。"
+  },
+  {
+    slug: "life/pressure-converter",
+    inputs: { inputVal: "0", fromUnit: "Pa", pressureBasis: "absolute" },
+    clicks: ["convert()"],
+    expect: ["零值或负值不套用正压实物参照"],
+    ref: "第905批：0 Pa 旧实现会匹配到“正常收缩压”；现零/负值不套用正压参照，并按绝压/表压/压差筛选参照。"
+  },
+  {
+    slug: "life/roman-numeral",
+    clicks: ["switchTab('roman');document.getElementById('romanInput').value='XLII';convertRoman();"],
+    expect: ["42", "XL=40 + I=1 + I=1"],
+    ref: "第905批：反向转换原无历史/导出，且历史会混入另一面板旧输入；现共用导出与历史区，只采集当前方向输入，两个转换函数都触发记录。"
+  },
+  {
+    slug: "life/color-name-finder",
+    clicks: ["document.getElementById('color-input').value='色';searchColor();var t=String(document.getElementById('search-results').innerHTML);document.getElementById('__tbProbe').textContent='COLORTOTAL '+((t.indexOf('当前显示前 20 个')>=0&&t.indexOf('显示更多')>=0)?'OK':'BAD');"],
+    expect: ["COLORTOTAL OK"],
+    ref: "第905批：名称搜索先 slice(0,20) 再显示数量，超过 20 条时声称只找到 20 条；现保留完整匹配数并显示“当前显示前 20 个”、提供“显示更多”。"
+  },
+  {
+    slug: "life/magnet-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/magnet-converter.html','utf8');document.getElementById('__tbProbe').textContent='MAGMU '+((src.indexOf('muR')>=0&&src.indexOf('线性均匀介质')>=0&&src.indexOf('铁磁材料')>=0&&src.indexOf('μᵣ 须为大于 0')>=0)?'OK':'BAD');"],
+    expect: ["MAGMU OK"],
+    ref: "第905批：跨 H/B 原只给真空估算；现增加相对磁导率 μᵣ（默认 1、可留空），按 B=μ₀μᵣH 输出并提示铁磁材料非线性/磁滞不适用，非法 μᵣ 明确提示。"
+  },
+  {
+    slug: "life/countdown",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown.html','utf8');document.getElementById('__tbProbe').textContent='CDNOZOD '+((src.indexOf('生肖：')<0&&src.indexOf('星座：')<0&&src.indexOf('本页不推算生肖或星座')>=0)?'OK':'BAD');"],
+    expect: ["CDNOZOD OK"],
+    ref: "第905批：倒计时日期解读原无条件附生肖、星座及不准确的农历偏差说明；现移除无关项，只保留北半球季节口径。"
+  }
+
 ];
 
 // ---------------------------------------------------------------- main

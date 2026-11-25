@@ -149,7 +149,7 @@
 <label for="numInput">输入阿拉伯数字 (1-3999)</label>
       <input type="number" id="numInput" value="2024" min="1" max="3999" oninput="convertNum()" placeholder="如 2024（1–3999）">
       <div class="result-card">
-        <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__roman_numeralExport()">导出明细 CSV</button></div><div class="big" id="romanResult">MMXXIV</div> <div id="roman_numeralTable"></div> <div id="roman_numeralDiff"></div> <div id="roman_numeralChart"></div> <div id="roman_numeralHist"></div>
+        <div class="big" id="romanResult">MMXXIV</div>
         <div class="sub" id="romanBreak"></div>
       </div>
     </div>
@@ -160,6 +160,10 @@
         <div class="big" id="numResult">2024</div>
         <div class="sub" id="numBreak"></div>
       </div>
+    </div>
+    <div class="result-card">
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__roman_numeralExport()">导出明细 CSV</button></div>
+      <div id="roman_numeralTable"></div> <div id="roman_numeralDiff"></div> <div id="roman_numeralChart"></div> <div id="roman_numeralHist"></div>
     </div>
   </div>
   <div class="card">
@@ -337,19 +341,19 @@ document.addEventListener('DOMContentLoaded',function(){
 
 var __roman_numeral_last=0,__roman_numeral_skip=false;
 function __roman_numeralSnap(){
+    // 只采集当前方向的输入，避免把另一面板的旧值混进本次历史记录。
+    var id=(typeof mode!=='undefined'&&mode==='roman')?'romanInput':'numInput';
+    var e=document.getElementById(id);
     var out={};
-    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
-    for(var i=0;i<els.length;i++){
-        var e=els[i];
-        var t=(e.type||'').toLowerCase();
-        if(t==='button'||t==='submit'||t==='hidden') continue;
-        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+    if(e){
+        var v=e.value;
+        if(v!==''&&v!=null) out[id]=v;
     }
     return out;
 }
 function __roman_numeralResText(){
-    var r=document.getElementById('romanResult');
+    var id=(typeof mode!=='undefined'&&mode==='roman')?'numResult':'romanResult';
+    var r=document.getElementById(id);
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
@@ -391,7 +395,7 @@ function __roman_numeralRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                convertNum();
+                if(rec.romanInput!=null){switchTab('roman');convertRoman();}else{switchTab('num');convertNum();}
             }catch(e2){}
             __roman_numeral_skip=false;
         });
@@ -458,6 +462,10 @@ function __roman_numeralPresets(){
 var __roman_numeral_f0=(typeof convertNum==='function')?convertNum:null;
 if(__roman_numeral_f0){
     convertNum=function(){ var __r=__roman_numeral_f0.apply(null,arguments); try{ __roman_numeralExtras(); }catch(e){} return __r; };
+}
+var __roman_numeral_f1=(typeof convertRoman==='function')?convertRoman:null;
+if(__roman_numeral_f1){
+    convertRoman=function(){ var __r=__roman_numeral_f1.apply(null,arguments); try{ __roman_numeralExtras(); }catch(e){} return __r; };
 }
 function __roman_numeralBoot(){ try{ __roman_numeralPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __roman_numeralBoot();

@@ -414,10 +414,30 @@ function calc(){
   const by = parseInt(document.getElementById('by').value);
   const bm = parseInt(document.getElementById('bm').value);
   const bd = parseInt(document.getElementById('bd').value);
-  const bh = parseInt(document.getElementById('bh').value);
-  const bmin = parseInt(document.getElementById('bmin').value);
-  const bs = parseInt(document.getElementById('bs').value);
+  // 时/分/秒允许留空（按 0 处理），但填了就必须是范围内整数；
+  // 旧实现把 24 时直接交给 Date，会悄悄滚到次日，计算依据与所填日期不一致。
+  const rawBh = document.getElementById('bh').value.trim();
+  const rawBmin = document.getElementById('bmin').value.trim();
+  const rawBs = document.getElementById('bs').value.trim();
+  const bh = rawBh === '' ? 0 : Number(rawBh);
+  const bmin = rawBmin === '' ? 0 : Number(rawBmin);
+  const bs = rawBs === '' ? 0 : Number(rawBs);
   const retireAge = parseInt(document.getElementById('retireAge').value);
+
+  const timeOk = Number.isInteger(bh) && bh >= 0 && bh <= 23
+    && Number.isInteger(bmin) && bmin >= 0 && bmin <= 59
+    && Number.isInteger(bs) && bs >= 0 && bs <= 59;
+  if(!timeOk){
+    document.getElementById('ageMain').innerHTML='<span class="live-dot"></span>请输入有效的出生时间';
+    document.getElementById('ageSub').textContent='小时须为 0–23、分钟和秒须为 0–59 的整数；留空按 0 处理';
+    document.getElementById('agePrecise').textContent='';
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('nextBirthday').textContent='';
+    document.getElementById('zodiacRow').innerHTML='';
+    document.getElementById('milestoneList').innerHTML='';
+    document.getElementById('retirementBox').style.display='none';
+    return;
+  }
 
   if(isNaN(by) || isNaN(bm) || isNaN(bd)){
     document.getElementById('ageMain').innerHTML='<span class="live-dot"></span>请输入出生日期';
@@ -458,7 +478,7 @@ function calc(){
     document.getElementById('retirementBox').style.display='none';
     return;
   }
-  const birth = new Date(by, bm - 1, bd, isNaN(bh)?0:bh, isNaN(bmin)?0:bmin, isNaN(bs)?0:bs);
+  const birth = new Date(by, bm - 1, bd, bh, bmin, bs);
   const now = new Date();
   if(birth > now){
     document.getElementById('ageMain').innerHTML='<span class="live-dot"></span>出生日期在未来';
