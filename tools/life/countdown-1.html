@@ -95,10 +95,10 @@
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "后台运行？",
+      "name": "刷新或切后台会怎样？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "网页计时依赖页面活跃，后台可能漂移。"
+        "text": "倒计时运行中刷新会按剩余时间重新调度到期提醒，到期只完成一次；暂停时先按当前时钟结算累计时间。浏览器仍可能限制后台定时器精度，关键提醒请保持页面在前台或另设闹钟。"
       }
     },
     {
@@ -215,11 +215,19 @@ function load(){
     // 刷新后继续计时，补齐离线期间流逝的时间
     state.elapsed=curElapsed();
     if(state.mode==='down'&&state.elapsed>=state.target){
-      state.elapsed=state.target;state.running=false;onFinish();
+      state.elapsed=state.target;state.running=false;save();onFinish();
     }
   }
   syncUI();render();
-  if(state.running){tick();}
+  if(state.running){
+    if(finishTimer){clearTimeout(finishTimer);finishTimer=null;}
+    if(state.mode==='down'){
+      const remain=Math.max(0,state.target-state.elapsed);
+      finishTimer=setTimeout(finishNow,remain);
+      if(remain<=0){finishNow();return;}
+    }
+    tick();
+  }
 }
 function save(){
   var s={mode:state.mode,target:state.target,elapsed:state.elapsed,
@@ -276,6 +284,7 @@ function toggleRun(){
   if(state.mode==='down'&&state.elapsed>=state.target){
     state.elapsed=0;state.frozen=0;
   }
+  const wasRunning=state.running;
   state.running=!state.running;
   if(state.running){
     state.frozen=state.elapsed;
@@ -289,7 +298,7 @@ function toggleRun(){
     tick();
   }else{
     if(finishTimer){clearTimeout(finishTimer);finishTimer=null;}
-    state.elapsed=curElapsed();
+    state.elapsed=wasRunning?(state.frozen+(Date.now()-state.baseTs)):state.elapsed;
     state.frozen=state.elapsed;
   }
   syncUI();save();
@@ -433,7 +442,7 @@ load();
 <div class="dd-example"><div class="dd-ex-title">使用</div><div class="dd-ex-body">设 25:00 倒计时，归零提醒；正计时记 elapsed。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>后台运行？</dt><dd>网页计时依赖页面活跃，后台可能漂移。</dd>
+<dt>刷新或切后台会怎样？</dt><dd>倒计时运行中刷新会按剩余时间重新调度到期提醒，到期只完成一次；暂停时先按当前时钟结算累计时间。浏览器仍可能限制后台定时器精度，关键提醒请保持页面在前台或另设闹钟。</dd>
 <dt>切到后台还会准吗？</dt><dd>计时依赖浏览器定时器，标签页在后台可能被降频，长时间计时建议以开始与结束时刻为基准核对。</dd>
 </dl>
 </div>

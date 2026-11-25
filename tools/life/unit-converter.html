@@ -98,7 +98,36 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "覆盖哪些类？", "acceptedAnswer": {"@type": "Answer", "text": "常用物理量，细分见各专项换算器。"}}, {"@type": "Question", "name": "它和各类专用换算器有区别吗？", "acceptedAnswer": {"@type": "Answer", "text": "功能一致，通用换算器把多类别聚在一页便于切换；专用换算器在单位覆盖或附加说明上更细，可按需选用。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "覆盖哪些类？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "常用物理量，细分见各专项换算器。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "它和各类专用换算器有区别吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "功能一致，通用换算器把多类别聚在一页便于切换；专用换算器在单位覆盖或附加说明上更细，可按需选用。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "伏安（VA）能直接换成瓦（W）吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不能无条件等同。VA 是视在功率，W 是有功功率，交流电路中 W = VA × 功率因数（PF）；本工具把 VA/kVA/MVA 单独归入视在功率分类，未知 PF 时不输出确定的有功功率。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
@@ -134,7 +163,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持长度、重量、面积、体积、温度等15+分类的单位换算">Convert between any two units across length, mass, volume, area, temperature and more in a single page.</p>    <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
       <div class="formula-eq">通用单位换算（系数表制）：结果 = 数值 × 源单位因子 ÷ 目标单位因子（长度/质量等分类单位表，如 米:1、千米:1000、英里:1609.344、海里:1852）；油耗类中的 km/L、mpg(US)、mpg(UK) 属于倒数单位，先归一到基准 L/100km、再从基准倒数换出（8 L/100km = 235.215 ÷ 8 ≈ 29.4 mpg US）；温度专用换算——先归一到摄氏（华氏 (v−32)×5÷9、开尔文 v−273.15、兰金 (v−491.67)×5÷9、列氏 v×1.25），再换算到目标单位。校验：数值非数时对侧清空、不弹错。判据：无分级，双向即时换算，结果按精度自适应格式化展示。</div>
-      <div class="formula-desc">每个单位带一个「相对基准单位」的换算因子，先把数值折算到基准单位、再除以目标单位因子得到结果。温度类别不适用比例因子，改用 °C/°F/K/°R 的专用公式逐对换算。</div>
+      <div class="formula-desc">每个单位带一个「相对基准单位」的换算因子，先把数值折算到基准单位、再除以目标单位因子得到结果。温度类别改用 °C/°F/K/°R 的专用公式逐对换算。视在功率（VA/kVA/MVA）单独成类，只做视在功率自身的单位换算；它与有功功率 W 不能直接等同，交流电路中 W = VA × 功率因数（PF），未知 PF 时不应给出确定的有功功率。功率类别只列真实功率单位。</div>
     </div>
 
     
@@ -142,7 +171,10 @@
 
     <div class="converter-grid">
       <div>
-        <div data-tb="preset" data-tb-presets='[{"label": "1 英里换算公里", "labelEn": "1 mile to km", "values": {"fromValue": "1"}}]'></div>
+        <div id="unit_converterPresets"></div>
+        <input type="hidden" id="presetCategory" value="length">
+        <input type="hidden" id="presetFrom" value="meter">
+        <input type="hidden" id="presetTo" value="centimeter">
 <label for="fromValue">从</label>
         <input type="number" id="fromValue" value="1" oninput="convertFrom('from')" step="any" placeholder="如 1">
         <select id="fromUnit" style="margin-top:8px;" onchange="convertFrom('from')" aria-label="源单位"></select>
@@ -215,6 +247,7 @@
 <dl class="dd-faq">
 <dt>覆盖哪些类？</dt><dd>常用物理量，细分见各专项换算器。</dd>
 <dt>它和各类专用换算器有区别吗？</dt><dd>功能一致，通用换算器把多类别聚在一页便于切换；专用换算器在单位覆盖或附加说明上更细，可按需选用。</dd>
+<dt>伏安（VA）能直接换成瓦（W）吗？</dt><dd>不能无条件等同。VA 是视在功率，W 是有功功率，交流电路中 W = VA × <a class="term-link" href="/tools/energy/power-factor-calc.html">功率因数</a>（PF）；本工具把 VA/kVA/MVA 单独归入视在功率分类，未知 PF 时不输出确定的有功功率。</dd>
 </dl>
 </div>
 </section>
@@ -534,6 +567,22 @@ const CATEGORIES = {
       { from: 'watt_hour', to: 'joule', value: 1, label: '1 Wh = 3600 J' }
     ]
   },
+  apparentPower: {
+    name: '视在功率',
+    icon: '🔌',
+    base: 'va',
+    units: {
+      va: { name: '伏安', symbol: 'VA', factor: 1 },
+      kva: { name: '千伏安', symbol: 'kVA', factor: 1000 },
+      mva: { name: '兆伏安', symbol: 'MVA', factor: 1000000 },
+      gva: { name: '吉伏安', symbol: 'GVA', factor: 1000000000 }
+    },
+    quick: [
+      { from: 'kva', to: 'va', value: 1, label: '1 kVA = 1000 VA' },
+      { from: 'mva', to: 'kva', value: 1, label: '1 MVA = 1000 kVA' },
+      { from: 'gva', to: 'mva', value: 1, label: '1 GVA = 1000 MVA' }
+    ]
+  },
   power: {
     name: '功率',
     icon: '💡',
@@ -547,7 +596,6 @@ const CATEGORIES = {
       horsepower_imperial: { name: '英制马力', symbol: 'hp', factor: 745.7 },
       btu_per_hour: { name: 'BTU/小时', symbol: 'BTU/h', factor: 0.293071 },
       ton_of_refrigeration: { name: '冷吨', symbol: 'RT', factor: 3516.85 },
-      volt_ampere: { name: '伏安', symbol: 'VA', factor: 1 },
       dbm: { name: '分贝毫瓦', symbol: 'dBm', special: 'dbm' }
     },
     quick: [
@@ -740,7 +788,11 @@ function convertFrom(source){
   const cat = CATEGORIES[currentCategory];
   const fromUnit = document.getElementById('fromUnit').value;
   const toUnit = document.getElementById('toUnit').value;
-  
+  if(!cat.units[fromUnit] || !cat.units[toUnit]){
+    document.getElementById('toValue').value='';
+    document.getElementById('convertMsg').textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"The selected unit is not available in this category. Pick another unit.":"当前分类中没有所选单位，请重新选择。");
+    return;
+  }
   if(source === 'from'){
     const val = parseFloat(document.getElementById('fromValue').value);
     if(isNaN(val)){
@@ -1017,12 +1069,27 @@ function __unit_converterExport(){
     }catch(e){}
     try { TBKit.util.exportTable('#unit_converterTable','unit-converter.csv'); } catch(e){}
 }
+function __unit_converterApplyPreset(){
+  const c=document.getElementById('presetCategory').value;
+  const fu=document.getElementById('presetFrom').value;
+  const tu=document.getElementById('presetTo').value;
+  if(CATEGORIES[c] && c!==currentCategory) switchCategory(c);
+  if(CATEGORIES[c] && CATEGORIES[c].units[fu] && CATEGORIES[c].units[tu]){
+    document.getElementById('fromUnit').value=fu;
+    document.getElementById('toUnit').value=tu;
+  } else {
+    document.getElementById('convertMsg').textContent='预设单位不在当前分类中，请重新选择。';
+  }
+  convertFrom('from');
+}
 function __unit_converterPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#unit_converterPresets',[{label:'默认参数',labelEn:'Default',values:{'fromValue':'1'}},
-  {"label":"身高 1.75 米→厘米","labelEn":"Height 1.75 m to cm","values":{"fromUnit":"meter","toUnit":"centimeter","fromValue":1.75}},
-  {"label":"屏幕 6.7 英寸→厘米","labelEn":"Screen 6.7 inch to cm","values":{"fromUnit":"inch","toUnit":"centimeter","fromValue":6.7}},
-  {"label":"马拉松 42.195 千米→英里","labelEn":"Marathon 42.195 km to mi","values":{"fromUnit":"kilometer","toUnit":"mile","fromValue":42.195}}],function(){ convertFrom('from'); });
+    TBKit.preset.bar('#unit_converterPresets',[{label:'默认参数',labelEn:'Default',values:{'presetCategory':'length','presetFrom':'meter','presetTo':'centimeter','fromValue':'1'}},
+  {"label":"身高 1.75 米→厘米","labelEn":"Height 1.75 m to cm","values":{"presetCategory":"length","presetFrom":"meter","presetTo":"centimeter","fromValue":1.75}},
+  {"label":"屏幕 6.7 英寸→厘米","labelEn":"Screen 6.7 inch to cm","values":{"presetCategory":"length","presetFrom":"inch","presetTo":"centimeter","fromValue":6.7}},
+  {"label":"马拉松 42.195 千米→英里","labelEn":"Marathon 42.195 km to mi","values":{"presetCategory":"length","presetFrom":"kilometer","presetTo":"mile","fromValue":42.195}},
+  {"label":"重量 70 千克→磅","labelEn":"Weight 70 kg to lb","values":{"presetCategory":"weight","presetFrom":"kilogram","presetTo":"pound","fromValue":70}},
+  {"label":"温度 25°C→°F","labelEn":"Temperature 25°C to °F","values":{"presetCategory":"temperature","presetFrom":"celsius","presetTo":"fahrenheit","fromValue":25}}],__unit_converterApplyPreset);
 }
 var __unit_converter_f0=(typeof convertFrom==='function')?convertFrom:null;
 if(__unit_converter_f0){

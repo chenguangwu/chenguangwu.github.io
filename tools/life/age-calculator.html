@@ -131,6 +131,14 @@
         "@type": "Answer",
         "text": "会。页面按当前时刻与出生时刻做差，生日当天过了出生时刻即 +1 岁，未到出生时刻仍按上一周岁显示。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "生肖按春节还是公历算？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "按出生日期对应的农历年、以春节为年界换算，支持 1900–2100 年；春节前出生归入上一农历年。超出范围或浏览器农历数据不可用时不给出确定生肖。"
+      }
     }
   ]
 }
@@ -176,7 +184,7 @@
 
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">周岁按「年−月−日−时−分−秒」逐级借位差值计算（秒不足借 1 分、日不足借 1 月并按上月天数补足）；总天数 = 存活总毫秒 ÷ 86400000 向下取整，总月数 = 年×12 + 月，总十年数 = 年÷10 向下取整。校验：出生年月日均须有效，出生日期晚于当前时间提示错误。判据：生肖/星座按出生日期查表，下一生日、里程碑与退休日期由周岁推算。</div>
+      <div class="formula-eq">周岁按「年−月−日−时−分−秒」逐级借位差值计算（秒不足借 1 分、日不足借 1 月并按上月天数补足）；总天数 = 存活总毫秒 ÷ 86400000 向下取整，总月数 = 年×12 + 月，总十年数 = 年÷10 向下取整。校验：出生年月日均须有效，出生日期晚于当前时间提示错误。判据：生肖按出生日期对应的农历年（春节年界，支持 1900–2100）查表，星座按公历月日查表；下一生日、里程碑与退休日期由周岁推算。</div>
       <div class="formula-desc">先按秒、分、时、日、月逐级做差，不足则向前借位：借 1 分补 60 秒、借 1 时补 60 分、借 1 天补 24 时；日差为负时借上一个自然月的实际天数，月差为负则年位借 1 得 12 个月。总天数 = ⌊毫秒差 ÷ 86400000⌋，用于展示已度过的精确天数。</div>
     </div>
 <div class="input-row">
@@ -282,6 +290,7 @@
 <dl class="dd-faq">
 <dt>虚岁与周岁？</dt><dd>中国虚岁常+1，本工具给国际周岁。</dd>
 <dt>生日当天会加一岁吗？</dt><dd>会。页面按当前时刻与出生时刻做差，生日当天过了出生时刻即 +1 岁，未到出生时刻仍按上一周岁显示。</dd>
+<dt>生肖按春节还是公历算？</dt><dd>按出生日期对应的农历年、以春节为年界换算，支持 1900–2100 年；春节前出生归入上一农历年。超出范围或浏览器农历数据不可用时不给出确定生肖。</dd>
 </dl>
 </div>
 </section>
@@ -369,6 +378,15 @@ function getZodiac(year){
   return {name: ZODIACS[idx], icon: ZODIAC_ICONS[idx], color: ZODIAC_COLORS[idx], trait: ZODIAC_TRAITS[idx]};
 }
 
+function getLunarYear(date){
+  try{
+    const parts=new Intl.DateTimeFormat('en-u-ca-chinese',{year:'numeric'}).formatToParts(date);
+    const p=parts.find(x=>x.type==='relatedYear')||parts.find(x=>x.type==='year');
+    const y=p?parseInt(p.value,10):NaN;
+    return isFinite(y)?y:null;
+  }catch(e){return null;}
+}
+
 function getConstellation(month, day){
   for(const c of CONSTELLATIONS){
     const [sm, sd] = c.start;
@@ -429,12 +447,28 @@ function calc(){
     return;
   }
 
+  if(by<1900||by>2100){
+    document.getElementById('ageMain').innerHTML='<span class="live-dot"></span>仅支持 1900–2100 年';
+    document.getElementById('ageSub').textContent='生肖/农历换算超出可靠支持范围，请调整出生年份';
+    document.getElementById('agePrecise').textContent='';
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('nextBirthday').textContent='';
+    document.getElementById('zodiacRow').innerHTML='';
+    document.getElementById('milestoneList').innerHTML='';
+    document.getElementById('retirementBox').style.display='none';
+    return;
+  }
   const birth = new Date(by, bm - 1, bd, isNaN(bh)?0:bh, isNaN(bmin)?0:bmin, isNaN(bs)?0:bs);
   const now = new Date();
   if(birth > now){
     document.getElementById('ageMain').innerHTML='<span class="live-dot"></span>出生日期在未来';
     document.getElementById('ageSub').textContent = '';
     document.getElementById('agePrecise').textContent = '';
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('nextBirthday').textContent='';
+    document.getElementById('zodiacRow').innerHTML='';
+    document.getElementById('milestoneList').innerHTML='';
+    document.getElementById('retirementBox').style.display='none';
     return;
   }
 
@@ -505,13 +539,15 @@ function calc(){
     document.getElementById('retirementBox').style.display = 'none';
   }
 
-  const z = getZodiac(by);
+  const lunarYear = getLunarYear(birth);
+  const zYear = lunarYear || by;
+  const z = getZodiac(zYear);
   const c = getConstellation(bm, bd);
   const __g18=`
     <div class="zodiac-card" style="background:linear-gradient(135deg,${z.color},${z.color}cc);">
       <div class="icon">${z.icon}</div>
       <div class="name">生肖：${z.name}</div>
-      <div class="desc">农历 ${by} 年</div>
+      <div class="desc">${lunarYear ? `农历 ${lunarYear} 年（春节年界）` : `公历 ${by} 年（未校正春节边界）`}</div>
       <div class="desc" style="margin-top:4px;">${z.trait}</div>
     </div>
     <div class="zodiac-card" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));">

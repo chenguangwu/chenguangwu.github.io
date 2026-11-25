@@ -122,6 +122,14 @@
         "@type": "Answer",
         "text": "标准大气压下水的冰点 32°F、沸点 212°F，两定点间隔 180 度，据此得出 °F = °C×9/5+32。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "历史记录会丢失小数精度吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不会。保存时记录所选温标的原始输入值与全精度内部值，恢复时按原温标回填再换算；界面其他温标仍按 2 位小数展示。旧记录无原始值时按已保存的摄氏基准读取。"
+      }
     }
   ]
 }
@@ -157,7 +165,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="摄氏度、华氏度、开尔文、兰金度、列氏度五种温标互转，带温度计可视化">Convert temperature between Celsius, Fahrenheit and Kelvin with a clear interactive control.</p>    <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
       <div class="formula-eq">°F = °C × 9/5 + 32；K = °C + 273.15；°R = °F + 459.67；°Ré = °C × 0.8</div>
-      <div class="formula-desc">以摄氏温度为基准，分别换算出华氏、开尔文、兰氏与列氏温度；改任一字段即按对应公式反解回摄氏再更新全部。开尔文存在理论下限 0K（−273.15°C）。</div>
+      <div class="formula-desc">以摄氏温度为基准，分别换算出华氏、开尔文、兰氏与列氏温度；改任一字段即按对应公式反解回摄氏再更新全部。开尔文存在理论下限 0K（−273.15°C）。历史记录保存所选温标的原始输入值和全精度内部值，恢复时按原温标回填后再换算；界面其他温标按 2 位小数显示，但保存/恢复不经过这层舍入。旧记录没有原始输入值时仍按已保存的摄氏基准读取。</div>
     </div>
 
     <div class="tabs">
@@ -334,6 +342,7 @@
 <dl class="dd-faq">
 <dt>华氏冰点？</dt><dd>32°F，沸点 212°F。</dd>
 <dt>华氏的冰点和沸点是？</dt><dd>标准大气压下水的冰点 32°F、沸点 212°F，两定点间隔 180 度，据此得出 °F = °C×9/5+32。</dd>
+<dt>历史记录会丢失小数精度吗？</dt><dd>不会。保存时记录所选温标的原始输入值与全精度内部值，恢复时按原温标回填再换算；界面其他温标仍按 2 位小数展示。旧记录无原始值时按已保存的摄氏基准读取。</dd>
 </dl>
 </div>
 </section>
@@ -410,14 +419,16 @@ function updateThermometer(c){
   const pct=Math.max(0,Math.min(100,(c+50)/150*100));
   document.getElementById('mercury').style.height=pct+'%';
 }
-function updateAll(c){
+function updateAll(c,sourceUnit,sourceValue){
+  if(sourceUnit) _lastSource={unit:sourceUnit,value:(sourceValue!==undefined?sourceValue:c)};
+  const srcId=({c:'celsius',f:'fahrenheit',k:'kelvin',r:'rankine',re:'reaumur'})[_lastSource.unit]||'';
   const f=c*9/5+32;
   const k=c+273.15;
   const r=f+459.67;
   const re=c*0.8;
   // 正在输入的那个框不要回写：否则每敲一位就被 toFixed(2) 重排，多位数（如 12.5）会被吞
   const activeId=(typeof document!=='undefined'&&document.activeElement)?document.activeElement.id:'';
-  const setVal=(id, v)=>{ if(id===activeId) return; const el=document.getElementById(id); if(el) el.value=v.toFixed(2); };
+  const setVal=(id, v)=>{ if(id===activeId || id===srcId) return; const el=document.getElementById(id); if(el) el.value=v.toFixed(2); };
   setVal('celsius', c);
   setVal('fahrenheit', f);
   setVal('kelvin', k);
@@ -425,6 +436,7 @@ function updateAll(c){
   setVal('reaumur', re);
   updateThermometer(c);
   updateFeel(c);
+  _lastExact={c:c,f:f,k:k,r:r,re:re};
   _lastVal={c:parseFloat(c.toFixed(2)),f:parseFloat(f.toFixed(2)),k:parseFloat(k.toFixed(2)),r:parseFloat(r.toFixed(2)),re:parseFloat(re.toFixed(2))};
 }
 function tempVal(id){
@@ -453,40 +465,40 @@ function fromCelsius(){
   const c=tempVal('celsius');
   if(c===null){showTempError(true,false);return;}
   if(belowAbsoluteZero(c)){showTempError(true,true);return;}
-  showTempError(false);updateAll(c);
+  showTempError(false);updateAll(c,'c',c);
 }
 function fromFahrenheit(){
   const f=tempVal('fahrenheit');
   if(f===null){showTempError(true,false);return;}
   const c=(f-32)*5/9;
   if(belowAbsoluteZero(c)){showTempError(true,true);return;}
-  showTempError(false);updateAll(c);
+  showTempError(false);updateAll(c,'f',f);
 }
 function fromKelvin(){
   const k=tempVal('kelvin');
   if(k===null){showTempError(true,false);return;}
   const c=k-273.15;
   if(belowAbsoluteZero(c)){showTempError(true,true);return;}
-  showTempError(false);updateAll(c);
+  showTempError(false);updateAll(c,'k',k);
 }
 function fromRankine(){
   const r=tempVal('rankine');
   if(r===null){showTempError(true,false);return;}
   const c=(r-459.67-32)*5/9;
   if(belowAbsoluteZero(c)){showTempError(true,true);return;}
-  showTempError(false);updateAll(c);
+  showTempError(false);updateAll(c,'r',r);
 }
 function fromReaumur(){
   const re=tempVal('reaumur');
   if(re===null){showTempError(true,false);return;}
   const c=re/0.8;
   if(belowAbsoluteZero(c)){showTempError(true,true);return;}
-  showTempError(false);updateAll(c);
+  showTempError(false);updateAll(c,'re',re);
 }
-function setTemp(c){updateAll(c);}
+function setTemp(c){updateAll(c,'c',c);}
 function resetForm(){updateAll(25);}
 function saveRecord(){
-  const r={time:new Date().toLocaleString('zh-CN'),c:_lastVal.c,f:_lastVal.f,k:_lastVal.k};
+  const r={time:new Date().toLocaleString('zh-CN'),c:_lastExact.c,f:_lastExact.f,k:_lastExact.k,r:_lastExact.r,re:_lastExact.re,unit:_lastSource.unit,value:_lastSource.value};
   let h=getHistory();
   h.unshift(r);if(h.length>20)h=h.slice(0,20);
   localStorage.setItem(HK,JSON.stringify(h));
@@ -500,12 +512,23 @@ function renderHistory(){
   const h=getHistory();
   const l=document.getElementById('historyList');
   if(h.length===0){const __h1='<div class="history-empty">暂无记录</div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){l.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}l.innerHTML=__h1;return;}
-  const __h2=h.map((r,i)=>`<div class="history-item" onclick="loadHistory(${i})"><div class="time">${r.time}</div><div class="summary">${r.c}°C = ${r.f}°F = ${r.k}K</div><div class="detail">${getFeel(r.c).text} <button onclick="event.stopPropagation();delHistory(${i})" style="float:right;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12px;">删除</button></div></div>`).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){l.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}l.innerHTML=__h2;
+  const __fmt=n=>isFinite(Number(n))?String(Number(Number(n).toFixed(2))):'—';
+  const __h2=h.map((r,i)=>{
+    const u=({c:'°C',f:'°F',k:'K',r:'°R',re:'°Ré'})[r.unit];
+    const head=(r.unit&&r.value!==undefined)?`${r.value}${u} → `:'';
+    return `<div class="history-item" onclick="loadHistory(${i})"><div class="time">${r.time}</div><div class="summary">${head}${__fmt(r.c)}°C = ${__fmt(r.f)}°F = ${__fmt(r.k)}K</div><div class="detail">${getFeel(r.c).text} <button onclick="event.stopPropagation();delHistory(${i})" style="float:right;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12px;">删除</button></div></div>`;
+  }).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){l.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}l.innerHTML=__h2;
 }
 function loadHistory(i){
   const h=getHistory();if(!h[i])return;
   switchTab('convert',document.querySelectorAll('.tab-btn')[0]);
-  setTemp(h[i].c);
+  const rec=h[i];
+  if(rec && rec.unit && rec.value!==undefined && isFinite(Number(rec.value))){
+    const id=({c:'celsius',f:'fahrenheit',k:'kelvin',r:'rankine',re:'reaumur'})[rec.unit];
+    const el=id?document.getElementById(id):null;
+    if(el){el.value=String(rec.value); const fn=({c:'fromCelsius',f:'fromFahrenheit',k:'fromKelvin',r:'fromRankine',re:'fromReaumur'})[rec.unit]; if(typeof window[fn]==='function'){window[fn]();}else{setTemp(Number(rec.c));}}
+    else setTemp(Number(rec.c));
+  } else setTemp(Number(rec.c));
 }
 function delHistory(i){let h=getHistory();h.splice(i,1);localStorage.setItem(HK,JSON.stringify(h));renderHistory();}
 function clearHistory(){if(confirm('确定清空？')){localStorage.removeItem(HK);renderHistory();ToolBox.showToast(i18nText());}}

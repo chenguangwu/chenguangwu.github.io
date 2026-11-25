@@ -2198,7 +2198,7 @@ const CASES = [
       "diffTime": "abc123测试"
     },
     "expect": [
-      "/06/14周五\nabc123测试\n+0 小时\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
+      "/06/14周五\nabc123测试\n0 小时\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"diffTime\":\"abc123测试\"}，输出区含「/06/14周五\nabc123测试\n+0 小时\n⚠ 计算结果含无效值，请检查输入…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2900,7 +2900,68 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["停放时长最多支持 1000 个计费日（24000 小时）"],
     ref: "第731B批：旧 splitDays 最多生成 1000 日，24024 小时会静默丢掉最后 24 小时仍展示完整时长；现超限前置拒绝，不再给出低估结果。默认 3.5h ⇒ 不命中。"
-  }
+  },
+  // ── 第875批：life 边界与规则补齐 ─────────────────────────────
+  {
+    slug: "life/world-clock",
+    clicks: ["document.getElementById('diffCityA').value='Asia/Shanghai';document.getElementById('diffCityB').value='Asia/Dubai';calcDiff();"],
+    expect: ["-4 小时"],
+    ref: "第875批：迪拜 UTC+4、上海 UTC+8，时差 −4h；旧实现取绝对值且只在正数前加 + ⇒ 显示 4 小时，负号丢失（避开纽约夏令时）。"
+  },
+  {
+    slug: "life/world-clock",
+    clicks: ["document.getElementById('diffCityA').value='Asia/Shanghai';document.getElementById('diffCityB').value='Asia/Kolkata';calcDiff();"],
+    expect: ["-2 小时 30 分钟"],
+    ref: "第875批：印度 UTC+5:30，与上海差 −2.5h；验证半小时偏移与负号同时正确。"
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "-1" },
+    clicks: ["convert();"],
+    expect: ["浓度不能为负，请输入 0 或正数。"],
+    ref: "第875批：负浓度物理上无效；旧实现只判 isNaN，−1 ppm 会输出负的各单位浓度。现显式拒绝并保留 0 合法输入。"
+  },
+  {
+    slug: "life/temperature-converter",
+    inputs: { celsius: "0.004" },
+    clicks: ["fromCelsius();saveRecord();var h=JSON.parse(localStorage.getItem('temp_converter_history')||'[]');var r=h[0];loadHistory(0);var v=document.getElementById('celsius').value;document.getElementById('__tbProbe').textContent='TEXACT '+((r&&r.unit==='c'&&Math.abs(r.value-0.004)<1e-12&&Math.abs(r.f-32.0072)<1e-9&&v==='0.004')?'OK':'BAD '+JSON.stringify(r)+' v='+v);"],
+    expect: ["TEXACT OK"],
+    ref: "第875批：0.004℃ 原实现先把基准值四舍五入到 0 再保存，恢复时变成 32.00℉；现保存所选温标原始值 0.004 与全精度华氏 32.0072，恢复按原温标回填。默认 25℃ 不含该探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "2.1", rate: "10", free: "0", cap: "0", unit: "1" },
+    clicks: ["calcTool()"],
+    expect: ["30.00"],
+    ref: "第875批：2.1h 按 1 小时向上取整为 3h × 10 = 30.00；旧实现按 2.1×10=21.00，未覆盖不足一个计费单位。"
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "30", rate: "10", free: "2", cap: "0", unit: "0", freeScope: "once" },
+    clicks: ["calcTool()"],
+    expect: ["280.00"],
+    ref: "第875批：30h 跨 24h+6h，免费 2h 仅首次扣减 ⇒ 28h×10 = 280.00；若按每日扣减为 26h×10 = 260.00，用于锁定 freeScope=once。"
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "3", rate: "10", free: "0", cap: "0", unit: "0", firstHours: "1", firstFee: "5" },
+    clicks: ["calcTool()"],
+    expect: ["25.00", "首段"],
+    ref: "第875批：首段 1h 一口价 5 元，余 2h×10 = 20，合计 25.00；旧实现无首段规则 ⇒ 30.00。"
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "30", rate: "10", free: "0", cap: "50", unit: "0", capMode: "rolling" },
+    clicks: ["calcTool()"],
+    expect: ["100.00", "计费段数 2"],
+    ref: "第875批：滚动 24h 模式按入场起每 24h 段分别封顶，30h 分成 24h+6h，两段各触顶 50 ⇒ 100.00；自然日模式标签则为计费日数。"
+  },
+  {
+    slug: "life/countdown-1",
+    clicks: ["state.mode='up';state.elapsed=0;state.frozen=0;state.running=true;state.baseTs=Date.now()-5000;toggleRun();document.getElementById('__tbProbe').textContent='TPAUSE '+(state.elapsed>=4990&&!state.running?'OK':'BAD '+state.elapsed);"],
+    expect: ["TPAUSE OK"],
+    ref: "第875批：暂停旧实现先把 running 置 false 再取 curElapsed，只读到上一帧缓存；现先按当前时钟算出 frozen+(now−baseTs) 再落状态。模拟运行 5s 后暂停，应保留 ≥4990ms。"
+  },
 ];
 
 // ---------------------------------------------------------------- main

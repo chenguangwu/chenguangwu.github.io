@@ -87,15 +87,15 @@
       "name": "不足一小时怎么算？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "页面按小时数（可填小数）连续计费，未做取整；实际停车场可能按半小时或整小时进位，请以现场规则为准。"
+        "text": "可在“计费单位”选择实际时长、30 分钟或 15 分钟；选后者时不足一个单位向上取整，例如 2.1 小时按 1 小时计费则为 3 小时。默认按实际时长不取整。"
       }
     },
     {
       "@type": "Question",
-      "name": "免费时长怎么扣？",
+      "name": "免费时长和封顶怎么扣？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "先扣减免费时长再按费率计算，即计费时长 = 停放时长 − 免费时长（不足 0 时按 0 计）。"
+        "text": "免费时长可选每日都免或仅首次入场免；封顶可选自然日或入场起每 24 小时分段，结果表会逐段列出计费时长、段费用与封顶/首段状态。"
       }
     }
   ]
@@ -128,7 +128,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="商场、医院、路边停车收费规则不一。填入时长、费率与封顶价，即可估算费用，避免离场时惊讶。">Enter parking duration, hourly rate, free period and daily cap to calculate the parking fee payable.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">停车费 = Σ 当日费用；当日计费时长 = max(0, 当日停放时长 − 当日免费时长)；当日费用 = min(当日计费时长 × 每小时费率, 每日封顶)；免费时长与封顶均按自然日逐日结算后累加。填写开始时间时按真实自然日分组，未填写时按每 24 小时为一个计费日。</div>
+      <div class="formula-eq">停车费 = Σ 各计费段费用；计费时长按所选单位向上取整（不足一个单位按一个单位计）；段费用 = min(段计费时长 × 每小时费率（首段可改一口价）, 段封顶)。封顶按自然日或滚动 24 小时逐段结算；免费时长可按每日或仅首次扣减。填写开始时间时按真实日期分组，未填写时按每 24 小时为一段。</div>
   
 </div>
 
@@ -142,7 +142,7 @@
         <input type="number" id="rate" value="10" step="1" placeholder="如 10">
       </div>
       <div>
-        <label for="free">免费时长（小时/日）</label>
+        <label for="free">免费时长（小时）</label>
         <input type="number" id="free" value="0" step="0.5" placeholder="如 0">
       </div>
     </div>
@@ -154,6 +154,41 @@
       <div>
         <label for="startTime">开始时间（可选，用于按自然日分组）</label>
         <input type="datetime-local" id="startTime" value="">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="unit">计费单位</label>
+        <select id="unit">
+          <option value="0" selected>按实际时长（不取整）</option>
+          <option value="0.5">按 30 分钟</option>
+          <option value="1">按 1 小时</option>
+          <option value="0.25">按 15 分钟</option>
+        </select>
+      </div>
+      <div>
+        <label for="capMode">封顶周期</label>
+        <select id="capMode">
+          <option value="natural">自然日封顶</option>
+          <option value="rolling">滚动 24 小时封顶</option>
+        </select>
+      </div>
+      <div>
+        <label for="freeScope">免费时长范围</label>
+        <select id="freeScope">
+          <option value="daily">每日都免</option>
+          <option value="once">仅首次入场免</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="firstHours">首段时长（小时，0=不启用）</label>
+        <input type="number" id="firstHours" value="0" step="0.5" min="0" placeholder="如 2">
+      </div>
+      <div>
+        <label for="firstFee">首段一口价（元）</label>
+        <input type="number" id="firstFee" value="0" step="1" min="0" placeholder="如 10">
       </div>
     </div>
     <div class="toolbar">
@@ -256,6 +291,16 @@ function parseStartTime(){
   var d=new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5]);
   return isFinite(d.getTime())?d:null;
 }
+function splitRolling(hours,start){
+  var segs=[];
+  var remain=hours*3600000, cur=start&&isFinite(start.getTime())?new Date(start.getTime()):new Date(2000,0,1);
+  while(remain>1e-6&&segs.length<1000){
+    var ms=Math.min(remain,24*3600000);
+    segs.push({label:fmtDay(cur),hours:ms/3600000});
+    remain-=ms;cur=new Date(cur.getTime()+ms);
+  }
+  return segs;
+}
 function splitDays(hours,start){
   var segs=[];
   if(start&&isFinite(start.getTime())){
@@ -278,13 +323,17 @@ function splitDays(hours,start){
   }
   return segs;
 }
-function calcTool(){var hours=num('hours'), rate=num('rate'), free=num('free'), cap=num('cap');
-if(hours===null||rate===null||free===null||cap===null){
+function calcTool(){
+var hours=num('hours'), rate=num('rate'), free=num('free'), cap=num('cap');
+var unit=num('unit'), firstHours=num('firstHours'), firstFee=num('firstFee');
+var capMode=(document.getElementById('capMode')||{}).value||'natural';
+var freeScope=(document.getElementById('freeScope')||{}).value||'daily';
+if(hours===null||rate===null||free===null||cap===null||unit===null||firstHours===null||firstFee===null){
   document.getElementById('result').innerHTML='<div class="result-title">输入有误</div><p style="color:var(--danger);" data-zh="请填写有效的时长、费率、免费时长与封顶价（无免费时长/封顶可填 0）">Enter a valid duration, rate, free minutes and cap (use 0 if not applicable).</p>';
   return;
 }
-if(hours<0||rate<0||free<0||cap<0){
-  document.getElementById('result').innerHTML='<div class="result-title">输入有误</div><p style="color:var(--danger);">时长、费率、免费时长与封顶价均不能为负数</p>';
+if(hours<0||rate<0||free<0||cap<0||unit<0||firstHours<0||firstFee<0){
+  document.getElementById('result').innerHTML='<div class="result-title">输入有误</div><p style="color:var(--danger);">时长、费率、免费时长与封顶价均不能为负数；计费单位须≥0，首段参数不能为负</p>';
   return;
 }
 if(hours>24000){
@@ -292,33 +341,47 @@ if(hours>24000){
   return;
 }
 var start=parseStartTime();
-var segs=splitDays(hours,start);
+var segs=(capMode==='rolling')?splitRolling(hours,start):splitDays(hours,start);
 var total=0,billable=0,cappedCount=0,rows='';
 for(var i=0;i<segs.length;i++){
   var h=segs[i].hours;
-  var b=Math.max(0,h-free);
+  var freeThis=(freeScope==='once')?(i===0?free:0):free;
+  var b=Math.max(0,h-freeThis);
+  b=(b<=0)?0:(unit>0?Math.ceil(b/unit-1e-9)*unit:b);
   var rawFee=b*rate;
-  var dayFee=(cap>0)?Math.min(rawFee,cap):rawFee;
+  if(i===0&&firstHours>0){
+    var rest=Math.max(0,b-firstHours);
+    rawFee=firstFee+rest*rate;
+  }
+  var segFee=(cap>0)?Math.min(rawFee,cap):rawFee;
   var capped=(cap>0&&rawFee>cap);
   if(capped)cappedCount++;
-  total+=dayFee;
+  total+=segFee;
   billable+=b;
-  rows+='<tr><td>'+escH(segs[i].label)+'</td><td>'+h.toFixed(1)+' h</td><td>'+free.toFixed(1)+' h</td><td>'+b.toFixed(1)+' h</td><td>'+dayFee.toFixed(2)+' 元</td><td>'+(capped?'封顶已生效':'—')+'</td></tr>';
+  var freeLabel=(freeScope==='once'&&i>0)?'—':freeThis.toFixed(1)+' h';
+  var firstTag=(i===0&&firstHours>0)?'首段':'—';
+  rows+='<tr><td>'+escH(segs[i].label)+'</td><td>'+h.toFixed(2)+' h</td><td>'+freeLabel+'</td><td>'+b.toFixed(2)+' h</td><td>'+segFee.toFixed(2)+' 元</td><td>'+(capped?'封顶已生效':firstTag)+'</td></tr>';
 }
+var unitLabel=unit===0?'实际时长（不取整）':(unit===1?'1 小时':(unit===0.5?'30 分钟':'15 分钟'));
 var html='<div class="result-title">停车费</div><div class="data-grid">';
 html+='<div class="data-card"><div class="num">'+total.toFixed(2)+'</div><div class="label">应付 (元)</div></div>';
-html+='<div class="data-card"><div class="num">'+segs.length+'</div><div class="label">计费日数</div></div>';
+html+='<div class="data-card"><div class="num">'+segs.length+'</div><div class="label">'+(capMode==='rolling'?'计费段数':'计费日数')+'</div></div>';
 html+='<div class="data-card"><div class="num">'+billable.toFixed(1)+'</div><div class="label">计费时长(h)</div></div>';
 html+='</div>';
-html+='<p class="muted" style="margin-top:10px;">停放 '+hours+'h，免费 '+free+'h，费率 '+rate+' 元/h'+(cap>0?('，封顶 '+cap+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元")):'')+'。</p>';
-html+='<p class="muted">'+(start?('自 '+fmtDay(start)+' 起按自然日分组'):'未填开始时间，按每 24 小时为一个计费日')+'，免费时长逐日扣减；'+(cappedCount?('封顶已生效 '+cappedCount+' 天。'):'未触发封顶。')+'</p>';
-html+='<div style="overflow-x:auto;margin-top:8px;"><table class="ref-table" style="width:100%;font-size:13px;"><thead><tr><th>计费日</th><th>当日时长</th><th>免费扣减</th><th>计费时长</th><th>当日费用</th><th>封顶状态</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+html+='<p class="muted" style="margin-top:10px;">停放 '+hours+'h，免费 '+free+'h，费率 '+rate+' 元/h'+(cap>0?('，封顶 '+cap+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元")):'')+'。免费范围：'+(freeScope==='once'?'仅首次':'每日')+'；计费单位：'+unitLabel+'（不足一个单位向上取整）。</p>';
+html+='<p class="muted">'+(start?('自 '+fmtDay(start)+' 起'):'未填开始时间，按每 24 小时为一段')+'，'+(capMode==='rolling'?'按滚动 24 小时封顶':'按自然日封顶')+'；'+(cappedCount?('封顶已生效 '+cappedCount+(capMode==='rolling'?' 段。':' 天。')):'未触发封顶。')+'</p>';
+html+='<div style="overflow-x:auto;margin-top:8px;"><table class="ref-table" style="width:100%;font-size:13px;"><thead><tr><th>计费段</th><th>段时长</th><th>免费扣减</th><th>计费时长</th><th>段费用</th><th>封顶/首段</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('hours').value='3.5';
       document.getElementById('rate').value='10';
       document.getElementById('free').value='0';
       document.getElementById('cap').value='60';
       document.getElementById('startTime').value='';
+      document.getElementById('unit').value='0';
+      document.getElementById('capMode').value='natural';
+      document.getElementById('freeScope').value='daily';
+      document.getElementById('firstHours').value='0';
+      document.getElementById('firstFee').value='0';
       calcTool();}
 calcTool();
 
@@ -481,8 +544,8 @@ else document.addEventListener('DOMContentLoaded', __parking_feeBoot);
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>封顶填 0 是什么意思？</dt><dd>代表不封顶，费用按费率全额计算；若停车场有封顶，请填入实际封顶金额。</dd>
-<dt>不足一小时怎么算？</dt><dd>页面按小时数（可填小数）连续计费，未做取整；实际停车场可能按半小时或整小时进位，请以现场规则为准。</dd>
-<dt>免费时长怎么扣？</dt><dd>先扣减免费时长再按费率计算，即计费时长 = 停放时长 − 免费时长（不足 0 时按 0 计）。</dd>
+<dt>不足一小时怎么算？</dt><dd>可在“计费单位”选择实际时长、30 分钟或 15 分钟；选后者时不足一个单位向上取整，例如 2.1 小时按 1 小时计费则为 3 小时。默认按实际时长不取整。</dd>
+<dt>免费时长和封顶怎么扣？</dt><dd>免费时长可选每日都免或仅首次入场免；封顶可选自然日或入场起每 24 小时分段，结果表会逐段列出计费时长、段费用与封顶/首段状态。</dd>
 </dl>
 </div>
 </section>
