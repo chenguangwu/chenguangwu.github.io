@@ -274,16 +274,22 @@ function __tbInputGuardCore(_ids,_labels){
 
 function calc(){
     var __ig=__tbInputGuard(['data', 'ref', 'warn'],["data", "参考基准价（元）", "波动预警阈值（%）"]);if(__ig){const __g1=__ig;ToolBox.setResult("res",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));
+const __tokens=document.getElementById("data").value.split(/[,\n\s]+/).filter(s=>s.trim()!=='');
+  const __re=/^[+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
+  const __bad=__tokens.filter(t=>!__re.test(t.trim())).slice(0,5);
+  if(__bad.length){document.getElementById("res").innerHTML='<p style="color:var(--danger)">价格样本含无法解析的项：'+__bad.map(t=>ToolBox.escHtml(t)).join('、')+'。请改成纯数字（如 100 或 99.5），不能带单位或尾随字符。</p>';return;}
+  const raw=__tokens.map(s=>Number(s));
+  if(raw.some(v=>!isFinite(v)||v<0)){document.getElementById("res").innerHTML='<p style="color:var(--danger)">价格必须为 ≥ 0 的有限数值；负价没有经济意义。</p>';return;}
   const ref=parseFloat(document.getElementById("ref").value);
   const warn=parseFloat(document.getElementById("warn").value);
   if(raw.length<2){document.getElementById("res").innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter at least two price groups</p>":"<p>请输入至少两组价格</p>");return;}
-  if(isNaN(ref)){document.getElementById("res").innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter reference base price</p>":"<p>请输入参考基准价</p>");return;}
+  if(!isFinite(ref)||ref<=0){document.getElementById("res").innerHTML='<p style="color:var(--danger)">参考基准价必须 > 0；基准价为 0 会让偏离率除零。</p>';return;}
+  if(!isFinite(warn)||warn<0){document.getElementById("res").innerHTML='<p style="color:var(--danger)">波动预警阈值必须 ≥ 0%。</p>';return;}
   const n=raw.length,mean=raw.reduce((a,b)=>a+b,0)/n;
   const sorted=[...raw].sort((a,b)=>a-b);
   const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;
   const s=Math.sqrt(raw.reduce((a,b)=>a+(b-mean)**2,0)/(n-1));
-  const cv=s/mean*100;
+  const cv=mean>0?s/mean*100:null;
   const latest=raw[raw.length-1];
   const dev=(latest-ref)/ref*100;
   const trig=Math.abs(dev)>warn;
@@ -291,7 +297,7 @@ const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFl
   h+='<p>均价：<strong style="color:var(--primary);">'+mean.toFixed(2)+'</strong></p>';
   h+='<p>中位数：<strong>'+med.toFixed(2)+'</strong></p>';
   h+='<p>样本标准差 s：<strong>'+s.toFixed(2)+'</strong></p>';
-  h+='<p>波动系数 CV：<strong>'+cv.toFixed(2)+'%</strong></p>';
+  h+='<p>波动系数 CV：<strong>'+(cv===null?'不适用（均价为 0）':cv.toFixed(2)+'%')+'</strong></p>';
   h+='<p>最新价：<strong>'+latest.toFixed(2)+'</strong></p>';
   h+='<p>最新价相对基准偏离：<strong>'+(dev>=0?'+':'')+dev.toFixed(2)+'%</strong></p>';
   h+='<p>波动预警（阈值 '+warn.toFixed(0)+'%）：<strong style="color:'+(trig?'var(--danger)':'var(--primary)')+'">'+(trig?'触发':'未触发')+'</strong></p>';
