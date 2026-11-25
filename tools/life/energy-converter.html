@@ -559,21 +559,35 @@ else document.addEventListener('DOMContentLoaded', __energy_converterBoot);
     var from=sel.value;
     if(!isFinite(v)||!F[from]){ box.innerHTML=''; return; }
     var base=v*F[from];
+    if(!isFinite(base)){ box.innerHTML=''; return; }
     var best=null, bd=1e18;
-    for(var i=0;i<REFS.length;i++){
-      var rv=REFS[i].v;
-      if(!(rv>0)) continue;
-      var d=Math.abs(Math.log10(Math.abs(base)+1e-30)-Math.log10(rv));
-      if(d<bd){ bd=d; best=REFS[i]; }
+    if(base>0){
+      for(var i=0;i<REFS.length;i++){
+        var rv=REFS[i].v;
+        if(!(rv>0)) continue;
+        var d=Math.abs(Math.log10(base)-Math.log10(rv));
+        if(d<bd){ bd=d; best=REFS[i]; }
+      }
     }
     var en=isEn();
     var bname=en?BASE[1]:BASE[0];
     var html='';
     html+='<div class="card" style="margin-top:0;">';
     html+='<h3>'+(en?'Scale sense: how big is it really?':'📐 尺度感知：这到底有多大')+'</h3>';
-    html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
-    if(best){
-      html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+    html+='<p>'+(en?'Your input: ':'你的输入：')+fmt(base)+' '+bname+'</p>';
+    if(base===0){
+      html+='<p style="font-weight:600;color:var(--text-muted);">'+(en?'Zero energy has no physical scale reference.':'零能量不参与实物尺度参照。')+'</p>';
+    } else if(base<0){
+      html+='<p style="font-weight:600;color:var(--text-muted);">'+(en?'Negative energy keeps its sign; real-world references below are positive magnitudes and are not approximations of this value.':'负能量保留符号；下方实物参照均为正值的量级，不代表与本值近似相等。')+'</p>';
+    } else if(best){
+      var ratio=base/best.v;
+      if(ratio>=0.8 && ratio<=1.25){
+        html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+      } else if(ratio>1){
+        html+='<p style="font-weight:600;color:var(--primary);">💡 '+(en?'Nearest reference: ':'最近参考：')+best[en?'en':'zh']+' ('+best.d+' '+bname+')，'+(en?'about ':'约为其 ')+parseFloat(ratio.toPrecision(3))+(en?'×':' 倍')+'</p>';
+      } else {
+        html+='<p style="font-weight:600;color:var(--primary);">💡 '+(en?'Nearest reference: ':'最近参考：')+best[en?'en':'zh']+' ('+best.d+' '+bname+')，'+(en?'about 1/':'约为其 1/')+parseFloat((1/ratio).toPrecision(3))+(en?' of it':'')+'</p>';
+      }
     }
     html+='<details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--primary);">'+(en?'Typical real-world references':'常见实物参照')+'</summary><ul style="font-size:13px;line-height:1.8;margin:6px 0 0;padding-left:18px;">';
     for(var j=0;j<REFS.length;j++){
