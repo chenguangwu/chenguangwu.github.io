@@ -667,6 +667,7 @@ function renderSignalChain(){
 }
 
 /* ===== 文件加载 ===== */
+var __audioLoadSeq=0;
 function handleFile(file){
   if(!file) return;
   var okType = file.type && file.type.indexOf('audio') === 0;
@@ -675,17 +676,19 @@ function handleFile(file){
     ToolBox.showToast(i18nText('toast.msg954'), 'error');
     return;
   }
-  originalFileName = file.name;
+  var __req=++__audioLoadSeq;
   dzName.textContent = '加载中：' + file.name + ' ...';
   stopPlay();
   var reader = new FileReader();
   reader.onload = function(e){
+    if(__req!==__audioLoadSeq) return;
     ensureCtx();
     var arrayBuf = e.target.result;
     var decode = audioCtx.decodeAudioData;
     // Promise 形式
     var p = decode.call(audioCtx, arrayBuf);
     p.then(function(decoded){
+      if(__req!==__audioLoadSeq) return;
       audioBuffer = decoded;
       pausedAt = 0;
       peaks = computePeaks(decoded, 1000);
@@ -697,13 +700,16 @@ function handleFile(file){
       curTimeEl.textContent = '0:00';
       dzName.textContent = '✓ ' + file.name;
       drawWaveform();
+      originalFileName = file.name;
       ToolBox.showToast('tool.audio_load_ok');
     }).catch(function(err){
+      if(__req!==__audioLoadSeq) return;
       dzName.textContent = '';
       ToolBox.showToast('音频解码失败：' + (err.message||err.name), 'error');
     });
   };
   reader.onerror = function(){
+    if(__req!==__audioLoadSeq) return;
     ToolBox.showToast('toast.import_failed', 'error');
     dzName.textContent = '';
   };
@@ -789,7 +795,7 @@ function drawWaveform(){
 
 /* ===== 播放控制 ===== */
 function togglePlay(){
-  if(!audioBuffer){ ToolBox.showToast('tool.file_upload_hint', 'warning'); return; }
+  if(!audioBuffer){ ToolBox.showToast('tool.audio_select_hint', 'warning'); return; }
   if(isPlaying) pausePlay(); else startPlay();
 }
 function startPlay(){
@@ -965,26 +971,28 @@ function audioBufferToWav(buffer){
 
 /* ===== 导出 ===== */
 function exportWav(){
-  if(!audioBuffer){ ToolBox.showToast('tool.file_upload_hint', 'warning'); return; }
+  var __srcBuffer=audioBuffer;
+  var __exportName=originalFileName || 'audio';
+  if(!__srcBuffer){ ToolBox.showToast('tool.audio_select_hint', 'warning'); return; }
   exportBtn.disabled = true;
   exportBtn.textContent = '正在渲染...';
   exportHint.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Offline rendering in progress, please wait":"离线渲染中，请稍候");
   try{
-    var sr = audioBuffer.sampleRate;
-    var numCh = audioBuffer.numberOfChannels;
+    var sr = __srcBuffer.sampleRate;
+    var numCh = __srcBuffer.numberOfChannels;
     var fbLevel = Math.max(0, Math.min(0.99, feedback));
     var repeats = fbLevel > 0 ? Math.ceil(Math.log(0.001) / Math.log(fbLevel)) : 1;
     var tailNeeded = effectType === 'reverb' ? (irDuration + 0.5) : (delayTime * Math.max(1, repeats) + delayTime);
     var tail = Math.min(60, tailNeeded);
     var truncWarning = '';
     if(tailNeeded>60){truncWarning='尾音衰减需约 '+tailNeeded.toFixed(0)+' 秒，导出上限 60 秒，末段仍会被截断；可降低反馈量或延迟。';exportHint.textContent=truncWarning;}
-    var totalDur = audioBuffer.duration + tail;
+    var totalDur = __srcBuffer.duration + tail;
     var length = Math.ceil(totalDur * sr);
     var OC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
     var off = new OC(numCh, length, sr);
 
     var src = off.createBufferSource();
-    src.buffer = audioBuffer;
+    src.buffer = __srcBuffer;
     var dry = off.createGain();
     var wet = off.createGain();
     var master = off.createGain();
@@ -1015,7 +1023,7 @@ function exportWav(){
         var blob = new Blob([wav], {type:'audio/wav'});
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
-        var base = (originalFileName || 'audio').replace(/\.[^.]+$/, '');
+        var base = __exportName.replace(/\.[^.]+$/, '');
         a.href = url; a.download = base + '-效果.wav';
         document.body.appendChild(a); a.click();
         setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);

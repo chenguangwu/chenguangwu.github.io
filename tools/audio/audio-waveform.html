@@ -559,14 +559,16 @@ fileInput.addEventListener('change', function(e){
   if(file) handleFile(file);
 });
 
+var __audioLoadSeq=0;
 function handleFile(file){
   if(!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|flac|m4a|aac|opus|webm)$/i.test(file.name)){
-    ToolBox.showToast('tool.file_upload_hint', 'warning');
+    ToolBox.showToast('tool.audio_type_error', 'warning');
     return;
   }
 
   // 停止当前播放
   if(isPlaying) stopPlay();
+  var __req=++__audioLoadSeq;
 
   // 清理旧资源
   if(mediaSource){
@@ -642,12 +644,14 @@ function handleFile(file){
     audioCtx.decodeAudioData(
       ev.target.result.slice(0),
       function(buf){
+        if(__req!==__audioLoadSeq) return;
         audioBuffer = buf;
         buildOverviewCache();
         if(mode === 'overview') drawOverview();
         ToolBox.showToast('tool.audio_load_ok', 'success');
       },
       function(){
+        if(__req!==__audioLoadSeq) return;
         // 解码失败不影响实时播放
         if(mode === 'overview'){
           placeholder.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"This format cannot be decoded into a static overview":"该格式无法解码为静态概览");
@@ -681,7 +685,7 @@ function updateTimeDisplay(cur, total){
 /* ===== 播放控制 ===== */
 function togglePlay(){
   if(!audioEl){
-    ToolBox.showToast('tool.file_upload_hint', 'warning');
+    ToolBox.showToast('tool.audio_select_hint', 'warning');
     return;
   }
   if(!isPlaying){

@@ -531,7 +531,7 @@ dropZone.addEventListener('drop', function(e){
 
 function loadFile(file){
   if(!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|m4a|flac|aac|opus|webm)$/i.test(file.name)){
-    ToolBox.showToast('tool.file_upload_hint', 'error');
+    ToolBox.showToast('tool.audio_type_error', 'error');
     return;
   }
   currentFile = file;
@@ -586,7 +586,7 @@ player.addEventListener('ended', function(){
 });
 
 function togglePlay(){
-  if(!currentFile){ ToolBox.showToast('tool.file_upload_hint', 'error'); return; }
+  if(!currentFile){ ToolBox.showToast('tool.audio_select_hint', 'error'); return; }
   if(player.paused) player.play().catch(function(){ ToolBox.showToast(i18nText('toast.msg380'), 'error'); });
   else player.pause();
 }
@@ -717,9 +717,11 @@ function audioBufferToWav(buffer){
 /* ---------- 导出变速 WAV ---------- */
 async function exportWav(){
   if(!currentFile){
-    ToolBox.showToast('tool.file_upload_hint', 'error');
+    ToolBox.showToast('tool.audio_select_hint', 'error');
     return;
   }
+  var resultFile=currentFile;
+  var resultName=currentFile.name;
   var rate = player.playbackRate;
   var exportBtn = document.getElementById('exportBtn');
   var prog = document.getElementById('exportProgress');
@@ -738,7 +740,7 @@ async function exportWav(){
     }
 
     // 读取文件并解码
-    var arrayBuffer = await readFileAsArrayBuffer(currentFile);
+    var arrayBuffer = await readFileAsArrayBuffer(resultFile);
     progFill.style.width = '40%';
     var audioCtx = new AudioCtx();
     var audioBuffer = await decodeAudioData(audioCtx, arrayBuffer);
@@ -765,7 +767,7 @@ async function exportWav(){
     var wavBlob = audioBufferToWav(rendered);
     var url = URL.createObjectURL(wavBlob);
     var a = document.createElement('a');
-    var baseName = currentFile.name.replace(/\.[^.]+$/, '') || 'audio';
+    var baseName = resultName.replace(/\.[^.]+$/, '') || 'audio';
     a.href = url;
     a.download = baseName + '_' + rate.toFixed(2) + 'x.wav';
     document.body.appendChild(a);

@@ -656,14 +656,15 @@ fiClear.addEventListener('click', function(e){
 });
 
 /* ===== 处理音频文件 ===== */
+var __audioLoadSeq=0;
 function handleFile(file){
   if(!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|m4a|flac|aac|opus|webm)$/i.test(file.name)){
-    ToolBox.showToast('tool.file_upload_hint', 'error');
+    ToolBox.showToast('tool.audio_type_error', 'error');
     return;
   }
   // 停止当前播放
   stopPlayback();
-  fileName = file.name;
+  var __req=++__audioLoadSeq;
   ToolBox.showToast(i18nText('toast.msg463'), 'info');
   var reader = new FileReader();
   reader.onload = function(e){
@@ -673,14 +674,18 @@ function handleFile(file){
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
     audioCtx.decodeAudioData(arrayBuffer, function(buffer){
+      if(__req!==__audioLoadSeq) return;
       audioBuffer = buffer;
+      fileName = file.name;
       onAudioDecoded(file);
     }, function(err){
+      if(__req!==__audioLoadSeq) return;
       ToolBox.showToast(i18nText('toast.msg992'), 'error');
       console.error('Decode error:', err);
     });
   };
   reader.onerror = function(){
+    if(__req!==__audioLoadSeq) return;
     ToolBox.showToast('toast.import_failed', 'error');
   };
   reader.readAsArrayBuffer(file);
@@ -983,7 +988,7 @@ function resetVu(){
 /* ===== 导出 WAV（OfflineAudioContext）===== */
 window.exportWav = function(){
   if(!audioBuffer){
-    ToolBox.showToast('tool.file_upload_hint', 'error');
+    ToolBox.showToast('tool.audio_select_hint', 'error');
     return;
   }
   var exportBtn = $('exportBtn');

@@ -555,9 +555,9 @@ const CASES = [
   },
   {
     slug: "design/checkerboard-generator",
-    inputs: { size: "999", color1: "#22c55e", color2: "#0f172a" },
+    inputs: { size: "200", color1: "#22c55e", color2: "#0f172a" },
     expect: ["background-position: 0 0, 200px 200px;"],
-    ref: "D-N101 强锁：size=999 原样进入会生成 1998px 背景撑破布局，现 `Math.min(200, Math.max(5, parseInt(value)||30))` 钳到 200 ⇒ background-position 第二项恒为 200px。注入 999 与默认态（size 默认值 40 ⇒ 40px）零交集。",
+    ref: "边界用例：size=200 为合法上限，页面按 200px 生成 ⇒ background-position 第二项为 200px；越界值（如 999）现由 `__patternInt` 直接提示并中止，不再静默钳制。注入 200 与默认态（size 40 ⇒ 40px）零交集。",
   },
 
   // ── §7.4 覆盖缺口线 · design/*（第四交付 BATCH142）
@@ -2063,13 +2063,13 @@ const CASES = [
       "bgColor": "abc123测试",
       "lineColor": "abc123测试",
       "size": "42",
-      "lineWidth": "42",
+      "lineWidth": "5",
       "cssOutput": "1\n2\n3"
     },
     "expect": [
-      "abc123测试\nabc123测试\n42\n42"
+      "abc123测试\nabc123测试\n42\n5"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"lineColor\":\"abc123测试\",\"size\":\"42\",\"lineWidth\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「abc123测试\nabc123测试\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"lineColor\":\"abc123测试\",\"size\":\"42\",\"lineWidth\":\"5\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「abc123测试\nabc123测试\n42\n5」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "design/loading-dots",
@@ -3488,8 +3488,8 @@ const CASES = [
   slug: "design/isometric-grid",
   inputs: { size: "40", lineWidth: "1" },
   clicks: ["generate();var o=String(document.getElementById('cssOutput').value);var n=(o.match(/linear-gradient\\(/g)||[]).length;document.getElementById('size').value='999';generate();var o2=String(document.getElementById('cssOutput').value);var m=o2.match(/background-size: ([0-9.]+)px/);document.getElementById('__tbProbe').textContent='G194 n='+n+' clamp='+(m?m[1]:'N');"],
-  expect: ["G194 n=3 clamp=200"],
-  ref: "D-N194 回归：旧码 background-image 写 4 层，其中第 1、4 层都是 linear-gradient(30deg …) 完全重复，实际只有 3 个方向；且 size 只在 HTML 上写 max=200、JS 未夹取。修复后删掉重复层（n=3）并把 size 钳到 10–200（输入 999 ⇒ background-size 宽 200px）。旧码 n=4 clamp=999 ⇒ 红。"
+  expect: ["G194 n=3 clamp=40"],
+  ref: "D-N194 回归：旧码 background-image 写 4 层，其中第 1、4 层都是 linear-gradient(30deg …) 完全重复，实际只有 3 个方向；且 size 只在 HTML 上写 max=200、JS 未夹取。修复后删掉重复层（n=3）；越界输入由 `__patternInt` 提示并恢复上一合法值（默认 40 ⇒ background-size 宽 40px），不再静默钳到 200。旧码 n=4 clamp=999 ⇒ 红。"
 },
 
 // ── 第349批：动画生成器参数控件与实时预览 ─────────────────────────
