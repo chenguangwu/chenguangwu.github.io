@@ -17,6 +17,8 @@ const CASES = [
   { slug: "math/log-base", inputs: { x: "81", b: "3" }, expect: ["4.000000"], ref: "log₃81=ln81/ln3=4.000000（默认 1000,10 避开）" },
   { slug: "math/gcd-lcm", inputs: { a: "1071", b: "462" }, expect: ["23562"], ref: "gcd(1071,462)=21；lcm=1071×462/21=23562（默认 48,36 避开）" },
   { slug: "math/distance-2d", inputs: { x1: "0", y1: "0", x2: "6", y2: "8" }, expect: ["10.0000"], ref: "d=√(6²+8²)=10.0000（默认 (0,0)-(3,4)=5.0000 避开）" },
+  { slug: "math/distance-2d", inputs: { x1: "0", y1: "0", x2: "", y2: "4" }, expect: ["空值不等于 0"], ref: "清空 x2 后旧实现按 0 算距离 4；现须停止并提示缺项。" },
+  { slug: "math/slope-line", inputs: { x1: "0", y1: "0", x2: "", y2: "6" }, expect: ["空值不等于 0"], ref: "清空 x2 后旧实现按 0 读入；现须停止并提示缺项。" },
   { slug: "math/slope-line", inputs: { x1: "0", y1: "0", x2: "2", y2: "6" }, expect: ["3.0000"], ref: "斜率 k=(6−0)/(2−0)=3.0000（默认 (1,2)-(4,8)=2.0000 避开）" },
   { slug: "math/fibonacci-n", inputs: { n: "30" }, expect: ["832,040"], ref: "F(30)=832040（千分位 832,040；默认 n=20→6765 避开）" },
   { slug: "math/factorial-calc", inputs: { n: "12" }, expect: ["4.7900e+8"], ref: "12!=479001600=4.7900e+8（科学计数法；默认 n=10 避开）" },
