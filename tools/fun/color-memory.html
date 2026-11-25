@@ -279,6 +279,7 @@ function userClick(c){
   }else{
     accepting=false;
     const __h2=`<p style="color:var(--danger);">❌ 游戏结束！达到第 ${level} 关</p><p>正确序列：${seq.join('→')}</p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
+    if(typeof __ecm==='function')__ecm(level);
     document.getElementById('status').textContent='失败！点击"开始"重新开始';
   }
 }
@@ -371,23 +372,21 @@ document.addEventListener('DOMContentLoaded',function(){
 </div>
 <!-- /SEO 介绍区块 -->
 <script>
-var __ecm=function(){
+var __ecm=function(finalScore){
   if(typeof TBKit==='undefined')return;
-  var acc=(function(){return (typeof level==='undefined')?NaN:Number(level);})();
+  var __final=typeof finalScore==='number'&&isFinite(finalScore)&&finalScore>=0;
+  var KEY='__tbn_color_memory';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  var acc=__final?finalScore:(hist.length?hist[hist.length-1].v:NaN);
   if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
-  var lab=(function(){return (typeof level==='undefined')?'':'第 '+level+' 关';})();
+  var lab='第 '+acc+' 关';
   var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
   var LBL=EN?'Level Reached':'记录到达关卡(关)';
   var T=EN?{hist:'History',sc:'Score',no:'#',time:'Time',exp:'Export CSV',file:'history.csv',col:'Type'}
           :{hist:'历史记录',sc:'记录值',no:'序号',time:'时间',exp:'导出 CSV',file:'history.csv',col:'备注'};
-  var KEY='__tbn_color_memory';
-  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
-  if(!Array.isArray(hist))hist=[];
-  var last=hist[hist.length-1];
-  if(!last||last.v!==acc||(lab&&last.l!==lab)){hist.push({t:Date.now(),v:acc,l:lab||''});}
-  if(hist.length>30)hist=hist.slice(-30);
-  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
-  var __rec={};__rec[LBL]=acc;if(TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);
+  if(__final){hist.push({t:Date.now(),v:acc,l:lab});if(hist.length>30)hist=hist.slice(-30);try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}}
+  if(__final){var __rec={};__rec[LBL]=acc;if(TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);}
   var host=document.getElementById('__tbnExtras');
   if(!host)return;
   if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+(EN?'Records appear after 2+ sessions.':'游戏 2 局以上后显示成绩趋势图。')+'</p>';return;}

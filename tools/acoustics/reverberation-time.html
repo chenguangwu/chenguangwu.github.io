@@ -221,7 +221,7 @@ function __tbInputGuardCore(_ids,_labels){
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"V": "房间体积 (m³)", "A": "总吸声量 (sabin)"};
+  var __D={"V": "房间体积 (m³)"};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -251,9 +251,13 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __acEn(){return /^en/i.test(document.documentElement.lang||'')||/[?&]lang=en/i.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
 function calcTool(){
+              var __t=document.getElementById('reverberation_timeTable');if(__t)__t.innerHTML='';
               var __ig=__tbInputGuard(['V', 'A'],["房间体积 (m³)", "总吸声量 (sabin)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const V = num('V'), A = num('A');
+            if(!(V>0)||!(A>=0)){var __bad=document.getElementById('reverberation_timeTable');if(__bad)__bad.innerHTML='';ToolBox.setResult('result',(__acEn()?'<p style="color:var(--danger)">Room volume must be greater than 0 and absorption must be ≥ 0.</p>':'<p style="color:var(--danger)">房间体积须大于 0，总吸声量须不小于 0。</p>'));return;}
+            if(A===0){var __bad0=document.getElementById('reverberation_timeTable');if(__bad0)__bad0.innerHTML='';ToolBox.setResult('result',(__acEn()?'<p style="color:var(--text-muted)">With zero absorption, reverberation time is theoretically infinite; no finite decay rate can be given.</p>':'<p style="color:var(--text-muted)">总吸声量为 0 时混响时间理论上无限大，无法给出有限衰减速率。</p>'));return;}
             const T = 0.161 * V / A;
             const __g2=dataGrid([
                 [T.toFixed(3), '混响时间 T₆₀ (s)'],
@@ -338,7 +342,7 @@ function __reverberation_timeExtras(){
     if (typeof TBKit === 'undefined') return;
     var V = num('V'), A = num('A');
     var T = 0.161 * V / A;
-    if (!isFinite(__reverberation_timeNum('V')) || !isFinite(__reverberation_timeNum('A'))) return;
+    if (!(V>0) || !(A>0) || !isFinite(__reverberation_timeNum('V')) || !isFinite(__reverberation_timeNum('A'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#reverberation_timeTable',{
         head: en?['Item','Value']:['项目','数值'],
