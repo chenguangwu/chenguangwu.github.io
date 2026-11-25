@@ -265,12 +265,14 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['inv', 'cogs'],["存货余额 (万元)", "营业成本 (万元)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const inv=num('inv'),cogs=num('cogs');
+            if(!(inv>=0)||!(cogs>0)){ToolBox.setResult('result','<p style="color:var(--danger)">营业成本必须大于 0，余额不得为负。</p>');return;}
             const DIO=inv/cogs*365;
             const __g2=dataGrid([
                 [DIO.toFixed(1),'存货天数 DIO (天)'],
-                [(cogs/Math.max(inv,1)).toFixed(3), '存货周转率 (次/年)'],
-                [(inv/Math.max(cogs,1)).toFixed(4), '存货占销货成本比'],
-                [(inv/Math.max(cogs,1)*365/30).toFixed(2), '存货天数 (月)']
+                [inv===0?'—':(cogs/inv).toFixed(3), '存货周转率 (次/年)'],
+                [(inv/cogs).toFixed(4), '存货占销货成本比'],
+                [(inv/cogs*365/30).toFixed(2), '存货天数 (月)'],
+                ['365 天/年；输入须为年度发生额，余额宜用期间平均余额' , '口径说明']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('inv').value = '150';
@@ -328,9 +330,9 @@ function __inventory_daysExtras(){
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['存货天数 DIO (天)', DIO.toFixed(1)],
-            ['存货周转率 (次/年)', (cogs/Math.max(inv,1)).toFixed(3)],
-            ['存货占销货成本比', (inv/Math.max(cogs,1)).toFixed(4)],
-            ['存货天数 (月)', (inv/Math.max(cogs,1)*365/30).toFixed(2)],
+            [inv===0?'—':(cogs/inv).toFixed(3), '存货周转率 (次/年)'],
+            [(inv/cogs).toFixed(4), '存货占销货成本比'],
+            [(inv/cogs*365/30).toFixed(2), '存货天数 (月)'],
         ]
     });
     TBKit.history.record({inv:__inventory_daysRaw('inv'), cogs:__inventory_daysRaw('cogs'), DIO:DIO});

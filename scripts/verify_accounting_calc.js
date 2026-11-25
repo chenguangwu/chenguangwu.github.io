@@ -17,7 +17,12 @@ const CASES = [
     expect: ["DEPSC hist=0"],
     ref: "复核失败重做·F-N189 第46批 折旧页：必填提示「请填写…后再计算。」旧 Score 词表不含该词 ⇒ 错误态写历史；修复后补 请填写|再计算|必须 ⇒ Score=0，Extras 早退不写历史。默认态无探针串 ⇒ 零逃生。"
   },
-  { slug: "accounting/current-ratio", inputs: { ca: "4500000", cl: "1500000" }, expect: ["3.00"], ref: "流动比率=流动资产/流动负债=4500000/1500000=3.00（负债占比=33.3%；默认 3000000/1500000=2.00 避开）" },
+  { slug: "accounting/current-ratio", inputs: { ca: "4500000", cl: "0" }, expect: ["— 流动比率"], ref: "流动负债为 0 时比率无定义；旧实现 (ca/cl)||1 会伪造 4500000。" },
+  { slug: "accounting/working-capital", inputs: { CA: "800", CL: "0" }, expect: ["— 流动比率"], ref: "流动负债为 0 时流动比率无定义，旧 Math.max(CL,1e-9) 会得到 8e11。" },
+  { slug: "accounting/asset-turnover", inputs: { rev: "0", assets: "500" }, expect: ["— 资产收入比（倒数）"], ref: "收入为 0 时倒数比率无定义，旧 Math.max(rev,1) 把 500 放大成 500。" },
+  { slug: "accounting/debt-to-asset", inputs: { tl: "8000000", ta: "8000000" }, expect: ["— 权益乘数"], ref: "资产等于负债、权益为 0 时权益乘数无定义，旧实现按 1 兜底得到 8000000。" },
+  { slug: "accounting/interest-coverage", inputs: { EBIT: "300", int: "0" }, expect: ["利息费用必须大于 0"], ref: "零利息时保障倍数无定义，旧 Math.max(ic,1e-9) 会得到巨大正数。" },
+  { slug: "accounting/roa-calc", inputs: { np: "-350000", ta: "5000000" }, expect: ["-7.00"], ref: "负净利润应保留符号：ROA=-7.00%，旧 Math.max(np,1e-9) 会把净利夹成正极小值。" },  { slug: "accounting/current-ratio", inputs: { ca: "4500000", cl: "1500000" }, expect: ["3.00"], ref: "流动比率=流动资产/流动负债=4500000/1500000=3.00（负债占比=33.3%；默认 3000000/1500000=2.00 避开）" },
   { slug: "accounting/quick-ratio", inputs: { ca: "3600000", inv: "600000", cl: "1500000" }, expect: ["2.00"], ref: "速动比率=(CA−存货)/CL=(3600000−600000)/1500000=2.00（默认 2200000/1500000=1.47 避开）" },
   { slug: "accounting/debt-to-asset", inputs: { tl: "2000000", ta: "8000000" }, expect: ["25.00"], ref: "资产负债率=负债/资产=2000000/8000000=25.00%（权益比率 75.00%；默认 3000000/8000000=37.50 避开）" },
   { slug: "accounting/gross-margin", inputs: { rev: "2000000", cost: "1300000" }, expect: ["35.00"], ref: "毛利率=(营收−成本)/营收=(2000000−1300000)/2000000=35.00%（毛利额 700000；默认 1000000/600000 亦为 40.00%，故避开 40%）" },
@@ -210,13 +215,13 @@ const CASES = [
   {
     "slug": "accounting/debt-to-asset",
     "inputs": {
-      "tl": "42",
+      "tl": "30",
       "ta": "42"
     },
     "expect": [
-      "权益比率 (%) 42.0000 权益乘数 "
+      "28.57 权益比率 (%) 3.5000 权益乘数"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"tl\":\"42\",\"ta\":\"42\"}，输出区含「权益比率 (%) 42.0000 权益乘数 」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "负债 30、资产 42 ⇒ 负债率 71.43%、权益比率 28.57%、权益乘数 42/12=3.5000；旧 tl=ta=42 时权益为 0，权益乘数按 1 兜底得到 42，现应显示 —。"
   },
   {
     "slug": "accounting/current-ratio",
@@ -315,13 +320,13 @@ const CASES = [
   {
     "slug": "accounting/free-cash-flow",
     "inputs": {
-      "OCF": "42",
-      "capex": "42"
+      "OCF": "60",
+      "capex": "20"
     },
     "expect": [
-      "FCF (万元) 100.00"
+      "40.00 自由现金流 FCF (万元) 33.33 资本支出占经营现金流 (%) 3.000 经营现金流覆盖资本支出倍数"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"OCF\":\"42\",\"capex\":\"42\"}，输出区含「FCF (万元) 100.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "OCF=60、capex=20 ⇒ FCF=40、capex/OCF=33.33%、覆盖率=3.000；旧 OCF=capex=42 时两分母被 Math.max 掩成 1，得 4200%/42 倍伪结果。"
   },
   {
     "slug": "accounting/gross-margin",
@@ -359,13 +364,13 @@ const CASES = [
   {
     "slug": "accounting/gross-profit",
     "inputs": {
-      "rev": "42",
-      "cogs": "42"
+      "rev": "60",
+      "cogs": "20"
     },
     "expect": [
-      "利率 (%) 1.000 收入成本倍数 42000000000.0000 成本毛利比"
+      "40.00 毛利 (万元) 66.67 毛利率 (%) 3.000 收入成本倍数 0.5000 成本毛利比"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"rev\":\"42\",\"cogs\":\"42\"}，输出区含「利率 (%) 1.000 收入成本倍数 42000000000.0000 成本毛…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "收入 60、成本 20 ⇒ 毛利 40、毛利率 66.67%、收入/成本 3.000、成本/毛利 0.5000；旧 rev=cogs=42 时毛利为 0，成本毛利比被 1e-9 兜底成 4.2e10。"
   },
   {
     "slug": "accounting/inventory-turnover",
@@ -416,13 +421,13 @@ const CASES = [
     "slug": "accounting/operating-cash-flow",
     "inputs": {
       "NI": "42",
-      "DA": "42",
-      "dWC": "42"
+      "DA": "10",
+      "dWC": "2"
     },
     "expect": [
-      "现金流/净利 比 100.000"
+      "50.00 经营现金流 OCF (万元) 1.1905 现金流/净利 比 20.000 折旧占经营现金流比 (%)"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"NI\":\"42\",\"DA\":\"42\",\"dWC\":\"42\"}，输出区含「现金流/净利 比 100.000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "NI=42、DA=10、dWC=2 ⇒ OCF=50、OCF/NI=1.1905、DA/OCF=20.000；旧 NI 为分母 0 时被 ||1 掩成 1。"
   },
   {
     "slug": "accounting/roe-dupont",

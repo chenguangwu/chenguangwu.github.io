@@ -115,7 +115,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="毛利率 = (营收 − 营业成本) / 营收。">Compute the gross margin from revenue and cost of goods sold to support pricing strategy and profit structure analysis.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">毛利率（本页代码口径）：毛利率=(营业收入−营业成本)÷营业收入×100（%）；联动量：毛利额=收入−成本（元）、成本率=成本÷(收入||1)×100（%，收入为 0 时按 1 兜底）、收入÷成本倍数=收入÷(成本||1)。校验：收入、成本空值即提示并中止。判据：无固定分级，毛利率越高主业盈利能力越强，跨行业比较需结合业态口径。</div>
+      <div class="formula-eq">毛利率（本页代码口径）：毛利率=(营业收入−营业成本)÷营业收入×100（%）；联动量：毛利额=收入−成本（元）、成本率=成本÷收入×100（%，收入须大于 0）、收入÷成本倍数=收入÷成本（成本为 0 时显示不适用）。校验：收入须大于 0、成本不得为负。判据：无固定分级，毛利率越高主业盈利能力越强，跨行业比较需结合业态口径。</div>
       <p class="formula-desc">毛利率 = (营收 − 营业成本) / 营收。</p>
     </div>
 
@@ -265,11 +265,12 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['rev', 'cost'],["营业收入 (元)", "营业成本 (元)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const r=num('rev'),c=num('cost');
+            if(!(r>0)||!(c>=0)){ToolBox.setResult('result','<p style="color:var(--danger)">营业收入必须大于 0，营业成本不得为负；收入为 0 时毛利率无定义。</p>');return;}
             const __g2=dataGrid([
                 [((r-c)/r*100).toFixed(2),'毛利率 (%)'],
                 [(r-c).toFixed(0),'毛利额 (元)'],
-                [(c/(r||1)*100).toFixed(2), '成本率 (%)'],
-                [(r/(c||1)).toFixed(4), '收入/成本 倍数']
+                [(c/r*100).toFixed(2), '成本率 (%)'],
+                [c===0?'—':(r/c).toFixed(4), '收入/成本 倍数']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('rev').value = '1000000';
@@ -327,8 +328,8 @@ function __gross_marginExtras(){
         rows: [
             ['毛利率 (%)', ((r-c)/r*100).toFixed(2)],
             ['毛利额 (元)', (r-c).toFixed(0)],
-            ['成本率 (%)', (c/(r||1)*100).toFixed(2)],
-            ['收入/成本 倍数', (r/(c||1)).toFixed(4)],
+            [(c/r*100).toFixed(2), '成本率 (%)'],
+            [c===0?'—':(r/c).toFixed(4), '收入/成本 倍数'],
         ]
     });
     TBKit.history.record({rev:__gross_marginRaw('rev'), cost:__gross_marginRaw('cost'), r:r});

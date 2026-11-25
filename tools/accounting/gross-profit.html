@@ -291,12 +291,13 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['rev', 'cogs'],["营业收入 (万元)", "营业成本 (万元)"]);if(__ig){ToolBox.setResult("result",__ig);return;}
 const rev=num('rev'),cogs=num('cogs');
+            if(!(rev>0)||!(cogs>=0)){ToolBox.setResult('result','<p style="color:var(--danger)">营业收入必须大于 0，营业成本不得为负；收入为 0 时毛利率无定义。</p>');return;}
             const gp=rev-cogs;
             const __g1=dataGrid([
                 [gp.toFixed(2),'毛利 (万元)'],
-                [(gp/Math.max(rev,1e-9)*100).toFixed(2), '毛利率 (%)'],
-                [(rev/Math.max(cogs,1e-9)).toFixed(3), '收入成本倍数'],
-                [(cogs/Math.max(gp,1e-9)).toFixed(4), '成本毛利比']
+                [(gp/rev*100).toFixed(2), '毛利率 (%)'],
+                [cogs===0?'—':(rev/cogs).toFixed(3), '收入成本倍数'],
+                [gp===0?'—':(cogs/gp).toFixed(4), '成本毛利比']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('rev').value = '1000';
@@ -354,9 +355,9 @@ function __gross_profitExtras(){
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['毛利 (万元)', gp.toFixed(2)],
-            ['毛利率 (%)', (gp/Math.max(rev,1e-9)*100).toFixed(2)],
-            ['收入成本倍数', (rev/Math.max(cogs,1e-9)).toFixed(3)],
-            ['成本毛利比', (cogs/Math.max(gp,1e-9)).toFixed(4)],
+            [(gp/rev*100).toFixed(2), '毛利率 (%)'],
+            [cogs===0?'—':(rev/cogs).toFixed(3), '收入成本倍数'],
+            [gp===0?'—':(cogs/gp).toFixed(4), '成本毛利比'],
         ]
     });
     TBKit.history.record({rev:__gross_profitRaw('rev'), cogs:__gross_profitRaw('cogs'), gp:gp});
