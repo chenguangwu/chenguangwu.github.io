@@ -1434,7 +1434,7 @@ INDUSTRY_DEFS = {
     'home':          ('🏡', '家居装修'),
     # Education & Culture
     'edu':           ('📖', '教育学习'),
-    'language':      ('🌍', '语言翻译'),
+    'language':      ('🌍', '语言'),
     'exam':          ('📝', '考试备考'),
     'history':       ('📜', '历史人文'),
     'literature':    ('📚', '文学阅读'),

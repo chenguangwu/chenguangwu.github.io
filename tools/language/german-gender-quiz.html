@@ -179,6 +179,11 @@
         <div class="score-item"><div class="num" id="scoreWrong">0</div><div class="lbl">错误</div></div>
         <div class="score-item"><div class="num" id="scoreStreak">0</div><div class="lbl">连续正确</div></div>
       </div>
+      <div class="review-box" id="reviewBox" style="margin:8px 0 10px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span>错词复习队列：<strong id="reviewCount">0</strong> 个</span>
+        <button type="button" class="btn" style="padding:4px 8px;font-size:12px;" onclick="startReview()">集中复习</button>
+        <button type="button" class="btn" style="padding:4px 8px;font-size:12px;" onclick="clearReview()">清空队列</button>
+      </div>
       <div class="quiz-word" id="quizWord">点击开始</div>
       <div class="quiz-hint" id="quizHint"></div>
       <div class="gender-btns">
@@ -269,7 +274,7 @@
 <li>查错后巩固名词与冠词搭配</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">词性规律</div><div class="dd-ex-body">以 -ung、-heit、-keit、-schaft 结尾多阴性(die)；以 -chen、-lein 结尾中性(das)；以 -er 结尾常阳性(der)，但例外多需记。</div></div>
-<div class="dd-example"><div class="dd-ex-title">测验用法</div><div class="dd-ex-body">出词「Haus」应选 das（中性）；「Frau」选 die（阴性）；「Mann」选 der（阳性）；错词加入复习队列。</div></div>
+<div class="dd-example"><div class="dd-ex-title">测验用法</div><div class="dd-ex-body">出词「Haus」应选 das（中性）；「Frau」选 die（阴性）；「Mann」选 der（阳性）；答错自动加入错词队列，可点「集中复习」逐词重练；复习中答对即移出，也可「清空队列」。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>德语词性有规律吗？</dt><dd>部分有（后缀、词义如季节多阳、大部分金属中性），但约 1/3 需硬记；名词首字母永远大写。</dd>
@@ -526,6 +531,56 @@ if (NOUN_CONFLICTS.length && typeof console !== 'undefined' && console.warn) {
 var currentNoun = null;
 var score = {correct:0, wrong:0, streak:0};
 var answered = false;
+var wrongQueue = [];
+var reviewMode = false;
+var reviewWords = [];
+var REVIEW_KEY = 'toolbox_german_gender_wrong_v1';
+
+function loadReview(){
+  try {
+    var raw = localStorage.getItem(REVIEW_KEY);
+    if(!raw) return;
+    var arr = JSON.parse(raw);
+    if(Array.isArray(arr)){
+      for(var i=0;i<arr.length;i++){
+        if(typeof arr[i] === 'string' && nounMap[arr[i].toLowerCase()] && wrongQueue.indexOf(arr[i]) < 0) wrongQueue.push(arr[i]);
+      }
+    }
+  } catch(e) {}
+}
+function saveReview(){
+  try { localStorage.setItem(REVIEW_KEY, JSON.stringify(wrongQueue)); } catch(e) {}
+  renderReview();
+}
+function renderReview(){
+  var el = document.getElementById('reviewCount');
+  if(el) el.textContent = wrongQueue.length;
+}
+function addWrong(noun){
+  if(!noun || !noun.word) return;
+  if(wrongQueue.indexOf(noun.word) < 0){ wrongQueue.push(noun.word); saveReview(); }
+}
+function removeWrong(word){
+  var i = wrongQueue.indexOf(word);
+  if(i >= 0){ wrongQueue.splice(i,1); saveReview(); }
+}
+function startReview(){
+  if(!wrongQueue.length){ ToolBox.showToast('错词队列为空，先答错几题再加入复习。', 'info'); return; }
+  reviewMode = true;
+  reviewWords = wrongQueue.slice();
+  // 打乱顺序，避免连续重复同一题
+  for(var i=reviewWords.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=reviewWords[i]; reviewWords[i]=reviewWords[j]; reviewWords[j]=t; }
+  nextQuestion();
+  ToolBox.showToast('开始集中复习：答对即移出队列，答错会留在队列末尾。', 'info');
+}
+function clearReview(){
+  wrongQueue = [];
+  reviewMode = false;
+  reviewWords = [];
+  saveReview();
+  ToolBox.showToast('错词复习队列已清空。', 'info');
+  nextQuestion();
+}
 
 function switchMode(mode) {
   // 历史恢复无参调用：不切标签，安全返回（恢复回调已回填各输入，wrapper 的 Extras 会重算历史/趋势）；
@@ -546,9 +601,20 @@ function switchMode(mode) {
 
 function nextQuestion() {
   answered = false;
-  currentNoun = UNIQUE_NOUNS[Math.floor(Math.random() * UNIQUE_NOUNS.length)];
+  if(reviewMode){
+    if(!reviewWords.length){
+      reviewMode = false;
+      ToolBox.showToast('错词队列已复习完，回到普通练习。', 'success');
+    } else {
+      var rw = reviewWords[0];
+      currentNoun = nounMap[rw.toLowerCase()] || UNIQUE_NOUNS[Math.floor(Math.random() * UNIQUE_NOUNS.length)];
+    }
+  }
+  if(!reviewMode || !currentNoun){
+    currentNoun = UNIQUE_NOUNS[Math.floor(Math.random() * UNIQUE_NOUNS.length)];
+  }
   document.getElementById('quizWord').textContent = currentNoun.word;
-  document.getElementById('quizHint').textContent = '含义: ' + currentNoun.meaning;
+  document.getElementById('quizHint').textContent = (reviewMode ? '错词复习 · ' : '') + '含义: ' + currentNoun.meaning;
   document.getElementById('feedback').innerHTML = '';
   
   // Reset button styles
@@ -574,10 +640,19 @@ function answer(gender) {
   if (correct) {
     score.correct++;
     score.streak++;
+    if(reviewMode && reviewWords.length){
+      removeWrong(currentNoun.word);
+      reviewWords.shift();
+    }
     document.getElementById('feedback').innerHTML = '<div class="feedback correct">✓ 正确！' + currentNoun.gender + ' ' + currentNoun.word + ' (' + currentNoun.meaning + ')</div>';
   } else {
     score.wrong++;
     score.streak = 0;
+    if(reviewMode && reviewWords.length){
+      reviewWords.push(reviewWords.shift());
+    } else {
+      addWrong(currentNoun);
+    }
     document.getElementById('feedback').innerHTML = '<div class="feedback wrong">✗ 错误！正确答案是: ' + currentNoun.gender + ' ' + currentNoun.word + ' (' + currentNoun.meaning + ')</div>';
   }
   
@@ -592,6 +667,8 @@ function updateScore() {
 
 function resetScore() {
   score = {correct:0, wrong:0, streak:0};
+  reviewMode = false;
+  reviewWords = [];
   updateScore();
   nextQuestion();
 }
@@ -689,6 +766,7 @@ nextQuestion();
 <script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
+  loadReview(); renderReview();
   var headers=document.querySelectorAll('.tool-intro-header');
   headers.forEach(function(h){
     h.addEventListener('click',function(){
