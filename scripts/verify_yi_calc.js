@@ -48,13 +48,16 @@ const CASES = [
 },
   {
     "slug": "yi/yi-divination",
-    "inputs": {
-      "question": "abc123测试"
-    },
-    "expect": [
-      "abc123测试\n🙏 再次演示\n📜 演示结果 所问:\"abc123测试\" 本卦: 山泽损 (小凶) 减损之象,需顾全大局,适当舍弃。 💡 解卦指引 小有凶险,需谨慎小心。回避风险,保守行事。 演示结果仅供参考,谨记\"命由己造,相由心生"
+    "inputs": {},
+    "clicks": [
+      "Math.random=function(){return 0.9;};var L=generateLines();var changed=L.filter(function(x){return x.change;}).length;document.getElementById('__tbProbe').textContent='YIDIV9 '+((L.length===6&&L.every(function(x){return x.type===1&&x.change;})&&changed===6)?'OK':'BAD');",
+      "Math.random=function(){return 0.1;};var L2=generateLines();document.getElementById('__tbProbe').textContent='YIDIV6 '+((L2.length===6&&L2.every(function(x){return x.type===0&&x.change;}))?'OK':'BAD');",
+      "var seq=[0.1,0.1,0.1,0.1,0.1,0.9,0.1,0.9,0.1,0.1,0.1,0.9,0.1,0.1,0.1,0.9,0.1,0.1],n=0;Math.random=function(){return seq[n++%seq.length];};var L3=generateLines();var mix=L3.filter(function(x){return x.change;}).length;document.getElementById('__tbProbe').textContent='YIDIVM '+((L3.length===6&&mix===2&&L3[1].type===1&&L3[1].change===false)?'OK':'BAD');"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"question\":\"abc123测试\"}，输出区含「abc123测试\n🙏 再次演示\n📜 演示结果 所问:\"abc123测试\" 本…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": [
+      "YIDIVM OK"
+    ],
+    "ref": "覆盖三枚硬币四态：random=0.9 ⇒ 每爻 9 老阳（阳爻+动），0.1 ⇒ 每爻 6 老阴（阴爻+动）；混合序列断言 7/8 静爻与 9 动爻同时出现，锁定原不可达的动爻分支。"
   }
 
 ];

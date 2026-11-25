@@ -400,10 +400,10 @@ const CASES = [
   },
   {
     slug: "antiques/rater-1",
-    inputs: { std: "1", ctype: "1" },
+    inputs: { ctype: "stamp" },
     clicks: ["calc()"],
     expect: ["100 品相得分 / 100"],
-    ref: "无扣分项 ⇒ 品相得分 100/100、等级 Superb（95-100 极美品）。默认态未选标准时不同 ⇒ 不命中。",
+    ref: "无扣分项 ⇒ 品相得分 100/100、等级 Superb（95-100 极美品）。默认态参考等级标签不同 ⇒ 不命中。",
   },
   {
     slug: "general/calc-power-spacing",
@@ -3256,13 +3256,12 @@ const CASES = [
   {
     "slug": "antiques/rater-1",
     "inputs": {
-      "ctype": "stamp",
-      "std": "pse"
+      "ctype": "stamp"
     },
     "expect": [
       "stamp\n齿孔完好度 无 轻微（扣 5 分） 中等（扣 12 分） 严重（扣 20 分） 背胶完好度（原胶/无胶） 无 轻微（扣 5 分） 中等（扣 12 分） 严重（扣 20 分） 图案居中（四边边距） 无 轻微（扣 5 分） 中等（扣"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"ctype\":\"stamp\",\"std\":\"pse\"}，输出区含「stamp\n齿孔完好度 无 轻微（扣 5 分） 中等（扣 12 分） 严重（扣 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ctype\":\"stamp\"}，输出区含「stamp\n齿孔完好度 无 轻微（扣 5 分） 中等（扣 12 分） 严重（扣 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "chemistry/ratio-50",
