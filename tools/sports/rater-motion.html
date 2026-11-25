@@ -184,21 +184,24 @@ var sum=results.reduce(function(a,b){return a+b;},0);
 var avg=sum/results.length;
 var variance=results.reduce(function(s,v){return s+Math.pow(v-avg,2);},0)/results.length;
 var stdDev=Math.sqrt(variance);
-var cv=Math.abs(avg)>0?(stdDev/Math.abs(avg)*100):0;
+var cvValid=Math.abs(avg)>1e-12;
+var cv=cvValid?(stdDev/Math.abs(avg)*100):NaN;
 var maxV=Math.max.apply(null,results);
 var minV=Math.min.apply(null,results);
 var range=maxV-minV;
-var c;
-if(cv<=2)c='var(--success)';
-else if(cv<=5)c='var(--info)';
-else if(cv<=10)c='var(--warning)';
-else c='var(--danger)';
-var g;
-if(cv<=2)g='极稳定';
-else if(cv<=5)g='较稳定';
-else if(cv<=10)g='一般';
-else g='不稳定';
-var h='<div class="stat-grid"><div class="stat-card"><div class="val" style="color:'+c+';">'+cv.toFixed(2)+'%</div><div class="lbl">变异系数(CV)</div></div><div class="stat-card"><div class="val">'+avg.toFixed(3)+units[unit]+'</div><div class="lbl">平均成绩</div></div><div class="stat-card"><div class="val">'+stdDev.toFixed(3)+'</div><div class="lbl">标准差(SD)</div></div><div class="stat-card"><div class="val">'+g+'</div><div class="lbl">稳定性等级</div></div></div>';
+var c,g,cvText;
+if(!cvValid){cvText='—';g='不可计算（均值为 0）';c='var(--text-muted)';}
+else{
+  if(cv<=2)c='var(--success)';
+  else if(cv<=5)c='var(--info)';
+  else if(cv<=10)c='var(--warning)';
+  else c='var(--danger)';
+  if(cv<=2)g='极稳定';
+  else if(cv<=5)g='较稳定';
+  else if(cv<=10)g='一般';
+  else g='不稳定';
+}
+var h='<div class="stat-grid"><div class="stat-card"><div class="val" style="color:'+c+';">'+cvText+'</div><div class="lbl">变异系数(CV)</div></div><div class="stat-card"><div class="val">'+avg.toFixed(3)+units[unit]+'</div><div class="lbl">平均成绩</div></div><div class="stat-card"><div class="val">'+stdDev.toFixed(3)+'</div><div class="lbl">标准差(SD)</div></div><div class="stat-card"><div class="val">'+g+'</div><div class="lbl">稳定性等级</div></div></div>';
 h+='<table><thead><tr><th>次数</th><th>成绩('+units[unit]+')</th><th>偏差</th><th>偏差平方</th></tr></thead><tbody>';
 results.forEach(function(v,i){var dev=v-avg;h+='<tr><td>第'+(i+1)+'次</td><td>'+v+'</td><td>'+(dev>=0?'+':'')+dev.toFixed(3)+'</td><td>'+Math.pow(dev,2).toFixed(6)+'</td></tr>';});
 h+='</tbody></table>';
@@ -210,12 +213,16 @@ h+='<tr><td>极差(最大-最小)</td><td>'+range.toFixed(3)+' '+units[unit]+'</
 h+='<tr><td>平均成绩</td><td>'+avg.toFixed(3)+' '+units[unit]+'</td></tr>';
 h+='<tr><td>标准差(SD)</td><td>'+stdDev.toFixed(3)+'</td></tr>';
 h+='<tr><td>方差</td><td>'+variance.toFixed(6)+'</td></tr>';
-h+='<tr style="font-weight:600"><td>变异系数(CV)</td><td style="color:'+c+';">'+cv.toFixed(2)+'%</td></tr>';
+h+='<tr style="font-weight:600"><td>变异系数(CV)</td><td style="color:'+c+';">'+cvText+'</td></tr>';
 h+='</tbody></table>';
-h+='<div class="info-box"><strong>稳定性分析：</strong>变异系数(CV)是衡量稳定性的核心指标。CV&le;2%为极稳定，2-5%为较稳定，5-10%为一般，>10%为不稳定。</div>';
-h+='<div class="info-box"><strong>训练建议：</strong>'+(cv<=5?'动作稳定性良好，保持当前训练水平。':'动作稳定性不足，建议通过重复训练、技术录像分析等方式提升动作一致性。')+'</div>';
+if(!cvValid){
+  h+='<div class="info-box"><strong>无法评级：</strong>平均成绩为 0，变异系数（SD / |均值|）在数学上无定义，不能据此判断动作稳定性。请改录非零成绩，或说明测量基准（如以目标值为 0 的偏差分）。</div>';
+}else{
+  h+='<div class="info-box"><strong>稳定性分析：</strong>变异系数(CV)是衡量同一动作多次成绩相对波动的指标。CV&le;2%为极稳定，2-5%为较稳定，5-10%为一般，>10%为不稳定。</div>';
+  h+='<div class="info-box"><strong>训练建议：</strong>'+(cv<=5?'动作稳定性良好，保持当前训练水平。':'动作稳定性不足，建议通过重复训练、技术录像分析等方式提升动作一致性。')+'</div>';
+}
 const __g2=h;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-document.getElementById('res').dataset.copyValue='动作稳定性评分\n变异系数CV：'+cv.toFixed(2)+'%（'+g+'）\n平均成绩：'+avg.toFixed(3)+units[unit]+'\n标准差：'+stdDev.toFixed(3);}
+document.getElementById('res').dataset.copyValue='动作稳定性评分\n变异系数CV：'+cvText+'（'+g+'）\n平均成绩：'+avg.toFixed(3)+units[unit]+'\n标准差：'+stdDev.toFixed(3);}
 function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.dataset.copyValue||e.textContent, i18nText('msg405'));}calc();
 </script>
 

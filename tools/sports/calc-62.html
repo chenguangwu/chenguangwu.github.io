@@ -289,15 +289,34 @@ function cmp(val,mlb,betterLow){
   return '<span style="color:'+col+';font-size:11px;">('+sign+(d).toFixed(3)+'，'+(pct>0?'+':'')+pct.toFixed(1)+'% vs MLB)</span>';
 }
 function setInvalid(el,inv){if(!el)return;if(inv){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
-function num(id){var v=parseInt(document.getElementById(id).value,10);return isNaN(v)?0:v;}
+function count(id,label){
+  var raw=String(document.getElementById(id).value).trim();
+  if(raw==='')return {v:0,ok:true,label:label};
+  if(!/^\d+$/.test(raw))return {v:0,ok:false,label:label,raw:raw};
+  return {v:+raw,ok:true,label:label};
+}
 function calc(){
-  var ab=num('ab'),h=num('h'),b2=num('b2'),b3=num('b3'),hr=num('hr'),bb=num('bb'),hbp=num('hbp'),sf=num('sf');
+  var f={};
+  ['ab','h','b2','b3','hr','bb','hbp','sf','er','pha','pbb'].forEach(function(id){f[id]=count(id,id);});
+  var ab=f.ab.v,h=f.h.v,b2=f.b2.v,b3=f.b3.v,hr=f.hr.v,bb=f.bb.v,hbp=f.hbp.v,sf=f.sf.v;
+  var er=f.er.v,pha=f.pha.v,pbb=f.pbb.v;
+  var bad=[];
+  ['ab','h','b2','b3','hr','bb','hbp','sf','er','pha','pbb'].forEach(function(id){if(!f[id].ok)bad.push(f[id].label+'「'+f[id].raw+'」');});
+  if(bad.length){
+    document.getElementById('batting').innerHTML='<p style="color:var(--danger)">⚠ 计数字段须为非负整数：'+bad.join('、')+'。小数或无意义字符无法计入打席/出局数，请核对原始记录。</p>';
+    document.getElementById('pitching').innerHTML='';
+    return;
+  }
+  if(h>ab){
+    document.getElementById('batting').innerHTML='<p style="color:var(--danger)">⚠ 安打 '+h+' 不能大于打数 '+ab+'（安打本身属于打数）。请核对后重算。</p>';
+    document.getElementById('pitching').innerHTML='';
+    return;
+  }
   // SF-N60：棒球局数小数位只能是 .1/.2（1/3、2/3 局），原 parseIP 只取小数首位，
   // 7.3/7.9 会被静默当成 8/10 局。现先做格式校验，非法则标红并停算投手指标。
   var ipRaw=String(document.getElementById('ip').value).trim();
   var ipOk=/^\d+(\.(0|1|2))?$/.test(ipRaw);
   var ip=ipOk?parseIP(ipRaw):0;
-  var er=num('er'),pha=num('pha'),pbb=num('pbb');
   setInvalid(document.getElementById('ab'),ab<0);
   setInvalid(document.getElementById('ip'),!ipOk||ip<=0);
   // SF-N61：长打项之和不得超过安打数（单打会被归零，但 TB/SLG 仍会大于安打数，数据自相矛盾）

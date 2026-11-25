@@ -212,17 +212,18 @@ function getNum(id){return parseFloat(document.getElementById(id).value);}
 function setInvalid(el,invalid){if(!el)return;if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
 function readInputs(){
   var sp=getNum('speed'),t=getNum('total'),w=getNum('win'),e=getNum('err');
-  var valid=!isNaN(sp)&&sp>0&&!isNaN(t)&&t>=5&&!isNaN(w)&&w>=0&&!isNaN(e)&&e>=0&&w<=t&&e<=t&&(w+e)<=t;
-  setInvalid(document.getElementById('speed'),isNaN(sp)||sp<=0);
-  setInvalid(document.getElementById('total'),isNaN(t)||t<5);
-  setInvalid(document.getElementById('win'),isNaN(w)||w<0||w>t);
-  setInvalid(document.getElementById('err'),isNaN(e)||e<0||e>t||(w+e)>t);
+  var isInt=function(v){return isFinite(v)&&Math.abs(v-Math.round(v))<1e-9;};
+  var valid=isFinite(sp)&&sp>0&&isInt(t)&&t>=5&&isInt(w)&&w>=0&&isInt(e)&&e>=0&&w<=t&&e<=t&&(w+e)<=t;
+  setInvalid(document.getElementById('speed'),!isFinite(sp)||sp<=0);
+  setInvalid(document.getElementById('total'),!isInt(t)||t<5);
+  setInvalid(document.getElementById('win'),!isInt(w)||w<0||w>t);
+  setInvalid(document.getElementById('err'),!isInt(e)||e<0||e>t||(w+e)>t);
   return {sp:sp,t:t,w:w,e:e,valid:valid};
 }
 function calc(){
   var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<div class="info-box" style="color:var(--danger);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请填写有效数据（得分、失误均不能超过总次数，且得分+失误≤总次数；杀球总次数需 ≥5 才有评定意义）</div>';
+    document.getElementById('res').innerHTML='<div class="info-box" style="color:var(--danger);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请填写有效数据：杀球总次数、得分、失误均须为非负整数（不能出现 5.5 次），得分与失误均不能超过总次数且得分+失误≤总次数；杀球总次数需 ≥5 才有评定意义。</div>';
     return;
   }
   var winRate=iv.w/iv.t*100;

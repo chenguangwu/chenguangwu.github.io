@@ -355,15 +355,35 @@ document.addEventListener('DOMContentLoaded',function(){
 </html>
 
 <script>
+function cnt(id,label){
+  var raw=String(document.getElementById(id).value).trim();
+  if(raw==='')return {v:0,ok:true,label:label};
+  if(!/^\d+$/.test(raw))return {v:0,ok:false,label:label,raw:raw};
+  return {v:+raw,ok:true,label:label};
+}
 function calc(){
-  var total=+document.getElementById('total').value||0;
-  var attend=+document.getElementById('attend').value||0;
-  var satisfied=+document.getElementById('satisfied').value||0;
-  var neutral=+document.getElementById('neutral').value||0;
-  var dissatisfied=+document.getElementById('dissatisfied').value||0;
-  var promoters=+document.getElementById('promoters').value||0;
-  var detractors=+document.getElementById('detractors').value||0;
-  var passives=+document.getElementById('passives').value||0;
+  var totalC=cnt('total','总参与/观赛人数');
+  var attendC=cnt('attend','实际到场人数');
+  var satisfiedC=cnt('satisfied','满意人数');
+  var neutralC=cnt('neutral','一般人数');
+  var dissatisfiedC=cnt('dissatisfied','不满意人数');
+  var promotersC=cnt('promoters','推荐者人数');
+  var detractorsC=cnt('detractors','贬损者人数');
+  var passivesC=cnt('passives','中立者人数');
+  var allC=[totalC,attendC,satisfiedC,neutralC,dissatisfiedC,promotersC,detractorsC,passivesC];
+  var bad=allC.filter(function(c){return !c.ok;});
+  if(bad.length){
+    document.getElementById('res').innerHTML='<div class="tip-box tip-warn"><strong>⚠ 人数须为非负整数</strong>：'+bad.map(function(c){return c.label+'「'+c.raw+'」';}).join('、')+'。小数或负人数不符合问卷计数口径，请核对原始记录。</div>';
+    return;
+  }
+  var total=totalC.v;
+  var attend=attendC.v;
+  var satisfied=satisfiedC.v;
+  var neutral=neutralC.v;
+  var dissatisfied=dissatisfiedC.v;
+  var promoters=promotersC.v;
+  var detractors=detractorsC.v;
+  var passives=passivesC.v;
   var org=+document.getElementById('org').value||0;
   var venue=+document.getElementById('venue').value||0;
   var promo=+document.getElementById('promo').value||0;
@@ -376,6 +396,14 @@ function calc(){
   }
   if(attend>total){
     document.getElementById('res').innerHTML='<div class="tip-box tip-warn"><strong>⚠ 实际到场 '+attend+' 人不能大于总参与人数 '+total+' 人</strong>，请核对后重算（到场率不会超过 100%）。</div>';
+    return;
+  }
+  if(respTotal>total){
+    document.getElementById('res').innerHTML='<div class="tip-box tip-warn"><strong>⚠ 满意度问卷样本 '+respTotal+' 人不能大于总参与人数 '+total+' 人</strong>：每名参与者最多提交 1 份问卷，请核对满意/一般/不满意三档人数。</div>';
+    return;
+  }
+  if(npsTotal>total){
+    document.getElementById('res').innerHTML='<div class="tip-box tip-warn"><strong>⚠ NPS 样本 '+npsTotal+' 人不能大于总参与人数 '+total+' 人</strong>：推荐者/中立者/贬损者各属一份回答，请核对三档人数。</div>';
     return;
   }
   var attendanceRate=attend/total*100;

@@ -133,7 +133,7 @@
 </div>
 
 <div class="input-row"><div><label for="w">重量 (kg)</label><input type="number" id="w" value="100" oninput="calc()" placeholder="e.g. 100"></div></div>
-<div class="input-row"><div><label for="r">完成次数</label><input type="number" id="r" value="5" oninput="calc()" placeholder="e.g. 5"></div></div>
+<div class="input-row"><div><label for="r">完成次数</label><input type="number" id="r" value="5" min="1" max="10" step="1" oninput="calc()" placeholder="e.g. 5"></div></div>
 <div class="toolbar"><div id="convert_47Presets"></div>
       <button type="button" class="btn primary" onclick="calc()">估算</button>
       <button class="btn" type="button" onclick="__convert_47Export()">导出明细 CSV</button></div>
@@ -184,8 +184,15 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){var w=+document.getElementById('w').value||0;var r=+document.getElementById('r').value||0;var out='';if(w<=0||r<=0){out=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a valid positive number":"请输入有效正数");}else if(r>10){out=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Reps out of the Epley formula's valid range (1-10 reps). Re-test with 3-6 reps.":"⚠ 次数超出 Epley 公式适用范围（建议 1–10 次）："+r+" 次外推误差极大，请用 3–6 次的实测重量重新估算。");}
-else{var rm=w*(1+r/30);out='<p style="font-size:22px;color:var(--primary);"><strong>'+rm.toFixed(1)+' kg</strong></p><p style="font-size:12px;color:var(--text-muted);">约 '+Math.round(rm*0.95)+'–'+Math.round(rm*1.0)+' kg（估算区间）</p><p style="font-size:13px;color:var(--text-muted);">Epley 估算 '+rm.toFixed(1)+' kg ｜ Brzycki 对照 '+(r<=12?(w*36/(37-r)).toFixed(1):'次数过大不适用')+' kg ｜ 该组强度约 '+((w/rm)*100).toFixed(1)+' % 1RM ｜ 约合 '+(rm/0.45359237).toFixed(1)+' lb ｜ 90% 1RM 约 '+(rm*0.9).toFixed(1)+' kg</p>';}const __g1=out;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));if(typeof rm==='number'&&isFinite(rm)){const __g2='<p style="font-size:13px;color:var(--text-muted);">换算链：重量 '+w.toFixed(2)+' kg ｜ 次数 '+r+' ｜ 1RM '+rm.toFixed(2)+' kg ｜ 强度 '+((w/rm)*100).toFixed(2)+' % ｜ 折合 '+(rm/0.45359237).toFixed(2)+' lb ｜ 90% 1RM '+(rm*0.9).toFixed(2)+' kg</p>';document.getElementById('res').innerHTML+=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));} }calc();
+function calc(){var w=+document.getElementById('w').value||0;var rRaw=String(document.getElementById('r').value).trim();var r=rRaw===''?0:+rRaw;var out='';var rm=NaN;
+if(w<=0||rRaw===''||!isFinite(r)||r<=0){out=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a valid positive weight and rep count":"请输入有效正数（重量与重复次数均需大于 0）");}
+else if(Math.abs(r-Math.round(r))>1e-9){out=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Rep count must be a whole number (e.g. 5, not 2.5).":"⚠ 重复次数需为整数（如 5 次），不能填 2.5 次；小数次数无法对应实际完成的动作。");}
+else if(r>10){out=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Reps out of the Epley formula's valid range (1-10 reps). Re-test with 3-6 reps.":"⚠ 次数超出 Epley 公式适用范围（建议 1–10 次）："+r+" 次外推误差极大，请用 3–6 次的实测重量重新估算。");}
+else{r=Math.round(r);
+  if(r===1){rm=w;out='<p style="font-size:22px;color:var(--primary);"><strong>'+rm.toFixed(1)+' kg</strong></p><p style="font-size:12px;color:var(--text-muted);">实测 1 次即 1RM 本身；Epley 公式对 1 次会高估约 3.3%，故不套公式。</p>';}
+  else{rm=w*(1+r/30);out='<p style="font-size:22px;color:var(--primary);"><strong>'+rm.toFixed(1)+' kg</strong></p><p style="font-size:12px;color:var(--text-muted);">估算前提：该组为接近力竭组（还能再做 0–1 次）；若留有余力，估算值会偏高。结果仅为公式单点估算，不是实测 1RM，也不构成置信区间。</p><p style="font-size:13px;color:var(--text-muted);">Epley 估算 '+rm.toFixed(1)+' kg ｜ Brzycki 对照 '+(w*36/(37-r)).toFixed(1)+' kg ｜ 该组强度约 '+((w/rm)*100).toFixed(1)+' % 1RM ｜ 约合 '+(rm/0.45359237).toFixed(1)+' lb ｜ 90% 1RM 约 '+(rm*0.9).toFixed(1)+' kg</p>';}
+}
+const __g1=out;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));if(isFinite(rm)){const __g2='<p style="font-size:13px;color:var(--text-muted);">换算链：重量 '+w.toFixed(2)+' kg ｜ 次数 '+r+' ｜ 1RM '+rm.toFixed(2)+' kg ｜ 强度 '+((w/rm)*100).toFixed(2)+' % ｜ 折合 '+(rm/0.45359237).toFixed(2)+' lb ｜ 90% 1RM '+(rm*0.9).toFixed(2)+' kg</p>';document.getElementById('res').innerHTML+=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));} }calc();
 <!-- TOOLBOX-REALIZED -->
 </script>
 

@@ -259,7 +259,7 @@
 <script>
 var NBA={FG:0.465,P3:0.360,FT:0.770,EFG:0.530,TS:0.575};
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function opt(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?null:v;}
+function opt(id){var raw=String(document.getElementById(id).value).trim();if(raw==='')return null;var v=parseFloat(raw);return isFinite(v)?v:NaN;}
 function pct3(x){return isNaN(x)||!isFinite(x)?'–':x.toFixed(3).replace(/^0/,'');}
 function num3(x){return isNaN(x)||!isFinite(x)?'–':x.toFixed(3);}
 function cmp(val,mlb,betterLow){
@@ -301,7 +301,17 @@ function calc(){
     '<div class="data-card"><div class="num">'+pts+'</div><div class="label">得分 PTS</div></div>';
   const __g1=shHtml;document.getElementById('shooting').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   var trb=oreb+dreb;
-  var tmtrb=opt('tmtrb')||44,opptrb=opt('opptrb')||43,oppdreb=opt('oppdreb')||31,opporeb=opt('opporeb')||12;
+  var tmtrb=opt('tmtrb'),opptrb=opt('opptrb'),oppdreb=opt('oppdreb'),opporeb=opt('opporeb');
+  // 只有留空才用估算默认值；合法的 0 必须原样参与计算
+  if(tmtrb===null)tmtrb=44;
+  if(opptrb===null)opptrb=43;
+  if(oppdreb===null)oppdreb=31;
+  if(opporeb===null)opporeb=12;
+  if([tmtrb,opptrb,oppdreb,opporeb].some(function(v){return !isFinite(v)||v<0;})){
+    document.getElementById('rebounds').innerHTML='<p style="color:var(--danger)">⚠ 球队/对手篮板数据须为非负数值；留空才按联盟均值估算（队伍 44/对手 43，对手后场 31、前场 12），请核对录入。</p>';
+    document.getElementById('detail').innerHTML='';
+    return;
+  }
   var trbPct=trb/(tmtrb+opptrb);
   var minFactor=min>0?Math.min(1,min/48):0;
   var orebPct=oreb/(oreb+oppdreb*minFactor);
