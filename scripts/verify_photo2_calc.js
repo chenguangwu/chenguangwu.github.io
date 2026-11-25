@@ -134,7 +134,20 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/photo2/exposure-triangle.html','utf8');var ok=h.indexOf('EV 加 1 表示这组光圈/快门少收一档光')>=0&&h.indexOf('ISO 只改变亮度增益，不改变光学进光量')>=0&&h.indexOf('数值每加 1 表示进光量翻倍')<0;document.getElementById('__tbProbe').textContent='EV830 '+(ok?'OK':'BAD');"],
   "expect": ["EV830 OK"],
   "ref": "第830批：EV=log2(N²/t) 只由光圈快门定义，加 1 档是少收一档光（光学曝光量减半）；ISO 仅亮度增益。旧 FAQ 称「每加 1 进光量翻倍、三者综合」方向相反，探针同时要求新表述存在且旧句消失。"
-}
+},
+{
+    "slug": "photo2/white-balance",
+    "inputs": {"kelvin":"30000"},
+    "expect": ["30000K","Mired 绝对值：33"],
+    "ref": "第865批：输入上限 40000 K，calc 旧实现只到 20000 K；30000 K 应正常出结果，Mired 绝对值 33。"
+  },
+  {
+    "slug": "photo2/white-balance",
+    "inputs": {"kelvin":"30000"},
+    "clicks": ["var c=0;var old=ToolBox.copyText;ToolBox.copyText=function(){c++;};copyResult();ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='TB865W '+((c===1)?'OK':'BAD');"],
+    "expect": ["TB865W OK"],
+    "ref": "第865批：复制入口复用 1000–40000 K 校验，不再被空的 Mired 必填拦截；30000 K 应成功复制一次。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

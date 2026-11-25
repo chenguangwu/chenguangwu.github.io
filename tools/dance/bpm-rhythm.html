@@ -304,12 +304,26 @@ function applyPreset(){
   if(s!=='custom'){$('bpm').value=p[0];$('beatsPerBar').value=p[1];}
   calc();
 }
+function parseBpm(){
+  var raw=String($('bpm').value||'').trim();
+  if(raw==='')return null;
+  var v=parseFloat(raw);
+  if(!isFinite(v)||v<40||v>240)return null;
+  return v;
+}
+function stopMetronome(){
+  if(metroTimer){clearTimeout(metroTimer);metroTimer=null;}
+  $('metroBtn').textContent='▶ 启动节拍器';
+  resetBeatDots();
+}
 function calc(){
-  var bpm=parseFloat($('bpm').value)||0;
+  var bpm=parseBpm();
   var bpb=parseInt($('beatsPerBar').value)||4;
   var bpmv=parseFloat($('beatsPerMove').value)||1;
   var dur=parseFloat($('duration').value)||0;
-  if(bpm<=0){$('result').innerHTML='<p style="color:var(--danger);">请输入有效的BPM值</p>';return;}
+  if(bpm===null){stopMetronome();$('result').innerHTML='<p style="color:var(--danger);">BPM 需为 40–240 之间的有效数值，节拍器未启动</p>';return;}
+  if(bpmv<=0||!isFinite(bpmv)){stopMetronome();$('result').innerHTML='<p style="color:var(--danger);">每动作拍数必须为正数</p>';return;}
+  if(dur<=0||!isFinite(dur)){stopMetronome();$('result').innerHTML='<p style="color:var(--danger);">练习时长必须为正数</p>';return;}
   var beatInterval=60000/bpm;
   var barDuration=bpb*beatInterval/1000;
   var beatsPerSec=bpm/60;
@@ -352,7 +366,8 @@ function metroTick(){
   var curDot=$('bd'+beatIdx%total);
   if(curDot){curDot.classList.add('active');}
   beatIdx++;
-  var bpm=parseFloat($('bpm').value)||120;
+  var bpm=parseBpm();
+  if(bpm===null){stopMetronome();return;}
   var interval=60000/bpm;
   metroNext+=interval;
   var now=performance.now();
@@ -360,8 +375,11 @@ function metroTick(){
   metroTimer=setTimeout(metroTick, Math.max(0,metroNext-now));
 }
 function toggleMetronome(){
-  if(metroTimer){clearTimeout(metroTimer);metroTimer=null;$('metroBtn').textContent='▶ 启动节拍器';resetBeatDots();return;}
-  var bpm=parseFloat($('bpm').value)||120;
+  if(metroTimer){stopMetronome();return;}
+  var bpm=parseBpm();
+  if(bpm===null){$('result').innerHTML='<p style="color:var(--danger);">BPM 需为 40–240 之间的有效数值，无法启动节拍器</p>';return;}
+  var bpb=parseInt($('beatsPerBar').value)||4;
+  if(bpb<2||bpb>12){$('result').innerHTML='<p style="color:var(--danger);">每小节拍数需为 2–12</p>';return;}
   var interval=60000/bpm;
   beatIdx=0;
   $('metroBtn').textContent='⏸ 停止节拍器';

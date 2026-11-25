@@ -95,7 +95,32 @@ const CASES = [
     "qin"
   ],
     "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
-}
+},
+{
+    "slug": "antiques/calligraphy-style",
+    "inputs": {"era":"nanbei"},
+    "expect": ["南北朝","郑文公碑"],
+    "ref": "第865批：补南北朝时期条目，筛选后应出现魏碑代表《郑文公碑》。"
+  },
+  {
+    "slug": "antiques/calligraphy-style",
+    "inputs": {"era":"sui"},
+    "expect": ["隋代","龙藏寺碑"],
+    "ref": "第865批：补隋代条目，筛选后应出现《龙藏寺碑》。"
+  },
+  {
+    "slug": "antiques/calligraphy-style",
+    "inputs": {"era":"yuan"},
+    "expect": ["元代","赵孟頫"],
+    "ref": "第865批：补元代条目，筛选后应出现赵孟頫。"
+  },
+  {
+    "slug": "antiques/rater-1",
+    "inputs": {"ctype":"coin"},
+    "clicks": ["document.getElementById('i_obverse').value='3';onItemChange();document.getElementById('ctype').value='stamp';renderItems();document.getElementById('ctype').value='coin';renderItems();calc();document.getElementById('__tbProbe').textContent='TB865R '+((document.getElementById('i_obverse').value==='3')?'OK':'BAD');"],
+    "expect": ["TB865R OK","58"],
+    "ref": "第865批：切换纪念币→邮票→纪念币后，纪念币正面磨损的“严重”选择应保留，评分按 70−12=58 重算（不再回到满分）。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

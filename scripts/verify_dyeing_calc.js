@@ -231,7 +231,19 @@ const CASES = [
   "inputs": { "lr": "0" },
   "expect": ["浴比需大于 0"],
   "ref": "12-L9：浴比 0 时染液总量 0、浓度 0 g/L 仍输出完整结论；现在拒绝。默认浴比 10 合法不出现该文案。"
-}
+},
+{
+    "slug": "dyeing/shuixixiaolvjisuan",
+    "inputs": {"temp":"150","n":"5","vol":"0","w":"10"},
+    "expect": ["水量与布重必须为正数"],
+    "ref": "第865批：水量为 0 时旧实现仍用下限去除率给出正效率；现拒绝并清空结果。"
+  },
+  {
+    "slug": "dyeing/shuixixiaolvjisuan",
+    "inputs": {"temp":"150","n":"5","vol":"400","w":"0"},
+    "expect": ["水量与布重必须为正数"],
+    "ref": "第865批：布重为 0 时模型不适用，必须拒绝而不是给效率与评级。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

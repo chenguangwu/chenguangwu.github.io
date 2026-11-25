@@ -95,7 +95,13 @@ const CASES = [
     "expect": ["TB852R OK"],
     "ref": "第852批：越冬补饲的 5 个开发工具推荐（.gitignore / properties / API 签名 / ASCII 树 / AST）全部替换为养蜂与农业相关页，保留养蜂采蜜量估算；探针断言旧 /it/ 链接已消失。"
   }
-
+,
+{
+    "slug": "beekeeping/winter-feed-syrup",
+    "inputs": { "n":"1","vol":"0.001","ratio":"2","price":"5","daily":"0.05","days":"30" },
+    "expect": ["1.00 mL","1.34 kg","894 mg","447 mg","0.004 元"],
+    "ref": "第865批：每群仅 0.001 L 时固定 toFixed(1) 会显示 0.0 L/0.0 kg；日耗按页面下限 0.05 L 不影响糖量；现按量级自适应为 mL/mg，糖 894 mg、水 447 mg、总重 1.34 kg、成本 0.004 元。"
+  }
 ];
 
 

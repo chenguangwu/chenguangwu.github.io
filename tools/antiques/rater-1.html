@@ -147,6 +147,7 @@
     </div>
 
     <h3 style="margin-top:8px;">瑕疵项评估</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;" data-zh="切换收藏类型会保留各自已选的瑕疵等级">Switching collection type keeps each type's selected flaw levels.</p>
     <div id="itemsBox"></div>
 
     <div class="toolbar">
@@ -253,19 +254,36 @@ var STAMP_ITEMS=[
 ];
 var SEV_LABEL=['无','轻微','中等','严重'];
 
+var ITEM_STATE={coin:{},stamp:{}};
+var currentItemType='coin';
+function captureItemState(type){
+  var items=type==='coin'?COIN_ITEMS:STAMP_ITEMS;
+  items.forEach(function(it){
+    var el=document.getElementById('i_'+it.key);
+    if(el) ITEM_STATE[type][it.key]=parseInt(el.value)||0;
+  });
+}
 function renderItems(){
   var type=document.getElementById('ctype').value;
+  if(currentItemType&&currentItemType!==type) captureItemState(currentItemType);
   var items=type==='coin'?COIN_ITEMS:STAMP_ITEMS;
   var html='';
   items.forEach(function(it){
+    var saved=ITEM_STATE[type][it.key];
+    if(typeof saved!=='number'||saved<0||saved>3) saved=0;
     html+='<div class="input-row"><div><label>'+it.label+'</label>'+
-      '<select id="i_'+it.key+'" style="font-size:16px;" onchange="calc()">';
+      '<select id="i_'+it.key+'" style="font-size:16px;" onchange="onItemChange()">';
     for(var k=0;k<4;k++){
-      html+='<option value="'+k+'">'+SEV_LABEL[k]+(k===0?'':'（扣 '+it.deduct[k]+' 分）')+'</option>';
+      html+='<option value="'+k+'"'+(k===saved?' selected':'')+'>'+SEV_LABEL[k]+(k===0?'':'（扣 '+it.deduct[k]+' 分）')+'</option>';
     }
     html+='</select></div></div>';
   });
+  currentItemType=type;
   const __g1=html;document.getElementById('itemsBox').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+function onItemChange(){
+  captureItemState(currentItemType);
+  calc();
 }
 function coinGrade(s){
   if(s>=70) return {g:'MS-70',l:'完美未流通',c:'var(--success)'};
