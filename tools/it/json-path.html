@@ -346,9 +346,11 @@ function jsonPath(obj, expr) {
             if (Array.isArray(current)) {
               for (const item of current) next.push(item);
             } else {
-              for (const k in current) next.push(current[k]);
+              // 第806批：通配符只遍历自身可枚举字段，杜绝 constructor/toString 等继承属性混入
+              for (const k of Object.keys(current)) next.push(current[k]);
             }
-          } else if (token.property in current) {
+          } else if (Object.prototype.hasOwnProperty.call(current, token.property)) {
+            // 第806批：只读 JSON 自身字段；旧实现 `property in current` 会把 constructor 当字段命中
             next.push(current[token.property]);
           }
         }
@@ -493,7 +495,7 @@ function collectRecursive(obj, property, wildcard, out, depth) {
       collectRecursive(item, property, wildcard, out, depth);
     }
   } else {
-    for (const key in obj) {
+    for (const key of Object.keys(obj)) {
       if (wildcard || key === property) {
         out.push(obj[key]);
       }
