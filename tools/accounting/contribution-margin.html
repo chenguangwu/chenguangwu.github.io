@@ -115,7 +115,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="单位边际贡献 = P − VC。">Compute the unit contribution margin and contribution margin ratio from unit price and unit variable cost for cost-volume-profit analysis.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">边际贡献：单位边际贡献 = 单价 p − 单位变动成本 vc；边际贡献总额 = (p−vc)×销量 q（元）；边际贡献率 = 总额 ÷ 销售收入(p×q) × 100（%，收入为 0 时除零落 NaN 兜底）。校验：p、vc、q 三项非空合法数值守卫。判据：无固定分级，贡献率 = (p−vc)÷p 与销量无关，总额随销量线性增长。</div>
+      <div class="formula-eq">边际贡献：单位边际贡献 = 单价 p − 单位变动成本 vc；边际贡献总额 = (p−vc)×销量 q（元）；边际贡献率 = 总额 ÷ 销售收入(p×q) × 100（%）。校验：p、vc、q 必填且为有限非负数，负输入拒绝；收入为 0（p=0 或 q=0）时金额照算，贡献率显示“不适用”。判据：售价低于变动成本时负边际贡献合法，表示每件亏损；贡献率与销量无关，总额随销量线性增长。</div>
       <p class="formula-desc">单位边际贡献 = P − VC。</p>
     </div>
 
@@ -268,15 +268,20 @@ function __tbInputGuardCore(_ids,_labels){
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['p', 'vc', 'q'],["单价 P (元)", "单位变动成本 (元)", "销量 (件)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const p=num('p'),vc=num('vc'),q=num('q');
-            const cm=(p-vc)*q;
-            const rev=p*q;
-            const __g2=dataGrid([
-                [cm.toFixed(0),'边际贡献总额 (元)'],
-                [(cm/rev*100).toFixed(2),'边际贡献率 (%)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
-        }
+  const __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/.test(location.search);
+  const __raw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+  for(const id of ['p','vc','q']){if(__raw(id)===''){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'Fill in price, unit variable cost and quantity. Blank is not 0.':'请填写单价、单位变动成本与销量；空白不等于 0。')+'</p>');return;}}
+  const p=Number(__raw('p')),vc=Number(__raw('vc')),q=Number(__raw('q'));
+  if(!Number.isFinite(p)||!Number.isFinite(vc)||!Number.isFinite(q)){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'All three fields must be finite numbers.':'三个字段均须为有限数。')+'</p>');return;}
+  if(p<0||vc<0||q<0){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'Price, unit variable cost and quantity cannot be negative. Negative contribution is allowed when price is below variable cost; negative inputs are not.':'单价、单位变动成本与销量不能为负。售价低于变动成本时负边际贡献本身合法，但输入不能为负。')+'</p>');return;}
+  const cm=(p-vc)*q, rev=p*q;
+  const __g2=dataGrid([
+    [cm.toFixed(0),__en?'Total contribution margin (CNY)':'边际贡献总额 (元)'],
+    [rev===0?(__en?'Not applicable (revenue = 0)':'不适用（收入为 0）'):(cm/rev*100).toFixed(2),__en?'Contribution margin ratio (%)':'边际贡献率 (%)'],
+    [(p-vc).toFixed(2),__en?'Unit contribution margin (CNY)':'单位边际贡献 (元)']
+  ]);
+  ToolBox.setResult('result',__g2);
+}
 function resetForm(){document.getElementById('p').value = '100';
       document.getElementById('vc').value = '60';
       document.getElementById('q').value = '10000';
@@ -307,18 +312,49 @@ calcTool();
 <ul class="dd-list">
 <li>单品盈利性分析，判断某产品是否值得继续生产或保留。</li>
 <li>多产品组合优化时，优先排产高单位边际贡献的产品。</li>
-<li>测算降价空间：在仍为正边际贡献范围内可短期促销清库存。</li>
+<li>售价或销量为 0 时金额仍可为 0，但贡献率无定义，页面显示不适用。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">计算单位边际贡献</div><div class="dd-ex-body">某产品售价 80 元、单位变动成本 50 元，单位边际贡献=80−50=30 元；若月固定成本 30000 元，则需卖出 1000 件才能覆盖固定成本开始盈利。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>单位边际贡献和毛利有什么区别？</dt><dd>单位边际贡献=单价−单位变动成本，用于本量利与短期决策；毛利=收入−营业成本，含固定制造费用分摊，口径更宽。</dd>
 <dt>边际贡献为负为什么要停产？</dt><dd>边际贡献为负意味着每卖一件多亏一件的变动成本，停产可止损；但若能覆盖部分固定成本，短期继续生产仍比停产少亏。</dd>
+<dt>负售价、负变动成本或负销量能算吗？</dt><dd>不能。负输入没有业务意义，页面会直接拒绝；售价低于变动成本产生的负边际贡献本身合法，表示每件亏损，但输入值不得为负。</dd>
 </dl>
 </div>
 </section>
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "单位边际贡献和毛利有什么区别？", "acceptedAnswer": {"@type": "Answer", "text": "单位边际贡献=单价−单位变动成本，用于本量利与短期决策；毛利=收入−营业成本，含固定制造费用分摊，口径更宽。"}}, {"@type": "Question", "name": "边际贡献为负为什么要停产？", "acceptedAnswer": {"@type": "Answer", "text": "边际贡献为负意味着每卖一件多亏一件的变动成本，停产可止损；但若能覆盖部分固定成本，短期继续生产仍比停产少亏。"}}]}</script>
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "单位边际贡献和毛利有什么区别？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "单位边际贡献=单价−单位变动成本，用于本量利与短期决策；毛利=收入−营业成本，含固定制造费用分摊，口径更宽。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "边际贡献为负为什么要停产？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "边际贡献为负意味着每卖一件多亏一件的变动成本，停产可止损；但若能覆盖部分固定成本，短期继续生产仍比停产少亏。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "负售价、负变动成本或负销量能算吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不能。负输入没有业务意义，页面会直接拒绝；售价低于变动成本产生的负边际贡献本身合法，表示每件亏损，但输入值不得为负。"
+      }
+    }
+  ]
+}
+</script>
 <script>
 function __contribution_marginNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __contribution_marginExtras(){
@@ -328,12 +364,14 @@ function __contribution_marginExtras(){
     var cm=(p-vc)*q;
     var rev=p*q;
     if (!isFinite(__contribution_marginNum('p')) || !isFinite(__contribution_marginNum('vc')) || !isFinite(__contribution_marginNum('q'))) return;
+    if(p<0||vc<0||q<0) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#contribution_marginTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['边际贡献总额 (元)', cm.toFixed(0)],
-            ['边际贡献率 (%)', (cm/rev*100).toFixed(2)],
+            [en?'Total contribution margin (CNY)':'边际贡献总额 (元)', cm.toFixed(0)],
+            [en?'Contribution margin ratio (%)':'边际贡献率 (%)', rev===0?(en?'Not applicable (revenue = 0)':'不适用（收入为 0）'):(cm/rev*100).toFixed(2)],
+            [en?'Unit contribution margin (CNY)':'单位边际贡献 (元)', (p-vc).toFixed(2)],
         ]
     });
     TBKit.history.record({p:__contribution_marginRaw('p'), vc:__contribution_marginRaw('vc'), q:__contribution_marginRaw('q'), cm:cm});
@@ -365,7 +403,7 @@ function __cmChart(){
   var p=num('p'),vc=num('vc'),q=num('q');
   if(!isFinite(p)||!isFinite(vc)||!isFinite(q)||p<=vc)return;
   var rev=Math.round(p*q),vcost=Math.round(vc*q),cm=Math.round((p-vc)*q);
-  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/.test(location.search);
   TBKit.chart.bar('#contribution_marginChart',{title:en?'Revenue Breakdown':'收入结构分解',labels:[en?'Revenue':'总收入',en?'Variable Cost':'变动成本',en?'Contribution':'边际贡献'],series:[{name:en?'Amount':'金额',data:[rev,vcost,cm]}]});
 }
 var __cmFn=calcTool;calcTool=function(){try{__cmFn();}catch(e){}try{__cmChart();}catch(e){}};
