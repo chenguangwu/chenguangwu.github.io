@@ -171,6 +171,27 @@
         </select>
       </div>
     </div>
+    <div class="input-row">
+      <div><label for="orientation">输出方向</label>
+        <select id="orientation" onchange="generate()">
+          <option value="landscape" selected>横屏 16:9</option>
+          <option value="portrait">竖屏 9:16</option>
+          <option value="square">方形 1:1</option>
+        </select>
+      </div>
+      <div><label for="fitMode">画面适配</label>
+        <select id="fitMode" onchange="generate()">
+          <option value="crop" selected>裁剪填满（可能裁边）</option>
+          <option value="pad">补边完整保留（可能留黑边）</option>
+        </select>
+      </div>
+      <div><label for="rateMode">码率模式</label>
+        <select id="rateMode" onchange="generate()">
+          <option value="bitrate" selected>目标码率（按大小估算）</option>
+          <option value="crf">恒定质量 CRF（大小不可精确预估）</option>
+        </select>
+      </div>
+    </div>
     <div class="toolbar">
       <div id="video_converterPresets"></div><button type="button" class="btn primary" onclick="generate()">🔧 生成参数</button><button class="btn" type="button" onclick="__video_converterExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyCommand()">📋 复制命令</button>
@@ -323,19 +344,34 @@ function generate(){
   else if(codec==='vp9') vBr=Math.round(vBr*0.7);
   else if(codec==='av1') vBr=Math.round(vBr*0.5);
   const aBr=preset.aBitrate;
-  const resMap={'2160':'3840:2160','1440':'2560:1440','1080':'1920:1080','720':'1280:720','480':'854:480'};
+  const shortSide={'2160':2160,'1440':1440,'1080':1080,'720':720,'480':480}[res];
+  const orientation=document.getElementById('orientation').value;
+  const fitMode=document.getElementById('fitMode').value;
+  const rateMode=document.getElementById('rateMode').value;
+  let W,H,orientLabel;
+  if(orientation==='portrait'){W=shortSide;H=Math.round(shortSide*16/9);orientLabel='竖屏 9:16';}
+  else if(orientation==='square'){W=shortSide;H=shortSide;orientLabel='方形 1:1';}
+  else{W=Math.round(shortSide*16/9);H=shortSide;orientLabel='横屏 16:9';}
+  W=W%2?W+1:W;H=H%2?H+1:H;
+  const fitFilter=fitMode==='pad'
+    ? `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2`
+    : `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H}`;
   const vSizeMB=(vBr*dur*60/8/1024);
   const aSizeMB=(aBr*dur*60/8/1024);
   const totalMB=vSizeMB+aSizeMB;
-  let cmd=`ffmpeg -i input.mp4 -c:v ${codecNames[codec]} -b:v ${vBr}k -c:a aac -b:a ${aBr}k -s ${resMap[res]}`;
-  if(codec==='h264')cmd+=' -preset medium -crf 23';
-  else if(codec==='h265')cmd+=' -preset medium -crf 28';
-  cmd+=` output.${preset.format}`;
+  let cmd=`ffmpeg -i input.mp4 -c:v ${codecNames[codec]}`;
+  if(rateMode==='crf'){
+    const crf={h264:23,h265:28,vp9:32,av1:35}[codec];
+    cmd+=` -crf ${crf} -preset medium`;
+  }else{
+    cmd+=` -b:v ${vBr}k -maxrate ${Math.round(vBr*1.5)}k -bufsize ${Math.round(vBr*2)}k`;
+  }
+  cmd+=` -vf "${fitFilter}" -c:a aac -b:a ${aBr}k output.${preset.format}`;
   let html=`<div class="preset-card">
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;text-align:center;margin-bottom:12px;">
-      <div><div style="font-size:24px;font-weight:700;">${res}p</div><div style="font-size:11px;color:var(--text-muted);">分辨率</div></div>
+      <div><div style="font-size:24px;font-weight:700;">${W}×${H}</div><div style="font-size:11px;color:var(--text-muted);">${orientLabel} 输出</div></div>
       <div><div style="font-size:24px;font-weight:700;">${vBr}k</div><div style="font-size:11px;color:var(--text-muted);">视频码率</div></div>
-      <div><div style="font-size:24px;font-weight:700;">${(totalMB/1024).toFixed(2)}GB</div><div style="font-size:11px;color:var(--text-muted);">预估大小</div></div>
+      <div><div style="font-size:24px;font-weight:700;">${rateMode==='crf'?'≈'+(totalMB/1024).toFixed(2):(totalMB/1024).toFixed(2)}GB</div><div style="font-size:11px;color:var(--text-muted);">${rateMode==='crf'?'参考量级':'按目标码率预估'}</div></div>
       <div><div style="font-size:24px;font-weight:700;">${codec.toUpperCase()}</div><div style="font-size:11px;color:var(--text-muted);">编码</div></div>
     </div>
   </div>`;
@@ -346,6 +382,7 @@ function generate(){
     <div class="param-card"><div class="lbl">时长</div><div class="val">${dur}分钟</div></div>
     <div class="param-card"><div class="lbl">目标平台</div><div class="val" style="font-size:14px;">${preset.name}</div></div>
   </div>`;
+  html+=`<div class="tip-box" style="margin-top:8px;font-size:13px;">${rateMode==='crf'?'CRF 恒定质量模式：命令不含目标码率，实际文件大小由素材复杂度、运动与噪点决定，上方 GB 数只是同档码率的参考量级，不能当作精确预估。':'目标码率模式：按平台同档参考码率估算大小；实际编码结果会受素材复杂度、封装与音频影响，通常存在偏差。'} 画面按「${orientLabel} + ${fitMode==='pad'?'补边':'裁剪'}」输出，源比例不同时不会直接拉伸变形。</div>`;
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('paramsResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('paramsResult').innerHTML=__h0;
   window._lastCmd={platform:preset.name,res:res+'p',codec:codec.toUpperCase(),size:(totalMB/1024).toFixed(2)+'GB'};
 }

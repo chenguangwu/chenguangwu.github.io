@@ -147,7 +147,7 @@
     <h2 data-zh="🎬 字幕时间轴调整">Subtitle</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="导入 SRT 字幕，批量调整时间轴偏移、修改格式">Subtitle - online utility on ToolBox.</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按空行切分 SRT 块，每块第二行匹配 HH:MM:SS[,.]mmm --&gt; HH:MM:SS[,.]mmm 得起止时间，其余行合并为字幕文本；时间转毫秒 = 时 × 3600000 + 分 × 60000 + 秒 × 1000 + 毫秒；毫秒转回时按 时/分/秒/毫秒 四段补零（SRT 用逗号、VTT 用点号）。平移：新起点 = 原起点 × 倍速 + 偏移，新终点 = 原终点 × 倍速 + 偏移，结果不小于 0；开启仅正向且偏移为负时先与 0 取较大值</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按空行切分 SRT 块，每块第二行匹配 HH:MM:SS[,.]mmm --&gt; HH:MM:SS[,.]mmm 得起止时间，其余行合并为字幕文本；时间转毫秒 = 时 × 3600000 + 分 × 60000 + 秒 × 1000 + 毫秒；毫秒转回时按 时/分/秒/毫秒 四段补零（SRT 用逗号、VTT 用点号）。平移：新起点 = 原起点 × 倍速 + 偏移，新终点 = 原终点 × 倍速 + 偏移，未勾选时预览保留负时间（导出自动裁剪起点并跳过完全负区间的条目）；勾选「只保留正时间」时把部分越界起点裁到 0、完全移出时间轴的条目删除；任何时长为零或负的条目均移除</div>
       <div class="formula-desc tb-bi"><span class="t-zh">粘贴或导入 SRT 字幕内容，按毫秒整体平移时间轴，或按倍率缩放以匹配变速后的视频，也可批量调整字幕格式，用于修正字幕与画面不同步</span><span class="t-en">Shift or scale SRT subtitle timelines in bulk to fix audio-video sync drift</span></div>
     </div>
 
@@ -172,8 +172,9 @@
         </div>
       </div>
       <div class="checkbox-row">
-        <label><input type="checkbox" id="shift-only-positive" onchange="applyOffset()"> 仅向后偏移</label>
+        <label><input type="checkbox" id="shift-only-positive" onchange="applyOffset()"> 只保留正时间（完全移出时间轴的字幕删除）</label>
       </div>
+      <div id="offset-warn" class="tip-box" style="display:none;margin-top:8px;font-size:13px;"></div>
 
       <div class="subtitle-list" id="sub-list"></div>
       <div id="subChart" style="margin-top:14px;"></div>
@@ -338,7 +339,7 @@ function parseTime(t) {
 }
 
 function formatTime(ms, sep = ',') {
-  if (ms < 0) ms = 0;
+  if (ms < 0) return '-' + formatTime(-ms, sep);
   const h = Math.floor(ms / 3600000);
   const m = Math.floor((ms % 3600000) / 60000);
   const s = Math.floor((ms % 60000) / 1000);
@@ -347,19 +348,46 @@ function formatTime(ms, sep = ',') {
 }
 
 function applyOffset() {
-  const offset = +document.getElementById('offset-ms').value || 0;
-  const factor = +document.getElementById('speed-factor').value || 1;
+  var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  const offRaw=String(document.getElementById('offset-ms').value==null?'':document.getElementById('offset-ms').value).trim();
+  const facRaw=String(document.getElementById('speed-factor').value==null?'':document.getElementById('speed-factor').value).trim();
+  const offset=offRaw===''?NaN:parseFloat(offRaw);
+  const factor=facRaw===''?NaN:parseFloat(facRaw);
   const onlyPositive = document.getElementById('shift-only-positive').checked;
-  subtitles = originalSubs.map(s => {
-    let newStart = s.start * factor + offset;
-    let newEnd = s.end * factor + offset;
-    if (onlyPositive && offset < 0) {
-      newStart = Math.max(0, newStart);
-      newEnd = Math.max(0, newEnd);
-    }
-    return { index: s.index, start: Math.max(0, newStart), end: Math.max(0, newEnd), text: s.text };
+  const warn=document.getElementById('offset-warn');
+  if(!isFinite(offset)||!isFinite(factor)||factor<=0){
+    subtitles=[];renderSubs();
+    if(warn){warn.style.display='';warn.innerHTML=__en?'⚠ Enter a valid offset (ms) and speed factor (>0); preview cleared.':'⚠ 请填写有效的偏移（毫秒）与速度倍率（>0），已清空预览。';}
+    return;
+  }
+  let dropped=0, negPreview=0;
+  const out=[];
+  originalSubs.forEach(s=>{
+    let newStart=s.start*factor+offset;
+    let newEnd=s.end*factor+offset;
+    if(onlyPositive&&newEnd<=0){dropped++;return;}
+    if(onlyPositive&&newStart<0)newStart=0;
+    if(newEnd<=newStart){dropped++;return;}
+    if(newStart<0)negPreview++;
+    out.push({index:s.index,start:newStart,end:newEnd,text:s.text});
   });
-  renderSubs();
+  subtitles=out;renderSubs();
+  if(warn){
+    const bits=[];
+    if(dropped)bits.push(__en?dropped+' cue(s) removed (fully before 0 or zero/negative duration).':dropped+' 条字幕已移除（完全早于 0 或时长为零/负）。');
+    if(negPreview&&!onlyPositive)bits.push(__en?negPreview+' cue(s) keep negative preview times; export will clip start to 0 and drop fully negative cues.':negPreview+' 条字幕预览保留负时间；导出时会把起点裁到 0，完全在负区间的条目会被跳过。');
+    if(bits.length){warn.style.display='';warn.innerHTML='⚠ '+bits.join(__en?' ':' ');}else{warn.style.display='none';warn.innerHTML='';}
+  }
+}
+function exportableSubs(){
+  let skipped=0;const out=[];
+  subtitles.forEach(s=>{
+    if(s.end<=0){skipped++;return;}
+    const st=s.start<0?0:s.start;
+    if(s.end<=st){skipped++;return;}
+    out.push({index:s.index,start:st,end:s.end,text:s.text});
+  });
+  return {subs:out,skipped};
 }
 
 function renderSubs() {
@@ -379,13 +407,19 @@ function escapeHtml(s) {
 
 function exportSRT() {
   if (subtitles.length === 0) { ToolBox.showToast(i18nText() , 'warn'); return; }
-  const text = subtitles.map((s, i) => `${i + 1}\n${formatTime(s.start, ',')} --> ${formatTime(s.end, ',')}\n${s.text}`).join('\n\n');
+  const r=exportableSubs();
+  if(r.subs.length===0){ToolBox.showToast('所有字幕都在时间轴 0 之前或无有效时长，未导出。','warn');return;}
+  const text = r.subs.map((s, i) => `${i + 1}\n${formatTime(s.start, ',')} --> ${formatTime(s.end, ',')}\n${s.text}`).join('\n\n');
+  if(r.skipped)ToolBox.showToast(`已跳过 ${r.skipped} 条负时间/零时长字幕`,'warn');
   ToolBox.downloadText(`subtitles-${Date.now()}.srt`, text);
 }
 
 function exportVTT() {
   if (subtitles.length === 0) { ToolBox.showToast(i18nText() , 'warn'); return; }
-  const text = `WEBVTT\n\n` + subtitles.map((s, i) => `${i + 1}\n${formatTime(s.start, '.')} --> ${formatTime(s.end, '.')}\n${s.text}`).join('\n\n');
+  const r=exportableSubs();
+  if(r.subs.length===0){ToolBox.showToast('所有字幕都在时间轴 0 之前或无有效时长，未导出。','warn');return;}
+  const text = `WEBVTT\n\n` + r.subs.map((s, i) => `${i + 1}\n${formatTime(s.start, '.')} --> ${formatTime(s.end, '.')}\n${s.text}`).join('\n\n');
+  if(r.skipped)ToolBox.showToast(`已跳过 ${r.skipped} 条负时间/零时长字幕`,'warn');
   ToolBox.downloadText(`subtitles-${Date.now()}.vtt`, text);
 }
 
