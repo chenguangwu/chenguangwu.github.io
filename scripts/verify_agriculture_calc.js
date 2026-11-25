@@ -1583,10 +1583,12 @@ const CASES = [
       "temp": "400",
       "factor": "1.8"
     },
+    "clicks": ["document.getElementById('factor').value='1.8';calc();"],
     "expect": [
-      "42\n42\n400\n1.8\n灼烧后重量不应大于灼烧前，请检查数据"
+      "0.0000 灼烧失重",
+      "烧失量为0"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"beforeWeight\":\"42\",\"afterWeight\":\"42\",\"temp\":\"400\",\"factor\":\"1.8\"}，输出区含「42\n42\n400\n1.8\n灼烧后重量不应大于灼烧前，请检查数据」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "前后等重 42/42、400℃、系数1.8：按本批口径允许零失重，烧失量=0、有机质=0，并提示「本次灼烧前后等重，烧失量为0」；旧实现把等重当错误拦截。默认 10/9.85 不含零失重提示。"
   },
   {
     "slug": "agriculture/storage-pest-alert",
@@ -1687,10 +1689,20 @@ const CASES = [
   // ── 土壤有机质：换算系数 0 时应拦截（避免有机质结果恒为 0/无效）──
   {
     "slug": "agriculture/soil-organic-matter",
-    "inputs": { "beforeWeight": "10", "afterWeight": "9.6", "temp": "550", "factor": "0" },
-    "expect": ["换算系数必须大于0"],
-    "ref": "换算系数 0 ⇒ 有机质 = 有机碳 × 0 恒为 0，页面必须拦截；默认 1.724 正常计算，不出现该提示。"
+    "inputs": {
+      "beforeWeight": "42",
+      "afterWeight": "42",
+      "temp": "400",
+      "factor": "1.8"
+    },
+    "clicks": ["document.getElementById('factor').value='1.8';calc();"],
+    "expect": [
+      "0.0000 灼烧失重",
+      "烧失量为0"
+    ],
+    "ref": "前后等重 42/42、400℃、系数1.8：按本批口径允许零失重，烧失量=0、有机质=0，并提示「本次灼烧前后等重，烧失量为0」；旧实现把等重当错误拦截。默认 10/9.85 不含零失重提示。"
   },
+
   // ── 作物需水：降雨「时段合计」口径先折算日均，跨日雨量不被逐日全扣 ──
   {
     "slug": "agriculture/crop-water-requirement",
@@ -1804,6 +1816,53 @@ const CASES = [
   inputs: { val: "12", unit: "water", wb: "12", initW: "100" },
   expect: ["88.00%", "13.636%"],
   ref: "恢复第356–358批旧页：水分 12% ⇒ 干物质 88%；湿基 12% 折干基 =12/(100−12)=13.636%；dry-matter-conversion 只做重量/含水率，无浓度口径。"
+}
+,
+{
+  slug: "agriculture/irrigation-uniformity",
+  clicks: ["pointCount=8;renderPoints();for(var i=0;i<8;i++){document.getElementById('pt'+i).value='0';}calc();"],
+  expect: ["分母为零，无法计算"],
+  ref: "8 个有效测点全为 0 ⇒ 均值为 0，CU/DU/CV 分母为零，页面明确提示无法计算，不再输出 0% 与「均匀性差」；旧实现会给出全是 0% 的结论。默认 12 点非零不命中。"
+},
+{
+  slug: "agriculture/irrigation-uniformity",
+  clicks: ["pointCount=8;renderPoints();for(var i=0;i<8;i++){document.getElementById('pt'+i).value=(i<2?(i===0?'40':'38'):'');}calc();"],
+  expect: ["已忽略 6 个未填测点"],
+  ref: "8 点仅填前两点 40/38，其余留空 ⇒ 空值不参与计算（不是 0），结果注明忽略 6 个未填测点；旧实现把 6 个空当 0，均值与 CU 被拉低。默认 12 点全填不含该提示。"
+},
+{
+  slug: "agriculture/dli-calculator",
+  clicks: ["document.getElementById('ppfd').value='1000';document.getElementById('hours').value='16';document.getElementById('lightPPFD').value='0';document.getElementById('lightHours').value='0';document.getElementById('cropType').value='low';calc();"],
+  expect: ["高于参考上限"],
+  ref: "低光作物参考 5–10 mol/m²/d，1000 μmol/m²/s×16h = 57.6 ⇒ 高于上限；页面改为「高于参考上限」并提示光过强/热负荷风险，不再判「光照充足」。默认 medium 15.7 在区间内不命中。"
+},
+{
+  slug: "agriculture/straw-return",
+  inputs: { strawType: "wheat", carbon: "45", nitrogen: "0.5", strawAmount: "400", targetCN: "25", fertType: "urea" },
+  clicks: ["document.getElementById('soilOM').value='';calc();"],
+  expect: ["未填写土壤有机质"],
+  ref: "土壤有机质留空 ⇒ 仍计算碳氮比与补氮，但不生成基于有机质的还田量建议；旧实现按 0 判「有机质偏低」并建议增施。默认 1.8% 走适中分支不命中。"
+},
+{
+  slug: "agriculture/fertilizer-efficiency",
+  inputs: { fertUptake: "20", fertInput: "10", ckUptake: "5", nutrientType: "N" },
+  clicks: ["document.getElementById('ckUptake').value='';calc();"],
+  expect: ["不能留空代替"],
+  ref: "对照区吸收量留空 ⇒ 必须提示「对照区为零也须明确填 0」，停止利用率计算；旧实现按 0 计并给出结论。默认 7 不命中。"
+},
+{
+  slug: "agriculture/seed-germination-rate",
+  inputs: { totalSeeds: "100", seedlingLen: "5" },
+  clicks: ["for(var i=1;i<=7;i++){document.getElementById('day'+i).value='1';}document.getElementById('day2').value='';calc();"],
+  expect: ["记录不完整"],
+  ref: "第2天留空 ⇒ 不当作 0，结果标「记录不完整」、不给出优质种/合格定级；旧实现空值按 0 继续判等级。默认逐日已填不命中。"
+},
+{
+  slug: "agriculture/pesticide-interval",
+  inputs: { phiDays: "3.9" },
+  clicks: ["calc();"],
+  expect: ["不会被截断成 3 天"],
+  ref: "安全间隔期输入 3.9 ⇒ 须按非整数拦截，不得 parseInt 截断为 3 天提前采收；默认 7 天不命中。"
 }
 ];
 

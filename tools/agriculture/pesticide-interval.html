@@ -264,11 +264,11 @@ function onPesticideChange(){
 }
 function calc(){
   var sprayDateStr = document.getElementById('sprayDate').value;
-  var phiRaw = document.getElementById('phiDays').value;
-  var phiDays = parseInt(phiRaw, 10);
+  var phiRaw = String(document.getElementById('phiDays').value).trim();
+  var phiDays = Number(phiRaw);
 
-  if(phiRaw === '' || isNaN(phiDays) || phiDays < 0){
-    ToolBox.setResult('result','<p style="color:var(--danger);">安全间隔期应为农药标签标注的天数（不小于 0 的整数）</p>'); return;
+  if(!/^\d+$/.test(phiRaw) || !isFinite(phiDays)){
+    ToolBox.setResult('result','<p style="color:var(--danger);">安全间隔期应为农药标签标注的天数（不小于 0 的整数）；输入 3.9 不会被截断成 3 天</p>'); return;
   }
   if(!sprayDateStr){ ToolBox.setResult('result','<p style="color:var(--danger);">请选择施药日期</p>'); return; }
 
@@ -287,18 +287,18 @@ function calc(){
   var html = '';
   if(diffDays > 0){
     html += '<div class="tip-box tip-warn" style="font-size:16px;text-align:center;padding:20px;">';
-    html += '<div style="font-size:36px;font-weight:700;color:var(--warning);">还剩 '+diffDays+' 天</div>';
-    html += '<div style="margin-top:8px;">距离安全采收日期</div>';
+    html += '<div style="font-size:36px;font-weight:700;color:var(--warning);">距最早采收日 '+diffDays+' 天</div>';
+    html += '<div style="margin-top:8px;">距按标签推算的最早采收日</div>';
     html += '</div>';
   } else if(diffDays === 0){
     html += '<div class="tip-box tip-success" style="font-size:16px;text-align:center;padding:20px;">';
-    html += '<div style="font-size:28px;font-weight:700;color:var(--success);">今日可达安全采收标准</div>';
-    html += '<div style="margin-top:8px;">安全间隔期已满，可安排采收</div>';
+    html += '<div style="font-size:28px;font-weight:700;color:var(--success);">今日为按标签间隔推算的最早采收日</div>';
+    html += '<div style="margin-top:8px;">安全间隔期已满；不等于残留检测合格，请核对当地登记标签与残留要求</div>';
     html += '</div>';
   } else {
     html += '<div class="tip-box tip-success" style="font-size:16px;text-align:center;padding:20px;">';
-    html += '<div style="font-size:28px;font-weight:700;color:var(--success);">已过安全间隔期 '+Math.abs(diffDays)+' 天</div>';
-    html += '<div style="margin-top:8px;">可以安全采收</div>';
+    html += '<div style="font-size:28px;font-weight:700;color:var(--success);">已过按标签推算的最早采收日 '+Math.abs(diffDays)+' 天</div>';
+    html += '<div style="margin-top:8px;">可进入采收安排；本推算不等于残留检测合格，请核对当地登记标签与残留限量</div>';
     html += '</div>';
   }
 
@@ -308,6 +308,7 @@ function calc(){
   html += '<div class="data-card"><div class="num" style="font-size:16px;color:var(--success);">'+formatDate(safeDate)+'</div><div class="label">最早采收日</div></div>';
   html += '</div>';
 
+  html += '<div class="tip-box tip-info" style="margin-top:12px;font-size:13px;">本结果仅按标签安全间隔期与施药日期推算日期，不构成农药残留检测结论；请以当地登记标签、实际残留限量与采收要求为准。</div>';
   if(sel){
     html += '<div class="ref-card" style="margin-top:12px;">';
     html += '<h4>'+sel.name+'</h4>';
@@ -325,13 +326,13 @@ function formatDate(d){
 function copyResult(){
   var sel=getSelectedPesticide();
   var sprayDateStr=document.getElementById('sprayDate').value;
-  var phiRaw=document.getElementById('phiDays').value;
-  var phiDays=parseInt(phiRaw,10);
-  if(phiRaw===''||isNaN(phiDays)||phiDays<0){ ToolBox.showToast('安全间隔期应为农药标签标注的天数（不小于 0 的整数）','warning'); return; }
+  var phiRaw=String(document.getElementById('phiDays').value).trim();
+  var phiDays=Number(phiRaw);
+  if(!/^\d+$/.test(phiRaw)||!isFinite(phiDays)){ ToolBox.showToast('安全间隔期应为不小于 0 的整数，不能截断小数','warning'); return; }
   var sprayDate=parseLocalDate(sprayDateStr);
   if(isNaN(sprayDate.getTime())){ ToolBox.showToast('施药日期无效','warning'); return; }
   var safeDate=new Date(sprayDate);safeDate.setDate(safeDate.getDate()+phiDays);
-  var txt='农药安全间隔期记录\n农药：'+(sel?sel.name:'自定义')+'\n施药日期：'+sprayDateStr+'\n安全间隔期：'+phiDays+'天\n最早采收日期：'+formatDate(safeDate);
+  var txt='农药安全间隔期记录\n农药：'+(sel?sel.name:'自定义')+'\n施药日期：'+sprayDateStr+'\n安全间隔期：'+phiDays+'天\n最早采收日期（按标签间隔推算）：'+formatDate(safeDate)+'\n说明：日期推算不等于农药残留检测合格，请核对当地登记标签与残留限量。';
   ToolBox.copyText(txt, i18nText('msg602'));
 }
 initSelect();

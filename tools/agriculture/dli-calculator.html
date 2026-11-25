@@ -255,15 +255,16 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   var supplementDLI = lightPPFD * lightHours * 3600 / 1000000;
   var totalDLI = naturalDLI + supplementDLI;
 
-  var grade = totalDLI>=crop.max?'grade-excellent':totalDLI>=crop.min?'grade-good':totalDLI>=crop.min*0.7?'grade-pass':'grade-fail';
-  var gradeText = totalDLI>=crop.max?'光照充足':totalDLI>=crop.min?'光照达标':totalDLI>=crop.min*0.7?'光照偏弱':'光照严重不足';
-  var tipType = totalDLI>=crop.max?'tip-success':totalDLI>=crop.min?'tip-info':'tip-warn';
+  var overMax = totalDLI>crop.max;
+  var grade = overMax?'grade-pass':totalDLI>=crop.max?'grade-excellent':totalDLI>=crop.min?'grade-good':totalDLI>=crop.min*0.7?'grade-pass':'grade-fail';
+  var gradeText = overMax?'高于参考上限':totalDLI>=crop.max?'处于参考上限':totalDLI>=crop.min?'光照达标':totalDLI>=crop.min*0.7?'光照偏弱':'光照严重不足';
+  var tipType = overMax?'tip-warn':totalDLI>=crop.max?'tip-success':totalDLI>=crop.min?'tip-info':'tip-warn';
 
   var deficit = crop.min - totalDLI;
   var needLightHours = deficit>0 && lightPPFD>0 ? (deficit * 1000000 / (lightPPFD * 3600)) : 0;
   var needPPFD = deficit>0 && hours>0 ? (deficit * 1000000 / (hours * 3600)) : 0;
 
-  var tipContent = totalDLI>=crop.max?'DLI充足，作物光合作用充分，无需补光。':totalDLI>=crop.min?'DLI达标，当前光照满足作物需求。':'DLI不足！';
+  var tipContent = overMax?'总DLI 高于'+crop.name+'参考上限（'+crop.max+' mol/m²/d），不代表越高越好；可能存在光照过强、热负荷或光抑制风险，请结合温度、通风与品种/生育期复核，必要时遮阳。':totalDLI>=crop.max?'总DLI 位于参考区间上沿，当前光照满足作物需求，无需补光。':totalDLI>=crop.min?'DLI达标，当前光照满足作物需求。':'DLI不足！';
   if(deficit>0){
     tipContent += ' 当前缺口'+deficit.toFixed(1)+' mol/m²/d。';
     if(lightPPFD>0) tipContent += '建议补光灯再开'+needLightHours.toFixed(1)+'小时。';
@@ -279,7 +280,7 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
 
   html += '<p style="margin:10px 0;">光照评价：<span class="grade-tag '+grade+'">'+gradeText+'</span></p>';
   html += '<div class="progress-bar"><div class="progress-fill" style="width:'+Math.min(totalDLI/crop.max*100,100)+'%;"></div></div>';
-  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+crop.name+' DLI需求：'+crop.min+'~'+crop.max+' mol/m²/d（代表：'+crop.crops+'）</p>';
+  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+crop.name+' DLI需求：'+crop.min+'~'+crop.max+' mol/m²/d（代表：'+crop.crops+'）。参考区间为品种/生育期经验范围，实际需结合温度、CO₂与光周期调整。</p>';
 
   html += '<div class="tip-box '+tipType+'" style="margin-top:12px;">'+tipContent+'</div>';
 
@@ -295,8 +296,10 @@ function copyResult(){
   var hours=+document.getElementById('hours').value||0;
   var lightPPFD=+document.getElementById('lightPPFD').value||0;
   var lightHours=+document.getElementById('lightHours').value||0;
+  var crop=CROP_DLI[document.getElementById('cropType').value];
   var totalDLI=(ppfd*hours+lightPPFD*lightHours)*3600/1000000;
-  ToolBox.copyText('光照累积量DLI：\n自然光DLI：'+(ppfd*hours*3600/1000000).toFixed(1)+' mol/m²/d\n补光DLI：'+(lightPPFD*lightHours*3600/1000000).toFixed(1)+' mol/m²/d\n总DLI：'+totalDLI.toFixed(1)+' mol/m²/d', i18nText('toast.msg544'));
+  var note=totalDLI>crop.max?'\n提示：高于'+crop.name+'参考上限'+crop.max+' mol/m²/d，不代表越高越好，请复核光强、热负荷与品种/生育期。':'';
+  ToolBox.copyText('光照累积量DLI：\n自然光DLI：'+(ppfd*hours*3600/1000000).toFixed(1)+' mol/m²/d\n补光DLI：'+(lightPPFD*lightHours*3600/1000000).toFixed(1)+' mol/m²/d\n总DLI：'+totalDLI.toFixed(1)+' mol/m²/d'+note, i18nText('toast.msg544'));
 }
 calc();
 </script>

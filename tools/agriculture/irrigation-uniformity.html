@@ -247,20 +247,23 @@ function calc(){
   var __allEmpty=true;
   for(var __i=0;__i<pointCount;__i++){var __el=document.getElementById('pt'+__i);if(__el&&String(__el.value).trim()!==''){__allEmpty=false;break;}}
   if(__allEmpty){ToolBox.setResult('result','<p style="color:var(--warning);">请先填写各测点的流量/压力数据，再点击「计算均匀度」。</p>');return;}
-  var values = [];
+  var values = [], labels = [], blankCount = 0;
   for(var i=0;i<pointCount;i++){
     var el = document.getElementById('pt'+i);
-    if(el){
-      var v = +el.value;
-      if(!isNaN(v) && v>=0) values.push(v);
-    }
+    if(!el) continue;
+    var raw = String(el.value).trim();
+    if(raw===''){ blankCount++; continue; }
+    var v = Number(raw);
+    if(!isFinite(v) || v<0){ ToolBox.setResult('result','<p style="color:var(--danger);">测点 '+(i+1)+' 数据无效：须为有限的非负数，请修正后再计算</p>'); return; }
+    values.push(v); labels.push(i+1);
   }
-  if(values.length<2){ ToolBox.setResult('result','<p style="color:var(--danger);">至少需要2个有效测点</p>'); return; }
+  if(values.length<2){ ToolBox.setResult('result','<p style="color:var(--danger);">至少需要 2 个有效测点（当前有效 '+values.length+' 个，未填 '+blankCount+' 个）</p>'); return; }
 
   var n = values.length;
   var sum = 0;
   for(var i=0;i<n;i++) sum += values[i];
   var mean = sum / n;
+  if(mean<=0){ ToolBox.setResult('result','<p style="color:var(--warning);">有效测点平均灌水量为 0，CU/DU/CV 的分母为零，无法计算；请检查测点读数或流量单位。</p>'); return; }
 
   // 克里斯琴森均匀系数 CU = 1 - (Σ|x-mean|) / (n × mean)
   var absDev = 0;
@@ -297,14 +300,14 @@ function calc(){
 
   html += '<p style="margin:10px 0;">均匀度评价：<span class="grade-tag '+gradeCU+'">'+gradeText+'</span></p>';
   html += '<div class="progress-bar"><div class="progress-fill" style="width:'+Math.min(cu,100)+'%;"></div></div>';
-  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">CU参考标准：&gt;90%优秀 | 80-90%良好 | 70-80%一般 | &lt;70%差</p>';
+  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">CU参考标准：&gt;90%优秀 | 80-90%良好 | 70-80%一般 | &lt;70%差'+(blankCount>0?'；已忽略 '+blankCount+' 个未填测点，图中编号仍对应原测点。':'')+'</p>';
 
   // 柱状图可视化
   html += '<h3 style="font-size:14px;margin:16px 0 10px;">各测点灌水量分布</h3>';
   for(var j=0;j<n;j++){
     var pct = mean>0 ? (values[j]/mean*50) : 0;
     var barColor = values[j]<mean*0.8?'var(--danger)':values[j]>mean*1.2?'var(--warning)':'var(--primary)';
-    html += '<div class="bar-row"><div class="bar-lbl">点'+(j+1)+'</div>';
+    html += '<div class="bar-row"><div class="bar-lbl">点'+labels[j]+'</div>';
     html += '<div class="bar-bg"><div class="bar-fill" style="width:'+Math.min(pct,100)+'%;background:'+barColor+';">'+values[j].toFixed(1)+'</div></div></div>';
   }
 
@@ -320,11 +323,12 @@ function calc(){
 }
 function copyResult(){
   var values=[];
-  for(var i=0;i<pointCount;i++){var el=document.getElementById('pt'+i);if(el){var v=+el.value;if(!isNaN(v)&&v>=0)values.push(v);}}
+  for(var i=0;i<pointCount;i++){var el=document.getElementById('pt'+i);if(!el)continue;var raw=String(el.value).trim();if(raw==='')continue;var v=Number(raw);if(!isFinite(v)||v<0){ToolBox.showToast('测点 '+(i+1)+' 数据无效，请先修正','warning');return;}values.push(v);}
   var n=values.length;
   if(n<2){ ToolBox.showToast('至少需要2个有效测点','warning'); return; }
   var sum=0;for(var i=0;i<n;i++)sum+=values[i];
-  var mean=sum/n,absDev=0;for(var i=0;i<n;i++)absDev+=Math.abs(values[i]-mean);
+  var mean=sum/n;if(mean<=0){ToolBox.showToast('平均灌水量为0，无法计算均匀度','warning');return;}
+  var absDev=0;for(var i=0;i<n;i++)absDev+=Math.abs(values[i]-mean);
   var cu=mean>0?(1-absDev/(n*mean))*100:0;
   var sorted=values.slice().sort(function(a,b){return a-b;});
   var q1=Math.min(n,Math.max(1,Math.ceil(n/4))),q1s=0;

@@ -253,45 +253,57 @@ function resetData(){
   document.getElementById('energyDay').value=4;
   dayCount=7; renderDayRows(); calc();
 }
+function __seedRead(){
+  var tRaw=String(document.getElementById('totalSeeds').value).trim();
+  var eRaw=String(document.getElementById('energyDay').value).trim();
+  var lRaw=String(document.getElementById('seedlingLen').value).trim();
+  if(tRaw==='') return {err:'请填写供试种子总数'};
+  var total=Number(tRaw);
+  if(!isFinite(total)||total<=0||Math.floor(total)!==total) return {err:'供试种子总数须为正整数'};
+  var energyDay=Number(eRaw);
+  if(eRaw===''||!isFinite(energyDay)||Math.floor(energyDay)!==energyDay||energyDay<1||energyDay>dayCount) return {err:'发芽势天数须为 1–'+dayCount+' 的整数'};
+  var len=null;
+  if(lRaw!==''){ len=Number(lRaw); if(!isFinite(len)||len<0) return {err:'幼苗平均长度须为不小于0的有限数；未测量可留空'} }
+  var totalGerm=0,energySum=0,gi=0,errs=[],missing=[],daily=[],recorded=0,energyComplete=true;
+  for(var i=1;i<=dayCount;i++){
+    var el=document.getElementById('day'+i);
+    var raw=el?String(el.value).trim():'';
+    if(raw===''){ missing.push(i); if(i<=energyDay)energyComplete=false; daily.push({day:i,count:null}); continue; }
+    var g=Number(raw);
+    if(!isFinite(g)||g<0||Math.floor(g)!==g){ errs.push('第'+i+'天须为非负整数'); daily.push({day:i,count:null}); continue; }
+    recorded++; daily.push({day:i,count:g});
+    totalGerm+=g; if(i<=energyDay)energySum+=g; gi+=g/i;
+  }
+  if(errs.length) return {err:errs.join('；')};
+  if(recorded===0) return {err:'请至少填写 1 天的发芽记录；当日无发芽请明确填 0'};
+  return {total:total,energyDay:energyDay,len:len,totalGerm:totalGerm,energySum:energySum,gi:gi,daily:daily,incomplete:missing.length>0,missing:missing,energyComplete:energyComplete};
+}
 function calc(){
 // NUMCLR2：全部数值/日期输入为空时不输出 0 与结论
 var __ni=Array.prototype.slice.call(document.querySelectorAll('input[type=number],input[type=date]'));
 if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
 
-  var total = +document.getElementById('totalSeeds').value || 0;
-  var energyRaw = document.getElementById('energyDay').value.trim();
-  var energyDay = +energyRaw;
-  var len = +document.getElementById('seedlingLen').value || 0;
-  if(total<=0){ ToolBox.setResult('result','<p style="color:var(--danger);">请输入有效的种子总数</p>'); return; }
-  if(energyRaw===''||isNaN(energyDay)||energyDay<1){ ToolBox.setResult('result','<p style="color:var(--danger);">请输入有效的发芽势天数（≥1 天，0 天不能计算发芽势）</p>'); return; }
-
-  var totalGerm = 0, energySum = 0, gi = 0;
-  var dailyData = [];
-  for(var i=1;i<=dayCount;i++){
-    var el = document.getElementById('day'+i);
-    var g = el ? (+el.value || 0) : 0;
-    dailyData.push({day:i, count:g});
-    totalGerm += g;
-    if(i <= energyDay) energySum += g;
-    gi += g / i;
-  }
+  var rd = __seedRead();
+  if(rd.err){ ToolBox.setResult('result','<p style="color:var(--danger);">'+rd.err+'</p>'); return; }
+  var total=rd.total, energyDay=rd.energyDay, len=rd.len, totalGerm=rd.totalGerm, energySum=rd.energySum, gi=rd.gi;
+  var dailyData = rd.daily;
   if(totalGerm > total){
     ToolBox.setResult('result','<p style="color:var(--danger);">发芽数合计超过供试种子数，请核对逐日记录</p>');
     return;
   }
 
   var germinationRate = (totalGerm / total) * 100;
-  var germinationEnergy = (energySum / total) * 100;
-  var vi = gi * len;
+  var germinationEnergy = rd.energyComplete ? (energySum / total) * 100 : null;
+  var vi = (len===null || rd.incomplete) ? null : gi * len;
 
-  var gradeRate = germinationRate>=90?'grade-excellent':germinationRate>=80?'grade-good':germinationRate>=70?'grade-pass':'grade-fail';
-  var gradeText = germinationRate>=90?'优质种':germinationRate>=80?'合格':germinationRate>=70?'勉强可用':'不合格';
+  var gradeRate = rd.incomplete?'grade-pass':germinationRate>=90?'grade-excellent':germinationRate>=80?'grade-good':germinationRate>=70?'grade-pass':'grade-fail';
+  var gradeText = rd.incomplete?'记录不完整':germinationRate>=90?'优质种':germinationRate>=80?'合格':germinationRate>=70?'勉强可用':'不合格';
 
   var html = '<div class="data-grid">';
   html += '<div class="data-card"><div class="num">'+germinationRate.toFixed(1)+'%</div><div class="label">发芽率</div></div>';
-  html += '<div class="data-card"><div class="num">'+germinationEnergy.toFixed(1)+'%</div><div class="label">发芽势(前'+energyDay+'天)</div></div>';
+  html += '<div class="data-card"><div class="num">'+(germinationEnergy===null?'—':germinationEnergy.toFixed(1)+'%')+'</div><div class="label">发芽势(前'+energyDay+'天)'+(germinationEnergy===null?'：观察未覆盖':'')+'</div></div>';
   html += '<div class="data-card"><div class="num">'+gi.toFixed(2)+'</div><div class="label">发芽指数 GI</div></div>';
-  html += '<div class="data-card"><div class="num">'+vi.toFixed(2)+'</div><div class="label">活力指数 VI</div></div>';
+  html += '<div class="data-card"><div class="num">'+(vi===null?'—':vi.toFixed(2))+'</div><div class="label">活力指数 VI'+(len===null?'（未填苗长）':(rd.incomplete?'（记录不完整）':''))+'</div></div>';
   html += '</div>';
 
   html += '<p style="margin:10px 0 6px;">种子质量评价：<span class="grade-tag '+gradeRate+'">'+gradeText+'</span></p>';
@@ -302,28 +314,26 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
   for(var j=0;j<dailyData.length;j++){
     var d = dailyData[j];
     cum += d.count;
+    if(d.count===null){ html += '<tr><td>第'+d.day+'天</td><td>—</td><td>—</td><td>—</td></tr>'; continue; }
     html += '<tr><td>第'+d.day+'天</td><td>'+d.count+'粒</td><td>'+((cum/total)*100).toFixed(1)+'%</td><td>'+(d.count/d.day).toFixed(2)+'</td></tr>';
   }
   html += '</tbody></table>';
 
   html += '<div class="tip-box tip-info" style="margin-top:12px;">';
+  if(rd.incomplete){ html += '<div class="tip-box tip-warn" style="margin-top:12px;">观察记录不完整：第 '+rd.missing.join('、')+' 天未填写。当前发芽率按已记录天数计算，不能作为最终种子质量结论；如当日无发芽，请明确填 0。</div>'; }
   html += '<strong>计算公式：</strong><br>';
   html += '发芽率 = (总发芽数 / 供试种子数) × 100%<br>';
   html += '发芽势 = (规定天数内发芽数 / 供试种子数) × 100%<br>';
   html += '发芽指数 GI = Σ(第t天发芽数 / t)<br>';
-  html += '活力指数 VI = GI × 幼苗长度(cm)';
+  html += '活力指数 VI = GI × 幼苗长度(cm)'+(len===null?'（未填写苗长时不计算）':'');
   html += '</div>';
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }
 function copyResult(){
-  var total = +document.getElementById('totalSeeds').value || 0;
-  var len = +document.getElementById('seedlingLen').value || 0;
-  var energyDay = +document.getElementById('energyDay').value || 4;
-  var totalGerm=0,energySum=0,gi=0;
-  for(var i=1;i<=dayCount;i++){var el=document.getElementById('day'+i);var g=el?(+el.value||0):0;totalGerm+=g;if(i<=energyDay)energySum+=g;gi+=g/i;}
-  if(total<=0){ ToolBox.showToast('请先输入有效的供试种子数','warning'); return; }
-  if(totalGerm>total){ ToolBox.showToast('发芽数合计超过供试种子数，请核对逐日记录','warning'); return; }
-  var text='种子活力检测结果：\n发芽率：'+((totalGerm/total)*100).toFixed(1)+'%\n发芽势：'+((energySum/total)*100).toFixed(1)+'%\n发芽指数GI：'+gi.toFixed(2)+'\n活力指数VI：'+(gi*len).toFixed(2);
+  var rd=__seedRead();
+  if(rd.err){ ToolBox.showToast(rd.err,'warning'); return; }
+  if(rd.totalGerm>rd.total){ ToolBox.showToast('发芽数合计超过供试种子数，请核对逐日记录','warning'); return; }
+  var text='种子活力检测结果：\n发芽率：'+((rd.totalGerm/rd.total)*100).toFixed(1)+'%'+(rd.incomplete?'（记录不完整，按已记录天数）':'')+'\n发芽势：'+(rd.energyComplete?((rd.energySum/rd.total)*100).toFixed(1)+'%':'观察未覆盖，未计算')+'\n发芽指数GI：'+rd.gi.toFixed(2)+'\n活力指数VI：'+((rd.len===null||rd.incomplete)?'未填写苗长或记录不完整，未计算':(rd.gi*rd.len).toFixed(2));
   ToolBox.copyText(text, i18nText('msg458'));
 }
 renderDayRows();

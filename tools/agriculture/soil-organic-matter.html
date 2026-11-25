@@ -226,14 +226,15 @@
 
 <script>
 function calc(){
-  var before = +document.getElementById('beforeWeight').value || 0;
-  var after = +document.getElementById('afterWeight').value || 0;
-  var temp = +document.getElementById('temp').value;
-  var factor = +document.getElementById('factor').value;
-
-  if(before<=0){ ToolBox.setResult('result','<p style="color:var(--danger);">灼烧前重量必须大于0</p>'); return; }
-  if(after>=before){ ToolBox.setResult('result','<p style="color:var(--warning);">灼烧后重量不应大于灼烧前，请检查数据</p>'); return; }
-  if(!(factor>0)){ ToolBox.setResult('result','<p style="color:var(--danger);">换算系数必须大于0</p>'); return; }
+  var bRaw=String(document.getElementById('beforeWeight').value).trim();
+  var aRaw=String(document.getElementById('afterWeight').value).trim();
+  var fRaw=String(document.getElementById('factor').value).trim();
+  if(bRaw===''||aRaw===''){ ToolBox.setResult('result','<p style="color:var(--danger);">请填写灼烧前重量与灼烧后重量；两者均为称量值，不能用空值代替 0</p>'); return; }
+  var before=Number(bRaw), after=Number(aRaw), temp=+document.getElementById('temp').value, factor=Number(fRaw);
+  if(!isFinite(before)||before<=0){ ToolBox.setResult('result','<p style="color:var(--danger);">灼烧前重量必须为大于0的有限数</p>'); return; }
+  if(!isFinite(after)||after<0){ ToolBox.setResult('result','<p style="color:var(--danger);">灼烧后重量必须为不小于0的有限数</p>'); return; }
+  if(after>before){ ToolBox.setResult('result','<p style="color:var(--warning);">灼烧后重量不应大于灼烧前，请检查数据</p>'); return; }
+  if(!isFinite(factor)||factor<=0){ ToolBox.setResult('result','<p style="color:var(--danger);">换算系数必须为大于0的有限数</p>'); return; }
 
   var lossWeight = before - after;
   var lossRate = (lossWeight / before) * 100;
@@ -257,7 +258,8 @@ function calc(){
 
   html += '<p style="margin:10px 0;">土壤肥力评价：<span class="grade-tag '+grade+'">'+gradeText+'</span></p>';
   html += '<div class="progress-bar"><div class="progress-fill" style="width:'+Math.min(organicMatter/5*100,100)+'%;"></div></div>';
-  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">有机质分级：&lt;1%极缺 | 1~2%较缺 | 2~3%中等 | 3~4%丰富 | &gt;4%极丰富</p>';
+  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">有机质分级：&lt;1%极缺 | 1~2%较缺 | 2~3%中等 | 3~4%丰富 | &gt;4%极丰富'+(after===before?'；本次灼烧前后等重，烧失量为0，有机质低于该方法可检出水平。':'')+'</p>';
+  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">方法限制：灼烧法按 400/550/650℃ 的经验系数估算，结构水、碳酸盐等也会计入烧失量；结果用于筛查，精确值需重铬酸钾法等实验室方法确认。</p>';
 
   html += '<div class="tip-box '+tipType+'" style="margin-top:12px;">'+tipContent+'</div>';
 
@@ -270,13 +272,15 @@ function calc(){
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }
 function copyResult(){
-  var before=+document.getElementById('beforeWeight').value||0;
-  var after=+document.getElementById('afterWeight').value||0;
-  var temp=+document.getElementById('temp').value;
-  var factor=+document.getElementById('factor').value;
-  if(before<=0){ ToolBox.showToast('灼烧前重量必须大于0','warning'); return; }
-  if(after>=before){ ToolBox.showToast('灼烧后重量不应大于灼烧前，请检查数据','warning'); return; }
-  if(!(factor>0)){ ToolBox.showToast('换算系数必须大于0','warning'); return; }
+  var bRaw=String(document.getElementById('beforeWeight').value).trim();
+  var aRaw=String(document.getElementById('afterWeight').value).trim();
+  var fRaw=String(document.getElementById('factor').value).trim();
+  if(bRaw===''||aRaw===''){ ToolBox.showToast('请填写灼烧前重量与灼烧后重量','warning'); return; }
+  var before=Number(bRaw), after=Number(aRaw), temp=+document.getElementById('temp').value, factor=Number(fRaw);
+  if(!isFinite(before)||before<=0){ ToolBox.showToast('灼烧前重量必须大于0','warning'); return; }
+  if(!isFinite(after)||after<0){ ToolBox.showToast('灼烧后重量必须为不小于0的有限数','warning'); return; }
+  if(after>before){ ToolBox.showToast('灼烧后重量不应大于灼烧前，请检查数据','warning'); return; }
+  if(!isFinite(factor)||factor<=0){ ToolBox.showToast('换算系数必须大于0','warning'); return; }
   var lossRate=((before-after)/before)*100;
   var tempCorrection=temp===400?0.50:temp===550?0.58:0.65;
   var organicCarbon=lossRate*tempCorrection;

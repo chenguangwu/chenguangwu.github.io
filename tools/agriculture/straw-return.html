@@ -275,7 +275,9 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   var amount = +document.getElementById('strawAmount').value || 0;
   var targetCN = parseFloat(document.getElementById('targetCN').value);
   var fertKey = document.getElementById('fertType').value;
-  var soilOM = +document.getElementById('soilOM').value || 0;
+  var soilRaw = String(document.getElementById('soilOM').value).trim();
+  var soilOM = soilRaw==='' ? null : Number(soilRaw);
+  if(soilOM!==null && (!isFinite(soilOM)||soilOM<0)){ ToolBox.setResult('result','<p style="color:var(--danger);">土壤有机质须为不小于0的有限数；不确定时可留空，留空不会按 0 生成土壤建议</p>'); return; }
 
   if(amount<=0||carbon<=0||nitrogen<=0||!(targetCN>0)){ ToolBox.setResult('result','<p style="color:var(--danger);">请输入有效的秸秆参数（秸秆量、碳含量、氮含量与目标C/N均须大于0）</p>'); return; }
 
@@ -293,11 +295,11 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   // 需要的肥料量
   var fertAmount = supplementN / (fert.nContent/100); // kg/亩
 
-  // 最佳还田量建议（基于土壤有机质）
+  // 最佳还田量建议（仅在明确提供土壤有机质时生成）
   var recommendedAmount = amount;
-  if(soilOM < 1) recommendedAmount = Math.min(amount+200, 800);
-  else if(soilOM < 2) recommendedAmount = Math.min(amount+100, 700);
-  else if(soilOM > 4) recommendedAmount = Math.max(amount-100, 200);
+  if(soilOM !== null && soilOM < 1) recommendedAmount = Math.min(amount+200, 800);
+  else if(soilOM !== null && soilOM < 2) recommendedAmount = Math.min(amount+100, 700);
+  else if(soilOM !== null && soilOM > 4) recommendedAmount = Math.max(amount-100, 200);
 
   // 分解时间估算
   var decomposeDays = targetCN<=20?30:targetCN<=25?45:60;
@@ -327,12 +329,14 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   html += '<p>预计分解周期：'+decomposeDays+'天</p>';
   html += '</div>';
 
-  if(soilOM < 1.5){
-    html += '<div class="tip-box tip-warn" style="margin-top:10px;">土壤有机质偏低('+soilOM+'%)，建议增加还田量至'+recommendedAmount+'kg/亩，持续改良土壤。</div>';
+  if(soilOM === null){
+    html += '<div class="tip-box tip-info" style="margin-top:10px;">未填写土壤有机质，本次仅给出碳氮比与补氮计算，不生成基于土壤有机质的还田量建议；如需该建议请补充实测有机质含量。</div>';
+  } else if(soilOM < 1.5){
+    html += '<div class="tip-box tip-warn" style="margin-top:10px;">土壤有机质偏低('+soilOM+'%)，建议增加还田量至'+recommendedAmount+'kg/亩，持续改良土壤；该建议为经验值，需结合当地秸秆资源与耕作制度调整。</div>';
   } else if(soilOM > 4){
-    html += '<div class="tip-box tip-info" style="margin-top:10px;">土壤有机质丰富('+soilOM+'%)，可适当减少还田量至'+recommendedAmount+'kg/亩。</div>';
+    html += '<div class="tip-box tip-info" style="margin-top:10px;">土壤有机质丰富('+soilOM+'%)，可适当减少还田量至'+recommendedAmount+'kg/亩；该建议为经验值，需结合当地秸秆资源与耕作制度调整。</div>';
   } else {
-    html += '<div class="tip-box tip-success" style="margin-top:10px;">土壤有机质适中('+soilOM+'%)，当前还田量合理。</div>';
+    html += '<div class="tip-box tip-success" style="margin-top:10px;">土壤有机质适中('+soilOM+'%)，当前还田量合理；该建议为经验值，需结合当地秸秆资源与耕作制度调整。</div>';
   }
 
   if(supplementN > 0){

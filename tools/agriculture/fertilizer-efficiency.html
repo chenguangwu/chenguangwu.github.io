@@ -231,12 +231,14 @@ var REF_RANGES = {
   'K2O': {low:35, high:55, name:'钾肥'}
 };
 function calc(){
-  var fertUptake = +document.getElementById('fertUptake').value || 0;
-  var fertInput = +document.getElementById('fertInput').value || 0;
-  var ckUptake = +document.getElementById('ckUptake').value || 0;
+  var fuRaw=String(document.getElementById('fertUptake').value).trim();
+  var fiRaw=String(document.getElementById('fertInput').value).trim();
+  var ckRaw=String(document.getElementById('ckUptake').value).trim();
+  if(fuRaw===''||fiRaw===''||ckRaw===''){ ToolBox.setResult('result','<p style="color:var(--danger);">请填写施肥区吸收量、施入养分量与对照区吸收量；对照区为零也须明确填 0，不能留空代替</p>'); return; }
+  var fertUptake=Number(fuRaw), fertInput=Number(fiRaw), ckUptake=Number(ckRaw);
   var nType = document.getElementById('nutrientType').value;
-
-  if(fertInput<=0){ ToolBox.setResult('result','<p style="color:var(--danger);">施入养分量必须大于0</p>'); return; }
+  if(!isFinite(fertUptake)||fertUptake<0||!isFinite(ckUptake)||ckUptake<0){ ToolBox.setResult('result','<p style="color:var(--danger);">施肥区与对照区吸收量须为不小于0的有限数</p>'); return; }
+  if(!isFinite(fertInput)||fertInput<=0){ ToolBox.setResult('result','<p style="color:var(--danger);">施入养分量必须为大于0的有限数</p>'); return; }
   if(fertUptake < ckUptake){ ToolBox.setResult('result','<p style="color:var(--warning);">提示：施肥区吸收量低于对照区，请检查数据</p>'); return; }
 
   var recovery = ((fertUptake - ckUptake) / fertInput) * 100;
@@ -270,11 +272,14 @@ function calc(){
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }
 function copyResult(){
-  var fertUptake=+document.getElementById('fertUptake').value||0;
-  var fertInput=+document.getElementById('fertInput').value||0;
-  var ckUptake=+document.getElementById('ckUptake').value||0;
+  var fuRaw=String(document.getElementById('fertUptake').value).trim();
+  var fiRaw=String(document.getElementById('fertInput').value).trim();
+  var ckRaw=String(document.getElementById('ckUptake').value).trim();
+  if(fuRaw===''||fiRaw===''||ckRaw===''){ ToolBox.showToast('请填写三项吸收量/施入量（对照区为零也要明确填0）','warning'); return; }
+  var fertUptake=Number(fuRaw), fertInput=Number(fiRaw), ckUptake=Number(ckRaw);
   var nType=document.getElementById('nutrientType').value;
-  if(fertInput<=0||fertUptake<ckUptake){ ToolBox.showToast('请先输入有效数据（施入量须大于0，施肥区吸收量不得低于对照区）','warning'); return; }
+  if(!isFinite(fertUptake)||fertUptake<0||!isFinite(ckUptake)||ckUptake<0){ ToolBox.showToast('吸收量须为不小于0的有限数','warning'); return; }
+  if(!isFinite(fertInput)||fertInput<=0||fertUptake<ckUptake){ ToolBox.showToast('请先输入有效数据（施入量须大于0，施肥区吸收量不得低于对照区）','warning'); return; }
   var recovery=((fertUptake-ckUptake)/fertInput)*100;
   var note = recovery>100 ? '\n提示：利用率超过100%，数据异常，请复核吸收量与施入量' : '';
   ToolBox.copyText(REF_RANGES[nType].name+'当季利用率：'+recovery.toFixed(1)+'%'+note, i18nText('toast.msg544'));
