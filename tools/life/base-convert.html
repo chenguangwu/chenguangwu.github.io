@@ -136,12 +136,13 @@
   <div class="card tool-card-accent" style="--tool-accent:#1D4ED8;">
     <h2 data-zh="🔢 进制转换">🔢 Base / Radix Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">前缀识别决定输入进制：0x / 0X 按 16 进制、0b / 0B 按 2 进制、0o / 0O 按 8 进制，其余按 10 进制解析；解析结果分别以 toString(2) / toString(8) / toString(10) / toString(16).toUpperCase() 输出二、八、十、十六进制，自定义进制按输入基数（默认 36）输出；解析失败时各栏置「错误」</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">前缀识别决定输入进制：0x / 0X 按 16 进制、0b / 0B 按 2 进制、0o / 0O 按 8 进制，其余按 10 进制解析；解析用 BigInt 完成，超过 2^53 的整数也逐位精确；自定义进制按输入基数（默认 36）用 BigInt 取模输出；输入超过 4096 字符或格式非法时提示并清空结果</div>
   <p class="formula-desc" data-zh="本工具用于单位与格式换算，换算因子依据国际单位制(SI)及相关标准定义，结果保留输入精度；纯前端本地处理。 工具名称：进制转换器（生活） - 进制转换器是一款日常生活领域的在线工具。">Convert numbers between binary, octal, decimal, hexadecimal and any custom base, with text and ASCII support.</p>
 </div>
 
     <label for="input">输入数值（任意进制，会按当前选中进制解析）</label>
     <input type="text" id="input" value="255" oninput="convert()" placeholder="输入数值...">
+    <div id="baseMsg" style="font-size:12px;color:var(--danger);margin-top:6px;"></div>
     
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="convert()">转换</button>
@@ -283,15 +284,16 @@ function loadBaseSample(v){
   convert();
 }
 
-// Number.toString 仅支持 2–36 进制；自定义进制上限 62，需自行实现
+// BigInt 自定义进制：逐位取模，避免 Number 超过安全整数后静默舍入或出现 Infinity。
 function toBase(n, base){
   if(!Number.isInteger(base) || base < 2 || base > 62) return '错误';
   const digits = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-  const neg = n < 0;
-  n = Math.abs(Math.trunc(n));
-  if(n === 0) return '0';
+  const neg = n < 0n;
+  let v = neg ? -n : n;
+  if(v === 0n) return '0';
   let s = '';
-  while(n > 0){ s = digits[n % base] + s; n = Math.floor(n / base); }
+  const b = BigInt(base);
+  while(v > 0n){ s = digits[Number(v % b)] + s; v /= b; }
   return (neg ? '-' : '') + s;
 }
 
@@ -303,16 +305,24 @@ function convert(){
     return;
   }
   
-  let num = NaN;
+  const msg = document.getElementById('baseMsg');
+  if(msg) msg.textContent = '';
+  if(input.length > 4096){
+    ['bin','oct','dec','hex','custom'].forEach(id => document.getElementById(id).value='');
+    if(msg) msg.textContent = '输入过长（最多 4096 个字符），请缩短后再转换。';
+    return;
+  }
+  let num = null;
   // 整串校验合法字符集，杜绝 parseInt('0b1012') 静默截断成 5
-  if(/^0[xX][0-9a-fA-F]+$/.test(input)) num = parseInt(input.slice(2), 16);
-  else if(/^0[bB][01]+$/.test(input)) num = parseInt(input.slice(2), 2);
-  else if(/^0[oO][0-7]+$/.test(input)) num = parseInt(input.slice(2), 8);
-  else if(/^-?\d+$/.test(input)) num = parseInt(input, 10);
+  if(/^0[xX][0-9a-fA-F]+$/.test(input)) num = BigInt('0x' + input.slice(2));
+  else if(/^0[bB][01]+$/.test(input)) num = BigInt('0b' + input.slice(2));
+  else if(/^0[oO][0-7]+$/.test(input)) num = BigInt('0o' + input.slice(2));
+  else if(/^-?\d+$/.test(input)) num = BigInt(input);
   
-  if(isNaN(num)){
+  if(num === null){
     ['bin','oct','dec','hex','custom','ascii','unicode'].forEach(id => { var e=document.getElementById(id); if(e) e.value='错误'; });
     var tx=document.getElementById('text'); if(tx) tx.value='';
+    if(msg) msg.textContent = '输入格式无效：仅支持整数、0x/0b/0o 前缀或十进制整串。';
     return;
   }
   
@@ -369,12 +379,12 @@ function __bcExport(){
   try{
     var inp=(document.getElementById('input').value||'').trim();
     if(!inp) return;
-    var num;
-    if(inp.startsWith('0x')||inp.startsWith('0X')) num=parseInt(inp,16);
-    else if(inp.startsWith('0b')||inp.startsWith('0B')) num=parseInt(inp.slice(2),2);
-    else if(inp.startsWith('0o')||inp.startsWith('0O')) num=parseInt(inp.slice(2),8);
-    else num=parseInt(inp,10);
-    if(isNaN(num)) return;
+    var num=null;
+    if(/^0[xX][0-9a-fA-F]+$/.test(inp)) num=BigInt('0x'+inp.slice(2));
+    else if(/^0[bB][01]+$/.test(inp)) num=BigInt('0b'+inp.slice(2));
+    else if(/^0[oO][0-7]+$/.test(inp)) num=BigInt('0o'+inp.slice(2));
+    else if(/^-?\d+$/.test(inp)) num=BigInt(inp);
+    if(num===null) return;
     var cb=parseInt(document.getElementById('customBase').value)||36;
     var rows=[['二进制',num.toString(2)],['八进制',num.toString(8)],['十进制',num.toString(10)],['十六进制',num.toString(16).toUpperCase()],['自定义进制('+cb+')',toBase(num, cb)]];
     var tb=document.getElementById('bcTable'); if(!tb)return;

@@ -243,7 +243,7 @@ function calc(){
   const rows=[];
   const unitRe=/^(个|份儿|份数|份|箱|件|人|斤|盒|袋|瓶|支|本|张|套|打|提)$/;
   const numUnitRe=/^([\d.]+)(?:(个|份儿|份数|份|箱|件|人|斤|盒|袋|瓶|支|本|张|套|打|提)|([A-Za-z]+))?$/;
-  lines.forEach(function(ln){
+  lines.forEach(function(ln,rowIndex){
     let parts=ln.split(/[,，\t;；]|\s+/).map(s=>s.trim()).filter(Boolean);
     if(!parts.length) return;
     // 「2 箱」「1.5 份」被空格拆成两段时先把数字与单位并回一段，避免末段「箱」非数字导致整行当姓名
@@ -265,40 +265,43 @@ function calc(){
       else name=parts.join(' ');
     }
     if(!isFinite(qty)||qty<=0) qty=1;
-    rows.push({name:name||'（未署名）',qty:qty,unit:unit});
+    rows.push({name:name||('未署名订单 #'+(rowIndex+1)),qty:qty,unit:unit,anonymous:!name,line:rowIndex});
   });
   if(!rows.length){document.getElementById('res').innerHTML='<p>请粘贴接龙名单</p>';return;}
   if(!isFinite(price)||price<0){document.getElementById('res').innerHTML='<p>请填写有效单价</p>';return;}
   // 同名买家按「同一人 + 同一单位」合并数量；不同单位绝不直接相加，避免「2 箱 + 3 斤 = 5 份」这类无意义金额。
   const agg={};
   rows.forEach(function(r){
-    const key=r.name+'\u0000'+r.unit;
-    if(!agg[key]) agg[key]={name:r.name,unit:r.unit,qty:0};
+    // 未署名行身份未知，不能按占位姓名合并；每行单独作为一单统计。
+    const key=(r.anonymous?'anon#'+r.line:r.name)+'\u0000'+r.unit;
+    if(!agg[key]) agg[key]={name:r.name,unit:r.unit,qty:0,anonymous:r.anonymous};
     agg[key].qty+=r.qty;
   });
   const mergedRows=Object.keys(agg).map(function(k){return agg[k];});
-  const people=Object.keys(mergedRows.reduce(function(o,r){o[r.name]=1;return o;}, {})).length;
+  const identifiedNames=mergedRows.reduce(function(o,r){if(!r.anonymous)o[r.name]=1;return o;},{});
+  const people=Object.keys(identifiedNames).length;
+  const anonymousOrders=mergedRows.filter(function(r){return r.anonymous;}).length;
   const unitMap={};
   mergedRows.forEach(function(r){
-    if(!unitMap[r.unit]) unitMap[r.unit]={unit:r.unit,qty:0,names:{}};
-    unitMap[r.unit].qty+=r.qty; unitMap[r.unit].names[r.name]=1;
+    if(!unitMap[r.unit]) unitMap[r.unit]={unit:r.unit,qty:0,names:{},anon:0};
+    unitMap[r.unit].qty+=r.qty; if(r.anonymous) unitMap[r.unit].anon++; else unitMap[r.unit].names[r.name]=1;
   });
   const unitList=Object.keys(unitMap).map(function(k){return unitMap[k];});
   const mixed=unitList.length>1;
-  const unitText=unitList.map(function(u){return u.unit+' '+fmt(u.qty,Number.isInteger(u.qty)?0:2)+'（'+Object.keys(u.names).length+' 人）';}).join(' · ');
-  let body='<p>接龙人数：<strong style="color:var(--primary);">'+people+'</strong> 人</p>';
+  const unitText=unitList.map(function(u){return u.unit+' '+fmt(u.qty,Number.isInteger(u.qty)?0:2)+'（已识别 '+Object.keys(u.names).length+' 人'+(u.anon?'，另 '+u.anon+' 条未署名':'')+'）';}).join(' · ');
+  let body='<p>已识别购买人：<strong style="color:var(--primary);">'+people+'</strong> 人'+(anonymousOrders?'（另有 '+anonymousOrders+' 条未署名订单，身份未知，未与实名订单合并）':'')+'</p>';
   if(mixed){
     body+='<p style="color:var(--warning);">名单含多种单位，无法直接合计数量与金额。请统一单位，或分别按各单位口径核算。</p>'+
       '<p>各单位小计：<strong>'+unitText+'</strong></p>'+
-      '<p class="muted">未写单位的行按「份」计；同一个名字的不同单位也不会被合并相加。</p>';
+      '<p class="muted">未写单位的行按「份」计；同一个名字的不同单位也不会被合并相加；未署名行按每条独立订单统计。</p>';
     document.getElementById('res').innerHTML=body;return;
   }
   const onlyUnit=unitList[0].unit;
   const total=unitList[0].qty;
-  const mean=total/people;
+  const mean=people?total/people:null;
   const sorted=[...mergedRows].sort(function(a,b){return a.qty-b.qty;});
   const maxRow=sorted[sorted.length-1], minRow=sorted[0];
-  const amount=total*price, perHead=amount/people;
+  const amount=total*price, perHead=people?amount/people:null;
   const sortedDesc=[...mergedRows].sort(function(a,b){return b.qty-a.qty;});
   const topN=Math.min(3,sortedDesc.length);
   const topParts=[];
@@ -306,11 +309,11 @@ function calc(){
   const buckets=[0,0,0];
   mergedRows.forEach(function(r){ if(r.qty<=1) buckets[0]++; else if(r.qty<=3) buckets[1]++; else buckets[2]++; });
   body+='<p>合计'+onlyUnit+'数：<strong style="color:var(--primary);">'+fmt(total,Number.isInteger(total)?0:2)+'</strong> '+onlyUnit+'</p>'+
-    '<p>人均'+onlyUnit+'数：<strong>'+fmt(mean)+'</strong> '+onlyUnit+'/人</p>'+
+    '<p>人均'+onlyUnit+'数：<strong>'+(mean===null?'不适用（无实名购买人）':fmt(mean))+'</strong>'+(mean===null?'':' '+onlyUnit+'/人')+'</p>'+
     '<p>下单最多：<strong>'+fmt(maxRow.qty,Number.isInteger(maxRow.qty)?0:2)+'</strong> '+onlyUnit+'（'+maxRow.name+'）</p>'+
     '<p>下单最少：<strong>'+fmt(minRow.qty,Number.isInteger(minRow.qty)?0:2)+'</strong> '+onlyUnit+'（'+minRow.name+'）</p>'+
     '<p>预售金额：<strong style="color:var(--primary);">'+fmt(amount)+'</strong> 元（单价 '+fmt(price)+' 元/'+onlyUnit+'）</p>'+
-    '<p>人均金额：<strong>'+fmt(perHead)+'</strong> 元</p>'+
+    '<p>人均金额：<strong>'+(perHead===null?'不适用（无实名购买人）':fmt(perHead))+'</strong>'+(perHead===null?'':' 元')+'</p>'+
     '<p>'+onlyUnit+'数占比前三：<strong>'+topParts.join(' · ')+'</strong></p>'+
     '<p>'+onlyUnit+'数分档：<strong>1 '+onlyUnit+' '+buckets[0]+' 人 · 2–3 '+onlyUnit+' '+buckets[1]+' 人 · 4 '+onlyUnit+'及以上 '+buckets[2]+' 人</strong></p>';
   document.getElementById('res').innerHTML=(typeof body==='number'?(isFinite(body)?body:'—'):String(body).replace(/Infinity|NaN/g,'—'));

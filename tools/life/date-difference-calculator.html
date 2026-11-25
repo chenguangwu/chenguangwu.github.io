@@ -440,11 +440,26 @@ function countWorkdays(start, end){
   return count;
 }
 
-function calcDiff(){
+function rangeSnapshot(){
   const startStr = document.getElementById('startDate').value;
   const endStr = document.getElementById('endDate').value;
   const includeWeekends = document.getElementById('includeWeekends').checked;
   const includeStart = document.getElementById('includeStart').checked;
+  let start = parseLocalDate(startStr);
+  let end = parseLocalDate(endStr);
+  if(start > end){ [start, end] = [end, start]; }
+  if(!includeStart){ start.setDate(start.getDate() + 1); }
+  const days = getDaysDiff(start, end) + 1;
+  const workdays = countWorkdays(start, end);
+  const weekends = days - workdays;
+  const shownDays = includeWeekends ? days : workdays;
+  const totalMonths = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  return {startStr, endStr, includeWeekends, includeStart, days, workdays, weekends, shownDays, totalMonths};
+}
+
+function calcDiff(){
+  const startStr = document.getElementById('startDate').value;
+  const endStr = document.getElementById('endDate').value;
   
   if(!startStr || !endStr){
     document.getElementById('diffMain').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Select a date":"请选择日期");
@@ -453,27 +468,11 @@ function calcDiff(){
     return;
   }
   
-  let start = parseLocalDate(startStr);
-  let end = parseLocalDate(endStr);
-  
-  if(start > end){
-    [start, end] = [end, start];
-  }
-  
-  if(!includeStart){
-    start.setDate(start.getDate() + 1);
-  }
-  
-  const days = getDaysDiff(start, end) + 1;
-  // 工作日/周末始终按真实日历统计；「包含周末」只决定主结果是否把周末计入
-  const workdays = countWorkdays(start, end);
-  const weekends = days - workdays;
-  const shownDays = includeWeekends ? days : workdays;
+  const snap = rangeSnapshot();
+  const {includeWeekends, includeStart, days, workdays, weekends, shownDays, totalMonths} = snap;
   
   const weeks = Math.floor(shownDays / 7);
   const remainDays = shownDays % 7;
-  
-  const totalMonths = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
   const years = Math.floor(totalMonths / 12);
   const months = totalMonths % 12;
   
@@ -807,13 +806,16 @@ function saveHistory(){
   
   if(!startStr || !endStr) return;
   
-  const days = Math.abs(getDaysDiff(parseLocalDate(startStr), parseLocalDate(endStr))) + 1;
-  
+  const snap = rangeSnapshot();
   const item = {
     id: Date.now(),
     start: startStr,
     end: endStr,
-    days,
+    days: snap.shownDays,
+    totalDays: snap.days,
+    workdays: snap.workdays,
+    includeStart: snap.includeStart,
+    includeWeekends: snap.includeWeekends,
     time: new Date().toLocaleString('zh-CN')
   };
   
@@ -860,7 +862,7 @@ function renderHistory(){
     <div class="history-item">
       <div>
         <div><strong>${ToolBox.escHtml(h.start)}</strong> → <strong>${ToolBox.escHtml(h.end)}</strong></div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">相差 ${h.days} 天 · ${ToolBox.escHtml(h.time)}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">相差 ${h.days} 天 · ${typeof h.includeStart==='boolean' ? (h.includeStart?'含起始日':'不含起始日')+'、'+(h.includeWeekends?'含周末':'仅工作日')+' · ' : ''}${ToolBox.escHtml(h.time)}</div>
       </div>
       <span class="del" onclick="deleteHistory(${h.id})">✕</span>
     </div>

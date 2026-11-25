@@ -322,6 +322,21 @@ function calc(){
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">基准日期无效，请重新选择</p>';
     return;
   }
+  // datetime-local 给出的是本地墙钟时间；夏令时前跳时该时刻并不存在，浏览器会静默顺延。
+  const parts = baseStr.match(/^([\d]{4})-([\d]{2})-([\d]{2})T([\d]{2}):([\d]{2})(?::([\d]{2}))?/);
+  if(parts){
+    const inputY=+parts[1],inputM=+parts[2],inputD=+parts[3],inputH=+parts[4],inputMin=+parts[5];
+    if(base.getFullYear()!==inputY||base.getMonth()+1!==inputM||base.getDate()!==inputD||base.getHours()!==inputH||base.getMinutes()!==inputMin){
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">该本地时刻在夏令时切换中不存在（例如前跳当天的 02:30），浏览器会顺延为 '+base.toLocaleString('zh-CN')+'。请把基准时间调整到实际存在的时刻后再计算。</p>';
+      return;
+    }
+    // 回拨时同一墙钟时间出现两次：比较前后半小时的偏移，提示本工具采用浏览器默认偏移。
+    const before=new Date(base.getTime()-30*60000),after=new Date(base.getTime()+30*60000);
+    if(before.getTimezoneOffset()!==after.getTimezoneOffset()){
+      // 仅提示，不阻止计算；具体采用哪一个偏移由浏览器默认解析决定。
+      base.__dstAmbiguous=true;
+    }
+  }
   // 先加减年月（目标月无对应日则夹到月末）
   let newDate = addYearsMonths(base, y, m);
   // 「日」按日历日推进（保留原时刻，自动跨月跨年）；「时/分/秒」按固定时长累加
@@ -329,6 +344,7 @@ function calc(){
   newDate = new Date(newDate.getTime() + h * 3600000 + min * 60000 + s * 1000);
   const __g2=`
     <p>基准时间：<strong>${base.toLocaleString('zh-CN')}</strong></p>
+    <p style="font-size:12px;color:var(--text-muted);">本地时区：${Intl.DateTimeFormat().resolvedOptions().timeZone||'浏览器默认'}（UTC${-base.getTimezoneOffset()/60>=0?'+':''}${-base.getTimezoneOffset()/60}）${base.__dstAmbiguous?' · 该时刻处于夏令时回拨重复区间，按浏览器默认偏移解释，请核对结果。':''}</p>
     <p>加减量：<strong>${y}年 ${m}月 ${d}日 ${h}时 ${min}分 ${s}秒</strong></p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
     <p>结果时间：<strong style="color:var(--primary);">${newDate.toLocaleString('zh-CN')}</strong></p>

@@ -1244,6 +1244,74 @@ const CASES = [
     ref: "50 mm 内周长对应英码 M½（M=49.5、M½=50.0）；旧实现输出数字 5.28。"
   },
   {
+    slug: "life/unit-converter",
+    clicks: ["document.getElementById('fromUnit').value='meter';document.getElementById('toUnit').value='centimeter';document.getElementById('fromValue').value='1';handleInput('from');document.getElementById('toValue').value='2.54';handleInput('to');document.getElementById('fromUnit').value='kilometer';handleUnitChange('from');"],
+    expect: ["0.0000254"],
+    ref: "右侧输入 2.54 cm 后改左侧单位为千米，应保留右侧用户输入并以未舍入的 0.0254 m 重算左侧为 0.0000254 km；旧实现改左侧单位仍以左侧格式化值反算。"
+  },
+  {
+    slug: "life/report-profit",
+    inputs: { rev: "10000", cog: "1000", payroll: "2000", rent: "1000", misc: "0", recv: "80", actualRecv: "5000", actualPaid: "4000", cash0: "1000" },
+    expect: ["经营现金流净额（估算）： 1,000.00 元", "现金流口径：实际回款 / 实际付现"],
+    ref: "实际回款 5000、实际付现 4000 ⇒ 现金流 1000；明确标注估算口径，不把采购成本强行等同当期付现。"
+  },
+  {
+    slug: "life/stats-13",
+    inputs: { roster: "2\n3", price: "10" },
+    expect: ["已识别购买人： 0 人（另有 2 条未署名订单，身份未知，未与实名订单合并）", "人均金额： 不适用（无实名购买人）"],
+    ref: "两行纯数量不能合并成 1 人 5 份；未署名行各算一单，人数与人均不适用。"
+  },
+  {
+    slug: "life/date-difference-calculator",
+    clicks: ["document.getElementById('startDate').value='2026-01-03';document.getElementById('endDate').value='2026-01-04';document.getElementById('includeWeekends').checked=false;document.getElementById('includeStart').checked=false;calcDiff();saveHistory();"],
+    expect: ["相差 0 天 · 不含起始日、仅工作日"],
+    ref: "历史记录须保存当前口径：1/3–1/4 不含起始日且仅工作日 ⇒ 0 天，并显示选项快照。"
+  },
+  {
+    slug: "life/age-calculator",
+    clicks: ["document.getElementById('by').value=2000;document.getElementById('bm').value=2;document.getElementById('bd').value=29;document.getElementById('retireAge').value=65;calc();"],
+    expect: ["1 周岁（平年按 2 月 28 日）", "2001年2月28日", "2065 年 2 月 28 日"],
+    ref: "2/29 出生者平年里程碑与退休日期均夹到 2/28，展示实际日期，不再出现不存在的 2/29 或滚到 3/1。"
+  },
+  {
+    slug: "life/countdown-2",
+    clicks: ["items=[];document.getElementById('itemName').value='未来纪念';document.getElementById('itemDate').value='2028-12-01';document.getElementById('itemYearly').checked=true;addItem();"],
+    expect: ["2028年12月1日", "首次发生（尚未到第一个周年）"],
+    ref: "未来日期的每年重复事件首次目标就是原日期，不得提前显示第 -2 个周年。"
+  },
+  {
+    slug: "life/date-add-subtract",
+    inputs: { baseTime: "2026-03-15T08:00", y: "0", m: "0", d: "0", h: "0", min: "0", s: "0" },
+    expect: ["本地时区：", "结果时间： 2026/3/15 08:00:00"],
+    ref: "零加减应原样返回并显示本地时区与 UTC 偏移，便于核对夏令时口径。"
+  },
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "1900-01-01", endDate: "2100-12-31" },
+    checkIds: ["skipSat", "skipSun"],
+    expect: ["自然日总数： 73414 天", "工作日数： 52440 天"],
+    ref: "200 年跨度改用整周算术，结果须与逐日口径一致且不阻塞页面。"
+  },
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "2026-01-01", endDate: "2026-01-04", holidays: "2026-01-01", workdays: "2026-01-03" },
+    checkIds: ["skipSat", "skipSun"],
+    expect: ["自然日总数： 4 天", "工作日数： 2 天", "周末（已排除）： 1 天", "法定节假日： 1 天", "调休上班日（计入工作日）： 1 天"],
+    ref: "1/1 节假日、1/3 周六补班、1/4 周日休息：4 天中工作日为 1/2 与 1/3 两天，周末排除 1 天。"
+  },
+  {
+    slug: "life/base-convert",
+    inputs: { input: "9007199254740993", customBase: "36" },
+    expect: ["9007199254740993", "20000000000001"],
+    ref: "超过 2^53 的十进制整数用 BigInt 精确转换，十六进制应为 20000000000001，旧 parseInt 会舍入。"
+  },
+  {
+    slug: "life/base-convert",
+    inputs: { input: "0b1012" },
+    expect: ["输入格式无效：仅支持整数、0x/0b/0o 前缀或十进制整串。"],
+    ref: "非法二进制整串须明确报错，不能静默截断成 5。"
+  },
+  {
     slug: "life/magnet-converter",
     inputs: { inputVal: "2" },
     expect: ["2\nAm\n磁场强度 H 基准： 2 A/m = 2 A/m 奥斯特： 0.02513274123 Oe 真空下对应磁感应强度 B ≈ 0.02513274123 G"],
@@ -2340,9 +2408,9 @@ const CASES = [
       "holidays": "1\n2\n3"
     },
     "expect": [
-      "abc123测试\nabc123测试\n1 2 3\n开始日期： Invalid Date 结束日期： Invalid Date 自然日总数： 0 天 工作日数： 0"
+      "日期格式无效，请重新选择开始与结束日期。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"startDate\":\"abc123测试\",\"endDate\":\"abc123测试\",\"holidays\":\"1\\n2\\n3\"}，输出区含「abc123测试\nabc123测试\n1 2 3\n开始日期： Invalid Da…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：非法日期直接提示，不再输出 Invalid Date 与 0 天；默认合法日期不含该提示 ⇒ 强判别。"
   },
   {
     "slug": "life/world-clock",

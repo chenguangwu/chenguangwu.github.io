@@ -177,14 +177,14 @@
         <input type="hidden" id="presetFrom" value="meter">
         <input type="hidden" id="presetTo" value="centimeter">
 <label for="fromValue">从</label>
-        <input type="number" id="fromValue" value="1" oninput="convertFrom('from')" step="any" placeholder="如 1">
-        <select id="fromUnit" style="margin-top:8px;" onchange="convertFrom('from')" aria-label="源单位"></select>
+        <input type="number" id="fromValue" value="1" oninput="handleInput('from')" step="any" placeholder="如 1">
+        <select id="fromUnit" style="margin-top:8px;" onchange="handleUnitChange('from')" aria-label="源单位"></select>
       </div>
       <button type="button" class="swap-btn" onclick="swapUnits()" aria-label="交换" data-i18n-aria="tool.aria.swap">⇅</button>
       <div>
         <label for="toValue">到</label>
-        <input type="number" id="toValue" oninput="convertFrom('to')" step="any">
-        <select id="toUnit" style="margin-top:8px;" onchange="convertFrom('from')" aria-label="目标单位"></select>
+        <input type="number" id="toValue" oninput="handleInput('to')" step="any">
+        <select id="toUnit" style="margin-top:8px;" onchange="handleUnitChange('to')" aria-label="目标单位"></select>
       </div>
     </div>
     <div id="convertMsg" style="color:var(--danger);font-size:13px;margin-top:8px;"></div>
@@ -701,6 +701,8 @@ const CATEGORIES = {
 
 let currentCategory = 'length';
 let history = [];
+let lastEditedSide = 'from';
+let lastEditedRaw = '1';
 
 function initTabs(){
   const tabs = document.getElementById('categoryTabs');
@@ -748,6 +750,8 @@ function applyQuick(idx){
   document.getElementById('fromValue').value = q.value;
   document.getElementById('fromUnit').value = q.from;
   document.getElementById('toUnit').value = q.to;
+  lastEditedSide = 'from';
+  lastEditedRaw = q.value;
   convertFrom('from');
 }
 
@@ -785,6 +789,19 @@ function convertTemp(value, from, to){
   }
 }
 
+function handleInput(side){
+  lastEditedSide = side;
+  lastEditedRaw = document.getElementById(side === 'from' ? 'fromValue' : 'toValue').value;
+  convertFrom(side);
+}
+
+function handleUnitChange(side){
+  const targetSide = side === lastEditedSide ? side : lastEditedSide;
+  const target = document.getElementById(targetSide === 'from' ? 'fromValue' : 'toValue');
+  target.value = lastEditedRaw;
+  convertFrom(targetSide);
+}
+
 function convertFrom(source){
   const cat = CATEGORIES[currentCategory];
   const fromUnit = document.getElementById('fromUnit').value;
@@ -798,6 +815,7 @@ function convertFrom(source){
     const val = parseFloat(document.getElementById('fromValue').value);
     if(isNaN(val)){
       document.getElementById('toValue').value = '';
+      document.getElementById('convertMsg').textContent = '';
       return;
     }
     // 倒数单位（km/L、mpg）与 L/100km 成反比，0 会得到 Infinity、负值得负油耗，均无物理意义
@@ -824,6 +842,7 @@ function convertFrom(source){
     const val = parseFloat(document.getElementById('toValue').value);
     if(isNaN(val)){
       document.getElementById('fromValue').value = '';
+      document.getElementById('convertMsg').textContent = '';
       return;
     }
     if((cat.units[fromUnit].reciprocal || cat.units[toUnit].reciprocal) && val <= 0){
@@ -866,6 +885,8 @@ function swapUnits(){
   document.getElementById('toUnit').value = fromUnit;
   document.getElementById('fromValue').value = toValue;
   document.getElementById('toValue').value = fromValue;
+  lastEditedSide = 'from';
+  lastEditedRaw = toValue;
 }
 
 function saveHistory(){

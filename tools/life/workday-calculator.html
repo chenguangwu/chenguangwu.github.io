@@ -141,7 +141,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="计算两日期间的工作日数 / 自然日数">Count the working days between two dates, excluding weekends and any custom holidays you specify.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">工作日数 = 区间总天数 − 周末天数 − 法定节假日天数 + 调休上班日天数（按选项决定是否排除周六、周日）；总天数 =（结束日期 − 开始日期）÷ 86400000 + 1（含首尾两天）；逐日遍历统计，调休上班日优先计为工作日，用于工期与考勤估算。</div>
+      <div class="formula-eq">工作日数 = 区间总天数 − 周末天数 − 法定节假日天数 + 调休上班日天数（按选项决定是否排除周六、周日）；总天数 =（结束日期 − 开始日期）÷ 86400000 + 1（含首尾两天）；按整周算术统计周末，再对假期与调休日期去重，调休上班日优先计为工作日，用于工期与考勤估算。</div>
   
 </div>
 
@@ -307,6 +307,10 @@ function calc(){
   }
   const start = parseLocalDate(startStr);
   const end = parseLocalDate(endStr);
+  if(!(start instanceof Date) || !(end instanceof Date) || isNaN(start.getTime()) || isNaN(end.getTime())){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">日期格式无效，请重新选择开始与结束日期。</p>';
+    return;
+  }
   if(start > end){
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">结束日期需晚于开始日期</p>';
     return;
@@ -315,26 +319,32 @@ function calc(){
   const skipSun = document.getElementById('skipSun').checked;
   const holidays = parseDateSet('holidays');
   const makeupDays = parseDateSet('workdays');
-  let totalDays = 0, workDays = 0, weekends = 0, holidayCount = 0, makeupCount = 0;
-  const d = new Date(start);
-  while(d <= end){
-    totalDays++;
-    const dow = d.getDay();
-    const isSat = dow === 6;
-    const isSun = dow === 0;
-    const dateStr = fmtLocalDate(d);
-    if(makeupDays.has(dateStr)){
-      makeupCount++;
-      workDays++;
-    } else if(holidays.has(dateStr)){
-      holidayCount++;
-    } else if((skipSat && isSat) || (skipSun && isSun)){
-      weekends++;
-    } else {
-      workDays++;
-    }
-    d.setDate(d.getDate() + 1);
+  // 整周算术统计周末，再只遍历用户填写的假期/调休集合；避免超大跨度逐日循环阻塞页面。
+  const totalDays = Math.round((end - start) / 86400000) + 1;
+  function countDow(dow){
+    const diff = Math.round((end - start) / 86400000);
+    const first = (dow - start.getDay() + 7) % 7;
+    return first > diff ? 0 : Math.floor((diff - first) / 7) + 1;
   }
+  const allSat = countDow(6), allSun = countDow(0);
+  let weekends = (skipSat ? allSat : 0) + (skipSun ? allSun : 0);
+  let holidayCount = 0, makeupCount = 0;
+  const startKey = fmtLocalDate(start), endKey = fmtLocalDate(end);
+  function inRange(key){ return key >= startKey && key <= endKey; }
+  makeupDays.forEach(function(key){
+    if(inRange(key)) makeupCount++;
+  });
+  holidays.forEach(function(key){
+    if(!inRange(key) || makeupDays.has(key)) return;
+    holidayCount++;
+    const dow = parseLocalDate(key).getDay();
+    if((skipSat && dow === 6) || (skipSun && dow === 0)) weekends--;
+  });
+  makeupDays.forEach(function(key){
+    const dow = parseLocalDate(key).getDay();
+    if((skipSat && dow === 6) || (skipSun && dow === 0)) weekends--;
+  });
+  const workDays = totalDays - weekends - holidayCount;
   const __g3=`
     <p>开始日期：<strong>${start.toLocaleDateString('zh-CN')}</strong></p>
     <p>结束日期：<strong>${end.toLocaleDateString('zh-CN')}</strong></p>

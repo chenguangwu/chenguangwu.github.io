@@ -533,7 +533,7 @@ function calc(){
     const retireMonthsLeft = 12 - months - 1 + (days >= 0 ? 0 : -1);
     
     document.getElementById('retirementBox').style.display = 'block';
-    const __g16=`${retireDate.getFullYear()} 年 ${bm} 月 ${bd} 日（${getWeekday(retireDate)}）`;document.getElementById('retireTime').textContent=(typeof __g16==='number'?(isFinite(__g16)?__g16:'—'):String(__g16).replace(/Infinity|NaN/g,'—'));
+    const __g16=`${retireDate.getFullYear()} 年 ${retireDate.getMonth()+1} 月 ${retireDate.getDate()} 日（${getWeekday(retireDate)}）`;document.getElementById('retireTime').textContent=(typeof __g16==='number'?(isFinite(__g16)?__g16:'—'):String(__g16).replace(/Infinity|NaN/g,'—'));
     const __g17=`还有 <strong>${daysToRetire.toLocaleString()}</strong> 天 · 约 ${retireYearsLeft} 年 ${retireMonthsLeft >= 0 ? retireMonthsLeft : 12 + retireMonthsLeft} 个月`;document.getElementById('retireDays').innerHTML=(typeof __g17==='number'?(isFinite(__g17)?__g17:'—'):String(__g17).replace(/Infinity|NaN/g,'—'));
   } else {
     document.getElementById('retirementBox').style.display = 'none';
@@ -626,14 +626,16 @@ function renderMilestones(birth, now, by, bm, bd, totalDays){
   const allMilestones = [];
   
   ageMilestones.forEach(m => {
-    const date = new Date(by + m.age, bm - 1, bd);
+    // 2 月 29 日出生者在平年夹到 2 月 28 日，与下一生日、退休日期保持同一纪年规则。
+    const date = makeClampedDate(by + m.age, bm - 1, bd, 0, 0, 0);
     const reached = date <= now;
     const daysLeft = Math.ceil((date - now) / 86400000);
+    const clampedLeap = bm === 2 && bd === 29 && date.getDate() === 28;
     allMilestones.push({
       type: 'age',
-      label: m.label,
+      label: m.label + (clampedLeap ? '（平年按 2 月 28 日）' : ''),
       date: date,
-      dateStr: `${by + m.age}年${bm}月${bd}日`,
+      dateStr: `${date.getFullYear()}年${date.getMonth()+1}月${date.getDate()}日`,
       reached,
       daysLeft
     });

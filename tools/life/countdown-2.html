@@ -224,14 +224,17 @@ function yearlyDate(year,month,day){
 }
 function calcTarget(it){
   var base=parseDate(it.date);
+  var now=todayStr();
+  // 原始日期尚未到来时，首次发生就是原始日期；不能提前把今年同月日当作周年目标。
+  if(base>=now){
+    return {target:base,isFuture:true,years:0,first:!!it.yearly};
+  }
   if(it.yearly){
-    var now=todayStr();
     var thisYear=yearlyDate(now.getFullYear(),base.getMonth(),base.getDate());
     if(thisYear<now){thisYear=yearlyDate(now.getFullYear()+1,base.getMonth(),base.getDate());}
-    return {target:thisYear,isFuture:true,years:thisYear.getFullYear()-base.getFullYear()};
+    return {target:thisYear,isFuture:true,years:Math.max(0,thisYear.getFullYear()-base.getFullYear())};
   }
-  var now=todayStr();
-  return {target:base,isFuture:base>=now,years:0};
+  return {target:base,isFuture:false,years:0};
 }
 function dayDiff(a,b){return Math.round((b-a)/86400000);}
 
@@ -302,7 +305,7 @@ function render(){
     var sub='';
     if(it.yearly){
       var yr=c.years;
-      sub=' · 第 '+yr+' 个周年';
+      sub=c.first?' · 首次发生（尚未到第一个周年）':' · 第 '+yr+' 个周年';
     }
     html+='<div class="anni-card'+(past?' past':'')+'">';
     html+='<button class="del" onclick="delItem('+it.id+')" title="删除" aria-label="删除">×</button>';

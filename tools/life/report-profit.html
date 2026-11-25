@@ -183,6 +183,14 @@
   <input type="number" id="recv" value="85" step="1" min="0" max="100" oninput="calc()" placeholder="如 85（0–100）">
 </div>
 <div class="input-row">
+  <label for="actualRecv">本期实际回款（元，可选）</label>
+  <input type="number" id="actualRecv" step="1000" min="0" oninput="calc()" placeholder="留空则按回款率估算">
+</div>
+<div class="input-row">
+  <label for="actualPaid">本期实际付现支出（元，可选）</label>
+  <input type="number" id="actualPaid" step="1000" min="0" oninput="calc()" placeholder="留空则按进货+费用全额付现">
+</div>
+<div class="input-row">
   <label for="cash0">期初现金余额（元）</label>
   <input type="number" id="cash0" value="50000" step="5000" min="0" oninput="calc()" placeholder="如 50000">
 </div>
@@ -274,7 +282,7 @@
 function num(id){var raw=String(document.getElementById(id).value).trim();if(raw==='')return null;var v=parseFloat(raw);return isFinite(v)?v:null;}
 function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
 function calc(){
-  var rev=num('rev'),cog=num('cog'),payroll=num('payroll'),rent=num('rent'),misc=num('misc'),recv=num('recv'),cash0=num('cash0');
+  var rev=num('rev'),cog=num('cog'),payroll=num('payroll'),rent=num('rent'),misc=num('misc'),recv=num('recv'),cash0=num('cash0'),actualRecv=num('actualRecv'),actualPaid=num('actualPaid');
   if(rev===null||cog===null||payroll===null||rent===null||misc===null||recv===null||cash0===null){
     document.getElementById('res').innerHTML='<p style="color:var(--danger);" data-zh="请填写全部 7 项有效金额（当期无发生额的项目请填 0）">Please fill in all 7 amounts (enter 0 for items with no activity).</p>';
     return;
@@ -286,10 +294,11 @@ function calc(){
   var opex=payroll+rent+misc;
   var opProfit=gross-opex;
   var netRate=rev>0?opProfit/rev*100:null;
-  var inflow=rev*recv/100;
+  var inflow=actualRecv===null?rev*recv/100:actualRecv;
   var arrear=rev-inflow;
-  var outflow=cog+opex;
+  var outflow=actualPaid===null?cog+opex:actualPaid;
   var cflow=inflow-outflow;
+  var cashBasis=(actualRecv!==null?'实际回款':'按回款率估算')+' / '+(actualPaid!==null?'实际付现':'进货+费用全额付现');
   var cashEnd=cash0+cflow;
   var diag=(opProfit>0&&cflow<0)?'盈利但现金净流出，通常为赊销占款或压货偏多，建议加强回款与库存周转。':((opProfit>0&&cflow>0)?'盈利且现金同步回正，经营质量较好。':((opProfit<=0&&cflow>0)?'现金为正但账面亏损，需核查是否存在折旧摊销等未录入费用或不计成本收入。':'亏损并伴随现金流出，应优先压缩人工与房租等刚性支出。'));
   var html='<p>营业收入：<strong>'+fmt(rev)+' 元</strong></p>'+
@@ -297,11 +306,11 @@ function calc(){
     '<p>毛利：<strong style="color:var(--primary);">'+fmt(gross)+' 元</strong>（毛利率 '+(gm===null?'不适用（收入为 0）':fmt(gm)+'%')+'）</p>'+
     '<p>期间费用：<strong>'+fmt(opex)+' 元</strong>（人工 '+fmt(payroll)+' + 房租 '+fmt(rent)+' + 水电杂费 '+fmt(misc)+'）</p>'+
     '<p>营业利润：<strong style="color:var(--primary);">'+fmt(opProfit)+' 元</strong>（净利率 '+(netRate===null?'不适用（收入为 0）':fmt(netRate)+'%')+'）</p>'+
-    '<p>现金流入：<strong>'+fmt(inflow)+' 元</strong>（回款率 '+fmt(recv)+'%，未回款 '+fmt(arrear)+' 元）</p>'+
-    '<p>付现支出：<strong>'+fmt(outflow)+' 元</strong></p>'+
-    '<p>经营现金流净额：<strong style="color:var(--primary);">'+fmt(cflow)+' 元</strong></p>'+
+    '<p>现金流入：<strong>'+fmt(inflow)+' 元</strong>（'+(actualRecv===null?'回款率 '+fmt(recv)+'%':'实际回款')+'，与营收差额 '+fmt(arrear)+' 元）</p>'+
+    '<p>付现支出：<strong>'+fmt(outflow)+' 元</strong>（'+(actualPaid===null?'进货+费用全额付现':'实际付现')+'）</p>'+
+    '<p>经营现金流净额（估算）：<strong style="color:var(--primary);">'+fmt(cflow)+' 元</strong></p>'+
     '<p>期末现金余额：<strong>'+fmt(cashEnd)+' 元</strong>（期初 '+fmt(cash0)+'）</p>'+
-    '<p style="margin-top:8px;">'+diag+'</p>';
+    '<p style="margin-top:8px;">'+diag+'</p>'+'<p style="font-size:13px;color:var(--text-muted);">现金流口径：'+cashBasis+'。未覆盖应收应付、库存与折旧摊销，仅作简化估算。</p>';
   const __g2=html;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 calc();
@@ -489,7 +498,7 @@ function __report_profitExport(){
 }
 function __report_profitPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#report_profitPresets',[{label:'默认参数',labelEn:'Default',values:{'rev':'185000', 'cog':'96000', 'payroll':'38000', 'rent':'15000', 'misc':'7000', 'recv':'85', 'cash0':'50000'}},
+    TBKit.preset.bar('#report_profitPresets',[{label:'默认参数',labelEn:'Default',values:{'rev':'185000', 'cog':'96000', 'payroll':'38000', 'rent':'15000', 'misc':'7000', 'recv':'85', 'cash0':'50000','actualRecv':'','actualPaid':''}},
   {"label":"社区便利店月报","labelEn":"Convenience store monthly","values":{"rev":120000,"cog":78000,"payroll":12000,"rent":8000,"misc":3000,"recv":15,"cash0":30000}},
   {"label":"电商旺季月报","labelEn":"E-commerce peak month","values":{"rev":480000,"cog":260000,"payroll":60000,"rent":25000,"misc":18000,"recv":45,"cash0":150000}},
   {"label":"亏损月复盘","labelEn":"Loss month review","values":{"rev":68000,"cog":59000,"payroll":22000,"rent":12000,"misc":4000,"recv":90,"cash0":8000}}],function(){ calc(); });
