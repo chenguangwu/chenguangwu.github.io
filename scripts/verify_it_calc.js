@@ -5654,10 +5654,64 @@ const CASES = [
   },
   {
     slug: "it/jwt-parser",
+    inputs: { jwtInput: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjAsImV4cF9odW1hbiI6IlVTRVIifQ." },
+    clicks: ["parseJwt()"],
+    dumpIds: ["payload"],
+    expect: ['"exp_human": "USER"'],
+    ref: "第802批：Payload 已自带 exp_human 时必须原样展示，不能被派生时间覆盖。旧实现 {...payload} 后写 exp_human=本地时间，展示值变成日期 ⇒ 不命中。",
+  },
+  {
+    slug: "it/jwt-parser",
+    inputs: { jwtInput: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJpYXQiOjIwMDAwMDAwMDAsInN1YiI6ImZ1dHVyZSJ9." },
+    clicks: ["parseJwt()"],
+    dumpIds: ["claimsCheck"],
+    expect: ["未来签发", "请检查本机时钟"],
+    ref: "第802批：未来 iat（2000000000）不能被 Math.max(now-iat,0) 截成 0 秒前；声明表须明确提示未来签发并说明本机时钟偏差。默认样例 iat 在过去，不命中。",
+  },
+  {
+    slug: "it/jwt-parser",
+    inputs: { jwtInput: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJyb2xlIjoiYWRtaW4ifQ.-FJVLx5tVPt6F9kQYWrB0lo5h-Jf0jSwk3f1BqOBavE" },
+    clicks: ["document.getElementById('jwtInput').value='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJyb2xlIjoiYWRtaW4ifQ.-FJVLx5tVPt6F9kQYWrB0lo5h-Jf0jSwk3f1BqOBavE';onJwtInput();var had=document.getElementById('claimsCheck').innerHTML.length>0;document.getElementById('jwtInput').value='bad';onJwtInput();document.getElementById('__tbProbe').textContent='CLR had='+(had?1:0)+' now='+(document.getElementById('claimsCheck').innerHTML.length===0?1:0);"],
+    expect: ["CLR had=1 now=1"],
+    ref: "第802批：有效令牌解析出声明后，把输入改成非法串必须立即清空旧声明检查。旧实现空输入/段数错误提前 return，claimsCheck 残留上一枚令牌。",
+  },
+  {
+    slug: "it/jwt-parser",
+    inputs: { jwtInput: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJyb2xlIjoiYWRtaW4ifQ.-FJVLx5tVPt6F9kQYWrB0lo5h-Jf0jSwk3f1BqOBavE", secret: "k", verifyAlg: "HS256" },
+    awaitClicks: true,
+    clicks: ["verifySignature()", "var ok=document.getElementById('verifyResult').innerHTML;invalidateVerify();document.getElementById('header').textContent='VR msg='+(ok.length>0?1:0)+' cleared='+(document.getElementById('verifyResult').style.display==='none'?1:0);"],
+    expect: ["VR msg=1 cleared=1"],
+    ref: "第802批：HS256 验签成功后再改密钥/算法，旧结论必须立即失效并隐藏；旧实现只在点击验证时写 verifyResult，输入变化不清空。",
+  },
+  {
+    slug: "it/jwt-parser",
+    inputs: { genPayload: "[]", genSecret: "k", genAlg: "HS256" },
+    clicks: ["generateJwt()"],
+    dumpIds: ["genOut"],
+    expect: ["Payload 必须是非空 JSON 对象"],
+    ref: "第802批：顶层数组不是声明对象，必须拒绝；null/原始值同理。旧实现直接给数组写 iat/exp 后继续签名。默认合法对象不出现该提示。",
+  },
+  {
+    slug: "it/jwt-parser",
+    inputs: { genPayload: '{"exp":1,"iat":2}', genSecret: "k", genAlg: "HS256", genExp: "0" },
+    awaitClicks: true,
+    clicks: ["generateJwt()", "var p=JSON.parse(base64UrlDecode(document.getElementById('genOut').value.split('.')[1]));document.getElementById('__tbProbe').textContent='GEN exp='+(('exp' in p)?1:0)+' iat='+(typeof p.iat==='number'?1:0);"],
+    expect: ["GEN exp=0 iat=1"],
+    ref: "第802批：选择「永不过期」时必须删除用户原有 exp，否则旧过期时间仍生效；iat 按说明用当前时间覆盖。旧实现仅跳过新增 exp，1 会保留 ⇒ exp=1。",
+  },
+  {
+    slug: "it/jwt-parser",
+    inputs: {},
+    clicks: ["document.getElementById('header').textContent='CLOCK '+((refreshJwtClock.toString().indexOf('checkClaims')>=0&&refreshJwtClock.toString().indexOf('hidden')>=0)?'OK':'BAD')+' STALE '+((verifySignature.toString().indexOf('req !== __verifyRequest')>=0&&generateJwt.toString().indexOf('req !== __genRequest')>=0)?'OK':'BAD')"],
+    expect: ["CLOCK OK STALE OK"],
+    ref: "第802批结构守卫：时钟刷新函数必须调用 checkClaims 且页面隐藏时跳过；验签与生成必须各自校验请求序号，丢弃过期异步结果。默认态不执行 clicks，零逃生。",
+  },
+  {
+    slug: "it/jwt-parser",
     inputs: { jwtInput: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjB9." },
     clicks: ["parseJwt()"],
-    expect: ["⚠️ 已过期"],
-    ref: "RFC 7519 NumericDate：exp=0 合法且已过期。旧实现 `if(payload.exp)` 把 0 当 false 跳过过期判定，也漏掉 exp_human；修复后 payload 区出现「已过期」标记。默认样例 exp 在未来，不命中。",
+    expect: ["已过期"],
+    ref: "RFC 7519 NumericDate：exp=0 合法且已过期。第801批改为在标准声明检查表展示（不再把状态塞进原始 Payload），表中出现「已过期」。默认样例 exp 在未来，不命中。",
   },
   {
     slug: "it/php-escape",
@@ -11261,9 +11315,10 @@ const CASES = [
       "genExp": "86400"
     },
     "expect": [
-      "❌ Payload 不是合法 JSON：Unexpected non-whitespace character after JSON at position 2 (line 2 column 1)\n❌ 格式错误：JWT 应包含 3 部分（h"
+      "❌ Payload 不是合法 JSON",
+      "❌ 格式错误"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"secret\":\"abc123测试\",\"genSecret\":\"abc123测试\",\"jwtInput\":\"1\\n2\\n3\",\"genPayload\":\"1\\n2\\n3\",\"genOut\":\"1\\n2\\n3\",\"verifyAlg\":\"HS384\",\"genAlg\":\"HS384\",\"genExp\":\"86400\"}，输出区含「❌ Payload 不是合法 JSON：Unexpected non-white…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第801批：同一非法输入下，生成区出现「❌ Payload 不是合法 JSON」，解析区出现「❌ 格式错误」。原自动用例把两段按登记顺序拼成一条长串，顺序变化即断；改为两个独立锚点，判别力不变。"
   },
   {
     "slug": "it/language-code-lookup",
