@@ -20573,7 +20573,7 @@ module.exports = { runCase, CASES, inlineScripts, makeEl, collectStrings, extrac
 process.once("beforeExit", () => {
   // TB_DISCRIM_PARENT：discriminate_check.js 的全站模式由**子进程**跑用例，父进程自身
   // 一条也不执行（已检/下限由父进程自己的产出完整性断言把关），不能按「0 用例」判红。
-  if (process.argv.length <= 2 && __executedCases === 0 && !process.env.TB_DISCRIM_PARENT) {
+  if (require.main === module && process.argv.length <= 2 && __executedCases === 0 && !process.env.TB_DISCRIM_PARENT) {
     console.log("❌ 0 个用例实际执行（用例集为空或全部为 redirect 存根），拒绝判绿");
     process.exitCode = 1;
   }

@@ -357,9 +357,8 @@ const CASES = [
 ];
 async function main() {
   const only = process.argv.slice(2);
-  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
-  let pass = 0; const fails = [{ slug:"thermodynamics/polytropic-work", inputs:{p1:"100",v1:"1",p2:"50",v2:"2",n:"1.3"}, expect:["端点不满足同一多方过程关系"], ref:"100×1^1.3=100，50×2^1.3≈123.0，端点不在同一多方线上；旧实现照算 66.67 kJ，新实现拒绝并提示推得 P₂≈40.517 kPa。" },
-{ slug:"thermodynamics/polytropic-work", inputs:{p1:"100",v1:"1",p2:"40.517",v2:"2",n:"1"}, expect:["n≈1：按等温"], ref:"n=1 等温分支要求 P₂=P₁V₁/V₂=50；输入 40.517 不满足，应拒绝。合法 n≈1 端点（P₂=50）输出 W=p₁V₁ln2≈69.31 kJ。" },
+  let pass = 0; const extraCases = [{ slug:"thermodynamics/polytropic-work", inputs:{p1:"100",v1:"1",p2:"50",v2:"2",n:"1.3"}, expect:["端点不满足同一多方过程关系"], ref:"100×1^1.3=100，50×2^1.3≈123.0，端点不在同一多方线上；旧实现照算 66.67 kJ，新实现拒绝并提示推得 P₂≈40.517 kPa。" },
+{ slug:"thermodynamics/polytropic-work", inputs:{p1:"100",v1:"1",p2:"40.517",v2:"2",n:"1"}, expect:["端点不满足同一多方过程关系"], ref:"n=1 等温分支要求 P₂=P₁V₁/V₂=50；输入 40.517 不满足，应拒绝。合法 n≈1 端点（P₂=50）输出 W=p₁V₁ln2≈69.31 kJ。" },
 { slug:"thermodynamics/entropy-change", inputs:{Q:"0",T:"300"}, expect:["未定义（ΔS=0）"], ref:"Q=0 时 ΔS=0，旧辅助卡 1/dS 用 ΔS||1 显示 1 K/J、ΔS/Q 为 NaN；新实现 1/T=1/300、1/ΔS 显示未定义。" },
 { slug:"thermodynamics/entropy-change", inputs:{Q:"-600",T:"300"}, expect:["-2.000"], ref:"负热量是合法输入，ΔS=-2 J/K；旧实现可算，新增仅限制 T>0，不应误拦负 Q。" },
 { slug:"thermodynamics/adiabatic-tv", inputs:{T1:"300",V1:"1",V2:"0",gamma:"1.4"}, expect:["必须是有限正数"], ref:"末体积 0 旧实现除零得 Infinity；新实现要求 T₁/V₁/V₂>0 且 γ>1。" },
@@ -367,6 +366,10 @@ async function main() {
 { slug:"thermodynamics/compressor-isentropic-work", inputs:{T1:"300",PR:"0.5",g:"1.4",Rgas:"287"}, expect:["压比 P₂/P₁ 至少为 1"], ref:"压比 0.5 表示膨胀而非压缩，旧实现算出负功；新实现拒绝。" },
 { slug:"thermodynamics/compressor-isentropic-work", inputs:{T1:"-300",PR:"8",g:"1.4",Rgas:"287"}, expect:["进气温度 T₁ 与气体常数 R 必须 > 0"], ref:"负绝对温度无物理意义；新实现拒绝。" },
 ];
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  extraCases.forEach(function(x){ if(!only.length || only.some((o)=>x.slug.endsWith("/"+o)||x.slug===o)) cases.push(x); });
+  const fails = [];
+
   for (const c of cases) {
     try {
       const r = await runCase(c);

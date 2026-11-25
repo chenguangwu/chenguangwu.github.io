@@ -7,7 +7,7 @@ const CASES = [
   // 基准 f/4、1/125s（非默认 f/5.6、1/60）驱动，期望串均与默认表不同。
   "slug": "photo2/exposure-triangle",
   "clicks": [
-    "document.getElementById('aperture').value='4';document.getElementById('shutter').value='0.008';calcEquivalent();"
+    "var ap=document.getElementById('aperture');ap.selectedIndex=4;var sh=document.getElementById('shutter');sh.selectedIndex=3;calcEquivalent();"
   ],
   "expect": [
     "1/500s",
@@ -19,7 +19,7 @@ const CASES = [
   // 12-J4：预设「极端值」必须写入控件真实存在的 ISO 档位（旧值 300 不在选项内 → 控件读空 → EV Infinity）。
   "slug": "photo2/exposure-triangle",
   "clicks": [
-    "document.getElementById('presetCheck').textContent=(__exposure_trianglePresets.toString().indexOf('\"iso\":\"300\"')>=0?'BAD_PRESET':'PRESET_OK');"
+    "document.getElementById('__tbProbe').textContent=(__exposure_trianglePresets.toString().indexOf('\"iso\":\"300\"')>=0?'BAD_PRESET':'PRESET_OK');"
   ],
   "expect": [
     "PRESET_OK"

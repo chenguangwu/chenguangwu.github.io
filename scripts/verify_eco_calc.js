@@ -607,10 +607,13 @@ const CASES = [
 
 async function main() {
   const only = process.argv.slice(2);
-  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
-  let pass = 0; const fails = [{ slug:"eco/landfill-methane", inputs:{"organic":"1000","doc":"1.2","mcf":"0.8","frac":"0.5"}, expect:["比例超出范围不计算"], ref:"DOC>1 物理上不可能，旧实现照算虚增；新实现拒绝 0–1 外比例。默认 0.4 不出现提示。" },
+  let pass = 0; const extraCases = [{ slug:"eco/landfill-methane", inputs:{"organic":"1000","doc":"1.2","mcf":"0.8","frac":"0.5"}, expect:["比例超出范围不计算"], ref:"DOC>1 物理上不可能，旧实现照算虚增；新实现拒绝 0–1 外比例。默认 0.4 不出现提示。" },
 { slug:"eco/aqi-converter", inputs:{"mode":"a2c","pollutant":"pm25","inputValue":"150"}, expect:["不能仅凭整体 AQI 与该污染物唯一反推浓度"], ref:"反向模式必须声明整体 AQI 取最大、不能唯一反推；旧页面直接称整体 AQI 并给出浓度，误导。正查默认态不出现。" },
 ];
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  extraCases.forEach(function(x){ if(!only.length || only.some((o)=>x.slug.endsWith("/"+o)||x.slug===o)) cases.push(x); });
+  const fails = [];
+
   for (const c of cases) {
     try {
       const r = await runCase(c);
