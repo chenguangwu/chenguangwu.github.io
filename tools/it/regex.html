@@ -191,9 +191,9 @@
     </div>
 
     <div class="tabs">
-      <div class="tab active" onclick="switchTab('match', this)">🎯 匹配测试</div>
-      <div class="tab" onclick="switchTab('replace', this)">🔄 替换功能</div>
-      <div class="tab" onclick="switchTab('presets', this)">📚 常用正则</div>
+      <div class="tab active" role="tab" tabindex="0" aria-selected="true" onclick="switchTab('match', this)">🎯 匹配测试</div>
+      <div class="tab" role="tab" tabindex="0" aria-selected="false" onclick="switchTab('replace', this)">🔄 替换功能</div>
+      <div class="tab" role="tab" tabindex="0" aria-selected="false" onclick="switchTab('presets', this)">📚 常用正则</div>
     </div>
 
     <div id="tab-match" class="tab-content active">
@@ -408,7 +408,7 @@ const presets = [
 function initPresets() {
   const list = document.getElementById('presetList');
   const __h0=presets.map((p, i) => `
-    <div class="preset-item" onclick="applyPreset(${i})">
+    <div class="preset-item" role="button" tabindex="0" aria-label="应用正则预设 ${p.name}" onclick="applyPreset(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
       <div class="pname">${p.name}</div>
       <div class="ppattern">${escapeHtml(p.pattern)}</div>
       <div class="pdesc">${p.desc}</div>
@@ -470,9 +470,9 @@ function onFlagsChange() {
 }
 
 function switchTab(name, trigger) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => {t.classList.remove('active');t.setAttribute('aria-selected','false');});
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  if (trigger) trigger.classList.add('active');
+  if (trigger) {trigger.classList.add('active');trigger.setAttribute('aria-selected','true');}
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'replace') doReplace();
 }
@@ -1025,5 +1025,21 @@ self.onmessage = function(e){
 </div>
 <!-- /SEO 介绍区块 -->
 
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.tab').forEach(function(el){
+    el.addEventListener('keydown',function(e){
+      var self=this; if(self.__tbKbdLock) return; self.__tbKbdLock=true; setTimeout(function(){self.__tbKbdLock=false;},0);
+      if(e.key==='Enter'||e.key===' '){e.preventDefault();this.click();return;}
+      if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+        e.stopPropagation(); e.stopImmediatePropagation();
+        var tabs=Array.prototype.slice.call(document.querySelectorAll('.tab'));
+        var i=tabs.indexOf(this); var n=tabs[(i+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length];
+        e.preventDefault(); if(n){n.focus();n.click();}
+      }
+    });
+  });
+});
+</script>
 </body>
 </html>
