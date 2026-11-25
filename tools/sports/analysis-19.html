@@ -226,22 +226,21 @@
 function escHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function calc(){
 var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
-var arr=[];
+var arr=[],skipped=0;
 lines.forEach(function(ln){
 var p=ln.split(/[,，\t ]+/);
-if(p.length<3)return;
+if(p.length<3){skipped++;return;}
 // SF-N66：回合号须为数字，否则视为表头/说明行跳过（原实现把「回合,进攻,成功」表头行当成 1 个成功回合）
-if(!/^\d+(\.\d+)?$/.test(String(p[0]).trim()))return;
-var ty=p[1],rs=p[2];
-var isAtk=ty.indexOf("攻")>=0;
-if(ty.indexOf("防")>=0)isAtk=false;
-// SF-N66：先判否定再判成功。原式 indexOf("成")>=0 会把「未成功/不成功/未成」判为成功，
-// 仅在含「失」时才纠正，导致成功率系统性高估。
-var neg=/(失败|失|未|不|否|错|×)/.test(rs);
-var ok=!neg&&(/成功/.test(rs)||rs.indexOf("成")>=0||/✓|√|赢|是/.test(rs));
+if(!/^\d+(\.\d+)?$/.test(String(p[0]).trim())){skipped++;return;}
+var ty=String(p[1]).trim(),rs=String(p[2]).trim();
+// 类型与结果均使用明确枚举；仅含「攻」/「防」的未知词（如「发球」「待定」）不再强行归类
+var isAtk=/^(进攻|攻)$/.test(ty),isDef=/^(防守|防)$/.test(ty);
+if(!isAtk&&!isDef){skipped++;return;}
+var ok=/^(成功|得分|赢|是|✓|√)$/.test(rs),bad=/^(失败|失分|未成功|不成功|否|错|×)$/.test(rs);
+if(!ok&&!bad){skipped++;return;}
 arr.push({no:p[0],atk:isAtk,ok:ok});
 });
-if(!arr.length){document.getElementById("res").innerHTML='<p>请输入至少一行「回合,进攻/防守,成功/失败」</p>';return;}
+if(!arr.length){document.getElementById("res").innerHTML='<p>请输入至少一行「回合,进攻/防守,成功/失败」；未知类型或结果的行会被跳过（本次跳过 '+skipped+' 行）。</p>';return;}
 var atk=0,atkW=0,dfn=0,dfnW=0,sw=0;
 arr.forEach(function(o,i){
 if(o.atk){atk++;if(o.ok)atkW++;}else{dfn++;if(o.ok)dfnW++;}
@@ -255,12 +254,12 @@ var rows='';
 arr.forEach(function(o){
 rows+='<tr><td>'+escHtml(o.no)+'</td><td>'+(o.atk?'进攻':'防守')+'</td><td>'+(o.ok?'成功':'失败')+'</td></tr>';
 });
-const __g2='<p>标注回合数：<strong>'+tot+'</strong>　攻防转换：<strong>'+sw+' 次</strong></p>'+
+const __g2='<p>有效回合：<strong>'+tot+'</strong>　跳过行：<strong>'+skipped+'</strong>　攻防转换：<strong>'+sw+' 次</strong></p>'+
 '<p>进攻：<strong>'+atk+'</strong> 次，成功 <strong>'+atkW+'</strong>，成功率 <strong style="color:var(--primary);">'+ar.toFixed(2)+'%</strong></p>'+
 '<p>防守：<strong>'+dfn+'</strong> 次，成功 <strong>'+dfnW+'</strong>，成功率 <strong>'+dr.toFixed(2)+'%</strong></p>'+
 '<p>综合成功：<strong>'+win+'/'+tot+'（'+(tot>0?win/tot*100:0).toFixed(2)+'%）</strong></p>'+
 '<p>战术评估：<strong>'+jd+'</strong></p>'+
-'<p style="font-size:13px;color:var(--text-muted);">转换次数统计相邻回合攻防类型的切换频率，反映比赛节奏；评估口径为进攻成功率 ≥50% 且防守成功率 ≥60%。</p>'+
+'<p style="font-size:13px;color:var(--text-muted);">类型仅接受「进攻/攻」「防守/防」，结果仅接受成功或失败类枚举；其余行（含发球、待定）不纳入统计。转换次数统计相邻有效回合的攻防类型切换频率，评估口径为进攻成功率 ≥50% 且防守成功率 ≥60%。</p>'+
 '<table><thead><tr><th>回合</th><th>类型</th><th>结果</th></tr></thead><tbody>'+rows+'</tbody></table>';document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 calc();

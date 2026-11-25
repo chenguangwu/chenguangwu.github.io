@@ -1440,7 +1440,7 @@ const CASES = [
       "awake": "42"
     },
     "expect": [
-      "分 睡眠恢复指数：45 · 恢复不足 ⚠️ 夜间醒来 42 次，扣减 15"
+      "请填写有效的睡眠数据"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"dur\":\"42\",\"deep\":\"42\",\"latency\":\"42\",\"awake\":\"42\"}，输出区含「分 睡眠恢复指数：45 · 恢复不足 ⚠️ 夜间醒来 42 次，扣减 15」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1665,7 +1665,7 @@ const CASES = [
       "gender": "1"
     },
     "expect": [
-      "/kg/min) 42 无氧阈心率 100"
+      "最大心率必须大于静息心率"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vo2max\":\"42\",\"atHr\":\"42\",\"maxHr\":\"42\",\"age\":\"42\",\"rhr\":\"42\",\"gender\":\"1\"}，输出区含「/kg/min) 42 无氧阈心率 100」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2001,7 +2001,72 @@ const CASES = [
     ref: "距离 -5 时旧实现显示负速度/负配速；现要求距离与用时均为有限正数。默认 10/15 不出现。"
   },
 
-  // ── 第824批：秒进位、零值、整数与矛盾数据 ──
+    // ── 第825批：心率关系、负汗量、攻防枚举、关键分可选、跳远范围、睡眠整数、风速/压力口径 ──
+  {
+    slug: "sports/tester-7",
+    inputs: { vo2max: "50", atHr: "200", maxHr: "190", age: "30", rhr: "60" },
+    dumpIds: ["res"],
+    expect: ["无氧阈心率 200 bpm 不能高于最大心率 190 bpm"],
+    ref: "旧实现仍按 atHr/maxHr 输出区间；现 atHr>maxHr 停算。默认 170/190 不出现。"
+  },
+  {
+    slug: "sports/dianjiezhi-diushi-buchong",
+    inputs: { v0: "-1", v1: "40" },
+    dumpIds: ["res"],
+    expect: ["出汗量不能为负数"],
+    ref: "旧实现 -1×40×23 得负钠损失；现非负校验。默认 1.5/40 不出现。"
+  },
+  {
+    slug: "sports/analysis-19",
+    inputs: { data: "1,发球,成功\n2,进攻,待定\n3,进攻,成功\n4,防守,失败" },
+    dumpIds: ["res"],
+    expect: ["有效回合： 2", "跳过行： 2"],
+    ref: "旧实现把发球记防守成功、待定记进攻失败；现未知类型/结果跳过并计数。默认示例全为合法枚举行，不出现跳过 2。"
+  },
+  {
+    slug: "sports/pingpangqiu-xiangchi-faqiu-defen",
+    inputs: { v0: "8", v1: "7", v2: "5", v3: "4", v4: "", v5: "" },
+    dumpIds: ["res"],
+    expect: ["未提供", "总得分率"],
+    ref: "关键分两项留空是合法可选态；旧 parseFloat('')=NaN 触发整页无效。现显示未提供且继续算其他得分率。默认 2/5 不出现未提供。"
+  },
+  {
+    slug: "sports/pingpangqiu-xiangchi-faqiu-defen",
+    inputs: { v0: "8", v1: "7", v2: "5", v3: "4", v4: "10", v5: "5" },
+    dumpIds: ["res"],
+    expect: ["不能大于关键分总数 5", "数据无效"],
+    ref: "关键分得分 10 > 总数 5 不可能成立；旧 rate(10,5)=200%。现不计算关键分并提示。默认 2/5 不出现。"
+  },
+  {
+    slug: "sports/jixianwei-kuai-man-leixingtuice",
+    inputs: { v0: "-10", v1: "5" },
+    dumpIds: ["res"],
+    expect: ["立定跳远成绩需为大于 0 且不超过 500 cm"],
+    ref: "旧实现 -10/5=-2 仍输出慢肌主导；现负跳远停算。默认 240/5 不出现。"
+  },
+  {
+    slug: "sports/shuimianhuifuzhiliang",
+    inputs: { dur: "7.5", deep: "20", latency: "15", awake: "2.5" },
+    dumpIds: ["res"],
+    expect: ["夜醒次数为非负整数"],
+    ref: "旧实现 2.5 次×3 得 7.5 分扣减；现要求整数。默认 1 次不出现。"
+  },
+  {
+    slug: "sports/sports-reference",
+    inputs: { windSpeed: "19" },
+    dumpIds: ["windResult"],
+    expect: ["5.28", "输入风速 m/s"],
+    ref: "19 km/h ÷ 3.6 = 5.28 m/s；旧显示蒲福 3 级代表值 3 m/s。默认 20 km/h 不出现 5.28。"
+  },
+  {
+    slug: "sports/sports-reference",
+    inputs: { diveDepth: "0" },
+    dumpIds: ["diveResult"],
+    expect: ["1.00atm", "保守查表深度", "10m"],
+    ref: "输入 0 m 绝对压力应为 1.00 atm；旧按 10 m 表项显示 2.0 atm。默认 30 m 不出现 1.00atm。"
+  },
+
+// ── 第824批：秒进位、零值、整数与矛盾数据 ──
   {
     slug: "sports/time-31",
     inputs: { total: "8.985", rounds: "3", rest: "0" },

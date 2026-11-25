@@ -299,34 +299,50 @@ document.addEventListener('DOMContentLoaded',function(){
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
 function calc(){
-  var vals={},bad=false;
-  ['v0','v1','v2','v3','v4','v5'].forEach(function(id){
+  var vals={},bad=false,keyStatus='';
+  ['v0','v1','v2','v3'].forEach(function(id){
     var el=document.getElementById(id);
-    var v=el?parseFloat(el.value):NaN;
-    var invalid=!isFinite(v)||v<0||v>200;
+    var raw=el?String(el.value).trim():'';
+    var v=raw===''?NaN:Number(raw);
+    var invalid=!isFinite(v)||v<0||v>200||Math.abs(v-Math.round(v))>1e-9;
     if(el){el.classList.toggle('input-error',invalid);if(invalid)el.setAttribute('aria-invalid','true');else el.removeAttribute('aria-invalid');}
     if(invalid)bad=true;
     vals[id]=isFinite(v)?v:0;
   });
+  var e4=document.getElementById('v4'),e5=document.getElementById('v5');
+  var r4=e4?String(e4.value).trim():'',r5=e5?String(e5.value).trim():'';
+  var E=0,F=0,keyMsg='';
+  if(r4===''&&r5===''){keyStatus='none';keyMsg='关键分为可选项：两项均留空，本次显示「未提供」，不影响其他得分率。';}
+  else if(r4===''||r5===''){keyStatus='partial';keyMsg='关键分仅填写一项，请补全得分与总数后再计算关键分得分率。';}
+  else{
+    E=Number(r4);F=Number(r5);
+    var keyInt=isFinite(E)&&isFinite(F)&&E>=0&&F>=0&&Math.abs(E-Math.round(E))<1e-9&&Math.abs(F-Math.round(F))<1e-9;
+    if(!keyInt){keyStatus='bad';keyMsg='关键分得分与总数须为非负整数；本次不计算关键分得分率。';}
+    else if(E>F){keyStatus='bad';keyMsg='关键分得分 '+E+' 不能大于关键分总数 '+F+'；本次不计算关键分得分率。';}
+    else if(F===0){keyStatus='zero';keyMsg='关键分总数为 0，无可计算结果。';}
+    else keyStatus='ok';
+  }
+  if(e4)e4.classList.toggle('input-error',keyStatus==='partial'||keyStatus==='bad');
+  if(e5)e5.classList.toggle('input-error',keyStatus==='partial'||keyStatus==='bad');
   var box=document.getElementById('res');
   if(!box)return;
-  if(bad){box.innerHTML='<div class="info-box">请填写 0–200 的非负得分/失分数值；分数请按回合数换算成整数。</div>';return;}
+  if(bad){box.innerHTML='<div class="info-box">相持与发球的得分/失分须为 0–200 的非负整数；分数请按回合数换算成整数。</div>';return;}
 
-  var A=vals.v0,B=vals.v1,C=vals.v2,D=vals.v3,E=vals.v4,F=vals.v5;
+  var A=vals.v0,B=vals.v1,C=vals.v2,D=vals.v3;
   var rallyTotal=A+B,serveTotal=C+D,won=A+C,lost=B+D,total=won+lost;
   if(total<=0){box.innerHTML='<div class="info-box">相持与发球的得失分之和为 0，请至少填写一个得分或失分。</div>';return;}
   function rate(x,y){return y>0?(x/y*100).toFixed(1)+'%':'—';}
-
+  var keyText=keyStatus==='ok'?rate(E,F):(keyStatus==='none'?'未提供':keyStatus==='partial'?'待补全':keyStatus==='zero'?'—':'数据无效');
   var items=[
     [rate(won,total),'总得分率'],
     [rate(A,rallyTotal),'相持得分率'],
     [rate(C,serveTotal),'发球得分率'],
-    [rate(E,F),'关键分得分率'],
+    [keyText,'关键分得分率'],
     [won>0?(A/won*100).toFixed(1)+'%':'—','相持得分占比'],
     [won>0?(C/won*100).toFixed(1)+'%':'—','发球得分占比']
   ];
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='<p style="font-size:13px;color:var(--text-muted);margin-top:10px;">相持 '+A+' 得 / '+B+' 失，发球 '+C+' 得 / '+D+' 失，关键分 '+E+' / '+F+'；全部得失分合计 '+total+' 分。</p>';
+  html+='<p style="font-size:13px;color:var(--text-muted);margin-top:10px;">相持 '+A+' 得 / '+B+' 失，发球 '+C+' 得 / '+D+' 失，全部得失分合计 '+total+' 分。'+(keyStatus==='ok'?'关键分 '+E+' / '+F+'。':keyMsg)+'</p>';
 
   var rt=rallyTotal>0?A/rallyTotal:NaN,st=serveTotal>0?C/serveTotal:NaN;
   if(isFinite(rt)&&isFinite(st)){
