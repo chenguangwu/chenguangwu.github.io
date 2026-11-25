@@ -299,8 +299,20 @@ window._copyText='';
 // NUMCLR：全部输入留空时不得输出 0/0.00 的假评估结果
 var __numReq=['origServings','targetServings'];
 if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
-  const orig=+document.getElementById('origServings').value||1;
-  const target=+document.getElementById('targetServings').value||1;
+  function rv(id){var el=document.getElementById(id);var v=el?String(el.value==null?'':el.value).trim():'';return v===''?NaN:parseFloat(v);}
+  const orig=rv('origServings'), target=rv('targetServings');
+  const invalid=[];
+  if(!isFinite(orig)||orig<=0)invalid.push('原人数须为大于 0 的数值');
+  if(!isFinite(target)||target<=0)invalid.push('目标人数须为大于 0 的数值');
+  seasonings.forEach((x,i)=>{
+    const raw=String(x.amount==null?'':x.amount).trim();
+    const amt=raw===''?NaN:parseFloat(raw);
+    if(raw===''||!isFinite(amt)||amt<0)invalid.push('第'+(i+1)+'行「'+(x.name||'未命名')+'」原用量须为 ≥0 的数值');
+  });
+  if(invalid.length){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);font-weight:600;">⚠ 输入有误，未缩放：</p><ul style="color:var(--danger);font-size:13px;line-height:1.8;">'+invalid.map(x=>'<li>'+ToolBox.escHtml(x)+'</li>').join('')+'</ul>';
+    window._copyText='';return;
+  }
   const ratio=target/orig;
 
   let html=`<div class="result-box" style="text-align:center;">
@@ -311,7 +323,7 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
 
   html+=`<table style="margin-top:12px;"><thead><tr><th>调料</th><th>原用量</th><th>缩放后</th></tr></thead><tbody>`;
   seasonings.forEach(s=>{
-    const origAmt=+s.amount||0;
+    const origAmt=parseFloat(String(s.amount).trim());
     const scaledAmt=origAmt*ratio;
     // 格式化：小于1保留2位，大于10保留0位，其余1位
     let formatted;
@@ -344,7 +356,7 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   let copyText=`调味料缩放 (${orig}人→${target}人, ×${ratio.toFixed(2)})\n`;
   seasonings.forEach(s=>{
-    const origAmt=+s.amount||0;
+    const origAmt=parseFloat(String(s.amount).trim());
     const scaledAmt=origAmt*ratio;
     let f=scaledAmt<1?scaledAmt.toFixed(2):scaledAmt>=10?String(Math.round(scaledAmt)):scaledAmt.toFixed(1);
     if(f.endsWith('.00'))f=f.slice(0,-3);else if(f.endsWith('.0'))f=f.slice(0,-2);
