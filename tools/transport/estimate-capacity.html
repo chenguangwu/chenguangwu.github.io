@@ -111,7 +111,7 @@
     <h2 data-zh="🛣️ 车道容量（饱和流率）估算">Estimate Capacity</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">车道饱和流率 S = 1900 × f_w × f_sw × f_HV（pc/h/ln）；f_w 按 lw≥3.6 取 1.0、3.0 ≤lw &lt;3.6 取 1+(lw−3.6)÷2（实现口径）、lw &lt;3.0 取 0.85−(3.0−lw)×0.10；f_sw 按 sw &lt;1.8 取 1−(1.8−sw)×0.06（下限 0.85）、否则 1.0；f_HV = 1 ÷ (1 + p×(2.0−1))（E_T=2.0，p 为重型车比例小数）。设计速度 &lt;100 km/h 时 S 再乘 0.95+(sp−100)×0.001；C = round(S×0.85)、服务流率 = round(C×phf)、V/C = vol ÷ C。校验：lw ≤0 或 phf ≤0 提示「请输入有效的车道宽度与高峰小时系数」。分级：V/C ≤0.35 为 A、≤0.55 B、≤0.77 C、≤0.90 D、≤1.00 E、其余 F。</div>
+      <div class="formula-eq">车道饱和流率 S = 1900 × f_w × f_sw × f_HV（pc/h/ln）；f_w 按 lw≥3.6 取 1.0、3.0 ≤lw &lt;3.6 取 0.85+(lw−3.0)×0.25、lw &lt;3.0 取 0.85−(3.0−lw)×0.10（在 3.0 m 处连续）；f_sw 按 sw &lt;1.8 取 1−(1.8−sw)×0.06（下限 0.85）、否则 1.0；f_HV = 1 ÷ (1 + p×(2.0−1))（E_T=2.0，p 为重型车比例小数）。设计速度 &lt;100 km/h 时 S 再乘 0.95+(sp−100)×0.001；C = round(S×0.85)、服务流率 = round(C×phf)、V/C = vol ÷ C。校验：车道宽 2.5–4.5 m、路肩 0–4 m、速度 40–140 km/h、重车 0–60%、交通量 ≥0、PHF 0.5–1.0，任一越界停止输出。分级：V/C ≤0.35 为 A、≤0.55 B、≤0.77 C、≤0.90 D、≤1.00 E、其余 F。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基于 HCM 公式，由车道宽度、路肩、设计速度与重型车比例估算饱和流率、通行能力与服务水平。">Estimate Capacity</p>
 
@@ -248,13 +248,15 @@ function losLabel(vc){
   return 'F';
 }
 function calc(){
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   var lw=num('laneW'),sw=num('shoulder'),sp=num('speed'),hv=num('heavy');
   var vol=num('volume'),phf=num('phf');
-  if(lw<=0||phf<=0){document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效的车道宽度与高峰小时系数。</p>';return;}
+  if(!isFinite(lw)||lw<2.5||lw>4.5||!isFinite(sw)||sw<0||sw>4||!isFinite(sp)||sp<40||sp>140||!isFinite(hv)||hv<0||hv>60||!isFinite(vol)||vol<0||!isFinite(phf)||phf<0.5||phf>1){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 请检查适用范围：车道宽 2.5–4.5 m、路肩 0–4 m、设计速度 40–140 km/h、重车比例 0–60%、交通量 ≥0、高峰小时系数 0.5–1.0。</p>';return;}
   // 车道宽度修正系数 f_w（标准3.6m=1.0）
   var fw;
   if(lw>=3.6)fw=1.0;
-  else if(lw>=3.0)fw=1+(lw-3.6)/2.0;   // 3.0->0.70, 3.6->1.0（实现口径，比 HCM 保守）
+  else if(lw>=3.0)fw=0.85+(lw-3.0)*0.25;   // 3.0->0.85 连续衔接，3.6->1.0
   else fw=0.85-(3.0-lw)*0.10;
   // 路肩修正 f_sw（窄路肩额外折减）
   var fsw=1.0;
@@ -281,11 +283,11 @@ function calc(){
       '<div class="data-card"><div class="num">'+S.toLocaleString('zh-CN')+'</div><div class="label">饱和流率 (pc/h/ln)</div></div>'+
       '<div class="data-card"><div class="num">'+C.toLocaleString('zh-CN')+'</div><div class="label">通行能力 (veh/h)</div></div>'+
       '<div class="data-card"><div class="num">'+vc.toFixed(2)+'</div><div class="label">V/C 饱和度</div></div>'+
-      '<div class="data-card"><div class="num">'+(C-vol>0?'余'+(C-vol):'超'+(vol-C))+'</div><div class="label">剩余容量(veh/h)</div></div>'+
+      '<div class="data-card"><div class="num">'+(C-vol>0?(en?'Spare ':'余')+(C-vol):(en?'Over ':'超')+(vol-C))+'</div><div class="label">剩余容量(veh/h)</div></div>'+
     '</div>'+
     '<p style="margin-top:10px;">服务水平 LOS：<span class="grade-tag '+g+'">'+los+' - '+losDesc(los)+'</span></p>'+
     '<div class="progress-bar"><div class="progress-fill" style="width:'+Math.min(100,Math.round(vc*100))+'%"></div></div>'+
-    '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">修正系数：f_w='+fw.toFixed(3)+'，f_sw='+fsw.toFixed(3)+'，f_HV='+fHV.toFixed(3)+'。</p>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">'+(en?'Adjustment factors':'修正系数')+'：f_w='+fw.toFixed(3)+'，f_sw='+fsw.toFixed(3)+'，f_HV='+fHV.toFixed(3)+'。</p>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function losDesc(l){
   return {A:'自由流，畅通',B:'较好，略有延误',C:'稳定流，可接受',D:'接近不稳定',E:'不稳定流，达容量上限',F:'强制流，拥堵'}[l];
@@ -306,6 +308,7 @@ function resetAll(){
   ToolBox.showToast(i18nText() ,'info');
 }
 calc();
+document.addEventListener('DOMContentLoaded',function(){calc();});
 
 var __estimate_capacity_last=0,__estimate_capacity_skip=false;
 function __estimate_capacitySnap(){

@@ -132,7 +132,7 @@
     <h2 data-zh="🔋 电池续航估算（电动车）">Estimate Energy</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">电动车续航估算：满电续航 = 电池容量 ÷ (百公里能耗 × 模式系数) × 100（km）；当前可行驶 = 满电续航 × 剩余电量SOC%；每公里耗电(kWh/km) = 电池容量 ÷ (能耗×模式系数) ÷ 100；季节对比：夏季能耗 = 实际能耗×1.05、冬季 = ×1.30，对应续航 = 容量÷对应能耗×100，并输出冬季较标准的降幅百分比。校验：容量或能耗 ≤0 报错返回，SOC 截断到 0~100。判据：无固定分级，冬季降幅显著大于夏季。</div>
+      <div class="formula-eq">电动车续航估算：满电续航 = 电池容量 ÷ (百公里能耗 × 模式系数) × 100（km）；当前可行驶 = 满电续航 × 剩余电量SOC%；每公里耗电(kWh/km) = 电池容量 ÷ (能耗×模式系数) ÷ 100；季节对比：夏季能耗 = 实际能耗×1.05、冬季 = ×1.30，对应续航 = 容量÷对应能耗×100，并输出冬季较标准的降幅百分比。校验：容量或能耗 ≤0 报错返回；SOC 必须填写且限定 0–100%（不得留空、不得越界），否则停止输出。判据：无固定分级，冬季降幅显著大于夏季。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入电池容量与百公里能耗，按驾驶模式与季节估算续航，并查看剩余电量对应里程。">Estimate Energy</p>
 
@@ -243,10 +243,13 @@
 <script>
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function calc(){
-  var cap=num('capacity'),cons=num('consumption'),soc=num('soc');
+  var capRaw=String(document.getElementById('capacity').value).trim();
+  var consRaw=String(document.getElementById('consumption').value).trim();
+  var socRaw=String(document.getElementById('soc').value).trim();
+  var cap=capRaw===''?NaN:+capRaw,cons=consRaw===''?NaN:+consRaw,soc=socRaw===''?NaN:+socRaw;
   var mode=parseFloat(document.getElementById('mode').value);
-  if(cap<=0||cons<=0){document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效的电池容量（>0）和能耗（>0）。</p>';document.getElementById('seasonBox').innerHTML='';return;}
-  soc=Math.min(100,Math.max(0,soc));
+  if(!isFinite(cap)||cap<=0||!isFinite(cons)||cons<=0){document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 请填写有效的电池容量（>0 kWh）和百公里能耗（>0 kWh/100km）。</p>';document.getElementById('seasonBox').innerHTML='';return;}
+  if(!isFinite(soc)||soc<0||soc>100){document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 请填写剩余电量 0–100%（0 表示空电）；超出范围不估算。</p>';document.getElementById('seasonBox').innerHTML='';return;}
   var effCons=cons*mode;
   var fullRange=cap/effCons*100;
   var remaining=fullRange*soc/100;
@@ -258,7 +261,7 @@ function calc(){
       '<div class="data-card"><div class="num">'+(effCons/100).toFixed(2)+'</div><div class="label">kWh/公里</div></div>'+
     '</div>'+
     '<div class="progress-bar"><div class="progress-fill" style="width:'+Math.round(soc)+'%"></div></div>'+
-    '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">当前电量 '+soc.toFixed(0)+'%，可行驶约 <strong>'+remaining.toFixed(0)+' km</strong>。</p>';document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+    '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">当前电量 '+soc.toFixed(0)+'%，可行驶约 <strong>'+remaining.toFixed(0)+' km</strong>。温度、路况、载重、空调与电池老化均会影响实际续航，本估算仅供参考。</p>';document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   // 季节对比
   var summerCons=effCons*1.05;        // 夏季空调轻度增加

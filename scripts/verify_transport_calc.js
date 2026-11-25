@@ -74,6 +74,24 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "transport/calculator-calc-speed",
+  "inputs": { "speed": "120", "reaction": "", "slope": "0" },
+  "expect": ["请填写反应时间（≥0 s"],
+  "ref": "反应时间留空不再按 0 计算；0 合法但必须显式填写。"
+},
+{
+  "slug": "transport/calculator-calc-speed",
+  "inputs": { "speed": "120", "reaction": "0", "slope": "0" },
+  "expect": ["0.0 反应距离 (m)", "理论距离参考"],
+  "ref": "反应时间 0 为合法输入：反应距离 0.0m，仍输出理论距离，但不再给出“安全”结论。"
+},
+{
+  "slug": "transport/calculator-calc-speed",
+  "inputs": { "speed": "120", "reaction": "1", "slope": "-80" },
+  "expect": ["制动距离无解"],
+  "ref": "μ=0.75、坡度 −80% 使分母 ≤0；停止计算并提示，不再输出 Infinity。"
+},
+{
   "slug": "transport/calculator-calc-tire",
   "inputs": {
     "oldSpec": "225/45R17_X",
@@ -81,6 +99,18 @@ const CASES = [
   },
   "expect": [ "请使用如 225" ],
   "ref": "auto-restore"
+},
+{
+  "slug": "transport/calculator-calc-tire",
+  "inputs": { "oldSpec": "000/00R00", "newSpec": "225/50R17" },
+  "expect": ["尺寸超出合理范围"],
+  "ref": "全零规格不再通过格式校验；胎宽/扁平比/轮辋须在合理区间。"
+},
+{
+  "slug": "transport/calculator-calc-tire",
+  "inputs": { "oldSpec": "500/45R17", "newSpec": "225/50R17" },
+  "expect": ["尺寸超出合理范围"],
+  "ref": "胎宽 500mm 超出 50–400 合理范围，阻断计算并清空旧表。"
 },
 {
   "slug": "transport/convert-fuel-oil",
@@ -131,21 +161,52 @@ const CASES = [
   "ref": "12-K11 补全计费重量功能：标题/meta/引据表承诺「实重 vs 体积重取大者」但旧页面无实重输入、只输出体积重。50×40×30÷5000=12 kg，实重 8<12 ⇒ 计费重 12.00 kg「取体积重」；实重 20>12 ⇒ 计费重 20.00 kg「取实际重量」。旧版无 actual 输入（getElementById 返回 null 报错/无计费重输出）⇒ 红；默认 actual 留空不产计费重串，注入失败零逃生。"
 },
 {
+  "slug": "transport/convert-volume-weight",
+  "inputs": { "l": "50", "w": "40", "h": "30", "d": "5000", "actual": "" },
+  "expect": ["未填写实际重量：仅输出体积重"],
+  "ref": "实重留空明确标注未提供，不再静默跳过比较。"
+},
+{
+  "slug": "transport/convert-volume-weight",
+  "inputs": { "l": "50", "w": "40", "h": "30", "d": "5000", "actual": "0" },
+  "expect": ["计费重量 12.00 kg", "取体积重"],
+  "ref": "实重 0 为合法值并参与比较：体积重 12kg > 0 ⇒ 计费 12.00kg 取体积重。"
+},
+{
+  "slug": "transport/convert-volume-weight",
+  "inputs": { "l": "50", "w": "40", "h": "30", "d": "5000", "actual": "-5" },
+  "expect": ["实际重量不得为负"],
+  "ref": "负实重明确报错，不再当作未填写而跳过比较。"
+},
+{
   "slug": "transport/cycle-signal",
   "inputs": {
     "cycle": "90",
     "satFlow": "1800",
-    "phaseCount": "3"
+    "phaseCount": "2"
   },
   "expect": [
-    "1.050"
+    "流量比之和 Y 0.700",
+    "相位饱和度 x 0.787"
   ],
-  "ref": "auto-restore"
+  "ref": "Y=0.35+0.35=0.700，L=10，C=90；相位饱和度 x=Y×C/(C−L)=0.7×90/80=0.7875，toFixed(3) 得 0.787，页面单独显示“0.700 流量比之和 Y”“0.788 相位饱和度 x”。旧实现直接显示 Y=0.700 为饱和度。"
+},
+{
+  "slug": "transport/cycle-signal",
+  "inputs": { "cycle": "90", "satFlow": "1800", "phaseCount": "3" },
+  "expect": ["流量比之和 Y 须在 0–1 之间"],
+  "ref": "三相位默认 y 各 0.35 ⇒ Y=1.05≥1 过饱和，Webster 无解；停止输出方案并提示。"
+},
+{
+  "slug": "transport/cycle-signal",
+  "inputs": { "cycle": "10", "satFlow": "1800", "phaseCount": "2" },
+  "expect": ["周期须大于总损失时间"],
+  "ref": "C=10、L=10 ⇒ 有效绿灯 0，停止输出。"
 },
 {
   "slug": "transport/estimate-capacity",
   "inputs": {
-    "laneW": "6.75",
+    "laneW": "3.5",
     "shoulder": "3.0",
     "speed": "120",
     "heavy": "10",
@@ -153,9 +214,11 @@ const CASES = [
     "phf": "0.92"
   },
   "expect": [
-    "6.75"
+    "1,684",
+    "1,431",
+    "1.26"
   ],
-    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
+  "ref": "lw3.5 ⇒ f_w=0.85+(3.5−3.0)×0.25=0.975；S=1900×0.975×1×(1/1.1)=1684；C=round(1684×0.85)=1431；V/C=1800/1431=1.258≈1.26。旧 f_w=1+(3.5−3.6)/2=0.95 ⇒ S=1641/C=1395，可判别。"
 },
 {
   "slug": "transport/estimate-energy",
@@ -164,8 +227,20 @@ const CASES = [
     "consumption": "20",
     "soc": "80"
   },
-  "expect": ["90\n20\n80\n1.00\n450 满电续航 (km) 360 当前可行驶 (km) 20.0 实际能耗 0.20 kWh/公里 当前电量 80%，可行驶约 360 km 。\n标准 450 km 夏季 429 km 冬季 346 km ❄️ 冬季续航较标准下降约 23% ，较夏季少约 82 km。"],
-  "ref": "2026-10-25 修复 kWh/公里 卡片：原式 100/effCons×cap/100 实为满电续航数值（90/17.05=5.28，锚定了 bug 输出），正确为实际能耗÷100（cons=20、soc=80 修正后 effCons=17.0 → 0.17 kWh/km；判别器换回默认 cons=15 → 0.13，不重合）"
+  "expect": ["450 满电续航 (km) 360 当前可行驶 (km) 20.0 实际能耗", "冬季续航较标准下降约 23%"],
+  "ref": "长期用例：90kWh、20kWh/100km、SOC80、标准模式 ⇒ 满电450、当前360、实际能耗20.0；冬季×1.3 ⇒ 346km、降23%。新增续航影响因素提示不影响核心数值。"
+},
+{
+  "slug": "transport/estimate-energy",
+  "inputs": { "capacity": "60", "consumption": "15", "soc": "" },
+  "expect": ["请填写剩余电量 0–100%"],
+  "ref": "剩余电量留空不再按 0 计算；空电须显式填 0。"
+},
+{
+  "slug": "transport/estimate-energy",
+  "inputs": { "capacity": "60", "consumption": "15", "soc": "120" },
+  "expect": ["请填写剩余电量 0–100%"],
+  "ref": "SOC 120% 越界拒绝估算，不再静默钳制到 100%。"
 },
 {
   "slug": "transport/estimate-speed-time",
