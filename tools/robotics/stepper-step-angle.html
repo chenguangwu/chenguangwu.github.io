@@ -132,7 +132,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入每转步数 N，求步距角。">Input steps per revolution N, compute step angle θ = 360°/N for stepper-motor microstepping setup and positioning-precision design.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">步进电机步距角（本页代码口径）：步距角 θ=360°÷N（N 为每转步数，步/转）；联动量：1/16 微步步距角=θ÷16、弧度值=θ×π÷180（rad）。校验：单字段经输入守卫必填且须为合法数值，否则提示并中止。判据：无固定分级，θ 与 N 成反比，200 步/转对应 1.8°，16 细分后步距角缩至十六分之一。</div>
+      <div class="formula-eq">步进电机步距角：整步 θ=360°÷N（N 为每转整步数，须为正整数）；微步步距角=θ÷细分数（可选 1/2/4/8/16/32）、弧度值=θ×π÷180（rad）。校验：N 须为 ≥1 的整数，细分数由下拉选择。判据：θ 与 N 成反比，200 步/转对应 1.8°，1/16 微步为 0.1125°；微步只提高指令分辨率，不等于实际定位精度。</div>
       <p class="formula-desc">输入每转步数 N，求步距角。</p>
     </div>
 
@@ -140,6 +140,17 @@
       <div>
         <label for="N">每转步数 N (步/转)</label>
         <input type="number" id="N" value="200" step="1" oninput="calcTool()" placeholder="如 200">
+      </div>
+      <div>
+        <label for="micro">微步细分</label>
+        <select id="micro" onchange="calcTool()">
+          <option value="1">整步（1）</option>
+          <option value="2">1/2</option>
+          <option value="4">1/4</option>
+          <option value="8">1/8</option>
+          <option value="16" selected>1/16</option>
+          <option value="32">1/32</option>
+        </select>
       </div>
     </div>
 
@@ -296,14 +307,16 @@ function dataGrid(rows){if(!Array.isArray(rows))return '<div class="data-grid"><
 function calcTool(){
               var __ig=__tbInputGuard(['N'],["每转步数 N (步/转)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const N=num('N');
+            if(!isFinite(N)||N<1||Math.abs(N-Math.round(N))>1e-9){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 每转整步数 N 必须为正整数（≥1），不能为 0、负数或小数。</p>');return;}
+            const micro=parseInt(document.getElementById('micro').value,10)||1;
             const th=360/N;
             const __g2=dataGrid([
-                [th.toFixed(3),'步距角 θ (°)'],
-                [(th/16).toFixed(4), '1/16 微步步距角 (度)'],
-                [(th*Math.PI/180).toFixed(6), '步距角 (rad)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+                [th.toFixed(3),'整步步距角 θ (°)'],
+                [(th/micro).toFixed(4), '1/'+micro+' 微步步距角 (度)'],
+                [(th*Math.PI/180).toFixed(6), '整步步距角 (rad)']
+            ])+'<div class="info-box" style="margin-top:12px;">微步只提高指令分辨率，不等于实际定位精度；负载、齿槽转矩、传动间隙、弹性变形与丢步都会使真实定位误差大于计算值。</div>';ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
-function resetForm(){document.getElementById('N').value = '200';
+function resetForm(){document.getElementById('N').value = '200';document.getElementById('micro').value = '16';
       calcTool();}
 calcTool();
 

@@ -90,10 +90,10 @@
     },
     {
       "@type": "Question",
-      "name": "近处误差大？",
+      "name": "近处误差大还是远处大？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "是；深度对视差变化敏感，近处更不稳。"
+        "text": "固定视差误差 δd 下，深度误差 δZ≈Z²·δd/(f·B)，随距离平方增大，因此远处更不稳；近处视差大、相对精度通常更好。"
       }
     }
   ]
@@ -206,7 +206,7 @@
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>单位？</dt><dd>f、d 同取像素，B 取米，则 Z 为米。</dd>
-<dt>近处误差大？</dt><dd>是；深度对视差变化敏感，近处更不稳。</dd>
+<dt>近处误差大还是远处大？</dt><dd>固定视差误差 δd 下，深度误差 δZ≈Z²·δd/(f·B)，随距离平方增大，因此远处更不稳；近处视差大、相对精度通常更好。</dd>
 </dl>
 </div>
 </section>
@@ -302,12 +302,14 @@ function __tbInputGuardCore(_ids,_labels){
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){if(!Array.isArray(rows))return '<div class="data-grid"><div class="data-card"><div class="num">—</div><div class="label">渲染异常</div></div></div>';let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['f', 'B', 'd'],["焦距 f (px)", "基线 B (m)", "视差 d (px)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const f=num('f'),B=num('B'),d=num('d');
-            const Z=f*B/d;
+              const f=num('f'),B=num('B'),d=num('d');
+            if(!isFinite(f)||f<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 焦距 f 必须大于 0（px）。</p>');return;}
+            if(!isFinite(B)||B<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 基线 B 必须大于 0（m）。</p>');return;}
+            if(!isFinite(d)||d<0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 视差 d 须不小于 0（px）；负值表示左右顺序或匹配符号约定不同，请统一后输入。</p>');return;}
+            const Z=d===0?null:f*B/d;
             const __g2=dataGrid([
-                [Z.toFixed(3),'深度 Z (m)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+                [Z===null?'∞（零视差，超出量程）':Z.toFixed(3),'深度 Z (m)']
+            ])+'<div class="info-box" style="margin-top:12px;">Z=f·B/d 假设已做双目标定、视差按同一符号约定且匹配无偏。固定视差误差 δd 下，深度误差 δZ≈Z²·δd/(f·B)，随距离平方增大，因此远处更不稳；零视差对应无穷远，不能给出有限深度。</div>';ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('f').value = '500';
       document.getElementById('B').value = '0.1';
