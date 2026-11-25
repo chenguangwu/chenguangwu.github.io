@@ -38,6 +38,9 @@
 .currency-select{position:relative;}
 .currency-select-btn{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:14px;color:var(--text);transition:all 0.15s;}
 .currency-select-btn:hover{border-color:var(--primary);}
+.currency-select-btn:focus-visible{outline:3px solid var(--primary);outline-offset:2px;}
+.currency-dropdown .option:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;background:var(--result-bg);}
+.currency-dropdown .option[aria-selected="true"]{background:var(--result-bg);font-weight:600;}
 .currency-select-btn .flag{font-size:22px;margin-right:8px;}
 .currency-select-btn .code{font-weight:600;}
 .currency-select-btn .name{color:var(--text-muted);font-size:12px;margin-left:6px;}
@@ -205,11 +208,11 @@
               <input type="number" id="fromAmount" value="100" step="any" oninput="calc()" placeholder="如 100" aria-label="源金额">
             </div>
             <div class="currency-select" style="flex:1;min-width:200px;">
-              <div class="currency-select-btn" id="fromBtn" onclick="toggleDropdown('from')">
+              <div class="currency-select-btn" id="fromBtn" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false" aria-controls="fromDropdown" onclick="toggleDropdown('from')">
                 <span><span class="flag">🇨🇳</span><span class="code">CNY</span><span class="name">人民币</span></span>
                 <span>▼</span>
               </div>
-              <div class="currency-dropdown" id="fromDropdown">
+              <div class="currency-dropdown" id="fromDropdown" role="listbox" aria-label="货币列表">
                 <div class="search-box"><input type="text" id="fromSearch" placeholder="搜索货币..." oninput="filterOptions('from')" aria-label="搜索货币..."></div>
                 <div id="fromOptions"></div>
               </div>
@@ -226,11 +229,11 @@
               <input type="number" id="toAmount" value="" step="any" oninput="calcReverse()" aria-label="目标金额">
             </div>
             <div class="currency-select" style="flex:1;min-width:200px;">
-              <div class="currency-select-btn" id="toBtn" onclick="toggleDropdown('to')">
+              <div class="currency-select-btn" id="toBtn" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false" aria-controls="toDropdown" onclick="toggleDropdown('to')">
                 <span><span class="flag">🇺🇸</span><span class="code">USD</span><span class="name">美元</span></span>
                 <span>▼</span>
               </div>
-              <div class="currency-dropdown" id="toDropdown">
+              <div class="currency-dropdown" id="toDropdown" role="listbox" aria-label="货币列表">
                 <div class="search-box"><input type="text" id="toSearch" placeholder="搜索货币..." oninput="filterOptions('to')" aria-label="搜索货币..."></div>
                 <div id="toOptions"></div>
               </div>
@@ -274,11 +277,11 @@
         <div>
           <label>从</label>
           <div class="currency-select">
-            <div class="currency-select-btn" id="batchFromBtn" onclick="toggleDropdown('batchFrom')">
+            <div class="currency-select-btn" id="batchFromBtn" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false" aria-controls="batchFromDropdown" onclick="toggleDropdown('batchFrom')">
               <span><span class="flag">🇨🇳</span><span class="code">CNY</span><span class="name">人民币</span></span>
               <span>▼</span>
             </div>
-            <div class="currency-dropdown" id="batchFromDropdown">
+            <div class="currency-dropdown" id="batchFromDropdown" role="listbox" aria-label="货币列表">
               <div class="search-box"><input type="text" id="batchFromSearch" placeholder="搜索货币..." oninput="filterOptions('batchFrom')" aria-label="搜索货币..."></div>
               <div id="batchFromOptions"></div>
             </div>
@@ -287,11 +290,11 @@
         <div>
           <label>到</label>
           <div class="currency-select">
-            <div class="currency-select-btn" id="batchToBtn" onclick="toggleDropdown('batchTo')">
+            <div class="currency-select-btn" id="batchToBtn" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false" aria-controls="batchToDropdown" onclick="toggleDropdown('batchTo')">
               <span><span class="flag">🇺🇸</span><span class="code">USD</span><span class="name">美元</span></span>
               <span>▼</span>
             </div>
-            <div class="currency-dropdown" id="batchToDropdown">
+            <div class="currency-dropdown" id="batchToDropdown" role="listbox" aria-label="货币列表">
               <div class="search-box"><input type="text" id="batchToSearch" placeholder="搜索货币..." oninput="filterOptions('batchTo')" aria-label="搜索货币..."></div>
               <div id="batchToOptions"></div>
             </div>
@@ -327,11 +330,11 @@
         <div>
           <label>基准货币</label>
           <div class="currency-select">
-            <div class="currency-select-btn" id="quickBtn" onclick="toggleDropdown('quick')">
+            <div class="currency-select-btn" id="quickBtn" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false" aria-controls="quickDropdown" onclick="toggleDropdown('quick')">
               <span><span class="flag">🇺🇸</span><span class="code">USD</span><span class="name">美元</span></span>
               <span>▼</span>
             </div>
-            <div class="currency-dropdown" id="quickDropdown">
+            <div class="currency-dropdown" id="quickDropdown" role="listbox" aria-label="货币列表">
               <div class="search-box"><input type="text" id="quickSearch" placeholder="搜索货币..." oninput="filterOptions('quick')" aria-label="搜索货币..."></div>
               <div id="quickOptions"></div>
             </div>
@@ -561,26 +564,44 @@ function renderOptions(type, filter){
     return !filter || c.code.toLowerCase().indexOf(filter) >= 0 || c.name.toLowerCase().indexOf(filter) >= 0;
   });
   var html = '';
+  var current = type === 'from' ? fromCurrency : type === 'to' ? toCurrency : type === 'batchFrom' ? batchFromCurrency : type === 'batchTo' ? batchToCurrency : quickCurrency;
   list.forEach(function(c){
-    html += '<div class="option" onclick="selectCurrency(\'' + type + '\',\'' + c.code + '\')">';
+    html += '<div class="option" role="option" tabindex="-1" aria-selected="' + (c.code === current ? 'true' : 'false') + '" data-code="' + c.code + '" onclick="selectCurrency(\'' + type + '\',\'' + c.code + '\')">';
     html += '<span class="flag">' + c.flag + '</span>';
     html += '<span class="code">' + c.code + '</span>';
     html += '<span class="name">' + c.name + '</span>';
     html += '</div>';
   });
   if(!list.length){
-    html = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">未找到货币</div>';
+    html = '<div role="status" style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">未找到货币</div>';
   }
   const __g2=html;container.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
+function __ccDropdownType(id){ return id ? id.replace(/Btn$/, '') : ''; }
+function __ccCloseDropdowns(focusType){
+  document.querySelectorAll('.currency-dropdown').forEach(function(d){ d.classList.remove('show'); });
+  document.querySelectorAll('.currency-select-btn').forEach(function(b){ b.setAttribute('aria-expanded','false'); });
+  if(focusType){ var b=document.getElementById(focusType+'Btn'); if(b) b.focus(); }
+}
+function __ccFocusOption(type, step){
+  var dropdown=document.getElementById(type+'Dropdown');
+  if(!dropdown) return;
+  var opts=Array.prototype.slice.call(dropdown.querySelectorAll('.option[role="option"]'));
+  if(!opts.length) return;
+  var idx=opts.indexOf(document.activeElement);
+  if(idx<0) idx=step>0?-1:opts.length;
+  var next=opts[(idx+step+opts.length)%opts.length];
+  if(next) next.focus();
+}
 function toggleDropdown(type){
   var dropdown = document.getElementById(type + 'Dropdown');
   if(!dropdown) return;
   var isShow = dropdown.classList.contains('show');
-  document.querySelectorAll('.currency-dropdown').forEach(function(d){ d.classList.remove('show'); });
+  __ccCloseDropdowns();
   if(!isShow){
     dropdown.classList.add('show');
+    var btn=document.getElementById(type+'Btn'); if(btn) btn.setAttribute('aria-expanded','true');
     var searchInput = document.getElementById(type + 'Search');
     if(searchInput){ setTimeout(function(){ searchInput.focus(); }, 50); }
     renderOptions(type, '');
@@ -593,8 +614,7 @@ function filterOptions(type){
 }
 
 function selectCurrency(type, code){
-  var dropdown = document.getElementById(type + 'Dropdown');
-  if(dropdown) dropdown.classList.remove('show');
+  __ccCloseDropdowns(type);
 
   if(type === 'from'){
     fromCurrency = code;
@@ -619,9 +639,46 @@ function selectCurrency(type, code){
   }
 }
 
+document.addEventListener('keydown', function(e){
+  var btn=e.target.closest ? e.target.closest('.currency-select-btn') : null;
+  if(btn){
+    var type=__ccDropdownType(btn.id);
+    if(e.key==='Enter' || e.key===' ' || e.key==='Spacebar'){ e.preventDefault(); toggleDropdown(type); return; }
+    if(e.key==='ArrowDown'){ e.preventDefault(); toggleDropdown(type); setTimeout(function(){ __ccFocusOption(type,1); },60); return; }
+    if(e.key==='Escape'){ e.preventDefault(); __ccCloseDropdowns(type); return; }
+  }
+  var opt=e.target.closest ? e.target.closest('.option[role="option"]') : null;
+  if(opt){
+    var dropdown=opt.closest('.currency-dropdown');
+    var type=dropdown ? dropdown.id.replace(/Dropdown$/,'') : '';
+    if(e.key==='Enter' || e.key===' ' || e.key==='Spacebar'){
+      e.preventDefault();
+      var code=opt.getAttribute('data-code');
+      if(type && code) selectCurrency(type, code);
+      return;
+    }
+    if(e.key==='ArrowDown'){ e.preventDefault(); __ccFocusOption(type,1); return; }
+    if(e.key==='ArrowUp'){ e.preventDefault(); __ccFocusOption(type,-1); return; }
+    if(e.key==='Home'){ e.preventDefault(); var first=document.querySelector('#'+type+'Dropdown .option'); if(first) first.focus(); return; }
+    if(e.key==='End'){ e.preventDefault(); var opts=document.querySelectorAll('#'+type+'Dropdown .option'); if(opts.length) opts[opts.length-1].focus(); return; }
+    if(e.key==='Escape'){ e.preventDefault(); __ccCloseDropdowns(type); return; }
+  }
+  var search=e.target.closest ? e.target.closest('.currency-dropdown .search-box input') : null;
+  if(search){
+    var type=search.closest('.currency-dropdown').id.replace(/Dropdown$/,'');
+    if(e.key==='ArrowDown'){ e.preventDefault(); __ccFocusOption(type,1); }
+    if(e.key==='Enter'){
+      e.preventDefault();
+      var first=document.querySelector('#'+type+'Dropdown .option[role="option"]');
+      if(first){ var code=first.getAttribute('data-code'); if(type && code) selectCurrency(type, code); }
+    }
+    if(e.key==='Escape'){ e.preventDefault(); __ccCloseDropdowns(type); }
+  }
+});
+
 document.addEventListener('click', function(e){
   if(!e.target.closest('.currency-select')){
-    document.querySelectorAll('.currency-dropdown').forEach(function(d){ d.classList.remove('show'); });
+    __ccCloseDropdowns();
   }
 });
 

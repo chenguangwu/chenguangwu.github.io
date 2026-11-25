@@ -158,6 +158,7 @@
         </div>
       </div>
       <div id="cashFlowList"></div>
+      <input type="text" id="npvFlowSnapshot" style="display:none" aria-hidden="true" tabindex="-1">
 
       <div class="stat-grid" id="stats" style="margin-top:16px;"></div>
       <div class="chart-card">
@@ -307,6 +308,8 @@ function applyTemplate(i){
 }
 
 function renderCashFlows(){
+  var snap=document.getElementById('npvFlowSnapshot');
+  if(snap) snap.value=cashFlows.join('|');
   const list = document.getElementById('cashFlowList');
   const __g2=cashFlows.map((v,i)=>`
     <div class="cf-row">
@@ -748,8 +751,16 @@ function __npv_calculatorRender(keys,rk,en){
         TBKit.history.mount('#npv_calculatorHist',function(rec){
             __npv_calculator_skip=true;
             try{
+                // 先按快照重建完整期数与金额；旧记录无快照时按 cf_ 最大下标重建，兼容期数增减。
+                if(typeof rec.npvFlowSnapshot==='string' && rec.npvFlowSnapshot.trim()!==''){
+                    cashFlows=rec.npvFlowSnapshot.split('|').map(function(v){return parseFloat(v)||0;});
+                } else {
+                    var maxCf=-1;
+                    for(var k0 in rec){ if(k0.indexOf('cf_')===0){ var ix=parseInt(k0.slice(3),10); if(isFinite(ix)&&ix>maxCf) maxCf=ix; } }
+                    if(maxCf>=0){ cashFlows=new Array(maxCf+1).fill(0); }
+                }
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='npvFlowSnapshot') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();

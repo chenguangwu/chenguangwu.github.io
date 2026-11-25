@@ -4063,7 +4063,7 @@ const CASES = [
   {
     slug: "finance/loan-comparison",
     inputs: {"a-principal":"0","a-rate":"5","a-months":"12","b-principal":"50000","b-rate":"4.8","b-months":"24","c-principal":"80000","c-rate":"4.6","c-months":"36"},
-    expect: ["⚠ 无效方案：贷款金额与月数须大于 0，已排除比较", "月供最少： B 方案"],
+    expect: ["⚠ 无效方案：贷款金额须大于 0 且不超过 1 万亿元，已排除比较", "月供最低： B 方案"],
     ref: "F-N1：方案 A 本金 0 ⇒ 月供恒 0，必须标记无效并排除比较；仅 B、C 参与，B 月供 2189.09 最低；本金/期数不同须提示不可仅按月供判优。默认三方案本金 100000、均有效 ⇒ 不命中无效提示。",
   },
   {
@@ -4466,7 +4466,7 @@ const CASES = [
     slug: "finance/loan-comparison",
     inputs: {"a-principal":"100000","a-rate":"","a-months":"36","b-principal":"100000","b-rate":"4.8","b-months":"36","c-principal":"100000","c-rate":"4.6","c-months":"30"},
     clicks: ["calc()"],
-    expect: ["方案 A ⚠ 无效方案：年利率须填写且不得为负，已排除比较 方案 B 月供： 2988.12 元"],
+    expect: ["方案 A ⚠ 无效方案：年利率须在 0%–100% 之间，已排除比较 方案 B 月供： 2988.12 元"],
     ref: "F-N229：方案 A 年利率留空，旧实现 `isFinite(NaN)?:0` 静默按 0%（月供 2777.78、有效年化 0.00%）参与排名；现判无效并排除，B 方案 100000/4.8%/36 期月供 2988.12 元照常展示。expect 把 A 的无效提示与 B 的独立复算月供绑成一条，默认态（A 4.8% 有效）不含该串 ⇒ 零逃生。",
   },
   {
@@ -5129,7 +5129,92 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["定投年限须为 1–50 的整数年"],
     ref: "定投年限不得静默夹到 1–50 或向下取整：10.5 年明确拒绝，并清空当前结果。",
-  }
+  },
+  {
+    slug: "finance/investment-calculator",
+    inputs: { initial: "10000", final: "", years: "5", additional: "0" },
+    clicks: ["calc()"],
+    expect: ["请填写期末价值"],
+    ref: "期末价值留空必须提示补全，不能按 0 计算成全部亏损；显式输入 0 才走 -100% 分支。",
+  },
+  {
+    slug: "finance/investment-calculator",
+    inputs: { initial: "10000", final: "0", years: "5", additional: "0" },
+    clicks: ["calc()"],
+    expect: ["年化收益率 CAGR： -100.00%"],
+    ref: "期末价值显式填 0 合法：CAGR = -100.00%，与留空未填写区分。",
+  },
+  {
+    slug: "finance/investment-calculator",
+    inputs: { initial: "10000", final: "18000", years: "0.000000001", additional: "0" },
+    clicks: ["calc()"],
+    expect: ["数值超出可计算范围"],
+    ref: "极短年限 + 1.8 倍回报使 expm1(log(1.8)/1e-9) 溢出；必须拒绝并禁止保存/导出，不能显示破折号却标记有效。",
+  },
+  {
+    slug: "finance/irr-calculator",
+    inputs: {},
+    clicks: ["cashFlows=[{period:0,amount:-100,label:'T0'},{period:1,amount:200,label:'T1'},{period:2,amount:-100,label:'T2'}];renderFlows();calc();document.getElementById('__tbProbe').textContent='IRRROOT '+document.getElementById('irrValue').textContent;"],
+    expect: ["IRRROOT 0.00%"],
+    ref: "现金流 -100/200/-100 的 NPV = -100r²/(1+r)²，在 r=0 处与零轴相切；旧实现只找变号区间会报无零点。",
+  },
+  {
+    slug: "finance/npv-calculator",
+    inputs: {},
+    clicks: ["cashFlows=[-100,50,60];renderCashFlows();document.getElementById('__tbProbe').textContent='NPVSNAP '+document.getElementById('npvFlowSnapshot').value;"],
+    expect: ["NPVSNAP -100|50|60"],
+    ref: "现金流变更后必须写入完整有序快照，供历史恢复重建期数。",
+  },
+  {
+    slug: "finance/npv-calculator",
+    inputs: {},
+    clicks: ["var cb;TBKit={util:{isEn:function(){return false},diffBox:function(){}},matrix:{table:function(){}},history:{list:function(){return [{t:Date.now(),d:{npvFlowSnapshot:'-100|50|60|70',__tbScore:1,'结果':'x'}}]},mount:function(s,fn){cb=fn},last:function(){return null}},chart:{line:function(){}}};__npv_calculatorRender(['npvFlowSnapshot'],'结果',false);cb({npvFlowSnapshot:'-100|50|60|70'});document.getElementById('__tbProbe').textContent='NPVREST '+document.getElementById('npvFlowSnapshot').value;"],
+    expect: ["NPVREST -100|50|60|70"],
+    ref: "历史恢复必须按快照重建 4 期，而不是只更新当前页面已有 cf_ 输入；第4期必须出现。",
+  },
+  {
+    slug: "finance/analysis-cost-1",
+    inputs: { total: "100", rows: "A,1\nB,1\nC,1", dec: "2", outQty: "" },
+    clicks: ["calc()"],
+    expect: ["分摊额明细相加为 99.99 元"],
+    ref: "100 元平均分给 3 项、显示两位各 33.33，显示明细合计 99.99 与总成本 100.00 差 0.01；必须检测显示精度差异。",
+  },
+  {
+    slug: "finance/analysis-cost-1",
+    inputs: { total: "100", rows: "A,1\nB,1\nC,1", dec: "2", outQty: "" },
+    clicks: ["document.getElementById('tailAdjust').checked=true;calc()"],
+    expect: ["明细合计与总成本一致"],
+    ref: "启用尾差处理后最后一项调整为 33.34，显示明细合计 = 100.00，并明确提示。",
+  },
+  {
+    slug: "finance/invoice-generator",
+    inputs: { "sp-total": "100", "sp-limit": "34", "sp-method": "equal", "sp-type": "total" },
+    clicks: ["currentMethod='split';calc();document.getElementById('__tbProbe').textContent='INVEQ '+currentResult.invoices.map(function(i){return i.amount.toFixed(2)}).join(',')+'|'+currentResult.sumTotal.toFixed(2);"],
+    expect: ["INVEQ 33.34,33.33,33.33|100.00"],
+    ref: "100 元按 34 限额均分为 3 张：按分分配余数 ⇒ 33.34+33.33+33.33=100.00，三张均 ≤34；旧实现 33.33×3 显示合计 99.99。",
+  },
+  {
+    slug: "finance/invoice-generator",
+    inputs: { "sp-total": "10500", "sp-limit": "10000", "sp-method": "lastsmall", "sp-type": "total" },
+    clicks: ["currentMethod='split';calc();document.getElementById('__tbProbe').textContent='INVLAST '+currentResult.invoices.length+' '+Math.max.apply(null,currentResult.invoices.map(function(i){return i.amount}));"],
+    expect: ["INVLAST 2 10000"],
+    ref: "总额 10500、限额 10000 的最后一张较小模式必须拆成 10000+500，任何一张都不得超过限额；旧实现因 1.1 倍阈值直接输出 10500 一张。",
+  },
+  {
+    slug: "finance/loan-comparison",
+    inputs: { "a-principal": "100000", "a-rate": "101", "a-months": "12", "b-principal": "100000", "b-rate": "0", "b-months": "12" },
+    clicks: ["calc()"],
+    expect: ["年利率须在 0%–100% 之间", "8333.33"],
+    ref: "利率 101% 超出合理范围被排除；0% 仍合法，B 方案月供 100000/12 = 8333.33。",
+  },
+  {
+    slug: "finance/bond-yield-calculator",
+    inputs: { "y-price": "" },
+    clicks: ["switchTab('formula', document.querySelectorAll('.tab-btn')[1]);document.getElementById('__tbProbe').textContent='BONDTAB '+(document.getElementById('tabFormula').classList.contains('active')?'OK':'BAD');"],
+    expect: ["BONDTAB OK"],
+    ref: "公式标签不依赖当前计算模式输入；隐藏的 y-price 留空也不能阻断 tab 切换。",
+  },
+
 ];
 
 // ---------------------------------------------------------------- main

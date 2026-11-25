@@ -281,14 +281,22 @@ function fmt(n){
 }
 
 var investmentResultValid = false;
+function __invRaw(id){ var e=document.getElementById(id); return e ? String(e.value).trim() : ''; }
+function __invFail(msg){
+  if(typeof msg !== 'string' || !msg) return;
+  investmentResultValid = false;
+  document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">'+msg+'</p>';
+}
 function calc(){
   investmentResultValid = false;
-  const init = parseFloat(document.getElementById('initial').value) || 0;
-  const fin = parseFloat(document.getElementById('final').value) || 0;
-  const yrs = parseFloat(document.getElementById('years').value) || 0;
-  const add = parseFloat(document.getElementById('additional').value) || 0;
-  if(init <= 0 || fin < 0 || yrs <= 0){
-    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请输入合理的正数</p>';
+  const initRaw = __invRaw('initial'), finRaw = __invRaw('final'), yrsRaw = __invRaw('years'), addRaw = __invRaw('additional');
+  const fields=[['initial','初始投入'],['final','期末价值'],['years','持有年限'],['additional','期间追加投入']];
+  for(const [id,label] of fields){
+    if(__invRaw(id)===''){ __invFail('请填写'+label+'；留空不计算，数字 0 才表示真实零值。'); return; }
+  }
+  const init = Number(initRaw), fin = Number(finRaw), yrs = Number(yrsRaw), add = Number(addRaw);
+  if(!isFinite(init) || !isFinite(fin) || !isFinite(yrs) || !isFinite(add) || init <= 0 || fin < 0 || yrs <= 0){
+    __invFail('请输入合理的数值：初始投入与年限须大于 0，期末价值与追加投入须为非负数。');
     return;
   }
   // F-N46：追加投入为负等价于「取出本金」，不能简单并入总投入把亏损包装成盈利
@@ -296,13 +304,24 @@ function calc(){
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">追加投入须 ≥ 0；如需从本金中取出，请按真实现金流另行计算。</p>';
     return;
   }
-  investmentResultValid = true;
   const totalInv = init + add;
   const profit = fin - totalInv;
   const totalReturn = totalInv > 0 ? (profit / totalInv) * 100 : 0;
-  const cagr = totalInv > 0 ? (Math.pow(fin / totalInv, 1 / yrs) - 1) * 100 : 0;
-  // 简单年化（不考虑复利）
+  // 用 log1p/expm1 计算 CAGR：极短年限配合高回报时先判断结果有限，避免 Infinity 仍被当有效结果。
+  let cagr = 0;
+  if(totalInv > 0){
+    if(fin === 0){ cagr = -100; }
+    else {
+      const logRatio = Math.log(fin / totalInv);
+      cagr = Math.expm1(logRatio / yrs) * 100;
+    }
+  }
   const simpleAnnual = totalReturn / yrs;
+  if(!isFinite(cagr) || !isFinite(totalReturn) || !isFinite(simpleAnnual) || !isFinite(profit)){
+    __invFail('数值超出可计算范围：持有年限过短或回报倍数过大，CAGR 无法用有限数值表示。请调整输入后再计算。');
+    return;
+  }
+  investmentResultValid = true;
   const __g2=`
     <p>初始投入：<strong>${fmt(init)}</strong> 元</p>
     <p>追加投入：<strong>${fmt(add)}</strong> 元</p>
@@ -452,6 +471,7 @@ function __investment_calculatorExtras(force){
 }
 function __investment_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!investmentResultValid){ ToolBox.showToast('当前输入未形成有效结果，请先修正错误再导出。', 'error'); return; }
     __investment_calculatorExtras(true);
     try{
         var box=document.querySelector('#investment_calculatorTable');

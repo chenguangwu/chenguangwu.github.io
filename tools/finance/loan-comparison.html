@@ -241,9 +241,11 @@
 function pmt(p, annual, months) {
   const r = annual / 100 / 12;
   if (p <= 0 || months <= 0) return 0;
-  if (r === 0) return p / months;
-  const pow = Math.pow(1 + r, months);
-  return p * r * pow / (pow - 1);
+  if (r <= 1e-12) return p / months;
+  // 等价于 p*r*(1+r)^n/((1+r)^n−1)，但用 log1p/expm1 避免大期限时幂运算溢出。
+  const logPow = months * Math.log1p(r);
+  if (!isFinite(logPow)) return Infinity;
+  return p * r / (1 - Math.exp(-logPow));
 }
 
 function calcScheme(id) {
@@ -254,19 +256,20 @@ function calcScheme(id) {
   const rateRaw = rEl ? parseFloat(rEl.value) : NaN;
   const monthsText = mEl ? String(mEl.value || '').trim() : '';
   const monthsNum = Number(monthsText);
-  const monthsOk = monthsText !== '' && isFinite(monthsNum) && Number.isInteger(monthsNum) && monthsNum > 0;
+  const monthsOk = monthsText !== '' && isFinite(monthsNum) && Number.isInteger(monthsNum) && monthsNum > 0 && monthsNum <= 1200;
   const principal = isFinite(principalRaw) ? principalRaw : 0;
   const rate = isFinite(rateRaw) ? rateRaw : NaN;
   const months = monthsOk ? monthsNum : 0;
-  // F-N229：利率留空/非法不得静默按 0% 参与排名
-  const rateOk = isFinite(rate) && rate >= 0;
-  const valid = principal > 0 && monthsOk && rateOk;
-  const m = valid ? pmt(principal, rate, months) : 0;
-  const total = m * months;
-  const interest = total - principal;
-  // 名义年利率按月计息 ⇒ 有效年化 = (1 + 名义/12)^12 − 1；同一页并列展示，避免把名义值当有效值
-  const ear = rate > 0 ? (Math.pow(1 + rate / 100 / 12, 12) - 1) * 100 : 0;
-  return { id, principal, rate, months, m, total, interest, ear, rateOk, monthsOk, valid };
+  // F-N229：利率留空/非法不得静默按 0% 参与排名；并给期限/利率/本金设合理上限，防止幂运算溢出。
+  const rateOk = isFinite(rate) && rate >= 0 && rate <= 100;
+  const principalOk = isFinite(principal) && principal > 0 && principal <= 1e12;
+  let m = (principalOk && monthsOk && rateOk) ? pmt(principal, rate, months) : 0;
+  let total = m * months;
+  let interest = total - principal;
+  let ear = rate > 0 ? (Math.pow(1 + rate / 100 / 12, 12) - 1) * 100 : 0;
+  const finiteOk = isFinite(m) && m > 0 && isFinite(total) && isFinite(interest) && isFinite(ear);
+  const valid = principalOk && monthsOk && rateOk && finiteOk;
+  return { id, principal, rate, months, m, total, interest, ear, rateOk, monthsOk, principalOk, finiteOk, valid };
 }
 
 function calc() {
@@ -274,10 +277,12 @@ function calc() {
   const rows = arr.map(s => {
     if (!s.valid) {
       const reason = !s.monthsOk
-        ? '⚠ 无效方案：月数须为正整数（不支持小数），已排除比较'
-        : (s.principal > 0 && s.months > 0 && !s.rateOk)
-        ? '⚠ 无效方案：年利率须填写且不得为负，已排除比较'
-        : '⚠ 无效方案：贷款金额与月数须大于 0，已排除比较';
+        ? '⚠ 无效方案：月数须为 1–1200 的整数（不支持小数），已排除比较'
+        : (!s.principalOk)
+        ? '⚠ 无效方案：贷款金额须大于 0 且不超过 1 万亿元，已排除比较'
+        : (!s.rateOk)
+        ? '⚠ 无效方案：年利率须在 0%–100% 之间，已排除比较'
+        : '⚠ 无效方案：月供或总额超出可计算范围，已排除比较';
       return `<div class="scheme" style="border-color:var(--danger);opacity:.72;"><h4>方案 ${s.id.toUpperCase()}</h4><p style="color:var(--danger);margin:0;">${reason}</p></div>`;
     }
     return `<div class="scheme"><h4>方案 ${s.id.toUpperCase()}</h4>
