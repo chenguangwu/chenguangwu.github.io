@@ -29,7 +29,8 @@
 .budget-row{display:grid;grid-template-columns:1.5fr 1fr 1fr 60px 30px;gap:8px;align-items:center;padding:8px;background:var(--result-bg);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;}
 .budget-row input{padding:6px 8px;font-size:13px;}
 .budget-row .total{font-weight:600;color:var(--primary);text-align:right;}
-.budget-row .del{color:var(--danger);cursor:pointer;text-align:center;}
+.budget-row .del{color:var(--danger);cursor:pointer;text-align:center;background:none;border:0;font:inherit;padding:6px 8px;min-width:36px;min-height:36px;border-radius:6px;}
+.budget-row .del:focus-visible{outline:3px solid var(--tool-accent,#B23A08);outline-offset:2px;}
 .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:14px 0;}
 .summary-card{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-radius:10px;padding:14px;text-align:center;}
 .summary-card .v{font-size:24px;font-weight:700;}
@@ -113,6 +114,14 @@
     },
     {
       "@type": "Question",
+      "name": "能设预算上限、跟踪实际支出吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不能。本工具只做“单价 × 数量”的估算汇总与占比分析，没有预算上限、实际支付、差额或执行进度字段；这些请用记账表或合同台账跟踪。"
+      }
+    },
+    {
+      "@type": "Question",
       "name": "数据存在哪、会丢吗？",
       "acceptedAnswer": {
         "@type": "Answer",
@@ -155,7 +164,7 @@
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="分项管理装修预算,实时计算总额与占比,支持本地保存">Renovation Budget</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">项目小计 = 单价 × 数量；预算总额 = Σ 各项目小计；项目占比 = 该项目小计 ÷ 预算总额 × 100%；均值 = 总额 ÷ 项目数</div>
-      <div class="formula-desc tb-bi"><span class="t-zh">分项录入硬装、主材、家具、家电等装修支出，实时汇总总金额、各项占比与累计进度，支持本地保存草稿，帮助业主在装修全程跟踪预算执行、识别超支环节</span><span class="t-en">Estimate renovation budget across demolition, materials, labor, and contingency</span></div>
+      <div class="formula-desc tb-bi"><span class="t-zh">分项录入硬装、主材、家具、家电等装修估算，实时汇总总金额、各项占比与平均单项目支出，支持本地保存草稿，帮助业主在开工前比较报价结构；本工具不设预算上限，也不记录实际支付或执行进度</span><span class="t-en">Estimate renovation budget across demolition, materials, labor, and contingency</span></div>
     </div>
 
 <div class="input-row">
@@ -170,6 +179,7 @@
  <button type="button" class="btn" onclick="loadTemplate('full')">📋 加载完整模板</button>
  <button type="button" class="btn" onclick="clearItems()">🗑 清空</button>
  <button type="button" class="btn" onclick="exportBudget()">📥 导出</button>
+ <button type="button" class="btn ghost" id="undoPresetBtn" onclick="restoreSnapshot()" disabled>↩ 撤销上次模板覆盖</button>
 <button type="button" class="btn" onclick="window.__budgetExport()">⬇️ 导出预算明细 CSV</button>
 </div>
 
@@ -215,13 +225,14 @@
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>硬装 / 主材 / 家具 / 家电分项列支，实时看各项占比，发现主材超 40% 及时调结构。</li>
-<li>设总预算上限，用累计进度看已花比例，避免末端超支无钱收尾。</li>
+<li>把估算总额当作自己的控制目标，再与合同、报价单逐项对照；本工具不设预算上限，也不记录实际支付与执行进度，超支判断需另用账本。</li>
 <li>用浏览器 localStorage 存草稿，分多次录入；换设备前先截图 / 导出备份。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例（硬装 8 + 主材 12 + 家具 5 + 家电 4 万）</div><div class="dd-ex-body">合计 29 万；占比 硬装 27.6%、主材 41.4%、家具 17.2%、家电 13.8%。若总控 30 万，主材已近上限，需压缩或下调家电档位。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（硬装 8 + 主材 12 + 家具 5 + 家电 4 万）</div><div class="dd-ex-body">合计 29 万；占比 硬装 27.6%、主材 41.4%、家具 17.2%、家电 13.8%。若你的控制目标是 30 万，主材占比偏高，可压缩主材或下调家电档位。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>各项占比怎么看健康？</dt><dd>常见区间：硬装 25–35%、主材 30–45%、家具 15–25%、家电 10–20%。主材 &gt;45% 或硬装 &lt;20% 都偏失衡，前者挤压软装、后者可能隐蔽增项。</dd>
+<dt>能设预算上限、跟踪实际支出吗？</dt><dd>不能。本工具只做“单价 × 数量”的估算汇总与占比分析，没有预算上限、实际支付、差额或执行进度字段；这些请用记账表或合同台账跟踪。</dd>
 <dt>数据存在哪、会丢吗？</dt><dd>仅存浏览器 localStorage（按域名隔离），清缓存 / 换浏览器会丢。重要预算自行截图或导出，本工具不联网、不上传。</dd>
 </dl>
 </div>
@@ -358,11 +369,27 @@ function updateItem(id, field, value){
  calc();
 }
 
+let lastSnapshot=null;
+function markUndo(snapshot){
+ lastSnapshot=snapshot;
+ const b=document.getElementById('undoPresetBtn');
+ if(b)b.disabled=!snapshot;
+}
+function restoreSnapshot(){
+ if(!lastSnapshot)return;
+ try{setItems(lastSnapshot);}catch(e){ToolBox.showToast('恢复失败：浏览器存储不可用','warn');return;}
+ lastSnapshot=null;markUndo(null);renderItems();calc();ToolBox.showToast('已恢复覆盖前的草稿','ok');
+}
+function writeTemplate(t){
+ const snapshot=getItems();
+ try{setItems(TEMPLATES[t].map(it => ({id:Date.now()+Math.random(), ...it})));}
+ catch(e){ToolBox.showToast('保存失败：浏览器存储空间不足或被禁用，未覆盖原草稿','warn');return false;}
+ markUndo(snapshot);renderItems();calc();return true;
+}
 function loadTemplate(t){
  if(!TEMPLATES[t]) return;
- if(getItems().length && !confirm('当前已有数据,要覆盖吗?')) return;
- setItems(TEMPLATES[t].map(it => ({id:Date.now()+Math.random(), ...it})));
- renderItems(); calc();
+ if(getItems().length && !confirm('当前已有数据,要覆盖吗? 覆盖后可用「撤销上次模板覆盖」恢复。')) return;
+ writeTemplate(t);
 }
 
 function clearItems(){
@@ -374,8 +401,7 @@ function clearItems(){
 function applyBudgetPreset(kind){
  if(!kind) return;
  if(!TEMPLATES[kind]) return;
- setItems(TEMPLATES[kind].map(it => ({id:Date.now()+Math.random(), ...it})));
- renderItems(); calc();
+ loadTemplate(kind);
 }
 
 function renderItems(){
@@ -387,7 +413,7 @@ function renderItems(){
     <input type="number" data-field="price" value="${it.price}" min="0" step="100" onchange="updateItem(${it.id},'price',this.value)" placeholder="如 0" data-i18n-ph="ph.renovation.itemPrice">
     <input type="number" data-field="qty" value="${it.qty}" min="1" step="1" onchange="updateItem(${it.id},'qty',this.value)" placeholder="如 1" data-i18n-ph="ph.renovation.itemQty">
     <div class="total">¥${(it.price*it.qty).toLocaleString()}</div>
-    <div class="del" onclick="delItem(${it.id})">✕</div>
+    <button type="button" class="del" aria-label="删除 ${escapeAttr(it.name)}" onclick="delItem(${it.id})">✕</button>
    </div>`).join('');document.getElementById('items').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
  try{ if(window.I18n&&I18n.apply)I18n.apply(document.getElementById('items')); }catch(e){}
 }
@@ -492,7 +518,7 @@ document.addEventListener('DOMContentLoaded',function(){
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p data-zh="分项录入硬装、主材、家具、家电等装修支出，实时汇总总金额、各项占比与累计进度，支持本地保存草稿，帮助业主在装修全程跟踪预算执行、识别超支环节">分项录入硬装、主材、家具、家电等装修支出，实时汇总总金额、各项占比与累计进度，支持本地保存草稿，帮助业主在装修全程跟踪预算执行、识别超支环节</p>
+    <p data-zh="分项录入硬装、主材、家具、家电等装修估算，实时汇总总金额、各项占比与平均单项目支出，支持本地保存草稿，帮助业主在开工前比较报价结构；本工具不设预算上限，也不记录实际支付或执行进度">分项录入硬装、主材、家具、家电等装修估算，实时汇总总金额、各项占比与平均单项目支出，支持本地保存草稿，帮助业主在开工前比较报价结构；本工具不设预算上限，也不记录实际支付或执行进度</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>支持多种装修参数</li>

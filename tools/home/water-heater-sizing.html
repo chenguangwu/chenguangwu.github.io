@@ -126,7 +126,7 @@ input,select{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius
 <div class="card">
 <h2 data-zh="🧮 输入参数">🧮 Inputs</h2>
 <div class="input-row">
-<div><label for="type">热水器类型</label><select id="type">
+<div><label for="type">热水器类型</label><select id="type" onchange="syncFields();calcTool();">
 <option value="storage">储水式电热水器</option>
 <option value="gas">燃气热水器</option>
 <option value="instant">即热式电热水器</option>
@@ -137,9 +137,9 @@ input,select{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius
 <div><label for="flow">花洒流量（L/分钟）</label><input type="number" id="flow" value="8" min="1" step="0.5"><p class="hint" data-zh="普通花洒约 6–10 L/min，增压花洒可到 12 L/min。">Standard showerheads use about 6–10 L/min; high-pressure models can reach 12.</p></div>
 <div><label for="cold">进水温度（°C）</label><input type="number" id="cold" value="15" min="0" max="35" step="1"></div>
 <div><label for="target">目标水温（°C）</label><input type="number" id="target" value="40" min="30" max="55" step="1"></div>
-<div><label for="tank">储水温度（°C）</label><input type="number" id="tank" value="60" min="45" max="75" step="1"></div>
-<div><label for="power">加热功率（kW）</label><input type="number" id="power" value="2" min="0.5" step="0.5"><p class="hint" data-zh="储水式常见 2–3 kW；即热式按机器铭牌填 6–24 kW。">Storage units are commonly 2–3 kW; enter 6–24 kW for instantaneous models from the nameplate.</p></div>
-<div><label for="price">电价（元/kWh）</label><input type="number" id="price" value="0.6" min="0" step="0.05"></div>
+<div id="tankField"><label for="tank">储水温度（°C）</label><input type="number" id="tank" value="60" min="45" max="75" step="1"></div>
+<div id="powerField"><label for="power">加热功率（kW）</label><input type="number" id="power" value="2" min="0.5" step="0.5"><p class="hint" data-zh="储水式常见 2–3 kW；即热式按机器铭牌填 6–24 kW。">Storage units are commonly 2–3 kW; enter 6–24 kW for instantaneous models from the nameplate.</p></div>
+<div id="priceField"><label for="price">电价（元/kWh）</label><input type="number" id="price" value="0.6" min="0" step="0.05"></div>
 </div>
 <button class="btn" onclick="calcTool()">计算</button>
 <button class="btn ghost" onclick="applyPreset('family')">三口之家储水式</button>
@@ -207,13 +207,27 @@ function clearHist(){try{localStorage.removeItem(HIST_KEY);}catch(e){}renderHist
 const TYPES={storage:{name:'储水式电热水器',nameEn:'Storage electric water heater'},gas:{name:'燃气热水器',nameEn:'Gas water heater'},instant:{name:'即热式电热水器',nameEn:'Instantaneous electric water heater'}};
 const STORAGE=[40,50,60,80,100,120,150,200],GAS=[10,12,16,20,24],INST=[6,8,12,18,24];
 function nextSize(v,arr){for(const x of arr){if(x>=v)return x;}return null;}
-function blankCore(){return ['type','people','sim','minutes','flow','cold','target','tank','power','price'].some(id=>{const el=document.getElementById(id);return !el||String(el.value).trim()==='';});}
+function blankCore(){
+  const typeVal=document.getElementById('type').value;
+  const base=['type','people','sim','minutes','flow','cold','target'];
+  const extra=typeVal==='storage'?['tank','power','price']:(typeVal==='instant'?['power','price']:[]);
+  return base.concat(extra).some(id=>{const el=document.getElementById(id);return !el||String(el.value).trim()==='';});
+}
+function syncFields(){
+  const t=document.getElementById('type').value;
+  const tf=document.getElementById('tankField'),pf=document.getElementById('powerField'),cf=document.getElementById('priceField');
+  if(tf)tf.style.display=t==='storage'?'':'none';
+  if(pf)pf.style.display=t==='gas'?'none':'';
+  if(cf)cf.style.display=t==='gas'?'none':'';
+}
 function calcData(){const type=document.getElementById('type').value;const t=TYPES[type]||TYPES.storage;const people=num('people'),sim=num('sim'),minutes=num('minutes'),flow=num('flow'),cold=num('cold'),target=num('target'),tank=num('tank'),power=num('power'),price=num('price');const rise=target-cold;const hotRise=tank-cold;const mixed=sim*minutes*flow;const hotFraction=hotRise>0?Math.max(0,Math.min(1,rise/hotRise)):0;const hotNeed=mixed*hotFraction;const tankNeed=hotNeed/0.8;const recTank=nextSize(tankNeed,STORAGE);const recMin=recTank?recTank*4.186*hotRise/power/60:null;const fullKwh=recTank*4.186*hotRise/3600;const dailyMixed=people*minutes*flow;const dailyHot=dailyMixed*hotFraction;const dailyKwh=dailyHot*4.186*hotRise/3600/0.8;const dailyCost=dailyKwh*price;const gasFlow=flow*rise/25;const gasNeed=gasFlow*sim;const recGas=nextSize(gasNeed,GAS);const powerNeed=sim*flow*4.186*rise/60;const recPower=nextSize(powerNeed,INST);const amps=powerNeed*1000/220;const breakerNeed=amps*1.25;const breaker=nextSize(breakerNeed,[20,25,32,40,50,63,80,100]);return{type,t,people,sim,minutes,flow,cold,target,tank,power,price,rise,mixed,hotFraction,hotNeed,tankNeed,recTank,recMin,fullKwh,dailyKwh,dailyCost,gasFlow,gasNeed,recGas,powerNeed,recPower,amps,breakerNeed,breaker};}
 function inputError(){
   const en=isEN();
   if(blankCore())return en?'Fill in household size, shower parameters and heater settings before calculating.':'请填写家庭人数、淋浴参数与热水器设置后再计算。';
   const d=calcData();
-  if(d.people<1||d.sim<1||d.minutes<=0||d.flow<=0||d.target<=d.cold||d.tank<=d.cold||d.power<=0||d.price<0)return en?'People, showers, minutes and flow must be greater than 0; target and tank temperatures must exceed inlet temperature; power must be greater than 0.':'人数、同时洗澡人数、淋浴时长与流量需大于 0；目标水温与储水温度需高于进水温度；加热功率需大于 0。';
+  if(!Number.isInteger(d.people)||!Number.isInteger(d.sim)||d.people<1||d.sim<1||d.minutes<=0||d.flow<=0||d.target<=d.cold)return en?'Household size and simultaneous showers must be positive integers; minutes and flow must be greater than 0; target must exceed inlet temperature.':'家庭人数与同时洗澡人数必须是正整数；淋浴时长与流量需大于 0；目标水温需高于进水温度。';
+  if(d.type==='storage'&&(d.tank<=d.cold||d.power<=0||d.price<0))return en?'Storage mode needs tank temperature above inlet, power greater than 0 and a non-negative electricity price.':'储水模式需填写高于进水的储水温度、大于 0 的加热功率与不小于 0 的电价。';
+  if(d.type==='instant'&&(d.power<=0||d.price<0))return en?'Instantaneous mode needs nameplate power greater than 0 and a non-negative electricity price.':'即热模式需填写大于 0 的机器铭牌功率与不小于 0 的电价。';
   if(d.type==='storage'&&d.tank<d.target)return en?'Storage temperature must not be lower than the target water temperature ('+d.tank+'°C vs '+d.target+'°C).':'储水温度需不低于目标水温（当前 '+d.tank+'°C，目标 '+d.target+'°C）。';
   if(d.type==='storage'&&!d.recTank)return en?'Estimated tank need '+d.tankNeed.toFixed(0)+' L exceeds the 200 L list limit; split the showers or use a larger custom tank.':'估算储水容量 '+d.tankNeed.toFixed(0)+' L 超出可选规格上限 200 L，请拆分用水或选更大容量机型。';
   if(d.type==='gas'&&!d.recGas)return en?'Required gas rating '+d.gasNeed.toFixed(1)+' L/min exceeds the 24 L/min list limit; reduce simultaneous demand or split the supply.':'所需燃气升数 '+d.gasNeed.toFixed(1)+' L/min 超出规格表上限 24 L/min，请降低同时用水或分路供水。';
@@ -225,10 +239,10 @@ function calcTool(){
   const err=inputError();if(err){document.getElementById('result').innerHTML='<div class="result-placeholder">'+err+'</div>';return;}
   const d=calcData();
   const rows=[
-    [d.mixed.toFixed(0)+' L',en?'Mixed water per shower group':'单次同时混合水量'],
-    [d.hotNeed.toFixed(0)+' L',en?'Hot water needed at '+d.tank+'°C':'需要的 '+d.tank+'°C 热水量']
+    [d.mixed.toFixed(0)+' L',en?'Mixed water per shower group':'单次同时混合水量']
   ];
   if(d.type==='storage'){
+    rows.push([d.hotNeed.toFixed(0)+' L',en?'Hot water needed at '+d.tank+'°C':'需要的 '+d.tank+'°C 热水量']);
     rows.push([d.dailyKwh.toFixed(1)+' kWh',en?'Daily hot-water energy':'日均热水能耗']);
     rows.push(['¥'+d.dailyCost.toFixed(1)+(en?'/day':' 元/天'),en?'Daily electricity cost':'日均热水电费']);
     rows.push([d.tankNeed.toFixed(0)+' L',en?'Estimated tank volume':'估算储水容量']);
@@ -245,6 +259,7 @@ function calcTool(){
     rows.push([d.breaker+' A',en?'Suggested breaker':'建议空开']);
   }
   let html=dataGrid(rows);
+  if(d.sim>d.people)html+='<div class="info-box" style="margin-top:12px;">'+(en?'Simultaneous showers ('+d.sim+') exceed household size ('+d.people+'); this may represent guests. Confirm the actual concurrent demand.':'同时洗澡人数（'+d.sim+'）大于家庭常住人数（'+d.people+'），可能包含访客；请确认实际同时用水需求。')+'</div>';
   if(d.type==='storage')html+='<div class="info-box" style="margin-top:12px;">'+(en?'Storage sizing assumes '+d.tank+'°C tank water and 80% usable volume; in winter or with two simultaneous showers, go one size up.':'储水容量按 '+d.tank+'°C 与 80% 可用率估算；冬季或两人同时洗时，建议上浮一档。')+'</div>';
   else if(d.type==='gas')html+='<div class="info-box" style="margin-top:12px;">'+(en?'Gas ratings use a 25°C rise; actual winter flow is rated × 25 ÷ actual temperature rise. Two showers at once need the combined flow.':'燃气升数按温升 25°C 标定；冬季实际流量 = 额定 × 25 ÷ 实际温升。双卫同时使用需按总流量选。')+'</div>';
   else html+='<div class="info-box" style="margin-top:12px;">'+(en?'Instantaneous electric units need a dedicated circuit; the breaker and wire size must be checked by a licensed electrician against the nameplate and service capacity.':'即热式需独立专线；空开与线径须由持证电工按铭牌与入户容量复核。')+'</div>';
@@ -253,25 +268,35 @@ function calcTool(){
 }
 function exportCSV(){
   const en=isEN();const err=inputError();if(err){alert(err);return;}const d=calcData();
-  csvDownload('water-heater-sizing.csv',[
+  const rows=[
     [en?'Item':'项目',en?'Value':'数值',en?'Unit':'单位'],
     [en?'Type':'热水器类型',(en?d.t.nameEn:d.t.name),''],
     [en?'Household size':'家庭人数',d.people,en?'people':'人'],
     [en?'Simultaneous showers':'同时洗澡人数',d.sim,en?'people':'人'],
-    [en?'Mixed water':'混合水量',d.mixed.toFixed(0),'L'],
-    [en?'Hot water at '+d.tank+'°C':'储水温度 '+d.tank+'°C 热水量',d.hotNeed.toFixed(0),'L'],
-    [en?'Daily energy':'日均能耗',d.dailyKwh.toFixed(1),'kWh'],
-    [en?'Daily cost':'日均电费',d.dailyCost.toFixed(1),en?'CNY':'元'],
-    [en?'Storage volume':'估算储水容量',d.tankNeed.toFixed(0),'L'],
-    [en?'Recommended storage':'建议储水规格',d.recTank,'L'],
-    [en?'Gas rating':'建议燃气升数',d.recGas,'L/min'],
-    [en?'Instant power':'建议即热功率',d.recPower,'kW'],
-    [en?'Breaker':'建议空开',d.breaker,'A']
-  ]);
+    [en?'Mixed water':'混合水量',d.mixed.toFixed(0),'L']
+  ];
+  if(d.type==='storage'){
+    rows.push([en?'Hot water at '+d.tank+'°C':'储水温度 '+d.tank+'°C 热水量',d.hotNeed.toFixed(0),'L']);
+    rows.push([en?'Daily energy':'日均能耗',d.dailyKwh.toFixed(1),'kWh']);
+    rows.push([en?'Daily cost':'日均电费',d.dailyCost.toFixed(1),en?'CNY':'元']);
+    rows.push([en?'Storage volume':'估算储水容量',d.tankNeed.toFixed(0),'L']);
+    rows.push([en?'Recommended storage':'建议储水规格',d.recTank,'L']);
+  }else if(d.type==='gas'){
+    rows.push([en?'Flow at 25°C rise':'温升25°C流量',d.gasFlow.toFixed(1),'L/min']);
+    rows.push([en?'Recommended gas rating':'建议燃气升数',d.recGas,'L/min']);
+  }else{
+    rows.push([en?'Daily energy':'日均能耗',d.dailyKwh.toFixed(1),'kWh']);
+    rows.push([en?'Daily cost':'日均电费',d.dailyCost.toFixed(1),en?'CNY':'元']);
+    rows.push([en?'Continuous power':'持续功率',d.powerNeed.toFixed(1),'kW']);
+    rows.push([en?'Recommended power':'建议功率',d.recPower,'kW']);
+    rows.push([en?'Suggested breaker':'建议空开',d.breaker,'A']);
+  }
+  csvDownload('water-heater-sizing.csv',rows);
+
 }
-function applyPreset(type){const m={family:['storage',3,1,10,8,15,40,60,2,0.6],gas:['gas',4,2,10,9,10,40,60,2,0.6],instant:['instant',1,1,8,7,18,40,60,8,0.6]};const p=m[type]||m.family;document.getElementById('type').value=p[0];document.getElementById('people').value=p[1];document.getElementById('sim').value=p[2];document.getElementById('minutes').value=p[3];document.getElementById('flow').value=p[4];document.getElementById('cold').value=p[5];document.getElementById('target').value=p[6];document.getElementById('tank').value=p[7];document.getElementById('power').value=p[8];document.getElementById('price').value=p[9];calcTool();}
-function resetForm(){document.getElementById('type').value='storage';document.getElementById('people').value=3;document.getElementById('sim').value=1;document.getElementById('minutes').value=10;document.getElementById('flow').value=8;document.getElementById('cold').value=15;document.getElementById('target').value=40;document.getElementById('tank').value=60;document.getElementById('power').value=2;document.getElementById('price').value=0.6;calcTool();}
-renderHist(HIST_KEY);if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',calcTool);}else{calcTool();}window.addEventListener('toolbox:langchange',calcTool);
+function applyPreset(type){const m={family:['storage',3,1,10,8,15,40,60,2,0.6],gas:['gas',4,2,10,9,10,40,60,2,0.6],instant:['instant',1,1,8,7,18,40,60,8,0.6]};const p=m[type]||m.family;document.getElementById('type').value=p[0];document.getElementById('people').value=p[1];document.getElementById('sim').value=p[2];document.getElementById('minutes').value=p[3];document.getElementById('flow').value=p[4];document.getElementById('cold').value=p[5];document.getElementById('target').value=p[6];document.getElementById('tank').value=p[7];document.getElementById('power').value=p[8];document.getElementById('price').value=p[9];syncFields();calcTool();}
+function resetForm(){document.getElementById('type').value='storage';document.getElementById('people').value=3;document.getElementById('sim').value=1;document.getElementById('minutes').value=10;document.getElementById('flow').value=8;document.getElementById('cold').value=15;document.getElementById('target').value=40;document.getElementById('tank').value=60;document.getElementById('power').value=2;document.getElementById('price').value=0.6;syncFields();calcTool();}
+renderHist(HIST_KEY);if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){syncFields();calcTool();});}else{syncFields();calcTool();}window.addEventListener('toolbox:langchange',calcTool);
 </script>
 </body>
 </html>
