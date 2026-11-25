@@ -142,6 +142,9 @@
       <div><label for="dir">编号方向</label>
         <select id="dir"><option value="row">先行后列（自西向东、自南向北）</option><option value="col">先列后行（自南向北、自西向东）</option></select>
       </div>
+      <div><label for="mode">布设目标</label>
+        <select id="mode" onchange="calc()"><option value="cover">覆盖全址（允许超出边界）</option><option value="fit">仅边界内（裁去边缘）</option></select>
+      </div>
     </div>
     <div class="toolbar" style="margin-top:14px;">
       <div id="site_gridPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__site_gridExport()">导出明细 CSV</button>
@@ -230,51 +233,77 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
+var PAGE_EN=/[?&]lang=en-US(?:&|$)/.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
 function v(id){return parseFloat(document.getElementById(id).value);}
+var MAX_TRENCH=2000;
 function calc(){
-  var L=v('len'),Wd=v('wid'),S=v('side'),G=v('gap');
+  var L=v('len'),Wd=v('wid'),S=v('side');
+  var Graw=String(document.getElementById('gap').value).trim();
+  var G=Graw===''?NaN:+Graw;
   var grid=document.getElementById('grid'),sum=document.getElementById('summary'),cw=document.getElementById('coordWrap');
-  if(!L||!Wd||!S||L<=0||Wd<=0||S<=0){grid.innerHTML='';sum.innerHTML='';cw.innerHTML='';return;}
-  if(G<0)G=0;
-  var nL=Math.ceil(L/S);
-  var nW=Math.ceil(Wd/S);
+  function fail(msg){grid.innerHTML='';sum.innerHTML='<p style="color:var(--danger);">⚠ '+msg+'</p>';cw.innerHTML='';window._siteGridRows=[];}
+  if(!isFinite(L)||!isFinite(Wd)||!isFinite(S)||L<=0||Wd<=0||S<=0)return fail('请填写遗址长、宽与探方边长（均需 >0）。');
+  if(Graw==='')return fail('请填写隔梁宽度；无隔梁请填 0。');
+  if(!isFinite(G))return fail('隔梁宽度须为有效数字。');
+  if(G<0)return fail('隔梁宽度不能为负数；无隔梁请填 0。');
+  var mode=document.getElementById('mode').value;
+  var coverL=Math.ceil((L+G)/(S+G)),coverW=Math.ceil((Wd+G)/(S+G));
+  var fitL=Math.floor((L+G)/(S+G)),fitW=Math.floor((Wd+G)/(S+G));
+  var nL=mode==='fit'?fitL:coverL,nW=mode==='fit'?fitW:coverW;
+  if(nL<=0||nW<=0){grid.innerHTML='';cw.innerHTML='';window._siteGridRows=[];
+    sum.innerHTML='<p style="color:var(--warning);">遗址范围不足一个探方（含隔梁），边界内无法布设完整探方。可切换“覆盖全址”查看最小布设方案，或减小探方边长/隔梁。</p>';return;}
   var N=nL*nW;
   var digArea=N*S*S;
   var siteLen=nL*S+(nL-1)*G;
   var siteWid=nW*S+(nW-1)*G;
   var totalArea=siteLen*siteWid;
   var keyArea=totalArea-digArea;
-  var fitLen=L>=siteLen,fitWid=Wd>=siteWid;
+  var overL=Math.max(0,siteLen-L),overW=Math.max(0,siteWid-Wd);
+  var restL=Math.max(0,L-siteLen),restW=Math.max(0,Wd-siteWid);
+  var altL=mode==='fit'?coverL:fitL,altW=mode==='fit'?coverW:fitW;
   const __g4='<div class="result-item"><div class="val">'+N+'</div><div class="lbl">探方总数</div></div>'+
     '<div class="result-item"><div class="val">'+nL+'×'+nW+'</div><div class="lbl">行×列</div></div>'+
     '<div class="result-item"><div class="val">'+digArea.toFixed(1)+'</div><div class="lbl">发掘面积 m²</div></div>'+
     '<div class="result-item"><div class="val">'+totalArea.toFixed(1)+'</div><div class="lbl">布方占地 m²</div></div>'+
-    '<div class="result-item"><div class="val">'+keyArea.toFixed(1)+'</div><div class="lbl">隔梁面积 m²</div></div>';grid.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
-  var fitMsg=(fitLen&&fitWid)?'<span style="color:var(--success);">探方布设在遗址范围内</span>':'<span style="color:var(--warning);">部分探方超出遗址范围，请核对尺寸</span>';
+    '<div class="result-item"><div class="val">'+keyArea.toFixed(1)+'</div><div class="lbl">隔梁面积 m²</div></div>';grid.innerHTML=__g4;
+  var fitMsg=mode==='fit'?'<span style="color:var(--success);">布设全部位于遗址范围内（边缘留空）</span>':(overL<1e-9&&overW<1e-9?'<span style="color:var(--success);">探方布设在遗址范围内</span>':'<span style="color:var(--warning);">覆盖全址需超出遗址边界：南北 '+overL.toFixed(1)+' m、东西 '+overW.toFixed(1)+' m</span>');
+  var altMsg='';
+  if(altL>0&&altW>0){altMsg=mode==='fit'
+    ? '<p>若改为覆盖全址：需 '+altL+'×'+altW+' = '+(altL*altW)+' 个探方，占地 '+(altL*S+(altL-1)*G).toFixed(1)+'×'+(altW*S+(altW-1)*G).toFixed(1)+' m。</p>'
+    : '<p>边界内方案：'+altL+'×'+altW+' = '+(altL*altW)+' 个探方，占地 '+(altL*S+(altL-1)*G).toFixed(1)+'×'+(altW*S+(altW-1)*G).toFixed(1)+' m；未覆盖边缘南北 '+Math.max(0,L-(altL*S+(altL-1)*G)).toFixed(1)+' m、东西 '+Math.max(0,Wd-(altW*S+(altW-1)*G)).toFixed(1)+' m。</p>';
+  }else{altMsg='<p>边界内无法容纳完整探方，全覆盖为最小可行布设。</p>';}
   const __g5='<p>沿南北布 <strong>'+nL+'</strong> 行、沿东西布 <strong>'+nW+'</strong> 列，共 <strong>'+N+'</strong> 个探方。</p>'+
-    '<p>含隔梁占地：南北 <strong>'+siteLen.toFixed(1)+'m</strong> × 东西 <strong>'+siteWid.toFixed(1)+'m</strong> = <strong>'+totalArea.toFixed(1)+' m²</strong></p>'+
-    '<p>'+fitMsg+'</p>';sum.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
-  // 坐标表
+    '<p>含隔梁占地：南北 <strong>'+siteLen.toFixed(1)+'m</strong> × 东西 <strong>'+siteWid.toFixed(1)+'m</strong> = <strong>'+totalArea.toFixed(1)+' m²</strong>。边缘未覆盖：南北 '+restL.toFixed(1)+' m、东西 '+restW.toFixed(1)+' m。</p>'+
+    '<p>'+fitMsg+'</p>'+altMsg;sum.innerHTML=__g5;
+  if(PAGE_EN){
+    grid.innerHTML='<div class="result-item"><div class="val">'+N+'</div><div class="lbl">Total trenches</div></div>'+
+      '<div class="result-item"><div class="val">'+nL+'×'+nW+'</div><div class="lbl">Rows × columns</div></div>'+
+      '<div class="result-item"><div class="val">'+digArea.toFixed(1)+'</div><div class="lbl">Excavation area m²</div></div>'+
+      '<div class="result-item"><div class="val">'+totalArea.toFixed(1)+'</div><div class="lbl">Grid footprint m²</div></div>'+
+      '<div class="result-item"><div class="val">'+keyArea.toFixed(1)+'</div><div class="lbl">Baulk area m²</div></div>';
+    var fmsg=mode==='fit'?'All trenches lie inside the site boundary (edge left unexcavated)':(overL<1e-9&&overW<1e-9?'The grid lies inside the site boundary':'Full coverage extends beyond the site boundary: '+overL.toFixed(1)+' m north–south and '+overW.toFixed(1)+' m east–west');
+    var amsg='';
+    if(altL>0&&altW>0){amsg=mode==='fit'?'<p>Full-coverage alternative: '+altL+'×'+altW+' = '+(altL*altW)+' trenches, footprint '+(altL*S+(altL-1)*G).toFixed(1)+'×'+(altW*S+(altW-1)*G).toFixed(1)+' m.</p>':'<p>In-boundary alternative: '+altL+'×'+altW+' = '+(altL*altW)+' trenches, footprint '+(altL*S+(altL-1)*G).toFixed(1)+'×'+(altW*S+(altW-1)*G).toFixed(1)+' m; uncovered edges '+Math.max(0,L-(altL*S+(altL-1)*G)).toFixed(1)+' m north–south and '+Math.max(0,Wd-(altW*S+(altW-1)*G)).toFixed(1)+' m east–west.</p>';}
+    else amsg='<p>No complete trench fits inside the boundary; full coverage is the minimum feasible layout.</p>';
+    sum.innerHTML='<p>'+nL+' rows north–south and '+nW+' columns east–west, '+N+' trenches total.</p>'+
+      '<p>Footprint including baulks: '+siteLen.toFixed(1)+' m × '+siteWid.toFixed(1)+' m = '+totalArea.toFixed(1)+' m². Uncovered edge: '+restL.toFixed(1)+' m north–south, '+restW.toFixed(1)+' m east–west.</p>'+
+      '<p>'+fmsg+'</p>'+amsg;
+  }
+
   var startIdx=parseInt(document.getElementById('start').value,10);
   var dirMode=document.getElementById('dir').value;
   var idx=startIdx;
-  var rows=[['探方编号','行','列','西南角X(m,北)','西南角Y(m,东)']];
-  if(dirMode==='row'){
-    for(var i=0;i<nL;i++){
-      for(var j=0;j<nW;j++){
-        var x=i*(S+G),y=j*(S+G);
-        rows.push(['T'+idx,i+1,j+1,x.toFixed(1),y.toFixed(1)]);idx++;
-      }
-    }
-  }else{
-    for(var j=0;j<nW;j++){
-      for(var i=0;i<nL;i++){
-        var x2=i*(S+G),y2=j*(S+G);
-        rows.push(['T'+idx,i+1,j+1,x2.toFixed(1),y2.toFixed(1)]);idx++;
-      }
-    }
+  var rows=[PAGE_EN?['Trench','Row','Column','SW corner X (m, north)','SW corner Y (m, east)']:['探方编号','行','列','西南角X(m,北)','西南角Y(m,东)']];
+  var limit=Math.min(N,MAX_TRENCH);
+  for(var k=0;k<limit;k++){
+    var i,j;
+    if(dirMode==='row'){i=Math.floor(k/nW);j=k%nW;}else{j=Math.floor(k/nL);i=k%nL;}
+    var x=i*(S+G),y=j*(S+G);
+    rows.push(['T'+idx,i+1,j+1,x.toFixed(1),y.toFixed(1)]);idx++;
   }
-  const __g6=ToolBox.createTable(rows[0],rows.slice(1));cw.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  window._siteGridRows=rows;
+  var note=N>MAX_TRENCH?'<p style="color:var(--warning);">'+(PAGE_EN?'The total of '+N+' trenches exceeds the single-render limit; only the first '+MAX_TRENCH+' rows are shown, and the export uses the same batch. Reduce the area, increase the trench size, or work in zones.':'探方总数 '+N+' 超过单次渲染上限，坐标表仅显示前 '+MAX_TRENCH+' 个；导出同样为该批次，建议缩小范围、增大探方边长或分区分批布设。')+'</p>':'';
+  cw.innerHTML=note+ToolBox.createTable(rows[0],rows.slice(1));
 }
 function copyCoords(){
   var txt=document.getElementById('coordWrap').innerText;
@@ -455,17 +484,10 @@ function __site_gridExtras(){
     __site_gridRender(keys,rk,en);
 }
 function __site_gridExport(){
-    if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#site_gridTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__site_gridSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __site_gridRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#site_gridTable','site-grid.csv'); } catch(e){}
+    var rows=window._siteGridRows||[];
+    if(rows.length<2){ToolBox.showToast('无坐标数据，请先完成有效计算','warning');return;}
+    var csv=rows.map(function(r){return r.map(ToolBox.csvCell).join(',');}).join('\n');
+    ToolBox.downloadText('site-grid-coordinates.csv',csv,'text/csv');
 }
 function __site_gridPresets(){
     if (typeof TBKit === 'undefined') return;
