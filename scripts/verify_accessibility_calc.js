@@ -75,6 +75,18 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/accessibility/ramp-slope.html','utf8');var ok=h.indexOf('var allowedRun = specMaxH > 0 ? (specMaxH * X / 100) : 0;')>=0&&h.indexOf('msg = needPlatform')>=0&&h.indexOf('每段坡道水平长度超过 9m 或高差超过 0.75m')<0&&h.indexOf('1:20 为 24m')>=0;document.getElementById('__tbProbe').textContent='RAMPFIX '+(ok?'OK':'BAD');"],
   "expect": ["RAMPFIX OK"],
   "ref": "第1092批 J2 源码形态：needPlatform 必须进入提示分支（旧版算后从未使用）；平台上限按坡度×单段高差统一（1:20=24m），旧「超过9m一律设平台」与按 X 分段的两套口径均须消失。"
+},
+{
+  "slug": "accessibility/sign-language",
+  "inputs": {"searchInput":"mom"},
+  "expect": ["Mother","Little finger out","Terms of address"],
+  "ref": "第830批：英文检索需匹配英文词/别名并渲染英文卡片。mom 命中「妈妈」的 enAlias；卡片输出 Mother、英文动作说明与 Terms of address。中文态默认 43 条不含该组串，零逃生。"
+},
+{
+  "slug": "accessibility/accessible-restroom",
+  "clicks": ["updateScope();document.getElementById('__tbProbe').textContent='SCOPE830 '+((document.getElementById('scopeNotice').textContent.indexOf('GB 55019-2021 现行版本')>=0&&document.getElementById('scopeNotice').textContent.indexOf('旧版对照')>=0)?'OK':'BAD');"],
+  "expect": ["SCOPE830 OK"],
+  "ref": "第830批：按所在地/项目类型给出适用规范提示；中国大陆默认提示查阅 GB 55019-2021 现行版本并将 GB 50763-2012 标为旧版对照。旧版无 updateScope 与 scopeNotice，探针必红。"
 }
 ];
 async function main() {
