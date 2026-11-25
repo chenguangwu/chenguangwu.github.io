@@ -8094,6 +8094,34 @@ const CASES = [
     "ref": "第796批：YAML 侧实体也必须解码。旧手写解析器把 `&amp;` 原样留在文本 ⇒ 输出 `msg: A &amp; B`（再被 HTML 转义成 `&amp;amp;`）。现由 DOMParser 解码，输出 `msg: A & B`。输入实体形态与输出裸 `&` 不同 ⇒ 非回显。"
   },
   {
+    "slug": "it/html-entities-encode",
+    "inputs": { "input": "&frac12; &sup2; &#X3C; &unknown;" },
+    "clicks": ["dec();document.getElementById('__tbProbe').textContent='HE1 '+((document.getElementById('output').value==='½ ² < &unknown;')?'OK':'BAD:'+document.getElementById('output').value);"],
+    "expect": ["HE1 OK"],
+    "ref": "第798批：命名实体名可含数字（frac12/sup2），十六进制引用必须接受大写 X；未知名称保持原样。旧正则只允许纯字母、只认小写 x ⇒ `&frac12;`/`&sup2;`/`&#X3C;` 全不解码。"
+  },
+  {
+    "slug": "it/html-entities-encode",
+    "inputs": { "input": "&amp; &#65; &#x42; &#X43;" },
+    "clicks": ["dec();document.getElementById('__tbProbe').textContent='HE2 '+((document.getElementById('output').value==='& A B C')?'OK':'BAD:'+document.getElementById('output').value);"],
+    "expect": ["HE2 OK"],
+    "ref": "第798批：十进制与大小写十六进制引用统一解码，且解出的 & 不再二次解码。旧实现只接受小写 x 且没有大小写覆盖。"
+  },
+  {
+    "slug": "it/html-entities-encode",
+    "inputs": { "input": "old" },
+    "clicks": ["enc();var i=document.getElementById('input');i.value='changed';invalidateResult();document.getElementById('__tbProbe').textContent='HE3 '+((document.getElementById('output').value===''&&document.getElementById('copyResultBtn').disabled)?'OK':'BAD');"],
+    "expect": ["HE3 OK"],
+    "ref": "第798批：输入变化后旧结果必须清除并禁用复制。旧实现只在点击编码时刷新，改输入后仍显示并可复制上次输出；现 input/change 触发 invalidateResult。"
+  },
+  {
+    "slug": "it/html-entities",
+    "inputs": { "encoderInput": "&copy; &frac12; &sup2; &#X3C; &unknown;" },
+    "clicks": ["decodeText();var h=String(document.getElementById('encoderOutput').textContent||document.getElementById('encoderOutput').innerHTML||'');document.getElementById('__tbProbe').textContent='HE4 '+((h.indexOf('© ½ ² < &unknown;')>=0)?'OK':'BAD:'+h.slice(0,80));"],
+    "expect": ["HE4 OK"],
+    "ref": "第798批：速查页解码器不能只认 6 个命名实体。现由表内全部 ENTITIES 建立 NAMED_MAP，`&copy;`、`&frac12;`、`&sup2;` 与大小写十六进制引用均可解，未知名保持原文。"
+  },
+  {
     "slug": "it/dockerfile-generator",
     "inputs": { "base": "python:3.12-slim", "port": "8000", "cmd": "gunicorn app:app" },
     "expect": ["FROM python:3.12-slim", "CMD [\"gunicorn app:app\"]"],
