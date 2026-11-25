@@ -228,7 +228,9 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){// 行内注释剥离：YAML 规定 # 只有处在「行首或空白之后」才是注释，且不能在引号内
+function calcTool(){
+var __yamlAnchors=Object.create(null);// 第808批：锚点表
+// 行内注释剥离：YAML 规定 # 只有处在「行首或空白之后」才是注释，且不能在引号内
 function yStripComment(s){
   var out='',q=null,i=0;
   while(i<s.length){
@@ -263,6 +265,28 @@ function ySplitTop(s,sep){
   if(buf.trim()!=='') out.push(buf);
   return out.filter(function(x){ return x.trim()!==''; });
 }
+function yDeep(v){
+  if(v===null||typeof v!=='object') return v;
+  if(v instanceof Array) return v.map(yDeep);
+  var o=Object.create(null); Object.keys(v).forEach(function(k){o[k]=yDeep(v[k]);}); return o;
+}
+function yResolveAlias(name){
+  if(!Object.prototype.hasOwnProperty.call(__yamlAnchors,name)) throw new Error('未定义的 YAML 别名：*'+name);
+  return yDeep(__yamlAnchors[name]);
+}
+function yParseVal(items, indent, p, val){
+  val=String(val||'').trim();
+  var am=val.match(/^&([A-Za-z0-9_-]+)\s*(.*)$/);
+  if(am){
+    var rest=am[2];
+    var v;
+    if(rest===''){ v=(p.i<items.length&&items[p.i].ind>indent)?yBlock(items,items[p.i].ind,p):Object.create(null); }
+    else v=yScalar(rest);
+    __yamlAnchors[am[1]]=v;
+    return v;
+  }
+  return yScalar(val);
+}
 function yScalar(s){
   s=yStripComment(String(s)).trim();
   if(s==='')return '';
@@ -276,6 +300,7 @@ function yScalar(s){
     });
     return fo;
   }
+  if(s[0]==='*') return yResolveAlias(s.slice(1).trim());
   if((s[0]==='"'&&s.slice(-1)==='"')||(s[0]==="'"&&s.slice(-1)==="'")) return s.slice(1,-1);
   if(s==='true')return true; if(s==='false')return false;
   if(s==='null'||s==='~')return null;
@@ -310,8 +335,8 @@ function yBlock(items, indent, p){
     var kv=line.match(/^([^:]+):\s?(.*)$/);
     if(!kv){ p.i++; continue; }
     var key=kv[1].trim(); var val=kv[2].trim(); p.i++;
-    if(val===''){ if(p.i<items.length && items[p.i].ind>indent) obj[key]=yBlock(items, items[p.i].ind, p); else obj[key]={}; }
-    else obj[key]=yScalar(val);
+    if(val===''){ if(p.i<items.length && items[p.i].ind>indent) obj[key]=yBlock(items, items[p.i].ind, p); else obj[key]=Object.create(null); }
+    else obj[key]=yParseVal(items, indent, p, val);
   }
   return obj;
 }
@@ -319,14 +344,14 @@ function yMapFrom(items, mapIndent, p, firstItem){
   var m={};
   var kv=firstItem.match(/^([^:]+):\s?(.*)$/);
   var key=kv[1].trim(); var val=kv[2].trim();
-  if(val===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[key]=yBlock(items, items[p.i].ind, p); else m[key]={}; }
-  else m[key]=yScalar(val);
+  if(val===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[key]=yBlock(items, items[p.i].ind, p); else m[key]=Object.create(null); }
+  else m[key]=yParseVal(items, mapIndent, p, val);
   while(p.i<items.length && items[p.i].ind===mapIndent && items[p.i].content[0]!=='-'){
     var line=items[p.i].content; var kv2=line.match(/^([^:]+):\s?(.*)$/);
     if(!kv2) break;
     var k2=kv2[1].trim(); var v2=kv2[2].trim(); p.i++;
-    if(v2===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[k2]=yBlock(items, items[p.i].ind, p); else m[k2]={}; }
-    else m[k2]=yScalar(v2);
+    if(v2===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[k2]=yBlock(items, items[p.i].ind, p); else m[k2]=Object.create(null); }
+    else m[k2]=yParseVal(items, mapIndent, p, v2);
   }
   return m;
 }
@@ -446,7 +471,9 @@ function dumpToml(node,sort){ return dumpTable(node,sort,[]); }
 var src=document.getElementById('source').value||'';
 var enNow=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
 if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">'+(enNow?'Please enter YAML text':'请输入 YAML 文本')+'</p>'; return; }
-var obj=parseYaml(src);
+var obj;
+try{ obj=parseYaml(src); }
+catch(e){ document.getElementById('result').innerHTML='<p class="muted">'+(enNow?'Parse error: ':'解析失败：')+escH(e.message)+'</p>'; return; }
 if(obj && obj.__err){ const __g3='<p class="muted">'+(enNow?'Parse error: ':'解析失败：')+escH(obj.__err)+'</p>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')); return; }
 var sort=document.getElementById('top_1').checked;
 var toml=dumpToml(obj,sort);

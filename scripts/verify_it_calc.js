@@ -16660,7 +16660,7 @@ const CASES = [
   {
     slug: "it/short-link-generator",
     inputs: { url: "https://example.com/page", count: "3" },
-    clicks: ["document.getElementById('url').value='https://example.com/page';document.getElementById('count').value='3';document.getElementById('len').value='6';generate();document.getElementById('__tbProbe').textContent='SL '+((__lastShortLinks.length===3&&__lastShortLinks.every(function(x){return x.indexOf('\\n')<0;}))?'3 OK':'BAD');"],
+    clicks: ["document.getElementById('url').value='https://example.com/page';document.getElementById('count').value='3';document.getElementById('len').value='6';generate();document.getElementById('__tbProbe').textContent='SL '+((__lastShortLinks.length===3&&__lastShortLinks.every(function(x){return x.indexOf('\\\\n')<0;}))?'3 OK':'BAD');"],
     expect: ["SL 3 OK"],
     ref: "第733批：批量复制改为读取候选链接数组并按行拼接，旧实现读 textContent 会把相邻 div 粘连。默认生成 5 条 ⇒ 不命中。"
   },
@@ -18496,6 +18496,89 @@ const CASES = [
     clicks: ["tsvToJson();var o=document.getElementById('jsonOutput').value;var h=document.getElementById('t2jStats').innerHTML;document.getElementById('__tbProbe').textContent='TSVWIDTH '+((o.indexOf('\"b\": \"\"')>-1&&h.indexOf('宽度不一致')>-1)?'OK':'BAD:'+o);"],
     expect: ["TSVWIDTH OK"],
     ref: "缺列按空串补齐且必须提示宽度不一致，不能静默输出缺字段行。",
+  },
+  // ---- 第808批：YAML 缩进/锚点/转义，Plist 严格结构 ----
+  {
+    "slug": "it/yaml-to-json",
+    "inputs": { "source": "a: 1\nb:\n  c: 2" },
+    "clicks": ["var t=String(yamlJsonIndent('tab'));var tab=String.fromCharCode(9);calcTool();var j=(typeof __yamlToJsonLast!=='undefined'?String(__yamlToJsonLast):'');document.getElementById('__tbProbe').textContent='YTAB '+(t===tab&&t.length===1&&j.indexOf('\"a\"')>=0&&j.indexOf('\"c\"')>=0?'OK':'BAD:'+t.length+'|'+j.slice(0,50));"],
+    "expect": ["YTAB OK"],
+    "ref": "第808批：选择 Tab 缩进时必须传入真正的制表符；旧实现传字面 `\\t` 两字符 ⇒ JSON.parse 失败。探针从结果 pre 回读并独立解析，同时断言正文不含反斜杠+t 文本；默认样例缩进为 2 空格，不命中。"
+  },
+  {
+    "slug": "it/yaml-to-toml",
+    "inputs": { "source": "a: &n hello\nb: *n" },
+    "clicks": ["calcTool();var h=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='YANCH '+(h.indexOf('a =')>=0&&h.indexOf('b =')>=0&&(h.match(/hello/g)||[]).length>=2&&h.indexOf('*n')<0?'OK':'BAD:'+h.replace(/</g,'(').slice(0,70));"],
+    "expect": ["YANCH OK"],
+    "ref": "第808批：YAML 标量锚点 &n 与别名 *n 必须展开为相同值。旧自定义解析器把 `&n hello` / `*n` 当普通字符串 ⇒ b 输出 `\"*n\"`，探针失败；默认样例无锚点。"
+  },
+  {
+    "slug": "it/yaml-to-toml",
+    "inputs": { "source": "base: &b\n  x: 1\ncopy: *b" },
+    "clicks": ["calcTool();var h=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='YANCHMAP '+(h.indexOf('[base]')>=0&&h.indexOf('[copy]')>=0&&(h.match(/x = 1/g)||[]).length>=2?'OK':'BAD:'+h.replace(/</g,'(').slice(0,70));"],
+    "expect": ["YANCHMAP OK"],
+    "ref": "第808批：映射锚点必须整体展开为独立表；旧实现把 `*b` 当字符串、copy 不是表 ⇒ 缺 [copy] 且 x = 1 只出现一次。默认样例无锚点。"
+  },
+  {
+    "slug": "it/yaml-to-toml",
+    "inputs": { "source": "a: *missing" },
+    "clicks": ["calcTool();var h=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='YANCHERR '+(h.indexOf('未定义的 YAML 别名')>=0?'OK':'BAD:'+h.replace(/</g,'(').slice(0,70));"],
+    "expect": ["YANCHERR OK"],
+    "ref": "第808批：未定义别名不得静默变字符串，必须明确报错。旧实现输出 `a = \"*missing\"` ⇒ 探针失败。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "value: \"hello\\nworld\"\nsingle: 'it''s'" },
+    "clicks": ["calcTool();var x=(typeof __yamlToXmlLast!=='undefined'?String(__yamlToXmlLast):'');document.getElementById('__tbProbe').textContent='YXESC '+(x.indexOf('hello')>=0&&x.indexOf('world')>=0&&x.indexOf('\\\\n')<0&&x.indexOf(\"it's\")>=0&&x.indexOf(String.fromCharCode(10))>=0?'OK':'BAD:'+x.slice(0,80));"],
+    "expect": ["YXESC OK"],
+    "ref": "第808批：双引号标量的 \\n 必须解析为真实换行、单引号内的 '' 必须还原为一个单引号。旧实现只剥首尾引号 ⇒ 输出字面 `hello\\nworld` 与 `it''s`，探针失败。输入原文含反斜杠+n，expect 看输出 pre 的文本形态（含 hello/world 两行且不含字面 \\n）。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "u: \"\\u4f60\\u597d\"" },
+    "clicks": ["calcTool();var x=(typeof __yamlToXmlLast!=='undefined'?String(__yamlToXmlLast):'');document.getElementById('__tbProbe').textContent='YXUNI '+(x.indexOf('你好')>=0&&x.indexOf('\\\\u4f60')<0?'OK':'BAD:'+x.slice(0,70));"],
+    "expect": ["YXUNI OK"],
+    "ref": "第808批：\\uXXXX 转义必须还原为对应字符。旧实现输出字面 `\\u4f60\\u597d` ⇒ 探针失败；默认样例不含中文。"
+  },
+  {
+    "slug": "it/plist-parser",
+    "htmlDom": true,
+    "inputs": { "input": "<plist><dict><key>__proto__</key><string>v</string><key>n</key><integer>1</integer></dict></plist>" },
+    "clicks": ["plistToJson();var t=document.getElementById('output').textContent;document.getElementById('__tbProbe').textContent='PLPROTO '+(t.indexOf('\"__proto__\": \"v\"')>=0&&t.indexOf('\"n\": 1')>=0?'OK':'BAD:'+t.replace(/\s+/g,'').slice(0,80));"],
+    "expect": ["PLPROTO OK"],
+    "ref": "第808批：dict 必须用无原型对象，`__proto__` 作为普通键进入 JSON。旧 `obj[k]=v` 触发原型 setter ⇒ JSON 丢该键，探针失败；默认样例无 __proto__。"
+  },
+  {
+    "slug": "it/plist-parser",
+    "htmlDom": true,
+    "inputs": { "input": "<plist><dict><key>dup</key><string>a</string><key>dup</key><string>b</string></dict></plist>" },
+    "clicks": ["plistToJson();var e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='PLDUP '+(e.indexOf('重复的 key：dup')>=0?'OK':'BAD:'+e.slice(0,70));"],
+    "expect": ["PLDUP OK"],
+    "ref": "第808批：重复 key 必须报错而不是后者覆盖前者。旧实现静默得到 {dup:\"b\"}；探针要求错误区含重复 key 名称。默认样例无重复键。"
+  },
+  {
+    "slug": "it/plist-parser",
+    "htmlDom": true,
+    "inputs": { "input": "<plist><dict><key>lonely</key></dict></plist>" },
+    "clicks": ["plistToJson();var e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='PLMISS '+(e.indexOf('缺少对应 value')>=0?'OK':'BAD:'+e.slice(0,70));"],
+    "expect": ["PLMISS OK"],
+    "ref": "第808批：key 后没有 value 必须报错；旧实现循环结束静默返回空对象。默认样例 key/value 成对。"
+  },
+  {
+    "slug": "it/plist-parser",
+    "htmlDom": true,
+    "inputs": { "input": "<plist><dict><string>orphan</string><key>k</key><string>v</string></dict></plist>" },
+    "clicks": ["plistToJson();var e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='PLORPHAN '+(e.indexOf('缺少前置 key')>=0?'OK':'BAD:'+e.slice(0,70));"],
+    "expect": ["PLORPHAN OK"],
+    "ref": "第808批：dict 内 value 出现在 key 之前必须报错；旧实现 `k===null` 时静默跳过 orphan。默认样例顺序合法。"
+  },
+  {
+    "slug": "it/plist-parser",
+    "htmlDom": true,
+    "inputs": { "input": "<plist><dict><key>k</key><weird>x</weird></dict></plist>" },
+    "clicks": ["plistToJson();var e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='PLTYPE '+(e.indexOf('不支持的 plist 标签：<weird>')>=0?'OK':'BAD:'+e.slice(0,80));"],
+    "expect": ["PLTYPE OK"],
+    "ref": "第808批：未知标签不得静默按 textContent 转字符串，必须报出不支持的标签名。旧 default 分支返回文本 ⇒ 探针失败。默认样例只用标准标签。"
   },
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

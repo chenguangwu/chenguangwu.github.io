@@ -242,10 +242,43 @@ function yStripInlineComment(s){
   }
   return s;
 }
+function yUnescapeDouble(inner){
+  // 第808批：YAML 双引号标量转义；旧实现只剥引号，\n 变成字面反斜杠+n
+  var out='';
+  for(var i=0;i<inner.length;i++){
+    var c=inner[i];
+    if(c!=='\\'){ out+=c; continue; }
+    i++; if(i>=inner.length){ out+='\\'; break; }
+    var n=inner[i];
+    if(n==='n') out+='\n';
+    else if(n==='t') out+='\t';
+    else if(n==='r') out+='\r';
+    else if(n==='0') out+='\0';
+    else if(n==='a') out+='\x07';
+    else if(n==='b') out+='\b';
+    else if(n==='f') out+='\f';
+    else if(n==='v') out+='\v';
+    else if(n==='e') out+='\x1b';
+    else if(n==='N') out+='\u0085';
+    else if(n==='_') out+='\u00a0';
+    else if(n==='L') out+='\u2028';
+    else if(n==='P') out+='\u2029';
+    else if(n==='x'||n==='u'||n==='U'){
+      var len=n==='x'?2:(n==='u'?4:8), h=inner.slice(i+1,i+1+len);
+      if(new RegExp('^[0-9a-fA-F]{'+len+'}$').test(h)){
+        var cp=parseInt(h,16);
+        out += cp<=0xFFFF ? String.fromCharCode(cp) : String.fromCodePoint(cp);
+        i+=len;
+      } else out+=n;
+    } else out+=n;
+  }
+  return out;
+}
 function yScalar(s){
   s=yStripInlineComment(s).trim();
   if(s==='')return '';
-  if((s[0]==='"'&&s.slice(-1)==='"')||(s[0]==="'"&&s.slice(-1)==="'")) return s.slice(1,-1);
+  if(s[0]==='"' && s.slice(-1)==='"') return yUnescapeDouble(s.slice(1,-1));
+  if(s[0]==="'" && s.slice(-1)==="'") return s.slice(1,-1).replace(/''/g,"'");
   if(s==='true')return true; if(s==='false')return false;
   if(s==='null'||s==='~')return null;
   if(/^-?\d+$/.test(s))return parseInt(s,10);
@@ -279,6 +312,14 @@ function parseYaml(text){
   if(head.content[0]!=='-' && !yIsMapEntry(head.content)) return yScalar(head.content);
   return yBlock(items, items[0].ind, p);
 }
+function yCollectBlock(items, indent, p, indicator){
+  var lines=[];
+  while(p.i<items.length && items[p.i].ind>indent){ lines.push(items[p.i].content); p.i++; }
+  var text=indicator.charAt(0)==='|' ? lines.join('\n') : lines.join(' ').replace(/\s+/g,' ').trim();
+  if(indicator.indexOf('-')>=0) return text;
+  if(indicator.indexOf('+')>=0) return text+'\n';
+  return text+'\n';
+}
 function yBlock(items, indent, p){
   if(p.i>=items.length) return {};
   if(items[p.i].content[0]==='-'){
@@ -297,7 +338,8 @@ function yBlock(items, indent, p){
     var kv=line.match(/^([^:]+):\s?(.*)$/);
     if(!kv){ p.i++; continue; }
     var key=kv[1].trim(); var val=kv[2].trim(); p.i++;
-    if(val===''){ if(p.i<items.length && items[p.i].ind>indent) obj[key]=yBlock(items, items[p.i].ind, p); else obj[key]={}; }
+    if(val===''){ if(p.i<items.length && items[p.i].ind>indent) obj[key]=yBlock(items, items[p.i].ind, p); else obj[key]=Object.create(null); }
+    else if(/^[|>][+-]?$/.test(val)) obj[key]=yCollectBlock(items, indent, p, val);
     else obj[key]=yScalar(val);
   }
   return obj;
@@ -306,13 +348,15 @@ function yMapFrom(items, mapIndent, p, firstItem){
   var m={};
   var kv=firstItem.match(/^([^:]+):\s?(.*)$/);
   var key=kv[1].trim(); var val=kv[2].trim();
-  if(val===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[key]=yBlock(items, items[p.i].ind, p); else m[key]={}; }
+  if(val===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[key]=yBlock(items, items[p.i].ind, p); else m[key]=Object.create(null); }
+  else if(/^[|>][+-]?$/.test(val)) m[key]=yCollectBlock(items, mapIndent, p, val);
   else m[key]=yScalar(val);
   while(p.i<items.length && items[p.i].ind===mapIndent && items[p.i].content[0]!=='-'){
     var line=items[p.i].content; var kv2=line.match(/^([^:]+):\s?(.*)$/);
     if(!kv2) break;
     var k2=kv2[1].trim(); var v2=kv2[2].trim(); p.i++;
-    if(v2===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[k2]=yBlock(items, items[p.i].ind, p); else m[k2]={}; }
+    if(v2===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[k2]=yBlock(items, items[p.i].ind, p); else m[k2]=Object.create(null); }
+    else if(/^[|>][+-]?$/.test(v2)) m[k2]=yCollectBlock(items, mapIndent, p, v2);
     else m[k2]=yScalar(v2);
   }
   return m;
@@ -472,6 +516,7 @@ if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">�
 var obj=parseYaml(src);
 if(obj && obj.__err){ const __g3='<p class="muted">解析失败：'+escH(obj.__err)+'</p>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')); return; }
 var xml=jsonToXml(obj, __yaml_to_xmlUnit(), __yaml_to_xmlSort());
+__yamlToXmlLast=xml;
 const __g4='<div class="result-title">XML 输出</div><pre class="code-block">'+escH(xml)+'</pre>';document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}
 // IT-N357：`#indent` 与 `#top_1` 原本是死输入，calcTool 从未读取
 function __yaml_to_xmlUnit(){
