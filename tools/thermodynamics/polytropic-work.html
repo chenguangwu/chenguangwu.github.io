@@ -132,8 +132,8 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入初末态压力与体积及多方指数 n，求过程功；压力与体积必须大于 0。">Polytropic Work</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">W=(P₂V₂−P₁V₁)/(1−n)（SI 单位）；n=1 时按等温特例 W=p₁V₁·ln(V₂/V₁) 计算。</div>
-      <p class="formula-desc">输入初末态压力与体积及多方指数 n，求过程功。</p>
+      <div class="formula-eq">W=(P₂V₂−P₁V₁)/(1−n)（SI 单位）；n≈1 时按等温特例 W=p₁V₁·ln(V₂/V₁)。校验：P₁、V₁、P₂、V₂ 均 > 0，n 有限；端点必须满足同一多方过程 P₁V₁ⁿ=P₂V₂ⁿ（相对误差 ≤1%），否则拒绝计算并给出推得的 P₂。</div>
+      <p class="formula-desc">输入同一条多方过程的初末态压力/体积与指数 n，先校验端点关系再求过程功。</p>
     </div>
 
     <div class="input-row">
@@ -147,7 +147,7 @@
       </div>
       <div>
         <label for="p2">末压 P₂ (kPa)</label>
-        <input type="number" id="p2" value="50" step="1" placeholder="如 50">
+        <input type="number" id="p2" value="40.613" step="1" placeholder="如 50">
       </div>
     </div>
     <div class="input-row">
@@ -266,14 +266,19 @@ function calcTool(){
             var __ig=__tbInputGuard(['p1','v1','p2','v2','n'],['初压 P₁ (kPa)','初容 V₁ (m³)','末压 P₂ (kPa)','末容 V₂ (m³)','多方指数 n']);if(__ig){__tbClear(['polytropic_workTable','pwChart','pwTable']);const __g0='<p style="color:var(--danger)">⚠ '+__ig+'</p>';ToolBox.setResult('result',(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')));return;}
             const p1=num('p1')*1000, v1=num('v1'), p2=num('p2')*1000, v2=num('v2'), n=num('n');
             if(p1<=0||v1<=0||p2<=0||v2<=0){__tbClear(['polytropic_workTable','pwChart','pwTable']);ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 压力与体积都必须大于 0。</p>');return;}
-            const W=Math.abs(n-1)<1e-12?p1*v1*Math.log(v2/v1):(p2*v2-p1*v1)/(1-n);
+            if(!isFinite(n)){__tbClear(['polytropic_workTable','pwChart','pwTable']);ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 多方指数 n 必须是有限数值。</p>');return;}
+            const __p2c=p1*Math.pow(v1/v2,n);
+            if(Math.abs(p2-__p2c)/__p2c>0.01){__tbClear(['polytropic_workTable','pwChart','pwTable']);ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 端点不满足同一多方过程关系 P₁V₁ⁿ = P₂V₂ⁿ：按 P₁、V₁、V₂、n 推得 P₂≈'+(__p2c/1000).toFixed(3)+' kPa，与输入的 '+(p2/1000).toFixed(3)+' kPa 相差超过 1%。请改末压或改末容。</p>');return;}
+            const W=Math.abs(n-1)<1e-9?p1*v1*Math.log(v2/v1):(p2*v2-p1*v1)/(1-n);
             const __g1=dataGrid([
-                [(W/1000).toFixed(2),'过程功 W (kJ)']
+                [(W/1000).toFixed(2),'过程功 W (kJ)'],
+                [(__p2c/1000).toFixed(3),'由 P₁V₁ⁿ=P₂V₂ⁿ 推出的 P₂ (kPa)'],
+                [Math.abs(n-1)<1e-9?'n≈1：按等温 pV=常数 的 W=p₁V₁ln(V₂/V₁)':'n≠1：W=(P₂V₂−P₁V₁)/(1−n)','所用公式']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('p1').value = '100';
       document.getElementById('v1').value = '1';
-      document.getElementById('p2').value = '50';
+      document.getElementById('p2').value = '40.613';
       document.getElementById('v2').value = '2';
       document.getElementById('n').value = '1.3';
       calcTool();}
@@ -284,8 +289,13 @@ function __polytropic_workExtras(){
     function __polytropic_workRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var p1=num('p1')*1000, v1=num('v1'), p2=num('p2')*1000, v2=num('v2'), n=num('n');
-    if(p1<=0||v1<=0||p2<=0||v2<=0) return;
-    var W=Math.abs(n-1)<1e-12?p1*v1*Math.log(v2/v1):(p2*v2-p1*v1)/(1-n);
+    var en=TBKit.util.isEn();
+    var p2c=p1*Math.pow(v1/v2,n);
+    if(p1<=0||v1<=0||p2<=0||v2<=0||!isFinite(n)||Math.abs(p2-p2c)/p2c>0.01){
+        try { TBKit.matrix.table('#polytropic_workTable',{head:en?['Item','Value']:['项目','数值'],rows:[]}); } catch(e){}
+        return;
+    }
+    var W=Math.abs(n-1)<1e-9?p1*v1*Math.log(v2/v1):(p2*v2-p1*v1)/(1-n);
     if(!isFinite(W)) return;
     if (!isFinite(__polytropic_workNum('p1')) || !isFinite(__polytropic_workNum('v1')) || !isFinite(__polytropic_workNum('p2')) || !isFinite(__polytropic_workNum('v2')) || !isFinite(__polytropic_workNum('n'))) return;
     var en=TBKit.util.isEn();
@@ -307,9 +317,9 @@ function __polytropic_workExport(){
 function __polytropic_workPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#polytropic_workPresets',[
-        {label:'默认',labelEn:'Default',values:{p1:'100', v1:'1', p2:'50', v2:'2', n:'1.3'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{p1:'200', v1:'2', p2:'100', v2:'4', n:'2.6'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p1:'50', v1:'0.5', p2:'25', v2:'1', n:'0.65'}},
+        {label:'默认',labelEn:'Default',values:{p1:'100', v1:'1', p2:'40.613', v2:'2', n:'1.3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p1:'200', v1:'2', p2:'32.97', v2:'4', n:'2.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p1:'50', v1:'0.5', p2:'31.85', v2:'1', n:'0.65'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;

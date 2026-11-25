@@ -133,7 +133,7 @@
 
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">可逆过程熵变：ΔS = Q ÷ T（J/K）；联动卡：1/T 卡按 ΔS ÷ Q 复算（1/K）、热量复算 Q = T×ΔS（J）、1/ΔS = 1 ÷ (ΔS||1)（K/J，ΔS=0 按 1 兜底）。校验：Q、T 两项非空合法数值守卫，T=0 时除零落 «—» 兜底。判据：无固定分级，ΔS 与 Q 同号、与 T 成反比。</div>
+      <div class="formula-eq">可逆过程熵变：ΔS = Q ÷ T（J/K）。联动卡：1/T 直接由 1÷T 计算（1/K）；热量复算 Q = T×ΔS（J）；1/ΔS = 1÷ΔS（K/J），ΔS=0 时显示「未定义」。校验：Q、T 必须为有限数值，T > 0（开尔文）；Q 可为正、负或 0。判据：ΔS 与 Q 同号，|ΔS| 随 T 增大而减小。</div>
       <p class="formula-desc">可逆相变或传热过程的熵变等于可逆热量除以温度。</p>
     </div>
 
@@ -328,15 +328,16 @@ function __tbInputGuardCore(_ids,_labels){
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['Q', 'T'],["可逆热量 (J)", "温度 (K)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+              var __Qraw=String(document.getElementById('Q').value).trim(), __Traw=String(document.getElementById('T').value).trim();
+              if(__Qraw===''||__Traw===''){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 请填写可逆热量 Q 与温度 T 后再计算（Q=0 是合法值）。</p>');return;}
 const Q = num('Q'), T = num('T');
             if(!(T>0)){ToolBox.setResult('result','温度必须为正（开尔文温标）；T≤0 时熵变无定义');return;}
             const dS = Q / T;
             const __g2=dataGrid([
                 [dS.toFixed(3), '熵变 ΔS (J/K)'],
-                [(dS / Q).toFixed(6), '1/T (1/K)'],
+                [(1/T).toFixed(6), '1/T (1/K)'],
                 [(T*dS).toFixed(2), '热量复算 Q = T*dS (J)'],
-                [(1/(dS||1)).toFixed(4), '1/dS (K/J)']
+                [Math.abs(dS)<1e-15?'未定义（ΔS=0）':(1/dS).toFixed(4), '1/dS (K/J)']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('Q').value = '4186';
@@ -349,16 +350,19 @@ function __entropy_changeExtras(){
     function __entropy_changeRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var Q = num('Q'), T = num('T');
-    var dS = Q / T;
-    if (!isFinite(__entropy_changeNum('Q')) || !isFinite(__entropy_changeNum('T'))) return;
     var en=TBKit.util.isEn();
+    if (!isFinite(__entropy_changeNum('Q')) || !isFinite(__entropy_changeNum('T')) || !(T > 0)) {
+        try { TBKit.matrix.table('#entropy_changeTable',{head:en?['Item','Value']:['项目','数值'],rows:[]}); } catch(e){}
+        return;
+    }
+    var dS = Q / T;
     TBKit.matrix.table('#entropy_changeTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['熵变 ΔS (J/K)', dS.toFixed(3)],
-            ['1/T (1/K)', (dS / Q).toFixed(6)],
+            ['1/T (1/K)', (1/T).toFixed(6)],
             ['热量复算 Q = T*dS (J)', (T*dS).toFixed(2)],
-            ['1/dS (K/J)', (1/(dS||1)).toFixed(4)],
+            ['1/dS (K/J)', Math.abs(dS)<1e-15?'未定义（ΔS=0）':(1/dS).toFixed(4)],
         ]
     });
     TBKit.history.record({Q:__entropy_changeRaw('Q'), T:__entropy_changeRaw('T'), dS:dS});
