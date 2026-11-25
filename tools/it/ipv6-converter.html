@@ -177,7 +177,8 @@
   <ul>
         <li>IPv6 共 128 位，写成 8 组、每组 4 个十六进制数字，组间用冒号分隔。</li>
         <li>压缩规则：连续的全 0 段可替换为 ::（一个地址只能压缩一次），如 2001:db8:0:0:0:0:0:1 → 2001:db8::1。</li>
-        <li>每组前导 0 可省略（1:0:0:0 写作 1::），但 :: 只能出现一次，否则无法唯一还原。</li>
+        <li>每组前导 0 可省略，但各组仍须保留：2001:0db8:0000:0000:0000:0000:0000:0001 → 2001:db8:0:0:0:0:0:1。</li>
+        <li>连续全 0 段可压缩为 ::，但一个地址只能出现一次：2001:db8:0:0:0:0:0:1 → 2001:db8::1。</li>
   </ul>
 </div>
 
@@ -291,6 +292,7 @@ function addrMark(on){
   if(el) el.style.borderColor=on?'#B91C1C':'';
 }
 function calcTool(){
+__ipv6LastFullText='';
 var raw=document.getElementById('addr').value.trim();
 var ip=raw;
 var prefix=null;
@@ -314,6 +316,7 @@ html+='<div class="big-result" style="font-size:14px;word-break:break-all;">'+se
 html+='<p class="muted">'+(ipv6IsEn()?'Compressed form: ':'压缩形式：')+compressV6(segs)+'</p>';
 if(prefix!==null)html+='<p class="muted">'+(ipv6IsEn()?'Prefix length: /'+prefix+' (address segments kept as entered)':'前缀长度：/'+prefix+'（地址段按原值保留）')+'</p>';
 html+='<p style="margin-top:8px;"><b>'+(ipv6IsEn()?'8 segments:':'8 段：')+'</b>'+segs.map(function(s,i){return '['+i+'] '+s;}).join('  ')+'</p>';
+__ipv6LastFullText=(ipv6IsEn()?'Result ':'转换结果 ')+segs.join(':')+' '+(ipv6IsEn()?'Compressed: ':'压缩形式：')+compressV6(segs)+(prefix!==null?' '+(ipv6IsEn()?'Prefix length: /':'前缀长度：/')+prefix:'')+' '+(ipv6IsEn()?'8 segments: ':'8 段：')+segs.map(function(s,i){return '['+i+'] '+s;}).join('  ');
 const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('addr').value='2001:db8::1';
       calcTool();}
@@ -333,12 +336,13 @@ function __ipv6_converterSnap(){
     return out;
 }
 function __ipv6_converterResText(){
+    if(typeof __ipv6LastFullText!=='undefined'&&__ipv6LastFullText) return __ipv6LastFullText;
     var r=document.getElementById('result');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
-    return t.slice(0,80);
+    return t;
 }
 function __ipv6_converterScore(t){
     var s=String(t||'');

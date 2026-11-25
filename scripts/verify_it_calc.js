@@ -18580,6 +18580,22 @@ const CASES = [
     "expect": ["PLTYPE OK"],
     "ref": "第808批：未知标签不得静默按 textContent 转字符串，必须报出不支持的标签名。旧 default 分支返回文本 ⇒ 探针失败。默认样例只用标准标签。"
   },
+  // ---- 第809批：IPv6 说明/完整导出，HTTP immutable ----
+  {
+    "slug": "it/ipv6-converter",
+    "inputs": { "addr": "2001:db8:abcd:1234:5678:9abc:def0:1234" },
+    "clicks": ["calcTool();var t=(typeof __ipv6LastFullText!=='undefined'?String(__ipv6LastFullText):'');document.getElementById('__tbProbe').textContent='V6FULL '+(t.length>80&&t.indexOf('2001:0db8:abcd:1234')>=0&&t.indexOf('def0:1234')>=0?'OK':'BAD:'+t.length+'|'+t.slice(0,60));"],
+    "expect": ["V6FULL OK"],
+    "ref": "第809批：历史/CSV 结果不得截断在 80 字符。完整 8 段地址的展开文本必然超过 80 字，探针要求结果文本同时含首段补零形态与末段，且输入快照完整。旧 `__ipv6_converterResText` 返回 `t.slice(0,80)` ⇒ 长度不足、末段丢失。默认样例 2001:db8::1 的文本也短于阈值。"
+  },
+  {
+    "slug": "it/http-cache",
+    "inputs": { "searchInput": "immutable" },
+    "dumpIds": ["hcTbody"],
+    "expect": ["新鲜期仍有限，过期后照常重新验证"],
+    "ref": "第809批：immutable 不是永不过期，只是新鲜期内不发条件请求；表格描述改为该口径。旧文案「资源永不过期，无需验证」与同条示例 max-age=31536000 自相矛盾。搜索 immutable 仅保留该行，默认全量排序不出现该短语。"
+  },
+
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
