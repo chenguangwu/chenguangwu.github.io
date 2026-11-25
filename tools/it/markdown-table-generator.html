@@ -157,13 +157,18 @@
           <option value="center">居中</option>
           <option value="right">右对齐</option>
         </select>
+        <label for="rowFill">额外行</label>
+        <select id="rowFill" onchange="renderPreview()">
+          <option value="blank">空白单元格</option>
+          <option value="repeat">复制首行内容</option>
+        </select>
       </div>
 
       <label for="headerLine">表头（逗号分隔，含逗号的单元格用双引号包裹）</label>
       <input id="headerLine" type="text" value="姓名,年龄,城市" oninput="syncColumns()">
 
-      <label for="bodyLine">首行模板（逗号分隔，含逗号的单元格用双引号包裹）</label>
-      <input id="bodyLine" type="text" value="Alice,24,Shanghai" oninput="syncColumns()">
+      <label for="bodyLine">内容行（逗号分隔，可粘贴多行；含逗号的单元格用双引号包裹）</label>
+      <textarea id="bodyLine" rows="2" oninput="syncColumns()">Alice,24,Shanghai</textarea>
       <div id="csvInputError" role="alert" style="display:none;color:var(--danger);font-size:13px;margin:6px 0;"></div>
       <div class="toolbar" style="justify-content:flex-start;gap:14px;flex-wrap:wrap;">
         <label style="display:inline-flex;align-items:center;gap:6px;"><input type="checkbox" id="csvFormulaSafe" checked onchange="renderPreview()"> 中和表格公式（CSV）</label>
@@ -285,14 +290,14 @@
     return parseCsvLine(line).cells.map(c => c.value);
   }
   function parseRow(line) {
-    return splitCsvRow(line)
-      .filter((v, idx) => !(v === '' && idx === 0));
+    // 第805批：逗号定义的全部列位置都要保留，首列空值不能导致后续整体左移
+    return splitCsvRow(line);
   }
 
   function fillCells(count, values) {
     const out = [];
     for (let i = 0; i < count; i += 1) {
-      out.push(escapeMarkdown(values[i] || `C${i + 1}`));
+      out.push(escapeMarkdown(values[i] === undefined ? '' : values[i]));
     }
     return out;
   }
@@ -323,25 +328,46 @@
   let lastTableModel = null;
 
   function rawCells(count, values) {
+    // 第805批：显式空值与缺失列都输出空单元格，不再用 C1/C2 占位篡改内容
     const out = [];
-    for (let i = 0; i < count; i += 1) out.push(String(values[i] == null || values[i] === '' ? `C${i + 1}` : values[i]));
+    for (let i = 0; i < count; i += 1) out.push(values[i] === undefined ? '' : String(values[i]));
     return out;
   }
 
+  function readDimension(id, min, max, zhName, enName) {
+    const raw = String(document.getElementById(id).value || '').trim();
+    const en = (typeof TBKit !== 'undefined' && TBKit.util.isEn());
+    if (!/^\d+$/.test(raw)) return { error: en ? `${enName} must be a whole number from ${min} to ${max}.` : `${zhName}必须是 ${min}–${max} 的整数。` };
+    const n = Number(raw);
+    if (!Number.isSafeInteger(n) || n < min || n > max) return { error: en ? `${enName} must be between ${min} and ${max}.` : `${zhName}必须在 ${min}–${max} 之间。` };
+    return { value: n };
+  }
+
   function renderPreview() {
-    const rows = Math.max(1, Math.min(50, parseInt(document.getElementById('rows').value, 10) || 1));
-    const cols = Math.max(1, Math.min(20, parseInt(document.getElementById('cols').value, 10) || 1));
-    const align = document.getElementById('align').value;
-    const h = parseCsvLine(document.getElementById('headerLine').value);
-    const b = parseCsvLine(document.getElementById('bodyLine').value);
     const errBox = document.getElementById('csvInputError');
     const spaceBox = document.getElementById('csvSpaceNotice');
-    if (h.error || b.error) {
-      const en = (typeof TBKit !== 'undefined' && TBKit.util.isEn());
-      if (errBox) {
-        errBox.style.display = 'block';
-        errBox.textContent = (en ? 'CSV input error: ' : 'CSV 输入错误：') + (h.error || b.error) + (en ? '. Fix the quotes before generating.' : '，请先补全引号再生成。');
-      }
+    const en = (typeof TBKit !== 'undefined' && TBKit.util.isEn());
+    const rr = readDimension('rows', 1, 50, '行数', 'Row count');
+    const cc = readDimension('cols', 1, 20, '列数', 'Column count');
+    if (rr.error || cc.error) {
+      if (errBox) { errBox.style.display = 'block'; errBox.textContent = '⚠ ' + (rr.error || cc.error); }
+      document.getElementById('output').value = '';
+      lastTableModel = null;
+      if (spaceBox) spaceBox.style.display = 'none';
+      return '';
+    }
+    const rows = rr.value, cols = cc.value;
+    const align = document.getElementById('align').value;
+    const rowFill = document.getElementById('rowFill') ? document.getElementById('rowFill').value : 'blank';
+    const h = parseCsvLine(document.getElementById('headerLine').value);
+    const bodyText = String(document.getElementById('bodyLine').value || '');
+    let bodyLines = bodyText.split(/\r?\n/);
+    while (bodyLines.length > 1 && bodyLines[bodyLines.length - 1] === '') bodyLines.pop();
+    const parsedBody = bodyLines.map(parseCsvLine);
+    const parseErr = h.error || parsedBody.find(x => x.error);
+    if (parseErr && (parseErr.error || typeof parseErr === 'string')) {
+      const msg = h.error || parseErr.error;
+      if (errBox) { errBox.style.display = 'block'; errBox.textContent = (en ? 'CSV input error: ' : 'CSV 输入错误：') + msg + (en ? '. Fix the quotes before generating.' : '，请先补全引号再生成。'); }
       document.getElementById('output').value = '';
       lastTableModel = null;
       if (spaceBox) spaceBox.style.display = 'none';
@@ -349,15 +375,19 @@
     }
     if (errBox) errBox.style.display = 'none';
     const header = h.cells.slice(0, cols).map(c => c.value);
-    const bodySeed = b.cells.slice(0, cols).map(c => c.value);
+    const bodySeeds = parsedBody.map(p => p.cells.slice(0, cols).map(c => c.value));
     const headerRaw = rawCells(cols, header);
     const bodyRaw = [];
-    for (let r = 0; r < rows; r += 1) bodyRaw.push(rawCells(cols, bodySeed.map(v => `${v}${r + 1}`)));
+    const fallback = bodySeeds.length ? bodySeeds[0] : [];
+    for (let r = 0; r < rows; r += 1) {
+      if (r < bodySeeds.length) bodyRaw.push(rawCells(cols, bodySeeds[r]));
+      else if (rowFill === 'repeat') bodyRaw.push(rawCells(cols, fallback));
+      else bodyRaw.push(rawCells(cols, []));
+    }
 
     const headerVals = headerRaw.map(escapeMarkdown);
     const sep = headerVals.map(() => alignMarker(align)).join(' | ');
     const out = [];
-
     out.push(makeRow(headerVals));
     out.push(`| ${sep} |`);
     for (let r = 0; r < rows; r += 1) out.push(makeRow(bodyRaw[r].map(escapeMarkdown)));
@@ -366,10 +396,15 @@
     document.getElementById('output').value = md;
     lastTableModel = { header: headerRaw, rows: bodyRaw, markdown: md };
     const hadSpace = headerRaw.concat(bodyRaw.flat()).some(v => /^ | $/.test(v));
+    const missingCols = Math.max(0, cols - header.length) + Math.max(0, cols - (bodySeeds[0] ? bodySeeds[0].length : 0));
+    const extraBlank = rowFill === 'blank' && rows > bodySeeds.length;
+    const notes = [];
+    if (hadSpace) notes.push(en ? 'Leading/trailing spaces inside quotes are kept as &nbsp; in Markdown and preserved in CSV export.' : '引号内的首尾空格在 Markdown 中以 &nbsp; 表示，CSV 导出会保留原始空格。');
+    if (missingCols) notes.push(en ? 'Some rows have fewer values than the column count; missing cells are kept empty.' : '部分行列数少于列数设置，缺失单元格已留空。');
+    if (extraBlank) notes.push(en ? 'Rows after the provided content use blank cells (change “Extra rows” to repeat the first row).' : '超出内容行的部分使用空白单元格（可在「额外行」选择复制首行）。');
     if (spaceBox) {
-      const en = (typeof TBKit !== 'undefined' && TBKit.util.isEn());
-      spaceBox.style.display = hadSpace ? 'block' : 'none';
-      spaceBox.textContent = hadSpace ? (en ? 'Leading/trailing spaces inside quotes are kept as &nbsp; in Markdown and preserved in CSV export.' : '引号内的首尾空格在 Markdown 中以 &nbsp; 表示，CSV 导出会保留原始空格。') : '';
+      spaceBox.style.display = notes.length ? 'block' : 'none';
+      spaceBox.textContent = notes.join(' ');
     }
     return md;
   }
@@ -393,8 +428,7 @@
   }
 
   function syncColumns() {
-    // IT-N216：编辑期绝不写回表头/首行输入（旧实现补占位写回 value 会让光标跳末尾、删掉的尾列被立刻补回）。
-    // 缺列由 fillCells() 在生成预览时用 C1/C2… 占位补齐即可，输入框保持用户原样。
+    // IT-N216 / 第805批：编辑期绝不写回表头或内容输入；缺列保持空单元格，不再用 C1/C2 占位补写。
     renderPreview();
   }
 
