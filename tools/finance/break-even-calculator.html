@@ -399,18 +399,21 @@ function calc(){
   var tax = profit > 0 ? profit * p.taxRate / 100 : 0;
   var netProfit = profit - tax;
   
-  var safetyMargin = p.qty > bep.qty ? p.qty - bep.qty : 0;
-  var safetyMarginRatio = p.qty > 0 ? (safetyMargin / p.qty * 100) : 0;
+  // 安全边际保留带符号差额：实际销量低于保本时是缺口，不再强制截为 0；零销量时比率没有分母。
+  var safetyMargin = p.qty - bep.qty;
+  var safetyMarginDefined = p.qty > 0;
+  var safetyMarginRatio = safetyMarginDefined ? (safetyMargin / p.qty * 100) : NaN;
   
-  var operatingLeverage = profit !== 0 ? (bep.cm * p.qty) / profit : 0;
+  // 利润恰为 0（盈亏平衡点）时 DOL 分母为 0，应显示未定义而不是 0 倍。
+  var operatingLeverage = profit !== 0 ? (bep.cm * p.qty) / profit : NaN;
   
   var statHtml = '';
   statHtml += '<div class="stat-card"><div class="val">' + (isFinite(bep.qty) ? Math.ceil(bep.qty) : '-') + '</div><div class="lbl">盈亏平衡销量(件)</div></div>';
   statHtml += '<div class="stat-card"><div class="val">' + (isFinite(bep.revenue) ? ToolBox.formatNumber(bep.revenue, 0) : '-') + '</div><div class="lbl">盈亏平衡收入(元)</div></div>';
   statHtml += '<div class="stat-card"><div class="val">' + ToolBox.formatNumber(bep.cm, 2) + '</div><div class="lbl">单位边际贡献(元)</div></div>';
   statHtml += '<div class="stat-card"><div class="val">' + bep.cmRatio.toFixed(2) + '%</div><div class="lbl">边际贡献率</div></div>';
-  statHtml += '<div class="stat-card"><div class="val">' + safetyMarginRatio.toFixed(2) + '%</div><div class="lbl">安全边际率</div></div>';
-  statHtml += '<div class="stat-card"><div class="val">' + (isFinite(operatingLeverage) ? operatingLeverage.toFixed(2) : '-') + '</div><div class="lbl">经营杠杆系数</div></div>';
+  statHtml += '<div class="stat-card"><div class="val">' + (safetyMarginDefined ? safetyMarginRatio.toFixed(2) + '%' : '不可定义') + '</div><div class="lbl">安全边际率</div></div>';
+  statHtml += '<div class="stat-card"><div class="val">' + (isFinite(operatingLeverage) ? operatingLeverage.toFixed(2) : '未定义') + '</div><div class="lbl">经营杠杆系数</div></div>';
   const __g1=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   
   var html = '';
@@ -424,11 +427,13 @@ function calc(){
   html += '<p>所得税（' + p.taxRate + '%）：' + ToolBox.formatNumber(tax, 2) + ' 元</p>';
   html += '<p style="font-size:16px;">净利润：<strong style="color:' + (netProfit >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + ToolBox.formatNumber(netProfit, 2) + '</strong> 元</p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
-  html += '<p>安全边际量：<strong>' + ToolBox.formatNumber(safetyMargin, 0) + '</strong> 件</p>';
-  html += '<p>安全边际率：<strong>' + safetyMarginRatio.toFixed(2) + '%</strong> ' + getSafetyRating(safetyMarginRatio) + '</p>';
-  html += '<p>经营杠杆系数：<strong>' + (isFinite(operatingLeverage) ? operatingLeverage.toFixed(2) : '-') + '</strong>';
+  html += '<p>安全边际量：<strong>' + ToolBox.formatNumber(safetyMargin, 0) + '</strong> 件' + (safetyMargin < 0 ? '（为负，表示距保本还差 ' + ToolBox.formatNumber(Math.abs(safetyMargin), 0) + ' 件）' : '') + '</p>';
+  html += '<p>安全边际率：<strong>' + (safetyMarginDefined ? safetyMarginRatio.toFixed(2) + '%' : '不可定义') + '</strong> ' + (!safetyMarginDefined ? '<span style="color:var(--text-muted);">（实际销量为 0，比率没有分母；请改用上方带符号的安全边际量判断缺口）</span>' : safetyMarginRatio >= 0 ? getSafetyRating(safetyMarginRatio) : '<span style="color:var(--danger);">低于保本，缺口 ' + ToolBox.formatNumber(Math.abs(safetyMargin), 0) + ' 件</span>') + '</p>';
+  html += '<p>经营杠杆系数：<strong>' + (isFinite(operatingLeverage) ? operatingLeverage.toFixed(2) : '未定义') + '</strong>';
   if(isFinite(operatingLeverage)){
     html += ' <span style="font-size:12px;color:var(--text-muted);">（销量每增1%，利润增' + operatingLeverage.toFixed(2) + '%）</span>';
+  } else if(profit === 0){
+    html += ' <span style="font-size:12px;color:var(--text-muted);">（利润为 0，边际贡献 ÷ 0 无定义；盈亏平衡点两侧的杠杆会趋于无穷）</span>';
   }
   html += '</p>';
   

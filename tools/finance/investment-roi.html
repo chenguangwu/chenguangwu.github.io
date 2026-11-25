@@ -406,12 +406,22 @@ function applyTemplate(i){
 }
 
 function calcSimple(){
-  const cost = parseFloat(document.getElementById('cost').value) || 0;
-  const ret = parseFloat(document.getElementById('return').value) || 0;
-  const v = parseFloat(document.getElementById('years').value) || 0;
+  // 必填字段先看原始字符串：终值为空不能按 0 计算成 -100%，折现率留空也不能静默按 0。
+  const costRaw = String(document.getElementById('cost').value || '').trim();
+  const retRaw = String(document.getElementById('return').value || '').trim();
+  const yearsRaw = String(document.getElementById('years').value || '').trim();
+  const discountRaw = String(document.getElementById('discount').value || '').trim();
+  const missing = costRaw === '' ? '成本' : retRaw === '' ? '期末价值/回报' : yearsRaw === '' ? '持有期' : discountRaw === '' ? '折现率' : '';
+  if(missing){
+    document.getElementById('simpleStats').innerHTML = '<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请填写' + missing + '；留空不计算，数字 0 才表示真实的零值。</div></div>';
+    return;
+  }
+  const cost = Number(costRaw);
+  const ret = Number(retRaw);
+  const v = Number(yearsRaw);
   const unit = document.getElementById('unit').value;
-  const discount = parseFloat(document.getElementById('discount').value) || 0;
-  if(cost <= 0 || ret < 0 || v <= 0){
+  const discount = Number(discountRaw);
+  if(!isFinite(cost) || !isFinite(ret) || !isFinite(v) || !isFinite(discount) || cost <= 0 || ret < 0 || v <= 0){
     const __h1='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请输入合理的正数</div></div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('simpleStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('simpleStats').innerHTML=__h1;
     return;
   }
@@ -560,11 +570,19 @@ function irrFromCashFlows(cashFlows, hint){
 }
 
 function calcRegular(){
-  const pmt = parseFloat(document.getElementById('monthly').value) || 0;
+  const pmtRaw = String(document.getElementById('monthly').value || '').trim();
+  const rateRaw = String(document.getElementById('annualRate').value || '').trim();
+  const periodRaw = String(document.getElementById('period').value || '').trim();
+  const missing = pmtRaw === '' ? '每期投入' : rateRaw === '' ? '年化收益率（无收益请显式填 0）' : periodRaw === '' ? '期限' : '';
+  if(missing){
+    document.getElementById('regularStats').innerHTML = '<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请填写' + missing + '；留空不计算。</div></div>';
+    return;
+  }
+  const pmt = Number(pmtRaw);
   const freq = document.getElementById('freq').value;
-  const annualRate = parseFloat(document.getElementById('annualRate').value) || 0;
-  const period = parseFloat(document.getElementById('period').value) || 0;
-  if(pmt <= 0 || period <= 0){
+  const annualRate = Number(rateRaw);
+  const period = Number(periodRaw);
+  if(!isFinite(pmt) || !isFinite(annualRate) || !isFinite(period) || pmt <= 0 || period <= 0){
     const __h3='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请输入合理的正数</div></div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('regularStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('regularStats').innerHTML=__h3;
     return;
   }

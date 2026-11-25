@@ -511,10 +511,26 @@ function calc(){
     result.positionPct = positionPct;
   }
   else if(currentMethod === 'martingale'){
-    var initial = getVal('m-initial');
-    var multiplier = getVal('m-multiplier');
-    var times = Math.floor(getVal('m-times'));
-    var dropPct = getVal('m-droppct') / 100;
+    var initialRaw = String(document.getElementById('m-initial').value || '').trim();
+    var multRaw = String(document.getElementById('m-multiplier').value || '').trim();
+    var timesRaw = String(document.getElementById('m-times').value || '').trim();
+    var dropRaw = String(document.getElementById('m-droppct').value || '').trim();
+    var martingaleErr = initialRaw === '' ? '请填写初始仓位。' : multRaw === '' ? '请填写加仓倍数。' : timesRaw === '' ? '请填写最大加仓次数。' : dropRaw === '' ? '请填写加仓跌幅。' : '';
+    var initial = Number(initialRaw), multiplier = Number(multRaw), timesNum = Number(timesRaw), dropNum = Number(dropRaw);
+    if(!martingaleErr && (!isFinite(initial) || initial <= 0)) martingaleErr = '初始仓位须大于 0。';
+    if(!martingaleErr && (!isFinite(multiplier) || multiplier < 1 || multiplier > 100)) martingaleErr = '加仓倍数须在 1–100 之间。';
+    if(!martingaleErr && (!isFinite(timesNum) || !Number.isInteger(timesNum) || timesNum < 1 || timesNum > 20)) martingaleErr = '最大加仓次数须为 1–20 的整数，不支持小数或 0。';
+    if(!martingaleErr && (!isFinite(dropNum) || dropNum < 0 || dropNum > 100 || (dropNum === 100 && timesNum !== 1))) martingaleErr = '加仓跌幅须为 0%（含）至 100%（含）；仅 1 层时允许 100%，多层须小于 100%。';
+    if(martingaleErr){
+      currentResult = null;
+      document.getElementById('statGrid').innerHTML = '';
+      document.getElementById('res').innerHTML = '<p class="tip-error">❌ ' + martingaleErr + '</p>';
+      var canvasErr = document.getElementById('chart');
+      if(canvasErr) canvasErr.getContext('2d').clearRect(0, 0, canvasErr.width, canvasErr.height);
+      return;
+    }
+    var times = timesNum;
+    var dropPct = dropNum / 100;
     var lastPrice = 100 * Math.pow(1 - dropPct, times - 1);
     var lastPosition = initial * Math.pow(multiplier, times - 1);
     if(!isFinite(dropPct) || dropPct < 0 || dropPct > 1 || !(lastPrice > 0) || !isFinite(lastPosition / lastPrice)){
