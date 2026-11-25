@@ -263,9 +263,21 @@ function applyTarget(){
   if(m*60+sc < 1){m=0;sc=1;}
   document.getElementById('setMin').value=m;
   document.getElementById('setSec').value=sc;
+  var wasRunning=state.running;
+  if(wasRunning){
+    if(rafId){cancelAnimationFrame(rafId);rafId=null;}
+    if(finishTimer){clearTimeout(finishTimer);finishTimer=null;}
+    state.running=false;
+  }
   state.target=(m*60+sc)*1000;
   state.elapsed=0;state.frozen=0;
-  render();save();
+  if(wasRunning){
+    // 原子重设：清掉旧到期定时器，从零按新目标重新调度，避免旧目标提前触发完成。
+    state.running=true;state.baseTs=Date.now();
+    if(state.mode==='down'&&state.target>0){finishTimer=setTimeout(finishNow,state.target);}
+    tick();
+  }
+  syncUI();render();save();
   ToolBox.showToast('已设置 '+m+'分'+sc+'秒');
 }
 function quickSet(min){

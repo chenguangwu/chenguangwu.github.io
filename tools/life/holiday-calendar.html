@@ -49,6 +49,9 @@
   font-size:14px;color:var(--text);min-height:48px;
 }
 .cal-cell:hover{background:var(--bg-hover);transform:scale(1.05);}
+.cal-cell:focus-visible{outline:2px solid var(--primary);outline-offset:1px;}
+.cal-detail{display:none;margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--bg-hover);font-size:13px;line-height:1.6;}
+.cal-detail.show{display:block;}
 .cal-cell.other-month{color:var(--text-muted);opacity:.4;}
 .cal-cell.today{
   border-color:var(--primary);
@@ -317,6 +320,7 @@
         <div class="cal-grid" id="calHeader"></div>
         <!-- 日历格子 -->
         <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-detail" id="calDetail" role="status" aria-live="polite"></div>
         <!-- 图例 -->
         <div class="cal-legend">
           <span><span class="dot today-dot"></span>今天</span>
@@ -878,6 +882,24 @@ function renderCalendar() {
   }
 
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('calGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('calGrid').innerHTML=__h1;
+
+  var detail=document.getElementById('calDetail');
+  if(detail){detail.className='cal-detail';detail.textContent='';}
+  document.querySelectorAll('#calGrid .cal-cell[data-tip]').forEach(function(cell){
+    cell.setAttribute('tabindex','0');
+    cell.setAttribute('role','button');
+    var label=(cell.innerText||'').replace(/\s+/g,' ').trim()+'：'+cell.getAttribute('data-tip');
+    cell.setAttribute('aria-label',label);
+    function show(){
+      if(!detail)return;
+      detail.textContent=label;
+      detail.classList.add('show');
+    }
+    cell.addEventListener('click',show);
+    cell.addEventListener('keydown',function(e){
+      if(e.key==='Enter'||e.key===' '){e.preventDefault();show();}
+    });
+  });
 
   // 月度信息
   renderMonthInfo(y, m, lastDay.getDate(), monthHolidays, monthWeekends, monthSolarTerms);

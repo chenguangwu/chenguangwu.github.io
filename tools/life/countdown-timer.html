@@ -337,6 +337,7 @@
 let timerInterval = null;
 let totalSeconds = 0;
 let remainingSeconds = 0;
+let deadlineAt = 0;
 let isRunning = false;
 let isPaused = false;
 let inputChanged = false;
@@ -401,11 +402,14 @@ function startTimer() {
   document.getElementById('start-btn').disabled = true;
   document.getElementById('pause-btn').disabled = false;
   document.getElementById('timer-status').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Counting down...":"倒计时中...");
-  timerInterval = setInterval(tick, 1000);
+  deadlineAt = Date.now() + remainingSeconds * 1000;
+  updateTimerDisplay();
+  timerInterval = setInterval(tick, 500);
 }
 
 function tick() {
-  remainingSeconds--;
+  if (!isRunning) return;
+  remainingSeconds = Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
   updateTimerDisplay();
   if (remainingSeconds <= 0) {
     clearInterval(timerInterval);
@@ -421,6 +425,7 @@ function tick() {
 }
 
 function pauseTimer() {
+  if (isRunning && deadlineAt) remainingSeconds = Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
   clearInterval(timerInterval);
   isRunning = false;
   isPaused = true;
@@ -440,6 +445,7 @@ function resetTimer() {
   const s = parseInt(document.getElementById('set-seconds').value) || 0;
   totalSeconds = h * 3600 + m * 60 + s;
   remainingSeconds = totalSeconds;
+  deadlineAt = 0;
   updateTimerDisplay();
   document.getElementById('start-btn').disabled = false;
   document.getElementById('pause-btn').disabled = true;

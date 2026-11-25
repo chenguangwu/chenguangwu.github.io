@@ -3754,6 +3754,60 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["出生日期： 90年1月1日"],
     ref: "第910批：new Date(90,...) 会映射到 1990 年；改用 2000 年基准再 setFullYear，0090 应显示 90 年而非 1990。"
+  },
+  {
+    slug: "life/date-difference-calculator",
+    inputs: { startDate: "2026-01-31", endDate: "2026-01-31" },
+    checkIds: ["includeStart"],
+    clicks: ["document.getElementById('includeStart').checked=false;calcDiff();"],
+    expect: ["0 天", "0年0月"],
+    ref: "第911批：同日排除起始日后为空区间；旧实现起点推进到 2/1 再减年月，出现 -1年-1月/-1 完整月。现统一归零。"
+  },
+  {
+    slug: "life/date-difference-calculator",
+    inputs: { startDate: "2026-11-23", endDate: "2026-11-22" },
+    clicks: ["calcDiff()"],
+    expect: ["开始日期不能晚于结束日期"],
+    ref: "第911批：倒序输入旧实现先交换再排除较早端点，开始日口径错位；现要求用户修正顺序，不静默交换。"
+  },
+  {
+    slug: "life/analysis-80",
+    inputs: { data: "进货,5件,100件" },
+    clicks: ["calc()"],
+    expect: ["第 1 行格式无效"],
+    ref: "第911批：parseFloat('5件') 曾按 5 静默计入；现完整字段校验，带单位/尾随字符直接报行号。"
+  },
+  {
+    slug: "life/analysis-23",
+    inputs: { data: "A栋,100,123.1", std: "1.234" },
+    clicks: ["calc()"],
+    expect: ["判定标准（日照间距系数）： 1.234", "1.231"],
+    ref: "第911批：标准 1.234 曾显示 1.23、系数 1.2310 却判不达标；现标准与单行系数按足够精度展示，临界可复核。"
+  },
+  {
+    slug: "life/analysis-cost-9",
+    inputs: { qty: "10", price: "2", data: "原料,100abc,变动" },
+    clicks: ["calc()"],
+    expect: ["第 1 行格式无效"],
+    ref: "第911批：parseFloat('100abc') 曾按 100 计入且空行过滤后行号错位；现保留原始行号并严格校验完整金额。"
+  },
+  {
+    slug: "life/holiday-calendar",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/holiday-calendar.html','utf8');document.getElementById('__tbProbe').textContent='CALACCESS '+((src.indexOf('tabindex')>=0&&src.indexOf('keydown')>=0&&src.indexOf('calDetail')>=0)?'OK':'BAD');"],
+    expect: ["CALACCESS OK"],
+    ref: "第911批：日期详情原仅 :hover 可见；现日期格可 tabindex 聚焦、Enter/Space/点击打开 #calDetail 文本面板。"
+  },
+  {
+    slug: "life/countdown-timer",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown-timer.html','utf8');document.getElementById('__tbProbe').textContent='CDDEADLINE '+((src.indexOf('deadlineAt = Date.now()')>=0&&src.indexOf('Math.ceil((deadlineAt - Date.now()) / 1000)')>=0)?'OK':'BAD');"],
+    expect: ["CDDEADLINE OK"],
+    ref: "第911批：后台节流时逐次减一会走慢；现开始/恢复记录 deadlineAt，tick 按真实剩余秒数重算。"
+  },
+  {
+    slug: "life/countdown-1",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown-1.html','utf8');document.getElementById('__tbProbe').textContent='RETARGET '+((src.indexOf('clearTimeout(finishTimer)')>=0&&src.indexOf('var wasRunning=state.running')>=0&&src.indexOf('setTimeout(finishNow,state.target)')>=0)?'OK':'BAD');"],
+    expect: ["RETARGET OK"],
+    ref: "第911批：运行中改目标旧实现不清旧到期定时器；现原子取消 raf/旧 timer、从零重设并按新目标重新调度。"
   }
 ];
 

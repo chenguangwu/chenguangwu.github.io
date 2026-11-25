@@ -453,16 +453,17 @@ function rangeSnapshot(){
   const includeStart = document.getElementById('includeStart').checked;
   let start = parseLocalDate(startStr);
   let end = parseLocalDate(endStr);
-  if(start > end){ [start, end] = [end, start]; }
   if(!includeStart){ start.setDate(start.getDate() + 1); }
-  const days = getDaysDiff(start, end) + 1;
-  const workdays = countWorkdays(start, end);
+  // 排除起始日后若起点越过终点，表示空区间：所有统计统一归零，不能出现负年月。
+  const empty = start > end;
+  const days = empty ? 0 : getDaysDiff(start, end) + 1;
+  const workdays = empty ? 0 : countWorkdays(start, end);
   const weekends = days - workdays;
-  const shownDays = includeWeekends ? days : workdays;
+  const shownDays = empty ? 0 : (includeWeekends ? days : workdays);
   // 完整日历月：从起始日按月末夹取逐月推进，只有推进后的日期不超过结束日才算满一个月。
   // 这样 1/31 → 2/1 为 0 个完整月（仅跨月份边界），不再把月份编号差当成已满月数。
-  let totalMonths = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-  while(totalMonths > 0 && addMonthsClamped(start, totalMonths).getTime() > end.getTime()) totalMonths--;
+  let totalMonths = empty ? 0 : (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  while(!empty && totalMonths > 0 && addMonthsClamped(start, totalMonths).getTime() > end.getTime()) totalMonths--;
   return {startStr, endStr, includeWeekends, includeStart, days, workdays, weekends, shownDays, totalMonths};
 }
 
@@ -477,6 +478,14 @@ function calcDiff(){
     return;
   }
   
+  const rawStart = parseLocalDate(startStr);
+  const rawEnd = parseLocalDate(endStr);
+  if(rawStart > rawEnd){
+    document.getElementById('diffMain').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Start date cannot be later than end date":"开始日期不能晚于结束日期");
+    document.getElementById('diffSub').textContent = '';
+    document.getElementById('diffStats').innerHTML = '<p style="color:var(--danger)">请调整日期顺序后再计算；本工具不自动交换起止日期，以免“开始日”口径错位。</p>';
+    return;
+  }
   const snap = rangeSnapshot();
   const {includeWeekends, includeStart, days, workdays, weekends, shownDays, totalMonths} = snap;
   
