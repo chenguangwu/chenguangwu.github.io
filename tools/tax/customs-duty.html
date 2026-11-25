@@ -242,12 +242,16 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 /* TOOLBOX-REQ-GUARD */function __tbReq(ids,names){for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);var v=el?el.value:'';if(v===''||v==null||!isFinite(parseFloat(v))){ToolBox.setResult('result','<p class="tip-error">请填写「'+names[i]+'」后再计算。</p>');return false;}}return true;}
 function calcTool(){
    if(!__tbReq(['value','r'],['完税价格','关税率']))return;
-            const v = num('value'), r = num('r') / 100;
+            const v = num('value'), rPct = num('r');
+            if(!isFinite(v)||!isFinite(rPct)||v<0||rPct<0||rPct>100){ToolBox.setResult('result','<p class="tip-error">⚠ 完税价格须为 ≥0 的数值，关税率须在 0–100% 之间。</p>');return;}
+            const r = rPct / 100;
+            const total = v * (1 + r);
+            const ratio = total > 0 ? (v * r / total * 100).toFixed(3) : '不适用（计税金额为 0）';
             const __g1=dataGrid([
                 [(v * r).toFixed(2), '进口关税'],
-                [(v * (1 + r)).toFixed(2), '含税成本'],
-                [(r*100).toFixed(2), '关税税率 (%)'],
-                [(v*r/((v*(1+r))||1)*100).toFixed(3), '税额占含税成本比 (%)']
+                [total.toFixed(2), '含税成本'],
+                [(rPct).toFixed(2), '关税税率 (%)'],
+                [ratio, '税额占含税成本比 (%)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('value').value = '50000';

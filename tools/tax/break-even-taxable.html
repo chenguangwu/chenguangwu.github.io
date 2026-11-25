@@ -244,12 +244,22 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 /* TOOLBOX-REQ-GUARD */function __tbReq(ids,names){for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);var v=el?el.value:'';if(v===''||v==null||!isFinite(parseFloat(v))){ToolBox.setResult('result','<p class="tip-error">请填写「'+names[i]+'」后再计算。</p>');return false;}}return true;}
 function calcTool(){
    if(!__tbReq(['target','deduct','r'],['目标税后所得','免税/扣除额','税率']))return;
-            const t = num('target'), d = num('deduct'), r = num('r') / 100;
-            const taxable = (t + d) / (1 - r);
+            const t = num('target'), d = num('deduct'), rPct = num('r');
+            if(!isFinite(t)||!isFinite(d)||!isFinite(rPct)||t<0||d<0||rPct<0||rPct>=100){ToolBox.setResult('result','<p class="tip-error">⚠ 目标税后所得、扣除额须为 ≥0 的数值，税率须在 0–100%（不含 100%）之间。</p>');return;}
+            const r = rPct / 100;
+            // 目标税后所得 = 税前收入 − （税前收入 − 扣除额）× 税率
+            const gross = (t - d * r) / (1 - r);
+            if(gross < 0){ToolBox.setResult('result','<p class="tip-error">⚠ 扣除额带来的减税已高于目标税后所得，当前单一比例税率模型无解，请核对扣除口径。</p>');return;}
+            const taxable = gross - d;
+            const tax = taxable * r;
+            const afterTax = gross - tax;
             const __g1=dataGrid([
-                [taxable.toFixed(2), '所需应税所得'],
-                [(taxable * r).toFixed(2), '应纳税额']
-            ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+                [gross.toFixed(2), '所需税前总收入'],
+                [Math.max(0,taxable).toFixed(2), '应税所得（总收入−扣除额）'],
+                [tax.toFixed(2), '应纳税额'],
+                [afterTax.toFixed(2), '反算税后所得']
+            ])+'<p style="color:var(--text-muted);font-size:12px;">假设：扣除额为税前扣除、单一比例税率、无其他减免与附加税；分段税制需按对应税率表另行计算，本结果不构成税务结论。</p>';
+            ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('target').value = '750000';
       document.getElementById('deduct').value = '0';

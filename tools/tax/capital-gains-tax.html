@@ -223,14 +223,21 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 /* TOOLBOX-REQ-GUARD */function __tbReq(ids,names){for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);var v=el?el.value:'';if(v===''||v==null||!isFinite(parseFloat(v))){ToolBox.setResult('result','<p class="tip-error">请填写「'+names[i]+'」后再计算。</p>');return false;}}return true;}
 function calcTool(){
    if(!__tbReq(['sell','cost','r'],['售价','成本','税率']))return;
-            const sell = num('sell'), cost = num('cost'), r = num('r') / 100;
+            const sell = num('sell'), cost = num('cost'), rPct = num('r');
+            if(!isFinite(sell)||!isFinite(cost)||!isFinite(rPct)||sell<0||cost<0||rPct<0||rPct>100){
+              ToolBox.setResult('result','<p class="tip-error">⚠ 售价、成本须为 ≥0 的数值，税率须在 0–100% 之间。</p>');return;
+            }
+            const r = rPct / 100;
             const gain = sell - cost;
             const tax = Math.max(0, gain) * r;
-            const __g1=dataGrid([
-                [gain.toFixed(2), '资本利得'],
+            let __g1=dataGrid([
+                [gain.toFixed(2), '资本利得（负值为亏损）'],
                 [tax.toFixed(2), '资本利得税'],
                 [(sell - tax).toFixed(2), '税后到手']
-            ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+            ]);
+            if(gain<0) __g1 += '<p style="color:var(--text-muted);font-size:13px;">本次为亏损，税额按 0 计；亏损结转/抵扣须按所在地区税制确认。</p>';
+            __g1 += '<p style="color:var(--text-muted);font-size:12px;">仅为单一税率、不含手续费与减免的简化估算，不构成税务结论。</p>';
+            ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('sell').value = '150000';
       document.getElementById('cost').value = '100000';
