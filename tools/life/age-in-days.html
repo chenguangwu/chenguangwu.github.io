@@ -157,11 +157,11 @@
   <div class="card">
     <h3>📐 公式说明</h3>
     <div class="result-box">
-      <p>计算两个日期之间的精确时长</p>
+      <p>按出生日期零点估算两个日期之间的时长</p>
       <p>1 天 = 86400 秒 = 24 小时 = 1440 分钟</p>
       <p>1 年 ≈ 365.25 天（含闰年修正）</p>
       <p>1 个月 ≈ 30.4375 天（平均）</p>
-      <p>注：仅作计算参考，不含精确历法转换</p>
+      <p>注：页面只收集出生日期，小时/分钟/秒按出生日期当地零点估算；实际出生时刻和出生地时区会造成差异。</p>
     </div></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -321,9 +321,9 @@ function calc(nowArg){
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
     <p>已活：<strong style="color:var(--primary);font-size:18px;">${days.toLocaleString()}</strong> 天</p>
     <p>已活：${years} 年（约 ${months} 月，${weeks} 周）</p>
-    <p>精确年龄：<strong>${y} 岁 ${m} 月 ${d} 天</strong></p>
+    <p>按生日零点估算年龄：<strong>${y} 岁 ${m} 月 ${d} 天</strong></p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
-    <p>已度过：${hours.toLocaleString()} 小时</p>
+    <p>按出生日期零点估算已度过：${hours.toLocaleString()} 小时</p>
     <p>已度过：${minutes.toLocaleString()} 分钟</p>
     <p>已度过：${seconds.toLocaleString()} 秒</p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
@@ -581,7 +581,12 @@ else document.addEventListener('DOMContentLoaded', __age_in_daysBoot);
   function dayOfYear(y,m,d){ var start=new Date(y,0,0); var dt=new Date(y,m-1,d); return Math.round((dt-start)/86400000); }
   function isLeap(y){ return (y%4===0&&y%100!==0)||(y%400===0); }
   function season(m){ if(m>=3&&m<=5) return ['春季','Spring']; if(m>=6&&m<=8) return ['夏季','Summer']; if(m>=9&&m<=11) return ['秋季','Autumn']; return ['冬季','Winter']; }
-  function nextBirthday(y,m,d){ var t=new Date(); var thisY=new Date(t.getFullYear(),m-1,d); var next=(thisY.getTime()<=Date.now())?new Date(t.getFullYear()+1,m-1,d):thisY; return Math.ceil((next.getTime()-Date.now())/86400000); }
+  function nextBirthday(y,m,d){
+    var today=new Date(); today.setHours(0,0,0,0);
+    var thisY=new Date(today.getFullYear(),m-1,Math.min(d,daysInMonth(today.getFullYear(),m-1)));
+    var next=(thisY<today)?new Date(today.getFullYear()+1,m-1,Math.min(d,daysInMonth(today.getFullYear()+1,m-1))):thisY;
+    return Math.round((next-today)/86400000);
+  }
   function factsFor(dateStr, label){
     if(!dateStr) return null;
     var p=String(dateStr).split('-'); if(p.length<3) return null;

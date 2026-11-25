@@ -839,7 +839,7 @@ const CASES = [
   {
     slug: "life/area-converter",
     inputs: { inputVal: "1000000000" },
-    expect: ["1000000000\nm2\n基准： 1.000000e+9 m² = 1.000000e+9 m² 平方毫米： 1.000000e+15 mm² 平方厘米： 1.000000e+13 cm² 平方千米： 1000 km² 亩： 1500000 亩 公顷： 100000 ha 英亩： 247105.3815 acre 平方英尺： 1.076391e+10 ft²\n📐 尺度感知：这到底有多大 你的输入 ≈ 1.000×10^9 平方米 💡 ≈ 1 平方公里 (1×10^6 平方米) 常见实物参照 1 平方米（桌面大小）：1 平方米 标准车位：9 平方米 小两居：100 平方米 1 亩：667 平方米 1 英亩：4047 平方米 标准足球场：7140 平方米 1 公顷：10000 平方米 北京故宫：7.2×10^5 平方米 1 平方公里：1×10^6 平方米 1 亩 ≈ 666.7 平方米，1 公顷 = 10000 平方米 = 15 亩；1 英亩 ≈ 4047 平方米。"],
+    expect: ["1000000000\nm2\n基准： 1.000000e+9 m² = 1.000000e+9 m² 平方毫米： 1.000000e+15 mm² 平方厘米： 1.000000e+13 cm² 平方千米： 1000 km² 亩： 1500000 亩 公顷： 100000 ha 英亩： 247105.3815 acre 平方英尺： 1.076391e+10 ft²\n📐 尺度感知：这到底有多大 你的输入 ≈ 1.000×10^9 平方米 💡 最近参照：1 平方公里；约为其 1000 倍 常见实物参照 1 平方米（桌面大小）：1 平方米 标准车位：9 平方米 小两居：100 平方米 1 亩：667 平方米 1 英亩：4047 平方米 标准足球场：7140 平方米 1 公顷：10000 平方米 北京故宫：7.2×10^5 平方米 1 平方公里：1×10^6 平方米 1 亩 ≈ 666.7 平方米，1 公顷 = 10000 平方米 = 15 亩；1 英亩 ≈ 4047 平方米。"],
     ref: 'base=1000m², km2=1000/1e6'
   },
   {
@@ -1889,7 +1889,7 @@ const CASES = [
       "fromUnit": "cm2"
     },
     "expect": [
-      "42\ncm2\n基准： 42 cm² = 0.0042 m² 平方毫米： 4200 mm² 平方米： 0.0042 m² 平方千米： 4.2e-9 km² 亩： 0.0000063 亩 公顷： 4.2e-7 ha 英亩： 0.000001037842602 acre 平方英尺： 0.04520842375 ft²\n📐 尺度感知：这到底有多大 你的输入 ≈ 0.0042 平方米 💡 ≈ 1 平方米（桌面大小） (1 平方米) 常见实物参照 1 平方米（桌面大小）：1 平方米 标准车位：9 平方米 小两居：100 平方米 1 亩：667 平方米 1 英亩：4047 平方米 标准足球场：7140 平方米 1 公顷：10000 平方米 北京故宫：7.2×10^5 平方米 1 平方公里：1×10^6 平方米 1 亩 ≈ 666.7 平方米，1 公顷 = 10000 平方米 = 15 亩；1 英亩 ≈ 4047 平方米。"
+      "42\ncm2\n基准： 42 cm² = 0.0042 m² 平方毫米： 4200 mm² 平方米： 0.0042 m² 平方千米： 4.2e-9 km² 亩： 0.0000063 亩 公顷： 4.2e-7 ha 英亩： 0.000001037842602 acre 平方英尺： 0.04520842375 ft²\n📐 尺度感知：这到底有多大 你的输入 ≈ 0.0042 平方米 💡 最近参照：1 平方米（桌面大小）；约为其 1/238.095238 常见实物参照 1 平方米（桌面大小）：1 平方米 标准车位：9 平方米 小两居：100 平方米 1 亩：667 平方米 1 英亩：4047 平方米 标准足球场：7140 平方米 1 公顷：10000 平方米 北京故宫：7.2×10^5 平方米 1 平方公里：1×10^6 平方米 1 亩 ≈ 666.7 平方米，1 公顷 = 10000 平方米 = 15 亩；1 英亩 ≈ 4047 平方米。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"cm2\"}，输出区含「m² 平方千米： 4.200000e-9 km² 亩： 0.0000063 亩 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3648,8 +3648,68 @@ const CASES = [
     clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown-2.html','utf8');document.getElementById('__tbProbe').textContent='CD2TODAY '+((src.indexOf('var isToday=!past && dayDiff(now,c.target)===0')>=0&&src.indexOf('就是今天')>=0)?'OK':'BAD');"],
     expect: ["CD2TODAY OK"],
     ref: "第907批：目标日期等于今天时卡片显示即将/0 天后；现按 dayDiff=0 显示今天/就是今天，当天不再渲染即将徽章。"
+  },
+  {
+    slug: "life/length-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/length-converter.html','utf8');document.getElementById('__tbProbe').textContent='LENZ '+((src.indexOf('Zero length is not compared')>=0&&src.indexOf('else if(v===0)')>=0&&src.indexOf('ratio>=0.1&&ratio<=10')>=0)?'OK':'BAD');"],
+    expect: ["LENZ OK"],
+    ref: "第908批：0 长度不再匹配银行卡厚度，零值单独说明；远离参照时改显示最近参照倍数，仅 0.1–10 倍内使用约等号。"
+  },
+  {
+    slug: "life/weight-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/weight-converter.html','utf8');document.getElementById('__tbProbe').textContent='WZ '+((src.indexOf(\"Zero is not matched to a reference.\")>=0&&src.indexOf(\"Negative weight is shown\")>=0)?'OK':'BAD');"],
+    expect: ["WZ OK"],
+    ref: "第908批：零值提示原只有中文，英文页显示中文；现按 en 分支输出 Zero is not matched to a reference，负数同样有英文说明。"
+  },
+  {
+    slug: "life/timestamp",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/timestamp.html','utf8');document.getElementById('__tbProbe').textContent='TSNOW '+((src.indexOf(\"formatSelect'\")>=0&&src.indexOf(\"toFixed(3)\")>=0&&src.indexOf(\"unit === 's'\")>=0)?'OK':'BAD');"],
+    expect: ["TSNOW OK"],
+    ref: "第908批：单位选秒时“填入当前时间戳”仍填 13 位毫秒，再转换会按秒放大 1000 倍；现秒单位填带 3 位小数的秒值，毫秒/自动仍填毫秒。"
+  },
+  {
+    slug: "life/age-in-days",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/age-in-days.html','utf8');document.getElementById('__tbProbe').textContent='AGEB '+((src.indexOf('function nextBirthday')>=0&&src.indexOf('Math.min(d,daysInMonth(today.getFullYear()')>=0&&src.indexOf('thisY<today')>=0)?'OK':'BAD');"],
+    expect: ["AGEB OK"],
+    ref: "第908批：生日参照卡片原按当前时刻判断、平年 2/29 滚到 3/1；现与主结果统一按本地日历日、生日当天为 0 天，平年夹到 2/28。"
+  },
+  {
+    slug: "life/age-in-days",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/age-in-days.html','utf8');document.getElementById('__tbProbe').textContent='AGEH '+((src.indexOf('按出生日期当地零点估算')>=0&&src.indexOf('实际出生时刻和出生地时区会造成差异')>=0)?'OK':'BAD');"],
+    expect: ["AGEH OK"],
+    ref: "第908批：页面只收集出生日期，却称小时/分钟为精确；现 SEO、公式、结果标签统一说明按出生日期当地零点估算，并提示实际出生时刻/时区差异。"
+  },
+  {
+    slug: "life/workday-calculator",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/workday-calculator.html','utf8');document.getElementById('__tbProbe').textContent='WDH '+((src.indexOf('2/15-2/23 春节')>=0&&src.indexOf('10/1-10/7 国庆')>=0&&src.indexOf('2/15-2/22')<0&&src.indexOf('本页不自动加载')>=0)?'OK':'BAD');"],
+    expect: ["WDH OK"],
+    ref: "第908批：2026 参考把春节写成 2/15-2/22、中秋+国庆写成 9/25-9/27 且漏国庆；现按国务院通知改为春节 2/15-2/23、中秋 9/25-9/27、国庆 10/1-10/7，并说明本页不自动加载、调休以当年通知为准。"
+  },
+  {
+    slug: "life/base-convert",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/base-convert.html','utf8');document.getElementById('__tbProbe').textContent='BCEXP '+((src.indexOf('var num=BigInt(dec)')>=0&&src.indexOf('当前输入无效，导出已取消')>=0&&src.indexOf('cb=Math.max(2,Math.min(36,cb))')>=0)?'OK':'BAD');"],
+    expect: ["BCEXP OK"],
+    ref: "第908批：导出原重新 parseInt 自行解析，0b1012 等非法输入可绕过页面校验；现导出只复用页面有效十进制结果，无效/空输入提示取消，自定义进制夹到 2–36。"
+  },
+  {
+    slug: "life/area-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/area-converter.html','utf8');document.getElementById('__tbProbe').textContent='AREAR '+((src.indexOf('ratio>=0.1&&ratio<=10')>=0&&src.indexOf('约为其 1/')>=0&&src.indexOf(\"Negative area is shown\")>=0)?'OK':'BAD');"],
+    expect: ["AREAR OK"],
+    ref: "第908批：1 mm² 与 1 m² 相差百万倍仍写约等；现仅 0.1–10 倍内用 ≈，超出显示最近参照倍数，零/负值不套正面积参照。"
+  },
+  {
+    slug: "life/time-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/time-converter.html','utf8');document.getElementById('__tbProbe').textContent='TZERO '+((src.indexOf('Zero duration is not compared')>=0&&src.indexOf('Negative duration is shown')>=0&&src.indexOf('ratio>=0.1&&ratio<=10')>=0)?'OK':'BAD');"],
+    expect: ["TZERO OK"],
+    ref: "第908批：0 秒原显示约 1 毫秒、-1 小时原显示约 1 小时；现零值/负值不匹配正时长参照，超 10 倍改最近参照倍数。"
+  },
+  {
+    slug: "life/analysis-cost-10",
+    inputs: { data: "材料;1,000.50;1,200.30" },
+    clicks: ["calc()"],
+    expect: ["预算合计： 1000.50", "实际合计： 1200.30"],
+    ref: "第908批：金额正则只支持整数千分位或普通小数，1,000.50 被静默跳过；现千分位与小数为同一分支，材料行正确汇总 1000.50/1200.30。"
   }
-
 ];
 
 // ---------------------------------------------------------------- main
