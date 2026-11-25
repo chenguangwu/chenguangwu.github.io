@@ -80,7 +80,7 @@ const CASES = [
 {
   "slug": "home/renovation-budget",
   "clicks": [
-    "getItems=function(){return [{id:1,name:'瓷砖',price:8000,qty:12},{id:2,name:'地板',price:6000,qty:10}];};renderItems();calc()"
+    "localStorage.setItem('home_budget_items',JSON.stringify([{id:1,name:'瓷砖',price:8000,qty:12},{id:2,name:'地板',price:6000,qty:10}]));renderItems();calc()"
   ],
   "expect": [
     "156,000",
@@ -128,9 +128,9 @@ const CASES = [
 },
 {
   "slug": "home/renovation-budget",
-  "clicks": ["(function(){var hh=globalThis.__tbFs;var h1=hh.readFileSync(process.cwd()+'/tools/home/renovation-budget.html','utf8');var i1=h1.indexOf('function updateItem(');var sg=i1>=0?h1.slice(i1,i1+1200):'';var okg=sg.indexOf('isFinite(num)')>=0&&sg.indexOf('num < 0')>=0&&sg.indexOf('totalEl.innerHTML')>=0&&h1.indexOf('data-id=')>=0;var h2=hh.readFileSync(process.cwd()+'/tools/hotel/tip-calculator.html','utf8');var i2=h2.indexOf('function copyResult()');var sg2=i2>=0?h2.slice(i2,i2+1200):'';var okt=sg2.indexOf('taxAmount')>=0&&sg2.indexOf('bill + taxAmount + tip')>=0&&sg2.indexOf('bill + tip')<0&&sg2.indexOf('tax < 0')>=0;document.getElementById('__tbProbe').textContent='RENITEM '+(okg?'OK':'BAD')+' TIPTAX '+(okt?'OK':'BAD');})();"],
+  "clicks": ["(function(){var hh=globalThis.__tbFs;var h1=hh.readFileSync(process.cwd()+'/tools/home/renovation-budget.html','utf8');var i1=h1.indexOf('function updateItem(');var sg=i1>=0?h1.slice(i1,i1+1200):'';var okg=sg.indexOf('isFinite(num)')>=0&&sg.indexOf('num < 0')>=0&&sg.indexOf('totalEl.innerHTML')>=0&&h1.indexOf('data-id=')>=0;var h2=hh.readFileSync(process.cwd()+'/tools/hotel/tip-calculator.html','utf8');var i2=h2.indexOf('function tipRead()');var sg2=i2>=0?h2.slice(i2,i2+3000):'';var okt=sg2.indexOf('taxAmount')>=0&&sg2.indexOf('mode==='+String.fromCharCode(39)+'inclusive'+String.fromCharCode(39)+' ? bill + tip : bill + taxAmount + tip')>=0&&sg2.indexOf('taxAmount = bill*tax/100')>=0&&sg2.indexOf('tax>0')>=0;document.getElementById('__tbProbe').textContent='RENITEM '+(okg?'OK':'BAD')+' TIPTAX '+(okt?'OK':'BAD');})();"],
   "expect": ["RENITEM OK TIPTAX OK"],
-  "ref": "第1306批双源码形态强锚(承载页 home/renovation-budget)：①装修明细 updateItem 校验数值并定点刷该行 .total、行带 data-id；旧版空串入总计且只 calc 不刷行 ⇒ BAD。②tip-calculator copyResult 须含税(bill+taxAmount+tip)、同源并拦负税率；旧版 bill+tip 漏税 ⇒ BAD。真机交互由复核方覆盖。"
+  "ref": "第1306批双源码形态强锚(承载页 home/renovation-budget)：①装修明细 updateItem 校验数值并定点刷该行 .total、行带 data-id；旧版空串入总计且只 calc 不刷行 ⇒ BAD。②tip-calculator tipRead 须区分含税/未含税总额（含税 bill+tip、未含税 bill+taxAmount+tip）并拦截负税率；旧版漏税 ⇒ BAD。真机交互由复核方覆盖。"
 },
 {
   "slug": "home/water-filter-lifespan",

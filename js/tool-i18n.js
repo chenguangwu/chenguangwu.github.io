@@ -603,7 +603,7 @@
     // 单元格仍是英文（老板实测）。扩展到所有纯文本 data-zh 元素，守卫口径不变：
     // data-zh 含汉字、当前文本无汉字、无子元素、非 data-i18n 管理。
     // 英文专名（data-zh 本身无汉字，如 Christiansen 1942 / FAO-56）按原口径跳过。
-    var list = document.querySelectorAll('p[data-zh], h2[data-zh], h3[data-zh], th[data-zh], td[data-zh], span[data-zh], label[data-zh], summary[data-zh], strong[data-zh], button[data-zh], div[data-zh], li[data-zh], option[data-zh]');
+    var list = document.querySelectorAll('p[data-zh], h2[data-zh], h3[data-zh], th[data-zh], td[data-zh], span[data-zh], label[data-zh], summary[data-zh], strong[data-zh], b[data-zh], button[data-zh], div[data-zh], li[data-zh], option[data-zh]');
     for (var i = 0; i < list.length; i++) {
       var el = list[i];
       if (el.hasAttribute('data-i18n')) continue;

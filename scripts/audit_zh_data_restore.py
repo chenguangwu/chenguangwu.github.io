@@ -19,7 +19,7 @@ CJK = re.compile(r"[\u4e00-\u9fff]")
 # 只匹配带 data-zh 的真实开标签；公式里的 "<0.01"/"<i<4" 不进入候选。
 TAG_OPEN = re.compile(r'<([a-zA-Z][a-zA-Z0-9-]*)[^>\n]*\bdata-zh="([^"]*)"[^>\n]*>', re.S)
 REAL_TAG = re.compile(r"<([a-zA-Z][a-zA-Z0-9-]*)(?=[\s/>])")
-ALLOWED = {"p", "h2", "h3", "th", "td", "span", "label", "summary", "strong", "button", "div", "li", "option"}
+ALLOWED = {"p", "h2", "h3", "th", "td", "span", "label", "summary", "strong", "b", "button", "div", "li", "option"}
 HTML_RESTORE = {"td", "p"}
 INTERACTIVE = {"input", "select", "textarea", "button"}
 

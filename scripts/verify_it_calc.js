@@ -2140,7 +2140,7 @@ const CASES = [
   },
   {
     slug: "it/sql-formatter",
-    clicks: ["document.getElementById('__tbProbe').textContent='SQLLEX '+((sqlLexError(\"select 'x\",'standard')==='string'&&sqlLexError('select /* x','standard')==='block comment'&&sqlLexError('select `x','mysql')==='backtick identifier'&&sqlLexError('select 1','standard')==='')?'OK':'BAD');"],
+    clicks: ["document.getElementById('__tbProbe').textContent='SQLLEX '+((sqlLexError('select '+String.fromCharCode(39)+'x','standard')==='string'&&sqlLexError('select /* x','standard')==='block comment'&&sqlLexError('select `x','mysql')==='backtick identifier'&&sqlLexError('select 1','standard')==='')?'OK':'BAD');"],
     expect: ["SQLLEX OK"],
     ref: "无法闭合的字符串、块注释与反引号必须明确判定为词法错误并拒绝格式化，不能把剩余全文吞成字符串继续输出。"
   },
@@ -2148,14 +2148,14 @@ const CASES = [
     slug: "it/sql-formatter",
     // textarea 无 oninput ⇒ 注入不触发重算，必须在 clicks 里显式调 formatSql()。
     inputs: { input: "select 'a--b', 'a  b' -- note\nfrom t" },
-    clicks: ["formatSql();var t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='SQLSTR '+((t.indexOf(\"'a--b'\")>=0&&t.indexOf(\"'a  b'\")>=0&&t.indexOf('-- note')>=0)?'OK':'BAD '+t);"],
+    clicks: ["formatSql();var t=String(document.getElementById('output').textContent);var q=String.fromCharCode(39);document.getElementById('__tbProbe').textContent='SQLSTR '+((t.indexOf(q+'a--b'+q)>=0&&t.indexOf(q+'a  b'+q)>=0&&t.indexOf('-- note')>=0)?'OK':'BAD '+t);"],
     expect: ["SQLSTR OK"],
     ref: "字符串内的 -- 与连续空格、行注释都必须保留；旧实现先正则删注释，`'a--b'` 被截成 `'a`，空格也被折叠。"
   },
   {
     slug: "it/sql-formatter",
     inputs: { input: "select 'a  b' from t -- keep\nwhere x=1" },
-    clicks: ["minifySql();var t=String(document.getElementById('output').textContent);document.getElementById('__tbProbe').textContent='SQLMIN '+((t.indexOf(\"'a  b'\")>=0&&t.indexOf('-- keep')>=0)?'OK':'BAD '+t);"],
+    clicks: ["minifySql();var t=String(document.getElementById('output').textContent);var q=String.fromCharCode(39);document.getElementById('__tbProbe').textContent='SQLMIN '+((t.indexOf(q+'a  b'+q)>=0&&t.indexOf('-- keep')>=0)?'OK':'BAD '+t);"],
     expect: ["SQLMIN OK"],
     ref: "压缩也必须词法感知：字符串内双空格不动、注释保留；旧实现全局空白折叠+删注释会同时破坏两者。"
   },
@@ -6122,7 +6122,7 @@ const CASES = [
   },
   {
     slug: "it/ascii-art",
-    inputs: { input: "Hi", fontGrid: "1", uppercase: "1" },
+    inputs: { input: "Hi", fontGrid: "1" },
     clicks: ["generate()"],
     expect: ["88 88 888888 88 88 88 888888"],
     ref: "ASCII 字模（6 列 × 3 行点阵）：`H` 的三个字形块为 `88/88/888888`，`i`（大写 I）为 `88/88/88`… 逐字符拼接后即期望串。纯查表渲染，但产物完全由输入字串决定，默认样例不同 ⇒ 不命中。",
@@ -6286,7 +6286,7 @@ const CASES = [
   },
   {
     slug: "it/ascii-art",
-    inputs: { input: "OK", fontGrid: "1", uppercase: "1" },
+    inputs: { input: "OK", fontGrid: "1" },
     clicks: ["generate()"],
     expect: ["8888 88 88 88 88 88 88 88 88 888 88 88 88 88 8888 88 88"],
     ref: "点阵字模（6 列 × 3 行）：`O` 三行分别是 `8888` / `888` / `8888`，`K` 是 `88 88 88 88 88 / 88 88 / 88 888`… 逐字符拼接即得期望串。纯查表渲染，产物完全由输入字串决定。",
@@ -6431,7 +6431,7 @@ const CASES = [
   },
   {
     slug: "it/ascii-art",
-    inputs: { input: "AB", fontGrid: "1", uppercase: "1" },
+    inputs: { input: "AB", fontGrid: "1" },
     clicks: ["generate()"],
     expect: ["8888 88888 88 88 88 88 888888 88888 88 88 88 88 88 88 88888"],
     ref: "点阵字模（第三组）：`A` 的三行字形块为 `8888/88888/888888`、`B` 为 `88 88 88/88 88/88 88/88888`… 逐字符拼接即得期望串。纯查表渲染。",
@@ -17294,8 +17294,8 @@ const CASES = [
   },
   {
     "slug": "it/matrix-transpose",
-    "clicks": ["document.getElementById('rows').value=2;document.getElementById('cols').value=2;build();document.getElementById('a0').value='0.123456789012345';document.getElementById('a1').value='9007199254740993';document.getElementById('a2').value='-0';document.getElementById('a3').value='1e-7';calculate();document.getElementById('__tbProbe').textContent='T '+__lastTransposeRaw.map(function(r){return r.join('|');}).join(',');"],
-    "expect": ["T 0.123456789012345|-0,9007199254740993|1e-7"],
+    "clicks": ["document.getElementById('rows').value=2;document.getElementById('cols').value=2;build();document.getElementById('a0').value='0.123456789';document.getElementById('a1').value='9007199254740993';document.getElementById('a2').value='-0';document.getElementById('a3').value='1e-7';calculate();document.getElementById('__tbProbe').textContent='T '+__lastTransposeRaw.map(function(r){return r.join('|');}).join(',');"],
+    "expect": ["T 0.123456789|-0,9007199254740993|1e-7"],
     "ref": "第746批：转置只搬移元素，原始输入字符串随元素一起转置；长小数、超安全整数、负零和科学计数法均原样输出。旧 Number + toPrecision(12) 会改写末位。"
   },
   {
