@@ -10628,9 +10628,9 @@ const CASES = [
       "cidr": "abc123测试"
     },
     "expect": [
-      "abc123测试\n网段解析 ⚠️ 格式应为 IP/前缀，如"
+      "abc123测试\nIPv4 范围 ⚠️ 格式应为 IP/前缀，如"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cidr\":\"abc123测试\"}，输出区含「abc123测试\n网段解析 ⚠️ 格式应为 IP/前缀，如」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cidr\":\"abc123测试\"}，输出区含「abc123测试\nIPv4 范围 ⚠️ 格式应为 IP/前缀，如」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/ipv6-converter",
@@ -12282,9 +12282,10 @@ const CASES = [
       "search": "abc123测试"
     },
     "expect": [
-      "abc123测试\n共 0 条"
+      "没有匹配的 MIME 类型",
+      "共 0 条"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"search\":\"abc123测试\"}，输出区含「abc123测试\n共 0 条」；IT-N109 将 .m3u8 移出视频分类后 catFilter 按钮顺序变化，故去掉与分类顺序耦合的前缀，锚点仍绑定注入词与计数归零，默认态不命中 ⇒ 强判别、零逃生。"
+    "ref": "第812批：无匹配结果必须有明确空态，不能只剩数量。注入 abc123测试 后断言空态标题与计数归零；默认列表非空 ⇒ 不命中。旧实现列表为空、只剩「共 0 条」，空态标题不存在。"
   },
   {
     "slug": "it/mongodb-cheatsheet",
@@ -18679,6 +18680,24 @@ const CASES = [
     inputs: { sitemap: "https://a.io/sitemap.xml" },
     expect: ["共 2 组；预览首条规则：User-agent: Googlebot；Sitemap 已独立置于末尾"],
     ref: "第811批：不得在开头无条件多写一组 User-agent: *。默认两组规则（Googlebot、*）本应直接从 Googlebot 开始；旧实现会在最前面多塞一组 * ⇒ 预览首条规则变成 User-agent: *。页面摘要显示组数、首条规则与 Sitemap 位置，锚定摘要即可判别。",
+  },
+  {
+    slug: "it/ipv4-range-expander",
+    clicks: ["var a=rangeToCidrs(ip2int('10.0.0.1'),ip2int('10.0.0.5')).join(',');document.getElementById('__tbProbe').textContent='IPV4SPLIT '+a;"],
+    expect: ["IPV4SPLIT 10.0.0.1/32,10.0.0.2/31,10.0.0.4/31"],
+    ref: "第812批：任意连续区间必须精确拆成最少 CIDR 块。10.0.0.1–10.0.0.5 按 2 的幂对齐拆为 1/32、2–3/31、4–5/31 三块；旧实现只能解析单个 CIDR，无此函数 ⇒ 探针缺失。",
+  },
+  {
+    slug: "it/ipv4-range-expander",
+    clicks: ["var m=mergeRanges([[ip2int('192.168.1.0'),ip2int('192.168.1.3')],[ip2int('192.168.1.4'),ip2int('192.168.1.7')],[ip2int('192.168.1.8'),ip2int('192.168.1.9')]]);var o=[];m.forEach(function(r){o=o.concat(rangeToCidrs(r[0],r[1]));});document.getElementById('__tbProbe').textContent='IPV4AGG '+m.length+'|'+o.join(',');"],
+    expect: ["IPV4AGG 1|192.168.1.0/29,192.168.1.8/31"],
+    ref: "第812批：相邻/重叠 CIDR 先合并区间再重新拆分。.0/30、.4/30、.8/31 实际覆盖 .0–.9 连续区间，应合并为 1 个区间并输出 /29 + /31 两块；旧页面无聚合能力 ⇒ 探针缺失。",
+  },
+  {
+    slug: "it/mime-type",
+    clicks: ["globalThis.TBKit={util:{isEn:function(){return true;}}};document.getElementById('search').value='zzz';init();var c=document.getElementById('catFilter').innerHTML,n=document.getElementById('count').textContent,l=document.getElementById('list').innerHTML;document.getElementById('__tbProbe').textContent='MIMEEN '+((c.indexOf('全部')<0&&c.indexOf('All')>=0&&n.indexOf('0 results')>=0&&l.indexOf('No matching MIME types')>=0&&l.indexOf('没有匹配')<0)?'OK':'BAD:'+c.slice(0,40)+'|'+n);"],
+    expect: ["MIMEEN OK"],
+    ref: "第812批：英文态动态分类、计数、空态必须全英文。强制 isEn=true 后断言分类栏无「全部」、含 All，计数为 0 results，空态为 No matching MIME types；旧实现分类/计数/空态均为中文 ⇒ BAD。",
   },
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
