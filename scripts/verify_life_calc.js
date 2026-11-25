@@ -2241,9 +2241,9 @@ const CASES = [
       "cap": "42"
     },
     "expect": [
-      "停放 42.00h，免费 42.00h，费率 42 元/h，封顶 42 元。"
+      "停放 42.00h，免费额度 42.00h（本段实际抵扣见明细），费率 42 元/h，封顶 42 元。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"hours\":\"42\",\"rate\":\"42\",\"free\":\"42\",\"cap\":\"42\"}，输出区含「时长(h) 停放 42h，免费 42h，费率 42 元/h，封顶 42 元。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"hours\":\"42\",\"rate\":\"42\",\"free\":\"42\",\"cap\":\"42\"}，输出区含「停放 42.00h，免费额度 42.00h（本段实际抵扣见明细），费率 42 元/h，封顶 42 元。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "life/power-converter",
@@ -3360,6 +3360,93 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["另有 1 个普通工作日被填入「调休上班日」"],
     ref: "第881批：普通工作日填进调休列表本来不增加工作日，旧实现仍计为「调休上班日 1 天」；现只统计真正落在周末的补班，普通工作日单独提示核实。默认无补班日期。"
+  },
+
+
+  // ── 第882批：键盘语义、农历 UTC、负基数、逐字数字、停车抵扣、跨日期时差 ──
+  {
+    slug: "life/color-name-finder",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/color-name-finder.html','utf8');document.getElementById('__tbProbe').textContent='COLORKEY '+((src.indexOf('<button type=\"button\" class=\"matched-color\" aria-label')>=0&&src.indexOf('<button type=\"button\" class=\"color-swatch\" aria-label')>=0&&src.indexOf('.color-swatch:focus-visible')>=0&&src.indexOf('aria-pressed')===-1&&src.indexOf('已选用色值')>=0)?'OK':'BAD');"],
+    expect: ["COLORKEY OK"],
+    ref: "第882批：色块与匹配结果原为不可聚焦 div，键盘用户无法选用/复制；现均为真实 button、带 aria-label、focus-visible 焦点环，选用后 toast 回显色值。默认色板不含 COLORKEY。"
+  },
+  {
+    slug: "life/date-difference-calculator",
+    clicks: ["var d=lunarToSolar(2026,1,1,false);var g=getLunarDate(2026,2,17);document.getElementById('__tbProbe').textContent='LUNAR '+((d.getFullYear()===2026&&d.getMonth()===1&&d.getDate()===17&&g.month===1&&g.day===1)?'OK':'BAD');"],
+    expect: ["LUNAR OK"],
+    ref: "第882批：农历换算旧实现用本地 Date 毫秒差，历史时区（如 1900 上海 +08:05:43）可能把日期落到前一天；现全程用 UTC 年月日序数。2026 正月初一应为 2026-02-17，且该日反查为农历 1 月 1 日。"
+  },
+  {
+    slug: "life/countdown-timer",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown-timer.html','utf8');document.getElementById('__tbProbe').textContent='CDPRESET '+((src.indexOf('节日/考试类预设日期仅作示例')>=0&&src.indexOf('考研（示例，请核对当年公告）')>=0&&src.indexOf('考研（示例）')>=0)?'OK':'BAD');"],
+    expect: ["CDPRESET OK"],
+    ref: "第882批：旧「考研」预设固定 12 月 21 日且无说明，易被当成官方考试日；现改名为「考研（示例）」并在预设区提示以当年公告为准、添加后可修改。默认页面不含 CDPRESET。"
+  },
+  {
+    slug: "life/percentage-calculator",
+    inputs: { chgOld: "-100", chgNew: "-50" },
+    clicks: ["calcChange()"],
+    expect: ["数值增加 50", "变化率 -50%"],
+    ref: "第882批：旧值 -100、新值 -50，数值实际增加 50，但旧实现按比率符号判成「减少 50%」；现方向按绝对变化判断，并说明负基数下比率符号不代表方向。默认 100→120 不含该串。"
+  },
+  {
+    slug: "life/percentage-calculator",
+    inputs: { chgOld: "-100", chgNew: "-150" },
+    clicks: ["calcChange()"],
+    expect: ["数值减少 50", "变化率 +50%"],
+    ref: "第882批判别：旧值 -100、新值 -150，数值实际减少 50，比率却为 +50%；现文案说「减少 50」并保留 +50% 原始计算口径，避免负基数方向误导。"
+  },
+  {
+    slug: "life/chinese-number",
+    inputs: { inputVal: "二〇二四" },
+    clicks: ["convert()"],
+    expect: ["阿拉伯数字： 2024"],
+    ref: "第882批：连续逐字数字不含位权，旧实现每遇数字覆盖 cur，二〇二四被解析成 4；现无十百千万等位权时逐位拼接，结果为 2024。默认 12345.67 不含该结果。"
+  },
+  {
+    slug: "life/chinese-number",
+    inputs: { inputVal: "一二三" },
+    clicks: ["convert()"],
+    expect: ["阿拉伯数字： 123"],
+    ref: "第882批判别：一二三旧实现覆盖为 3；逐位拼接后应为 123，与二〇二四用例共同防止回退。"
+  },
+  {
+    slug: "life/daily-calorie-needs",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/daily-calorie-needs.html','utf8');document.getElementById('__tbProbe').textContent='CALKEY '+((src.indexOf('<button type=\"button\" class=\"activity-item')>=0&&src.indexOf('<button type=\"button\" class=\"goal-item')>=0&&src.indexOf('aria-pressed')>=0&&src.indexOf('class=\"del\" aria-label')>=0&&src.indexOf('[data-id=\"')>=0)?'OK':'BAD');"],
+    expect: ["CALKEY OK"],
+    ref: "第882批：活动目标为不可聚焦 div、历史删除为 span，键盘不可操作；现改为 button，带 aria-pressed、data-id 与删除 aria-label，选中态用 data-id 定位，不再依赖 onclick 字符串。默认页面不含 CALKEY。"
+  },
+  {
+    slug: "life/assessor-target",
+    inputs: { traffic: "8000", competitors: "2", population: "30000", rent: "120", shopArea: "80", visibility: "8" },
+    clicks: ["calc()"],
+    expect: ["83.8/100", "优秀"],
+    ref: "第882批：深挖 A 铺算例（人流 8000、竞争 2、人口 3 万、租金 120、可见性 8、面积 80）按当前权重为 83.8 分；新增「A 铺（深挖示例）」预设可一键复现，避免与页面默认参数混淆。默认参数为 81.1 分。"
+  },
+  {
+    slug: "life/assessor-target",
+    inputs: { traffic: "3000", competitors: "5", population: "10000", rent: "200", shopArea: "80", visibility: "5" },
+    clicks: ["calc()"],
+    expect: ["55.2/100", "一般"],
+    ref: "第882批：深挖 B 铺算例按当前权重为 55.2 分（一般），新增对应预设；与 A 铺用例互为正反判别。"
+  },
+  {
+    slug: "life/parking-fee",
+    clicks: ["document.getElementById('hours').value='0.5';document.getElementById('rate').value='10';document.getElementById('free').value='1';document.getElementById('freeScope').value='once';document.getElementById('cap').value='60';document.getElementById('startTime').value='';calcTool();"],
+    expect: ["0.50 h", "免费额度 1.00h"],
+    ref: "第882批：停放 0.5 小时、免费额度 1 小时，实际只能抵扣 0.5 小时；旧明细写「1.00 h」与实际抵扣不符，现按 min(段时长, 免费额度) 显示 0.50 h，摘要改称「免费额度」。默认 3.5 小时不含 0.50 h。"
+  },
+  {
+    slug: "life/unit-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/unit-converter.html','utf8');document.getElementById('__tbProbe').textContent='UNITKEY '+((src.indexOf('data-cat=\"')>=0&&src.indexOf('activeTab.focus')>=0&&src.indexOf('<button type=\"button\" class=\"quick-item\"')>=0&&src.indexOf('.quick-item:focus-visible')>=0)?'OK':'BAD');"],
+    expect: ["UNITKEY OK"],
+    ref: "第882批：速查卡片原为 div 不可聚焦；分类按钮重建后焦点丢失。现速查为 button、分类按钮带 data-cat 并在切换后把焦点还给当前分类，两者均有 focus-visible 焦点环。默认页面不含 UNITKEY。"
+  },
+  {
+    slug: "life/world-clock",
+    clicks: ["document.getElementById('diffCityA').innerHTML='<option value=\"Asia/Shanghai\">上海</option>';document.getElementById('diffCityB').innerHTML='<option value=\"America/New_York\">纽约</option>';document.getElementById('diffCityA').value='Asia/Shanghai';document.getElementById('diffCityB').value='America/New_York';document.getElementById('diffDate').value='2026-07-01';document.getElementById('diffTime').value='09:00';calcDiff();"],
+    expect: ["2026-07-01 09:00", "2026-06-30", "21:00", "已按该日换算"],
+    ref: "第882批：旧实现只能按当前时区偏移换算，选 7 月日期仍用当天偏移。现新增参考日期，按该日 UTC 正午取偏移：2026-07-01 上海 09:00 → 纽约 2026-06-30 21:00（夏令时 -4），并提示所选日期偏移与今天不同。"
   },
 
 ];

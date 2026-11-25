@@ -354,6 +354,8 @@ var total=0,billable=0,cappedCount=0,rows='';
 for(var i=0;i<segs.length;i++){
   var h=segs[i].hours;
   var freeThis=(freeScope==='once')?(i===0?free:0):free;
+  // 明细只展示实际抵扣掉的时长；免费额度大于本段时长时，不能把整段额度写成已抵扣。
+  var deduct=Math.min(h,freeThis);
   var b=Math.max(0,h-freeThis);
   b=(b<=0)?0:(unit>0?Math.ceil(b/unit-1e-9)*unit:b);
   var rawFee=b*rate;
@@ -366,7 +368,7 @@ for(var i=0;i<segs.length;i++){
   if(capped)cappedCount++;
   total+=segFee;
   billable+=b;
-  var freeLabel=(freeScope==='once'&&i>0)?'—':fmtHours(freeThis)+' h';
+  var freeLabel=(freeScope==='once'&&i>0)?'—':fmtHours(deduct)+' h';
   var firstTag=(i===0&&firstHours>0)?'首段':'—';
   rows+='<tr><td>'+escH(segs[i].label)+'</td><td>'+fmtHours(h)+' h</td><td>'+freeLabel+'</td><td>'+fmtHours(b)+' h</td><td>'+segFee.toFixed(2)+' 元</td><td>'+(capped?'封顶已生效':firstTag)+'</td></tr>';
 }
@@ -376,7 +378,7 @@ html+='<div class="data-card"><div class="num">'+total.toFixed(2)+'</div><div cl
 html+='<div class="data-card"><div class="num">'+segs.length+'</div><div class="label">'+(capMode==='rolling'?'计费段数':'计费日数')+'</div></div>';
 html+='<div class="data-card"><div class="num">'+fmtHours(billable)+'</div><div class="label">计费时长(h)</div></div>';
 html+='</div>';
-html+='<p class="muted" style="margin-top:10px;">停放 '+fmtHours(hours)+'h，免费 '+fmtHours(free)+'h，费率 '+rate+' 元/h'+(cap>0?('，封顶 '+cap+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元")):'')+'。免费范围：'+(freeScope==='once'?'仅首次':'每日')+'；计费单位：'+unitLabel+'（不足一个单位向上取整）。</p>';
+html+='<p class="muted" style="margin-top:10px;">停放 '+fmtHours(hours)+'h，免费额度 '+fmtHours(free)+'h（本段实际抵扣见明细），费率 '+rate+' 元/h'+(cap>0?('，封顶 '+cap+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元")):'')+'。免费范围：'+(freeScope==='once'?'仅首次':'每日')+'；计费单位：'+unitLabel+'（不足一个单位向上取整）。</p>';
 html+='<p class="muted">小时最多显示 6 位小数，费用按未截断时长计算。</p>'+'<p class="muted">'+(start?('自 '+fmtDay(start)+' 起'):'未填开始时间，按每 24 小时为一段')+'，'+(capMode==='rolling'?'按滚动 24 小时封顶':'按自然日封顶')+'；'+(cappedCount?('封顶已生效 '+cappedCount+(capMode==='rolling'?' 段。':' 天。')):'未触发封顶。')+'</p>';
 html+='<div style="overflow-x:auto;margin-top:8px;"><table class="ref-table" style="width:100%;font-size:13px;"><thead><tr><th>计费段</th><th>段时长</th><th>免费扣减</th><th>计费时长</th><th>段费用</th><th>封顶/首段</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}

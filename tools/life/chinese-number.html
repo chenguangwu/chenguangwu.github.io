@@ -368,6 +368,25 @@ function chineseToNumber(str){
   let decStr = '';
   const dotIdx = str.indexOf('点');
   if(dotIdx >= 0){ decStr = str.slice(dotIdx + 1); str = str.slice(0, dotIdx); }
+  // 连续逐字数字（如「二〇二四」「一二三」）不含十百千万等位权，应逐位拼接而非覆盖。
+  if(!/[十拾百佰千仟万亿兆]/.test(str)){
+    let digits = '';
+    for(const ch of str){
+      if(!(ch in chMap) || chMap[ch] > 9) return NaN;
+      digits += String(chMap[ch]);
+    }
+    if(decStr){
+      let decDigits = '';
+      for(const ch of decStr){
+        if(!(ch in chMap) || chMap[ch] > 9) return NaN;
+        decDigits += String(chMap[ch]);
+      }
+      const num = Number((digits || '0') + '.' + (decDigits || '0'));
+      return neg ? -num : num;
+    }
+    const num = Number(digits || '0');
+    return neg ? -num : num;
+  }
   let total = 0;
   let seg = 0;       // 当前段累计
   let cur = 0;       // 当前数字

@@ -220,10 +220,12 @@
         <div class="diff-label" id="diffLabel">时差</div>
       </div>
       <div style="margin-top:12px;">
-        <label for="diffTime">选择时间</label>
+        <label for="diffDate">参考日期（留空按今天）</label>
+        <input type="date" id="diffDate" onchange="calcDiff()">
+        <label for="diffTime" style="display:block;margin-top:8px;">选择时间</label>
         <input type="time" id="diffTime" value="09:00" oninput="calcDiff()">
         <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">
-          城市 A 时间 → 城市 B 对应时间
+          城市 A 的日期与时间 → 城市 B 对应日期与时间；跨夏令时日期会按该日偏移换算。
         </p>
       </div>
     </div>
@@ -450,9 +452,10 @@ function saveCities(){
   }catch(e){}
 }
 
-function getOffset(cityId){
+function getOffset(cityId, dateStr){
   try{
-    const now = new Date();
+    // 指定日期时取该日 UTC 正午，避免落在夏令时切换的边界时刻；留空则按当前时刻。
+    const now = dateStr ? new Date(dateStr + 'T12:00:00Z') : new Date();
     const fmt = new Intl.DateTimeFormat('en-US', {
       timeZone: cityId,
       timeZoneName: 'shortOffset'
@@ -601,9 +604,10 @@ function calcDiff(){
   const cityA = document.getElementById('diffCityA').value;
   const cityB = document.getElementById('diffCityB').value;
   const timeInput = document.getElementById('diffTime').value;
+  const dateInput = document.getElementById('diffDate') ? document.getElementById('diffDate').value : '';
   
-  const offsetA = getOffset(cityA);
-  const offsetB = getOffset(cityB);
+  const offsetA = getOffset(cityA, dateInput);
+  const offsetB = getOffset(cityB, dateInput);
   const diff = offsetB - offsetA;
   
   const __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
@@ -630,8 +634,18 @@ function calcDiff(){
     const newH = Math.floor(totalMin / 60);
     const newM = Math.round(totalMin % 60);
     const dayStr = dayDiff > 0 ? `（+${dayDiff}天）` : dayDiff < 0 ? `（${dayDiff}天）` : '';
+    let bDate = '';
+    if(dateInput){
+      const base = new Date(dateInput + 'T00:00:00Z');
+      base.setUTCDate(base.getUTCDate() + dayDiff);
+      bDate = base.toISOString().slice(0,10);
+    }
+    let dstNote = '';
+    if(dateInput && (getOffset(cityA, dateInput) !== getOffset(cityA) || getOffset(cityB, dateInput) !== getOffset(cityB))){
+      dstNote = __en ? ' Offsets differ from today; the selected date is used, including DST.' : ' 所选日期的时区偏移与今天不同，已按该日换算（含夏令时）。';
+    }
     const cmp=(diff===0?(__en?`${cityBName} has the same offset as ${cityAName}`:`${cityBName} 与 ${cityAName} 时差为 0`):(__en?`${cityBName} is ${diff>0?'ahead of':'behind'} ${cityAName} by ${hours} h ${mins} min`:`${cityBName} 比 ${cityAName} ${diff>0?'快':'慢'} ${hours} 小时 ${mins} 分钟`));
-    const __h4=`${cityAName} ${timeInput} → ${cityBName} <strong>${newH.toString().padStart(2,'0')}:${newM.toString().padStart(2,'0')}</strong> ${dayStr} · ${cmp}`;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('diffLabel').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('diffLabel').innerHTML=__h4;
+    const __h4=`${cityAName} ${dateInput ? dateInput + ' ' : ''}${timeInput} → ${cityBName}${bDate ? ' ' + bDate : ''} <strong>${newH.toString().padStart(2,'0')}:${newM.toString().padStart(2,'0')}</strong> ${dayStr} · ${cmp}${dstNote}`;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('diffLabel').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('diffLabel').innerHTML=__h4;
   }
 }
 

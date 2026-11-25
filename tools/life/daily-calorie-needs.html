@@ -42,14 +42,14 @@
 .bmi-pointer{position:absolute;top:-4px;width:20px;height:20px;background:#fff;border:3px solid var(--primary);border-radius:50%;transform:translateX(-50%);transition:left 0.3s;}
 .bmi-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:4px;}
 .activity-list{display:grid;gap:8px;margin-top:8px;}
-.activity-item{padding:12px;background:var(--result-bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.15s;display:flex;justify-content:space-between;align-items:center;}
+.activity-item{padding:12px;font:inherit;text-align:left;width:100%;background:var(--result-bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.15s;display:flex;justify-content:space-between;align-items:center;}
 .activity-item:hover{border-color:var(--primary);}
 .activity-item.active{border-color:var(--primary);background:rgba(102,126,234,0.1);}
 .activity-item .name{font-size:13px;font-weight:500;}
 .activity-item .desc{font-size:11px;color:var(--text-muted);margin-top:2px;}
 .activity-item .factor{font-size:13px;color:var(--primary);font-weight:600;}
 .goal-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:8px;}
-.goal-item{padding:12px;background:var(--result-bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.15s;text-align:center;}
+.goal-item{padding:12px;font:inherit;width:100%;background:var(--result-bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.15s;text-align:center;}
 .goal-item:hover{border-color:var(--primary);}
 .goal-item.active{border-color:var(--primary);background:rgba(102,126,234,0.1);}
 .goal-item .name{font-size:13px;font-weight:500;}
@@ -58,7 +58,8 @@
 .food-table th, .food-table td{padding:8px;text-align:left;}
 .history-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;}
 .history-item:last-child{border-bottom:none;}
-.history-item .del{color:var(--danger);cursor:pointer;font-size:14px;}
+.history-item .del{color:var(--danger);cursor:pointer;font-size:14px;background:none;border:0;padding:4px 6px;font:inherit;line-height:1;}
+.activity-item:focus-visible,.goal-item:focus-visible,.history-item .del:focus-visible{outline:3px solid var(--primary);outline-offset:2px;}
 </style>
 
 <meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
@@ -662,39 +663,39 @@ function calcBMR(){
 function initActivityList(){
   const list = document.getElementById('activityList');
   const __h3=ACTIVITY_LEVELS.map(a => `
-    <div class="activity-item ${a.id === selectedActivity ? 'active' : ''}" onclick="selectActivity('${a.id}')">
+    <button type="button" class="activity-item ${a.id === selectedActivity ? 'active' : ''}" data-id="${a.id}" aria-pressed="${a.id === selectedActivity}" onclick="selectActivity('${a.id}')">
       <div>
         <div class="name">${a.name}</div>
         <div class="desc">${a.desc}</div>
       </div>
       <div class="factor">×${a.factor}</div>
-    </div>
+    </button>
   `).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h3;
 }
 
 function selectActivity(id){
   selectedActivity = id;
-  document.querySelectorAll('.activity-item').forEach(el => el.classList.remove('active'));
-  const active = document.querySelector('.activity-item[onclick="selectActivity(\'' + id + '\')"]');
-  if(active) active.classList.add('active');
+  document.querySelectorAll('.activity-item').forEach(el => { el.classList.remove('active'); el.setAttribute('aria-pressed','false'); });
+  const active = document.querySelector('.activity-item[data-id="' + id + '"]');
+  if(active){ active.classList.add('active'); active.setAttribute('aria-pressed','true'); }
   calcTDEE();
 }
 
 function initGoalList(){
   const list = document.getElementById('goalList');
   const __h4=GOALS.map(g => `
-    <div class="goal-item ${g.id === selectedGoal ? 'active' : ''}" onclick="selectGoal('${g.id}')">
+    <button type="button" class="goal-item ${g.id === selectedGoal ? 'active' : ''}" data-id="${g.id}" aria-pressed="${g.id === selectedGoal}" onclick="selectGoal('${g.id}')">
       <div class="name">${g.name}</div>
       <div class="cal">${g.cal > 0 ? '+' : ''}${g.cal} 千卡</div>
-    </div>
+    </button>
   `).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h4;
 }
 
 function selectGoal(id){
   selectedGoal = id;
-  document.querySelectorAll('.goal-item').forEach(el => el.classList.remove('active'));
-  const active = document.querySelector('.goal-item[onclick="selectGoal(\'' + id + '\')"]');
-  if(active) active.classList.add('active');
+  document.querySelectorAll('.goal-item').forEach(el => { el.classList.remove('active'); el.setAttribute('aria-pressed','false'); });
+  const active = document.querySelector('.goal-item[data-id="' + id + '"]');
+  if(active){ active.classList.add('active'); active.setAttribute('aria-pressed','true'); }
   calcTDEE();
 }
 
@@ -855,7 +856,7 @@ function renderHistory(){
         <div><strong>${ToolBox.escHtml(h.label)}</strong></div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${ToolBox.escHtml(h.time)}</div>
       </div>
-      <span class="del" onclick="deleteHistory(${h.id})">✕</span>
+      <button type="button" class="del" aria-label="删除 ${ToolBox.escHtml(h.label)} 这条记录" onclick="deleteHistory(${h.id})">✕</button>
     </div>
   `).join('');if((typeof __h10==='number'&&!isFinite(__h10))||/Infinity/.test(String(__h10))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h10)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h10;
 }

@@ -28,13 +28,14 @@
 <style>
 .color-preview{width:100%;height:120px;border-radius:12px;border:1px solid var(--border);margin:12px 0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,0.3);}
 .color-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;max-height:400px;overflow-y:auto;padding:4px;}
-.color-swatch{border-radius:8px;aspect-ratio:1;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px;transition:transform 0.15s;border:2px solid transparent;}
+.color-swatch{border-radius:8px;aspect-ratio:1;cursor:pointer;font:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px;transition:transform 0.15s;border:2px solid transparent;}
 .color-swatch:hover{transform:scale(1.05);border-color:var(--primary);z-index:1;}
 .color-swatch .cn{font-size:11px;font-weight:600;text-align:center;line-height:1.2;text-shadow:0 1px 2px rgba(0,0,0,0.4);}
 .color-swatch .hex{font-size:9px;font-family:monospace;opacity:0.8;margin-top:2px;}
 .search-results{margin-top:16px;}
-.matched-color{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--card-bg);cursor:pointer;transition:all 0.15s;}
+.matched-color{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--card-bg);cursor:pointer;transition:all 0.15s;width:100%;font:inherit;text-align:left;}
 .matched-color:hover{border-color:var(--primary);background:var(--result-bg);}
+.color-swatch:focus-visible,.matched-color:focus-visible{outline:3px solid var(--primary);outline-offset:3px;}
 .matched-color .swatch{width:48px;height:48px;border-radius:8px;border:1px solid var(--border);flex-shrink:0;}
 .matched-color .info{flex:1;}
 .matched-color .name{font-weight:600;font-size:14px;}
@@ -425,6 +426,7 @@ function parseColor(input) {
 function pickColor(hex) {
   document.getElementById('color-input').value=hex;
   searchColor();
+  if(typeof ToolBox!=='undefined'&&ToolBox.showToast) ToolBox.showToast('已选用色值 '+hex,'success');
 }
 
 function searchColor() {
@@ -461,21 +463,21 @@ function searchColor() {
     
     const __h2=matches.map((m,i)=>{
       const textColor=luminance(m.hex)<0.179?'#fff':'#000';
-      return `<div class="matched-color" onclick="pickColor('${m.hex}')">
+      return `<button type="button" class="matched-color" aria-label="选用 ${m.name} ${m.hex}" onclick="pickColor('${m.hex}')">
         <div class="swatch" style="background:${m.hex};"></div>
         <div class="info"><div class="name">${m.name}</div><div class="hex">${m.hex}</div></div>
         <div style="font-size:12px;color:var(--text-muted);">${i===0?'最佳匹配':'距离:'+Math.round(m.dist)}</div>
-      </div>`;
+      </button>`;
     }).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){results.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}results.innerHTML=__h2;
   }else{
     const nameMatches=allColors.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())).slice(0,20);
     preview.style.display='none';info.style.display='none';
     if(nameMatches.length>0){
       const __h3='<p style="margin-bottom:8px;color:var(--text-light);">找到 '+nameMatches.length+' 个匹配</p>'+
-        nameMatches.map(m=>`<div class="matched-color" onclick="pickColor('${m.hex}')">
+        nameMatches.map(m=>`<button type="button" class="matched-color" aria-label="选用 ${m.name} ${m.hex}" onclick="pickColor('${m.hex}')">
           <div class="swatch" style="background:${m.hex};"></div>
           <div class="info"><div class="name">${m.name}</div><div class="hex">${m.hex}</div></div>
-        </div>`).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){results.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}results.innerHTML=__h3;
+        </button>`).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){results.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}results.innerHTML=__h3;
     }else{const __h4='<div class="history-empty">未找到匹配的颜色，请输入色值或颜色名</div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){results.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}results.innerHTML=__h4;}
   }
 }
@@ -490,9 +492,9 @@ function renderPalette() {
   const colors=cat==='all'?chineseColors:chineseColors.filter(c=>c.cat===cat);
   const __h5=colors.map(c=>{
     const txt=luminance(c.hex)<0.179?'#fff':'#000';
-    return `<div class="color-swatch" style="background:${c.hex};color:${txt};" onclick="ToolBox.copyText('${c.hex}');ToolBox.showToast(i18nText('toast.msg199'),'success');">
+    return `<button type="button" class="color-swatch" aria-label="复制 ${c.name} 色值 ${c.hex}" style="background:${c.hex};color:${txt};" onclick="ToolBox.copyText('${c.hex}');ToolBox.showToast(i18nText('toast.msg199'),'success');">
       <div class="cn">${c.name}</div><div class="hex">${c.hex}</div>
-    </div>`;
+    </button>`;
   }).join('');if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('palette-grid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('palette-grid').innerHTML=__h5;
 }
 
@@ -501,9 +503,9 @@ function renderWebColors() {
   const colors=q?webColors.filter(c=>c.name.toLowerCase().includes(q)):webColors;
   const __h6=colors.map(c=>{
     const txt=luminance(c.hex)<0.179?'#fff':'#000';
-    return `<div class="color-swatch" style="background:${c.hex};color:${txt};" onclick="ToolBox.copyText('${c.hex}');ToolBox.showToast(i18nText('toast.msg198'),'success');">
+    return `<button type="button" class="color-swatch" aria-label="复制 ${c.name} 色值 ${c.hex}" style="background:${c.hex};color:${txt};" onclick="ToolBox.copyText('${c.hex}');ToolBox.showToast(i18nText('toast.msg198'),'success');">
       <div class="cn" style="font-size:10px;">${c.name}</div><div class="hex">${c.hex}</div>
-    </div>`;
+    </button>`;
   }).join('');if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('web-grid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('web-grid').innerHTML=__h6;
 }
 
