@@ -294,9 +294,10 @@ function onInput(){
 }
 // 只重置「成绩展示」，不动用户已输入的文字（区别于 newSample 用的 clearAll）
 function resetScore(){
+  var en=/^en/i.test(document.documentElement.lang||'')||/[?&]lang=en/i.test(location.search);
   document.getElementById('scoreV').textContent='-';
   document.getElementById('sRing').style.strokeDashoffset=2*Math.PI*56;
-  document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">开始打字后，这里会显示节奏分析结果。</p>';
+  document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">'+(en?'Start typing to see rhythm analysis here.':'开始打字后，这里会显示节奏分析结果。')+'</p>';
   drawChart();
 }
 function intervals(){
@@ -314,32 +315,40 @@ function std(arr){
 function calcRhythmScore(cv){return Math.max(0,Math.min(100,Math.round(100-cv*120)));}
 function calcWpm(chars,ms){return Math.round(chars/(ms/1000)/5*60)||0;}
 function analyze(){
+  var en=/^en/i.test(document.documentElement.lang||'')||/[?&]lang=en/i.test(location.search);
   var iv=intervals();
-  if(iv.length<2){ resetScore(); return; }   // G10：样本不足 ⇒ 作废旧评分，不留上一次的成绩
+  if(iv.length<2){ resetScore(); return; }
   var m=mean(iv);
   var s=std(iv);
-  var cv=m>0?s/m:1; // coefficient of variation
-  // score: lower cv => higher score
+  var cv=m>0?s/m:1;
   var score=calcRhythmScore(cv);
   var circ=2*Math.PI*56;
   document.getElementById('sRing').style.strokeDashoffset=circ*(1-score/100);
   document.getElementById('scoreV').textContent=score;
   var level,cls;
-  if(score>=85){level='节奏大师';cls='grade-excellent';}
-  else if(score>=70){level='节奏稳定';cls='grade-good';}
-  else if(score>=50){level='尚需练习';cls='grade-pass';}
-  else{level='节奏飘忽';cls='grade-fail';}
-  // WPM 应按「有效字符数 ÷ 总经过时间」计算；平均单次间隔只是节奏指标，不能当总时长
-  // 否则同速下仅增加输入长度就会让 WPM 成倍虚增（如 200ms 间隔下 50 字符算出 3000 WPM）
+  if(score>=85){level=en?'Rhythm master':'节奏大师';cls='grade-excellent';}
+  else if(score>=70){level=en?'Steady rhythm':'节奏稳定';cls='grade-good';}
+  else if(score>=50){level=en?'Needs practice':'尚需练习';cls='grade-pass';}
+  else{level=en?'Unstable rhythm':'节奏飘忽';cls='grade-fail';}
   var totalMs = times.length >= 2 ? (times[times.length-1] - times[0]) : m * times.length;
   var wpm=calcWpm(lastVal.length, totalMs);
-  var html='<p>按键间隔均值：<strong>'+m.toFixed(0)+' ms</strong></p>'+
-    '<p>间隔标准差：<strong>'+s.toFixed(0)+' ms</strong></p>'+
-    '<p>变异系数(CV)：<strong>'+(cv*100).toFixed(1)+'%</strong>（越小越稳定）</p>'+
-    '<p>估算打字速度：<strong>'+(wpm>0?wpm:'-')+' WPM</strong></p>'+
-    '<p>节奏等级：<span class="grade-tag '+cls+'">'+level+'</span></p>'+
-    '<p style="color:var(--text-muted);font-size:12px;margin-top:8px;">* 评分基于按键时间间隔的变异系数，连续打字越多越准确。</p>';
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  var html;
+  if(en){
+    html='<p>Average key interval: <strong>'+m.toFixed(0)+' ms</strong></p>'+
+      '<p>Interval standard deviation: <strong>'+s.toFixed(0)+' ms</strong></p>'+
+      '<p>Coefficient of variation (CV): <strong>'+(cv*100).toFixed(1)+'%</strong> (lower is steadier)</p>'+
+      '<p>Estimated typing speed: <strong>'+(wpm>0?wpm:'-')+' WPM</strong></p>'+
+      '<p>Rhythm level: <span class="grade-tag '+cls+'">'+level+'</span></p>'+
+      '<p style="color:var(--text-muted);font-size:12px;margin-top:8px;">* The score uses the coefficient of variation of key intervals; more continuous typing gives a more reliable result.</p>';
+  }else{
+    html='<p>按键间隔均值：<strong>'+m.toFixed(0)+' ms</strong></p>'+
+      '<p>间隔标准差：<strong>'+s.toFixed(0)+' ms</strong></p>'+
+      '<p>变异系数(CV)：<strong>'+(cv*100).toFixed(1)+'%</strong>（越小越稳定）</p>'+
+      '<p>估算打字速度：<strong>'+(wpm>0?wpm:'-')+' WPM</strong></p>'+
+      '<p>节奏等级：<span class="grade-tag '+cls+'">'+level+'</span></p>'+
+      '<p style="color:var(--text-muted);font-size:12px;margin-top:8px;">* 评分基于按键时间间隔的变异系数，连续打字越多越准确。</p>';
+  }
+  document.getElementById('result').innerHTML=html;
   drawChart();
 }
 function drawChart(){
