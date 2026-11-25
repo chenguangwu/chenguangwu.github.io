@@ -26,7 +26,8 @@
 <script src="../../js/common.js" defer></script>
 <style>
 .clay-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0;}
-.clay-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all 0.2s;text-align:center;}
+.clay-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all 0.2s;text-align:center;font:inherit;color:inherit;width:100%;}
+.clay-card:focus-visible{outline:3px solid var(--primary);outline-offset:2px;}
 .clay-card:hover{border-color:var(--primary);transform:translateY(-2px);}
 .clay-card.active{border-color:var(--primary);background:rgba(255,107,53,0.06);}
 .clay-card .icon{font-size:24px;margin-bottom:4px;}
@@ -288,15 +289,16 @@ let selectedClay = 'stoneware';
 function renderClays(){
   const grid = document.getElementById('clayGrid');
   const __h0=CLAYS.map(c => `
-    <div class="clay-card ${c.id === selectedClay ? 'active' : ''}" onclick="selectClay('${c.id}')">
-      <div class="icon">${c.icon}</div>
+    <button type="button" class="clay-card ${c.id === selectedClay ? 'active' : ''}" aria-pressed="${c.id === selectedClay}" onclick="selectClay('${c.id}')">
+      <div class="icon" aria-hidden="true">${c.icon}</div>
       <div class="name">${c.name}</div>
       <div class="temp">最高 ${c.maxTemp}°C</div>
-    </div>
+    </button>
   `).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h0;
 }
 
 function selectClay(id){
+  if(!CLAYS.some(function(c){return c.id===id;})) return;
   selectedClay = id;
   renderClays();
   renderCurve();
@@ -304,6 +306,7 @@ function selectClay(id){
 
 function renderCurve(){
   const clay = CLAYS.find(c => c.id === selectedClay);
+  if(!clay) return;
   const fireType = document.getElementById('fireType').value;
   const isGlaze = fireType === 'glaze';
 
@@ -356,8 +359,17 @@ function renderCurve(){
   `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('summaryBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('summaryBox').innerHTML=__h1;
 
   const list = document.getElementById('curveStages');
+  const tempRange = (txt) => {
+    const nums = (String(txt).match(/\d+(?:\.\d+)?/g) || []).map(Number);
+    if(!nums.length) return [0, 0];
+    if(nums.length === 1) return /常温|室温|起始/.test(String(txt)) ? [0, nums[0]] : [nums[0], nums[0]];
+    return [nums[0], nums[nums.length - 1]];
+  };
   const __h2=stages.map(s => {
-    const tempPct = Math.min(100, (parseInt(s.temp.match(/\d+/)?.[0] || peakTemp) / clay.maxTemp) * 100);
+    const [start, end] = tempRange(s.temp);
+    const lo = Math.min(start, end), hi = Math.max(start, end);
+    const leftPct = Math.min(100, lo / clay.maxTemp * 100);
+    const spanPct = Math.max(0.6, (hi - lo) / clay.maxTemp * 100);
     return `
       <div class="stage-item">
         <div class="stage-head">
@@ -365,7 +377,8 @@ function renderCurve(){
           <span class="stage-temp">${s.temp}</span>
         </div>
         <div class="stage-rate">升温速率：${s.rate} · ${s.time}</div>
-        <div class="temp-bar"><div class="temp-bar-fill" style="width:${tempPct}%;"></div></div>
+        <div class="temp-bar" aria-label="${s.name}温度区间 ${start} 至 ${end} 摄氏度"><div class="temp-bar-fill" style="margin-left:${leftPct}%;width:${spanPct}%;"></div></div>
+        <div class="stage-range" style="font-size:11px;color:var(--text-muted);margin-top:4px;">图示区间：${start}→${end}°C（按阶段起止温度绘制，终点 ${end}°C）</div>
         <div class="stage-desc">${s.desc}</div>
       </div>
     `;

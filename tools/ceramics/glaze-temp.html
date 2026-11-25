@@ -277,16 +277,18 @@ var CATS=[
 function renderTable(){
   var kw=(document.getElementById('search').value||'').trim().toLowerCase();
   var html='<table class="cone-table"><thead><tr><th>测温锥号</th><th>弯倒温度 (°C)</th><th>分类</th><th>测温锥号</th><th>弯倒温度 (°C)</th><th>分类</th></tr></thead><tbody>';
-  var half=Math.ceil(CONES.length/2);
-  var left=CONES.slice(0,half),right=CONES.slice(half);
+  var list=CONES.filter(function(c){
+    return !kw || String(c[0]).toLowerCase().indexOf(kw)>=0 || String(c[1]).indexOf(kw)>=0 || String(c[2]).toLowerCase().indexOf(kw)>=0;
+  });
+  if(!list.length){
+    html+='<tbody><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:18px;">未找到匹配的测温锥，请检查锥号、温度或分类关键词。</td></tr></tbody></table>';
+    document.getElementById('refTable').innerHTML=html; return;
+  }
+  var half=Math.ceil(list.length/2);
+  var left=list.slice(0,half),right=list.slice(half);
   var rows=Math.max(left.length,right.length);
   for(var i=0;i<rows;i++){
     var a=left[i],b=right[i];
-    if(kw){
-      var matchA=a&&(String(a[0]).toLowerCase().indexOf(kw)>=0||String(a[1]).indexOf(kw)>=0);
-      var matchB=b&&(String(b[0]).toLowerCase().indexOf(kw)>=0||String(b[1]).indexOf(kw)>=0);
-      if(!matchA&&!matchB)continue;
-    }
     html+='<tr>';
     html+=a?'<td><strong>'+a[0]+'</strong></td><td>'+a[1]+'</td><td>'+a[2]+'</td>':'<td></td><td></td><td></td>';
     html+=b?'<td><strong>'+b[0]+'</strong></td><td>'+b[1]+'</td><td>'+b[2]+'</td>':'<td></td><td></td><td></td>';
@@ -305,7 +307,7 @@ function renderCats(){
 var __CONE_CAT_EN={'低温':'Low-fire','中温':'Mid-fire','高温':'High-fire'};
 function __coneEn(){ try{ return (typeof TBKit!=='undefined'&&TBKit.util.isEn()); }catch(e){ return false; } }
 function __coneTargetInit(){
-  var sel=document.getElementById('targetCone'); if(!sel||sel.options.length) return;
+  var sel=document.getElementById('targetCone'); if(!sel||!sel.options||sel.options.length) return;
   CONES.forEach(function(c){var o=document.createElement('option');o.value=c[0];o.textContent=c[0]+'（'+c[1]+'°C）';sel.appendChild(o);});
   var pref=['9','8','6','4','01','1','10'];
   for(var i=0;i<pref.length;i++){if(CONES.some(function(c){return c[0]===pref[i];})){sel.value=pref[i];break;}}
