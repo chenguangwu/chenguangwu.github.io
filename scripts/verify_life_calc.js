@@ -3838,6 +3838,24 @@ const CASES = [
     clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/cycle-4.html','utf8');document.getElementById('__tbProbe').textContent='OVERCUT '+((src.indexOf('var deducted = amount')>=0&&src.indexOf('deducted = sup.stock')>=0&&src.indexOf('amount: deducted')>=0&&src.indexOf('requestedAmount: amount')>=0)?'OK':'BAD');"],
     expect: ["OVERCUT OK"],
     ref: "第912批：超库存登记原记录全部消耗量但只扣库存；现确认后按实际扣减量记账，同时保留 requestedAmount 供追溯。"
+  },
+  {
+    slug: "life/shoe-size-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/shoe-size-converter.html','utf8');document.getElementById('__tbProbe').textContent='SHOEMETA '+((src.indexOf('日码')<0&&src.indexOf('JP')<0&&src.indexOf('children')<0&&src.indexOf('美码女款数值通常比男款大约 1.5')>=0)?'OK':'BAD');"],
+    expect: ["SHOEMETA OK"],
+    ref: "第913批：SEO/英文描述原承诺日码与童鞋但页面无日码；FAQ 又称女码小 1–1.5，与实际同脚长女款数值大约 1.5 相反。现统一删除日码/童鞋承诺并改正 FAQ。"
+  },
+  {
+    slug: "life/clothing-size-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/clothing-size-converter.html','utf8');document.getElementById('__tbProbe').textContent='CLOTHMETA '+((src.indexOf('JP')<0&&src.indexOf('children')<0&&src.indexOf('tops and trousers')>=0)?'OK':'BAD');"],
+    expect: ["CLOTHMETA OK"],
+    ref: "第913批：英文 desc-en 原称男女儿童与日本码，实际仅男女上衣/裤装且无日码；现改为当前支持的品类与尺码体系。"
+  },
+  {
+    slug: "life/temperature-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/temperature-converter.html','utf8');document.getElementById('__tbProbe').textContent='TEMPHIST '+((src.indexOf('tabindex')>=0&&src.indexOf('keydown')>=0&&src.indexOf('aria-label')>=0)?'OK':'BAD');"],
+    expect: ["TEMPHIST OK"],
+    ref: "第913批：历史恢复项原为不可聚焦 div；现 role=button、tabindex=0、Enter/Space 恢复，删除按钮独立并带 aria-label。"
   }
 ];
 
