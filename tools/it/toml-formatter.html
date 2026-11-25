@@ -589,7 +589,7 @@ function parseToml(text) {
   return root;
 }
 
-function tomlStringify(obj, prefix = '') {
+function tomlStringify(obj, prefixParts = []) {
   if (!obj || typeof obj !== 'object') obj = {};
   let result = '';
   const tables = [];
@@ -611,17 +611,20 @@ function tomlStringify(obj, prefix = '') {
   }
   
   for (const [key, value] of tables) {
-    const fullKey = prefix ? `${prefix}.${key}` : key;
+    // 第807批：每一级键单独按 TOML 规则引用，再以点号连接；"a.b" 不能变成 a.b 两级
+    const parts = prefixParts.concat([key]);
+    const fullKey = parts.map(formatTomlKey).join('.');
     if (result) result += '\n';
     result += `[${fullKey}]\n`;
-    result += tomlStringify(value, fullKey);
+    result += tomlStringify(value, parts);
   }
 
   for (const [key, list] of tableArrays) {
-    const fullKey = prefix ? `${prefix}.${key}` : key;
+    const parts = prefixParts.concat([key]);
+    const fullKey = parts.map(formatTomlKey).join('.');
     for (const item of list) {
       if (result) result += '\n';
-      result += `[[${fullKey}]]\n` + tomlStringify(item, fullKey);
+      result += `[[${fullKey}]]\n` + tomlStringify(item, parts);
     }
   }
   

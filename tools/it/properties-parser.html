@@ -290,17 +290,54 @@ function parseProps(text){
 // \uXXXX 是 .properties 标准 Unicode 转义（FAQ 已说明），键与值都须解码。
 // 先把字面双反斜杠换成私有区占位符，避免 \\u4f60 被误当成 \u4f60 解码；
 // 解码 \uXXXX 后再还原占位符为单个反斜杠。
-var __PPPBS = '\uE000';
+// 第807批：逐字符状态机解析 Java Properties 转义，不再用可能出现在输入里的 U+E000 占位符。
 function __ppUni(s){
-  s = s.replace(/\\\\/g, __PPPBS);
-  s = s.replace(/\\u([0-9a-fA-F]{4})/g, function(_, h){ return String.fromCharCode(parseInt(h, 16)); });
-  s = s.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\=/g, '=').replace(/\\:/g, ':').replace(/\\ /g, ' ');
-  return s.split(__PPPBS).join('\\');
+  let out = '';
+  for(let i=0;i<s.length;i++){
+    const c=s[i];
+    if(c !== '\\'){ out += c; continue; }
+    i++;
+    if(i>=s.length){ out += '\\'; break; }
+    const n=s[i];
+    if(n === 'u'){
+      const h=s.slice(i+1,i+5);
+      if(!/^[0-9a-fA-F]{4}$/.test(h)){ out += 'u'; continue; }
+      out += String.fromCharCode(parseInt(h,16));
+      i += 4;
+    } else if(n === 't') out += '\t';
+    else if(n === 'n') out += '\n';
+    else if(n === 'r') out += '\r';
+    else if(n === 'f') out += '\f';
+    else if(n === '\\' || n === '=' || n === ':' || n === ' ' || n === '#' || n === '!') out += n;
+    else out += n; // Java 对未知转义丢弃反斜杠、保留字符本身
+  }
+  return out;
 }
 function unescapeKey(s){ return __ppUni(s); }
 function unescapeVal(s){ return __ppUni(s); }
-function escapeKey(s){ return s.replace(/\\/g,'\\\\').replace(/=/g,'\\=').replace(/:/g,'\\:'); }
-function escapeVal(s){ return String(s).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/\t/g,'\\t'); }
+function __ppEscape(s, isKey){
+  s = String(s == null ? '' : s);
+  let out = '';
+  let leading = true;
+  for(let i=0;i<s.length;i++){
+    const c=s[i];
+    if(c === '\\'){ out += '\\\\'; leading=false; continue; }
+    if(c === '\n'){ out += '\\n'; leading=false; continue; }
+    if(c === '\r'){ out += '\\r'; leading=false; continue; }
+    if(c === '\t'){ out += '\\t'; leading=false; continue; }
+    if(c === '\f'){ out += '\\f'; leading=false; continue; }
+    if(isKey){
+      if(c === ' ' || c === '=' || c === ':' || c === '#' || c === '!'){ out += '\\' + c; leading=false; continue; }
+    } else if(leading && (c === ' ' || c === '\t' || c === '\f')){
+      out += '\\' + c; continue;
+    }
+    if(c < ' ' || c === '\u007f'){ out += '\\u' + c.charCodeAt(0).toString(16).padStart(4,'0'); leading=false; continue; }
+    out += c; leading=false;
+  }
+  return out;
+}
+function escapeKey(s){ return __ppEscape(s, true); }
+function escapeVal(s){ return __ppEscape(s, false); }
 function toProps(obj){
   return Object.keys(obj).map(k => escapeKey(k) + ' = ' + escapeVal(obj[k])).join('\n');
 }
@@ -324,8 +361,9 @@ function doMinify(){
   setErr('');
   try{
     const text = document.getElementById('input').value;
-    if(text.trim().startsWith('{')) setOut(toProps(JSON.parse(text)).replace(/\n/g,'\n'));
-    else setOut(Object.entries(parseProps(text)).map(([k,v]) => k + '=' + v).join('\n'));
+    // 第807批：压缩也走同一序列化器，键/值重新转义，不能让空格、控制字符、注释符破坏往返
+    const obj = text.trim().startsWith('{') ? JSON.parse(text) : parseProps(text);
+    setOut(toProps(obj));
     setErr('✅ 压缩成功');
   }catch(e){ setErr('❌ ' + e.message); }
 }

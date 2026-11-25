@@ -352,6 +352,21 @@ function tChild(o,k){
   if(cur===undefined||cur===null){ cur={}; o[k]=cur; }
   return cur;
 }
+function tPathParts(path){
+  // 第807批：只在引号外的点号处拆分路径；"a.b" 是一个字面量键，不是 a→b 两级
+  var out=[],buf='',q=0;
+  for(var i=0;i<path.length;i++){
+    var c=path[i];
+    if(q===1){ buf+=c; if(c==='\\'){ if(i+1<path.length){buf+=path[i+1];i++;} } else if(c==='"')q=0; continue; }
+    if(q===2){ buf+=c; if(c==="'")q=0; continue; }
+    if(c==='"'){q=1;buf+=c;continue;}
+    if(c==="'"){q=2;buf+=c;continue;}
+    if(c==='.'){ out.push(tKeyName(buf)); buf=''; continue; }
+    buf+=c;
+  }
+  out.push(tKeyName(buf));
+  return out.filter(function(x){return x!=='';});
+}
 function parseToml(text){
   var lines=text.replace(/\r/g,'').split('\n');
   var root={}; var cur=root;
@@ -359,23 +374,28 @@ function parseToml(text){
     var s=lines[i].trim();
     if(!s||s.charAt(0)==='#') continue;
     if(s.charAt(0)==='['){
-      var close=s.indexOf(']'); if(close<0) continue;
-      var header=s.slice(1,close);
-      if(header.charAt(0)==='['){
-        var name=header.slice(1).trim(); var parts=name.split('.');
-        var obj=root; for(var p=0;p<parts.length-1;p++){ obj=tChild(obj,parts[p].trim()); }
-        var last=parts[parts.length-1].trim();
+      var isArr = s.slice(0,2)==='[[';
+      var hm = isArr ? s.match(/^\[\[(.*?)\]\]\s*(?:#.*)?$/) : s.match(/^\[(.*?)\]\s*(?:#.*)?$/);
+      if(!hm){
+        // 第807批：表头不完整必须报错，不能静默跳过让用户以为转换成功
+        throw new Error('第 '+(i+1)+' 行：TOML 表头未闭合或格式非法');
+      }
+      var parts = tPathParts(hm[1]);
+      if(!parts.length) throw new Error('第 '+(i+1)+' 行：表头为空');
+      var obj=root;
+      for(var p=0;p<parts.length-1;p++){ obj=tChild(obj,parts[p]); }
+      var last=parts[parts.length-1];
+      if(isArr){
         var arr=obj[last]; if(!(arr instanceof Array)){ arr=[]; obj[last]=arr; }
-        var elem={}; arr.push(elem); cur=elem;
+        var elem=Object.create(null); arr.push(elem); cur=elem;
       } else {
-        var parts2=header.split('.'); var obj2=root;
-        for(var q=0;q<parts2.length;q++){ obj2=tChild(obj2,parts2[q].trim()); }
-        cur=obj2;
+        cur=tChild(obj,last);
       }
       continue;
     }
-    var eq=s.indexOf('='); if(eq<0) continue;
-    var key=tKeyName(s.slice(0,eq));
+    var eq=s.indexOf('='); if(eq<0) throw new Error('第 '+(i+1)+' 行：缺少等号，无法解析');
+    var keyParts=tPathParts(s.slice(0,eq));
+    if(!keyParts.length) throw new Error('第 '+(i+1)+' 行：键名为空');
     var rawVal=s.slice(eq+1);
     // IT-N358：多行数组/内联表 —— 当前行括号未闭合时继续吞并后续行
     // ⚠️ 必须先剥掉行内 # 注释再判断括号深度：注释里的 ] 会被误当成数组结束，导致后续行静默丢失
@@ -389,10 +409,10 @@ function parseToml(text){
       rawVal=buf;
     }
     var val=stripComment(rawVal);
-    var ps=key.split('.'); var o=cur;
-    for(var j=0;j<ps.length-1;j++){ o=tChild(o,ps[j].trim()); }
+    var o=cur;
+    for(var j=0;j<keyParts.length-1;j++){ o=tChild(o,keyParts[j]); }
     if(o instanceof Array) o=o[o.length-1]||{};
-    o[ps[ps.length-1].trim()]=tVal(val);
+    o[keyParts[keyParts.length-1]]=tVal(val);
   }
   return root;
 }
@@ -517,7 +537,9 @@ function dumpYaml(node,pad,sort,isRoot){
 
 var src=document.getElementById('source').value||'';
 if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 TOML 文本</p>'; return; }
-var obj=parseToml(src);
+var obj;
+try{ obj=parseToml(src); }
+catch(e){ document.getElementById('result').innerHTML='<p style="color:var(--danger)">❌ TOML 解析失败：'+escH(e.message)+'</p>'; return; }
 var pad = document.getElementById('indent').value==='tab' ? '\t' : (' ').repeat(parseInt(document.getElementById('indent').value||'2',10));
 var sort=document.getElementById('top_1').checked;
 var yaml=dumpYaml(obj,pad,sort);

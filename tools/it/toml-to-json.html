@@ -375,27 +375,40 @@ function stripComment(s){
 }
 function parseToml(text){
   var lines=text.replace(/\r/g,'').split('\n');
-  var root={}; var cur=root;
+  var root=Object.create(null); var cur=root;
+  function lineErr(n,msg){ throw new Error('第 '+(n+1)+' 行：'+msg); }
   for(var i=0;i<lines.length;i++){
     var s=lines[i].trim();
     if(!s||s[0]==='#') continue;
     if(s[0]==='['){
-      var close=s.indexOf(']'); if(close<0) continue;
-      var isArr = s[1]==='[';
-      var hdr = isArr ? s.slice(2, s.lastIndexOf(']]')) : s.slice(1, close);
-      var hp = tSplitTop(hdr,'.').map(tKeyName);
-      if(!hp.length) continue;
+      var isArr = s.slice(0,2)==='[['; var op=isArr?2:1; var cl=isArr?']]':']';
+      var close=s.indexOf(cl,op);
+      if(close<0) lineErr(i, '表头缺少闭合 '+cl);
+      var tail=s.slice(close+cl.length).trim();
+      if(tail && tail[0]!=='#') lineErr(i, '表头闭合后存在多余内容');
+      var hdr=s.slice(op,close);
+      var hp=tSplitTop(hdr,'.').map(tKeyName).filter(function(x){return x!=='';});
+      if(!hp.length) lineErr(i, '表头为空');
       var o=root;
-      for(var p=0;p<hp.length-1;p++){ o=o[hp[p]]=o[hp[p]]||{}; }
+      for(var pi=0;pi<hp.length-1;pi++){
+        if(o[hp[pi]]===undefined) o[hp[pi]]=Object.create(null);
+        if(o[hp[pi]]===null||typeof o[hp[pi]]!=='object'||(o[hp[pi]] instanceof Array)) lineErr(i, '表路径与已有值冲突：'+hp[pi]);
+        o=o[hp[pi]];
+      }
       var leaf=hp[hp.length-1];
       if(isArr){
-        var arr=o[leaf]=o[leaf]||[]; var elem={}; arr.push(elem); cur=elem;
+        if(o[leaf]===undefined) o[leaf]=[];
+        if(!(o[leaf] instanceof Array)) lineErr(i, '数组表与已有值冲突：'+leaf);
+        var elem=Object.create(null); o[leaf].push(elem); cur=elem;
       } else {
-        cur=o[leaf]=o[leaf]||{};
+        if(o[leaf]===undefined) o[leaf]=Object.create(null);
+        if(o[leaf] instanceof Array) lineErr(i, '普通表与数组表冲突：'+leaf);
+        cur=o[leaf];
       }
       continue;
     }
-    var eq=s.indexOf('='); if(eq<0) continue;
+    var eq=s.indexOf('='); if(eq<0) lineErr(i, '缺少等号，无法解析该行');
+    if(!s.slice(0,eq).trim()) lineErr(i, '键名为空');
     var key=s.slice(0,eq).trim();
     // 多行数组 / 多行内联表 / 多行三引号串：吞并后续行直到括号闭合
     var buf=stripComment(s.slice(eq+1));
@@ -404,11 +417,18 @@ function parseToml(text){
       i++;
       buf+='\n'+(tOpenTriple(buf)?lines[i]:stripComment(lines[i]));
     }
-    var kp=tSplitTop(key,'.').map(tKeyName);
-    if(!kp.length) continue;
+    if(tDepth(buf)>0||tOpenTriple(buf)) lineErr(i, '数组/内联表/三引号字符串未闭合');
+    var kp=tSplitTop(key,'.').map(tKeyName).filter(function(x){return x!=='';});
+    if(!kp.length) lineErr(i, '键名为空');
     var oo=cur;
-    for(var j=0;j<kp.length-1;j++){ oo=oo[kp[j]]=oo[kp[j]]||{}; }
-    oo[kp[kp.length-1]]=tVal(buf);
+    for(var j=0;j<kp.length-1;j++){
+      if(oo[kp[j]]===undefined) oo[kp[j]]=Object.create(null);
+      if(oo[kp[j]]===null||typeof oo[kp[j]]!=='object'||(oo[kp[j]] instanceof Array)) lineErr(i, '键路径与已有值冲突：'+kp[j]);
+      oo=oo[kp[j]];
+    }
+    var lastKey=kp[kp.length-1];
+    if(Object.prototype.hasOwnProperty.call(oo,lastKey)) lineErr(i, '重复键：'+key);
+    oo[lastKey]=tVal(buf);
   }
   return root;
 }
@@ -433,7 +453,12 @@ function dumpToml(node,sort){ return dumpTable(node,sort,''); }
 
 var src=document.getElementById('source').value||'';
 if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 TOML 文本</p>'; return; }
-var obj=parseToml(src);
+var obj;
+try{ obj=parseToml(src); }
+catch(e){
+  document.getElementById('result').innerHTML='<p style="color:var(--danger)">❌ TOML 解析失败：'+escH(e.message)+'</p>';
+  return;
+}
 if(document.getElementById('sort').checked){ obj=sortKeys(obj); }
 var iv=document.getElementById('indent').value||'2';
 var n=parseInt(iv,10); if(isNaN(n)) n=2;
@@ -441,7 +466,7 @@ var n=parseInt(iv,10); if(isNaN(n)) n=2;
 var json=JSON.stringify(obj, null, iv==='tab'?'\t':n);
 var html='<div class="result-title">JSON 输出</div><pre class="code-block">'+escH(json)+'</pre>';
 const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-function sortKeys(o){ if(!(o!==null&&typeof o==='object'))return o; if(o instanceof Array)return o.map(sortKeys); var r={};Object.keys(o).sort().forEach(function(k){r[k]=sortKeys(o[k]);}); return r; }}
+function sortKeys(o){ if(!(o!==null&&typeof o==='object'))return o; if(o instanceof Array)return o.map(sortKeys); var r=Object.create(null);Object.keys(o).sort().forEach(function(k){r[k]=sortKeys(o[k]);}); return r; }}
 function resetForm(){document.getElementById('source').value='name = "ToolBox"\nversion = "2.1"\n\n[server]\nhost = "0.0.0.0"\nport = 8080\n\n[database]\nurl = "postgres://x"\npool = 16';
       document.getElementById('indent').selectedIndex=0;
       document.getElementById('sort').checked=false;

@@ -13749,9 +13749,9 @@ const CASES = [
       "indent": "4"
     },
     "expect": [
-      "JSON 输出 {}"
+      "缺少等号"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"source\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「JSON 输出 {}」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"source\":\"1\\n2\\n3\",\"indent\":\"4\"}，第807批：`1\n2\n3` 每行都缺等号，必须报第 1 行缺少等号；旧实现静默跳过全部行并输出空对象 {}。"
   },
   {
     "slug": "it/toml-formatter",
@@ -18406,6 +18406,96 @@ const CASES = [
     clicks: ["validateJSON();var h=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='VSUNKNOWN '+((h.indexOf('未通过')>-1&&h.indexOf('不支持')>-1)?'OK':'BAD:'+h);"],
     expect: ["VSUNKNOWN OK"],
     ref: "不支持的关键字必须明确提示，不能给出完整通过结论。",
+  },
+  // ===== 第807批：Properties / TOML / TSV =====
+  {
+    slug: "it/properties-parser",
+    clicks: ["var cr=__ppUni('\\\\r'),ff=__ppUni('\\\\f'),un=__ppUni('\\\\z'),pua=String.fromCharCode(0xE000),p=__ppUni(pua);document.getElementById('__tbProbe').textContent='PPESC '+(cr===String.fromCharCode(13)&&ff===String.fromCharCode(12)&&un==='z'&&p===pua?'OK':'BAD');"],
+    expect: ["PPESC OK"],
+    ref: "第807批：\\r/\\f 必须解码、未知转义只保留字符、输入自带的 U+E000 不得被替换；旧占位符方案会改坏私有区字符。",
+  },
+  {
+    slug: "it/properties-parser",
+    clicks: ["var nl=String.fromCharCode(10);var obj={'a b':1,'#x':2,'k':'line1'+nl+'line2'};var txt=toProps(obj);var back=parseProps(txt);document.getElementById('__tbProbe').textContent='PPROUND '+((back['a b']==='1'||back['a b']===1)&&(back['#x']==='2'||back['#x']===2)&&back.k==='line1'+nl+'line2'?'OK':'BAD:'+txt);"],
+    expect: ["PPROUND OK"],
+    ref: "键含空格/以 # 开头、值含换行时，序列化后再解析必须键值一致；旧 escapeKey 不转义空格与注释符。",
+  },
+  {
+    slug: "it/properties-parser",
+    inputs: { input: "a\\ b=value\nk=line1\\nline2" },
+    clicks: ["doMinify();var out=document.getElementById('output').textContent;var back=parseProps(out);var nl=String.fromCharCode(10);document.getElementById('__tbProbe').textContent='PPMIN '+((back['a b']==='value'&&back.k==='line1'+nl+'line2')?'OK':'BAD:'+out);"],
+    expect: ["PPMIN OK"],
+    ref: "第807批：压缩必须复用转义序列化器；旧实现直接拼 key=value，空格键和 \\n 值往返即损坏。",
+  },
+  {
+    slug: "it/toml-formatter",
+    inputs: { input: '["a.b"]\nvalue = 1' },
+    clicks: ["formatToml();var out=document.getElementById('output').textContent;var back;try{back=parseToml(out);}catch(e){back=null;}var ok=!!back&&!!back['a.b']&&back['a.b'].value===1&&out.indexOf('[\"a.b\"]')>-1&&out.indexOf('[a.b]')<0;document.getElementById('__tbProbe').textContent='TMFDOT '+(ok?'OK':'BAD:'+out);"],
+    expect: ["TMFDOT OK"],
+    ref: "第807批：表名 a.b 是一个含点号的键，输出必须保留 [\"a.b\"]；旧实现拼成 [a.b] 变成两级表。",
+  },
+  {
+    slug: "it/toml-formatter",
+    inputs: { input: '[["a.b"]]\nvalue = 1' },
+    clicks: ["formatToml();var out=document.getElementById('output').textContent;var ok=out.indexOf('[[\"a.b\"]]')>-1&&out.indexOf('[[a.b]]')<0;document.getElementById('__tbProbe').textContent='TMFAOT '+(ok?'OK':'BAD:'+out);"],
+    expect: ["TMFAOT OK"],
+    ref: "数组表同样必须逐级引用，不能把 \"a.b\" 拆成 a.b 两级。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: { source: "valid = 1\nbroken" },
+    clicks: ["calcTool();var h=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='TJNOEQ '+((h.indexOf('缺少等号')>-1&&h.indexOf('第 2 行')>-1&&h.indexOf('valid')<0)?'OK':'BAD:'+h);"],
+    expect: ["TJNOEQ OK"],
+    ref: "第807批：缺等号行必须报第 2 行错误，不能再静默跳过并输出只含 valid 的结果。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: { source: "[server\nhost = \"x\"" },
+    clicks: ["calcTool();var h=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='TJHEAD '+((h.indexOf('表头缺少闭合')>-1&&h.indexOf('第 1 行')>-1)?'OK':'BAD:'+h);"],
+    expect: ["TJHEAD OK"],
+    ref: "未闭合表头必须报错并带行号，不能静默忽略。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: { source: "a = 1\na = 2" },
+    clicks: ["calcTool();var h=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='TJDUP '+((h.indexOf('重复键')>-1&&h.indexOf('第 2 行')>-1)?'OK':'BAD:'+h);"],
+    expect: ["TJDUP OK"],
+    ref: "重复键按 TOML 规范应拒绝；旧实现后值覆盖前值且不提示。",
+  },
+  {
+    slug: "it/toml-to-yaml",
+    inputs: { source: '"a.b" = 1' },
+    clicks: ["calcTool();var h=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='TYDOT '+((h.indexOf('a.b: 1')>-1&&h.indexOf('a:')<0)?'OK':'BAD:'+h);"],
+    expect: ["TYDOT OK"],
+    ref: "第807批：\"a.b\" 应作为一个 YAML 键 a.b；旧实现按点号拆成 a→b 两级。",
+  },
+  {
+    slug: "it/json-to-tsv",
+    inputs: { tsvInput: "a\ta\tb\n1\t2\t3", t2jHeader: "true", t2jFormat: "pretty", t2jIndent: "2", t2jTrim: "true", t2jNumber: "true", t2jBoolean: "true" },
+    clicks: ["tsvToJson();var o=document.getElementById('jsonOutput').value;var h=document.getElementById('t2jStats').innerHTML;document.getElementById('__tbProbe').textContent='TSVDUP '+((o.indexOf('\"a\"')>-1&&o.indexOf('\"a (2)\"')>-1&&o.indexOf('\"b\"')>-1&&h.indexOf('重复')>-1)?'OK':'BAD:'+o);"],
+    expect: ["TSVDUP OK"],
+    ref: "第807批：重复表头不得覆盖前一列，须改名并提示；旧实现普通对象赋值，第二列静默消失。",
+  },
+  {
+    slug: "it/json-to-tsv",
+    inputs: { tsvInput: "a\tb\n1\t2\t3", t2jHeader: "true", t2jFormat: "pretty", t2jIndent: "2", t2jTrim: "true", t2jNumber: "false", t2jBoolean: "false" },
+    clicks: ["tsvToJson();var o=document.getElementById('jsonOutput').value;var h=document.getElementById('t2jStats').innerHTML;document.getElementById('__tbProbe').textContent='TSVEXTRA '+((o.indexOf('\"column3\"')>-1&&o.indexOf('\"3\"')>-1&&h.indexOf('超出表头')>-1)?'OK':'BAD:'+o);"],
+    expect: ["TSVEXTRA OK"],
+    ref: "第807批：行内额外列必须补列名保留；旧实现只遍历表头，第 3 列被静默丢弃。",
+  },
+  {
+    slug: "it/json-to-tsv",
+    inputs: { tsvInput: "__proto__\tb\n1\t2", t2jHeader: "true", t2jFormat: "pretty", t2jIndent: "2", t2jTrim: "true", t2jNumber: "false", t2jBoolean: "false" },
+    clicks: ["tsvToJson();var o=document.getElementById('jsonOutput').value;document.getElementById('__tbProbe').textContent='TSVPROTO '+((o.indexOf('\"__proto__\"')>-1)?'OK':'BAD:'+o);"],
+    expect: ["TSVPROTO OK"],
+    ref: "特殊表头 __proto__ 必须作为自有键完整输出；旧普通对象 row[k]= 触发原型 setter 丢失。",
+  },
+  {
+    slug: "it/json-to-tsv",
+    inputs: { tsvInput: "a\tb\n1", t2jHeader: "true", t2jFormat: "pretty", t2jIndent: "2", t2jTrim: "true", t2jNumber: "false", t2jBoolean: "false" },
+    clicks: ["tsvToJson();var o=document.getElementById('jsonOutput').value;var h=document.getElementById('t2jStats').innerHTML;document.getElementById('__tbProbe').textContent='TSVWIDTH '+((o.indexOf('\"b\": \"\"')>-1&&h.indexOf('宽度不一致')>-1)?'OK':'BAD:'+o);"],
+    expect: ["TSVWIDTH OK"],
+    ref: "缺列按空串补齐且必须提示宽度不一致，不能静默输出缺字段行。",
   },
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
