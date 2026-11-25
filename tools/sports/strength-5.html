@@ -195,21 +195,23 @@ function getNum(id){return parseFloat(document.getElementById(id).value);}
 function setInvalid(el,invalid){if(!el)return;if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
 function readInputs(){
   var tot=getNum('total'),d=getNum('days');
-  var valid=!isNaN(tot)&&tot>0&&!isNaN(d)&&d>=2&&d<=7;
-  setInvalid(document.getElementById('total'),isNaN(tot)||tot<=0);
-  setInvalid(document.getElementById('days'),isNaN(d)||d<2||d>7);
+  var totInt=!isNaN(tot)&&tot>0&&Math.abs(tot-Math.round(tot))<1e-9;
+  var dInt=!isNaN(d)&&d>=2&&d<=7&&Math.abs(d-Math.round(d))<1e-9;
+  var valid=totInt&&dInt;
+  setInvalid(document.getElementById('total'),!totInt);
+  setInvalid(document.getElementById('days'),!dInt);
   return {tot:isNaN(tot)?0:tot,d:isNaN(d)?0:d,valid:valid};
 }
 var DAY_LABEL=['周一','周二','周三','周四','周五','周六','周日'];
 function calc(){
   var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<div class="info-box" style="color:var(--danger);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请填写有效数值（总时间大于 0，周训练天数需在 2–7 天之间）</div>';
+    document.getElementById('res').innerHTML='<div class="info-box" style="color:var(--danger);background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请填写有效的整数分钟（总时间大于 0，周训练天数需在 2–7 天之间）</div>';
     return;
   }
-  var total=iv.tot,days=Math.round(iv.d);
-  var highVol=total*0.20;
-  var lowVol=total*0.80;
+  var total=Math.round(iv.tot),days=Math.round(iv.d);
+  var highVol=Math.round(total*0.20);
+  var lowVol=total-highVol;
   // 高强度日数：2-3 天，间隔分布
   var highDays;
   if(days<=3)highDays=1;
@@ -217,8 +219,15 @@ function calc(){
   else highDays=3;
   if(highDays>=days)highDays=Math.max(1,Math.floor(days/2));
   var lowDays=days-highDays;
-  var perHigh=highDays>0?(highVol/highDays):0;
-  var perLow=lowDays>0?(lowVol/lowDays):0;
+  function splitMins(sum,n){
+    var base=Math.floor(sum/n),rem=sum-base*n,arr=[];
+    for(var k=0;k<n;k++)arr.push(base+(k<rem?1:0));
+    return arr;
+  }
+  var highAlloc=splitMins(highVol,highDays),lowAlloc=splitMins(lowVol,lowDays);
+  var highIdx=0,lowIdx=0;
+  var perHighTxt=highAlloc.length?(highAlloc[0]===highAlloc[highAlloc.length-1]?String(highAlloc[0]):Math.min.apply(null,highAlloc)+'–'+Math.max.apply(null,highAlloc)):'0';
+  var perLowTxt=lowAlloc.length?(lowAlloc[0]===lowAlloc[lowAlloc.length-1]?String(lowAlloc[0]):Math.min.apply(null,lowAlloc)+'–'+Math.max.apply(null,lowAlloc)):'0';
   // 间隔分布高强度日（尽量分散）
   var isHigh={};
   var step=Math.floor(days/highDays);
@@ -227,13 +236,13 @@ function calc(){
   var schedHtml='<div style="margin-top:10px;max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:12px;padding:10px;">';
   for(var day=0;day<days;day++){
     var hi=!!isHigh[day];
-    var mins=Math.round(hi?perHigh:perLow);
+    var mins=hi?highAlloc[highIdx++]:lowAlloc[lowIdx++];
     var color=hi?'#B91C1C':'#065F46';
     var tag=hi?'高强度 Z4-Z5':'低强度 Z1-Z2';
     schedHtml+='<div class="step-line" style="border-left-color:'+color+';"><strong>'+(DAY_LABEL[day]||('第'+(day+1)+'天'))+'</strong> · '+tag+' · '+mins+' 分钟</div>';
   }
   schedHtml+='</div>';
-  var actualHighPct=(highVol/total*100);
+  var actualHighPct=highVol/total*100;
   const __g2='<div class="data-grid">'+
     '<div class="data-card"><div class="num">'+lowVol.toFixed(0)+'</div><div class="label">低强度总量 (min)</div></div>'+
     '<div class="data-card"><div class="num">'+highVol.toFixed(0)+'</div><div class="label">高强度总量 (min)</div></div>'+
@@ -241,13 +250,13 @@ function calc(){
     '<div class="data-card"><div class="num">'+highDays+'</div><div class="label">高强度天数</div></div>'+
     '</div>'+
     '<div class="data-grid" style="margin-top:8px;">'+
-    '<div class="data-card"><div class="num">'+perLow.toFixed(0)+'</div><div class="label">每次低强度 (min)</div></div>'+
-    '<div class="data-card"><div class="num">'+perHigh.toFixed(0)+'</div><div class="label">每次高强度 (min)</div></div>'+
+    '<div class="data-card"><div class="num">'+perLowTxt+'</div><div class="label">每次低强度 (min)</div></div>'+
+    '<div class="data-card"><div class="num">'+perHighTxt+'</div><div class="label">每次高强度 (min)</div></div>'+
     '<div class="data-card"><div class="num">'+actualHighPct.toFixed(0)+'%</div><div class="label">高强度占比</div></div>'+
     '<div class="data-card"><div class="num">'+(total/days).toFixed(0)+'</div><div class="label">日均训练 (min)</div></div>'+
     '</div>'+
     '<div style="margin-top:10px;"><span class="grade-tag grade-good">80/20 极化分布</span></div>'+
-    '<div class="info-box" style="margin-top:10px;">📌 高强度日已间隔分布，建议高强度日前后安排低强度或休息，保证恢复。</div>'+
+    '<div class="info-box" style="margin-top:10px;">📌 逐日分钟按总量精确分配（合计 '+total+' 分钟，与输入总时间一致；除不尽时单次差 ≤1 分钟）。高强度日已间隔分布，建议前后安排低强度或休息，保证恢复。</div>'+
     schedHtml;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   saveHistory(iv,lowVol,highVol,highDays);
 }

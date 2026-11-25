@@ -236,10 +236,15 @@ function calc(){
   zoneHtml+='<div class="step-line" style="border-left-:var(--warning);"><strong>Z3 节奏</strong> · 接近 '+z3Max+' bpm · 阈值耐力</div>';
   zoneHtml+='<div class="step-line" style="border-left-color:#B91C1C;"><strong>Z4-Z5 阈值以上</strong> · 高于 '+z3Max+' bpm · 无氧/VO2max</div>';
   zoneHtml+='</div>';
-  var maxLa=pts[pts.length-1].la;
+  var maxLa=pts[0].la,nonMono=false;
+  for(var j=1;j<pts.length;j++){
+    if(pts[j].la>maxLa)maxLa=pts[j].la;
+    if(pts[j].la+1e-9<pts[j-1].la)nonMono=true;
+  }
   var advise;
   if(oblaHR===null){advise='当前数据最高血乳酸 '+maxLa.toFixed(1)+'mmol/L，未达 OBLA，建议补充更高强度测试点以确定无氧阈值。';}
   else{advise='建议阈值训练控制在 '+oblaHR.toFixed(0)+' bpm 附近，节奏跑低于此值 5~10 bpm，间歇高于此值。';}
+  var monoNote=nonMono?'<div class="info-box" style="margin-top:8px;color:var(--warning)">⚠ 按心率升序排列后血乳酸并非单调上升（存在下降点），可能为采样误差或恢复段混入；插值结果与训练区间仅作参考，建议复核测试流程。</div>':'';
   const __g2='<div class="data-grid">'+
     '<div class="data-card"><div class="num">'+baseline.toFixed(1)+'</div><div class="label">基线乳酸 (mmol/L)</div></div>'+
     '<div class="data-card"><div class="num">'+ltHRstr+'</div><div class="label">LT 心率 (bpm)</div></div>'+
@@ -247,7 +252,7 @@ function calc(){
     '<div class="data-card"><div class="num">'+pts.length+'</div><div class="label">数据点数</div></div>'+
     '</div>'+
     '<div class="info-box" style="margin-top:10px;">📌 '+ltNote+'；'+oblaNote+'</div>'+
-    '<div class="info-box" style="margin-top:8px;">🎯 '+advise+'</div>'+
+    '<div class="info-box" style="margin-top:8px;">🎯 '+advise+'</div>'+monoNote+
     zoneHtml;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   saveHistory(pts.length,ltHRstr,oblaHRstr);
 }

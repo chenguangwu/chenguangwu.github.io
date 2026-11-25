@@ -195,6 +195,9 @@
           <option value="relax">放松修复</option>
         </select>
       </div>
+      <div>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:500;"><input type="checkbox" id="allowRelax" onchange="generate()" style="width:auto;"> 重点体式不足 5 个时允许放宽重点</label>
+      </div>
     </div>
 
     <div class="toolbar">
@@ -348,6 +351,7 @@ function generate() {
   var difficulty = document.getElementById('difficulty').value;
   var duration = parseInt(document.getElementById('duration').value);
   var focus = document.getElementById('focus').value;
+  var allowRelax = !!(document.getElementById('allowRelax') && document.getElementById('allowRelax').checked);
 
   // Filter poses
   var pool = POSES.filter(function(p) {
@@ -355,12 +359,17 @@ function generate() {
     var focusOk = focus === 'all' || p.focus === focus;
     return levelOk && focusOk;
   });
-
-  // 池不足时在同难度内放宽「练习重点」筛选（保持难度诚实，不跨级混入其他难度的体式）
-  if (pool.length < 5) {
+  var matchedCount = pool.length, focusApplied = focus, widened = false;
+  if (pool.length < 5 && allowRelax) {
     pool = POSES.filter(function(p) {
       return difficulty === 'mixed' || p.level === difficulty;
     });
+    widened = true;
+    focusApplied = 'all';
+  }
+  if (!pool.length) {
+    document.getElementById('result').innerHTML = '<div class="info-box" style="color:var(--danger)">⚠ 当前难度下没有符合「'+FOCUS_NAMES[focus]+'」的体式。请更换练习重点、切换难度，或勾选「允许放宽重点」后重新生成。</div>';
+    return;
   }
 
   // Always include warmup and cooldown
@@ -433,8 +442,13 @@ function generate() {
   html += '<div class="seq-stat"><div class="val">' + poseCount + '</div><div class="lbl">体式数量</div></div>';
   html += '<div class="seq-stat"><div class="val">' + totalMin + ' min</div><div class="lbl">总时长</div></div>';
   html += '<div class="seq-stat"><div class="val"><span class="diff-badge">' + LEVEL_NAMES[difficulty] + '</span></div><div class="lbl">难度</div></div>';
-  html += '<div class="seq-stat"><div class="val">' + FOCUS_NAMES[focus] + '</div><div class="lbl">练习重点</div></div>';
+  html += '<div class="seq-stat"><div class="val">' + FOCUS_NAMES[focusApplied] + '</div><div class="lbl">实际练习重点</div></div>';
   html += '</div>';
+  if (matchedCount < 5) {
+    html += '<div class="info-box" style="margin-bottom:10px;color:' + (widened?'var(--text-muted)':'var(--warning)') + '">' + (widened
+      ? '⚠ 「'+FOCUS_NAMES[focus]+'」仅匹配 '+matchedCount+' 个体式（不足 5 个），已按你的勾选放宽为「'+LEVEL_NAMES[difficulty]+'难度 + 全部重点」；实际筛选条件见上方。'
+      : '⚠ 「'+FOCUS_NAMES[focus]+'」仅匹配 '+matchedCount+' 个体式（不足 5 个）。本次未自动放宽，仍按原重点生成；如接受放宽，请勾选「允许放宽重点」。') + '</div>';
+  }
 
   // Pose cards
   var phaseOrder = ['热身', '主体', '放松'];

@@ -133,7 +133,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="基于 PADI 公制免减压表，计算给定深度的免减压极限、最大操作深度与压力组">Based on the PADI metric no-decompression table, compute the no-decompression limit, maximum operating depth and pressure group for a given depth.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">NDL 按深度表线性插值；MOD = (1.4/FO₂ − 1)×10（m）；绝对压 = 深度/10 + 1（bar）</div>
+      <div class="formula-eq">NDL 按 PADI 公制表档查取（非表深向上取档，超 42m 不外推）；MOD = (1.4/FO₂ − 1)×10（m）；绝对压 = 深度/10 + 1（bar）</div>
       <p class="formula-desc">基于 PADI 公制免减压表，计算给定深度的免减压极限、最大操作深度与压力组</p>
     </div>
 
@@ -249,19 +249,14 @@
   </div>
 </div>
 <script>
-// PADI 公制免减压表锚点（深度m -> NDL min）
+// PADI 公制休闲潜水免减压表锚点（深度m -> NDL min，单次、无残余氮、海平面）
+// 仅用于查表：不做线性插值/外推，非表深一律向上取到下一档表深（更保守），超 42m 不给值
 var NDL_TABLE=[[9,200],[12,147],[15,98],[18,56],[21,40],[24,29],[27,22],[30,20],[33,16],[36,13],[39,10],[42,8]];
 function ndlAt(depth){
-  if(depth<=NDL_TABLE[0][0])return 200;
-  for(var i=0;i<NDL_TABLE.length-1;i++){
-    var d0=NDL_TABLE[i][0],d1=NDL_TABLE[i+1][0];
-    if(depth>=d0&&depth<=d1){
-      var t=NDL_TABLE[i][1],t1=NDL_TABLE[i+1][1];
-      var r=(depth-d0)/(d1-d0);
-      return Math.round(t+(t1-t)*r);
-    }
+  for(var i=0;i<NDL_TABLE.length;i++){
+    if(depth<=NDL_TABLE[i][0])return {ndl:NDL_TABLE[i][1],tableDepth:NDL_TABLE[i][0]};
   }
-  return Math.max(1,Math.round(NDL_TABLE[NDL_TABLE.length-1][1]*Math.pow(0.7,(depth-42)/3)));
+  return null;
 }
 function setInvalid(el,inv){if(!el)return;if(inv){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
 function calc(){
@@ -282,36 +277,34 @@ function calc(){
     eadDepth=((1-fo2)/0.79*pAbs-1)*10;
     eadNote='等效空气深度(EAD)';
   }
-  var ndl=ndlAt(eadDepth);
+  var ndlInfo=ndlAt(eadDepth);
+  var ndl=ndlInfo?ndlInfo.ndl:null;
   var overMod=depth>mod14;
-  var overNdl=(!isNaN(bt))&&bt>ndl;
-  var sHtml='<div class="data-card"><div class="num">'+ndl+'</div><div class="label">免减压极限 min</div></div>'+
+  var overNdl=ndl!==null&&(!isNaN(bt))&&bt>ndl;
+  var tableNote=ndlInfo?('按 '+ndlInfo.tableDepth+' m 表档取值'+(ndlInfo.tableDepth!==Math.round(eadDepth*2)/2?'（深度非表深，已向上取档更保守）':'')):'深度超出表范围，不外推';
+  var sHtml='<div class="data-card"><div class="num">'+(ndl===null?'—':ndl)+'</div><div class="label">免减压极限 min</div></div>'+
     '<div class="data-card"><div class="num">'+mod14.toFixed(1)+'</div><div class="label">MOD 1.4 ata m</div></div>'+
     '<div class="data-card"><div class="num">'+(gas==='air'?depth.toFixed(1):eadDepth.toFixed(1))+'</div><div class="label">'+(gas==='air'?'深度 m':'EAD m')+'</div></div>'+
-    '<div class="data-card"><div class="num">'+(isNaN(bt)?'–':pressureGroup(bt,ndl))+'</div><div class="label">压力组(估算)</div></div>';
+    '<div class="data-card"><div class="num">—</div><div class="label">压力组（需查表）</div></div>';
   const __g3=sHtml;document.getElementById('summary').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   var html='<h3>潜水计划详情</h3>';
   html+='<p>呼吸气体：<strong>'+(gas==='air'?'空气 (21% O₂)':gas==='nx32'?'高氧 32% (EAN32)':'高氧 36% (EAN36)')+'</strong></p>';
   html+='<p>实际深度：<strong>'+depth.toFixed(1)+' m</strong>（绝对压力 '+(depth/10+1).toFixed(2)+' ata，氧分压 '+(fo2*(depth/10+1)).toFixed(2)+' ata）</p>';
   if(gas!=='air'){html+='<p>等效空气深度(EAD)：<strong>'+eadDepth.toFixed(1)+' m</strong>，按空气表查得 NDL</p>';}
   html+='<p>最大操作深度 MOD：<strong>'+mod14.toFixed(1)+' m</strong>（ppO₂=1.4 标准）/ '+mod16.toFixed(1)+' m（ppO₂=1.6 应急）</p>';
-  html+='<p>免减压极限(NDL)：<strong>'+ndl+' 分钟</strong></p>';
-  if(!isNaN(bt)){
-    html+='<p>计划停留：'+bt+' 分钟，'+(overNdl?'<span style="color:var(--danger);font-weight:600;">已超过 NDL，需执行减压停留！</span>':'<span style="color:var(--success);font-weight:600;">在免减压范围内</span>')+'（剩余 '+(overNdl?'0':(ndl-bt))+' min）</p>';
-    html+='<p>估算出水压力组：<strong>'+pressureGroup(bt,ndl)+'</strong></p>';
+  html+='<p>免减压极限(NDL)：<strong>'+(ndl===null?'—（'+tableNote+'）':ndl+' 分钟')+'</strong>'+(ndl===null?'':'（'+tableNote+'）')+'</p>';
+  if(!isNaN(bt)&&ndl!==null){
+    html+='<p>计划停留：'+bt+' 分钟，'+(overNdl?'<span style="color:var(--danger);font-weight:600;">已超过本档 NDL，须按潜水表执行减压程序并寻求专业指导！</span>':'<span style="color:var(--warning);font-weight:600;">未超过本档 NDL 限值</span>')+'（'+(overNdl?'超出 '+(bt-ndl):'余量 '+(ndl-bt))+' min）。<strong>「未超过限值」不等于本次潜水安全</strong>：本页未计入前序潜水残余氮、水面间隔、上升速率、安全停留、疲劳/寒冷/脱水与个体差异。</p>';
+    html+='<p>出水压力组：<strong>不提供</strong>。真实压力组须依据完整潜水史（深度-时间剖面、水面间隔、前次压力组）查 PADI RDP 表或潜水电脑，任何按单次停留比例推算的结果都不可用于实际潜水。</p>';
+  }else if(!isNaN(bt)){
+    html+='<p>计划停留：'+bt+' 分钟。当前深度不在免减压表范围内，本页不推算 NDL，也不提供压力组。</p>';
   }
-  html+='<div class="tip-box tip-info" style="margin-top:8px;">✅ 建议安全停留：5 米处停留 3 分钟；上升速率 ≤ 9 米/分钟。'+(gas!=='air'?'高氧潜水注意氧中毒与氧气暴露限制。':'')+'</div>';
+  html+='<div class="tip-box tip-info" style="margin-top:8px;">ℹ️ 数据来源：PADI 公制休闲潜水免减压表（单次、海平面、无残余氮）。实际潜水须使用正式潜水表/潜水电脑并计入完整潜水史；本页不替代潜水培训、潜水计划或专业指导。建议安全停留：5 米处停留 3 分钟，上升速率 ≤ 9 米/分钟。'+(gas!=='air'?'高氧潜水注意氧中毒与氧气暴露限制。':'')+'</div>';
   if(overMod){html='<div class="tip-box tip-error" style="margin-top:8px;">⛔ 超过该气体 MOD（'+mod14.toFixed(1)+'m），氧分压超标，严禁下潜至该深度！</div>'+html;}
   if(overNdl){html+='<div class="tip-box tip-error" style="margin-top:8px;">⛔ 停留时间超过免减压极限，必须执行减压停留，建议寻求专业指导。</div>';}
   const __g4=html;document.getElementById('info').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
-function pressureGroup(bt,ndl){
-  if(isNaN(bt)||ndl<=0)return '–';
-  if(bt<=0)return 'A';
-  var f=Math.min(1,bt/ndl);
-  var idx=Math.round(f*25);
-  return String.fromCharCode(65+idx);
-}
+function pressureGroup(){return '—';}
 function copyRes(){
   var t=(document.getElementById('summary').innerText+'\n'+document.getElementById('info').innerText).trim();
   ToolBox.copyText(t, i18nText());
