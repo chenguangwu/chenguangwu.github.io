@@ -32,8 +32,7 @@ const CASES = [
 {
   "slug": "ceramics/glaze-ratio",
   "inputs": {
-    "totalW": "1500",
-    "w_'+idx+'": "-"
+    "totalW": "1500"
   },
   "expect": [
     "375.0"
@@ -95,20 +94,75 @@ const CASES = [
   "inputs": {"diameter":"23","maxRpm":"60"},
   "expect": ["超过设备最高 60 rpm", "可用转速 ≈ 60 rpm（设备限幅后）"],
   "ref": "第828批：23cm 开孔标准偏好理论约 90 rpm，设备最高 60 rpm 时限幅到 60；旧实现硬编码 30–320 且仍称推荐。现在显示理论/可用/实际/偏差并明确限幅，探针断超限说明与可用转速文案。"
+},
+{
+  "slug": "ceramics/glaze-ratio",
+  "clicks": ["MATS[0].pct='';calc();var w=document.getElementById('w_0');document.getElementById('__tbProbe').textContent='GBLANK '+((document.getElementById('result').innerHTML.indexOf('比例为必填')>=0&&w&&w.value==='—')?'OK':'BAD');"],
+  "expect": ["GBLANK OK"],
+  "ref": "清空第 1 项比例后必须报“比例为必填”并把称量表置 —；旧实现把空串 Number 成 0 继续，可能显示合格。"
+},
+{
+  "slug": "ceramics/glaze-ratio",
+  "clicks": ["calc();var w=document.getElementById('w_0');var before=w.value;document.getElementById('totalW').value='0';calc();document.getElementById('__tbProbe').textContent='GTOTAL '+((before!=='—'&&before!=='')?'BEFORE_OK':'BEFORE_BAD')+' '+((w.value==='—')?'CLEAR_OK':'CLEAR_BAD');"],
+  "expect": ["GTOTAL BEFORE_OK CLEAR_OK"],
+  "ref": "先算有效配方，再把总重设为 0：原先提前 return 保留上一批克数，现同步把所有称量输入置 —。"
+},
+{
+  "slug": "ceramics/glaze-ratio",
+  "clicks": ["MATS[0].name='<img src=x onerror=window.__inj=1>';renderMats();calc();var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ceramics/glaze-ratio.html','utf8');var seg=h.slice(h.indexOf('function renderMats'),h.indexOf('function updateMat'));var b=document.querySelectorAll('#result img').length,t=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='GINJ '+((seg.indexOf('innerHTML=')>=0&&seg.indexOf('+m.name')<0&&seg.indexOf('name.value=m.name')>=0)?'DOM_OK':'DOM_BAD')+' '+b+' '+(t.indexOf('&lt;img')>=0?'ESC_OK':'ESC_BAD');"],
+  "expect": ["GINJ DOM_OK 0 ESC_OK"],
+  "ref": "原料名通过 DOM value/textContent 与结果表 escHtml 输出，引号/尖括号不会生成真实 img 节点。"
+},
+{
+  "slug": "ceramics/glaze-ratio",
+  "clicks": ["var cb=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){},exportTable:function(){}},matrix:{table:function(){}},chart:{line:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(sel,f){cb=f;}}};__glaze_ratioRender(['totalW'],'结果',false);cb({totalW:'500',method:'0.8',__mats:'[{\"name\":\"A料\",\"pct\":\"50\"},{\"name\":\"B料\",\"pct\":\"50\"}]'});document.getElementById('__tbProbe').textContent='GHIST '+MATS.length+' '+MATS[0].name+' '+MATS[0].pct;"],
+  "expect": ["GHIST 2 A料 50"],
+  "ref": "历史记录携带 __mats 完整清单；恢复时先重建列表再回填输入并计算，避免只恢复总重/方法。"
+},
+{
+  "slug": "ceramics/clay-shrinkage",
+  "clicks": ["var cb=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){},exportTable:function(){}},matrix:{table:function(){}},chart:{line:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(sel,f){cb=f;}}};__clay_shrinkageRender(['wet','dry','fired','targetFired','totalShrink'],'结果',false);cb({wet:'120',dry:'112',fired:'100',targetFired:'200',totalShrink:'20'});var r=document.getElementById('reverseResult').innerHTML;document.getElementById('__tbProbe').textContent='CHIST '+((r.indexOf('250.00')>=0)?'OK':'BAD');"],
+  "expect": ["CHIST OK"],
+  "ref": "恢复历史时同时重算正算与反算；旧实现只调 calc()，反算区仍留上一组结果。"
+},
+{
+  "slug": "ceramics/ceramic-firing",
+  "clicks": ["var cb=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){},exportTable:function(){}},matrix:{table:function(){}},chart:{line:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(sel,f){cb=f;}}};__ceramic_firingRender(['fireType'],'结果',false);cb({fireType:'bisque',__clay:'porcelain'});document.getElementById('__tbProbe').textContent='CFCLAY '+selectedClay;"],
+  "expect": ["CFCLAY porcelain"],
+  "ref": "历史记录保存 __clay；恢复时先还原泥料选择再 renderCurve，跨泥料回放不被当前选择覆盖。"
+},
+{
+  "slug": "ceramics/wheel-speed",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ceramics/wheel-speed.html','utf8');var i=h.indexOf('function copyResult');var seg=h.slice(i,i+420);document.getElementById('__tbProbe').textContent='WCOPY '+((seg.indexOf('#result .big-result')>=0&&seg.indexOf('当前没有有效计算结果')>=0&&seg.indexOf('拉坯转速结果')<0)?'OK':'BAD');"],
+  "expect": ["WCOPY OK"],
+  "ref": "无效直径时结果区无 .big-result，copyResult 必须提示而不是复制占位“拉坯转速结果”并报成功。"
+},
+{
+  "slug": "ceramics/kiln-firing",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ceramics/kiln-firing.html','utf8');var i=h.indexOf('function __kfExport');var seg=h.slice(i,i+1200);var zh=__kfTr('排湿',false),en=__kfTr('排湿',true),nm=__kfName('素烧（Bisque）',true);document.getElementById('__tbProbe').textContent='KEXP '+((zh==='排湿'&&en==='Drying'&&nm==='Bisque'&&seg.indexOf('Type')>=0&&seg.indexOf('Stage')>=0&&seg.indexOf('Temp Range')>=0&&seg.indexOf('类型')>=0&&seg.indexOf('温度区间')>=0&&seg.indexOf('__kfTr(st[4],en)')>=0)?'OK':'BAD');"],
+  "expect": ["KEXP OK"],
+  "ref": "导出表头与每行字段按当前语言生成：中文态全中文表头/名称，英文态全英文名称、阶段、速率与保温；不再只切文件名。"
+},
+{
+  "slug": "ceramics/clay-shrinkage",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ceramics/clay-shrinkage.html','utf8');var i=h.indexOf('data-related-tools');var seg=h.slice(i,i+1500);var n=seg.split('related-tool-card').length-1;var biz=seg.indexOf('../biz')>=0;document.getElementById('__tbProbe').textContent='CREL '+((n>=4&&!biz)?'OK':'BAD');"],
+  "expect": ["CREL OK"],
+  "ref": "相关工具改为陶瓷工序同类工具（泥料/釉料/拉坯/窑炉/烧成），不再推荐演讲计时、Markdown、Zalgo 等无关工具。"
 }
-
 ];
 async function main() {
   const only = process.argv.slice(2);
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
+  let __idx=0;
   for (const c of cases) {
+    __idx++;
     try {
       const r = await runCase(c);
       if (r.ok) { pass++; }
       else {
         fails.push(c.slug);
-        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        console.log("❌ #" + __idx + " " + c.slug + "  " + (r.why || "no expect match"));
         if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
         if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
       }

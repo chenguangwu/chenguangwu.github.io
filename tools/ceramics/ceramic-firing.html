@@ -474,6 +474,7 @@ function __ceramic_firingSnap(){
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
+    out.__clay=selectedClay;
     return out;
 }
 function __ceramic_firingResText(){
@@ -497,6 +498,7 @@ function __ceramic_firingTime(t){
 function __ceramic_firingRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
+        keys=keys.filter(function(k){return k!=='__clay';});
         var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__ceramic_firingTime(it.t)];
@@ -511,6 +513,14 @@ function __ceramic_firingRender(keys,rk,en){
         TBKit.history.mount('#ceramic_firingHist',function(rec){
             __ceramic_firing_skip=true;
             try{
+                if(rec.__clay && CLAYS.some(function(c){return c.id===rec.__clay;})){
+                    selectedClay=rec.__clay;
+                    renderClays();
+                }else if(rec.__clay===undefined){
+                    ToolBox.showToast('该历史记录未保存泥料选择，已按当前泥料重绘','warn');
+                }else{
+                    ToolBox.showToast('该历史记录的泥料无法识别，已按当前泥料重绘','warn');
+                }
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
@@ -537,7 +547,7 @@ function __ceramic_firingExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__ceramic_firing_skip) return;
     var snap=__ceramic_firingSnap();
-    var keys=Object.keys(snap);
+    var keys=Object.keys(snap).filter(function(k){return k!=='__clay';});
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__ceramic_firingResText();
@@ -553,11 +563,12 @@ function __ceramic_firingExtras(){
         for(var i=0;i<keys.length;i++){
             if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
         }
-        if(same&&String(last[rk])===String(res)) return;
+        if(same&&String(last.__clay||'')===String(snap.__clay||'')&&String(last[rk])===String(res)) return;
     }
     __ceramic_firing_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec.__clay=snap.__clay;
     rec[rk]=res;
     rec.__tbScore=__ceramic_firingScore(res);
     TBKit.history.record(rec);
@@ -568,7 +579,7 @@ function __ceramic_firingExport(){
     try{
         var box=document.querySelector('#ceramic_firingTable');
         if(!box||!box.querySelector('tr')){
-            var snap=__ceramic_firingSnap(); var keys=Object.keys(snap);
+            var snap=__ceramic_firingSnap(); var keys=Object.keys(snap).filter(function(k){return k!=='__clay';});
             if(keys.length>12) keys=keys.slice(0,12);
             var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __ceramic_firingRender(keys,en?'Result':'结果',en);
