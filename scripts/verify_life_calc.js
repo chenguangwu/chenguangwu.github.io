@@ -3808,6 +3808,36 @@ const CASES = [
     clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown-1.html','utf8');document.getElementById('__tbProbe').textContent='RETARGET '+((src.indexOf('clearTimeout(finishTimer)')>=0&&src.indexOf('var wasRunning=state.running')>=0&&src.indexOf('setTimeout(finishNow,state.target)')>=0)?'OK':'BAD');"],
     expect: ["RETARGET OK"],
     ref: "第911批：运行中改目标旧实现不清旧到期定时器；现原子取消 raf/旧 timer、从零重设并按新目标重新调度。"
+  },
+  {
+    slug: "life/percentage-calculator",
+    clicks: ["document.getElementById('isWhatX').value='25';document.getElementById('isWhatY').value='100';calcIsWhat();document.getElementById('isWhatY').value='0';calcIsWhat();document.getElementById('__tbProbe').textContent='PCTBAR '+(document.getElementById('isWhatFill').style.width==='0%'?'OK':'BAD '+document.getElementById('isWhatFill').style.width);"],
+    expect: ["PCTBAR OK", "分母不能为 0"],
+    ref: "第912批：分母为 0 时结果变 --，但旧进度条保留上次 25% 宽度；现无效态把 fill 宽度归零并明确提示分母不能为 0。"
+  },
+  {
+    slug: "life/volume-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/volume-converter.html','utf8');document.getElementById('__tbProbe').textContent='VOLFORM '+((src.indexOf('源单位的毫升系数 ÷ 目标单位的毫升系数')>=0&&src.indexOf('源系数 ÷ 目标系数')<0)?'OK':'BAD');"],
+    expect: ["VOLFORM OK"],
+    ref: "第912批：页面公式原写反方向（源系数÷目标系数会让 1 L=0.001 mL）；现改为源毫升系数÷目标毫升系数，与 convert 实现一致。"
+  },
+  {
+    slug: "life/color-name-finder",
+    clicks: ["document.getElementById('color-input').value='#FF0000';searchColor();document.getElementById('__tbProbe').textContent='PICKER '+((document.getElementById('color-picker').value.toLowerCase()==='#ff0000')?'OK':'BAD '+document.getElementById('color-picker').value);"],
+    expect: ["PICKER OK"],
+    ref: "第912批：手动输入 #FF0000 后预览变红但选择器仍停留靛色；现有效色值（含 3 位展开）同步写回 #color-picker。"
+  },
+  {
+    slug: "life/density-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/density-converter.html','utf8');document.getElementById('__tbProbe').textContent='DENSEN '+((src.indexOf('namesEn')>=0&&src.indexOf('Density must be greater than 0.')>=0&&src.indexOf('namesEn')>=0&&src.indexOf('Base')>=0)?'OK':'BAD');"],
+    expect: ["DENSEN OK"],
+    ref: "第912批：英文态动态单位名/基准/校验提示原为固定中文；现按 isEn() 输出英文单位名与提示。"
+  },
+  {
+    slug: "life/cycle-4",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/cycle-4.html','utf8');document.getElementById('__tbProbe').textContent='OVERCUT '+((src.indexOf('var deducted = amount')>=0&&src.indexOf('deducted = sup.stock')>=0&&src.indexOf('amount: deducted')>=0&&src.indexOf('requestedAmount: amount')>=0)?'OK':'BAD');"],
+    expect: ["OVERCUT OK"],
+    ref: "第912批：超库存登记原记录全部消耗量但只扣库存；现确认后按实际扣减量记账，同时保留 requestedAmount 供追溯。"
   }
 ];
 
