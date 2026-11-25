@@ -289,8 +289,18 @@ function calc(){
   }
   // 日期控件值为 YYYY-MM-DD：按本地年月日构造，避免 new Date('YYYY-MM-DD') 按 UTC 解析后在负时区偏移一天
   const parts = str.split('-');
-  const date = new Date(+parts[0], +parts[1] - 1, +parts[2]);
-  const y = date.getFullYear();
+  const y = +parts[0], mo = +parts[1], day = +parts[2];
+  if(parts.length !== 3 || !Number.isInteger(y) || y < 1 || y > 9999 || !Number.isInteger(mo) || mo < 1 || mo > 12 || !Number.isInteger(day) || day < 1 || day > 31){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请输入 0001–9999 年的有效公历日期</p>';
+    return;
+  }
+  // 先以 2000 年建日期再 setFullYear，避免 0–99 年被 Date 映射到 1900–1999 年
+  const date = new Date(2000, 0, 1);
+  date.setFullYear(y, mo - 1, day);
+  if(date.getFullYear() !== y || date.getMonth() !== mo - 1 || date.getDate() !== day){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">该日期不存在，请检查月份与天数</p>';
+    return;
+  }
   const m = date.getMonth() + 1;
   const d = date.getDate();
   // 生肖按农历年（春节换年）：优先用 Intl 中国历法取年份，取不到时回退公历年份
