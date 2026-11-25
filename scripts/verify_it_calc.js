@@ -13974,17 +13974,58 @@ const CASES = [
   },
   {
     "slug": "it/yaml-formatter",
-    "inputs": {
-      "input": "1\n2\n3",
-      "yaml-input": "1\n2\n3",
-      "json-input": "1\n2\n3",
-      "indent": "4"
-    },
-    "expect": [
-      "h-CN\" } }\n4\n❌ undefined\n✅ YAML 语法验证通过！结构合法。\n{}\n{}\n转换失败: Unexpected non-whitespace character after JSON at position 2 (li",
-      "level: info\n4\n✅ YAML 语法验证通过！结构合法。"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"yaml-input\":\"1\\n2\\n3\",\"json-input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「h-CN\" } }\n4\n❌ undefined\n✅ YAML 语法验证通过！结构…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
+    "inputs": { "input": "items:\n  - one\n  - two" },
+    "clicks": ["formatYaml();var h=String(document.getElementById('output').textContent||'');document.getElementById('__tbProbe').textContent='YSEQ '+((h.indexOf('items:')>=0&&h.indexOf('- one')>=0&&h.indexOf('- two')>=0)?'OK':'BAD:'+h.slice(0,90));"],
+    "expect": ["YSEQ OK"],
+    "ref": "第797批：常见嵌套序列 `items:\n  - one\n  - two` 必须正常格式化。旧手写解析器把父键当数组再 push ⇒ `arr.push is not a function`；现改用 js-yaml。默认样例无 one/two ⇒ 判别明确。"
+  },
+  {
+    "slug": "it/yaml-formatter",
+    "inputs": { "json-input": "{\"a\":\"true\",\"b\":\"\",\"x\":[],\"y\":{},\"nested\":[{\"a\":{\"b\":1}}]}" },
+    "clicks": ["jsonToYaml();var h=String(document.getElementById('yaml-output').textContent||'');document.getElementById('output').textContent='YTYPE '+((h.indexOf('a: \"true\"')>=0&&h.indexOf('b: \"\"')>=0&&h.indexOf('x: []')>=0&&h.indexOf('\"y\": {}')>=0&&h.indexOf('[object Object]')<0&&h.indexOf('b: 1')>=0)?'OK':'BAD:'+h.slice(0,140));"],
+    "expect": ["YTYPE OK"],
+    "ref": "第797批：JSON→YAML 必须保留字符串 `\"true\"`、空字符串、空数组/空对象和嵌套对象。旧序列化把 `\"true\"` 写成 true、空容器写成空值、嵌套对象写成 [object Object]；jsyaml.dump 递归保型。输入是 JSON 形态，输出是 YAML ⇒ 非回显。"
+  },
+  {
+    "slug": "it/yaml-formatter",
+    "inputs": { "input": "broken: [" },
+    "clicks": ["validateYaml();var h=String(document.getElementById('error-msg').innerText||document.getElementById('error-msg').textContent||'');var o=String(document.getElementById('output').textContent||'');document.getElementById('__tbProbe').textContent='YINV '+((/语法错误/.test(h)&&o.indexOf('验证通过')<0)?'OK':'BAD:'+h.slice(0,80));"],
+    "expect": ["YINV OK"],
+    "ref": "第797批：不完整流式集合 `broken: [` 必须报语法错误，不能显示验证通过。旧手写解析器忽略未闭合括号 ⇒ 假绿；现用 js-yaml.loadAll 并输出行列。默认样例合法 ⇒ 判别明确。"
+  },
+  {
+    "slug": "it/yaml-formatter",
+    "inputs": { "input": "msg: \"a  b\"", "indent": "4" },
+    "clicks": ["formatYaml();var h=String(document.getElementById('output').textContent||'');document.getElementById('__tbProbe').textContent='YSPACE '+(h.indexOf('a  b')>=0?'OK':'BAD:'+h.slice(0,80));"],
+    "expect": ["YSPACE OK"],
+    "ref": "第797批：缩进选项不得改写标量内部空格。旧实现 `replace(/ {2}/g, indent)` 会把 `msg: \"a  b\"` 的两个空格改成四个；现由 jsyaml.dump 按层级生成缩进，标量原样保留。"
+  },
+  {
+    "slug": "it/yaml-formatter",
+    "inputs": { "input": "name: secret\npassword: p@ss" },
+    "clicks": ["localStorage.removeItem('yaml_formatter_history');formatYaml();document.getElementById('__tbProbe').textContent='YHIST0 '+(localStorage.getItem('yaml_formatter_history')===null?'OK':'BAD');"],
+    "expect": ["YHIST0 OK"],
+    "ref": "第797批：历史默认不得把输入写入 localStorage。旧实现每次格式化都保存前 80 字摘要，可能含密码；现需显式勾选「保存完整输入」才记录。"
+  },
+  {
+    "slug": "it/yaml-formatter",
+    "inputs": { "input": "name: demo\npassword: p@ss\nitems:\n  - one\n  - two\nnotes: " + "x".repeat(120) },
+    "clicks": ["localStorage.removeItem('yaml_formatter_history');document.getElementById('saveYamlHistory').checked=true;formatYaml();var raw=JSON.parse(localStorage.getItem('yaml_formatter_history'))[0];document.getElementById('__tbProbe').textContent='YHIST1 '+((raw&&raw.text===document.getElementById('input').value&&raw.text.length>100)?'OK':'BAD');"],
+    "expect": ["YHIST1 OK"],
+    "ref": "第797批：显式开启后必须保存完整原文，点击历史可完整恢复；旧实现只存 80 字折叠摘要。输入含多行缩进与 120 字长值，摘要与原文字节必然不同 ⇒ 判别明确。"
+  },
+  {
+    "slug": "it/yaml-formatter",
+    "clicks": ["localStorage.setItem('yaml_formatter_history',JSON.stringify([{time:'t',action:'格式化',summary:'<img src=x onerror=alert(1)>'}]));renderHistory();var box=document.getElementById('history-list');var ok=String(box.innerHTML).indexOf('<img')<0;box.appendChild(document.createTextNode(' YHXSS '+(ok?'OK':'BAD')));"],
+    "expect": ["YHXSS OK"],
+    "ref": "第797批：历史摘要必须按文本渲染，不能拼 innerHTML。旧实现直接模板拼接，`<img onerror>` 会生成真实节点；现 createElement + textContent，标签原样显示。默认历史为空 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/yaml-formatter",
+    "inputs": { "yaml-input": "items:\n  - one\n  - two\nmeta:\n  ok: true" },
+    "clicks": ["yamlToJson();var h=String(document.getElementById('json-output').textContent||'');document.getElementById('__tbProbe').textContent='Y2J '+((h.indexOf('\"items\"')>=0&&h.indexOf('\"one\"')>=0&&h.indexOf('\"ok\": true')>=0)?'OK':'BAD:'+h.slice(0,110));"],
+    "expect": ["Y2J OK"],
+    "ref": "第797批：YAML→JSON 必须支持嵌套序列与布尔类型。旧解析器在嵌套数组处抛 `arr.push is not a function`；现 loadAll + JSON.stringify。输入是 YAML 短横线，输出是 JSON 引号键 ⇒ 非回显。"
   },
   {
     slug: "it/url-parser",
