@@ -290,7 +290,7 @@
     <div class="player-bar" id="playerBar" style="display:none;">
       <button class="play-btn" id="playBtn" onclick="togglePlay()" aria-label="播放/暂停">▶</button>
       <div class="progress-wrap">
-        <div class="progress-track" id="progressTrack" onclick="seekTo(event)">
+        <div class="progress-track" id="progressTrack" role="slider" tabindex="0" aria-label="播放进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" onclick="seekTo(event)">
           <div class="progress-fill" id="progressFill"></div>
         </div>
       </div>
@@ -611,6 +611,7 @@ function handleFile(file){
     if(audioEl.duration){
       var pct = (audioEl.currentTime / audioEl.duration) * 100;
       document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('progressTrack').setAttribute('aria-valuenow', pct.toFixed(1));
       updateTimeDisplay(audioEl.currentTime, audioEl.duration);
     }
   });
@@ -726,6 +727,19 @@ function stopPlay(){
 }
 
 /* ===== 进度条跳转 ===== */
+document.getElementById('progressTrack').addEventListener('keydown', function(e){
+  if(!audioEl || !audioEl.duration) return;
+  var step = e.shiftKey ? 1 : 5;
+  var delta = 0;
+  if(e.key==='ArrowLeft'||e.key==='ArrowDown') delta=-step;
+  else if(e.key==='ArrowRight'||e.key==='ArrowUp') delta=step;
+  else if(e.key==='Home') delta=-audioEl.duration;
+  else if(e.key==='End') delta=audioEl.duration;
+  else return;
+  e.preventDefault();
+  audioEl.currentTime = Math.max(0, Math.min(audioEl.duration, audioEl.currentTime + delta));
+  updateTimeDisplay(audioEl.currentTime, audioEl.duration);
+});
 window.seekTo = function(e){
   if(!audioEl || !audioEl.duration) return;
   var track = document.getElementById('progressTrack');
@@ -734,6 +748,7 @@ window.seekTo = function(e){
   pct = Math.max(0, Math.min(1, pct));
   audioEl.currentTime = pct * audioEl.duration;
   document.getElementById('progressFill').style.width = (pct * 100) + '%';
+  document.getElementById('progressTrack').setAttribute('aria-valuenow', (pct*100).toFixed(1));
   updateTimeDisplay(audioEl.currentTime, audioEl.duration);
 };
 

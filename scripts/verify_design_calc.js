@@ -3666,7 +3666,16 @@ const CASES = [
   "ref": "颜色非法时不得输出「0 分 / 不合规」结论（D29CLR）"
 },
 { slug:"design/generator-34", inputs:{"slides":"","minutes":"","points":"","fontSize":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
-{ slug:"design/photo-storage-calculator", inputs:{"count":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"design/photo-storage-calculator", inputs:{"count":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+
+  // 第883批
+    {
+  slug: "design/color-picker",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/design/color-picker.html','utf8');document.getElementById('__tbProbe').textContent='PICKLAB '+((src.indexOf('RGB 反相色')>=0&&src.indexOf('并非色轮互补')>=0)?'OK':'BAD');"],
+  expect: ["PICKLAB OK"],
+  ref: "第883批：设计工具把通道取反标成「互补色」，而配色标签实际按 HSL 色相旋转；现数据卡改称 RGB 反相色并在说明中区分两种概念。"
+},
+
 ];
 
 // ---------------------------------------------------------------- main

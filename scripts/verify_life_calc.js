@@ -2004,7 +2004,7 @@ const CASES = [
       "event-time": "abc123测试"
     },
     "expect": [
-      "⚠ 计算结果含无效值，请检查输入是否为有效正数。\n42:42:40\n42\n42\n42\nabc123测试"
+      "目标日期无效，请修改或删除"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"set-hours\":\"42\",\"set-minutes\":\"42\",\"set-seconds\":\"42\",\"event-name\":\"abc123测试\",\"event-date\":\"abc123测试\",\"event-time\":\"abc123测试\"}，输出区含「⚠ 计算结果含无效值，请检查输入是否为有效正数。\n42:42:40\n42\n42\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2019,9 +2019,9 @@ const CASES = [
       "logType": "fertilize"
     },
     "expect": [
-      "🌿 abc123测试 暖季型 ✂️ 修剪 正常 周期：10天 · 冷季型生长季7天/暖季型10天 上次： 未记录"
+      "暂无草坪，请先添加"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"lawnName\":\"abc123测试\",\"lawnStart\":\"abc123测试\",\"logDate\":\"abc123测试\",\"logNote\":\"abc123测试\",\"lawnType\":\"warm\",\"logType\":\"fertilize\"}，输出区含「24-06-15\n🌿 abc123测试 暖季型 ✂️ 修剪 正常 周期：10天…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lawnName\":\"abc123测试\",\"lawnStart\":\"abc123测试\",\"logDate\":\"abc123测试\",\"logNote\":\"abc123测试\",\"lawnType\":\"warm\",\"logType\":\"fertilize\"}，输入非法开始日期时不再抛错，页面保持「暂无草坪，请先添加」空态；合法名称仍可正常添加。"
   },
   {
     "slug": "life/data-rate-converter",
@@ -3449,6 +3449,37 @@ const CASES = [
     ref: "第882批：旧实现只能按当前时区偏移换算，选 7 月日期仍用当天偏移。现新增参考日期，按该日 UTC 正午取偏移：2026-07-01 上海 09:00 → 纽约 2026-06-30 21:00（夏令时 -4），并提示所选日期偏移与今天不同。"
   },
 
+  // 第883批
+  {
+  slug: "life/cycle-pruning-lawn",
+  clicks: ["document.getElementById('__tbProbe').textContent='DUE '+getUrgency(0).label+'|'+getUrgency(-1).label+'|'+getUrgency(2).label;"],
+  expect: ["今天到期|已超期|即将到期"],
+  ref: "第883批：days<=0 一律「需维护」把到期当天和超期混在一起；现 days<0 已超期、days=0 今天到期、days<=3 即将到期。"
+},
+  {
+  slug: "life/cycle-pruning-lawn",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/cycle-pruning-lawn.html','utf8');document.getElementById('__tbProbe').textContent='LAWNNAME '+((src.indexOf('ToolBox.escHtml(lawn.name)')>=0&&src.indexOf('list.innerHTML=html')>=0&&src.indexOf('next.getTime()')>=0)?'OK':'BAD');"],
+  expect: ["LAWNNAME OK"],
+  ref: "第883批：区域名「NaN 草坪」是合法名称，旧渲染后 NaN 正则守卫把它当计算错误；现名称已 escHtml、列表按 HTML 直接渲染，并对无效开始日期单独显示「日期无效」，不再用文本指纹拦截合法名称。"
+},
+  {
+  slug: "life/length-converter",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/length-converter.html','utf8');document.getElementById('__tbProbe').textContent='LENFORM '+((src.indexOf('输入值 × 源系数 ÷ 目标系数')>=0)?'OK':'BAD');"],
+  expect: ["LENFORM OK"],
+  ref: "第883批：公式说明原写「输入值 × 目标系数 ÷ 源系数」，方向与 1 km=1000 m 的基准系数相反；现改为源系数÷目标系数并注明系数含义。默认页面不含 LENFORM。"
+},
+  {
+  slug: "life/weight-converter",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/weight-converter.html','utf8');document.getElementById('__tbProbe').textContent='WFORM '+((src.indexOf('输入值 × 源系数 ÷ 目标系数')>=0)?'OK':'BAD');"],
+  expect: ["WFORM OK"],
+  ref: "第883批：重量换算公式说明同样把源/目标系数写反，现改为「输入值 × 源系数 ÷ 目标系数（系数表示该单位对应多少克）」，与 1 kg=1000 g 计算一致。"
+},
+  {
+  slug: "life/countdown-timer",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown-timer.html','utf8');document.getElementById('__tbProbe').textContent='CDNAME '+((src.indexOf('el.innerHTML=__h1')>=0)?'OK':'BAD');"],
+  expect: ["CDNAME OK"],
+  ref: "第883批：事件名含「NaN」等文字时旧正则守卫误报计算无效；现名称已 escHtml，列表直接渲染，不再用 HTML 文本指纹拦截。"
+}
 ];
 
 // ---------------------------------------------------------------- main

@@ -369,6 +369,14 @@ const CASES = [
   "clicks": ["convertVolume('from')"],
   "expect": ["473.2 ml", "1.97 杯 (CN)"],
   "ref": "2 美制杯 = 473.176 ml（1 cup_us=236.588 ml）→ 毫升 473.2 ml；换算为中国杯 = 473.176/240 = 1.9716 → 1.97 杯 (CN)。默认 1 ml → 中国杯 0.004、0.067 汤匙，零交集。"
+},
+
+  // 第883批
+  {
+  slug: "food/syrup-brix-converter",
+  clicks: ["var s1=__tbFs.readFileSync(process.cwd()+'/tools/food/syrup-brix-converter.html','utf8');var s2=__tbFs.readFileSync(process.cwd()+'/tools/food/wine-alcohol-converter.html','utf8');var s3=__tbFs.readFileSync(process.cwd()+'/tools/food/convert-ratio-seasoning.html','utf8');var all=s1+s2+s3;document.getElementById('__tbProbe').textContent='FOODEN '+((all.indexOf('Convert syrup concentration')>=0&&all.indexOf('Estimate wine alcohol')>=0&&all.indexOf('Scale seasoning ratios')>=0&&all.indexOf('convert values in-browser instantly')<0)?'OK':'BAD');"],
+  expect: ["FOODEN OK"],
+  ref: "第883批：糖浆/红酒工具英文简介仍是通用占位句；现改为说明 Brix/SG/波美度/折射率互转与 Balling 公式估算酒精度的具体简介，并同步 food-body.json。"
 }
 ];
 async function main() {

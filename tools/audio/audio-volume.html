@@ -99,6 +99,7 @@
   position:relative;cursor:pointer;margin:6px 0;
 }
 .progress-track:hover .progress-thumb{transform:translate(-50%,-50%) scale(1.2);}
+.progress-track:focus-visible{outline:3px solid var(--primary,#2563eb);outline-offset:2px;}
 .progress-fill-audio{
   height:100%;border-radius:4px;
   background:var(--gradient-primary);
@@ -313,7 +314,7 @@ input[type=range].vol-range::-moz-range-thumb{
             <span id="playIcon">&#9654;&#65039;</span>
           </button>
           <div class="progress-wrap">
-            <div class="progress-track" id="progressTrack">
+            <div class="progress-track" id="progressTrack" role="slider" tabindex="0" aria-label="播放进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
               <div class="progress-fill-audio" id="progressFill"></div>
               <div class="progress-thumb" id="progressThumb"></div>
             </div>
@@ -831,6 +832,7 @@ function updateProgress(ratio){
   var pct = ratio * 100;
   progressFill.style.width = pct + '%';
   progressThumb.style.left = pct + '%';
+  progressTrack.setAttribute('aria-valuenow', pct.toFixed(1));
 }
 
 /* ===== 进度条点击/拖动 ===== */
@@ -848,7 +850,21 @@ progressTrack.addEventListener('touchstart', function(e){
   if(!audioBuffer) return;
   dragging = true;
   seekTo(e.touches[0]);
-}, {passive:true});
+  }, {passive:true});
+progressTrack.addEventListener('keydown', function(e){
+  if(!audioBuffer) return;
+  var step = e.shiftKey ? 1 : 5;
+  var delta = 0;
+  if(e.key==='ArrowLeft'||e.key==='ArrowDown') delta=-step;
+  else if(e.key==='ArrowRight'||e.key==='ArrowUp') delta=step;
+  else if(e.key==='Home') delta=-audioBuffer.duration;
+  else if(e.key==='End') delta=audioBuffer.duration;
+  else return;
+  e.preventDefault();
+  var t = Math.max(0, Math.min(audioBuffer.duration, pauseOffset + delta));
+  var rect = progressTrack.getBoundingClientRect();
+  seekTo({clientX: rect.left + (rect.width ? (t/audioBuffer.duration)*rect.width : 0)});
+});
 document.addEventListener('touchmove', function(e){
   if(dragging) seekTo(e.touches[0]);
 }, {passive:true});

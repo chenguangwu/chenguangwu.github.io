@@ -156,6 +156,20 @@ const CASES = [
   "inputs": { "text": "" },
   "expect": ["请输入待统计文本后再统计。"],
   "ref": "空态回归：textarea 清空时旧实现输出「总字符数 0 / 不含空白 0 / 中文字符 0 … 非空行 0」七项伪结果；现要求提示且不输出统计值。默认示例文本非空（含 24/11 等数值），不含该提示 ⇒ 强判别。"
+},
+
+  // 第883批
+  {
+  slug: "text/text-extract-phones",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/text/text-extract-phones.html','utf8');document.getElementById('__tbProbe').textContent='TEXTPRIV '+((src.indexOf('不保存原文')>=0&&src.indexOf(\"e.tagName==='TEXTAREA'\")>=0&&src.indexOf('rec[rk]=res')<0)?'OK':'BAD');"],
+  expect: ["TEXTPRIV OK"],
+  ref: "第883批：自动历史原把粘贴原文和提取结果写入 localStorage；现快照跳过 textarea/文本输入，结果只写「已计算（不保存原文）」，并在历史区说明保存范围。"
+},
+  {
+  slug: "text/sensitive-word-filter",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/text/sensitive-word-filter.html','utf8');document.getElementById('__tbProbe').textContent='SENSPRIV '+((src.indexOf('不保存原文')>=0&&src.indexOf(\"e.id==='content'\")>=0&&src.indexOf('rec[rk]=res')<0)?'OK':'BAD');"],
+  expect: ["SENSPRIV OK"],
+  ref: "第883批：待检测正文与敏感词表原会随历史快照持久化；现跳过正文/词表字段，结果只记录「已计算（不保存原文）」，历史区注明不保存正文、词表和结果。"
 }
 ];
 async function main() {

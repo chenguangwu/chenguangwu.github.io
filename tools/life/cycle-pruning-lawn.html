@@ -328,7 +328,8 @@ function getDaysUntil(date) {
 }
 
 function getUrgency(days) {
-  if (days <= 0) return { level: 'over', label: '需维护', color: 'var(--danger)' };
+  if (days < 0) return { level: 'over', label: '已超期', color: 'var(--danger)' };
+  if (days === 0) return { level: 'due', label: '今天到期', color: 'var(--warning)' };
   if (days <= 3) return { level: 'soon', label: '即将到期', color: 'var(--warning)' };
   return { level: 'ok', label: '正常', color: 'var(--success)' };
 }
@@ -424,10 +425,14 @@ function renderLawns() {
       var task = TASKS[taskId];
       var freq = getTaskFreq(taskId, lawn.type);
       var next = getNextDate(lawn, taskId);
+      if (!next || isNaN(next.getTime())) {
+        html += '<div class="task-card"><div class="task-head"><span class="task-name">' + task.icon + ' ' + task.name + '</span><span class="urgency-badge urgency-over">日期无效</span></div><div class="task-info"><span>开始日期或记录日期无效，请重新设置草坪开始日期。</span></div></div>';
+        return;
+      }
       var days = getDaysUntil(next);
       var last = getLastLog(lawn.id, taskId);
       var urgency = getUrgency(days);
-      var dayText = days <= 0 ? '已超期' + Math.abs(days) + '天' : days + '天';
+      var dayText = days < 0 ? '已超期' + Math.abs(days) + '天' : (days === 0 ? '今天到期' : days + '天');
       html += '<div class="task-card">';
       html += '<div class="task-head"><span class="task-name">' + task.icon + ' ' + task.name + '</span><span class="urgency-badge urgency-' + urgency.level + '">' + urgency.label + '</span></div>';
       html += '<div class="task-meta">周期：' + freq + '天 · ' + task.desc + '</div>';
@@ -435,13 +440,13 @@ function renderLawns() {
       html += '<span>上次：<b>' + (last ? last.date : '未记录') + '</b></span>';
       html += '<span>下次：<b>' + fmtDate(next) + '</b></span>';
       html += '</div>';
-      html += '<div class="countdown-box"><span class="days" style="color:' + urgency.color + ';">' + dayText + '</span><span style="color:var(--text-secondary);">' + (days <= 0 ? '建议尽快处理' : '距下次' + task.name) + '</span><button class="mini-btn" style="margin-left:auto;" onclick="quickLog(' + lawn.id + ',\'' + taskId + '\')">✅ 完成</button></div>';
+      html += '<div class="countdown-box"><span class="days" style="color:' + urgency.color + ';">' + dayText + '</span><span style="color:var(--text-secondary);">' + (days < 0 ? '建议尽快处理' : (days === 0 ? '今天应处理' : '距下次' + task.name)) + '</span><button class="mini-btn" style="margin-left:auto;" onclick="quickLog(' + lawn.id + ',\'' + taskId + '\')">✅ 完成</button></div>';
       html += '</div>';
     });
     html += '<div style="margin-top:8px;"><button class="mini-btn" onclick="delLawn(' + lawn.id + ')" style="color:var(--danger);">删除草坪</button></div>';
     html += '</div>';
   });
-  const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
+  list.innerHTML=html;
 }
 
 function switchCalTab(tab) {
@@ -471,7 +476,7 @@ function renderLogList() {
   var list = document.getElementById('logList');
   var sel = document.getElementById('logLawn');
   var prev = sel.value;
-  const __h3='<option value="">请选择草坪</option>' + lawns.map(function(l){ return '<option value="' + l.id + '">' + ToolBox.escHtml(l.name) + '</option>'; }).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){sel.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}sel.innerHTML=__h3;
+  sel.innerHTML='<option value="">请选择草坪</option>' + lawns.map(function(l){ return '<option value="' + l.id + '">' + ToolBox.escHtml(l.name) + '</option>'; }).join('');
   sel.value = (prev && lawns.some(function(l){ return String(l.id) === prev; })) ? prev : '';
   if (!logs.length) { const __h4='<div class="empty">暂无维护记录</div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h4; return; }
   var sorted = logs.slice().sort(function(a, b){ return parseLocalDate(b.date) - parseLocalDate(a.date); });

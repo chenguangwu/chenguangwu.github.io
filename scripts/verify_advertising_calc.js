@@ -189,6 +189,27 @@ const CASES = [
   "expect": ["请填写毛利率后再计算。"],
   "ref": "毛利率留空：旧代码 parseFloat||0 使 LTV、LTV:CAC 与回本周期全部变成 0 或无穷，却照常渲染结论；新增守卫后须提示。"
 },
+
+  // 第883批
+  {
+  slug: "advertising/color-convert",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/advertising/color-convert.html','utf8');document.getElementById('__tbProbe').textContent='RGBLAB '+((src.indexOf('RGB 反相色（非色轮互补）')>=0&&src.indexOf('HSL 色相 +180°')>=0)?'OK':'BAD');"],
+  expect: ["RGBLAB OK"],
+  ref: "第883批：原把 255−RGB 叫「互补色」，与 HSL 色轮互补不一致；现明确标为 RGB 反相色并提示色轮互补按 HSL 色相 +180° 计算。"
+},
+  {
+  slug: "advertising/assessor-55",
+  clicks: ["calc()"],
+  inputs: {"targetPop": "500", "spots": "60", "rating": "2.5", "totalCost": "80", "reachCap": "75", "effFreq": "3"},
+  expect: ["68.2", "106.67"],
+  ref: "第883批：深挖示例原用「到达人数」当 CPM 分母，与页面 GRP/100×目标观众的总曝光公式不一致；现示例改为 750 万 OTS、CPM 106.7，并用同一组默认参数测试 68.2%/106.67。"
+},
+  {
+  slug: "advertising/reach-frequency",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/advertising/reach-frequency.html','utf8');document.getElementById('__tbProbe').textContent='REACHCPM '+((src.indexOf('200万÷1000')>=0)?'OK':'BAD');"],
+  expect: ["REACHCPM OK"],
+  ref: "第883批：深挖算例用触达 40 万当 CPM 分母，算出 500 元/千人，与 CPM=费用/总曝光×1000 不符；现按 200 万曝光得 100 元/千人，并补 CPR 0.5 元/人。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);
