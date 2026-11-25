@@ -42,7 +42,7 @@
 .chart-card{background:var(--result-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px;}
 .chart-card canvas{width:100%;height:240px;display:block;}
 .template-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:12px;}
-.template-card{border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:all 0.15s;background:var(--card-bg);}
+.template-card{font-family:inherit;text-align:left;width:100%;border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:all 0.15s;background:var(--card-bg);}
 .template-card:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:var(--shadow-hover);}
 .template-card .t-icon{font-size:24px;margin-bottom:6px;}
 .template-card .t-name{font-size:13px;font-weight:600;margin-bottom:4px;color:var(--heading);}
@@ -167,11 +167,11 @@
      <h2 data-zh="📊 投资回报率计算器">📊 Investment ROI Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持简单ROI、年化ROI、定投ROI、对比分析与可视化增长曲线">Compute simple and annualised ROI plus dollar-cost-averaging return, with plan comparison and a growth curve.</p>
 
-    <div class="roi-tabs">
-      <button type="button" class="roi-tab active" onclick="switchTab('simple')">简单ROI</button>
-      <button type="button" class="roi-tab" onclick="switchTab('regular')">定投ROI</button>
-      <button type="button" class="roi-tab" onclick="switchTab('compare')">方案对比</button>
-      <button type="button" class="roi-tab" onclick="switchTab('templates')">场景模板</button>
+    <div class="roi-tabs" role="tablist" aria-label="ROI 视图切换">
+      <button type="button" class="roi-tab active" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-simple" onclick="switchTab('simple',this)">简单ROI</button>
+      <button type="button" class="roi-tab" role="tab" tabindex="0" aria-selected="false" aria-controls="tab-regular" onclick="switchTab('regular',this)">定投ROI</button>
+      <button type="button" class="roi-tab" role="tab" tabindex="0" aria-selected="false" aria-controls="tab-compare" onclick="switchTab('compare',this)">方案对比</button>
+      <button type="button" class="roi-tab" role="tab" tabindex="0" aria-selected="false" aria-controls="tab-templates" onclick="switchTab('templates',this)">场景模板</button>
     </div>
 
     <div id="tab-simple" class="tab-panel active">
@@ -355,11 +355,14 @@ function fmtPct(n){
   return (n*100).toFixed(2) + '%';
 }
 
-function switchTab(name){
+function switchTab(name, btn){
   document.querySelectorAll('.roi-tab').forEach((b,i)=>{
     const panels = ['simple','regular','compare','templates'];
-    b.classList.toggle('active', panels[i]===name);
+    const active = panels[i]===name;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', active ? 'true' : 'false');
   });
+  if (btn && btn.focus) btn.focus();
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   if(name==='simple') setTimeout(drawSimpleChart,50);
@@ -370,11 +373,11 @@ function switchTab(name){
 function initTemplates(){
   const grid = document.getElementById('templateGrid');
   const __h0=templates.map((t,i)=>`
-    <div class="template-card" onclick="applyTemplate(${i})">
-      <div class="t-icon">${t.icon}</div>
+    <button type="button" class="template-card" onclick="applyTemplate(${i})" aria-label="${t.name}">
+      <div class="t-icon" aria-hidden="true">${t.icon}</div>
       <div class="t-name">${t.name}</div>
       <div class="t-desc">${t.desc}</div>
-    </div>
+    </button>
   `).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h0;
 }
 

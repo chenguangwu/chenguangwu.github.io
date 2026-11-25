@@ -497,6 +497,7 @@ var LANG_REGISTRY = [
       'privacy.badge_text': 'Local Mode',
       'privacy.badge_aria': 'Local data management',
       'tool.file_upload_hint': 'Please upload an image first',
+      'tool.image_select_hint': 'Choose an image file or drop it here',
       'tool.audio_select_hint': 'Please select an audio file',
       'tool.audio_type_error': 'Unsupported file format. Please select an audio file.',
       'tool.audio_load_ok': 'Audio loaded successfully',
