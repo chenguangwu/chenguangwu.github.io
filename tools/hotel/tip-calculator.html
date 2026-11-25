@@ -56,8 +56,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Tip Calculate">
-<meta name="desc-en" content="Calculate hotel or service tips">
+<meta name="title-en" content="Tip Calculator">
+<meta name="desc-en" content="Calculate tip, tax, total and exact per-person split by bill mode.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/hotel/tip-calculator.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/hotel/tip-calculator.html">
@@ -135,11 +135,11 @@
   <button type="button" class="tbk-tab" data-pane="his">历史</button>
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
-    <h2 data-zh="🧮 小费计算">Tip Calculate</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按消费金额与百分比计算小费、总额及人均分摊">Tip Calculate</p>
+    <h2 data-zh="🧮 小费计算">Tip Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按消费金额与百分比计算小费、总额及人均分摊">Calculate tip, tax, total and exact per-person split by bill mode; copy or export results.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">税额 = 消费金额 × 税率；小费金额 = 消费金额 × 小费比例（北美常见 15%、18%、20%，按服务档次选取）；应付合计 = 消费金额 + 税额 + 小费；人均分摊 = 应付合计 ÷ 就餐人数，便于出国就餐时快速估算。</div>
+      <div class="formula-eq">未含税口径：税额 = 账单 × 税率，总额 = 账单 + 税额 + 小费；已含税口径：税额 = 账单 × 税率 ÷（100 + 税率），税前 = 账单 − 税额，总额 = 账单 + 小费。小费 = 小费基数 × 比例（基数可选账单或税前）；精确分账按货币最小单位计算，余数从第 1 人起依次分配，各人金额之和严格等于总额。</div>
   
 </div>
 
@@ -160,10 +160,41 @@
         <input type="number" id="people" value="2" oninput="calc()" step="1" min="1" placeholder="如 2">
       </div>
       <div>
-        <label for="tax">税率（%，仅显示参考）</label>
+        <label for="tax">税率（%）</label>
         <input type="number" id="tax" value="0" oninput="calc()" step="any" min="0" placeholder="如 0">
       </div>
     </div>
+
+    <div class="input-row">
+      <div>
+        <label for="billMode">消费金额口径</label>
+        <select id="billMode" onchange="calc()">
+          <option value="exclusive" selected>未含税（税额另加）</option>
+          <option value="inclusive">已含税（税额从账单中拆出）</option>
+        </select>
+      </div>
+      <div>
+        <label for="tipBase">小费基数</label>
+        <select id="tipBase" onchange="calc()">
+          <option value="bill" selected>按账单金额</option>
+          <option value="preTax">按税前金额</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label for="currency">货币最小单位</label>
+        <select id="currency" onchange="calc()">
+          <option value="CNY" selected>人民币（2 位小数）</option>
+          <option value="USD">美元（2 位小数）</option>
+          <option value="EUR">欧元（2 位小数）</option>
+          <option value="JPY">日元（0 位小数）</option>
+          <option value="KWD">科威特第纳尔（3 位小数）</option>
+        </select>
+      </div>
+    </div>
+    <p id="tipModeHint" style="font-size:12.5px;color:var(--text-muted);margin:2px 0 10px;">未含税：税额另加；已含税：税额从账单中拆出。小费基数可切换账单金额或税前金额；分账按所选货币最小单位分配余数。</p>
 
     <div class="toolbar">
       <button type="button" class="btn" onclick="setPct(10)">10%</button>
@@ -268,79 +299,145 @@
 </div>
 
 <script>
-function fmt(n){
-  if(!isFinite(n)) return '--';
-  return n.toLocaleString('zh-CN', {maximumFractionDigits:2});
+function tipIsEn(){
+  try{if(typeof I18n!=='undefined'&&I18n.lang&&String(I18n.lang).toLowerCase().indexOf('en')===0) return true;}catch(e){}
+  if(String(document.documentElement.lang||'').toLowerCase().indexOf('en')===0) return true;
+  if(/[?&]lang=en/i.test(location.search)) return true;
+  return typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn();
 }
-
+var TIP_LABELS={
+ bill:{zh:'消费金额',en:'Bill amount'}, tipPct:{zh:'小费百分比（%）',en:'Tip percentage (%)'}, people:{zh:'用餐人数',en:'Number of people'}, tax:{zh:'税率（%）',en:'Tax rate (%)'},
+ billMode:{zh:'消费金额口径',en:'Bill amount basis'}, tipBase:{zh:'小费基数',en:'Tip base'}, currency:{zh:'货币最小单位',en:'Currency minor unit'}
+};
+function tipLocalize(){
+  var en=tipIsEn();
+  for(var k in TIP_LABELS){var lab=document.querySelector('label[for="'+k+'"]');if(lab) lab.textContent=en?TIP_LABELS[k].en:TIP_LABELS[k].zh;}
+  var bm=document.getElementById('billMode');if(bm){bm.options[0].textContent=en?'Tax excluded (tax added)':'未含税（税额另加）';bm.options[1].textContent=en?'Tax included (tax extracted from bill)':'已含税（税额从账单中拆出）';}
+  var tb=document.getElementById('tipBase');if(tb){tb.options[0].textContent=en?'On bill amount':'按账单金额';tb.options[1].textContent=en?'On pre-tax amount':'按税前金额';}
+  var cur=document.getElementById('currency');if(cur&&cur.options){var ct=en?['Chinese yuan (2 decimals)','US dollar (2 decimals)','Euro (2 decimals)','Japanese yen (0 decimals)','Kuwaiti dinar (3 decimals)']:['人民币（2 位小数）','美元（2 位小数）','欧元（2 位小数）','日元（0 位小数）','科威特第纳尔（3 位小数）'];for(var i=0;i<cur.options.length;i++) cur.options[i].textContent=ct[i];}
+  var hint=document.getElementById('tipModeHint');if(hint) hint.textContent=en?'Tax excluded: add tax. Tax included: extract tax from the bill. Tip base can be bill or pre-tax; splitting assigns the remainder at the selected currency minor unit.':'未含税：税额另加；已含税：税额从账单中拆出。小费基数可切换账单金额或税前金额；分账按所选货币最小单位分配余数。';
+  var cp=document.querySelector('button[onclick="copyResult()"]');if(cp) cp.textContent=en?'Copy result':'复制结果';
+  var ex=document.querySelector('button[onclick="__tip_calculatorExport()"]');if(ex) ex.textContent=en?'Export CSV':'导出明细 CSV';
+}
+function tipLang(){return tipIsEn()?'en-US':'zh-CN';}
+function tipParse(raw){return raw===''?NaN:Number(raw);}
+var TIP_DECIMALS={CNY:2,USD:2,EUR:2,JPY:0,KWD:3};
+function fmt(n,d){
+  if(!isFinite(n)) return '--';
+  var dec=(d===undefined?2:d);
+  return Number(n).toLocaleString(tipLang(),{minimumFractionDigits:dec,maximumFractionDigits:dec});
+}
+function fmtShort(n){
+  if(!isFinite(n)) return '--';
+  return Number(n).toLocaleString(tipLang(),{maximumFractionDigits:2});
+}
 function setPct(p){
   document.getElementById('tipPct').value = p;
   calc();
 }
-
+function tipError(zh,en){
+  document.getElementById('result').innerHTML='<p style="color:var(--danger);">'+escTip(tipIsEn()?en:zh)+'</p>';
+}
+function escTip(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function tipRead(){
+  var billRaw=document.getElementById('bill').value.trim();
+  var peopleRaw=document.getElementById('people').value.trim();
+  var tipRaw=document.getElementById('tipPct').value.trim();
+  var taxRaw=document.getElementById('tax').value.trim();
+  var mode=document.getElementById('billMode').value||'exclusive';
+  var baseMode=document.getElementById('tipBase').value||'bill';
+  var cur=document.getElementById('currency').value||'CNY';
+  var digits=TIP_DECIMALS[cur];
+  if(digits===undefined){digits=2;}
+  var factor=Math.pow(10,digits);
+  var bill=tipParse(billRaw), tipPct=tipRaw===''?0:tipParse(tipRaw), tax=taxRaw===''?0:tipParse(taxRaw), people=tipParse(peopleRaw);
+  if(!isFinite(bill)||bill<0) return {ok:false,zh:'消费金额必须是 ≥0 的有效数字。',en:'Bill amount must be a valid number ≥ 0.'};
+  if(!isFinite(people)||people<1||Math.floor(people)!==people){}
+  if(!isFinite(people)||people<1||Math.floor(people)!==people) return {ok:false,zh:'用餐人数必须是 ≥1 的整数。',en:'Number of people must be an integer ≥ 1.'};
+  if(!isFinite(tipPct)||tipPct<0) return {ok:false,zh:'小费比例必须是 ≥0 的有效数字。',en:'Tip percentage must be a valid number ≥ 0.'};
+  if(!isFinite(tax)||tax<0) return {ok:false,zh:'税率必须是 ≥0 的有效数字（可留空按 0 计）。',en:'Tax rate must be a valid number ≥ 0 (leave blank for 0).'};
+  var taxAmount, preTax;
+  if(mode==='inclusive'){
+    taxAmount = tax>0 ? bill*tax/(100+tax) : 0;
+    preTax = bill - taxAmount;
+  }else{
+    taxAmount = bill*tax/100;
+    preTax = bill;
+  }
+  var tipBase = baseMode==='preTax' ? preTax : bill;
+  var tip = tipBase*tipPct/100;
+  var total = mode==='inclusive' ? bill + tip : bill + taxAmount + tip;
+  var totalMinor = Math.round(total*factor);
+  var eachMinor = Math.floor(totalMinor/people);
+  var remainder = totalMinor - eachMinor*people;
+  var split=[];
+  for(var i=0;i<people;i++) split.push((eachMinor+(i<remainder?1:0))/factor);
+  var perPerson = total/people;
+  return {ok:true,bill:bill,tipPct:tipPct,tax:tax,people:people,mode:mode,baseMode:baseMode,cur:cur,digits:digits,factor:factor,
+          taxAmount:taxAmount,preTax:preTax,tipBase:tipBase,tip:tip,total:total,totalMinor:totalMinor,split:split,remainder:remainder,perPerson:perPerson};
+}
+function tipSplitText(d,en,limit){
+  if(!d||!d.split||!d.split.length) return '';
+  var max=limit||20, out=[];
+  for(var i=0;i<d.split.length;i++){
+    if(i>=max){out.push(en?'… ('+(d.people-max)+' more)':'…（其余 '+(d.people-max)+' 人）');break;}
+    out.push((i+1)+': '+fmt(d.split[i],d.digits));
+  }
+  return out.join(en?' · ':'；');
+}
+function tipModeLabel(mode,en){
+  en=!!en; if(mode==='inclusive') return en?'Bill includes tax (tax extracted)':'已含税（税额从账单拆出）';
+  return en?'Bill excludes tax (tax added)':'未含税（税额另加）';
+}
 function calc(){
-// NUMCLR：全部输入留空时不得输出 0/0.00 的假评估结果
+tipLocalize();
 var __numReq=['bill','tipPct','people','tax'];
 if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
-  var billRaw=document.getElementById('bill').value.trim();
-  var peopleRaw=document.getElementById('people').value.trim();
-  var tipRaw=document.getElementById('tipPct').value.trim();
-  var taxRaw=document.getElementById('tax').value.trim();
-  const bill = billRaw === '' ? NaN : parseFloat(billRaw);
-  const tipPct = tipRaw === '' ? 0 : parseFloat(tipRaw);
-  const people = peopleRaw === '' ? NaN : parseInt(peopleRaw, 10);
-  const tax = taxRaw === '' ? 0 : parseFloat(taxRaw);
-
-  if(!isFinite(bill) || bill < 0 || !isFinite(people) || people < 1 || Math.floor(people) !== people
-     || !isFinite(tipPct) || tipPct < 0 || !isFinite(tax) || tax < 0){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请填写有效数值：消费金额≥0、人数为≥1 的整数、小费比例与税率≥0（留空的小费/税率按 0 计）。</p>';
-    return;
-  }
-
-  const taxAmount = bill * tax / 100;
-  const tip = bill * tipPct / 100;
-  const total = bill + taxAmount + tip;
-  const perPerson = total / people;
-
-  let advice = '';
-  if(tipPct === 0) advice = '未计算小费';
-  else if(tipPct < 10) advice = '小费偏低';
-  else if(tipPct <= 15) advice = '小费适中';
-  else if(tipPct <= 20) advice = '小费慷慨';
-  else advice = '小费较高';
-
-  const __g2=`
+  var en=tipIsEn();
+  var d=tipRead();
+  if(!d.ok){ tipError(d.zh,d.en); return; }
+  var advice = d.tipPct===0
+    ? (en?'No tip included. Check whether service charge is already on the bill.':'未包含小费；请先核对账单是否已含服务费。')
+    : (en?'Tip is calculated at the entered percentage. Check the bill and local practice; this tool does not grade high or low.':'小费按输入比例 '+d.tipPct+'% 计算；是否合适请结合账单服务费与当地习惯核对，本工具不做高低评价。');
+  var splitText=tipSplitText(d,en,20);
+  var restNote=d.remainder>0
+    ? (en?'Remainder of '+d.remainder+' minor unit(s) is assigned one by one from person 1.':'余数 '+d.remainder+' 个最小货币单位，从第 1 人起依次多分 1 个单位。')
+    : (en?'Amounts divide evenly at the selected currency precision.':'按所选货币精度可整除，无余数。');
+  var billLabel=en?(d.mode==='inclusive'?'Bill (tax included)':'Bill (tax excluded)'):(d.mode==='inclusive'?'消费金额（含税）':'消费金额（未含税）');
+  var perLabel=en?'Per person (rounded display)':'人均（四舍五入展示）';
+  var html=`
     <div class="data-grid">
-      <div class="data-card"><div class="num">${fmt(bill)}</div><div class="label">消费金额</div></div>
-      <div class="data-card"><div class="num">${fmt(tip)}</div><div class="label">小费金额</div></div>
-      <div class="data-card"><div class="num">${fmt(total)}</div><div class="label">支付总额</div></div>
-      <div class="data-card"><div class="num">${fmt(perPerson)}</div><div class="label">人均分摊</div></div>
+      <div class="data-card"><div class="num">${fmtShort(d.bill)}</div><div class="label">${billLabel}</div></div>
+      <div class="data-card"><div class="num">${fmtShort(d.tip)}</div><div class="label">${en?'Tip':'小费金额'}</div></div>
+      <div class="data-card"><div class="num">${fmtShort(d.taxAmount)}</div><div class="label">${d.mode==='inclusive'?(en?'Tax included':'其中税额'):(en?'Tax added':'另加税额')}</div></div>
+      <div class="data-card"><div class="num">${fmtShort(d.total)}</div><div class="label">${en?'Total due':'支付总额'}</div></div>
+      <div class="data-card"><div class="num">${fmtShort(d.perPerson)}</div><div class="label">${perLabel}</div></div>
     </div>
     <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
-    ${tax > 0 ? `<p>税费（${tax}%）：<strong>${fmt(taxAmount)}</strong></p>` : ''}
-    <p>小费（${tipPct}%）：<strong style="color:var(--primary);">${fmt(tip)}</strong></p>
-    <p>人均：<strong>${fmt(perPerson)}</strong>（${people} 人）</p>
-    <p>小费评价：<span class="grade-tag ${tipPct>=10&&tipPct<=20?'grade-good':'grade-pass'}">${advice}</span></p>
-  `;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    <p>${en?'Bill mode':'金额口径'}：<strong>${tipModeLabel(d.mode,en)}</strong></p>
+    <p>${en?'Tax':'税额'}（${d.tax}%）：<strong>${fmtShort(d.taxAmount)}</strong>　${en?'Pre-tax amount':'税前金额'}：<strong>${fmtShort(d.preTax)}</strong></p>
+    <p>${en?'Tip base':'小费基数'}：<strong>${d.baseMode==='preTax'?(en?'Pre-tax amount':'税前金额'):(en?'Bill amount':'账单金额')}</strong>　${en?'Tip':'小费'}（${d.tipPct}%）：<strong style="color:var(--primary);">${fmtShort(d.tip)}</strong></p>
+    <p>${en?'Exact split':'精确分账'}（${d.people} ${en?'people':'人'}）：${escTip(splitText)}</p>
+    <p style="font-size:12.5px;color:var(--text-muted);">${escTip(restNote)} ${en?'All per-person amounts sum exactly to the total at the selected currency precision.':'各人金额按所选货币精度相加，严格等于支付总额。'}</p>
+    <p style="font-size:12.5px;color:var(--text-muted);">${escTip(advice)}</p>
+  `;
+  document.getElementById('result').innerHTML=html;
 }
-
 function copyResult(){
-  var billRaw=document.getElementById('bill').value.trim();
-  var peopleRaw=document.getElementById('people').value.trim();
-  var tipRaw=document.getElementById('tipPct').value.trim();
-  var taxRaw=document.getElementById('tax').value.trim();
-  const bill = billRaw === '' ? NaN : parseFloat(billRaw);
-  const tipPct = tipRaw === '' ? 0 : parseFloat(tipRaw);
-  const people = peopleRaw === '' ? NaN : parseInt(peopleRaw, 10);
-  const tax = taxRaw === '' ? 0 : parseFloat(taxRaw);
-  if(!isFinite(bill) || bill < 0 || !isFinite(people) || people < 1 || Math.floor(people) !== people || !isFinite(tipPct) || tipPct < 0 || !isFinite(tax) || tax < 0) return;
-  const taxAmount = bill * tax / 100;
-  const tip = bill * tipPct / 100;
-  const total = bill + taxAmount + tip;
-  const taxPart = tax > 0 ? `，税费 ${fmt(taxAmount)}（${tax}%）` : '';
-  ToolBox.copyText(`消费 ${fmt(bill)}，小费 ${fmt(tip)}（${tipPct}%）${taxPart}，总额 ${fmt(total)}，人均 ${fmt(total/people)}`, i18nText('toast.msg544'));
+  var en=tipIsEn();
+  var d=tipRead();
+  if(!d.ok){ ToolBox.copyText(en?d.en:d.zh, i18nText('toast.msg544')); return; }
+  var splitText=tipSplitText(d,en,50);
+  var text;
+  if(en){
+    text='Bill '+fmtShort(d.bill)+' ('+tipModeLabel(d.mode,true)+'), tax '+fmtShort(d.taxAmount)+' ('+d.tax+'%), pre-tax '+fmtShort(d.preTax)+', tip '+fmtShort(d.tip)+' ('+d.tipPct+'%, base '+(d.baseMode==='preTax'?'pre-tax':'bill')+'), total '+fmtShort(d.total)+', '+d.people+' people: '+splitText+'.';
+  }else{
+    text='消费 '+fmtShort(d.bill)+'（'+tipModeLabel(d.mode,false)+'），税额 '+fmtShort(d.taxAmount)+'（'+d.tax+'%），税前 '+fmtShort(d.preTax)+'，小费 '+fmtShort(d.tip)+'（'+d.tipPct+'%，基数 '+(d.baseMode==='preTax'?'税前金额':'账单金额')+'），总额 '+fmtShort(d.total)+'，'+d.people+' 人分账：'+splitText+'。';
+  }
+  ToolBox.copyText(text, i18nText('toast.msg544'));
 }
 calc();
+
 </script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){
@@ -519,16 +616,37 @@ function __tip_calculatorExtras(){
 }
 function __tip_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    var d=tipRead();
+    if(!d.ok){ calc(); return; }
+    var en=tipIsEn();
+    var rows=[];
+    rows.push([en?'Item':'项目',en?'Value':'数值']);
+    rows.push([en?'Bill mode':'金额口径',tipModeLabel(d.mode,en)]);
+    rows.push([en?'Bill':'消费金额',fmtShort(d.bill)]);
+    rows.push([en?'Tax rate':'税率',d.tax+'%']);
+    rows.push([en?'Tax amount':'税额',fmtShort(d.taxAmount)]);
+    rows.push([en?'Pre-tax amount':'税前金额',fmtShort(d.preTax)]);
+    rows.push([en?'Tip base':'小费基数',d.baseMode==='preTax'?(en?'Pre-tax amount':'税前金额'):(en?'Bill amount':'账单金额')]);
+    rows.push([en?'Tip':'小费',fmtShort(d.tip)]);
+    rows.push([en?'Total due':'支付总额',fmtShort(d.total)]);
+    rows.push([en?'People':'人数',String(d.people)]);
+    rows.push([en?'Currency precision':'货币精度',d.cur+' '+d.digits+(en?' decimals':' 位小数')]);
+    rows.push([en?'Remainder':'余数',String(d.remainder)+(en?' minor unit(s)':' 个最小单位')]);
+    for(var i=0;i<d.split.length;i++){
+        rows.push([(en?'Person ':'第 ')+(i+1)+(en?'':' 人'),fmt(d.split[i],d.digits)]);
+    }
+    try{
+        if(TBKit.util.exportCsv){ TBKit.util.exportCsv('tip-calculator.csv',rows); return; }
+    }catch(e){}
     try{
         var box=document.querySelector('#tip_calculatorTable');
         if(!box||!box.querySelector('tr')){
             var snap=__tip_calculatorSnap(); var keys=Object.keys(snap);
             if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __tip_calculatorRender(keys,en?'Result':'结果',en);
         }
-    }catch(e){}
-    try { TBKit.util.exportTable('#tip_calculatorTable','tip-calculator.csv'); } catch(e){}
+        TBKit.util.exportTable('#tip_calculatorTable','tip-calculator.csv');
+    }catch(e2){}
 }
 function __tip_calculatorPresets(){
     if (typeof TBKit === 'undefined') return;

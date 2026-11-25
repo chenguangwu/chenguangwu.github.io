@@ -56,7 +56,7 @@ const CASES = [
     "tax": "6"
   },
   "expect": [
-    "小费慷慨",
+    "小费按输入比例 18%",
     "人均： 99.2"
   ],
   "ref": "auto-restore（去默认化：bill 240/18%/3人/税6% → tip=43.2、total=297.6、人均=99.2；默认 15%/2人 得「小费适中」+69.0）"
@@ -120,6 +120,12 @@ const CASES = [
     "ref": "584 批复核失败回归：售出间夜留空旧逻辑按 0 继续输出；现拒绝空值并要求整数。默认售出 96 不出现该提示。"
   },
 { slug:"hotel/luggage-weight", inputs:{"days":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"hotel/tip-calculator", inputs:{"bill":"120","tipPct":"15","people":"3","tax":"10"}, clicks:["document.getElementById('billMode').value='inclusive';document.getElementById('tipBase').value='bill';calc();"], expect:["已含税（税额从账单拆出）","其中税额","总额 138","10.91"], ref:"已含税口径：税额=120×10/110=10.909→10.91，总额=120+18=138，不能把税额再加一次。默认未含税不出现该串。" },
+{ slug:"hotel/tip-calculator", inputs:{"bill":"120","tipPct":"15","people":"3","tax":"10"}, clicks:["document.getElementById('billMode').value='inclusive';document.getElementById('tipBase').value='preTax';calc();"], expect:["小费基数： 税前金额","10.91","16.36","136.36"], ref:"已含税 + 税前基数：税前=109.09，小费=109.09×15%=16.36，总额=136.36；验证基数切换真正参与计算。" },
+{ slug:"hotel/tip-calculator", inputs:{"bill":"10","tipPct":"0","people":"3","tax":"0"}, clicks:["calc();"], expect:["3.34","3.33","余数 1 个最小货币单位"], ref:"10 元 3 人按分精确分账：1000 分→333+333+334，每人 3.33/3.33/3.34，合计 10.00；旧实现每人 3.33 合计 9.99。" },
+{ slug:"hotel/tip-calculator", inputs:{"bill":"10","tipPct":"0","people":"3","tax":"0"}, clicks:["document.getElementById('currency').value='JPY';calc();"], expect:["4","3","3"], ref:"日元 0 位小数：10 元 3 人按 1 元最小单位分为 4/3/3，合计 10；验证货币精度切换。" },
+{ slug:"hotel/tip-calculator", inputs:{"bill":"100","tipPct":"15","people":"2.5","tax":"0"}, expect:["用餐人数必须是 ≥1 的整数"], ref:"人数 2.5 旧实现 parseInt 截成 2 人继续算；现完整数值校验拒绝小数。" },
+{ slug:"hotel/tip-calculator", inputs:{"bill":"100","tipPct":"15","people":"1e2","tax":"0"}, clicks:["calc();"], expect:["100","人均"], ref:"科学计数法 1e2 是合法 100 人，不能截成 1 人；验证 Number 完整转换。" },
 { slug:"hotel/tip-calculator", inputs:{"bill":"","tipPct":"","people":"","tax":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 async function main() {
