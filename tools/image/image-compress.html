@@ -292,6 +292,15 @@ input[type="range"]:disabled::-webkit-slider-thumb{cursor:not-allowed;}
       </div>
     </div>
 
+    <div class="setting-item" id="bg-row" style="margin-top:14px;display:none;">
+      <div class="setting-head">
+        <label for="bgColor"><span class="tb-bi"><span class="t-zh">JPEG 背景色（不支持透明）</span><span class="t-en">JPEG background (no alpha)</span></span></label>
+        <span class="quality-val" id="bg-color-val" style="font-size:12px;color:var(--text-muted);">#FFFFFF</span>
+      </div>
+      <input type="color" id="bgColor" value="#ffffff" oninput="onSettingsChange()" aria-label="JPEG 背景色">
+      <p style="font-size:11.5px;color:var(--text-muted);margin-top:6px;" class="tb-bi"><span class="t-zh">仅 JPEG 使用；PNG/WebP 保留透明通道。默认白色。</span><span class="t-en">JPEG only; PNG/WebP keep their alpha channel. White by default.</span></p>
+    </div>
+
     <div class="setting-item" id="quality-row" style="margin-top:14px;">
       <div class="setting-head">
         <label for="quality">压缩质量</label>
@@ -351,7 +360,7 @@ input[type="range"]:disabled::-webkit-slider-thumb{cursor:not-allowed;}
     <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
     <ul>
       <li>本工具纯前端运行，图片不会上传到任何服务器，保护隐私安全</li>
-      <li>JPEG 为有损格式，不支持透明背景（透明区域会填充白色）</li>
+      <li class="tb-bi"><span class="t-zh">JPEG 为有损格式，不支持透明背景（透明区域填充所选背景色，默认白色）</span><span class="t-en">JPEG is lossy and has no alpha channel; transparent areas are filled with the selected background (white by default).</span></li>
       <li>WebP 兼容现代浏览器（Chrome/Edge/Firefox/Safari 14+），压缩率最优</li>
       <li>PNG 为无损格式，质量滑块不生效；对照片压缩效果有限</li>
       <li>「最大尺寸」会等比缩放图片，使长边不超过设定值</li>
@@ -492,7 +501,9 @@ function getSettings(){
   // 质量参数边界：限制在 1–100，避免 0 / 负数 / 超出范围传给 toBlob
   var quality = Math.min(100, Math.max(1, rawQ)) / 100;
   var maxSize = parseInt(document.getElementById('max-size').value,10)||0;
-  return { format:fmt, quality:quality, maxSize:maxSize };
+  var rawBg = (document.getElementById('bgColor')||{}).value || '#ffffff';
+  var bg = /^#[0-9a-fA-F]{6}$/.test(rawBg) ? rawBg : '#ffffff';
+  return { format:fmt, quality:quality, maxSize:maxSize, bg:bg };
 }
 
 function loadImage(file){
@@ -517,8 +528,8 @@ function compressImage(img,s){
     var canvas = document.createElement('canvas');
     canvas.width = d.w; canvas.height = d.h;
     var ctx = canvas.getContext('2d');
-    // JPEG 无透明，填充白色背景
-    if(s.format==='jpeg'){ ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,d.w,d.h); }
+    // JPEG 无透明，填充用户选择的背景色
+    if(s.format==='jpeg'){ ctx.fillStyle=(s.bg||'#ffffff'); ctx.fillRect(0,0,d.w,d.h); }
     ctx.drawImage(img,0,0,d.w,d.h);
     var mime = mimeFor(s.format);
     var q = s.format==='png' ? undefined : s.quality;
@@ -578,7 +589,7 @@ function compressToTarget(img,s,targetBytes){
         return;
       }
       var mid=Math.round((lo+hi)/2);
-      compressImage(img,{format:s.format,quality:mid/100,maxSize:s.maxSize}).then(function(res){
+      compressImage(img,{format:s.format,quality:mid/100,maxSize:s.maxSize,bg:s.bg}).then(function(res){
         if(res.blob && res.blob.size<=targetBytes){ best=res; best.quality=mid; lo=mid+1; }
         else { hi=mid-1; }
         setTimeout(step,0);
@@ -611,6 +622,7 @@ function compressOne(item){
     item.compSize = res.blob.size;
     // 记录本次实际使用的质量；PNG 无损回归不适用质量参数
     item.compQuality = (s.format === 'png') ? null : (res.quality != null ? res.quality : Math.round(s.quality * 100));
+    item.compBg = (item.compType === 'image/jpeg') ? (s.bg || '#ffffff') : null;
     item.status = 'done';
     renderResults();
   }).catch(function(e){
@@ -637,6 +649,11 @@ function onSettingsChange(){
   var qRow = document.getElementById('quality-row');
   qRow.style.opacity = (fmt==='png') ? '0.45' : '1';
   q.disabled = (fmt==='png');
+  var bgRow = document.getElementById('bg-row');
+  if(bgRow) bgRow.style.display = (fmt==='jpeg') ? '' : 'none';
+  var bgVal = document.getElementById('bg-color-val');
+  var bgInput = document.getElementById('bgColor');
+  if(bgVal && bgInput) bgVal.textContent = (bgInput.value || '#ffffff').toUpperCase();
   clearTimeout(compressTimer);
   compressTimer = setTimeout(compressAll, 300);
 }
@@ -700,6 +717,7 @@ function renderSingle(item){
       '<p>格式：<strong>'+item.origType+'</strong> → <strong>'+actualFmt+'</strong>（'+item.compType+'）</p>' +
       '<p>尺寸：<strong>'+item.origW+' × '+item.origH+'px</strong> → <strong>'+item.compW+' × '+item.compH+'px</strong></p>' +
       '<p>质量参数：<strong>'+qualityText+'</strong></p>' +
+      (item.compBg ? '<p>' + (__imgEn()?'JPEG background: ':'JPEG 背景色：') + '<strong>'+item.compBg.toUpperCase()+'</strong></p>' : '') +
     '</div> <div id="image_compressTable"></div> <div id="image_compressDiff"></div> <div id="image_compressChart"></div> <div id="image_compressHist"></div>' +
     '<div class="toolbar" style="margin-top:12px;">' +
       '<div id="image_compressPresets"></div><button class="btn primary" onclick="downloadItem('+item.id+')">⬇ 下载压缩图片</button><button class="btn" type="button" onclick="__image_compressExport()">导出明细 CSV</button>' +
@@ -852,6 +870,7 @@ function copyResult(id){
     '文件名: '+item.name+'\n' +
     '原始: '+formatSize(item.origSize)+' ('+item.origW+'×'+item.origH+' '+item.origType+')\n' +
     '压缩后: '+formatSize(item.compSize)+' ('+item.compW+'×'+item.compH+' '+item.compType+')\n' +
+    (item.compBg ? 'JPEG 背景色: '+item.compBg.toUpperCase()+'\n' : '') +
     (pct>=0 ? '节省: '+pct+'%' : '增大: '+Math.abs(pct)+'%');
   ToolBox.copyText(text, i18nText('msg274'));
 }

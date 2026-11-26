@@ -408,6 +408,12 @@ const CASES = [
   "clicks": ["var a=CollageTool.gridSize('2.5','3');var b=CollageTool.gridSize('','3');var c=CollageTool.gridSize('4','5');var d=CollageTool.gridSize('21','3');document.getElementById('infoBox').textContent='G731A:'+(a.valid?'1':'0')+'|'+(b.valid?'1':'0')+'|'+c.rows+'x'+c.cols+'|'+(d.valid?'1':'0')+'|'+a.error;"],
   "expect": ["G731A:0|0|4x5|0|行数必须是整数（当前“2.5”），小数无法排出完整网格。"],
   "ref": "第731A批·自定义网格行列严格整数：旧实现 clamp(+value||1,1,20) 让 2.5 列照常参与 Math.floor(idx/cols)，空值静默变 1、21 静默变 20。现小数/空值/越界均判无效并给出对应提示，1–20 整数正常通过（4×5）。"
+},
+{
+  "slug": "image/image-compress",
+  "clicks": ["document.getElementById('bgColor').value='#112233';document.getElementById('fmt').value='jpeg';var s=getSettings();document.getElementById('results-card').textContent='BG986:'+s.bg.toUpperCase()+'|F:'+s.format;"],
+  "expect": ["BG986:#112233|F:jpeg"],
+  "ref": "第987批：JPEG 背景色必须进入压缩参数；注入 #112233 后 getSettings().bg 原样返回（非法值回落 #ffffff），避免 UI 选色与实际 canvas 填充脱节。"
 }
 ];
 function batch204StaticChecks(){
@@ -442,6 +448,9 @@ function batch204StaticChecks(){
   out.push({name:"B731A resize BMP accept",ok:src.indexOf('accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,.bmp"')>=0&&src.indexOf('支持 PNG / JPEG / WebP / GIF / BMP')>=0});
   out.push({name:"B731A converter maxside/outsize/filename",ok:cvr.indexOf("function resolveMaxSide(")>=0&&cvr.indexOf("function makeDownloadName(")>=0&&cvr.indexOf('id="convOutSize"')>=0&&cvr.indexOf('id="convMaxSideError"')>=0&&cvr.indexOf('converted-${Date.now()')<0});
   out.push({name:"B731A collage grid integer",ok:col.indexOf("function resolveGridSize(")>=0&&col.indexOf("gridSize: resolveGridSize")>=0&&col.indexOf("layout').value === 'custom'")>=0});
+  out.push({name:"B986 converter JPEG background",ok:cvr.indexOf('id="convBg"')>=0&&cvr.indexOf('ctx.fillStyle = jpegBg')>=0&&cvr.indexOf('JPEG 背景 ')>=0});
+  out.push({name:"B986 compress JPEG background",ok:cmp.indexOf('id="bg-row"')>=0&&cmp.indexOf('id="bgColor"')>=0&&cmp.indexOf('bg:s.bg')>=0&&cmp.indexOf('ctx.fillStyle=(s.bg||')>=0&&cmp.indexOf("(__imgEn()?'JPEG background: '")>=0});
+  out.push({name:"B986 resize JPEG background",ok:src.indexOf('id="bgRow"')>=0&&src.indexOf('id="bgColor"')>=0&&src.indexOf('ctx.fillStyle = jpegBg')>=0&&src.indexOf("(__imgEn()?'JPEG background: '")>=0});
   return out;
 }
 

@@ -157,6 +157,7 @@
     <div class="input-row" style="margin-top:12px;">
       <div><label for="convQuality">输出质量（JPEG/WebP）</label><input type="range" id="convQuality" min="1" max="100" value="85" oninput="document.getElementById('convQualityVal').textContent=this.value+'%';reconvert()"><span id="convQualityVal" style="font-size:13px;color:var(--text-muted);">85%</span></div>
       <div><label for="convMaxSide">最长边（像素，留空或 0=原尺寸，1–10000 整数）</label><input type="number" id="convMaxSide" min="0" max="10000" value="0" step="1" oninput="reconvert()"></div>
+      <div><label for="convBg"><span class="tb-bi"><span class="t-zh">JPEG 背景色（不支持透明）</span><span class="t-en">JPEG background (no alpha)</span></span></label><input type="color" id="convBg" value="#ffffff" oninput="reconvert()" aria-label="JPEG 背景色"><span style="font-size:12px;color:var(--text-muted);margin-left:6px;" class="tb-bi"><span class="t-zh">默认白色</span><span class="t-en">White by default</span></span></div>
       <div><label>只转所选格式</label><label style="font-weight:400;display:inline-flex;gap:6px;margin-right:10px;"><input type="checkbox" class="convFmt" value="jpeg" checked onchange="reconvert()">JPEG</label><label style="font-weight:400;display:inline-flex;gap:6px;margin-right:10px;"><input type="checkbox" class="convFmt" value="png" checked onchange="reconvert()">PNG</label><label style="font-weight:400;display:inline-flex;gap:6px;"><input type="checkbox" class="convFmt" value="webp" checked onchange="reconvert()">WebP</label></div>
     </div>
     <div id="convMaxSideError" role="alert" style="display:none;color:var(--danger);font-size:13px;margin-top:6px;"></div>
@@ -360,6 +361,9 @@ function convertAll(__token) {
   }
   var quality = parseInt((document.getElementById('convQuality')||{}).value,10);
   quality = (isFinite(quality) ? Math.min(100, Math.max(1, quality)) : 85) / 100;
+  var rawBg = (document.getElementById('convBg')||{}).value || '#ffffff';
+  var jpegBg = /^#[0-9a-fA-F]{6}$/.test(rawBg) ? rawBg : '#ffffff';
+  var en = (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
   var selected = {};
   document.querySelectorAll('.convFmt').forEach(function(cb){ selected[cb.value] = cb.checked; });
   if(!selected.jpeg && !selected.png && !selected.webp){
@@ -380,13 +384,13 @@ function convertAll(__token) {
   const grid = document.getElementById('preview-grid');
   const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h1;
   formats.forEach(f => {
-    // 每种格式独立创建 canvas：仅 JPEG 铺白底（其编码不支持 alpha），PNG/WebP 保留透明通道
+    // 每种格式独立创建 canvas：仅 JPEG 铺所选背景色（其编码不支持 alpha），PNG/WebP 保留透明通道
     const flatten = f.type === 'image/jpeg';
     const canvas = document.createElement('canvas');
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext('2d');
     if (flatten) {
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = jpegBg;
       ctx.fillRect(0, 0, w, h);
     }
     ctx.drawImage(originalImg, 0, 0, w, h);
@@ -407,7 +411,7 @@ function convertAll(__token) {
       card.className = 'preview-card';
       const __h2=`
         <img alt="转换结果预览"  src="${url}">
-        <div class="info"><strong>${f.label}${fallback ? `（已回落为 ${actualExt.toUpperCase()}）` : ''}</strong><br>${formatSize(blob.size)}<br><span class="alpha-note">${flatten ? '已铺白底（JPEG 无透明）' : '未铺白底（源图透明通道原样保留）'}</span></div>
+        <div class="info"><strong>${f.label}${fallback ? `（已回落为 ${actualExt.toUpperCase()}）` : ''}</strong><br>${formatSize(blob.size)}<br><span class="alpha-note">${flatten ? (en ? 'JPEG background ' + jpegBg.toUpperCase() + ' (no alpha)' : 'JPEG 背景 ' + jpegBg.toUpperCase() + '（无透明）') : (en ? 'Transparency preserved' : '未铺底（源图透明通道原样保留）')}</span></div>
         <a href="${url}" download="${makeDownloadName(originalFile && originalFile.name, actualExt, w, h, f.lossy ? Math.round(quality*100) : null)}" class="download">⬇ 下载</a>
       `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){card.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}card.innerHTML=__h2;
       grid.appendChild(card);

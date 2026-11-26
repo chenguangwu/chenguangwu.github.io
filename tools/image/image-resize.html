@@ -244,7 +244,7 @@
     <h2 data-zh="🖼️ 图片缩放工具">Image Scaling</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="在线图片缩放 / 调整尺寸，支持按比例或指定尺寸，平滑与快速两种算法，PNG/JPEG 输出。纯前端 Canvas 处理，图片不上传。">Image Scaling</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">图片缩放与输出参数计算<br>目标尺寸由模式决定：按宽/按高/按长边/按百分比/自由<br>等比缩放：新边 = 基准边 × 原对边 ÷ 原基准边（向下取整）<br>canvas 重绘：drawImage(原图, 0, 0, 新宽, 高)<br>插值：高质量双线性平滑 或 邻近（锐化像素风）<br>仅 JPEG 无透明通道，先铺白底再绘制；PNG/WebP 保留 alpha<br>预览显示缩放 displayScale = min(1, 容器宽/图宽, 440/图高)<br>面积缩放比例 = (新宽×新高) ÷ (原宽×原高) × 100%<br>体积变化 = (新文件大小 − 原大小) ÷ 原大小 × 100%<br>质量参数：JPEG/WebP 0~100 滑杆，PNG 固定无损</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">图片缩放与输出参数计算<br>目标尺寸由模式决定：按宽/按高/按长边/按百分比/自由<br>等比缩放：新边 = 基准边 × 原对边 ÷ 原基准边（向下取整）<br>canvas 重绘：drawImage(原图, 0, 0, 新宽, 高)<br>插值：高质量双线性平滑 或 邻近（锐化像素风）<br>仅 JPEG 无透明通道，先按所选背景色铺底（默认白）再绘制；PNG/WebP 保留 alpha<br>预览显示缩放 displayScale = min(1, 容器宽/图宽, 440/图高)<br>面积缩放比例 = (新宽×新高) ÷ (原宽×原高) × 100%<br>体积变化 = (新文件大小 − 原大小) ÷ 原大小 × 100%<br>质量参数：JPEG/WebP 0~100 滑杆，PNG 固定无损</div>
       <div class="formula-desc tb-bi"><span class="t-zh">在线图片缩放 / 调整尺寸，支持按比例或指定尺寸，平滑与快速两种算法，PNG/JPEG 输出。纯前端 Canvas 处理，图片不上传</span><span class="t-en">Resize images to exact dimensions or a ratio with smooth or fast scaling</span></div>
     </div>
 
@@ -341,6 +341,15 @@
         </div>
       </div>
 
+      <!-- JPEG 背景色 -->
+      <div class="quality-row" id="bgRow">
+        <label for="bgColor"><span class="tb-bi"><span class="t-zh">JPEG 背景色（不支持透明，默认白色）</span><span class="t-en">JPEG background (no alpha; white by default)</span></span></label>
+        <div class="slider-row">
+          <input type="color" id="bgColor" value="#ffffff" oninput="render()" aria-label="JPEG 背景色">
+          <span id="bgColorVal" style="font-size:12px;color:var(--text-muted);">#FFFFFF</span>
+        </div>
+      </div>
+
       <!-- 预览 -->
       <h3 style="margin-top:22px;">缩放预览</h3>
       <div class="preview-wrap" id="previewWrap">
@@ -406,7 +415,7 @@
     <ul>
       <li>本工具纯前端运行，图片数据不会离开您的设备</li>
       <li>放大图片不会增加真实细节，可能出现模糊或锯齿</li>
-      <li>JPEG 格式不支持透明背景，输出时会以白色填充；PNG/WebP 保留透明通道</li>
+      <li class="tb-bi"><span class="t-zh">JPEG 格式不支持透明背景，输出时会以所选背景色填充（默认白色）；PNG/WebP 保留透明通道</span><span class="t-en">JPEG has no alpha channel; transparent areas are filled with the selected background (white by default). PNG/WebP keep transparency.</span></li>
       <li>建议在主流浏览器（Chrome / Safari / Firefox / Edge）中使用</li>
       <li>超大图片（如 10000px 以上）可能因内存限制处理缓慢</li>
     </ul>
@@ -713,6 +722,7 @@ function onFormatChange(){
   var fmt = $('outFormat').value;
   var showQuality = (fmt === 'image/jpeg' || fmt === 'image/webp');
   $('qualityRow').classList.toggle('show', showQuality);
+  var bgr = $('bgRow'); if(bgr) bgr.classList.toggle('show', fmt === 'image/jpeg');
   render();
 }
 
@@ -773,11 +783,14 @@ function render(){
     ctx.imageSmoothingEnabled = false;
   }
 
-  // 仅 JPEG 无透明通道，填白底；PNG/WebP 保留透明
+  // 仅 JPEG 无透明通道，填所选背景色（默认白色）；PNG/WebP 保留透明
+  var jpegBg = ($('bgColor') && $('bgColor').value) ? $('bgColor').value : '#ffffff';
+  if(!/^#[0-9a-fA-F]{6}$/.test(jpegBg)) jpegBg = '#ffffff';
   if(fmt === 'image/jpeg'){
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = jpegBg;
     ctx.fillRect(0, 0, size.w, size.h);
   }
+  if($('bgColorVal')) $('bgColorVal').textContent = jpegBg.toUpperCase();
 
   ctx.drawImage(originalImg, 0, 0, size.w, size.h);
 
@@ -830,6 +843,7 @@ function render(){
       '<p>原始大小：<strong>' + origSizeStr + '</strong> → 缩放后：<strong>' + newSizeStr + '</strong></p>' +
       '<p>体积变化：<strong style="color:' + sizeColor + ';">' + sizeChangeStr + '</strong></p>' +
       '<p>输出格式：<strong>' + fmtLabel(resultFmt) + '</strong>' + ((resultFmt === 'image/jpeg' || resultFmt === 'image/webp') ? '（质量 ' + (quality*100).toFixed(0) + '%）' : '（无损）') + (__fallbackFmt ? '（浏览器不支持所选格式，已回落为 ' + fmtLabel(resultFmt) + '）' : '') + '</p>' +
+      ((resultFmt === 'image/jpeg') ? '<p>' + (__imgEn()?'JPEG background: ':'JPEG 背景色：') + '<strong style="font-size:12px;">' + jpegBg.toUpperCase() + '</strong>' + (__imgEn()?' (no alpha)':'（无透明通道）') + '</p>' : '') +
       ((originalFile && originalFile.type === 'image/gif') ? '<p>源图为 GIF 动图，本次输出为<strong>静态首帧</strong>。</p>' : '');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){$('resizeInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('resizeInfo').innerHTML=__h2;
   }, fmt, (fmt === 'image/png') ? undefined : quality); } catch (e) { ToolBox.showToast((__imgEn()?'Export failed: ':'导出失败：') + ((e && (e.name || e.message)) || (__imgEn()?"Unknown error":"未知错误")), 'error'); }
 }
