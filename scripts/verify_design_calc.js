@@ -3793,6 +3793,70 @@ const CASES = [
 
 ];
 
+// 第986批：色板源数据一致性（官方值 / 阶数 / 单调性 / 预设复用）
+function paletteSourceChecks() {
+  const issues = [];
+  const read = (rel) => fs.readFileSync(path.join(__dirname, "..", rel), "utf8");
+  const tail = read("tools/design/tailwind-colors.html");
+  const mat = read("tools/design/material-color.html");
+  const pal = read("tools/design/color-palette.html");
+  const parse = (src, varName) => {
+    const start = src.indexOf("const " + varName);
+    const end = src.indexOf("\n};", start);
+    const block = src.slice(start, end < 0 ? start + 8000 : end);
+    const out = {};
+    block.replace(/([A-Za-z]+)\s*:\s*\[([^\]]+)\]/g, (_, name, body) => {
+      out[name] = (body.match(/'#[0-9a-fA-F]{6}'/g) || []).map((x) => x.slice(1, -1).toLowerCase());
+    });
+    return out;
+  };
+  const relLum = (hex) => {
+    const rgb = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map((v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
+    return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+  };
+  const audit = (label, palettes, expectedShades) => {
+    const keys = Object.keys(palettes);
+    if (keys.length !== (expectedShades === 10 ? 19 : 22)) issues.push(label + " 色系数量=" + keys.length);
+    for (const [name, vals] of Object.entries(palettes)) {
+      if (vals.length !== expectedShades) issues.push(label + " " + name + " 阶数=" + vals.length);
+      if (new Set(vals).size !== vals.length) issues.push(label + " " + name + " 存在重复色值");
+      for (let i = 1; i < vals.length; i++) {
+        if (relLum(vals[i]) >= relLum(vals[i - 1])) issues.push(label + " " + name + " 第" + i + "阶未变深");
+      }
+    }
+  };
+  const tw = parse(tail, "TAILWIND_COLORS");
+  const mc = parse(mat, "MATERIAL_COLORS");
+  audit("Tailwind", tw, 11);
+  audit("Material", mc, 10);
+  const exact = [
+    ["Tailwind red 500", tw.red && tw.red[5], "#ef4444"],
+    ["Tailwind red 600", tw.red && tw.red[6], "#dc2626"],
+    ["Tailwind amber 500", tw.amber && tw.amber[5], "#f59e0b"],
+    ["Tailwind amber 700", tw.amber && tw.amber[7], "#b45309"],
+    ["Tailwind emerald 500", tw.emerald && tw.emerald[5], "#10b981"],
+    ["Tailwind blue 500", tw.blue && tw.blue[5], "#3b82f6"],
+    ["Material LightGreen 500", mc.LightGreen && mc.LightGreen[5], "#8bc34a"],
+    ["Material Amber 500", mc.Amber && mc.Amber[5], "#ffc107"],
+    ["Material Orange 500", mc.Orange && mc.Orange[5], "#ff9800"],
+    ["Material Orange 900", mc.Orange && mc.Orange[9], "#e65100"],
+    ["Material DeepOrange 500", mc.DeepOrange && mc.DeepOrange[5], "#ff5722"],
+  ];
+  for (const [name, got, want] of exact) if (got !== want) issues.push(name + "=" + got + " 应为 " + want);
+  const pm = pal.slice(pal.indexOf("const PRESETS"), pal.indexOf("];", pal.indexOf("const PRESETS")));
+  const presets = {};
+  pm.replace(/\{name:'([^']+)', colors:\[([^\]]+)\]\}/g, (_, name, body) => {
+    presets[name] = (body.match(/'#[0-9a-fA-F]{6}'/g) || []).map((x) => x.slice(1, -1).toLowerCase());
+  });
+  for (const [name, vals] of Object.entries(presets)) {
+    if (vals.length !== 10) issues.push("color-palette " + name + " 阶数=" + vals.length);
+    const srcName = name.replace(/^Material /, "");
+    if (mc[srcName] && JSON.stringify(vals) !== JSON.stringify(mc[srcName])) issues.push("color-palette " + name + " 与 Material 源不一致");
+  }
+  return [{ name: "PRESET986 " + (issues.length ? "BAD " + issues.slice(0, 8).join("；") : "OK"), ok: !issues.length }];
+}
+
 // ---------------------------------------------------------------- main
 async function main() {
   const only = process.argv.slice(2);
@@ -3814,7 +3878,7 @@ async function main() {
     }
   }
 
-  const stat = designRework648StaticChecks().concat(batch202StaticChecks(), metronomeStaticChecks(), asciiHistoryGuardChecks(), dotPatternEventBindingChecks(), copyFeedbackStaticChecks(), favoriteAndLayerChecks(), colorDeepDiveContrastFaqChecks(), fontPairingCjkStackChecks(), fontPreviewPlatformChecks());
+  const stat = designRework648StaticChecks().concat(batch202StaticChecks(), metronomeStaticChecks(), asciiHistoryGuardChecks(), dotPatternEventBindingChecks(), copyFeedbackStaticChecks(), favoriteAndLayerChecks(), colorDeepDiveContrastFaqChecks(), fontPairingCjkStackChecks(), fontPreviewPlatformChecks(), paletteSourceChecks());
   const staticFails = stat.filter((s) => !s.ok);
   for (const s of staticFails) console.log("❌ [static] " + s.name);
 
