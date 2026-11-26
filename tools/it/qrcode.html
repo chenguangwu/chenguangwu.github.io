@@ -475,16 +475,16 @@ function __qrBuild(text, margin, pixelSize){
 }
 function __qrMarginValue(){
   var raw = String(document.getElementById('qrmargin').value || '').trim();
-  if (raw === '') return { ok: false, msg: '静区不能为空，请输入 0–10 的整数。' };
-  if (!/^\d+$/.test(raw)) return { ok: false, msg: '静区必须是 0–10 的整数（不支持小数、负号或科学计数法）。' };
+  if (raw === '') return { ok: false, msg: __qrT('静区不能为空，请输入 0–10 的整数。','Quiet zone is required; enter an integer from 0 to 10.') };
+  if (!/^\d+$/.test(raw)) return { ok: false, msg: __qrT('静区必须是 0–10 的整数（不支持小数、负号或科学计数法）。','Quiet zone must be an integer from 0 to 10 (no decimals, sign or scientific notation).') };
   var n = Number(raw);
-  if (!isFinite(n) || n < 0 || n > 10) return { ok: false, msg: '静区超出范围，请输入 0–10 的整数。' };
+  if (!isFinite(n) || n < 0 || n > 10) return { ok: false, msg: __qrT('静区超出范围，请输入 0–10 的整数。','Quiet zone is out of range; enter an integer from 0 to 10.') };
   return { ok: true, value: n };
 }
 function __qrMarginInvalid(msg){
   lastQr = null; lastCanvas = null; qrItems = [];
   var container = document.getElementById('qrcode');
-  if (container) container.innerHTML = '<p class="err">静区无效：' + msg + ' 已清除旧二维码，修正后会自动重新生成。</p>';
+  if (container) container.innerHTML = '<p class="err">' + __qrT('静区无效：','Invalid quiet zone: ') + msg + __qrT(' 已清除旧二维码，修正后会自动重新生成。',' Old QR codes were cleared; a valid value regenerates automatically.') + '</p>';
   ['qrDownloadPng','qrDownloadSvg'].forEach(function(id){ var b=document.getElementById(id); if(b)b.disabled=true; });
   var hint=document.getElementById('qrMarginError');
   if(hint){ hint.textContent=msg; hint.style.display='block'; }
@@ -547,7 +547,7 @@ function __qrMarkStale(reason){
 function __qrErrorText(e){
   if(e && e.message) return String(e.message);
   if(typeof e==='string' && e.trim()) return e;
-  return '内容超出二维码容量或包含无法编码的字符';
+  return __qrT('内容超出二维码容量或包含无法编码的字符','Content exceeds QR capacity or contains characters that cannot be encoded');
 }
 function __qrLum(hex){
   var h=String(hex||'').replace('#',''); if(h.length!==6) return 0;
@@ -560,11 +560,11 @@ function __qrRisk(){
   var ratio=__qrContrast(fgColor.value,bgColor.value);
   var margin=__qrMarginValue();
   var warns=[];
-  if(ratio<4.5) warns.push('前景/背景对比度约 '+ratio.toFixed(2)+':1，低于 4.5:1，屏幕和打印都可能难识别。');
-  if(__qrLum(bgColor.value) < __qrLum(fgColor.value)) warns.push('当前为反色（浅码深底），部分扫码器不支持。');
-  if(margin.ok && margin.value<4) warns.push('静区仅 '+margin.value+' 模块，推荐至少 4 模块；印刷裁切后可能贴边。');
+  if(ratio<4.5) warns.push(__qrT('前景/背景对比度约 '+ratio.toFixed(2)+':1，低于 4.5:1，屏幕和打印都可能难识别。','Foreground/background contrast is about '+ratio.toFixed(2)+':1, below 4.5:1; it may be hard to scan on screen and in print.'));
+  if(__qrLum(bgColor.value) < __qrLum(fgColor.value)) warns.push(__qrT('当前为反色（浅码深底），部分扫码器不支持。','Colors are inverted (light modules on a dark background); some scanners do not support this.'));
+  if(margin.ok && margin.value<4) warns.push(__qrT('静区仅 '+margin.value+' 模块，推荐至少 4 模块；印刷裁切后可能贴边。','Quiet zone is only '+margin.value+' module(s); at least 4 are recommended, and print trimming may cut it off.'));
   note.style.display='block';
-  note.textContent = warns.length ? '⚠ 扫码风险：'+warns.join(' ')+' 仍可生成/下载，但请实机扫码确认。' : '配色与静区未发现明显风险；识别率仍受屏幕、打印尺寸和扫码器影响，请实机确认。';
+  note.textContent = warns.length ? __qrT('⚠ 扫码风险：','⚠ Scan risk: ')+warns.join(' ')+__qrT(' 仍可生成/下载，但请实机扫码确认。',' You can still generate/download, but verify with a real scanner.') : __qrT('配色与静区未发现明显风险；识别率仍受屏幕、打印尺寸和扫码器影响，请实机确认。','No obvious color or quiet-zone risk was found; recognition still depends on screen, print size and scanner. Verify on a real device.');
 }
 function __qrResetStyle(){
   fgColor.value='#000000'; bgColor.value='#ffffff'; document.getElementById('qrmargin').value='4';
@@ -583,7 +583,7 @@ function generate() {
   if (!lines.length) {
     lastQr = null; lastCanvas = null; qrItems = []; qrStale=false;
     __qrClearStaleNote(); __qrSetButtons(false);
-    container.innerHTML = '<p style="color:#999;">输入内容后自动生成二维码</p>';
+    container.innerHTML = '<p style="color:#999;">'+__qrT('输入内容后自动生成二维码','Enter content to generate a QR code automatically')+'</p>';
     try { __qrChart(); } catch(e){}
     return;
   }
@@ -604,7 +604,7 @@ function generate() {
       if (lines.length > 1) {
         wrap = document.createElement('div'); wrap.className = 'qr-card';
         var hd = document.createElement('div'); hd.className = 'qr-head';
-        hd.textContent = '第 ' + entries[i].line + ' 行：' + entries[i].text.slice(0, 80);
+        hd.textContent = __qrT('第 '+entries[i].line+' 行：','Line '+entries[i].line+': ')+entries[i].text.slice(0, 80);
         wrap.appendChild(hd);
       } else { wrap = container; }
       wrap.appendChild(item.canvas);
@@ -619,7 +619,7 @@ function generate() {
       failures.push({ line: entries[i].line, msg: __qrErrorText(err) });
       var card=document.createElement('div'); card.className='qr-card';
       card.style.borderColor='#FCA5A5';
-      card.innerHTML='<div class="qr-head" style="color:#B91C1C;">第 '+entries[i].line+' 行生成失败：'+String(entries[i].text).slice(0,80).replace(/</g,'&lt;')+'</div><p style="color:#B91C1C;margin:8px 0 0;">'+failures[failures.length-1].msg.replace(/</g,'&lt;')+'</p>';
+      card.innerHTML='<div class="qr-head" style="color:#B91C1C;">'+__qrT('第 '+entries[i].line+' 行生成失败：','Line '+entries[i].line+' failed: ')+String(entries[i].text).slice(0,80).replace(/</g,'&lt;')+'</div><p style="color:#B91C1C;margin:8px 0 0;">'+failures[failures.length-1].msg.replace(/</g,'&lt;')+'</p>';
       container.appendChild(card);
     }
   }
@@ -631,7 +631,7 @@ function generate() {
   }
   if(failures.length){
     var note=document.createElement('p'); note.style.cssText='color:#B45309;font-size:13px;margin:10px 0 0;';
-    note.textContent='本次共 '+lines.length+' 行：成功 '+qrItems.length+' 行，失败 '+failures.length+' 行（第 '+failures.map(function(f){return f.line;}).join('、')+' 行）。成功项仍可单独下载。';
+    note.textContent=__qrT('本次共 '+lines.length+' 行：成功 '+qrItems.length+' 行，失败 '+failures.length+' 行（第 '+failures.map(function(f){return f.line;}).join('、')+' 行）。成功项仍可单独下载。','This run processed '+lines.length+' line(s): '+qrItems.length+' succeeded and '+failures.length+' failed (line '+failures.map(function(f){return f.line;}).join(', ')+'). Successful items can still be downloaded individually.');
     container.appendChild(note);
   }
   var sizeNote = document.getElementById('qrSizeNote');
@@ -643,15 +643,26 @@ function generate() {
   try { __qrChart(); } catch(e){}
 }
 function copyQRContent() {
-  var lines = __qrPayloads();
-  if (!lines.length) { ToolBox.showToast('请先输入二维码内容', 'warning'); return; }
-  var text = lines.join('\n');
-  ToolBox.copyText(text, lines.length > 1 ? '已复制批量二维码内容（按行分隔，未额外去空白）' : '已复制二维码内容（原样，包括首尾空格）');
+  var entries = __qrPayloadEntries();
+  if (!entries.length) { ToolBox.showToast(__qrT('请先输入二维码内容','Enter QR content first'), 'warning'); return; }
+  var mode = window.__qrForceMode || (document.getElementById('qrMode') || {}).value || 'single';
+  var trimBox = document.getElementById('qrBatchTrim');
+  var trimmed = mode === 'batch' && (!trimBox || trimBox.checked);
+  var text = entries.map(function(x){ return x.text; }).join('\n');
+  var hint;
+  if (mode === 'batch') {
+    hint = trimmed
+      ? __qrT('已复制批量二维码内容（按非空行分隔，已去除每行首尾空白）','Copied batch QR contents (separated by non-empty lines; leading/trailing spaces trimmed)')
+      : __qrT('已复制批量二维码内容（按非空行分隔，保留每行首尾空白）','Copied batch QR contents (separated by non-empty lines; leading/trailing spaces preserved)');
+  } else {
+    hint = __qrT('已复制二维码内容（原样，包括首尾空格）','Copied QR content (verbatim, including leading/trailing spaces)');
+  }
+  ToolBox.copyText(text, hint);
 }
 
 function downloadSVG(idx) {
   var item = qrItems[idx || 0];
-  if (qrStale || !item || !lastQr) { ToolBox.showToast(qrStale?'内容已修改，请等待重新生成后再下载':'请先生成有效二维码', 'warning'); return; }
+  if (qrStale || !item || !lastQr) { ToolBox.showToast(qrStale?__qrT('内容已修改，请等待重新生成后再下载','Content changed; wait for regeneration before downloading'):__qrT('请先生成有效二维码','Generate a valid QR code first'), 'warning'); return; }
   var qr = item.qr;
   var moduleCount = qr.getModuleCount();
   var pixelSize = item.pixelSize;
@@ -675,7 +686,7 @@ function downloadSVG(idx) {
 
 function downloadQR(idx) {
   var item = qrItems[idx || 0];
-  if (qrStale || !item || !lastCanvas) { ToolBox.showToast(qrStale?'内容已修改，请等待重新生成后再下载':'请先生成有效二维码', 'warning'); return; }
+  if (qrStale || !item || !lastCanvas) { ToolBox.showToast(qrStale?__qrT('内容已修改，请等待重新生成后再下载','Content changed; wait for regeneration before downloading'):__qrT('请先生成有效二维码','Generate a valid QR code first'), 'warning'); return; }
   var a = document.createElement('a');
   a.download = 'qrcode-' + Date.now() + (qrItems.length > 1 ? '-' + ((idx || 0) + 1) : '') + '.png';
   a.href = item.canvas.toDataURL('image/png');
