@@ -491,9 +491,10 @@ function renderBonus(taxableIncome){
   }
   var p = __bonusParts(bonus);
   var sepTax = Math.max(0, bonus * p.rate - p.ded);
-  var annualTaxable = Math.max(0, (taxableIncome || 0) * 12);
-  var baseTax = __taxAnnualOf(annualTaxable);
-  var mergedTax = Math.max(0, __taxAnnualOf(annualTaxable + bonus) - baseTax);
+  // 参数现在已是「年度工资应纳税所得额（可为负）」：负值代表工资未用完的年度扣除额。
+  var annualBase = (taxableIncome || 0);
+  var baseTax = __taxAnnualOf(Math.max(0, annualBase));
+  var mergedTax = Math.max(0, __taxAnnualOf(Math.max(0, annualBase + bonus)) - baseTax);
   var sepTotal = baseTax + sepTax;
   var mergeTotal = baseTax + mergedTax;
   var diff = Math.abs(sepTotal - mergeTotal);
@@ -602,7 +603,10 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
 
   // 应纳税所得额 = 税前 - 社保 - 起征点 - 专项附加
   const taxableIncome = Math.max(0, salary - insurance - threshold - special);
-  try { renderBonus(taxableIncome); } catch(e) {}
+  // 年度合并口径必须保留「月工资低于扣除额」的未用扣除（可为负），否则奖金并入会虚增税负。
+  const annualBaseSigned = (salary - insurance - threshold - special) * 12;
+  window.__taxAnnualBaseSigned = annualBaseSigned;
+  try { renderBonus(annualBaseSigned); } catch(e) {}
 
   let tax = 0;
   let rate = 0;
@@ -714,9 +718,9 @@ function __taxExport(){
       if(bonus>0 && typeof __bonusParts==='function' && typeof __taxAnnualOf==='function'){
         var p=__bonusParts(bonus);
         var sepTax=Math.max(0, bonus*p.rate-p.ded);
-        var annualTaxable=Math.max(0, taxableIncome*12);
-        var baseTax=__taxAnnualOf(annualTaxable);
-        var mergedTax=Math.max(0, __taxAnnualOf(annualTaxable+bonus)-baseTax);
+        var annualBase=(typeof window.__taxAnnualBaseSigned==='number' && isFinite(window.__taxAnnualBaseSigned)) ? window.__taxAnnualBaseSigned : (taxableIncome*12);
+        var baseTax=__taxAnnualOf(Math.max(0, annualBase));
+        var mergedTax=Math.max(0, __taxAnnualOf(Math.max(0, annualBase+bonus))-baseTax);
         var sepTotal=baseTax+sepTax, mergeTotal=baseTax+mergedTax;
         var better=sepTotal<mergeTotal?'单独计税':(mergeTotal<sepTotal?'并入综合所得':'两种方式相同');
         var modeEl=document.getElementById('bonusMode');

@@ -318,9 +318,9 @@ function calc(){
     +'<div class="stat-card"><div class="val">'+fx(dar*100,d)+'%</div><div class="lbl">资产负债率（参考 40%~60%）</div></div>';grid.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   var rows=[
-    ['流动比率',clOk?fx(current,d):'不适用','≥ 2 良好 / 1~2 一般 / < 1 警戒',tag(current,2,1),clOk?('流动资产 '+fx(ca,d)+' ÷ 流动负债 '+fx(cl,d)):'流动负债为 0，分母无效'],
-    ['速动比率',clOk?fx(quick,d):'不适用','≥ 1 良好 / 0.5~1 一般 / < 0.5 警戒',tag(quick,1,0.5),clOk?('(流动资产 '+fx(ca,d)+' − 存货 '+fx(inv,d)+' − 预付费用 '+fx(pre,d)+') ÷ 流动负债 '+fx(cl,d)):'流动负债为 0，分母无效'],
-    ['现金比率',clOk?fx(cashR,d):'不适用','≥ 0.2 充裕 / 0.1~0.2 一般 / < 0.1 偏紧',tag(cashR,0.2,0.1),clOk?('现金 '+fx(cash,d)+' ÷ 流动负债 '+fx(cl,d)):'流动负债为 0，分母无效'],
+    ['流动比率',clOk?fx(current,d):'不适用','经验参考：≥ 2 良好 / 1~2 一般 / < 1 警戒（可按行业调整）',tag(current,2,1),clOk?('流动资产 '+fx(ca,d)+' ÷ 流动负债 '+fx(cl,d)):'流动负债为 0，分母无效'],
+    ['速动比率',clOk?fx(quick,d):'不适用','经验参考：≥ 1 良好 / 0.5~1 一般 / < 0.5 警戒（可按行业调整）',tag(quick,1,0.5),clOk?('(流动资产 '+fx(ca,d)+' − 存货 '+fx(inv,d)+' − 预付费用 '+fx(pre,d)+') ÷ 流动负债 '+fx(cl,d)):'流动负债为 0，分母无效'],
+    ['现金比率',clOk?fx(cashR,d):'不适用','经验参考：≥ 0.2 充裕 / 0.1~0.2 一般 / < 0.1 偏紧（可按行业调整）',tag(cashR,0.2,0.1),clOk?('现金 '+fx(cash,d)+' ÷ 流动负债 '+fx(cl,d)):'流动负债为 0，分母无效'],
     ['资产负债率',isFinite(dar)?(dar*100).toFixed(d)+'%':'—','40%~60% 适中 / > 70% 警戒 / < 30% 偏低',tagHigh(isFinite(dar)?dar*100:NaN,30,60,70),'负债总额 '+fx(tl,d)+' ÷ 资产总额 '+fx(ta,d)],
     ['产权比率',fx(de,d),'< 1 稳健 / 1~2 一般 / 2~3 偏高 / > 3 警戒',tagDERatio(de),'负债总额 '+fx(tl,d)+' ÷ 所有者权益 '+fx(equity,d)],
     ['权益乘数',fx(em,d),'1.5~2.5 常见 / > 3 高杠杆',tagHigh(em,1.5,2.5,3),'资产总额 '+fx(ta,d)+' ÷ 所有者权益 '+fx(equity,d)]
@@ -346,9 +346,14 @@ function calc(){
   }else if(current<1){
     html+='<div class="tip-box tip-warn">流动比率低于 1，短期偿债主要依赖存货与应收账款的变现速度。</div>';
   }else if(current>=2&&quick>=1){
-    html+='<div class="tip-box tip-success">流动比率与速动比率均达到经验参考值，短期偿债能力较为稳健。</div>';
+    html+='<div class="tip-box tip-success">流动比率与速动比率均达到本页经验参考值；这是通用制造业口径，零售、地产等预收占款行业应结合同业与自身历史区间判断，不能仅凭该档位下结论。</div>';
   }else{
-    html+='<div class="tip-box tip-warn">流动比率尚可但速动比率偏低，说明流动资产中存货占比偏高，变现质量需进一步核查。</div>';
+    var __invPct=ca>0?inv/ca*100:0, __prePct=ca>0?pre/ca*100:0;
+    var __reason='';
+    if(quick<1 && __invPct>=__prePct) __reason='本次主要拖累项为存货（占流动资产 '+fx(__invPct,1)+'%），需核查存货周转与跌价风险';
+    else if(quick<1) __reason='本次主要拖累项为预付费用（占流动资产 '+fx(__prePct,1)+'%），需核查预付账款的回收或转费用安排';
+    else __reason='速动比率未低于 1，流动比率偏低更可能来自应收账款/其他流动资产结构，需结合账龄与同业口径核查';
+    html+='<div class="tip-box tip-warn">流动比率处于 1–2 的经验区间、速动比率 '+fx(quick,d)+'。'+__reason+'。上述阈值为可调整的经验参考，不代表行业统一标准。</div>';
   }
   if(equity<=0){
     html+='<div class="tip-box tip-error">所有者权益不为正（'+fx(equity,d)+' 元），产权比率与权益乘数无法反映正常资本结构。</div>';
