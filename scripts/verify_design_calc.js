@@ -224,6 +224,10 @@ function copyFeedbackStaticChecks() {
     { name: "13 个 CSS 生成页复制统一走 ToolBox.copyText 且无直接剪贴板调用", ok: clipOurs.length === 0 },
     { name: "图标页复制 Data URL 走 ToolBox.copyText", ok: fav.every((s) => /ToolBox\.copyText\(lastURL,/.test(s) && !/navigator\.clipboard\.writeText\(lastURL\)/.test(s)) },
     { name: "图标页预览对用户输入做 HTML 转义", ok: fav.every((s) => /function __favEsc\(/.test(s) && /__favEsc\((?:emoji|text)\)/.test(s) && !/>\$\{(?:emoji|text)\}</.test(s)) },
+    { name: "阴影工具滑块有明确 focus-visible 轮廓，不被 outline:none 覆盖", ok: ["css-box-shadow-generator", "css-text-shadow"].every((slug) => {
+        const src = fs.readFileSync(path.join(__dirname, "..", "tools", "design", slug + ".html"), "utf8");
+        return /\.slider-group input\[type=range\]:focus-visible\{[^}]*outline:2px solid var\(--primary\)/.test(src);
+      }) },
   ];
 }
 
