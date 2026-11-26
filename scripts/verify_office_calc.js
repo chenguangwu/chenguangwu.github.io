@@ -44,6 +44,27 @@ function mindmapStaticChecks() {
     },
   ];
 }
+const XFR_PATH = path.join(__dirname, "..", "tools", "office", "excel-formula-reference.html");
+function excelFormulaStaticChecks() {
+  const src = fs.readFileSync(XFR_PATH, "utf8");
+  return [
+    { name: "公式速查搜索去首尾空格、空结果与清除",
+      ok: /function norm\(/.test(src) && /\.trim\(\)/.test(src)
+        && /没有匹配结果/.test(src) && /xfrEmptyClear/.test(src) && /xfrClear/.test(src) },
+    { name: "公式速查每条含示例、复制与版本标签",
+      ok: /xfr-example/.test(src) && /data-copy="syntax"/.test(src) && /data-copy="example"/.test(src)
+        && /version:\[/.test(src) && /XLOOKUP/.test(src) && /COUNTIF/.test(src) && /FILTER/.test(src) },
+    { name: "公式速查中英文数据与本地化 CSV",
+      ok: /function isEn\(/.test(src) && /field\(item,'cat'\)/.test(src)
+        && /excel-formula-reference-en\.csv/.test(src) && /示例数据/.test(src) },
+    { name: "公式速查不记录搜索词、无通过率趋势",
+      ok: !/TBKit\.history\.record/.test(src) && !/__tbScore/.test(src) && !/chart\.line/.test(src)
+        && !/有效性趋势/.test(src) && /不记录搜索词/.test(src) },
+    { name: "公式速查不再承诺高亮并说明分隔符差异",
+      ok: !/即可筛选并高亮/.test(src) && /列表分隔符/.test(src) && /分号/.test(src) },
+  ];
+}
+
 function flowchartStaticChecks() {
   const src = fs.readFileSync(FLOWCHART_PATH, "utf8");
   const initCalls = [...src.matchAll(/mermaid\.initialize\(\{[\s\S]*?\}\);/g)].map((m) => m[0]);
@@ -99,29 +120,28 @@ const CASES = [
   "slug": "office/excel-formula-reference",
   "inputs": {},
   "clicks": [
-    "document.getElementById('keyword').value='数字';render();"
+    "document.getElementById('__tbProbe').textContent='XFE '+window.__xfrData.length+'|'+(document.getElementById('xfrClear')?'Y':'N')+'|'+(document.getElementById('xfrEmpty')?'Y':'N')+'|'+(document.getElementById('xfrCount')?'Y':'N');"
   ],
-  "expect": [
-    "求平均值。 TEXT 分类：文本",
-    "分类：统计 =AVERAGE(数字1,数字2,...) 求平均值。 TEXT"
-  ],
-  "ref": "（推翻 auto-restore）关键词过滤型页：render() 读 #keyword 后对 DATA 做顺序保持型过滤，命中项依次 appendChild 进 #list，collectStrings 采集其 innerHTML（标签→空格）⇒ 过滤态的「相邻条目」串可被断言。注入关键词「数字」⇒ 只有 SUM / AVERAGE / TEXT 命中（三处 syntax 含「数字」），于是 AVERAGE 与 TEXT 在全表中间隔 IF、VLOOKUP、INDEX、MATCH、SUMIFS、COUNTIFS 六项，在过滤态却紧邻 ⇒ 锚跨边界串「求平均值。 TEXT 分类：文本」（默认全量渲染下 AVERAGE 之后是 IF，故默认态必失配）。另一条锚「分类：统计 =AVERAGE(...) 求平均值。 TEXT」同属该边界。已实测排除的逃生项候选：`=TEXT(数字,\"0.00\")` 与 `TEXT 分类：文本 =TEXT(数字,\"0.00\") 数字转文本与格式控制。` —— 二者整段是 TEXT 条目自身的渲染结果，默认全量渲染里同样 contiguous ⇒ 判别力 0（BATCH110①「锚不得成为默认态某串的子串」）。"
+  "expect": ["XFE 27|Y|Y|Y"],
+  "ref": "页面必须提供 27 条数据、清除按钮、无结果空态和结果计数；搜索语义由下面的静态断言与真机用例覆盖。"
 },
 {
   "slug": "office/excel-formula-reference",
+  "inputs": {},
   "clicks": [
-    "document.getElementById('keyword').value='SUM';render();var got='';window.TBKit={util:{isEn:function(){return false;},exportTable:function(sel,name){got=String(sel)+'|'+String(name);}}};__excel_formula_referenceExport();delete window.TBKit;document.getElementById('__tbProbe').textContent='XFE '+((got.indexOf('#xfrHidden')>=0&&got.indexOf('excel-formula-reference.csv')>=0)?'OK':'BAD');"
+    "var i=document.getElementById('keyword');i.value='xlookup';window.render();var n1=document.querySelectorAll('.formula-item').length;i.value='countif';window.render();var n2=document.querySelectorAll('.formula-item').length;i.value='filter';window.render();var n3=document.querySelectorAll('.formula-item').length;document.getElementById('__tbProbe').textContent='XFE2 '+n1+'|'+n2+'|'+n3;"
   ],
-  "expect": ["XFE OK"],
-  "ref": "导出目标：旧实现导出历史表 #excel_formula_referenceTable（无历史时为空表）；现按当前关键词过滤 DATA，临时建 #xfrHidden 表导出，文件名不变。"
+  "expect": ["XFE2 1|2|1"],
+  "ref": "覆盖页面承诺的 XLOOKUP、COUNTIF、FILTER；新函数显示版本标签，COUNTIF 搜索同时命中 COUNTIFS。"
 },
 {
   "slug": "office/excel-formula-reference",
+  "inputs": {},
   "clicks": [
-    "document.getElementById('keyword').value='zzz';render();var called=false;window.TBKit={util:{isEn:function(){return false;},exportTable:function(){called=true;}}};var msg='';var oldT=ToolBox.showToast;ToolBox.showToast=function(m){msg=String(m);};__excel_formula_referenceExport();ToolBox.showToast=oldT;delete window.TBKit;document.getElementById('__tbProbe').textContent='XFE2 '+((!called&&msg.indexOf('没有可导出的公式')>=0)?'OK':'BAD');"
+    "var ex=document.querySelectorAll('.xfr-example').length;var i=document.getElementById('keyword');i.value='zzz';window.render();var msg='';var old=ToolBox.showToast;ToolBox.showToast=function(m){msg=String(m);};__excel_formula_referenceExport();ToolBox.showToast=old;document.getElementById('__tbProbe').textContent='XFE3 '+msg+'|'+ex;"
   ],
-  "expect": ["XFE2 OK"],
-  "ref": "无匹配：旧实现会生成空的历史表并导出空 CSV；现提示「当前筛选没有可导出的公式」且不调用导出。"
+  "expect": ["XFE3 当前筛选没有可导出的公式|27"],
+  "ref": "无匹配时导出只提示、不生成文件；每条公式都有示例区和语法/示例两个复制入口。"
 },
 {
   // 降级渲染（CDN 被墙 / 离线）：库缺失分支不再只留一句报错，而是把 Markdown 渲染成
@@ -385,7 +405,7 @@ async function main() {
   }
 
   // 结构前提断言（PNG 导出前置 + 思维导图空草稿恢复）：与用例一起计入退出码，缺一即红。
-  const stat = flowchartStaticChecks().concat(mindmapStaticChecks());
+  const stat = flowchartStaticChecks().concat(mindmapStaticChecks()).concat(excelFormulaStaticChecks());
   const staticFails = stat.filter((s) => !s.ok);
   for (const s of staticFails) console.log("❌ [static] " + s.name);
 
