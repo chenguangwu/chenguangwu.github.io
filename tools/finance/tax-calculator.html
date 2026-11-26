@@ -636,20 +636,21 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
   document.getElementById('effectiveRate').textContent = salary > 0 ? (tax / salary * 100).toFixed(1) + '%' : '0%';
   document.getElementById('annualTax').textContent = fmt(tax * 12);
 
-  // 税率级数列表
+  // 税率级数列表：英文态在渲染时生成英文档位文本，避免重算后回落到中文字典。
   const list = document.getElementById('bracketList');
+  const __enList = __tbIsEn();
   const __h0=brackets.map((b, i) => {
     const isActive = i === bracketIdx;
     const prev = i === 0 ? null : brackets[i - 1].max;
     const range = i === 0 ? '≤ 3,000' :
                   i === brackets.length - 1 ? '> 80,000' :
-                  (__tbIsEn()
-                    ? `> ${prev.toLocaleString()} and ≤ ${b.max.toLocaleString()}`
+                  (__enList
+                    ? `> ${prev.toLocaleString('en-US')} and ≤ ${b.max.toLocaleString('en-US')}`
                     : `> ${prev.toLocaleString()} 且 ≤ ${b.max.toLocaleString()}`);
     return `<div class="tax-bracket ${isActive ? 'active' : ''}">
-      <span>第 ${i+1} 级 · ${range} 元</span>
+      <span>${__enList ? 'Bracket ' + (i+1) : '第 ' + (i+1) + ' 级'} · ${range} ${__enList ? 'CNY' : '元'}</span>
       <span style="color:${isActive ? 'var(--success)' : 'var(--text-muted)'};font-weight:${isActive ? 600 : 400};">
-        ${(b.rate * 100).toFixed(0)}% ${isActive ? '✓ 适用' : ''}
+        ${(b.rate * 100).toFixed(0)}% ${isActive ? (__enList ? '✓ Applied' : '✓ 适用') : ''}
       </span>
     </div>`;
   }).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h0;
@@ -702,14 +703,34 @@ function __taxExport(){
     var afterTax=Math.max(0, salary-insurance-tax);
     var annual=tax*12;
     var eff=salary>0?(tax/salary*100):0;
+    var en=__tbIsEn();
+    var __L=en?{
+      taxable:'Taxable income (CNY)',rate:'Applicable rate',quick:'Quick deduction (CNY)',tax:'Tax payable (CNY)',
+      net:'After-tax income (CNY)',eff:'Effective rate',annual:'Annual salary tax (excl. bonus, CNY)',
+      bonus:'Year-end bonus (CNY)',sepBonus:'Separate: bonus tax (CNY)',sepTotal:'Separate: annual total tax (CNY)',
+      mergeBonus:'Merged: bonus tax (CNY)',mergeTotal:'Merged: annual total tax (CNY)',better:'Lower-tax option',
+      mode:'Current method',sdSum:'Itemized deduction total (CNY/month)',
+      sdNames:['Childcare under 3','Child education','Continuing education','Serious illness (CNY/year)','Housing loan interest','Housing rent','Elderly support'],
+      sdPrefix:'Deduction item · ',sdApplied:'Deduction actually applied (CNY/month)',
+      header1:'Item',header2:'Value',sep:'Separate',merge:'Merged',auto:'Auto (lower tax)',same:'Equal'
+    }:{
+      taxable:'应纳税所得额 (元)',rate:'适用税率',quick:'速算扣除数 (元)',tax:'应缴个税 (元)',
+      net:'税后收入 (元)',eff:'实际税负',annual:'工资部分年个税（不含奖金） (元)',
+      bonus:'年终奖 (元)',sepBonus:'单独计税·年终奖税额 (元)',sepTotal:'单独计税·全年个税合计 (元)',
+      mergeBonus:'并入综合所得·年终奖税额 (元)',mergeTotal:'并入综合所得·全年个税合计 (元)',better:'更省方案',
+      mode:'当前计税方式',sdSum:'专项附加扣除明细合计 (元/月)',
+      sdNames:['3岁以下婴幼儿照护','子女教育','继续教育','大病医疗(元/年)','住房贷款利息','住房租金','赡养老人'],
+      sdPrefix:'扣除明细·',sdApplied:'当前生效的专项附加扣除 (元/月)',
+      header1:'项目',header2:'数值',sep:'单独计税',merge:'并入综合所得',auto:'自动（推荐更省）',same:'两种方式相同'
+    };
     var rows=[
-      ['应纳税所得额 (元)', taxableIncome.toFixed(2)],
-      ['适用税率', (rate*100).toFixed(0)+'%'],
-      ['速算扣除数 (元)', String(deduction)],
-      ['应缴个税 (元)', tax.toFixed(2)],
-      ['税后收入 (元)', afterTax.toFixed(2)],
-      ['实际税负', eff.toFixed(1)+'%'],
-      ['工资部分年个税（不含奖金） (元)', annual.toFixed(2)]
+      [__L.taxable, taxableIncome.toFixed(2)],
+      [__L.rate, (rate*100).toFixed(0)+'%'],
+      [__L.quick, String(deduction)],
+      [__L.tax, tax.toFixed(2)],
+      [__L.net, afterTax.toFixed(2)],
+      [__L.eff, eff.toFixed(1)+'%'],
+      [__L.annual, annual.toFixed(2)]
     ];
     // F-N108：导出补齐奖金两方案、全年合计与 7 项扣除明细，留档内容与屏显一一对应。
     try{
@@ -722,28 +743,27 @@ function __taxExport(){
         var baseTax=__taxAnnualOf(Math.max(0, annualBase));
         var mergedTax=Math.max(0, __taxAnnualOf(Math.max(0, annualBase+bonus))-baseTax);
         var sepTotal=baseTax+sepTax, mergeTotal=baseTax+mergedTax;
-        var better=sepTotal<mergeTotal?'单独计税':(mergeTotal<sepTotal?'并入综合所得':'两种方式相同');
+        var better=sepTotal<mergeTotal?__L.sep:(mergeTotal<sepTotal?__L.merge:__L.same);
         var modeEl=document.getElementById('bonusMode');
         var mode=modeEl?modeEl.value:'auto';
-        rows.push(['年终奖 (元)',bonus.toFixed(2)]);
-        rows.push(['单独计税·年终奖税额 (元)',sepTax.toFixed(2)]);
-        rows.push(['单独计税·全年个税合计 (元)',sepTotal.toFixed(2)]);
-        rows.push(['并入综合所得·年终奖税额 (元)',mergedTax.toFixed(2)]);
-        rows.push(['并入综合所得·全年个税合计 (元)',mergeTotal.toFixed(2)]);
-        rows.push(['更省方案',better]);
-        rows.push(['当前计税方式',mode==='separate'?'单独计税':(mode==='merge'?'并入综合所得':'自动（推荐更省）')]);
+        rows.push([__L.bonus,bonus.toFixed(2)]);
+        rows.push([__L.sepBonus,sepTax.toFixed(2)]);
+        rows.push([__L.sepTotal,sepTotal.toFixed(2)]);
+        rows.push([__L.mergeBonus,mergedTax.toFixed(2)]);
+        rows.push([__L.mergeTotal,mergeTotal.toFixed(2)]);
+        rows.push([__L.better,better]);
+        rows.push([__L.mode,mode==='separate'?__L.sep:(mode==='merge'?__L.merge:__L.auto)]);
       }
       if(typeof __sdAudit==='function'){
         var sdA=__sdAudit();
-        rows.push(['专项附加扣除明细合计 (元/月)',sdA.sum.toFixed(2)]);
-        var sdNames=['3岁以下婴幼儿照护','子女教育','继续教育','大病医疗(元/年)','住房贷款利息','住房租金','赡养老人'];
-        for(var q=0;q<7;q++) rows.push(['扣除明细·'+sdNames[q],sdA.v['sd'+(q+1)].toFixed(2)]);
-        rows.push(['当前生效的专项附加扣除 (元/月)',special.toFixed(2)]);
+        rows.push([__L.sdSum,sdA.sum.toFixed(2)]);
+        for(var q=0;q<7;q++) rows.push([__L.sdPrefix+__L.sdNames[q],sdA.v['sd'+(q+1)].toFixed(2)]);
+        rows.push([__L.sdApplied,special.toFixed(2)]);
       }
     }catch(e){}
     var tb=document.getElementById('taxResultTable');
     if(!tb) return;
-    var html='<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+    var html='<thead><tr><th>'+__L.header1+'</th><th>'+__L.header2+'</th></tr></thead><tbody>';
     for(var k=0;k<rows.length;k++){ html+='<tr><td>'+rows[k][0]+'</td><td>'+rows[k][1]+'</td></tr>'; }
     html+='</tbody>';
     tb.innerHTML=html;
@@ -790,7 +810,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像反转生成可复制的字符或预览图，用于趣味签名、艺术字与水印，纯前端即时转换支持一键复制结…</span></span>
+      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像：复制近似 Unicode 字符，或导出真实左右翻转、透明背景的多行 PNG；</span></span>
     </a>
     
   </div>
