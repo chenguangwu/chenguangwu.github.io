@@ -156,6 +156,50 @@ const CASES = [
   "ref": "IT-D36：注入一条历史记录 {rangeInput:'1,3'} 并触发 TBKit.history.mount 的回填回调 ⇒ downloadResult 调用次数必须为 0。旧实现在回填末尾直接调 downloadResult() ⇒ HISTDL 1。默认态不执行探针 ⇒ 判别明确。",
 },
 {
+  "slug": "office/pdf-split",
+  "inputs": {},
+  "clicks": [
+    "totalPages=3;document.getElementById('rangeInput').value='1.5';updateRangePreview();"
+  ],
+  "expect": [
+    "页码必须是正整数：1.5"
+  ],
+  "ref": "严格页码校验：小数不得被 parseInt 静默截成第 1 页。默认输入 1-3 合法，错误串只可能来自本条注入。"
+},
+{
+  "slug": "office/pdf-split",
+  "inputs": {},
+  "clicks": [
+    "totalPages=3;document.getElementById('rangeInput').value='1，3';updateRangePreview();"
+  ],
+  "expect": [
+    "1, 3"
+  ],
+  "ref": "全角逗号应作为分隔符接受，预览显示归一化后的 1, 3；旧实现只按半角逗号 split，会把 1，3 当作非法页码。"
+},
+{
+  "slug": "office/pdf-split",
+  "inputs": {},
+  "clicks": [
+    "totalPages=3;document.getElementById('rangeInput').value='1,,3';updateRangePreview();"
+  ],
+  "expect": [
+    "存在空页码段"
+  ],
+  "ref": "空页码段必须报错，不得静默跳过；默认合法输入不含该提示。"
+},
+{
+  "slug": "office/pdf-split",
+  "inputs": {},
+  "clicks": [
+    "extractedBytes=new Uint8Array([1]);document.getElementById('resultArea').style.display='block';document.getElementById('resultMsg').textContent='OLD';document.getElementById('rangeInput').value='2';updateRangePreview();document.getElementById('rangePreview').textContent='STALE '+document.getElementById('resultArea').style.display+' '+(extractedBytes===null)+' ['+document.getElementById('resultMsg').textContent+']';"
+  ],
+  "expect": [
+    "STALE none true []"
+  ],
+  "ref": "提取成功后改页码范围，旧结果必须失效：结果区隐藏、extractedBytes 置空、结果文案清空。默认无提取结果 ⇒ 该串不会命中。"
+},
+{
   "slug": "office/pdf-rotate",
   "inputs": {},
   "clicks": [

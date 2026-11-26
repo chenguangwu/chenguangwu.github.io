@@ -308,6 +308,7 @@
     <!-- 操作工具栏 -->
     <div class="toolbar" id="actionBar" style="margin-top:16px;display:none;">
       <button type="button" class="btn primary" id="mergeBtn" onclick="mergePDFs()" disabled>🔀 合并所有 PDF</button>
+      <div class="info-box" id="mergeGateHint" role="status" style="display:none;margin-top:8px;font-size:12px;line-height:1.6;"></div>
       <div class="info-box" role="note" style="margin-top:10px;font-size:12px;line-height:1.6;">书签与内部页内跳转会尝试重建；交互表单默认展平保留外观（可取消勾选）；批注、附件与数字签名仍不保留，签名文档重写后将失效。Outlines and internal page links are rebuilt when possible; form fields are flattened by default to keep their appearance; comments, attachments and signatures are not preserved, and signed documents become invalid after rewriting.</div>
       <button type="button" class="btn" onclick="clearAll()">🗑️ 清空列表</button>
       <button type="button" class="btn" onclick="addMore()">+ 继续添加</button>
@@ -492,12 +493,24 @@ function addMore(){
   document.getElementById('fileInput').click();
 }
 async function addFiles(fileList){
-  const arr = Array.from(fileList).filter(f =>
-    f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
-  );
+  const selected = Array.from(fileList);
+  const isPdf = function(f){ return f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'); };
+  const arr = selected.filter(isPdf);
+  const skipped = selected.filter(function(f){ return !isPdf(f); });
+  const skippedText = skipped.slice(0, 3).map(function(f){ return f.name; }).join('、') + (skipped.length > 3 ? '…' : '');
   if(arr.length === 0){
-    ToolBox.showToast(__pdfMsg('请选择 PDF 文件（仅支持 .pdf）','Select PDF files (.pdf only).'), 'warning');
+    ToolBox.showToast(__pdfMsg(
+      '未添加文件：仅支持 PDF' + (skipped.length ? '，已跳过 ' + skipped.length + ' 个文件：' + skippedText : ''),
+      'Nothing added: PDF only' + (skipped.length ? '. Skipped ' + skipped.length + ' file(s): ' + skippedText : '')
+    ), 'warning');
     return;
+  }
+  invalidateResult();
+  if(skipped.length){
+    ToolBox.showToast(__pdfMsg(
+      '已跳过 ' + skipped.length + ' 个非 PDF 文件：' + skippedText,
+      'Skipped ' + skipped.length + ' non-PDF file(s): ' + skippedText
+    ), 'warning');
   }
   const addedItems = [];
   for(const f of arr){
@@ -575,6 +588,16 @@ function updateStructureNotice(okItems){
   wrap.style.display = forms > 0 ? 'flex' : 'none';
 }
 
+/* ---------- 结果失效 ---------- */
+function invalidateResult(){
+  if(isMerging) return;
+  window.__lastBlob = null;
+  window.__lastName = null;
+  const result = document.getElementById('result');
+  if(result) result.innerHTML = '';
+  hideProgress();
+}
+
 /* ---------- 列表渲染 ---------- */
 function renderList(){
   const list = document.getElementById('fileList');
@@ -582,7 +605,7 @@ function renderList(){
   const summary = document.getElementById('statSummary');
 
   if(files.length === 0){
-    const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h0;
+    const __h0='';list.innerHTML=__h0;
     bar.style.display = 'none';
     summary.style.display = 'none';
     document.getElementById('mergeBtn').disabled = true;
@@ -625,7 +648,7 @@ function renderList(){
           <button class="icon-btn danger" title="删除" onclick="removeItem('${f.id}')" aria-label="删除">✕</button>
         </div>
       </div>`;
-  }).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
+  }).join('');list.innerHTML=__h1;
 
   // 统计
   const okItems = files.filter(f => f.status === 'ok');
@@ -638,12 +661,24 @@ function renderList(){
     <div class="ss-item"><div class="ss-val">${totalPages}</div><div class="ss-lbl">合计页数</div></div>
     <div class="ss-item"><div class="ss-val">${formatSize(totalSize)}</div><div class="ss-lbl">总大小</div></div>
     ${errCount > 0 ? '<div class="ss-item"><div class="ss-val" style="color:var(--danger);">' + errCount + '</div><div class="ss-lbl">无法解析</div></div>' : ''}
-  `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){summary.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}summary.innerHTML=__h2;
+  `;summary.innerHTML=__h2;
 
   updateStructureNotice(okItems);
 
-  // 合并按钮可用性：至少 2 个可解析文件
-  const mergeable = okItems.length >= 2 && !isMerging;
+  // 合并按钮：等全部文件校验完成；无法解析的文件必须先移除，避免静默漏页
+  const loadingCount = files.filter(f => f.status === 'loading').length;
+  const gateHint = document.getElementById('mergeGateHint');
+  let gateText = '';
+  if(loadingCount > 0){
+    gateText = __pdfMsg('还有 ' + loadingCount + ' 个文件正在读取，请等待全部完成', loadingCount + ' file(s) still loading; wait until all finish');
+  }else if(errCount > 0){
+    gateText = __pdfMsg('有 ' + errCount + ' 个文件无法解析，请先移除后再合并', 'Remove ' + errCount + ' unreadable file(s) before merging');
+  }
+  if(gateHint){
+    gateHint.textContent = gateText;
+    gateHint.style.display = gateText ? 'block' : 'none';
+  }
+  const mergeable = okItems.length >= 2 && loadingCount === 0 && errCount === 0 && !isMerging;
   document.getElementById('mergeBtn').disabled = !mergeable;
 }
 
@@ -653,21 +688,23 @@ function moveItem(id, dir){
   if(idx < 0) return;
   const target = idx + dir;
   if(target < 0 || target >= files.length) return;
+  invalidateResult();
   [files[idx], files[target]] = [files[target], files[idx]];
   renderList();
 }
 function removeItem(id){
+  invalidateResult();
   files = files.filter(f => f.id !== id);
   renderList();
   ToolBox.showToast(__pdfMsg('已移除文件','File removed.'), 'info');
 }
 function clearAll(){
   if(files.length === 0) return;
-  if(!confirm('确定要清空全部 ' + files.length + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" files?":" 个文件吗？"))) return;
+  if(!confirm(__pdfMsg('确定要清空全部 ' + files.length + ' 个文件吗？', 'Clear all ' + files.length + ' file(s)?'))) return;
+  invalidateResult();
   files = [];
   renderList();
-  hideProgress();
-  const __h3='';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h3;
+  const __h3='';document.getElementById('result').innerHTML=__h3;
   ToolBox.showToast(__pdfMsg('已清空文件列表','File list cleared.'), 'info');
 }
 
@@ -751,13 +788,15 @@ async function mergePDFs(){
   }
   isMerging = true;
   document.getElementById('mergeBtn').disabled = true;
-  const __h4='';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h4;
+  const __h4='';document.getElementById('result').innerHTML=__h4;
   const total = okItems.length;
   const merged = await PDFDocument.create();
   const flattenForms = !!(document.getElementById('flattenForms') && document.getElementById('flattenForms').checked);
   let outlineStats = { items: 0, dropped: 0 };
   let linkStats = { fixed: 0, dropped: 0, unsupported: 0 };
   let flattenedFiles = 0, flattenFailed = 0, formsSkipped = 0;
+  let mergedFiles = 0;
+  const failedNames = [];
 
   try{
     for(let i = 0; i < okItems.length; i++){
@@ -793,10 +832,12 @@ async function mergePDFs(){
           const os = PDFStructure.appendOutlines(src, merged, pageMap);
           outlineStats.items += os.items; outlineStats.dropped += os.dropped;
         }
+        mergedFiles++;
       }catch(err){
-        // 单个文件失败只标记该文件，继续合并其余文件（与页面承诺一致）。
+        // 单个文件失败只标记该文件，继续合并其余文件；最终按实际写入数报告。
         item.status = 'error';
         item.error = err && err.message === 'encrypted' ? 'encrypted' : 'unreadable';
+        failedNames.push(item.name);
         renderList();
         continue;
       }
@@ -818,8 +859,6 @@ async function mergePDFs(){
     const fname = 'merged-' + ts.getFullYear() + pad(ts.getMonth()+1) + pad(ts.getDate()) + '-' + pad(ts.getHours()) + pad(ts.getMinutes()) + pad(ts.getSeconds()) + '.pdf';
     a.download = fname;
     document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
 
     const totalPages = merged.getPageCount();
     const sizeKb = (outBytes.byteLength / 1024).toFixed(1);
@@ -841,23 +880,41 @@ async function mergePDFs(){
         '</p>';
     }
     const sizeText = (sizeKb >= 1024 ? (sizeKb/1024).toFixed(2) + ' MB' : sizeKb + ' KB');
+    const failedCount = okItems.length - mergedFiles;
+    const incomplete = failedCount > 0;
     const __h5=(en
-      ? '<p>✅ Merge complete! Merged <strong>' + okItems.length + '</strong> file(s), <strong>' + totalPages + '</strong> page(s).</p>' +
+      ? (incomplete
+          ? '<p style="color:var(--danger);">⚠ Merge incomplete: <strong>' + mergedFiles + '</strong> of <strong>' + okItems.length + '</strong> file(s) merged, <strong>' + totalPages + '</strong> page(s).</p>' +
+            '<p style="font-size:12px;color:var(--text-muted);">Failed: ' + esc(failedNames.join(', ')) + '</p>'
+          : '<p>✅ Merge complete! Merged <strong>' + mergedFiles + '</strong> file(s), <strong>' + totalPages + '</strong> page(s).</p>') +
         '<p>File size: <strong>' + sizeText + '</strong></p>'
-      : '<p>✅ 合并成功！已合并 <strong>' + okItems.length + '</strong> 个文件，共 <strong>' + totalPages + '</strong> 页。</p>' +
+      : (incomplete
+          ? '<p style="color:var(--danger);">⚠ 合并不完整：<strong>' + mergedFiles + '</strong> / <strong>' + okItems.length + '</strong> 个文件成功，共 <strong>' + totalPages + '</strong> 页。</p>' +
+            '<p style="font-size:12px;color:var(--text-muted);">失败文件：' + esc(failedNames.join('、')) + '</p>'
+          : '<p>✅ 合并成功！已合并 <strong>' + mergedFiles + '</strong> 个文件，共 <strong>' + totalPages + '</strong> 页。</p>') +
         '<p>文件大小：<strong>' + sizeText + '</strong></p>') + structLine +
-      '<p style="color:var(--text-muted);font-size:12px;">' + (en ? 'Download started. If it did not start, use the button below.' : '文件已开始下载，如未自动下载请点击下方按钮。') + '</p>' +
-      '<div class="toolbar" style="margin-top:8px;"><button class="btn primary" onclick="redownload()">⬇️ 重新下载</button></div>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h5;
+      '<p style="color:var(--text-muted);font-size:12px;">' + (incomplete
+        ? (en ? 'Incomplete result was not downloaded automatically. Check the failed files, then download manually if needed.' : '结果不完整，未自动下载；请检查失败文件，确认后再手动下载。')
+        : (en ? 'Download started. If it did not start, use the button below.' : '文件已开始下载，如未自动下载请点击下方按钮。')) + '</p>' +
+      '<div class="toolbar" style="margin-top:8px;"><button class="btn primary" onclick="redownload()">⬇️ ' + (incomplete ? (en ? 'Download incomplete result' : '下载不完整结果') : (en ? 'Download again' : '重新下载')) + '</button></div>';
+    document.getElementById('result').innerHTML=__h5;
 
     // 缓存最后一次结果供重新下载
     window.__lastBlob = blob;
     window.__lastName = fname;
-    showProgress(total, total, '合并完成 ✓', '共 ' + totalPages + ' 页，文件已下载');
-    ToolBox.showToast(__pdfMsg('合并完成，文件已开始下载','Merge complete. Download started.'), 'success');
+    if(!incomplete){
+      a.click();
+      showProgress(total, total, '合并完成 ✓', '共 ' + totalPages + ' 页，文件已下载');
+      ToolBox.showToast(__pdfMsg('合并完成，文件已开始下载','Merge complete. Download started.'), 'success');
+    }else{
+      showProgress(total, total, '合并不完整', mergedFiles + '/' + okItems.length + ' 个文件成功');
+      ToolBox.showToast(__pdfMsg('有文件处理失败，结果未自动下载','Some files failed; incomplete result was not downloaded.'), 'warning');
+    }
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
   }catch(err){
     console.error(err);
     const __h6='<p style="color:var(--danger);">❌ 合并失败：' + esc(String(err && err.message ? err.message : err)) + '</p>' +
-      '<p style="color:var(--text-muted);font-size:12px;">请检查文件是否损坏或加密后重试。</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h6;
+      '<p style="color:var(--text-muted);font-size:12px;">请检查文件是否损坏或加密后重试。</p>';document.getElementById('result').innerHTML=__h6;
     showProgress(0, total, '合并失败', String(err && err.message ? err.message : err));
     ToolBox.showToast(__pdfMsg('合并失败，请检查文件是否损坏或加密','Merge failed. Check for damaged or encrypted files.'), 'error');
   }finally{
