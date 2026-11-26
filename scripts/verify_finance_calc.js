@@ -5459,7 +5459,7 @@ const CASES = [
   {
     slug: "finance/futures-pnl-calculator",
     inputs: {},
-    clicks: ["var __st={};globalThis.localStorage={getItem:function(k){return __st[k]||null},setItem:function(k,v){__st[k]=String(v)},removeItem:function(k){delete __st[k]}};globalThis.ToolBox={formatNumber:function(v,d){return Number(v).toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g,',')},showToast:function(){},toggleToolTheme:function(){}};localStorage.setItem('futures_trades',JSON.stringify([{code:'IF',contract:'沪深300股指期货',direction:1,openPrice:3000,closePrice:3010,lots:2,multiplier:100,marginRate:12,openFee:20,closeFee:20}]));loadTrade(0);var g=String(document.getElementById('resultGrid').innerHTML),c=String(document.getElementById('contractName').textContent);document.getElementById('__tbProbe').textContent='FUTMULT '+(currentContract.multiplier===100&&c.indexOf('历史乘数 100')>=0&&g.indexOf('1,920.00')>=0?'OK':'BAD')+' m='+currentContract.multiplier;"],
+    clicks: ["var __st={};globalThis.localStorage={getItem:function(k){return __st[k]||null},setItem:function(k,v){__st[k]=String(v)},removeItem:function(k){delete __st[k]}};globalThis.ToolBox={formatNumber:function(v,d){return Number(v).toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g,',')},showToast:function(){},toggleToolTheme:function(){}};localStorage.setItem('futures_trades',JSON.stringify([{code:'IF',contract:'沪深300股指期货',direction:1,openPrice:3000,closePrice:3010,lots:2,multiplier:100,marginRate:12,openFee:20,closeFee:20}]));loadTrade(0);var g=String(document.getElementById('resultGrid').innerHTML),c=String(document.getElementById('contractName').textContent);document.getElementById('__tbProbe').textContent='FUTMULT '+(currentContract.multiplier===100&&c.indexOf('历史乘数 100')>=0&&g.replace(/,/g,'').indexOf('1920.00')>=0?'OK':'BAD')+' m='+currentContract.multiplier;"],
     expect: ["FUTMULT OK"],
     ref: "第932批：历史交易保存的合约乘数为 100，内置 IF 当前乘数为 300；恢复历史必须用保存值 100。开平仓 3000→3010、2 手、双边手续费各 20 ⇒ 盈亏 10×100×2−80=1,920.00。旧实现按当前 300 算得 5,920.00，必 BAD。"
   },
@@ -6507,8 +6507,8 @@ const CASES = [
 
   {
     slug: "finance/futures-pnl-calculator",
-    inputs: { openPrice: "3500", closePrice: "3501", lots: "1", marginRate: "12", openFee: "1000", closeFee: "1000" },
-    clicks: ["setDirection(1);calc();"],
+    inputs: {},
+    clicks: ["var v={openPrice:'3500',closePrice:'3501',lots:'1',marginRate:'12',openFee:'1000',closeFee:'1000'};Object.keys(v).forEach(function(k){document.getElementById(k).value=v[k];});setDirection(1);calc();"],
     expect: ["盈亏金额", "+1.00", "毛盈亏 300.00", "-1,700.00"],
     ref: "第949批：点数 +1.00 与净亏损并存时，点数按价格方向显示正号与红色，净盈亏另按扣费结果显示；旧版点数沿用净亏损符号。",
   },
