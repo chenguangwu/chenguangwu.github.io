@@ -54,6 +54,11 @@
   display:flex;justify-content:space-between;align-items:center;font-size:13px;}
 .city-option:hover{background:var(--hover);}
 .city-option .zone{font-size:11px;color:var(--text-muted);}
+button.city-option,button.add-clock{width:100%;font:inherit;text-align:left;background:transparent;color:inherit;}
+button.add-clock{justify-content:center;text-align:center;}
+button.round-btn{font:inherit;background:var(--card-bg);color:var(--text-light);border:1px solid var(--border);border-radius:20px;padding:6px 12px;cursor:pointer;}
+button.round-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+button.remove-btn{background:transparent;border:none;font:inherit;}
 .tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:12px;}
 .tab-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-light);cursor:pointer;font-size:13px;transition:all 0.15s;}
 .tab-btn:hover{border-color:var(--primary);color:var(--primary);}
@@ -336,11 +341,11 @@
 <!-- /注意事项区块 -->
 </div>
 
-<div id="addClockModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;padding:20px;">
+<div id="addClockModal" role="dialog" aria-modal="true" aria-labelledby="addClockTitle" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--card-bg);border-radius:12px;max-width:400px;width:100%;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;">
     <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-      <h3 style="margin:0;font-size:16px;">添加城市</h3>
-      <span style="cursor:pointer;font-size:20px;color:var(--text-muted);" onclick="closeAddModal()">✕</span>
+      <h3 id="addClockTitle" style="margin:0;font-size:16px;">添加城市</h3>
+      <button type="button" style="cursor:pointer;font-size:20px;color:var(--text-muted);background:none;border:none;" onclick="closeAddModal()" aria-label="关闭添加城市对话框">✕</button>
     </div>
     <div style="padding:12px;border-bottom:1px solid var(--border);">
       <input type="text" id="citySearch" placeholder="搜索城市..." style="width:100%;" oninput="filterCities()" aria-label="搜索城市...">
@@ -499,14 +504,14 @@ function buildClockGrid(){
   const grid = document.getElementById('clockGrid');
   let html = selectedCities.map((c, i) => `
     <div class="clock-item">
-      <span class="remove-btn" onclick="removeCity(${i})">✕</span>
+      <button type="button" class="remove-btn" onclick="removeCity(${i})" aria-label="删除 ${c.city}">✕</button>
       <div class="clock-city">${c.city}</div>
       <div class="clock-zone" id="zone-${c.id.replace(/\//g, '-')}">${c.country} · ${formatOffset(getOffset(c.id))}</div>
       <div class="clock-time" id="time-${c.id.replace(/\//g, '-')}">--:--:--</div>
       <div class="clock-date" id="date-${c.id.replace(/\//g, '-')}">--</div>
     </div>
   `).join('');
-  html += `<div class="add-clock" onclick="openAddModal()">+ 添加城市</div>`;
+  html += `<button type="button" class="add-clock" onclick="openAddModal()">+ 添加城市</button>`;
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h0;
 }
 
@@ -538,16 +543,24 @@ function updateClocks(){
   if(offsetChanged&&currentTab==='meeting'){try{renderMeetingCities();}catch(e){}}
 }
 
+var __clockModalReturnFocus = null;
 function openAddModal(){
+  __clockModalReturnFocus = document.activeElement;
   const modal = document.getElementById('addClockModal');
   modal.style.display = 'flex';
   document.getElementById('citySearch').value = '';
   filterCities();
+  document.getElementById('citySearch').focus();
 }
 
 function closeAddModal(){
   document.getElementById('addClockModal').style.display = 'none';
+  if(__clockModalReturnFocus && __clockModalReturnFocus.focus) __clockModalReturnFocus.focus();
 }
+
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && document.getElementById('addClockModal').style.display === 'flex') closeAddModal();
+});
 
 function filterCities(){
   const q = document.getElementById('citySearch').value.toLowerCase();
@@ -558,10 +571,10 @@ function filterCities(){
     c.id.toLowerCase().includes(q)
   );
   const __h1=filtered.map(c => `
-    <div class="city-option" onclick="addCity('${c.id}')">
+    <button type="button" class="city-option" onclick="addCity('${c.id}')">
       <span>${c.city}, ${c.country}</span>
       <span class="zone">${formatOffset(getOffset(c.id))}</span>
-    </div>
+    </button>
   `).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
 }
 
@@ -662,9 +675,9 @@ function renderMeetingCities(){
   const list = document.getElementById('meetingCityList');
   const __h5=ALL_CITIES.map(c => {
     const active = meetingCities.has(c.id);
-    return `<div class="round-btn ${active ? 'active' : ''}" onclick="toggleMeetingCity('${c.id}')">
+    return `<button type="button" class="round-btn ${active ? 'active' : ''}" aria-pressed="${active}" onclick="toggleMeetingCity('${c.id}')">
       ${c.city}
-    </div>`;
+    </button>`;
   }).join('');if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h5;
   
   updateMeetingGrid();

@@ -144,7 +144,7 @@
   
 </div>
 
-<div class="input-row"><div><label for="unitPrice">单价（元）</label><input type="number" id="unitPrice" value="10000" min="0" step="0.01" oninput="gen()" placeholder="如 10000（≥0）"></div><div><label for="qty">数量</label><input type="number" id="qty" value="2" min="1" step="1" oninput="gen()" placeholder="如 2（≥1 整数）"></div><div><label for="taxRate">税率（%）</label><input type="number" id="taxRate" value="6" min="0" max="100" step="0.01" oninput="gen()" placeholder="如 6（0–100）"></div><div><label for="discountRate">折扣率（%）</label><input type="number" id="discountRate" value="10" min="0" max="100" step="0.01" oninput="gen()" placeholder="如 10（0–100）"></div><div><label for="cnt">生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
+<div class="input-row"><div><label for="contractPrefix">合同编号前缀（可选，示例用）</label><input type="text" id="contractPrefix" placeholder="如 HT-2026-" oninput="gen()"></div><div><label for="unitPrice">单价（元）</label><input type="number" id="unitPrice" value="10000" min="0" step="0.01" oninput="gen()" placeholder="如 10000（≥0）"></div><div><label for="qty">数量</label><input type="number" id="qty" value="2" min="1" step="1" oninput="gen()" placeholder="如 2（≥1 整数）"></div><div><label for="taxRate">税率（%）</label><input type="number" id="taxRate" value="6" min="0" max="100" step="0.01" oninput="gen()" placeholder="如 6（0–100）"></div><div><label for="discountRate">折扣率（%）</label><input type="number" id="discountRate" value="10" min="0" max="100" step="0.01" oninput="gen()" placeholder="如 10（0–100）"></div><div><label for="cnt">生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
 <div class="toolbar"><div id="generator_pricePresets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_priceExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="generator_priceTable"></div> <div id="generator_priceDiff"></div> <div id="generator_priceChart"></div> <div id="generator_priceHist"></div>
   </div>
@@ -228,6 +228,7 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
+var __contractBatch = 0;
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -326,8 +327,12 @@ function gen() {
     + '; tax (' + taxRate + '%): +' + fmt(taxAmt) + '<br>'
     + '<strong>Contract total: CNY ' + fmt(total) + '</strong><br>'
     + 'Deposit (30%): CNY ' + fmt(deposit) + '; balance: CNY ' + fmt(finalPrice) + '; penalty (10%): CNY ' + fmt(penalty)
-    + '</span></span></div><p style="margin-bottom:8px;">合同条款草案：</p>';
+    + '</span></span></div><p style="margin-bottom:8px;">合同条款草案：</p><p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">编号均为<strong>示例</strong>，同一批内不重复；正式归档请自行填写并按贵司编号规则确认，本工具不承诺跨设备/跨会话全局唯一。</p>';
   const services = ['网站开发','UI设计','品牌策划','法律咨询','翻译服务','摄影摄像','培训课程','家政保洁','搬家运输','设备维修'];
+  const prefix = document.getElementById('contractPrefix').value.trim();
+  const safePrefix = ToolBox.escHtml(prefix);
+  __contractBatch = (__contractBatch || 0) + 1;
+  const batchId = Date.now().toString(36) + '-' + __contractBatch;
   // 固定顺序而非随机排序：相同输入得到相同草案，便于核对与复现
   const serviceBatch = services;
   for (let i = 0; i < n; i++) {
@@ -335,7 +340,7 @@ function gen() {
     const duration = 7 + ((i * 13 + Math.floor(total)) % 84);
     html += `<div style="margin:8px 0;padding:10px;background:var(--bg-hover);border-radius:8px;">
       <strong>${i+1}. 《${service}合同》草案</strong>
-      <pre style="margin:6px 0 0;white-space:pre-wrap;word-break:break-all;font-size:12px;">合同编号：HT-${String(randInt(1000,9999)).padStart(4,'0')}-${String(randInt(1000,9999)).padStart(4,'0')}
+      <pre style="margin:6px 0 0;white-space:pre-wrap;word-break:break-all;font-size:12px;">合同编号（示例）：${safePrefix || 'HT-示例-'}${batchId}-${String(i+1).padStart(2,'0')}
 
 第一条 服务内容
 乙方为甲方提供${service}服务，具体需求以双方确认的《需求确认单》为准。

@@ -401,6 +401,23 @@ function calc(){
     exportBtn.disabled=!__workdayCurrentDetail;
     exportBtn.textContent=__workdayCurrentDetail?(en?'Export current daily detail CSV':'导出当前明细 CSV'):(en?'Span too large: daily export unavailable':'范围过大，暂不可导出逐日明细');
   }
+  let completeDate=null, counted=0;
+  if(workDays>0){
+    for(let d=0;d<totalDays;d++){
+      const cur=new Date(start.getFullYear(),start.getMonth(),start.getDate()+d);
+      const key=fmtLocalDate(cur),dow=cur.getDay();
+      let isWork;
+      if(makeupDays.has(key)) isWork=true;
+      else if(holidays.has(key)) isWork=false;
+      else isWork=!((skipSat&&dow===6)||(skipSun&&dow===0));
+      if(isWork){counted++;if(counted===workDays){completeDate=cur;break;}}
+    }
+  }
+  const completeText=completeDate
+    ? (en?'<p style="margin-top:8px;font-size:12px;color:var(--text-muted);">Estimated completion date under the current weekend/holiday/make-up rules: <strong>'+(completeDate.getMonth()+1)+'/'+completeDate.getDate()+'/'+completeDate.getFullYear()+'</strong> ('+Math.ceil(workDays/5)+' calendar weeks)</p>'
+      :'<p style="margin-top:8px;font-size:12px;color:var(--text-muted);">按当前周末/假期/调休规则折算，预计完成日期为 <strong>'+completeDate.getFullYear()+'年'+(completeDate.getMonth()+1)+'月'+completeDate.getDate()+'日</strong>（自然跨度 '+totalDays+' 天，约 '+Math.ceil(workDays/5)+' 个自然周）</p>')
+    : (en?'<p style="margin-top:8px;font-size:12px;color:var(--warning);">The selected range contains no workday after exclusions, so no completion date can be estimated.</p>'
+      :'<p style="margin-top:8px;font-size:12px;color:var(--warning);">按当前排除规则，所选区间内没有工作日，无法折算预计完成日期。</p>');
   const __g3=`
     <p>开始日期：<strong>${start.toLocaleDateString('zh-CN')}</strong></p>
     <p>结束日期：<strong>${end.toLocaleDateString('zh-CN')}</strong></p>
@@ -412,7 +429,7 @@ function calc(){
     <p>调休上班日（周末补班、计入工作日）：<strong>${makeupCount}</strong> 天</p>
     ${duplicateNotes.length ? '<p style="font-size:12px;color:var(--text-muted);">重复日期已自动去重：'+duplicateNotes.slice(0,8).join('、')+(duplicateNotes.length>8?' 等 '+duplicateNotes.length+' 项':'')+'</p>' : ''}
     ${weekdayMakeupCount ? '<p style="color:var(--warning);">另有 '+weekdayMakeupCount+' 个普通工作日被填入「调休上班日」，它们本来就是工作日，不会额外增加工作日数，请核实是否填错。</p>' : ''}
-    <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">预计完成时间：约 ${Math.ceil(workDays / 5)} 周</p>
+    ${completeText}
   `;document.getElementById('resultBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 

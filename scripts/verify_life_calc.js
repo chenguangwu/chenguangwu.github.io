@@ -4310,6 +4310,56 @@ const CASES = [
     clicks: ["validate();"],
     expect: ["未知", "未收录显示未知"],
     ref: "第920批：未收录号段明确显示未知，不再猜测运营商。"
+  },
+  {
+    slug: "life/cycle-pruning-lawn",
+    clicks: ["var f=getTaskFreq('mow',{type:'cool',cycles:{mow:5}});var lbl=climateLabel();isDormantNow=function(){return true;};var paused=isPausedTask('mow');isDormantNow=function(){return false;};document.getElementById('__tbProbe').textContent='LAWN '+f+' '+lbl+' '+paused;"],
+    expect: ["LAWN 5 北半球温带 true"],
+    ref: "第921批：自定义周期优先于类型推荐；北半球标签正确；模拟休眠期时修剪任务暂停。默认态无探针串。"
+  },
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "2026-12-01", endDate: "2026-12-07", skipSat: true, skipSun: true },
+    clicks: ["calc();"],
+    expect: ["预计完成日期为", "2026年12月7日"],
+    ref: "第921批：2026-12-01 至 12-07 排除周末共 5 个工作日，第 5 个工作日即 12-07；不再只写“约 1 周”。"
+  },
+  {
+    slug: "life/world-clock",
+    clicks: ["selectedCities=[];buildClockGrid();var addBtn=!!document.querySelector('#clockGrid button.add-clock');selectedCities=[ALL_CITIES[0]];buildClockGrid();var rmBtn=!!document.querySelector('#clockGrid button.remove-btn');openAddModal();closeAddModal();var closed=document.getElementById('addClockModal').style.display==='none';document.getElementById('__tbProbe').textContent='CLOCK '+addBtn+' '+rmBtn+' '+closed;"],
+    expect: ["CLOCK true true true"],
+    ref: "第921批：添加城市/删除城市改为可聚焦按钮，Esc 可关闭对话框；默认态无探针串。"
+  },
+  {
+    slug: "life/cycle-4",
+    clicks: ["supplies=[{id:1,name:'测试清洁剂',unit:'瓶',stock:0.5,rate:30,period:'month',threshold:0}];renderSupplies();var t=document.getElementById('supplyList').innerHTML;document.getElementById('__tbProbe').textContent='SUP '+(t.indexOf('不足一天')>=0)+' '+(t.indexOf('已耗尽')<0);"],
+    expect: ["SUP true true"],
+    ref: "第921批：库存 0.5 瓶、月耗 30 瓶 ⇒ 日耗 1 瓶，可用不足一天；不应标成“已耗尽”。默认态无探针串。"
+  },
+  {
+    slug: "life/generator-price",
+    clicks: ["document.getElementById('contractPrefix').value='HT-TEST-';gen();var a=document.getElementById('res').innerHTML.match(/HT-TEST-[A-Za-z0-9-]+/g)||[];gen();var b=document.getElementById('res').innerHTML.match(/HT-TEST-[A-Za-z0-9-]+/g)||[];var all=a.concat(b);document.getElementById('__tbProbe').textContent='CONTRACT '+all.length+' '+new Set(all).size+' '+document.getElementById('res').innerHTML.indexOf('合同编号（示例）');"],
+    expect: ["CONTRACT 10 10 "],
+    ref: "第921批：两批各 5 条编号全部不同（10/10），并明确标注“合同编号（示例）”；旧实现两次随机四位数可能碰撞且未标示例。"
+  },
+  {
+    slug: "life/countdown",
+    clicks: ["TBKit={util:{isEn:function(){return true;},exportTable:function(){},diffBox:function(){}}};var __c='';ToolBox.copyText=function(t){__c=t;};state={target:Date.now()+90061000,start:Date.now(),name:'Meet',alerted:false};showResult();copyResult();if(timer){clearInterval(timer);timer=null;}var t=document.getElementById('targetText').innerHTML;document.getElementById('__tbProbe').textContent='CD '+(t.indexOf('Target:')>=0)+' '+(__c.indexOf('Time remaining:')>=0);"],
+    expect: ["CD true true"],
+    ref: "第921批：英文态目标时间显示 Target: 与英文日期格式，复制内容为 Time remaining:；旧实现固定中文。"
+  },
+  {
+    slug: "life/event-countdown",
+    clicks: ["var __hasHook=String(render).indexOf('__tbCdTable')>=0;document.getElementById('__tbProbe').textContent='EVENT HOOK '+__hasHook;"],
+    expect: ["EVENT HOOK true"],
+    ref: "第921批：render 每次重算后刷新节日总表，跨日/返回页面不再保留旧剩余天数。"
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "1e-12", fromUnit: "mm" },
+    clicks: ["if(typeof __charRefRender==='function')__charRefRender();"],
+    expect: ["你的输入 = 1.000×10^-15 米", "远小于 1 毫米"],
+    ref: "第921批：1e-12 mm 的实物参照改用“远小于/仅作数量级”，不再以约等号暗示近似相等。"
   }
 ];
 

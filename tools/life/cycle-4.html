@@ -165,7 +165,7 @@
     <h3>➕ 添加清洁用品</h3>
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">日耗量 = 消耗速率 ÷ 周期天数（周=7 / 月=30）；可用天数 = ⌊库存 ÷ 日耗量⌋；距触及阈值 = ⌊(库存 − 补货阈值) ÷ 日耗量⌋；阈值库存可维持 = ⌊补货阈值 ÷ 日耗量⌋</div>
+      <div class="formula-eq">日耗量 = 消耗速率 ÷ 周期天数（周=7 / 月=30）；可用天数 = ⌊库存 ÷ 日耗量⌋（正库存不足一天时显示“不足一天”而非“已耗尽”）；距触及阈值 = ⌊(库存 − 补货阈值) ÷ 日耗量⌋；阈值库存可维持 = ⌊补货阈值 ÷ 日耗量⌋</div>
       <div class="formula-desc">把「每周期消耗量」折算为日耗量后，用当前库存估算可用天数、「距触及阈值」是库存降到阈值还需的天数；「阈值库存可维持」是从阈值降到 0 的天数（订货提前期的安全垫）。库存 ≤ 补货阈值判为「库存不足」，可用天数 ≤ 7 天判为「即将耗尽」。</div>
     </div>
 <div class="input-row">
@@ -445,6 +445,7 @@ function renderStats() {
 function renderSupplies() {
   var list = document.getElementById('supplyList');
   if (!supplies.length) { const __h2='<div class="empty">暂无清洁用品，请先添加</div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h2; return; }
+  var en = __supplyIsEn();
   var sorted = supplies.slice().sort(function(a, b) {
     var da = getDaysUntilEmpty(a), db = getDaysUntilEmpty(b);
     if(da===null) return 1;
@@ -456,7 +457,8 @@ function renderSupplies() {
     var status = getStockStatus(sup);
     var days = getDaysUntilEmpty(sup);
     var periodName = sup.period === 'week' ? '每周' : '每月';
-    var dayText = days === null ? '未设消耗' : (days <= 0 ? '已耗尽' : days + ' 天');
+    var dailyRate = sup.rate > 0 ? sup.rate / getDaysPerPeriod(sup.period) : 0;
+    var dayText = days === null ? (en?'No usage set':'未设消耗') : (sup.stock <= 0 ? (en?'Run out':'已耗尽') : (days === 0 ? (en?'Less than one day (about ' + (dailyRate > 0 ? (sup.stock / dailyRate * 24).toFixed(1) : '0') + ' h of use)':'不足一天（约 ' + (dailyRate > 0 ? (sup.stock / dailyRate * 24).toFixed(1) : '0') + ' 小时用量）') : (en?days + ' days':days + ' 天')));
     var barPct = Math.min((sup.stock / (sup.threshold * 3 || 1)) * 100, 100);
     var barColor = status.level === 'ok' ? 'var(--success)' : (status.level === 'low' ? 'var(--warning)' : 'var(--danger)');
     html += '<div class="supply-card">';
@@ -475,7 +477,8 @@ function renderSupplies() {
     html += '<div style="margin-top:6px;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">库存水平</div>';
     html += '<div class="progress-bar"><div class="progress-fill" style="width:' + barPct + '%;background:' + barColor + ';"></div></div></div>';
     if (status.level !== 'ok') {
-      html += '<div class="tip-box tip-warn" style="margin-top:8px;">⚠️ ' + (sup.stock <= 0 ? '已耗尽，需立即补货' : '库存低于阈值，建议尽快补货') + '</div>';
+      var tip = sup.stock <= 0 ? (en?'Run out; reorder immediately':'已耗尽，需立即补货') : (sup.stock <= sup.threshold ? (en?'Stock has reached the reorder threshold; reorder soon':'库存已降至补货阈值，建议尽快补货') : (en?'Stock is above the threshold but will run out within 7 days; reorder early':'库存高于阈值，但预计 7 天内耗尽，建议提前补货'));
+      html += '<div class="tip-box tip-warn" style="margin-top:8px;">⚠️ ' + tip + '</div>';
     }
     html += '<div style="margin-top:8px;"><button class="mini-btn" onclick="adjustStock(' + sup.id + ',1)">➕ +1</button> <button class="mini-btn" onclick="adjustStock(' + sup.id + ',-1)">➖ -1</button> <button class="mini-btn" onclick="setStock(' + sup.id + ')">✏️ 设置库存</button> <button class="mini-btn" onclick="delSupply(' + sup.id + ')" style="color:var(--danger);">删除</button></div>';
     html += '</div>';
