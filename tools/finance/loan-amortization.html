@@ -466,6 +466,8 @@ function generateSchedule(amount, annualRate, years, method, balloonMonths, ball
 
 function calc() {
     scheduleData = [];
+    // 主参数一旦无效即停止，必须清空上一轮的原始计划，避免提前还款复用旧贷款的快照。
+    originalScheduleData = [];
     ['scheduleTable', 'yearlyTable', 'prepayResult'].forEach(function(id){ document.getElementById(id).innerHTML = ''; });
     ['pieChart', 'lineChart'].forEach(function(id){ var canvas = document.getElementById(id); canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height); });
     var __ig=__tbInputGuard(['loanAmount', 'annualRate', 'loanYears', 'balloonMonths', 'balloonRatio', 'prepayMonth', 'prepayAmount'],["贷款金额（元）", "年利率（%）", "贷款年限", "气球贷还款期数（月）", "期末尾款比例（%）", "提前还款期数（第N期后）", "提前还款金额（元）"]);if(__ig){const __g1=__ig;ToolBox.setResult("resultBox",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
@@ -495,12 +497,13 @@ var amount = +loanAmountEl.value || 0;
   if (method === 'balloon') {
     var bmEl = document.getElementById('balloonMonths');
     var brEl = document.getElementById('balloonRatio');
-    var bmOk = isFinite(balloonMonthsRaw) && balloonMonths > 0;
+    // 期数必须是正整数月：小数静默向下取整会让用户以为算的是 30.5 个月。
+    var bmOk = isFinite(balloonMonthsRaw) && balloonMonthsRaw > 0 && Number.isInteger(balloonMonthsRaw);
     var brOk = isFinite(balloonRatioRaw) && balloonRatio >= 0 && balloonRatio <= 100;
     bmEl.classList.toggle('input-error', !bmOk);
     brEl.classList.toggle('input-error', !brOk);
     if (!bmOk || !brOk) {
-      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">气球贷还款期数须大于 0，期末尾款比例须为 0–100</p>';
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">气球贷还款期数须为正整数月（不接受小数，如 30.5 请改为 30 或 31），期末尾款比例须为 0–100</p>';
       return;
     }
     // F-N228：气球贷期数不能超出贷款年限对应的总月数，否则「年限」输入形同虚设

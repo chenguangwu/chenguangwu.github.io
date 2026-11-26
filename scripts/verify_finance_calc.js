@@ -6253,6 +6253,72 @@ const CASES = [
     ref: "空值不得当 0；0 仍须合法可计算。",
   },
 
+  // ===== 第945批新增 =====
+  {
+    slug: "finance/compound-interest",
+    inputs: { principal: "10000", rate: "0", years: "1", annual: "0" },
+    clicks: ["calc();var tb=document.getElementById('yearTableBody');var first=String(tb.innerHTML).split('</tr>')[0];var ok=first.indexOf('<td>0</td>')>=0&&first.indexOf('10,000.00')>=0&&first.indexOf('0.00')>=0;document.getElementById('res').innerHTML='CI0 '+(ok?'OK':'BAD '+first);"],
+    expect: ["CI0 OK"],
+    ref: "第 0 年行必须自洽：期初余额 0 + 投入 10,000 + 利息 0 = 期末 10,000；旧实现把期初也写成 10,000，行内加减不平。",
+  },
+  {
+    slug: "finance/generator-report-1",
+    inputs: { rev: "100", costRate: "0", opex: "0", taxRate: "0", asset: "100", debtRatio: "0", dep: "10", capex: "10", dividend: "0", cash0: "20", wc: "0" },
+    clicks: ["gen();var h=document.getElementById('res').innerHTML;var ok=h.indexOf('三表勾稽')>=0&&h.indexOf('期末非现金资产 80.00')>=0&&h.indexOf('差额 0.00 ✓')>=0;document.getElementById('res').innerHTML='GR '+(ok?'OK':'BAD '+h.slice(0,200));"],
+    expect: ["GR OK"],
+    ref: "期初非现金 80 − 折旧 10 + 资本开支 10 = 80，期末现金 120 ⇒ 期末资产 200；期初权益 100 + 净利润 100 = 200，资产负债表必须被利润表与现金流解释，不能只在表内自平。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "1000000", annualRate: "4.9", loanYears: "10", repayMethod: "balloon", balloonMonths: "30.5", balloonRatio: "50" },
+    clicks: ["calc()"],
+    expect: ["气球贷还款期数须为正整数月"],
+    ref: "气球贷期数 30.5 月旧实现 Math.floor(30.5)=30 静默照算；现拒绝小数并提示改为 30 或 31。默认等额本息 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/break-even-calculator",
+    inputs: { fc: "100", price: "30", vc: "0", qty: "10", taxRate: "0" },
+    clicks: ["calc();var h=document.getElementById('statGrid').innerHTML;var ok=h.indexOf('最低整数件保本收入')>=0&&h.indexOf('120')>=0&&h.indexOf('理论保本收入')>=0;document.getElementById('res').innerHTML='BE '+(ok?'OK':'BAD '+h.slice(0,200));"],
+    expect: ["BE OK"],
+    ref: "保本量 100/30=3.33 件，按件向上取整 4 件；收入必须同步为 4×30=120 元，不能销量显示 4 件而收入仍按 3.33×30=100 元。",
+  },
+  {
+    slug: "finance/register-depreciation",
+    inputs: {},
+    clicks: ["assets=[{id:'A1',name:'测试设备',cat:'电子设备',date:'2025-01-01',cost:10000,salvage:500,life:5,method:'straight'}];renderList();editAsset('A1');var picked=document.getElementById('aName').value;document.getElementById('aCost').value='20000';addAsset();var ok=picked==='测试设备'&&assets.length===1&&assets[0].cost===20000&&document.getElementById('saveAssetBtn').textContent==='登记资产'&&typeof importAssets==='function'&&typeof backupAssets==='function'&&isValidAsset({id:'B',name:'x',cat:'其他',date:'2025-01-01',cost:100,salvage:0,life:2,method:'syd'})&&!isValidAsset({name:'x',date:'2025/01/01',cost:100,salvage:0,life:2,method:'syd'});document.getElementById('assetList').innerHTML='RD '+(ok?'OK':'BAD');"],
+    expect: ["RD OK"],
+    ref: "台账必须可编辑而非只能删了重录：编辑入口回填原记录并原地更新（不得追加第二条）；同时暴露 JSON 备份/导入函数，导入记录校验日期与成本残值年限方法。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "1000000", annualRate: "4.9", loanYears: "30", prepayMonth: "24", prepayAmount: "100000" },
+    clicks: ["calc();document.getElementById('loanAmount').value='0';calc();calcPrepay();var h=document.getElementById('prepayResult').innerHTML;var ok=h.indexOf('请先完成主贷款计算')>=0;document.getElementById('prepayResult').innerHTML='LP '+(ok?'OK':'BAD '+h.slice(0,120));"],
+    expect: ["LP OK"],
+    ref: "先按 100 万成功计算，再把主参数改成 0 触发提前退出；提前还款不得复用上一轮 originalScheduleData 的旧计划，必须提示先完成主贷款计算。",
+  },
+  {
+    slug: "finance/analysis-risk",
+    inputs: { s: "100", v: "100", f: "50", i: "20", t: "25", n: "100" },
+    clicks: ["calc()"],
+    expect: ["未确认亏损抵税"],
+    ref: "EBIT=-50、利息 20 ⇒ 税前 -70：默认不得凭空确认 17.50 税盾，所得税按 0，明细必须写明未确认亏损抵税；旧实现无条件乘 (1-25%) ⇒ 不出现该提示。",
+  },
+  {
+    slug: "finance/analysis-risk",
+    inputs: { s: "100", v: "100", f: "50", i: "20", t: "25", n: "100" },
+    checkIds: ["taxBenefit"],
+    clicks: ["calc()"],
+    expect: ["-52.50"],
+    ref: "同上，显式勾选「亏损可抵税」后税前 -70 才确认 17.50 税盾，净利润 -52.50；默认态净利润 -70 ⇒ 不命中，用于区分两种口径。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: {},
+    clicks: ["document.getElementById('manualRate').value='7.25';fromCurrency='EUR';var switched=__ccBindManualPair();var cleared=document.getElementById('manualRate').value==='';var sameKey=__ccManualPair==='EUR>USD';var ok=switched&&cleared&&sameKey;document.getElementById('resultDisplay').innerHTML='CC '+(ok?'OK':'BAD cleared='+cleared+' pair='+__ccManualPair);"],
+    expect: ["CC OK"],
+    ref: "CNY→USD 的手动汇率 7.25 在切到 CNY→EUR 后必须清空并要求重填；旧实现直接沿用 7.25 把欧元换算成 7.25 人民币，量级完全错误。",
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
