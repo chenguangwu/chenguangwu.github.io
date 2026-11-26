@@ -380,13 +380,26 @@ function calc() {
       : '<div class="tip-box tip-warn" style="margin-top:12px;">⚠ 输入不能为负数：'+__parts.join('；')+'。请更正后再计算，无效输入不展示额度依据与还款明细。</div>';
     return;
   }
-  var age = parseInt(document.getElementById('age').value) || 30;
+  var ageRaw = String(document.getElementById('age').value == null ? '' : document.getElementById('age').value).trim();
+  var age = Number(ageRaw);
+  if(ageRaw === '' || !isFinite(age) || Math.floor(age) !== age || age < 18 || age > 70){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn" style="margin-top:12px;">⚠ 年龄须填写 18–70 岁的整数；留空不会按 30 岁代替。</div>';
+    return;
+  }
   var repayType = document.getElementById('repayType').value;
-  var loanYears = parseInt(document.getElementById('loanYears').value) || 20;
-  // 利率由用户填写，默认 2.85%（以当地公积金中心最新公告为准）
-  var RATE = parseFloat(document.getElementById('rate').value);
-  var rateAdjusted = isNaN(RATE) || RATE <= 0 || RATE > 20;
-  if (rateAdjusted) RATE = 2.85;
+  var yearsRaw = String(document.getElementById('loanYears').value == null ? '' : document.getElementById('loanYears').value).trim();
+  var loanYears = Number(yearsRaw);
+  if(yearsRaw === '' || !isFinite(loanYears) || Math.floor(loanYears) !== loanYears || loanYears < 1 || loanYears > 30){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn" style="margin-top:12px;">⚠ 贷款期限须为 1–30 年的整数；留空不会按 20 年代替。</div>';
+    return;
+  }
+  // 利率由用户填写；空值不猜默认，显式 0 合法并按零利率公式计算。
+  var rateRaw = String(document.getElementById('rate').value == null ? '' : document.getElementById('rate').value).trim();
+  var RATE = Number(rateRaw);
+  if(rateRaw === '' || !isFinite(RATE) || RATE < 0 || RATE > 20){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn" style="margin-top:12px;">⚠ 贷款年利率须填写 0–20% 的数字；留空不会按 2.85% 代替。如确为零利率请明确输入 0。</div>';
+    return;
+  }
   RATE = RATE / 100;
 
   var baseRule = cityRules[city];
@@ -423,11 +436,14 @@ function calc() {
   var lastMonth = 0;
 
   if (repayType === 'equal_installment') {
-    // 等额本息
+    // 等额本息：零利率时月供=本金/期数，不能保持 0。
     if (monthlyRate > 0 && months > 0) {
       var factor = Math.pow(1 + monthlyRate, months);
       monthlyPayment = maxLoanYuan * monthlyRate * factor / (factor - 1);
       totalInterest = monthlyPayment * months - maxLoanYuan;
+    } else if (months > 0) {
+      monthlyPayment = maxLoanYuan / months;
+      totalInterest = 0;
     }
   } else {
     // 等额本金
@@ -439,7 +455,7 @@ function calc() {
     }
   }
 
-  var retireAge = Math.max(0, (age + loanYears) - (city === '北京' || city === '上海' ? 65 : 60));
+  var endAge = age + loanYears;
 
   var html = '<div class="tip-box tip-warn" style="margin-bottom:10px;">⚠ 以下为<strong>条件估算</strong>，不是「最高可贷」的最终结论：仅按余额倍数、房价比例与额度上限取低，未计缴存年限、家庭收入与月供能力、首付比例、房龄、二套/多子女等本地细则；实际额度以当地公积金中心审批为准。</div>';
   html += '<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">规则来源：' + (useManual ? '用户手动填写（请自行核对当地公告）' : RULE_SOURCE) + '｜更新日期：' + RULE_UPDATED + '｜适用条件：仅测算单笔公积金贷款上限，不含组合贷、商业贷与缴存年限加成。</p>';
@@ -463,7 +479,7 @@ function calc() {
   html += '<h3 style="margin-top:16px;margin-bottom:8px;">还款明细</h3>';
   html += '<table id="housing_fund_loanDetail"><thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
   html += '<tr><td>贷款本金</td><td>' + ToolBox.formatNumber(maxLoanYuan, 0) + ' 元</td></tr>';
-  html += '<tr><td>贷款利率</td><td>' + (RATE * 100).toFixed(2) + '%/年（名义）' + (rateAdjusted ? '，输入无效已按 2.85% 计' : '') + '</td></tr>';
+  html += '<tr><td>贷款利率</td><td>' + (RATE * 100).toFixed(2) + '%/年（名义）</td></tr>';
   html += '<tr><td>有效年化（按月复利）</td><td>' + ((Math.pow(1 + monthlyRate, 12) - 1) * 100).toFixed(2) + '%</td></tr>';
   html += '<tr><td>贷款期限</td><td>' + loanYears + '年（' + months + '期）</td></tr>';
   html += '<tr><td>还款方式</td><td>' + (repayType === 'equal_installment' ? '等额本息' : '等额本金') + '</td></tr>';
@@ -478,9 +494,7 @@ function calc() {
   html += '<tr style="background:var(--bg-hover);"><td>还款总额</td><td><strong style="color:var(--primary);">' + ToolBox.formatNumber(maxLoanYuan + totalInterest, 0) + ' 元</strong></td></tr>';
   html += '</tbody></table>';
 
-  if (retireAge > 0) {
-    html += '<div class="tip-box tip-warn" style="margin-top:12px;">注意：贷款到期时您年龄为 ' + (age + loanYears) + ' 岁，' + (city === '北京' || city === '上海' ? '男性退休年龄65岁' : '男性退休年龄60岁') + '，请确认符合贷款年限要求。</div>';
-  }
+  html += '<div class="tip-box tip-warn" style="margin-top:12px;">贷款到期时年龄为 ' + endAge + ' 岁。页面不预设统一退休年龄；请按您所在地、身份与公积金中心适用的贷款年限上限核对（部分城市为退休后 5 年内）。</div>';
 
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }

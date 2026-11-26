@@ -285,6 +285,11 @@ function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,ma
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function __prRaw(id){var e=document.getElementById(id);return e?String(e.value).trim():'';}
 function __prVal(id){var r=__prRaw(id);return r===''?NaN:Number(r);}
+function __prValid(){
+  var pts=__prVal('pts'), val=__prVal('val'), fee=__prVal('fee');
+  return __prRaw('pts')!=='' && __prRaw('val')!=='' && __prRaw('fee')!=='' &&
+    isFinite(pts) && isFinite(val) && isFinite(fee) && pts>0 && val>=0 && fee>=0 && fee<=val;
+}
 function calcTool(){
    const pts=__prVal('pts'), val=__prVal('val'), fee=__prVal('fee');
    const missing=['pts','val','fee'].filter(function(id){return __prRaw(id)==='';});
@@ -343,11 +348,12 @@ function __points_redemption_valueNum(id){var e=document.getElementById(id);var 
 function __points_redemption_valueExtras(){
     function __points_redemption_valueRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var pts=__prVal('pts'), val=__prVal('val'), fee=__prVal('fee');
-    if(__prRaw('pts')===''||__prRaw('val')===''||__prRaw('fee')===''||!isFinite(pts)||!isFinite(val)||!isFinite(fee)||pts<=0||val<0||fee<0||fee>val){
+    if(!__prValid()){
       TBKit.matrix.table('#points_redemption_valueTable',{head:en?['Item','Value']:['项目','数值'],rows:[]});
+      TBKit.util.diffBox('#points_redemption_valueDiff',[]);
       return;
     }
+    var pts=__prVal('pts'), val=__prVal('val'), fee=__prVal('fee');
     var netVal=val-fee;
     var per10k=netVal/pts*10000;
     var per100=netVal/pts*100;
@@ -405,8 +411,8 @@ else document.addEventListener('DOMContentLoaded', __points_redemption_valueBoot
 function __prChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
   if(__prRaw('pts')===''||__prRaw('val')===''||__prRaw('fee')===''){document.getElementById('points_redemption_valueChart').innerHTML='';return;}
+  if(!__prValid()){document.getElementById('points_redemption_valueChart').innerHTML='';return;}
   var pts=__prVal('pts'), val=__prVal('val'), fee=__prVal('fee');
-  if(!isFinite(pts)||!isFinite(val)||!isFinite(fee)||pts<=0||val<0||fee<0||fee>val){document.getElementById('points_redemption_valueChart').innerHTML='';return;}
   var netVal=val-fee;
   var per10k=netVal/pts*10000;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
