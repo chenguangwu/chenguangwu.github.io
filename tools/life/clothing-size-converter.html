@@ -314,9 +314,21 @@ function convert(){
   if(!found){
     // 中国码支持「最近码」：切换品类后默认 165/88A 在男装表不存在时不再直接报错，
     // 按胸围/腰围优先、身高次之取最接近的一行，并明确标注为近似匹配。
-    const near = (sys === 'cn') ? nearestRow(table, v) : null;
-    if(near){
-      renderRow(near, cat, `<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">⚠ 未找到精确匹配 "${ToolBox.escHtml(v)}"，以下为同表内最接近的 <strong>${near.cn}</strong>（近似参考）。</p>`);
+    if(sys === 'cn'){
+      const t = parseCn(v);
+      if(!t){
+        document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">号型格式无效：请用「身高/胸围或腰围」如 165/88A，不接受多余字符。</p>';
+        return;
+      }
+      const nr = nearestRow(table, t);
+      if(nr.row){
+        renderRow(nr.row, cat, `<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">⚠ 未找到精确匹配 "${ToolBox.escHtml(v)}"，以下为同表内最接近的 <strong>${nr.row.cn}</strong>（身高差 ${nr.dh} cm、围度差 ${nr.dc} cm，近似参考）。</p>`);
+        return;
+      }
+      const why = nr.reason === 'body'
+        ? '该体型分类在当前尺码表暂无对应行，不能可靠近似；请改用表内已有体型或参考品牌实测尺码表。'
+        : '输入尺寸超出当前尺码表覆盖范围，不再给出近似结果；请核对身高/围度或参考品牌实测尺码表。';
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">'+why+'</p><p style="font-size:12px;color:var(--text-muted);">可参考下表中的可选号型。</p>';
       return;
     }
     const __h1=`<p style="color:var(--danger);">未找到匹配项 "${ToolBox.escHtml(v)}"（${sys}）</p><p style="font-size:12px;color:var(--text-muted);">可参考下表中的可选值</p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
@@ -326,21 +338,23 @@ function convert(){
 }
 
 function parseCn(s){
-  const m = String(s).toUpperCase().match(/^(\d{3})\s*\/\s*(\d{2,3})/);
-  return m ? {height: +m[1], chest: +m[2]} : null;
+  const m = String(s).toUpperCase().match(/^(\d{3})\s*\/\s*(\d{2,3})(?:\s*([ABCY]))?$/);
+  return m ? {height: +m[1], chest: +m[2], body: m[3] || ''} : null;
 }
 
-function nearestRow(table, v){
-  const t = parseCn(v);
-  if(!t) return null;
-  let best = null, bd = Infinity;
-  for(const r of table){
-    const rv = parseCn(r.cn);
-    if(!rv) continue;
-    const d = Math.abs(rv.chest - t.chest) * 100 + Math.abs(rv.height - t.height);
-    if(d < bd){ bd = d; best = r; }
+function nearestRow(table, t){
+  const parsed = table.map(function(r){ const v=parseCn(r.cn); return v?{row:r,val:v}:null; }).filter(Boolean);
+  const pool = t.body ? parsed.filter(function(x){ return x.val.body === t.body || (!x.val.body && t.body === 'A'); }) : parsed;
+  if(!pool.length) return {row:null, reason:'body'};
+  let best=null, bd=Infinity, bdh=0, bdc=0;
+  for(const x of pool){
+    const dh=Math.abs(x.val.height-t.height), dc=Math.abs(x.val.chest-t.chest);
+    if(dh>5 || dc>4) continue;
+    const d=dc*100+dh;
+    if(d<bd){ bd=d; best=x.row; bdh=dh; bdc=dc; }
   }
-  return best;
+  if(!best) return {row:null, reason:'range'};
+  return {row:best, dh:bdh, dc:bdc};
 }
 
 function renderRow(found, cat, note){

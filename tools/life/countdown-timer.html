@@ -360,16 +360,25 @@ function setTimer(h, m, s) {
   resetTimer();
 }
 
-function readInputSeconds() {
+function readInputSeconds(showToast) {
   const ids = [['set-hours', 0, 99], ['set-minutes', 0, 59], ['set-seconds', 0, 59]];
+  let ok = true;
   for (const [id, min, max] of ids) {
     const raw = document.getElementById(id).value.trim();
     const n = Number(raw);
-    if (raw === '' || !Number.isInteger(n) || n < min || n > max) {
-      document.getElementById(id).reportValidity && document.getElementById(id).reportValidity();
-      ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn()) ? 'Enter whole numbers: hours 0-99, minutes/seconds 0-59' : '请输入整数：小时 0–99，分钟与秒 0–59'), 'warning');
-      return null;
+    const bad = raw === '' || !Number.isInteger(n) || n < min || n > max;
+    const el = document.getElementById(id);
+    if (bad) {
+      ok = false;
+      el.setAttribute('aria-invalid', 'true');
+      el.reportValidity && el.reportValidity();
+    } else {
+      el.removeAttribute('aria-invalid');
     }
+  }
+  if (!ok) {
+    if (showToast !== false) ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn()) ? 'Enter whole numbers: hours 0-99, minutes/seconds 0-59' : '请输入整数：小时 0–99，分钟与秒 0–59'), 'warning');
+    return null;
   }
   return Number(document.getElementById('set-hours').value) * 3600 +
     Number(document.getElementById('set-minutes').value) * 60 +
@@ -378,6 +387,14 @@ function readInputSeconds() {
 
 function onTimerInput() {
   inputChanged = true;
+  const valid = readInputSeconds(false) !== null;
+  const startBtn = document.getElementById('start-btn');
+  if (!valid) {
+    if (startBtn) startBtn.disabled = true;
+    document.getElementById('timer-status').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn()) ? 'Invalid input; correct the highlighted field before starting' : '输入有误，请修正标红字段后再开始');
+    return;
+  }
+  if (!isRunning && startBtn) startBtn.disabled = false;
   if (isPaused) {
     document.getElementById('timer-status').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn()) ? 'Input changed; Start will use the new duration' : '参数已修改，点「开始」将按新时长重新计时');
   }
@@ -440,12 +457,19 @@ function resetTimer() {
   isRunning = false;
   isPaused = false;
   inputChanged = false;
-  const h = parseInt(document.getElementById('set-hours').value) || 0;
-  const m = parseInt(document.getElementById('set-minutes').value) || 0;
-  const s = parseInt(document.getElementById('set-seconds').value) || 0;
-  totalSeconds = h * 3600 + m * 60 + s;
-  remainingSeconds = totalSeconds;
   deadlineAt = 0;
+  const entered = readInputSeconds(false);
+  if (entered === null) {
+    totalSeconds = 0;
+    remainingSeconds = 0;
+    updateTimerDisplay();
+    document.getElementById('start-btn').disabled = true;
+    document.getElementById('pause-btn').disabled = true;
+    document.getElementById('timer-status').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn()) ? 'Invalid input; timer stopped' : '输入有误，计时已停止');
+    return;
+  }
+  totalSeconds = entered;
+  remainingSeconds = totalSeconds;
   updateTimerDisplay();
   document.getElementById('start-btn').disabled = false;
   document.getElementById('pause-btn').disabled = true;

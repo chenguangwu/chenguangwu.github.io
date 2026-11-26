@@ -4132,6 +4132,99 @@ const CASES = [
     expect: ["WCOFF OK"],
     ref: "第918批：每秒刷新时重算并更新城市卡 UTC 偏移，偏移变化同步刷新会议视图。"
   }
+,
+  {
+    slug: "life/date-add-subtract",
+    inputs: { y: "100000", m: "0", d: "0", h: "0", min: "0", s: "0", baseTime: "2026-01-01T00:00" },
+    clicks: ["calc();"],
+    expect: ["1–9999"],
+    ref: "第919批：超大年数使 JavaScript Date 越界时清空结果并提示，而不是显示 Invalid Date。"
+  },
+  {
+    slug: "life/recommender-8",
+    inputs: { cnt: "" },
+    clicks: ["gen();"],
+    expect: ["生成数量须为 1–50 的整数"],
+    ref: "第919批：清空数量不再静默按 5 条生成，直接提示并清空旧结果。"
+  },
+  {
+    slug: "life/recommender-8",
+    inputs: { cnt: "51" },
+    clicks: ["gen();"],
+    expect: ["生成数量须为 1–50 的整数"],
+    ref: "第919批：超范围数量不再夹到 50，提示修正。"
+  },
+  {
+    slug: "life/cycle-pruning-lawn",
+    clicks: ["lawns=[{id:1,name:'测试草坪',type:'cool',start:'2024-01-01'}];logs=[];document.getElementById('logLawn').value='1';document.getElementById('logType').value=Object.keys(TASKS)[0];document.getElementById('logDate').value='2099-01-01';addLog();document.getElementById('logNote').value='LAWN '+logs.length;"],
+    expect: ["LAWN 0"],
+    ref: "第919批：未来日期不能作为已完成维护记录，拒绝写入。"
+  },
+  {
+    slug: "life/cycle-pruning-lawn",
+    clicks: ["lawns=[{id:1,name:'测试草坪',type:'cool',start:'2024-01-01'}];logs=[{id:1,lawnId:1,type:Object.keys(TASKS)[0],date:'2099-01-01'}];document.getElementById('logNote').value='FUTLOG '+((getLastLog(1,Object.keys(TASKS)[0])===null)?'OK':'BAD');"],
+    expect: ["FUTLOG OK"],
+    ref: "第919批：已有未来记录不参与最后完成日期与下次排期计算。"
+  },
+  {
+    slug: "life/countdown-timer",
+    inputs: { "set-hours": "-1", "set-minutes": "0", "set-seconds": "0" },
+    clicks: ["resetTimer();document.getElementById('timer-status').textContent='CD '+((document.getElementById('start-btn').disabled&&document.getElementById('timer-status').textContent.indexOf('输入有误')>=0)?'OK':'BAD');"],
+    expect: ["CD OK"],
+    ref: "第919批：重置也校验字段，负数输入停止计时并禁用开始。"
+  },
+  {
+    slug: "life/reminder-cycle",
+    clicks: ["appliances=[{id:1,name:'旧空调',type:'ac_filter',lastClean:'2024-01-01'}];renderAppls();editAppl(1);document.getElementById('applCycle').value='30';document.getElementById('applLastClean').value='2024-02-01';addAppl();document.getElementById('applName').value='EDIT '+((editingId===null&&appliances[0].cycle===30&&appliances[0].lastClean==='2024-02-01')?'OK':'BAD');"],
+    expect: ["EDIT OK"],
+    ref: "第919批：记录可编辑，自定义周期与纠正日期保存生效，编辑态退出。"
+  },
+  {
+    slug: "life/unit-converter",
+    clicks: ["switchCategory('weight');document.getElementById('fromUnit').value='pound';document.getElementById('toUnit').value='kilogram';document.getElementById('fromValue').value='1';handleInput('from');document.getElementById('toValue').value='LB '+document.getElementById('toValue').value;"],
+    expect: ["LB 0.45359237"],
+    ref: "第919批：磅按 NIST 精确值 0.45359237 kg 换算，不再截断为 0.453592。"
+  },
+  {
+    slug: "life/unit-converter",
+    clicks: ["switchCategory('length');document.getElementById('fromUnit').value='chi';document.getElementById('toUnit').value='cun';document.getElementById('fromValue').value='1';handleInput('from');document.getElementById('toValue').value='CHI '+document.getElementById('toValue').value;"],
+    expect: ["CHI 10"],
+    ref: "第919批：尺/寸改用 1/3 m 与 1/30 m 的精确分数关系，1 尺恰为 10 寸。"
+  },
+  {
+    slug: "life/unit-converter",
+    clicks: ["switchCategory('frequency');document.getElementById('fromUnit').value='rpm';document.getElementById('toUnit').value='hertz';document.getElementById('fromValue').value='60';handleInput('from');document.getElementById('toValue').value='RPM '+document.getElementById('toValue').value;"],
+    expect: ["RPM 1"],
+    ref: "第919批：rpm 使用 1/60 Hz 精确关系，60 rpm 恰为 1 Hz。"
+  },
+  {
+    slug: "life/zodiac-calculator",
+    inputs: { birthDate: "1990-04-10" },
+    clicks: ["TBKit={util:{isEn:function(){return true;}}};calc();"],
+    expect: ["Birth date", "Chinese zodiac：🐴 Horse", "Western zodiac：♈ Aries"],
+    ref: "第919批：英文态生肖、星座、星期与说明按语言生成，不再残留中文。"
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "w_top", sys: "cn", inputVal: "165/88B" },
+    clicks: ["convert();"],
+    expect: ["该体型分类在当前尺码表暂无对应行"],
+    ref: "第919批：体型 B 在表内无对应行时明确提示，不再与 A 行混为近似。"
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "w_top", sys: "cn", inputVal: "999/999XYZ" },
+    clicks: ["convert();"],
+    expect: ["号型格式无效"],
+    ref: "第919批：尾随非法字符整串判非法，不再取数字前缀给近似。"
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "w_top", sys: "cn", inputVal: "165/98A" },
+    clicks: ["convert();"],
+    expect: ["超出当前尺码表覆盖范围"],
+    ref: "第919批：围度远超表格覆盖范围时不提供近似结果。"
+  }
 ];
 
 // ---------------------------------------------------------------- main

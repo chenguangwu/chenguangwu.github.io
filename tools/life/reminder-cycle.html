@@ -160,7 +160,7 @@
     <h2 data-zh="📏 家电深度清洁周期提醒">📏 Appliance Deep-Clean Reminder</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="内置 8 类家电推荐清洁周期，添加家电并记录上次清洁日期，自动计算下次清洁时间，按紧急度排序生成清洁队列，附带专业清洁技巧。">Set deep-cleaning reminder cycles for household appliances by type and last clean date, and generate a to-do list.</p>
 
-    <h3>➕ 添加家电</h3>
+    <h3 id="applFormTitle">➕ 添加家电</h3>
     <div class="input-row">
       <div>
         <label for="applName">家电名称/位置</label>
@@ -174,10 +174,15 @@
         <label for="applLastClean">上次清洁日期</label>
         <input type="date" id="applLastClean">
       </div>
+      <div>
+        <label for="applCycle">清洁周期（天，留空用类型推荐）</label>
+        <input type="number" id="applCycle" min="1" max="3650" placeholder="如 30（1–3650）">
+      </div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" onclick="addAppl()">➕ 添加家电</button>
+      <button class="btn primary" id="applSaveBtn" onclick="addAppl()">➕ 添加家电</button>
       <button class="btn" onclick="fillToday()">⏰ 填入今天</button>
+      <button class="btn" id="applCancelBtn" onclick="cancelEdit()" style="display:none;">取消编辑</button>
     </div>
 
     <div class="toolbar" style="margin-top:8px;">
@@ -256,7 +261,7 @@ function getNextDate(appl) {
   var type = getType(appl.type);
   var last = parseLocalDate(appl.lastClean);
   var next = new Date(last);
-  next.setDate(next.getDate() + type.cycle);
+  next.setDate(next.getDate() + (Number(appl.cycle) > 0 ? Number(appl.cycle) : type.cycle));
   return next;
 }
 
@@ -275,20 +280,74 @@ function getUrgency(days) {
   return { level: 'ok', label: '正常', color: 'var(--success)' };
 }
 
+var editingId = null;
+function setApplFormMode(id){
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  editingId=id;
+  var isEdit=id!==null;
+  document.getElementById('applFormTitle').textContent=isEdit?(en?'✏️ Edit appliance':'✏️ 编辑家电'):(en?'➕ Add appliance':'➕ 添加家电');
+  document.getElementById('applSaveBtn').textContent=isEdit ? (en?'Save changes':'保存修改') : (en?'➕ Add appliance':'➕ 添加家电');
+  document.getElementById('applCancelBtn').style.display=isEdit?'inline-block':'none';
+}
+function cancelEdit(){
+  editingId=null;
+  document.getElementById('applName').value='';
+  document.getElementById('applType').value='';
+  document.getElementById('applLastClean').value='';
+  document.getElementById('applCycle').value='';
+  setApplFormMode(null);
+  render();
+}
+function editAppl(id){
+  var a=appliances.find(function(x){ return x.id===id; });
+  if(!a) return;
+  document.getElementById('applName').value=a.name;
+  document.getElementById('applType').value=a.type;
+  document.getElementById('applLastClean').value=a.lastClean;
+  document.getElementById('applCycle').value=Number(a.cycle)>0?a.cycle:'';
+  setApplFormMode(id);
+  document.getElementById('applName').focus();
+  render();
+}
 function addAppl() {
   var name = document.getElementById('applName').value.trim();
   var type = document.getElementById('applType').value;
   var lastClean = document.getElementById('applLastClean').value;
+  var cycleRaw = document.getElementById('applCycle').value.trim();
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   if (!name) { ToolBox.showToast(i18nText('toast.msg787'), 'error'); return; }
   if (!type) { ToolBox.showToast(i18nText('toast.msg935'), 'error'); return; }
   if (!lastClean) { ToolBox.showToast(i18nText('toast.msg930'), 'error'); return; }
-  var __prev=appliances.slice();
-  appliances.push({ id: Date.now(), name: name, type: type, lastClean: lastClean, createdAt: Date.now() });
+  if (lastClean > todayStr()) { ToolBox.showToast(en?'Last clean date cannot be in the future':'上次清洁日期不能晚于今天，请纠正后再保存','error'); return; }
+  var cycle = null;
+  if (cycleRaw !== '') {
+    cycle = Number(cycleRaw);
+    if (!Number.isInteger(cycle) || cycle < 1 || cycle > 3650) {
+      ToolBox.showToast(en?'Custom cycle must be a whole number from 1 to 3650 days':'自定义周期须为 1–3650 天的整数','error');
+      return;
+    }
+  }
+  var __prev=JSON.parse(JSON.stringify(appliances));
+  if (editingId !== null) {
+    var a=appliances.find(function(x){ return x.id===editingId; });
+    if(!a){ cancelEdit(); return; }
+    a.name=name; a.type=type; a.lastClean=lastClean;
+    if(cycle!==null) a.cycle=cycle; else delete a.cycle;
+  } else {
+    var rec={ id: Date.now(), name: name, type: type, lastClean: lastClean, createdAt: Date.now() };
+    if(cycle!==null) rec.cycle=cycle;
+    appliances.push(rec);
+  }
   if(!save()){ appliances=__prev; __saveFail(); return; }
+  var wasEdit=editingId!==null;
+  editingId=null;
   document.getElementById('applName').value = '';
   document.getElementById('applLastClean').value = '';
+  document.getElementById('applCycle').value = '';
+  document.getElementById('applType').value = '';
+  setApplFormMode(null);
   render();
-  ToolBox.showToast(i18nText('toast.msg133'));
+  ToolBox.showToast(wasEdit?(en?'Appliance updated':'家电记录已更新'):i18nText('toast.msg133'));
 }
 
 function delAppl(id) {
@@ -348,6 +407,7 @@ function renderAppls() {
     var html = '<div class="tip-box tip-success" style="margin-bottom:12px;">✅ 所有家电均在清洁周期内，状态良好</div>';
   }
 
+  var enUI=__applIsEn();
   sorted.forEach(function(item) {
     var a = item.appl;
     var type = getType(a.type);
@@ -355,13 +415,16 @@ function renderAppls() {
     var dayText = item.days < 0 ? '已超期' + Math.abs(item.days) + '天' : (item.days === 0 ? '今天到期' : item.days + ' 天');
     html += '<div class="appl-card">';
     html += '<div class="appl-head"><span class="appl-name">' + type.icon + ' ' + ToolBox.escHtml(a.name) + '</span><span class="urgency-badge urgency-' + urgency.level + '">' + urgency.label + '</span></div>';
-    html += '<div class="appl-meta">' + type.name + ' · 推荐周期 ' + type.cycle + ' ' + type.unit + '</div>';
+    var usingCustom=Number(a.cycle)>0;
+    var freq=usingCustom?Number(a.cycle):type.cycle;
+    var typeName=enUI?(APPL_TYPE_EN[a.type]||type.name):type.name;
+    html += '<div class="appl-meta">' + typeName + ' · ' + (usingCustom ? (enUI?'Custom cycle '+freq+' days (type default '+type.cycle+' days)':'自定义周期 ' + freq + ' 天（类型推荐 ' + type.cycle + ' 天）') : (enUI?'Recommended cycle '+type.cycle+' days':'推荐周期 ' + type.cycle + ' ' + type.unit)) + '</div>';
     html += '<div class="appl-info">';
     html += '<span>上次清洁：<b>' + a.lastClean + '</b></span>';
     html += '<span>下次清洁：<b>' + fmtDate(item.next) + '</b></span>';
     html += '</div>';
     html += '<div class="countdown-box"><span class="days" style="color:' + urgency.color + ';">' + dayText + '</span><span style="color:var(--text-secondary);">' + (item.days < 0 ? '建议尽快清洁' : (item.days === 0 ? '今天应清洁' : '距下次清洁')) + '</span></div>';
-    html += '<div style="margin-top:8px;"><span class="tip-toggle" onclick="toggleTip(' + a.id + ')">💡 查看清洁技巧</span> <button class="mini-btn" style="margin-left:12px;" onclick="markCleaned(' + a.id + ')">✅ 标记今日已清洁</button> <button class="mini-btn" onclick="delAppl(' + a.id + ')" style="color:var(--danger);">删除</button></div>';
+    html += '<div style="margin-top:8px;"><span class="tip-toggle" onclick="toggleTip(' + a.id + ')">'+(enUI?'💡 Cleaning tips':'💡 查看清洁技巧')+'</span> <button class="mini-btn" style="margin-left:12px;" onclick="markCleaned(' + a.id + ')">'+(enUI?'✅ Mark cleaned today':'✅ 标记今日已清洁')+'</button> <button class="mini-btn" onclick="editAppl(' + a.id + ')">'+(enUI?'✏️ Edit':'✏️ 编辑')+'</button> <button class="mini-btn" onclick="delAppl(' + a.id + ')" style="color:var(--danger);">'+(enUI?'Delete':'删除')+'</button></div>';
     html += '<div class="tip-detail" id="tip_' + a.id + '">' + type.tip + '</div>';
     html += '</div>';
   });
