@@ -209,6 +209,24 @@ function fontPreviewPlatformChecks() {
 }
 
 // ---------------------------------------------------------------- 用例
+// 958 批次：复制能力统一走 ToolBox.copyText，失败时必须给出中文/英文提示并可回退；
+// 图标预览不得把用户输入当作 HTML 解析。
+function copyFeedbackStaticChecks() {
+  const pages = ["grid-pattern", "pattern-generator", "loading-dots", "spinner-generator", "skeleton-loader",
+    "dot-pattern", "checkerboard-generator", "isometric-grid", "blueprint-grid", "stripe-pattern",
+    "card-generator", "button-generator", "badge-generator"];
+  const clipOurs = pages.filter((slug) => {
+    const src = fs.readFileSync(path.join(__dirname, "..", "tools", "design", slug + ".html"), "utf8");
+    return /navigator\.clipboard\.writeText\(text\)/.test(src) || !/ToolBox\.copyText\(/.test(src);
+  });
+  const fav = ["favicon-from-emoji", "favicon-from-text"].map((slug) => fs.readFileSync(path.join(__dirname, "..", "tools", "design", slug + ".html"), "utf8"));
+  return [
+    { name: "13 个 CSS 生成页复制统一走 ToolBox.copyText 且无直接剪贴板调用", ok: clipOurs.length === 0 },
+    { name: "图标页复制 Data URL 走 ToolBox.copyText", ok: fav.every((s) => /ToolBox\.copyText\(lastURL,/.test(s) && !/navigator\.clipboard\.writeText\(lastURL\)/.test(s)) },
+    { name: "图标页预览对用户输入做 HTML 转义", ok: fav.every((s) => /function __favEsc\(/.test(s) && /__favEsc\((?:emoji|text)\)/.test(s) && !/>\$\{(?:emoji|text)\}</.test(s)) },
+  ];
+}
+
 const CASES = [
   { slug: "design/contrast-checker", inputs: { fgHex: "F#FF", bgHex: "000000" },
     expect: ["颜色需为有效的 3 或 6 位 HEX 值"],
@@ -3753,7 +3771,7 @@ async function main() {
     }
   }
 
-  const stat = designRework648StaticChecks().concat(batch202StaticChecks(), metronomeStaticChecks(), asciiHistoryGuardChecks(), dotPatternEventBindingChecks(), colorDeepDiveContrastFaqChecks(), fontPairingCjkStackChecks(), fontPreviewPlatformChecks());
+  const stat = designRework648StaticChecks().concat(batch202StaticChecks(), metronomeStaticChecks(), asciiHistoryGuardChecks(), dotPatternEventBindingChecks(), copyFeedbackStaticChecks(), colorDeepDiveContrastFaqChecks(), fontPairingCjkStackChecks(), fontPreviewPlatformChecks());
   const staticFails = stat.filter((s) => !s.ok);
   for (const s of staticFails) console.log("❌ [static] " + s.name);
 
