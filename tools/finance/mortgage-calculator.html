@@ -382,6 +382,9 @@ function buildSchedule(amount, annualRate, years, method){
   if(method==='equal-payment'){
     var mp=payRate===0?amount/months:amount*payRate*Math.pow(1+payRate,months)/(Math.pow(1+payRate,months)-1);
     mp=__mcRound(mp);
+    if(mp<=0 || (payRate>0 && mp<=__mcRound(balance*payRate))){
+      return {error:{method:'equal-payment',payment:mp,base:mp}};
+    }
     for(var i=1;i<=months;i++){
       var interest,principal,payment;
       if(i===months || balance<=0){
@@ -402,6 +405,7 @@ function buildSchedule(amount, annualRate, years, method){
     monthlyPayment=schedule.length?schedule[0].payment:0;
   }else{
     var basePrincipal=__mcRound(amount/months);
+    if(basePrincipal<=0) return {error:{method:'equal-principal',payment:0,base:basePrincipal}};
     for(var j=1;j<=months;j++){
       var interest2,principal2,payment2;
       if(j===months || balance<=basePrincipal){
@@ -465,6 +469,16 @@ function calculate(){
 
   const monthlyRate = annualRate / 12;
   const built = buildSchedule(amount, annualRate, years, method);
+  if(built.error){
+    const zh = built.error.method==='equal-payment'
+      ? '⚠ 按分舍入后月供为 ' + built.error.payment.toFixed(2) + ' 元，不足以覆盖当期利息或无法形成有效分期；当前本金与期限不能生成正常还款计划，请增大本金、缩短期限或调整利率。'
+      : '⚠ 按分舍入后每期本金为 ' + built.error.base.toFixed(2) + ' 元，无法形成有效分期；当前本金与期限不能生成正常还款计划，请增大本金或缩短期限。';
+    const en = built.error.method==='equal-payment'
+      ? '⚠ The payment rounded to the cent is ' + built.error.payment.toFixed(2) + ' CNY, insufficient to cover current interest or form a valid instalment schedule; this principal and term cannot produce a normal repayment plan. Increase the principal, shorten the term or adjust the rate.'
+      : '⚠ The per-period principal rounded to the cent is ' + built.error.base.toFixed(2) + ' CNY, which cannot form a valid instalment schedule; this principal and term cannot produce a normal repayment plan. Increase the principal or shorten the term.';
+    resetDisplay(__mcTx(zh, en));
+    return;
+  }
   const schedule = built.schedule;
   const totalInterest = built.totalInterest;
   const monthlyPayment = built.monthlyPayment;
