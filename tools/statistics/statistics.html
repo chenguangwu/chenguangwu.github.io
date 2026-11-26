@@ -279,13 +279,16 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
+function readNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
 if (typeof Math.erf !== 'function') { Math.erf = function(x){ const t = 1/(1+0.3275911*Math.abs(x)); const y = 1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x); return x>=0?y:-y; }; }
 function calc(){
-    var __ig=__tbInputGuard(['mu', 'sigma', 'a', 'b'],["均值", "标准差", "下界", "上界"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const mu = +document.getElementById('mu').value || 0;
-  const sigma = +document.getElementById('sigma').value || 0;
-  const a = +document.getElementById('a').value || 0;
-  const b = +document.getElementById('b').value || 0;
+const mu = readNum('mu');
+  const sigma = readNum('sigma');
+  const a = readNum('a');
+  const b = readNum('b');
+  if(isNaN(mu)||isNaN(sigma)||isNaN(a)||isNaN(b)){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 均值、标准差、下界和上界都必须是有限数值，不能含文字。</p>');return;}
+  if(sigma<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 标准差必须大于 0；σ=0 时正态分布无定义。</p>');return;}
+  if(a>b){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 下界不能大于上界；交换两个端点后再计算。</p>');return;}
   let html = '';
   const __v0 = ((0.5*(1+Math.erf((b-mu)/(sigma*Math.sqrt(2)))) - 0.5*(1+Math.erf((a-mu)/(sigma*Math.sqrt(2)))))*100);
   html += `<p>区间概率：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(3)}</strong> %</p>`;
