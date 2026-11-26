@@ -19145,7 +19145,28 @@ const CASES = [
   clicks: ["calcTool()"],
   expect: ["Infinity、NaN", "Infinity", "NaN"],
   ref: "第964批：用户文本中的 Infinity/NaN 作为用户名命中时原样展示并高亮；旧实现把整段结果替换成破折号，命中内容和高亮失真。默认样例不含这两个词 ⇒ 强判别。"
-}
+},
+  {
+    slug: "it/text-to-hex",
+    inputs: { encoding: "utf16", input: "😀" },
+    clicks: ["convert()"],
+    expect: ["d8 3d de 00"],
+    ref: "UTF-16BE 代理对：😀 U+1F600 应编码为 D83D DE00 四字节；旧版遇高代理项未跳过低代理项，下一轮把低代理项判成孤立并报错。",
+  },
+  {
+    slug: "it/text-to-octal",
+    inputs: { encoding: "utf16", input: "😀" },
+    clicks: ["convert()"],
+    expect: ["330 075 336 000"],
+    ref: "UTF-16BE 代理对：D83D=330075 八进制、DE00=336000；旧版同样在低代理项处误报孤立。",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { mode: "text" },
+    clicks: ["document.getElementById('input').value='\\uFEFFabc';encodeText();var e=document.getElementById('output').value;document.getElementById('input').value=e;decodeText();var ok=document.getElementById('output').value.codePointAt(0)===0xFEFF;document.getElementById('__tbProbe').textContent='BOM64 '+(ok?'OK':'BAD');"],
+    expect: ["BOM64 OK"],
+    ref: "UTF-8 BOM 往返：'\\uFEFFabc' 以 Base64 编码再解码，首字符必须仍是 U+FEFF；旧版 TextDecoder 默认剥 BOM 得到 'abc'。",
+  }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(

@@ -397,6 +397,12 @@ function textToBytes(text, encoding){
       if(code >= 0xD800 && code <= 0xDBFF){
         var low = i + 1 < text.length ? text.charCodeAt(i+1) : -1;
         if(low < 0xDC00 || low > 0xDFFF) throw new Error(tbMsg('UTF-16BE 编码遇到孤立高代理项','UTF-16BE encoding hit an unpaired high surrogate'));
+        bytes.push((code >> 8) & 0xff);
+        bytes.push(code & 0xff);
+        bytes.push((low >> 8) & 0xff);
+        bytes.push(low & 0xff);
+        i++;
+        continue;
       } else if(code >= 0xDC00 && code <= 0xDFFF){
         throw new Error(tbMsg('UTF-16BE 编码遇到孤立低代理项','UTF-16BE encoding hit an unpaired low surrogate'));
       }
@@ -504,8 +510,9 @@ function convert(){
   document.getElementById('output').value = result;
 
   var vizHtml = '';
-  for(var i = 0; i < text.length; i++){
-    var ch = text[i];
+  var chars = Array.from(text);
+  for(var i = 0; i < chars.length; i++){
+    var ch = chars[i];
     var charBytes = textToBytes(ch, encoding);
     var charHex = '';
     for(var j = 0; j < charBytes.length; j++){
@@ -520,7 +527,7 @@ function convert(){
   }
   const __h1=vizHtml;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('viz').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('viz').innerHTML=__h1;
 
-  updateStats(text.length, bytes.length, parts.length);
+  updateStats(chars.length, bytes.length, parts.length);
   addToHistory(text, result, 'text2hex');
 }
 
