@@ -976,21 +976,39 @@ function drawSensitivityChart(p, pct, baseBEP){
   ctx.restore();
 }
 
+var DETAIL_ROW_LIMIT = 500;
+function readDetailParams(){
+  var ids=['detailStart','detailEnd','detailStep'];
+  var labels={detailStart:'起始销量',detailEnd:'结束销量',detailStep:'步长'};
+  var vals={};
+  for(var i=0;i<ids.length;i++){
+    var id=ids[i], raw=String(document.getElementById(id).value).trim();
+    if(raw==='') return {error:labels[id]+'不能为空；0 是有效值，请明确输入 0。'};
+    var v=Number(raw);
+    if(!isFinite(v)) return {error:labels[id]+'不是有效数字：'+raw};
+    vals[id]=v;
+  }
+  var start=vals.detailStart,end=vals.detailEnd,step=vals.detailStep;
+  if(start<0||end<0) return {error:'销量不能为负（当前起点 '+start+'、终点 '+end+'）。'};
+  if(step<=0) return {error:'步长必须大于 0（当前 '+step+'），否则无法按销量递增生成明细。'};
+  if(end<start) return {error:'结束销量须不小于起始销量（当前 '+start+' → '+end+'）。'};
+  var count=Math.floor((end-start)/step)+1;
+  if(count>DETAIL_ROW_LIMIT) return {error:'当前范围将生成 '+count+' 行，超过 '+DETAIL_ROW_LIMIT+' 行上限；请缩小范围或增大步长（当前区间 '+start+'–'+end+'，步长 '+step+'）。'};
+  return {start:start,end:end,step:step,count:count};
+}
 function generateDetailTable(){
   var p = getParams();
   var err = validateParams(p, true);
   if(err){ setParamError('detailTable', err); return; }
-  var start = +document.getElementById('detailStart').value || 0;
-  var end = +document.getElementById('detailEnd').value || 20000;
-  var step = +document.getElementById('detailStep').value || 1000;
-  
-  if(step <= 0) step = 100;
-  if(end <= start) end = start + step * 10;
+  var range = readDetailParams();
+  if(range.error){ setParamError('detailTable', range.error); return; }
+  var start = range.start, end = range.end, step = range.step;
   
   var headers = ['销量', '销售收入', '变动成本', '固定成本', '总成本', '边际贡献', '利润', '利润率'];
   var rows = [];
   
-  for(var q = start; q <= end; q += step){
+  for(var qi = 0; qi < range.count; qi++){
+    var q = start + qi * step;
     var revenue = q * p.price;
     var totalVC = q * p.vc;
     var totalCost = p.fc + totalVC;
@@ -1017,15 +1035,13 @@ function exportCSV(){
   var p = getParams();
   var err = validateParams(p, true);
   if(err){ setParamError('detailTable', err); return; }
-  var start = +document.getElementById('detailStart').value || 0;
-  var end = +document.getElementById('detailEnd').value || 20000;
-  var step = +document.getElementById('detailStep').value || 1000;
-  
-  if(step <= 0) step = 100;
-  if(end <= start) end = start + step * 10;
+  var range = readDetailParams();
+  if(range.error){ setParamError('detailTable', range.error); return; }
+  var start = range.start, end = range.end, step = range.step;
   
   var csv = '\uFEFF销量,销售收入,变动成本,固定成本,总成本,边际贡献,利润,利润率(%)\n';
-  for(var q = start; q <= end; q += step){
+  for(var qi = 0; qi < range.count; qi++){
+    var q = start + qi * step;
     var revenue = q * p.price;
     var totalVC = q * p.vc;
     var totalCost = p.fc + totalVC;

@@ -629,6 +629,27 @@ const CASES = [
     ref: "去默认化：单位边际贡献 = 75−45 = 30；盈亏平衡销量 = 180000/30 = 6000 件、平衡收入 = 6000×75 = 450,000 元；经营杠杆 = 8000×30/60000 = 4.00（预计销量 8000 沿用默认）。默认 100000/50/30 → 20.00、5000 件、250,000、2.67。**注意「30.00 单位边际贡献」不可作 expect** —— harness 兜底会调 addScenario() 生成一个模板场景，其单位边际贡献恰为 30.00 ⇒ 默认态也命中（实测 3/3 命中，属逃生项）。同理边际贡献率 40.00% 与默认态同值，也不可用",
   },
   {
+    slug: "finance/break-even-calculator",
+    inputs: { detailEnd: "" },
+    clicks: ["generateDetailTable()"],
+    expect: ["结束销量不能为空；0 是有效值，请明确输入 0。"],
+    ref: "第933批：明细结束销量不再用 `|| 20000` 静默回退；空串必须点名提示。默认 20000 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/break-even-calculator",
+    inputs: { detailStart: "20000", detailEnd: "0", detailStep: "1000" },
+    clicks: ["generateDetailTable()"],
+    expect: ["结束销量须不小于起始销量（当前 20000 → 0）"],
+    ref: "第933批：倒序范围不再自动改写为 start+10×step；明确拒绝。默认 0→20000 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/break-even-calculator",
+    inputs: { detailStart: "0", detailEnd: "100000", detailStep: "1" },
+    clicks: ["generateDetailTable()"],
+    expect: ["当前范围将生成 100001 行，超过 500 行上限"],
+    ref: "第933批：生成前预计算行数，超过 500 行直接拒绝，避免极小步长构造海量 DOM/CSV。默认 21 行 ⇒ 不命中。",
+  },
+  {
     slug: "finance/vat-calculator",
     inputs: { amount: "2500", customRate: "6" },
     expect: ["2,358.49", "141.51"],
@@ -2244,6 +2265,27 @@ const CASES = [
     ref: "负无风险利率原实现照算并产出正/负夏普；现拦截。默认输入 3% 不出现该提示。",
   },
   {
+    slug: "finance/sharpe-ratio",
+    inputs: { riskFree: "" },
+    clicks: ["currentTab='series';calc()"],
+    expect: ["无风险利率（年化 %）不能为空；如确实为 0，请明确输入 0。"],
+    ref: "第933批：无风险利率留空不再当 0 静默计算；必须明确输入 0 才按零利率处理。默认 3% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/sharpe-ratio",
+    inputs: { returns: "1,abc,3", riskFree: "2" },
+    clicks: ["currentTab='series';calc()"],
+    expect: ["收益率序列含 1 个无法解析的项：「abc」"],
+    ref: "第933批：收益序列不再静默跳过 abc 按 1,3 计算；标出无效项并暂停。默认序列全部合法 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/sharpe-ratio",
+    inputs: { portReturn: "", portStd: "20", riskFree: "2" },
+    clicks: ["currentTab='inputs';calc()"],
+    expect: ["组合平均收益率（%）不能为空；如确实为 0，请明确输入 0。"],
+    ref: "第933批：直接输入模式空组合收益不再按 0 计算；0 必须明确输入。默认 8% ⇒ 不命中。",
+  },
+  {
     slug: "finance/irr-calculator",
     inputs: { discountRate: "8" },
     clicks: ["cashFlows=[{period:0,amount:-10000,label:'初始'},{period:1,amount:11000,label:'收益'}]; calc()"],
@@ -2702,9 +2744,9 @@ const CASES = [
       "detailStep": "42"
     },
     "expect": [
-      "00 0.00 -42.00 -0.48% 252 10,584.00 10,584.00 42.00 10,626"
+      "42 1,764.00 1,764.00 42.00 1,806.00 0.00 -42.00 -2.38%"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"fc\":\"42\",\"price\":\"42\",\"vc\":\"42\",\"qty\":\"42\",\"pname\":\"abc123测试\",\"taxRate\":\"42\",\"chartMaxQty\":\"42\",\"chartStep\":\"42\",\"sensPct\":\"42\",\"detailStart\":\"42\",\"detailEnd\":\"42\",\"detailStep\":\"42\"}，输出区含「00 0.00 -42.00 -0.48% 252 10,584.00 10,5…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第933批：detailStart=detailEnd=42、step=42 时只生成 1 行（42 件），不再把 end<=start 自动扩成 start+10×step；旧实现会扩到 462 并生成 42/84/…/252 多行。默认 0–20000 不命中。"
   },
   {
     "slug": "finance/calc-4",
@@ -2984,6 +3026,13 @@ const CASES = [
       "净利润 525.00"
     ],
     "ref": "确定性算例：收入 2000、成本率 50% → 毛利 1000 − 费用 300 = 营业利润 700，税率 25% → 所得税 175、净利润 525；默认参数净利润 150.00，注入态不含该串 ⇒ 区分真三表勾稽与随机模拟。"
+  },
+  {
+    slug: "finance/generator-report-1",
+    inputs: { rev: "1000", costRate: "65", opex: "150", taxRate: "25", asset: "1200", debtRatio: "45", dep: "60", capex: "80", dividend: "30", cash0: "200", depMode: "excluded", wc: "50" },
+    clicks: ["gen()"],
+    expect: ["未含，已在营业利润中扣除 60.00", "净利润 105.00", "经营活动 115.00", "营运资本增加 50.00"],
+    ref: "第933批：折旧未含在费用时单独扣除一次 ⇒ 营业利润 350−150−60=140、税 35、净利 105；间接法 105+60−50=115 经营现金流。旧实现不扣折旧，净利 165、CFO 225。默认折旧含在费用 ⇒ 不命中。",
   },
   {
     "slug": "finance/futures-pnl-calculator",
@@ -3416,8 +3465,8 @@ const CASES = [
   {
     slug: "finance/password-generator-advanced",
     clicks: ["updateStrengthBatch(['a','Abcdefgh1!']);document.getElementById('__tbProbe').textContent='PGBAT '+String(document.getElementById('strengthText').textContent);"],
-    expect: ["PGBAT 强度：很弱 (0/5)（批量按最弱一条）"],
-    ref: "F-N145 核实锁：旧 generate 仅对首条 updateStrength，批量强度口径错误；现 updateStrengthBatch 取最弱一条并标注「批量按最弱一条」。直接注入 ['a','Abcdefgh1!'] 令最弱分=0，默认态无 PGBAT 探针串 ⇒ 零逃生。",
+    expect: ["PGBAT 强度：弱 (1/5)（批量按最弱一条）"],
+    ref: "F-N145 核实锁：批量强度取最弱一条并标注「批量按最弱一条」；第933批改为按随机空间熵估算，'a'（1 位小写，约 4.7 bit）得 1 分而非旧字符种类计分的 0 分，'Abcdefgh1!' 约 66 bit 得 4 分 ⇒ 取最弱 1 分「弱」。默认态无 PGBAT 探针串 ⇒ 零逃生。",
   },
   {
     slug: "finance/password-generator-advanced",
@@ -3434,9 +3483,9 @@ const CASES = [
       "count": "42"
     },
     "expect": [
-      "42\n42\nabc123测试"
+      "生成数量须为 1–20 的整数（当前 42）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"len\":\"42\",\"exclude\":\"abc123测试\",\"count\":\"42\"}，输出区含「42\n42\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第933批：生成数量不再接受越界值；len=42 合法但 count=42 超出 1–20，必须拒绝并提示，不能静默生成 42 条。默认 count=1 ⇒ 不命中。"
   },
   {
     "slug": "finance/pan-validator",
@@ -3472,9 +3521,9 @@ const CASES = [
       "r2": "42"
     },
     "expect": [
-      "预期收益 (%) 84.00% 权重合计"
+      "权重合计为 84.00%，不是 100%。剩余 16.00% 对应的资产与收益未定义"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"w1\":\"42\",\"r1\":\"42\",\"w2\":\"42\",\"r2\":\"42\"}，输出区含「预期收益 (%) 84.00% 权重合计」；权重合计已改为百分比显示（42+42=84.00%）。默认态（输入回退）权重合计 100.00% ⇒ 不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第933批：42/42 权重合计 84%，默认拒绝当作完整组合；旧实现输出 42.00 并仅标偏差。默认 60/40 合计 100% ⇒ 不命中。"
   },
   {
     "slug": "finance/points-redemption-value",
@@ -4401,8 +4450,15 @@ const CASES = [
     slug: "finance/portfolio-return",
     inputs: { r1: "24", r2: "16", w1: "120", w2: "80" },
     clicks: ["calcTool()"],
-    expect: ["200.00% 权重合计（应=100%）", "41.60"],
-    ref: "120/80 权重合计 200%（旧实现显示 2.00，未标百分点单位）；现显示 200.00% 并提示偏差 100.00%。rp=1.2×24+0.8×16=41.60。默认 60/40 ⇒ 注入失败不命中。",
+    expect: ["权重合计为 200.00%，不是 100%", "剩余 -100.00% 对应的资产与收益未定义"],
+    ref: "第933批：120/80 合计 200%，默认拒绝把多余权重当作完整组合；旧实现直接输出 41.60 并只标偏差。默认 60/40 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/portfolio-return",
+    inputs: { r1: "24", r2: "16", w1: "120", w2: "80" },
+    clicks: ["document.getElementById('normalizeWeights').checked=true;calcTool();"],
+    expect: ["归一化组合预期收益 (%)", "已按比例归一化（原合计 200.00%）", "20.80"],
+    ref: "第933批：显式勾选归一化后，120/80 按 60%/40% 缩放，rp=0.6×24+0.4×16=20.80，并标注归一化假设；默认 60/40 不命中。",
   },
   {
     slug: "finance/npv-calculator",
@@ -4583,10 +4639,17 @@ const CASES = [
   },
   {
     slug: "finance/shebeizulinfeilvjisuan",
-    inputs: { price: "500000", months: "24", depYears: "8", maintRate: "3", profitRate: "8", salvageRate: "12" },
+    inputs: { price: "500000", months: "24", depYears: "8", maintRate: "3", profitRate: "8", salvageRate: "12", disposal: "salvage" },
     clicks: ["calc()"],
-    expect: ["¥9166.67 月租金 (元)", "-44.00% 投资回报率 ROI"],
-    ref: "F-N64 正常态 + ROI 公式口径：P=50万/T=24/Y=8/r=3/m=8/s=12 ⇒ 残值 60000、月折旧 (500000−60000)/96=4583.33、月租 4583.33+1250+3333.33=9166.67；总租金 220000 + 残值 60000 − 原值 500000 = −220000 ⇒ ROI −44.00%（信息框公式 (R×T+P×s/100−P)/P 与实现一致）。刻意用非默认 s=12（默认 s=5）避免 A===B 逃生；越界态拒绝不命中。",
+    expect: ["¥9166.67 月租金 (元)", "-50.00% 投资回报率 ROI", "按折旧期末残值回收"],
+    ref: "F-N64 正常态 + ROI 公式口径：P=50万/T=24/Y=8/r=3/m=8/s=12，显式选择按折旧期末残值回收 ⇒ 残值 60000、月折旧 4583.33、月租 9166.67；总租金 220000 + 回收 60000 − 原值 500000 − 维护 30000 = −250000 ⇒ ROI −50.00%（旧实现漏扣维护得 −44.00%）。第933批起默认改为按租期末账面价值回收，故本用例显式指定 salvage。",
+  },
+  {
+    slug: "finance/shebeizulinfeilvjisuan",
+    inputs: { price: "500000", months: "24", depYears: "8", maintRate: "3", profitRate: "8", salvageRate: "12", disposal: "book" },
+    clicks: ["calc();var t=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='RENTBOOK '+(t.indexOf('390000.00')>=0?'B':'N')+' '+(t.indexOf('16.00%')>=0?'R':'N');"],
+    expect: ["RENTBOOK B R"],
+    ref: "第933批：短租期默认按租期末账面价值回收。月折旧 4583.33×24=110,000 累计折旧，账面 500,000−110,000=390,000；净收益 220,000+390,000−500,000−30,000=80,000 ⇒ ROI 16.00%。用拼接探针同时锁定两个值，避免只命中通用标签「租期内累计折旧 (元)」的逃生。旧实现无论租期都用残值 60,000，得 −44.00%。",
   },
   {
     slug: "finance/isbn-validator",
@@ -5036,7 +5099,7 @@ const CASES = [
     slug: "finance/sharpe-ratio",
     inputs: { returns: "5\n5", riskFree: "0", annualize: "1" },
     clicks: ["calc()"],
-    expect: ["标准差必须大于0：当前收益率序列的标准差为 0"],
+    expect: ["标准差必须大于 0：当前 2 个收益率全部相同"],
     ref: "第731C批：序列 5,5 标准差为 0，旧实现把夏普直接置 0 并评级；现拒绝并清空统计卡，说明夏普无定义。默认收益序列有波动 ⇒ 不命中。"
   },
   {
@@ -5101,6 +5164,19 @@ const CASES = [
     clicks: ["var __st={};globalThis.localStorage={getItem:function(k){return __st[k]==null?null:__st[k]},setItem:function(k,v){__st[k]=String(v)},removeItem:function(k){delete __st[k]}};calc();saveHistory();var h=JSON.parse(localStorage.getItem('currency_history:finance'))[0];document.getElementById('rateMode').value='builtin';document.getElementById('manualRate').value='9';renderHistory();document.getElementById('__tbProbe').textContent='CCHIST '+h.rateSource+' '+h.rate+' '+h.result+' '+((String(document.getElementById('historyList').innerHTML).indexOf('27.6000')>=0)?'SAVED':'LIVE');"],
     expect: ["CCHIST manual 0.138 27.6 SAVED"],
     ref: "历史必须保存当次汇率来源、汇率和结果；切回内置/改手动汇率后列表仍显示保存值 27.6000，而不是按当前汇率重算。",
+  },
+  {
+    slug: "finance/currency-converter",
+    clicks: ["globalThis.TBKit={util:{isEn:function(){return true;}}};document.getElementById('batchFromSearch').value='Yen';filterOptions('batchFrom');var t=String(document.getElementById('batchFromOptions').innerHTML);document.getElementById('__tbProbe').textContent='CCNAME '+(t.indexOf('Japanese Yen')>=0?'YEN':'MISS')+' '+(t.indexOf('日元')<0?'CLEAN':'ZH');"],
+    expect: ["CCNAME YEN CLEAN"],
+    ref: "第933批：英文态货币列表使用英文名称，搜索 Yen 命中 Japanese Yen，且不再渲染中文「日元」。默认中文态不命中。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: { fromAmount: "100", batchInput: "100", rateMode: "manual", manualRate: "7" },
+    clicks: ["calcBatch();var d1=String(document.getElementById('batchResult').innerHTML);document.getElementById('manualRate').value='8';calc();var d2=String(document.getElementById('batchResult').innerHTML);var csv='';ToolBox.downloadText=function(n,c){csv=String(c);};exportBatchCSV();document.getElementById('__tbProbe').textContent='CCSYNC '+(d1.indexOf('700.0000')>=0?'OLD':'NO')+' '+(d2.indexOf('800.0000')>=0?'NEW':'NO')+' '+(csv.indexOf('800.0000')>=0?'CSV':'BAD');"],
+    expect: ["CCSYNC OLD NEW CSV"],
+    ref: "第933批：批量表随单笔手动汇率变化同步重算；改 7→8 后屏幕与导出都使用 800.0000，不再出现屏幕 700、导出 800 的分叉。默认内置汇率不命中。",
   },
   {
     slug: "finance/depreciation-calculator",
@@ -5225,7 +5301,7 @@ const CASES = [
     slug: "finance/shebeizulinfeilvjisuan",
     inputs: { price: "100", months: "12", depYears: "1", maintRate: "12", profitRate: "0", salvageRate: "0" },
     clicks: ["calc()"],
-    expect: ["维护费用合计 (元)", "净收益 (元，已扣维护)", "¥0.00"],
+    expect: ["维护费用合计 (元)", "净收益 (元，已扣维护与购置)", "¥0.00"],
     ref: "第931批：净收益按租金 + 残值 − 购置 − 租期内维护支出计算；原值100、租12月、维护12%、零利润时净收益为0，不再误报12。"
   },
   {

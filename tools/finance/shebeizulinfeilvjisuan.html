@@ -83,7 +83,7 @@
       "name": "为什么短期租约算出来是亏损？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "本工具的 ROI 只统计租期内的租金收入，而月折旧按整个折旧年限分摊。租期短于折旧年限时，累计租金不足以覆盖未折旧完的账面价值，属正常现象；评价长期收益应把后续租约或转售残值一并计入。"
+        "text": "本工具默认按租期末账面价值回收，只统计本租期现金流。租期短于折旧年限时，租金往往不足以覆盖尚未折旧完的账面价值，算出负收益属正常现象；评价长期收益应把后续租约或实际处置价一并计入，并可切换处置方式查看。"
       }
     },
     {
@@ -149,13 +149,24 @@
       <div><label for="profitRate">期望利润率 m (%/年)</label><input type="number" id="profitRate" value="8" min="0" step="0.1" oninput="calc()" style="font-size:16px;" placeholder="如 8"></div>
       <div><label for="salvageRate">残值率 s (%)</label><input type="number" id="salvageRate" value="5" min="0" max="100" step="0.1" oninput="calc()" style="font-size:16px;" placeholder="如 5（0–100）"></div>
     </div>
+    <div class="input-row">
+      <div><label for="disposal">租期末处置方式</label>
+        <select id="disposal" onchange="calc()" style="font-size:16px;">
+          <option value="book" selected>按租期末账面价值回收（默认）</option>
+          <option value="salvage">按折旧期末残值回收（长租约）</option>
+          <option value="custom">按指定处置价回收</option>
+          <option value="none">不出售，期末不回收</option>
+        </select>
+      </div>
+      <div><label for="resalePrice">指定处置价 (元，选择“指定处置价”时生效)</label><input type="number" id="resalePrice" value="0" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 120000"></div>
+    </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__shebeizulinfeilvjisuanExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="shebeizulinfeilvjisuanTable"></div> <div id="shebeizulinfeilvjisuanDiff"></div> <div id="shebeizulinfeilvjisuanChart"></div> <div id="shebeizulinfeilvjisuanHist"></div>
-    <div class="info-box">💡 公式：月折旧额 D = P×(1−s) / (Y×12)；月维护费 = P×r/(12×100)；月租金 R = D + 维护费 + P×m/(12×100)；投资回报率 ROI = (R×T + P×s/100 − P − 维护费×T) / P × 100%（残值期末回收，维护费按租期累计，租期短于折旧年限时可为负）。</div>
+    <div class="info-box">💡 公式：月折旧额 D = P×(1−s) / (Y×12)；月维护费 = P×r/(12×100)；月租金 R = D + 维护费 + P×m/(12×100)；累计折旧 = min(D×T, P×(1−s))；租期末账面价值 = max(P×s, P − 累计折旧)；投资回报率 ROI = (R×T + 期末回收金额 − P − 维护费×T) / P × 100%。期末回收金额取决于处置方式：账面价值（默认）/ 折旧期末残值 / 指定处置价 / 不出售记 0；租期短于折旧年限时可为负。</div>
     <div class="tool-notes" style="--tool-accent:#1D4ED8;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
@@ -182,7 +193,7 @@
       <ul>
         <li>按 <kbd>Enter</kbd> 快速计算，<kbd>Ctrl/Cmd + Enter</kbd> 复制结果</li>
         <li>月租金 = 月折旧 + 月维护费 + 月利润，未含税费与保险费</li>
-        <li>残值率为设备期末剩余价值占比，影响折旧额与 ROI</li>
+        <li>残值率决定折旧期末残值，也构成租期末账面价值的下限；期末实际回收额按所选处置方式单独计算</li>
         <li>实际租赁还需考虑市场供需、设备折旧方式（直线/加速）等因素</li>
         <li>纯前端运行，数据不会上传到服务器</li>
       </ul>
@@ -197,14 +208,17 @@
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function setInvalid(el,invalid){if(!el)return;if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
 function readInputs(){
-  var ids=['price','months','depYears','maintRate','profitRate','salvageRate'];
+  var ids=['price','months','depYears','maintRate','profitRate','salvageRate','resalePrice'];
   var o={},valid=true;
   ids.forEach(function(id){
-    var v=parseFloat(document.getElementById(id).value);
+    var el=document.getElementById(id);
+    var raw=el.value.trim();
+    if(id==='resalePrice'&&raw===''){o[id]=0;setInvalid(el,false);return;}
+    var v=parseFloat(raw);
     var bad=isNaN(v);
     if(!bad&&id==='salvageRate'&&(v<0||v>100))bad=true;
-    if(!bad&&(id==='maintRate'||id==='profitRate')&&v<0)bad=true;
-    setInvalid(document.getElementById(id),bad);
+    if(!bad&&(id==='maintRate'||id==='profitRate'||id==='resalePrice')&&v<0)bad=true;
+    setInvalid(el,bad);
     if(bad)valid=false;
     o[id]=bad?0:v;
   });
@@ -231,7 +245,18 @@ function calc(){
   var monthlyRent=monthlyDep+monthlyMaint+monthlyProfit; // 月租金
   var totalRent=monthlyRent*T; // 总租金收入
   var totalMaint=monthlyMaint*T; // 租期内维护支出合计
-  var netIncome=totalRent+salvage-P-totalMaint; // 净收益 = 租金 + 残值 − 购置 − 维护
+  var accumDep=Math.min(monthlyDep*T,depreciableBase); // 累计折旧不超过应计折旧额
+  var bookValue=Math.max(salvage,P-accumDep); // 租期末账面价值
+  var disposal=document.getElementById('disposal').value;
+  var recovery=0,disposalLabel='';
+  if(disposal==='salvage'){recovery=salvage;disposalLabel='按折旧期末残值回收';}
+  else if(disposal==='custom'){
+    if(iv.resalePrice<0){document.getElementById('res').innerHTML='<p style="color:var(--danger);">指定处置价不得为负。</p>';return;}
+    recovery=iv.resalePrice;disposalLabel='按指定处置价回收';
+  }
+  else if(disposal==='none'){recovery=0;disposalLabel='不出售，期末不回收';}
+  else {recovery=bookValue;disposalLabel='按租期末账面价值回收';}
+  var netIncome=totalRent+recovery-P-totalMaint; // 净收益 = 租金 + 期末回收 − 购置 − 维护
   var roi=P>0?(netIncome/P*100):0; // 投资回报率
   var dayRent=monthlyRent/30; // 日租金
   var yearRent=monthlyRent*12; // 年租金
@@ -247,16 +272,23 @@ function calc(){
     '<div class="data-grid" style="margin-top:8px;">'+
     '<div class="data-card"><div class="num">¥'+monthlyMaint.toFixed(2)+'</div><div class="label">月维护费 (元)</div></div>'+
     '<div class="data-card"><div class="num">¥'+monthlyProfit.toFixed(2)+'</div><div class="label">月利润 (元)</div></div>'+
-    '<div class="data-card"><div class="num">¥'+salvage.toFixed(2)+'</div><div class="label">期末残值 (元)</div></div>'+
+    '<div class="data-card"><div class="num">¥'+salvage.toFixed(2)+'</div><div class="label">折旧期末残值 (元)</div></div>'+
     '<div class="data-card"><div class="num">'+rentRate.toFixed(3)+'%</div><div class="label">月租费率</div></div>'+
+    '</div>'+
+    '<div class="data-grid" style="margin-top:8px;">'+
+    '<div class="data-card"><div class="num">¥'+accumDep.toFixed(2)+'</div><div class="label">租期内累计折旧 (元)</div></div>'+
+    '<div class="data-card"><div class="num">¥'+bookValue.toFixed(2)+'</div><div class="label">租期末账面价值 (元)</div></div>'+
+    '<div class="data-card"><div class="num">¥'+recovery.toFixed(2)+'</div><div class="label">期末回收金额 (元)</div></div>'+
+    '<div class="data-card"><div class="num" style="font-size:14px;">'+disposalLabel+'</div><div class="label">处置方式</div></div>'+
     '</div>'+
     '<div class="data-grid" style="margin-top:8px;">'+
     '<div class="data-card"><div class="num">¥'+dayRent.toFixed(2)+'</div><div class="label">日租金 (元)</div></div>'+
     '<div class="data-card"><div class="num">¥'+yearRent.toFixed(2)+'</div><div class="label">年租金 (元)</div></div>'+
     '<div class="data-card"><div class="num">¥'+totalMaint.toFixed(2)+'</div><div class="label">维护费用合计 (元)</div></div>'+
-    '<div class="data-card"><div class="num">¥'+netIncome.toFixed(2)+'</div><div class="label">净收益 (元，已扣维护)</div></div>'+
+    '<div class="data-card"><div class="num">¥'+netIncome.toFixed(2)+'</div><div class="label">净收益 (元，已扣维护与购置)</div></div>'+
     '<div class="data-card"><div class="num" style="font-size:16px;"><span class="grade-tag '+gradeCls+'">'+grade+'</span></div><div class="label">回报评级</div></div>'+
-    '</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    '</div>'+
+    '<p style="font-size:12px;color:var(--text-muted);margin:8px 0 0;">口径：租期内累计折旧按直线法计提，且不超过应计折旧额；租期末账面价值 = 原值 − 累计折旧（不低于残值）。净收益只统计本租期，不含税、保险与融资成本。</p>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   __lastCalcOk=true;
 }
 function copyRes(){
@@ -511,7 +543,7 @@ else document.addEventListener('DOMContentLoaded', __shebeizulinfeilvjisuanBoot)
 <div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：原值 50 万元、租期 24 个月、折旧 8 年、维护费率 3%、利润率 8%、残值率 5% → 残值 25000 元、月折旧 4947.92 元、月维护 1250.00 元、月利润 3333.33 元，月租金 9531.25 元（月租费率 1.906%、日租金 317.71 元），总租金 228750 元，维护支出合计 30000 元，净收益 −276250 元、ROI −55.25%，评级「亏损」——因为只租 2 年却按 8 年折旧计租，尚未收回折旧。若租期拉长到 96 个月（8 年）→ 总租金 915000 元、维护支出 120000 元、净收益 320000 元、ROI 64.00%，评级「高回报」。另例：20 万元、36 个月、折旧 5 年、维护 2.5%、利润 10%、残值 8% → 月租金 5150.00 元、总租金 185400 元，维护支出 15000 元、净收益 −13600 元、ROI −6.80%，评级「亏损」。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>为什么短期租约算出来是亏损？</dt><dd>本工具的 ROI 只统计租期内的租金收入，而月折旧按整个折旧年限分摊。租期短于折旧年限时，累计租金不足以覆盖未折旧完的账面价值，属正常现象；评价长期收益应把后续租约或转售残值一并计入。</dd>
+<dt>为什么短期租约算出来是亏损？</dt><dd>本工具默认按租期末账面价值回收，只统计本租期现金流。租期短于折旧年限时，租金往往不足以覆盖尚未折旧完的账面价值，算出负收益属正常现象；评价长期收益应把后续租约或实际处置价一并计入，并可切换处置方式查看。</dd>
 <dt>利润率和维护费率怎么定？</dt><dd>维护费率可按同类设备的年均保养支出占原值比例估算（工程机械常 2%~5%）；利润率参考行业资金成本与竞争水平，通常 5%~15%。两者均以年为单位输入，工具按月摊分。</dd>
 </dl>
 </div>
