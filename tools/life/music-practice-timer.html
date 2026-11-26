@@ -255,7 +255,7 @@ function loadTemplate(name, btn){
   if(!templates[name])return;
   if(running){
     clearInterval(interval);running=false;
-    remaining=Math.max(0,Math.ceil((endTs-Date.now())/1000));endTs=0;recordPractice();
+    remaining=Math.max(0,Math.ceil((endTs-Date.now())/1000));endTs=0;recordPractice(true);
     var sb=document.getElementById('startBtn');if(sb)sb.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'▶️ Start':'▶️ 开始');
   }
   segments=JSON.parse(JSON.stringify(templates[name]));
@@ -317,7 +317,7 @@ function render(){
 }
 var endTs=0,segStartTs=0,practiceSec=0,restSec=0,segBudgetSec=0;
 function toggle(){
-  if(running){clearInterval(interval);remaining=Math.max(0,Math.ceil((endTs-Date.now())/1000));running=false;endTs=0;recordPractice();document.getElementById('startBtn').textContent='▶️ 继续';}
+  if(running){clearInterval(interval);remaining=Math.max(0,Math.ceil((endTs-Date.now())/1000));running=false;endTs=0;recordPractice(false);document.getElementById('startBtn').textContent='▶️ 继续';}
   else{
     const n=getRounds();if(n===null)return;rounds=n;
     if(finished){finished=false;currentRound=1;currentSeg=0;}
@@ -331,7 +331,7 @@ function beep(){
   try{const ac=new AudioContext();[523,659,784].forEach((f,i)=>setTimeout(()=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;o.connect(g);g.connect(ac.destination);g.gain.setValueAtTime(0.3,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.01,ac.currentTime+0.3);o.start();o.stop(ac.currentTime+0.3);},i*150));}catch(e){}
 }
 function finishPlan(){
-  clearInterval(interval);running=false;endTs=0;finished=true;recordPractice();
+  clearInterval(interval);running=false;endTs=0;finished=true;recordPractice(true);
   alert('🎉 练习完成！已完成 '+rounds+' 轮');
   document.getElementById('startBtn').textContent='▶️ 开始';currentSeg=0;remaining=segments[0]?.sec||0;render();
 }
@@ -369,13 +369,18 @@ function timerTick(){
 }
 function reset(){clearInterval(interval);running=false;currentSeg=0;currentRound=1;finished=false;practiceSec=0;restSec=0;segStartTs=0;segBudgetSec=0;window.__musicPracticeDirty=false;loadTemplate('warmup');document.getElementById('startBtn').textContent='▶️ 开始';render();}
 loadTemplate('warmup');
-function recordPractice(){
+function recordPractice(final){
   if(!segStartTs) return;
   accrueCurrent(Date.now());
-  window.__musicPracticeDirty = true;
-  __tbn();
+  if(final){
+    window.__musicPracticeDirty = true;
+    __tbn(true);
+    practiceSec=0; restSec=0; segStartTs=0; segBudgetSec=0;
+  }else{
+    try{localStorage.setItem('__tbn_practice_draft',JSON.stringify({t:Date.now(),v:practiceSec,rest:restSec}));}catch(e){}
+  }
 }
-var __tbn=function(){
+var __tbn=function(doRecord){
   if(typeof TBKit==='undefined')return;
   var acc=practiceSec;
   if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
@@ -389,11 +394,13 @@ var __tbn=function(){
   var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
   if(!Array.isArray(hist))hist=[];
   var last=hist[hist.length-1];
-  var rec={t:Date.now(),v:acc,rest:restSec};
-  if(!last||last.v!==acc||(last.rest||0)!==restSec){hist.push(rec);}
-  if(hist.length>30)hist=hist.slice(-30);
-  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
-  var __rec={};__rec[LBL]=acc;__rec[RESTLBL]=restSec;__rec[TOTLBL]=acc+restSec;if(window.__musicPracticeDirty&&TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);
+  if(doRecord){
+    var rec={t:Date.now(),v:acc,rest:restSec};
+    if(!last||last.v!==acc||(last.rest||0)!==restSec){hist.push(rec);}
+    if(hist.length>30)hist=hist.slice(-30);
+    try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+    var __rec={};__rec[LBL]=acc;__rec[RESTLBL]=restSec;__rec[TOTLBL]=acc+restSec;if(window.__musicPracticeDirty&&TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);
+  }
   var host=document.getElementById('__tbnExtras');
   if(!host)return;
   if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+(EN?'Records appear after 2+ sessions.':'练习 2 次以上后显示成绩趋势图。')+'</p>';return;}
@@ -408,7 +415,7 @@ var __tbn=function(){
   btn.onclick=function(){if(TBKit.export&&TBKit.export.csv)TBKit.export.csv(T.file,rows);};
   host.appendChild(btn);
 };
-var __f0=loadTemplate;loadTemplate=function(){var __r=__f0.apply(null,arguments);__tbn();return __r;};
+var __f0=loadTemplate;loadTemplate=function(){var __r=__f0.apply(null,arguments);__tbn(false);return __r;};
 document.addEventListener('toolbox:langchange',function(){try{render();}catch(e){}});
 window.addEventListener('load',function(){try{render();}catch(e){}});
 document.addEventListener('DOMContentLoaded',function(){try{render();}catch(e){}});

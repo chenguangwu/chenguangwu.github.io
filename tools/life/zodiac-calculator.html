@@ -98,7 +98,7 @@
       "name": "生肖是按立春还是春节算？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "民俗与命理口径不一：有按春节（正月初一）也有按立春划分，页面按常见口径给出结果，精确排盘建议咨询专业历法工具。"
+        "text": "民俗与命理口径不一：有按春节（正月初一）也有按立春划分，页面按春节口径给出结果。若浏览器不提供中国农历年，页面不显示确定生肖，也不以公历年份替代；精确排盘建议咨询专业历法工具。"
       }
     }
   ]
@@ -139,7 +139,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="根据出生日期计算中国生肖与西方星座">Enter a birth date to get the Western zodiac sign and the Chinese zodiac animal with related notes.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">生肖按（农历年份 − 4）÷ 12 的余数取序（余 0 为鼠、1 为牛，依次至 11 为猪），出生在春节前的按上一年计（页面用 Intl 中国历法取农历年，取不到时回退公历年份）；星座按出生月日落在的日期区间判定，如 3 月 21 日至 4 月 19 日为白羊座、4 月 20 日至 5 月 20 日为金牛座，依此类推按 12 星座的黄道日期分界。</div>
+      <div class="formula-eq">生肖按（农历年份 − 4）÷ 12 的余数取序（余 0 为鼠、1 为牛，依次至 11 为猪），出生在春节前的按上一年计（页面用 Intl 中国历法取农历年；取不到时不回退公历、不显示确定生肖）；星座按出生月日落在的日期区间判定，如 3 月 21 日至 4 月 19 日为白羊座、4 月 20 日至 5 月 20 日为金牛座，依此类推按 12 星座的黄道日期分界。</div>
   
 </div>
 
@@ -195,7 +195,7 @@
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>星座按阳历？</dt><dd>是，按公历出生月日。</dd>
-<dt>生肖是按立春还是春节算？</dt><dd>民俗与命理口径不一：有按春节（正月初一）也有按立春划分，页面按常见口径给出结果，精确排盘建议咨询专业历法工具。</dd>
+<dt>生肖是按立春还是春节算？</dt><dd>民俗与命理口径不一：有按春节（正月初一）也有按立春划分，页面按春节口径给出结果。若浏览器不提供中国农历年，页面不显示确定生肖，也不以公历年份替代；精确排盘建议咨询专业历法工具。</dd>
 </dl>
 </div>
 </section>
@@ -304,27 +304,32 @@ function calc(){
   }
   const m = date.getMonth() + 1;
   const d = date.getDate();
-  // 生肖按农历年（春节换年）：优先用 Intl 中国历法取年份，取不到时回退公历年份
-  let zYear = y;
+  // 生肖按农历年（春节换年）：只用 Intl 中国历法；取不到时不回退公历、不给确定生肖
+  let zYear = null, lunarOk = false;
   try{
     const lunarYear = parseInt(new Intl.DateTimeFormat('en-u-ca-chinese',{year:'numeric'}).format(date),10);
-    if(isFinite(lunarYear) && lunarYear > 0) zYear = lunarYear;
+    if(isFinite(lunarYear) && lunarYear > 0){ zYear = lunarYear; lunarOk = true; }
   }catch(e){}
-  const zodiacIdx = (zYear - 4) % 12;
-  const idx = zodiacIdx >= 0 ? zodiacIdx : zodiacIdx + 12;
   const en = (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
-  const zodiac = en ? zodiacsEn[idx] : zodiacs[idx];
-  const zEmoji = zodiacEmojis[idx];
+  let zodiac='', zEmoji='';
+  if(lunarOk){
+    const zodiacIdx = (zYear - 4) % 12;
+    const idx = zodiacIdx >= 0 ? zodiacIdx : zodiacIdx + 12;
+    zodiac = en ? zodiacsEn[idx] : zodiacs[idx];
+    zEmoji = zodiacEmojis[idx];
+  }
   const c = getConstellation(m, d);
   const week = (en ? ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] : ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'])[date.getDay()];
   const cName = en ? c.nameEn : c.name;
   const __g2=`
     <p>${en?'Birth date':'出生日期'}：<strong>${y}${en?'-':'年'}${m}${en?'-':'月'}${d}${en?'':'日'}</strong>（${week}）</p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
-    <p>${en?'Chinese zodiac':'中国生肖'}：<strong style="font-size:18px;">${zEmoji} ${zodiac}</strong></p>
+    ${lunarOk
+      ? `<p>${en?'Chinese zodiac':'中国生肖'}：<strong style="font-size:18px;">${zEmoji} ${zodiac}</strong></p>`
+      : `<p style="color:var(--danger);"><strong>${en?'Chinese zodiac unavailable':'中国生肖：暂无法可靠计算'}</strong><br>${en?'This browser does not expose a usable Chinese calendar year. To avoid a wrong animal around Lunar New Year, no Gregorian fallback is shown. Use a browser or calendar source with Chinese calendar support, or verify with a printable lunar calendar.':'当前浏览器未提供可用的中国农历年份。为避免春节前后判错，页面不回退公历年份、也不显示确定生肖；请换用支持中国历法的浏览器/日历来源，或用纸质农历核对。'}</p>`}
     <p>${en?'Western zodiac':'西方星座'}：<strong style="font-size:18px;">${c.emoji} ${cName}</strong></p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
-    <p style="font-size:12px;color:var(--text-muted);">${en?'The Chinese zodiac switches at Lunar New Year (January–February births are already adjusted); if the browser lacks the Chinese calendar it falls back to the Gregorian year.':'生肖按农历春节分界（1–2 月出生已按当年春节折算）；浏览器不支持中国历法时回退为公历年份估算'}</p>
+    <p style="font-size:12px;color:var(--text-muted);">${lunarOk?(en?'Chinese zodiac uses the lunar year with the Lunar New Year boundary; January–February births are adjusted to that year.':'生肖按农历年与春节分界，1–2 月出生已按当年春节折算。'):(en?'No Gregorian fallback is applied when Chinese calendar support is missing.':'中国历法不可用时不做公历回退，因此不显示确定性生肖。')}</p>
   `;document.getElementById('resultBox').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 </script><script>

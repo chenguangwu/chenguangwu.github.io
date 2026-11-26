@@ -1349,7 +1349,7 @@ const CASES = [
   {
     slug: "life/concentration-converter",
     inputs: { inputVal: "2" },
-    expect: ["2 ppm = 2 ppm"],
+    expect: ["基准： 2 ppm = 2 mg/L"],
     ref: '基准行：v ppm = v ppm'
   },
   {
@@ -1373,7 +1373,7 @@ const CASES = [
   {
     slug: "life/concentration-converter",
     inputs: { inputVal: "1000" },
-    expect: ["1000 ppm = 1000 ppm"],
+    expect: ["基准： 1000 ppm = 1000 mg/L"],
     ref: '基准行：v ppm = v ppm（避开 1.000000e+6 科学计数法含入）'
   },
   {
@@ -1385,7 +1385,7 @@ const CASES = [
   {
     slug: "life/concentration-converter",
     inputs: { inputVal: "1", fromUnit: "molL", molarMass: "58.44" },
-    expect: ["1 molL = 58440 ppm", "克每升： 58.44 gL"],
+    expect: ["基准： 1 molL = 58440 mg/L", "克每升： 58.44 gL"],
     ref: '1 mol/L NaCl（58.44 g/mol）= 58.44 g/L = 58440 ppm；旧版无 mol/L 选项与摩尔质量输入。'
   },
   {
@@ -1481,43 +1481,43 @@ const CASES = [
   {
     slug: "life/radiation-converter",
     inputs: { inputVal: "2" },
-    expect: ["2\nmSv\n基准： 2 mSv (当量剂量) = 0.002 Sv 等效 戈瑞 (吸收剂量)： 0.002 Gy 拉德 (吸收剂量)： 0.2 rad 毫戈 (吸收剂量)： 2 mGy 希沃特 (当量剂量)： 0.002 Sv 微希 (当量剂量)： 2000 uSv 雷姆 (当量剂量)： 0.2 rem"],
+    expect: ["基准： 2 mSv (当量剂量) = 0.002 Sv", "希沃特 (当量剂量)： 0.002 Sv", "未选择辐射类型"],
     ref: 'v=2 from=Gy: 拉德(吸收剂量)=2/0.01=200 rad'
   },
   {
     slug: "life/radiation-converter",
     inputs: { inputVal: "2" },
-    expect: ["2\nmSv\n基准： 2 mSv (当量剂量) = 0.002 Sv 等效 戈瑞 (吸收剂量)： 0.002 Gy 拉德 (吸收剂量)： 0.2 rad 毫戈 (吸收剂量)： 2 mGy 希沃特 (当量剂量)： 0.002 Sv 微希 (当量剂量)： 2000 uSv 雷姆 (当量剂量)： 0.2 rem"],
+    expect: ["基准： 2 mSv (当量剂量) = 0.002 Sv", "希沃特 (当量剂量)： 0.002 Sv", "未选择辐射类型"],
     ref: 'v=2 from=Gy: 毫戈=2/0.001=2000 mGy'
   },
   {
     slug: "life/radiation-converter",
     inputs: { inputVal: "2" },
-    expect: ["2 Sv"],
-    ref: 'v=2 from=Gy: 希沃特=2/1=2 Sv (等效)'
+    expect: ["未选择辐射类型", "希沃特 (当量剂量)： 0.002 Sv"],
+    ref: '默认仅同类：2 mSv 不再直接给 2 Sv；跨类须显式选择辐射类型（第925批）'
   },
   {
     slug: "life/radiation-converter",
     inputs: { inputVal: "2" },
-    expect: ["2\nmSv\n基准： 2 mSv (当量剂量) = 0.002 Sv 等效 戈瑞 (吸收剂量)： 0.002 Gy 拉德 (吸收剂量)： 0.2 rad 毫戈 (吸收剂量)： 2 mGy 希沃特 (当量剂量)： 0.002 Sv 微希 (当量剂量)： 2000 uSv 雷姆 (当量剂量)： 0.2 rem"],
+    expect: ["基准： 2 mSv (当量剂量) = 0.002 Sv", "希沃特 (当量剂量)： 0.002 Sv", "未选择辐射类型"],
     ref: 'v=2 from=Gy: 毫希=2/0.001=2000 mSv'
   },
   {
     slug: "life/radiation-converter",
     inputs: { inputVal: "2" },
-    expect: ["2\nmSv\n基准： 2 mSv (当量剂量) = 0.002 Sv 等效 戈瑞 (吸收剂量)： 0.002 Gy 拉德 (吸收剂量)： 0.2 rad 毫戈 (吸收剂量)： 2 mGy 希沃特 (当量剂量)： 0.002 Sv 微希 (当量剂量)： 2000 uSv 雷姆 (当量剂量)： 0.2 rem"],
+    expect: ["基准： 2 mSv (当量剂量) = 0.002 Sv", "希沃特 (当量剂量)： 0.002 Sv", "未选择辐射类型"],
     ref: 'v=2 from=Gy: 雷姆=2/0.01=200 rem'
   },
   {
     slug: "life/radiation-converter",
     inputs: { inputVal: "5" },
-    expect: ["5\nmSv\n基准： 5 mSv (当量剂量) = 0.005 Sv 等效 戈瑞 (吸收剂量)： 0.005 Gy 拉德 (吸收剂量)： 0.5 rad 毫戈 (吸收剂量)： 5 mGy 希沃特 (当量剂量)： 0.005 Sv 微希 (当量剂量)： 5000 uSv 雷姆 (当量剂量)： 0.5 rem"],
+    expect: ["基准： 5 mSv (当量剂量) = 0.005 Sv", "希沃特 (当量剂量)： 0.005 Sv", "未选择辐射类型"],
     ref: 'v=5 from=Gy: 拉德=5/0.01=500 rad'
   },
   {
     slug: "life/radiation-converter",
     inputs: { inputVal: "2" },
-    expect: ["0.002 Sv 等效"],
+    expect: ["基准： 2 mSv (当量剂量) = 0.002 Sv"],
     ref: "概念口径（2026-11-16）：注入输入 2 mSv ⇒ 0.002 Sv（2÷1000），旧文案把 Sv 说成「Gy×组织权重」。页面固定追加的 w_R=1 说明在纯默认快照也出现（逃生），已剔除，只保留由注入值决定的换算锚；w_R 适用范围由静态内容门禁覆盖。"
   },
   {
@@ -1978,10 +1978,11 @@ const CASES = [
     "slug": "life/concentration-converter",
     "inputs": {
       "inputVal": "42",
-      "fromUnit": "ppb"
+      "fromUnit": "ppb",
+      "molarMass": "58.44"
     },
     "expect": [
-      "42\nppb\n基准： 42 ppb = 0.042 ppm",
+      "基准： 42 ppb = 0.042 mg/L（质量浓度）",
       "克每升： 0.000042 gL 摩尔每升： 7.186858316e-7 molL"
     ],
     "ref": "42 ppb = 0.042 ppm；新增 gL/molL 后，58.44 g/mol 下 42 ppb = 0.000042 g/L = 7.186858316e-7 mol/L。旧版无 gL/molL 输出。"
@@ -2256,7 +2257,9 @@ const CASES = [
       "fromUnit": "rad"
     },
     "expect": [
-      "(吸收剂量) = 0.42 Gy 等效 戈瑞 (吸收剂量)： 0.42 Gy"
+      "(吸收剂量) = 0.42 Gy 等效",
+      "戈瑞 (吸收剂量)： 0.42 Gy",
+      "未选择辐射类型"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"rad\"}，输出区含「(吸收剂量) = 0.42 Gy 等效 戈瑞 (吸收剂量)： 0.42 Gy」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -4029,7 +4032,7 @@ const CASES = [
   },
   {
     slug: "life/music-practice-timer",
-    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/music-practice-timer.html','utf8');document.getElementById('segments').textContent='MPSW '+((src.indexOf('if(running){')>=0&&src.indexOf('clearInterval(interval);running=false;')>=0&&src.indexOf('recordPractice();')>=0)?'OK':'BAD');"],
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/music-practice-timer.html','utf8');document.getElementById('segments').textContent='MPSW '+((src.indexOf('if(running){')>=0&&src.indexOf('clearInterval(interval);running=false;')>=0&&src.indexOf('recordPractice(true);')>=0)?'OK':'BAD');"],
     expect: ["MPSW OK"],
     ref: "第917批：运行中切换模板先暂停、结算已练时间并等待重新开始，避免沿用旧 endTs。"
   },
@@ -4537,6 +4540,115 @@ const CASES = [
     clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/reminder-cycle.html','utf8');document.getElementById('__tbProbe').textContent='APPL '+((src.indexOf('APPL_TIP_EN')>=0&&src.indexOf('No appliances yet')>=0&&src.indexOf('Last cleaned:')>=0)?'OK':'BAD');"],
     expect: ["APPL OK"],
     ref: "第924批：家电空态、紧急标签、上次/下次、清洁技巧与记录提示均补英文。"
+  },
+  {
+    slug: "life/countdown-timer",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown-timer.html','utf8');document.getElementById('__tbProbe').textContent='CD '+((src.indexOf('25 分钟单次专注')>=0&&src.indexOf('25分钟专注+5分钟休息')<0)?'OK':'BAD');"],
+    expect: ["CD OK"],
+    ref: "第925批：番茄钟说明改为 25 分钟单次专注，不再声称含自动 5 分钟休息。"
+  },
+  {
+    slug: "life/music-practice-timer",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/music-practice-timer.html','utf8');document.getElementById('__tbProbe').textContent='MHF '+((src.indexOf('function recordPractice(final)')>=0&&src.indexOf('practiceSec=0; restSec=0')>=0&&src.indexOf('if(final){')>=0)?'OK':'BAD');"],
+    expect: ["MHF OK"],
+    ref: "第925批：完成后记录单次并清零，下一次从 0 起算；源码口径探针。"
+  },
+  {
+    slug: "life/music-practice-timer",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/music-practice-timer.html','utf8');document.getElementById('__tbProbe').textContent='MHP '+((src.indexOf('__tbn_practice_draft')>=0&&src.indexOf('recordPractice(false)')>=0)?'OK':'BAD');"],
+    expect: ["MHP OK"],
+    ref: "第925批：暂停只写进度草稿不新增完整历史；源码口径探针。"
+  },
+  {
+    slug: "life/music-practice-timer",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/music-practice-timer.html','utf8');document.getElementById('__tbProbe').textContent='MPNOREC '+((src.indexOf('__tbn=function(doRecord)')>=0&&src.indexOf('__tbn(false)')>=0&&src.indexOf('if(doRecord){')>=0&&src.indexOf('loadTemplate=function(){var __r=__f0.apply(null,arguments);__tbn();')<0)?'OK':'BAD');"],
+    expect: ["MPNOREC OK"],
+    ref: "第925批：初次加载与模板刷新只重绘成绩区，不写入 0 秒历史；源码口径探针。"
+  },
+
+  {
+    slug: "life/radiation-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/radiation-converter.html','utf8');document.getElementById('resultBox').textContent='RDEN '+((src.indexOf('const namesEn =')>=0&&src.indexOf('const ty = __en ? typesEn : types')>=0&&src.indexOf('Same-class units')>=0&&src.indexOf('No radiation type selected')>=0)?'OK':'BAD');"],
+    expect: ["RDEN OK"],
+    ref: "第925批：英文态辐射结果动态单位名、量类与同类/跨类提示均按 isEn() 输出，不再中英混排。"
+  },
+  {
+    slug: "life/concentration-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/concentration-converter.html','utf8');document.getElementById('resultBox').textContent='CCEN '+((src.indexOf('const namesEn =')>=0&&src.indexOf('mg/L (mass concentration)')>=0&&src.indexOf('parts per billion')>=0)?'OK':'BAD');"],
+    expect: ["CCEN OK"],
+    ref: "第925批：英文态浓度结果基准口径与单位名按 isEn() 输出，不再残留中文单位。"
+  },
+  {
+    slug: "life/cycle-4",
+    clicks: ["supplies=[{id:'a',name:'A',unit:'瓶',stock:0,rate:0,period:'month',threshold:2},{id:'b',name:'B',unit:'瓶',stock:0,rate:0,period:'month',threshold:2}];renderShopList();document.querySelectorAll('#shopList input[type=checkbox]')[1].checked=false;ToolBox.copyText=function(t){window.__last=t};copyShopList();document.getElementById('__tbProbe').textContent='SHOP '+(String(window.__last).indexOf('B')<0?'NOB':'HASB')+' '+String(window.__last);"],
+    expect: ["SHOP ", "NOB", "A"],
+    ref: "第925批：取消勾选 B 后复制只含 A，按复选框生成清单。"
+  },
+  {
+    slug: "life/cycle-4",
+    clicks: ["supplies=[{id:'a',name:'A',unit:'瓶',stock:0,rate:0,period:'month',threshold:2}];renderShopList();document.querySelector('#shopList input[type=checkbox]').checked=false;ToolBox.showToast=function(t){window.__toast=t};copyShopList();document.getElementById('__tbProbe').textContent='SHOPNONE '+window.__toast;"],
+    expect: ["SHOPNONE 请至少勾选"],
+    ref: "第925批：全部取消时不复制空清单，提示至少勾选一项。"
+  },
+  {
+    slug: "life/world-clock",
+    clicks: ["currentTab='diff';document.getElementById('diffCityA').value='Asia/Shanghai';document.getElementById('diffCityB').value='Europe/London';document.getElementById('diffTime').value='09:00';document.getElementById('diffDate').value='2026-11-26';calcDiff();var r=__world_clockViewRecord(false);document.getElementById('__tbProbe').textContent='WCR '+JSON.stringify(r);"],
+    expect: ["WCR ", "时差计算", "上海", "伦敦"],
+    ref: "第925批：自动记录时差视图结构化城市/日期/时间/结果，不再抓静态 result-box 说明。"
+  },
+  {
+    slug: "life/world-clock",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/world-clock.html','utf8');document.getElementById('__tbProbe').textContent='WCLBL '+((src.indexOf(\"cityA:'City A'\")>=0&&src.indexOf(\"cityA:'城市 A'\")>=0&&src.indexOf('keys.map(function(k){return labels[k]||k;})')>=0)?'OK':'BAD');"],
+    expect: ["WCLBL OK"],
+    ref: "第925批：导出/历史表头把内部字段名映射为中英文可读列名，不再显示 cityA/workHours。"
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "甲,10,20" },
+    clicks: ["calc();"],
+    expect: ["第 1 行字段数为 3", "已停止汇总"],
+    ref: "第925批：缺第四列逐行列出行号与字段数，不再静默跳过。"
+  },
+  {
+    slug: "life/zodiac-calculator",
+    clicks: ["var old=Intl.DateTimeFormat;Intl.DateTimeFormat=function(){throw new Error('no chinese calendar')};document.getElementById('birthDate').value='2024-01-10';calc();Intl.DateTimeFormat=old;document.getElementById('__tbProbe').textContent=document.getElementById('resultBox').textContent;"],
+    expect: ["中国生肖：暂无法可靠计算", "不回退公历", "西方星座"],
+    ref: "第925批：农历不可用时不回退公历、不显示确定生肖，仍给出星座并警示。"
+  },
+  {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "1", fromUnit: "Gy", radType: "" },
+    clicks: ["convert();"],
+    expect: ["未选择辐射类型", "不进行 Gy ↔ Sv 跨类换算"],
+    ref: "第925批：默认仅同类，未选辐射类型不显示 Sv 跨类结果。"
+  },
+  {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "1", fromUnit: "Gy", radType: "xray" },
+    clicks: ["convert();"],
+    expect: ["希沃特 (当量剂量)", "1 Sv", "w_R = 1"],
+    ref: "第925批：明确选择 X/γ 后才按 w_R=1 显示 1 Gy → 1 Sv，并标注当量剂量非有效剂量。"
+  },
+  {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "1", fromUnit: "Gy", radType: "custom", radWeight: "2" },
+    clicks: ["convert();"],
+    expect: ["希沃特 (当量剂量)", "2 Sv", "w_R = 2"],
+    ref: "第925批：自定义 w_R=2 时 1 Gy 显示 2 Sv，权重假设可见。"
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "1", fromUnit: "ppm", basis: "mass", density: "0.8" },
+    clicks: ["toggleDensity();convert();"],
+    expect: ["0.8 mgL", "密度 0.8", "质量比口径"],
+    ref: "第925批：质量比 ppm 在密度 0.8 kg/L 下换算为 0.8 mg/L，不再固定按 1 kg/L。"
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "1", fromUnit: "mgL", basis: "volume" },
+    clicks: ["toggleDensity();convert();"],
+    expect: ["体积比不能直接换算", "mg/L、g/L 或 mol/L"],
+    ref: "第925批：体积比口径拒绝从 mg/L 换算，避免无溶质密度时硬套系数。"
   }
 
 ];

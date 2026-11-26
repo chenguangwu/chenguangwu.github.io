@@ -146,9 +146,9 @@
     <h2 data-zh="🧪 浓度换算器">🧪 Concentration Converter</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">统一折算到 ppm 基准：base = 输入值 × 来源单位系数（ppm 1、ppb 0.001、ppt 0.000001、% 10000、mg/L 1、μg/L 0.001），各目标单位值 = base ÷ 目标单位系数。校验：输入非数提示「请输入有效数值」，结果含无效值时整体提示。判据：ppb = 0.001 ppm = 1 μg/L，mg/L 与 ppm 在稀水溶液口径下同值。</div>
+      <div class="formula-eq">按口径折算：稀水溶液近似以 mg/L 为基准、密度按 1 kg/L，1 ppm ≈ 1 mg/L；质量比/质量浓度口径以 mg/L 为基准，ppm/% 等质量分数乘溶液密度（kg/L）；体积比口径以 ppm 体积比为基准，仅在 ppm/ppb/ppt/% 间换算，不输出 mg/L、g/L、mol/L。各自目标值 = 基准 ÷ 目标单位系数；mol/L 还需摩尔质量。</div>
     </div>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 ppm / ppb / mg/L / μg/L / 百分比（稀溶液近似换算）">Convert concentration units such as mol/L, g/L, ppm, ppb and percent between each other.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 ppm / ppb / mg/L / μg/L / 百分比与 mol/L；可切换稀水溶液近似、质量比/质量浓度或体积比口径">Convert concentration units with an explicit dilute, mass-basis or volume-basis assumption; mass basis uses solution density and molarity needs molar mass.</p>
 
     <div class="input-row">
       <div>
@@ -171,6 +171,20 @@
     </div>
     <div class="input-row">
       <div>
+        <label for="basis">口径</label>
+        <select id="basis" onchange="toggleDensity();convert()">
+          <option value="dilute" selected>稀水溶液近似（密度≈1 kg/L；ppm≈mg/L）</option>
+          <option value="mass">质量比 / 质量浓度（按溶液密度）</option>
+          <option value="volume">体积比（ppm/ppb/% 均按体积）</option>
+        </select>
+      </div>
+      <div id="densityRow" style="display:none;">
+        <label for="density">溶液密度（kg/L）</label>
+        <input type="number" id="density" value="1" step="any" min="0" oninput="convert()">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
         <label for="molarMass">摩尔质量（g/mol，仅 mol/L 换算需要）</label>
         <input type="number" id="molarMass" value="" step="any" min="0" oninput="convert()" placeholder="如 NaCl 58.44">
       </div>
@@ -187,14 +201,13 @@
   <div class="card">
     <h3>📐 公式说明</h3>
     <div class="result-box">
-      <p>基准：<strong>ppm（百万分之一）</strong></p>
-      <p>1 ppm = 1 mg/L（水溶液，密度≈1 kg/L）</p>
-      <p>1 ppb = 0.001 ppm = 1 μg/L</p>
+      <p>口径优先：默认“稀水溶液近似”仅适用于密度≈1 kg/L 的水溶液；浓溶液或非水体系请选“质量比/质量浓度”并填实际密度。</p>
+      <p><strong>质量比/质量浓度</strong>：ppm、% 按质量分数；mg/L、g/L 按溶液密度折算；mol/L = 摩尔质量 × 1000 mg/L。</p>
+      <p><strong>体积比</strong>：ppm、ppb、ppt、% 均按体积比，彼此可互转；不输出 mg/L、g/L、mol/L（需溶质/溶液密度）。</p>
       <p>1 ppt = 0.001 ppb</p>
-      <p>1% = 10000 ppm</p>
-      <p>1 g/L = 1000 ppm（水溶液密度≈1 kg/L）</p>
+      <p>稀水溶液近似：1 ppm ≈ 1 mg/L，1% ≈ 10000 ppm，1 g/L ≈ 1000 ppm。</p>
       <p>摩尔浓度：1 mol/L = 摩尔质量（g/mol）× 1 g/L，再由 1 g/L = 1000 ppm 折算；如 NaCl（58.44 g/mol）1 mol/L = 58440 ppm</p>
-      <p>注：mg/L、g/L 与 ppm 仅在水溶液（密度≈1 kg/L）时按上式计算；其他溶液需按实际密度修正，mol/L 还须填写溶质摩尔质量</p>
+      <p>注：ppm 可指质量比或体积比，必须先选口径；质量比与 mg/L 的跨类换算依赖溶液密度，mol/L 还须填写溶质摩尔质量。结果是条件换算，不应把近似当恒等式。</p>
     </div></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -284,8 +297,11 @@ const factors = {
   gL: 1000,
   molL: null
 };
+const volumeFactors = {ppm:1, ppb:0.001, ppt:0.000001, pct:10000};
 const names = {ppm:'百万分之一', ppb:'十亿分之一', ppt:'万亿分之一',
   pct:'百分比', mgL:'毫克每升', ugL:'微克每升', gL:'克每升', molL:'摩尔每升'};
+const namesEn = {ppm:'parts per million', ppb:'parts per billion', ppt:'parts per trillion',
+  pct:'percent', mgL:'mg/L', ugL:'µg/L', gL:'g/L', molL:'mol/L'};
 
 function molarMassValue(){
   const raw = String(document.getElementById('molarMass').value || '').trim();
@@ -293,11 +309,27 @@ function molarMassValue(){
   const m = parseFloat(raw);
   return isFinite(m) && m > 0 ? m : NaN;
 }
-function unitFactor(unit){
-  if(unit === 'molL'){
+function densityValue(){
+  const d = parseFloat(document.getElementById('density').value);
+  return isFinite(d) && d > 0 ? d : NaN;
+}
+function basisValue(){ return document.getElementById('basis').value; }
+function toggleDensity(){
+  const d=document.getElementById('densityRow');
+  if(d) d.style.display=basisValue()==='mass'?'':'none';
+}
+function unitFactor(unit,basis,density){
+  if(basis==='volume'){
+    return volumeFactors[unit];
+  }
+  if(unit==='molL'){
     const m = molarMassValue();
     return isFinite(m) ? m * 1000 : NaN;
   }
+  if(unit==='ppm') return density;
+  if(unit==='ppb') return 0.001*density;
+  if(unit==='ppt') return 0.000001*density;
+  if(unit==='pct') return 10000*density;
   return factors[unit];
 }
 
@@ -312,35 +344,60 @@ function fmt(n){
 function convert(){
   const v = parseFloat(document.getElementById('inputVal').value);
   const from = document.getElementById('fromUnit').value;
+  const basis = basisValue();
+  const en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   if(isNaN(v)){
     const __h0='<p style="color:var(--danger);">请输入有效数值</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
     return;
   }
   if(v < 0){
-    const __neg=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Concentration cannot be negative. Enter 0 or a positive value.':'浓度不能为负，请输入 0 或正数。';
+    const __neg=en?'Concentration cannot be negative. Enter 0 or a positive value.':'浓度不能为负，请输入 0 或正数。';
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">'+__neg+'</p>';
     return;
   }
-  const fromFactor = unitFactor(from);
+  if(basis==='volume' && ['mgL','ugL','gL','molL'].includes(from)){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">'+(en?'Volume ratio cannot directly convert to mass concentration without solute density. Choose mass basis or a volume-ratio unit.':'体积比不能直接换算为 mg/L、g/L 或 mol/L；请改选质量比/质量浓度，或改用 ppm、ppb、%。')+'</p>';
+    return;
+  }
+  let density=1;
+  if(basis==='mass'){
+    density=densityValue();
+    if(!isFinite(density)){
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">'+(en?'Mass basis requires a solution density greater than 0 kg/L.':'质量比/质量浓度口径需要填写大于 0 的溶液密度（kg/L）。')+'</p>';
+      return;
+    }
+  }
+  const fromFactor = unitFactor(from,basis,density);
   if(!isFinite(fromFactor) || fromFactor <= 0){
     document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger);">换算 mol/L 需要填写大于 0 的摩尔质量（g/mol），例如 NaCl 为 58.44。</p>';
     return;
   }
   const base = v * fromFactor;
-  let html = `<p>基准：<strong>${fmt(v)} ${from}</strong> = <strong>${fmt(base)} ppm</strong></p>`;
+  const baseLabel = basis==='volume'?(en?'ppm (volume ratio)':'ppm（体积比）'):(en?'mg/L (mass concentration)':'mg/L（质量浓度）');
+  const nm = en ? namesEn : names;
+  const sep = en ? ': ' : '：';
+  let html = `<p>${en?'Reference':'基准'}${sep}<strong>${fmt(v)} ${from}</strong> = <strong>${fmt(base)} ${baseLabel}</strong></p>`;
   if(!isFinite(molarMassValue())){
-    const pending=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Molar mass is empty, so mol/L is skipped. Enter the solute molar mass (e.g. NaCl 58.44 g/mol) to include molarity.':'未填写摩尔质量，已跳过 mol/L 结果；如需摩尔浓度，请填写溶质摩尔质量（如 NaCl 58.44 g/mol）。';
+    const pending=en?'Molar mass is empty, so mol/L is skipped. Enter the solute molar mass (e.g. NaCl 58.44 g/mol) to include molarity.':'未填写摩尔质量，已跳过 mol/L 结果；如需摩尔浓度，请填写溶质摩尔质量（如 NaCl 58.44 g/mol）。';
     html += `<p style="font-size:12px;color:var(--text-muted);">${pending}</p>`;
   }
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
-  Object.keys(factors).forEach(k => {
+  const allowed = basis==='volume'?['ppm','ppb','ppt','pct']:Object.keys(factors);
+  allowed.forEach(k => {
     if(k !== from){
-      const f = unitFactor(k);
+      const f = unitFactor(k,basis,density);
       if(isFinite(f) && f > 0){
-        html += `<p>${names[k]}：<strong>${fmt(base / f)} ${k}</strong></p>`;
+        html += `<p>${nm[k]}${sep}<strong>${fmt(base / f)} ${k}</strong></p>`;
       }
     }
   });
+  if(basis==='dilute'){
+    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+(en?'Dilute aqueous approximation: density ≈ 1 kg/L, ppm ≈ mg/L; percent is treated as mass percent. Concentrated or non-aqueous solutions should use the mass basis with their actual density.':'稀水溶液近似：密度按 1 kg/L，ppm 与 mg/L 近似相等，百分比按质量分数。浓溶液或非水体系请改选“质量比/质量浓度”并填写实际密度。')+'</p>';
+  }else if(basis==='mass'){
+    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+(en?'Mass basis: ppm and percent are mass fractions; mg/L, g/L and mol/L use solution density '+fmt(density)+' kg/L.':'质量比口径：ppm 与百分比按质量分数，mg/L、g/L、mol/L 按溶液密度 '+fmt(density)+' kg/L 折算。')+'</p>';
+  }else{
+    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+(en?'Volume basis: ppm, ppb, ppt and percent are volume ratios. mg/L, g/L and mol/L need solute/solution density and are not shown.':'体积比口径：ppm、ppb、ppt、百分比均按体积比；mg/L、g/L、mol/L 需溶质/溶液密度，当前不显示。')+'</p>';
+  }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
 }
 
@@ -349,6 +406,7 @@ function clearAll(){
   const __h2=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a value to convert":"请输入数值进行换算");if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
 }
 convert();
+toggleDensity();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
@@ -528,7 +586,7 @@ else document.addEventListener('DOMContentLoaded', __concentration_converterBoot
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p data-zh="在 ppm、mg/L、g/L、百分比与摩尔浓度间换算，水溶液按密度≈1 kg/L 近似并可用摩尔质量折算 mol/L，适合实验配比、水质检测与环境监测的浓度单位转换">在 ppm、mg/L、g/L、百分比与摩尔浓度间换算，水溶液按密度≈1 kg/L 近似并可用摩尔质量折算 mol/L，适合实验配比、水质检测与环境监测的浓度单位转换</p>
+    <p data-zh="在 ppm、mg/L、g/L、百分比与摩尔浓度间换算，可选择稀水溶液近似、质量比/质量浓度或体积比口径；质量比按溶液密度折算，摩尔浓度需摩尔质量，适合实验配比、水质检测与环境监测">在 ppm、mg/L、g/L、百分比与摩尔浓度间换算，可选择稀水溶液近似、质量比/质量浓度或体积比口径；质量比按溶液密度折算，摩尔浓度需摩尔质量，适合实验配比、水质检测与环境监测</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>贴近生活，实用便捷</li>

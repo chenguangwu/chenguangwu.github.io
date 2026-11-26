@@ -537,12 +537,17 @@ function renderShopList() {
 
 function copyShopList() {
   var lowItems = supplies.filter(function(s){ return getStockStatus(s).level !== 'ok'; });
+  var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   if (!lowItems.length) { ToolBox.showToast(i18nText('toast.msg434'), 'info'); return; }
-  var text = '清洁用品购物清单\n' + new Date().toLocaleDateString() + '\n\n';
-  lowItems.forEach(function(sup, i) {
+  var checked={};var boxes=document.querySelectorAll('#shopList input[type="checkbox"][data-id]');
+  for(var b=0;b<boxes.length;b++){if(boxes[b].checked) checked[String(boxes[b].getAttribute('data-id'))]=true;}
+  var picked=lowItems.filter(function(s){return checked[String(s.id)];});
+  if(!picked.length){ToolBox.showToast(en?'Select at least one item to copy.':'请至少勾选一项需要购买的用品后再复制。','warning');return;}
+  var text = (en?'Cleaning supplies shopping list':'清洁用品购物清单')+'\n' + new Date().toLocaleDateString() + '\n\n';
+  picked.forEach(function(sup, i) {
     var suggest = Math.ceil((sup.threshold * 2 - sup.stock) * 10) / 10;
     if (suggest < 1) suggest = sup.threshold * 2;
-    text += (i + 1) + '. ' + sup.name + ' - 建议购买 ' + suggest + ' ' + sup.unit + '\n';
+    text += (i+1) + '. ' + sup.name + ' - ' + (en?'buy about ':'建议购买 ') + suggest + ' ' + sup.unit + '\n';
   });
   ToolBox.copyText(text, i18nText('msg615'));
 }
