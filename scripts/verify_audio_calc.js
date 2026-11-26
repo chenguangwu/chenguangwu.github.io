@@ -91,6 +91,24 @@ const CASES = [
   ref: "第1022批（9 任务）：全声道峰值聚合；动态 getMinGap 支持短于 20ms 文件；时间输入越界回填；导出文件名/选区/淡变快照；getFadeSeconds 试听与导出一致且可关闭；loadSeq 防解码竞态、失败保留旧音频；历史在解码后记录、恢复不调用文件选择。"
 },
 {
+  "slug": "audio/audio-sample-rate",
+  "inputs": { "duration": "60" },
+  "expect": ["22,050 Hz", "24,000 Hz", "10.99"],
+  "ref": "第1025批：频率上限改为精确 Hz（44.1k→22,050、48k→24,000），不再 22.1/24.0 一位小数；PCM 数据量 44.1k/16bit/2ch/60s≈10.09 MiB，48k≈10.99 MiB。"
+},
+{
+  "slug": "audio/audio-sample-rate",
+  "inputs": { "duration": "0" },
+  "expect": ["请输入大于 0 的有效时长（秒）"],
+  "ref": "第1025批：时长清空/0 时清空主结果、统计与副结论并显示明确提示；默认 60 秒不含该提示 ⇒ 强判别。"
+},
+{
+  "slug": "audio/audio-sample-rate",
+  "clicks": ["var src=__tbFs.readFileSync(process.cwd()+'/tools/audio/audio-sample-rate.html','utf8');var ok=src.indexOf('function convertFile')>=0&&src.indexOf('OfflineAudioContext')>=0&&src.indexOf('audioBufferToWav')>=0&&src.indexOf('exportResampled')>=0&&src.indexOf('__asrFileSeq')>=0&&src.indexOf('__asrResult')>=0&&src.indexOf('未压缩 PCM')>=0&&src.indexOf('function __asrFmtHz')>=0;document.getElementById('__tbProbe').textContent='ASRATE '+(ok?'OK':'BAD');"],
+  "expect": ["ASRATE OK"],
+  "ref": "第1025批（6 任务）：本地 OfflineAudioContext 重采样/试听/WAV 导出；输入条件+指标结构化结果供复制与历史；PCM MiB 与理论奈奎斯特口径；无效时长清空全部结论；解码/目标变化可取消。"
+},
+{
   slug: "audio/audio-echo",
   clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/audio/audio-echo.html','utf8');var ok=src.indexOf('Math.floor(x * total / buckets)')>=0&&src.indexOf('for(var ch=0; ch<channels; ch++)')>=0&&src.indexOf('function applyCompressorRouting')>=0&&src.indexOf('compEnabled')>=0&&src.indexOf('wetOn ? Math.min(60, tailNeeded) : 0')>=0&&src.indexOf('function downmixForExport')>=0&&src.indexOf('srcCh > 2 ? downmixForExport')>=0&&src.indexOf('function flushEffectTail')>=0&&src.indexOf('forcedRate')>=0&&src.indexOf('seed = (seed * 1664525')>=0&&src.indexOf('__audioLoadSeq')>=0&&src.indexOf('（保留）')>=0&&src.indexOf('snap.name.replace')>=0;document.getElementById('__tbProbe').textContent='AUDIOECHO '+(ok?'OK':'BAD');"],
   expect: ["AUDIOECHO OK"],

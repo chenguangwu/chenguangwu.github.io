@@ -144,7 +144,7 @@ window.INDUSTRY_INFO = {
   'library'              : { name: '图书档案', icon: '📚', hot: 85210 },
   'pr'                   : { name: '公关传播', icon: '📢', hot: 81735 },
   'urban'                : { name: '城市规划', icon: '🏙️', hot: 80279 },
-  'audio'                : { name: '音频处理', icon: '🎧', hot: 80270 },
+  'audio'                : { name: '音频处理', icon: '🎧', hot: 80271 },
   'video'                : { name: '视频处理', icon: '🎬', hot: 77957 },
   'woodwork'             : { name: '木工制作', icon: '🪚', hot: 76881 },
   'elderly'              : { name: '养老护理', icon: '👴', hot: 76805 },
