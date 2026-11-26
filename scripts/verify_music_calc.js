@@ -4,12 +4,14 @@ const { runCase } = require("./verify_it_calc.js");
 const fs=require("fs"), path=require("path");
 function musicStaticChecks(){
   const read=(p)=>fs.readFileSync(path.join(__dirname,"..","tools","music",p),"utf8");
-  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html");
+  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html");
   return [
     {name:"和弦进行降E映射、悲怆四级与大调高频",ok:/'Eb':3/.test(cp)&&!/'Eb':2/.test(cp)&&/qualities:\s*\['',\s*'m',\s*'',\s*'m'\]/.test(cp)&&/48 \+ chordRoot/.test(cp)&&/spellChordNote\(rootName/.test(cp)},
     {name:"和弦进行停止清理全部高亮定时器",ok:/highlightTimeouts/.test(cp)&&/highlightTimeouts\.forEach/.test(cp)&&/if \(isPlaying\) highlightChord/.test(cp)},
     {name:"和弦音符按音级拼写并修正A大三示例",ok:/spellFromRoot/.test(cn)&&/A C♯ E/.test(cn)&&!/A、A\+4\(半音\)=C、/.test(cn)},
-    {name:"乐理小调与复音程按音级拼写",ok:/SCALE_STEPS/.test(mt)&&/stepOverride/.test(mt)&&/intervalName\(iv\)/.test(mt)&&/14:'9'/.test(mt)}
+    {name:"乐理小调与复音程按音级拼写",ok:/SCALE_STEPS/.test(mt)&&/stepOverride/.test(mt)&&/intervalName\(iv\)/.test(mt)&&/14:'9'/.test(mt)},
+    {name:"吉他小调音阶与降号拼写",ok:/minor': \[0,2,3,5,7,8,10\]/.test(gt)&&/spellChordNote|calcScaleNotes/.test(gt)&&/NOTE_NAMES_FLAT/.test(gt)},
+    {name:"调音器错误区分与目标随参考音刷新",ok:/PermissionDeniedError/.test(wt)&&/DevicesNotFoundError|NotFoundError/.test(wt)&&/targetBaseFreq \* refA4 \/ 440/.test(wt)&&/Microphone permission denied/.test(wt)&&/No microphone detected/.test(wt)&&!/global\.ToolBox/.test(wt)}
   ];
 }
 const CASES = [
@@ -136,9 +138,19 @@ const CASES = [
     "setTuning('drop-d');setScale('A','minor');"
   ],
   "expect": [
-    "A 小调： C# D E F# G# A B"
+    "A 小调： A B C D E F G"
   ],
-  "ref": "去默认化（原 expect「10」＝默认标准调弦 C 大调态下的静态串，注入失败仍命中 → 逃生项）：setTuning/setScale 为 window 全局函数，clicks 置 Drop D 调弦 + A 小调后 scaleNotesDisplay 渲染「A 小调： C# D E F# G# A B」；默认 C 大调显示「C 大调： C D E F G A B」，注入失败即不命中。"
+  "ref": "A 小调自然音阶应为 A B C D E F G；旧实现用相对大调偏移叠加根音，输出 C# D E F# G# A B，属把 A 小调当 A 大调。"
+},
+{
+  "slug": "music/guitar-fretboard",
+  "clicks": [
+    "setTuning('standard');setScale('C','minor');"
+  ],
+  "expect": [
+    "C 小调： C D Eb F G Ab Bb"
+  ],
+  "ref": "C 自然小调应按调号拼成 C D Eb F G Ab Bb；旧实现根音错位成 A B C D E F G，且固定升号无法拼出降号音。"
 },
 {
   "slug": "music/music-analysis",
@@ -489,6 +501,21 @@ const CASES = [
   "clicks": ["setRoot(0);document.getElementById('chord-type').value='add9';renderChord();document.getElementById('__tbProbe').textContent=document.getElementById('chord-display').innerText;"],
   "expect": ["Cadd9", "D", "9"],
   "ref": "Cadd9 的九音应拼作 D 且音程标注 9，不得把 +14 半音标成 2。"
+}
+,
+{
+  "slug": "music/web-tuner",
+  "inputs": { "refFreq": "440" },
+  "clicks": ["var f=document.getElementById('refFreq');setTarget({classList:{contains:function(){return false;},add:function(){},remove:function(){}},dataset:{freq:'82.41'},textContent:'E2'});window.__wtSetRefA4(432);window.__wtRenderTarget(80.91);"],
+  "expect": ["目标 E2（80.91 Hz）｜当前距目标 0.0 音分"],
+  "ref": "A4 改为 432 后，E2=82.41×432/440=80.91 Hz；目标弦必须随参考音刷新，旧实现始终用 440 基准的 82.41 Hz，选 432 后偏差约 31.8 音分。"
+},
+{
+  "slug": "music/web-tuner",
+  "inputs": { "refFreq": "440" },
+  "clicks": ["try{copyTunerReading();document.getElementById('centsText').textContent='COPY OK';}catch(e){document.getElementById('centsText').textContent='COPY ERR:'+e.name;}"],
+  "expect": ["COPY OK"],
+  "ref": "无有效读数时 copyTunerReading 必须安全返回并提示，不得因访问浏览器不存在的 global 抛 ReferenceError。默认 noteName 为「--」即进入空读数分支。"
 }
 
 ];

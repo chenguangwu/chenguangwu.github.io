@@ -511,9 +511,11 @@
   let rafId = null;
   let isRunning = false;
   let refA4 = 440;
-  let targetFreq = 0, targetLabel = '', lastDetectedFreq = 0; // 目标弦频率，0 = 关闭对照
+  let targetFreq = 0, targetBaseFreq = 0, targetLabel = '', lastDetectedFreq = 0; // 目标弦频率按当前 A4 参考换算
 
   // 平滑显示
+  function isEn() { return document.documentElement.lang && document.documentElement.lang.toLowerCase().indexOf('en') === 0; }
+  function t(zh, en) { return isEn() ? en : zh; }
   let smoothFreq = 0;
   let smoothCents = 0;
   let lastNote = '';
@@ -538,6 +540,8 @@
     refFreqSelect.addEventListener('change', function() {
       refA4 = parseFloat(this.value);
       refFreqDisplay.textContent = 'A4 = ' + refA4 + ' Hz';
+      targetFreq = targetBaseFreq ? targetBaseFreq * refA4 / 440 : 0;
+      renderTarget(lastDetectedFreq);
     });
   }
 
@@ -546,11 +550,12 @@
     const btns = document.querySelectorAll('.string-btn');
     if (btn.classList.contains('active')) {
       btn.classList.remove('active');
-      targetFreq = 0; targetLabel = '';
+      targetFreq = 0; targetBaseFreq = 0; targetLabel = '';
     } else {
       btns.forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
-      targetFreq = parseFloat(btn.dataset.freq);
+      targetBaseFreq = parseFloat(btn.dataset.freq);
+      targetFreq = targetBaseFreq * refA4 / 440;
       targetLabel = (btn.textContent || '').trim();
     }
     renderTarget(lastDetectedFreq);
@@ -567,7 +572,8 @@
     const tc = 1200 * Math.log2(freq / targetFreq);
     const sign = tc > 0.05 ? '+' : '';
     const judge = Math.abs(tc) <= 5 ? '已对准（±5 音分内）' : (tc > 5 ? '偏高' : '偏低');
-    el.textContent = '目标 ' + targetLabel + '（' + targetFreq.toFixed(2) + ' Hz）｜当前距目标 ' + sign + tc.toFixed(1) + ' 音分（' + judge + '）';
+    const tcText = Math.abs(tc) < 0.05 ? '0.0' : sign + tc.toFixed(1);
+    el.textContent = '目标 ' + targetLabel + '（' + targetFreq.toFixed(2) + ' Hz）｜当前距目标 ' + tcText + ' 音分（' + judge + '）';
   }
 
   /* ===== 音符计算 ===== */
@@ -589,7 +595,7 @@
 
   /* 仅测试钩子：供 verify 用例调用，不参与任何运行时分支 */
   window.__wtFreqToNote = freqToNote;
-  window.__wtSetRefA4 = function(v){ refA4 = Number(v); };
+  window.__wtSetRefA4 = function(v){ refA4 = Number(v); targetFreq = targetBaseFreq ? targetBaseFreq * refA4 / 440 : 0; };
   window.__wtRenderTarget = renderTarget;
 
   /* ===== 自相关基频检测 ===== */
@@ -864,9 +870,10 @@
     const oct = (document.getElementById('noteOctave')?.textContent || '').trim();
     const freq = (document.getElementById('freqText')?.textContent || '').trim();
     const cents = (document.getElementById('centsText')?.textContent || '').trim();
-    if (!note || note === '--') { if (global.ToolBox && ToolBox.toast) ToolBox.toast('请先开始调音'); return; }
+    if (!note || note === '--') { if (window.ToolBox && ToolBox.showToast) ToolBox.showToast(t('暂无有效读数，请先开始调音并让乐器发声', 'No reading yet. Start tuning and play an instrument first.'), 'warning'); return; }
     const txt = '音名 ' + note + oct + '｜频率 ' + freq + (cents ? '｜偏差 ' + cents : '');
-    if (global.ToolBox && ToolBox.copyText) ToolBox.copyText(txt, '读数已复制');
+    if (window.ToolBox && ToolBox.copyText) ToolBox.copyText(txt, t('读数已复制', 'Reading copied'));
+    else if (window.ToolBox && ToolBox.showToast) ToolBox.showToast(txt, 'info');
   };
 
   window.startTuner = async function() {
@@ -900,14 +907,14 @@
       initGauge();
       processAudio();
     } catch (err) {
+      let msg = t('无法启动调音器：', 'Unable to start the tuner: ') + (err.message || err.name);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        ToolBox.showToast(i18nText(), 'error');
-      } else if (err.name === 'NotFoundError') {
-        ToolBox.showToast(i18nText(), 'error');
-      } else {
-        ToolBox.showToast('无法启动调音器：' + err.message, 'error');
+        msg = t('麦克风权限被拒绝：请允许本站使用麦克风，然后重新点击“开始调音”', 'Microphone permission denied: allow microphone access for this site, then click Start Tuning again.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        msg = t('未检测到麦克风：请连接麦克风并确认系统输入设备已启用', 'No microphone detected: connect a microphone and make sure the system input device is enabled.');
       }
-      statusEl.textContent = '启动失败，请检查麦克风权限后重试';
+      if (window.ToolBox && ToolBox.showToast) ToolBox.showToast(msg, 'error');
+      statusEl.textContent = msg;
     }
   };
 
