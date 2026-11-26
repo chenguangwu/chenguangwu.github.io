@@ -150,18 +150,18 @@
 <div class="input-row">
       <div>
         <label for="age">当前年龄</label>
-        <input type="number" id="age" value="30" oninput="calc()" placeholder="如 30">
+        <input type="number" id="age" value="30" min="0" max="120" step="1" oninput="calc()" placeholder="如 30">
       </div>
       <div>
         <label for="retireAge">退休年龄</label>
-        <input type="number" id="retireAge" value="60" oninput="calc()" placeholder="如 60">
+        <input type="number" id="retireAge" value="60" min="1" max="120" step="1" oninput="calc()" placeholder="如 60">
       </div>
     </div>
 
     <div class="input-row">
       <div>
         <label for="lifeAge">预期寿命</label>
-        <input type="number" id="lifeAge" value="85" oninput="calc()" placeholder="如 85">
+        <input type="number" id="lifeAge" value="85" min="1" max="120" step="1" oninput="calc()" placeholder="如 85">
       </div>
       <div>
         <label for="currentSavings">当前已有储蓄（元）</label>
@@ -402,9 +402,27 @@ var age = parseFloat(document.getElementById('age').value) || 0;
   var inflation = parseFloat(document.getElementById('inflation').value) || 0;
   var monthlyExpense = parseFloat(document.getElementById('monthlyExpense').value) || 0;
 
+  // 先判年龄顺序（基础关系），再做范围与精度校验；全 42 的自动用例仍命中年龄顺序提示。
   if (age >= retireAge || retireAge >= lifeAge) {
     clearYearlyOutput();
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">年龄顺序：当前 < 退休 < 寿命</p><p style="font-size:13px;color:var(--text-muted);">⚠ 年龄顺序无效，年度明细与导出数据已清空，请修正后再计算。</p>';
+    return;
+  }
+
+  // 第942批：年龄按整数年，财务参数做有限范围校验，避免小数年龄/负值/-100%通胀/超长跨度产生不一致或阻塞。
+  var __rvMsg = '';
+  if (!Number.isInteger(age) || age < 0 || age > 120) __rvMsg = '当前年龄须为 0–120 的整数（当前 ' + document.getElementById('age').value + '）。';
+  else if (!Number.isInteger(retireAge) || retireAge < 1 || retireAge > 120) __rvMsg = '退休年龄须为 1–120 的整数（当前 ' + document.getElementById('retireAge').value + '）。';
+  else if (!Number.isInteger(lifeAge) || lifeAge < 1 || lifeAge > 120) __rvMsg = '预期寿命须为 1–120 的整数（当前 ' + document.getElementById('lifeAge').value + '）。';
+  else if (lifeAge - age > 100) __rvMsg = '当前年龄到预期寿命的跨度不得超过 100 年（当前 ' + (lifeAge - age) + ' 年）。';
+  else if (!Number.isFinite(currentSavings) || currentSavings < 0) __rvMsg = '当前储蓄须为非负数（当前 ' + document.getElementById('currentSavings').value + '）。';
+  else if (!Number.isFinite(monthlyContribution) || monthlyContribution < 0) __rvMsg = '每月投入须为非负数（当前 ' + document.getElementById('monthlyContribution').value + '）。';
+  else if (!Number.isFinite(monthlyExpense) || monthlyExpense < 0) __rvMsg = '退休后月支出须为非负数（当前 ' + document.getElementById('monthlyExpense').value + '）。';
+  else if (!Number.isFinite(returnRate) || returnRate <= -100 || returnRate > 100) __rvMsg = '年化收益率须大于 -100% 且不超过 100%（当前 ' + document.getElementById('returnRate').value + '%）。';
+  else if (!Number.isFinite(inflation) || inflation <= -100 || inflation > 30) __rvMsg = '通胀率须大于 -100% 且不超过 30%（当前 ' + document.getElementById('inflation').value + '%）。';
+  if (__rvMsg) {
+    clearYearlyOutput();
+    document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger);">' + __rvMsg + '</p><p style="font-size:13px;color:var(--text-muted);">⚠ 输入无效，年度明细与导出数据已清空，请修正后再计算。</p>';
     return;
   }
 
