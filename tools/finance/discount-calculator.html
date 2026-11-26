@@ -182,6 +182,7 @@
 
   <div class="card">
     <h2>⚡ 常见折扣速算</h2>
+      <p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;" data-zh="以下速算统一按原价 100 元举例；点击后会切到「已知原价」模式并把原价重置为 100。">Apply a discount rate to a list price to get the sale price and savings, with a reverse tax-inclusive mode.</p>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;" data-zh="点击可将该折扣填入正向计算（以原价 100 为例）：">Click a discount to load it into the forward calculator (using a list price of 100 as an example):</p>    <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 说明</div>
       <div class="formula-eq">折后价 = 原价 × 折扣率；节省金额 = 原价 − 折后价，其中折扣率 = 折扣(几折)/10</div>
@@ -275,6 +276,47 @@
 <script>
 let currentMode = 0;
 let discounts = [0.8];
+// 每个模式独立保存输入与折扣链，切换模式再切回时不丢参数。
+let modeState = {0:null, 1:null, 2:null};
+
+function captureModeState(){
+  if(currentMode === 0){
+    var pr = document.getElementById('price');
+    modeState[0] = {price: pr ? pr.value : '', discounts: discounts.slice()};
+  } else if(currentMode === 1){
+    var fp = document.getElementById('finalPrice');
+    var dr = document.getElementById('discountRate');
+    modeState[1] = {finalPrice: fp ? fp.value : '', discountRate: dr ? dr.value : ''};
+  } else {
+    var am = document.getElementById('amount');
+    var tr = document.getElementById('taxRate');
+    var dirEl = document.querySelector('input[name=taxDir]:checked');
+    modeState[2] = {amount: am ? am.value : '', taxRate: tr ? tr.value : '', taxDir: dirEl ? dirEl.value : 'add'};
+  }
+}
+
+function restoreModeState(m){
+  var st = modeState[m];
+  if(!st) return;
+  if(m === 0){
+    var pr = document.getElementById('price');
+    if(pr) pr.value = st.price;
+    discounts = st.discounts.slice();
+    renderDiscountChain();
+  } else if(m === 1){
+    var fp = document.getElementById('finalPrice');
+    var dr = document.getElementById('discountRate');
+    if(fp) fp.value = st.finalPrice;
+    if(dr) dr.value = st.discountRate;
+  } else {
+    var am = document.getElementById('amount');
+    var tr = document.getElementById('taxRate');
+    if(am) am.value = st.amount;
+    if(tr) tr.value = st.taxRate;
+    var dir = document.querySelector('input[name="taxDir"][value="' + st.taxDir + '"]');
+    if(dir) dir.checked = true;
+  }
+}
 
 const inputs = [
   `<label for="price">原价（元）</label><input type="number" id="price" value="100" oninput="calc()" placeholder="如 100">
@@ -296,10 +338,12 @@ const inputs = [
 ];
 
 function setMode(m){
+  if(m !== currentMode) captureModeState();
   currentMode = m;
   document.querySelectorAll('#modeTabs button').forEach(b => b.classList.toggle('active', +b.dataset.mode === m));
   const __g0=inputs[m];document.getElementById('inputArea').innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
   if(m === 0) renderDiscountChain();
+  restoreModeState(m);
   calc();
 }
 
@@ -351,7 +395,10 @@ function setFieldError(id, msg){
 function useQuick(d){
   if(!isFinite(d) || d <= 0 || d > 1) return;
   if(currentMode !== 0) setMode(0);
+  var pr = document.getElementById('price');
+  if(pr) pr.value = '100';
   discounts = [d];
+  modeState[0] = {price: '100', discounts: discounts.slice()};
   renderDiscountChain();
   calc();
 }
@@ -371,7 +418,7 @@ function toTaxFromDiscount(){
 function calc(){
 // S1-FIN：空输入首屏给提示（不留空白结果区）
 var __ni=Array.prototype.slice.call(document.querySelectorAll('input[type=number],input[type=date]'));
-if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){document.getElementById('detailResult').innerHTML='<p style="color:var(--text-muted)">请输入参数后查看计算结果。</p>';return;}
+if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){document.getElementById('bigPrice').textContent='—';__discountFinalPrice=null;document.getElementById('detailResult').innerHTML='<p style="color:var(--text-muted)">请输入参数后查看计算结果。</p>';return;}
 
   const big = document.getElementById('bigPrice');
   const detail = document.getElementById('detailResult');

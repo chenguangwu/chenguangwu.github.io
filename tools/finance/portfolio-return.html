@@ -141,6 +141,16 @@
 
     <div class="input-row">
       <div>
+        <label for="n1">资产1名称</label>
+        <input type="text" id="n1" value="资产1" placeholder="如 股票基金">
+      </div>
+      <div>
+        <label for="n2">资产2名称</label>
+        <input type="text" id="n2" value="资产2" placeholder="如 债券基金">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
         <label for="w1">资产1权重 (%)</label>
         <input type="number" id="w1" value="60" step="5" placeholder="如 60">
       </div>
@@ -163,6 +173,13 @@
         <label for="normalizeWeights" style="margin:0;">权重合计≠100% 时按比例归一化</label>
       </div>
     </div>
+
+    <div id="extraAssets"></div>
+    <div class="toolbar" style="margin-top:0;">
+      <button type="button" class="btn" onclick="addAssetRow()">＋ 添加资产</button>
+      <button type="button" class="btn" onclick="removeAssetRow()">− 移除末项</button>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">前两项为必填基础资产；可继续添加资产（最多 10 项）。权重合计不等于 100% 时默认拒绝，勾选下方「按比例归一化」才会按相对权重重算。每项贡献 = 归一化权重 × 该项预期收益，用于核对收益来源。</p>
 
     <div id="portfolio_returnPresets"></div>
 
@@ -238,59 +255,130 @@
 </div>
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+var __assetSeq = 2;
+function addAssetRow(){
+  if(document.querySelectorAll('#extraAssets .extra-asset-row').length >= 8){ToolBox.showToast('最多 10 项资产（含基础 2 项）','warning');return;}
+  __assetSeq++;
+  var id='extra'+__assetSeq;
+  var row=document.createElement('div');
+  row.className='input-row extra-asset-row'; row.id=id;
+  row.innerHTML='<div><label>资产'+__assetSeq+'名称</label><input type="text" class="extra-name" value="资产'+__assetSeq+'" placeholder="如 黄金ETF"></div>'
+    +'<div><label>权重 (%)</label><input type="number" class="extra-weight" value="0" step="1" min="0" oninput="calcTool()"></div>'
+    +'<div><label>预期收益 (%)</label><input type="number" class="extra-return" value="0" step="0.5" oninput="calcTool()"></div>'
+    +'<div style="display:flex;align-items:flex-end;"><button type="button" class="btn" onclick="this.closest(\'.extra-asset-row\').remove();calcTool()">删除</button></div>';
+  document.getElementById('extraAssets').appendChild(row);
+  calcTool();
+}
+function removeAssetRow(){
+  var rows=document.querySelectorAll('#extraAssets .extra-asset-row');
+  if(!rows.length) return;
+  rows[rows.length-1].remove();
+  calcTool();
+}
+function collectAssets(){
+  var list=[];
+  function push(name,weight,ret){
+    var wraw=String(weight.value==null?'':weight.value).trim();
+    var rraw=String(ret.value==null?'':ret.value).trim();
+    list.push({name:String(name.value||'').trim()||('资产'+(list.length+1)), wRaw:wraw, rRaw:rraw, w:parseFloat(wraw), r:parseFloat(rraw)});
+  }
+  push(document.getElementById('n1'),document.getElementById('w1'),document.getElementById('r1'));
+  push(document.getElementById('n2'),document.getElementById('w2'),document.getElementById('r2'));
+  document.querySelectorAll('#extraAssets .extra-asset-row').forEach(function(row,i){
+    push(row.querySelector('.extra-name'),row.querySelector('.extra-weight'),row.querySelector('.extra-return'));
+  });
+  return list;
+}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function missingFields(fields){var m=[];for(var i=0;i<fields.length;i++){var e=document.getElementById(fields[i][0]);if(e&&String(e.value).trim()==='')m.push(fields[i][1]);}return m;}
+function __portfolioReturnWeighted(assets, normalize){
+  let wSum=0;
+  assets.forEach(function(a){ wSum+=a.w; });
+  const denom=normalize?wSum:100;
+  let rp=0;
+  const contrib=assets.map(function(a){
+    const w=a.w/denom;
+    const c=w*a.r;
+    rp+=c;
+    return {name:a.name,w:w,r:a.r,c:c};
+  });
+  return {rp:rp,wSum:wSum,denom:denom,contrib:contrib};
+}
 function calcTool(){
-            const miss=missingFields([['w1','资产1权重'],['w2','资产2权重'],['r1','资产1收益'],['r2','资产2收益']]);
+            const assets=collectAssets();
+            const miss=[];
+            assets.forEach(function(a,i){
+                if(a.wRaw==='') miss.push('资产'+(i+1)+'权重');
+                if(a.rRaw==='') miss.push('资产'+(i+1)+'收益');
+            });
             if(miss.length){ToolBox.setResult('result','<p class="tip-error">请填写：'+miss.join('、')+'。</p>');return;}
-            const w1v=num('w1'),w2v=num('w2'),r1=num('r1'),r2=num('r2');
-            if(w1v<0||w2v<0){ToolBox.setResult('result','<div style="color:var(--danger);">权重不能为负数，请核对输入。</div>');return;}
-            const wSum=w1v+w2v;
+            for(var i=0;i<assets.length;i++){
+                if(!isFinite(assets[i].w)||!isFinite(assets[i].r)){ToolBox.setResult('result','<div style="color:var(--danger);">资产'+(i+1)+'的权重或收益不是有效数字，请核对输入。</div>');return;}
+                if(assets[i].w<0){ToolBox.setResult('result','<div style="color:var(--danger);">权重不能为负数，请核对输入。</div>');return;}
+            }
+            let wSum=0;
+            assets.forEach(function(a){ wSum+=a.w; });
             if(wSum<=0){ToolBox.setResult('result','<p class="tip-error">权重合计为 0，请至少给一项资产填写非零权重。</p>');return;}
             const normalize=!!(document.getElementById('normalizeWeights')&&document.getElementById('normalizeWeights').checked);
             if(Math.abs(wSum-100)>0.01&&!normalize){
                 ToolBox.setResult('result','<p class="tip-error">权重合计为 '+wSum.toFixed(2)+'%，不是 100%。剩余 '+(100-wSum).toFixed(2)+'% 对应的资产与收益未定义，不能当作完整组合收益；请补足权重，或勾选「按比例归一化」并明确该假设。</p>');return;
             }
-            const denom=normalize?wSum:100;
-            const w1=w1v/denom,w2=w2v/denom;
-            const rp=w1*r1+w2*r2;
+            const core=__portfolioReturnWeighted(assets, normalize);
+            const rp=core.rp, contrib=core.contrib;
             const __g1=dataGrid([
                 [rp.toFixed(2),(normalize?'归一化组合预期收益 (%)':'组合预期收益 (%)')],
                 [wSum.toFixed(2)+'%','权重合计（应=100%）'],
                 [Math.abs(wSum-100)<0.01?'✓ 正常':(normalize?'已按比例归一化（原合计 '+wSum.toFixed(2)+'%）':'⚠️ 偏差 '+(wSum-100).toFixed(2)+'%'),'权重校验']
-            ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+            ]);
+            let table='<div style="overflow-x:auto;margin-top:12px;"><table class="result-table" style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr><th>资产</th><th>输入权重</th><th>归一化权重</th><th>预期收益</th><th>收益贡献(百分点)</th></tr></thead><tbody>';
+            contrib.forEach(function(x,i){
+                table+='<tr><td>'+ToolBox.escHtml(x.name)+'</td><td>'+assets[i].w.toFixed(2)+'%</td><td>'+(x.w*100).toFixed(2)+'%</td><td>'+x.r.toFixed(2)+'%</td><td>'+x.c.toFixed(2)+'</td></tr>';
+            });
+            table+='</tbody></table></div>';
+            table+='<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">收益贡献为各资产对组合预期收益的加权增量，合计 = '+(Math.abs(rp-contrib.reduce(function(a,b){return a+b.c;},0))<1e-9?'组合预期收益':'见组合预期收益')+' '+rp.toFixed(2)+'%。</p>';
+            const html=String(__g1)+table;
+            ToolBox.setResult('result',(typeof html==='number'?(isFinite(html)?html:'—'):String(html).replace(/Infinity|NaN/g,'—')));
         }
-function resetForm(){document.getElementById('w1').value = '60';
+function resetForm(){document.getElementById('n1').value = '资产1';
+      document.getElementById('n2').value = '资产2';
+      document.getElementById('w1').value = '60';
       document.getElementById('r1').value = '12';
       document.getElementById('w2').value = '40';
       document.getElementById('r2').value = '8';
+      document.querySelectorAll('#extraAssets .extra-asset-row').forEach(function(r){r.remove();});
+      document.getElementById('normalizeWeights').checked=false;
       calcTool();}
 calcTool();
 
 function __portfolio_returnNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __portfolio_returnExtras(){
-    function __portfolio_returnRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var w1v=num('w1'),w2v=num('w2'),r1=num('r1'),r2=num('r2');
-    if (w1v<0 || w2v<0 || !isFinite(__portfolio_returnNum('w1')) || !isFinite(__portfolio_returnNum('w2')) || !isFinite(__portfolio_returnNum('r1')) || !isFinite(__portfolio_returnNum('r2'))) return;
-    var wSum=w1v+w2v;
+    var assets=collectAssets();
+    var wSum=0;
+    for(var i=0;i<assets.length;i++){
+        if(!isFinite(assets[i].w)||!isFinite(assets[i].r)||assets[i].w<0) return;
+        wSum+=assets[i].w;
+    }
     if(wSum<=0) return;
     var normalize=!!(document.getElementById('normalizeWeights')&&document.getElementById('normalizeWeights').checked);
     if(Math.abs(wSum-100)>0.01&&!normalize) return;
     var denom=normalize?wSum:100;
-    var w1=w1v/denom,w2=w2v/denom;
-    var rp=w1*r1+w2*r2;
+    var rp=0;
+    var rows=assets.map(function(a){
+        var w=a.w/denom,c=w*a.r;
+        rp+=c;
+        return [a.name,(w*100).toFixed(2)+'%',a.r.toFixed(2)+'%',c.toFixed(2)];
+    });
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#portfolio_returnTable',{
-        head: en?['Item','Value']:['项目','数值'],
-        rows: [
-            [normalize?(en?'Normalized portfolio return (%)':'归一化组合预期收益 (%)'):'组合预期收益 (%)', rp.toFixed(2)],
-            ['权重合计（应=100%）', wSum.toFixed(2)+'%'],
-            ['权重校验', Math.abs(wSum-100)<0.01?'✓ 正常':(normalize?'已按比例归一化（原合计 '+wSum.toFixed(2)+'%）':'⚠️ 偏差 '+(wSum-100).toFixed(2)+'%')],
-        ]
+        head: en?['Asset','Normalized weight','Expected return','Contribution (pp)']:['资产','归一化权重','预期收益','收益贡献(百分点)'],
+        rows: rows
     });
-    TBKit.history.record({w1:__portfolio_returnRaw('w1'), w2:__portfolio_returnRaw('w2'), r1:__portfolio_returnRaw('r1'), r2:__portfolio_returnRaw('r2'), rp:rp});
-    function __portfolio_returnRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.record({w1:assets[0].wRaw,w2:assets[1].wRaw,r1:assets[0].rRaw,r2:assets[1].rRaw,rp:rp});
+    function __portfolio_returnRestore(rec){
+        for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}
+        document.querySelectorAll('#extraAssets .extra-asset-row').forEach(function(r){r.remove();});
+    }
     TBKit.history.mount('#portfolio_returnHist',function(rec){ __portfolio_returnRestore(rec); calcTool(); });
     TBKit.util.diffBox('#portfolio_returnDiff',['rp']);
 }
@@ -304,7 +392,7 @@ function __portfolio_returnPresets(){
         {label:'默认',labelEn:'Default',values:{w1:'60', w2:'40', r1:'12', r2:'8'}},
         {label:'示例 2×',labelEn:'Example 2×',values:{w1:'60', w2:'40', r1:'24', r2:'16'}},
         {label:'示例 0.5×',labelEn:'Example 0.5×',values:{w1:'60', w2:'40', r1:'6', r2:'4'}},
-    ],function(){ calcTool(); });
+    ],function(){ document.querySelectorAll('#extraAssets .extra-asset-row').forEach(function(r){r.remove();}); calcTool(); });
 }
 var __tb_fn0 = calcTool;
 calcTool = function(){ __tb_fn0(); try{ __portfolio_returnExtras(); }catch(e){} };

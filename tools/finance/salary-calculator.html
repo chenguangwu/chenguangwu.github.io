@@ -195,6 +195,18 @@
       <input type="text" id="salaryMode" value="monthly" style="display:none" oninput="__salarySyncMode()" aria-label="薪资模式">
     </div>
 
+    <div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:10px 0 14px;background:var(--bg-hover);">
+      <label style="display:flex;align-items:center;gap:8px;margin:0;font-size:13px;">
+        <input type="checkbox" id="rememberSalary" style="width:auto;margin:0;" onchange="toggleSalaryRemember()">
+        <span>在本机记住这些工资与扣除信息（默认关闭；共享电脑请勿勾选）</span>
+      </label>
+      <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">数据只存在当前浏览器的 localStorage，不会上传服务器；关闭勾选会立即清除已保存内容。</p>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;">
+        <button type="button" class="btn" onclick="clearSalarySaved()">清除已保存的工资数据</button>
+        <span id="salarySaveStatus" style="font-size:12px;color:var(--text-muted);">当前未保存</span>
+      </div>
+    </div>
+
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 说明</div>
       <div class="formula-eq">应纳税额 = Σ（应纳税所得额 × 税率 − 速算扣除数）；实发 = 应发 − 五险一金 − 个税</div>
@@ -1044,15 +1056,27 @@ document.addEventListener('DOMContentLoaded',function(){
 <script>
 (function(){try{
   var NS="tools/finance/salary-calculator.html";
-  function k(id){return 'tb_uxp_'+NS+'#'+id;}
-  function save(el){try{
+  var FLAG='tb_salary_remember_v1';
+  var PREFIX='tb_uxp_'+NS+'#';
+  function k(id){return PREFIX+id;}
+  function rememberOn(){try{return localStorage.getItem(FLAG)==='1';}catch(e){return false;}}
+  function setStatus(t){var el=document.getElementById('salarySaveStatus');if(el)el.textContent=t;}
+  function clearSavedKeys(){try{
+    var doomed=[];
+    for(var i=0;i<localStorage.length;i++){
+      var key=localStorage.key(i);
+      if(key && key.indexOf(PREFIX)===0) doomed.push(key);
+    }
+    doomed.forEach(function(key){localStorage.removeItem(key);});
+  }catch(e){}}
+  function save(el){if(!rememberOn()||!el.id||el.id==='rememberSalary')return;try{
     if(el.type==='checkbox'){localStorage.setItem(k(el.id),el.checked?'1':'0');}
     else if(el.type==='radio'){if(el.checked)localStorage.setItem(k(el.id),el.value);}
     else{localStorage.setItem(k(el.id),el.value);}
   }catch(e){}}
-  function restore(){try{
+  function restore(){if(!rememberOn())return;try{
     document.querySelectorAll('input:not([type=password]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
-      if(!el.id)return;
+      if(!el.id||el.id==='rememberSalary')return;
       var v=localStorage.getItem(k(el.id));if(v===null)return;
       try{
         if(el.type==='checkbox'){el.checked=(v==='1');}
@@ -1063,8 +1087,32 @@ document.addEventListener('DOMContentLoaded',function(){
       }catch(e){}
     });
   }catch(e){}}
+  window.toggleSalaryRemember=function(){
+    var box=document.getElementById('rememberSalary');
+    if(box&&box.checked){
+      try{localStorage.setItem(FLAG,'1');}catch(e){}
+      // 勾选瞬间把当前输入写入本机，避免用户以为“勾了但没保存”。
+      document.querySelectorAll('input:not([type=password]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){save(el);});
+      setStatus('已在本机保存；关闭勾选或点“清除”会删除');
+    }else{
+      try{localStorage.removeItem(FLAG);}catch(e){}
+      clearSavedKeys();
+      setStatus('当前未保存（已清除此前保存的数据）');
+    }
+  };
+  window.clearSalarySaved=function(){
+    try{localStorage.removeItem(FLAG);}catch(e){}
+    clearSavedKeys();
+    var box=document.getElementById('rememberSalary');if(box)box.checked=false;
+    setStatus('已清除本机保存的工资数据');
+  };
+  // 默认不持久化：启动时若未明确勾选，清掉历史版本留下的敏感字段。
+  if(!rememberOn()) clearSavedKeys();
+  var box=document.getElementById('rememberSalary');
+  if(box) box.checked=rememberOn();
+  setStatus(rememberOn()?'已在本机保存；关闭勾选或点“清除”会删除':'当前未保存');
   document.querySelectorAll('input:not([type=password]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
-    if(!el.id)return;
+    if(!el.id||el.id==='rememberSalary')return;
     el.addEventListener('input',function(){save(el);});
     el.addEventListener('change',function(){save(el);});
   });

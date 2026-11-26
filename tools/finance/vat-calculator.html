@@ -631,6 +631,8 @@ function resetSingle(){
   calcSingle();
 }
 
+function __vatEsc(x){ try { return ToolBox.escHtml(x); } catch(e) { return String(x).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); } }
+function __vatRound2(x){ return Math.round((x + (x >= 0 ? 1e-9 : -1e-9)) * 100) / 100; }
 function calcBatch(){
   var dir = document.getElementById('batchDir').value;
   var rate = __vatParse(document.getElementById('batchRate').value);
@@ -641,20 +643,23 @@ function calcBatch(){
     return;
   }
   var html = '<table><thead><tr><th>原行号</th><th>输入金额</th><th>不含税价</th><th>增值税额（按输入税率）</th><th>含税价</th></tr></thead><tbody>';
-  var totalEx = 0, totalTax = 0, totalIncl = 0, valid = 0;
+  var sumEx = 0, sumTax = 0, sumIncl = 0, rawEx = 0, rawTax = 0, rawIncl = 0, valid = 0;
   scan.lines.forEach(function(item){
     var amt = item.amt;
     valid++;
     var incl, ex, tax;
     if(dir === 'inclusive'){ incl = amt; ex = incl/(1+rate/100); tax = incl-ex; }
     else{ ex = amt; tax = ex*rate/100; incl = ex+tax; }
-    totalEx += ex; totalTax += tax; totalIncl += incl;
+    // 屏显逐行先舍入到分，合计再加各行「已显示」的分值，保证肉眼逐行相加能对上合计。
+    var exR = __vatRound2(ex), taxR = __vatRound2(tax), inclR = __vatRound2(incl);
+    sumEx += exR; sumTax += taxR; sumIncl += inclR;
+    rawEx += ex; rawTax += tax; rawIncl += incl;
     html += '<tr>';
     html += '<td>' + item.lineNo + '</td>';
     html += '<td>' + ToolBox.formatNumber(amt, 2) + '</td>';
-    html += '<td>' + ToolBox.formatNumber(ex, 2) + '</td>';
-    html += '<td style="color:var(--danger);">' + ToolBox.formatNumber(tax, 2) + '</td>';
-    html += '<td><strong>' + ToolBox.formatNumber(incl, 2) + '</strong></td>';
+    html += '<td>' + ToolBox.formatNumber(exR, 2) + '</td>';
+    html += '<td style="color:var(--danger);">' + ToolBox.formatNumber(taxR, 2) + '</td>';
+    html += '<td><strong>' + ToolBox.formatNumber(inclR, 2) + '</strong></td>';
     html += '</tr>';
   });
   if(!valid){
@@ -664,11 +669,16 @@ function calcBatch(){
   }
   html += '<tr style="font-weight:600;background:var(--result-bg);">';
   html += '<td colspan="2">合计</td>';
-  html += '<td>' + ToolBox.formatNumber(totalEx, 2) + '</td>';
-  html += '<td style="color:var(--danger);">' + ToolBox.formatNumber(totalTax, 2) + '</td>';
-  html += '<td>' + ToolBox.formatNumber(totalIncl, 2) + '</td>';
+  html += '<td>' + ToolBox.formatNumber(sumEx, 2) + '</td>';
+  html += '<td style="color:var(--danger);">' + ToolBox.formatNumber(sumTax, 2) + '</td>';
+  html += '<td>' + ToolBox.formatNumber(sumIncl, 2) + '</td>';
   html += '</tr>';
   html += '</tbody></table>';
+  var diffEx = __vatRound2(sumEx - __vatRound2(rawEx));
+  var diffTax = __vatRound2(sumTax - __vatRound2(rawTax));
+  var diffIncl = __vatRound2(sumIncl - __vatRound2(rawIncl));
+  function __sgn(x){ return (x > 0 ? '+' : '') + ToolBox.formatNumber(x, 2); }
+  html += '<p style="font-size:12.5px;margin-top:6px;">口径：<strong>逐行舍入再加总</strong>（合计 = 各行显示值之和）。未舍入汇总：不含税 ' + __vatRound2(rawEx).toFixed(2) + '、税额 ' + __vatRound2(rawTax).toFixed(2) + '、含税 ' + __vatRound2(rawIncl).toFixed(2) + '；舍入差额：不含税 ' + __sgn(diffEx) + '、税额 ' + __sgn(diffTax) + '、含税 ' + __sgn(diffIncl) + '。</p>';
   html += '<p style="font-size:12.5px;margin-top:6px;">有效行 <strong>' + valid + '</strong> 行'
     + (scan.errors.length ? '；已忽略 <strong>' + scan.errors.length + '</strong> 行，合计不含这些行，请按下方错误清单核对原始输入。' : '；全部行均计入合计。') + '</p>';
   if(scan.errors.length) html += __vatBatchErrorHtml(scan.errors, valid, scan.errors.length);
@@ -700,7 +710,7 @@ function __vatBatchErrorHtml(errors, valid, ignored){
   html += '<p style="color:var(--danger);font-weight:600;margin:0 0 6px;">⚠ ' + (valid ? '已忽略 ' + ignored + ' 行：' : '') + '以下原始行无法计算（合计不含这些行）</p>';
   html += '<table style="width:100%;font-size:12.5px;"><thead><tr><th>原行号</th><th>原始输入</th><th>原因</th></tr></thead><tbody>';
   errors.forEach(function(e){
-    html += '<tr><td>' + e.lineNo + '</td><td style="word-break:break-all;">' + ToolBox.escHtml(e.input) + '</td><td>' + e.reason + '</td></tr>';
+    html += '<tr><td>' + e.lineNo + '</td><td style="word-break:break-all;">' + __vatEsc(e.input) + '</td><td>' + e.reason + '</td></tr>';
   });
   html += '</tbody></table></div>';
   return html;
@@ -713,15 +723,16 @@ function exportBatchCSV(){
   if(!__vatRateOK(rate)){ ToolBox.showToast(VAT_RATE_MSG, 'warning'); return; }
   if(!scan.lines.length){ ToolBox.showToast('没有可导出的金额（须为 ≥0 的数字）。', 'warning'); return; }
   var csv = '\uFEFF原行号,输入金额,不含税价,增值税额（按输入税率）,含税价\n';
-  var totalEx = 0, totalTax = 0, totalIncl = 0;
+  var sumEx = 0, sumTax = 0, sumIncl = 0;
   scan.lines.forEach(function(item){
     var amt = item.amt, incl, ex, tax;
     if(dir === 'inclusive'){ incl = amt; ex = incl/(1+rate/100); tax = incl-ex; }
     else{ ex = amt; tax = ex*rate/100; incl = ex+tax; }
-    totalEx += ex; totalTax += tax; totalIncl += incl;
-    csv += item.lineNo + ',' + amt + ',' + ex.toFixed(2) + ',' + tax.toFixed(2) + ',' + incl.toFixed(2) + '\n';
+    var exR = __vatRound2(ex), taxR = __vatRound2(tax), inclR = __vatRound2(incl);
+    sumEx += exR; sumTax += taxR; sumIncl += inclR;
+    csv += item.lineNo + ',' + amt + ',' + exR.toFixed(2) + ',' + taxR.toFixed(2) + ',' + inclR.toFixed(2) + '\n';
   });
-  csv += '合计,,' + totalEx.toFixed(2) + ',' + totalTax.toFixed(2) + ',' + totalIncl.toFixed(2) + '\n';
+  csv += '合计（逐行舍入后相加）,,' + sumEx.toFixed(2) + ',' + sumTax.toFixed(2) + ',' + sumIncl.toFixed(2) + '\n';
   if(scan.errors.length){
     csv += '\n错误行,原行号,原始输入,原因\n';
     scan.errors.forEach(function(e){
@@ -741,15 +752,16 @@ function copyBatchResult(){
   if(!scan.lines.length){ ToolBox.showToast(i18nText('toast.msg487'), 'warning'); return; }
   var text = '增值税批量计算（税率' + rate + '%）\n';
   text += '原行号\t输入金额\t不含税价\t增值税额（按输入税率）\t含税价\n';
-  var totalEx = 0, totalTax = 0, totalIncl = 0;
+  var sumEx = 0, sumTax = 0, sumIncl = 0;
   scan.lines.forEach(function(item){
     var amt = item.amt, incl, ex, tax;
     if(dir === 'inclusive'){ incl = amt; ex = incl/(1+rate/100); tax = incl-ex; }
     else{ ex = amt; tax = ex*rate/100; incl = ex+tax; }
-    totalEx += ex; totalTax += tax; totalIncl += incl;
-    text += item.lineNo + '\t' + amt + '\t' + ex.toFixed(2) + '\t' + tax.toFixed(2) + '\t' + incl.toFixed(2) + '\n';
+    var exR = __vatRound2(ex), taxR = __vatRound2(tax), inclR = __vatRound2(incl);
+    sumEx += exR; sumTax += taxR; sumIncl += inclR;
+    text += item.lineNo + '\t' + amt + '\t' + exR.toFixed(2) + '\t' + taxR.toFixed(2) + '\t' + inclR.toFixed(2) + '\n';
   });
-  text += '合计\t\t' + totalEx.toFixed(2) + '\t' + totalTax.toFixed(2) + '\t' + totalIncl.toFixed(2) + '\n';
+  text += '合计（逐行舍入后相加）\t\t' + sumEx.toFixed(2) + '\t' + sumTax.toFixed(2) + '\t' + sumIncl.toFixed(2) + '\n';
   if(scan.errors.length){
     text += '已忽略 ' + scan.errors.length + ' 行，合计不含这些行：\n';
     scan.errors.forEach(function(e){ text += '原行号 ' + e.lineNo + '\t' + e.input + '\t' + e.reason + '\n'; });

@@ -77,7 +77,7 @@
 
 
 <meta name="title-en" content="Fixed Asset Register &amp; Depreciation Tool">
-<meta name="desc-en" content="Data is stored only in this browser's localStorage: switching devices, clearing cache or changing browsers loses it, so export a JSON backup regularly.…">
+<meta name="desc-en" content="Fixed Asset Register and Depreciation Ledger: supports straight-line, double-declining-balance and sum-of-the-years-digits depreciation, automatically…">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/finance/register-depreciation.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/finance/register-depreciation.html">
@@ -269,9 +269,13 @@
 
 <script>
 var KEY = 'tb_assets';
+var MAX_LIFE = 100; // 使用年限硬上限：避免本地保存的超大年限让逐页折旧与汇总卡死
 var assets = [];
 var editingId = null;
 try { assets = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { assets = []; }
+if (!Array.isArray(assets)) assets = [];
+// 旧版本地数据可能含小数年限或超大年限：加载时按同一规则清洗，避免刷新后再次触发长循环。
+assets = assets.filter(function(a){ return isValidAsset(a); });
 
 function save() { try { localStorage.setItem(KEY, JSON.stringify(assets)); } catch(e) {} }
 
@@ -286,6 +290,8 @@ function fmt(n, d) {
 /* === 折旧计算 === */
 function calcDepreciation(cost, salvage, life, method) {
   var schedule = [];
+  life = Number(life);
+  if (!isFinite(life) || life < 1 || life > MAX_LIFE || !Number.isInteger(life)) return schedule;
   var accDep = 0;
   var bookVal = cost;
   if (method === 'straight') {
@@ -362,14 +368,15 @@ function addAsset() {
   var date = document.getElementById('aDate').value;
   var cost = parseFloat(document.getElementById('aCost').value);
   var salvage = parseFloat(document.getElementById('aSalvage').value);
-  var life = parseInt(document.getElementById('aLife').value);
+  var lifeRaw = String(document.getElementById('aLife').value || '').trim();
+  var life = Number(lifeRaw);
   var method = document.getElementById('aMethod').value;
 
   if (!name) { ToolBox.showToast(i18nText('toast.msg912'), 'error'); return; }
   if (!date) { ToolBox.showToast(i18nText('toast.msg951'), 'error'); return; }
   if (isNaN(cost) || cost <= 0) { ToolBox.showToast(i18nText('toast.msg846'), 'error'); return; }
   if (isNaN(salvage) || salvage < 0) { ToolBox.showToast(i18nText('toast.msg856'), 'error'); return; }
-  if (isNaN(life) || life < 1) { ToolBox.showToast(i18nText('toast.msg844'), 'error'); return; }
+  if (lifeRaw === '' || !isFinite(life) || !Number.isInteger(life) || life < 1 || life > MAX_LIFE) { ToolBox.showToast('使用年限须为 1–' + MAX_LIFE + ' 的整数年（不接受小数或超大年限）', 'error'); return; }
   if (salvage >= cost) { ToolBox.showToast(i18nText('toast.msg466'), 'error'); return; }
 
   var record = {
@@ -437,7 +444,7 @@ function isValidAsset(a) {
   var cost = Number(a.cost), salvage = Number(a.salvage), life = Number(a.life);
   if (!isFinite(cost) || cost <= 0) return false;
   if (!isFinite(salvage) || salvage < 0 || salvage >= cost) return false;
-  if (!isFinite(life) || life < 1 || !Number.isInteger(life)) return false;
+  if (!isFinite(life) || life < 1 || life > MAX_LIFE || !Number.isInteger(life)) return false;
   if (['straight','ddb','syd'].indexOf(a.method) < 0) return false;
   return true;
 }
