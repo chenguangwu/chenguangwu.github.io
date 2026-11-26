@@ -678,8 +678,8 @@ const CASES = [
   {
     slug: "finance/tax-calculator",
     inputs: { salary: "50000", insurance: "8000", special: "3000", threshold: "6000" },
-    expect: ["25,001 - 35,000 元 25% ✓ 适用"],
-    ref: "非默认输入使应纳税所得额=50000-8000-6000-3000=33000 → 落入第3级(25001-35000)并高亮「✓ 适用」。该级下限修复后为 25001（修复前误把各级下限都写成 3,001）。期望串同时绑定级距与高亮标记：注入失败(回退默认→第2级激活)或旧代码(3,001)均不匹配，既判别力有效又测到修复",
+    expect: ["> 25,000 且 ≤ 35,000 元 25% ✓ 适用"],
+    ref: "非默认输入使应纳税所得额=50000-8000-6000-3000=33000 → 落入第3级并高亮「✓ 适用」。级距按开放/闭合边界显示为「> 25,000 且 ≤ 35,000」，与 >25000 且 ≤35000 的计算判断一致；旧版写 25,001 - 35,000 会漏掉 25000.01–25000.99 的小数金额。默认 20000/3000/2000/5000 ⇒ 所得 10000 落第2级，不命中。",
   },
   {
     slug: "finance/tax-calculator",
@@ -3610,9 +3610,9 @@ const CASES = [
       "m-droppct": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42"
+      "凯利分数须在 0%–100% 之间。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"k-capital\":\"42\",\"k-winrate\":\"42\",\"k-ratio\":\"42\",\"k-fraction\":\"42\",\"f-capital\":\"42\",\"f-percent\":\"42\",\"f-price\":\"42\",\"f-stop\":\"42\",\"r-capital\":\"42\",\"r-riskpct\":\"42\",\"r-price\":\"42\",\"r-stop\":\"42\",\"m-initial\":\"42\",\"m-multiplier\":\"42\",\"m-times\":\"42\",\"m-droppct\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "逐项范围校验：全部字段注入 42 时，胜率 42%（合法）、盈亏比 42（合法）、凯利分数 42 是 42% 还是 4200% 的歧义输入，页面按百分数字段读取 42 并判定超过 100% ⇒ 拒绝计算。旧实现若直接乘 fraction=42 会给出 1706% 的荒谬仓位；现字段级拒绝。默认 10000/55%/2/100% 合法且不出现该提示 ⇒ 注入专属，零逃生。"
   },
   {
     "slug": "finance/report-1",
@@ -3626,9 +3626,9 @@ const CASES = [
       "dec": "42"
     },
     "expect": [
-      "少数股东损益 = 42.00 × 58% = 24.36 元 长期股权投资低于应享有份额，差额 10.92 元为 负商誉 。复核交易对价与可辨认净资产公允价值后，方可计入当期损益。"
+      "少数股东损益 = 42.00 × 58% = 24.36 元 长期股权投资低于按账面净资产计算的应享份额，简化差额 10.92 元。该负数 不是可直接计入营业外收入的负商誉"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"inv\":\"42\",\"pct\":\"42\",\"capital\":\"42\",\"retained\":\"42\",\"premium\":\"42\",\"profit\":\"42\",\"dec\":\"42\"}，输出区含「少数股东损益 = 42.00 × 58% = 24.36 元 长期股权投资低于应…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inv\":\"42\",\"pct\":\"42\",\"capital\":\"42\",\"retained\":\"42\",\"premium\":\"42\",\"profit\":\"42\",\"dec\":\"42\"}，输出区含「少数股东损益 = 42.00 × 58% = 24.36 元 长期股权投资低于按账面净资产…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/mutual-fund-calculator",
@@ -5861,7 +5861,85 @@ const CASES = [
     expect: ["CURKB OK"],
     ref: "第939批：地区筛选与货币卡片改语义化 button 并公布 aria-pressed；详情弹层 role=dialog/aria-modal、打开聚焦关闭按钮、Escape 关闭并归还焦点。旧实现为 div onclick，键盘不可达且无焦点管理。",
   }
-
+,
+  // ===== 第940批新增 =====
+  {
+    slug: "finance/mortgage-calculator",
+    inputs: { calcMode: "principal", loanAmount: "70", rate: "4.2", years: "30", downPayment: "30" },
+    clicks: ["setCalcMode();document.getElementById('loanAmount').value='70';calculate()"],
+    expect: ["贷款本金：¥700,000.00", "计算前提：直接输入贷款本金 ¥700,000.00，未再按首付比例扣减"],
+    ref: "已知贷款本金入口：计算入口选 principal、本金 70 万，首付 30% 仍留在表单但不得再扣一次；旧实现固定按房价×(1−首付) ⇒ 49 万，少算 21 万。两条分别绑定贷款本金合计与前提文案；默认 price 模式（房价 100 万/首付 30% ⇒ 70 万）虽然金额同为 70 万，但前提文案是「房价 ¥1,000,000.00 × 首付 30%」，不会命中第二条 ⇒ 强判别。",
+  },
+  {
+    slug: "finance/mortgage-calculator",
+    inputs: { loanAmount: "100", rate: "4.2", years: "30", downPayment: "30" },
+    clicks: ["calculate();var sumI=0,sumPay=0;__mcSchedule.forEach(function(r){sumI+=r.interest;sumPay+=r.payment;});var totalI=parseFloat(document.getElementById('totalInterest').textContent.replace(/[^0-9.-]/g,''));var totalPay=parseFloat(document.getElementById('totalPayment').textContent.replace(/[^0-9.-]/g,''));var last=__mcSchedule.length?__mcSchedule[__mcSchedule.length-1].balance:999;document.getElementById('__tbProbe').textContent='MCROUND '+((Math.abs(sumI-totalI)<0.005&&Math.abs(sumPay-totalPay)<0.005&&last===0)?'OK':'BAD')+' rows='+__mcSchedule.length;"],
+    expect: ["MCROUND OK rows=360"],
+    ref: "逐期舍入对账：明细按分显示，逐期利息/月供之和必须与上方总利息/总还款额在 0.01 内一致，末期余额归零。旧实现合计按未舍入浮点、明细各自 toFixed ⇒ 逐项求和与合计可差数分；末期余额也可能残留极小值。默认 100 万/4.2%/30 年即触发，探针同时锁 360 行与三项等式 ⇒ 旧版 BAD、零逃生。",
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "8000.01", insurance: "0", special: "0", threshold: "5000" },
+    clicks: ["calculate()"],
+    expect: ["> 3,000 且 ≤ 12,000 元 10% ✓ 适用"],
+    ref: "小数金额边界：应纳税所得额 = 8000.01 − 0 − 5000 − 0 = 3000.01，按 >3000 且 ≤12000 应落第2级。旧版显示 3,001–12,000，会让 3000.01 看起来不属于任何显示区间；新版开放/闭合边界与计算一致。默认所得 10000 也落第2级，但旧文案同样显示 3,001–12,000 ⇒ 以带「> 3,000 且 ≤」的新串锁定修复，零逃生。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "120000", annualRate: "6", loanYears: "10", prepayMonth: "1", prepayAmount: "10000", repayMethod: "equal" },
+    clicks: ["document.getElementById('prepayCard').style.display='block';calc();var s12=scheduleData.filter(function(r){return r.month<=12;}).slice(-1)[0];var want=(typeof fmt==='function'&&s12)?fmt(s12.balance):'';var html=document.getElementById('yearlyTable').innerHTML;document.getElementById('__tbProbe').textContent='LOANYR '+((s12&&want&&html.indexOf(want)>=0&&scheduleData.length<120)?'OK':'BAD')+' rows='+scheduleData.length;"],
+    expect: ["LOANYR OK"],
+    ref: "第1期后提前还款 1 万：年度汇总必须按还款期数归属年度聚合，提前还款行与其所在期同年、不额外占月份。修复前按数组每 12 行分组，第一年只含第1–11期+提前还款行，第12期被挤到第二年，首行年末余额与第12期余额不符。探针比较首行年末余额与 scheduleData 中 month≤12 的最后一期余额，并要求提前后总期数<120 ⇒ 旧实现 BAD。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "100000", annualRate: "0.00000000000001", loanYears: "30", repayMethod: "equal" },
+    clicks: ["calc();var r=document.getElementById('resultBox').innerHTML;document.getElementById('__tbProbe').textContent='LOANTINY '+((r.indexOf('277.78')>=0&&r.indexOf('Infinity')<0&&r.indexOf('NaN')<0)?'OK':'BAD');"],
+    expect: ["LOANTINY OK"],
+    ref: "极小正利率数值稳定性：本金 100,000、30 年（360 期）、年利率 1e-14% 的月利率约 8.3e-19，旧式 (1+r)^n−1 因浮点归零 ⇒ 月供 Infinity。新实现用 expm1/log1p，并在 r<1e-12 时退化为本金/期数 = 277.78；结果区不得出现 Infinity/NaN。默认 4.9% 月供不同 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/report-1",
+    inputs: { inv: "800000", pct: "80", capital: "500000", retained: "200000", premium: "0", profit: "150000", dec: "2" },
+    clicks: ["calc()"],
+    expect: ["简化合并差额（非直接商誉）", "该差额不能直接确认为商誉", "教学用抵销示意（不是可直接入账的分录）"],
+    ref: "合并差额口径：默认 80 万 − 70 万×80% = 24 万，旧版直接写「合并价差（商誉）」并在提示里称「确认为商誉」；新版统计卡改称「简化合并差额（非直接商誉）」，结果提示明确不能直接确认商誉，抵销表标明仅为教学示意。三条分别锁标签、结论与分录标题；旧源码均不含 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/inflation-calculator",
+    inputs: { amt: "100000", rate: "3", years: "0" },
+    clicks: ["calc()"],
+    expect: ["年限须为 1–1000 的整数年（当前输入 0）", "0 也不会按 1 年计算"],
+    ref: "年限 0 不再静默按 1 年：旧实现 Math.max(1, Math.floor(0)) ⇒ 主结果按 1 年、辅助解读仍用原始值，口径分裂。新版统一校验为 1–1000 整数年，0 与小数都拒绝并清空统计/表格/图表。默认 20 年 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/inflation-calculator",
+    inputs: { amt: "100000", rate: "3", years: "1.5" },
+    clicks: ["calc()"],
+    expect: ["年限须为 1–1000 的整数年（当前输入 1.5）", "小数年限不四舍五入"],
+    ref: "小数年限 1.5：旧实现主结果向下取整为 1 年，而页面说明/解读仍按 1.5 年，同屏两个期限。新版明确只支持整数年，拒绝小数并说明不四舍五入；默认 20 年不命中。",
+  },
+  {
+    slug: "finance/calc-4",
+    inputs: { amount: "1000000", rate: "", years: "30" },
+    clicks: ["calc()"],
+    expect: ["请填写年利率；留空不会按 0% 计算"],
+    ref: "空利率不再按零息放款：旧实现 parseFloat('')||0 ⇒ 0% 利率，照常输出 30 年零息计划；新版区分空值与合法 0，空串直接停止并清空汇总/明细。默认 4.2% 不命中。",
+  },
+  {
+    slug: "finance/calc-4",
+    inputs: { amount: "-100000", rate: "4.2", years: "30" },
+    clicks: ["calc()"],
+    expect: ["贷款金额须为正数（当前输入 -100000 元）", "负数与 0 均不支持"],
+    ref: "负本金：旧实现 parseFloat(-100000)||0 ⇒ 负月供与负总还款；新版要求本金 >0 并停止计算、清空旧结果。默认 100 万不命中。",
+  },
+  {
+    slug: "finance/calc-4",
+    inputs: { amount: "12000", rate: "0", years: "1" },
+    clicks: ["calc()"],
+    expect: ["1,000.00 元", "12,000.00 元", "利息 0.00 元"],
+    ref: "显式 0% 利率仍合法：本金 12,000、1 年 12 期 ⇒ 月供 1,000.00、总还款 12,000.00、利息 0.00。旧实现虽然也能算，但空值与 0 不分；新版只拒绝空值，明确输入 0 必须继续出结果。默认 4.2% 金额不同 ⇒ 强判别。",
+  },
 ];
 
 // ---------------------------------------------------------------- main

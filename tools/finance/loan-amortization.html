@@ -58,7 +58,7 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 <meta name="title-en" content="Loan Amortization">
-<meta name="desc-en" content="Build a full period-by-period amortization schedule from principal, rate and term, with prepayment simulation and charts">
+<meta name="desc-en" content="Build a period-by-period amortization schedule with prepayment simulation; yearly totals follow repayment-period years and near-zero rates use a numerically…">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/finance/loan-amortization.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/finance/loan-amortization.html">
@@ -398,7 +398,14 @@ function generateSchedule(amount, annualRate, years, method, balloonMonths, ball
 
   if (method === 'equal') {
     // r=0 时等额本息月供退化为 本金/期数（原式 0/0 会产生 NaN）
-    var pmt = monthlyRate === 0 ? amount / totalMonths : amount * monthlyRate * Math.pow(1 + monthlyRate, totalMonths) / (Math.pow(1 + monthlyRate, totalMonths) - 1);
+    // 极小正利率用 expm1/log1p 求分母，避免 (1+r)^n−1 因浮点精度归零而得到 Infinity。
+    var pmt;
+    if (monthlyRate < 1e-12) {
+      pmt = amount / totalMonths;
+    } else {
+      var denom = -Math.expm1(-totalMonths * Math.log1p(monthlyRate));
+      pmt = denom > 0 ? amount * monthlyRate / denom : amount / totalMonths;
+    }
     for (var i = 1; i <= totalMonths; i++) {
       var interest = balance * monthlyRate;
       var principal = pmt - interest;
@@ -430,9 +437,14 @@ function generateSchedule(amount, annualRate, years, method, balloonMonths, ball
     // 气球贷：月供只摊还 (1 − 尾款比例) 的本金，期末单列尾款
     var balloonAmount = amount * (balloonRatio / 100);
     var loanMonths = balloonMonths;
-    var pmt = monthlyRate === 0
-      ? (amount - balloonAmount) / loanMonths
-      : (amount - balloonAmount / Math.pow(1 + monthlyRate, loanMonths)) * monthlyRate / (1 - 1 / Math.pow(1 + monthlyRate, loanMonths));
+    var pmt;
+    if (monthlyRate < 1e-12) {
+      pmt = (amount - balloonAmount) / loanMonths;
+    } else {
+      var disc = Math.exp(-loanMonths * Math.log1p(monthlyRate));
+      var denomB = -Math.expm1(-loanMonths * Math.log1p(monthlyRate));
+      pmt = denomB > 0 ? (amount - balloonAmount * disc) * monthlyRate / denomB : (amount - balloonAmount) / loanMonths;
+    }
     var tempBal = amount;
     for (var i = 1; i <= loanMonths; i++) {
       var interest = tempBal * monthlyRate;
@@ -500,6 +512,11 @@ var amount = +loanAmountEl.value || 0;
   }
 
   var result = generateSchedule(amount, annualRate, years, method, balloonMonths, balloonRatio);
+  var __badRow = !result || !isFinite(result.totalInterest) || !result.schedule || result.schedule.some(function(r){ return !isFinite(r.payment) || !isFinite(r.principal) || !isFinite(r.interest) || !isFinite(r.balance); });
+  if (__badRow) {
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">' + __laTx('计算结果出现非有限数值，请检查本金、利率与期限；极小利率已按数值稳定口径处理。', 'The result contains non-finite values; check principal, rate and term. Near-zero rates are handled with a numerically stable formula.') + '</p>';
+    return;
+  }
   scheduleData = result.schedule.map(function(r){ return {month:r.month,payment:r.payment,principal:r.principal,interest:r.interest,balance:r.balance}; });
   originalScheduleData = result.schedule.map(function(r){ return {month:r.month,payment:r.payment,principal:r.principal,interest:r.interest,balance:r.balance}; });
 
@@ -565,16 +582,22 @@ function renderYearly(){
   if(!scheduleData.length){ host.innerHTML=''; return; }
   var th=function(z,e2){return en?e2:z;};
   var html='<table><thead><tr><th>'+th('年份','Year')+'</th><th>'+th('年还款额','Paid')+'</th><th>'+th('其中本金','Principal')+'</th><th>'+th('其中利息','Interest')+'</th><th>'+th('年末剩余本金','Balance EOY')+'</th></tr></thead><tbody>';
-  var py=0,pp=0,pi=0,y=1;
+  var py=0,pp=0,pi=0,curYear=null,lastBal=0;
+  function flushYear(){
+    if(curYear===null) return;
+    html+='<tr><td>'+th('第'+curYear+'年','Year '+curYear)+'</td><td>'+fmt(py)+'</td><td>'+fmt(pp)+'</td><td style="color:var(--danger);">'+fmt(pi)+'</td><td>'+fmt(lastBal)+'</td></tr>';
+    py=0; pp=0; pi=0;
+  }
   for(var i=0;i<scheduleData.length;i++){
     var s=scheduleData[i];
-    py+=s.payment; pp+=s.principal; pi+=s.interest;
-    if((i+1)%12===0||i===scheduleData.length-1){
-      html+='<tr><td>'+th('第'+y+'年','Year '+y)+'</td><td>'+fmt(py)+'</td><td>'+fmt(pp)+'</td><td style="color:var(--danger);">'+fmt(pi)+'</td><td>'+fmt(s.balance)+'</td></tr>';
-      y++; py=0; pp=0; pi=0;
-    }
+    // 按「还款期数」所属年度分组（第 1–12 期 = 第 1 年）；提前还款行与其所在期同年，不额外占用月份。
+    var ykey=Math.max(1, Math.ceil((s.month||1)/12));
+    if(curYear===null) curYear=ykey;
+    if(ykey!==curYear){ flushYear(); curYear=ykey; }
+    py+=s.payment; pp+=s.principal; pi+=s.interest; lastBal=s.balance;
+    if(i===scheduleData.length-1) flushYear();
   }
-  html+='</tbody></table><p style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">'+th('按每 12 期聚合；提前还款模拟后按重算排期同步更新。','Aggregated per 12 periods; updates with recalculated schedule after prepayment simulation.')+'</p>';
+  html+='</tbody></table><p style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">'+th('按还款期数所属年度聚合（第 1–12 期＝第 1 年）；提前还款行计入其所在期，不额外占用月份；提前还款后按新排期同步更新。','Aggregated by repayment period year (periods 1–12 = year 1). The prepayment row belongs to the period it follows and does not add an extra month; the table follows the recalculated schedule.')+'</p>';
   const __g5=html;host.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -751,9 +774,12 @@ function __laFutureRows(method, prepayType, newBalance, monthlyRate, remainingMo
         tmp -= pp;
       }
     } else {
-      pmt = monthlyRate > 1e-12
-        ? newBalance * monthlyRate * Math.pow(1 + monthlyRate, remainingMonths) / (Math.pow(1 + monthlyRate, remainingMonths) - 1)
-        : newBalance / remainingMonths;
+      if (monthlyRate > 1e-12) {
+        var denomP = -Math.expm1(-remainingMonths * Math.log1p(monthlyRate));
+        pmt = denomP > 0 ? newBalance * monthlyRate / denomP : newBalance / remainingMonths;
+      } else {
+        pmt = newBalance / remainingMonths;
+      }
     }
     for (j = 0; j < n && bal > 0.01; j++) {
       var intE = bal * monthlyRate;
