@@ -264,11 +264,13 @@
   </div>
 </div>
 <script>function __tbInputGuard(_ids,_labels){
+  _ids=_ids||[]; _labels=_labels||[];
   var __r=__tbInputGuardCore(_ids,_labels);
   if(__r){var __t=document.getElementById('wien_displacementTable');if(__t)__t.innerHTML='';}
   return __r;
 }
 function __tbInputGuardCore(_ids,_labels){
+  _ids=_ids||[]; _labels=_labels||[];
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
@@ -323,18 +325,30 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function dataGrid(rows){rows=rows||[];let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+
+function __wdEn(){try{return !!(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}catch(e){return (document.documentElement.lang||'').indexOf('en')>=0;}}
+function __wdFmt(x,d){if(!isFinite(x))return '—';if(x===0)return (0).toFixed(d);var s=x.toFixed(d);if(parseFloat(s)===0)return x.toExponential(4);return s;}
+function __wdValidate(){
+  var te=document.getElementById('T'); var T=te?parseFloat(te.value):NaN; var en=__wdEn(), msg='';
+  if(!te||String(te.value).trim()==='') msg=en?'Enter a temperature.':'请输入温度。';
+  else if(!isFinite(T)||T<=0) msg=en?'Temperature must be a finite value greater than 0 K (0 K has no thermal peak).':'温度必须为大于 0 K 的有限数值（0 K 无热辐射峰值）。';
+  if(te)te.classList.toggle('input-error',!!msg); return msg;
+}
+function __wdError(msg){if(msg==null||msg==='')return;ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+msg+'</p>');}
+function __wdClearAux(){['wien_displacementTable','wien_displacementDiff','wdChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});}
+
 function calcTool(){
-              var __ig=__tbInputGuard(['T'],["温度 T (K)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const H=6.62607015e-34,C=299792458,ME=9.1093837015e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
-            const T = num('T');
-            const lam = B_WIEN / T;
-            const __g2=dataGrid([
-                [(lam * 1e9).toFixed(2), '峰值波长 λ_max (nm)'],
-                [(lam*1e6).toFixed(3), '峰值波长 (µm)'],
-                [(5.670374419e-8*Math.pow(T,4)).toExponential(3), '黑体辐出度 M (W/m²)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
-        }
+  var err=__wdValidate(); if(err){__wdError(err);__wdClearAux();return;}
+  var T=parseFloat(document.getElementById('T').value), en=__wdEn();
+  var lam=2.897771955e-3/T;
+  var __g2=dataGrid([
+    [__wdFmt(lam*1e9,2), en?'Peak wavelength λ_max (nm)':'峰值波长 λ_max (nm)'],
+    [__wdFmt(lam*1e6,3), en?'Peak wavelength (µm)':'峰值波长 (µm)'],
+    [(5.670374419e-8*Math.pow(T,4)).toExponential(3), en?'Blackbody exitance M (W/m2)':'黑体辐出度 M (W/m2)']
+  ])+'<p style="margin-top:10px;font-size:12px;color:var(--text-muted);">'+(en?'Wien’s law gives the peak of an ideal blackbody spectrum; real surfaces with emissivity below 1 have a lower radiance but the same peak wavelength.':'维恩定律给出理想黑体谱峰；实际表面发射率低于 1 时辐亮度降低，但峰值波长不变。')+'</p>';
+  ToolBox.setResult('result',__g2);
+}
 function resetForm(){document.getElementById('T').value = '5778';
       calcTool();}
 calcTool();
@@ -344,16 +358,16 @@ function __wien_displacementExtras(){
     function __wien_displacementRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var H=6.62607015e-34,C=299792458,ME=9.1093837015e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
-    var T = num('T');
+    var err=__wdValidate(); if(err){__wdClearAux();return;}
+    var T = parseFloat(document.getElementById('T').value);
     var lam = B_WIEN / T;
-    if (!isFinite(__wien_displacementNum('T'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#wien_displacementTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['峰值波长 λ_max (nm)', (lam * 1e9).toFixed(2)],
-            ['峰值波长 (µm)', (lam*1e6).toFixed(3)],
-            ['黑体辐出度 M (W/m²)', (5.670374419e-8*Math.pow(T,4)).toExponential(3)],
+            [en?'Peak wavelength λ_max (nm)':'峰值波长 λ_max (nm)', __wdFmt(lam*1e9,2)],
+            [en?'Peak wavelength (µm)':'峰值波长 (µm)', __wdFmt(lam*1e6,3)],
+            [en?'Blackbody exitance M (W/m2)':'黑体辐出度 M (W/m2)', (5.670374419e-8*Math.pow(T,4)).toExponential(3)],
         ]
     });
     TBKit.history.record({T:__wien_displacementRaw('T'), H:H});
@@ -422,7 +436,7 @@ else document.addEventListener('DOMContentLoaded', __wien_displacementBoot);
 <script>
 function __wdSweep(){
   var T0=num('T');
-  if(!isFinite(T0)||T0<=0)return null;
+  if(!isFinite(T0)||T0<=0){var _e=document.getElementById('wdChart');if(_e)_e.innerHTML='';return null;}
   var B_WIEN=2.897771955e-3, C=299792458;
   var labels=[],dL=[],dF=[],rows=[];
   var mults=[0.25,0.5,0.75,1,1.5,2,4];

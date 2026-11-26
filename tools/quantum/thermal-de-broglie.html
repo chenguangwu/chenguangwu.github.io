@@ -202,11 +202,13 @@
   </div>
 </div>
 <script>function __tbInputGuard(_ids,_labels){
+  _ids=_ids||[]; _labels=_labels||[];
   var __r=__tbInputGuardCore(_ids,_labels);
   if(__r){var __t=document.getElementById('thermal_de_broglieTable');if(__t)__t.innerHTML='';}
   return __r;
 }
 function __tbInputGuardCore(_ids,_labels){
+  _ids=_ids||[]; _labels=_labels||[];
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var __TPL3="<p style=\"color:var(--danger)\">⚠ 「%s」不能为负值。</p>";
@@ -274,18 +276,33 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function dataGrid(rows){rows=rows||[];let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __tdbEn(){try{return !!(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}catch(e){return (document.documentElement.lang||'').indexOf('en')>=0;}}
+function __tdbFmt(x,d){if(!isFinite(x))return '—';if(x===0)return (0).toFixed(d);var s=x.toFixed(d);if(parseFloat(s)===0)return x.toExponential(4);return s;}
+
+function __tdbValidate(){
+  var me=document.getElementById('m'), te=document.getElementById('T'); var m=me?parseFloat(me.value):NaN, T=te?parseFloat(te.value):NaN;
+  var en=__tdbEn(), msg='';
+  if(!me||String(me.value).trim()===''||!te||String(te.value).trim()==='') msg=en?'Enter both particle mass and temperature.':'请输入质量和温度。';
+  else if(!isFinite(m)||!isFinite(T)||m<=0||T<=0) msg=en?'Mass and temperature must be finite values greater than 0 (zero or negative values are not allowed).':'质量和温度必须为大于 0 的有限数值（不能为 0 或负数）。';
+  if(me)me.classList.toggle('input-error',!!msg); if(te)te.classList.toggle('input-error',!!msg); return msg;
+}
+function __tdbError(msg){if(msg==null||msg==='')return;ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+msg+'</p>');}
+function __tdbClearAux(){['thermal_de_broglieTable','thermal_de_broglieDiff','tdbChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});}
 function calcTool(){
-              var __ig=__tbInputGuard(['m', 'T'],["质量 m (kg)", "温度 T (K)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const h=6.62607015e-34, kB=1.380649e-23;
-            const m=num('m'),T=num('T');
-            const lam=h/Math.sqrt(2*Math.PI*m*kB*T);
-            const __g2=dataGrid([
-                [(lam*1e9).toFixed(3),'热德布罗意波长 λ (nm)'],
-                [(lam*1e12).toFixed(2), '热波长 (pm)'],
-                [(h/lam).toExponential(3), '热运动动量 p (kg·m/s)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
-        }
+  var err=__tdbValidate(); if(err){__tdbError(err);__tdbClearAux();return;}
+  var h=6.62607015e-34,kB=1.380649e-23, en=__tdbEn();
+  var m=parseFloat(document.getElementById('m').value),T=parseFloat(document.getElementById('T').value);
+  var lam=h/Math.sqrt(2*Math.PI*m*kB*T);
+  if(!isFinite(lam)||lam===0){__tdbError(en?'The thermal wavelength is outside the representable range; check the inputs.':'热波长超出可表示范围，请检查输入。');__tdbClearAux();return;}
+  var note='<p style="margin-top:10px;font-size:12px;color:var(--text-muted);">'+(en?'λ_db=h/√(2πmkBT) is the thermal de Broglie wavelength of a non-relativistic ideal gas. It is a characteristic quantum length, not the wavelength of one particular particle.':'λ_db=h/√(2πmkBT) 是非相对论理想气体的热德布罗意波长，是表征量子效应的特征长度，不是某一个粒子的实际波长。')+'</p>';
+  var __g2=dataGrid([
+    [__tdbFmt(lam*1e9,3), en?'Thermal de Broglie wavelength λ (nm)':'热德布罗意波长 λ (nm)'],
+    [__tdbFmt(lam*1e12,2), en?'Thermal wavelength (pm)':'热波长 (pm)'],
+    [(h/lam).toExponential(3), en?'Thermal momentum p (kg·m/s)':'热运动动量 p (kg·m/s)']
+  ])+note;
+  ToolBox.setResult('result',__g2);
+}
 function resetForm(){document.getElementById('m').value = '9.109e-31';
       document.getElementById('T').value = '300';
       calcTool();}
@@ -296,16 +313,17 @@ function __thermal_de_broglieExtras(){
     function __thermal_de_broglieRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var h=6.62607015e-34, kB=1.380649e-23;
-    var m=num('m'),T=num('T');
+    var err=__tdbValidate(); if(err){__tdbClearAux();return;}
+    var m=parseFloat(document.getElementById('m').value),T=parseFloat(document.getElementById('T').value);
     var lam=h/Math.sqrt(2*Math.PI*m*kB*T);
-    if (!isFinite(__thermal_de_broglieNum('m')) || !isFinite(__thermal_de_broglieNum('T'))) return;
+    if(!isFinite(lam)||lam===0)return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#thermal_de_broglieTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['热德布罗意波长 λ (nm)', (lam*1e9).toFixed(3)],
-            ['热波长 (pm)', (lam*1e12).toFixed(2)],
-            ['热运动动量 p (kg·m/s)', (h/lam).toExponential(3)],
+            [en?'Thermal de Broglie wavelength λ (nm)':'热德布罗意波长 λ (nm)', __tdbFmt(lam*1e9,3)],
+            [en?'Thermal wavelength (pm)':'热波长 (pm)', __tdbFmt(lam*1e12,2)],
+            [en?'Thermal momentum p (kg·m/s)':'热运动动量 p (kg·m/s)', (h/lam).toExponential(3)],
         ]
     });
     TBKit.history.record({m:__thermal_de_broglieRaw('m'), T:__thermal_de_broglieRaw('T'), h:h});
@@ -385,7 +403,7 @@ else document.addEventListener('DOMContentLoaded', __thermal_de_broglieBoot);
 <script>
 function __tdbSweep(){
   var m0=num('m'), T0=num('T');
-  if(!isFinite(m0)||!isFinite(T0)||m0<=0||T0<=0)return null;
+  if(!isFinite(m0)||!isFinite(T0)||m0<=0||T0<=0){var _e=document.getElementById('tdbChart');if(_e)_e.innerHTML='';return null;}
   var h=6.62607015e-34, kB=1.380649e-23;
   var labels=[],dL=[],dP=[],rows=[];
   var mults=[0.25,0.5,0.75,1,1.5,2,3,4];

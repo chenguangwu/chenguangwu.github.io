@@ -219,11 +219,13 @@
   </div>
 </div>
 <script>function __tbInputGuard(_ids,_labels){
+  _ids=_ids||[]; _labels=_labels||[];
   var __r=__tbInputGuardCore(_ids,_labels);
   if(__r){var __t=document.getElementById('energy_time_uncertaintyTable');if(__t)__t.innerHTML='';}
   return __r;
 }
 function __tbInputGuardCore(_ids,_labels){
+  _ids=_ids||[]; _labels=_labels||[];
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
@@ -278,19 +280,32 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function dataGrid(rows){rows=rows||[];let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+
+function __etuEn(){try{return !!(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}catch(e){return (document.documentElement.lang||'').indexOf('en')>=0;}}
+function __etuValidate(){
+  var de=document.getElementById('dt'); var dt=de?parseFloat(de.value):NaN; var en=__etuEn(), msg='';
+  if(!de||String(de.value).trim()==='') msg=en?'Enter the time uncertainty.':'请输入时间不确定度。';
+  else if(!isFinite(dt)||dt<=0) msg=en?'Time uncertainty must be a finite value greater than 0 s (zero or negative values are not allowed).':'时间不确定度必须为大于 0 s 的有限数值（不能为 0 或负数）。';
+  if(de)de.classList.toggle('input-error',!!msg); return msg;
+}
+function __etuError(msg){if(msg==null||msg==='')return;ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+msg+'</p>');}
+function __etuClearAux(){['energy_time_uncertaintyTable','energy_time_uncertaintyDiff','etuChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});}
+
 function calcTool(){
-              var __ig=__tbInputGuard(['dt'],["时间不确定度 Δt (s)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const hbar=1.054571817e-34, e=1.602176634e-19;
-            const dt=num('dt');
-            const dE=hbar/(2*dt);
-            const __g2=dataGrid([
-                [(dE/e).toExponential(3),'能量展宽 ΔE (eV)'],
-                [(hbar/(2*dt)).toExponential(3), '能量展宽 (J)'],
-                [(hbar/e/(2*dt)).toExponential(3), '能量展宽 (eV) 重算'],
-                [(dt).toExponential(3), '时间不确定度 (s)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
-        }
+  var err=__etuValidate(); if(err){__etuError(err);__etuClearAux();return;}
+  var hbar=1.054571817e-34, e=1.602176634e-19, en=__etuEn();
+  var dt=parseFloat(document.getElementById('dt').value), dE=hbar/(2*dt);
+  if(!isFinite(dE)){__etuError(en?'The energy lower bound is outside the representable range; check the time uncertainty.':'能量下界超出可表示范围，请检查时间不确定度。');__etuClearAux();return;}
+  var note='<p style="margin-top:10px;font-size:12px;color:var(--text-muted);">'+(en?'Under the convention ΔE·Δt ≥ ℏ/2, this is the lower bound for the energy spread, not a universal exact energy value. The energy–time relation depends on the state lifetime and interaction definition; it is not a position–momentum uncertainty relation in time.':'在 ΔE·Δt ≥ ℏ/2 的约定下，这里给出的是能量展宽的**下界**，不是任何体系的精确能量值。能量—时间关系与能级寿命、相互作用定义有关，不能直接类比位置—动量不确定关系。')+'</p>';
+  var __g2=dataGrid([
+    [(dE/e).toExponential(3), en?'Energy-spread lower bound ΔE ≥ ℏ/(2Δt) (eV)':'能量不确定度下界 ΔE ≥ ℏ/(2Δt) (eV)'],
+    [dE.toExponential(3), en?'Energy-spread lower bound (J)':'能量不确定度下界 (J)'],
+    [(hbar/e/(2*dt)).toExponential(3), en?'Energy-spread lower bound (eV, recomputed)':'能量不确定度下界 (eV) 重算'],
+    [dt.toExponential(3), en?'Time uncertainty Δt (s)':'时间不确定度 Δt (s)']
+  ])+note;
+  ToolBox.setResult('result',__g2);
+}
 function resetForm(){document.getElementById('dt').value = '1e-9';
       calcTool();}
 calcTool();
@@ -300,17 +315,18 @@ function __energy_time_uncertaintyExtras(){
     function __energy_time_uncertaintyRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var hbar=1.054571817e-34, e=1.602176634e-19;
-    var dt=num('dt');
+    var err=__etuValidate(); if(err){__etuClearAux();return;}
+    var dt=parseFloat(document.getElementById('dt').value);
     var dE=hbar/(2*dt);
-    if (!isFinite(__energy_time_uncertaintyNum('dt'))) return;
+    if(!isFinite(dE))return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#energy_time_uncertaintyTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['能量展宽 ΔE (eV)', (dE/e).toExponential(3)],
-            ['能量展宽 (J)', (hbar/(2*dt)).toExponential(3)],
-            ['能量展宽 (eV) 重算', (hbar/e/(2*dt)).toExponential(3)],
-            ['时间不确定度 (s)', (dt).toExponential(3)],
+            [en?'Energy-spread lower bound ΔE ≥ ℏ/(2Δt) (eV)':'能量不确定度下界 ΔE ≥ ℏ/(2Δt) (eV)', (dE/e).toExponential(3)],
+            [en?'Energy-spread lower bound (J)':'能量不确定度下界 (J)', dE.toExponential(3)],
+            [en?'Energy-spread lower bound (eV, recomputed)':'能量不确定度下界 (eV) 重算', (hbar/e/(2*dt)).toExponential(3)],
+            [en?'Time uncertainty Δt (s)':'时间不确定度 Δt (s)', dt.toExponential(3)],
         ]
     });
     TBKit.history.record({dt:__energy_time_uncertaintyRaw('dt'), hbar:hbar});
@@ -379,7 +395,7 @@ else document.addEventListener('DOMContentLoaded', __energy_time_uncertaintyBoot
 <script>
 function __etuSweep(){
   var dt0=num('dt');
-  if(!isFinite(dt0)||dt0<=0)return null;
+  if(!isFinite(dt0)||dt0<=0){var _e=document.getElementById('etuChart');if(_e)_e.innerHTML='';return null;}
   var hbar=1.054571817e-34, e=1.602176634e-19;
   var labels=[],dE=[],dJ=[],rows=[];
   var mults=[0.25,0.5,0.75,1,1.5,2,4];

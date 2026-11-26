@@ -254,9 +254,9 @@ const CASES = [
       "dt": "42"
     },
     "expect": [
-      "能量展宽 (J) 7.836e-18"
+      "能量不确定度下界 (J) 7.836e-18"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"dt\":\"42\"}，输出区含「能量展宽 (J) 7.836e-18」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第966批复核：dt=42 s 时 ΔE 下界 =ℏ/(2×42)=1.255e-36 J，页面以科学计数法显示 7.836e-18 eV 与 1.255e-36 J；标签已明确为下界，原「能量展宽 (J)」串随标签更新失效。"
   },
   {
     "slug": "quantum/fermi-energy-3d",
@@ -416,9 +416,10 @@ const CASES = [
       "T": "42"
     },
     "expect": [
-      "度 (W/m2) 6.8995e-5"
+      "0.176",
+      "6.8995e-5"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"A\":\"42\",\"T\":\"42\"}，输出区含「度 (W/m2) 6.8995e-5」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第966批复核：A=T=42 时 M=σT⁴=0.176 W/m2、维恩峰值 6.8995e-5 m；原期望串因标签与值错位已失效，改用两个独立数值断言。默认 A=0.01、T=300 时 M≈459.29、峰值≈9.66e-7 ⇒ 强判别。"
   },
   {
     "slug": "quantum/spin-magnetic-moment",
@@ -538,6 +539,17 @@ const CASES = [
   "expect": ["QMASS OK"],
   "ref": "第278批·公式框电子质量旧值残留修复：公式框改为 9.1093837015×10⁻³¹ kg，与 PAIR_MASS 及同页 CODATA 2018 说明一致；旧值 ⇒ BAD。"
 }
+,
+  { slug: "quantum/stefan-boltzmann-power", inputs: { A: "-1", T: "300" }, expect: ["不能为负数"], ref: "第966批：负面积不再产生负辐射功率，必须拒绝并说明面积/温度只能为非负有限值。" },
+  { slug: "quantum/stefan-boltzmann-power", inputs: { A: "0", T: "300" }, expect: ["0.000", "459.300"], ref: "第966批：面积 0 时总功率 P=0，但辐射出射度 M=σT⁴=459.300 W/m2 仍由温度决定；旧实现 P/(A||1) 会得到 0。" },
+  { slug: "quantum/wien-displacement", inputs: { T: "0" }, expect: ["0 K 无热辐射峰值"], ref: "第966批：0 K 时 λmax=b/T 除零，必须提示无热辐射峰值。" },
+  { slug: "quantum/wien-displacement", inputs: { T: "-5" }, expect: ["0 K 无热辐射峰值"], ref: "第966批：负绝对温度无物理意义，不得输出负峰值波长。" },
+  { slug: "quantum/thermal-de-broglie", inputs: { m: "9.109e-31", T: "0" }, expect: ["不能为 0 或负数"], ref: "第966批：0 K 使 √T=0 除零，必须拒绝；旧实现可输出 Infinity。" },
+  { slug: "quantum/thermal-de-broglie", inputs: { m: "-1", T: "-2" }, expect: ["不能为 0 或负数"], ref: "第966批：质量与温度同时为负时乘积为正，旧实现会得到看似有效的波长；现逐项拒绝。" },
+  { slug: "quantum/band-gap-photon", inputs: { Eg: "0" }, expect: ["0 带隙为金属"], ref: "第966批：0 带隙对应金属，无确定截止波长；必须拒绝而不是输出 Infinity。" },
+  { slug: "quantum/band-gap-photon", inputs: { Eg: "-1.12" }, expect: ["大于 0 eV"], ref: "第966批：负带隙无物理意义，不得输出负波长。" },
+  { slug: "quantum/energy-time-uncertainty", inputs: { dt: "0" }, expect: ["不能为 0 或负数"], ref: "第966批：Δt=0 时 ΔE 除零，必须拒绝；结果标签已明确为下界。" },
+  { slug: "quantum/heisenberg-uncertainty", inputs: { dx: "-1e-10" }, expect: ["不能为 0 或负数"], ref: "第966批：负位置不确定度会产生负动量下界，必须拒绝；结果标签已明确为下界并注明电子质量换算。" }
 ];
 
 "use strict";
