@@ -290,6 +290,15 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 var __ird_validator_last=0,__ird_validator_skip=false,__ird_validator_timer=null;
+function __ird_validatorMask(v){
+    var raw=String(v==null?'':v).trim();
+    var d=raw.replace(/\D/g,'');
+    if(d.length<4) return d ? '****' : '';
+    return d.slice(0,2)+'*'.repeat(Math.max(0,d.length-4))+d.slice(-2);
+}
+function __ird_validatorMaskText(t){
+    return String(t==null?'':t).replace(/\b\d{8,9}\b/g,function(d){return __ird_validatorMask(d);});
+}
 function __ird_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -298,7 +307,7 @@ function __ird_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=e.id==='input'?__ird_validatorMask(v):v;
     }
     return out;
 }
@@ -348,15 +357,21 @@ function __ird_validatorRender(keys,rk,en){
         TBKit.history.mount('#ird_validatorHist',function(rec){
             __ird_validator_skip=true;clearTimeout(__ird_validator_timer);__ird_validator_timer=null;
             try{
+                var __masked=false;
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
+                    if(k==='input'&&/\*/.test(String(rec[k]))){__masked=true;continue;}
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                validate();
+                if(__masked){
+                    document.getElementById('output').textContent='历史记录仅保留脱敏税号，未保存完整号码；请在输入框重新填写后校验。';
+                } else {
+                    validate();
+                }
             }catch(e2){}
             __ird_validator_skip=false;
         });
@@ -369,6 +384,26 @@ function __ird_validatorRender(keys,rk,en){
             TBKit.chart.line('#ird_validatorChart',{labels:labels,series:[{name:en?'Checksum pass trend':'校验通过趋势',data:nums}]});
         }
     }catch(e3){}
+}
+function __ird_validatorMigrateLegacy(){
+    if(typeof TBKit==='undefined'||!TBKit.history) return;
+    try{
+        var arr=TBKit.history.list();
+        var need=false;
+        for(var i=0;i<arr.length;i++){
+            var d=arr[i].d||{};
+            if(d.input&&!/\*/.test(String(d.input))){need=true;break;}
+            for(var k in d){ if(k!=='__tbScore'&&k!=='__tbEmpty'&&k!=='__tbScore'&&/\b\d{8,9}\b/.test(String(d[k]))){need=true;break;} }
+        }
+        if(!need) return;
+        for(var i=0;i<arr.length;i++){
+            var d2=arr[i].d||{};
+            if(d2.input) d2.input=__ird_validatorMask(d2.input);
+            for(var k2 in d2){ if(k2!=='__tbScore'&&k2!=='__tbEmpty') d2[k2]=__ird_validatorMaskText(d2[k2]); }
+        }
+        TBKit.history.clear();
+        for(var j=arr.length-1;j>=0;j--) TBKit.history.record(arr[j].d);
+    }catch(e){}
 }
 function __ird_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
@@ -399,12 +434,14 @@ function __ird_validatorExtras(force){
     }
     __ird_validator_last=now;
     var rec={};
-    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
-    rec[rk]=res;
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=__ird_validatorMaskText(snap[keys[i]]);
+    rec[rk]=__ird_validatorMaskText(res);
     rec.__tbScore=__ird_validatorScore(__ird_validatorFullResText());
     TBKit.history.record(rec);
     __ird_validatorRender(keys,rk,en);
 }
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){setTimeout(__ird_validatorMigrateLegacy,0);});
+else setTimeout(__ird_validatorMigrateLegacy,0);
 function __ird_validatorExport(){
     if (typeof TBKit === 'undefined') return;
     __ird_validatorExtras(true);

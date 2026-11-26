@@ -1508,8 +1508,8 @@ const CASES = [
       custodyFee: "0.2",
     },
     clicks: ["setRate(8)"],
-    expect: ["费用合计 ¥1,599.70"],
-    ref: "初始申购费 50、月投申购费 600、加赎回费；月末按增长后净值买入，期末资产 188,989.59，费用合计 1,599.70。管理费与托管费已反映在净值增长率中，不重复计入申购赎回费用。",
+    expect: ["费用合计 ¥12,291.97"],
+    ref: "初始申购费 50、月投申购费 600、加赎回费；月末按增长后净值买入，期末资产 188,989.59，费用合计改为 12,291.97：除申购费 650、赎回费 944.95 外，新口径把逐月计提的管理费 10,728.63 与托管费 2,145.73 一并计入；净值得失仍由扣除费率后的月收益率驱动，不重复扣减。",
   },
   {
     slug: "finance/mutual-fund-calculator",
@@ -3644,9 +3644,9 @@ const CASES = [
       "sellFee": "42"
     },
     "expect": [
-      "期末资产 ¥403.68 累计收益 -¥20,806.32 费用合计 ¥9,200.52"
+      "期末资产 ¥403.68 累计收益 -¥20,806.32 费用合计 ¥32,413.35"
     ],
-    "ref": "月末买入下 42 年、42% 收益和各项 42% 费率时，期末资产 403.68、亏损 20,806.32、申购赎回费用 9,200.52。"
+    "ref": "月末买入下 42 年、42% 收益和各项 42% 费率时，期末资产 403.68、亏损 20,806.32；费用合计改为 32,413.35，除申购/赎回费外包含逐月管理费与托管费，旧用例只统计交易费 9,200.52 会系统性偏低。"
   },
   {
     "slug": "finance/rental-yield-calculator",
@@ -5638,6 +5638,64 @@ const CASES = [
     clicks: ["switchTab('compare');calcCompare();"],
     expect: ["A 共 1 次、B 共 2 次", "方案A终值 ¥ 1,100.00", "方案B终值 ¥ 1,200.00"],
     ref: "第936批：每年期初追加按真实离散日期发生：0.5 年仅 t=0 一次（A 投入 1100），1.5 年在 t=0、1 两次（B 投入 1200）；旧实现按 0.5/1.5 比例折算成 50/150 元。零利率下终值等于累计投入，可直观验证次数。",
+  }
+,
+  // ===== 第937批新增 =====
+  {
+    slug: "finance/simple-interest",
+    inputs: { principal: "1000", rate: "10", years: "0.5" },
+    clicks: ["calc()"],
+    expect: ["不足一年按 (1+年利率)^年数 比例折算", "比单利少 1.19"],
+    ref: "第937批：0.5 年、10% 时复利本利和 1048.81 低于单利 1050，旧文案固定「比单利多」并显示负差额；现按差额正负输出多/少/相同，并说明不足一年按幂次比例折算、非真实付息日复利。",
+  },
+  {
+    slug: "finance/compound-interest",
+    inputs: { principal: "10000", rate: "", years: "10" },
+    clicks: ["calc()"],
+    expect: ["请输入年化利率（如确为 0%，请明确输入 0）"],
+    ref: "第937批：年化利率留空不再按 0% 复利计算并显示「本利和等于本金」；显式输入 0 仍合法，负值/年限 0 也改为具体提示。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/currency-converter.html','utf8');var a=h.indexOf('role=\"tab\"')>=0&&h.indexOf('aria-selected')>=0&&h.indexOf('id=\"tabbtn-about\"')>=0&&h.indexOf('role=\"button\" tabindex=\"0\"')>=0;document.getElementById('__tbProbe').textContent='CCTAB '+(a?'OK':'BAD');"],
+    expect: ["CCTAB OK"],
+    ref: "第937批：五个页签改为原生 button + role=tab/aria-selected/aria-controls，切换时同步 roving tabindex；旧实现为无键盘入口的 div。历史项改为可聚焦 role=button 并支持 Enter/Space，删除改为独立命名按钮。",
+  },
+  {
+    slug: "finance/amount-in-words",
+    inputs: { money: "1234.56" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/amount-in-words.html','utf8');var a=h.indexOf('href=\"tax-calculator.html\"')>=0,b=h.indexOf('href=\"invoice-generator.html\"')>=0,c=h.indexOf('onclick=\"copyPlainResult()\"')>=0;document.getElementById('__tbProbe').textContent='AWREL '+((a&&b&&c)?'OK':'BAD');"],
+    expect: ["AWREL OK"],
+    ref: "第937批：相关推荐从单词反转/字数统计等文本工具换成数字转中文、英文金额、发票、个税、税后工资、贷款月供等财务工具；新增「复制纯大写金额」避免把整段报告复制进票据。",
+  },
+  {
+    slug: "finance/assessor-manager",
+    inputs: { debtRatio: "55", currentRatio: "1.8", revenue: "5000", profitMargin: "12", overdue: "1", creditHistory: "5" },
+    clicks: ["localStorage.removeItem('tbk_hist_'+location.pathname);calc();__assessor_managerExtras(true);var n=JSON.parse(localStorage.getItem('tbk_hist_'+location.pathname)||'[]').length;document.getElementById('__tbProbe').textContent='ASPRIV '+((n===0&&document.getElementById('assessorRememberHistory').checked===false)?'OK':'BAD');"],
+    expect: ["ASPRIV OK"],
+    ref: "第937批：客户财务指标属敏感信息，历史默认不写入；只有本机勾选「保存评估历史」才记录，并提供清除入口。旧实现每次 calc 自动写入 localStorage。",
+  },
+  {
+    slug: "finance/housing-fund-loan",
+    inputs: { balance: "", housePrice: "200", city: "shanghai" },
+    clicks: ["calc()"],
+    expect: ["账户余额尚未填写", "留空不会被当作零额度计算"],
+    ref: "第937批：账户余额留空不再 parseFloat||0 后显示 0 额度，而是点名缺项并提示 0 需显式输入；显式 0 仍合法。",
+  },
+  {
+    slug: "finance/mutual-fund-calculator",
+    inputs: { monthly: "1000", years: "10", rate: "8", initial: "0", buyFee: "0.15", manageFee: "1.5", custodyFee: "0.25", sellFee: "0.5" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/mutual-fund-calculator.html','utf8');var a=h.indexOf('totalFees += monthly * buyFee + balance * (monthlyManageFee + monthlyCustodyFee)')>=0,b=h.indexOf('管理费/托管费按当月存量资产逐月计提')>=0;document.getElementById('__tbProbe').textContent='MFFEE '+((a&&b)?'OK':'BAD');"],
+    expect: ["MFFEE OK"],
+    ref: "第937批：费用合计过去只累计申购/赎回费，管理费与托管费只体现在净值扣减、未计入金额；现按每月计费基数把两类年费并入 totalFees，并用 42 年 42% 极端组复核数值 32,413.35。",
+  },
+  {
+    slug: "finance/ird-validator",
+    inputs: { input: "490918507" },
+    clicks: ["var m=__ird_validatorMask('490918507');var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/ird-validator.html','utf8');var a=h.indexOf(\"out[e.id]=e.id==='input'?__ird_validatorMask(v):v\")>=0,b=h.indexOf('__ird_validatorMigrateLegacy')>=0;document.getElementById('__tbProbe').textContent='IRDPRIV '+((m==='49*****07'&&a&&b)?'OK':'BAD')+' m='+m;"],
+    expect: ["IRDPRIV OK"],
+    ref: "第937批：历史与结果快照只保存脱敏税号（前 2 后 2），完整 8–9 位号码不落 localStorage；历史回放遇到掩码明确提示重新输入，并迁移清理旧的全号记录。",
   }
 
 ];
