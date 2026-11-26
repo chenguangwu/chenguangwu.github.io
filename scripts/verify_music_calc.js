@@ -4,7 +4,7 @@ const { runCase } = require("./verify_it_calc.js");
 const fs=require("fs"), path=require("path");
 function musicStaticChecks(){
   const read=(p)=>fs.readFileSync(path.join(__dirname,"..","tools","music",p),"utf8");
-  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html"), fq=read("freq-note-converter.html"), sp=read("convert-speed.html"), dt=read("detector.html");
+  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html"), fq=read("freq-note-converter.html"), sp=read("convert-speed.html"), dt=read("detector.html"), ac=read("audio-converter.html"), ma=read("music-analysis.html");
   return [
     {name:"和弦进行降E映射、悲怆四级与大调高频",ok:/'Eb':3/.test(cp)&&!/'Eb':2/.test(cp)&&/qualities:\s*\['',\s*'m',\s*'',\s*'m'\]/.test(cp)&&/48 \+ chordRoot/.test(cp)&&/spellChordNote\(rootName/.test(cp)},
     {name:"和弦进行停止清理全部高亮定时器",ok:/highlightTimeouts/.test(cp)&&/highlightTimeouts\.forEach/.test(cp)&&/if \(isPlaying\) highlightChord/.test(cp)},
@@ -16,7 +16,9 @@ function musicStaticChecks(){
     {name:"节拍器播放中实时读取参数",ok:/function metroSettings/.test(bs)&&/readBpm\('metroBpm', 20, 300\)/.test(bs)&&/st\.interval/.test(bs)&&/setTimeout\(metroTick/.test(bs)&&!/setInterval\(\s*\(\) => \{\s*scheduleClick/.test(bs)},
     {name:"音符转频率八度整数与试听范围",ok:/octaveValid/.test(fq)&&/Math\.floor\(octave\) === octave/.test(fq)&&/canAudition/.test(fq)&&/AUDIBLE_MIN/.test(fq)&&!/Math\.max\(20, Math\.min\(freq, 20000\)/.test(fq)},
     {name:"变速比例与相对变化分开标注",ok:/目标速度占原速比例/.test(sp)&&/相对变化/.test(sp)&&/__ratio/.test(sp)},
-    {name:"节拍检测新一轮清空旧结果",ok:/function clearResult/.test(dt)&&/updateDisplay[\s\S]{0,200}clearResult\(\)/.test(dt)&&/resetBPM[\s\S]{0,300}clearResult\(\)/.test(dt)}
+    {name:"节拍检测新一轮清空旧结果",ok:/function clearResult/.test(dt)&&/updateDisplay[\s\S]{0,200}clearResult\(\)/.test(dt)&&/resetBPM[\s\S]{0,300}clearResult\(\)/.test(dt)},
+    {name:"音频格式十进制容量与英文免责",ok:/totalBytes \/ 1e6/.test(ac)&&/320 \* 1000 \* dur \/ 8 \/ 1e6/.test(ac)&&/no upload or transcoding/.test(ac)&&!/Convert audio files between common formats/.test(ac)},
+    {name:"音频分析容量十进制与统计清空",ok:/totalBytes \/ 1e6/.test(ma)&&/function clearStats/.test(ma)&&/clearStats\(\)/.test(ma)&&/bytesPerSec \/ 1000/.test(ma)}
   ];
 }
 const CASES = [
@@ -40,7 +42,7 @@ const CASES = [
     "ch": "2",
     "dur": "180"
   },
-  "expect": [ "45.42 MB" ],
+  "expect": [ "47.63 MB" ],
   "ref": "auto-restore"
 },
 {
@@ -174,7 +176,7 @@ const CASES = [
     "duration-sec": "60"
   },
   "expect": [
-    "258.40"
+    "264.60"
   ],
   "ref": "auto-restore"
 },
@@ -381,42 +383,42 @@ const CASES = [
     slug: "music/audio-converter",
     inputs: { sr: "8000", bd: "16", ch: "1", dur: "60" },
     clicks: ["calcPCM()"],
-    expect: ["PCM 原始大小: 0.92 MB"],
+    expect: ["PCM 原始大小: 0.96 MB"],
     ref: '8000/16/1/60s 电话级单声道 0.92MB'
   },
   {
     slug: "music/audio-converter",
     inputs: { sr: "44100", bd: "16", ch: "2", dur: "300" },
     clicks: ["calcPCM()"],
-    expect: ["PCM 原始大小: 50.47 MB"],
+    expect: ["PCM 原始大小: 52.92 MB"],
     ref: '44100/16/2/300s CD音质5分钟 50.47MB'
   },
   {
     slug: "music/audio-converter",
     inputs: { sr: "48000", bd: "24", ch: "2", dur: "120" },
     clicks: ["calcPCM()"],
-    expect: ["PCM 原始大小: 32.96 MB"],
+    expect: ["PCM 原始大小: 34.56 MB"],
     ref: '48000/24/2/120s 专业录音2分钟 32.96MB'
   },
   {
     slug: "music/audio-converter",
     inputs: { sr: "96000", bd: "16", ch: "2", dur: "60" },
     clicks: ["calcPCM()"],
-    expect: ["PCM 原始大小: 21.97 MB"],
+    expect: ["PCM 原始大小: 23.04 MB"],
     ref: '96000/16/2/60s 高清1分钟 21.97MB'
   },
   {
     slug: "music/audio-converter",
     inputs: { sr: "22050", bd: "8", ch: "1", dur: "180" },
     clicks: ["calcPCM()"],
-    expect: ["PCM 原始大小: 3.79 MB"],
+    expect: ["PCM 原始大小: 3.97 MB"],
     ref: '22050/8/1/180s AM广播单声道3分钟 3.79MB'
   },
   {
     slug: "music/audio-converter",
     inputs: { sr: "192000", bd: "32", ch: "2", dur: "30" },
     clicks: ["calcPCM()"],
-    expect: ["PCM 原始大小: 43.95 MB"],
+    expect: ["PCM 原始大小: 46.08 MB"],
     ref: '192000/32/2/30s 母带30秒 43.95MB'
   },
   {
@@ -629,6 +631,42 @@ const CASES = [
   "clicks": ["try{tapTimes=[1000,2000];updateDisplay();var r=document.getElementById('res');var had=r.style.display;tapTimes=[3000];updateDisplay();document.getElementById('bpmNum').textContent='DET '+had+'|'+r.style.display+'|'+r.innerHTML.length;}catch(e){document.getElementById('bpmNum').textContent='DETERR '+e.message;}"],
   "expect": ["DET block|none|0"],
   "ref": "新一轮只有 1 次点击时必须隐藏并清空上一轮 BPM 结果；旧实现只把 bpmNum 改「—」，res 仍 display:block 且保留旧 BPM。"
+}
+,
+{
+  "slug": "music/audio-converter",
+  "inputs": { "sr": "44100", "bd": "", "ch": "2", "dur": "180" },
+  "clicks": ["calcPCM()"],
+  "expect": ["位深 1–64 bit", "都必须填写有效值"],
+  "ref": "单项空值不得静默回退 16 bit；旧实现 `||16` 会继续输出容量，新实现逐项校验并在结果区给出范围提示。"
+},
+{
+  "slug": "music/audio-converter",
+  "inputs": { "sr": "44100", "bd": "16", "ch": "2", "dur": "-60" },
+  "clicks": ["calcPCM()"],
+  "expect": ["时长 >0 秒", "都必须填写有效值"],
+  "ref": "负时长必须拒绝，旧实现会输出负容量。"
+},
+{
+  "slug": "music/audio-converter",
+  "inputs": { "sr": "44100", "bd": "16", "ch": "2", "dur": "180" },
+  "clicks": ["calcPCM()"],
+  "expect": ["转 MP3 320k: <strong>≈ 7.20 MB", "PCM 原始大小: 31.75 MB"],
+  "ref": "十进制口径：44100×16/8×2×180=31,752,000 B=31.75 MB；320 kbps×1000×180/8/1e6=7.20 MB。旧实现按 MiB 与 1024 得 29.06/7.03，口径混杂。"
+},
+{
+  "slug": "music/music-analysis",
+  "inputs": { "sample-rate": "", "bit-depth": "16", "channels": "2", "duration-sec": "60" },
+  "clicks": ["calcAudioSize()"],
+  "expect": ["采样率 1–768000 Hz", "都必须填写有效值"],
+  "ref": "采样率清空不得回退 44100；旧实现 `||44100` 静默输出默认容量。"
+},
+{
+  "slug": "music/music-analysis",
+  "inputs": {},
+  "clicks": ["['stat-freq','stat-note','stat-cent','stat-octave'].forEach(function(id){document.getElementById(id).textContent='OLD';});clearStats();document.getElementById('audio-size-result').textContent='CLR '+['stat-freq','stat-note','stat-cent','stat-octave'].map(function(id){return document.getElementById(id).textContent;}).join('|');"],
+  "expect": ["CLR —|—|—|—"],
+  "ref": "clearStats 必须把频率/音名/音分/八度四项统计统一复位为「—」；旧实现静音与停止只清主显示，四项保留上一帧。"
 }
 
 ];

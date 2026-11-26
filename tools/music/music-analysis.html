@@ -296,12 +296,19 @@ async function startAnalysis() {
 
     document.getElementById('start-btn').disabled = true;
     document.getElementById('stop-btn').disabled = false;
-    ToolBox.showToast(i18nText(), 'success');
+    ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Microphone enabled; start playing':'麦克风已启用，请开始发声','success');
 
     analyze();
   } catch(e) {
     ToolBox.showToast('无法访问麦克风: ' + e.message, 'warn');
   }
+}
+
+function clearStats() {
+  ['stat-freq','stat-note','stat-cent','stat-octave'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = '—';
+  });
 }
 
 function stopAnalysis() {
@@ -316,6 +323,7 @@ function stopAnalysis() {
   document.getElementById('stop-btn').disabled = true;
   document.getElementById('freq-display').textContent = '— Hz';
   document.getElementById('note-display').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Stopped":"已停止");
+  clearStats();
   waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
 }
 
@@ -351,10 +359,15 @@ function analyze() {
       document.getElementById('stat-note').textContent = note.note + note.octave;
       document.getElementById('stat-cent').textContent = (note.cents > 0 ? '+' : '') + note.cents;
       document.getElementById('stat-octave').textContent = note.octave;
+    } else {
+      document.getElementById('freq-display').textContent = '— Hz';
+      document.getElementById('note-display').textContent = (typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Waiting for sound...':'等待声音...';
+      clearStats();
     }
   } else {
     document.getElementById('freq-display').textContent = '— Hz';
-    document.getElementById('note-display').textContent = '等待声音...';
+    document.getElementById('note-display').textContent = (typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Waiting for sound...':'等待声音...';
+    clearStats();
   }
 
   animationId = requestAnimationFrame(analyze);
@@ -395,16 +408,29 @@ function autoCorrelate(buffer, sampleRate) {
 }
 
 function calcAudioSize() {
-  const sr = +document.getElementById('sample-rate').value || 44100;
-  const bd = +document.getElementById('bit-depth').value || 16;
-  const ch = +document.getElementById('channels').value || 2;
-  const dur = +document.getElementById('duration-sec').value || 60;
+  function readNum(id, min, max, integer) {
+    const el = document.getElementById(id);
+    const raw = String(el && el.value != null ? el.value : '').trim();
+    if (raw === '') return null;
+    const n = Number(raw);
+    if (!isFinite(n) || n < min || n > max) return null;
+    if (integer && Math.floor(n) !== n) return null;
+    return n;
+  }
+  const sr = readNum('sample-rate', 1, 768000, true);
+  const bd = readNum('bit-depth', 1, 64, true);
+  const ch = readNum('channels', 1, 8, true);
+  const dur = readNum('duration-sec', 0.001, 86400, false);
+  if (sr == null || bd == null || ch == null || dur == null) {
+    document.getElementById('audio-size-result').innerHTML = '<p style="color:var(--danger)">采样率、位深、声道数、时长都必须填写有效值：采样率 1–768000 Hz、位深 1–64 bit、声道 1–8、时长 >0 秒。</p>';
+    return;
+  }
   const bytesPerSec = sr * bd / 8 * ch;
   const totalBytes = bytesPerSec * dur;
-  const totalMB = totalBytes / (1024 * 1024);
+  const totalMB = totalBytes / 1e6;
   const __h0=`
     <p>码率: <strong>${(bytesPerSec * 8 / 1000).toFixed(0)} kbps</strong></p>
-    <p>每秒: <strong>${(bytesPerSec / 1024).toFixed(2)} KB/s</strong></p>
+    <p>每秒: <strong>${(bytesPerSec / 1000).toFixed(2)} KB/s（十进制）</strong></p>
     <p>${dur}秒总大小: <strong>${totalMB.toFixed(2)} MB</strong></p>
     <p>每小时: <strong>${(totalMB * 3600 / dur).toFixed(2)} MB</strong></p>
   `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('audio-size-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('audio-size-result').innerHTML=__h0;
@@ -579,8 +605,8 @@ else document.addEventListener('DOMContentLoaded', __music_analysisBoot);
       <span class="rt-info"><span class="rt-name">歌曲速度转换（BPM微调）</span><span class="rt-desc">输入原曲BPM与目标BPM，计算速度比例与新时长，给出提速/降速百分比，用于翻唱移调、练琴跟拍等音乐…</span></span>
     </a>
     <a href="audio-converter.html" class="related-tool-card">
-      <span class="rt-icon">🔄</span>
-      <span class="rt-info"><span class="rt-name">音频转换</span><span class="rt-desc">对比 WAV/MP3/FLAC 等常见音频格式特点，输入采样率、位深与声道数计算 PCM 原始文件大…</span></span>
+      <span class="rt-icon">🧊</span>
+      <span class="rt-info"><span class="rt-name">音频格式与容量估算</span><span class="rt-desc">对比 WAV/MP3/FLAC 等常见音频格式特点，输入采样率、位深与声道数计算 PCM 原始文件大…</span></span>
     </a>
   </div>
 </div>
