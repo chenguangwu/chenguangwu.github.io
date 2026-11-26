@@ -53,6 +53,12 @@ const CASES = [
   clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/audio/audio-waveform.html','utf8');document.getElementById('__tbProbe').textContent='AUDIOWAVE '+((src.indexOf('role=\"slider\"')>=0&&src.indexOf(\"progressTrack').addEventListener('keydown\")>=0)?'OK':'BAD');"],
   expect: ["AUDIOWAVE OK"],
   ref: "第883批：波形播放器进度条补键盘语义，方向键 ±5 秒、Shift ±1 秒、Home/End 跳首尾，并同步 aria-valuenow。"
+},
+{
+  slug: "audio/audio-waveform",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/audio/audio-waveform.html','utf8');var ok=src.indexOf('__overviewState')>=0&&src.indexOf('retryOverview')>=0&&src.indexOf('Math.floor(i * samples / bucketCount)')>=0&&src.indexOf('Math.floor(i * bufLen / barCount)')>=0&&src.indexOf('Oscilloscope')>=0&&src.indexOf('Playback failed')>=0;document.getElementById('__tbProbe').textContent='AVWAVE2 '+(ok?'OK':'BAD');"],
+  expect: ["AVWAVE2 OK"],
+  ref: "第1020批：概览分桶按 samples/bucketCount 比例覆盖首尾且桶数不超过样本数；频谱按 bufLen/barCount 比例覆盖尾部高频；解码状态 idle/loading/ok/fail + retryOverview；画布标签与播放失败提示按 __awEn() 输出英文。"
 }
 ];
 async function main() {
