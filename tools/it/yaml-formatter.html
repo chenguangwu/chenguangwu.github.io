@@ -409,7 +409,7 @@ function minifyYaml() {
   }
   try {
     const docs = yamlLoadAll(input);
-    const minified = docs.map(function(d){ return JSON.stringify(d); }).join('\n---\n');
+    const minified = docs.map(function(d){ return jsyaml.dump(d, { flowLevel: 0, lineWidth: -1, noRefs: true, quotingType: '"' }); }).join('---\n');
     document.getElementById('output').textContent = minified;
     if (yamlLossy(input)) showNotice('提示：注释、锚点与别名不会保留，请核对关键配置。');
     addToHistory('压缩', input);
@@ -435,6 +435,16 @@ function validateYaml() {
   }
 }
 
+function yamlJsonUnsupported(v, path){
+  if(typeof v === 'number' && !isFinite(v)) return path + ' (' + String(v) + ')';
+  if(typeof v === 'undefined' || typeof v === 'function' || typeof v === 'symbol') return path + ' (' + typeof v + ')';
+  if(Array.isArray(v)){
+    for(let i=0;i<v.length;i++){ const bad = yamlJsonUnsupported(v[i], path + '[' + i + ']'); if(bad) return bad; }
+  } else if(v && typeof v === 'object'){
+    for(const k of Object.keys(v)){ const bad = yamlJsonUnsupported(v[k], path + '.' + k); if(bad) return bad; }
+  }
+  return '';
+}
 function yamlToJson() {
   const input = document.getElementById('yaml-input').value;
   if (!input.trim()) {
@@ -443,7 +453,16 @@ function yamlToJson() {
   }
   try {
     const docs = yamlLoadAll(input);
-    const json = JSON.stringify(docs.length === 1 ? docs[0] : docs, null, 2);
+    const root = docs.length === 1 ? docs[0] : docs;
+    const bad = yamlJsonUnsupported(root, 'root');
+    if(bad){
+      const en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) || /lang=en-US/i.test(location.search);
+      document.getElementById('json-output').textContent = en
+        ? '❌ Cannot convert to JSON losslessly: ' + bad + ' is a non-finite number (.inf/-.inf/.nan) or an unsupported type. Use YAML output instead.'
+        : '❌ 无法无损转换为 JSON：' + bad + ' 是非有限数（.inf/-.inf/.nan）或 JSON 不支持的类型。请改用 YAML 输出保留原值。';
+      return;
+    }
+    const json = JSON.stringify(root, null, 2);
     document.getElementById('json-output').textContent = json;
     ToolBox.showToast(i18nText('toast.msg966'), 'success');
   } catch(e) {

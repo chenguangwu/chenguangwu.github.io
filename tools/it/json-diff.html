@@ -472,11 +472,15 @@ function jdParse(text, side) {
     i += m[0].length;
     const raw = m[0];
     const asNum = Number(raw);
-    if (/^-?[0-9]+$/.test(raw) && !Number.isSafeInteger(asNum)) return new JDNumber(raw);
-    if (raw.indexOf('.') >= 0) {
-      const sig = raw.replace(/^-/, '').replace(/\./, '').replace(/^0+/, '').replace(/0+/, '');
-      if (sig.length > 15) return new JDNumber(raw);
+    const sig = raw.replace(/^-/, '').replace(/[eE].*$/, '').replace(/\./, '').replace(/^0+/, '').replace(/0+$/, '');
+    if (/[eE]/.test(raw)) {
+      const exp = parseInt(raw.replace(/^.*[eE]/, ''), 10);
+      if (!isFinite(asNum)) return new JDNumber(raw);
+      if (!isFinite(exp) || (exp < -308 && sig)) return new JDNumber(raw);
+      if (asNum === 0 && sig) return new JDNumber(raw);
     }
+    if (/^-?[0-9]+$/.test(raw) && !Number.isSafeInteger(asNum)) return new JDNumber(raw);
+    if (sig.length > 15) return new JDNumber(raw);
     return asNum;
   }
   function parseValue(path) {

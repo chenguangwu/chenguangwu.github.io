@@ -269,24 +269,71 @@ function __tbInputGuardCore(_ids,_labels){
 }
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __vsEffectiveDx(v0,a,dx){
+            if(dx<0) return dx;
+            if(v0<0) return -dx;
+            if(v0===0 && a<0) return -dx;
+            return dx;
+        }
+function __vsSolve(v0,a,dx){
+            if(!isFinite(v0)||!isFinite(a)||!isFinite(dx)) return [];
+            const eff=__vsEffectiveDx(v0,a,dx);
+            if(a===0){
+                if(v0===0) return dx===0 ? [{t:0,v:0}] : [];
+                const t=Math.abs(dx)/Math.abs(v0);
+                return [{t,v:v0}];
+            }
+            const disc=v0*v0+2*a*eff;
+            if(!isFinite(disc)||disc<0) return [];
+            const sq=Math.sqrt(disc);
+            const roots=[(-v0+sq)/a,(-v0-sq)/a].filter(t=>isFinite(t)&&t>=-1e-9);
+            const out=[];
+            for(const t of roots){
+                const v=v0+a*t;
+                if(!out.some(function(o){return Math.abs(o.t-t)<1e-7;})) out.push({t:Math.max(0,t),v});
+            }
+            out.sort(function(x,y){return x.t-y.t;});
+            return out;
+        }
 function calcTool(){
+            __vsLast={valid:false};
             var __ig=__tbInputGuard(['v0','a','dx'],['初速度 v₀ (m/s)','加速度 a (m/s²)','位移 Δx (m)']);if(__ig){const __g0='<p style="color:var(--danger)">⚠ '+__ig+'</p>';ToolBox.setResult('result',(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')));return;}
             const v0 = num('v0'), a = num('a'), dx = num('dx');
-            const rad = v0*v0 + 2*a*dx;
-            if(!isFinite(rad)||rad < 0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 该位移在当前初速度与加速度下不可达（v²−v₀² = '+rad.toFixed(3)+' < 0），请检查位移方向或加速度。</p>');return;}
+            const rad = v0*v0 + 2*a*__vsEffectiveDx(v0,a,dx);
+            const branches = __vsSolve(v0,a,dx);
+            if(!branches.length){
+                const reason = (!isFinite(rad)||rad<0)
+                    ? '该位移在当前初速度与加速度下不可达（v²−v₀² = '+rad.toFixed(3)+' < 0），请检查位移方向或加速度。'
+                    : '在该位移下不存在非负时间解，请检查位移方向或初速度。';
+                __vsLast={valid:false,reason};
+                ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+reason+'</p>');
+                return;
+            }
             const speed = Math.sqrt(rad);
-            let signed, branch, dv;
-            if(a === 0){ signed = v0.toFixed(3); branch = '加速度为 0，速度保持初速度'; dv = '0.000'; }
-            else if(v0 >= 0){ signed = speed.toFixed(3); branch = '初速度非负，取正向分支'; dv = (speed-v0).toFixed(3); }
-            else if(a <= 0){ signed = (-speed).toFixed(3); branch = '初速度为负且不加速，取负向分支'; dv = (-speed-v0).toFixed(3); }
-            else { signed = '±'+speed.toFixed(3); branch = '初速度为负、加速度为正，可能已反向；有符号速度需结合运动过程判断'; dv = '无法唯一确定（存在 ±'+speed.toFixed(3)+' 两个分支）'; }
+            const vs = branches.map(function(b){return b.v;});
+            const uniqueV = vs.filter(function(v,i){return vs.findIndex(function(x){return Math.abs(x-v)<1e-7;})===i;});
+            let signed, branch, dv, primary;
+            if(uniqueV.length===1){
+                primary=uniqueV[0];
+                signed=primary.toFixed(3);
+                dv=(primary-v0).toFixed(3);
+                if(a===0) branch='加速度为 0，速度保持初速度 '+v0.toFixed(3)+' m/s（t='+branches[0].t.toFixed(3)+' s）。';
+                else if(Math.abs(primary)<1e-9) branch='在 t='+branches[0].t.toFixed(3)+' s 处速度恰为 0（到达转向点）。';
+                else branch='可行时刻 t='+branches[0].t.toFixed(3)+' s 时速度为 '+primary.toFixed(3)+' m/s；平方根只给速率，方向由运动过程确定。';
+            } else {
+                primary=vs[0];
+                signed=vs.map(function(v){return (v>=0?'+':'')+v.toFixed(3);}).join(' / ');
+                dv='无法唯一确定（两个时刻的速度分别为 '+vs.map(function(v){return v.toFixed(3);}).join(' / ')+' m/s）';
+                branch='该位移可在两个非负时刻到达：'+branches.map(function(b,i){return 't='+b.t.toFixed(3)+' s → v='+vs[i].toFixed(3)+' m/s';}).join('；')+'。有符号速度需结合运动过程选择。';
+            }
+            __vsLast={valid:true,speed,rad,signed,dv,v0,a,dx,branches};
             const __g1=dataGrid([
                 [speed.toFixed(3), '速率 |v| (m/s)'],
                 [signed, '有符号速度 v (m/s)'],
                 [(rad).toFixed(3), '速度平方增量 v²−v₀²'],
                 [(speed-Math.abs(v0)).toFixed(3), '速率增量 |v|−|v₀| (m/s)'],
                 [dv, '速度增量 Δv (m/s)']
-            ])+'<div class="info-box" style="margin-top:12px;">'+branch+'。平方根只给出速率，方向须由初速度与加速度判断。</div>';ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+            ])+'<div class="info-box" style="margin-top:12px;">'+branch+'</div>';ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('v0').value = '0';
       document.getElementById('a').value = '9.8';
@@ -299,18 +346,18 @@ function __velocity_squaredExtras(){
     function __velocity_squaredRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var v0 = num('v0'), a = num('a'), dx = num('dx');
-    var v = Math.sqrt(v0 * v0 + 2 * a * dx);
     if (!isFinite(__velocity_squaredNum('v0')) || !isFinite(__velocity_squaredNum('a')) || !isFinite(__velocity_squaredNum('dx'))) return;
     var en=TBKit.util.isEn();
+    var last=globalThis.__vsLast;
     TBKit.matrix.table('#velocity_squaredTable',{
         head: en?['Item','Value']:['项目','数值'],
-        rows: [
-            ['末速度 v (m/s)', v.toFixed(3)],
-            ['速度平方增量 v²−v₀²', (v*v-v0*v0).toFixed(3)],
-            ['速度增量 Δv (m/s)', (v-v0).toFixed(3)],
+        rows: (!last||!last.valid) ? [] : [
+            ['末速度 v (m/s)', last.signed],
+            ['速度平方增量 v²−v₀²', last.rad.toFixed(3)],
+            ['速度增量 Δv (m/s)', last.dv],
         ]
     });
-    TBKit.history.record({v0:__velocity_squaredRaw('v0'), a:__velocity_squaredRaw('a'), dx:__velocity_squaredRaw('dx'), v:v});
+    TBKit.history.record({v0:__velocity_squaredRaw('v0'), a:__velocity_squaredRaw('a'), dx:__velocity_squaredRaw('dx'), v:(last&&last.valid?last.signed:'')});
     function __velocity_squaredRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#velocity_squaredHist',function(rec){ __velocity_squaredRestore(rec); calcTool(); });
     TBKit.util.diffBox('#velocity_squaredDiff',['v']);

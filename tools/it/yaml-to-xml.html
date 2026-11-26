@@ -274,6 +274,7 @@ function yUnescapeDouble(inner){
   }
   return out;
 }
+var __yamlRawLines=[];
 function yScalar(s){
   s=yStripInlineComment(s).trim();
   if(s==='')return '';
@@ -297,13 +298,14 @@ function yIsMapEntry(s){
 }
 function parseYaml(text){
   var lines=text.replace(/\r/g,'').split('\n');
+  __yamlRawLines=lines;
   var items=[];
   for(var i=0;i<lines.length;i++){
     var raw=lines[i]; var s=raw.trim();
     if(!s) continue;
     // IT-N354：`#text:` 是本工具的「元素文本」约定，不能当注释整行丢掉
     if(s[0]==='#' && !/^#text\s*:/.test(s)) continue;
-    items.push({ind:raw.length-raw.trimStart().length, content:s});
+    items.push({ind:raw.length-raw.trimStart().length, content:s, line:i});
   }
   if(!items.length) return {};
   var p={i:0};
@@ -312,13 +314,34 @@ function parseYaml(text){
   if(head.content[0]!=='-' && !yIsMapEntry(head.content)) return yScalar(head.content);
   return yBlock(items, items[0].ind, p);
 }
-function yCollectBlock(items, indent, p, indicator){
-  var lines=[];
-  while(p.i<items.length && items[p.i].ind>indent){ lines.push(items[p.i].content); p.i++; }
-  var text=indicator.charAt(0)==='|' ? lines.join('\n') : lines.join(' ').replace(/\s+/g,' ').trim();
+function yCollectBlock(items, indent, p, indicator, startLine){
+  var endLine = startLine - 1;
+  while(p.i<items.length && items[p.i].ind>indent){ p.i++; }
+  endLine = p.i<items.length ? (items[p.i].line - 1) : (__yamlRawLines.length - 1);
+  var raw = __yamlRawLines.slice(startLine, endLine + 1);
+  var common = -1;
+  for(var i=0;i<raw.length;i++){ if(raw[i].trim()!==''){ var ind=raw[i].length-raw[i].trimStart().length; if(common<0 || ind<common) common=ind; } }
+  var body = raw.map(function(line){
+    if(line.trim()==='') return '';
+    return common>=0 && line.length>=common ? line.slice(common) : line;
+  });
+  var trailing=0;
+  while(body.length && body[body.length-1].trim()===''){ body.pop(); trailing++; }
+  var text;
+  if(indicator.charAt(0)==='|'){
+    text = body.join('\n');
+  } else {
+    text = '';
+    for(var j=0;j<body.length;j++){
+      var ln=body[j];
+      if(ln.trim()===''){ if(!text.endsWith('\n')) text+='\n'; text+='\n'; }
+      else if(/^\s/.test(ln)){ if(text && !text.endsWith('\n')) text+='\n'; text+=ln+'\n'; }
+      else { if(text && !text.endsWith('\n') && !text.endsWith(' ')) text+=' '; text+=ln; }
+    }
+  }
   if(indicator.indexOf('-')>=0) return text;
-  if(indicator.indexOf('+')>=0) return text+'\n';
-  return text+'\n';
+  if(indicator.indexOf('+')>=0) return text ? text + '\n'.repeat(Math.max(1, trailing)) : '\n'.repeat(trailing);
+  return text ? text+'\n' : '';
 }
 function yBlock(items, indent, p){
   if(p.i>=items.length) return {};
@@ -337,9 +360,9 @@ function yBlock(items, indent, p){
     var line=items[p.i].content;
     var kv=line.match(/^([^:]+):\s?(.*)$/);
     if(!kv){ p.i++; continue; }
-    var key=kv[1].trim(); var val=kv[2].trim(); p.i++;
+    var key=kv[1].trim(); var val=kv[2].trim(); p.i++; var keyLine=items[p.i-1].line;
     if(val===''){ if(p.i<items.length && items[p.i].ind>indent) obj[key]=yBlock(items, items[p.i].ind, p); else obj[key]=Object.create(null); }
-    else if(/^[|>][+-]?$/.test(val)) obj[key]=yCollectBlock(items, indent, p, val);
+    else if(/^[|>][+-]?$/.test(val)) obj[key]=yCollectBlock(items, indent, p, val, keyLine+1);
     else obj[key]=yScalar(val);
   }
   return obj;
@@ -348,15 +371,16 @@ function yMapFrom(items, mapIndent, p, firstItem){
   var m={};
   var kv=firstItem.match(/^([^:]+):\s?(.*)$/);
   var key=kv[1].trim(); var val=kv[2].trim();
+  var firstLine=(items[p.i-1]&&items[p.i-1].line!=null)?items[p.i-1].line:0;
   if(val===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[key]=yBlock(items, items[p.i].ind, p); else m[key]=Object.create(null); }
-  else if(/^[|>][+-]?$/.test(val)) m[key]=yCollectBlock(items, mapIndent, p, val);
+  else if(/^[|>][+-]?$/.test(val)) m[key]=yCollectBlock(items, mapIndent, p, val, firstLine+1);
   else m[key]=yScalar(val);
   while(p.i<items.length && items[p.i].ind===mapIndent && items[p.i].content[0]!=='-'){
     var line=items[p.i].content; var kv2=line.match(/^([^:]+):\s?(.*)$/);
     if(!kv2) break;
-    var k2=kv2[1].trim(); var v2=kv2[2].trim(); p.i++;
+    var k2=kv2[1].trim(); var v2=kv2[2].trim(); p.i++; var k2Line=items[p.i-1].line;
     if(v2===''){ if(p.i<items.length && items[p.i].ind>mapIndent) m[k2]=yBlock(items, items[p.i].ind, p); else m[k2]=Object.create(null); }
-    else if(/^[|>][+-]?$/.test(v2)) m[k2]=yCollectBlock(items, mapIndent, p, v2);
+    else if(/^[|>][+-]?$/.test(v2)) m[k2]=yCollectBlock(items, mapIndent, p, v2, k2Line+1);
     else m[k2]=yScalar(v2);
   }
   return m;
