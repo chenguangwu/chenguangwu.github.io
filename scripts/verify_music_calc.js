@@ -4,7 +4,7 @@ const { runCase } = require("./verify_it_calc.js");
 const fs=require("fs"), path=require("path");
 function musicStaticChecks(){
   const read=(p)=>fs.readFileSync(path.join(__dirname,"..","tools","music",p),"utf8");
-  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html"), fq=read("freq-note-converter.html"), sp=read("convert-speed.html"), dt=read("detector.html"), ac=read("audio-converter.html"), ma=read("music-analysis.html"), mp=read("music-player.html"), et=read("ear-trainer.html"), rt=read("rhythm-trainer.html"), rr=read("random-training-rhythm.html");
+  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html"), fq=read("freq-note-converter.html"), sp=read("convert-speed.html"), dt=read("detector.html"), ac=read("audio-converter.html"), ma=read("music-analysis.html"), mp=read("music-player.html"), et=read("ear-trainer.html"), rt=read("rhythm-trainer.html"), rr=read("random-training-rhythm.html"), pk=read("piano-keyboard.html");
   return [
     {name:"和弦进行降E映射、悲怆四级与大调高频",ok:/'Eb':3/.test(cp)&&!/'Eb':2/.test(cp)&&/qualities:\s*\['',\s*'m',\s*'',\s*'m'\]/.test(cp)&&/48 \+ chordRoot/.test(cp)&&/spellChordNote\(rootName/.test(cp)},
     {name:"和弦进行停止清理全部高亮定时器",ok:/highlightTimeouts/.test(cp)&&/highlightTimeouts\.forEach/.test(cp)&&/if \(isPlaying\) highlightChord/.test(cp)},
@@ -25,7 +25,8 @@ function musicStaticChecks(){
     {name:"听力训练动态文案按语言生成",ok:/function intervalName/.test(et)&&/function chordName/.test(et)&&/L\('Easy \(4 intervals\)'/.test(et)&&/L\('Correct answer: '/.test(et)&&/L\('Correct!/.test(et)&&/L\('Wrong answer'/.test(et)&&/refreshLanguageUI/.test(et)},
     {name:"听力训练切题停止旧振荡器与定时器",ok:/function stopCurrentSound/.test(et)&&/activeOscs\.forEach/.test(et)&&/playTimers\.forEach/.test(et)&&/function generateQuestion\(\) \{\n    stopCurrentSound\(\)/.test(et)&&/if \(token === playToken\)/.test(et)},
     {name:"节奏训练额外点击计入分母并展示",ok:/extraTapIndices/.test(rt)&&/scoredUnits = results\.length \+ extraCount/.test(rt)&&/totalScore \/ scoredUnits/.test(rt)&&/Extra taps/.test(rt)&&/额外点击/.test(rt)},
-    {name:"跟拍训练空值与越界拒绝启动",ok:/function readInt\(id, min, max\)/.test(rr)&&/Number\.isInteger\(n\) && n >= min && n <= max/.test(rr)&&/bpm === null \|\| sub === null \|\| bars === null/.test(rr)&&!/parseInt\(document\.getElementById\('tapBpm'\)\.value\)\|\|100/.test(rr)&&!/bpm=Math\.max\(40,Math\.min\(200,bpm\)\)/.test(rr)}
+    {name:"跟拍训练空值与越界拒绝启动",ok:/function readInt\(id, min, max\)/.test(rr)&&/Number\.isInteger\(n\) && n >= min && n <= max/.test(rr)&&/bpm === null \|\| sub === null \|\| bars === null/.test(rr)&&!/parseInt\(document\.getElementById\('tapBpm'\)\.value\)\|\|100/.test(rr)&&!/bpm=Math\.max\(40,Math\.min\(200,bpm\)\)/.test(rr)},
+    {name:"钢琴键盘失焦/隐藏停止全部音符",ok:/window\.addEventListener\('blur', function\(\) \{\n    stopAllNotes\(\);/.test(pk)&&/document\.addEventListener\('visibilitychange'/.test(pk)&&/if \(document\.hidden\) stopAllNotes\(\)/.test(pk)&&/window\.addEventListener\('pagehide'/.test(pk)}
   ];
 }
 const CASES = [
