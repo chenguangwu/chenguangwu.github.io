@@ -4,7 +4,7 @@ const { runCase } = require("./verify_it_calc.js");
 const fs=require("fs"), path=require("path");
 function musicStaticChecks(){
   const read=(p)=>fs.readFileSync(path.join(__dirname,"..","tools","music",p),"utf8");
-  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html"), fq=read("freq-note-converter.html"), sp=read("convert-speed.html"), dt=read("detector.html"), ac=read("audio-converter.html"), ma=read("music-analysis.html"), mp=read("music-player.html"), et=read("ear-trainer.html"), rt=read("rhythm-trainer.html"), rr=read("random-training-rhythm.html"), pk=read("piano-keyboard.html"), sg=read("generator-1.html");
+  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html"), fq=read("freq-note-converter.html"), sp=read("convert-speed.html"), dt=read("detector.html"), ac=read("audio-converter.html"), ma=read("music-analysis.html"), mp=read("music-player.html"), et=read("ear-trainer.html"), rt=read("rhythm-trainer.html"), rr=read("random-training-rhythm.html"), pk=read("piano-keyboard.html"), sg=read("generator-1.html"), bp=read("bpm-converter.html");
   return [
     {name:"和弦进行降E映射、悲怆四级与大调高频",ok:/'Eb':3/.test(cp)&&!/'Eb':2/.test(cp)&&/qualities:\s*\['',\s*'m',\s*'',\s*'m'\]/.test(cp)&&/48 \+ chordRoot/.test(cp)&&/spellChordNote\(rootName/.test(cp)},
     {name:"和弦进行停止清理全部高亮定时器",ok:/highlightTimeouts/.test(cp)&&/highlightTimeouts\.forEach/.test(cp)&&/if \(isPlaying\) highlightChord/.test(cp)},
@@ -27,7 +27,8 @@ function musicStaticChecks(){
     {name:"节奏训练额外点击计入分母并展示",ok:/extraTapIndices/.test(rt)&&/scoredUnits = results\.length \+ extraCount/.test(rt)&&/totalScore \/ scoredUnits/.test(rt)&&/Extra taps/.test(rt)&&/额外点击/.test(rt)},
     {name:"跟拍训练空值与越界拒绝启动",ok:/function readInt\(id, min, max\)/.test(rr)&&/Number\.isInteger\(n\) && n >= min && n <= max/.test(rr)&&/bpm === null \|\| sub === null \|\| bars === null/.test(rr)&&!/parseInt\(document\.getElementById\('tapBpm'\)\.value\)\|\|100/.test(rr)&&!/bpm=Math\.max\(40,Math\.min\(200,bpm\)\)/.test(rr)},
     {name:"钢琴键盘失焦/隐藏停止全部音符",ok:/window\.addEventListener\('blur', function\(\) \{\n    stopAllNotes\(\);/.test(pk)&&/document\.addEventListener\('visibilitychange'/.test(pk)&&/if \(document\.hidden\) stopAllNotes\(\)/.test(pk)&&/window\.addEventListener\('pagehide'/.test(pk)},
-    {name:"音阶生成指定调性/正确拼写/试听键盘",ok:/function spellPitch/.test(sg)&&/const ROOTS = \[/.test(sg)&&/function buildScale/.test(sg)&&/function renderKeyboard/.test(sg)&&/function playScale/.test(sg)&&/随机练习/.test(sg)&&!/一律随机生成/.test(sg)}
+    {name:"音阶生成指定调性/正确拼写/试听键盘",ok:/function spellPitch/.test(sg)&&/const ROOTS = \[/.test(sg)&&/function buildScale/.test(sg)&&/function renderKeyboard/.test(sg)&&/function playScale/.test(sg)&&/随机练习/.test(sg)&&!/一律随机生成/.test(sg)},
+    {name:"BPM 主/反向分别校验记录导出",ok:/function __bpm_converterMainValid/.test(bp)&&/function __bpm_converterReverseValid/.test(bp)&&/if\(!mainOk && !reverseOk\)/.test(bp)&&/if\(!reverseOk\)\{ delete snap\.reverseMs/.test(bp)&&/!__bpm_converterMainValid\(\) && !__bpm_converterReverseValid\(\)/.test(bp)&&!/if\(!Number\.isFinite\(ms\) \|\| ms<=0\)\{\n        ToolBox\.showToast\('请先输入有效的时长值'\)/.test(bp)}
   ];
 }
 const CASES = [
@@ -302,6 +303,8 @@ const CASES = [
     expect: ["40.00 BPM"],
     ref: '独立复算：BPM=60000/1500=40.00（达 bpm 下限 40）。注入 reverseMs=1500。默认态 120.00 BPM，不命中。'
   },
+
+
   {
     slug: "music/freq-note-converter",
     inputs: { freqInput: "220" },

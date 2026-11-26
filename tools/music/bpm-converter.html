@@ -755,13 +755,37 @@ function __bpm_converterSnap(){
     }
     return out;
 }
-function __bpm_converterResText(){
-    var r=document.querySelector('.result-box');
-    if(!r) return '';
-    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+function __bpm_converterMainValid(){
+    var e=document.getElementById('bpmInput');
+    if(!e) return false;
+    var v=parseFloat(e.value);
+    return e.value.trim()!==''&&isFinite(v)&&v>=40&&v<=300;
+}
+function __bpm_converterReverseValid(){
+    var e=document.getElementById('reverseMs');
+    if(!e) return false;
+    var v=parseFloat(e.value);
+    return e.value.trim()!==''&&isFinite(v)&&v>0;
+}
+function __bpm_converterClean(t){
+    t=String(t||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
-    return t.slice(0,80);
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text|请输入有效的时长值)/.test(t)) return '';
+    return t;
+}
+function __bpm_converterResText(){
+    var parts=[];
+    if(__bpm_converterMainValid()){
+        var n=document.getElementById('noteGrid');
+        var vals=n?Array.prototype.map.call(n.querySelectorAll('.note-val'),function(x){return __bpm_converterClean(x.textContent);}).filter(Boolean).slice(0,3):[];
+        if(vals.length) parts.push('主结果 '+vals.join(' / '));
+    }
+    if(__bpm_converterReverseValid()){
+        var r=document.getElementById('reverseResult');
+        var u=r?__bpm_converterClean(r.textContent):'';
+        if(u) parts.push('反向 '+u.slice(0,50));
+    }
+    return parts.join(' | ').slice(0,160);
 }
 function __bpm_converterScore(t){
     var s=String(t||'');
@@ -817,12 +841,14 @@ function __bpm_converterRender(keys,rk,en){
 function __bpm_converterExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__bpm_converter_skip) return;
-    var ms=parseFloat(document.getElementById('reverseMs').value);
-    if(!Number.isFinite(ms) || ms<=0){
+    var mainOk=__bpm_converterMainValid(), reverseOk=__bpm_converterReverseValid();
+    if(!mainOk && !reverseOk){
         clearTimeout(__bpm_converter_tail); __bpm_converter_tail=null;
         return;
     }
     var snap=__bpm_converterSnap();
+    if(!mainOk){ delete snap.bpmInput; delete snap.bpmSlider; delete snap.sampleRate; }
+    if(!reverseOk){ delete snap.reverseMs; delete snap.reverseNote; }
     var keys=Object.keys(snap);
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
@@ -859,9 +885,8 @@ window.addEventListener('pagehide',function(){
 });
 function __bpm_converterExport(){
     if (typeof TBKit === 'undefined') return;
-    var ms=parseFloat(document.getElementById('reverseMs').value);
-    if(!Number.isFinite(ms) || ms<=0){
-        ToolBox.showToast('请先输入有效的时长值');
+    if(!__bpm_converterMainValid() && !__bpm_converterReverseValid()){
+        ToolBox.showToast('请先输入有效的 BPM 或时长值');
         return;
     }
     __bpm_converterExtras(true);
