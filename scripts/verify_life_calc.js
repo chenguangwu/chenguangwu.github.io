@@ -4467,7 +4467,78 @@ const CASES = [
     clicks: ["calc();"],
     expect: ["数量格式无效", "第 1 行"],
     ref: "第923批：2..5 不再被 parseFloat 静默读成 2，逐行提示无效且不生成金额。"
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "甲,10,20,5\n乙,20abc,30,6" },
+    clicks: ["calc();"],
+    expect: ["第 2 行价格", "已停止汇总"],
+    ref: "第924批：价格字段带尾随 abc 时按整字段拒绝并给出行号，不再 parseFloat 读成 20 混入均值。"
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "甲,10,20,5\n\n乙,20abc,30,6" },
+    clicks: ["calc();"],
+    expect: ["第 3 行价格", "已停止汇总"],
+    ref: "第924批：空行保留原始行号，第 3 行错误不会被折叠成第 2 行。"
+  },
+  {
+    slug: "life/analysis-23",
+    inputs: { data: "A,,20", std: "1.2" },
+    clicks: ["calc();"],
+    expect: ["第 1 行楼高", "已停止汇总"],
+    ref: "第924批：连续逗号保留空字段，A,,20 不再被折叠成 A,20 误算。"
+  },
+  {
+    slug: "life/analysis-23",
+    inputs: { data: "A,20abc,30", std: "1.2" },
+    clicks: ["calc();"],
+    expect: ["第 1 行楼高", "不能有尾随文字"],
+    ref: "第924批：楼高 20abc 不再被 parseFloat 读成 20，整字段校验拒绝。"
+  },
+  {
+    slug: "life/world-clock",
+    clicks: ["document.getElementById('citySearch').value='上海';filterCities();document.getElementById('__tbProbe').textContent=document.getElementById('citySelectList').textContent;"],
+    expect: ["北京", "同区城市：上海"],
+    ref: "第924批：搜索上海命中同区城市北京，并标注同区映射，不再无结果。"
+  },
+  {
+    slug: "life/world-clock",
+    clicks: ["document.getElementById('citySearch').value='新德里';filterCities();document.getElementById('__tbProbe').textContent=document.getElementById('citySelectList').textContent;"],
+    expect: ["孟买", "同区城市：新德里"],
+    ref: "第924批：搜索新德里命中印度同区城市孟买，避免误以为没有印度时区。"
+  },
+  {
+    slug: "life/age-calculator",
+    clicks: ["var d=new Date();document.getElementById('by').value=String(d.getFullYear()-30);document.getElementById('bm').value=String(d.getMonth()+1);document.getElementById('bd').value=String(d.getDate());document.getElementById('bh').value='23';document.getElementById('bmin').value='59';document.getElementById('bs').value='59';calc();document.getElementById('__tbProbe').textContent=document.getElementById('nextBirthday').textContent;"],
+    expect: ["将满 30 岁生日", "尚未到达", "当前精确年龄仍为 29 岁"],
+    ref: "第924批：生日当天出生时刻未到，提示将满 30 岁但当前精确年龄仍 29，不再直接写 29 岁生日。"
+  },
+  {
+    slug: "life/percentage-calculator",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/percentage-calculator.html','utf8');document.getElementById('__tbProbe').textContent='PCT '+((/class=.quick-item/.test(src)&&/aria-label=.删除历史记录/.test(src)&&!/<div[^>]*class=.quick-item/.test(src))?'OK':'BAD');"],
+    expect: ["PCT OK"],
+    ref: "第924批：快捷案例与历史删除改为原生 button 并带 aria-label，可 Tab/Enter/空格操作。"
+  },
+  {
+    slug: "life/phone-lookup",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/phone-lookup.html','utf8');document.getElementById('__tbProbe').textContent='PHONE '+((src.indexOf('手机号不提供精确归属地')>=0&&src.indexOf('固话仅覆盖内置城市区号')>=0)?'OK':'BAD');"],
+    expect: ["PHONE OK"],
+    ref: "第924批：文案明确手机号无精确归属地、固话仅覆盖内置城市区号，不再承诺不存在的归属地能力。"
+  },
+  {
+    slug: "life/time-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/time-converter.html','utf8');document.getElementById('__tbProbe').textContent='TIME '+((src.indexOf('不做时区、12/24 小时制')>=0&&src.indexOf('平均月 30.4375 天')>=0)?'OK':'BAD');"],
+    expect: ["TIME OK"],
+    ref: "第924批：时间换算只做时长，页面与 FAQ 明确不支持时区/12-24 小时制，并说明月年平均值假设。"
+  },
+  {
+    slug: "life/reminder-cycle",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/reminder-cycle.html','utf8');document.getElementById('__tbProbe').textContent='APPL '+((src.indexOf('APPL_TIP_EN')>=0&&src.indexOf('No appliances yet')>=0&&src.indexOf('Last cleaned:')>=0)?'OK':'BAD');"],
+    expect: ["APPL OK"],
+    ref: "第924批：家电空态、紧急标签、上次/下次、清洁技巧与记录提示均补英文。"
   }
+
 ];
 
 // ---------------------------------------------------------------- main

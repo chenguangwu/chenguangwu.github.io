@@ -366,7 +366,7 @@ function markCleaned(id) {
   appl.lastClean = todayStr();
   if(!save()){ appl.lastClean=__prev; __saveFail(); return; }
   render();
-  ToolBox.showToast(appl.name + ' 已记录清洁');
+  ToolBox.showToast(appl.name + (__applIsEn()?' marked as cleaned':' 已记录清洁'));
 }
 
 function toggleTip(id) {
@@ -375,11 +375,12 @@ function toggleTip(id) {
 }
 
 function renderTypeRef() {
+  var enUI=__applIsEn();
   var html = '';
   APPLIANCES.forEach(function(a) {
     html += '<div class="ref-card">';
-    html += '<h4>' + a.icon + ' ' + a.name + ' <span style="font-size:12px;color:var(--text-muted);font-weight:normal;">（每 ' + a.cycle + ' ' + a.unit + '）</span></h4>';
-    html += '<p>' + a.tip + '</p>';
+    html += '<h4>' + a.icon + ' ' + (enUI?(APPL_TYPE_EN[a.id]||a.name):a.name) + ' <span style="font-size:12px;color:var(--text-muted);font-weight:normal;">(' + (enUI?'every ':'每 ') + a.cycle + ' ' + (enUI?(APPL_UNIT_EN[a.unit]||a.unit):a.unit) + ')</span></h4>';
+    html += '<p>' + (enUI?(APPL_TIP_EN[a.id]||a.tip):a.tip) + '</p>';
     html += '</div>';
   });
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('typeRef').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('typeRef').innerHTML=__h0;
@@ -387,7 +388,8 @@ function renderTypeRef() {
 
 function renderAppls() {
   var list = document.getElementById('applList');
-  if (!appliances.length) { const __h1='<div class="empty">暂无家电，请先添加</div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1; return; }
+  var enUI=__applIsEn();
+  if (!appliances.length) { const __h1='<div class="empty">'+(enUI?'No appliances yet. Add one first.':'暂无家电，请先添加')+'</div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1; return; }
   var sorted = appliances.slice().map(function(a) {
     var next = getNextDate(a);
     var days = getDaysUntil(next);
@@ -399,33 +401,33 @@ function renderAppls() {
   var soonCount = sorted.filter(function(i){ return i.days > 0 && i.days <= 7; }).length;
   if (overCount || dueCount || soonCount) {
     var html = '<div class="tip-box tip-warn" style="margin-bottom:12px;">';
-    if (overCount) html += '🚨 有 ' + overCount + ' 件家电已超期需要清洁；';
-    if (dueCount) html += '⏰ 有 ' + dueCount + ' 件家电今天到期；';
-    if (soonCount) html += '⚠️ 有 ' + soonCount + ' 件家电即将到期';
+    if (overCount) html += enUI?'🚨 '+overCount+' appliance(s) overdue for cleaning; ':'🚨 有 ' + overCount + ' 件家电已超期需要清洁；';
+    if (dueCount) html += enUI?'⏰ '+dueCount+' appliance(s) due today; ':'⏰ 有 ' + dueCount + ' 件家电今天到期；';
+    if (soonCount) html += enUI?'⚠️ '+soonCount+' appliance(s) due soon':'⚠️ 有 ' + soonCount + ' 件家电即将到期';
     html += '</div>';
   } else {
-    var html = '<div class="tip-box tip-success" style="margin-bottom:12px;">✅ 所有家电均在清洁周期内，状态良好</div>';
+    var html = '<div class="tip-box tip-success" style="margin-bottom:12px;">'+(enUI?'✅ All appliances are within their cleaning cycles.':'✅ 所有家电均在清洁周期内，状态良好')+'</div>';
   }
 
-  var enUI=__applIsEn();
   sorted.forEach(function(item) {
     var a = item.appl;
     var type = getType(a.type);
     var urgency = getUrgency(item.days);
-    var dayText = item.days < 0 ? '已超期' + Math.abs(item.days) + '天' : (item.days === 0 ? '今天到期' : item.days + ' 天');
+    var dayText = item.days < 0 ? (enUI?'Overdue '+Math.abs(item.days)+' days':'已超期' + Math.abs(item.days) + '天') : (item.days === 0 ? (enUI?'Due today':'今天到期') : item.days + (enUI?' days':' 天'));
     html += '<div class="appl-card">';
-    html += '<div class="appl-head"><span class="appl-name">' + type.icon + ' ' + ToolBox.escHtml(a.name) + '</span><span class="urgency-badge urgency-' + urgency.level + '">' + urgency.label + '</span></div>';
+    var urgLabel=enUI?({over:'Overdue',due:'Due today',soon:'Due soon',ok:'Normal'}[urgency.level]||urgency.label):urgency.label;
+    html += '<div class="appl-head"><span class="appl-name">' + type.icon + ' ' + ToolBox.escHtml(a.name) + '</span><span class="urgency-badge urgency-' + urgency.level + '">' + urgLabel + '</span></div>';
     var usingCustom=Number(a.cycle)>0;
     var freq=usingCustom?Number(a.cycle):type.cycle;
     var typeName=enUI?(APPL_TYPE_EN[a.type]||type.name):type.name;
     html += '<div class="appl-meta">' + typeName + ' · ' + (usingCustom ? (enUI?'Custom cycle '+freq+' days (type default '+type.cycle+' days)':'自定义周期 ' + freq + ' 天（类型推荐 ' + type.cycle + ' 天）') : (enUI?'Recommended cycle '+type.cycle+' days':'推荐周期 ' + type.cycle + ' ' + type.unit)) + '</div>';
     html += '<div class="appl-info">';
-    html += '<span>上次清洁：<b>' + a.lastClean + '</b></span>';
-    html += '<span>下次清洁：<b>' + fmtDate(item.next) + '</b></span>';
+    html += '<span>'+(enUI?'Last cleaned: ':'上次清洁：')+'<b>' + a.lastClean + '</b></span>';
+    html += '<span>'+(enUI?'Next cleaning: ':'下次清洁：')+'<b>' + fmtDate(item.next) + '</b></span>';
     html += '</div>';
-    html += '<div class="countdown-box"><span class="days" style="color:' + urgency.color + ';">' + dayText + '</span><span style="color:var(--text-secondary);">' + (item.days < 0 ? '建议尽快清洁' : (item.days === 0 ? '今天应清洁' : '距下次清洁')) + '</span></div>';
+    html += '<div class="countdown-box"><span class="days" style="color:' + urgency.color + ';">' + dayText + '</span><span style="color:var(--text-secondary);">' + (item.days < 0 ? (enUI?'Clean as soon as possible':'建议尽快清洁') : (item.days === 0 ? (enUI?'Clean today':'今天应清洁') : (enUI?'until next cleaning':'距下次清洁'))) + '</span></div>';
     html += '<div style="margin-top:8px;"><span class="tip-toggle" onclick="toggleTip(' + a.id + ')">'+(enUI?'💡 Cleaning tips':'💡 查看清洁技巧')+'</span> <button class="mini-btn" style="margin-left:12px;" onclick="markCleaned(' + a.id + ')">'+(enUI?'✅ Mark cleaned today':'✅ 标记今日已清洁')+'</button> <button class="mini-btn" onclick="editAppl(' + a.id + ')">'+(enUI?'✏️ Edit':'✏️ 编辑')+'</button> <button class="mini-btn" onclick="delAppl(' + a.id + ')" style="color:var(--danger);">'+(enUI?'Delete':'删除')+'</button></div>';
-    html += '<div class="tip-detail" id="tip_' + a.id + '">' + type.tip + '</div>';
+    html += '<div class="tip-detail" id="tip_' + a.id + '">' + (enUI?(APPL_TIP_EN[a.type]||type.tip):type.tip) + '</div>';
     html += '</div>';
   });
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h2;
@@ -433,8 +435,9 @@ function renderAppls() {
 
 function initTypeSelect() {
   var sel = document.getElementById('applType');
-  const __h3='<option value="">请选择类型</option>' + APPLIANCES.map(function(a) {
-    return '<option value="' + a.id + '">' + a.icon + ' ' + a.name + ' (' + a.cycle + a.unit + ')</option>';
+  var en=__applIsEn();
+  const __h3='<option value="">'+(en?'Select type':'请选择类型')+'</option>' + APPLIANCES.map(function(a) {
+    return '<option value="' + a.id + '">' + a.icon + ' ' + (en?(APPL_TYPE_EN[a.id]||a.name):a.name) + ' (' + a.cycle + (en?' ':'') + (en?(APPL_UNIT_EN[a.unit]||a.unit):a.unit) + ')</option>';
   }).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){sel.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}sel.innerHTML=__h3;
 }
 
@@ -443,8 +446,19 @@ function render() {
   renderAppls();
 }
 
-function __applIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __applIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) || /[?&]lang=en-US/.test(location.search) || document.documentElement.lang === 'en'; }
 var APPL_TYPE_EN={ac_filter:'AC filter',ac_deep:'AC deep clean',washer:'Washing machine',fridge:'Refrigerator',heater:'Water heater',range_hood:'Range hood',microwave:'Microwave',water_disp:'Water dispenser'};
+var APPL_TIP_EN={
+ ac_filter:'Power off, open the panel and rinse the filter with water or a mild detergent; dry before refitting. Clean every 2 weeks for better cooling and lower power use.',
+ ac_deep:'Clean the evaporator, condenser, drain pan and drain pipe. Use a professional service or a dedicated AC cleaner on the evaporator fins. Do this every six months.',
+ washer:'Run a standard cycle with washing-machine drum cleaner. Clean the door seal, detergent drawer and filter; dry the door gasket to prevent mold.',
+ fridge:'Empty and defrost if needed, wipe shelves and drawers with a mild cleaner, and clean the door gaskets and drain hole. Check expired food at the same time.',
+ heater:'Power off and let the tank cool before flushing sediment. Check the anode rod and pressure relief valve; follow the manufacturer instructions.',
+ range_hood:'Remove and soak the grease filter, wipe the housing and fan, and check the exhaust duct. Clean grease filters monthly.',
+ microwave:'Unplug before cleaning. Wipe the cavity with a damp cloth and mild detergent; remove the turntable and roller ring and clean them separately.',
+ water_disp:'Unplug and drain before descaling. Clean the drip tray and outlet, and replace the filter according to the manual.'
+};
+var APPL_UNIT_EN={days:'days',天:'days'};
 function __applSorted(){
   return appliances.slice().map(function(a){
     var next=getNextDate(a);

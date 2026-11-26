@@ -356,11 +356,11 @@ button.remove-btn{background:transparent;border:none;font:inherit;}
 
 <script>
 const ALL_CITIES = [
-  {id:'Asia/Shanghai', city:'北京', country:'中国', offset:8},
-  {id:'Asia/Hong_Kong', city:'香港', country:'中国', offset:8},
-  {id:'Asia/Taipei', city:'台北', country:'中国', offset:8},
-  {id:'Asia/Tokyo', city:'东京', country:'日本', offset:9},
-  {id:'Asia/Seoul', city:'首尔', country:'韩国', offset:9},
+  {id:'Asia/Shanghai', city:'北京', country:'中国', offset:8, aliases:['上海','Shanghai','深圳','Shenzhen','广州','Guangzhou','沪']},
+  {id:'Asia/Hong_Kong', city:'香港', country:'中国', offset:8, aliases:['Hong Kong','HK','港']},
+  {id:'Asia/Taipei', city:'台北', country:'中国', offset:8, aliases:['Taipei','臺北']},
+  {id:'Asia/Tokyo', city:'东京', country:'日本', offset:9, aliases:['Tokyo','東京']},
+  {id:'Asia/Seoul', city:'首尔', country:'韩国', offset:9, aliases:['Seoul','首爾']},
   {id:'Asia/Singapore', city:'新加坡', country:'新加坡', offset:8},
   {id:'Asia/Kuala_Lumpur', city:'吉隆坡', country:'马来西亚', offset:8},
   {id:'Asia/Bangkok', city:'曼谷', country:'泰国', offset:7},
@@ -369,7 +369,7 @@ const ALL_CITIES = [
   {id:'Asia/Manila', city:'马尼拉', country:'菲律宾', offset:8},
   {id:'Asia/Dubai', city:'迪拜', country:'阿联酋', offset:4},
   {id:'Asia/Qatar', city:'多哈', country:'卡塔尔', offset:3},
-  {id:'Asia/Kolkata', city:'孟买', country:'印度', offset:5.5},
+  {id:'Asia/Kolkata', city:'孟买', country:'印度', offset:5.5, aliases:['新德里','New Delhi','Delhi','德里','Mumbai','孟買']},
   {id:'Asia/Karachi', city:'卡拉奇', country:'巴基斯坦', offset:5},
   {id:'Asia/Kabul', city:'喀布尔', country:'阿富汗', offset:4.5},
   {id:'Asia/Tehran', city:'德黑兰', country:'伊朗', offset:3.5},
@@ -573,19 +573,28 @@ document.addEventListener('keydown', function(e){
 });
 
 function filterCities(){
-  const q = document.getElementById('citySearch').value.toLowerCase();
+  const q = document.getElementById('citySearch').value.trim().toLowerCase();
   const list = document.getElementById('citySelectList');
-  const filtered = ALL_CITIES.filter(c => 
-    c.city.toLowerCase().includes(q) || 
+  const filtered = ALL_CITIES.filter(c =>
+    c.city.toLowerCase().includes(q) ||
     c.country.toLowerCase().includes(q) ||
-    c.id.toLowerCase().includes(q)
+    c.id.toLowerCase().includes(q) ||
+    (c.aliases && c.aliases.some(a => a.toLowerCase().includes(q)))
   );
-  const __h1=filtered.map(c => `
+  if(!filtered.length){
+    const isEn=typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn();
+    list.innerHTML='<p style="color:var(--text-muted);padding:8px 0;">'+(isEn?'No matching city. Try a city name, alias or IANA time zone ID.':'没有匹配城市，可输入城市名、同区城市别名或时区 ID（如 Asia/Shanghai）。')+'</p>';
+    return;
+  }
+  const __h1=filtered.map(c => {
+    const matchedAlias = q && c.aliases && c.aliases.find(a => a.toLowerCase().includes(q));
+    return `
     <button type="button" class="city-option" onclick="addCity('${c.id}')">
-      <span>${c.city}, ${c.country}</span>
+      <span>${c.city}, ${c.country}${matchedAlias?' · 同区城市：'+matchedAlias:''}</span>
       <span class="zone">${formatOffset(getOffset(c.id))}</span>
     </button>
-  `).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
+  `;}).join('');
+  if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
 }
 
 function addCity(cityId){
