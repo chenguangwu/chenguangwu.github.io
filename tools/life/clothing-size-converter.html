@@ -301,12 +301,16 @@ const tables = {
   ]
 };
 
+function __cEn(){
+  try{ return !!(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }catch(e){ return /lang=en-US/i.test(location.search); }
+}
 function convert(){
+  const en = __cEn();
   const cat = document.getElementById('cat').value;
   const sys = document.getElementById('sys').value;
   const v = (document.getElementById('inputVal').value || '').trim().toUpperCase();
   if(!v){
-    const __h0='<p style="color:var(--danger);">请输入数值</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
+    const __h0='<p style="color:var(--danger);">'+(en?'Enter a value':'请输入数值')+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
     return;
   }
   const table = tables[cat];
@@ -317,21 +321,23 @@ function convert(){
     if(sys === 'cn'){
       const t = parseCn(v);
       if(!t){
-        document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">号型格式无效：请用「身高/胸围或腰围」如 165/88A，不接受多余字符。</p>';
+        document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">'+(en?'Invalid size format: use height/chest or waist, e.g. 165/88A, with no extra characters.':'号型格式无效：请用「身高/胸围或腰围」如 165/88A，不接受多余字符。')+'</p>';
         return;
       }
       const nr = nearestRow(table, t);
       if(nr.row){
-        renderRow(nr.row, cat, `<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">⚠ 未找到精确匹配 "${ToolBox.escHtml(v)}"，以下为同表内最接近的 <strong>${nr.row.cn}</strong>（身高差 ${nr.dh} cm、围度差 ${nr.dc} cm，近似参考）。</p>`);
+        renderRow(nr.row, cat, en
+          ? `<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">⚠ No exact match for "${ToolBox.escHtml(v)}". Closest row: <strong>${nr.row.cn}</strong> (height difference ${nr.dh} cm, girth difference ${nr.dc} cm; approximate reference).</p>`
+          : `<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">⚠ 未找到精确匹配 "${ToolBox.escHtml(v)}"，以下为同表内最接近的 <strong>${nr.row.cn}</strong>（身高差 ${nr.dh} cm、围度差 ${nr.dc} cm，近似参考）。</p>`);
         return;
       }
       const why = nr.reason === 'body'
-        ? '该体型分类在当前尺码表暂无对应行，不能可靠近似；请改用表内已有体型或参考品牌实测尺码表。'
-        : '输入尺寸超出当前尺码表覆盖范围，不再给出近似结果；请核对身高/围度或参考品牌实测尺码表。';
-      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">'+why+'</p><p style="font-size:12px;color:var(--text-muted);">可参考下表中的可选号型。</p>';
+        ? (en?'This body type has no corresponding row in the current table, so no reliable approximation is possible. Use a listed body type or the brand\'s measured size chart.':'该体型分类在当前尺码表暂无对应行，不能可靠近似；请改用表内已有体型或参考品牌实测尺码表。')
+        : (en?'The input is outside the range covered by this size chart. Check the height/girth or use the brand\'s measured size chart.':'输入尺寸超出当前尺码表覆盖范围，不再给出近似结果；请核对身高/围度或参考品牌实测尺码表。');
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">'+why+'</p><p style="font-size:12px;color:var(--text-muted);">'+(en?'See the available sizes in the table below.':'可参考下表中的可选号型。')+'</p>';
       return;
     }
-    const __h1=`<p style="color:var(--danger);">未找到匹配项 "${ToolBox.escHtml(v)}"（${sys}）</p><p style="font-size:12px;color:var(--text-muted);">可参考下表中的可选值</p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
+    const __h1=`<p style="color:var(--danger);">${en?'No match for':'未找到匹配项'} "${ToolBox.escHtml(v)}" (${sys})</p><p style="font-size:12px;color:var(--text-muted);">${en?'See the available values in the table below':'可参考下表中的可选值'}</p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
     return;
   }
   renderRow(found, cat, '');
@@ -358,13 +364,16 @@ function nearestRow(table, t){
 }
 
 function renderRow(found, cat, note){
-  let html = `<p>匹配成功：<strong>${found.cn}</strong>（${cat === 'w_top' ? '女装上衣' : cat === 'm_top' ? '男装上衣' : cat === 'w_pants' ? '女装裤装' : '男装裤装'}）</p>`;
+  const en = __cEn();
+  const catText = en ? ({w_top:'Women\'s tops',m_top:'Men\'s tops',w_pants:'Women\'s trousers',m_pants:'Men\'s trousers'}[cat]||cat)
+                     : (cat === 'w_top' ? '女装上衣' : cat === 'm_top' ? '男装上衣' : cat === 'w_pants' ? '女装裤装' : '男装裤装');
+  let html = `<p>${en?'Match':'匹配成功'}：<strong>${found.cn}</strong>（${catText}）</p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
-  html += `<p>中国码：<strong>${found.cn}</strong></p>`;
-  html += `<p>国际码：<strong>${found.intl}</strong></p>`;
-  html += `<p>美码：<strong>${found.us}</strong></p>`;
-  html += `<p>英码：<strong>${found.uk}</strong></p>`;
-  html += `<p>欧码：<strong>${found.eu}</strong></p>`;
+  html += `<p>${en?'CN size':'中国码'}：<strong>${found.cn}</strong></p>`;
+  html += `<p>${en?'INTL':'国际码'}：<strong>${found.intl}</strong></p>`;
+  html += `<p>${en?'US':'美码'}：<strong>${found.us}</strong></p>`;
+  html += `<p>${en?'UK':'英码'}：<strong>${found.uk}</strong></p>`;
+  html += `<p>${en?'EU':'欧码'}：<strong>${found.eu}</strong></p>`;
   html += note;
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
 }

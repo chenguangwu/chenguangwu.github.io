@@ -1972,7 +1972,7 @@ const CASES = [
       "sys": "intl"
     },
     "expect": [
-      "m_top\nintl\nabc123测试\n未找到匹配项 \"ABC123测试\"（intl） 可参考下表中的可选值"
+      "m_top\nintl\nabc123测试\n未找到匹配项 \"ABC123测试\" (intl) 可参考下表中的可选值"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"abc123测试\",\"cat\":\"m_top\",\"sys\":\"intl\"}，输出区含「m_top\nintl\nabc123测试\n未找到匹配项 \"ABC123测试\"（in…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2432,21 +2432,21 @@ const CASES = [
   {
     slug: "life/bill-splitter",
     inputs: { "total-amount": "-100" },
-    expect: ["输入错误：总金额必须 ≥ 0 且为有效数字（当前 -100），已停止计算。"],
+    expect: ["输入错误：总金额必须 ≥ 0 且为有效数字 (-100)，已停止计算。"],
     ref: "LF-N3 负总额：旧实现 parseFloat||0 把 -100 原样参与计算并输出负应付；现改为字段级标红 + 停止输出，提示串含注入值 -100。"
        + "判别力回退默认 1000 元时页面无该提示（正常出结果），注入失败即失配。",
   },
   {
     slug: "life/bill-splitter",
     inputs: { "tip-percent": "-5" },
-    expect: ["输入错误：小费/服务费比例必须 ≥ 0 且为有效数字（当前 -5），已停止计算。"],
+    expect: ["输入错误：小费/服务费比例必须在 0–100% 之间 (-5)，已停止计算。"],
     ref: "LF-N3 负小费：旧实现 parseFloat||0 保留 -5% 并算出低于账单总额的应付（分摊合计不闭合）；现与总金额同口径校验并停止输出。"
        + "默认 tip=0 正常出结果、不含该提示 ⇒ 强判别。",
   },
   {
     slug: "life/bill-splitter",
     clicks: ["persons[0].share=0;persons[1].share=-2;calcSimple();"],
-    expect: ["输入错误：第 1 位「张三」的份数必须大于 0（当前 0），已停止计算。"],
+    expect: ["输入错误：第 1 位「张三」的份数必须大于 0 (0)，已停止计算。"],
     ref: "LF-N3 非法份数：旧实现 onchange=\"+this.value\" 直接接受 0 与负数（0 份那行会被 0/0 或负值污染）；现要求份数 >0，命中首个非法行并标红。"
        + "默认态（clicks 清空）4 人各 1 份正常出结果，不含该提示 ⇒ 强判别。",
   },
@@ -2812,8 +2812,8 @@ const CASES = [
   {
     slug: "life/parking-fee",
     inputs: { hours: "" },
-    expect: ["Enter a valid duration, rate, free minutes and cap (use 0 if not applicable)."],
-    ref: "停车时长清空后旧实现 num() 返回 0 ⇒ 显示免费；现显式拦截空值，不再把空值当 0 元。",
+    expect: ["Enter a valid duration, hourly rate, free period in hours and cap (use 0 if not applicable)."],
+    ref: "停车时长清空后旧实现 num() 返回 0 ⇒ 显示免费；现显式拦截空值，并不再把空值当 0 元；英文提示统一免费时长为小时。",
   },
   {
     slug: "life/report-profit",
@@ -4820,6 +4820,83 @@ const CASES = [
     clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/reminder-cycle.html','utf8');document.getElementById('__tbProbe').textContent='APPLINF '+((src.indexOf('const __h2=html')<0&&src.indexOf('list.innerHTML=html')>=0&&src.indexOf('ToolBox.escHtml(a.name)')>=0)?'OK':'BAD');"],
     expect: ["APPLINF OK"],
     ref: "第928批：列表不再扫描含用户文本的整段 HTML；名称含 Infinity 仍正常显示可删除，HTML 特殊字符保持转义。"
+  },
+  {
+    slug: "life/number-to-chinese",
+    clicks: ["document.getElementById('numInput').value='-10000.2';var oq=document.querySelector;document.querySelector=function(q){if(q==='input[name=mode]:checked')return {value:'trad'};return oq.call(document,q);};convert();document.querySelector=oq;document.getElementById('__tbProbe').textContent='TRAD '+document.getElementById('chineseResult').textContent+'|'+document.getElementById('digitByDigit').textContent+'|'+document.getElementById('moneyUpper').textContent;"],
+    expect: ["TRAD", "負壹萬點貳", "負壹零零零零點貳", "負壹萬圓貳角整"],
+    ref: "第929批：繁体模式连大数单位、负号、小数点、金额单位都用繁体（萬/億/負/點/圓），不再混入万/亿/负/点。"
+  },
+  {
+    slug: "life/clothing-size-converter",
+    clicks: ["TBKit={util:{isEn:function(){return true;}}};document.getElementById('inputVal').value='165/88A';document.getElementById('cat').value='w_top';document.getElementById('sys').value='cn';convert();document.getElementById('__tbProbe').textContent='CLEN '+document.getElementById('resultBox').textContent;"],
+    expect: ["CLEN Match", "Women's tops", "CN size", "165/88A"],
+    ref: "第929批：英文态匹配结果的品类与各码标签改为英文，不再拼接女装上衣/中国码等中文。"
+  },
+  {
+    slug: "life/event-countdown",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/event-countdown.html','utf8');document.getElementById('__tbProbe').textContent='EVEN '+((src.indexOf('const EVENT_EN')>=0&&src.indexOf('function eventLabel')>=0&&src.indexOf('fmtDate(d, en)')>=0&&src.indexOf(\"en?'days':'天'\")>=0)?'OK':'BAD');"],
+    expect: ["EVEN OK"],
+    ref: "第929批：英文态卡片名称、ISO 日期、星期与单位 days 均由脚本按当前语言生成，不再出现中文节日名/年月日/天。"
+  },
+  {
+    slug: "life/event-countdown",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/event-countdown.html','utf8');document.getElementById('__tbProbe').textContent='EVDESC '+((src.indexOf('calendar days, with a clear list of dates and weekdays')>=0&&src.indexOf('days, hours and minutes')<0)?'OK':'BAD');"],
+    expect: ["EVDESC OK"],
+    ref: "第929批：英文简介改为准确描述按日历天倒计时，不再承诺页面未提供的小时与分钟。"
+  },
+  {
+    slug: "life/parking-fee",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/parking-fee.html','utf8');document.getElementById('__tbProbe').textContent='PARKUNIT '+((src.indexOf('free period in hours')>=0&&src.indexOf('free minutes')<0)?'OK':'BAD');"],
+    expect: ["PARKUNIT OK"],
+    ref: "第929批：免费时长字段以小时计，英文必填错误提示同步为 free period in hours，不再误导用户按分钟输入。"
+  },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/bill-splitter.html','utf8');document.getElementById('__tbProbe').textContent='AAEX '+((src.indexOf('两人·268元·预付50元')<0&&src.indexOf('Couple · 268 · 50 prepaid')<0&&src.indexOf('两人·268元·无服务费')>=0&&/adv-tip':\s*'0'/.test(src))?'OK':'BAD');"],
+    expect: ["AAEX OK"],
+    ref: "第929批：删除把 50 元预付误填进 adv-tip（服务费百分比）的示例，改为 268 元无服务费，应用后结果与标题一致。"
+  },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["localStorage.removeItem('billSplitterHistory');if(typeof HISTORY_KEY!=='undefined')localStorage.removeItem(HISTORY_KEY);addToHistory(100,2,'SIGSAME');addToHistory(100,2,'SIGSAME');var h=JSON.parse(localStorage.getItem((typeof HISTORY_KEY!=='undefined'?HISTORY_KEY:'billSplitterHistory'))||'[]');document.getElementById('__tbProbe').textContent='AAHIST '+h.length;"],
+    expect: ["AAHIST 1"],
+    ref: "第929批：同账单状态重复计算（含简单/高级来回切换）不再写多条历史；完整签名相同即跳过，改金额/参与人/小费才新增。"
+  },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/bill-splitter.html','utf8');document.getElementById('__tbProbe').textContent='AAREM '+((src.indexOf('const fracOrder')>=0&&src.indexOf('cents[k % cents.length] += 1')<0)?'OK':'BAD');"],
+    expect: ["AAREM OK"],
+    ref: "第929批：简单分摊余分按最大余数分配；1:2:4 分 100 元时 0.01 元应给小数部分最大的 B（28.58），不再按数组顺序给 A。"
+  }
+,  {
+    slug: "life/bill-splitter",
+    clicks: ["document.getElementById('tip-percent').value='150';calcSimple();document.getElementById('__tbProbe').textContent='TIPMAX '+document.getElementById('simple-result').textContent;"],
+    expect: ["TIPMAX", "小费/服务费比例必须在 0–100% 之间 (150)", "已停止计算"],
+    ref: "第930批：简单分摊小费 150% 被明确拒绝，不再按 150% 计算；提示与 max=100 的输入约束一致。"
+  },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["document.getElementById('adv-tip').value='150';calcAdvanced();document.getElementById('__tbProbe').textContent='ADTIPMAX '+document.getElementById('adv-result').textContent;"],
+    expect: ["ADTIPMAX", "小费/服务费比例必须在 0–100% 之间 (150)", "已停止计算"],
+    ref: "第930批：逐项分摊与简单分摊统一按 0–100% 校验；150% 停止计算，不再出现同一页面两套口径。"
+  },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/bill-splitter.html','utf8');document.getElementById('__tbProbe').textContent='AAEN '+((src.indexOf('Total shares:')>=0&&src.indexOf('Total reconciled')>=0&&src.indexOf('Name,Shares,Amount')>=0&&src.indexOf('Allocation rule')>=0)?'OK':'BAD');"],
+    expect: ["AAEN OK"],
+    ref: "第930批：英文态简单分摊结果动态标题与导出表头改为英文，不再出现“总金额/总份数/姓名,份数”；用户姓名保持原样。"
+  },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["TBKit={util:{isEn:function(){return true;}}};var before=advPersons.length;addAdvPerson();var ok=advPersons[before]==='Person '+(before+1);document.getElementById('__tbProbe').textContent='AANAME '+(ok?'OK':'BAD')+'|'+advPersons[before];"],
+    expect: ["AANAME OK|"],
+    ref: "第930批：英文态新增人员默认名为 Person N，不再插入“人员N”；用户改写的姓名仍按原样保存。"
+  },  {
+    slug: "life/bill-splitter",
+    clicks: ["persons[0].share=0.1;persons[1].share=9.9;persons[2].share=0.1;persons[3].share=0.1;document.getElementById('total-amount').value='0.01';document.getElementById('tip-percent').value='0';calcSimple();document.getElementById('__tbProbe').textContent='AAREM2 '+document.getElementById('simple-result').textContent;"],
+    expect: ["AAREM2", "李四 (9.9份) ¥0.01", "张三 (0.1份) ¥0.00"],
+    ref: "第930批：0.1 份与 9.9 份分 0.01 元时，唯一 1 分给小数余数更大的 9.9 份者；不再按人员顺序给第一人。"
   }
 ];
 // ---------------------------------------------------------------- main

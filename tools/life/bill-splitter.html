@@ -332,6 +332,9 @@ function escHtml(s) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+function __aaEn(){ try{ return !!(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }catch(e){ return /lang=en-US/i.test(location.search); } }
+function __aaT(zh,en){ return __aaEn()?en:zh; }
+
 
 // 字段级校验标记：非法字段标红（复用全局 .input-error 样式）
 function markField(id, ok) {
@@ -364,7 +367,7 @@ function initPersons() {
     return;
   }
   input.classList.remove('input-error');
-  const defaultNames = ['张三','李四','王五','赵六','钱七','孙八','周九','吴十','郑十一','王十二','冯十三','陈十四'];
+  const defaultNames = en ? Array.from({length:14},function(_,i){return 'Person '+(i+1);}) : ['张三','李四','王五','赵六','钱七','孙八','周九','吴十','郑十一','王十二','冯十三','陈十四'];
   if (n < persons.length) {
     const removed = persons.slice(n).map(function(p){return p.name;}).join('、');
     const ok = (typeof confirm==='function') ? confirm(en ? ('Reduce to '+n+' people and remove: '+removed+'?') : ('减少到 '+n+' 人，将移除：'+removed+'，确定吗？')) : true;
@@ -384,13 +387,13 @@ function renderPersons() {
       <input type="text" value="${escHtml(p.name)}" placeholder="姓名" onchange="persons[${i}].name=this.value;calcSimple();" aria-label="姓名">
       <input type="number" id="person-share-${i}" value="${isFinite(Number(p.share)) ? p.share : ''}" min="0.1" step="0.1" style="width:80px;" oninput="setPersonShare(${i},this.value)" placeholder="如 1">
       <span style="font-size:12px;color:var(--text-muted);">份</span>
-      <button type="button" class="btn danger remove" onclick="removePerson(${i})" aria-label="删除">×</button>
+      <button type="button" class="btn danger remove" onclick="removePerson(${i})" aria-label="${__aaT('删除','Delete')}">×</button>
     </div>`
   ).join('');
 }
 
 function addPerson() {
-  persons.push({name:`人员${persons.length+1}`,share:1});
+  persons.push({name:__aaT(`人员${persons.length+1}`,`Person ${persons.length+1}`),share:1});
   document.getElementById('person-count').value = persons.length;
   renderPersons();calcSimple();
 }
@@ -408,6 +411,7 @@ function equalSplit() {
 }
 
 function calcSimple() {
+  const en = __aaEn();
   __billSplitLast = null;
   const totalEl = document.getElementById('total-amount');
   const tipEl = document.getElementById('tip-percent');
@@ -418,7 +422,7 @@ function calcSimple() {
   if (rawTotal === '') {
     markField('total-amount', true);
     markField('tip-percent', true);
-    outEl.innerHTML = '<p style="color:var(--danger)">⚠ 请先填写账单总金额；如需分摊 0 元账单，请输入 0。</p>';
+    outEl.innerHTML = en ? '<p style="color:var(--danger)">⚠ Enter the bill total first; enter 0 if you really need to split a zero bill.</p>' : '<p style="color:var(--danger)">⚠ 请先填写账单总金额；如需分摊 0 元账单，请输入 0。</p>';
     return;
   }
   const total = Number(rawTotal);
@@ -433,12 +437,12 @@ function calcSimple() {
 
   if (!okTotal) {
     outEl.innerHTML = (!isFinite(total) || total < 0)
-      ? `<p style="color:var(--danger)">⚠ 输入错误：总金额必须 ≥ 0 且为有效数字（当前 ${escHtml(rawTotal)}），已停止计算。</p>`
-      : `<p style="color:var(--danger)">⚠ 输入错误：总金额须为 0–${MAX_TOTAL.toLocaleString('zh-CN')} 元之间的有效数字（当前 ${escHtml(rawTotal)}），已停止计算。</p>`;
+      ? `<p style="color:var(--danger)">⚠ ${en?'Invalid input':'输入错误'}：${en?'the total must be a valid number ≥ 0':'总金额必须 ≥ 0 且为有效数字'} (${escHtml(rawTotal)})，${en?'calculation stopped.':'已停止计算。'}</p>`
+      : `<p style="color:var(--danger)">⚠ ${en?'Invalid input':'输入错误'}：${en?'the total must be between 0 and '+MAX_TOTAL.toLocaleString('en-US')+' yuan':'总金额须为 0–'+MAX_TOTAL.toLocaleString('zh-CN')+' 元之间的有效数字'} (${escHtml(rawTotal)})，${en?'calculation stopped.':'已停止计算。'}</p>`;
     return;
   }
   if (!okTip) {
-    outEl.innerHTML = `<p style="color:var(--danger)">⚠ 输入错误：小费/服务费比例必须 ≥ 0 且为有效数字（当前 ${escHtml(rawTip)}），已停止计算。</p>`;
+    outEl.innerHTML = `<p style="color:var(--danger)">⚠ ${en?'Invalid input':'输入错误'}：${en?'tip / service charge must be between 0 and 100%':'小费/服务费比例必须在 0–100% 之间'} (${escHtml(rawTip)})，${en?'calculation stopped.':'已停止计算。'}</p>`;
     return;
   }
 
@@ -450,12 +454,12 @@ function calcSimple() {
   }
   if (badIdx >= 0) {
     markField('person-share-' + badIdx, false);
-    outEl.innerHTML = `<p style="color:var(--danger)">⚠ 输入错误：第 ${badIdx + 1} 位「${escHtml(persons[badIdx].name)}」的份数必须大于 0（当前 ${escHtml(String(persons[badIdx].share))}），已停止计算。</p>`;
+    outEl.innerHTML = `<p style="color:var(--danger)">⚠ ${en?'Invalid input':'输入错误'}：${en?'person '+(badIdx+1)+' ('+escHtml(persons[badIdx].name)+') must have a share greater than 0':'第 '+(badIdx+1)+' 位「'+escHtml(persons[badIdx].name)+'」的份数必须大于 0'} (${escHtml(String(persons[badIdx].share))})，${en?'calculation stopped.':'已停止计算。'}</p>`;
     return;
   }
   const totalShare = shares.reduce((s, x) => s + x, 0);
   if (persons.length === 0 || !isFinite(totalShare) || totalShare <= 0) {
-    outEl.innerHTML = '<p style="color:var(--danger)">⚠ 输入错误：至少需要 1 位参与人员，且份数之和必须大于 0，已停止计算。</p>';
+    outEl.innerHTML = en ? '<p style="color:var(--danger)">⚠ Invalid input: at least one participant is required and the sum of shares must be greater than 0. Calculation stopped.</p>' : '<p style="color:var(--danger)">⚠ 输入错误：至少需要 1 位参与人员，且份数之和必须大于 0，已停止计算。</p>';
     return;
   }
 
@@ -463,27 +467,30 @@ function calcSimple() {
   // 按「分」计算：先向下取整到分，再把余下的分逐一分给前 N 人（合计必然与账单一致）
   const totalCents = Math.round(totalWithTip * 100);
   if (!isFinite(totalWithTip) || !Number.isSafeInteger(totalCents) || totalCents < 0 || totalCents > 1e13) {
-    outEl.innerHTML = `<p style="color:var(--danger)">⚠ 输入金额或小费超出可精确分摊的范围，已停止计算；请缩小金额或小费比例。</p>`;
+    outEl.innerHTML = en ? '<p style="color:var(--danger)">⚠ The amount or tip exceeds the precise splitting range. Reduce the amount or tip and try again.</p>' : '<p style="color:var(--danger)">⚠ 输入金额或小费超出可精确分摊的范围，已停止计算；请缩小金额或小费比例。</p>';
     return;
   }
   const exactCents = shares.map(s => totalCents * (s / totalShare));
   const cents = exactCents.map(x => Math.floor(x + 1e-7));
   let rem = totalCents - cents.reduce((a, b) => a + b, 0);
   if (rem < 0) rem = 0;
-  for (let k = 0; k < rem; k++) cents[k % cents.length] += 1;
+  // 最大余数法：把余下的分给小数部分最大的人，而不是无条件下标靠前的人。
+  const fracOrder = exactCents.map((x,i)=>({i:i, f:x-Math.floor(x)})).sort((a,b)=>b.f-a.f||a.i-b.i);
+  for (let k = 0; k < rem; k++) cents[fracOrder[k % fracOrder.length].i] += 1;
 
-  let html = `<p><strong>总金额：</strong>¥${total.toFixed(2)} + ${tip}%小费 = ¥${totalWithTip.toFixed(2)}</p>`;
-  html += `<p><strong>总份数：</strong>${totalShare}份</p>`;
+  let html = en
+    ? `<p><strong>Total:</strong>¥${total.toFixed(2)} + ${tip}% tip = ¥${totalWithTip.toFixed(2)}</p><p><strong>Total shares:</strong>${totalShare}</p>`
+    : `<p><strong>总金额：</strong>¥${total.toFixed(2)} + ${tip}%小费 = ¥${totalWithTip.toFixed(2)}</p><p><strong>总份数：</strong>${totalShare}份</p>`;
   html += `<div style="margin-top:12px;">`;
   persons.forEach((p, i) => {
-    html += `<div class="result-person"><span>${escHtml(p.name)} (${shares[i]}份)</span><strong>¥${(cents[i] / 100).toFixed(2)}</strong></div>`;
+    html += `<div class="result-person"><span>${escHtml(p.name)} (${shares[i]}${en?' shares':'份'})</span><strong>¥${(cents[i] / 100).toFixed(2)}</strong></div>`;
   });
   html += `</div>`;
   const rule = rem > 0
-    ? `按分计算，余 ${rem} 分由前 ${Math.min(rem, cents.length)} 人各承担 0.01 元`
-    : '按分计算，余数为 0，无额外分配';
-  html += `<p style="margin-top:12px;"><strong>合计已对齐</strong> ¥${(totalCents / 100).toFixed(2)}</p>`;
-  html += `<p style="font-size:12px;color:var(--text-muted);">分摊规则：${rule}</p>`;
+    ? (en ? `Calculated in cents; ${rem} cent(s) of remainder assigned to the largest fractional shares (${Math.min(rem, cents.length)} people).` : `按分计算，余 ${rem} 分由小数部分最大的 ${Math.min(rem, cents.length)} 人各承担 0.01 元`)
+    : (en ? 'Calculated in cents; no remaining cents to allocate.' : '按分计算，余数为 0，无额外分配');
+  html += `<p style="margin-top:12px;"><strong>${en?'Total reconciled':'合计已对齐'}</strong> ¥${(totalCents / 100).toFixed(2)}</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);">${en?'Allocation rule':'分摊规则'}：${rule}</p>`;
   outEl.innerHTML = html;
 
   __billSplitLast = {
@@ -502,14 +509,14 @@ function renderAdvPersons() {
     advPersons.map((n,i)=>
       `<div style="display:flex;align-items:center;gap:4px;">
         <input type="text" value="${escHtml(n)}" style="width:100px;padding:8px;" onchange="advPersons[${i}]=this.value;renderItemPersons();invalidateAdvanced();">
-        <button type="button" class="btn danger" style="padding:6px 10px;" onclick="removeAdvPerson(${i})" aria-label="删除">×</button>
+        <button type="button" class="btn danger" style="padding:6px 10px;" onclick="removeAdvPerson(${i})" aria-label="${__aaT('删除','Delete')}">×</button>
       </div>`
     ).join('')+`</div>`;
   renderItemPersons();
 }
 
 function addAdvPerson() {
-  advPersons.push(`人员${advPersons.length+1}`);
+  advPersons.push(__aaT(`人员${advPersons.length+1}`,`Person ${advPersons.length+1}`));
   renderAdvPersons();
   invalidateAdvanced();
 }
@@ -571,10 +578,10 @@ function calcAdvanced() {
   const outEl = document.getElementById('adv-result');
   const rawTip = String(tipEl.value == null ? '' : tipEl.value).trim();
   const tip = rawTip === '' ? 0 : Number(rawTip);
-  const okTip = isFinite(tip) && tip >= 0;
+  const okTip = isFinite(tip) && tip >= 0 && tip <= 100;
   markField('adv-tip', okTip);
   if (!okTip) {
-    outEl.innerHTML = `<p style="color:var(--danger)">⚠ 输入错误：小费/服务费比例必须 ≥ 0 且为有效数字（当前 ${escHtml(rawTip)}），已停止计算。</p>`;
+    outEl.innerHTML = `<p style="color:var(--danger)">⚠ ${__aaEn()?'Invalid input':'输入错误'}：${__aaEn()?'tip / service charge must be between 0 and 100%':'小费/服务费比例必须在 0–100% 之间'} (${escHtml(rawTip)})，${__aaEn()?'calculation stopped.':'已停止计算。'}</p>`;
     return;
   }
   const items = [];
@@ -601,7 +608,7 @@ function calcAdvanced() {
   });
   
   if(invalidRow > 0){
-    outEl.innerHTML = `<p style="color:var(--danger)">⚠ 第 ${invalidRow} 行金额需为有效正数，已停止计算。</p>`;
+    outEl.innerHTML = __aaEn() ? `<p style="color:var(--danger)">⚠ Item ${invalidRow} needs a valid positive amount. Calculation stopped.</p>` : `<p style="color:var(--danger)">⚠ 第 ${invalidRow} 行金额需为有效正数，已停止计算。</p>`;
     return;
   }
   if(unassignedRow > 0){
@@ -617,12 +624,12 @@ function calcAdvanced() {
   // （三人均分 100 元旧实现显示 33.33×3=99.99）。
   const totalCents = Math.round(totalWithTip*100);
   if (!Number.isSafeInteger(totalCents)) {
-    outEl.innerHTML = '<p style="color:var(--danger)">⚠ 金额超出可精确计算范围，请减小金额或小费比例。</p>';
+    outEl.innerHTML = __aaEn() ? '<p style="color:var(--danger)">⚠ The amount exceeds the precise calculation range. Reduce the amount or tip.</p>' : '<p style="color:var(--danger)">⚠ 金额超出可精确计算范围，请减小金额或小费比例。</p>';
     return;
   }
   const amounts = __advSplitAmounts(items, advPersons.length, tipMultiplier, totalCents);
   
-  let html = `<p><strong>总消费：</strong>¥${total.toFixed(2)} + ${tip}%小费 = ¥${(totalCents/100).toFixed(2)}</p>`;
+  let html = __aaEn() ? `<p><strong>Total:</strong>¥${total.toFixed(2)} + ${tip}% tip = ¥${(totalCents/100).toFixed(2)}</p>` : `<p><strong>总消费：</strong>¥${total.toFixed(2)} + ${tip}%小费 = ¥${(totalCents/100).toFixed(2)}</p>`;
   html += `<div style="margin-top:12px;">`;
   advPersons.forEach((name,idx)=>{
     html += `<div class="result-person"><span>${escHtml(name)}</span><strong>¥${amounts[idx].toFixed(2)}</strong></div>`;
@@ -635,12 +642,15 @@ function calcAdvanced() {
     rule: '逐项按参与人员分摊，按最大余数配平',
     rows: advPersons.map((name, idx) => ({ name: String(name), share: '', cents: Math.round(amounts[idx] * 100) })),
   };
-  if(total>0) addToHistory(total, advPersons.length);
+  const sig = JSON.stringify({items:items.map(it=>({name:it.name,amount:it.amount,involved:it.involved})), tip:tip, persons:advPersons});
+  if(total>0) addToHistory(total, advPersons.length, sig);
 }
 
-function addToHistory(total, n) {
+function addToHistory(total, n, sig) {
   const h = (function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
-  h.unshift({time:new Date().toLocaleString(),total,n});
+  // 同一账单状态重复计算（含简单/高级来回切换）不重复写历史；改过金额、参与人或小费才新增。
+  if(sig && h[0] && h[0].sig === sig) return;
+  h.unshift({time:new Date().toLocaleString(),total,n,sig:sig||''});
   localStorage.setItem(HISTORY_KEY,JSON.stringify(h.slice(0,30)));
   renderHistory();
 }
@@ -779,17 +789,17 @@ function __bill_splitterCsvCell(v){
     return /[",\n\r]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t;
 }
 function __bill_splitterCsvText(){
-    var lines=['姓名,份数,应付(元)'];
+    var en=__aaEn();var lines=[en?'Name,Shares,Amount (CNY)':'姓名,份数,应付(元)'];
     var s=__billSplitLast;
     if(s){
         s.rows.forEach(function(r){
             lines.push([__bill_splitterCsvCell(r.name),__bill_splitterCsvCell(r.share),(r.cents/100).toFixed(2)].join(','));
         });
-        lines.push(['合计',__bill_splitterCsvCell(s.totalShare),(s.totalCents/100).toFixed(2)].join(','));
-        lines.push(['分摊规则',__bill_splitterCsvCell(s.rule+'（含小费总额 ¥'+(s.totalCents/100).toFixed(2)+'）')].join(','));
+        lines.push([en?'Total':'合计',__bill_splitterCsvCell(s.totalShare),(s.totalCents/100).toFixed(2)].join(','));
+        lines.push([en?'Allocation rule':'分摊规则',__bill_splitterCsvCell(s.rule+(en?' (total incl. tip ¥':'（含小费总额 ¥')+(s.totalCents/100).toFixed(2)+(en?')':'）'))].join(','));
     }else{
-        lines.push('合计,0,0.00');
-        lines.push('分摊规则,尚未计算');
+        lines.push(en?'Total,0,0.00':'合计,0,0.00');
+        lines.push(en?'Allocation rule,Not calculated yet':'分摊规则,尚未计算');
     }
     return lines.join('\n');
 }
@@ -811,7 +821,7 @@ function __bill_splitterPresets(){
       {label:'默认参数',labelEn:'Default',values:{'total-amount':'1000', 'person-count':'4', 'tip-percent':'0', 'adv-tip':'0'}},
       {label:'四人聚餐·380元·无服务费',labelEn:'Dinner for 4 · 380 · no service charge',values:{'total-amount':'380', 'person-count':'4', 'tip-percent':'0', 'adv-tip':'0'}},
       {label:'十人团建·2880元·含10%服务费',labelEn:'Team of 10 · 2880 · 10% service',values:{'total-amount':'2880', 'person-count':'10', 'tip-percent':'10', 'adv-tip':'0'}},
-      {label:'两人·268元·预付50元',labelEn:'Couple · 268 · 50 prepaid',values:{'total-amount':'268', 'person-count':'2', 'tip-percent':'0', 'adv-tip':'50'}}
+      {label:'两人·268元·无服务费',labelEn:'Couple · 268 · no service charge',values:{'total-amount':'268', 'person-count':'2', 'tip-percent':'0', 'adv-tip':'0'}}
     ],function(){ calcSimple(); });
 }
 var __bill_splitter_f0=(typeof calcSimple==='function')?calcSimple:null;
