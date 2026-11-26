@@ -31,6 +31,12 @@
 label{margin-top:10px;}
 .input-pair{display:flex;gap:10px;flex-wrap:wrap;}
 .input-pair .field{flex:1;min-width:120px;}
+.scheme-panel{margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--bg-card);}
+.scheme-panel summary{cursor:pointer;font-weight:600;color:var(--text);}
+.scheme-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.scheme-item{font-size:13px;padding:4px 8px;border-radius:6px;background:var(--bg-2,var(--bg-card));border:1px solid var(--border);word-break:break-all;}
+.scheme-nav{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:12px;color:var(--text-muted);}
+.scheme-panel textarea{width:100%;box-sizing:border-box;min-height:58px;font-family:inherit;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg,var(--bg-card));color:var(--text);}
 </style>
 
 <meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
@@ -143,6 +149,25 @@ label{margin-top:10px;}
       <div class="field"><label for="n">n（总数，n ≥ 0）</label><input type="number" id="n" value="10" min="0" step="1" placeholder="如 10"></div>
       <div class="field"><label for="r">r（取数，0 ≤ r ≤ n）</label><input type="number" id="r" value="3" min="0" step="1" placeholder="如 3"></div>
     </div>
+
+    <details class="scheme-panel" id="schemePanel">
+      <summary><span class="tb-bi"><span class="t-zh">查看具体方案（可选）</span><span class="t-en">Browse actual combinations (optional)</span></span></summary>
+      <div style="margin-top:10px;">
+        <label for="elements"><span class="tb-bi"><span class="t-zh">元素列表（逗号、顿号或换行分隔；填写后 n 自动取列表长度）</span><span class="t-en">Element list (comma, ideographic comma or newline; n follows list length)</span></span></label>
+        <textarea id="elements" placeholder="如：甲, 乙, 丙, 丙" oninput="__combOnElementsInput()"></textarea>
+        <label style="display:flex;gap:6px;align-items:center;font-size:13px;margin-top:8px;">
+          <input type="checkbox" id="dedupe" checked onchange="__combShowSchemes()">
+          <span class="tb-bi"><span class="t-zh">相同文本视为同一元素（去重）</span><span class="t-en">Treat identical text as the same element</span></span>
+        </label>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:6px;" class="tb-bi"><span class="t-zh">关闭去重时，相同文本按出现位置区分（显示为 A、A#2）。方案数超过 500 时只计算数量，不展开列表。</span><span class="t-en">When dedupe is off, identical text is distinguished by position (A, A#2). Above 500 schemes only the count is shown.</span></p>
+        <div class="toolbar" style="margin-top:8px;">
+          <button type="button" class="btn primary" onclick="__combShowSchemes()"><span class="tb-bi"><span class="t-zh">列出方案</span><span class="t-en">List</span></span></button>
+          <button type="button" class="btn" onclick="__combCopyPage()"><span class="tb-bi"><span class="t-zh">复制当前页</span><span class="t-en">Copy page</span></span></button>
+          <button type="button" class="btn" onclick="__combExportSchemes()"><span class="tb-bi"><span class="t-zh">导出方案 CSV</span><span class="t-en">Export CSV</span></span></button>
+        </div>
+        <div id="combSchemes"></div>
+      </div>
+    </details>
     <div class="toolbar">
       <div id="combination_calculatorPresets"></div><button type="button" class="btn primary" onclick="calculate()">计算 C(n,r)</button><button class="btn" type="button" onclick="__combination_calculatorExport()">导出明细 CSV</button>
     </div>
@@ -214,6 +239,7 @@ label{margin-top:10px;}
 </div>
 <!-- /注意事项区块 -->
 </div>
+<script src="/js/tools/combinatorics-schemes.js"></script>
 <script>
 function bigFmt(bn){
   const s=bn.toString();
@@ -282,6 +308,84 @@ function calculate(){
   if(n===r) html+='<div class="step-line">n=r：C(n,n) = 1（全选）</div>';
   const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h3;
 }
+var __combState = null;
+var __combPageSize = 20;
+var __combMaxList = 500;
+function __combEn(){ return typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn(); }
+function __combTokens(){ return (typeof TBCombinatorics !== 'undefined') ? TBCombinatorics.parseElements(document.getElementById('elements').value) : []; }
+function __combOnElementsInput(){
+  var t = __combTokens();
+  if(t.length) document.getElementById('n').value = String(t.length);
+}
+function __combShowSchemes(){
+  var box = document.getElementById('combSchemes');
+  var tokens = __combTokens();
+  if(!tokens.length){
+    __combState = null;
+    box.innerHTML = '<p style="color:var(--danger);font-size:13px;">' + (__combEn()?'Enter at least one element to list combinations.':'请先填写至少一个元素，才能列出具体方案。') + '</p>';
+    return;
+  }
+  document.getElementById('n').value = String(tokens.length);
+  var rp = __ccParse('r');
+  if(!rp.ok){ box.innerHTML = '<p style="color:var(--danger);font-size:13px;">' + rp.error + '</p>'; return; }
+  var r = rp.v;
+  if(r > tokens.length){ box.innerHTML = '<p style="color:var(--danger);font-size:13px;">' + (__combEn()?'r cannot exceed the number of listed elements.':'r 不能大于元素列表长度。') + '</p>'; return; }
+  var dedupe = document.getElementById('dedupe').checked;
+  var uniqueCount = dedupe ? TBCombinatorics.uniqueCombinationCount(tokens, r) : combination(tokens.length, r);
+  var formulaCount = combination(tokens.length, r);
+  var meta = (__combEn()?'Elements ':'元素 ')+tokens.length+' · r='+r+' · '+(dedupe?(__combEn()?'deduplicated':'按去重'):(__combEn()?'by position':'按位置'))+' · '+(__combEn()?'schemes ':'方案数 ')+bigFmt(uniqueCount);
+  if(uniqueCount !== formulaCount) meta += (__combEn()?' (C(n,r)=':'（C(n,r)=')+bigFmt(formulaCount)+(__combEn()?', differs because repeated text is merged)':'，差异来自重复文本合并）');
+  if(uniqueCount > BigInt(__combMaxList)){
+    __combState = null;
+    box.innerHTML = '<p style="font-size:13px;color:var(--text-muted);">'+meta+'</p><p style="color:var(--danger);font-size:13px;">'+ (__combEn()?'More than 500 schemes: only the count is shown. Reduce r or the element list.':'方案数超过 500，仅保留数量计算；请减少 r 或元素数量。') +'</p>';
+    return;
+  }
+  var rows = TBCombinatorics.combinationSchemes(tokens, r, dedupe);
+  __combState = {rows:rows, page:0, r:r, dedupe:dedupe, meta:meta};
+  __combRenderPage();
+  calculate();
+}
+function __combRenderPage(){
+  var box = document.getElementById('combSchemes');
+  if(!__combState){ return; }
+  var st = __combState;
+  st.page = Number(st.page);
+  if(!isFinite(st.page)) st.page = 0;
+  var totalPages = Math.max(1, Math.ceil(st.rows.length / __combPageSize));
+  if(st.page >= totalPages) st.page = totalPages - 1;
+  if(st.page < 0) st.page = 0;
+  var start = st.page * __combPageSize, end = Math.min(st.rows.length, start + __combPageSize);
+  var items = st.rows.slice(start, end).map(function(row, i){
+    var txt = row.length ? row.join(' + ') : (__combEn()?'(none)':'（不取元素）');
+    return '<span class="scheme-item">'+(start+i+1)+'. '+ToolBox.escHtml(txt)+'</span>';
+  }).join('');
+  box.innerHTML = '<p style="font-size:12px;color:var(--text-muted);margin:10px 0 0;">'+st.meta+'</p>' +
+    '<div class="scheme-list">'+items+'</div>' +
+    '<div class="scheme-nav"><button type="button" class="btn" onclick="__combPage(-1)" '+((st.page<=0)?'disabled':'')+'>←</button><span>'+(st.page+1)+' / '+totalPages+'</span><button type="button" class="btn" onclick="__combPage(1)" '+((st.page>=totalPages-1)?'disabled':'')+'>→</button></div>';
+}
+function __combPage(delta){
+  if(!__combState) return;
+  __combState.page = Number(__combState.page) + (Number(delta) || 0);
+  __combRenderPage();
+}
+function __combCurrentRows(){
+  if(!__combState) return [];
+  var start = __combState.page * __combPageSize;
+  return __combState.rows.slice(start, start + __combPageSize);
+}
+function __combCopyPage(){
+  if(!__combState || !__combState.rows.length){ ToolBox.showToast(__combEn()?'List schemes first':'请先列出方案', 'warning'); return; }
+  var lines = __combCurrentRows().map(function(row, i){ return (__combState.page*__combPageSize+i+1)+'. '+(row.length?row.join(' + '):(__combEn()?'(none)':'（不取元素）')); });
+  var text = (__combEn()?'Combination schemes (page ':'组合方案（第 ')+(__combState.page+1)+(__combEn()?')\n':' 页）\n')+lines.join('\n');
+  ToolBox.copyText(text, __combEn()?'Current page copied':'已复制当前页方案');
+}
+function __combExportSchemes(){
+  if(!__combState || !__combState.rows.length){ ToolBox.showToast(__combEn()?'List schemes first':'请先列出方案', 'warning'); return; }
+  var rows = [[__combEn()?'No.':'序号',__combEn()?'Scheme':'方案']];
+  __combState.rows.forEach(function(row, i){ rows.push([String(i+1), row.length?row.join(' + '):(__combEn()?'(none)':'（不取元素）')]); });
+  try { TBKit.util.exportCsv('combination-schemes.csv', rows); } catch(e) { ToolBox.showToast((__combEn()?'Export failed: ':'导出失败：')+((e&&(e.message||e.name))||(__combEn()?'unknown error':'未知错误')), 'error'); }
+}
+
 function toggleToolTheme(){
   const cur=document.documentElement.getAttribute('data-theme');
   if(cur==='dark'){ document.documentElement.removeAttribute('data-theme'); document.querySelector('.theme-btn').textContent='🌙'; localStorage.setItem('toolbox_theme','light'); }

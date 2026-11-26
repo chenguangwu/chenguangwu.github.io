@@ -498,6 +498,59 @@ const CASES = [
     ref: "SMS-127 清账：原 n 无上限，BigInt 连乘 r 项 + 两个未使用的 O(n) 数组，n=1e5 冻结页面。现加 n≤2000 上限守卫并删除未使用数组。注入 n=2001（刚过界，旧版可在秒内算出、不会卡死）断言上限提示；旧版正常输出排列数 ⇒ 变红，零逃生。"
   },
   {
+    slug: "science/combination-calculator",
+    checkIds: ["dedupe"],
+    inputs: { elements: "A,A,B", n: "3", r: "2" },
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='A,A,B';document.getElementById('r').value='2';document.getElementById('dedupe').checked=true;__combShowSchemes();var h=String(document.getElementById('combSchemes').innerHTML);document.getElementById('n').value='COMBSC_'+((h.indexOf('方案数 2')>=0&&h.indexOf('A + A')>=0&&h.indexOf('A + B')>=0)?'OK':'BAD_'+h.slice(0,80));"],
+    expect: ["COMBSC_OK"],
+    ref: "组合方案（去重）：A,A,B 中取 2 个，按元素类型组合只有 {A,A}、{A,B} 两种，C(3,2)=3 因重复文本合并降为 2。共享纯函数 combinatorics-schemes.js 负责枚举，页面方案面板负责分页展示。旧版无方案面板 ⇒ 不产生该串。"
+  },
+  {
+    slug: "science/combination-calculator",
+    inputs: { elements: "A,A,B", n: "3", r: "2" },
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='A,A,B';document.getElementById('r').value='2';document.getElementById('dedupe').checked=false;__combShowSchemes();var h=String(document.getElementById('combSchemes').innerHTML);document.getElementById('n').value='COMBRAW_'+((h.indexOf('A#2')>=0&&h.indexOf('方案数 3')>=0)?'OK':'BAD_'+h.slice(0,80));"],
+    expect: ["COMBRAW_OK"],
+    ref: "组合方案（按位置）：关闭去重后 A,A,B 的三个位置取 2 个共 C(3,2)=3 种，重复文本以 A#2 区分，与去重态 2 种明确不同；防止把“相同文本同元素”和“不同位置”混为一谈。"
+  },
+  {
+    slug: "science/combination-calculator",
+    checkIds: ["dedupe"],
+    inputs: { elements: "甲、乙、丙、丙", n: "4", r: "0" },
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='甲、乙、丙、丙';document.getElementById('r').value='0';document.getElementById('dedupe').checked=true;__combShowSchemes();var h=String(document.getElementById('combSchemes').innerHTML);document.getElementById('n').value='COMBR0_'+((h.indexOf('方案数 1')>=0&&h.indexOf('（不取元素）')>=0)?'OK':'BAD_'+h.slice(0,80));"],
+    expect: ["COMBR0_OK"],
+    ref: "组合方案 r=0：C(n,0)=1，唯一方案为空选，显示“（不取元素）”且不应误判为未填写；同时验证顿号分隔解析。"
+  },
+  {
+    slug: "science/combination-calculator",
+    inputs: { elements: "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z", n: "26", r: "20" },
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();__combShowSchemes();var h=String(document.getElementById('combSchemes').innerHTML);document.getElementById('n').value='COMBLIM_'+((h.indexOf('230,230')>=0&&h.indexOf('方案数超过 500')>=0&&document.getElementById('combSchemes').querySelectorAll('.scheme-item').length===0)?'OK':'BAD_'+h.slice(0,80));"],
+    expect: ["COMBLIM_OK"],
+    ref: "组合生成上限：C(26,20)=C(26,6)=230,230 超过 500，应只显示数量并明确提示，绝不枚举 23 万条（否则页面卡死）。"
+  },
+  {
+    slug: "science/permutation-calculator",
+    checkIds: ["dedupe"],
+    inputs: { elements: "A,A,B", n: "3", r: "2" },
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='A,A,B';document.getElementById('r').value='2';document.getElementById('dedupe').checked=true;__permShowSchemes();var h=String(document.getElementById('permSchemes').innerHTML);document.getElementById('n').value='PERMSC_'+((h.indexOf('方案数 3')>=0&&h.indexOf('A → A')>=0&&h.indexOf('B → A')>=0)?'OK':'BAD_'+h.slice(0,80));"],
+    expect: ["PERMSC_OK"],
+    ref: "排列方案（去重）：A,A,B 取 2 个的不重复序列为 AA、AB、BA 共 3 条，P(3,2)=6 因相同文本合并降为 3；验证重复序列只出现一次。"
+  },
+  {
+    slug: "science/permutation-calculator",
+    inputs: { elements: "A,A,B", n: "3", r: "2" },
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='A,A,B';document.getElementById('r').value='2';document.getElementById('dedupe').checked=false;__permShowSchemes();var h=String(document.getElementById('permSchemes').innerHTML);document.getElementById('n').value='PERMRAW_'+((h.indexOf('A#2')>=0&&h.indexOf('方案数 6')>=0)?'OK':'BAD_'+h.slice(0,80));"],
+    expect: ["PERMRAW_OK"],
+    ref: "排列方案（按位置）：关闭去重后三个位置取 2 个共 P(3,2)=6 条，A/A#2 区分使 AA 出现两次；与去重态 3 条形成互斥回归。"
+  },
+  {
+    slug: "science/permutation-calculator",
+    checkIds: ["dedupe"],
+    inputs: { elements: "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z", n: "26", r: "20" },
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').join(',');__permShowSchemes();var h=String(document.getElementById('permSchemes').innerHTML);document.getElementById('n').value='PERMLIM_'+((h.indexOf('560,127,029,342,507,827,200,000')>=0&&h.indexOf('上限 P(n,r)')>=0&&document.getElementById('permSchemes').querySelectorAll('.scheme-item').length===0)?'OK':'BAD_'+h.slice(0,80));"],
+    expect: ["PERMLIM_OK"],
+    ref: "排列去重计数卡死防线：26 个互异元素取 20 个，P(26,20)=560,127,029,342,507,827,200,000；去重精确计数是指数级状态搜索，必须在超过 500 且类型 >10 时改用上限值直接限流，禁止枚举。旧实现此处 RangeError/卡死。"
+  },
+  {
     slug: "science/nth-root-calculator",
     inputs: { x: "27", n: "7" },
     expect: ["e^0.471 = 1.601", "验证：(1.601)^7 = 27 ≈ 27"],
