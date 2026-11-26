@@ -83,7 +83,7 @@ window.INDUSTRY_INFO = {
   'ecommerce'            : { name: '电子商务', icon: '🛍️', hot: 201647 },
   'forestry'             : { name: '林业资源', icon: '🌲', hot: 200041 },
   'metallurgy'           : { name: '冶金材料', icon: '🔩', hot: 196562 },
-  'music'                : { name: '音乐艺术', icon: '🎵', hot: 191947 },
+  'music'                : { name: '音乐艺术', icon: '🎵', hot: 191950 },
   'hr'                   : { name: '人力资源', icon: '👥', hot: 187677 },
   'clinical-lab'         : { name: '临床检验', icon: '🔬', hot: 186505 },
   'hvac'                 : { name: '暖通空调', icon: '❄️', hot: 184539 },

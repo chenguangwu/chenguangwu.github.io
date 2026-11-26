@@ -4,7 +4,7 @@ const { runCase } = require("./verify_it_calc.js");
 const fs=require("fs"), path=require("path");
 function musicStaticChecks(){
   const read=(p)=>fs.readFileSync(path.join(__dirname,"..","tools","music",p),"utf8");
-  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html"), fq=read("freq-note-converter.html"), sp=read("convert-speed.html"), dt=read("detector.html"), ac=read("audio-converter.html"), ma=read("music-analysis.html"), mp=read("music-player.html"), et=read("ear-trainer.html"), rt=read("rhythm-trainer.html"), rr=read("random-training-rhythm.html"), pk=read("piano-keyboard.html");
+  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html"), fq=read("freq-note-converter.html"), sp=read("convert-speed.html"), dt=read("detector.html"), ac=read("audio-converter.html"), ma=read("music-analysis.html"), mp=read("music-player.html"), et=read("ear-trainer.html"), rt=read("rhythm-trainer.html"), rr=read("random-training-rhythm.html"), pk=read("piano-keyboard.html"), sg=read("generator-1.html");
   return [
     {name:"和弦进行降E映射、悲怆四级与大调高频",ok:/'Eb':3/.test(cp)&&!/'Eb':2/.test(cp)&&/qualities:\s*\['',\s*'m',\s*'',\s*'m'\]/.test(cp)&&/48 \+ chordRoot/.test(cp)&&/spellChordNote\(rootName/.test(cp)},
     {name:"和弦进行停止清理全部高亮定时器",ok:/highlightTimeouts/.test(cp)&&/highlightTimeouts\.forEach/.test(cp)&&/if \(isPlaying\) highlightChord/.test(cp)},
@@ -26,7 +26,8 @@ function musicStaticChecks(){
     {name:"听力训练切题停止旧振荡器与定时器",ok:/function stopCurrentSound/.test(et)&&/activeOscs\.forEach/.test(et)&&/playTimers\.forEach/.test(et)&&/function generateQuestion\(\) \{\n    stopCurrentSound\(\)/.test(et)&&/if \(token === playToken\)/.test(et)},
     {name:"节奏训练额外点击计入分母并展示",ok:/extraTapIndices/.test(rt)&&/scoredUnits = results\.length \+ extraCount/.test(rt)&&/totalScore \/ scoredUnits/.test(rt)&&/Extra taps/.test(rt)&&/额外点击/.test(rt)},
     {name:"跟拍训练空值与越界拒绝启动",ok:/function readInt\(id, min, max\)/.test(rr)&&/Number\.isInteger\(n\) && n >= min && n <= max/.test(rr)&&/bpm === null \|\| sub === null \|\| bars === null/.test(rr)&&!/parseInt\(document\.getElementById\('tapBpm'\)\.value\)\|\|100/.test(rr)&&!/bpm=Math\.max\(40,Math\.min\(200,bpm\)\)/.test(rr)},
-    {name:"钢琴键盘失焦/隐藏停止全部音符",ok:/window\.addEventListener\('blur', function\(\) \{\n    stopAllNotes\(\);/.test(pk)&&/document\.addEventListener\('visibilitychange'/.test(pk)&&/if \(document\.hidden\) stopAllNotes\(\)/.test(pk)&&/window\.addEventListener\('pagehide'/.test(pk)}
+    {name:"钢琴键盘失焦/隐藏停止全部音符",ok:/window\.addEventListener\('blur', function\(\) \{\n    stopAllNotes\(\);/.test(pk)&&/document\.addEventListener\('visibilitychange'/.test(pk)&&/if \(document\.hidden\) stopAllNotes\(\)/.test(pk)&&/window\.addEventListener\('pagehide'/.test(pk)},
+    {name:"音阶生成指定调性/正确拼写/试听键盘",ok:/function spellPitch/.test(sg)&&/const ROOTS = \[/.test(sg)&&/function buildScale/.test(sg)&&/function renderKeyboard/.test(sg)&&/function playScale/.test(sg)&&/随机练习/.test(sg)&&!/一律随机生成/.test(sg)}
   ];
 }
 const CASES = [
@@ -141,19 +142,17 @@ const CASES = [
 },
 {
   "slug": "music/generator-1",
-  "inputs": {
-    "cnt": "8"
-  },
-  "expect": [
-    "6."
-  ],
-  "ref": "auto-restore"
+  "inputs": {},
+  "clicks": ["var r=buildScale(ROOTS[5],SCALES[0],4);var n=r.notes.map(function(x){return x.name;}).join(' ');document.getElementById('__tbProbe').textContent='SCALE '+n+' '+r.notes[3].freq.toFixed(2);"],
+  "expect": ["SCALE F4 G4 A4 B♭4 C5 D5 E5 466.16"],
+  "ref": "直接调用 buildScale 校验 F 大调：第四级按音级拼成 B♭（不是 A♯），跨 C 音级的 C5/D5/E5 八度正确，频率 466.16 Hz。旧实现只随机根音与调式且一律升号，无 buildScale ⇒ 无探针串。"
 },
 {
   "slug": "music/generator-1",
-  "inputs": { "cnt": "" },
-  "expect": ["请输入生成数量"],
-  "ref": "FE-N73 复核重做：清空生成数量（空值）后，旧实现 `value||5` 把空当 0→5 生成 5 题；现空值直接提示「请输入生成数量」并 return。默认 cnt=5 生成 5 题不含该提示 ⇒ 强判别、零逃生。"
+  "inputs": {},
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/music/generator-1.html','utf8');var ok=h.indexOf('随机数量需为 1–50 的整数')>=0&&h.indexOf('Number.isInteger(n)')>=0&&h.indexOf('n<1||n>50')>=0;document.getElementById('__tbProbe').textContent='GENEMPTY '+(ok?'OK':'BAD');"],
+  "expect": ["GENEMPTY OK"],
+  "ref": "随机练习模式的数量必须为非空 1–50 整数；源码守卫空串/非整数/越界统一报「随机数量需为 1–50 的整数」。旧实现无随机数量输入与校验 ⇒ 无探针串。"
 },
 {
   "slug": "music/guitar-fretboard",
