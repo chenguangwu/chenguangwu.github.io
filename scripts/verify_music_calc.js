@@ -4,7 +4,7 @@ const { runCase } = require("./verify_it_calc.js");
 const fs=require("fs"), path=require("path");
 function musicStaticChecks(){
   const read=(p)=>fs.readFileSync(path.join(__dirname,"..","tools","music",p),"utf8");
-  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html"), fq=read("freq-note-converter.html"), sp=read("convert-speed.html"), dt=read("detector.html"), ac=read("audio-converter.html"), ma=read("music-analysis.html");
+  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html"), fq=read("freq-note-converter.html"), sp=read("convert-speed.html"), dt=read("detector.html"), ac=read("audio-converter.html"), ma=read("music-analysis.html"), mp=read("music-player.html");
   return [
     {name:"和弦进行降E映射、悲怆四级与大调高频",ok:/'Eb':3/.test(cp)&&!/'Eb':2/.test(cp)&&/qualities:\s*\['',\s*'m',\s*'',\s*'m'\]/.test(cp)&&/48 \+ chordRoot/.test(cp)&&/spellChordNote\(rootName/.test(cp)},
     {name:"和弦进行停止清理全部高亮定时器",ok:/highlightTimeouts/.test(cp)&&/highlightTimeouts\.forEach/.test(cp)&&/if \(isPlaying\) highlightChord/.test(cp)},
@@ -18,7 +18,9 @@ function musicStaticChecks(){
     {name:"变速比例与相对变化分开标注",ok:/目标速度占原速比例/.test(sp)&&/相对变化/.test(sp)&&/__ratio/.test(sp)},
     {name:"节拍检测新一轮清空旧结果",ok:/function clearResult/.test(dt)&&/updateDisplay[\s\S]{0,200}clearResult\(\)/.test(dt)&&/resetBPM[\s\S]{0,300}clearResult\(\)/.test(dt)},
     {name:"音频格式十进制容量与英文免责",ok:/totalBytes \/ 1e6/.test(ac)&&/320 \* 1000 \* dur \/ 8 \/ 1e6/.test(ac)&&/no upload or transcoding/.test(ac)&&!/Convert audio files between common formats/.test(ac)},
-    {name:"音频分析容量十进制与统计清空",ok:/totalBytes \/ 1e6/.test(ma)&&/function clearStats/.test(ma)&&/clearStats\(\)/.test(ma)&&/bytesPerSec \/ 1000/.test(ma)}
+    {name:"音频分析容量十进制与统计清空",ok:/totalBytes \/ 1e6/.test(ma)&&/function clearStats/.test(ma)&&/clearStats\(\)/.test(ma)&&/bytesPerSec \/ 1000/.test(ma)},
+    {name:"播放器按实际加入数反馈并跳过非音频",ok:/function isAudioFile/.test(mp)&&/const added = \[\]/.test(mp)&&/skipped\+\+/.test(mp)&&/已添加 \$\{added\.length\} 首，跳过 \$\{skipped\}/.test(mp)&&!/已添加 \$\{files\.length\} 首歌曲/.test(mp)},
+    {name:"播放器 Promise/事件同步状态并修正历史索引",ok:/function attemptPlay/.test(mp)&&/p\.then\(\(\) => \{ updatePlayUI\(true\)/.test(mp)&&/showPlayError\(\); return false;/.test(mp)&&/audio\.addEventListener\('error'/.test(mp)&&/__tbHistSave\(\{时间:__tbTime\(\),曲目:t\.name/.test(mp)&&!/var t=playlist\[i\]/.test(mp)}
   ];
 }
 const CASES = [
@@ -667,6 +669,14 @@ const CASES = [
   "clicks": ["['stat-freq','stat-note','stat-cent','stat-octave'].forEach(function(id){document.getElementById(id).textContent='OLD';});clearStats();document.getElementById('audio-size-result').textContent='CLR '+['stat-freq','stat-note','stat-cent','stat-octave'].map(function(id){return document.getElementById(id).textContent;}).join('|');"],
   "expect": ["CLR —|—|—|—"],
   "ref": "clearStats 必须把频率/音名/音分/八度四项统计统一复位为「—」；旧实现静音与停止只清主显示，四项保留上一帧。"
+}
+,
+{
+  "slug": "music/music-player",
+  "inputs": {},
+  "clicks": ["var __o=URL.createObjectURL;URL.createObjectURL=function(){return 'blob:test';};handleFiles([{name:'good.mp3',type:'audio/mpeg'},{name:'bad.exe',type:'application/x-msdownload'},{name:'no-mime.flac',type:''}]);URL.createObjectURL=__o;document.getElementById('__tbProbe').textContent='FILES '+playlist.length+':'+document.querySelectorAll('.playlist-item').length;"],
+  "expect": ["FILES 2:2"],
+  "ref": "混合选择：仅计 audio MIME 与扩展名兜底的 2 个可播放文件，.exe 跳过；旧实现 push 前直接 return 却仍用 files.length=3 报「已添加 3 首」。"
 }
 
 ];
