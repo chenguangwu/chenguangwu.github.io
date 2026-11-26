@@ -1141,9 +1141,23 @@ const CASES = [
   {
     slug: "life/pressure-converter",
     inputs: {},
-    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+'tools/life/pressure-converter.html','utf8');var i=h.indexOf('function clearAll()');var seg=i>=0?h.slice(i,i+1000):'';document.getElementById('inputVal').value='PRESSCLEAR '+((seg.indexOf('convert()')>=0)?'OK':'BAD');"],
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+'tools/life/pressure-converter.html','utf8');var i=h.indexOf('function clearAll()');var j=i>=0?h.indexOf('\\n}',i):-1;var seg=(i>=0&&j>i)?h.slice(i,j+2):'';var ok=seg.indexOf('convert()')<0&&h.indexOf('Enter a valid number.')>=0;document.getElementById('inputVal').value='PRESSCLEAR '+(ok?'OK':'BAD');"],
     expect: ["PRESSCLEAR OK"],
-    ref: "清空必须同步清尺度感知：clearAll() 末尾调用 convert()，空输入时由 convert 包装清空 __charRefBox。真机另测 100 Pa → 清空后参照区长度 0。"
+    ref: "清空必须保留空态提示：旧 clearAll() 末尾再调 convert()，空输入又把英文空态覆盖成中文「请输入有效数值」；修复后 clearAll 只清值并写空态，错误分支中英双语。按函数体切片判定，避免把函数外的 convert(); 误当函数体（旧用例即因此假绿）。"
+  },
+  {
+    slug: "life/magnet-converter",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/life/magnet-converter.html','utf8');var ok=h.indexOf('Enter a valid number.')>=0&&h.indexOf(\"text==='Enter a valid number.'\")>=0;document.getElementById('inputVal').value='MAGCOPY '+(ok?'OK':'BAD');"],
+    expect: ["MAGCOPY OK"],
+    ref: "magnet 的 copyRes 必须把英文非法提示与空态一起识别为无可复制结果，否则英文态会复制 «Enter a valid number.»。"
+  },
+  {
+    slug: "life/pressure-converter",
+    inputs: {},
+    clicks: ["var fs=globalThis.__tbFs;var list='pressure energy concentration area data-rate angle length power speed frequency time weight magnet volume'.split(' ');var bad=[];var mark='const __h0='+String.fromCharCode(39)+String.fromCharCode(60)+'p';list.forEach(function(f){var h=fs.readFileSync(process.cwd()+'/tools/life/'+f+'-converter.html','utf8');if(h.indexOf('Enter a valid number.')<0||h.indexOf(mark)>=0)bad.push(f);});document.getElementById('inputVal').value='ENHINT '+(list.length-bad.length)+'/'+list.length+(bad.length?' BAD '+bad.join(','):'');"],
+    expect: ["ENHINT 14/14"],
+    ref: "14 个 life 换算页统一：非法输入提示必须含英文 Enter a valid number.，且不得残留硬编码中文 __h0。"
   },
   {
     slug: "life/weight-converter",
