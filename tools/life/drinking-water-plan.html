@@ -318,12 +318,14 @@ function __dwpSlots(){
   if(wake===null||sleep===null||wake===sleep) return null;
   var end=sleep, duration=end-wake; if(duration<=0) end+=1440, duration+=1440;
   if(duration<30) return null;
+  var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   var exStartRaw=document.getElementById('exStart').value;
   var exMinRaw=String(document.getElementById('exMin').value).trim();
   var exStart=null, exMin=0;
   if(exStartRaw!=='' || exMinRaw!=='') {
     exStart=__dwpTimeMin(exStartRaw); exMin=parseFloat(exMinRaw);
     if(exStart===null||!isFinite(exMin)||exMin<=0||exMin>600) return null;
+    if(exStart<wake) exStart+=1440;
   }
   var n=Math.max(1,Math.ceil(duration/90));
   var base=Math.floor(duration/n), rem=duration-base*n;
@@ -337,7 +339,7 @@ function __dwpSlots(){
     var slot={start:cursor,end:slotEnd,weight:defaultShape?DEFAULT_SLOT_WEIGHTS[i]:1,note:note,exercise:false,exerciseMl:0};
     if(exStart!==null && !exAssigned){
       var exEnd=exStart+exMin;
-      if(exStart<slotEnd && exEnd>cursor){ slot.exercise=true; slot.exerciseMl=exMin; note+='；含运动时段'; exAssigned=true; }
+      if(exStart<slotEnd && exEnd>cursor){ slot.exercise=true; slot.exerciseMl=exMin; note+=(en?' (includes exercise window)':'；含运动时段'); exAssigned=true; }
     }
     slot.note=note;
     slots.push(slot);
@@ -352,7 +354,7 @@ function num(id){const raw=String(document.getElementById(id).value).trim();if(r
 function escH(s){var d=document.createElement('div');const __g0=s==null?'':String(s);d.textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){const w=num('w'), act=document.getElementById('act').value, temp=num('temp'), stage=document.getElementById('stage').value;
+function calcTool(){var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());const w=num('w'), act=document.getElementById('act').value, temp=num('temp'), stage=document.getElementById('stage').value;
    if(w===null||temp===null){ToolBox.setResult('result','<p class="tip-error">请输入有效的体重与气温。</p>');return;}
    if(w<20||w>200){ToolBox.setResult('result','<p class="tip-error">体重需在 20–200 kg 的适用范围内，超出范围不做饮水估算。</p>');return;}
    if(temp<-10||temp>45){ToolBox.setResult('result','<p class="tip-error">气温需在 −10–45 °C 的适用范围内，超出范围不做饮水估算。</p>');return;}
@@ -396,7 +398,7 @@ function calcTool(){const w=num('w'), act=document.getElementById('act').value, 
        '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+slots[i].note+'</td></tr>';
    }
    html+='</table>';
-   html += '<div class="tip-mini" style="margin-top:8px;font-size:12px;color:var(--text-muted);">清醒时段：'+__dwpClock(slots.length?slots[0].start:0)+'–'+__dwpClock(slots.length?slots[slots.length-1].end:0)+'，共 '+slots.length+' 段；运动增量按运动开始时间计入对应时段。</div>';
+   html += '<div class="tip-mini" style="margin-top:8px;font-size:12px;color:var(--text-muted);">'+(en?'Awake window: ':'清醒时段：')+__dwpClock(slots.length?slots[0].start:0)+'–'+__dwpClock(slots.length?slots[slots.length-1].end:0)+(en?' across '+slots.length+' slots; the exercise increment is assigned to the slot containing its start time.':'，共 '+slots.length+' 段；运动增量按运动开始时间计入对应时段。')+'</div>';
    html += '<div style="margin-top:12px;font-size:13px;"><b>不同人群每日饮水参考</b></div>'+
      '<table class="csv-prev" style="margin-top:6px;border-collapse:collapse;width:100%;font-size:12.5px;">'+
      '<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">人群</th>'+

@@ -518,9 +518,8 @@ function saveCities(){
   }catch(e){}
 }
 
-function getOffsetMinutes(cityId, dateStr){
+function __wcOffsetMinutesAt(cityId, at){
   try{
-    const at = dateStr ? new Date(dateStr + 'T12:00:00Z') : new Date();
     // 优先 shortOffset（若浏览器支持）；失败则用同一时刻墙上时间与 UTC 求差。
     try{
       const offFmt = new Intl.DateTimeFormat('en-US', { timeZone: cityId, timeZoneName: 'shortOffset' });
@@ -544,6 +543,36 @@ function getOffsetMinutes(cityId, dateStr){
     if(Math.abs(diffMin) > 16*60) return null;
     return diffMin;
   }catch(e){ return null; }
+}
+function getOffsetMinutes(cityId, dateStr){
+  const at = dateStr ? new Date(dateStr + 'T12:00:00Z') : new Date();
+  return __wcOffsetMinutesAt(cityId, at);
+}
+function __wcParts(cityId, at){
+  try{
+    const fmt=new Intl.DateTimeFormat('en-US',{timeZone:cityId,hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const p=fmt.formatToParts(at).reduce(function(o,x){o[x.type]=x.value;return o;},{});
+    let h=parseInt(p.hour,10); if(h===24)h=0;
+    return {y:parseInt(p.year,10),m:parseInt(p.month,10),d:parseInt(p.day,10),h:h,min:parseInt(p.minute,10)};
+  }catch(e){ return null; }
+}
+function __wcMatchWall(cityId, instant, y,m,d,h,min){
+  const q=__wcParts(cityId, instant);
+  return !!q && q.y===y && q.m===m && q.d===d && q.h===h && q.min===min;
+}
+function __wcLocalToInstant(cityId, dateStr, timeStr){
+  if(!dateStr || !timeStr) return null;
+  const dm=dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/); const tm=timeStr.match(/^(\d{2}):(\d{2})$/);
+  if(!dm||!tm) return null;
+  const y=+dm[1],m=+dm[2],d=+dm[3],h=+tm[1],min=+tm[2];
+  const desired=Date.UTC(y,m-1,d,h,min,0);
+  // 在目标壁钟前后各取一天采样时区偏移，覆盖春季前拨与秋季回拨两侧的候选时刻
+  const offs=[-24,0,24].map(function(k){ return __wcOffsetMinutesAt(cityId,new Date(desired+k*3600000)); }).filter(function(o){ return o!=null; });
+  if(!offs.length) return null;
+  const cands=offs.map(function(o){ return desired-o*60000; }).filter(function(t,i,a){return a.indexOf(t)===i;});
+  const matches=cands.filter(function(t){return __wcMatchWall(cityId,new Date(t),y,m,d,h,min);}).sort(function(a,b){return a-b;});
+  if(!matches.length) return {nonexistent:true,candidates:cands};
+  return {instant:matches[0],ambiguous:matches.length>1,candidates:matches};
 }
 function getOffset(cityId, dateStr){
   const mins = getOffsetMinutes(cityId, dateStr);
@@ -712,53 +741,62 @@ function calcDiff(){
   const cityB = document.getElementById('diffCityB').value;
   const timeInput = document.getElementById('diffTime').value;
   const dateInput = document.getElementById('diffDate') ? document.getElementById('diffDate').value : '';
-  
-  const offsetA = getOffset(cityA, dateInput);
-  const offsetB = getOffset(cityB, dateInput);
   const __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  const cityAName = __wcCity(ALL_CITIES.find(c => c.id === cityA), __en) || cityA;
+  const cityBName = __wcCity(ALL_CITIES.find(c => c.id === cityB), __en) || cityB;
+  let instant=null, ambiguousInfo='';
+  if(dateInput && timeInput){
+    const sol=__wcLocalToInstant(cityA,dateInput,timeInput);
+    if(!sol || sol.nonexistent){
+      document.getElementById('diffResult').textContent='--';
+      document.getElementById('diffLabel').innerHTML='<p style="color:var(--danger)">'+(__en?'This local time does not exist because the clock jumps forward at a DST transition. Choose a time outside the skipped hour.':'该当地时间在夏令时切换中被跳过（时钟前拨），并不存在；请选择跳过区间之外的时间。')+'</p>';
+      return;
+    }
+    instant=new Date(sol.instant);
+    if(sol.ambiguous){
+      const other=new Date(sol.candidates[sol.candidates.length-1]);
+      const otherParts=__wcParts(cityB, other);
+      ambiguousInfo=(__en?' This local time occurs twice at the DST fall-back; the earlier (DST) occurrence is used. The later occurrence maps to ':' 该当地时间在夏令时回拨时出现两次，现按较早一次（夏令时）计算；较晚一次对应 ')+(otherParts?otherParts.h.toString().padStart(2,'0')+':'+otherParts.min.toString().padStart(2,'0'):'--')+(__en?'.':'。');
+    }
+  }
+  let offsetA, offsetB;
+  if(instant){
+    offsetA=__wcOffsetMinutesAt(cityA,instant);
+    offsetB=__wcOffsetMinutesAt(cityB,instant);
+  } else {
+    offsetA=getOffsetMinutes(cityA,dateInput);
+    offsetB=getOffsetMinutes(cityB,dateInput);
+  }
   if(offsetA == null || offsetB == null){
     document.getElementById('diffResult').textContent = '--';
     document.getElementById('diffLabel').innerHTML = '<p style="color:var(--danger)">'+(__en?'Unable to obtain a reliable time-zone offset in this browser; the fixed city-table value is not shown as accurate.':'当前浏览器无法可靠获取时区偏移，未使用城市表固定值冒充实时结果。')+'</p>';
     return;
   }
-  const diff = offsetB - offsetA;
+  const diff = (offsetB - offsetA) / 60;
   const sign = diff > 0 ? '+' : (diff < 0 ? '-' : '');
   const abs = Math.abs(diff);
   let hours = Math.floor(abs);
   let mins = Math.round((abs - hours) * 60);
   if(mins >= 60){hours += 1; mins = 0;}
   const diffStr = `${sign}${hours}${mins ? (__en?' h ':' 小时 ') + mins + (__en?' min':' 分钟') : (__en?' h':' 小时')}`;
-  
-  const cityAName = __wcCity(ALL_CITIES.find(c => c.id === cityA), __en) || cityA;
-  const cityBName = __wcCity(ALL_CITIES.find(c => c.id === cityB), __en) || cityB;
-  
   document.getElementById('diffResult').textContent = diffStr;
+
+  if(instant && timeInput){
+    const tparts=__wcParts(cityB,instant);
+    if(!tparts){ document.getElementById('diffLabel').textContent='--'; return; }
+    const sourceDate=dateInput;
+    const dayDiff=Math.round((Date.UTC(tparts.y,tparts.m-1,tparts.d)-Date.UTC(+sourceDate.slice(0,4),+sourceDate.slice(5,7)-1,+sourceDate.slice(8,10)))/86400000);
+    const dayStr = dayDiff > 0 ? (__en?` (+${dayDiff} day${dayDiff>1?'s':''})`:`（+${dayDiff}天）`) : dayDiff < 0 ? (__en?` (${dayDiff} days)`:`（${dayDiff}天）`) : '';
+    const cmp=(diff===0?(__en?`${cityBName} has the same offset as ${cityAName}`:`${cityBName} 与 ${cityAName} 时差为 0`):(__en?`${cityBName} is ${diff>0?'ahead of':'behind'} ${cityAName} by ${hours} h ${mins} min`:`${cityBName} 比 ${cityAName} ${diff>0?'快':'慢'} ${hours} 小时 ${mins} 分钟`));
+    const label=`${cityAName} ${dateInput} ${timeInput} → ${cityBName} ${tparts.y}-${String(tparts.m).padStart(2,'0')}-${String(tparts.d).padStart(2,'0')} <strong>${String(tparts.h).padStart(2,'0')}:${String(tparts.min).padStart(2,'0')}</strong>${dayStr} · ${cmp}${ambiguousInfo}`;
+    document.getElementById('diffLabel').innerHTML=label;
+    return;
+  }
+
   document.getElementById('diffLabel').textContent = 
     (__en?`${cityBName} is ${diff >= 0 ? 'ahead of' : 'behind'} ${cityAName} by ${hours} h ${mins} min`:`${cityBName} 比 ${cityAName} ${diff >= 0 ? '快' : '慢'} ${hours} 小时 ${mins} 分钟`);
-  
-  if(timeInput){
-    const [h, m] = timeInput.split(':').map(Number);
-    let totalMin = h * 60 + m + diff * 60;
-    let dayDiff = 0;
-    while(totalMin < 0){ totalMin += 1440; dayDiff--; }
-    while(totalMin >= 1440){ totalMin -= 1440; dayDiff++; }
-    const newH = Math.floor(totalMin / 60);
-    const newM = Math.round(totalMin % 60);
-    const dayStr = dayDiff > 0 ? `（+${dayDiff}天）` : dayDiff < 0 ? `（${dayDiff}天）` : '';
-    let bDate = '';
-    if(dateInput){
-      const base = new Date(dateInput + 'T00:00:00Z');
-      base.setUTCDate(base.getUTCDate() + dayDiff);
-      bDate = base.toISOString().slice(0,10);
-    }
-    let dstNote = '';
-    if(dateInput && (getOffset(cityA, dateInput) !== getOffset(cityA) || getOffset(cityB, dateInput) !== getOffset(cityB))){
-      dstNote = __en ? ' Offsets differ from today; the selected date is used, including DST.' : ' 所选日期的时区偏移与今天不同，已按该日换算（含夏令时）。';
-    }
-    const cmp=(diff===0?(__en?`${cityBName} has the same offset as ${cityAName}`:`${cityBName} 与 ${cityAName} 时差为 0`):(__en?`${cityBName} is ${diff>0?'ahead of':'behind'} ${cityAName} by ${hours} h ${mins} min`:`${cityBName} 比 ${cityAName} ${diff>0?'快':'慢'} ${hours} 小时 ${mins} 分钟`));
-    const __h4=`${cityAName} ${dateInput ? dateInput + ' ' : ''}${timeInput} → ${cityBName}${bDate ? ' ' + bDate : ''} <strong>${newH.toString().padStart(2,'0')}:${newM.toString().padStart(2,'0')}</strong> ${dayStr} · ${cmp}${dstNote}`;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('diffLabel').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('diffLabel').innerHTML=__h4;
-  }
 }
+
 
 function renderMeetingHours(){
   const box=document.getElementById('meetingHoursConfig');

@@ -604,17 +604,23 @@ function __supplyExtras(){
     fb=true;
   }
   var enNames={'洗洁精':'Dish Soap','抽纸':'Tissues','洗衣液':'Laundry Detergent'};
-  var labels=[],data=[];
+  var labels=[],data=[],skipped=0,maxActual=0;
   list.forEach(function(s,i){
+    var d=getDaysUntilEmpty(s);
+    if(d===null){skipped++;return;}
     var nm=s.name||'用品';
     labels.push(en?(fb?(enNames[nm]||('Item '+(i+1))):('Item '+(i+1))):nm);
-    var d=getDaysUntilEmpty(s); if(d===null)d=0;
-    if(d>365)d=365;
-    data.push(d);
+    if(d>maxActual) maxActual=d;
+    data.push(Math.min(d,365));
   });
+  var titleBase=en?(fb?'Example: days until empty (home preset)':'Days until empty by supply'):(fb?'示例：各用品预计耗尽天数（家庭场景预设）':'各清洁用品预计耗尽天数');
+  var title=titleBase;
+  if(en){title+=' (chart capped at 365 days'+(skipped?'; items without consumption omitted':'')+')';}
+  else {title+='（图表按 365 天封顶'+(skipped?'；未设消耗的用品未入图':'')+'）';}
+  if(maxActual>365) title+=en?('; longest actual '+maxActual+' days'):('；最长实际 '+maxActual+' 天');
   TBKit.chart.bar('#supplyChart',{
     labels:labels,height:260,
-    title:en?(fb?'Example: days until empty (home preset)':'Days until empty by supply (capped at 365)'):(fb?'示例：各用品预计耗尽天数（家庭场景预设）':'各清洁用品预计耗尽天数（≤365天封顶）'),
+    title:title,
     series:[{name:en?'Days':'天',data:data}]
   });
   try{__supplyTable();}catch(e){}
@@ -631,8 +637,9 @@ function __supplyTable(){
   var list=supplies||[];
   if(!list.length){list=[{name:'洗洁精',unit:'瓶',stock:3,rate:0.5,period:'month'},{name:'抽纸',unit:'提',stock:6,rate:2,period:'month'},{name:'洗衣液',unit:'瓶',stock:2,rate:0.3,period:'month'}];}
   tb.innerHTML=list.map(function(s,i){
-    var d=getDaysUntilEmpty(s);if(d===null)d=0;if(d>365)d=365;
-    return '<tr><td>'+(i+1)+'</td><td>'+ToolBox.escHtml(s.name||'用品')+'</td><td>'+ToolBox.escHtml(s.unit||'')+'</td><td>'+(+s.stock||0)+'</td><td>'+(+s.rate||0)+'</td><td>'+d+'</td></tr>';
+    var d=getDaysUntilEmpty(s);
+    var left=(d===null)?(en?'No consumption set':'未设消耗'):(d.toFixed(0)+' 天');
+    return '<tr><td>'+(i+1)+'</td><td>'+ToolBox.escHtml(s.name||'用品')+'</td><td>'+ToolBox.escHtml(s.unit||'')+'</td><td>'+(+s.stock||0)+'</td><td>'+(+s.rate||0)+'</td><td>'+left+'</td></tr>';
   }).join('');
 }
 
@@ -649,7 +656,7 @@ function __supplyExport(){
   var en=__supplyIsEn();
   var rows=supplies.map(function(s){
     var d=getDaysUntilEmpty(s);
-    var left=(d===null)?'未设消耗':(d>365?'≥365':d.toFixed(0)+' 天');
+    var left=(d===null)?'未设消耗':(d.toFixed(0)+' 天');
     return [s.name||'用品', s.unit||'', s.stock!=null?s.stock:'', s.rate!=null?s.rate:'', s.period||'', s.threshold!=null?s.threshold:'', left];
   });
   var t=document.createElement('table');

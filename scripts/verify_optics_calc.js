@@ -474,6 +474,7 @@ const CASES = [
 { slug: "optics/doppler-optical", inputs: { f: "5e14", v: "1e8", c: "3e8" }, expect: ["|v/c|≥0.1"], ref: "v/c=0.333，经典一阶近似误差明显，页面应提示改用相对论公式。" },
 { slug: "optics/magnification-optics", inputs: { do: "0.3", di: "-0.3" }, expect: ["无有限焦距"], ref: "d_o+d_i=0 时等效焦距分母为零，不能替换为 1 后给 -0.09。" },
 { slug: "optics/magnification-optics", inputs: { do: "0.5", di: "0.2" }, expect: ["-0.400", "0.1429"], ref: "M=-0.15/0.3=-0.500；f=0.3×0.15/(0.45)=0.1000m。" },
+{ slug: "optics/magnification-optics", inputs: { do: "2", di: "0" }, expect: ["0.000", "取向不适用——像高为零", "退化：f=0"], ref: "第873批：di=0 ⇒ M=0、f=0，像高为零，不能判正立/倒立，更不能称等大；旧实现以 |M|=0 落入 else 分支误显示等大。" },
 { slug: "optics/combined-lens-focal", inputs: { f1: "0.1", f2: "-0.1" }, expect: ["无焦系统", "等效焦距→∞"], ref: "密接双镜光焦度 10+(-10)=0，等效焦距趋于无穷；不能只显示 —。" },
 { slug: "optics/separated-lenses-focal", inputs: { f1: "10", f2: "-10", d: "0" }, expect: ["无焦系统", "等效焦距→∞"], ref: "分离双镜在 d=0 时退化为密接，f1/f2 异号等值 ⇒ 组合光焦度为 0。" },
 { slug: "optics/resolving-power", inputs: { D: "0.2", lam: "600" }, expect: ["3.660e-6", "角分辨本领 1/θ_min"], ref: "θ_min=1.22×550e-9/0.1=6.71e-6 rad；1/θ≈1.49e5 rad⁻¹，不能标成 1/m。" },

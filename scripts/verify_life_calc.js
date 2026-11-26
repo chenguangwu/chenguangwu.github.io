@@ -4903,6 +4903,36 @@ const CASES = [
     clicks: ["persons[0].share=0.1;persons[1].share=9.9;persons[2].share=0.1;persons[3].share=0.1;document.getElementById('total-amount').value='0.01';document.getElementById('tip-percent').value='0';calcSimple();document.getElementById('__tbProbe').textContent='AAREM2 '+document.getElementById('simple-result').textContent;"],
     expect: ["AAREM2", "李四 (9.9份) ¥0.01", "张三 (0.1份) ¥0.00"],
     ref: "第930批：0.1 份与 9.9 份分 0.01 元时，唯一 1 分给小数余数更大的 9.9 份者；不再按人员顺序给第一人。"
+  },
+  {
+    slug: "life/drinking-water-plan",
+    inputs: { w: "60", temp: "20", wakeTime: "20:00", sleepTime: "04:00", exStart: "01:00", exMin: "60" },
+    expect: ["含运动时段", "次日 00:00-次日 01:20"],
+    ref: "第904批：20:00 起床、04:00 就寝、01:00 运动 60 分。运动开始钟表时间早于起床，旧实现把 01:00 当作同日 01:00 而落在清醒区间外；现加 1440 映射到次日轴，正确归入 00:00–01:20 段。"
+  },
+  {
+    slug: "life/cycle-4",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/life/cycle-4.html','utf8');document.getElementById('__tbProbe').textContent='CYC '+((h.indexOf('if (sup.rate <= 0) return null;')>=0&&h.indexOf('未设消耗')>=0&&h.indexOf('toFixed(0)')>=0&&h.indexOf('365 天封顶')>=0&&h.indexOf('Math.min(365')<0)?'OK':'BAD');"],
+    expect: ["CYC OK"],
+    ref: "第914批：零消耗用品旧实现 getDaysUntilEmpty 返回 null 后被显示成 0 天，图表也画成 0；长周期用品被 365 天封顶截断。现零消耗显示「未设消耗」且不入图，正消耗明细与 CSV 显示真实 300000 天。"
+  },
+  {
+    slug: "life/music-practice-timer",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/life/music-practice-timer.html','utf8');document.getElementById('__tbProbe').textContent='MUSIC '+((h.indexOf('hist.push(rec)')>=0&&h.indexOf('最近一条时长相同')<0&&h.indexOf('last.v === acc')<0)?'OK':'BAD');"],
+    expect: ["MUSIC OK"],
+    ref: "第925批：旧实现见最近一条时长相同即跳过写入，连续两次 10 秒练习只记 1 条；现 hist.push(rec) 无条件记录每次独立局次，去重分支已删除（真机探针同参数两次写入得 2 条）。"
+  },
+  {
+    slug: "life/world-clock",
+    clicks: ["var s=__wcLocalToInstant('America/New_York','2026-03-08','02:30');document.getElementById('__tbProbe').textContent='WCN '+((s&&s.nonexistent)?'OK':'BAD');"],
+    expect: ["WCN OK"],
+    ref: "第882批：纽约 2026-03-08 02:30 处于春季前拨跳过的一小时，当地不存在；旧实现按中午偏移硬算出一个时刻，现明确报不存在。"
+  },
+  {
+    slug: "life/world-clock",
+    clicks: ["var s=__wcLocalToInstant('America/New_York','2026-11-01','01:30'),a=s&&__wcParts('Asia/Tokyo',new Date(s.instant)),b=s&&__wcParts('Asia/Tokyo',new Date(s.candidates[1]));document.getElementById('__tbProbe').textContent='WCA '+((s&&s.ambiguous&&a&&a.h===14&&a.min===30&&b&&b.h===15&&b.min===30)?'OK':'BAD');"],
+    expect: ["WCA OK"],
+    ref: "第882批：纽约 2026-11-01 01:30 在秋季回拨出现两次。现按较早（EDT）一次换算东京 14:30，并提示较晚一次对应 15:30；旧实现只取单一偏移且常取错。"
   }
 ];
 // ---------------------------------------------------------------- main

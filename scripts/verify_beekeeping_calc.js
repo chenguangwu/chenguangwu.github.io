@@ -85,6 +85,12 @@ const CASES = [
   },
   {
     "slug": "beekeeping/winter-feed-syrup",
+    "inputs": { "n":"5","vol":"0.00000001","ratio":"2","price":"5","daily":"0.5","days":"10" },
+    "expect": ["每群补饲量 0.001–100 L"],
+    "ref": "第865批：小于 0.001 L 的微量补饲四舍五入后显示 0.0 L，与实际喂入不符；现下限 0.001 L，直接拒绝并提示有效区间。"
+  },
+  {
+    "slug": "beekeeping/winter-feed-syrup",
     "inputs": { "n":"5","vol":"4","ratio":"2","price":"5","daily":"0.5","days":"10" },
     "expect": ["缺口 1.00 L/群","合计 5.00 L","计划与备料不匹配"],
     "ref": "第829批：计划 10 天×0.5 L/群=5 L/群，实备 4 L/群 ⇒ 缺口 1.0 L/群、合计 5.0 L。旧实现只显示「按计划10天」与消耗15天，不比较两者。"

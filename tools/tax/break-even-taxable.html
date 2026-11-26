@@ -133,7 +133,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="估算达到税后目标所需的应税所得。">Work out the taxable income at which the tax liability offsets a fixed deduction, given the marginal rate.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">所需应税所得 = (税后目标所得 t + 各项扣除 d) ÷ (1 − 税率 r)；应纳税额 = 应税所得 × r。校验：无强校验，非数输入按 0 兜底。判据：分子必须先补足扣除项 d 再反推税前口径（并非单纯 t÷(1−r)），税率 r 越高所需税前所得越大。</div>
+      <div class="formula-eq">若税后目标 t ≤ 扣除额 d：税前总收入 = t，应税所得与税额均为 0。若 t > d：税前总收入 = (t − d·r) ÷ (1 − r)，应税所得 = max(税前总收入 − d, 0)，税额 = 应税所得 × r。单一比例税率、扣除为税前扣除；分段税制需另按税率表计算。</div>
       <p class="formula-desc">估算达到税后目标所需的应税所得。</p>
     </div>
 
@@ -240,25 +240,29 @@
 </div>
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function __betSolve(t,d,rPct){
+  const r=rPct/100;
+  if(t<=d) return {gross:t,taxable:0,tax:0,after:t};
+  const gross=(t-d*r)/(1-r);
+  const taxable=Math.max(0,gross-d);
+  const tax=taxable*r;
+  return {gross:gross,taxable:taxable,tax:tax,after:gross-tax};
+}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 /* TOOLBOX-REQ-GUARD */function __tbReq(ids,names){for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);var v=el?el.value:'';if(v===''||v==null||!isFinite(parseFloat(v))){ToolBox.setResult('result','<p class="tip-error">请填写「'+names[i]+'」后再计算。</p>');return false;}}return true;}
-function calcTool(){
+function calcTool(){var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
    if(!__tbReq(['target','deduct','r'],['目标税后所得','免税/扣除额','税率']))return;
             const t = num('target'), d = num('deduct'), rPct = num('r');
             if(!isFinite(t)||!isFinite(d)||!isFinite(rPct)||t<0||d<0||rPct<0||rPct>=100){ToolBox.setResult('result','<p class="tip-error">⚠ 目标税后所得、扣除额须为 ≥0 的数值，税率须在 0–100%（不含 100%）之间。</p>');return;}
-            const r = rPct / 100;
-            // 目标税后所得 = 税前收入 − （税前收入 − 扣除额）× 税率
-            const gross = (t - d * r) / (1 - r);
-            if(gross < 0){ToolBox.setResult('result','<p class="tip-error">⚠ 扣除额带来的减税已高于目标税后所得，当前单一比例税率模型无解，请核对扣除口径。</p>');return;}
-            const taxable = gross - d;
-            const tax = taxable * r;
-            const afterTax = gross - tax;
+            // 目标不超过扣除额时无需缴税；超过时按分段反推，避免负税额与无解
+            const sol = __betSolve(t,d,rPct);
+            const gross = sol.gross, taxable = sol.taxable, tax = sol.tax, afterTax = sol.after;
             const __g1=dataGrid([
-                [gross.toFixed(2), '所需税前总收入'],
-                [Math.max(0,taxable).toFixed(2), '应税所得（总收入−扣除额）'],
-                [tax.toFixed(2), '应纳税额'],
-                [afterTax.toFixed(2), '反算税后所得']
-            ])+'<p style="color:var(--text-muted);font-size:12px;">假设：扣除额为税前扣除、单一比例税率、无其他减免与附加税；分段税制需按对应税率表另行计算，本结果不构成税务结论。</p>';
+                [gross.toFixed(2), en?'Required gross income':'所需税前总收入'],
+                [taxable.toFixed(2), en?'Taxable income (max(gross−deduction, 0))':'应税所得（max(总收入−扣除额, 0)）'],
+                [tax.toFixed(2), en?'Tax payable':'应纳税额'],
+                [afterTax.toFixed(2), en?'After-tax income (back-calculated)':'反算税后所得']
+            ])+'<p style="color:var(--text-muted);font-size:12px;">'+(en?'Assumption: deduction is pre-tax, single proportional rate, no other reliefs or surcharges; progressive regimes require the official rate table. This is not tax advice.':'假设：扣除额为税前扣除、单一比例税率、无其他减免与附加税；分段税制需按对应税率表另行计算，本结果不构成税务结论。')+'</p>';
             ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('target').value = '750000';
@@ -271,15 +275,17 @@ function __break_even_taxableNum(id){var e=document.getElementById(id);var v=e?p
 function __break_even_taxableExtras(){
     function __break_even_taxableRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var t = num('target'), d = num('deduct'), r = num('r') / 100;
-    var taxable = (t + d) / (1 - r);
+    var t = num('target'), d = num('deduct'), r = num('r');
     if (!isFinite(__break_even_taxableNum('target')) || !isFinite(__break_even_taxableNum('deduct')) || !isFinite(__break_even_taxableNum('r'))) return;
+    var sol=__betSolve(t,d,r);
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#break_even_taxableTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['所需应税所得', taxable.toFixed(2)],
-            ['应纳税额', (taxable * r).toFixed(2)],
+            [en?'Required gross income':'所需税前总收入', sol.gross.toFixed(2)],
+            [en?'Taxable income (max(gross−deduction, 0))':'应税所得（max(总收入−扣除额,0)）', sol.taxable.toFixed(2)],
+            [en?'Tax payable':'应纳税额', sol.tax.toFixed(2)],
+            [en?'After-tax income (back-calculated)':'反算税后所得', sol.after.toFixed(2)],
         ]
     });
     TBKit.history.record({target:__break_even_taxableRaw('target'), deduct:__break_even_taxableRaw('deduct'), r:__break_even_taxableRaw('r'), t:t});
@@ -353,7 +359,7 @@ function __betSweep(){
   var mults=[0.5,0.75,1,1.25,1.5,1.75,2];
   for(var k=0;k<mults.length;k++){
     var r=r0*mults[k]; if(r>=100)continue;
-    var taxable=(t+d)/(1-r/100);
+    var taxable=__betSolve(t,d,r).taxable;
     labels.push((Math.round(r*100)/100).toFixed(1));
     dX.push(Math.round(taxable*1000)/1000);
     rows.push([(Math.round(r*100)/100).toFixed(1),(Math.round(taxable*1000)/1000).toFixed(2)]);
@@ -364,7 +370,7 @@ function __betChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var s=__betSweep(); if(!s)return;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-  TBKit.chart.line('#betChart',{title:en?'Break-even Taxable vs Rate (taxable=(t+d)/(1-r))':'盈亏平衡应税所得随税率非线性变化（taxable=(t+d)/(1-r)）',labels:s.labels,series:[{name:en?'Taxable income':'应税所得',data:s.dX}]});
+  TBKit.chart.line('#betChart',{title:en?'Taxable income vs rate (taxable=max((t−d·r)/(1−r)−d,0))':'应税所得随税率变化（taxable=max((t−d·r)/(1−r)−d,0)）',labels:s.labels,series:[{name:en?'Taxable income':'应税所得',data:s.dX}]});
 }
 
 function __betShow(which){
