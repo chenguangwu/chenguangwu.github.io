@@ -276,7 +276,7 @@ const CASES = [
 },
 {
   "slug": "image/image-filter",
-  "clicks": ["var i=PRESETS.findIndex(function(p){return p.name==='梦幻';});applyPreset(i);document.getElementById('__tbProbe').textContent='FLT '+document.getElementById('brightness').value+'|'+document.getElementById('blur').value+'|'+document.getElementById('saturate').value;"],
+  "clicks": ["applyPreset(13);document.getElementById('__tbProbe').textContent='FLT '+document.getElementById('brightness').value+'|'+document.getElementById('blur').value+'|'+document.getElementById('saturate').value;"],
   "expect": ["FLT 110|1|130"],
   "ref": "第207批·预设回写滑杆：梦幻 preset 必须把亮度 110、模糊 1px、饱和 130 写回输入；旧 applyPreset 只改 CSS ⇒ 滑杆仍是默认 100|0|100，零交集。"
 },
