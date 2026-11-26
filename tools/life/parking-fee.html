@@ -350,6 +350,14 @@ if(hours>24000){
 }
 var start=parseStartTime();
 var segs=(capMode==='rolling')?splitRolling(hours,start):splitDays(hours,start);
+if(capMode!=='rolling'){
+  var covered=segs.reduce(function(a,s){return a+s.hours;},0);
+  if(hours-covered>1e-6){
+    var __pEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    document.getElementById('result').innerHTML='<div class="result-title">'+(__pEn?'Out of supported range':'超出支持范围')+'</div><p style="color:var(--danger);">'+(__pEn?('Natural-day splitting hit the 1,000-segment cap; about '+(hours-covered).toFixed(2)+' hours remain unbilled. Shorten the duration or split the calculation to avoid understating the fee.'):('自然日分段达到 1000 段上限，仍有约 '+(hours-covered).toFixed(2)+' 小时未计费。请缩短停放时长或拆分计算，避免明细被截断后低估费用。'))+'</p>';
+    return;
+  }
+}
 var total=0,billable=0,cappedCount=0,rows='';
 for(var i=0;i<segs.length;i++){
   var h=segs[i].hours;

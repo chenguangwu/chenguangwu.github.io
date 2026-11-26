@@ -224,21 +224,62 @@
   </div>
 </div>
 <script>
-function readRegexEscape(p, i){
-  // 返回转义序列的结束位置（不含）与原文。调用方已用 new RegExp 校验合法性。
-  const c=p[i+1];
+function rvEn(){try{return !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}catch(e){return false;}}
+function countCaptures(p){
+  let n=0;
+  for(let i=0;i<p.length;i++){
+    const c=p[i];
+    if(c==='\\'){ i++; continue; }
+    if(c==='['){ i++; if(p[i]==='^') i++; if(p[i]===']') i++; while(i<p.length && p[i]!==']'){ if(p[i]==='\\') i++; i++; } continue; }
+    if(c==='('){
+      if(p[i+1]!=='?') n++;
+      else if(p[i+2]==='<' && p[i+3] && p[i+3]!=='=' && p[i+3]!=='!') n++;
+    }
+  }
+  return n;
+}
+function readRegexEscape(p, i, captureCount){
+  // ECMAScript 非 Unicode 模式：数字转义先按当前捕获组数判定反向引用，
+  // 超出范围时按 Annex B 旧式八进制解析（最多 3 位、值不超过 255）。
+  const c=p[i+1], captures=captureCount||0;
   if(c==='x' && /^[0-9a-fA-F]{2}$/.test(p.slice(i+2,i+4))) return {end:i+4,raw:p.slice(i,i+4)};
-  if(c==='u' && /^[0-9a-fA-F]{4}$/.test(p.slice(i+2,i+6))) return {end:i+6,raw:p.slice(i,i+6)};
-  if(c==='k' && p[i+2]==='<'){ const e=p.indexOf('>',i+3); if(e>i+3) return {end:e+1,raw:p.slice(i,e+1)}; }
-  if(c==='c' && i+2<p.length && /[A-Za-z]/.test(p[i+2])) return {end:i+3,raw:p.slice(i,i+3)};
-  if(c==='0'){ let j=i+2; while(j<p.length && j<i+4 && /[0-7]/.test(p[j])) j++; return {end:j,raw:p.slice(i,j)}; }
-  if(c>='1' && c<='9'){ let j=i+2; while(j<p.length && /\d/.test(p[j])) j++; return {end:j,raw:p.slice(i,j)}; }
+  if(c==='u' && /^[0-9a-fA-F]{4}$/.test(p.slice(i+2,i+6))) return {end:i+6,raw:p.slice(i,i+6),kind:'unicode'};
+  if(c==='k' && p[i+2]==='<'){ const e=p.indexOf('>',i+3); if(e>i+3) return {end:e+1,raw:p.slice(i,e+1),kind:'named'};; }
+  if(c==='c' && i+2<p.length && /[A-Za-z]/.test(p[i+2])) return {end:i+3,raw:p.slice(i,i+3),kind:'control'};
+  if(c==='0'){
+    let j=i+2, val=0;
+    while(j<p.length && j<i+4 && /[0-7]/.test(p[j])){ const nv=val*8+Number(p[j]); if(nv>255) break; val=nv; j++; }
+    return j>i+2 ? {end:j,raw:p.slice(i,j),kind:'octal',charCode:val} : {end:i+2,raw:p.slice(i,i+2),kind:'nul'};
+  }
+  if(c>='1' && c<='9'){
+    let digitsEnd=i+2;
+    while(digitsEnd<p.length && /\d/.test(p[digitsEnd])) digitsEnd++;
+    if(captures>0){
+      let bestEnd=-1,bestVal=-1;
+      for(let j=i+2;j<=digitsEnd;j++){
+        const v=Number(p.slice(i+1,j));
+        if(v>0 && v<=captures){ bestEnd=j; bestVal=v; }
+      }
+      if(bestEnd>0) return {end:bestEnd,raw:p.slice(i,bestEnd),kind:'backref',ref:bestVal};
+    }
+    if(c<='7'){
+      let j=i+1, val=0, last=j;
+      while(j<p.length && j<i+4 && /[0-7]/.test(p[j])){
+        const nv=val*8+Number(p[j]);
+        if(nv>255) break;
+        val=nv; last=j+1; j++;
+      }
+      if(last>i+1) return {end:last,raw:p.slice(i,last),kind:'octal',charCode:val};
+    }
+    return {end:i+2,raw:p.slice(i,i+2),kind:'digit'};
+  }
   return {end:i+2,raw:p.slice(i,i+2)};
 }
 function tokenize(p) {
   const tokens = [];
+  const captures=countCaptures(p);
   for (let i = 0; i < p.length; ) {
-    if (p[i] === '\\') { const e=readRegexEscape(p,i); tokens.push(e.raw); i=e.end; }
+    if (p[i] === '\\') { const e=readRegexEscape(p,i,captures); tokens.push(e.raw); i=e.end; }
     else { tokens.push(p[i]); i++; }
   }
   return tokens;
@@ -250,6 +291,7 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;',
 // 仅做结构解析，不替代 new RegExp 的合法性校验；所有标签文本经 escapeHtml 后落 DOM。
 function parseRegexAst(p){
   let i=0;
+  const captureCount=countCaptures(p);
   function parseAlt(){
     const branches=[parseSeq()];
     while(i<p.length && p[i]==='|'){ i++; branches.push(parseSeq()); }
@@ -311,7 +353,7 @@ function parseRegexAst(p){
       return {type:'class',label:'字符类',detail:raw+(raw.indexOf('[^')===0?'（取反）':''),children:[]};
     }
     if(c==='\\'){
-      const esc=readRegexEscape(p,i); i=esc.end;
+      const esc=readRegexEscape(p,i,captureCount); i=esc.end;
       const ch=esc.raw.charAt(1), rest=esc.raw.slice(2);
       let desc={d:'数字',D:'非数字',s:'空白',S:'非空白',w:'单词字符',W:'非单词字符',b:'单词边界',B:'非单词边界',n:'换行',t:'制表',r:'回车',v:'垂直制表',f:'换页'}[ch];
       if(!desc){
@@ -319,7 +361,10 @@ function parseRegexAst(p){
         else if(ch==='u') desc='Unicode 码点转义';
         else if(ch==='k') desc='命名反向引用 '+rest;
         else if(ch==='c') desc='控制字符转义';
-        else if(ch==='0'||/[1-9]/.test(ch)) desc='反向引用 / 八进制转义';
+        else if(esc.kind==='backref') desc=(rvEn()?'Backreference #':'反向引用 #')+esc.ref;
+        else if(esc.kind==='octal') desc=(rvEn()?'Legacy octal escape (character ':'旧式八进制转义（字符 ')+String.fromCharCode(esc.charCode)+'）';
+        else if(esc.kind==='nul') desc=(rvEn()?'Null-character escape':'空字符转义');
+        else if(ch==='0'||/[1-9]/.test(ch)) desc=(rvEn()?'Numeric literal escape':'数字字面转义');
         else desc='转义序列';
       }
       return {type:/^[bB]$/.test(ch)?'anchor':'escape',label:esc.raw,detail:desc,children:[]};

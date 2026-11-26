@@ -251,7 +251,7 @@ function remainingMonths(p, r, pmt) {
 // F-N224/F-N233：逐期精确摊还（末期按实际余额结清，不用 pmt×n 近似）
 function amortizeExact(p, r, pmt, cap) {
   const m = r / 12;
-  if (!(pmt > p * m)) return null;
+  if (!(pmt > p * m)) return { invalid: 'interest' };
   const maxN = cap || 1200;
   let bal = p, n = 0, total = 0;
   while (bal > 0.005 && n < maxN) {
@@ -261,7 +261,7 @@ function amortizeExact(p, r, pmt, cap) {
     bal = due - pay;
     n++;
   }
-  return bal > 0.005 ? null : { months: n, total: total, interest: total - p };
+  return bal > 0.005 ? { invalid: 'term' } : { months: n, total: total, interest: total - p };
 }
 
 function calc() {
@@ -339,8 +339,16 @@ function calc() {
   // 却同时给出正节省。统一基准后，节省额只归因于本次提前还款。
   const base = amortizeExact(p, annual, mp);
   const short = amortizeExact(bal, annual, mp);
-  if (base === null || short === null) {
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">' + __mpTx('⚠ 按当前月供在 1200 期内无法还清（月供低于或接近当期利息，出现负摊还），无法比较「缩短期限」方案；请提高月供或核对输入。', '⚠ The loan cannot be paid off within 1,200 months at this monthly payment (negative amortization); raise the payment or check the inputs.') + '</p>';
+  if (!base || !short || base.invalid || short.invalid) {
+    let reason;
+    if (mp < firstInterest - 1e-9) {
+      reason = __mpTx('⚠ 月供 <strong>' + mp.toFixed(2) + '</strong> 元低于首期利息 <strong>' + firstInterest.toFixed(2) + '</strong> 元，属于负摊还：本金逐期增加，贷款无法还清。请提高月供或核对输入。', '⚠ The payment of <strong>' + mp.toFixed(2) + '</strong> CNY is below first-month interest of <strong>' + firstInterest.toFixed(2) + '</strong> CNY. This is negative amortization: principal grows and the loan cannot be repaid. Raise the payment or check the inputs.');
+    } else if (Math.abs(mp - firstInterest) <= 1e-9) {
+      reason = __mpTx('⚠ 月供 <strong>' + mp.toFixed(2) + '</strong> 元恰好等于首期利息 <strong>' + firstInterest.toFixed(2) + '</strong> 元，本金不会减少（仅付利息），并非本金增加的负摊还；在 1200 期模拟上限内仍无法还清。请提高月供。', '⚠ The payment of <strong>' + mp.toFixed(2) + '</strong> CNY equals first-month interest of <strong>' + firstInterest.toFixed(2) + '</strong> CNY. Principal does not decrease (interest-only), which differs from negative amortization with growing principal, and the loan is still unpaid at the 1,200-month simulation cap. Raise the payment.');
+    } else {
+      reason = __mpTx('⚠ 月供 <strong>' + mp.toFixed(2) + '</strong> 元高于首期利息 <strong>' + firstInterest.toFixed(2) + '</strong> 元，本金持续减少，但 1200 期内仍未还清。这是模拟期数上限，不是负摊还；请提高月供或拆分期限核对。', '⚠ The payment of <strong>' + mp.toFixed(2) + '</strong> CNY is above first-month interest of <strong>' + firstInterest.toFixed(2) + '</strong> CNY and does reduce principal, but the loan is not repaid within the 1,200-month simulation cap. This is a cap limit, not negative amortization; raise the payment or verify the term.');
+    }
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">' + reason + '</p>';
     return;
   }
   const keepMonths = base.months;
@@ -357,8 +365,11 @@ function calc() {
       reduceMonthly = bal * m * pow / (pow - 1);
     }
     reduce = amortizeExact(bal, annual, reduceMonthly);
-    if (reduce === null) {
-      document.getElementById('result').innerHTML='<p style="color:var(--danger);">' + __mpTx('⚠ 按降低后的月供在 1200 期内无法还清，无法比较「降低月供」方案。', '⚠ The loan cannot be paid off within 1,200 months at the reduced payment.') + '</p>';
+    if (!reduce || reduce.invalid) {
+      const termMsg = reduce && reduce.invalid === 'term'
+        ? __mpTx('⚠ 按降低后的月供，贷款在 1200 期模拟上限内仍未还清（月供高于当期利息、本金在减少，不是负摊还），无法比较「降低月供」方案。', '⚠ At the reduced payment the loan is not repaid within the 1,200-month simulation cap (the payment is above current interest and principal decreases, so this is not negative amortization); the lower-payment comparison cannot be made.')
+        : __mpTx('⚠ 按降低后的月供不高于当期利息，属于负摊还，无法比较「降低月供」方案。', '⚠ The reduced payment is not above current interest (negative amortization); the lower-payment comparison cannot be made.');
+      document.getElementById('result').innerHTML='<p style="color:var(--danger);">' + termMsg + '</p>';
       return;
     }
   }

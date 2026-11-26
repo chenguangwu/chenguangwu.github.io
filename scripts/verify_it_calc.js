@@ -2938,6 +2938,27 @@ const CASES = [
   },
   {
     slug: "it/regex-visualizer",
+    inputs: { pattern: "\\1234+" },
+    clicks: ["render()"],
+    expect: ["旧式八进制转义（字符 S）"],
+    ref: "复核失败重做·无捕获组数字转义：`\\1234+` 在 ECMAScript 非 Unicode 模式下解析为旧式八进制 `\\123`（字符 S）+ 字面 4 + 量词 +；旧实现把连续数字全部吞成单个转义。用例断言转义详情出现字符 S，默认 `^a[0-9]+b$` 不含 S/八进制 ⇒ 仅注入态命中。",
+  },
+  {
+    slug: "it/regex-visualizer",
+    inputs: { pattern: "(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)(l)\\12" },
+    clicks: ["render()"],
+    expect: ["反向引用 #12"],
+    ref: "复核失败重做·有效多位反向引用：12 个捕获组时 `\\12` 应识别为反向引用 #12，而不是拆成 `\\1` + 2；用例在默认 pattern 无 12 组时报错。",
+  },
+  {
+    slug: "it/regex-visualizer",
+    inputs: { pattern: "\\9" },
+    clicks: ["render()"],
+    expect: ["数字字面转义"],
+    ref: "复核失败重做·越界数字转义：无捕获组时 `\\9` 不是反向引用、也不是旧式八进制（8/9 不在八进制范围），按 ECMAScript 为数字字面转义；旧实现无条件显示「反向引用 / 八进制转义」。",
+  },
+  {
+    slug: "it/regex-visualizer",
     // IT-D28：必须输出真实 AST 层级（分支 + 分组 + 量词），旧实现只有线性状态链，无树节点 class。
     inputs: { pattern: "a(b|c)*" },
     clicks: ["render()"],
@@ -5886,6 +5907,13 @@ const CASES = [
     clicks: ["var d=alignedLineDiff(['a','b'],['x','y']);var src=String(backtrack);var ok=typeof MAX_DIFF_CELLS==='number'&&MAX_DIFF_CELLS===4000000&&src.indexOf('while (i > 0')>=0&&src.indexOf('return backtrack')<0&&d.length===2&&d[0].type==='modify'&&d[1].newValue==='y';document.getElementById('text1').value='DIFFSCALE '+(ok?'OK':'BAD');"],
     expect: ["DIFFSCALE OK"],
     ref: "规模保护三要素：MAX_DIFF_CELLS=400 万；backtrack 为 while 迭代（源码不再自调用）；alignedLineDiff 对两行全不同返回 2 个 modify。旧实现递归 backtrack、无 MAX_DIFF_CELLS ⇒ BAD。",
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "a b\nold", text2: "ab\nnew" },
+    clicks: ["var __msg='';var __oldToast=ToolBox.showToast;ToolBox.showToast=function(m){__msg=String(m);};diffStale=false;document.getElementById('ignoreAllWhitespace').checked=true;copyUnifiedPatch();ToolBox.showToast=__oldToast;document.getElementById('__tbProbe').textContent='DIFFPATCH738 '+(__msg.indexOf('无法与原文件上下文对齐')>=0?'OK':'BAD');"],
+    expect: ["DIFFPATCH738 OK"],
+    ref: "复核失败重做·忽略选项禁止导出补丁：忽略所有空白时 `a b` 与 `ab` 被判为相同，旧 buildUnifiedPatch 会把归一化后的新文本 `ab` 当上下文写入补丁，标准 patch 无法匹配原文件 `a b`。修复后启用任一忽略选项即拒绝复制并提示关闭；探针捕获提示文案，默认未勾选 ⇒ BAD ⇒ 强判别。",
   },
   {
     slug: "it/text-diff",
@@ -13191,6 +13219,18 @@ const CASES = [
     clicks: ["var p=document.getElementById('pattern').value;document.getElementById('__tbProbe').textContent='PAT725 '+p.length+' '+p.charCodeAt(0)+' '+(p[1]==='d'?'d':'x');"],
     expect: ["PAT725 3 92 d"],
     ref: "第726批：初始正则必须是单反斜杠 `\\d+`（长度 3、首字符码 92、次字符 d），不能再是 HTML 里写死两个反斜杠的 `\\\\d+`；默认文本 `abc 123 ddd 456` 会匹配 123/456 而非 ddd。",
+  },
+  {
+    slug: "it/regex",
+    clicks: ["var __copy='';ToolBox.copyText=function(t){__copy=String(t);};setReplaceState('success','');copyReplaceResult();document.getElementById('__tbProbe').textContent='RGXEMPTY725 '+(__copy===''?'OK':'BAD');"],
+    expect: ["RGXEMPTY725 OK"],
+    ref: "复核失败重做·成功空结果可复制：setReplaceState('success','') 是合法替换结果，旧 copyReplaceResult 再用 !replaceResultText 判无效；修复后只判 replaceState === 'success'，空串也能进入复制通道。探针把 ToolBox.copyText 换成捕获函数，确认收到空字符串；失败态/处理态仍保持禁用。",
+  },
+  {
+    slug: "it/regex",
+    clicks: ["var __dl='';ToolBox.downloadText=function(n,t){__dl=String(t);};setReplaceState('success','');downloadReplaceResult();document.getElementById('__tbProbe').textContent='RGXEMPTYDL725 '+(__dl===''?'OK':'BAD');"],
+    expect: ["RGXEMPTYDL725 OK"],
+    ref: "复核失败重做·成功空结果可下载：与复制同源缺陷，修复后空文件仍触发 ToolBox.downloadText('result.txt','')；探针捕获空文本，确认不再被字符串真值拦下。",
   },
   {
     slug: "it/regex",

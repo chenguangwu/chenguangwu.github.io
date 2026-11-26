@@ -201,6 +201,27 @@ const CASES = [
     ref: "第125批 F-N93 0 利率期数取整：清单要求 0 利率分支返回整数期（500000/3000 ⇒ 167 期，末期不足额），旧版 return p/pmt 得 166.666…。本函数现已不参与结论区（结论统一走 amortizeExact 整数摊还），但仍按清单口径把死代码收口为 Math.ceil。探针直接调用该函数断言 167；旧源码返回小数 ⇒ BAD ⇒ 强判别、零逃生。"
   },
   {
+    slug: "finance/mortgage-prepayment",
+    inputs: { principal: "500000", rate: "4.5", months: "240", monthly: "1500", prepay: "0" },
+    clicks: ["calc();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MPNEGTRUE '+(t.indexOf('属于负摊还：本金逐期增加')>=0?'OK':'BAD');"],
+    expect: ["MPNEGTRUE OK"],
+    ref: "复核失败重做·负摊还识别：首期利息 500000×4.5%/12=1875，月供 1500 低于利息，本金逐期增加；旧提示把「低于或接近利息」与「超出 1200 期」混为一谈，修复后明确输出「属于负摊还：本金逐期增加」。默认 4.5%/3000 月供高于利息 ⇒ 不出现该串。",
+  },
+  {
+    slug: "finance/mortgage-prepayment",
+    inputs: { principal: "500000", rate: "4.5", months: "240", monthly: "1875", prepay: "0" },
+    clicks: ["calc();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MPEQINT '+(t.indexOf('本金不会减少（仅付利息）')>=0&&t.indexOf('并非本金增加的负摊还')>=0?'OK':'BAD');"],
+    expect: ["MPEQINT OK"],
+    ref: "复核失败重做·仅付利息不等于负摊还：月供恰等于首期利息 1875 时本金不减少但也不增加，旧提示统一称负摊还；修复后区分「仅付利息、本金不减少」并说明与本金增加的负摊还不同。默认 3000 月供 ⇒ BAD。",
+  },
+  {
+    slug: "finance/mortgage-prepayment",
+    inputs: { principal: "500000", rate: "4.5", months: "240", monthly: "1876", prepay: "0" },
+    clicks: ["calc();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MPTERMCAP '+(t.indexOf('这是模拟期数上限，不是负摊还')>=0?'OK':'BAD');"],
+    expect: ["MPTERMCAP OK"],
+    ref: "复核失败重做·超出模拟上限不是负摊还：月供 1876 高于首期利息 1875、本金持续减少，但 1200 期内仍未还清；旧实现返回 null 后统一称负摊还。修复后输出「模拟期数上限，不是负摊还」。默认 3000 月供 167 期还清 ⇒ BAD。",
+  },
+  {
     slug: "finance/salary-calculator",
     inputs: { salary: "20000" },
     clicks: ["currentMode='monthly';var d=document.getElementById.bind(document);d('salary').value='20000';d('baseSalary').value='0';d('housingBase').value='0';d('monthsPerYear').value='12';d('threshold').value='5000';calculate();var ti=d('totalInsurance').textContent,pa=d('pensionAmount').textContent;d('__tbProbe').textContent='SALZERO '+(String(ti).indexOf('¥0.00')===0&&String(pa).indexOf('¥0.00')===0?'OK':'BAD');"],
@@ -4501,8 +4522,8 @@ const CASES = [
     slug: "finance/mortgage-prepayment",
     inputs: { principal: "500000", rate: "4.5", months: "240", monthly: "500", prepay: "20000", precision: "2" },
     clicks: ["calc()"],
-    expect: ["1200 期内无法还清"],
-    ref: "月供 500 低于当期利息 500000×0.375%=1875 ⇒ 负摊还；旧实现循环到 1200 期上限后返回 1200，缩期节省 = 原总还款 − 500×1200 − 20000 为负的伪结果。修复后 remainingMonths 返回 null，页面提示「按当前月供在 1200 期内无法还清」。默认 500000/4.5/240/3000/20000 ⇒ 33 期内还清，不命中。",
+    expect: ["属于负摊还：本金逐期增加"],
+    ref: "月供 500 低于当期利息 500000×0.375%=1875，本金逐期增加 ⇒ 复核修复后明确标记「属于负摊还：本金逐期增加」；旧实现循环到 1200 期上限后返回 1200，产生负的伪节省。默认 500000/4.5/240/3000/20000 ⇒ 33 期内还清，不命中。",
   },
   {
     slug: "finance/portfolio-return",

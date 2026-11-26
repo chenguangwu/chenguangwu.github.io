@@ -95,6 +95,13 @@ const CASES = [
     ref: "独立复算：T38/RH70/V1/P1005。fT=clamp01(16/28)=0.571→57%；fRH=clamp01(15/60)=0.25→25%；fV=clamp01(1/18)=0.056→6%；fP=clamp01(8/40)=0.2→20%；R=100·(0.35·0.571+0.20·0.25+0.20·0.056+0.25·0.2)=31→中低风险。默认 T22/RH55/V2/P1013→R=0。"
   },
   {
+    slug: "meteorology/risk-14",
+    inputs: { t: "22", rh: "55", v: "2", p: "1013" },
+    clicks: ["var __copied=0;ToolBox.copyText=function(){__copied++;};calc();document.getElementById('p').value='0';calc();var __msg='';var __old=ToolBox.showToast;ToolBox.showToast=function(m){__msg=String(m);};copyRes();ToolBox.showToast=__old;document.getElementById('__tbProbe').textContent='RISKSTALE692 '+((lastResult===''&&__copied===0&&__msg.indexOf('请先完成一次有效计算')>=0)?'OK':'BAD');"],
+    expect: ["RISKSTALE692 OK"],
+    ref: "复核失败重做·无效输入清空旧结论：先以默认参数有效计算，再把气压改为 0 触发校验失败；旧实现只清结果附表、不清 lastResult，copyRes 仍能复制上一组风险指数。修复后无效分支清空 lastResult，复制时提示先完成有效计算；探针同时确认 copyText 未被调用。",
+  },
+  {
     slug: "meteorology/speed-11",
     inputs: { dbz: "52" },
     expect: ["64.84 降水强度 R (mm/h)", "1.58e+5 反射率因子 Z (mm⁶/m³)", "特大暴雨"],
