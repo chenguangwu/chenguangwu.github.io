@@ -1669,6 +1669,13 @@ const CASES = [
     ref: "12 & 10 = 8（二进制 1100 ∧ 1010 = 1000）；页面按 十进制/十六进制/二进制 三进制并排输出，锚完整连续串。默认 a=b=0 且 op=AND ⇒ 结果区为 0，不命中。",
   },
   {
+    slug: "it/bitwise-calculator",
+    inputs: { a: "5", b: "", op: "NOT" },
+    clicks: ["calc()"],
+    expect: ["结果： -6 = 0xFFFFFFFA"],
+    ref: "复核失败重做·NOT 不依赖 B：NOT 只输入 A=5 时旧实现仍执行 `vbBig & 31n`，B 为空（null）触发 BigInt 类型异常、无结果。修复后 NOT 分支不读取 B，按 32 位无符号输出 ~5 = 4294967290；默认 a=b=0/AND 不命中。",
+  },
+  {
     slug: "it/binary-to-text",
     inputs: { input: "01000001" },
     expect: ["A"],
@@ -2861,6 +2868,12 @@ const CASES = [
     ref: "第734批：默认保留本地名原始大小写，仅域名转小写；旧实现整串 toLowerCase 得到 a.b+tag@google.com，可能改变非 Gmail 域收件地址。",
   },
   {
+    slug: "it/email-normalizer",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/email-normalizer.html','utf8');document.getElementById('__tbProbe').textContent='EMAILDOC '+((h.indexOf('本地名默认保留原始大小写')>=0&&h.indexOf('精确等于 gmail.com 或 googlemail.com')>=0&&h.indexOf('先去掉首尾空白并转小写')<0&&h.indexOf('默认保留本地名大小写')>=0)?'OK':'BAD');"],
+    expect: ["EMAILDOC OK"],
+    ref: "复核失败重做·说明与实现同步：实际 normalize 默认保留本地名大小写、只转域名，并仅在精确 gmail.com/googlemail.com 且勾选时套 Gmail 规则；工作原理与 meta 描述必须一致，旧的「去掉首尾空白并转小写」「以 gmail.com 结尾」表述不得残留。",
+  },
+  {
     slug: "it/protobuf-parser",
     inputs: { input: "message M { optional string a = 1; }" },
     clicks: ["parseProto()"],
@@ -4024,6 +4037,13 @@ const CASES = [
     ref: "复制路径：enc() 后 copyResult(event) 写入剪贴板的内容必须等于结果区 `24-25-26`，且 then 回调不抛异常；旧实现 .then 内读隐式 event.target 会抛 TypeError 被 Promise 吞掉。",
   },
   {
+    slug: "it/a1z26-cipher",
+    inputs: { input: "a  B" },
+    clicks: ["enc();var e=document.getElementById('output').value;document.getElementById('input').value=e;dec();var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/a1z26-cipher.html','utf8');document.getElementById('__tbProbe').textContent='A1LOSS '+document.getElementById('output').value+' '+((h.indexOf('有损转换')>=0)?'DOC':'BAD');"],
+    expect: ["A1LOSS A B DOC"],
+    ref: "复核失败重做·有损规则明示：A1Z26 天然区分不了大小写与空白，输入 `a  B` 往返得到 `A B`（统一大写、连续空白合并为单空格）。页面工作原理必须明确写「有损转换」，不再声称格式可逆。默认文本不含该探针。",
+  },
+  {
     slug: "it/baudot-code",
     inputs: { input: "AB1" },
     clicks: ["enc()"],
@@ -4865,6 +4885,12 @@ const CASES = [
     clicks: ["var t=document.getElementById('textInput');t.value=' A ';var a=__qrPayloads();__qrSetMode('batch');t.value=' a \\n b ';document.getElementById('qrBatchTrim').checked=true;var b=__qrPayloads();document.getElementById('qrBatchTrim').checked=false;var c=__qrPayloads();document.getElementById('__tbProbe').textContent='QRPAY727 '+JSON.stringify(a)+'|'+JSON.stringify(b)+'|'+JSON.stringify(c);"],
     expect: ['QRPAY727 [" A "]|["a","b"]|[" a "," b "]'],
     ref: "第728批：单条模式必须原样编码首尾空格；批量模式按行拆分，勾选去空白得到 a/b，取消后保留每行空格。旧实现无条件 trim，三组都会变。",
+  },
+  {
+    slug: "it/qrcode",
+    clicks: ["__qrSetMode('batch');var t=document.getElementById('textInput');t.value=String.fromCharCode(10)+'ok'+String.fromCharCode(10)+String.fromCharCode(10)+'valid';document.getElementById('qrBatchTrim').checked=true;var e=__qrPayloadEntries();document.getElementById('__tbProbe').textContent='QRROWS '+e.map(function(x){return x.line;}).join('|')+' '+e.map(function(x){return x.text;}).join('|');"],
+    expect: ["QRROWS 2|4 ok|valid"],
+    ref: "复核失败重做·原始行号：批量拆行先过滤空行会让后续索引整体前移；修复后每个非空项携带原始行号。输入第 1 行空、第 2 行 ok、第 3 行空、第 4 行 valid，探针应得到 2|4，旧实现得到 1|2。",
   },
   {
     slug: "it/qrcode",
@@ -13089,6 +13115,13 @@ const CASES = [
     "ref": "第724批：最小值清空后不得回退成隐藏默认 0，必须明确提示填写。"
   },
   {
+    slug: "it/random",
+    inputs: {},
+    clicks: ["var r1;try{sampleUniqueRange(9007199254740992,9007199254740994,3);r1='NOERR';}catch(e){r1=String(e.message);}var r2=sampleUniqueRange(1,3,3);document.getElementById('__tbProbe').textContent='SAFERAND '+((r1.indexOf('端点超出安全整数')>=0&&r2.length===3&&r2.indexOf(1)>=0&&r2.indexOf(2)>=0&&r2.indexOf(3)>=0)?'OK':'BAD:'+r1);"],
+    expect: ["SAFERAND OK"],
+    ref: "复核失败重做·超安全整数端点：9007199254740992 已超出 MAX_SAFE_INTEGER，旧实现只检查容量=3，回退循环 v++ 无法推进而卡死；修复后端点与容量均要求安全整数，直接抛出明确错误。同一探针确认 1–3 取 3 个不重复值仍正常。",
+  },
+  {
     "slug": "it/random",
     "inputs": { "min": "0", "max": "100", "count": "51" },
     "clicks": ["generateNumbers();var h=document.getElementById('numberGrid').innerHTML;document.getElementById('__tbProbe').textContent='C51724 '+(h.indexOf('数量须为 1–50 的整数')>=0?'Y':'N');"],
@@ -15953,6 +15986,12 @@ const CASES = [
     clicks: ["text='abc';pos=3;document.getElementById('typingInput').value='axc';renderText();var area=document.getElementById('testArea');document.getElementById('__tbProbe').textContent='WRONG '+(area.querySelectorAll('.char.wrong').length)+' CORRECT '+(area.querySelectorAll('.char.correct').length);"],
     expect: ["WRONG 1 CORRECT 2"],
     ref: "类型反馈探针：目标文本 abc、已输入 axc（第 2 位打错），应恰有 1 个 wrong + 2 个 correct。修复前 renderText 只按 i<pos 判 correct ⇒ 3 个 correct、0 个 wrong ⇒ WRONG 0 CORRECT 3，不命中。默认态 text 是随机预设、pos=0 ⇒ 无 wrong/correct，不命中。",
+  },
+  {
+    slug: "it/typing-test",
+    clicks: ["text='abc';pos=3;totalKeys=3;errors=1;keystrokes=0;mistakes=0;startTime=Date.now()-60000;endTest();document.getElementById('__tbProbe').textContent='TYPENOKEY '+document.getElementById('finalKeyAcc').textContent+' '+document.getElementById('finalErrors').textContent;"],
+    expect: ["TYPENOKEY 不可用 不可用"],
+    ref: "复核失败重做·输入法无按键样本：中文组合输入不产生单字符 keydown，keystrokes=0 时旧实现显示按键准确率 100%、累计按键错误用最终文本错误顶替。修复后无可观测按键即显示「不可用」，不把最终错误数混作按键错误；探针同时确认 finalKeyAcc/finalErrors 均为不可用。",
   },
   // ── 第229批 IT-N222~N226 ──
   {
