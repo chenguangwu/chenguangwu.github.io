@@ -346,7 +346,11 @@ function randomInt(lo, hi) {
 }
 
 function sampleUniqueRange(lo, hi, count) {
+  if (!Number.isSafeInteger(lo) || !Number.isSafeInteger(hi) || hi < lo) {
+    throw new Error(randomMsg('端点超出安全整数范围，无法可靠抽样', 'Endpoints are outside the safe-integer range and cannot be sampled reliably'));
+  }
   const capacity = hi - lo + 1;
+  if (!Number.isSafeInteger(capacity)) throw new Error(randomMsg('范围容量超出安全整数范围', 'Range capacity exceeds the safe-integer range'));
   if (count > capacity) throw new Error(randomMsg('可选值不足', 'Not enough distinct values'));
   const used = new Set();
   const out = [];
@@ -358,13 +362,15 @@ function sampleUniqueRange(lo, hi, count) {
     if (!used.has(v)) { used.add(v); out.push(v); }
   }
   if (out.length < count) {
-    // 碰撞重试有上限，剩余名额按确定顺序补齐，避免任何情况下死循环
-    let v = lo;
-    while (out.length < count) {
+    // 碰撞重试有上限，剩余名额按确定顺序补齐；用已检查次数而非仅靠 v++ 推进。
+    let v = lo, steps = 0;
+    while (out.length < count && steps < capacity) {
       if (!used.has(v)) { used.add(v); out.push(v); }
       v++;
       if (v > hi) v = lo;
+      steps++;
     }
+    if (out.length < count) throw new Error(randomMsg('可表示值不足，无法补齐不重复序列', 'Not enough representable values to fill the unique sequence'));
   }
   return out;
 }
@@ -427,7 +433,7 @@ function generateNumbers() {
     const lo = Math.ceil(min), hi = Math.floor(max);
     if (hi < lo) { showRandomError(randomMsg('该范围内没有整数，请调整边界', 'No integer exists in this range; adjust the bounds')); return false; }
     const capacity = hi - lo + 1;
-    if (capacity > Number.MAX_SAFE_INTEGER) { showRandomError(randomMsg('整数范围过大，无法安全抽样', 'Integer range is too large to sample safely')); return false; }
+    if (!Number.isSafeInteger(lo) || !Number.isSafeInteger(hi) || !Number.isSafeInteger(capacity)) { showRandomError(randomMsg('端点或范围容量超出安全整数，无法可靠抽样', 'Endpoints or capacity exceed the safe-integer range and cannot be sampled reliably')); return false; }
     if (isUnique && count > capacity) { showRandomError(randomMsg('范围内最多只能生成 ' + capacity + ' 个不重复整数', 'At most ' + capacity + ' distinct integers fit this range')); return false; }
     const units = sampleRange(lo, hi, count, isUnique);
     displayResults(units);
@@ -439,7 +445,7 @@ function generateNumbers() {
   const lo = Math.ceil(min * scale - 1e-7), hi = Math.floor(max * scale + 1e-7);
   if (hi < lo) { showRandomError(randomMsg('该范围内没有 6 位小数精度的可表示值，请调整范围或精度', 'No value at 6-decimal precision exists in this range; adjust the range or precision')); return false; }
   const capacity = hi - lo + 1;
-  if (capacity > Number.MAX_SAFE_INTEGER) { showRandomError(randomMsg('小数范围过大，无法按 6 位精度安全抽样', 'Decimal range is too large to sample at 6-decimal precision')); return false; }
+  if (!Number.isSafeInteger(lo) || !Number.isSafeInteger(hi) || !Number.isSafeInteger(capacity)) { showRandomError(randomMsg('小数端点或 6 位精度网格超出安全整数，无法可靠抽样', 'Decimal endpoints or the 6-decimal grid exceed the safe-integer range and cannot be sampled reliably')); return false; }
   if (isUnique && count > capacity) { showRandomError(randomMsg('该精度下最多只能生成 ' + capacity + ' 个不重复小数', 'At most ' + capacity + ' distinct decimals fit this precision')); return false; }
   const units = sampleRange(lo, hi, count, isUnique);
   displayResults(units.map(function (u) { return parseFloat((u / scale).toFixed(6)); }));

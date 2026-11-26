@@ -419,6 +419,7 @@ document.addEventListener('click', function(e){
 });
 
 function selectContract(i){
+  if(!Array.isArray(CONTRACTS) || !CONTRACTS[i]) return;
   currentContract = CONTRACTS[i];
   const __g2=currentContract.name + ' ' + currentContract.code;document.getElementById('contractName').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   document.getElementById('marginRate').value = currentContract.margin;
@@ -497,6 +498,7 @@ function calc(){
 }
 
 function addTrade(){
+  if(!currentContract || !isFinite(Number(currentContract.multiplier))){ ToolBox.showToast('请先选择有效合约后再添加记录。','error'); return; }
   var errMsg = validateInputs();
   if(errMsg){ ToolBox.showToast(errMsg, 'warning'); return; }
   var openP = parseFloat(document.getElementById('openPrice').value) || 0;
@@ -546,12 +548,16 @@ function getTrades(){
 
 function renderTrades(){
   var trades = getTrades();
+  if(!Array.isArray(trades)) trades = [];
   var html = '';
   if(!trades.length){
     html = '<div class="empty-history">📭 暂无交易记录<br><span style="font-size:12px;">在"盈亏计算"页计算后点击"添加到交易记录"</span></div>';
   } else {
     trades.forEach(function(t, i){
-      var pnlColor = t.pnl >= 0 ? 'var(--danger)' : 'var(--success)';
+      if(!t || typeof t !== 'object') return;
+      var pnl = Number(t.pnl); if(!isFinite(pnl)) pnl = 0;
+      var rate = Number(t.returnRate); if(!isFinite(rate)) rate = 0;
+      var pnlColor = pnl >= 0 ? 'var(--danger)' : 'var(--success)';
       var pnlSign = t.pnl >= 0 ? '+' : '';
       var dirText = t.direction === 1 ? '做多' : '做空';
       var dirClass = t.direction === 1 ? 'long' : 'short';
@@ -561,13 +567,13 @@ function renderTrades(){
       html += '<div class="trade-item">';
       html += '<div class="trade-header">';
       html += '<span class="trade-name"><span class="tag ' + dirClass + '">' + dirText + '</span>' + t.code + ' · ' + t.contract + '</span>';
-      html += '<span class="trade-pnl" style="color:' + pnlColor + ';">' + pnlSign + ToolBox.formatNumber(t.pnl, 2) + '</span>';
+      html += '<span class="trade-pnl" style="color:' + pnlColor + ';">' + pnlSign + ToolBox.formatNumber(pnl, 2) + '</span>';
       html += '</div>';
       html += '<div class="trade-detail">';
       html += '<span>开仓: ' + t.openPrice + '</span>';
       html += '<span>平仓: ' + t.closePrice + '</span>';
       html += '<span>' + t.lots + '手</span>';
-      html += '<span>收益率: ' + pnlSign + t.returnRate.toFixed(2) + '%</span>';
+      html += '<span>收益率: ' + pnlSign + rate.toFixed(2) + '%</span>';
       html += '<span>' + timeStr + '</span>';
       html += '</div>';
       html += '<div class="trade-actions">';
@@ -716,7 +722,8 @@ function copyResult(){
   text += '收益率：' + (returnRate >= 0 ? '+' : '') + returnRate.toFixed(2) + '%\n';
   text += '保证金：' + ToolBox.formatNumber(margin, 2) + ' 元\n';
   text += '手续费：' + ToolBox.formatNumber(totalFee, 2) + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元");
-  ToolBox.copyText(text, i18nText());
+  var __copy = (typeof ToolBox.copyText === 'function') ? ToolBox.copyText.bind(ToolBox) : function(t){ try{ navigator.clipboard.writeText(t); }catch(e){} };
+  __copy(text, i18nText());
 }
 
 function resetCalc(){

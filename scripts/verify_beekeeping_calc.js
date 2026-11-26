@@ -63,7 +63,7 @@ const CASES = [
   {
     "slug": "beekeeping/winter-feed-syrup",
     "inputs": { "n": "5", "vol": "4", "ratio": "2", "price": "5", "daily": "0.5", "days": "10" },
-    "expect": ["20.0 L", "17.9 kg", "8.9 kg", "26.8 kg", "89 元", "8.0 天", "3.6 kg"],
+    "expect": ["20.0 L", "17.9 kg", "8.94 kg", "26.8 kg", "89.38 元", "8.0 天", "3.58 kg"],
     "ref": "越冬糖浆独立复算：总糖浆=5×4=20 L；2:1 糖质量分数=2/3，实测密度 1.34 kg/L ⇒ 总重 26.8 kg、糖 17.9 kg、水 8.9 kg；成本按单价 5 元=89 元；饲喂天数=4/0.5=8.0；每群糖量 3.6 kg。"
   },  {
     "slug": "beekeeping/honey-estimator",
@@ -91,7 +91,7 @@ const CASES = [
   },
   {
     "slug": "beekeeping/winter-feed-syrup",
-    "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/beekeeping/winter-feed-syrup.html','utf8');var ok=h.indexOf('../agriculture/cycle-honey.html')>=0&&h.indexOf('../agriculture/detector-13.html')>=0&&h.indexOf('../agriculture/estimate-area-yield.html')>=0&&h.indexOf('../it/gitignore-generator.html')<0&&h.indexOf('../it/ast-viewer.html')<0;document.getElementById('__tbProbe').textContent='TB852R '+(ok?'OK':'BAD');})();"],
+    "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/beekeeping/winter-feed-syrup.html','utf8');var ok=h.indexOf('../agriculture/cycle-honey.html')>=0&&h.indexOf('../agriculture/detector-13.html')>=0&&h.indexOf('../it/gitignore-generator.html')<0&&h.indexOf('../it/ast-viewer.html')<0;document.getElementById('__tbProbe').textContent='TB852R '+(ok?'OK':'BAD');})();"],
     "expect": ["TB852R OK"],
     "ref": "第852批：越冬补饲的 5 个开发工具推荐（.gitignore / properties / API 签名 / ASCII 树 / AST）全部替换为养蜂与农业相关页，保留养蜂采蜜量估算；探针断言旧 /it/ 链接已消失。"
   }

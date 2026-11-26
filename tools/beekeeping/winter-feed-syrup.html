@@ -176,8 +176,9 @@
 
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function csvDownload(name,rows){
+function __wsDataGrid(rows){rows=Array.isArray(rows)?rows:[];let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __wsCsvDownload(name,rows){
+  rows=Array.isArray(rows)?rows:[];
   const csv='\ufeff'+rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');
   if(window.ToolBox&&typeof ToolBox.downloadText==='function'){ToolBox.downloadText(name,csv);return;}
   try{const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href);}catch(e){}
@@ -227,7 +228,9 @@ function calcData(){
 function fillRatioTable(){
   const t=document.getElementById('ratioTable');if(!t)return;const rs=[1,1.5,2,2.5];t.innerHTML=rs.map(r=>{const f=r/(r+1),rho=densityFor(f),kg=10*rho,s=kg*f,w=kg-s;return '<tr><td>'+r.toFixed(1)+':1</td><td>'+(f*100).toFixed(1)+'%</td><td>'+s.toFixed(1)+'</td><td>'+w.toFixed(1)+'</td><td>'+(r<=1?'奖励/弱群':'越冬')+'</td></tr>';}).join('');
 }
-function drawChart(d){
+function __wsDrawChart(d){
+  d=d&&typeof d==='object'?d:{};
+  if(![d.sugar,d.water,d.totalL,d.rho].every(function(v){return typeof v==='number'&&isFinite(v);})){clearChart();return;}
   const cv=document.getElementById('fitChart');if(!cv)return;const ctx=cv.getContext('2d');if(!ctx)return;const W=cv.width,H=cv.height,pad=46,max=Math.max(d.sugar,d.water)*1.2;
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#64748b';ctx.font='12px sans-serif';
   const bw=140,bars=[['白糖',d.sugar,'#92400E'],['加水',d.water,'#38bdf8']];
@@ -238,12 +241,12 @@ function clearChart(){
   const cv=document.getElementById('fitChart');if(!cv)return;const ctx=cv.getContext('2d');if(!ctx)return;
   ctx.clearRect(0,0,cv.width,cv.height);
 }
-function exportCSV(){const d=calcData();if(!d.valid){alert(d.msg);return;}csvDownload('winter-feed-syrup.csv',[['项目','数值','单位'],['蜂群数量',d.n,'群'],['每群补饲',fmtL(d.vol),''],['糖水比',d.ratio+':1',''],['糖质量分数',(d.f*100).toFixed(1),'%'],['糖浆密度',d.rho.toFixed(2),'kg/L'],['总糖浆体积',fmtL(d.totalL),''],['总糖浆重量',fmtKg(d.totalKg),''],['白糖',fmtKg(d.sugar),''],['加水',fmtKg(d.water),''],['成本',fmtMoney(d.cost),''],['预计饲喂天数',d.feedDays.toFixed(1),'天']]);}
+function exportCSV(){const d=calcData();if(!d.valid){alert(d.msg);return;}__wsCsvDownload('winter-feed-syrup.csv',[['项目','数值','单位'],['蜂群数量',d.n,'群'],['每群补饲',fmtL(d.vol),''],['糖水比',d.ratio+':1',''],['糖质量分数',(d.f*100).toFixed(1),'%'],['糖浆密度',d.rho.toFixed(2),'kg/L'],['总糖浆体积',fmtL(d.totalL),''],['总糖浆重量',fmtKg(d.totalKg),''],['白糖',fmtKg(d.sugar),''],['加水',fmtKg(d.water),''],['成本',fmtMoney(d.cost),''],['预计饲喂天数',d.feedDays.toFixed(1),'天']]);}
 function calcTool(){
   const d=calcData();
   if(!d.valid){document.getElementById('result').innerHTML='<div class="result-placeholder">'+d.msg+'</div>';clearChart();return;}
   const rows=[[fmtL(d.totalL),'总糖浆体积'],[fmtKg(d.sugar),'所需白糖'],[fmtKg(d.water),'需加水'],[fmtKg(d.totalKg),'糖浆总重量'],[fmtMoney(d.cost),'白糖成本'],[d.feedDays.toFixed(1)+' 天','预计饲喂天数'],[fmtKg(d.perColonySugar),'每群糖量']];
-  let html=dataGrid(rows);
+  let html=__wsDataGrid(rows);
   if(d.ratio>2.5)html+='<div class="info-box" style="margin-top:12px;">⚠️ 糖水比 '+d.ratio+':1 偏浓，冷却后易结晶，建议控制在 2.5:1 以内并分次饲喂。</div>';
   if(d.ratio<1)html+='<div class="info-box" style="margin-top:8px;">糖水比低于 1:1，水分偏高，越冬期易发酵；弱群短期奖励饲喂可用，但不宜作为主要越冬饲料。</div>';
   var gapPer=d.daily*d.days-d.vol; // 计划期需糖浆 − 实备糖浆（L/群）
@@ -257,7 +260,7 @@ function calcTool(){
   }
   html+='<div class="info-box" style="margin-top:8px;">「预计消耗天数」按每日消耗恒定估算；「计划天数」是您打算投喂的周期，两者不是同一口径。按计划 '+d.days+' 天摊薄，平均每天约需白糖 '+fmtKg(d.perDaySugar)+'；建议分 2–3 次投喂，并观察采食与结晶情况。</div>';
   document.getElementById('result').innerHTML=html;
-  drawChart(d);
+  __wsDrawChart(d);
   saveHist(HIST_KEY,new Date().toLocaleTimeString()+' · '+d.n+' 群 / '+d.vol+' L → 白糖 '+fmtKg(d.sugar));
 }
 function resetForm(){['n','vol','ratio','price','daily','days'].forEach((id,i)=>document.getElementById(id).value=[10,6,2,6,0.4,7][i]);calcTool();}

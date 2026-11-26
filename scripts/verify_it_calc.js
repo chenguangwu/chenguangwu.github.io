@@ -1669,6 +1669,13 @@ const CASES = [
     ref: "12 & 10 = 8（二进制 1100 ∧ 1010 = 1000）；页面按 十进制/十六进制/二进制 三进制并排输出，锚完整连续串。默认 a=b=0 且 op=AND ⇒ 结果区为 0，不命中。",
   },
   {
+    slug: "it/bitwise-calculator",
+    inputs: { a: "5", b: "", op: "NOT" },
+    clicks: ["calc()"],
+    expect: ["结果： -6 = 0xFFFFFFFA"],
+    ref: "复核失败重做·NOT 不依赖 B：NOT 只输入 A=5 时旧实现仍执行 `vbBig & 31n`，B 为空（null）触发 BigInt 类型异常、无结果。修复后 NOT 分支不读取 B，按 32 位无符号输出 ~5 = 4294967290；默认 a=b=0/AND 不命中。",
+  },
+  {
     slug: "it/binary-to-text",
     inputs: { input: "01000001" },
     expect: ["A"],
@@ -2861,6 +2868,12 @@ const CASES = [
     ref: "第734批：默认保留本地名原始大小写，仅域名转小写；旧实现整串 toLowerCase 得到 a.b+tag@google.com，可能改变非 Gmail 域收件地址。",
   },
   {
+    slug: "it/email-normalizer",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/email-normalizer.html','utf8');document.getElementById('__tbProbe').textContent='EMAILDOC '+((h.indexOf('本地名默认保留原始大小写')>=0&&h.indexOf('精确等于 gmail.com 或 googlemail.com')>=0&&h.indexOf('先去掉首尾空白并转小写')<0&&h.indexOf('默认保留本地名大小写')>=0)?'OK':'BAD');"],
+    expect: ["EMAILDOC OK"],
+    ref: "复核失败重做·说明与实现同步：实际 normalize 默认保留本地名大小写、只转域名，并仅在精确 gmail.com/googlemail.com 且勾选时套 Gmail 规则；工作原理与 meta 描述必须一致，旧的「去掉首尾空白并转小写」「以 gmail.com 结尾」表述不得残留。",
+  },
+  {
     slug: "it/protobuf-parser",
     inputs: { input: "message M { optional string a = 1; }" },
     clicks: ["parseProto()"],
@@ -2935,6 +2948,27 @@ const CASES = [
     clicks: ["render()"],
     expect: ["&lt;", "2. &lt;"],
     ref: "IT-N348：注入含 `<` 的 pattern `a<b`，词元标签里的 `<` 必须经 escapeHtml 变成 `&lt;`（裸 `<` 会被当作标签起始、在结果区不可见且存在注入风险）；默认 pattern `^a[0-9]+b$` 无 `<` 字符 ⇒ 该串仅注入态可见。",
+  },
+  {
+    slug: "it/regex-visualizer",
+    inputs: { pattern: "\\1234+" },
+    clicks: ["render()"],
+    expect: ["旧式八进制转义（字符 S）"],
+    ref: "复核失败重做·无捕获组数字转义：`\\1234+` 在 ECMAScript 非 Unicode 模式下解析为旧式八进制 `\\123`（字符 S）+ 字面 4 + 量词 +；旧实现把连续数字全部吞成单个转义。用例断言转义详情出现字符 S，默认 `^a[0-9]+b$` 不含 S/八进制 ⇒ 仅注入态命中。",
+  },
+  {
+    slug: "it/regex-visualizer",
+    inputs: { pattern: "(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)(l)\\12" },
+    clicks: ["render()"],
+    expect: ["反向引用 #12"],
+    ref: "复核失败重做·有效多位反向引用：12 个捕获组时 `\\12` 应识别为反向引用 #12，而不是拆成 `\\1` + 2；用例在默认 pattern 无 12 组时报错。",
+  },
+  {
+    slug: "it/regex-visualizer",
+    inputs: { pattern: "\\9" },
+    clicks: ["render()"],
+    expect: ["数字字面转义"],
+    ref: "复核失败重做·越界数字转义：无捕获组时 `\\9` 不是反向引用、也不是旧式八进制（8/9 不在八进制范围），按 ECMAScript 为数字字面转义；旧实现无条件显示「反向引用 / 八进制转义」。",
   },
   {
     slug: "it/regex-visualizer",
@@ -4003,6 +4037,13 @@ const CASES = [
     ref: "复制路径：enc() 后 copyResult(event) 写入剪贴板的内容必须等于结果区 `24-25-26`，且 then 回调不抛异常；旧实现 .then 内读隐式 event.target 会抛 TypeError 被 Promise 吞掉。",
   },
   {
+    slug: "it/a1z26-cipher",
+    inputs: { input: "a  B" },
+    clicks: ["enc();var e=document.getElementById('output').value;document.getElementById('input').value=e;dec();var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/a1z26-cipher.html','utf8');document.getElementById('__tbProbe').textContent='A1LOSS '+document.getElementById('output').value+' '+((h.indexOf('有损转换')>=0)?'DOC':'BAD');"],
+    expect: ["A1LOSS A B DOC"],
+    ref: "复核失败重做·有损规则明示：A1Z26 天然区分不了大小写与空白，输入 `a  B` 往返得到 `A B`（统一大写、连续空白合并为单空格）。页面工作原理必须明确写「有损转换」，不再声称格式可逆。默认文本不含该探针。",
+  },
+  {
     slug: "it/baudot-code",
     inputs: { input: "AB1" },
     clicks: ["enc()"],
@@ -4844,6 +4885,12 @@ const CASES = [
     clicks: ["var t=document.getElementById('textInput');t.value=' A ';var a=__qrPayloads();__qrSetMode('batch');t.value=' a \\n b ';document.getElementById('qrBatchTrim').checked=true;var b=__qrPayloads();document.getElementById('qrBatchTrim').checked=false;var c=__qrPayloads();document.getElementById('__tbProbe').textContent='QRPAY727 '+JSON.stringify(a)+'|'+JSON.stringify(b)+'|'+JSON.stringify(c);"],
     expect: ['QRPAY727 [" A "]|["a","b"]|[" a "," b "]'],
     ref: "第728批：单条模式必须原样编码首尾空格；批量模式按行拆分，勾选去空白得到 a/b，取消后保留每行空格。旧实现无条件 trim，三组都会变。",
+  },
+  {
+    slug: "it/qrcode",
+    clicks: ["__qrSetMode('batch');var t=document.getElementById('textInput');t.value=String.fromCharCode(10)+'ok'+String.fromCharCode(10)+String.fromCharCode(10)+'valid';document.getElementById('qrBatchTrim').checked=true;var e=__qrPayloadEntries();document.getElementById('__tbProbe').textContent='QRROWS '+e.map(function(x){return x.line;}).join('|')+' '+e.map(function(x){return x.text;}).join('|');"],
+    expect: ["QRROWS 2|4 ok|valid"],
+    ref: "复核失败重做·原始行号：批量拆行先过滤空行会让后续索引整体前移；修复后每个非空项携带原始行号。输入第 1 行空、第 2 行 ok、第 3 行空、第 4 行 valid，探针应得到 2|4，旧实现得到 1|2。",
   },
   {
     slug: "it/qrcode",
@@ -5886,6 +5933,13 @@ const CASES = [
     clicks: ["var d=alignedLineDiff(['a','b'],['x','y']);var src=String(backtrack);var ok=typeof MAX_DIFF_CELLS==='number'&&MAX_DIFF_CELLS===4000000&&src.indexOf('while (i > 0')>=0&&src.indexOf('return backtrack')<0&&d.length===2&&d[0].type==='modify'&&d[1].newValue==='y';document.getElementById('text1').value='DIFFSCALE '+(ok?'OK':'BAD');"],
     expect: ["DIFFSCALE OK"],
     ref: "规模保护三要素：MAX_DIFF_CELLS=400 万；backtrack 为 while 迭代（源码不再自调用）；alignedLineDiff 对两行全不同返回 2 个 modify。旧实现递归 backtrack、无 MAX_DIFF_CELLS ⇒ BAD。",
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "a b\nold", text2: "ab\nnew" },
+    clicks: ["var __msg='';var __oldToast=ToolBox.showToast;ToolBox.showToast=function(m){__msg=String(m);};diffStale=false;document.getElementById('ignoreAllWhitespace').checked=true;copyUnifiedPatch();ToolBox.showToast=__oldToast;document.getElementById('__tbProbe').textContent='DIFFPATCH738 '+(__msg.indexOf('无法与原文件上下文对齐')>=0?'OK':'BAD');"],
+    expect: ["DIFFPATCH738 OK"],
+    ref: "复核失败重做·忽略选项禁止导出补丁：忽略所有空白时 `a b` 与 `ab` 被判为相同，旧 buildUnifiedPatch 会把归一化后的新文本 `ab` 当上下文写入补丁，标准 patch 无法匹配原文件 `a b`。修复后启用任一忽略选项即拒绝复制并提示关闭；探针捕获提示文案，默认未勾选 ⇒ BAD ⇒ 强判别。",
   },
   {
     slug: "it/text-diff",
@@ -13061,6 +13115,13 @@ const CASES = [
     "ref": "第724批：最小值清空后不得回退成隐藏默认 0，必须明确提示填写。"
   },
   {
+    slug: "it/random",
+    inputs: {},
+    clicks: ["var r1;try{sampleUniqueRange(9007199254740992,9007199254740994,3);r1='NOERR';}catch(e){r1=String(e.message);}var r2=sampleUniqueRange(1,3,3);document.getElementById('__tbProbe').textContent='SAFERAND '+((r1.indexOf('端点超出安全整数')>=0&&r2.length===3&&r2.indexOf(1)>=0&&r2.indexOf(2)>=0&&r2.indexOf(3)>=0)?'OK':'BAD:'+r1);"],
+    expect: ["SAFERAND OK"],
+    ref: "复核失败重做·超安全整数端点：9007199254740992 已超出 MAX_SAFE_INTEGER，旧实现只检查容量=3，回退循环 v++ 无法推进而卡死；修复后端点与容量均要求安全整数，直接抛出明确错误。同一探针确认 1–3 取 3 个不重复值仍正常。",
+  },
+  {
     "slug": "it/random",
     "inputs": { "min": "0", "max": "100", "count": "51" },
     "clicks": ["generateNumbers();var h=document.getElementById('numberGrid').innerHTML;document.getElementById('__tbProbe').textContent='C51724 '+(h.indexOf('数量须为 1–50 的整数')>=0?'Y':'N');"],
@@ -13191,6 +13252,18 @@ const CASES = [
     clicks: ["var p=document.getElementById('pattern').value;document.getElementById('__tbProbe').textContent='PAT725 '+p.length+' '+p.charCodeAt(0)+' '+(p[1]==='d'?'d':'x');"],
     expect: ["PAT725 3 92 d"],
     ref: "第726批：初始正则必须是单反斜杠 `\\d+`（长度 3、首字符码 92、次字符 d），不能再是 HTML 里写死两个反斜杠的 `\\\\d+`；默认文本 `abc 123 ddd 456` 会匹配 123/456 而非 ddd。",
+  },
+  {
+    slug: "it/regex",
+    clicks: ["var __copy='';ToolBox.copyText=function(t){__copy=String(t);};setReplaceState('success','');copyReplaceResult();document.getElementById('__tbProbe').textContent='RGXEMPTY725 '+(__copy===''?'OK':'BAD');"],
+    expect: ["RGXEMPTY725 OK"],
+    ref: "复核失败重做·成功空结果可复制：setReplaceState('success','') 是合法替换结果，旧 copyReplaceResult 再用 !replaceResultText 判无效；修复后只判 replaceState === 'success'，空串也能进入复制通道。探针把 ToolBox.copyText 换成捕获函数，确认收到空字符串；失败态/处理态仍保持禁用。",
+  },
+  {
+    slug: "it/regex",
+    clicks: ["var __dl='';ToolBox.downloadText=function(n,t){__dl=String(t);};setReplaceState('success','');downloadReplaceResult();document.getElementById('__tbProbe').textContent='RGXEMPTYDL725 '+(__dl===''?'OK':'BAD');"],
+    expect: ["RGXEMPTYDL725 OK"],
+    ref: "复核失败重做·成功空结果可下载：与复制同源缺陷，修复后空文件仍触发 ToolBox.downloadText('result.txt','')；探针捕获空文本，确认不再被字符串真值拦下。",
   },
   {
     slug: "it/regex",
@@ -15913,6 +15986,12 @@ const CASES = [
     clicks: ["text='abc';pos=3;document.getElementById('typingInput').value='axc';renderText();var area=document.getElementById('testArea');document.getElementById('__tbProbe').textContent='WRONG '+(area.querySelectorAll('.char.wrong').length)+' CORRECT '+(area.querySelectorAll('.char.correct').length);"],
     expect: ["WRONG 1 CORRECT 2"],
     ref: "类型反馈探针：目标文本 abc、已输入 axc（第 2 位打错），应恰有 1 个 wrong + 2 个 correct。修复前 renderText 只按 i<pos 判 correct ⇒ 3 个 correct、0 个 wrong ⇒ WRONG 0 CORRECT 3，不命中。默认态 text 是随机预设、pos=0 ⇒ 无 wrong/correct，不命中。",
+  },
+  {
+    slug: "it/typing-test",
+    clicks: ["text='abc';pos=3;totalKeys=3;errors=1;keystrokes=0;mistakes=0;startTime=Date.now()-60000;endTest();document.getElementById('__tbProbe').textContent='TYPENOKEY '+document.getElementById('finalKeyAcc').textContent+' '+document.getElementById('finalErrors').textContent;"],
+    expect: ["TYPENOKEY 不可用 不可用"],
+    ref: "复核失败重做·输入法无按键样本：中文组合输入不产生单字符 keydown，keystrokes=0 时旧实现显示按键准确率 100%、累计按键错误用最终文本错误顶替。修复后无可观测按键即显示「不可用」，不把最终错误数混作按键错误；探针同时确认 finalKeyAcc/finalErrors 均为不可用。",
   },
   // ── 第229批 IT-N222~N226 ──
   {

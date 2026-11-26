@@ -496,21 +496,23 @@ function __qrSetMode(mode){
   if(el) el.value = window.__qrForceMode;
   return window.__qrForceMode;
 }
-function __qrPayloads(){
+function __qrPayloadEntries(){
   var raw = textInput.value;
   if (raw.length === 0) return [];
   var mode = window.__qrForceMode || (document.getElementById('qrMode') || {}).value || 'single';
-  if (mode !== 'batch') return [raw];
+  if (mode !== 'batch') return [{text: raw, line: 1}];
   var trimBox = document.getElementById('qrBatchTrim');
-  var lines = raw.split(/\r?\n/);
-  if (!trimBox || trimBox.checked) {
-    lines = lines.map(function(x){ return x.trim(); }).filter(function(x){ return x.length > 0; });
-  } else {
-    lines = lines.filter(function(x){ return x.length > 0; });
-  }
-  __qrBatchTotal = lines.length;
-  __qrBatchOverflow = Math.max(0, lines.length - 20);
-  return lines.slice(0, 20);
+  var entries = [];
+  raw.split(/\r?\n/).forEach(function(x, idx){
+    var text = (!trimBox || trimBox.checked) ? x.trim() : x;
+    if (text.length > 0) entries.push({text: text, line: idx + 1});
+  });
+  __qrBatchTotal = entries.length;
+  __qrBatchOverflow = Math.max(0, entries.length - 20);
+  return entries.slice(0, 20);
+}
+function __qrPayloads(){
+  return __qrPayloadEntries().map(function(x){ return x.text; });
 }
 var __qrBatchTotal = 0, __qrBatchOverflow = 0;
 function __qrRenderBatchNote(shown){
@@ -575,7 +577,8 @@ function generate() {
   if (!marginInfo.ok) { __qrMarginInvalid(marginInfo.msg); return; }
   var marginHint=document.getElementById('qrMarginError');
   if(marginHint){ marginHint.style.display='none'; marginHint.textContent=''; }
-  var lines = __qrPayloads();
+  var entries = __qrPayloadEntries();
+  var lines = entries.map(function(x){ return x.text; });
   __qrRenderBatchNote(lines.length);
   if (!lines.length) {
     lastQr = null; lastCanvas = null; qrItems = []; qrStale=false;
@@ -590,7 +593,7 @@ function generate() {
   var failures = [], upscaledNeed = 0, reqSize = pixelSize, minNeeded = 0;
   for (var i = 0; i < lines.length; i++) {
     var item = null, err = null;
-    try { item = __qrBuild(lines[i], margin, pixelSize); }
+    try { item = __qrBuild(entries[i].text, margin, pixelSize); }
     catch (e) { err = e; }
     if (item) {
       if (item.minPixel > minNeeded) minNeeded = item.minPixel;
@@ -601,7 +604,7 @@ function generate() {
       if (lines.length > 1) {
         wrap = document.createElement('div'); wrap.className = 'qr-card';
         var hd = document.createElement('div'); hd.className = 'qr-head';
-        hd.textContent = '第 ' + (i + 1) + ' 行：' + lines[i].slice(0, 80);
+        hd.textContent = '第 ' + entries[i].line + ' 行：' + entries[i].text.slice(0, 80);
         wrap.appendChild(hd);
       } else { wrap = container; }
       wrap.appendChild(item.canvas);
@@ -613,10 +616,10 @@ function generate() {
         container.appendChild(wrap);
       }
     } else {
-      failures.push({ line: i + 1, msg: __qrErrorText(err) });
+      failures.push({ line: entries[i].line, msg: __qrErrorText(err) });
       var card=document.createElement('div'); card.className='qr-card';
       card.style.borderColor='#FCA5A5';
-      card.innerHTML='<div class="qr-head" style="color:#B91C1C;">第 '+(i+1)+' 行生成失败：'+String(lines[i]).slice(0,80).replace(/</g,'&lt;')+'</div><p style="color:#B91C1C;margin:8px 0 0;">'+failures[failures.length-1].msg.replace(/</g,'&lt;')+'</p>';
+      card.innerHTML='<div class="qr-head" style="color:#B91C1C;">第 '+entries[i].line+' 行生成失败：'+String(entries[i].text).slice(0,80).replace(/</g,'&lt;')+'</div><p style="color:#B91C1C;margin:8px 0 0;">'+failures[failures.length-1].msg.replace(/</g,'&lt;')+'</p>';
       container.appendChild(card);
     }
   }

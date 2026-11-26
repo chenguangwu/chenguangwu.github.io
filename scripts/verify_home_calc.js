@@ -101,6 +101,14 @@ const CASES = [
   "ref": "**坏用例重写**：原 inputs 键是生成器模板串残留（${f} 与 ${f==='radius'?3:5}_X），页面根本没有该 id、expect「_X」也无从产生 ⇒ 长期假通过（判别器盲区）。本页形状控件由 renderInput() 运行期生成、不在静态 HTML 内，注入 inputs 时无法触发其内联 oninput，故用 clicks 在运行期给 width/height 赋值后直接调 calc()：矩形 6×8 ⇒ 面积 48.00、周长 2×(6+8)=28.00、对角线 √(36+64)=10.00。默认态控件值为空 ⇒ 0.00/0.00/0.00"
 },
 {
+  "slug": "home/room-calculator",
+  "clicks": [
+    "activeShape='平行四边形';renderTabs();renderInput();document.getElementById('base').value='1';document.getElementById('height').value='3';document.getElementById('side').value='5';calc();document.getElementById('__tbProbe').textContent='PARADIAG '+document.getElementById('diagonal-val').textContent;"
+  ],
+  "expect": ["PARADIAG 4.24 / 5.83"],
+  "ref": "复核失败重做·平行四边形短对角线：底边 1、高 3、斜边 5，水平投影 √(25−9)=4；短对角线 √((1−4)²+3²)=√18≈4.24，长对角线 √((1+4)²+3²)=√34≈5.83。旧实现 Math.max(base−dx,0) 把短分量截成 0，得 3.00 / 5.83。默认矩形不出现该串。"
+},
+{
   "slug": "home/washer-capacity",
   "inputs": {
     "people": "6"
