@@ -158,11 +158,11 @@
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 说明</div>
       <div class="formula-eq">求 IRR 使 NPV = Σ CFₜ/(1+r)ᵗ = 0（含 t=0 初始投资）；回收期 = 累计现金流转正的期数</div>
-      <div class="formula-desc">基于内部收益率定义：IRR 为使净现值为零的折现率，用迭代法求解；同时给出 NPV 与投资回收期；现金流须有正负号变化，否则可能无解。</div>
+      <div class="formula-desc">基于内部收益率定义：IRR 为使净现值为零的折现率，用迭代法求解；折现率按所选期数单位逐期使用（月→月利率、年→年利率），页面另把每期 IRR 按 12/4/1 次复利换算为年化 IRR。现金流须有正负号变化，否则可能无解。</div>
     </div>
 <div class="input-row">
       <div>
-        <label for="discountRate">折现率（%）</label>
+        <label for="discountRate">折现率（%／每期）</label>
         <input type="number" id="discountRate" value="8" step="0.1" oninput="calc()" placeholder="如 8">
       </div>
       <div>
@@ -388,10 +388,14 @@ function restoreFlows() {
   } catch (e) { return false; }
 }
 
+const PRESET_UNITS = { project: 'year', fund: 'year', insurance: 'year', loan: 'month' };
+
 function loadPreset(name) {
   if (PRESETS[name]) {
     cashFlows = PRESETS[name].map(f => ({ ...f }));
-    if (name === 'loan') document.getElementById('periodUnit').value = 'month';
+    // 第942批：每个模板显式重置期数单位，避免沿用上一个模板（如贷款对比的「月」）改变年化口径。
+    var unitEl = document.getElementById('periodUnit');
+    if (unitEl) unitEl.value = PRESET_UNITS[name] || 'year';
     renderFlows();
     calc();
   }

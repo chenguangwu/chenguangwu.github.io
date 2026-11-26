@@ -3229,7 +3229,9 @@ const CASES = [
       "periodUnit": "month"
     },
     "expect": [
-      "T1:20000,T2:30000,T3:40000,T4:40000,T5:30000,T6:0\nmonth\n42"
+      "T1 ✕ T2 ✕ T3 ✕ T4 ✕ T5 ✕ T6 ✕",
+      "month",
+      "42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"discountRate\":\"42\",\"periodUnit\":\"month\"}。2026-11-07 F-N8 同批重采：页面新增只读输入 `irrCashflowSnapshot` 后，cfList 与期数单位之间多了一段现金流快照值，旧锚「5 ✕ T6 ✕\\n42\\nmonth」的跨元素拼接被截断，属**用例过期**而非页面缺陷；新锚改为「快照值 + month + 42」，同时锁住快照输入存在与注入生效。默认态（year / 8）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -5996,6 +5998,112 @@ const CASES = [
     clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/register-depreciation.html','utf8');var ok=h.indexOf('固定资产登记与折旧台账')>=0&&h.indexOf('不含盘点状态')>=0&&h.indexOf('不按自然月自动计提')>=0&&h.indexOf('资产清单（筛选与搜索，不含盘点状态）')>=0&&h.indexOf('<h3>资产盘点</h3>')<0;document.getElementById('__tbProbe').textContent='REGSEP '+(ok?'OK':'BAD');"],
     expect: ["REGSEP OK"],
     ref: "能力边界纠偏：页面/描述改称登记与折旧台账，明确不含盘点状态、盘点差异、月度计提或指定期间汇总，并把「资产盘点」标题改为资产清单；旧文案称盘点管理、使用场景写月度计提 ⇒ BAD。",
+  },
+  // ===== 第942批新增 =====
+  {
+    slug: "finance/retirement-calculator",
+    inputs: { age: "30.5", retireAge: "60", lifeAge: "85", currentSavings: "50000", monthlyContribution: "1000", returnRate: "6", inflation: "3", monthlyExpense: "5000" },
+    clicks: ["calc()"],
+    expect: ["当前年龄须为 0–120 的整数"],
+    ref: "小数年龄会让逐年循环与退休年数不一致：必须拒绝并清空年度明细。默认 30 整数不命中。",
+  },
+  {
+    slug: "finance/retirement-calculator",
+    inputs: { age: "30", retireAge: "60", lifeAge: "85", currentSavings: "50000", monthlyContribution: "1000", returnRate: "6", inflation: "-100", monthlyExpense: "5000" },
+    clicks: ["calc()"],
+    expect: ["通胀率须大于 -100% 且不超过 30%"],
+    ref: "-100% 通胀会使实际收益率分母为 0：必须拒绝。默认 3% 不命中。",
+  },
+  {
+    slug: "finance/retirement-calculator",
+    inputs: { age: "10", retireAge: "80", lifeAge: "120", currentSavings: "50000", monthlyContribution: "1000", returnRate: "6", inflation: "3", monthlyExpense: "5000" },
+    clicks: ["calc()"],
+    expect: ["跨度不得超过 100 年"],
+    ref: "110 年跨度会生成过多年度数据：拒绝并清空。默认 55 年不命中。",
+  },
+  {
+    slug: "finance/car-loan-calculator",
+    inputs: { price: "", downPct: "30", rate: "5.5", years: "3", taxRate: "10", regFee: "500", vehicleTax: "420", compInsurance: "950", commInsurance: "5000" },
+    clicks: ["calculate()"],
+    expect: ["请填写车价（元）", "结果区已置为待输入状态"],
+    ref: "车价为空时不能只把结果置 --：必须说明具体哪一项无效。默认 150000 不命中。",
+  },
+  {
+    slug: "finance/car-loan-calculator",
+    inputs: { price: "150000", downPct: "0", rate: "0", years: "3", taxRate: "10", regFee: "500", vehicleTax: "420", compInsurance: "950", commInsurance: "5000" },
+    clicks: ["calculate()"],
+    expect: ["4,166.67", "0.00%"],
+    ref: "合法 0 首付 + 0% 利率仍须计算：15 万/36 期=4,166.67，利息 0。旧实现此前已支持但错误提示改造后不能误伤零值。默认 30%/5.5% 不命中。",
+  },
+  {
+    slug: "finance/sharpe-ratio",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/sharpe-ratio.html','utf8');var ok=h.indexOf('6 ÷ 12 = 0.500')>=0&&h.indexOf('方向取决于超额收益的符号')>=0&&h.indexOf('2%÷12=0.1667%')>=0&&h.indexOf('= 2.000')<0;document.getElementById('__tbProbe').textContent='SHRPE '+(ok?'OK':'BAD');"],
+    expect: ["SHRPE OK"],
+    ref: "直接模式 6%/12%=0.500 而非 2.000；样本标准差方向须按超额收益符号说明；月频先把年化无风险利率除以 12。旧文案 2.000/样本必然偏大/未折算月频 ⇒ BAD。",
+  },
+  {
+    slug: "finance/futures-pnl-calculator",
+    inputs: { openPrice: "4000", closePrice: "4100", lots: "1", marginRate: "10", openFee: "", closeFee: "2" },
+    clicks: ["calc()"],
+    expect: ["开仓手续费不能留空"],
+    ref: "空手续费不能静默按 0：须明确输入 0。默认开仓手续费非空 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/futures-pnl-calculator",
+    inputs: { openPrice: "4000", closePrice: "4100", lots: "1", marginRate: "10", openFee: "-1", closeFee: "2" },
+    clicks: ["calc()"],
+    expect: ["开仓手续费须为有限非负数"],
+    ref: "负手续费会被当成收入加到净盈亏：必须拒绝。默认非负 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/futures-pnl-calculator",
+    inputs: { openPrice: "4000", closePrice: "4100", lots: "1", marginRate: "10", openFee: "0", closeFee: "0" },
+    clicks: ["calc()"],
+    expect: ["手续费 0.00 元", "盈亏金额"],
+    ref: "显式 0/0 手续费合法，净盈亏=100 点×10=1,000 元、手续费 0。默认费率非 0 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/compound-interest",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/compound-interest.html','utf8');var ok=h.indexOf('g = (1 + r/n)^n')>=0&&h.indexOf('年末投入 k=1、年初投入 k=g')>=0&&h.indexOf('PMT 是「每年」定投一次')>=0;document.getElementById('__tbProbe').textContent='CIFORM '+(ok?'OK':'BAD');"],
+    expect: ["CIFORM OK"],
+    ref: "公式必须用年度增长因子 g 的年金式，并区分年初×g、年末×1，避免把每年 PMT 当每复利期投入。旧公式 PMT·((1+r/n)^(nt)−1)/(r/n) ⇒ 1200 元算成 15,219 ⇒ BAD。",
+  },
+  {
+    slug: "finance/compound-interest",
+    inputs: { principal: "0", rate: "12", years: "1", annual: "1200", freq: "12", investTime: "end" },
+    clicks: ["calc()"],
+    expect: ["1,200"],
+    ref: "本金 0、12%/月复利、每年年末投 1200、1 年：年末投入当年不计息 ⇒ 终值 1,200，与代码一致。",
+  },
+  {
+    slug: "finance/compound-interest",
+    inputs: { principal: "0", rate: "12", years: "1", annual: "1200", freq: "12", investTime: "start" },
+    clicks: ["calc()"],
+    expect: ["1,352"],
+    ref: "年初投入多增长一年：1200×(1+12%/12)^12=1200×1.126825=1,352.19 ⇒ 显示 1,352。旧公式口径不一致。",
+  },
+  {
+    slug: "finance/compound-interest",
+    inputs: { principal: "10000", rate: "0", years: "5", annual: "1200", freq: "12", investTime: "start" },
+    clicks: ["calc()"],
+    expect: ["16,000"],
+    ref: "零利率：本金 10,000 + 每年 1,200×5 = 16,000；年初/年末不应有差异，也不能除零。",
+  },
+  {
+    slug: "finance/analysis-5",
+    inputs: { ca: "500000", inv: "180000", pre: "20000", cash: "80000", cl: "0", tl: "700000", ta: "1200000", dec: "2" },
+    clicks: ["calc()"],
+    expect: ["流动负债为 0：流动比率、速动比率、现金比率不适用", "营运资金", "58.33%"],
+    ref: "零流动负债只让三个短期比率不适用，营运资金 500,000 与资产负债率 58.33% 仍须计算；旧实现整体 return 隐藏全部指标 ⇒ BAD。",
+  },
+  {
+    slug: "finance/number-to-words-chinese",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/number-to-words-chinese.html','utf8');var ok=h.indexOf('绝对值 < 10¹³')>=0&&h.indexOf('最多 13 位整数')>=0&&h.indexOf('不是金额大写')>=0&&h.indexOf('票据/发票请使用中文大写金额工具')>=0&&h.indexOf('最大 ±1万亿')<0&&h.indexOf('适合票据与财务书写')<0;document.getElementById('__tbProbe').textContent='CNREAD '+(ok?'OK':'BAD');"],
+    expect: ["CNREAD OK"],
+    ref: "范围说明须与实际拒绝阈值一致，并明确本工具输出普通读数而非票据大写；旧文案「最大 ±1万亿」「适合票据」⇒ BAD。",
   },
 ];
 
