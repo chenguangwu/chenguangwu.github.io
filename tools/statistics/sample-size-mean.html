@@ -308,11 +308,16 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function readNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(!/^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
+function num(id){const v=readNum(id);return isNaN(v)?0:v;}
+function __err(zh,en){var isEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());return '<p style="color:var(--danger)">⚠ '+(isEn?en:zh)+'</p>';}
+
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['sigma', 'e', 'z'],["标准差 σ", "误差界 e", "z 值 (1.96=95%)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const s=num('sigma'), e=num('e'), z=num('z');
+const s=readNum('sigma'), e=readNum('e'), z=readNum('z');
+            if(isNaN(s)||s<=0){ToolBox.setResult('result',__err('「标准差 σ」必须是大于 0 的有限数值。','“Standard deviation σ” must be a finite number greater than 0.'));return;}
+            if(isNaN(e)||e<=0){ToolBox.setResult('result',__err('「误差界 e」必须是大于 0 的有限数值。','“Margin of error e” must be a finite number greater than 0.'));return;}
+            if(isNaN(z)||z<=0){ToolBox.setResult('result',__err('「z 值」必须是大于 0 的有限数值。','“z value” must be a finite number greater than 0.'));return;}
             const n=Math.pow(z*s/e,2);
             const __g2=dataGrid([
                 [Math.ceil(n).toFixed(0),'所需样本量 n'],
@@ -332,10 +337,11 @@ function __ssExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#ssTable', 'sample-size.csv'); } catch (e) {}
 }
+function __ssClear(){var ids=['ssTable','ssDiff','ssHist','ssChart'];for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}}
 function __ssExtras(){
     if (typeof TBKit === 'undefined') return;
     var s=__ssNum('sigma'), e=__ssNum('e'), z=__ssNum('z');
-    if(!isFinite(s)||!isFinite(e)||!isFinite(z)||s<=0||e<=0) return;
+    if(!isFinite(s)||!isFinite(e)||!isFinite(z)||s<=0||e<=0||z<=0){__ssClear();return;}
     var en=TBKit.util.isEn();
     var es=[0.5,1,2,3,5,10], zs=[['90%',1.645],['95%',1.96],['99%',2.576]], rows=[];
     for(var i=0;i<es.length;i++){

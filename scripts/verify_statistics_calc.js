@@ -890,9 +890,9 @@ const CASES = [
       "n": "42"
     },
     "expect": [
-      "95% 置信半宽 — SE 平方乘 n"
+      "「比例 p」必须在 0 与 1 之间"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"p\":\"42\",\"n\":\"42\"}，输出区含「95% 置信半宽 — SE 平方乘 n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "SMS 校验：p=42 越界，旧实现仍按 p(1−p) 算负数方差再开方得到无意义 SE；现停算提示，默认 p=0.5 不含该串 ⇒ 零逃生。"
   },
   {
     "slug": "statistics/standard-error",
@@ -1183,7 +1183,7 @@ const CASES = [
   {
     slug: "statistics/standard-error",
     inputs: { sigma: "-15", n: "36" },
-    expect: ["「标准差 σ」不能为负值", "标准差 σ 不能为负值"],
+    expect: ["「标准差 σ」必须是非负有限数值"],
     ref: "SMS-49：旧 __N 只列 n，负 σ 得 SE=−2.5000、95% 半宽=−4.9000 并保留旧表。修复后 __N 加 sigma，守卫与主算均停算并清空明细表/矩阵/曲线。默认 σ=15 不含该提示 ⇒ 零逃生。"
   },
   {
@@ -1515,6 +1515,48 @@ const CASES = [
     ref: "非法项不能静默丢弃后按 1,3 计算；按原位置报错并阻止输出。默认合法。",
   },
 
+  {
+    slug: "statistics/standard-error-proportion",
+    inputs: { p: "1.2", n: "100" },
+    expect: ["「比例 p」必须在 0 与 1 之间"],
+    ref: "p=1.2 越界：旧实现仍能开方得到 NaN 或负方差；现停算提示。",
+  },
+  {
+    slug: "statistics/standard-error-proportion",
+    inputs: { p: "0.5", n: "2.5" },
+    expect: ["「样本量 n」必须是 ≥2 的整数"],
+    ref: "小数样本量不满足整数要求，标准误不应计算。",
+  },
+  {
+    slug: "statistics/standard-error",
+    inputs: { sigma: "15", n: "3.5" },
+    expect: ["「样本量 n」必须是 ≥2 的整数"],
+    ref: "小数样本量旧实现被 num() 放行并得到看似正常的 SE；现停算。",
+  },
+  {
+    slug: "statistics/t-score",
+    inputs: { xbar: "105", mu: "100", s: "0", n: "25" },
+    expect: ["「标准差 s」必须是大于 0"],
+    ref: "s=0 时 t=(x̄−μ)/0 无定义，不能输出 Infinity 或 0。",
+  },
+  {
+    slug: "statistics/sample-size-mean",
+    inputs: { sigma: "10", e: "0", z: "1.96" },
+    expect: ["「误差界 e」必须是大于 0"],
+    ref: "e=0 时 n=(zσ/e)² 无限大，旧实现输出 Infinity；现停算。",
+  },
+  {
+    slug: "statistics/one-way-anova",
+    inputs: { s1: "-2" },
+    expect: ["第 1 组标准差必须是非负"],
+    ref: "负标准差平方后会被当作正方差参与 SSW，可能给出显著结论；现按字段阻止。",
+  },
+  {
+    slug: "statistics/one-way-anova",
+    inputs: { s1: "0", s2: "0", s3: "0" },
+    expect: ["组内平方和 SSW=0"],
+    ref: "三组组内方差全为 0 时 F 分母为 0，不能输出 Infinity/NaN。",
+  },
 
 ];
 
