@@ -97,6 +97,20 @@ const CASES = [
   },
   {
     slug: "finance/investment-roi",
+    inputs: { cost: "10000", return: "13000", years: "2", unit: "year", discount: "5", annualCash: "" },
+    clicks: ["calcSimple()"],
+    expect: ["静态回收期（未提供年均现金回流）"],
+    ref: "第934批：只填期末终值、未提供各期现金流时不再用 成本/(净利润/年数) 虚构回收期；显示未提供年均回流。默认参数同样不含确定年数。",
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { cost: "10000", return: "13000", years: "2", unit: "year", discount: "5", annualCash: "5000" },
+    clicks: ["calcSimple()"],
+    expect: ["静态回收期（按年均现金回流）", "2.00年"],
+    ref: "第934批：显式提供年均现金回流 5000 时，回收期 = 10000/5000 = 2.00 年，并标注固定年度现金流假设；默认留空 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/investment-roi",
     inputs: { aCost: "10000", aRate: "0", aYears: "5", aAdd: "1000", bCost: "10000", bRate: "0", bYears: "5", bAdd: "1000" },
     clicks: ["switchTab('compare');calcCompare();document.getElementById('aCost').value='-1';calcCompare();var h=String(document.getElementById('compareStats').innerHTML);document.getElementById('__tbProbe').textContent='ROIREJ '+(h.indexOf('须为有效正数')>=0&&h.indexOf('15,000')<0?'OK':'BAD');"],
     expect: ["ROIREJ OK"],
@@ -556,13 +570,13 @@ const CASES = [
   {
     slug: "finance/ird-validator",
     inputs: { input: "49091850" },
-    expect: ["输入： 49091850 格式化： 049-091-850 长度： 8 位 校验算法： 加权模 11（primary 3,2,7,6,5,4,3,2；得 10 改用 secondary 7,4,3,2,5,2,7,6） 校验和： ✅ 通过 ✅ IRD 号码有效"],
-    ref: "F-N220 合法号：8 位 49091850 补前导 0 → base 04909185，primary Σ=154 → rem 0 → 校验位 0（第 9 位）⇒ ✅。旧实现 base 取 substring(1,9) 错位判 ❌。expect 跨「长度/校验算法/校验和」取连续串（带输入号）。默认预填 490918507 ⇒ 不命中。",
+    expect: ["输入： 49091850 格式化： 049-091-850 长度： 8 位 校验算法： 加权模 11（primary 3,2,7,6,5,4,3,2；得 10 改用 secondary 7,4,3,2,5,2,7,6） 校验和： ✅ 通过 ✅ 长度与校验和检查通过"],
+    ref: "F-N220 合法号：8 位 49091850 补前导 0 → base 04909185，primary Σ=154 → rem 0 → 校验位 0（第 9 位）⇒ ✅。旧实现 base 取 substring(1,9) 错位判 ❌。第934批把结论改为「长度与校验和检查通过，无法确认登记/归属」；expect 跨「长度/校验算法/校验和/新结论」取连续串（带输入号）。默认预填 490918507 ⇒ 不命中。",
   },
   {
     slug: "finance/ird-validator",
     inputs: { input: "10000019" },
-    expect: ["输入： 10000019 格式化： 010-000-019 长度： 8 位 校验算法： 加权模 11（primary 3,2,7,6,5,4,3,2；得 10 改用 secondary 7,4,3,2,5,2,7,6） 校验和： ❌ 未通过 ❌ 校验和失败，IRD 无效"],
+    expect: ["输入： 10000019 格式化： 010-000-019 长度： 8 位 校验算法： 加权模 11（primary 3,2,7,6,5,4,3,2；得 10 改用 secondary 7,4,3,2,5,2,7,6） 校验和： ❌ 未通过 ❌ 校验和未通过，该号码不符合 IRD 校验规则"],
     ref: "F-N220 非法号：8 位 10000019 补 0 → base 01000001 期望校验位 7 ≠ 9 ⇒ ❌；旧实现错位判 ✅。与 10000009（合法）镜像。默认预填 490918507 合法 ⇒ 不命中。",
   },
 
@@ -1222,6 +1236,20 @@ const CASES = [
     clicks: ["var cap={};qrcode=function(t,e){cap.ec=e;return {addData:function(d){cap.data=d;},make:function(){cap.made=true;},getModuleCount:function(){return 21;},isDark:function(r,c){return r===0&&c===0;}};};qrcode.stringToBytesFuncs={'UTF-8':function(){}};var txt=buildVcard();var g=renderQR(txt);document.getElementById('__tbProbe').textContent='VCREAL '+document.getElementById('fn').value+' '+(cap.data===txt&&cap.ec==='M'&&cap.made&&g&&g.length===29&&g[4][4]===1?'OK':'BAD');"],
     expect: ["VCREAL 李四 OK"],
     ref: "F-N223 真编码锁：用可控 qrcode 桩替换后，renderQR 必须把 buildVcard() 全文交给 qrcode(0,'M').addData()/make()，并按 getModuleCount()+4 静区生成网格；旧伪随机网格既不调用库也不产生 29×29 静区布局 ⇒ 探针 BAD。输入姓名绑定避免静态逃生。",
+  },
+  {
+    slug: "finance/option-profit-calculator",
+    inputs: { strike: "100", premium: "5", s0: "300", contracts: "1", mult: "100", fee: "0" },
+    clicks: ["calc();var n=document.getElementById('chartNote');document.getElementById('__tbProbe').textContent='OPTITM '+(n&&n.textContent.indexOf('300')>=0?'OK':'BAD');"],
+    expect: ["OPTITM OK"],
+    ref: "第934批：深度实值 S=300 必须进入横轴范围并在图下注明；旧范围 K±max(0.4K,4p)=60–140 会丢掉当前价标记。默认 S=110 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/option-profit-calculator",
+    inputs: { strike: "100", premium: "5", s0: "10", contracts: "1", mult: "100", fee: "0" },
+    clicks: ["calc();var n=document.getElementById('chartNote');document.getElementById('__tbProbe').textContent='OPTOTM '+(n&&n.textContent.indexOf('10')>=0?'OK':'BAD');"],
+    expect: ["OPTOTM OK"],
+    ref: "第934批：深度虚值 S=10 同样纳入横轴并标注；旧范围 60–140 不显示当前情景。默认 S=110 ⇒ 不命中。",
   },
   {
     slug: "finance/option-profit-calculator",
@@ -2121,6 +2149,20 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["每年利息： 1,125 元", "本利和： 29,500 元"],
     ref: "单利（本金 25,000、年利率 4.5%、4 年）：每年利息 = 25,000×4.5% = **1,125 元**；累计利息 = 1,125×4 = 4,500；本利和 = 25,000 + 4,500 = **29,500 元**。页面逐年明细第 1 年末累计利息 1,125 / 本利和 26,125，第 4 年末 4,500 / 29,500，与两条锚同源。默认组（10,000 / 5% / 3 年 ⇒ 1,500 / 14,500）不命中。",
+  },
+  {
+    slug: "finance/gold-price-calculator",
+    inputs: { goldPrice: "650", weightInput: "10", weightUnit: "g", puritySel: "0.9999", discountRate: "100", usdRate: "" },
+    clicks: ["switchMode('wt');calcAll()"],
+    expect: ["10.0000 克", "¥ 6,500.00"],
+    ref: "第934批：金价为足金999.9基准，同纯度按 纯度/0.9999 折算；10g×650 不再算成 6499.35，而是 6500.00。默认金价 600 ⇒ 本用例显式 650。",
+  },
+  {
+    slug: "finance/gold-price-calculator",
+    inputs: { goldPrice: "650", weightInput: "10", weightUnit: "g", puritySel: "0.75", discountRate: "100", usdRate: "" },
+    clicks: ["switchMode('wt');calcAll()"],
+    expect: ["¥ 4,875.49"],
+    ref: "第934批：18K（0.75）10g 按 650÷0.9999×0.75 = 487.549/克 ⇒ 4875.49，与同纯度正反算互逆。默认纯度 999.9 ⇒ 不命中。",
   },
   {
     slug: "finance/gold-price-calculator",
@@ -4239,10 +4281,24 @@ const CASES = [
   },
   {
     slug: "finance/profit-margin-calculator",
+    inputs: { batchStart: "0", batchEnd: "0", batchStep: "10", batchM1: "0" },
+    clicks: ["calcBatch()"],
+    expect: ["0.00"],
+    ref: "第934批：成本 0、毛利率 0% 都保留为有效值，不再回退 10/20%；表格输出成本 0.00。默认 10–100/20% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/profit-margin-calculator",
+    inputs: { batchStart: "0", batchEnd: "100", batchStep: "0.001" },
+    clicks: ["calcBatch()"],
+    expect: ["当前范围将生成 100001 行，超过 500 行上限"],
+    ref: "第934批：极小步长生成前行数预检，超过 500 行直接拒绝，避免海量循环/DOM。默认 21 行 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/profit-margin-calculator",
     inputs: { batchM1: "120" },
     clicks: ["calcBatch()"],
-    expect: ["不可达"],
-    ref: "F-N56：批量倒推表毛利率 120% ⇒ 旧实现输出负价格；修复后该列单元格标「不可达」。默认四档 20/30/40/50% ⇒ 不命中。",
+    expect: ["毛利率1须在 0%–100% 之间（当前 120%）"],
+    ref: "F-N56/第934批：批量毛利率 120% 超出 0–100%，修复后明确拒绝并提示区间，不再输出负价格或「不可达」。默认四档 20/30/40/50% ⇒ 不命中。",
   },
   {
     slug: "banking/apy-calculator",
@@ -4708,10 +4764,24 @@ const CASES = [
   },
   {
     slug: "finance/credit-card-interest",
+    inputs: { billAmount: "10000", dailyRate: "", minRatio: "10", repayType: "minimum" },
+    clicks: ["calc()"],
+    expect: ["日利率不能为空；如确为 0，请明确输入 0。"],
+    ref: "第934批：日利率留空不再按 0 当成免息；明确提示补全。默认 0.05% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/credit-card-interest",
+    inputs: { billAmount: "10000", dailyRate: "0", minRatio: "10", repayType: "minimum", installmentFee: "0", installmentMonths: "12" },
+    clicks: ["showCompare()"],
+    expect: ["两种方案总支出相同"],
+    ref: "第934批：零利率 + 零手续费时最低还款 10 期还清、分期 12 期，总支出均 10000；差额小于 0.01 元时不再固定说最低还款更省钱。默认 0.05%/0.75% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/credit-card-interest",
     inputs: { billAmount: "10000", dailyRate: "-0.05", minRatio: "10", repayType: "minimum" },
     clicks: ["calc()"],
-    expect: ["日利率不能为负，请填写 ≥0 的数值"],
-    ref: "F-N124 负值拒绝：日利率 −0.05 旧实现 +value/100||0 → 负利率照算得负利息/负总支出；修复后 calc() 前置拒绝并提示「日利率不能为负，请填写 ≥0 的数值」。默认日利率 0.05 ⇒ 不命中。",
+    expect: ["日利率须为 ≥0 的有效数字（当前 -0.05%）"],
+    ref: "F-N124 负值拒绝：日利率 −0.05 旧实现 +value/100||0 → 负利率照算得负利息/负总支出；第934批改为严格的空值/有限/非负校验，提示「日利率须为 ≥0 的有效数字（当前 -0.05%）」。默认日利率 0.05 ⇒ 不命中。",
   },
   {
     slug: "finance/uan-validator",
@@ -5170,6 +5240,13 @@ const CASES = [
     clicks: ["globalThis.TBKit={util:{isEn:function(){return true;}}};document.getElementById('batchFromSearch').value='Yen';filterOptions('batchFrom');var t=String(document.getElementById('batchFromOptions').innerHTML);document.getElementById('__tbProbe').textContent='CCNAME '+(t.indexOf('Japanese Yen')>=0?'YEN':'MISS')+' '+(t.indexOf('日元')<0?'CLEAN':'ZH');"],
     expect: ["CCNAME YEN CLEAN"],
     ref: "第933批：英文态货币列表使用英文名称，搜索 Yen 命中 Japanese Yen，且不再渲染中文「日元」。默认中文态不命中。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: { fromAmount: "5000", rateMode: "manual", manualRate: "7.25", presetFromCurrency: "USD", presetToCurrency: "CNY", presetBatchFromCurrency: "USD", presetBatchToCurrency: "CNY" },
+    clicks: ["__ccApplyPresetCurrencies();var t=String(document.getElementById('resultDisplay').innerHTML).replace(/,/g,'');document.getElementById('__tbProbe').textContent='CCPRESET '+(t.indexOf('36250')>=0?'OK':'BAD');"],
+    expect: ["CCPRESET OK"],
+    ref: "第934批：5000 美元换人民币预设同时设置源/目标币与 7.25 手动汇率，结果 5000×7.25=36250；旧预设只改金额/汇率，默认 CNY→USD 会把 7.25 算成 1 CNY=7.25 USD。",
   },
   {
     slug: "finance/currency-converter",

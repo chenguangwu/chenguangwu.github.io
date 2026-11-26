@@ -589,26 +589,44 @@ function calcReverse(){
   calcBatch();
 }
 
+var PROFIT_BATCH_ROW_LIMIT = 500;
+function readProfitBatch(){
+  var triples=[['batchStart','成本起始值'],['batchEnd','成本结束值'],['batchStep','步长']];
+  var v={};
+  for(var i=0;i<triples.length;i++){
+    var id=triples[i][0], label=triples[i][1], raw=String(document.getElementById(id).value).trim();
+    if(raw==='') return {error:label+'不能为空；0 是有效值，请明确输入 0。'};
+    var n=Number(raw);
+    if(!isFinite(n)) return {error:label+'不是有效数字：'+raw};
+    v[id]=n;
+  }
+  if(v.batchStart<0||v.batchEnd<0) return {error:'成本不能为负（当前起点 '+v.batchStart+'、终点 '+v.batchEnd+'）。'};
+  if(v.batchStep<=0) return {error:'步长必须大于 0（当前 '+v.batchStep+'）。'};
+  if(v.batchEnd<v.batchStart) return {error:'成本结束值须不小于起始值（当前 '+v.batchStart+' → '+v.batchEnd+'）。'};
+  var count=Math.floor((v.batchEnd-v.batchStart)/v.batchStep)+1;
+  if(count>PROFIT_BATCH_ROW_LIMIT) return {error:'当前范围将生成 '+count+' 行，超过 '+PROFIT_BATCH_ROW_LIMIT+' 行上限；请缩小范围或增大步长（当前 '+v.batchStart+'–'+v.batchEnd+'，步长 '+v.batchStep+'）。'};
+  var margins=[];
+  for(var j=1;j<=4;j++){
+    var mid='batchM'+j, mraw=String(document.getElementById(mid).value).trim();
+    if(mraw==='') return {error:'毛利率'+j+'不能为空；0% 是有效值，请明确输入 0。'};
+    var m=Number(mraw);
+    if(!isFinite(m)) return {error:'毛利率'+j+'不是有效数字：'+mraw};
+    if(m<0||m>100) return {error:'毛利率'+j+'须在 0%–100% 之间（当前 '+mraw+'%）。'};
+    margins.push(m);
+  }
+  return {start:v.batchStart,end:v.batchEnd,step:v.batchStep,count:count,margins:margins};
+}
 function calcBatch(){
-  var start = +document.getElementById('batchStart').value || 10;
-  var end = +document.getElementById('batchEnd').value || 100;
-  var step = +document.getElementById('batchStep').value || 10;
-  if(step <= 0) step = 10;
-  if(end <= start) end = start + step * 10;
+  var bp=readProfitBatch();
+  if(bp.error){document.getElementById('batchTable').innerHTML='<p style="color:var(--danger)">'+bp.error+'</p>';return;}
   
-  var margins = [
-    +document.getElementById('batchM1').value || 20,
-    +document.getElementById('batchM2').value || 30,
-    +document.getElementById('batchM3').value || 40,
-    +document.getElementById('batchM4').value || 50
-  ];
-  
-  var headers = ['成本\\毛利率'].concat(margins.map(function(m){ return m + '%'; }));
+  var headers = ['成本\\毛利率'].concat(bp.margins.map(function(m){ return m + '%'; }));
   var rows = [];
-  for(var c = start; c <= end; c += step){
+  for(var qi=0; qi<bp.count; qi++){
+    var c=bp.start+qi*bp.step;
     var row = [ToolBox.formatNumber(c, 2)];
-    margins.forEach(function(m){
-      if(!isFinite(m) || m < 0 || m >= 100){ row.push('不可达'); return; }
+    bp.margins.forEach(function(m){
+      if(m >= 100){ row.push('不可达'); return; }
       var price = c / (1 - m / 100);
       row.push(ToolBox.formatNumber(price, 2));
     });

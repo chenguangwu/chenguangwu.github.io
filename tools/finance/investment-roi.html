@@ -192,6 +192,10 @@
       <label for="discount">折现率（% / 年，用于NPV）</label>
       <input type="number" id="discount" value="5" oninput="calcSimple()" step="any" placeholder="如 5">
 
+      <label for="annualCash">年均现金回流（元，可选；仅用于静态回收期）</label>
+      <input type="number" id="annualCash" value="" oninput="calcSimple()" step="any" min="0" placeholder="留空则不计算回收期，如 5000">
+      <p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">只有各年现金回流近似相等时，才能用「初始投资 ÷ 年均现金回流」估算静态回收期；仅填期末终值不代表期间现金流，留空时不输出确定回收期。</p>
+
       <div class="stat-grid" id="simpleStats" style="margin-top:16px;"></div>
       <div class="chart-card"><canvas id="simpleChart"></canvas></div>
     </div>
@@ -255,7 +259,7 @@
       <p><strong>年化 ROI（复利）</strong> = (1 + ROI)^(1/年数) - 1</p>
       <p><strong>持有期回报 HPR</strong> = (期末价值 + 期间现金流) / 期初价值 - 1</p>
       <p><strong>定投终值</strong> = FV = PMT × [(1+r)^n - 1] / r × (1+r)</p>
-      <p><strong>投资回收期</strong> = 初始投资 / 年现金流（静态）</p>
+      <p><strong>静态回收期</strong> = 初始投资 / 年均现金回流（仅各年现金流近似相等时适用；未填年均回流则不计算）</p>
       <p><strong>NPV</strong> = Σ 各期现金流 / (1+r)^t - 初始投资</p>
     </div> <div id="investment_roiTable"></div> <div id="investment_roiDiff"></div> <div id="investment_roiChart"></div> <div id="investment_roiHist"></div>
   </div>
@@ -438,7 +442,13 @@ function calcSimple(){
   const simpleAnnual = years > 0 ? roi / years : 0;
   const npv = ret / Math.pow(1 + discount / 100, years) - cost;
   const pi = cost > 0 ? (ret / Math.pow(1 + discount / 100, years)) / cost : 0;
-  const payback = profit > 0 ? cost / (profit / years) : Infinity;
+  const annualCashRaw = String(document.getElementById('annualCash').value || '').trim();
+  const annualCash = annualCashRaw === '' ? null : Number(annualCashRaw);
+  if(annualCash !== null && (!isFinite(annualCash) || annualCash < 0)){
+    document.getElementById('simpleStats').innerHTML = '<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">年均现金回流须为 ≥0 的有效数字（当前 ' + annualCashRaw + '）。</div></div>';
+    return;
+  }
+  const payback = (annualCash !== null && annualCash > 0) ? cost / annualCash : null;
 
   const __h2=`
     <div class="stat-card"><div class="val" style="color:${profit>=0?'var(--success)':'var(--danger)'};">${profit>=0?'+':''}${fmt(profit)}</div><div class="lbl">净利润（元）</div></div>
@@ -447,7 +457,7 @@ function calcSimple(){
     <div class="stat-card"><div class="val">${fmtPct(simpleAnnual)}</div><div class="lbl">简单年化</div></div>
     <div class="stat-card"><div class="val" style="color:${npv>=0?'var(--success)':'var(--danger)'};">${fmt(npv)}</div><div class="lbl">NPV 净现值</div></div>
     <div class="stat-card"><div class="val">${pi.toFixed(2)}</div><div class="lbl">获利指数 PI</div></div>
-    <div class="stat-card"><div class="val">${isFinite(payback)?payback.toFixed(2)+'年':'--'}</div><div class="lbl">投资回收期</div></div>
+    <div class="stat-card"><div class="val">${payback!==null?payback.toFixed(2)+'年':'--'}</div><div class="lbl">${payback!==null?'静态回收期（按年均现金回流）':'静态回收期（未提供年均现金回流）'}</div></div>
     <div class="stat-card"><div class="val">${years.toFixed(2)}年</div><div class="lbl">持有期</div></div>
   `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('simpleStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('simpleStats').innerHTML=__h2;
   drawSimpleChart();
