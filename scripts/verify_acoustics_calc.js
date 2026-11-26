@@ -426,6 +426,11 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v\":\"42\",\"f\":\"42\"}，输出区含「波长 λ (m) 100.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
 
+,
+  { slug: "acoustics/wavelength-frequency", inputs: { v: "-1", f: "100" }, expect: ["不能为 0 或负数"], ref: "第965批：负波速不再生成负波长，须拒绝并说明必须为有限正数；旧实现可输出 -0.0100 m。" },
+  { slug: "acoustics/wavelength-from-freq", inputs: { c: "-1", f: "1000" }, expect: ["不能为 0 或负数"], ref: "第965批：负声速不再生成负波长，须拒绝；旧实现可输出负值。" },
+  { slug: "acoustics/wavelength-frequency", inputs: { v: "343", f: "1000000000" }, expect: ["3.4300e-7", "3.4300e-5"], ref: "第965批：343/1e9 ≈ 3.43e-7 m，固定四位小数会显示 0.0000；须按量级改用科学计数法，厘米行同理。" },
+  { slug: "acoustics/wavelength-from-freq", inputs: { c: "343", f: "1000000000" }, expect: ["3.4300e-7", "3.4300e-5", "1.0000e-6"], ref: "第965批：波长 3.43e-7 m、厘米 3.43e-5、周期 1e-6 ms，均须按量级改用科学计数法而非 0。0000。" }
 ];
 
 async function main() {
