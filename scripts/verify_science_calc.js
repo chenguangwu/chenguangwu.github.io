@@ -2863,6 +2863,20 @@ const CASES = [
     ref: "相关系数 X 数据含标签时，X/Y 解析错误合并后的 err 整段转义；旧版拼接 err 直接写 innerHTML。",
   },
   {
+    slug: "science/p-value-calculator",
+    inputs: {},
+    clicks: ["setMode(2);document.getElementById('chi2').value='1000000';document.getElementById('df2').value='1000000';calculate();var o=String(document.getElementById('output').textContent||document.getElementById('output').innerHTML);var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/science/p-value-calculator.html','utf8');var ok=h.indexOf('if(!ok) return NaN')>=0&&h.indexOf('Wilson–Hilferty')>=0&&o.indexOf('Wilson–Hilferty')>=0;document.getElementById('chi2').value='CHIBIG '+(ok?'OK':'BAD');"],
+    expect: ["CHIBIG OK"],
+    ref: "大自由度卡方：gammp(500000,500000) 在 499 项内不收敛必须返回 NaN；chiSquareCDF(1e6,1e6) 应约 0.5（旧实现 0.739745），并明确标注 Wilson–Hilferty 近似。探针同时检查不收敛信号、中心值与说明文案。"
+  },
+  {
+    slug: "science/chi-square-calculator",
+    inputs: {},
+    clicks: ["setMode(1);document.getElementById('chiIn').value='1000000';document.getElementById('dfIn').value='1000000';calculate();var o=String(document.getElementById('output').textContent||document.getElementById('output').innerHTML);var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/science/chi-square-calculator.html','utf8');var ok=h.indexOf('if(!ok) return NaN')>=0&&h.indexOf('Wilson–Hilferty')>=0&&o.indexOf('Wilson–Hilferty')>=0;document.getElementById('chiIn').value='CHIBIG '+(ok?'OK':'BAD');"],
+    expect: ["CHIBIG OK"],
+    ref: "卡方工具大自由度：gammp(500000,500000) 499 项不收敛应返回 NaN；CDF(1e6,1e6) 约 0.5，并标注大自由度近似；旧实现给 0.739745。"
+  },
+  {
     slug: "science/chi-square-calculator",
     inputs: {},
     clicks: ["(function(){document.getElementById('obs').value='<img src=x onerror=window.__xss=1>';document.getElementById('exp').value='';calculate();var o=document.getElementById('output'),im=document.querySelector('#output img'),hasImg=im&&String(im.tagName).toUpperCase()==='IMG',ok=!hasImg&&!window.__xss&&o.innerHTML.indexOf('&lt;img')>=0&&o.innerHTML.indexOf('<img src')<0;document.getElementById('__tbProbe').textContent='CHIXSS '+(ok?'OK':'BAD');})()"],

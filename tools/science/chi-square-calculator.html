@@ -279,29 +279,36 @@ function gammp(a,x){
   if(x<=0) return 0;
   if(x>=a+1){
     const FPMIN=1e-300, EPS=1e-15;
-    let b=x+1-a, c=1/FPMIN, d=1/b, h=d;
+    let b=x+1-a, c=1/FPMIN, d=1/b, h=d, ok=false;
     for(let i=1;i<500;i++){
       const an=-i*(i-a);
       b+=2; d=an*d+b; if(Math.abs(d)<FPMIN) d=FPMIN;
       c=b+an/c; if(Math.abs(c)<FPMIN) c=FPMIN;
       d=1/d; const del=d*c; h*=del;
-      if(Math.abs(del-1)<EPS) break;
+      if(Math.abs(del-1)<EPS){ ok=true; break; }
     }
+    if(!ok) return NaN;
     return 1-Math.exp(-x+a*Math.log(x)-logGamma(a))*h;
   }
-  let ap=a, sum=1/a, del=sum;
+  let ap=a, sum=1/a, del=sum, ok=false;
   for(let n=1;n<500;n++){
     ap+=1; del*=x/ap; sum+=del;
-    if(Math.abs(del)<Math.abs(sum)*1e-15) break;
+    if(Math.abs(del)<Math.abs(sum)*1e-15){ ok=true; break; }
   }
+  if(!ok) return NaN;
   return sum*Math.exp(-x+a*Math.log(x)-logGamma(a));
+}
+function chiSquareNormalCDF(x,df){
+  const h=2/(9*df);
+  const z=(Math.pow(x/df,1/3)-(1-h))/Math.sqrt(h);
+  return normalCDF(z);
 }
 function chiSquareCDF(x,df){
   if(x<=0) return 0;
   if(df<=0) return NaN;
-  // 精确：χ²(df) 的 CDF = P(df/2, x/2)。原实现用 Wilson–Hilferty 正态近似，
-  // 既把 [(x/df)^(1/3)−(1−h)]/√h 误写成 (x/df)^(1/3)−(1−h)/√h（缺括号），
-  // 又在小 df 严重失真（χ²=9.49,df=4 得 p≈0.996，真值 0.050）。
+  // df≥200 用 Wilson–Hilferty 正态近似：大自由度下级数在 499 项内无法收敛，
+  // 该近似误差随 df 增大迅速减小。
+  if(df>=200) return chiSquareNormalCDF(x,df);
   return gammp(df/2, x/2);
 }
 function normalCDF(z){
@@ -357,7 +364,9 @@ function calculate(){
     }
     let chi=0;
     obs.forEach((o,i)=>{chi+=(o-exps[i])**2/exps[i];});
-    const p=1-chiSquareCDF(chi,df);
+    const cdf=chiSquareCDF(chi,df);
+    if(!isFinite(cdf)){out.innerHTML='<p style="color:var(--danger)">'+__t('⚠ 数值计算未收敛或结果无效，请降低自由度后重试，或改用统计软件复核。','⚠ The numerical calculation did not converge or produced an invalid result. Try a smaller df or verify with statistical software.')+'</p>';return;}
+    const p=Math.min(1,Math.max(0,1-cdf));
     let html=`<div class="big-result">χ² = ${fmt(chi)}，p = ${fmt(p)}</div>`;
     html+=`<div class="stat-grid">
       <div class="stat-card"><div class="v">${fmt(chi)}</div><div class="l">卡方值</div></div>
@@ -365,6 +374,7 @@ function calculate(){
       <div class="stat-card"><div class="v">${fmt(p)}</div><div class="l">p 值</div></div>
       <div class="stat-card"><div class="v">${fmt(total)}</div><div class="l">总观察数</div></div>
     </div>`;
+    if(df>=200) html+=`<div class="step-line" style="color:var(--text-muted);"><strong>${__t('大自由度说明：','Large-df note: ')}</strong>${__t('df ≥ 200 时采用 Wilson–Hilferty 正态近似，误差随 df 增大迅速减小；极端尾部或临界结论请用统计软件复核。','df ≥ 200 uses the Wilson–Hilferty normal approximation; its error shrinks rapidly as df grows. Verify extreme tails or borderline decisions with statistical software.')}</div>`;
     if(r>1){
       const c=obs.length/r;
       let table='';
@@ -392,7 +402,8 @@ function calculate(){
     if(isNaN(chi)||chi<0){const __h3='<p style="color:var(--danger)">χ² 必须 ≥ 0</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;return;}
     if(isNaN(df)||df<1){const __h4='<p style="color:var(--danger)">df 必须 ≥ 1</p>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h4;return;}
     const cdf=chiSquareCDF(chi,df);
-    const p=1-cdf;
+    if(!isFinite(cdf)){out.innerHTML='<p style="color:var(--danger)">'+__t('⚠ 数值计算未收敛或结果无效，请降低自由度后重试，或改用统计软件复核。','⚠ The numerical calculation did not converge or produced an invalid result. Try a smaller df or verify with statistical software.')+'</p>';return;}
+    const p=Math.min(1,Math.max(0,1-cdf));
     const mean=df, variance=2*df, sd=Math.sqrt(2*df);
     let html=`<div class="big-result">p = P(χ² ≥ ${fmt(chi)} | df=${df}) = ${fmt(p)}</div>`;
     html+=`<div class="stat-grid">
@@ -402,6 +413,7 @@ function calculate(){
       <div class="stat-card"><div class="v">${fmt(variance)}</div><div class="l">方差 2df</div></div>
       <div class="stat-card"><div class="v">${fmt(sd)}</div><div class="l">标准差</div></div>
     </div>`;
+    if(df>=200) html+=`<div class="step-line" style="color:var(--text-muted);"><strong>${__t('大自由度说明：','Large-df note: ')}</strong>${__t('df ≥ 200 时采用 Wilson–Hilferty 正态近似，误差随 df 增大迅速减小；极端尾部或临界结论请用统计软件复核。','df ≥ 200 uses the Wilson–Hilferty normal approximation; its error shrinks rapidly as df grows. Verify extreme tails or borderline decisions with statistical software.')}</div>`;
     html+=`<div class="step-line"><strong>解读：</strong>${p<0.05?'<span style="color:var(--danger)">p &lt; 0.05，统计显著</span>':'<span style="color:var(--success)">p ≥ 0.05，不显著</span>'}</div>`;
     const __h5=html;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h5;
   }

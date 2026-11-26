@@ -358,21 +358,23 @@ function gammp(a,x){
   if(x<=0) return 0;
   if(x>=a+1){
     const FPMIN=1e-300, EPS=1e-15;
-    let b=x+1-a, c=1/FPMIN, d=1/b, h=d;
+    let b=x+1-a, c=1/FPMIN, d=1/b, h=d, ok=false;
     for(let i=1;i<500;i++){
       const an=-i*(i-a);
       b+=2; d=an*d+b; if(Math.abs(d)<FPMIN) d=FPMIN;
       c=b+an/c; if(Math.abs(c)<FPMIN) c=FPMIN;
       d=1/d; const del=d*c; h*=del;
-      if(Math.abs(del-1)<EPS) break;
+      if(Math.abs(del-1)<EPS){ ok=true; break; }
     }
+    if(!ok) return NaN;
     return 1-Math.exp(-x+a*Math.log(x)-logGamma(a))*h;
   }
-  let ap=a, sum=1/a, del=sum;
+  let ap=a, sum=1/a, del=sum, ok=false;
   for(let n=1;n<500;n++){
     ap+=1; del*=x/ap; sum+=del;
-    if(Math.abs(del)<Math.abs(sum)*1e-15) break;
+    if(Math.abs(del)<Math.abs(sum)*1e-15){ ok=true; break; }
   }
+  if(!ok) return NaN;
   return sum*Math.exp(-x+a*Math.log(x)-logGamma(a));
 }
 // 正则化不完全 Gamma 上尾 Q(a,x)：直接返回 Q，避免 1-P 相消
@@ -380,20 +382,28 @@ function gammq(a,x){
   if(x<=0) return 1;
   if(x<a+1) return 1-gammp(a,x);
   const FPMIN=1e-300, EPS=1e-15;
-  let b=x+1-a, c=1/FPMIN, d=1/b, h=d;
+  let b=x+1-a, c=1/FPMIN, d=1/b, h=d, ok=false;
   for(let i=1;i<500;i++){
     const an=-i*(i-a);
     b+=2; d=an*d+b; if(Math.abs(d)<FPMIN) d=FPMIN;
     c=b+an/c; if(Math.abs(c)<FPMIN) c=FPMIN;
     d=1/d; const del=d*c; h*=del;
-    if(Math.abs(del-1)<EPS) break;
+    if(Math.abs(del-1)<EPS){ ok=true; break; }
   }
+  if(!ok) return NaN;
   return Math.exp(-x+a*Math.log(x)-logGamma(a))*h;
+}
+function chiSquareNormalCDF(x,df){
+  const h=2/(9*df);
+  const z=(Math.pow(x/df,1/3)-(1-h))/Math.sqrt(h);
+  return normalCDF(z);
 }
 function chiSquareCDF(x,df){
   if(x<=0) return 0;
-  // 精确：χ²(df) 的 CDF = P(df/2, x/2)。原实现用 Wilson–Hilferty 正态近似，
-  // 既缺括号（(x/df)^(1/3)−(1−h)/√h），又在小 df 严重失真。
+  if(df<=0) return NaN;
+  // df≥200 用 Wilson–Hilferty 正态近似：大自由度下级数在 499 项内无法收敛，
+  // 该近似误差随 df 增大迅速减小。
+  if(df>=200) return chiSquareNormalCDF(x,df);
   return gammp(df/2, x/2);
 }
 function __t(zh,en){try{return (typeof TBKit!=='undefined'&&TBKit.util&&typeof TBKit.util.isEn==='function'&&TBKit.util.isEn())?en:zh;}catch(e){return zh;}}
@@ -401,7 +411,7 @@ function calculate(){
   const out=document.getElementById('output');
   const alpha=parseFloat(document.getElementById('alpha').value);
   if(isNaN(alpha)||alpha<=0||alpha>0.5){const __h0='<p style="color:var(--danger)" data-zh="α 必须在 (0, 0.5]">α must be within (0, 0.5].</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
-  let stat, distName, p, label;
+  let stat, distName, p, label, usedApprox=false;
   if(currentMode===0){
     const z=parseFloat(document.getElementById('z0').value);
     const tail=document.getElementById('tail0').value;
@@ -429,9 +439,12 @@ function calculate(){
     const df=parseFloat(document.getElementById('df2').value);
     if(isNaN(chi)||chi<0||isNaN(df)||df<=0){const __h3=__t('<p style="color:var(--danger)">请输入有效 χ² 和 df（df 须大于 0，可为小数）</p>','<p style="color:var(--danger)">Enter a valid χ² and df (df must be > 0 and may be a decimal)</p>');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;return;}
     stat=chi; distName='χ²';
-    p=gammq(df/2, chi/2);
+    usedApprox=(df>=200);
+    p=usedApprox ? (1-chiSquareNormalCDF(chi,df)) : gammq(df/2, chi/2);
     label=`χ² = ${fmt(chi)}，df = ${df}`;
   }
+  if(!isFinite(p)||p<0||p>1){out.innerHTML='<p style="color:var(--danger)">'+__t('⚠ 数值计算未收敛或结果无效，请降低自由度后重试，或改用统计软件复核。','⚠ The numerical calculation did not converge or produced an invalid result. Try a smaller df or verify with statistical software.')+'</p>';return;}
+  p=Math.min(1,Math.max(0,p));
   let html=`<div class="big-result">p = ${fmt(p)}</div>`;
   const reject=p<alpha;
   html+=`<div class="stat-grid">
@@ -443,6 +456,7 @@ function calculate(){
   html+=`<div class="step-line"><strong>步骤 1：</strong>已知 ${label}</div>`;
   html+=`<div class="step-line"><strong>步骤 2：</strong>计算 ${distName} 分布的累积概率</div>`;
   html+=`<div class="step-line"><strong>步骤 3：</strong>p 值 = ${fmt(p)}</div>`;
+  if(usedApprox) html+=`<div class="step-line" style="color:var(--text-muted);"><strong>${__t('大自由度说明：','Large-df note: ')}</strong>${__t('df ≥ 200 时采用 Wilson–Hilferty 正态近似，误差随 df 增大迅速减小；极端尾部或临界结论请用统计软件复核。','df ≥ 200 uses the Wilson–Hilferty normal approximation; its error shrinks rapidly as df grows. Verify extreme tails or borderline decisions with statistical software.')}</div>`;
   html+=`<div class="step-line"><strong>步骤 4：</strong>比较 p 与 α = ${alpha}</div>`;
   html+=`<div class="step-line"><strong>结论：</strong>${reject?'<span style="color:var(--danger)">p &lt; α，统计显著，拒绝原假设 H₀</span>':'<span style="color:var(--success)">p ≥ α，不显著，不拒绝原假设 H₀</span>'}</div>`;
   const __h4=html;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h4;
