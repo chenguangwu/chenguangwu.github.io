@@ -54,6 +54,7 @@
 .tab-content.active{display:block;}
 .effect-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
 .effect-item{border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;transition:all 0.15s;background:var(--card-bg);}
+.effect-item:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
 .effect-item:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.1);border-color:var(--primary);}
 .effect-item .effect-preview{padding:20px;text-align:center;font-size:24px;font-weight:900;color:var(--heading);background:var(--card-bg);}
 .effect-item .effect-name{padding:8px;font-size:12px;text-align:center;color:var(--text-light);border-top:1px solid var(--border);}
@@ -540,14 +541,17 @@ function applyEffect(effectLayers){
   layers = JSON.parse(JSON.stringify(effectLayers));
   activeLayer = 0;
   setActive(0);
+  render();
 }
+function applyEffectAt(i){ applyEffect(EFFECTS[i].layers); }
+function applyFavAt(i){ var f=getFavorites()[i]; if(f&&f.layers) applyEffect(f.layers); }
 
 function buildEffectGrid(){
   const __h2=EFFECTS.map((e, i) => {
     const shadow = e.layers.map(layerToCss).join(', ');
     const fav = getFavorites().some(f => f.name === e.name);
     return `
-      <div class="effect-item" onclick='applyEffect(${JSON.stringify(e.layers)})' title="${e.name}">
+      <div class="effect-item" role="button" tabindex="0" aria-label="应用效果：${e.name}" onclick="applyEffectAt(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyEffectAt(${i});}" title="${e.name}">
         <div class="effect-preview" style="text-shadow:${shadow};">Aa</div>
         <div class="effect-name">${e.name}</div>
       </div>
@@ -568,11 +572,11 @@ function renderFavorites(){
   
   empty.style.display = 'none';
   const __h4=favs.map((f, i) => `
-    <div class="effect-item" onclick='applyEffect(${JSON.stringify(f.layers)})' title="${f.name}">
+    <div class="effect-item" role="button" tabindex="0" aria-label="应用收藏：${f.name}" onclick="applyFavAt(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyFavAt(${i});}" title="${f.name}">
       <div class="effect-preview" style="text-shadow:${f.shadow};">Aa</div>
       <div class="effect-name" style="display:flex;justify-content:space-between;align-items:center;">
         <span>${f.name}</span>
-        <span style="cursor:pointer;" onclick="event.stopPropagation();removeFav(${i})">🗑️</span>
+        <span role="button" tabindex="0" aria-label="删除收藏：${f.name}" style="cursor:pointer;" onclick="event.stopPropagation();removeFav(${i})" onkeydown="event.stopPropagation();if(event.key==='Enter'||event.key===' '){event.preventDefault();removeFav(${i});}">🗑️</span>
       </div>
     </div>
   `).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h4;

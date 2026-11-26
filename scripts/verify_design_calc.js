@@ -765,6 +765,13 @@ const CASES = [
       + "⚠ stub 的 chart.refBar 只捕获 cfg、不渲染 SVG，所以断言落在「单位 + 段数 + 首段标签」三元组上，这是该页标尺口径的唯一可判别指纹。",
   },  {
     slug: "design/css-box-shadow-generator",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/design/css-box-shadow-generator.html','utf8');var a=h.indexOf('function applyPreset(presetLayers)'),b=h.indexOf('function applyPresetAt',a),seg=h.slice(a,b);var ok=h.indexOf('function applyPresetAt(i)')>=0&&seg.indexOf('render();')>=0&&h.indexOf('role=\"button\" tabindex=\"0\"')>=0&&h.indexOf('onkeydown=')>=0&&h.indexOf('aria-pressed=')>=0;document.getElementById('__tbProbe').textContent='SHKB '+(ok?'OK':'BAD');"],
+    expect: ["SHKB OK"],
+    ref: "第955批：预设/收藏改为可聚焦 role=button（Tab+Enter/空格激活），应用后必须 render() 刷新预览、CSS 输出与收藏按钮；旧实现 applyPreset 仅 setActive 刷新控件，复制到旧代码。真机已验证应用浮起后输出从 0px 10px 20px -5px 变为 0px 12px 30px 0px，键盘 Enter 同样生效。"
+  },
+  {
+    slug: "design/css-box-shadow-generator",
     inputs: { offsetX: "12", offsetY: "-6", blur: "30", spread: "8", opacity: "75", color: "#ff6b35" },
     expect: ["box-shadow: 12px -6px 30px 8px rgba(255, 107, 53, 0.75);"],
     ref: "结果区 `#cssOutput` 是单行拼串。本例把 offsetX / offsetY / blur / spread 四个量纲与 color+opacity 合成的 rgba 一次锁死：模板常量 `box-shadow: / px / rgba(` + 注入值连排，任何一个字段被改坏都会让整串失配。\n"
@@ -794,6 +801,13 @@ const CASES = [
       + "(128−9)×10^9 ÷ 180×10^6 = 661.1 ⇒ 661 张（旧实现用 1024^3 且不扣视频 ⇒ 763 张）。\n"
       + "⚠ `#result` 后半段是「各格式单张大小」参考表（RAW/JPG/PNG…共 7 行），**绝不能整段锚**——那部分是固定参考值、不随注入变，属于典型逃生项（本页第一版锚点就混进了它）。\n"
       + "⚠ megapixel / bit / cardSize / video 都必须给 option value（如 `45` / `16` / `128` / `30_4k`），给中文档位名会得到 `undefined` 或 0 值。",
+  },
+  {
+    slug: "design/css-text-shadow",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/design/css-text-shadow.html','utf8');var a=h.indexOf('function applyEffect(effectLayers)'),b=h.indexOf('function applyEffectAt',a),seg=h.slice(a,b);var ok=h.indexOf('function applyEffectAt(i)')>=0&&seg.indexOf('render();')>=0&&h.indexOf('role=\"button\" tabindex=\"0\"')>=0&&h.indexOf('onkeydown=')>=0;document.getElementById('__tbProbe').textContent='SHKT '+(ok?'OK':'BAD');"],
+    expect: ["SHKT OK"],
+    ref: "第955批：效果/收藏改为可聚焦 role=button（Tab+Enter/空格激活），应用后 render() 刷新预览、CSS 输出与收藏状态；旧实现 applyEffect 仅 setActive，复制到旧代码。真机已验证键盘 Enter 切换效果后 #cssOutput 改变。"
   },
   {
     slug: "design/css-text-shadow",
