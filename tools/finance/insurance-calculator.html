@@ -455,22 +455,39 @@ function getVal(id){
   return el ? (+el.value || 0) : 0;
 }
 
+function __insRead(id, label, min, max, integer){
+  var el = document.getElementById(id);
+  var raw = el ? String(el.value == null ? '' : el.value).trim() : '';
+  if(raw === '') return {err: label + '不能留空；如确为 0 请明确输入 0。'};
+  var n = Number(raw);
+  if(!Number.isFinite(n)) return {err: label + '须为有限数字（当前「' + raw + '」）。'};
+  if(integer && !Number.isInteger(n)) return {err: label + '须为整数（当前「' + raw + '」）。'};
+  if(min != null && n < min) return {err: label + '须不小于 ' + min + '（当前「' + raw + '」）。'};
+  if(max != null && n > max) return {err: label + '须不大于 ' + max + '（当前「' + raw + '」）。'};
+  return {val: n};
+}
+
+function __insInvalid(msg){
+  currentResult = null;
+  var res = document.getElementById('res');
+  if(res) res.innerHTML = '<p style="color:var(--danger)">' + msg + '</p>';
+  var sg = document.getElementById('statGrid');
+  if(sg) sg.innerHTML = '';
+  try { if(typeof TBKit !== 'undefined' && TBKit.history) TBKit.history.clear(); } catch(e) {}
+}
+
 function formatLifeAmount(value){
   return String(Number(value.toPrecision(15)));
 }
 
 function calc(){
-  var aMultiple = getVal('assumeMultiple');
-  var aHealthMin = getVal('assumeHealthMin');
-  var aPremiumPct = getVal('assumePremiumPct');
-  if(!(aMultiple > 0)){
-    document.getElementById('res').innerHTML = '<p style="color:var(--danger)">收入倍数须大于 0；它只是估算假设，可按家庭责任调整。</p>';
-    return;
-  }
-  if(!(aHealthMin >= 0) || !(aPremiumPct >= 0 && aPremiumPct <= 100)){
-    document.getElementById('res').innerHTML = '<p style="color:var(--danger)">重疾最低保额须 ≥0，保费预算比例须在 0–100% 之间。</p>';
-    return;
-  }
+  var __aM = __insRead('assumeMultiple','收入倍数',0.1,50,false);
+  if(__aM.err){ __insInvalid(__aM.err); return; }
+  var __aH = __insRead('assumeHealthMin','重疾最低保额',0,null,false);
+  if(__aH.err){ __insInvalid(__aH.err); return; }
+  var __aP = __insRead('assumePremiumPct','保费预算比例',0,100,false);
+  if(__aP.err){ __insInvalid(__aP.err); return; }
+  var aMultiple = __aM.val, aHealthMin = __aH.val, aPremiumPct = __aP.val;
   var result = {method: currentMethod, timestamp: Date.now(), assumptions: {multiple:aMultiple, healthMin:aHealthMin, premiumPct:aPremiumPct}};
   var lifeInsurance = 0;
   var healthInsurance = 0;
@@ -479,6 +496,10 @@ function calc(){
   var details = [];
 
   if(currentMethod === 'dual-ten'){
+    var __d1 = __insRead('dt_income','年收入',0,null,false); if(__d1.err){ __insInvalid(__d1.err); return; }
+    var __d2 = __insRead('dt_expense','年支出',0,null,false); if(__d2.err){ __insInvalid(__d2.err); return; }
+    var __d3 = __insRead('dt_debt','家庭负债',0,null,false); if(__d3.err){ __insInvalid(__d3.err); return; }
+    var __d4 = __insRead('dt_existing','已有保障',0,null,false); if(__d4.err){ __insInvalid(__d4.err); return; }
     var income = getVal('dt_income');
     var expense = getVal('dt_expense');
     var debt = getVal('dt_debt');
@@ -505,12 +526,10 @@ function calc(){
     ];
   }
   else if(currentMethod === 'four-three'){
+    var __f1 = __insRead('ft_income','年收入',0,null,false); if(__f1.err){ __insInvalid(__f1.err); return; }
+    var __f2 = __insRead('ft_members','家庭人口数',1,50,true); if(__f2.err){ __insInvalid(__f2.err); return; }
     var income = getVal('ft_income');
     var members = getVal('ft_members');
-    if (members <= 0) {
-      document.getElementById('res').innerHTML = '<p style="color:var(--danger)">家庭人口数需大于 0，否则人均保额无定义（会得到 Infinity）。</p>';
-      return;
-    }
 
     var perMember = income / members;
     lifeInsurance = Math.max(income * aMultiple, 50);
@@ -546,6 +565,10 @@ function calc(){
       document.getElementById('res').innerHTML = '<p style="color:var(--danger)">当前年龄须为 18–80 岁整数，退休年龄须为 40–80 岁整数。</p>';
       return;
     }
+    var __l1 = __insRead('lv_income','当前年收入',0,null,false); if(__l1.err){ __insInvalid(__l1.err); return; }
+    var __l2 = __insRead('lv_growth','收入年增长率',0,20,false); if(__l2.err){ __insInvalid(__l2.err); return; }
+    var __l3 = __insRead('lv_consume','个人消费占比',0,100,false); if(__l3.err){ __insInvalid(__l3.err); return; }
+    var __l4 = __insRead('lv_discount','折现率',0,30,false); if(__l4.err){ __insInvalid(__l4.err); return; }
     var income = getVal('lv_income');
     var growth = getVal('lv_growth') / 100;
     var consume = getVal('lv_consume') / 100;
@@ -581,6 +604,16 @@ function calc(){
     ];
   }
   else if(currentMethod === 'needs'){
+    var __n1 = __insRead('nd_income','年收入',0,null,false); if(__n1.err){ __insInvalid(__n1.err); return; }
+    var __n2 = __insRead('nd_expense','年支出',0,null,false); if(__n2.err){ __insInvalid(__n2.err); return; }
+    var __n3 = __insRead('nd_mortgage','房贷余额',0,null,false); if(__n3.err){ __insInvalid(__n3.err); return; }
+    var __n4 = __insRead('nd_other_debt','其他负债',0,null,false); if(__n4.err){ __insInvalid(__n4.err); return; }
+    var __n5 = __insRead('nd_education','子女教育金',0,null,false); if(__n5.err){ __insInvalid(__n5.err); return; }
+    var __n6 = __insRead('nd_parents','赡养父母',0,null,false); if(__n6.err){ __insInvalid(__n6.err); return; }
+    var __n7 = __insRead('nd_final','最终费用',0,null,false); if(__n7.err){ __insInvalid(__n7.err); return; }
+    var __n8 = __insRead('nd_assets','已有存款/保障',0,null,false); if(__n8.err){ __insInvalid(__n8.err); return; }
+    var __n9 = __insRead('nd_spouse_income','配偶年收入',0,null,false); if(__n9.err){ __insInvalid(__n9.err); return; }
+    var __n10 = __insRead('nd_years','保障年限',1,50,true); if(__n10.err){ __insInvalid(__n10.err); return; }
     var income = getVal('nd_income');
     var expense = getVal('nd_expense');
     var mortgage = getVal('nd_mortgage');
@@ -846,6 +879,7 @@ function __insurance_calculatorRender(keys,rk,en){
 }
 function __insurance_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
+    if (!currentResult) return;
     if (__insurance_calculator_skip) return;
     clearTimeout(__insurance_calculator_timer);
     __insurance_calculator_timer=null;
@@ -937,7 +971,7 @@ else document.addEventListener('DOMContentLoaded', __insurance_calculatorBoot);
     </a>
     <a href="mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像反转生成可复制的字符或预览图，用于趣味签名、艺术字与水印，纯前端即时转换支持一键复制结…</span></span>
+      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像：复制近似 Unicode 字符，或导出真实左右翻转、透明背景的多行 PNG；</span></span>
     </a>
     
   </div>

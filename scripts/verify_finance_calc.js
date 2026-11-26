@@ -558,8 +558,8 @@ const CASES = [
   {
     slug: "finance/tfn-validator",
     inputs: { input: "123456789" },
-    expect: ["校验和失败"],
-    ref: "澳洲 TFN 反例：权重 [1,4,3,7,5,8,6,9,10]，Σ = 323，323 mod 11 = 4 ≠ 0 → 无效",
+    expect: ["校验和不匹配"],
+    ref: "澳洲 TFN 反例：权重 [1,4,3,7,5,8,6,9,10]，Σ = 323，323 mod 11 = 4 ≠ 0 → 校验和不匹配；第949批把「校验和失败/无效」改为「不匹配、格式检查未通过」，不推断号码不存在。",
   },
   {
     slug: "finance/ird-validator",
@@ -1376,7 +1376,7 @@ const CASES = [
   {
     slug: "finance/voter-id-validator",
     inputs: { input: "ABC1234567" },
-    expect: ["三字母前缀： ABC（仅格式字段，不推断邦/州或签发机构）", "不核验该号码是否已登记"],
+    expect: ["三字母前缀： AB•（仅格式字段，不推断邦/州或签发机构）", "不核验该号码是否已登记"],
     ref: "印度 EPIC 选民 ID：3 字母 + 7 位序号，仅格式校验。F-N213 州码行加「未核对有效性」标注，避免任意 3 字母被误当合法州码；expect 带输入州码 ABC（默认 XYZ 不命中）⇒ 强判别，静态标注串单列会逃生故不单列。",
   },
   {
@@ -4019,9 +4019,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： ABC123测试 长度： 8 字符（应为 10） ❌ 长度必须为 10 字符"
+      "abc123测试\n输入（已脱敏）： AB••••测试 长度： 8 字符（应为 10） ❌ 长度必须为 10 字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（应为 10） ❌ …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入（已脱敏）： AB••••测试 长度： 8 字符（应为 10） ❌ …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/word-wrap",
@@ -4561,7 +4561,7 @@ const CASES = [
     slug: "finance/insurance-calculator",
     inputs: { ft_income: "20", ft_members: "0" },
     clicks: ["switchMethod('four-three')"],
-    expect: ["家庭人口数需大于 0"],
+    expect: ["家庭人口数须不小于 1"],
     ref: "边界负例：4321 法则的人均保额 = 年收入/家庭人口数，人口 0 时分母为 0，旧实现输出 Infinity；现显式拒绝。默认 3 人不命中。",
   },
   {
@@ -6503,6 +6503,63 @@ const CASES = [
     clicks: ["calc();"],
     expect: ["年收入20万×5 + 负债80万 − 已有保障10万 = 170万", "年收入×8%"],
     ref: "第948批：收入倍数/重疾最低/保费比例可调，5 倍时寿险 170 万、保费 1.6 万；旧版写死 10 倍与 10% 不命中。",
+  },
+
+  {
+    slug: "finance/futures-pnl-calculator",
+    inputs: { openPrice: "3500", closePrice: "3501", lots: "1", marginRate: "12", openFee: "1000", closeFee: "1000" },
+    clicks: ["setDirection(1);calc();"],
+    expect: ["盈亏金额", "+1.00", "毛盈亏 300.00", "-1,700.00"],
+    ref: "第949批：点数 +1.00 与净亏损并存时，点数按价格方向显示正号与红色，净盈亏另按扣费结果显示；旧版点数沿用净亏损符号。",
+  },
+  {
+    slug: "finance/voter-id-validator",
+    inputs: { input: "ABC1234567" },
+    clicks: ["validate()"],
+    expect: ["输入（已脱敏）： AB••••••67"],
+    ref: "第949批：选民号仅内存校验，输出只显示脱敏号码；旧版输入区显示完整号码并写入历史。",
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "30000", insurance: "3000", special: "2000", threshold: "5000", bonus: "0", bonusMode: "auto" },
+    clicks: ["calculate()"],
+    expect: ["第 3 级", "20% ✓ 适用"],
+    ref: "第949批：应纳税所得额 2 万落在 1.2 万–2.5 万档，动态档位文本应为第 3 级、20% 适用；旧版档位文案固定中文且重算后英文态可能残留。",
+  },
+  {
+    slug: "finance/mortgage-calculator",
+    inputs: { loanAmount: "100", rate: "4.2", years: "30", downPayment: "30" },
+    clicks: ["calculate();var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/mortgage-calculator.html','utf8');var ok=h.indexOf('Payment amount (CNY)')>=0&&h.indexOf('Show all payments')>=0&&h.indexOf('Collapse (first 24)')>=0;document.getElementById('__tbProbe').textContent='MORTGAGE I18N '+(ok?'OK':'BAD');"],
+    expect: ["MORTGAGE I18N OK"],
+    ref: "第949批：明细提示、展开按钮与 CSV 列名按当前语言生成；旧版固定中文，英文态展开/下载后出现中文。",
+  },
+  {
+    slug: "finance/tfn-validator",
+    inputs: {},
+    clicks: ["document.getElementById('input').value='876543210';validate();"],
+    expect: ["长度与校验和检查通过", "无法确认该号码是否已分配、当前状态或归属某人"],
+    ref: "第949批：校验和通过只证明长度与校验和匹配，不再宣称号码有效；旧版输出「TFN 号码有效」。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { lv_age: "30", lv_retire: "60", lv_income: "20", lv_growth: "3", lv_consume: "120", lv_discount: "5", assumeMultiple: "10", assumeHealthMin: "30", assumePremiumPct: "10" },
+    clicks: ["switchMethod('life-value')"],
+    expect: ["个人消费占比须不大于 100"],
+    ref: "第949批：生命价值法逐字段校验，个人消费占比 120% 越界明确拒绝并清空结果；旧版 getVal 直接按 1.2 消费计算，产出不合理的负生命价值。空输入拒绝另由 Puppeteer 真机覆盖。",
+  },
+  {
+    slug: "finance/depreciation-calculator",
+    inputs: { cost: "100000", salvage: "100000", life: "5", totalUnits: "10000", yearUnits: "3000,2500,2000,1500,1000" },
+    clicks: ["calc();var lg=document.getElementById('legend');document.getElementById('__tbProbe').textContent=(lg.children.length===0&&document.getElementById('compareTable').textContent.trim()==='')?'DEP OK':'DEP BAD';"],
+    expect: ["DEP OK"],
+    ref: "第949批：残值等于原值时拒绝计算，同时清空图例与表格，避免残留上一方案曲线；旧版只清表格。",
+  },
+  {
+    slug: "finance/mirror-text",
+    inputs: { input: "你好AB" },
+    clicks: ["convert()"],
+    expect: ["个字符没有 Unicode 镜像字形", "复制结果会保留这些字符的原方向", "下载镜像图片 PNG"],
+    ref: "第949批：中文无 Unicode 镜像映射时明确提示复制结果与视觉镜像不同，并提供 PNG 导出函数；旧版只做近似字符替换。",
   },
 
 ];
