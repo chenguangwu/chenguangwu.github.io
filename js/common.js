@@ -2029,8 +2029,10 @@ function fallbackCopy(text, successMsg){
   ta.style.cssText = 'position:fixed;left:-9999px;opacity:0;';
   document.body.appendChild(ta);
   ta.select();
-  try { document.execCommand('copy'); showToast(successMsg || i18nText('toast.copy_success')); }
-  catch(e){ showToast(i18nText('toast.copy_failed'), 'error'); prompt(i18nText('toast.copy_prompt'), text); }
+  var ok = false;
+  try { ok = document.execCommand('copy') !== false; } catch(e) { ok = false; }
+  if(ok){ showToast(successMsg || i18nText('toast.copy_success')); }
+  else { showToast(i18nText('toast.copy_failed'), 'error'); try{ prompt(i18nText('toast.copy_prompt'), text); }catch(e){} }
   ta.remove();
 }
 
