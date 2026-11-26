@@ -1941,13 +1941,15 @@ const CASES = [
   {
     "slug": "life/bra-size-converter",
     "inputs": {
-      "under": "42",
-      "upper": "42"
+      "under": "68",
+      "upper": "68"
     },
     "expect": [
-      " 下胸围尺码： 70 罩杯： AA 杯 国际/中国码： 70AA 美码： 32AA"
+      "下胸围尺码： 70",
+      "罩杯： AA 杯",
+      "国际/中国码： 70AA"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"under\":\"42\",\"upper\":\"42\"}，输出区含「 下胸围尺码： 70 罩杯： AA 杯 国际码： 70AA 美码： 32AA」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例，第928批改为尺码表下限）：注入下胸围/上胸围均 68 cm，输出区含「下胸围尺码： 70 / 罩杯： AA 杯 / 国际/中国码： 70AA」；40 cm 已按低于下限拒绝，默认 75/90 不命中 ⇒ 强判别。"
   },
   {
     "slug": "life/bill-splitter",
@@ -4764,11 +4766,62 @@ const CASES = [
     clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/event-countdown.html','utf8');document.getElementById('__tbProbe').textContent='EVECAL '+((src.indexOf('new Date(s.getFullYear(), s.getMonth(), s.getDate() - 1)')>=0&&src.indexOf('function calendarDayDiff')>=0&&src.indexOf('s.getTime() - 86400000')<0)?'OK':'BAD');"],
     expect: ["EVECAL OK"],
     ref: "第927批：除夕按年月日减一天，倒计时用 UTC 日历日差，避免午夜夏令时切换导致偏日。"
+  },
+  {
+    slug: "life/age-calculator",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/age-calculator.html','utf8');document.getElementById('__tbProbe').textContent='AGE365 '+((/出生 365 天（固定时长，不等同周岁）/.test(src)&&!/出生 365 天（1岁）/.test(src)&&/age:1, label:'1 周岁'/.test(src))?'OK':'BAD');"],
+    expect: ["AGE365 OK"],
+    ref: "第928批：365 天是固定时长里程碑，不再标成 1 岁；一周岁由单独日历周年里程碑计算，跨闰日不混同。"
+  },
+  {
+    slug: "life/bra-size-converter",
+    clicks: ["document.getElementById('under').value='40';document.getElementById('upper').value='50';calc();document.getElementById('__tbProbe').textContent='BRA '+document.getElementById('resultBox').innerHTML;"],
+    expect: ["BRA 下胸围 40.0 cm 低于尺码表下限 68 cm", "暂不支持换算"],
+    ref: "第928批：下胸围 40 cm 不再静默夹到 70A，按尺码表范围提示不支持并请用户核对测量值。"
+  },
+  {
+    slug: "life/bra-size-converter",
+    clicks: ["document.getElementById('under').value='68';document.getElementById('upper').value='78';calc();document.getElementById('__tbProbe').textContent='BRB '+document.getElementById('resultBox').innerHTML;"],
+    expect: ["BRB 上下胸围差： 10.0 cm", "下胸围尺码： 70", "国际/中国码： 70A"],
+    ref: "第928批：尺码表下限 68 cm 仍正常映射 70 码、10 cm 差为 A 杯，边界不被误拦。"
+  },
+  {
+    slug: "life/base-convert",
+    inputs: { text: "A中😀" },
+    expect: ["65 [非ASCII U+4E2D] [非ASCII U+1F600]", "U+0041 U+4E2D U+1F600"],
+    ref: "第928批：ASCII 输出只写 0–127；中文与表情标为“非ASCII U+码点”，Unicode 字段仍给出真实码点。"
+  },
+  {
+    slug: "life/daily-calorie-needs",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/daily-calorie-needs.html','utf8');document.getElementById('__tbProbe').textContent='BMIPTR '+((/bmiPointer/.test(src)&&/style\.display = 'none'/.test(src)&&/style\.display = ''/.test(src)&&/type==='bmi'&&ptr/.test(src))?'OK':'BAD');"],
+    expect: ["BMIPTR OK"],
+    ref: "第928批：身高/体重无效或参数变更时隐藏 BMI 标尺指针，恢复有效后重新显示，避免旧分级残留。"
+  },
+  {
+    slug: "life/daily-calorie-needs",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/daily-calorie-needs.html','utf8');document.getElementById('__tbProbe').textContent='KATCH '+((/bodyFat >= 2 && bodyFat <= 60/.test(src)&&src.indexOf('Katch-McArdle 需要估算体脂率在 2%–60% 内')>=0)?'OK':'BAD');"],
+    expect: ["KATCH OK"],
+    ref: "第928批：Katch 分支与 BMI 面板统一执行 2%–60% 体脂范围；极端身高体重组合不代入去脂体重，直接说明原因。"
+  },
+  {
+    slug: "life/world-clock",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/world-clock.html','utf8');document.getElementById('__tbProbe').textContent='WCDST '+((src.indexOf('没有手动夏令时开关')>=0&&src.indexOf('以 2026-01-15（冬令时）为例')>=0&&src.indexOf('部分需手动')<0)?'OK':'BAD');"],
+    expect: ["WCDST OK"],
+    ref: "第928批：FAQ 与算例统一说明依浏览器时区数据库自动处理、无手动开关；北京 12:00 算例标 2026-01-15 冬令时，避免夏季误用。"
+  },
+  {
+    slug: "life/music-practice-timer",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/music-practice-timer.html','utf8');document.getElementById('__tbProbe').textContent='MESC '+((src.indexOf('ToolBox.escHtml(seg.name)')>=0&&src.indexOf('escHtml:function')<0)?'OK':'BAD');"],
+    expect: ["MESC OK"],
+    ref: "第928批：自定义阶段名先经 ToolBox.escHtml 转义再拼入 innerHTML，标签与事件属性只显示为文本。"
+  },
+  {
+    slug: "life/reminder-cycle",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/reminder-cycle.html','utf8');document.getElementById('__tbProbe').textContent='APPLINF '+((src.indexOf('const __h2=html')<0&&src.indexOf('list.innerHTML=html')>=0&&src.indexOf('ToolBox.escHtml(a.name)')>=0)?'OK':'BAD');"],
+    expect: ["APPLINF OK"],
+    ref: "第928批：列表不再扫描含用户文本的整段 HTML；名称含 Infinity 仍正常显示可删除，HTML 特殊字符保持转义。"
   }
-
-
 ];
-
 // ---------------------------------------------------------------- main
 async function main() {
   const only = process.argv.slice(2);

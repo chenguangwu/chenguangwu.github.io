@@ -544,6 +544,7 @@ function markPanelStale(type){
   main.textContent = '--';
   const desc = document.getElementById(type === 'bmi' ? 'bmiStatus' : type+'Desc');
   if(desc) desc.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn()) ? 'Inputs changed. Recalculate before reading or saving.' : '参数已变更，请重新计算后再查看或保存结果。');
+  var ptr=document.getElementById('bmiPointer'); if(type==='bmi'&&ptr) ptr.style.display='none';
   const stats = document.getElementById(type+'Stats');
   if(stats) stats.innerHTML = '';
 }
@@ -573,6 +574,8 @@ function calcBMI(){
       ? (ageOk?"Enter valid data":"Adult BMI only: age 18–120")
       : (ageOk?"请输入有效数据":"成人 BMI 仅适用于 18–120 岁"));
     document.getElementById('bmiStats').innerHTML = '';
+    document.getElementById('bmiPointer').style.display = 'none';
+    document.getElementById('bmiValue').style.color = '';
     return;
   }
   
@@ -586,6 +589,7 @@ function calcBMI(){
   else if(bmi < 30){ status = '肥胖'; color = '#92400E'; }
   else { status = '重度肥胖'; color = '#f44336'; }
   
+  document.getElementById('bmiPointer').style.display = '';
   document.getElementById('bmiValue').textContent = bmi.toFixed(1);
   document.getElementById('bmiValue').style.color = color;
   document.getElementById('bmiStatus').textContent = status;
@@ -655,6 +659,13 @@ function calcBMR(){
   } else {
     const bmi = weight / ((height / 100) ** 2);
     const bodyFat = gender === 'male' ? (1.20 * bmi + 0.23 * age - 16.2) : (1.20 * bmi + 0.23 * age - 5.4);
+    if(!(bodyFat >= 2 && bodyFat <= 60)){
+      const en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+      document.getElementById('bmrValue').textContent = '--';
+      document.getElementById('bmrDesc').textContent = en ? 'Katch-McArdle needs an estimated body-fat value within 2%–60%. Adjust height, weight or age, or use another formula.' : 'Katch-McArdle 需要估算体脂率在 2%–60% 内；当前组合超出范围，请调整身高/体重/年龄或改用其他公式。';
+      document.getElementById('bmrStats').innerHTML = '';
+      return;
+    }
     const leanMass = weight * (1 - bodyFat / 100);
     bmr = 370 + 21.6 * leanMass;
   }
