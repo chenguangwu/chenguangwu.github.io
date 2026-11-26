@@ -286,9 +286,9 @@ const CASES = [
   {
     slug: "finance/vat-calculator",
     inputs: { batchInput: "1000\nabc\n5000", batchRate: "13" },
-    clicks: ["var __f=null;ToolBox={downloadText:function(n,t){__f=String(t);},showToast:function(){},copyText:function(){},formatNumber:function(v,d){return String(v);}};exportBatchCSV();document.getElementById('__tbProbe').textContent='VATSUM '+(__f&&__f.indexOf('合计,,5309.73,690.27,6000.00')>=0?'OK':'BAD');"],
+    clicks: ["var __f=null;ToolBox={downloadText:function(n,t){__f=String(t);},showToast:function(){},copyText:function(){},formatNumber:function(v,d){return String(v);}};exportBatchCSV();document.getElementById('__tbProbe').textContent='VATSUM '+(__f&&__f.indexOf('合计（逐行舍入后相加）,,5309.74,690.26,6000.00')>=0?'OK':'BAD');"],
     expect: ["VATSUM OK"],
-    ref: "第122批 F-N112 批量 CSV 补合计：注入 3 行含 1 行非数字（abc 被忽略），有效两行 1000/5000 按含税 13% 倒推 ⇒ 不含税合计 1000/1.13+5000/1.13 = 5309.73、税额 690.27、含税 6000.00。旧版 exportBatchCSV 只逐行写明细、无合计 ⇒ 探针 BAD。默认批量 5 行合计 7,522.12 不含该串 ⇒ 强判别。"
+    ref: "第122批 F-N112 批量 CSV 补合计：注入 3 行含 1 行非数字（abc 被忽略），有效两行按含税 13% 倒推：逐行舍入后不含税 884.96+4424.78=5309.74、税额 115.04+575.22=690.26、含税 6000.00；合计必须等于逐行显示值之和（旧的汇总后再舍入口径会得 5309.73/690.27）。默认批量 5 行合计 7,522.12 不含该串 ⇒ 强判别。"
   },
   {
     slug: "finance/tax-calculator",
@@ -6317,6 +6317,71 @@ const CASES = [
     clicks: ["document.getElementById('manualRate').value='7.25';fromCurrency='EUR';var switched=__ccBindManualPair();var cleared=document.getElementById('manualRate').value==='';var sameKey=__ccManualPair==='EUR>USD';var ok=switched&&cleared&&sameKey;document.getElementById('resultDisplay').innerHTML='CC '+(ok?'OK':'BAD cleared='+cleared+' pair='+__ccManualPair);"],
     expect: ["CC OK"],
     ref: "CNY→USD 的手动汇率 7.25 在切到 CNY→EUR 后必须清空并要求重填；旧实现直接沿用 7.25 把欧元换算成 7.25 人民币，量级完全错误。",
+  },
+
+// ===== 第946批新增 =====
+  {
+    slug: "finance/portfolio-return",
+    inputs: {},
+    clicks: ["var r=__portfolioReturnWeighted([{name:'资产1',w:50,r:10},{name:'资产2',w:30,r:5},{name:'黄金',w:20,r:20}],false);var ok=Math.abs(r.rp-10.5)<1e-9&&r.contrib.length===3&&Math.abs(r.contrib[2].c-4)<1e-9&&r.wSum===100;document.getElementById('__tbProbe').textContent='PR '+(ok?'OK':'BAD '+JSON.stringify(r));"],
+    expect: ["PR OK"],
+    ref: "两项以上资产必须能参与加权：50%×10 + 30%×5 + 20%×20 = 10.5，第三项贡献 4 个百分点；旧实现只接受两个资产，添加第三项无任何作用。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "1000000", annualRate: "4.9", loanYears: "1100", repayMethod: "balloon", balloonMonths: "12001", balloonRatio: "50" },
+    clicks: ["calc()"],
+    expect: ["12000"],
+    ref: "气球期数 12001 期超过明细 12000 期硬上限，必须明确拒绝；旧实现被 Math.min 截成 12000 后照算，期限被悄悄改写。",
+  },
+  {
+    slug: "finance/housing-fund-loan",
+    inputs: { balance: "8", housePrice: "300", age: "35", loanYears: "20" },
+    clicks: ["var q=__hfQuota(8,300,{limit:50,multiple:10},0.6);var ok=q.maxLoan===50&&q.amountByBalance===80&&q.amountByPrice===180&&__hfRuleValid(50,10,60)&&!__hfRuleValid(50,10,101);document.getElementById('__tbProbe').textContent='HF '+(ok?'OK':'BAD '+JSON.stringify(q));"],
+    expect: ["HF OK"],
+    ref: "手动规则 50 万/10 倍/60%：余额 8×10=80、房价 300×60%=180、上限 50 ⇒ 估算 50 万，并标注手动来源与条件估算；旧实现写死城市表，无法用本地细则覆盖。",
+  },
+  {
+    slug: "finance/housing-fund-loan",
+    inputs: { balance: "8", housePrice: "300" },
+    clicks: ["document.getElementById('manualRules').checked=true;document.getElementById('hfRatio').value='101';calc();"],
+    expect: ["手动规则无效"],
+    ref: "房价贷款比例 101% 越界必须拒绝，不能静默按 1.01 倍房价给出超过房价的贷款。",
+  },
+  {
+    slug: "finance/register-depreciation",
+    inputs: {},
+    clicks: ["var ok=calcDepreciation(10000,500,101,'straight').length===0&&calcDepreciation(10000,500,100,'straight').length===100&&!isValidAsset({name:'x',date:'2025-01-01',cost:100,salvage:0,life:101,method:'straight'});document.getElementById('assetList').innerHTML='RD2 '+(ok?'OK':'BAD');"],
+    expect: ["RD2 OK"],
+    ref: "年限 101 年必须判无效并返回空表，100 年仍可算；旧实现无上限，101 年虽只多 1 行，但极大年限会阻塞页面。",
+  },
+  {
+    slug: "finance/vat-calculator",
+    inputs: {},
+    clicks: ["var ex=__vatRound2(0.05),tax=__vatRound2(0.05*0.13),incl=__vatRound2(0.05*1.13);var rowIncl=3*incl;var rawIncl=__vatRound2(3*0.05*1.13);var ok=ex===0.05&&tax===0.01&&incl===0.06&&__vatRound2(rowIncl)===0.18&&rawIncl===0.17;document.getElementById('batchInput').value='VAT '+(ok?'OK':'BAD '+[ex,tax,incl,rowIncl,rawIncl].join('/'));"],
+    expect: ["VAT OK"],
+    ref: "0.05×13%=0.0065，逐行税额进位 0.01、含税 0.06，三行合计 0.18；未舍入三行含税和 0.1695 四舍五入为 0.17。合计必须等于逐行显示值之和，并披露 0.01 差额。",
+  },
+  {
+    slug: "finance/discount-calculator",
+    inputs: {},
+    clicks: ["setMode(1);document.getElementById('finalPrice').value='999';useQuick(0.8);var ok=document.getElementById('price').value==='100'&&document.getElementById('bigPrice').textContent.indexOf('80.00')>=0;document.getElementById('__tbProbe').textContent='DQS '+(ok?'OK':'BAD '+document.getElementById('price').value+' / '+document.getElementById('bigPrice').textContent);"],
+    expect: ["DQS OK"],
+    ref: "从「已知折后价」点 8 折速算：应切到已知原价模式并把原价设为示例 100，结果 80 元；旧实现只改折扣，原价仍留 999，算出 799.20 与速算「省 20%」严重不符。",
+  },
+  {
+    slug: "finance/discount-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('price').value='250';calc();document.querySelectorAll('#inputArea input[type=number]').forEach(function(e){e.value='';});calc();var ok=document.getElementById('bigPrice').textContent.trim()==='—'&&document.getElementById('detailResult').innerHTML.indexOf('请输入参数')>=0;document.getElementById('__tbProbe').textContent='DEM '+(ok?'OK':'BAD '+document.getElementById('bigPrice').textContent);"],
+    expect: ["DEM OK"],
+    ref: "清空全部数值输入后大号结果必须清为占位符，不能保留上一轮 250 元折后价；旧实现只在明细区提示，大号结果仍显示旧值。",
+  },
+  {
+    slug: "finance/discount-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('price').value='250';discounts=[0.7];renderDiscountChain();calc();setMode(1);document.getElementById('finalPrice').value='120';document.getElementById('discountRate').value='6';setMode(0);var p0=document.getElementById('price').value==='250'&&discounts[0]===0.7;setMode(1);var p1=document.getElementById('finalPrice').value==='120'&&document.getElementById('discountRate').value==='6';document.getElementById('__tbProbe').textContent='DMS '+(p0&&p1?'OK':'BAD p0='+p0+' p1='+p1);"],
+    expect: ["DMS OK"],
+    ref: "模式 0 输入 250 元、7 折，切到模式 1 填 120/6，再切回模式 0 原价与折扣链仍在，再切回模式 1 折后价与折扣率也仍在；旧实现每次 setMode 重建输入区，全部丢光。",
   },
 
 ];

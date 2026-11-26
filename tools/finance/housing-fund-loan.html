@@ -169,6 +169,27 @@
       </div>
     </div>
 
+    <div style="margin:6px 0 10px;">
+      <label style="display:flex;align-items:center;gap:8px;margin:0;font-size:13px;color:var(--text-muted);">
+        <input type="checkbox" id="manualRules" style="width:auto;margin:0;" onchange="toggleManualRules()">
+        <span>手动填写本地规则（城市参数已过时或与本地细则不同时勾选）</span>
+      </label>
+    </div>
+    <div class="input-row" id="manualRuleFields" style="display:none;">
+      <div>
+        <label for="hfLimit">本地最高额度（万元）</label>
+        <input type="number" id="hfLimit" value="120" min="0" step="1" oninput="calc()">
+      </div>
+      <div>
+        <label for="hfMultiple">账户余额倍数</label>
+        <input type="number" id="hfMultiple" value="15" min="0" step="0.1" oninput="calc()">
+      </div>
+      <div>
+        <label for="hfRatio">房价最高贷款比例（%）</label>
+        <input type="number" id="hfRatio" value="80" min="0" max="100" step="1" oninput="calc()">
+      </div>
+    </div>
+
     <div class="input-row">
       <div>
         <label for="housePrice">购房总价（万元）</label>
@@ -308,10 +329,24 @@ var cityRules = {
   '天津': {limit:80, multiple:15, maxYears:30}
 };
 
-var MAX_LOAN_RATIO = 0.8; // 最高贷款比例80%
+var MAX_LOAN_RATIO = 0.8; // 内置最高贷款比例 80%
+var RULE_UPDATED = '2026-11';
+var RULE_SOURCE = '2026-11 示例整理（非官方实时政策，未随各地年度公告更新）';
 
 function fmtW(n) { return n.toFixed(1); }
 function fmtM(n) { return n.toFixed(2); }
+
+function __hfRuleValid(limit, multiple, ratioPct){
+  return isFinite(limit) && limit >= 0 && isFinite(multiple) && multiple >= 0 && isFinite(ratioPct) && ratioPct >= 0 && ratioPct <= 100;
+}
+function __hfQuota(balanceWan, housePriceWan, rule, ratio){
+  var amountByBalance = balanceWan * rule.multiple;
+  var amountByPrice = housePriceWan * ratio;
+  var amountByLimit = rule.limit;
+  var maxLoan = Math.min(amountByBalance, amountByPrice, amountByLimit);
+  if (maxLoan < 0) maxLoan = 0;
+  return {amountByBalance:amountByBalance, amountByPrice:amountByPrice, amountByLimit:amountByLimit, maxLoan:maxLoan};
+}
 
 function calc() {
   var city = document.getElementById('city').value;
@@ -354,18 +389,28 @@ function calc() {
   if (rateAdjusted) RATE = 2.85;
   RATE = RATE / 100;
 
-  var rule = cityRules[city];
+  var baseRule = cityRules[city];
+  var useManual = !!(document.getElementById('manualRules') && document.getElementById('manualRules').checked);
+  var rule = {limit:baseRule.limit, multiple:baseRule.multiple, maxYears:baseRule.maxYears};
+  var ratio = MAX_LOAN_RATIO;
+  if (useManual) {
+    var mLimit = parseFloat(document.getElementById('hfLimit').value);
+    var mMultiple = parseFloat(document.getElementById('hfMultiple').value);
+    var mRatio = parseFloat(document.getElementById('hfRatio').value);
+    if (!__hfRuleValid(mLimit, mMultiple, mRatio)) {
+      document.getElementById('result').innerHTML = '<div class="tip-box tip-warn" style="margin-top:12px;">⚠ 手动规则无效：最高额度与余额倍数须为 ≥0 的数字，房价贷款比例须在 0–100% 之间。</div>';
+      return;
+    }
+    rule.limit = mLimit; rule.multiple = mMultiple; ratio = mRatio / 100;
+  }
   var balanceYuan = balanceWan * 10000;
 
   // 额度计算：余额 × 倍数
-  var amountByBalance = balanceYuan * rule.multiple / 10000; // 万元
-  // 额度计算：不超房价80%
-  var amountByPrice = housePriceWan * MAX_LOAN_RATIO;
-  // 额度计算：不超当地上限
-  var amountByLimit = rule.limit;
-
-  var maxLoan = Math.min(amountByBalance, amountByPrice, amountByLimit);
-  if (maxLoan < 0) maxLoan = 0;
+  var __q = __hfQuota(balanceYuan / 10000, housePriceWan, rule, ratio);
+  var amountByBalance = __q.amountByBalance;
+  var amountByPrice = __q.amountByPrice;
+  var amountByLimit = __q.amountByLimit;
+  var maxLoan = __q.maxLoan;
 
   var maxLoanYuan = maxLoan * 10000;
   var months = loanYears * 12;
@@ -396,8 +441,10 @@ function calc() {
 
   var retireAge = Math.max(0, (age + loanYears) - (city === '北京' || city === '上海' ? 65 : 60));
 
-  var html = '<div class="stat-grid">';
-  html += '<div class="stat-card"><div class="val">' + fmtW(maxLoan) + '</div><div class="lbl">最高可贷（万元）</div></div>';
+  var html = '<div class="tip-box tip-warn" style="margin-bottom:10px;">⚠ 以下为<strong>条件估算</strong>，不是「最高可贷」的最终结论：仅按余额倍数、房价比例与额度上限取低，未计缴存年限、家庭收入与月供能力、首付比例、房龄、二套/多子女等本地细则；实际额度以当地公积金中心审批为准。</div>';
+  html += '<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">规则来源：' + (useManual ? '用户手动填写（请自行核对当地公告）' : RULE_SOURCE) + '｜更新日期：' + RULE_UPDATED + '｜适用条件：仅测算单笔公积金贷款上限，不含组合贷、商业贷与缴存年限加成。</p>';
+  html += '<div class="stat-grid">';
+  html += '<div class="stat-card"><div class="val">' + fmtW(maxLoan) + '</div><div class="lbl">估算可贷（万元）</div></div>';
   html += '<div class="stat-card"><div class="val">' + (repayType === 'equal_installment' ? fmtM(monthlyPayment) : fmtM(firstMonth)) + '</div><div class="lbl">首月月供（元）</div></div>';
   html += '<div class="stat-card"><div class="val">' + fmtW(totalInterest / 10000) + '</div><div class="lbl">总利息（万元）</div></div>';
   html += '<div class="stat-card"><div class="val">' + fmtW((maxLoanYuan + totalInterest) / 10000) + '</div><div class="lbl">还款总额（万元）</div></div>';
@@ -408,9 +455,9 @@ function calc() {
   html += '<h3 style="margin-top:16px;margin-bottom:8px;">额度计算依据</h3>';
   html += '<table><thead><tr><th>限制条件</th><th>计算值（万元）</th><th>说明</th></tr></thead><tbody>';
   html += '<tr><td>余额 × ' + rule.multiple + '倍</td><td><strong>' + fmtW(amountByBalance) + '</strong></td><td>账户余额' + fmtW(balanceWan) + '万元 × ' + rule.multiple + '倍</td></tr>';
-  html += '<tr><td>房价80%</td><td><strong>' + fmtW(amountByPrice) + '</strong></td><td>总价' + fmtW(housePriceWan) + '万元 × 80%</td></tr>';
-  html += '<tr><td>城市上限</td><td><strong>' + fmtW(amountByLimit) + '</strong></td><td>' + city + '最高' + rule.limit + '万元</td></tr>';
-  html += '<tr style="background:var(--bg-hover);"><td>最终可贷额度</td><td><strong style="color:var(--primary);">' + fmtW(maxLoan) + '万元</strong></td><td>取最小值</td></tr>';
+  html += '<tr><td>房价' + (ratio*100).toFixed(0) + '%</td><td><strong>' + fmtW(amountByPrice) + '</strong></td><td>总价' + fmtW(housePriceWan) + '万元 × ' + (ratio*100).toFixed(0) + '%</td></tr>';
+  html += '<tr><td>额度上限</td><td><strong>' + fmtW(amountByLimit) + '</strong></td><td>' + (useManual ? '手动填写' : city + '内置') + '上限 ' + rule.limit + '万元</td></tr>';
+  html += '<tr style="background:var(--bg-hover);"><td>估算可贷额度</td><td><strong style="color:var(--primary);">' + fmtW(maxLoan) + '万元</strong></td><td>三者取最小；条件估算，非最终批准额度</td></tr>';
   html += '</tbody></table>';
 
   html += '<h3 style="margin-top:16px;margin-bottom:8px;">还款明细</h3>';
@@ -449,6 +496,12 @@ function resetForm() {
   document.getElementById('result').innerHTML='';
 }
 
+function toggleManualRules() {
+  var use = document.getElementById('manualRules').checked;
+  document.getElementById('manualRuleFields').style.display = use ? '' : 'none';
+  calc();
+}
+
 function renderCityTable() {
   var html = '<table><thead><tr><th>城市</th><th>贷款上限（万元）</th><th>余额倍数</th><th>最长年限</th></tr></thead><tbody>';
   var cities = ['北京','上海','广州','深圳','杭州','成都','武汉','南京','重庆','西安','苏州','天津'];
@@ -458,6 +511,7 @@ function renderCityTable() {
     html += '<tr><td>' + c + '</td><td><strong>' + r.limit + '</strong></td><td>' + r.multiple + '倍</td><td>' + r.maxYears + '年</td></tr>';
   }
   html += '</tbody></table>';
+  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">适用性提示：需同时满足当地缴存年限、家庭名下房产套数、首付比例、借款人年龄与共同借款人条件；部分城市按「每缴存 1 年可贷 N 万」而非余额倍数，本页可用「手动填写本地规则」近似，但仍不覆盖全部条件。</p>';
   const __g3=html;document.getElementById('cityLimitTable').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 

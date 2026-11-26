@@ -392,7 +392,9 @@ function onMethodChange() {
 function generateSchedule(amount, annualRate, years, method, balloonMonths, balloonRatio) {
   var schedule = [];
   var monthlyRate = annualRate / 100 / 12;
-  var totalMonths = Math.min(years * 12, 12000);
+  // 明细硬上限 12000 期：超限直接拒绝，绝不 Math.min 静默截断成另一个贷款。
+  var totalMonths = years * 12;
+  if (!isFinite(totalMonths) || totalMonths > 12000) return null;
   var balance = amount;
   var totalInterest = 0;
 
@@ -507,7 +509,11 @@ var amount = +loanAmountEl.value || 0;
       return;
     }
     // F-N228：气球贷期数不能超出贷款年限对应的总月数，否则「年限」输入形同虚设
-    var bmMax = Math.floor(years) * 12;
+    var bmMax = Math.min(Math.floor(years) * 12, 12000);
+    if (balloonMonths > 12000) {
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">' + __laTx('气球贷还款期数不能超过明细上限 12000 期（当前 ' + balloonMonths + ' 期），请缩短期限后再计算', 'Balloon term cannot exceed the 12,000-installment limit (current ' + balloonMonths + ')') + '</p>';
+      return;
+    }
     if (balloonMonths > bmMax) {
       document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">' + __laTx('气球贷还款期数（' + balloonMonths + ' 月）不能超过贷款年限 × 12（' + bmMax + ' 月），请调整后再计算', 'Balloon term (' + balloonMonths + ' months) cannot exceed loan years × 12 (' + bmMax + ' months)') + '</p>';
       return;
