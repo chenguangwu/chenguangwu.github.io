@@ -293,7 +293,7 @@ const CASES = [
   {
     slug: "statistics/range-stat",
     inputs: { xs: "5, 11, 3, 8, 14" },
-    expect: ["11.00"],
+    expect: ["11 极差 R 5 样本数 N"],
     ref: "R = 14 − 3 = 11.00",
   },
   // ── 平均绝对偏差（MAD = Σ|xi−x̄|/n）─────────────────────────────
@@ -832,7 +832,7 @@ const CASES = [
       "xs": "42"
     },
     "expect": [
-      "42\n0.00 极差 R 1 样本数 N 42.0000 均值"
+      "42\n0 极差 R 1 样本数 N 42.0000 均值"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"xs\":\"42\"}，输出区含「42\n0.00 极差 R 1 样本数 N 42.0000 均值」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -854,7 +854,7 @@ const CASES = [
       "z": "42"
     },
     "expect": [
-      "42\n42\n42\n-1722 所需样本量 n -1722.0 精确值 0.3"
+      "「比例 p」必须在 0 与 1 之间（不含端点）"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"p\":\"42\",\"e\":\"42\",\"z\":\"42\"}，输出区含「42\n42\n42\n-1722 所需样本量 n -1722.0 精确值 0.3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1163,13 +1163,13 @@ const CASES = [
   {
     slug: "statistics/range-stat",
     inputs: { xs: "2\n4\n6" },
-    expect: ["4.00 极差 R 3 样本数 N"],
+    expect: ["4 极差 R 3 样本数 N"],
     ref: "SMS-47：旧主算 split(/[ ,]+/) 不认换行 ⇒ 整串 parseFloat 只得到 2，R=0.00、N=1；明细却按 3 项给 R=4。修复后主算与明细共用 __rsVals()，N=3、R=4.00。默认序列 2,4,4,4,5,5,7,9 得 7.00/8 ⇒ 不命中，零逃生。"
   },
   {
     slug: "statistics/range-stat",
     inputs: { xs: "2,4,abc" },
-    expect: ["2.00 极差 R 2 样本数 N"],
+    expect: ["数值序列有误，未计算"],
     ref: "SMS-47：旧实现 parseFloat('abc')=NaN 且不过滤 ⇒ N=3、R 与均值显示破折号；修复后非法项跳过，N=2、R=2.00。默认态不含该串 ⇒ 零逃生。"
   },
   // SMS-48：Z 分数页 σ≤0 必须停算，不能让 z 符号翻转 / 95% 上界低于均值
@@ -1360,7 +1360,7 @@ const CASES = [
   {
     slug: "statistics/pooled-variance",
     inputs: { n1: "0", s1: "2", n2: "12", s2: "3" },
-    expect: ["样本量 n₁、n₂ 必须各自 ≥ 2"],
+    expect: ["样本量 n₁、n₂ 必须是 ≥2 的整数"],
     ref: "SMS-64 回归：n1=0 必须停算提示，不得给出合并方差；默认 10/2、12/3 得 6.750 不含该串 ⇒ 零逃生。"
   },
 
@@ -1438,9 +1438,9 @@ const CASES = [
   },
   {
     slug: "statistics/normal-cdf",
-    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/statistics/normal-cdf.html','utf8');var ok=h.indexOf('Math.max(0, 2 * phi - 1)')>=0&&h.indexOf('区间 P(|Z−μ|≤zσ)')>=0;document.getElementById('__tbProbe').textContent='NMIDCLAMP '+(ok?'OK':'BAD');"],
-    expect: ["NMIDCLAMP OK"],
-    ref: "第1344批 百分比越界：区间 P(|Z−μ|≤zσ) 原用 (2φ−1)*100，z<0 时 φ<0.5 得负百分比（空集应为 0）；修复后 Math.max(0, 2φ−1) 夹取。",
+    clicks: ["document.getElementById('z').value='-2';calcTool();document.getElementById('__tbProbe').textContent=String(document.getElementById('result').innerHTML);"],
+    expect: ["中心区间 P(|Z|≤|z|) (%)", "95.450"],
+    ref: "负 z 的中心区间按 |z| 计算：P(|Z|≤2)=95.450%，不再被 max(0,2Φ(z)-1) 截成 0；标签同时改为 |Z|≤|z|。",
   },
   {
     "slug": "statistics/statistics-4",
@@ -1448,6 +1448,73 @@ const CASES = [
     "expect": ["⚠ 标准差不能为负，样本量必须是 ≥1 的整数，置信水平须在 0–100% 之间（不含端点）。"],
     "ref": "负标准差使置信区间上下限反向、误导为有效区间；新守卫应拒绝。默认 50/5/30/95→约 48.21–51.79 不含该提示。"
   },
+  {
+    slug: "statistics/sample-size-proportion",
+    inputs: { p: "0.4", e: "0", z: "1.96" },
+    expect: ["「误差界 e」必须是大于 0 的有限数值"],
+    ref: "误差界 0 会让 n 变成无穷大；必须拒绝。默认 e=0.05 不含该提示。",
+  },
+  {
+    slug: "statistics/sample-size-proportion",
+    inputs: { p: "1.2", e: "0.04", z: "1.96" },
+    expect: ["「比例 p」必须在 0 与 1 之间（不含端点）"],
+    ref: "比例超出 [0,1] 会让 p(1−p) 为负、样本量为负；必须拒绝。默认 p=0.5 不含该提示。",
+  },
+  {
+    slug: "statistics/poisson-pmf",
+    inputs: { lam: "0", k: "0" },
+    expect: ["1.00000", "P(X=0)"],
+    ref: "λ=0、k=0 是合法退化分布：P(X=0)=1；旧通用守卫按 0 当未填写拦死。默认 λ=4/k=2 不含 1.00000。",
+  },
+  {
+    slug: "statistics/poisson-pmf",
+    inputs: { lam: "3", k: "2.5" },
+    expect: ["「事件数 k」必须是非负整数"],
+    ref: "事件数必须是整数，旧版 Math.round 把 2.5 静默改成 3；现在按字段报错。默认 k=2 不含该提示。",
+  },
+  {
+    slug: "statistics/correlation-coefficient",
+    inputs: { x: "1,2,3", y: "1,2" },
+    expect: ["必须一一对应"],
+    ref: "X/Y 数量不一致时必须阻止计算，不能按 Math.min 截断或静默重配；默认各 5 个不含该提示。",
+  },
+  {
+    slug: "statistics/correlation-coefficient",
+    inputs: { x: "1,2,abc", y: "1,2,3" },
+    expect: ["第 3 项「abc」不是有效数字"],
+    ref: "非法项按原位置报错，不再 filter 后把 1,2 与 1,2 重配；默认数据合法。",
+  },
+  {
+    slug: "statistics/pooled-variance",
+    inputs: { n1: "2.5", s1: "2", n2: "12", s2: "3" },
+    expect: ["样本量 n₁、n₂ 必须是 ≥2 的整数"],
+    ref: "2.5 个样本无法解释；旧版只校验 ≥2，仍参与合并方差。默认 n1=10 不含该提示。",
+  },
+  {
+    slug: "statistics/range-stat",
+    inputs: { xs: "0,1,2" },
+    expect: ["2 极差 R 3 样本数 N"],
+    ref: "0 开头是合法样本：极差=2、N=3；旧全零守卫拿首项 0 误判整列为全零。默认 2..9 不含该串。",
+  },
+  {
+    slug: "statistics/range-stat",
+    inputs: { xs: "0,0" },
+    expect: ["0 极差 R 2 样本数 N"],
+    ref: "真正全零的极差有定义且等于 0；旧版本直接报「输入不能全为 0」。默认态不含。",
+  },
+  {
+    slug: "statistics/range-stat",
+    inputs: { xs: "1,1.001" },
+    expect: ["0.001 极差 R 2 样本数 N"],
+    ref: "小差值极差不能被两位小数显示成 0；现按有效数字输出 0.001。默认 7.00 不含该串。",
+  },
+  {
+    slug: "statistics/range-stat",
+    inputs: { xs: "1,abc,3" },
+    expect: ["第 2 项「abc」不是有效数字"],
+    ref: "非法项不能静默丢弃后按 1,3 计算；按原位置报错并阻止输出。默认合法。",
+  },
+
 
 ];
 

@@ -251,7 +251,8 @@
   </div>
 </div>
 <script>
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function readNum(id){var e=document.getElementById(id);var raw=String(e?e.value:'').trim();if(!raw)return NaN;if(!/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
+function num(id){const v=readNum(id);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
             function erf(x){const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);
@@ -259,9 +260,9 @@ function calcTool(){
                 const poly=0.254829592*t-0.284496736*tt+1.421413741*t3-1.453152027*t4+1.061405429*t5;
                 const y=1-poly*Math.exp(-x*x);
                 return s*y;}
-            const z = num('z');
-            let mu = num('mu'), sg = num('sigma');
-            if(!isFinite(mu)) mu = 0;
+            const z = readNum('z'), mu = readNum('mu'), sg = readNum('sigma');
+            if(!isFinite(z)){ __ncClear(); ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 「z 值」不能为空或含文字，必须是有限数值（0 合法）。</p>'); return; }
+            if(!isFinite(mu)){ __ncClear(); ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 「均值 μ」不能为空或含文字，必须是有限数值（0 合法）。</p>'); return; }
             if(!isFinite(sg) || sg <= 0){ __ncClear(); ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 标准差 σ 必须是大于 0 的有限数值，请检查输入。</p>'); return; }
             const phi = 0.5 * (1 + erf(z / Math.SQRT2));
             const xv = mu + z * sg;
@@ -269,7 +270,7 @@ function calcTool(){
                 [phi.toFixed(5), 'Φ(z) = P(Z≤z)'],
                 [((1 - phi) * 100).toFixed(3), '右尾 (%)'],
                 [xv.toFixed(4), __ncL('X = μ + zσ', '对应原始值 x = μ + zσ')],
-                [(Math.max(0, 2 * phi - 1) * 100).toFixed(3), __ncL('Middle P(|Z−μ|≤zσ) (%)', '区间 P(|Z−μ|≤zσ) (%)')]
+                [(Math.max(0, 2 * 0.5 * (1 + erf(Math.abs(z) / Math.SQRT2)) - 1) * 100).toFixed(3), __ncL('Middle P(|Z|≤|z|) (%)', '中心区间 P(|Z|≤|z|) (%)')]
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
             __ncExtras(z, mu, sg, phi);
         }
