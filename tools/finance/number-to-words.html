@@ -136,12 +136,20 @@
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
       <div class="formula-eq">按英文基数词规则：每三位一组（thousand/million/billion），十位与个位用连字符连接</div>
-      <div class="formula-desc">依据英文数字拼写规则，将阿拉伯数字转换为英文单词，正确处理连字符与分组单位，用于支票与文书填写。</div>
+      <div class="formula-desc">依据英文数字拼写规则，将阿拉伯数字转换为英文单词；默认是一般数字读法（小数逐位读 point），不是支票金额格式。支票请选择下方货币格式并核对银行要求。</div>
   
 </div>
 
     <label for="inputVal">输入数字（支持负数与小数）</label>
     <input type="text" id="inputVal" value="1234567.89" oninput="convert()">
+    <label for="currencyMode" style="margin-top:12px;">输出格式</label>
+    <select id="currencyMode" onchange="convert()">
+      <option value="">一般数字读法（小数逐位读 point）</option>
+      <option value="USD">美元支票金额（dollars / cents，两位小数）</option>
+      <option value="GBP">英镑支票金额（pounds / pence，两位小数）</option>
+      <option value="EUR">欧元支票金额（euros / cents，两位小数）</option>
+    </select>
+    <p style="font-size:12.5px;color:var(--text-muted);margin-top:6px;">货币格式按两位小数四舍五入，并给出「x/100」票据写法；具体银行/地区要求可能不同，请自行核对。</p>
 
     <div class="toolbar">
       <div id="number_to_wordsPresets"></div><button type="button" class="btn primary" onclick="convert()">转换</button><button class="btn" type="button" onclick="__number_to_wordsExport()">导出明细 CSV</button>
@@ -314,10 +322,35 @@ function convert(){
   }
   const dotAt = v.indexOf('.');
   const word = numberToWords(n, dotAt >= 0 ? v.slice(dotAt + 1) : null, /^-/.test(v));
+  let moneyHtml = '';
+  const curSel = document.getElementById('currencyMode');
+  const cur = curSel ? curSel.value : '';
+  if(cur){
+    const defs = {
+      USD: {unit:'dollar', units:'dollars', cent:'cent', cents:'cents'},
+      GBP: {unit:'pound', units:'pounds', cent:'penny', cents:'pence'},
+      EUR: {unit:'euro', units:'euros', cent:'cent', cents:'cents'}
+    };
+    const def = defs[cur];
+    const negMoney = n < 0;
+    let centsTotal = Math.round(Math.abs(n) * 100);
+    let units = Math.floor(centsTotal / 100);
+    let cents = centsTotal % 100;
+    let unitWords = numberToWords(units, null, false);
+    const unitLabel = units === 1 ? def.unit : def.units;
+    let centWords = cents === 0 ? 'zero' : (cents === 1 ? 'one ' + def.cent : threeDigitsToWord(cents) + ' ' + def.cents);
+    if(cents !== 1) centWords = cents === 0 ? 'zero ' + def.cents : threeDigitsToWord(cents) + ' ' + def.cents;
+    const moneyWords = (negMoney ? 'minus ' : '') + unitWords + ' ' + unitLabel + ' and ' + centWords;
+    const chequeWords = (negMoney ? 'minus ' : '') + unitWords + ' ' + unitLabel + ' and ' + String(cents).padStart(2, '0') + '/100';
+    const roundedTip = (dotAt >= 0 && v.slice(dotAt + 1).length > 2) ? '<p style="font-size:12px;color:var(--warning,#b45309);">输入小数超过两位，已按四舍五入到分显示；票据填写前请确认进位。</p>' : '';
+    moneyHtml = '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">'+
+      '<p>货币金额：<strong>' + moneyWords + '</strong></p>'+
+      '<p>票据写法（x/100）：<strong>' + chequeWords + '</strong></p>' + roundedTip;
+  }
   const __h3=`
     <p>数字：<strong>${v}</strong></p>
     <p>英文单词：<strong>${word}</strong></p>
-  `;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h3;
+  ` + moneyHtml;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h3;
 }
 
 function clearAll(){

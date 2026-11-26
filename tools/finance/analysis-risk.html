@@ -154,6 +154,12 @@
         <input type="number" id="f" value="200000" step="1000" placeholder="如 200000">
       </div>
     </div>
+    <div style="margin:4px 0 10px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);margin:0;">
+        <input type="checkbox" id="taxBenefit" onchange="calc()" style="width:auto;margin:0;">
+        <span>亏损时可立即用亏损抵减其他应税利润（默认不勾选：亏损年度不确认任何所得税抵减）</span>
+      </label>
+    </div>
     <div class="input-row">
       <div>
         <label for="i">利息费用（元）</label>
@@ -280,6 +286,9 @@ function calc(){
   if(t<0||t>100) return __fail('所得税税率须在 0%–100% 之间（当前 '+t+'%），已停止计算且不自动截断。');
   if(n<1||!Number.isInteger(n)) return __fail('普通股股数须为大于 0 的整数（当前 '+n+'）。');
   var tr=t/100;
+  // 默认口径：税前利润 ≤ 0 的年度不产生所得税，也不确认任何「即时税盾」；只有用户明确勾选才按亏损抵税处理。
+  var lossBenefit=!!(document.getElementById('taxBenefit')&&document.getElementById('taxBenefit').checked);
+  function netOf(x){ if(x<=0) return lossBenefit ? x*(1-tr) : x; return x*(1-tr); }
   var cm=s-v;
   var ebit=cm-f;
   var dol=ebit!==0?cm/ebit:NaN;
@@ -287,7 +296,8 @@ function calc(){
   var dfl=ebit!==0&&ebt!==0?ebit/ebt:NaN;
   var dcl=(isFinite(dol)&&isFinite(dfl))?dol*dfl:NaN;
   var icr=i!==0?ebit/i:NaN;
-  var net=ebt*(1-tr);
+  var net=netOf(ebt);
+  var taxAmt=ebt-net;
   var eps=n>0?net/n:NaN;
 
   const __g1='<div class="stat-card"><div class="val">'+fx(dol,d)+'</div><div class="lbl">经营杠杆 DOL</div></div>'
@@ -303,23 +313,24 @@ function calc(){
   html+='<p>DFL = '+fx(ebit,d)+' ÷ ('+fx(ebit,d)+' − '+fx(i,d)+') = <strong>'+fx(dfl,d)+'</strong>：EBIT 每变动 1%，EPS 变动约 '+fx(dfl,d)+'%</p>';
   html+='<p>DCL = '+fx(dol,d)+' × '+fx(dfl,d)+' = <strong>'+fx(dcl,d)+'</strong>：营业收入每变动 1%，EPS 变动约 '+fx(dcl,d)+'%</p>';
   html+='<p>利息保障倍数 = '+fx(ebit,d)+' ÷ '+fx(i,d)+' = <strong>'+fx(icr,d)+'</strong></p>';
-  html+='<p>净利润 = ('+fx(ebit,d)+' − '+fx(i,d)+') × (1 − '+(tr*100).toFixed(2)+'%) = <strong>'+fx(net,d)+'</strong> 元；EPS = '+fx(net,d)+' ÷ '+(n>0?fx(n,0):'—')+' = <strong>'+fx(eps,d)+'</strong> 元/股</p>';
+  html+='<p>税前利润 = EBIT '+fx(ebit,d)+' − 利息 '+fx(i,d)+' = <strong>'+fx(ebt,d)+'</strong> 元；所得税 = <strong>'+fx(taxAmt,d)+'</strong> 元'+(ebt<=0&&!lossBenefit?'（亏损年度按 0 处理，未确认亏损抵税）':(ebt<=0?'（按勾选确认亏损抵税 '+fx(-taxAmt,d)+' 元）':''))+'；净利润 = <strong>'+fx(net,d)+'</strong> 元；EPS = '+fx(net,d)+' ÷ '+(n>0?fx(n,0):'—')+' = <strong>'+fx(eps,d)+'</strong> 元/股</p>';
 
   html+='<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
   html+='<p style="font-weight:600;">营业收入敏感性分析：</p>';
   html+='<p style="font-size:12px;color:var(--text-muted);margin:0 0 6px;">假设：变动成本率保持不变，营收变动时变动成本同比例调整（不是把变动成本总额固定不变）；固定成本、利息、税率与股数不变。</p>';
-  html+='<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr><th>营收变动</th><th>营业收入</th><th>EBIT</th><th>EBIT 变动</th><th>EPS（元）</th><th>EPS 变动</th></tr></thead><tbody>';
+  html+='<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr><th>营收变动</th><th>营业收入</th><th>EBIT</th><th>EBIT 变动</th><th>税前利润</th><th>所得税</th><th>净利润</th><th>EPS（元）</th><th>EPS 变动</th></tr></thead><tbody>';
   var vRatio = s !== 0 ? v / s : 0;
   [-10,-5,0,5,10].forEach(function(pct){
     var s2=s*(1+pct/100);
     var cm2=s2*(1-vRatio);
     var ebit2=cm2-f;
-    var net2=(ebit2-i)*(1-tr);
+    var ebt2=ebit2-i;
+    var net2=netOf(ebt2);
     var eps2=n>0?net2/n:NaN;
     var de=ebit!==0?((ebit2-ebit)/Math.abs(ebit)*100):NaN;
     var dp=isFinite(eps)&&eps!==0?((eps2-eps)/Math.abs(eps)*100):NaN;
     var hl=pct===0?' style="background:var(--bg-subtle);font-weight:700;"':'';
-    html+='<tr'+hl+'><td>'+(pct>0?'+':'')+pct+'%</td><td>'+fx(s2,d)+'</td><td>'+fx(ebit2,d)+'</td><td>'+fx(de,d)+'%</td><td>'+fx(eps2,d)+'</td><td>'+fx(dp,d)+'%</td></tr>';
+    html+='<tr'+hl+'><td>'+(pct>0?'+':'')+pct+'%</td><td>'+fx(s2,d)+'</td><td>'+fx(ebit2,d)+'</td><td>'+fx(de,d)+'%</td><td>'+fx(ebt2,d)+'</td><td>'+fx(ebt2-net2,d)+'</td><td>'+fx(net2,d)+'</td><td>'+fx(eps2,d)+'</td><td>'+fx(dp,d)+'%</td></tr>';
   });
   html+='</tbody></table>';
 

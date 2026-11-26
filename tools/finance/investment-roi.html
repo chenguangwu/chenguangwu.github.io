@@ -425,6 +425,11 @@ function calcSimple(){
   const v = Number(yearsRaw);
   const unit = document.getElementById('unit').value;
   const discount = Number(discountRaw);
+  if(discount <= -100 || discount > 1000){
+    document.getElementById('simpleStats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">折现率须大于 -100% 且不超过 1000%（当前 '+discountRaw+'%）；-100% 会使现值分母为 0，更低值无经济含义。</div></div>';
+    const __sc=document.getElementById('simpleChart');if(__sc&&__sc.getContext){__sc.getContext('2d').clearRect(0,0,__sc.width,__sc.height);}
+    return;
+  }
   if(!isFinite(cost) || !isFinite(ret) || !isFinite(v) || !isFinite(discount) || cost <= 0 || ret < 0 || v <= 0){
     const __h1='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请输入合理的正数</div></div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('simpleStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('simpleStats').innerHTML=__h1;
     return;
@@ -596,6 +601,11 @@ function calcRegular(){
     const __h3='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请输入合理的正数</div></div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('regularStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('regularStats').innerHTML=__h3;
     return;
   }
+  if(annualRate <= -100 || annualRate > 1000){
+    document.getElementById('regularStats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">年化收益率须大于 -100% 且不超过 1000%（当前 '+rateRaw+'%）；更低值会让单期增长因子失去经济意义。</div></div>';
+    const __rc=document.getElementById('regularChart');if(__rc&&__rc.getContext){__rc.getContext('2d').clearRect(0,0,__rc.width,__rc.height);}
+    return;
+  }
   // 期限上限：50 年（周投最多 2,600 期），避免无界期数构造现金流数组 + IRR 多次遍历阻塞主线程。
   if(period > 50){
     document.getElementById('regularStats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">定投期限上限为 50 年（当前 ' + period + ' 年，约 ' + Math.round(period * (freq === 'weekly' ? 52 : freq === 'monthly' ? 12 : 1)) + ' 期）；请缩短期限后重试，页面未执行高期数 IRR 求解。</div></div>';
@@ -607,13 +617,19 @@ function calcRegular(){
     case 'weekly': n = period * 52; ratePer = annualRate / 100 / 52; periodsPerYear = 52; break;
     case 'yearly': n = period; ratePer = annualRate / 100; periodsPerYear = 1; break;
   }
+  if(n < 1){
+    document.getElementById('regularStats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">定投期限不足 1 期（按'+ (freq==='monthly'?'月':freq==='weekly'?'周':'年') +'折算仅 '+ n.toFixed(2) +' 期），无法形成完整定投；请增加期限后再计算。</div></div>';
+    const c=document.getElementById('regularChart'); if(c){const cx=c.getContext('2d'); cx.clearRect(0,0,c.width,c.height);}
+    return;
+  }
+  // 期数只按整期投入与计息：不足整期的零头不计入累计投入，也不参与终值，避免图表与结果两套口径。
   const nInt = Math.max(1, Math.round(n));
   const totalInvest = pmt * nInt;
   let fv;
   if(ratePer === 0){
     fv = totalInvest;
   } else {
-    fv = pmt * ((Math.pow(1 + ratePer, n) - 1) / ratePer) * (1 + ratePer);
+    fv = pmt * ((Math.pow(1 + ratePer, nInt) - 1) / ratePer) * (1 + ratePer);
   }
   const profit = fv - totalInvest;
   const roi = totalInvest > 0 ? profit / totalInvest : 0;
@@ -666,10 +682,12 @@ function drawRegularChart(){
   ctx.scale(dpr,dpr);
   const padL=50,padR=20,padT=20,padB=30;
   const cw = w-padL-padR, ch = h-padT-padB;
-  const points = Math.min(60, Math.round(n));
+  if(n < 1){ const cx=canvas.getContext('2d'); cx.clearRect(0,0,canvas.width,canvas.height); return; }
+  const nInt = Math.max(1, Math.round(n));
+  const points = Math.min(60, nInt);
   const investData = [], totalData = [];
   for(let i=0;i<=points;i++){
-    const t = Math.round((i/points)*n);
+    const t = Math.round((i/points)*nInt);
     const invested = pmt * t;
     let fv;
     if(ratePer === 0) fv = invested;

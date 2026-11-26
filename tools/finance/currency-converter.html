@@ -269,7 +269,7 @@
       <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__currency_converterExport()">导出明细 CSV</button></div><div class="result-display" id="resultDisplay" style="margin-top:12px;"></div> <div id="ccPairTable" style="margin-top:12px;"></div> <div id="currency_converterTable"></div> <div id="currency_converterDiff"></div> <div id="currency_converterChart"></div> <div id="currency_converterHist"></div>
       <div class="formula-box">
         <div class="formula-title">📐 计算公式 / 说明</div>
-        <div class="formula-eq">货币换算：内置模式按静态参考汇率表（2025 年 7 月，对 USD 汇率）先化美元 usd = 金额 ÷ rate(原币)，再 结果 = usd × rate(目标币)；手动模式按「1 单位源币 = 输入值目标币」直接乘/除。校验：金额须为普通十进制；手动汇率须为大于 0 的有效数字，无效时阻止换算、不回退内置表；手动汇率仅对当前币种对生效，交换币种时取倒数。判据：无固定分级，另输出 1 单位双向汇率各保留 4 位小数。</div>
+        <div class="formula-eq">货币换算：内置模式按静态参考汇率表（2025 年 7 月，对 USD 汇率）先化美元 usd = 金额 ÷ rate(原币)，再 结果 = usd × rate(目标币)；手动模式按「1 单位源币 = 输入值目标币」直接乘/除。校验：金额须为普通十进制；手动汇率须为大于 0 的有效数字，无效时阻止换算、不回退内置表；手动汇率仅绑定输入时的那个币种对，切换「从/到」币种后自动清空并要求重填；只有交换按钮在同一币种对取倒数时保留。判据：无固定分级，另输出 1 单位双向汇率各保留 4 位小数。</div>
         <div class="formula-desc">内置参考汇率或手动汇率二选一：内置值为静态参考，实际成交以银行实时牌价为准；手动模式严格使用你填写的汇率，无效输入即停止换算。</div>
       </div>
       <div class="rate-note">📅 汇率数据更新日期：2025年7月 · 仅供参考，实际以银行为准</div>
@@ -471,6 +471,8 @@ var CURRENCIES = [
 
 var fromCurrency = 'CNY';
 var toCurrency = 'USD';
+// 手动汇率只属于一个具体币种对：换「从」或「到」即清空旧值，避免把 CNY→USD 的 7.25 当成 USD→EUR 的汇率。
+var __ccManualPair = fromCurrency + '>' + toCurrency;
 var batchFromCurrency = 'CNY';
 var batchToCurrency = 'USD';
 var quickCurrency = 'USD';
@@ -493,19 +495,34 @@ function fromUSD(usd, code){
 
 function __ccIsEn(){ return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
 // 手动汇率状态：区分「未启用手动」与「手动值无效」，避免无效输入静默回退到内置汇率。
+function __ccPairKey(){ return fromCurrency + '>' + toCurrency; }
+function __ccBindManualPair(){
+  var key = __ccPairKey();
+  if (__ccManualPair === key) return false;
+  __ccManualPair = key;
+  var el = document.getElementById('manualRate');
+  if (el) el.value = '';
+  return true;
+}
 function __ccManualInfo(){
   var sel = document.getElementById('rateMode');
   if (!sel || sel.value !== 'manual') return {active:false, valid:false, value:null, raw:''};
   var el = document.getElementById('manualRate');
   var raw = el ? String(el.value).trim() : '';
   var v = raw === '' ? NaN : Number(raw);
-  return {active:true, valid:(isFinite(v) && v > 0), value:(isFinite(v) && v > 0) ? v : null, raw:raw};
+  var pairMatches = (__ccManualPair === __ccPairKey());
+  return {active:true, valid:(pairMatches && isFinite(v) && v > 0), value:(pairMatches && isFinite(v) && v > 0) ? v : null, raw:raw, pairMismatch:!pairMatches, pair:__ccPairKey()};
 }
 function __ccManualRate(){
   var info = __ccManualInfo();
   return (info.active && info.valid) ? info.value : null;
 }
 function __ccManualError(){
+  var mi = (typeof __ccManualInfo === 'function') ? __ccManualInfo() : null;
+  if (mi && mi.pairMismatch) {
+    return __ccIsEn() ? 'Currency pair changed. The previous manual rate belonged to another pair and has been cleared; enter the rate for the current pair.'
+                     : '币种对已变更：原来的手动汇率属于上一个币种对，已清空。请按当前币种对重新填写「1 单位源币 = ? 目标币」的汇率。';
+  }
   if (!__ccIsEn()) return '手动汇率必须是大于 0 的有效数字；留空、0 或负数不会自动改用内置汇率。请填写有效汇率，或切换回内置参考汇率。';
   return 'Manual rate must be a positive number. Blank, zero or negative values do not fall back to built-in rates; enter a valid rate or switch back to built-in rates.';
 }
@@ -624,10 +641,12 @@ function selectCurrency(type, code){
   if(type === 'from'){
     fromCurrency = code;
     updateSelectBtn('from', code);
+    __ccBindManualPair();
     calc();
   } else if(type === 'to'){
     toCurrency = code;
     updateSelectBtn('to', code);
+    __ccBindManualPair();
     calc();
   } else if(type === 'batchFrom'){
     batchFromCurrency = code;
@@ -788,15 +807,17 @@ function updateResultDisplay(fromAmt, fromCode, toAmt, toCode){
 }
 
 function swapCurrencies(){
+  // 必须先按交换前的币种对校验手动汇率，再交换币种；否则新币种对与旧绑定不匹配会误判为无效。
+  var mi = __ccManualInfo();
   var temp = fromCurrency;
   fromCurrency = toCurrency;
   toCurrency = temp;
   // 手动汇率定义为「1 源币 = 输入值目标币」，交换币种必须同步取倒数，保持同一经济含义。
-  var mi = __ccManualInfo();
   if (mi.active && mi.valid){
     var inv = 1 / mi.value;
     document.getElementById('manualRate').value = String(Number(inv.toPrecision(12)));
   }
+  __ccManualPair = __ccPairKey();
   updateSelectBtn('from', fromCurrency);
   updateSelectBtn('to', toCurrency);
   calc();
@@ -1207,6 +1228,8 @@ function __ccApplyPresetCurrencies(){
   if(pt&&pt.value){toCurrency=pt.value;updateSelectBtn('to',toCurrency);}
   if(bf&&bf.value){batchFromCurrency=bf.value;updateSelectBtn('batchFrom',batchFromCurrency);}
   if(bt&&bt.value){batchToCurrency=bt.value;updateSelectBtn('batchTo',batchToCurrency);}
+  // 预设会同时写入币种对与手动汇率：先把绑定更新到预设币种对，再计算，否则旧币对绑定会把新汇率判成失效。
+  __ccManualPair = __ccPairKey();
   calc();
 }
 function __currency_converterPresets(){

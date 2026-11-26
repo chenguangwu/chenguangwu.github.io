@@ -252,6 +252,10 @@ function gen() {
   if (rev < 0 || costRate < 0 || opex < 0 || taxRate < 0 || taxRate > 100 || asset < 0 || debtRatio < 0 || debtRatio > 100 || dep < 0 || capex < 0 || dividend < 0 || cash0 < 0) {
     res.innerHTML = '<p>金额类输入不能为负，税率与资产负债率需在 0–100% 之间。</p>'; return;
   }
+  if (asset < cash0) {
+    res.innerHTML = '<p>期初现金 ' + money(cash0) + ' 大于资产总额 ' + money(asset) + '：现金是资产的一部分，请调低期初现金或调高资产总额。</p>';
+    return;
+  }
   var cost = rev * costRate / 100;
   var gross = rev - cost;
   var depInProfit = (depMode === 'excluded') ? dep : 0;
@@ -273,12 +277,20 @@ function gen() {
   h += '<p>EBITDA（营业利润 + 折旧，参考）' + money(ebitda) + '</p>';
   h += '<p style="margin-top:8px;"><strong>二、资产负债表</strong></p>';
   h += '<p>资产总额 ' + money(asset) + '｜负债合计 ' + money(liab) + '（资产负债率 ' + debtRatio.toFixed(2) + '%）｜所有者权益 ' + money(equity) + '</p>';
-  h += '<p>平衡校验：' + money(asset) + ' − ' + money(liab) + ' − ' + money(equity) + ' = ' + money(asset - liab - equity) + ' ✓</p>';
+  h += '<p>平衡校验：' + money(asset) + ' − ' + money(liab) + ' − ' + money(equity) + ' = ' + money(asset - liab - equity) + ' ✓（仅验证资产负债表的会计恒等式）</p>';
+  // 三表勾稽桥接：利润表与现金流量表必须能解释资产负债表为何变化，不能只做表内自平衡。
+  var nonCash0 = asset - cash0;
+  var nonCashEnd = nonCash0 - dep + capex + wc; // 折旧减少非现金资产，资本开支与营运资本增加非现金资产
+  var assetEnd = cashEnd + nonCashEnd;
+  var equityEnd = equity + net - dividend;
+  var bsGap = assetEnd - liab - equityEnd;
+  h += '<p style="margin-top:4px;">三表勾稽：期初非现金资产 ' + money(nonCash0) + ' − 折旧 ' + money(dep) + ' + 资本开支 ' + money(capex) + ' + 营运资本增加 ' + money(wc) + ' = 期末非现金资产 ' + money(nonCashEnd) + '；期末资产 = 期末现金 ' + money(cashEnd) + ' + 期末非现金资产 ' + money(nonCashEnd) + ' = <strong>' + money(assetEnd) + '</strong></p>';
+  h += '<p>期末权益 = 期初权益 ' + money(equity) + ' + 净利润 ' + money(net) + ' − 分红 ' + money(dividend) + ' = <strong>' + money(equityEnd) + '</strong>；负债按资产负债率随期初资产确定、本期不变 = ' + money(liab) + '；差额 ' + money(bsGap) + (Math.abs(bsGap) < 0.005 ? ' ✓' : ' ⚠') + '</p>';
   h += '<p style="margin-top:8px;"><strong>三、现金流量表</strong></p>';
   h += '<p>经营活动 ' + money(cfo) + '｜投资活动 ' + money(cfi) + '｜筹资活动 ' + money(cff) + '｜现金净增加额 ' + money(netCash) + '｜期末现金 ' + money(cashEnd) + '</p>';
   h += '<p>间接法：净利润 ' + money(net) + ' + 折旧摊销 ' + money(dep) + ' − 营运资本增加 ' + money(wc) + ' = 经营活动现金流 ' + money(cfo) + ' ✓</p>';
   if (opProfit <= 0) h += '<p style="color:var(--danger)">⚠ 营业利润为负（或为零），所得税按 0 处理，请核对成本与费用口径。</p>';
-  h += '<p style="font-size:12px;color:var(--text-muted);">说明：三表由同一组输入派生，勾稽关系恒成立；同一组输入重复生成结果完全一致。</p>';
+  h += '<p style="font-size:12px;color:var(--text-muted);">说明：资产负债表的「资产 = 负债 + 权益」与现金流量表的「净利润 + 折旧 − 营运资本增加 = 经营现金流」各自恒成立；跨表勾稽依赖「期末负债不变、资产总额为期初口径、营运资本增加计入非现金资产」三项假设，差额不为 0 时上方会标 ⚠。同一组输入重复生成结果完全一致。</p>';
   res.innerHTML = h;
 }
 gen();

@@ -262,8 +262,23 @@ function fx(x,d){return isFinite(x)?x.toFixed(d):'—';}
 function calc(){
   var d=parseInt(document.getElementById('dec').value,10);
   if(!(d>=0&&d<=4))d=2;
-  var ca=num('ca'),inv=num('inv'),pre=num('pre'),cash=num('cash'),cl=num('cl'),tl=num('tl'),ta=num('ta');
   var grid=document.getElementById('statGrid'),res=document.getElementById('res');
+  var __defs=[['ca','流动资产'],['inv','存货'],['pre','预付费用'],['cash','现金'],['cl','流动负债'],['tl','负债总额'],['ta','资产总额']];
+  var __vals={};
+  for(var __i=0;__i<__defs.length;__i++){
+    var __raw=String(document.getElementById(__defs[__i][0]).value || '').trim();
+    var __n=Number(__raw);
+    if(__raw === '' || !isFinite(__n) || __n < 0){
+      grid.innerHTML='';res.innerHTML='<p style="color:var(--danger);">请填写「'+__defs[__i][1]+'」的 ≥0 数字（数字 0 合法，留空不计算）。</p>';
+      return;
+    }
+    __vals[__defs[__i][0]]=__n;
+  }
+  var ca=__vals.ca,inv=__vals.inv,pre=__vals.pre,cash=__vals.cash,cl=__vals.cl,tl=__vals.tl,ta=__vals.ta;
+  if(cash > ca || (inv + pre) > ca || cl > tl){
+    grid.innerHTML='';res.innerHTML='<p style="color:var(--danger);">明细与合计不一致：需满足 现金 ≤ 流动资产、存货+预付费用 ≤ 流动资产、流动负债 ≤ 负债总额。请先核对报表再评级。</p>';
+    return;
+  }
   // 第942批：零流动负债时不再整体返回，只把依赖该分母的三个比率标为不适用，其余指标继续计算。
   var clOk = cl > 0;
   var current = clOk ? ca/cl : NaN;

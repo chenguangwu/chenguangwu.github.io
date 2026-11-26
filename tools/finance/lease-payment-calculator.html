@@ -461,6 +461,7 @@ function calc(){
   var __err = '';
   if(!isFinite(pv) || pv <= 0) __err = '租赁物价值必须大于 0。';
   else if(downPct < 0 || downPct > 100) __err = '首付比例须在 0–100% 之间。';
+  else if(!isFinite(annualRate) || annualRate < 0 || annualRate > 100) __err = '年利率须在 0–100% 之间（负值或极端值会产生无经济意义的幂运算）。';
   else if(fee < 0) __err = '手续费不能为负。';
   else if(fv < 0) __err = '残值不能为负。';
   else if(fv >= principal) __err = '残值须小于融资本金（否则融资额无效）。';
@@ -619,7 +620,8 @@ function calc(){
   }
 
   var irr = calcIRR(principal, schedule, fv, timing, fee);
-  var effectiveRate = (irr !== null && isFinite(irr)) ? irr * 12 * 100 : null;
+  var nominalRate = (irr !== null && isFinite(irr)) ? irr * 12 * 100 : null;
+  var effectiveRate = (irr !== null && isFinite(irr) && irr > -1) ? (Math.pow(1 + irr, 12) - 1) * 100 : null;
 
   currentResult = {
     pv: pv,
@@ -635,6 +637,7 @@ function calc(){
     pmt: pmt,
     totalPayment: totalPayment,
     totalInterest: totalInterest,
+    nominalRate: nominalRate,
     effectiveRate: effectiveRate,
     timestamp: Date.now()
   };
@@ -683,7 +686,7 @@ function renderStats(r){
   var statHtml = '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(r.pmt, 0) + '</div><div class="lbl">' + (r.type === 'principal' ? '首月还款' : '每月还款') + '</div></div>'
     + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(r.totalPayment, 0) + '</div><div class="lbl">总还款额</div></div>'
     + '<div class="stat-card negative"><div class="val">¥' + ToolBox.formatNumber(r.totalInterest, 0) + '</div><div class="lbl">总利息</div></div>'
-    + '<div class="stat-card"><div class="val">' + (r.effectiveRate === null ? '不可计算' : r.effectiveRate.toFixed(2) + '%') + '</div><div class="lbl">实际年化(IRR)</div></div>';
+    + '<div class="stat-card"><div class="val">' + (r.effectiveRate === null ? '不可计算' : r.effectiveRate.toFixed(2) + '%') + '</div><div class="lbl">有效年化(月复利)</div></div>';
   const __g2=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -705,7 +708,8 @@ function renderResult(r){
   resHtml += '<p>还款方式：<strong>' + (typeNames[r.type] || r.type) + '</strong> · ' + (timingNames[r.timing] || r.timing) + '</p>';
   resHtml += '<p>租期：<strong>' + r.months + '</strong> 期（' + (r.months/12).toFixed(1) + '年）</p>';
   resHtml += '<p>名义年利率：<strong>' + r.annualRate.toFixed(2) + '%</strong></p>';
-  resHtml += '<p>实际年化利率(IRR)：<strong style="color:var(--danger);">' + (r.effectiveRate === null ? '不可计算（净融资额或现金流无有效 IRR）' : r.effectiveRate.toFixed(2) + '%') + '</strong></p>';
+  resHtml += '<p>名义年化（月 IRR × 12）：<strong>' + (r.nominalRate === null ? '不可计算' : r.nominalRate.toFixed(2) + '%') + '</strong></p>';
+  resHtml += '<p>有效年化（(1+月 IRR)¹²−1，按月复利）：<strong style="color:var(--danger);">' + (r.effectiveRate === null ? '不可计算（净融资额或现金流无有效 IRR）' : r.effectiveRate.toFixed(2) + '%') + '</strong></p>';
   if(r.fee > 0){
     resHtml += '<p>手续费：<strong>¥' + ToolBox.formatNumber(r.fee, 2) + '</strong></p>';
   }
