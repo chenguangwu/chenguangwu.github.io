@@ -265,24 +265,38 @@ function esc(s){return String(s).replace(/[<>&"]/g,function(c){return {'<':'&lt;
 function parseRows(){
   var raw=document.getElementById('rows').value;
   var out=[];
+  out.errors=[];
   raw.split(/\r?\n/).forEach(function(line,i){
     var l=line.trim();
     if(!l)return;
     var m=l.match(/^(.*?)[\s,，\t;；]*(-?\d+(?:\.\d+)?)\s*$/);
-    if(!m)return;
+    if(!m){ out.errors.push({line:i+1,text:l}); return; }
     var name=m[1].replace(/[\s,，\t;；]+$/,'').trim();
-    out.push({name:name||('对象 '+(i+1)),base:parseFloat(m[2])});
+    var base=parseFloat(m[2]);
+    if(!isFinite(base)){ out.errors.push({line:i+1,text:l}); return; }
+    out.push({name:name||('对象 '+(i+1)),base:base});
   });
   return out;
 }
 function calc(){
   var d=parseInt(document.getElementById('dec').value,10);
   if(!(d>=0&&d<=6))d=2;
-  var total=num('total');
+  var totalRaw=String(document.getElementById('total').value || '').trim();
+  var total=Number(totalRaw);
   var baseName=document.getElementById('baseName').value;
   var rows=parseRows();
   var res=document.getElementById('res');
   var grid=document.getElementById('statGrid');
+  if(rows.errors && rows.errors.length){
+    grid.innerHTML='';
+    res.innerHTML='<p style="color:var(--danger);">以下行无法解析，未输出分摊结论：' + rows.errors.map(function(e){return '第 '+e.line+' 行「'+esc(e.text)+'」';}).join('；') + '。请按「名称,基数」修正后重算。</p>';
+    return;
+  }
+  if(totalRaw === '' || !isFinite(total) || total < 0){
+    grid.innerHTML='';
+    res.innerHTML='<p style="color:var(--danger);">请填写待分摊总成本（数字 0 合法，留空不计算）。</p>';
+    return;
+  }
   if(!rows.length){
     grid.innerHTML='';res.innerHTML='<p style="color:var(--danger);">请按「名称,基数」每行一条填写成本对象</p>';return;
   }

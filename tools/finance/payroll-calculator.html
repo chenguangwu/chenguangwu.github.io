@@ -519,19 +519,23 @@ function calc(){
     monthlyData = [];
   }
   var salaryRaw = rawNum('salary');
-  if (!isFinite(salaryRaw) || salaryRaw <= 0) { fail(__payrollTx('请输入大于 0 的税前工资。','Please enter a gross salary greater than 0.')); return; }
+  if (!isFinite(salaryRaw) || salaryRaw < 0) { fail(__payrollTx('税前工资须为 ≥0 的数字（0 合法，用于只测算年终奖）。','Gross salary must be ≥ 0 (0 is valid when only the bonus is being tested).')); return; }
   var limits = [['pension','养老保险比例','Pension rate'],['medical','医疗保险比例','Medical rate'],
     ['unemployment','失业保险比例','Unemployment rate'],['housing','住房公积金比例','Housing fund rate']];
   var rates = {};
   for (var li = 0; li < limits.length; li++) {
     var key = limits[li][0], label = limits[li][1], labelEn = limits[li][2];
     var raw = rawNum(key);
-    var val = raw === raw && isFinite(raw) ? raw : 0;
+    if (!isFinite(raw)) { fail(__payrollTx('请填写' + label + '（数字 0 表示不缴，留空不等于 0）。', 'Please fill in ' + labelEn + ' (0 means no contribution; blank is not 0).')); return; }
+    var val = raw;
     if (val < 0) { fail(__payrollTx(label + '不能为负数。', labelEn + ' cannot be negative.')); return; }
+    if (val > 100) { fail(__payrollTx(label + '不能超过 100%。', labelEn + ' cannot exceed 100%.')); return; }
     rates[key] = val / 100;
   }
   var bonusRaw = rawNum('bonus');
   if (isFinite(bonusRaw) && bonusRaw < 0) { fail(__payrollTx('年终奖需为 ≥0 的数字。','Annual bonus must be ≥ 0.')); return; }
+  var bonusForZero = isFinite(bonusRaw) ? bonusRaw : 0;
+  if (salaryRaw === 0 && bonusForZero === 0) { fail(__payrollTx('税前工资与年终奖均为 0：没有可计税收入。若只测算年终奖，请填写年终奖金额。','Gross salary and annual bonus are both 0: there is no taxable income.')); return; }
   var baseRaw = rawNum('base');
   // 复核失败重做：空缴费基数（NaN）须提示填写并停算，数字 0 仍是合法值。
   if (!isFinite(baseRaw)) { fail(__payrollTx('请填写社保缴费基数（数字 0 合法），留空不计算。','Please fill in the social-insurance base (0 is valid); empty input cannot be calculated.')); return; }

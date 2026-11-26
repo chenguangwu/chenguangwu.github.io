@@ -400,7 +400,15 @@ function calcMonthlyData(){
       try{var __cv=document.getElementById('chart');if(__cv&&__cv.getContext){var __cx=__cv.getContext('2d');if(__cx&&__cx.clearRect)__cx.clearRect(0,0,__cv.width||0,__cv.height||0);}}catch(e){}
       const __g2=__ig;ToolBox.setResult("res",(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));return;}
 var monthly = +document.getElementById('monthly').value || 0;
-  var years = Math.max(1, Math.min(50, Math.floor(+document.getElementById('years').value || 0)));
+  var yearsRaw = String(document.getElementById('years').value || '').trim();
+  var yearsNum = Number(yearsRaw);
+  if(yearsRaw === '' || !isFinite(yearsNum) || !Number.isInteger(yearsNum) || yearsNum < 1 || yearsNum > 50){
+    var __yb=['statGrid','tableWrap','dca_calculatorTable','dca_calculatorDiff','dca_calculatorChart','dca_calculatorHist'];
+    for(var __ybi=0;__ybi<__yb.length;__ybi++){var __ybe=document.getElementById(__yb[__ybi]);if(__ybe)__ybe.innerHTML='';}
+    ToolBox.setResult("res",'<p style="color:var(--danger)">定投年限须为 1–50 的整数年（当前「'+yearsRaw+'」）；小数年限会改变每月期数，本工具不静默截断。</p>');
+    return;
+  }
+  var years = yearsNum;
   var annualRate = +document.getElementById('rate').value || 0;
   var initial = +document.getElementById('initial').value || 0;
 
@@ -737,6 +745,10 @@ function renderTable(data){
 
 function exportCSV(){
   var data = calcMonthlyData();
+  if(!data){
+    ToolBox.showToast('当前输入无效，请先修正定投参数并完成计算后再导出。', 'warning');
+    return;
+  }
   var csv = '\uFEFF';
   csv += '月份,当月投入,累计投入,定投资产,一次性投入资产\n';
   var invest = data.initial;

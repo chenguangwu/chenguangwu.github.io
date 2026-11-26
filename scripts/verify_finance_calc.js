@@ -161,7 +161,7 @@ const CASES = [
   {
     slug: "finance/lease-payment-calculator",
     inputs: { fee: "0" },
-    clicks: ["var a=[];['0','5000','20000'].forEach(function(f){document.getElementById('fee').value=f;calc();a.push(currentResult.effectiveRate);});document.getElementById('__tbProbe').textContent='LEASEIRR '+(a[0]<a[1]&&a[1]<a[2]&&Math.abs(a[1]-9.48)<0.05?'OK':'BAD');"],
+    clicks: ["var a=[];['0','5000','20000'].forEach(function(f){document.getElementById('fee').value=f;calc();a.push(currentResult.nominalRate);});document.getElementById('__tbProbe').textContent='LEASEIRR '+(a[0]<a[1]&&a[1]<a[2]&&Math.abs(a[1]-9.48)<0.05?'OK':'BAD');"],
     expect: ["LEASEIRR OK"],
     ref: "第126批 F-N114 防回退：清单复现本金 10 万 / 6% / 36 期，手续费 0/5000/20000。旧版 cashFlows[0] 用 principal+fee 把费用当多借本金，IRR 随费用上升反而下降；修复为净融资额 principal-fee 后实测 6.00% / 9.48% / 21.68% 严格递增（5000 时与清单 node 独立复算 9.48% 一致）。同用例内三态连算；默认 fee=0 单态不产生该探针 ⇒ 强判别、零逃生。"
   },
@@ -1696,8 +1696,8 @@ const CASES = [
   {
     slug: "finance/sort-code-validator-validator",
     inputs: { input: "112233" },
-    expect: ["可能银行： Lloyds Bank"],
-    ref: "英国 Sort Code 6 位，前 2 位 11 对应 Lloyds Bank。默认态不同 ⇒ 不命中。",
+    expect: ["银行归属： 不推断", "银行归属：不推断"],
+    ref: "第944批移除前两位静态银行推断；只保留格式校验与银行归属不推断说明。",
   },
   {
     slug: "finance/sort-code-validator-validator",
@@ -1762,10 +1762,10 @@ const CASES = [
   {
     slug: "finance/analysis-5",
     inputs: {
-      pre: "100000",
+      pre: "20000",
       ca: "60000",
       cl: "40000",
-      inv: "80000",
+      inv: "30000",
       cash: "20000",
       tl: "150000",
       ta: "300000",
@@ -1790,14 +1790,14 @@ const CASES = [
   },
   {
     slug: "finance/analysis-5",
-    inputs: { ta: "400000", tl: "300000" },
+    inputs: { ta: "400000", tl: "300000", ca: "300000", cl: "100000", inv: "100000", pre: "10000", cash: "50000" },
     clicks: ["calc()"],
     expect: ["产权比率 3.00 3 警戒 偏高 负债总额 300000.00 ÷ 所有者权益 100000.00"],
     ref: "产权比率恰为 3 时属于偏高而非警戒。",
   },
   {
     slug: "finance/analysis-5",
-    inputs: { ta: "400000", tl: "300100" },
+    inputs: { ta: "400000", tl: "300100", ca: "300000", cl: "100000", inv: "100000", pre: "10000", cash: "50000" },
     clicks: ["calc()"],
     expect: ["产权比率 3.00 3 警戒 警戒 负债总额 300100.00 ÷ 所有者权益 99900.00"],
     ref: "产权比率略大于 3 时即使显示为 3.00 也应警戒。",
@@ -1900,8 +1900,8 @@ const CASES = [
   },
   {
     slug: "finance/payroll-calculator",
-    inputs: { salary: "20000", base: "20000" },
-    clicks: ["switchTab()"],
+    inputs: {},
+    clicks: ["document.getElementById('salary').value='20000';document.getElementById('base').value='20000';calc();var ok=currentResult&&Math.abs(currentResult.monthlyTax-740)<0.01;document.getElementById('res').innerHTML='PAY740 '+(ok?'OK':'BAD');"],
     expect: ["个人所得税 ¥740.00", "¥14,760 税后月薪"],
     ref: "月薪 20,000、五险一金基数同 20,000、专项附加扣除 1,000/月 ⇒ 应纳税所得额，个税 740.00 元、税后到手 14,760 元、公积金账户 4,800/月（个人+单位）。默认态不同 ⇒ 不命中。",
   },
@@ -2662,7 +2662,7 @@ const CASES = [
       "dec": "42"
     },
     "expect": [
-      "质量需进一步核查。 所有者权益不为正（0.00 元），产权比率与权益乘数无法反映正常资本结构。 存货与预付费用之和已超过流动资产总额，请核对各明细项的填写口径。"
+      "明细与合计不一致"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"ca\":\"42\",\"inv\":\"42\",\"pre\":\"42\",\"cash\":\"42\",\"cl\":\"42\",\"tl\":\"42\",\"ta\":\"42\",\"dec\":\"42\"}，输出区含「质量需进一步核查。 所有者权益不为正（0.00 元），产权比率与权益乘数无法反映…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3703,7 +3703,7 @@ const CASES = [
       "city": "beijing"
     },
     "expect": [
-      "计个税 第1月 ¥42.00 ¥9.45 ¥0.00 ¥32.55 ¥0.00 第2月 ¥42.00 ¥9.45 ¥0.00 ¥32.55 ¥0.00 第3月 ¥42.00 ¥9.45 ¥0.00 ¥32.55 ¥0.00 第4月 ¥42."
+      "年终奖并入综合所得"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"salary\":\"42\",\"bonus\":\"42\",\"pension\":\"42\",\"medical\":\"42\",\"unemployment\":\"42\",\"housing\":\"42\",\"base\":\"42\",\"children\":\"42\",\"continuing\":\"42\",\"housingLoan\":\"42\",\"rent\":\"42\",\"elderly\":\"42\",\"baby\":\"42\",\"medicalBig\":\"42\",\"threshold\":\"42\",\"city\":\"beijing\"}，输出区含「计个税 第1月 ¥42.00 ¥9.45 ¥0.00 ¥32.55 ¥0.00 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3716,7 +3716,7 @@ const CASES = [
   {
     "slug": "finance/payroll-calculator",
     "inputs": { "salary": "" },
-    "expect": ["请输入大于 0 的税前工资"],
+    "expect": ["税前工资须为 ≥0 的数字"],
     "ref": "空工资原实现 +el.value||0 ⇒ 全 0 结果；现显式提示。默认 15000 不出现该提示。"
   },
   {
@@ -4193,7 +4193,7 @@ const CASES = [
   {
     slug: "finance/lease-payment-calculator",
     inputs: {"pv":"100000","downPct":"0","rate":"6","months":"36","fv":"0","fee":"5000","type":"equal","timing":"begin"},
-    expect: ["还款方式： 等额本息 · 期初还款", "实际年化利率(IRR)： 10.03%"],
+    expect: ["还款方式： 等额本息 · 期初还款", "名义年化（月 IRR × 12）： 10.03%"],
     ref: "期初还款首期落在 t=0、手续费 5000 计入 t=0 现金流（净融资 95,000）；按页面实际摊销表独立复算：t=0 现金流 −91,972.94、月利率 0.8358% ⇒ 名义年化 10.03%。旧口径把首期折现到 t=1 且漏算手续费，得约 5.67%。默认 fee=0、期末还款 ⇒ 不命中。",
   },
   {
@@ -5160,7 +5160,7 @@ const CASES = [
 
 
 { slug:"finance/lease-payment-calculator", inputs:{pv:"100000",downPct:"0",rate:"6",months:"36",fv:"0",fee:"100000",type:"equal",timing:"end"}, clicks:["calc()"], expect:["不可计算（净融资额或现金流无有效 IRR）"], ref:"租赁物 100000、首付 0、手续费 100000 ⇒ 净融资额 0，后续付款全为正、现金流无符号变化，IRR 无解；旧实现 calcIRR 返回 NaN 后仍 toFixed 输出 NaN%。" },
-{ slug:"finance/lease-payment-calculator", inputs:{pv:"100000",downPct:"0",rate:"0",months:"12",fv:"0",fee:"0",type:"equal",timing:"end"}, clicks:["calc()"], expect:["实际年化利率(IRR)： 0.00%"], ref:"名义利率 0、无手续费、12 期等额还款：现金流 −100000 后按月收回，IRR=0，应输出 0.00% 而非不可计算；防止无解守卫误伤合法零利率。" },
+{ slug:"finance/lease-payment-calculator", inputs:{pv:"100000",downPct:"0",rate:"0",months:"12",fv:"0",fee:"0",type:"equal",timing:"end"}, clicks:["calc()"], expect:["名义年化（月 IRR × 12）： 0.00%"], ref:"名义利率 0、无手续费、12 期等额还款：现金流 −100000 后按月收回，IRR=0，应输出 0.00% 而非不可计算；防止无解守卫误伤合法零利率。" },
   {
     slug: "finance/dca-calculator",
     inputs: { monthly: "0", years: "1", rate: "12", initial: "12000", target: "0" },
@@ -6160,6 +6160,97 @@ const CASES = [
     clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/car-loan-calculator.html','utf8');var ok=h.indexOf('Number.isInteger(years)')>=0&&h.indexOf(\"priceRaw === ''\")>=0&&h.indexOf('downPct > 100')>=0;document.getElementById('__tbProbe').textContent='CAREXP '+(ok?'OK':'BAD');"],
     expect: ["CAREXP OK"],
     ref: "导出须重新校验原始输入（空值、负利率、首付>100%、年限非整数），不能只靠旧计划与价格/年限两项。",
+  },
+  {
+    slug: "finance/dca-calculator",
+    inputs: { years: "1.5" },
+    clicks: ["calc()"],
+    expect: ["定投年限须为 1–50 的整数年"],
+    ref: "1.5 年不得静默截断为 1 年；应按整数年校验并停止计算。",
+  },
+  {
+    slug: "finance/dca-calculator",
+    inputs: { years: "10" },
+    clicks: ["window.__dl=0;ToolBox.downloadText=function(){window.__dl++;};document.getElementById('years').value='1.5';exportCSV();document.getElementById('__tbProbe').textContent='DCA-DL '+window.__dl;"],
+    expect: ["DCA-DL 0"],
+    ref: "非法年限下导出不得调用下载；计算返回空值时导出须提前停止。",
+  },
+  {
+    slug: "finance/sort-code-validator-validator",
+    inputs: { input: "200000" },
+    clicks: ["validate()"],
+    expect: ["银行归属：", "不推断", "格式有效"],
+    ref: "页面不得再用前两位硬编码推断 Barclays 等银行归属；应明确只验证格式。",
+  },
+  {
+    slug: "finance/number-to-words",
+    inputs: { inputVal: "123.45", currencyMode: "USD" },
+    clicks: ["convert()"],
+    expect: ["one hundred twenty-three dollars and forty-five cents", "45/100"],
+    ref: "货币格式须输出货币名称、分币与票据 x/100 写法；旧页面只有逐位 point 小数 ⇒ BAD。",
+  },
+  {
+    slug: "finance/analysis-cost-1",
+    inputs: { rows: "A,100\nB,abc", total: "1000" },
+    clicks: ["calc()"],
+    expect: ["第 2 行", "B,abc", "无法解析"],
+    ref: "混合有效/非法行不得只对 A 分摊 100%；应逐行报错并停止结论。",
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { cost: "10000", "return": "13000", years: "2", unit: "year", discount: "-100" },
+    clicks: ["calcSimple()"],
+    expect: ["折现率须大于 -100%"],
+    ref: "折现率 -100% 使现值分母为 0，必须字段级拒绝并清除旧图。",
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { monthly: "1000", annualRate: "-100", period: "5", freq: "monthly" },
+    clicks: ["calcRegular()"],
+    expect: ["年化收益率须大于 -100%"],
+    ref: "定投收益率 -100% 使单期增长因子为 0，须拒绝而不是输出伪终值。",
+  },
+  {
+    slug: "finance/payroll-calculator",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/payroll-calculator.html','utf8');var ok=h.indexOf('税前工资须为 ≥0 的数字')>=0&&h.indexOf('工资与年终奖均为 0')>=0;document.getElementById('res').innerHTML='PAY0 '+(ok?'OK':'BAD');"],
+    expect: ["PAY0 OK"],
+    ref: "工资 0 须合法（仅年终奖测算），但工资与年终奖同时为 0 应拒绝；旧实现直接拒绝工资 0 ⇒ BAD。真机另测组合。",
+  },
+  {
+    slug: "finance/payroll-calculator",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/payroll-calculator.html','utf8');var ok=h.indexOf('留空不等于 0')>=0&&h.indexOf('var val = raw;')>=0;document.getElementById('res').innerHTML='PAYR '+(ok?'OK':'BAD');"],
+    expect: ["PAYR OK"],
+    ref: "比例留空须提示补全，只有显式 0 才表示不缴；旧实现静默按 0 ⇒ BAD。",
+  },
+  {
+    slug: "finance/lease-payment-calculator",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/lease-payment-calculator.html','utf8');document.getElementById('res').innerHTML='LEASE-RATE '+(h.indexOf('annualRate < 0 || annualRate > 100')>=0?'OK':'BAD');"],
+    expect: ["LEASE-RATE OK"],
+    ref: "负利率/极端利率须拒绝，不能进入幂运算产生无意义月供。",
+  },
+  {
+    slug: "finance/lease-payment-calculator",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/lease-payment-calculator.html','utf8');var ok=h.indexOf('名义年化（月 IRR × 12）')>=0&&h.indexOf('有效年化（(1+月 IRR)¹²−1')>=0&&h.indexOf('Math.pow(1 + irr, 12) - 1')>=0;document.getElementById('res').innerHTML='LEASE-APR '+(ok?'OK':'BAD');"],
+    expect: ["LEASE-APR OK"],
+    ref: "页面旧称实际年化却只给月 IRR×12；须同时展示名义与月复利有效年化。",
+  },
+  {
+    slug: "finance/analysis-5",
+    inputs: { ca: "500000", inv: "180000", pre: "20000", cash: "600000", cl: "300000", tl: "700000", ta: "1200000" },
+    clicks: ["calc()"],
+    expect: ["现金 ≤ 流动资产", "明细与合计不一致"],
+    ref: "现金大于流动资产属明细勾稽错误，必须停止评级；旧实现照算 ⇒ BAD。",
+  },
+  {
+    slug: "finance/analysis-5",
+    inputs: {},
+    clicks: ["document.getElementById('ca').value='';calc();var r=document.getElementById('res');var ok=r.innerHTML.indexOf('请填写「流动资产」')>=0;r.innerHTML='A5-EMPTY '+(ok?'OK':'BAD');"],
+    expect: ["A5-EMPTY OK"],
+    ref: "空值不得当 0；0 仍须合法可计算。",
   },
 
 ];
