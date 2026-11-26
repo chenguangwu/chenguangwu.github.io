@@ -1937,6 +1937,10 @@ const CASES = [
   { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "2100-02-08" }, expect: ["生日早于春节（2100-02-09），生肖按 2099 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
   { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "2100-02-09" }, expect: ["生日晚于或等于春节（2100-02-09），生肖按 2100 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
   { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "2101-01-01" }, expect: ["出生日期仅支持 1900–2100 年。"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
+,
+  { slug: "edu/ebbinghaus-curve", inputs: { content: "Infinity NaN", startDate: "2024-06-01", mode: "standard" }, expect: ["Infinity NaN"], ref: "第964批：学习内容含 Infinity/NaN 时计划表原样显示，不再被整段结果守卫误判为无效数值；默认内容不含这两个词 ⇒ 强判别。" },
+  { slug: "edu/word-memory", clicks: ["var seq=['Infinity','无穷',''];window.prompt=function(){return seq.shift()||'';};addCustomWord();document.getElementById('wordSearch').value='Infinity';filterWords();"], expect: ["Infinity", "无穷"], ref: "第964批：自定义词条含 Infinity 时可正常添加并在单词本显示，不再被列表守卫替换为错误提示。" },
+  { slug: "edu/study-planner", clicks: ["addTask('Infinity NaN',30,'2');"], expect: ["Infinity NaN"], ref: "第964批：任务名称含 Infinity/NaN 时今日计划原样显示，不再触发整份列表错误提示。" }
 ];
 
 async function main() {
