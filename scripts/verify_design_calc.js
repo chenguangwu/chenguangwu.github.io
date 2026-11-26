@@ -807,6 +807,20 @@ const CASES = [
       + "⚠ opacity 走 0~100 的整数滑杆，页面内部再除以 100，给 `75` 才得到 `0.75`；给 `0.75` 会输出 `rgba(...,0.0075)`。",
   },
   {
+    slug: "design/generator-10",
+    inputs: {},
+    clicks: ["gen(true);var c=JSON.parse(JSON.stringify(__g10RandCache));document.getElementById('dur').value='2';gen();var c2=JSON.parse(JSON.stringify(__g10RandCache));var out=String(document.getElementById('res').innerHTML);var ok=c[0].id===c2[0].id&&c[0].easing===c2[0].easing&&c[0].fill===c2[0].fill&&out.indexOf('2.0s')>=0;document.getElementById('__tbProbe').textContent='G10CACHE '+(ok?'OK':'BAD');"],
+    expect: ["G10CACHE OK"],
+    ref: "第957批：首次生成后按条缓存动画名编号、时长、延迟、缓动、循环、方向和填充；只改时长再 gen()，其余随机值保持不变且新时长 2.0s 出现在输出。旧实现每次 input/change 重跑 gen() 并重抽全部属性。"
+  },
+  {
+    slug: "design/generator-11",
+    inputs: {},
+    clicks: ["gen(true);var c=JSON.parse(JSON.stringify(__g11RandCache));document.getElementById('tPattern').value='dots';gen();var c2=JSON.parse(JSON.stringify(__g11RandCache));var ok=c[0].c1===c2[0].c1&&c[0].c2===c2[0].c2&&c[0].size===c2[0].size;document.getElementById('__tbProbe').textContent='G11CACHE '+(ok?'OK':'BAD');"],
+    expect: ["G11CACHE OK"],
+    ref: "第957批：首次生成后按条缓存双色与单元尺寸；只改图案类型再 gen()，颜色与尺寸不变。旧实现每次事件重抽全部纹理属性。"
+  },
+  {
     slug: "design/stripe-pattern",
     inputs: { angle: "135", width: "32", color1: "#12b886", color2: "#ff6b6b", stripeType: "multi" },
     expect: ["background: repeating-linear-gradient(135deg, #12b886, #12b886 32px, #ff6b6b 32px, #ff6b6b 64px, #12b886 64px, #12b886 96px);"],
