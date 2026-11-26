@@ -131,6 +131,42 @@ const CASES = [
   },
   {
     slug: "science/mean-calculator",
+    inputs: { data: "0.0001,0.0002" },
+    expect: ["0.00015"],
+    ref: "微小数不再被截成 0：均值 0.00015，旧版 round(x·1e10)/1e10 + toLocaleString 默认 3 位小数会显示 0；新格式对小于 0.001 的非零值保留 6 位有效数字。",
+  },
+  {
+    slug: "science/mean-calculator",
+    inputs: { data: "1e308,1e308" },
+    expect: ["算术平均 x̄ = 1.000000e+308", "超出 Number 表示范围"],
+    ref: "同号大数：1e308+1e308 中间和为 Infinity，旧版整页被无效值守卫拦截；现平均值改用缩放求和得 1e308，总和卡明确标「超出 Number 表示范围」而不掩盖可算的平均值。",
+  },
+  {
+    slug: "science/median-calculator",
+    inputs: { data: "1e308,1e308" },
+    expect: ["中位数 = 1.000000e+308"],
+    ref: "偶数大数中位数：两值相加会溢出，改用各减半再相加；旧版 (a+b)/2 得 Infinity 并被无效值守卫拦截。",
+  },
+  {
+    slug: "science/variance-calculator",
+    inputs: { dtype: "population", data: "0,0.02" },
+    expect: ["方差 0.0001"],
+    ref: "微小方差：0 与 0.02 的总体方差为 0.0001；旧版 toLocaleString 默认 3 位小数显示 0，新格式按 6 位有效数字显示 0.0001。",
+  },
+  {
+    slug: "science/mode-calculator",
+    inputs: { data: "9007199254740991,9007199254740992" },
+    expect: ["第 2 项整数超出安全整数范围"],
+    ref: "相邻大整数：2^53−1 可精确表示，紧接着的 2^53 已超出安全整数范围；旧版会把二者当作相邻可精确值继续统计，现解析阶段检测超出 ±(2^53−1) 的整数字面量并拒绝。",
+  },
+  {
+    slug: "science/percentile-calculator",
+    inputs: { data: "9007199254740993,2,3", percentiles: "50" },
+    expect: ["超出安全整数范围"],
+    ref: "百分位数据同样拒绝无法精确保留的整数字面量，避免排序与分位数在静默舍入后失真。",
+  },
+  {
+    slug: "science/mean-calculator",
     inputs: { data: Array(100).fill("10000").join(",") },
     expect: ["几何平均 (GM) 10,000"],
     ref: "SMS-110 清账（溢出）：100 个 10000 连乘 = 1e400 = Infinity，旧版 GM=Math.pow(Infinity,0.01)=Infinity 显示「未定义」；现改对数域 exp(Σln/n)=exp(ln10000)=10000，GM 卡显示 10,000。判别锚「几何平均 (GM) 10,000」旧版不成立。注：原第二条不等式锚含独立词「AM」（算术平均缩写），被时区反模式门禁误判为上午/下午，故以 GM 卡单锚判别，判别力不变。"

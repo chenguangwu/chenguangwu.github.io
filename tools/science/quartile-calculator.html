@@ -169,7 +169,7 @@ label{margin-top:10px;}
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">四分位距 IQR = Q₃ − Q₁；下限须 = Q₁ − 1.5 × IQR；上限须 = Q₃ + 1.5 × IQR（超出即为离群值）</div>
   <div class="formula-desc">四分位数把升序数据按 25%/50%/75% 切开；本页用线性插值 pos=(n−1)×p（等价 Excel QUARTILE.INC / R type 7），并据 IQR=Q₃−Q₁ 与 1.5×IQR 界判定离群值。</div>
-  <div class="formula-desc">四分位数按 1e-10 精度显示；绝对值小于 1e-12 的浮点残差按 0 显示（该残差属数值噪声，不代表真实小量）。</div>
+  <div class="formula-desc">结果最多保留 3 位小数；小于 0.001 的非零值保留 6 位有效数字，绝对值小于 1e-6 用科学计数法。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入一组数值，计算第一、第二（中位数）、第三四分位数及四分位距 IQR，用于数据分布描述、箱线图绘制与异常值筛查。">Compute the first, second and third quartiles and the interquartile range for distribution description and box-plot work.</p>
 
@@ -259,7 +259,14 @@ label{margin-top:10px;}
 <!-- /注意事项区块 -->
 </div>
 <script>
-function fmt(x){ if(!isFinite(x)) return '未定义'; if(Math.abs(x)<1e-12) return '0'; return (Math.round(x*1e10)/1e10).toLocaleString(); }
+function fmt(x){
+  if(!isFinite(x)) return '未定义';
+  if(x===0) return '0';
+  var ax=Math.abs(x);
+  if(ax<1e-6||ax>=1e15) return x.toExponential(6);
+  if(Number(x.toFixed(3))===0) return x.toLocaleString(undefined,{maximumSignificantDigits:6});
+  return x.toLocaleString(undefined,{maximumFractionDigits:3});
+}
 function parseData(str){ return str.split(/[,\s\n;]+/).map(s=>s.trim()).filter(s=>s).map(s=>parseFloat(s)).filter(n=>!isNaN(n)); }
 function quantileLinear(sorted, p){
   const n=sorted.length;

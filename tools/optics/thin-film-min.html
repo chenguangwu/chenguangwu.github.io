@@ -129,11 +129,11 @@
 
   <div class="card">
     <h2 data-zh="由膜厚、折射率与级次求相消波长">Thin-Film Destructive Interference Calculator (2nt = (m+½)λ)</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入膜折射率 n、厚度 t（纳米）与级次 m，求相消干涉波长。">Compute the wavelength that interferes destructively at normal incidence from film index n, thickness t in nanometres and order m. For coating and anti-reflection design.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入膜折射率 n、厚度 t（纳米）、两侧介质折射率与观察光，求相消干涉波长。">Compute the destructive wavelength at normal incidence from film index n, thickness t, surrounding indices and the observed beam. For coating and anti-reflection design.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">增透膜相消干涉波长（本页代码口径）：λ=2×n×t÷(m+0.5)（nm，n 膜折射率、t 膜厚 nm、m 级次，半波损失致级次偏移 0.5）；联动量：光程差=2×n×t（nm）、下一级相消波长=2×n×t÷(m+1.5)（nm）。校验：无强校验，空值按 0 兜底。判据：无固定分级，级次越大相消波长越短，相邻级次波长逐级递缩。</div>
-      <p class="formula-desc">输入膜折射率 n、厚度 t（纳米）与级次 m，求相消干涉波长。</p>
+      <div class="formula-eq">相消干涉：2×n×t=(m+δ+0.5)×λ。反射光下，两界面相位跃变相同 δ=0，仅一侧 π 跃变 δ=0.5；透射光无反射相位跃变 δ=0。λ=2nt/(m+δ+0.5)，m 为非负整数。</div>
+      <p class="formula-desc">输入膜折射率 n、厚度 t（纳米）、两侧介质折射率与观察光，求相消干涉波长。</p>
     </div>
 
     <div class="input-row">
@@ -148,6 +148,20 @@
       <div>
         <label for="m">级次 m</label>
         <input type="number" id="m" value="1" step="1" placeholder="如 1">
+      </div>      <div>
+        <label for="n1">入射介质折射率 n₁</label>
+        <input type="number" id="n1" value="1" step="0.01" placeholder="如 1">
+      </div>
+      <div>
+        <label for="n2">出射介质折射率 n₂</label>
+        <input type="number" id="n2" value="1.5" step="0.01" placeholder="如 1.5">
+      </div>
+      <div>
+        <label for="obs">观察光</label>
+        <select id="obs">
+          <option value="reflected" selected>反射光</option>
+          <option value="transmitted">透射光</option>
+        </select>
       </div>
     </div>
 
@@ -226,17 +240,48 @@
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __tfnEn(){try{return !!(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}catch(e){return (document.documentElement.lang||'').indexOf('en')>=0;}}
+function __tfnPhase(n,n1,n2,obs){if(obs!=='reflected')return 0;var s1=(n>n1)?1:0;var s2=(n2>n)?1:0;return (s1+s2)%2;}
+function __tfnOffset(n,n1,n2,obs){return (__tfnPhase(n,n1,n2,obs)===1)?0.5:0;}
+function __tfnValidate(){
+  var ids=['n','t','m','n1','n2'], en=__tfnEn(), msg='';
+  for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(!e||String(e.value).trim()===''){msg=en?'Enter film index, thickness, order and surrounding indices.':'请输入膜折射率、膜厚、级次和两侧介质折射率。';break;}}
+  if(!msg){var n=parseFloat(document.getElementById('n').value),t=parseFloat(document.getElementById('t').value),m=parseFloat(document.getElementById('m').value),n1=parseFloat(document.getElementById('n1').value),n2=parseFloat(document.getElementById('n2').value);if(!isFinite(n)||!isFinite(t)||!isFinite(m)||!isFinite(n1)||!isFinite(n2)||n<=0||t<=0||n1<=0||n2<=0)msg=en?'Film and surrounding indices and thickness must be finite values greater than 0.':'膜折射率、膜厚和两侧介质折射率必须为大于 0 的有限数值。';else if(m<0||Math.abs(m-Math.round(m))>1e-9)msg=en?'Order m must be a non-negative integer.':'级次 m 须为不小于 0 的整数。';}
+  for(var j=0;j<ids.length;j++){var el=document.getElementById(ids[j]);if(el)el.classList.toggle('input-error',!!msg);}
+  return msg;
+}
+function __tfnError(msg){if(msg==null||msg==='')return;ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+msg+'</p>');}
+function __tfnClear(){['thin_film_minTable','thin_film_minDiff','tfnChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});}
+
+function __tfnSyncLang(){
+  var en=__tfnEn();
+  function lab(id,txt){var l=document.querySelector('label[for="'+id+'"]');if(l)l.textContent=txt;}
+  lab('n', en?'Film index n':'膜折射率 n');
+  lab('t', en?'Film thickness t (nm)':'膜厚 t (纳米)');
+  lab('m', en?'Order m':'级次 m');
+  lab('n1', en?'Incident index n₁':'入射介质折射率 n₁');
+  lab('n2', en?'Substrate index n₂':'出射介质折射率 n₂');
+  lab('obs', en?'Observed beam':'观察光');
+  var o=document.getElementById('obs');if(o&&o.options&&o.options.length>=2){o.options[0].text=en?'Reflected':'反射光';o.options[1].text=en?'Transmitted':'透射光';}
+}
+
 function calcTool(){
-            var __blank=['n','t','m'].some(function(id){var e=document.getElementById(id);return !e||String(e.value).trim()==='';});if(__blank){var __bad0=document.getElementById('thin_film_minTable');if(__bad0)__bad0.innerHTML='';ToolBox.setResult('result',((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Enter refractive index, film thickness and interference order.':'请输入膜折射率、膜厚与干涉级次。'));return;}
-            const n=num('n'),t=num('t'),m=num('m');
-            if(!(n>0)||!(t>0)||!(m>=0)||Math.abs(m-Math.round(m))>1e-9){var __bad=document.getElementById('thin_film_minTable');if(__bad)__bad.innerHTML='';ToolBox.setResult('result',((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Index and thickness must be greater than 0, and order m must be an integer at least 0.':'折射率与膜厚须大于 0，级次 m 须为不小于 0 的整数。'));return;}
-            const lam=2*n*t/(m+0.5);
-            const __g1=dataGrid([
-                [lam.toFixed(1),'相消波长 λ (nm)'],
-                [(2*n*t).toFixed(1), '光程差 2nt (nm)'],
-                [(2*n*t/((m+1.5)||1)).toFixed(1), '下一级相消波长 (nm)']
-            ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
-        }
+  var err=__tfnValidate(); if(err){__tfnError(err);__tfnClear();return;}
+  var n=parseFloat(document.getElementById('n').value),t=parseFloat(document.getElementById('t').value),m=parseFloat(document.getElementById('m').value);
+  var n1=parseFloat(document.getElementById('n1').value),n2=parseFloat(document.getElementById('n2').value),obs=document.getElementById('obs').value;
+  var ofs=__tfnOffset(n,n1,n2,obs), den=m+ofs+0.5, lam=2*n*t/den, en=__tfnEn();
+  var phase=__tfnPhase(n,n1,n2,obs);
+  var modeTxt=en?(obs==='reflected'?'Reflected':'Transmitted'):(obs==='reflected'?'反射光':'透射光');
+  var phaseTxt=obs==='transmitted'?(en?'no reflection phase shift':'透射光无反射相位跃变'):(phase===1?(en?'π (one interface)':'π（仅一侧界面跃变）'):(en?'0 (both interfaces same)':'0（两界面跃变相同）'));
+  var note='<p style="margin-top:10px;font-size:12px;color:var(--text-muted);">'+(en?'Normal incidence, smooth ideal film, two-beam interference. Destructive condition 2nt=(m+δ+0.5)λ. δ=0.5 only when exactly one reflected interface adds a π phase shift; a π shift is not a universal fixed half-order offset.':'垂直入射、光滑理想薄膜、双光束干涉。相消条件 2nt=(m+δ+0.5)λ；只有反射光恰有一侧界面发生 π 相位跃变时 δ=0.5，半波损失并非固定半级次偏移。')+'</p>';
+  var __g2=dataGrid([
+    [lam.toFixed(1), (en?'Destructive wavelength λ (nm)':'相消波长 λ (nm)')],
+    [(2*n*t).toFixed(1), (en?'Optical path 2nt (nm)':'光程差 2nt (nm)')],
+    [(2*n*t/(den+1)).toFixed(1), (en?'Next destructive wavelength (nm)':'下一级相消波长 (nm)')],
+    [modeTxt+(en?' / phase shift ':' / 界面相位差 ')+phaseTxt, en?'Phase condition':'相位条件']
+  ])+note;
+  ToolBox.setResult('result',__g2);
+}
 function resetForm(){document.getElementById('n').value = '1.33';
       document.getElementById('t').value = '500';
       document.getElementById('m').value = '1';
@@ -247,16 +292,18 @@ function __thin_film_minNum(id){var e=document.getElementById(id);var v=e?parseF
 function __thin_film_minExtras(){
     function __thin_film_minRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var n=num('n'),t=num('t'),m=num('m');
-    var lam=2*n*t/(m+0.5);
-    if (!(n>0) || !(t>0) || !(m>=0) || Math.abs(m-Math.round(m))>1e-9 || !isFinite(__thin_film_minNum('n')) || !isFinite(__thin_film_minNum('t')) || !isFinite(__thin_film_minNum('m'))) return;
+    var err=__tfnValidate(); if(err){__tfnClear();return;}
+    var n=parseFloat(document.getElementById('n').value),t=parseFloat(document.getElementById('t').value),m=parseFloat(document.getElementById('m').value);
+    var n1=parseFloat(document.getElementById('n1').value),n2=parseFloat(document.getElementById('n2').value),obs=document.getElementById('obs').value;
+    var ofs=__tfnOffset(n,n1,n2,obs),den=m+ofs+0.5,lam=2*n*t/den;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#thin_film_minTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['相消波长 λ (nm)', lam.toFixed(1)],
-            ['光程差 2nt (nm)', (2*n*t).toFixed(1)],
-            ['下一级相消波长 (nm)', (2*n*t/((m+1.5)||1)).toFixed(1)],
+            [en?'Destructive wavelength λ (nm)':'相消波长 λ (nm)', lam.toFixed(1)],
+            [en?'Optical path 2nt (nm)':'光程差 2nt (nm)', (2*n*t).toFixed(1)],
+            [en?'Next destructive wavelength (nm)':'下一级相消波长 (nm)', (2*n*t/(den+1)).toFixed(1)],
+            [en?'Phase condition':'相位条件', (obs==='transmitted'?(en?'Transmitted, no reflection shift':'透射光，无反射跃变'):(en?'Reflected, π shift ':'反射光，π 跃变 ')+__tfnPhase(n,n1,n2,obs))],
         ]
     });
     TBKit.history.record({n:__thin_film_minRaw('n'), t:__thin_film_minRaw('t'), m:__thin_film_minRaw('m'), lam:lam});
@@ -324,15 +371,15 @@ else document.addEventListener('DOMContentLoaded', __thin_film_minBoot);
 </section>
 <script>
 function __tfnSweep(){
-  var n=num('n'), t=num('t');
-  if(!isFinite(n)||!isFinite(t)||n<=0||t<=0)return null;
-  var labels=[], dL=[], dN=[];
-  var ms=[0,1,2,3,4,6,8];
+  var err=__tfnValidate(); if(err){var _e=document.getElementById('tfnChart');if(_e)_e.innerHTML='';return null;}
+  var n=parseFloat(document.getElementById('n').value), t=parseFloat(document.getElementById('t').value), n1=parseFloat(document.getElementById('n1').value), n2=parseFloat(document.getElementById('n2').value), obs=document.getElementById('obs').value;
+  var ofs=__tfnOffset(n,n1,n2,obs), labels=[], dL=[], dN=[];
+  var ms=ofs===0?[0,1,2,3,4,6,8]:[1,2,3,4,5,6,8];
   for(var k=0;k<ms.length;k++){
-    var mv=ms[k], lam=2*n*t/(mv+0.5);
+    var mv=ms[k], lam=2*n*t/(mv+ofs+0.5);
     labels.push('m'+mv);
     dL.push(Math.round(lam*100)/100);
-    dN.push(Math.round(2*n*t/(mv+1.5)*100)/100);
+    dN.push(Math.round(2*n*t/(mv+ofs+1.5)*100)/100);
   }
   return {labels:labels,dL:dL,dN:dN};
 }
@@ -359,7 +406,7 @@ function __tfnTabInit(){
   try{__tfnChart();}catch(e){}
 }
 var __tfnFn=calcTool;calcTool=function(){try{__tfnFn();}catch(e){}try{__tfnChart();}catch(e){}};
-document.addEventListener('toolbox:langchange',function(){try{__tfnChart();}catch(e){}});try{__tfnTabInit();}catch(e){}
+document.addEventListener('toolbox:langchange',function(){try{__tfnSyncLang();}catch(e){}try{__tfnChart();}catch(e){}});try{__tfnTabInit();}catch(e){}
 </script>
 </body>
 </html>

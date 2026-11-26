@@ -257,7 +257,20 @@ label{margin-top:10px;}
 <!-- /注意事项区块 -->
 </div>
 <script>
-function fmt(x){ if(!isFinite(x)) return '未定义'; if(x!==0&&Math.abs(x)<1e-6) return x.toExponential(4); return (Math.round(x*1e10)/1e10).toLocaleString(); }
+function fmt(x){
+  if(!isFinite(x)) return '未定义';
+  if(x===0) return '0';
+  var ax=Math.abs(x);
+  if(ax<1e-6||ax>=1e15) return x.toExponential(6);
+  if(Number(x.toFixed(3))===0) return x.toLocaleString(undefined,{maximumSignificantDigits:6});
+  return x.toLocaleString(undefined,{maximumFractionDigits:3});
+}
+function __unsafeIntToken(t){
+  if(!/^[+-]?\d+$/.test(t)) return false;
+  var v=Number(t);
+  if(!isFinite(v)||!Number.isSafeInteger(v)) return true;
+  try{return BigInt(t)!==BigInt(v);}catch(e){return false;}
+}
 function parseData(str){
   const toks=str.split(/[,\s\n;]+/).map(s=>s.trim()).filter(s=>s!=='');
   const vals=[];
@@ -266,6 +279,7 @@ function parseData(str){
     if(!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/.test(t)) return {err:i+1};
     const v=Number(t);
     if(!isFinite(v)) return {err:i+1};
+    if(__unsafeIntToken(t)) return {err:i+1,unsafe:true};
     vals.push(v);
   }
   return {vals:vals};
@@ -277,7 +291,7 @@ function __modeClear(){
 var __mode_calculatorValid=false;
 function calculate(){
   const parsed=parseData(document.getElementById('data').value);
-  if(parsed.err){__mode_calculatorValid=false;__modeClear();document.getElementById('output').innerHTML='<p style="color:var(--danger);">第 '+parsed.err+' 项数据无效，请输入数字（不接受字母或部分数字）</p>';return;}
+  if(parsed.err){__mode_calculatorValid=false;__modeClear();document.getElementById('output').innerHTML='<p style="color:var(--danger);">'+(parsed.unsafe?'第 '+parsed.err+' 项整数超出安全整数范围（±(2^53−1)），转换为 Number 会改变数值；请改用可精确表示的值或科学记数法':'第 '+parsed.err+' 项数据无效，请输入数字（不接受字母或部分数字）')+'</p>';return;}
   const data=parsed.vals;
   if(data.length<1){ __mode_calculatorValid=false; __modeClear(); const __h0='<p style="color:var(--danger);">请输入数据</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0; return; }
   const n=data.length;
