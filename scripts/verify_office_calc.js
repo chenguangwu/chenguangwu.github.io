@@ -45,11 +45,28 @@ function flowchartStaticChecks() {
       ok: !/foreignObject/.test(src),
     },
     {
+      // 空复制 / 空导出 / 空选页等分支不得再用无参 i18nText()，否则 showToast 静默跳过。
+      name: "流程图空操作均使用明确中英文提示（无裸 i18nText()）",
+      ok: !/i18nText\(\s*\)/.test(src) && /没有可复制的代码/.test(src) && /暂无可导出的图表/.test(src),
+    },
+    {
+      // getItem 返回 null = 从未保存；空字符串 = 用户明确保存的空白，必须原样恢复。
+      name: "流程图恢复已保存的空草稿（按 key 存在性判断）",
+      ok: /saved\.code\s*!==\s*null/.test(src) && /STORAGE_DRAFTS_KEY/.test(src),
+    },
+    {
+      // Tab 缩进默认关闭，不勾选时不得 preventDefault；Esc 退出缩进模式。
+      name: "流程图 Tab 缩进为可选模式，默认保留焦点导航",
+      ok: /indentMode\.checked = false/.test(src)
+        && /e\.key !== 'Tab' \|\| !indentMode\.checked/.test(src)
+        && /e\.key === 'Escape' && indentMode\.checked/.test(src),
+    },
+    {
       // toBlob 在部分浏览器会同步抛异常（画布超限/被安全策略拒绝），必须包 try/catch，
       // 且失败提示优先取 e.name（TypeError 的 message 跨浏览器不稳定）。
       name: "canvas.toBlob 处于 try/catch 内，失败 toast 取 e.name || e.message",
       ok: /try\s*\{\s*canvas\.toBlob\(/.test(src)
-        && /catch\s*\(e\)\s*\{\s*ToolBox\.showToast\('导出失败：'\s*\+\s*\(e\.name \|\| e\.message \|\| e\)/.test(src),
+        && /catch\s*\(e\)\s*\{\s*ToolBox\.showToast\((?:'导出失败：'|fcMsg\('导出失败：',\s*'Export failed: '\))\s*\+\s*\(e\.name \|\| e\.message \|\| e\)/.test(src),
     },
   ];
 }
