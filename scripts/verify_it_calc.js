@@ -8256,6 +8256,30 @@ const CASES = [
     "ref": "第796批：错误闭合标签必须报解析失败，不能把 `<a></b>` 当两个元素静默转换。旧手写解析器遇 `</b>` 不校验名字直接闭合 ⇒ 输出 `a:` 空值。探针断言结果区含「解析失败」且不含 `a:`；输入 XML 与提示文案无交集 ⇒ 判别明确。"
   },
   {
+    "slug": "it/xml-to-json",
+    "htmlDom": true,
+    "inputs": { "input": "<根><名字>张三</名字></根>" },
+    "clicks": ["doBeautify();"],
+    "expect": ["\"根\": {", "\"名字\": \"张三\""],
+    "ref": "XML 合法标签名不限于 ASCII：旧预检用 `[A-Za-z_]` 判标签首字符，`<根><名字>张三</名字></根>` 被误判为 XML 解析错误；现结构校验接受任意非空白/尖括号标签名，仍由 DOMParser 做最终合法性判定。输入是标签形态，期望是带引号 JSON 键值 ⇒ 非回显。"
+  },
+  {
+    "slug": "it/xml-to-toml",
+    "htmlDom": true,
+    "inputs": { "source": "<根><名字>张三</名字></根>" },
+    "clicks": ["calcTool();"],
+    "expect": ["[\"根\"]", "\"名字\" = \"张三\""],
+    "ref": "XML→TOML 中文标签：旧预检拒绝 ASCII 之外的标签名；现接受 `<根>` / `<名字>`，TOML 侧按非 ASCII 键规则加双引号。输入无中括号表头与等号键值形态 ⇒ 非回显。"
+  },
+  {
+    "slug": "it/xml-to-yaml",
+    "htmlDom": true,
+    "inputs": { "source": "<根><名字>张三</名字></根>" },
+    "clicks": ["calcTool();"],
+    "expect": ["根:", "名字: 张三"],
+    "ref": "XML→YAML 中文标签：旧预检拒绝 ASCII 之外的标签名；现输出嵌套映射 `根: / 名字: 张三`。输入是尖括号标签，输出是冒号映射 ⇒ 非回显。"
+  },
+  {
     "slug": "it/xml-to-toml",
     "htmlDom": true,
     "inputs": { "source": "<a></b>" },
