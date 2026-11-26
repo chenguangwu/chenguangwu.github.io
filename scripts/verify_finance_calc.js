@@ -4078,7 +4078,7 @@ const CASES = [
   {
     slug: "finance/housing-fund-loan",
     inputs: { balance: "12", housePrice: "450", age: "40", rate: "99" },
-    expect: ["输入无效已按 2.85% 计"],
+    expect: ["贷款年利率须填写 0–20%"],
     ref: "年利率 99% 超出 0–20% 有效区间：旧实现静默回退 2.85% 不告知；现显式标注「输入无效已按 2.85% 计」。默认 2.85% 且有效 ⇒ 不命中。"
   },
   {
@@ -6446,6 +6446,63 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["年通胀率须大于 -100%"],
     ref: "第947批：-100% 使价格因子为 0，必须明确拒绝而不是输出 Infinity/0 折现；默认 3% 不命中。",
+  },
+  // ===== 第948批新增 =====
+  {
+    slug: "finance/stock-profit-calculator",
+    inputs: { buyPrice: "10", buyQty: "100", sellPrice: "10", commissionRate: "0", stampRate: "0", transferRate: "0", minCommission: "100000" },
+    clicks: ["calc();"],
+    expect: ["2,010.00 元/股"],
+    ref: "第948批：最低佣金 10 万元时真实保本价 2010 元；旧固定上界 200 元导致搜索停在 200 附近。分段解析解直接命中 2010。",
+  },
+  {
+    slug: "finance/housing-fund-loan",
+    inputs: { balance: "8", housePrice: "300", age: "", loanYears: "20", rate: "2.85" },
+    clicks: ["calc()"],
+    expect: ["年龄须填写 18–70 岁的整数"],
+    ref: "第948批：年龄留空不再静默按 30 岁；默认 35 不命中。",
+  },
+  {
+    slug: "finance/housing-fund-loan",
+    inputs: { balance: "8", housePrice: "300", age: "35", loanYears: "20", rate: "0" },
+    clicks: ["calc()"],
+    expect: ["每月还款", "5,000 元", "利息总额", "0 元"],
+    ref: "第948批：显式 0% 利率按零利率公式，月供=120 万/240=5000、利息 0；旧实现等额本息分支利率为 0 时月供保持 0。",
+  },
+  {
+    slug: "finance/option-profit-calculator",
+    inputs: { strike: "100", premium: "5", mult: "100", contracts: "1", fee: "2", s0: "105" },
+    clicks: ["calc();"],
+    expect: ["105.04", "每股净盈亏（含费用）", "-0.04"],
+    ref: "第948批：K100/P5/乘数100/1张/单边费2，S=105 总净盈亏 -4 元；平衡点 105.04，每股净盈亏 -0.04，收益率 -0.8%。旧版未把费用计入收益率与曲线。",
+  },
+  {
+    slug: "finance/analysis-5",
+    inputs: { ca: "500000", inv: "10000", pre: "240000", cash: "80000", cl: "300000", tl: "700000", ta: "1200000" },
+    clicks: ["calc();"],
+    expect: ["主要拖累项为预付费用（占流动资产 48.0%）", "可调整的经验参考"],
+    ref: "第948批：速动 0.83 的真因是预付费用 48%，旧版一律归因存货占比高。默认 18/2 万时存货占 36% 且预付 4%，不命中。",
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "4000", insurance: "0", special: "0", threshold: "5000", bonus: "12000", bonusMode: "auto" },
+    clicks: ["calculate()"],
+    expect: ["并入综合所得（年度累进表）", "¥0.00", "全年少缴 ¥360.00"],
+    ref: "第948批：月薪 4000 低于 5000 起征点，年度未用扣除 1.2 万先抵奖金，合并税额应为 0 而非 360；旧版先把月应纳税所得额截 0 再×12。",
+  },
+  {
+    slug: "finance/discount-calculator",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/discount-calculator.html','utf8');var ok=(h.match(/class=\"qs-item\"/g)||[]).length===9&&h.indexOf('<button type=\"button\" class=\"qs-item\"')>=0&&h.indexOf('aria-label=\"第 ${i + 1} 级折扣')>=0&&h.indexOf('aria-label=\"删除第 ${i + 1} 级折扣\"')>=0;document.getElementById('__tbProbe').textContent='QSA11Y '+(ok?'OK':'BAD');"],
+    expect: ["QSA11Y OK"],
+    ref: "第948批：9 个快捷项改为语义 button 并带折扣 aria-label；动态第 2 级输入带序号名称。旧 div 无法键盘聚焦且动态输入无名称。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { dt_income: "20", dt_expense: "12", dt_debt: "80", dt_existing: "10", assumeMultiple: "5", assumeHealthMin: "50", assumePremiumPct: "8" },
+    clicks: ["calc();"],
+    expect: ["年收入20万×5 + 负债80万 − 已有保障10万 = 170万", "年收入×8%"],
+    ref: "第948批：收入倍数/重疾最低/保费比例可调，5 倍时寿险 170 万、保费 1.6 万；旧版写死 10 倍与 10% 不命中。",
   },
 
 ];

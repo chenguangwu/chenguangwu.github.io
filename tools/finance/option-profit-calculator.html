@@ -497,7 +497,8 @@ function calc(){
     worstPS = p - K;
   }
 
-  var totalProfit = perShare * notionalUnits - totalFee;
+  var netPerShare = perShare - feePS;
+  var totalProfit = netPerShare * notionalUnits;
   var bestTotal = isFinite(bestPS) ? bestPS * notionalUnits - totalFee : bestPS;
   var worstTotal = isFinite(worstPS) ? worstPS * notionalUnits - totalFee : worstPS;
   var bepReachable = bep >= 0;
@@ -530,7 +531,8 @@ function calc(){
     profitZone = 'S > ' + bep.toFixed(2);
     lossZone = 'S < ' + bep.toFixed(2);
   }
-  var profitPct = p > 0 ? (perShare / p * 100) : 0;
+  // 权利金收益率必须扣开平仓手续费，与总盈亏同口径。
+  var profitPct = p > 0 ? (netPerShare / p * 100) : 0;
 
   currentResult = {
     type: currentType,
@@ -542,6 +544,7 @@ function calc(){
     multiplier: mult,
     fee: fee,
     perShare: perShare,
+    netPerShare: netPerShare,
     totalProfit: totalProfit,
     bep: bep,
     timestamp: Date.now()
@@ -550,7 +553,7 @@ function calc(){
   var profitClass = totalProfit >= 0 ? 'positive' : 'negative';
   var profitSign = totalProfit >= 0 ? '+' : '';
 
-  var statHtml = '<div class="stat-card ' + profitClass + '"><div class="val">' + profitSign + ToolBox.formatNumber(perShare, 2) + '</div><div class="lbl">每股盈亏</div></div>'
+  var statHtml = '<div class="stat-card ' + profitClass + '"><div class="val">' + profitSign + ToolBox.formatNumber(netPerShare, 2) + '</div><div class="lbl">每股净盈亏（含费用）</div></div>'
     + '<div class="stat-card ' + profitClass + '"><div class="val">' + profitSign + ToolBox.formatNumber(totalProfit, 0) + '</div><div class="lbl">总盈亏(元)</div></div>'
     + '<div class="stat-card"><div class="val">' + (bepReachable ? bep.toFixed(2) : '不可达') + '</div><div class="lbl">盈亏平衡点</div></div>'
     + '<div class="stat-card"><div class="val">' + profitPct.toFixed(1) + '%</div><div class="lbl">收益率(权利金)</div></div>';
@@ -597,10 +600,10 @@ function calc(){
 
   const __g2=resHtml;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
-  drawChart(K, p, bep, S);
+  drawChart(K, p, bep, S, feePS);
 }
 
-function drawChart(K, p, bep, currentS){
+function drawChart(K, p, bep, currentS, feePS){
   var en = /^en/i.test(document.documentElement.lang || '');
   var canvas = document.getElementById('chart');
   var dpr = window.devicePixelRatio || 1;
@@ -648,6 +651,7 @@ function drawChart(K, p, bep, currentS){
     } else if(currentType === 'put' && currentSide === 'sell'){
       profit = p - Math.max(K - s, 0);
     }
+    profit -= (isFinite(feePS) ? feePS : 0);
     data.push({s: s, profit: profit});
     if(profit > maxProfit) maxProfit = profit;
     if(profit < minProfit) minProfit = profit;
