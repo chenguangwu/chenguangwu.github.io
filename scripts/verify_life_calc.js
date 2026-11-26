@@ -2432,21 +2432,21 @@ const CASES = [
   {
     slug: "life/bill-splitter",
     inputs: { "total-amount": "-100" },
-    expect: ["输入错误：总金额必须 ≥ 0 且为有效数字（当前 -100），已停止计算。"],
+    expect: ["输入错误：总金额必须 ≥ 0 且为有效数字 (-100)，已停止计算。"],
     ref: "LF-N3 负总额：旧实现 parseFloat||0 把 -100 原样参与计算并输出负应付；现改为字段级标红 + 停止输出，提示串含注入值 -100。"
        + "判别力回退默认 1000 元时页面无该提示（正常出结果），注入失败即失配。",
   },
   {
     slug: "life/bill-splitter",
     inputs: { "tip-percent": "-5" },
-    expect: ["输入错误：小费/服务费比例必须 ≥ 0 且为有效数字（当前 -5），已停止计算。"],
+    expect: ["输入错误：小费/服务费比例必须在 0–100% 之间 (-5)，已停止计算。"],
     ref: "LF-N3 负小费：旧实现 parseFloat||0 保留 -5% 并算出低于账单总额的应付（分摊合计不闭合）；现与总金额同口径校验并停止输出。"
        + "默认 tip=0 正常出结果、不含该提示 ⇒ 强判别。",
   },
   {
     slug: "life/bill-splitter",
     clicks: ["persons[0].share=0;persons[1].share=-2;calcSimple();"],
-    expect: ["输入错误：第 1 位「张三」的份数必须大于 0（当前 0），已停止计算。"],
+    expect: ["输入错误：第 1 位「张三」的份数必须大于 0 (0)，已停止计算。"],
     ref: "LF-N3 非法份数：旧实现 onchange=\"+this.value\" 直接接受 0 与负数（0 份那行会被 0/0 或负值污染）；现要求份数 >0，命中首个非法行并标红。"
        + "默认态（clicks 清空）4 人各 1 份正常出结果，不含该提示 ⇒ 强判别。",
   },
@@ -4869,7 +4869,35 @@ const CASES = [
     expect: ["AAREM OK"],
     ref: "第929批：简单分摊余分按最大余数分配；1:2:4 分 100 元时 0.01 元应给小数部分最大的 B（28.58），不再按数组顺序给 A。"
   }
-
+,  {
+    slug: "life/bill-splitter",
+    clicks: ["document.getElementById('tip-percent').value='150';calcSimple();document.getElementById('__tbProbe').textContent='TIPMAX '+document.getElementById('simple-result').textContent;"],
+    expect: ["TIPMAX", "小费/服务费比例必须在 0–100% 之间 (150)", "已停止计算"],
+    ref: "第930批：简单分摊小费 150% 被明确拒绝，不再按 150% 计算；提示与 max=100 的输入约束一致。"
+  },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["document.getElementById('adv-tip').value='150';calcAdvanced();document.getElementById('__tbProbe').textContent='ADTIPMAX '+document.getElementById('adv-result').textContent;"],
+    expect: ["ADTIPMAX", "小费/服务费比例必须在 0–100% 之间 (150)", "已停止计算"],
+    ref: "第930批：逐项分摊与简单分摊统一按 0–100% 校验；150% 停止计算，不再出现同一页面两套口径。"
+  },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/bill-splitter.html','utf8');document.getElementById('__tbProbe').textContent='AAEN '+((src.indexOf('Total shares:')>=0&&src.indexOf('Total reconciled')>=0&&src.indexOf('Name,Shares,Amount')>=0&&src.indexOf('Allocation rule')>=0)?'OK':'BAD');"],
+    expect: ["AAEN OK"],
+    ref: "第930批：英文态简单分摊结果动态标题与导出表头改为英文，不再出现“总金额/总份数/姓名,份数”；用户姓名保持原样。"
+  },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["TBKit={util:{isEn:function(){return true;}}};var before=advPersons.length;addAdvPerson();var ok=advPersons[before]==='Person '+(before+1);document.getElementById('__tbProbe').textContent='AANAME '+(ok?'OK':'BAD')+'|'+advPersons[before];"],
+    expect: ["AANAME OK|"],
+    ref: "第930批：英文态新增人员默认名为 Person N，不再插入“人员N”；用户改写的姓名仍按原样保存。"
+  },  {
+    slug: "life/bill-splitter",
+    clicks: ["persons[0].share=0.1;persons[1].share=9.9;persons[2].share=0.1;persons[3].share=0.1;document.getElementById('total-amount').value='0.01';document.getElementById('tip-percent').value='0';calcSimple();document.getElementById('__tbProbe').textContent='AAREM2 '+document.getElementById('simple-result').textContent;"],
+    expect: ["AAREM2", "李四 (9.9份) ¥0.01", "张三 (0.1份) ¥0.00"],
+    ref: "第930批：0.1 份与 9.9 份分 0.01 元时，唯一 1 分给小数余数更大的 9.9 份者；不再按人员顺序给第一人。"
+  }
 ];
 // ---------------------------------------------------------------- main
 async function main() {
