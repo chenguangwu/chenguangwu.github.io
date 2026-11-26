@@ -59,6 +59,12 @@ const CASES = [
   clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/audio/audio-waveform.html','utf8');var ok=src.indexOf('__overviewState')>=0&&src.indexOf('retryOverview')>=0&&src.indexOf('Math.floor(i * samples / bucketCount)')>=0&&src.indexOf('Math.floor(i * bufLen / barCount)')>=0&&src.indexOf('Oscilloscope')>=0&&src.indexOf('Playback failed')>=0;document.getElementById('__tbProbe').textContent='AVWAVE2 '+(ok?'OK':'BAD');"],
   expect: ["AVWAVE2 OK"],
   ref: "第1020批：概览分桶按 samples/bucketCount 比例覆盖首尾且桶数不超过样本数；频谱按 bufLen/barCount 比例覆盖尾部高频；解码状态 idle/loading/ok/fail + retryOverview；画布标签与播放失败提示按 __awEn() 输出英文。"
+},
+{
+  slug: "audio/audio-recorder",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/audio/audio-recorder.html','utf8');var ok=src.indexOf('isStarting')>=0&&src.indexOf('micReqSeq')>=0&&src.indexOf('function finishRecording')>=0&&src.indexOf('function cleanupRecording')>=0&&src.indexOf('recSeq++')>=0&&src.indexOf('function stopListAudio')>=0&&src.indexOf('loadedObjectUrl')>=0&&src.indexOf('releaseLoadedObjectUrl')>=0&&src.indexOf('function audioExtForBlob')>=0&&src.indexOf('snapBlob')>=0&&src.indexOf('clipped = 0')>=0&&src.indexOf('normalized')>=0&&src.indexOf('preservesPitch = false')>=0&&src.indexOf('AR_LASTKEY')>=0&&src.indexOf('__arCommitBaseline')>=0&&src.indexOf('recordings.length + 1')<0;document.getElementById('__tbProbe').textContent='AUDIOREC ALL '+(ok?'OK':'BAD');"],
+  expect: ["AUDIOREC ALL OK"],
+  ref: "第1021批（15 任务）：录音请求守卫与清理、列表单实例播放、对象地址释放、原扩展名映射、导出快照与削波归一化、试听保调开关统一、设置基线独立保存。"
 }
 ];
 async function main() {
