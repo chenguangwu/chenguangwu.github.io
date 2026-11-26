@@ -437,7 +437,7 @@ function batch204StaticChecks(){
   var idp = fs.readFileSync("tools/image/id-photo-crop.html","utf8");
   out.push({name:"B207 id-photo onerror clears",ok:idp.indexOf('srcImg = null;')>=0&&idp.indexOf('无法解码该图片')>=0});
   var rot = fs.readFileSync("tools/image/image-rotate.html","utf8");
-  out.push({name:"B208 rotate preview cap",ok:rot.indexOf("previewMax = 16000000")>=0&&rot.indexOf("function drawRotated(canvas, scale)")>=0&&rot.indexOf("if(lastPreviewScale < 1)")>=0});
+  out.push({name:"B208 rotate preview cap",ok:rot.indexOf("PREVIEW_MAX_PIXELS = 16000000")>=0&&rot.indexOf("PREVIEW_MAX_SIDE = 4096")>=0&&rot.indexOf("function rotatedDimensions(w, h, a)")>=0&&rot.indexOf("function drawRotatedImage(canvas, img, scale, state)")>=0&&rot.indexOf("lastPreviewScale")>=0});
   out.push({name:"B207 rotate filename after decode",ok:(function(){var i=rot.indexOf('img.onload = function()');var j=rot.indexOf('resolve({ img: img, name:',i);var k=rot.indexOf('img.onerror',i);return i>=0&&j>i&&k>j&&rot.indexOf('fileName = batchImages[i].name')>=0;})()});
   var wc = fs.readFileSync("tools/image/wechat-cover-maker.html","utf8");
   out.push({name:"B207 cover sizes",ok:wc.indexOf('id="coverSize"')>=0&&wc.indexOf('Math.max(tw / c.width, th / c.height)')>=0&&wc.indexOf('const hasCJK')>=0});
