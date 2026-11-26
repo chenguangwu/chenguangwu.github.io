@@ -145,7 +145,7 @@
 
   <div class="card tool-card-accent" style="--tool-accent:#1D4ED8;">
     <h2 data-zh="🎨 颜色名称查询">🎨 Color Name Finder</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入色值查询颜色名称，或输入颜色名查询对应的色值，包含中文传统颜色大全">Enter a hex or RGB colour value to find the nearest named colour and its closest matches.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入 HEX、RGB 或 HSL 色值查询颜色名称，或输入颜色名查询对应色值，包含中文传统颜色大全">Enter a hex, RGB or HSL colour value to find the nearest named colour and its closest matches.</p>
     
     <div class="tabs">
       <div id="color_name_finderPresets"></div><button type="button" class="tab-btn active" onclick="switchTab('lookup')">色值查名称</button><button class="btn" type="button" onclick="__color_name_finderExport()">导出明细 CSV</button>
@@ -409,6 +409,15 @@ function colorDistance(c1,c2) {
   return Math.sqrt((a.L-b.L)**2 + (a.a-b.a)**2 + (a.b-b.b)**2);
 }
 
+function hslToHex(h,s,l){
+  s=s/100;l=l/100;
+  const c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs((h/60)%2-1)), m=l-c/2;
+  let r=0,g=0,b=0;
+  if(h<60){r=c;g=x;}else if(h<120){r=x;g=c;}else if(h<180){g=c;b=x;}
+  else if(h<240){g=x;b=c;}else if(h<300){r=x;b=c;}else{r=c;b=x;}
+  const to=v=>Math.round((v+m)*255).toString(16).padStart(2,'0').toUpperCase();
+  return '#'+to(r)+to(g)+to(b);
+}
 function parseColor(input) {
   input=input.trim();
   if (input.startsWith('#')) {
@@ -419,6 +428,13 @@ function parseColor(input) {
     const m=input.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
     if (m && [+m[1],+m[2],+m[3]].every(v=>v>=0&&v<=255)) return rgbToHex(+m[1],+m[2],+m[3]);
     return false;
+  }
+  if (/^hsl/i.test(input)) {
+    const m=input.match(/^hsl\s*\(\s*(\d+(?:\.\d+)?)\s*(?:deg|°)?\s*,\s*(\d+(?:\.\d+)?)%\s*,\s*(\d+(?:\.\d+)?)%\s*\)$/i);
+    if (!m) return false;
+    const h=+m[1], sat=+m[2], lig=+m[3];
+    if (!(h>=0&&h<=360&&sat>=0&&sat<=100&&lig>=0&&lig<=100)) return false;
+    return hslToHex(h,sat,lig);
   }
   return null;
 }
@@ -436,12 +452,13 @@ function searchColor() {
   const results=document.getElementById('search-results');
   if(!q){preview.style.display='none';info.style.display='none';const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){results.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}results.innerHTML=__h0;return;}
   
+  const en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
   let hex=parseColor(q);
   let allColors=[...chineseColors,...webColors.map(c=>({name:c.name,hex:c.hex,cat:'web'}))];
 
   if(hex===false){
     preview.style.display='none';info.style.display='none';
-    results.innerHTML='<div class="history-empty" style="color:var(--danger)">色值格式不正确，请输入完整的 3 位或 6 位十六进制色值（如 #A1B2C3）或 rgb(r,g,b)（如 rgb(161,178,195)，不要带多余字符）。</div>';
+    results.innerHTML='<div class="history-empty" style="color:var(--danger)">'+(en?'Invalid colour format. Enter a complete 3/6-digit hex value (e.g. #A1B2C3), rgb(r,g,b) (e.g. rgb(161,178,195)) or hsl(h,s%,l%) (e.g. hsl(0,100%,50%)), without trailing characters.':'色值格式不正确，请输入完整的 3 位或 6 位十六进制色值（如 #A1B2C3）、rgb(r,g,b)（如 rgb(161,178,195)）或 hsl(h,s%,l%)（如 hsl(0,100%,50%)），不要带多余字符。')+'</div>';
     return;
   }
   
@@ -458,17 +475,17 @@ function searchColor() {
     
     info.style.display='block';
     const rgb=hexToRgb(hex);
-    const __h1=`<p><strong>当前色值</strong></p>
-      <p>HEX: <code>${hex}</code> <button type="button" class="btn" onclick="ToolBox.copyText('${hex}')">复制</button></p>
-      <p>RGB: rgb(${rgb.r}, ${rgb.g}, ${rgb.b}) <button type="button" class="btn" onclick="ToolBox.copyText('rgb(${rgb.r},${rgb.g},${rgb.b})')">复制</button></p>
-      <p style="margin-top:8px;"><strong>最接近的颜色名称：</strong></p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){info.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}info.innerHTML=__h1;
+    const __h1=`<p><strong>${en?'Current color':'当前色值'}</strong></p>
+      <p>HEX: <code>${hex}</code> <button type="button" class="btn" onclick="ToolBox.copyText('${hex}')">${en?'Copy':'复制'}</button></p>
+      <p>RGB: rgb(${rgb.r}, ${rgb.g}, ${rgb.b}) <button type="button" class="btn" onclick="ToolBox.copyText('rgb(${rgb.r},${rgb.g},${rgb.b})')">${en?'Copy':'复制'}</button></p>
+      <p style="margin-top:8px;"><strong>${en?'Nearest color names:':'最接近的颜色名称：'}</strong></p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){info.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}info.innerHTML=__h1;
     
     const __h2=matches.map((m,i)=>{
       const textColor=luminance(m.hex)<0.179?'#fff':'#000';
-      return `<button type="button" class="matched-color" aria-label="选用 ${m.name} ${m.hex}" onclick="pickColor('${m.hex}')">
+      return `<button type="button" class="matched-color" aria-label="${en?'Use':'选用'} ${m.name} ${m.hex}" onclick="pickColor('${m.hex}')">
         <div class="swatch" style="background:${m.hex};"></div>
         <div class="info"><div class="name">${m.name}</div><div class="hex">${m.hex}</div></div>
-        <div style="font-size:12px;color:var(--text-muted);">${i===0?'最佳匹配':'距离:'+Math.round(m.dist)}</div>
+        <div style="font-size:12px;color:var(--text-muted);">${i===0?(en?'Best match':'最佳匹配'):((en?'Distance ':'距离:')+Math.round(m.dist))}</div>
       </button>`;
     }).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){results.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}results.innerHTML=__h2;
   }else{
@@ -476,7 +493,7 @@ function searchColor() {
     preview.style.display='none';info.style.display='none';
     if(nameMatches.length>0){
       __colorNameMatches=nameMatches; __colorShowLimit=20; renderNameMatches();
-    }else{const __h4='<div class="history-empty">未找到匹配的颜色，请输入色值或颜色名</div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){results.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}results.innerHTML=__h4;}
+    }else{const __h4='<div class="history-empty">'+(en?'No matching color. Enter a color value or color name.':'未找到匹配的颜色，请输入色值或颜色名')+'</div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){results.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}results.innerHTML=__h4;}
   }
 }
 var __colorNameMatches=[],__colorShowLimit=20;
@@ -484,9 +501,10 @@ function renderNameMatches(){
   var results=document.getElementById('search-results');
   var total=__colorNameMatches.length;
   var shown=Math.min(total,__colorShowLimit);
-  var head='找到 '+total+' 个匹配'+(shown<total?'，当前显示前 '+shown+' 个':'');
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+  var head=en?('Found '+total+' matches'+(shown<total?', showing first '+shown:'')):('找到 '+total+' 个匹配'+(shown<total?'，当前显示前 '+shown+' 个':''));
   var html='<p style="margin-bottom:8px;color:var(--text-light);">'+head+'</p>'+
-    __colorNameMatches.slice(0,shown).map(function(m){return '<button type="button" class="matched-color" aria-label="选用 '+m.name+' '+m.hex+'" onclick="pickColor(\''+m.hex+'\')"><div class="swatch" style="background:'+m.hex+';"></div><div class="info"><div class="name">'+m.name+'</div><div class="hex">'+m.hex+'</div></div></button>';}).join('');
+    __colorNameMatches.slice(0,shown).map(function(m){return '<button type="button" class="matched-color" aria-label="'+(en?'Use':'选用')+' '+m.name+' '+m.hex+'" onclick="pickColor(\''+m.hex+'\')"><div class="swatch" style="background:'+m.hex+';"></div><div class="info"><div class="name">'+m.name+'</div><div class="hex">'+m.hex+'</div></div></button>';}).join('');
   if(shown<total) html+='<button type="button" class="btn" style="margin-top:8px;" onclick="showMoreColors()">显示更多（剩余 '+(total-shown)+' 个）</button>';
   results.innerHTML=html;
 }

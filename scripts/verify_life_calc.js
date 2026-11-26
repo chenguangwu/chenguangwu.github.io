@@ -2308,7 +2308,7 @@ const CASES = [
       "inputType": "hk"
     },
     "expect": [
-      "基准戒指内周长： 82 mm （直径 26.1014 mm） 周长(mm)： 82 直径(mm)： 26.1014 美码： 17.5962 英码（UK）： 无对应英码（超出 A–Z½ 范围） 欧码： 82 意码： 42"
+      "基准戒指内周长： 82 mm （直径 26.1014 mm） 周长(mm)： 82 直径(mm)： 26.1014 美码： 17.5962 英码（UK）： 超出支持范围（该制式无可靠对应值） 欧码： 82 意码： 42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"inputType\":\"hk\"}，输出区含「基准戒指内周长： 131.88 mm （直径 41.9787 mm） 周长(mm…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -4071,6 +4071,67 @@ const CASES = [
     ref: "第917批：合同总额不再按元取整，保留到分，人民币大写输出角分。"
   }
 
+,
+  {
+    slug: "life/color-name-finder",
+    clicks: ["var red=parseColor('hsl(0,100%,50%)');var gray=parseColor('hsl(0,0%,50%)');var bad=parseColor('hsl(361,100%,50%)');document.getElementById('single-preview').textContent='HSL '+((red==='#FF0000'&&gray==='#808080'&&bad===false)?'OK':'BAD');"],
+    expect: ["HSL OK"],
+    ref: "第918批：HSL 转 RGB 本地解析，红色/灰色正确，色相越界判非法。"
+  },
+  {
+    slug: "life/color-name-finder",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/color-name-finder.html','utf8');document.getElementById('single-preview').textContent='CEN '+((src.indexOf('Current color')>=0&&src.indexOf('Nearest color names')>=0&&src.indexOf('Best match')>=0&&src.indexOf('Found ')>=0)?'OK':'BAD');"],
+    expect: ["CEN OK"],
+    ref: "第918批：英文态色值、名称、匹配数与距离标签均由 en 分支生成，不再中英混杂。"
+  },
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "2026-01-01", endDate: "2026-01-05", holidays: "2026-01-01", workdays: "" },
+    checkIds: ["skipSat", "skipSun"],
+    clicks: ["calc();document.getElementById('resultBox').textContent='WDD '+((__workdayCurrentDetail&&__workdayCurrentDetail.rows.length===5&&__workdayCurrentDetail.rows[0][2]==='法定节假日'&&__workdayCurrentDetail.rows[2][2]==='周末（已排除）'&&document.getElementById('exportDetailBtn').disabled===false)?'OK':'BAD');"],
+    expect: ["WDD OK"],
+    ref: "第918批：导出改为当前日期范围的逐日日期/星期/类型明细，节假日、周末分类正确。"
+  },
+  {
+    slug: "life/power-converter",
+    inputs: { inputVal: "1", fromUnit: "btuh" },
+    clicks: ["convert();document.getElementById('__charRefBox').textContent='PBTU '+((document.getElementById('__charRefBox').innerHTML.indexOf('你的输入')>=0)?'OK':'BAD');"],
+    expect: ["PBTU OK"],
+    ref: "第918批：BTU/h 选择后尺度区仍有输出，且悬殊差值用最近参照倍数而非约等。"
+  },
+  {
+    slug: "life/energy-converter",
+    inputs: { inputVal: "1", fromUnit: "eV" },
+    clicks: ["convert();var t=document.getElementById('__charRefBox').innerHTML;t='EEV '+((t.indexOf('你的输入：')>=0)?'OK':'BAD');document.getElementById('__charRefBox').textContent=t;"],
+    expect: ["EEV OK"],
+    ref: "第918批：尺度模块复用主换算 factors，eV/keV/MeV 不再清空参照区。"
+  },
+  {
+    slug: "life/energy-converter",
+    inputs: { inputVal: "1", fromUnit: "eV" },
+    clicks: ["convert();clearAll();document.getElementById('__charRefBox').textContent='ECLR '+((document.getElementById('__charRefBox').textContent.trim()==='')?'OK':'BAD');"],
+    expect: ["ECLR OK"],
+    ref: "第918批：清空同步清除尺度参照，避免残留旧结果。"
+  },
+  {
+    slug: "life/ring-size-converter",
+    inputs: { inputVal: "40", inputType: "circ" },
+    clicks: ["convert();var t=document.getElementById('resultBox').innerHTML.replace(/<[^>]+>/g,' ');document.getElementById('resultBox').textContent=t+' RING '+((t.indexOf('基准戒指内周长： 40 mm')>=0&&t.indexOf('超出支持范围')>=0&&t.indexOf('美码')>=0)?'OK':'BAD');"],
+    expect: ["RING OK"],
+    ref: "第918批：单一制式越界不再阻断全部结果，保留周长/直径/美码并单独标注港码/意码。"
+  },
+  {
+    slug: "life/analysis-80",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/analysis-80.html','utf8');document.getElementById('res').textContent='A80 '+((src.indexOf('逐环节录入损耗量与应售量')>=0&&src.indexOf('不是各环节损耗率的简单平均')>=0&&src.indexOf('<li>损耗率行业对标</li>')<0)?'OK':'BAD');"],
+    expect: ["A80 OK"],
+    ref: "第918批：深挖与介绍按实际三列输入重写，删除成因/对标/趋势承诺。"
+  },
+  {
+    slug: "life/world-clock",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/world-clock.html','utf8');document.getElementById('clockGrid').textContent='WCOFF '+((src.indexOf('zone-')>=0&&src.indexOf('__clockOffsetCache')>=0&&src.indexOf('getOffset(c.id)')>=0)?'OK':'BAD');"],
+    expect: ["WCOFF OK"],
+    ref: "第918批：每秒刷新时重算并更新城市卡 UTC 偏移，偏移变化同步刷新会议视图。"
+  }
 ];
 
 // ---------------------------------------------------------------- main

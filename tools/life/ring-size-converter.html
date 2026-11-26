@@ -345,27 +345,25 @@ function convert(){
     const __h1='<p style="color:var(--danger);">输入值无效</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
     return;
   }
-  // 各制式结果须为正数，否则说明该码数低于可换算范围
-  const bad = Object.keys(labels).some(k => {
-    if(k === type) return false;
-    const out = fromCirc(circ, k);
-    return k === 'uk' ? false : (!isFinite(out) || out <= 0);
-  });
-  if(bad){
-    input.classList.add('input-error');
-    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">该码数低于可换算范围，请检查输入</p>';
-    return;
-  }
+  // 分别校验各制式：保留有效结果，仅对无可靠对应值的制式单独标注
   input.classList.remove('input-error');
   let html = `<p>基准戒指内周长：<strong>${fmt(circ)} mm</strong>（直径 ${fmt(circ / Math.PI)} mm）</p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
+  const missing=[];
   Object.keys(labels).forEach(k => {
-    if(k !== type){
-      const out = fromCirc(circ, k);
-      html += `<p>${labels[k]}：<strong>${k === 'uk' ? (out || '无对应英码（超出 A–Z½ 范围）') : fmt(out)}</strong></p>`;
+    if(k === type) return;
+    const out = fromCirc(circ, k);
+    const ok = (k==='uk') ? !!out : (isFinite(out) && out > 0);
+    if(ok){
+      html += `<p>${labels[k]}：<strong>${k === 'uk' ? out : fmt(out)}</strong></p>`;
+    }else{
+      missing.push(labels[k]);
+      html += `<p>${labels[k]}：<strong style="color:var(--warning);">超出支持范围（该制式无可靠对应值）</strong></p>`;
     }
   });
-  const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
+  if(missing.length){
+    html += '<p style="font-size:12px;color:var(--text-muted);">港码/意码按“内周长 − 40 mm”起算，内周长过小时会出现 0 或负值，已单项标记；其余制式结果不受影响。请以实测周长或品牌尺码表为准。</p>';
+  }  const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
 }
 
 function clearAll(){

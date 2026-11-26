@@ -501,7 +501,7 @@ function buildClockGrid(){
     <div class="clock-item">
       <span class="remove-btn" onclick="removeCity(${i})">✕</span>
       <div class="clock-city">${c.city}</div>
-      <div class="clock-zone">${c.country} · ${formatOffset(getOffset(c.id))}</div>
+      <div class="clock-zone" id="zone-${c.id.replace(/\//g, '-')}">${c.country} · ${formatOffset(getOffset(c.id))}</div>
       <div class="clock-time" id="time-${c.id.replace(/\//g, '-')}">--:--:--</div>
       <div class="clock-date" id="date-${c.id.replace(/\//g, '-')}">--</div>
     </div>
@@ -510,11 +510,19 @@ function buildClockGrid(){
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h0;
 }
 
+var __clockOffsetCache={};
 function updateClocks(){
   const now = new Date();
+  let offsetChanged=false;
   selectedCities.forEach(c => {
     const safeId = c.id.replace(/\//g, '-');
     try{
+      const off=getOffset(c.id);
+      if(__clockOffsetCache[c.id]!==off){
+        __clockOffsetCache[c.id]=off;offsetChanged=true;
+        const zEl=document.getElementById('zone-'+safeId);
+        if(zEl) zEl.textContent=c.country+' · '+formatOffset(off);
+      }
       const time = new Intl.DateTimeFormat('zh-CN', {
         timeZone:c.id, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
       }).format(now);
@@ -527,6 +535,7 @@ function updateClocks(){
       if(dEl) dEl.textContent = date;
     }catch(e){}
   });
+  if(offsetChanged&&currentTab==='meeting'){try{renderMeetingCities();}catch(e){}}
 }
 
 function openAddModal(){

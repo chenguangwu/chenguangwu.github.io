@@ -168,7 +168,7 @@
     <textarea id="workdays" oninput="calc()" placeholder="如：2026-02-14"></textarea>
 
     <div class="toolbar">
-      <div id="workday_calculatorPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__workday_calculatorExport()">导出明细 CSV</button>
+      <div id="workday_calculatorPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" id="exportDetailBtn" onclick="__workday_calculatorExport()" disabled>导出当前明细 CSV</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
 
@@ -308,6 +308,7 @@ function parseDateSet(id, label){
   return { set, errors, duplicates, label };
 }
 
+var __workdayCurrentDetail=null;
 function calc(){
   const startStr = document.getElementById('startDate').value;
   const endStr = document.getElementById('endDate').value;
@@ -373,6 +374,28 @@ function calc(){
     if((skipSat && dow === 6) || (skipSun && dow === 0)) weekends--;
   });
   const workDays = totalDays - weekends - holidayCount;
+  const en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+  __workdayCurrentDetail = null;
+  if(totalDays <= 3660){
+    const rows=[];
+    for(let d=0;d<totalDays;d++){
+      const cur=new Date(start.getFullYear(),start.getMonth(),start.getDate()+d);
+      const key=fmtLocalDate(cur),dow=cur.getDay();
+      const wk=en?['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dow]:['周日','周一','周二','周三','周四','周五','周六'][dow];
+      let type;
+      if(makeupDays.has(key)) type=en?'Make-up workday':'调休上班日';
+      else if(holidays.has(key)) type=en?'Public holiday':'法定节假日';
+      else if((skipSat&&dow===6)||(skipSun&&dow===0)) type=en?'Weekend (excluded)':'周末（已排除）';
+      else type=en?'Workday':'工作日';
+      rows.push([key,wk,type]);
+    }
+    __workdayCurrentDetail={rows:rows,start:startKey,end:endKey};
+  }
+  const exportBtn=document.getElementById('exportDetailBtn');
+  if(exportBtn){
+    exportBtn.disabled=!__workdayCurrentDetail;
+    exportBtn.textContent=__workdayCurrentDetail?(en?'Export current daily detail CSV':'导出当前明细 CSV'):(en?'Span too large: daily export unavailable':'范围过大，暂不可导出逐日明细');
+  }
   const __g3=`
     <p>开始日期：<strong>${start.toLocaleDateString('zh-CN')}</strong></p>
     <p>结束日期：<strong>${end.toLocaleDateString('zh-CN')}</strong></p>
@@ -389,6 +412,8 @@ function calc(){
 }
 
 function clearAll(){
+  __workdayCurrentDetail=null;
+  var exportBtn=document.getElementById('exportDetailBtn');if(exportBtn){exportBtn.disabled=true;exportBtn.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Export current daily detail CSV':'导出当前明细 CSV');}
   document.getElementById('startDate').value = '';
   document.getElementById('endDate').value = '';
   document.getElementById('holidays').value = '';
@@ -514,16 +539,21 @@ function __workday_calculatorExtras(){
 }
 function __workday_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!__workdayCurrentDetail){
+        if(TBKit.showToast)TBKit.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'No valid current range; calculate first or narrow the span.':'当前没有可导出的有效明细，请先计算或缩小日期范围。','warning');
+        return;
+    }
+    var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+    var head=[en?'Date':'日期',en?'Weekday':'星期',en?'Type':'类型'];
+    var rows=[head].concat(__workdayCurrentDetail.rows);
     try{
-        var box=document.querySelector('#workday_calculatorTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__workday_calculatorSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __workday_calculatorRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#workday_calculatorTable','workday-calculator.csv'); } catch(e){}
+        if(TBKit.export&&TBKit.export.csv){TBKit.export.csv('workday-detail.csv',rows);return;}
+        var csv=rows.map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+        var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+        var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='workday-detail.csv';a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+    }catch(e){
+        if(TBKit.showToast)TBKit.showToast(en?'CSV export failed':'CSV 导出失败','error');
+    }
 }
 function __workday_calculatorPresets(){
     if (typeof TBKit === 'undefined') return;
