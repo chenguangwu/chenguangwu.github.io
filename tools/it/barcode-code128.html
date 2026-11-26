@@ -145,10 +145,11 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 </div>
 
     <label for="data">文本（ASCII 字符）</label>
-    <input type="text" id="data" value="ABC-1234" style="margin-bottom:12px;">
+    <input type="text" id="data" value="ABC-1234" style="margin-bottom:12px;" oninput="__code128Invalidate()">
     <div class="toolbar">
-      <div id="barcode_code128Presets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="downloadBarcodePNG()">下载 PNG</button><button class="btn" type="button" onclick="__barcode_code128Export()">导出明细 CSV</button>
-      <button type="button" class="btn success" onclick="copyResult()">复制</button>
+      <div id="barcode_code128Presets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" id="btnCode128Download" onclick="downloadBarcodePNG()" disabled>下载 PNG</button><button class="btn" type="button" onclick="__barcode_code128Export()">导出明细 CSV</button>
+      <button type="button" class="btn success" id="btnCode128CopyText" onclick="copyResult()" disabled>复制条码内容</button>
+      <button type="button" class="btn" id="btnCode128CopyImage" onclick="copyBarcodePNG()" disabled>复制图片</button>
     </div>
     <div class="result-box" id="output"></div> <div id="barcode_code128Table"></div> <div id="barcode_code128Diff"></div> <div id="barcode_code128Chart"></div> <div id="barcode_code128Hist"></div>
   </div>
@@ -234,9 +235,27 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 // 标准的 13 模块图案），生成的条码并非合法 Code 128，扫码枪无法识别。现统一改用
 // 标准表，与 EAN-13 / UPC-A / Code 39 共用同一套编码实现。
 
+// 生成结果只对生成时的输入有效：输入一变立即清空预览并禁用下载/复制，避免导出旧码。
+window.__code128State = null;
+function __code128L(en,zh){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())return en;}catch(e){}
+  try{if(/[?&]lang=en([-_]|&|$)/i.test(location.search))return en;var hl=(document.documentElement.getAttribute('lang')||'').toLowerCase();if(hl.indexOf('en')===0)return en;}catch(e){}return zh;}
+function __code128SetEnabled(on){
+  ['btnCode128Download','btnCode128CopyText','btnCode128CopyImage'].forEach(function(id){var b=document.getElementById(id);if(b)b.disabled=!on;});
+}
+function __code128Invalidate(){
+  window.__code128State=null;
+  var out=document.getElementById('output'); if(out) out.innerHTML='';
+  __code128SetEnabled(false);
+}
+function __code128Stale(){
+  if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(__code128L('Input changed — generate the barcode again','输入已修改，请重新生成条码'),'warning');
+  else alert(__code128L('Input changed — generate the barcode again','输入已修改，请重新生成条码'));
+}
 // I3 统一 PNG 下载（canvas.toDataURL，纯前端零依赖）
 function downloadBarcodePNG(){
-  var cv=document.querySelector('#output canvas');
+  var st=window.__code128State;
+  if(!st || st.inputText!==document.getElementById('data').value){ __code128Stale(); return; }
+  var cv=st.canvas;
   if(!cv){ if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast('请先生成条形码','error'); else alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Generate the barcode first":"请先生成条形码")); return; }
   var a=document.createElement('a');
   a.download='barcodecode128-'+Date.now()+'.png';
@@ -251,7 +270,9 @@ function generate(){
   if(!B){ const __h0='<div class="bar-text">编码库尚未加载完成，请稍后重试。</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
   var text = document.getElementById('data').value || '';
   var res = B.encode('code128', text);
+  __code128SetEnabled(false);
   if(!res.ok){
+    window.__code128State=null;
     const __h1='<div class="bar-text" style="color:#b91c1c;">' + escapeHtml(res.error) + '</div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
     return;
   }
@@ -270,11 +291,32 @@ function generate(){
     res.detail.symbolCount + ' 个符号 · 校验位 ' + res.detail.checksum + ' · ' +
     res.detail.widthModules + ' 模块';
   out.appendChild(info);
+  window.__code128State={inputText:text,text:res.text,canvas:canvas};
+  __code128SetEnabled(true);
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
-  const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
+  var st=window.__code128State;
+  if(!st || st.inputText!==document.getElementById('data').value){ __code128Stale(); return; }
+  navigator.clipboard.writeText(st.text).then(function(){
+    if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(__code128L('Barcode content copied','已复制条码内容'),'success');
+  }).catch(function(e){
+    var msg=__code128L('Copy failed — use Download PNG or select the content manually','复制失败，请下载 PNG 或手动选择内容');
+    if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(msg+'：'+(e&&e.name?e.name:''),'error'); else alert(msg);
+  });
+}
+function copyBarcodePNG(){
+  var st=window.__code128State;
+  if(!st || st.inputText!==document.getElementById('data').value){ __code128Stale(); return; }
+  if(!navigator.clipboard || !window.ClipboardItem){ if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(__code128L('This browser cannot copy images — download PNG instead','当前浏览器不支持复制图片，请改用下载 PNG'),'warning'); return; }
+  st.canvas.toBlob(function(blob){
+    if(!blob){ if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(__code128L('Image export failed — download PNG instead','图片导出失败，请改用下载 PNG'),'error'); return; }
+    navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(function(){
+      if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(__code128L('Barcode image copied','已复制条码图片'),'success');
+    }).catch(function(e){
+      if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(__code128L('Copy failed — download PNG instead','复制失败，请改用下载 PNG')+'：'+(e&&e.name?e.name:''),'error');
+    });
+  },'image/png');
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
@@ -328,7 +370,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -336,7 +378,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

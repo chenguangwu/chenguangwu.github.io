@@ -141,7 +141,7 @@
     <div id="mode-text">
       <div class="checkbox-row">
         <div data-tb="preset" data-tb-presets='[{"label":"密钥(Key)mysecret·输入示例","labelEn":"hmacKey=mysecret · sample","values":{"hmacKey":"mysecret","textInput":"Hello, MD5!","hmacInput":"Hello, HMAC-MD5!"}}]'></div>
-<label><input type="checkbox" id="uppercase" onchange="calcText();calcHmac();"> 大写</label>
+<label><input type="checkbox" id="uppercase" onchange="calcText();calcHmac();refreshFileCase();"> 大写</label>
         <label><input type="checkbox" id="lineMode" onchange="calcText()"> 每行分别哈希</label>
       </div>
       <label for="textInput">输入文本</label>
@@ -154,7 +154,7 @@
     </div>
 
     <div id="mode-file" style="display:none;">
-      <div class="file-area" id="fileDrop" onclick="document.getElementById('fileInput').click()">
+      <div class="file-area" id="fileDrop" role="button" tabindex="0" aria-label="选择文件" onclick="document.getElementById('fileInput').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
         <div style="font-size:32px;margin-bottom:8px;">📄</div>
         <p>点击选择文件或拖拽文件到这里</p>
         <p style="font-size:12px;color:var(--text-muted);">文件整份读入内存计算（超大文件受浏览器内存限制），不上传</p>
@@ -294,7 +294,8 @@ function md51(s) {
   for (i = 0; i < s.length; i++) tail[i >> 2] |= (s.charCodeAt(i) << ((i % 4) << 3));
   tail[i >> 2] |= 0x80 << ((i % 4) << 3);
   if (i > 55) { md5cycle(state, tail); for (i = 0; i < 16; i++) tail[i] = 0; }
-  tail[14] = n * 8;
+  tail[14] = (n % 0x20000000) * 8;
+  tail[15] = Math.floor(n / 0x20000000);
   md5cycle(state, tail);
   return state;
 }
@@ -307,9 +308,23 @@ function hex(x) {
   var r = x.join('');
   return upper ? r.toUpperCase() : r;
 }
+function __md5Utf8Bin(s) {
+  s = String(s == null ? '' : s);
+  try {
+    return unescape(encodeURIComponent(s));
+  } catch (e) {
+    // 孤立 UTF-16 代理码元：TextEncoder 按 WHATWG 规则替换为 U+FFFD，不再抛 URIError。
+    if (typeof TextEncoder !== 'undefined') {
+      var bytes = new TextEncoder().encode(s), out = '', i;
+      for (i = 0; i < bytes.length; i += 8192) out += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+      return out;
+    }
+    return s.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(^|[^\uD800-\uDBFF])([\uDC00-\uDFFF])/g, function(_, pre, lo){ return (pre || '') + '\uFFFD'; });
+  }
+}
 function md5(s) {
   // 恒定按 UTF-8 字节串计算（与文件哈希、HMAC 及主流实现一致）；不再提供会产出非标准摘要的码元模式。
-  s = unescape(encodeURIComponent(s));
+  s = __md5Utf8Bin(s);
   return hex(md51(s));
 }
 
@@ -330,16 +345,18 @@ function md5Bytes(buf) {
   for (var k = 0; k < rem; k++) tail[k >> 2] |= view[i + k] << ((k % 4) << 3);
   tail[rem >> 2] |= 0x80 << ((rem % 4) << 3);
   if (rem > 55) { md5cycle(state, tail); tail.fill(0); }
-  tail[14] = n * 8;
+  tail[14] = (n % 0x20000000) * 8;
+  tail[15] = Math.floor(n / 0x20000000);
   md5cycle(state, tail);
   var r = '';
   for (var i = 0; i < 4; i++) { var v = state[i]; for (var j = 0; j < 4; j++) { r += hex_chr[(v >> (j * 8 + 4)) & 0xf] + hex_chr[(v >> (j * 8)) & 0xf]; } }
-  return document.getElementById('uppercase') && document.getElementById('uppercase').checked ? r.toUpperCase() : r;
+  return r;
 }
+function __md5ApplyCase(raw){return document.getElementById('uppercase') && document.getElementById('uppercase').checked ? String(raw).toUpperCase() : String(raw);}
 
 function hmacMd5(key, msg) {
-  var k = unescape(encodeURIComponent(key));
-  var m = unescape(encodeURIComponent(msg));
+  var k = __md5Utf8Bin(key);
+  var m = __md5Utf8Bin(msg);
   if (k.length > 64) {
     // RFC 2104：超长密钥取 MD5 原始 16 字节摘要（不是十六进制字符串）
     var st = md51(k), raw = '', q;
@@ -355,7 +372,7 @@ function hmacMd5(key, msg) {
     outer += String.fromCharCode(innerHash[i] & 0xff, (innerHash[i] >> 8) & 0xff, (innerHash[i] >> 16) & 0xff, (innerHash[i] >>> 24) & 0xff);
   }
   var result = hex(md51(outer));
-  return document.getElementById('uppercase') && document.getElementById('uppercase').checked ? result.toUpperCase() : result;
+  return __md5ApplyCase(result);
 }
 
 function switchMode(mode, btn) {
@@ -366,46 +383,115 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   if(btn) btn.classList.add('active');
 }
+var __md5FileRun=0,__md5FileRaw='';
+function __md5T(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+function refreshFileCase(){
+  var el=document.getElementById('fileHash');
+  if(el&&__md5FileRaw) el.textContent=__md5ApplyCase(__md5FileRaw);
+}
+function __md5Ctx(){return {state:[1732584193,-271733879,-1732584194,271733878],buf:[],len:0};}
+function __md5Block(state,bytes,off){
+  var block=[],j;
+  for(j=0;j<16;j++) block[j]=bytes[off+j*4]|(bytes[off+j*4+1]<<8)|(bytes[off+j*4+2]<<16)|(bytes[off+j*4+3]<<24);
+  md5cycle(state,block);
+}
+function __md5CtxUpdate(ctx,bytes){
+  var off=0;ctx.len+=bytes.length;
+  if(ctx.buf.length){
+    while(ctx.buf.length<64&&off<bytes.length) ctx.buf.push(bytes[off++]);
+    if(ctx.buf.length===64){__md5Block(ctx.state,ctx.buf,0);ctx.buf=[];}
+  }
+  while(off+64<=bytes.length){__md5Block(ctx.state,bytes,off);off+=64;}
+  for(;off<bytes.length;off++) ctx.buf.push(bytes[off]);
+}
+function __md5CtxFinal(ctx){
+  var buf=ctx.buf.slice();buf.push(0x80);
+  while(buf.length%64!==56) buf.push(0);
+  var low=(ctx.len%0x20000000)*8,high=Math.floor(ctx.len/0x20000000),i;
+  for(i=0;i<4;i++) buf.push((low>>>(8*i))&255);
+  for(i=0;i<4;i++) buf.push((high>>>(8*i))&255);
+  for(var off=0;off<buf.length;off+=64) __md5Block(ctx.state,buf,off);
+  var r='';
+  for(i=0;i<4;i++){var v=ctx.state[i];for(var j=0;j<4;j++) r+=hex_chr[(v>>(j*8+4))&0xf]+hex_chr[(v>>(j*8))&0xf];}
+  return r;
+}
+function md5Bytes(buf){
+  var ctx=__md5Ctx();
+  __md5CtxUpdate(ctx,new Uint8Array(buf));
+  return __md5CtxFinal(ctx);
+}
 function calcText(){
-  var t=document.getElementById('textInput').value;
-  document.getElementById('textResult').textContent=md5(t);
-  var box=document.getElementById('lineResults');
-  var on=document.getElementById('lineMode')&&document.getElementById('lineMode').checked;
-  if(on){
-    var lines=t.split('\n');
-    var rows=lines.map(function(line,i){
-      var esc=line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-      return '<tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);color:var(--text-muted);">'+(i+1)+'</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);word-break:break-all;">'+(esc||'<span style="color:var(--text-muted);">（空行）</span>')+'</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);font-family:monospace;word-break:break-all;">'+md5(line)+'</td></tr>';
-    }).join('');
-    box.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr><th style="text-align:left;padding:4px 8px;">行</th><th style="text-align:left;padding:4px 8px;">原文</th><th style="text-align:left;padding:4px 8px;">MD5</th></tr></thead><tbody>'+rows+'</tbody></table>';
-    box.style.display='block';
-  }else{
-    box.innerHTML=''; box.style.display='none';
+  try{
+    var t=document.getElementById('textInput').value;
+    document.getElementById('textResult').textContent=md5(t);
+    var box=document.getElementById('lineResults');
+    var on=document.getElementById('lineMode')&&document.getElementById('lineMode').checked;
+    if(on){
+      var lines=t.split('\n');
+      var rows=lines.map(function(line,i){
+        var esc=line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        return '<tr><td style="padding:4px 8px;border-bottom:1px solid var(--border);color:var(--text-muted);">'+(i+1)+'</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);word-break:break-all;">'+(esc||'<span style="color:var(--text-muted);">（空行）</span>')+'</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);font-family:monospace;word-break:break-all;">'+md5(line)+'</td></tr>';
+      }).join('');
+      box.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr><th style="text-align:left;padding:4px 8px;">行</th><th style="text-align:left;padding:4px 8px;">原文</th><th style="text-align:left;padding:4px 8px;">MD5</th></tr></thead><tbody>'+rows+'</tbody></table>';
+      box.style.display='block';
+    }else{
+      box.innerHTML=''; box.style.display='none';
+    }
+  }catch(e){
+    document.getElementById('textResult').textContent=__md5T('计算失败：输入包含无法编码的字符','Calculation failed: input contains characters that cannot be encoded');
+    var lr=document.getElementById('lineResults');lr.innerHTML='';lr.style.display='none';
   }
 }
-function calcHmac(){document.getElementById('hmacResult').textContent=hmacMd5(document.getElementById('hmacKey').value,document.getElementById('hmacInput').value);}
+function calcHmac(){
+  try{document.getElementById('hmacResult').textContent=hmacMd5(document.getElementById('hmacKey').value,document.getElementById('hmacInput').value);}
+  catch(e){document.getElementById('hmacResult').textContent=__md5T('计算失败：输入包含无法编码的字符','Calculation failed: input contains characters that cannot be encoded');}
+}
 function copyTextResult(){ToolBox.copyText(document.getElementById('textResult').textContent);ToolBox.showToast(i18nText());}
-function copyFileResult(){ToolBox.copyText(document.getElementById('fileHash').textContent);ToolBox.showToast(i18nText());}
+function copyFileResult(){if(!__md5FileRaw){ToolBox.showToast(__md5T('请先选择文件并完成计算','Choose a file and finish the calculation first'),'warning');return;}ToolBox.copyText(document.getElementById('fileHash').textContent);ToolBox.showToast(i18nText());}
 function copyHmacResult(){ToolBox.copyText(document.getElementById('hmacResult').textContent);ToolBox.showToast(i18nText());}
+function cancelFileHash(){
+  __md5FileRun++;__md5FileRaw='';
+  var p=document.getElementById('progress');if(p)p.textContent=__md5T('已取消','Cancelled');
+  var r=document.getElementById('fileResult');if(r)r.style.display='none';
+}
 
-function handleFile(file) {
+async function handleFile(file) {
   if (!file) return;
-  var info = document.getElementById('fileInfo');
-  var result = document.getElementById('fileResult');
-  info.style.display = 'block';
-  const __h0='<p><strong>文件名：</strong>' + ToolBox.escHtml(file.name) + '</p><p><strong>大小：</strong>' + formatSize(file.size) + '</p><p id="progress">正在计算...</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){info.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}info.innerHTML=__h0;
-  result.style.display = 'none';
-  
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    setTimeout(() => {
-      var hash = md5Bytes(e.target.result);
-      document.getElementById('fileHash').textContent = hash;
-      document.getElementById('progress').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"✅ Calculation complete":"✅ 计算完成");
-      result.style.display = 'block';
-    }, 50);
-  };
-  reader.readAsArrayBuffer(file);
+  var token=++__md5FileRun;
+  __md5FileRaw='';
+  var info=document.getElementById('fileInfo');
+  var result=document.getElementById('fileResult');
+  var hashEl=document.getElementById('fileHash');
+  info.style.display='block';
+  info.innerHTML='<p><strong>'+__md5T('文件名：','File: ')+'</strong>'+ToolBox.escHtml(file.name)+'</p><p><strong>'+__md5T('大小：','Size: ')+'</strong>'+formatSize(file.size||0)+'</p><p id="progress">'+__md5T('正在读取...','Reading...')+'</p><button type="button" class="btn" style="padding:4px 10px;font-size:12px;" onclick="cancelFileHash()">'+__md5T('取消','Cancel')+'</button>';
+  result.style.display='none';
+  hashEl.textContent='';
+  var ctx=__md5Ctx(),offset=0,chunk=8*1024*1024,size=file.size||0;
+  try{
+    while(offset<size){
+      if(token!==__md5FileRun) return;
+      var part=file.slice?file.slice(offset,Math.min(offset+chunk,size)):file;
+      var ab=await part.arrayBuffer();
+      if(token!==__md5FileRun) return;
+      __md5CtxUpdate(ctx,new Uint8Array(ab));
+      offset=Math.min(offset+chunk,size);
+      var p=document.getElementById('progress');
+      if(p)p.textContent=__md5T('正在计算... ','Calculating... ')+Math.round(offset/size*100)+'%';
+      await new Promise(function(r){setTimeout(r,0);});
+    }
+    if(token!==__md5FileRun) return;
+    var raw=__md5CtxFinal(ctx);
+    __md5FileRaw=raw;
+    hashEl.textContent=__md5ApplyCase(raw);
+    result.style.display='block';
+    var p2=document.getElementById('progress');if(p2)p2.textContent=__md5T('✅ 计算完成','✅ Calculation complete');
+  }catch(e){
+    if(token!==__md5FileRun) return;
+    __md5FileRaw='';
+    result.style.display='none';
+    var p3=document.getElementById('progress');if(p3)p3.textContent=__md5T('读取失败','Read failed');
+    info.innerHTML+='<p style="color:var(--danger);margin-top:8px;">'+__md5T('文件读取失败，请重试或换用较小的文件。','Could not read the file. Retry or use a smaller file.')+'</p>';
+  }
 }
 
 function formatSize(bytes) {
@@ -588,7 +674,7 @@ else document.addEventListener('DOMContentLoaded', __md5Boot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -596,7 +682,7 @@ else document.addEventListener('DOMContentLoaded', __md5Boot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

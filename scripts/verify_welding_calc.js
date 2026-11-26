@@ -257,8 +257,18 @@ const CASES = [
 ];
 async function main() {
   const only = process.argv.slice(2);
+  let pass = 0; const extraCases = [{ slug:"welding/speed-voltage-current", inputs:{thickness:"9"}, expect:["1.82~4.93"], ref:"热输入回归：I 306~414 A、U 23.8 V、v 2~4 mm/s ⇒ HI 1.82~4.93 kJ/mm；旧实现 v 额外乘 10 只得 0.18~0.49，缩小十倍。" },
+{ slug:"welding/pressure-weld", inputs:{rpm:"600",force:"15",speed:"10",shoulder:"18",mu:"0.4"}, expect:["1.000"], ref:"进给比回归：600 rpm=10 rev/s，除以 10 mm/s = 1.000 rev/mm；旧实现直接用 600÷10=60 rev/mm，放大 60 倍。" },
+{ slug:"welding/energy-cost-1", inputs:{current:"300",voltage:"24",time:"30",price:"1.0",duty:"60",eff:"0"}, expect:["焊机效率须在 (0,100]"], ref:"效率 0 旧实现除零；新实现拒绝 (0,100] 外效率，且不写历史。" },
+{ slug:"welding/energy-cost-1", inputs:{current:"300",voltage:"24",time:"30",price:"1.0",duty:"120",eff:"85"}, expect:["负载持续率须在 0–100%"], ref:"持续率 120% 旧实现照算虚增能耗；新实现拒绝 0–100% 外值。" },
+{ slug:"welding/energy-cost-1", inputs:{current:"-300",voltage:"24",time:"30",price:"-1",duty:"60",eff:"85"}, expect:["电流、电压须 > 0"], ref:"负电流/负电价旧实现算出负能耗与负成本；新实现要求电流电压>0、时间电价≥0。" },
+{ slug:"welding/stress", inputs:{thickness:"-15",length:"300",leg:"6",yield:"235"}, expect:["都必须为有限正数"], ref:"负板厚旧实现得出负角变形并仍评级；新实现要求四项正数，不给结论。" },
+{ slug:"welding/stress", inputs:{thickness:"15",length:"0",leg:"6",yield:"235"}, expect:["零或负尺寸没有物理意义"], ref:"零焊缝长度旧实现输出「变形小」误导；新实现要求焊缝长度>0。" },
+];
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
-  let pass = 0; const fails = [];
+  extraCases.forEach(function(x){ if(!only.length || only.some((o)=>x.slug.endsWith("/"+o)||x.slug===o)) cases.push(x); });
+  const fails = [];
+
   for (const c of cases) {
     try {
       const r = await runCase(c);

@@ -32,7 +32,9 @@
 .slider-row .val{font-weight:600;color:var(--primary);min-width:36px;text-align:right;}
 .opt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px;}
 .opt-grid label{display:flex;align-items:center;gap:6px;font-weight:normal;cursor:pointer;}
-.code-row{font-family:'SF Mono','Courier New',monospace;font-size:16px;font-weight:600;color:var(--primary);padding:5px 0;}
+.code-row{font-family:'SF Mono','Courier New',monospace;font-size:16px;font-weight:600;color:var(--primary);padding:5px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.code-row .gt-copy{padding:2px 8px;font-size:11px;}
+.gt-note{font-size:12px;color:var(--text-muted);margin:8px 0 0;line-height:1.6;}
 </style>
 
 <meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
@@ -174,7 +176,9 @@
       <div id="gamertag_generatorPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__gamertag_generatorExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制</button>
     </div>
-    <div class="result-box" id="output"></div> <div id="gamertag_generatorTable"></div> <div id="gamertag_generatorDiff"></div> <div id="gamertag_generatorChart"></div> <div id="gamertag_generatorHist"></div>
+    <div class="result-box" id="output"></div>
+    <div class="gt-note" data-zh="结果仅在本机随机组合，无法判断昵称是否已被目标平台占用；批量结果已去重。">Results are random local combinations; availability on the target platform cannot be checked. Batch results are de-duplicated.</div>
+    <div id="gamertag_generatorTable"></div> <div id="gamertag_generatorDiff"></div> <div id="gamertag_generatorChart"></div> <div id="gamertag_generatorHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -270,22 +274,49 @@ function generate(){
   const x=document.getElementById('x').checked;
   const leetOn=document.getElementById('leet').checked;
   const set=THEMES[theme];
-  let html='';
-  for(let i=0;i<count;i++){
+  const en=(typeof TBKit!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn())||/lang=en-US/i.test(location.search);
+  const used=new Set();
+  const names=[];
+  const maxAttempts=count*60+50;
+  let attempts=0;
+  while(names.length<count && attempts<maxAttempts){
+    attempts++;
     let name=pick(set.a)+pick(set.b);
     if(num)name+=String(randInt(1000));
     if(leetOn)name=leet(name);
     if(x)name='xX'+name+'Xx';
-    html+='<div class="code-row">'+escapeHtml(name)+'</div>';
+    if(!used.has(name)){used.add(name);names.push(name);}
   }
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
-}
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  const host=document.getElementById('output');
+  host.innerHTML='';
+  names.forEach(function(name){
+    const row=document.createElement('div');
+    row.className='code-row';
+    const text=document.createElement('span');
+    text.className='gt-name';
+    text.textContent=name;
+    const btn=document.createElement('button');
+    btn.type='button'; btn.className='btn gt-copy'; btn.textContent=(en?'Copy':'复制');
+    btn.addEventListener('click',function(){ navigator.clipboard.writeText(name).then(function(){ btn.textContent='✅'; setTimeout(function(){btn.textContent=(en?'Copy':'复制');},1200); }); });
+    row.appendChild(text); row.appendChild(btn); host.appendChild(row);
+  });
+  if(names.length<count){
+    const note=document.createElement('p');
+    note.className='gt-note';
+    note.textContent=en
+      ? ('Only '+names.length+' distinct names could be generated from the current option space (requested '+count+').')
+      : ('当前选项组合空间不足，仅生成 '+names.length+' 个不重复昵称（请求 '+count+' 个）。');
+    host.appendChild(note);
+  }
+}function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
   // IT-N323：块级 .code-row 的 textContent 无换行，必须逐行收集，剪贴板才可直接使用。
   const host = document.getElementById('output');
   const rows = host.querySelectorAll ? host.querySelectorAll('.code-row') : [];
-  let text = Array.prototype.map.call(rows, r => r.textContent || '').filter(Boolean).join('\n');
+  let text = Array.prototype.map.call(rows, function(r){
+    var nameEl = (r && r.querySelector) ? r.querySelector('.gt-name') : null;
+    return (nameEl ? nameEl.textContent : (r.textContent || '')) || '';
+  }).filter(Boolean).join('\n');
   if(!text) text = host.textContent || host.innerText || '';
   navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
 }
@@ -475,7 +506,7 @@ else document.addEventListener('DOMContentLoaded', __gamertag_generatorBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -483,7 +514,7 @@ else document.addEventListener('DOMContentLoaded', __gamertag_generatorBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

@@ -147,15 +147,15 @@
 
     <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;" data-zh="支持 CRC8 / CRC16 / CRC32 / CRC64 多种变体。">Compute CRC checksums (CRC8/16/32) in your browser — verify data integrity for protocols and files.</p>
     <div class="toolbar">
-      <div id="crc_calculatorPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__crc_calculatorExport()">导出明细 CSV</button>
+      <div id="crc_calculatorPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="calcEmpty()">计算空输入 CRC</button><button class="btn" type="button" onclick="__crc_calculatorExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyAll()">复制全部</button>
       <button type="button" class="btn danger" onclick="clearAll()">清空</button>
       <div style="flex:1;"></div>
       <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;">
-        <input type="checkbox" id="upper" checked> 大写
+        <input type="checkbox" id="upper" checked onchange="calc()"> 大写
       </label>
       <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;">
-        <input type="checkbox" id="hexInput"> 输入为十六进制
+        <input type="checkbox" id="hexInput" onchange="calc()"> 输入为十六进制
       </label>
     </div>
 
@@ -169,15 +169,16 @@
         <input type="checkbox" id="customOn" onchange="calc()"> 自定义 CRC 模型（在标准算法后追加一行）
       </label>
       <div class="input-row" style="margin-top:8px;">
-        <div><label for="cw">位宽 width</label><input type="number" id="cw" value="8" min="8" max="64" step="8"></div>
-        <div><label for="cp">多项式 poly (hex)</label><input type="text" id="cp" value="07" placeholder="如 07"></div>
-        <div><label for="ci">初始值 init (hex)</label><input type="text" id="ci" value="00" placeholder="如 00"></div>
-        <div><label for="cxo">结果异或 xorout (hex)</label><input type="text" id="cxo" value="00" placeholder="如 00"></div>
+        <div><label for="cw">位宽 width</label><input type="number" id="cw" value="8" min="8" max="64" step="1" oninput="calc()"></div>
+        <div><label for="cp">多项式 poly (hex)</label><input type="text" id="cp" value="07" placeholder="如 07" oninput="calc()"></div>
+        <div><label for="ci">初始值 init (hex)</label><input type="text" id="ci" value="00" placeholder="如 00" oninput="calc()"></div>
+        <div><label for="cxo">结果异或 xorout (hex)</label><input type="text" id="cxo" value="00" placeholder="如 00" oninput="calc()"></div>
       </div>
       <div style="display:flex;gap:18px;font-size:13px;margin-top:4px;flex-wrap:wrap;">
-        <label style="margin:0;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="crefin"> 输入反射 refin</label>
-        <label style="margin:0;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="crefout"> 输出反射 refout</label>
+        <label style="margin:0;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="crefin" onchange="calc()"> 输入反射 refin</label>
+        <label style="margin:0;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="crefout" onchange="calc()"> 输出反射 refout</label>
       </div>
+      <div id="customError" role="alert" style="color:var(--danger,#B91C1C);font-size:13px;margin-top:6px;white-space:pre-wrap;"></div>
     </div>
 
     <div id="results" style="margin-top:12px;"></div>
@@ -195,7 +196,7 @@
     <div class="result-box">
       <p><strong>CRC8</strong>: 多项式 0x07，校验 1 字节</p>
       <p><strong>CRC16-CCITT</strong>: 多项式 0x1021，初始值 0xFFFF</p>
-      <p><strong>CRC16-Modbus</strong>: 多项式 0x8005，初始值 0xFFFF，结果异或 0xFFFF</p>
+      <p><strong>CRC16-Modbus</strong>: 多项式 0x8005，初始值 0xFFFF，输入/输出反射 true，结果异或 0x0000</p>
       <p><strong>CRC32</strong>: 多项式 0xEDB88320（反射），IEEE 802.3 标准</p>
       <p><strong>CRC64-ECMA</strong>: 多项式 0x42F0E1EBA9EA3693</p>
     </div> <div id="crc_calculatorTable"></div> <div id="crc_calculatorDiff"></div> <div id="crc_calculatorChart"></div> <div id="crc_calculatorHist"></div></div>
@@ -361,10 +362,17 @@ function renderResult(name, hex){
   document.getElementById('results').appendChild(div);
 }
 
-function calc(){
+function __crcL(en,zh){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())return en;}catch(e){}
+  try{if(/[?&]lang=en([-_]|&|$)/i.test(location.search))return en;var hl=(document.documentElement.getAttribute('lang')||'').toLowerCase();if(hl.indexOf('en')===0)return en;}catch(e){}return zh;}
+function calcEmpty(){ calc(true); }
+function calc(forceEmpty){
   const bytes = getInputBytes();
   if(bytes === null) return;   // 十六进制格式错误：提示已写入结果区，勿再清空
-  if(bytes.length === 0){ document.getElementById('results').innerHTML=''; return; }
+  if(bytes.length === 0 && forceEmpty !== true){
+    document.getElementById('results').innerHTML='<p style="color:var(--text-muted,#6B7280);font-size:13px;">'+__crcL('Input is empty. To compute the CRC of an empty byte sequence, click “Compute empty CRC”.','输入为空。如需计算空字节序列的 CRC，请点击「计算空输入 CRC」。')+'</p>';
+    const ce=document.getElementById('customError');if(ce)ce.textContent='';
+    return;
+  }
   const upper = document.getElementById('upper').checked;
   document.getElementById('results').innerHTML='';
   for(const algo of ALGOS){
@@ -380,20 +388,41 @@ function calc(){
     renderResult(algo.name, fmt(crc, algo.width, upper));
   }
   // —— 自定义 CRC 模型（勾选后追加一行；默认关 ⇒ 零渲染零影响）——
-  if(document.getElementById('customOn') && document.getElementById('customOn').checked){
-    var __gv=function(id,d){ var el=document.getElementById(id); var v=(el&&el.value!==undefined&&el.value!==null&&el.value!=='')?el.value:(el&&el.getAttribute?el.getAttribute('value'):null); return (v===undefined||v===null||v==='')?d:v; };
-    var gw=parseInt(__gv('cw','8'),10)||0;
-    var gp=String(__gv('cp','07')).trim();
-    var gi=String(__gv('ci','00')).trim();
-    var gx=String(__gv('cxo','00')).trim();
-    if(gw>=8 && gw<=64 && /^[0-9a-fA-F]+$/.test(gp) && /^[0-9a-fA-F]*$/.test(gi) && /^[0-9a-fA-F]*$/.test(gx) && gp!==''){
-      const B=(s,w)=>{ if(!s) return BigInt(0); const v=BigInt('0x'+s); return (w<=32)? Number(v) : v; };
-      try{
-        const cparams={ width:gw, poly:B(gp,gw), init:B(gi,gw), refin:!!document.getElementById('crefin').checked, refout:!!document.getElementById('crefout').checked, xorout:B(gx,gw) };
-        const ccrc=crcGeneric(bytes,cparams);
-        renderResult('自定义模型 (width='+gw+', poly=0x'+gp.toUpperCase()+')', fmt(ccrc, gw, upper));
-      }catch(e){}
+  const customOn=document.getElementById('customOn');
+  const customErr=document.getElementById('customError');
+  if(customErr) customErr.textContent='';
+  if(customOn && customOn.checked){
+    var __gv=function(id,d){ var el=document.getElementById(id); var v=(el&&el.value!==undefined&&el.value!==null&&el.value!=='')?String(el.value):(el&&el.getAttribute?el.getAttribute('value'):null); return (v===undefined||v===null||v==='')?d:String(v); };
+    var gwRaw=__gv('cw','8').trim();
+    var gp=__gv('cp','07').trim();
+    var gi=__gv('ci','00').trim();
+    var gx=__gv('cxo','00').trim();
+    var bad=null;
+    if(!/^\d+$/.test(gwRaw)) bad=__crcL('width must be an integer from 8 to 64 (decimals and signs are not accepted)','位宽必须是 8–64 的整数（不接受小数、负号或空值）');
+    else {
+      var gw=Number(gwRaw);
+      if(gw<8||gw>64) bad=__crcL('width must be between 8 and 64','位宽必须在 8–64 之间');
+      else if(!/^[0-9a-fA-F]+$/.test(gp)) bad=__crcL('poly must be non-empty hex (0-9 / A-F)','多项式 poly 必须是非空十六进制（0-9 / A-F）');
+      else if(gi && !/^[0-9a-fA-F]+$/.test(gi)) bad=__crcL('init must be hex or empty','初始值 init 只能为十六进制或留空');
+      else if(gx && !/^[0-9a-fA-F]+$/.test(gx)) bad=__crcL('xorout must be hex or empty','结果异或 xorout 只能为十六进制或留空');
+      else {
+        try{
+          var limit=1n<<BigInt(gw);
+          var pv=BigInt('0x'+gp);
+          if(pv===0n) bad=__crcL('poly must not be zero','多项式 poly 不能为 0');
+          else if(pv>=limit) bad=__crcL('poly exceeds the selected width','多项式 poly 超出所选位宽');
+          else if(gi && BigInt('0x'+gi)>=limit) bad=__crcL('init exceeds the selected width','初始值 init 超出所选位宽');
+          else if(gx && BigInt('0x'+gx)>=limit) bad=__crcL('xorout exceeds the selected width','结果异或 xorout 超出所选位宽');
+          if(!bad){
+            const B=(s,w)=>{ if(!s) return BigInt(0); const v=BigInt('0x'+s); return (w<=32)? Number(v) : v; };
+            const cparams={ width:gw, poly:B(gp,gw), init:B(gi,gw), refin:!!document.getElementById('crefin').checked, refout:!!document.getElementById('crefout').checked, xorout:B(gx,gw) };
+            const ccrc=crcGeneric(bytes,cparams);
+            renderResult('自定义模型 (width='+gw+', poly=0x'+gp.toUpperCase()+')', fmt(ccrc, gw, upper));
+          }
+        }catch(e){ bad=__crcL('custom model failed: '+(e&&e.message?e.message:e),'自定义模型计算失败：'+(e&&e.message?e.message:e)); }
+      }
     }
+    if(bad && customErr) customErr.textContent='⚠ '+bad;
   }
 }
 
@@ -571,7 +600,7 @@ else document.addEventListener('DOMContentLoaded', __crc_calculatorBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -579,7 +608,7 @@ else document.addEventListener('DOMContentLoaded', __crc_calculatorBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

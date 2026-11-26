@@ -447,6 +447,13 @@ function toggleGoal(id){
   generate();
 }
 
+const AGE_RULES={
+  puppy:{maxTasks:function(n){return Math.min(n,2);}, session:'3–5 分钟', note:'幼年专注时间短，减少单次项目、增加短时重复'},
+  junior:{maxTasks:function(n){return n+1;}, session:'5–8 分钟', note:'青少年按完整时段安排并增加 1 项复习，单次不宜过长'},
+  adult:{maxTasks:function(n){return n+1;}, session:'10–15 分钟', note:'成年可完成完整时段并增加 1 项复习'},
+  senior:{maxTasks:function(n){return Math.max(1,n-1);}, session:'5–8 分钟', note:'老年减少单次项目，避免疲劳'}
+};
+
 function generate(){
   const age=document.getElementById('age').value;
   const dailyTime=+document.getElementById('dailyTime').value;
@@ -462,6 +469,8 @@ function generate(){
 
   const weekDays=['周一','周二','周三','周四','周五','周六','周日'];
   const schedule=dailySchedule[dailyTime];
+  const ageRule=AGE_RULES[age] || AGE_RULES.junior;
+  const taskCount=Math.min(ageRule.maxTasks(schedule.length), allTasks.length);
 
   let overviewHtml=`<div class="training-overview">
     <div class="overview-card"><div class="v">7</div><div class="l">天周期</div></div>
@@ -470,30 +479,34 @@ function generate(){
     <div class="overview-card"><div class="v">${allTasks.length}</div><div class="l">训练项目</div></div>
   </div>
   <div class="tip-box">
-    <strong>📋 计划概要：</strong>${petNames[currentPet]} · ${ageNames[age]} · 每日${dailyTime}分钟 · ${selectedGoals.length}个训练目标
+    <strong>📋 计划概要：</strong>${petNames[currentPet]} · ${ageNames[age]} · 每日${dailyTime}分钟 · ${selectedGoals.length}个训练目标<br>
+    <strong>年龄适配：</strong>${ageRule.note}；单次约 ${ageRule.session}，每天安排 ${taskCount} 项。
   </div>`;
   const __h1=overviewHtml;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('planOverview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('planOverview').innerHTML=__h1;
 
+  const planDays=[];
   let weeklyHtml='';
   weekDays.forEach((day,dayIdx)=>{
     const dayTasks=[];
-    for(let i=0;i<Math.min(schedule.length+1,allTasks.length);i++){
-      dayTasks.push(allTasks[(dayIdx+i)%allTasks.length]);
-    }
-    weeklyHtml+=`<div class="day-card">
-      <h4>${day} <span style="font-size:12px;color:var(--text-muted);font-weight:normal;">${schedule.length}次训练</span></h4>`;
-    dayTasks.forEach((t,i)=>{
+    for(let i=0;i<taskCount;i++){
+      const t=allTasks[(dayIdx+i)%allTasks.length];
       const s=schedule[i%schedule.length];
+      dayTasks.push({time:s.time+' · '+ageRule.session.split('–')[0]+'分',task:t.task,goal:t.goal,done:false});
+    }
+    planDays.push({day:day,tasks:dayTasks});
+    weeklyHtml+=`<div class="day-card" data-day="${dayIdx}">
+      <h4>${day} <span style="font-size:12px;color:var(--text-muted);font-weight:normal;">${dayTasks.length}项训练</span></h4>`;
+    dayTasks.forEach((t,i)=>{
       weeklyHtml+=`<div class="task-item">
-        <div class="task-check" onclick="this.classList.toggle('checked')">✓</div>
-        <span class="task-time">${s.time}</span>
+        <div class="task-check" data-day="${dayIdx}" data-task="${i}" onclick="this.classList.toggle('checked')">✓</div>
+        <span class="task-time">${t.time}</span>
         <span>${t.task}</span>
         <span style="font-size:11px;color:var(--text-muted);margin-left:auto;">${t.goal}</span>
       </div>`;
     });
     weeklyHtml+=`</div>`;
   });
-  const __h2=weeklyHtml;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('weeklyPlan').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('weeklyPlan').innerHTML=__h2;
+  const __h2=weeklyHtml;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[A-Za-z])NaN([A-Za-z]|$)/.test(__h2)){document.getElementById('weeklyPlan').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('weeklyPlan').innerHTML=__h2;
 
   const tips={
     dog:[
@@ -529,21 +542,68 @@ function generate(){
 
   window._currentPlan={
     pet:petNames[currentPet],
+    petKey:currentPet,
     age:ageNames[age],
+    ageKey:age,
     time:dailyTime+'分钟',
+    timeMin:dailyTime,
+    goalIds:selectedGoals.slice(),
     goals:selectedGoals.length+'项',
-    tasks:allTasks.length
+    tasks:allTasks.length,
+    taskCount:taskCount,
+    days:planDays
   };
 }
 
 function savePlan(){
   if(!window._currentPlan){ToolBox.showToast(i18nText(), 'warning');return;}
-  const p=window._currentPlan;
-  const record={date:new Date().toISOString().split('T')[0],time:new Date().toTimeString().slice(0,5),...p};
+  const p=JSON.parse(JSON.stringify(window._currentPlan));
+  p.days.forEach(function(day,di){
+    day.tasks.forEach(function(t,ti){
+      const el=document.querySelector('.task-check[data-day="'+di+'"][data-task="'+ti+'"]');
+      t.done=!!(el && el.classList.contains('checked'));
+    });
+  });
+  p.doneCount=p.days.reduce(function(n,d){return n+d.tasks.filter(function(t){return t.done;}).length;},0);
+  p.totalCount=p.days.reduce(function(n,d){return n+d.tasks.length;},0);
+  const record={date:new Date().toLocaleDateString('sv-SE'),time:new Date().toTimeString().slice(0,5),pet:p.pet,age:p.age,time:p.time,goals:p.goals,tasks:p.tasks,plan:p,progress:p.doneCount+'/'+p.totalCount};
   let history=[];try{history=JSON.parse(localStorage.getItem('pet_training_history')||'[]');}catch(e){}
   history.unshift(record);if(history.length>20)history=history.slice(0,20);
-  localStorage.setItem('pet_training_history',JSON.stringify(history));
+  try{ localStorage.setItem('pet_training_history',JSON.stringify(history)); }
+  catch(e){ ToolBox.showToast('保存失败：浏览器存储不可用，请先导出 CSV 备份', 'error'); return; }
   ToolBox.showToast(i18nText());renderHistory();
+}
+
+function loadHistory(){
+  try{ return JSON.parse(localStorage.getItem('pet_training_history')||'[]'); }catch(e){ return []; }
+}
+
+function restorePlan(index){
+  const rec=loadHistory()[index]; if(!rec || !rec.plan){ ToolBox.showToast('该记录缺少完整计划，无法恢复','error'); return; }
+  const p=rec.plan;
+  currentPet=p.petKey || currentPet;
+  const btn=document.querySelector('.pet-btn[data-pet="'+currentPet+'"]');
+  if(btn) selectPet(currentPet,btn);
+  selectedGoals=(p.goalIds||[]).slice();
+  document.getElementById('age').value=p.ageKey || 'junior';
+  document.getElementById('dailyTime').value=p.timeMin || 20;
+  renderGoalGrid();
+  generate();
+  (p.days||[]).forEach(function(day,di){
+    day.tasks.forEach(function(t,ti){
+      const el=document.querySelector('.task-check[data-day="'+di+'"][data-task="'+ti+'"]');
+      if(el && t.done) el.classList.add('checked');
+    });
+  });
+  if(window._currentPlan){ window._currentPlan.days=p.days; }
+  ToolBox.showToast('计划与进度已恢复，可修改后重新保存','success');
+}
+
+function deletePlan(index){
+  if(!confirm('删除这条计划记录？')) return;
+  const history=loadHistory(); history.splice(index,1);
+  try{ localStorage.setItem('pet_training_history',JSON.stringify(history)); }catch(e){}
+  renderHistory(); ToolBox.showToast('已删除该条记录','info');
 }
 
 function copyPlan(){
@@ -553,14 +613,15 @@ function copyPlan(){
 }
 
 function renderHistory(){
-  let history=[];try{history=JSON.parse(localStorage.getItem('pet_training_history')||'[]');}catch(e){}
+  const history=loadHistory();
   const list=document.getElementById('historyList');
   if(history.length===0){const __h4='<div class="history-empty">暂无记录</div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h4;return;}
-  const __h5=history.map(h=>`<div class="history-item">
+  const __h5=history.map((h,i)=>`<div class="history-item">
     <div class="time">${h.date} ${h.time}</div>
     <div class="summary">${h.pet} · ${h.age} · ${h.time}</div>
-    <div class="detail">${h.goals} · ${h.tasks}个训练项</div>
-  </div>`).join('');if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h5;
+    <div class="detail">${h.goals} · ${h.tasks}个训练项${h.progress?' · 进度 '+h.progress:''}</div>
+    <div style="margin-top:6px;display:flex;gap:8px;"><button type="button" class="btn" style="padding:3px 8px;font-size:12px;" onclick="restorePlan(${i})">恢复并修改</button><button type="button" class="btn" style="padding:3px 8px;font-size:12px;" onclick="deletePlan(${i})">删除</button></div>
+  </div>`).join('');if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([A-Za-z]|$)/.test(__h5)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h5;
 }
 
 function clearHistory(){if(confirm('确定清空？')){localStorage.removeItem('pet_training_history');renderHistory();ToolBox.showToast(i18nText());}}

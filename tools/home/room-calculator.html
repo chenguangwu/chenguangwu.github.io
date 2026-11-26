@@ -305,6 +305,10 @@ function __roomEmptyHint(keys){
  el.textContent=keys.length?((en?'Please fill in ':'请填写 ')+names.join(en?', ':'、')+(en?' before calculating.':' 后再计算')):'';
 }
 
+function __roomClearResults(){
+ ['area-val','perimeter-val','diagonal-val'].forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='—';});
+ var t=document.getElementById('roomTable'); if(t) t.style.display='none';
+}
 function calc(){
  const miss=__roomMissing();
  if(miss.length){
@@ -316,8 +320,14 @@ function calc(){
   return null;
  }
  __roomEmptyHint([]);
- const v = id => +document.getElementById(id)?.value || 0;
- let area = 0, perimeter = 0, diag = 0;
+ const rawVals = (SHAPES[activeShape]||[]).map(function(id){ const el=document.getElementById(id); return el ? Number(String(el.value).trim()) : NaN; });
+ if(rawVals.some(function(n){ return !isFinite(n) || n<=0; })){
+  __roomClearResults();
+  ToolBox.showToast(__roomIsEn()?'All dimensions must be positive numbers.':'所有尺寸均须为正数','error');
+  return null;
+ }
+ const v = id => { const el=document.getElementById(id); return el ? Number(String(el.value).trim()) : 0; };
+ let area = 0, perimeter = 0, diag = 0, diagText = '';
  switch(activeShape){
   case '矩形':{
    const w = v('width'), h = v('height');
@@ -341,7 +351,7 @@ function calc(){
    const a=v('top'),b=v('bottom'),h=v('height');
    area = (a+b)*h/2;
    const side = Math.sqrt(((b-a)/2)**2 + h*h);
-   perimeter = a+b+2*side; diag = Math.sqrt(Math.max(a,b)**2 + h**2);
+   perimeter = a+b+2*side; diag = Math.sqrt(((a+b)/2)**2 + h*h);
    break;
   }
   case '圆形':{
@@ -365,14 +375,24 @@ function calc(){
   }
   case '平行四边形':{
    const base=v('base'),h=v('height'),side=v('side');
-   area = base * h; perimeter = 2*(base+side); diag = Math.sqrt(base**2+h**2);
+   if(side<h){
+    __roomClearResults();
+    ToolBox.showToast(__roomIsEn()?'Slant side must be at least the height.':'斜边不能小于高','error');
+    return null;
+   }
+   const dx = Math.sqrt(Math.max(side*side - h*h, 0));
+   const d1 = Math.sqrt((base+dx)**2 + h*h);
+   const d2 = Math.sqrt(Math.max(base-dx,0)**2 + h*h);
+   area = base * h; perimeter = 2*(base+side); diag = Math.max(d1,d2);
+   diagText = Math.min(d1,d2).toFixed(2)+' / '+Math.max(d1,d2).toFixed(2);
    break;
   }
  }
  const __g3=area.toFixed(2);document.getElementById('area-val').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
  const __g4=perimeter.toFixed(2);document.getElementById('perimeter-val').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
- const __g5=diag.toFixed(2);document.getElementById('diagonal-val').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
- return {area, perimeter, diag};
+ if(!diagText) diagText = diag.toFixed(2);
+ const __g5=diagText;document.getElementById('diagonal-val').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+ return {area, perimeter, diag, diagText};
 }
 
 function applyRoomPreset(kind){
@@ -439,7 +459,7 @@ function __roomExport(){
   });
   row(en?'Area':'面积','', r.area.toFixed(2), 'm²');
   row(en?'Perimeter':'周长','', r.perimeter.toFixed(2), 'm');
-  row(en?'Diagonal / diameter':'对角线/直径','', r.diag.toFixed(2), 'm');
+  row(en?(activeShape==='平行四边形'?'Diagonals (short / long)':'Diagonal / diameter'):(activeShape==='平行四边形'?'对角线（短 / 长）':'对角线/直径'),'', r.diagText, 'm');
   row(en?'Area (ft²)':'面积（平方英尺）','', (r.area*10.764).toFixed(2), 'ft²');
   __roomMaterials(r.area, r.perimeter).forEach(function(m){
     row(en?'Material estimate':'主材用量估算', en?m.en:m.zh, m.v, m.unit);

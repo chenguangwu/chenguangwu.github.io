@@ -281,7 +281,9 @@ var designT=parseFloat(document.getElementById('designT').value);
   var text=document.getElementById('measures').value.trim();
   var defect=+document.getElementById('defect').value;
   var vals=text.split(/[,，\s]+/).map(Number).filter(function(v){return !isNaN(v);});
+  if(!(designT>0)||!(tol>=0)){document.getElementById('res').innerHTML='<div class="tip-box tip-error">设计胶层厚度必须 &gt; 0，允许偏差必须 ≥ 0。</div>';return;}
   if(vals.length<3){ToolBox.showToast(i18nText('toast.msg568'),'error');return;}
+  if(vals.some(function(v){return !(v>0)||!isFinite(v);})){document.getElementById('res').innerHTML='<div class="tip-box tip-error">每个测点厚度都必须为 &gt; 0 的有限数值；零值或负值不能参与均匀性计算。</div>';return;}
   var sum=vals.reduce(function(a,b){return a+b;},0);
   var avg=sum/vals.length;
   var mx=Math.max.apply(null,vals);var mn=Math.min.apply(null,vals);
@@ -296,7 +298,7 @@ var designT=parseFloat(document.getElementById('designT').value);
   if(thicknessOk&&uniformOk&&level===0){status='合格';color='var(--success)';tip='success';}
   else if(level>=3||(!thicknessOk&&maxDev>tol*1.5)){status='不合格';color='var(--danger)';tip='error';}
   else{status='需返修';color='var(--warning)';tip='warn';}
-  var rows=vals.map(function(v,i){var dev=(v-designT)/designT*100;return ['测点'+(i+1),v.toFixed(3)+' mm','<span style="color:'+(Math.abs(dev)>tol?'var(--danger)':'var(--success)')+';">'+dev.toFixed(1)+'%</span>'];});
+  var rows=vals.map(function(v,i){var dev=(v-designT)/designT*100;return ['测点'+(i+1),v.toFixed(3)+' mm',dev.toFixed(1)+'%'+(Math.abs(dev)>tol?' ⚠ 超差':'')];});
   var h='<div class="stat-grid">';
   h+='<div class="stat-card"><div class="val">'+avg.toFixed(3)+'</div><div class="lbl">平均厚度(mm)</div></div>';
   h+='<div class="stat-card"><div class="val" style="color:'+(thicknessOk?'var(--success)':'var(--danger)')+';">'+maxDev.toFixed(1)+'%</div><div class="lbl">最大厚度偏差</div></div>';

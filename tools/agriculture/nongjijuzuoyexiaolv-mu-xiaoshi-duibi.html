@@ -361,6 +361,15 @@ function __nongjijuzuoyexiaolv_mu_xiaoshi_duibiExtras(){
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__nongjijuzuoyexiaolv_mu_xiaoshi_duibiResText();
     if(!res) return;
+    var __sc=__nongjijuzuoyexiaolv_mu_xiaoshi_duibiScore(res);
+    if(__sc<1){
+        try{
+            var __raw=localStorage.getItem('tbk_hist_'+location.pathname);
+            var __arr=__raw?JSON.parse(__raw):[];
+            if(Array.isArray(__arr)){ __arr=__arr.filter(function(it){ return parseFloat(it&&it.d&&it.d.__tbScore)>=1; }); localStorage.setItem('tbk_hist_'+location.pathname,JSON.stringify(__arr)); }
+        }catch(e0){}
+        return;
+    }
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
@@ -378,23 +387,55 @@ function __nongjijuzuoyexiaolv_mu_xiaoshi_duibiExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__nongjijuzuoyexiaolv_mu_xiaoshi_duibiScore(res);
+    rec.__tbScore=__sc;
     TBKit.history.record(rec);
     __nongjijuzuoyexiaolv_mu_xiaoshi_duibiRender(keys,rk,en);
 }
-function __nongjijuzuoyexiaolv_mu_xiaoshi_duibiExport(){
-    if (typeof TBKit === 'undefined') return;
+function __exportCurrentDetail(sel){
     try{
-        var box=document.querySelector('#nongjijuzuoyexiaolv_mu_xiaoshi_duibiTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__nongjijuzuoyexiaolv_mu_xiaoshi_duibiSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __nongjijuzuoyexiaolv_mu_xiaoshi_duibiRender(keys,en?'Result':'结果',en);
+        var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
+        var box=document.querySelector(sel);
+        var txt=box?(box.textContent||'').replace(/\s+/g,' ').trim():'';
+        if(!txt||/⚠|错误|无效|失败|Invalid|Failed|must be|Please enter|请输入/.test(txt)){
+            if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast(en?'Current result is empty or invalid; nothing exported':'当前结果为空或无效，未导出','warning');
+            return;
         }
-    }catch(e){}
-    try { TBKit.util.exportTable('#nongjijuzuoyexiaolv_mu_xiaoshi_duibiTable','nongjijuzuoyexiaolv-mu-xiaoshi-duibi.csv'); } catch(e){}
+        var rows=[[en?'Input':'输入参数',en?'Field':'字段',en?'Value':'值']];
+        var els=document.querySelectorAll('.container input,.container select,.container textarea');
+        for(var i=0;i<els.length;i++){
+            var e=els[i],t=(e.type||'').toLowerCase();
+            if(t==='button'||t==='submit'||t==='hidden'||t==='reset'||!e.id) continue;
+            var v=(t==='checkbox'||t==='radio')?(e.checked?'是':'否'):(e.value||'').trim();
+            if(v==='') continue;
+            rows.push([en?'Parameter':'参数',e.id||('field'+(i+1)),v]);
+        }
+        rows.push([]); rows.push([en?'Result':'计算结果',en?'Item':'项目',en?'Value':'值']);
+        rows.push([en?'Summary':'结果摘要','result',txt]);
+        if(box){
+            var __blocks=box.querySelectorAll('p,li,tr,.stat-card,.result-item,.metric');
+            for(var b2=0;b2<__blocks.length;b2++){
+                var __t=(__blocks[b2].textContent||'').replace(/\s+/g,' ').trim();
+                if(!__t||__t===txt||__t.length>500) continue;
+                rows.push([en?'Detail':'逐项数据','item'+(b2+1),__t]);
+            }
+            var tbs=box.querySelectorAll('table');
+            for(var q=0;q<tbs.length;q++){
+                var trs=tbs[q].querySelectorAll('tr');
+                for(var r=0;r<trs.length;r++){
+                    var cs=trs[r].querySelectorAll('th,td'); if(!cs.length) continue;
+                    var line=[]; for(var c=0;c<cs.length;c++) line.push((cs[c].textContent||'').replace(/\s+/g,' ').trim());
+                    rows.push([en?'Table':'数据表','row'+(r+1),line.join(' | ')]);
+                }
+            }
+        }
+        function esc(v){ v=String(v==null?'':v); return '"'+v.replace(/"/g,'""')+'"'; }
+        var csv=[rows[0].map(esc).join(',')];
+        rows.slice(1).forEach(function(rw){ csv.push(rw.map(esc).join(',')); });
+        var blob=new Blob(['\ufeff'+csv.join('\r\n')],{type:'text/csv;charset=utf-8'});
+        var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='nongjijuzuoyexiaolv-mu-xiaoshi-duibi.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+    }catch(e){ if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast('导出失败，请重试','error'); }
 }
+function __nongjijuzuoyexiaolv_mu_xiaoshi_duibiExport(){ if(typeof TBKit==='undefined')return; __exportCurrentDetail('#res'); }
 function __nongjijuzuoyexiaolv_mu_xiaoshi_duibiPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#nongjijuzuoyexiaolv_mu_xiaoshi_duibiPresets',[{label:'默认参数',labelEn:'Default',values:{'width':'2', 'speed':'5', 'time':'8', 'actualArea':'90'}},
@@ -464,10 +505,7 @@ else document.addEventListener('DOMContentLoaded', __nongjijuzuoyexiaolv_mu_xiao
       <span class="rt-icon">🔄</span>
       <span class="rt-info"><span class="rt-name">农产品干物质含量换算器</span><span class="rt-desc">农产品干物质换算器，输入鲜重、干重或含水率快速互转并支持标准含水率折算，用于粮食收购与饲草计量</span></span>
     </a>
-    <a href="dry-matter-conversion.html" class="related-tool-card">
-      <span class="rt-icon">🔄</span>
-      <span class="rt-info"><span class="rt-name">农产品干物质含量换算器</span><span class="rt-desc">农产品干物质换算器，输入鲜重、干重或含水率快速互转并支持标准含水率折算，用于粮食收购与饲草计量</span></span>
-    </a>
+    
     
     <a href="temp-time-2.html" class="related-tool-card">
       <span class="rt-icon">🌡️</span>

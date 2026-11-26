@@ -41,6 +41,7 @@ var LANG_REGISTRY = [
       'app.name': 'ToolBox',
       'nav.search': 'Search',
       'nav.theme': 'Toggle theme',
+      'ast.tree': 'AST syntax tree',
       'nav.hot': 'Hot tools',
       'nav.recent': 'Recent',
       'nav.fav': 'Favorites',
@@ -76,6 +77,8 @@ var LANG_REGISTRY = [
       'tool.copy': '📋 Copy Result',
       'tool.download': '💾 Download',
       'tool.sample': '📦 Example',
+      'btn.studyUndo': '↩ Undo sample',
+      'btn.presetUndo': '↩ Undo preset',
       'tool.clear': '🗑️ Clear',
       'tool.waiting': 'Waiting for input...',
       'tool.fav': 'Favorites',
@@ -93,6 +96,7 @@ var LANG_REGISTRY = [
       'cat.suffix_tools': 'Tools',
       'btn.allInd': 'View all industries →',
       'search.placeholder': 'Search tools, categories or features...',
+  'colorConverter.inputPlaceholder': 'Enter a color (HEX, RGB, HSL, HSV, CMYK)',
       'search.mobile': 'Search tools...',
       'search.cmdk': 'Search 5000+ tools, categories or features...',
       'cmdk.title': 'Tool Search',
@@ -100,6 +104,78 @@ var LANG_REGISTRY = [
       'cmdk.open': 'Open',
       'cmdk.close': 'Close',
       'cmdk.pure': 'Pure frontend · Data stays in your browser',
+      // 工具页输入提示（简体中文为 HTML 兜底，英文态由此表覆盖）
+      'ph.paint.surfaceName': 'e.g. Living room wall',
+      'ph.paint.surfaceArea': 'Area (m²)',
+      'ph.paint.coats': 'e.g. 2 (1–5)',
+      'ph.paint.coverage': 'e.g. 10',
+      'ph.paint.bucketSize': 'e.g. 5',
+      'ph.paint.bucketPrice': 'e.g. 280',
+      'ph.paint.doorCount': 'e.g. 1',
+      'ph.paint.doorArea': 'e.g. 2',
+      'ph.paint.winCount': 'e.g. 2',
+      'ph.paint.winArea': 'e.g. 1.8',
+      'ph.analysis75.data': 'e.g. Fresh produce,1000,60,25',
+      'ph.analysisReport.data': 'Operating,Sales receipts,500000',
+      'ph.cycle16.periodName': 'e.g. July 2026',
+      'ph.cycle16.totalOrders': 'e.g. 1000',
+      'ph.cycle16.onTime': 'e.g. 920',
+      'ph.cycle16.defects': 'e.g. 30',
+      'ph.cycle16.orderCycle': 'e.g. 5',
+      'ph.cycle16.invTurns': 'e.g. 8',
+      'ph.cycle16.payableDays': 'e.g. 45',
+      'ph.cycle16.receivableDays': 'e.g. 35',
+      'ph.detector30.temp': 'e.g. 4',
+      'ph.detector30.hours': 'e.g. 24',
+      'ph.detector30.appearance': 'e.g. 8 (1-10, step 0.5)',
+      'ph.detector30.odor': 'e.g. 8 (1-10, step 0.5)',
+      'ph.detector30.texture': 'e.g. 7 (1-10, step 0.5)',
+      'ph.strength7.mode': '1=single, 2=double',
+      'ph.strength7.perRow': 'rivets per row (blank=all)',
+      'ph.defectRate.defectQty': 'e.g. 1200 (one unit may have multiple defects)',
+
+      'ph.sportsStats.minutes': 'Duration (min)',
+      'ph.sportsStats.distance': 'Distance (km, optional)',
+      'ph.sportsStats.calories': 'Calories (optional)',
+      'ph.sportsStats.hr': 'Avg HR bpm (optional)',
+      'ph.stats11.data': 'e.g. Zhang San,88',
+      'ph.stats11.full': 'e.g. 100',
+      'ph.stats11.pass': 'e.g. 60',
+      'ph.swim.strokeCount': 'e.g. 20 (1–100)',
+      'ph.swim.swimTime': 'e.g. 30 (1–600)',
+      'ph.swim.bodyWeight': 'Used for calorie estimation',
+      'ph.seating.perTable': 'e.g. 10 (4–20)',
+      'ph.seating.mainTable': 'e.g. 8 (4–20)',
+      'ph.seating.guestName': 'e.g. Zhang San',
+      'ph.carRoute.carCount': 'e.g. 6 (1–20)',
+      'ph.carRoute.location': 'Location name',
+      'ph.carRoute.stay': 'Stay minutes',
+      'ph.carRoute.distance': 'Distance (km)',
+      'ph.ship.lbp': 'e.g. 180',
+      'ph.ship.beam': 'e.g. 28',
+      'ph.ship.tf': 'e.g. 9.5',
+      'ph.ship.tm': 'e.g. 9.7',
+      'ph.ship.ta': 'e.g. 9.9',
+      'ph.ship.cb': 'e.g. 0.72 (0–1)',
+      'ph.ship.rho': 'e.g. 1.025',
+      'ph.ship.cw': 'Auto',
+      'ph.ship.lightship': 'e.g. 12000',
+      'ph.library.org': 'Office',
+      'ph.library.unit': 'City Archives',
+      'ph.renovation.projectName': 'e.g. Kitchen cabinet',
+      'ph.renovation.newPrice': 'e.g. 0',
+      'ph.renovation.newQty': 'e.g. 1',
+      'ph.renovation.itemPrice': 'e.g. 0',
+      'ph.renovation.itemQty': 'e.g. 1',
+      'ph.lighting.length': 'e.g. 5',
+      'ph.lighting.width': 'e.g. 4',
+      'ph.lighting.height': 'e.g. 2.8',
+      'ph.lighting.lumens': 'e.g. 800',
+      'ph.lighting.cu': 'e.g. 0.6 (0.1–1)',
+      'ph.lighting.mf': 'e.g. 0.8 (0.7–0.9)',
+      'ph.colorGrading.search': 'Search LUT name…',
+      'ph.qrcode.input': 'One text or URL per line...',
+
       'common.copy': 'Copy',
       'common.use': 'Use',
       'common.all': 'All',
@@ -421,6 +497,10 @@ var LANG_REGISTRY = [
       'privacy.badge_text': 'Local Mode',
       'privacy.badge_aria': 'Local data management',
       'tool.file_upload_hint': 'Please upload an image first',
+      'tool.image_select_hint': 'Choose an image file or drop it here',
+      'tool.audio_select_hint': 'Please select an audio file',
+      'tool.audio_type_error': 'Unsupported file format. Please select an audio file.',
+      'tool.audio_load_ok': 'Audio loaded successfully',
       'tool.image_load_error': 'Image failed to load',
       'tool.image_load_ok': 'Image loaded',
       'ad.label_promo': '— Sponsored —',
@@ -443,6 +523,7 @@ var LANG_REGISTRY = [
       'tool.aria.left_paren': 'Left parenthesis',
       'tool.aria.right_paren': 'Right parenthesis',
       'tool.aria.swap': 'Swap',
+      'tool.aria.color_tabs': 'Color tool tabs',
       'tool.aria.play_recording': 'Play recording',
       'tool.aria.play': 'Play',
       'tool.aria.sqrt': 'Square root',
@@ -489,7 +570,9 @@ var LANG_REGISTRY = [
       'tool.aria.parentheses': 'Parentheses',
       'tool.aria.power': 'Power',
       'tool.aria.toggle_password': 'Show or hide password',
+      'tool.aria.benchmark_warmup': 'Warm-up duration (ms)',
       'tool.ph.browser_default_16': 'Browser default 16',
+      'tool.ph.country_search': 'Search country name (CN/EN), ISO code, capital (CN/EN)...',
       'tool.title.code_preview': 'Code output preview',
       'tool.it_px_conversion_formula': "Base font size uses the input value (if both base and root sizes are invalid, show a warning rather than silently using 16); px must be a valid non-negative number and both base and html root sizes must be >0, otherwise show “enter a valid positive number” and fix the preview size at 16px. Conversion: em = px ÷ base size; rem = px ÷ html root size (default 16); pt = px × 0.75; percent = px ÷ base size × 100. Output each unit, value, and CSS declaration (font-size) in a table, set the preview text size to that px value, and change the content to “Sample text (px value + px)”.",
       'tool.ai_vram_reading': "VRAM reading (complementary to the formula above): total VRAM grows linearly with parameter count; the page scans 1/3/7/13/30/70 B parameters into a line chart. VRAM per billion parameters equals bytes per parameter (GB); activation entered in MB is divided by 1000 into GB. Activation recomputation uses a 0.5 factor, and ZeRO sharding divides optimizer/gradient memory by GPU count. Validation: as above, render only when parameters and bytes per parameter are >0. Criteria: no fixed grading; halving precision bytes halves weight VRAM proportionally. Presets cover six real scenarios: FP16 inference, FP32 training, INT8 quantization, LoRA, QLoRA, and 70B INT4.",
@@ -1000,14 +1083,20 @@ var LANG_REGISTRY = [
     try {
       var ogT = document.querySelector('meta[property="og:title"]');
       var ogD = document.querySelector('meta[property="og:description"]');
+      var twT = document.querySelector('meta[name="twitter:title"]');
+      var twD = document.querySelector('meta[name="twitter:description"]');
       if (current === 'en-US') {
         var tEn = document.querySelector('meta[name="title-en"]');
         var dEn = document.querySelector('meta[name="desc-en"]');
         if (ogT && tEn && tEn.getAttribute('content')) ogT.setAttribute('content', tEn.getAttribute('content'));
         if (ogD && dEn && dEn.getAttribute('content')) ogD.setAttribute('content', dEn.getAttribute('content'));
+        if (twT && tEn && tEn.getAttribute('content')) twT.setAttribute('content', tEn.getAttribute('content'));
+        if (twD && dEn && dEn.getAttribute('content')) twD.setAttribute('content', dEn.getAttribute('content'));
       } else {
         if (ogT && _ogZh && _ogZh.t) ogT.setAttribute('content', _ogZh.t);
         if (ogD && _ogZh && _ogZh.d) ogD.setAttribute('content', _ogZh.d);
+        if (twT && _ogZh && _ogZh.t) twT.setAttribute('content', _ogZh.t);
+        if (twD && _ogZh && _ogZh.d) twD.setAttribute('content', _ogZh.d);
       }
     } catch (e) {}
   }

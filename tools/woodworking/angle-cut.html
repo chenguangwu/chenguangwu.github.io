@@ -132,11 +132,11 @@
     <div id="mode-miter">
       <div class="input-row">
         <div>
-          <label for="jointAngle">接头角度（度）</label>
+          <label for="jointAngle">接头夹角（度，两段中线）</label>
           <input type="number" id="jointAngle" value="90" min="1" max="180" oninput="calcMiter()" placeholder="如 90（1–180）">
         </div>
         <div>
-          <label for="segments">等分数（段数）</label>
+          <label for="segments">段数（仅多边形示意）</label>
           <input type="number" id="segments" value="2" min="2" max="12" oninput="calcMiter()" placeholder="如 2（2–12）">
         </div>
       </div>
@@ -281,26 +281,23 @@ function switchMode(mode,btn){
   ['miter','compound','taper'].forEach(function(m){$('mode-'+m).style.display=m===mode?'block':'none';});
 }
 function calcMiter(){
-  var ja=parseFloat($('jointAngle').value)||90;
-  var seg=parseInt($('segments').value)||2;
-  var interiorAngle=ja*(seg-2)/seg*180/seg;
-  var actualInterior=ja<180?ja:ja;
-  var miterAngle=(180-ja/seg)/2;
+  var ja=parseFloat($('jointAngle').value);
+  var seg=parseFloat($('segments').value);
+  if(!isFinite(ja)||ja<=0||ja>=180||!isFinite(seg)||Math.floor(seg)!==seg||seg<2||seg>12){
+    $('miterGrid').innerHTML='';$('miterVis').innerHTML='';
+    $('miterResult').innerHTML='<p style="color:var(--danger)">⚠ 接头角度须在 0–180° 之间，段数须为 2–12 的整数，已清除旧结果</p>';return;
+  }
+  var miterAngle=ja/2;
   var sawAngle=90-miterAngle;
-  if(ja>=180){miterAngle=ja/seg/2;sawAngle=90-miterAngle;}
-  var perSegAngle=ja/seg;
-  var miterAngle2=(180-perSegAngle)/2;
-  var sawAngle2=90-miterAngle2;
-  const __h0='<div class="data-card"><div class="num">'+perSegAngle.toFixed(1)+'°</div><div class="label">每段角度</div></div>'+
-    '<div class="data-card"><div class="num">'+miterAngle2.toFixed(2)+'°</div><div class="label">斜接角</div></div>'+
-    '<div class="data-card"><div class="num">'+sawAngle2.toFixed(2)+'°</div><div class="label">锯台设置角</div></div>'+
-    '<div class="data-card"><div class="num">'+seg+'</div><div class="label">段数</div></div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){$('miterGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('miterGrid').innerHTML=__h0;
-  renderMiterVis(perSegAngle,seg);
-  const __h1='<p>接头总角度：<strong>'+ja+'°</strong>，等分'+seg+'段</p>'+
-    '<p>每段角度：<strong>'+perSegAngle.toFixed(2)+'°</strong></p>'+
-    '<p>斜接角（每段切割角度）：<strong>'+miterAngle2.toFixed(2)+'°</strong></p>'+
-    '<p>锯台设置角度（从垂直方向）：<strong>'+sawAngle2.toFixed(2)+'°</strong></p>'+
-    '<div class="tip-box tip-info"><strong>💡 提示</strong>：斜接锯设置角度 = 90° - 斜接角。如45°斜接角，锯台设置为45°。</div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){$('miterResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('miterResult').innerHTML=__h1;
+  const __h0='<div class="data-card"><div class="num">'+ja.toFixed(1)+'°</div><div class="label">接头夹角</div></div>'+
+    '<div class="data-card"><div class="num">'+miterAngle.toFixed(2)+'°</div><div class="label">每侧斜接角</div></div>'+
+    '<div class="data-card"><div class="num">'+sawAngle.toFixed(2)+'°</div><div class="label">锯台设置角</div></div>'+
+    '<div class="data-card"><div class="num">'+seg+'</div><div class="label">段数</div></div>';$('miterGrid').innerHTML=__h0;
+  renderMiterVis(miterAngle,seg);
+  const __h1='<p>接头夹角：<strong>'+ja+'°</strong>（两段材料中线的夹角）</p>'+
+    '<p>每侧斜接角：<strong>'+miterAngle.toFixed(2)+'°</strong>（端面相对材料中线的角度）</p>'+
+    '<p>锯台设置角度（从垂直方向）：<strong>'+sawAngle.toFixed(2)+'°</strong></p>'+
+    '<div class="tip-box tip-info"><strong>💡 提示</strong>：两根材料拼直角（90°）时，每侧切 45°，锯台设 45°；段数只影响多边形示意，不改变单角斜接角。</div>';$('miterResult').innerHTML=__h1;
 }
 function renderMiterVis(angle,seg){
   var vis=$('miterVis');
@@ -335,10 +332,13 @@ function calcCompound(){
     '<div class="tip-box tip-info"><strong>💡 复合切割</strong>：当同时需要斜接和斜切时，实际角度与输入角度不同，需按公式换算。</div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){$('compoundResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('compoundResult').innerHTML=__h4;
 }
 function calcTaper(){
-  var sw=parseFloat($('startWidth').value)||0;
-  var ew=parseFloat($('endWidth').value)||0;
-  var len=parseFloat($('taperLength').value)||0;
-  if(len<=0){const __h5='<p style="color:var(--danger);">请输入有效长度</p>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){$('taperResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('taperResult').innerHTML=__h5;return;}
+  var sw=parseFloat($('startWidth').value);
+  var ew=parseFloat($('endWidth').value);
+  var len=parseFloat($('taperLength').value);
+  if(!isFinite(sw)||sw<=0||!isFinite(ew)||ew<=0||!isFinite(len)||len<=0){
+    $('taperGrid').innerHTML='';
+    $('taperResult').innerHTML='<p style="color:var(--danger)">⚠ 起始宽度、结束宽度与长度均须为大于 0 的有限数值，已清除旧结果</p>';return;
+  }
   var diff=Math.abs(sw-ew);
   var angle=Math.atan2(diff/2,len)*180/Math.PI;
   var angleRad=angle*Math.PI/180;
@@ -353,9 +353,9 @@ function calcTaper(){
     '<p>宽度差：<strong>'+diff.toFixed(2)+' mm</strong></p>'+
     '<p>单侧切割角度：<strong>'+angle.toFixed(2)+'°</strong></p>'+
     '<p>总锥角：<strong>'+(angle*2).toFixed(2)+'°</strong></p>'+
-    '<p>锥度比：<strong>1:'+(len/diff).toFixed(2)+'</strong>（每'+(len/diff).toFixed(1)+'mm长度缩窄1mm）</p>'+
+    '<p>锥度比：'+(diff===0?'<strong>0（直切，无锥度）</strong>':'<strong>1:'+(len/diff).toFixed(2)+'</strong>（每'+(len/diff).toFixed(1)+'mm长度缩窄1mm）')+'</p>'+
     '<p>锥度百分比：<strong>'+taperPer.toFixed(1)+'%</strong></p>'+
-    '<div class="tip-box tip-success"><strong>✓ 锥切角度已计算</strong>：锯台设置单侧 '+angle.toFixed(2)+'° 即可完成锥形切割。</div>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){$('taperResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('taperResult').innerHTML=__h7;
+    '<div class="tip-box tip-success"><strong>✓ '+(diff===0?'直切':'锥切角度已计算')+'</strong>：'+(diff===0?'起止宽度相同，按 0° 直切，不需调整锯台角度。':'锯台设置单侧 '+angle.toFixed(2)+'° 即可完成锥形切割。')+'</div>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){$('taperResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('taperResult').innerHTML=__h7;
 }
 function copyResult(){
   var visible=document.querySelector('[id^="mode-"]:not([style*="none"])');

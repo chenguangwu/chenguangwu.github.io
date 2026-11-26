@@ -123,7 +123,7 @@
       <div><label for="weight">鱼体均重（g）</label><input type="number" id="weight" value="100" min="0" step="any" enterkeyhint="done" aria-label="鱼体均重" placeholder="如 100"></div>
     </div>
     <div class="toolbar">
-      <div id="density_7Presets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__density_7Export()">导出明细 CSV</button>
+      <div id="density_7Presets"></div><button class="btn primary" type="button" onclick="calc(true)">🧮 计算</button><button class="btn" type="button" onclick="__density_7Export()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
@@ -205,7 +205,7 @@ function readInputs(){
   var valid=hoursOk&&tempOk&&densityOk&&weightOk;
   return {hours:hours,temp:temp,density:density,weight:weight,valid:valid};
 }
-function calc(){
+function calc(save){
   var iv=readInputs();
   if(!iv.valid){
     document.getElementById('res').innerHTML='<p style="color:var(--danger,#B91C1C);">请输入有效参数：运输时间需大于 0（≤240 小时），水温需在 -2–40 ℃，密度需 ≥0，鱼体均重需 >0。</p>';
@@ -247,7 +247,7 @@ function calc(){
     '<p style="margin-top:10px;font-size:13px;color:var(--text-muted);">建议：'+advice+'</p>'+
     '<p style="margin-top:6px;font-size:12px;color:var(--text-muted);">'+suggestNote+'（模型假设：风险指数 = 时长 × 温度系数 × 密度系数 × 体重系数，存活率 = 100 − 0.5 × 风险指数；为经验估算，不等于实际存活率。）</p>';try{ if(typeof survival==='number'&&isFinite(survival)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:survival,unit:'%',bands:[{"lo":95,"hi":null,"label":{"zh":"低风险","en":"Low risk"},"color":"#065F46"},{"lo":90,"hi":95,"label":{"zh":"中等风险","en":"Moderate risk"},"color":"#92400E"},{"lo":null,"hi":90,"label":{"zh":"较高风险","en":"High risk"},"color":"#B91C1C"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  saveHistory();
+  if(save===true) saveHistory();
 }
 function copyRes(){
   var text=document.getElementById('res').innerText;
@@ -307,7 +307,7 @@ function restoreHistory(idx){
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText('toast.history_cleared'),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){
   renderHistory();
-  document.querySelectorAll('input,select').forEach(function(el){el.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();calc();}});});
+  document.querySelectorAll('input,select').forEach(function(el){el.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();calc(true);}});});
   document.getElementById('historyBox').addEventListener('click',function(e){
     var item=e.target.closest('[data-idx]');
     if(item)restoreHistory(parseInt(item.getAttribute('data-idx'),10));
@@ -394,6 +394,7 @@ function __density_7Extras(){
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__density_7ResText();
     if(!res) return;
+    if(__density_7Score(res)===0){var __tb=document.getElementById('density_7Table');if(__tb)__tb.innerHTML='';return;}
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
@@ -430,7 +431,7 @@ function __density_7Export(){
 }
 function __density_7Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#density_7Presets',[{label:'默认参数',labelEn:'Default',values:{'hours':'6', 'temp':'20', 'density':'150', 'weight':'100'}},{"label":"小规模","labelEn":"Small scale","values":{"hours":"3"}},{"label":"大规模","labelEn":"Large scale","values":{"hours":"9"}},{"label":"极端工况","labelEn":"Extreme case","values":{"hours":"12"}}],function(){ calc(); });
+    TBKit.preset.bar('#density_7Presets',[{label:'默认参数',labelEn:'Default',values:{'hours':'6', 'temp':'20', 'density':'150', 'weight':'100'}},{"label":"短途 3 小时","labelEn":"Short trip, 3 h","values":{"hours":"3"}},{"label":"中途 6 小时","labelEn":"Medium trip, 6 h","values":{"hours":"6"}},{"label":"长途 9 小时","labelEn":"Long trip, 9 h","values":{"hours":"9"}},{"label":"超长 12 小时","labelEn":"Very long trip, 12 h","values":{"hours":"12"}}],function(){ calc(); });
 }
 var __density_7_f0=(typeof calc==='function')?calc:null;
 if(__density_7_f0){

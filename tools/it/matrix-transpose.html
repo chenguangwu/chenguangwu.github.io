@@ -158,7 +158,7 @@ input.cell{padding:7px;text-align:center;font-size:13px;width:100%;min-width:0;}
     </div>
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="build()">构建矩阵</button>
-      <div id="matrix_transposePresets"></div><button type="button" class="btn" onclick="calculate()">计算转置</button><button class="btn" type="button" onclick="__matrix_transposeExport()">导出明细 CSV</button>
+      <div id="matrix_transposePresets"></div><button type="button" class="btn" onclick="calculate()">计算转置</button><button class="btn" type="button" onclick="__matrix_transposeCopy()">复制转置矩阵</button><button class="btn" type="button" onclick="__matrix_transposeExport()">导出明细 CSV</button>
     </div>
     <div id="inputArea"></div>
     <div class="result-box" id="output"></div> <div id="matrix_transposeTable"></div> <div id="matrix_transposeDiff"></div> <div id="matrix_transposeChart"></div> <div id="matrix_transposeHist"></div>
@@ -260,10 +260,11 @@ function build(){
   const __h1='<p style="color:var(--text-muted);">点击「计算转置」查看结果。</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
 }
 function getM(r,c){
-  const m=[];
-  for(let i=0;i<r;i++){ m.push([]); for(let j=0;j<c;j++){ const el=document.getElementById('a'+(i*c+j)); if(!el) throw new Error('矩阵单元格缺失，请重新点击「构建矩阵」'); const raw=(el.value||'').trim(); if(raw===''||!isFinite(Number(raw))){ el.style.borderColor='var(--danger)'; throw new Error('单元格 A['+(i+1)+']['+(j+1)+'] 不能为空或非数字'); } const v=Number(raw); el.style.borderColor=''; m[i].push(v); } }
-  return m;
+  const m=[],raws=[];
+  for(let i=0;i<r;i++){ m.push([]); raws.push([]); for(let j=0;j<c;j++){ const el=document.getElementById('a'+(i*c+j)); if(!el) throw new Error('矩阵单元格缺失，请重新点击「构建矩阵」'); const raw=(el.value||'').trim(); if(raw===''||!isFinite(Number(raw))){ el.style.borderColor='var(--danger)'; throw new Error('单元格 A['+(i+1)+']['+(j+1)+'] 不能为空或非数字'); } const v=Number(raw); el.style.borderColor=''; m[i].push(v); raws[i].push(raw); } }
+  return {m:m,raws:raws};
 }
+function escHTML(v){ return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmt(x){
   if(x===0) return '0';
   // IT-N175：整数（含 15 位大整数）原样输出，避免 toPrecision(12) 把末几位静默抹成 0；
@@ -274,12 +275,11 @@ function fmt(x){
 }
 function matrixHTML(m){
   if(m.length===0) return '';
-  const cols=m[0].length;
   let html='<div class="result-matrix"><table style="border:none;">';
-  for(const row of m){ html+='<tr>'; for(const v of row) html+='<td style="border:none;padding:4px 12px;text-align:center;font-family:monospace;">'+fmt(v)+'</td>'; html+='</tr>'; }
+  for(const row of m){ html+='<tr>'; for(const v of row) html+='<td style="border:none;padding:4px 12px;text-align:center;font-family:monospace;">'+escHTML(v)+'</td>'; html+='</tr>'; }
   return html+'</table></div>';
 }
-let __lastTranspose=null;
+let __lastTranspose=null,__lastTransposeRaw=null;
 // IT-N174 复核重做：记录 build() 实际构建时的行列数，供 calculate() 判定是否需要重建。
 let __builtRows=0,__builtCols=0;
 function calculate(){
@@ -289,16 +289,17 @@ function calculate(){
   // 2×3 与 3×2 格数相同，只比对格数会漏掉维度变化：输入区仍是旧维度、结果却按新维度解释。
   // 任一维度变化都重建输入矩阵（build() 保留已有单元格值），保证展示与结果一致。
   if(__builtRows!==r || __builtCols!==c || document.querySelectorAll('#inputArea .cell').length!==r*c) build();
-  let A,T;
-  try{ A=getM(r,c); }catch(e){ __lastTranspose=null; document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ '+e.message+'</p>'; return; }
-  T=[];
-  for(let j=0;j<c;j++){ T.push([]); for(let i=0;i<r;i++) T[j].push(A[i][j]); }
-  __lastTranspose=T;
-  let html='<p><strong>转置矩阵 Aᵀ （'+c+'×'+r+'）：</strong></p>'+matrixHTML(T);
+  let got,T,TR;
+  try{ got=getM(r,c); }catch(e){ __lastTranspose=null; __lastTransposeRaw=null; document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ '+e.message+'</p>'; return; }
+  const A=got.m,AR=got.raws;
+  T=[];TR=[];
+  for(let j=0;j<c;j++){ T.push([]);TR.push([]); for(let i=0;i<r;i++){ T[j].push(A[i][j]); TR[j].push(AR[i][j]); } }
+  __lastTranspose=T; __lastTransposeRaw=TR;
+  let html='<p><strong>转置矩阵 Aᵀ （'+c+'×'+r+'）：</strong></p>'+matrixHTML(TR);
   html+='<p style="margin-top:10px;"><strong>转置规则：</strong></p>';
-  html+='<div class="step-line">Aᵀ[j][i] = A[i][j]，即原矩阵第 i 行第 j 列 → 转置后第 j 行第 i 列</div>';
+  html+='<div class="step-line">Aᵀ[j][i] = A[i][j]，即原矩阵第 i 行第 j 列 → 转置后第 j 行第 i 列；元素原样搬移，不重算、不四舍五入。</div>';
   html+='<p style="margin-top:10px;"><strong>逐元素对应：</strong></p>';
-  for(let i=0;i<r;i++) for(let j=0;j<c;j++) html+='<div class="step-line">A['+(i+1)+']['+(j+1)+'] = '+fmt(A[i][j])+'  →  Aᵀ['+(j+1)+']['+(i+1)+'] = '+fmt(A[i][j])+'</div>';
+  for(let i=0;i<r;i++) for(let j=0;j<c;j++) html+='<div class="step-line">A['+(i+1)+']['+(j+1)+'] = '+escHTML(AR[i][j])+'  →  Aᵀ['+(j+1)+']['+(i+1)+'] = '+escHTML(AR[i][j])+'</div>';
   if(r===c){
     let sym=true;
     for(let i=0;i<r&&sym;i++) for(let j=0;j<c&&sym;j++) if(A[i][j]!==A[j][i]) sym=false;
@@ -330,8 +331,16 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 var __matrix_transpose_last=0,__matrix_transpose_skip=false;
+function __mxWarn(){ try{ if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast('该历史记录缺少完整矩阵单元格（可能为旧版截断记录），无法完整恢复，未改动当前矩阵','warning'); }catch(e){} }
+function __mxRestore(rec){
+    try{
+        var r=+rec.rows,c=+rec.cols; if(!r||!c||r<1||r>6||c<1||c>6) return false; var cells=[]; for(var i=0;i<r*c;i++){ if(!Object.prototype.hasOwnProperty.call(rec,'a'+i)){ __mxWarn(); return true; } cells.push(rec['a'+i]); } document.getElementById('rows').value=r; document.getElementById('cols').value=c; build(); for(var j=0;j<cells.length;j++){ var el=document.getElementById('a'+j); if(el) el.value=cells[j]; } calculate(); return true;
+    }catch(e){ return false; }
+}
 function __matrix_transposeSnap(){
     var out={};
+    var __cells=document.querySelectorAll('#inputArea .cell');
+    for(var __i=0;__i<__cells.length;__i++){ out[__cells[__i].id]=__cells[__i].value; }
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
     for(var i=0;i<els.length;i++){
         var e=els[i];
@@ -375,6 +384,7 @@ function __matrix_transposeRender(keys,rk,en){
         TBKit.matrix.table('#matrix_transposeTable',{head:head,rows:rows});
         TBKit.util.diffBox('#matrix_transposeDiff');
         TBKit.history.mount('#matrix_transposeHist',function(rec){
+            if(__mxRestore(rec)) return;
             __matrix_transpose_skip=true;
             try{
                 for(var k in rec){
@@ -405,7 +415,6 @@ function __matrix_transposeExtras(){
     var snap=__matrix_transposeSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
-    if(keys.length>12) keys=keys.slice(0,12);
     var res=__matrix_transposeResText();
     if(!res) return;
     var en=TBKit.util.isEn();
@@ -429,9 +438,14 @@ function __matrix_transposeExtras(){
     TBKit.history.record(rec);
     __matrix_transposeRender(keys,rk,en);
 }
+function __matrix_transposeCopy(){
+  if(!__lastTransposeRaw){ ToolBox.showToast('请先点击「计算转置」'); return; }
+  var txt=__lastTransposeRaw.map(function(row){return row.join('\t');}).join('\n');
+  ToolBox.copyText(txt,'转置矩阵已复制（原样精度）','复制失败');
+}
 function __matrix_transposeExport(){
     if(!__lastTranspose){ ToolBox.showToast('请先点击「计算转置」'); return; }
-    var csv=__lastTranspose.map(function(row){return row.map(function(v){return fmt(v);}).join(',');}).join('\n');
+    var csv=(__lastTransposeRaw||__lastTranspose).map(function(row){return row.map(function(v){return escHTML(v);}).join(',');}).join('\n');
     var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
     var a=document.createElement('a');
     a.href=URL.createObjectURL(blob);a.download='transpose-result.csv';
@@ -473,7 +487,7 @@ else document.addEventListener('DOMContentLoaded', __matrix_transposeBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -481,7 +495,7 @@ else document.addEventListener('DOMContentLoaded', __matrix_transposeBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

@@ -133,7 +133,7 @@
 
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">薄透镜成像（本页代码口径）：1÷f=1÷d_o+1÷d_i，页面按像距 d_i=1÷(1÷f−1÷d_o)（m，f 焦距、d_o 物距）反解；联动量：放大率 m=−d_i÷d_o、光焦度=1÷f（1/m）。校验：两字段经输入守卫必填且须为合法数值，否则提示并中止。判据：d_i&gt;0 成实像、d_i&lt;0 成虚像，|m|&gt;1 放大、|m|&lt;1 缩小。</div>
+      <div class="formula-eq">薄透镜成像（本页代码口径）：1÷f=1÷d_o+1÷d_i，页面按像距 d_i=1÷(1÷f−1÷d_o)（m，f 焦距、d_o 物距）反解；联动量：放大率 m=−d_i÷d_o、光焦度=1÷f（1/m）。校验：f 与 d_o 必填，f 须为非零有限数、d_o 须大于 0；空白不等于 0。判据：d_i&gt;0 成实像、d_i&lt;0 成虚像，|m|&gt;1 放大、|m|&lt;1 缩小；凹透镜 f&lt;0 仍按主式计算虚像，光路图明确提示仅支持凸透镜。</div>
       <p class="formula-desc">由物距与焦距求像距。</p>
     </div>
 
@@ -268,7 +268,7 @@ function __tbInputGuardCore(_ids,_labels){
     }
   }
   // 负值受限项：__N 由真浏览器逐项置 -1 探测得出（质量/体积/年限/样本量等物理量）
-  var __N={"f": "焦距 f (m)", "do": "物距 d_o (m)"};
+  var __N={"do": "物距 d_o (m)"}; // 焦距 f 允许为负（凹透镜），不得按物理量负值拦截
   for(var _n=0;_n<_ids.length;_n++){
     if(!(_ids[_n] in __N)) continue;
     var _ne=document.getElementById(_ids[_n]);
@@ -297,13 +297,18 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __optLabel(s){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()){var m={'像距 d_i (m)':'Image distance d_i (m)','像性质':'Image type','放大率 m = -d_i/d_o':'Magnification m = -d_i/d_o','光焦度 1/f (1/m)':'Optical power 1/f (1/m)','项目':'Item','数值':'Value'};if(m[s])return m[s];}}catch(e){}return s;}
+function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){r[1]=__optLabel(String(r[1]));h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
+  const __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
               var __ig=__tbInputGuard(['f', 'do'],["焦距 f (m)", "物距 d_o (m)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));try{ calcRay(); }catch(e){} return;}
-const f = num('f'), do_ = num('do');
+const __raw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+            if(__raw('f')===''||__raw('do')===''){ToolBox.setResult('result','<p style="color:var(--danger)">请填写焦距 f 与物距 d_o；空白不等于 0。</p>');try{calcRay();}catch(e){}return;}
+            const f=Number(__raw('f')),do_=Number(__raw('do'));
+            if(!Number.isFinite(f)||f===0||!Number.isFinite(do_)||do_<=0){ToolBox.setResult('result','<p style="color:var(--danger)">焦距 f 须为非零有限数，物距 d_o 须大于 0。</p>');try{calcRay();}catch(e){}return;}
             // 物恰好落在焦点上：1/dᵢ=0 ⇒ dᵢ 发散，出射光平行，不能说成「实像·放大」，
             // 也不能把 Infinity 写进 SVG 坐标。用相对容差兼顾浮点输入。
-            if(f>0 && do_>0 && Math.abs(do_-f) <= 1e-9*Math.max(f,do_)){
+            if(Math.abs(do_-f) <= 1e-9*Math.max(Math.abs(f),do_)){
               const __fm=((typeof TBKit!=='undefined'&&TBKit.util.isEn())
                 ? 'Object at the focal point: outgoing rays are parallel, the image is at infinity, and no finite image is formed.'
                 : '物距等于焦距：出射光平行，像在无穷远，不形成有限像');
@@ -313,10 +318,10 @@ const f = num('f'), do_ = num('do');
             }
             const di = 1 / (1 / f - 1 / do_);
             const __g2=dataGrid([
-                [di.toFixed(4), '像距 d_i (m)'],
-                [(di > 0 ? '实像' : '虚像'), '像性质'],
-                [(-di/do_).toFixed(4), '放大率 m = -d_i/d_o'],
-                [(1/f).toFixed(4), '光焦度 1/f (1/m)']
+                [di.toFixed(4), __optLabel('像距 d_i (m)')],
+                [__en?(di>0?'Real image':'Virtual image'):(di > 0 ? '实像' : '虚像'), __optLabel('像性质')],
+                [(-di/do_).toFixed(4), __optLabel('放大率 m = -d_i/d_o')],
+                [(1/f).toFixed(4), __optLabel('光焦度 1/f (1/m)')]
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
             try{ calcRay(); }catch(e){}
         }
@@ -329,7 +334,7 @@ function calcRay(){
   var f=parseFloat((e('f')||{}).value), do_=parseFloat((e('do')||{}).value);
   var box=e('thinLensNature'), svg=e('thinLensRay');
   var en=false; try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(err){}
-  if(!(f>0&&do_>0)){ if(box)box.innerHTML=''; if(svg)svg.innerHTML=''; return; }
+  if(!isFinite(f)||f===0||!isFinite(do_)||do_<=0){ if(box)box.innerHTML=''; if(svg)svg.innerHTML=''; return; }
   // 焦点边界：清空会带 Infinity 坐标的错误光路图，改给明确的「平行出射 / 像在无穷远」结论
   if(Math.abs(do_-f) <= 1e-9*Math.max(f,do_)){
     if(box)box.innerHTML='<div style="font-size:13px;line-height:1.95">'
@@ -344,12 +349,13 @@ function calcRay(){
   var L={real:en?'Real image':'实像',virt:en?'Virtual image':'虚像',inv:en?'Inverted':'倒立',up:en?'Upright':'正立',enl:en?'Enlarged':'放大',dim:en?'Diminished':'缩小',eq:en?'Same size':'等大',pos:en?'positive':'正',neg:en?'negative':'负'};
   var nat=(di>0?L.real:L.virt)+' · '+(m<0?L.inv:L.up)+' · '+(Math.abs(m)>1?L.enl:(Math.abs(m)<1?L.dim:L.eq));
   var h='<div style="font-size:13px;line-height:1.95">';
-  h+='<div>像距 d_i = '+__fx(di)+' m（'+(di>0?L.pos:L.neg)+'）</div>';
-  h+='<div>横向放大率 m = '+__fx(m)+'</div>';
-  h+='<div>成像性质：'+nat+'</div>';
+  h+='<div>'+(en?'Image distance d_i = ':'像距 d_i = ')+__fx(di)+' m ('+(di>0?L.pos:L.neg)+')</div>';
+  h+='<div>'+(en?'Lateral magnification m = ':'横向放大率 m = ')+__fx(m)+'</div>';
+  h+='<div>'+(en?'Image nature: ':'成像性质：')+nat+'</div>';
+  if(f<0)h+='<div style="color:var(--text-muted);margin-top:4px;">'+(en?'The ray diagram below supports converging lenses (f>0) only. For a diverging lens (f<0), the negative image distance above gives a virtual, upright image; the diagram is intentionally not drawn.':'当前光路图仅支持凸透镜（f>0）；凹透镜（f<0）按上方负像距得到虚像、正立，图示暂不绘制。')+'</div>';
   h+='</div>';
   if(box)box.innerHTML=h;
-  if(svg){ try{ svg.innerHTML=__thinLensSVG(f,do_,di,m,en); }catch(err){} }
+  if(svg){ if(f<0){svg.innerHTML='';}else{try{ svg.innerHTML=__thinLensSVG(f,do_,di,m,en); }catch(err){} }}
 }
 function __thinLensSVG(f,do_,di,m,en){
   var __fx=function(n){ return (typeof n==='number'&&isFinite(n))?n.toFixed(4):'—'; };
@@ -390,32 +396,32 @@ function __thin_lens_equationExtras(){
     var f = __thin_lens_equationNum('f'), do_ = __thin_lens_equationNum('do');
     var en=TBKit.util.isEn();
     function clearExtras(){
-        TBKit.matrix.table('#thin_lens_equationTable',{head:en?['Item','Value']:['项目','数值'],rows:[]});
+        TBKit.matrix.table('#thin_lens_equationTable',{head:en?['Item','Value']:[__optLabel('项目'),__optLabel('数值')],rows:[]});
         var diff=document.getElementById('thin_lens_equationDiff');
         if(diff) diff.textContent='';
     }
-    if (!(f>0 && do_>0)){
+    if (!isFinite(f)||f===0||!isFinite(do_)||do_<=0){
         clearExtras();
         return;
     }
-    var focal=Math.abs(do_-f)<=1e-9*Math.max(f,do_);
+    var focal=Math.abs(do_-f)<=1e-9*Math.max(Math.abs(f),do_);
     var di=focal?null:1/(1/f-1/do_);
     if(!focal && !isFinite(di)){
         clearExtras();
         return;
     }
     TBKit.matrix.table('#thin_lens_equationTable',{
-        head: en?['Item','Value']:['项目','数值'],
+        head: en?['Item','Value']:[__optLabel('项目'),__optLabel('数值')],
         rows: focal ? [
-            [en?'Image distance':'像距 d_i (m)',en?'At infinity':'无穷远'],
-            [en?'Image nature':'像性质',en?'No finite image':'不形成有限像'],
-            [en?'Magnification':'放大率 m = -d_i/d_o',en?'Undefined':'不定义'],
-            [en?'Optical power':'光焦度 1/f (1/m)',(1/f).toFixed(4)]
+            [en?'Image distance':__optLabel('像距 d_i (m)'),en?'At infinity':'无穷远'],
+            [en?'Image nature':__optLabel('像性质'),en?'No finite image':'不形成有限像'],
+            [en?'Magnification':__optLabel('放大率 m = -d_i/d_o'),en?'Undefined':'不定义'],
+            [en?'Optical power':__optLabel('光焦度 1/f (1/m)'),(1/f).toFixed(4)]
         ] : [
-            ['像距 d_i (m)', di.toFixed(4)],
-            ['像性质', (di > 0 ? '实像' : '虚像')],
-            ['放大率 m = -d_i/d_o', (-di/do_).toFixed(4)],
-            ['光焦度 1/f (1/m)', (1/f).toFixed(4)],
+            [__optLabel('像距 d_i (m)'), di.toFixed(4)],
+            [__optLabel('像性质'), (en?(di > 0 ? 'Real image' : 'Virtual image'):(di > 0 ? '实像' : '虚像'))],
+            [__optLabel('放大率 m = -d_i/d_o'), (-di/do_).toFixed(4)],
+            [__optLabel('光焦度 1/f (1/m)'), (1/f).toFixed(4)],
         ]
     });
     TBKit.history.record({f:__thin_lens_equationRaw('f'), do:__thin_lens_equationRaw('do'), di:focal?(en?'At infinity':'无穷远'):di});
@@ -477,7 +483,7 @@ else document.addEventListener('DOMContentLoaded', __thin_lens_equationBoot);
 <li>透镜组第一片设计。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">凸透镜 f=10cm，物距 30cm</div><div class="dd-ex-body">1/di=1/f−1/do=1/0.1−1/0.3=10−3.33=6.67，di=15cm（实像）。</div></div>
-<div class="dd-example"><div class="dd-ex-title">物距 8cm（小于 f）</div><div class="dd-ex-body">1/di=10−12.5=−2.5，di=−0.4m，虚像、正立放大（放大镜原理）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">物距 8cm（小于 f）</div><div class="dd-ex-body">1/di=10−12.5=−2.5，di=−0.4m，虚像、正立放大（放大镜原理）。凹透镜 f&lt;0 时同样可用主式计算虚像；本页光路图只画凸透镜，并在负焦距时明确提示。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>虚像 di 为负？</dt><dd>是；do&lt;f 时成放大正立虚像，像与物同侧。</dd>

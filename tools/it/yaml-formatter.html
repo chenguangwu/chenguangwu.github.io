@@ -3,6 +3,7 @@
 <head>
 
 <script src="/js/tool-page-runtime.js" defer></script>
+<script src="/vendor/js-yaml/4.1.1/js-yaml.min.js" integrity="sha384-ZeqCzuWczURac3RacSufGD7oSbzeaX7xxnnOr3PTcYTLx4Av0qBj0kBq7AeCtHLA" crossorigin="anonymous"></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -142,7 +143,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="📄 YAML 格式化/验证/转JSON">📄 YAML Format</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先用基于缩进栈的解析器把 YAML 文本解析为对象：跳过空行与以井号开头的注释行，取每行首个非空白字符的位置作为缩进量；缩进量小于等于栈顶缩进时不断出栈。以「- 」开头的行作为数组项——父级该键还不是数组时先创建数组；项内容含「: 」时解析为键值对对象并入栈，以冒号结尾时压入一个新对象，否则作为标量值推入数组。以冒号结尾的行创建新对象并压栈。含「: 」的行按键值对写入当前父级（父级是数组时新建对象再推入）。格式化时把解析结果递归序列化为文本，再把每两个空格替换为所选缩进宽度的空格；压缩模式直接输出对象的紧凑 JSON 序列化结果</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">用 js-yaml（YAML 1.2 Core Schema）完整解析与序列化：格式化按所选缩进宽度 dump，多文档用 --- 保留分隔；压缩输出每个文档的紧凑 JSON（JSON 也是合法 YAML）；YAML→JSON 保留布尔、数字、空容器与嵌套结构；注释、锚点与别名不保留，检测到即提示核对。</div>
   <div class="formula-desc">YAML 配置文件的格式化与校验。</div>
   <ul class="formula-list">
     <li><b>语法</b>：<code>key: value</code> 为映射，<code>-</code> 开头为序列，<code>#</code> 为注释，<code>|</code> 与 <code>&gt;</code> 处理多行文本。</li>
@@ -221,6 +222,10 @@ enabled: true</textarea>
       <h3>📋 历史记录</h3>
       <button type="button" class="btn danger" onclick="clearHistory()">清空历史</button>
     </div>
+    <div class="history-privacy">
+      <label><input type="checkbox" id="saveYamlHistory"> 保存完整输入到本地历史（默认关闭）</label>
+      <p>开启后完整 YAML 会保存在本机 localStorage，不会上传；含令牌、密码等敏感配置时请保持关闭。旧记录只有摘要，无法完整恢复。</p>
+    </div>
     <div id="history-list" class="history-list"></div>
   </div>
 
@@ -243,6 +248,7 @@ enabled: true</textarea>
         <li>列表用短横线: <code>- item</code></li>
         <li>注释以 <code>#</code> 开头</li>
         <li>字符串通常不需要引号，特殊字符需要</li>
+        <li>格式化会重排结构并丢弃注释、锚点与别名；重要配置请先备份，格式化后核对语义。</li>
       </ul>
     </div>
   </div>
@@ -345,131 +351,33 @@ function hideError() {
   document.getElementById('error-msg').style.display = 'none';
 }
 
+function showNotice(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = '⚠️ ' + msg;
+  el.style.display = 'block';
+}
+
+function yamlLoadAll(text) {
+  return jsyaml.loadAll(String(text == null ? '' : text), { schema: jsyaml.CORE_SCHEMA });
+}
 function parseYaml(text) {
-  const lines = text.split('\n');
-  const root = Object.create(null);
-  const stack = [{ indent: -1, obj: root, key: null, isArray: false }];
-  
-  for (let i = 0; i < lines.length; i++) {
-    let line = lines[i];
-    if (!line.trim() || line.trim().startsWith('#')) continue;
-    
-    const indent = line.search(/\S/);
-    const content = line.trim();
-    
-    while (stack.length > 1 && indent <= stack[stack.length - 1].indent) {
-      stack.pop();
-    }
-    
-    const parent = stack[stack.length - 1];
-    
-    if (content.startsWith('- ')) {
-      const itemContent = content.substring(2);
-      if (!Array.isArray(parent.obj)) {
-        if (parent.key !== null) {
-          parent.obj[parent.key] = [];
-          const arrItem = { indent, obj: parent.obj[parent.key], isArray: true };
-          stack.push(arrItem);
-        }
-      }
-      const arr = parent.isArray ? parent.obj : (parent.key ? parent.obj[parent.key] : root);
-      
-      if (itemContent.includes(': ')) {
-        const obj = Object.create(null);
-        const colonIdx = itemContent.indexOf(': ');
-        const k = itemContent.substring(0, colonIdx).trim();
-        const v = parseValue(itemContent.substring(colonIdx + 2).trim());
-        obj[k] = v;
-        arr.push(obj);
-        stack.push({ indent, obj, key: null });
-      } else if (itemContent.endsWith(':')) {
-        const obj = Object.create(null);
-        arr.push(obj);
-        stack.push({ indent, obj, key: null });
-      } else {
-        arr.push(parseValue(itemContent));
-      }
-    } else if (content.endsWith(':')) {
-      const key = content.slice(0, -1).trim();
-      const obj = Object.create(null);
-      if (parent.isArray) {
-        parent.obj.push(obj);
-      } else {
-        parent.obj[key] = obj;
-      }
-      stack.push({ indent, obj, key: null });
-    } else if (content.includes(': ')) {
-      const colonIdx = content.indexOf(': ');
-      const key = content.substring(0, colonIdx).trim();
-      const value = parseValue(content.substring(colonIdx + 2).trim());
-      if (parent.isArray) {
-        const obj = Object.create(null);
-        obj[key] = value;
-        parent.obj.push(obj);
-      } else {
-        parent.obj[key] = value;
-      }
-    }
-  }
-  return root;
+  return yamlLoadAll(text)[0];
 }
-
-function parseValue(str) {
-  if (str === 'true' || str === 'True' || str === 'yes') return true;
-  if (str === 'false' || str === 'False' || str === 'no') return false;
-  if (str === 'null' || str === '~' || str === 'Null') return null;
-  if (/^-?\d+$/.test(str)) return parseInt(str);
-  if (/^-?\d+\.\d+$/.test(str)) return parseFloat(str);
-  if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
-    return str.slice(1, -1);
+function yamlErrorText(e) {
+  var reason = e && (e.reason || e.message) ? (e.reason || e.message) : String(e);
+  var mark = e && e.mark;
+  if (mark && typeof mark.line === 'number') {
+    reason += '（第 ' + (mark.line + 1) + ' 行，第 ' + (mark.column + 1) + ' 列）';
   }
-  if (str.startsWith('[') && str.endsWith(']')) {
-    try { return JSON.parse(str); } catch(e) { return str; }
-  }
-  return str;
+  return reason;
 }
-
-function yamlToText(obj, indent = 0) {
-  const spaces = ' '.repeat(indent);
-  let result = '';
-  
-  if (Array.isArray(obj)) {
-    for (const item of obj) {
-      if (typeof item === 'object' && item !== null) {
-        const keys = Object.keys(item);
-        if (keys.length > 0) {
-          result += `${spaces}- ${keys[0]}: ${formatValue(item[keys[0]])}\n`;
-          for (let i = 1; i < keys.length; i++) {
-            result += `${spaces}  ${keys[i]}: ${formatValue(item[keys[i]])}\n`;
-          }
-        }
-      } else {
-        result += `${spaces}- ${formatValue(item)}\n`;
-      }
-    }
-  } else if (typeof obj === 'object' && obj !== null) {
-    for (const [key, value] of Object.entries(obj)) {
-      if (typeof value === 'object' && value !== null) {
-        result += `${spaces}${key}:\n`;
-        result += yamlToText(value, indent + 2);
-      } else {
-        result += `${spaces}${key}: ${formatValue(value)}\n`;
-      }
-    }
-  }
-  return result;
+function yamlToText(obj, indentSize) {
+  var n = parseInt(indentSize, 10);
+  if (!(n >= 1 && n <= 8)) n = 2;
+  return jsyaml.dump(obj, { indent: n, lineWidth: -1, noRefs: true, quotingType: '"' });
 }
-
-function formatValue(val) {
-  if (val === null) return 'null';
-  if (typeof val === 'boolean') return val ? 'true' : 'false';
-  if (typeof val === 'string') {
-    if (val.includes(':') || val.includes('#') || val.includes("'") || val.includes('"')) {
-      return `"${val.replace(/"/g, '\\"')}"`;
-    }
-    return val;
-  }
-  return String(val);
+function yamlLossy(text) {
+  return /(^|\s)#|(^|\s)&[^\s]+|\*[A-Za-z_]|<<:/.test(String(text || ''));
 }
 
 function formatYaml() {
@@ -480,11 +388,12 @@ function formatYaml() {
     return;
   }
   try {
-    const obj = parseYaml(input);
-    const indentSize = parseInt(document.getElementById('indent').value);
-    const formatted = yamlToText(obj, 0).replace(/ {2}/g, ' '.repeat(indentSize));
+    const docs = yamlLoadAll(input);
+    const indentSize = parseInt(document.getElementById('indent').value, 10) || 2;
+    const formatted = docs.map(function(d){ return yamlToText(d, indentSize); }).join('---\n');
     document.getElementById('output').textContent = formatted;
-    addToHistory('格式化', input.substring(0, 100));
+    if (yamlLossy(input)) showNotice('提示：注释、锚点与别名不会保留，请核对关键配置。');
+    addToHistory('格式化', input);
     ToolBox.showToast(i18nText('toast.msg452'), 'success');
   } catch(e) {
     showError(e.message);
@@ -499,10 +408,11 @@ function minifyYaml() {
     return;
   }
   try {
-    const obj = parseYaml(input);
-    const minified = JSON.stringify(obj);
+    const docs = yamlLoadAll(input);
+    const minified = docs.map(function(d){ return JSON.stringify(d); }).join('\n---\n');
     document.getElementById('output').textContent = minified;
-    addToHistory('压缩', input.substring(0, 100));
+    if (yamlLossy(input)) showNotice('提示：注释、锚点与别名不会保留，请核对关键配置。');
+    addToHistory('压缩', input);
     ToolBox.showToast(i18nText('toast.msg310'), 'success');
   } catch(e) {
     showError(e.message);
@@ -517,11 +427,11 @@ function validateYaml() {
     return;
   }
   try {
-    parseYaml(input);
+    yamlLoadAll(input);
     const __h0='<p style="color:var(--success);">✅ YAML 语法验证通过！结构合法。</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
     ToolBox.showToast(i18nText('toast.msg1002'), 'success');
   } catch(e) {
-    showError('语法错误: ' + e.message);
+    showError('语法错误: ' + yamlErrorText(e));
   }
 }
 
@@ -532,12 +442,12 @@ function yamlToJson() {
     return;
   }
   try {
-    const obj = parseYaml(input);
-    const json = JSON.stringify(obj, null, 2);
+    const docs = yamlLoadAll(input);
+    const json = JSON.stringify(docs.length === 1 ? docs[0] : docs, null, 2);
     document.getElementById('json-output').textContent = json;
     ToolBox.showToast(i18nText('toast.msg966'), 'success');
   } catch(e) {
-    const __h1=`<span style="color:var(--danger);">转换失败: ${e.message}</span>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('json-output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('json-output').innerHTML=__h1;
+    const __h1=`<span style="color:var(--danger);">转换失败: ${yamlErrorText(e)}</span>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('json-output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('json-output').innerHTML=__h1;
   }
 }
 
@@ -549,7 +459,7 @@ function jsonToYaml() {
   }
   try {
     const obj = JSON.parse(input);
-    const yaml = yamlToText(obj, 0);
+    const yaml = yamlToText(obj, 2);
     document.getElementById('yaml-output').textContent = yaml;
     ToolBox.showToast(i18nText('toast.msg966'), 'success');
   } catch(e) {
@@ -630,9 +540,21 @@ function clearAll() {
   hideError();
 }
 
-function addToHistory(action, summary) {
+function historyEnabled() {
+  const cb = document.getElementById('saveYamlHistory');
+  return !!(cb && cb.checked);
+}
+
+function addToHistory(action, text) {
+  if (!historyEnabled()) return;
   const history = (function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
-  history.unshift({ time: new Date().toLocaleString(), action, summary: summary.replace(/\s+/g, ' ').substring(0, 80) });
+  const full = String(text == null ? '' : text);
+  history.unshift({
+    time: new Date().toLocaleString(),
+    action: action,
+    text: full,
+    summary: full.replace(/\s+/g, ' ').substring(0, 80)
+  });
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 50)));
   renderHistory();
 }
@@ -640,22 +562,40 @@ function addToHistory(action, summary) {
 function renderHistory() {
   const history = (function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
   const el = document.getElementById('history-list');
+  el.textContent = '';
   if (history.length === 0) {
-    const __h3='<div class="history-empty">暂无历史记录</div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h3;
+    const empty = document.createElement('div');
+    empty.className = 'history-empty';
+    empty.textContent = '暂无历史记录';
+    el.appendChild(empty);
     return;
   }
-  const __h4=history.map((h, i) => 
-    `<div class="history-item" onclick="loadHistory(${i})">
-      <div class="time">${h.time} · ${h.action}</div>
-      <div class="summary">${h.summary}</div>
-    </div>`
-  ).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h4;
+  history.forEach(function(h, i){
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.addEventListener('click', function(){ loadHistory(i); });
+    const time = document.createElement('div');
+    time.className = 'time';
+    time.textContent = h.time + ' · ' + h.action;
+    const summary = document.createElement('div');
+    summary.className = 'summary';
+    summary.textContent = h.text != null ? h.summary : (h.summary || '') + '（旧记录仅摘要，无法完整恢复）';
+    item.appendChild(time);
+    item.appendChild(summary);
+    el.appendChild(item);
+  });
 }
 
 function loadHistory(idx) {
   const history = (function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
   if (history[idx]) {
-    document.getElementById('input').value = history[idx].summary;
+    if (history[idx].text != null) {
+      document.getElementById('input').value = history[idx].text;
+      hideError();
+    } else {
+      document.getElementById('input').value = history[idx].summary || '';
+      showNotice('旧记录仅保存摘要，无法完整恢复；请重新粘贴完整 YAML。');
+    }
     switchTab('format');
   }
 }
@@ -828,7 +768,7 @@ else document.addEventListener('DOMContentLoaded', __yaml_formatterBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -836,7 +776,7 @@ else document.addEventListener('DOMContentLoaded', __yaml_formatterBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

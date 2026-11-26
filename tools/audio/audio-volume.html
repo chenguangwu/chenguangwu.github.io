@@ -99,6 +99,7 @@
   position:relative;cursor:pointer;margin:6px 0;
 }
 .progress-track:hover .progress-thumb{transform:translate(-50%,-50%) scale(1.2);}
+.progress-track:focus-visible{outline:3px solid var(--primary,#2563eb);outline-offset:2px;}
 .progress-fill-audio{
   height:100%;border-radius:4px;
   background:var(--gradient-primary);
@@ -313,7 +314,7 @@ input[type=range].vol-range::-moz-range-thumb{
             <span id="playIcon">&#9654;&#65039;</span>
           </button>
           <div class="progress-wrap">
-            <div class="progress-track" id="progressTrack">
+            <div class="progress-track" id="progressTrack" role="slider" tabindex="0" aria-label="播放进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
               <div class="progress-fill-audio" id="progressFill"></div>
               <div class="progress-thumb" id="progressThumb"></div>
             </div>
@@ -655,14 +656,15 @@ fiClear.addEventListener('click', function(e){
 });
 
 /* ===== 处理音频文件 ===== */
+var __audioLoadSeq=0;
 function handleFile(file){
   if(!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|m4a|flac|aac|opus|webm)$/i.test(file.name)){
-    ToolBox.showToast('tool.file_upload_hint', 'error');
+    ToolBox.showToast('tool.audio_type_error', 'error');
     return;
   }
   // 停止当前播放
   stopPlayback();
-  fileName = file.name;
+  var __req=++__audioLoadSeq;
   ToolBox.showToast(i18nText('toast.msg463'), 'info');
   var reader = new FileReader();
   reader.onload = function(e){
@@ -672,14 +674,18 @@ function handleFile(file){
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
     audioCtx.decodeAudioData(arrayBuffer, function(buffer){
+      if(__req!==__audioLoadSeq) return;
       audioBuffer = buffer;
+      fileName = file.name;
       onAudioDecoded(file);
     }, function(err){
+      if(__req!==__audioLoadSeq) return;
       ToolBox.showToast(i18nText('toast.msg992'), 'error');
       console.error('Decode error:', err);
     });
   };
   reader.onerror = function(){
+    if(__req!==__audioLoadSeq) return;
     ToolBox.showToast('toast.import_failed', 'error');
   };
   reader.readAsArrayBuffer(file);
@@ -831,6 +837,7 @@ function updateProgress(ratio){
   var pct = ratio * 100;
   progressFill.style.width = pct + '%';
   progressThumb.style.left = pct + '%';
+  progressTrack.setAttribute('aria-valuenow', pct.toFixed(1));
 }
 
 /* ===== 进度条点击/拖动 ===== */
@@ -848,7 +855,21 @@ progressTrack.addEventListener('touchstart', function(e){
   if(!audioBuffer) return;
   dragging = true;
   seekTo(e.touches[0]);
-}, {passive:true});
+  }, {passive:true});
+progressTrack.addEventListener('keydown', function(e){
+  if(!audioBuffer) return;
+  var step = e.shiftKey ? 1 : 5;
+  var delta = 0;
+  if(e.key==='ArrowLeft'||e.key==='ArrowDown') delta=-step;
+  else if(e.key==='ArrowRight'||e.key==='ArrowUp') delta=step;
+  else if(e.key==='Home') delta=-audioBuffer.duration;
+  else if(e.key==='End') delta=audioBuffer.duration;
+  else return;
+  e.preventDefault();
+  var t = Math.max(0, Math.min(audioBuffer.duration, pauseOffset + delta));
+  var rect = progressTrack.getBoundingClientRect();
+  seekTo({clientX: rect.left + (rect.width ? (t/audioBuffer.duration)*rect.width : 0)});
+});
 document.addEventListener('touchmove', function(e){
   if(dragging) seekTo(e.touches[0]);
 }, {passive:true});
@@ -967,7 +988,7 @@ function resetVu(){
 /* ===== 导出 WAV（OfflineAudioContext）===== */
 window.exportWav = function(){
   if(!audioBuffer){
-    ToolBox.showToast('tool.file_upload_hint', 'error');
+    ToolBox.showToast('tool.audio_select_hint', 'error');
     return;
   }
   var exportBtn = $('exportBtn');

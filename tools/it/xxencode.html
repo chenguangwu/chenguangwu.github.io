@@ -148,6 +148,7 @@
       <div id="xxencodePresets"></div><button type="button" class="btn primary" onclick="enc()">编码 ↑</button><button class="btn" type="button" onclick="__xxencodeExport()">导出明细 CSV</button>
       <button type="button" class="btn primary" onclick="dec()">解码 ↓</button>
       <button type="button" class="btn success" onclick="copyResult(event)">复制结果</button>
+      <button type="button" class="btn" onclick="downloadDecoded()">下载原始字节</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
       <div style="flex:1;"></div>
       <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;">
@@ -159,7 +160,8 @@
     <textarea id="input" placeholder="输入要编码的文本或要解码的 XXencode 字符串...">Hello</textarea>
 
     <label style="margin-top:16px;" for="output">输出结果</label>
-    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea> <div id="xxencodeTable"></div> <div id="xxencodeDiff"></div> <div id="xxencodeChart"></div> <div id="xxencodeHist"></div>
+    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea>
+    <div id="decodeInfo" style="font-size:12px;color:var(--text-muted);margin-top:6px;word-break:break-all;"></div> <div id="xxencodeTable"></div> <div id="xxencodeDiff"></div> <div id="xxencodeChart"></div> <div id="xxencodeHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -264,33 +266,40 @@ function encodeXx(bytes){
   return out;
 }
 
+var lastXxBytes = null;
+function xxError(lineNo, msg){ throw new Error('第 ' + lineNo + ' 行：' + msg); }
 function decodeXx(str){
   const lines = str.split(/\r?\n/);
   const out = [];
-  // IT-N347：只要文本里出现 begin 头，就无条件跳过它（勾选项只管编码时是否输出头），
-  // 否则标准全文在默认未勾选时会把 `begin 644 file.txt` 当数据行解出脏字节；
-  // 纯数据段（无头行）仍按数据行解析。
-  let started = !lines.some((l) => /^begin\s+\d+\s+\S*/.test(l.trim()));
-  for(const line of lines){
+  const hasHeader = lines.some((l) => /^begin\s+\d+\s+\S*/.test(l.trim()));
+  let started = !hasHeader;
+  let terminated = false;
+  for(let ln = 0; ln < lines.length; ln++){
+    const raw = lines[ln];
+    const line = raw.replace(/\s+$/,'');
     const t = line.trim();
     if(!started){
-      if(/^begin\s+\d+\s+\S*/.test(t)){ started = true; continue; }
+      if(/^begin\s+\d+\s+\S*/.test(t)) started = true;
       continue;
     }
-    if(t === 'end' || t === '+' || t === '') continue;
+    if(t === 'end' || t === '+'){ terminated = true; break; }
     if(line.length === 0) continue;
     const idx = XX.indexOf(line[0]);
-    if(idx === -1) continue;
+    if(idx === -1) xxError(ln + 1, '长度字符非法（不在 XXencode 字符集）');
     const n = idx;
-    if(n === 0) break;
+    if(n === 0){ terminated = true; break; }
+    const need = Math.ceil(n / 3) * 4;
+    if(line.length < 1 + need) xxError(ln + 1, '数据被截断：长度头声明 ' + n + ' 字节，需要 ' + need + ' 个编码字符，实际只有 ' + Math.max(0, line.length - 1));
+    for(let j = 1; j <= need; j++){
+      if(XX.indexOf(line[j]) < 0) xxError(ln + 1, '编码字符 "' + line[j] + '" 不在 XXencode 字符集');
+    }
     let k = 1;
     let remaining = n;
-    while(remaining > 0 && k + 4 <= line.length + 1){
+    while(remaining > 0){
       const c1 = XX.indexOf(line[k]);
       const c2 = XX.indexOf(line[k+1]);
       const c3 = XX.indexOf(line[k+2]);
       const c4 = XX.indexOf(line[k+3]);
-      if(c1 < 0 || c2 < 0 || c3 < 0 || c4 < 0) break;
       out.push((c1 << 2) | (c2 >> 4));
       if(remaining > 1) out.push(((c2 & 0x0f) << 4) | (c3 >> 2));
       if(remaining > 2) out.push(((c3 & 0x03) << 6) | c4);
@@ -298,21 +307,61 @@ function decodeXx(str){
       k += 4;
     }
   }
+  if(hasHeader && !terminated) throw new Error('缺少结束标记：含 begin 头时必须出现长度为 0 的行、+ 行或 end 行');
   return new Uint8Array(out);
 }
-
 function enc(){
+  lastXxBytes = null;
   const text = document.getElementById('input').value;
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter text to encode":"请输入要编码的文本"));
   document.getElementById('output').value = encodeXx(new TextEncoder().encode(text));
 }
 
+function hexPreview(bytes, max){
+  const n = Math.min(bytes.length, max || 96);
+  let out = '';
+  for(let i = 0; i < n; i++) out += bytes[i].toString(16).padStart(2,'0').toUpperCase() + (i + 1 === n ? '' : ' ');
+  return out + (bytes.length > n ? ' …' : '');
+}
+function showDecodeInfo(bytes, strictErr){
+  const info = document.getElementById('decodeInfo');
+  if(!info) return;
+  if(!strictErr){
+    info.textContent = '解码成功 · ' + bytes.length + ' 字节 · UTF-8 文本 · 十六进制预览：' + hexPreview(bytes, 48);
+  }else{
+    info.textContent = '⚠ ' + strictErr + ' · ' + bytes.length + ' 字节 · 已显示十六进制预览，可下载原始字节避免丢失：' + hexPreview(bytes, 192);
+  }
+}
 function dec(){
   const text = document.getElementById('input').value.trim();
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter XXencode string to decode":"请输入要解码的 XXencode 字符串"));
+  document.getElementById('decodeInfo').textContent = '';
   try{
-    document.getElementById('output').value = new TextDecoder().decode(decodeXx(text));
-  }catch(e){ alert('解码失败：' + e.message); }
+    const bytes = decodeXx(text);
+    lastXxBytes = bytes;
+    try{
+      const decoded = new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+      document.getElementById('output').value = decoded;
+      showDecodeInfo(bytes, '');
+    }catch(e){
+      document.getElementById('output').value = hexPreview(bytes, 256);
+      showDecodeInfo(bytes, '内容不是合法 UTF-8（二进制或非 UTF-8 文件）');
+    }
+  }catch(e){
+    lastXxBytes = null;
+    document.getElementById('output').value = '';
+    document.getElementById('decodeInfo').textContent = '❌ ' + e.message;
+    alert('解码失败：' + e.message);
+  }
+}
+function downloadDecoded(){
+  if(!lastXxBytes){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Decode first":"请先成功解码")); return; }
+  const blob = new Blob([lastXxBytes], {type:'application/octet-stream'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'decoded.bin';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 function copyResult(ev){
@@ -490,7 +539,7 @@ else document.addEventListener('DOMContentLoaded', __xxencodeBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -498,7 +547,7 @@ else document.addEventListener('DOMContentLoaded', __xxencodeBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

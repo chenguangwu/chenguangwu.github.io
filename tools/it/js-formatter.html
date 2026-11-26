@@ -260,6 +260,7 @@ const total=calc(10,5)</textarea>
 const SAMPLE = 'function fibonacci(n){\nlet result=[];\nlet a=0,b=1;\nfor(let i=0;i<n;i++){\nresult.push(a);\n[a,b]=[b,a+b];\n}\nreturn result;\n}\n\nconst calc={\nadd(x,y){return x+y;},\nsub(x,y){return x-y;}\n};\n\nconst arrow=(x,y)=>x+y;\nconst greeting=`Hello, ${name}!`;';
 const IND = () => { const v = document.getElementById('indent').value; return v === 'tab' ? '\t' : ' '.repeat(parseInt(v)); };
 function tokenizeJs(src){
+  src=String(src==null?'':src);
   const tokens = [];
   let i = 0;
   const isName = c => /[A-Za-z_$]/.test(c);
@@ -281,7 +282,7 @@ function tokenizeJs(src){
       tokens.push({t:'str',v:src.slice(s,i)});
       continue;
     }
-    if(c === '/' && tokens.length > 0){
+    if(c === '/'){
       const last = tokens.filter(t => t.t !== 'ws').pop();
       const isRegexContext = !last || /[(,=:;&|!?[{+\-*%<>?~^]/.test(last.v) || last.t === 'keyword';
       if(isRegexContext){
@@ -294,7 +295,7 @@ function tokenizeJs(src){
           i++;
         }
         i++;
-        while(i < src.length && /[gimsuy]/.test(src[i])) i++;
+        while(i < src.length && /[dgimsuvy]/.test(src[i])) i++;
         tokens.push({t:'regex',v:src.slice(s,i)});
         continue;
       }
@@ -369,11 +370,20 @@ function formatJs(){
       if(tk.v === '{') depth++;
       prevType = tk.t; prevVal = tk.v;
     }
-    let formatted = out.replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+    let formatted = out.trim();
     if(formatted) formatted += '\n';
     setOut(formatted);
-    setErr('✅ 格式化成功（保留原有换行，仅重排缩进与空格）');
+    setErr(jsT('✅ 格式化成功（保留原有换行，仅重排缩进与空格）','✅ Formatted (existing line breaks kept; only indentation and spacing adjusted)'));
   }catch(e){ setErr('❌ ' + e.message); }
+}
+function jsEn(){ return typeof TBKit!=='undefined' && TBKit.util.isEn(); }
+function jsT(zh,en){ return jsEn()?en:zh; }
+function jsParseMode(src){
+  let firstErr=null;
+  try{ acorn.parse(src,{ecmaVersion:'latest',sourceType:'script',allowHashBang:true,allowReturnOutsideFunction:true}); return 'script'; }
+  catch(e1){ firstErr=e1; }
+  try{ acorn.parse(src,{ecmaVersion:'latest',sourceType:'module',allowHashBang:true,allowReturnOutsideFunction:true}); return 'module'; }
+  catch(e2){ throw firstErr; }
 }
 function minifyJs(){
   setErr('');
@@ -408,13 +418,13 @@ function minifyJs(){
       out += tk.v;
       prevType = tk.t; prevVal = tk.v; pendingSpace = false;
     }
-    out = out.replace(/[ \t]+$/gm, '').trim();
-    if(!out) throw new Error('没有可压缩的 JavaScript');
+    out = out.trim();
+    if(!out) throw new Error(jsT('没有可压缩的 JavaScript','No JavaScript to minify'));
     // 静态语法解析，不编译、不执行用户代码（CSP 禁止 unsafe-eval 时同样可用）。
-    try{ acorn.parse(out, {ecmaVersion:'latest', sourceType: /\b(import|export)\b/.test(src) ? 'module' : 'script', allowHashBang:true, allowReturnOutsideFunction:true}); }
-    catch(e){ throw new Error('压缩结果自检失败：' + e.message); }
+    try{ jsParseMode(out); }
+    catch(e){ throw new Error(jsT('压缩结果自检失败：','Minified output self-check failed: ') + e.message); }
     setOut(out);
-    setErr('✅ 压缩成功（保留必要换行，已通过语法自检）');
+    setErr(jsT('✅ 压缩成功（保留必要换行，已通过语法自检）','✅ Minified (necessary line breaks kept; syntax self-check passed)'));
   }catch(e){ setOut(''); setErr('❌ ' + e.message); }
 }
 function doBeautify(){ formatJs(); }
@@ -430,26 +440,15 @@ function doValidate(){
       if(tk.v === '(') parenO++; if(tk.v === ')') parenC++;
       if(tk.v === '[') brackO++; if(tk.v === ']') brackC++;
     }
-    const stats = 'JavaScript 分析\n' +
-      '总 Token: ' + tokens.length + '\n' +
-      '行数: ' + src.split('\n').length + '\n' +
-      '字符数: ' + src.length + '\n' +
-      '{ }: ' + braceO + ' / ' + braceC + '\n' +
-      '( ): ' + parenO + ' / ' + parenC + '\n' +
-      '[ ]: ' + brackO + ' / ' + brackC + '\n' +
-      'function 数量: ' + (src.match(/\bfunction\b/g) || []).length + '\n' +
-      'const/let 数量: ' + (src.match(/\b(const|let)\b/g) || []).length;
+    const stats = jsEn()
+      ? 'JavaScript Analysis\nTotal Tokens: ' + tokens.length + '\nLines: ' + src.split('\n').length + '\nCharacters: ' + src.length + '\n{ }: ' + braceO + ' / ' + braceC + '\n( ): ' + parenO + ' / ' + parenC + '\n[ ]: ' + brackO + ' / ' + brackC + '\nfunction count: ' + (src.match(/\bfunction\b/g) || []).length + '\nconst/let count: ' + (src.match(/\b(const|let)\b/g) || []).length
+      : 'JavaScript 分析\n总 Token: ' + tokens.length + '\n行数: ' + src.split('\n').length + '\n字符数: ' + src.length + '\n{ }: ' + braceO + ' / ' + braceC + '\n( ): ' + parenO + ' / ' + parenC + '\n[ ]: ' + brackO + ' / ' + brackC + '\nfunction 数量: ' + (src.match(/\bfunction\b/g) || []).length + '\nconst/let 数量: ' + (src.match(/\b(const|let)\b/g) || []).length;
     setOut(stats);
-    if(braceO !== braceC || parenO !== parenC || brackO !== brackC){ setErr('❌ 括号不平衡'); return; }
-    if(/\b(import|export)\b/.test(src)){
-      setErr('⚠ 含 import/export 模块语法：以上仅为括号统计，请用 type=module 环境检查语法');
-      return;
-    }
     try{
-      acorn.parse(src, {ecmaVersion:'latest', sourceType: /\b(import|export)\b/.test(src) ? 'module' : 'script', allowHashBang:true, allowReturnOutsideFunction:true});
-      setErr('✅ 语法检查通过（acorn 静态解析，未编译、未执行代码）');
+      const mode=jsParseMode(src);
+      setErr(jsT('✅ 语法检查通过（acorn 静态解析，'+mode+' 模式，未编译、未执行代码）','✅ Syntax check passed (acorn static parse, '+mode+' mode; not compiled or executed)'));
     }catch(e){
-      setErr('❌ 语法错误：' + e.message + '（acorn 静态解析，未执行代码）');
+      setErr(jsT('❌ 语法错误：','❌ Syntax error: ') + e.message + jsT('（acorn 静态解析，未执行代码）',' (acorn static parse; code not executed)'));
     }
   }catch(e){ setErr('❌ ' + e.message); }
 }
@@ -617,7 +616,7 @@ else document.addEventListener('DOMContentLoaded', __js_formatterBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -625,7 +624,7 @@ else document.addEventListener('DOMContentLoaded', __js_formatterBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

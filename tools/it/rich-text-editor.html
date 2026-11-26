@@ -304,7 +304,7 @@
   <ul>
       <li>本工具纯前端运行，编辑内容不会上传到服务器，刷新页面会丢失，请先导出保存</li>
       <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用，快捷键 Ctrl+B / Ctrl+I / Ctrl+U 可用</li>
-      <li>Markdown 导出为常用语法的近似转换（标题、列表、加粗、斜体、链接、引用、代码），复杂表格可能需手工微调</li>
+      <li>Markdown 导出为常用语法的近似转换（标题、列表、加粗、斜体、链接、引用、代码）；普通文本中的 #、*、_、[] 等按上下文转义，复杂表格与 CSS 样式可能无法无损表达，需手工微调</li>
       <li>粘贴外部内容时若带入冗余样式，可用「🧹 清格式」按钮清除</li>
   </ul>
 </div>
@@ -532,18 +532,24 @@ function toMarkdown(html){
     div = document.createElement('div');
     div.innerHTML = sanitizeHtmlFallback(String(html || ''));
   }
-  // 代码块先占位，避免内部被二次处理
-  var codes = [];
-  var pres = div.querySelectorAll('pre');
-  for(var i=0;i<pres.length;i++){
-    codes.push(pres[i].textContent || '');
-    pres[i].setAttribute('data-md-code', String(i));
-  }
+  // 代码块直接由 walk() 输出围栏，不再用可碰撞的固定文本占位后全局替换。
   var out = walk(div);
   out = out.replace(/\n{3,}/g, '\n\n').trim();
-  out = out.replace(/__CODE_(\d+)__/g, function(m, idx){
-    return '\n```\n' + (codes[parseInt(idx,10)] || '') + '\n```\n';
-  });
+  return out;
+}
+function escapeMdText(text, atLineStart){
+  var out = String(text).replace(/\\/g, '\\\\')
+    .replace(/`/g, '\\`')
+    .replace(/\*/g, '\\*')
+    .replace(/_/g, '\\_')
+    .replace(/\[/g, '\\[')
+    .replace(/\]/g, '\\]')
+    .replace(/~/g, '\\~')
+    .replace(/</g, '\\<');
+  if(atLineStart){
+    out = out.replace(/^(\s*)([#+>\-])/, '$1\\$2')
+      .replace(/^(\s*)(\d+)\.(\s)/, '$1$2\\.$3');
+  }
   return out;
 }
 function walk(node){
@@ -551,12 +557,23 @@ function walk(node){
   var kids = node.childNodes || [];
   for(var i=0;i<kids.length;i++){
     var n = kids[i];
-    if(n.nodeType === 3){ md += n.nodeValue || ''; continue; }
+    if(n.nodeType === 3){
+      // 普通文本按 Markdown 上下文转义，避免「# 标题」「**粗体**」被重新解析为格式而改变原意。
+      var raw = n.nodeValue || '';
+      var atLine = (md === '' || /\n$/.test(md));
+      md += escapeMdText(raw, atLine);
+      continue;
+    }
     if(n.nodeType !== 1) continue;
     var tag = n.tagName.toLowerCase();
     var inner = walk(n);
-    if(tag === 'pre' && n.hasAttribute('data-md-code')){
-      md += '\n\n__CODE_' + n.getAttribute('data-md-code') + '__\n\n';
+    if(tag === 'pre'){
+      var code = n.textContent || '';
+      var fence = '```';
+      var runs = code.match(/`+/g) || [];
+      var longest = runs.reduce(function(m,r){return Math.max(m,r.length);},0);
+      if(longest >= 3) fence = new Array(longest+2).join('`');
+      md += '\n\n' + fence + '\n' + code + '\n' + fence + '\n\n';
     } else if(/^h([1-6])$/.test(tag)){
       var lv = parseInt(tag.slice(1),10);
       md += '\n\n' + new Array(lv+1).join('#') + ' ' + inner.trim() + '\n\n';
@@ -571,10 +588,14 @@ function walk(node){
     } else if(tag === 's' || tag === 'del' || tag === 'strike'){
       md += '~~' + inner + '~~';
     } else if(tag === 'code'){
-      md += '`' + n.textContent + '`';
+      var codeText = n.textContent || '';
+      var ticks = (codeText.match(/`+/g) || []).reduce(function(m,r){return Math.max(m,r.length);},0) + 1;
+      var tick = new Array(ticks + 1).join('`');
+      md += tick + codeText + tick;
     } else if(tag === 'a'){
       var href = n.getAttribute('href') || '';
-      md += '[' + (inner.trim() || href) + '](' + href + ')';
+      href = href.replace(/\)/g, '\\)').replace(/\s/g, '%20');
+      md += '[' + (inner.trim() || escapeMdText(href, false)) + '](' + href + ')';
     } else if(tag === 'blockquote'){
       md += '\n\n' + inner.trim().split('\n').map(function(l){ return '> ' + l; }).join('\n') + '\n\n';
     } else if(tag === 'li'){

@@ -141,7 +141,7 @@
 </div>
 <div class="card">
     <h2 data-zh="♻️ 垃圾填埋甲烷产量">♻️ Landfill Methane Generation</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="估算填埋场有机垃圾的甲烷产量与当量。">Estimate methane and CO2-equivalent output from landfilled organic waste and the potential emission reduction from recovery.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="估算填埋有机垃圾的甲烷产生潜力与 CO₂ 当量；本页不含时间衰减与回收发电量。">Estimate methane generation potential and CO₂-equivalent from landfilled organic waste; time decay and recovery power output are out of scope.</p>
     <div class="input-row"><label for="organic">有机垃圾 kg/年</label><input type="number" id="organic" value="500" step="any" oninput="calc()" placeholder="如 500"></div>
     <div class="input-row"><label for="doc">可降解碳比</label><input type="number" id="doc" value="0.4" step="any" oninput="calc()" placeholder="如 0.4"></div>
     <div class="input-row"><label for="mcf">甲烷修正因子</label><input type="number" id="mcf" value="0.8" step="any" oninput="calc()" placeholder="如 0.8"></div>
@@ -154,8 +154,8 @@
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
-    <div class="formula-eq">垃圾填埋甲烷排放（IPCC 一阶近似口径）：CH₄ = 有机物量×DOC×MCF×CH₄ 体积比×16÷12（kg/年，16÷12 为碳转甲烷的分子量比）；联动量：CO₂ 当量 = CH₄×28（kgCO₂e，按 GWP-100=28）。校验：无强校验，空值按 0 兜底。判据：无固定分级，DOC 可降解碳比与 MCF 甲烷修正因子越大排放越高，结果保留一位小数。</div>
-    <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">收集的甲烷可用于发电，减少排放。</p>
+    <div class="formula-eq">甲烷产生潜力：CH₄ = 有机物量×DOC×MCF×CH₄ 体积比×16÷12（kg，不是年度排放；16÷12 为碳转甲烷分子量比），体积按 0.717 kg/m³ 换算；CO₂ 当量 = CH₄×28（kgCO₂e，GWP-100=28）。校验：有机物量 ≥ 0，DOC/MCF/CH₄ 体积比均在 0–1。本页不含 FOD 时间衰减、氧化、收集率与发电效率，年度排放/减排需另行建模。</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">收集的甲烷可用于发电，但本页只算产生潜力，不计算收集率、发电量与减排量。</p>
   </div>
 </div>
 
@@ -250,15 +250,18 @@ function calc(){
   var __req=['organic','doc','mcf','frac'];
   if(__req.some(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写有机垃圾量、可降解比例、甲烷修正因子、收集率</p>';return;}
 
-  const organic = +document.getElementById('organic').value || 0;
-  const doc = +document.getElementById('doc').value || 0;
-  const mcf = +document.getElementById('mcf').value || 0;
-  const frac = +document.getElementById('frac').value || 0;
+  const organic = +document.getElementById('organic').value;
+  const doc = +document.getElementById('doc').value;
+  const mcf = +document.getElementById('mcf').value;
+  const frac = +document.getElementById('frac').value;
+  if(!(organic>=0)||!(doc>=0&&doc<=1)||!(mcf>=0&&mcf<=1)||!(frac>=0&&frac<=1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">有机垃圾量须 ≥ 0；DOC、MCF、CH₄ 体积比均须在 0–1。比例超出范围不计算。</p>';return;}
   let html = '';
   const __v0 = (organic*doc*mcf*frac*16/12);
-  html += `<p>CH₄ 产量：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(1)}</strong> kg/年</p>`;
+  const __m3 = __v0 / 0.717;
+  html += `<p>CH₄ 产生潜力：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(1)}</strong> kg（按 0.717 kg/m³ 约 ${__m3.toFixed(1)} m³）</p>`;
   const __v1 = (organic*doc*mcf*frac*16/12*28);
-  html += `<p>CO₂ 当量：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(1)}</strong> kgCO₂e</p>`;
+  html += `<p>CO₂ 当量（GWP-100=28）：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(1)}</strong> kgCO₂e</p>`;
+  html += '<div class="tip-box tip-warn" style="margin-top:8px;">这是<strong>累计产生潜力</strong>，未含填埋后随时间的一阶衰减、氧化因子、收集率与火炬/发电效率，不能当作某一年的实际排放量；年度排放需按 IPCC FOD 模型与运营参数另算。</div>';
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {

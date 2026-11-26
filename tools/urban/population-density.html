@@ -311,12 +311,13 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
+var PAGE_EN=/[?&]lang=en-US(?:&|$)/.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
 var calcMode='density';
 var STD={
-  city_new:{perCapMin:85,perCapMax:105,netMax:700,name:'新建城市'},
-  city_old:{perCapMin:75,perCapMax:95,netMax:600,name:'旧城改造'},
-  town:{perCapMin:80,perCapMax:100,netMax:650,name:'建制镇'},
-  village:{perCapMin:90,perCapMax:120,netMax:500,name:'村庄'}
+  city_new:{perCapMin:85,perCapMax:105,netMax:700,name:'新建城市',nameEn:'new city'},
+  city_old:{perCapMin:75,perCapMax:95,netMax:600,name:'旧城改造',nameEn:'urban redevelopment'},
+  town:{perCapMin:80,perCapMax:100,netMax:650,name:'建制镇',nameEn:'designated town'},
+  village:{perCapMin:90,perCapMax:120,netMax:500,name:'村庄',nameEn:'village'}
 };
 function fmt(v,d){if(!isFinite(v))return '--';return Number(v).toFixed(d!=null?d:1);}
 function setMode(m,btn){
@@ -332,24 +333,29 @@ function calc(){
   else calcCapacity();
 }
 function calcDensity(){
-  var pop=parseFloat(document.getElementById('inPop').value);
-  var area=parseFloat(document.getElementById('inArea').value);
-  var resArea=parseFloat(document.getElementById('inResArea').value);
+  var en=PAGE_EN?true:false;
+  var popRaw=String(document.getElementById('inPop').value).trim();
+  var areaRaw=String(document.getElementById('inArea').value).trim();
+  var resAreaRaw=String(document.getElementById('inResArea').value).trim();
+  var pop=popRaw===''?NaN:+popRaw,area=areaRaw===''?NaN:+areaRaw,resArea=resAreaRaw===''?NaN:+resAreaRaw;
   var type=document.getElementById('inType').value;
-  if(!pop||!area||area<=0)return;
+  function fail(msg){['resDensity','resNet','resPerCap','resCheck'].forEach(function(id){document.getElementById(id).textContent='--';});document.getElementById('bars').innerHTML='';document.getElementById('result').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ '+msg+'</p>';window._lastResult=null;}
+  if(!isFinite(pop)||pop<=0||!isFinite(area)||area<=0)return fail('请填写常住人口（>0）与总用地面积（>0 公顷）。');
+  var resAreaMissing=!isFinite(resArea)||resArea<=0;
+  if(!resAreaMissing&&resArea>area)return fail('居住用地面积不能大于总用地面积。');
   var grossDensity=pop/area;
-  var netDensity=resArea>0?pop/resArea:0;
+  var netDensity=resAreaMissing?NaN:pop/resArea;
   var perCap=area*10000/pop;
   var std=STD[type];
-  var ok=perCap>=std.perCapMin&&perCap<=std.perCapMax&&netDensity<=std.netMax;
-  const __g1=fmt(grossDensity,0)+' 人/ha';document.getElementById('resDensity').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
-  const __g2=resArea>0?fmt(netDensity,0)+' 人/ha':'--';document.getElementById('resNet').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  var ok=!resAreaMissing&&perCap>=std.perCapMin&&perCap<=std.perCapMax&&netDensity<=std.netMax;
+  const __g1=fmt(grossDensity,0)+(en?' persons/ha':' 人/ha');document.getElementById('resDensity').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  const __g2=!resAreaMissing?fmt(netDensity,0)+(en?' persons/ha':' 人/ha'):'--';document.getElementById('resNet').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   const __g3=fmt(perCap,1)+' m²';document.getElementById('resPerCap').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-  const __g4='<span class="grade-tag '+(ok?'grade-excellent':'grade-fail')+'">'+(ok?'符合':'超标')+'</span>';document.getElementById('resCheck').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  const __g4=resAreaMissing?'<span class="grade-tag grade-pass">未完成校核</span>':'<span class="grade-tag '+(ok?'grade-excellent':'grade-fail')+'">'+(ok?'符合':'超标')+'</span>';document.getElementById('resCheck').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   var bars=[
-    {lbl:'人口毛密度',val:grossDensity,max:1200,unit:'人/ha'},
-    {lbl:'人口净密度',val:netDensity,max:800,unit:'人/ha'},
-    {lbl:'人均用地',val:perCap,max:150,unit:'m²'}
+    {lbl:en?'Gross density':'人口毛密度',val:grossDensity,max:1200,unit:en?'persons/ha':'人/ha'},
+    {lbl:en?'Net density':'人口净密度',val:netDensity,max:800,unit:en?'persons/ha':'人/ha'},
+    {lbl:en?'Land per person':'人均用地',val:perCap,max:150,unit:'m²'}
   ];
   var bh='';
   bars.forEach(function(b){
@@ -364,10 +370,22 @@ function calcDensity(){
     '<p><strong>居住用地面积：</strong>'+resArea+' 公顷</p>'+
     '<p><strong>规划区类型：</strong>'+std.name+'</p>'+
     '<p><strong>人口毛密度：</strong>'+pop+' ÷ '+area+' = '+fmt(grossDensity,0)+' 人/公顷 ('+fmt(grossDensity*100,0)+' 人/km²)</p>'+
-    (resArea>0?'<p><strong>人口净密度：</strong>'+pop+' ÷ '+resArea+' = '+fmt(netDensity,0)+' 人/公顷</p>':'')+
+    (resAreaMissing?'<p style="color:var(--danger);">居住用地面积缺失：人口净密度无法计算，本次未完成校核，不输出“符合/超标”结论。</p>':'<p><strong>人口净密度：</strong>'+pop+' ÷ '+resArea+' = '+fmt(netDensity,0)+' 人/公顷</p>')+
     '<p><strong>人均用地：</strong>'+area+'×10000 ÷ '+pop+' = '+fmt(perCap,1)+' m²/人</p>'+
     '<p><strong>规范标准：</strong>人均 '+std.perCapMin+'~'+std.perCapMax+' m²，净密度≤'+std.netMax+' 人/ha</p>'+
-    '<p><strong>校核：</strong>'+(ok?((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Meets planning standard":"符合规划标准"):(perCap<std.perCapMin?'人均用地偏低，密度过大':perCap>std.perCapMax?'人均用地偏高，密度偏小':'')+(netDensity>std.netMax?'；净密度超标':''))+'</p>';document.getElementById('result').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+    '<p><strong>校核：</strong>'+(resAreaMissing?(PAGE_EN?"Incomplete: residential land area missing":"未完成校核（缺少居住用地面积）"):(ok?(PAGE_EN?"Meets planning standard":"符合规划标准"):(perCap<std.perCapMin?'人均用地偏低，密度过大':perCap>std.perCapMax?'人均用地偏高，密度偏小':'')+(netDensity>std.netMax?'；净密度超标':'')))+'</p>';document.getElementById('result').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  if(en){
+    document.getElementById('resCheck').innerHTML='<span class="grade-tag '+(resAreaMissing?'grade-pass':(ok?'grade-excellent':'grade-fail'))+'">'+(resAreaMissing?'Incomplete check':(ok?'Meets standard':'Above standard'))+'</span>';
+    document.getElementById('result').innerHTML=
+      '<p><strong>Resident population:</strong>'+pop.toLocaleString()+' persons</p>'+
+      '<p><strong>Total land area:</strong>'+area+' ha ('+(area*0.01).toFixed(3)+' km²)</p>'+
+      '<p><strong>Residential land area:</strong>'+resArea+' ha</p>'+
+      '<p><strong>Planning area type:</strong>'+std.nameEn+'</p>'+
+      '<p><strong>Gross population density:</strong>'+pop+' ÷ '+area+' = '+fmt(grossDensity,0)+' persons/ha ('+fmt(grossDensity*100,0)+' persons/km²)</p>'+
+      (resAreaMissing?'<p style="color:var(--danger);">Residential land area is missing, so net density cannot be calculated and the check is incomplete; no compliant / non-compliant conclusion is output.</p>':'<p><strong>Net population density:</strong>'+pop+' ÷ '+resArea+' = '+fmt(netDensity,0)+' persons/ha</p>')+
+      '<p><strong>Land per person:</strong>'+area+'×10000 ÷ '+pop+' = '+fmt(perCap,1)+' m²/person</p>'+
+      '<p><strong>Code standard:</strong> '+std.perCapMin+'~'+std.perCapMax+' m² per person, net density ≤'+std.netMax+' persons/ha</p>';
+  }
   window._lastResult={type:'人口密度',gross:grossDensity,net:netDensity,perCap:perCap,ok:ok,pop:pop};
 }
 function calcCapacity(){
@@ -582,7 +600,7 @@ function __population_densityExtras(){
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__population_densityResText();
     if(!res) return;
-    var en=TBKit.util.isEn();
+    var en=PAGE_EN;
     var rk=en?'Result':'结果';
     var now=Date.now();
     if(now-__population_density_last<1000) return;
@@ -610,7 +628,7 @@ function __population_densityExport(){
         if(!box||!box.querySelector('tr')){
             var snap=__population_densitySnap(); var keys=Object.keys(snap);
             if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            var en=PAGE_EN?true:false;
             __population_densityRender(keys,en?'Result':'结果',en);
         }
     }catch(e){}

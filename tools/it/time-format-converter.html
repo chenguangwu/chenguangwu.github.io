@@ -209,20 +209,33 @@ function parseInput(v) {
     return null;                                                                  // 20 位以上：超出可表示范围
   }
   const dm = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (dm) return new Date(Number(dm[1]), Number(dm[2]) - 1, Number(dm[3])); // 纯日期按本地零点解析
+  if (dm) {
+    var y=Number(dm[1]), mo=Number(dm[2]), da=Number(dm[3]);
+    if(mo<1||mo>12||da<1||da>31) return null;
+    var ld=new Date(0); ld.setFullYear(y,mo-1,da); ld.setHours(0,0,0,0);
+    if(ld.getFullYear()!==y||ld.getMonth()!==mo-1||ld.getDate()!==da) return null;
+    return ld;
+  }
+  const iso= v.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ]|$)/);
+  if(iso){
+    var iy=Number(iso[1]), imo=Number(iso[2]), ida=Number(iso[3]);
+    if(imo<1||imo>12||ida<1||ida>31) return null;
+    var probe=new Date(Date.UTC(iy,imo-1,ida));
+    if(probe.getUTCFullYear()!==iy||probe.getUTCMonth()!==imo-1||probe.getUTCDate()!==ida) return null;
+  }
   const d = new Date(v);
   return isNaN(d.getTime()) ? null : d;
 }
 
 function fmt(date) {
   const z = n => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${z(date.getMonth()+1)}-${z(date.getDate())} ${z(date.getHours())}:${z(date.getMinutes())}:${z(date.getSeconds())}`;
+  return `${String(date.getFullYear()).padStart(4,'0')}-${z(date.getMonth()+1)}-${z(date.getDate())} ${z(date.getHours())}:${z(date.getMinutes())}:${z(date.getSeconds())}`;
 }
 
 function convertTime() {
   const v = (document.getElementById('inTime').value || '').trim();
   const d = parseInput(v);
-  if (!d) {
+  if (!d || !Number.isFinite(d.getTime())) {
     const __h0='<p>无法解析时间，请输入合法值：纯数字按位数判定单位（≤10 位秒 / 11–13 位毫秒 / 14–16 位微秒 / 17–19 位纳秒，可带负号表示 1970 年前，20 位以上不支持），或输入 ISO 8601、YYYY-MM-DD 日期。</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h0;
     return;
   }

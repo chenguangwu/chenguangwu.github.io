@@ -270,6 +270,12 @@ const CASES = [
   },
   {
     "slug": "data/random-1",
+    "inputs": { "cnt": "0" },
+    "expect": ["生成数量必须是 1–50 的整数"],
+    "ref": "0 旧实现回退成 5 条；现须拒绝。空值、2.5、负数与 51 同理，不能静默替换或截断。"
+  },
+  {
+    "slug": "data/random-1",
     "inputs": {
       "cnt": "42"
     },

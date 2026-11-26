@@ -156,7 +156,7 @@
         <input type="number" id="kelvin" value="5500" min="1000" max="40000" step="100" oninput="onKelvinInput()" placeholder="如 5500（1000–40000）">
       </div>
       <div>
-        <label for="mired">白平衡偏移 (Mired)</label>
+        <label for="mired">Mired 绝对值（1e6/K）</label>
         <input type="number" id="mired" readonly style="background:var(--result-bg);">
       </div>
     </div>
@@ -169,7 +169,7 @@
       <div class="temp-marker" id="marker" style="left:50%;"></div>
     </div>
     <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);">
-      <span>1000K</span><span>5000K</span><span>10000K</span><span>20000K+</span>
+      <span>1000K</span><span>5000K</span><span>10000K</span><span>40000K</span>
     </div>
 
     <p style="font-size:13px;margin:16px 0 8px;">常见光源预设</p>
@@ -182,7 +182,7 @@
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__white_balanceExport()">导出明细 CSV</button></div><div class="result-box" id="result"></div> <div id="white_balanceTable"></div> <div id="white_balanceDiff"></div> <div id="white_balanceChart"></div> <div id="white_balanceHist"></div>
 
     <div class="tip-box tip-info" style="margin-top:16px;">
-      <strong>色温与 Mired：</strong> Mired = 1000000 / K。Mired 值用于白平衡滤镜调整，数值越大越暖。色温低偏暖（橙红），色温高偏冷（蓝白）。
+      <strong>色温与 Mired：</strong> 本工具显示的 Mired 为绝对值 = 1000000 / K；滤镜偏移（Mired shift）需用目标色温与当前色温两者的 Mired 相减，不能把单一色温的 Mired 当作偏移量。Mired 数值越大越暖。色温低偏暖（橙红），色温高偏冷（蓝白）。
     </div>
   </div>
 
@@ -239,8 +239,8 @@
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">CIE 15:2004 colorimetry</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="粉红偏差">Mired shift</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="粉红偏差 = 1e6 ÷ T_2 − 1e6 ÷ T_1">mired shift = 1e6 / T2 - 1e6 / T1</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Mired 偏移（滤镜）">Mired shift</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Mired 偏移（滤镜）= 1e6 ÷ T_2 − 1e6 ÷ T_1">mired shift = 1e6 / T2 - 1e6 / T1</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">CIE 15:2004 colorimetry</td>
         </tr>
       </tbody>
@@ -371,15 +371,15 @@ function calc(preset){
   var rawK=String(document.getElementById('kelvin').value||'').trim();
   if(rawK===''){
     document.getElementById('mired').value='';
-    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请输入 1000–20000 K 之间的色温值。</p>';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请输入 1000–40000 K 之间的色温值。</p>';
     document.getElementById('tempViz').innerHTML='<div style="font-size:14px;color:var(--text-muted);">输入色温后显示色块</div>';
     __wbClearCurrent();
     return;
   }
   var k=parseFloat(rawK);
-  if(!isFinite(k)||k<1000||k>20000){
+  if(!isFinite(k)||k<1000||k>40000){
     document.getElementById('mired').value='';
-    document.getElementById('result').innerHTML='<p style="color:var(--danger)">色温需在 1000–20000 K 之间，请检查输入。</p>';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">色温需在 1000–40000 K 之间，请检查输入。</p>';
     document.getElementById('tempViz').innerHTML='<div style="font-size:14px;color:var(--danger);">色温超出范围</div>';
     __wbClearCurrent();
     return;
@@ -399,7 +399,7 @@ function calc(preset){
     '<div style="font-size:12px;color:'+(k<4000?'rgba(255,255,255,0.8)':'var(--text-muted)')+';">'+desc+'</div>';document.getElementById('tempViz').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
   // 渐变条标记位置
-  var pos=Math.min(95,Math.max(2,((k-1000)/19000)*100));
+  var pos=Math.min(95,Math.max(2,((k-1000)/39000)*100));
   document.getElementById('marker').style.left=pos+'%';
 
   var tone=k<3300?'暖色调（橙红）':k<5000?'中性偏暖（黄白）':k<6500?'中性白光（日光）':k<8000?'中性偏冷（蓝白）':'冷色调（蓝）';
@@ -407,7 +407,7 @@ function calc(preset){
 
   const __g3='<h3>色温详情</h3>'+
     '<p>色温值：<strong>'+k+'K</strong></p>'+
-    '<p>Mired 值：<strong>'+mired+'</strong></p>'+
+    '<p>Mired 绝对值：<strong>'+mired+'</strong></p>'+
     '<p>色调倾向：<strong>'+tone+'</strong></p>'+
     '<p>RGB 近似值：<strong>('+rgb.r+', '+rgb.g+', '+rgb.b+')</strong></p>'+
     '<p>HEX：<strong>#'+toHex(rgb.r)+toHex(rgb.g)+toHex(rgb.b)+'</strong></p>'+
@@ -474,11 +474,15 @@ function toHex(n){
 }
 
 function copyResult(){
-    var __ig=__tbInputGuard(['kelvin', 'mired'],["色温 (Kelvin)", "白平衡偏移 (Mired)"]);if(__ig){const __g4=__ig;ToolBox.setResult("result",(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—')));return;}
-var k=+document.getElementById('kelvin').value||5500;
+  var raw=String(document.getElementById('kelvin').value||'').trim();
+  var k=parseFloat(raw);
+  if(raw===''||!isFinite(k)||k<1000||k>40000){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">复制前请先输入 1000–40000 K 之间的色温值。</p>';
+    return;
+  }
   var mired=Math.round(1000000/k);
   var rgb=kelvinToRGB(k);
-  ToolBox.copyText('色温:'+k+'K | Mired:'+mired+' | RGB('+rgb.r+','+rgb.g+','+rgb.b+') | #'+toHex(rgb.r)+toHex(rgb.g)+toHex(rgb.b),'已复制色温数据');
+  ToolBox.copyText('色温:'+k+'K | Mired（绝对值）:'+mired+' | RGB('+rgb.r+','+rgb.g+','+rgb.b+') | #'+toHex(rgb.r)+toHex(rgb.g)+toHex(rgb.b),'已复制色温数据');
 }
 
 renderPresets();
@@ -660,7 +664,7 @@ function __white_balanceExport(){
     if (typeof TBKit === 'undefined') return;
     var __rawK=String(document.getElementById('kelvin').value||'').trim();
     var __k=Number(__rawK);
-    if(__rawK===''||!isFinite(__k)||__k<1000||__k>20000){alert((TBKit.util&&TBKit.util.isEn())?'Enter a valid 1000–20000 K color temperature before exporting.':'请先输入 1000–20000K 之间的有效色温再导出。');return;}
+    if(__rawK===''||!isFinite(__k)||__k<1000||__k>40000){alert((TBKit.util&&TBKit.util.isEn())?'Enter a valid 1000–40000 K color temperature before exporting.':'请先输入 1000–40000K 之间的有效色温再导出。');return;}
     try{
         var box=document.querySelector('#white_balanceTable');
         if(!box||!box.querySelector('tr')){

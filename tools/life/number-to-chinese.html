@@ -387,10 +387,13 @@ function convert(){
   document.getElementById('moneyUpper').textContent = convertMoney(numStr, DIGITS_UPPER, UNITS_UPPER, BIG_UNITS_UPPER, isNeg, 'upper', decPart);
 
   // 进制
-  const num = parseFloat(input);
-  if(Number.isInteger(num) && numStr.split('.')[0].replace(/^0+(?=\d)/,'').length <= 16){
+  // 小数部分必须逐字判断：9999999999999999.1 经 parseFloat 会被舍入成整数，
+  // 旧实现因此静默丢掉 .1。只要小数位存在非零字符，就按“仅整数支持”处理。
+  const frac = decPart || '';
+  const isIntegral = frac.replace(/0/g, '') === '';
+  if(isIntegral && intPart.replace(/^0+(?=\d)/,'').length <= 16){
     // 用 BigInt 而非 >>> 0：位运算只保留 32 位，超过 2^31 的整数会被截断成错误结果
-    const bigStr = numStr.split('.')[0].replace(/^0+(?=\d)/,'') || '0';
+    const bigStr = intPart.replace(/^0+(?=\d)/,'') || '0';
     const big = isNeg ? -BigInt(bigStr) : BigInt(bigStr);
     const abs = big < 0n ? -big : big;
     document.getElementById('binResult').textContent = (big < 0n ? '-' : '') + abs.toString(2).replace(/(?=(?:\d{4})+$)(?!\d)/g, ' ');
@@ -435,8 +438,8 @@ function convertInt(intStr, digits, units, bigUnits){
     pendingZero = false;
   }
 
-  // 处理 "一十" -> "十" 在最前面
-  if(result.startsWith(digits[1] + units[1])){
+  // 普通小写读法把开头「一十」简读为「十」；财务大写（壹拾）必须保留首位「壹」
+  if(digits[1] === '一' && result.startsWith(digits[1] + units[1])){
     result = result.slice(digits[1].length);
   }
 
@@ -486,7 +489,9 @@ function convertMoney(numStr, digits, units, bigUnits, isNeg, mode, rawDec){
     const jiao = parseInt(decPart[0]) || 0;
     const fen = parseInt(decPart[1]) || 0;
     if(jiao > 0) result += digits[jiao] + '角';
+    else if(fen > 0) result += digits[0]; // 角为零、分非零：补「零」，避免「壹佰元壹分」被误读
     if(fen > 0) result += digits[fen] + '分';
+    if(jiao > 0 && fen === 0) result += '整';
     if(jiao === 0 && fen === 0) result += '整';
   } else {
     result += '整';

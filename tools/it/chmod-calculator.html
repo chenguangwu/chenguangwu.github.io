@@ -335,6 +335,15 @@ function quick(d){
   }
   calc();
 }
+function __chmodIsEn(){
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) return !!TBKit.util.isEn(); }catch(e){}
+  try{
+    if(/[?&]lang=en([-_]|&|$)/i.test(location.search)) return true;
+    var hl=(document.documentElement.getAttribute('lang')||'').toLowerCase();
+    if(hl.indexOf('en')===0) return true;
+  }catch(e){}
+  return false;
+}
 function calc(){
   // IT-N49：setuid(4)/setgid(2)/sticky(1) 置千位，符号模式用 s/S、t/T 标记
   var sp=0;
@@ -366,16 +375,29 @@ function calc(){
     '2755':'setgid：目录内新建文件继承组（共享目录常用）',
     '1777':'sticky：仅属主可删除自己的文件（如 /tmp）'
   };
-  var __chmodEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
-  var tip=tips[digits]||(sp
+  var __chmodEn=__chmodIsEn();
+  var tipsEn={
+    '755':'Common for directories/executables: owner has full access; group and others can read and execute',
+    '644':'Common for regular files: owner can read/write; group and others can only read',
+    '777':'⚠️ Full access for every user — a security risk; use with caution',
+    '700':'Owner-only read/write/execute (private files or scripts)',
+    '600':'Owner-only read/write (private keys and configuration files)',
+    '444':'Read-only for every user',
+    '555':'Read and execute for every user (write-protected)',
+    '000':'No permissions at all',
+    '4755':'setuid: runs with the owner identity (e.g. /usr/bin/passwd)',
+    '2755':'setgid: new files in the directory inherit the group (common for shared directories)',
+    '1777':'sticky: only the owner can delete their own files (e.g. /tmp)'
+  };
+  var tip=(__chmodEn?tipsEn[digits]:tips[digits])||(sp
     ? (__chmodEn?'Special bits '+sp+': setuid=4, setgid=2, sticky=1':'特殊位 '+sp+'：setuid=4、setgid=2、sticky=1')
     : (__chmodEn?'Sum of read(4)+write(2)+execute(1) per group':'读(4)+写(2)+执行(1) 之和为该用户组权限位'));
   const __g3='<p><code>chmod '+digits+' file</code> → '+escH(syms.join(''))+' · '+escH(tip)+'</p>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 function copyPerm(){
   var d=document.getElementById('numOut').textContent;
-  ToolBox.copyText('chmod '+d+' <file>');
-  if(ToolBox.showToast)ToolBox.showToast('已复制 chmod '+d+' 命令');
+  var en=__chmodIsEn();
+  ToolBox.copyText('chmod '+d+' <file>', en?'Copied chmod '+d+' command':'已复制 chmod '+d+' 命令');
 }
 calc();
 
@@ -402,7 +424,8 @@ function __chmod_calculatorResText(){
 }
 function __chmod_calculatorScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    // 安全风险提示（⚠）不等于计算失败：777 是有效权限，应判通过并保留风险说明。
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __chmod_calculatorTime(t){

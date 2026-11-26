@@ -156,7 +156,7 @@ textarea{min-height:320px;font-family:'SF Mono','Courier New',monospace;font-siz
     
     <div class="toolbar">
       <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;">SQL方言:
-        <select id="dialect" style="width:130px;padding:6px 10px;">
+        <select id="dialect" style="width:130px;padding:6px 10px;" title="方言影响引号、注释与美元引用的识别">
           <option value="standard">标准SQL</option>
           <option value="mysql">MySQL</option>
           <option value="postgresql">PostgreSQL</option>
@@ -201,6 +201,7 @@ textarea{min-height:320px;font-family:'SF Mono','Courier New',monospace;font-siz
   </div>
 
   <div class="card">
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:8px 0;color:var(--text-light);"><input type="checkbox" id="saveSqlHistory"> 保存完整 SQL 到本地历史（默认关闭）</label>
     <div class="history-header">
       <h3>📋 历史记录</h3>
       <button type="button" class="btn danger" onclick="clearHistory()">清空历史</button>
@@ -327,70 +328,174 @@ const KEYWORDS = [
   'BEGIN', 'COMMIT', 'ROLLBACK', 'TRANSACTION', 'GRANT', 'REVOKE'
 ];
 
+function sqlDialect(){
+  var e=document.getElementById('dialect');
+  return e ? e.value : 'standard';
+}
+function sqlTokenize(sql, dialect){
+  sql=String(sql==null?'':sql); dialect=dialect||'standard';
+  var out=[], i=0, n=sql.length;
+  function wordChar(c){ return /[A-Za-z0-9_\u00A0-\uFFFF$@]/.test(c); }
+  function push(t,txt){ out.push({type:t,text:txt}); }
+  while(i<n){
+    var c=sql[i];
+    if(/\s/.test(c)){ var j=i+1; while(j<n&&/\s/.test(sql[j]))j++; push('ws',sql.slice(i,j)); i=j; continue; }
+    if((c==='-'&&sql[i+1]==='-') || (c==='#'&&dialect==='mysql')){
+      var e=sql.indexOf('\n',i); if(e<0)e=n; push('comment',sql.slice(i,e)); i=e; continue;
+    }
+    if(c==='/'&&sql[i+1]==='*'){
+      var e2=sql.indexOf('*/',i+2); e2=e2<0?n:e2+2; push('comment',sql.slice(i,e2)); i=e2; continue;
+    }
+    if(c==='$'&&dialect==='postgresql'){
+      var m=/^\$[A-Za-z_0-9]*\$/.exec(sql.slice(i));
+      if(m){ var tag=m[0], e3=sql.indexOf(tag,i+tag.length); e3=e3<0?n:e3+tag.length; push('string',sql.slice(i,e3)); i=e3; continue; }
+    }
+    if(c==="'" || c==='"' || (c==='`'&&(dialect==='mysql'||dialect==='sqlite')) || (c==='['&&dialect==='sqlserver')){
+      var close=c==='['?']':c;
+      var type=(c==="'")?'string':(c==='"'&&dialect==='mysql')?'string':'ident';
+      var j=i+1, buf=c;
+      while(j<n){
+        var d=sql[j]; buf+=d;
+        if(d==='\\'&&j+1<n){ buf+=sql[j+1]; j+=2; continue; }
+        if(d===close){
+          if(sql[j+1]===close){ buf+=close; j+=2; continue; }
+          j++; break;
+        }
+        j++;
+      }
+      push(type,buf); i=j; continue;
+    }
+    var ops3=['->>']; if(ops3.indexOf(sql.slice(i,i+3))>=0){ push('punct',sql.slice(i,i+3)); i+=3; continue; }
+    var ops2=['>=','<=','<>','!=','::','||','->']; if(ops2.indexOf(sql.slice(i,i+2))>=0){ push('punct',sql.slice(i,i+2)); i+=2; continue; }
+    if(wordChar(c)){ var j2=i+1; while(j2<n&&wordChar(sql[j2]))j2++; push('word',sql.slice(i,j2)); i=j2; continue; }
+    push('punct',c); i++;
+  }
+  return out;
+}
+function sqlLexError(sql,dialect){
+  var tokens=sqlTokenize(sql,dialect);
+  for(var i=0;i<tokens.length;i++){
+    var t=tokens[i];
+    if(t.type==='comment' && t.text.slice(0,2)==='/*' && t.text.slice(-2)!=='*/') return 'block comment';
+    if(t.type==='ident' && t.text[0]==='[' && t.text.slice(-1)!==']') return 'bracket identifier';
+    if(t.type==='ident' && t.text[0]==='`' && t.text.slice(-1)!=='`') return 'backtick identifier';
+    if(t.type==='ident' && t.text[0]==='"' && t.text.slice(-1)!=='"') return 'quoted identifier';
+    if(t.type==='string' && t.text[0]==="'" && t.text.slice(-1)!=="'") return 'string';
+    if(t.type==='string' && t.text[0]==='$'){
+      var m=/^\$[A-Za-z_0-9]*\$/.exec(t.text), tag=m?m[0]:'';
+      if(tag && t.text.slice(-tag.length)!==tag) return 'dollar-quoted string';
+    }
+  }
+  return '';
+}
+function sqlKeyword(w){ return KEYWORDS.indexOf(String(w).toUpperCase())>=0; }
+function sqlClauseInfo(tokens, i){
+  if(!tokens || !tokens[i] || tokens[i].type!=='word') return null;
+  var w=tokens[i].text.toUpperCase();
+  function nextIdx(j){ while(tokens[j] && tokens[j].type==='ws') j++; return j; }
+  function wordAt(j){ return tokens[j] && tokens[j].type==='word' ? tokens[j].text.toUpperCase() : ''; }
+  var one=['SELECT','FROM','WHERE','HAVING','LIMIT','OFFSET','VALUES','SET','JOIN','ON','UNION'];
+  if(one.indexOf(w)>=0){
+    if(w==='UNION'){ var j=nextIdx(i+1); if(wordAt(j)==='ALL') return {words:['UNION','ALL'],end:j}; }
+    return {words:[w],end:i};
+  }
+  if(w==='GROUP'||w==='ORDER'){
+    var j2=nextIdx(i+1); if(wordAt(j2)==='BY') return {words:[w,'BY'],end:j2};
+    return null;
+  }
+  var joins=['LEFT','RIGHT','INNER','FULL','CROSS','NATURAL','OUTER'];
+  if(joins.indexOf(w)>=0){
+    var words=[w], k=nextIdx(i+1), seenOuter=(w==='OUTER');
+    while(tokens[k] && tokens[k].type==='word'){
+      var nw=wordAt(k);
+      if(nw==='JOIN'){ words.push('JOIN'); return {words:words,end:k}; }
+      if(nw==='OUTER'&&!seenOuter){ seenOuter=true; words.push('OUTER'); k=nextIdx(k+1); continue; }
+      break;
+    }
+  }
+  return null;
+}
+function sqlFormat(sql,dialect,indent,upperCase){
+  sql=String(sql==null?'':sql); indent=indent||'  ';
+  var tokens=sqlTokenize(sql,dialect), out='';
+  function trimEnd(){ out=out.replace(/[ \t]+$/,''); }
+  function newline(){ trimEnd(); if(out && !/\n$/.test(out)) out+='\n'; if(!/\n$/.test(out)) out+='\n'; out+=indent; }
+  function lineBreak(){ trimEnd(); if(out && !/\n$/.test(out)) out+='\n'; }
+  function space(){ if(out && !/[\s(]$/.test(out)) out+=' '; }
+  for(var i=0;i<tokens.length;i++){
+    var t=tokens[i];
+    if(t.type==='ws') continue;
+    if(t.type==='comment'){
+      if(/^(--|#)/.test(t.text)){ space(); out+=t.text; out+='\n'+indent; }
+      else { space(); out+=t.text; }
+      continue;
+    }
+    var cl=sqlClauseInfo(tokens,i);
+    if(cl){
+      lineBreak(); out+=cl.words.join(' '); out+='\n'+indent; i=cl.end; continue;
+    }
+    if(t.type==='punct'){
+      var c=t.text;
+      if(c===','){ out+=','; newline(); }
+      else if(c===';'){ out+=';'; newline(); }
+      else if(c==='('){ if(out && /[\w\)\]\}]$/.test(out)) space(); out+='('; }
+      else if(c===')'){ trimEnd(); out+=')'; }
+      else if(c==='.'||c==='::'||c==='->'||c==='->>'){ out+=c; }
+      else { space(); out+=c; space(); }
+      continue;
+    }
+    space();
+    out += (t.type==='word' && sqlKeyword(t.text)) ? t.text.toUpperCase() : t.text;
+  }
+  return out.replace(/[ \t]+\n/g,'\n').replace(/\n{2,}/g,'\n').trim();
+}
+function sqlMinify(sql,dialect){
+  sql=String(sql==null?'':sql);
+  var tokens=sqlTokenize(sql,dialect), out='';
+  function trimEnd(){ out=out.replace(/[ \t]+$/,''); }
+  function needSpace(t){
+    if(!out || /\s$/.test(out)) return false;
+    if(t.type==='punct' && [',',';',')','.',']'].indexOf(t.text)>=0) return false;
+    if(t.type==='punct' && t.text==='(') return false;
+    return true;
+  }
+  for(var i=0;i<tokens.length;i++){
+    var t=tokens[i];
+    if(t.type==='ws') continue;
+    if(t.type==='comment'){
+      if(/^(--|#)/.test(t.text)){ if(needSpace(t)) out+=' '; out+=t.text.replace(/\s+$/,''); out+='\n'; }
+      else { if(needSpace(t)) out+=' '; out+=t.text; }
+      continue;
+    }
+    if(t.type==='punct' && [',',';',')','.',']'].indexOf(t.text)>=0){ trimEnd(); out+=t.text; continue; }
+    if(t.type==='punct' && t.text==='('){ trimEnd(); out+='('; continue; }
+    if(needSpace(t)) out+=' ';
+    out+=t.text;
+  }
+  return out.replace(/[ \t]+\n/g,'\n').trim();
+}
 function formatSql() {
   let sql = document.getElementById('input').value;
   if (!sql.trim()) { ToolBox.showToast(i18nText('toast.msg760'), 'warning'); return; }
-  
+  var lexErr=sqlLexError(sql,sqlDialect());
+  if(lexErr){ ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?('Cannot parse SQL: unclosed '+lexErr):('SQL 词法无法识别：未闭合的 '+lexErr)); return; }
   const upperCase = document.getElementById('upperCase').checked;
   const indentOpt = document.getElementById('indentSize').value;
   const indent = indentOpt === 'tab' ? '\t' : ' '.repeat(parseInt(indentOpt));
-  
-  let formatted = sql
-    .replace(/--.*$/gm, '')
-    .replace(/\/\*[\s\S]*?\*\//g, '');
-  
-  formatted = formatted.replace(/\s+/g, ' ').trim();
-  
-  const clauses = ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET',
-    'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'FULL JOIN', 'CROSS JOIN', 'JOIN',
-    'UNION ALL', 'UNION', 'ON', 'VALUES', 'SET'];
-  
-  for (const kw of clauses) {
-    const regex = new RegExp('\\s*' + kw.replace(' ', '\\s+') + '\\s*', 'gi');
-    formatted = formatted.replace(regex, '\n' + kw.toUpperCase() + '\n' + indent);
-  }
-  
-  formatted = formatted.replace(/,\s*/g, ',\n' + indent);
-  
-  formatted = formatted.split('\n').map(line => {
-    if (line.trim().startsWith('SELECT') || line.trim().startsWith('FROM') || 
-        line.trim().startsWith('WHERE') || line.trim().startsWith('GROUP') ||
-        line.trim().startsWith('ORDER') || line.trim().startsWith('HAVING') ||
-        line.trim().startsWith('LIMIT') || line.trim().startsWith('JOIN') ||
-        line.trim().startsWith('LEFT') || line.trim().startsWith('RIGHT') ||
-        line.trim().startsWith('INNER') || line.trim().startsWith('UNION') ||
-        line.trim().startsWith('ON') || line.trim().startsWith('VALUES') ||
-        line.trim().startsWith('SET')) {
-      return line;
-    }
-    if (line.trim() && !line.startsWith(indent)) {
-      return indent + line;
-    }
-    return line;
-  }).join('\n');
-  
-  if (upperCase) {
-    for (const kw of KEYWORDS) {
-      const regex = new RegExp('\\b' + kw + '\\b', 'gi');
-      formatted = formatted.replace(regex, kw.toUpperCase());
-    }
-  }
-  
-  formatted = formatted.replace(/\n\s*\n/g, '\n').trim();
-  
+  const formatted = sqlFormat(sql, sqlDialect(), indent, upperCase);
   document.getElementById('output').textContent = formatted;
-  addToHistory('格式化', sql.substring(0, 80));
+  addToHistory((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Format':'格式化', sql);
   ToolBox.showToast(i18nText('toast.msg451'), 'success');
 }
 
 function minifySql() {
   let sql = document.getElementById('input').value;
   if (!sql.trim()) { ToolBox.showToast(i18nText('toast.msg760'), 'warning'); return; }
-  
-  sql = sql.replace(/--.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
-  sql = sql.replace(/\s+/g, ' ').trim();
-  document.getElementById('output').textContent = sql;
-  addToHistory('压缩', sql.substring(0, 80));
+  var lexErr=sqlLexError(sql,sqlDialect());
+  if(lexErr){ ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?('Cannot parse SQL: unclosed '+lexErr):('SQL 词法无法识别：未闭合的 '+lexErr)); return; }
+  const mini = sqlMinify(sql, sqlDialect());
+  document.getElementById('output').textContent = mini;
+  addToHistory((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Minify':'压缩', sql);
   ToolBox.showToast(i18nText('toast.msg095'), 'success');
 }
 
@@ -420,25 +525,45 @@ function clearAll() {
   document.getElementById('output').textContent = '';
 }
 
-function addToHistory(action, summary) {
-  const h = (function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
-  h.unshift({ time: new Date().toLocaleString(), action, summary });
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0, 50)));
+function sqlEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function readHistory(){
+  var h=(function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
+  if(!Array.isArray(h)) h=[];
+  var changed=false;
+  h.forEach(function(x){
+    if(x && x.summary && !x.text){ x.summary='旧记录仅摘要，已清理（无法完整恢复）'; changed=true; }
+  });
+  if(changed){ try{localStorage.setItem(HISTORY_KEY,JSON.stringify(h));}catch(e){} }
+  return h;
+}
+function addToHistory(action, sql) {
+  if(!document.getElementById('saveSqlHistory').checked){ renderHistory(); return; }
+  var h=readHistory();
+  h.unshift({ time:new Date().toLocaleString(), action:action, summary:String(sql).slice(0,80), text:String(sql), full:true });
+  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(h.slice(0,50)));}catch(e){}
   renderHistory();
 }
-
 function renderHistory() {
-  const h = (function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
-  const el = document.getElementById('history-list');
-  const __h0=h.length === 0 ? '<div class="history-empty">暂无历史</div>' :
-    h.map((x, i) => `<div class="history-item" onclick="loadH(${i})"><div class="time">${x.time} · ${x.action}</div><div class="summary" style="font-family:monospace;font-size:12px;">${x.summary}</div></div>`).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h0;
+  const h=readHistory();
+  const el=document.getElementById('history-list');
+  el.innerHTML='';
+  if(h.length===0){ var empty=document.createElement('div'); empty.className='history-empty'; empty.textContent='暂无历史'; el.appendChild(empty); return; }
+  h.forEach(function(x,i){
+    var item=document.createElement('div'); item.className='history-item'; item.onclick=function(){loadH(i);};
+    var tm=document.createElement('div'); tm.className='time'; tm.textContent=String(x.time)+' · '+String(x.action);
+    var sum=document.createElement('div'); sum.className='summary'; sum.style.fontFamily='monospace'; sum.style.fontSize='12px'; sum.textContent=String(x.summary);
+    item.appendChild(tm); item.appendChild(sum); el.appendChild(item);
+  });
 }
-
 function loadH(i) {
-  const h = (function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
-  if (h[i]) document.getElementById('input').value = h[i].summary;
+  const h=readHistory();
+  if(!h[i]) return;
+  if(typeof h[i].text==='string'){
+    document.getElementById('input').value=h[i].text;
+  }else{
+    ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Legacy entry stored only a summary and cannot be restored; paste the full SQL again.':'旧记录仅保存摘要，无法完整恢复；请重新粘贴完整 SQL');
+  }
 }
-
 function clearHistory() {
   if (confirm(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Clear history?":"清空历史？"))) { localStorage.removeItem(HISTORY_KEY); renderHistory(); }
 }
@@ -609,7 +734,7 @@ else document.addEventListener('DOMContentLoaded', __sql_formatterBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -617,7 +742,7 @@ else document.addEventListener('DOMContentLoaded', __sql_formatterBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

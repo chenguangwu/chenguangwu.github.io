@@ -126,7 +126,7 @@
     <h2 data-zh="📝 Benchmark 基准测试">📝 Benchmark Benchmark</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="在线测量浏览器 JavaScript 运算性能：整数/浮点/字符串/数组/对象五种负载，每秒操作数（ops/sec）对比，一键复制测试代码。">Build and run small JavaScript benchmarks in your browser — compare snippets with real timings.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">吞吐率 = 操作数 × 1000 ÷ 实际耗时(ms)（ops/s）；五种负载：int 500 次平方累加、float 三角函数开方、str 100 次串拼、array 200 元素推入+降序排序、object 200 键写入；评级：＞100万 极快 / ＞10万 很快 / ＞1万 正常 / ＞1000 偏慢 / 其余较慢</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq" data-zh="吞吐率 = 操作数 × 1000 ÷ 实际耗时(ms)（ops/s）；五种负载：int 500 次平方累加、float 三角函数开方、str 100 次串拼、array 200 元素推入+降序排序、object 200 键写入；每次操作的工作量不同，页面只展示原始耗时与 ops/s，不按统一阈值跨负载评级；计时含分片调度等待，已排除 30ms 启动等待与可选预热">Throughput = operations × 1000 ÷ elapsed ms (ops/s); workloads: int 500 square-add loops, float trig/sqrt, str 100 concatenations, array push 200 items and sort, object write 200 keys. One operation differs by workload; the page shows raw elapsed time and ops/s only, with no cross-workload grading. Timing includes chunk scheduling but excludes the 30 ms start delay and optional warm-up.</div>
   <div class="formula-desc">对多个候选实现做可复现的性能对比，输出统计指标。</div>
   <ul class="formula-list">
     <li><b>采样</b>：每个候选重复运行 N 次，记录耗时，统计均值、中位数、标准差与百分位。</li>
@@ -152,6 +152,12 @@
         <option value="2000">2 秒</option>
         <option value="5000">5 秒</option>
       </select>
+      <span style="white-space:nowrap;font-size:13px;">预热</span>
+      <select id="warmup" style="flex:1" aria-label="预热时长（毫秒）" data-i18n-aria="tool.aria.benchmark_warmup">
+        <option value="0" data-zh="不预热">None</option>
+        <option value="200" selected>200 ms</option>
+        <option value="500">500 ms</option>
+      </select>
     </div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__benchmark_builderExport()">导出明细 CSV</button></div><div class="result-box" id="result"></div> <div id="benchmark_builderTable"></div> <div id="benchmark_builderDiff"></div> <div id="benchmark_builderChart"></div> <div id="benchmark_builderHist"></div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
@@ -172,7 +178,7 @@
       <button class="btn primary" id="runBtn" onclick="run()">▶ 开始测试</button>
       <button class="btn" onclick="copyCode()">复制测试代码</button>
     </div>
-    <p style="font-size:12px;color:var(--muted,#9CA3AF);margin-top:10px;">💡 测试运行期间页面可能短暂卡顿，属正常现象。结果受浏览器/设备影响，仅供参考。</p>
+    <p style="font-size:12px;color:var(--muted,#9CA3AF);margin-top:10px;" data-zh="💡 测试运行期间页面可能短暂卡顿，属正常现象。页面只展示原始耗时与 ops/s，不按统一阈值评级；不同负载的工作量不同，结果不能跨负载比较。">💡 The page may briefly stutter while running. It shows raw elapsed time and ops/s only, with no unified threshold grading; workloads differ, so results are not comparable across workload types.</p>
   </div>
 </div>
 
@@ -298,46 +304,86 @@
   </div>
 </div>
 <script>
-var running=false,stopFlag=false;
-function stopRun(){running=false;stopFlag=true;var b=document.getElementById('runBtn');if(b){b.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"▶ Start test":"▶ 开始测试");b.disabled=false;}}
+var running=false,runSeq=0,activeRun=0,benchRuns=[];
+function __benchEn(){return !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
+function stopRun(){
+  var wasRunning=running;
+  running=false;activeRun=0;
+  var b=document.getElementById('runBtn');if(b){b.textContent=(__benchEn()?"▶ Start test":"▶ 开始测试");b.disabled=false;}
+  if(wasRunning){document.getElementById('result').innerHTML='<p style="color:var(--warning)">'+(__benchEn()?'Test cancelled — no result recorded.':'测试已取消，未记录结果。')+'</p>';}
+}
 function run(){
   if(running)return;
-  running=true;stopFlag=false;
+  var id=++runSeq; activeRun=id; running=true;
   var type=document.getElementById('type').value;
   var duration=parseInt(document.getElementById('ms').value)||1000;
+  var warmupMs=parseInt(document.getElementById('warmup').value,10)||0;
   var btn=document.getElementById('runBtn');
   btn.textContent='⏳ 测试中...';btn.disabled=true;
-  var start=performance.now(),ops=0;
-  function finish(){
-    var elapsed=performance.now()-start;
+  var warmStart=0,measureStart=0,ops=0;
+  function workload(){
+    switch(type){
+      case 'int':{var s=0;for(var i=0;i<500;i++)s+=i*i;return;} 
+      case 'float':{var f=0;for(var j=0;j<500;j++)f+=Math.sin(j)*Math.cos(j)+Math.sqrt(j+1);return;}
+      case 'str':{var t='';for(var k=0;k<100;k++)t+='str'+k;var len=t.length;return;}
+      case 'array':{var a=[];for(var m=0;m<200;m++)a.push(m);a.sort(function(x,y){return y-x;});return;}
+      case 'object':{var o={};for(var n=0;n<200;n++)o['k'+n]=n;var keys=Object.keys(o).length;return;}
+    }
+  }
+  function finish(completed){
+    if(activeRun!==id) return;
+    activeRun=0;
+    var elapsed=measureStart?performance.now()-measureStart:0;
     var rate=elapsed>0?Math.round(ops*1000/elapsed):0;
     document.getElementById('msOut').textContent=elapsed.toFixed(0)+' ms';
     document.getElementById('opsOut').textContent=ops.toLocaleString();
     document.getElementById('rateOut').textContent=rate.toLocaleString()+' ops/s';
-    var score=rate>1000000?'🚀 极快':rate>100000?'💪 很快':rate>10000?'👍 正常':rate>1000?'🐢 偏慢':'🪫 较慢（可能后台占用）';
-    const __h0='<p>'+score+' · '+type+' 负载完成（'+elapsed.toFixed(0)+'ms / '+ops.toLocaleString()+' ops）</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
-    running=false;btn.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"▶ Start test":"▶ 开始测试");btn.disabled=false;
+    var wl=__benchmark_builderWorkload(type);
+    benchRuns.push({type:type,rate:rate,elapsed:elapsed,warmup:warmupMs});
+    if(benchRuns.length>60) benchRuns.shift();
+    var same=benchRuns.filter(function(x){return x.type===type;}).slice(-5);
+    var rates=same.map(function(x){return x.rate;}).sort(function(a,b){return a-b;});
+    var statLine=(same.length>1)?((__benchEn()?'Last ':'最近 ')+same.length+(__benchEn()?' runs of this workload: median ':' 次同负载：中位数 ')+rates[Math.floor((rates.length-1)/2)].toLocaleString()+(__benchEn()?' ops/s · range ':' ops/s · 范围 ')+rates[0].toLocaleString()+' – '+rates[rates.length-1].toLocaleString()+' ops/s'):(__benchEn()?'Run this workload again to see a median and range for the last few runs.':'再次运行同一负载，可查看最近几次的中位数与范围。');
+    var threads=(navigator.hardwareConcurrency?navigator.hardwareConcurrency+' logical cores':'unknown cores');
+    var env=(__benchEn()?'Browser environment: ':'环境：')+threads+(__benchEn()?' · page visibility: ':' · 页面可见性：')+(document.visibilityState||'unknown');
+    const __h0='<p><strong>'+type+'</strong> · '+wl+(__benchEn()?' · ':' · ')+ops.toLocaleString()+(__benchEn()?' operations in ':' 次操作，实测 ')+elapsed.toFixed(0)+' ms · '+rate.toLocaleString()+' ops/s</p>'+
+      '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">'+env+'</p>'+
+      '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">'+statLine+'</p>'+
+      '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">'+(__benchEn()?'Timing covers execution plus chunk scheduling; the 30 ms start delay and optional warm-up are excluded. Results are only comparable for the same workload on the same device — this page does not assign cross-workload speed grades.':'计时含执行与分片调度等待，已排除 30 ms 启动等待与可选预热；仅同一负载、同一设备可比较，页面不再给出跨负载的速度评级。')+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+    running=false;btn.textContent=(__benchEn()?"▶ Start test":"▶ 开始测试");btn.disabled=false;
+    if(!completed){document.getElementById('result').innerHTML='<p style="color:var(--warning)">'+(__benchEn()?'Test cancelled.':'已取消测试。')+'</p>';}
   }
   // IT-N454：旧实现在一个 setTimeout 回调里同步忙等整段时长，期间事件无法派发，
   // stopRun() 永远不会被调用 ⇒「停止」是死代码且 UI 冻结。改为每片最多 12ms 后让出主线程。
   function chunk(){
-    if(stopFlag){finish();return;}
+    if(activeRun!==id) return;
+    if(!measureStart){
+      if(!warmStart) warmStart=performance.now();
+      var warmSlice=performance.now();
+      while(activeRun===id&&performance.now()-warmSlice<12&&performance.now()-warmStart<warmupMs){workload();}
+      if(performance.now()-warmStart<warmupMs){setTimeout(chunk,0);return;}
+      measureStart=performance.now();
+    }
     var sliceStart=performance.now();
     try{
-      while(!stopFlag&&performance.now()-sliceStart<12&&performance.now()-start<duration){
-        switch(type){
-          case 'int':{var s=0;for(var i=0;i<500;i++)s+=i*i;ops++;}break;
-          case 'float':{var f=0;for(var j=0;j<500;j++)f+=Math.sin(j)*Math.cos(j)+Math.sqrt(j+1);ops++;}break;
-          case 'str':{var t='';for(var k=0;k<100;k++)t+='str'+k;var len=t.length;ops++;}break;
-          case 'array':{var a=[];for(var m=0;m<200;m++)a.push(m);a.sort(function(x,y){return y-x;});ops++;}break;
-          case 'object':{var o={};for(var n=0;n<200;n++)o['k'+n]=n;var keys=Object.keys(o).length;ops++;}break;
-        }
+      while(activeRun===id&&performance.now()-sliceStart<12&&performance.now()-measureStart<duration){
+        workload();ops++;
       }
     }catch(e){}
-    if(stopFlag||performance.now()-start>=duration){finish();return;}
+    if(activeRun!==id) return;
+    if(performance.now()-measureStart>=duration){finish(true);return;}
     setTimeout(chunk,0);
   }
   setTimeout(chunk,30);
+}
+function __benchmark_builderWorkload(type){
+  return ({
+    int:(__benchEn()?'500 integer square-and-add operations per unit; 1 operation = one full loop':'每个操作 = 1 轮「500 次整数平方累加」'),
+    float:(__benchEn()?'500 trig/sqrt operations per unit; 1 operation = one full loop':'每个操作 = 1 轮「500 次三角函数与开方」'),
+    str:(__benchEn()?'100 string concatenations per unit; 1 operation = one full loop':'每个操作 = 1 轮「100 次字符串拼接」'),
+    array:(__benchEn()?'push 200 items then sort descending; 1 operation = one full pass':'每个操作 = 1 轮「推入 200 项并降序排序」'),
+    object:(__benchEn()?'write 200 keys then read key count; 1 operation = one full pass':'每个操作 = 1 轮「写入 200 个键并读取键数」')
+  }[type]||type);
 }
 function workloadSnippet(type){
   // 与 run() 的 switch 负载逐字对应；改负载时两处须同步。

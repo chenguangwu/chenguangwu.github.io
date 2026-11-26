@@ -108,7 +108,7 @@
     <h2 data-zh="🧾 账务（凭证/账簿/报表）编制">🧾 Bookkeeping and Financial Statement Preparation</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="凭证/账簿/报表">Trial balance: sum of debit balances must equal sum of credit balances.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">试算平衡判据：Σ 借方余额 = Σ 贷方余额，差额绝对值 &lt; 0.005 视为平衡可结账；差额不为 0 说明漏记、方向记反或金额错误</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">试算平衡判据：Σ 借方余额 = Σ 贷方余额，差额绝对值 &lt; 0.005 视为平衡可结账；差额不为 0 说明漏记、方向记反或金额错误。每行须为「科目,借方余额,贷方余额」三列，科目名按文本转义；金额须为有限非负数，非法行逐行报错，不得以 0 替代；同一科目借贷余额不得同时非零。</div>
   <p>试算平衡：Σ借方余额 = Σ贷方余额；借贷差额 = 借方合计 − 贷方合计，差额为 0 方可结账。</p>
   <p>各科目按余额方向填列：资产、成本费用类通常记借方，负债、权益、收入类通常记贷方。</p>
   <p>工具同时给出占借方合计的比例与借、贷方的最大科目，便于快速核对科目余额表。</p>
@@ -199,35 +199,37 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
+function __esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function calc(){
-var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
-var arr=[];
-lines.forEach(function(ln){
-var p=ln.split(/[,，\t ]+/);
-if(p.length<3)return;
-var d=parseFloat(p[1]),c=parseFloat(p[2]);
-if(isNaN(d))d=0;
-if(isNaN(c))c=0;
-arr.push({name:p[0],d:d,c:c});
+var __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/.test(location.search);
+if(__en){var __ta=document.getElementById("data");if(__ta&&__ta.value.trim()==="库存现金,8000,0\n银行存款,60000,0\n应收账款,22000,0\n应付账款,0,30000\n短期借款,0,40000\n实收资本,0,20000")__ta.value="Cash,8000,0\nBank deposit,60000,0\nAccounts receivable,22000,0\nAccounts payable,0,30000\nShort-term loan,0,40000\nPaid-in capital,0,20000";}
+var raw=document.getElementById("data").value.split("\n");
+var lines=raw.map(function(s,i){return {t:s.trim(),i:i+1};}).filter(function(o){return o.t.length>0;});
+var arr=[],bad=[];
+lines.forEach(function(o){
+var p=o.t.split(/[,，	]+/).map(function(x){return x.trim();}).filter(function(x){return x!=='';});
+if(p.length!==3){bad.push((__en?'Line ':'第 ')+o.i+(__en?': “':' 行「')+__esc(o.t.slice(0,40))+(__en?'” is not “account,debit,credit” with three columns':'」不是「科目,借方余额,贷方余额」三列'));return;}
+var name=p[0],d=Number(p[1]),c=Number(p[2]);
+if(!name){bad.push((__en?'Line ':'第 ')+o.i+(__en?': account name is empty':' 行科目名称为空'));return;}
+if(!isFinite(d)||!isFinite(c)){bad.push((__en?'Line ':'第 ')+o.i+(__en?': “':' 行「')+__esc(name)+(__en?'” debit or credit is not a valid number':'」的借方或贷方金额不是有效数字'));return;}
+if(d<0||c<0){bad.push((__en?'Line ':'第 ')+o.i+(__en?': “':' 行「')+__esc(name)+(__en?'” amount cannot be negative':'」金额不能为负'));return;}
+if(d!==0&&c!==0){bad.push((__en?'Line ':'第 ')+o.i+(__en?': “':' 行「')+__esc(name)+(__en?'” debit and credit are both non-zero; split or correct it':'」借贷余额同时非零，请拆分或修正'));return;}
+arr.push({name:name,d:d,c:c});
 });
-if(!arr.length){document.getElementById("res").innerHTML='<p>请输入至少一行「科目,借方余额,贷方余额」</p>';return;}
+if(bad.length){document.getElementById("res").innerHTML='<p style="color:var(--danger)">⚠ 数据有误，请逐行修正：</p><ul><li>'+bad.join('</li><li>')+'</li></ul>';return;}
+if(!arr.length){document.getElementById("res").innerHTML='<p>'+(__en?'Enter at least one line of “account,debit,credit”.':'请输入至少一行「科目,借方余额,贷方余额」')+'</p>';return;}
 var td=0,tc=0,rows='',md=arr[0],mc=arr[0];
-arr.forEach(function(o){
-td+=o.d;tc+=o.c;
-if(o.d>md.d)md=o;
-if(o.c>mc.c)mc=o;
-});
+arr.forEach(function(o){td+=o.d;tc+=o.c;if(o.d>md.d)md=o;if(o.c>mc.c)mc=o;});
 var diff=td-tc,bal=Math.abs(diff)<0.005;
-arr.forEach(function(o){
-rows+='<tr><td>'+o.name+'</td><td>'+o.d.toFixed(2)+'</td><td>'+o.c.toFixed(2)+'</td><td>'+(td>0?(o.d/td*100).toFixed(2):'0.00')+'%</td></tr>';
-});
-const __g2='<p>科目数：<strong>'+arr.length+'</strong></p>'+
-'<p>借方合计：<strong style="color:var(--primary);">'+td.toFixed(2)+'</strong>　贷方合计：<strong style="color:var(--primary);">'+tc.toFixed(2)+'</strong></p>'+
-'<p>借贷差额：<strong>'+diff.toFixed(2)+'</strong></p>'+
-'<p>试算结果：<strong>'+(bal?'平衡，可结账':'不平衡，需核查')+'</strong></p>'+
-'<p>最大借方科目：<strong>'+md.name+'</strong>　最大贷方科目：<strong>'+mc.name+'</strong></p>'+
-'<p style="font-size:13px;color:var(--text-muted);">借贷记账法下 Σ借方余额 应等于 Σ贷方余额；差额不为 0 说明存在漏记、方向记反或金额错误。</p>'+
-'<table><thead><tr><th>科目</th><th>借方余额</th><th>贷方余额</th><th>占借方合计</th></tr></thead><tbody>'+rows+'</tbody></table>';document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+arr.forEach(function(o){var pct=td>0?(o.d/td*100).toFixed(2)+'%':'—';rows+='<tr><td>'+__esc(o.name)+'</td><td>'+o.d.toFixed(2)+'</td><td>'+o.c.toFixed(2)+'</td><td>'+pct+'</td></tr>';});
+const __g2='<p>'+(__en?'Accounts: ':'科目数：')+'<strong>'+arr.length+'</strong></p>'+
+'<p>'+(__en?'Total debit: ':'借方合计：')+'<strong style="color:var(--primary);">'+td.toFixed(2)+'</strong>'+(__en?'　Total credit: ':'　贷方合计：')+'<strong style="color:var(--primary);">'+tc.toFixed(2)+'</strong></p>'+
+'<p>'+(__en?'Difference: ':'借贷差额：')+'<strong>'+diff.toFixed(2)+'</strong></p>'+
+'<p>'+(__en?'Trial result: ':'试算结果：')+'<strong>'+(bal?(__en?'Balanced; ready to close':'平衡，可结账'):(__en?'Out of balance; investigate':'不平衡，需核查'))+'</strong></p>'+
+'<p>'+(__en?'Largest debit account: ':'最大借方科目：')+'<strong>'+__esc(md.name)+'</strong>'+(__en?'　Largest credit account: ':'　最大贷方科目：')+'<strong>'+__esc(mc.name)+'</strong></p>'+
+'<p style="font-size:13px;color:var(--text-muted);">'+(__en?'Under double-entry bookkeeping, Σ debit balances must equal Σ credit balances; a non-zero difference means an omission, reversed direction or amount error. Negative amounts and the same account having both debit and credit non-zero are rejected.':'借贷记账法下 Σ借方余额 应等于 Σ贷方余额；差额不为 0 说明存在漏记、方向记反或金额错误。负数金额与同一科目借贷同时非零会被拒绝。')+'</p>'+
+'<table><thead><tr><th>'+(__en?'Account':'科目')+'</th><th>'+(__en?'Debit balance':'借方余额')+'</th><th>'+(__en?'Credit balance':'贷方余额')+'</th><th>'+(__en?'Share of total debit':'占借方合计')+'</th></tr></thead><tbody>'+rows+'</tbody></table>';
+document.getElementById("res").innerHTML=__g2;
 }
 calc();
 function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}

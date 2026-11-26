@@ -115,10 +115,10 @@
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#1D4ED8;">
     <h2 data-zh="🧪 体积换算器">🧪 Volume Converter</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 ml / L / gal / pt / qt / 杯 / 汤匙 / 茶匙">Convert volume units such as litre, millilitre, cubic metre, gallon and cubic foot.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 cm³ / ml / m³ / L / ft³ / gal / pt / qt / 杯 / 汤匙 / 茶匙">Convert volume units such as litre, millilitre, cubic metre, gallon and cubic foot.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">以毫升为基准换算：1 L = 1000 mL、1 美制加仑 = 3785.411784 mL、1 品脱 = 473.176473 mL、1 夸脱 = 946.352946 mL、1 杯 = 236.5882365 mL、1 汤匙 = 14.7867648 mL、1 茶匙 = 4.92892159 mL；结果 = 输入值 × 目标系数 ÷ 源系数。</div>
+      <div class="formula-eq">以毫升为基准换算：1 L = 1000 mL、1 美制加仑 = 3785.411784 mL、1 品脱 = 473.176473 mL、1 夸脱 = 946.352946 mL、1 美制杯 = 236.5882365 mL、1 美制汤匙 = 14.7867648 mL、1 美制茶匙 = 4.92892159 mL、1 公制量杯 = 250 mL、1 公制汤匙 = 15 mL、1 公制茶匙 = 5 mL；1 m³ = 1,000 L = 1,000,000 mL；1 ft³ = 28,316.846592 mL；结果 = 输入值 × 源单位的毫升系数 ÷ 目标单位的毫升系数。</div>
   
 </div>
 
@@ -130,14 +130,20 @@
       <div>
         <label for="fromUnit">源单位</label>
         <select id="fromUnit" onchange="convert()">
+          <option value="cm3">立方厘米 (cm³)</option>
           <option value="ml">毫升 (ml)</option>
+          <option value="m3">立方米 (m³)</option>
           <option value="L" selected>升 (L)</option>
+          <option value="ft3">立方英尺 (ft³)</option>
           <option value="gal">美加仑 (gal)</option>
           <option value="pt">美品脱 (pt)</option>
           <option value="qt">美夸脱 (qt)</option>
-          <option value="cup">杯 (cup)</option>
-          <option value="tbsp">汤匙 (tbsp)</option>
-          <option value="tsp">茶匙 (tsp)</option>
+          <option value="cup">美制杯 (US cup)</option>
+          <option value="tbsp">美制汤匙 (US tbsp)</option>
+          <option value="tsp">美制茶匙 (US tsp)</option>
+          <option value="cup_metric">公制量杯 (250 mL)</option>
+          <option value="tbsp_metric">公制汤匙 (15 mL)</option>
+          <option value="tsp_metric">公制茶匙 (5 mL)</option>
         </select>
       </div>
     </div>
@@ -158,9 +164,10 @@
       <p>1 美加仑 (gal) ≈ 3785.41 ml</p>
       <p>1 美品脱 (pt) ≈ 473.176 ml</p>
       <p>1 美夸脱 (qt) ≈ 946.353 ml</p>
-      <p>1 杯 (cup) ≈ 236.588 ml</p>
-      <p>1 汤匙 (tbsp) ≈ 14.787 ml</p>
-      <p>1 茶匙 (tsp) ≈ 4.929 ml</p>
+      <p>1 美制杯 (US cup) ≈ 236.588 ml</p>
+      <p>1 美制汤匙 (US tbsp) ≈ 14.787 ml</p>
+      <p>1 美制茶匙 (US tsp) ≈ 4.929 ml</p>
+      <p>1 公制量杯 = 250 ml；1 公制汤匙 = 15 ml；1 公制茶匙 = 5 ml</p>
     </div>
   </div>
 
@@ -242,18 +249,24 @@
 
 <script>
 const factors = {
+  cm3: 1,
   ml: 1,
+  m3: 1000000,
+  ft3: 28316.846592,
   L: 1000,
   gal: 3785.411784,
   pt: 473.176473,
   qt: 946.352946,
   cup: 236.5882365,
   tbsp: 14.7867648,
-  tsp: 4.92892159
+  tsp: 4.92892159,
+  cup_metric: 250,
+  tbsp_metric: 15,
+  tsp_metric: 5
 };
 const names = {
-  ml:'毫升', L:'升', gal:'美加仑', pt:'美品脱',
-  qt:'美夸脱', cup:'杯', tbsp:'汤匙', tsp:'茶匙'
+  cm3:'立方厘米', ml:'毫升', m3:'立方米', ft3:'立方英尺', L:'升', gal:'美加仑', pt:'美品脱',
+  qt:'美夸脱', cup:'杯', tbsp:'汤匙', tsp:'茶匙', cup_metric:'公制量杯', tbsp_metric:'公制汤匙', tsp_metric:'公制茶匙'
 };
 
 function fmt(n){
@@ -275,7 +288,7 @@ function convert(){
   let html = `<p>基准：<strong>${fmt(v)} ${names[from]}</strong> = <strong>${fmt(base)} 毫升</strong></p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
   Object.keys(factors).forEach(k => {
-    if(k !== from){
+    if(k !== from && !/_metric$/.test(k)){
       html += `<p>${names[k]}：<strong>${fmt(base / factors[k])} ${k}</strong></p>`;
     }
   });
@@ -284,6 +297,7 @@ function convert(){
 
 function clearAll(){
   document.getElementById('inputVal').value = '';
+  if(typeof window.__charRefRender==='function') window.__charRefRender();
   const __h2=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a value to convert":"请输入数值进行换算");if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
 }
 convert();
@@ -526,7 +540,7 @@ else document.addEventListener('DOMContentLoaded', __volume_converterBoot);
 </section>
 <script>
 (function(){
-  var F = {"ml": 1, "L": 1000, "gal": 3785.411784, "pt": 473.176473, "qt": 946.352946, "cup": 236.5882365, "tbsp": 14.7867648, "tsp": 4.92892159};
+  var F = {"ml": 1, "L": 1000, "gal": 3785.411784, "pt": 473.176473, "qt": 946.352946, "cup": 236.5882365, "tbsp": 14.7867648, "tsp": 4.92892159, "cup_metric": 250, "tbsp_metric": 15, "tsp_metric": 5};
   var REFS = [{"v": 5, "zh": "1 茶匙 ≈ 5 毫升", "en": "1 tsp ≈ 5 mL", "d": "5"}, {"v": 15, "zh": "1 汤匙 ≈ 15 毫升", "en": "1 tbsp ≈ 15 mL", "d": "15"}, {"v": 330, "zh": "一罐可乐（330 毫升）", "en": "a can of cola (330 mL)", "d": "330"}, {"v": 500, "zh": "一瓶矿泉水", "en": "a water bottle", "d": "500"}, {"v": 1000, "zh": "1 升（等于 1 公斤水）", "en": "1 litre (= 1 kg water)", "d": "1000"}, {"v": 18900, "zh": "桶装水", "en": "water cooler jug", "d": "18900"}, {"v": 150000, "zh": "浴缸", "en": "bathtub", "d": "1.5×10^5"}, {"v": 250000000, "zh": "标准游泳池", "en": "swimming pool", "d": "2.5×10^8"}];
   var BASE = ["毫升", "mL"];
   var FACTS = ["1 升 = 1000 毫升 = 1 公斤水；1 美加仑 ≈ 3.785 升，1 杯 ≈ 237 毫升。", "1 L = 1000 mL = 1 kg water; 1 US gallon ≈ 3.785 L; 1 cup ≈ 237 mL."];
@@ -571,9 +585,12 @@ else document.addEventListener('DOMContentLoaded', __volume_converterBoot);
     }
     html+='</ul></details>';
     html+='<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+(en?FACTS[1]:FACTS[0])+'</p>';
+    html+='<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">'+(en?'US cup/tbsp/tsp are US customary (236.588 / 14.787 / 4.929 mL). Metric cup/tbsp/tsp are 250 / 15 / 5 mL; choose by recipe region.':'杯/汤匙/茶匙为美制（236.588 / 14.787 / 4.929 mL）；公制量杯/汤匙/茶匙为 250 / 15 / 5 mL，请按配方地区选择。')+'</p>';
+    html+='<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+(en?'Metric equivalents: ':'公制等价：')+'250 mL = '+fmt(base/F.cup_metric)+' cup_metric · 15 mL = '+fmt(base/F.tbsp_metric)+' tbsp_metric · 5 mL = '+fmt(base/F.tsp_metric)+' tsp_metric</p>';
     html+='</div>';
     box.innerHTML=html;
   }
+  window.__charRefRender=render;
   var f0=(typeof convert==='function')?convert:null;
   if(f0){ convert=function(){ var r=f0.apply(null,arguments); try{ render(); }catch(e){} return r; }; }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', render);

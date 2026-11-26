@@ -401,10 +401,31 @@ function convert(){
   
   let out = '';
   if(currentMode === 'encode'){
-    out = input.toUpperCase().split('').map(ch => {
-      if(ch === ' ') return '/';
-      return MORSE[ch] || '';
-    }).filter(Boolean).join(' ');
+    const upper=input.toUpperCase();
+    const invalid=[];
+    for(let i=0;i<upper.length;i++){
+      const ch=upper[i];
+      if(/\s/.test(ch)||MORSE[ch]) continue;
+      invalid.push({ch:ch,pos:i+1,line:upper.slice(0,i).split('\n').length});
+    }
+    if(invalid.length){
+      const first=invalid[0];
+      result.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())
+        ? '❌ Cannot encode '+invalid.length+' character(s). First: "'+first.ch+'" at line '+first.line+', position '+first.pos+'. Only the international Morse set (A-Z, 0-9, listed punctuation) is supported.'
+        : '❌ 有 '+invalid.length+' 个字符无法编码。首个为“'+first.ch+'”（第 '+first.line+' 行第 '+first.pos+' 个）。仅支持国际摩斯字符集（A–Z、0–9 及下方列出的标点）。');
+      renderTimeline('');
+      return;
+    }
+    // 空格/换行统一作为单词分隔符 /，不再静默丢失换行。
+    const tokens=[];
+    for(const ch of upper){
+      if(/\s/.test(ch)){
+        if(tokens.length && tokens[tokens.length-1] !== '/') tokens.push('/');
+      }else if(MORSE[ch]){
+        tokens.push(MORSE[ch]);
+      }
+    }
+    out=tokens.join(' ').replace(/^\/ | \/$/g,'');
   } else {
     out = input.split(/\s+/).map(code => {
       if(code === '/' || code === '') return ' ';
@@ -836,7 +857,7 @@ else document.addEventListener('DOMContentLoaded', __morseBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -844,7 +865,7 @@ else document.addEventListener('DOMContentLoaded', __morseBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

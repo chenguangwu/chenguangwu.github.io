@@ -171,6 +171,10 @@ C 产品,200</textarea>
         <label for="dec">小数位</label>
         <input type="number" id="dec" value="2" min="0" max="6" placeholder="如 2（0–6）">
       </div>
+      <div>
+        <label for="tailAdjust">尾差处理</label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-top:8px;"><input type="checkbox" id="tailAdjust" style="width:auto;" onchange="calc()"> 将显示尾差计入最后一项，保证明细与总成本一致</label>
+      </div>
     </div>
 
     <div class="toolbar">
@@ -305,18 +309,27 @@ function calc(){
     +'<div class="stat-card"><div class="val">'+esc(maxBname)+'</div><div class="lbl">基数最大（'+fmt(maxBase,d)+'）</div></div>'
     +'<div class="stat-card"><div class="val">'+fmt(unitTotal,d)+'</div><div class="lbl">综合单位成本（元 / 件）</div></div>';grid.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 
+  function __roundTo(x, digits){ var f=Math.pow(10,digits); return Math.round((x+Number.EPSILON)*f)/f; }
+  var tailAdjust=document.getElementById('tailAdjust') && document.getElementById('tailAdjust').checked;
+  var shares=rows.map(function(r){return rate*r.base;});
+  var displayShares=shares.map(function(v){return __roundTo(v,d);});
+  if(tailAdjust && displayShares.length){
+    var prior=displayShares.slice(0,-1).reduce(function(a,b){return a+b;},0);
+    displayShares[displayShares.length-1]=__roundTo(__roundTo(total,d)-prior,d);
+  }
+  var sumDisplayed=displayShares.reduce(function(a,b){return a+b;},0);
   var html='<h3 style="margin-bottom:10px;font-size:15px;">📋 分摊明细</h3>';
   html+='<p>待分摊总成本 = <strong>'+fmt(total,d)+'</strong> 元，按「'+esc(baseName)+'」分摊，分摊率 = '+fmt(total,d)+' ÷ '+fmt(sumBase,d)+' = <strong>'+fmt(rate,d)+'</strong> 元 / 单位基数</p>';
   html+='<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr><th>成本对象</th><th>分摊基数</th><th>占比</th><th>分摊额</th><th>单位成本</th></tr></thead><tbody>';
   var sumShare=0;
   rows.forEach(function(r,i){
-    var share=rate*r.base;
+    var share=displayShares[i];
     sumShare+=share;
     var q=qtyOk?(+qtyRaw[i]):NaN;
     var unit=(isFinite(q)&&q>0)?share/q:NaN;
     html+='<tr><td>'+esc(r.name)+'</td><td>'+fmt(r.base,d)+'</td><td>'+(r.base/sumBase*100).toFixed(2)+'%</td><td>'+fmt(share,d)+'</td><td>'+fmt(unit,d)+'</td></tr>';
   });
-  html+='<tr style="font-weight:700;background:var(--bg-subtle);"><td>合计</td><td>'+fmt(sumBase,d)+'</td><td>100.00%</td><td>'+fmt(sumShare,d)+'</td><td>'+fmt(unitTotal,d)+'</td></tr>';
+  html+='<tr style="font-weight:700;background:var(--bg-subtle);"><td>合计</td><td>'+fmt(sumBase,d)+'</td><td>100.00%</td><td>'+fmt(sumDisplayed,d)+'</td><td>'+fmt(unitTotal,d)+'</td></tr>';
   html+='</tbody></table>';
 
   html+='<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
@@ -332,9 +345,11 @@ function calc(){
   if(minBase<0){
     html+='<div class="tip-box tip-warn">存在负分摊基数（'+esc(minBname)+'：'+fmt(minBase,d)+'），分摊额为负。若源于退货或冲减，请确认是否符合企业成本核算口径。</div>';
   }
-  var bal=Math.abs(sumShare-total);
-  if(bal>0.01){
-    html+='<div class="tip-box tip-warn">因四舍五入，分摊额合计与总成本相差 '+fmt(bal,d)+' 元，属于显示精度差异。</div>';
+  var bal=Math.abs(__roundTo(sumDisplayed,d)-__roundTo(total,d));
+  if(bal>1e-9){
+    html+='<div class="tip-box tip-warn">按当前 '+d+' 位小数显示，分摊额明细相加为 '+fmt(sumDisplayed,d)+' 元，与待分摊总成本 '+fmt(total,d)+' 元相差 '+fmt(bal,d)+' 元。可勾选「尾差处理」把差额计入最后一项。</div>';
+  } else if(tailAdjust){
+    html+='<div class="tip-box tip-success">已启用尾差处理：显示尾差计入最后一项，明细合计与总成本一致。</div>';
   }
   const __g6=html;res.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
 }

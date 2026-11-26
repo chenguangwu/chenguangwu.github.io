@@ -376,15 +376,12 @@ try{ __emrData(); }catch(e){}
 </div>
 <script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});
 var __rater_21_last=0,__rater_21_skip=false;
+var RATER_KEYS=['t1','t2','t3','t4','t5','t6','t7','t8','t9','t10','d1','d2','d3','d4','d5','d6','p1','p2','p3'];
 function __rater_21Snap(){
     var out={};
-    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
-    for(var i=0;i<els.length;i++){
-        var e=els[i];
-        var t=(e.type||'').toLowerCase();
-        if(t==='button'||t==='submit'||t==='hidden') continue;
-        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+    for(var i=0;i<RATER_KEYS.length;i++){
+        var e=document.getElementById(RATER_KEYS[i]);
+        out[RATER_KEYS[i]]=e?String(e.value):'';
     }
     return out;
 }
@@ -422,18 +419,26 @@ function __rater_21Render(keys,rk,en){
         TBKit.util.diffBox('#rater_21Diff');
         TBKit.history.mount('#rater_21Hist',function(rec){
             __rater_21_skip=true;
+            var missing=[];
             try{
+                for(var q=0;q<RATER_KEYS.length;q++){
+                    var ke=RATER_KEYS[q],el=document.getElementById(ke);
+                    if(el) el.value='0';
+                    if(!(ke in rec)) missing.push(ke);
+                }
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
-                    var t=(e.type||'').toLowerCase();
-                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
-                    else{e.value=rec[k];}
+                    e.value=rec[k];
                 }
                 calc();
             }catch(e2){}
             __rater_21_skip=false;
+            if(missing.length && typeof ToolBox!=='undefined' && ToolBox.showToast){
+                var enW=TBKit.util.isEn();
+                ToolBox.showToast(enW?('This historical TWSTRS record is incomplete ('+missing.length+' items missing). Missing items were reset to 0; please re-check.'):('该历史 TWSTRS 记录不完整（缺 '+missing.length+' 项），缺失项已重置为 0，请重新核对评分。'),'warning');
+            }
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
@@ -451,7 +456,6 @@ function __rater_21Extras(){
     var snap=__rater_21Snap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
-    if(keys.length>12) keys=keys.slice(0,12);
     var res=__rater_21ResText();
     if(!res) return;
     var en=TBKit.util.isEn();
@@ -481,7 +485,6 @@ function __rater_21Export(){
         var box=document.querySelector('#rater_21Table');
         if(!box||!box.querySelector('tr')){
             var snap=__rater_21Snap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
             var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __rater_21Render(keys,en?'Result':'结果',en);
         }

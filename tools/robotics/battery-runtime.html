@@ -302,11 +302,18 @@ function __tbInputGuardCore(_ids,_labels){
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){if(!Array.isArray(rows))return '<div class="data-grid"><div class="data-card"><div class="num">—</div><div class="label">渲染异常</div></div></div>';let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
+              var __Praw=String(document.getElementById('P').value).trim();
+              if(__Praw!==''&&isFinite(parseFloat(__Praw))&&parseFloat(__Praw)<=0){ToolBox.setResult('result','<p style="color:var(--danger)">容量须 ≥ 0 Ah、电压须 > 0 V、功率须 > 0 W；零功率下续航无限，不能给出有限结果；负参数没有物理意义。</p>');return;}
               var __ig=__tbInputGuard(['ah', 'V', 'P'],["容量 Ah (Ah)", "电压 V (V)", "功率 P (W)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const ah=num('ah'),V=num('V'),P=num('P');
+            const __r=String(document.getElementById('ah').value).trim();
+            if(!isFinite(ah)||ah<0||!isFinite(V)||V<=0||!isFinite(P)||P<=0){
+                ToolBox.setResult('result','<p style="color:var(--danger)">容量须 ≥ 0 Ah、电压须 > 0 V、功率须 > 0 W；零功率下续航无限，不能给出有限结果；负参数没有物理意义。</p>');return;
+            }
             const t=ah*V/P;
             const __g2=dataGrid([
-                [t.toFixed(2),'续航时间 t (h)']
+                [t.toFixed(2),'续航时间 t (h)'],
+                [ah.toFixed(2)+' × '+V.toFixed(2),'电池能量 Ah·V (Wh)']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('ah').value = '2';
@@ -320,13 +327,17 @@ function __battery_runtimeExtras(){
     function __battery_runtimeRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var ah=num('ah'),V=num('V'),P=num('P');
-    var t=ah*V/P;
-    if (!isFinite(__battery_runtimeNum('ah')) || !isFinite(__battery_runtimeNum('V')) || !isFinite(__battery_runtimeNum('P'))) return;
     var en=TBKit.util.isEn();
+    if (!isFinite(__battery_runtimeNum('ah')) || !isFinite(__battery_runtimeNum('V')) || !isFinite(__battery_runtimeNum('P')) || !(ah >= 0) || !(V > 0) || !(P > 0)) {
+        try { TBKit.matrix.table('#battery_runtimeTable',{head: en?['Item','Value']:['项目','数值'],rows:[]}); } catch(e){}
+        return;
+    }
+    var t=ah*V/P;
     TBKit.matrix.table('#battery_runtimeTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['续航时间 t (h)', t.toFixed(2)],
+            ['电池能量 (Wh)', (ah*V).toFixed(2)],
         ]
     });
     TBKit.history.record({ah:__battery_runtimeRaw('ah'), V:__battery_runtimeRaw('V'), P:__battery_runtimeRaw('P'), t:t});

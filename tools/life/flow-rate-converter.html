@@ -138,7 +138,7 @@
     <h2 data-zh="🌊 流量换算器">🌊 Flow Rate Converter</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">以升每秒为基准换算：1 L/min = 1/60 L/s、1 m³/h = 1000/3600 ≈ 0.27778 L/s、1 m³/s = 1000 L/s、1 加仑每分 ≈ 0.06309 L/s、1 立方英尺每分 ≈ 0.47195 L/s；结果 = 输入值 × 目标系数 ÷ 源系数。</div>
+      <div class="formula-eq">以升每秒为基准换算：1 L/min = 1/60 L/s、1 m³/h = 1000/3600 ≈ 0.27778 L/s、1 m³/s = 1000 L/s、1 加仑每分 ≈ 0.06309 L/s、1 立方英尺每分 ≈ 0.47195 L/s；结果 = 输入值 × 源系数 ÷ 目标系数。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 L/s / L/min / m³/h / m³/s / gpm / cfm">Convert volumetric flow units such as L/s, m³/h and gal/min; with density, kg/s can be used as a source and mass flow is also output.</p>
 
@@ -162,10 +162,12 @@
     </div>
     <div class="input-row">
       <div>
-        <label for="density">介质密度（kg/L，水≈1，用于体积↔质量换算）</label>
-        <input type="number" id="density" value="1" step="any" min="0" oninput="convert()" placeholder="水≈1，汽油≈0.74">
+        <label for="density">介质密度（kg/L，需按实际介质主动填写）</label>
+        <input type="number" id="density" step="any" min="0" oninput="convert()" placeholder="如 1（水，4°C）、0.74（汽油）、0.0012（空气，20°C/常压）">
       </div>
     </div>
+
+    <p style="font-size:12px;color:var(--text-muted);margin:4px 0 12px;">密度不是通用常数：水在 4°C 约 1 kg/L；汽油约 0.74、柴油约 0.84；空气在 20°C、常压约 0.0012 kg/L。温度、压力或浓度变化时请改用实际密度。留空时只换算体积流量，不显示质量流量。</p>
 
     <div class="toolbar">
       <div id="flow_rate_converterPresets"></div><button type="button" class="btn primary" onclick="convert()">换算</button><button class="btn" type="button" onclick="__flow_rate_converterExport()">导出明细 CSV</button>
@@ -275,6 +277,8 @@ const names = {Ls:'升每秒', Lmin:'升每分', m3h:'立方米每时',
   m3s:'立方米每秒', gpm:'美加仑每分', cfm:'立方英尺每分', kgs:'千克每秒'};
 const syms = {Ls:'L/s', Lmin:'L/min', m3h:'m³/h',
   m3s:'m³/s', gpm:'gpm', cfm:'cfm', kgs:'kg/s'};
+const namesEn = {Ls:'liters per second', Lmin:'liters per minute', m3h:'cubic meters per hour',
+  m3s:'cubic meters per second', gpm:'US gallons per minute', cfm:'cubic feet per minute'};
 
 function fmt(n){
   if(!isFinite(n)) return '--';
@@ -287,6 +291,7 @@ function fmt(n){
 function convert(){
   const v = parseFloat(document.getElementById('inputVal').value);
   const from = document.getElementById('fromUnit').value;
+  const en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   if(isNaN(v)){
     const __h0='<p style="color:var(--danger);">请输入有效数值</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
     return;
@@ -295,24 +300,26 @@ function convert(){
   let base;
   if(from === 'kgs'){
     if(!isFinite(rho) || rho <= 0){
-      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">以 kg/s 为源单位时，需要填写大于 0 的介质密度才能反算体积流量。</p>';
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">'+(en?'A density greater than 0 is required to convert kg/s back to volumetric flow.':'以 kg/s 为源单位时，需要填写大于 0 的介质密度才能反算体积流量。')+'</p>';
       return;
     }
     base = v / rho; // kg/s ÷ (kg/L) = L/s
   }else{
     base = v * factors[from];
   }
-  let html = `<p>基准：<strong>${fmt(v)} ${syms[from]}</strong> = <strong>${fmt(base)} L/s</strong></p>`;
+  if(!isFinite(base)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">'+(en?'Value is out of range; lower the input or use a larger unit.':'数值超出可计算范围，请降低输入或改用更大单位。')+'</p>';return;}
+  let html = `<p>${en?'Base':'基准'}${en?': ':'：'}<strong>${fmt(v)} ${syms[from]}</strong> = <strong>${fmt(base)} L/s</strong></p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
   Object.keys(factors).forEach(k => {
     if(k !== from){
-      html += `<p>${names[k]}：<strong>${fmt(base / factors[k])} ${syms[k]}</strong></p>`;
+      html += `<p>${en?namesEn[k]:names[k]}${en?': ':'：'}<strong>${fmt(base / factors[k])} ${syms[k]}</strong></p>`;
     }
   });
   if(isFinite(rho) && rho > 0){
-    html += `<p>质量流量：<strong>${fmt(base * rho)} kg/s</strong>（密度 ${fmt(rho)} kg/L）</p>`;
+    if(!isFinite(base * rho)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">'+(en?'Mass-flow result is out of range; lower the input or density.':'质量流量换算超出可计算范围，请降低输入或密度。')+'</p>';return;}
+    html += `<p>${en?'Mass flow':'质量流量'}${en?': ':'：'}<strong>${fmt(base * rho)} kg/s</strong>${en?' (density ':'（密度 '}${fmt(rho)} kg/L${en?')':'）'}</p>`;
   }else{
-    html += '<p style="color:var(--text-muted);">质量流量：未填写有效密度，仅显示体积流量。</p>';
+    html += '<p style="color:var(--text-muted);">'+(en?'Mass flow: no valid density entered, so only volumetric units are shown.':'质量流量：未填写有效密度，仅显示体积流量。')+'</p>';
   }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
 }

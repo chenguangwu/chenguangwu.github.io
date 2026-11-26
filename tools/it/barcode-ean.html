@@ -266,18 +266,21 @@ function buildEAN(input){
   return {d,bits};
 }
 function drawBarcode(bits,digits){
-  const N=bits.length;const modW=3;const barH=120;const textH=22;
-  // EAN-13 静区按模块计：左 11 模块、右 7 模块（旧实现左右各 10px ≈ 3.3 模块，不足规范）
+  const N=bits.length;const modW=3;const barH=120;const guardExt=5*modW;const textH=22;
+  // EAN-13 静区按模块计：左 11 模块、右 7 模块。保护条（起始/中间/终止）向下延长 5 模块。
   const qL=11*modW, qR=7*modW;
-  const w=N*modW+qL+qR;const h=barH+textH;
+  const w=N*modW+qL+qR;const h=barH+guardExt+textH;
   const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
   const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
   ctx.fillStyle='#000';
-  for(let i=0;i<N;i++){if(bits[i]==='1')ctx.fillRect(qL+i*modW,5,modW,barH);}
+  const guard=function(i){ return i<3 || (i>=45&&i<=49) || i>=92; };
+  for(let i=0;i<N;i++){if(bits[i]==='1')ctx.fillRect(qL+i*modW,5,modW,guard(i)?barH+guardExt:barH);}
   ctx.fillStyle='#000';ctx.font='14px monospace';ctx.textAlign='center';
-  ctx.fillText(digits[0],qL+6,barH+18);
-  ctx.fillText(digits.slice(1,7),qL+3*modW+6*7*modW/2,barH+18);
-  ctx.fillText(digits.slice(7),qL+(3+6*7+5+6*7)*modW/2+6,barH+18);
+  // 首位画在左静区中央；左 6 位位于起始保护条之后 42 模块的中点；右 6 位位于中间保护条之后 21 模块的中点。
+  const textY=barH+guardExt+14;
+  ctx.fillText(digits[0],qL/2,textY);
+  ctx.fillText(digits.slice(1,7),qL+(3+21)*modW,textY);
+  ctx.fillText(digits.slice(7),qL+(3+6*7+5+21)*modW,textY);
   return canvas;
 }
 
@@ -497,7 +500,7 @@ else document.addEventListener('DOMContentLoaded', __barcode_eanBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -505,7 +508,7 @@ else document.addEventListener('DOMContentLoaded', __barcode_eanBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

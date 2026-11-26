@@ -489,6 +489,7 @@ function calc(){
     loanAmount = price * loanRatio / 100;
     var monthlyRate = loanRate / 12;
     var months = Math.round(loanYears * 12);
+    if(months < 1){ fail('贷款年限按整月换算后不足 1 个月，请至少填写约 0.08 年（1 个月）。'); return; }
 
     if(loanAmount <= 0){
       monthlyPayment = 0;
@@ -691,21 +692,42 @@ function switchTab(tab){
 
 function addCompare(){
   if(compareData.length >= 3){ ToolBox.showToast(i18nText('toast.msg438'), 'warning'); return; }
-  var price = parseFloat(document.getElementById('price').value) || 300;
-  var rent = parseFloat(document.getElementById('rent').value) || 5000;
+  // 对比卡与单套计算共用同一套原始输入：空值提示，合法的 0 原样保留，不再用默认费用静默替换。
+  var fields = [
+    {id:'price', label:'总价', positive:true},
+    {id:'rent', label:'租金', positive:false},
+    {id:'fee', label:'物业费', positive:false},
+    {id:'heat', label:'取暖费', positive:false},
+    {id:'decor', label:'装修折旧', positive:false},
+    {id:'repair', label:'维修基金', positive:false},
+    {id:'agency', label:'中介费', positive:false},
+    {id:'tax', label:'税费及其他', positive:false}
+  ];
+  var vals = {};
+  for(var ci = 0; ci < fields.length; ci++){
+    var f = fields[ci];
+    var raw = String(document.getElementById(f.id).value == null ? '' : document.getElementById(f.id).value).trim();
+    if(raw === ''){ ToolBox.showToast('请先填写' + f.label + '，空值不会用默认值替代。', 'warning'); return; }
+    var n = Number(raw);
+    if(!isFinite(n) || (f.positive ? n <= 0 : n < 0)){
+      ToolBox.showToast(f.label + (f.positive ? '须大于 0。' : '须为 ≥0 的数字。'), 'warning'); return;
+    }
+    vals[f.id] = n;
+  }
   compareData.push({
     name: '房产' + (compareData.length + 1),
-    price: price,
-    rent: rent,
-    fee: parseFloat(document.getElementById('fee').value) || 300,
-    heat: parseFloat(document.getElementById('heat').value) || 2400,
-    decor: parseFloat(document.getElementById('decor').value) || 5000,
-    repair: parseFloat(document.getElementById('repair').value) || 1000,
-    agency: parseFloat(document.getElementById('agency').value) || 0,
-    tax: parseFloat(document.getElementById('tax').value) || 2000
+    price: vals.price,
+    rentMode: document.getElementById('rentMode').value,
+    rent: vals.rent,
+    fee: vals.fee,
+    heat: vals.heat,
+    decor: vals.decor,
+    repair: vals.repair,
+    agency: vals.agency,
+    tax: vals.tax
   });
   renderCompare();
-  ToolBox.showToast(i18nText());
+  ToolBox.showToast('已加入对比，费用按当前填写值（含 0）参与计算。');
 }
 
 function renderCompare(){
@@ -715,7 +737,8 @@ function renderCompare(){
   } else {
     compareData.forEach(function(d, i){
       var price = d.price * 10000;
-      var yearlyRent = d.rent * 12;
+      var monthlyRent = d.rentMode === 'year' ? d.rent / 12 : d.rent;
+      var yearlyRent = monthlyRent * 12;
       var yearlyExpense = (d.fee || 0) * 12 + (d.heat || 0) + (d.decor || 0) + (d.repair || 0) + (d.agency || 0) + (d.tax || 0);
       var netIncome = yearlyRent - yearlyExpense;
       var grossYield = price ? (yearlyRent / price * 100) : 0;
@@ -726,9 +749,10 @@ function renderCompare(){
       html += '<div class="compare-card active">';
       html += '<h4>' + d.name + ' <span class="tag" style="color:' + level.color + ';">' + level.text + '</span></h4>';
       html += '<div class="metric"><span class="m-label">总价</span><span class="m-value">' + d.price + '万</span></div>';
-      html += '<div class="metric"><span class="m-label">月租金</span><span class="m-value">' + ToolBox.formatNumber(d.rent, 0) + '元</span></div>';
+      html += '<div class="metric"><span class="m-label">月租金</span><span class="m-value">' + ToolBox.formatNumber(monthlyRent, 0) + '元</span></div>';
       html += '<div class="metric"><span class="m-label">年租金</span><span class="m-value">' + ToolBox.formatNumber(yearlyRent, 0) + '元</span></div>';
       html += '<div class="metric"><span class="m-label">年支出</span><span class="m-value" style="color:var(--danger);">' + ToolBox.formatNumber(yearlyExpense, 0) + '元</span></div>';
+      html += '<div style="font-size:11px;color:var(--text-muted);line-height:1.6;margin:4px 0 6px;">费用明细：物业 ' + ToolBox.formatNumber(d.fee * 12, 0) + ' / 取暖 ' + ToolBox.formatNumber(d.heat, 0) + ' / 装修 ' + ToolBox.formatNumber(d.decor, 0) + ' / 维修 ' + ToolBox.formatNumber(d.repair, 0) + ' / 中介 ' + ToolBox.formatNumber(d.agency, 0) + ' / 税费 ' + ToolBox.formatNumber(d.tax, 0) + ' 元（年）</div>';
       html += '<div class="metric"><span class="m-label">年净收入</span><span class="m-value" style="color:var(--success);">' + ToolBox.formatNumber(netIncome, 0) + '元</span></div>';
       html += '<div class="metric"><span class="m-label">毛回报率</span><span class="m-value">' + grossYield.toFixed(2) + '%</span></div>';
       html += '<div class="metric"><span class="m-label">净回报率</span><span class="m-value" style="color:' + level.color + ';font-weight:700;">' + netYield.toFixed(2) + '%</span></div>';

@@ -171,7 +171,7 @@
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn" onclick="loadPreset()">载入参考预算</button>
+      <button type="button" class="btn" onclick="loadPreset()">载入参考预算</button><button type="button" class="btn" id="funeral-budget-undo-btn" onclick="undoPreset()" style="display:none;" data-i18n="btn.presetUndo" data-i18n-fb="↩ 撤销预设">↩ 撤销预设</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
 
@@ -287,8 +287,12 @@ function __budgetLoadScene(){
     cemetery:[['墓地安葬','cemetery',28000],['墓碑刻字','cemetery',3600],['安葬礼仪','ritual',2200],['接运与火化','basic',1800],['骨灰盒','basic',3000],['周年祭扫预留','other',1200]]
   };
   var list=sets[s]||sets.basic;
+  if(items.length && !confirm(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'The scene preset will replace the current budget items. Continue?':'当前已有预算项目，场景预设会替换全部条目。确定替换？'))) return;
+  var snapshotSaved=false; try{ localStorage.setItem(UNDO_KEY, JSON.stringify(items)); snapshotSaved=true; }catch(e){}
+  if(items.length && !snapshotSaved){ ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Browser storage unavailable; preset not loaded to avoid losing your data':'浏览器存储不可用，未载入预设以避免覆盖现有预算'),'warning'); return; }
   items=list.map(function(x,i){return {id:i+1,name:x[0],cat:x[1],amt:x[2]};});
   try{ saveStorage(); }catch(e){}
+  try{ __budgetUndoBtn(true); }catch(e){}
   try{ render(); }catch(e){}
 }
 
@@ -341,7 +345,18 @@ function clearAll(){
   ToolBox.showToast(i18nText());
 }
 
+var UNDO_KEY = 'funeral_budget_planner_undo';
+function __budgetUndoBtn(show){ var b=document.getElementById('funeral-budget-undo-btn'); if(b) b.style.display=show?'inline-flex':'none'; }
+function undoPreset(){
+  var u=null; try{ u=JSON.parse(localStorage.getItem(UNDO_KEY)||'null'); }catch(e){}
+  if(!u||!Array.isArray(u)){ ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'No preset to undo':'没有可撤销的预设'),'info'); return; }
+  items=u; saveStorage(); render(); localStorage.removeItem(UNDO_KEY); __budgetUndoBtn(false);
+  ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Preset undone; previous budget restored':'已撤销预设，恢复原预算'),'info');
+}
 function loadPreset(){
+  if(items.length && !confirm(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'The preset will replace the current budget items. Continue?':'当前已有预算项目，载入参考预算会替换全部条目。确定替换？'))) return;
+  var snapshotSaved=false; try{ localStorage.setItem(UNDO_KEY, JSON.stringify(items)); snapshotSaved=true; }catch(e){}
+  if(items.length && !snapshotSaved){ ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Browser storage unavailable; preset not loaded to avoid losing your data':'浏览器存储不可用，未载入预设以避免覆盖现有预算','warning'); return; }
   var preset = [
     {name:'遗体接运',cat:'basic',amt:800},
     {name:'遗体存放（冷藏3天）',cat:'basic',amt:600},
@@ -361,6 +376,7 @@ function loadPreset(){
   items = preset.map(function(p,i){p.id = Date.now()+i; return p;});
   saveStorage();
   render();
+  __budgetUndoBtn(true);
   ToolBox.showToast(i18nText('toast.msg314'));
 }
 
@@ -608,7 +624,7 @@ var __funeral_budget_planner_f0=(typeof addItem==='function')?addItem:null;
 if(__funeral_budget_planner_f0){
     addItem=function(){ var __r=__funeral_budget_planner_f0.apply(null,arguments); try{ __funeral_budget_plannerExtras(); }catch(e){} return __r; };
 }
-function __funeral_budget_plannerBoot(){ try{ __funeral_budget_plannerPresets(); }catch(e){} }
+function __funeral_budget_plannerBoot(){ try{ __funeral_budget_plannerPresets(); }catch(e){} try{ if(localStorage.getItem(UNDO_KEY)) __budgetUndoBtn(true); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __funeral_budget_plannerBoot();
 else document.addEventListener('DOMContentLoaded', __funeral_budget_plannerBoot);
 </script>

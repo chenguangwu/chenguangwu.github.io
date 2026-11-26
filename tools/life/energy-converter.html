@@ -138,7 +138,7 @@
     <h2 data-zh="⚡ 能量换算器">⚡ Energy Converter</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">以焦耳为基准换算：1 kJ = 1000 J、1 cal = 4.184 J、1 kcal = 4184 J、1 Wh = 3600 J、1 kWh = 3.6 × 10⁶ J、1 BTU ≈ 1055.056 J；结果 = 输入值 × 目标系数 ÷ 源系数，1 千卡约等于 4.184 千焦。</div>
+      <div class="formula-eq">以焦耳为基准换算：1 kJ = 1000 J、1 cal = 4.184 J、1 kcal = 4184 J、1 Wh = 3600 J、1 kWh = 3.6 × 10⁶ J、1 BTU ≈ 1055.056 J；结果 = 输入值 × 源系数 ÷ 目标系数，1 千卡约等于 4.184 千焦。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 J / kJ / cal / kcal / Wh / kWh / BTU">Convert energy units such as joule, calorie, kilowatt-hour, BTU and electronvolt between each other.</p>
 
@@ -157,9 +157,6 @@
           <option value="Wh">瓦时 (Wh)</option>
           <option value="kWh">千瓦时 (kWh)</option>
           <option value="BTU">英热单位 (BTU)</option>
-          <option value="eV">电子伏特 (eV)</option>
-          <option value="keV">千电子伏特 (keV)</option>
-          <option value="MeV">兆电子伏特 (MeV)</option>
           <option value="eV">电子伏特 (eV)</option>
           <option value="keV">千电子伏特 (keV)</option>
           <option value="MeV">兆电子伏特 (MeV)</option>
@@ -310,6 +307,8 @@ function convert(){
 
 function clearAll(){
   document.getElementById('inputVal').value = '';
+  var rb=document.getElementById('__charRefBox');if(rb)rb.innerHTML='';
+  if(typeof window.__charRefRender==='function') window.__charRefRender();
   const __h2=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a value to convert":"请输入数值进行换算");if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
 }
 convert();
@@ -540,7 +539,6 @@ else document.addEventListener('DOMContentLoaded', __energy_converterBoot);
 </section>
 <script>
 (function(){
-  var F = {"J": 1, "kJ": 1000, "cal": 4.184, "kcal": 4184, "Wh": 3600, "kWh": 3600000, "BTU": 1055.05585};
   var REFS = [{"v": 4184, "zh": "1 千卡（食物卡路里）", "en": "1 kcal (food Calorie)", "d": "4184"}, {"v": 10800, "zh": "1 节 5 号电池", "en": "an AA battery", "d": "1.08×10^4"}, {"v": 3600000.0, "zh": "1 度电（1 千瓦时）", "en": "1 kWh (1 unit electricity)", "d": "3.6×10^6"}, {"v": 4184000.0, "zh": "1 公斤 TNT", "en": "1 kg of TNT", "d": "4.18×10^6"}, {"v": 4200000.0, "zh": "一块巧克力（约 1000 千卡）", "en": "a chocolate bar (~1000 kcal)", "d": "4.2×10^6"}, {"v": 8400000.0, "zh": "成年人一天耗能", "en": "adult daily energy", "d": "8.4×10^6"}, {"v": 32000000.0, "zh": "1 升汽油", "en": "1 litre gasoline", "d": "3.2×10^7"}, {"v": 5000000000.0, "zh": "一道闪电", "en": "a lightning bolt", "d": "5×10^9"}, {"v": 4184000000.0, "zh": "1 吨 TNT", "en": "1 tonne TNT", "d": "4.18×10^9"}, {"v": 63000000000000.0, "zh": "广岛原子弹", "en": "Hiroshima bomb", "d": "6.3×10^13"}, {"v": 2000000000000000.0, "zh": "里氏 7 级地震", "en": "M7 earthquake", "d": "2×10^15"}];
   var BASE = ["焦耳", "J"];
   var FACTS = ["1 千卡 = 4184 焦耳；1 千瓦时（度）= 3.6×10^6 焦耳；1 英热单位 ≈ 1055 焦耳。", "1 kcal = 4184 J; 1 kWh = 3.6×10^6 J; 1 BTU ≈ 1055 J."];
@@ -560,23 +558,37 @@ else document.addEventListener('DOMContentLoaded', __energy_converterBoot);
     if(!inp||!sel) return;
     var v=parseFloat(inp.value);
     var from=sel.value;
-    if(!isFinite(v)||!F[from]){ box.innerHTML=''; return; }
-    var base=v*F[from];
+    if(!isFinite(v)||!factors[from]){ box.innerHTML=''; return; }
+    var base=v*factors[from];
+    if(!isFinite(base)){ box.innerHTML=''; return; }
     var best=null, bd=1e18;
-    for(var i=0;i<REFS.length;i++){
-      var rv=REFS[i].v;
-      if(!(rv>0)) continue;
-      var d=Math.abs(Math.log10(Math.abs(base)+1e-30)-Math.log10(rv));
-      if(d<bd){ bd=d; best=REFS[i]; }
+    if(base>0){
+      for(var i=0;i<REFS.length;i++){
+        var rv=REFS[i].v;
+        if(!(rv>0)) continue;
+        var d=Math.abs(Math.log10(base)-Math.log10(rv));
+        if(d<bd){ bd=d; best=REFS[i]; }
+      }
     }
     var en=isEn();
     var bname=en?BASE[1]:BASE[0];
     var html='';
     html+='<div class="card" style="margin-top:0;">';
     html+='<h3>'+(en?'Scale sense: how big is it really?':'📐 尺度感知：这到底有多大')+'</h3>';
-    html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
-    if(best){
-      html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+    html+='<p>'+(en?'Your input: ':'你的输入：')+fmt(base)+' '+bname+'</p>';
+    if(base===0){
+      html+='<p style="font-weight:600;color:var(--text-muted);">'+(en?'Zero energy has no physical scale reference.':'零能量不参与实物尺度参照。')+'</p>';
+    } else if(base<0){
+      html+='<p style="font-weight:600;color:var(--text-muted);">'+(en?'Negative energy keeps its sign; real-world references below are positive magnitudes and are not approximations of this value.':'负能量保留符号；下方实物参照均为正值的量级，不代表与本值近似相等。')+'</p>';
+    } else if(best){
+      var ratio=base/best.v;
+      if(ratio>=0.8 && ratio<=1.25){
+        html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+      } else if(ratio>1){
+        html+='<p style="font-weight:600;color:var(--primary);">💡 '+(en?'Nearest reference: ':'最近参考：')+best[en?'en':'zh']+' ('+best.d+' '+bname+')，'+(en?'about ':'约为其 ')+parseFloat(ratio.toPrecision(3))+(en?'×':' 倍')+'</p>';
+      } else {
+        html+='<p style="font-weight:600;color:var(--primary);">💡 '+(en?'Nearest reference: ':'最近参考：')+best[en?'en':'zh']+' ('+best.d+' '+bname+')，'+(en?'about 1/':'约为其 1/')+parseFloat((1/ratio).toPrecision(3))+(en?' of it':'')+'</p>';
+      }
     }
     html+='<details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--primary);">'+(en?'Typical real-world references':'常见实物参照')+'</summary><ul style="font-size:13px;line-height:1.8;margin:6px 0 0;padding-left:18px;">';
     for(var j=0;j<REFS.length;j++){
@@ -588,6 +600,7 @@ else document.addEventListener('DOMContentLoaded', __energy_converterBoot);
     html+='</div>';
     box.innerHTML=html;
   }
+  window.__charRefRender=render;
   var f0=(typeof convert==='function')?convert:null;
   if(f0){ convert=function(){ var r=f0.apply(null,arguments); try{ render(); }catch(e){} return r; }; }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', render);

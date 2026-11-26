@@ -171,7 +171,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🎨 颜色转换器">🎨 Color Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">由当前颜色的红、绿、蓝与透明度出发，分别转换为 HEX（含大写形式）、RGB、RGBA、HSL、HSLA、CMYK、HWB 以及三个通道值与透明度。对比度计算：先把每个通道值除以 255，小于等于 0.03928 时取该值除以 12.92，否则取「(该值 + 0.055) ÷ 1.055」的 2.4 次方，得到线性分量后按 0.2126 × 红 + 0.7152 × 绿 + 0.0722 × 蓝 求相对亮度；对比度 = (较亮亮度 + 0.05) ÷ (较暗亮度 + 0.05)，再按 4.5:1 判普通文本 AA、7:1 判普通文本 AAA、3:1 判大文本 AA、4.5:1 判大文本 AAA 是否通过。前景色带 alpha 时先按 alpha 合成到背景色；背景色必须为不透明（alpha = 1），否则真实对比度取决于未知底层，页面拒绝计算</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">由当前颜色的红、绿、蓝与透明度出发，接受 HEX、RGB(A)、HSL(A)、HSV/HSB、CMYK 输入，统一转换为 HEX（含大写形式）、RGB、RGBA、HSL、HSLA、HSV、CMYK、HWB 以及三个通道值与透明度。对比度计算：先把每个通道值除以 255，小于等于 0.03928 时取该值除以 12.92，否则取「(该值 + 0.055) ÷ 1.055」的 2.4 次方，得到线性分量后按 0.2126 × 红 + 0.7152 × 绿 + 0.0722 × 蓝 求相对亮度；对比度 = (较亮亮度 + 0.05) ÷ (较暗亮度 + 0.05)，再按 4.5:1 判普通文本 AA、7:1 判普通文本 AAA、3:1 判大文本 AA、4.5:1 判大文本 AAA 是否通过。前景色带 alpha 时先按 alpha 合成到背景色；背景色必须为不透明（alpha = 1），否则真实对比度取决于未知底层，页面拒绝计算</div>
   <div class="formula-desc">在 RGB、HEX、HSL、HSV、CMYK 等颜色模型之间互转。</div>
   <ul class="formula-list">
     <li><b>RGB/HEX</b>：三通道 0–255，HEX 写作 <code>#RRGGBB</code>，<code>#RGB</code> 为简写形式。</li>
@@ -182,12 +182,12 @@
 </div>
 
     
-    <div class="tabs">
-      <div class="tab active" data-tab="convert" onclick="switchTab('convert')">颜色转换</div>
-      <div class="tab" data-tab="palette" onclick="switchTab('palette')">调色板</div>
-      <div class="tab" data-tab="contrast" onclick="switchTab('contrast')">对比度</div>
-      <div class="tab" data-tab="common" onclick="switchTab('common')">常用颜色</div>
-      <div class="tab" data-tab="history" onclick="switchTab('history')">历史记录</div>
+    <div class="tabs" role="tablist" aria-label="颜色工具功能页签" data-i18n-aria="tool.aria.color_tabs">
+      <button type="button" class="tab active" role="tab" aria-selected="true" data-tab="convert" onclick="switchTab('convert')">颜色转换</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-tab="palette" onclick="switchTab('palette')">调色板</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-tab="contrast" onclick="switchTab('contrast')">对比度</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-tab="common" onclick="switchTab('common')">常用颜色</button>
+      <button type="button" class="tab" role="tab" aria-selected="false" data-tab="history" onclick="switchTab('history')">历史记录</button>
     </div>
 
     <div id="tab-convert" class="tab-content active">
@@ -195,7 +195,7 @@
       
       <div class="color-picker-row">
         <input type="color" id="colorPicker" value="#4338CA" oninput="fromPicker(this.value)" aria-label="自定义颜色选择器">
-        <input type="text" id="colorInput" value="#4338CA" placeholder="输入颜色值 (HEX, RGB, HSL...)" oninput="fromInput(this.value)" aria-label="颜色值">
+        <input type="text" id="colorInput" value="#4338CA" data-i18n-ph="colorConverter.inputPlaceholder" placeholder="输入颜色值 (HEX、RGB、HSL、HSV、CMYK)" oninput="fromInput(this.value)" aria-label="颜色值">
       </div>
 
       <div data-tb="preset" data-tb-presets='[{"label":"品牌蓝","labelEn":"Brand blue","values":{"colorInput":"#4338CA"}},{"label":"警示红","labelEn":"Alert red","values":{"colorInput":"rgb(239, 68, 68)"}},{"label":"天空蓝","labelEn":"Sky blue","values":{"colorInput":"hsl(210, 80%, 45%)"}},{"label":"深灰","labelEn":"Dark gray","values":{"colorInput":"#374151"}}]'></div>
@@ -394,12 +394,13 @@ const HISTORY_KEY = 'color_converter_history';
 const MAX_HISTORY = 30;
 
 let currentColor = { r: 102, g: 126, b: 234, a: 1 };
+let colorInputInvalid = false;
 
 function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   const selected = document.querySelector('.tab[data-tab="' + tab + '"]');
-  if (selected) selected.classList.add('active');
+  if (selected) { selected.classList.add('active'); selected.setAttribute('aria-selected','true'); }
   document.getElementById('tab-' + tab).classList.add('active');
   if (tab === 'palette') updatePalette(document.getElementById('palettePicker').value);
   if (tab === 'contrast') calcContrast();
@@ -418,6 +419,7 @@ function clampAlpha(v) {
 }
 
 function parseColor(str) {
+  if(typeof str!=="string") return null;
   str = str.trim().toLowerCase();
   
   if (/^#?[0-9a-f]{3}$/.test(str)) {
@@ -435,22 +437,37 @@ function parseColor(str) {
     return { r: parseInt(hex.substr(0, 2), 16), g: parseInt(hex.substr(2, 2), 16), b: parseInt(hex.substr(4, 2), 16), a: parseInt(hex.substr(6, 2), 16) / 255 };
   }
   
-  const rgbMatch = str.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/);
+  const rgbMatch = str.match(/^rgba?\(\s*(\d{1,3})\s*(?:,\s*|\s+)(\d{1,3})\s*(?:,\s*|\s+)(\d{1,3})(?:\s*(?:,\s*|\/\s*)([0-9]+(?:\.[0-9]+)?))?\s*\)$/);
   if (rgbMatch) {
-    return {
-      r: clampChannel(+rgbMatch[1]),
-      g: clampChannel(+rgbMatch[2]),
-      b: clampChannel(+rgbMatch[3]),
-      a: rgbMatch[4] !== undefined ? clampAlpha(+rgbMatch[4]) : 1
-    };
+    const r=+rgbMatch[1],g=+rgbMatch[2],b=+rgbMatch[3],alpha=rgbMatch[4]===undefined?1:+rgbMatch[4];
+    if(r>255||g>255||b>255||alpha<0||alpha>1) return null;
+    return { r:r, g:g, b:b, a:alpha };
   }
   
-  const hslMatch = str.match(/hsla?\(\s*(\d+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*(?:,\s*([\d.]+)\s*)?\)/);
+  const hslMatch = str.match(/^hsla?\(\s*([0-9]+(?:\.[0-9]+)?)(?:deg)?\s*(?:,\s*|\s+)([0-9]+(?:\.[0-9]+)?)%\s*(?:,\s*|\s+)([0-9]+(?:\.[0-9]+)?)%(?:\s*(?:,\s*|\/\s*)([0-9]+(?:\.[0-9]+)?))?\s*\)$/);
   if (hslMatch) {
-    const rgb = hslToRgb(+hslMatch[1], Math.max(0, Math.min(100, +hslMatch[2])), Math.max(0, Math.min(100, +hslMatch[3])));
-    return { r: clampChannel(rgb.r), g: clampChannel(rgb.g), b: clampChannel(rgb.b), a: hslMatch[4] !== undefined ? clampAlpha(+hslMatch[4]) : 1 };
+    const h=+hslMatch[1],sat=+hslMatch[2],light=+hslMatch[3],alpha=hslMatch[4]===undefined?1:+hslMatch[4];
+    if(h<0||h>360||sat<0||sat>100||light<0||light>100||alpha<0||alpha>1) return null;
+    const rgb = hslToRgb(h,sat,light);
+    return { r: rgb.r, g: rgb.g, b: rgb.b, a: alpha };
   }
   
+  const hsvMatch = str.match(/^(?:hsv|hsb)\(\s*([0-9]+(?:\.[0-9]+)?)(?:deg)?\s*(?:,\s*|\s+)([0-9]+(?:\.[0-9]+)?)%\s*(?:,\s*|\s+)([0-9]+(?:\.[0-9]+)?)%\s*\)$/);
+  if (hsvMatch) {
+    const h=+hsvMatch[1],sat=+hsvMatch[2],val=+hsvMatch[3];
+    if(h<0||h>360||sat<0||sat>100||val<0||val>100) return null;
+    const rgb = hsvToRgb(h,sat,val);
+    return { r: rgb.r, g: rgb.g, b: rgb.b, a: 1 };
+  }
+
+  const cmykMatch = str.match(/^cmyk\(\s*([0-9]+(?:\.[0-9]+)?)%\s*(?:,\s*|\s+)([0-9]+(?:\.[0-9]+)?)%\s*(?:,\s*|\s+)([0-9]+(?:\.[0-9]+)?)%\s*(?:,\s*|\s+)([0-9]+(?:\.[0-9]+)?)%\s*\)$/);
+  if (cmykMatch) {
+    const c=+cmykMatch[1],m=+cmykMatch[2],y=+cmykMatch[3],k=+cmykMatch[4];
+    if(c<0||c>100||m<0||m>100||y<0||y>100||k<0||k>100) return null;
+    const rgb = cmykToRgb(c,m,y,k);
+    return { r: rgb.r, g: rgb.g, b: rgb.b, a: 1 };
+  }
+
   return null;
 }
 
@@ -504,6 +521,46 @@ function hslToRgb(h, s, l) {
   return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
 }
 
+function rgbToHsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d !== 0) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  const s = max === 0 ? 0 : d / max;
+  return { h: Math.round(h), s: Math.round(s * 100), v: Math.round(max * 100) };
+}
+
+function hsvToRgb(h, s, v) {
+  h = ((h % 360) + 360) % 360;
+  s /= 100; v /= 100;
+  const c = v * s;
+  const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+  const m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) { r = c; g = x; }
+  else if (h < 120) { r = x; g = c; }
+  else if (h < 180) { r = 0; g = c; b = x; }
+  else if (h < 240) { r = 0; g = x; b = c; }
+  else if (h < 300) { r = x; g = 0; b = c; }
+  else { r = c; g = 0; b = x; }
+  return { r: Math.round((r + m) * 255), g: Math.round((g + m) * 255), b: Math.round((b + m) * 255) };
+}
+
+function cmykToRgb(c, m, y, k) {
+  c /= 100; m /= 100; y /= 100; k /= 100;
+  return {
+    r: Math.round(255 * (1 - c) * (1 - k)),
+    g: Math.round(255 * (1 - m) * (1 - k)),
+    b: Math.round(255 * (1 - y) * (1 - k))
+  };
+}
+
 function rgbToCmyk(r, g, b) {
   r /= 255; g /= 255; b /= 255;
   const k = 1 - Math.max(r, g, b);
@@ -527,37 +584,51 @@ function fromPicker(hex) {
   if (color) {
     currentColor = color;
     updateDisplay();
-    addToHistory(hex);
+    addToHistory(hex, 1);
   }
 }
 
 function fromInput(str) {
   const color = parseColor(str);
   if (color) {
+    colorInputInvalid = false;
     currentColor = color;
     const hex = rgbToHex(color.r, color.g, color.b);
     document.getElementById('colorPicker').value = hex;
     updateDisplay();
-    addToHistory(hex);
+    addToHistory(hex, color.a);
+    return;
   }
+  colorInputInvalid = true;
+  document.getElementById('colorPreview').style.background = 'repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 8px,#f9fafb 8px,#f9fafb 16px)';
+  var en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  var msgZh = '⚠️ 无法识别当前输入，旧转换结果已清除。请输入完整颜色值（不能夹带其他文字）；支持 #fff、#ffffff、rgb(255,255,255)、rgb(255 0 0 / 0.5)、rgba(255,255,255,0.5)、hsl(0,100%,50%)、hsla(0,100%,50%,0.5)、hsv(0,100%,100%)、cmyk(0%,100%,100%,0%)；RGB 通道 0–255、HSL/HSV 色相 0–360、饱和度/明度/CMYK 各分量 0–100%、透明度 0–1。';
+  var msgEn = '⚠️ Unrecognized input; previous results were cleared. Enter a complete color value with no extra text. Supported: #fff, #ffffff, rgb(255,255,255), rgb(255 0 0 / 0.5), rgba(255,255,255,0.5), hsl(0,100%,50%), hsla(0,100%,50%,0.5), hsv(0,100%,100%), cmyk(0%,100%,100%,0%). RGB channels 0–255; HSL/HSV hue 0–360; saturation/lightness/value and CMYK components 0–100%; alpha 0–1.';
+  document.getElementById('colorFormats').innerHTML = '<p style="color:var(--danger);padding:10px 0;">' + (en ? msgEn : msgZh) + '</p>';
 }
 
+function colorCss(c){ return 'rgba('+c.r+', '+c.g+', '+c.b+', '+(c.a==null?1:c.a)+')'; }
+function hex8(r,g,b,a){ var h=rgbToHex(r,g,b); if(a>=1) return h; return h+clampChannel(a*255).toString(16).padStart(2,'0'); }
 function updateDisplay() {
   const { r, g, b, a } = currentColor;
   const hex = rgbToHex(r, g, b);
   const hsl = rgbToHsl(r, g, b);
+  const hsv = rgbToHsv(r, g, b);
   const cmyk = rgbToCmyk(r, g, b);
   const hwb = rgbToHwb(r, g, b);
   
-  document.getElementById('colorPreview').style.background = hex;
+  var preview=document.getElementById('colorPreview');
+  if(a<1){ preview.style.background=hex; preview.style.backgroundImage='linear-gradient('+colorCss(currentColor)+', '+colorCss(currentColor)+'), repeating-conic-gradient(#e5e7eb 0% 25%, #f9fafb 0% 50%)'; preview.style.backgroundSize='auto, 14px 14px'; }
+  else { preview.style.background=hex; preview.style.backgroundImage=''; preview.style.backgroundSize=''; }
   
   const formats = [
-    { label: 'HEX', value: hex, copy: hex },
-    { label: 'HEX (大写)', value: hex.toUpperCase(), copy: hex.toUpperCase() },
+    { label: 'HEX', value: a<1?hex8(r,g,b,a):hex, copy: a<1?hex8(r,g,b,a):hex },
+    { label: 'HEX (大写)', value: (a<1?hex8(r,g,b,a):hex).toUpperCase(), copy: (a<1?hex8(r,g,b,a):hex).toUpperCase() },
     { label: 'RGB', value: `rgb(${r}, ${g}, ${b})`, copy: `rgb(${r}, ${g}, ${b})` },
     { label: 'RGBA', value: `rgba(${r}, ${g}, ${b}, ${a})`, copy: `rgba(${r}, ${g}, ${b}, ${a})` },
     { label: 'HSL', value: `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`, copy: `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)` },
     { label: 'HSLA', value: `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${a})`, copy: `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${a})` },
+    { label: 'HSV', value: `hsv(${hsv.h}, ${hsv.s}%, ${hsv.v}%)`, copy: `hsv(${hsv.h}, ${hsv.s}%, ${hsv.v}%)` },
     { label: 'CMYK', value: `cmyk(${cmyk.c}%, ${cmyk.m}%, ${cmyk.y}%, ${cmyk.k}%)`, copy: `cmyk(${cmyk.c}%, ${cmyk.m}%, ${cmyk.y}%, ${cmyk.k}%)` },
     { label: 'HWB', value: `hwb(${hwb.h}, ${hwb.w}%, ${hwb.b}%)`, copy: `hwb(${hwb.h}, ${hwb.w}%, ${hwb.b}%)` },
     { label: 'R', value: r, copy: r },
@@ -566,7 +637,8 @@ function updateDisplay() {
     { label: 'Alpha', value: a, copy: a }
   ];
   
-  document.getElementById('colorFormats').innerHTML = formats.map(f => `
+  var alphaNote = a<1 ? '<p style="grid-column:1/-1;font-size:12px;color:var(--text-muted);margin:6px 0 0;">ℹ CMYK / HWB 不支持透明度，以上值未包含 Alpha；复制透明色请用 RGBA、HSLA 或 8 位 HEX。</p>' : '';
+  document.getElementById('colorFormats').innerHTML = alphaNote + formats.map(f => `
     <div class="format-card">
       <div class="lbl">${f.label}</div>
       <div class="val">${f.value}</div>
@@ -576,6 +648,7 @@ function updateDisplay() {
 }
 
 function updatePalette(hex) {
+  if(typeof hex!=="string" || !hex) return;
   const color = parseColor(hex);
   if (!color) return;
   
@@ -616,13 +689,14 @@ function updatePalette(hex) {
 }
 
 function renderPalette(id, colors) {
+  if(!Array.isArray(colors)) return;
   const container = document.getElementById(id);
   const __h1=colors.map(c => {
     const rgb = hslToRgb(c.h, c.s, c.l);
     const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
     return `
       <div class="palette-item">
-        <div class="palette-swatch" style="background:${hex};" onclick="selectColor('${hex}')"></div>
+        <button type="button" class="palette-swatch" style="background:${hex};" aria-label="选择颜色 ${hex}" onclick="selectColor('${hex}')"></button>
         <div class="palette-name">${hex}</div>
       </div>
     `;
@@ -630,13 +704,13 @@ function renderPalette(id, colors) {
 }
 
 function selectColor(hex) {
-  document.getElementById('colorPicker').value = hex;
-  document.getElementById('colorInput').value = hex;
   const color = parseColor(hex);
+  document.getElementById('colorInput').value = hex;
   if (color) {
+    document.getElementById('colorPicker').value = rgbToHex(color.r, color.g, color.b);
     currentColor = color;
     updateDisplay();
-    addToHistory(hex);
+    addToHistory(rgbToHex(color.r, color.g, color.b), color.a);
   }
   ToolBox.showToast('已选择颜色 ' + hex);
 }
@@ -654,6 +728,8 @@ function calcContrast() {
   
   const fg = parseColor(fgStr);
   const bg = parseColor(bgStr);
+  if (fg) { var fgHex=rgbToHex(fg.r,fg.g,fg.b); document.getElementById('fgColor').value=fgHex; document.getElementById('fgColor').title=fg.a<1?'文本输入含透明度，取色器只显示不透明 RGB':'前景色取色器'; }
+  if (bg) { var bgHex=rgbToHex(bg.r,bg.g,bg.b); document.getElementById('bgColor').value=bgHex; document.getElementById('bgColor').title=bg.a<1?'背景输入含透明度，取色器只显示不透明 RGB':'背景色取色器'; }
   
   const ratioEl = document.getElementById('contrastRatio');
   const levelEl = document.getElementById('contrastLevel');
@@ -755,11 +831,12 @@ function renderCommonColors() {
   `).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('commonColors').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('commonColors').innerHTML=__h2;
 }
 
-function addToHistory(hex) {
+function addToHistory(hex, alpha) {
   try {
+    const a = alpha==null ? 1 : clampAlpha(alpha);
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    const filtered = history.filter(h => h.hex.toLowerCase() !== hex.toLowerCase());
-    filtered.unshift({ hex: hex, time: Date.now() });
+    const filtered = history.filter(h => h.hex.toLowerCase() !== hex.toLowerCase() || (h.a==null?1:h.a) !== a);
+    filtered.unshift({ hex: hex, a: a, time: Date.now() });
     localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered.slice(0, MAX_HISTORY)));
   } catch(e) {}
 }
@@ -772,12 +849,18 @@ function renderHistory() {
       const __h3='<p style="padding:24px;text-align:center;color:var(--text-muted);">暂无历史记录</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h3;
       return;
     }
-    const __h4=history.map(item => `
-      <div class="history-item" onclick="selectColor('${item.hex}')">
-        <div class="history-swatch" style="background:${item.hex};"></div>
-        <span class="history-hex">${item.hex.toUpperCase()}</span>
-      </div>
-    `).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h4;
+    const __h4=history.map(item => {
+      const a=item.a==null?1:item.a;
+      const parsed=parseColor(item.hex)||{r:0,g:0,b:0};
+      const fullHex=hex8(parsed.r,parsed.g,parsed.b,a);
+      const css=colorCss({r:parsed.r,g:parsed.g,b:parsed.b,a:a});
+      const swatch= a<1 ? 'background:'+css+';background-image:linear-gradient('+css+','+css+'),repeating-conic-gradient(#e5e7eb 0% 25%,#f9fafb 0% 50%);background-size:auto,10px 10px;' : 'background:'+fullHex+';';
+      return `
+      <button type="button" class="history-item" style="background:transparent;width:100%;font:inherit;text-align:left;color:inherit;" aria-label="选择历史颜色 ${fullHex}" onclick="selectColor('${fullHex}')">
+        <div class="history-swatch" style="${swatch}"></div>
+        <span class="history-hex">${fullHex.toUpperCase()}</span>
+      </button>`;
+    }).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h4;
   } catch(e) {
     const __h5='<p style="padding:24px;text-align:center;color:var(--text-muted);">加载历史记录失败</p>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h5;
   }
@@ -791,6 +874,7 @@ function clearHistory() {
 
 function __ccExport(){
   if(typeof TBKit==='undefined') return;
+  if(colorInputInvalid){ if(ToolBox.showToast) ToolBox.showToast('当前颜色输入无效，请先修正后再导出','warning'); return; }
   try{
     var en=TBKit.util.isEn();
     var inputEl=document.getElementById('colorInput');
@@ -821,7 +905,9 @@ function __ccExport(){
     var fgEl=document.getElementById('fgInput'),bgEl=document.getElementById('bgInput');
     if(fgEl&&bgEl){
       var fg=parseColor(fgEl.value),bg=parseColor(bgEl.value);
-      if(fg&&bg){
+      if(fg&&bg&&clampAlpha(bg.a)<1){
+        rows.push([en?'Contrast ratio':'对比度',en?'Not exported: background alpha < 1; specify an opaque base color first.':'不导出：背景含透明度，请先指定不透明底色再计算。']);
+      }else if(fg&&bg){
         // 审计修复：与 calcContrast 共用同一套 alpha 合成口径，避免主结果按合成色算、
         // CSV 却按纯色算导致黑色 50% 前景的结果 3.95:1、导出 21:1 的矛盾。
         var fga=clampAlpha(fg.a);
@@ -881,7 +967,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -889,7 +975,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

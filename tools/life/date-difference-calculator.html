@@ -174,7 +174,7 @@
           <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
       <div class="formula-eq">天数 = 两日期差 + 1（含起始日）；工作日 = 天数 − 落在周六/周日的天数</div>
-      <div class="formula-desc">先交换保证起始 ≤ 结束；未勾选「包含开始日」时起始日 +1 天。天数为日历差加 1；勾选「包含周末」时按自然日计数，否则扣减落在周六周日的天数得工作日。周数与年月按 7 天一周、12 月一年换算展示。</div>
+      <div class="formula-desc">先交换保证起始 ≤ 结束；未勾选「包含开始日」时起始日 +1 天。天数为日历差加 1；勾选「包含周末」时按自然日计数，否则扣减落在周六周日的天数得工作日。周数按 7 天一周；年月与总月数为「完整日历月」（按月末夹取逐月推进，未满一月不计），与是否排除周末无关。</div>
     </div>
 <div class="input-row">
         <div>
@@ -252,7 +252,7 @@
     </div>
 
     <div id="panel-festival" style="display:none;">
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="距离各节日还有多少天">Compute the difference between two dates in years, months, weeks and days, with inclusive-start and weekend options.</p>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="距离各节日还有多少天">Count down the days remaining until each festival, using the current date as the reference.</p>
       <div class="festival-grid" id="festivalGrid"></div>
     </div>
   </div>
@@ -301,7 +301,7 @@
 <li>与 date-diff 同，算间隔。</li>
 <li>算两次体检、两次续费之间的间隔，判断是否超过周期要求。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">计算</div><div class="dd-ex-body">2025-12-25 到 2026-01-01 = 7 天。</div></div>
+<div class="dd-example"><div class="dd-ex-title">计算</div><div class="dd-ex-body">2025-12-25 到 2026-01-01：勾选「包含开始日」为 8 天；取消勾选为 7 天。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>跨年？</dt><dd>自动处理闰年与跨年。</dd>
@@ -325,12 +325,12 @@
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="借位算法">Borrowing method</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按年月日分别相减，不足时向高位借一个月的实际天数">subtract per field and borrow the actual length of the month</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Calendar arithmetic">Calendar arithmetic</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="日历算术">Calendar arithmetic</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="月末对齐">Month-end alignment</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="起止日均为月末时，按月数直接相减更为稳妥">when both dates end a month subtract month counts directly</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Calendar arithmetic">Calendar arithmetic</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="日历算术">Calendar arithmetic</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="时区影响">Time zone effect</td>
@@ -404,7 +404,13 @@ function setToday(type){
 // 日期控件值为 YYYY-MM-DD：按本地年月日构造，避免 new Date('YYYY-MM-DD') 按 UTC 解析后在负时区偏移一天
 function parseLocalDate(str){
   const p = String(str).split('-');
-  return new Date(+p[0], +p[1] - 1, +p[2]);
+  const y=+p[0], m=+p[1]-1, d=+p[2];
+  if(!Number.isInteger(y)||!Number.isInteger(m)||!Number.isInteger(d)) return new Date(NaN);
+  // new Date(y,...) 会把 0–99 年解释为 1900–1999；先设 2000 年再用 setFullYear 写入真实年份。
+  const out=new Date(2000,0,1,0,0,0,0);
+  out.setFullYear(y,m,d);
+  out.setHours(0,0,0,0);
+  return out;
 }
 function fmtLocalDate(d){
   if(!(d instanceof Date) || isNaN(d.getTime())) return '';
@@ -440,11 +446,30 @@ function countWorkdays(start, end){
   return count;
 }
 
-function calcDiff(){
+function rangeSnapshot(){
   const startStr = document.getElementById('startDate').value;
   const endStr = document.getElementById('endDate').value;
   const includeWeekends = document.getElementById('includeWeekends').checked;
   const includeStart = document.getElementById('includeStart').checked;
+  let start = parseLocalDate(startStr);
+  let end = parseLocalDate(endStr);
+  if(!includeStart){ start.setDate(start.getDate() + 1); }
+  // 排除起始日后若起点越过终点，表示空区间：所有统计统一归零，不能出现负年月。
+  const empty = start > end;
+  const days = empty ? 0 : getDaysDiff(start, end) + 1;
+  const workdays = empty ? 0 : countWorkdays(start, end);
+  const weekends = days - workdays;
+  const shownDays = empty ? 0 : (includeWeekends ? days : workdays);
+  // 完整日历月：从起始日按月末夹取逐月推进，只有推进后的日期不超过结束日才算满一个月。
+  // 这样 1/31 → 2/1 为 0 个完整月（仅跨月份边界），不再把月份编号差当成已满月数。
+  let totalMonths = empty ? 0 : (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  while(!empty && totalMonths > 0 && addMonthsClamped(start, totalMonths).getTime() > end.getTime()) totalMonths--;
+  return {startStr, endStr, includeWeekends, includeStart, days, workdays, weekends, shownDays, totalMonths};
+}
+
+function calcDiff(){
+  const startStr = document.getElementById('startDate').value;
+  const endStr = document.getElementById('endDate').value;
   
   if(!startStr || !endStr){
     document.getElementById('diffMain').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Select a date":"请选择日期");
@@ -453,27 +478,19 @@ function calcDiff(){
     return;
   }
   
-  let start = parseLocalDate(startStr);
-  let end = parseLocalDate(endStr);
-  
-  if(start > end){
-    [start, end] = [end, start];
+  const rawStart = parseLocalDate(startStr);
+  const rawEnd = parseLocalDate(endStr);
+  if(rawStart > rawEnd){
+    document.getElementById('diffMain').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Start date cannot be later than end date":"开始日期不能晚于结束日期");
+    document.getElementById('diffSub').textContent = '';
+    document.getElementById('diffStats').innerHTML = '<p style="color:var(--danger)">请调整日期顺序后再计算；本工具不自动交换起止日期，以免“开始日”口径错位。</p>';
+    return;
   }
-  
-  if(!includeStart){
-    start.setDate(start.getDate() + 1);
-  }
-  
-  const days = getDaysDiff(start, end) + 1;
-  // 工作日/周末始终按真实日历统计；「包含周末」只决定主结果是否把周末计入
-  const workdays = countWorkdays(start, end);
-  const weekends = days - workdays;
-  const shownDays = includeWeekends ? days : workdays;
+  const snap = rangeSnapshot();
+  const {includeWeekends, includeStart, days, workdays, weekends, shownDays, totalMonths} = snap;
   
   const weeks = Math.floor(shownDays / 7);
   const remainDays = shownDays % 7;
-  
-  const totalMonths = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
   const years = Math.floor(totalMonths / 12);
   const months = totalMonths % 12;
   
@@ -482,11 +499,12 @@ function calcDiff(){
   
   const __h1=`
     <div class="stat-card"><div class="v">${weeks}周${remainDays}天</div><div class="l">周数</div></div>
-    <div class="stat-card"><div class="v">${years}年${months}月</div><div class="l">年月</div></div>
+    <div class="stat-card"><div class="v">${years}年${months}月</div><div class="l">完整年月</div></div>
     <div class="stat-card"><div class="v">${workdays}</div><div class="l">工作日</div></div>
     <div class="stat-card"><div class="v">${weekends}</div><div class="l">周末天数</div></div>
-    <div class="stat-card"><div class="v">${totalMonths}</div><div class="l">总月数</div></div>
+    <div class="stat-card"><div class="v">${totalMonths}</div><div class="l">完整月数</div></div>
     <div class="stat-card"><div class="v">${shownDays * 24}</div><div class="l">总小时</div></div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">${(typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Workdays count Monday to Friday only; statutory holidays and make-up workdays are not included.':'工作日仅按周一至周五统计，未计法定节假日与调休。如需按节假日口径，请结合日历另行核对；上方年月/月数始终按完整日历月计算，不随工作日口径变化。'}</p>
   `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('diffStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('diffStats').innerHTML=__h1;
 }
 
@@ -499,8 +517,10 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
   function intVal(id){
     const raw = String(document.getElementById(id).value).trim();
     if(raw === '') return 0;
-    const v = parseInt(raw, 10);
-    return isFinite(v) ? v : NaN;
+    // 严格非负整数：拒绝 1.9、-2、科学计数法等 parseInt 会静默截断的写法
+    if(!/^\d+$/.test(raw)) return NaN;
+    const v = Number(raw);
+    return Number.isSafeInteger(v) ? v : NaN;
   }
   const years = intVal('addYears');
   const months = intVal('addMonths');
@@ -513,7 +533,7 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
     return;
   }
   if(!isFinite(years) || !isFinite(months) || !isFinite(weeks) || !isFinite(days)){
-    document.getElementById('addsubResult').textContent = '加减量需为有效整数';
+    document.getElementById('addsubResult').textContent = '加减量需为非负整数（不可为小数或负数）';
     document.getElementById('addsubSub').textContent = '';
     return;
   }
@@ -557,8 +577,9 @@ function getLunarDate(year, month, day){
     0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0
   ];
   
-  const baseDate = new Date(1900, 0, 31);
-  let offset = Math.floor((new Date(year, month - 1, day) - baseDate) / 86400000);
+  // 以 UTC 年月日序数计算，避免历史本地时区偏移（如 1900 年上海 +08:05:43）把日期落到前一天。
+  const baseUtc = Date.UTC(1900, 0, 31);
+  let offset = Math.floor((Date.UTC(year, month - 1, day) - baseUtc) / 86400000);
   
   let i, temp;
   let isLeap = false;
@@ -672,8 +693,9 @@ function lunarToSolar(lunarYear, lunarMonth, lunarDay, isLeap){
   
   offset += lunarDay - 1;
   
-  const result = new Date(baseDate.getTime() + offset * 86400000);
-  return result;
+  // 先按 UTC 求公历日期，再用本地年月日构造零点，确保在任何时区都显示同一日期。
+  const utc = new Date(Date.UTC(1900, 0, 31) + offset * 86400000);
+  return new Date(utc.getUTCFullYear(), utc.getUTCMonth(), utc.getUTCDate());
   
   function lYearDays(y){
     let sum = 348;
@@ -775,17 +797,23 @@ function getFestivalDate(festival, year){
   return new Date(year, month - 1, day);
 }
 
+function localDayNumber(d){
+  return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+}
+
 function renderFestivals(){
   const now = new Date();
   const thisYear = now.getFullYear();
+  const todayNum = localDayNumber(now);
   const grid = document.getElementById('festivalGrid');
   
   const festivalsWithDate = FESTIVALS.map(f => {
     let date = getFestivalDate(f, thisYear);
-    if(date < new Date(now.getFullYear(), now.getMonth(), now.getDate())){
+    if(localDayNumber(date) < todayNum){
       date = getFestivalDate(f, thisYear + 1);
     }
-    const days = Math.ceil((date - now) / (1000 * 60 * 60 * 24));
+    // 用本地日历日序号相减，不用绝对毫秒差：跨越夏令时的一天可能是 23/25 小时。
+    const days = localDayNumber(date) - todayNum;
     return { ...f, date, days };
   }).sort((a, b) => a.days - b.days);
   
@@ -804,13 +832,16 @@ function saveHistory(){
   
   if(!startStr || !endStr) return;
   
-  const days = Math.abs(getDaysDiff(parseLocalDate(startStr), parseLocalDate(endStr))) + 1;
-  
+  const snap = rangeSnapshot();
   const item = {
     id: Date.now(),
     start: startStr,
     end: endStr,
-    days,
+    days: snap.shownDays,
+    totalDays: snap.days,
+    workdays: snap.workdays,
+    includeStart: snap.includeStart,
+    includeWeekends: snap.includeWeekends,
     time: new Date().toLocaleString('zh-CN')
   };
   
@@ -857,9 +888,9 @@ function renderHistory(){
     <div class="history-item">
       <div>
         <div><strong>${ToolBox.escHtml(h.start)}</strong> → <strong>${ToolBox.escHtml(h.end)}</strong></div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">相差 ${h.days} 天 · ${ToolBox.escHtml(h.time)}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">相差 ${h.days} 天 · ${typeof h.includeStart==='boolean' ? (h.includeStart?'含起始日':'不含起始日')+'、'+(h.includeWeekends?'含周末':'仅工作日')+' · ' : ''}${ToolBox.escHtml(h.time)}</div>
       </div>
-      <span class="del" onclick="deleteHistory(${h.id})">✕</span>
+      <button type="button" class="del" aria-label="删除该历史记录" style="background:none;border:none;padding:4px 6px;cursor:pointer;color:var(--danger);font-size:14px;" onclick="deleteHistory(${h.id})">✕</button>
     </div>
   `).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h4;
 }

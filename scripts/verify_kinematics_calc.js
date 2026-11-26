@@ -351,14 +351,15 @@ const CASES = [
   {
     "slug": "kinematics/relativistic-velocity-add",
     "inputs": {
-      "up": "42",
-      "v": "42",
-      "c": "42"
+      "up": "0.6",
+      "v": "0.2",
+      "c": "3e8"
     },
     "expect": [
-      "速度 u (c) 1.999e+0 u (m/s)"
+      "0.714286",
+      "2.143e+8"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"up\":\"42\",\"v\":\"42\",\"c\":\"42\"}，输出区含「速度 u (c) 1.999e+0 u (m/s)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "u=(0.6+0.2)/(1+0.12)=0.714286 c，×3e8=2.143e+8 m/s；原自动用例输入 42c 超出物理范围，修复后应拒绝，故改为合法边界内非默认值。"
   },
   {
     "slug": "kinematics/relative-velocity-1d",
@@ -449,6 +450,92 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"a\":\"42\",\"dx\":\"42\"}，输出区含「42\n42\n42\n72.746」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
+,
+  {
+    "slug": "kinematics/velocity-squared",
+    "inputs": { "v0": "-10", "a": "0", "dx": "10" },
+    "expect": ["10.000", "-10.000", "加速度为 0，速度保持初速度"],
+    "ref": "初速度 -10、加速度 0：平方根只给速率 10，有符号速度必须保持 -10，速度增量 0；旧实现显示 +10 与 +20。"
+  },
+  {
+    "slug": "kinematics/velocity-squared",
+    "inputs": { "v0": "0", "a": "-1", "dx": "10" },
+    "expect": ["不可达"],
+    "ref": "v²−v₀²=-20<0：该位移不可达，必须提示且不输出末速度/增量；旧实现 Math.sqrt(-20)=NaN 仍渲染脏值。"
+  },
+  {
+    "slug": "kinematics/stopping-time",
+    "inputs": { "v0": "1", "a": "1e-10" },
+    "expect": ["5000000000.000"],
+    "ref": "减速度 1e-10 为有效正数：制动距离必须用原值 1/(2×1e-10)=5e9 m，与平均速度法一致；旧实现把 a 截到 1e-9 得 5e8。"
+  },
+  {
+    "slug": "kinematics/stopping-time",
+    "inputs": { "v0": "20", "a": "0" },
+    "expect": ["减速度","不能为 0"],
+    "ref": "减速度为 0 时不存在有限制动距离，必须提示；不得输出 Infinity 或截断成有限值。"
+  },
+  {
+    "slug": "kinematics/relativistic-velocity-add",
+    "inputs": { "up": "2", "v": "0", "c": "3e8" },
+    "expect": ["绝对值必须小于 1"],
+    "ref": "物体速度 2c 超出物理范围：必须拒绝；页面说明结果永不超光速，旧实现直接输出 2.000000 c。"
+  },
+  {
+    "slug": "kinematics/relativistic-velocity-add",
+    "inputs": { "up": "0.5", "v": "0.5", "c": "-3e8" },
+    "expect": ["光速 c 须为大于 0"],
+    "ref": "光速 0 或负值非法，必须提示；不得用 c=0 输出 0 m/s 或触发分母边界。"
+  },
+  {
+    "slug": "kinematics/period-from-omega",
+    "inputs": { "w": "-6.283" },
+    "expect": ["1.0000", "负号只表示转动方向"],
+    "ref": "ω=-6.283：负号仅表示方向，周期/频率/转速按 |ω| 计算，T≈1.0000 s；旧实现输出负周期与负转速。"
+  },
+  {
+    "slug": "kinematics/freq-from-omega",
+    "inputs": { "w": "0" },
+    "expect": ["未定义（ω=0）", "0.0000"],
+    "ref": "ω=0：频率 0 Hz 合法，但周期没有有限值，必须显示未定义；旧实现用 1e-9 下限显示 6.28e9 s。"
+  },
+  {
+    "slug": "kinematics/relative-velocity-1d",
+    "inputs": { "v1": "4", "v2": "-2" },
+    "expect": ["-2.0000", "仅等质量时等于质心系速度"],
+    "ref": "v1/v2=4/(-2)=-2.0000：必须保留除数符号；旧实现把 -2 截成 1e-9 得约 4e9。质心系行须声明仅等质量成立。"
+  },
+  {
+    "slug": "kinematics/relative-velocity-1d",
+    "inputs": { "v1": "4", "v2": "0" },
+    "expect": ["未定义（v₂=0）"],
+    "ref": "v2=0 时速度比无定义，必须标记；不得显示 4e9 之类有限值。"
+  },
+  {
+    "slug": "kinematics/angular-accel",
+    "inputs": { "dw": "-6", "dt": "3" },
+    "expect": ["-2.000", "-0.5000"],
+    "ref": "α=-6/3=-2.000 rad/s²，倒数 1/α=-0.5000；旧实现把 α 截到 1e-12 得 1e12。"
+  },
+  {
+    "slug": "kinematics/tangential-accel",
+    "inputs": { "a": "-4", "r": "0.5" },
+    "expect": ["-2.000", "-0.5000"],
+    "ref": "a_t=-4×0.5=-2.000 m/s²，倒数 -0.5000；旧实现把 a_t 截到 1e-12。"
+  },
+  {
+    "slug": "kinematics/uniform-displacement",
+    "inputs": { "v": "0", "t": "5" },
+    "expect": ["未定义（v=0）", "0.000"],
+    "ref": "v=0 时位移 0 合法，但速度倒数无定义，必须标记；旧实现显示 1e9。"
+  },
+  {
+    "slug": "kinematics/projectile-max-height",
+    "inputs": { "v": "10", "deg": "-90", "g": "10" },
+    "expect": ["0.000", "-10.000", "向下发射"],
+    "ref": "向下发射 θ=-90°：初始竖直速度 -10 m/s，最高点就是发射点，H=0；旧实现 sin² 得 5 m。"
+  }
+
 
 ];
 

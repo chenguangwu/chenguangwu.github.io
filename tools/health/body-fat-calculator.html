@@ -706,9 +706,13 @@ function saveRecord(){
   try{history=JSON.parse(localStorage.getItem('bodyfat_history')||'[]');}catch(e){}
   history.unshift(record);
   if(history.length>50) history=history.slice(0,50);
-  localStorage.setItem('bodyfat_history',JSON.stringify(history));
-  ToolBox.showToast(i18nText());
-  renderHistory();
+  try{
+    localStorage.setItem('bodyfat_history',JSON.stringify(history));
+    ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Record saved':'记录已保存'),'success');
+    renderHistory();
+  }catch(e){
+    ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Could not save: browser storage is unavailable':'保存失败：浏览器本地存储不可用'),'warning');
+  }
 }
 
 function toggleHistory(){
@@ -834,16 +838,20 @@ function drawHistoryChart(history){
 
 function clearHistory(){
   if(!confirm(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Clear all history?":"确定要清空所有历史记录吗？"))) return;
-  localStorage.removeItem('bodyfat_history');
-  renderHistory();
-  ToolBox.showToast(i18nText());
+  try{
+    localStorage.removeItem('bodyfat_history');
+    renderHistory();
+    ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'History cleared':'历史记录已清空'),'success');
+  }catch(e){
+    ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Could not clear history':'清空失败：浏览器本地存储不可用'),'warning');
+  }
 }
 
 function exportHistory(){
   let history=[];
   try{history=JSON.parse(localStorage.getItem('bodyfat_history')||'[]');}catch(e){}
   if(history.length===0){
-    ToolBox.showToast(i18nText(),'warning');
+    ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'No history to export':'暂无历史记录可导出'),'warning');
     return;
   }
   let csv='日期,时间,性别,体重(kg),体脂率(%),测量方法\n';

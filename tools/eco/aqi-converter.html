@@ -402,7 +402,7 @@ function onModeChange() {
   if (mode === 'c2a') {
     const __g1=pollutantNames[pollutant] + ' 浓度 (' + unit + ')';document.getElementById('inputLabel').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   } else {
-    document.getElementById('inputLabel').textContent = 'AQI 指数值';
+    document.getElementById('inputLabel').textContent = '目标 IAQI（指定污染物）';
   }
   calc();
 }
@@ -410,7 +410,10 @@ function onModeChange() {
 function calc() {
   var mode = document.getElementById('mode').value;
   var pollutant = document.getElementById('pollutant').value;
-  var inputValue = parseFloat(document.getElementById('inputValue').value) || 0;
+  var __raw=String(document.getElementById('inputValue').value).trim();
+  if(__raw===''){document.getElementById('result').innerHTML='<p style="color:var(--danger)">请填写浓度或目标 IAQI 后再计算；留空不按 0 处理。</p>';return;}
+  var inputValue = parseFloat(__raw);
+  if(!isFinite(inputValue)||inputValue<0){document.getElementById('result').innerHTML='<p style="color:var(--danger)">输入必须为 ≥ 0 的有限数值。</p>';return;}
   var pName = pollutantNames[pollutant];
   var unit = pollutantUnits[pollutant];
 
@@ -430,7 +433,7 @@ function calc() {
 
   // AQI大显示
   html += '<div style="text-align:center;margin-bottom:20px;">';
-  html += '<div style="font-size:13px;color:var(--text-muted);">空气质量指数 (AQI)</div>';
+  html += '<div style="font-size:13px;color:var(--text-muted);">污染物分指数 IAQI（非整体 AQI）</div>';
   html += '<div style="display:inline-flex;align-items:center;gap:12px;margin:8px 0;">';
   html += '<div style="font-size:48px;font-weight:bold;color:' + level.color + ';line-height:1;">' + aqi + '</div>';
   html += '<div style="text-align:left;">';
@@ -448,7 +451,7 @@ function calc() {
   html += '<div style="font-size:22px;font-weight:bold;color:var(--primary);">' + conc.toFixed(pollutant === 'co' ? 2 : 1) + ' <span style="font-size:12px;">' + unit + '</span></div>';
   html += '</div>';
   html += '<div style="text-align:center;padding:14px;background:var(--bg-hover);border-radius:10px;">';
-  html += '<div style="font-size:12px;color:var(--text-muted);">AQI 指数</div>';
+  html += '<div style="font-size:12px;color:var(--text-muted);">IAQI 分指数</div>';
   html += '<div style="font-size:22px;font-weight:bold;color:' + level.color + ';">' + aqi + '</div>';
   html += '</div>';
   html += '</div>';
@@ -474,9 +477,10 @@ function calc() {
   html += '<div style="font-size:13px;color:var(--text-secondary);line-height:1.8;">' + advice + '</div>';
   html += '</div>';
 
-  // 同AQI下其他污染物浓度参考
+  // 同IAQI下其他污染物浓度参考
+  if (mode === 'a2c') { html += '<div class="tip-box tip-warn" style="margin:10px 0;">反向模式只表示「指定污染物的 IAQI 达到该值」时对应浓度；整体 AQI 由各污染物 IAQI 的最大值决定，不能仅凭整体 AQI 与该污染物唯一反推浓度。</div>'; }
   html += '<div style="margin-top:16px;padding:14px;background:var(--result-bg);border-radius:10px;">';
-  html += '<div style="font-size:13px;font-weight:600;margin-bottom:10px;">相同AQI(' + aqi + ')下各污染物浓度参考：</div>';
+  html += '<div style="font-size:13px;font-weight:600;margin-bottom:10px;">若整体 AQI=' + aqi + '，各污染物分别达到该 IAQI 时的浓度（仅作反查参考）：</div>';
   html += '<div style="overflow-x:auto;"><table style="width:100%;font-size:12px;border-collapse:collapse;">';
   html += '<thead><tr style="background:var(--th-bg);"><th style="padding:8px;text-align:left;">污染物</th><th style="padding:8px;text-align:right;">浓度</th><th style="padding:8px;text-align:right;">单位</th></tr></thead><tbody>';
   Object.keys(pollutantNames).forEach(function(key) {
@@ -544,7 +548,7 @@ onModeChange();
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p data-zh="依据 HJ 633-2012 标准实现空气质量指数(AQI)与 PM2.5、PM10、O3 等污染物浓度互相换算，便于解读空气质量日报与健康提示">依据 HJ 633-2012 标准实现空气质量指数(AQI)与 PM2.5、PM10、O3 等污染物浓度互相换算，便于解读空气质量日报与健康提示</p>
+    <p data-zh="依据 HJ 633-2012 标准实现单污染物浓度与其 IAQI 分指数互相估算；整体 AQI 需多污染物取最大，便于解读空气质量日报与健康提示">依据 HJ 633-2012 标准实现单污染物浓度与其 IAQI 分指数互相估算；整体 AQI 需多污染物取最大，便于解读空气质量日报与健康提示</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>采用标准科学计算公式</li>

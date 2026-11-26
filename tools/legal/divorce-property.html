@@ -330,7 +330,11 @@ function __lgBad(msgZh,msgEn){document.getElementById('result').innerHTML='<p st
   
   let myRatio;
   if(ratioSelect === 'custom'){
-    myRatio = (parseFloat(document.getElementById('customRatio').value) || 50) / 100;
+    const __ratioRaw=__lgRaw('customRatio');
+    if(__ratioRaw===''){ __lgBad('自定义比例不能为空；全归对方请填 0。','Custom ratio cannot be empty. Enter 0 to allocate all to the spouse.'); return; }
+    const __ratio=Number(__ratioRaw);
+    if(!Number.isFinite(__ratio)||__ratio<0||__ratio>100){ __lgBad('自定义比例必须在 0–100 之间。','Custom ratio must be between 0 and 100.'); return; }
+    myRatio = __ratio / 100;
   }else{
     myRatio = parseFloat(ratioSelect);
   }
@@ -386,7 +390,8 @@ function __dpExtras(){
       [dpL('对方应得','Spouse share'), ToolBox.formatNumber(__dpD.spouseShare)]
     ];
     TBKit.matrix.table('#dpTable', {head:[dpL('项目','Item'), dpL('数值','Value')], rows: rows});
-    TBKit.history.record({[dpL('分割比','Ratio')]: Math.round(__dpD.myRatio*100)+'%', [dpL('我方应得','My share')]: ToolBox.formatNumber(__dpD.myShare), [dpL('婚前协议','PreNup')]: __dpD.hasPreNup?dpL('有','Yes'):dpL('无','No')});
+    TBKit.history.record({[dpL('分割比','Ratio')]: Math.round(__dpD.myRatio*100)+'%', [dpL('我方应得','My share')]: ToolBox.formatNumber(__dpD.myShare), [dpL('婚前协议','PreNup')]: __dpD.hasPreNup?dpL('有','Yes'):dpL('无','No'), __dpInputs:{houseValue:__dpD.houseValue, houseLoan:__dpD.houseLoan, savings:__dpD.savings, carValue:__dpD.carValue, otherAssets:__dpD.otherAssets, jointDebt:__dpD.jointDebt, splitRatio:document.getElementById('splitRatio').value, customRatio:document.getElementById('customRatio').value, hasPreNup:__dpD.hasPreNup}});
+    __dpMountHist();
   }
 }
 function __dpExport(){ TBKit.util.exportTable('#dpTable', 'divorce-property.csv'); }
@@ -399,7 +404,7 @@ function __dpPresets(){
   ], function(){ calculate(); });
 }
 function __dpMountHist(){
-  TBKit.history.mount('#dpHist', function(rec){ if(rec && rec.d){ var d=rec.d; document.getElementById('houseValue').value=d.houseValue||0; document.getElementById('houseLoan').value=d.houseLoan||0; document.getElementById('savings').value=d.savings||0; document.getElementById('carValue').value=d.carValue||0; document.getElementById('otherAssets').value=d.otherAssets||0; document.getElementById('jointDebt').value=d.jointDebt||0; document.getElementById('splitRatio').value='0.5'; document.getElementById('customRatio').value=Math.round(d.myRatio*100); document.getElementById('hasPreNup').checked=!!d.hasPreNup; calculate(); } }, 8);
+  TBKit.history.mount('#dpHist', function(rec){ if(rec){ var d=rec.__dpInputs||rec; document.getElementById('houseValue').value=d.houseValue==null?'':d.houseValue; document.getElementById('houseLoan').value=d.houseLoan==null?'':d.houseLoan; document.getElementById('savings').value=d.savings==null?'':d.savings; document.getElementById('carValue').value=d.carValue==null?'':d.carValue; document.getElementById('otherAssets').value=d.otherAssets==null?'':d.otherAssets; document.getElementById('jointDebt').value=d.jointDebt==null?'':d.jointDebt; var sr=d.splitRatio||'0.5'; document.getElementById('splitRatio').value=sr; document.getElementById('customRatioDiv').style.display=sr==='custom'?'block':'none'; document.getElementById('customRatio').value=d.customRatio==null?'':d.customRatio; document.getElementById('hasPreNup').checked=!!d.hasPreNup; calculate(); } }, 8);
 }
 function __dpBoot(){
   if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __dpExtras(); __dpPresets(); __dpMountHist(); }); }
@@ -509,6 +514,8 @@ var __ddp=function(){
   var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
   var LBL=EN?'My Share':'记录 我方应得(元)';
   var arr=[];try{arr=TBKit.history.list();}catch(e){}
+  // calculate() 内已写入带完整 __dpInputs 的记录；此处仅作旧路径兜底，避免每次计算产生重复历史。
+  if(arr.length&&arr[0].d&&arr[0].d.__dpInputs&&Date.now()-arr[0].t<8000)return;
   var rec=null;
   for(var i=0;i<arr.length;i++){var ks=Object.keys(arr[i].d||{});if(ks.length&&ks.indexOf(LBL)<0){rec=arr[i];break;}}
   if(!rec||typeof rec.t!=='number'||Date.now()-rec.t>8000)return;
@@ -519,6 +526,7 @@ var __ddp=function(){
   var acc=parseFloat(String(rec.d[k]).replace(/[^0-9.\-]/g,''));
   if(!isFinite(acc))return;
   var r={};r[LBL]=acc;
+  r.__dpInputs={houseValue:document.getElementById('houseValue').value, houseLoan:document.getElementById('houseLoan').value, savings:document.getElementById('savings').value, carValue:document.getElementById('carValue').value, otherAssets:document.getElementById('otherAssets').value, jointDebt:document.getElementById('jointDebt').value, splitRatio:document.getElementById('splitRatio').value, customRatio:document.getElementById('customRatio').value, hasPreNup:document.getElementById('hasPreNup').checked};
   if(TBKit.history&&TBKit.history.record)TBKit.history.record(r);
   if(TBKit.util&&TBKit.util.diffBox)TBKit.util.diffBox('#__tbnDiff',[LBL]);
 };

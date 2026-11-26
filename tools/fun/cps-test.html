@@ -240,7 +240,8 @@
 const DURATION=10;
 function calcCps(clicks,duration){return clicks/duration;}
 function cpsLabel(cps){return cps<5?'慢':cps<8?'一般':cps<11?'不错':cps<14?'很快':'神速 ⚡';}
-let clicks,state,timer,startTime,best;
+let clicks,state,timer,startTime,deadline,best;
+function nowMs(){return (typeof performance!=='undefined'&&performance.now)?performance.now():Date.now();}
 
 function start(){
   reset();
@@ -251,7 +252,8 @@ function start(){
   setTimeout(()=>{
     state='go';
     clicks=0;
-    startTime=Date.now();
+    startTime=nowMs();
+    deadline=startTime+duration*1000;
     a.className='click-area go';
     a.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Click fast!":"快速点击！");
     timer=setInterval(tick,100);
@@ -270,7 +272,7 @@ function reset(){
   document.getElementById('output').textContent='10 秒内尽可能多地点击';
 }
 function tick(){
-  const elapsed=(Date.now()-startTime)/1000;
+  const elapsed=(nowMs()-startTime)/1000;
   const left=Math.max(0,DURATION-elapsed);
   document.getElementById('timer').textContent=left.toFixed(1)+'s';
   document.getElementById('cps').textContent=(clicks/Math.max(elapsed,0.001)).toFixed(1);
@@ -292,6 +294,7 @@ function onClick(){
     return;
   }
   if(state==='go'){
+    if(nowMs()>=deadline){ tick(); return; }
     clicks++;
     document.getElementById('clicks').textContent=clicks;
   }else if(state==='idle'||state==='done'){

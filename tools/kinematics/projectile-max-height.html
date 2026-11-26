@@ -333,11 +333,15 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['v', 'deg', 'g'],["初速度 v (m/s)", "抛射角 θ (°)", "重力加速度 g (m/s²)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const v = num('v'), deg = num('deg'), g = num('g');
+            if(!isFinite(v)||!isFinite(deg)||!isFinite(g)||v<0||!(g>0)){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 初速度须为不小于 0 的有限数值，重力加速度须大于 0；角度须为有效数值。</p>');return;}
             const th = deg * Math.PI / 180;
-            const H = v * v * Math.sin(th) * Math.sin(th) / (2 * g);
+            const vy0 = v * Math.sin(th);
+            const H = vy0 > 0 ? vy0*vy0/(2*g) : 0;
+            const note = vy0 > 0 ? '按上抛分量计算，最高点相对发射点的高度。' : (vy0===0?'发射方向水平，初始竖直速度为 0，最高点即发射点高度。':'向下发射，初始竖直速度不大于 0，最高点即发射点；不会继续上升。');
             const __g2=dataGrid([
-                [H.toFixed(3), '最大高度 H (m)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+                [H.toFixed(3), '最高点相对发射点高度 H (m)'],
+                [vy0.toFixed(3), '初始竖直速度 v_y0 (m/s)']
+            ])+'<div class="info-box" style="margin-top:12px;">'+note+'</div>';ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('v').value = '30';
       document.getElementById('deg').value = '60';

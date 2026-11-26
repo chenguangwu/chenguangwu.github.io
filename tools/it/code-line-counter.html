@@ -145,7 +145,7 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
       <div data-tb="preset" data-tb-presets='[{"label":"代码/**\n * 示例：计算两数之和\n */\nfuncti…","labelEn":"codeInput=/**\n * 示例：计算两数之和\n */\nfunction…","values":{"codeInput":"/**\n * 示例：计算两数之和\n */\nfunction add(a, b) {\n  // 返回和\n  return a + b;\n}\n\n// 空行上方是一个空行\nconsole.log(add(1, 2));","langSel":"auto"}}]'></div>
 <label for="langSel">语言</label>
-      <select id="langSel" onchange="calcTool()" style="width:auto;padding:9px 12px;font-size:13px;">
+      <select id="langSel" onchange="__clcLangChanged();calcTool()" style="width:auto;padding:9px 12px;font-size:13px;">
         <option value="auto">自动识别（按扩展名）</option>
         <option value="js">JavaScript / TypeScript</option>
         <option value="c">C / C++ / Java / Go / Rust</option>
@@ -158,6 +158,7 @@
       <button type="button" class="btn" onclick="document.getElementById('codeFile').click()">选择文件</button>
       <input type="file" id="codeFile" accept=".js,.ts,.c,.cpp,.java,.go,.rs,.py,.html,.xml,.sql,.sh,.bash,.css,.scss,.json,.md" style="display:none;" aria-label="选择代码文件">
     </div>
+    <div id="langStatus" role="status" style="font-size:12px;color:var(--text-muted);margin:-4px 0 10px;"></div>
     <div class="text-block">
       <label for="codeInput">代码</label>
       <textarea id="codeInput" rows="12" spellcheck="false" style="font-family:'SF Mono',monospace;font-size:12.5px;" oninput="calcTool()">/**
@@ -300,9 +301,10 @@ var LANGS={
   css:{ext:['css','scss','less'],line:[],block:[['/*','*/']],string:[]}
 };
 function detectLang(fname){
+  if(typeof fname!=="string" || !fname) return null;
   var ext=(fname.split('.').pop()||'').toLowerCase();
   for(var k in LANGS){if(LANGS[k].ext.indexOf(ext)>=0)return k;}
-  return 'js';
+  return '';
 }
 function isInStr(chunks,i,lang){
   var strs=LANGS[lang]?LANGS[lang].string:[];
@@ -317,6 +319,7 @@ function isInStr(chunks,i,lang){
 // IT-N445/604：判断 `/` 是正则字面量起始还是除法。取紧邻的前一个词（跳过空白），
 // return/typeof 等「其后必为新表达式」的关键字同样视为表达式起点。
 function __prevWordAt(line, pos){
+  if(typeof line!=="string") return "";
   var k=pos-1;
   while(k>=0&&/\s/.test(line.charAt(k)))k--;
   while(k>=0&&/[A-Za-z0-9_$]/.test(line.charAt(k)))k--;
@@ -328,6 +331,7 @@ function __regexAllowed(prev, word){
   return !/[A-Za-z0-9_$\)\]\}]/.test(prev);
 }
 function __maskLiterals(line, st, lang){
+  if(typeof line!=="string") return "";
   // IT-N445：把字符串/模板字符串内容替换为空格后再做注释检测；
   // "/*"、'//' 等字面量不得触发块注释或行注释判定。跨行字符串状态由 st.q 延续。
   // 604：JS/C 系的正则字面量同样整体置空——`/[/*]/` 里的 `/*` 不得启动块注释状态。
@@ -342,7 +346,7 @@ function __maskLiterals(line, st, lang){
     }
     if(c==='/'&&n==='*'){out+='/*';i+=2;lastSig='*';continue;}
     if(c==='/'&&n==='/'){out+='//';break;}
-    if(c==='/'&&(lang==='js'||lang==='c')&&__regexAllowed(lastSig,__prevWordAt(line,i))){
+    if(c==='/'&&lastSig!=='*'&&(lang==='js'||lang==='c')&&__regexAllowed(lastSig,__prevWordAt(line,i))){
       var j=i+1, inClass=false, closed=-1;
       while(j<line.length){
         var cj=line.charAt(j);
@@ -368,11 +372,60 @@ function __maskLiterals(line, st, lang){
   st.q=q;
   return out;
 }
+function __scanBlockComments(text, inBlock, rules){
+  if(typeof text!=="string") return {code:"",inBlock:!!inBlock,hadBlock:false};
+  var code='', hadBlock=false;
+  var t=String(text);
+  while(true){
+    if(inBlock){
+      hadBlock=true;
+      var bestEnd=-1,bestLen=0;
+      for(var r=0;r<rules.length;r++){
+        var end=rules[r][1], ei=t.indexOf(end);
+        if(ei>=0 && (bestEnd<0||ei<bestEnd)){bestEnd=ei;bestLen=end.length;}
+      }
+      if(bestEnd<0) return {code:code,inBlock:true,hadBlock:hadBlock};
+      inBlock=false; t=t.slice(bestEnd+bestLen);
+    }else{
+      var bestStart=-1,bestStartLen=0;
+      for(var r2=0;r2<rules.length;r2++){
+        var st=rules[r2][0], si=t.indexOf(st);
+        if(si>=0 && (bestStart<0||si<bestStart)){bestStart=si;bestStartLen=st.length;}
+      }
+      if(bestStart<0){code+=t;break;}
+      code+=t.slice(0,bestStart); hadBlock=true; t=t.slice(bestStart+bestStartLen); inBlock=true;
+    }
+  }
+  return {code:code,inBlock:inBlock,hadBlock:hadBlock};
+}
+var __clcAutoMode=true,__clcDetectedLang=null,__clcFileName='';
+function __clcIsEn(){return !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
+function __clcUpdateStatus(){
+  var el=document.getElementById('langStatus');if(!el)return;
+  var en=__clcIsEn(),name=__clcFileName||'';
+  if(document.getElementById('langSel').value!=='auto'){
+    el.textContent=en?'Manual language override; auto detection is paused.':'已手动选择语言，自动识别暂停。';
+    return;
+  }
+  if(__clcDetectedLang){
+    el.textContent=(en?'Auto-detected: ':'自动识别：')+__clcDetectedLang.toUpperCase()+(name?' ('+name+')':'')+(en?'; choose a language to override.':'；可手动选择语言覆盖。');
+  }else{
+    el.textContent=(en?'Auto mode: no recognized file extension, using JavaScript rules.':'自动模式：未识别文件扩展名，按 JavaScript 规则统计。');
+  }
+}
+function __clcLangChanged(){
+  __clcAutoMode=document.getElementById('langSel').value==='auto';
+  if(!__clcAutoMode)__clcDetectedLang=null;
+  __clcUpdateStatus();
+}
 function calcTool(){
   var raw=document.getElementById('codeInput').value||'';
-  if(!raw){raw='// demo\nfunction f(){\n  return 1;\n}\n\n/* done */';}
+  if(!raw.trim()){
+    document.getElementById('result').innerHTML='<p style="padding:16px;color:var(--text-muted);">请粘贴代码或选择代码文件后统计；空输入不会自动加载示例。</p>';
+    return;
+  }
   var sel=document.getElementById('langSel').value;
-  var lang=sel==='auto'?'js':sel;
+  var lang=sel==='auto'?(__clcDetectedLang||'js'):sel;
   var lineRules=LANGS[lang]?LANGS[lang].line:[];
   var blockRules=LANGS[lang]?LANGS[lang].block:[];
   var lines=raw.split('\n');
@@ -381,33 +434,17 @@ function calcTool(){
   var strState={q:null};
   for(var i=0;i<lines.length;i++){
     var line=lines[i];
-    if(!line.trim()){blank++;continue;}
+    if(!line.trim()){
+      if(inBlock){comment++;}else{blank++;}
+      continue;
+    }
     var t=__maskLiterals(line.trim(), strState, lang);
+    var scan=__scanBlockComments(t,inBlock,blockRules);
+    inBlock=scan.inBlock;
+    t=scan.code;
     var isComment=false;
-    // IT-N446: 块注释中间行仅在此处计一次 comment++ 后 continue；结束行交给末尾统一收口（if(isComment)comment++），
-    // 避免原实现「inBlock 分支先 comment++、结束行收口又 comment++」造成的重复计数。
-    if(inBlock){var endAt=-1;for(var b=0;b<blockRules.length;b++){var idx=t.indexOf(blockRules[b][1]);if(idx>=0){endAt=Math.max(endAt,idx);}}if(endAt>=0){inBlock=false;t=t.slice(endAt+2).trim();isComment=t===''?true:false;}else{comment++;continue;}}
-    if(!isComment){
-      for(var l=0;l<lineRules.length;l++){if(t.indexOf(lineRules[l])===0){isComment=true;break;}}
-    }
-    if(!isComment&&!inBlock){
-      for(var b2=0;b2<blockRules.length;b2++){
-        var s=blockRules[b2][0],e=blockRules[b2][1];
-        var si=t.indexOf(s);
-        // N447 复核重做：块注释在同一行闭合时，须检查闭合标记后是否还有有效代码；
-        // `/* 注释 */ const a=1;` 是「代码行」，不能因注释从行首开始就整行判为注释。
-        if(si>=0){
-          var endIdx=t.indexOf(e, si+2);
-          if(endIdx<0){ inBlock=true; isComment=(si===0); }
-          else {
-            var beforeCode=t.slice(0,si).trim();
-            var afterCode=t.slice(endIdx+e.length).trim();
-            isComment=(beforeCode===''&&afterCode==='');
-          }
-          break;
-        }
-      }
-    }
+    for(var l=0;l<lineRules.length;l++){if(t.indexOf(lineRules[l])===0){isComment=true;break;}}
+    if(!isComment && t.trim()==='' && scan.hadBlock) isComment=true;
     if(isComment){comment++;}else{code++;}
   }
   var ratio=total?(code/total*100).toFixed(1):'0';
@@ -419,20 +456,31 @@ function calcTool(){
       '<div class="cs"><div class="n">'+ratio+'%</div><div class="l">代码占比</div></div>'+
     '</div>';document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
+function __applyDetectedLanguage(name){
+  if(typeof name!=="string" || !name) return null;
+  var l=detectLang(name);
+  __clcDetectedLang=(l && LANGS[l])?l:null;
+  __clcFileName=name;
+  __clcUpdateStatus();
+  return l;
+}
 document.getElementById('codeFile').addEventListener('change',function(){
   var f=this.files&&this.files[0];if(!f)return;
   var r=new FileReader();
   r.onload=function(e){
     document.getElementById('codeInput').value=e.target.result;
+    __clcFileName=f.name;
     if(document.getElementById('langSel').value==='auto'){
-      var l=detectLang(f.name);
-      var map={'js':0,'c':1,'py':2,'html':3,'sql':4,'sh':5,'css':6};
-      document.getElementById('langSel').selectedIndex=map[l]||0;
+      __applyDetectedLanguage(f.name);
+    }else{
+      __clcDetectedLang=null;
+      __clcUpdateStatus();
     }
     calcTool();
   };
   r.readAsText(f);
 });
+__clcUpdateStatus();
 calcTool();
 
 var __code_line_counter_last=0,__code_line_counter_skip=false;

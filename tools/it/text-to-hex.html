@@ -378,18 +378,28 @@ function getEncoding(){
   return document.getElementById('encoding').value;
 }
 
+function tbMsg(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh;}
 function textToBytes(text, encoding){
   if(encoding === 'ascii'){
     var bytes = [];
-    for(var i = 0; i < text.length; i++){
-      var code = text.charCodeAt(i);
-      bytes.push(code & 0xff);
+    var chars = Array.from(text);
+    for(var i = 0; i < chars.length; i++){
+      var ch = chars[i];
+      var code = ch.codePointAt(0);
+      if(code > 127) throw new Error(tbMsg('ASCII 模式无法表示字符「'+ch+'」（第 '+(i+1)+' 个字符，码点 '+code+'）；请改用 UTF-8','ASCII mode cannot represent character "'+ch+'" (character '+(i+1)+', code point '+code+'); use UTF-8 instead'));
+      bytes.push(code);
     }
     return new Uint8Array(bytes);
   } else if(encoding === 'utf16'){
     var bytes = [];
     for(var i = 0; i < text.length; i++){
       var code = text.charCodeAt(i);
+      if(code >= 0xD800 && code <= 0xDBFF){
+        var low = i + 1 < text.length ? text.charCodeAt(i+1) : -1;
+        if(low < 0xDC00 || low > 0xDFFF) throw new Error(tbMsg('UTF-16BE 编码遇到孤立高代理项','UTF-16BE encoding hit an unpaired high surrogate'));
+      } else if(code >= 0xDC00 && code <= 0xDFFF){
+        throw new Error(tbMsg('UTF-16BE 编码遇到孤立低代理项','UTF-16BE encoding hit an unpaired low surrogate'));
+      }
       bytes.push((code >> 8) & 0xff);
       bytes.push(code & 0xff);
     }
@@ -403,18 +413,29 @@ function bytesToText(bytes, encoding){
   if(encoding === 'ascii'){
     var str = '';
     for(var i = 0; i < bytes.length; i++){
+      if(bytes[i] > 127) throw new Error(tbMsg('ASCII 解码遇到 '+bytes[i]+'（第 '+(i+1)+' 字节），超出 0–127；请改用 UTF-8','ASCII decoding hit '+bytes[i]+' at byte '+(i+1)+', outside 0–127; use UTF-8 instead'));
       str += String.fromCharCode(bytes[i]);
     }
     return str;
   } else if(encoding === 'utf16'){
+    if(bytes.length % 2 !== 0) throw new Error(tbMsg('UTF-16BE 字节数必须为偶数，当前 '+bytes.length+' 字节','UTF-16BE byte count must be even; got '+bytes.length+' bytes'));
     var str = '';
-    for(var i = 0; i < bytes.length - 1; i += 2){
+    for(var i = 0; i < bytes.length; i += 2){
       var code = (bytes[i] << 8) | bytes[i+1];
-      str += String.fromCharCode(code);
+      if(code >= 0xD800 && code <= 0xDBFF){
+        if(i + 3 >= bytes.length) throw new Error(tbMsg('UTF-16BE 高代理项后缺少低代理项','UTF-16BE high surrogate is missing its low surrogate'));
+        var low = (bytes[i+2] << 8) | bytes[i+3];
+        if(low < 0xDC00 || low > 0xDFFF) throw new Error(tbMsg('UTF-16BE 高代理项后的字节不是低代理项','The bytes after a UTF-16BE high surrogate are not a low surrogate'));
+        str += String.fromCharCode(code, low); i += 2;
+      } else if(code >= 0xDC00 && code <= 0xDFFF){
+        throw new Error(tbMsg('UTF-16BE 出现孤立低代理项','UTF-16BE contains an unpaired low surrogate'));
+      } else {
+        str += String.fromCharCode(code);
+      }
     }
     return str;
   } else {
-    return new TextDecoder('utf-8', {fatal: false}).decode(bytes);
+    return new TextDecoder('utf-8', {fatal: true}).decode(bytes);
   }
 }
 
@@ -471,7 +492,13 @@ function convert(){
     return;
   }
 
-  var bytes = textToBytes(text, encoding);
+  try{
+    var bytes = textToBytes(text, encoding);
+  }catch(e){
+    document.getElementById('output').value='';
+    document.getElementById('viz').innerHTML='<p style="color:var(--danger)">⚠ '+ToolBox.escHtml(e.message)+'</p>';
+    return;
+  }
   var parts = bytesToHex(bytes, format === 'upper');
   var result = applyFormat(parts, sep, format);
   document.getElementById('output').value = result;
@@ -510,10 +537,12 @@ function convertHexToText(){
     var bytes = hexToBytes(hexStr);
     var text = bytesToText(bytes, encoding);
     document.getElementById('outputText').value = text;
+    document.getElementById('outputText').placeholder = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Converted text...':'转换后的文本...');
     updateStats(text.length, bytes.length, 0);
     addToHistory(hexStr, text, 'hex2text');
   } catch(e){
-    document.getElementById('outputText').value = '转换失败：' + e.message;
+    document.getElementById('outputText').value = '';
+    document.getElementById('outputText').placeholder = tbMsg('转换失败：'+e.message,'Conversion failed: '+e.message);
   }
 }
 
@@ -860,7 +889,7 @@ else document.addEventListener('DOMContentLoaded', __text_to_hexBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -868,7 +897,7 @@ else document.addEventListener('DOMContentLoaded', __text_to_hexBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

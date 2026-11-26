@@ -206,6 +206,10 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+window.__tomlBigInt=false;
+function __tomlBigLiteral(s){
+  try{ var b=BigInt(String(s).replace(/_/g,'')); return b>BigInt(Number.MAX_SAFE_INTEGER)||b<BigInt(Number.MIN_SAFE_INTEGER); }catch(e){ return false; }
+}
 function calcTool(){function tLit(v){
   if(v===null||v===undefined) return '""';
   if(typeof v==='boolean') return v?'true':'false';
@@ -218,7 +222,7 @@ function tVal(s){
   if(s[0]==='"'){ var m=s.match(/^"((?:[^"\\]|\\.)*)"/); return m? m[1].replace(/\\n/g,'\n').replace(/\\t/g,'\t').replace(/\\"/g,'"') : s; }
   if(s==='true')return true; if(s==='false')return false;
   if(s==='')return '';
-  if(/^-?\d+$/.test(s))return parseInt(s,10);
+  if(/^-?\d+$/.test(s)){ if(__tomlBigLiteral(s)){window.__tomlBigInt=true;return s;} return parseInt(s,10); }
   if(/^-?\d+\.\d+$/.test(s))return parseFloat(s);
   if(s[0]==='['){ var inner=s.slice(1,s.lastIndexOf(']')); if(inner.trim()==='')return []; return inner.split(',').map(function(x){return tVal(x);}); }
   return s;
@@ -413,6 +417,7 @@ function jsonToXml(obj, opt){
   return ser(keys[0], obj[keys[0]], 0);
 }
 
+window.__tomlBigInt=false;
 var src=document.getElementById('source').value||'';
 if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 TOML 文本</p>'; return; }
 var obj=parseToml(src);
@@ -421,7 +426,8 @@ var iv=document.getElementById('indent').value||'2';
 var pad= iv==='tab' ? '\t' : (' ').repeat(parseInt(iv,10)||2);
 var xmlSort=document.getElementById('top_1').checked;
 var xml=jsonToXml(obj,{pad:pad,sort:xmlSort});
-const __g4='<div class="result-title">XML 输出</div><pre class="code-block">'+escH(xml)+'</pre>';document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}
+var __warnBig=window.__tomlBigInt?'<div class="info-box" role="alert" style="margin:0 0 10px;font-size:12.5px;line-height:1.6">⚠ 检测到超出安全整数范围的整数，已按原始字符串保留以避免静默舍入。Big integers are kept as strings to avoid silent rounding.</div>':'';
+const __g4=__warnBig+'<div class="result-title">XML 输出</div><pre class="code-block">'+escH(xml)+'</pre>';document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('source').value='[config]\nname = "demo"\nport = 8080\n\n[config.db]\nurl = "x"\npool = 16';
       document.getElementById('indent').selectedIndex=0;
       document.getElementById('top_1').checked=false;

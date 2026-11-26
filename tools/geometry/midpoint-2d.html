@@ -118,7 +118,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入两点坐标，求中点坐标。">Compute the midpoint of a line segment from endpoints (x₁,y₁) and (x₂,y₂) using M = ((x₁+x₂)/2, (y₁+y₂)/2).</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">中点坐标：x_M = (x₁+x₂) ÷ 2、y_M = (y₁+y₂) ÷ 2，即两端点坐标的算术平均；例 (1,2) 与 (5,8) → (3,5)。校验：无强校验，空值按 0 兜底。判据：无固定分级，中点到两端点的距离相等。</div>
+      <div class="formula-eq">中点坐标：x_M = (x₁+x₂) ÷ 2、y_M = (y₁+y₂) ÷ 2，即两端点坐标的算术平均；例 (1,2) 与 (5,8) → (3,5)。校验：x₁、y₁、x₂、y₂ 均必填，空白不等于 0；结果下方给出代入步骤与坐标示意图。判据：无固定分级，中点到两端点的距离相等。</div>
       <p class="formula-desc">输入两点坐标，求中点坐标。</p>
     </div>
 
@@ -153,6 +153,8 @@
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="midpoint_2dSteps" class="step-lines" style="margin-top:10px;"></div>
+    <div style="margin-top:12px;"><canvas id="midpoint_2dPlot" width="760" height="360" style="width:100%;height:auto;max-width:100%;border:1px solid var(--border);border-radius:8px;background:var(--result-bg);"></canvas></div>
 <div id="__tbnDiff" style="margin-top:8px"></div>
     <div id="midpoint_2dTable"></div>
     <h3 style="margin:14px 0 8px;">📏 线段几何量（P1→P2）</h3>
@@ -227,17 +229,42 @@
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __mpEn(){return (document.documentElement.lang||'').toLowerCase().indexOf('en')===0;}
+function __mpFmt(v){v=Number(v);if(!isFinite(v))return '—';var av=Math.abs(v);return (av!==0&&(av>=1e6||av<1e-3))?v.toExponential(2):v.toFixed(3).replace(/\.?0+$/,'');}
+function __mpClear(){var st=document.getElementById('midpoint_2dSteps');if(st)st.innerHTML='';var cv=document.getElementById('midpoint_2dPlot');if(cv&&cv.getContext){var ctx=cv.getContext('2d');if(ctx)ctx.clearRect(0,0,cv.width,cv.height);}}
+function __mpDraw(x1,y1,x2,y2,xm,ym){
+  var cv=document.getElementById('midpoint_2dPlot');if(!cv||!cv.getContext)return;var ctx=cv.getContext('2d');if(!ctx)return;
+  var W=cv.width,H=cv.height;ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+  var minx=Math.min(x1,x2,xm),maxx=Math.max(x1,x2,xm),miny=Math.min(y1,y2,ym),maxy=Math.max(y1,y2,ym);
+  var dx=maxx-minx,dy=maxy-miny,padx=Math.max(dx*0.18,1),pady=Math.max(dy*0.18,1);
+  if(!isFinite(dx)||dx<1e-9){minx-=1;maxx+=1;}else{minx-=padx;maxx+=padx;}
+  if(!isFinite(dy)||dy<1e-9){miny-=1;maxy+=1;}else{miny-=pady;maxy+=pady;}
+  var pad=38,px=function(x){return pad+(x-minx)/(maxx-minx)*(W-pad*1.4);},py=function(y){return H-pad-(y-miny)/(maxy-miny)*(H-pad*1.4);};
+  ctx.strokeStyle='#dbe2ea';ctx.lineWidth=1;
+  for(var g=0;g<=4;g++){var gx=minx+(maxx-minx)*g/4,gy=miny+(maxy-miny)*g/4;ctx.beginPath();ctx.moveTo(px(gx),pad);ctx.lineTo(px(gx),H-pad);ctx.stroke();ctx.beginPath();ctx.moveTo(pad,py(gy));ctx.lineTo(W-pad*0.4,py(gy));ctx.stroke();ctx.fillStyle='#667085';ctx.font='11px sans-serif';ctx.fillText(__mpFmt(gx),px(gx)-12,H-12);ctx.fillText(__mpFmt(gy),4,py(gy)+4);}
+  if(miny<=0&&maxy>=0){ctx.strokeStyle='#98a2b3';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(pad,py(0));ctx.lineTo(W-pad*0.4,py(0));ctx.stroke();}
+  if(minx<=0&&maxx>=0){ctx.strokeStyle='#98a2b3';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(px(0),pad);ctx.lineTo(px(0),H-pad);ctx.stroke();}
+  ctx.strokeStyle='#98a2b3';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(px(x1),py(y1));ctx.lineTo(px(x2),py(y2));ctx.stroke();ctx.setLineDash([]);
+  ctx.strokeStyle='#2563eb';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px(x1),py(y1));ctx.lineTo(px(xm),py(ym));ctx.stroke();
+  function dot(x,y,col,label){ctx.fillStyle=col;ctx.beginPath();ctx.arc(px(x),py(y),5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#111827';ctx.font='12px sans-serif';ctx.fillText((label==='M'&&__mpEn()?'Midpoint':label)+' ('+__mpFmt(x)+', '+__mpFmt(y)+')',Math.min(px(x)+8,W-190),Math.max(py(y)-8,14));}
+  dot(x1,y1,'#2563eb','P1');dot(x2,y2,'#2563eb','P2');dot(xm,ym,'#dc2626','M');
+  if(Math.abs(x1-x2)<1e-12&&Math.abs(y1-y2)<1e-12){ctx.fillStyle='#dc2626';ctx.font='12px sans-serif';ctx.fillText(__mpEn()?'Coincident points: degenerate segment, M = P1 = P2':'重合点：线段退化，M = P1 = P2',pad,H-10);}
+}
 function calcTool(){
-            if(!isFinite(__midpoint_2dNum('x1')) || !isFinite(__midpoint_2dNum('y1')) || !isFinite(__midpoint_2dNum('x2')) || !isFinite(__midpoint_2dNum('y2'))){
-                ToolBox.setResult('result','<p style="color:var(--text-muted);">请填写两个点的坐标（x₁, y₁）与（x₂, y₂）后再计算。</p>');
-                var __t=document.getElementById('midpoint_2dTable'); if(__t) __t.innerHTML='';
+            var __raw=function(id){var e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+            if(__raw('x1')===''||__raw('y1')===''||__raw('x2')===''||__raw('y2')===''||!isFinite(__midpoint_2dNum('x1'))||!isFinite(__midpoint_2dNum('y1'))||!isFinite(__midpoint_2dNum('x2'))||!isFinite(__midpoint_2dNum('y2'))){
+                ToolBox.setResult('result','<p style="color:var(--text-muted);">请填写两个点的完整坐标（x₁, y₁）与（x₂, y₂）；空白不等于 0。</p>');
+                var __t=document.getElementById('midpoint_2dTable'); if(__t) __t.innerHTML='';__mpClear();
                 return;
             }
             const x1=num('x1'),y1=num('y1'),x2=num('x2'),y2=num('y2');
             const __g1=dataGrid([
-                [((x1+x2)/2).toFixed(3),'中点 x_M'],
-                [((y1+y2)/2).toFixed(3),'中点 y_M']
+                [((x1+x2)/2).toFixed(3),__mpEn()?'Midpoint x_M':'中点 x_M'],
+                [((y1+y2)/2).toFixed(3),__mpEn()?'Midpoint y_M':'中点 y_M']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+            var __xm=(x1+x2)/2,__ym=(y1+y2)/2,__st=document.getElementById('midpoint_2dSteps');
+            if(__st)__st.innerHTML='<div class="step-line"><strong>1</strong>　x_M = (x₁+x₂)/2 = ('+__mpFmt(x1)+'+'+__mpFmt(x2)+')/2 = '+__mpFmt(__xm)+'</div><div class="step-line"><strong>2</strong>　y_M = (y₁+y₂)/2 = ('+__mpFmt(y1)+'+'+__mpFmt(y2)+')/2 = '+__mpFmt(__ym)+'</div><div class="step-line"><strong>3</strong>　'+(__mpEn()?'Distance |P1P2| = √((x₂−x₁)²+(y₂−y₁)²) = ':'|P1P2| = √((x₂−x₁)²+(y₂−y₁)²) = ')+__mpFmt(Math.hypot(x2-x1,y2-y1))+'</div>';
+            __mpDraw(x1,y1,x2,y2,__xm,__ym);
         }
 function resetForm(){document.getElementById('x1').value = '1';
       document.getElementById('y1').value = '2';
@@ -251,6 +278,7 @@ function __midpoint_2dExtras(){
     function __midpoint_2dRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var x1=num('x1'),y1=num('y1'),x2=num('x2'),y2=num('y2');
+    if(String(__midpoint_2dRaw('x1')).trim()===''||String(__midpoint_2dRaw('y1')).trim()===''||String(__midpoint_2dRaw('x2')).trim()===''||String(__midpoint_2dRaw('y2')).trim()==='') return;
     if (!isFinite(__midpoint_2dNum('x1')) || !isFinite(__midpoint_2dNum('y1')) || !isFinite(__midpoint_2dNum('x2')) || !isFinite(__midpoint_2dNum('y2'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#midpoint_2dTable',{

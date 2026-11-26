@@ -182,7 +182,7 @@
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn" onclick="loadPreset()">载入标准流程</button>
+      <button type="button" class="btn" onclick="loadPreset()">载入标准流程</button><button type="button" class="btn" id="ceremony-undo-btn" onclick="undoPreset()" style="display:none;" data-i18n="btn.presetUndo" data-i18n-fb="↩ 撤销预设">↩ 撤销预设</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
       <button type="button" class="btn" onclick="copyTimeline()">复制时间轴</button>
     </div>
@@ -353,14 +353,26 @@ function clearAll(){
   ToolBox.showToast(i18nText());
 }
 
+var UNDO_KEY = 'funeral_ceremony_timeline_undo';
+function __ceremonyUndoBtn(show){ var b=document.getElementById('ceremony-undo-btn'); if(b) b.style.display=show?'inline-flex':'none'; }
+function undoPreset(){
+  var u=null; try{ u=JSON.parse(localStorage.getItem(UNDO_KEY)||'null'); }catch(e){}
+  if(!u||!Array.isArray(u)){ ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'No preset to undo':'没有可撤销的预设'),'info'); return; }
+  steps=u; saveStorage(); render(); localStorage.removeItem(UNDO_KEY); __ceremonyUndoBtn(false);
+  ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Preset undone; previous timeline restored':'已撤销预设，恢复原流程'),'info');
+}
 function loadPreset(){
   var scale = document.getElementById('scale').value;
+  if(steps.length && !confirm(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'The preset will replace the current stages. Continue?':'当前已有环节，载入预设会替换全部流程。确定替换？'))) return;
+  var snapshotSaved=false; try{ localStorage.setItem(UNDO_KEY, JSON.stringify(steps)); snapshotSaved=true; }catch(e){}
+  if(steps.length && !snapshotSaved){ ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Browser storage unavailable; preset not loaded to avoid losing your data':'浏览器存储不可用，未载入预设以避免覆盖现有流程','warning'); return; }
   steps = (scale === 'large' ? PRESET_LARGE : PRESET_SMALL).map(function(s){
     s.id = Date.now() + Math.random();
     return {time:s.time, name:s.name, dur:s.dur, desc:s.desc, id:Date.now() + Math.random()};
   });
   saveStorage();
   render();
+  __ceremonyUndoBtn(true);
   ToolBox.showToast(i18nText('toast.msg315'));
 }
 
@@ -646,7 +658,7 @@ var __ceremony_timeline_f0=(typeof calc==='function')?calc:null;
 if(__ceremony_timeline_f0){
     calc=function(){ var __r=__ceremony_timeline_f0.apply(null,arguments); try{ __ceremony_timelineExtras(); }catch(e){} return __r; };
 }
-function __ceremony_timelineBoot(){ try{ __ceremony_timelinePresets(); }catch(e){} }
+function __ceremony_timelineBoot(){ try{ __ceremony_timelinePresets(); }catch(e){} try{ if(localStorage.getItem(UNDO_KEY)) __ceremonyUndoBtn(true); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __ceremony_timelineBoot();
 else document.addEventListener('DOMContentLoaded', __ceremony_timelineBoot);
 </script>

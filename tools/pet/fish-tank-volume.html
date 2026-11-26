@@ -362,42 +362,56 @@ function selectShape(id){
   calc();
 }
 
+function __tankNum(id){
+  var raw = document.getElementById(id).value.trim();
+  if(raw === '') return {ok:false,msg:'请填写' + id};
+  var n = Number(raw);
+  return {ok:Number.isFinite(n), n:n, raw:raw};
+}
+function __tankInvalid(msg){
+  document.getElementById('volResult').textContent = '--';
+  document.getElementById('volDesc').textContent = '⚠ ' + msg + '，已清除旧结果与推荐';
+  document.getElementById('volStats').innerHTML = '';
+  document.getElementById('fishRecList').innerHTML = '';
+}
+
 function calc(){
-  const height = parseFloat(document.getElementById('height').value) || 0;
-  const substrate = parseFloat(document.getElementById('substrate').value) || 0;
-  const waterHeight = Math.max(0, height - substrate);
+  window._tankValid = false;
+  var dims = [];
+  if(currentShape === 'rect') dims = [{id:'length',label:'长'},{id:'width',label:'宽'}];
+  else if(currentShape === 'cyl') dims = [{id:'diameter',label:'直径'}];
+  else dims = [{id:'frontLen',label:'前长'},{id:'backLen',label:'后长'},{id:'bowWidth',label:'弧形宽度'}];
+  for(var i=0;i<dims.length;i++){
+    var d = __tankNum(dims[i].id);
+    if(!d.ok || d.n <= 0){ __tankInvalid(dims[i].label + '必须为大于 0 的有限数值'); return; }
+    dims[i].n = d.n;
+  }
+  var h = __tankNum('height');
+  if(!h.ok || h.n <= 0){ __tankInvalid('水高（缸高）必须为大于 0 的有限数值'); return; }
+  var sub = __tankNum('substrate');
+  if(!sub.ok || sub.n < 0){ __tankInvalid('底砂高度必须为非负有限数值'); return; }
+  if(sub.n >= h.n){ __tankInvalid('底砂高度必须小于缸高（否则没有水体）'); return; }
+  var waterHeight = h.n - sub.n;
 
   let volumeCm3 = 0;
-
   if(currentShape === 'rect'){
-    const len = parseFloat(document.getElementById('length').value) || 0;
-    const wid = parseFloat(document.getElementById('width').value) || 0;
-    volumeCm3 = len * wid * waterHeight;
+    volumeCm3 = dims[0].n * dims[1].n * waterHeight;
   } else if(currentShape === 'cyl'){
-    const dia = parseFloat(document.getElementById('diameter').value) || 0;
-    const r = dia / 2;
+    const r = dims[0].n / 2;
     volumeCm3 = Math.PI * r * r * waterHeight;
-  } else if(currentShape === 'bow'){
-    const front = parseFloat(document.getElementById('frontLen').value) || 0;
-    const back = parseFloat(document.getElementById('backLen').value) || 0;
-    const wid = parseFloat(document.getElementById('bowWidth').value) || 0;
-    // 弧形近似为梯形
-    const avgLen = (front + back) / 2;
-    volumeCm3 = avgLen * wid * waterHeight;
+  } else {
+    const avgLen = (dims[0].n + dims[1].n) / 2;
+    volumeCm3 = avgLen * dims[2].n * waterHeight;
   }
+  if(!Number.isFinite(volumeCm3) || volumeCm3 <= 0){ __tankInvalid('尺寸组合未产生有效水体容积'); return; }
 
   // 1升 = 1000立方厘米
+  window._tankValid = true;
   const totalLiters = volumeCm3 / 1000;
   // 实际水量（留10%余量给装饰等）
   const actualLiters = totalLiters * 0.9;
   const gallonsUS = actualLiters * 0.264172;
   const gallonsUK = actualLiters * 0.219969;
-
-  if(actualLiters <= 0){
-    document.getElementById('volResult').textContent = '--';
-    document.getElementById('volStats').innerHTML='';
-    return;
-  }
 
   const __g3=actualLiters.toFixed(1) + ' 升';document.getElementById('volResult').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   const __g4=`满水量 ${totalLiters.toFixed(1)}L · ${gallonsUS.toFixed(2)} 美制加仑 · ${gallonsUK.toFixed(2)} 英制加仑`;document.getElementById('volDesc').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
@@ -634,7 +648,7 @@ function __fish_tank_volumePresets(){
 }
 var __fish_tank_volume_f0=(typeof calc==='function')?calc:null;
 if(__fish_tank_volume_f0){
-    calc=function(){ var __r=__fish_tank_volume_f0.apply(null,arguments); try{ __fish_tank_volumeExtras(); }catch(e){} return __r; };
+    calc=function(){ var __r=__fish_tank_volume_f0.apply(null,arguments); try{ if(window._tankValid) __fish_tank_volumeExtras(); }catch(e){} return __r; };
 }
 function __fish_tank_volumeBoot(){ try{ __fish_tank_volumePresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __fish_tank_volumeBoot();

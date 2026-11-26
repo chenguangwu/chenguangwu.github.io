@@ -192,6 +192,8 @@
     <label id="inputLabel" for="input">明文</label>
     <textarea id="input" placeholder="输入要加密的明文..." oninput="process()">HIDETHEGOLD</textarea>
 
+    <div id="playfairNote" style="margin-top:6px;font-size:12px;color:var(--text-muted);line-height:1.5;" role="note"></div>
+
     <label style="margin-top:12px;" id="outputLabel" for="output">密文</label>
     <textarea id="output" readonly style="min-height:80px;background:var(--result-bg);"></textarea> <div id="playfair_cipherTable"></div> <div id="playfair_cipherDiff"></div> <div id="playfair_cipherChart"></div> <div id="playfair_cipherHist"></div>
 
@@ -458,6 +460,7 @@ function process(){
   
   if(!text){
     document.getElementById('output').value = '';
+    document.getElementById('playfairNote').textContent = '';
     const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('pairList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('pairList').innerHTML=__h0;
     stepData = [];
     totalSteps = 0;
@@ -466,21 +469,48 @@ function process(){
   }
   
   // 解密时密文已按 2 个字符一组切好，不能再插入填充 X 或合并重复字母
+  const en = (typeof TBKit!=='undefined' && TBKit.util.isEn());
   let pairs;
   if(encrypt){
     pairs = prepareText(text);
   } else {
-    // IT-N157: 清洗后为空或奇数长度会在分组时产出 undefined 或让 .match() 返回 null 后抛 TypeError
-    const cleaned = text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
-    if(!cleaned || cleaned.length % 2 !== 0){
-      const __msg = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())
-        ? 'Ciphertext must contain an even number of letters (Playfair works on 2-letter pairs).'
-        : '密文需为偶数个字母（Playfair 按 2 字母分组），请检查输入。');
+    // 第802批：只允许 A-Z 字母与空白分组符；数字、标点、非 ASCII 一律报出具体位置，不静默清洗
+    let cleaned = '';
+    const bad = [];
+    for(let i = 0; i < text.length; i++){
+      const ch = text[i];
+      if(/[A-Za-z]/.test(ch)){
+        cleaned += (ch === 'j' || ch === 'J') ? 'I' : ch.toUpperCase();
+      } else if(/\s/.test(ch)){
+        continue;
+      } else {
+        bad.push({ ch: ch, pos: i + 1 });
+      }
+    }
+    if(bad.length){
+      const first = bad[0];
+      const __msg = en
+        ? 'Invalid ciphertext character "' + first.ch + '" at position ' + first.pos + '. Use only A-Z letters; spaces, tabs and line breaks are allowed as group separators.'
+        : '密文第 ' + first.pos + ' 个字符「' + first.ch + '」无效。只允许 A-Z 字母；空格、制表符和换行可作分组符。';
       document.getElementById('output').value = '';
       stepData = [];
       totalSteps = 0;
       document.getElementById('stepTotal').textContent = 0;
-      document.getElementById('pairList').innerHTML = '<p style="color:var(--danger)">⚠ ' + __msg + '</p>';
+      document.getElementById('pairList').innerHTML = '<p style="color:var(--danger)">⚠ ' + escapeHtml(__msg) + '</p>';
+      document.getElementById('playfairNote').textContent = '';
+      if(typeof ToolBox!=='undefined' && ToolBox.showToast) ToolBox.showToast(__msg, 'error');
+      return;
+    }
+    if(!cleaned || cleaned.length % 2 !== 0){
+      const __msg = en
+        ? 'Ciphertext must contain an even number of letters (Playfair works on 2-letter pairs).'
+        : '密文需为偶数个字母（Playfair 按 2 字母分组），请检查输入。';
+      document.getElementById('output').value = '';
+      stepData = [];
+      totalSteps = 0;
+      document.getElementById('stepTotal').textContent = 0;
+      document.getElementById('pairList').innerHTML = '<p style="color:var(--danger)">⚠ ' + escapeHtml(__msg) + '</p>';
+      document.getElementById('playfairNote').textContent = '';
       if(typeof ToolBox!=='undefined' && ToolBox.showToast) ToolBox.showToast(__msg, 'error');
       return;
     }
@@ -504,6 +534,21 @@ function process(){
   }
   
   document.getElementById('output').value = output;
+  if(encrypt){
+    const dropped = Array.from(text).filter(function(ch){ return !/[A-Za-z]/.test(ch) && !/\s/.test(ch); }).length;
+    const normalized = Array.from(text).filter(function(ch){ return /[A-Za-z]/.test(ch); }).length;
+    const padded = pairs.length * 2 - normalized;
+    let note = en
+      ? 'Rule: J is merged into I and non-letter characters are ignored; repeated letters and an odd final letter are padded with X (or Q after X). These steps are not reversible.'
+      : '规则：J 合并为 I，非字母字符会被忽略；重复字母与末尾奇数字母会补 X（X 后改补 Q）。这些处理不可逆。';
+    if(dropped) note += en ? ' This input ignored ' + dropped + ' non-letter character(s).' : ' 本次输入忽略了 ' + dropped + ' 个非字母字符。';
+    if(padded) note += en ? ' Added ' + padded + ' padding letter(s).' : ' 本次补入 ' + padded + ' 个填充字母。';
+    document.getElementById('playfairNote').textContent = note;
+  } else {
+    document.getElementById('playfairNote').textContent = en
+      ? 'Decryption accepts A-Z letters only; whitespace is treated as a group separator and J is read as I.'
+      : '解密只接受 A-Z 字母；空白视为分组符，J 按 I 处理。';
+  }
   totalSteps = stepData.length;
   document.getElementById('stepTotal').textContent = totalSteps;
   
@@ -939,7 +984,7 @@ else document.addEventListener('DOMContentLoaded', __playfair_cipherBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -947,7 +992,7 @@ else document.addEventListener('DOMContentLoaded', __playfair_cipherBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

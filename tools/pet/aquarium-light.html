@@ -29,6 +29,7 @@
 .level-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all 0.2s;text-align:center;}
 .level-card:hover{border-color:var(--primary);transform:translateY(-2px);}
 .level-card.active{border-color:var(--primary);background:rgba(255,107,53,0.06);}
+.level-card:focus-visible{outline:3px solid var(--primary);outline-offset:2px;}
 .level-card .icon{font-size:24px;margin-bottom:4px;}
 .level-card .name{font-size:13px;font-weight:600;color:var(--heading);}
 .level-card .range{font-size:11px;color:var(--primary);margin-top:4px;}
@@ -304,11 +305,11 @@ function renderLevels(){
   const grid = document.getElementById('levelGrid');
   const all = [{ id:'all', name:'全部', icon:'📋', range:'所有等级', desc:'显示所有水草' }];
   const __h0=all.concat(LIGHT_LEVELS).map(l => `
-    <div class="level-card ${l.id === currentLevel ? 'active' : ''}" onclick="selectLevel('${l.id}')">
+    <button type="button" class="level-card ${l.id === currentLevel ? 'active' : ''}" aria-pressed="${l.id === currentLevel}" aria-label="筛选${l.name}" onclick="selectLevel('${l.id}')">
       <div class="icon">${l.icon}</div>
       <div class="name">${l.name}</div>
       <div class="range">${l.range}</div>
-    </div>
+    </button>
   `).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h0;
 }
 
@@ -346,13 +347,17 @@ function showAll(){
   renderPlants();
 }
 
-function renderPlants(){
-  const list = document.getElementById('plantList');
-  let filtered = PLANTS.filter(p => {
+function getFilteredPlants(){
+  return PLANTS.filter(p => {
     const matchLevel = currentLevel === 'all' || p.level === currentLevel;
     const matchSearch = !searchQuery || p.name.toLowerCase().includes(searchQuery) || p.sci.toLowerCase().includes(searchQuery);
     return matchLevel && matchSearch;
   });
+}
+
+function renderPlants(){
+  const list = document.getElementById('plantList');
+  let filtered = getFilteredPlants();
 
   if(filtered.length === 0){
     const __h3='<p style="color:var(--text-muted);font-size:13px;padding:12px 0;">未找到匹配的水草</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h3;
@@ -380,9 +385,11 @@ function renderPlants(){
 }
 
 function copyResult(){
-  let filtered = PLANTS.filter(p => currentLevel === 'all' || p.level === currentLevel);
+  // 复制与页面列表共用同一筛选结果，搜索词也生效。
+  let filtered = getFilteredPlants();
   const levelName = currentLevel === 'all' ? '全部' : LIGHT_LEVELS.find(l => l.id === currentLevel).name;
-  let text = `水草光照分类（${levelName}）：\n`;
+  if(filtered.length === 0){ ToolBox.showToast('当前筛选没有可复制的水草', 'error'); return; }
+  let text = `水草光照分类（${levelName}${searchQuery ? ' · 搜索：' + searchQuery : ''}）：\n`;
   filtered.forEach(p => { text += `- ${p.name}（${p.sci}）：${p.desc}\n`; });
   ToolBox.copyText(text, i18nText('msg469'));
 }

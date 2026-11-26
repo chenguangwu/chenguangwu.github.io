@@ -178,18 +178,12 @@
       <span class="rt-icon">⚡</span>
       <span class="rt-info"><span class="rt-name">功率比分贝换算器</span><span class="rt-desc">输入两个功率值，按 10·log₁₀(P₂/P₁) 计算功率比的分贝数，用于放大器增益、声功率变化等…</span></span>
     </a>
-    <a href="decibel-power-ratio.html" class="related-tool-card">
-      <span class="rt-icon">⚡</span>
-      <span class="rt-info"><span class="rt-name">功率比分贝换算器</span><span class="rt-desc">输入两个功率值，按 10·log₁₀(P₂/P₁) 计算功率比的分贝数，用于放大器增益、声功率变化等…</span></span>
-    </a>
+    
     <a href="sound-power-level.html" class="related-tool-card">
       <span class="rt-icon">⚡</span>
       <span class="rt-info"><span class="rt-name">声功率级计算器</span><span class="rt-desc">输入声功率值，以参考功率 W₀=10⁻¹² W 按 10·log₁₀(W/W₀) 计算声功率级（dB…</span></span>
     </a>
-    <a href="combine-two-spl.html" class="related-tool-card">
-      <span class="rt-icon">🔊</span>
-      <span class="rt-info"><span class="rt-name">两声压级叠加计算器</span><span class="rt-desc">声压级能量叠加器，输入两个不相干声源的声压级，按对数能量叠加求总声级，用于多噪声源总声压评估</span></span>
-    </a>
+    
   </div>
 </div>
 <script>function __tbInputGuard(_ids,_labels){
@@ -224,7 +218,7 @@ function __tbInputGuardCore(_ids,_labels){
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"p": "声压 p (有效值) (Pa)"};
+  var __D={};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -254,7 +248,7 @@ function __tbInputGuardCore(_ids,_labels){
   if(_nums.length>0){
     var _allZero=true;
     for(var _z2=0;_z2<_nums.length;_z2++){ if(_nums[_z2]!==0){ _allZero=false; break; } }
-    if(_allZero) return "<p style=\"color:var(--danger)\">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>";
+    if(_allZero && _ids.length > 1) return "<p style=\"color:var(--danger)\">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>";
   }
   for(var _k=0;_k<_ids.length;_k++){
     var _e2=document.getElementById(_ids[_k]);
@@ -266,9 +260,13 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __acEn(){return /^en/i.test(document.documentElement.lang||'')||/[?&]lang=en/i.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
 function calcTool(){
+              var __t=document.getElementById('sound_pressure_levelTable');if(__t)__t.innerHTML='';
               var __ig=__tbInputGuard(['p'],["声压 p (有效值) (Pa)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const p=num('p'), p0=20e-6;
+            if(!(p>=0)){var __bad=document.getElementById('sound_pressure_levelTable');if(__bad)__bad.innerHTML='';ToolBox.setResult('result',(__acEn()?'<p style="color:var(--danger)">Sound pressure must be a finite value ≥ 0.</p>':'<p style="color:var(--danger)">声压必须为不小于 0 的有限数值。</p>'));return;}
+            if(p===0){var __bad0=document.getElementById('sound_pressure_levelTable');if(__bad0)__bad0.innerHTML='';ToolBox.setResult('result',(__acEn()?'<p style="color:var(--text-muted)">At zero pressure the sound pressure level approaches −∞ dB and has no finite value.</p>':'<p style="color:var(--text-muted)">声压为 0 时声压级趋于 −∞ dB，没有有限数值。</p>'));return;}
             const spl=20*Math.log10(p/p0);
             const __g2=dataGrid([
                 [spl.toFixed(2),'声压级 SPL (dB)'],
@@ -331,7 +329,7 @@ function __sound_pressure_levelExtras(){
     if (typeof TBKit === 'undefined') return;
     var p=num('p'), p0=20e-6;
     var spl=20*Math.log10(p/p0);
-    if (!isFinite(__sound_pressure_levelNum('p'))) return;
+    if (!(p>0) || !isFinite(__sound_pressure_levelNum('p'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#sound_pressure_levelTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -381,13 +379,13 @@ function __spSweep(){
 }
 function __spChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var s=__spSweep(); if(!s)return;
+  var s=__spSweep(); if(!s){document.getElementById('spChart').innerHTML='';return;}
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   TBKit.chart.line('#spChart',{title:en?'SPL vs Sound Pressure (spl = 20·log10(p/20µPa))':'声压级随声压变化 (spl = 20·log₁₀(p/20µPa))',labels:s.labels,series:[{name:en?'SPL (dB)':'声压级 (dB)',data:s.data}]});
 }
 function __spTable(){
   if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
-  var s=__spSweep(); if(!s)return;
+  var s=__spSweep(); if(!s){document.getElementById('spTable').innerHTML='';return;}
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   TBKit.matrix.table('#spTable',{head:en?['Multiple of p','p (Pa)','SPL (dB)']:['相对倍数','p (Pa)','声压级 (dB)'],rows:s.rows});
 }

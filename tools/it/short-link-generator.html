@@ -280,7 +280,9 @@ function urlHash62(input, len, chars){
   }
   return out;
 }
+var __lastShortLinks=[];
 function generate(){
+  __lastShortLinks=[];
   const url=document.getElementById('url').value.trim();
   let domain=document.getElementById('domain').value.trim().replace(/\/+$/,'');
   const len=parseInt(document.getElementById('len').value);
@@ -294,12 +296,14 @@ function generate(){
   if(noAmb)chars='abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let html='';
   if(custom&&customSlug){
+    __lastShortLinks.push(domain+'/'+customSlug);
     html+='<div class="code-row">'+escapeHtml(domain+'/'+customSlug)+'</div>';
     html+='<div style="font-size:13px;color:var(--text-light);">原始 URL: '+escapeHtml(url)+'</div>';
   }else{
     for(let i=0;i<count;i++){
       // IT-N468：序号参与哈希 ⇒ 同一 URL 的批量结果稳定且逐条不同。
       let slug=urlHash62(url+'#'+i,len,chars);
+      __lastShortLinks.push(domain+'/'+slug);
       html+='<div class="code-row">'+escapeHtml(domain+'/'+slug)+'</div>';
     }
   }
@@ -307,8 +311,10 @@ function generate(){
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
-  const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
+  if(!__lastShortLinks.length){ alert('请先生成有效的短链接后再复制'); return; }
+  const text = __lastShortLinks.join('\n');  // 只复制候选链接本身，不夹带说明/错误提示
+  if(!navigator.clipboard || !navigator.clipboard.writeText){ alert('当前环境不支持剪贴板，请手动复制'); return; }
+  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制"))).catch(() => alert('复制失败，请手动选择结果复制'));
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
@@ -496,7 +502,7 @@ else document.addEventListener('DOMContentLoaded', __short_link_generatorBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -504,7 +510,7 @@ else document.addEventListener('DOMContentLoaded', __short_link_generatorBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

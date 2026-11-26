@@ -42,7 +42,7 @@
 .chart-card{background:var(--result-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px;}
 .chart-card canvas{width:100%;height:240px;display:block;}
 .template-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:12px;}
-.template-card{border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:all 0.15s;background:var(--card-bg);}
+.template-card{font-family:inherit;text-align:left;width:100%;border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:all 0.15s;background:var(--card-bg);}
 .template-card:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:var(--shadow-hover);}
 .template-card .t-icon{font-size:24px;margin-bottom:6px;}
 .template-card .t-name{font-size:13px;font-weight:600;margin-bottom:4px;color:var(--heading);}
@@ -167,11 +167,11 @@
      <h2 data-zh="📊 投资回报率计算器">📊 Investment ROI Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持简单ROI、年化ROI、定投ROI、对比分析与可视化增长曲线">Compute simple and annualised ROI plus dollar-cost-averaging return, with plan comparison and a growth curve.</p>
 
-    <div class="roi-tabs">
-      <button type="button" class="roi-tab active" onclick="switchTab('simple')">简单ROI</button>
-      <button type="button" class="roi-tab" onclick="switchTab('regular')">定投ROI</button>
-      <button type="button" class="roi-tab" onclick="switchTab('compare')">方案对比</button>
-      <button type="button" class="roi-tab" onclick="switchTab('templates')">场景模板</button>
+    <div class="roi-tabs" role="tablist" aria-label="ROI 视图切换">
+      <button type="button" class="roi-tab active" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-simple" onclick="switchTab('simple',this)">简单ROI</button>
+      <button type="button" class="roi-tab" role="tab" tabindex="0" aria-selected="false" aria-controls="tab-regular" onclick="switchTab('regular',this)">定投ROI</button>
+      <button type="button" class="roi-tab" role="tab" tabindex="0" aria-selected="false" aria-controls="tab-compare" onclick="switchTab('compare',this)">方案对比</button>
+      <button type="button" class="roi-tab" role="tab" tabindex="0" aria-selected="false" aria-controls="tab-templates" onclick="switchTab('templates',this)">场景模板</button>
     </div>
 
     <div id="tab-simple" class="tab-panel active">
@@ -355,11 +355,14 @@ function fmtPct(n){
   return (n*100).toFixed(2) + '%';
 }
 
-function switchTab(name){
+function switchTab(name, btn){
   document.querySelectorAll('.roi-tab').forEach((b,i)=>{
     const panels = ['simple','regular','compare','templates'];
-    b.classList.toggle('active', panels[i]===name);
+    const active = panels[i]===name;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', active ? 'true' : 'false');
   });
+  if (btn && btn.focus) btn.focus();
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   if(name==='simple') setTimeout(drawSimpleChart,50);
@@ -370,11 +373,11 @@ function switchTab(name){
 function initTemplates(){
   const grid = document.getElementById('templateGrid');
   const __h0=templates.map((t,i)=>`
-    <div class="template-card" onclick="applyTemplate(${i})">
-      <div class="t-icon">${t.icon}</div>
+    <button type="button" class="template-card" onclick="applyTemplate(${i})" aria-label="${t.name}">
+      <div class="t-icon" aria-hidden="true">${t.icon}</div>
       <div class="t-name">${t.name}</div>
       <div class="t-desc">${t.desc}</div>
-    </div>
+    </button>
   `).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h0;
 }
 
@@ -403,12 +406,22 @@ function applyTemplate(i){
 }
 
 function calcSimple(){
-  const cost = parseFloat(document.getElementById('cost').value) || 0;
-  const ret = parseFloat(document.getElementById('return').value) || 0;
-  const v = parseFloat(document.getElementById('years').value) || 0;
+  // 必填字段先看原始字符串：终值为空不能按 0 计算成 -100%，折现率留空也不能静默按 0。
+  const costRaw = String(document.getElementById('cost').value || '').trim();
+  const retRaw = String(document.getElementById('return').value || '').trim();
+  const yearsRaw = String(document.getElementById('years').value || '').trim();
+  const discountRaw = String(document.getElementById('discount').value || '').trim();
+  const missing = costRaw === '' ? '成本' : retRaw === '' ? '期末价值/回报' : yearsRaw === '' ? '持有期' : discountRaw === '' ? '折现率' : '';
+  if(missing){
+    document.getElementById('simpleStats').innerHTML = '<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请填写' + missing + '；留空不计算，数字 0 才表示真实的零值。</div></div>';
+    return;
+  }
+  const cost = Number(costRaw);
+  const ret = Number(retRaw);
+  const v = Number(yearsRaw);
   const unit = document.getElementById('unit').value;
-  const discount = parseFloat(document.getElementById('discount').value) || 0;
-  if(cost <= 0 || ret < 0 || v <= 0){
+  const discount = Number(discountRaw);
+  if(!isFinite(cost) || !isFinite(ret) || !isFinite(v) || !isFinite(discount) || cost <= 0 || ret < 0 || v <= 0){
     const __h1='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请输入合理的正数</div></div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('simpleStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('simpleStats').innerHTML=__h1;
     return;
   }
@@ -557,11 +570,19 @@ function irrFromCashFlows(cashFlows, hint){
 }
 
 function calcRegular(){
-  const pmt = parseFloat(document.getElementById('monthly').value) || 0;
+  const pmtRaw = String(document.getElementById('monthly').value || '').trim();
+  const rateRaw = String(document.getElementById('annualRate').value || '').trim();
+  const periodRaw = String(document.getElementById('period').value || '').trim();
+  const missing = pmtRaw === '' ? '每期投入' : rateRaw === '' ? '年化收益率（无收益请显式填 0）' : periodRaw === '' ? '期限' : '';
+  if(missing){
+    document.getElementById('regularStats').innerHTML = '<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请填写' + missing + '；留空不计算。</div></div>';
+    return;
+  }
+  const pmt = Number(pmtRaw);
   const freq = document.getElementById('freq').value;
-  const annualRate = parseFloat(document.getElementById('annualRate').value) || 0;
-  const period = parseFloat(document.getElementById('period').value) || 0;
-  if(pmt <= 0 || period <= 0){
+  const annualRate = Number(rateRaw);
+  const period = Number(periodRaw);
+  if(!isFinite(pmt) || !isFinite(annualRate) || !isFinite(period) || pmt <= 0 || period <= 0){
     const __h3='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请输入合理的正数</div></div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('regularStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('regularStats').innerHTML=__h3;
     return;
   }
@@ -581,6 +602,10 @@ function calcRegular(){
   }
   const profit = fv - totalInvest;
   const roi = totalInvest > 0 ? profit / totalInvest : 0;
+  const profitPos = profit > 0, profitNeg = profit < 0;
+  const profitColor = profitPos ? 'var(--success)' : (profitNeg ? 'var(--danger)' : 'var(--text-muted)');
+  const profitSign = profitPos ? '+' : (profitNeg ? '-' : '');
+  const profitAbs = fmt(Math.abs(profit));
 
   // 真实现金流：每期期初投入 -pmt（t=0…nInt−1），期末资产 +fv（t=nInt）⇒ 求每期 IRR
   const cashFlows = [];
@@ -594,11 +619,11 @@ function calcRegular(){
 
   const __h4=`
     <div class="stat-card"><div class="val">${fmt(totalInvest)}</div><div class="lbl">累计投入</div></div>
-    <div class="stat-card"><div class="val" style="color:var(--success);">${fmt(fv)}</div><div class="lbl">期末终值</div></div>
-    <div class="stat-card"><div class="val" style="color:var(--success);">+${fmt(profit)}</div><div class="lbl">总收益</div></div>
+    <div class="stat-card"><div class="val" style="color:${profitColor};">${fmt(fv)}</div><div class="lbl">期末终值</div></div>
+    <div class="stat-card"><div class="val" style="color:${profitColor};">${profitSign}${profitAbs}</div><div class="lbl">总收益</div></div>
     <div class="stat-card"><div class="val">${fmtPct(roi)}</div><div class="lbl">累计收益率（总收益/累计投入）</div></div>
-    <div class="stat-card"><div class="val" style="color:var(--success);">${hasIrr ? fmtPct(nominalIrr) : '—'}</div><div class="lbl">年化收益率（IRR·名义）</div></div>
-    <div class="stat-card"><div class="val" style="color:var(--success);">${hasIrr ? fmtPct(effectiveIrr) : '—'}</div><div class="lbl">有效年化（IRR·复利）</div></div>
+    <div class="stat-card"><div class="val" style="color:${hasIrr ? (nominalIrr > 0 ? 'var(--success)' : (nominalIrr < 0 ? 'var(--danger)' : 'var(--text-muted)')) : 'var(--text-muted)'};">${hasIrr ? fmtPct(nominalIrr) : '—'}</div><div class="lbl">年化收益率（IRR·名义）</div></div>
+    <div class="stat-card"><div class="val" style="color:${hasIrr ? (effectiveIrr > 0 ? 'var(--success)' : (effectiveIrr < 0 ? 'var(--danger)' : 'var(--text-muted)')) : 'var(--text-muted)'};">${hasIrr ? fmtPct(effectiveIrr) : '—'}</div><div class="lbl">有效年化（IRR·复利）</div></div>
     <div class="stat-card"><div class="val">${nInt}</div><div class="lbl">定投期数</div></div>
   `;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('regularStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('regularStats').innerHTML=__h4;
   drawRegularChart();

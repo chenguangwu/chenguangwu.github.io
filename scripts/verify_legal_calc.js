@@ -1000,6 +1000,7 @@ const CASES = [
 { slug:"legal/severance-pay", inputs:{"workYears":"3","monthlySalary":"10000","salaryCap":"0","terminationType":"legal_plus"}, clicks:["calculate();"], expect:["N+1","40,000"], ref:"L-N9：合法解除未提前通知应出 N+1，3 年×10000=30000，加代通知金 10000=40000。" },
 { slug:"legal/court-fee", inputs:{"caseType":"property","amount":"-1"}, clicks:["calculate();"], expect:["请输入大于 0"], ref:"L-N11：财产案件标的为负不得按 50 元收费。" },
 
+{ slug:"legal/divorce-property", inputs:{houseValue:"100000",splitRatio:"custom",customRatio:"0"}, expect:["分割比例：我方 0% / 对方 100%","我方应得：0 元","对方应得：100,000 元"], ref:"自定义比例 0% 合法（全归对方）：10 万净资产 ⇒ 我方 0、对方 10 万，不得回落 50% 各 5 万。" }
 ];
 
 // ---------------------------------------------------------------- main

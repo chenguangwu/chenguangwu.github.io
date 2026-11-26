@@ -324,6 +324,7 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
+var PAGE_EN=/[?&]lang=en-US(?:&|$)/.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
 var RATIOS={
   residential:{mega:1.0,large:0.8,medium:0.6,small:0.5,unit:'unit',unitLabel:'住宅户数（户）',unitText:'户'},
   office:{mega:1.0,large:0.8,medium:0.6,small:0.5,unit:'100m2',unitLabel:'建筑面积（m²）',unitText:'100m²'},
@@ -335,6 +336,8 @@ var RATIOS={
   park:{mega:0.5,large:0.4,medium:0.3,small:0.25,unit:'1000m2',unitLabel:'公园用地面积（m²）',unitText:'1000m²'}
 };
 var CITY_NAMES={mega:'特大城市',large:'大城市',medium:'中等城市',small:'小城市'};
+var TYPE_EN={residential:'Residential',office:'Office',commercial:'Commercial complex',hotel:'Hotel',hospital:'Hospital',school:'School',cultural:'Cultural & sports venue',park:'Park'};
+var CITY_EN={mega:'Megacity',large:'Large city',medium:'Medium city',small:'Small city'};
 var TYPE_NAMES={residential:'住宅',office:'办公楼',commercial:'商业综合体',hotel:'酒店',hospital:'医院',school:'学校',cultural:'文化体育场馆',park:'公园'};
 function fmt(v,d){if(!isFinite(v))return '--';return Number(v).toFixed(d!=null?d:1);}
 function onTypeChange(){
@@ -352,6 +355,7 @@ function onTypeChange(){
   calc();
 }
 function calc(){
+  var en=PAGE_EN?true:false;
   var type=document.getElementById('inType').value;
   var city=document.getElementById('inCity').value;
   var area=parseFloat(document.getElementById('inArea').value);
@@ -360,18 +364,29 @@ function calc(){
   var visitorPct=parseFloat(document.getElementById('inVisitor').value)/100;
   var spaceArea=parseFloat(document.getElementById('inSpaceArea').value);
   var accessiblePct=parseFloat(document.getElementById('inAccessible').value)/100;
-  if(!area||area<=0||!ratio)return;
+  var visitorRaw=String(document.getElementById('inVisitor').value).trim();
+  var spaceRaw=String(document.getElementById('inSpaceArea').value).trim();
+  var accRaw=String(document.getElementById('inAccessible').value).trim();
+  visitorPct=visitorRaw===''?NaN:+visitorRaw/100;spaceArea=spaceRaw===''?NaN:+spaceRaw;accessiblePct=accRaw===''?NaN:+accRaw/100;
+  function fail(msg){['resTotal','resRegular','resVisitor','resArea'].forEach(function(id){document.getElementById(id).textContent='--';});document.getElementById('result').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ '+msg+'</p>';window._lastResult=null;}
+  if(!isFinite(area)||area<=0||!isFinite(ratio)||ratio<=0)return fail('请填写建筑面积（>0）与配建指标（>0）。');
+  if(!isFinite(visitorPct)||visitorPct<0||visitorPct>1)return fail('访客比例须在 0–100% 之间。');
+  if(!isFinite(accessiblePct)||accessiblePct<0||accessiblePct>0.1)return fail('无障碍车位比例须在 0–10% 之间。');
+  if(!isFinite(spaceArea)||spaceArea<20||spaceArea>50)return fail('单车位面积须在 20–50 m² 之间。');
   var r=RATIOS[type];
   var divisor=unitSel==='1000m2'?1000:(unitSel==='100m2'?100:(type==='school'?100:type==='cultural'?100:1));
   var total=area/divisor*ratio;
   var totalRound=Math.ceil(total);
-  var visitor=Math.ceil(totalRound*visitorPct);
+  if(totalRound<=0)return fail('计算得到的总车位为 0，请检查面积与配建指标。');
+  var visitor=Math.min(totalRound,Math.ceil(totalRound*visitorPct));
   var regular=totalRound-visitor;
-  var accessible=Math.max(1,Math.ceil(totalRound*accessiblePct));
+  var accessibleReq=Math.max(1,Math.ceil(totalRound*accessiblePct));
+  var accessible=Math.min(accessibleReq,totalRound);
+  var accessibleSource=regular>=accessible?'常规车位内':'访客车位内';
   var parkArea=totalRound*spaceArea;
-  const __g2=totalRound+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" items":" 个");document.getElementById('resTotal').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  const __g3=regular+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" items":" 个");document.getElementById('resRegular').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-  const __g4=visitor+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" items":" 个");document.getElementById('resVisitor').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  const __g2=totalRound+(PAGE_EN?" items":" 个");document.getElementById('resTotal').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  const __g3=regular+(PAGE_EN?" items":" 个");document.getElementById('resRegular').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  const __g4=visitor+(PAGE_EN?" items":" 个");document.getElementById('resVisitor').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   const __g5=fmt(parkArea,0)+' m²';document.getElementById('resArea').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   const __g6='<p><strong>建筑类型：</strong>'+TYPE_NAMES[type]+'</p>'+
     '<p><strong>城市规模：</strong>'+CITY_NAMES[city]+'</p>'+
@@ -380,9 +395,26 @@ function calc(){
     '<p><strong>计算过程：</strong>'+area.toLocaleString()+(divisor>1?' ÷ '+divisor:'')+' × '+ratio+' = '+fmt(total,1)+' → 取 '+totalRound+' 个</p>'+
     '<p><strong>常规车位：</strong>'+totalRound+' − '+visitor+' = '+regular+' 个</p>'+
     '<p><strong>访客车位：</strong>'+totalRound+' × '+(visitorPct*100).toFixed(0)+'% = '+visitor+' 个</p>'+
-    '<p><strong>无障碍车位：</strong>'+totalRound+' × '+(accessiblePct*100).toFixed(1)+'% = '+accessible+' 个（含在常规车位内）</p>'+
+    '<p><strong>无障碍车位：</strong>'+totalRound+' × '+(accessiblePct*100).toFixed(1)+'% = '+accessibleReq+' 个 → 取 '+accessible+' 个（计入总车位，从'+accessibleSource+'划出）</p>'+
+    '<p style="font-size:12px;color:var(--text-muted);">统计口径：总车位 = 常规车位 + 访客车位；无障碍车位计入总车位，不另加总数。优先从常规车位划出，常规不足时从访客车位划出，避免出现“常规车位为 0 却含无障碍车位”的矛盾。</p>'+
     '<p><strong>停车面积：</strong>'+totalRound+' × '+spaceArea+' = '+fmt(parkArea,0)+' m² ('+fmt(parkArea/10000,2)+' 公顷)</p>'+
     '<p><strong>校核：</strong><span class="grade-tag '+(accessible>=Math.ceil(totalRound*0.02)?'grade-excellent':'grade-fail')+'">'+(accessible>=Math.ceil(totalRound*0.02)?'无障碍车位满足≥2%':'不足')+'</span></p>';document.getElementById('result').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  if(en){
+    var rn=TYPE_EN[type]||type, cn=CITY_EN[city]||city;
+    var unitEn={'户':'households','100m²':'100 m²','1000m²':'1000 m²','床位':'beds','学生':'students','座位':'seats','车位':'parking spaces'}[r.unitText]||r.unitText;
+    document.getElementById('result').innerHTML=
+      '<p><strong>Building type:</strong>'+rn+'</p>'+
+      '<p><strong>City size:</strong>'+cn+'</p>'+
+      '<p><strong>Building scale:</strong>'+area.toLocaleString()+' '+unitEn+'</p>'+
+      '<p><strong>Provision ratio:</strong>'+ratio+' spaces / '+r.unitText+'</p>'+
+      '<p><strong>Calculation:</strong>'+area.toLocaleString()+(divisor>1?' ÷ '+divisor:'')+' × '+ratio+' = '+fmt(total,1)+' → '+totalRound+' spaces</p>'+
+      '<p><strong>Regular spaces:</strong>'+totalRound+' − '+visitor+' = '+regular+'</p>'+
+      '<p><strong>Visitor spaces:</strong>'+totalRound+' × '+(visitorPct*100).toFixed(0)+'% = '+visitor+'</p>'+
+      '<p><strong>Accessible spaces:</strong>'+totalRound+' × '+(accessiblePct*100).toFixed(1)+'% = '+accessibleReq+' → '+accessible+' (counted in the total, set aside from '+(regular>=accessible?'regular spaces':'visitor spaces')+')</p>'+
+      '<p style="font-size:12px;color:var(--text-muted);">Method: total = regular + visitor; accessible spaces are counted within the total, not added on top. They are taken from regular spaces first and from visitor spaces when regular spaces are insufficient, avoiding the contradiction of zero regular spaces still containing an accessible space.</p>'+
+      '<p><strong>Parking area:</strong>'+totalRound+' × '+spaceArea+' = '+fmt(parkArea,0)+' m² ('+fmt(parkArea/10000,2)+' ha)</p>'+
+      '<p><strong>Check:</strong><span class="grade-tag '+(accessible>=Math.ceil(totalRound*0.02)?'grade-excellent':'grade-fail')+'">'+(accessible>=Math.ceil(totalRound*0.02)?'Accessible spaces meet ≥2%':'Insufficient')+'</span></p>';
+  }
   window._lastResult={type:type,total:totalRound,regular:regular,visitor:visitor,accessible:accessible,parkArea:parkArea,city:CITY_NAMES[city]};
 }
 function copyResult(){
@@ -556,7 +588,7 @@ function __parking_ratioExtras(){
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__parking_ratioResText();
     if(!res) return;
-    var en=TBKit.util.isEn();
+    var en=PAGE_EN;
     var rk=en?'Result':'结果';
     var now=Date.now();
     if(now-__parking_ratio_last<1000) return;
@@ -584,7 +616,7 @@ function __parking_ratioExport(){
         if(!box||!box.querySelector('tr')){
             var snap=__parking_ratioSnap(); var keys=Object.keys(snap);
             if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            var en=PAGE_EN?true:false;
             __parking_ratioRender(keys,en?'Result':'结果',en);
         }
     }catch(e){}

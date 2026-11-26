@@ -115,7 +115,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入净利润、折旧摊销与营运资本增加额，求经营现金流。">Compute operating cash flow from net income, depreciation and amortization and changes in working capital.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">经营现金流（本页代码口径，单位万元）：OCF=净利润 NI+折旧摊销 DA−营运资本变动 dWC；联动量：现金流与净利之比=OCF÷(NI||1)、折旧占 OCF 比=DA÷(OCF||1)×100（%）。校验：无强校验，空值按 0 兜底（分母兜底防除零）。判据：无固定分级，dWC 为正（营运资本增加）扣减现金流、为负则回补，主结果保留 2 位小数。</div>
+      <div class="formula-eq">经营现金流（本页代码口径，单位万元）：OCF=净利润 NI+折旧摊销 DA−营运资本变动 dWC；联动量：现金流与净利之比=OCF÷NI、折旧占 OCF 比=DA÷OCF×100（%）；分母为 0 时显示不适用。校验：三项非空，净利润可为负，结果保留符号。判据：无固定分级，dWC 为正（营运资本增加）扣减现金流、为负则回补，主结果保留 2 位小数。</div>
       <p class="formula-desc">输入净利润、折旧摊销与营运资本增加额，求经营现金流。</p>
     </div>
 
@@ -280,14 +280,15 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __ratio(a,b,dec){if(!isFinite(a)||!isFinite(b)||b===0)return'—';return (a/b).toFixed(dec);}
 function calcTool(){
               var __ig=__tbInputGuard(['NI', 'DA', 'dWC'],["净利润 (万元)", "折旧摊销 (万元)", "营运资本增加 (万元)"]);if(__ig){ToolBox.setResult("result",__ig);return;}
 const NI=num('NI'),DA=num('DA'),dWC=num('dWC');
             const OCF=NI+DA-dWC;
             const __g1=dataGrid([
                 [OCF.toFixed(2),'经营现金流 OCF (万元)'],
-                [(OCF/(NI||1)).toFixed(4), '现金流/净利 比'],
-                [(DA/(OCF||1)*100).toFixed(3), '折旧占经营现金流比 (%)']
+                [__ratio(OCF,NI,4), '现金流/净利 比'],
+                [__ratio(DA*100,OCF,3), '折旧占经营现金流比 (%)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('NI').value = '120';
@@ -346,8 +347,8 @@ function __operating_cash_flowExtras(){
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['经营现金流 OCF (万元)', OCF.toFixed(2)],
-            ['现金流/净利 比', (OCF/(NI||1)).toFixed(4)],
-            ['折旧占经营现金流比 (%)', (DA/(OCF||1)*100).toFixed(3)],
+            [__ratio(OCF,NI,4), '现金流/净利 比'],
+            [__ratio(DA*100,OCF,3), '折旧占经营现金流比 (%)'],
         ]
     });
     TBKit.history.record({NI:__operating_cash_flowRaw('NI'), DA:__operating_cash_flowRaw('DA'), dWC:__operating_cash_flowRaw('dWC'), OCF:OCF});

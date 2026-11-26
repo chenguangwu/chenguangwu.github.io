@@ -242,13 +242,16 @@ function calcTool(){
             if(__raw('t')===''||__raw('c')===''){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 请填写应纳税额与可抵免金额后再计算。</p>');return;}
             const t=Number(__raw('t')),c=Number(__raw('c'));
             if(!Number.isFinite(t)||!Number.isFinite(c)||t<0||c<0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 应纳税额与抵免额须为不小于 0 的数值。</p>');return;}
-            const Tp=Math.max(t-c,0);
+            const applied=Math.min(c,t);
+            const unused=Math.max(c-t,0);
+            const Tp=t-applied;
             const __g1=dataGrid([
                 [Tp.toFixed(2),'抵免后税额 T′ (元)'],
-                [(c/Math.max(t,1e-9)).toFixed(4), '抵免额占税额比'],
-                [((t-c)/Math.max(t,1e-9)*100).toFixed(2), '税负下降幅度 (%)'],
-                [(1-Tp/Math.max(t,1e-9)).toFixed(4), '实际抵减比例']
-            ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+                [applied.toFixed(2), '实际抵减额'],
+                [t>0?(applied/t*100).toFixed(2):'不适用（原税额为 0）', '税负下降幅度 (%)'],
+                [unused.toFixed(2), '未使用抵免额']
+            ])+'<p style="color:var(--text-muted);font-size:12px;">抵减额不超过原税额；未使用部分能否结转或退还须按所在地区税制确认，本结果仅为简化估算。</p>';
+            ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('t').value = '5000';
       document.getElementById('c').value = '1000';

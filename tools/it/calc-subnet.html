@@ -86,7 +86,7 @@
       "name": "可用主机为什么要减 2？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "每个子网首尾分别是网络地址与广播地址，不能分配给主机；故可用数=2^(32-前缀)-2（/31 点对点链路例外为 2，/32 单主机为 0）。"
+        "text": "每个子网首尾分别是网络地址与广播地址，不能分配给主机；故可用数=2^(32-前缀)-2（/31 点对点链路例外为 2；/32 单地址主机路由按 1 个可用地址计，不与常规子网广播混淆）。"
       }
     },
     {
@@ -176,7 +176,7 @@
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
       <ul>
         <li>支持 IPv4，CIDR 前缀范围 0–32，掩码如 255.255.255.0 也可自动识别</li>
-        <li>/31 为点对点链路（2 个地址），/32 为单主机地址，主机数按规范处理</li>
+        <li>/31 为点对点链路（2 个可用地址），/32 为单地址主机路由（1 个可用地址）</li>
         <li>按 <kbd>Enter</kbd> 快速计算，<kbd>Ctrl/Cmd + Enter</kbd> 复制结果</li>
         <li>本工具纯前端运行，数据不会上传到服务器</li>
       </ul>
@@ -245,16 +245,47 @@ function ipClass(ip){
   if(a>=240) return 'E（保留）';
   return '-';
 }
-function ipType(ip){
-  var a = (ip>>>24)&255, b = (ip>>>16)&255;
-  if(a===10) return '私有';
-  if(a===172 && b>=16 && b<=31) return '私有';
-  if(a===192 && b===168) return '私有';
-  if(a===127) return '环回';
-  if(a===169 && b===254) return '链路本地';
-  if(a>=224) return '特殊';
-  return '公网';
+// IPv4 特殊用途登记表（常用项；按 IANA Special-Purpose Address Registry 口径）。
+// 分类看“用户输入的网段覆盖范围”，而不是只看网络地址；跨多个用途时标为混合。
+var IPV4_SPECIAL = [
+  { s: '0.0.0.0/8', t: '本网络/保留' },
+  { s: '10.0.0.0/8', t: '私有' },
+  { s: '100.64.0.0/10', t: '共享地址（CGNAT）' },
+  { s: '127.0.0.0/8', t: '环回' },
+  { s: '169.254.0.0/16', t: '链路本地' },
+  { s: '172.16.0.0/12', t: '私有' },
+  { s: '192.0.0.0/24', t: 'IETF 协议分配/保留' },
+  { s: '192.0.2.0/24', t: '文档示例' },
+  { s: '192.88.99.0/24', t: '6to4 中继（已废弃）' },
+  { s: '192.168.0.0/16', t: '私有' },
+  { s: '198.18.0.0/15', t: '基准测试' },
+  { s: '198.51.100.0/24', t: '文档示例' },
+  { s: '203.0.113.0/24', t: '文档示例' },
+  { s: '224.0.0.0/4', t: '组播' },
+  { s: '240.0.0.0/4', t: '保留' },
+  { s: '255.255.255.255/32', t: '广播地址' }
+];
+function ipRangeType(network, broadcast){
+  if(network === broadcast && network === 0xFFFFFFFF) return '广播地址';
+  var exact = [], partial = [];
+  IPV4_SPECIAL.forEach(function(r){
+    var start = ipToInt(r.s.split('/')[0]);
+    var pref = parseInt(r.s.split('/')[1], 10);
+    var end = (start + Math.pow(2, 32-pref) - 1) >>> 0;
+    if(broadcast < start || network > end) return;
+    if(network >= start && broadcast <= end) exact.push({ t: r.t, p: pref });
+    else partial.push(r.t);
+  });
+  if(exact.length) {
+    exact.sort(function(a,b){ return b.p-a.p; });
+    var best = exact[0];
+    var same = exact.filter(function(x){ return x.p===best.p && x.t!==best.t; });
+    return same.length ? '混合（' + [best.t].concat(same.map(function(x){return x.t;})).join('、') + '）' : best.t;
+  }
+  if(partial.length) return '混合（含 ' + partial.join('、') + (partial.length === 1 ? '，并延伸到公网' : '') + '）';
+  return '公网（未列入特殊用途）';
 }
+function ipType(ip){ return ipRangeType(ip, ip); }
 
 function setInvalid(el,invalid){
   if(!el)return;
@@ -300,10 +331,12 @@ function calc(){
     '</div>'+
     '<div class="data-grid" style="margin-top:8px;">'+
     '<div class="data-card"><div class="num">'+totalAddrs.toLocaleString('zh-CN')+'</div><div class="label">地址总数</div></div>'+
-    '<div class="data-card"><div class="num">'+ipClass(network)+'</div><div class="label">IP 类别</div></div>'+
-    '<div class="data-card"><div class="num">'+ipType(network)+'</div><div class="label">地址类型</div></div>'+
+    '<div class="data-card"><div class="num">'+ipClass(ip)+'</div><div class="label">IP 类别（输入地址）</div></div>'+
+    '<div class="data-card"><div class="num">'+ipRangeType(network,broadcast)+'</div><div class="label">地址类型（网段口径）</div></div>'+
     '<div class="data-card"><div class="num">'+intToIp(network)+'/'+prefix+'</div><div class="label">CIDR 表示</div></div>'+
-    '</div>';
+    '</div>'+
+    '<p style="font-size:12px;color:var(--text-secondary);margin-top:10px;">分类口径：按 IANA IPv4 特殊用途登记表的常用范围逐段比对；公网指未列入特殊用途，网段覆盖多个用途或延伸到特殊范围之外时标为“混合”。</p>'+
+    (prefix===32?'<p style="font-size:12px;color:var(--text-secondary);margin-top:10px;">说明：/32 是单地址主机路由，可用地址数为 1（不是 0）；广播地址与网络地址相同，不代表常规子网广播。</p>':'');
   const __g3=res;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   saveHistory(ipEl.value, cEl.value, intToIp(network)+'/'+prefix);
 }
@@ -311,12 +344,14 @@ function calc(){
 function divideSubnets(){
   var ip = ipToInt(document.getElementById('ip').value);
   var pc = parseCidrInput(document.getElementById('cidr').value);
-  var n = parseInt(document.getElementById('subN').value,10);
+  var rawN = String(document.getElementById('subN').value || '').trim();
   if(ip===null){ document.getElementById('subRes').innerHTML='<p style="color:var(--danger);">请先输入合法 IP</p>'; return; }
   if(pc.err){ document.getElementById('subRes').innerHTML='<p style="color:var(--danger);">请先输入合法掩码/前缀</p>'; return; }
-  if(isNaN(n)||n<1){ document.getElementById('subRes').innerHTML='<p style="color:var(--danger);">子网数量需为正整数</p>'; return; }
+  if(!/^\d+$/.test(rawN)){ document.getElementById('subRes').innerHTML='<p style="color:var(--danger);">子网数量需为正整数（不接受小数、负号或科学计数法）</p>'; return; }
+  var n = Number(rawN);
+  if(!Number.isSafeInteger(n) || n<1) { document.getElementById('subRes').innerHTML='<p style="color:var(--danger);">子网数量需为正整数</p>'; return; }
   // IT-N321：表格逐行渲染，必须先拦住可让页面卡死的规模；上限与 input[max] 保持一致。
-  if(!Number.isSafeInteger(n) || n>4096){ document.getElementById('subRes').innerHTML='<p style="color:var(--danger);">子网数量超出展示上限（最多 4096 个），请减少 N 后再划分</p>'; return; }
+  if(n>4096){ document.getElementById('subRes').innerHTML='<p style="color:var(--danger);">子网数量超出展示上限（最多 4096 个），请减少 N 后再划分</p>'; return; }
 
   var prefix = pc.prefix;
   var bits = Math.ceil(Math.log2(n));
@@ -332,7 +367,7 @@ function divideSubnets(){
     var subNet = (network + i*blockSize) >>> 0;
     var subBcast = (subNet + blockSize - 1) >>> 0;
     var subMask = prefixToMask(newPrefix);
-    var usable = newPrefix>=32?0:(newPrefix===31?2:blockSize-2);
+    var usable = newPrefix===32?1:(newPrefix===31?2:blockSize-2);
     var first = newPrefix>=31?subNet:(subNet+1)>>>0;
     var last = newPrefix>=31?subBcast:(subBcast-1)>>>0;
     rows.push([
@@ -344,7 +379,8 @@ function divideSubnets(){
       usable.toLocaleString('zh-CN')
     ]);
   }
-  var html = '<p style="margin-bottom:8px;">借用 <strong>'+bits+'</strong> 位主机位，新前缀 <strong>/'+newPrefix+'</strong>，实际可划分 <strong>'+realN+'</strong> 个子网（每个子网 '+ (newPrefix>=31?(blockSize):(blockSize-2)) +' 个可用主机）</p>';
+  var html = '<p style="margin-bottom:8px;">借用 <strong>'+bits+'</strong> 位主机位，新前缀 <strong>/'+newPrefix+'</strong>，实际可划分 <strong>'+realN+'</strong> 个子网（每个子网 '+ (newPrefix===32?1:(newPrefix===31?2:blockSize-2)) +' 个可用主机）</p>';
+  if(newPrefix===32) html += '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">/32 为单地址主机路由：每个子网只有 1 个可用地址，表格“可用主机”为 1 而不是 0。</p>';
   html += ToolBox.createTable(['#','子网 CIDR','子网掩码','网络地址','广播地址','可用主机'], rows);
   const __g8=html;document.getElementById('subRes').innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
 }
@@ -583,7 +619,7 @@ else document.addEventListener('DOMContentLoaded', __calc_subnetBoot);
 <div class="dd-example"><div class="dd-ex-title"><a class="term-link" href="/tools/telecom/subnet-planner.html">子网划分</a>示例</div><div class="dd-ex-body">输入 192.168.1.100 / 前缀 24 → 网络地址 192.168.1.0、广播 192.168.1.255、子网掩码 255.255.255.0、通配符 0.0.0.255；总地址 256、可用主机 254（首 192.168.1.1 ~ 末 192.168.1.254）。若前缀改为 /26，则每段仅 64 地址、可用 62，适合小 VLAN 隔离。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>可用主机为什么要减 2？</dt><dd>每个子网首尾分别是网络地址与广播地址，不能分配给主机；故可用数=2^(32-前缀)-2（/31 点对点链路例外为 2，/32 单主机为 0）。</dd>
+<dt>可用主机为什么要减 2？</dt><dd>每个子网首尾分别是网络地址与广播地址，不能分配给主机；故可用数=2^(32-前缀)-2（/31 点对点链路例外为 2；/32 单地址主机路由按 1 个可用地址计，不与常规子网广播混淆）。</dd>
 <dt>前缀怎么选？</dt><dd>先估最大主机数 N，找最小前缀使 2^(32-前缀)-2 ≥ N；常见：/24 约 254 台、/26 约 62 台、/30 点对点 2 台。前缀越小网段越大。</dd>
 </dl>
 </div>

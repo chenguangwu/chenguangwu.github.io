@@ -236,7 +236,8 @@ const digits = ['零','一','二','三','四','五','六','七','八','九'];
 const units = ['','十','百','千'];
 const bigUnits = ['','万','亿','万亿'];
 
-function segToChinese(seg){
+function segToChinese(seg, allowOmitTen){
+  seg = Number(seg) || 0;
   let res = '';
   const s = seg.toString().padStart(4, '0');
   let zero = false;
@@ -251,7 +252,7 @@ function segToChinese(seg){
         zero = false;
       }
       // 一十 读作 十（仅当首位是1，且前无其他字时省略一）
-      if(d === 1 && pos === 1 && !res) {
+      if(d === 1 && pos === 1 && !res && allowOmitTen) {
         res += units[pos];
       } else {
         res += digits[d] + units[pos];
@@ -262,6 +263,7 @@ function segToChinese(seg){
 }
 
 function integerToChinese(n){
+  n = Number(n) || 0;
   if(n === 0) return '零';
   const segs = [];
   let num = n;
@@ -278,7 +280,7 @@ function integerToChinese(n){
       prevAllZero = true;
       return;
     }
-    let segStr = segToChinese(seg);
+    let segStr = segToChinese(seg, i === 0);
     if(result && (prevAllZero || seg < 1000)){
       // 段间补零
       if(seg < 1000 || prevAllZero) {
@@ -298,17 +300,6 @@ function integerToChinese(n){
   return result;
 }
 
-// 小数位四舍五入到最多 4 位，避免 IEEE754 尾数噪音；carry=1 表示进位到整数
-function roundDecimal(dec, maxLen){
-  if(dec.length <= maxLen) return {dec: dec, carry: 0};
-  const keep = dec.slice(0, maxLen);
-  const next = parseInt(dec.charAt(maxLen), 10);
-  let v = Number(keep || '0');
-  if(next >= 5) v += 1;
-  if(v >= Math.pow(10, maxLen)) return {dec: '', carry: 1};
-  return {dec: String(v).padStart(maxLen, '0'), carry: 0};
-}
-
 function numberToChinese(str){
   let neg = '';
   let body = String(str);
@@ -316,18 +307,17 @@ function numberToChinese(str){
   const dot = body.indexOf('.');
   const intRaw = dot >= 0 ? body.slice(0, dot) : body;
   const decRaw = dot >= 0 ? body.slice(dot + 1) : '';
-  const rounded = roundDecimal(decRaw, 4);
-  const intNum = Number(intRaw || '0') + rounded.carry;
-  const dec = rounded.dec.replace(/0+$/, '');
+  const intNum = Number(intRaw || '0');
   let result = neg;
   if(intNum === 0){
     result += '零';
   } else {
     result += integerToChinese(intNum);
   }
-  if(dec){
+  // 按输入字符串逐位读小数，保留末尾零，不四舍五入、不截断，避免读音改变原数。
+  if(decRaw){
     result += '点';
-    for(const ch of dec){
+    for(const ch of decRaw){
       result += digits[parseInt(ch, 10)];
     }
   }

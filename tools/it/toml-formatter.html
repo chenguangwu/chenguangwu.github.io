@@ -589,7 +589,7 @@ function parseToml(text) {
   return root;
 }
 
-function tomlStringify(obj, prefix = '') {
+function tomlStringify(obj, prefixParts = []) {
   if (!obj || typeof obj !== 'object') obj = {};
   let result = '';
   const tables = [];
@@ -611,17 +611,20 @@ function tomlStringify(obj, prefix = '') {
   }
   
   for (const [key, value] of tables) {
-    const fullKey = prefix ? `${prefix}.${key}` : key;
+    // 第807批：每一级键单独按 TOML 规则引用，再以点号连接；"a.b" 不能变成 a.b 两级
+    const parts = prefixParts.concat([key]);
+    const fullKey = parts.map(formatTomlKey).join('.');
     if (result) result += '\n';
     result += `[${fullKey}]\n`;
-    result += tomlStringify(value, fullKey);
+    result += tomlStringify(value, parts);
   }
 
   for (const [key, list] of tableArrays) {
-    const fullKey = prefix ? `${prefix}.${key}` : key;
+    const parts = prefixParts.concat([key]);
+    const fullKey = parts.map(formatTomlKey).join('.');
     for (const item of list) {
       if (result) result += '\n';
-      result += `[[${fullKey}]]\n` + tomlStringify(item, fullKey);
+      result += `[[${fullKey}]]\n` + tomlStringify(item, parts);
     }
   }
   
@@ -983,7 +986,7 @@ else document.addEventListener('DOMContentLoaded', __toml_formatterBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -991,7 +994,7 @@ else document.addEventListener('DOMContentLoaded', __toml_formatterBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

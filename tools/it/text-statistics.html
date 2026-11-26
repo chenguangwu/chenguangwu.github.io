@@ -109,7 +109,7 @@
     <h2 data-zh="📊 文本统计分析">📊 Text Statistics Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="统计字数、词频、阅读时间，支持中英文">Show statistics for your text in your browser — character, word and sentence counts.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">文本统计与词频分析<br>中文字符 = Unicode 4E00–9FA5 区间逐字匹配<br>中文词 = 连续汉字串拆分单字；英文词 = [a-zA-Z]+ 连续串转小写<br>总词数 = 中文单字 + 英文词（不去停用词）<br>去停用词 = 过滤停用词后的词数；不同词 = 去停用词后去重计数<br>句子 = 按 。！？.!? 分隔<br>段落 = 按空行分隔<br>阅读时间 = 0（空文本）或 max(1, ⌈中文字数÷300 + 英文词数÷200⌉) 分钟<br>中文按 300 字/分、英文按 200 词/分计<br>词频 Top20 按次数降序，条形相对最高频归一化</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">文本统计与词频分析<br>中文字符 = Unicode Han 脚本（含基本区、扩展 A/B 等）逐字匹配<br>中文词 = 连续汉字串拆分单字；英文词 = [a-zA-Z]+ 连续串转小写<br>总词数 = 中文单字 + 英文词（不去停用词）<br>去停用词 = 过滤停用词后的词数；不同词 = 去停用词后去重计数<br>句子 = 按 。！？.!? 分隔<br>段落 = 按空行分隔<br>阅读时间 = 0（空文本）或 max(1, ⌈中文字数÷300 + 英文词数÷200⌉) 分钟<br>中文按 300 字/分、英文按 200 词/分计<br>词频 Top20 按次数降序，条形相对最高频归一化</div>
   <div class="formula-desc">统计文本的量化指标。</div>
   <ul class="formula-list">
     <li><b>维度</b>：字符数、词数、句数、段落数、行数、字节数与估算阅读时长。</li>
@@ -243,11 +243,15 @@ function splitSentences(text){
 
 function analyze() {
   const text = document.getElementById('textInput').value;
-  const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
-  const chineseWords = text.match(/[\u4e00-\u9fa5]+/g) || [];
+  // IT：汉字不止 U+4E00–9FA5，使用 Unicode Han 脚本（含扩展区）；无属性转义支持时回退到基本区+扩展 A/兼容区。
+  let HAN_CHAR, HAN_RUN;
+  try { HAN_CHAR = new RegExp('\\p{Script=Han}', 'gu'); HAN_RUN = new RegExp('\\p{Script=Han}+', 'gu'); }
+  catch(e) { HAN_CHAR = /[\u3400-\u9fff\uf900-\ufaff]/g; HAN_RUN = /[\u3400-\u9fff\uf900-\ufaff]+/g; }
+  const chineseChars = (text.match(HAN_CHAR) || []).length;
+  const chineseWords = text.match(HAN_RUN) || [];
   const englishWords = (text.match(/[a-zA-Z]+/g) || []).map(w => w.toLowerCase());
   // IT-N 口径：总词数不去停用词，避免输入 the 时显示「英文词 1 / 总词数 0」自相矛盾；词频仍按停用词过滤。
-  const allWords = [...chineseWords.flatMap(w => w.split('')), ...englishWords].filter(w => w && w.length > 0);
+  const allWords = [...chineseWords.flatMap(w => Array.from(w)), ...englishWords].filter(w => w && w.length > 0);
   const contentWords = allWords.filter(w => !stopWords.has(w));
   
   // 用无原型对象：否则 constructor/toString 等词会读到 Object.prototype 上的继承属性，
@@ -264,8 +268,10 @@ function analyze() {
   const codePoints = Array.from(text).length;
   const charsNoSpace = graphemeCount(text.replace(/\s/g, ''));
   // IT-N39：裸 CR 也须切行；句子边界排除小数点（3.14）与常见缩写内的句点
-  const lines = text.split(/\r\n|\r|\n/).length;
-  const paragraphs = text.split(/\r\n|\r|\n\s*(?:\r\n|\r|\n)/).filter(p => p.trim()).length;
+  const normalized = text.replace(/\r\n?/g, '\n');
+  const lines = normalized.split('\n').length;
+  // 段落只按空行切分：单个换行属于同一段；CRLF/CR 先统一成 LF，空格空行也算分隔。
+  const paragraphs = normalized.split(/\n\s*\n/).filter(p => p.trim()).length;
   const sentences = splitSentences(text).filter(s => s.trim()).length;
   // 中英文混排的阅读时间应相加后一次取整；逐项 ceil 再 max 会把 300 汉字 + 200 英文词算成 1 分钟。
   const readMinutesRaw = chineseChars / 300 + englishWords.length / 200;
@@ -477,7 +483,7 @@ else document.addEventListener('DOMContentLoaded', __text_statisticsBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -485,7 +491,7 @@ else document.addEventListener('DOMContentLoaded', __text_statisticsBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

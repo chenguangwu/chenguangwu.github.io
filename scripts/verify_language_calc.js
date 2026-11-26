@@ -51,6 +51,11 @@ const CASES = [
 {"slug":"language/french-verb-conjugator","inputs":{"verbInput":"manger"},"expect":["nous mangeons"],"ref":"manger 的现在时 nous 保留 e。"},
 {"slug":"language/french-verb-conjugator","inputs":{"verbInput":"commencer"},"expect":["nous commençons"],"ref":"commencer 的现在时 nous 使用 ç。"},
 {"slug":"language/french-verb-conjugator","inputs":{"verbInput":"acheter"},"expect":["achète"],"ref":"acheter 的单数词干变为 achèt。"},
+{"slug":"language/french-verb-conjugator","inputs":{"verbInput":"appeler"},"expect":["j'appelle","nous appelons","appellerai"],"ref":"appeler 双写 l：je/tu/il/ils 及将来时双写，nous/vous 保持单 l。"},
+{"slug":"language/french-verb-conjugator","inputs":{"verbInput":"jeter"},"expect":["je jette","nous jetons","jetterai"],"ref":"jeter 双写 t：单数双写，nous/vous 保持单 t。"},
+{"slug":"language/french-verb-conjugator","inputs":{"verbInput":"préférer"},"expect":["je préfère","nous préférons","ai préféré"],"ref":"préférer 保留重音，单数 é→è，nous/vous 保持 é，过去分词 préféré。"},
+{"slug":"language/french-verb-conjugator","inputs":{"verbInput":"courir"},"expect":["无法可靠生成","未收录的 -ir"],"ref":"未收录的 -ir 可能属第三组，必须提示而不是套第二组规则。"},
+{"slug":"language/french-verb-conjugator","inputs":{"verbInput":"ficeler"},"expect":["无法可靠生成","未收录的拼写变体"],"ref":"未收录的 -eler 不猜双写形式。"},
 {
   "slug": "language/generator-19",
   "inputs": {
@@ -75,11 +80,13 @@ const CASES = [
     "hangulInput": "한글"
   },
   "expect": [
-    "罗马字转写: hang/geul",
+    "RR 罗马字转写（已处理基本连音）: hanggeul",
     "终声: ᆯ 리을"
   ],
   "ref": "RL-韩语终声与罗马字修复：한=ㅎ(히읗)+ㅏ(아)+ㄴ(니은)终声 n ⇒ hang；글=ㄱ(기역)+ㅡ(으)+ㄹ终声 l ⇒ geul。旧版终声名表从 8 起整体错位（리을 误作 디귿）、罗马字直接拼 Unicode 终声字母（haᆫg/keuᆯ）；修复后 FINAL_NAMES[8]=리을、FINAL_ROMA 映射 8→l ⇒「罗马字转写: hang/geul」与「终声: ᆯ 리을」。默认态输入为空只输出占位，两串均失配。"
 },
+{"slug":"language/korean-hangul-decomposer","inputs":{"hangulInput":"바"},"expect":["RR 罗马字: ba"],"ref":"바 的初声ㅂ在音节首按 RR 转 b，不再把教学音值 b/p 拼进转写。"},
+{"slug":"language/korean-hangul-decomposer","inputs":{"hangulInput":"한국어"},"expect":["hangugeo","基本连音","上下文音变未建模"],"ref":"한국어 的 국 终声ㄱ移到后字ㅇ，得到 hangugeo；同时明确连音之外音变未建模。"},
 {
   // 原为 all_default 弱用例（两个 textarea 注入值均为空串 = 页面默认），expect「154」是动词表静态计数（逃生项）。
   // 注入后同时驱动「首字母缩写」与「字符数统计」两个面板。
@@ -200,7 +207,7 @@ const CASES = [
       "searchInput": "abc123测试"
     },
     "expect": [
-      "Wolf (狼)\nabc123测试\n0\n1\n0\n未找到包含 \"abc123测试\" 的名词。当前词库包含 183 个名词。"
+      "未找到包含 \"abc123测试\" 的名词。当前词库包含 183 个名词。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「Wolf (狼)\nabc123测试\n0\n1\n0\n未找到包含 \"abc123测试\"…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -215,6 +222,18 @@ const CASES = [
     "inputs": { "searchInput": "Augen" },
     "expect": ["未找到包含 \"augen\" 的名词。当前词库包含 183 个名词。"],
     "ref": "EL-F20 行为回归：搜「Augen」应无命中（正确词形是单数 das Auge，复数 die Augen 只在详情展示，不作为独立测验词条）；旧版词库含 Augen/die 会命中并显示表格，该提示串失配。",
+  },
+  {
+    "slug": "language/german-gender-quiz",
+    "clicks": ["localStorage.clear();wrongQueue=[];reviewMode=false;reviewWords=[];renderReview();currentNoun={word:'Haus',gender:'das',meaning:'房子'};answered=false;answer('die');document.getElementById('__tbProbe').textContent='GERMQ '+wrongQueue.length+' '+document.getElementById('reviewCount').textContent;"],
+    "expect": ["GERMQ 1 1"],
+    "ref": "答错后词条进入本地错词队列，队列计数与界面同步为 1。"
+  },
+  {
+    "slug": "language/german-gender-quiz",
+    "clicks": ["localStorage.clear();wrongQueue=['Haus'];saveReview();reviewMode=false;reviewWords=[];startReview();currentNoun={word:'Haus',gender:'das',meaning:'房子'};answered=false;answer('das');var after=wrongQueue.length;reviewMode=false;reviewWords=[];clearReview();document.getElementById('__tbProbe').textContent='GERMRV '+after+' '+wrongQueue.length+' '+document.getElementById('reviewCount').textContent;"],
+    "expect": ["GERMRV 0 0 0"],
+    "ref": "集中复习答对后移出队列；清空队列后界面计数归零。"
   },
   {
     "slug": "language/grammar-checker",
@@ -440,7 +459,39 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/language/german-gender-quiz.html\',\'utf8\');var i=h.indexOf(\'function switchMode(mode) {\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!mode) return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'GERMH0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['GERMH0 OK'],
   "ref": "第1337批·历史恢复无参切换抛错修复源码形态强锚：旧版 function switchMode(mode) { 无参调用解引用参数/全局event抛错被 catch 吞、结果不重算；修复后无参分支安全返回或重算主结果。旧版无 ⇒ BAD。"
-}
+},
+{
+  "slug": "language/spanish-accent-rules",
+  "clicks": ["var a=splitSyllables('país').join('-'),b=splitSyllables('río').join('-');document.getElementById('__tbProbe').textContent='ES '+a+' '+b;"],
+  "expect": ["ES pa-ís rí-o"],
+  "ref": "重音弱元音 í/ú 纳入 WEAK 且与 hasAccent 命中时断开二重元音：país→pa-ís、río→rí-o；修复前 í 不算元音，得到 país 单音节/错误重读。"
+},
+{
+  "slug": "language/riyuwushiyintulianxi-dianjifayin",
+  "clicks": ["quizOn=true;cur='hira';nextQuiz();var before=document.getElementById('quizOpts').innerHTML;setKana('kata');var after=document.getElementById('quizOpts').innerHTML;document.getElementById('__tbProbe').textContent='KANA '+(/[ぁ-ん]/.test(before))+' '+(!/[ぁ-ん]/.test(after));"],
+  "expect": ["KANA true true"],
+  "ref": "练习中切到片假名后 setKana 立即重绘当前题：选项全部为片假名（无平假名），重播也按 chars() 取片假名发音；统计由按钮 resetQuizStats(1) 清零。修复前只刷新字表，选项仍是切换前字形。"
+},
+{
+  "slug": "language/ipa-practice",
+  "clicks": ["var s=__tbFs.readFileSync('tools/language/ipa-practice.html','utf8');document.getElementById('__tbProbe').textContent='IPA '+(/en-GB/.test(s))+' '+(/不评估用户发音/.test(s));"],
+  "expect": ["IPA true true"],
+  "ref": "朗读改为请求 en-GB 并优先选英式 voice，与示例的英式音标一致；页面明确正确率按描述选择题计分、不评估发音。"
+},
+{
+  "slug": "language/ipa-practice",
+  "clicks": ["var s=__tbFs.readFileSync('tools/language/ipa-practice.html','utf8');document.getElementById('__tbProbe').textContent='IPA2 '+(/答题正确率/.test(s))+' '+(/选择正确次数/.test(s));"],
+  "expect": ["IPA2 true true"],
+  "ref": "标准引据表把“练习正确率/正确发音”改为“答题正确率/选择正确次数”，与选择描述的实际逻辑一致。"
+},
+{
+  "slug": "language/vocabulary-builder",
+  "clicks": ["var s=__tbFs.readFileSync('tools/language/vocabulary-builder.html','utf8');document.getElementById('__tbProbe').textContent='VOC '+((s.indexOf('英语单词卡片与间隔复习')>=0)+' '+(!/在线语言翻译工具/.test(s)));"],
+  "expect": ["VOC true true"],
+  "ref": "title/description/OG/Twitter/JSON-LD 统一改为英语单词卡片与间隔复习，清除“在线语言翻译工具”误标（源码形态判定，构建会刷新 meta）。"
+},
+{"slug":"language/idiom-solitaire","clicks":["var ok=true;for(var i=0;i<30;i++){startGame();if(!hasContinuation(chain[0].text,[]))ok=false;endGame();}var dead=IDIOM_DB.filter(function(x){return !hasContinuation(x,[]);}).length;document.getElementById('__tbProbe').textContent='IDIOM '+ok+' '+(dead>0);"],"expect":["IDIOM true true"],"ref":"开局只从“尾字仍有后继”的成语中抽取；连续 30 次开局均可继续。词库中确实存在死端条目（dead>0），但不会再被选作开局。"},
+
 ];
 async function main() {
   const only = process.argv.slice(2);

@@ -289,15 +289,17 @@ function toggleToolTheme(){
   }
 })();
 
+var __lastTruncated='';
 function truncate(){
   const text = document.getElementById('input').value;
   const result = document.getElementById('result');
-  if(!text){ result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Please enter text...":"请输入文本..."); return; }
+  if(!text){ __lastTruncated=''; result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Please enter text...":"请输入文本..."); return; }
 
   const mode = document.getElementById('mode').value;
   const rawLimit = document.getElementById('limit').value.trim();
   const limit = Number(rawLimit);
   if(!Number.isInteger(limit) || limit < 1){
+    __lastTruncated='';
     result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a valid keep count (positive integer, at least 1).":"请输入有效的保留数量（正整数，且不少于 1）。");
     return;
   }
@@ -340,10 +342,12 @@ function truncate(){
       }
       return cps.slice(0, keep).join('') + ellipsis;
     }else if(mode === 'words'){
-      const words = s.split(/\s+/);
+      // 按非空白词的实际位置截取：不把首尾/连续空白误计为词，也不重排原有空格与换行。
+      const words=[]; const re=/\S+/g; let m;
+      while((m=re.exec(s))) words.push({start:m.index,end:m.index+m[0].length});
       if(words.length > limit){
-        const out = fromEnd ? words.slice(words.length - limit).join(' ') : words.slice(0, limit).join(' ');
-        return fromEnd ? ellipsis + out : out + ellipsis;
+        if(fromEnd) return ellipsis + s.slice(words[words.length-limit].start);
+        return s.slice(0, words[limit-1].end) + ellipsis;
       }
     }else if(mode === 'lines'){
       const lines = s.split('\n');
@@ -388,21 +392,25 @@ function truncate(){
     return s;
   }
 
+  let outText;
   if(perLine && mode !== 'lines'){
     const lines = text.split('\n');
-    result.textContent = lines.map(truncOne).join('\n');
+    outText = lines.map(truncOne).join('\n');
   }else{
-    result.textContent = truncOne(text);
+    outText = truncOne(text);
   }
+  result.textContent = outText;
+  __lastTruncated = outText;  // 复制只认有效结果，错误提示不进入剪贴板
 }
 
 function copyResult(ev){
-  const text = document.getElementById('result').textContent;
-  if(!text || text === ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Please enter text...":"请输入文本...")){ alert('请先截断文本'); return; }
+  const text = __lastTruncated;
+  if(!text){ alert('请先输入有效文本与保留数量后再复制'); return; }
   const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
+  if(!navigator.clipboard || !navigator.clipboard.writeText){ alert('当前环境不支持剪贴板，请手动复制'); return; }
   navigator.clipboard.writeText(text).then(() => {
     if(btn){ const old = btn.textContent; btn.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"✅ Copied":"✅ 已复制"); setTimeout(() => btn.textContent = old, 1500); }
-  });
+  }).catch(() => alert('复制失败，请手动选择结果复制'));
 }
 
 function clearAll(){
@@ -576,7 +584,7 @@ else document.addEventListener('DOMContentLoaded', __text_truncateBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -584,7 +592,7 @@ else document.addEventListener('DOMContentLoaded', __text_truncateBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

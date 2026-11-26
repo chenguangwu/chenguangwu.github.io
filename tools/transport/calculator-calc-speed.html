@@ -132,7 +132,7 @@
     <h2 data-zh="🛑 刹车距离计算器">Braking Distance Calculator</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">车速(km/h) 先 ÷3.6 化为 v(m/s)；反应距离 = v×反应时间 t；制动距离 = v² ÷ [2×9.81×(附着系数μ + 坡度%÷100)]，分母 ≤0 时记 Infinity；总停车距离 = 反应距离 + 制动距离；另输出距离/车速比 = 总距离÷1000×车速。校验：车速 ≤0 或反应时间 &lt;0 提示报错返回。判据：总距离 &lt;40m 安全、&lt;80m 正常、&lt;150m 偏长、≥150m 危险，并绘制多车速对照图。</div>
+      <div class="formula-eq">车速(km/h) 先 ÷3.6 化为 v(m/s)；反应距离 = v×反应时间 t；制动距离 = v² ÷ [2×9.81×(附着系数μ + 坡度%÷100)]，分母 ≤0 时记 Infinity；总停车距离 = 反应距离 + 制动距离；另输出距离/车速比 = 总距离÷1000×车速。校验：车速须 &gt;0、反应时间须 ≥0 且不得留空，坡度有效且分母 &gt;0，否则停止计算。判据：仅按理论总距离分档（&lt;40m 较短、&lt;80m 中等、&lt;150m 偏长、≥150m 很长），不构成安全结论；并绘制多车速对照图。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基于车速、反应时间、路面附着系数与坡度，计算反应距离、制动距离和总停车距离。">Calculator Calc Speed</p>
 
@@ -245,12 +245,15 @@
 var G=9.81;
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function calc(){
-  var v_kmh=num('speed'),t=num('reaction'),mu=parseFloat(document.getElementById('road').value),grade=num('slope')/100;
-  if(v_kmh<=0||t<0){
-    document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效车速（>0）和反应时间。</p>';
-    document.getElementById('chartBox').innerHTML='';
-    return;
-  }
+  var speedRaw=String(document.getElementById('speed').value).trim();
+  var reactRaw=String(document.getElementById('reaction').value).trim();
+  var slopeRaw=String(document.getElementById('slope').value).trim();
+  var v_kmh=speedRaw===''?NaN:+speedRaw,t=reactRaw===''?NaN:+reactRaw,mu=parseFloat(document.getElementById('road').value),grade=(slopeRaw===''?0:+slopeRaw)/100;
+  if(!isFinite(v_kmh)||v_kmh<=0){document.getElementById('res').innerHTML='<p class="tip-error">⚠ 请填写车速（>0 km/h）后再计算。</p>';document.getElementById('chartBox').innerHTML='';return;}
+  if(!isFinite(t)||t<0){document.getElementById('res').innerHTML='<p class="tip-error">⚠ 请填写反应时间（≥0 s，0 表示无反应段）后再计算。</p>';document.getElementById('chartBox').innerHTML='';return;}
+  if(!isFinite(grade)){document.getElementById('res').innerHTML='<p class="tip-error">⚠ 坡度须为有效数字（可为负值）。</p>';document.getElementById('chartBox').innerHTML='';return;}
+  var denomCheck=2*G*(mu+grade);
+  if(denomCheck<=0){document.getElementById('res').innerHTML='<p class="tip-error">⚠ 路面附着系数与坡度组合使制动距离无解，请检查坡度或路面类型。</p>';document.getElementById('chartBox').innerHTML='';return;}
   var v=v_kmh/3.6;                 // m/s
   var rd=v*t;                      // 反应距离
   var denom=2*G*(mu+grade);
@@ -264,12 +267,12 @@ function calc(){
       '<div class="data-card"><div class="num">'+total.toFixed(1)+'</div><div class="label">总停车距离 (m)</div></div>'+
       '<div class="data-card"><div class="num">'+(total/1000*v_kmh).toFixed(2)+'</div><div class="label">距离/车速比</div></div>'+
     '</div>'+
-    '<p style="margin-top:10px;">风险等级：<span class="grade-tag '+cls+'">'+riskLabel(total)+'</span></p>';document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+    '<p style="margin-top:10px;">理论距离参考：<span class="grade-tag '+cls+'">'+riskLabel(total)+'</span></p>'+'<p style="font-size:12px;color:var(--text-muted);">仅为平坦路面、固定附着系数的理论估算，未考虑载重、轮胎状态、视距、弯道与前方实际可用距离；不能据此判定行车安全，请按现场限速与车距留足余量。</p>';document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   drawChart(mu,grade,t);
 }
 function riskLabel(d){
-  return d<40?'安全 (<40m)':d<80?'正常 (40-80m)':d<150?'偏长 (80-150m)':'危险 (>150m)';
+  return d<40?'较短 (<40m)':d<80?'中等 (40-80m)':d<150?'偏长 (80-150m)':'很长 (>150m)';
 }
 function drawChart(mu,grade,t){
   var speeds=[30,50,60,80,100,120];

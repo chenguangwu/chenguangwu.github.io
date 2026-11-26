@@ -17,7 +17,7 @@ window.__TI18N_EN = {
     '检测':'Detect','提交':'Submit','开始':'Start','停止':'Stop','暂停':'Pause','播放':'Play',
     '下载':'Download','下载 JSON':'Download JSON','下载结果':'Download Result','下载原文件':'Download File','⬇️ 下载 PNG':'⬇️ Download PNG','⬇️ 下载 SVG':'⬇️ Download SVG','应用':'Apply',
     '添加':'Add','删除':'Delete','移除':'Remove','确定':'OK','取消':'Cancel','关闭':'Close',
-    '打开':'Open','搜索':'Search','筛选':'Filter','排序':'Sort','刷新':'Refresh','导出':'Export','导出 CSV':'Export CSV','导出CSV':'Export CSV','导出明细 CSV':'Export Details CSV','导出 CSV 明细':'Export CSV Details','导出样本量网格 CSV':'Export Sample Size Grid CSV','导出临界值对照 CSV':'Export Critical Value Table CSV','导出统计结果 CSV':'Export Stats CSV','导出药物清单 CSV':'Export Drug List CSV','导出判读结果 CSV':'Export Interpretation CSV','导出等效组合 CSV':'Export Equivalent Combos CSV','导出计算结果为 CSV':'Export Calculation Result CSV','导出对照表 CSV':'Export Comparison Table CSV','导出分位表 CSV':'Export Quantile Table CSV','导出显著性对照 CSV':'Export Significance Table CSV','导出对比表 CSV':'Export Comparison Table CSV','导出影响对比表 CSV':'Export Impact Comparison Table CSV','导出区间对照 CSV':'Export Interval Table CSV','导出样本量敏感性 CSV':'Export Sample Size Sensitivity CSV','导出税率表 CSV':'Export Tax Rate Table CSV','导出运动记录 CSV':'Export Exercise Records CSV','导出疏散时间计算结果 CSV':'Export Evacuation Time Results CSV','导出纸箱尺寸计算结果 CSV':'Export Carton Size Results CSV','导出管道水头损失结果 CSV':'Export Pipe Head Loss Results CSV','导出虹吸高度计算结果 CSV':'Export Siphon Height Results CSV','导出灌溉均匀度结果 CSV':'Export Irrigation Uniformity Results CSV','导出用电负荷曲线结果 CSV':'Export Load Curve Results CSV','导出缓冲厚度计算结果 CSV':'Export Cushion Thickness Results CSV',
+    '打开':'Open','搜索':'Search','筛选':'Filter','排序':'Sort','刷新':'Refresh','导出':'Export','导出 CSV':'Export CSV','导出CSV':'Export CSV','导出明细 CSV':'Export Details CSV','导出历史统计 CSV':'Export History Stats CSV','导出 CSV 明细':'Export CSV Details','导出样本量网格 CSV':'Export Sample Size Grid CSV','导出临界值对照 CSV':'Export Critical Value Table CSV','导出统计结果 CSV':'Export Stats CSV','导出药物清单 CSV':'Export Drug List CSV','导出判读结果 CSV':'Export Interpretation CSV','导出等效组合 CSV':'Export Equivalent Combos CSV','导出计算结果为 CSV':'Export Calculation Result CSV','导出对照表 CSV':'Export Comparison Table CSV','导出分位表 CSV':'Export Quantile Table CSV','导出显著性对照 CSV':'Export Significance Table CSV','导出对比表 CSV':'Export Comparison Table CSV','导出影响对比表 CSV':'Export Impact Comparison Table CSV','导出区间对照 CSV':'Export Interval Table CSV','导出样本量敏感性 CSV':'Export Sample Size Sensitivity CSV','导出税率表 CSV':'Export Tax Rate Table CSV','导出运动记录 CSV':'Export Exercise Records CSV','导出疏散时间计算结果 CSV':'Export Evacuation Time Results CSV','导出纸箱尺寸计算结果 CSV':'Export Carton Size Results CSV','导出管道水头损失结果 CSV':'Export Pipe Head Loss Results CSV','导出虹吸高度计算结果 CSV':'Export Siphon Height Results CSV','导出灌溉均匀度结果 CSV':'Export Irrigation Uniformity Results CSV','导出用电负荷曲线结果 CSV':'Export Load Curve Results CSV','导出缓冲厚度计算结果 CSV':'Export Cushion Thickness Results CSV',
 '导出费用计算结果 CSV':'Export Cost Results CSV',
 '导出颜色格式与对比度 CSV':'Export Color Formats & Contrast CSV',
 '导出照护评估结果 CSV':'Export Eldercare Assessment CSV',
@@ -646,6 +646,14 @@ window.__TI18N_EN = {
   },
   BODY_PHRASE_MAP: {
     // —— 批次 671：英文态高频残留短语补齐 ——
+    // —— 批次 710：健康类表格状态整串（含符号，避免只靠颜色） ——
+    '⚠ 需整改': '⚠ Needs correction', '✓ 合格': '✓ Qualified',
+    '⚠ 重点介入': '⚠ Priority intervention', '△ 关注': '△ Monitor', '✓ 一般': '✓ General',
+    '⚠ 需改进': '⚠ Needs improvement', '✓ 达标': '✓ Meets standard',
+    '⚠ 异常': '⚠ Abnormal', '✓ 正常': '✓ Normal',
+    '⚠ 待改进': '⚠ Needs improvement', '⚠ 耐药': '⚠ Resistant', '✓ 敏感': '✓ Susceptible',
+    '✗ 未达标': '✗ Not met', '△ 部分': '△ Partial',
+    '⚠ 薄弱': '⚠ Weak', '⚠ 不合格': '⚠ Fail', '⚠ 需维修': '⚠ Needs repair',
     '⬇️ 导出 TXT': '⬇️ Export TXT',
     '溶解': 'Soluble',
     '类别：': 'Category:',

@@ -274,8 +274,53 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
-function calc(){  var __ig=__tbInputGuard(['selfViews', 'selfLike', 'selfFinish', 'rivalViews'],["自身播放量", "自身点赞率%", "自身完播率%", "rivalViews"]);if(__ig){const __g1=__ig;ToolBox.setResult("res",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const T=window.ToolBox;const selfV=parseFloat(document.getElementById('selfViews').value);const selfL=parseFloat(document.getElementById('selfLike').value);const selfF=parseFloat(document.getElementById('selfFinish').value);const raw=document.getElementById('rivalViews').value.split(/[,\n\s]+/).map(function(s){return parseFloat(s.trim());}).filter(function(v){return !isNaN(v);});if(isNaN(selfV)||!raw.length){document.getElementById('res').innerHTML='<p>请输入自身播放量与至少一个竞品播放量</p>';return;}const n=raw.length,sum=raw.reduce(function(a,b){return a+b;},0),mean=sum/n;const sorted=[].concat(raw).sort(function(a,b){return a-b;});const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const gap=(selfV-mean)/mean*100;let pos=selfV>mean*1.5?'头部账号':(selfV>mean*0.7?'腰部账号':'长尾账号');let html='<p>竞品样本数：<strong>'+n+'</strong></p>';html+='<p>竞品平均播放：<strong>'+mean.toFixed(0)+'</strong></p>';html+='<p>竞品中位播放：<strong>'+med.toFixed(0)+'</strong></p>';html+='<p>自身播放：<strong>'+selfV.toFixed(0)+'</strong></p>';html+='<p>相对均值差距：<strong>'+gap.toFixed(1)+'%</strong></p>';html+='<p>市场定位：<strong>'+pos+'</strong></p>';const __g3=html;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}calc();function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
+function calc(){
+  var __en=(typeof ToolBox!=='undefined'&&ToolBox.util&&ToolBox.util.isEn&&ToolBox.util.isEn());
+  function raw(id){var v=document.getElementById(id).value;return String(v==null?'':v).trim();}
+  var selfVRaw=raw('selfViews'), selfLRaw=raw('selfLike'), selfFRaw=raw('selfFinish'), rivalRaw=raw('rivalViews');
+  var selfV=selfVRaw===''?NaN:parseFloat(selfVRaw);
+  var selfL=selfLRaw===''?NaN:parseFloat(selfLRaw);
+  var selfF=selfFRaw===''?NaN:parseFloat(selfFRaw);
+  var rawVals=rivalRaw.split(/[,\n\s]+/).map(function(x){return x.trim();}).filter(Boolean);
+  var bad=[];
+  if(!isFinite(selfV)||selfV<0)bad.push(__en?'own views (≥0)':'自身播放量（≥0）');
+  if(!rawVals.length)bad.push(__en?'at least one competitor':'至少一个竞品播放量');
+  var rivals=[], rivalBad=false;
+  rawVals.forEach(function(x){var v=parseFloat(x);if(!isFinite(v)||v<0)rivalBad=true;else rivals.push(v);});
+  if(rivalBad)bad.push(__en?'competitor views must be non-negative numbers':'竞品播放量须为非负数值');
+  if(selfLRaw!==''&&(!isFinite(selfL)||selfL<0||selfL>100))bad.push(__en?'own like rate 0–100%':'自身点赞率（0–100%）');
+  if(selfFRaw!==''&&(!isFinite(selfF)||selfF<0||selfF>100))bad.push(__en?'own completion rate 0–100%':'自身完播率（0–100%）');
+  if(bad.length){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger)">'+(__en?'⚠ Please fix: ':'⚠ 请修正：')+bad.join(__en?', ':'、')+'。</p>';
+    return;
+  }
+  // 竞品样本为 0 或均值 0 时无法定义相对差距，必须停止而不是除以零
+  var n=rivals.length, sum=rivals.reduce(function(a,b){return a+b;},0), mean=sum/n;
+  if(!(mean>0)){
+    document.getElementById('res').innerHTML='<p style="color:var(--warning)">'+(__en?'⚠ Competitor views sum to 0: relative gap is undefined (no division by zero). Enter at least one sample with views > 0.':'⚠ 竞品播放量合计为 0：相对差距不可定义（不做除以零），请至少录入一个播放量 >0 的样本。')+'</p>';
+    return;
+  }
+  var sorted=[].concat(rivals).sort(function(a,b){return a-b;});
+  var med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;
+  var gap=(selfV-mean)/mean*100;
+  var pos,posEn;
+  if(selfV>mean*1.5){pos='样本内头部区间（高于样本均值 1.5 倍）';posEn='upper range in this sample (>1.5× sample mean)';}
+  else if(selfV>mean*0.7){pos='样本内腰部区间（样本均值的 0.7–1.5 倍）';posEn='middle range in this sample (0.7–1.5× sample mean)';}
+  else{pos='样本内长尾区间（低于样本均值 0.7 倍）';posEn='lower range in this sample (<0.7× sample mean)';}
+  var html='';
+  html+='<p>竞品样本数：<strong>'+n+'</strong>（仅这 '+n+' 个样本，不代表整个平台/赛道）</p>';
+  html+='<p>竞品平均播放：<strong>'+mean.toFixed(0)+'</strong>；中位播放：<strong>'+med.toFixed(0)+'</strong></p>';
+  html+='<p>自身播放：<strong>'+selfV.toFixed(0)+'</strong>；相对样本均值差距：<strong>'+(gap>=0?'+':'')+gap.toFixed(1)+'%</strong></p>';
+  html+='<p>样本内相对位置：<strong>'+pos+'</strong></p>';
+  if(!isNaN(selfL)||!isNaN(selfF)){
+    var q=[];
+    if(!isNaN(selfL))q.push('点赞率 '+selfL.toFixed(1)+'%');
+    if(!isNaN(selfF))q.push('完播率 '+selfF.toFixed(1)+'%');
+    html+='<p style="color:var(--text-muted);font-size:13px;">自身互动质量：'+q.join('、')+'。竞品未录入点赞率/完播率，故这两项只作自身内容诊断，不参与相对位置判定。</p>';
+  }
+  html+='<p style="color:var(--text-muted);font-size:12px;">口径：位置按本页录入样本的均值划线，样本很小或含极端值时结论不稳，建议同时看中位数并补充样本。</p>';
+  document.getElementById('res').innerHTML=html;
+}calc();function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

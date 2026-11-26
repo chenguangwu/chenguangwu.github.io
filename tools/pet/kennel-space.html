@@ -41,6 +41,7 @@
 .size-item{padding:12px;background:var(--result-bg);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.15s;text-align:center;}
 .size-item:hover{border-color:var(--primary);}
 .size-item.active{border-color:var(--primary);background:rgba(102,126,234,0.08);}
+.size-item:focus-visible{outline:3px solid var(--primary);outline-offset:2px;}
 .size-item .name{font-size:13px;font-weight:500;}
 .size-item .desc{font-size:11px;color:var(--text-muted);margin-top:2px;}
 .layout-box{padding:16px;background:var(--result-bg);border:1px solid var(--border);border-radius:12px;margin:12px 0;}
@@ -316,8 +317,8 @@ function renderSizes(){
   var sizes = currentPet === 'dog' ? DOG_SIZES : CAT_SIZES;
   var html = '';
   sizes.forEach(function(s){
-    html += '<div class="size-item' + (s.id === currentSize ? ' active' : '') + '" onclick="selectSize(\'' + s.id + '\')">' +
-      '<div class="name">' + s.name + '</div><div class="desc">' + s.desc + '</div></div>';
+    html += '<button type="button" class="size-item' + (s.id === currentSize ? ' active' : '') + '" aria-pressed="' + (s.id === currentSize) + '" onclick="selectSize(\'' + s.id + '\')">' +
+      '<div class="name">' + s.name + '</div><div class="desc">' + s.desc + '</div></button>';
   });
   const __g2=html;document.getElementById('sizeList').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
@@ -333,13 +334,20 @@ function num(id){
   return isNaN(v) ? 0 : v;
 }
 
-function calc(){
-// NUMCLR：全部输入留空时不得输出 0/0.00 的假结果
-var __numReq=['count','days'];
-if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('bigResult').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
+function kennelInvalid(msg){
+  document.getElementById('bigResult').innerHTML = '<p style="color:var(--danger)">⚠ ' + msg + '，已清除旧结果与建议</p>';
+  document.getElementById('spaceGrid').innerHTML = '';
+  document.getElementById('layoutBox').innerHTML = '';
+}
 
-  var count = num('count') || 1;
-  var days = num('days') || 1;
+function calc(){
+  var countRaw = document.getElementById('count').value.trim();
+  var daysRaw = document.getElementById('days').value.trim();
+  if(countRaw === '' || daysRaw === ''){ kennelInvalid('请分别填写宠物数量和寄养天数'); return; }
+  var count = Number(countRaw);
+  var days = Number(daysRaw);
+  if(!Number.isInteger(count) || count < 1 || count > 50){ kennelInvalid('宠物数量必须是 1–50 的整数'); return; }
+  if(!Number.isInteger(days) || days < 1 || days > 365){ kennelInvalid('寄养天数必须是 1–365 的整数'); return; }
 
   var sizes = currentPet === 'dog' ? DOG_SIZES : CAT_SIZES;
   var size = sizes.find(function(s){return s.id === currentSize;}) || sizes[0];

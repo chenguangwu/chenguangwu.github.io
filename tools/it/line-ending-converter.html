@@ -166,6 +166,7 @@
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;">
   <div id="line_ending_converterPresets"></div><button type="button" class="btn" onclick="calcTool()">转换</button><button type="button" class="btn" onclick="loadSampleLE()">示例</button><button class="btn" type="button" onclick="__line_ending_converterExport()">导出明细 CSV</button>
   <button type="button" class="btn primary" onclick="copyLe()">复制结果</button>
+  <button type="button" class="btn" onclick="downloadLe()">下载转换结果</button>
   <button type="button" class="btn" onclick="copyRaw()">复制原始文本</button>
   <button type="button" class="btn" onclick="clearLe()">清空</button>
 </div>
@@ -312,12 +313,17 @@ function byteLen(s){
   return n;
 }
 function mainLE(c){
-  var max=Math.max(c.crlf,c.lf,c.cr);
-  if(max===0)return '无换行符';
-  var hits=(c.crlf===max?1:0)+(c.lf===max?1:0)+(c.cr===max?1:0);
-  if(hits>1)return '混合（CRLF/LF/CR）';
-  if(max===c.crlf)return 'CRLF (Windows)';
-  if(max===c.lf)return 'LF (Unix/macOS)';
+  var types=(c.crlf>0?1:0)+(c.lf>0?1:0)+(c.cr>0?1:0);
+  if(types===0)return '无换行符';
+  if(types>1){
+    var top='CRLF', tv=c.crlf;
+    if(c.lf>tv){top='LF';tv=c.lf;}
+    if(c.cr>tv){top='CR';tv=c.cr;}
+    var tie=(c.crlf===tv?1:0)+(c.lf===tv?1:0)+(c.cr===tv?1:0)>1;
+    return '混合换行（'+(tie?'无明显主类型':'主类型 '+top)+'；CRLF '+c.crlf+' / LF '+c.lf+' / CR '+c.cr+'）';
+  }
+  if(c.crlf>0)return 'CRLF (Windows)';
+  if(c.lf>0)return 'LF (Unix/macOS)';
   return 'CR (老 Mac)';
 }
 function leViz(s){
@@ -334,8 +340,21 @@ function leViz(s){
   if(count>=8)out+=' …';
   return out||'<span style="color:var(--text-muted);">（空文本）</span>';
 }
-function calcTool(){
-  var raw=document.getElementById('leInput').value||'';
+var __leRaw=null,__leOut='',__leFileName='';
+function calcTool(rawOverride){
+  var ta=document.getElementById('leInput');
+  var raw;
+  if(typeof rawOverride==='string'){
+    __leRaw=rawOverride;
+    ta.value=rawOverride.replace(/\r\n|\r/g,'\n');
+    raw=rawOverride;
+  } else {
+    var shown=ta.value||'';
+    if(__leRaw!=null){
+      if(shown!==__leRaw.replace(/\r\n|\r/g,'\n')) __leRaw=null;
+      raw=(__leRaw!=null?__leRaw:shown);
+    } else raw=shown;
+  }
   if(!raw){
     // 空输入：清空输出与统计，只给提示；示例文本仅由「示例」按钮显式注入
     document.getElementById('leOutput').value='';
@@ -348,8 +367,8 @@ function calcTool(){
   var target=document.getElementById('targetSel').value;
   var c=countLE(raw);
   var total=c.crlf+c.cr+c.lf;
-  var out=raw.replace(/\r\n|\r|\n/g,target);
-  document.getElementById('leOutput').value=out;
+  __leOut=raw.replace(/\r\n|\r|\n/g,target);
+  document.getElementById('leOutput').value=__leOut.replace(/\r\n|\r/g,'\n');
   var h='';
   h+='<span class="le-stat">CRLF <b>'+c.crlf+'</b></span>';
   h+='<span class="le-stat">LF <b>'+c.lf+'</b></span>';
@@ -359,6 +378,7 @@ function calcTool(){
   const __g1=h;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   var det='<b>主换行符：</b>'+mainLE(c)+'　<b>文本行数：</b>'+(total?total+1:1)+'　<b>字符数：</b>'+raw.length+'　<b>UTF-8 大小：</b>'+byteLen(raw)+' B';
   det+='<br><b>转换说明：</b>已将所有换行符统一替换为所选目标格式，跨平台粘贴/提交不再错乱。';
+  det+='<br><b>换行提示：</b>浏览器文本框会把 CRLF/CR 显示为 LF；“复制结果”和“下载转换结果”按内部保存的原始换行字节输出。';
   const __g2=det;document.getElementById('leDetail').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   const __g3=leViz(raw);document.getElementById('leViz').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
@@ -367,26 +387,42 @@ function loadSampleLE(){
   calcTool();
 }
 function copyLe(){
-  var v=document.getElementById('leOutput').value;
+  var v=__leOut||document.getElementById('leOutput').value;
   if(!v){ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter text first":"请先输入文本"));return;}
   ToolBox.copyText(v,'转换结果已复制','复制失败');
 }
 function copyRaw(){
-  var v=document.getElementById('leInput').value;
+  var v=(__leRaw!=null?__leRaw:document.getElementById('leInput').value);
   if(!v){ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter text first":"请先输入文本"));return;}
   ToolBox.copyText(v,'原始文本已复制','复制失败');
 }
+function downloadLe(){
+  if(!__leOut){ToolBox.showToast('请先输入文本');return;}
+  var base=(__leFileName||'line-endings.txt').replace(/\.(\w+)$/,'');
+  var blob=new Blob([__leOut],{type:'text/plain;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=base+'-converted.txt';
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},100);
+}
 function clearLe(){
+  __leRaw=null;__leOut='';__leFileName='';
   document.getElementById('leInput').value='';
   document.getElementById('leOutput').value='';
   document.getElementById('result').innerHTML='';
   document.getElementById('leDetail').innerHTML='';
   document.getElementById('leViz').innerHTML='<span style="color:var(--text-muted);">（等待输入）</span>';
 }
-document.getElementById('leFile').addEventListener('change',function(){
+var __leInput=document.getElementById('leInput');
+if(__leInput && __leInput.addEventListener) __leInput.addEventListener('input',function(){__leRaw=null;__leFileName='';calcTool();});
+var __targetSel=document.getElementById('targetSel');
+if(__targetSel && __targetSel.addEventListener) __targetSel.addEventListener('change',function(){calcTool();});
+var __leFile=document.getElementById('leFile');
+if(__leFile && __leFile.addEventListener) __leFile.addEventListener('change',function(){
   var f=this.files&&this.files[0];if(!f)return;
   var r=new FileReader();
-  r.onload=function(e){document.getElementById('leInput').value=e.target.result;calcTool();};
+  r.onload=function(e){__leFileName=f.name;calcTool(e.target.result);};
   r.readAsText(f);
 });
 calcTool();

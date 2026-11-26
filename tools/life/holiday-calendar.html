@@ -49,6 +49,9 @@
   font-size:14px;color:var(--text);min-height:48px;
 }
 .cal-cell:hover{background:var(--bg-hover);transform:scale(1.05);}
+.cal-cell:focus-visible{outline:2px solid var(--primary);outline-offset:1px;}
+.cal-detail{display:none;margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--bg-hover);font-size:13px;line-height:1.6;}
+.cal-detail.show{display:block;}
 .cal-cell.other-month{color:var(--text-muted);opacity:.4;}
 .cal-cell.today{
   border-color:var(--primary);
@@ -145,6 +148,11 @@
 .cal-legend .dot.holiday-dot{background:rgba(255,107,53,0.2);border:1px solid rgba(255,107,53,0.4);}
 .cal-legend .dot.term-dot{background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.4);}
 .cal-legend .dot.weekend-dot{background:var(--primary);}
+.cal-legend .dot.makeup-dot{background:rgba(185,28,28,0.18);border:1px solid rgba(185,28,28,0.55);}
+.cal-cell.makeup{box-shadow:inset 0 0 0 1px rgba(185,28,28,0.35);}
+.cal-work-badge{position:absolute;right:4px;top:4px;font-size:9px;line-height:1.2;padding:1px 3px;border-radius:3px;color:#fff;background:#B91C1C;font-weight:700;}
+.cal-source{margin-top:12px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;line-height:1.7;color:var(--text-secondary);background:var(--card-bg);}
+.cal-source strong{color:var(--text);}
 
 /* 月度信息 */
 .month-info{
@@ -317,13 +325,16 @@
         <div class="cal-grid" id="calHeader"></div>
         <!-- 日历格子 -->
         <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-detail" id="calDetail" role="status" aria-live="polite"></div>
         <!-- 图例 -->
         <div class="cal-legend">
           <span><span class="dot today-dot"></span>今天</span>
           <span><span class="dot holiday-dot"></span>法定假日</span>
           <span><span class="dot term-dot"></span>节气</span>
           <span><span class="dot weekend-dot"></span>周末</span>
+          <span><span class="dot makeup-dot"></span><span class="t-zh">调休上班</span><span class="t-en">Make-up workday</span></span>
         </div>
+        <div class="cal-source" id="holidaySource" role="status"></div>
       </div>
 
       <!-- 右侧面板 -->
@@ -498,6 +509,15 @@
 'use strict';
 
 // ========== 节假日数据 (2024-2027) ==========
+var COVERAGE_MIN=2024, COVERAGE_MAX=2027;
+var yearMeta = {
+  2024:{status:'official', statusText:'已公布', source:'国务院办公厅关于2024年部分节假日安排的通知', published:'2023-10'},
+  2025:{status:'official', statusText:'已公布', source:'国务院办公厅关于2025年部分节假日安排的通知', published:'2024-11'},
+  2026:{status:'official', statusText:'已公布', source:'国务院办公厅关于2026年部分节假日安排的通知', published:'2025-11'},
+  2027:{status:'pending', statusText:'待公布（预测占位）', source:'国务院办公厅尚未发布2027年部分节假日安排通知', published:'尚未公布'}
+};
+function calEn(){ return !!(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function inCoverage(y){return y>=COVERAGE_MIN&&y<=COVERAGE_MAX;}
 // 格式: 'YYYY-MM-DD': { name: '节日名', type: 'holiday类型' }
 // type 用于图标样式: spring/qingming/labor/duanwu/zhongqiu/guoqing/yuandan/other
 var holidayData = {
@@ -722,33 +742,20 @@ function parseDateKey(key) {
 // 获取农历日期名称
 function getLunarDate(y, m, d) {
   var key = dateKey(y, m, d);
-  var info = lunarInfo[y];
-  if (!info) return '';
-  // 从后往前找最近的农历月初
+  // 跨公历年扫描所有农历月初，取不晚于查询日的最近一项。
+  // 不能只查 lunarInfo[y] 的最后一项：该数组可能以次年的腊月开头/结尾。
   var prevMonth = null;
-  for (var i = 0; i < info.length; i++) {
-    if (info[i].d <= key) {
-      prevMonth = info[i];
-    } else {
-      break;
-    }
-  }
-  if (!prevMonth) {
-    // 可能是上一年的腊月
-    var prevYear = y - 1;
-    var prevInfo = lunarInfo[prevYear];
-    if (prevInfo && prevInfo.length > 0) {
-      prevMonth = prevInfo[prevInfo.length - 1];
-    } else {
-      return '';
-    }
-  }
+  Object.keys(lunarInfo).forEach(function(yy){
+    lunarInfo[yy].forEach(function(item){
+      if(item.d <= key && (!prevMonth || item.d > prevMonth.d)) prevMonth = item;
+    });
+  });
+  if (!prevMonth) return '';
   var firstDate = parseDateKey(prevMonth.d);
   var curDate = new Date(y, m, d);
   var diffDays = Math.round((curDate - firstDate) / 86400000);
   if (diffDays < 0 || diffDays > 30) return '';
   var lunarDay = diffDays + 1;
-  // 初一显示月名
   if (lunarDay === 1) return prevMonth.m;
   return lunarDayNames[lunarDay] || '';
 }
@@ -774,9 +781,13 @@ function renderHeader() {
 function renderCalendar() {
   var y = currentYear;
   var m = currentMonth;
+  var en = calEn();
+  var meta = yearMeta[y];
 
   // 月份标签
-  document.getElementById('monthLabel').textContent = y + '年' + (m+1) + '月';
+  var monthNote = !inCoverage(y) ? (en?' (holiday/lunar/solar-term data not provided for this year)':'（该年节假日/农历/节气数据未提供）')
+    : (meta && meta.status==='pending' ? (en?' (schedule not published; dates are provisional)':'（该年安排尚未公布，日期为预测占位）') : '');
+  document.getElementById('monthLabel').textContent = (en?(y + '-' + String(m+1).padStart(2,'0')):(y + '年' + (m+1) + '月')) + monthNote;
 
   // 本月第一天和最后一天
   var firstDay = new Date(y, m, 1);
@@ -822,6 +833,7 @@ function renderCalendar() {
     var isToday = key === todayKey;
     var isHoliday = !!holidayData[key];
     var isTerm = !!solarTermData[key];
+    var isMakeup = !!makeupWorkdays[key];
     var lunar = getLunarDate(y, m, d);
 
     var cls = 'cal-cell';
@@ -829,6 +841,7 @@ function renderCalendar() {
     if (isWk) cls += ' weekend';
     if (isHoliday) cls += ' holiday';
     if (isTerm) cls += ' solar-term';
+    if (isMakeup) cls += ' makeup';
 
     // 显示优先级：节气 > 节假日名 > 农历初一(月名) > 农历日
     var displayLunar = '';
@@ -846,8 +859,9 @@ function renderCalendar() {
 
     var tip = '';
     if (isHoliday) tip = holidayData[key].name;
-    if (isTerm) tip = (tip ? tip + ' | ' : '') + solarTermData[key] + '(节气)';
-    if (lunar && lunar.length > 2) tip = (tip ? tip + ' | ' : '') + '农历' + lunar;
+    if (isTerm) tip = (tip ? tip + ' | ' : '') + solarTermData[key] + (en?' (solar term)':'(节气)');
+    if (isMakeup) tip = (tip ? tip + ' | ' : '') + (en?'Make-up workday (weekend shift)':'调休上班（补班）');
+    if (lunar) tip = (tip ? tip + ' | ' : '') + (en?'Lunar ':'农历') + lunar;
 
     if (isHoliday) monthHolidays++;
     if (isWk) monthWeekends++;
@@ -857,6 +871,7 @@ function renderCalendar() {
       + '<span class="cal-day">' + d + '</span>'
       + '<span class="cal-lunar">' + displayLunar + '</span>'
       + (isHoliday || isTerm ? '<span class="cal-badge"></span>' : '')
+      + (isMakeup ? '<span class="cal-work-badge" aria-hidden="true">'+(en?'Work':'班')+'</span>' : '')
       + '</div>';
   }
 
@@ -869,15 +884,36 @@ function renderCalendar() {
     var key = dateKey(ny, nm, i);
     var wk = (offset + lastDay.getDate() + i - 1) % 7;
     var isWk = wk >= 5;
+    var isMakeup = !!makeupWorkdays[key];
     var lunar = getLunarDate(ny, nm, i);
     var tip = holidayData[key] ? holidayData[key].name : (solarTermData[key] ? solarTermData[key] : '');
-    html += '<div class="cal-cell other-month' + (isWk ? ' weekend' : '') + '"' + (tip ? ' data-tip="' + tip + '"' : '') + '>'
+    if(isMakeup) tip = (tip ? tip + ' | ' : '') + (en?'Make-up workday (weekend shift)':'调休上班（补班）');
+    html += '<div class="cal-cell other-month' + (isWk ? ' weekend' : '') + (isMakeup ? ' makeup' : '') + '"' + (tip ? ' data-tip="' + tip + '"' : '') + '>'
       + '<span class="cal-day">' + i + '</span>'
       + '<span class="cal-lunar">' + (lunar || '') + '</span>'
+      + (isMakeup ? '<span class="cal-work-badge" aria-hidden="true">'+(en?'Work':'班')+'</span>' : '')
       + '</div>';
   }
 
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('calGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('calGrid').innerHTML=__h1;
+
+  var detail=document.getElementById('calDetail');
+  if(detail){detail.className='cal-detail';detail.textContent='';}
+  document.querySelectorAll('#calGrid .cal-cell[data-tip]').forEach(function(cell){
+    cell.setAttribute('tabindex','0');
+    cell.setAttribute('role','button');
+    var label=(cell.innerText||'').replace(/\s+/g,' ').trim()+(en?': ':'：')+cell.getAttribute('data-tip');
+    cell.setAttribute('aria-label',label);
+    function show(){
+      if(!detail)return;
+      detail.textContent=label;
+      detail.classList.add('show');
+    }
+    cell.addEventListener('click',show);
+    cell.addEventListener('keydown',function(e){
+      if(e.key==='Enter'||e.key===' '){e.preventDefault();show();}
+    });
+  });
 
   // 月度信息
   renderMonthInfo(y, m, lastDay.getDate(), monthHolidays, monthWeekends, monthSolarTerms);
@@ -887,6 +923,7 @@ function renderCalendar() {
 
   // 年度统计
   renderYearStats(y);
+  renderHolidaySource(y);
 }
 
 // ========== 月度信息卡片 ==========
@@ -982,7 +1019,32 @@ function renderHolidayList(y, m) {
 }
 
 // ========== 年度统计 ==========
+function renderHolidaySource(y) {
+  var el = document.getElementById('holidaySource');
+  if(!el) return;
+  var meta = yearMeta[y];
+  var en = calEn();
+  if(!meta){
+    el.innerHTML = (en?'No official source is recorded for this year. ':'该年未登记官方来源。') +
+      (en?'Only '+COVERAGE_MIN+'–'+COVERAGE_MAX+' are covered; do not treat missing data as a zero-holiday year.':'仅覆盖 '+COVERAGE_MIN+'–'+COVERAGE_MAX+' 年，未收录不等于没有假期。');
+    return;
+  }
+  if(meta.status === 'pending'){
+    el.innerHTML = '<strong>' + y + (en?' schedule not published':' 年安排尚未公布') + '</strong>：' +
+      (en?'The holiday dates shown for this year are provisional placeholders, not an official schedule. Verify with the State Council notice before planning travel or work.':'当前该年日期为预测占位，不是正式安排；出行、请假或调休前请以国务院办公厅正式通知为准。') +
+      '<br><span style="color:var(--warning)">' + (en?'Source: ':'来源：') + meta.source + (en?' · Published: ':' · 发布：') + meta.published + '</span>';
+    return;
+  }
+  el.innerHTML = '<strong>' + y + (en?' schedule published':' 年安排已公布') + '</strong>：' +
+    (en?'Holiday dates and make-up workdays are compiled from the official notice; make-up workdays are marked “Work” on the calendar.':'节假日与调休补班按国务院办公厅通知整理；补班日在日历格以红色“班”标记。') +
+    '<br>' + (en?'Source: ':'来源：') + meta.source + (en?' · Published: ':' · 发布：') + meta.published;
+}
+
 function renderYearStats(y) {
+  if(!inCoverage(y)){
+    document.getElementById('yearStats').innerHTML='<h4>'+y+'年假期统计</h4><p style="color:var(--warning);">数据未提供：法定节假日、农历与节气仅覆盖 '+COVERAGE_MIN+'–'+COVERAGE_MAX+' 年。本工具不会把未收录数据展示为“合计 0 天”，请切换至范围内年份或查阅当年国务院公告。</p>';
+    return;
+  }
   var total = 0;
   var byName = {};
   var prefix = y + '-';
@@ -1008,6 +1070,9 @@ function renderYearStats(y) {
   };
 
   var html = '<h4>' + y + '年假期统计</h4>';
+  if(yearMeta[y] && yearMeta[y].status === 'pending'){
+    html += '<p style="font-size:12px;line-height:1.7;color:var(--warning);margin:6px 0;">' + (calEn()?'2027 schedule is not published; the following totals are provisional placeholders, not an official holiday count.':'2027 年安排尚未公布，以下合计为预测占位，不能当作正式假期天数。') + '</p>';
+  }
   html += '<div class="stat-row"><span class="s-label">合计</span><span style="font-weight:700;color:var(--primary);">' + total + ' 天</span></div>';
   for (var i = 0; i < names.length; i++) {
     var n = names[i];
@@ -1071,6 +1136,7 @@ window.goToday = goToday;
 // ========== 初始化 ==========
 renderHeader();
 renderCalendar();
+document.addEventListener('toolbox:langchange', function(){ try{ renderCalendar(); }catch(e){} });
 
 
   /* 本年度节假日总表（表格 + 导出 + 保存快照） */

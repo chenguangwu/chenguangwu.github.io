@@ -11,6 +11,8 @@ const COMMISSION_PATH = path.join(__dirname, "..", "tools", "sales", "commission
 // 禁用末档输入并明确固定无穷，是唯一不产生「填了却不算」歧义的口径。
 function commissionStaticChecks() {
   const src = fs.readFileSync(COMMISSION_PATH, "utf8");
+  const targetSrc = fs.readFileSync(path.join(__dirname, "..", "tools", "sales", "target-breakdown.html"), "utf8");
+  const funnelSrc = fs.readFileSync(path.join(__dirname, "..", "tools", "sales", "conversion-funnel.html"), "utf8");
   return [
     {
       name: "阶梯提成末档上限输入禁用（固定无穷）",
@@ -18,6 +20,17 @@ function commissionStaticChecks() {
         && !/placeholder="上限\(元\)"[^']*disabled/.test(src)
         && /newLast\.querySelector\('\.tier-cap'\)\.disabled = true/.test(src)
         && /last\.querySelector\('\.tier-cap'\)\.disabled = true/.test(src),
+    },
+    {
+      name: "目标分解改名同步刷新结果表",
+      ok: targetSrc.includes("oninput=\"members['+i+'].name=this.value;calc()\"")
+        && targetSrc.includes("'<strong>'+ToolBox.escHtml(String(c))+'</strong>'")
+        && !targetSrc.includes("rows.push([__tbSt('合计','Total')"),
+    },
+    {
+      name: "转化漏斗阶段名转义后写入 innerHTML",
+      ok: funnelSrc.includes("ToolBox.escHtml(stages[i].name")
+        && funnelSrc.includes("'<span>'+(stages[i].name||'—')+'</span>'")===false,
     },
   ];
 }
@@ -252,7 +265,8 @@ const CASES = [
     "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+\'tools/sales/stacked-discount.html\',\'utf8\');var i=h.indexOf(\'if(price<=0)\');var s=i>=0?h.slice(i,i+420):\'\';var ok=(s.match(/getElementById\\(\'detailTable\'\\).innerHTML=\'\'/g)||[]).length>=1&&s.indexOf(\'badRate\')>=0;document.getElementById(\'__tbProbe\').textContent=\'STKDCL \'+(ok?\'OK\':\'BAD\');})();"],
     "expect": ["STKDCL OK"],
     "ref": "第1344批 早退残留：stacked-discount 的 price<=0 与 badRate 两分支原只改 finalVal/finalLbl 不清 #detailTable，旧明细表残留；修复后两分支 return 前清空明细表。"
-  }
+  },
+
 ];
 async function main() {
   const only = process.argv.slice(2);

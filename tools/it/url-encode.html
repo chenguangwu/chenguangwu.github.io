@@ -147,7 +147,7 @@
 <!-- TOOLBOX-POLISH -->
 
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">component 模式用 encodeURIComponent / decodeURIComponent，uri 模式用 encodeURI / decodeURI；查询串按参数表拼接，解析时按 &amp; 与 = 切分后逐段解码。膨胀率 = (输出长度 − 输入字节数) ÷ 输入字节数 × 100%；体积显示 &lt; 1024 显示 B、&lt; 1 MB 显示 KB、否则 MB；ASCII 表支持按行号区间筛选（如 65-90）展示</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">component 模式用 encodeURIComponent / decodeURIComponent，uri 模式用 encodeURI / decodeURI；查询串按参数表拼接，解析时按 &amp; 与 = 切分后逐段解码。字节变化率 = (输出字节数 − 输入字节数) ÷ 输入字节数 × 100%；字符数与 UTF-8 字节数分列展示；体积显示 &lt; 1024 显示 B、&lt; 1 MB 显示 KB、否则 MB；ASCII 表支持按行号区间筛选（如 65-90）展示</div>
   <div class="formula-desc">按 RFC 3986 做百分号编码（percent-encoding）：非保留字符（字母数字 - _ . ~）不编码，其余转成 <b>%XX</b>（UTF-8 多字节逐字节，如中文“中”→ %E4%B8%AD）。Encode 用于放入 URL，Decode 反向还原。</div>
   <ul class="formula-list">
     <li>encodeURIComponent 编码范围广，适合参数值；encodeURI 保留 / ? # 等结构符。</li>
@@ -170,16 +170,17 @@
       <div class="checkbox-row">
         <div data-tb="preset" data-tb-presets='[{"label": "编码示例文本", "labelEn": "Encode text", "values": {"input": "Hello World! 你好，世界？"}}, {"label": "解码示例URL", "labelEn": "Decode URL", "values": {"input": "https%3A%2F%2Fexample.com%2Fsearch%3Fq%3Dhello%20world"}}, {"label": "中文查询参数", "labelEn": "Chinese query params", "values": {"input": "搜索关键词=在线工具&城市=上海"}}, {"label": "特殊符号转义", "labelEn": "Special chars", "values": {"input": "订单号 SO-2026-1103，备注：A&B=C 加急"}}]'></div>
 <label><input type="checkbox" id="fullUrl"> 完整 URL 模式（保留协议域名）</label>
-        <label><input type="checkbox" id="plusSpace"> 空格编码为 +</label>
+        <label><input type="checkbox" id="plusSpace"> 空格在查询参数中编码为 +</label>
       </div>
       <label for="input">输入内容</label>
-      <textarea id="input" placeholder="输入要编码的文本或要解码的 URL 字符串..." oninput="onInputChange()">https://toolbox.example.com/search?q=你好 世界</textarea>
+      <textarea id="input" placeholder="输入要编码的文本或要解码的 URL 字符串..." oninput="onUserInput()">https://toolbox.example.com/search?q=你好 世界</textarea>
       
       <div class="stat-grid">
         <div class="stat-card"><div class="val" id="statInLen">0</div><div class="lbl">输入字符数</div></div>
         <div class="stat-card"><div class="val" id="statOutLen">0</div><div class="lbl">输出字符数</div></div>
-        <div class="stat-card"><div class="val" id="statInSize">0 B</div><div class="lbl">输入大小</div></div>
-        <div class="stat-card"><div class="val" id="statRatio">-</div><div class="lbl">膨胀率</div></div>
+        <div class="stat-card"><div class="val" id="statInSize">0 B</div><div class="lbl">输入字节数</div></div>
+        <div class="stat-card"><div class="val" id="statOutSize">0 B</div><div class="lbl">输出字节数</div></div>
+        <div class="stat-card"><div class="val" id="statRatio">-</div><div class="lbl">字节变化率</div></div>
       </div>
 
       <div class="toolbar">
@@ -215,7 +216,7 @@
 
     <div id="tabParser" class="tab-panel">
       <label for="parseInput">输入 URL</label>
-      <input type="text" id="parseInput" placeholder="https://user:pass@example.com:8080/path/to/page?query=value#hash" style="margin-bottom:12px;">
+      <input type="text" id="parseInput" placeholder="https://user:pass@example.com:8080/path/to/page?query=value#hash" style="margin-bottom:12px;" oninput="invalidateParse()">
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="parseUrl()">解析 URL</button>
         <button type="button" class="btn success" onclick="copyParseResult()">复制结果</button>
@@ -267,7 +268,7 @@
     
     <h3>encodeURI vs encodeURIComponent</h3>
     <p style="font-size:13px;color:var(--text-light);margin-bottom:8px;">
-      <strong>encodeURI</strong>：用于编码完整的 URL，保留 URL 特殊字符（如 : / ? # [ ] @ ! $ & ' ( ) * + , ; =）。适用于整个 URL 编码。
+      <strong>encodeURI</strong>：用于编码完整的 URL，保留 : / ? # @ ! $ & ' ( ) * + , ; = 等结构符，但 [ 与 ] 实际会被编码为 %5B / %5D；IPv6 字面量建议交给 URL API 整体解析。
     </p>
     <p style="font-size:13px;color:var(--text-light);margin-bottom:8px;">
       <strong>encodeURIComponent</strong>：用于编码 URL 组件（如参数值），除了字母数字和 - _ . ! ~ * ' ( ) 外全部编码。适用于查询参数值编码。
@@ -388,25 +389,36 @@
     return (bytes/(1024*1024)).toFixed(2) + ' MB';
   }
 
+  var __urlResultValid = false;
+  function __urlEn(){return typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn();}
   function updateStats(input, output){
     var inLen = input ? input.length : 0;
     var outLen = output ? output.length : 0;
     var inBytes = input ? getByteLength(input) : 0;
+    var outBytes = output ? getByteLength(output) : 0;
     document.getElementById('statInLen').textContent = inLen;
     document.getElementById('statOutLen').textContent = outLen;
     document.getElementById('statInSize').textContent = formatSize(inBytes);
-    if(inBytes > 0 && outLen > 0){
-      var ratio = ((outLen - inBytes) / inBytes * 100).toFixed(1);
+    document.getElementById('statOutSize').textContent = formatSize(outBytes);
+    if(inBytes > 0 && output){
+      var ratio = ((outBytes - inBytes) / inBytes * 100).toFixed(1);
       document.getElementById('statRatio').textContent = (ratio >= 0 ? '+' : '') + ratio + '%';
     } else {
       document.getElementById('statRatio').textContent = '-';
     }
   }
-
+  function onUserInput(){
+    __urlResultValid = false;
+    document.getElementById('output').value = '';
+    updateStats(document.getElementById('input').value, '');
+  }
   function onInputChange(){
-    var input = document.getElementById('input').value;
-    var output = document.getElementById('output').value;
-    updateStats(input, output);
+    updateStats(document.getElementById('input').value, document.getElementById('output').value);
+  }
+  function __urlClearResult(){
+    __urlResultValid = false;
+    document.getElementById('output').value = '';
+    updateStats(document.getElementById('input').value, '');
   }
 
   function addHistory(input, output, action){
@@ -487,41 +499,60 @@
     }catch(e){}
   }
 
+  function __urlQuerySlice(s, fn){
+    var h=s.indexOf('#');
+    var head=h>=0?s.slice(0,h):s;
+    var hash=h>=0?s.slice(h):'';
+    var q=head.indexOf('?');
+    if(q<0) return s;
+    return head.slice(0,q+1)+fn(head.slice(q+1))+hash;
+  }
+
   function encodeUrl(){
     var text = document.getElementById('input').value;
-    if(!text) return ToolBox.showToast(i18nText('toast.msg903'), 'warning');
+    if(text === '') return ToolBox.showToast(i18nText('toast.msg903'), 'warning');
     var plusSpace = document.getElementById('plusSpace').checked;
     var fullUrl = document.getElementById('fullUrl').checked;
-    
     var result;
-    if(fullUrl && /^https?:\/\//i.test(text)){
-      try{
-        var url = new URL(text);
-        result = url.toString();
-      }catch(e){
+    try{
+      if(fullUrl && /^https?:\/\//i.test(text)){
+        try{ result = new URL(text).toString(); }
+        catch(e){ result = encodeMode === 'uri' ? encodeURI(text) : encodeURIComponent(text); }
+        // 完整地址：+ 只表示查询参数中的空格，路径/片段里的空格保持 %20，字面 + 不动。
+        if(plusSpace) result = __urlQuerySlice(result, function(q){ return q.replace(/\+/g, '%2B').replace(/%20/g, '+'); });
+      } else {
         result = encodeMode === 'uri' ? encodeURI(text) : encodeURIComponent(text);
+        if(plusSpace) result = result.replace(/%20/g, '+');
       }
-    } else {
-      result = encodeMode === 'uri' ? encodeURI(text) : encodeURIComponent(text);
+    }catch(e){
+      __urlClearResult();
+      return ToolBox.showToast(i18nText('toast.msg589'), 'error');
     }
-    
-    if(plusSpace) result = result.replace(/%20/g, '+');
-    
     document.getElementById('output').value = result;
+    __urlResultValid = true;
     onInputChange();
     addHistory(text, result, 'encode');
   }
 
   function decodeUrl(){
-    var text = document.getElementById('input').value.trim();
-    if(!text) return ToolBox.showToast(i18nText('toast.msg906'), 'warning');
+    var text = document.getElementById('input').value;
+    if(text === '') return ToolBox.showToast(i18nText('toast.msg906'), 'warning');
     try{
-      var decoded = document.getElementById('plusSpace').checked ? text.replace(/\+/g, '%20') : text;
-      decoded = decodeURIComponent(decoded);
+      var plusSpace = document.getElementById('plusSpace').checked;
+      var fullUrl = document.getElementById('fullUrl').checked;
+      var decoded = text;
+      if(plusSpace){
+        decoded = (fullUrl && /^https?:\/\//i.test(text))
+          ? __urlQuerySlice(text, function(q){ return q.replace(/\+/g, '%20'); })
+          : text.replace(/\+/g, '%20');
+      }
+      decoded = encodeMode === 'uri' ? decodeURI(decoded) : decodeURIComponent(decoded);
       document.getElementById('output').value = decoded;
+      __urlResultValid = true;
       onInputChange();
       addHistory(text, decoded, 'decode');
     }catch(e){
+      __urlClearResult();
       ToolBox.showToast(i18nText('toast.msg589'), 'error');
     }
   }
@@ -543,16 +574,18 @@
       params.forEach(function(p){ url.searchParams.append(p[0], p[1]); });
       var result = url.toString();
       document.getElementById('output').value = result;
+      __urlResultValid = true;
       onInputChange();
       ToolBox.showToast(i18nText('toast.msg018'));
     }catch(e){
+      __urlClearResult();
       ToolBox.showToast(i18nText('toast.msg400'), 'error');
     }
   }
 
   function copyOutput(){
     var output = document.getElementById('output').value;
-    if(!output) return ToolBox.showToast(i18nText(), 'warning');
+    if(!__urlResultValid || !output) return ToolBox.showToast(__urlEn()?'Run encode or decode first':'请先执行编码或解码，当前无有效结果','warning');
     ToolBox.copyText(output);
   }
 
@@ -562,13 +595,13 @@
     var tmp = input.value;
     input.value = output.value;
     output.value = tmp;
+    __urlResultValid = !!output.value;
     onInputChange();
   }
 
   function clearAll(){
     document.getElementById('input').value = '';
-    document.getElementById('output').value = '';
-    onInputChange();
+    __urlClearResult();
   }
 
   function renderParams(){
@@ -671,9 +704,12 @@
       
       document.getElementById('parseResult').style.display = 'block';
     }catch(e){
+      document.getElementById('parseResult').style.display = 'none';
       ToolBox.showToast(i18nText('toast.msg400'), 'error');
     }
   }
+
+  function invalidateParse(){document.getElementById('parseResult').style.display = 'none';}
 
   function copyParseResult(){
     var urlStr = document.getElementById('parseInput').value.trim();
@@ -691,7 +727,10 @@
         text += '  ' + pair[0] + ' = ' + pair[1] + '\n';
       }
       ToolBox.copyText(text);
-    }catch(e){}
+    }catch(e){
+      document.getElementById('parseResult').style.display = 'none';
+      ToolBox.showToast(i18nText('toast.msg400'), 'error');
+    }
   }
 
   function clearParser(){
@@ -752,6 +791,7 @@
   window.switchTab = switchTab;
   window.setEncodeMode = setEncodeMode;
   window.onInputChange = onInputChange;
+  window.onUserInput = onUserInput;
   window.encodeUrl = encodeUrl;
   window.decodeUrl = decodeUrl;
   window.normalizeUrl = normalizeUrl;
@@ -766,6 +806,7 @@
   window.clearParams = clearParams;
   window.parseUrl = parseUrl;
   window.copyParseResult = copyParseResult;
+  window.invalidateParse = invalidateParse;
   window.clearParser = clearParser;
   window.filterAsciiTable = filterAsciiTable;
   window.loadHistory = loadHistory;
@@ -794,7 +835,7 @@ function __url_encodeSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         // 隐私：待编码文本、含 user:pass 的 URL、生成 URL 都可能含凭据，只记录长度。
-        var __tbPrivate={'input':'输入长度','parseInput':'解析URL长度','builtUrl':'生成URL长度','output':'输出长度'};
+        var __tbPrivate={'input':'输入长度','baseUrl':'基础URL长度','parseInput':'解析URL长度','builtUrl':'生成URL长度','output':'输出长度'};
         if(__tbPrivate[e.id]){ if(e.value) out[__tbPrivate[e.id]]=(e.value||'').length+' 字符（未存原文）'; continue; }
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
@@ -876,6 +917,8 @@ function __url_encodeExtras(){
                     if(!__d) continue;
                     if(typeof __d['结果']==='string'&&__d['结果'].indexOf('未存原文')<0) __d['结果']='已清理（原结果含敏感内容，未保留）';
                     if(typeof __d['Result']==='string'&&__d['Result'].indexOf('not stored')<0) __d['Result']='Removed (sensitive result was not retained)';
+                    if(typeof __d.baseUrl==='string'&&__d.baseUrl.indexOf('已清理')<0){__d.baseUrl='已清理（原基础地址未保留）';}
+                    if(typeof __d['基础URL长度']==='string'&&__d['基础URL长度'].indexOf('已清理')<0){__d['基础URL长度']='已清理（原基础地址未保留）';}
                 }
                 localStorage.setItem(__k,JSON.stringify(__a));
             }
@@ -973,7 +1016,7 @@ else document.addEventListener('DOMContentLoaded', __url_encodeBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -981,7 +1024,7 @@ else document.addEventListener('DOMContentLoaded', __url_encodeBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

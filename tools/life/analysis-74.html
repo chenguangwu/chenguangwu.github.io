@@ -229,23 +229,35 @@
 </div>
 <script>
 function calc(){
-var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
-var rows=[];
-for(var i=0;i<lines.length;i++){
-  var p=lines[i].split(/[,，\t ]+/);
-  if(p.length<4) continue;
-  var nm=p[0],pr=parseFloat(p[1]),sh=parseFloat(p[2]),gr=parseFloat(p[3]);
-  if(isNaN(pr)||isNaN(sh)||isNaN(gr)||pr<0||sh<0||sh>100||gr<-100||gr>1000){
-    document.getElementById("res").innerHTML='<p style="color:var(--danger)">第 '+(i+1)+' 行数据越界：价格需 ≥0，份额 0–100%，增速 -100%–1000%。</p>';return;
-  }
-  rows.push({n:nm,p:pr,s:sh,g:gr});
+var raw=document.getElementById("data").value.split("\n");
+var rows=[]; var errors=[];
+var numP=/^\d+(?:\.\d+)?(?:元)?$/, numSP=/^[+-]?\d+(?:\.\d+)?(?:%|％)?$/;
+raw.forEach(function(ln,idx){
+ if(!ln.trim()) return;
+ var lineNo=idx+1;
+ var p=ln.trim().split(/[,，\t]/).map(function(x){return x.trim();});
+ if(p.length!==4){ errors.push('第 '+lineNo+' 行字段数为 '+p.length+'，应为 4 列（竞品,价格,份额,增速）：'+ln.trim()); return; }
+ var nm=p[0], ps=p[1], ss=p[2], gs=p[3];
+ if(!nm){ errors.push('第 '+lineNo+' 行竞品名为空'); return; }
+ if(!numP.test(ps)){ errors.push('第 '+lineNo+' 行价格“'+ps+'”格式无效（只允许数字，可带“元”，不能有尾随文字）'); return; }
+ if(!numSP.test(ss)){ errors.push('第 '+lineNo+' 行份额“'+ss+'”格式无效（只允许数字，可带 %）'); return; }
+ if(!numSP.test(gs)){ errors.push('第 '+lineNo+' 行增速“'+gs+'”格式无效（只允许数字，可带 % 或正负号）'); return; }
+ var pr=parseFloat(ps.replace('元','')), sh=parseFloat(ss.replace(/[%％]/g,'')), gr=parseFloat(gs.replace(/[%％]/g,''));
+ if(!isFinite(pr)||!isFinite(sh)||!isFinite(gr)||pr<0||sh<0||sh>100||gr<-100||gr>1000){
+  errors.push('第 '+lineNo+' 行数据越界：价格需 ≥0，份额 0–100%，增速 -100%–1000%'); return;
+ }
+ rows.push({n:nm,p:pr,s:sh,g:gr});
+});
+if(errors.length){
+ document.getElementById("res").innerHTML='<p style="color:var(--danger)">以下行未通过完整字段校验，已停止汇总，请修正后重试：</p><ul>'+errors.map(function(e){return '<li>'+ToolBox.escHtml(e)+'</li>';}).join('')+'</ul>';
+ return;
 }
 if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「竞品,价格,份额,增速」数据</p>";return;}
 var k=rows.length,sp=0,ss=0,sg=0;
 rows.forEach(function(r){sp+=r.p;ss+=r.s;sg+=r.g;});
 var tb="";
 rows.forEach(function(r){
-  tb+="<tr><td>"+r.n+"</td><td>"+r.p.toFixed(2)+"</td><td>"+r.s.toFixed(2)+"%</td><td>"+(r.g>0?"+":"")+r.g.toFixed(2)+"%</td></tr>";
+  tb+="<tr><td>"+ToolBox.escHtml(r.n)+"</td><td>"+r.p.toFixed(2)+"</td><td>"+r.s.toFixed(2)+"%</td><td>"+(r.g>0?"+":"")+r.g.toFixed(2)+"%</td></tr>";
 });
 var lo=rows.slice().sort(function(a,b){return a.p-b.p;})[0];
 var hi=rows.slice().sort(function(a,b){return b.s-a.s;})[0];
@@ -256,9 +268,9 @@ var h="<p>竞品数：<strong>"+k+"</strong></p>";
 h+="<p>价格均值：<strong>"+(sp/k).toFixed(2)+"</strong></p>";
 h+="<p>份额合计：<strong>"+ss.toFixed(2)+"%</strong></p>";
 h+="<p>增速均值：<strong>"+(sg/k>0?"+":"")+(sg/k).toFixed(2)+"%</strong></p>";
-h+="<p>价格最低竞品：<strong>"+lo.n+"</strong></p>";
-h+="<p>份额最高竞品：<strong>"+hi.n+"</strong></p>";
-h+="<p>增速最快竞品：<strong>"+fast.n+"</strong></p>";
+h+="<p>价格最低竞品：<strong>"+ToolBox.escHtml(lo.n)+"</strong></p>";
+h+="<p>份额最高竞品：<strong>"+ToolBox.escHtml(hi.n)+"</strong></p>";
+h+="<p>增速最快竞品：<strong>"+ToolBox.escHtml(fast.n)+"</strong></p>";
 h+="<p>样本说明：<strong>"+judge+"</strong></p>";
 h+="<table><thead><tr><th>竞品</th><th>价格</th><th>市场份额</th><th>同比增速</th></tr></thead><tbody>"+tb+"</tbody></table>";
 h+="<p style='font-size:12px;color:var(--text-muted);margin-top:8px;'>价格与增速取算术平均，份额取合计；份额合计接近 100% 说明样本基本覆盖市场，偏低时结论仅代表所填竞品。</p>";
@@ -279,7 +291,7 @@ function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
   <div class="related-tools-grid">
     <a href="stats-13.html" class="related-tool-card">
       <span class="rt-icon">📊</span>
-      <span class="rt-info"><span class="rt-name">预售（发布/接龙/统计）工具</span><span class="rt-desc">汇总预售、接龙或报名数据，统计人数、占比与分档结果，辅助活动预售与团购统计</span></span>
+      <span class="rt-info"><span class="rt-name">预售（发布/接龙/统计）工具</span><span class="rt-desc">汇总预售、接龙或报名名单，保留每行的箱、斤、份等单位并按同一单位统计；</span></span>
     </a>
     <a href="analysis-cost-9.html" class="related-tool-card">
       <span class="rt-icon">💰</span>

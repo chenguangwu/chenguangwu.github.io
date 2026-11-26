@@ -117,9 +117,9 @@
     <h2 data-zh="🧱 密度换算器">🧱 Density Converter</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">密度单位换算（以 kg/m³ 为基准中转）：基准值 = 输入值 × 换算系数（g/cm³、g/mL、kg/L 均 ×1000，lb/ft³ ×16.018463、lb/in³ ×27679.9047），其余单位 = 基准值 ÷ 对应系数逐一换算。校验：输入非数报「请输入有效数值」。判据：无固定分级，1 g/cm³ = 1000 kg/m³ = 1 g/mL = 1 kg/L 恒成立。</div>
+      <div class="formula-eq">密度单位换算（以 kg/m³ 为基准中转）：基准值 = 输入值 × 换算系数（g/L = 1、g/cm³/g/mL/kg/L 均 ×1000，lb/ft³ ×16.018463、lb/in³ ×27679.9047），其余单位 = 基准值 ÷ 对应系数逐一换算。校验：输入非数报「请输入有效数值」。判据：无固定分级，1 g/cm³ = 1000 kg/m³ = 1 g/mL = 1 kg/L；1 g/L = 1 kg/m³ 恒成立。</div>
     </div>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 kg/m³ / g/cm³ / g/mL / kg/L / lb/ft³ / lb/in³">Convert density units such as kg/m³, g/cm³, lb/ft³ and g/L between each other.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 kg/m³ / g/L / g/cm³ / g/mL / kg/L / lb/ft³ / lb/in³">Convert density units such as kg/m³, g/cm³, lb/ft³ and g/L between each other.</p>
 
     <div class="input-row">
       <div>
@@ -130,6 +130,7 @@
         <label for="fromUnit">源单位</label>
         <select id="fromUnit" onchange="convert()">
           <option value="kgm3" selected>千克每立方米 (kg/m³)</option>
+          <option value="gL">克每升 (g/L)</option>
           <option value="gcm3">克每立方厘米 (g/cm³)</option>
           <option value="gmL">克每毫升 (g/mL)</option>
           <option value="kgL">千克每升 (kg/L)</option>
@@ -152,7 +153,7 @@
     <h3>📐 公式说明</h3>
     <div class="result-box">
       <p>基准单位：<strong>千克每立方米 (kg/m³)</strong></p>
-      <p>1 g/cm³ = 1000 kg/m³ = 1 g/mL = 1 kg/L</p>
+      <p>1 g/cm³ = 1000 kg/m³ = 1 g/mL = 1 kg/L；1 g/L = 1 kg/m³</p>
       <p>1 lb/ft³ ≈ 16.0185 kg/m³</p>
       <p>1 lb/in³ ≈ 27679.9 kg/m³</p>
       <p>水密度：1000 kg/m³ = 1 g/cm³（4℃）</p>
@@ -237,6 +238,7 @@
 <script>
 const factors = {
   kgm3: 1,
+  gL: 1,          // 1 g/L = 1 kg/m³
   gcm3: 1000,
   gmL: 1000,
   kgL: 1000,
@@ -244,10 +246,15 @@ const factors = {
   lbin3: 27679.9047
 };
 const names = {
-  kgm3:'千克每立方米', gcm3:'克每立方厘米', gmL:'克每毫升',
+  kgm3:'千克每立方米', gL:'克每升', gcm3:'克每立方厘米', gmL:'克每毫升',
   kgL:'千克每升', lbft3:'磅每立方英尺', lbin3:'磅每立方英寸'
 };
-const syms = {kgm3:'kg/m³', gcm3:'g/cm³', gmL:'g/mL',
+const namesEn = {
+  kgm3:'kilograms per cubic metre', gL:'grams per litre', gcm3:'grams per cubic centimetre', gmL:'grams per millilitre',
+  kgL:'kilograms per litre', lbft3:'pounds per cubic foot', lbin3:'pounds per cubic inch'
+};
+function isEn(){return typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn();}
+const syms = {kgm3:'kg/m³', gL:'g/L', gcm3:'g/cm³', gmL:'g/mL',
   kgL:'kg/L', lbft3:'lb/ft³', lbin3:'lb/in³'};
 
 function fmt(n){
@@ -262,16 +269,17 @@ function convert(){
   const v = parseFloat(document.getElementById('inputVal').value);
   const from = document.getElementById('fromUnit').value;
   if(isNaN(v)){
-    const __h0='<p style="color:var(--danger);">请输入有效数值</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
+    const __h0='<p style="color:var(--danger);">'+(isEn()?'Please enter a valid number.':'请输入有效数值')+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
     return;
   }
-  if(v<=0){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">'+'密度'+'需为大于 0 的数值。</p>';return;}
+  if(v<=0){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">'+(isEn()?'Density must be greater than 0.':'密度需为大于 0 的数值。')+'</p>';return;}
   const base = v * factors[from];
-  let html = `<p>基准：<strong>${fmt(v)} ${syms[from]}</strong> = <strong>${fmt(base)} kg/m³</strong></p>`;
+  if(!isFinite(base)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">'+(isEn()?'Result is out of range; reduce the input or use a larger unit.':'数值超出可计算范围，请降低输入或改用更大单位。')+'</p>';return;}
+  let html = `<p>${isEn()?'Base:':'基准：'}<strong>${fmt(v)} ${syms[from]}</strong> = <strong>${fmt(base)} kg/m³</strong></p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
   Object.keys(factors).forEach(k => {
     if(k !== from){
-      html += `<p>${names[k]}：<strong>${fmt(base / factors[k])} ${syms[k]}</strong></p>`;
+      html += `<p>${isEn()?(namesEn[k]||names[k]):names[k]}${isEn()?':':'：'}<strong>${fmt(base / factors[k])} ${syms[k]}</strong></p>`;
     }
   });
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;

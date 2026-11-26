@@ -120,7 +120,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 mm / cm / m / km / in / ft / yd / mi / 海里 / 光年">Convert length and distance units from nanometre to mile, including metric and imperial systems.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">以米为基准换算：1 mm = 0.001 m、1 cm = 0.01 m、1 km = 1000 m、1 英寸 = 0.0254 m、1 英尺 = 0.3048 m、1 码 = 0.9144 m、1 英里 = 1609.344 m、1 海里 = 1852 m、1 光年 ≈ 9.4607 × 10¹⁵ m；结果 = 输入值 × 目标系数 ÷ 源系数。</div>
+      <div class="formula-eq">以米为基准换算：1 mm = 0.001 m、1 cm = 0.01 m、1 km = 1000 m、1 英寸 = 0.0254 m、1 英尺 = 0.3048 m、1 码 = 0.9144 m、1 英里 = 1609.344 m、1 海里 = 1852 m、1 光年 ≈ 9.4607 × 10¹⁵ m；结果 = 输入值 × 源系数 ÷ 目标系数（系数表示该单位对应多少米）。</div>
   
 </div>
 
@@ -132,6 +132,7 @@
       <div>
         <label for="fromUnit">源单位</label>
         <select id="fromUnit" onchange="convert()">
+          <option value="nm">纳米 (nm)</option>
           <option value="mm">毫米 (mm)</option>
           <option value="cm">厘米 (cm)</option>
           <option value="m" selected>米 (m)</option>
@@ -147,6 +148,7 @@
       <div>
         <label for="toUnit">目标单位</label>
         <select id="toUnit" onchange="convert()">
+          <option value="nm">纳米 (nm)</option>
           <option value="mm">毫米 (mm)</option>
           <option value="cm" selected>厘米 (cm)</option>
           <option value="m">米 (m)</option>
@@ -232,17 +234,17 @@
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="国际英寸">International inch</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="1 英寸等于 25.4 毫米，为国际协定定义值">one inch equals 25.4 millimetres by international agreement</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ISO 80000-3 quantities and units">ISO 80000-3 quantities and units</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ISO 80000-3 量与单位">ISO 80000-3 quantities and units</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="英制进位">Imperial steps</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="1 英尺等于 12 英寸，1 码等于 3 英尺">a foot holds twelve inches and a yard three feet</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ISO 80000-3 quantities and units">ISO 80000-3 quantities and units</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ISO 80000-3 量与单位">ISO 80000-3 quantities and units</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="市制长度">Chinese customary length</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="1 市尺等于三分之一米，1 市寸为其十分之一">one chi equals a third of a metre and one cun a tenth of that</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="GB 3100 legal units">GB 3100 legal units</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="GB 3100 法定计量单位">GB 3100 legal units</td>
         </tr>
       </tbody>
     </table>
@@ -261,6 +263,7 @@
 
 <script>
 const factors = {
+  nm: 1e-9,
   mm: 0.001,
   cm: 0.01,
   m: 1,
@@ -273,7 +276,7 @@ const factors = {
   ly: 9.4607304725808e15
 };
 const names = {
-  mm:'毫米', cm:'厘米', m:'米', km:'千米',
+  nm:'纳米', mm:'毫米', cm:'厘米', m:'米', km:'千米',
   in:'英寸', ft:'英尺', yd:'码', mi:'英里',
   nmi:'海里', ly:'光年'
 };
@@ -339,6 +342,7 @@ function swap(){
 }
 function clearAll(){
   document.getElementById('inputVal').value = '';
+  if(typeof window.__charRefRender==='function') window.__charRefRender();
   const __h2=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a value to convert":"请输入数值进行换算");if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
 }
 convert();
@@ -454,17 +458,20 @@ function __length_converterExtras(){
     __length_converterRender(keys,rk,en);
 }
 function __length_converterExport(){
-    if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#length_converterTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__length_converterSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __length_converterRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#length_converterTable','length-converter.csv'); } catch(e){}
+    if (typeof TBKit === 'undefined' || !TBKit.util || !TBKit.util.exportCsv) return;
+    var en=!!(TBKit.util.isEn&&TBKit.util.isEn());
+    var v=parseFloat(document.getElementById('inputVal').value);
+    var from=document.getElementById('fromUnit').value;
+    if(!isFinite(v)||!factors[from]){
+        if(typeof ToolBox!=='undefined'&&ToolBox.showToast) ToolBox.showToast(en?'Enter a valid number before exporting.':'请输入有效数值后再导出。','warning');
+        return;
+    }
+    var base=v*factors[from];
+    var rows=[[en?'Unit':'单位',en?'Value in source unit':'源单位数值',en?'Base value (meter)':'基准值（米）']];
+    Object.keys(factors).forEach(function(k){
+        rows.push([en?((typeof namesEn!=='undefined'&&namesEn[k])?namesEn[k]:k):(names[k]||k),fmt(v*factors[from]/factors[k]),fmt(base)]);
+    });
+    TBKit.util.exportCsv('length-converter.csv',rows);
 }
 function __length_converterPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -615,9 +622,33 @@ else document.addEventListener('DOMContentLoaded', __length_converterBoot);
     var html='';
     html+='<div class="card" style="margin-top:0;">';
     html+='<h3>'+(en?'Scale sense: how big is it really?':'📐 尺度感知：这到底有多大')+'</h3>';
-    html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
-    if(best){
-      html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+    if(v<0){
+      html+='<p>'+(en?'Your input = ':'你的输入 = ')+fmt(base)+' '+bname+'</p>';
+      html+='<p style="color:var(--text-muted);">'+(en?'Negative length is shown with its sign; real-world references are only for non-negative values.':'输入为负长度，已保留负号；实物参照只适用于非负值，因此不做近似比较。')+'</p>';
+    } else if(v===0){
+      html+='<p>'+(en?'Your input = ':'你的输入 = ')+'0 '+bname+'</p>';
+      html+='<p style="color:var(--text-muted);">'+(en?'Zero length is not compared with positive real-world objects.':'零长度不与正长度实物作近似比较。')+'</p>';
+    } else {
+      var shown = fmt(base);
+      if(base > 0 && (shown === '0' || shown === '0.00' || shown === '0.0')) {
+        html+='<p>'+(en?'Your input is positive but smaller than the display precision: about ':'你的输入为正值，但小于当前显示精度：约 ')+base.toExponential(3)+' '+bname+'</p>';
+      } else {
+        html+='<p>'+(en?'Your input = ':'你的输入 = ')+shown+' '+bname+'</p>';
+      }
+      if(best){
+        var ratio=base/best.v;
+        if(ratio>=0.1&&ratio<=10){
+          html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+        } else if(ratio>1e6){
+          html+='<p style="font-weight:600;color:var(--primary);">💡 '+(en?'Far larger than ':'远大于 ')+best[en?'en':'zh']+(en?' (about '+fmt(ratio)+'×; order-of-magnitude only)':'（约 '+fmt(ratio)+' 倍；仅作数量级比较，不表示近似相等）')+'</p>';
+        } else if(ratio>1){
+          html+='<p style="font-weight:600;color:var(--primary);">💡 '+(en?'Nearest reference: ':'最近参照：')+best[en?'en':'zh']+'；'+(en?'about ':'约为其 ')+fmt(ratio)+(en?'× of it':' 倍')+'</p>';
+        } else if(ratio<1e-6){
+          html+='<p style="font-weight:600;color:var(--primary);">💡 '+(en?'Far smaller than ':'远小于 ')+best[en?'en':'zh']+(en?' (about 1/'+fmt(1/ratio)+' of it; order-of-magnitude only)':'（约为其 1/'+fmt(1/ratio)+'；仅作数量级比较，不表示近似相等）')+'</p>';
+        } else {
+          html+='<p style="font-weight:600;color:var(--primary);">💡 '+(en?'Nearest reference: ':'最近参照：')+best[en?'en':'zh']+'；'+(en?'about 1/'+fmt(1/ratio)+' of it':'约为其 1/'+fmt(1/ratio))+'</p>';
+        }
+      }
     }
     html+='<details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--primary);">'+(en?'Typical real-world references':'常见实物参照')+'</summary><ul style="font-size:13px;line-height:1.8;margin:6px 0 0;padding-left:18px;">';
     for(var j=0;j<REFS.length;j++){
@@ -629,6 +660,7 @@ else document.addEventListener('DOMContentLoaded', __length_converterBoot);
     html+='</div>';
     box.innerHTML=html;
   }
+  window.__charRefRender=render;
   var f0=(typeof convert==='function')?convert:null;
   if(f0){ convert=function(){ var r=f0.apply(null,arguments); try{ render(); }catch(e){} return r; }; }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', render);

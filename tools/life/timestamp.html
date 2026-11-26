@@ -150,7 +150,7 @@
       <div class="input-row" style="margin-top:12px;">
         <div>
           <label for="timezoneSelect">显示与解析时区</label>
-          <select id="timezoneSelect" onchange="refreshLastResult()">
+          <select id="timezoneSelect" onchange="refreshLastResult();initQuickTimestamps();">
             <option value="local">浏览器本地时区</option>
             <option value="UTC">UTC（+00:00）</option>
             <option value="480">中国标准时间（UTC+08:00）</option>
@@ -220,30 +220,31 @@
 
   <div class="card">
     <h2>📅 常用时间戳速查</h2>
+    <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">快捷值按上方所选时区的日历边界计算；昨天/明天指昨天/明天零点，跨夏令时也保留零点。</p>
     <div class="quick-grid">
       <div class="quick-item">
         <p class="qlabel">今天开始</p>
-        <p class="qvalue" onclick="copyText(this.textContent)">--</p>
+        <p class="qvalue" id="qTodayStart" onclick="copyText(this.textContent)">--</p>
       </div>
       <div class="quick-item">
         <p class="qlabel">今天结束</p>
-        <p class="qvalue" onclick="copyText(this.textContent)">--</p>
+        <p class="qvalue" id="qTodayEnd" onclick="copyText(this.textContent)">--</p>
       </div>
       <div class="quick-item">
         <p class="qlabel">本周一</p>
-        <p class="qvalue" onclick="copyText(this.textContent)">--</p>
+        <p class="qvalue" id="qMonday" onclick="copyText(this.textContent)">--</p>
       </div>
       <div class="quick-item">
         <p class="qlabel">本月1号</p>
-        <p class="qvalue" onclick="copyText(this.textContent)">--</p>
+        <p class="qvalue" id="qMonthStart" onclick="copyText(this.textContent)">--</p>
       </div>
       <div class="quick-item">
-        <p class="qlabel">昨天此刻</p>
-        <p class="qvalue" onclick="copyText(this.textContent)">--</p>
+        <p class="qlabel">昨天零点</p>
+        <p class="qvalue" id="qYesterday" onclick="copyText(this.textContent)">--</p>
       </div>
       <div class="quick-item">
-        <p class="qlabel">明天此刻</p>
-        <p class="qvalue" onclick="copyText(this.textContent)">--</p>
+        <p class="qlabel">明天零点</p>
+        <p class="qvalue" id="qTomorrow" onclick="copyText(this.textContent)">--</p>
       </div>
     </div>
   </div>
@@ -375,7 +376,7 @@ function formatDate(date) {
   const min = String(minute).padStart(2, '0');
   const s = String(second).padStart(2, '0');
   const ms = String(millisecond).padStart(3, '0');
-  return `${y}-${m}-${d} ${h}:${min}:${s}.${ms}`;
+  return `${String(y).padStart(4,'0')}-${m}-${d} ${h}:${min}:${s}.${ms}`;
 }
 
 function formatUtc(date) {
@@ -405,19 +406,43 @@ function switchMode(mode) {
   document.getElementById('tabBtnDate').classList.toggle('active', mode === 'date2ts');
 }
 
-function parseTimestamp(ts) {
-  const format = document.getElementById('formatSelect').value;
+function parseTimestamp(ts, formatOverride) {
+  const format = formatOverride || document.getElementById('formatSelect').value;
   const raw = String(ts).trim()
     .replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 65248))
     .replace(/[，,]/g, '')
     .replace(/[　\s]/g, '');
-  const val = parseFloat(raw);
-  if (isNaN(val)) return NaN;
+  // 完整字符串校验：拒绝 abc 后缀、1e3、空串等 parseFloat 会截断/猜测的写法。
+  if (!/^-?(?:\d+(?:\.\d+)?|\.\d+)$/.test(raw)) return NaN;
+  if (format === 'ms' && !/^-?\d+$/.test(raw)) return NaN;
+  const val = Number(raw);
+  if (!isFinite(val)) return NaN;
   if (format === 's') return Math.round(val * 1000);
   if (format === 'ms') return Math.round(val);
-  // auto：按数量级判断（秒级 < 1e11，约公元 5138 年），负号/小数位不参与比较；
-  // 旧实现按字符串长度判断，"-1000000000" 长 11 位会被当成毫秒。
+  // auto：按数量级判断（秒级 < 1e11，约公元 5138 年），负号/小数位不参与比较。
   return Math.abs(val) < 1e11 ? Math.round(val * 1000) : Math.round(val);
+}
+
+function clearResult() {
+  ['dateResult','msResult','sResult','utcResult'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.textContent='--';
+  });
+  lastResultDate = null;
+}
+
+function makeLocalDate(year, month, day, hour, minute) {
+  // new Date(1,0,1) 会把 1 年当 1901 年；先取 1970 再 setFullYear 才能保留公元 1–99 年。
+  const d = new Date(0);
+  d.setFullYear(year, month - 1, day);
+  d.setHours(hour, minute, 0, 0);
+  return d;
+}
+
+function makeUtcDate(year, month, day, hour, minute) {
+  const d = new Date(0);
+  d.setUTCFullYear(year, month - 1, day);
+  d.setUTCHours(hour, minute, 0, 0);
+  return d;
 }
 
 function convertTimestamp() {
@@ -425,7 +450,7 @@ function convertTimestamp() {
   if (!ts) { ToolBox.showToast(i18nText('toast.msg807'), 'warning'); return; }
   const ms = parseTimestamp(ts);
   const date = new Date(ms);
-  if (isNaN(date.getTime())) { ToolBox.showToast(i18nText('toast.msg401'), 'error'); return; }
+  if (isNaN(date.getTime())) { clearResult(); ToolBox.showToast(i18nText('toast.msg401'), 'error'); return; }
   showResult(date);
 }
 
@@ -437,12 +462,12 @@ function convertDate() {
   const [hour, minute] = t.split(':').map(Number);
   const zone = selectedZone();
   let date;
-  if (zone === 'local') date = new Date(year, month - 1, day, hour, minute, 0);
+  if (zone === 'local') date = makeLocalDate(year, month, day, hour, minute);
   else {
     const offset = zone === 'UTC' ? 0 : Number(zone);
-    date = new Date(Date.UTC(year, month - 1, day, hour, minute, 0) - offset * 60000);
+    date = new Date(makeUtcDate(year, month, day, hour, minute).getTime() - offset * 60000);
   }
-  if (isNaN(date.getTime())) { ToolBox.showToast(i18nText('toast.msg412'), 'error'); return; }
+  if (isNaN(date.getTime())) { clearResult(); ToolBox.showToast(i18nText('toast.msg412'), 'error'); return; }
   showResult(date);
 }
 
@@ -464,7 +489,13 @@ function refreshLastResult() {
 
 function nowTimestamp() {
   const now = new Date();
-  document.getElementById('timestampInput').value = now.getTime();
+  const unit = document.getElementById('formatSelect') ? document.getElementById('formatSelect').value : 'auto';
+  const input = document.getElementById('timestampInput');
+  if(unit === 's'){
+    input.value = (now.getTime() / 1000).toFixed(3);
+  } else {
+    input.value = String(now.getTime());
+  }
   showResult(now);
 }
 
@@ -490,11 +521,8 @@ function copyText(text) {
 }
 
 function parseTimestampAuto(ts) {
-  const raw = String(ts).trim();
-  if (!/^-?\d+$/.test(raw)) return NaN;
-  const n = Number(raw);
-  if (!isFinite(n)) return NaN;
-  return Math.abs(n) >= 1e11 ? n : n * 1000;
+  // 批量入口固定自动识别单位（13 位按毫秒、10 位按秒），但复用单条的归一化与完整字符串校验。
+  return parseTimestamp(ts, 'auto');
 }
 
 function convertBatch() {
@@ -525,23 +553,37 @@ function updateNowCards() {
 }
 
 function initQuickTimestamps() {
+  const zone = selectedZone();
+  const offset = zone === 'local' ? null : (zone === 'UTC' ? 0 : Number(zone));
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(todayStart.getTime() + 86400000 - 1);
-  const monday = new Date(todayStart);
-  monday.setDate(todayStart.getDate() - todayStart.getDay() + (todayStart.getDay() === 0 ? -6 : 1));
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const yesterday = new Date(now.getTime() - 86400000);
-  const tomorrow = new Date(now.getTime() + 86400000);
+  let y, m, d, weekday;
+  if(offset === null){
+    y = now.getFullYear(); m = now.getMonth(); d = now.getDate();
+    weekday = new Date(y, m, d).getDay();
+  } else {
+    const shifted = new Date(now.getTime() + offset * 60000);
+    y = shifted.getUTCFullYear(); m = shifted.getUTCMonth(); d = shifted.getUTCDate();
+    weekday = new Date(Date.UTC(y, m, d)).getUTCDay();
+  }
+  function zoneMidnight(yy, mm, dd){
+    if(offset === null) return new Date(yy, mm, dd, 0, 0, 0, 0);
+    return new Date(Date.UTC(yy, mm, dd, 0, 0, 0, 0) - offset * 60000);
+  }
+  const todayStart = zoneMidnight(y, m, d);
+  const todayEnd = zoneMidnight(y, m, d + 1) - 1;
+  const mondayOffset = weekday === 0 ? -6 : 1 - weekday;
+  const monday = zoneMidnight(y, m, d + mondayOffset);
+  const monthStart = zoneMidnight(y, m, 1);
+  const yesterday = zoneMidnight(y, m, d - 1);
+  const tomorrow = zoneMidnight(y, m, d + 1);
 
-  const quickEls = document.querySelectorAll('.qvalue');
-  if(quickEls.length < 6) return;
-  quickEls[0].textContent = todayStart.getTime();
-  quickEls[1].textContent = todayEnd.getTime();
-  quickEls[2].textContent = monday.getTime();
-  quickEls[3].textContent = monthStart.getTime();
-  quickEls[4].textContent = yesterday.getTime();
-  quickEls[5].textContent = tomorrow.getTime();
+  const setQ = function(id, v){ var el=document.getElementById(id); if(el) el.textContent=v; };
+  setQ('qTodayStart', todayStart.getTime());
+  setQ('qTodayEnd', todayEnd);
+  setQ('qMonday', monday.getTime());
+  setQ('qMonthStart', monthStart.getTime());
+  setQ('qYesterday', yesterday.getTime());
+  setQ('qTomorrow', tomorrow.getTime());
 }
 
 initQuickTimestamps();

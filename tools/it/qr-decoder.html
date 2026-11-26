@@ -141,7 +141,7 @@
     <h2 data-zh="🔍 二维码解码（手动输入解析）">🔍 QR Code Decode</h2>
     <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;" data-zh="本工具用于解析已知二维码文本内容的格式与含义（不支持从图片识别）。粘贴扫描得到的内容即可自动识别类型。">Parse the text carried by a QR code (for example, content you scanned elsewhere). Image recognition is not supported; paste the text and this page identifies its payload type and fields in your browser.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按前缀判定载荷类型：WIFI: 以字符状态机解析（支持 \; \, \: \\ 反斜杠转义）提取加密方式/网络名/密码/隐藏，并对网络名与密码做百分号解码；mailto: 与 sms: 用 URL 解析取 pathname 及 subject、body 参数；tel: 去掉前缀即号码；geo: 去掉前缀后按 ? 切分，前半按逗号取纬度/经度，后半 q= 参数经安全解码（非法百分号编码按原文显示并提示）还原；http(s):// 判为网址；BEGIN:VCARD 与 BEGIN:VEVENT 按行以首个冒号切分为键值；全部不匹配时按纯文本输出</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按前缀判定载荷类型：WIFI: 以字符状态机解析（支持 \; \, \: \\ 反斜杠转义）提取加密方式/网络名/密码/隐藏，网络名与密码仅按协议处理反斜杠转义，百分号原样保留（不做 URL 解码）；mailto: 与 sms: 用 URL 解析取 pathname 及 subject、body 参数；tel: 去掉前缀即号码；geo: 去掉前缀后按 ? 切分，前半按逗号取纬度/经度，后半 q= 参数经安全解码（非法百分号编码按原文显示并提示）还原；http(s):// 判为网址；BEGIN:VCARD 与 BEGIN:VEVENT 按行以首个冒号切分为键值；全部不匹配时按纯文本输出</div>
   <div class="formula-desc">解析二维码承载的文本载荷；本页不做图像识别、纠错或掩码还原。</div>
   <ul class="formula-list">
     <li><b>类型识别</b>：按 <code>WIFI:</code>、<code>mailto:</code>、<code>sms:</code>、<code>tel:</code>、<code>geo:</code>、<code>http(s)://</code>、<code>BEGIN:VCARD</code> / <code>BEGIN:VEVENT</code> 前缀判定载荷类型。</li>
@@ -256,56 +256,56 @@ function parseWifiFields(body){
   return fields;
 }
 function wifiValue(v){
-  // IT-D04: unescape 按 Latin-1 逐字节解码，中文 SSID/密码会变 ä¸­ 乱码；改 UTF-8 百分号解码，并对 %uXXXX 兼容。
-  if(!/%[0-9A-Fa-f]{2}|%u[0-9A-Fa-f]{4}/.test(v)) return v;
-  var s=v.replace(/%u([0-9A-Fa-f]{4})/gi,function(_,h){return String.fromCharCode(parseInt(h,16));});
-  try{ return decodeURIComponent(s); }catch(e){ return unescape(s); }
+  // WiFi 字段不是 URL 查询参数：百分号是 SSID/密码的合法字面字符，不能自动 decodeURIComponent。
+  // 仅 parseWifiFields 已处理协议规定的反斜杠转义（\; \, \: \\），其余原样保留。
+  return String(v);
 }
 var QR_EN=/(?:^|[?&])lang=en/i.test(location.search);
 function decode(text){
+  const Q=(zh,en)=>QR_EN?en:zh;
   text=text.trim();
   if(!text)return QR_EN?'Please enter content':'请输入内容';
   const types=[];
   // WiFi
   if(/^WIFI:/i.test(text)){
     const m=parseWifiFields(text.replace(/^WIFI:/i,''));
-    types.push({type:'WiFi 网络',fields:{
-      '加密方式':m.T||'','网络名称':wifiValue(m.S||''),'密码':wifiValue(m.P||''),'隐藏':m.H||'false'
+    types.push({type:Q('WiFi 网络','WiFi network'),fields:{
+      [Q('加密方式','Security')]:m.T||'',[Q('网络名称','SSID')]:wifiValue(m.S||''),[Q('密码','Password')]:wifiValue(m.P||''),[Q('隐藏','Hidden')]:m.H||'false'
     }});
   }
   // mailto
   if(/^mailto:/i.test(text)){
     const u=new URL(text);
-    types.push({type:'邮件',fields:{'收件人':u.pathname,'主题':u.searchParams.get('subject')||'','正文':u.searchParams.get('body')||''}});
+    types.push({type:Q('邮件','Email'),fields:{[Q('收件人','To')]:u.pathname,[Q('主题','Subject')]:u.searchParams.get('subject')||'',[Q('正文','Body')]:u.searchParams.get('body')||''}});
   }
   // tel
-  if(/^tel:/i.test(text)){types.push({type:'电话',fields:{'号码':text.replace(/^tel:/i,'')}});}
+  if(/^tel:/i.test(text)){types.push({type:Q('电话','Phone'),fields:{[Q('号码','Number')]:text.replace(/^tel:/i,'')}});}
   // sms — IT-D05: 兼容本站生成的 SMSTO:号码:内容 格式（sms-qr / qrcode 预设）
   if(/^sms:/i.test(text)){
     const u=new URL(text);
-    types.push({type:'短信',fields:{'号码':u.pathname,'内容':u.searchParams.get('body')||''}});
+    types.push({type:Q('短信','SMS'),fields:{[Q('号码','Number')]:u.pathname,[Q('内容','Message')]:u.searchParams.get('body')||''}});
   }else if(/^SMSTO:/i.test(text)){
     const rest=text.slice(6);const c=rest.indexOf(':');
-    types.push({type:'短信',fields:{'号码':c<0?rest:rest.slice(0,c),'内容':c<0?'':rest.slice(c+1)}});
+    types.push({type:Q('短信','SMS'),fields:{[Q('号码','Number')]:c<0?rest:rest.slice(0,c),[Q('内容','Message')]:c<0?'':rest.slice(c+1)}});
   }
   // geo
   if(/^geo:/i.test(text)){
     const rest=text.slice(4);const parts=rest.split('?');
     const coords=parts[0].split(',');
-    const fields={'纬度':coords[0]||'','经度':coords[1]||''};
+    const fields={[Q('纬度','Latitude')]:coords[0]||'',[Q('经度','Longitude')]:coords[1]||''};
     if(parts[1]!==undefined){
       if(/^q=/.test(parts[1])){
         const d=safeDecodeURI(parts[1].slice(2));
-        fields['查询']=d.value;
-        if(!d.ok) fields['查询提示']='百分号编码非法，已按原文显示';
+        fields[Q('查询','Query')]=d.value;
+        if(!d.ok) fields[Q('查询提示','Query note')]=Q('百分号编码非法，已按原文显示','Invalid percent-encoding; shown as-is');
       }else{
-        fields['查询']=parts[1];
+        fields[Q('查询','Query')]=parts[1];
       }
     }
     types.push({type:'位置',fields:fields});
   }
   // URL
-  if(/^https?:\/\//i.test(text)){types.push({type:'网址',fields:{'URL':text}});}
+  if(/^https?:\/\//i.test(text)){types.push({type:Q('网址','URL'),fields:{'URL':text}});}
   // vCard
   if(/^BEGIN:VCARD/i.test(text)){
     const fields={};
@@ -313,7 +313,7 @@ function decode(text){
       const idx=line.indexOf(':');
       if(idx>0){fields[line.slice(0,idx)]=line.slice(idx+1);}
     });
-    types.push({type:'名片 (vCard)',fields});
+    types.push({type:Q('名片 (vCard)','vCard'),fields});
   }
   // VEVENT
   if(/^BEGIN:VEVENT/i.test(text)){
@@ -322,15 +322,15 @@ function decode(text){
       const idx=line.indexOf(':');
       if(idx>0){fields[line.slice(0,idx)]=line.slice(idx+1);}
     });
-    types.push({type:'日历事件',fields});
+    types.push({type:Q('日历事件','Calendar event'),fields});
   }
-  if(types.length===0)types.push({type:'纯文本',fields:{'内容':text}});
-  let html='<div class="decode-out">识别到 '+types.length+' 种类型</div>';
+  if(types.length===0)types.push({type:Q('纯文本','Plain text'),fields:{[Q('内容','Content')]:text}});
+  let html='<div class="decode-out">'+Q('识别到 '+types.length+' 种类型','Recognized '+types.length+' type(s)')+'</div>';
   html+='<div class="types">';
   for(const t of types){
     html+='<div class="type-card"><strong>'+escapeHtml(t.type)+'</strong>';
     for(const k in t.fields){
-      html+='<div>'+escapeHtml(k)+': '+escapeHtml(t.fields[k]||'(空)')+'</div>';
+      html+='<div>'+escapeHtml(k)+': '+escapeHtml(t.fields[k]||Q('(空)','(empty)'))+'</div>';
     }
     html+='</div>';
   }
@@ -528,7 +528,7 @@ else document.addEventListener('DOMContentLoaded', __qr_decoderBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -536,7 +536,7 @@ else document.addEventListener('DOMContentLoaded', __qr_decoderBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

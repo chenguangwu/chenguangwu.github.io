@@ -244,7 +244,7 @@ function renderDayRows(){
   }
   var html = '';
   for(var i=0;i<dayCount;i++){
-    var d = prev[i] || DEFAULT_DAYS[i] || {tmax:25,tmin:15};
+    var d = prev[i] || DEFAULT_DAYS[i] || {tmax:'',tmin:''};
     html += '<div class="input-row"><label>第'+(i+1)+'天</label>';
     html += '<div style="display:flex;gap:8px;flex:1;">';
     html += '<input type="number" id="tmax'+i+'" value="'+d.tmax+'" min="-50" max="60" step="0.5" oninput="calc()" placeholder="最高温" style="flex:1;" aria-label="最高温">';
@@ -259,18 +259,23 @@ function removeDay(){ if(dayCount>1){ dayCount--; renderDayRows(); calc(); } }
 function calcGDD(tmax, tmin, tbase, tupper, method){
   var tavg = (tmax + tmin) / 2;
   if(method === 'single'){
-    // 单正弦法近似
-    if(tmin >= tupper) return tupper - tbase;
-    if(tmax <= tbase) return 0;
+    // 单正弦法：T(θ)=Tavg+α sinθ，θ∈[-π/2,π/2]；同时按基温截底、按上限截顶
+    if(tmin >= tupper) return tupper - tbase; // 全日在上限平台
+    if(tmax <= tbase) return 0;              // 全日低于基温
     var alpha = (tmax - tmin) / 2;
-    var theta1 = Math.asin((tbase - (tmax+tmin)/2) / alpha);
-    var theta2 = Math.asin((tupper - (tmax+tmin)/2) / alpha);
-    if(isNaN(theta1)) theta1 = -Math.PI/2;
-    if(isNaN(theta2)) theta2 = Math.PI/2;
-    // 单正弦法：对高于基温的半个正弦周期积分（标准式系数为 α，非 2α）
-    var gdd = ((tmax+tmin)/2 - tbase) * (theta2 - theta1) + alpha * (Math.cos(theta1) - Math.cos(theta2));
-    gdd = gdd / Math.PI;
-    return Math.max(0, gdd);
+    var tavg2 = (tmax + tmin) / 2;
+    var lo = -Math.PI/2, hi = Math.PI/2;
+    var theta1 = tbase <= tmin ? lo : Math.asin((tbase - tavg2) / alpha);
+    var theta2 = tupper >= tmax ? hi : Math.asin((tupper - tavg2) / alpha);
+    if(isNaN(theta1)) theta1 = lo;
+    if(isNaN(theta2)) theta2 = hi;
+    theta1 = Math.max(lo, Math.min(hi, theta1));
+    theta2 = Math.max(lo, Math.min(hi, theta2));
+    if(theta2 <= theta1) return 0;
+    // 基温截底区间积分 + 上限以上的平台贡献（平台段宽度 π/2-θ2）
+    var gdd = (tavg2 - tbase) * (theta2 - theta1) + alpha * (Math.cos(theta1) - Math.cos(theta2));
+    gdd += (tupper - tbase) * (hi - theta2);
+    return Math.max(0, gdd / Math.PI);
   } else {
     // 简单平均法
     var gdd = tavg - tbase;
@@ -350,8 +355,8 @@ function calc(){
   html += '<div class="tip-box tip-info" style="margin-top:10px;">';
   html += '<strong>计算公式：</strong><br>';
   html += '简单平均法：GDD = max(0, ((Tmax+Tmin)/2) − Tbase)<br>';
-  html += '当平均温度超过上限温度时，取上限温度计算<br>';
-  html += '累积GDD = Σ 每日GDD';
+  html += '单正弦法：T(θ)=日均温 + 振幅×sinθ；低于基温部分不计，高于上限部分按上限平台 (Tupper−Tbase) 计<br>';
+  html += '简单平均法在上限处同样截顶；累积GDD = Σ 每日GDD';
   html += '</div>';
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }
@@ -385,10 +390,7 @@ calc();
       <span class="rt-icon">🔄</span>
       <span class="rt-info"><span class="rt-name">农产品干物质含量换算器</span><span class="rt-desc">农产品干物质换算器，输入鲜重、干重或含水率快速互转并支持标准含水率折算，用于粮食收购与饲草计量</span></span>
     </a>
-    <a href="dry-matter-conversion.html" class="related-tool-card">
-      <span class="rt-icon">🔄</span>
-      <span class="rt-info"><span class="rt-name">农产品干物质含量换算器</span><span class="rt-desc">农产品干物质换算器，输入鲜重、干重或含水率快速互转并支持标准含水率折算，用于粮食收购与饲草计量</span></span>
-    </a>
+    
     
     <a href="temp-time-2.html" class="related-tool-card">
       <span class="rt-icon">🌡️</span>
@@ -562,19 +564,51 @@ function __gdd_calculatorExtras(){
     TBKit.history.record(rec);
     __gdd_calculatorRender(keys,rk,en);
 }
-function __gdd_calculatorExport(){
-    if (typeof TBKit === 'undefined') return;
+function __exportCurrentDetail(sel){
     try{
-        var box=document.querySelector('#gdd_calculatorTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__gdd_calculatorSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __gdd_calculatorRender(keys,en?'Result':'结果',en);
+        var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
+        var box=document.querySelector(sel);
+        var txt=box?(box.textContent||'').replace(/\s+/g,' ').trim():'';
+        if(!txt||/⚠|错误|无效|失败|Invalid|Failed|must be|Please enter|请输入/.test(txt)){
+            if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast(en?'Current result is empty or invalid; nothing exported':'当前结果为空或无效，未导出','warning');
+            return;
         }
-    }catch(e){}
-    try { TBKit.util.exportTable('#gdd_calculatorTable','gdd-calculator.csv'); } catch(e){}
+        var rows=[[en?'Input':'输入参数',en?'Field':'字段',en?'Value':'值']];
+        var els=document.querySelectorAll('.container input,.container select,.container textarea');
+        for(var i=0;i<els.length;i++){
+            var e=els[i],t=(e.type||'').toLowerCase();
+            if(t==='button'||t==='submit'||t==='hidden'||t==='reset'||!e.id) continue;
+            var v=(t==='checkbox'||t==='radio')?(e.checked?'是':'否'):(e.value||'').trim();
+            if(v==='') continue;
+            rows.push([en?'Parameter':'参数',e.id||('field'+(i+1)),v]);
+        }
+        rows.push([]); rows.push([en?'Result':'计算结果',en?'Item':'项目',en?'Value':'值']);
+        rows.push([en?'Summary':'结果摘要','result',txt]);
+        if(box){
+            var __blocks=box.querySelectorAll('p,li,tr,.stat-card,.result-item,.metric');
+            for(var b2=0;b2<__blocks.length;b2++){
+                var __t=(__blocks[b2].textContent||'').replace(/\s+/g,' ').trim();
+                if(!__t||__t===txt||__t.length>500) continue;
+                rows.push([en?'Detail':'逐项数据','item'+(b2+1),__t]);
+            }
+            var tbs=box.querySelectorAll('table');
+            for(var q=0;q<tbs.length;q++){
+                var trs=tbs[q].querySelectorAll('tr');
+                for(var r=0;r<trs.length;r++){
+                    var cs=trs[r].querySelectorAll('th,td'); if(!cs.length) continue;
+                    var line=[]; for(var c=0;c<cs.length;c++) line.push((cs[c].textContent||'').replace(/\s+/g,' ').trim());
+                    rows.push([en?'Table':'数据表','row'+(r+1),line.join(' | ')]);
+                }
+            }
+        }
+        function esc(v){ v=String(v==null?'':v); return '"'+v.replace(/"/g,'""')+'"'; }
+        var csv=[rows[0].map(esc).join(',')];
+        rows.slice(1).forEach(function(rw){ csv.push(rw.map(esc).join(',')); });
+        var blob=new Blob(['\ufeff'+csv.join('\r\n')],{type:'text/csv;charset=utf-8'});
+        var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='gdd-calculator.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+    }catch(e){ if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast('导出失败，请重试','error'); }
 }
+function __gdd_calculatorExport(){ if(typeof TBKit==='undefined')return; __exportCurrentDetail('#result'); }
 function __gdd_calculatorPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#gdd_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{method:'simple', tbase:'10', tupper:'30', targetGDD:'1500'}},

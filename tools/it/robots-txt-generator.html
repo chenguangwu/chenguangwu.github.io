@@ -131,7 +131,7 @@
     <h2 data-zh="✨ Robots.txt 生成器">✨ Robots.txt Generator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="选择 User-agent、Allow、Disallow 与 Sitemap，快速生成 robots.txt。">Robots.txt Generator</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">首行固定输出 User-agent: *；填写了站点地图时追加 Sitemap 行；每条规则先按逗号切分 User-agent 逐个输出，再依次输出全部 Allow、全部 Disallow，抓取延迟非空时输出 Crawl-delay；规则为空时回退为 User-agent: * 加空 Disallow；全文去掉开头的连续空行</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">只输出用户配置的 User-agent 组，组间以空行分隔；Sitemap 作为独立指令追加在末尾；每条规则先按逗号切分 User-agent 逐个输出，再依次输出全部 Allow、全部 Disallow，抓取延迟非空时输出 Crawl-delay；完全无规则时才回退为 User-agent: * 加空 Disallow，避免开头多出的通配符改变规则组；全文去掉开头的连续空行</div>
   <div class="formula-desc">生成控制爬虫抓取范围的 robots.txt。</div>
   <ul class="formula-list">
     <li><b>语法</b>：User-agent 指定目标爬虫，Disallow/Allow 控制路径，Crawl-delay 限速，Sitemap 声明站点地图地址。</li>
@@ -164,6 +164,7 @@
 
     <h3 style="margin-top:12px;font-size:16px;">预览</h3>
     <textarea id="preview" rows="14" readonly aria-label="robots.txt 预览"></textarea>
+    <p id="groupSummary" class="muted" aria-live="polite"></p>
     <div id="robotsChart" style="margin-top:12px;"></div>
     <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
       <button type="button" class="btn" onclick="__robotsExport()">⬇️ 导出规则清单 CSV</button>
@@ -333,15 +334,12 @@ function applyRobotsPreset(name) {
 }
 
 function render() {
-  const lines = ['User-agent: *'];
+  // 第811批：不再无条件写开头的 User-agent: *，只输出用户配置的组；Sitemap 独立追加
+  const lines = [];
   const sitemap = document.getElementById('sitemap').value.trim();
 
-  if (sitemap) {
-    lines.push('Sitemap: ' + sitemap);
-  }
-
-  rules.forEach(r => {
-    lines.push('');
+  rules.forEach((r, idx) => {
+    if (idx) lines.push('');
     r.ua.split(',').map(s => s.trim()).filter(Boolean).forEach(ua => lines.push('User-agent: ' + ua));
     r.allow.forEach(p => lines.push('Allow: ' + p));
     r.disallow.forEach(p => lines.push('Disallow: ' + p));
@@ -349,12 +347,19 @@ function render() {
   });
 
   if (!rules.length || !document.getElementById('rules').innerHTML) {
-    lines.push('');
     lines.push('User-agent: *');
     lines.push('Disallow:');
   }
+  if (sitemap) {
+    if (lines.length) lines.push('');
+    lines.push('Sitemap: ' + sitemap);
+  }
 
   document.getElementById('preview').value = lines.join('\n').replace(/^\n+/, '');
+  var summaryEl=document.getElementById('groupSummary');
+  var seenUa={}, dupUa=[];
+  rules.forEach(function(r){r.ua.split(',').map(function(s){return s.trim();}).filter(Boolean).forEach(function(ua){if(seenUa[ua]){if(dupUa.indexOf(ua)<0)dupUa.push(ua);}else seenUa[ua]=1;});});
+  if(summaryEl){summaryEl.textContent='共 '+rules.length+' 组；预览首条规则：'+(lines[0]||'（空）')+(sitemap?'；Sitemap 已独立置于末尾':'')+(dupUa.length?'；⚠ 同一 User-agent 出现在多个组：'+dupUa.join('、')+'，爬虫可能合并规则，建议合并到一组':'');}
   if(typeof __robotsExtras==='function'){try{__robotsExtras();}catch(e){}}
 }
 

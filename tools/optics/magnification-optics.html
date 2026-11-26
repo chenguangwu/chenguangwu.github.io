@@ -132,7 +132,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="横向放大率（负号表示倒立）。">Compute transverse magnification m = −dᵢ/dₒ, where the minus sign denotes an inverted image. For geometrical optics imaging, microscopes and projection systems.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">薄透镜放大率：M = −像距 d_i ÷ 物距 d_o（负号代表倒立实像）；联动卡：等效焦距 f = d_o×d_i ÷ (d_o+d_i)（由 1÷f = 1÷d_o + 1÷d_i 变形，分母为 0 按 1 兜底）、绝对放大率 = |M|。校验：d_o、d_i 两项非空合法数值守卫。判据：M &lt;0 判倒立像、M ≥0 判正立像。</div>
+      <div class="formula-eq">薄透镜放大率：M = −像距 d_i ÷ 物距 d_o（负号代表倒立实像）；联动卡：等效焦距 f = d_o×d_i ÷ (d_o+d_i)（由 1÷f = 1÷d_o + 1÷d_i 变形；分母 d_o+d_i=0 时显示“无有限焦距”，不替换为 1）、绝对放大率 = |M|。校验：d_o、d_i 必填且为有限数，d_o 须大于 0；d_o+d_i=0 时明确提示。判据：M &lt;0 判倒立像、M ≥0 判正立像。</div>
       <p class="formula-desc">横向放大率（负号表示倒立）。</p>
     </div>
 
@@ -278,16 +278,21 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __optLabel(s){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()){var m={'放大率 M':'Magnification M','取向':'Orientation','等效焦距 f (m)':'Equivalent focal length f (m)','放大率绝对值 |M|':'Absolute magnification |M|','放大率绝对值':'Absolute magnification','项目':'Item','数值':'Value'};if(m[s])return m[s];}}catch(e){}return s;}
+function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){r[1]=__optLabel(String(r[1]));h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
+  var __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
               var __ig=__tbInputGuard(['do', 'di'],["物距 d_o (m)", "像距 d_i (m)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const do_ = num('do'), di = num('di');
-            const M = -di / do_;
+const do_=Number(num('do')),di=Number(num('di'));
+            if(!isFinite(do_)||do_<=0||!isFinite(di)){ToolBox.setResult('result','<p style="color:var(--danger)">物距 d_o 须大于 0，像距 d_i 须为有限数；空白不等于 0。</p>');return;}
+            const M=-di/do_;
+            const sum=do_+di;
+            const fTxt=sum===0?'无有限焦距（d_o+d_i=0）':(do_*di/sum).toFixed(4);
             const __g2=dataGrid([
-                [M.toFixed(3), '放大率 M'],
-                [(M < 0 ? '倒立' : '正立'), '取向'],
-                [(do_*di/((do_+di)||1)).toFixed(4), '等效焦距 f (m)'],
-                [(Math.abs(M)).toFixed(3), '放大率绝对值']
+                [M.toFixed(3), __optLabel('放大率 M')],
+                [__en?(M<0?'Inverted':M>0?'Upright':'Same size / no magnification'):(M < 0 ? '倒立' : M > 0 ? '正立' : '等大/无放大'), __optLabel('取向')],
+                [fTxt, __optLabel('等效焦距 f (m)')],
+                [(Math.abs(M)).toFixed(3), __optLabel('放大率绝对值')]
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('do').value = '0.3';
@@ -299,16 +304,17 @@ function __magnification_opticsNum(id){var e=document.getElementById(id);var v=e
 function __magnification_opticsExtras(){
     function __magnification_opticsRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var do_ = num('do'), di = num('di');
-    var M = -di / do_;
-    if (!isFinite(__magnification_opticsNum('do')) || !isFinite(__magnification_opticsNum('di'))) return;
+    if (__magnification_opticsRaw('do').trim()==='' || __magnification_opticsRaw('di').trim()==='') return;
+    var do_=Number(__magnification_opticsRaw('do')),di=Number(__magnification_opticsRaw('di'));
+    if (!isFinite(do_)||do_<=0||!isFinite(di)) return;
+    var M=-di/do_; var sum=do_+di;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#magnification_opticsTable',{
-        head: en?['Item','Value']:['项目','数值'],
+        head: en?['Item','Value']:[__optLabel('项目'),__optLabel('数值')],
         rows: [
-            ['放大率 M', M.toFixed(3)],
-            ['取向', (M < 0 ? '倒立' : '正立')],
-            ['等效焦距 f (m)', (do_*di/((do_+di)||1)).toFixed(4)],
+            [__optLabel('放大率 M'), M.toFixed(3)],
+            [__optLabel('取向'), (__en?(M<0?'Inverted':M>0?'Upright':'Same size / no magnification'):(M < 0 ? '倒立' : M > 0 ? '正立' : '等大/无放大'))],
+            [__optLabel('等效焦距 f (m)'), sum===0?'无有限焦距（d_o+d_i=0）':(do_*di/sum).toFixed(4)],
             ['放大率绝对值', (Math.abs(M)).toFixed(3)],
         ]
     });
@@ -393,7 +399,7 @@ function __mgoChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var s=__mgoSweep(); if(!s)return;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-  TBKit.chart.line('#mgoChart',{title:en?'Magnification vs Image Distance (linear M=-dᵢ/dₒ)':'放大率随像距线性变化（M=-dᵢ/dₒ）',labels:s.labels,series:[{name:en?'Magnification M':'放大率 M',data:s.dM},{name:en?'|M| (absolute)':'放大率绝对值 |M|',data:s.dT}]});
+  TBKit.chart.line('#mgoChart',{title:en?'Magnification vs Image Distance (linear M=-dᵢ/dₒ)':'放大率随像距线性变化（M=-dᵢ/dₒ）',labels:s.labels,series:[{name:en?'Magnification M':__optLabel('放大率 M'),data:s.dM},{name:en?'|M| (absolute)':__optLabel('放大率绝对值 |M|'),data:s.dT}]});
 }
 
 function __mgoShow(which){

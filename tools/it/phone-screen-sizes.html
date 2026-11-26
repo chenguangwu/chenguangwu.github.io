@@ -124,7 +124,7 @@
     <h2 data-zh="☎️ 手机屏幕尺寸速查">☎️ Phone Screen Sizes</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="主流机型屏幕参数速查：分辨率、英寸、PPI 一表看完，还可按英寸与分辨率反算 PPI。">Phone screen size reference: compare diagonal size, resolution, pixel density and aspect ratio across models.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">对角线像素 = √(水平像素² + 垂直像素²)；像素密度 PPI = 对角线像素 ÷ 对角线英寸数。屏幕尺寸、水平分辨率、垂直分辨率任一不为正时提示请输入有效的屏幕参数。输出输入参数反算的 PPI（取整）、屏幕尺寸（保留 1 位小数）、分辨率与对角线像素（取整），并附主流机型屏幕参数速查表（机型、尺寸、分辨率（宽×高）、PPI、典型 DPR 与 CSS 视口（宽×高））</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">对角线像素 = √(水平像素² + 垂直像素²)；像素密度 PPI = 对角线像素 ÷ 对角线英寸数。屏幕英寸须为 1–100 之间的有限数字，分辨率宽/高须为 240–10000 之间的整数；小数、越界或非数字逐项报错，不再截断后继续计算。输出输入参数反算的 PPI（取整）、屏幕尺寸（保留 1 位小数）、分辨率与对角线像素（取整），并附主流机型屏幕参数速查表（机型、尺寸、分辨率（宽×高）、PPI、典型 DPR 与 CSS 视口（宽×高））</div>
   <div class="formula-desc">主流手机屏幕参数速查。</div>
   <ul class="formula-list">
     <li><b>指标</b>：物理尺寸（英寸）、分辨率（物理像素）、像素密度 PPI、逻辑视口（CSS 像素）。</li>
@@ -312,14 +312,26 @@ function pssPhoneTable(){
 function escH(s){var d=document.createElement('div');const __g0=s==null?'':String(s);d.textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){const diag=num('diag'), rw=num('resw'), rh=num('resh');
-   if(diag<=0||rw<=0||rh<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的屏幕参数。</p>');return;}
-   const ppi=Math.sqrt(rw*rw+rh*rh)/diag;
+function pssParams(){
+   const dRaw=String((document.getElementById('diag')||{}).value||'').trim();
+   const wRaw=String((document.getElementById('resw')||{}).value||'').trim();
+   const hRaw=String((document.getElementById('resh')||{}).value||'').trim();
+   const diag=Number(dRaw), rw=Number(wRaw), rh=Number(hRaw);
+   if(!dRaw||!isFinite(diag)||diag<1||diag>100) return {error:'屏幕英寸需为 1–100 之间的有限数字。'};
+   if(!/^\d+$/.test(wRaw)||!isFinite(rw)||rw<240||rw>10000) return {error:'分辨率宽需为 240–10000 之间的整数。'};
+   if(!/^\d+$/.test(hRaw)||!isFinite(rh)||rh<240||rh>10000) return {error:'分辨率高需为 240–10000 之间的整数。'};
+   const px=Math.hypot(rw,rh), ppi=px/diag;
+   if(!isFinite(px)||!isFinite(ppi)) return {error:'计算超出可表示范围，请降低分辨率或增大屏幕尺寸。'};
+   return {ok:true,diag,rw,rh,px,ppi};
+}
+function calcTool(){const v=pssParams();
+   if(!v.ok){ToolBox.setResult('result','<p class="tip-error">'+v.error+'</p>');return;}
+   const diag=v.diag,rw=v.rw,rh=v.rh,px=v.px,ppi=v.ppi;
    let html=dataGrid([
      [ppi.toFixed(0)+' PPI','输入参数反算 PPI'],
      [diag.toFixed(1)+' 英寸','屏幕尺寸'],
      [rw+'×'+rh,'分辨率'],
-     [Math.sqrt(rw*rw+rh*rh).toFixed(0)+' px','对角线像素']
+     [px.toFixed(0)+' px','对角线像素']
    ]);
    html += pssPhoneTable();
    html += '<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+
@@ -335,9 +347,8 @@ function __phone_screen_sizesNum(id){var e=document.getElementById(id);var v=e?p
 function __phone_screen_sizesExtras(){
     function __phone_screen_sizesRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var diag=num('diag'), rw=num('resw'), rh=num('resh');
-    var ppi=Math.sqrt(rw*rw+rh*rh)/diag;
-    if (!isFinite(__phone_screen_sizesNum('diag')) || !isFinite(__phone_screen_sizesNum('resw')) || !isFinite(__phone_screen_sizesNum('resh'))) return;
+    var v=pssParams(); if(!v.ok) return;
+    var diag=v.diag, rw=v.rw, rh=v.rh, ppi=v.ppi;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#phone_screen_sizesTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -345,7 +356,7 @@ function __phone_screen_sizesExtras(){
             ['输入参数反算 PPI', ppi.toFixed(0)+' PPI'],
             ['屏幕尺寸', diag.toFixed(1)+' 英寸'],
             ['分辨率', rw+'×'+rh],
-            ['对角线像素', Math.sqrt(rw*rw+rh*rh).toFixed(0)+' px'],
+            ['对角线像素', v.px.toFixed(0)+' px'],
         ]
     });
     TBKit.history.record({diag:__phone_screen_sizesRaw('diag'), resw:__phone_screen_sizesRaw('resw'), resh:__phone_screen_sizesRaw('resh'), ppi:ppi});

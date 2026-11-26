@@ -138,10 +138,10 @@
     <div class="input-row">
       <div>
         <label for="shape">形状(1=矩形,2=圆)</label>
-        <input type="number" id="shape" value="1" step="1" min="1" max="2" placeholder="如 1（1–2）">
+        <input type="number" id="shape" value="1" step="1" min="1" max="2" placeholder="如 1（1–2）" oninput="syncShape()">
       </div>
-      <div>
-        <label for="b">矩形宽 b (mm)</label>
+      <div id="bWrap">
+        <label for="b">矩形宽 b (mm，圆截面不需要)</label>
         <input type="number" id="b" value="200" step="5" min="0" placeholder="如 200">
       </div>
       <div>
@@ -235,12 +235,25 @@
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function syncShape(){
+  var shapeEl=document.getElementById('shape'), bEl=document.getElementById('b');
+  if(!shapeEl||!bEl)return;
+  var isRect=Math.round(parseFloat(shapeEl.value)||0)===1;
+  bEl.disabled=!isRect;
+  if(!isRect){bEl.value='';}
+  else if(String(bEl.value).trim()===''){bEl.value='200';}
+}
 function calcTool(){
-            const shape=num('shape'), b=num('b'), h=num('h');
-            if(b<=0||h<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的截面尺寸。</p>');return;}
+            function rv(id){var el=document.getElementById(id);var v=el?String(el.value==null?'':el.value).trim():'';return {raw:v,val:v===''?NaN:parseFloat(v)};}
+            var shapeR=rv('shape'), bR=rv('b'), hR=rv('h');
+            var shape=Math.round(shapeR.val);
+            if(shape!==1&&shape!==2){ToolBox.setResult('result','<p class="tip-error">⚠ 形状只能填 1（矩形）或 2（圆）。</p>');return;}
+            if(!isFinite(hR.val)||hR.val<=0){ToolBox.setResult('result','<p class="tip-error">⚠ '+(shape===1?'矩形高 h':'圆径 D')+' 须为正数（mm）。</p>');return;}
+            if(shape===1&&(bR.raw===''||!isFinite(bR.val)||bR.val<=0)){ToolBox.setResult('result','<p class="tip-error">⚠ 矩形宽 b 须为正数（mm）；圆截面才不需要 b。</p>');return;}
+            var b=bR.val, h=hR.val;
             let I, W, desc;
             if(shape===1){ I=b*Math.pow(h,3)/12; W=I/(h/2); desc='矩形 I = bh³/12'; }
-            else { I=Math.PI*Math.pow(h,4)/64; W=I/(h/2); desc='圆 I = πD⁴/64'; }
+            else { I=Math.PI*Math.pow(h,4)/64; W=I/(h/2); desc='圆 I = πD⁴/64（仅用直径 D，b 不参与）'; }
             const html=dataGrid([
                 [(I).toFixed(0),'惯性矩 I (mm⁴)'],
                 [(W).toFixed(0),'截面模量 W (mm³)'],
@@ -250,7 +263,9 @@ function calcTool(){
 function resetForm(){document.getElementById('shape').value = '1';
       document.getElementById('b').value = '200';
       document.getElementById('h').value = '400';
+      syncShape();
       calcTool();}
+syncShape();
 calcTool();
 
 function __section_inertiaNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
@@ -260,7 +275,7 @@ function __section_inertiaExtras(){
     var shape=num('shape'), b=num('b'), h=num('h');
     var I, W, desc;
     if(shape===1){ I=b*Math.pow(h,3)/12; W=I/(h/2); desc='矩形 I = bh³/12'; }
-    else { I=Math.PI*Math.pow(h,4)/64; W=I/(h/2); desc='圆 I = πD⁴/64'; }
+    else { I=Math.PI*Math.pow(h,4)/64; W=I/(h/2); desc='圆 I = πD⁴/64（仅用直径 D，b 不参与）'; }
     if (!isFinite(__section_inertiaNum('shape')) || !isFinite(__section_inertiaNum('b')) || !isFinite(__section_inertiaNum('h'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#section_inertiaTable',{

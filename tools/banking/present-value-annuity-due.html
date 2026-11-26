@@ -243,7 +243,7 @@ function __tbInputGuardCore(_ids,_labels){
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"r": "每期利率 r"};
+  var __D={};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -275,11 +275,13 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
               var __ig=__tbInputGuard(['PMT', 'r', 'n'],["每期付款 PMT (元)", "每期利率 r", "期数 n"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const PMT=num('PMT'),r=num('r'),n=num('n');
-            const PV=PMT*(1-Math.pow(1+r,-n))/r*(1+r);
+const __rawN=String(document.getElementById('n').value).trim(); const __nVal=__rawN===''?NaN:parseFloat(__rawN); const PMT=num('PMT'),r=num('r');
+            if(!(PMT>=0)||!(r>=0)||!(__nVal>0)||Math.abs(__nVal-Math.round(__nVal))>1e-9){ToolBox.setResult('result','<p style="color:var(--danger)">每期付款不得为负，利率不得为负，期数必须为正整数。</p>');return;}
+            const n=Math.round(__nVal);
+            const PV=r===0 ? PMT*n : PMT*(1-Math.pow(1+r,-n))/r*(1+r);
             const __g2=dataGrid([
                 [PV.toFixed(2),'现值 PV (元)'],
-                [(PMT*(1-Math.pow(1+r,-n))/r).toFixed(2), '期末年金现值（对比）(元)'],
+                [(r===0?PMT*n:PMT*(1-Math.pow(1+r,-n))/r).toFixed(2), '期末年金现值（对比）(元)'],
                 [(PMT*n).toFixed(2), '名义付款合计 (元)']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }

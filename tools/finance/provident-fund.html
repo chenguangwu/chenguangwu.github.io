@@ -171,6 +171,13 @@
 
     <div class="input-row">
       <div>
+        <label for="existingBalance">已有账户余额（元，可选）</label>
+        <input type="number" id="existingBalance" value="0" oninput="calc()" step="any" min="0" placeholder="如 50000；留空视为 0">
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div>
         <label for="loanRate">公积金贷款利率（%）</label>
         <input type="number" id="loanRate" value="3.1" oninput="calc()" step="any" min="0" max="10" placeholder="如 3.1">
         <div class="field-error" id="loanRateError" style="display:none;"></div>
@@ -302,20 +309,46 @@ function setFieldError(id, msg){
 }
 
 function calc(){
-  const sal = parseFloat(document.getElementById('salary').value) || 0;
-  const sp = parseFloat(document.getElementById('selfPct').value) || 0;
-  const ep = parseFloat(document.getElementById('empPct').value) || 0;
-  const months = parseInt(document.getElementById('months').value, 10) || 0;
+  // 空值与合法的 0 分开：空值必须提示，0 的缴存比例/余额仍参与计算。
+  const salRaw = String(document.getElementById('salary').value || '').trim();
+  const spRaw = String(document.getElementById('selfPct').value || '').trim();
+  const epRaw = String(document.getElementById('empPct').value || '').trim();
+  const monthsRaw = String(document.getElementById('months').value || '').trim();
+  const existingRaw = String(document.getElementById('existingBalance').value || '').trim();
+  const multiRawStr = String(document.getElementById('multi').value || '').trim();
+  const capRawStr = String(document.getElementById('cityCap').value || '').trim();
   const loanRateRaw = String(document.getElementById('loanRate').value).trim();
   const loanRate = parseFloat(loanRateRaw);
   const loanYearsRaw = String(document.getElementById('loanYears').value).trim();
   const loanYearsNum = parseFloat(loanYearsRaw);
-  const multiRaw = parseFloat(document.getElementById('multi').value);
-  const multi = isNaN(multiRaw) || multiRaw <= 0 ? 20 : multiRaw;
-  const capWanRaw = parseFloat(document.getElementById('cityCap').value);
+  const emptyLabel = salRaw === '' ? '月工资基数' : spRaw === '' ? '个人缴存比例' : epRaw === '' ? '单位缴存比例' : monthsRaw === '' ? '累计缴存月数' : multiRawStr === '' ? '余额倍数' : '';
+  if(emptyLabel){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">⚠ 请填写' + emptyLabel + '，留空不计算（数字 0 为合法输入）。</p>';
+    return;
+  }
+  const sal = Number(salRaw);
+  const sp = Number(spRaw);
+  const ep = Number(epRaw);
+  const months = Number(monthsRaw);
+  const existingBalance = existingRaw === '' ? 0 : Number(existingRaw);
+  const multi = Number(multiRawStr);
+  const capWanRaw = capRawStr === '' ? NaN : Number(capRawStr);
   const capYuan = isNaN(capWanRaw) || capWanRaw <= 0 ? Infinity : capWanRaw * 10000;
-  if(sal <= 0 || sp < 0 || ep < 0){
-    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请输入合理数值</p>';
+  const capUnlimited = capRawStr === '' || isNaN(capWanRaw) || capWanRaw <= 0;
+  if(!isFinite(sal) || sal <= 0 || !isFinite(sp) || sp < 0 || sp > 100 || !isFinite(ep) || ep < 0 || ep > 100){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请输入合理数值：工资基数 > 0，缴存比例 0–100%。</p>';
+    return;
+  }
+  if(!Number.isInteger(months) || months < 0){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">累计缴存月数须为非负整数。</p>';
+    return;
+  }
+  if(!isFinite(existingBalance) || existingBalance < 0){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">已有账户余额须为 ≥0 的数字，留空视为 0。</p>';
+    return;
+  }
+  if(!isFinite(multi) || multi <= 0){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">余额倍数须为大于 0 的数字。</p>';
     return;
   }
   // 贷款参数须为合法值：利率 0–10%，年限 1–30 的整数；越界字段报错，不进入月供计算
@@ -331,7 +364,7 @@ function calc(){
   const selfMonthly = sal * sp / 100;
   const empMonthly = sal * ep / 100;
   const totalMonthly = selfMonthly + empMonthly;
-  const balance = totalMonthly * months;
+  const balance = totalMonthly * months + existingBalance;
   // 贷款额度估算：账户余额 × 倍数，并以当地最高额度封顶
   const loanByBalance = balance * multi;
   const loanLimit = Math.min(loanByBalance, capYuan);
@@ -355,8 +388,9 @@ function calc(){
     <p>月缴存总额：<strong style="color:var(--primary);">${fmt(totalMonthly)}</strong> 元</p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
     <p>累计缴存 ${months} 月，账户余额（估算）：<strong>${fmt(balance)}</strong> 元</p>
+    <p style="font-size:12px;color:var(--text-muted);">估算口径：当前月缴存额 × 缴存月数 + 已有余额（${fmt(existingBalance)} 元）；未计历史工资变化、利息和提取记录，不代表真实账户余额。</p>
     <p>余额倍数法额度：<strong>${fmt(loanByBalance)}</strong> 元（余额 × ${multi}）</p>
-    <p>贷款额度（参考）：<strong>${fmt(loanAmount)}</strong> 元${cappedByCity ? `　（受当地最高额度 ${capWanRaw} 万元封顶）` : ''}</p>
+    <p>贷款额度（参考）：<strong>${fmt(loanAmount)}</strong> 元${cappedByCity ? `　（受当地最高额度 ${capWanRaw} 万元封顶）` : capUnlimited ? '　（未填写当地最高额度，未设上限）' : ''}</p>
     <p style="font-size:12px;color:var(--text-muted);">注：实际限额以当地规定为准，多数城市 30-100 万；本工具仅按「余额 × 倍数」并以当地上限封顶估算</p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
     <p>按 ${wanAmount} 万元 ${loanYears} 年、利率 ${loanRate}% 测算（等额本息）：</p>
@@ -367,7 +401,7 @@ function calc(){
 }
 
 function clearAll(){
-  ['salary','selfPct','empPct','months','loanRate','loanYears','multi','cityCap'].forEach(id => document.getElementById(id).value = '');
+  ['salary','selfPct','empPct','months','existingBalance','loanRate','loanYears','multi','cityCap'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('resultBox').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter data":"请输入数据");
 }
 calc();

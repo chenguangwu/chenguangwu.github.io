@@ -138,8 +138,8 @@
     <h2 data-zh="🧮 视频存储计算">Video Storage Calculate</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据分辨率、帧率、码率、时长估算视频文件大小">Video Storage Calculate</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">文件大小(GB) = (视频码率 + 音频码率 ÷ 1000) × 总秒数 ÷ 8 ÷ 1024 × 编码因子；存储卡可录时长 = 卡容量 ÷ 文件大小 × 总秒数</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：totalBitrateMbps×totalSec÷8÷1024×codecFactor；vBitrate+aBitrate÷1000；hrs×3600+mins×60">Key formulas: totalBitrateMbps×totalSec÷8÷1024×codecFactor; vBitrate+aBitrate÷1000; hrs×3600+mins×60</p>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">文件大小(十进制 GB) = (视频码率×编码因子 + 音频码率÷1000) × 总秒数 ÷ 8 ÷ 1000；存储卡可录时长 = 标称十进制容量 ÷ 文件大小 × 总秒数；编码因子仅作用于视频码率，且为近似假设</div>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(vBitrate×codecFactor+aBitrate÷1000)×totalSec÷8÷1000；hrs×3600+mins×60">Key formulas: totalBitrateMbps×totalSec÷8÷1024×codecFactor; vBitrate+aBitrate÷1000; hrs×3600+mins×60</p>
     </div>
 
     <div class="input-row">
@@ -306,23 +306,24 @@ function calc(){
     document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 时长、码率与分辨率须有效（总时长>0，码率>0，分辨率与帧率>0）。</p>';
     return;
   }
-  var totalBitrateMbps=vBitrate+aBitrate/1000;
-  var sizeGB=totalBitrateMbps*totalSec/8/1024*codecFactor;
-  var sizeMB=sizeGB*1024;
+  var effectiveVideoMbps=vBitrate*codecFactor;
+  var totalBitrateMbps=effectiveVideoMbps+aBitrate/1000;
+  var sizeGB=totalBitrateMbps*totalSec/8/1000; // 十进制 GB：1 GB = 10^9 bytes
+  var sizeMB=sizeGB*1000;
 
   var pixelsPerFrame=w*h;
   var totalFrames=fps*totalSec;
 
   const __g1='<div class="stat-grid">'+
     '<div class="stat-card"><div class="val">'+fmtSize(sizeMB)+'</div><div class="lbl">文件大小</div></div>'+
-    '<div class="stat-card"><div class="val">'+(totalBitrateMbps*codecFactor).toFixed(2)+'</div><div class="lbl">等效总码率 Mbps</div></div>'+
+    '<div class="stat-card"><div class="val">'+totalBitrateMbps.toFixed(2)+'</div><div class="lbl">折算后总码率 Mbps</div></div>'+
     '<div class="stat-card"><div class="val">'+fmtTime(totalSec)+'</div><div class="lbl">录制时长</div></div>'+
     '</div>'+
     '<p>分辨率：<strong>'+w+'×'+h+'</strong>（'+(pixelsPerFrame/1000000).toFixed(1)+'MP/帧）</p>'+
     '<p>总帧数：<strong>'+ToolBox.formatNumber(Math.round(totalFrames))+'</strong> 帧 @'+fps+'fps</p>'+
     '<p>每分钟存储：<strong>'+fmtSize(sizeMB/(totalSec||1)*60)+'</strong></p>'+
     '<p>每小时存储：<strong>'+fmtSize(sizeMB/(totalSec||1)*3600)+'</strong></p>'+
-    '<div style="margin-top:12px;">'+
+    '<p style="font-size:12px;color:var(--text-muted);">口径：文件大小按十进制 GB（1 GB=10^9 字节）估算；存储卡标称容量通常也按十进制。编码因子 '+(codecFactor)+' 仅作用于视频码率，是经验近似，不保证与具体编码器/素材一致。</p>'+'<div style="margin-top:12px;">'+
     '<p style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">存储卡容量参考：</p>'+
     '<table><thead><tr><th>存储卡</th><th>可录时长</th></tr></thead><tbody>'+
     '<tr><td>32 GB</td><td>'+fmtTime(32/sizeGB*totalSec||0)+'</td></tr>'+
@@ -335,9 +336,9 @@ function calc(){
 }
 
 function fmtSize(mb){
-  if(mb<1) return (mb*1024).toFixed(0)+' KB';
-  if(mb<1024) return mb.toFixed(1)+' MB';
-  return (mb/1024).toFixed(2)+' GB';
+  if(mb<1) return (mb*1000).toFixed(0)+' KB';
+  if(mb<1000) return mb.toFixed(1)+' MB';
+  return (mb/1000).toFixed(2)+' GB';
 }
 
 function fmtTime(sec){

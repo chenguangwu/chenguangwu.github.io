@@ -294,15 +294,13 @@ function inverse(A){
   // 增广矩阵 [A | I]
   const M=A.map((r,i)=>{ const row=r.slice(); for(let j=0;j<n;j++) row.push(i===j?1:0); return row; });
   const steps=[];
-  // IT-N370：奇异性判据必须相对于矩阵自身尺度，绝对阈值会把 1e-13 量级的可逆矩阵判死
-  let scale=0;
-  for(let i=0;i<n;i++) for(let j=0;j<n;j++){ const v=Math.abs(A[i][j]); if(v>scale) scale=v; }
-  const tol = scale>0 ? scale*1e-12 : 1e-12;
+  // IT-N370：奇异性必须看当前列的相对量级；全局最大元素作阈值会把 diag(1,1e-13) 误判为奇异。
   for(let col=0;col<n;col++){
-    // 找主元
-    let piv=col;
-    for(let r=col+1;r<n;r++) if(Math.abs(M[r][col])>Math.abs(M[piv][col])) piv=r;
-    if(Math.abs(M[piv][col])<tol) return {err:'矩阵不可逆（奇异矩阵）',steps};
+    // 找主元，同时记录该列在当前消元状态下的最大绝对值
+    let piv=col,colMax=0;
+    for(let r=col;r<n;r++){ const av=Math.abs(M[r][col]); if(av>colMax) colMax=av; if(av>Math.abs(M[piv][col])) piv=r; }
+    if(colMax===0) return {err:'矩阵不可逆（奇异矩阵）',steps};
+    if(Math.abs(M[piv][col])<colMax*Number.EPSILON) return {err:'矩阵在浮点精度下不可靠（该列主元相对量级过小）',steps};
     if(piv!==col){ [M[piv],M[col]]=[M[col],M[piv]]; steps.push('交换第'+(piv+1)+'行与第'+(col+1)+'行'); }
     const pv=M[col][col];
     for(let j=0;j<2*n;j++) M[col][j]/=pv;
@@ -319,7 +317,11 @@ function inverse(A){
     }
   }
   const inv=M.map(r=>r.slice(n));
-  return {inv,steps};
+  function normInf(X){ let mx=0; for(const row of X){ let s=0; for(const v of row) s+=Math.abs(v); if(s>mx) mx=s; } return mx; }
+  let cond=normInf(A)*normInf(inv);
+  let residual=0;
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++){ let s=0; for(let k=0;k<n;k++) s+=A[i][k]*inv[k][j]; residual=Math.max(residual,Math.abs(s-(i===j?1:0))); }
+  return {inv,steps,cond,residual};
 }
 function calculate(){
   const n=+document.getElementById('size').value;
@@ -333,6 +335,9 @@ function calculate(){
   const I=[];
   for(let i=0;i<n;i++){ I.push([]); for(let j=0;j<n;j++){ let s=0; for(let k=0;k<n;k++) s+=A[i][k]*res.inv[k][j]; I[i].push(s); } }
   html+=matrixHTML(I);
+  html+='<p style="margin-top:10px;"><strong>数值稳定性：</strong>条件数估算 κ∞(A) ≈ '+res.cond.toExponential(2)+'；残差 max|A·A⁻¹ − I| ≈ '+res.residual.toExponential(2)+'。</p>';
+  if(res.cond>1e12) html+='<p class="tip-mini" style="color:var(--danger);"><strong>可逆但严重病态：</strong>逆矩阵对输入微小扰动非常敏感，结果可能只有很少有效数字；请检查各行列量级差异或改用更高精度计算。</p>';
+  else if(res.cond>1e8) html+='<p class="tip-mini" style="color:var(--warning);"><strong>矩阵较病态：</strong>条件数较大，建议核对输入精度与结果有效数字。</p>';
   html+='<p style="margin-top:10px;"><strong>消元步骤（Gauss-Jordan）：</strong></p>';
   for(const s of res.steps) html+='<div class="step-line">• '+s+'</div>';
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
@@ -361,8 +366,16 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 var __matrix_inverter_last=0,__matrix_inverter_skip=false;
+function __mxWarn(){ try{ if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast('该历史记录缺少完整矩阵单元格（可能为旧版截断记录），无法完整恢复，未改动当前矩阵','warning'); }catch(e){} }
+function __mxRestore(rec){
+    try{
+        var need=+rec.size; if(!need||need<1||need>6) return false; var cells=[]; for(var i=0;i<need*need;i++){ if(!Object.prototype.hasOwnProperty.call(rec,'a'+i)){ __mxWarn(); return true; } cells.push(rec['a'+i]); } document.getElementById('size').value=need; build(); for(var j=0;j<cells.length;j++){ var el=document.getElementById('a'+j); if(el) el.value=cells[j]; } calculate(); return true;
+    }catch(e){ return false; }
+}
 function __matrix_inverterSnap(){
     var out={};
+    var __cells=document.querySelectorAll('#inputArea .cell');
+    for(var __i=0;__i<__cells.length;__i++){ out[__cells[__i].id]=__cells[__i].value; }
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
     for(var i=0;i<els.length;i++){
         var e=els[i];
@@ -406,6 +419,7 @@ function __matrix_inverterRender(keys,rk,en){
         TBKit.matrix.table('#matrix_inverterTable',{head:head,rows:rows});
         TBKit.util.diffBox('#matrix_inverterDiff');
         TBKit.history.mount('#matrix_inverterHist',function(rec){
+            if(__mxRestore(rec)) return;
             __matrix_inverter_skip=true;
             try{
                 for(var k in rec){
@@ -436,7 +450,6 @@ function __matrix_inverterExtras(){
     var snap=__matrix_inverterSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
-    if(keys.length>12) keys=keys.slice(0,12);
     var res=__matrix_inverterResText();
     if(!res) return;
     var en=TBKit.util.isEn();
@@ -466,8 +479,7 @@ function __matrix_inverterExport(){
         var box=document.querySelector('#matrix_inverterTable');
         if(!box||!box.querySelector('tr')){
             var snap=__matrix_inverterSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+                    var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __matrix_inverterRender(keys,en?'Result':'结果',en);
         }
     }catch(e){}
@@ -508,7 +520,7 @@ else document.addEventListener('DOMContentLoaded', __matrix_inverterBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -516,7 +528,7 @@ else document.addEventListener('DOMContentLoaded', __matrix_inverterBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

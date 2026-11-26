@@ -158,10 +158,18 @@
           <option value="sqlserver">SQL Server</option>
         </select>
       </label>
+      <label style="margin:0;font-size:13px;" id="mysqlModeWrap">
+        MySQL 模式
+        <select id="mysqlMode" onchange="__escLive()" style="padding:6px 10px;font-size:13px;">
+          <option value="backslash">反斜杠转义（默认）</option>
+          <option value="no_backslash">NO_BACKSLASH_ESCAPES</option>
+        </select>
+      </label>
       <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;">
         <input type="checkbox" id="quote" onchange="__escLive()"> 包裹引号
       </label>
     </div>
+    <p id="mysqlModeHint" style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">MySQL 默认把 <code>\'</code> 当转义；若服务器启用 <code>NO_BACKSLASH_ESCAPES</code>，反斜杠不再转义，必须改用 <code>''</code>，否则 <code>\'</code> 会留下反斜杠并提前闭合字符串。</p>
 
     <label for="input">输入</label>
     <textarea id="input" oninput="__escLive()" placeholder="输入要转义/反转义的 SQL 字符串...">Hello "World"</textarea>
@@ -173,7 +181,7 @@
   <div class="card">
     <h2>📖 方言差异</h2>
     <div class="result-box">
-      <p><strong>MySQL</strong>: 单引号 → \' 反斜杠 → \\ NUL → \0</p>
+      <p><strong>MySQL（默认）</strong>: 单引号 → \' 反斜杠 → \\ NUL → \0；<strong>NO_BACKSLASH_ESCAPES</strong>: 单引号 → ''，反斜杠不转义</p>
       <p><strong>PostgreSQL</strong>: 单引号 → '' 不转义反斜杠（默认）</p>
       <p><strong>SQL Server</strong>: 单引号 → '' 不转义反斜杠</p>
     </div>
@@ -264,19 +272,26 @@ function esc(live){
   if(!text){ if(live){document.getElementById('output').value='';return;} return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter text to escape":"请输入要转义的文本")); }
   const dialect = document.getElementById('dialect').value;
   const quote = document.getElementById('quote').checked;
+  const mysqlMode = (document.getElementById('mysqlMode') || {}).value || 'backslash';
   let out = '';
   for(const ch of text){
     switch(dialect){
       case 'mysql':
-        switch(ch){
-          case "'": out += "\\'"; break;
-          case '"': out += '\\"'; break;
-          case '\\': out += '\\\\'; break;
-          case '\0': out += '\\0'; break;
-          case '\n': out += '\\n'; break;
-          case '\r': out += '\\r'; break;
-          case '\x1a': out += '\\Z'; break;
-          default: out += ch;
+        if(mysqlMode === 'no_backslash'){
+          // NO_BACKSLASH_ESCAPES：反斜杠是普通字符，单引号只能靠双写闭合
+          if(ch === "'") out += "''";
+          else out += ch;
+        }else{
+          switch(ch){
+            case "'": out += "\\'"; break;
+            case '"': out += '\\"'; break;
+            case '\\': out += '\\\\'; break;
+            case '\0': out += '\\0'; break;
+            case '\n': out += '\\n'; break;
+            case '\r': out += '\\r'; break;
+            case '\x1a': out += '\\Z'; break;
+            default: out += ch;
+          }
         }
         break;
       case 'postgres':
@@ -289,6 +304,8 @@ function esc(live){
         break;
     }
   }
+  const hint = document.getElementById('mysqlModeHint');
+  if(hint) hint.style.display = dialect === 'mysql' ? '' : 'none';
   document.getElementById('output').value = quote ? "'" + out + "'" : out;
 }
 
@@ -302,8 +319,11 @@ function unesc(){
     text = trimmed.slice(1, -1);
   }
   const dialect = document.getElementById('dialect').value;
+  const mysqlMode = (document.getElementById('mysqlMode') || {}).value || 'backslash';
   let out = '';
-  if(dialect === 'mysql'){
+  if(dialect === 'mysql' && mysqlMode === 'no_backslash'){
+    out = text.replace(/''/g, "'");
+  }else if(dialect === 'mysql'){
     let i = 0;
     while(i < text.length){
       const c = text[i];
@@ -510,7 +530,7 @@ else document.addEventListener('DOMContentLoaded', __sql_escapeBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -518,7 +538,7 @@ else document.addEventListener('DOMContentLoaded', __sql_escapeBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

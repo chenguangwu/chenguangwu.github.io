@@ -243,8 +243,11 @@ example.org</textarea>
 <script>
 function setNs(v){document.getElementById('ns').value=v;}
 function parseNs(uuid){
-  const hex=uuid.replace(/[^0-9a-fA-F]/g,'');
-  if(hex.length!==32)return null;
+  const s=String(uuid==null?'':uuid).trim();
+  const std=/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+  const compact=/^[0-9a-fA-F]{32}$/;
+  if(!std.test(s)&&!compact.test(s))return null;
+  const hex=s.replace(/-/g,'');
   const bytes=new Uint8Array(16);
   for(let i=0;i<16;i++)bytes[i]=parseInt(hex.substr(i*2,2),16);
   return bytes;
@@ -265,24 +268,35 @@ async function uuidv5(ns,name){
   const h=Array.from(hash.slice(0,16),b=>b.toString(16).padStart(2,'0'));
   return h.slice(0,4).join('')+'-'+h.slice(4,6).join('')+'-'+h.slice(6,8).join('')+'-'+h.slice(8,10).join('')+'-'+h.slice(10,16).join('');
 }
+let lastCopyLines=[];
 async function generate(){
   const ns=document.getElementById('ns').value;
   const names=document.getElementById('name').value.split(/\n/).map(s=>s.trim()).filter(s=>s);
   const upper=document.getElementById('upper').checked;
   if(names.length===0){alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter name":"请输入名称"));return;}
+  if(!parseNs(ns)){
+    lastCopyLines=[];
+    const msg=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Invalid namespace UUID: use 8-4-4-4-12 hex or 32 contiguous hex digits.":"命名空间 UUID 格式非法：请填写 8-4-4-4-12 的十六进制 UUID（或 32 位连续十六进制）。");
+    document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';
+    alert(msg);return;
+  }
   let html='';
+  lastCopyLines=[];
   for(const name of names){
     let id=await uuidv5(ns,name);
     if(!id){alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Namespace UUID format error":"命名空间 UUID 格式错误"));return;}
     if(upper)id=id.toUpperCase();
     html+='<div class="code-row">'+escapeHtml(name)+' → '+escapeHtml(id)+'</div>';
+    lastCopyLines.push(name+' → '+id);
   }
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
-  const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
+  if(!lastCopyLines.length){alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Generate UUIDs first":"请先生成 UUID"));return;}
+  const text=lastCopyLines.join('\n');
+  if(typeof ToolBox!=='undefined'&&typeof ToolBox.copyText==='function'){ToolBox.copyText(text);}
+  else{navigator.clipboard.writeText(text).then(()=>alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied (name → UUID, one per line)":"已复制（每行“名称 → UUID”）")));}
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
@@ -470,7 +484,7 @@ else document.addEventListener('DOMContentLoaded', __uuid_v5_generatorBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -478,7 +492,7 @@ else document.addEventListener('DOMContentLoaded', __uuid_v5_generatorBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

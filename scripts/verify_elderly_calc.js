@@ -122,7 +122,13 @@ const CASES = [
   inputs: { startDate: "2026-03-01", days: "3" },
   expect: ["2026-03-02", "00:00"],
   ref: "恢复第356–358批旧页并按真实时间轴重写：8 h 间隔从 08:00 起 ⇒ 次日 00:00 属 2026-03-02，跨午夜不得回挂到 3-01；旧实现每日重置会重复 00:00。reminder-time 只有日内时间，无开始日期/观察天数。"
-}
+},
+{ slug:"elderly/medication-schedule", inputs:{startDate:"",days:"3"}, clicks:["render();"], expect:["请选择开始日期"], ref:"清空开始日期后不得静默用今天替代；应明确要求选择日期。" },
+{ slug:"elderly/medication-schedule", inputs:{startDate:"2026-03-01",days:""}, expect:["观察天数须为 1–30 的整数"], ref:"清空观察天数后不得静默按 1 天计算；应明确报错。" },
+{ slug:"elderly/medication-schedule", inputs:{startDate:"2026-03-01",days:"3"}, clicks:["list[0].interval='0';render();"], expect:["以下药物未排程","间隔须为 1–24 小时"], ref:"间隔 0 旧实现 Number(v)||24 静默变 24 小时；现标为未排程并保留其他有效药物。" },
+{ slug:"elderly/medication-schedule", inputs:{startDate:"2026-03-01",days:"3"}, clicks:["list[0].name='<b>X</b>';renderInputs();render();var h=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='MEDXSS '+((h.indexOf('<b>X')<0&&h.indexOf('&lt;b&gt;X&lt;/b&gt;')>=0)?'OK':'BAD');"], expect:["MEDXSS OK"], ref:"药名作为纯文本转义：结果区不得生成 <b> 元素，但应显示字面量 <b>X</b>；输入行用 DOM value 赋值，防属性逃逸。" },
+{ slug:"elderly/medication-schedule", inputs:{startDate:"2026-03-01",days:"3"}, clicks:["var ms=[{name:'药A',dose:'1片',interval:'8',first:'08:00'},{name:'药B',dose:'2片',interval:'12',first:'09:00'},{name:'药C',dose:'3片',interval:'24',first:'10:00'}];var rec={startDate:'2026-04-01',days:'2',__meds:JSON.stringify(ms)};var ok=__medication_scheduleRestore(rec);var d=JSON.parse(__medication_scheduleSnap().__meds);document.getElementById('__tbProbe').textContent='MEDHIS '+((ok&&list.length===3&&list[0].name==='药A'&&d.length===3&&document.getElementById('startDate').value==='2026-04-01')?'OK':'BAD');"], expect:["MEDHIS OK"], ref:"历史记录须保存/恢复完整药物清单与日期；旧快照只收 id 控件，恢复时保留当前药单。" },
+{ slug:"elderly/medication-schedule", inputs:{startDate:"2026-03-01",days:"3"}, clicks:["var before=list[0].name;var ok=__medication_scheduleRestore({startDate:'2026-04-01'});var h=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='MEDOLD '+((!ok&&list[0].name===before&&h.indexOf('缺少完整药物清单')>=0)?'OK':'BAD');"], expect:["MEDOLD OK"], ref:"旧记录无 __meds 时必须拒绝恢复且不覆盖当前药单，并提示无法安全恢复。" }
 ];
 async function main() {
   const only = process.argv.slice(2);

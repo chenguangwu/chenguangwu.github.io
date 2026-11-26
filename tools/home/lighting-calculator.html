@@ -157,15 +157,17 @@
 
 <h3>② 房间尺寸</h3>
 <div class="input-row">
- <div><label for="length">长度 (m)</label><input type="number" id="length" value="5" min="0" step="0.1" oninput="calc()" placeholder="e.g. 5"></div>
- <div><label for="width">宽度 (m)</label><input type="number" id="width" value="4" min="0" step="0.1" oninput="calc()" placeholder="e.g. 4"></div>
- <div><label for="height">高度 (m)</label><input type="number" id="height" value="2.8" min="0" step="0.1" oninput="calc()" placeholder="e.g. 2.8"></div>
+ <div><label for="length">长度 (m)</label><input type="number" id="length" value="5" min="0" step="0.1" oninput="calc()" placeholder="如 5" data-i18n-ph="ph.lighting.length"></div>
+ <div><label for="width">宽度 (m)</label><input type="number" id="width" value="4" min="0" step="0.1" oninput="calc()" placeholder="如 4" data-i18n-ph="ph.lighting.width"></div>
+ <div><label for="height" data-zh="高度 (m，安装参考)">Height (m, reference only)</label><input type="number" id="height" value="2.8" min="0" step="0.1" oninput="calc()" placeholder="如 2.8" data-i18n-ph="ph.lighting.height"></div>
 </div>
+<p data-zh="层高只作安装参考，不参与光通量公式；灯具数量按面积、照度、CU 与 MF 计算。" style="margin:6px 0 0;font-size:12px;color:var(--text-muted);">Height is for installation reference only and is not used in the lumen formula; lamp counts use area, illuminance, CU and MF.</p>
+<p data-zh="下方“灯具单只光通量”用于追加一条自定义灯具方案；内置 LED / 节能灯 / 白炽灯方案使用固定参数。" style="margin:6px 0 0;font-size:12px;color:var(--text-muted);">The lumen value below adds a custom lamp option; built-in LED, CFL and incandescent options keep fixed parameters.</p>
 
 <div class="input-row">
- <div><label for="lumens">灯具单只光通量 (lm)</label><input type="number" id="lumens" value="800" min="50" step="50" oninput="calc()" placeholder="e.g. 800"></div>
- <div><label for="cu">利用系数 CU (0.4-0.8)</label><input type="number" id="cu" value="0.6" min="0.1" max="1" step="0.05" oninput="calc()" placeholder="e.g. 0.6 (0.1–1)"></div>
- <div><label for="mf">维护系数 MF (0.7-0.9)</label><input type="number" id="mf" value="0.8" min="0.1" max="1" step="0.05" oninput="calc()" placeholder="e.g. 0.8 (0.1–1)"></div>
+ <div><label for="lumens">灯具单只光通量 (lm)</label><input type="number" id="lumens" value="800" min="50" step="50" oninput="calc()" placeholder="如 800" data-i18n-ph="ph.lighting.lumens"></div>
+ <div><label for="cu">利用系数 CU (0.4-0.8)</label><input type="number" id="cu" value="0.6" min="0.1" max="1" step="0.05" oninput="calc()" placeholder="如 0.6（0.1–1）" data-i18n-ph="ph.lighting.cu"></div>
+ <div><label for="mf">维护系数 MF (0.7-0.9)</label><input type="number" id="mf" value="0.8" min="0.1" max="1" step="0.05" oninput="calc()" placeholder="如 0.8（0.7–0.9）" data-i18n-ph="ph.lighting.mf"></div>
 </div>
 
 <div class="toolbar" style="margin-top:8px;"><span style="font-size:13px;color:var(--text-muted);">📌 示例房间（一键填充）：</span><button type="button" class="btn" onclick="applyLightPreset('living')">客厅 5×4m</button><button type="button" class="btn" onclick="applyLightPreset('study')">书房 3.5×3m</button><button type="button" class="btn" onclick="applyLightPreset('kitchen')">厨房 3×2.5m</button><button type="button" class="btn" onclick="applyLightPreset('office')">办公室 6×4m</button></div>
@@ -332,14 +334,17 @@ function emptyHint(names){
  el.textContent=names.length?((en?'Please fill in ':'请填写 ')+names.join(en?', ':'、')+(en?' before calculating.':' 后再计算')):'';
 }
 
+function __lightClearOutputs(){
+ document.getElementById('total-lumens').textContent='—';
+ const bg=document.getElementById('bulb-grid'); if(bg) bg.innerHTML='';
+ const ch=document.getElementById('lightChart'); if(ch) ch.innerHTML='';
+ const tb=document.getElementById('lightHidden'); if(tb&&tb.querySelector('tbody')) tb.querySelector('tbody').innerHTML='';
+}
 function calc(){
  const en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
  const miss=lightMissing();
  if(miss.length){
-  emptyHint(miss);
-  document.getElementById('total-lumens').textContent='—';
-  const bg=document.getElementById('bulb-grid'); if(bg) bg.innerHTML='';
-  return;
+  emptyHint(miss); __lightClearOutputs(); return null;
  }
  emptyHint([]);
  const length = +document.getElementById('length').value;
@@ -348,12 +353,10 @@ function calc(){
  const cu = +document.getElementById('cu').value;
  const mf = +document.getElementById('mf').value;
  if(!isFinite(length)||!isFinite(width)||length<=0||width<=0){
-  emptyHint(['有效的长度/宽度']); document.getElementById('total-lumens').textContent='—';
-  const bg=document.getElementById('bulb-grid'); if(bg) bg.innerHTML=''; return;
+  emptyHint(['有效的长度/宽度']); __lightClearOutputs(); return null;
  }
  if(!isFinite(lumens)||lumens<=0||!isFinite(cu)||cu<=0||cu>1||!isFinite(mf)||mf<=0||mf>1){
-  emptyHint(['光通量 >0 且 CU/MF 在 0.1–1']); document.getElementById('total-lumens').textContent='—';
-  const bg=document.getElementById('bulb-grid'); if(bg) bg.innerHTML=''; return;
+  emptyHint(['光通量 >0 且 CU/MF 在 0.1–1']); __lightClearOutputs(); return null;
  }
  const area = length * width;
  const lux = ROOM_LUX[activeRoom];
@@ -361,30 +364,27 @@ function calc(){
 
  const __g2=Math.round(totalLumens);document.getElementById('total-lumens').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
- const __g5=BULB_TYPES.map(b => {
+ const customCount = Math.ceil(totalLumens / lumens);
+ const fixedHtml = BULB_TYPES.map(b => {
   const count = Math.max(1, Math.ceil(totalLumens / b.lumens));
   const totalPower = count * b.power;
-  return `<div class="bulb-card"><div class="v">${count}${en?' pcs':' 只'}</div><div class="l">${b.name}<br>${en?'Total':'合计'} ${totalPower} W</div></div>`;
- }).join('');document.getElementById('bulb-grid').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  return `<div class="bulb-card"><div class="v">${count}${en?' pcs':' 只'}</div><div class="l">${b.name}（${en?'built-in':'内置'}）<br>${en?'Total':'合计'} ${totalPower} W</div></div>`;
+ }).join('');
+ const customHtml = `<div class="bulb-card"><div class="v">${customCount}${en?' pcs':' 只'}</div><div class="l">${en?'Custom lamp':'自定义单灯'} ${lumens} lm<br>${en?'By the lumens entered above':'按上方输入的单灯光通量'}</div></div>`;
+ document.getElementById('bulb-grid').innerHTML=fixedHtml+customHtml;
+ return {area, lux, totalLumens, lumens, customCount, en};
 }
 
 renderRoomTypes(); calc();
 
-function __lightExtras(){
+function __lightExtras(result){
   if(typeof TBKit==='undefined') return;
-  var length=+document.getElementById('length').value||0;
-  var width=+document.getElementById('width').value||0;
-  var cu=+document.getElementById('cu').value||0.6;
-  var mf=+document.getElementById('mf').value||0.8;
-  var area=length*width;
-  if(area<=0) return;
-  var lux=ROOM_LUX[activeRoom]||0;
-  var totalLumens=area*lux/(cu*mf);
-  if(!isFinite(totalLumens)||totalLumens<=0) return;
-  var en=TBKit.util.isEn();
+  var ch=document.getElementById('lightChart');
+  if(!result || !isFinite(result.totalLumens) || result.totalLumens<=0){ if(ch) ch.innerHTML=''; return; }
+  var en=result.en;
   var labels=BULB_TYPES.map(function(b){return b.name;});
-  var data=BULB_TYPES.map(function(b){return Math.ceil(totalLumens/b.lumens)*b.power;});
-  TBKit.chart.bar('#lightChart',{labels:labels,series:[{name:en?'Total Power (W)':'总功率 (W)',data:data}],height:240,title:en?'Power by Bulb Type':'各灯具类型总功率'});
+  var data=BULB_TYPES.map(function(b){return Math.ceil(result.totalLumens/b.lumens)*b.power;});
+  TBKit.chart.bar('#lightChart',{labels:labels,series:[{name:en?'Total Power (W)':'总功率 (W)',data:data}],height:240,title:en?'Power by Bulb Type (built-in)':'各内置灯具类型总功率'});
 }
 function __lightExport(){
   if(typeof TBKit==='undefined'){ ToolBox.showToast('导出组件未加载'); return; }
@@ -396,16 +396,20 @@ function __lightExport(){
   var width=+document.getElementById('width').value||0;
   var area=length*width;
   var rows=[[en?'Room':'房间', activeRoom], [en?'Area':'面积', area+' m²'], [en?'Required Lumens':'所需总光通量', totalLumens+' lm']];
+  var userLumens=+document.getElementById('lumens').value;
+  if(isFinite(userLumens)&&userLumens>0){
+    rows.push([en?'Custom lamp (input)':'自定义单灯（输入）', userLumens, Math.ceil(totalLumens/userLumens), '—']);
+  }
   BULB_TYPES.forEach(function(b){
     var count=Math.max(1,Math.ceil(totalLumens/b.lumens));
-    rows.push([b.name, b.lumens, count, count*b.power]);
+    rows.push([b.name+(en?' (built-in)':'（内置）'), b.lumens, count, count*b.power]);
   });
   t.querySelector('thead').innerHTML='<tr><th>'+(en?'Bulb Type':'灯具类型')+'</th><th>'+(en?'Lumens':'单只光通量(lm)')+'</th><th>'+(en?'Count':'建议数量(只)')+'</th><th>'+(en?'Power(W)':'合计功率(W)')+'</th></tr>';
   t.querySelector('tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>';}).join('');
   TBKit.util.exportTable('#lightHidden', en?'lighting-plan.csv':'照明方案.csv');
 }
 var __light_f0=(typeof calc==='function')?calc:null;
-if(__light_f0){ calc=function(){ var r=__light_f0.apply(null,arguments); try{__lightExtras();}catch(e){} return r; }; }
+if(__light_f0){ calc=function(){ var r=__light_f0.apply(null,arguments); try{__lightExtras(r);}catch(e){} return r; }; }
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){try{calc();}catch(e){}});
 else {try{calc();}catch(e){}}
 </script><script>
@@ -454,7 +458,7 @@ document.addEventListener('DOMContentLoaded',function(){
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p data-zh="按房间面积、层高与推荐照度估算所需总光通量与灯具数量，辅助家居与办公室照明布置，纯前端计算可调整参数。客厅按推荐照度估算主灯总光通量，反推需要几只 800lm 筒灯或选多大光通的吸顶灯。">按房间面积、层高与推荐照度估算所需总光通量与灯具数量，辅助家居与办公室照明布置，纯前端计算可调整参数。客厅按推荐照度估算主灯总光通量，反推需要几只 800lm 筒灯或选多大光通的吸顶灯。</p>
+    <p data-zh="按房间面积与推荐照度估算所需总光通量与灯具数量，辅助家居与办公室照明布置，纯前端计算可调整参数。客厅按推荐照度估算主灯总光通量，反推需要几只 800lm 筒灯或选多大光通的吸顶灯。">按房间面积与推荐照度估算所需总光通量与灯具数量，辅助家居与办公室照明布置，纯前端计算可调整参数。客厅按推荐照度估算主灯总光通量，反推需要几只 800lm 筒灯或选多大光通的吸顶灯。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>支持多种装修参数</li>

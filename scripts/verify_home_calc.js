@@ -80,7 +80,7 @@ const CASES = [
 {
   "slug": "home/renovation-budget",
   "clicks": [
-    "getItems=function(){return [{id:1,name:'瓷砖',price:8000,qty:12},{id:2,name:'地板',price:6000,qty:10}];};renderItems();calc()"
+    "localStorage.setItem('home_budget_items',JSON.stringify([{id:1,name:'瓷砖',price:8000,qty:12},{id:2,name:'地板',price:6000,qty:10}]));renderItems();calc()"
   ],
   "expect": [
     "156,000",
@@ -128,9 +128,9 @@ const CASES = [
 },
 {
   "slug": "home/renovation-budget",
-  "clicks": ["(function(){var hh=globalThis.__tbFs;var h1=hh.readFileSync(process.cwd()+'/tools/home/renovation-budget.html','utf8');var i1=h1.indexOf('function updateItem(');var sg=i1>=0?h1.slice(i1,i1+1200):'';var okg=sg.indexOf('isFinite(num)')>=0&&sg.indexOf('num < 0')>=0&&sg.indexOf('totalEl.innerHTML')>=0&&h1.indexOf('data-id=')>=0;var h2=hh.readFileSync(process.cwd()+'/tools/hotel/tip-calculator.html','utf8');var i2=h2.indexOf('function copyResult()');var sg2=i2>=0?h2.slice(i2,i2+1200):'';var okt=sg2.indexOf('taxAmount')>=0&&sg2.indexOf('bill + taxAmount + tip')>=0&&sg2.indexOf('bill + tip')<0&&sg2.indexOf('tax < 0')>=0;document.getElementById('__tbProbe').textContent='RENITEM '+(okg?'OK':'BAD')+' TIPTAX '+(okt?'OK':'BAD');})();"],
+  "clicks": ["(function(){var hh=globalThis.__tbFs;var h1=hh.readFileSync(process.cwd()+'/tools/home/renovation-budget.html','utf8');var i1=h1.indexOf('function updateItem(');var sg=i1>=0?h1.slice(i1,i1+1200):'';var okg=sg.indexOf('isFinite(num)')>=0&&sg.indexOf('num < 0')>=0&&sg.indexOf('totalEl.innerHTML')>=0&&h1.indexOf('data-id=')>=0;var h2=hh.readFileSync(process.cwd()+'/tools/hotel/tip-calculator.html','utf8');var i2=h2.indexOf('function tipRead()');var sg2=i2>=0?h2.slice(i2,i2+3000):'';var okt=sg2.indexOf('taxAmount')>=0&&sg2.indexOf('mode==='+String.fromCharCode(39)+'inclusive'+String.fromCharCode(39)+' ? bill + tip : bill + taxAmount + tip')>=0&&sg2.indexOf('taxAmount = bill*tax/100')>=0&&sg2.indexOf('tax>0')>=0;document.getElementById('__tbProbe').textContent='RENITEM '+(okg?'OK':'BAD')+' TIPTAX '+(okt?'OK':'BAD');})();"],
   "expect": ["RENITEM OK TIPTAX OK"],
-  "ref": "第1306批双源码形态强锚(承载页 home/renovation-budget)：①装修明细 updateItem 校验数值并定点刷该行 .total、行带 data-id；旧版空串入总计且只 calc 不刷行 ⇒ BAD。②tip-calculator copyResult 须含税(bill+taxAmount+tip)、同源并拦负税率；旧版 bill+tip 漏税 ⇒ BAD。真机交互由复核方覆盖。"
+  "ref": "第1306批双源码形态强锚(承载页 home/renovation-budget)：①装修明细 updateItem 校验数值并定点刷该行 .total、行带 data-id；旧版空串入总计且只 calc 不刷行 ⇒ BAD。②tip-calculator tipRead 须区分含税/未含税总额（含税 bill+tip、未含税 bill+taxAmount+tip）并拦截负税率；旧版漏税 ⇒ BAD。真机交互由复核方覆盖。"
 },
 {
   "slug": "home/water-filter-lifespan",
@@ -142,13 +142,13 @@ const CASES = [
 {
   "slug": "home/water-filter-lifespan",
   "inputs": { "cap": "" },
-  "expect": ["请填写滤芯额定净水量、每日净水用量与安全余量后再计算。"],
+  "expect": ["请填写滤芯额定净水量、每日净水用量、安全余量与滤芯单价（单价可为 0）后再计算。"],
   "ref": "清空额定净水量必须出明确空态提示，不得把空串当 0 后显示大于 0 提示或静默给结论。"
 },
 {
   "slug": "home/water-filter-lifespan",
   "inputs": { "margin": "" },
-  "expect": ["请填写滤芯额定净水量、每日净水用量与安全余量后再计算。"],
+  "expect": ["请填写滤芯额定净水量、每日净水用量、安全余量与滤芯单价（单价可为 0）后再计算。"],
   "ref": "清空安全余量同样走必填提示，避免误报「需在 50%–100% 之间」。"
 },
 {
@@ -353,7 +353,7 @@ const CASES = [
 {
   "slug": "home/water-heater-sizing",
   "inputs": { "type": "instant", "people": "1", "cold": "20", "target": "15" },
-  "expect": ["目标水温与储水温度需高于进水温度"],
+  "expect": ["目标水温需高于进水温度"],
   "ref": "目标水温低于进水温度属非法，必须提示；不得用负温升算出负功率或无效结果。"
 },
 {
@@ -388,6 +388,78 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/home/water-filter-lifespan.html','utf8');var parts=h.split('<script');var fb='';for(var k=1;k<parts.length;k++){var seg=parts[k].split('</script>')[0];if(seg.indexOf('FAQPage')>=0){fb=seg.slice(seg.indexOf('{'),seg.lastIndexOf('}')+1);break;}}var q=null;try{q=JSON.parse(fb);}catch(e){}var n=q&&q.mainEntity?q.mainEntity.length:0;var ro=q&&q.mainEntity&&q.mainEntity.some(function(x){return x.name==='RO 膜也要按这个算吗？'&&x.acceptedAnswer&&x.acceptedAnswer.text.indexOf('TDS')>=0&&x.acceptedAnswer.text.indexOf('安全余量设多少')<0;});var dd=h.split('<dt').length-1;var de=h.split('<dd').length-1;var di=h.indexOf('name=\"desc-en\"');var ds=di>=0?h.indexOf('content=\"',di)+9:-1;var deTxt=ds>=0?h.slice(ds,h.indexOf('\"',ds)):'';var trunc=['cartr','water','qualit'].some(function(w){return deTxt.slice(-w.length)===w;});var ok=n===4&&ro&&dd===4&&de===4&&deTxt.length<=160&&trunc===false;document.getElementById('__tbProbe').textContent='WFAQ '+(ok?'OK':'BAD')+' n='+n+' ro='+ro+' dt/dd='+dd+'/'+de+' en='+deTxt.length;"],
   "expect": ["WFAQ OK"],
   "ref": "第433批：可见 4 组 dt/dd 问答，FAQPage mainEntity 必须同为 4 项，RO 膜问答独立成项且答案不含上一题；第522批：desc-en 不得在 cartr 等词中间截断。旧版 3 项并把 RO 问答并入上一题、desc-en 截到 cartr ⇒ BAD。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "gas", "people": "4", "sim": "2", "minutes": "10", "flow": "9", "cold": "10", "target": "40", "tank": "", "power": "", "price": "" },
+  "expect": ["180 L", "10.8 L/min", "24 L/min"],
+  "ref": "燃气模式不依赖储水温度/加热功率/电价：三项留空仍应给出混合水量、温升25°C流量与建议升数，结果不得出现储水热水量或电费。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "instant", "people": "1", "sim": "1", "minutes": "8", "flow": "7", "cold": "18", "target": "40", "tank": "", "power": "8", "price": "0.6" },
+  "expect": ["10.7 kW", "12 kW", "63 A"],
+  "ref": "即热模式不依赖储水温度：tank 留空仍应给出持续功率、建议功率与空开，不得因无关字段留空阻断计算。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "storage", "people": "1.5", "sim": "1", "minutes": "10", "flow": "8", "cold": "15", "target": "40", "tank": "60", "power": "2", "price": "0.6" },
+  "expect": ["家庭人数与同时洗澡人数必须是正整数"],
+  "ref": "step=1 不阻止脚本计算：1.5 人必须提示为正整数，不得按 1.5 人估算日需求。"
+},
+{
+  "slug": "home/repair-or-replace",
+  "inputs": { "type": "fridge", "age": "10", "repair": "200", "newPrice": "3000", "newLife": "10", "repairLife": "2", "saving": "0", "risk": "none" },
+  "expect": ["0（先检查）", "不适用", "参考安全年限已用完", "先专业检查"],
+  "ref": "冰箱参考 10 年、已用 10 年 ⇒ 剩余 0 年：维修后年限取 0，维修年均成本与差额不适用，必须给专业检查结论；旧实现绕开封顶按 2 年算出 100 元/年并判维修更划算。"
+},
+{
+  "slug": "home/water-filter-lifespan",
+  "clicks": ["document.getElementById('price').value='';calcTool();var t=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='WBLANK '+(t.indexOf('滤芯单价（单价可为 0）')>=0&&t.indexOf('元/年')<0?'OK':'BAD');"],
+  "expect": ["WBLANK OK"],
+  "ref": "单价空串不得被 num() 当 0 后显示免费滤芯：必须提示补填；显式 0 仍合法（另有用例覆盖）。"
+},
+{
+  "slug": "home/water-filter-lifespan",
+  "clicks": ["document.getElementById('price').value='0';calcTool();var t=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='WZ2 '+(t.indexOf('0 元/年')>=0&&t.indexOf('0.0000 元/L')>=0?'OK':'BAD '+t);"],
+  "expect": ["WZ2 OK"],
+  "ref": "显式 0 是合法的免费/赠品滤芯价格，必须正常算出零成本，不得被空态守卫误伤。"
+},
+{
+  "slug": "home/renovation-budget",
+  "clicks": ["try{localStorage.setItem('home_budget_items',JSON.stringify([{id:1,name:'旧草稿',price:100,qty:1}]));}catch(e){}var o=window.confirm;window.confirm=function(){return true;};applyBudgetPreset('basic');window.confirm=o;var b=document.getElementById('undoPresetBtn');var ok=b&&!b.disabled&&getItems().length>1;restoreSnapshot();var back=getItems().length===1&&getItems()[0].name==='旧草稿';document.getElementById('__tbProbe').textContent='RENUNDO '+(ok&&back?'OK':'BAD ok='+ok+' back='+back);"],
+  "expect": ["RENUNDO OK"],
+  "ref": "预设覆盖必须确认并保留撤销快照：确认覆盖后撤销按钮可用，restoreSnapshot 能恢复覆盖前唯一旧草稿；旧 applyBudgetPreset 直接覆盖且无撤销。"
+},
+{
+  "slug": "home/renovation-budget",
+  "clicks": ["try{localStorage.setItem('home_budget_items',JSON.stringify([{id:1,name:'保留我',price:100,qty:1}]));}catch(e){}var o=window.confirm;window.confirm=function(){return false;};applyBudgetPreset('basic');window.confirm=o;var kept=getItems().length===1&&getItems()[0].name==='保留我';document.getElementById('__tbProbe').textContent='RENCANCEL '+(kept?'OK':'BAD');"],
+  "expect": ["RENCANCEL OK"],
+  "ref": "预设覆盖点取消时必须保留原草稿，不得写入模板。"
+},
+{
+  "slug": "home/renovation-budget",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/home/renovation-budget.html','utf8');var ok=h.indexOf('<button type=\"button\" class=\"del\" aria-label=\"删除')>=0&&h.indexOf('undoPresetBtn')>=0&&h.indexOf('本工具不设预算上限')>=0&&h.indexOf('能设预算上限、跟踪实际支出吗？')>=0;document.getElementById('__tbProbe').textContent='RENA11Y '+(ok?'OK':'BAD');"],
+  "expect": ["RENA11Y OK"],
+  "ref": "删除控件须为带项目名 aria-label 的真实 button；文案统一声明不设预算上限、不跟踪实际支出，并保留撤销入口。"
+},
+{
+  "slug": "home/washer-capacity",
+  "inputs": {"people": "4"},
+  "expect": ["8–9 kg", "81 L"],
+  "ref": "第867批：4 人按对照表推荐 8–9 kg，用水按上限 9 kg × 滚筒 9L/kg = 81L；旧实现 4×2.5=10kg 与 FAQ 8–9kg 冲突。"
+},
+{
+  "slug": "home/washer-capacity",
+  "inputs": {"people": "2.5"},
+  "expect": ["家庭人口必须为正整数"],
+  "ref": "第867批：小数人数不再被 Math.floor 静默取整，明确提示必须为正整数。"
+},
+{
+  "slug": "home/furniture-layout",
+  "clicks": ["document.getElementById('rl').value='1';document.getElementById('rw').value='1';addFurniture('床(双人)');__flClamp();var m=__flMetrics();document.getElementById('__tbProbe').textContent='FLMET '+m.overlap.toFixed(2)+'|'+m.outside.toFixed(2);"],
+  "expect": ["FLMET 0.00|2.60"],
+  "ref": "第867批：1×1m 房间放 1.8×2m 床，旧算法把房外 2.60m² 算成重叠；现房内重叠 0.00、越界 2.60。"
 }
 ];
 async function main() {
@@ -414,3 +486,4 @@ async function main() {
   if (fails.length) process.exit(1);
 }
 if (require.main === module) main();
+

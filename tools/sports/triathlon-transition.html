@@ -281,12 +281,15 @@
 
 <script>
 function parseTime(str, mode) {
-  str = String(str || '').trim();
-  if (!str) return 0;
+  str = String(str == null ? '' : str).trim();
+  if (!str) return null; // 未填与合法 0 分开
+  if (!/^[0-9]+(?:\.[0-9]+)?(?::[0-9]+(?:\.[0-9]+)?){0,2}$/.test(str)) return NaN;
   var parts = str.split(':').map(Number);
   if (parts.some(function(n){ return !isFinite(n) || n < 0; })) return NaN;
   if (mode === 'hms' && parts.length !== 3) return NaN;
   if (mode === 'ms' && parts.length > 2) return NaN;
+  if (parts.length >= 2 && parts[parts.length-1] >= 60) return NaN;
+  if (parts.length === 3 && parts[1] >= 60) return NaN;
   var secs = 0;
   if (parts.length === 3) { secs = parts[0]*3600 + parts[1]*60 + parts[2]; }
   else if (parts.length === 2) { secs = parts[0]*60 + parts[1]; }
@@ -295,9 +298,10 @@ function parseTime(str, mode) {
 }
 
 function fmtTime(totalSec) {
+  totalSec = Math.round(totalSec); // 先归整，避免 59.6 秒显示成 1:60
   var h = Math.floor(totalSec / 3600);
   var m = Math.floor((totalSec % 3600) / 60);
-  var s = Math.round(totalSec % 60);
+  var s = totalSec % 60;
   if (h > 0) return h + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
   return m + ':' + String(s).padStart(2,'0');
 }
@@ -308,16 +312,15 @@ function calc() {
   var bike = parseTime(document.getElementById('bike-time').value, 'hms');
   var t2 = parseTime(document.getElementById('t2-time').value, 'ms');
   var run = parseTime(document.getElementById('run-time').value, 'hms');
-  var total = swim + t1 + bike + t2 + run;
-
+  if (swim===null||t1===null||bike===null||t2===null||run===null) {
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请填写全部五个分段；未参加或未计时请明确填 0:00 / 0:00:00，不能用留空代替 0。</p>';
+    return;
+  }
   if (isNaN(swim)||isNaN(t1)||isNaN(bike)||isNaN(t2)||isNaN(run)) {
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">时间格式有误：游泳/T1/T2 用「分:秒」，骑车/跑步用「时:分:秒」，且各段需为非负数字。</p>';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">时间格式有误：游泳/T1/T2 用「分:秒」，骑车/跑步用「时:分:秒」；分、秒须小于 60（如 1:90:00 非法），各段需为非负数字。</p>';
     return;
   }
-  if (total <= 0) {
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请至少填写一项时间</p>';
-    return;
-  }
+  var total = swim + t1 + bike + t2 + run;
 
   var segments = [
     { name: '游泳', time: swim, color: '#1D4ED8' },

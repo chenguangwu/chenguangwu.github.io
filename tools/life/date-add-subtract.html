@@ -322,16 +322,45 @@ function calc(){
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">基准日期无效，请重新选择</p>';
     return;
   }
+  // datetime-local 给出的是本地墙钟时间；夏令时前跳时该时刻并不存在，浏览器会静默顺延。
+  const parts = baseStr.match(/^([\d]{4})-([\d]{2})-([\d]{2})T([\d]{2}):([\d]{2})(?::([\d]{2}))?/);
+  if(parts){
+    const inputY=+parts[1],inputM=+parts[2],inputD=+parts[3],inputH=+parts[4],inputMin=+parts[5];
+    if(base.getFullYear()!==inputY||base.getMonth()+1!==inputM||base.getDate()!==inputD||base.getHours()!==inputH||base.getMinutes()!==inputMin){
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">该本地时刻在夏令时切换中不存在（例如前跳当天的 02:30），浏览器会顺延为 '+base.toLocaleString('zh-CN')+'。请把基准时间调整到实际存在的时刻后再计算。</p>';
+      return;
+    }
+    // 回拨时同一墙钟时间出现两次：比较前后半小时的偏移，提示本工具采用浏览器默认偏移。
+    const before=new Date(base.getTime()-30*60000),after=new Date(base.getTime()+30*60000);
+    if(before.getTimezoneOffset()!==after.getTimezoneOffset()){
+      // 仅提示，不阻止计算；具体采用哪一个偏移由浏览器默认解析决定。
+      base.__dstAmbiguous=true;
+    }
+  }
   // 先加减年月（目标月无对应日则夹到月末）
   let newDate = addYearsMonths(base, y, m);
   // 「日」按日历日推进（保留原时刻，自动跨月跨年）；「时/分/秒」按固定时长累加
   newDate.setDate(newDate.getDate() + Math.trunc(d));
-  newDate = new Date(newDate.getTime() + h * 3600000 + min * 60000 + s * 1000);
+  const deltaMs = h * 3600000 + min * 60000 + s * 1000;
+  const integerMs = Math.round(deltaMs);
+  newDate = new Date(newDate.getTime() + integerMs);
+  if(!isFinite(newDate.getTime()) || newDate.getFullYear() < 1 || newDate.getFullYear() > 9999){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);" data-zh="结果超出支持范围（公元 1–9999 年），已清空旧结果。请减小年/月/日/时/分/秒的加减量后重试。">Result is outside the supported range (year 1–9999); old result cleared. Reduce the years/months/days/hours/minutes/seconds and try again.</p>';
+    return;
+  }
+  const subMs = Math.abs(deltaMs - integerMs) > 1e-9;
+  function fmtPrecise(d){
+    const p=n=>String(n).padStart(2,'0');
+    const base=d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate()+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+    return d.getMilliseconds()?base+'.'+String(d.getMilliseconds()).padStart(3,'0'):base;
+  }
   const __g2=`
     <p>基准时间：<strong>${base.toLocaleString('zh-CN')}</strong></p>
+    <p style="font-size:12px;color:var(--text-muted);">本地时区：${Intl.DateTimeFormat().resolvedOptions().timeZone||'浏览器默认'}（UTC${-base.getTimezoneOffset()/60>=0?'+':''}${-base.getTimezoneOffset()/60}）${base.__dstAmbiguous?' · 该时刻处于夏令时回拨重复区间，按浏览器默认偏移解释，请核对结果。':''}</p>
     <p>加减量：<strong>${y}年 ${m}月 ${d}日 ${h}时 ${min}分 ${s}秒</strong></p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
-    <p>结果时间：<strong style="color:var(--primary);">${newDate.toLocaleString('zh-CN')}</strong></p>
+    <p>结果时间：<strong style="color:var(--primary);">${fmtPrecise(newDate)}</strong></p>
+    <p style="font-size:12px;color:var(--text-muted);">时间精度为毫秒：结果毫秒非零时显示 .SSS；小于 0.5 毫秒的小数增量会舍入为 0，无法在 JavaScript 日期中表示。${subMs?'本次小数增量含不足 1 毫秒的部分，已按四舍五入处理。':''}</p>
     <p style="font-size:12px;color:var(--text-muted);">${newDate.toString()}</p>
   `;document.getElementById('resultBox').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }

@@ -643,6 +643,13 @@ const COMMANDS = [
 <script>
 let currentCategory = '全部';
 let searchQuery = '';
+const SQL_CAT_EN={'DDL':'DDL','事务':'Transactions','公用表':'CTE','写入':'Write','函数':'Functions','分页':'Pagination','删除':'Delete','子查询':'Subquery','排序':'Order','更新':'Update','条件':'Condition','查询':'Query','聚合':'Aggregation','聚合函数':'Aggregate Func','视图':'View','过滤':'Filter','连接':'Join','集合':'Set Ops'};
+const SQL_DESC_EN={
+'NULL 判断':'NULL check','SQL 标准分页':'SQL standard pagination','事务保存点':'Transaction savepoint','事务控制':'Transaction control','交集':'Intersection','从查询插入':'Insert from query','修改表':'Alter table','全外连接':'Full outer join','公用表表达式':'Common table expression','内连接':'Inner join','分组':'Grouping','分组后过滤':'Filter after grouping','分页':'Pagination','创建索引':'Create index','创建视图':'Create view','删除数据':'Delete data','删除表':'Drop table','去重':'Deduplicate','右外连接':'Right outer join','字符串拼接':'String concatenation','存在性检查':'Existence check','左外连接':'Left outer join','差集':'Difference','并集不去重':'Union all','并集去重':'Union distinct','建表':'Create table','当前时间':'Current time','排序':'Ordering','插入数据':'Insert data','更新数据':'Update data','最小 / 最大':'MIN / MAX','条件表达式':'Conditional expression','条件过滤':'Filtering','查询中嵌套查询':'Nested query','查询所有列':'Select all columns','查询数据':'Query data','模式匹配':'Pattern matching','求和 / 平均':'SUM / AVG','清空表（快，不可回滚）':'Truncate table (fast, non-rollback)','笛卡尔积':'Cartesian product','类型转换':'Type conversion','自连接':'Self join','范围匹配（闭区间）':'Range match (inclusive)','计数':'Count','返回首个非 NULL':'First non-NULL','递归 CTE':'Recursive CTE','逻辑运算':'Logical operators','集合匹配':'Set membership'};
+function sqlIsEn(){return typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn();}
+function sqlCat(c){return sqlIsEn()?(SQL_CAT_EN[c]||c):c;}
+function sqlDesc(d){return sqlIsEn()?(SQL_DESC_EN[d]||d):d;}
+
 function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function getCategories(){
   const cats = ['全部'];
@@ -651,9 +658,10 @@ function getCategories(){
 }
 function renderCategories(){
   const cats = getCategories();
-  const __h0=cats.map(c =>
-    `<div class="category-tab ${c === currentCategory ? 'active' : ''}" data-cat="${escapeHtml(c)}">${escapeHtml(c)}</div>`
-  ).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('categoryTabs').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('categoryTabs').innerHTML=__h0;
+  const en=sqlIsEn();
+  document.getElementById('categoryTabs').innerHTML=cats.map(c =>
+    `<div class="category-tab ${c === currentCategory ? 'active' : ''}" data-cat="${escapeHtml(c)}">${escapeHtml(c==='全部'?(en?'All':c):sqlCat(c))}</div>`
+  ).join('');
   document.querySelectorAll('.category-tab').forEach(t => {
     t.addEventListener('click', () => {
       currentCategory = t.dataset.cat;
@@ -664,28 +672,50 @@ function renderCategories(){
 }
 function renderCommands(){
   const q = searchQuery.toLowerCase().trim();
+  const en=sqlIsEn();
   const filtered = COMMANDS.filter(c => {
     if(currentCategory !== '全部' && c.cat !== currentCategory) return false;
     if(q){
-      const text = `${c.cmd} ${c.desc} ${c.cat} ${c.params||''} ${c.example||''} ${c.syntax||''}`.toLowerCase();
+      const text = [c.cmd,c.desc,sqlDesc(c.desc),c.cat,sqlCat(c.cat),c.params||'',c.example||'',c.syntax||''].join(' ').toLowerCase();
       if(!text.includes(q)) return false;
     }
     return true;
   });
-  document.getElementById('stats').textContent = `共 ${filtered.length} 项`;
-  const __h1=filtered.map(c => {
-    const ex = c.example ? `<div class="cmd-example">${escapeHtml(c.example)}<button type="button" class="copy-btn" onclick="copyCode(this)">复制</button></div>` : '';
-    const params = c.params ? `<div class="cmd-row"><strong>参数：</strong>${escapeHtml(c.params)}</div>` : '';
-    const syntax = c.syntax ? `<div class="cmd-row"><strong>语法：</strong><code>${escapeHtml(c.syntax)}</code></div>` : '';
+  sqlPlaceholder();
+  document.getElementById('stats').textContent = en?`${filtered.length} command${filtered.length===1?'':'s'}`:`共 ${filtered.length} 项`;
+  if(!filtered.length){
+    document.getElementById('cmdList').innerHTML='<div style="padding:28px 12px;text-align:center;color:var(--text-muted)">'+
+      '<p style="margin-bottom:12px">'+(en?'No commands match your search or category.':'没有匹配的命令，试试换个关键词或分类。')+'</p>'+
+      '<button type="button" class="btn" onclick="clearSqlFilters()">'+(en?'Clear filters':'清除筛选')+'</button></div>';
+    return;
+  }
+  document.getElementById('cmdList').innerHTML=filtered.map(c => {
+    const ex = c.example ? `<div class="cmd-example">${escapeHtml(c.example)}<button type="button" class="copy-btn" onclick="copyCode(this)">${en?'Copy':'复制'}</button></div>` : '';
+    const params = c.params ? `<div class="cmd-row"><strong>${en?'Params':'参数'}：</strong>${escapeHtml(c.params)}</div>` : '';
+    const syntax = c.syntax ? `<div class="cmd-row"><strong>${en?'Syntax':'语法'}：</strong><code>${escapeHtml(c.syntax)}</code></div>` : '';
     return `<div class="cmd-item">
       <div class="cmd-title">
         <code class="cmd-name">${escapeHtml(c.cmd)}</code>
-        <span class="cmd-desc">${escapeHtml(c.desc)}</span>
+        <span class="cmd-desc">${escapeHtml(sqlDesc(c.desc))}</span>
       </div>
-      <div class="cmd-row"><strong>分类：</strong>${escapeHtml(c.cat)}</div>
+      <div class="cmd-row"><strong>${en?'Category':'分类'}：</strong>${escapeHtml(c.cat==='全部'?(en?'All':c.cat):sqlCat(c.cat))}</div>
       ${syntax}${params}${ex}
     </div>`;
-  }).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('cmdList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('cmdList').innerHTML=__h1;
+  }).join('');
+}
+function sqlPlaceholder(){
+  var el=document.getElementById('searchInput'); if(!el) return;
+  var en=sqlIsEn();
+  var ph=en?'Search commands, descriptions or examples...':'搜索命令、描述或示例...';
+  el.placeholder=ph; el.setAttribute('aria-label',ph);
+}
+function clearSqlFilters(){
+  searchQuery='';
+  currentCategory='全部';
+  var inp=document.getElementById('searchInput');
+  if(inp) inp.value='';
+  renderCategories();
+  renderCommands();
 }
 function copyCode(btn){
   const code = btn.parentElement.cloneNode(true);
@@ -709,8 +739,10 @@ document.getElementById('searchInput').addEventListener('input', e => {
   searchQuery = e.target.value;
   renderCommands();
 });
+sqlPlaceholder();
 renderCategories();
 renderCommands();
+document.addEventListener('toolbox:langchange',function(){sqlPlaceholder();renderCategories();renderCommands();});
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
@@ -742,7 +774,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -750,7 +782,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

@@ -294,7 +294,7 @@ function applyPreset(type){
   const p=m[type]||m.ro;
   document.getElementById('cap').value=p[0];document.getElementById('daily').value=p[1];
   document.getElementById('quality').value=p[2];document.getElementById('margin').value=p[3];
-  document.getElementById('price').value=p[4];calcTool();
+  document.getElementById('price').value=p[4];calcTool(false);
 }
 function calcData(){
   const cap=num('cap'),daily=num('daily'),margin=num('margin'),price=num('price');
@@ -311,22 +311,23 @@ function clearChart(){
 }
 function drawChart(d){
   const cv=document.getElementById('lifeChart');if(!cv)return;cv.style.display='';const ctx=cv.getContext('2d');if(!ctx)return;
+  const en=isEN();
   const W=cv.width,H=cv.height,pad=46,max=Math.max(d.effective,d.daily*365,1)*1.2;
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#64748b';ctx.font='12px sans-serif';
   const bw=Math.min(150,(W-pad*2)/3);
-  const bars=[['有效净水量',d.effective,'#0ea5e9'],['一年用水量',d.daily*365,'#92400E']];
+  const bars=[[en?'Effective water volume':'有效净水量',d.effective,'#0ea5e9'],[en?'Annual water use':'一年用水量',d.daily*365,'#92400E']];
   bars.forEach((b,i)=>{const x=pad+i*(bw+50),h=(b[1]/max)*(H-pad-30);
     ctx.fillStyle=b[2];ctx.fillRect(x,H-pad-h,bw,h);ctx.fillStyle='#334155';ctx.fillText(b[0],x,H-pad+18);ctx.fillText(b[1].toFixed(0)+' L',x,H-pad-h-6);});
-  ctx.fillStyle='#64748b';ctx.fillText('预计可用 '+d.days.toFixed(0)+' 天 · 年换芯 '+d.perYear.toFixed(2)+' 支',pad,18);
+  ctx.fillStyle='#64748b';ctx.fillText((en?'Estimated usable ':'预计可用 ')+d.days.toFixed(0)+(en?' days · ':' 天 · ')+(en?'cartridges/year ':'年换芯 ')+d.perYear.toFixed(2)+(en?'':' 支'),pad,18);
 }
 function hasBlankCore(){
-  const ids=['cap','daily','margin'];
+  const ids=['cap','daily','margin','price'];
   return ids.some(id=>{const el=document.getElementById(id);return !el||String(el.value).trim()==='';});
 }
 function hasBlankDate(){const el=document.getElementById('start');return !el||String(el.value).trim()==='';}
 function inputError(){
   const en=isEN();
-  if(hasBlankCore())return en?'Enter rated capacity, daily filtered water use and safety margin first.':'请填写滤芯额定净水量、每日净水用量与安全余量后再计算。';
+  if(hasBlankCore())return en?'Enter rated capacity, daily filtered water use, safety margin and cartridge price first (0 is allowed).':'请填写滤芯额定净水量、每日净水用量、安全余量与滤芯单价（单价可为 0）后再计算。';
   if(hasBlankDate())return en?'Enter the start date first.':'请填写开始使用日期后再计算。';
   const d=calcData();
   if(!(d.cap>0&&d.daily>0))return en?'Rated capacity and daily water use must be greater than 0.':'请输入大于 0 的额定净水量与每日用水量。';
@@ -341,7 +342,8 @@ function exportCSV(){
   const d=calcData();
   csvDownload('water-filter-lifespan.csv',[['项目','数值','单位'],['滤芯额定净水量',d.cap,'L'],['每日净水用量',d.daily,'L/天'],['水质等级',d.q.label,''],['安全余量',d.margin,'%'],['有效净水量',d.effective.toFixed(0),'L'],['可用天数',d.days.toFixed(0),'天'],['预计更换日期',addDays(d.start,d.days),''],['年更换次数',d.perYear.toFixed(2),'支/年'],['滤芯单价',d.price,'元'],['年均成本',d.annualCost.toFixed(0),'元/年'],['每升净水成本',d.costPerL.toFixed(4),'元/L']]);
 }
-function calcTool(){
+function calcTool(save){
+  if(save===undefined)save=true;
   const en=isEN();const err=inputError();
   if(err){clearChart();document.getElementById('result').innerHTML='<div class="result-placeholder">'+err+'</div>';return;}
   const d=calcData();
@@ -352,11 +354,11 @@ function calcTool(){
   if(d.daily>d.effective/30)html+='<div class="info-box" style="margin-top:8px;">'+(en?'Daily use is high; the cartridge may run out within a month. Verify the water use or choose a larger cartridge.':'每日用水量较大，滤芯可能在 1 个月内耗尽，建议核对用水量或选择更大容量滤芯。')+'</div>';
   document.getElementById('result').innerHTML=html;
   drawChart(d);
-  saveHist(HIST_KEY,new Date().toLocaleTimeString()+' · '+d.cap+' L / '+(en?'per day ':'每天 ')+d.daily+' L → '+d.days.toFixed(0)+(en?' days, ':' 天，')+d.annualCost.toFixed(0)+(en?' CNY/year':' 元/年'));
+  if(save) saveHist(HIST_KEY,new Date().toLocaleTimeString()+' · '+d.cap+' L / '+(en?'per day ':'每天 ')+d.daily+' L → '+d.days.toFixed(0)+(en?' days, ':' 天，')+d.annualCost.toFixed(0)+(en?' CNY/year':' 元/年'));
 }
-function resetForm(){document.getElementById('cap').value=4000;document.getElementById('daily').value=8;document.getElementById('quality').value='fair';document.getElementById('margin').value=90;document.getElementById('price').value=120;document.getElementById('start').value=todayISO();calcTool();}
+function resetForm(){document.getElementById('cap').value=4000;document.getElementById('daily').value=8;document.getElementById('quality').value='fair';document.getElementById('margin').value=90;document.getElementById('price').value=120;document.getElementById('start').value=todayISO();calcTool(false);}
 document.getElementById('start').value=todayISO();
-renderHist(HIST_KEY);if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',calcTool);}else{calcTool();}window.addEventListener('toolbox:langchange',calcTool);
+renderHist(HIST_KEY);if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){calcTool(false);});}else{calcTool(false);}window.addEventListener('toolbox:langchange',function(){calcTool(false);});
 </script>
 
 <section class="deep-dive" data-deep-dive="1">

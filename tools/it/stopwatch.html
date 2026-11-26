@@ -261,7 +261,7 @@
     <li><b>实现</b>：应以时间戳差值计算经过时间，而非累加定时器计数，避免长时间运行漂移。</li>
     <li><b>秒表</b>：记录开始时刻，可多次记录分段（lap）时间，暂停时累计已过时长。</li>
     <li><b>倒计时</b>：设定目标时长并递减，归零时触发提醒。</li>
-    <li><b>注意</b>：浏览器会节流后台标签页的定时器，切到后台时误差会增大。</li>
+    <li><b>注意</b>：浏览器会节流后台标签页的动画帧，显示可能暂停刷新；本工具在暂停/计圈时按单调时钟即时重算，总耗时仍准确。系统休眠是否计入取决于浏览器与操作系统，跨休眠的长计时请用时间戳工具复核。</li>
   </ul>
 </div>
 
@@ -358,6 +358,7 @@ let swState = {running: false, startTime: 0, elapsed: 0, laps: []};
 let cdState = {running: false, total: 300000, remaining: 300000, endTime: 0};
 let swRaf = null;
 let cdRaf = null;
+function swNow(){ try{ if(typeof performance!=='undefined'&&performance.now) return performance.now(); }catch(e){} return Date.now(); }
 
 function switchMode(mode){
   currentMode = mode;
@@ -374,7 +375,7 @@ function swToggle(){
 
 function swStart(){
   swState.running = true;
-  swState.startTime = Date.now() - swState.elapsed;
+  swState.startTime = swNow() - swState.elapsed;
   document.getElementById('swStartBtn').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"⏸ Paused":"⏸ 暂停");
   document.getElementById('swStartBtn').classList.remove('primary');
   document.getElementById('swLapBtn').disabled = false;
@@ -383,6 +384,7 @@ function swStart(){
 }
 
 function swPause(){
+  if(swState.running){ swState.elapsed = swNow() - swState.startTime; updateSwDisplay(); }
   swState.running = false;
   document.getElementById('swStartBtn').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"▶ Continue":"▶ 继续");
   document.getElementById('swStartBtn').classList.add('primary');
@@ -404,6 +406,8 @@ function swReset(){
 
 function swLap(){
   if(!swState.running) return;
+  swState.elapsed = swNow() - swState.startTime;
+  updateSwDisplay();
   swState.laps.push({
     index: swState.laps.length + 1,
     total: swState.elapsed,
@@ -414,7 +418,7 @@ function swLap(){
 
 function swLoop(){
   if(!swState.running) return;
-  swState.elapsed = Date.now() - swState.startTime;
+  swState.elapsed = swNow() - swState.startTime;
   updateSwDisplay();
   swRaf = requestAnimationFrame(swLoop);
 }
@@ -792,7 +796,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -800,7 +804,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

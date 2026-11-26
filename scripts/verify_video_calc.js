@@ -49,7 +49,7 @@ const CASES = [
   "inputs": {
     "duration": "15"
   },
-  "expect": ["youtube\n1080\n15\nh264\n1080p 分辨率 8000k 视频码率 0.90GB 预估大小 H264 编码 💻 FFmpeg 命令： ffmpeg -i input.mp4 -c:v libx264 -b:v 8000k -c:a aac -b:a 384k -s 1920:1080 -preset medium -crf 23 output.webm 视频大小 878.9MB 音频大小 42.2MB 时长 15分钟 目标平台 YouTube\n暂无记录"],
+  "expect": ["1920×1080 横屏 16:9 输出", "8000k 视频码率", "0.90GB 按目标码率预估", "-b:v 8000k", "force_original_aspect_ratio=increase,crop=1920:1080", "output.webm"],
   "ref": "auto-restore"
 },
 {
@@ -151,6 +151,42 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/video/video-speed.html','utf8');var i=h.indexOf('var __spRaw=');var s=i>=0?h.slice(i,i+260):'';var ok=s.indexOf('var __spRaw=')>=0&&s.indexOf('__spRaw===')>=0&&s.indexOf('parseFloat(__spRaw)')>=0;document.getElementById('__tbProbe').textContent='VSPDRAW '+(ok?'OK':'BAD');"],
   "expect": ["VSPDRAW OK"],
   "ref": "第1346批·速度 0 被 ||1 静默替换修复：速度改为原始串解析并去除 ||1；真机 speed=0 提示「播放速度须为正数」并拒绝。旧版 +value||1 ⇒ BAD。"
+},
+{
+  "slug": "video/video-speed",
+  "clicks": ["document.getElementById('h').value='0';document.getElementById('m').value='0';document.getElementById('s').value='0';document.getElementById('ms').value='999';document.getElementById('fps').value='30';document.getElementById('speed').value='1';calc();"],
+  "expect": ["00:00:01:00"],
+  "ref": "时间码进位：0.999s@30fps 旧版直接四舍五入毫秒部分得 FF=30（00:00:00:30 越界）；现先算总帧数 round(0.999×30)=30，再按 fps 进位得 00:00:01:00。默认 30 分钟无此值。"
+},
+{
+  "slug": "video/video-fps",
+  "clicks": ["document.getElementById('srcFps').value='';calc();"],
+  "expect": ["请填写有效的正数：源帧率"],
+  "ref": "空帧率守卫：旧版 srcFps 为空时 srcFrames=NaN、ratio=NaN 仍落入「帧率相同」；现要求源/目标帧率均有限正数，否则清空帧数/网格并提示。默认 24/30 不命中。"
+},
+{
+  "slug": "video/analysis-69",
+  "clicks": ["document.getElementById('selfViews').value='1000';document.getElementById('rivalViews').value='0,0';calc();"],
+  "expect": ["相对差距不可定义"],
+  "ref": "零均值除零：竞品样本 0,0 时均值 0，旧版 gap=Infinity、定位落长尾；现停止并明确不可定义。默认竞品样本非零不命中。"
+},
+{
+  "slug": "video/video-converter",
+  "clicks": ["document.getElementById('rateMode').value='crf';generate();"],
+  "expect": ["-crf 23 -preset medium", "CRF 恒定质量模式", "不能当作精确预估"],
+  "ref": "CRF 与目标码率分离：恒定质量模式命令不再同时含 -b:v，并说明大小不可精确预估；默认 bitrate 模式含 -b:v，不命中。"
+},
+{
+  "slug": "video/subtitle-tool",
+  "clicks": ["var nl=String.fromCharCode(10);document.getElementById('srt-input').value=['1','00:00:01,000 --> 00:00:04,000','Hello','','2','00:00:05,000 --> 00:00:06,000','World'].join(nl);parseSRT();document.getElementById('offset-ms').value='-5000';document.getElementById('shift-only-positive').checked=true;applyOffset();"],
+  "expect": ["1 条字幕已移除", "00:00:00,000 → 00:00:01,000"],
+  "ref": "只保留正时间：偏移 -5s 后第 1 条（1–4s）终点 -1s 完全早于 0 被删除，第 2 条 5–6s 变 0–1s；旧版把两条都截成 0 起点且保留零时长。"
+},
+{
+  "slug": "video/subtitle-tool",
+  "clicks": ["var nl=String.fromCharCode(10);document.getElementById('srt-input').value=['1','00:00:01,000 --> 00:00:04,000','Hello'].join(nl);parseSRT();document.getElementById('offset-ms').value='-3000';document.getElementById('shift-only-positive').checked=false;applyOffset();"],
+  "expect": ["-00:00:02,000", "预览保留负时间"],
+  "ref": "未勾选时保留负时间预览：1–4s 偏移 -3s 得 -2–1s，不再强制截 0；导出时才裁剪/跳过。默认 offset=0 不命中。"
 }
 ];
 async function main() {

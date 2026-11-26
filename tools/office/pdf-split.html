@@ -413,6 +413,7 @@ window.pdfjsLib = pdfjsLib;
     <!-- 操作按钮 -->
     <div class="toolbar" style="margin-top:20px;">
       <button type="button" class="btn primary" id="extractBtn" onclick="doExtract()">提取页面</button>
+      <div class="info-box" role="note" style="margin-top:10px;font-size:12px;line-height:1.6;">仅保留页面内容：书签、交互表单、批注、内部链接、附件与数字签名可能不保留；签名文档重写后将失效。Splitting preserves page content only; outlines, forms, comments, links, attachments and signatures may not survive, and digital signatures become invalid.</div>
       <button type="button" class="btn" onclick="resetTool()">重新选择文件</button>
     </div>
 
@@ -571,6 +572,7 @@ window.pdfjsLib = pdfjsLib;
 <script>
 // pdf.js 4.x 为 ESM，模块脚本在页面解析阶段即执行并写入 window.pdfjsLib；
 // 用户选择文件时必然已完成，因此这里只做同步检查，不再用无主轮询 Promise（避免测试环境事件循环空转后静默退出）。
+function __pdfMsg(zh,en){try{return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh;}catch(e){return zh;}}
 function pdfjsReady() {
   if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
   return Promise.reject(new Error('pdfjs-not-ready'));
@@ -651,17 +653,18 @@ let extractedFileName = '';  // 提取后的文件名
 async function handleFile(file) {
   // 验证文件类型
   if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-    ToolBox.showToast(i18nText(), 'error');
+    ToolBox.showToast(__pdfMsg('请选择 PDF 文件（仅支持 .pdf）','Select a PDF file (.pdf only).'), 'error');
     return;
   }
 
   // 验证文件大小（限制 100MB）
   if (file.size > 100 * 1024 * 1024) {
-    ToolBox.showToast(i18nText(), 'warning');
+    ToolBox.showToast(__pdfMsg('文件超过 100 MB，无法处理；请拆分或压缩后重试。','This file exceeds 100 MB and cannot be processed. Split or compress it and retry.'), 'warning');
+    return;
   }
 
   try {
-    ToolBox.showToast(i18nText(), 'info');
+    ToolBox.showToast(__pdfMsg('正在读取 PDF…','Reading PDF…'), 'info');
 
     // 读取文件
     const buf = await file.arrayBuffer();
@@ -972,7 +975,7 @@ function getSelectedPages() {
 // 提取页面
 async function doExtract() {
   if (!pdfArrayBuffer) {
-    ToolBox.showToast(i18nText(), 'warning');
+    ToolBox.showToast(__pdfMsg('请先上传 PDF 文件','Upload a PDF file first.'), 'warning');
     return;
   }
 
@@ -985,7 +988,7 @@ async function doExtract() {
   }
 
   if (pages.length === 0) {
-    ToolBox.showToast(i18nText(), 'warning');
+    ToolBox.showToast(__pdfMsg('请选择要提取的页码','Select pages to extract.'), 'warning');
     return;
   }
 
@@ -1036,7 +1039,7 @@ async function doExtract() {
     document.getElementById('resultMsg').textContent =
       '✅ 提取完成！共 ' + pages.length + ' 页，文件大小 ' + sizeStr;
 
-    ToolBox.showToast(i18nText(), 'success');
+    ToolBox.showToast(__pdfMsg('提取完成，文件已开始下载','Extraction complete. Download started.'), 'success');
 
     // 滚动到结果
     resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1058,7 +1061,7 @@ async function doExtract() {
 // 下载结果
 function downloadResult() {
   if (!extractedBytes) {
-    ToolBox.showToast(i18nText(), 'error');
+    ToolBox.showToast(__pdfMsg('暂无可下载的提取结果','No extracted result available to download.'), 'error');
     return;
   }
 

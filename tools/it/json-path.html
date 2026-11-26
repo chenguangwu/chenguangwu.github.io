@@ -346,9 +346,11 @@ function jsonPath(obj, expr) {
             if (Array.isArray(current)) {
               for (const item of current) next.push(item);
             } else {
-              for (const k in current) next.push(current[k]);
+              // 第806批：通配符只遍历自身可枚举字段，杜绝 constructor/toString 等继承属性混入
+              for (const k of Object.keys(current)) next.push(current[k]);
             }
-          } else if (token.property in current) {
+          } else if (Object.prototype.hasOwnProperty.call(current, token.property)) {
+            // 第806批：只读 JSON 自身字段；旧实现 `property in current` 会把 constructor 当字段命中
             next.push(current[token.property]);
           }
         }
@@ -493,7 +495,7 @@ function collectRecursive(obj, property, wildcard, out, depth) {
       collectRecursive(item, property, wildcard, out, depth);
     }
   } else {
-    for (const key in obj) {
+    for (const key of Object.keys(obj)) {
       if (wildcard || key === property) {
         out.push(obj[key]);
       }
@@ -861,7 +863,7 @@ else document.addEventListener('DOMContentLoaded', __json_pathBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -869,7 +871,7 @@ else document.addEventListener('DOMContentLoaded', __json_pathBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

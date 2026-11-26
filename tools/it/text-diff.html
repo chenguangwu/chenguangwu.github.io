@@ -29,9 +29,11 @@
 .textareas-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .textareas-row textarea{min-height:200px;font-size:13px;line-height:1.6;}
 .view-tabs{display:flex;gap:4px;margin:16px 0;border-bottom:2px solid var(--border);padding-bottom:0;}
-.view-tab{padding:8px 16px;cursor:pointer;border-radius:8px 8px 0 0;font-size:14px;color:var(--text-light);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s;}
+.view-tab{padding:8px 16px;cursor:pointer;border-radius:8px 8px 0 0;font-size:14px;color:var(--text-light);background:transparent;border:0;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s;font-family:inherit;}
 .view-tab.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600;}
 .view-tab:hover{color:var(--primary);}
+.view-tab:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+.char-degrade{display:inline-block;margin-left:8px;padding:1px 6px;border-radius:4px;background:rgba(255,152,0,0.18);color:var(--text-muted);font-size:11px;font-weight:400;}
 .diff-container{background:var(--card-bg);border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:500px;font-family:'SF Mono','Courier New',monospace;font-size:13px;line-height:1.6;}
 .diff-line{display:flex;padding:2px 12px;}
 .diff-line .ln{width:40px;text-align:right;color:var(--text-muted);padding-right:12px;flex-shrink:0;user-select:none;border-right:1px solid var(--border);margin-right:12px;}
@@ -53,12 +55,14 @@
 .legend-color.add{background:rgba(76,175,80,0.3);}
 .legend-color.remove{background:rgba(244,67,54,0.3);}
 .legend-color.modify{background:rgba(255,152,0,0.3);}
-.history-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;}
+.history-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border:0;border-bottom:1px solid var(--border);cursor:pointer;width:100%;background:transparent;text-align:left;font-family:inherit;font-size:inherit;color:inherit;}
+.history-item:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;}
 .history-item:last-child{border-bottom:none;}
 .history-item:hover{background:var(--result-bg);}
 .history-item .h-info{flex:1;min-width:0;}
 .history-item .h-preview{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .history-item .h-time{font-size:11px;color:var(--text-muted);}
+.history-item .h-options{font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 @media(max-width:768px){
   .textareas-row{grid-template-columns:1fr;}
   .side-by-side{grid-template-columns:1fr;}
@@ -195,7 +199,8 @@
     </div>
 
     <div class="checkbox-row" style="margin-top:12px;">
-      <label><input type="checkbox" id="ignoreWhitespace"> 忽略空白字符</label>
+      <label><input type="checkbox" id="ignoreWhitespace"> 忽略空白数量（合并连续空白、去行首尾）</label>
+      <label><input type="checkbox" id="ignoreAllWhitespace"> 忽略所有空白（a b 与 ab 视为相同）</label>
       <label><input type="checkbox" id="ignoreCase"> 忽略大小写</label>
       <label><input type="checkbox" id="charDiff"> 逐字符对比</label>
     </div>
@@ -204,12 +209,14 @@
 
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="doDiff()">开始对比</button>
-      <button type="button" class="btn success" onclick="copyDiff()">复制结果</button>
+      <button type="button" class="btn success" onclick="copyDiff()">复制差异摘要</button>
+      <button type="button" class="btn success" onclick="copyUnifiedPatch()">复制统一补丁</button>
       <button type="button" class="btn" onclick="swapTexts()">交换文本</button>
       <button type="button" class="btn" onclick="loadSample()">示例</button>
       <button type="button" class="btn danger" onclick="clearAll()">清空</button>
       <button type="button" class="btn" onclick="window.__tdExport()">⬇️ 导出差异明细 CSV</button>
     </div>
+    <div id="tdStale" style="display:none;margin-top:10px;padding:9px 12px;border:1px solid var(--warning,#D97706);border-radius:8px;background:rgba(217,119,6,.08);font-size:13px;color:var(--text,#333);" data-zh="输入或对比选项已更改，下方旧差异已失效；请重新点击「开始对比」，复制与导出在重新对比前不可用。">Input or comparison options changed, so the diff below is stale. Run the diff again; copying and export stay disabled until you do.</div>
     <table id="tdHidden" style="display:none;"><thead><tr><th data-zh="类型" scope="col">Type</th><th scope="col">Old Line</th><th scope="col">New Line</th><th scope="col">Old Value</th><th scope="col">New Value</th></tr></thead><tbody></tbody></table>
 
     <div class="stat-grid" id="stats" style="display:none;margin-top:12px;">
@@ -233,18 +240,18 @@
 
     <div id="diffNotice" style="display:none;margin:10px 0;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--result-bg);font-size:13px;color:var(--text-muted);"></div>
 
-    <div class="view-tabs">
-      <div class="view-tab active" onclick="switchView('unified', this)">合并视图</div>
-      <div class="view-tab" onclick="switchView('split', this)">并排视图</div>
+    <div class="view-tabs" role="tablist" aria-label="对比视图">
+      <button type="button" class="view-tab active" id="tab-unified" role="tab" aria-selected="true" aria-controls="view-unified" onclick="switchView('unified', this)">合并视图</button>
+      <button type="button" class="view-tab" id="tab-split" role="tab" aria-selected="false" tabindex="-1" aria-controls="view-split" onclick="switchView('split', this)">并排视图</button>
     </div>
 
-    <div id="view-unified" class="diff-view">
+    <div id="view-unified" class="diff-view" role="tabpanel" aria-labelledby="tab-unified">
       <div class="diff-container" id="unifiedDiff">
         <p style="padding:40px;text-align:center;color:var(--text-muted);" data-zh="点击&quot;开始对比&quot;查看差异">Find line and word differences between two texts with color-coded output, entirely in your browser.</p>
       </div>
     </div>
 
-    <div id="view-split" class="diff-view" style="display:none;">
+    <div id="view-split" class="diff-view" role="tabpanel" aria-labelledby="tab-split" style="display:none;">
       <div class="side-by-side">
         <div class="diff-panel">
           <div class="panel-header">原始文本</div>
@@ -267,8 +274,10 @@
   <div class="card">
     <h2>📜 历史记录</h2>
     <div class="toolbar">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0;"><input type="checkbox" id="saveHistory" style="width:auto;margin:0;"> 主动保存完整文本到本机历史（默认关闭）</label>
       <button type="button" class="btn danger" onclick="clearHistory()">清空历史</button>
     </div>
+    <p style="font-size:12px;color:var(--text-muted);margin:8px 0 0;">关闭时对比不会写入 localStorage；开启后完整两侧文本仅保存在当前浏览器，可随时用“清空历史”删除。</p>
     <div style="margin-top:12px;" id="historyList">
       <p style="padding:24px;text-align:center;color:var(--text-muted);">暂无历史记录</p>
     </div>
@@ -299,7 +308,7 @@
       <li><strong>合并视图:</strong> 以统一的格式显示差异，+表示新增，-表示删除</li>
       <li><strong>并排视图:</strong> 左右两栏分别显示原始文本和修改文本，便于对照</li>
       <li><strong>应用场景:</strong> 代码审查、文档版本对比、配置文件差异分析</li>
-      <li><strong>忽略空白:</strong> 忽略空格、制表符等空白字符的差异，专注于内容变化</li>
+      <li><strong>忽略空白数量:</strong> 合并连续空格/制表符并去掉行首尾空白，但保留词间空格；<strong>忽略所有空白:</strong> 删除全部空白，使 <code>a b</code> 与 <code>ab</code> 视为相同。</li>
     </ul>
   </div>
 
@@ -386,17 +395,45 @@ const HISTORY_KEY = 'text_diff_history';
 const MAX_HISTORY = 10;
 
 let currentDiff = null;
+let diffStale = false;
 
 function switchView(view, tab) {
-  document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.view-tab').forEach(t => {
+    const on = (t.getAttribute('aria-controls') === 'view-' + view);
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+    t.setAttribute('tabindex', on ? '0' : '-1');
+  });
   document.querySelectorAll('.diff-view').forEach(v => v.style.display = 'none');
-  if (tab) tab.classList.add('active');
   document.getElementById('view-' + view).style.display = 'block';
 }
 
+function getDiffOptions() {
+  return {
+    ignoreWhitespace: document.getElementById('ignoreWhitespace').checked,
+    ignoreAllWhitespace: document.getElementById('ignoreAllWhitespace').checked,
+    ignoreCase: document.getElementById('ignoreCase').checked,
+    charDiff: document.getElementById('charDiff').checked
+  };
+}
+document.querySelectorAll('.view-tab').forEach(t => {
+  t.addEventListener('keydown', function(e) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const tabs = Array.prototype.slice.call(document.querySelectorAll('.view-tab'));
+    const idx = tabs.indexOf(document.activeElement);
+    const next = tabs[(idx + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+    if (next) { switchView(next.getAttribute('aria-controls').replace('view-', ''), next); next.focus(); }
+  });
+});
+
 function normalizeText(text, options) {
+  if(typeof text!=="string") return "";
+  options=options||{};
   let result = text;
-  if (options.ignoreWhitespace) {
+  if (options.ignoreAllWhitespace) {
+    result = result.replace(/\s+/g, '');
+  } else if (options.ignoreWhitespace) {
     result = result.replace(/[ \t]+/g, ' ').replace(/^ +| +$/gm, '');
   }
   if (options.ignoreCase) {
@@ -406,6 +443,7 @@ function normalizeText(text, options) {
 }
 
 function lcsLength(a, b) {
+  if(!Array.isArray(a)||!Array.isArray(b)) return [];
   const m = a.length;
   const n = b.length;
   const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
@@ -445,6 +483,7 @@ function backtrack(dp, a, b, i, j) {
 }
 
 function alignedLineDiff(a, b) {
+  if(!Array.isArray(a)||!Array.isArray(b)) return [];
   const out = [], len = Math.max(a.length, b.length);
   for (let k = 0; k < len; k++) {
     if (k < a.length && k < b.length) {
@@ -453,6 +492,45 @@ function alignedLineDiff(a, b) {
         : { type: 'modify', oldValue: a[k], newValue: b[k], oldIndex: k, newIndex: k });
     } else if (k < a.length) out.push({ type: 'remove', value: a[k], oldIndex: k });
     else out.push({ type: 'add', value: b[k], newIndex: k });
+  }
+  return out;
+}
+
+function anchoredLineDiff(normA, normB, a, b) {
+  if(!Array.isArray(normA)||!Array.isArray(normB)) return [];
+  // 大文本不建 LCS 矩阵：用滑动窗口向前找 500 行内的插入/删除锚点。
+  // 开头插入一行时，后续内容仍能逐行命中，避免按行号比较导致的连锁 modify。
+  const out = [];
+  const LOOK = 500;
+  let i = 0, j = 0;
+  while (i < normA.length || j < normB.length) {
+    if (i < normA.length && j < normB.length && normA[i] === normB[j]) {
+      out.push({ type: 'same', value: a[i], oldIndex: i, newIndex: j }); i++; j++; continue;
+    }
+    let addCount = -1, removeCount = -1;
+    // b 侧多出若干行：A 当前行出现在 B 的后面 ⇒ 先把 B 前面的新增行输出。
+    for (let k = 1; k <= LOOK && j + k < normB.length && i < normA.length; k++) {
+      if (normA[i] === normB[j + k]) { addCount = k; break; }
+    }
+    // a 侧多出若干行：B 当前行出现在 A 的后面 ⇒ 先把 A 前面的删除行输出。
+    for (let k = 1; k <= LOOK && i + k < normA.length && j < normB.length; k++) {
+      if (normA[i + k] === normB[j]) { removeCount = k; break; }
+    }
+    if (addCount > 0 && (removeCount < 0 || addCount <= removeCount)) {
+      for (let k = 0; k < addCount; k++) { out.push({ type: 'add', value: b[j], newIndex: j }); j++; }
+      continue;
+    }
+    if (removeCount > 0) {
+      for (let k = 0; k < removeCount; k++) { out.push({ type: 'remove', value: a[i], oldIndex: i }); i++; }
+      continue;
+    }
+    if (i < normA.length && j < normB.length) {
+      out.push({ type: 'modify', oldValue: a[i], newValue: b[j], oldIndex: i, newIndex: j }); i++; j++;
+    } else if (i < normA.length) {
+      out.push({ type: 'remove', value: a[i], oldIndex: i }); i++;
+    } else {
+      out.push({ type: 'add', value: b[j], newIndex: j }); j++;
+    }
   }
   return out;
 }
@@ -466,12 +544,14 @@ function showDiffNotice(msg) {
 }
 
 function charDiffLine(oldLine, newLine) {
+  if(typeof oldLine!=="string"||typeof newLine!=="string") return {oldHtml:"",newHtml:""};
   // 按码点切分：Array.from 不会把 emoji 的代理对拆成两个半体
   const oldChars = Array.from(oldLine);
   const newChars = Array.from(newLine);
   // 单行过长时字符级 DP 同样会爆内存：退回整行删除/新增高亮。
   if ((oldChars.length + 1) * (newChars.length + 1) > MAX_CHAR_CELLS) {
-    return { oldHtml: '<span style="background:rgba(244,67,54,0.3);text-decoration:line-through;">' + ToolBox.escHtml(oldLine) + '</span>',
+    return { degraded: true,
+             oldHtml: '<span style="background:rgba(244,67,54,0.3);text-decoration:line-through;">' + ToolBox.escHtml(oldLine) + '</span>',
              newHtml: '<span style="background:rgba(76,175,80,0.3);">' + ToolBox.escHtml(newLine) + '</span>' };
   }
   const dp = lcsLength(oldChars, newChars);
@@ -492,18 +572,14 @@ function charDiffLine(oldLine, newLine) {
     }
   });
   
-  return { oldHtml, newHtml };
+  return { oldHtml, newHtml, degraded: false };
 }
 
 function doDiff() {
   const text1 = document.getElementById('text1').value;
   const text2 = document.getElementById('text2').value;
   
-  const options = {
-    ignoreWhitespace: document.getElementById('ignoreWhitespace').checked,
-    ignoreCase: document.getElementById('ignoreCase').checked,
-    charDiff: document.getElementById('charDiff').checked
-  };
+  const options = getDiffOptions();
   
   // 行尾统一为 LF：Windows CRLF 与 Unix LF 的同一文件不应因 \r 被判成每行都修改。
   const lines1 = String(text1).replace(/\r\n?/g, '\n').split('\n');
@@ -515,8 +591,8 @@ function doDiff() {
   const cells = (norm1.length + 1) * (norm2.length + 1);
   let diff;
   if (cells > MAX_DIFF_CELLS) {
-    diff = alignedLineDiff(norm1, norm2);
-    showDiffNotice('文本规模超过 400 万单元（约 2000×2000 行），已切换为逐行位置对齐：只比较相同序号的行，不检测行移动。');
+    diff = anchoredLineDiff(norm1, norm2, lines1, lines2);
+    showDiffNotice('文本规模超过 400 万单元（约 2000×2000 行），已切换为滑动窗口锚点对齐：在 500 行范围内识别插入/删除，超出窗口的内容仍会降级为按位置比较。');
   } else {
     showDiffNotice('');
     const dp = lcsLength(norm1, norm2);
@@ -559,13 +635,26 @@ function doDiff() {
   }
   
   currentDiff = result;
+  clearDiffStale();
   renderUnifiedDiff(result, options);
   renderSplitDiff(result, options);
   updateStats(result);
-  addToHistory(text1, text2);
+  addToHistory(text1, text2, options);
 }
 
+function markDiffStale(){
+  if(!currentDiff) return;
+  diffStale = true;
+  const b=document.getElementById('tdStale');
+  if(b) b.style.display='block';
+}
+function clearDiffStale(){
+  diffStale = false;
+  const b=document.getElementById('tdStale');
+  if(b) b.style.display='none';
+}
 function renderUnifiedDiff(diff, options) {
+  if(!Array.isArray(diff)) return;
   const container = document.getElementById('unifiedDiff');
   let html = '';
   let oldLn = 1;
@@ -578,7 +667,7 @@ function renderUnifiedDiff(diff, options) {
     if (chunk.type === 'modify') {
       if (options.charDiff) {
         const cd = charDiffLine(chunk.oldValue || '', chunk.newValue || '');
-        html += `<div class="diff-line remove"><span class="ln">${oldLn++}</span><span class="content">${cd.oldHtml}</span></div>`;
+        html += `<div class="diff-line remove"><span class="ln">${oldLn++}</span><span class="content">${cd.oldHtml}${cd.degraded ? '<span class="char-degrade">字符级对比已降级：单行超出 25 万字符单元，仅整行高亮</span>' : ''}</span></div>`;
         html += `<div class="diff-line add"><span class="ln">${newLn++}</span><span class="content">${cd.newHtml}</span></div>`;
       } else {
         html += `<div class="diff-line remove"><span class="ln">${oldLn++}</span><span class="content">- ${ToolBox.escHtml(chunk.oldValue || '')}</span></div>`;
@@ -599,6 +688,7 @@ function renderUnifiedDiff(diff, options) {
 }
 
 function renderSplitDiff(diff, options) {
+  if(!Array.isArray(diff)) return;
   const leftContainer = document.getElementById('leftDiff');
   const rightContainer = document.getElementById('rightDiff');
   let leftHtml = '';
@@ -610,7 +700,7 @@ function renderSplitDiff(diff, options) {
     if (chunk.type === 'modify') {
       if (options.charDiff) {
         const cd = charDiffLine(chunk.oldValue || '', chunk.newValue || '');
-        leftHtml += `<div class="diff-line remove"><span class="ln">${oldLn++}</span><span class="content">${cd.oldHtml}</span></div>`;
+        leftHtml += `<div class="diff-line remove"><span class="ln">${oldLn++}</span><span class="content">${cd.oldHtml}${cd.degraded ? '<span class="char-degrade">字符级对比已降级：单行超出 25 万字符单元，仅整行高亮</span>' : ''}</span></div>`;
         rightHtml += `<div class="diff-line add"><span class="ln">${newLn++}</span><span class="content">${cd.newHtml}</span></div>`;
       } else {
         leftHtml += `<div class="diff-line remove"><span class="ln">${oldLn++}</span><span class="content">${ToolBox.escHtml(chunk.oldValue || '')}</span></div>`;
@@ -633,6 +723,7 @@ function renderSplitDiff(diff, options) {
 }
 
 function updateStats(diff) {
+  if(!Array.isArray(diff)) return;
   let add = 0, remove = 0, same = 0, modify = 0;
   
   diff.forEach(chunk => {
@@ -650,21 +741,27 @@ function updateStats(diff) {
 }
 
 function __tdExport(){
+  if(diffStale){ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?'Input or options changed; run the diff again before exporting.':'输入或选项已更改，请重新对比后再导出。','warning');return;}
   if(typeof TBKit==='undefined')return;
   var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   if(!currentDiff||currentDiff.length===0){ToolBox.showToast(en?'Please run diff first':'请先点击「开始对比」');return;}
-  var tb=document.querySelector('#tdHidden tbody');
-  tb.innerHTML='';
+  // 直接从 diff 数据生成 CSV：保留行首尾空白、制表符与换行，避免 exportTable 读取 DOM 时 trim 掉真实差异。
+  function csvCell(v){
+    var t=(v==null?'':String(v));
+    // 电子表格公式注入：以 = + - @ 开头的单元格前置单引号，Excel 按文本显示。
+    if(/^[=+\-@]/.test(t)) t="'"+t;
+    return '"'+t.replace(/"/g,'""')+'"';
+  }
+  var rows=[['type','oldLine','newLine','oldValue','newValue'].map(csvCell).join(',')];
   currentDiff.forEach(function(ch){
-    var tr=document.createElement('tr');
     var oldLn=ch.oldIndex!=null?ch.oldIndex+1:'';
     var newLn=ch.newIndex!=null?ch.newIndex+1:'';
-    tr.innerHTML='<td>'+ch.type+'</td><td>'+oldLn+'</td><td>'+newLn+'</td><td>'+ToolBox.escHtml(ch.oldValue||'')+'</td><td>'+ToolBox.escHtml(ch.newValue||'')+'</td>';
-    tb.appendChild(tr);
+    rows.push([ch.type,oldLn,newLn,ch.oldValue==null?'':ch.oldValue,ch.newValue==null?'':ch.newValue].map(csvCell).join(','));
   });
-  TBKit.util.exportTable('#tdHidden',en?'text-diff.csv':'文本差异明细.csv');
+  TBKit.util.downloadText(en?'text-diff.csv':'文本差异明细.csv',rows.join('\r\n'),'text/csv;charset=utf-8');
 }
 function copyDiff() {
+  if (diffStale) { ToolBox.showToast(i18nText('toast.msg696'), 'warning'); return; }
   if (!currentDiff) {
     ToolBox.showToast(i18nText('toast.msg696'), 'warning');
     return;
@@ -687,6 +784,30 @@ function copyDiff() {
   ToolBox.copyText(text, i18nText('msg235'));
 }
 
+function buildUnifiedPatch() {
+  if (!Array.isArray(currentDiff) || currentDiff.length === 0) return '';
+  const oldCount = currentDiff.filter(c => c.type === 'same' || c.type === 'remove' || c.type === 'modify').length;
+  const newCount = currentDiff.filter(c => c.type === 'same' || c.type === 'add' || c.type === 'modify').length;
+  let out = '--- a.txt\n+++ b.txt\n@@ -1,' + oldCount + ' +1,' + newCount + ' @@\n';
+  currentDiff.forEach(chunk => {
+    if (chunk.type === 'same') out += ' ' + (chunk.newValue != null ? chunk.newValue : (chunk.oldValue || '')) + '\n';
+    else if (chunk.type === 'add') out += '+' + (chunk.newValue || '') + '\n';
+    else if (chunk.type === 'remove') out += '-' + (chunk.oldValue || '') + '\n';
+    else if (chunk.type === 'modify') {
+      out += '-' + (chunk.oldValue || '') + '\n';
+      out += '+' + (chunk.newValue || '') + '\n';
+    }
+  });
+  return out;
+}
+
+function copyUnifiedPatch() {
+  if (diffStale) { ToolBox.showToast(i18nText('toast.msg696'), 'warning'); return; }
+  const patch = buildUnifiedPatch();
+  if (!patch) { ToolBox.showToast(i18nText('toast.msg696'), 'warning'); return; }
+  ToolBox.copyText(patch, i18nText('msg235'));
+}
+
 function swapTexts() {
   const t1 = document.getElementById('text1').value;
   const t2 = document.getElementById('text2').value;
@@ -703,6 +824,7 @@ function clearAll() {
   const __h5='';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('rightDiff').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('rightDiff').innerHTML=__h5;
   document.getElementById('stats').style.display = 'none';
   currentDiff = null;
+  clearDiffStale();
 }
 
 function loadSample() {
@@ -725,15 +847,19 @@ console.log(fibonacci(20));`;
   doDiff();
 }
 
-function addToHistory(t1, t2) {
+function addToHistory(t1, t2, options) {
+  const saveBox=document.getElementById('saveHistory');
+  if(!saveBox || !saveBox.checked) return;
   try {
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
     const preview = t1.substring(0, 50) + ' → ' + t2.substring(0, 50);
-    if (history.length > 0 && history[0].t1 === t1 && history[0].t2 === t2) return;
+    const opts = options ? { ignoreWhitespace: !!options.ignoreWhitespace, ignoreAllWhitespace: !!options.ignoreAllWhitespace, ignoreCase: !!options.ignoreCase, charDiff: !!options.charDiff } : null;
+    if (history.length > 0 && history[0].t1 === t1 && history[0].t2 === t2 && JSON.stringify(history[0].options || null) === JSON.stringify(opts)) return;
     history.unshift({
       t1: t1,
       t2: t2,
       preview: preview,
+      options: opts,
       time: Date.now()
     });
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY)));
@@ -755,12 +881,13 @@ function renderHistory() {
       const __en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) || /lang=en-US/i.test(location.search);
       const timeStr = date.toLocaleString(__en ? 'en-US' : 'zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       return `
-        <div class="history-item" onclick="loadHistory(${i})">
+        <button type="button" class="history-item" onclick="loadHistory(${i})">
           <div class="h-info">
             <div class="h-preview">${ToolBox.escHtml(item.preview)}</div>
+            <div class="h-options">${item.options ? (item.options.ignoreAllWhitespace ? '忽略所有空白 · ' : (item.options.ignoreWhitespace ? '忽略空白数量 · ' : '')) + (item.options.ignoreCase ? '忽略大小写 · ' : '') + (item.options.charDiff ? '逐字符' : '逐行') : '旧记录：未保存对比选项'}</div>
             <div class="h-time">${timeStr}</div>
           </div>
-        </div>
+        </button>
       `;
     }).join('');if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h7;
   } catch(e) {
@@ -774,8 +901,15 @@ function loadHistory(index) {
     if (history[index]) {
       document.getElementById('text1').value = history[index].t1;
       document.getElementById('text2').value = history[index].t2;
+      const opt = history[index].options;
+      if (opt) {
+        document.getElementById('ignoreWhitespace').checked = !!opt.ignoreWhitespace;
+        document.getElementById('ignoreAllWhitespace').checked = !!opt.ignoreAllWhitespace;
+        document.getElementById('ignoreCase').checked = !!opt.ignoreCase;
+        document.getElementById('charDiff').checked = !!opt.charDiff;
+      }
       doDiff();
-      ToolBox.showToast(i18nText());
+      ToolBox.showToast(opt ? i18nText() : '旧记录未保存对比选项，已按当前选项重新比较');
     }
   } catch(e) {}
 }
@@ -790,6 +924,7 @@ renderHistory();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
+  ['text1','text2','ignoreWhitespace','ignoreAllWhitespace','ignoreCase','charDiff'].forEach(function(id){var e=document.getElementById(id);if(e){e.addEventListener('input',markDiffStale);e.addEventListener('change',markDiffStale);}});
   var headers=document.querySelectorAll('.tool-intro-header');
   headers.forEach(function(h){
     h.addEventListener('click',function(){
@@ -818,7 +953,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -826,7 +961,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

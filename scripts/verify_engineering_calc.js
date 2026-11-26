@@ -22,7 +22,7 @@ const CASES = [
   { slug: "engineering/pressure-vessel", inputs: {"P":"2.5","D":"1200","sigma":"150","phi":"0.9"}, expect: ["11.11", "13.11"], ref: "t=PD/(2σφ)=2.5×1200/(2×150×0.9)=3000/270=11.11 mm；计入腐蚀裕量 +2mm = 13.11 mm。默认 1.6/1000/130/0.85 得 7.24 / 9.24 mm（原 expect「计入腐蚀裕量后」是静态标签词）" },
   { slug: "engineering/section-inertia", inputs: {"shape":"1","b":"250","h":"500"}, expect: ["2604166667", "10416667"], ref: "矩形 I=bh³/12=250×500³/12=2.6041667e9 mm⁴；W=I/(h/2)=2604166667/250=1.0416667e7 mm³。默认 200/400 得 1.0667e9 / 5.3333e6（原 expect「矩形」是公式标签里的静态词）" },
   { slug: "machinery/shaft-torsion", inputs: {"T":"3.5","d":"60","G":"79","L":"1.2"}, expect: ["82.52", "2.394"], ref: "J=πd⁴/32=1272345 mm⁴；τ=Tr/J=3.5e6×30/1272345=82.52 MPa；θ=TL/(GJ)=0.04178 rad=2.394°。默认 2/50/80/1 得 81.49 MPa / 2.334°（原 expect「扭转角」是静态标签词）" },
-  { slug: "engineering/stress-calculator", inputs: {"F":"80","A":"400","V":"45","M":"8000","W":"160","T":"1500","D":"60","d":"20"}, radios: { material: "2" }, expect: ["200.00 MPa", "安全系数 n 1.77"], ref: "材料表同样靠 getElementsByName('material') 读取，须 radios 注入（此处 index 2 = 45钢 yield 355）。σ=F/A=80kN/400mm²=200.00 MPa；许用=355/1.5=237 MPa；n=355/200=1.77；比例 56% ✅安全。默认 50/500 + Q235(235) 得 100.00 MPa / n=2.35（判定词「✅ 安全」两者皆命中，不可作 expect）" },
+  { slug: "engineering/stress-calculator", inputs: {"F":"80","A":"400","V":"45","M":"8000","W":"160","T":"1500","D":"60","d":"20"}, radios: { material: "2" }, expect: ["200.00 MPa", "安全系数 n 1.18"], ref: "材料表同样靠 getElementsByName('material') 读取，须 radios 注入（此处 index 2 = 45钢 yield 355）。σ=F/A=80kN/400mm²=200.00 MPa；许用 [σ]=355/1.5=237 MPa；安全系数 n=[σ]/|σ|=236.67/200=1.18；比例 84% ✅安全（≤许用）。旧实现用 σs/σ 得 1.77 且拿屈服强度当判定线，已改为许用应力" },
   { slug: "engineering/thermal-expansion", inputs: {"alpha":"17","L0":"12","dT":"55"}, expect: ["11.220", "0.0112"], ref: "ΔL=α·L₀·ΔT=17e-6×12×55=0.01122 m=11.220 mm。默认 12/10/40 得 4.800 mm / 0.0048 m（原 expect「膨胀量」是静态标签词）" },
   { slug: "welding/weld-strength", inputs: {"F":"75","hf":"8","lw":"250"}, expect: ["53.57", "1400"], ref: "A_e=0.7·hf·lw=0.7×8×250=1400 mm²；τ=F/A_e=75000/1400=53.57 MPa。默认 50/6/200 得 840 mm² / 59.52 MPa（原 expect「焊缝剪应力」是静态标签词）" },
   { slug: "engineering/heat-transfer", inputs: {}, clicks: ["selectMode('conduction');document.getElementById('k').value='2.5';document.getElementById('A').value='3';document.getElementById('L').value='0.25';document.getElementById('T1').value='120';document.getElementById('T2').value='30';calc();"], expect: ["2700.00 W", "900 W/m²", "0.0333 K/W"], ref: "导热模式第二组注入值（默认 50/1/0.1/100/20 ⇒ 400000.00 W）：Q=k·A·ΔT/L=2.5×3×90/0.25=2700.00 W；q=Q/A=900 W/m²；R=L/(kA)=0.25/7.5=0.0333 K/W。默认态是导热默认值，四条全不命中。" },
@@ -127,25 +127,25 @@ const CASES = [
   {
     "slug": "engineering/poisson-strain",
     "inputs": {
-      "ex": "42",
-      "nu": "42"
+      "ex": "0.002",
+      "nu": "0.25"
     },
     "expect": [
-      "横向应变 ε_y 42.000 泊松比 ν -3.486e+3"
+      "-5.000e-4"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"ex\":\"42\",\"nu\":\"42\"}，输出区含「横向应变 ε_y 42.000 泊松比 ν -3.486e+3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入 ex=0.002、nu=0.25：ε_y=−0.25×0.002=−5.000e-4；默认 0.001/0.3 得 −3.000e-4 ⇒ 强判别。ν=42 已超出 −1–0.5 物理范围，旧自动补强用例改为此组有效值。"
   },
   {
     "slug": "engineering/section-inertia",
     "inputs": {
-      "shape": "42",
+      "shape": "2",
       "b": "42",
       "h": "42"
     },
     "expect": [
-      " W (mm³) 圆 I = πD⁴/64"
+      "152745"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"shape\":\"42\",\"b\":\"42\",\"h\":\"42\"}，输出区含「 W (mm³) 圆 I = πD⁴/64」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "圆截面仅用 D=42：I=π×42⁴/64=152,745 mm⁴；默认矩形 200/400 得 1.0667e9 ⇒ 强判别。shape=42 已改为非法形状并单独覆盖，此例改用有效圆截面。"
   },
   {
     "slug": "machinery/shaft-torsion",
@@ -204,16 +204,28 @@ const CASES = [
 ,
 {
   "slug": "engineering/stress-calculator",
-  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/' +'tools/engineering/stress-calculator.html','utf8');var i=h.indexOf('if (A === 0)');var s=i>=0?h.slice(i,i+560):'';var ok=(s.match(/getElementById\\('stressViz'\\).innerHTML=''/g)||[]).length>=1&&(s.match(/getElementById\\('result'\\).innerHTML=''/g)||[]).length>=1&&(s.match(/if \\(A === 0\\)/g)||[]).length>=1;document.getElementById('__tbProbe').textContent='STRSHIST '+(ok?'OK':'BAD');})();"],
-  "expect": ["STRSHIST OK"],
-  "ref": "第1345批 stress-calculator 四类型早退(A/W/D=0)原只 showToast 后 return，不清 #stressViz 与 #result，旧应力卡与 SVG 残留；改为四处早退同步清空。"
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/' +'tools/engineering/stress-calculator.html','utf8');var ok=h.indexOf('function fail(msg)')>=0&&(h.match(/fail\\('/g)||[]).length>=4&&h.indexOf('截面积 A 必须为正数')>=0;document.getElementById('__tbProbe').textContent='STRSVAL '+(ok?'OK':'BAD');})();"],
+  "expect": ["STRSVAL OK"],
+  "ref": "第851批 stress-calculator：A/W/D 的零值与空值改统一走 fail()，同步清空 #stressViz/#result 并给出字段级提示；旧实现是内联 showToast 早退。"
 },
 {
   "slug": "engineering/beam-calculator",
-  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/' +'tools/engineering/beam-calculator.html','utf8');var i=h.indexOf('if (L <= 0)');var s=i>=0?h.slice(i,i+200):'';var ok=s.indexOf(\"getElementById('beamViz').innerHTML=''\")>=0&&s.indexOf(\"getElementById('result').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='BEAMCLR '+(ok?'OK':'BAD');})();"],
-  "expect": ["BEAMCLR OK"],
-  "ref": "第1345批 beam-calculator L<=0 早退原只 showToast，不清 #beamViz/#result；input guard 分支也补清 beamViz。"
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/' +'tools/engineering/beam-calculator.html','utf8');var ok=h.indexOf('截面惯性矩 I 须为正数')>=0&&h.indexOf('const delta = Math.abs(deltaSigned)')>=0&&h.indexOf('const safe = ratio <= 1')>=0;document.getElementById('__tbProbe').textContent='BEAMVAL '+(ok?'OK':'BAD');})();"],
+  "expect": ["BEAMVAL OK"],
+  "ref": "第851批 beam-calculator：I/E/L/limit 改为原始空值+正数校验（旧实现 I=0 被静默替换），负惯性矩与负载荷不再穿透；挠度取绝对值后与许用值比较。"
 }
+,
+{ "slug": "engineering/stress-calculator", "inputs": {}, "radios": {"material":"2"}, "clicks": ["selectType('tension');document.getElementById('F').value='-80';document.getElementById('A').value='400';calc();"], "expect": ["200.00 MPa（受压）", "安全系数 n 1.18"], "ref": "拉压类型 F 取负（受压）时仍以 |σ|=200 MPa 与许用 237 MPa 比较，n=236.67/200=1.18；旧实现 safe=stress<σs 对负应力恒真、n 也为负，属负号误判。" },
+{ "slug": "engineering/stress-calculator", "inputs": {}, "radios": {"material":"2"}, "clicks": ["selectType('torsion');document.getElementById('d').value='50';calc();"], "expect": ["内径 d 须为 0 或小于外径的正数（mm，实心填 0）"], "ref": "扭转 D=50、d=50 时 J=D⁴−d⁴=0，旧实现会除以 0 得 Infinity/NaN；新实现拒绝 d≥D。默认 d=0 合法。" },
+{ "slug": "engineering/beam-calculator", "inputs": {"length":"6","load":"-15","E":"210","I":"800","limit":"300"}, "expect": ["150.67 mm（与设定方向相反）", "❌ 不满足"], "ref": "载荷向上 q=−15 时挠度反向，按 |δ|=150.67 mm 与许用 20.00 mm 比较仍不满足；旧实现 ratio 为负恒判安全，且结果区不回显方向。" },
+{ "slug": "engineering/poisson-strain", "inputs": {}, "clicks": ["document.getElementById('ex').value='';calcTool();"], "expect": ["轴向应变须为有效数值"], "ref": "轴向应变清空时旧 num() 回退 0，输出 ε_y=0 与比值 0.000；新实现停止计算并提示空值。" },
+{ "slug": "engineering/material-calculator", "inputs": {}, "radios": {"material":"0"}, "clicks": ["selectShape('hollow_circle');document.getElementById('D').value='10';document.getElementById('t').value='11';calc();"], "expect": ["圆管壁厚须小于外径的一半"], "ref": "D=10、t=11 时 d=D−2t=−12，旧实现 A=π(10²−(−12)²)/4 为负面积、质量为负；新实现按 2t<D 拒绝。" },
+{ "slug": "engineering/material-calculator", "inputs": {}, "radios": {"material":"0"}, "clicks": ["document.getElementById('L').value='';calc();"], "expect": ["长度 L 须为非负数值"], "ref": "长度清空时旧实现 `||1` 静默按 1 m 计重；新实现要求显式数值（0 合法，每米重量显示不适用）。" },
+{ "slug": "engineering/section-inertia", "inputs": {}, "clicks": ["document.getElementById('shape').value='2';syncShape();calcTool();"], "expect": ["1256637061"], "ref": "圆截面仅用 D=400：I=πD⁴/64=π×2.56e10/64=1,256,637,061 mm⁴；旧实现强制 b>0，圆截面需填无关宽度 b。" },
+{ "slug": "engineering/axial-stress", "inputs": {}, "clicks": ["document.getElementById('F').value='';calcTool();"], "expect": ["轴向力 F 须为有效数值"], "ref": "轴力清空时旧 num() 回退 0，输出 0.00 MPa；新实现停止计算并提示。" },
+{ "slug": "engineering/cantilever-deflection", "inputs": {}, "clicks": ["document.getElementById('P').value='';calcTool();"], "expect": ["端部集中力 P 须为有效数值"], "ref": "端部集中力清空时旧 num() 回退 0，输出 0.00 mm；新实现停止计算并提示。" }
+,
+{ "slug": "engineering/stress-calculator", "inputs": {}, "radios": {"material":"0"}, "clicks": ["selectType('shear');document.getElementById('V').value='45';document.getElementById('A').value='400';calc();"], "expect": ["许用剪应力 [τ]=0.577σs/1.5", "0.80"], "ref": "剪切按 0.577σs 取强度依据：Q235 σs=235 ⇒ 剪切屈服 135.7 MPa，许用 /1.5=90.5 MPa；τ=45kN/400mm²=112.50 MPa，n=90.5/112.5=0.80，判不安全。旧实现用 σs 当判定线会误判安全。" }
 
 ];
 async function main() {

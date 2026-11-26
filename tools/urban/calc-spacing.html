@@ -139,7 +139,7 @@
 <!-- TOOLBOX-POLISH -->
 
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">日照间距计算（建筑挡光分析）<br>太阳赤纬 δ 由年内第 N 天推算<br>日出日落时角 cos H₀ = −tanφ·tanδ（φ 为纬度）；昼长 = 2H₀ ÷ 15<br>日出 = 12 − H₀÷15，日落 = 12 + H₀÷15（太阳时）<br>目标日照 T 小时的边缘时角 hc = (T÷2)×15（正午对称）<br>最小日照间距 D = H ÷ tan(边缘高度角)<br>方位修正间距 = H × cos(方位角) ÷ tan(高度角)（阴影北向投影）<br>正午阴影长度 = H ÷ tan(正午高度角)；日照间距系数 = 1 ÷ tan(边缘高度角)<br>逐时阴影表按太阳时 8–16 时输出（高度角 ≤0 跳过）</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">日照间距计算（建筑挡光分析）<br>太阳赤纬 δ 由年内第 N 天推算<br>日出日落时角 cos H₀ = −tanφ·tanδ（φ 为纬度）；昼长 = 2H₀ ÷ 15<br>日出 = 12 − H₀÷15，日落 = 12 + H₀÷15（太阳时）<br>目标日照 T 小时的边缘时角 hc = (T÷2)×15（正午对称）；T 必须 ≤ 当日理论日长，极夜时无解<br>最小日照间距 D = H ÷ tan(边缘高度角)<br>方位修正间距 = H × cos(方位角) ÷ tan(高度角)（阴影北向投影）<br>正午阴影长度 = H ÷ tan(正午高度角)；日照间距系数 = 1 ÷ tan(边缘高度角)<br>逐时阴影表按太阳时 8–16 时输出（高度角 ≤0 跳过）</div>
   <p class="formula-desc">建筑日照间距按太阳高度角估算：正午高度角 <b>h = 90° − |φ − δ|</b>（φ 为纬度，δ 为太阳赤纬；冬至 δ≈−23.44°）。保证后排底楼日照的最小间距 <b>D ≈ H × cot(h) + 间距修正</b>，并给出逐时阴影长度表。</p>
   <ul class="formula-list">
     <li>我国常以大寒日（δ≈−20.15°）或冬至日作日照标准，依气候区而定。</li>
@@ -208,6 +208,7 @@
 </div>
 
 <script>
+var PAGE_EN=/[?&]lang=en-US(?:&|$)/.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
 var D2R=Math.PI/180, R2D=180/Math.PI;
 function setInvalid(el,invalid){
   if(!el)return;
@@ -232,6 +233,7 @@ function azimuthSouth(phi, delta, h, alt){
   return Math.asin(Math.max(-1,Math.min(1,cA)))*R2D;
 }
 function calc(){
+  var en=PAGE_EN?true:false;
   var H=parseFloat(document.getElementById('height').value);
   var phi=parseFloat(document.getElementById('lat').value);
   var dateStr=document.getElementById('date').value;
@@ -240,7 +242,7 @@ function calc(){
   setInvalid(document.getElementById('lat'), isNaN(phi)||Math.abs(phi)>90);
   setInvalid(document.getElementById('hours'), isNaN(T)||T<0);
   if(isNaN(H)||H<=0||isNaN(phi)||Math.abs(phi)>90||isNaN(T)||T<0||!dateStr){
-    document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效参数（建筑高度>0，纬度±90以内，目标时长≥0）</p>';return;
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">'+(en?'Please enter valid values (building height > 0, latitude within ±90, target hours ≥ 0).':'请输入有效参数（建筑高度>0，纬度±90以内，目标时长≥0）')+'</p>';return;
   }
   var N=dayOfYear(dateStr);
   var delta=declination(N);
@@ -251,6 +253,8 @@ function calc(){
   var h0 = (cosH0>=1)?0 : (cosH0<=-1?180:Math.acos(cosH0)*R2D);
   var dayLen=2*h0/15;
   var sunrise=12-h0/15, sunset=12+h0/15;
+  if(dayLen<=0.0001){document.getElementById('res').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ 该日期与纬度处于极夜，当日无日照，任何目标日照时长均不可实现。</p>';return;}
+  if(T>dayLen+1e-9){document.getElementById('res').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ 目标日照 '+T+' 小时超过当日理论日长 '+dayLen.toFixed(2)+' 小时，目标不可实现。</p>';return;}
 
   // 目标日照边缘时角（正午对称）
   var hc=(T/2)*15;
@@ -280,8 +284,9 @@ function calc(){
     '<div class="data-card"><div class="num">'+(isFinite(coefSimple)?coefSimple.toFixed(3):'∞')+'</div><div class="label">日照间距系数</div></div>'+
     '<div class="data-card"><div class="num">'+altC.toFixed(2)+'°</div><div class="label">边缘高度角</div></div>'+
     '</div>'+
-    '<p style="margin-top:10px;font-size:13px;color:var(--text-light);">📅 '+dateLabel+'（北纬 '+phi+'°），目标日照 '+T+' 小时：保证正午前后各 '+(T/2)+' 小时日照，所需最小间距约 <strong>'+(isFinite(dSimple)?dSimple.toFixed(2):'∞')+' m</strong>（间距系数 '+(isFinite(coefSimple)?coefSimple.toFixed(3):'∞')+'）。</p>'+
-    '<p style="font-size:12px;color:var(--text-muted);">⏰ 日出 '+sunrise.toFixed(2)+' 时 / 日落 '+sunset.toFixed(2)+' 时（太阳时）</p>';
+    (en?'<p style="margin-top:10px;font-size:13px;color:var(--text-light);">📅 '+dateLabel+' (latitude '+phi+'°N), target daylight '+T+' h: ensuring '+(T/2)+' h either side of noon gives a minimum spacing of about <strong>'+(isFinite(dSimple)?dSimple.toFixed(2):'∞')+' m</strong> (spacing coefficient '+(isFinite(coefSimple)?coefSimple.toFixed(3):'∞')+').</p>':'<p style="margin-top:10px;font-size:13px;color:var(--text-light);">📅 '+dateLabel+'（北纬 '+phi+'°），目标日照 '+T+' 小时：保证正午前后各 '+(T/2)+' 小时日照，所需最小间距约 <strong>'+(isFinite(dSimple)?dSimple.toFixed(2):'∞')+' m</strong>（间距系数 '+(isFinite(coefSimple)?coefSimple.toFixed(3):'∞')+'）。</p>')+
+    (en?'<p style="font-size:12px;color:var(--text-muted);">⏰ Sunrise '+sunrise.toFixed(2)+' / sunset '+sunset.toFixed(2)+' (solar time)</p>':'<p style="font-size:12px;color:var(--text-muted);">⏰ 日出 '+sunrise.toFixed(2)+' 时 / 日落 '+sunset.toFixed(2)+' 时（太阳时）</p>')+
+    '<p style="font-size:12px;color:var(--text-muted);">模型按正午前后对称、单一建筑高度与无其他遮挡估算；实际受朝向、地形、相邻建筑与规划规定影响，需专业复核。</p>';
 
   // 逐时阴影长度表（太阳时 8~16 或日出日落范围内）
   var rows=[];
@@ -294,7 +299,7 @@ function calc(){
     var az=azimuthSouth(phi,delta,h,alt);
     var L=H/Math.tan(alt*D2R);
     var Ln=H*Math.cos(az*D2R)/Math.tan(alt*D2R);
-    var azStr = az>=0 ? '西 '+az.toFixed(1)+'°' : '东 '+Math.abs(az).toFixed(1)+'°';
+    var azStr = az>=0 ? (en?'W ':'西 ')+az.toFixed(1)+'°' : (en?'E ':'东 ')+Math.abs(az).toFixed(1)+'°';
     rows.push([hr+':00', alt.toFixed(2)+'°', azStr, L.toFixed(2)+' m', Ln.toFixed(2)+' m']);
   }
   if(rows.length){
@@ -344,7 +349,7 @@ function renderHistory(){
     list.forEach(function(h,i){
       html+='<div class="history-item" onclick="restoreHistory('+i+')">'+
         '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">间距 '+ToolBox.escHtml(h.spacing)+'m</div>'+
-        '<div class="detail">H='+h.H+'m 纬度'+h.phi+'° '+h.date+' 日照'+h.T+'h</div></div>'+
+        '<div class="detail">H='+h.H+'m '+(typeof TBKit!=='undefined'&&PAGE_EN?'lat ':'纬度')+h.phi+'° '+h.date+' '+(typeof TBKit!=='undefined'&&PAGE_EN?'sun ':'日照')+h.T+'h</div></div>'+
         '<span style="font-size:12px;color:var(--primary);">恢复</span></div>';
     });
     const __g4=html;box.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
@@ -455,7 +460,7 @@ function __calc_spacingExtras(){
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__calc_spacingResText();
     if(!res) return;
-    var en=TBKit.util.isEn();
+    var en=PAGE_EN;
     var rk=en?'Result':'结果';
     var now=Date.now();
     if(now-__calc_spacing_last<1000) return;
@@ -483,7 +488,7 @@ function __calc_spacingExport(){
         if(!box||!box.querySelector('tr')){
             var snap=__calc_spacingSnap(); var keys=Object.keys(snap);
             if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            var en=PAGE_EN?true:false;
             __calc_spacingRender(keys,en?'Result':'结果',en);
         }
     }catch(e){}
@@ -609,7 +614,7 @@ else document.addEventListener('DOMContentLoaded', __calc_spacingBoot);
     var btns=bar.querySelectorAll('.tbk-tab');
     if(!btns||!btns.length) return;
     var en=false;
-    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=PAGE_EN; }catch(e){}
     if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
     for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
     function show(pane){

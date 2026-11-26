@@ -144,7 +144,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🌐 Unicode 字符查询">🌐 Unicode Query</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">码位显示规则：字符码点转十六进制后格式化为 U+XXXX（至少 4 位大写十六进制，不足补零）；搜索支持 U+XXXX / 0xXXXX 码点、Unicode 字符名（内置 1342 条标准名称，覆盖全部可浏览区段与常用符号）与逐字符查询，浏览模式按区段起止遍历；表外字符按 CJK / Hangul 规则推导名称或如实标注未收录</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">码位显示规则：字符码点转十六进制后格式化为 U+XXXX（至少 4 位大写十六进制，不足补零）；搜索支持 U+XXXX / 0xXXXX 码点、Unicode 字符名（内置 1342 条标准名称，覆盖全部可浏览区段与常用符号）与逐字符查询，浏览模式按区段起止遍历；表外字符按 CJK / Hangul 规则推导名称或如实标注未收录；U+D800–U+DFFF 为代理码点，不是可独立编码的 Unicode 标量值，UTF-8/URL 编码标为不适用并提示用途</div>
   <div class="formula-desc">Unicode 为世界上大多数字符分配唯一码点，是跨系统文本交换的基础。</div>
   <ul class="formula-list">
     <li><b>码点</b>：写作 <code>U+XXXX</code>，范围 U+0000–U+10FFFF，共分为 17 个平面。</li>
@@ -533,7 +533,7 @@ function render(){
     }
     const __h0 = results.length ? results.map(c => `
       <div class="unicode-card" onclick="showDetail(${c.code})">
-        <div class="ch">${escapeHtml(c.ch)}</div>
+        <div class="ch">${isSurrogate(c.code) ? '\\u' + c.code.toString(16).toUpperCase() : escapeHtml(c.ch)}</div>
         <div class="code">U+${c.code.toString(16).toUpperCase().padStart(4,'0')} · ${escapeHtml(lookupName(c.code))}</div>
       </div>
     `).join('') : '<p style="color:#999;">'+ulQ('未找到匹配的字符或名称','No matching character or name')+'</p>';
@@ -550,14 +550,18 @@ function render(){
   }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h1;
 }
+function isSurrogate(code){ return code >= 0xD800 && code <= 0xDFFF; }
 function showDetail(code){
+  code = Number(code);
+  if(!Number.isFinite(code) || code < 0 || code > 0x10FFFF) return;
   const ch = String.fromCodePoint(code);
+  const surrogate = isSurrogate(code);
   let name = '—';
   try{ name = lookupName(code); }catch(e){}
   const htmlEntity = `&#${code};`;
   const cssEscape = `\\${code.toString(16).toUpperCase()}`;
   const jsEscape = code > 0xFFFF ? `\\u{${code.toString(16).toUpperCase()}}` : `\\u${code.toString(16).toUpperCase().padStart(4,'0')}`;
-  const urlEnc = encodeURIComponent(ch);
+  const urlEnc = surrogate ? ulQ('不适用（代理码点不是 Unicode 标量值）','N/A (surrogate is not a Unicode scalar value)') : encodeURIComponent(ch);
   const __h2=`
     <div class="big">${escapeHtml(ch)}</div>
     <div class="name">${name}</div>
@@ -565,7 +569,7 @@ function showDetail(code){
       <div><strong>码点</strong><span>U+${code.toString(16).toUpperCase().padStart(4,'0')}</span></div>
       <div><strong>十进制</strong><span>${code}</span></div>
       <div><strong>UTF-8</strong><span>${toUtf8(code)}</span></div>
-      <div><strong>UTF-16</strong><span>${toUtf16(code)}</span></div>
+      <div><strong>UTF-16</strong><span>${toUtf16(code)}${surrogate ? ulQ('（孤立代理项，不能单独编码为标量值）',' (lone surrogate; not a scalar value)') : ''}</span></div>
       <div><strong>HTML 实体</strong><span>${htmlEntity}</span></div>
       <div><strong>CSS 转义</strong><span>${cssEscape}</span></div>
       <div><strong>JS 转义</strong><span>${jsEscape}</span></div>
@@ -606,6 +610,7 @@ function hangulSyllableName(code){
 function lookupName(code){
   code = Number(code);
   if(!Number.isFinite(code) || code < 0 || code > 0x10FFFF) return ulQ('无效码点','Invalid code point');
+  if(code >= 0xD800 && code <= 0xDFFF) return ulQ('代理码点（Surrogate）','Surrogate code point');
   const hex = code.toString(16).toUpperCase().padStart(4,'0');
   if(Object.prototype.hasOwnProperty.call(UNICODE_NAMES, code)) return UNICODE_NAMES[code];
   // 表外码点按 Unicode 命名规则推导，其余如实标注「未收录」，不再伪装成名称。
@@ -614,6 +619,7 @@ function lookupName(code){
   return ulQ('名称未收录','Name not in local table')+' · '+getCategory(code)+' U+'+hex;
 }
 function toUtf8(code){
+  if(code >= 0xD800 && code <= 0xDFFF) return ulQ('不适用（代理码点不能编码为 UTF-8）','N/A (surrogate cannot be encoded as UTF-8)');
   if(code < 0x80) return code.toString(16).padStart(2,'0').toUpperCase();
   let bytes = [];
   if(code < 0x800){
@@ -633,6 +639,7 @@ function toUtf16(code){
   return `${hi.toString(16).toUpperCase()} ${lo.toString(16).toUpperCase()}`;
 }
 function getCategory(code){
+  if(code >= 0xD800 && code <= 0xDFFF) return ulQ('代理项（Surrogate）','Surrogate');
   if(code < 0x80) return ulQ('基本拉丁','Basic Latin');
   if(code >= 0x4E00 && code <= 0x9FFF) return ulQ('中日韩统一汉字','CJK Unified Ideographs');
   if(code >= 0x1F600 && code <= 0x1F64F) return ulQ('Emoji 表情','Emoji');
@@ -810,7 +817,7 @@ else document.addEventListener('DOMContentLoaded', __unicode_lookupBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -818,7 +825,7 @@ else document.addEventListener('DOMContentLoaded', __unicode_lookupBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

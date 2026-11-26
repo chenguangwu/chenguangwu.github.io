@@ -1031,6 +1031,20 @@ const CASES = [
   inputs: { km: "45000", kmM: "1200", sdate: "2026-01-01", mon: "8", veh: "0.9", evMode: "1", cond: "1.0", oil: "10000|12", ahead: "1000" },
   expect: ["空气滤芯", "2 项"],
   ref: "纯电分支：evMode 勾选后跳过发动机项目，待办降至 2 项且最近到期为空气滤芯；scheduler-cycle-maintenance 缺该分支。checkIds 还原真机勾选态。"
+},
+
+  // 第883批
+  {
+  slug: "automotive/cheshenkongqizulixishu",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/automotive/cheshenkongqizulixishu.html','utf8');var m=src.match(/meta name=\"description\" content=\"([^\"]*)\"/);document.getElementById('__tbProbe').textContent='AEROMETA '+((m&&m[1].split('输入').length-1===1&&m[1].indexOf('高速续航与极速评估时')<0)?'OK':'BAD');"],
+  expect: ["AEROMETA OK"],
+  ref: "第883批：meta 简介把「输入迎风面积/Cd/车速」写了两遍；现只保留一次输入输出描述，深挖首场景改为造型/改装对比，避免摘要重复。"
+},
+  {
+  slug: "automotive/drive",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/automotive/drive.html','utf8');var m=src.match(/meta name=\"description\" content=\"([^\"]*)\"/);document.getElementById('__tbProbe').textContent='DRIVEMETA '+((m&&m[1].split('输入各档').length-1===1)?'OK':'BAD');"],
+  expect: ["DRIVEMETA OK"],
+  ref: "第883批：变速器齿比 meta 先写输入输出，又追加一遍「输入各档…算各档车速」；现深挖首场景改为选型对比，摘要只保留一次输入描述。"
 }
 ];
 async function main() {

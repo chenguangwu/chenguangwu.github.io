@@ -119,10 +119,10 @@
     <h2 data-zh="📝 Markdown 检查器">📝 Markdown Linter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="规范的 Markdown 更易渲染与维护。本工具扫描常见风格问题（如跳级标题、列表缺空格、空链接），逐条列出便于修正。">Markdown Linter - Check heading levels, list formatting, link syntax and duplicate headings, with fix suggestions. Free, browser-only.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按行扫描 Markdown：围栏代码块（``` / ~~~）内的行跳过标题、列表、行尾与行宽检查，首个围栏未标注语言记 MD040；匹配一到六个井号加空格开头的标题行记录级别，比上一个标题级别大 1 以上记标题跳级，去掉井号后的标题文本重复出现记标题重复；行首（允许前导空白）为连字符或星号且紧接非空白、且整行不是成对强调语法（*斜体* / **加粗** / _斜体_）时，记列表符号后缺空格；逐行匹配方括号链接语法，空地址记空链接地址；行尾有多余空格记 MD009，行宽超过 80 列记 MD013。输出总行数与问题数，并逐条列出问题所在行号与描述</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按行扫描 Markdown：围栏代码块（``` / ~~~）内的行跳过标题、列表、行尾与行宽检查，首个围栏未标注语言记 MD040；匹配一到六个井号加空格开头的标题行记录级别，比上一个标题级别大 1 以上记标题跳级，去掉井号后的标题文本重复出现记标题重复；行首（允许前导空白）为连字符或星号且紧接非空白、且整行不是成对强调语法（*斜体* / **加粗** / _斜体_）时，记列表符号后缺空格；逐行匹配方括号链接语法，空地址记空链接地址；行尾恰好两个空格视为 CommonMark 硬换行（可关闭豁免），其它行尾空格记 MD009，行宽超过 80 列记 MD013。输出总行数与问题数，并逐条列出问题所在行号与描述</div>
   <div class="formula-desc">检查 Markdown 文档的规范与风格问题。</div>
   <ul class="formula-list">
-    <li><b>检查项</b>：标题跳级 / 重复标题、列表符号后缺空格、空链接地址、行尾多余空格（MD009）、行宽超过 80 列（MD013）、围栏代码块未标注语言（MD040）；围栏代码块内的内容不参与标题与列表检查。</li>
+    <li><b>检查项</b>：标题跳级 / 重复标题、列表符号后缺空格、空链接地址、行尾多余空格（MD009，两个空格硬换行可豁免）、行宽超过 80 列（MD013）、围栏代码块未标注语言（MD040）；围栏代码块内的内容不参与标题与列表检查。</li>
     <li><b>常见问题</b>：一级标题后直接跳三级、同一文档多个一级标题、链接与图片缺少说明。</li>
     <li><b>规则集</b>：对照 markdownlint 编号规则，已实现 MD001 标题层级、MD009 行尾空格、MD013 行宽、MD040 代码块语言；MD007 列表缩进、MD041 首行标题留给团队规范。</li>
     <li><b>价值</b>：统一文档风格，提升可读性与长期可维护性。</li>
@@ -133,6 +133,9 @@
       <div>
         <label for="src">粘贴 Markdown</label>
         <textarea id="src" rows="8" style="width:100%;font-family:monospace;font-size:12.5px;"># 标题&#10;&#10;## 小节&#10;&#10;### 跳级到三级（上面缺二级? 实际有二级）&#10;&#10;- 列表项&#10;-列表缺空格&#10;&#10;[空链接]()&#10;&#10;![图](img.png)</textarea>
+        <label style="display:flex;gap:8px;align-items:flex-start;margin-top:8px;font-size:12.5px;color:var(--text-muted);">
+          <input type="checkbox" id="allowHardBreak" checked onchange="calcTool()"> 将行尾恰好两个空格视为合法硬换行（MD009 豁免；取消勾选则按普通尾随空格报错）
+        </label>
       </div>
     </div>
     <div class="toolbar">
@@ -227,7 +230,7 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function mlEn(){return (typeof TBKit!=='undefined'&&TBKit.util.isEn());}
+function mlEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util.isEn())return true;}catch(e){}return /lang=en-US/.test(location.search) || (document.documentElement.lang||'').toLowerCase().indexOf('en')===0;}
 function mlQ(zh,en){return mlEn()?en:zh;}
 function calcTool(){
 var md=document.getElementById('src').value;
@@ -273,7 +276,12 @@ for(var i=0;i<lines.length;i++){
   if(listBad)issues.push(mlQ('第 '+(i+1)+' 行：列表符号后缺空格','Line '+(i+1)+': missing space after the list marker'));
   var links=L.match(/\[([^\]]*)\]\(([^)]*)\)/g)||[];
   for(var k=0;k<links.length;k++){var m=links[k].match(/\[([^\]]*)\]\(([^)]*)\)/);if(!m[2])issues.push(mlQ('第 '+(i+1)+' 行：空链接地址','Line '+(i+1)+': empty link URL'));}
-  if(/[ \t]+$/.test(L))issues.push(mlQ('第 '+(i+1)+' 行：行尾多余空格（MD009）','Line '+(i+1)+': trailing whitespace (MD009)'));
+  var trail=L.match(/([ \t]+)$/);
+  if(trail){
+    var allowHard=document.getElementById('allowHardBreak')?document.getElementById('allowHardBreak').checked:true;
+    var isHardBreak=(allowHard && trail[1]==='  ' && L.trim()!=='');
+    if(!isHardBreak)issues.push(mlQ('第 '+(i+1)+' 行：行尾多余空格（MD009）','Line '+(i+1)+': trailing whitespace (MD009)'));
+  }
   if(L.length>80)issues.push(mlQ('第 '+(i+1)+' 行：行宽 '+L.length+' 超过 80 列（MD013）','Line '+(i+1)+': line length '+L.length+' exceeds 80 (MD013)'));
 }
 var html='<div class="result-title">'+mlQ('检查结果','Check results')+'</div><div class="data-grid">';

@@ -23,8 +23,8 @@ const CASES = [
     "srcInput": "圆周率 3.1415926",
     "cellCount": "12"
   },
-  "expect": [ "12 个记忆格子" ],
-  "ref": "auto-restore"
+  "expect": [ "已编码 4 条内容", "12 个格子", "末页保留 8 个空位" ],
+  "ref": "数字分位把 8 位数字拆成 4 段；12 格刚好一页、末页保留 8 个空位。修复前按格子数循环复制片段（31/41/59/26 重复填充），且超量内容被静默丢弃。"
 },
 {
   "slug": "kids/mirror-letter",
@@ -61,6 +61,23 @@ const CASES = [
   "ref": "修复前已答题仍可被「换一题」重复计次、旧切题定时器不取消；现 checkAnswer 以 game.done 早退，handleRight/handleWrong 置 done，nextQuestion 仅对未答题计次并先清 game.nextId，切题延时统一写入 game.nextId。计时器与页面状态在 DOM 桩内不同步，故用源码形态判定。默认态无该探针串。"
 },
 {
+  "slug": "kids/memory-palace",
+  "inputs": {
+    "srcInput": "1234567890123456789012345678901234567890",
+    "cellCount": "9"
+  },
+  "expect": [ "已编码 20 条内容", "3 页", "末页保留 7 个空位" ],
+  "ref": "数字分位每 2 位一段共 20 条；9 格分页 ⇒ 3 页 27 格，末页 7 个空位，全部内容保留、不再循环重复。"
+},
+{
+  "slug": "kids/multiplication-practice",
+  "clicks": [
+    "resetGame();var a0=game.a,b0=game.b;nextQuestion(true);var ch1=(game.a!==a0||game.b!==b0);nextQuestion(true);var ch2=(game.a!==a0||game.b!==b0);document.getElementById('__tbProbe').textContent='MPADV '+ch1+' '+ch2+' pos'+game.pos;"
+  ],
+  "expect": ["MPADV true true pos4"],
+  "ref": "顺序模式独立 pos 推进：初始 2×1，连续跳过两次到 2×3，第三次新题 pos=4；修复前用 idx%9 且跳过不增 idx，下一题仍是原题。"
+},
+{
   "slug": "kids/stroke-order",
   "inputs": {
     "charInput": "我"
@@ -72,6 +89,43 @@ const CASES = [
     "1 撇 2 横 3 竖钩 4 提 5 斜钩 6 撇 7 点"
   ],
   "ref": "charInput=我（7 画）⇒ loadChar('我') 后 render() 把 #totalNo 置 7 并重建 #strokeChips 为「1 撇 2 横 3 竖钩 4 提 5 斜钩 6 撇 7 点」。⚠ 原注入 charInput=永/speedSel=900 恰为页面默认（input value=永、select selected 900），原 expect「900」只是 select 值回显 ⇒ 默认态同样命中（真逃生）；且该页 oninput 在桩内不触发，必须用 clicks 调 loadChar。默认态（永=5 画）为「1 点 2 横折钩 3 横撇 4 撇 5 捺」，与新锚零交集。"
+},
+{
+  "slug": "kids/stroke-order",
+  "clicks": ["loadChar('好')"],
+  "expect": ["1 撇点 2 撇 3 横 4 横撇 5 竖钩 6 横"],
+  "ref": "好=女(撇点/撇/横)+子(横撇/竖钩/横)；任务报告称后半仍标撇点/撇/横，实际数据已正确，补此用例锁定回归，防后续被改回。默认字永的 5 画与锚点零交集。"
+},
+{
+  "slug": "kids/memory-palace",
+  "clicks": ["document.getElementById('srcInput').value='';generate();"],
+  "expect": ["请先输入要记忆的内容"],
+  "ref": "空输入不再回退 3.1415926 示例；generate 直接清空并提示，不生成宫殿/摘要。默认输入圆周率非空，不命中该提示。"
+},
+{
+  "slug": "kids/memory-palace",
+  "inputs": {"srcInput": "床前明月光疑是地上霜", "cellCount": "25"},
+  "clicks": ["document.getElementById('modeSel').value='shape';generate();"],
+  "expect": ["只编码数字"],
+  "ref": "谐音象形模式只取数字，纯中文诗句没有数字时明确提示切换到逐字编码，不再静默塞入 3/1/4 示例。"
+},
+{
+  "slug": "kids/focus-timer",
+  "clicks": ["document.getElementById('focusMin').value='0';var r=applyCustom(true);document.getElementById('__tbProbe').textContent='FOCUS '+r+' '+state.focusSec;"],
+  "expect": ["FOCUS false 900"],
+  "ref": "专注 0 分钟越界（合法 5–45 整数），applyCustom 返回 false 且不改 state.focusSec（默认 15 分钟=900 秒），不再用 ||15 静默回退。"
+},
+{
+  "slug": "kids/mirror-letter",
+  "clicks": ["resetGame();var i0=round.idx;round.skipped++;nextRound(true);document.getElementById('__tbProbe').textContent='MIRSKIP '+i0+' '+round.idx+' '+round.skipped+' answered'+round.answered;"],
+  "expect": ["MIRSKIP 1 1 1 answeredfalse"],
+  "ref": "跳过（nextRound(true)）不推进 idx、不计入 total，仅累加 skipped；第 1 题连续跳过仍停在第 1 题，不会因 idx>=limit 提前结束。默认 idx=1/skipped=0。"
+},
+{
+  "slug": "kids/multiplication-practice",
+  "clicks": ["resetGame();game.answer=6;game.done=false;var t0=stats.total;var inp=document.getElementById('answer');inp.value='6.9';checkAnswer();document.getElementById('__tbProbe').textContent='MPDEC '+(stats.total===t0)+' '+game.done;"],
+  "expect": ["MPDEC true false"],
+  "ref": "6.9 不再被 parseInt 截成 6 判对：非整数输入给提示且不增加 stats.total、不置 game.done；合法整数仍走 Number(val)===game.answer。"
 }
 ];
 async function main() {

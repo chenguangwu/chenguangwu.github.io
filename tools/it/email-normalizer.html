@@ -138,7 +138,7 @@
 </div>
 
     <div class="input-row">
-      <input type="text" id="input" placeholder="输入邮箱地址，如： John.Doe+tag @ Gmail.COM" value="John.Doe2024+tag@Gmail.COM" style="flex:2" oninput="window.normalize()" aria-label="输入内容">
+      <input type="text" id="input" placeholder="输入邮箱地址，如： John.Doe+tag @ Gmail.COM" value="John.Doe2024+tag@Gmail.COM" style="flex:2" oninput="normalize()" aria-label="输入内容">
       <label style="flex:0 0 auto;margin:0;"><input type="checkbox" id="opt_gmail" checked onchange="__email_normalizerGmailChange()"> 启用 Gmail 点号/+标签归一</label>
     </div>
     <div class="result-box" id="result"></div> <div id="email_normalizerTable"></div> <div id="email_normalizerDiff"></div> <div id="email_normalizerChart"></div> <div id="email_normalizerHist"></div>
@@ -153,7 +153,7 @@
       </div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" onclick="window.normalize()">规范化</button>
+      <button class="btn primary" onclick="normalize()">规范化</button>
       <div id="email_normalizerPresets"></div><button class="btn" onclick="copyAfter()">复制结果</button><button class="btn" type="button" onclick="__email_normalizerExport()">导出明细 CSV</button>
     </div>
     <p style="font-size:12px;color:var(--muted,#9CA3AF);margin-top:10px;">💡 Gmail 中 <code>john.doe@gmail.com</code>、<code>johndoe@gmail.com</code>、<code>john.doe+tag@gmail.com</code> 是同一邮箱。</p>
@@ -283,7 +283,24 @@
 </div>
 <script>
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function __email_normalizerGmailChange(){ normalize(); }  // Gmail 选项切换即时重算
+function __email_normalizerGmailChange(){ normalize(); }
+function __email_localValid(v){
+  if(!v || v.length>64) return false;
+  if(v.charAt(0)==='.'||v.charAt(v.length-1)==='.') return false;
+  if(v.indexOf('..')>=0) return false;
+  return /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(v);
+}
+function __email_domainValid(v){
+  if(!v || v.length>253) return false;
+  var labels=v.split('.');
+  if(labels.length<2) return false;
+  for(var i=0;i<labels.length;i++){
+    var l=labels[i];
+    if(!l||l.length>63) return false;
+    if(!/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(l)) return false;
+  }
+  return /^[A-Za-z]{2,}$/.test(labels[labels.length-1]);
+}  // Gmail 选项切换即时重算
 function copyAfter(){var v=document.getElementById('afterOut').textContent;if(!v||v==='—'||v.indexOf('❌')>=0||/Invalid|无效/.test(v)){if(ToolBox.showToast)ToolBox.showToast(i18nText());return;}ToolBox.copyText(v);if(ToolBox.showToast)ToolBox.showToast(i18nText());}
 function normalize(){
   var raw=document.getElementById('input').value;
@@ -292,21 +309,27 @@ function normalize(){
   document.getElementById('beforeOut').textContent=raw.trim()||'—';
   if(!raw.trim()){document.getElementById('afterOut').textContent='—';const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
   var notes=[];
-  var lower=raw.trim().toLowerCase();
-  if(raw.trim()!==lower)notes.push('已转小写');
-  var at=lower.lastIndexOf('@');
+  var trimmed=raw.trim();
+  var at=trimmed.lastIndexOf('@');
   if(at<=0){document.getElementById('afterOut').textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"❌ Invalid email":"❌ 无效邮箱");const __h1='<p style="color:var(--danger)">缺少 @ 符号，不是有效邮箱</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
-  var local=lower.slice(0,at),domain=lower.slice(at+1);
-  if(!/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(local)||!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)){
+  var local=trimmed.slice(0,at),rawDomain=trimmed.slice(at+1),domain=rawDomain.toLowerCase();
+  if(!__email_localValid(local)||!__email_domainValid(domain)){
     document.getElementById('afterOut').textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"❌ Invalid email":"❌ 无效邮箱");
-    const __h2='<p style="color:var(--danger)">邮箱格式无效（本地名或域名不合法）</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;return;
+    const __h2=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'<p style="color:var(--danger)">Invalid email: the local part has misplaced dots/characters, or a domain label starts/ends with a hyphen.</p>':'<p style="color:var(--danger)">邮箱格式无效（本地名点号位置/字符不合法，或域名标签以连字符开头/结尾）</p>');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;return;
   }
-  // 审计修复：必须精确匹配域名，不能让 notgmail.com 这类以 gmail.com 结尾的域名被误归一。
+  if(rawDomain!==domain)notes.push('域名已转小写');
+  // 审计修复：默认保留本地部分原始大小写——非 Gmail 域可能区分大小写，擅自小写会改变收件地址。
   var isGmail=(domain==='gmail.com'||domain==='googlemail.com');
   if(useGmail&&isGmail){
     var before=local;
-    local=local.replace(/\./g,'').split('+')[0];
-    if(local!==before)notes.push('已去除 Gmail 点号与 + 标签');
+    local=local.toLowerCase().replace(/\./g,'').split('+')[0];
+    if(!__email_localValid(local)){
+      document.getElementById('afterOut').textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"❌ Invalid email":"❌ 无效邮箱");
+      const __h4=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'<p style="color:var(--danger)">Invalid email: after Gmail normalization the local part is empty or invalid (a leading +tag has no mailbox name).</p>':'<p style="color:var(--danger)">邮箱格式无效（按 Gmail 规则归一后本地名为空或无效：+tag 前没有邮箱名）</p>');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h4;return;
+    }
+    if(local!==before)notes.push('已按 Gmail 规则归一本地名（去点号与 + 标签）');
+  }else if(/[A-Z]/.test(local)){
+    notes.push('本地名保留原始大小写（非 Gmail 域可能区分大小写）');
   }
   var result=local+'@'+domain;
   document.getElementById('afterOut').textContent=result;

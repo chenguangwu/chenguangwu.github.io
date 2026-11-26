@@ -111,7 +111,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入初温、压比、比热比与气体常数，求单位质量压缩功。">Compressor Isentropic Work</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">w = (γ/(γ−1))·R·T₁·[(P₂/P₁)^((γ−1)/γ) − 1]</div>
+      <div class="formula-eq">w = (γ/(γ−1))·R·T₁·[(P₂/P₁)^((γ−1)/γ) − 1]；校验：T₁>0、R>0、γ>1、压比 PR≥1（<1 属膨胀，不是压缩）。</div>
       <p class="formula-desc">输入初温、压比、比热比与气体常数，求单位质量压缩功。</p>
     </div>
 
@@ -271,6 +271,10 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['T1', 'PR', 'g', 'Rgas'],["进气温度 T₁ (K)", "压比 P₂/P₁", "比热比 γ", "气体常数 R (J/(kg·K))"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const T1=num('T1'),PR=num('PR'),g=num('g'),Rg=num('Rgas');
+            if(!isFinite(T1)||T1<=0||!isFinite(Rg)||Rg<=0||!isFinite(g)||g<=1||!isFinite(PR)||PR<1){
+                try{document.getElementById('compressor_isentropic_workTable').innerHTML='';document.getElementById('cwChart').innerHTML='';document.getElementById('cwTable').innerHTML='';}catch(e){}
+                ToolBox.setResult('result','<p style="color:var(--danger)">进气温度 T₁ 与气体常数 R 必须 > 0，比热比 γ 必须 > 1；压缩模式压比 P₂/P₁ 至少为 1（<1 是膨胀，不是压缩）。</p>');return;
+            }
             const w=(g/(g-1))*Rg*T1*(Math.pow(PR,(g-1)/g)-1);
             const __g2=dataGrid([
                 [w.toFixed(1),'单位质量压缩功 w (J/kg)']
@@ -288,9 +292,12 @@ function __compressor_isentropic_workExtras(){
     function __compressor_isentropic_workRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var T1=num('T1'),PR=num('PR'),g=num('g'),Rg=num('Rgas');
-    var w=(g/(g-1))*Rg*T1*(Math.pow(PR,(g-1)/g)-1);
-    if (!isFinite(__compressor_isentropic_workNum('T1')) || !isFinite(__compressor_isentropic_workNum('PR')) || !isFinite(__compressor_isentropic_workNum('g')) || !isFinite(__compressor_isentropic_workNum('Rgas'))) return;
     var en=TBKit.util.isEn();
+    if (!isFinite(__compressor_isentropic_workNum('T1')) || !isFinite(__compressor_isentropic_workNum('PR')) || !isFinite(__compressor_isentropic_workNum('g')) || !isFinite(__compressor_isentropic_workNum('Rgas')) || !(T1>0) || !(Rg>0) || !(g>1) || !(PR>=1)) {
+        try { TBKit.matrix.table('#compressor_isentropic_workTable',{head:en?['Item','Value']:['项目','数值'],rows:[]}); } catch(e){}
+        return;
+    }
+    var w=(g/(g-1))*Rg*T1*(Math.pow(PR,(g-1)/g)-1);
     TBKit.matrix.table('#compressor_isentropic_workTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
@@ -364,7 +371,7 @@ else document.addEventListener('DOMContentLoaded', __compressor_isentropic_workB
 <script>
 function __cwSweep(){
   var T1=num('T1'), PR=num('PR'), g=num('g'), Rg=num('Rgas');
-  if(!isFinite(T1)||!isFinite(PR)||!isFinite(g)||!isFinite(Rg)||T1<=0||PR<=1||g<=1)return null;
+  if(!isFinite(T1)||!isFinite(PR)||!isFinite(g)||!isFinite(Rg)||T1<=0||PR<1||g<=1||Rg<=0)return null;
   var labels=[],data=[],rows=[];
   var prs=[1.5,2,3,4,6,8,12];
   for(var i=0;i<prs.length;i++){

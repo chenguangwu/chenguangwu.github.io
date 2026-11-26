@@ -159,7 +159,8 @@
       <button type="button" class="btn" onclick="document.getElementById('year').value = new Date().getFullYear();check()">当前年</button>
     </div>
 
-    <div class="result-box" id="resultBox">请输入年份</div> <div id="leap_year_checkerTable"></div> <div id="leap_year_checkerDiff"></div> <div id="leap_year_checkerChart"></div> <div id="leap_year_checkerHist"></div>
+    <div class="result-box" id="resultBox">请输入年份</div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">本工具对公元 1–9999 年统一使用追溯格里高利历规则；早期年份不代表当时各地实际采用的历法（如儒略历地区），历史日期请另行核对。</p> <div id="leap_year_checkerTable"></div> <div id="leap_year_checkerDiff"></div> <div id="leap_year_checkerChart"></div> <div id="leap_year_checkerHist"></div>
   </div>
 
   <div class="card">
@@ -254,8 +255,16 @@ function isLeapYear(y){
 }
 
 function check(){
-  const yRaw = Number(document.getElementById('year').value);
-  const rRaw = Number(document.getElementById('range').value);
+  // 先看原始字符串：清空时只提示填写，绝不把空串 Number 成 0 再写回输入框。
+  const yStr = String(document.getElementById('year').value || '').trim();
+  const rStr = String(document.getElementById('range').value || '').trim();
+  if(yStr === '' || rStr === ''){
+    const __h1='<p style="color:var(--danger);">请填写' + (yStr === '' ? '年份' : '查询范围') + '，留空不会按 0 计算。</p>';
+    document.getElementById('resultBox').innerHTML=__h1;
+    return;
+  }
+  const yRaw = Number(yStr);
+  const rRaw = Number(rStr);
   const y = yRaw;
   const range = rRaw;
   if(!Number.isInteger(y) || y < 1 || y > 9999){
@@ -263,13 +272,9 @@ function check(){
     return;
   }
   if(!Number.isInteger(range) || range < 1 || range > 500){
-    const __h0='<p style="color:var(--danger);">范围须为 1–500 的整数</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
-    document.getElementById('year').value=String(y);
-    document.getElementById('range').value=String(range);
+    const __h0='<p style="color:var(--danger);">范围须为 1–500 的整数</p>';document.getElementById('resultBox').innerHTML=__h0;
     return;
   }
-  document.getElementById('year').value=String(y);
-  document.getElementById('range').value=String(range);
   if(false){
     const __h0='<p style="color:var(--danger);">请输入有效年份</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
     return;
@@ -284,9 +289,11 @@ function check(){
   html += `<p style="font-size:12px;color:var(--text-muted);">• 能被 400 整除：${y % 400 === 0 ? '✓' : '✗'}</p>`;
   // 附近年份列表
   const start = y;
-  const end = y + range - 1;
+  const rawEnd = y + range - 1;
+  const end = Math.min(9999, rawEnd);
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>${start} - ${end} 年附近的闰年：</p>`;
+  html += `<p>${start} - ${end} 年范围内的闰年：</p>`;
+  if(rawEnd > 9999) html += `<p style="font-size:12px;color:var(--text-muted);">查询范围已截断到 9999 年；本工具只支持 1–9999 年。</p>`;
   let leapYears = [];
   for(let i = start; i <= end; i++){
     if(isLeapYear(i)) leapYears.push(i);

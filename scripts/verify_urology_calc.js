@@ -185,15 +185,15 @@ const CASES = [
 {
   "slug": "urology/bladder-capacity",
   "inputs": {"voided":"120","pvr":"60","age":"45"},
-  "expect": ["膀胱容量显著缩小（低于预期50%）"],
+  "expect": ["单次估算容积显著低于年龄参考（低于 50%）"],
   "ref": "12-N109：180/400=45% 旧版只判「偏小」，与 FAQ「<50% 显著下降」冲突；新版三档口径给显著缩小。默认 310/400 不产生该串。"
 },
 {
   "slug": "urology/bladder-capacity",
   "inputs": {"voided":"300","pvr":"0","age":"45"},
-  "clicks": ["var b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ');var ok=b.indexOf('300 + 0 = 300 mL')>=0&&b.indexOf('残余尿：残余尿低于 50 mL，正常')>=0;document.getElementById('__tbProbe').textContent='PVRZERO '+(ok?'OK':'BAD');"],
+  "clicks": ["var b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ');var ok=b.indexOf('300 + 0 = 300 mL')>=0&&b.indexOf('本次残余尿低于 50 mL（单次测量，不能据此判定正常）')>=0;document.getElementById('__tbProbe').textContent='PVRZERO '+(ok?'OK':'BAD');"],
   "expect": ["PVRZERO OK"],
-  "ref": "12-N108 残余尿0：旧版 pvr>0 分支跳过残余尿提示；新版 0 仍显示正常参考。默认 pvr=30 也会显示同类提示，故用注入输入 300+0 与残余尿提示组合成哨兵，只由 clicks 产出，零逃生。"
+  "ref": "12-N108 残余尿0：旧版 pvr>0 分支跳过残余尿提示；新版 0 仍显示单次参考提示（不再称「正常」）。默认 pvr=30 也会显示同类提示，故用注入输入 300+0 与残余尿提示组合成哨兵，只由 clicks 产出，零逃生。"
 },
 {
   "slug": "urology/stone-size-assessment",
@@ -219,6 +219,17 @@ const CASES = [
     "ref": "PSA <4 with suspicious MRI and abnormal DRE must include both findings and avoid a definite no-biopsy recommendation."
 
   }
+  ,{
+  "slug": "urology/residual-urine",
+  "inputs": {"w":"10","h":"8","d":"6","formula":"0.7","voided":"200"},
+  "expect": ["参考分层：明显","单次超声估算，不是诊断"],
+  "ref": "第829批：≥200mL 改为参考分层并声明单次估算非诊断；不再直接称「明显尿潴留」。"
+},{
+  "slug": "urology/bladder-capacity",
+  "inputs": {"voided":"120","pvr":"60","age":"45"},
+  "expect": ["本次排尿占比：66.7%","不能单独诊断排空障碍","不等于最大膀胱容量"],
+  "ref": "第829批：排空效率改称本次排尿占比，并声明不能单独诊断排空障碍、单次估算不等于最大膀胱容量。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

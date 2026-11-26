@@ -246,15 +246,28 @@ function plistTyped(type, value){ return {__plistType: type, value: value}; }
 function plistNode(node){
   switch(node.tagName){
     case 'dict': {
-      const obj = {};
+      // 第808批：无原型对象保留 __proto__ 等任意合法键；key/value 必须严格配对
+      const obj = Object.create(null);
       let k = null;
       for(const c of node.children){
-        if(c.tagName === 'key') k = c.textContent;
-        else if(k !== null){ obj[k] = plistNode(c); k = null; }
+        if(c.tagName === 'key'){
+          if(k !== null) throw new Error('dict 中的 key「' + k + '」缺少对应 value');
+          k = c.textContent;
+          if(Object.prototype.hasOwnProperty.call(obj, k)) throw new Error('dict 中重复的 key：' + k);
+        } else {
+          if(k === null) throw new Error('<' + c.tagName + '> 缺少前置 key');
+          obj[k] = plistNode(c); k = null;
+        }
       }
+      if(k !== null) throw new Error('dict 中的 key「' + k + '」缺少对应 value');
       return obj;
     }
-    case 'array': return Array.from(node.children).map(plistNode);
+    case 'array': {
+      // 第808批：array 内出现 <key> 属于非法结构
+      if(node.children.length && Array.from(node.children).some(function(c){return c.tagName==='key';}))
+        throw new Error('array 中不允许出现 <key>');
+      return Array.from(node.children).map(plistNode);
+    }
     case 'string': return node.textContent;
     case 'integer': {
       const raw = String(node.textContent).trim();
@@ -272,7 +285,7 @@ function plistNode(node){
     case 'false': case 'False': return false;
     case 'date': return plistTyped('date', String(node.textContent).trim());
     case 'data': return plistTyped('data', String(node.textContent).replace(/\s+/g,''));
-    default: return node.textContent;
+    default: throw new Error('不支持的 plist 标签：<' + node.tagName + '>');
   }
 }
 function isPlistTyped(v){
@@ -307,7 +320,9 @@ function plistToJson(){
     const doc = new DOMParser().parseFromString(document.getElementById('input').value, 'application/xml');
     if(doc.getElementsByTagName('parsererror').length) throw new Error('XML 解析错误');
     const plist = doc.querySelector('plist');
+    if(!plist) throw new Error('缺少 <plist> 根元素');
     const root = plist.firstElementChild;
+    if(!root) throw new Error('<plist> 内缺少根值');
     setOut(JSON.stringify(plistNode(root), null, 2));
     setErr('✅ 解析成功');
   }catch(e){ setErr('❌ ' + e.message); }
@@ -495,7 +510,7 @@ else document.addEventListener('DOMContentLoaded', __plist_parserBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -503,7 +518,7 @@ else document.addEventListener('DOMContentLoaded', __plist_parserBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

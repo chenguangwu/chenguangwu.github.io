@@ -164,6 +164,7 @@
     </div>
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
+    <p class="muted" id="ctxHint" style="font-size:12.5px;margin:4px 0 10px;">限流等指令有上下文限制：zone 定义通常放 http，引用指令放 http/server/location。复制整段最小示例后，先运行 nginx -t 校验再 reload。</p>
     <div class="cmd-list" id="cmdList"></div>
     <div class="tabs" id="ngTabs" style="margin-top:16px;">
       <button class="tab-btn active" data-v="chart" aria-label="图表" data-i18n-aria="tool.aria.chart"></button>
@@ -435,16 +436,20 @@ const COMMANDS = [
     "cat": "限流",
     "desc": "请求限速",
     "syntax": "limit_req zone=name burst=n",
-    "params": "需 limit_req_zone",
-    "example": "limit_req_zone $binary_remote_addr zone=one:10m rate=10r/s;\nlocation / {\n  limit_req zone=one burst=20;\n}"
+    "params": "需先在 http 上下文定义 limit_req_zone",
+    "ctxZh": "limit_req_zone：http；limit_req：http / server / location",
+    "ctxEn": "limit_req_zone: http; limit_req: http / server / location",
+    "example": "http {\n  limit_req_zone $binary_remote_addr zone=one:10m rate=10r/s;\n  server {\n    listen 80;\n    server_name example.com;\n    location / {\n      limit_req zone=one burst=20 nodelay;\n    }\n  }\n}"
   },
   {
     "cmd": "limit_conn",
     "cat": "限流",
     "desc": "并发限制",
     "syntax": "limit_conn zone n",
-    "params": "",
-    "example": "limit_conn_zone $binary_remote_addr zone=addr:10m;\nlocation / { limit_conn addr 10; }"
+    "params": "需先在 http 上下文定义 limit_conn_zone",
+    "ctxZh": "limit_conn_zone：http；limit_conn：http / server / location",
+    "ctxEn": "limit_conn_zone: http; limit_conn: http / server / location",
+    "example": "http {\n  limit_conn_zone $binary_remote_addr zone=addr:10m;\n  server {\n    listen 80;\n    server_name example.com;\n    location /download/ {\n      limit_conn addr 10;\n    }\n  }\n}"
   },
   {
     "cmd": "access_log / error_log",
@@ -550,7 +555,9 @@ function renderCategories(){
     });
   });
 }
+function nginxCheatEn(){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
 function renderCommands(){
+  const en=nginxCheatEn();
   const q = searchQuery.toLowerCase().trim();
   const filtered = COMMANDS.filter(c => {
     if(currentCategory !== '全部' && c.cat !== currentCategory) return false;
@@ -563,15 +570,16 @@ function renderCommands(){
   document.getElementById('stats').textContent = `共 ${filtered.length} 项`;
   const __h1=filtered.map(c => {
     const ex = c.example ? `<div class="cmd-example">${escapeHtml(c.example)}<button type="button" class="copy-btn" onclick="copyCode(this)">复制</button></div>` : '';
-    const params = c.params ? `<div class="cmd-row"><strong>参数：</strong>${escapeHtml(c.params)}</div>` : '';
-    const syntax = c.syntax ? `<div class="cmd-row"><strong>语法：</strong><code>${escapeHtml(c.syntax)}</code></div>` : '';
+    const params = c.params ? `<div class="cmd-row"><strong>${en?'Params: ':'参数：'}</strong>${escapeHtml(c.params)}</div>` : '';
+    const syntax = c.syntax ? `<div class="cmd-row"><strong>${en?'Syntax: ':'语法：'}</strong><code>${escapeHtml(c.syntax)}</code></div>` : '';
+    const ctx = (c.ctxZh||c.ctxEn) ? `<div class="cmd-row"><strong>${en?'Context: ':'上下文：'}</strong>${escapeHtml(en?(c.ctxEn||c.ctxZh):c.ctxZh)}</div>` : '';
     return `<div class="cmd-item">
       <div class="cmd-title">
         <code class="cmd-name">${escapeHtml(c.cmd)}</code>
         <span class="cmd-desc">${escapeHtml(c.desc)}</span>
       </div>
       <div class="cmd-row"><strong>分类：</strong>${escapeHtml(c.cat)}</div>
-      ${syntax}${params}${ex}
+      ${syntax}${params}${ctx}${ex}
     </div>`;
   }).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('cmdList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('cmdList').innerHTML=__h1;
 }
@@ -630,7 +638,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -638,7 +646,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

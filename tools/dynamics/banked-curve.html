@@ -111,7 +111,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入弯道半径 r、倾角 θ、g，求设计速度。">Find the frictionless design speed for a banked curve from its radius and banking angle, where the horizontal component of the normal force supplies the centripetal force.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">v = √(rg·tanθ)（无侧滑）。 r=50,θ=30° → 约 16.8 m/s。</div>
+      <div class="formula-eq">无摩擦倾斜弯道设计速度：v = √(r·g·tanθ)（m/s）。校验：半径 r 与重力加速度 g 必须为正，倾角 θ 须在 0–90°（不含 90°），空值提示并中止；负半径/负重力不能相互抵消。θ=0 时设计速度为 0，仅靠轮胎侧向力转弯。判据：v 与 √(rg tanθ) 成正比；结果附载荷系数 n = 1/cosθ。</div>
       <p class="formula-desc">输入弯道半径 r、倾角 θ、g，求设计速度。</p>
     </div>
 
@@ -197,7 +197,7 @@
     </a>
     <a href="work-energy-theorem.html" class="related-tool-card">
       <span class="rt-icon">⚡</span>
-      <span class="rt-info"><span class="rt-name">动能定理计算器</span><span class="rt-desc">输入质量与初末速度按 W=½m(v₂²−v₁²) 求动能变化(合外力功)，用于功与能分析</span></span>
+      <span class="rt-info"><span class="rt-name">动能定理计算器</span><span class="rt-desc">输入质量与初末速度，按 W=½m(v₂²−v₁²) 求动能变化（合外力功）；</span></span>
     </a>
   </div>
 </div>
@@ -245,7 +245,7 @@ function __tbInputGuardCore(_ids,_labels){
     }
   }
   // 负值受限项：__N 由真浏览器逐项置 -1 探测得出（质量/体积/年限/样本量等物理量）
-  var __N={"r": "半径 r (m)", "th": "倾角 θ (°)", "g": "重力加速度 g (m/s²)"};
+  var __N={};
   for(var _n=0;_n<_ids.length;_n++){
     if(!(_ids[_n] in __N)) continue;
     var _ne=document.getElementById(_ids[_n]);
@@ -275,14 +275,27 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __dynEn(){try{if(/[?&]lang=en-US/.test(location.search))return true;}catch(e){}try{return !!(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}catch(e){return false;}}
+function __dynMsg(zh,en){return __dynEn()?en:zh;}
 function calcTool(){
+              window.__bkcValid=false;
               var __ig=__tbInputGuard(['r', 'th', 'g'],["半径 r (m)", "倾角 θ (°)", "重力加速度 g (m/s²)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const r=num('r'),th=num('th'),g=num('g');
+            if(!isFinite(r)||!isFinite(th)||!isFinite(g)||r<=0||g<=0||th<0||th>=90){
+              var __bt=document.getElementById('banked_curveTable'); if(__bt)__bt.innerHTML='';
+              var __bc=document.getElementById('bkcChart'); if(__bc){__bc.innerHTML='';__bc.style.display='none';}
+              ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+__dynMsg('半径 r 与重力加速度 g 必须为正，倾角须在 0–90°（不含 90°）；负半径/负重力不能相互抵消。','Radius r and gravity g must be positive, and the bank angle must be 0–90° (excluding 90°); negative radius and gravity must not cancel out.')+'</p>');
+              return;
+            }
+            window.__bkcValid=true;
+            var __cv=document.getElementById('bkcChart'); if(__cv)__cv.style.display='';
             const v=Math.sqrt(r*g*Math.tan(th*Math.PI/180));
+            const n=1/Math.cos(th*Math.PI/180);
             const __g2=dataGrid([
                 [v.toFixed(2),'设计速度 v (m/s)'],
                 [(v*3.6).toFixed(2), '设计速度 (km/h)'],
-                [(1/Math.cos(th*Math.PI/180)).toFixed(3), '载荷系数 n = 1/cosθ']
+                [n.toFixed(3), '载荷系数 n = 1/cosθ'],
+                [th===0?__dynMsg('0°：无倾角，设计速度为 0，仅靠轮胎侧向力转弯','0°: no banking, design speed is 0; cornering relies on tire lateral force'):__dynMsg('有倾角：由重力与法向力合力提供向心力','banked: gravity and normal force provide the centripetal force'), '边界说明']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('r').value = '50';
@@ -295,6 +308,7 @@ function __banked_curveNum(id){var e=document.getElementById(id);var v=e?parseFl
 function __banked_curveExtras(){
     function __banked_curveRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
+    if (window.__bkcValid !== true) { var __bt2=document.getElementById('banked_curveTable'); if(__bt2)__bt2.innerHTML=''; return; }
     var r=num('r'),th=num('th'),g=num('g');
     var v=Math.sqrt(r*g*Math.tan(th*Math.PI/180));
     if (!isFinite(__banked_curveNum('r')) || !isFinite(__banked_curveNum('th')) || !isFinite(__banked_curveNum('g'))) return;
@@ -372,6 +386,7 @@ else document.addEventListener('DOMContentLoaded', __banked_curveBoot);
 </section>
 <script>
 function __bkcSweep(){
+  if(window.__bkcValid!==true)return null;
   var r=num('r'), g=num('g');
   if(!isFinite(r)||!isFinite(g)||r<=0||g<=0)return null;
   var labels=[], dV=[], dT=[];

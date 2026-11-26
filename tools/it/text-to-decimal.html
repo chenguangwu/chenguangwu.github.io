@@ -142,7 +142,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="💻 文本 / 十进制 ASCII 码转换">💻 Text to Decimal</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按所选编码把文本编为字节序列，逐字节取 0–255 十进制值并按设定位数补零，再用分隔符拼接（分隔符为 &# 时直接相连，用于 HTML 实体写法）；逐字符可视化同样处理空格 / 换行 / 制表符；统计字符数、字节数、十进制段数</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq" data-zh="按所选编码把文本编为字节序列，逐字节取 0–255 十进制值并按设定位数补零，再用分隔符拼接（分隔符为 &amp;# 时按 Unicode 码点生成 HTML 数字字符引用（如中 ⇒ &amp;#20013;），与字节模式分开）；逐字符可视化同样处理空格 / 换行 / 制表符；统计字符数、字节数、十进制段数">Encode text into bytes with the selected encoding, take each byte as a 0–255 decimal value, pad to the chosen width, and join with the separator. With the HTML character-reference separator, output Unicode code points (e.g. U+4E2D ⇒ &amp;#20013;) instead of bytes. The per-character view applies the same rule; stats cover characters, bytes (or references) and decimal segments.</div>
   <div class="formula-desc">把文本转换为十进制码点。</div>
   <ul class="formula-list">
     <li><b>原理</b>：输出每个字符的 Unicode 码点的十进制形式，常用空格或逗号分隔。</li>
@@ -188,9 +188,10 @@
           <option value=";">分号</option>
           <option value="">无</option>
           <option value="-">短横线</option>
-          <option value="&#">&# HTML实体</option>
+          <option value="&#" data-zh="&amp;# HTML 字符引用（按 Unicode 码点）">&# HTML character reference (Unicode code points)</option>
         </select>
       </div>
+      <div id="decEntityNote" style="font-size:12px;color:var(--text-muted);margin:4px 0 8px;" data-zh="选择「&# HTML 字符引用」时按 Unicode 码点生成，如中 ⇒ &amp;#20013;、😀 ⇒ &amp;#128512;，与 UTF-8/UTF-16 字节无关；反向只接受 &#数字; 引用，并拒绝代理项与超出 U+10FFFF 的值。">With “&# HTML character references”, output uses Unicode code points (U+4E2D ⇒ &amp;#20013;, U+1F600 ⇒ &amp;#128512;) regardless of UTF-8/UTF-16 bytes; decoding accepts only &#number; references and rejects surrogates or values beyond U+10FFFF.</div>
       <div>
         <label for="padDigits">位数补全</label>
         <select id="padDigits">
@@ -266,7 +267,7 @@
       <p><strong>ASCII 模式：</strong>每个字符使用 1 字节，对应 0-255 的十进制数。</p>
       <p><strong>UTF-8 模式：</strong>变长编码，ASCII 字符 1 字节，中文等字符 3 字节。</p>
       <p><strong>分隔符：</strong>可选择空格、逗号、分号、短横线、&# HTML实体等格式。</p>
-      <p><strong>HTML 实体：</strong>选择 &# 模式时，格式为 &#数字;，如 &#72;&#101;。</p>
+      <p data-zh="HTML 字符引用：选择 &amp;# 模式时按 Unicode 码点输出，如 &amp;#72;&amp;#101;（ASCII）、&amp;#20013;（中）；反向只接受 &amp;#数字;，不按字节解码。"><strong>HTML character references:</strong> the &amp;# mode outputs Unicode code points, e.g. &amp;#72;&amp;#101; (ASCII) or &amp;#20013; (U+4E2D); decoding accepts only &amp;#number; references, never bytes.</p>
     </div>
   </div>
 
@@ -377,6 +378,7 @@ function getEncoding(){
   return document.getElementById('encoding').value;
 }
 
+function tdMsg(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh;}
 function textToBytes(text, encoding){
   if(encoding === 'ascii'){
     var bytes = [];
@@ -467,27 +469,41 @@ function convert(){
     return;
   }
 
-  var bytes = textToBytes(text, encoding);
-  var parts = bytesToDecimal(bytes, padDigits);
-  var joinSep = (sep === '&#') ? '' : sep;
-  document.getElementById('output').value = parts.join(joinSep);
+  var useEntity = (sep === '&#');
+  var bytes = useEntity ? null : textToBytes(text, encoding);
+  var parts, joinSep;
+  if(useEntity){
+    // HTML 数字字符引用按 Unicode 码点，不按 UTF-8/UTF-16 字节；代理对用 codePointAt 合并。
+    parts = Array.from(text).map(function(ch){ return '&#' + ch.codePointAt(0) + ';'; });
+    joinSep = '';
+    document.getElementById('output').value = parts.join('');
+  } else {
+    parts = bytesToDecimal(bytes, padDigits);
+    joinSep = sep;
+    document.getElementById('output').value = parts.join(joinSep);
+  }
 
   var vizHtml = '';
-  for(var i = 0; i < text.length; i++){
-    var ch = text[i];
-    var charBytes = textToBytes(ch, encoding);
+  var vizChars = useEntity ? Array.from(text) : null;
+  var vizCount = useEntity ? vizChars.length : text.length;
+  for(var i = 0; i < vizCount; i++){
+    var ch = useEntity ? vizChars[i] : text[i];
     var charDec = '';
-    for(var j = 0; j < charBytes.length; j++){
-      charDec += charBytes[j] + ' ';
+    if(useEntity){
+      var cp = ch.codePointAt(0);
+      charDec = 'U+' + cp.toString(16).toUpperCase() + ' = &#' + cp + ';';
+    } else {
+      var charBytes = textToBytes(ch, encoding);
+      for(var j = 0; j < charBytes.length; j++) charDec += charBytes[j] + ' ';
+      charDec = charDec.trim();
     }
-    charDec = charDec.trim();
     var displayCh = ch === ' ' ? '␣' : (ch === '\n' ? '↵' : (ch === '\t' ? '⇥' : ch));
     if(displayCh < ' ' || displayCh > '~') displayCh = '·';
     vizHtml += '<span class="byte-row"><span class="ch">' + ToolBox.escHtml(displayCh) + '</span><span class="bits">' + charDec + '</span></span>';
   }
   const __h1=vizHtml;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('viz').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('viz').innerHTML=__h1;
 
-  updateStats(text.length, bytes.length, parts.length);
+  updateStats(useEntity ? parts.length : text.length, useEntity ? parts.length : bytes.length, parts.length);
   addToHistory(text, document.getElementById('output').value, 'text2dec');
 }
 
@@ -500,6 +516,32 @@ function convertDecToText(){
     return;
   }
 
+  var useEntity = (getSeparator() === '&#');
+  if(useEntity){
+    var refs = decStr.match(/&#(\d+);/g) || [];
+    var leftover = decStr.replace(/&#(\d+);/g, '').replace(/\s+/g, '');
+    if(!refs.length || leftover){
+      document.getElementById('outputText').value = '';
+      document.getElementById('outputText').placeholder = tdMsg('转换失败：请只输入 &#数字; 形式的 HTML 字符引用（可含空白）','Conversion failed: enter only &#number; HTML character references (whitespace allowed)');
+      return;
+    }
+    try{
+      var outText = '';
+      refs.forEach(function(ref){
+        var cp = parseInt(ref.slice(2, -1), 10);
+        if(cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) throw new Error(tdMsg('非法 Unicode 码点 '+cp+'（代理项或超出 U+10FFFF）','Invalid Unicode code point '+cp+' (surrogate or beyond U+10FFFF)'));
+        outText += String.fromCodePoint(cp);
+      });
+      document.getElementById('outputText').value = outText;
+      document.getElementById('outputText').placeholder = '转换后的文本...';
+      updateStats(outText.length, refs.length, refs.length);
+      addToHistory(decStr, outText, 'dec2text');
+    }catch(e){
+      document.getElementById('outputText').value = '';
+      document.getElementById('outputText').placeholder = tdMsg('转换失败：'+e.message,'Conversion failed: '+e.message);
+    }
+    return;
+  }
   try{
     var bytes = decimalToBytes(decStr);
     if(bytes === null){
@@ -863,7 +905,7 @@ else document.addEventListener('DOMContentLoaded', __text_to_decimalBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -871,7 +913,7 @@ else document.addEventListener('DOMContentLoaded', __text_to_decimalBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

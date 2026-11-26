@@ -145,16 +145,16 @@
 
     <div class="input-row">
       <label for="len">长度</label>
-      <input type="number" id="len" value="32" min="4" max="256" style="flex:1" placeholder="如 32（4–256）">
+      <input type="number" id="len" value="32" min="4" max="256" style="flex:1" placeholder="如 32（4–256）" oninput="invalidateTokens()">
       <label for="count">数量</label>
-      <input type="number" id="count" value="1" min="1" max="20" style="flex:1" placeholder="如 1（1–20）">
+      <input type="number" id="count" value="1" min="1" max="20" style="flex:1" placeholder="如 1（1–20）" oninput="invalidateTokens()">
     </div>
     <div class="input-row" style="align-items:center;">
       <span style="white-space:nowrap;font-size:13px;">字符集：</span>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="ch_upper" checked> A-Z</label>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="ch_lower" checked> a-z</label>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="ch_digit" checked> 0-9</label>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="ch_sym"> !@#$%^&*</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="ch_upper" checked onchange="invalidateTokens()"> A-Z</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="ch_lower" checked onchange="invalidateTokens()"> a-z</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="ch_digit" checked onchange="invalidateTokens()"> 0-9</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="ch_sym" onchange="invalidateTokens()"> !@#$%^&*</label>
     </div>
     <div class="result-box" id="result"></div> <div id="token_generatorTable"></div> <div id="token_generatorDiff"></div> <div id="token_generatorChart"></div> <div id="token_generatorHist"></div>
     <div id="tokList" style="font-size:13px;line-height:2;font-family:'SF Mono','Courier New',monospace;word-break:break-all;"></div>
@@ -290,13 +290,26 @@
 <script>
 var SETS={upper:'ABCDEFGHIJKLMNOPQRSTUVWXYZ',lower:'abcdefghijklmnopqrstuvwxyz',digit:'0123456789',sym:'!@#$%^&*()-_=+[]{};:,.?/~'};
 var toks=[];
+function tokenIsEn(){return (typeof TBKit!=='undefined'&&TBKit.util.isEn());}
+function tokenClearResult(msg){
+  toks=[];
+  var list=document.getElementById('tokList'); if(list) list.innerHTML='';
+  var out=document.getElementById('result'); if(out && msg){
+    out.innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';
+    if((typeof out.innerHTML==='number'&&!isFinite(out.innerHTML))||/Infinity/.test(String(out.innerHTML))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(out.innerHTML)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}
+  }
+}
+function invalidateTokens(){
+  // 第802批：配置变化后旧 Token 不再代表当前设置，立即清空，避免误复制
+  tokenClearResult(tokenIsEn()?'Settings changed. Generate again.':'配置已更改，请重新生成。');
+}
 function gen(){
   var len=parseInt(document.getElementById('len').value)||32;if(len<4)len=4;if(len>256)len=256;
   var n=parseInt(document.getElementById('count').value)||1;if(n<1)n=1;if(n>20)n=20;
   var chars='';
   ['upper','lower','digit','sym'].forEach(function(k){if(document.getElementById('ch_'+k).checked)chars+=SETS[k];});
   var out=document.getElementById('result');
-  if(!chars){const __h0='<p style="color:var(--danger)">请至少选择一种字符集</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
+  if(!chars){tokenClearResult(tokenIsEn()?'Select at least one character set.':'请至少选择一种字符集');return;}
   var rnd=new Uint32Array(Math.max(len,1));
   toks=[];
   for(var j=0;j<n;j++){
@@ -310,8 +323,19 @@ function gen(){
   }).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('tokList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('tokList').innerHTML=__h1;
   const __h2='<p>已生成 <strong>'+n+'</strong> 个 · <strong>'+len+'</strong> 位（信息熵 ≈ <strong>'+Math.round(len*Math.log2(chars.length))+'</strong> bit）</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
 }
-function copyOne(i){ToolBox.copyText(toks[i]);if(ToolBox.showToast)ToolBox.showToast('已复制第 '+(i+1)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" items":" 个"));}
-function copyAll(){if(!toks.length){if(ToolBox.showToast)ToolBox.showToast(i18nText());return;}ToolBox.copyText(toks.join('\n'));if(ToolBox.showToast)ToolBox.showToast('已复制全部 '+toks.length+' 个');}
+function copyOne(i){
+  if(!toks[i]) return;
+  ToolBox.copyText(toks[i]);
+  if(ToolBox.showToast)ToolBox.showToast(tokenIsEn()?'Copied token '+(i+1):'已复制第 '+(i+1)+' 个');
+}
+function copyAll(){
+  if(!toks.length){
+    if(ToolBox.showToast)ToolBox.showToast(tokenIsEn()?'Generate tokens first.':'请先生成 Token。');
+    return;
+  }
+  ToolBox.copyText(toks.join('\n'));
+  if(ToolBox.showToast)ToolBox.showToast(tokenIsEn()?'Copied all '+toks.length+' tokens':'已复制全部 '+toks.length+' 个');
+}
 
 var __token_generator_last=0,__token_generator_skip=false;
 function __token_generatorSnap(){

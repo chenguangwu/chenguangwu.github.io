@@ -108,7 +108,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="核算/分析/控制">Classify and analyze product costs, separate fixed from variable cost thresholds and produce descriptive cost statistics.</p>
 <div class="formula-box">
   <div class="formula-title">📐 计算公式</div>
-  <div class="formula-eq">单位完全成本 = 单位变动成本 + 固定制造费用 ÷ 产量；保本量 = 固定成本总额 ÷ 单位边际贡献</div>
+  <div class="formula-eq">单位完全成本 = 单位变动成本 + 固定制造费用 ÷ 产量；理论保本量 = 固定成本总额 ÷ 单位边际贡献；不可拆分商品的最少整数件数 = ⌈理论保本量⌉，最低销售额按整数件数 × 单价计算。成本字段空白不等于 0；目标毛利率须在 0%（含）到 100%（不含）之间。</div>
   <p class="formula-desc" data-zh="按「吸收成本法」归集：直接材料、直接人工与变动制造费用随产量变动，固定制造费用按当期产量分摊。与其配套的边际贡献分析把成本重新划分为变动与固定两部分，单位边际贡献等于单价减单位变动成本，用它除以全部固定成本即得盈亏平衡产量。两种口径并列输出，便于对比「账面完全成本」与「决策相关成本」的差异。所有计算在本地浏览器完成。"></p>
 </div>
 
@@ -229,47 +229,44 @@
 <script>
 function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
 function calc(){
-  var qty=parseFloat(document.getElementById("qty").value);
-  var mat=parseFloat(document.getElementById("mat").value)||0;
-  var lab=parseFloat(document.getElementById("lab").value)||0;
-  var vmoh=parseFloat(document.getElementById("vmoh").value)||0;
-  var fmoh=parseFloat(document.getElementById("fmoh").value)||0;
-  var vsale=parseFloat(document.getElementById("vsale").value)||0;
-  var fsale=parseFloat(document.getElementById("fsale").value)||0;
-  var price=parseFloat(document.getElementById("price").value);
-  var gm=parseFloat(document.getElementById("gm").value);
-  if(!(qty>0)||!isFinite(price)){document.getElementById("res").innerHTML='<p>请填写有效的当期产量与单位售价</p>';return;}
-  if(!isFinite(gm)||gm<0||gm>=100){gm=0;}
-  var mfgVar=mat+lab+vmoh;
-  var vcAll=mfgVar+vsale;
-  var unitFixed=fmoh/qty;
-  var uc=mfgVar+unitFixed;
-  var cm=price-vcAll;
-  var cmRate=price>0?cm/price*100:null;
-  var fixedAll=fmoh+fsale;
-  var beQty=cm>0?fixedAll/cm:null;
-  var beAmt=beQty!==null?beQty*price:null;
+  var __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/.test(location.search);
+  var raw=function(id){var e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+  var ids=['qty','mat','lab','vmoh','fmoh','vsale','fsale','price','gm'];
+  var empty=ids.filter(function(id){return raw(id)==='';});
+  if(empty.length){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 请填写全部字段；空白不等于 0。</p>';return;}
+  var qty=Number(raw('qty')),mat=Number(raw('mat')),lab=Number(raw('lab')),vmoh=Number(raw('vmoh')),fmoh=Number(raw('fmoh')),vsale=Number(raw('vsale')),fsale=Number(raw('fsale')),price=Number(raw('price')),gm=Number(raw('gm'));
+  var costs=[mat,lab,vmoh,fmoh,vsale,fsale];
+  if(!isFinite(qty)||!isFinite(price)||!isFinite(gm)||costs.some(function(x){return !isFinite(x);})){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 所有输入须为有限数。</p>';return;}
+  if(qty<=0){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 当期产量须大于 0。</p>';return;}
+  if(price<=0){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 单位售价须大于 0。</p>';return;}
+  if(costs.some(function(x){return x<0;})){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 成本与费用不能为负。</p>';return;}
+  if(gm<0||gm>=100){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 目标毛利率须在 0%（含）到 100%（不含）之间。</p>';return;}
+  var mfgVar=mat+lab+vmoh, vcAll=mfgVar+vsale, unitFixed=fmoh/qty, uc=mfgVar+unitFixed;
+  var cm=price-vcAll, cmRate=price>0?cm/price*100:null;
+  var fixedAll=fmoh+fsale, beQty=cm>0?fixedAll/cm:null, beUnits=beQty!==null?Math.ceil(beQty):null;
+  var beAmt=beQty!==null?beQty*price:null, beAmtUnits=beUnits!==null?beUnits*price:null;
   var mos=(beQty!==null&&qty>0)?(qty-beQty)/qty*100:null;
-  var cmTotal=cm*qty;
-  var profit=cmTotal-fixedAll;
-  var unitProfit=price-uc;
-  var targetPrice=uc/(1-gm/100);
-  var verdict=cm>0?'单位边际贡献为正，超出保本量的部分即为利润':'单位边际贡献不为正，卖得越多亏损越大，应优先提价或压缩单位变动成本';
-  var html='<p>单位变动制造成本：<strong>'+fmt(mfgVar,2)+' 元</strong></p>'+
-    '<p>单位固定制造费用分摊：<strong>'+fmt(unitFixed,2)+' 元</strong></p>'+
-    '<p>单位完全成本（吸收成本法）：<strong style="color:var(--primary);">'+fmt(uc,2)+' 元</strong></p>'+
-    '<p>全部单位变动成本（含变动销售费用）：<strong>'+fmt(vcAll,2)+' 元</strong></p>'+
-    '<p>边际贡献总额：<strong>'+fmt(cmTotal,2)+' 元</strong></p>'+
-    '<p>单位边际贡献：<strong>'+fmt(cm,2)+' 元</strong></p>'+
-    '<p>边际贡献率：<strong>'+(cmRate!==null?fmt(cmRate,2)+'%':'—')+'</strong></p>'+
-    '<p>盈亏平衡产量：<strong>'+(beQty!==null?fmt(beQty,0)+' 件':'—')+'</strong></p>'+
-    '<p>盈亏平衡销售额：<strong>'+(beAmt!==null?fmt(beAmt,2)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元"):'—')+'</strong></p>'+
-    '<p>安全边际率：<strong>'+(mos!==null?fmt(mos,2)+'%':'—')+'</strong></p>'+
-    '<p>当期营业利润：<strong style="color:var(--primary);">'+fmt(profit,2)+' 元</strong></p>'+
-    '<p>单位毛利（售价 − 单位完全成本）：<strong>'+fmt(unitProfit,2)+' 元</strong></p>'+
-    '<p>按目标毛利率 '+fmt(gm,0)+'% 的建议售价：<strong>'+fmt(targetPrice,2)+' 元</strong></p>'+
-    '<p>判读：<strong>'+verdict+'</strong></p>';
-  const __g1=html;document.getElementById("res").innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  var cmTotal=cm*qty, profit=cmTotal-fixedAll, unitProfit=price-uc, targetPrice=uc/(1-gm/100);
+  var verdict=cm>0?(__en?'Unit contribution is positive; profit starts beyond the break-even quantity.':'单位边际贡献为正，超出保本量的部分即为利润'):(__en?'Unit contribution is not positive; selling more increases losses, so raise price or cut unit variable cost.':'单位边际贡献不为正，卖得越多亏损越大，应优先提价或压缩单位变动成本');
+  var U=__en?' CNY':' 元', P=__en?' pcs':' 件';
+  var html='<p>'+(__en?'Unit variable manufacturing cost: ':'单位变动制造成本：')+'<strong>'+fmt(mfgVar,2)+U+'</strong></p>'+
+    '<p>'+(__en?'Unit fixed manufacturing overhead: ':'单位固定制造费用分摊：')+'<strong>'+fmt(unitFixed,2)+U+'</strong></p>'+
+    '<p>'+(__en?'Unit full cost (absorption costing): ':'单位完全成本（吸收成本法）：')+'<strong style="color:var(--primary);">'+fmt(uc,2)+U+'</strong></p>'+
+    '<p>'+(__en?'Total unit variable cost (incl. variable selling): ':'全部单位变动成本（含变动销售费用）：')+'<strong>'+fmt(vcAll,2)+U+'</strong></p>'+
+    '<p>'+(__en?'Total contribution margin: ':'边际贡献总额：')+'<strong>'+fmt(cmTotal,2)+U+'</strong></p>'+
+    '<p>'+(__en?'Unit contribution margin: ':'单位边际贡献：')+'<strong>'+fmt(cm,2)+U+'</strong></p>'+
+    '<p>'+(__en?'Contribution margin ratio: ':'边际贡献率：')+'<strong>'+(cmRate!==null?fmt(cmRate,2)+'%':'—')+'</strong></p>'+
+    '<p>'+(__en?'Break-even quantity (theoretical, divisible): ':'盈亏平衡产量（理论，可分割）：')+'<strong>'+(beQty!==null?fmt(beQty,2)+P:'—')+'</strong></p>'+
+    '<p>'+(__en?'Minimum whole units (indivisible): ':'盈亏平衡最少整数件数（不可拆分）：')+'<strong>'+(beUnits!==null?beUnits+P:'—')+'</strong></p>'+
+    '<p>'+(__en?'Minimum sales at whole units: ':'按整数件数的最低销售额：')+'<strong>'+(beAmtUnits!==null?fmt(beAmtUnits,2)+U:'—')+'</strong></p>'+
+    '<p>'+(__en?'Theoretical maximum sales (unrounded): ':'理论上限销售额（未取整）：')+'<strong>'+(beAmt!==null?fmt(beAmt,2)+U:'—')+'</strong></p>'+
+    '<p>'+(__en?'Margin of safety ratio: ':'安全边际率：')+'<strong>'+(mos!==null?fmt(mos,2)+'%':'—')+'</strong></p>'+
+    '<p>'+(__en?'Operating profit for the period: ':'当期营业利润：')+'<strong style="color:var(--primary);">'+fmt(profit,2)+U+'</strong></p>'+
+    '<p>'+(__en?'Unit gross profit (price − unit full cost): ':'单位毛利（售价 − 单位完全成本）：')+'<strong>'+fmt(unitProfit,2)+U+'</strong></p>'+
+    '<p>'+(__en?'Suggested price at target gross margin '+fmt(gm,0)+'%: ':'按目标毛利率 '+fmt(gm,0)+'% 的建议售价：')+'<strong>'+fmt(targetPrice,2)+U+'</strong></p>'+
+    '<p>'+(__en?'Reading: ':'判读：')+'<strong>'+verdict+'</strong></p>'+
+    '<p style="font-size:13px;color:var(--text-muted);">'+(__en?'The theoretical intersection can be fractional; indivisible goods must round up, and only sales at whole units fully cover fixed cost.':'理论交点为小数件数；不可拆分商品须向上取整，按整数件数计算的最低销售额才足以覆盖固定成本。')+'</p>';
+  document.getElementById('res').innerHTML=html;
 }
 calc();function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>

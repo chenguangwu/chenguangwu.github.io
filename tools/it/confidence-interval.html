@@ -141,7 +141,7 @@ table{font-size:12px;}
 <h2 data-zh="📊 置信区间计算">📊 Confidence Interval</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">置信区间 CI = x̄ ± 临界值 × 标准差÷√n；t 分布使用样本标准差 s（自由度 n−1），z 分布在总体标准差 σ 已知时使用 σ，或在大样本时用 s 近似。自动模式在 n &lt;30 时用 t，否则用 z 近似；df &gt;120 时 t 值按 z 近似，其余按 t 表最近自由度线性内插。样本量 n 必须是 ≥1 的整数且标准差 &gt;0；t 分布要求 n ≥2。n = 1 时只能输入已知的总体标准差并手动选择 z。</div>
+      <div class="formula-eq">置信区间 CI = x̄ ± 临界值 × 标准差÷√n；t 分布使用样本标准差 s（自由度 n−1），z 分布应使用已知总体标准差 σ。自动模式：标准差来源选「已知总体 σ」时用 z；选「样本 s（σ 未知）」时用 t（大样本也可用 t，不再仅凭 n≥30 自动切 z）。若 σ 未知仍手动选 z，则属于「以 s 近似 σ」的近似区间，结果会标注近似。df &gt;120 时 t 临界值按 z 近似，其余按 t 表最近自由度线性内插。样本量 n 必须是 ≥1 的整数且标准差 &gt;0；t 分布要求 n ≥2。n = 1 时只能输入已知总体 σ 并选择 z 或把来源设为总体 σ。</div>
     </div>
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基于正态分布(z)或 t 分布计算均值的置信区间">Confidence Interval</p>
 
@@ -161,9 +161,15 @@ table{font-size:12px;}
    <option value="0.999">99.9%</option>
   </select>
  </div>
+ <div><label for="stdType">标准差来源</label>
+  <select id="stdType" onchange="calc()">
+   <option value="sample" selected>样本标准差 s（总体 σ 未知）</option>
+   <option value="population">已知总体标准差 σ</option>
+  </select>
+ </div>
  <div><label for="dist">分布类型</label>
   <select id="dist" onchange="calc()">
-   <option value="auto" selected>自动(n≥30 用 z,n<30 用 t)</option>
+   <option value="auto" selected>自动（σ 已知→z；σ 未知→t）</option>
    <option value="z">正态分布 z</option>
    <option value="t">t 分布</option>
   </select>
@@ -187,7 +193,7 @@ table{font-size:12px;}
 
 <div class="info-box" style="margin-top:12px;">
  💡 总体标准差 σ 已知时可输入 σ 并选 z；σ 未知时输入样本标准差 s，使用 t 分布（自由度 df=n-1）。<br>
- 自动模式在 n≥30 时用 z 近似；小样本 t 区间假设总体近似正态。<br>
+ 自动模式依据「标准差来源」选择：总体 σ 已知用 z，σ 未知用 t（大样本也用 t）；手动选 z 但 σ 未知时会标注为近似。t 区间假设总体近似正态。<br>
  置信水平越高,区间越宽。
 </div>
 
@@ -363,6 +369,8 @@ function calc(){
  const n = numVal('n');
  const conf = +document.getElementById('conf').value;
  const distChoice = document.getElementById('dist').value;
+ const stdTypeEl = document.getElementById('stdType');
+ const stdType = stdTypeEl ? stdTypeEl.value : 'sample';
  if([mean,std,n].some(isNaN) || !Number.isInteger(n) || n < 1 || std <= 0){
   document.getElementById('ci').textContent = '[ 输入无效 ]';
   document.getElementById('ci-label').textContent = '请填写均值、标准差与样本量（n 为 ≥ 1 的整数、s > 0）';
@@ -372,7 +380,10 @@ function calc(){
  }
  const alphaHalf = ALPHA_HALF[conf];
  const z = Z_TABLE[conf];
- const useT = distChoice === 't' || (distChoice === 'auto' && n < 30);
+ // 自动模式按「标准差来源」选分布：σ 已知→z；σ 未知（样本 s）→t。
+ // 不再仅凭 n>=30 自动切 z：总体 σ 未知时大样本 z 只是 s 近似 σ，必须由用户显式选择。
+ const useT = distChoice === 't' || (distChoice === 'auto' && stdType !== 'population');
+ const zApprox = !useT && stdType !== 'population';
  // IT-N376：t 分布自由度 df = n−1 必须 ≥ 1。n = 1 时 df = 0、t 临界值不存在，
  // 旧实现继续算并把 NaN 洗成「—」，输出「[ — , — ]」这类无效结果。此处明确拒绝。
  if(useT && n < 2){
@@ -390,11 +401,12 @@ function calc(){
 
  const __g2=`[ ${lower.toFixed(3)} , ${upper.toFixed(3)} ]`;document.getElementById('ci').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
  const en = (document.documentElement.lang || '').toLowerCase().startsWith('en');
- const __g3=en ? `${conf*100}% confidence interval · ${useT?'t distribution':'z distribution'} · critical value=${critical.toFixed(3)}` : `${conf*100}% 置信区间 · ${useT?'t 分布':'z 分布'} · 临界值=${critical.toFixed(3)}`;document.getElementById('ci-label').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+ const __g3=(en ? `${conf*100}% confidence interval · ${useT?'t distribution':'z distribution'} · critical value=${critical.toFixed(3)}` : `${conf*100}% 置信区间 · ${useT?'t 分布':'z 分布'} · 临界值=${critical.toFixed(3)}`) + (useT ? (en?' · df='+(n-1):' · 自由度 df='+(n-1)) : (stdType==='population' ? (en?' · population sigma known':' · 总体 σ 已知') : (en?' · approximate: sigma unknown, using sample s':' · 近似：总体 σ 未知，以样本 s 代替')));document.getElementById('ci-label').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
  const __g4=`
  x̄ = ${mean}, ${en?'standard deviation':'标准差'} = ${std}, n = ${n}<br>
  ${en?'Standard error':'标准误'} SE = ${en?'standard deviation':'标准差'}/√n = ${std}/√${n} = ${se.toFixed(4)}<br>
+ ${useT ? (en?'Degrees of freedom':'自由度')+' df = n−1 = '+(n-1)+'<br>' : (stdType==='population' ? (en?'Assumption: population σ is known':'前提：总体 σ 已知')+'<br>' : (en?'Assumption: σ unknown; sample s used as an approximation':'前提：总体 σ 未知，以样本 s 近似 σ')+'<br>')}
  ${en?'Critical value':'临界值'} ${useT?'t'+(conf===0.95?'(0.025,'+(n-1)+')':''):'z'} = ${critical.toFixed(3)}<br>
  ${en?'Margin of error':'边际误差'} ME = ${critical.toFixed(3)} × ${se.toFixed(4)} = ${me.toFixed(4)}<br>
  ${en?'Confidence interval':'置信区间'} = [${mean} - ${me.toFixed(4)}, ${mean} + ${me.toFixed(4)}]

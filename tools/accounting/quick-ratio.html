@@ -115,7 +115,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="速动比率剔除存货后的短期偿债能力。">Compute the quick ratio from current assets, inventory and current liabilities to assess short-term solvency excluding inventory.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">速动比率（本页代码口径）：速动比率=(流动资产−存货)÷流动负债；联动量：流动负债/流动资产比=流动负债÷流动资产、存货占流动资产比=存货÷流动资产×100（%）。校验：三字段经输入守卫必填且须为合法数值，否则提示并中止。判据：速动比率&gt;1 判「达标(&gt;1)」、其余（含恰好等于 1）判「偏低(&lt;1)」，页面另按目标 1.0 做达标缺口分析。</div>
+      <div class="formula-eq">速动比率（本页代码口径）：速动比率=(流动资产−存货)÷流动负债；联动量：流动负债÷流动资产、存货占流动资产×100（%）。校验：三项必填、有限非负，存货不得大于流动资产，流动负债为 0 时比率显示“不适用”。判据：&gt;1 为高于阈值、=1 为临界、&lt;1 为低于阈值；1.0 只是参考阈值。速动资产按“流动资产−存货”简化，未扣除预付、待摊等不具流动性项目。</div>
       <p class="formula-desc">速动比率剔除存货后的短期偿债能力。</p>
     </div>
 
@@ -276,15 +276,24 @@ function __tbInputGuardCore(_ids,_labels){
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['ca', 'inv', 'cl'],["流动资产 (元)", "存货 (元)", "流动负债 (元)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const ca=num('ca'),inv=num('inv'),cl=num('cl');
-            const __g2=dataGrid([
-                [((ca-inv)/cl).toFixed(2),'速动比率'],
-                [(((ca-inv)/cl)>1?'达标(>1)':'偏低(<1)'),'评价'],
-                [(cl/ca).toFixed(4), '流动负债/流动资产 比'],
-                [(inv/ca*100).toFixed(2), '存货占流动资产比 (%)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
-        }
+  const __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/.test(location.search);
+  const __raw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+  for(const id of ['ca','inv','cl']){if(__raw(id)===''){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'Fill in current assets, inventory and current liabilities. Blank is not 0.':'请填写流动资产、存货与流动负债；空白不等于 0。')+'</p>');return;}}
+  const ca=Number(__raw('ca')),inv=Number(__raw('inv')),cl=Number(__raw('cl'));
+  if(!Number.isFinite(ca)||!Number.isFinite(inv)||!Number.isFinite(cl)){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'All fields must be finite numbers.':'三个字段均须为有限数。')+'</p>');return;}
+  if(ca<0||inv<0||cl<0){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'Assets and liabilities cannot be negative.':'资产与负债金额不能为负。')+'</p>');return;}
+  if(inv>ca){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'Inventory cannot exceed current assets; quick assets would be negative.':'存货不能大于流动资产，否则速动资产为负。')+'</p>');return;}
+  if(cl===0){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'Current liabilities are 0: the quick ratio is not defined.':'流动负债为 0，速动比率无定义。')+'</p>');return;}
+  const ratio=(ca-inv)/cl;
+  const ev=ratio>1?(__en?'Above 1':'高于 1'):(ratio<1?(__en?'Below 1':'低于 1'):(__en?'Equal to 1 (threshold)':'等于 1（临界）'));
+  const __g2=dataGrid([
+    [ratio.toFixed(2),__en?'Quick ratio':'速动比率'],
+    [ev,__en?'Assessment (reference only)':'评价（仅参考）'],
+    [(cl/ca).toFixed(4),__en?'Current liabilities ÷ current assets':'流动负债÷流动资产'],
+    [(inv/ca*100).toFixed(2),__en?'Inventory share of current assets (%)':'存货占流动资产比 (%)']
+  ])+'<p style="margin-top:8px;font-size:13px;color:var(--text-muted);">'+(__en?'Quick assets = current assets − inventory. Prepayments and other non-quick items are not deducted; 1.0 is a reference threshold, not a universal rule.':'速动资产按“流动资产−存货”简化，未扣除预付、待摊等不具流动性的项目；1.0 仅为参考阈值，不是普适结论。')+'</p>';
+  ToolBox.setResult('result',__g2);
+}
 function resetForm(){document.getElementById('ca').value = '3000000';
       document.getElementById('inv').value = '800000';
       document.getElementById('cl').value = '1500000';
@@ -320,13 +329,44 @@ calcTool();
 <div class="dd-example"><div class="dd-ex-title">计算速动比率</div><div class="dd-ex-body">某公司流动资产 800 万元（其中存货 300 万元）、流动负债 400 万元，速动比率=(800−300)/400=1.25，即不含存货的速动资产仍覆盖 1.25 倍短期负债。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>速动资产包含哪些？</dt><dd>通常包括货币资金、交易性金融资产、应收账款等可快速变现资产；保守口径还会剔除变现不确定的应收款项。</dd>
-<dt>速动比率一定要≥1 吗？</dt><dd>≥1 表示速动资产足以覆盖短期负债，较安全；但强现金流行业（如快消）可低于 1 仍无忧，需结合回款速度看。</dd>
+<dt>速动资产包含哪些？</dt><dd>通常包括货币资金、交易性金融资产、应收账款等可快速变现资产；本页按“流动资产−存货”简化，未扣除预付、待摊等不具流动性的项目。</dd>
+<dt>速动比率一定要≥1 吗？</dt><dd>1.0 只是参考阈值：&gt;1 为高于阈值、=1 为临界、&lt;1 为低于阈值；强现金流行业可低于 1 仍无忧，需结合回款速度看。</dd>
+<dt>流动负债为 0 时怎么显示？</dt><dd>分母为 0，速动比率无定义，页面显示不适用；不能把零负债当作达标。</dd>
 </dl>
 </div>
 </section>
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "速动资产包含哪些？", "acceptedAnswer": {"@type": "Answer", "text": "通常包括货币资金、交易性金融资产、应收账款等可快速变现资产；保守口径还会剔除变现不确定的应收款项。"}}, {"@type": "Question", "name": "速动比率一定要≥1 吗？", "acceptedAnswer": {"@type": "Answer", "text": "≥1 表示速动资产足以覆盖短期负债，较安全；但强现金流行业（如快消）可低于 1 仍无忧，需结合回款速度看。"}}]}</script>
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "速动资产包含哪些？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "通常包括货币资金、交易性金融资产、应收账款等可快速变现资产；本页按“流动资产−存货”简化，未扣除预付、待摊等不具流动性的项目。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "速动比率一定要≥1 吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "1.0 只是参考阈值：>1 为高于阈值、=1 为临界、<1 为低于阈值；强现金流行业可低于 1 仍无忧，需结合回款速度看。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "流动负债为 0 时怎么显示？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "分母为 0，速动比率无定义，页面显示不适用；不能把零负债当作达标。"
+      }
+    }
+  ]
+}
+</script>
 <script>
 function __quick_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __quick_ratioExtras(){
@@ -334,14 +374,17 @@ function __quick_ratioExtras(){
     if (typeof TBKit === 'undefined') return;
     var ca=num('ca'),inv=num('inv'),cl=num('cl');
     if (!isFinite(__quick_ratioNum('ca')) || !isFinite(__quick_ratioNum('inv')) || !isFinite(__quick_ratioNum('cl'))) return;
+    if(ca<0||inv<0||cl<0||inv>ca) return;
     var en=TBKit.util.isEn();
+    var ratio=cl===0?null:(ca-inv)/cl;
+    var ev=ratio===null?(en?'Not applicable (liabilities = 0)':'不适用（流动负债为 0）'):(ratio>1?(en?'Above 1':'高于 1'):(ratio<1?(en?'Below 1':'低于 1'):(en?'Equal to 1 (threshold)':'等于 1（临界）')));
     TBKit.matrix.table('#quick_ratioTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['速动比率', ((ca-inv)/cl).toFixed(2)],
-            ['评价', (((ca-inv)/cl)>1?'达标(>1)':'偏低(<1)')],
-            ['流动负债/流动资产 比', (cl/ca).toFixed(4)],
-            ['存货占流动资产比 (%)', (inv/ca*100).toFixed(2)],
+            [en?'Quick ratio':'速动比率', ratio===null?(en?'Not applicable (liabilities = 0)':'不适用（流动负债为 0）'):ratio.toFixed(2)],
+            [en?'Assessment (reference only)':'评价（仅参考）', ev],
+            [en?'Current liabilities ÷ current assets':'流动负债÷流动资产', ca===0?'—':(cl/ca).toFixed(4)],
+            [en?'Inventory share of current assets (%)':'存货占流动资产比 (%)', ca===0?'—':(inv/ca*100).toFixed(2)],
         ]
     });
     // 流动性构成图：速动资产 vs 存货 vs 流动负债

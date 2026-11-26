@@ -1102,6 +1102,43 @@
   /* ============================ 历史记录 ============================ */
 
   var history = {};
+
+  // 双历史清理：不少页面同时保留旧版 tb_history_* 面板与共享 TBKit.history 面板，
+  // 两个「清空」各删各的键，用户会误以为该工具历史已全部删除。
+  // 在本页读取/删除旧键时登记归属，任一侧清空都同步清掉另一侧；只处理本页实际访问
+  // 过的旧键，不按前缀全量删除，避免误删其他工具数据。
+  var _legacyHistKeys = {};
+  function _markLegacyHistKey(k) {
+    if (typeof k === 'string' && k.indexOf('tb_history_') === 0) _legacyHistKeys[k] = 1;
+  }
+  (function patchStorageHistoryClear() {
+    try {
+      var proto = window.Storage && Storage.prototype;
+      if (!proto || proto.__tbHistClearPatched) return;
+      proto.__tbHistClearPatched = true;
+      var rawGet = proto.getItem, rawRemove = proto.removeItem;
+      proto.getItem = function (k) {
+        _markLegacyHistKey(k);
+        return rawGet.call(this, k);
+      };
+      proto.removeItem = function (k) {
+        _markLegacyHistKey(k);
+        rawRemove.call(this, k);
+        if (typeof k === 'string' && k.indexOf('tb_history_') === 0) {
+          try { rawRemove.call(this, hkey()); } catch (e) {}
+        }
+        return undefined;
+      };
+    } catch (e) {}
+  })();
+
+  function _clearLegacyHist() {
+    var ks = Object.keys(_legacyHistKeys);
+    for (var i = 0; i < ks.length; i++) {
+      try { localStorage.removeItem(ks[i]); } catch (e) {}
+    }
+  }
+
   function hkey() {
     try { return 'tbk_hist_' + (location.pathname || 'p'); } catch (e) { return 'tbk_hist_p'; }
   }
@@ -1116,6 +1153,7 @@
 
   history.clear = function () {
     try { localStorage.removeItem(hkey()); } catch (e) {}
+    _clearLegacyHist();
   };
 
   // AI-N5：情感分析/文本摘要两个页面已下架，但其历史键仍可能残留在老用户浏览器里
@@ -1136,8 +1174,36 @@
    * coalesceMs > 0 时，若上一条记录在 coalesceMs 毫秒内，则覆盖它而不是新增一条
    * ——多输入表单每改一个控件就重算一次，不合并会把一次评估拆成 N 条垃圾记录。
    */
+  // 历史快照的空字段：页面 Snap() 只写入非空值，恢复时若只遍历 record 的键，
+  // 旧记录中原本为空的字段不会被清空，后来输入会污染恢复结果（2026-11-24 扫描 3043 页）。
+  // 在写入时记录本页所有空控件 id，恢复前统一清空；字段列表存 __tbEmpty，不参与展示/对比。
+  function _tbBlankFields(ids) {
+    for (var i = 0; i < ids.length; i++) {
+      var e = document.getElementById(ids[i]);
+      if (!e) continue;
+      var t = (e.type || '').toLowerCase();
+      if (t === 'checkbox' || t === 'radio') e.checked = false;
+      else e.value = '';
+    }
+  }
+  function _tbEmptyFieldIds() {
+    var out = [];
+    try {
+      var els = document.querySelectorAll('input[id],select[id],textarea[id]');
+      for (var i = 0; i < els.length; i++) {
+        var e = els[i], t = (e.type || '').toLowerCase();
+        if (t === 'button' || t === 'submit' || t === 'hidden' || e.disabled) continue;
+        if ((t === 'checkbox' || t === 'radio') && !e.checked) out.push(e.id);
+        else if (t !== 'checkbox' && t !== 'radio' && e.value.trim() === '') out.push(e.id);
+      }
+    } catch (e2) {}
+    return out;
+  }
   history.record = function (obj, coalesceMs) {
     if (!obj) return;
+    try {
+      obj.__tbEmpty = _tbEmptyFieldIds();
+    } catch (e0) {}
     try {
       var arr = history.list();
       if (coalesceMs && arr.length && (Date.now() - (arr[0].t || 0)) < coalesceMs) {
@@ -1181,6 +1247,7 @@
     if (i1 < 0) return null;
     var cur = a[i0].d, prev = a[i1].d, out = {};
     (fields || Object.keys(cur)).forEach(function (f) {
+      if (f.indexOf('__') === 0) return;
       if (typeof cur[f] === 'undefined' || typeof prev[f] === 'undefined') return;
       if (num(prev[f]) === num(cur[f])) return;
       out[f] = { from: num(prev[f]), to: num(cur[f]), delta: num(cur[f]) - num(prev[f]) };
@@ -1195,7 +1262,7 @@
   }
 
   /** 挂载历史面板；onPick 回调用于回填 */
-  history.mount = function (host, onPick, limit) {
+  history.mount = function (host, onPick, limit, onClear) {
     var box = $(host);
     if (!box) return null;
     var arr = history.list().slice(0, limit || 6);
@@ -1206,7 +1273,7 @@
     var t = el('span', {}); t.textContent = tt('hist');
     var clr = el('button', { type: 'button', class: 'tbk-link-btn', 'aria-label': isEn() ? 'Clear history' : '清空历史' });
     clr.textContent = tt('clear');
-    clr.addEventListener('click', function () { history.clear(); box.innerHTML = ''; });
+    clr.addEventListener('click', function () { history.clear(); try { if (typeof onClear === 'function') onClear(); } catch (e) {} box.innerHTML = ''; });
     hd.appendChild(t); hd.appendChild(clr);
     wrap.appendChild(hd);
     var ul = el('ul', { class: 'tbk-history-list' });
@@ -1224,11 +1291,32 @@
         // 对象字段（如把配置表整体存档）String() 后是 "[object Object]"，只保留数据供恢复、不参与展示。
         if (v == null || (typeof v === 'number' && !isFinite(v))) continue;
         if (typeof v === 'object' || typeof v === 'function') continue;
+        if (k.indexOf('__') === 0) continue;
         parts.push(k + ' ' + (typeof v === 'number' ? fmt(v) : v));
       }
       body.textContent = parts.join(' · ');
       btn.appendChild(when); btn.appendChild(body);
-      btn.addEventListener('click', function () { if (typeof onPick === 'function') { try { onPick(it.d); } catch (e) {} } });
+      btn.addEventListener('click', function () {
+        var d = it.d || {};
+        if (Array.isArray(d.__tbEmpty)) {
+          _tbBlankFields(d.__tbEmpty);
+        } else {
+          // 旧记录没有空字段清单：只能清空本页所有可编辑控件，避免旧空值被当前输入污染。
+          // 这是兼容路径，恢复时明确提示用户。
+          try {
+            var all = document.querySelectorAll('input[id],select[id],textarea[id]');
+            var ids = [];
+            for (var ai = 0; ai < all.length; ai++) {
+              var ae = all[ai], at = (ae.type || '').toLowerCase();
+              if (at === 'button' || at === 'submit' || at === 'hidden' || ae.disabled || at === 'search') continue;
+              ids.push(ae.id);
+            }
+            _tbBlankFields(ids);
+            if (window.ToolBox && ToolBox.showToast) ToolBox.showToast(isEn() ? 'Older record has no empty-field snapshot; page inputs were cleared before restore' : '该历史记录版本较旧，恢复前已清空本页输入', 'info');
+          } catch (e3) {}
+        }
+        if (typeof onPick === 'function') { try { onPick(d); } catch (e) {} }
+      });
       li.appendChild(btn);
       ul.appendChild(li);
     });

@@ -136,8 +136,16 @@
     </div>
 <div class="input-row">
       <div>
-        <label for="guests">宾客人数（人）</label>
+        <label for="guests">受邀宾客人数（人）</label>
         <input type="number" id="guests" value="120" step="1" min='1' placeholder="e.g. 120">
+      </div>
+      <div>
+        <label for="confirmed">已确认到场（人，可留空）</label>
+        <input type="number" id="confirmed" value="" step="1" min="0" placeholder="留空则按到场率估算">
+      </div>
+      <div>
+        <label for="rate">到场率（%）</label>
+        <input type="number" id="rate" value="90" step="1" min="0" max="100" placeholder="如 90">
       </div>
       <div>
         <label for="type">桌型</label>
@@ -291,41 +299,53 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function escH(s){var d=document.createElement('div');const __g0=s==null?'':String(s);d.textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function fmtMoney(n){if(!isFinite(n))n=0;return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){if(!rows||typeof rows.length!=='number')return '';let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){const guests=Math.floor(num('guests')), type=document.getElementById('type').value, backup=document.getElementById('backup').value;
-   if(guests<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的宾客人数。</p>');return;}
+function calcTool(){
+   var gRaw=String(document.getElementById('guests').value==null?'':document.getElementById('guests').value).trim();
+   var cRaw=String(document.getElementById('confirmed').value==null?'':document.getElementById('confirmed').value).trim();
+   var rRaw=String(document.getElementById('rate').value==null?'':document.getElementById('rate').value).trim();
+   var guests=gRaw===''?NaN:parseFloat(gRaw);
+   var confirmed=cRaw===''?NaN:parseFloat(cRaw);
+   var rate=rRaw===''?NaN:parseFloat(rRaw);
+   var type=document.getElementById('type').value, backup=document.getElementById('backup').value;
+   var errs=[];
+   if(!isFinite(guests)||guests<0)errs.push('受邀宾客人数须为非负数值');
+   if(cRaw!==''&&(!isFinite(confirmed)||confirmed<0))errs.push('已确认到场人数须为非负数或留空');
+   if(!isFinite(rate)||rate<0||rate>100)errs.push('到场率须在 0–100% 之间');
+   if(errs.length){ToolBox.setResult('result','<p class="tip-error">⚠ '+errs.join('；')+'。</p>');return;}
+   guests=Math.floor(guests);
+   if(guests<=0){ToolBox.setResult('result','<p class="tip-error">请输入大于 0 的受邀宾客人数。</p>');return;}
+   if(cRaw!==''&&confirmed>guests){ToolBox.setResult('result','<p class="tip-error">已确认到场人数不能大于受邀人数。</p>');return;}
    const perTable={round10:10,round12:12,square8:8,square10:10}[type]||10;
-   const typeName={round10:'圆桌 10 人',round12:'圆桌 12 人',square8:'方桌 8 人',square10:'方桌 10 人'}[type]||'圆桌 10 人';
-   const expect=Math.ceil(guests*0.9);
+   const expect=cRaw===''?Math.ceil(guests*rate/100):Math.floor(confirmed);
    const expectTables=Math.ceil(expect/perTable);
-   const mainTables=expectTables;
+   const fullTables=Math.ceil(guests/perTable);
    let backupN=0;
    if(backup==='small') backupN=1; else if(backup==='mid') backupN=2; else if(backup==='big') backupN=3;
-   const totalTables=mainTables+backupN;
-   const costRef=mainTables*1500; // 参考：普通酒店 1500/桌
-   const costMid=mainTables*3000; // 中档 3000/桌
+   const totalTables=expectTables+backupN;
+   const costRef=expectTables*1500, costMid=expectTables*3000;
    let html=dataGrid([
-     [mainTables+' 桌','基础桌数（按 90% 到场）'],
+     [expectTables+' 桌','按预计到场 '+expect+' 人订桌'],
+     [fullTables+' 桌','全部受邀 '+guests+' 人都到场'],
      [backupN+' 桌','备桌'],
      [totalTables+' 桌','合计预订桌数'],
-     ['约 '+expect+' 人','按 90% 到场率估算'],
+     ['约 '+expect+' 人','预计到场（'+(cRaw===''?('受邀 × '+rate+'%'):'已确认人数')+'）'],
      ['¥'+fmtMoney(costRef)+' 起','场地费参考（1500/桌）'],
-     ['¥'+fmtMoney(costMid)+' 起','中档场地（3000/桌）']
    ]);
    html += '<div style="margin-top:12px;font-size:13px;"><b>婚宴场地容纳参考</b></div>'+
      '<table class="csv-prev" style="margin-top:6px;border-collapse:collapse;width:100%;font-size:12.5px;">'+
-     '<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">场地</th>'+
-     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">可容纳</th>'+
-     '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">适合桌数</th></tr>'+
+     '<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">场地</th><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">可容纳</th><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">适合桌数</th></tr>'+
      '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">中小型宴会厅</td><td style="border:1px solid #d1d5db;padding:5px 8px;">100-200 人</td><td style="border:1px solid #d1d5db;padding:5px 8px;">10-20 桌</td></tr>'+
      '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">大型宴会厅</td><td style="border:1px solid #d1d5db;padding:5px 8px;">200-400 人</td><td style="border:1px solid #d1d5db;padding:5px 8px;">20-40 桌</td></tr>'+
      '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">酒店多功能厅</td><td style="border:1px solid #d1d5db;padding:5px 8px;">400-800 人</td><td style="border:1px solid #d1d5db;padding:5px 8px;">40-80 桌</td></tr>'+
      '</table>';
-   html += '<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+
-     '实际订桌建议按宾客确认到场数 +10% 弹性；桌数越多可谈折扣。费用为常见参考区间，以当地酒店报价为准。</div>';
-   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));}
+   html += '<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">按「预计到场」订基础桌，按「全部受邀到场」核对上限；备桌另计，可退规则以酒店为准。费用按基础桌估算，以当地报价为准。</div>';
+   ToolBox.setResult('result',html);
+}
 function resetForm(){document.getElementById('guests').value='120';
+      document.getElementById('confirmed').value='';
+      document.getElementById('rate').value='90';
       document.getElementById('type').selectedIndex=0;
-      document.getElementById('backup').selectedIndex=0;
+      document.getElementById('backup').selectedIndex=1;
       calcTool();}
 calcTool();
 
@@ -334,10 +354,15 @@ function __wedding_banquetExtras(){
     function __wedding_banquetRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var guests=Math.floor(num('guests')), type=document.getElementById('type').value, backup=document.getElementById('backup').value;
+    var cRaw=String(document.getElementById('confirmed').value==null?'':document.getElementById('confirmed').value).trim();
+    var rRaw=String(document.getElementById('rate').value==null?'':document.getElementById('rate').value).trim();
+    var rate=isFinite(parseFloat(rRaw))?parseFloat(rRaw):90;
+    var confirmed=cRaw===''?NaN:parseFloat(cRaw);
     var perTable={round10:10,round12:12,square8:8,square10:10}[type]||10;
     var typeName={round10:'圆桌 10 人',round12:'圆桌 12 人',square8:'方桌 8 人',square10:'方桌 10 人'}[type]||'圆桌 10 人';
-    var expect=Math.ceil(guests*0.9);
+    var expect=(cRaw===''?Math.ceil(guests*rate/100):Math.floor(confirmed));
     var expectTables=Math.ceil(expect/perTable);
+    var fullTables=Math.ceil(guests/perTable);
     var mainTables=expectTables;
     var backupN=0;
     if(backup==='small') backupN=1; else if(backup==='mid') backupN=2; else if(backup==='big') backupN=3;
@@ -349,9 +374,10 @@ function __wedding_banquetExtras(){
     TBKit.matrix.table('#wedding_banquetTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
+            ['全部受邀到场', fullTables+' 桌'],
             ['备桌', backupN+' 桌'],
             ['合计预订桌数', totalTables+' 桌'],
-            ['按 90% 到场率估算', '约 '+expect+' 人'],
+            ['按预计到场估算', '约 '+expect+' 人'],
             ['场地费参考（1500/桌）', '¥'+fmtMoney(costRef)+' 起'],
             ['中档场地（3000/桌）', '¥'+fmtMoney(costMid)+' 起'],
         ]

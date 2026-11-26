@@ -216,6 +216,7 @@ var hives = [];
 var extractions = [];
 
 // 蜜源流蜜日历数据
+function __honeyEn(){return /^en/i.test(document.documentElement.lang||'')||/[?&]lang=en/i.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
 var FLOW_CALENDAR = [
   { m: 1, name: '一月', flow: 'none', source: '休眠期', tip: '蜜蜂越冬期，注意保温和补饲，不宜摇蜜。确保巢内蜜量充足。' },
   { m: 2, name: '二月', flow: 'weak', source: '早花/梅花', tip: '少量早花蜜源，蜜蜂开始春繁，以繁殖为主，一般不摇蜜。检查蜂王产卵情况。' },
@@ -230,6 +231,20 @@ var FLOW_CALENDAR = [
   { m: 11, name: '十一月', flow: 'weak', source: '枇杷/野花', tip: '枇杷花等晚秋蜜源，蜜量不大。开始准备越冬，留足存蜜。' },
   { m: 12, name: '十二月', flow: 'none', source: '越冬期', tip: '蜜蜂进入越冬状态，不摇蜜。做好箱外保温，减少开箱打扰。' }
 ];
+var FLOW_EN = {
+ 1:{source:'Dormancy',tip:'Bees overwinter. Keep the hive warm and feed as needed; do not extract honey. Ensure ample stores.'},
+ 2:{source:'Early flowers / plum',tip:'A little early forage and spring buildup. Focus on brood rearing; usually no extraction. Check queen laying.'},
+ 3:{source:'Rapeseed',tip:'Rapeseed main flow. Prime extraction period with a 7–10 day cycle. Watch for swarming.'},
+ 4:{source:'Rapeseed / milk vetch',tip:'Late rapeseed and milk vetch with strong flow. Continue extracting and manage colonies to prevent swarming.'},
+ 5:{source:'Citrus / black locust',tip:'Citrus and black locust bloom with high-quality nectar. Extract about every 10 days and monitor forager strength.'},
+ 6:{source:'Jujube / Chinese tallow',tip:'Some areas have jujube or tallow flow, but heat reduces nectar. Cool hives and provide water.'},
+ 7:{source:'Summer dearth',tip:'Hot summer dearth in most areas. Focus on keeping colonies alive with shade, ventilation and sugar syrup.'},
+ 8:{source:'Summer dearth',tip:'Continued heat reduces bee activity. Keep shade and water, control mites and prepare autumn buildup.'},
+ 9:{source:'Sumac / autumn flowers',tip:'Autumn buildup begins with some sumac and autumn forage. Prioritize winter bees; extract cautiously.'},
+ 10:{source:'Camellia / buckwheat',tip:'Camellia and buckwheat autumn flow. Modest extraction is possible, but leave enough winter feed.'},
+ 11:{source:'Loquat / wildflowers',tip:'Late-autumn loquat and wildflower forage is limited. Prepare for winter and leave ample stores.'},
+ 12:{source:'Overwintering',tip:'Bees are overwintering; do not extract. Insulate the outside and minimize hive inspections.'}
+};
 
 function load() {
   try { hives = JSON.parse(localStorage.getItem(HIVES_KEY)) || []; } catch(e) { hives = []; }
@@ -330,10 +345,12 @@ function getDaysUntil(date) {
 }
 
 function renderHives() {
+  var en=__honeyEn();
   var list = document.getElementById('hiveList');
-  if (!hives.length) { const __h0='<div class="empty">暂无蜂箱，请先添加</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h0; return; }
+  if (!hives.length) { const __h0=(en?'<div class="empty">No hives yet. Add one first.</div>':'<div class="empty">暂无蜂箱，请先添加</div>');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h0; return; }
   var nowMonth = new Date().getMonth() + 1;
   var flow = getFlowStatus(nowMonth);
+  var flowEn = FLOW_EN[nowMonth] || {source: flow.source, tip: flow.tip};
   var html = '';
   hives.forEach(function(h) {
     var next = getNextExtraction(h);
@@ -341,28 +358,28 @@ function renderHives() {
     var last = getLastExtraction(h.id);
     var canExtract = flow.flow !== 'none';
     var badge = canExtract
-      ? '<span class="flow-badge flow-active">流蜜期</span>'
-      : '<span class="flow-badge flow-none">非流蜜期</span>';
+      ? '<span class="flow-badge flow-active">'+(en?'Nectar flow':'流蜜期')+'</span>'
+      : '<span class="flow-badge flow-none">'+(en?'No nectar flow':'非流蜜期')+'</span>';
     var dayColor = days <= 0 ? 'var(--danger)' : (days <= 3 ? 'var(--warning)' : 'var(--primary)');
-    var dayText = days <= 0 ? '已到摇蜜时间' : days + ' 天';
+    var dayText = days <= 0 ? (en?'Ready to extract':'已到摇蜜时间') : days + (en?' days':' 天');
     var totalAmount = extractions.filter(function(e){ return e.hiveId === h.id; }).reduce(function(a, b){ return a + b.amount; }, 0);
     html += '<div class="hive-card">';
     html += '<div class="hive-head"><span class="hive-name">🍯 ' + ToolBox.escHtml(h.name) + '</span><span class="hive-loc">📍 ' + ToolBox.escHtml(h.loc) + '</span></div>';
     html += '<div class="hive-info">';
-    html += '<span>周期：<b>' + h.cycle + '天</b></span>';
-    html += '<span>起始：<b>' + h.start + '</b></span>';
-    html += '<span>累计产蜜：<b>' + totalAmount.toFixed(1) + ' kg</b></span>';
+    html += '<span>'+(en?'Cycle: ':'周期：')+'<b>' + h.cycle + (en?' days':'天') + '</b></span>';
+    html += '<span>'+(en?'Started: ':'起始：')+'<b>' + h.start + '</b></span>';
+    html += '<span>'+(en?'Total honey: ':'累计产蜜：')+'<b>' + totalAmount.toFixed(1) + ' kg</b></span>';
     html += '<span>' + badge + '</span>';
     html += '</div>';
     html += '<div class="hive-info">';
-    html += '<span>上次摇蜜：<b>' + (last ? last.date : '尚未摇蜜') + '</b></span>';
-    html += '<span>下次摇蜜：<b>' + fmtDate(next) + '</b></span>';
+    html += '<span>'+(en?'Last extraction: ':'上次摇蜜：')+'<b>' + (last ? last.date : (en?'None yet':'尚未摇蜜')) + '</b></span>';
+    html += '<span>'+(en?'Next extraction: ':'下次摇蜜：')+'<b>' + fmtDate(next) + '</b></span>';
     html += '</div>';
-    html += '<div class="countdown-box"><span class="days" style="color:' + dayColor + ';">' + dayText + '</span><span style="color:var(--text-secondary);">' + (days <= 0 ? '建议尽快摇蜜' : '距离下次摇蜜') + '</span></div>';
+    html += '<div class="countdown-box"><span class="days" style="color:' + dayColor + ';">' + dayText + '</span><span style="color:var(--text-secondary);">' + (days <= 0 ? (en?'Extract soon':'建议尽快摇蜜') : (en?'Until next extraction':'距离下次摇蜜')) + '</span></div>';
     if (!canExtract) {
-      html += '<div class="tip-box tip-warn" style="margin-top:8px;">⚠️ 当前为非流蜜期(' + flow.source + ')，不建议摇蜜，以免影响蜂群越冬/度夏</div>';
+      html += '<div class="tip-box tip-warn" style="margin-top:8px;">⚠️ '+(en?'No nectar flow now (' + flowEn.source + '). Avoid extraction to protect the colony.':'当前为非流蜜期(' + flow.source + ')，不建议摇蜜，以免影响蜂群越冬/度夏')+'</div>';
     }
-    html += '<div style="margin-top:8px;"><button class="extr-btn" onclick="quickExtr(' + h.id + ')">🛢️ 快速记录摇蜜</button> <button class="extr-btn" onclick="delHive(' + h.id + ')" style="color:var(--danger);">删除蜂箱</button></div>';
+    html += '<div style="margin-top:8px;"><button class="extr-btn" onclick="quickExtr(' + h.id + ')">'+(en?'🛢️ Quick extraction':'🛢️ 快速记录摇蜜')+'</button> <button class="extr-btn" onclick="delHive(' + h.id + ')" style="color:var(--danger);">'+(en?'Delete hive':'删除蜂箱')+'</button></div>';
     html += '</div>';
   });
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
@@ -371,7 +388,7 @@ function renderHives() {
 function quickExtr(hiveId) {
   var hive = hives.find(function(h){ return h.id === hiveId; });
   if (!hive) return;
-  var amount = prompt('请输入本次摇蜜产量(kg)：', '5');
+  var amount = prompt(__honeyEn()?'Enter honey yield for this extraction (kg):':'请输入本次摇蜜产量(kg)：', '5');
   if (amount === null) return;
   var amt = parseFloat(amount);
   if (isNaN(amt) || amt < 0) { ToolBox.showToast(i18nText('toast.msg809'), 'error'); return; }
@@ -404,12 +421,13 @@ function delExtr(id) {
 }
 
 function renderExtrList() {
+  var en=__honeyEn();
   var list = document.getElementById('extrList');
   var sel = document.getElementById('extrHive');
-  const __h2='<option value="">请选择蜂箱</option>' + hives.map(function(h){ return '<option value="' + h.id + '">' + ToolBox.escHtml(h.name) + '</option>'; }).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){sel.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}sel.innerHTML=__h2;
-  if (!extractions.length) { const __h3='<div class="empty">暂无摇蜜记录</div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h3; return; }
+  const __h2=(en?'<option value="">Select a hive</option>':'<option value="">请选择蜂箱</option>') + hives.map(function(h){ return '<option value="' + h.id + '">' + ToolBox.escHtml(h.name) + '</option>'; }).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){sel.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}sel.innerHTML=__h2;
+  if (!extractions.length) { const __h3=(en?'<div class="empty">No extraction records yet</div>':'<div class="empty">暂无摇蜜记录</div>');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h3; return; }
   var sorted = extractions.slice().sort(function(a, b){ return new Date(b.date) - new Date(a.date); });
-  var html = '<table><thead><tr><th>日期</th><th>蜂箱</th><th>产量(kg)</th><th>操作</th></tr></thead><tbody>';
+  var html = '<table><thead><tr><th>'+(en?'Date':'日期')+'</th><th>'+(en?'Hive':'蜂箱')+'</th><th>'+(en?'Yield (kg)':'产量(kg)')+'</th><th>'+(en?'Action':'操作')+'</th></tr></thead><tbody>';
   sorted.forEach(function(e) {
     html += '<tr><td>' + e.date + '</td><td>' + ToolBox.escHtml(e.hiveName) + '</td><td><strong style="color:var(--primary);">' + e.amount.toFixed(1) + '</strong></td><td><button class="extr-btn" onclick="delExtr(' + e.id + ')" style="color:var(--danger);">删除</button></td></tr>';
   });
@@ -418,23 +436,25 @@ function renderExtrList() {
 }
 
 function renderMonthCal() {
+  var en=__honeyEn();
   var nowMonth = new Date().getMonth() + 1;
   var html = '';
   FLOW_CALENDAR.forEach(function(c) {
     var cls = c.flow === 'active' ? 'active' : (c.flow === 'weak' ? 'weak' : '');
     var highlight = c.m === nowMonth ? 'border-color:var(--primary);box-shadow:0 0 0 2px rgba(255,107,53,0.15);' : '';
     html += '<div class="month-cell ' + cls + '" style="' + highlight + '">';
-    html += '<div class="m">' + c.name + '</div>';
-    html += '<div class="s">' + c.source + '</div>';
+    html += '<div class="m">' + (en?('Month '+c.m):c.name) + '</div>';
+    html += '<div class="s">' + (en?(FLOW_EN[c.m]?FLOW_EN[c.m].source:c.source):c.source) + '</div>';
     html += '</div>';
   });
   const __h5=html;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('monthCal').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('monthCal').innerHTML=__h5;
   var tip = FLOW_CALENDAR[nowMonth - 1];
   var tipCls = tip.flow === 'active' ? 'tip-success' : (tip.flow === 'weak' ? 'tip-warn' : 'tip-info');
-  const __h6='<div class="tip-box ' + tipCls + '"><strong>本月(' + tip.name + ')蜜源：' + tip.source + '</strong><br>' + tip.tip + '</div>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('seasonTip').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('seasonTip').innerHTML=__h6;
+  const __h6='<div class="tip-box ' + tipCls + '"><strong>'+(en?('Month '+tip.m+' forage: '+((FLOW_EN[tip.m]||{}).source||tip.source)):('本月(' + tip.name + ')蜜源：' + tip.source))+'</strong><br>'+(en?((FLOW_EN[tip.m]||{}).tip||tip.tip):tip.tip)+'</div>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('seasonTip').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('seasonTip').innerHTML=__h6;
 }
 
 function renderStats() {
+  var en=__honeyEn();
   var area = document.getElementById('statsArea');
   if (!extractions.length) { const __h7='<div class="empty">暂无摇蜜记录</div>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){area.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}area.innerHTML=__h7; return; }
   var total = extractions.reduce(function(a, b){ return a + b.amount; }, 0);
@@ -459,13 +479,13 @@ function renderStats() {
     return '<tr><td>' + m + '</td><td><strong style="color:var(--primary);">' + byMonth[m].toFixed(1) + ' kg</strong></td></tr>';
   }).join('');
   var html = '<div class="stat-grid">';
-  html += '<div class="stat-card"><div class="val">' + total.toFixed(1) + '</div><div class="lbl">总产量(kg)</div></div>';
-  html += '<div class="stat-card"><div class="val">' + count + '</div><div class="lbl">摇蜜次数</div></div>';
-  html += '<div class="stat-card"><div class="val">' + avg.toFixed(1) + '</div><div class="lbl">平均每次(kg)</div></div>';
-  html += '<div class="stat-card"><div class="val">' + maxAmt.toFixed(1) + '</div><div class="lbl">最高蜂箱(' + ToolBox.escHtml(maxHive) + ')</div></div>';
+  html += '<div class="stat-card"><div class="val">' + total.toFixed(1) + '</div><div class="lbl">'+(en?'Total yield (kg)':'总产量(kg)')+'</div></div>';
+  html += '<div class="stat-card"><div class="val">' + count + '</div><div class="lbl">'+(en?'Extractions':'摇蜜次数')+'</div></div>';
+  html += '<div class="stat-card"><div class="val">' + avg.toFixed(1) + '</div><div class="lbl">'+(en?'Average per extraction (kg)':'平均每次(kg)')+'</div></div>';
+  html += '<div class="stat-card"><div class="val">' + maxAmt.toFixed(1) + '</div><div class="lbl">'+(en?'Top hive ('+ToolBox.escHtml(maxHive)+')':'最高蜂箱(' + ToolBox.escHtml(maxHive) + ')')+'</div></div>';
   html += '</div>';
-  html += '<h4 style="font-size:14px;margin:14px 0 8px;color:var(--heading);">按月产量</h4>';
-  html += '<table><thead><tr><th>月份</th><th>产量</th></tr></thead><tbody>' + monthRows + '</tbody></table>';
+  html += '<h4 style="font-size:14px;margin:14px 0 8px;color:var(--heading);">'+(en?'Monthly yield':'按月产量')+'</h4>';
+  html += '<table><thead><tr><th>'+(en?'Month':'月份')+'</th><th>'+(en?'Yield':'产量')+'</th></tr></thead><tbody>' + monthRows + '</tbody></table>';
   const __h8=html;if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){area.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}area.innerHTML=__h8;
 }
 

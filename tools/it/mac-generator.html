@@ -236,13 +236,24 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){var cnt=Math.min(Math.max(parseInt(num('cnt'))||5,1),50);
 var oui=document.getElementById('oui').value;
 function rnd(){ return Math.floor(Math.random()*256).toString(16).toUpperCase().padStart(2,'0'); }
+function rndLocalUnicast(){
+  // 第810批：随机地址默认生成「本地管理 + 单播」：I/G 位=0，U/L 位=1
+  var b=Math.floor(Math.random()*256);
+  b=(b&0xFC)|0x02;
+  return b.toString(16).toUpperCase().padStart(2,'0');
+}
 var lines=[];
 for(var i=0;i<cnt;i++){
-  var bytes = oui? oui.split(':') : [rnd(),rnd()];
+  var bytes = oui? oui.split(':') : [rndLocalUnicast(),rnd()];
   while(bytes.length<6){ bytes.push(rnd()); }
   lines.push(bytes.join(':'));
 }
-var html='<div class="result-title">生成的 MAC 地址（'+cnt+' 个）</div><pre class="code-block">'+escH(lines.join('\n'))+'</pre>';
+var macEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+var typeNote=oui
+  ? '<p class="muted">'+(macEn?'Address type: uses the selected OUI prefix. Whether that prefix is globally administered depends on the first-byte bits; unassigned OUIs are for testing only, not real vendor addresses.':'地址类型：使用指定 OUI 前缀；该前缀是否全球管理取决于首字节位，未分配的 OUI 仅适合测试，不能当作真实厂商地址。')+'</p>'
+  : '<p class="muted">'+(macEn?'Address type: locally administered unicast (first byte I/G=0, U/L=1). Safe for VM and simulation tests; not a globally assigned vendor address.':'地址类型：本地管理单播（首字节 I/G=0、U/L=1），可直接用于虚拟机/仿真测试；不是任何厂商分配的全球地址。')+'</p>';
+var html='<div class="result-title">生成的 MAC 地址（'+cnt+' 个）</div><pre class="code-block">'+escH(lines.join('\n'))+'</pre>'+typeNote;
+__macLastLines=lines.slice();
 const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('cnt').value='5';
       document.getElementById('oui').selectedIndex=0;

@@ -237,7 +237,8 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-let duration=5,clicks=0,state='idle',startTime,timer,best={5:0,10:0,30:0};
+let duration=5,clicks=0,state='idle',startTime,deadline,timer,best={5:0,10:0,30:0};
+function nowMs(){return (typeof performance!=='undefined'&&performance.now)?performance.now():Date.now();}
 function calcCps(clicks,duration){return clicks/duration;}
 
 function setMode(t,el){
@@ -250,7 +251,8 @@ function start(){
   reset();
   state='go';
   clicks=0;
-  startTime=Date.now();
+  startTime=nowMs();
+  deadline=startTime+duration*1000;
   const a=document.getElementById('area');
   a.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Click fast!":"快速点击！");
   a.style.background='linear-gradient(135deg,#4caf50,#2e7d32)';
@@ -268,7 +270,7 @@ function reset(){
   document.getElementById('output').textContent='点击区域内尽可能多次点击';
 }
 function tick(){
-  const elapsed=(Date.now()-startTime)/1000;
+  const elapsed=(nowMs()-startTime)/1000;
   const left=Math.max(0,duration-elapsed);
   if(left<=0){
     clearInterval(timer);
@@ -283,6 +285,8 @@ function tick(){
 }
 function onClick(){
   if(state==='go'){
+    // 到点立即用单调时钟收口，避免定时器未触发时把截止后的点击计入。
+    if(nowMs()>=deadline){ tick(); return; }
     clicks++;
     document.getElementById('counter').textContent=clicks;
   }else if(state==='idle'||state==='done'){

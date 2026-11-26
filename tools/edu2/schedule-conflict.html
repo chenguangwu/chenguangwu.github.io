@@ -138,7 +138,7 @@
 </div>
 
     <h3>课程录入</h3>
-    <div class="tip-box tip-info" style="margin-top:8px;">每行一条：课程名,教师,教室,星期(1-7),起始节次,结束节次</div>
+    <div class="tip-box tip-info" style="margin-top:8px;">每行一条：课程名,教师,教室,星期(1-7),起始节次,结束节次（节次 1–20）</div>
     <div style="margin:8px 0;">
       <textarea id="courseInput" style="min-height:150px;" placeholder="课程名,教师,教室,星期,起始节,结束节&#10;例如：&#10;高等数学,张老师,A101,1,1,2&#10;线性代数,张老师,B202,1,1,2&#10;英语,李老师,A101,1,3,4" aria-label="课程录入"></textarea>
     </div>
@@ -255,6 +255,7 @@ function parsePeriodStrict(v){
   var n=Number(s);
   return Number.isInteger(n)?n:NaN;
 }
+var MAX_PERIOD=20;
 function parseCourses(text){
   var lines = text.split('\n');
   var list = [];
@@ -279,6 +280,7 @@ function parseCourses(text){
     if(!isFinite(c.day)||!isFinite(c.start)||!isFinite(c.end)){ rej(lineNo,'星期/节次须为整数','weekday/periods must be integers'); continue; }
     if(c.day<1||c.day>7){ rej(lineNo,'星期超出1-7','weekday out of 1-7'); continue; }
     if(c.start<1||c.end<c.start){ rej(lineNo,'节次非法','invalid period range'); continue; }
+    if(c.end>MAX_PERIOD){ rej(lineNo,'节次超出1-'+MAX_PERIOD,'period exceeds 1-'+MAX_PERIOD); continue; }
     c.id = i+1;
     list.push(c);
   }
@@ -295,8 +297,14 @@ function detect(){
   var parsed = parseCourses(text);
   var list = parsed.list;
   if(list.length===0){
-    ToolBox.showToast(i18nText('toast.msg869'),'error');
-    document.getElementById('result').style.display='none';
+    if(parsed.rejected.length){
+      var en0=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+      document.getElementById('result').innerHTML='<p style="color:var(--danger,#B91C1C);">'+(en0?'All rows were rejected: ':'所有课程行均被拒绝：')+ToolBox.escHtml(parsed.rejected.join(en0?'; ':'；'))+'</p>';
+      document.getElementById('result').style.display='block';
+    } else {
+      ToolBox.showToast(i18nText('toast.msg869'),'error');
+      document.getElementById('result').style.display='none';
+    }
     return;
   }
 
@@ -323,17 +331,17 @@ function detect(){
   var totalConflicts = teacherConflicts.length + roomConflicts.length;
   var days = ['','周一','周二','周三','周四','周五','周六','周日'];
 
-  // 周 × 节次网格：标记每个时间片是否有冲突
+  // 周 × 节次网格：标记每个时间片是否有冲突（有界到 MAX_PERIOD，Set 避免原型属性误判）
   var maxPeriod = 8;
-  list.forEach(function(c){ if(c.end > maxPeriod) maxPeriod = c.end; });
+  list.forEach(function(c){ if(c.end > maxPeriod) maxPeriod = Math.min(MAX_PERIOD,c.end); });
   var conflictCells = {};
   for(var d=1; d<=7; d++){
     for(var p=1; p<=maxPeriod; p++){
       var here = list.filter(function(c){ return c.day===d && c.start<=p && c.end>=p; });
-      var tSet = {}, rSet = {}, dup = false;
+      var tSet = new Set(), rSet = new Set(), dup = false;
       here.forEach(function(c){
-        if(tSet[c.teacher]) dup = true; else tSet[c.teacher] = true;
-        if(rSet[c.room]) dup = true; else rSet[c.room] = true;
+        if(tSet.has(c.teacher)) dup = true; else tSet.add(c.teacher);
+        if(rSet.has(c.room)) dup = true; else rSet.add(c.room);
       });
       if(dup) conflictCells[d+'-'+p] = true;
     }
@@ -377,7 +385,7 @@ function detect(){
     html += '<h3 style="margin-top:8px;">教师冲突</h3>';
     html += '<table><thead><tr><th>教师</th><th>课程1</th><th>课程2</th><th>时间</th></tr></thead><tbody>';
     teacherConflicts.forEach(function(c){
-      html += '<tr><td>'+ToolBox.escHtml(c.a.teacher)+'</td><td>'+ToolBox.escHtml(c.a.name)+'（'+ToolBox.escHtml(c.a.room)+'）</td><td>'+ToolBox.escHtml(c.b.name)+'（'+ToolBox.escHtml(c.b.room)+'）</td><td>'+days[c.a.day]+' 第'+c.a.start+'-'+c.a.end+'节</td></tr>';
+      html += '<tr><td>'+ToolBox.escHtml(c.a.teacher)+'</td><td>'+ToolBox.escHtml(c.a.name)+'（'+ToolBox.escHtml(c.a.room)+'）</td><td>'+ToolBox.escHtml(c.b.name)+'（'+ToolBox.escHtml(c.b.room)+'）</td><td>'+days[c.a.day]+' 第'+Math.max(c.a.start,c.b.start)+'-'+Math.min(c.a.end,c.b.end)+'节<br><span style="font-size:11px;color:var(--text-muted);">重叠区间（课程1 第'+c.a.start+'-'+c.a.end+'节，课程2 第'+c.b.start+'-'+c.b.end+'节）</span></td></tr>';
     });
     html += '</tbody></table>';
   }
@@ -386,7 +394,7 @@ function detect(){
     html += '<h3 style="margin-top:16px;">教室冲突</h3>';
     html += '<table><thead><tr><th>教室</th><th>课程1</th><th>课程2</th><th>时间</th></tr></thead><tbody>';
     roomConflicts.forEach(function(c){
-      html += '<tr><td>'+ToolBox.escHtml(c.a.room)+'</td><td>'+ToolBox.escHtml(c.a.name)+'（'+ToolBox.escHtml(c.a.teacher)+'）</td><td>'+ToolBox.escHtml(c.b.name)+'（'+ToolBox.escHtml(c.b.teacher)+'）</td><td>'+days[c.a.day]+' 第'+c.a.start+'-'+c.a.end+'节</td></tr>';
+      html += '<tr><td>'+ToolBox.escHtml(c.a.room)+'</td><td>'+ToolBox.escHtml(c.a.name)+'（'+ToolBox.escHtml(c.a.teacher)+'）</td><td>'+ToolBox.escHtml(c.b.name)+'（'+ToolBox.escHtml(c.b.teacher)+'）</td><td>'+days[c.a.day]+' 第'+Math.max(c.a.start,c.b.start)+'-'+Math.min(c.a.end,c.b.end)+'节<br><span style="font-size:11px;color:var(--text-muted);">重叠区间（课程1 第'+c.a.start+'-'+c.a.end+'节，课程2 第'+c.b.start+'-'+c.b.end+'节）</span></td></tr>';
     });
     html += '</tbody></table>';
   }

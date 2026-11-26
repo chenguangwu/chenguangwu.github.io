@@ -263,75 +263,66 @@ function onPesticideChange(){
   calc();
 }
 function calc(){
+  var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/i.test(location.search);
   var sprayDateStr = document.getElementById('sprayDate').value;
-  var phiRaw = document.getElementById('phiDays').value;
-  var phiDays = parseInt(phiRaw, 10);
+  var phiRaw = String(document.getElementById('phiDays').value).trim();
+  var phiDays = Number(phiRaw);
 
-  if(phiRaw === '' || isNaN(phiDays) || phiDays < 0){
-    ToolBox.setResult('result','<p style="color:var(--danger);">安全间隔期应为农药标签标注的天数（不小于 0 的整数）</p>'); return;
+  if(!/^\d+$/.test(phiRaw) || !isFinite(phiDays)){
+    ToolBox.setResult('result','<p style="color:var(--danger);">'+(en?'Enter the label pre-harvest interval as a whole number of days (0 or more); decimals are not truncated.':'安全间隔期应为农药标签标注的天数（不小于 0 的整数）；输入 3.9 不会被截断成 3 天')+'</p>'); return;
   }
-  if(!sprayDateStr){ ToolBox.setResult('result','<p style="color:var(--danger);">请选择施药日期</p>'); return; }
+  if(!sprayDateStr){ ToolBox.setResult('result','<p style="color:var(--danger);">'+(en?'Select an application date.':'请选择施药日期')+'</p>'); return; }
 
-  // 按本地日期解析，避免 new Date('YYYY-MM-DD') 按 UTC 解析造成 +1 天
   var sprayDate = parseLocalDate(sprayDateStr);
-  if(isNaN(sprayDate.getTime())){ ToolBox.setResult('result','<p style="color:var(--danger);">施药日期无效</p>'); return; }
+  if(isNaN(sprayDate.getTime())){ ToolBox.setResult('result','<p style="color:var(--danger);">'+(en?'Invalid application date.':'施药日期无效')+'</p>'); return; }
   var safeDate = new Date(sprayDate);
   safeDate.setDate(safeDate.getDate() + phiDays);
 
   var now = new Date();
   now.setHours(0,0,0,0);
   var diffDays = Math.round((safeDate - now) / (1000*60*60*24));
-
   var sel = getSelectedPesticide();
-
   var html = '';
   if(diffDays > 0){
     html += '<div class="tip-box tip-warn" style="font-size:16px;text-align:center;padding:20px;">';
-    html += '<div style="font-size:36px;font-weight:700;color:var(--warning);">还剩 '+diffDays+' 天</div>';
-    html += '<div style="margin-top:8px;">距离安全采收日期</div>';
-    html += '</div>';
+    html += '<div style="font-size:36px;font-weight:700;color:var(--warning);">'+(en?diffDays+' days until earliest harvest':'距最早采收日 '+diffDays+' 天')+'</div>';
+    html += '<div style="margin-top:8px;">'+(en?'Earliest harvest date estimated from the label interval':'距按标签推算的最早采收日')+'</div></div>';
   } else if(diffDays === 0){
     html += '<div class="tip-box tip-success" style="font-size:16px;text-align:center;padding:20px;">';
-    html += '<div style="font-size:28px;font-weight:700;color:var(--success);">今日可达安全采收标准</div>';
-    html += '<div style="margin-top:8px;">安全间隔期已满，可安排采收</div>';
-    html += '</div>';
+    html += '<div style="font-size:28px;font-weight:700;color:var(--success);">'+(en?'Today is the earliest harvest date estimated from the label interval':'今日为按标签间隔推算的最早采收日')+'</div>';
+    html += '<div style="margin-top:8px;">'+(en?'The interval has elapsed; this is not a residue test. Check the registered label and local residue requirements.':'安全间隔期已满；不等于残留检测合格，请核对当地登记标签与残留要求')+'</div></div>';
   } else {
     html += '<div class="tip-box tip-success" style="font-size:16px;text-align:center;padding:20px;">';
-    html += '<div style="font-size:28px;font-weight:700;color:var(--success);">已过安全间隔期 '+Math.abs(diffDays)+' 天</div>';
-    html += '<div style="margin-top:8px;">可以安全采收</div>';
-    html += '</div>';
+    html += '<div style="font-size:28px;font-weight:700;color:var(--success);">'+(en?Math.abs(diffDays)+' days past the earliest harvest date estimated from the label':'已过按标签推算的最早采收日 '+Math.abs(diffDays)+' 天')+'</div>';
+    html += '<div style="margin-top:8px;">'+(en?'Harvest can be scheduled; this estimate is not a residue test. Check the registered label and local residue limits.':'可进入采收安排；本推算不等于残留检测合格，请核对当地登记标签与残留限量')+'</div></div>';
   }
-
   html += '<div class="data-grid" style="margin-top:14px;">';
-  html += '<div class="data-card"><div class="num" style="font-size:16px;">'+formatDate(sprayDate)+'</div><div class="label">施药日期</div></div>';
-  html += '<div class="data-card"><div class="num" style="font-size:16px;">'+phiDays+'天</div><div class="label">安全间隔期</div></div>';
-  html += '<div class="data-card"><div class="num" style="font-size:16px;color:var(--success);">'+formatDate(safeDate)+'</div><div class="label">最早采收日</div></div>';
-  html += '</div>';
-
+  html += '<div class="data-card"><div class="num" style="font-size:16px;">'+formatDate(sprayDate,en)+'</div><div class="label">'+(en?'Application date':'施药日期')+'</div></div>';
+  html += '<div class="data-card"><div class="num" style="font-size:16px;">'+phiDays+(en?' days':'天')+'</div><div class="label">'+(en?'Pre-harvest interval':'安全间隔期')+'</div></div>';
+  html += '<div class="data-card"><div class="num" style="font-size:16px;color:var(--success);">'+formatDate(safeDate,en)+'</div><div class="label">'+(en?'Earliest harvest date':'最早采收日')+'</div></div></div>';
+  html += '<div class="tip-box tip-info" style="margin-top:12px;font-size:13px;">'+(en?'This result only estimates dates from the label interval and application date. It is not a pesticide residue test; follow the registered label, actual residue limits and local harvest requirements.':'本结果仅按标签安全间隔期与施药日期推算日期，不构成农药残留检测结论；请以当地登记标签、实际残留限量与采收要求为准。')+'</div>';
   if(sel){
-    html += '<div class="ref-card" style="margin-top:12px;">';
-    html += '<h4>'+sel.name+'</h4>';
-    html += '<p>适用作物：'+sel.crop+'</p>';
-    html += '<p>安全间隔期：'+sel.phi+'天</p>';
-    html += '<p>说明：'+sel.note+'</p>';
-    html += '</div>';
+    html += '<div class="ref-card" style="margin-top:12px;"><h4>'+sel.name+'</h4>';
+    html += '<p>'+(en?'Crop: ':'适用作物：')+sel.crop+'</p>';
+    html += '<p>'+(en?'Pre-harvest interval: ':'安全间隔期：')+sel.phi+(en?' days':'天')+'</p>';
+    html += '<p>'+(en?'Note: ':'说明：')+sel.note+'</p></div>';
   }
-
   const __g2=html;ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
 }
-function formatDate(d){
-  return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
+function formatDate(d,en){
+  return en?(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')):(d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日');
 }
 function copyResult(){
+  var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/i.test(location.search);
   var sel=getSelectedPesticide();
   var sprayDateStr=document.getElementById('sprayDate').value;
-  var phiRaw=document.getElementById('phiDays').value;
-  var phiDays=parseInt(phiRaw,10);
-  if(phiRaw===''||isNaN(phiDays)||phiDays<0){ ToolBox.showToast('安全间隔期应为农药标签标注的天数（不小于 0 的整数）','warning'); return; }
+  var phiRaw=String(document.getElementById('phiDays').value).trim();
+  var phiDays=Number(phiRaw);
+  if(!/^\d+$/.test(phiRaw)||!isFinite(phiDays)){ ToolBox.showToast(en?'Enter the pre-harvest interval as a whole number of days; decimals are not truncated.':'安全间隔期应为不小于 0 的整数，不能截断小数','warning'); return; }
   var sprayDate=parseLocalDate(sprayDateStr);
-  if(isNaN(sprayDate.getTime())){ ToolBox.showToast('施药日期无效','warning'); return; }
+  if(isNaN(sprayDate.getTime())){ ToolBox.showToast(en?'Invalid application date.':'施药日期无效','warning'); return; }
   var safeDate=new Date(sprayDate);safeDate.setDate(safeDate.getDate()+phiDays);
-  var txt='农药安全间隔期记录\n农药：'+(sel?sel.name:'自定义')+'\n施药日期：'+sprayDateStr+'\n安全间隔期：'+phiDays+'天\n最早采收日期：'+formatDate(safeDate);
+  var txt=en?('Pesticide pre-harvest interval record\nPesticide: '+(sel?sel.name:'Custom')+'\nApplication date: '+sprayDateStr+'\nPre-harvest interval: '+phiDays+' days\nEarliest harvest date (label estimate): '+formatDate(safeDate,true)+'\nNote: This date estimate is not a pesticide residue test. Check the registered label and local residue limits.'):('农药安全间隔期记录\n农药：'+(sel?sel.name:'自定义')+'\n施药日期：'+sprayDateStr+'\n安全间隔期：'+phiDays+'天\n最早采收日期（按标签间隔推算）：'+formatDate(safeDate)+'\n说明：日期推算不等于农药残留检测合格，请核对当地登记标签与残留限量。');
   ToolBox.copyText(txt, i18nText('msg602'));
 }
 initSelect();
@@ -357,10 +348,7 @@ calc();
       <span class="rt-icon">🔄</span>
       <span class="rt-info"><span class="rt-name">农产品干物质含量换算器</span><span class="rt-desc">农产品干物质换算器，输入鲜重、干重或含水率快速互转并支持标准含水率折算，用于粮食收购与饲草计量</span></span>
     </a>
-    <a href="dry-matter-conversion.html" class="related-tool-card">
-      <span class="rt-icon">🔄</span>
-      <span class="rt-info"><span class="rt-name">农产品干物质含量换算器</span><span class="rt-desc">农产品干物质换算器，输入鲜重、干重或含水率快速互转并支持标准含水率折算，用于粮食收购与饲草计量</span></span>
-    </a>
+    
     
     <a href="temp-time-2.html" class="related-tool-card">
       <span class="rt-icon">🌡️</span>

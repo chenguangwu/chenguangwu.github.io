@@ -257,14 +257,15 @@ function start(){
   level=1;
   nextRound();
 }
+function __memEn(){return /^en/i.test(document.documentElement.lang||'')||/[?&]lang=en/i.test(location.search);}
 function reset(){
   clearPendingTimers();
   seq=[];
   level=1;
   accepting=false;
   document.getElementById('display').textContent='—';
-  document.getElementById('status').textContent='点击"开始"按钮开始';
-  document.getElementById('output').textContent='记住数字序列并按顺序输入';
+  document.getElementById('status').textContent=__memEn()?'Click "Start" to begin':'点击"开始"按钮开始';
+  document.getElementById('output').textContent=__memEn()?'Memorize the digit sequence, then enter it in order':'记住数字序列并按顺序输入';
   buildPad();
 }
 function nextRound(){
@@ -274,8 +275,8 @@ function nextRound(){
   const len=level+1;
   seq=[];
   for(let i=0;i<len;i++)seq.push(Math.floor(Math.random()*10));
-  document.getElementById('status').textContent=`第 ${level} 关：记忆 ${len} 位数字`;
-  const __h1=`<p>第 ${level} 关</p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
+  document.getElementById('status').textContent=__memEn()?`Level ${level}: memorize ${len} digits`:`第 ${level} 关：记忆 ${len} 位数字`;
+  const __h1=__memEn()?`<p>Level ${level}</p>`:`<p>第 ${level} 关</p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
   scheduleTimer(()=>showSeq(0),700);
 }
 function showSeq(i){
@@ -284,7 +285,7 @@ function showSeq(i){
     d.textContent='';
     d.classList.add('hidden');
     accepting=true;
-    document.getElementById('status').textContent='按顺序输入';
+    document.getElementById('status').textContent=__memEn()?'Enter in order':'按顺序输入';
     return;
   }
   d.classList.remove('hidden');
@@ -305,14 +306,15 @@ function userClick(n){
     if(userIdx===seq.length){
       accepting=false;
       level++;
-      const __h2=`<p style="color:var(--success);">✅ 通关第 ${level-1} 关</p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
+      const __h2=__memEn()?`<p style="color:var(--success);">✅ Cleared level ${level-1}</p>`:`<p style="color:var(--success);">✅ 通关第 ${level-1} 关</p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
       scheduleTimer(()=>{document.getElementById('display').textContent='';nextRound();},1200);
     }
   }else{
     keys[n].classList.add('bad');
     accepting=false;
-    const __h3=`<p style="color:var(--danger);">❌ 游戏结束！达到第 ${level} 关</p><p>正确序列：${seq.join('')}</p>`;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h3;
-    document.getElementById('status').textContent='失败！';
+    const __h3=__memEn()?`<p style="color:var(--danger);">❌ Game over! Reached level ${level}</p><p>Correct sequence: ${seq.join('')}</p>`:`<p style="color:var(--danger);">❌ 游戏结束！达到第 ${level} 关</p><p>正确序列：${seq.join('')}</p>`;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h3;
+    if(typeof __esm==='function')__esm(level);
+    document.getElementById('status').textContent=__memEn()?'Failed!':'失败！';
   }
 }
 function toggleToolTheme(){
@@ -405,23 +407,21 @@ document.addEventListener('DOMContentLoaded',function(){
 </div>
 <!-- /SEO 介绍区块 -->
 <script>
-var __esm=function(){
+var __esm=function(finalScore){
   if(typeof TBKit==='undefined')return;
-  var acc=(function(){return (typeof level==='undefined')?NaN:Number(level);})();
+  var __final=typeof finalScore==='number'&&isFinite(finalScore)&&finalScore>=0;
+  var KEY='__tbn_sequence_memory';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  var acc=__final?finalScore:(hist.length?hist[hist.length-1].v:NaN);
   if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
-  var lab=(function(){return (typeof level==='undefined')?'':'第 '+level+' 关';})();
+  var lab='第 '+acc+' 关';
   var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
   var LBL=EN?'Level Reached':'记录到达关卡(关)';
   var T=EN?{hist:'History',sc:'Score',no:'#',time:'Time',exp:'Export CSV',file:'history.csv',col:'Type'}
           :{hist:'历史记录',sc:'记录值',no:'序号',time:'时间',exp:'导出 CSV',file:'history.csv',col:'备注'};
-  var KEY='__tbn_sequence_memory';
-  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
-  if(!Array.isArray(hist))hist=[];
-  var last=hist[hist.length-1];
-  if(!last||last.v!==acc||(lab&&last.l!==lab)){hist.push({t:Date.now(),v:acc,l:lab||''});}
-  if(hist.length>30)hist=hist.slice(-30);
-  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
-  var __rec={};__rec[LBL]=acc;if(TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);
+  if(__final){hist.push({t:Date.now(),v:acc,l:lab});if(hist.length>30)hist=hist.slice(-30);try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}}
+  if(__final){var __rec={};__rec[LBL]=acc;if(TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);}
   var host=document.getElementById('__tbnExtras');
   if(!host)return;
   if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+(EN?'Records appear after 2+ sessions.':'游戏 2 局以上后显示成绩趋势图。')+'</p>';return;}

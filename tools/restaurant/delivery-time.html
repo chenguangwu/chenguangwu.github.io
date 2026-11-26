@@ -278,14 +278,20 @@ window._resultText='';
 // NUMCLR：全部输入留空时不得输出 0/0.00 的假评估结果
 var __numReq=['distance','speed','prepTime','pickupWait','deliverWait'];
 if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
-  const distance=+document.getElementById('distance').value||1;
-  const speed=+document.getElementById('speed').value||20;
-  const prepTime=+document.getElementById('prepTime').value||0;
-  const pickupWait=+document.getElementById('pickupWait').value||0;
-  const deliverWait=+document.getElementById('deliverWait').value||0;
-  const traffic=+document.getElementById('traffic').value||1;
-  const weather=+document.getElementById('weather').value||1;
-  const timeSlot=+document.getElementById('timeSlot').value||1;
+  function rv(id){var el=document.getElementById(id);var v=el?String(el.value==null?'':el.value).trim():'';return v===''?NaN:parseFloat(v);}
+  const distance=rv('distance'), speed=rv('speed'), prepTime=rv('prepTime'), pickupWait=rv('pickupWait'), deliverWait=rv('deliverWait');
+  const traffic=rv('traffic'), weather=rv('weather'), timeSlot=rv('timeSlot');
+  const invalid=[];
+  if(!isFinite(distance)||distance<0)invalid.push('配送距离须为 ≥0 的数值（0 km 合法）');
+  if(!isFinite(speed)||speed<=0)invalid.push('平均车速须为大于 0 的数值');
+  if(!isFinite(prepTime)||prepTime<0)invalid.push('备餐时间须为 ≥0 的数值');
+  if(!isFinite(pickupWait)||pickupWait<0)invalid.push('骑手到店等待须为 ≥0 的数值');
+  if(!isFinite(deliverWait)||deliverWait<0)invalid.push('交付等待须为 ≥0 的数值');
+  if(!isFinite(traffic)||traffic<=0||!isFinite(weather)||weather<=0||!isFinite(timeSlot)||timeSlot<=0)invalid.push('交通/天气/时段系数须为大于 0 的数值');
+  if(invalid.length){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);font-weight:600;">⚠ 输入有误，未计算：</p><ul style="color:var(--danger);font-size:13px;line-height:1.8;">'+invalid.map(x=>'<li>'+x+'</li>').join('')+'</ul>';
+    window._resultText='';return;
+  }
 
   // 基础骑行时间
   const baseRideMin=(distance/speed)*60;
@@ -299,7 +305,7 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
 
   let html=`<div style="text-align:center;padding:20px;background:var(--result-bg);border-radius:12px;margin-bottom:16px;">
     <div style="font-size:42px;font-weight:700;color:var(--primary);">${Math.round(totalTime)}<span style="font-size:20px;">分钟</span></div>
-    <div style="font-size:14px;color:var(--text-muted);margin-top:4px;">预计送达时间窗口：${Math.max(1,minTime)} ~ ${maxTime} 分钟</div>
+    <div style="font-size:14px;color:var(--text-muted);margin-top:4px;">预计送达时间窗口：${Math.max(0,minTime)} ~ ${maxTime} 分钟</div>
   </div>`;
 
   html+=`<h3>📋 时间分解</h3>`;

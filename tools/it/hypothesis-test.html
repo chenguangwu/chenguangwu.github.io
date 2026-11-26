@@ -163,6 +163,7 @@
         </select>
       </div>
     </div>
+    <div style="font-size:12px;color:var(--text-light);margin:-4px 0 8px;">样本量 n 必须是 ≥ 1 的十进制整数（不接受小数、负数和科学计数法）；其余参数须为有限数值，σ &gt; 0，α ∈ (0, 0.5]。</div>
     <div class="toolbar">
       <div id="hypothesis_testPresets"></div><button type="button" class="btn primary" onclick="calculate()">计算</button><button class="btn" type="button" onclick="__hypothesis_testExport()">导出明细 CSV</button>
     </div>
@@ -296,18 +297,46 @@ function normalInv(p){
   else {q=Math.sqrt(-2*Math.log(1-p));z=-(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
   return z;
 }
+function hypEn(){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/i.test(location.search);}
+function L(zh,en){return hypEn()?en:zh;}
+// 读取有限数值：空值、夹带字符、超出 1e308 溢出（Infinity）均明确拒绝。
+function readFinite(id,labelZh,labelEn){
+  const raw=String(document.getElementById(id).value).trim();
+  if(raw==='') return {ok:false,msg:L(labelZh+' 不能为空',labelEn+' is required')};
+  if(!/^[+\-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+\-]?\d+)?$/.test(raw)) return {ok:false,msg:L(labelZh+' 必须是数值，不能包含其他字符',labelEn+' must be a number without extra characters')};
+  const v=Number(raw);
+  if(!isFinite(v)) return {ok:false,msg:L(labelZh+' 超出可计算的数值范围（需为有限数值）',labelEn+' is outside the finite numeric range')};
+  return {ok:true,value:v};
+}
+function readSampleN(){
+  const raw=String(document.getElementById('n').value).trim();
+  if(raw==='') return {ok:false,msg:L('样本数 n 不能为空','Sample size n is required')};
+  if(!/^\d+$/.test(raw)) return {ok:false,msg:L('样本数 n 必须是 ≥ 1 的十进制整数（不接受小数、负数和科学计数法）','Sample size n must be a decimal integer ≥ 1 (decimals, negatives and scientific notation are not accepted)')};
+  const v=Number(raw);
+  if(!Number.isSafeInteger(v)||v<1) return {ok:false,msg:L('样本数 n 必须是 ≥ 1 的安全整数（不超过 9007199254740991）','Sample size n must be a safe integer ≥ 1 (no more than 9007199254740991)')};
+  return {ok:true,value:v};
+}
+function fieldError(msg){
+  const box=document.getElementById('output');
+  if(!box) return;
+  box.innerHTML='<p style="color:var(--danger)">✗ '+msg+'</p>';
+}
 function calculate(){
   const out=document.getElementById('output');
-  const mean=parseFloat(document.getElementById('mean').value);
-  const mu0=parseFloat(document.getElementById('mu0').value);
-  const sigma=parseFloat(document.getElementById('sigma').value);
-  const n=parseInt(document.getElementById('n').value);
-  const alpha=parseFloat(document.getElementById('alpha').value);
+  const rm=readFinite('mean','样本均值 x̄','Sample mean x̄');
+  if(!rm.ok) return fieldError(rm.msg);
+  const r0=readFinite('mu0','原假设均值 μ₀','Null-hypothesis mean μ₀');
+  if(!r0.ok) return fieldError(r0.msg);
+  const rs=readFinite('sigma','总体标准差 σ','Population standard deviation σ');
+  if(!rs.ok) return fieldError(rs.msg);
+  const rn=readSampleN();
+  if(!rn.ok) return fieldError(rn.msg);
+  const ra=readFinite('alpha','显著性水平 α','Significance level α');
+  if(!ra.ok) return fieldError(ra.msg);
+  const mean=rm.value, mu0=r0.value, sigma=rs.value, n=rn.value, alpha=ra.value;
   const tail=document.getElementById('tail').value;
-  if([mean,mu0,sigma,alpha].some(isNaN)||isNaN(n)){const __h0='<p style="color:var(--danger)" data-zh="请输入有效数据">Please enter valid data.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
-  if(sigma<=0){const __h1='<p style="color:var(--danger)">σ 必须 &gt; 0</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
-  if(n<1){const __h2='<p style="color:var(--danger)">n 必须 ≥ 1</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;return;}
-  if(alpha<=0||alpha>0.5){const __h3='<p style="color:var(--danger)">α 必须在 (0, 0.5]</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;return;}
+  if(sigma<=0) return fieldError(L('总体标准差 σ 必须 > 0','Population standard deviation σ must be > 0'));
+  if(alpha<=0||alpha>0.5) return fieldError(L('显著性水平 α 必须在 (0, 0.5] 之间（如 0.05）','Significance level α must be in (0, 0.5] (e.g. 0.05)'));
   const se=sigma/Math.sqrt(n);
   const z=(mean-mu0)/se;
   const cdf=normalCDF(z);
@@ -506,7 +535,7 @@ else document.addEventListener('DOMContentLoaded', __hypothesis_testBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -514,7 +543,7 @@ else document.addEventListener('DOMContentLoaded', __hypothesis_testBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -671,10 +700,13 @@ else document.addEventListener('DOMContentLoaded', __hypothesis_testBoot);
       (en ? 'With n = ' : '在 n = ') + m.n + (en ? ' and alpha = ' : '、α = ') + m.alpha.toFixed(3)
       + (en ? ', the smallest difference detectable with 80% power is about ' : ' 下，效能 80% 时可检出的最小差值约 ')
       + m.mde.toFixed(3) + (en ? ' (MDE = (z_crit + 0.8416) * sigma / sqrt(n)). ' : '（MDE = (z_crit + 0.8416)·σ/√n）。')
-      + (Math.abs(m.diff) >= m.mde
-          ? (en ? 'The observed difference is above that, so the design can resolve it.' : '观测差值高于该值，设计足以分辨。')
-          : (en ? 'The observed difference is below that threshold, which is why it may not reach significance.'
-            : '观测差值低于该阈值，这也是它可能达不到显著的原因。')));
+      + ((m.tail === 'one' && m.diff * m.dir <= 0)
+          ? (en ? 'The observed effect points opposite to the chosen one-tailed alternative, so this test cannot support that direction; the observed difference is irrelevant to this tail. Re-specify the direction in advance or use a two-tailed test.'
+            : '观测效应与所选单尾备择方向相反，当前检验不能据此支持该方向，观测差值的绝对值也不适用于该侧阈值；请在事前重新确定方向，或改用双尾检验。')
+          : (Math.abs(m.diff) >= m.mde
+            ? (en ? 'The observed difference is above that, so the design can resolve it.' : '观测差值高于该值，设计足以分辨。')
+            : (en ? 'The observed difference is below that threshold, which is why it may not reach significance.'
+              : '观测差值低于该阈值，这也是它可能达不到显著的原因。'))));
 
     rows += __stRow(en ? 'What "not significant" does not mean' : '"不显著"不等于什么',
       en ? 'Failing to reject is not the same as proving the null. It can mean the effect is small, or that the sample was too small to see it. '

@@ -272,6 +272,7 @@ const names = {
   mm2:'平方毫米', cm2:'平方厘米', m2:'平方米', km2:'平方千米',
   mu:'亩', ha:'公顷', acre:'英亩', ft2:'平方英尺'
 };
+const namesEn = {mm2:'mm²', cm2:'cm²', m2:'m²', km2:'km²', mu:'mu', ha:'hectare', acre:'acre', ft2:'ft²'};
 const syms = {
   mm2:'mm²', cm2:'cm²', m2:'m²', km2:'km²',
   mu:'亩', ha:'ha', acre:'acre', ft2:'ft²'
@@ -289,17 +290,20 @@ function fmt(n){
 function convert(){
   const v = parseFloat(document.getElementById('inputVal').value);
   const from = document.getElementById('fromUnit').value;
+  const en = !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   if(isNaN(v)){
     const __h0='<p style="color:var(--danger);">请输入有效数值</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
     return;
   }
-  if(v<0){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">'+'面积'+'需为非负数值。</p>';return;}
+  if(v<0){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">'+(en?'Area must be a non-negative number.':'面积需为非负数值。')+'</p>';return;}
   const base = v * factors[from];
-  let html = `<p>基准：<strong>${fmt(v)} ${syms[from]}</strong> = <strong>${fmt(base)} m²</strong></p>`;
+  let html = `<p>${en?'Base':'基准'}${en?': ':'：'}<strong>${fmt(v)} ${en&&from==='mu'?'mu':syms[from]}</strong> = <strong>${fmt(base)} m²</strong></p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
   Object.keys(factors).forEach(k => {
     if(k !== from){
-      html += `<p>${names[k]}：<strong>${fmt(base / factors[k])} ${syms[k]}</strong></p>`;
+      var __nm = en ? namesEn[k] : names[k];
+      var __sy = en && k==='mu' ? 'mu' : syms[k];
+      html += `<p>${__nm}${en?': ':'：'}<strong>${fmt(base / factors[k])} ${__sy}</strong></p>`;
     }
   });
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
@@ -307,6 +311,7 @@ function convert(){
 
 function clearAll(){
   document.getElementById('inputVal').value = '';
+  if(typeof window.__charRefRender==='function') window.__charRefRender();
   const __h2=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a value to convert":"请输入数值进行换算");if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
 }
 convert();
@@ -574,11 +579,23 @@ else document.addEventListener('DOMContentLoaded', __area_converterBoot);
     var html='';
     html+='<div class="card" style="margin-top:0;">';
     html+='<h3>'+(en?'Scale sense: how big is it really?':'📐 尺度感知：这到底有多大')+'</h3>';
-    html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
+    if(base<0){
+      html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
+      html+='<p style="color:var(--text-muted);">'+(en?'Negative area is shown with its sign; real-world references are only for non-negative values.':'输入为负面积，已保留负号；实物参照只适用于非负值。')+'</p>';
+    } else {
+      html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
+    }
     if(base===0){
-      html+='<p style="font-weight:600;color:var(--text-muted);">零值不参与尺度参照。</p>';
-    } else if(best){
-      html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+      html+='<p style="font-weight:600;color:var(--text-muted);">'+(en?'Zero is not matched to a reference.':'零值不参与尺度参照。')+'</p>';
+    } else if(base>0&&best){
+      var ratio=base/best.v;
+      if(ratio>=0.1&&ratio<=10){
+        html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+      } else if(ratio>1){
+        html+='<p style="font-weight:600;color:var(--primary);">💡 '+(en?'Nearest reference: ':'最近参照：')+best[en?'en':'zh']+'；'+(en?'about ':'约为其 ')+fmt(ratio)+(en?'× of it':' 倍')+'</p>';
+      } else {
+        html+='<p style="font-weight:600;color:var(--primary);">💡 '+(en?'Nearest reference: ':'最近参照：')+best[en?'en':'zh']+'；'+(en?'about 1/'+fmt(1/ratio)+' of it':'约为其 1/'+fmt(1/ratio))+'</p>';
+      }
     }
     html+='<details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--primary);">'+(en?'Typical real-world references':'常见实物参照')+'</summary><ul style="font-size:13px;line-height:1.8;margin:6px 0 0;padding-left:18px;">';
     for(var j=0;j<REFS.length;j++){
@@ -590,6 +607,7 @@ else document.addEventListener('DOMContentLoaded', __area_converterBoot);
     html+='</div>';
     box.innerHTML=html;
   }
+  window.__charRefRender=render;
   var f0=(typeof convert==='function')?convert:null;
   if(f0){ convert=function(){ var r=f0.apply(null,arguments); try{ render(); }catch(e){} return r; }; }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', render);

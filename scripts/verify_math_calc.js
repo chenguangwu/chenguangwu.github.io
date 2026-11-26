@@ -17,6 +17,8 @@ const CASES = [
   { slug: "math/log-base", inputs: { x: "81", b: "3" }, expect: ["4.000000"], ref: "log₃81=ln81/ln3=4.000000（默认 1000,10 避开）" },
   { slug: "math/gcd-lcm", inputs: { a: "1071", b: "462" }, expect: ["23562"], ref: "gcd(1071,462)=21；lcm=1071×462/21=23562（默认 48,36 避开）" },
   { slug: "math/distance-2d", inputs: { x1: "0", y1: "0", x2: "6", y2: "8" }, expect: ["10.0000"], ref: "d=√(6²+8²)=10.0000（默认 (0,0)-(3,4)=5.0000 避开）" },
+  { slug: "math/distance-2d", inputs: { x1: "0", y1: "0", x2: "", y2: "4" }, expect: ["空值不等于 0"], ref: "清空 x2 后旧实现按 0 算距离 4；现须停止并提示缺项。" },
+  { slug: "math/slope-line", inputs: { x1: "0", y1: "0", x2: "", y2: "6" }, expect: ["空值不等于 0"], ref: "清空 x2 后旧实现按 0 读入；现须停止并提示缺项。" },
   { slug: "math/slope-line", inputs: { x1: "0", y1: "0", x2: "2", y2: "6" }, expect: ["3.0000"], ref: "斜率 k=(6−0)/(2−0)=3.0000（默认 (1,2)-(4,8)=2.0000 避开）" },
   { slug: "math/fibonacci-n", inputs: { n: "30" }, expect: ["832,040"], ref: "F(30)=832040（千分位 832,040；默认 n=20→6765 避开）" },
   { slug: "math/factorial-calc", inputs: { n: "12" }, expect: ["4.7900e+8"], ref: "12!=479001600=4.7900e+8（科学计数法；默认 n=10 避开）" },
@@ -43,6 +45,7 @@ const CASES = [
   { slug: "math/quadratic-discriminant", inputs: { a: "2", b: "3", c: "5" }, expect: ["-31.00"], ref: "Δ=b²−4ac=9−40=−31.00（默认 1,−3,2→1.00 避开）" },
   { slug: "math/circular-permutation", inputs: { n: "7" }, expect: ["720"], ref: "圆排列数=(n−1)!=6!=720（默认 n=5→24 避开）" },
   { slug: "math/combination-repetition", inputs: { n: "6", r: "4" }, expect: ["126"], ref: "可重复组合 C(n+r−1,r)=C(9,4)=126（默认 5,3→35 避开）" },
+  { slug: "math/circular-permutation", inputs: { n: "18" }, expect: ["6,402,373,705,728,000"], ref: "18! 精确值 6402373705728000；旧对数还原会写成 …727,994，末六位错误。" },
   { slug: "math/prime-check", inputs: { n: "91" }, expect: ["不是质数"], ref: "91=7×13，非质数（默认 n=97 为质数，避开）" },
   { slug: "math/arithmetic-mean-math", inputs: { xs: "10, 20, 30, 40" }, expect: ["25.0000"], ref: "算术平均=(10+20+30+40)/4=25.0000（默认 1,2,3,4,5→3.0000 避开）" },
   { slug: "math/multinomial-coefficient", inputs: { n: "8", k1: "4", k2: "2", k3: "2" }, expect: ["420"], ref: "多项式系数=8!/(4!2!2!)=40320/96=420（默认 6,3,2,1→60 避开）" },
@@ -300,8 +303,8 @@ const CASES = [
       "n": "42",
       "r": "42"
     },
-    "expect": ["839,455,243,105,990,200"],
-    "ref": "自动补强（B类零用例，2026-10-25 对数空间重写后）：注入非默认输入{n:42,r:42}，可重复组合 C(83,42)=839,455,243,105,990,200,000,000（toLocaleString 千分位）；默认态（5/3 → 35）不含该串 ⇒ 强判别、零逃生。"
+    "expect": ["839,455,243,105,945,545,123,660"],
+    "ref": "自动补强（B类零用例，2026-10-25 对数空间重写后）：注入非默认输入{n:42,r:42}，可重复组合 C(83,42)=839,455,243,105,945,545,123,660（BigInt 精确整数，千分位）；默认态（5/3 → 35）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "math/determinant-2x2",

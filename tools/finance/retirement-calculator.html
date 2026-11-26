@@ -145,7 +145,7 @@
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 说明</div>
       <div class="formula-eq">所需资金池 ≈ 年支出 / 4%（即约 25 倍年支出）；缺口 = 目标资金池 − 现有资产按收益复利增长后的值</div>
-      <div class="formula-desc">基于 4% 提取法则：退休资金池约为年支出的 25 倍。投入按年末计入，退休后按年末等额实际购买力支取；月支取为年支取额除以 12，并非逐月支取模拟。</div>
+      <div class="formula-desc">基于 4% 提取法则：退休资金池约为年支出的 25 倍。每月投入按月末计入并按月复利，退休后按年末等额实际购买力支取；月支取为年支取额除以 12，并非逐月支取模拟。</div>
     </div>
 <div class="input-row">
       <div>
@@ -251,7 +251,7 @@
 <li>模拟资产增长轨迹与退休资金缺口</li>
 <li>比较不同储蓄率与收益率下的退休年龄</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例：退休后月支出 8000 元、4% 法则</div><div class="dd-ex-body">所需资金池 ≈ 8000×12/4% = 240 万元；页面结合当前储蓄与年投入模拟达成所需年限。</div></div>
+<div class="dd-example"><div class="dd-ex-title">示例：退休后月支出 8000 元、4% 法则</div><div class="dd-ex-body">所需资金池 ≈ 8000×12/4% = 240 万元；页面结合当前储蓄与每月投入（月末计入、按月复利）模拟达成所需年限。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>4% 法则是什么？</dt><dd>由 Bengen 研究提出的经验法则：退休首年提取资产 4% 并按通胀调整，历史上多数情况下可支撑 30 年；并非保证。</dd>
@@ -299,6 +299,7 @@
   return __r;
 }
 function __tbInputGuardCore(_ids,_labels){
+  _ids = _ids || []; _labels = _labels || [];
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
@@ -373,10 +374,16 @@ function clearYearlyOutput() {
   if (sens) sens.innerHTML = '';
 }
 
-function fvAnnuity(annualContribution, r, years) {
-  if (years <= 0 || annualContribution <= 0) return 0;
-  if (r === 0) return annualContribution * years;
-  return annualContribution * (Math.pow(1 + r, years) - 1) / r;
+function monthlyRateFromAnnual(r){
+  return Math.pow(1 + r, 1 / 12) - 1;
+}
+// 每月月末投入的年金终值：与「每月投入」标签一致，不再按年末一次性投入。
+function fvMonthly(monthlyContribution, r, years) {
+  if (years <= 0 || monthlyContribution <= 0) return 0;
+  var months = years * 12;
+  var rm = monthlyRateFromAnnual(r);
+  if (rm === 0) return monthlyContribution * months;
+  return monthlyContribution * (Math.pow(1 + rm, months) - 1) / rm;
 }
 
 function annualWithdrawal(fund, realRate, years) {
@@ -403,13 +410,12 @@ var age = parseFloat(document.getElementById('age').value) || 0;
 
   var workYears = retireAge - age;
   var retireYears = lifeAge - retireAge;
-  var annualContribution = monthlyContribution * 12;
   var r = returnRate / 100;
   var inf = inflation / 100;
   var realReturn = (1 + r) / (1 + inf) - 1;
 
   var fvCurrent = currentSavings * Math.pow(1 + r, workYears);
-  var fvContributions = annualContribution > 0 ? fvAnnuity(annualContribution, r, workYears) : 0;
+  var fvContributions = fvMonthly(monthlyContribution, r, workYears);
   var totalRetirementFund = fvCurrent + fvContributions;
 
   var annualExpenseRetire = monthlyExpense * 12 * Math.pow(1 + inf, workYears);
@@ -462,19 +468,18 @@ function generateYearlyData(age, retireAge, lifeAge, currentSavings, monthlyCont
   var r = returnRate / 100;
   var inf = inflation / 100;
   var balance = currentSavings;
-  var annualContribution = monthlyContribution * 12;
 
   for (var yr = 0; yr <= lifeAge - age; yr++) {
     var currentAge = age + yr;
     var isWorking = currentAge < retireAge;
-    var contribution = isWorking ? annualContribution : 0;
+    var contribution = isWorking ? monthlyContribution * 12 : 0;
     var withdrawal = 0;
     var realBalance = balance / Math.pow(1 + inf, yr);
 
     if (!isWorking && currentAge < lifeAge) {
       var retireYears = lifeAge - retireAge;
       var realReturn = (1 + r) / (1 + inf) - 1;
-      var realRetireFund = (currentSavings * Math.pow(1 + r, retireAge - age) + fvAnnuity(annualContribution, r, retireAge - age)) / Math.pow(1 + inf, retireAge - age);
+      var realRetireFund = (currentSavings * Math.pow(1 + r, retireAge - age) + fvMonthly(monthlyContribution, r, retireAge - age)) / Math.pow(1 + inf, retireAge - age);
       withdrawal = annualWithdrawal(realRetireFund, realReturn, retireYears) * Math.pow(1 + inf, yr + 1);
     }
 
@@ -488,8 +493,14 @@ function generateYearlyData(age, retireAge, lifeAge, currentSavings, monthlyCont
       isWorking: isWorking
     });
 
-    var yearEndReturn = balance * r;
-    balance = balance + yearEndReturn + contribution - withdrawal;
+    // 工作期按每月月末投入模拟，与主结果/敏感性使用的月年金公式保持一致。
+    if (isWorking) {
+      var rm = monthlyRateFromAnnual(r);
+      for (var mth = 0; mth < 12; mth++) balance = balance * (1 + rm) + monthlyContribution;
+      balance -= withdrawal;
+    } else {
+      balance = balance * (1 + r) - withdrawal;
+    }
   }
 }
 
@@ -604,7 +615,6 @@ function renderSensitivity(age, retireAge, lifeAge, currentSavings, monthlyContr
 
   var workYears = retireAge - age;
   var retireYears = lifeAge - retireAge;
-  var annualContribution = monthlyContribution * 12;
   var inf = inflation / 100;
   var annualExpenseRetire = monthlyExpense * 12 * Math.pow(1 + inf, workYears);
   var neededFund = annualExpenseRetire / 0.04;
@@ -613,7 +623,7 @@ function renderSensitivity(age, retireAge, lifeAge, currentSavings, monthlyContr
     var rate = rates[i];
     var r = rate / 100;
     var fvCurrent = currentSavings * Math.pow(1 + r, workYears);
-    var fvContrib = fvAnnuity(annualContribution, r, workYears);
+    var fvContrib = fvMonthly(monthlyContribution, r, workYears);
     var total = fvCurrent + fvContrib;
     var realTotal = total / Math.pow(1 + inf, workYears);
     var realReturn = (1 + r) / (1 + inf) - 1;

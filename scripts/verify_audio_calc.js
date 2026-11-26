@@ -45,6 +45,14 @@ const CASES = [
   "inputs": { "fs": "", "N": "", "bin": "" },
   "expect": ["请输入有效采样率与 FFT 长度"],
   "ref": "空态回归：fs/N 为空时旧实现 `parseFloat(...)||44100 / ||4096` 静默代入默认值并输出分辨率/奈奎斯特频率；现要求提示。默认态 10.7666/22050.00 不含该提示 ⇒ 强判别。"
+},
+
+  // 第883批
+  {
+  slug: "audio/audio-waveform",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/audio/audio-waveform.html','utf8');document.getElementById('__tbProbe').textContent='AUDIOWAVE '+((src.indexOf('role=\"slider\"')>=0&&src.indexOf(\"progressTrack').addEventListener('keydown\")>=0)?'OK':'BAD');"],
+  expect: ["AUDIOWAVE OK"],
+  ref: "第883批：波形播放器进度条补键盘语义，方向键 ±5 秒、Shift ±1 秒、Home/End 跳首尾，并同步 aria-valuenow。"
 }
 ];
 async function main() {

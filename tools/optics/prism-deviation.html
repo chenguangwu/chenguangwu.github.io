@@ -124,16 +124,16 @@
 </nav>
 <div class="container" role="main">
 <div class="tool-guide-link" data-guide-link="1">
-  <a href="../../guides/prism-deviation-guide.html">📖 查看「由折射率与顶角求小角度棱镜偏向角 使用指南」</a>
+  <a href="../../guides/prism-deviation-guide.html">📖 查看「由折射率与顶角求棱镜最小偏向角 使用指南」</a>
 </div>
 
   <div class="card">
-    <h2 data-zh="由折射率与顶角求小角度棱镜偏向角">Prism Deviation Angle Calculator (δ ≈ (n − 1)·A)</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入折射率 n 与棱镜顶角 A（度），求偏向角。">Compute the deviation angle from prism refractive index n and apex angle A under the small-angle approximation. For dispersing prisms and beam-steering elements.</p>
+    <h2 data-zh="由折射率与顶角求棱镜最小偏向角">Prism Minimum Deviation Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入折射率 n 与棱镜顶角 A（度），求精确最小偏向角并对照小角近似。">Compute the exact minimum deviation δ_min = 2·arcsin(n·sin(A/2)) − A and compare it with the thin-prism approximation δ ≈ (n−1)·A. For dispersing prisms and beam-steering elements.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">薄棱镜最小偏向角（小顶角近似）：δ = (n−1)·A（°，n 折射率、A 顶角）；联动量：偏向角/顶角比 = δ ÷ A、折射率差 n−1、顶角一半 A/2。校验：n、A 均必填且 n&gt;0、0°&lt;A&lt;180°。判据：无固定分级，偏向角随顶角与折射率差线性增长。</div>
-      <p class="formula-desc">输入折射率 n 与棱镜顶角 A（度），求偏向角。</p>
+      <div class="formula-eq">精确最小偏向角：δ_min = 2·arcsin(n·sin(A/2)) − A，要求 n·sin(A/2) ≤ 1；小角近似：δ ≈ (n−1)·A，仅在顶角很小时接近精确值。联动量：精确−近似差、近似值/顶角比、n−1。校验：n、A 均必填且 n&gt;0、0°&lt;A&lt;180°；n·sin(A/2)&gt;1 时无实数最小偏向角，仍给出近似值但明确标注不适用。</div>
+      <p class="formula-desc">输入折射率 n 与棱镜顶角 A（度），求精确最小偏向角并对照小角近似。</p>
     </div>
 
     <div class="input-row">
@@ -171,7 +171,7 @@
         <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="要点" scope="col">Key Point</th>
       </tr></thead>
       <tbody>
-        <tr><td data-zh="小角度棱镜偏向角">Thin-prism deviation</td><td>Classic optics (Hecht, Optics, 5th ed.)</td><td data-zh="δ ≈ (n-1)*A,A 为顶角">δ ≈ (n-1)*A with apex angle A</td></tr>
+        <tr><td data-zh="小角度棱镜偏向角">Thin-prism deviation</td><td>Classic optics (Hecht, Optics, 5th ed.)</td><td data-zh="精确最小偏向 δ_min=2arcsin(n·sin(A/2))−A（需 n·sin(A/2)≤1）；小角近似 δ≈(n−1)A">δ_min=2arcsin(n·sin(A/2))−A when n·sin(A/2)≤1; thin-prism δ≈(n−1)A</td></tr>
       </tbody>
     </table>
   </div>
@@ -233,11 +233,15 @@ function calcTool(){
             if(p.err){ToolBox.setResult('result',p.err);return;}
             const n=p.n,A=p.A;
             const delta=(n-1)*A;
+            const q=n*Math.sin(A/2*Math.PI/180);
+            let exact=null;
+            if(q<=1) exact=2*Math.asin(q)*180/Math.PI-A;
             const __g1=dataGrid([
-                [delta.toFixed(2),'偏向角 δ (°)'],
-                [(delta/A).toFixed(4), '偏向角与顶角比'],
-                [(n-1).toFixed(4), '折射率减一'],
-                [(A/2).toFixed(2), '顶角一半']
+                [exact===null?'无实数最小偏向角':exact.toFixed(3),'精确最小偏向角 δ_min (°)'],
+                [delta.toFixed(2),'小角近似 δ≈(n−1)A (°)'],
+                [exact===null?'—':(exact-delta).toFixed(3),'精确−近似差 (°)'],
+                [(delta/A).toFixed(4),'近似值与顶角比'],
+                [(n-1).toFixed(4),'折射率减一']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('n').value = '1.5';
@@ -254,13 +258,16 @@ function __prism_deviationExtras(){
     if(p.err){TBKit.matrix.table('#prism_deviationTable',{head:en?['Item','Value']:['项目','数值'],rows:[]});return;}
     var n=p.n,A=p.A;
     var delta=(n-1)*A;
+    var q=n*Math.sin(A/2*Math.PI/180);
+    var exact=q<=1?2*Math.asin(q)*180/Math.PI-A:null;
     TBKit.matrix.table('#prism_deviationTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['偏向角 δ (°)', delta.toFixed(2)],
-            ['偏向角与顶角比', (delta/A).toFixed(4)],
+            ['精确最小偏向角 δ_min (°)', exact===null?(en?'No real minimum-deviation solution':'无实数解'):exact.toFixed(3)],
+            ['小角近似 δ≈(n−1)A (°)', delta.toFixed(2)],
+            ['精确−近似差 (°)', exact===null?'—':(exact-delta).toFixed(3)],
+            ['近似值与顶角比', (delta/A).toFixed(4)],
             ['折射率减一', (n-1).toFixed(4)],
-            ['顶角一半', (A/2).toFixed(2)],
         ]
     });
     TBKit.history.record({n:__prism_deviationRaw('n'), A:__prism_deviationRaw('A'), delta:delta});

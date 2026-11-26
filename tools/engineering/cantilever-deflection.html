@@ -241,8 +241,15 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const P=num('P')*1000, L=num('L'), E=num('E')*1e9, I=num('I')*1e-8;
-            if(L<=0||E<=0||I<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的梁参数。</p>');return;}
+            function rv(id){var el=document.getElementById(id);var v=el?String(el.value==null?'':el.value).trim():'';return {raw:v,val:v===''?NaN:parseFloat(v)};}
+            var Pr=rv('P'), Lr=rv('L'), Er=rv('E'), Ir=rv('I');
+            var errs=[];
+            if(Pr.raw===''||!isFinite(Pr.val))errs.push('端部集中力 P 须为有效数值（kN，可为 0 或负值表示反向）');
+            if(!isFinite(Lr.val)||Lr.val<=0)errs.push('梁长 L 须为正数（m）');
+            if(!isFinite(Er.val)||Er.val<=0)errs.push('弹性模量 E 须为正数（GPa）');
+            if(!isFinite(Ir.val)||Ir.val<=0)errs.push('惯性矩 I 须为正数（cm⁴）');
+            if(errs.length){ToolBox.setResult('result','<p class="tip-error">⚠ '+errs.join('；')+'。</p>');return;}
+            const P=Pr.val*1000, L=Lr.val, E=Er.val*1e9, I=Ir.val*1e-8;
             const delta=P*Math.pow(L,3)/(3*E*I)*1000;  // m->mm
             const theta=P*L*L/(2*E*I)*180/Math.PI;     // rad->deg
             const html=dataGrid([

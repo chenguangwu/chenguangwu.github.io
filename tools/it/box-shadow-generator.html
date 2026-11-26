@@ -163,7 +163,7 @@
       <div id="cssOut" style="font-family:monospace;font-size:13px;word-break:break-all;">—</div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" onclick="copyCss()">复制 CSS</button>
+      <button class="btn primary" id="copyShadow" onclick="copyCss()">复制 CSS</button>
       <button class="btn" onclick="reset()">重置</button>
     </div>
   </div>
@@ -292,7 +292,16 @@
 </div>
 <script>
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function copyCss(){var v=document.getElementById('cssOut').textContent;if(!v||v==='—'){if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg679'));return;}ToolBox.copyText(v);if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg192'));}
+var __shadowValid=false;
+function copyCss(){
+  var v=document.getElementById('cssOut').textContent;
+  if(!__shadowValid||!v||v==='—'){
+    if(ToolBox.showToast)ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Fix the highlighted input before copying':'请先修正无效输入再复制');
+    return;
+  }
+  ToolBox.copyText(v);
+  if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg192'));
+}
 function reset(){['x','y','blur','spread'].forEach(function(id,i){document.getElementById(id).value=[0,4,12,0][i];});document.getElementById('color').value='#1f2937';document.getElementById('alpha').value=25;document.getElementById('inset').checked=false;render();}
 function hexToRgba(hex,a){
   var h=hex.replace('#','');
@@ -300,19 +309,41 @@ function hexToRgba(hex,a){
   var n=parseInt(h,16);
   return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+(a/100).toFixed(2)+')';
 }
+function __shadowError(msg){
+  __shadowValid=false;
+  document.getElementById('cssOut').textContent='—';
+  document.getElementById('target').style.boxShadow='';
+  document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';
+  var btn=document.getElementById('copyShadow');
+  if(btn) btn.disabled=true;
+}
 function render(){
-  var x=parseInt(document.getElementById('x').value)||0;
-  var y=parseInt(document.getElementById('y').value)||0;
-  var blur=parseInt(document.getElementById('blur').value)||0;
-  var spread=parseInt(document.getElementById('spread').value)||0;
+  var ids=['x','y','blur','spread'];
+  var vals={};
+  for(var i=0;i<ids.length;i++){
+    var raw=document.getElementById(ids[i]).value;
+    if(String(raw).trim()===''){
+      __shadowError((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Offsets, blur and spread cannot be empty':'偏移、模糊与扩散不能为空');
+      return;
+    }
+    var n=Number(raw);
+    if(!isFinite(n)){__shadowError((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Enter valid numbers for offsets, blur and spread':'偏移、模糊与扩散必须为有效数字');return;}
+    vals[ids[i]]=n;
+  }
+  if(vals.blur<0){__shadowError((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Blur radius cannot be negative':'模糊半径不能为负数');return;}
   var color=document.getElementById('color').value;
-  var alpha=parseInt(document.getElementById('alpha').value)||0;
+  if(!/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color)){__shadowError((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Invalid color value':'颜色值无效');return;}
+  var alpha=Number(document.getElementById('alpha').value);
+  if(!isFinite(alpha)||alpha<0||alpha>100){__shadowError((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Opacity must be between 0 and 100':'透明度必须在 0–100 之间');return;}
+  var x=vals.x,y=vals.y,blur=vals.blur,spread=vals.spread;
   var inset=document.getElementById('inset').checked;
   var rgba=hexToRgba(color,alpha);
-  var css='box-shadow: '+(inset?'inset ':'')+x+'px '+y+'px '+blur+'px '+spread+'px '+rgba+';';
-  document.getElementById('target').style.boxShadow=(inset?'inset ':'')+x+'px '+y+'px '+blur+'px '+spread+'px '+rgba;
-  document.getElementById('cssOut').textContent=css;
-  const __h0='<p>偏移 <strong>'+x+'px '+y+'px</strong> · 模糊 <strong>'+blur+'px</strong> · 扩散 <strong>'+spread+'px</strong> · '+(inset?'内阴影':'外阴影')+' · 透明度 '+alpha+'%</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  var shadow=(inset?'inset ':'')+x+'px '+y+'px '+blur+'px '+spread+'px '+rgba;
+  __shadowValid=true;
+  document.getElementById('target').style.boxShadow=shadow;
+  document.getElementById('cssOut').textContent='box-shadow: '+shadow+';';
+  var btn=document.getElementById('copyShadow'); if(btn) btn.disabled=false;
+  document.getElementById('result').innerHTML='<p>偏移 <strong>'+x+'px '+y+'px</strong> · 模糊 <strong>'+blur+'px</strong> · 扩散 <strong>'+spread+'px</strong> · '+(inset?'内阴影':'外阴影')+' · 透明度 '+alpha+'%</p>';
 }
 render();
 

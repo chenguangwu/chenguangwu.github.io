@@ -220,11 +220,12 @@ function renderHotSpotlight() {
   if (!grid) return;
   grid.innerHTML = HOT_TOOLS.map(t => {
     const url = canonicalToolUrl(t.u || t.url);
-    return `<a class="hot-spotlight-card" href="${url}" target="_blank" rel="noopener" onclick="addToRecent('${url}')">
+    const desc = _td(t);
+    return `<a class="hot-spotlight-card" href="${url}" target="_blank" rel="noopener" title="${escapeHtml(desc)}" onclick="addToRecent('${url}')">
       <div class="hot-spotlight-icon" style="background:${t.b || t.bg || '#f5f5f5'}">${t.ic || t.icon || '🛠️'}</div>
       <div class="hot-spotlight-info">
-        <div class="hot-spotlight-name">${_tn(t)}</div>
-        <div class="hot-spotlight-desc">${_td(t)}</div>
+        <div class="hot-spotlight-name">${escapeHtml(_tn(t))}</div>
+        <div class="hot-spotlight-desc">${escapeHtml(desc)}</div>
       </div>
     </a>`;
   }).join('');

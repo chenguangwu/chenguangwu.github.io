@@ -291,49 +291,67 @@ function __tbInputGuardCore(_ids,_labels){
 
 var HK='harvest_history';
 var CROPS=[
-{name:'小麦',period:'6月上中旬',manual:1.5,machine:8,yield:500,moisture:'12.5%',sign:'麦壳变黄、籽粒变硬'},
-{name:'水稻',period:'9月下旬-10月',manual:1,machine:6,yield:550,moisture:'13.5%',sign:'谷粒变黄、穗头下垂'},
-{name:'玉米',period:'9月下旬-10月',manual:2,machine:5,yield:600,moisture:'14%',sign:'苞叶变白、籽粒乳线消失'},
-{name:'大豆',period:'9月中下旬',manual:2,machine:6,yield:180,moisture:'13%',sign:'叶片脱落、豆荚变褐'},
-{name:'油菜',period:'5月中下旬',manual:1.5,machine:5,yield:150,moisture:'9%',sign:'角果变黄、大部分呈枇杷色'},
-{name:'花生',period:'8-9月',manual:0.8,machine:3,yield:300,moisture:'10%',sign:'上部叶片变黄、荚果纹清晰'}
+{name:'小麦',enName:'Wheat',period:'6月上中旬',enPeriod:'early to mid June',manual:1.5,machine:8,yield:500,moisture:'12.5%',sign:'麦壳变黄、籽粒变硬',enSign:'husks turn yellow and grain hardens'},
+{name:'水稻',enName:'Rice',period:'9月下旬-10月',enPeriod:'late September to October',manual:1,machine:6,yield:550,moisture:'13.5%',sign:'谷粒变黄、穗头下垂',enSign:'grains yellow and panicles droop'},
+{name:'玉米',enName:'Corn',period:'9月下旬-10月',enPeriod:'late September to October',manual:2,machine:5,yield:600,moisture:'14%',sign:'苞叶变白、籽粒乳线消失',enSign:'husks whiten and the kernel milk line disappears'},
+{name:'大豆',enName:'Soybean',period:'9月中下旬',enPeriod:'mid to late September',manual:2,machine:6,yield:180,moisture:'13%',sign:'叶片脱落、豆荚变褐',enSign:'leaves drop and pods turn brown'},
+{name:'油菜',enName:'Rapeseed',period:'5月中下旬',enPeriod:'mid to late May',manual:1.5,machine:5,yield:150,moisture:'9%',sign:'角果变黄、大部分呈枇杷色',enSign:'siliques yellow and most turn loquat-colored'},
+{name:'花生',enName:'Peanut',period:'8-9月',enPeriod:'August to September',manual:0.8,machine:3,yield:300,moisture:'10%',sign:'上部叶片变黄、荚果纹清晰',enSign:'upper leaves yellow and pod veins become clear'}
 ];
 function $(id){return document.getElementById(id);}
 function switchTab(t){document.querySelectorAll('.tab-btn').forEach(function(b,i){var T=['calc','guide','ref','history'];b.classList.toggle('active',T[i]===t);});document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});$('tab-'+t).classList.add('active');if(t==='history')renderHistory();}
 function initCrops(){var h='';CROPS.forEach(function(c,i){h+='<option value="'+i+'">'+c.name+'</option>';});const __g1=h;$('crop').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));const __g2=CROPS.map(function(c){return '<tr><td>'+c.name+'</td><td>'+c.period+'</td><td>'+c.manual+'</td><td>'+c.machine+'</td><td>'+c.sign+'</td></tr>';}).join('');$('cropTable').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));$('crop').value=0;applyCrop();}
 function applyCrop(){var i=parseInt($('crop').value);var c=CROPS[i];$('yield').value=c.yield;calc();}
 function calc(){
-// NUMCLR：全部输入留空时不得输出 0/0.00 的假结果
+  var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/i.test(location.search);
 var __numReq=['area','yield','days','hours','laborCost','machineCost'];
-if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
+if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">'+(en?'⚠ Enter the required inputs before calculating.':'⚠ 请填写必要的输入参数后再计算')+'</p>';return;}
 
-  var __ig=__tbInputGuard(['area', 'yield', 'days', 'hours', 'laborCost', 'machineCost'],["种植面积(亩)", "预计单产(kg/亩)", "计划天数", "每天工作小时", "人工单价(元/天)", "机械作业费(元/亩)"]);if(__ig){const __g3=__ig;ToolBox.setResult("result",(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')));return;}
+  var __ig=__tbInputGuard(['area', 'yield', 'days', 'hours', 'laborCost', 'machineCost'],en?["Area (mu)", "Expected yield (kg/mu)", "Planned days", "Working hours per day", "Labor rate (CNY/day)", "Machine cost (CNY/mu)"]:["种植面积(亩)", "预计单产(kg/亩)", "计划天数", "每天工作小时", "人工单价(元/天)", "机械作业费(元/亩)"]);if(__ig){const __g3=__ig;ToolBox.setResult("result",(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')));return;}
 var ci=parseInt($('crop').value);var c=CROPS[ci];
 var area=parseFloat($('area').value)||0,y=parseFloat($('yield').value)||0;
 var days=parseFloat($('days').value)||1,hours=parseFloat($('hours').value)||8;
 var method=$('method').value;var laborCost=parseFloat($('laborCost').value)||150;
 var machineCost=parseFloat($('machineCost').value)||80;
-if(area<=0){$('result').innerHTML='<p style="text-align:center;color:var(--text-muted);">请输入面积</p>';$('chartWrap').style.display='none';return;}
+if(area<=0){$('result').innerHTML='<p style="text-align:center;color:var(--text-muted);">'+(en?'Enter an area.':'请输入面积')+'</p>';$('chartWrap').style.display='none';return;}
 var totalYield=area*y/1000;var dailyArea=area/days;
 var workers=0,neededMachine=0,cost=0,costBreakdown={};
 if(method==='manual'){var dailyPerWorker=c.manual*hours/8;workers=Math.ceil(dailyArea/dailyPerWorker);cost=workers*days*laborCost;costBreakdown={labor:cost};}
 else if(method==='combine'){neededMachine=Math.ceil(dailyArea/(c.machine*hours));cost=area*machineCost;costBreakdown={machine:cost};}
 else{var mArea=dailyArea*0.7;var manualArea=dailyArea*0.3;neededMachine=Math.ceil(mArea/(c.machine*hours));var dailyPerWorker=c.manual*hours/8;workers=Math.ceil(manualArea/dailyPerWorker);var mCost=area*machineCost*0.7;var lCost=workers*days*laborCost;cost=mCost+lCost;costBreakdown={machine:mCost,labor:lCost};}
 var costPerMu=cost/area;var costPerKg=cost/(totalYield*1000);
-const __g5='<h3 style="text-align:center;margin-bottom:12px;">📐 '+c.name+' 收获规划方案</h3>'+
-'<div class="data-grid">'+
-'<div class="data-card"><div class="num">'+totalYield.toFixed(1)+'</div><div class="label">预计总产(吨)</div></div>'+
-'<div class="data-card"><div class="num">'+dailyArea.toFixed(1)+'</div><div class="label">日进度(亩/天)</div></div>'+
-'<div class="data-card"><div class="num">'+workers+'</div><div class="label">需劳动力(人)</div></div>'+
-'<div class="data-card"><div class="num">'+neededMachine+'</div><div class="label">需机械(台)</div></div>'+
-'</div>'+
-'<div class="ref-card" style="margin-top:12px;"><h4>💰 成本估算</h4>'+
-'<p>• 总收获成本：<strong style="color:var(--primary);font-size:18px;">'+cost.toFixed(0)+'</strong> 元</p>'+
-'<p>• 亩均成本：<strong>'+costPerMu.toFixed(1)+'</strong> 元/亩</p>'+
-'<p>• 公斤成本：<strong>'+costPerKg.toFixed(3)+'</strong> 元/kg</p>'+
-(method==='semi'?'<p style="font-size:12px;color:var(--text-muted);">(机械:'+costBreakdown.machine.toFixed(0)+'元 + 人工:'+costBreakdown.labor.toFixed(0)+'元)</p>':'')+
-'</div>'+
-'<div class="tip-box tip-info" style="margin-top:12px;"><strong>📅 收获期</strong>: '+c.period+'，最佳标志：'+c.sign+'，安全水分:'+c.moisture+'</div>';$('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+var cropName=en?(c.enName||c.name):c.name;
+var html;
+if(en){
+ html='<h3 style="text-align:center;margin-bottom:12px;">📐 '+cropName+' harvest plan</h3>'+
+ '<div class="data-grid">'+
+ '<div class="data-card"><div class="num">'+totalYield.toFixed(1)+'</div><div class="label">Total yield (t)</div></div>'+
+ '<div class="data-card"><div class="num">'+dailyArea.toFixed(1)+'</div><div class="label">Daily progress (mu/day)</div></div>'+
+ '<div class="data-card"><div class="num">'+workers+'</div><div class="label">Workers needed</div></div>'+
+ '<div class="data-card"><div class="num">'+neededMachine+'</div><div class="label">Machines needed</div></div></div>'+
+ '<div class="ref-card" style="margin-top:12px;"><h4>💰 Cost estimate</h4>'+
+ '<p>• Total harvest cost: <strong style="color:var(--primary);font-size:18px;">'+cost.toFixed(0)+'</strong> CNY</p>'+
+ '<p>• Cost per mu: <strong>'+costPerMu.toFixed(1)+'</strong> CNY/mu</p>'+
+ '<p>• Cost per kg: <strong>'+costPerKg.toFixed(3)+'</strong> CNY/kg</p>'+
+ (method==='semi'?'<p style="font-size:12px;color:var(--text-muted);">(machine '+costBreakdown.machine.toFixed(0)+' CNY + labor '+costBreakdown.labor.toFixed(0)+' CNY)</p>':'')+
+ '</div>'+
+ '<div class="tip-box tip-info" style="margin-top:12px;"><strong>📅 Harvest window</strong>: '+(c.enPeriod||c.period)+', best indicator: '+(c.enSign||c.sign)+', safe moisture: '+c.moisture+'</div>';
+}else{
+ html='<h3 style="text-align:center;margin-bottom:12px;">📐 '+cropName+' 收获规划方案</h3>'+
+ '<div class="data-grid">'+
+ '<div class="data-card"><div class="num">'+totalYield.toFixed(1)+'</div><div class="label">预计总产(吨)</div></div>'+
+ '<div class="data-card"><div class="num">'+dailyArea.toFixed(1)+'</div><div class="label">日进度(亩/天)</div></div>'+
+ '<div class="data-card"><div class="num">'+workers+'</div><div class="label">需劳动力(人)</div></div>'+
+ '<div class="data-card"><div class="num">'+neededMachine+'</div><div class="label">需机械(台)</div></div></div>'+
+ '<div class="ref-card" style="margin-top:12px;"><h4>💰 成本估算</h4>'+
+ '<p>• 总收获成本：<strong style="color:var(--primary);font-size:18px;">'+cost.toFixed(0)+'</strong> 元</p>'+
+ '<p>• 亩均成本：<strong>'+costPerMu.toFixed(1)+'</strong> 元/亩</p>'+
+ '<p>• 公斤成本：<strong>'+costPerKg.toFixed(3)+'</strong> 元/kg</p>'+
+ (method==='semi'?'<p style="font-size:12px;color:var(--text-muted);">(机械:'+costBreakdown.machine.toFixed(0)+'元 + 人工:'+costBreakdown.labor.toFixed(0)+'元)</p>':'')+
+ '</div>'+
+ '<div class="tip-box tip-info" style="margin-top:12px;"><strong>📅 收获期</strong>: '+c.period+'，最佳标志：'+c.sign+'，安全水分:'+c.moisture+'</div>';
+}
+$('result').innerHTML=(typeof html==='number'?(isFinite(html)?html:'—'):String(html).replace(/Infinity|NaN/g,'—'));
 $('chartWrap').style.display='block';drawGantt(days);
 }
 function drawGantt(days){
@@ -397,10 +415,7 @@ document.addEventListener('DOMContentLoaded',function(){
       <span class="rt-icon">🔄</span>
       <span class="rt-info"><span class="rt-name">农产品干物质含量换算器</span><span class="rt-desc">农产品干物质换算器，输入鲜重、干重或含水率快速互转并支持标准含水率折算，用于粮食收购与饲草计量</span></span>
     </a>
-    <a href="dry-matter-conversion.html" class="related-tool-card">
-      <span class="rt-icon">🔄</span>
-      <span class="rt-info"><span class="rt-name">农产品干物质含量换算器</span><span class="rt-desc">农产品干物质换算器，输入鲜重、干重或含水率快速互转并支持标准含水率折算，用于粮食收购与饲草计量</span></span>
-    </a>
+    
     
     <a href="temp-time-2.html" class="related-tool-card">
       <span class="rt-icon">🌡️</span>

@@ -38,13 +38,16 @@
 .batch-item .dst{flex:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'SF Mono','Courier New','Fira Code',monospace;color:var(--primary);}
 .batch-item button{padding:4px 10px;font-size:12px;flex-shrink:0;}
 .history-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:12px;cursor:pointer;transition:all 0.2s;font-size:13px;border:1px solid var(--border);margin-bottom:8px;background:var(--card-bg);}
+.history-item.history-readonly{cursor:default;}
+.history-item.history-readonly:hover{transform:none;}
 .history-item:hover{background:var(--result-bg);border-color:var(--primary);transform:translateX(2px);}
 .history-item .h-src{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-light);margin-right:10px;}
 .history-item .h-meta{flex-shrink:0;color:var(--text-muted);font-size:12px;display:flex;align-items:center;gap:8px;}
 .history-item .h-meta .tag{padding:2px 8px;border-radius:20px;background:var(--result-bg);font-size:11px;font-weight:500;border:1px solid var(--border);}
 .preview-box{text-align:center;padding:16px;border:1px solid var(--border);border-radius:12px;margin-top:12px;background:var(--result-bg);}
 .preview-box img{max-width:100%;max-height:300px;border-radius:8px;}
-.file-drop{border:2px dashed var(--border);border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;color:var(--text-muted);background:var(--card-bg);}
+.file-drop{display:block;width:100%;box-sizing:border-box;font-family:inherit;border:2px dashed var(--border);border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;color:var(--text-muted);background:var(--card-bg);}
+.file-drop:focus-visible{outline:3px solid var(--primary);outline-offset:2px;}
 .file-drop:hover,.file-drop.drag{border-color:var(--primary);color:var(--primary);background:var(--bg-hover);}
 .file-drop p{font-size:14px;margin-bottom:4px;font-weight:500;}
 .file-drop .hint{font-size:12px;}
@@ -189,11 +192,11 @@
 
     <div id="tabText" class="tab-content active">
       <div class="checkbox-row">
-        <label><input type="checkbox" id="urlSafe"> URL安全模式</label>
-        <label><input type="checkbox" id="autoDetect" checked> 解码时剥离 data: 前缀</label>
+        <label><input type="checkbox" id="urlSafe" onchange="__b64OptionChange()"> URL安全模式</label>
+        <label><input type="checkbox" id="autoDetect" checked onchange="__b64OptionChange()"> 解码时剥离 data: 前缀</label>
       </div>
       <label for="input">输入内容</label>
-      <textarea id="input" placeholder="输入要编码的文本，或要解码的 Base64/32/85 字符串..." oninput="onInputChange()">Hello, World! 你好，世界！</textarea>
+      <textarea id="input" placeholder="输入要编码的文本，或要解码的 Base64/32/85 字符串..." oninput="__b64OnInput()">Hello, World! 你好，世界！</textarea>
 
       <div data-tb="preset" data-tb-presets='[{"label":"中英混排","labelEn":"CN + EN","values":{"urlSafe":false,"autoDetect":true,"input":"Hello, World! 你好，世界！"}},{"label":"纯英文长文本","labelEn":"Long English text","values":{"urlSafe":false,"autoDetect":true,"input":"The quick brown fox jumps over the lazy dog."}},{"label":"URL 安全编码","labelEn":"URL-safe encoding","values":{"urlSafe":true,"autoDetect":false,"input":"https://example.com/search?q=toolbox#中文"}}]'></div>
 
@@ -221,26 +224,34 @@
         <p style="margin-bottom:8px;font-size:13px;color:var(--text-light);">🖼️ 图片预览</p>
         <img id="previewImg" alt="preview" onerror="document.getElementById('imagePreview').style.display='none'">
       </div>
+
+      <div id="byteFallback" style="display:none;margin-top:12px;">
+        <p id="byteFallbackMsg" style="font-size:13px;color:var(--warning);margin-bottom:8px;">以下字节不是有效 UTF-8 文本；十六进制仅供检查，原始输入未被覆盖。</p>
+        <label for="byteHex">原始字节（十六进制）</label>
+        <textarea id="byteHex" readonly style="min-height:80px;font-family:monospace;"></textarea>
+        <button type="button" class="btn" onclick="downloadDecodedBytes()">下载原始字节</button>
+      </div>
     </div>
 
     <div id="tabFile" class="tab-content">
-      <div id="fileDrop" class="file-drop">
-        <p>📁 点击选择文件，或拖拽文件到这里</p>
-        <p class="hint">支持图片、文档等各类文件</p>
-        <input type="file" id="fileInput" style="display:none" aria-label="选择文件">
-      </div>
+      <button type="button" id="fileDrop" class="file-drop">
+        <span style="display:block;font-size:14px;font-weight:500;margin-bottom:4px;">📁 点击选择文件，或拖拽文件到这里</span>
+        <span class="hint">支持图片、文档等各类文件</span>
+      </button>
+      <input type="file" id="fileInput" style="display:none" aria-label="选择文件">
 
       <div id="fileResult" style="display:none;">
         <div class="file-info">
           <p><strong>文件名：</strong><span id="fileName">-</span></p>
           <p><strong>文件大小：</strong><span id="fileSize">-</span></p>
           <p><strong>文件类型：</strong><span id="fileType">-</span></p>
+          <p id="fileNotice" style="color:var(--text-muted);"></p>
         </div>
         <div id="filePreview" class="preview-box" style="display:none;">
           <img id="filePreviewImg" alt="preview">
         </div>
         <label style="margin-top:12px;" for="fileOutput">编码结果（Data URI）</label>
-        <textarea id="fileOutput" style="min-height:100px;"></textarea>
+        <textarea id="fileOutput" readonly style="min-height:100px;"></textarea>
         <div class="toolbar" style="margin-top:8px;">
           <button type="button" class="btn success" onclick="copyFileOutput()">复制</button>
           <button type="button" class="btn" onclick="downloadResult()">下载</button>
@@ -251,7 +262,7 @@
 
     <div id="tabBatch" class="tab-content">
       <label for="batchInput">每行一条文本</label>
-      <textarea id="batchInput" placeholder="line1&#10;line2&#10;line3" style="min-height:120px;"></textarea>
+      <textarea id="batchInput" placeholder="line1&#10;line2&#10;line3" style="min-height:120px;" oninput="__batchInvalidate()"></textarea>
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="batchEncode()">批量编码</button>
         <button type="button" class="btn primary" onclick="batchDecode()">批量解码</button>
@@ -352,6 +363,32 @@
   var HISTORY_KEY = 'base64_history';
   var MAX_HISTORY = 10;
 
+  function __b64L(en,zh){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh; }
+
+  var __b64OutputValid = false;
+  var __lastDecodedBytes = null;
+  function __b64HidePreview(){
+    var preview = document.getElementById('imagePreview');
+    if(preview) preview.style.display = 'none';
+  }
+  function __b64ClearOutput(){
+    var out = document.getElementById('output');
+    if(out) out.value = '';
+    __b64OutputValid = false;
+    __lastDecodedBytes = null;
+    __b64HidePreview();
+    var fb = document.getElementById('byteFallback');
+    if(fb) fb.style.display = 'none';
+  }
+  function __b64OnInput(){
+    __b64ClearOutput();
+    onInputChange();
+  }
+  function __b64OptionChange(){
+    __b64ClearOutput();
+    onInputChange();
+  }
+
   var BASE32_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
   var BASE85_CHARS = '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstu';
 
@@ -363,7 +400,14 @@
     var urlSafe = document.getElementById('urlSafe');
     urlSafe.disabled = algo !== 'base64';
     urlSafe.parentElement.style.opacity = algo === 'base64' ? '1' : '0.5';
+    __b64ClearOutput();
     onInputChange();
+    // 文件结果绑定生成时的算法；切算法后立刻对同一文件重新编码（或清除旧结果）。
+    if(typeof currentFile !== 'undefined' && currentFile){
+      handleFile(currentFile);
+    } else if(typeof fileState !== 'undefined' && fileState){
+      __fileClearState();
+    }
   }
 
   function switchTab(tab){
@@ -405,7 +449,13 @@
   }
 
   function bytesToUtf8(bytes){
-    return new TextDecoder().decode(bytes);
+    try{
+      return new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+    }catch(err){
+      var e=new Error('invalid utf-8 byte sequence');
+      e.code='INVALID_UTF8';
+      throw e;
+    }
   }
 
   function base64Encode(bytes, urlSafe){
@@ -461,11 +511,26 @@
     var pad = padMatch ? padMatch[0].length : 0;
     if(pad > 6) throw new Error(__b64L('Invalid Base32 padding: at most 6 "=" characters','Base32 填充无效（最多 6 个等号）'));
     str = pad ? raw.slice(0, raw.length - pad) : raw;
-    if(pad && str.length % 8 !== 0){
-      var expectPad = 8 - (str.length % 8);
+    // 填充必须让「含等号的总长度」恰为 8 的倍数，且等号数量由末组有效字符数决定：
+    // 完整 8 字符组（rem=0）后不得再补等号，否则 MZXW6YTB= / MZXW6YTB====== 会被当成合法串。
+    var rem = str.length % 8;
+    var validRem = {2:1,4:1,5:1,7:1};
+    if(pad){
+      if(raw.length % 8 !== 0){
+        throw new Error(__b64L('Invalid Base32 padding: padded length must be a multiple of 8','Base32 填充无效（含等号的总长度须为 8 的倍数）'));
+      }
+      if(rem === 0){
+        throw new Error(__b64L('Invalid Base32 padding: a complete 8-character group must not be padded','Base32 填充无效（完整 8 字符组后不应再有等号）'));
+      }
+      if(!validRem[rem]){
+        throw new Error(__b64L('Invalid Base32 length (incomplete final group)','Base32 长度无效（末组不完整）'));
+      }
+      var expectPad = 8 - rem;
       if(pad !== expectPad){
         throw new Error(__b64L('Invalid Base32 padding: expected '+expectPad+' "=" characters','Base32 填充数量无效（应为 '+expectPad+' 个等号）'));
       }
+    } else if(rem === 1 || rem === 3 || rem === 6){
+      throw new Error(__b64L('Invalid Base32 length (incomplete final group without padding)','Base32 长度无效（末组不完整且缺少填充）'));
     }
     var bytes = [];
     var buffer = 0;
@@ -564,7 +629,18 @@
     if(currentAlgo === 'base64') bytes = base64Decode(str, urlSafe);
     else if(currentAlgo === 'base32') bytes = base32Decode(str);
     else if(currentAlgo === 'base85') bytes = base85Decode(str);
+    __lastDecodedBytes = bytes;
     return bytesToUtf8(bytes);
+  }
+
+  function __b64ParseDataUrl(str){
+    if(!/^data:/i.test(str)) return null;
+    var idx=str.indexOf(',');
+    if(idx<0) return {malformed:true};
+    var meta=str.slice(5,idx);
+    var parts=meta.split(';').map(function(x){ return x.trim().toLowerCase(); });
+    var isBase64=parts.some(function(x){ return x==='base64'; });
+    return {isBase64:isBase64, data:str.slice(idx+1), mime:parts[0]||''};
   }
 
   function looksLikeEncoded(str){
@@ -644,26 +720,12 @@
     history.forEach(function(item, idx){
       var time = new Date(item.time);
       var timeStr = time.getHours().toString().padStart(2,'0') + ':' + time.getMinutes().toString().padStart(2,'0');
-      html += '<div class="history-item" onclick="loadHistory(' + idx + ')">';
+      html += '<div class="history-item history-readonly" title="历史仅保留摘要，不保存输入输出内容">';
       html += '<span class="h-src">输入 ' + (item.inputLen || 0) + ' 字符 → 输出 ' + (item.outputLen || 0) + ' 字符（未存内容）</span>';
       html += '<span class="h-meta"><span class="tag">' + item.algo.toUpperCase() + '</span><span class="tag">' + (item.action === 'encode' ? '编码' : '解码') + '</span>' + timeStr + '</span>';
       html += '</div>';
     });
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
-  }
-
-  function loadHistory(idx){
-    try{
-      var history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-      var item = history[idx];
-      if(!item) return;
-      setAlgo(item.algo);
-      switchTab('text');
-      document.getElementById('input').value = '';
-      document.getElementById('output').value = '';
-      onInputChange();
-      ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'History stores summaries only; paste the content again':'历史仅保留摘要，请重新粘贴内容');
-    }catch(e){}
   }
 
   function clearHistory(){
@@ -675,41 +737,91 @@
     }catch(e){}
   }
 
+  function __bytesToHex(bytes){
+    if(!bytes) return '';
+    var parts=[];
+    var limit=Math.min(bytes.length, 4096);
+    for(var i=0;i<limit;i++) parts.push(bytes[i].toString(16).padStart(2,'0'));
+    if(bytes.length>limit) parts.push('…（仅显示前 4096 字节，共 ' + bytes.length + ' 字节）');
+    return parts.join(' ');
+  }
+
+  function __showByteFallback(bytes){
+    var box=document.getElementById('byteFallback');
+    var hex=document.getElementById('byteHex');
+    if(!box || !hex) return;
+    hex.value=__bytesToHex(bytes);
+    box.style.display='block';
+  }
+
+  function downloadDecodedBytes(){
+    if(!__lastDecodedBytes) return;
+    var arr=__lastDecodedBytes;
+    var blob=new Blob([arr],{type:'application/octet-stream'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='decoded-bytes.bin';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  }
+
   function encodeText(){
     var input = document.getElementById('input').value;
-    if(!input) return ToolBox.showToast(i18nText('toast.msg903'), 'warning');
+    __b64ClearOutput();
+    if(!input){ onInputChange(); return ToolBox.showToast(i18nText('toast.msg903'), 'warning'); }
     var urlSafe = document.getElementById('urlSafe').checked;
     try{
       var result = encode(input, urlSafe);
       document.getElementById('output').value = result;
+      __b64OutputValid = true;
       onInputChange();
       addHistory(input, result, 'encode');
     }catch(e){
+      onInputChange();
       ToolBox.showToast('编码失败：' + e.message, 'error');
     }
   }
 
   function decodeText(){
     var input = document.getElementById('input').value.trim();
-    if(!input) return ToolBox.showToast(i18nText('toast.msg906'), 'warning');
+    __b64ClearOutput();
+    if(!input){ onInputChange(); return ToolBox.showToast(i18nText('toast.msg906'), 'warning'); }
     var urlSafe = document.getElementById('urlSafe').checked;
     var autoDetect = document.getElementById('autoDetect').checked;
-    if(autoDetect && currentAlgo === 'base64' && /^data:[^;]+;base64,/.test(input)){
-      input = input.replace(/^data:[^;]+;base64,/,'');
+    if(autoDetect && currentAlgo === 'base64' && /^data:/i.test(input)){
+      var parsed = __b64ParseDataUrl(input);
+      if(!parsed || parsed.malformed){
+        onInputChange();
+        return ToolBox.showToast(__b64L('Malformed data URL: missing comma separator','data URL 格式无效：缺少逗号分隔'), 'error');
+      }
+      if(!parsed.isBase64){
+        onInputChange();
+        return ToolBox.showToast(__b64L('Only data URLs marked ";base64" are supported here','此处仅支持带 ";base64" 标记的 data URL'), 'error');
+      }
+      input = parsed.data;
     }
     try{
       var result = decode(input, urlSafe);
       document.getElementById('output').value = result;
+      __b64OutputValid = true;
+      var fb=document.getElementById('byteFallback');
+      if(fb) fb.style.display='none';
       onInputChange();
       addHistory(input, result, 'decode');
     }catch(e){
-      ToolBox.showToast(__b64L('Decode failed: ','解码失败：') + ((e && e.message) || ('请输入有效的 ' + currentAlgo.toUpperCase() + ' 字符串')), 'error');
+      onInputChange();
+      if(e && e.code==='INVALID_UTF8'){
+        __showByteFallback(__lastDecodedBytes);
+        ToolBox.showToast(__b64L('Decoded bytes are not valid UTF-8; see the hex view below','解码得到的字节不是有效 UTF-8，请查看下方十六进制'), 'error');
+      }else{
+        ToolBox.showToast(__b64L('Decode failed: ','解码失败：') + ((e && e.message) || ('请输入有效的 ' + currentAlgo.toUpperCase() + ' 字符串')), 'error');
+      }
     }
   }
 
   function copyOutput(){
     var output = document.getElementById('output').value;
-    if(!output) return ToolBox.showToast(i18nText(), 'warning');
+    if(!__b64OutputValid || !output) return ToolBox.showToast(__b64L('No current result to copy; encode/decode successfully first','当前没有可复制的结果，请先成功执行编码或解码'), 'warning');
     ToolBox.copyText(output);
   }
 
@@ -719,17 +831,39 @@
     var tmp = input.value;
     input.value = output.value;
     output.value = tmp;
+    __b64OutputValid = true;
     onInputChange();
   }
 
   function clearAll(){
     document.getElementById('input').value = '';
-    document.getElementById('output').value = '';
+    __b64ClearOutput();
     onInputChange();
   }
 
   var fileDrop = null;
   var fileInput = null;
+  var fileReadSeq = 0;
+  var currentFile = null;
+  var fileState = null;
+
+  function __fileNotice(text, kind){
+    var n = document.getElementById('fileNotice');
+    if(!n) return;
+    n.textContent = text || '';
+    n.style.color = kind === 'error' ? 'var(--danger)' : (kind === 'ok' ? 'var(--success)' : 'var(--text-muted)');
+  }
+
+  function __fileClearState(){
+    fileReadSeq++;
+    currentFile = null;
+    fileState = null;
+    var out = document.getElementById('fileOutput');
+    if(out) out.value = '';
+    var box = document.getElementById('fileResult');
+    if(box) box.style.display = 'none';
+    __fileNotice('');
+  }
 
   function initFileDrop(){
     fileDrop = document.getElementById('fileDrop');
@@ -753,34 +887,58 @@
   }
 
   function handleFile(file){
-    document.getElementById('fileName').textContent = file.name;
-    document.getElementById('fileSize').textContent = formatSize(file.size);
-    document.getElementById('fileType').textContent = file.type || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown":"未知");
+    var seq=++fileReadSeq;
+    var resultBox=document.getElementById('fileResult');
+    var output=document.getElementById('fileOutput');
+    fileState=null;
+    output.value='';
+    resultBox.style.display='block';
+
+    if(!file){
+      currentFile=null;
+      document.getElementById('fileName').textContent='-';
+      document.getElementById('fileSize').textContent='-';
+      document.getElementById('fileType').textContent='-';
+      __fileNotice('');
+      return;
+    }
+
+    currentFile=file;
+    var algo=currentAlgo;
+    var urlSafe=(typeof document.getElementById('urlSafe')!=='undefined' && document.getElementById('urlSafe').checked);
+    document.getElementById('fileName').textContent=file.name;
+    document.getElementById('fileSize').textContent=formatSize(file.size);
+    document.getElementById('fileType').textContent=file.type || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown":"未知");
+    __fileNotice(__b64L('Reading…','正在读取…'));
 
     var reader = new FileReader();
     reader.onload = function(e){
+      // 只接受本轮读取：连续选文件、清空或切换算法后，旧回调一律作废。
+      if(seq !== fileReadSeq) return;
       var dataUrl = e.target.result;
-      var base64Data = dataUrl;
-
-      if(currentAlgo === 'base64'){
-        if(document.getElementById('urlSafe').checked){
-          var parts = dataUrl.split(',');
-          var encoded = parts[1].replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-          base64Data = parts[0] + ',' + encoded;
+      var payload = dataUrl;
+      try{
+        if(algo === 'base64'){
+          if(urlSafe){
+            var parts = dataUrl.split(',');
+            var encoded = parts[1].replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+            payload = parts[0] + ',' + encoded;
+          }
+          output.value = payload;
+        } else {
+          var binary = atob(dataUrl.split(',')[1]);
+          var bytes = new Uint8Array(binary.length);
+          for(var i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+          output.value = (algo === 'base32') ? base32Encode(bytes) : base85Encode(bytes);
         }
-        document.getElementById('fileOutput').value = base64Data;
-      } else {
-        var binary = atob(dataUrl.split(',')[1]);
-        var bytes = new Uint8Array(binary.length);
-        for(var i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
-        var encoded;
-        if(currentAlgo === 'base32') encoded = base32Encode(bytes);
-        else encoded = base85Encode(bytes);
-        document.getElementById('fileOutput').value = encoded;
+        fileState={ file:file, name:file.name, algo:algo, output:output.value };
+        __fileNotice(__b64L('Encoding complete (','编码完成（') + algo.toUpperCase() + __b64L(')','）'), 'ok');
+      }catch(err){
+        fileState=null;
+        output.value='';
+        __fileNotice(__b64L('File encoding failed: ','文件编码失败：') + ((err && err.message) || err), 'error');
       }
-
-      document.getElementById('fileResult').style.display = 'block';
-
+      resultBox.style.display='block';
       var preview = document.getElementById('filePreview');
       var img = document.getElementById('filePreviewImg');
       if(file.type && file.type.startsWith('image/')){
@@ -790,39 +948,58 @@
         preview.style.display = 'none';
       }
     };
+    reader.onerror = function(){
+      if(seq !== fileReadSeq) return;
+      fileState=null;
+      output.value='';
+      __fileNotice(__b64L('Read failed: the file is no longer accessible. Choose it again.','读取失败：文件无法访问，请重新选择。'), 'error');
+    };
     reader.readAsDataURL(file);
   }
 
   function copyFileOutput(){
-    var output = document.getElementById('fileOutput').value;
-    if(!output) return ToolBox.showToast(i18nText(), 'warning');
-    ToolBox.copyText(output);
+    if(!fileState || !fileState.output) return ToolBox.showToast(__b64L('No file encoding result to copy; choose a file first','当前没有可复制的文件编码结果，请先选择文件'), 'warning');
+    ToolBox.copyText(fileState.output);
   }
 
   function downloadResult(){
-    var output = document.getElementById('fileOutput').value;
-    if(!output) return;
-    var fileName = document.getElementById('fileName').textContent || 'encoded';
-    ToolBox.downloadText(fileName + '.' + currentAlgo + '.txt', output);
+    if(!fileState || !fileState.output) return ToolBox.showToast(__b64L('No file encoding result to download; choose a file first','当前没有可下载的文件编码结果，请先选择文件'), 'warning');
+    // 文件名与生成结果时记录的算法绑定，切换算法后必须重新编码才会更新。
+    ToolBox.downloadText(fileState.name + '.' + fileState.algo + '.txt', fileState.output);
   }
 
   function clearFile(){
-    document.getElementById('fileResult').style.display = 'none';
-    document.getElementById('fileInput').value = '';
-    document.getElementById('fileOutput').value = '';
+    __fileClearState();
+    document.getElementById('fileName').textContent='-';
+    document.getElementById('fileSize').textContent='-';
+    document.getElementById('fileType').textContent='-';
+    if(fileInput) fileInput.value='';
   }
 
+  function __batchLines(raw){
+    // 保留行位置：仅把 CRLF/CR 归一为 LF，并只剥掉「末尾换行符」造成的一个空行；
+    // 行内空格/制表符与中间连续空行原样保留（空白本身也是合法文本）。
+    var text = String(raw).replace(/\r\n?/g, '\n');
+    var lines = text.split('\n');
+    if(lines.length && lines[lines.length - 1] === '') lines.pop();
+    return lines;
+  }
+  function __batchInvalidate(){
+    window._batchResults = null;
+    var box = document.getElementById('batchResult');
+    if(box) box.innerHTML = '<p style="padding:16px;text-align:center;color:var(--text-muted);">结果将显示在这里</p>';
+  }
   function batchEncode(){
     var input = document.getElementById('batchInput').value;
-    var lines = input.split('\n').filter(function(l){ return l.trim(); });
+    var lines = __batchLines(input);
     if(lines.length === 0) return ToolBox.showToast(i18nText('toast.msg904'), 'warning');
     var urlSafe = document.getElementById('urlSafe').checked;
     var results = [];
-    lines.forEach(function(line){
+    lines.forEach(function(line, idx){
       try{
-        results.push({src: line, dst: encode(line, urlSafe), ok: true});
+        results.push({line: idx + 1, src: line, dst: encode(line, urlSafe), ok: true, blank: line === ''});
       }catch(e){
-        results.push({src: line, dst: e.message, ok: false});
+        results.push({line: idx + 1, src: line, dst: ((e && e.message) || __b64L('Encode failed','编码失败')), ok: false, blank: false});
       }
     });
     renderBatchResult(results);
@@ -830,15 +1007,19 @@
 
   function batchDecode(){
     var input = document.getElementById('batchInput').value;
-    var lines = input.split('\n').filter(function(l){ return l.trim(); });
+    var lines = __batchLines(input);
     if(lines.length === 0) return ToolBox.showToast(i18nText('toast.msg907'), 'warning');
     var urlSafe = document.getElementById('urlSafe').checked;
     var results = [];
-    lines.forEach(function(line){
+    lines.forEach(function(line, idx){
+      if(line.trim() === ''){
+        results.push({line: idx + 1, src: line, dst: '', ok: true, blank: true});
+        return;
+      }
       try{
-        results.push({src: line, dst: decode(line.trim(), urlSafe), ok: true});
+        results.push({line: idx + 1, src: line, dst: decode(line.trim(), urlSafe), ok: true, blank: false});
       }catch(e){
-        results.push({src: line, dst: ((e && e.message) || __b64L('Decode failed','解码失败')), ok: false});
+        results.push({line: idx + 1, src: line, dst: ((e && e.message) || __b64L('Decode failed','解码失败')), ok: false, blank: false});
       }
     });
     renderBatchResult(results);
@@ -848,11 +1029,16 @@
     var container = document.getElementById('batchResult');
     var html = '';
     results.forEach(function(r, i){
-      html += '<div class="batch-item">';
-      html += '<span class="src" title="' + ToolBox.escHtml(r.src) + '">' + ToolBox.escHtml(r.src.substring(0, 30)) + '</span>';
+      html += '<div class="batch-item" data-line="' + r.line + '">';
+      html += '<span class="line-no" style="min-width:2.5em;color:var(--text-muted);font-variant-numeric:tabular-nums;" title="行号">' + r.line + '.</span>';
+      html += '<span class="src" title="' + ToolBox.escHtml(r.src) + '">' + (r.blank ? '<i style="color:var(--text-muted);">（空行）</i>' : ToolBox.escHtml(r.src.substring(0, 30))) + '</span>';
       html += '<span style="color:var(--text-muted);">→</span>';
-      html += '<span class="dst" style="color:' + (r.ok ? 'var(--primary)' : 'var(--danger)') + '" title="' + ToolBox.escHtml(r.dst) + '">' + ToolBox.escHtml(r.dst.substring(0, 40)) + '</span>';
-      html += '<button type="button" class="btn success" style="padding:4px 8px;font-size:11px;" onclick="copyBatchItem(' + i + ')">复制</button>';
+      html += '<span class="dst" style="color:' + (r.ok ? 'var(--primary)' : 'var(--danger)') + '" title="' + ToolBox.escHtml(r.dst) + '">' + (r.ok ? (r.blank ? '<i style="color:var(--text-muted);">（空行）</i>' : ToolBox.escHtml(r.dst.substring(0, 40))) : ToolBox.escHtml(r.dst.substring(0, 40))) + '</span>';
+      if(r.ok && !r.blank){
+        html += '<button type="button" class="btn success" style="padding:4px 8px;font-size:11px;" onclick="copyBatchItem(' + i + ')">复制</button>';
+      }else if(!r.ok){
+        html += '<span class="tag" style="color:var(--danger);font-size:11px;">失败</span>';
+      }
       html += '</div>';
     });
     const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h2;
@@ -861,19 +1047,30 @@
 
   function copyBatchItem(idx){
     if(!window._batchResults || !window._batchResults[idx]) return;
-    ToolBox.copyText(window._batchResults[idx].dst);
+    var r = window._batchResults[idx];
+    if(!r.ok || r.blank) return;
+    ToolBox.copyText(r.dst);
   }
 
+  function __batchCopyText(){
+    if(!window._batchResults) return '';
+    return window._batchResults.filter(function(r){ return r.ok && !r.blank; }).map(function(r){ return r.dst; }).join('\n');
+  }
   function copyBatchResult(){
     if(!window._batchResults || window._batchResults.length === 0) return ToolBox.showToast(i18nText(), 'warning');
-    var text = window._batchResults.map(function(r){ return r.dst; }).join('\n');
-    ToolBox.copyText(text);
+    var good = window._batchResults.filter(function(r){ return r.ok && !r.blank; });
+    if(good.length === 0) return ToolBox.showToast(__b64L('No successful rows to copy','没有可复制的成功行'), 'warning');
+    var failed = window._batchResults.filter(function(r){ return !r.ok; });
+    ToolBox.copyText(__batchCopyText());
+    ToolBox.showToast(__b64L(
+      'Copied ' + good.length + ' successful row(s)' + (failed.length ? '; skipped ' + failed.length + ' failed row(s) on line ' + failed.map(function(r){return r.line;}).join(', ') : ''),
+      '已复制 ' + good.length + ' 条成功结果' + (failed.length ? '；已跳过 ' + failed.length + ' 条失败行（第 ' + failed.map(function(r){return r.line;}).join('、') + ' 行）' : '')
+    ));
   }
 
   function clearBatch(){
     document.getElementById('batchInput').value = '';
-    const __h3='<p style="padding:16px;text-align:center;color:var(--text-muted);">结果将显示在这里</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('batchResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('batchResult').innerHTML=__h3;
-    window._batchResults = null;
+    __batchInvalidate();
   }
 
   function loadBase64Sample(kind){
@@ -889,9 +1086,15 @@
   }
 
   window.setAlgo = setAlgo;
+  window.handleFile = handleFile;
+  window.__fileState = function(){ return fileState; };
   window.switchTab = switchTab;
   window.loadBase64Sample = loadBase64Sample;
   window.onInputChange = onInputChange;
+  window.__b64OnInput = __b64OnInput;
+  window.__b64IsValid = function(){ return __b64OutputValid; };
+  window.__b64OptionChange = __b64OptionChange;
+  window.downloadDecodedBytes = downloadDecodedBytes;
   window.encodeText = encodeText;
   window.decodeText = decodeText;
   // 编码算法对比（供对比卡片跨算法实测输出长度）
@@ -912,7 +1115,8 @@
   window.copyBatchItem = copyBatchItem;
   window.copyBatchResult = copyBatchResult;
   window.clearBatch = clearBatch;
-  window.loadHistory = loadHistory;
+  window.__batchInvalidate = __batchInvalidate;
+  window.__batchCopyText = __batchCopyText;
   window.clearHistory = clearHistory;
 
   initFileDrop();
@@ -1054,7 +1258,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -1062,7 +1266,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

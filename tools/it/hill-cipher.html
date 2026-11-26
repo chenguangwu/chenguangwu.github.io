@@ -158,7 +158,8 @@
     <textarea id="input" placeholder="输入要加密的明文或要解密的密文...">HELP</textarea>
 
     <label style="margin-top:16px;" for="output">输出结果</label>
-    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea> <div id="hill_cipherTable"></div> <div id="hill_cipherDiff"></div> <div id="hill_cipherChart"></div> <div id="hill_cipherHist"></div>
+    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea>
+    <div id="hillNote" style="font-size:12px;line-height:1.6;color:var(--text-muted);margin-top:6px;"></div> <div id="hill_cipherTable"></div> <div id="hill_cipherDiff"></div> <div id="hill_cipherChart"></div> <div id="hill_cipherHist"></div>
   </div>
 
   <div class="card">
@@ -263,8 +264,6 @@ function inverseMatrix(m){
 }
 
 function process(text, m){
-  text = text.toUpperCase().replace(/[^A-Z]/g,'');
-  while(text.length % 2 !== 0) text += 'X';
   let out = '';
   for(let i = 0; i < text.length; i += 2){
     const p1 = text.charCodeAt(i) - 65;
@@ -285,23 +284,45 @@ function getMatrix(){
   return parts.map(v => ((v % 26) + 26) % 26);
 }
 
+function hillEn(q){ return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?(' '+q):''; }
+function hillMsg(zh,en){ return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh; }
+function setHillNote(txt){ var n=document.getElementById('hillNote'); if(n) n.textContent=txt||''; }
+function hillFail(msg){ var o=document.getElementById('output'); if(o) o.value=''; setHillNote(''); alert(msg); }
+
 function enc(){
-  const text = document.getElementById('input').value;
-  if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter plaintext to encrypt":"请输入要加密的明文"));
+  const raw = document.getElementById('input').value;
+  if(!raw) return hillFail(hillMsg("请输入要加密的明文","Enter plaintext to encrypt"));
+  const bad=raw.match(/[^\x00-\x7F]/);
+  if(bad) return hillFail(hillMsg("仅支持 A–Z/a–z 与 ASCII 标点；检测到非 ASCII 字符「"+bad[0]+"」，请先替换或翻译。","Only A–Z/a–z and ASCII punctuation are supported; non-ASCII character “"+bad[0]+"” detected. Replace or transliterate it first."));
+  const ignored=(raw.match(/[^A-Za-z]/g)||[]).length;
+  let letters=raw.replace(/[^A-Za-z]/g,'').toUpperCase();
+  if(!letters) return hillFail(hillMsg("没有可加密的 A–Z 字母","No A–Z letters to encrypt"));
+  const pad=(letters.length%2)?1:0;
+  if(pad) letters+='X';
   const m = getMatrix();
-  if(!m) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter 4 integers in 0-25 as the key matrix":"请输入 4 个 0-25 的整数作为密钥矩阵"));
-  document.getElementById('output').value = process(text, m);
+  if(!m) return hillFail(hillMsg("请输入 4 个 0-25 的整数作为密钥矩阵","Enter 4 integers in 0-25 as the key matrix"));
+  // 加密前与解密共用可逆性校验：不可逆矩阵生成的密文无法还原，不能静默产出。
+  const inv = inverseMatrix(m);
+  if(!inv) return hillFail(hillMsg("密钥矩阵不可逆（行列式须与 26 互素），加密后无法解密，请更换矩阵。","Key matrix is not invertible (det must be coprime with 26), so encryption would be irreversible."));
+  document.getElementById('output').value = process(letters, m);
+  setHillNote(hillMsg("原文有效字母 "+raw.replace(/[^A-Za-z]/g,'').length+" 个，忽略 "+ignored+" 个非字母字符，补 "+pad+" 个 X；解密得到补齐后的文本，原文末尾 X 与补位 X 无法区分。","Valid letters: "+raw.replace(/[^A-Za-z]/g,'').length+"; ignored non-letters: "+ignored+"; padding X: "+pad+". Decryption returns the padded text; a trailing X in the plaintext cannot be distinguished from padding."));
   renderInfo();
 }
 
 function dec(){
-  const text = document.getElementById('input').value;
-  if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter ciphertext to decrypt":"请输入要解密的密文"));
+  const raw = document.getElementById('input').value;
+  if(!raw) return hillFail(hillMsg("请输入要解密的密文","Enter ciphertext to decrypt"));
+  const bad=raw.match(/[^A-Za-z\s]/);
+  if(bad) return hillFail(hillMsg("密文只能包含 A–Z/a–z 与空白；检测到非法字符「"+bad[0]+"」（第 "+(raw.indexOf(bad[0])+1)+" 个字符）。","Ciphertext may contain only A–Z/a–z and whitespace; invalid character “"+bad[0]+"” at position "+(raw.indexOf(bad[0])+1)+"."));
+  const letters=raw.replace(/\s+/g,'').toUpperCase();
+  if(!letters) return hillFail(hillMsg("没有可解密的密文字母","No ciphertext letters to decrypt"));
+  if(letters.length%2!==0) return hillFail(hillMsg("密文长度为奇数（"+letters.length+" 个字母），无法按 2 个一组解密；请检查是否漏字符，工具不会自动补位。","Ciphertext length is odd ("+letters.length+" letters) and cannot be split into pairs; check for missing characters — no automatic padding is applied."));
   const m = getMatrix();
-  if(!m) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter 4 integers in 0-25 as the key matrix":"请输入 4 个 0-25 的整数作为密钥矩阵"));
+  if(!m) return hillFail(hillMsg("请输入 4 个 0-25 的整数作为密钥矩阵","Enter 4 integers in 0-25 as the key matrix"));
   const inv = inverseMatrix(m);
-  if(!inv) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Key matrix is not invertible (determinant not coprime with 26)":"密钥矩阵不可逆（行列式与 26 不互素）"));
-  document.getElementById('output').value = process(text, inv);
+  if(!inv) return hillFail(hillMsg("密钥矩阵不可逆（行列式与 26 不互素）","Key matrix is not invertible (determinant not coprime with 26)"));
+  document.getElementById('output').value = process(letters, inv);
+  setHillNote(hillMsg("密文 "+letters.length+" 个字母（已忽略空白）；解密输出末尾可能含加密时补的 X，需人工判断。","Ciphertext: "+letters.length+" letters (whitespace ignored). The tail may contain padding X added during encryption; verify manually."));
   renderInfo();
 }
 
@@ -507,7 +528,7 @@ else document.addEventListener('DOMContentLoaded', __hill_cipherBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -515,7 +536,7 @@ else document.addEventListener('DOMContentLoaded', __hill_cipherBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

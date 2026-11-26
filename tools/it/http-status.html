@@ -26,7 +26,8 @@
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
-.status-card{border-left:4px solid #4338CA;padding:12px 16px;background:#fff;border-radius:6px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;}
+.status-card{display:block;width:100%;text-align:left;font:inherit;color:inherit;border:0;border-left:4px solid #4338CA;padding:12px 16px;background:#fff;border-radius:6px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;}
+.status-card:focus-visible{outline:2px solid #4338CA;outline-offset:2px;}
 .status-card:hover{background:#f8f9ff;transform:translateX(4px);}
 .status-card .code{font-family:'SF Mono',monospace;font-weight:700;font-size:18px;margin-right:12px;}
 .status-card .desc{font-size:13px;color:#666;margin-top:4px;}
@@ -263,68 +264,69 @@
 <script>
 const statusCodes = [
   // 1xx
-  {code:100, name:'Continue', desc:'继续', detail:'客户端应继续发送请求的剩余部分。'},
-  {code:101, name:'Switching Protocols', desc:'切换协议', detail:'服务器已理解客户端请求，并通过 Upgrade 头通知切换协议。'},
-  {code:102, name:'Processing', desc:'处理中', detail:'服务器已收到请求并正在处理，但尚未有响应。'},
-  {code:103, name:'Early Hints', desc:'早期提示', detail:'服务器在最终响应前先返回提示头（如 Link），供客户端预加载资源（RFC 8297）。'},
+  {code:100, name:'Continue', desc:'继续', detail:'客户端应继续发送请求的剩余部分。', descEn:'Resume', detailEn:'The client should continue sending the remainder of the request.'},
+  {code:101, name:'Switching Protocols', desc:'切换协议', detail:'服务器已理解客户端请求，并通过 Upgrade 头通知切换协议。', descEn:'Switching Protocols', detailEn:'The server understood the request and uses the Upgrade header to signal a protocol switch.'},
+  {code:102, name:'Processing', desc:'处理中', detail:'服务器已收到请求并正在处理，但尚未有响应。', descEn:'Processing', detailEn:'The server has received the request and is processing it, but no response is available yet.'},
+  {code:103, name:'Early Hints', desc:'早期提示', detail:'服务器在最终响应前先返回提示头（如 Link），供客户端预加载资源（RFC 8297）。', descEn:'Early Hints', detailEn:'The server sends hint headers (such as Link) before the final response so the client can preload resources (RFC 8297).'},
   
   // 2xx
-  {code:200, name:'OK', desc:'请求成功', detail:'请求已成功处理，响应体为请求的资源。'},
-  {code:201, name:'Created', desc:'已创建', detail:'请求成功且服务器创建了新资源。'},
-  {code:202, name:'Accepted', desc:'已接受', detail:'请求已接受但尚未处理完成（异步）。'},
-  {code:203, name:'Non-Authoritative Information', desc:'非权威信息', detail:'响应由代理返回，内容与源服务器可能不同（正文引据表举例的标准码）。'},
-  {code:204, name:'No Content', desc:'无内容', detail:'请求成功但无需返回响应体（如 DELETE）。'},
-  {code:205, name:'Reset Content', desc:'重置内容', detail:'请求成功，提示客户端重置当前文档视图/表单。'},
-  {code:206, name:'Partial Content', desc:'部分内容', detail:'服务器已处理部分 GET 请求（Range 请求）。'},
+  {code:200, name:'OK', desc:'请求成功', detail:'请求已成功处理，响应体为请求的资源。', descEn:'Request succeeded', detailEn:'The request succeeded and the response body contains the requested resource.'},
+  {code:201, name:'Created', desc:'已创建', detail:'请求成功且服务器创建了新资源。', descEn:'Created', detailEn:'The request succeeded and the server created a new resource.'},
+  {code:202, name:'Accepted', desc:'已接受', detail:'请求已接受但尚未处理完成（异步）。', descEn:'Accepted', detailEn:'The request was accepted but processing is not complete (asynchronous).'},
+  {code:203, name:'Non-Authoritative Information', desc:'非权威信息', detail:'响应由代理返回，内容与源服务器可能不同（正文引据表举例的标准码）。', descEn:'Non-Authoritative Information', detailEn:'The response was returned by a proxy and may differ from the origin server\'s content (a standard code cited in the reference table).'},
+  {code:204, name:'No Content', desc:'无内容', detail:'请求成功但无需返回响应体（如 DELETE）。', descEn:'No Content', detailEn:'The request succeeded and there is no response body (for example, DELETE).'},
+  {code:205, name:'Reset Content', desc:'重置内容', detail:'请求成功，提示客户端重置当前文档视图/表单。', descEn:'Reset Content', detailEn:'The request succeeded; the client should reset the current document view or form.'},
+  {code:206, name:'Partial Content', desc:'部分内容', detail:'服务器已处理部分 GET 请求（Range 请求）。', descEn:'Partial Content', detailEn:'The server fulfilled part of a GET request (Range request).'},
   
   // 3xx
-  {code:300, name:'Multiple Choices', desc:'多种选择', detail:'资源有多个可选表示，客户端需自行选择。'},
-  {code:301, name:'Moved Permanently', desc:'永久重定向', detail:'资源已永久移动到新 URL，搜索引擎应更新索引。'},
-  {code:302, name:'Found', desc:'临时重定向', detail:'资源临时移动到其他 URL。'},
-  {code:303, name:'See Other', desc:'参见其他', detail:'响应在另一个 URL，客户端应以 GET 获取（常用于 POST 后跳转）。'},
-  {code:304, name:'Not Modified', desc:'未修改', detail:'客户端缓存资源未修改，可继续使用缓存。'},
-  {code:305, name:'Use Proxy', desc:'使用代理', detail:'资源必须通过代理访问（已弃用）。'},
-  {code:307, name:'Temporary Redirect', desc:'临时重定向', detail:'与 302 类似，但保持原请求方法不变。'},
-  {code:308, name:'Permanent Redirect', desc:'永久重定向', detail:'与 301 类似，但保持原请求方法不变。'},
+  {code:300, name:'Multiple Choices', desc:'多种选择', detail:'资源有多个可选表示，客户端需自行选择。', descEn:'Multiple Choices', detailEn:'The resource has several representations; the client must choose one.'},
+  {code:301, name:'Moved Permanently', desc:'永久重定向', detail:'资源已永久移动到新 URL，搜索引擎应更新索引。', descEn:'Moved Permanently', detailEn:'The resource has moved permanently to a new URL; search engines should update their index.'},
+  {code:302, name:'Found', desc:'临时重定向', detail:'资源临时移动到其他 URL。', descEn:'307 Temporary Redirect', detailEn:'The resource has temporarily moved to another URL.'},
+  {code:303, name:'See Other', desc:'参见其他', detail:'响应在另一个 URL，客户端应以 GET 获取（常用于 POST 后跳转）。', descEn:'See Other', detailEn:'The response is at another URL; the client should retrieve it with GET (commonly used after a POST redirect).'},
+  {code:304, name:'Not Modified', desc:'未修改', detail:'客户端缓存资源未修改，可继续使用缓存。', descEn:'Not Modified', detailEn:'The cached copy is unchanged and can be reused.'},
+  {code:305, name:'Use Proxy', desc:'使用代理', detail:'资源必须通过代理访问（已弃用）。', descEn:'Use Proxy', detailEn:'The resource must be accessed through a proxy (deprecated).'},
+  {code:307, name:'Temporary Redirect', desc:'临时重定向', detail:'与 302 类似，但保持原请求方法不变。', descEn:'307 Temporary Redirect', detailEn:'Similar to 302, but the original request method is preserved.'},
+  {code:308, name:'Permanent Redirect', desc:'永久重定向', detail:'与 301 类似，但保持原请求方法不变。', descEn:'Moved Permanently', detailEn:'Similar to 301, but the original request method is preserved.'},
   
   // 4xx
-  {code:400, name:'Bad Request', desc:'请求错误', detail:'服务器无法理解请求语法。'},
-  {code:401, name:'Unauthorized', desc:'未认证', detail:'请求需要身份验证（通常需登录）；与 403「已认证但无权限」区分。'},
-  {code:403, name:'Forbidden', desc:'禁止访问', detail:'服务器拒绝请求（已认证但无权限）。'},
-  {code:404, name:'Not Found', desc:'未找到', detail:'请求的资源不存在。'},
-  {code:405, name:'Method Not Allowed', desc:'方法不允许', detail:'请求方法不被允许（如对只读资源 POST）。'},
-  {code:408, name:'Request Timeout', desc:'请求超时', detail:'客户端未在服务器超时时间内发送请求。'},
-  {code:409, name:'Conflict', desc:'冲突', detail:'请求与服务器当前状态冲突。'},
-  {code:410, name:'Gone', desc:'已删除', detail:'资源已永久删除且无转发地址。'},
-  {code:411, name:'Length Required', desc:'需要长度', detail:'服务器要求请求携带 Content-Length。'},
-  {code:412, name:'Precondition Failed', desc:'前置条件失败', detail:'请求头中的条件（如 If-Match）未满足。'},
-  {code:413, name:'Payload Too Large', desc:'请求体过大', detail:'请求体超过服务器允许的大小。'},
-  {code:414, name:'URI Too Long', desc:'URI 过长', detail:'请求 URI 超过服务器允许的长度。'},
-  {code:415, name:'Unsupported Media Type', desc:'不支持的媒体类型', detail:'请求的 Content-Type 服务器不支持。'},
-  {code:416, name:'Range Not Satisfiable', desc:'范围不可满足', detail:'请求的 Range 超出资源可返回范围。'},
-  {code:417, name:'Expectation Failed', desc:'期望失败', detail:'服务器无法满足 Expect 请求头（如 100-continue）。'},
-  {code:418, name:"I'm a Teapot", desc:'我是茶壶', detail:'愚人节彩蛋码（RFC 2324），表示服务器拒绝冲泡咖啡。'},
-  {code:421, name:'Misdirected Request', desc:'请求误导', detail:'请求被发到无法响应该资源的服务器（如 HTTP/2 连接复用错误）。'},
-  {code:422, name:'Unprocessable Entity', desc:'语义错误', detail:'请求格式正确但语义错误（如验证失败）。'},
-  {code:425, name:'Too Early', desc:'过早', detail:'服务器不愿处理可能重放的请求（TLS 早期数据相关，RFC 8470）。'},
-  {code:426, name:'Upgrade Required', desc:'需要升级', detail:'客户端需切换到其他协议（如 HTTP/1.1 → HTTP/2）。'},
-  {code:428, name:'Precondition Required', desc:'需要前置条件', detail:'服务器要求请求带条件头（如 If-Match）以避免丢失更新。'},
-  {code:429, name:'Too Many Requests', desc:'请求过多', detail:'请求频率超过限制（限流）。'},
-  {code:431, name:'Request Header Fields Too Large', desc:'请求头过大', detail:'请求头字段过多或过大，服务器拒绝处理。'},
-  {code:451, name:'Unavailable For Legal Reasons', desc:'因法律原因不可用', detail:'因法律/监管要求不可访问（RFC 7725，如版权封禁）。'},
+  {code:400, name:'Bad Request', desc:'请求错误', detail:'服务器无法理解请求语法。', descEn:'Bad Request', detailEn:'The server could not understand the request syntax.'},
+  {code:401, name:'Unauthorized', desc:'未认证', detail:'请求未提供有效认证凭据（通常需登录）；403 表示服务器理解请求但拒绝履行，原因不限于权限不足。', descEn:'Unauthorized', detailEn:'The request lacks valid authentication credentials (usually sign-in is required). 403 means the server understood the request but refuses to fulfill it, and the reason is not limited to insufficient permission.'},
+  {code:403, name:'Forbidden', desc:'禁止访问', detail:'服务器理解请求但拒绝履行；已认证但权限不足只是常见情形，也可能与凭据、IP、策略或资源状态有关（RFC 9110 15.5.4）。', descEn:'Forbidden', detailEn:'The server understood the request but refuses to fulfill it. Authenticated-but-not-permitted is only the common case; the refusal may also relate to credentials, IP, policy or resource state (RFC 9110 15.5.4).'},
+  {code:404, name:'Not Found', desc:'未找到', detail:'请求的资源不存在。', descEn:'Not Found', detailEn:'The requested resource was not found.'},
+  {code:405, name:'Method Not Allowed', desc:'方法不允许', detail:'请求方法不被允许（如对只读资源 POST）。', descEn:'Method Not Allowed', detailEn:'The request method is not allowed (for example, POST to a read-only resource).'},
+  {code:408, name:'Request Timeout', desc:'请求超时', detail:'客户端未在服务器超时时间内发送请求。', descEn:'Request Timeout', detailEn:'The client did not send a request within the server\'s timeout.'},
+  {code:409, name:'Conflict', desc:'冲突', detail:'请求与服务器当前状态冲突。', descEn:'Conflict', detailEn:'The request conflicts with the current state of the resource.'},
+  {code:410, name:'Gone', desc:'已删除', detail:'资源已永久删除且无转发地址。', descEn:'Gone', detailEn:'The resource was permanently removed and has no forwarding address.'},
+  {code:411, name:'Length Required', desc:'需要长度', detail:'服务器要求请求携带 Content-Length。', descEn:'Length Required', detailEn:'The server requires the request to include a Content-Length header.'},
+  {code:412, name:'Precondition Failed', desc:'前置条件失败', detail:'请求头中的条件（如 If-Match）未满足。', descEn:'Precondition Failed', detailEn:'A conditional request header (such as If-Match) was not satisfied.'},
+  {code:413, name:'Payload Too Large', desc:'请求体过大', detail:'请求体超过服务器允许的大小。', descEn:'Payload Too Large', detailEn:'The request body exceeds the size the server is willing to accept.'},
+  {code:414, name:'URI Too Long', desc:'URI 过长', detail:'请求 URI 超过服务器允许的长度。', descEn:'URI Too Long', detailEn:'The request URI is longer than the server is willing to interpret.'},
+  {code:415, name:'Unsupported Media Type', desc:'不支持的媒体类型', detail:'请求的 Content-Type 服务器不支持。', descEn:'Unsupported Media Type', detailEn:'The server does not support the request\'s Content-Type.'},
+  {code:416, name:'Range Not Satisfiable', desc:'范围不可满足', detail:'请求的 Range 超出资源可返回范围。', descEn:'Range Not Satisfiable', detailEn:'The requested Range cannot be satisfied for this resource.'},
+  {code:417, name:'Expectation Failed', desc:'期望失败', detail:'服务器无法满足 Expect 请求头（如 100-continue）。', descEn:'Expectation Failed', detailEn:'The server cannot meet the requirements of the Expect header (for example, 100-continue).'},
+  {code:418, name:'I\'m a Teapot', desc:'我是茶壶', detail:'愚人节彩蛋码（RFC 2324），表示服务器拒绝冲泡咖啡。', descEn:'I\'m a Teapot', detailEn:'An April Fools\' easter egg (RFC 2324): the server refuses to brew coffee.'},
+  {code:421, name:'Misdirected Request', desc:'请求误导', detail:'请求被发到无法响应该资源的服务器（如 HTTP/2 连接复用错误）。', descEn:'Misdirected Request', detailEn:'The request was sent to a server that cannot produce a response for that resource (for example, an HTTP/2 connection reuse error).'},
+  {code:422, name:'Unprocessable Entity', desc:'语义错误', detail:'请求格式正确但语义错误（如验证失败）。', descEn:'Unprocessable Content', detailEn:'The request was well-formed but semantically invalid (for example, validation failed).'},
+  {code:425, name:'Too Early', desc:'过早', detail:'服务器不愿处理可能重放的请求（TLS 早期数据相关，RFC 8470）。', descEn:'Too Early', detailEn:'The server is unwilling to process a request that may be replayed (related to TLS early data, RFC 8470).'},
+  {code:426, name:'Upgrade Required', desc:'需要升级', detail:'客户端需切换到其他协议（如 HTTP/1.1 → HTTP/2）。', descEn:'Upgrade Required', detailEn:'The client must switch to another protocol (for example, HTTP/1.1 → HTTP/2).'},
+  {code:428, name:'Precondition Required', desc:'需要前置条件', detail:'服务器要求请求带条件头（如 If-Match）以避免丢失更新。', descEn:'Precondition Required', detailEn:'The server requires conditional headers (such as If-Match) to avoid lost updates.'},
+  {code:429, name:'Too Many Requests', desc:'请求过多', detail:'请求频率超过限制（限流）。', descEn:'Too Many Requests', detailEn:'The client has sent too many requests (rate limited).'},
+  {code:431, name:'Request Header Fields Too Large', desc:'请求头过大', detail:'请求头字段过多或过大，服务器拒绝处理。', descEn:'Request Header Fields Too Large', detailEn:'The request header fields are too numerous or too large for the server to process.'},
+  {code:451, name:'Unavailable For Legal Reasons', desc:'因法律原因不可用', detail:'因法律/监管要求不可访问（RFC 7725，如版权封禁）。', descEn:'Unavailable For Legal Reasons', detailEn:'Access is unavailable for legal or regulatory reasons (RFC 7725, such as a copyright block).'},
+  {code:499, name:'Client Closed Request', desc:'客户端关闭连接', detail:'Nginx 自定义、非标准 HTTP 状态码：客户端在服务器返回响应前主动关闭了连接。', descEn:'Client Closed Request', detailEn:'Nginx-specific, non-standard status code: the client closed the connection before the server returned a response.'},
   
   // 5xx
-  {code:500, name:'Internal Server Error', desc:'服务器内部错误', detail:'服务器遇到未预期的错误。'},
-  {code:501, name:'Not Implemented', desc:'未实现', detail:'服务器不支持请求的功能。'},
-  {code:502, name:'Bad Gateway', desc:'网关错误', detail:'网关/代理从上游收到无效响应。'},
-  {code:503, name:'Service Unavailable', desc:'服务不可用', detail:'服务器暂时过载或维护中。'},
-  {code:504, name:'Gateway Timeout', desc:'网关超时', detail:'网关/代理等待上游响应超时。'},
-  {code:505, name:'HTTP Version Not Supported', desc:'HTTP 版本不支持', detail:'服务器不支持请求的 HTTP 版本。'},
-  {code:506, name:'Variant Also Negotiates', desc:'变体协商', detail:'服务器配置错误：变体资源自身又参与内容协商（RFC 2295）。'},
-  {code:507, name:'Insufficient Storage', desc:'存储不足', detail:'服务器无法存储完成请求所需的内容（WebDAV）。'},
-  {code:508, name:'Loop Detected', desc:'检测到循环', detail:'服务器在处理请求时检测到无限循环（WebDAV）。'},
-  {code:510, name:'Not Extended', desc:'未扩展', detail:'服务器需要更多扩展才能满足请求（RFC 2774）。'},
-  {code:511, name:'Network Authentication Required', desc:'需网络认证', detail:'客户端需登录才能访问网络（如公共 WiFi）。'},
+  {code:500, name:'Internal Server Error', desc:'服务器内部错误', detail:'服务器遇到未预期的错误。', descEn:'Internal Server Error', detailEn:'The server encountered an unexpected error.'},
+  {code:501, name:'Not Implemented', desc:'未实现', detail:'服务器不支持请求的功能。', descEn:'Not Implemented', detailEn:'The server does not support the requested functionality.'},
+  {code:502, name:'Bad Gateway', desc:'网关错误', detail:'网关/代理从上游收到无效响应。', descEn:'Bad Gateway', detailEn:'A gateway or proxy received an invalid response from the upstream server.'},
+  {code:503, name:'Service Unavailable', desc:'服务不可用', detail:'服务器暂时过载或维护中。', descEn:'Service Unavailable', detailEn:'The server is temporarily overloaded or under maintenance.'},
+  {code:504, name:'Gateway Timeout', desc:'网关超时', detail:'网关/代理等待上游响应超时。', descEn:'Gateway Timeout', detailEn:'A gateway or proxy timed out while waiting for the upstream server.'},
+  {code:505, name:'HTTP Version Not Supported', desc:'HTTP 版本不支持', detail:'服务器不支持请求的 HTTP 版本。', descEn:'HTTP version not supported', detailEn:'The server does not support the HTTP version used in the request.'},
+  {code:506, name:'Variant Also Negotiates', desc:'变体协商', detail:'服务器配置错误：变体资源自身又参与内容协商（RFC 2295）。', descEn:'Variant Also Negotiates', detailEn:'The server is misconfigured: the variant resource itself participates in content negotiation (RFC 2295).'},
+  {code:507, name:'Insufficient Storage', desc:'存储不足', detail:'服务器无法存储完成请求所需的内容（WebDAV）。', descEn:'Insufficient Storage', detailEn:'The server cannot store the content needed to complete the request (WebDAV).'},
+  {code:508, name:'Loop Detected', desc:'检测到循环', detail:'服务器在处理请求时检测到无限循环（WebDAV）。', descEn:'Loop Detected', detailEn:'The server detected an infinite loop while processing the request (WebDAV).'},
+  {code:510, name:'Not Extended', desc:'未扩展', detail:'服务器需要更多扩展才能满足请求（RFC 2774）。', descEn:'Not Extended', detailEn:'The server requires further extensions to fulfill the request (RFC 2774).'},
+  {code:511, name:'Network Authentication Required', desc:'需网络认证', detail:'客户端需登录才能访问网络（如公共 WiFi）。', descEn:'Network Authentication Required', detailEn:'The client must sign in to access the network (for example, public Wi-Fi).'},
 ];
 
 let currentCat = 'all';
@@ -333,12 +335,15 @@ let searchKey = '';
 function getCategory(code){
   return String(code)[0];
 }
+function __httpEn(){return typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn();}
+function __httpDesc(s,en){return en?(s.descEn||s.desc):s.desc;}
+function __httpDetail(s,en){return en?(s.detailEn||s.detail):s.detail;}
 
 function renderList(){
   const list = document.getElementById('statusList');
   const filtered = statusCodes.filter(s => {
     if(currentCat !== 'all' && getCategory(s.code) !== currentCat) return false;
-    if(searchKey && !(`${s.code} ${s.name} ${s.desc} ${s.detail}`.toLowerCase().includes(searchKey.toLowerCase()))) return false;
+    if(searchKey && !(`${s.code} ${s.name} ${s.desc} ${s.detail} ${s.descEn||''} ${s.detailEn||''}`.toLowerCase().includes(searchKey.toLowerCase()))) return false;
     return true;
   });
   
@@ -347,23 +352,25 @@ function renderList(){
     return;
   }
   
+  const en=__httpEn();
   const __h1=filtered.map(s => `
-    <div class="status-card s${getCategory(s.code)}xx" onclick="toggleDetail(this)">
+    <button type="button" class="status-card s${getCategory(s.code)}xx" data-code="${s.code}" aria-expanded="false" onclick="toggleDetail(this)">
       <span class="code">${s.code}</span>
       <strong>${s.name}</strong>
-      <span style="color:#999;font-size:12px;margin-left:8px;">${s.desc}</span>
-      <div class="detail">${s.detail}</div>
-    </div>
+      <span style="color:#999;font-size:12px;margin-left:8px;">${__httpDesc(s,en)}</span>
+      <div class="detail">${__httpDetail(s,en)}</div>
+    </button>
   `).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
 }
 
 function toggleDetail(card){
-  card.classList.toggle('expanded');
+  var expanded=card.classList.toggle('expanded');
+  card.setAttribute('aria-expanded',expanded?'true':'false');
 }
 function __httpFiltered(){
   return statusCodes.filter(s => {
     if(currentCat !== 'all' && getCategory(s.code) !== currentCat) return false;
-    if(searchKey && !(`${s.code} ${s.name} ${s.desc} ${s.detail}`.toLowerCase().includes(searchKey.toLowerCase()))) return false;
+    if(searchKey && !(`${s.code} ${s.name} ${s.desc} ${s.detail} ${s.descEn||''} ${s.detailEn||''}`.toLowerCase().includes(searchKey.toLowerCase()))) return false;
     return true;
   });
 }
@@ -385,10 +392,10 @@ function __httpExtras(){
     var tb=t.querySelector('tbody');tb.innerHTML='';
     var th=t.querySelector('thead');
     if(list.length===0){t.style.display='none';if(th)th.innerHTML='';tb.innerHTML='';return;}
-    if(th)th.innerHTML='<tr><th>'+(en?'Code':'状态码')+'</th><th>'+(en?'Name (EN)':'英文名')+'</th><th>'+(en?'Description':'中文说明')+'</th></tr>';
+    if(th)th.innerHTML='<tr><th>'+(en?'Code':'状态码')+'</th><th>'+(en?'Name (EN)':'英文名')+'</th><th>'+(en?'Description':'说明')+'</th></tr>';
     list.forEach(function(s){
       var r=document.createElement('tr');
-      [s.code,s.name,s.desc].forEach(function(v){var c=document.createElement('td');c.textContent=v;r.appendChild(c);});
+      [s.code,s.name,__httpDesc(s,en)].forEach(function(v){var c=document.createElement('td');c.textContent=v;r.appendChild(c);});
       tb.appendChild(r);
     });
   }
@@ -401,10 +408,10 @@ function __httpExport(){
   var tb=t.querySelector('tbody');tb.innerHTML='';
   var th=t.querySelector('thead');if(!th)return;
   if(list.length===0){tb.innerHTML='';t.style.display='none';ToolBox.showToast(en?'No status code to export':'当前无匹配状态码可导出','warning');return;}
-  th.innerHTML='<tr><th>'+(en?'Code':'状态码')+'</th><th>'+(en?'Name (EN)':'英文名')+'</th><th>'+(en?'Description':'中文说明')+'</th></tr>';
+  th.innerHTML='<tr><th>'+(en?'Code':'状态码')+'</th><th>'+(en?'Name (EN)':'英文名')+'</th><th>'+(en?'Description':'说明')+'</th></tr>';
   list.forEach(function(s){
     var r=document.createElement('tr');
-    [s.code,s.name,s.desc].forEach(function(v){var c=document.createElement('td');c.textContent=v;r.appendChild(c);});
+    [s.code,s.name,__httpDesc(s,en)].forEach(function(v){var c=document.createElement('td');c.textContent=v;r.appendChild(c);});
     tb.appendChild(r);
   });
   th.insertAdjacentHTML('beforeend','');
@@ -462,7 +469,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -470,7 +477,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

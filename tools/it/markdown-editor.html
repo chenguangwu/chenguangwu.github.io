@@ -596,6 +596,7 @@
       <div data-tb="preset" data-tb-presets='[{"label": "标题与列表", "labelEn": "Headings and lists", "values": {"mdInput": "# 项目说明\n\n- 支持 Markdown 实时预览\n- 支持导出 HTML\n- 支持草稿自动保存"}}, {"label": "代码块与链接", "labelEn": "Code block and link", "values": {"mdInput": "## 代码示例\n\n```js\nconst sum = (a, b) => a + b;\nconsole.log(sum(1, 2));\n```\n\n[查看文档](https://example.com)"}}, {"label": "表格与引用", "labelEn": "Table and quote", "values": {"mdInput": "### 对比表\n\n| 功能 | 状态 |\n| --- | --- |\n| 预览 | 已支持 |\n| 导出 | 已支持 |\n\n> 所有内容仅在本地处理。"}}, {"label": "任务清单", "labelEn": "Task list", "values": {"mdInput": "- [x] 编写文档\n- [ ] 校对文案\n- [ ] 发布上线"}}]'></div>
 <input type="file" id="fileInput" accept=".md,.markdown,.txt" style="display:none;" aria-label="选择文件">
       <div class="fb-right">
+        <button type="button" class="fb-btn" onclick="loadExample()">加载示例</button>
         <button type="button" class="fb-btn" onclick="clearEditor()">清空</button>
         <button type="button" class="fb-btn" onclick="copyHtml()">复制HTML</button>
       </div>
@@ -710,6 +711,9 @@
   'use strict';
 
   var DRAFT_KEY = 'toolbox_md_draft';
+  var EXAMPLE_MD = '# Markdown编辑器\n\n欢迎使用 **Markdown编辑器**！这是一个纯前端实现的编辑器，支持实时预览。\n\n## 功能特点\n\n- 实时分屏预览\n- 自动保存草稿到 localStorage\n- 导入/导出文件\n- 字数统计\n- 支持 Tab 缩进\n\n## 语法示例\n\n### 文本格式\n\n**粗体文本**、*斜体文本*、~~删除线文本~~\n\n行内代码：`console.log("Hello")`\n\n### 代码块\n\n```javascript\nfunction hello() {\n  console.log("Hello, Markdown!");\n}\n```\n\n### 引用\n\n> 这是一段引用文本，可以用于标注重要信息。\n\n### 列表\n\n**无序列表：**\n- 第一项\n- 第二项\n- 第三项\n\n**有序列表：**\n1. 步骤一\n2. 步骤二\n3. 步骤三\n\n### 链接和图片\n\n[访问 ToolBox](https://chenguangwu.github.io)\n\n![示例图片](https://picsum.photos/600/300)\n\n### 表格\n\n| 功能 | 支持状态 | 说明 |\n| --- | --- | --- |\n| 标题 | ✅ | H1 到 H6 |\n| 粗体 | ✅ | ** 或 __ |\n| 斜体 | ✅ | * 或 _ |\n| 代码 | ✅ | 行内 + 代码块 |\n| 表格 | ✅ | 管道语法 |\n\n---\n\n开始编辑吧！';
+  var editVersion = 0;
+  var importSeq = 0;
   var editor = document.getElementById('mdInput');
   var preview = document.getElementById('mdPreview');
   var fileInput = document.getElementById('fileInput');
@@ -726,6 +730,7 @@
     if (/^(javascript|vbscript|data:text\/html)/i.test(u)) return '';
     if (allowDataImage && /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(u)) return u;
     if (/^(https?:\/\/|\/|\.{1,2}\/|#|mailto:)/i.test(u)) return u;
+    if (/^[A-Za-z0-9._~-]+(?:[\/?#][^\s]*)?$/.test(u) && !/^[a-z][a-z0-9+.-]*:/i.test(u)) return u;
     return '';
   }
   function parseMarkdown(md) {
@@ -738,7 +743,7 @@
 
     // 提取代码块，避免内部被其他规则干扰
     var codeBlocks = [];
-    html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, function(m, lang, code) {
+    html = html.replace(/```([^\s`]*)[^\n]*\n([\s\S]*?)```/g, function(m, lang, code) {
       var idx = codeBlocks.length;
       codeBlocks.push({ lang: lang, code: code.replace(/\n$/, '') });
       return '\x00CB' + idx + '\x00';
@@ -821,7 +826,8 @@
 
       // 块级元素不包裹段落
       if (/^<(h[1-6]|blockquote|pre|hr|ul|ol|li|table|thead|tbody|tr|th|td|div|img)/.test(trimmed)
-          || /^<\/(ul|ol|table|thead|tbody)/.test(trimmed)) {
+          || /^<\/(ul|ol|table|thead|tbody)/.test(trimmed)
+          || /^\x00CB\d+\x00$/.test(trimmed)) {
         if (inParagraph) {
           result.push('</p>');
           inParagraph = false;
@@ -851,11 +857,35 @@
     // 恢复代码块
     html = html.replace(/\x00CB(\d+)\x00/g, function(_, i) {
       var block = codeBlocks[+i];
-      var langAttr = block.lang ? ' class="language-' + block.lang + '"' : '';
+      var langAttr = block.lang ? ' class="language-' + escAttr(block.lang) + '"' : '';
       return '<pre><code' + langAttr + '>' + block.code + '</code></pre>';
     });
 
     return html;
+  }
+
+  function splitTableCells(line) {
+    var t = String(line).trim();
+    if (t.charAt(0) === '|') t = t.slice(1);
+    if (t.charAt(t.length - 1) === '|' && t.charAt(t.length - 2) !== '\\') t = t.slice(0, -1);
+    var cells = [], buf = '', escaped = false;
+    for (var i = 0; i < t.length; i++) {
+      var ch = t.charAt(i);
+      if (escaped) {
+        if (ch === '|') buf += '|';
+        else buf += '\\' + ch;
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '|') {
+        cells.push(buf.trim()); buf = '';
+      } else {
+        buf += ch;
+      }
+    }
+    if (escaped) buf += '\\';
+    cells.push(buf.trim());
+    return cells;
   }
 
   // 表格解析
@@ -869,7 +899,7 @@
 
       // 检测表格行
       if (/^\|(.+)\|$/.test(line) && i + 1 < lines.length && /^\|[\s\-:|]+\|$/.test(lines[i + 1].trim())) {
-        var headerCells = line.replace(/^\||\|$/g, '').split('|').map(function(c) { return c.trim(); });
+        var headerCells = splitTableCells(line);
         var sepLine = lines[i + 1].trim();
 
         // 跳过分隔行
@@ -880,7 +910,7 @@
         while (i < lines.length) {
           var nextLine = lines[i].trim();
           if (/^\|(.+)\|$/.test(nextLine)) {
-            bodyRows.push(nextLine.replace(/^\||\|$/g, '').split('|').map(function(c) { return c.trim(); }));
+            bodyRows.push(splitTableCells(nextLine));
             i++;
           } else {
             break;
@@ -911,67 +941,73 @@
     return result.join('\n');
   }
 
-  // 列表解析（合并连续列表项）
+  // 列表解析：按缩进递归，支持嵌套与有序列表起始编号
+  function parseListItem(line) {
+    var m = line.match(/^(\s*)([-*+]|\d+[.)])\s+(.*)$/);
+    if (!m) return null;
+    var indent = m[1].replace(/\t/g, '    ').length;
+    var marker = m[2];
+    return {
+      indent: indent,
+      ordered: /^\d/.test(marker),
+      num: /^\d/.test(marker) ? parseInt(marker, 10) : 1,
+      text: m[3]
+    };
+  }
+
+  function renderListItem(text) {
+    var task = text.match(/^\[([ xX])\]\s+(.+)$/);
+    if (task) {
+      var checked = task[1].toLowerCase() === 'x' ? ' checked' : '';
+      return '<li class="task-list-item"><input type="checkbox" disabled' + checked + '> ' + task[2] + '</li>';
+    }
+    return '<li>' + text + '</li>';
+  }
+
+  function parseListAt(lines, start, indent) {
+    var first = parseListItem(lines[start]);
+    if (!first) return { html: '', next: start };
+    var ordered = first.ordered;
+    var html = ordered
+      ? '<ol' + (first.num !== 1 ? ' start="' + first.num + '"' : '') + '>'
+      : '<ul>';
+    var i = start;
+    while (i < lines.length) {
+      var cur = parseListItem(lines[i]);
+      if (!cur || cur.indent < indent) break;
+      if (cur.indent > indent) break;
+      if (cur.ordered !== ordered) break;
+      var body = cur.text;
+      i++;
+      var nested = '';
+      while (i < lines.length) {
+        var nx = parseListItem(lines[i]);
+        if (!nx || nx.indent <= indent) break;
+        var sub = parseListAt(lines, i, nx.indent);
+        nested += sub.html;
+        i = sub.next;
+      }
+      html += renderListItem(body).replace('</li>', nested + '</li>');
+    }
+    html += ordered ? '</ol>' : '</ul>';
+    return { html: html, next: i };
+  }
+
   function parseLists(html) {
     var lines = html.split('\n');
     var result = [];
     var i = 0;
-
     while (i < lines.length) {
-      var line = lines[i];
-      var ulMatch = line.match(/^[\*\-\+]\s+(.+)$/);
-      var olMatch = line.match(/^\d+\.\s+(.+)$/);
-
-      if (ulMatch) {
-        // 收集连续无序列表项
-        var items = [ulMatch[1]];
+      var item = parseListItem(lines[i]);
+      if (!item) {
+        result.push(lines[i]);
         i++;
-        while (i < lines.length) {
-          var m = lines[i].match(/^[\*\-\+]\s+(.+)$/);
-          if (m) {
-            items.push(m[1]);
-            i++;
-          } else {
-            break;
-          }
-        }
-        var ulHtml = '<ul>';
-        items.forEach(function(item) {
-          // IT-N289: GFM task list —— `- [x] 完成` / `- [ ] 待办` 渲染成禁用复选框，
-          // 而非把 `[x]`/`[ ]` 当字面文本输出（预设「任务清单」承诺的能力）。
-          var task = item.match(/^\[([ xX])\]\s+(.+)$/);
-          if (task) {
-            var checked = task[1].toLowerCase() === 'x' ? ' checked' : '';
-            ulHtml += '<li class="task-list-item"><input type="checkbox" disabled' + checked + '> ' + task[2] + '</li>';
-          } else {
-            ulHtml += '<li>' + item + '</li>';
-          }
-        });
-        ulHtml += '</ul>';
-        result.push(ulHtml);
-      } else if (olMatch) {
-        // 收集连续有序列表项
-        var olItems = [olMatch[1]];
-        i++;
-        while (i < lines.length) {
-          var m2 = lines[i].match(/^\d+\.\s+(.+)$/);
-          if (m2) {
-            olItems.push(m2[1]);
-            i++;
-          } else {
-            break;
-          }
-        }
-        var olHtml = '<ol>';
-        olItems.forEach(function(item) { olHtml += '<li>' + item + '</li>'; });
-        olHtml += '</ol>';
-        result.push(olHtml);
-      } else {
-        result.push(line);
-        i++;
+        continue;
       }
+      var block = parseListAt(lines, i, item.indent);
+      result.push(block.html);
+      i = block.next;
     }
-
     return result.join('\n');
   }
 
@@ -1067,12 +1103,20 @@
   function loadDraft() {
     try {
       var draft = localStorage.getItem(DRAFT_KEY);
-      if (draft) {
+      if (draft !== null) {
         editor.value = draft;
         updatePreview();
+        return true;
       }
     } catch(e) {}
+    return false;
   }
+
+  window.loadExample = function() {
+    editor.value = EXAMPLE_MD;
+    updatePreview();
+    autoSave();
+  };
 
   // --- 插入 Markdown 语法 ---
   var insertions = {
@@ -1188,8 +1232,15 @@
     if (!file) return;
 
     var reader = new FileReader();
+    var seq = ++importSeq;
+    var baseVersion = editVersion;
     reader.onload = function(ev) {
+      if (seq !== importSeq || editVersion !== baseVersion) {
+        ToolBox.showToast('导入已取消：编辑内容已更新', 'warning');
+        return;
+      }
       editor.value = ev.target.result;
+      editVersion++;
       updatePreview();
       autoSave();
       ToolBox.showToast('已导入：' + file.name);
@@ -1205,17 +1256,25 @@
   window.clearEditor = function() {
     if (editor.value.trim() === '') return;
     editor.value = '';
+    editVersion++;
     updatePreview();
     autoSave();
     ToolBox.showToast(i18nText('toast.msg281'));
   };
 
+  window.__mdParse = parseMarkdown;
+  window.__mdLoadDraft = loadDraft;
+  window.__mdDraftKey = DRAFT_KEY;
+  window.__mdVersion = function(){ return editVersion; };
+
   window.copyHtml = function() {
-    var html = preview.innerHTML;
-    if (!html.trim()) {
+    var md = editor.value;
+    if (!md.trim()) {
       ToolBox.showToast(i18nText('toast.msg996'), 'warning');
       return;
     }
+    var html = parseMarkdown(md);
+    updatePreview();
     ToolBox.copyText(html, i18nText('msg054'));
   };
 
@@ -1241,6 +1300,7 @@
 
   // --- 事件绑定 ---
   editor.addEventListener('input', function() {
+    editVersion++;
     debouncedUpdate();
     autoSave();
     // 标记未保存
@@ -1256,6 +1316,7 @@
       var start = this.selectionStart;
       var end = this.selectionEnd;
       this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
+      editVersion++;
       this.selectionStart = this.selectionEnd = start + 2;
       debouncedUpdate();
       autoSave();
@@ -1263,11 +1324,11 @@
   });
 
   // --- 初始化 ---
-  loadDraft();
+  var hadDraft = loadDraft();
 
-  // 如果草稿为空，加载示例内容
-  if (!editor.value.trim()) {
-    editor.value = '# Markdown编辑器\n\n欢迎使用 **Markdown编辑器**！这是一个纯前端实现的编辑器，支持实时预览。\n\n## 功能特点\n\n- 实时分屏预览\n- 自动保存草稿到 localStorage\n- 导入/导出文件\n- 字数统计\n- 支持 Tab 缩进\n\n## 语法示例\n\n### 文本格式\n\n**粗体文本**、*斜体文本*、~~删除线文本~~\n\n行内代码：`console.log("Hello")`\n\n### 代码块\n\n```javascript\nfunction hello() {\n  console.log("Hello, Markdown!");\n}\n```\n\n### 引用\n\n> 这是一段引用文本，可以用于标注重要信息。\n\n### 列表\n\n**无序列表：**\n- 第一项\n- 第二项\n- 第三项\n\n**有序列表：**\n1. 步骤一\n2. 步骤二\n3. 步骤三\n\n### 链接和图片\n\n[访问 ToolBox](https://chenguangwu.github.io)\n\n![示例图片](https://picsum.photos/600/300)\n\n### 表格\n\n| 功能 | 支持状态 | 说明 |\n| --- | --- | --- |\n| 标题 | ✅ | H1 到 H6 |\n| 粗体 | ✅ | ** 或 __ |\n| 斜体 | ✅ | * 或 _ |\n| 代码 | ✅ | 行内 + 代码块 |\n| 表格 | ✅ | 管道语法 |\n\n---\n\n开始编辑吧！';
+  // 仅首次没有草稿记录时加载示例；用户主动清空的空草稿保持为空
+  if (!hadDraft) {
+    editor.value = EXAMPLE_MD;
     updatePreview();
     autoSave();
   } else {
@@ -1299,7 +1360,7 @@
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -1307,7 +1368,7 @@
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

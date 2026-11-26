@@ -290,7 +290,7 @@
     <div class="player-bar" id="playerBar" style="display:none;">
       <button class="play-btn" id="playBtn" onclick="togglePlay()" aria-label="播放/暂停">▶</button>
       <div class="progress-wrap">
-        <div class="progress-track" id="progressTrack" onclick="seekTo(event)">
+        <div class="progress-track" id="progressTrack" role="slider" tabindex="0" aria-label="播放进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" onclick="seekTo(event)">
           <div class="progress-fill" id="progressFill"></div>
         </div>
       </div>
@@ -559,14 +559,16 @@ fileInput.addEventListener('change', function(e){
   if(file) handleFile(file);
 });
 
+var __audioLoadSeq=0;
 function handleFile(file){
   if(!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|flac|m4a|aac|opus|webm)$/i.test(file.name)){
-    ToolBox.showToast('tool.file_upload_hint', 'warning');
+    ToolBox.showToast('tool.audio_type_error', 'warning');
     return;
   }
 
   // 停止当前播放
   if(isPlaying) stopPlay();
+  var __req=++__audioLoadSeq;
 
   // 清理旧资源
   if(mediaSource){
@@ -611,6 +613,7 @@ function handleFile(file){
     if(audioEl.duration){
       var pct = (audioEl.currentTime / audioEl.duration) * 100;
       document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('progressTrack').setAttribute('aria-valuenow', pct.toFixed(1));
       updateTimeDisplay(audioEl.currentTime, audioEl.duration);
     }
   });
@@ -641,12 +644,14 @@ function handleFile(file){
     audioCtx.decodeAudioData(
       ev.target.result.slice(0),
       function(buf){
+        if(__req!==__audioLoadSeq) return;
         audioBuffer = buf;
         buildOverviewCache();
         if(mode === 'overview') drawOverview();
         ToolBox.showToast('tool.audio_load_ok', 'success');
       },
       function(){
+        if(__req!==__audioLoadSeq) return;
         // 解码失败不影响实时播放
         if(mode === 'overview'){
           placeholder.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"This format cannot be decoded into a static overview":"该格式无法解码为静态概览");
@@ -680,7 +685,7 @@ function updateTimeDisplay(cur, total){
 /* ===== 播放控制 ===== */
 function togglePlay(){
   if(!audioEl){
-    ToolBox.showToast('tool.file_upload_hint', 'warning');
+    ToolBox.showToast('tool.audio_select_hint', 'warning');
     return;
   }
   if(!isPlaying){
@@ -726,6 +731,19 @@ function stopPlay(){
 }
 
 /* ===== 进度条跳转 ===== */
+document.getElementById('progressTrack').addEventListener('keydown', function(e){
+  if(!audioEl || !audioEl.duration) return;
+  var step = e.shiftKey ? 1 : 5;
+  var delta = 0;
+  if(e.key==='ArrowLeft'||e.key==='ArrowDown') delta=-step;
+  else if(e.key==='ArrowRight'||e.key==='ArrowUp') delta=step;
+  else if(e.key==='Home') delta=-audioEl.duration;
+  else if(e.key==='End') delta=audioEl.duration;
+  else return;
+  e.preventDefault();
+  audioEl.currentTime = Math.max(0, Math.min(audioEl.duration, audioEl.currentTime + delta));
+  updateTimeDisplay(audioEl.currentTime, audioEl.duration);
+});
 window.seekTo = function(e){
   if(!audioEl || !audioEl.duration) return;
   var track = document.getElementById('progressTrack');
@@ -734,6 +752,7 @@ window.seekTo = function(e){
   pct = Math.max(0, Math.min(1, pct));
   audioEl.currentTime = pct * audioEl.duration;
   document.getElementById('progressFill').style.width = (pct * 100) + '%';
+  document.getElementById('progressTrack').setAttribute('aria-valuenow', (pct*100).toFixed(1));
   updateTimeDisplay(audioEl.currentTime, audioEl.duration);
 };
 

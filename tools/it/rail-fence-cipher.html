@@ -252,11 +252,11 @@ function cleanText(text){
   return keep ? text : text.replace(/\s+/g,'');
 }
 
-function buildRailMatrix(text, depth){
-  const matrix = Array.from({length: depth}, () => new Array(text.length).fill(''));
+function buildRailMatrix(chars, depth){
+  const matrix = Array.from({length: depth}, () => new Array(chars.length).fill(''));
   let r = 0, dir = 1;
-  for(let c = 0; c < text.length; c++){
-    matrix[r][c] = text[c];
+  for(let c = 0; c < chars.length; c++){
+    matrix[r][c] = chars[c];
     if(r === 0) dir = 1;
     else if(r === depth - 1) dir = -1;
     r += dir;
@@ -268,12 +268,13 @@ function enc(){
   let text = document.getElementById('input').value;
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter plaintext to encrypt":"请输入要加密的明文"));
   text = cleanText(text);
+  const chars = Array.from(text);
   const depth = parseInt(document.getElementById('depth').value,10);
-  if(!Number.isInteger(depth) || depth < 2 || depth > text.length) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Depth must be between 2 and the text length":"深度必须在 2 到文本长度之间"));
-  const matrix = buildRailMatrix(text, depth);
+  if(!Number.isInteger(depth) || depth < 2 || depth > chars.length) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Depth must be between 2 and the text length (in code points)":"深度必须在 2 到文本长度之间（按码点计）"));
+  const matrix = buildRailMatrix(chars, depth);
   let out = '';
   for(let r = 0; r < depth; r++){
-    for(let c = 0; c < text.length; c++){
+    for(let c = 0; c < chars.length; c++){
       if(matrix[r][c]) out += matrix[r][c];
     }
   }
@@ -285,12 +286,13 @@ function dec(){
   let text = document.getElementById('input').value;
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter ciphertext to decrypt":"请输入要解密的密文"));
   text = cleanText(text);
+  const chars = Array.from(text);
   const depth = parseInt(document.getElementById('depth').value,10);
-  if(!Number.isInteger(depth) || depth < 2 || depth > text.length) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Depth must be between 2 and the text length":"深度必须在 2 到文本长度之间"));
-  const matrix = Array.from({length: depth}, () => new Array(text.length).fill(''));
+  if(!Number.isInteger(depth) || depth < 2 || depth > chars.length) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Depth must be between 2 and the text length (in code points)":"深度必须在 2 到文本长度之间（按码点计）"));
+  const matrix = Array.from({length: depth}, () => new Array(chars.length).fill(''));
   let r = 0, dir = 1;
   const markers = Array.from({length: depth}, () => []);
-  for(let c = 0; c < text.length; c++){
+  for(let c = 0; c < chars.length; c++){
     markers[r].push(c);
     if(r === 0) dir = 1;
     else if(r === depth - 1) dir = -1;
@@ -299,12 +301,12 @@ function dec(){
   let idx = 0;
   for(let i = 0; i < depth; i++){
     for(const c of markers[i]){
-      matrix[i][c] = text[idx++];
+      matrix[i][c] = chars[idx++];
     }
   }
   let out = '';
   r = 0; dir = 1;
-  for(let c = 0; c < text.length; c++){
+  for(let c = 0; c < chars.length; c++){
     out += matrix[r][c];
     if(r === 0) dir = 1;
     else if(r === depth - 1) dir = -1;
@@ -318,6 +320,7 @@ function renderGrid(matrix){
   const text = document.getElementById('input').value;
   const depth = parseInt(document.getElementById('depth').value,10);
   const clean = cleanText(text);
+  const cleanChars = Array.from(clean);
   const __en = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
   // IT-N162: 与 enc()/dec() 同口径校验深度。清空/1/非数字/超过文本长度时，旧版静默留白或渲染出
   // 99 行空栅栏；现在统一给出中英提示，防止预览与输入不同步、避免抛出未捕获异常。
@@ -325,15 +328,15 @@ function renderGrid(matrix){
     document.getElementById('gridBox').innerHTML = '<p style="color:var(--danger)">⚠ ' + (__en ? 'Enter text to preview the rail grid.' : '请输入文本以预览栅栏矩阵。') + '</p>';
     return;
   }
-  if(!Number.isInteger(depth) || depth < 2 || depth > clean.length){
+  if(!Number.isInteger(depth) || depth < 2 || depth > cleanChars.length){
     const __msg = __en
-      ? ('Depth must be between 2 and the text length (2-' + clean.length + ').')
-      : ('深度需在 2 到文本长度之间（当前文本 ' + clean.length + ' 字符），请检查输入。');
+      ? ('Depth must be between 2 and the text length in code points (2-' + cleanChars.length + ').')
+      : ('深度需在 2 到文本长度之间（当前文本 ' + cleanChars.length + ' 个码点），请检查输入。');
     document.getElementById('gridBox').innerHTML = '<p style="color:var(--danger)">⚠ ' + __msg + '</p>';
     return;
   }
   if(!matrix){
-    matrix = buildRailMatrix(clean, depth);
+    matrix = buildRailMatrix(cleanChars, depth);
   }
   let html = '';
   for(let r = 0; r < depth; r++){
@@ -528,7 +531,7 @@ else document.addEventListener('DOMContentLoaded', __rail_fence_cipherBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -536,7 +539,7 @@ else document.addEventListener('DOMContentLoaded', __rail_fence_cipherBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

@@ -701,8 +701,8 @@ const CASES = [
     "slug": "agriculture/crop-yield",
     "inputs": {},
     "clicks": ["document.getElementById('method').value='sample';document.getElementById('sampleArea').value='2';document.getElementById('sampleWeight').value='1.8';document.getElementById('dryFactor').value='0.85';calc();"],
-    "expect": ["510.0"],
-    "ref": "S2 预设「样方实测(小麦)」等价注入：样方法 1.8×0.85×666.67/2 = 510.0 kg/亩（水分默认 13% adj 不变）。默认穗数态 630.0，不命中。"
+    "expect": ["586.2"],
+    "ref": "S2 预设「样方实测(小麦)」等价注入：样方法鲜重 1.8×干物质率 0.85×666.67/2 = 510.0 kg 干物质/亩；再 ÷0.87 折到 13% 标准水分 = 586.2 kg/亩（只折一次；旧实现 510.0 未折标准水分，或再乘 85/87 会二次折算）。默认穗数态 630.0，不命中。"
   },
 
   // ── 零用例收敛（2026-10-09）：pesticide-interval（确定性日期推算部分）──
@@ -1583,10 +1583,12 @@ const CASES = [
       "temp": "400",
       "factor": "1.8"
     },
+    "clicks": ["document.getElementById('factor').value='1.8';calc();"],
     "expect": [
-      "42\n42\n400\n1.8\n灼烧后重量不应大于灼烧前，请检查数据"
+      "0.0000 灼烧失重",
+      "烧失量为0"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"beforeWeight\":\"42\",\"afterWeight\":\"42\",\"temp\":\"400\",\"factor\":\"1.8\"}，输出区含「42\n42\n400\n1.8\n灼烧后重量不应大于灼烧前，请检查数据」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "前后等重 42/42、400℃、系数1.8：按本批口径允许零失重，烧失量=0、有机质=0，并提示「本次灼烧前后等重，烧失量为0」；旧实现把等重当错误拦截。默认 10/9.85 不含零失重提示。"
   },
   {
     "slug": "agriculture/storage-pest-alert",
@@ -1687,10 +1689,20 @@ const CASES = [
   // ── 土壤有机质：换算系数 0 时应拦截（避免有机质结果恒为 0/无效）──
   {
     "slug": "agriculture/soil-organic-matter",
-    "inputs": { "beforeWeight": "10", "afterWeight": "9.6", "temp": "550", "factor": "0" },
-    "expect": ["换算系数必须大于0"],
-    "ref": "换算系数 0 ⇒ 有机质 = 有机碳 × 0 恒为 0，页面必须拦截；默认 1.724 正常计算，不出现该提示。"
+    "inputs": {
+      "beforeWeight": "42",
+      "afterWeight": "42",
+      "temp": "400",
+      "factor": "1.8"
+    },
+    "clicks": ["document.getElementById('factor').value='1.8';calc();"],
+    "expect": [
+      "0.0000 灼烧失重",
+      "烧失量为0"
+    ],
+    "ref": "前后等重 42/42、400℃、系数1.8：按本批口径允许零失重，烧失量=0、有机质=0，并提示「本次灼烧前后等重，烧失量为0」；旧实现把等重当错误拦截。默认 10/9.85 不含零失重提示。"
   },
+
   // ── 作物需水：降雨「时段合计」口径先折算日均，跨日雨量不被逐日全扣 ──
   {
     "slug": "agriculture/crop-water-requirement",
@@ -1805,6 +1817,137 @@ const CASES = [
   expect: ["88.00%", "13.636%"],
   ref: "恢复第356–358批旧页：水分 12% ⇒ 干物质 88%；湿基 12% 折干基 =12/(100−12)=13.636%；dry-matter-conversion 只做重量/含水率，无浓度口径。"
 }
+,
+{
+  slug: "agriculture/irrigation-uniformity",
+  clicks: ["pointCount=8;renderPoints();for(var i=0;i<8;i++){document.getElementById('pt'+i).value='0';}calc();"],
+  expect: ["分母为零，无法计算"],
+  ref: "8 个有效测点全为 0 ⇒ 均值为 0，CU/DU/CV 分母为零，页面明确提示无法计算，不再输出 0% 与「均匀性差」；旧实现会给出全是 0% 的结论。默认 12 点非零不命中。"
+},
+{
+  slug: "agriculture/irrigation-uniformity",
+  clicks: ["pointCount=8;renderPoints();for(var i=0;i<8;i++){document.getElementById('pt'+i).value=(i<2?(i===0?'40':'38'):'');}calc();"],
+  expect: ["已忽略 6 个未填测点"],
+  ref: "8 点仅填前两点 40/38，其余留空 ⇒ 空值不参与计算（不是 0），结果注明忽略 6 个未填测点；旧实现把 6 个空当 0，均值与 CU 被拉低。默认 12 点全填不含该提示。"
+},
+{
+  slug: "agriculture/dli-calculator",
+  clicks: ["document.getElementById('ppfd').value='1000';document.getElementById('hours').value='16';document.getElementById('lightPPFD').value='0';document.getElementById('lightHours').value='0';document.getElementById('cropType').value='low';calc();"],
+  expect: ["高于参考上限"],
+  ref: "低光作物参考 5–10 mol/m²/d，1000 μmol/m²/s×16h = 57.6 ⇒ 高于上限；页面改为「高于参考上限」并提示光过强/热负荷风险，不再判「光照充足」。默认 medium 15.7 在区间内不命中。"
+},
+{
+  slug: "agriculture/straw-return",
+  inputs: { strawType: "wheat", carbon: "45", nitrogen: "0.5", strawAmount: "400", targetCN: "25", fertType: "urea" },
+  clicks: ["document.getElementById('soilOM').value='';calc();"],
+  expect: ["未填写土壤有机质"],
+  ref: "土壤有机质留空 ⇒ 仍计算碳氮比与补氮，但不生成基于有机质的还田量建议；旧实现按 0 判「有机质偏低」并建议增施。默认 1.8% 走适中分支不命中。"
+},
+{
+  slug: "agriculture/fertilizer-efficiency",
+  inputs: { fertUptake: "20", fertInput: "10", ckUptake: "5", nutrientType: "N" },
+  clicks: ["document.getElementById('ckUptake').value='';calc();"],
+  expect: ["不能留空代替"],
+  ref: "对照区吸收量留空 ⇒ 必须提示「对照区为零也须明确填 0」，停止利用率计算；旧实现按 0 计并给出结论。默认 7 不命中。"
+},
+{
+  slug: "agriculture/seed-germination-rate",
+  inputs: { totalSeeds: "100", seedlingLen: "5" },
+  clicks: ["for(var i=1;i<=7;i++){document.getElementById('day'+i).value='1';}document.getElementById('day2').value='';calc();"],
+  expect: ["记录不完整"],
+  ref: "第2天留空 ⇒ 不当作 0，结果标「记录不完整」、不给出优质种/合格定级；旧实现空值按 0 继续判等级。默认逐日已填不命中。"
+},
+{
+  slug: "agriculture/pesticide-interval",
+  inputs: { phiDays: "3.9" },
+  clicks: ["calc();"],
+  expect: ["不会被截断成 3 天"],
+  ref: "安全间隔期输入 3.9 ⇒ 须按非整数拦截，不得 parseInt 截断为 3 天提前采收；默认 7 天不命中。"
+},
+  // ── 第822批：温室换气次数缺失/非正必须拦截 ──
+  {
+    slug: "agriculture/greenhouse-ventilation",
+    inputs: { airChanges: "0" },
+    dumpIds: ["result"],
+    expect: ["换气次数须为大于0的有限数"],
+    ref: "换气次数 0 时旧实现 `||25` 静默回退 25 次/时并继续给风机数；现须显式拦截，默认 25 次/时不出现该提示。"
+  },
+  // ── 第822批：灌溉含水下限 100% ⇒ 净/毛定额为 0，停止比例与次数 ──
+  {
+    slug: "agriculture/irrigation-calculator",
+    inputs: { area: "8", depth: "40", moisture: "100", cycle: "7" },
+    dumpIds: ["result"],
+    expect: ["净灌水量为 0", "已停止计算比例与灌溉次数"],
+    ref: "下限 = 田间持水量 ⇒ betaMin=betaMax ⇒ 净定额 0、毛定额 0；旧实现 0/0 得 NaN 比例、并可能用 0 作除数推算次数。默认 60% 不出现两句。"
+  },
+  // ── 第822批：地膜按行距铺设，行距 ≥ 膜宽时不得扣搭接 ──
+  {
+    slug: "agriculture/mulch-coverage",
+    inputs: { landLen: "100", landWid: "50", filmWid: "100", filmThk: "8", rowSpacing: "200", overlap: "20" },
+    expect: ["50.0%", "18.4"],
+    ref: "地宽 50 m、膜宽 1 m、行距 2 m ⇒ 25 行、膜带互不重叠，沿宽度覆盖 25×1=25 m ⇒ 覆盖率 25/50=50.0%；用膜面积 2500 m²、膜重 2500×1×8e-6×920=18.4 kg；搭接量输入 20 cm 不得扣除。旧实现按有效膜宽 0.8 m 算覆盖率 40.0%，本批两条锚均改变。"
+  },
+  // ── 第822批：地膜刚好相接（行距=膜宽）⇒ 搭接为 0，覆盖率 100% ──
+  {
+    slug: "agriculture/mulch-coverage",
+    inputs: { landLen: "100", landWid: "50", filmWid: "100", filmThk: "8", rowSpacing: "100", overlap: "20" },
+    expect: ["100.0%", "0.0%"],
+    ref: "行距 100 cm = 膜宽 100 cm ⇒ 50 行、相邻膜带刚好相接，几何搭接 0，覆盖宽度 50 m = 地宽 ⇒ 覆盖率 100.0%、重叠率 0.0%；不得因输入搭接 20 cm 扣成 80%。默认 100/120/10 为真实重叠，不出现 0.0% 重叠。"
+  },
+  // ── 第822批：地膜真实重叠（行距 < 膜宽）⇒ 只扣几何重叠 ──
+  {
+    slug: "agriculture/mulch-coverage",
+    inputs: { landLen: "100", landWid: "10", filmWid: "100", filmThk: "8", rowSpacing: "80", overlap: "10" },
+    expect: ["98.0%", "18.3%"],
+    ref: "地宽 10 m、行距 0.8 m ⇒ 12 行；相邻膜带宽 1 m、间距 0.8 m ⇒ 几何重叠 0.2 m；覆盖并集宽 = 12×1−11×0.2 = 9.8 m ⇒ 覆盖率 98.0%；用膜 12 m²、覆盖 9.8 m² ⇒ 重叠率 = (12−9.8)/12 = 18.3%。输入搭接 10 cm 小于几何重叠 20 cm，应以几何位置为准。"
+  },
+  // ── 第822批：收获损失明细留空 ⇒ 只算总损失，不判各环节正常 ──
+  {
+    slug: "agriculture/harvest-loss-rate",
+    inputs: { theoryYield: "100", actualYield: "90", headerLoss: "", threshLoss: "", scatterLoss: "", transportLoss: "" },
+    dumpIds: ["result"],
+    expect: ["仅填写 0/4 个损失环节", "不判定各环节正常"],
+    ref: "清空四个分项后，旧实现按 0 计并提示「各环节损失均在合理范围内」；现须提示明细不足，且不再给出正常结论。默认 12 等分项不全，不出现 0/4。"
+  },
+  // ── 第822批：收获损失分项合计大于总损失 ⇒ 一致性提示 ──
+  {
+    slug: "agriculture/harvest-loss-rate",
+    inputs: { theoryYield: "100", actualYield: "95", headerLoss: "4", threshLoss: "4", scatterLoss: "0", transportLoss: "0" },
+    dumpIds: ["result"],
+    expect: ["已大于总损失 5.0kg/亩"],
+    ref: "总损失 = 100−95 = 5.0 kg/亩；分项合计 = 8.0 kg/亩 > 总损失 ⇒ 须提示核对，不得把分项当成全部正常。默认 500/450 与默认分项不触发该分支。"
+  },
+  // ── 第822批：单正弦跨上限须补上限平台（20/40，基温10，上限30 ⇒ 16.82）──
+  {
+    slug: "agriculture/gdd-calculator",
+    inputs: { method: "single", tbase: "10", tupper: "30", targetGDD: "100", tmax0: "40", tmin0: "20" },
+    expect: ["16.8", "83"],
+    ref: "单正弦 T=30+10sinθ：基温10以下不计，30以上按平台20℃·d宽；积分 = [10×(θ2−θ1)+10×(cosθ1−cosθ2)+(30−10)×(π/2−θ2)]/π，θ1=−π/2、θ2=0 ⇒ (10×π/2+10+20×π/2)/π = 16.82 ⇒ 16.8；剩余 100−16.82 ⇒ 83。旧实现只积到上限得 6.82，两条均不命中。"
+  },
+  // ── 第822批：单正弦全高于上限 ⇒ 平台 tupper−tbase ──
+  {
+    slug: "agriculture/gdd-calculator",
+    inputs: { method: "single", tbase: "10", tupper: "30", targetGDD: "100", tmax0: "40", tmin0: "31" },
+    expect: ["20.0", "80"],
+    ref: "最低温 31℃ ≥ 上限 30℃ ⇒ 全日处于上限平台，GDD=30−10=20.0；剩余 80。默认 simple 不命中。"
+  },
+  // ── 第822批：作物测产切换样方法仍先显示样方输入区 ──
+  {
+    slug: "agriculture/crop-yield",
+    inputs: {},
+    clicks: ["document.getElementById('method').value='sample';document.getElementById('sampleArea').value='';calc();document.getElementById('__tbProbe').textContent='SAMPLE_DISP='+document.getElementById('sampleInputs').style.display;"],
+    expect: ["SAMPLE_DISP=block", "样方面积须大于0"],
+    ref: "切到样方法并清空样方面积：旧实现先校验后切显示，提前 return 导致样方输入区不出现；现须先显示 sampleInputs=block，再提示具体缺失字段。默认穗数法显示 spikeInputs，不出现 SAMPLE_DISP=block。"
+  },
+  // ── 第822批：样方法水分不再二次折算（moisture=30 仍按标准 13% 折一次）──
+  {
+    slug: "agriculture/crop-yield",
+    inputs: {},
+    clicks: ["document.getElementById('method').value='sample';document.getElementById('sampleArea').value='2';document.getElementById('sampleWeight').value='1.8';document.getElementById('dryFactor').value='0.85';document.getElementById('moisture').value='30';calc();"],
+    expect: ["586.2", "水分含量”不参与样方法"],
+    ref: "干物质/亩 = 1.8×0.85×666.67/2 = 510.0；÷(1−0.13)=586.2 kg/亩标准水分。实际水分 30% 不得再乘 70/87（旧实现会得 471.7）；且须明示水分不参与样方法。"
+  }
+
 ];
 
 // ---------------------------------------------------------------- main

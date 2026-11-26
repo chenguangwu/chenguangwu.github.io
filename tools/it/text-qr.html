@@ -279,33 +279,46 @@ function downloadSVG(){
   a.href=URL.createObjectURL(blob);a.download='qrcode.svg';a.click();
   if(URL.revokeObjectURL)setTimeout(function(){URL.revokeObjectURL(a.href);},0);
 }
+window.__qrPayload=null;window.__qrError=null;
 function generate(){
   const text=document.getElementById('text').value;
   const out=document.getElementById('output');
-  // IT-N551：任何一次 generate() 的开始都先把旧画布/旧元数据作废，避免清空或异常后
-  // downloadPNG() 仍能拿到上一张 canvas 并导出旧 PNG（旧修复只清了 __qrMeta）。
-  window.__qrCanvas=null;window.__qrMeta=null;
+  window.__qrCanvas=null;window.__qrMeta=null;window.__qrPayload=null;window.__qrError=null;
   if(!text){out.innerHTML='<p style="color:#999;">'+tqQ('请输入要编码的文本','Enter the text to encode')+'</p>';return;}
+  if(typeof qrcode!=='function'){
+    window.__qrError=tqQ('二维码库未加载，请刷新页面后重试。','QR library is not loaded; refresh the page and try again.');
+    out.innerHTML='<p style="color:var(--danger)">'+tqQ('⚠ 二维码生成失败：','⚠ QR generation failed: ')+escapeHtml(window.__qrError)+'</p>';
+    return;
+  }
   try{
     const canvas=drawQR(text);
     window.__qrCanvas=canvas;
     window.__qrMeta=canvas.__qrMeta||null;
+    window.__qrPayload=text;
     const __h0='<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(text)+'</div>';
     out.innerHTML=__h0;
     out.querySelector('.qr-wrap').appendChild(canvas);
   }catch(e){
-    window.__qrCanvas=null;window.__qrMeta=null;
-    out.innerHTML='<p style="color:var(--danger)">'+tqQ('⚠ 内容过长，无法生成二维码：','⚠ Content too long to encode: ')+escapeHtml(String(e && e.message || e))+'</p>';
+    window.__qrCanvas=null;window.__qrMeta=null;window.__qrPayload=null;
+    const msg=String(e && e.message || e);
+    const tooLong=/overflow|too long|too big|length|capacity|data/i.test(msg);
+    window.__qrError=tooLong?tqQ('内容超出当前纠错等级的二维码容量。','Text exceeds the QR capacity at this correction level.'):tqQ('二维码生成失败（库异常）。','QR generation failed (library error).');
+    out.innerHTML='<p style="color:var(--danger)">'+(tooLong?'⚠ '+tqQ('内容过长，无法生成二维码。','Content too long to encode. '):'⚠ '+tqQ('二维码生成失败。','QR generation failed. '))+'</p><p style="color:var(--text-muted);font-size:12px;">'+escapeHtml(window.__qrError)+'</p>';
   }
 }
 document.getElementById('text').addEventListener('input',function(){
-  window.__qrCanvas=null;window.__qrMeta=null;
+  window.__qrCanvas=null;window.__qrMeta=null;window.__qrPayload=null;window.__qrError=null;
   document.getElementById('output').innerHTML='';
 });
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
-  const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
+  const source=document.getElementById('text').value;
+  const payload=window.__qrPayload;
+  if(!payload&&!source){alert(tqQ('没有可复制的文本','No text to copy'));return;}
+  const text=payload||source;
+  navigator.clipboard.writeText(text).then(function(){
+    alert(payload?tqQ('已复制二维码原文','Copied the QR source text'):tqQ('二维码未生成，已复制输入原文（未复制错误提示）。','QR was not generated; copied the original input (not the error message).'));
+  }).catch(function(){alert(tqQ('复制失败，请手动选择文本复制','Copy failed; select and copy manually'));});
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
@@ -483,7 +496,7 @@ else document.addEventListener('DOMContentLoaded', __text_qrBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -491,7 +504,7 @@ else document.addEventListener('DOMContentLoaded', __text_qrBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

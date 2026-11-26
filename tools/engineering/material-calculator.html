@@ -329,50 +329,57 @@ function getSelectedMaterial() {
 
 function calc() {
   const mat = getSelectedMaterial();
-  const L = +document.getElementById('L').value || 1;  // m
+  function rv(id){var el=document.getElementById(id);var v=el?String(el.value==null?'':el.value).trim():'';return {raw:v,val:v===''?NaN:parseFloat(v)};}
+  var Lr=rv('L'), L=Lr.val;
+  var errs=[];
+  if(Lr.raw===''||!isFinite(L)||L<0)errs.push('长度 L 须为非负数值（0 可表示不计长度重量）');
+  var dims={};
+  var need={rect:['b','h'],circle:['d'],hollow_circle:['D','t'],square_tube:['a','t'],i_beam:['h','b','d','t'],angle:['b','c','t']}[selectedShape]||[];
+  need.forEach(function(id){var r=rv(id);dims[id]=r.val;if(r.raw===''||!isFinite(r.val)||r.val<=0)errs.push(SHAPES.find(function(x){return x.id===selectedShape;}).name+' 的尺寸 '+id+' 须为正数');});
+  if(selectedShape==='hollow_circle'&&isFinite(dims.D)&&isFinite(dims.t)&&dims.t*2>=dims.D)errs.push('圆管壁厚须小于外径的一半（保证内径 >0）');
+  if(selectedShape==='square_tube'&&isFinite(dims.a)&&isFinite(dims.t)&&dims.t*2>=dims.a)errs.push('方管壁厚须小于边长的一半（保证内孔 >0）');
+  if(selectedShape==='i_beam'&&isFinite(dims.h)&&isFinite(dims.t)&&dims.t*2>=dims.h)errs.push('工字钢翼缘厚须小于高度的一半');
+  if(selectedShape==='i_beam'&&isFinite(dims.b)&&isFinite(dims.d)&&dims.d>dims.b)errs.push('腹板厚不能大于翼缘宽');
+  if(selectedShape==='angle'&&isFinite(dims.t)&&isFinite(dims.b)&&isFinite(dims.c)&&(dims.t>=dims.b||dims.t>=dims.c))errs.push('角钢厚度须小于两条边长');
+  if(errs.length){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);font-weight:600;">⚠ '+errs.join('；')+'。</p>';
+    document.getElementById('shapeViz').innerHTML='';
+    return;
+  }
   let A = 0, I = 0;
 
   if (selectedShape === 'rect') {
-    const b = +document.getElementById('b').value || 0;
-    const h = +document.getElementById('h').value || 0;
-    A = b * h;  // mm²
-    I = b * Math.pow(h, 3) / 12;  // mm⁴
+    const b = dims.b, h = dims.h;
+    A = b * h;
+    I = b * Math.pow(h, 3) / 12;
   } else if (selectedShape === 'circle') {
-    const d = +document.getElementById('d').value || 0;
+    const d = dims.d;
     A = Math.PI * d * d / 4;
     I = Math.PI * Math.pow(d, 4) / 64;
   } else if (selectedShape === 'hollow_circle') {
-    const D = +document.getElementById('D').value || 0;
-    const t = +document.getElementById('t').value || 0;
+    const D = dims.D, t = dims.t;
     const d = D - 2 * t;
     A = Math.PI * (D*D - d*d) / 4;
     I = Math.PI * (Math.pow(D, 4) - Math.pow(d, 4)) / 64;
   } else if (selectedShape === 'square_tube') {
-    const a = +document.getElementById('a').value || 0;
-    const t = +document.getElementById('t').value || 0;
+    const a = dims.a, t = dims.t;
     const inner = a - 2 * t;
     A = a * a - inner * inner;
     I = (a*a*a*a - inner*inner*inner*inner) / 12;
   } else if (selectedShape === 'i_beam') {
-    const h = +document.getElementById('h').value || 0;
-    const b = +document.getElementById('b').value || 0;
-    const d = +document.getElementById('d').value || 0;
-    const t = +document.getElementById('t').value || 0;
+    const h = dims.h, b = dims.b, d = dims.d, t = dims.t;
     A = 2 * b * t + (h - 2*t) * d;
     I = (b * Math.pow(h, 3) - (b - d) * Math.pow(h - 2*t, 3)) / 12;
   } else if (selectedShape === 'angle') {
-    const b = +document.getElementById('b').value || 0;
-    const c = +document.getElementById('c').value || 0;
-    const t = +document.getElementById('t').value || 0;
+    const b = dims.b, c = dims.c, t = dims.t;
     A = (b + c - t) * t;
     I = (b*Math.pow(t,3) + c*Math.pow(t,3) - Math.pow(t,4)) / 3;
   }
 
-  const A_m2 = A * 1e-6;  // mm² → m²
-  const I_m4 = I * 1e-12;  // mm⁴ → m⁴
-  const volume = A_m2 * L;  // m³
-  const mass = volume * mat.density;  // kg
-  const W_section = I / (Math.sqrt(A) || 1) * 1000;  // 简化抗弯截面系数
+  const A_m2 = A * 1e-6;
+  const I_m4 = I * 1e-12;
+  const volume = A_m2 * L;
+  const mass = volume * mat.density;
 
   const __g3=`<div style="font-size:48px;">${shapeEmoji(selectedShape)}</div><div style="font-size:11px;color:var(--text-muted);">${SHAPES.find(s => s.id === selectedShape).name}</div>`;document.getElementById('shapeViz').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
@@ -384,7 +391,7 @@ function calc() {
     <div class="result-block"><div class="result-label">长度 L</div><div class="result-value" style="font-size:14px;">${L} m</div></div>
     <div class="result-block"><div class="result-label">体积 V</div><div class="result-value" style="font-size:14px;">${(volume*1000).toFixed(2)} L · ${(volume*1e6).toFixed(0)} cm³</div></div>
     <div class="result-block"><div class="result-label">重量</div><div class="result-value" style="color:${mat.color};">${mass.toFixed(2)} kg</div></div>
-    <div class="result-block"><div class="result-label">每米重量</div><div class="result-value" style="font-size:14px;">${(mass/L).toFixed(2)} kg/m</div></div>
+    <div class="result-block"><div class="result-label">每米重量</div><div class="result-value" style="font-size:14px;">${L===0?'不适用（长度 0）':(mass/L).toFixed(2)+' kg/m'}</div></div>
   `;document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 

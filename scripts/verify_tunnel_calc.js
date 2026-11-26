@@ -66,7 +66,7 @@ const CASES = [
 },
 {
   "slug": "tunnel/support-design",
-  "clicks": ["var zh=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/tunnel.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/tunnel/support-design.json','utf8');var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tunnel/support-design.html','utf8');var ok=zh.indexOf('1/3~1/4')<0&&zh.indexOf('0.20~0.45')>=0&&zh.indexOf('5~25 cm')>=0&&en.indexOf('1/3~1/4')<0&&en.indexOf('caving arch')<0&&h.indexOf('跨度的 1/3~1/4')<0&&h.indexOf('k_L = 0.20~0.45')>=0;document.getElementById('__tbProbe').textContent='TUNNELMETA '+(ok?'OK':'BAD');"],
+  "clicks": ["var zh=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/tunnel.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/tunnel/support-design.json','utf8');var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tunnel/support-design.html','utf8');var ok=zh.indexOf('1/3~1/4')<0&&zh.indexOf('支护展开长度')>=0&&en.indexOf('developed length')>=0&&h.indexOf('inShape')>=0;document.getElementById('__tbProbe').textContent='TUNNELMETA '+(ok?'OK':'BAD');"],
   "expect": ["TUNNELMETA OK"],
   "ref": "12-N9：页面公式框早已按代码改为 k_L=0.20~0.45、喷层按级别固定，但权威 intro 与由其生成的 meta/og/JSON-LD 仍写「跨度的 1/3~1/4」，英译词典还残留塌落拱旧口径死键。源码形态断言中英权威源与页面 meta 全部无旧串且新串到位；旧版必红，默认态不产生该哨兵，零逃生。"
 },
@@ -76,7 +76,7 @@ const CASES = [
     "inGas": ""
   },
   "expect": [
-    "请填写瓦斯浓度"
+    "0–100"
   ],
   "ref": "浓度为空时清空瓦斯判定（GASCLR）；旧实现 !isFinite 直接 return，上一档「0.50% / 注意」残留"
 },
@@ -99,8 +99,37 @@ const CASES = [
     "请填写大于 0 的开挖跨度与高度"
   ],
   "ref": "跨度为空时清空支护参数（SUPCLR）"
+},
+{
+  "slug": "tunnel/gas-monitor",
+  "inputs": {
+    "inGas": "-1"
+  },
+  "expect": [
+    "负值或超出量程"
+  ],
+  "ref": "负浓度必须拒绝并清空旧分级，旧实现会落入安全档"
+},
+{
+  "slug": "tunnel/advance-rate",
+  "clicks": ["var e=document.getElementById('inEta');e.value='1.2';calc();"],
+  "expect": ["请检查输入"],
+  "ref": "利用率>1 时必须清空旧进尺、旧统计与复制数据"
+},
+{
+  "slug": "tunnel/advance-rate",
+  "clicks": ["var e=document.getElementById('inDrill');e.value='25';calc();"],
+  "expect": ["无法估算 1000 m 工期"],
+  "ref": "单循环超过24h、日进尺为0时不得给出1000m工期"
+},
+{
+  "slug": "tunnel/support-design",
+  "clicks": ["var s=document.getElementById('inShape');s.value='arch';calc();"],
+  "expect": ["22.85 m","半圆拱+直墙","16 根"],
+  "ref": "拱形断面展开长度 2×(H−B/2)+πB/2，12×8 取 22.85 m，根数随长度变化"
 }
 ];
+
 async function main() {
   const only = process.argv.slice(2);
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;

@@ -111,7 +111,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入初态温度/体积、末态体积与比热比 γ，求末态温度。">Adiabatic Tv</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">绝热过程末态温度 T₂ = T₁ × (V₁÷V₂)^(γ−1)（理想气体可逆绝热），另按 T₂ − 273.15 换算输出末态摄氏温度。校验：T₁、V₁、V₂、γ 四项均为必填有效数值，否则提示不计算。判据：V₂ &gt; V₁ 膨胀降温、V₂ &lt; V₁ 压缩升温，双原子气体 γ 常取 1.4。</div>
+      <div class="formula-eq">绝热过程末态温度 T₂ = T₁ × (V₁÷V₂)^(γ−1)（理想气体可逆绝热），另按 T₂ − 273.15 换算输出末态摄氏温度。校验：T₁、V₁、V₂ 必须是有限正数（K / L），γ 必须 > 1；否则结果、历史与图表均清空。判据：V₂ &gt; V₁ 膨胀降温、V₂ &lt; V₁ 压缩升温，双原子气体 γ 常取 1.4。</div>
       <p class="formula-desc">输入初态温度/体积、末态体积与比热比 γ，求末态温度。</p>
     </div>
 
@@ -316,8 +316,18 @@ function __tbInputGuardCore(_ids,_labels){
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
+              var __raws=['T1','V1','V2','gamma'].map(function(id){return String(document.getElementById(id).value).trim();});
+              var __t1=parseFloat(__raws[0]),__v1=parseFloat(__raws[1]),__v2=parseFloat(__raws[2]),__g=parseFloat(__raws[3]);
+              if(__raws.every(function(x){return x!=='';})&&(!isFinite(__t1)||__t1<=0||!isFinite(__v1)||__v1<=0||!isFinite(__v2)||__v2<=0||!isFinite(__g)||__g<=1)){
+                try{document.getElementById('adiabatic_tvTable').innerHTML='';document.getElementById('atChart').innerHTML='';document.getElementById('atTable').innerHTML='';}catch(e){}
+                ToolBox.setResult('result','<p style="color:var(--danger)">初温 T₁ 与初/末体积 V₁、V₂ 必须是有限正数，比热比 γ 必须大于 1；否则绝热关系 T₂=T₁(V₁/V₂)^(γ−1) 无物理意义。</p>');return;
+              }
               var __ig=__tbInputGuard(['T1', 'V1', 'V2', 'gamma'],["初态温度 T₁ (K)", "初态体积 V₁ (L)", "末态体积 V₂ (L)", "比热比 γ"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const T1=num('T1'),V1=num('V1'),V2=num('V2'),g=num('gamma');
+            if(!isFinite(T1)||T1<=0||!isFinite(V1)||V1<=0||!isFinite(V2)||V2<=0||!isFinite(g)||g<=1){
+                try{document.getElementById('adiabatic_tvTable').innerHTML='';document.getElementById('atChart').innerHTML='';document.getElementById('atTable').innerHTML='';}catch(e){}
+                ToolBox.setResult('result','<p style="color:var(--danger)">初温 T₁ 与初/末体积 V₁、V₂ 必须是有限正数，比热比 γ 必须大于 1；否则绝热关系 T₂=T₁(V₁/V₂)^(γ−1) 无物理意义。</p>');return;
+            }
             const T2=T1*Math.pow(V1/V2, g-1);
             const __g2=dataGrid([
                 [T2.toFixed(2),'末态温度 T₂ (K)'],
@@ -336,9 +346,12 @@ function __adiabatic_tvExtras(){
     function __adiabatic_tvRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var T1=num('T1'),V1=num('V1'),V2=num('V2'),g=num('gamma');
-    var T2=T1*Math.pow(V1/V2, g-1);
-    if (!isFinite(__adiabatic_tvNum('T1')) || !isFinite(__adiabatic_tvNum('V1')) || !isFinite(__adiabatic_tvNum('V2')) || !isFinite(__adiabatic_tvNum('gamma'))) return;
     var en=TBKit.util.isEn();
+    if (!isFinite(__adiabatic_tvNum('T1')) || !isFinite(__adiabatic_tvNum('V1')) || !isFinite(__adiabatic_tvNum('V2')) || !isFinite(__adiabatic_tvNum('gamma')) || !(T1>0) || !(V1>0) || !(V2>0) || !(g>1)) {
+        try { TBKit.matrix.table('#adiabatic_tvTable',{head:en?['Item','Value']:['项目','数值'],rows:[]}); } catch(e){}
+        return;
+    }
+    var T2=T1*Math.pow(V1/V2, g-1);
     TBKit.matrix.table('#adiabatic_tvTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
@@ -413,7 +426,7 @@ else document.addEventListener('DOMContentLoaded', __adiabatic_tvBoot);
 <script>
 function __atSweep(){
   var T1=num('T1'), V1=num('V1'), V2=num('V2'), g=num('gamma');
-  if(!isFinite(T1)||!isFinite(V1)||!isFinite(V2)||!isFinite(g)||V1<=0||V2<=0)return null;
+  if(!isFinite(T1)||!isFinite(V1)||!isFinite(V2)||!isFinite(g)||T1<=0||V1<=0||V2<=0||g<=1)return null;
   var labels=[],data=[],rows=[];
   var mults=[0.25,0.5,0.75,1,1.5,2,4];
   for(var i=0;i<mults.length;i++){

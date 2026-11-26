@@ -135,13 +135,14 @@
       <h2 data-zh="📝 Markdown 表格生成器">📝 Markdown Table Generator</h2>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入行列与表头文本，快速生成标准 Markdown 表格源码。">Generate Markdown table syntax from rows, columns, and content.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">行数取输入值并保证在 1 到 50 之间（非法时取 1），列数取输入值并保证在 1 到 20 之间（非法时取 1）。表头与正文种子均按 CSV 规则切分：英文逗号分隔，单元格可用双引号包裹以容纳逗号（"" 表示一个字面引号），逐项去首尾空白，去掉首项为空的前导项后截断到列数。填充单元格时按顺序取种子值，取不到时用「C 加列序号」占位，并对内容做 Markdown 转义：先把反斜杠转义为双反斜杠，再把竖线转义为反斜杠加竖线，最后把换行换成空格，避免输入本身含反斜杠时竖线重新变成列分隔符。分隔行按对齐方式生成标记：居中为两侧带冒号、右对齐为右侧带冒号、其余为左侧带冒号，各列标记以空格竖线空格连接。正文每行在种子值后追加行序号，逐行以竖线包裹、单元格之间以空格竖线空格连接。最终依次拼为表头行、分隔行与若干正文行</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">行数取输入值并保证在 1 到 50 之间（非法时取 1），列数取输入值并保证在 1 到 20 之间（非法时取 1）。表头与正文种子均按 CSV 规则切分：英文逗号分隔，单元格可用双引号包裹以容纳逗号（"" 表示一个字面引号）；未加引号的字段去首尾空白，引号内的首尾空格会保留并以 &nbsp; 在 Markdown 中明示。未闭合双引号会报错并停止生成。填充单元格时按顺序取种子值，取不到时用「C 加列序号」占位，并对内容做 Markdown 转义：先把反斜杠转义为双反斜杠，再把竖线转义为反斜杠加竖线，最后把换行换成空格。分隔行按对齐方式生成标记。正文每行在种子值后追加行序号。CSV 导出默认对 = + - @ 开头的非数值单元格加单引号防公式注入，并可选 UTF-8 BOM。</div>
   <div class="formula-desc">生成 Markdown 格式的表格。</div>
   <ul class="formula-list">
     <li><b>结构</b>：表头行 + 分隔行（<code>| --- | --- |</code>）+ 数据行。</li>
     <li><b>对齐</b>：分隔行写 <code>:---</code> 左对齐、<code>---:</code> 右对齐、<code>:---:</code> 居中。</li>
     <li><b>转义</b>：单元格内的竖线需写作 <code>\|</code>，否则会被当作列分隔。</li>
     <li><b>用途</b>：在 README 与文档中清晰呈现参数、对照表与结果数据。</li>
+    <li><b>CSV 导出</b>：默认中和 <code>= + - @</code> 开头的非数值内容（防公式注入），可选 Excel 兼容 BOM；负数与普通文本保持原样。</li>
   </ul>
 </div>
 
@@ -156,13 +157,24 @@
           <option value="center">居中</option>
           <option value="right">右对齐</option>
         </select>
+        <label for="rowFill">额外行</label>
+        <select id="rowFill" onchange="renderPreview()">
+          <option value="blank">空白单元格</option>
+          <option value="repeat">复制首行内容</option>
+        </select>
       </div>
 
       <label for="headerLine">表头（逗号分隔，含逗号的单元格用双引号包裹）</label>
       <input id="headerLine" type="text" value="姓名,年龄,城市" oninput="syncColumns()">
 
-      <label for="bodyLine">首行模板（逗号分隔，含逗号的单元格用双引号包裹）</label>
-      <input id="bodyLine" type="text" value="Alice,24,Shanghai" oninput="syncColumns()">
+      <label for="bodyLine">内容行（逗号分隔，可粘贴多行；含逗号的单元格用双引号包裹）</label>
+      <textarea id="bodyLine" rows="2" oninput="syncColumns()">Alice,24,Shanghai</textarea>
+      <div id="csvInputError" role="alert" style="display:none;color:var(--danger);font-size:13px;margin:6px 0;"></div>
+      <div class="toolbar" style="justify-content:flex-start;gap:14px;flex-wrap:wrap;">
+        <label style="display:inline-flex;align-items:center;gap:6px;"><input type="checkbox" id="csvFormulaSafe" checked onchange="renderPreview()"> 中和表格公式（CSV）</label>
+        <label style="display:inline-flex;align-items:center;gap:6px;"><input type="checkbox" id="csvBom" checked onchange="renderPreview()"> Excel 兼容 BOM</label>
+      </div>
+      <div id="csvSpaceNotice" style="display:none;color:var(--text-muted);font-size:13px;margin:6px 0;"></div>
 
       <div class="toolbar">
         <div id="markdown_table_generatorPresets"></div><button class="btn primary" type="button" onclick="renderPreview()">生成</button><button class="btn" type="button" onclick="__markdown_table_generatorExport()">导出明细 CSV</button>
@@ -248,10 +260,15 @@
 </div>
 <script>
   // IT-N217：支持 CSV 双引号包裹，形如 "a,b",c ⇒ 2 列 ["a,b","c"]；引号内 "" 表示一个字面引号。
-  function splitCsvRow(line) {
+  // 第783批：引号内首尾空格保留（quoted=true），未闭合引号返回 error；未加引号字段仍去首尾空白。
+  function parseCsvLine(line) {
     const s = String(line == null ? '' : line);
-    const out = [];
-    let cell = '', inQuote = false;
+    const cells = [];
+    let cell = '', inQuote = false, quoted = false, error = '';
+    function pushCell() {
+      cells.push({ value: quoted ? cell : cell.trim(), quoted: quoted });
+      cell = ''; quoted = false;
+    }
     for (let i = 0; i < s.length; i += 1) {
       const ch = s.charAt(i);
       if (inQuote) {
@@ -259,25 +276,28 @@
           if (s.charAt(i + 1) === '"') { cell += '"'; i += 1; }
           else inQuote = false;
         } else cell += ch;
-      } else if (ch === '"' && cell === '') {
-        inQuote = true;
+      } else if (ch === '"' && cell.trim() === '') {
+        cell = ''; inQuote = true; quoted = true;
       } else if (ch === ',') {
-        out.push(cell); cell = '';
+        pushCell();
       } else cell += ch;
     }
-    out.push(cell);
-    return out;
+    if (inQuote) error = '未闭合的双引号';
+    pushCell();
+    return { cells: cells, error: error };
+  }
+  function splitCsvRow(line) {
+    return parseCsvLine(line).cells.map(c => c.value);
   }
   function parseRow(line) {
-    return splitCsvRow(line)
-      .map(v => String(v || '').trim())
-      .filter((v, idx) => !(v === '' && idx === 0));
+    // 第805批：逗号定义的全部列位置都要保留，首列空值不能导致后续整体左移
+    return splitCsvRow(line);
   }
 
   function fillCells(count, values) {
     const out = [];
     for (let i = 0; i < count; i += 1) {
-      out.push(escapeMarkdown(values[i] || `C${i + 1}`));
+      out.push(escapeMarkdown(values[i] === undefined ? '' : values[i]));
     }
     return out;
   }
@@ -289,39 +309,104 @@
   }
 
   function escapeMarkdown(text) {
-    return String(text == null ? '' : text)
+    let s = String(text == null ? '' : text)
       // IT-N215：先转义反斜杠再转义竖线，否则输入 a\|b 会变成 a\\|b（GFM 把 \\ 当字面反斜杠、| 重新成为分隔符）
       .replace(/\\/g, '\\\\')
       .replace(/\|/g, '\\|')
-      .replace(/\r?\n/g, ' ')
-      .trim();
+      .replace(/\r?\n/g, ' ');
+    // 第783批：Markdown 忽略单元格边缘空格；用 &nbsp; 明确表示，避免静默丢失。
+    const lead = s.match(/^ +/);
+    const tail = s.match(/ +$/);
+    s = (lead ? '&nbsp;'.repeat(lead[0].length) : '') + s.trim() + (tail ? '&nbsp;'.repeat(tail[0].length) : '');
+    return s;
   }
 
   function makeRow(values) {
     return `| ${values.join(' | ')} |`;
   }
 
-  function renderPreview() {
-    const rows = Math.max(1, Math.min(50, parseInt(document.getElementById('rows').value, 10) || 1));
-    const cols = Math.max(1, Math.min(20, parseInt(document.getElementById('cols').value, 10) || 1));
-    const align = document.getElementById('align').value;
-    const header = parseRow(document.getElementById('headerLine').value).slice(0, cols);
-    const bodySeed = parseRow(document.getElementById('bodyLine').value).slice(0, cols);
+  let lastTableModel = null;
 
-    const headerVals = fillCells(cols, header);
-    const sep = headerVals.map(() => alignMarker(align)).join(' | ');
+  function rawCells(count, values) {
+    // 第805批：显式空值与缺失列都输出空单元格，不再用 C1/C2 占位篡改内容
     const out = [];
+    for (let i = 0; i < count; i += 1) out.push(values[i] === undefined ? '' : String(values[i]));
+    return out;
+  }
 
-    out.push(makeRow(headerVals));
-    out.push(`| ${sep} |`);
+  function readDimension(id, min, max, zhName, enName) {
+    const raw = String(document.getElementById(id).value || '').trim();
+    const en = (typeof TBKit !== 'undefined' && TBKit.util.isEn());
+    if (!/^\d+$/.test(raw)) return { error: en ? `${enName} must be a whole number from ${min} to ${max}.` : `${zhName}必须是 ${min}–${max} 的整数。` };
+    const n = Number(raw);
+    if (!Number.isSafeInteger(n) || n < min || n > max) return { error: en ? `${enName} must be between ${min} and ${max}.` : `${zhName}必须在 ${min}–${max} 之间。` };
+    return { value: n };
+  }
 
+  function renderPreview() {
+    const errBox = document.getElementById('csvInputError');
+    const spaceBox = document.getElementById('csvSpaceNotice');
+    const en = (typeof TBKit !== 'undefined' && TBKit.util.isEn());
+    const rr = readDimension('rows', 1, 50, '行数', 'Row count');
+    const cc = readDimension('cols', 1, 20, '列数', 'Column count');
+    if (rr.error || cc.error) {
+      if (errBox) { errBox.style.display = 'block'; errBox.textContent = '⚠ ' + (rr.error || cc.error); }
+      document.getElementById('output').value = '';
+      lastTableModel = null;
+      if (spaceBox) spaceBox.style.display = 'none';
+      return '';
+    }
+    const rows = rr.value, cols = cc.value;
+    const align = document.getElementById('align').value;
+    const rowFill = document.getElementById('rowFill') ? document.getElementById('rowFill').value : 'blank';
+    const h = parseCsvLine(document.getElementById('headerLine').value);
+    const bodyText = String(document.getElementById('bodyLine').value || '');
+    let bodyLines = bodyText.split(/\r?\n/);
+    while (bodyLines.length > 1 && bodyLines[bodyLines.length - 1] === '') bodyLines.pop();
+    const parsedBody = bodyLines.map(parseCsvLine);
+    const parseErr = h.error || parsedBody.find(x => x.error);
+    if (parseErr && (parseErr.error || typeof parseErr === 'string')) {
+      const msg = h.error || parseErr.error;
+      if (errBox) { errBox.style.display = 'block'; errBox.textContent = (en ? 'CSV input error: ' : 'CSV 输入错误：') + msg + (en ? '. Fix the quotes before generating.' : '，请先补全引号再生成。'); }
+      document.getElementById('output').value = '';
+      lastTableModel = null;
+      if (spaceBox) spaceBox.style.display = 'none';
+      return '';
+    }
+    if (errBox) errBox.style.display = 'none';
+    const header = h.cells.slice(0, cols).map(c => c.value);
+    const bodySeeds = parsedBody.map(p => p.cells.slice(0, cols).map(c => c.value));
+    const headerRaw = rawCells(cols, header);
+    const bodyRaw = [];
+    const fallback = bodySeeds.length ? bodySeeds[0] : [];
     for (let r = 0; r < rows; r += 1) {
-      const rowVals = bodySeed.map((v, i) => `${v}${r + 1}`);
-      out.push(makeRow(fillCells(cols, rowVals)));
+      if (r < bodySeeds.length) bodyRaw.push(rawCells(cols, bodySeeds[r]));
+      else if (rowFill === 'repeat') bodyRaw.push(rawCells(cols, fallback));
+      else bodyRaw.push(rawCells(cols, []));
     }
 
-    document.getElementById('output').value = out.join('\n');
-    return out.join('\n');
+    const headerVals = headerRaw.map(escapeMarkdown);
+    const sep = headerVals.map(() => alignMarker(align)).join(' | ');
+    const out = [];
+    out.push(makeRow(headerVals));
+    out.push(`| ${sep} |`);
+    for (let r = 0; r < rows; r += 1) out.push(makeRow(bodyRaw[r].map(escapeMarkdown)));
+
+    const md = out.join('\n');
+    document.getElementById('output').value = md;
+    lastTableModel = { header: headerRaw, rows: bodyRaw, markdown: md };
+    const hadSpace = headerRaw.concat(bodyRaw.flat()).some(v => /^ | $/.test(v));
+    const missingCols = Math.max(0, cols - header.length) + Math.max(0, cols - (bodySeeds[0] ? bodySeeds[0].length : 0));
+    const extraBlank = rowFill === 'blank' && rows > bodySeeds.length;
+    const notes = [];
+    if (hadSpace) notes.push(en ? 'Leading/trailing spaces inside quotes are kept as &nbsp; in Markdown and preserved in CSV export.' : '引号内的首尾空格在 Markdown 中以 &nbsp; 表示，CSV 导出会保留原始空格。');
+    if (missingCols) notes.push(en ? 'Some rows have fewer values than the column count; missing cells are kept empty.' : '部分行列数少于列数设置，缺失单元格已留空。');
+    if (extraBlank) notes.push(en ? 'Rows after the provided content use blank cells (change “Extra rows” to repeat the first row).' : '超出内容行的部分使用空白单元格（可在「额外行」选择复制首行）。');
+    if (spaceBox) {
+      spaceBox.style.display = notes.length ? 'block' : 'none';
+      spaceBox.textContent = notes.join(' ');
+    }
+    return md;
   }
 
   function insertSample() {
@@ -343,8 +428,7 @@
   }
 
   function syncColumns() {
-    // IT-N216：编辑期绝不写回表头/首行输入（旧实现补占位写回 value 会让光标跳末尾、删掉的尾列被立刻补回）。
-    // 缺列由 fillCells() 在生成预览时用 C1/C2… 占位补齐即可，输入框保持用户原样。
+    // IT-N216 / 第805批：编辑期绝不写回表头或内容输入；缺列保持空单元格，不再用 C1/C2 占位补写。
     renderPreview();
   }
 
@@ -481,38 +565,59 @@ function __mdSplitRow(row){
     cells.push(buf);
     return cells.map(function(cell){return cell.trim();});
 }
+function __mdCsvDecodeCell(v){
+    // 手工编辑后的 Markdown 用 &nbsp; 表示边缘空格，导出时还原为普通空格。
+    return String(v==null?'':v).replace(/&nbsp;/g,' ');
+}
+function __mdCsvNeutralize(v,safe){
+    if(!safe) return v;
+    var s=String(v==null?'':v);
+    if(!/^[\t\r ]*[=+\-@]/.test(s)) return s;
+    // 负数/正数/科学计数法是合法数值，不应因防公式而被改成文本。
+    if(/^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(s.trim())) return s;
+    return "'"+s;
+}
 function __mdTableCsv(){
     // 把当前 Markdown 表格（#output）转成 CSV 文本；导出与自检共用。
     var out=String(document.getElementById('output').value||'').trim();
     if(!out) return '';
-    var rows=out.split(/\r?\n/).filter(function(line){
-        var s=line.trim();
-        return s && !/^\|?\s*:?-{3,}/.test(s);  // 去掉 GFM 分隔行
-    }).map(function(line){
-        return __mdSplitRow(line).map(function(v){
-            return '"'+v.replace(/"/g,'""')+'"';
+    var safeEl=document.getElementById('csvFormulaSafe');
+    var safe=safeEl?!!safeEl.checked:true;
+    var model=(lastTableModel&&lastTableModel.markdown===out)?lastTableModel:null;
+    var rows;
+    if(model){
+        rows=[model.header].concat(model.rows);
+    }else{
+        rows=out.split(/\r?\n/).map(function(line){
+            return __mdSplitRow(line).map(__mdCsvDecodeCell);
+        });
+        // 只删除表头后的完整分隔行；`---item` 等数据行必须保留。
+        if(rows.length>1&&rows[1].length&&rows[1].every(function(c){return /^:?-{3,}:?$/.test(c.trim());})) rows.splice(1,1);
+    }
+    return rows.map(function(row){
+        return row.map(function(v){
+            var cell=__mdCsvNeutralize(String(v==null?'':v),safe);
+            return '"'+cell.replace(/"/g,'""')+'"';
         }).join(',');
-    });
-    return rows.join('\r\n');
+    }).join('\r\n');
+}
+function __mdTableCsvPayload(){
+    var csv=__mdTableCsv();
+    if(!csv) return '';
+    var bomEl=document.getElementById('csvBom');
+    return ((bomEl?!!bomEl.checked:true)?'\ufeff':'')+csv;
 }
 function __markdown_table_generatorExport(){
-    var csv=__mdTableCsv();
-    if(!csv){
+    var payload=__mdTableCsvPayload();
+    if(!payload){
         ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Generate a table first':'请先生成表格');
         return;
     }
-    var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+    var blob=new Blob([payload],{type:'text/csv;charset=utf-8'});
     var a=document.createElement('a');
     a.href=URL.createObjectURL(blob);a.download='markdown-table.csv';
     document.body.appendChild(a);a.click();
     setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},100);
-}
-function __markdown_table_generatorPresets(){
-    if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#markdown_table_generatorPresets',[{label:'默认参数',labelEn:'Default',values:{'rows':'3', 'cols':'3', 'align':'left', 'headerLine':'姓名,年龄,城市', 'bodyLine':'Alice,24,Shanghai'}},
-  {"label":"2×2 左对齐","labelEn":"2x2 left","values":{"rows":"2","cols":"2","headerLine":"商品,价格","bodyLine":"苹果,5","align":"left"}},
-  {"label":"4×2 居中","labelEn":"4x2 center","values":{"rows":"4","cols":"2","headerLine":"姓名,分数","bodyLine":"Bob,88","align":"center"}},
-  {"label":"3×3 右对齐","labelEn":"3x3 right","values":{"rows":"3","cols":"3","headerLine":"ID,名称,数量","bodyLine":"1,笔,10","align":"right"}}],function(){ renderPreview(); });
 }
 var __markdown_table_generator_f0=(typeof renderPreview==='function')?renderPreview:null;
 if(__markdown_table_generator_f0){

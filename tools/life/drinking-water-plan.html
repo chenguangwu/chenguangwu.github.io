@@ -131,7 +131,7 @@
 
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">每日饮水目标 = 体重 × 30ml + 运动增量（0/200/500/800ml 按强度）+ 高温增量（气温 ≥30℃ 补 400、≥25℃ 补 250ml）+ 人群增量（孕期 300、哺乳 700ml）；杯数 = 目标 ÷ 250（250ml/杯），并按全天 10 个时段比例分配。校验：体重为空或 ≤0、气温非数报「请输入有效的体重与气温」。判据：无固定分级，目标随体重与各项增量线性叠加。</div>
+      <div class="formula-eq">每日饮水目标 = 体重 × 30ml + 运动增量（0/200/500/800ml 按强度）+ 高温增量（气温 ≥30℃ 补 400、≥25℃ 补 250ml）+ 人群增量（孕期 300、哺乳 700ml）；杯数 = 目标 ÷ 250（250ml/杯），并按全天 10 个时段比例分配。校验：体重须在 20–200 kg、气温须在 −10–45 °C 的适用范围内，越界直接提示并停止估算。判据：无固定分级，目标随体重与各项增量线性叠加。</div>
       <div class="formula-desc">基础量按 30ml/kg（成人常见 30–35ml/kg 区间取下限）；运动增量按强度取 0/200/500/800ml；气温 ≥25°C 加 250ml、≥30°C 加 400ml；孕期加 300ml、哺乳期加 700ml。总量再按 07:00–22:00 的十个时段比例分配，给出分段饮水计划。</div>
     </div>
 <div class="input-row">
@@ -141,7 +141,7 @@
       </div>
       <div>
         <label for="act">当日运动强度</label>
-        <select id="act" style="width:100%;"></select>
+        <select id="act" style="width:100%;"><option value="none">几乎不运动</option><option value="light">轻度运动（每周 1–3 次）</option><option value="mid" selected>中等运动（每周 3–5 次）</option><option value="high">高强度运动（每周 6 次以上）</option></select>
       </div>
       <div>
         <label for="temp">当日气温（°C）</label>
@@ -151,7 +151,25 @@
     <div class="input-row">
       <div>
         <label for="stage">特殊情况</label>
-        <select id="stage" style="width:100%;"></select>
+        <select id="stage" style="width:100%;"><option value="normal" selected>普通成人</option><option value="preg">孕期</option><option value="lact">哺乳期</option></select>
+      </div>
+      <div>
+        <label for="wakeTime">起床时间</label>
+        <input type="time" id="wakeTime" value="07:00" onchange="calcTool()">
+      </div>
+      <div>
+        <label for="sleepTime">就寝时间</label>
+        <input type="time" id="sleepTime" value="22:00" onchange="calcTool()">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="exStart">运动开始（可选）</label>
+        <input type="time" id="exStart" onchange="calcTool()">
+      </div>
+      <div>
+        <label for="exMin">运动时长（分钟，可选）</label>
+        <input type="number" id="exMin" min="1" max="600" step="1" placeholder="如 60" onchange="calcTool()">
       </div>
     </div>
 
@@ -201,7 +219,7 @@
 <li>按体重估每日饮水。</li>
 <li>夏季户外作业前按体重与气温估算每日饮水与分段计划，预防脱水。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">估算</div><div class="dd-ex-body">体重 70 kg × 35 mL ≈ 2.45 L/日（含食物水分约 30–40 mL/kg）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">估算</div><div class="dd-ex-body">页面口径：体重 70 kg × 30 mL = 2.1 L/日，指纯饮水目标，不含食物水分；若按总水摄入 30–40 mL/kg 估算，食物与饮水合计约 2.1–2.8 L，本页不把食物水计入目标。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>运动要加？</dt><dd>要，按出汗额外补。</dd>
@@ -247,7 +265,7 @@
         <li>基础量按 30ml/kg 估算（WHO 成人一般建议 30-35ml/kg）</li>
         <li>运动增量：轻度 200 / 中度 500 / 高强度 800 ml</li>
         <li>气温≥30°C 补 400ml，25-29°C 补 250ml</li>
-        <li>分段计划覆盖 07:00-22:00，睡前 1 小时起少量饮水</li>
+        <li>分段计划按起床/就寝时间生成；默认 07:00–22:00，可自定义清醒时段并设置运动时段</li>
   </ul>
 </div>
 <!-- /注意事项区块 -->
@@ -282,12 +300,62 @@
 </div>
 
 <script>
+const DEFAULT_SLOT_LABELS=[['07:00','08:30'],['08:30','10:00'],['10:00','11:30'],['11:30','13:00'],['13:00','14:30'],['14:30','16:00'],['16:00','17:30'],['17:30','19:00'],['19:00','20:30'],['20:30','22:00']];
+const DEFAULT_SLOT_WEIGHTS=[0.15,0.12,0.12,0.10,0.10,0.12,0.12,0.10,0.07,0.05];
+const DEFAULT_SLOT_NOTES=['起床后补水','上午工作','上午补水','午餐前','午休后','下午工作','下午补水','下班/运动后','晚餐时段','睡前少量'];
+function __dwpClock(m){
+  var day=Math.floor(m/1440), x=((m%1440)+1440)%1440;
+  var h=Math.floor(x/60), mm=x%60;
+  return (day>0?'次日 ':'')+(h<10?'0':'')+h+':'+(mm<10?'0':'')+mm;
+}
+function __dwpTimeMin(v){
+  var m=String(v||'').match(/^([01]\d|2[0-3]):([0-5]\d)$/); if(!m) return null;
+  return parseInt(m[1],10)*60+parseInt(m[2],10);
+}
+function __dwpSlots(){
+  var wake=__dwpTimeMin(document.getElementById('wakeTime').value);
+  var sleep=__dwpTimeMin(document.getElementById('sleepTime').value);
+  if(wake===null||sleep===null||wake===sleep) return null;
+  var end=sleep, duration=end-wake; if(duration<=0) end+=1440, duration+=1440;
+  if(duration<30) return null;
+  var exStartRaw=document.getElementById('exStart').value;
+  var exMinRaw=String(document.getElementById('exMin').value).trim();
+  var exStart=null, exMin=0;
+  if(exStartRaw!=='' || exMinRaw!=='') {
+    exStart=__dwpTimeMin(exStartRaw); exMin=parseFloat(exMinRaw);
+    if(exStart===null||!isFinite(exMin)||exMin<=0||exMin>600) return null;
+  }
+  var n=Math.max(1,Math.ceil(duration/90));
+  var base=Math.floor(duration/n), rem=duration-base*n;
+  var defaultShape=(wake===420 && end===1320 && n===10);
+  var slots=[];
+  var cursor=wake, exAssigned=false;
+  for(var i=0;i<n;i++){
+    var len=base+(i<rem?1:0);
+    var slotEnd=cursor+len;
+    var note=DEFAULT_SLOT_NOTES[i]||'清醒时段';
+    var slot={start:cursor,end:slotEnd,weight:defaultShape?DEFAULT_SLOT_WEIGHTS[i]:1,note:note,exercise:false,exerciseMl:0};
+    if(exStart!==null && !exAssigned){
+      var exEnd=exStart+exMin;
+      if(exStart<slotEnd && exEnd>cursor){ slot.exercise=true; slot.exerciseMl=exMin; note+='；含运动时段'; exAssigned=true; }
+    }
+    slot.note=note;
+    slots.push(slot);
+    cursor=slotEnd;
+  }
+  if(exStart!==null && !slots.some(function(x){return x.exercise;})) {
+    slots[0].exercise=true; slots[0].exerciseMl=exMin; slots[0].note+='；运动时段不在清醒时段内，增量计入首段';
+  }
+  return slots;
+}
 function num(id){const raw=String(document.getElementById(id).value).trim();if(raw==='')return null;const v=parseFloat(raw);return isFinite(v)?v:null;}
 function escH(s){var d=document.createElement('div');const __g0=s==null?'':String(s);d.textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){const w=num('w'), act=document.getElementById('act').value, temp=num('temp'), stage=document.getElementById('stage').value;
-   if(w===null||temp===null||w<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的体重与气温。</p>');return;}
+   if(w===null||temp===null){ToolBox.setResult('result','<p class="tip-error">请输入有效的体重与气温。</p>');return;}
+   if(w<20||w>200){ToolBox.setResult('result','<p class="tip-error">体重需在 20–200 kg 的适用范围内，超出范围不做饮水估算。</p>');return;}
+   if(temp<-10||temp>45){ToolBox.setResult('result','<p class="tip-error">气温需在 −10–45 °C 的适用范围内，超出范围不做饮水估算。</p>');return;}
    // 基础：30ml/kg（WHO 一般成人建议区间 30-35ml/kg）
    let base=w*30;
    const actAdd={none:0,light:200,mid:500,high:800}[act]||0;
@@ -296,7 +364,12 @@ function calcTool(){const w=num('w'), act=document.getElementById('act').value, 
    const stageAdd={normal:0,preg:300,lact:700}[stage]||0;
    const total=base+actAdd+tempAdd+stageAdd;
    const cups=total/250;
-   // 分段计划：7:00-22:00 每段 1.5h，按比例分配
+   const slots=__dwpSlots();
+   if(!slots){
+     ToolBox.setResult('result','<p class="tip-error">请填写有效的起床/就寝时间（至少间隔 30 分钟），运动时段需同时填写开始时间与 1–600 分钟时长。</p>');
+     return;
+   }
+   // 在清醒时段内分段；默认 07:00–22:00 保留 10 段，其他作息按 90 分钟一段生成。
    let html=dataGrid([
      [fmtMoney(total)+' ml','每日饮水目标'],
      [cups.toFixed(1)+' 杯','约（250ml/杯）'],
@@ -308,20 +381,22 @@ function calcTool(){const w=num('w'), act=document.getElementById('act').value, 
      '<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">时段</th>'+
      '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">建议量</th>'+
      '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">说明</th></tr>';
-   const slots=[['07:00-08:30',0.15,'起床后补水'],['08:30-10:00',0.12,'上午工作'],['10:00-11:30',0.12,'上午补水'],['11:30-13:00',0.10,'午餐前'],['13:00-14:30',0.10,'午休后'],['14:30-16:00',0.12,'下午工作'],['16:00-17:30',0.12,'下午补水'],['17:30-19:00',0.10,'下班/运动后'],['19:00-20:30',0.07,'晚餐时段'],['20:30-22:00',0.05,'睡前少量']];
-   const slotSum=slots.reduce((s,x)=>s+x[1],0);
-   // 用「厘升整数」（1 ml 的 1/100）分配，末段补足，保证十段显示值严格合计等于目标。
+   const slotSum=slots.reduce((s,x)=>s+x.weight,0);
+   // 用「厘升整数」（1 ml 的 1/100）分配，末段补足，保证各段显示值严格合计等于目标。
    const totalCents=Math.round(total*100);
+   const exerciseCents=Math.round(actAdd*100);
    let allocatedCents=0;
    for(let i=0;i<slots.length;i++){
-     const cents=(i===slots.length-1)?Math.max(0,totalCents-allocatedCents):Math.round(totalCents*slots[i][1]/slotSum);
+     let cents=(i===slots.length-1)?Math.max(0,totalCents-allocatedCents):Math.round((totalCents-exerciseCents)*slots[i].weight/slotSum);
+     if(i<slots.length-1 && slots[i].exercise) cents+=exerciseCents;
      allocatedCents+=cents;
      const mlText=(cents%100===0)?String(cents/100):(cents/100).toFixed(2);
-     html+='<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+slots[i][0]+'</td>'+
+     html+='<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+__dwpClock(slots[i].start)+'-'+__dwpClock(slots[i].end)+'</td>'+
        '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+mlText+' ml</td>'+
-       '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+slots[i][2]+'</td></tr>';
+       '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+slots[i].note+'</td></tr>';
    }
    html+='</table>';
+   html += '<div class="tip-mini" style="margin-top:8px;font-size:12px;color:var(--text-muted);">清醒时段：'+__dwpClock(slots.length?slots[0].start:0)+'–'+__dwpClock(slots.length?slots[slots.length-1].end:0)+'，共 '+slots.length+' 段；运动增量按运动开始时间计入对应时段。</div>';
    html += '<div style="margin-top:12px;font-size:13px;"><b>不同人群每日饮水参考</b></div>'+
      '<table class="csv-prev" style="margin-top:6px;border-collapse:collapse;width:100%;font-size:12.5px;">'+
      '<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">人群</th>'+
@@ -338,13 +413,29 @@ function resetForm(){document.getElementById('w').value='60';
       document.getElementById('act').selectedIndex=0;
       document.getElementById('temp').value='26';
       document.getElementById('stage').selectedIndex=0;
+      document.getElementById('wakeTime').value='07:00';
+      document.getElementById('sleepTime').value='22:00';
+      document.getElementById('exStart').value='';
+      document.getElementById('exMin').value='';
       calcTool();}
 calcTool();
 
 function __drinking_water_planNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __dwpInputsValid(){
+    var w=num('w'), temp=num('temp');
+    var act=document.getElementById('act').value, stage=document.getElementById('stage').value;
+    return w!==null && isFinite(w) && w>0 && temp!==null && isFinite(temp) && !!act && !!stage && __dwpSlots()!==null;
+}
 function __drinking_water_planExtras(){
     function __drinking_water_planRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
+    if(!__dwpInputsValid()){
+      var __dt=document.getElementById('drinking_water_planTable');
+      if(__dt) __dt.innerHTML='';
+      var __dd=document.getElementById('drinking_water_planDiff');
+      if(__dd) __dd.innerHTML='';
+      return;
+    }
     var w=num('w'), act=document.getElementById('act').value, temp=num('temp'), stage=document.getElementById('stage').value; // 基础：30ml/kg（WHO 一般成人建议区间 30-35ml/kg）
     var base=w*30;
     var actAdd={none:0,light:200,mid:500,high:800}[act]||0;
@@ -353,7 +444,6 @@ function __drinking_water_planExtras(){
     var stageAdd={normal:0,preg:300,lact:700}[stage]||0;
     var total=base+actAdd+tempAdd+stageAdd;
     var cups=total/250; // 分段计划：7:00-22:00 每段 1.5h，按比例分配
-    if (!isFinite(__drinking_water_planNum('w')) || !isFinite(__drinking_water_planNum('temp')) || !__drinking_water_planRaw('act') || !__drinking_water_planRaw('stage')) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#drinking_water_planTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -371,13 +461,37 @@ function __drinking_water_planExtras(){
 }
 function __drinking_water_planExport(){
     if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#drinking_water_planTable','drinking-water-plan.csv'); } catch(e){}
+    if(!__dwpInputsValid()){ ToolBox.showToast('请输入有效的体重与气温后再导出'); return; }
+    // 导出完整分时计划，而不只是四行摘要：条件 + 每日目标 + 十个时段 + 合计。
+    var w=num('w'), temp=num('temp'), act=document.getElementById('act').value, stage=document.getElementById('stage').value;
+    var base=w*30, actAdd={none:0,light:200,mid:500,high:800}[act]||0, tempAdd=temp>=30?400:(temp>=25?250:0), stageAdd={normal:0,preg:300,lact:700}[stage]||0;
+    var total=base+actAdd+tempAdd+stageAdd;
+    var slots=__dwpSlots();
+    if(!slots){ ToolBox.showToast('请填写有效的起床/就寝时间与运动时段后再导出'); return; }
+    var slotSum=slots.reduce(function(s,x){return s+x.weight;},0), totalCents=Math.round(total*100), exerciseCents=Math.round(actAdd*100), allocated=0;
+    var table=document.createElement('table'); table.id='__dwpExportTable';
+    var rows=[['项目','数值','说明'],['体重 / 气温 / 强度 / 人群',w+' kg / '+temp+' °C / '+act+' / '+stage,'输入条件'],['每日饮水目标',fmtMoney(total)+' ml','按体重、运动、高温与人群增量合计']];
+    for(var i=0;i<slots.length;i++){
+      var cents=(i===slots.length-1)?Math.max(0,totalCents-allocated):Math.round((totalCents-exerciseCents)*slots[i].weight/slotSum);
+      if(i<slots.length-1 && slots[i].exercise) cents+=exerciseCents;
+      allocated+=cents;
+      rows.push([__dwpClock(slots[i].start)+'-'+__dwpClock(slots[i].end),(cents%100===0?String(cents/100):(cents/100).toFixed(2))+' ml',slots[i].note]);
+    }
+    rows.push(['合计',fmtMoney(total)+' ml','十段建议量合计等于每日目标']);
+    var th=table.createTHead().insertRow();
+    rows[0].forEach(function(v){var c=document.createElement('th');c.textContent=v;th.appendChild(c);});
+    var tb=table.createTBody();
+    rows.slice(1).forEach(function(r){var tr=tb.insertRow();r.forEach(function(v){var td=tr.insertCell();td.textContent=v;});});
+    table.style.position='absolute';table.style.left='-9999px';
+    document.body.appendChild(table);
+    try { TBKit.util.exportTable('#__dwpExportTable','drinking-water-plan.csv'); } catch(e){}
+    table.remove();
 }
 function __drinking_water_planPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#drinking_water_planPresets',[
         {label:'默认',labelEn:'Default',values:{w:'60', temp:'26'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{w:'120', temp:'52'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{w:'120', temp:'40'}},
         {label:'示例 0.5×',labelEn:'Example 0.5×',values:{w:'30', temp:'13'}},
     ],function(){ calcTool(); });
 }

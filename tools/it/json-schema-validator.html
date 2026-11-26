@@ -243,7 +243,44 @@ function typeOK(schemaType, val) {
 
 function hasOwn(o, k) { return o != null && Object.prototype.hasOwnProperty.call(o, k); }
 
+
+// 第806批：Draft-07 常用关键字实现。页面描述承诺 enum / 数值范围 / 字符串长度 / 正则 / 唯一性，
+// 旧实现只校验 type/required/properties/items/additionalProperties，其余关键字被静默忽略而错误宣告通过。
+var JSON_SCHEMA_KEYWORDS = ['$schema','$id','$ref','$comment','title','description','default','examples','readOnly','writeOnly','deprecated',
+  'type','enum','const','multipleOf','maximum','exclusiveMaximum','minimum','exclusiveMinimum',
+  'maxLength','minLength','pattern','format','maxItems','minItems','uniqueItems','contains',
+  'maxProperties','minProperties','required','properties','additionalProperties','dependencies','propertyNames',
+  'allOf','anyOf','oneOf','not','if','then','else','items','additionalItems'];
+function deepEqual(a,b){
+  if(a===b) return true;
+  if(typeof a!==typeof b || a===null || b===null) return false;
+  if(Array.isArray(a)!==Array.isArray(b)) return false;
+  if(Array.isArray(a)) return a.length===b.length && a.every(function(x,i){return deepEqual(x,b[i]);});
+  if(typeof a==='object'){
+    var ka=Object.keys(a), kb=Object.keys(b);
+    if(ka.length!==kb.length) return false;
+    return ka.every(function(k){return Object.prototype.hasOwnProperty.call(b,k)&&deepEqual(a[k],b[k]);});
+  }
+  return false;
+}
+function fmtValue(v){ try{ var s=JSON.stringify(v); return s===undefined?String(v):s; }catch(e){ return String(v); } }
+function schemaFormatOK(fmt, val){
+  var s=String(val);
+  if(fmt==='email') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+  if(fmt==='uri'||fmt==='uri-reference') return /^(?:[a-z][a-z0-9+.-]*:)?[^\s]+$/i.test(s);
+  if(fmt==='uuid') return /^(?:urn:uuid:)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+  if(fmt==='date') return /^\d{4}-\d{2}-\d{2}$/.test(s)&&!isNaN(Date.parse(s));
+  if(fmt==='date-time') return !isNaN(Date.parse(s))&&/\d{4}-\d{2}-\d{2}T/.test(s);
+  if(fmt==='ipv4'){ var p=s.split('.'); return p.length===4&&p.every(function(x){return /^\d{1,3}$/.test(x)&&+x<=255;}); }
+  if(fmt==='ipv6') return /^[0-9a-f:]+$/i.test(s)&&s.indexOf(':')>=0;
+  return true;
+}
+function pushPath(out,path,msg){ out.push(path+'：'+msg); }
+
 function walk(schema, val, path, out, depth) {
+  // 第806批：布尔 Schema 是 Draft-07 合法写法：true 全部通过，false 全部拒绝
+  if (schema === true) return;
+  if (schema === false) { pushPath(out, path, 'Schema 为 false，任何数据都不允许'); return; }
   if (!schema || typeof schema !== 'object') return;
   if (depth > MAX_DEPTH) {
     out.push(isEnLang()
@@ -256,6 +293,61 @@ function walk(schema, val, path, out, depth) {
   if (!typeOK(st, val)) {
     out.push(`类型不匹配 ${path}: 期望 ${Array.isArray(st) ? st.join(' / ') : st}`);
     return;
+  }
+
+  // 第806批：先报告不支持的关键字，避免「看起来通过、实际没校验」
+  Object.keys(schema).forEach(function(k){
+    if (JSON_SCHEMA_KEYWORDS.indexOf(k) < 0) pushPath(out, path, '不支持的 Schema 关键字 "' + k + '"，未作校验');
+  });
+  if (schema.$ref !== undefined) pushPath(out, path, '暂不支持 $ref 引用校验，未作完整通过判定');
+  if (hasOwn(schema,'const') && !deepEqual(schema.const, val)) pushPath(out, path, '值必须等于常量 ' + fmtValue(schema.const));
+  if (Array.isArray(schema.enum) && !schema.enum.some(function(e){return deepEqual(e,val);}))
+    pushPath(out, path, '值不在 enum 允许列表：' + fmtValue(val));
+  if (typeof val === 'number'){
+    if (typeof schema.minimum === 'number' && val < schema.minimum) pushPath(out,path,'数值小于 minimum '+schema.minimum);
+    if (typeof schema.maximum === 'number' && val > schema.maximum) pushPath(out,path,'数值大于 maximum '+schema.maximum);
+    if (typeof schema.exclusiveMinimum === 'number' && val <= schema.exclusiveMinimum) pushPath(out,path,'数值必须大于 exclusiveMinimum '+schema.exclusiveMinimum);
+    if (typeof schema.exclusiveMaximum === 'number' && val >= schema.exclusiveMaximum) pushPath(out,path,'数值必须小于 exclusiveMaximum '+schema.exclusiveMaximum);
+    if (typeof schema.multipleOf === 'number' && schema.multipleOf > 0){
+      var q=val/schema.multipleOf;
+      if (Math.abs(q-Math.round(q)) > 1e-9) pushPath(out,path,'数值不是 multipleOf '+schema.multipleOf+' 的整数倍');
+    }
+  }
+  if (typeof val === 'string'){
+    var clen = Array.from(val).length;
+    if (typeof schema.minLength === 'number' && clen < schema.minLength) pushPath(out,path,'字符串长度小于 minLength '+schema.minLength);
+    if (typeof schema.maxLength === 'number' && clen > schema.maxLength) pushPath(out,path,'字符串长度大于 maxLength '+schema.maxLength);
+    if (typeof schema.pattern === 'string'){
+      try { if (!(new RegExp(schema.pattern)).test(val)) pushPath(out,path,'字符串不匹配 pattern '+schema.pattern); }
+      catch(e){ pushPath(out,path,'pattern 不是合法正则：'+schema.pattern); }
+    }
+    if (typeof schema.format === 'string' && !schemaFormatOK(schema.format,val)) pushPath(out,path,'字符串不符合 format '+schema.format);
+  }
+  if (Array.isArray(val)){
+    if (typeof schema.minItems === 'number' && val.length < schema.minItems) pushPath(out,path,'数组元素少于 minItems '+schema.minItems);
+    if (typeof schema.maxItems === 'number' && val.length > schema.maxItems) pushPath(out,path,'数组元素多于 maxItems '+schema.maxItems);
+    if (schema.uniqueItems === true){
+      for (var ai=0; ai<val.length; ai++) for (var bi=ai+1; bi<val.length; bi++)
+        if (deepEqual(val[ai],val[bi])) { pushPath(out,path,'数组元素必须唯一，索引 '+ai+' 与 '+bi+' 重复'); ai=val.length; break; }
+    }
+  }
+  if (val !== null && typeof val === 'object' && !Array.isArray(val)){
+    var pkeys=Object.keys(val);
+    if (typeof schema.minProperties === 'number' && pkeys.length < schema.minProperties) pushPath(out,path,'字段数少于 minProperties '+schema.minProperties);
+    if (typeof schema.maxProperties === 'number' && pkeys.length > schema.maxProperties) pushPath(out,path,'字段数多于 maxProperties '+schema.maxProperties);
+  }
+  if (Array.isArray(schema.allOf)) schema.allOf.forEach(function(sb,i){ if(out.length<200) walk(sb,val,path+'/allOf['+i+']',out,depth+1); });
+  if (Array.isArray(schema.anyOf)){
+    var anyOk=schema.anyOf.some(function(sb){ var tmp=[]; walk(sb,val,path,tmp,depth+1); return tmp.length===0; });
+    if(!anyOk) pushPath(out,path,'不满足 anyOf 中任何一个子 Schema');
+  }
+  if (Array.isArray(schema.oneOf)){
+    var oneCount=schema.oneOf.filter(function(sb){ var tmp=[]; walk(sb,val,path,tmp,depth+1); return tmp.length===0; }).length;
+    if(oneCount!==1) pushPath(out,path,'必须且只能满足 oneOf 中一个子 Schema（当前匹配 '+oneCount+' 个）');
+  }
+  if (schema.not){
+    var ntmp=[]; walk(schema.not,val,path,ntmp,depth+1);
+    if(ntmp.length===0) pushPath(out,path,'不满足 not 约束（数据命中了被禁止的 Schema）');
   }
 
   // IT-N398/N400：关键字按「实例实际类型」应用，而不是靠 schema 里出现哪类关键字猜角色。
@@ -288,13 +380,21 @@ function walk(schema, val, path, out, depth) {
         for (const k of Object.keys(val)) {
           if (!hasOwn(props, k)) out.push(`存在未允许字段: ${path ? path + '.' : ''}${k}`);
         }
+      } else if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
+        for (const k of Object.keys(val)) {
+          if (!hasOwn(props, k)) walk(schema.additionalProperties, val[k], path ? path + '.' + k : k, out, depth + 1);
+        }
       }
     }
   }
 
   if (asArray) {
-    const itemSchema = schema.items || null;
-    val.forEach((v, idx) => walk(itemSchema, v, `${path}[${idx}]`, out, depth + 1));
+    if (Array.isArray(schema.items)) {
+      schema.items.forEach((itemSchema, idx) => { if (idx < val.length) walk(itemSchema, val[idx], `${path}[${idx}]`, out, depth + 1); });
+    } else {
+      const itemSchema = schema.items || null;
+      val.forEach((v, idx) => walk(itemSchema, v, `${path}[${idx}]`, out, depth + 1));
+    }
   }
 }
 

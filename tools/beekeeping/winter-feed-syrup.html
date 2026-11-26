@@ -174,36 +174,6 @@
 </div>
 
 
-<!-- 相关工具 -->
-<div class="related-tools" data-related-tools="1">
-  <h3 class="related-tools-title">🔗 相关工具</h3>
-  <div class="related-tools-grid">
-    <a href="honey-estimator.html" class="related-tool-card">
-      <span class="rt-icon">🔮</span>
-      <span class="rt-info"><span class="rt-name">养蜂采蜜量估算</span><span class="rt-desc">• 蜜源植物：不同花种产蜜差异大，油菜、椴树、荔枝为高产蜜源。</span></span>
-    </a>
-    <a href="../it/gitignore-generator.html" class="related-tool-card">
-      <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">.gitignore 生成器</span><span class="rt-desc">生成后保存为项目根目录的 .gitignore 即可。可继续手动追加项目特有忽略项</span></span>
-    </a>
-    <a href="../it/properties-parser.html" class="related-tool-card">
-      <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、行内注释…</span></span>
-    </a>
-    <a href="../it/api-sign-generator.html" class="related-tool-card">
-      <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">API 签名生成器</span><span class="rt-desc">生成带时间戳与随机数的接口签名</span></span>
-    </a>
-    <a href="../it/ascii-tree-generator.html" class="related-tool-card">
-      <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">ASCII 目录树生成器</span><span class="rt-desc">把路径列表一键生成 ASCII 目录树（├── └── │ 风格），支持文件/文件夹标记，复制进 R…</span></span>
-    </a>
-    <a href="../it/ast-viewer.html" class="related-tool-card">
-      <span class="rt-icon">💻</span>
-      <span class="rt-info"><span class="rt-name">AST抽象语法树查看器</span><span class="rt-desc">在线 AST 查看器，用 acorn 解析 JavaScript 源码为抽象语法树并可视化展开节点…</span></span>
-    </a>
-  </div>
-</div>
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
@@ -224,6 +194,24 @@ function renderHist(key){
 function clearHist(){try{localStorage.removeItem(HIST_KEY);}catch(e){}renderHist(HIST_KEY);}
 const HIST_KEY='tb_history_winter_feed_syrup';
 function densityFor(f){return 1+0.4*f+0.25*f*f*f;}
+function fmtKg(v){
+  if(!isFinite(v))return '—';
+  var a=Math.abs(v);
+  if(a===0)return '0 kg';
+  if(a<0.01)return (v*1e6).toFixed(0)+' mg';
+  if(a<1)return (v*1000).toFixed(1)+' g';
+  if(a<10)return v.toFixed(2)+' kg';
+  return v.toFixed(1)+' kg';
+}
+function fmtL(v){
+  if(!isFinite(v))return '—';
+  var a=Math.abs(v);
+  if(a===0)return '0 L';
+  if(a<1)return (v*1000).toFixed(a<0.01?2:1)+' mL';
+  if(a<10)return v.toFixed(2)+' L';
+  return v.toFixed(1)+' L';
+}
+function fmtMoney(v){if(!isFinite(v))return '—';return (Math.abs(v)<1?v.toFixed(3):v.toFixed(2))+' 元';}
 function applyPreset(type){const m={standard:[10,6,2,6,0.4,7],weak:[6,4,1,6,0.35,7],strong:[15,8,2.5,6,0.5,7]};const p=m[type]||m.standard;['n','vol','ratio','price','daily','days'].forEach((id,i)=>document.getElementById(id).value=p[i]);calcTool();}
 function calcData(){
   var raw={};['n','vol','ratio','price','daily','days'].forEach(function(id){raw[id]=document.getElementById(id).value.trim();});
@@ -243,21 +231,34 @@ function drawChart(d){
   const cv=document.getElementById('fitChart');if(!cv)return;const ctx=cv.getContext('2d');if(!ctx)return;const W=cv.width,H=cv.height,pad=46,max=Math.max(d.sugar,d.water)*1.2;
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#64748b';ctx.font='12px sans-serif';
   const bw=140,bars=[['白糖',d.sugar,'#92400E'],['加水',d.water,'#38bdf8']];
-  bars.forEach((b,i)=>{const x=pad+i*(bw+70),h=(b[1]/max)*(H-pad-30);ctx.fillStyle=b[2];ctx.fillRect(x,H-pad-h,bw,h);ctx.fillStyle='#334155';ctx.fillText(b[0],x,H-pad+18);ctx.fillText(b[1].toFixed(1)+' kg',x,H-pad-h-6);});
-  ctx.fillStyle='#64748b';ctx.fillText('总糖浆 '+d.totalL.toFixed(1)+' L · 密度约 '+d.rho.toFixed(2)+' kg/L',pad,18);
+  bars.forEach((b,i)=>{const x=pad+i*(bw+70),h=(b[1]/max)*(H-pad-30);ctx.fillStyle=b[2];ctx.fillRect(x,H-pad-h,bw,h);ctx.fillStyle='#334155';ctx.fillText(b[0],x,H-pad+18);ctx.fillText(fmtKg(b[1]),x,H-pad-h-6);});
+  ctx.fillStyle='#64748b';ctx.fillText('总糖浆 '+fmtL(d.totalL)+' · 密度约 '+d.rho.toFixed(2)+' kg/L',pad,18);
 }
-function exportCSV(){const d=calcData();if(!d.valid){alert(d.msg);return;}csvDownload('winter-feed-syrup.csv',[['项目','数值','单位'],['蜂群数量',d.n,'群'],['每群补饲',d.vol,'L'],['糖水比',d.ratio+':1',''],['糖质量分数',(d.f*100).toFixed(1),'%'],['糖浆密度',d.rho.toFixed(2),'kg/L'],['总糖浆体积',d.totalL.toFixed(1),'L'],['总糖浆重量',d.totalKg.toFixed(1),'kg'],['白糖',d.sugar.toFixed(1),'kg'],['加水',d.water.toFixed(1),'kg'],['成本',d.cost.toFixed(0),'元'],['预计饲喂天数',d.feedDays.toFixed(1),'天']]);}
+function clearChart(){
+  const cv=document.getElementById('fitChart');if(!cv)return;const ctx=cv.getContext('2d');if(!ctx)return;
+  ctx.clearRect(0,0,cv.width,cv.height);
+}
+function exportCSV(){const d=calcData();if(!d.valid){alert(d.msg);return;}csvDownload('winter-feed-syrup.csv',[['项目','数值','单位'],['蜂群数量',d.n,'群'],['每群补饲',fmtL(d.vol),''],['糖水比',d.ratio+':1',''],['糖质量分数',(d.f*100).toFixed(1),'%'],['糖浆密度',d.rho.toFixed(2),'kg/L'],['总糖浆体积',fmtL(d.totalL),''],['总糖浆重量',fmtKg(d.totalKg),''],['白糖',fmtKg(d.sugar),''],['加水',fmtKg(d.water),''],['成本',fmtMoney(d.cost),''],['预计饲喂天数',d.feedDays.toFixed(1),'天']]);}
 function calcTool(){
   const d=calcData();
-  if(!d.valid){document.getElementById('result').innerHTML='<div class="result-placeholder">'+d.msg+'</div>';return;}
-  const rows=[[d.totalL.toFixed(1)+' L','总糖浆体积'],[d.sugar.toFixed(1)+' kg','所需白糖'],[d.water.toFixed(1)+' kg','需加水'],[d.totalKg.toFixed(1)+' kg','糖浆总重量'],[d.cost.toFixed(0)+' 元','白糖成本'],[d.feedDays.toFixed(1)+' 天','预计饲喂天数'],[d.perColonySugar.toFixed(1)+' kg','每群糖量']];
+  if(!d.valid){document.getElementById('result').innerHTML='<div class="result-placeholder">'+d.msg+'</div>';clearChart();return;}
+  const rows=[[fmtL(d.totalL),'总糖浆体积'],[fmtKg(d.sugar),'所需白糖'],[fmtKg(d.water),'需加水'],[fmtKg(d.totalKg),'糖浆总重量'],[fmtMoney(d.cost),'白糖成本'],[d.feedDays.toFixed(1)+' 天','预计饲喂天数'],[fmtKg(d.perColonySugar),'每群糖量']];
   let html=dataGrid(rows);
   if(d.ratio>2.5)html+='<div class="info-box" style="margin-top:12px;">⚠️ 糖水比 '+d.ratio+':1 偏浓，冷却后易结晶，建议控制在 2.5:1 以内并分次饲喂。</div>';
   if(d.ratio<1)html+='<div class="info-box" style="margin-top:8px;">糖水比低于 1:1，水分偏高，越冬期易发酵；弱群短期奖励饲喂可用，但不宜作为主要越冬饲料。</div>';
-  html+='<div class="info-box" style="margin-top:8px;">按计划 '+d.days+' 天饲喂，平均每天约需白糖 '+d.perDaySugar.toFixed(1)+' kg；建议分 2–3 次投喂，避免糖浆积存。</div>';
+  var gapPer=d.daily*d.days-d.vol; // 计划期需糖浆 − 实备糖浆（L/群）
+  var gapTotal=gapPer*d.n;
+  if(gapPer>0){
+    html+='<div class="tip-box tip-warn" style="margin-top:8px;"><strong>计划与备料不匹配：</strong>计划 '+d.days+' 天按每日 '+d.daily+' L/群需糖浆 '+(d.daily*d.days).toFixed(1)+' L/群，当前仅备 '+fmtL(d.vol)+'/群，缺口 <strong>'+fmtL(gapPer)+'/群</strong>（合计 '+fmtL(gapTotal)+'）。请增加补饲量、延长备料或缩短计划天数。</div>';
+  } else if(gapPer<0){
+    html+='<div class="tip-box tip-info" style="margin-top:8px;"><strong>计划与备料不匹配：</strong>按每日 '+d.daily+' L/群，当前 '+fmtL(d.vol)+'/群约可消耗 '+d.feedDays.toFixed(1)+' 天，计划 '+d.days+' 天将剩余 <strong>'+fmtL(Math.abs(gapPer))+'/群</strong>（合计 '+fmtL(Math.abs(gapTotal))+'）。可延长饲喂天数或减少备料，剩余糖浆需防发酵。</div>';
+  } else {
+    html+='<div class="tip-box tip-info" style="margin-top:8px;">计划 '+d.days+' 天与预计消耗 '+d.feedDays.toFixed(1)+' 天一致（按每日 '+d.daily+' L/群恒定消耗假设）。</div>';
+  }
+  html+='<div class="info-box" style="margin-top:8px;">「预计消耗天数」按每日消耗恒定估算；「计划天数」是您打算投喂的周期，两者不是同一口径。按计划 '+d.days+' 天摊薄，平均每天约需白糖 '+fmtKg(d.perDaySugar)+'；建议分 2–3 次投喂，并观察采食与结晶情况。</div>';
   document.getElementById('result').innerHTML=html;
   drawChart(d);
-  saveHist(HIST_KEY,new Date().toLocaleTimeString()+' · '+d.n+' 群 / '+d.vol+' L → 白糖 '+d.sugar.toFixed(1)+' kg');
+  saveHist(HIST_KEY,new Date().toLocaleTimeString()+' · '+d.n+' 群 / '+d.vol+' L → 白糖 '+fmtKg(d.sugar));
 }
 function resetForm(){['n','vol','ratio','price','daily','days'].forEach((id,i)=>document.getElementById(id).value=[10,6,2,6,0.4,7][i]);calcTool();}
 fillRatioTable();renderHist(HIST_KEY);calcTool();
@@ -272,7 +273,7 @@ fillRatioTable();renderHist(HIST_KEY);calcTool();
 <li>弱群复壮：弱群用 1:1 稀糖浆少量多次奖励饲喂，促进产卵与造脾，但要注意防盗蜂。</li>
 <li>饲喂计划安排：按每日消耗量估算几天喂完，把补饲安排在晴暖午后，避免低温期糖浆积在箱底。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：10 群、每群 6 L、糖水比 2:1</div><div class="dd-ex-body">糖质量分数 = 2 ÷ (2 + 1) = 66.7%；2:1 糖浆密度约 1.34 kg/L，总糖浆重量 = 10 × 6 × 1.34 = 80.4 kg；白糖 = 80.4 × 66.7% = 53.6 kg；加水 = 26.8 kg；按 6 元/kg 计成本约 322 元；每群每日 0.4 L 时约 15 天吃完，建议分 3 次、每次 2 L 饲喂。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：10 群、每群 6 L、糖水比 2:1</div><div class="dd-ex-body">糖质量分数 = 2 ÷ (2 + 1) = 66.7%；2:1 糖浆密度约 1.34 kg/L，总糖浆重量 = 10 × 6 × 1.34 = 80.4 kg；白糖 = 80.4 × 66.7% = 53.6 kg；加水 = 26.8 kg；按 6 元/kg 计成本约 322 元；每群每日 0.4 L 时约 15 天吃完；若计划只喂 7 天，按同一消耗速度会剩余约 3.2 L/群，需延长饲喂或减少备料。建议分 3 次、每次 2 L 饲喂。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>越冬糖浆为什么常用 2:1？</dt><dd>2:1（糖:水，按重量）糖分高、水分少，蜜蜂酿制负担小，低温下不易发酵，是多数地区越冬补饲的常用浓度；具体仍要看当地气候与群势。</dt>
@@ -282,5 +283,27 @@ fillRatioTable();renderHist(HIST_KEY);calcTool();
 </dl>
 </div>
 </section>
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="honey-estimator.html" class="related-tool-card">
+      <span class="rt-icon">🔮</span>
+      <span class="rt-info"><span class="rt-name">养蜂采蜜量估算</span><span class="rt-desc">• 蜜源植物：不同花种产蜜差异大，油菜、椴树、荔枝为高产蜜源。</span></span>
+    </a>
+    <a href="../agriculture/cycle-honey.html" class="related-tool-card">
+      <span class="rt-icon">⏱️</span>
+      <span class="rt-info"><span class="rt-name">采蜜期（摇蜜周期）安排</span><span class="rt-desc">按蜂箱的流蜜周期与开始日期排定摇蜜（取蜜）计划，生成摇蜜日历与提醒，辅助蜂场作业组织与蜜源调度</span></span>
+    </a>
+    <a href="../agriculture/detector-13.html" class="related-tool-card">
+      <span class="rt-icon">🔍</span>
+      <span class="rt-info"><span class="rt-name">蜂螨（寄生率）检测</span><span class="rt-desc">输入样本工蜂数与检出蜂螨数，计算蜂螨寄生率并评估蜂群受害程度，辅助确定治螨时机与用药方案</span></span>
+    </a>
+    <a href="../food/syrup-brix-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">糖浆浓度换算</span><span class="rt-desc">输入糖浆的白利度(Brix)、比重(SG)、波美度(°Bé)或折射率(RI)中任一值，转换为其余浓度…</span></span>
+    </a>
+  </div>
+</div>
 </body>
 </html>

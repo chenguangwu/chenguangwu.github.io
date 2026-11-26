@@ -144,7 +144,7 @@
     <h2 data-zh="📡 交叉口信号周期配时方案">Cycle Signal</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;" data-zh="基于 Webster 法计算最佳周期、分配有效绿灯时间，并绘制信号时序图。">Cycle Signal</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">信号配时计算（Webster 最佳周期法）<br>总损失时间 L = Σ(黄灯时间 + 全红时间)<br>总流量比 Y = Σ 各相位流量比 yᵢ（到达流量 ÷ 饱和流量）<br>最佳周期 C₀ = (1.5L + 5) ÷ (1 − Y)，要求 0 < Y < 1<br>有效绿灯时间 = 周期 C − L；各相位绿灯 gᵢ = (C − L) × yᵢ ÷ Y<br>Y 越接近 1，C₀ 急剧增大（接近饱和）</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">信号配时计算（Webster 最佳周期法）<br>总损失时间 L = Σ(黄灯时间 + 全红时间)<br>总流量比 Y = Σ 各相位流量比 yᵢ（到达流量 ÷ 饱和流量）<br>最佳周期 C₀ = (1.5L + 5) ÷ (1 − Y)，要求 0 < Y < 1<br>有效绿灯时间 = 周期 C − L；各相位绿灯 gᵢ = (C − L) × yᵢ ÷ Y<br>Y 越接近 1，C₀ 急剧增大（接近饱和）<br>相位饱和度 x = Y × C ÷ (C − L)，不是 Y 本身</div>
       <div class="formula-desc tb-bi"><span class="t-zh">基于 Webster 法计算最佳周期、分配有效绿灯时间，并绘制信号时序图。按各相位流量比与损失时间，用 Webster 公式求最佳周期时长并分配各相位绿灯。</span><span class="t-en">Optimise intersection cycle length by Webster's method and draw the signal timing</span></div>
     </div>
 
@@ -385,12 +385,21 @@ function setPhase(i,k,v){
 }
 
 function calc(){
-  state.cycle=+document.getElementById('cycle').value||90;
-  state.satFlow=+document.getElementById('satFlow').value||1800;
+  var cycleRaw=String(document.getElementById('cycle').value).trim();
+  var satRaw=String(document.getElementById('satFlow').value).trim();
+  state.cycle=cycleRaw===''?NaN:+cycleRaw;
+  state.satFlow=satRaw===''?NaN:+satRaw;
   var ps=state.phases;
-  var L=0,Y=0;
-  ps.forEach(function(p){ L+=(+p.yellow)+(+p.allred); Y+=(+p.y||0); });
+  var L=0,Y=0,badPhase=false;
+  ps.forEach(function(p){var y=+p.y,yl=+p.yellow,ar=+p.allred;if(!isFinite(y)||y<0||y>=1||!isFinite(yl)||yl<0||!isFinite(ar)||ar<0)badPhase=true;L+=(isFinite(yl)?yl:0)+(isFinite(ar)?ar:0);Y+=(isFinite(y)?y:0);});
   var C=state.cycle;
+  var err='';
+  if(!isFinite(C)||C<=0)err='周期须为大于 0 的秒数。';
+  else if(!isFinite(state.satFlow)||state.satFlow<=0)err='饱和流率须为大于 0 的数值（pcu/h）。';
+  else if(badPhase)err='相位流量比须在 0–1（不含 1）、黄灯与全红须为 ≥0 的数值。';
+  else if(C<=L)err='周期须大于总损失时间（黄灯+全红合计）。';
+  else if(Y<=0||Y>=1)err='各相位流量比之和 Y 须在 0–1 之间；Y≥1 表示进口道过饱和，Webster 公式无解。';
+  if(err){document.getElementById('statGrid').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ '+err+'</p>';document.getElementById('planTable').innerHTML='';document.getElementById('diagram').innerHTML='';document.getElementById('capResult').innerHTML='';return;}
   var webster=(Y>0&&Y<1)?Math.round((1.5*L+5)/(1-Y)):0;
   var avail=C-L;
   var alloc=[];
@@ -411,7 +420,8 @@ function renderStat(L,Y,C,webster,avail){
     stat('有效绿灯合计',avail+' s')+
     stat('流量比之和 Y',Y.toFixed(3))+
     stat('Webster 最佳',webster?webster+' s':'—')+
-    stat('饱和度',Y>=1?'过饱和':(Y*100).toFixed(0)+'%');document.getElementById('statGrid').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    stat('相位饱和度 x',avail>0?(Y*C/avail).toFixed(3):'—')+
+    '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">流量比之和 Y='+Y.toFixed(3)+' 只是各相位流量比之和，不是饱和度；相位饱和度 x = Y×C÷(C−L)，按实际有效绿灯占比计算。</p>';document.getElementById('statGrid').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function stat(v,l){return '<div class="stat-card"><div class="val">'+v+'</div><div class="lbl">'+l+'</div></div>';}
 

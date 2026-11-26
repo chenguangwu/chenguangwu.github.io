@@ -242,34 +242,62 @@
 
 <script>
 const SAMPLE = '<book id="b1" lang="zh"><title>XML 入门</title><author><name>Alice</name><age>30</age></author><tags><tag>xml</tag><tag>web</tag></tags></book>';
-function xmlToJson(node, withAttrs){
-  if(!node) return ''; // harness 兜底可能无参调用；也避免调用方传空节点时抛错
+function xmlWellFormed(xml){
+  var s=String(xml==null?'':xml).replace(/<!--[\s\S]*?-->/g,'').replace(/<!\[CDATA\[[\s\S]*?\]\]>/g,'').replace(/<\?[\s\S]*?\?>/g,'');
+  var re=/<\s*(\/?)\s*([A-Za-z_][\w:.-]*)([^>]*?)(\/?)>/g,m,stack=[];
+  while((m=re.exec(s))){
+    if(m[1]){ if(stack.pop()!==m[2]) return false; }
+    else if(m[4]!=='/' && m[2].toLowerCase()!=='!doctype') stack.push(m[2]);
+  }
+  if(stack.length) return false;
+  if(s.replace(re,'').indexOf('<')>=0) return false;
+  return true;
+}
+function xmlParseFailed(doc){
+  var root=doc && doc.documentElement;
+  if(!root) return true;
+  var pe=doc.getElementsByTagName('parsererror');
+  for(var i=0;i<pe.length;i++){
+    var ns=pe[i].namespaceURI||'';
+    if(ns==='http://www.w3.org/1999/xhtml' || ns.indexOf('mozilla.org/newlayout/xml/parsererror')>=0) return true;
+    if(!pe[i].parentNode && /XML 解析错误|error/i.test(String(pe[i].textContent||pe[i]._text||''))) return true;
+  }
+  return false;
+}
+function xmlSet(obj,k,v){
+  if(!obj) return;
+  if(Object.prototype.hasOwnProperty.call(obj,k)){
+    if(Array.isArray(obj[k])) obj[k].push(v); else obj[k]=[obj[k],v];
+  }else{
+    Object.defineProperty(obj,k,{value:v,enumerable:true,writable:true,configurable:true});
+  }
+}
+function xmlNodeValue(node, withAttrs){
+  if(!node) return '';
   const obj = Object.create(null);
   if(withAttrs && node.attributes && node.attributes.length){
-    for(const attr of node.attributes) obj['@' + attr.name] = attr.value;
+    for(const attr of node.attributes) Object.defineProperty(obj,'@'+attr.name,{value:attr.value,enumerable:true,writable:true,configurable:true});
   }
-  const kids = node.children ? Array.from(node.children) : [];
-  // IT-N320：混合内容必须保留元素自身的直接文本节点；只取 node.textContent 会把子元素文本一起吞进来。
-  // harness 的 DOMParser 桩没有 childNodes，叶节点回退到旧 textContent 口径，避免把既有用例打红。
-  let ownText = '';
-  if(node.childNodes){
-    ownText = Array.from(node.childNodes)
-      .filter(n => n.nodeType === 3)
-      .map(n => (n.nodeValue != null ? n.nodeValue : (n.textContent || '')))
-      .join('').trim();
-  } else if(kids.length === 0) {
-    ownText = String(node.textContent || '').trim();
+  const kids = Array.from(node.childNodes || []).filter(function(c){return c.nodeType===1||c.nodeType===3||c.nodeType===4;});
+  let texts=[], elems=0, content=[], nAttrs=(node.attributes?node.attributes.length:0);
+  for(const c of kids){
+    if(c.nodeType===1){
+      elems++;
+      const v=xmlNodeValue(c,withAttrs);
+      xmlSet(obj,c.tagName,v);
+      var pair=Object.create(null); Object.defineProperty(pair,c.tagName,{value:v,enumerable:true,writable:true,configurable:true});
+      content.push(pair);
+    }else{
+      const raw=String(c.nodeValue!=null?c.nodeValue:(c.textContent||''));
+      if(raw.trim()){ texts.push(raw); content.push(raw); }
+    }
   }
-  if(kids.length === 0){
-    if(Object.keys(obj).length) { if(ownText) obj['#text'] = ownText; return obj; }
-    return ownText;
-  }
-  if(ownText) obj['#text'] = ownText;
-  for(const k of kids){
-    const child = xmlToJson(k, withAttrs);
-    if(obj[k.tagName] === undefined) obj[k.tagName] = child;
-    else if(Array.isArray(obj[k.tagName])) obj[k.tagName].push(child);
-    else obj[k.tagName] = [obj[k.tagName], child];
+  const text=texts.join('').trim();
+  if(text) obj['#text']=text;
+  if(elems && text) obj['#content']=content;
+  if(!elems){
+    if(nAttrs){ if(text) obj['#text']=text; return obj; }
+    return text;
   }
   return obj;
 }
@@ -278,12 +306,13 @@ function doMinify(){ convert(0); }
 function convert(indent){
   setErr('');
   try{
-    const doc = new DOMParser().parseFromString(document.getElementById('input').value, 'application/xml');
-    if(doc.getElementsByTagName('parsererror').length) throw new Error('XML 解析错误');
+    const src = document.getElementById('input').value;
+    const doc = new DOMParser().parseFromString(src, 'application/xml');
+    if(!xmlWellFormed(src) || xmlParseFailed(doc)) throw new Error('XML 解析错误');
     const withAttrs = document.getElementById('attrs').checked;
     const root = doc.documentElement;
-    const result = {};
-    result[root.tagName] = xmlToJson(root, withAttrs);
+    const result = Object.create(null);
+    Object.defineProperty(result,root.tagName,{value:xmlNodeValue(root, withAttrs),enumerable:true,writable:true,configurable:true});
     setOut(JSON.stringify(result, null, indent));
     setErr('✅ 转换成功');
   }catch(e){ setErr('❌ ' + e.message); }
@@ -458,7 +487,7 @@ else document.addEventListener('DOMContentLoaded', __xml_to_jsonBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -466,7 +495,7 @@ else document.addEventListener('DOMContentLoaded', __xml_to_jsonBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

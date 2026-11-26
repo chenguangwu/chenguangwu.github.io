@@ -206,12 +206,15 @@ function getV(id){var v=parseFloat(document.getElementById(id).value);return isN
 function setIv(el,iv){if(iv){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
 function calc(){
   var pt=getV('v0'),f=getV('v1'),gt=getV('v2'),gr=getV('v3'),pr=getV('v4');
+  var res=document.getElementById('res');
+  var __empty=['v0','v1','v2','v3','v4'].filter(function(id){var el=document.getElementById(id);return !el||String(el.value).trim()==='';});
   ['v0','v1','v2','v3','v4'].forEach(function(id){
     var el=document.getElementById(id);
-    setIv(el,el.value!==''&&isNaN(parseFloat(el.value)));
+    var bad=el.value!==''&&!isFinite(parseFloat(el.value));
+    setIv(el,bad);
   });
-  var res=document.getElementById('res');
-  if(f<=0){const __h0='<p style="color:var(--danger);">频率必须大于0</p>';res.innerHTML='<p style="color:var(--danger);">频率必须大于0</p>';return;}
+  if(__empty.length){res.innerHTML='<p style="color:var(--danger);">请填写发射功率、频率、收发天线增益与接收灵敏度；留空不按 0 处理（0 dBm/0 dBi 是合法值，需显式填写）。</p>';return;}
+  if(!isFinite(f)||f<=0){const __h0='<p style="color:var(--danger);">频率必须大于0</p>';res.innerHTML='<p style="color:var(--danger);">频率必须大于0</p>';return;}
   var eirp=pt+gt; // 等效全向辐射功率
   var linkBudget=pt+gt+gr-pr; // 链路预算 = 可容许的最大路径损耗
   var fsplMax=linkBudget;
@@ -228,11 +231,11 @@ function calc(){
     '</div>'+
     '<div class="data-grid" style="margin-top:8px;">'+
     '<div class="data-card"><div class="num">'+fmt(lambda*100,2)+'</div><div class="label">波长（cm）</div></div>'+
-    '<div class="data-card"><div class="num">'+fmt(pt+gt+gr,1)+'</div><div class="label">收发总增益（dB）</div></div>'+
+    '<div class="data-card"><div class="num">'+fmt(pt+gt+gr,1)+'</div><div class="label">到达接收点功率（dBm）</div></div>'+
     '<div class="data-card"><div class="num">'+fmt(pt,1)+'</div><div class="label">发射功率（dBm）</div></div>'+
     '<div class="data-card"><div class="num">'+fmt(pr,1)+'</div><div class="label">接收灵敏度（dBm）</div></div>'+
     '</div>'+
-    '<p style="margin-top:8px;font-size:13px;">'+fmt(f,0)+' MHz 理想视距最大传输距离约 <strong>'+fmt(dKm,3)+' km</strong>（'+fmt(dM,1)+' m），链路可容许路径损耗 <strong>'+fmt(fsplMax,2)+' dB</strong>。实际使用建议保留 20dB 以上衰落余量。</p>';const __g1='<div class="data-grid">'+
+    '<p style="margin-top:8px;font-size:13px;">'+fmt(f,0)+' MHz 理想视距最大传输距离约 <strong>'+fmt(dKm,3)+' km</strong>（'+fmt(dM,1)+' m），链路可容许路径损耗 <strong>'+fmt(fsplMax,2)+' dB</strong>。实际使用建议保留 20dB 以上衰落余量。注意 dBm 与 dBi 不能直接相加：本站的「到达接收点功率」= Pt(dBm)+Gt(dBi)+Gr(dBi)，是同一 dBm 参考下的合计，不是天线「总增益」。</p>';const __g1='<div class="data-grid">'+
     '<div class="data-card"><div class="num">'+fmt(dKm,3)+'</div><div class="label">最大视距距离（km）</div></div>'+
     '<div class="data-card"><div class="num">'+fmt(dM,1)+'</div><div class="label">最大距离（m）</div></div>'+
     '<div class="data-card"><div class="num">'+fmt(fsplMax,2)+'</div><div class="label">可容许路径损耗（dB）</div></div>'+
@@ -240,11 +243,11 @@ function calc(){
     '</div>'+
     '<div class="data-grid" style="margin-top:8px;">'+
     '<div class="data-card"><div class="num">'+fmt(lambda*100,2)+'</div><div class="label">波长（cm）</div></div>'+
-    '<div class="data-card"><div class="num">'+fmt(pt+gt+gr,1)+'</div><div class="label">收发总增益（dB）</div></div>'+
+    '<div class="data-card"><div class="num">'+fmt(pt+gt+gr,1)+'</div><div class="label">到达接收点功率（dBm）</div></div>'+
     '<div class="data-card"><div class="num">'+fmt(pt,1)+'</div><div class="label">发射功率（dBm）</div></div>'+
     '<div class="data-card"><div class="num">'+fmt(pr,1)+'</div><div class="label">接收灵敏度（dBm）</div></div>'+
     '</div>'+
-    '<p style="margin-top:8px;font-size:13px;">'+fmt(f,0)+' MHz 理想视距最大传输距离约 <strong>'+fmt(dKm,3)+' km</strong>（'+fmt(dM,1)+' m），链路可容许路径损耗 <strong>'+fmt(fsplMax,2)+' dB</strong>。实际使用建议保留 20dB 以上衰落余量。</p>';res.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    '<p style="margin-top:8px;font-size:13px;">'+fmt(f,0)+' MHz 理想视距最大传输距离约 <strong>'+fmt(dKm,3)+' km</strong>（'+fmt(dM,1)+' m），链路可容许路径损耗 <strong>'+fmt(fsplMax,2)+' dB</strong>。实际使用建议保留 20dB 以上衰落余量。注意 dBm 与 dBi 不能直接相加：本站的「到达接收点功率」= Pt(dBm)+Gt(dBi)+Gr(dBi)，是同一 dBm 参考下的合计，不是天线「总增益」。</p>';res.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyRes(){
   var text=document.getElementById('res').innerText;

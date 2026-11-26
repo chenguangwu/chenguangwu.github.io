@@ -115,7 +115,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="BEP = 固定成本 / (单价 − 单位变动成本)。">Compute the break-even sales volume from fixed cost, unit price and unit variable cost using fixed cost / (price - variable cost).</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">盈亏平衡量(件) = 固定成本 ÷ (单价 − 单位变动成本)；平衡销售额 = 平衡量 × 单价；单位边际贡献 = 单价 − 单位变动成本。校验：固定成本、单价、单位变动成本为必填项（必填校验壳）；代码未校验单价 &gt; 变动成本，两者相等时除零结果按 — 显示。判据：单位边际贡献 &gt;0 才存在有限平衡点，固定成本越高或边际贡献越低平衡量越大（平衡量保留 1 位小数）。</div>
+      <div class="formula-eq">理论盈亏平衡量 = 固定成本 ÷ (单价 − 单位变动成本)；最少整数销量 = ⌈理论平衡量⌉；按整数销量的最低销售额 = 最少整数销量 × 单价。校验：三项必填、有限，固定成本与单位变动成本非负、单价 &gt;0；单位边际贡献 ≤0 时明确提示不存在平衡点。判据：可分割商品可用理论值；按件销售须向上取整，整数销量对应的销售额才足以覆盖固定成本。</div>
       <p class="formula-desc">BEP = 固定成本 / (单价 − 单位变动成本)。</p>
     </div>
 
@@ -281,21 +281,26 @@ function __tbInputGuardCore(_ids,_labels){
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['fc', 'p', 'vc'],["固定成本 (元)", "单价 P (元)", "单位变动成本 (元)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const fc=num('fc'),p=num('p'),vc=num('vc');
-            let __err='';
-            if(fc<0) __err='固定成本不能为负数。';
-            else if(p<=0) __err='单价须大于 0。';
-            else if(vc<0) __err='单位变动成本不能为负数。';
-            else if(p-vc<=0) __err='单位边际贡献 ≤ 0（单价不高于单位变动成本），不存在盈亏平衡点，请调整价格或成本。';
-            if(__err){ToolBox.setResult('result','<div class="data-grid"><div class="data-card"><div class="num">⚠</div><div class="label">'+__err+'</div></div></div>');return;}
-            const q=fc/(p-vc);
-            const __g2=dataGrid([
-                [q.toFixed(1),'平衡产量 (件)'],
-                [(q*p).toFixed(0),'平衡销售额 (元)'],
-                [(p-vc).toFixed(2),'单位边际贡献 (元)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
-        }
+  const __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/.test(location.search);
+  const __raw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+  for(const id of ['fc','p','vc']){if(__raw(id)===''){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'Fill in fixed cost, price and unit variable cost. Blank is not 0.':'请填写固定成本、单价与单位变动成本；空白不等于 0。')+'</p>');return;}}
+  const fc=Number(__raw('fc')),p=Number(__raw('p')),vc=Number(__raw('vc'));
+  if(!Number.isFinite(fc)||!Number.isFinite(p)||!Number.isFinite(vc)){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'All fields must be finite numbers.':'三个字段均须为有限数。')+'</p>');return;}
+  let __err='';
+  if(fc<0) __err=__en?'Fixed cost cannot be negative.':'固定成本不能为负数。';
+  else if(p<=0) __err=__en?'Price must be greater than 0.':'单价须大于 0。';
+  else if(vc<0) __err=__en?'Unit variable cost cannot be negative.':'单位变动成本不能为负数。';
+  else if(p-vc<=0) __err=__en?'Unit contribution margin ≤ 0, so no break-even point exists.':'单位边际贡献 ≤ 0（单价不高于单位变动成本），不存在盈亏平衡点，请调整价格或成本。';
+  if(__err){ToolBox.setResult('result','<div class="data-grid"><div class="data-card"><div class="num">⚠</div><div class="label">'+__err+'</div></div></div>');return;}
+  const q=fc/(p-vc), qInt=Math.ceil(q);
+  const __g2=dataGrid([
+    [q.toFixed(2),__en?'Theoretical break-even quantity (units)':'理论平衡产量 (件)'],
+    [qInt.toFixed(0),__en?'Minimum whole units to break even':'最少整数销量 (件)'],
+    [(qInt*p).toFixed(2),__en?'Minimum sales at whole units (CNY)':'按整数销量的最低销售额 (元)'],
+    [(p-vc).toFixed(2),__en?'Unit contribution margin (CNY)':'单位边际贡献 (元)']
+  ])+'<p style="margin-top:8px;font-size:13px;color:var(--text-muted);">'+(__en?'For divisible products, the theoretical quantity can be used. For indivisible units, sales must reach the next whole unit; the minimum sales amount is based on that integer.':'可分割商品可用理论值；按件销售且不可拆分时，销量须向上取整到下一整件，最低销售额按整数件数计算。')+'</p>';
+  ToolBox.setResult('result',__g2);
+}
 function resetForm(){document.getElementById('fc').value = '200000';
       document.getElementById('p').value = '100';
       document.getElementById('vc').value = '60';
@@ -328,16 +333,47 @@ calcTool();
 <li>降价谈判或促销评估时，测算单价下调后保本销量的变化。</li>
 <li>固定成本上升（如涨租）时，重新测算保本点以调整经营目标。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">计算保本销量</div><div class="dd-ex-body">某产品单价 100 元、单位变动成本 60 元、月固定成本 40000 元，单位<a class="term-link" href="/tools/accounting/contribution-margin.html">边际贡献</a>=100−60=40 元，保本销量=40000/40=1000 件；当月销量超过 1000 件才开始盈利。</div></div>
+<div class="dd-example"><div class="dd-ex-title">计算保本销量与整数销量</div><div class="dd-ex-body">某产品单价 100 元、单位变动成本 60 元、月固定成本 40000 元，单位<a class="term-link" href="/tools/accounting/contribution-margin.html">边际贡献</a>=40 元，理论保本销量=1000 件；若理论值为 1000.4 件，按件销售至少需 1001 件，最低销售额=1001×100=100100 元。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt><a class="term-link" href="/tools/finance/break-even-calculator.html">盈亏平衡</a>点怎么算？</dt><dd>保本销量=固定成本÷(单价−单位变动成本)，分母即单位边际贡献；保本金额=固定成本÷边际贡献率。</dd>
+<dt><a class="term-link" href="/tools/finance/break-even-calculator.html">盈亏平衡</a>点怎么算？</dt><dd>理论保本销量=固定成本÷(单价−单位变动成本)，分母即单位边际贡献；按件销售须向上取整到最少整数销量，最低销售额按整数销量×单价计算。</dd>
 <dt>边际贡献率是什么？</dt><dd>边际贡献率=单位边际贡献÷单价，反映每元销售收入中可用于覆盖固定成本并盈利的比例。</dd>
+<dt>为什么理论值和整数销量要分开？</dt><dd>理论值允许小数，适合可分割商品；按件销售不能卖半件，必须向上取整，整数销量对应的销售额才足以覆盖固定成本。</dd>
 </dl>
 </div>
 </section>
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "盈亏平衡点怎么算？", "acceptedAnswer": {"@type": "Answer", "text": "保本销量=固定成本÷(单价−单位变动成本)，分母即单位边际贡献；保本金额=固定成本÷边际贡献率。"}}, {"@type": "Question", "name": "边际贡献率是什么？", "acceptedAnswer": {"@type": "Answer", "text": "边际贡献率=单位边际贡献÷单价，反映每元销售收入中可用于覆盖固定成本并盈利的比例。"}}]}</script>
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "盈亏平衡点怎么算？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "理论保本销量=固定成本÷(单价−单位变动成本)，分母即单位边际贡献；按件销售须向上取整到最少整数销量，最低销售额按整数销量×单价计算。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "边际贡献率是什么？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "边际贡献率=单位边际贡献÷单价，反映每元销售收入中可用于覆盖固定成本并盈利的比例。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么理论值和整数销量要分开？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "理论值允许小数，适合可分割商品；按件销售不能卖半件，必须向上取整，整数销量对应的销售额才足以覆盖固定成本。"
+      }
+    }
+  ]
+}
+</script>
 <script>
 function __break_even_unitsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __break_even_unitsExtras(){
@@ -386,7 +422,7 @@ function __beChart(){
   var q=fc/(p-vc);var maxU=Math.max(2*q,10);
   var labels=[],cost=[],rev=[];
   for(var i=0;i<=10;i++){var u=maxU*i/10;labels.push(Math.round(u));cost.push(Math.round(fc+vc*u));rev.push(Math.round(p*u));}
-  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/.test(location.search);
   TBKit.chart.line('#break_even_unitsChart',{title:en?'Total Cost vs Revenue':'总成本 vs 总收入',labels:labels,series:[{name:en?'Total Cost':'总成本',data:cost},{name:en?'Revenue':'总收入',data:rev}]});
 }
 var __beFn=calcTool;calcTool=function(){try{__beFn();}catch(e){}try{__beChart();}catch(e){}};

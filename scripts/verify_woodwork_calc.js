@@ -91,8 +91,21 @@ const CASES = [
 ];
 async function main() {
   const only = process.argv.slice(2);
+  let pass = 0; const extraCases = [{ slug:"woodwork/angle-1", inputs:{v0:"100",v1:"18",v4:"45"}, expect:["目标斜切角须在 0–89.9°"], ref:"100° 旧实现静默截断到 89.9 并生成结果；新实现直接拒绝。默认 45° 不含提示。" },
+{ slug:"woodwork/angle-1", inputs:{v0:"45",v1:"0",v4:"45"}, expect:["本计算的分母，不能为 0"], ref:"厚度 0 旧实现倒角/行程为 0 仍出结果；新实现拒绝 ≤0 厚度。" },
+{ slug:"woodwork/angle-1", inputs:{v0:"0",v1:"18",v4:"45"}, expect:["0.0°"], ref:"0° 直切是合法输入，θ=0 时倒角宽 0、行程=t，不能被范围守卫误拦。" },
+{ slug:"woodwork/analysis-cost-price", inputs:{data:"100xyz,200",ref:"100",warn:"10"}, expect:["无法解析的项"], ref:"parseFloat('100xyz') 旧实现静默取 100；新实现严格逐项校验并列出坏样本。" },
+{ slug:"woodwork/analysis-cost-price", inputs:{data:"100,200",ref:"0",warn:"10"}, expect:["本计算的分母，不能为 0"], ref:"基准价 0 旧实现偏离率除零得 Infinity；新实现拒绝。" },
+{ slug:"woodwork/analysis-cost-price", inputs:{data:"0,0",ref:"100",warn:"10"}, expect:["不适用（均价为 0）"], ref:"两个样本均为 0（合法）时均价 0，CV 标不适用而不是除零；偏离率仍可算。" },
+{ slug:"woodwork/calculator-calc-15", inputs:{v0:"27",v1:"100",v4:"20",v5:"-10"}, expect:["端部榫肩不能为负"], ref:"宽 100、端肩 -10 旧实现得 120 mm 榫宽；新实现拒绝负肩，不给尺寸。" },
+{ slug:"woodwork/calculator-calc-15", inputs:{v0:"27",v1:"100",v3:"through",v4:"20",v5:"50"}, expect:["榫宽 ≤ 0"], ref:"两肩 100 mm 等于工件宽度，旧实现榫宽 0、面积 0 仍展示；新实现阻断并提示。" },
+{ slug:"woodwork/convert-30", inputs:{mci:"",mcf:"8",k:"0.26",orig:"100"}, expect:["请填写全部四项"], ref:"部分字段留空旧实现按 0 代入得 (-8)*0.26；新实现逐项提示缺失。" },
+{ slug:"woodwork/convert-30", inputs:{mci:"0",mcf:"0",k:"0.26",orig:"100"}, expect:["线干缩率 = 0.00 %","收缩后尺寸 ≈ 100.00 cm"], ref:"显式 0% 含水率是合法输入，干缩率 0%、尺寸不变；不能把 0 当空值拦截。" },
+];
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
-  let pass = 0; const fails = [];
+  extraCases.forEach(function(x){ if(!only.length || only.some((o)=>x.slug.endsWith("/"+o)||x.slug===o)) cases.push(x); });
+  const fails = [];
+
   for (const c of cases) {
     try {
       const r = await runCase(c);

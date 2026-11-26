@@ -145,7 +145,7 @@
     <h2 data-zh="🎧 客服响应时间统计">Service Response Time Statistics</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="录入工单响应与解决时间，自动计算平均响应时间、解决率、P50/P90/P99等关键SLA指标">Response Time</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">客服工单响应时间统计分析<br>平均响应时间 = Σ响应时长 ÷ 工单数<br>平均解决时间 = Σ解决时长 ÷ 已解决工单数（仅统计已解决且 >0）<br>解决率 = 已解决数 ÷ 总工单数<br>SLA 达标率 = 响应 ≤ 目标时长的工单数 ÷ 总工单数<br>分位数：P50 / P90 / P99 按响应时长序列取位<br>分布直方图分桶：0-5 分｜5-15 分｜15-30 分｜30-60 分｜60 分以上<br>条宽按最大桶计数归一化；占比 >60% 红、>30% 橙、其他绿<br>明细表逐单显示响应/解决时长、状态、是否达标<br>SLA 达标率 ≥90% 视为达标（绿色），否则红色告警</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">客服工单响应时间统计分析<br>平均响应时间 = Σ响应时长 ÷ 工单数<br>平均解决时间 = Σ解决时长 ÷ 已解决工单数（仅统计已解决且 >0）<br>解决率 = 已解决数 ÷ 总工单数（新增空工单默认「处理中」，不自动计入已解决）<br>有效样本：平均响应/分位数只用工单中已填且 ≥0 的响应时长；平均解决时间只用状态已解决且解决时长 >0 的样本，并在结果中显示有效样本数<br>SLA 达标率 = 响应 ≤ 目标时长的工单数 ÷ 总工单数<br>分位数：P50 / P90 / P99 按「响应时长有效样本」取位，空值不计入分母<br>分布直方图分桶：0-5 分｜5-15 分｜15-30 分｜30-60 分｜60 分以上<br>条宽按最大桶计数归一化；占比 >60% 红、>30% 橙、其他绿<br>明细表逐单显示响应/解决时长、状态、是否达标<br>SLA 达标率 ≥90% 视为达标（绿色），否则红色告警</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：Math.max.apply(null,counts)||1；counts[i]÷maxCount×100">Key formulas: Math.max.apply(null,counts)||1; counts[i]÷maxCount×100</p>
     </div>
 
@@ -289,7 +289,7 @@ function updateTicket(i,field,val){
   tickets[i][field]=val;
   calc();
 }
-function addTicket(){ tickets.push({id:'T'+String(tickets.length+1).padStart(3,'0'),resp:null,solve:null,status:'resolved'}); renderList(); calc(); }
+function addTicket(){ tickets.push({id:'T'+String(tickets.length+1).padStart(3,'0'),resp:null,solve:null,status:'pending'}); renderList(); calc(); }
 function removeTicket(i){ tickets.splice(i,1); renderList(); calc(); }
 function clearTickets(){ tickets=[]; renderList(); calc(); }
 function loadDemo(){
@@ -320,7 +320,7 @@ function calc(){
   var slaValid=isFinite(slaRaw)&&slaRaw>0;
   var sla=slaValid?slaRaw:null;
   var respTimes=tickets.filter(function(t){return t.resp!=null && isFinite(t.resp) && t.resp>=0;}).map(function(t){return t.resp;});
-  var solveTimes=tickets.filter(function(t){return t.status==='resolved' && t.solve!=null && isFinite(t.solve) && t.solve>=0;}).map(function(t){return t.solve;});
+  var solveTimes=tickets.filter(function(t){return t.status==='resolved' && t.solve!=null && isFinite(t.solve) && t.solve>0;}).map(function(t){return t.solve;});
   var total=tickets.length;
   var resolved=tickets.filter(function(t){return t.status==='resolved';}).length;
   var resolveRate=total>0?resolved/total:0;
@@ -333,6 +333,8 @@ function calc(){
     '<div class="stat-card"><div class="val">'+(resolveRate*100).toFixed(1)+'%</div><div class="lbl">解决率</div></div>'+
     '<div class="stat-card"><div class="val" style="color:'+(slaRate==null?'var(--text-muted)':(slaRate>=0.9?'var(--success)':'var(--danger)'))+';">'+(slaRate==null?'--':(slaRate*100).toFixed(1)+'%')+'</div><div class="lbl">'+(slaValid?'SLA达标率':'SLA目标需为正数')+'</div></div>'+
     '<div class="stat-card"><div class="val">'+total+'</div><div class="lbl">工单总数</div></div>'+
+    '<div class="stat-card"><div class="val">'+respTimes.length+'/'+total+'</div><div class="lbl">响应时长有效样本/总数</div></div>'+
+    '<div class="stat-card"><div class="val">'+solveTimes.length+'/'+resolved+'</div><div class="lbl">解决时长有效样本/已解决</div></div>'+
     '<div class="stat-card"><div class="val p50">'+(respTimes.length?fmt(percentile(respTimes,0.5)):'--')+'分</div><div class="lbl">P50响应</div></div>'+
     '<div class="stat-card"><div class="val p90">'+(respTimes.length?fmt(percentile(respTimes,0.9)):'--')+'分</div><div class="lbl">P90响应</div></div>'+
     '<div class="stat-card"><div class="val p99">'+(respTimes.length?fmt(percentile(respTimes,0.99)):'--')+'分</div><div class="lbl">P99响应</div></div>'+

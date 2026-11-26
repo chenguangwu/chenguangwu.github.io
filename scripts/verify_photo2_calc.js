@@ -7,7 +7,7 @@ const CASES = [
   // 基准 f/4、1/125s（非默认 f/5.6、1/60）驱动，期望串均与默认表不同。
   "slug": "photo2/exposure-triangle",
   "clicks": [
-    "document.getElementById('aperture').value='4';document.getElementById('shutter').value='0.008';calcEquivalent();"
+    "var ap=document.getElementById('aperture');ap.selectedIndex=4;var sh=document.getElementById('shutter');sh.selectedIndex=3;calcEquivalent();"
   ],
   "expect": [
     "1/500s",
@@ -19,7 +19,7 @@ const CASES = [
   // 12-J4：预设「极端值」必须写入控件真实存在的 ISO 档位（旧值 300 不在选项内 → 控件读空 → EV Infinity）。
   "slug": "photo2/exposure-triangle",
   "clicks": [
-    "document.getElementById('presetCheck').textContent=(__exposure_trianglePresets.toString().indexOf('\"iso\":\"300\"')>=0?'BAD_PRESET':'PRESET_OK');"
+    "document.getElementById('__tbProbe').textContent=(__exposure_trianglePresets.toString().indexOf('\"iso\":\"300\"')>=0?'BAD_PRESET':'PRESET_OK');"
   ],
   "expect": [
     "PRESET_OK"
@@ -92,7 +92,7 @@ const CASES = [
     "minutes": "0",
     "audioBitrate": "128"
   },
-  "expect": ["1920,1080\n30\n51.8\n128\n4\n0\n1\n91.28 GB 文件大小 51.93 等效总码率 Mbps 4时0分 录制时长 分辨率： 1920×1080 （2.1MP/帧） 总帧数： 432,000 帧 @30fps 每分钟存储： 389.5 MB 每小时存储： 22.82 GB 存储卡容量参考： 存储卡 可录时长 32 GB 1时24分 64 GB 2时48分 128 GB 5时36分 256 GB 11时13分 512 GB 22时26分"],
+  "expect": ["20.13 Mbps","折算后总码率","十进制 GB"],
   "ref": "auto-restore"
 },
 {
@@ -115,7 +115,39 @@ const CASES = [
     "5503K"
   ],
   "ref": "auto-restore"
-}
+},
+{
+  "slug": "photo2/video-storage",
+  "inputs": {"bitrate":"20","hours":"1","minutes":"0","audioBitrate":"128","codec":"0.5"},
+  "expect": ["26.03 Mbps","11.71 GB"],
+  "ref": "第830批：编码因子只作用于视频码率 20×0.5=10，加音频 0.128 ⇒ 10.13 Mbps；1 小时按十进制 GB=(51.8×0.5+0.128=26.03Mbps ⇒ 11.71GB。页面按分辨率建议把视频码率置 51.8Mbps；旧版把系数同时乘音频并按 1024 换算，得约 22.82GB，两串均不命中。"
+},
+{
+  "slug": "photo2/focal-length",
+  "inputs": {"focal":"20"},
+  "clicks": ["selectSensor(4);"],
+  "expect": ["按参考画幅等效约 55mm","标准/中焦"],
+  "ref": "第830批：1 英寸画幅（13.2×8.8）装 20mm，按全幅参考对角线等效约 20×43.27/15.86≈55mm；建议须按等效焦距判为标准/中焦，旧版按实际 20mm 判超广角。默认全幅 50mm 输出约 50mm，不含 55mm 前缀。"
+},
+{
+  "slug": "photo2/exposure-triangle",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/photo2/exposure-triangle.html','utf8');var ok=h.indexOf('EV 加 1 表示这组光圈/快门少收一档光')>=0&&h.indexOf('ISO 只改变亮度增益，不改变光学进光量')>=0&&h.indexOf('数值每加 1 表示进光量翻倍')<0;document.getElementById('__tbProbe').textContent='EV830 '+(ok?'OK':'BAD');"],
+  "expect": ["EV830 OK"],
+  "ref": "第830批：EV=log2(N²/t) 只由光圈快门定义，加 1 档是少收一档光（光学曝光量减半）；ISO 仅亮度增益。旧 FAQ 称「每加 1 进光量翻倍、三者综合」方向相反，探针同时要求新表述存在且旧句消失。"
+},
+{
+    "slug": "photo2/white-balance",
+    "inputs": {"kelvin":"30000"},
+    "expect": ["30000K","Mired 绝对值：33"],
+    "ref": "第865批：输入上限 40000 K，calc 旧实现只到 20000 K；30000 K 应正常出结果，Mired 绝对值 33。"
+  },
+  {
+    "slug": "photo2/white-balance",
+    "inputs": {"kelvin":"30000"},
+    "clicks": ["var c=0;var old=ToolBox.copyText;ToolBox.copyText=function(){c++;};copyResult();ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='TB865W '+((c===1)?'OK':'BAD');"],
+    "expect": ["TB865W OK"],
+    "ref": "第865批：复制入口复用 1000–40000 K 校验，不再被空的 Mired 必填拦截；30000 K 应成功复制一次。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

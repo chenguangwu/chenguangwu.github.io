@@ -132,7 +132,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据冰箱容积、能效等级、环境温度估算日耗电量和年电费">Estimate a refrigerator's daily and yearly energy use from its volume, efficiency grade, ambient temperature and electricity price.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">冰箱耗电容积估算法（本页代码口径）：基础耗电=(容积÷100)×0.26（kWh/天）；能效系数 1 级 0.8、2 级 1.0、3 级 1.3；环境温度系数 ≤16℃ 为 0.70、≤22 为 0.85、≤28 为 1.00、≤32 为 1.20、≤38 为 1.45、&gt;38 为 1.70；开门频率系数 低/中/高/极高=0.85/1.0/1.2/1.4；日耗电=基础耗电×能效系数×温度系数×频率系数，年耗电=日耗电×365，年电费=年耗电×电价，月均=年值÷12。校验：无强校验，空值按默认兜底。判据（省电建议分支）：3 级能效建议换 1/2 级；环境温度 ≥32℃ 建议移至阴凉通风处；日耗电 &gt;1.5 且容积 &lt;500L 建议查门封条与除霜；容积 &gt;600L 建议避免空载；否则耗电正常。</div>
+      <div class="formula-eq">冰箱耗电容积估算法（本页代码口径）：基础耗电=(容积÷100)×0.26（kWh/天）；能效系数 1 级 0.8、2 级 1.0、3 级 1.3；环境温度系数 ≤16℃ 为 0.70、≤22 为 0.85、≤28 为 1.00、≤32 为 1.20、≤38 为 1.45、&gt;38 为 1.70；开门频率系数 低/中/高/极高=0.85/1.0/1.2/1.4；日耗电=基础耗电×能效系数×温度系数×频率系数，年耗电=日耗电×365，年电费=年耗电×电价，月均=年值÷12。校验：容积/温度/电价任一为空时提示补填，不再静默套默认值；电价可为 0（0–2 元/kWh）。判据（省电建议分支）：3 级能效建议换 1/2 级；环境温度 ≥32℃ 建议移至阴凉通风处；日耗电 &gt;1.5 且容积 &lt;500L 建议查门封条与除霜；容积 &gt;600L 建议避免空载；否则耗电正常。</div>
       <p class="formula-desc">根据冰箱容积、能效等级、环境温度估算日耗电量和年电费</p>
     </div>
 
@@ -319,13 +319,21 @@
 var currentFreq = 1.0;
 
 function calc() {
+var __fpEn=false;try{__fpEn=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}catch(e){}
 // NUMCLR：全部输入留空时不得输出 0/0.00 的假评估结果
 var __numReq=['volume','envTemp','elecPrice'];
-if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
-  const volume = parseFloat(document.getElementById('volume').value) || 0;
+if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ '+(__fpEn?'Fill in the required inputs before calculating':'请填写必要的输入参数后再计算')+'</p>';return;}
+  var __fpVolRaw=String(document.getElementById('volume').value).trim();
+  var __fpTempRaw=String(document.getElementById('envTemp').value).trim();
+  if(__fpVolRaw===''||__fpTempRaw===''){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ '+(__fpEn?'Fill in volume and ambient temperature before calculating':'请填写容积和环境温度后再计算')+'</p>';return;}
+  const volume=Number(__fpVolRaw);
   const effLevel = parseInt(document.getElementById('efficiency').value);
-  const envTemp = parseFloat(document.getElementById('envTemp').value) || 25;
-  const price = parseFloat(document.getElementById('elecPrice').value) || 0.58;
+  const envTemp=Number(__fpTempRaw);
+  if(!Number.isFinite(volume)||volume<=0||!Number.isFinite(envTemp)||envTemp<0||envTemp>60){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ '+(__fpEn?'Volume must be positive and ambient temperature must be 0–60°C':'容积须为正数，环境温度须在 0–60℃ 之间')+'</p>';return;}
+  var __fpPriceRaw=String(document.getElementById('elecPrice').value).trim();
+  if(__fpPriceRaw===''){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ '+(__fpEn?'Electricity price is required; enter 0 for free electricity':'请填写电价；零电价请显式填 0')+'</p>';return;}
+  const price=Number(__fpPriceRaw);
+  if(!Number.isFinite(price)||price<0||price>2){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ '+(__fpEn?'Electricity price must be between 0 and 2 CNY/kWh':'电价须在 0–2 元/kWh 之间')+'</p>';return;}
 
   const basePer100L = 0.26; // kWh per 100L per day
   const effFactor = effLevel === 1 ? 0.8 : effLevel === 2 ? 1.0 : 1.3;

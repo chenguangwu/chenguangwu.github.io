@@ -506,7 +506,7 @@ var HISTORY_KEY = 'bond_calc_history';
 var currentResult = null;
 
 function switchTab(tab, btn){
-    var __ig=__tbInputGuard(['y-face', 'y-coupon', 'y-price', 'y-years', 'c-face', 'c-coupon', 'c-price', 'h-buy', 'h-sell', 'h-face', 'h-coupon', 'h-years', 'p-face', 'p-coupon', 'p-rate', 'p-years'],["面值(元)", "票面利率(%)", "当前价格(元)", "剩余期限(年)", "面值(元)", "票面利率(%)", "当前价格(元)", "买入价格(元)", "卖出价格(元)", "面值(元)", "票面利率(%)", "持有期(年)", "面值(元)", "票面利率(%)", "市场利率(%)", "剩余期限(年)"]);if(__ig){const __g1=__ig;ToolBox.setResult("res",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+    // 查看公式/参考/历史不依赖任何当前模式的输入；校验只放在 calc() 的当前模式入口。
 currentTab = tab;
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
   if(btn) btn.classList.add('active');
@@ -594,7 +594,31 @@ function calcBondPrice(face, couponRate, years, marketRate, freq, type){
   return p;
 }
 
+function __bondValidateCurrent(){
+  var mode=currentMethod;
+  var req = mode==='ytm' ? [['y-face','面值'],['y-coupon','票面利率'],['y-price','当前价格'],['y-years','剩余期限']]
+    : mode==='current' ? [['c-face','面值'],['c-coupon','票面利率'],['c-price','当前价格']]
+    : mode==='holding' ? [['h-buy','买入价格'],['h-sell','卖出价格'],['h-face','面值'],['h-coupon','票面利率'],['h-years','持有期']]
+    : [['p-face','面值'],['p-coupon','票面利率'],['p-rate','市场利率'],['p-years','剩余期限']];
+  for(var i=0;i<req.length;i++){
+    var el=document.getElementById(req[i][0]);
+    if(!el || String(el.value).trim()==='') return '请填写'+req[i][1]+'；留空不计算，数字 0 才表示真实零值。';
+    if(!isFinite(Number(el.value))) return req[i][1]+'须为有效数字。';
+  }
+  function numVal(id){ return Number(document.getElementById(id).value); }
+  if(!(numVal(mode==='ytm'?'y-face':mode==='current'?'c-face':mode==='holding'?'h-face':'p-face')>0)) return '面值须大于 0。';
+  if(mode==='ytm' && !(numVal('y-price')>0)) return '当前价格须大于 0。';
+  if(mode==='current' && !(numVal('c-price')>0)) return '当前价格须大于 0。';
+  if(mode==='holding' && !(numVal('h-buy')>0)) return '买入价格须大于 0。';
+  if(mode==='holding' && numVal('h-sell')<0) return '卖出价格须为非负数。';
+  if(mode==='price' && numVal('p-rate')<0) return '市场利率须为非负数。';
+  var yearsId=mode==='ytm'?'y-years':mode==='holding'?'h-years':mode==='price'?'p-years':'';
+  if(yearsId && !(numVal(yearsId)>0)) return '期限须大于 0。';
+  return '';
+}
 function calc(){
+  var err=__bondValidateCurrent();
+  if(err){ ToolBox.setResult('res', '<p style="color:var(--danger);">⚠ '+err+'</p>'); return; }
   var result = {method: currentMethod, timestamp: Date.now()};
   
   if(currentMethod === 'ytm'){

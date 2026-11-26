@@ -197,8 +197,21 @@ textarea:focus{border-color:#4338CA;}
   <div class="qr-workbench">
     <div class="card qr-panel">
       <h3>⚙️ 内容与样式</h3>
-      <label class="field-label" for="textInput">输入文本或网址（每行生成一个二维码，最多 20 行）</label>
-      <textarea id="textInput" placeholder="One text or URL per line...">https://toolbox.example.com</textarea>
+      <label class="field-label" for="textInput" data-zh="输入文本或网址（批量模式每行一个码，单次最多 20 行）">Text or URL (batch mode: one code per line, at most 20 lines per run)</label>
+      <textarea id="textInput" data-no-persist placeholder="每行一个文本或 URL…" data-i18n-ph="ph.qrcode.input">https://toolbox.example.com</textarea>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin:0 0 6px;"><input type="checkbox" id="qrRememberText" data-no-persist style="width:auto;margin:0;"><span data-zh="在本机记住二维码正文（默认关闭）">Remember QR text on this device (off by default)</span></label>
+      <div style="font-size:12px;color:var(--text-secondary);margin:0 0 8px;" data-zh="二维码正文可能包含 Wi‑Fi 密码、联系方式或私密链接。开启后正文保存在本机 localStorage，共用设备请保持关闭并及时清除。">QR text may contain Wi‑Fi passwords, contact details or private links. When enabled it is stored in this browser's localStorage; keep it off on shared devices and clear it when done.</div>
+      <div style="display:flex;align-items:center;gap:8px;margin:0 0 8px;"><button type="button" class="btn" onclick="qrForgetSaved()" style="width:auto;" data-zh="清除本机已保存正文">Clear saved text</button><span id="qrPrivacyStatus" style="font-size:12px;color:var(--text-muted);" role="status"></span></div>
+      <div style="font-size:12px;color:var(--text-secondary);margin:-4px 0 8px;" data-zh="单条模式把整段文本（包括换行与首尾空格）编码为一个码，适合 vCard 名片、Wi‑Fi 等；批量模式按行拆分为多个码，可决定是否去掉每行首尾空白。">Single mode encodes the whole text, including line breaks and leading/trailing spaces, as one QR code — ideal for vCards and Wi‑Fi. Batch mode splits by line into multiple codes and can trim each line.</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;">
+        <label for="qrMode" style="font-size:13px;color:var(--text-secondary);margin:0;" data-zh="多行处理:">Multi-line:</label>
+        <select id="qrMode" style="width:auto;padding:6px 10px;font-size:13px;">
+          <option value="single" selected data-zh="单条完整内容（保留换行，适合名片）">Single complete value (keep line breaks; ideal for vCards)</option>
+          <option value="batch" data-zh="逐行批量（每行一个码）">Batch by line (one code per line)</option>
+        </select>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin:0;"><input type="checkbox" id="qrBatchTrim" checked style="width:auto;margin:0;"><span data-zh="批量模式去除每行首尾空白">Trim each line in batch mode</span></label>
+      </div>
+      <div id="qrBatchLimitNote" role="status" aria-live="polite" style="font-size:12px;color:var(--text-secondary);margin:0 0 8px;" data-zh="批量模式单次最多生成 20 个二维码；超出的非空行会在此明确提示，可分批粘贴生成。">Batch mode generates at most 20 QR codes per run; extra non-empty lines are reported here so you can generate them in batches.</div>
       <div class="row">
         <label for="contentTemplate">内容模板</label>
         <select id="contentTemplate" style="flex:1;">
@@ -228,11 +241,15 @@ textarea:focus{border-color:#4338CA;}
         <label for="qrmargin">静区（模块，0–10）</label>
         <input type="number" id="qrmargin" min="0" max="10" step="1" value="4" style="width:90px;">
       </div>
+      <p id="qrMarginError" role="alert" style="font-size:12px;color:var(--danger,#B91C1C);margin:-8px 0 10px;display:none;"></p>
+      <p id="qrSizeNote" role="status" aria-live="polite" style="font-size:12px;color:var(--text-muted);margin:-4px 0 10px;" data-zh="二维码尺寸不足以让每个模块占 1 像素时会自动提升到最小尺寸并在生成后提示。">If the requested size cannot give every module at least one pixel, the output is raised to the minimum and reported after generation.</p>
       <div class="row">
         <label for="fgColor">前景</label>
         <input type="color" id="fgColor" value="#000000">
         <span style="font-size:13px;color:#666;" id="fgVal">#000000</span>
       </div>
+      <div id="qrRiskNote" role="status" style="font-size:12px;line-height:1.7;color:#92400E;background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.35);border-radius:8px;padding:8px 10px;margin:8px 0;display:none;"></div>
+      <button type="button" class="btn" onclick="__qrResetStyle()" style="width:auto;margin:0 0 10px;">恢复黑白配色与推荐静区</button>
       <div class="row">
         <label for="bgColor">背景</label>
         <input type="color" id="bgColor" value="#ffffff">
@@ -257,8 +274,8 @@ textarea:focus{border-color:#4338CA;}
         <p id="qrCapNote" style="font-size:12px;color:var(--text-muted,#888);margin-top:8px;line-height:1.7;"></p>
       </div>
       <div class="toolbar" style="margin-top:16px;margin-bottom:0;justify-content:center;">
-        <button type="button" class="btn" onclick="downloadQR()">下载 PNG</button>
-        <button type="button" class="btn" onclick="downloadSVG()">下载 SVG</button>
+        <button type="button" class="btn" id="qrDownloadPng" onclick="downloadQR()">下载 PNG</button>
+        <button type="button" class="btn" id="qrDownloadSvg" onclick="downloadSVG()">下载 SVG</button>
         <button type="button" class="btn" onclick="copyQRContent()">复制内容</button>
       </div>
     </div>
@@ -353,12 +370,18 @@ var errorLevel = document.getElementById('errorLevel');
 var lastQr = null;
 var lastCanvas = null;
 var qrItems = [];
+var qrStale = false;
 
 sizeEl.addEventListener('input', function() { sizeVal.textContent = sizeEl.value + 'px'; generate(); });
 fgColor.addEventListener('input', function() { fgVal.textContent = fgColor.value; generate(); });
 bgColor.addEventListener('input', function() { bgVal.textContent = bgColor.value; generate(); });
 errorLevel.addEventListener('change', generate);
+textInput.addEventListener('input', function(){ __qrMarkStale('内容已修改，正在重新生成…'); });
 textInput.addEventListener('input', debounce(generate, 500));
+document.getElementById('qrBatchTrim').addEventListener('change', generate);
+document.getElementById('qrMode').addEventListener('change', function(){window.__qrForceMode=null;generate();});
+document.getElementById('qrmargin').addEventListener('input', generate);
+document.getElementById('qrmargin').addEventListener('change', generate);
 
 function applyTemplate() {
   var value = document.getElementById('contentTemplate').value;
@@ -378,6 +401,7 @@ var QR_BYTE_CAP = {
   H: [7, 14, 24, 34, 44, 58, 64, 84, 98, 119, 137, 155, 177, 194, 220, 250, 280, 310, 338, 382, 403, 439, 461, 511, 535, 593, 625, 658, 698, 742, 790, 842, 898, 958, 983, 1051, 1093, 1139, 1219, 1273]
 };
 function __qrBytes(str){
+  if(typeof str!=="string") return 0;
   var n = 0;
   for (var i = 0; i < str.length; i++) {
     var c = str.charCodeAt(i);
@@ -392,36 +416,49 @@ function __qrChart(){
   if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
   var host = document.getElementById('qrChart');
   if (!host) { return; }
-  var text = document.getElementById('textInput').value.trim();
-  if (!text) { host.innerHTML = ''; return; }
-  var bytes = __qrBytes(text);
+  var lines = __qrPayloads();
+  if (!lines.length) { host.innerHTML = ''; return; }
   var en = TBKit.util.isEn();
   var levels = ['L', 'M', 'Q', 'H'];
-  var labels = [], data = [];
+  var labels = [], data = [], over = [];
   levels.forEach(function(lv){
-    var cap = QR_BYTE_CAP[lv];
-    var v = 0;
-    for (var i = 0; i < cap.length; i++) { if (cap[i] >= bytes) { v = i + 1; break; } }
-    // IT-N260：超出 v40 容量时标 41（图例说明 41=超出 v40），不再错误压成 10
-    if (v === 0) v = 41;
+    var maxV = 0, failed = 0;
+    lines.forEach(function(line){
+      try{
+        var mode = /^[0-9]+$/.test(line) ? 'Numeric' : (/^[0-9A-Z $%*+\-./:]+$/.test(line) ? 'Alphanumeric' : 'Byte');
+        var qr = qrcode(0, lv); qr.addData(line, mode); qr.make();
+        var v = (qr.getModuleCount() - 17) / 4;
+        if (v > maxV) maxV = v;
+      }catch(e){ failed++; }
+    });
     labels.push(lv);
-    data.push(v);
+    data.push(failed ? 41 : maxV);
+    if (failed) over.push(lv);
   });
+  var title = (en ? 'Max minimum QR version across ' : '共 ')
+    + lines.length + (en ? ' code(s), computed per line with actual encoding mode: ' : ' 个二维码，按每行实际编码模式计算所需最大版本：')
+    + (en ? '(41 = beyond v40' : '（41 = 超出 v40')
+    + (over.length ? (en ? '; failed: ' : '；超限级别：') + over.join('/') : '')
+    + (en ? ')' : '）');
   TBKit.chart.bar('#qrChart', {
-    title: (en ? 'Minimum QR version needed per error-correction level (' : '各纠错级别下编码当前内容所需最小版本（')
-      + bytes + (en ? ' bytes, 41 = beyond v40)' : ' 字节，41 = 超出 v40）'),
+    title: title,
     labels: labels,
     series: [{ name: en ? 'Version' : '版本', data: data }]
   });
 }
-
 function __qrBuild(text, margin, pixelSize){
+  if(typeof text!=="string") return null;
   if (qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
   var qr = qrcode(0, errorLevel.value);
   var mode = /^[0-9]+$/.test(text) ? 'Numeric' : (/^[0-9A-Z $%*+\-./:]+$/.test(text) ? 'Alphanumeric' : 'Byte');
   qr.addData(text, mode); qr.make();
   var moduleCount = qr.getModuleCount();
   var totalModules = moduleCount + margin * 2;
+  // 每个模块至少 1 像素，否则高版本二维码会出现 0 宽/重叠模块。
+  var minPixel = totalModules;
+  var requestedSize = pixelSize;
+  var upscaled = pixelSize < minPixel;
+  if (upscaled) pixelSize = minPixel;
   var cellSize = pixelSize / totalModules;
   var canvas = document.createElement('canvas');
   canvas.width = pixelSize; canvas.height = pixelSize;
@@ -429,26 +466,136 @@ function __qrBuild(text, margin, pixelSize){
   ctx.fillStyle = bgColor.value; ctx.fillRect(0, 0, pixelSize, pixelSize);
   ctx.fillStyle = fgColor.value;
   for (var r = 0; r < moduleCount; r++) for (var c = 0; c < moduleCount; c++) if (qr.isDark(r, c)) {
-    ctx.fillRect(Math.floor((c + margin) * cellSize), Math.floor((r + margin) * cellSize), Math.ceil(cellSize), Math.ceil(cellSize));
+    // 用相邻整数边界之差绘制：相邻黑模块共享同一条边界，不会向白模块扩散。
+    var x0 = Math.round((c + margin) * cellSize), x1 = Math.round((c + margin + 1) * cellSize);
+    var y0 = Math.round((r + margin) * cellSize), y1 = Math.round((r + margin + 1) * cellSize);
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
   }
-  return { qr: qr, canvas: canvas, text: text, margin: margin, pixelSize: pixelSize };
+  return { qr: qr, canvas: canvas, text: text, margin: margin, pixelSize: pixelSize, requestedSize: requestedSize, minPixel: minPixel, upscaled: upscaled };
+}
+function __qrMarginValue(){
+  var raw = String(document.getElementById('qrmargin').value || '').trim();
+  if (raw === '') return { ok: false, msg: '静区不能为空，请输入 0–10 的整数。' };
+  if (!/^\d+$/.test(raw)) return { ok: false, msg: '静区必须是 0–10 的整数（不支持小数、负号或科学计数法）。' };
+  var n = Number(raw);
+  if (!isFinite(n) || n < 0 || n > 10) return { ok: false, msg: '静区超出范围，请输入 0–10 的整数。' };
+  return { ok: true, value: n };
+}
+function __qrMarginInvalid(msg){
+  lastQr = null; lastCanvas = null; qrItems = [];
+  var container = document.getElementById('qrcode');
+  if (container) container.innerHTML = '<p class="err">静区无效：' + msg + ' 已清除旧二维码，修正后会自动重新生成。</p>';
+  ['qrDownloadPng','qrDownloadSvg'].forEach(function(id){ var b=document.getElementById(id); if(b)b.disabled=true; });
+  var hint=document.getElementById('qrMarginError');
+  if(hint){ hint.textContent=msg; hint.style.display='block'; }
+  try { __qrChart(); } catch(e){}
+}
+function __qrSetMode(mode){
+  window.__qrForceMode = (mode === 'batch') ? 'batch' : 'single';
+  var el=document.getElementById('qrMode');
+  if(el) el.value = window.__qrForceMode;
+  return window.__qrForceMode;
+}
+function __qrPayloads(){
+  var raw = textInput.value;
+  if (raw.length === 0) return [];
+  var mode = window.__qrForceMode || (document.getElementById('qrMode') || {}).value || 'single';
+  if (mode !== 'batch') return [raw];
+  var trimBox = document.getElementById('qrBatchTrim');
+  var lines = raw.split(/\r?\n/);
+  if (!trimBox || trimBox.checked) {
+    lines = lines.map(function(x){ return x.trim(); }).filter(function(x){ return x.length > 0; });
+  } else {
+    lines = lines.filter(function(x){ return x.length > 0; });
+  }
+  __qrBatchTotal = lines.length;
+  __qrBatchOverflow = Math.max(0, lines.length - 20);
+  return lines.slice(0, 20);
+}
+var __qrBatchTotal = 0, __qrBatchOverflow = 0;
+function __qrRenderBatchNote(shown){
+  var n=document.getElementById('qrBatchLimitNote');
+  if(!n) return;
+  if(__qrBatchOverflow > 0){
+    n.textContent=__qrT('输入共有 '+__qrBatchTotal+' 个非空行，本次只生成前 20 个，另有 '+__qrBatchOverflow+' 个未生成；请分批粘贴或删减到 20 行以内。','The input has '+__qrBatchTotal+' non-empty lines; this run generated the first 20 and left '+__qrBatchOverflow+' ungenerated. Paste in batches or reduce to 20 lines.');
+    n.style.color='#B45309';
+  } else {
+    n.textContent=__qrT('批量模式单次最多生成 20 个二维码；当前 '+(shown||0)+' 个非空行，未超出上限。','Batch mode generates at most 20 QR codes per run; currently '+(shown||0)+' non-empty line(s), within the limit.');
+    n.style.color='var(--text-secondary)';
+  }
+}
+function __qrSetButtons(enabled){
+  ['qrDownloadPng','qrDownloadSvg'].forEach(function(id){ var b=document.getElementById(id); if(b)b.disabled=!enabled; });
+}
+function __qrClearStaleNote(){
+  var n=document.getElementById('qrStaleNote'); if(n) n.remove();
+}
+function __qrMarkStale(reason){
+  qrStale=true;
+  __qrSetButtons(false);
+  var container=document.getElementById('qrcode');
+  var note=document.getElementById('qrStaleNote');
+  if(!note && container && container.parentNode){
+    note=document.createElement('p'); note.id='qrStaleNote';
+    note.style.cssText='color:#B45309;font-size:13px;margin:8px 0;';
+    container.parentNode.insertBefore(note,container);
+  }
+  if(note) note.textContent='⏳ '+reason+' 下载已暂时禁用，生成完成后恢复。';
+}
+function __qrErrorText(e){
+  if(e && e.message) return String(e.message);
+  if(typeof e==='string' && e.trim()) return e;
+  return '内容超出二维码容量或包含无法编码的字符';
+}
+function __qrLum(hex){
+  var h=String(hex||'').replace('#',''); if(h.length!==6) return 0;
+  var rgb=[0,2,4].map(function(i){var c=parseInt(h.slice(i,i+2),16)/255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);});
+  return 0.2126*rgb[0]+0.7152*rgb[1]+0.0722*rgb[2];
+}
+function __qrContrast(a,b){var l1=__qrLum(a),l2=__qrLum(b);return (Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05);}
+function __qrRisk(){
+  var note=document.getElementById('qrRiskNote'); if(!note) return;
+  var ratio=__qrContrast(fgColor.value,bgColor.value);
+  var margin=__qrMarginValue();
+  var warns=[];
+  if(ratio<4.5) warns.push('前景/背景对比度约 '+ratio.toFixed(2)+':1，低于 4.5:1，屏幕和打印都可能难识别。');
+  if(__qrLum(bgColor.value) < __qrLum(fgColor.value)) warns.push('当前为反色（浅码深底），部分扫码器不支持。');
+  if(margin.ok && margin.value<4) warns.push('静区仅 '+margin.value+' 模块，推荐至少 4 模块；印刷裁切后可能贴边。');
+  note.style.display='block';
+  note.textContent = warns.length ? '⚠ 扫码风险：'+warns.join(' ')+' 仍可生成/下载，但请实机扫码确认。' : '配色与静区未发现明显风险；识别率仍受屏幕、打印尺寸和扫码器影响，请实机确认。';
+}
+function __qrResetStyle(){
+  fgColor.value='#000000'; bgColor.value='#ffffff'; document.getElementById('qrmargin').value='4';
+  fgVal.textContent='#000000'; bgVal.textContent='#ffffff'; generate();
 }
 function generate() {
   var container = document.getElementById('qrcode');
-  var raw = textInput.value.trim();
-  if (!raw) {
-    lastQr = null; lastCanvas = null; qrItems = [];
+  try { __qrRisk(); } catch(e) {}
+  var marginInfo = __qrMarginValue();
+  if (!marginInfo.ok) { __qrMarginInvalid(marginInfo.msg); return; }
+  var marginHint=document.getElementById('qrMarginError');
+  if(marginHint){ marginHint.style.display='none'; marginHint.textContent=''; }
+  var lines = __qrPayloads();
+  __qrRenderBatchNote(lines.length);
+  if (!lines.length) {
+    lastQr = null; lastCanvas = null; qrItems = []; qrStale=false;
+    __qrClearStaleNote(); __qrSetButtons(false);
     container.innerHTML = '<p style="color:#999;">输入内容后自动生成二维码</p>';
     try { __qrChart(); } catch(e){}
     return;
   }
-  try {
-    var lines = raw.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean).slice(0,20);
-    var margin = Math.min(10, Math.max(0, parseInt(document.getElementById('qrmargin').value,10) || 0));
-    var pixelSize = parseInt(sizeEl.value,10) || 256;
-    container.innerHTML = ''; qrItems = [];
-    for (var i = 0; i < lines.length; i++) {
-      var item = __qrBuild(lines[i], margin, pixelSize);
+  var margin = marginInfo.value;
+  var pixelSize = parseInt(sizeEl.value,10) || 256;
+  container.innerHTML = ''; qrItems = [];
+  var failures = [], upscaledNeed = 0, reqSize = pixelSize, minNeeded = 0;
+  for (var i = 0; i < lines.length; i++) {
+    var item = null, err = null;
+    try { item = __qrBuild(lines[i], margin, pixelSize); }
+    catch (e) { err = e; }
+    if (item) {
+      if (item.minPixel > minNeeded) minNeeded = item.minPixel;
+      if (item.upscaled && item.minPixel > upscaledNeed) upscaledNeed = item.minPixel;
+      var successIndex = qrItems.length;
       qrItems.push(item);
       var wrap;
       if (lines.length > 1) {
@@ -460,29 +607,48 @@ function generate() {
       wrap.appendChild(item.canvas);
       if (lines.length > 1) {
         var tb = document.createElement('div'); tb.className = 'toolbar'; tb.style.margin = '8px 0 0';
-        var b1 = document.createElement('button'); b1.type='button'; b1.className='btn'; b1.textContent='下载 PNG'; b1.setAttribute('onclick','downloadQR('+i+')');
-        var b2 = document.createElement('button'); b2.type='button'; b2.className='btn'; b2.textContent='下载 SVG'; b2.setAttribute('onclick','downloadSVG('+i+')');
+        var b1 = document.createElement('button'); b1.type='button'; b1.className='btn'; b1.textContent='下载 PNG'; b1.setAttribute('onclick','downloadQR('+successIndex+')');
+        var b2 = document.createElement('button'); b2.type='button'; b2.className='btn'; b2.textContent='下载 SVG'; b2.setAttribute('onclick','downloadSVG('+successIndex+')');
         tb.appendChild(b1); tb.appendChild(b2); wrap.appendChild(tb);
         container.appendChild(wrap);
       }
+    } else {
+      failures.push({ line: i + 1, msg: __qrErrorText(err) });
+      var card=document.createElement('div'); card.className='qr-card';
+      card.style.borderColor='#FCA5A5';
+      card.innerHTML='<div class="qr-head" style="color:#B91C1C;">第 '+(i+1)+' 行生成失败：'+String(lines[i]).slice(0,80).replace(/</g,'&lt;')+'</div><p style="color:#B91C1C;margin:8px 0 0;">'+failures[failures.length-1].msg.replace(/</g,'&lt;')+'</p>';
+      container.appendChild(card);
     }
-    lastQr = qrItems[0].qr; lastCanvas = qrItems[0].canvas;
-    try { __qrChart(); } catch(e){}
-  } catch (e) {
-    lastQr = null; lastCanvas = null; qrItems = [];
-    container.innerHTML = '<p class="err">生成出错：' + e.message + '</p>';
-    console.error(e);
   }
+  if (qrItems.length) {
+    lastQr = qrItems[0].qr; lastCanvas = qrItems[0].canvas;
+    qrStale = false; __qrClearStaleNote(); __qrSetButtons(true);
+  } else {
+    lastQr = null; lastCanvas = null; qrStale=false; __qrClearStaleNote(); __qrSetButtons(false);
+  }
+  if(failures.length){
+    var note=document.createElement('p'); note.style.cssText='color:#B45309;font-size:13px;margin:10px 0 0;';
+    note.textContent='本次共 '+lines.length+' 行：成功 '+qrItems.length+' 行，失败 '+failures.length+' 行（第 '+failures.map(function(f){return f.line;}).join('、')+' 行）。成功项仍可单独下载。';
+    container.appendChild(note);
+  }
+  var sizeNote = document.getElementById('qrSizeNote');
+  if (sizeNote) {
+    if (upscaledNeed) sizeNote.textContent = __qrT('请求尺寸 '+reqSize+'px 低于当前二维码的最小 '+upscaledNeed+'px（每模块至少 1 像素），已按 '+upscaledNeed+'px 输出；如需更小文件请缩短内容降低版本。','Requested '+reqSize+'px is below the current code\'s minimum '+upscaledNeed+'px (at least 1 pixel per module), so it was rendered at '+upscaledNeed+'px. Shorten the content to lower the version if you need a smaller image.');
+    else sizeNote.textContent = __qrT('当前二维码最小需 '+minNeeded+'px（每模块至少 1 像素）；本次按 '+reqSize+'px 输出，每模块约 '+(reqSize/Math.max(1,minNeeded)).toFixed(1)+'px。','Current code needs at least '+minNeeded+'px (1 pixel per module); rendered at '+reqSize+'px, about '+(reqSize/Math.max(1,minNeeded)).toFixed(1)+'px per module.');
+    sizeNote.style.color = upscaledNeed ? '#B45309' : 'var(--text-muted)';
+  }
+  try { __qrChart(); } catch(e){}
 }
 function copyQRContent() {
-  var text = textInput.value.trim();
-  if (!text) { ToolBox.showToast('请先输入二维码内容', 'warning'); return; }
-  ToolBox.copyText(text, '已复制二维码内容');
+  var lines = __qrPayloads();
+  if (!lines.length) { ToolBox.showToast('请先输入二维码内容', 'warning'); return; }
+  var text = lines.join('\n');
+  ToolBox.copyText(text, lines.length > 1 ? '已复制批量二维码内容（按行分隔，未额外去空白）' : '已复制二维码内容（原样，包括首尾空格）');
 }
 
 function downloadSVG(idx) {
   var item = qrItems[idx || 0];
-  if (!item) { ToolBox.showToast('请先生成二维码', 'warning'); return; }
+  if (qrStale || !item || !lastQr) { ToolBox.showToast(qrStale?'内容已修改，请等待重新生成后再下载':'请先生成有效二维码', 'warning'); return; }
   var qr = item.qr;
   var moduleCount = qr.getModuleCount();
   var pixelSize = item.pixelSize;
@@ -506,7 +672,7 @@ function downloadSVG(idx) {
 
 function downloadQR(idx) {
   var item = qrItems[idx || 0];
-  if (!item) { ToolBox.showToast('请先生成二维码', 'warning'); return; }
+  if (qrStale || !item || !lastCanvas) { ToolBox.showToast(qrStale?'内容已修改，请等待重新生成后再下载':'请先生成有效二维码', 'warning'); return; }
   var a = document.createElement('a');
   a.download = 'qrcode-' + Date.now() + (qrItems.length > 1 ? '-' + ((idx || 0) + 1) : '') + '.png';
   a.href = item.canvas.toDataURL('image/png');
@@ -607,7 +773,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -615,7 +781,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -636,6 +802,28 @@ document.addEventListener('DOMContentLoaded',function(){
 </div>
 <!-- /SEO 介绍区块 -->
 <script>
+(function(){
+  var NS="tools/it/qrcode.html", OPT='tb_qrq_remember', TEXT='tb_uxp_'+NS+'#textInput';
+  var cb=document.getElementById('qrRememberText'), ta=document.getElementById('textInput'), st=document.getElementById('qrPrivacyStatus');
+  function qrEn(){ return /(?:^|\?|&)lang=en/i.test(location.search) || !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()); }
+  function setStatus(msg){ if(st) st.textContent=msg||''; }
+  function saveText(){ try{ localStorage.setItem(TEXT, ta.value); }catch(e){} }
+  function dropText(){ try{ localStorage.removeItem(TEXT); }catch(e){} }
+  function syncPref(){ try{
+    if(cb&&cb.checked){ localStorage.setItem(OPT,'1'); saveText(); setStatus(qrEn()?'On: text is stored only in this browser; turn it off or use Clear to remove it.':'已开启：正文仅保存在本机；关闭或点击清除可删除。'); }
+    else { localStorage.removeItem(OPT); dropText(); setStatus(qrEn()?'Off: QR text is not saved in this browser.':'已关闭：不会在本机保存二维码正文。'); }
+  }catch(e){} }
+  try{
+    if(cb&&ta&&localStorage.getItem(OPT)==='1'){
+      cb.checked=true;
+      var v=localStorage.getItem(TEXT); if(v!==null) ta.value=v;
+      setStatus(qrEn()?'Saved text restored from this browser; clear it on shared devices.':'已恢复本机保存的正文；共用设备请及时清除。');
+    }else if(ta){ dropText(); if(cb) cb.checked=false; }
+  }catch(e){}
+  if(cb) cb.addEventListener('change', syncPref);
+  if(ta) ta.addEventListener('input', function(){ if(cb&&cb.checked) saveText(); });
+  window.qrForgetSaved=function(){ try{ localStorage.removeItem(OPT); dropText(); }catch(e){} if(cb) cb.checked=false; setStatus(qrEn()?'Saved text cleared; the current input was not changed.':'本机已保存正文已清除；当前输入框内容未改动。'); };
+})();
 (function(){try{
   var NS="tools/it/qrcode.html";
   function k(id){return 'tb_uxp_'+NS+'#'+id;}
@@ -645,7 +833,7 @@ document.addEventListener('DOMContentLoaded',function(){
     else{localStorage.setItem(k(el.id),el.value);}
   }catch(e){}}
   function restore(){try{
-    document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+    document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]):not([data-no-persist]),textarea:not([readonly]):not([disabled]):not([data-no-persist]),select').forEach(function(el){
       if(!el.id)return;
       var v=localStorage.getItem(k(el.id));if(v===null)return;
       try{
@@ -657,7 +845,7 @@ document.addEventListener('DOMContentLoaded',function(){
       }catch(e){}
     });
   }catch(e){}}
-  document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+  document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]):not([data-no-persist]),textarea:not([readonly]):not([disabled]):not([data-no-persist]),select').forEach(function(el){
     if(!el.id)return;
     el.addEventListener('input',function(){save(el);});
     el.addEventListener('change',function(){save(el);});

@@ -157,11 +157,11 @@
   <div class="card">
     <h3>📐 公式说明</h3>
     <div class="result-box">
-      <p>计算两个日期之间的精确时长</p>
+      <p>按出生日期零点估算两个日期之间的时长</p>
       <p>1 天 = 86400 秒 = 24 小时 = 1440 分钟</p>
       <p>1 年 ≈ 365.25 天（含闰年修正）</p>
       <p>1 个月 ≈ 30.4375 天（平均）</p>
-      <p>注：仅作计算参考，不含精确历法转换</p>
+      <p>注：页面只收集出生日期，小时/分钟/秒按出生日期当地零点估算；实际出生时刻和出生地时区会造成差异。</p>
     </div></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -287,22 +287,25 @@ function calc(nowArg){
   const weeks = Math.floor(days / 7);
   const months = Math.floor(days / 30.4375);
   const years = (days / 365.25).toFixed(2);
-  // 年月日分解
+  // 年月日分解：与“下次生日”使用同一周年日期规则。
+  // 2/29 出生者在平年按 2/28 计；否则会出现“今天已到生日、周岁仍差 1 天”的矛盾。
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const anniversaryOf = (year) => new Date(year, birth.getMonth(),
+    Math.min(birth.getDate(), daysInMonth(year, birth.getMonth())));
   let y = now.getFullYear() - birth.getFullYear();
-  let m = now.getMonth() - birth.getMonth();
-  let d = now.getDate() - birth.getDate();
+  if(today < anniversaryOf(now.getFullYear())) y--;
+  const base = anniversaryOf(birth.getFullYear() + y);
+  let m = now.getMonth() - base.getMonth();
+  let d = now.getDate() - base.getDate();
   if(d < 0){
     m--;
-    // 借上一个月的天数；出生日大于上月天数（如 1/31 → 3/1）时按上月最后一天夹住，避免出现负天数
+    // 借上一个自然月的实际天数；出生日大于上月天数时按上月最后一天夹住。
     const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
     const prevDays = prevMonth.getDate();
-    const bd = Math.min(birth.getDate(), prevDays);
+    const bd = Math.min(base.getDate(), prevDays);
     d = prevDays - bd + now.getDate();
   }
-  if(m < 0){
-    y--;
-    m += 12;
-  }
+  if(m < 0){ if(y > 0) y--; m += 12; }
   // 下一个生日：按「日历日」比较，生日当天为 0 天；2/29 出生在平年按 2/28 计
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   let next = new Date(now.getFullYear(), birth.getMonth(),
@@ -318,9 +321,9 @@ function calc(nowArg){
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
     <p>已活：<strong style="color:var(--primary);font-size:18px;">${days.toLocaleString()}</strong> 天</p>
     <p>已活：${years} 年（约 ${months} 月，${weeks} 周）</p>
-    <p>精确年龄：<strong>${y} 岁 ${m} 月 ${d} 天</strong></p>
+    <p>按生日零点估算年龄：<strong>${y} 岁 ${m} 月 ${d} 天</strong></p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
-    <p>已度过：${hours.toLocaleString()} 小时</p>
+    <p>按出生日期零点估算已度过：${hours.toLocaleString()} 小时</p>
     <p>已度过：${minutes.toLocaleString()} 分钟</p>
     <p>已度过：${seconds.toLocaleString()} 秒</p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
@@ -578,7 +581,12 @@ else document.addEventListener('DOMContentLoaded', __age_in_daysBoot);
   function dayOfYear(y,m,d){ var start=new Date(y,0,0); var dt=new Date(y,m-1,d); return Math.round((dt-start)/86400000); }
   function isLeap(y){ return (y%4===0&&y%100!==0)||(y%400===0); }
   function season(m){ if(m>=3&&m<=5) return ['春季','Spring']; if(m>=6&&m<=8) return ['夏季','Summer']; if(m>=9&&m<=11) return ['秋季','Autumn']; return ['冬季','Winter']; }
-  function nextBirthday(y,m,d){ var t=new Date(); var thisY=new Date(t.getFullYear(),m-1,d); var next=(thisY.getTime()<=Date.now())?new Date(t.getFullYear()+1,m-1,d):thisY; return Math.ceil((next.getTime()-Date.now())/86400000); }
+  function nextBirthday(y,m,d){
+    var today=new Date(); today.setHours(0,0,0,0);
+    var thisY=new Date(today.getFullYear(),m-1,Math.min(d,daysInMonth(today.getFullYear(),m-1)));
+    var next=(thisY<today)?new Date(today.getFullYear()+1,m-1,Math.min(d,daysInMonth(today.getFullYear()+1,m-1))):thisY;
+    return Math.round((next-today)/86400000);
+  }
   function factsFor(dateStr, label){
     if(!dateStr) return null;
     var p=String(dateStr).split('-'); if(p.length<3) return null;
@@ -592,7 +600,7 @@ else document.addEventListener('DOMContentLoaded', __age_in_daysBoot);
     var s=season(m); rows.push((en?'Season (N. Hem.): ':'季节（北半球）：')+(en?s[1]:s[0]));
     rows.push((en?'Leap year: ':'闰年：')+(isLeap(y)?(en?'Yes':((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Yes":"是")):(en?'No':'否')));
     if(MODE==='birth'){
-      rows.push((en?'Chinese zodiac: ':'生肖：')+(en?zodiacE(y):zodiac(y)));
+      rows.push((en?'Chinese zodiac (Gregorian year): ':'生肖（按公历年）：')+(en?zodiacE(y):zodiac(y))+(en?' (born before Lunar New Year may belong to the previous year)':'（春节前出生者传统生肖可能属上一年）'));
       var con=constellation(m,d); rows.push((en?'Constellation: ':'星座：')+(en?con[5]:con[4]));
       rows.push((en?'Days to next birthday: ':'距下次生日：')+nextBirthday(y,m,d)+(en?' days':' 天'));
     }
@@ -613,7 +621,7 @@ else document.addEventListener('DOMContentLoaded', __age_in_daysBoot);
       out+='</ul></div>';
     }
     if(!any){ box.innerHTML=''; return; }
-    out+='<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+(en?"Zodiac uses a simplified Gregorian-year rule (consistent with this site’s age calculator; may differ ~1 day around the lunar new year). Constellation by Gregorian date; season is for the Northern Hemisphere.":"生肖按简化格里历年份推算（与本站“精确年龄计算器”口径一致，农历新年前后可能有约 1 天偏差）；星座按公历日期；季节为北半球。")+'</p>';
+    out+='<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+(en?"Zodiac is derived from the Gregorian year without lunar conversion: people born before Lunar New Year may traditionally belong to the previous year. Constellation by Gregorian date; season is for the Northern Hemisphere.":"生肖按公历年份推算，未做农历换算：春节前出生者的传统生肖可能属上一年，请以农历生日核对；星座按公历日期，季节为北半球。")+'</p>';
     out+='</div>';
     box.innerHTML=out;
   }

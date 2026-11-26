@@ -133,7 +133,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🔤 C/C++ 字符串转义">🔤 C / C ++ String Escape</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">先去掉首尾空白，存在成对外层双引号或单引号时去掉外层引号。逐字符扫描：遇到反斜杠且后面还有字符时，按后随字符转义——n 转换行、r 转回车、t 转制表符、b 转退格、f 转换页、v 转纵向制表符、0 转空字符、a 转响铃、反斜杠与单双引号与问号转其自身；x 后连续取最多 2 位十六进制数字按 16 进制解析为码点；后随字符是八进制数字时，连续取最多 3 位八进制数字按 8 进制解析为码点；其余情况取后随字符本身。不是转义序列的字符原样保留</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">仅当整体是带外层双引号或单引号的字面量时去掉引号与字面量外空白，裸文本保留首尾空格。逐字符扫描：遇到反斜杠且后面还有字符时，按后随字符转义——n 转换行、r 转回车、t 转制表符、b 转退格、f 转换页、v 转纵向制表符、0 转空字符、a 转响铃、反斜杠与单双引号与问号转其自身；x 后贪婪读取全部连续十六进制数字并按字节值解析（超出 0xFF 保留原样并提示）；后随字符是八进制数字时，连续取最多 3 位并按字节值解析；其余未知转义保留反斜杠原样并提示。不是转义序列的字符原样保留</div>
   <div class="formula-desc">在 C/C++ 字符串字面量的转义形式与真实字符之间双向转换。</div>
   <ul class="formula-list">
     <li><b>常见转义</b>：<code>\n</code> 换行、<code>\t</code> 制表、<code>\r</code> 回车、<code>\\</code> 反斜杠、<code>\"</code> 双引号、<code>\0</code> 空字符。</li>
@@ -166,7 +166,8 @@
     <textarea id="input" oninput="__escLive()" placeholder="输入要转义/反转义的 C 字符串...">Hello "World"</textarea>
 
     <label style="margin-top:16px;" for="output">输出结果</label>
-    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea> <div id="c_string_escapeTable"></div> <div id="c_string_escapeDiff"></div> <div id="c_string_escapeChart"></div> <div id="c_string_escapeHist"></div></div>
+    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea>
+    <div id="cEscapeNotice" role="alert" style="color:var(--warning,#92400E);font-size:13px;margin-top:8px;white-space:pre-wrap;"></div> <div id="c_string_escapeTable"></div> <div id="c_string_escapeDiff"></div> <div id="c_string_escapeChart"></div> <div id="c_string_escapeHist"></div></div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -294,12 +295,19 @@ function esc(live){
 }
 
 function unesc(){
-  let text = document.getElementById('input').value;
-  if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter C string to unescape":"请输入要反转义的 C 字符串"));
-  text = text.trim();
-  if((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))){
-    text = text.slice(1, -1);
+  const raw = document.getElementById('input').value;
+  const notice = document.getElementById('cEscapeNotice');
+  if(notice) notice.textContent = '';
+  if(!raw || !raw.trim()) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter C string to unescape":"请输入要反转义的 C 字符串"));
+  let text = raw;
+  // 仅当整体是带外层引号的字面量时去掉引号与字面量外的空白；裸文本原样处理，不再 trim 掉首尾空格。
+  const trimmed = raw.trim();
+  if((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))){
+    text = trimmed.slice(1, -1);
   }
+  const errors = [];
+  const __en = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  const err = function(zh,en){ errors.push(__en?en:zh); };
   let out = '';
   let i = 0;
   while(i < text.length){
@@ -307,11 +315,13 @@ function unesc(){
     if(c === '\\' && i + 1 < text.length){
       const n = text[i+1];
       if(/[0-7]/.test(n)){
-        // C 八进制转义：从反斜杠后最多读 3 位（\0 单独即 NUL）
+        // C 八进制转义：从反斜杠后最多读 3 位（\0 单独即 NUL）；值超出单字节范围时保留原样并提示。
         let o = '';
         let m = i + 1;
         while(m < text.length && /[0-7]/.test(text[m]) && o.length < 3){ o += text[m]; m++; }
-        out += String.fromCodePoint(parseInt(o,8));
+        const cpO = parseInt(o,8);
+        if(cpO <= 0xFF){ out += String.fromCharCode(cpO); }
+        else { out += '\\' + o; err('八进制 \\'+o+' 超出单字节 0xFF，C 编译器会拒绝；已保留原样。','Octal \\'+o+' exceeds one byte (0xFF) and C rejects it; kept as-is.'); }
         i = m;
         continue;
       }
@@ -333,7 +343,7 @@ function unesc(){
           let k = i + 2;
           while(k < text.length && /[0-9a-fA-F]/.test(text[k]) && h.length < 4){ h += text[k]; k++; }
           if(h.length === 4){ out += String.fromCodePoint(parseInt(h,16)); i = k; }
-          else { out += 'u'; i += 2; }
+          else { out += '\\u'; i += 2; err('\\u 必须紧跟 4 位十六进制，已保留原样。','\\u requires exactly 4 hex digits; kept as-is.'); }
           break;
         }
         case 'U': {
@@ -342,19 +352,26 @@ function unesc(){
           while(k < text.length && /[0-9a-fA-F]/.test(text[k]) && h.length < 8){ h += text[k]; k++; }
           const cpU = parseInt(h,16);
           if(h.length === 8 && cpU <= 0x10FFFF){ out += String.fromCodePoint(cpU); i = k; }
-          else { out += 'U'; i += 2; }
+          else { out += '\\U'; i += 2; err('\\U 必须紧跟 8 位十六进制且不超过 U+10FFFF，已保留原样。','\\U requires exactly 8 hex digits within U+10FFFF; kept as-is.'); }
           break;
         }
-        case 'x':
+        case 'x': {
           let h = '';
           let k = i + 2;
-          while(k < text.length && /[0-9a-fA-F]/.test(text[k]) && h.length < 2){ h += text[k]; k++; }
-          // 审计修复：\x 后必须跟有效十六进制；码点越界不得交给 fromCodePoint（抛 RangeError）。
-          if(h.length){ var cpX=parseInt(h,16); out += (cpX<=0x10FFFF ? String.fromCodePoint(cpX) : '\\x'+h); }
-          else { out += '\\x'; }
+          // C 词法：\x 贪婪读取全部后续十六进制数字，而不是最多 2 位（\x041 在 C 中等于 0x41）。
+          while(k < text.length && /[0-9a-fA-F]/.test(text[k])){ h += text[k]; k++; }
+          if(h.length){
+            var cpX = parseInt(h,16);
+            if(cpX <= 0xFF){ out += String.fromCharCode(cpX); }
+            else { out += '\\x' + h; err('十六进制 \\x'+h+' 超出单字节 0xFF，C 编译器会拒绝；已保留原样。','Hex \\x'+h+' exceeds one byte (0xFF) and C rejects it; kept as-is.'); }
+          } else {
+            out += '\\x';
+            err('\\x 后缺少十六进制数字，已保留原样。','\\x has no hex digits; kept as-is.');
+          }
           i = k;
           break;
-        default: out += n; i += 2;
+        }
+        default: out += '\\' + n; i += 2; err('未知转义 \\'+n+'，已保留原样。','Unknown escape \\'+n+'; kept as-is.');
       }
     } else {
       out += c;
@@ -362,6 +379,9 @@ function unesc(){
     }
   }
   document.getElementById('output').value = out;
+  if(notice && errors.length){
+    notice.textContent = (__en?'Issues: ':'解析提示：') + errors.join('；');
+  }
 }
 
 function copyResult(ev){
@@ -544,7 +564,7 @@ else document.addEventListener('DOMContentLoaded', __c_string_escapeBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -552,7 +572,7 @@ else document.addEventListener('DOMContentLoaded', __c_string_escapeBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

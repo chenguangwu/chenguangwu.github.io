@@ -130,7 +130,7 @@
 <div class="container" role="main">
   <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
     <h2 data-zh="🎭 调光器曲线计算">Dimmer Curve Calculator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="计算不同调光曲线下DMX输入值对应的实际输出亮度">Dimmer Curve</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="计算不同调光曲线下DMX输入值对应的理论曲线输出（非实测亮度）">Dimmer Curve</p>
 <div class="formula-box" data-polish="TOOLBOX-POLISH">
 <h3>📐 工作原理与说明</h3>
 <p>调光曲线描述<strong>输出亮度 vs 输入信号</strong>(0–100% 或 DMX512 的 0–255)的映射关系。常见类型:</p>
@@ -158,8 +158,8 @@
         </select>
       </div>
       <div>
-        <label for="dmxInput">DMX 输入值（0-255）</label>
-        <input type="number" id="dmxInput" value="128" oninput="calc()" min="0" max="255" placeholder="如 128（0–255）">
+        <label for="dmxInput">DMX 输入值（0–255，或带 % 的 0–100）</label>
+        <input type="text" id="dmxInput" value="128" oninput="calc()" inputmode="decimal" placeholder="如 128 或 50%">
       </div>
     </div>
 
@@ -283,9 +283,20 @@ function curveFn(type, x) {
 
 function calc() {
   var type = document.getElementById('curveType').value;
-  var dmx = parseFloat(document.getElementById('dmxInput').value) || 0;
-  if (dmx < 0) dmx = 0;
-  if (dmx > 255) dmx = 255;
+  var raw = String(document.getElementById('dmxInput').value || '').trim();
+  if (raw === '') {
+    ToolBox.setResult('result', '<p style="color:var(--danger)">请输入 DMX 值（0–255）或百分比（如 50%），空值不会按 0 计算。</p>');
+    ToolBox.setResult('chartArea', '');
+    return;
+  }
+  var isPct = /%$/.test(raw);
+  var num = parseFloat(raw.replace('%', ''));
+  if (!isFinite(num) || num < 0 || (isPct ? num > 100 : num > 255)) {
+    ToolBox.setResult('result', '<p style="color:var(--danger)">DMX 值须在 0–255，百分比须在 0–100%；超出范围请修正。</p>');
+    ToolBox.setResult('chartArea', '');
+    return;
+  }
+  var dmx = isPct ? Math.round(num / 100 * 255) : Math.round(num);
 
   var output = curveFn(type, dmx);
   var outputPct = (output / 255 * 100);
@@ -302,7 +313,8 @@ function calc() {
 
   var html = '<p>调光曲线：<strong>' + typeName + '</strong></p>';
   html += '<p>DMX 输入：<strong>' + dmx + ' / 255</strong>（' + dmxPct.toFixed(1) + '%）</p>';
-  html += '<p>实际输出：<strong>' + output.toFixed(1) + ' / 255</strong>（' + outputPct.toFixed(1) + '%）</p>';
+  html += '<p>理论曲线输出：<strong>' + output.toFixed(1) + ' / 255</strong>（' + outputPct.toFixed(1) + '%）</p>';
+  html += '<p style="font-size:12px;color:var(--text-muted);">这是所选数学曲线的映射值，不等于现场实测亮度；实际灯具还受灯泡、电源与调光器特性影响。</p>';
   html += '<p>亮度增益：<strong>' + (output / Math.max(dmx, 1)).toFixed(3) + '×</strong></p>';
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 
@@ -325,10 +337,12 @@ function calc() {
 
 function copyResult() {
   var type = document.getElementById('curveType').value;
-  var dmx = document.getElementById('dmxInput').value;
-  var output = curveFn(type, parseFloat(dmx) || 0);
+  var raw = String(document.getElementById('dmxInput').value || '').trim();
+  var isPct = /%$/.test(raw); var num = parseFloat(raw.replace('%', ''));
+  var dmx = isFinite(num) ? (isPct ? Math.round(num / 100 * 255) : Math.round(num)) : 0;
+  var output = curveFn(type, dmx);
   var typeName = {linear:'线性',square:'平方律',sine:'正弦',s:'S曲线',expo:'指数',log:'对数'}[type];
-  var text = '调光(' + typeName + '): DMX' + dmx + ' → 输出' + output.toFixed(1);
+  var text = '调光(' + typeName + '): 输入' + raw + ' → 理论曲线输出' + output.toFixed(1);
   ToolBox.copyText(text, i18nText('msg609'));
 }
 calc();

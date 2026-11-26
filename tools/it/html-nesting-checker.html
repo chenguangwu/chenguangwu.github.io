@@ -250,72 +250,89 @@
 var VOID=/^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/i;
 var RAW=/^(script|style|textarea|title)$/i;
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function htmlTagAt(src, i){
+  if(typeof src !== 'string' || i == null) return null;
+  if(src[i] !== '<') return null;
+  if(src.slice(i, i + 4) === '<!--'){
+    var ce = src.indexOf('-->', i + 4);
+    return { skip: true, end: ce < 0 ? src.length : ce + 3 };
+  }
+  if(src[i + 1] === '!' || src[i + 1] === '?'){
+    var de = src.indexOf('>', i + 2);
+    return { skip: true, end: de < 0 ? src.length : de + 1 };
+  }
+  var j = i + 1, close = false;
+  if(src[j] === '/'){ close = true; j++; }
+  var nm = /^[A-Za-z][A-Za-z0-9:_-]*/.exec(src.slice(j));
+  if(!nm) return null;
+  var name = nm[0], k = j + name.length, quote = null;
+  for(; k < src.length; k++){
+    var ch = src[k];
+    if(quote){ if(ch === quote) quote = null; continue; }
+    if(ch === '"' || ch === "'"){ quote = ch; continue; }
+    if(ch === '>') break;
+  }
+  if(k >= src.length) return null;
+  var selfClose = /\/\s*$/.test(src.slice(j + name.length, k));
+  return { name: name, close: close, selfClose: selfClose, end: k + 1 };
+}
+
+function scanHtml(src){
+  if(typeof src !== 'string') return [];
+  var out = [], i = 0, line = 1;
+  while(i < src.length){
+    if(src[i] !== '<'){ if(src[i] === '\n') line++; i++; continue; }
+    var t = htmlTagAt(src, i);
+    if(!t){ i++; continue; }
+    if(t.skip){ line += src.slice(i, t.end).split('\n').length - 1; i = t.end; continue; }
+    t.line = line;
+    line += src.slice(i, t.end).split('\n').length - 1;
+    i = t.end;
+    out.push(t);
+    if(!t.close && RAW.test(t.name) && !t.selfClose){
+      var rawRe = new RegExp('</' + t.name + '\\s*>', 'i');
+      var rest = src.slice(i), cm = rawRe.exec(rest);
+      if(cm){
+        var closeLine = line + rest.slice(0, cm.index).split('\n').length - 1;
+        out.push({ name: t.name, close: true, line: closeLine, end: i + cm.index + cm[0].length });
+        line += rest.slice(0, cm.index + cm[0].length).split('\n').length - 1;
+        i += cm.index + cm[0].length;
+      }
+    }
+  }
+  return out;
+}
+
 function check(){
-  var src=document.getElementById('html').value;
-  var out=document.getElementById('result');
-  var rep=document.getElementById('report');
-  if(!src.trim()){const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){rep.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}rep.innerHTML=__h1;return;}
-  var stack=[],errors=[],i=0;
-  var tagRe=/<\/?([a-zA-Z][a-zA-Z0-9-]*)((?:\s[^>]*)?)>/g;
-  var m,pos=0,line=1;
-  while((m=tagRe.exec(src))!==null){
-    var before=src.slice(pos,m.index);
-    line+=before.split('\n').length-1;
-    var name=m[1],isClose=m[0][1]==='/';
-    if(isClose){
-      if(RAW.test(name)&&m[0].indexOf('</')===0){continue;}
-      if(stack.length===0){errors.push('第 '+line+' 行：多余的闭合标签 </'+name+'>');}
-      else{
-        var idx=-1;
-        for(var k=stack.length-1;k>=0;k--){if(stack[k].name.toLowerCase()===name.toLowerCase()){idx=k;break;}}
-        if(idx===-1){errors.push('第 '+line+' 行：</'+name+'> 与未打开的标签不匹配');}
-        else{
-          for(var j=stack.length-1;j>idx;j--){
-            errors.push('第 '+line+' 行：</'+name+'> 闭合时，<'+stack[j].name+'> 未显式闭合（隐式闭合）');
-          }
-          stack.length=idx;
-        }
-      }
-    }else{
-      if(!VOID.test(name)&&!RAW.test(name)){
-        if(/\/>$/.test(m[0]))continue; // 自闭合
-        stack.push({name:name,line:line});
-      }
-    }
-    pos=tagRe.lastIndex;
-    line=1; // 已按 before 累计
-    // 重新基于 m.index 计算行号（简单方式）
+  var src = document.getElementById('html').value;
+  var out = document.getElementById('result');
+  var rep = document.getElementById('report');
+  if(!src.trim()){
+    out.innerHTML = '';
+    rep.innerHTML = '';
+    return;
   }
-  // 简化行号修正：整体重算
-  errors=[];
-  stack=[];
-  var re=/<\/?([a-zA-Z][a-zA-Z0-9-]*)((?:\s[^>]*)?)>/g;
-  var mm,prev=0,curLine=1;
-  while((mm=re.exec(src))!==null){
-    var seg=src.slice(prev,mm.index);
-    curLine+=seg.split('\n').length-1;
-    prev=re.lastIndex;
-    var nm=mm[1],cl=mm[0][1]==='/';
-    if(cl){
-      if(stack.length===0){errors.push('第 '+curLine+' 行：多余的闭合标签 </'+nm+'>');continue;}
-      var ix=-1;
-      for(var q=stack.length-1;q>=0;q--){if(stack[q].name.toLowerCase()===nm.toLowerCase()){ix=q;break;}}
-      if(ix===-1){errors.push('第 '+curLine+' 行：</'+nm+'> 与未打开的标签不匹配');}
-      else{
-        for(var w=stack.length-1;w>ix;w--){errors.push('第 '+curLine+' 行：<'+stack[w].name+'> 被隐式闭合（</'+nm+'> 闭合了它）');}
-        stack.length=ix;
-      }
-    }else{
-      if(!VOID.test(nm)&&!RAW.test(nm)&&!/\/>$/.test(mm[0]))stack.push({name:nm,line:curLine});
+  var stack = [], errors = [];
+  var tokens = scanHtml(src);
+  tokens.forEach(function(t){
+    if(t.close){
+      if(stack.length === 0){ errors.push('第 ' + t.line + ' 行：多余的闭合标签 </' + t.name + '>'); return; }
+      var ix = -1;
+      for(var q = stack.length - 1; q >= 0; q--){ if(stack[q].name.toLowerCase() === t.name.toLowerCase()){ ix = q; break; } }
+      if(ix === -1){ errors.push('第 ' + t.line + ' 行：</' + t.name + '> 与未打开的标签不匹配'); return; }
+      for(var w = stack.length - 1; w > ix; w--){ errors.push('第 ' + t.line + ' 行：<' + stack[w].name + '> 被隐式闭合（</' + t.name + '> 闭合了它）'); }
+      stack.length = ix;
+      return;
     }
-  }
-  stack.forEach(function(s){errors.push('第 '+s.line+' 行：<'+s.name+'> 未闭合');});
+    if(!VOID.test(t.name) && !t.selfClose) stack.push({ name: t.name, line: t.line });
+  });
+  stack.forEach(function(s){ errors.push('第 ' + s.line + ' 行：<' + s.name + '> 未闭合'); });
   if(!errors.length){
-    const __h2='<p style="color:var(--success)">✅ HTML 嵌套结构合法（无未闭合/错误嵌套标签）</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
-    const __h3='';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){rep.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}rep.innerHTML=__h3;
-  }else{
-    const __h4='<p style="color:var(--danger)">❌ 发现 <strong>'+errors.length+'</strong> 个问题：</p>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h4;
-    const __h5='<div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:12px 14px;">'+errors.map(function(e){return '<div>⚠️ '+escH(e)+'</div>';}).join('')+'</div>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){rep.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}rep.innerHTML=__h5;
+    out.innerHTML = '<p style="color:var(--success)">✅ HTML 嵌套结构合法（无未闭合/错误嵌套标签）</p>';
+    rep.innerHTML = '';
+  } else {
+    out.innerHTML = '<p style="color:var(--danger)">❌ 发现 <strong>' + errors.length + '</strong> 个问题：</p>';
+    rep.innerHTML = '<div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:12px 14px;">' + errors.map(function(e){ return '<div>⚠️ ' + escH(e) + '</div>'; }).join('') + '</div>';
   }
 }
 

@@ -306,12 +306,20 @@ function parseQueryPairs(qs, decode){
   if(qs){qs.split('&').forEach(function(p){if(!p)return;var i=p.indexOf('=');var k=i>=0?p.slice(0,i):p;var v=i>=0?p.slice(i+1):'';pairs.push({k:decode?urlParamsDec(k):k,v:decode?urlParamsDec(v):v});});}
   return pairs;
 }
+function splitUrlParts(raw){
+  var s=String(raw||'');
+  var hashIdx=s.indexOf('#');
+  var hash=hashIdx>=0?s.slice(hashIdx):'';
+  var main=hashIdx>=0?s.slice(0,hashIdx):s;
+  var qm=main.indexOf('?');
+  return {base:qm>=0?main.slice(0,qm):main, query:qm>=0?main.slice(qm+1):'', hash:hash};
+}
 function calcTool(){
   var raw=(document.getElementById('urlInput').value||'').trim();
   if(!raw){raw='https://example.com/search?q=toolbox&lang=zh-CN&page=2';}
-  var qm=raw.indexOf('?');
-  var base=qm>=0?raw.slice(0,qm):raw;
-  var qs=qm>=0?raw.slice(qm+1):'';
+  var parts=splitUrlParts(raw);
+  var base=parts.base;
+  var qs=parts.query;
   var pairs=parseQueryPairs(qs,_decMode);
   var box=document.getElementById('paramsBox');
   var tpl=document.getElementById('paramRowTpl').innerHTML;
@@ -322,7 +330,10 @@ function calcTool(){
   renderUrl();
 }
 function renderUrl(){
-  var base=document.getElementById('urlInput').value.split('?')[0];
+  var raw=document.getElementById('urlInput').value;
+  var parts=splitUrlParts(raw);
+  var hash=parts.hash;
+  var base=parts.base;
   var rows=document.querySelectorAll('#paramsBox .param-row');
   var parts=[];
   rows.forEach(function(r){
@@ -333,7 +344,7 @@ function renderUrl(){
     if(!_decMode){k=urlParamsDec(k);v=urlParamsDec(v);}
     parts.push(encodeURIComponent(k).replace(/%20/g,'+')+'='+encodeURIComponent(v).replace(/%20/g,'+'));
   });
-  var url=parts.length?base+'?'+parts.join('&'):base;
+  var url=(parts.length?base+'?'+parts.join('&'):base)+hash;
   const __g3='<div class="out-url">'+esc(url)+'</div>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   return url;
 }

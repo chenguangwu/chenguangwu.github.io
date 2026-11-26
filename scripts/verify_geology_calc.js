@@ -533,6 +533,14 @@ const CASES = [
     "ref": "段长(mm)=120/85/250/60/180/95/310/40/150、阈值 100 mm ⇒ 有效段 120+250+180+310+150=1010 mm=1.010 m（5/9 段）；钻孔总长 2 m ⇒ RQD=1010/(2×1000)×100=50.5%（≥50 → 一般 Fair）。harness 不解析 addSegment() 动态生成的输入，故 clicks 以同值数组替换 querySelectorAll('#segments .seg-val') 的返回值后调用真实 calcRQD()，阈值比较/求和/分级仍全部走页面实现；默认态 0 段 ⇒ RQD 0.0%、有效岩芯总长 0.000，两锚均不命中（判别时清空 clicks 即回该默认态）。"
   }
 
+,
+{
+  "slug": "geology/calc-1",
+  "inputs": {"drillLen":"2","threshold":"0","unit":"mm"},
+  "clicks": ["document.querySelectorAll=function(){return [{value:'120'},{value:'85'},{value:'250'}];};calcRQD()"],
+  "expect": ["有效岩芯长度阈值必须大于 0；常用 100 mm"],
+  "ref": "阈值 0 不按 100 兜底，显式拒绝并说明常用 100 mm；旧 `||100` 会把 0 静默当 100 算出 RQD。默认阈值 100 不含该提示。"
+}
 ];
 
 async function main() {

@@ -236,7 +236,7 @@
     <div class="header-row">
       <h2 data-zh="🗄️ SQLite 在线执行">🗄️ SQLite Runner</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">浏览器内用 sql.js 建立内存数据库（new SQL.Database()），按分号切分语句逐条执行并跳过空语句；单条耗时 = performance.now() 前后差值（保留两位小数 ms），总耗时为各条之和；结果集渲染为表格，异常时按错误类别提示。历史最多保留 10 条</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">浏览器内用 sql.js 建立内存数据库（new SQL.Database()），交由 SQLite 自身逐条 prepare/step（不手写分号切分），因此触发器 BEGIN…END、方括号/反引号标识符内的分号不会被拆坏；单条耗时 = performance.now() 前后差值（保留两位小数 ms），总耗时为各条之和；结果集渲染为表格，异常时按错误类别提示。历史最多保留 10 条</div>
   <div class="formula-desc">在浏览器中直接执行 SQL 语句。</div>
   <ul class="formula-list">
     <li><b>实现</b>：基于编译为 WebAssembly 的 SQLite 引擎，完全在浏览器内运行。</li>
@@ -374,7 +374,7 @@
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -382,7 +382,7 @@
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -582,54 +582,6 @@ function updateHighlight(){
   sqlHighlight.scrollLeft = sqlInput.scrollLeft;
 }
 
-/* ---------- SQL 语句切分（尊重字符串与注释） ---------- */
-function splitSQL(sql){
-  const stmts = [];
-  let cur = '';
-  let i = 0;
-  const n = sql.length;
-  const push = () => {
-    const t = cur.trim();
-    if(t) stmts.push(t);
-    cur = '';
-  };
-  while(i < n){
-    const ch = sql[i];
-    const two = sql.substr(i, 2);
-    if(two === '--'){
-      const end = sql.indexOf('\n', i);
-      const stop = end === -1 ? n : end;
-      cur += sql.slice(i, stop);
-      i = stop;
-      continue;
-    }
-    if(two === '/*'){
-      const end = sql.indexOf('*/', i + 2);
-      const stop = end === -1 ? n : end + 2;
-      cur += sql.slice(i, stop);
-      i = stop;
-      continue;
-    }
-    if(ch === "'" || ch === '"'){
-      const quote = ch;
-      cur += ch; i++;
-      while(i < n){
-        cur += sql[i];
-        if(sql[i] === quote){
-          if(sql[i + 1] === quote){ cur += sql[i + 1]; i += 2; continue; }
-          i++; break;
-        }
-        i++;
-      }
-      continue;
-    }
-    if(ch === ';'){ cur += ch; i++; push(); continue; }
-    cur += ch; i++;
-  }
-  push();
-  return stmts;
-}
-
 function stmtType(sql){
   const m = sql.trim().match(/^(\w+)/);
   return m ? m[1].toUpperCase() : 'SQL';
@@ -644,39 +596,48 @@ function executeSQL(){
   const raw = sqlInput.value.trim();
   if(!raw){ ToolBox.showToast(i18nText('toast.msg750'), 'warning'); return; }
 
-  const stmts = splitSQL(raw);
-  if(stmts.length === 0){ ToolBox.showToast(i18nText('toast.msg750'), 'warning'); return; }
-
   let html = '';
-  let successCount = 0, errorCount = 0;
+  let successCount = 0, errorCount = 0, totalCount = 0;
   const t0 = performance.now();
 
-  stmts.forEach((stmt, idx) => {
-    const type = stmtType(stmt);
+  // 不再手写按分号切分：CREATE TRIGGER ... BEGIN ...; ...; END、方括号/反引号标识符里的分号
+  // 都会被误切。交给 SQLite 自身逐条 prepare（iterateStatements），由引擎判断语句边界。
+  let iter;
+  try{
+    iter = db.iterateStatements(raw);
+  }catch(e){
+    $('result').innerHTML = '<div class="exec-item"><div class="exec-error">' + ToolBox.escHtml(e.message || String(e)) + '</div></div>';
+    ToolBox.showToast('SQL 解析失败', 'warning');
+    return;
+  }
+  for(const stmt of iter){
+    const stmtText = (typeof stmt.getSQL === 'function' ? stmt.getSQL() : '') || '';
+    const type = stmtType(stmtText);
+    totalCount++;
     const st0 = performance.now();
-    let results;
+    let columns = [], rows = [];
     try{
-      results = db.exec(stmt);
+      columns = stmt.getColumnNames();
+      while(stmt.step()) rows.push(stmt.get());
     }catch(e){
       const elapsed = (performance.now() - st0).toFixed(2);
       errorCount++;
-      html += renderError(idx + 1, type, stmt, e.message, elapsed);
-      return;
+      html += renderError(totalCount, type, stmtText, e.message, elapsed);
+      continue;
     }
     const elapsed = (performance.now() - st0).toFixed(2);
     successCount++;
-    if(results && results.length > 0){
-      results.forEach(r => {
-        html += renderTable(idx + 1, type, stmt, r.columns, r.values, elapsed);
-      });
+    if(columns.length > 0){
+      html += renderTable(totalCount, type, stmtText, columns, rows, elapsed);
     }else{
       const affected = db.getRowsModified();
-      html += renderAffected(idx + 1, type, stmt, affected, elapsed);
+      html += renderAffected(totalCount, type, stmtText, affected, elapsed);
     }
-  });
+  }
+  if(totalCount === 0){ ToolBox.showToast(i18nText('toast.msg750'), 'warning'); return; }
 
   const totalElapsed = (performance.now() - t0).toFixed(2);
-  const summary = `<div class="exec-summary">共执行 <strong>${stmts.length}</strong> 条语句 · 成功 <strong>${successCount}</strong> 条 · 失败 <strong>${errorCount}</strong> 条 · 总耗时 <strong>${totalElapsed}ms</strong></div>`;
+  const summary = `<div class="exec-summary">共执行 <strong>${totalCount}</strong> 条语句 · 成功 <strong>${successCount}</strong> 条 · 失败 <strong>${errorCount}</strong> 条 · 总耗时 <strong>${totalElapsed}ms</strong></div>`;
 
   const __h2=html + summary;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){$('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('result').innerHTML=__h2;
   saveHistory(raw, errorCount === 0);

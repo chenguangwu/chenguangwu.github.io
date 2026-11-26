@@ -143,8 +143,8 @@
   <ul class="formula-list">
     <li><b>字母表</b>：58 个字符，从 0-9A-Za-z 中去掉 <code>0</code>、<code>O</code>、<code>I</code>、<code>l</code> 等易混项。</li>
     <li><b>算法</b>：把字节串视为大整数，反复除以 58 取余映射字符；前导零字节单独编码为 <code>1</code>。</li>
-    <li><b>Base58Check</b>：版本字节 + 载荷 + 4 字节校验（对载荷做双 SHA-256 取前 4 字节）。</li>
-    <li><b>注意</b>：无 <code>=</code> 填充，长度不固定；解码须区分纯 Base58 与 Base58Check。</li>
+    <li><b>Base58Check</b>：版本字节 + 载荷 + 4 字节校验（对版本+载荷做双 SHA-256 取前 4 字节）。本页只做不含校验和的普通 Base58，不验证也不追加该 4 字节校验。</li>
+    <li><b>注意</b>：无 <code>=</code> 填充，长度不固定；解码须区分纯 Base58 与 Base58Check。需要任意字节载荷时勾选「十六进制字节模式」，输入/输出按字节 Hex 处理并保留前导零。</li>
   </ul>
 </div>
 
@@ -152,10 +152,14 @@
       <div id="base58_encodePresets"></div><button type="button" class="btn primary" onclick="enc()">编码 ↑</button><button class="btn" type="button" onclick="__base58_encodeExport()">导出明细 CSV</button>
       <button type="button" class="btn primary" onclick="dec()">解码 ↓</button>
       <button type="button" class="btn success" onclick="copyResult(event)">复制结果</button>
+      <button type="button" class="btn" onclick="copyHexResult(event)">复制 Hex</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
       <div style="flex:1;"></div>
+      <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;">
+        <input type="checkbox" id="hexMode" onchange="__b58HexMode=this.checked;__b58Invalidate()"> 十六进制字节模式
+      </label>
       <label style="margin:0;font-size:13px;">
-        <select id="variant" style="padding:6px 10px;font-size:13px;">
+        <select id="variant" style="padding:6px 10px;font-size:13px;" onchange="__b58Invalidate()">
           <option value="bitcoin">Bitcoin</option>
           <option value="ripple">Ripple</option>
           <option value="flickr">Flickr</option>
@@ -164,10 +168,13 @@
     </div>
 
     <label for="input">输入</label>
-    <textarea id="input" placeholder="输入要编码的文本或要解码的 Base58 字符串...">Hello</textarea>
+    <textarea id="input" placeholder="输入要编码的文本或要解码的 Base58 字符串..." oninput="__b58Invalidate()">Hello</textarea>
 
     <label style="margin-top:16px;" for="output">输出结果</label>
-    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea> <div id="base58_encodeTable"></div> <div id="base58_encodeDiff"></div> <div id="base58_encodeChart"></div> <div id="base58_encodeHist"></div>
+    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea>
+    <div id="b58Notice" class="formula-desc" style="margin:8px 0;color:var(--text-light);"></div>
+    <label style="margin-top:8px;" for="b58Hex">字节（Hex，保留前导零与任意二进制）</label>
+    <textarea id="b58Hex" placeholder="编码或解码后按字节显示 Hex，例如 00 00 66 6F 6F" readonly></textarea> <div id="base58_encodeTable"></div> <div id="base58_encodeDiff"></div> <div id="base58_encodeChart"></div> <div id="base58_encodeHist"></div>
   </div>
 
   <div class="card">
@@ -287,7 +294,7 @@ function decodeBase58(str){
   for(let i = 0; i < str.length; i++){
     const c = str[i];
     let carry = alpha.indexOf(c);
-    if(carry === -1) throw new Error('非法字符: ' + c);
+    if(carry === -1) throw new Error(b58Err('Invalid character: ' + c,'非法字符: ' + c));
     let j = 0;
     for(let k = size - 1; k >= 0 && (carry !== 0 || j < length); k--, j++){
       carry += 58 * bytes[k];
@@ -301,42 +308,105 @@ function decodeBase58(str){
   return out;
 }
 
+function b58Err(zh,en){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh; }
+function bytesToHex(bytes){
+  var out = [];
+  for(var i=0;i<bytes.length;i++) out.push((bytes[i] < 16 ? '0' : '') + bytes[i].toString(16).toUpperCase());
+  return out.join(' ');
+}
+function hexToBytes(text){
+  var clean = String(text).replace(/0x/gi,'').replace(/[\s,_:-]+/g,'');
+  if(!clean) throw new Error(((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Hex input is empty':'Hex 输入为空'));
+  if(clean.length % 2 !== 0) throw new Error(((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Hex input must have an even number of digits':'Hex 输入须为偶数个十六进制字符'));
+  if(!/^[0-9a-fA-F]+$/.test(clean)) throw new Error(((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Hex input contains a non-hex character':'Hex 输入含非十六进制字符'));
+  var out = new Uint8Array(clean.length / 2);
+  for(var i=0;i<out.length;i++) out[i] = parseInt(clean.substr(i*2,2),16);
+  return out;
+}
+
+var __b58Valid = false;
+var __b58HexMode = false;
+function isHexMode(){ var el=document.getElementById('hexMode'); return !!(el && el.checked) || !!__b58HexMode; }
+function __b58Invalidate(){
+  __b58Valid = false;
+  var out = document.getElementById('output');
+  var hex = document.getElementById('b58Hex');
+  var notice = document.getElementById('b58Notice');
+  if(out) out.value = '';
+  if(hex) hex.value = '';
+  if(notice) notice.textContent = '';
+}
+function __b58SetResult(text, bytes, ok){
+  document.getElementById('output').value = text;
+  document.getElementById('b58Hex').value = bytesToHex(bytes);
+  document.getElementById('b58Notice').textContent = '';
+  __b58Valid = !!ok;
+}
+
 function enc(){
+  __b58Invalidate();
   const text = document.getElementById('input').value;
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter text to encode":"请输入要编码的文本"));
-  document.getElementById('output').value = encodeBase58(new TextEncoder().encode(text));
+  let bytes;
+  try{
+    bytes = isHexMode() ? hexToBytes(text) : new TextEncoder().encode(text);
+  }catch(e){
+    return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Encode failed: ":"编码失败：") + e.message);
+  }
+  __b58SetResult(encodeBase58(bytes), bytes, true);
 }
 
 function dec(){
+  __b58Invalidate();
   const text = document.getElementById('input').value.trim();
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter Base58 string to decode":"请输入要解码的 Base58 字符串"));
   try{
     const bytes = decodeBase58(text);
+    document.getElementById('b58Hex').value = bytesToHex(bytes);
+    if(isHexMode()){
+      __b58SetResult(bytesToHex(bytes), bytes, true);
+      return;
+    }
     let decoded;
     try{
       decoded = new TextDecoder('utf-8',{fatal:true}).decode(bytes);
     }catch(e){
       const en=(typeof TBKit!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-      throw new Error(en?'Payload contains non-UTF-8 bytes; this tool only handles text':'载荷含非 UTF-8 字节，当前仅支持文本');
+      document.getElementById('b58Notice').textContent = en
+        ? 'Decoded payload is not valid UTF-8, so the text result is empty. The Hex field above/below keeps the raw bytes; tick "hex byte mode" to work with bytes directly.'
+        : '解码载荷不是有效 UTF-8，文本结果已留空；上方 Hex 字段保留原始字节，可勾选「十六进制字节模式」直接按字节处理。';
+      __b58Valid = false;
+      return;
     }
-    document.getElementById('output').value = decoded;
+    __b58SetResult(decoded, bytes, true);
   }catch(e){
-    alert('解码失败：' + e.message);
+    __b58Invalidate();
+    alert(b58Err('解码失败：','Decode failed: ') + e.message);
   }
 }
 
+function copyText(v, ev){
+  const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
+  const orig = btn ? btn.textContent : '';
+  navigator.clipboard.writeText(v).then(() => {
+    if(btn){ btn.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"✅ Copied":"✅ 已复制"); setTimeout(() => btn.textContent = orig, 1500); }
+  });
+}
 function copyResult(ev){
+  if(!__b58Valid) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"No current result to copy; run encode/decode successfully first":"当前没有可复制的结果，请先成功执行编码或解码"));
   const v = document.getElementById('output').value;
   if(!v) return;
-  const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
-  navigator.clipboard.writeText(v).then(() => {
-    if(btn){ btn.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"✅ Copied":"✅ 已复制"); setTimeout(() => btn.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copy result":"复制结果"), 1500); }
-  });
+  copyText(v, ev);
+}
+function copyHexResult(ev){
+  const v = document.getElementById('b58Hex').value;
+  if(!v) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"No hex bytes available yet":"当前没有可复制的 Hex 字节"));
+  copyText(v, ev);
 }
 
 function clearAll(){
   document.getElementById('input').value = '';
-  document.getElementById('output').value = '';
+  __b58Invalidate();
 }
 </script><script>
 // tool-intro折叠交互
@@ -505,7 +575,7 @@ else document.addEventListener('DOMContentLoaded', __base58_encodeBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -513,7 +583,7 @@ else document.addEventListener('DOMContentLoaded', __base58_encodeBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

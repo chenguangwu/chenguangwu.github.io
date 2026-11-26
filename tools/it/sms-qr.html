@@ -129,6 +129,7 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 </nav>
 <div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
+<label style="display:flex;align-items:center;gap:8px;margin:14px 0 0;font-size:13px;color:var(--text-muted);"><input type="checkbox" id="qrSaveHistory"> <span data-zh="保存本次到历史（默认关闭；会保存号码/短信内容）">Save this result to history (off by default; stores number/message)</span></label>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
@@ -149,7 +150,7 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
     <textarea id="msg" style="margin-bottom:12px;">Hello, this is a test message.</textarea>
     <div class="toolbar">
       <div id="sms_qrPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__sms_qrExport()">导出明细 CSV</button>
-      <button type="button" class="btn success" onclick="copyResult()">复制</button>
+      <button type="button" class="btn success" id="smsCopyBtn" onclick="copyResult()">复制</button>
     </div>
     <div class="result-box" id="output"></div> <div id="sms_qrTable"></div> <div id="sms_qrDiff"></div> <div id="sms_qrChart"></div> <div id="sms_qrHist"></div>
   </div>
@@ -254,22 +255,29 @@ function drawQR(text){
   for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))ctx.fillRect((c+margin)*cell,(r+margin)*cell,cell,cell);
   return canvas;
 }
+let __smsUri = '';
 function generate(){
   const out=document.getElementById('output');
+  const copyBtn=document.getElementById('smsCopyBtn');
   try{
-    const text=buildSms(), canvas=drawQR(text);
-    if(!canvas){out.innerHTML='<p style="color:var(--danger)">⚠ '+(smsEn()?'QR library failed to load; please refresh.':'二维码库加载失败，请刷新页面重试。')+'</p><div class="qr-text">'+escapeHtml(text)+'</div>';return;}
+    const text=buildSms();
+    __smsUri=text;
+    if(copyBtn) copyBtn.disabled=false;
+    const canvas=drawQR(text);
+    if(!canvas){out.innerHTML='<p style="color:var(--danger)">⚠ '+(smsEn()?'QR library failed to load; please refresh.':'二维码库加载失败，请刷新页面重试。')+'</p><div class="qr-text">'+escapeHtml(text)+'</div><p style="font-size:12px;color:var(--text-muted);">'+(smsEn()?'The SMS URI is still valid; you can copy it directly.':'短信 URI 仍有效，可直接复制。')+'</p>';return;}
     // 文本/URI 类结果不做 NaN 正则守卫：正文合法含 "NaN" 时也必须正常出码。
     out.innerHTML='<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(text)+'</div>';
     out.querySelector('.qr-wrap').appendChild(canvas);
   }catch(e){
+    __smsUri='';
+    if(copyBtn) copyBtn.disabled=true;
     out.innerHTML='<p style="color:var(--danger)">⚠ '+escapeHtml(e&&e.message?e.message:String(e))+'</p>';
   }
 }
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
-  const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
+  if(!__smsUri){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a valid phone number first":"请先输入有效电话号码")); return; }
+  navigator.clipboard.writeText(__smsUri).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制"))).catch(()=>alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Clipboard failed; copy manually":"复制失败，请手动复制")));
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
@@ -304,6 +312,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 var __sms_qr_last=0,__sms_qr_skip=false;
+try{ localStorage.removeItem('tbk_hist_'+location.pathname); }catch(e){}
 function __sms_qrSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -376,6 +385,8 @@ function __sms_qrRender(keys,rk,en){
 function __sms_qrExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__sms_qr_skip) return;
+    var __saveEl=document.getElementById('qrSaveHistory');
+    if(!__saveEl||!__saveEl.checked) return;
     var snap=__sms_qrSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -451,7 +462,7 @@ else document.addEventListener('DOMContentLoaded', __sms_qrBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -459,7 +470,7 @@ else document.addEventListener('DOMContentLoaded', __sms_qrBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

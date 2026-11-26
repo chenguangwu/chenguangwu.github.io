@@ -275,7 +275,8 @@ function ugEn(){return !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isE
 function ugQ(zh,en){return ugEn()?en:zh;}
 function ugStyle(){var el=document.getElementById('style');return (el&&UG_STYLES[el.value])?el.value:'classic';}
 function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
-function leet(s){return s.replace(/a/gi,'4').replace(/e/gi,'3').replace(/i/gi,'1').replace(/o/gi,'0').replace(/s/gi,'5').replace(/t/gi,'7');}
+function leet(s){s=String(s==null?'':s);return s.replace(/a/gi,'4').replace(/e/gi,'3').replace(/i/gi,'1').replace(/o/gi,'0').replace(/s/gi,'5').replace(/t/gi,'7');}
+let __ugLastUsernames = [];
 function generate(){
   const kw=document.getElementById('kw').value.trim();
   const count=parseInt(document.getElementById('count').value);
@@ -290,8 +291,12 @@ function generate(){
   const prefix=(style==='professional')?false:document.getElementById('prefix').checked;
   const seps=underscore?['_','']:['_','',''];
   const prefixes=['the','my','mr','ms','real','its','official'];
+  const suffixes=['fox','wolf','hawk','lion','tiger','nova','byte','code','dev','lab','hub','zen','ray','sky','max','pixel','cloud','data','net','pro'];
   let html='';
-  for(let i=0;i<count;i++){
+  __ugLastUsernames=[];
+  const seen=new Set(); let attempts=0, maxAttempts=Math.max(count*40,200);
+  while(__ugLastUsernames.length<count && attempts<maxAttempts){
+    attempts++;
     let username;
     if(kw){
       username=kw.length<4?kw+ADJ[randInt(ADJ.length)]:kw;
@@ -307,7 +312,20 @@ function generate(){
     if(leetOn)username=leet(username);
     username=username.toLowerCase();
     if(username.length>effMaxLen)username=username.slice(0,effMaxLen);
+    if(seen.has(username)){
+      // 关闭随机数字/前缀时关键词候选会完全相同：追加确定性后缀去重；空间不够则停止并如实报数量。
+      const base=username;
+      for(let t=0;t<suffixes.length;t++){
+        const cand=(base+suffixes[(attempts+t)%suffixes.length]).slice(0,effMaxLen);
+        if(!seen.has(cand)){ username=cand; break; }
+      }
+    }
+    if(seen.has(username)) continue;
+    seen.add(username); __ugLastUsernames.push(username);
     html+='<div class="code-row">'+escapeHtml(username)+'</div>';
+  }
+  if(__ugLastUsernames.length<count){
+    html+='<div class="code-row ug-meta" style="color:#B45309;">⚠ '+ugQ('组合空间不足：请求 '+count+' 个，实际仅生成 '+__ugLastUsernames.length+' 个；请增大最大长度或允许数字/前缀。','Only '+__ugLastUsernames.length+' of '+count+' unique names fit; increase max length or allow numbers/prefixes.')+'</div>';
   }
   // 配置摘要放在末尾：既有自动补强用例锚的是候选列表前缀，追加行不影响子串命中。
   const bankSize=bank.words?bank.words.length:(ADJ.length+NOUN.length);
@@ -316,8 +334,9 @@ function generate(){
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
-  const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
+  const text = __ugLastUsernames.join('\n');
+  if(!text){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Generate usernames first":"请先生成用户名")); return; }
+  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制"))).catch(()=>alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Clipboard failed; copy manually":"复制失败，请手动选择结果复制")));
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
@@ -505,7 +524,7 @@ else document.addEventListener('DOMContentLoaded', __username_generatorBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -513,7 +532,7 @@ else document.addEventListener('DOMContentLoaded', __username_generatorBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

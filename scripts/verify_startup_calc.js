@@ -236,8 +236,34 @@ const CASES = [
   "expect": ["EQCLR OK"],
   "ref": "第1345批 equity-calculator 贡献负值/期权池越界两早退原只 showToast，不清 #result(股权表+变动历程)；对齐同函数另两分支写法补清空。"
 },
-{ slug:"startup/burn-rate", inputs:{"cash":"","income":"","salary":"","rent":"","marketing":"","other":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"startup/burn-rate", inputs:{"cash":"","income":"","salary":"","rent":"","marketing":"","other":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{
+  "slug": "startup/burn-rate",
+  "inputs": {"cash":"100000","income":"","salary":"175000","rent":"0","marketing":"0","other":"0"},
+  "expect": ["空值不按 0 处理"],
+  "ref": "第828批：部分字段留空时旧 getInputs 用 `||0` 当 0，月收入空被当成 0 仍算出跑道。现在空值返回 NaN 并阻断，提示明确要求非负数且空值不按 0 处理。"
+},
+{
+  "slug": "startup/burn-rate",
+  "inputs": {"cash":"100000","income":"100000","salary":"100000","rent":"0","marketing":"0","other":"0"},
+  "expect": ["收支持平", "不能推断已盈利"],
+  "ref": "第828批：净消耗恰为 0 时旧分支按 `<=0` 归入「已有正向现金流/已盈利」。现在单独判收支持平，明确现金不增不减且不能推断盈利。"
+},
+{
+  "slug": "startup/burn-rate",
+  "inputs": {"cash":"190000","income":"0","salary":"100000","rent":"0","marketing":"0","other":"0"},
+  "expect": ["1.9 个月", "整月+小数月×30天"],
+  "ref": "第828批：跑道 1.9 个月旧实现只加 floor(1.9)=1 个月，耗尽日期提前 0.9 个月。现在整月 + 小数月×30 天近似并标注口径；探针断 1.9 个月与近似说明。"
+}
+
 ];
+function equityFundingStaticChecks() {
+  const h = require("fs").readFileSync(require("path").join(__dirname, "..", "tools", "startup", "equity-calculator.html"), "utf8");
+  return [{
+    name: "融资轮统一校验后再应用",
+    ok: h.includes("const parsed = [];") && h.includes("let roundError") && h.includes("if(roundError){") && h.includes("parsed.forEach") && !/r-amount[^;]{0,60}\|\| 0/.test(h),
+  }];
+}
 async function main() {
   const only = process.argv.slice(2);
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
@@ -258,7 +284,10 @@ async function main() {
     }
   }
 
+  const stat = equityFundingStaticChecks();
+  const staticFails = stat.filter((s) => !s.ok);
+  for (const x of staticFails) console.log("❌ [static] " + x.name);
   console.log("==== startup calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (fails.length || staticFails.length) process.exit(1);
 }
 if (require.main === module) main();

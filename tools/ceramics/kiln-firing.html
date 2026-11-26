@@ -137,7 +137,7 @@
     <div id="schedWrap"></div>
 <div id="__tbnExtras" style="margin-top:12px"></div>
 
-    <table id="kfHidden" style="display:none"><thead><tr><th data-zh="类型" scope="col">Type</th><th scope="col">Stage</th><th scope="col">Temp Range</th><th data-zh="比率" scope="col">Rate</th><th scope="col">Hold</th></tr></thead><tbody></tbody></table>
+    <table id="kfHidden" style="display:none"><thead><tr><th data-zh="类型" scope="col">Type</th><th data-zh="阶段" scope="col">Stage</th><th data-zh="温度区间" scope="col">Temp Range</th><th data-zh="升温速率" scope="col">Rate</th><th data-zh="保温" scope="col">Hold</th></tr></thead><tbody></tbody></table>
   </div>
   <div class="card">
     <h2>📋 烧成要点</h2>
@@ -255,7 +255,7 @@ var SCHED={
     ['🌿','排湿','室温→150°C','50°C/h','保温1.5h'],
     ['💧','结构水','150→600°C','70°C/h','—'],
     ['🔥','氧化','600→950°C','100°C/h','保温0.5h'],
-    ['🔥','强还原','950→1100°C','50°C/h','还原焰'],
+    ['🔥','强还原（示例）','950→1100°C','50°C/h','还原焰（视窑型/泥釉）'],
     ['🔥','烧结','1100→1300°C','70°C/h','—'],
     ['⏱️','高保温','1300°C','—','保温0.5~1h'],
     ['❄️','慢冷','1300→800°C','80°C/h','—'],
@@ -270,8 +270,31 @@ var SCHED={
     ['❄️','冷却','1040→60°C','自然冷却','—']
   ]}
 };
+
+function __kfFmt(n){return (Math.round(n*10)/10).toFixed(1);}
+function __kfStageEst(st){
+  if(!st) return {heat:0,hold:0,cool:0,unknown:false,h0:0,h1:0};
+  var temp=String(st[2]||''),rate=String(st[3]||''),hold=String(st[4]||''),name=String(st[1]||'');
+  var heat=0,holdH=0,cool=0,unknown=false;
+  var norm=temp.replace(/室温/,'25');
+  var m=norm.match(/(\d+(?:\.\d+)?)\s*→\s*(\d+(?:\.\d+)?)/);
+  var rm=rate.match(/([\d.]+)\s*°C\/h/);
+  if(m&&rm){var h=Math.abs(parseFloat(m[2])-parseFloat(m[1]))/parseFloat(rm[1]);if(/冷/.test(name)||/慢冷/.test(name))cool+=h;else heat+=h;}
+  else if(/自然冷却/.test(rate)){unknown=true;}
+  var hm=hold.match(/保温\s*([\d.]+)(?:\s*~\s*([\d.]+))?\s*h/);
+  if(hm){var h0=parseFloat(hm[1]),h1=hm[2]?parseFloat(hm[2]):h0;holdH+=h0;}
+  return {heat:heat,hold:holdH,cool:cool,unknown:unknown,h0:h0||0,h1:h1||0};
+}
+function __kfEstimate(s){
+  if(!s||!Array.isArray(s.stages)) return {heat:0,holdMin:0,holdMax:0,cool:0,min:0,max:0,unknown:false};
+  var heat=0,holdMin=0,holdMax=0,cool=0,unknown=false;
+  s.stages.forEach(function(st){var e=__kfStageEst(st);heat+=e.heat;holdMin+=e.h0;holdMax+=e.h1;cool+=e.cool;if(e.unknown)unknown=true;});
+  var min=heat+holdMin+cool,max=heat+holdMax+cool;
+  return {heat:heat,holdMin:holdMin,holdMax:holdMax,cool:cool,min:min,max:max,unknown:unknown};
+}
 var cur='bisque';
 function switchTab(t,btn){
+  if(!SCHED[t]) return;
   cur=t;
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
   if(btn)btn.classList.add('active');
@@ -279,7 +302,11 @@ function switchTab(t,btn){
 }
 function render(){
   var s=SCHED[cur];
-  var html='<div class="tip-box tip-info" style="margin-bottom:12px;"><strong>'+s.name+'</strong>　峰值温度 '+s.peak+'°C，总烧成时间 '+s.totalDesc+'。</div>';
+  var est=__kfEstimate(s);
+  var total=(est.min===est.max?'约 '+__kfFmt(est.min):'约 '+__kfFmt(est.min)+'–'+__kfFmt(est.max))+' 小时'+(est.unknown?'（不含自然冷却段）':'');
+  var part='可计算段：升温 '+__kfFmt(est.heat)+' h + 保温 '+__kfFmt(est.holdMin)+(est.holdMax!==est.holdMin?'–'+__kfFmt(est.holdMax):'')+' h'+(est.cool?' + 慢冷 '+__kfFmt(est.cool)+' h':'');
+  var html='<div class="tip-box tip-info" style="margin-bottom:12px;"><strong>'+s.name+'</strong>　峰值温度 '+s.peak+'°C；'+part+' = '+total+'。<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">按各段温度区间÷升温速率并计入保温；自然冷却受窑型、装窑量与环境影响，未计入固定总时长。曲线为常见示例，须按窑炉能力、泥釉配方与烧成气氛调整。</div></div>';
+  if(cur==='porcelain'){html+='<div class="tip-box tip-warn" style="margin-bottom:12px;">瓷器预设的 950→1100°C「强还原」为示例条件，不是所有瓷器的必选步骤；是否还原、还原强度与气氛取决于泥釉配方、窑型与目标呈色，请先小样试烧或咨询窑炉/釉料供应方。</div>';}
   s.stages.forEach(function(st){
     html+='<div class="stage-card"><div class="s-ico">'+st[0]+'</div><div class="s-info"><div class="s-name">'+st[1]+'　'+st[2]+'</div><div class="s-meta">升温速率 '+st[3]+'　'+st[4]+'</div></div></div>';
   });
@@ -291,16 +318,31 @@ function render(){
   html+='</tbody></table>';
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('schedWrap').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('schedWrap').innerHTML=__h0;
 }
+function __kfName(n,en){
+  if(!en) return n;
+  var m={'素烧（Bisque）':'Bisque','陶器（Earthenware）':'Earthenware','炻器（Stoneware）':'Stoneware','瓷器（Porcelain）':'Porcelain','釉烧（Glaze Firing）':'Glaze Firing'};
+  return m[n]||n;
+}
+function __kfTr(v,en){
+  if(!en) return v;
+  var t=String(v);
+  var pairs=[['氧化保温','Oxidation hold'],['还原（可选）','Reduction (optional)'],['强还原（示例）','Strong reduction (example)'],['结构水','Structural water'],['排湿','Drying'],['氧化','Oxidation'],['烧结','Sintering'],['高保温','High hold'],['慢冷','Slow cooling'],['自然冷却','Natural cooling'],['冷却','Cooling'],['升温','Heating'],['中温','Mid-temperature'],['熔融','Melting'],['保温','Hold '],['还原焰（视窑型/泥釉）','Reducing atmosphere (kiln/glaze dependent)'],['还原焰','Reducing atmosphere'],['室温','RT']];
+  for(var i=0;i<pairs.length;i++) t=t.split(pairs[i][0]).join(pairs[i][1]);
+  return t.replace(/\s+/g,' ').trim();
+}
 function __kfExport(){
   if(typeof TBKit==='undefined')return;
   var en=TBKit.util.isEn();
   var tbody=document.querySelector('#kfHidden tbody');
   tbody.innerHTML='';
+  var heads=en?['Type','Stage','Temp Range','Rate','Hold']:['类型','阶段','温度区间','升温速率','保温'];
+  var ths=document.querySelectorAll('#kfHidden thead th');
+  for(var hi=0;hi<ths.length&&hi<heads.length;hi++) ths[hi].textContent=heads[hi];
   function row(arr){var tr=document.createElement('tr');arr.forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tbody.appendChild(tr);}
   for(var key in SCHED){
     var s=SCHED[key];
     s.stages.forEach(function(st){
-      row([s.name, st[1], st[2], st[3], st[4]]);
+      row([__kfName(s.name,en), __kfTr(st[1],en), __kfTr(st[2],en), __kfTr(st[3],en), __kfTr(st[4],en)]);
     });
   }
   TBKit.util.exportTable('#kfHidden', en?'kiln-firing-schedule.csv':'窑炉烧成曲线.csv');
@@ -319,29 +361,25 @@ render();
 <div class="related-tools" data-related-tools="1">
   <h3 class="related-tools-title">🔗 相关工具</h3>
   <div class="related-tools-grid">
-    <a href="../biz/presentation-timer.html" class="related-tool-card">
-      <span class="rt-icon">⏱️</span>
-      <span class="rt-info"><span class="rt-name">演讲计时器</span><span class="rt-desc">为 PPT 每页分配时间并进度提醒、支持全屏，辅助演讲节奏把控</span></span>
+    <a href="clay-shrinkage.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">泥料收缩率计算</span><span class="rt-desc">已知目标成品尺寸与总收缩率反算湿坯制作尺寸，辅助陶瓷成型与烧成尺寸控制</span></span>
     </a>
-    <a href="../biz/markdown-quote.html" class="related-tool-card">
-      <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 引用转换器</span><span class="rt-desc">将粘贴的多行文本批量转换为 Markdown 引用块（每行前加 &gt;），便于在文档中引用他人内容或做批…</span></span>
+    <a href="glaze-ratio.html" class="related-tool-card">
+      <span class="rt-icon">🏺</span>
+      <span class="rt-info"><span class="rt-name">釉料配比计算</span><span class="rt-desc">按釉料配方百分比计算各原料称量，并估算调配釉浆所需加水量（浸釉/淋釉/喷釉）</span></span>
     </a>
-    <a href="../biz/markdown.html" class="related-tool-card">
-      <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 实时预览</span><span class="rt-desc">在左侧编辑区输入 Markdown，右侧实时渲染标题、列表、代码块等效果，支持即时对照，便于写作与格…</span></span>
+    <a href="wheel-speed.html" class="related-tool-card">
+      <span class="rt-icon">🔩</span>
+      <span class="rt-info"><span class="rt-name">拉坯转速计算</span><span class="rt-desc">根据坯体直径与阶段（开盘、提拉、收口）建议合适的拉坯机转速，避免离心变形，辅助陶艺新手掌握不同工序的…</span></span>
     </a>
-    <a href="../biz/unicode-normalize.html" class="related-tool-card">
-      <span class="rt-icon">🏋️</span>
-      <span class="rt-info"><span class="rt-name">Unicode 规范化</span><span class="rt-desc">将文本按 NFC/NFD/NFKC/NFKD 等范式进行 Unicode 规范化，统一异体字与组合字…</span></span>
+    <a href="ceramic-firing.html" class="related-tool-card">
+      <span class="rt-icon">🌡️</span>
+      <span class="rt-info"><span class="rt-name">陶艺烧制温度曲线</span><span class="rt-desc">提供低温陶土、高温陶土、瓷土、乐烧土等不同陶土的素烧与釉烧温度曲线参考。</span></span>
     </a>
-    <a href="../biz/zalgo-text.html" class="related-tool-card">
-      <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">Zalgo 文字</span><span class="rt-desc">为文字叠加大量组合字符生成 Zalgo 乱码风格效果，可调节紊乱强度，用于恶搞表情、标题装饰与渲染测…</span></span>
-    </a>
-    <a href="../biz/superscript-text.html" class="related-tool-card">
-      <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">上标文字</span><span class="rt-desc">将选中文字转为上标格式并生成可复制的 Unicode 或 HTML 上标代码，适合化学式、数学指数与…</span></span>
+    <a href="glaze-temp.html" class="related-tool-card">
+      <span class="rt-icon">🌡️</span>
+      <span class="rt-info"><span class="rt-name">釉料温度对照</span><span class="rt-desc">查询测温锥（Orton/Seger 锥）对应温度与釉料熔融温度分类，选择匹配坯体的釉料烧成温度</span></span>
     </a>
   </div>
 </div>

@@ -137,13 +137,15 @@
         <textarea id="urlInput" rows="3" placeholder="输入要解析的URL..." oninput="parseUrl()">https://www.example.com:8080/path/to/page?query=value&foo=bar#hash</textarea>
       </div>
 
-      <div class="toolbar">
+      <div class="toolbar" style="align-items:center;flex-wrap:wrap;">
+        <label style="font-size:12px;color:var(--text-muted);display:inline-flex;align-items:center;gap:6px;"><input type="checkbox" id="saveFullUrl"> 保存完整地址（含凭据/令牌，仅存本机）</label>
         <button type="button" class="btn primary" onclick="parseUrl()">🔍 解析</button>
-        <button type="button" class="btn" onclick="copyJson()">📋 复制JSON</button>
-        <button type="button" class="btn" onclick="saveToHistory()">💾 保存</button>
+        <button type="button" class="btn" id="copyJsonBtn" onclick="copyJson()">📋 复制JSON</button>
+        <button type="button" class="btn" id="saveHistoryBtn" onclick="saveToHistory()">💾 保存</button>
         <button type="button" class="btn" onclick="loadExample()">📝 示例</button>
       </div>
 
+      <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">默认保存脱敏记录：移除用户名/密码，token、secret、signature 等敏感参数值替换为 ***；勾选上方选项才会在本机保存完整地址。</div>
       <div class="result-box" id="result"></div> <div id="url_parserTable"></div> <div id="url_parserDiff"></div> <div id="url_parserChart"></div> <div id="url_parserHist"></div>
     </div>
 
@@ -324,6 +326,7 @@ function switchTab(tab,btn){
 function parseUrl() {
   const urlStr = document.getElementById('urlInput').value.trim();
   if (!urlStr) {
+    parsed = {}; setParseState(false);
     const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter URL</p>":"<p>请输入URL</p>");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
     return;
   }
@@ -354,6 +357,7 @@ function parseUrl() {
     });
     parsed.params = params;
     parsed.paramRows = [];
+    setParseState(true);
 
     let html = '<h3 style="margin-bottom:12px;">解析结果</h3>';
     const fields = [
@@ -385,14 +389,21 @@ function parseUrl() {
 
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
   } catch (e) {
+    parsed = {}; setParseState(false);
     const __h2=`<div class="tip-box tip-warn"><strong>⚠️ URL解析失败</strong><br>${esc(e.message)}<br><br>提示：URL需要包含协议（如 https://）</div>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h2;
   }
 }
 
+function setParseState(ok){
+  const c=document.getElementById('copyJsonBtn'), s=document.getElementById('saveHistoryBtn');
+  if(c)c.disabled=!ok; if(s)s.disabled=!ok;
+}
+function __parserEn(){return typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn();}
 function copyField(key){
   if(parsed[key])ToolBox.copyText(parsed[key],'tool.copy_ok');
 }
 function copyJson(){
+  if(!parsed.href){ToolBox.showToast(__parserEn()?'Parse a valid URL first':'请先解析有效 URL','warning');return;}
   ToolBox.copyText(JSON.stringify(parsed, null, 2),'JSON已复制');
 }
 function loadExample(){
@@ -421,48 +432,80 @@ function buildUrl(){
   const proto=document.getElementById('b-protocol').value;
   const host=document.getElementById('b-hostname').value.trim();
   const port=document.getElementById('b-port').value.trim();
-  const path=document.getElementById('b-pathname').value.trim()||'/';
-  const hash=document.getElementById('b-hash').value.trim();
-  // 清单修正：域名为空时不再拼出 https:///path 畸形 URL；给出双语提示并返回空串，
-  // copyBuiltUrl 据此不复制。此校验不影响域名非空的正常构造。
+  const rawPath=document.getElementById('b-pathname').value.trim()||'/';
+  const rawHash=document.getElementById('b-hash').value.trim();
+  const en=__parserEn();
   if(!host){
-    const hint=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Please enter a hostname':'请输入域名';
-    document.getElementById('builtUrl').textContent=hint;
+    document.getElementById('builtUrl').textContent=en?'Please enter a hostname':'请输入域名';
     return '';
   }
-  let url=proto+'//';
-  if(host)url+=host;
-  if(port){
-    // 端口必须是 1–65535 的整数；旧实现直接拼接，65536 / 12.5 / abc 都会被写进可复制 URL
-    if(!/^\d+$/.test(port)||+port<1||+port>65535){
-      const phint=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Port must be an integer between 1 and 65535':'端口须为 1–65535 之间的整数';
-      document.getElementById('builtUrl').textContent=phint;
-      return '';
-    }
-    url+=':'+port;
+  if(/[\s\/?#\\]/.test(host)||(!host.startsWith('[')&&host.indexOf(':')!==-1)){
+    document.getElementById('builtUrl').textContent=en?'Hostname contains invalid characters (spaces, slashes, query marks or an unbracketed port)':'域名包含无效字符（空格、斜杠、问号或未加方括号的端口）';
+    return '';
   }
-  url+=path.startsWith('/')?path:'/'+path;
-  const searchParams=new URLSearchParams();
-  buildParams.forEach(p=>{if(p.key)searchParams.append(p.key,p.value);});
-  const sp=searchParams.toString();
-  if(sp)url+='?'+sp;
-  if(hash)url+='#'+hash.replace(/^#/,'');
+  if(port&&(!/^\d+$/.test(port)||+port<1||+port>65535)){
+    document.getElementById('builtUrl').textContent=en?'Port must be an integer between 1 and 65535':'端口须为 1–65535 之间的整数';
+    return '';
+  }
+  let url;
+  try{
+    // 交给 URL 解析器校验与编码：域名含空格、路径含 ?/#、片段含空格等都会按 URL 规则编码，
+    // 而不是靠字符串拼接产生歧义地址。IPv6 字面量需整体写成 [::1]。
+    url=new URL(proto+'//'+host+(port?':'+port:''));
+    url.pathname=(rawPath.startsWith('/')?rawPath:'/'+rawPath);
+    const searchParams=new URLSearchParams();
+    buildParams.forEach(p=>{if(p.key)searchParams.append(p.key,p.value);});
+    url.search=searchParams.toString();
+    url.hash=rawHash.replace(/^#/,'');
+    url=url.href;
+  }catch(e){
+    document.getElementById('builtUrl').textContent=(en?'Invalid URL components: ':'URL 组件无效：')+e.message;
+    return '';
+  }
   document.getElementById('builtUrl').textContent=url;
   return url;
 }
 function copyBuiltUrl(){const u=buildUrl();if(!u)return;ToolBox.copyText(u, i18nText('msg110'));}
 
+function redactUrl(urlStr){
+  try{
+    const u=new URL(urlStr);
+    u.username=''; u.password='';
+    const sensitive=/^(token|access_token|refresh_token|id_token|key|api_key|apikey|secret|password|passwd|pwd|sig|signature|auth|authorization|session|sessionid|code)$/i;
+    const entries=[]; u.searchParams.forEach((v,k)=>entries.push([k,sensitive.test(k)?'***':v]));
+    u.search=''; entries.forEach(([k,v])=>u.searchParams.append(k,v));
+    return u.href;
+  }catch(e){
+    return String(urlStr).replace(/\/\/[^@/]+@/,'//');
+  }
+}
 function saveToHistory(){
   const urlStr=document.getElementById('urlInput').value.trim();
-  if(!urlStr)return;
-  const r={time:new Date().toLocaleString('zh-CN'),url:urlStr,host:parsed.hostname||'?',path:parsed.pathname||'?'};
+  if(!urlStr||!parsed.href)return;
+  let current;
+  try{current=new URL(urlStr).href;}catch(e){return;}
+  if(current!==parsed.href)return;
+  const full=document.getElementById('saveFullUrl').checked;
+  const stored=full?urlStr:redactUrl(urlStr);
+  const r={time:new Date().toLocaleString('zh-CN'),url:stored,host:parsed.hostname||'?',path:parsed.pathname||'?',full:full};
   let h=getHistory();
-  if(h.length>0&&h[0].url===urlStr)return;
+  if(h.length>0&&h[0].url===stored)return;
   h.unshift(r);if(h.length>20)h=h.slice(0,20);
   localStorage.setItem(HK,JSON.stringify(h));
-  ToolBox.showToast(i18nText());
+  ToolBox.showToast(full?(__parserEn()?'Saved full URL locally':'已在本机保存完整地址'):(__parserEn()?'Saved a redacted record':'已保存脱敏记录'));
 }
-function getHistory(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch(e){return[];}}
+function getHistory(){
+  try{
+    let raw=JSON.parse(localStorage.getItem(HK)||'[]');
+    if(!Array.isArray(raw))return[];
+    let changed=false;
+    raw.forEach(item=>{
+      if(item&&item.url&&!item.full){const r=redactUrl(item.url);if(r!==item.url){item.url=r;changed=true;}}
+    });
+    if(changed)localStorage.setItem(HK,JSON.stringify(raw));
+    return raw;
+  }catch(e){return[];}
+}
 function renderHistory(){
   const h=getHistory();
   const l=document.getElementById('historyList');
@@ -659,7 +702,7 @@ else document.addEventListener('DOMContentLoaded', __url_parserBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -667,7 +710,7 @@ else document.addEventListener('DOMContentLoaded', __url_parserBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

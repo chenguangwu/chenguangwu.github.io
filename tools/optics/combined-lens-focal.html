@@ -133,7 +133,7 @@
 
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">密接薄透镜组等效焦距 F = 1 ÷ (1÷f₁ + 1÷f₂)；光焦度之和 = 1÷f₁ + 1÷f₂；等效屈光度 = 1 ÷ F；另按 ×1000 化 mm 展示。校验：f₁、f₂ 两项非空数值守卫。判据：密接组等效光焦度为各镜片光焦度之和，负透镜可抵消正透镜。</div>
+      <div class="formula-eq">密接薄透镜组等效焦距 F = 1 ÷ (1÷f₁ + 1÷f₂)；光焦度之和 = 1÷f₁ + 1÷f₂；等效屈光度 = 光焦度之和 = 1÷f₁ + 1÷f₂；另按 ×1000 化 mm 展示。校验：f₁、f₂ 必填且均不能为 0（为 0 时光焦度无定义）；组合光焦度为零时显示“无焦系统，等效焦距趋于无穷”，不显示“—”。判据：密接组等效光焦度为各镜片光焦度之和，负透镜可抵消正透镜。</div>
       <p class="formula-desc">密接双透镜的等效焦距。</p>
     </div>
 
@@ -280,16 +280,21 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __optLabel(s){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()){var m={'等效焦距 F (m)':'Equivalent focal length F (m)','光焦度之和 (1/m)':'Summed optical power (1/m)','等效光焦度 (屈光度)':'Equivalent dioptric power (D)','等效焦距 (mm)':'Equivalent focal length (mm)','项目':'Item','数值':'Value'};if(m[s])return m[s];}}catch(e){}return s;}
+function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){r[1]=__optLabel(String(r[1]));h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
+  var __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
               var __ig=__tbInputGuard(['f1', 'f2'],["焦距 f₁ (m)", "焦距 f₂ (m)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const f1 = num('f1'), f2 = num('f2');
-            const F = 1 / (1 / f1 + 1 / f2);
+const f1=Number(num('f1')),f2=Number(num('f2'));
+            if(!isFinite(f1)||f1===0||!isFinite(f2)||f2===0){ToolBox.setResult('result','<p style="color:var(--danger)">f₁ 与 f₂ 须为非零有限数；为 0 时光焦度无定义。</p>');return;}
+            const sum=1/f1+1/f2;
+            if(sum===0){const __g0=dataGrid([[__en?'Afocal system (combined power = 0, equivalent focal length → ∞)':'无焦系统（组合光焦度=0，等效焦距→∞）',__optLabel('等效焦距 F (m)')],[(0).toFixed(4),__optLabel('光焦度之和 (1/m)')],[(0).toFixed(4),__optLabel('等效光焦度 (屈光度)')],['—',__optLabel('等效焦距 (mm)')]]);ToolBox.setResult('result',__g0);return;}
+            const F=1/sum;
             const __g2=dataGrid([
-                [F.toFixed(4), '等效焦距 F (m)'],
-                [(1/f1+1/f2).toFixed(4), '光焦度之和 (1/m)'],
-                [(1/F).toFixed(4), '等效光焦度 (屈光度)'],
-                [(F*1000).toFixed(3), '等效焦距 (mm)']
+                [F.toFixed(4), __optLabel('等效焦距 F (m)')],
+                [sum.toFixed(4), __optLabel('光焦度之和 (1/m)')],
+                [sum.toFixed(4), __optLabel('等效光焦度 (屈光度)')],
+                [(F*1000).toFixed(3), __optLabel('等效焦距 (mm)')]
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('f1').value = '0.1';
@@ -301,17 +306,18 @@ function __combined_lens_focalNum(id){var e=document.getElementById(id);var v=e?
 function __combined_lens_focalExtras(){
     function __combined_lens_focalRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var f1 = num('f1'), f2 = num('f2');
-    var F = 1 / (1 / f1 + 1 / f2);
-    if (!isFinite(__combined_lens_focalNum('f1')) || !isFinite(__combined_lens_focalNum('f2'))) return;
+    if (__combined_lens_focalRaw('f1').trim()==='' || __combined_lens_focalRaw('f2').trim()==='') return;
+    var f1=Number(__combined_lens_focalRaw('f1')),f2=Number(__combined_lens_focalRaw('f2'));
+    if (!isFinite(f1)||f1===0||!isFinite(f2)||f2===0) return;
+    var sum=1/f1+1/f2; if(sum===0) return; var F=1/sum;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#combined_lens_focalTable',{
-        head: en?['Item','Value']:['项目','数值'],
+        head: en?['Item','Value']:[__optLabel('项目'),__optLabel('数值')],
         rows: [
-            ['等效焦距 F (m)', F.toFixed(4)],
-            ['光焦度之和 (1/m)', (1/f1+1/f2).toFixed(4)],
-            ['等效光焦度 (屈光度)', (1/F).toFixed(4)],
-            ['等效焦距 (mm)', (F*1000).toFixed(3)],
+            [__optLabel('等效焦距 F (m)'), F.toFixed(4)],
+            [__optLabel('光焦度之和 (1/m)'), (1/f1+1/f2).toFixed(4)],
+            [__optLabel('等效光焦度 (屈光度)'), sum.toFixed(4)],
+            [__optLabel('等效焦距 (mm)'), (F*1000).toFixed(3)],
         ]
     });
     TBKit.history.record({f1:__combined_lens_focalRaw('f1'), f2:__combined_lens_focalRaw('f2'), F:F});
@@ -395,7 +401,7 @@ function __clfChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var s=__clfSweep(); if(!s)return;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-  TBKit.chart.line('#clfChart',{title:en?'Combined Focal Length vs f₂ (saturation to f₁)':'组合焦距随 f₂ 增大饱和趋近 f₁',labels:s.labels,series:[{name:en?'Equivalent focal length F (m)':'等效焦距 F (m)',data:s.dF},{name:en?'Summed optical power (1/m)':'光焦度之和 (1/m)',data:s.dP}]});
+  TBKit.chart.line('#clfChart',{title:en?'Combined Focal Length vs f₂ (saturation to f₁)':'组合焦距随 f₂ 增大饱和趋近 f₁',labels:s.labels,series:[{name:en?'Equivalent focal length F (m)':__optLabel('等效焦距 F (m)'),data:s.dF},{name:en?'Summed optical power (1/m)':__optLabel('光焦度之和 (1/m)'),data:s.dP}]});
 }
 
 function __clfShow(which){

@@ -203,7 +203,7 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 <meta name="title-en" content="PDF Merge">
-<meta name="desc-en" content="Merge several PDFs in the order you choose">
+<meta name="desc-en" content="Select multiple PDFs, drag to reorder, and merge them into one file locally in the browser; encrypted or damaged PDFs are skipped with a warning">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/office/pdf-merge.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/office/pdf-merge.html">
@@ -301,6 +301,7 @@
     <!-- 操作工具栏 -->
     <div class="toolbar" id="actionBar" style="margin-top:16px;display:none;">
       <button type="button" class="btn primary" id="mergeBtn" onclick="mergePDFs()" disabled>🔀 合并所有 PDF</button>
+      <div class="info-box" role="note" style="margin-top:10px;font-size:12px;line-height:1.6;">仅保留页面内容：书签、交互表单、批注、内部链接、附件与数字签名可能不保留；签名文档重写后将失效。Merge/split preserves page content only; outlines, forms, comments, links, attachments and signatures may not survive, and digital signatures become invalid.</div>
       <button type="button" class="btn" onclick="clearAll()">🗑️ 清空列表</button>
       <button type="button" class="btn" onclick="addMore()">+ 继续添加</button>
     </div>
@@ -458,6 +459,7 @@
 
 <script>
 const { PDFDocument } = PDFLib;
+function __pdfMsg(zh,en){try{return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh;}catch(e){return zh;}}
 
 let files = [];          // { id, file, name, size, pages, status:'loading'|'ok'|'error' }
 let dragSrcId = null;
@@ -487,7 +489,7 @@ async function addFiles(fileList){
     f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
   );
   if(arr.length === 0){
-    ToolBox.showToast(i18nText(), 'warning');
+    ToolBox.showToast(__pdfMsg('请选择 PDF 文件（仅支持 .pdf）','Select PDF files (.pdf only).'), 'warning');
     return;
   }
   const addedItems = [];
@@ -610,7 +612,7 @@ function moveItem(id, dir){
 function removeItem(id){
   files = files.filter(f => f.id !== id);
   renderList();
-  ToolBox.showToast(i18nText(), 'info');
+  ToolBox.showToast(__pdfMsg('已移除文件','File removed.'), 'info');
 }
 function clearAll(){
   if(files.length === 0) return;
@@ -619,7 +621,7 @@ function clearAll(){
   renderList();
   hideProgress();
   const __h3='';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h3;
-  ToolBox.showToast(i18nText(), 'info');
+  ToolBox.showToast(__pdfMsg('已清空文件列表','File list cleared.'), 'info');
 }
 
 /* ---------- 拖拽排序 ---------- */
@@ -697,7 +699,7 @@ async function mergePDFs(){
   if(isMerging) return;
   const okItems = files.filter(f => f.status === 'ok');
   if(okItems.length < 2){
-    ToolBox.showToast(i18nText(), 'warning');
+    ToolBox.showToast(__pdfMsg('请至少添加 2 个可正常读取的 PDF 文件','Add at least two readable PDF files.'), 'warning');
     return;
   }
   isMerging = true;
@@ -756,13 +758,13 @@ async function mergePDFs(){
     window.__lastBlob = blob;
     window.__lastName = fname;
     showProgress(total, total, '合并完成 ✓', '共 ' + totalPages + ' 页，文件已下载');
-    ToolBox.showToast(i18nText(), 'success');
+    ToolBox.showToast(__pdfMsg('合并完成，文件已开始下载','Merge complete. Download started.'), 'success');
   }catch(err){
     console.error(err);
     const __h6='<p style="color:var(--danger);">❌ 合并失败：' + esc(String(err && err.message ? err.message : err)) + '</p>' +
       '<p style="color:var(--text-muted);font-size:12px;">请检查文件是否损坏或加密后重试。</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h6;
     showProgress(0, total, '合并失败', String(err && err.message ? err.message : err));
-    ToolBox.showToast(i18nText(), 'error');
+    ToolBox.showToast(__pdfMsg('合并失败，请检查文件是否损坏或加密','Merge failed. Check for damaged or encrypted files.'), 'error');
   }finally{
     isMerging = false;
     renderList();
@@ -771,7 +773,7 @@ async function mergePDFs(){
 
 function redownload(){
   if(!window.__lastBlob){
-    ToolBox.showToast(i18nText(), 'warning');
+    ToolBox.showToast(__pdfMsg('暂无可重新下载的合并文件','No merged file available to download.'), 'warning');
     return;
   }
   const url = URL.createObjectURL(window.__lastBlob);

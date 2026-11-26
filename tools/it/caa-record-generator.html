@@ -133,12 +133,12 @@
     <h2 data-zh="✨ CAA 记录生成器">✨ CAA Record Generator - Generate DNS CAA</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="生成 DNS CAA 记录：指定域名与允许的证书颁发机构，输出标准 CAA 资源记录，防止证书误签发。">Generate CAA DNS records in your browser — control which certificate authorities may issue for your domain.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">域名去掉开头的连续点号与尾部空白；域名为空时清空输出。按勾选依次生成记录：勾选的 CA 各生成一条「标志位 + issue + 该 CA 的签发域名」，开启事件报告时再生成一条「标志位 + iodef + mailto: 加邮箱地址」（邮箱为空时用默认安全邮箱）。一条都没勾选时提示请至少选择一个 CA。最终每行按「域名 + 两个空格 + CAA + 两个空格 + 记录内容」拼接，记录之间以换行连接，并统计生成的记录条数</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">域名去掉开头的连续点号与尾部空白；域名为空时清空输出。按勾选依次生成记录：勾选的 CA 各生成一条「标志位 + issue + 该 CA 的签发域名」，开启事件报告时再生成一条「标志位 + iodef + mailto: 加邮箱地址」；勾选后必须填写合法邮箱，空值或格式错误会拒绝输出（示例地址只作占位）。一条都没勾选时提示请至少选择一个 CA。最终每行按「域名 + 两个空格 + CAA + 两个空格 + 记录内容」拼接，记录之间以换行连接，并统计生成的记录条数</div>
   <div class="formula-desc">生成 DNS CAA 记录，限定哪些证书颁发机构可为该域名签发证书。</div>
   <ul class="formula-list">
     <li><b>作用</b>：RFC 6844 定义，用于降低证书被错误签发的风险。</li>
     <li><b>格式</b>：<code>&lt;flags&gt; &lt;tag&gt; &lt;value&gt;</code>，flags 通常为 0。</li>
-    <li><b>标签</b>：<code>issue</code> 允许签发普通证书、<code>issuewild</code> 管通配符、<code>iodef</code> 指定违规上报地址。</li>
+    <li><b data-zh="标签">Tags</b><span data-zh="：issue 允许签发普通证书、issuewild 管通配符、iodef 指定违规上报地址；iodef 邮箱必须真实可达，不要使用示例地址。">: issue authorizes ordinary certificates, issuewild controls wildcards, and iodef sets the violation-report address; the iodef mailbox must be real and reachable — never use the example address.</span></li>
     <li><b>生效</b>：查询沿 CNAME 链向上回溯；若域名及其父级均无 CAA 记录，则任何 CA 都可签发。</li>
   </ul>
 </div>
@@ -296,7 +296,19 @@
 <script>
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function copyOut(){var v=document.getElementById('output').value;if(!v){if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg617'));return;}ToolBox.copyText(v);if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg191'));}
+function __caaEn(){
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) return !!TBKit.util.isEn(); }catch(e){}
+  try{
+    if(/[?&]lang=en([-_]|&|$)/i.test(location.search)) return true;
+    var hl=(document.documentElement.getAttribute('lang')||'').toLowerCase();
+    if(hl.indexOf('en')===0) return true;
+  }catch(e){}
+  return false;
+}
 function gen(){
+  // 报告邮箱显隐先于域名校验更新：域名暂时无效时，勾选状态也必须立即反映到输入框。
+  var iodef=document.getElementById('opt_iodef');
+  document.getElementById('iodefEmail').style.display=iodef.checked?'block':'none';
   var d=document.getElementById('domain').value.trim().toLowerCase().replace(/^\.+|\.+$/g,'');
   // N434 复核重做：先做字符集合法性校验（保留原提示文案），再校验每个 DNS 标签 ≤63 字节、
   // 完整域名 ≤253 字节且首尾不得为连字符——64 个 a 的标签能过字符正则，但不是有效 DNS 名称。
@@ -315,8 +327,6 @@ function gen(){
   d=d+'.';
   var flag=document.getElementById('flag').value;
   var out=document.getElementById('result');
-  var iodef=document.getElementById('opt_iodef');
-  document.getElementById('iodefEmail').style.display=iodef.checked?'block':'none';
   if(!d){document.getElementById('output').value='';const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
   var recs=[];
   if(document.getElementById('ca_google').checked)recs.push(flag+' issue "pki.goog"');
@@ -325,12 +335,22 @@ function gen(){
   if(document.getElementById('ca_comodo').checked)recs.push(flag+' issue "sectigo.com"');
   if(iodef.checked){
     var em=document.getElementById('iodefEmail').value.trim();
-    recs.push(flag+' iodef "mailto:'+(em||'security@example.com')+'"');
+    if(!em){
+      document.getElementById('output').value='';
+      out.innerHTML='<p style="color:var(--danger)">⚠ '+(__caaEn()?'iodef is checked — enter a real violation-report email; the example address is only a placeholder and is never written.':'已勾选 iodef，请填写真实的违规报告邮箱；示例地址只作占位，绝不写入记录。')+'</p>';
+      return;
+    }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){
+      document.getElementById('output').value='';
+      out.innerHTML='<p style="color:var(--danger)">⚠ '+(__caaEn()?'The violation-report email is malformed; enter an address such as security@example.com.':'违规报告邮箱格式不正确，请填写形如 security@example.com 的地址。')+'</p>';
+      return;
+    }
+    recs.push(flag+' iodef "mailto:'+em+'"');
   }
   if(!recs.length){document.getElementById('output').value='';const __h1='<p style="color:var(--warning)">请至少选择一个 CA</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
   var lines=recs.map(function(r){return d+'  CAA  '+r;});
   document.getElementById('output').value=lines.join('\n');
-  const __h2='<p>✅ 已生成 <strong>'+recs.length+'</strong> 条 CAA 记录（粘贴到 DNS 服务商）</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
+  const __h2='<p>'+(__caaEn()?'✅ Generated <strong>':'✅ 已生成 <strong>')+recs.length+(__caaEn()?'</strong> CAA records (paste into your DNS provider)</p>':'</strong> 条 CAA 记录（粘贴到 DNS 服务商）</p>');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
 }
 
 var __caa_record_generator_last=0,__caa_record_generator_skip=false;

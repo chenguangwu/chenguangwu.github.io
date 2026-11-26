@@ -249,26 +249,82 @@
 <script>
 const SAMPLE = 'query GetUser($id: ID!) {\n  user(id: $id) {\n    id\n    name\n    email\n    posts(first: 10) {\n      edges {\n        node {\n          id\n          title\n          createdAt\n        }\n      }\n    }\n  }\n}';
 function tokenize(src){
+  // 第806批：完整词法——数字（负号/小数/指数）、片段展开 ...、块字符串 """…""" 不可被拆散
   const tokens = [];
   let i = 0;
   const isWs = c => /\s/.test(c);
+  const isNameStart = c => /[A-Za-z_]/.test(c);
   const isName = c => /[A-Za-z_0-9]/.test(c);
   while(i < src.length){
     const c = src[i];
-    if(isWs(c)){ let s=i; while(i<src.length && isWs(src[i])) i++; tokens.push({t:'ws',v:src.slice(s,i)}); }
-    else if(c === '#'){ let s=i; while(i<src.length && src[i] !== '\n') i++; tokens.push({t:'comment',v:src.slice(s,i)}); }
-    else if(c === '"' || c === '\''){ const q=c; let s=i; i++; while(i<src.length && src[i] !== q){ if(src[i] === '\\') i++; i++; } i++; tokens.push({t:'str',v:src.slice(s,i)}); }
-    else if(isName(c)){ let s=i; while(i<src.length && isName(src[i])) i++; tokens.push({t:'name',v:src.slice(s,i)}); }
-    else if('()[]{}:,.!=@&...'.includes(c)){ tokens.push({t:'punct',v:c}); i++; }
-    else if(c === '$'){ let s=i; i++; while(i<src.length && isName(src[i])) i++; tokens.push({t:'name',v:src.slice(s,i)}); }
-    else { tokens.push({t:'punct',v:c}); i++; }
+    if(isWs(c)){ i++; continue; }
+    if(c === '#'){ let s=i; while(i<src.length && src[i] !== '\n') i++; tokens.push({t:'comment',v:src.slice(s,i),pos:s}); continue; }
+    if(src.slice(i,i+3) === '"""'){
+      const s=i; i+=3; let closed=false;
+      while(i < src.length){
+        if(src[i] === '\\'){ i+=2; continue; }
+        if(src.slice(i,i+3) === '"""'){ i+=3; closed=true; break; }
+        i++;
+      }
+      if(!closed) throw new Error('块字符串未闭合（第 '+(s+1)+' 个字符）');
+      tokens.push({t:'str',v:src.slice(s,i),pos:s}); continue;
+    }
+    if(c === '"' || c === '\''){
+      const q=c; const s=i; i++;
+      while(i<src.length && src[i] !== q){ if(src[i] === '\\') i++; i++; }
+      if(i>=src.length) throw new Error('字符串未闭合（第 '+(s+1)+' 个字符）');
+      i++; tokens.push({t:'str',v:src.slice(s,i),pos:s}); continue;
+    }
+    if(/[0-9]/.test(c) || (c === '-' && /[0-9]/.test(src[i+1]||''))){
+      const s=i; const m=src.slice(i).match(/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+      if(!m) throw new Error('非法数字（第 '+(s+1)+' 个字符）');
+      i+=m[0].length;
+      if(i<src.length && /[A-Za-z_.]/.test(src[i])) throw new Error('数字后紧跟非法字符 "'+src[i]+'"（第 '+(i+1)+' 个字符）');
+      const n=Number(m[0]);
+      if(!isFinite(n)) throw new Error('数字超出范围 '+m[0]+'（第 '+(s+1)+' 个字符）');
+      tokens.push({t:'number',v:m[0],pos:s}); continue;
+    }
+    if(c === '.' && src.slice(i,i+3) === '...'){ tokens.push({t:'spread',v:'...',pos:i}); i+=3; continue; }
+    if(isNameStart(c)){ const s=i; i++; while(i<src.length && isName(src[i])) i++; tokens.push({t:'name',v:src.slice(s,i),pos:s}); continue; }
+    if(c === '$'){ const s=i; i++; if(!isNameStart(src[i]||'')) throw new Error('$ 后必须跟变量名（第 '+(s+1)+' 个字符）'); while(i<src.length && isName(src[i])) i++; tokens.push({t:'name',v:src.slice(s,i),pos:s}); continue; }
+    if('()[]{}:,.!=@&|'.includes(c)){ tokens.push({t:'punct',v:c,pos:i}); i++; continue; }
+    throw new Error('不支持的字符 "'+c+'"（第 '+(i+1)+' 个字符）');
   }
-  return tokens.filter(t => t.t !== 'ws');
+  return tokens;
+}
+function validateGraphQLTokens(tokens){
+  const code = tokens.filter(tk => tk.t !== 'comment');
+  if(!code.length) throw new Error('没有可校验的 GraphQL 内容');
+  const pairs = {'}':'{', ']':'[', ')':'('};
+  const stack = [];
+  for(let i=0;i<code.length;i++){
+    const tk = code[i];
+    if(tk.v === '{' || tk.v === '[' || tk.v === '('){ stack.push({v:tk.v,pos:tk.pos}); continue; }
+    if(tk.v === '}' || tk.v === ']' || tk.v === ')'){
+      const want = pairs[tk.v];
+      if(!stack.length || stack[stack.length-1].v !== want) throw new Error('括号类型不匹配："'+tk.v+'"（第 '+(tk.pos+1)+' 个字符）前缺少 '+want);
+      stack.pop(); continue;
+    }
+    if(tk.t === 'spread'){
+      const nx = code[i+1];
+      if(!nx || !(nx.t === 'name' || (nx.t === 'punct' && nx.v === '='))) throw new Error('片段展开 "..." 后必须是片段名或 on（第 '+(tk.pos+1)+' 个字符）');
+    }
+  }
+  if(stack.length) throw new Error('括号未闭合：缺少 ' + ({'{':'}','[':']','(':')'})[stack[stack.length-1].v] + '（第 '+(stack[stack.length-1].pos+1)+' 个字符起）');
+  const first = code[0];
+  const ops = ['query','mutation','subscription','fragment'];
+  if(!(first.v === '{' || (first.t === 'name' && ops.includes(first.v)))){
+    throw new Error('仅支持以 { 开头的查询，或 query / mutation / subscription / fragment 文档');
+  }
+  return code;
 }
 function formatGraphQL(){
   setErr('');
   try{
-    const tokens = tokenize(document.getElementById('input').value);
+    const src = document.getElementById('input').value;
+    if(!src.trim()){ setOut(''); setErr('❌ 请输入 GraphQL 文本后再格式化。'); return; }
+    const tokens = tokenize(src);
+    validateGraphQLTokens(tokens);
     let out = ''; let depth = 0; let atLineStart = true;
     const pad = () => getIndent().repeat(depth);
     for(const tk of tokens){
@@ -279,25 +335,38 @@ function formatGraphQL(){
       if(atLineStart){ out += pad() + tk.v; atLineStart = false; }
       else { out += ' ' + tk.v; }
     }
-    setOut(out.trim());
-    setErr('✅ 格式化成功');
-  }catch(e){ setErr('❌ ' + e.message); }
+    out = out.trim();
+    // 语义守卫：格式化后再切词，token 序列必须与原文完全一致（片段展开/数字/字符串/注释不被改写）
+    const again = tokenize(out);
+    if(again.length !== tokens.length || again.some((tk,idx)=>tk.t!==tokens[idx].t || tk.v!==tokens[idx].v)){
+      throw new Error('格式化结果与原文词法不一致，已拒绝输出');
+    }
+    setOut(out);
+    setErr('✅ 格式化成功（词法与括号校验通过）');
+  }catch(e){ setOut(''); setErr('❌ ' + e.message); }
 }
 function minifyGraphQL(){
   setErr('');
   try{
-    const tokens = tokenize(document.getElementById('input').value);
-    let out = ''; let prev = '';
+    const src = document.getElementById('input').value;
+    if(!src.trim()){ setOut(''); setErr('❌ 请输入 GraphQL 文本后再压缩。'); return; }
+    const tokens = tokenize(src);
+    validateGraphQLTokens(tokens);
+    let out = ''; let prev = null;
     for(const tk of tokens){
       if(tk.t === 'comment') continue;
-      const isName = tk.t === 'name' || tk.t === 'str';
-      const needSpace = prev && isName && (tk.t === 'name' || tk.t === 'str');
-      out += (needSpace ? ' ' : '') + tk.v;
-      prev = tk.v;
+      const word = tk.t === 'name' || tk.t === 'number' || tk.t === 'str';
+      out += (prev && word ? ' ' : '') + tk.v;
+      prev = tk;
+    }
+    const again = tokenize(out);
+    const original = tokens.filter(tk => tk.t !== 'comment');
+    if(again.length !== original.length || again.some((tk,idx)=>tk.t!==original[idx].t || tk.v!==original[idx].v)){
+      throw new Error('压缩结果与原文词法不一致，已拒绝输出');
     }
     setOut(out);
-    setErr('✅ 压缩成功');
-  }catch(e){ setErr('❌ ' + e.message); }
+    setErr('✅ 压缩成功（词法与括号校验通过）');
+  }catch(e){ setOut(''); setErr('❌ ' + e.message); }
 }
 function doBeautify(){ formatGraphQL(); }
 function doMinify(){ minifyGraphQL(); }
@@ -307,34 +376,9 @@ function doValidate(){
   if(!src.trim()){ setOut(''); setErr('❌ 请输入 GraphQL 文本后再校验。'); return; }
   try{
     const tokens = tokenize(src);
-    const code = tokens.filter(tk => tk.t !== 'comment');
-    if(!code.length) throw new Error('没有可校验的 GraphQL 内容');
-    const pairs = {'}':'{', ']':'[', ')':'('};
-    const stack = [];
-    const opens = '{([';
-    const closes = '})]';
-    const allowedPunct = '{}[]():,.!=@&$|';
-    for(const tk of tokens){
-      if(tk.t === 'punct' && !allowedPunct.includes(tk.v)) throw new Error('不支持的字符：' + tk.v);
-      if(tk.t === 'str'){
-        const q = tk.v[0];
-        if(tk.v.length < 2 || tk.v[tk.v.length-1] !== q) throw new Error('字符串未闭合');
-      }
-      if(opens.includes(tk.v)){ stack.push(tk.v); continue; }
-      if(closes.includes(tk.v)){
-        const want = pairs[tk.v];
-        if(!stack.length || stack[stack.length-1] !== want) throw new Error('括号类型不匹配：' + tk.v + ' 前缺少 ' + want);
-        stack.pop();
-      }
-    }
-    if(stack.length) throw new Error('括号未闭合：缺少 ' + ({'{':'}','[':']','(':')'})[stack[stack.length-1]]);
-    const first = code[0];
-    const ops = ['query','mutation','subscription','fragment'];
-    if(!(first.v === '{' || (first.t === 'name' && ops.includes(first.v)))){
-      throw new Error('仅支持以 { 开头的查询，或 query / mutation / subscription / fragment 文档');
-    }
-    setOut('✅ 基础检查通过\nTokens: ' + tokens.length + '\n括号类型匹配、已闭合');
-    setErr('✅ 基础校验通过（括号/字符串检查，不含完整语法解析）');
+    const code = validateGraphQLTokens(tokens);
+    setOut('✅ 基础检查通过\nTokens: ' + tokens.length + '\n数字、字符串、片段展开与括号结构均已校验');
+    setErr('✅ 基础校验通过（词法/括号检查，不含完整语法解析）');
   }catch(e){ setOut(''); setErr('❌ ' + e.message); }
 }
 function getIndent(){const v=document.getElementById('indent').value;return v==='tab'?'\t':' '.repeat(parseInt(v));}
@@ -502,7 +546,7 @@ else document.addEventListener('DOMContentLoaded', __graphql_formatterBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -510,7 +554,7 @@ else document.addEventListener('DOMContentLoaded', __graphql_formatterBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="html-minifier.html" class="related-tool-card">
       <span class="rt-icon">🗜️</span>

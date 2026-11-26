@@ -231,14 +231,22 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const ex=num('ex'), nu=num('nu');
+            var exRaw=String(document.getElementById('ex').value==null?'':document.getElementById('ex').value).trim();
+            var nuRaw=String(document.getElementById('nu').value==null?'':document.getElementById('nu').value).trim();
+            var ex=exRaw===''?NaN:parseFloat(exRaw);
+            var nu=nuRaw===''?NaN:parseFloat(nuRaw);
+            var errs=[];
+            if(!isFinite(ex))errs.push('轴向应变须为有效数值（可为 0）');
+            if(!isFinite(nu)||nu<-1||nu>0.5)errs.push('泊松比须在 −1–0.5 之间');
+            if(errs.length){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+errs.join('；')+'。</p>');return;}
             const ey=-nu*ex;
+            const ratio=ex===0?'未定义（轴向应变为 0，不能作分母）':(ey/ex).toFixed(3);
             const __g1=dataGrid([
                 [ex.toExponential(3),'轴向应变 ε_x'],
                 [ey.toExponential(3),'横向应变 ε_y'],
                 [nu.toFixed(3),'泊松比 ν'],
                 [(ex*(1-2*nu)).toExponential(3), '体积应变 ε_v = ε_x(1−2ν)'],
-                [(ey/(ex||1)).toFixed(3), '横向/轴向应变比']
+                [ratio, '横向/轴向应变比']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('ex').value = '0.001';
@@ -261,7 +269,7 @@ function __poisson_strainExtras(){
             ['横向应变 ε_y', ey.toExponential(3)],
             ['泊松比 ν', nu.toFixed(3)],
             ['体积应变 ε_v = ε_x(1−2ν)', (ex*(1-2*nu)).toExponential(3)],
-            ['横向/轴向应变比', (ey/(ex||1)).toFixed(3)],
+            ['横向/轴向应变比', ex===0?'未定义（ε_x=0）':(ey/ex).toFixed(3)],
         ]
     });
     TBKit.history.record({ex:__poisson_strainRaw('ex'), nu:__poisson_strainRaw('nu'), ey:ey});

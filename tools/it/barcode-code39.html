@@ -145,6 +145,12 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 
     <label for="data">文本（A-Z 0-9 - . $ / + % 空格）</label>
     <input type="text" id="data" value="CODE-39" style="margin-bottom:12px;">
+    <label for="moduleWidth">模块宽度（px）</label>
+    <select id="moduleWidth" style="margin-bottom:12px;" onchange="generate()">
+      <option value="2" selected>2（默认，静区 20px）</option>
+      <option value="3">3（静区 30px）</option>
+      <option value="4">4（静区 40px）</option>
+    </select>
     <label style="display:inline-flex;gap:6px;align-items:center;margin-bottom:12px;"><input type="checkbox" id="addCheck"> 追加 Mod 43 校验位</label>
     <div class="toolbar">
       <div id="barcode_code39Presets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="downloadBarcodePNG()">下载 PNG</button><button class="btn" type="button" onclick="__barcode_code39Export()">导出明细 CSV</button>
@@ -245,33 +251,47 @@ const CODE39={
 };
 const VAL={0:'0',1:'1',2:'2',3:'3',4:'4',5:'5',6:'6',7:'7',8:'8',9:'9',10:'A',11:'B',12:'C',13:'D',14:'E',15:'F',16:'G',17:'H',18:'I',19:'J',20:'K',21:'L',22:'M',23:'N',24:'O',25:'P',26:'Q',27:'R',28:'S',29:'T',30:'U',31:'V',32:'W',33:'X',34:'Y',35:'Z',36:'-',37:'.',38:' ',39:'$',40:'/',41:'+',42:'%'};
 function code39Check(text){
+  text=String(text==null?'':text);
   let sum=0;
   for(const c of text){ const k=Object.keys(VAL).find(k=>VAL[k]===c); sum+=(k===undefined?0:parseInt(k,10)); }
   return VAL[sum%43];
 }
 function buildCode39(text,withCheck){
-  text=String(text||'').toUpperCase();
-  if(text.includes('*')) return {error:'*'};
-  if(withCheck && text) text+=code39Check(text);
-  const chars='*'+text+'*';
+  // 只把 ASCII 小写 a-z 显式转大写；ß、é 等保持原型校验并报错，避免 toUpperCase 展开成 SS 后静默改数据。
+  const original=String(text==null?'':text);
+  let textNorm='';
+  for(const ch of original){ textNorm += (ch>='a'&&ch<='z') ? ch.toUpperCase() : ch; }
+  for(let i=0;i<textNorm.length;i++){
+    const c=textNorm[i];
+    if(c==='*') return {error:c,index:i+1,reason:'star'};
+    if(!CODE39[c]) return {error:c,index:i+1,reason:'unsupported'};
+  }
+  let finalText=textNorm;
+  if(withCheck && finalText) finalText+=code39Check(finalText);
+  const chars='*'+finalText+'*';
   let bits='';
   for(const c of chars){
     const p=CODE39[c];
-    if(!p) return {error:c};
+    if(!p) return {error:c,reason:'unsupported'};
     if(bits) bits+='0';
     bits+=p;
   }
-  return {bits,text};
+  return {bits,text:finalText,normalized:original!==textNorm};
 }
-function drawBarcode(bits,text){
-  const N=bits.length;const modW=2;const barH=120;const textH=22;
-  const w=N*modW+20;const h=barH+textH;
+function drawBarcode(bits,text,modW){
+  bits=String(bits==null?'':bits);text=String(text==null?'':text);modW=modW||2;
+  const N=bits.length;const barH=120;const textH=22;
+  // Code 39 静区至少 10 个窄模块；预览与下载共用画布，模块宽度可调 2/3/4px。
+  const quiet=10*modW;
+  const w=N*modW+quiet*2;const h=barH+textH;
   const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+  canvas.style.maxWidth='100%';canvas.style.height='auto';
   const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
   ctx.fillStyle='#000';
-  for(let i=0;i<N;i++){if(bits[i]==='1')ctx.fillRect(10+i*modW,5,modW,barH);}
+  for(let i=0;i<N;i++){if(bits[i]==='1')ctx.fillRect(quiet+i*modW,5,modW,barH);}
   ctx.fillStyle='#000';ctx.font='14px monospace';ctx.textAlign='center';
-  ctx.fillText('*'+text.toUpperCase()+'*',w/2,barH+18);
+  ctx.fillText('*'+text+'*',w/2,barH+18);
+  window.__code39Geometry={moduleWidth:modW,quiet:quiet,barsWidth:N*modW,width:w,height:h};
   return canvas;
 }
 
@@ -286,17 +306,28 @@ function downloadBarcodePNG(){
   a.click();
   if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast('PNG 已下载','success');
 }
+function __code39En(){
+  try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())return true;}catch(e){}
+  try{if(/[?&]lang=en([-_]|&|$)/i.test(location.search))return true;var hl=(document.documentElement.getAttribute('lang')||'').toLowerCase();if(hl.indexOf('en')===0)return true;}catch(e){}
+  return false;
+}
 function generate(){
-  const text=document.getElementById('data').value||' ';
+  const text=document.getElementById('data').value;
   const withCheck=document.getElementById('addCheck').checked;
-  const built=buildCode39(text,withCheck);
+  const modW=parseInt(document.getElementById('moduleWidth').value,10)||2;
   const out=document.getElementById('output');
-  if(built.error){
-    out.innerHTML='<p style="color:var(--danger)">⚠ 不支持字符「'+escapeHtml(built.error)+'」，Code 39 仅支持 A–Z、0–9、空格与 - . $ / + %。</p>';
+  if(text.length===0){
+    out.innerHTML='<p style="color:var(--danger)">⚠ '+(__code39En()?'Enter content to encode. To encode a space, type at least one space explicitly; empty input is never replaced by a space.':'请输入要编码的内容。若确实需要编码空格，请明确输入至少一个空格；空输入不会被替换成空格。')+'</p>';
     return;
   }
-  const canvas=drawBarcode(built.bits,built.text);
-  const __h0='<div class="bar-wrap"></div><div class="bar-text">*'+escapeHtml(built.text)+'*</div>';
+  const built=buildCode39(text,withCheck);
+  if(built.error){
+    if(built.reason==='star') out.innerHTML='<p style="color:var(--danger)">⚠ '+(__code39En()?'Character '+(built.index||'?')+' is “*”: the start/stop bars are added automatically; do not include * in the data.':'第 '+(built.index||'?')+' 个字符是「*」：Code 39 的起止符由工具自动添加，数据中不得再含 *。')+'</p>';
+    else out.innerHTML='<p style="color:var(--danger)">⚠ '+(__code39En()?'Character '+(built.index||'?')+' “'+escapeHtml(built.error)+'” is unsupported; Code 39 accepts A–Z, 0–9, space, and - . $ / + %; ASCII lowercase is uppercased automatically.':'第 '+(built.index||'?')+' 个字符「'+escapeHtml(built.error)+'」不受支持，Code 39 仅支持 A–Z、0–9、空格与 - . $ / + %；ASCII 小写会自动转为大写。')+'</p>';
+    return;
+  }
+  const canvas=drawBarcode(built.bits,built.text,modW);
+  const __h0='<div class="bar-wrap"></div><div class="bar-text">*'+escapeHtml(built.text)+'*'+(built.normalized?(__code39En()?' (ASCII lowercase converted to uppercase)':'（ASCII 小写已转为大写）'):'')+(__code39En()?' · quiet zone '+(10*modW)+'px each':' · 静区各 '+(10*modW)+'px')+'</div>';
   out.innerHTML=__h0;
   out.querySelector('.bar-wrap').appendChild(canvas);
 }
@@ -491,7 +522,7 @@ else document.addEventListener('DOMContentLoaded', __barcode_code39Boot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -499,7 +530,7 @@ else document.addEventListener('DOMContentLoaded', __barcode_code39Boot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

@@ -118,7 +118,8 @@
   <div class="formula-desc">按 RFC 4648 把字节流每 5 位一组映射为可打印字符，适合大小写不敏感的场景。</div>
   <ul class="formula-list">
     <li><b>分组</b>：每 5 字节（40 位）切为 8 个 5 位组，每组映射字母表 A–Z 与 2–7。</li>
-    <li><b>填充</b>：不足 5 字节时低位补 0，输出用 <code>=</code> 补齐到 8 的倍数。</li>
+    <li><b>填充</b>：不足 5 字节时低位补 0，输出用 <code>=</code> 补齐到 8 的倍数；解码会校验末组有效字符数与等号个数，完整 8 字符组后不接受多余等号。</li>
+    <li><b>字节与文本</b>：Base32 可承载任意字节；文本模式严格按 UTF-8 解码，遇到非法字节不静默替换，Hex 字段保留原始字节以便往返核对。</li>
     <li><b>优势</b>：字母全大写、剔除易混字符，适合 DNS 记录、OTP 密钥等不区分大小写的载体。</li>
     <li><b>变体</b>：z-base-32、Crockford Base32 的字母表与填充规则与标准不同，不可混用。</li>
   </ul>
@@ -128,21 +129,25 @@
       <div id="base32_encodePresets"></div><button type="button" class="btn primary" onclick="encode32()">编码 ↑</button><button class="btn" type="button" onclick="__base32_encodeExport()">导出明细 CSV</button>
       <button type="button" class="btn primary" onclick="decode32()">解码 ↓</button>
       <button type="button" class="btn success" onclick="copyResult(event)">复制结果</button>
+      <button type="button" class="btn" onclick="copyHexResult(event)">复制 Hex</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
       <div style="flex:1;"></div>
       <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;">
-        <input type="checkbox" id="noPad"> 去掉填充
+        <input type="checkbox" id="noPad" onchange="__b32Invalidate()"> 去掉填充
       </label>
       <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;">
-        <input type="checkbox" id="allowNoPad"> 解码时允许省略填充
+        <input type="checkbox" id="allowNoPad" onchange="__b32Invalidate()"> 解码时允许省略填充
       </label>
     </div>
 
     <label for="input">输入</label>
-    <textarea id="input" placeholder="输入要编码的文本或要解码的 Base32 字符串...">Hello</textarea>
+    <textarea id="input" placeholder="输入要编码的文本或要解码的 Base32 字符串..." oninput="__b32Invalidate()">Hello</textarea>
 
     <label style="margin-top:16px;" for="output">输出结果</label>
-    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea> <div id="base32_encodeTable"></div> <div id="base32_encodeDiff"></div> <div id="base32_encodeChart"></div> <div id="base32_encodeHist"></div>
+    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea>
+    <div id="b32Notice" class="formula-desc" style="margin:8px 0;color:var(--text-light);"></div>
+    <label style="margin-top:8px;" for="b32Hex">字节（Hex，保留任意二进制）</label>
+    <textarea id="b32Hex" placeholder="解码后按字节显示 Hex，例如 66 6F 6F 62 61；非 UTF-8 数据以这里为准" readonly></textarea> <div id="base32_encodeTable"></div> <div id="base32_encodeDiff"></div> <div id="base32_encodeChart"></div> <div id="base32_encodeHist"></div>
   </div>
 
   <div class="card">
@@ -271,37 +276,82 @@ function base32ToBytes(str, allowUnpadded){
   return new Uint8Array(out);
 }
 
+var __b32Valid = false;
+function bytesToHex(bytes){
+  var out = [];
+  for(var i=0;i<bytes.length;i++) out.push((bytes[i] < 16 ? '0' : '') + bytes[i].toString(16).toUpperCase());
+  return out.join(' ');
+}
+function __b32Invalidate(){
+  __b32Valid = false;
+  var out = document.getElementById('output');
+  var hex = document.getElementById('b32Hex');
+  var notice = document.getElementById('b32Notice');
+  if(out) out.value = '';
+  if(hex) hex.value = '';
+  if(notice) notice.textContent = '';
+}
+function __b32SetResult(text, bytes, ok){
+  document.getElementById('output').value = text;
+  document.getElementById('b32Hex').value = bytesToHex(bytes);
+  document.getElementById('b32Notice').textContent = '';
+  __b32Valid = !!ok;
+}
 function encode32(){
+  __b32Invalidate();
   const text = document.getElementById('input').value;
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter text to encode":"请输入要编码的文本"));
   const bytes = new TextEncoder().encode(text);
-  document.getElementById('output').value = bytesToBase32(bytes);
+  __b32SetResult(bytesToBase32(bytes), bytes, true);
 }
 
 function decode32(){
+  __b32Invalidate();
   const text = document.getElementById('input').value.trim();
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter Base32 string to decode":"请输入要解码的 Base32 字符串"));
   try{
     const allow = !!(document.getElementById('allowNoPad') && document.getElementById('allowNoPad').checked);
     const bytes = base32ToBytes(text, allow);
-    document.getElementById('output').value = new TextDecoder().decode(bytes);
+    document.getElementById('b32Hex').value = bytesToHex(bytes);
+    try{
+      const decoded = new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+      __b32SetResult(decoded, bytes, true);
+    }catch(e){
+      // 严格解码：非 UTF-8 字节不再静默替换成 U+FFFD，文本结果留空并明确指向 Hex。
+      const en = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+      document.getElementById('b32Notice').textContent = en
+        ? 'Decoded bytes are not valid UTF-8; the text result is left empty. Use the Hex field to inspect/copy the raw bytes.'
+        : '解码出的字节不是有效 UTF-8，文本结果留空；请用下方 Hex 字段查看/复制原始字节。';
+      __b32Valid = false;
+    }
   }catch(e){
+    __b32Invalidate();
     alert(b32Err('解码失败：','Decode failed: ') + e.message);
   }
 }
 
+function copyText(v, ev){
+  const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
+  const orig = btn ? btn.textContent : '';
+  navigator.clipboard.writeText(v).then(() => {
+    if(btn){ btn.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"✅ Copied":"✅ 已复制"); setTimeout(() => btn.textContent = orig, 1500); }
+  });
+}
 function copyResult(ev){
+  if(!__b32Valid) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"No current result to copy; run encode/decode successfully first":"当前没有可复制的结果，请先成功执行编码或解码"));
   const v = document.getElementById('output').value;
   if(!v) return;
-  const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
-  navigator.clipboard.writeText(v).then(() => {
-    if(btn){ btn.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"✅ Copied":"✅ 已复制"); setTimeout(() => btn.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copy result":"复制结果"), 1500); }
-  });
+  copyText(v, ev);
+}
+function copyHexResult(ev){
+  const v = document.getElementById('b32Hex').value;
+  if(!v) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"No hex bytes available yet":"当前没有可复制的 Hex 字节"));
+  copyText(v, ev);
 }
 
 function clearAll(){
   document.getElementById('input').value = '';
-  document.getElementById('output').value = '';
+  __b32Invalidate();
 }
 </script><script>
 // tool-intro折叠交互
@@ -480,7 +530,7 @@ else document.addEventListener('DOMContentLoaded', __base32_encodeBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -488,7 +538,7 @@ else document.addEventListener('DOMContentLoaded', __base32_encodeBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

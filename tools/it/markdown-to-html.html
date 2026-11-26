@@ -265,7 +265,7 @@
 
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
+function escH(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){const md=document.getElementById('md').value||'';
@@ -310,13 +310,45 @@ function calcTool(){const md=document.getElementById('md').value||'';
      t=t.replace(/`([^`]+)`/g,function(_,c){ codes.push('<code>'+c+'</code>'); return '\x01CODE'+(codes.length-1)+'\x01'; });
      t=t.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
      t=t.replace(/\*([^*]+)\*/g,'<em>$1</em>');
-     // 图片规则必须在链接规则之前，否则 ![alt](url) 的 [alt](url) 会被链接规则先吃掉
-     t=t.replace(/!\[([^\]]*)\]\(([^)]*)\)/g,function(_,alt,url){
-       return '<img src="'+attrEsc(safeUrl(url))+'" alt="'+attrEsc(unesc(alt))+'" loading="lazy">';
-     });
-     t=t.replace(/\[([^\]]+)\]\(([^)]+)\)/g,function(_,txt,url){
-       return '<a href="'+attrEsc(safeUrl(url))+'" target="_blank" rel="noopener noreferrer">'+txt+'</a>';
-     });
+     // 链接/图片按字符扫描解析：目标地址允许成对括号（如 Function_(mathematics)）与反斜杠转义，
+     // 不能再用「匹配到第一个右括号」的正则，否则带括号的 URL 会被截断。
+     const parseLinks=function(text){
+       let out='',i=0;
+       const unescapeMd=function(x){return x.replace(/\\([\\\[\]()])/g,'$1');};
+       while(i<text.length){
+         const img=text.charAt(i)==='!'&&text.charAt(i+1)==='[';
+         if(img||text.charAt(i)==='['){
+           const start=i+(img?1:0);
+           let j=start+1,alt='',closed=false;
+           for(;j<text.length;j++){
+             const ch=text.charAt(j);
+             if(ch==='\\'&&j+1<text.length){alt+=ch+text.charAt(j+1);j++;continue;}
+             if(ch===']'){closed=true;break;}
+             alt+=ch;
+           }
+           if(closed&&j+1<text.length&&text.charAt(j+1)==='('){
+             let k=j+2,dest='',depth=1,ok=false;
+             for(;k<text.length;k++){
+               const ch=text.charAt(k);
+               if(ch==='\\'&&k+1<text.length){dest+=ch+text.charAt(k+1);k++;continue;}
+               if(ch==='(')depth++;
+               else if(ch===')'){depth--;if(depth===0){ok=true;break;}}
+               dest+=ch;
+             }
+             if(ok&&dest.trim()!==''){
+               const altRaw=unescapeMd(alt),urlRaw=unescapeMd(dest.trim());
+               out+=img
+                 ?'<img src="'+attrEsc(safeUrl(urlRaw))+'" alt="'+attrEsc(altRaw)+'" loading="lazy">'
+                 :'<a href="'+attrEsc(safeUrl(urlRaw))+'" target="_blank" rel="noopener noreferrer">'+altRaw+'</a>';
+               i=k+1;continue;
+             }
+           }
+         }
+         out+=text.charAt(i);i++;
+       }
+       return out;
+     };
+     t=parseLinks(t);
      t=t.replace(/\x01CODE(\d+)\x01/g,function(_,i){ return codes[parseInt(i,10)]||''; });
      return t;
    };
@@ -365,7 +397,7 @@ function calcTool(){const md=document.getElementById('md').value||'';
    }
    html += '<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+
      '支持标题/粗斜体/链接/行内代码/列表/代码块/引用/表格/分割线。生成结果可复制到任意 HTML 页面。</div>';
-   const __g2=html;ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));}
+   ToolBox.setResult('result', html);}
 function resetForm(){document.getElementById('md').value='# 标题\n\n**加粗** 与 *斜体*，[链接](https://example.com)\n\n- 列表项一\n- 列表项二\n\n```js\nconsole.log(\'hello\');\n```\n\n| 列一 | 列二 |\n|---|---|\n| A | B |';
       document.getElementById('showcode').selectedIndex=0;
       document.getElementById('compact').selectedIndex=0;

@@ -114,7 +114,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="不含税价与含税价互相换算，快速计算增值税额">Convert between tax-inclusive and tax-exclusive amounts and compute the VAT payable from the applicable rate.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">价税互换口径：不含税模式 税额 = 不含税金额 × 税率、价税合计 = 不含税金额 + 税额；含税模式 不含税金额 = 价税合计 ÷ (1+税率)、税额 = 价税合计 − 不含税金额。校验：税率由下拉选择（自定义档缺省按 0）、金额缺省按 0，无强校验。判据：无论何种模式恒有 不含税 + 税额 = 价税合计，三卡联动展示，结果保留两位小数。</div>
+      <div class="formula-eq">价税互换口径：不含税模式 税额 = 不含税金额 × 税率、价税合计 = 不含税金额 + 税额；含税模式 不含税金额 = 价税合计 ÷ (1+税率)、税额 = 价税合计 − 不含税金额。校验：金额必填且为非负有限数，空白不等于 0；税率 0–100%，自定义税率同样校验。判据：无论何种模式恒有 不含税 + 税额 = 价税合计，三卡与详情均按当前语言输出，结果保留两位小数。</div>
       <p class="formula-desc">不含税价与含税价互相换算，快速计算增值税额</p>
     </div>
 
@@ -228,24 +228,28 @@ function load(){ try{ const data=JSON.parse(localStorage.getItem(STORE_KEY)||'{}
 function fmt(n,d){ return ToolBox.formatNumber(n,d); }
 function calc(){
   save();
-  const mode = document.querySelector('input[name="mode"]:checked').value;
-  const rateSel = $('rate').value;
-  let rate = rateSel==='custom' ? ((parseFloat($('customRate').value)||0)/100) : (parseFloat(rateSel)/100);
-  const amount = parseFloat($('amount').value)||0;
-  $('customWrap').style.display = rateSel==='custom' ? 'block' : 'none';
-  const __g1=mode==='net' ? ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Amount excluding tax (CNY)":"不含税金额（元）") : ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Amount including tax (CNY)":"含税金额（元）");$('amountLabel').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
-  let net=0, tax=0, gross=0;
-  if(mode==='net'){ net=amount; tax=net*rate; gross=net+tax; }
-  else { gross=amount; net=gross/(1+rate); tax=gross-net; }
+  const __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/.test(location.search);
+  const __raw=function(id){const e=$(id);return e?String(e.value||'').trim():'';};
+  const mode=document.querySelector('input[name="mode"]:checked').value;
+  const rateSel=$('rate').value;
+  const rateRaw=rateSel==='custom'?__raw('customRate'):rateSel;
+  $('customWrap').style.display=rateSel==='custom'?'block':'none';
+  if(__raw('amount')===''){$('res').innerHTML='<p style="color:var(--danger)">'+(__en?'Fill in the amount. Blank is not 0.':'请填写金额；空白不等于 0。')+'</p>';return;}
+  if(rateRaw===''){$('res').innerHTML='<p style="color:var(--danger)">'+(__en?'Fill in the tax rate.':'请填写税率。')+'</p>';return;}
+  const amount=Number(__raw('amount')),ratePct=Number(rateRaw),rate=ratePct/100;
+  if(!Number.isFinite(amount)||!Number.isFinite(ratePct)||amount<0||ratePct<0||ratePct>100){$('res').innerHTML='<p style="color:var(--danger)">'+(__en?'Amount must be finite and non-negative; the rate must be 0–100%.':'金额须为非负有限数，税率须在 0–100% 之间。')+'</p>';return;}
+  $('amountLabel').textContent=mode==='net'?(__en?'Amount excluding tax (CNY)':'不含税金额（元）'):(__en?'Amount including tax (CNY)':'含税金额（元）');
+  let net=0,tax=0,gross=0;
+  if(mode==='net'){net=amount;tax=net*rate;gross=net+tax;}else{gross=amount;net=gross/(1+rate);tax=gross-net;}
   const summary=[
-    {num:fmt(net,2),label:((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Amount excluding tax (CNY)":"不含税金额（元）")},
-    {num:fmt(tax,2),label:'增值税额（元）'},
-    {num:fmt(gross,2),label:'价税合计（元）'}
+    {num:fmt(net,2),label:__en?'Amount excluding tax (CNY)':'不含税金额（元）'},
+    {num:fmt(tax,2),label:__en?'VAT amount (CNY)':'增值税额（元）'},
+    {num:fmt(gross,2),label:__en?'Total including tax (CNY)':'价税合计（元）'}
   ];
-  const __g2=summary.map(s=>`<div class="data-card"><div class="num">${s.num}</div><div class="label">${s.label}</div></div>`).join('');$('summary').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  const __g3=`<p>不含税金额：<strong>${fmt(net,2)} 元</strong></p><p>增值税额（税率 ${fmt(rate*100,2)}%）：<strong>${fmt(tax,2)} 元</strong></p><p>价税合计：<strong>${fmt(gross,2)} 元</strong></p>`;$('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  $('summary').innerHTML=summary.map(s=>`<div class="data-card"><div class="num">${s.num}</div><div class="label">${s.label}</div></div>`).join('');
+  $('res').innerHTML=`<p>${__en?'Amount excluding tax':'不含税金额'}${__en?':':'：'}<strong>${fmt(net,2)}${__en?' CNY':' 元'}</strong></p><p>${__en?'VAT amount':'增值税额'}（${__en?'rate':'税率'} ${fmt(ratePct,2)}%）：<strong>${fmt(tax,2)}${__en?' CNY':' 元'}</strong></p><p>${__en?'Total including tax':'价税合计'}${__en?':':'：'}<strong>${fmt(gross,2)}${__en?' CNY':' 元'}</strong></p><p style="font-size:13px;color:var(--text-muted);">${__en?'Custom rates apply to the entered scenario only; confirm the applicable rate and tax-inclusive rules before invoicing.':'自定义税率仅适用于当前测算场景，开票前请核实适用税率与含税/不含税口径。'}</p>`;
 }
-function copyRes(){ ToolBox.copyText($('res').innerText.replace(/\n+/g,'；'),'已复制结果'); }
+function copyRes(){ const en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/.test(location.search); ToolBox.copyText($('res').innerText.replace(/\n+/g,'；'),en?'Copied':'已复制结果'); }
 function resetAll(){ $('amount').value=10000; $('rate').value='13'; $('customRate').value=13; document.querySelector('input[name="mode"][value="net"]').checked=true; calc(); }
 document.addEventListener('DOMContentLoaded',()=>{ load(); calc(); });
 

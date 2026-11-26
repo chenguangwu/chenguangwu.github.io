@@ -143,7 +143,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="⌥ Shell 脚本格式化">⌥ Shell Script Format</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按行遍历脚本并维护缩进深度与 case 块计数。先用「剥离引号、转义与行内注释后的代码」探测 here 文档：命中「<< 加定界符」的起始行按当前缩进输出，随后各行原样保留（缩进正文会改变 shell 语义），直到出现与定界符相同的行才退出；字符串或注释里的 << 不触发。普通行去掉首尾空白后处理，连续空行只保留一个。本行输出深度：整行是 fi/done/esac、以右花括号开头、以 else/elif/then/do 开头，或整行是 ;;/;&/;;& 时减 1（不小于 0）。输出后状态深度：fi/done/esac、右花括号与分支终止符减 1；else/elif/then/do 不变（其前的 if/for 已开层）；以 if/for/while/until/case 开头、行尾为左花括号或整行就是左花括号时加 1；仅在 case 块内、且「行首到右括号之间无空白/引号/括号、右括号是行尾」的分支模式行也加 1。最终按「缩进单位 × 输出深度 + 去空白后的行」拼接。压缩只逐行去首尾空白并删空行、保留换行，不插入分号；校验按剥离后的代码统计关键字与括号，结果写状态栏且不覆盖输出</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按行遍历脚本并维护缩进深度与 case 块计数。先用「剥离引号、转义与行内注释后的代码」探测 here 文档：命中「<< 加定界符」的起始行按当前缩进输出，定界符支持 'EOF'、"EOF"、\EOF 与 <<-，随后各行原样保留（缩进正文会改变 shell 语义），直到出现与定界符相同的行才退出；字符串或注释里的 << 不触发；跨行单/双引号字符串同样逐字保留，压缩时也不 trim 其内部行。普通行去掉首尾空白后处理，连续空行只保留一个。本行输出深度：整行是 fi/done/esac、以右花括号开头、以 else/elif/then/do 开头，或整行是 ;;/;&/;;& 时减 1（不小于 0）。输出后状态深度：fi/done/esac、右花括号与分支终止符减 1；else/elif/then/do 不变（其前的 if/for 已开层）；以 if/for/while/until/case 开头、行尾为左花括号或整行就是左花括号时加 1；仅在 case 块内、且「行首到右括号之间无空白/引号/括号、右括号是行尾」的分支模式行也加 1。最终按「缩进单位 × 输出深度 + 去空白后的行」拼接。压缩只逐行去首尾空白并删空行、保留换行，不插入分号；校验按剥离后的代码统计关键字与括号，结果写状态栏且不覆盖输出</div>
   <div class="formula-desc">本开发工具在前端本地完成解析、转换与处理，代码不离开浏览器，遵循对应语法与格式规范。 工具名称：Shell 脚本格式化 - 免费开发工具，在线Shell 脚本格式化，免费使用。</div>
 </div>
 
@@ -251,7 +251,10 @@ const SAMPLE = '#!/bin/bash\n# Backup script\nset -e\n\nbackup() {\n    local sr
 const IND = () => { const v = document.getElementById('indent').value; return v === 'tab' ? '\t' : ' '.repeat(parseInt(v)); };
 // IT-N189/N190：把引号内文本、转义字符与行内注释替换成等长空格，只留下可用于语法判定的「代码」。
 // 这样 echo "a <<EOF"、# if fi、echo "if fi" 都不会被误当作 heredoc 起始或块关键字。
+// 把引号内文本、转义字符与行内注释替换成等长空格，只留下可用于语法判定的「代码」。
+// 这样 echo "a <<EOF"、# if fi、echo "if fi" 都不会被误当作 heredoc 起始或块关键字。
 function shellCode(line){
+  line = line || '';
   let out = '', quote = null;
   for(let i = 0; i < line.length; i++){
     const c = line.charAt(i);
@@ -269,6 +272,55 @@ function shellCode(line){
   while(out.length < line.length) out += ' ';
   return out;
 }
+function shellQuoteStep(line, quote){
+  line = line || '';
+  let q=quote||null;
+  for(let i=0;i<line.length;i++){
+    const c=line.charAt(i);
+    if(q){
+      if(q==='"'&&c==='\\'){ i++; continue; }
+      if(c===q) q=null;
+    }else{
+      if(c==='#'&&(i===0||/\s/.test(line.charAt(i-1)))) break;
+      if(c==="'"||c==='"') q=c;
+    }
+  }
+  return q;
+}
+function shellHeredoc(line){
+  line = line || '';
+  let q=null;
+  for(let i=0;i<line.length;i++){
+    const c=line.charAt(i);
+    if(q){
+      if(q==='"'&&c==='\\'){ i++; continue; }
+      if(c===q) q=null;
+      continue;
+    }
+    if(c==='#'&&(i===0||/\s/.test(line.charAt(i-1)))) break;
+    if(c==="'"||c==='"'){ q=c; continue; }
+    if(c==='<'&&line.charAt(i+1)==='<'){
+      let j=i+2;
+      if(line.charAt(j)==='-') j++;
+      while(/\s/.test(line.charAt(j))) j++;
+      let end='';
+      const qc=line.charAt(j);
+      if(qc==="'"||qc==='"'){
+        const close=line.indexOf(qc,j+1);
+        if(close<0) return null;
+        end=line.slice(j+1,close);
+      }else{
+        if(line.charAt(j)==='\\') j++;
+        const m=/^([^\s;|&<>()]+)/.exec(line.slice(j));
+        if(!m) return null;
+        end=m[1];
+      }
+      return end||null;
+    }
+  }
+  return null;
+}
+
 function formatShell(){
   setErr('');
   try{
@@ -278,6 +330,7 @@ function formatShell(){
     let depth = 0;      // 下一行的缩进层级
     let caseDepth = 0;  // IT-N186：只有 case 块内才允许识别分支模式
     let inHeredoc = false, heredocEnd = '';
+    let quote = null;
     let prevBlank = false;
     const reOpen = /^(if|for|while|until|case)\b/;
     const reClose = /^(fi|done|esac)\b/;
@@ -292,12 +345,20 @@ function formatShell(){
         prevBlank = false;
         continue;
       }
+      // 跨行引号内文本逐字保留；缩进/压缩都不得改动字符串内容
+      if(quote){
+        out.push(line);
+        quote = shellQuoteStep(line, quote);
+        prevBlank = false;
+        continue;
+      }
       if(trimmed === ''){
         if(!prevBlank){ out.push(''); prevBlank = true; }
         continue;
       }
       prevBlank = false;
       const code = shellCode(trimmed).trim();
+      quote = shellQuoteStep(line, null);
       const isClose = reClose.test(code) || /^\}/.test(code);
       const isMid = reMid.test(code);
       const isTerm = reTerm.test(code);
@@ -319,9 +380,9 @@ function formatShell(){
       }else if(isCasePat){
         depth++;
       }
-      // IT-N189：起始行本身参与缩进与层级；仅在剥离后的代码上探测定界符
-      const hm = code.match(/<<-?\s*([A-Za-z_][A-Za-z0-9_]*)/);
-      if(hm){ heredocEnd = hm[1]; inHeredoc = true; }
+      // 起始行本身参与缩进与层级；定界符允许 'EOF'、"EOF"、\EOF 与 <<-
+      const hm = shellHeredoc(trimmed);
+      if(hm){ heredocEnd = hm; inHeredoc = true; }
     }
     setOut(out.join('\n'));
     setErr('✅ 格式化成功');
@@ -334,6 +395,7 @@ function minifyShell(){
     const lines = src.split('\n');
     const out = [];
     let heredoc = null;
+    let quote = null;
     for(let i = 0; i < lines.length; i++){
       const raw = lines[i];
       if(heredoc){
@@ -341,12 +403,18 @@ function minifyShell(){
         if(raw.trim() === heredoc) heredoc = null;
         continue;
       }
+      if(quote){
+        out.push(raw);
+        quote = shellQuoteStep(raw, quote);
+        continue;
+      }
       const t = raw.trim();
       if(!t) continue;
-      // IT-N185 加固：只在剥离引号/注释后的代码上探测定界符，字符串与注释里的 << 不再误触发
-      const m = shellCode(t).match(/<<-?\s*([A-Za-z_][A-Za-z0-9_]*)/);
+      // 跨行引号与 here-document 都要跨行跟踪；字符串/注释里的 << 不触发
+      const h = shellHeredoc(t);
+      quote = shellQuoteStep(raw, null);
       out.push(t);
-      if(m) heredoc = m[1];
+      if(h) heredoc = h;
     }
     setOut(out.join('\n'));
     setErr('✅ 压缩成功（保留换行，确保 && / | / else / case / heredoc 语法有效）');
@@ -361,14 +429,20 @@ function doValidate(){
     // IT-N190：只在剥离引号/注释后的代码上计数，并跳过 here 文档正文
     let opens = 0, closes = 0, braceO = 0, braceC = 0, parenO = 0, parenC = 0;
     let heredoc = null;
+    let quote = null;
     for(const line of lines){
       if(heredoc){
         if(line.trim() === heredoc) heredoc = null;
         continue;
       }
+      if(quote){
+        quote = shellQuoteStep(line, quote);
+        continue;
+      }
       const code = shellCode(line);
-      const hm = code.match(/<<-?\s*([A-Za-z_][A-Za-z0-9_]*)/);
-      if(hm) heredoc = hm[1];
+      const hm = shellHeredoc(line);
+      if(hm) heredoc = hm;
+      quote = shellQuoteStep(line, null);
       opens  += (code.match(/\b(if|for|while|until|case)\b/g) || []).length;
       closes += (code.match(/\b(fi|done|esac)\b/g) || []).length;
       braceO += (code.match(/\{/g) || []).length;
@@ -384,10 +458,12 @@ function doValidate(){
       '( 数量: ' + parenO + '\n' +
       ') 数量: ' + parenC + '\n' +
       '行数: ' + lines.length;
-    let ok = true, msg = stats + '\n✅ 校验通过';
+    let ok = true, msg = stats;
     if(opens !== closes){ ok = false; msg = stats + '\n❌ 块未平衡：开始 ' + opens + ' / 结束 ' + closes; }
     else if(braceO !== braceC){ ok = false; msg = stats + '\n❌ 花括号未平衡：{ ' + braceO + ' / } ' + braceC; }
     else if(parenO !== parenC){ ok = false; msg = stats + '\n❌ 圆括号未平衡：( ' + parenO + ' / ) ' + parenC; }
+    if(quote){ ok = false; msg += '\n❌ 引号未闭合（跨行字符串会吞掉后续脚本）'; }
+    if(ok) msg += '\n✅ 校验通过';
     // 结果写入状态栏，绝不覆盖「输出结果」，已生成的格式化/压缩成果保持可见
     setErr(msg);
     document.getElementById('err').className = ok ? 'err ok' : 'err';
@@ -557,7 +633,7 @@ else document.addEventListener('DOMContentLoaded', __shell_script_formatterBoot)
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -565,7 +641,7 @@ else document.addEventListener('DOMContentLoaded', __shell_script_formatterBoot)
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

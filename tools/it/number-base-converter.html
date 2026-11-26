@@ -402,7 +402,7 @@ const MAX_HISTORY = 20;
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  event.target.classList.add('active');
+  if(typeof event!=='undefined' && event && event.target) event.target.classList.add('active');
   document.getElementById('tab-' + tab).classList.add('active');
   if (tab === 'reference') buildReferenceTable();
   if (tab === 'history') renderHistory();
@@ -437,6 +437,7 @@ function setInputBase(base) {
 }
 
 function parseNumber(str, base) {
+  if (typeof str !== 'string') return null;
   str = str.trim().toLowerCase();
   if (!str) return null;
   if (base === null || !Number.isInteger(base) || base < 2 || base > 36) return null;
@@ -564,18 +565,24 @@ function renderAllBases(num) {
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h2;
 }
 
+function invalidateBatchResult(msg){
+  const out=document.getElementById('batchOutput');
+  if(out) out.value='';
+  if(msg) ToolBox.showToast(msg, 'warning');
+}
+
 function doBatchConvert() {
   const fromBase = parseInt(document.getElementById('batchFrom').value, 10);
   const toBase = parseInt(document.getElementById('batchTo').value, 10);
   const input = document.getElementById('batchInput').value.trim();
   
   if (!Number.isInteger(fromBase) || fromBase < 2 || fromBase > 36 || !Number.isInteger(toBase) || toBase < 2 || toBase > 36) {
-    ToolBox.showToast('进制必须为 2–36 的整数', 'warning');
+    invalidateBatchResult('进制必须为 2–36 的整数');
     return;
   }
 
   if (!input) {
-    ToolBox.showToast(i18nText('toast.msg908'), 'warning');
+    invalidateBatchResult(i18nText('toast.msg908'));
     return;
   }
   
@@ -614,6 +621,11 @@ function downloadBatchResult() {
   if (text) ToolBox.downloadText('base-conversion.txt', text, 'text/plain');
   else ToolBox.showToast(i18nText('toast.msg476'), 'warning');
 }
+
+['batchInput','batchFrom','batchTo'].forEach(function(id){
+  var el=document.getElementById(id);
+  if(el) el.addEventListener(el.tagName==='TEXTAREA'?'input':'change',function(){invalidateBatchResult();});
+});
 
 function buildReferenceTable() {
   const tbody = document.getElementById('refTableBody');
@@ -683,9 +695,10 @@ function loadFromHistory(index) {
 }
 
 function switchTabWithIndex(tab) {
-  document.querySelectorAll('.tab').forEach((t, i) => t.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  document.querySelectorAll('.tab')[0].classList.add('active');
+  document.querySelectorAll('.tab').forEach((t, i) => t && t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c && c.classList.remove('active'));
+  var firstTab=document.querySelectorAll('.tab')[0];
+  if(firstTab) firstTab.classList.add('active');
   document.getElementById('tab-' + tab).classList.add('active');
 }
 
@@ -861,7 +874,7 @@ else document.addEventListener('DOMContentLoaded', __number_base_converterBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -869,7 +882,7 @@ else document.addEventListener('DOMContentLoaded', __number_base_converterBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

@@ -306,7 +306,7 @@ function __tbInputGuardCore(_ids,_labels){
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"monthly": "monthly"};
+  var __D={}; // 月投入可以为 0：初始本金仍可按复利增长，不能把 monthly 当分母拒绝
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -381,6 +381,16 @@ function __dcaSyncTiming(){
 }
 
 function calcMonthlyData(){
+    // 月投入可以为 0，但只要初始本金 > 0 仍能计算复利增长；两项均为 0 才无意义，给专门提示。
+    var __mRaw=String(document.getElementById('monthly').value==null?'':document.getElementById('monthly').value).trim();
+    var __iRaw=String(document.getElementById('initial').value==null?'':document.getElementById('initial').value).trim();
+    if(__mRaw!==''&&__iRaw!==''&&Number(__mRaw)===0&&Number(__iRaw)===0){
+      var __cids0=['statGrid','tableWrap','dca_calculatorTable','dca_calculatorDiff','dca_calculatorChart','dca_calculatorHist'];
+      for(var __ci0=0;__ci0<__cids0.length;__ci0++){var __ce0=document.getElementById(__cids0[__ci0]);if(__ce0)__ce0.innerHTML='';}
+      var __tm0=document.getElementById('totalMonths');if(__tm0)__tm0.textContent='';
+      ToolBox.setResult("res",'<p style="color:var(--danger)">⚠ 初始本金与每月定投均为 0：没有可增长的本金，无法计算定投收益。</p>');
+      return;
+    }
     var __ig=__tbInputGuard(['monthly', 'years', 'rate', 'initial'],["每月定投金额(元)", "定投年限", "预期年化收益率(%)", "初始本金(元)"]);if(__ig){
       // 第157批：拒绝态必须停算并清所有结果载体，防上一次成功计算的统计卡/图表/明细表/期数旧结果复活。
       var __cids=['statGrid','tableWrap','dca_calculatorTable','dca_calculatorDiff','dca_calculatorChart','dca_calculatorHist'];
@@ -472,7 +482,9 @@ function calc(){
   resHtml += '<p>累计收益率：<strong style="color:' + (dcaProfit >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + profitSign + Math.abs(dcaReturn).toFixed(2) + '%</strong></p>';
   resHtml += '<p>年化收益率（资金加权）：<strong style="color:var(--primary);">' + (annualized ? annualized.nominal.toFixed(2) + '%' : '—') + '</strong>' + (annualized ? '（名义年化 = 月 IRR × 12；有效年化 <strong style="color:var(--primary);">' + annualized.effective.toFixed(2) + '%</strong>）' : '（现金流无法求解 IRR）') + '</p>';
   resHtml += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  resHtml += '<p style="font-size:13px;color:var(--text-muted);">💡 对比：若一次性投入 ¥' + ToolBox.formatNumber(totalInvest, 0) + '，期末资产约 <strong>¥' + ToolBox.formatNumber(lumpFinal, 0) + '</strong>（' + (lumpFinal > dcaFinal ? '高于' : '低于') + '定投 ' + (Math.abs(lumpFinal - dcaFinal) / dcaFinal * 100).toFixed(2) + '%）</p>';
+  var __diff = lumpFinal - dcaFinal;
+  var __cmpTxt = Math.abs(__diff) < 0.005 ? '与定投相同，差值在显示精度内为 0' : ((__diff > 0 ? '高于' : '低于') + '定投 ' + (dcaFinal !== 0 ? (Math.abs(__diff) / dcaFinal * 100).toFixed(2) + '%' : '（定投期末资产为 0，比例不适用）'));
+  resHtml += '<p style="font-size:13px;color:var(--text-muted);">💡 对比：若一次性投入 ¥' + ToolBox.formatNumber(totalInvest, 0) + '，期末资产约 <strong>¥' + ToolBox.formatNumber(lumpFinal, 0) + '</strong>（' + __cmpTxt + '）</p>';
   const __g5=resHtml;document.getElementById('res').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 
   // 止盈目标 → 反推所需年化（plan：定投计算器缺「止盈目标反推年化」）

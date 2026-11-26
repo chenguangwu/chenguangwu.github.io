@@ -166,8 +166,9 @@
 
       <div class="checkbox-row">
         <label><input type="checkbox" id="onlyAlpha" checked onchange="process()"> 仅字母移位</label>
-        <label><input type="checkbox" id="preserveCase" checked onchange="process()"> 保留大小写</label>
+        <label><input type="checkbox" id="preserveCase" checked onchange="toggleCaseWarning();process()"> 保留大小写</label>
       </div>
+      <p id="caseWarning" style="display:none;margin:8px 0 0;padding:8px 10px;border-radius:6px;background:rgba(255,152,0,0.14);font-size:12px;color:var(--text-muted);" data-zh="已关闭“保留大小写”：字母输出统一转为大写，原始大小写信息丢失；此时再交换并解密无法还原原文大小写。">Caesar Cipher</p>
 
       <div class="cipher-grid" id="cipherGrid"></div>
     </div>
@@ -330,6 +331,7 @@ function updateShiftDisplay(){
 }
 
 function caesarShift(text, shift, onlyAlpha, preserveCase, encrypt){
+  if(typeof text!=='string') return '';
   // 字母表 26 个字符；关闭「仅字母」时作用于可打印 ASCII 共 95 个字符 —— 模数必须同步切换
   const MOD = onlyAlpha ? 26 : 95;
   const s = ((shift % MOD) + MOD) % MOD;
@@ -353,11 +355,18 @@ function caesarShift(text, shift, onlyAlpha, preserveCase, encrypt){
   }
 }
 
+function toggleCaseWarning(){
+  const box=document.getElementById('caseWarning');
+  const keep=document.getElementById('preserveCase');
+  if(box && keep) box.style.display = (!keep.checked && document.getElementById('onlyAlpha').checked) ? 'block' : 'none';
+}
+
 function process(){
   const input = document.getElementById('input').value;
   const shift = parseInt(document.getElementById('shift').value) || 3;
   const onlyAlpha = document.getElementById('onlyAlpha').checked;
   const preserveCase = document.getElementById('preserveCase').checked;
+  toggleCaseWarning();
   
   if(currentMode === 'brute'){
     bruteForce(input);
@@ -370,6 +379,7 @@ function process(){
 }
 
 function bruteForce(text){
+  if(typeof text!=='string') return;
   const onlyAlpha = document.getElementById('onlyAlpha').checked;
   const preserveCase = document.getElementById('preserveCase').checked;
   let html = '';
@@ -398,7 +408,7 @@ function useShift(shift){
 }
 
 function copyBrute(shift){
-  const text = window._bruteResults[shift];
+  const text = (window._bruteResults || {})[shift];
   if(text){
     navigator.clipboard.writeText(text).then(() => {
       showToast(i18nText('tool.copy_ok'));
@@ -425,6 +435,9 @@ function copyResult(){
 }
 
 function swapText(){
+  if(!document.getElementById('preserveCase').checked && document.getElementById('onlyAlpha').checked){
+    ToolBox.showToast('当前已关闭“保留大小写”：交换后的密文全为大写，解密无法还原原始大小写', 'warning');
+  }
   const input = document.getElementById('input');
   const output = document.getElementById('output');
   const temp = input.value;
@@ -460,15 +473,20 @@ function saveHistory(input, output, shift, mode){
   if(!input || !output) return;
   let history = getHistory();
   const item = {
-    input: input.substring(0, 200),
-    output: output.substring(0, 200),
+    // 恢复必须拿到完整输入/输出；列表预览才截断。旧记录没有 full 标记，视为可能只存了前 200 单元。
+    input: input,
+    output: output,
     shift,
     mode,
+    onlyAlpha: document.getElementById('onlyAlpha').checked,
+    preserveCase: document.getElementById('preserveCase').checked,
+    full: true,
     time: Date.now()
   };
-  // IT-N141: 与全部历史按「完整输入 + 参数」去重（不只看最新一条），同一输入只保留一份。
+  // 与全部历史按「完整输入 + 全部转换参数」去重，不同选项不再合并。
   var dup = history.findIndex(function(h){
-    return h.input === item.input && h.shift === item.shift && h.mode === item.mode;
+    return h.input === item.input && h.shift === item.shift && h.mode === item.mode &&
+      h.onlyAlpha === item.onlyAlpha && h.preserveCase === item.preserveCase;
   });
   if(dup === 0) return;                       // 最新一条即本条：输入未变，跳过写入
   if(dup > 0) history.splice(dup, 1);         // 旧位置存在：先删后插，保证最新在前
@@ -499,8 +517,8 @@ function renderHistory(){
     return `
       <div class="history-item" onclick="loadHistory(${idx})">
         <div class="info">
-          <div class="meta">移位 ${item.shift} · ${modeText} · ${time}</div>
-          <div class="text">${escapeHtml(item.input.substring(0, 50))}</div>
+          <div class="meta">移位 ${item.shift} · ${modeText} · ${item.onlyAlpha === false ? '全 ASCII' : '仅字母'} · ${item.preserveCase === false ? '不保留大小写' : '保留大小写'} · ${time}${item.full === false ? ' · 记录不完整' : ''}</div>
+          <div class="text">${escapeHtml(item.input.substring(0, 50))}${item.input.length > 50 ? '…' : ''}${(!item.full && item.input.length >= 200) ? '（旧记录可能仅存前 200 字符）' : ''}</div>
         </div>
         <button type="button" class="del-btn" onclick="event.stopPropagation();deleteHistory(${idx})">删除</button>
       </div>
@@ -511,13 +529,21 @@ function renderHistory(){
 function loadHistory(idx){
   const history = getHistory();
   if(history[idx]){
-    document.getElementById('input').value = history[idx].input;
-    document.getElementById('shift').value = history[idx].shift;
+    const item = history[idx];
+    document.getElementById('input').value = item.input;
+    document.getElementById('shift').value = item.shift;
+    // 兼容旧记录：缺少选项时按默认（仅字母、保留大小写）恢复，并提示可能只存了前 200 字符。
+    document.getElementById('onlyAlpha').checked = item.onlyAlpha !== false;
+    document.getElementById('preserveCase').checked = item.preserveCase !== false;
     updateShiftDisplay();
-    if(history[idx].mode === 'brute'){
+    toggleCaseWarning();
+    if(item.mode === 'brute'){
       setMode('brute');
     } else {
-      setMode(history[idx].mode);
+      setMode(item.mode);
+    }
+    if(item.full === false || (item.input.length >= 200 && item.full === undefined)) {
+      ToolBox.showToast('该历史记录可能只保存了前 200 个字符，恢复内容可能不完整', 'warning');
     }
   }
 }
@@ -714,7 +740,7 @@ else document.addEventListener('DOMContentLoaded', __caesar_cipherBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -722,7 +748,7 @@ else document.addEventListener('DOMContentLoaded', __caesar_cipherBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

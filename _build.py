@@ -1434,7 +1434,7 @@ INDUSTRY_DEFS = {
     'home':          ('🏡', '家居装修'),
     # Education & Culture
     'edu':           ('📖', '教育学习'),
-    'language':      ('🌍', '语言翻译'),
+    'language':      ('🌍', '语言'),
     'exam':          ('📝', '考试备考'),
     'history':       ('📜', '历史人文'),
     'literature':    ('📚', '文学阅读'),
@@ -5712,6 +5712,12 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                         fixed_rt_topped += 1
                 content = content.replace(_block, _new_block)
                 fixed_rt_removed += _rtc['removed']
+            else:
+                # ≥4 张卡片的块此前只做去重计算却未回写，导致历史重复卡片永久残留。
+                # 无论卡片数多少，只要去重/修链产生变化就必须写回（幂等）。
+                if _new_block != _block:
+                    content = content.replace(_block, _new_block)
+                    fixed_rt_removed += _rtc['removed']
         else:
             related = _rel_guar   # 已保证 ≥2（行业池不足时回退同分类/全站）
             if related:
@@ -6216,9 +6222,9 @@ def fix_hot_tools_desc():
         zh = (_load_ind_i18n(ind).get(slug, {}) or {}).get('zh-CN', {}) or {}
         tools_desc = (tmap.get(u, {}) or {}).get('desc', '') or ''
         _d = ''
-        for cand in (zh.get('desc'), zh.get('intro'), tools_desc, t.get('n', '')):
+        for cand in (zh.get('intro'), zh.get('desc'), tools_desc, t.get('n', '')):
             if isinstance(cand, str) and _has_cjk(cand):
-                _d = cand[:80] + ('…' if len(cand) > 80 else '')
+                _d = cand
                 break
         if not _d:
             _d = t.get('n', '')

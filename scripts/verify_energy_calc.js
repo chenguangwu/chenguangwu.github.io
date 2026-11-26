@@ -748,15 +748,14 @@ const CASES = [
   {
     "slug": "energy/fridge-power-estimator",
     "inputs": {
-      "volume": "42",
-      "envTemp": "42",
-      "elecPrice": "42",
-      "efficiency": "2"
+      "volume": "550",
+      "envTemp": "32",
+      "elecPrice": "0.8"
     },
     "expect": [
-      "/年 年电费 = 68 × ¥42 = ¥2846 💡 省电建议：环境温度较高，建议将冰箱置于阴凉通风处，远离热源。"
+      "1.37 日耗电 kWh 501 年耗电 kWh ¥401 年电费"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"volume\":\"42\",\"envTemp\":\"42\",\"elecPrice\":\"42\",\"efficiency\":\"2\"}，输出区含「/年 年电费 = 68 × ¥42 = ¥2846 💡 省电建议：环境温度较高…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "合法非默认（默认 450/25/0.58）：550L、32℃、0.8 元/kWh ⇒ 实际日耗 1.37 kWh、年耗 501 kWh、年电费 ¥401；电价上限 2 元/kWh 拦截 42 这类非法值。"
   },
   {
     "slug": "energy/fuel-cost",
@@ -935,12 +934,12 @@ const CASES = [
     "slug": "energy/standby-power-calculator",
     "inputs": {
       "elecPrice": "42",
-      "standbyHours": "42"
+      "standbyHours": "20"
     },
     "expect": [
-      "kWh ¥8.5\n42\n42"
+      "电价须在 0–2 元/kWh 之间"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"elecPrice\":\"42\",\"standbyHours\":\"42\"}，输出区含「kWh ¥8.5\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "非法电价 42 元/kWh 超出 0–2 上限：须显式提示，不得像旧实现那样静默按 0.58 兜底计算；电价 0 合法且正常出结果（真机验证）。"
   },
   {
     "slug": "energy/wind-power-physics",
@@ -974,7 +973,8 @@ const CASES = [
 },
 { slug:"energy/air-purifier-area", inputs:{"cadrInput":"","factorInput":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
 { slug:"energy/assessor-water-quality", inputs:{"tds":"","temp":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
-{ slug:"energy/fridge-power-estimator", inputs:{"volume":"","envTemp":"","elecPrice":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"energy/fridge-power-estimator", inputs:{"volume":"","envTemp":"","elecPrice":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"energy/fridge-power-estimator", inputs:{volume:"450",envTemp:"25",elecPrice:"0"}, expect:["¥0 年电费","¥0 月均电费"], ref:"零电价合法：450L/25℃/0 元 ⇒ 年耗 342 kWh，年电费与月均均为 ¥0，不得回落 0.58 元/kWh。" }
 ];
 
 async function main() {

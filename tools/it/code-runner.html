@@ -417,7 +417,8 @@
   <ul class="formula-list">
     <li><b>执行方式</b>：<code>new Function</code>、Web Worker 或 iframe sandbox，隔离程度依次增强。</li>
     <li><b>安全</b>：运行不可信代码必须隔离，防止访问主页面 DOM、Cookie 与同源数据。</li>
-    <li><b>限制</b>：默认无网络与文件系统访问；本工具采用 iframe 沙箱但无超时终止，死循环会冻结当前标签页，请勿运行不可信或无限循环代码。</li>
+    <li><b>限制</b>：预览 iframe 不含 <code>allow-same-origin</code>，不能读取父页或本地文件；<b>sandbox 本身不阻断网络</b>，因此本工具在预览文档内注入 CSP <code>default-src 'none'</code>，默认禁止外部 fetch/图片/字体等出站请求，也<b>没有提供“允许网络”开关</b>。如代码需要外部资源，请自行在本地环境验证。</li>
+    <li><b>超时</b>：本工具无超时终止，死循环会冻结当前标签页，请勿运行不可信或无限循环代码。</li>
     <li><b>用途</b>：片段验证与教学演示，切勿执行来源不明的脚本。</li>
   </ul>
 </div>
@@ -456,8 +457,9 @@
         <option value="gradient">渐变背景生成器</option>
       </select>
       <button type="button" class="btn primary" onclick="runCode()">&#9654; 运行</button>
+      <button type="button" class="btn" onclick="undoSample()" id="undoSampleBtn" disabled>&#8617;&#65039; 撤销示例</button>
       <button type="button" class="btn" onclick="copyAllCode()">&#128203; 复制代码</button>
-      <button type="button" class="btn danger" onclick="clearAll()">&#128465;&#65039; 清空</button>
+      <button type="button" class="btn danger" onclick="clearAll()">&#128465;&#65039; 清空并清除草稿</button>
     </div>
 
     <!-- Options -->
@@ -508,7 +510,7 @@
           <iframe id="preview" sandbox="allow-scripts allow-modals" title="代码运行结果预览" data-i18n-title="tool.title.code_preview"></iframe>
         </div>
         <div class="console-panel" id="consolePanel">
-          <div class="console-header" onclick="toggleConsoleBody()">
+          <div class="console-header" role="button" tabindex="0" aria-expanded="true" aria-controls="consoleBody" onclick="toggleConsoleBody()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleConsoleBody();}">
             <span class="console-label">&#128187; 控制台</span>
             <span class="console-count" id="consoleCount">0</span>
             <button class="console-clear" onclick="event.stopPropagation();clearConsole()">清空</button>
@@ -541,7 +543,7 @@
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -549,7 +551,7 @@
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -570,10 +572,12 @@
       <h4><span class="h4-icon">&#128293;</span> 功能特点</h4>
       <ul class="intro-features">
         <li>三栏代码编辑（HTML / CSS / JS）</li>
-        <li>iframe 沙箱安全运行</li>
+        <li>iframe 沙箱隔离 + CSP 默认禁网</li>
         <li>console.log / warn / error 输出捕获</li>
         <li>实时预览模式（300ms 防抖）</li>
-        <li>5 套内置示例代码</li>
+        <li>5 套内置示例代码，切换前保留可撤销草稿</li>
+        <li>编辑内容本地自动保存，刷新不丢失；可一键清除</li>
+        <li>多行 Tab / Shift+Tab 缩进与反缩进</li>
         <li>一键复制 / 清空代码</li>
         <li>深色模式支持</li>
         <li>移动端自适应布局</li>
@@ -668,7 +672,11 @@
 var autoRunEnabled = false;
 var autoRunTimer = null;
 var consoleCount = 0;
+var activePreviewFrame = null;
 var currentTab = 'html';
+var __crUndoDraft = null;
+var __crSaveTimer = null;
+var __crDraftKey = 'codeRunnerDraftV1';
 
 /* ===== Sample Code ===== */
 var samples = {
@@ -701,6 +709,7 @@ var samples = {
 
 /* ===== Tab Switching ===== */
 function switchTab(tab) {
+  if (!tab) return;
   currentTab = tab;
   var tabs = ['html', 'css', 'js'];
   tabs.forEach(function(t) {
@@ -734,8 +743,8 @@ function executeInIframe(html, css, js) {
   //    （切走「实时时钟」后每秒抛一次 getElementById(...) is null，控制台被刷屏）；
   // ② 全新 window 的 console 是原生状态，从根上杜绝重复 patch 造成递归。
   var oldFrame = document.getElementById('preview');
+  if (!oldFrame) return;
   var iframe = oldFrame.cloneNode(false);
-  oldFrame.parentNode.replaceChild(iframe, oldFrame);
   // 沙箱不含 allow-same-origin：iframe 为不透明源，父页无法通过 contentDocument 写文档，
   // 改用 srcdoc 注入本页拼好的源码；iframe 内的 postMessage 用 "*" 目标仍可送达父页。
 
@@ -770,17 +779,38 @@ function executeInIframe(html, css, js) {
     '}' +
     '<\/script>';
 
-  iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' + css + '</style></head><body>' + consoleScript + html + '<script>' + js + '<\/script></body></html>';
+  // 用户源码里若出现 <\/script> / <\/style>，HTML 解析器会提前关闭对应元素（即使它在 JS 字符串或注释里），
+  // 造成代码被截断。注入前把结束标签改写为 <\/script、<\/style：JS 字符串/注释中 \/ 等价于 /，
+  // CSS 中 \/ 也是转义的斜杠，运行时值不变，但 HTML 解析器不再识别为结束标签。
+  var safeCss = String(css).replace(/<\/style/gi, '<\\/style');
+  var safeJs = String(js).replace(/<\/script/gi, '<\\/script');
+  var doc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; img-src data: blob:; font-src data:; connect-src \'none\';"><style>' + safeCss + '</style></head><body>' + consoleScript + html + '<script>' + safeJs + '<\/script></body></html>';
+  window.__lastPreviewDoc = doc;
+  if (!oldFrame.parentNode || typeof oldFrame.parentNode.replaceChild !== 'function') {
+    // 测试桩/受限环境：没有 replaceChild 时直接更新现有 iframe，仍保持新文档与 CSP。
+    oldFrame.srcdoc = doc;
+    activePreviewFrame = oldFrame;
+    return;
+  }
+  oldFrame.parentNode.replaceChild(iframe, oldFrame);
+  activePreviewFrame = iframe;
+  iframe.srcdoc = doc;
 }
 
 /* ===== Console ===== */
 window.addEventListener('message', function(e) {
-  if (e.data && e.data.type === 'console') {
-    addConsoleLog(e.data.method, e.data.data);
-  }
+  // 只接受当前预览 iframe 的消息；窗口重建后旧窗口的延迟消息一律丢弃。
+  if (!activePreviewFrame || e.source !== activePreviewFrame.contentWindow) return;
+  if (!e.data || e.data.type !== 'console') return;
+  var method = e.data.method === 'warn' || e.data.method === 'error' ? e.data.method : 'log';
+  if (!Array.isArray(e.data.data)) return;
+  addConsoleLog(method, e.data.data.slice(0, 50));
 });
 
 function addConsoleLog(method, data) {
+  if (method !== 'log' && method !== 'warn' && method !== 'error') method = 'log';
+  if (!Array.isArray(data)) data = [];
+  data = data.slice(0, 50).map(function(d){ var s = String(d == null ? '' : d); return s.length > 2000 ? s.slice(0, 2000) + '…' : s; });
   var body = document.getElementById('consoleBody');
   /* Remove empty message */
   var emptyEl = body.querySelector('.console-empty');
@@ -821,11 +851,10 @@ function clearConsole() {
 
 function toggleConsoleBody() {
   var body = document.getElementById('consoleBody');
-  if (body.style.display === 'none') {
-    body.style.display = 'block';
-  } else {
-    body.style.display = 'none';
-  }
+  var head = document.querySelector('.console-header');
+  var open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  if (head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
 function toggleConsole() {
@@ -855,20 +884,114 @@ function setupAutoRunListeners() {
           }, 300);
         }
       });
-      /* Tab key support */
+      /* Tab / Shift+Tab：单光标插入或回退两个空格；多行选区按行缩进/反缩进并保留选区 */
       el.addEventListener('keydown', function(e) {
         if (e.key === 'Tab') {
           e.preventDefault();
-          var start = this.selectionStart;
-          var end = this.selectionEnd;
-          this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
-          this.selectionStart = this.selectionEnd = start + 2;
-          /* Trigger input event for auto-run */
-          this.dispatchEvent(new Event('input'));
+          applyTabIndent(this, e.shiftKey);
         }
+      });
+      /* 草稿本地持久化（300ms 防抖） */
+      el.addEventListener('input', function() {
+        clearTimeout(__crSaveTimer);
+        __crSaveTimer = setTimeout(saveDraft, 300);
       });
     }
   });
+}
+
+function replaceRange(el, text, start, end) {
+  if (typeof el.setRangeText === 'function') {
+    el.setRangeText(text, start, end, 'end');
+  } else {
+    el.value = el.value.slice(0, start) + text + el.value.slice(end);
+  }
+}
+
+function applyTabIndent(el, outdent) {
+  var val = el.value;
+  var start = el.selectionStart, end = el.selectionEnd;
+  var lineStart = val.lastIndexOf('\n', start - 1) + 1;
+  if (start === end) {
+    if (!outdent) {
+      replaceRange(el, '  ', start, end);
+      if (typeof el.setSelectionRange === 'function') el.setSelectionRange(start + 2, start + 2);
+    } else {
+      var remove = 0;
+      while (remove < 2 && val.charAt(lineStart + remove) === ' ') remove++;
+      if (remove) {
+        replaceRange(el, '', lineStart, lineStart + remove);
+        var pos = Math.max(lineStart, start - remove);
+        if (typeof el.setSelectionRange === 'function') el.setSelectionRange(pos, pos);
+      }
+    }
+    if (typeof el.dispatchEvent === 'function') el.dispatchEvent(new Event('input'));
+    return;
+  }
+  var blockEnd = end;
+  if (blockEnd > lineStart && val.charAt(blockEnd - 1) === '\n') blockEnd--;
+  var block = val.slice(lineStart, blockEnd);
+  var lines = block.split('\n');
+  var replacement, removedFirst = 0, removedTotal = 0, added = 0;
+  if (!outdent) {
+    replacement = lines.map(function(line) { return '  ' + line; }).join('\n');
+    added = 2 * lines.length;
+  } else {
+    replacement = lines.map(function(line, i) {
+      var m = line.match(/^([ \t]{1,2})/);
+      var n = m ? m[1].length : 0;
+      if (i === 0) removedFirst = n;
+      removedTotal += n;
+      return line.slice(n);
+    }).join('\n');
+  }
+  replaceRange(el, replacement, lineStart, blockEnd);
+  var newStart = Math.max(lineStart, start + (outdent ? -removedFirst : 2));
+  var newEnd = Math.max(newStart, end + (outdent ? -removedTotal : added));
+  if (typeof el.setSelectionRange === 'function') el.setSelectionRange(newStart, newEnd);
+  if (typeof el.dispatchEvent === 'function') el.dispatchEvent(new Event('input'));
+}
+
+function getDraft() {
+  return {
+    html: document.getElementById('codeHtml').value,
+    css: document.getElementById('codeCss').value,
+    js: document.getElementById('codeJs').value
+  };
+}
+
+function saveDraft() {
+  try { localStorage.setItem(__crDraftKey, JSON.stringify(getDraft())); } catch (e) {}
+}
+
+function restoreDraft() {
+  try {
+    var raw = localStorage.getItem(__crDraftKey);
+    if (!raw) return false;
+    var d = JSON.parse(raw);
+    if (!d || typeof d.html !== 'string') return false;
+    document.getElementById('codeHtml').value = d.html;
+    document.getElementById('codeCss').value = d.css || '';
+    document.getElementById('codeJs').value = d.js || '';
+    return true;
+  } catch (e) { return false; }
+}
+
+function setUndoState() {
+  var btn = document.getElementById('undoSampleBtn');
+  if (btn) btn.disabled = !__crUndoDraft;
+}
+
+function undoSample() {
+  if (!__crUndoDraft) return;
+  document.getElementById('codeHtml').value = __crUndoDraft.html;
+  document.getElementById('codeCss').value = __crUndoDraft.css;
+  document.getElementById('codeJs').value = __crUndoDraft.js;
+  document.getElementById('sampleSelect').value = '';
+  __crUndoDraft = null;
+  setUndoState();
+  saveDraft();
+  runCode();
 }
 
 /* ===== Load Sample ===== */
@@ -877,10 +1000,16 @@ function loadSample() {
   var key = sel.value;
   if (!key || !samples[key]) return;
 
+  var prev = getDraft();
+  if (prev.html || prev.css || prev.js) {
+    __crUndoDraft = prev;
+    setUndoState();
+  }
   var sample = samples[key];
   document.getElementById('codeHtml').value = sample.html;
   document.getElementById('codeCss').value = sample.css;
   document.getElementById('codeJs').value = sample.js;
+  saveDraft();
   runCode();
   ToolBox.showToast(i18nText('toast.msg524'));
 }
@@ -900,6 +1029,9 @@ function clearAll() {
   document.getElementById('codeCss').value = '';
   document.getElementById('codeJs').value = '';
   document.getElementById('sampleSelect').value = '';
+  __crUndoDraft = null;
+  setUndoState();
+  try { localStorage.removeItem(__crDraftKey); } catch (e) {}
   clearConsole();
   /* Clear iframe */
   var iframe = document.getElementById('preview');
@@ -909,10 +1041,13 @@ function clearAll() {
 
 /* ===== Init ===== */
 (function init() {
-  /* Set default sample */
-  document.getElementById('codeHtml').value = '<div class="greeting">\n  <h2>Hello, World!</h2>\n  <p>Edit this code and click Run.</p>\n</div>';
-  document.getElementById('codeCss').value = 'body {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  height: 100vh;\n  margin: 0;\n  background: linear-gradient(135deg, #4338CA, #764ba2);\n  font-family: sans-serif;\n}\n.greeting {\n  text-align: center;\n  color: #fff;\n}\n.greeting h1 {\n  font-size: 36px;\n  margin-bottom: 12px;\n}\n.greeting p {\n  font-size: 16px;\n  opacity: 0.85;\n}';
-  document.getElementById('codeJs').value = 'console.log("Hello from Code Runner!");\nconsole.log("Edit the code and click Run to see changes.");';
+  /* 优先恢复本地草稿；没有草稿才载入默认示例 */
+  var restored = restoreDraft();
+  if (!restored) {
+    document.getElementById('codeHtml').value = '<div class="greeting">\n  <h2>Hello, World!</h2>\n  <p>Edit this code and click Run.</p>\n</div>';
+    document.getElementById('codeCss').value = 'body {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  height: 100vh;\n  margin: 0;\n  background: linear-gradient(135deg, #4338CA, #764ba2);\n  font-family: sans-serif;\n}\n.greeting {\n  text-align: center;\n  color: #fff;\n}\n.greeting h1 {\n  font-size: 36px;\n  margin-bottom: 12px;\n}\n.greeting p {\n  font-size: 16px;\n  opacity: 0.85;\n}';
+    document.getElementById('codeJs').value = 'console.log("Hello from Code Runner!");\nconsole.log("Edit the code and click Run to see changes.");';
+  }
 
   /* Setup auto-run listeners */
   setupAutoRunListeners();

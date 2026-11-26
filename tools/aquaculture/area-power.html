@@ -132,7 +132,7 @@
       <div><label for="duration">计划曝气时长（h/次）</label><input type="number" id="duration" value="4" min="0.1" max="24" step="any" enterkeyhint="done" aria-label="计划曝气时长（小时）" placeholder="如 4"></div>
     </div>
     <div class="toolbar">
-      <div id="area_powerPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__area_powerExport()">导出明细 CSV</button>
+      <div id="area_powerPresets"></div><button class="btn primary" type="button" onclick="calc(true)">🧮 计算</button><button class="btn" type="button" onclick="__area_powerExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
@@ -202,7 +202,7 @@ function readInputs(){
   var valid=area>0&&depth>0&&delta>0&&unitpw>0&&duration>0&&duration<=24;
   return {area:area,depth:depth,delta:delta,unitpw:unitpw,duration:duration,coef:coef,valid:valid};
 }
-function calc(){
+function calc(save){
   var iv=readInputs();
   if(!iv.valid){
     document.getElementById('res').innerHTML='<p style="color:var(--danger,#B91C1C);">请输入有效参数：面积、水深、溶氧提升量、单台功率需大于 0，曝气时长需在 0–24 小时。</p>';
@@ -222,7 +222,7 @@ function calc(){
     '<div class="data-card"><div class="num">'+perMu.toFixed(2)+'</div><div class="label">每亩折算功率（kW/亩，按 '+iv.duration+'h）</div></div>'+
     '</div>'+
     '<p style="margin-top:10px;font-size:13px;color:var(--text-muted);">台数按单台功率向上取整，增氧机应合理分布于池塘四周与中央。</p>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  saveHistory();
+  if(save===true) saveHistory();
 }
 function copyRes(){
   var text=document.getElementById('res').innerText;
@@ -287,7 +287,7 @@ function restoreHistory(idx){
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText('toast.history_cleared'),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){
   renderHistory();
-  document.querySelectorAll('input,select').forEach(function(el){el.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();calc();}});});
+  document.querySelectorAll('input,select').forEach(function(el){el.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();calc(true);}});});
   document.getElementById('historyBox').addEventListener('click',function(e){
     var item=e.target.closest('[data-idx]');
     if(item)restoreHistory(parseInt(item.getAttribute('data-idx'),10));
@@ -374,6 +374,7 @@ function __area_powerExtras(){
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__area_powerResText();
     if(!res) return;
+    if(__area_powerScore(res)===0){var __tb=document.getElementById('area_powerTable');if(__tb)__tb.innerHTML='';return;}
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();

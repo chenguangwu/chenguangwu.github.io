@@ -138,7 +138,7 @@
     <h2 data-zh="⚙️ 功率换算器">⚙️ Power Converter</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">以瓦特为基准换算：1 kW = 1000 W、1 MW = 10⁶ W、1 公制马力 = 735.49875 W、1 英制马力 = 745.699872 W；功率 = 能量 ÷ 时间，1 W = 1 J/s；结果 = 输入值 × 目标系数 ÷ 源系数，1 kW ≈ 1.36 公制马力。</div>
+      <div class="formula-eq">以瓦特为基准换算：1 kW = 1000 W、1 MW = 10⁶ W、1 公制马力 = 735.49875 W、1 英制马力 = 745.699872 W；功率 = 能量 ÷ 时间，1 W = 1 J/s；结果 = 输入值 × 源系数 ÷ 目标系数，1 kW ≈ 1.36 公制马力。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 W / kW / MW / hp / PS / 英制马力">Convert power units such as watt, kilowatt, horsepower and BTU per hour between each other.</p>
 
@@ -266,8 +266,9 @@ const factors = {
 };
 const names = {
   W:'瓦特', kW:'千瓦', MW:'兆瓦',
-  hp:'公制马力(PS)', hpI:'英制马力(hp)', btuh:'英热单位每小时'
+  hp:'公制马力', hpI:'英制马力', btuh:'英热单位每小时'
 };
+const syms = { W:'W', kW:'kW', MW:'MW', hp:'PS', hpI:'hp', btuh:'Btu/h' };
 
 function fmt(n){
   if(!isFinite(n)) return '--';
@@ -285,11 +286,11 @@ function convert(){
     return;
   }
   const base = v * factors[from];
-  let html = `<p>基准：<strong>${fmt(v)} ${from}</strong> = <strong>${fmt(base)} W</strong></p>`;
+  let html = `<p>基准：<strong>${fmt(v)} ${syms[from]}</strong> = <strong>${fmt(base)} W</strong></p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
   Object.keys(factors).forEach(k => {
     if(k !== from){
-      html += `<p>${names[k]}：<strong>${fmt(base / factors[k])} ${k}</strong></p>`;
+      html += `<p>${names[k]}：<strong>${fmt(base / factors[k])} ${syms[k]}</strong></p>`;
     }
   });
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
@@ -297,6 +298,7 @@ function convert(){
 
 function clearAll(){
   document.getElementById('inputVal').value = '';
+  if(typeof window.__charRefRender==='function') window.__charRefRender();
   const __h2=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a value to convert":"请输入数值进行换算");if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
 }
 convert();
@@ -527,7 +529,7 @@ else document.addEventListener('DOMContentLoaded', __power_converterBoot);
 </section>
 <script>
 (function(){
-  var F = {"W": 1, "kW": 1000, "MW": 1000000, "hp": 735.49875, "hpI": 745.699872};
+  var F = {"W": 1, "kW": 1000, "MW": 1000000, "hp": 735.49875, "hpI": 745.699872, "btuh": 0.293072222};
   var REFS = [{"v": 50, "zh": "一台笔记本", "en": "a laptop", "d": "50"}, {"v": 60, "zh": "老式白炽灯", "en": "incandescent bulb", "d": "60"}, {"v": 100, "zh": "人体静息代谢", "en": "resting human metabolism", "d": "100"}, {"v": 735.5, "zh": "1 公制马力", "en": "1 metric horsepower", "d": "735.5"}, {"v": 1000, "zh": "一台空调", "en": "an air conditioner", "d": "1000"}, {"v": 1800, "zh": "电热水壶", "en": "electric kettle", "d": "1800"}, {"v": 100000.0, "zh": "汽车发动机", "en": "car engine", "d": "1×10^5"}, {"v": 8800000.0, "zh": "高铁动车组", "en": "bullet-train unit", "d": "8.8×10^6"}, {"v": 1000000000.0, "zh": "核电站单堆", "en": "one nuclear reactor", "d": "1×10^9"}, {"v": 22500000000.0, "zh": "三峡电站", "en": "Three Gorges dam", "d": "2.25×10^10"}];
   var BASE = ["瓦特", "W"];
   var FACTS = ["1 公制马力(PS) ≈ 735.5 瓦，1 英制马力(hp) ≈ 745.7 瓦；1 千瓦 = 1000 瓦。", "1 metric hp (PS) ≈ 735.5 W; 1 imperial hp ≈ 745.7 W; 1 kW = 1000 W."];
@@ -563,7 +565,13 @@ else document.addEventListener('DOMContentLoaded', __power_converterBoot);
     html+='<h3>'+(en?'Scale sense: how big is it really?':'📐 尺度感知：这到底有多大')+'</h3>';
     html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
     if(best){
-      html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+      var ratio=base/best.v;
+      if(ratio>=0.1&&ratio<10){
+        html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+      }else{
+        var times=ratio>=1?ratio:1/ratio;
+        html+='<p style="font-weight:600;color:var(--primary);">'+(en?'Nearest reference: ':'最近参照：')+best[en?'en':'zh']+' ('+best.d+' '+bname+')'+(en?' — about ':'，约为其 ')+fmt(times)+(en?' times this size, not a close match.':' 倍；仅作数量级比较，不表示近似相等。')+'</p>';
+      }
     }
     html+='<details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--primary);">'+(en?'Typical real-world references':'常见实物参照')+'</summary><ul style="font-size:13px;line-height:1.8;margin:6px 0 0;padding-left:18px;">';
     for(var j=0;j<REFS.length;j++){
@@ -575,6 +583,7 @@ else document.addEventListener('DOMContentLoaded', __power_converterBoot);
     html+='</div>';
     box.innerHTML=html;
   }
+  window.__charRefRender=render;
   var f0=(typeof convert==='function')?convert:null;
   if(f0){ convert=function(){ var r=f0.apply(null,arguments); try{ render(); }catch(e){} return r; }; }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', render);

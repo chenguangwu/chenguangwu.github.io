@@ -278,7 +278,8 @@ const CASES = [
   "ref": "第1336批·历史恢复无参切换函数抛错修复源码形态强锚：旧版 function switchMode(m, btn){ 无参调用解引用参数抛错被 catch 吞、结果不重算；修复后无参分支安全重算本页主结果并 return。旧版无 ⇒ BAD。"
 },
 { slug:"acupuncture/acupoint-injection", inputs:{"points":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
-{ slug:"acupuncture/bloodletting-therapy", inputs:{"points":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"acupuncture/bloodletting-therapy", inputs:{"points":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"acupuncture/warm-needle-moxibustion", inputs:{ambTemp:"0"}, clicks:["simulate()"], expect:["环境：0℃","85 ℃ 穴位局部峰值温度"], ref:"环境温度 0℃ 合法：页面显示 0℃ 参与计算，峰值仍为 85℃；不得回落 25℃。" }
 ];
 async function main() {
   const only = process.argv.slice(2);

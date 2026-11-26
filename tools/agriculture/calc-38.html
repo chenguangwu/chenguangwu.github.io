@@ -146,40 +146,42 @@ function getValues(){
   var raw=document.getElementById('values').value;
   return raw.split(/[,，\s\n]+/).map(function(v){return parseFloat(v);}).filter(function(v){return !isNaN(v);});
 }
+function __calcEn(){return /^en/i.test(document.documentElement.lang||'')||/[?&]lang=en/i.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
 function calc(){
+  var en=__calcEn();
   var vals=getValues();
   var el=document.getElementById('values');
   if(vals.length<2){
     el.classList.add('input-error');
-    document.getElementById('res').innerHTML='<p style="color:var(--error);">请至少输入 2 个有效数值</p>';
+    document.getElementById('res').innerHTML=(en?'<p style="color:var(--error);">Enter at least 2 valid values.</p>':'<p style="color:var(--error);">请至少输入 2 个有效数值</p>');
     return;
   }
   el.classList.remove('input-error');
   var n=vals.length;
   var sum=vals.reduce(function(a,b){return a+b;},0);
   var avg=sum/n;
-  if(vals.some(function(v){return v<0;})){ document.getElementById('res').innerHTML='<p style="color:var(--error);">收集水量不能为负值</p>'; return; }
-  if(!(avg>0)){ document.getElementById('res').innerHTML='<p style="color:var(--error);">收集水量均值必须大于 0，才能计算均匀度</p>'; return; }
+  if(vals.some(function(v){return v<0;})){ document.getElementById('res').innerHTML=(en?'<p style="color:var(--error);">Collected water amounts cannot be negative.</p>':'<p style="color:var(--error);">收集水量不能为负值</p>'); return; }
+  if(!(avg>0)){ document.getElementById('res').innerHTML=(en?'<p style="color:var(--error);">Average collected water must be greater than 0 to compute uniformity.</p>':'<p style="color:var(--error);">收集水量均值必须大于 0，才能计算均匀度</p>'); return; }
   var absDev=vals.reduce(function(a,b){return a+Math.abs(b-avg);},0);
   var cu=(1-absDev/(n*avg))*100;
   var variance=vals.reduce(function(a,b){return a+Math.pow(b-avg,2);},0)/n;
   var sd=Math.sqrt(variance);
   var cv=sd/avg*100;
   const __g2='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+cu.toFixed(2)+'%</div><div class="label">克里斯琴森系数 Cu</div></div>'+
-    '<div class="data-card"><div class="num">'+avg.toFixed(2)+'</div><div class="label">平均收集水量</div></div>'+
-    '<div class="data-card"><div class="num">'+sd.toFixed(2)+'</div><div class="label">标准差</div></div>'+
-    '<div class="data-card"><div class="num">'+cv.toFixed(2)+'%</div><div class="label">变异系数 CV</div></div>'+
+    '<div class="data-card"><div class="num">'+cu.toFixed(2)+'%</div><div class="label">'+(en?'Christiansen coefficient Cu':'克里斯琴森系数 Cu')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+avg.toFixed(2)+'</div><div class="label">'+(en?'Average collected water':'平均收集水量')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+sd.toFixed(2)+'</div><div class="label">'+(en?'Standard deviation':'标准差')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+cv.toFixed(2)+'%</div><div class="label">'+(en?'Coefficient of variation CV':'变异系数 CV')+'</div></div>'+
     '</div>'+
     '<div style="margin-top:12px;padding:12px;background:rgba(101,163,13,0.08);border-radius:12px;">'+
-    '<strong>均匀性评价：</strong> '+evaluateCu(cu)+'（共 '+n+' 个测点）'+
+    '<strong>'+(en?'Uniformity rating: ':'均匀性评价：')+'</strong> '+evaluateCu(cu,en)+(en?' ('+n+' measurement points)':'（共 '+n+' 个测点）')+
     '</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
-function evaluateCu(cu){
-  if(cu>=90)return '优秀，灌溉均匀性很好（达到滴灌要求）。';
-  if(cu>=85)return '良好，满足多数作物灌溉要求。';
-  if(cu>=75)return '合格，达到喷灌一般要求（≥75%）。';
-  return '偏低（<75%），建议排查堵塞、磨损或压力不均问题。';
+function evaluateCu(cu,en){
+  if(cu>=90)return en?'Excellent: irrigation uniformity is very good and meets drip-irrigation requirements.':'优秀，灌溉均匀性很好（达到滴灌要求）。';
+  if(cu>=85)return en?'Good: meets the irrigation requirements of most crops.':'良好，满足多数作物灌溉要求。';
+  if(cu>=75)return en?'Acceptable: meets the general sprinkler-irrigation requirement (≥75%).':'合格，达到喷灌一般要求（≥75%）。';
+  return en?'Low (<75%): check for clogging, wear or uneven pressure.':'偏低（<75%），建议排查堵塞、磨损或压力不均问题。';
 }
 function copyRes(){
   var text=document.getElementById('res').innerText;
@@ -398,10 +400,7 @@ else document.addEventListener('DOMContentLoaded', __calc_38Boot);
       <span class="rt-icon">🔄</span>
       <span class="rt-info"><span class="rt-name">农产品干物质含量换算器</span><span class="rt-desc">农产品干物质换算器，输入鲜重、干重或含水率快速互转并支持标准含水率折算，用于粮食收购与饲草计量</span></span>
     </a>
-    <a href="dry-matter-conversion.html" class="related-tool-card">
-      <span class="rt-icon">🔄</span>
-      <span class="rt-info"><span class="rt-name">农产品干物质含量换算器</span><span class="rt-desc">农产品干物质换算器，输入鲜重、干重或含水率快速互转并支持标准含水率折算，用于粮食收购与饲草计量</span></span>
-    </a>
+    
     
     <a href="temp-time-2.html" class="related-tool-card">
       <span class="rt-icon">🌡️</span>

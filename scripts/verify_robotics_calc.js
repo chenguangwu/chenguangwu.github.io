@@ -26,11 +26,11 @@ const CASES = [
     ref: "v = π×D×n/60 = π×100.06×901/60 ≈ 4720.46" },
   { slug: "robotics/cable-tension-pulley",
     inputs: { F: "301" },
-    expect: ["150.50 绳张力"],
-    ref: "T = F/2 = 301/2 = 150.50" },
+    expect: ["301.00 单绳张力"],
+    ref: "默认 1 段绳：T = F/1 = 301.00；选 2 段且等张力时才为 F/2" },
   { slug: "robotics/centripetal-speed-limit",
     inputs: { amax: "102", R: "101" },
-    expect: ["101.499 最大速度"],
+    expect: ["101.499 理论限速"],
     ref: "v_max = √(amax×R) = √(102×101) = √10302 ≈ 101.50" },
   { slug: "robotics/dc-motor-back-emf",
     inputs: { ke: "100.05", w: "200" },
@@ -57,12 +57,12 @@ const CASES = [
     expect: ["3.08 输出转速", "116.113 线速度"],
     ref: "nout=nin/i=400/130≈3.08, v=2πR×nout/60" },
   { slug: "robotics/gear-ratio-torque",
-    inputs: { ti: "101", gr: "110", eta: "100.9" },
-    expect: ["1120999.00 输出扭矩"],
-    ref: "τ_out = τ_in × gr × (eta/100) = 101×110×1.009 ≈ 11209.99… ×100 哦 page 输出是 1120999" },
+    clicks: ["document.getElementById('ti').value='101';document.getElementById('gr').value='110';document.getElementById('eta').value='0.909';calcTool();"],
+    expect: ["10098.99 输出扭矩"],
+    ref: "τ_out = τ_in×gr×η = 101×110×0.909 = 10098.99（η 为 0–1 小数）" },
   { slug: "robotics/gravity-comp-torque",
     inputs: { m: "105", L: "100.3", th: "100", g: "109.81" },
-    expect: ["-200817.869 重力扭矩"],
+    expect: ["-200817.869 重力补偿扭矩"],
     ref: "τ = m×g×L×cos(θ)，page output confirmed" },
   { slug: "robotics/gripper-force",
     inputs: { tau: "105", L: "100.05" },
@@ -102,7 +102,7 @@ const CASES = [
     ref: "PID = Kp×e + Ki×ei + Kd×ep/dt，page output confirmed" },
   { slug: "robotics/rotational-inertia-torque",
     inputs: { I: "100.5", a: "104" },
-    expect: ["10452.00 所需扭矩"],
+    expect: ["10452.00 惯性扭矩"],
     ref: "τ = I×α = 100.5×104 = 10452" },
   { slug: "robotics/servo-pwm-angle",
     inputs: { pwm: "700" },
@@ -110,7 +110,7 @@ const CASES = [
     ref: "(700-500)/(2500-500)×180=18° (默认 pwm=1500 得 90°)" },
   { slug: "robotics/stepper-step-angle",
     inputs: { N: "300" },
-    expect: ["1.200 步距角"],
+    expect: ["1.200 整步步距角"],
     ref: "θ_step = 360°/N = 360/300 = 1.2°" },
   { slug: "robotics/stereo-depth",
     inputs: { f: "600", B: "100.1", d: "125" },
@@ -122,7 +122,7 @@ const CASES = [
     ref: "t = d/v = 101/100.2 ≈ 1.01" },
   { slug: "robotics/wheel-odometry",
     inputs: { dl: "101", dr: "101.2", L: "100.4" },
-    expect: ["101.1000 位移", "0.11 航向变化"],
+    expect: ["101.1000 中心行进弧长", "0.11 航向变化"],
     ref: "Δs=(dl+dr)/2=101.1, Δθ=(dr-dl)/L=0.2/100.4≈0.002？ wait page 输出 0.11" },
   {
     "slug": "robotics/battery-runtime",
@@ -153,7 +153,7 @@ const CASES = [
       "F": "42"
     },
     "expect": [
-      "机械效益 F/T 14.00"
+      "1.000 机械效益 F/T（理想）"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"F\":\"42\"}，输出区含「机械效益 F/T 14.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -253,10 +253,10 @@ const CASES = [
     "inputs": {
       "ti": "42",
       "gr": "42",
-      "eta": "42"
+      "eta": "0.42"
     },
     "expect": [
-      "42\n42\n42\n74088"
+      "0.42\n42\n42\n740.88"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"ti\":\"42\",\"gr\":\"42\",\"eta\":\"42\"}，输出区含「42\n42\n42\n74088」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -293,9 +293,9 @@ const CASES = [
       "L2": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n0.00 θ₁ (°) 90.00 θ₂ (°)"
+      "42\n42\n42\n42\n0.00 θ₁ 解A（肘下，θ₂>0） 90.00 θ₂ 解A（肘下）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"x\":\"42\",\"y\":\"42\",\"L1\":\"42\",\"L2\":\"42\"}，输出区含「42\n42\n42\n42\n0.00 θ₁ (°) 90.00 θ₂ (°)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"x\":\"42\",\"y\":\"42\",\"L1\":\"42\",\"L2\":\"42\"}，输出区含「42\n42\n42\n42\n0.00 θ₁ 解A（肘下，θ₂>0） 90.00 θ₂ 解A（肘下）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "robotics/lead-screw-speed",
@@ -433,7 +433,7 @@ const CASES = [
       "L": "42"
     },
     "expect": [
-      "移 Δs (m) 0.00 航向变化 (°)"
+      "中心行进弧长 Δs (m) 0.00 航向变化 Δθ (°)"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"dl\":\"42\",\"dr\":\"42\",\"L\":\"42\"}，输出区含「移 Δs (m) 0.00 航向变化 (°)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -453,14 +453,69 @@ const CASES = [
     "inputs": { "t1": "", "t2": "", "L1": "", "L2": "" },
     "expect": ["请填写「关节角 θ₁」后再计算。"],
     "ref": "空态守卫：清空 t1/t2/L1/L2 后必须提示，不得渲染 0.0000 末端坐标结构化零值。"
-  }
+  },
+
+  { slug: "robotics/cable-tension-pulley",
+    clicks: ["document.getElementById('F').value='100';document.getElementById('model').value='2';calcTool();"],
+    expect: ["50.00 单绳张力 T=F/2"],
+    ref: "两段绳等张力共同承重：T=100/2=50.00；普通单定滑轮只有一段时 T=F" },
+  { slug: "robotics/gear-ratio-torque",
+    clicks: ["document.getElementById('ti').value='10';document.getElementById('gr').value='20';document.getElementById('eta').value='1.8';calcTool();"],
+    expect: ["效率 η 为小数"],
+    ref: "效率必须是 0–1 小数；1.8 表示 180% 被拒绝（旧实现直接相乘给出错误扭矩）" },
+  { slug: "robotics/stepper-step-angle",
+    clicks: ["document.getElementById('N').value='300';document.getElementById('micro').value='8';calcTool();"],
+    expect: ["0.1500 1/8 微步步距角"],
+    ref: "整步 360/300=1.2°，1/8 微步=0.15°，细分下拉必须参与计算（旧实现固定 1/16）" },
+  { slug: "robotics/trajectory-time-linear",
+    clicks: ["document.getElementById('d').value='10';document.getElementById('v').value='0';calcTool();"],
+    expect: ["速度须大于 0"],
+    ref: "v=0 除零必须拒绝；旧实现输出 Infinity 或负时间" },
+  { slug: "robotics/servo-pwm-angle",
+    clicks: ["document.getElementById('pwm').value='1500';document.getElementById('pmin').value='500';document.getElementById('pmax').value='2500';document.getElementById('amax').value='270';document.getElementById('dir').value='1';calcTool();"],
+    expect: ["135.00 转角"],
+    ref: "270° 舵机中位脉宽 1500 µs ⇒ 135°，旧实现固定按 180° 输出 90°" },
+  { slug: "robotics/servo-pwm-angle",
+    clicks: ["document.getElementById('pwm').value='700';document.getElementById('pmin').value='500';document.getElementById('pmax').value='2500';document.getElementById('amax').value='180';document.getElementById('dir').value='-1';calcTool();"],
+    expect: ["162.00 转角", "反向"],
+    ref: "反向映射：行程 10% ⇒ 角度 180×(1−0.1)=162°，覆盖方向选项" },
+  { slug: "robotics/pid-controller",
+    clicks: ["document.getElementById('dt').value='0';calcTool();"],
+    expect: ["采样时间 dt 必须大于 0"],
+    ref: "dt=0 会让微分项除零；旧实现附表/历史可写入 Infinity" },
+  { slug: "robotics/stereo-depth",
+    clicks: ["document.getElementById('f').value='500';document.getElementById('B').value='0.1';document.getElementById('d').value='-10';calcTool();"],
+    expect: ["视差 d 须不小于 0"],
+    ref: "负视差表示左右顺序约定错误，应拒绝而不是给出负深度" },
+  { slug: "robotics/stereo-depth",
+    clicks: ["document.getElementById('f').value='500';document.getElementById('B').value='0.1';document.getElementById('d').value='0';calcTool();"],
+    expect: ["∞（零视差，超出量程）"],
+    ref: "d=0 对应无穷远，不能除零得到 Infinity 数值；应明确提示超量程" },
+  { slug: "robotics/wheel-odometry",
+    clicks: ["document.getElementById('dl').value='10';document.getElementById('dr').value='10';document.getElementById('L').value='1';document.getElementById('psi0').value='90';calcTool();"],
+    expect: ["10.0000 中心行进弧长 Δs", "0.0000 位移 Δx", "10.0000 位移 Δy"],
+    ref: "初始航向 90°、直线前进 10 m ⇒ Δx≈0、Δy=10；旧实现只给弧长与航向，没有平面位移" },
+  { slug: "robotics/centripetal-speed-limit",
+    clicks: ["document.getElementById('R').value='-5';document.getElementById('amax').value='3';calcTool();"],
+    expect: ["转弯半径 R 必须大于 0"],
+    ref: "负半径无物理意义；旧实现负×负得正仍输出速度" },
 
 ];
 
 async function main() {
   const only = process.argv.slice(2);
+  let pass = 0; const extraCases = [{ slug:"robotics/inverse-kinematics-2r", inputs:{x:"1.3",y:"1.2",L1:"1",L2:"1"}, expect:["14.91","55.60","70.51","-55.60","正运动学"], ref:"两组配对解：肘下 θ₁≈14.91°、θ₂≈55.60°；肘上 θ₁≈70.51°、θ₂≈−55.60°；两组均回代校验。旧实现附加表给出 θ₂ 肘上却不给配对 θ₁。" },
+{ slug:"robotics/inverse-kinematics-2r", inputs:{x:"1.3",y:"1.2",L1:"0",L2:"1"}, expect:["杆长 L₁、L₂ 必须是有限正数"], ref:"零杆长旧实现分母为 0 仍算；新实现拒绝 ≤0 杆长。" },
+{ slug:"robotics/diff-drive-velocity", inputs:{vl:"0.5",vr:"1",L:"0"}, expect:["轮距 L 必须是有限正数"], ref:"零轮距旧实现 ω=∞ 并写历史；新实现阻断。" },
+{ slug:"robotics/diff-drive-velocity", inputs:{vl:"0.5",vr:"1",L:"-0.4"}, expect:["负轮距没有物理意义"], ref:"负轮距旧实现得出反向角速度；新实现拒绝。" },
+{ slug:"robotics/battery-runtime", inputs:{ah:"2",V:"12",P:"0"}, expect:["零功率下续航无限"], ref:"P=0 旧实现除零得 Infinity；新实现阻断并清表。" },
+{ slug:"robotics/battery-runtime", inputs:{ah:"-2",V:"12",P:"24"}, expect:["负参数没有物理意义"], ref:"负容量旧实现算出负续航；新实现要求容量≥0、电压/功率>0。" },
+{ slug:"robotics/battery-runtime", inputs:{ah:"0",V:"12",P:"24"}, expect:["0.00 续航时间"], ref:"零容量是合法输入（空电池），续航 0 h，不应被空态守卫误拦。" },
+];
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
-  let pass = 0; const fails = [];
+  extraCases.forEach(function(x){ if(!only.length || only.some((o)=>x.slug.endsWith("/"+o)||x.slug===o)) cases.push(x); });
+  const fails = [];
+
   for (const c of cases) {
     try {
       const r = await runCase(c);

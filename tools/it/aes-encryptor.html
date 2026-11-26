@@ -225,7 +225,9 @@
       <label><input type="checkbox" id="useSalt" checked> 使用 Salt 加盐</label>
       <label><input type="checkbox" id="pkcs7Padding" checked> PKCS7 填充</label>
       <label><input type="checkbox" id="includeMeta"> 输出包含 Salt+IV</label>
+      <label><input type="checkbox" id="reuseParams"> 复用上次 IV/盐（不推荐）</label>
     </div>
+    <div id="paramNote" style="font-size:12.5px;margin:4px 0 10px;color:var(--danger,#B91C1C);"></div>
 
     <label for="input">明文 / 密文</label>
     <textarea id="input" placeholder="加密输入明文，解密输入密文（Base64/Hex）...">Hello, AES!</textarea>
@@ -512,9 +514,9 @@ function pkcs7Pad(data, blockSize){
 
 function pkcs7Unpad(data){
   var padLen = data[data.length - 1];
-  if(padLen < 1 || padLen > 16) return data;
+  if(padLen < 1 || padLen > 16 || padLen > data.length) throw new Error('PKCS7 填充无效：密码/密钥、IV 或密文可能不正确');
   for(var i = data.length - padLen; i < data.length; i++){
-    if(data[i] !== padLen) return data;
+    if(data[i] !== padLen) throw new Error('PKCS7 填充无效：密码/密钥、IV 或密文可能不正确');
   }
   return data.slice(0, data.length - padLen);
 }
@@ -697,7 +699,7 @@ function bytesToHex(bytes){
 function hexToBytes(hex){
   hex = String(hex).replace(/[\s:]+/g, '').toLowerCase();
   if(!/^[0-9a-f]*$/.test(hex)) throw new Error('十六进制数据含非法字符');
-  if(hex.length % 2 !== 0) hex = '0' + hex;
+  if(hex.length % 2 !== 0) throw new Error('十六进制数据必须为偶数位（当前 '+hex.length+' 位）');
   var bytes = new Uint8Array(hex.length / 2);
   for(var i = 0; i < bytes.length; i++){
     bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
@@ -718,31 +720,35 @@ function base64ToBytes(b64){
   return bytes;
 }
 
-// N88：盐字段的编码口径必须与输出格式一致——加密时 Base64 输出把盐写成 Base64，
-// 但 getKeyAndSalt 原来一律按 hex 解析，盐框有值时 PBKDF2 派生出错误的密钥 ⇒ 同页往返解出乱码。
+// N88：盐/IV 字段统一存十六进制；密文元数据可能是 Hex 或 Base64，解析时两种都试。
 function parseSaltBytes(str){
   var s = String(str == null ? '' : str).trim();
   if(!s) return new Uint8Array(0);
-  if(/^[0-9a-fA-F]{32}$/.test(s)) return hexToBytes(s);      // 16 字节 hex（generateSalt 的默认形态）
+  if(/^[0-9a-fA-F]{32}$/.test(s)) return hexToBytes(s);
   try{
     var b = base64ToBytes(s);
     if(b.length === 16) return b;
   }catch(e){}
-  return hexToBytes(s);                                       // 其他形态退回 hex（保留旧行为）
+  throw new Error('Salt 必须为 16 字节（32 位十六进制或 24 位 Base64）');
 }
-
+function parseMetaBytes(str, label){
+  var s = String(str == null ? '' : str).trim();
+  if(/^[0-9a-fA-F]{32}$/.test(s)) return hexToBytes(s);
+  try{
+    var b = base64ToBytes(s);
+    if(b.length === 16) return b;
+  }catch(e){}
+  throw new Error(label + ' 元数据必须为 16 字节（Hex 32 位或 Base64 24 位）');
+}
 function randomBytes(n){
   return crypto.getRandomValues(new Uint8Array(n));
 }
-
 function generateSalt(){
   document.getElementById('salt').value = bytesToHex(randomBytes(16));
 }
-
 function generateIV(){
   document.getElementById('iv').value = bytesToHex(randomBytes(16));
 }
-
 function updateInfo(inputLen, outputLen){
   var keySize = document.getElementById('keySize').value;
   var mode = document.getElementById('mode').value;
@@ -751,74 +757,56 @@ function updateInfo(inputLen, outputLen){
   document.getElementById('infoInputLen').textContent = inputLen + ' B';
   document.getElementById('infoOutputLen').textContent = outputLen + ' B';
 }
-
-async function getKeyAndSalt(){
+function noteParam(msg){
+  var n = document.getElementById('paramNote');
+  if(n) n.textContent = msg || '';
+}
+async function getKeyAndSalt(forEncrypt){
   var keySize = parseInt(document.getElementById('keySize').value, 10);
   var keyType = document.getElementById('keyType').value;
   var useSalt = document.getElementById('useSalt').checked;
+  var reuse = !!(document.getElementById('reuseParams') && document.getElementById('reuseParams').checked);
   var password = document.getElementById('password').value;
   var saltHex = document.getElementById('salt').value;
-
+  var en = (typeof TBKit!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   var key, salt;
 
-  if(keyType === 'password'){
-    if(!password) throw new Error(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter password":"请输入密码"));
-    if(useSalt){
-      if(saltHex){
-        salt = parseSaltBytes(saltHex);
-      } else {
-        salt = randomBytes(16);
-        document.getElementById('salt').value = bytesToHex(salt);
-      }
-    } else {
-      salt = new Uint8Array(0);
-    }
-    key = await deriveKeyPBKDF2(password, salt, keySize);
-  } else {
-    if(!password) throw new Error(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter the key":"请输入密钥"));
-    if(keyType === 'hex'){
-      key = hexToBytes(password);
-    } else {
-      key = base64ToBytes(password);
-    }
-    var expectedLen = keySize / 8;
-    if(key.length < expectedLen){
-      var padded = new Uint8Array(expectedLen);
-      padded.set(key);
-      key = padded;
-    } else if(key.length > expectedLen){
-      key = key.slice(0, expectedLen);
-    }
-    if(useSalt){
-      if(saltHex){
-        salt = hexToBytes(saltHex);
-      } else {
-        salt = randomBytes(16);
-        document.getElementById('salt').value = bytesToHex(salt);
-      }
-    } else {
-      salt = new Uint8Array(0);
-    }
+  function pickSalt(){
+    if(forEncrypt && !reuse){ salt = randomBytes(16); document.getElementById('salt').value = bytesToHex(salt); return; }
+    if(saltHex){ salt = parseSaltBytes(saltHex); if(salt.length !== 16) throw new Error(en?'Salt must be 16 bytes':'Salt 必须为 16 字节'); return; }
+    salt = randomBytes(16); document.getElementById('salt').value = bytesToHex(salt);
   }
 
+  if(keyType === 'password'){
+    if(!password) throw new Error(en?"Enter password":"请输入密码");
+    if(useSalt) pickSalt(); else salt = new Uint8Array(0);
+    key = await deriveKeyPBKDF2(password, salt, keySize);
+  } else {
+    if(!password) throw new Error(en?"Enter the key":"请输入密钥");
+    if(keyType === 'hex') key = hexToBytes(password); else key = base64ToBytes(password);
+    var expectedLen = keySize / 8;
+    if(key.length !== expectedLen) throw new Error(en
+      ? ('Raw key must be exactly '+expectedLen+' bytes for AES-'+keySize+' (got '+key.length+' bytes)')
+      : ('原始密钥必须为 '+expectedLen+' 字节（AES-'+keySize+'），当前 '+key.length+' 字节'));
+    if(useSalt) pickSalt(); else salt = new Uint8Array(0);
+  }
   return {key: key, salt: salt};
 }
 
-function getIV(mode){
+function getIV(mode, forEncrypt){
   if(mode === 'ECB') return null;
   var ivHex = document.getElementById('iv').value;
-  if(ivHex){
-    var iv = hexToBytes(ivHex);
-    if(iv.length < 16){
-      var padded = new Uint8Array(16);
-      padded.set(iv);
-      return padded;
-    }
-    return iv.slice(0, 16);
+  var reuse = !!(document.getElementById('reuseParams') && document.getElementById('reuseParams').checked);
+  var en = (typeof TBKit!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  if(forEncrypt && !reuse){
+    var iv = randomBytes(16);
+    document.getElementById('iv').value = bytesToHex(iv);
+    return iv;
   }
-  var iv = randomBytes(16);
-  document.getElementById('iv').value = bytesToHex(iv);
-  return iv;
+  if(!ivHex) throw new Error(en?'Enter a 16-byte IV':'请输入 16 字节 IV（32 位十六进制）');
+  var iv2 = hexToBytes(ivHex);
+  if(iv2.length !== 16) throw new Error(en?'IV must be exactly 16 bytes':'IV 必须为 16 字节（32 位十六进制）');
+  return iv2;
 }
 
 async function encrypt(){
@@ -833,11 +821,11 @@ async function encrypt(){
 
     if(!inputText){ __aes_encryptorLastBytes=0; return ToolBox.showToast(i18nText('toast.msg901'), 'error'); }
 
-    var result = await getKeyAndSalt();
+    var result = await getKeyAndSalt(true);
     var key = result.key;
     var salt = result.salt;
 
-    var iv = getIV(mode);
+    var iv = getIV(mode, true);
 
     var encoder = new TextEncoder();
     var plaintext = encoder.encode(inputText);
@@ -888,6 +876,7 @@ async function encrypt(){
     }
 
     document.getElementById('output').value = output;
+    noteParam('');
     updateInfo(inputBytes, ciphertext.length);
     // N90：趋势图改用「输出字节数」，密文本身不是数值，parseFloat 只会画出假趋势
     __aes_encryptorLastBytes = ciphertext.length;
@@ -908,37 +897,39 @@ async function decrypt(){
 
     if(!inputText){ __aes_encryptorLastBytes=0; return ToolBox.showToast(i18nText('toast.msg905'), 'error'); }
 
-    var saltHex = document.getElementById('salt').value;
-    var ivHex = document.getElementById('iv').value;
-
+    document.getElementById('output').value = '';
+    noteParam('');
+    var en = (typeof TBKit!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+    var oldSalt = document.getElementById('salt').value.trim();
+    var oldIv = document.getElementById('iv').value.trim();
     var ciphertextStr = inputText;
+    var conflict = [];
     if(inputText.indexOf(':') !== -1){
       var parts = inputText.split(':');
       if(mode !== 'ECB'){
-        // N88：meta 恒为 salt:iv:cipher（加密侧 salt/iv 都在时才 push），按段数判定，与盐框是否已有值无关；
-        // 原实现按 `!saltHex` 决定剥不剥，盐框有值时把盐当密文前缀，同页往返解出乱码。
         if(parts.length >= 3){
-          var metaSalt = parseSaltBytes(parts[0]);
-          if(metaSalt.length === 16){
-            document.getElementById('salt').value = bytesToHex(metaSalt);
-            if(!ivHex) document.getElementById('iv').value = parts[1];
-            ciphertextStr = parts.slice(2).join(':');
-          }
+          var metaSalt = parseMetaBytes(parts[0], 'Salt');
+          var metaIv = parseMetaBytes(parts[1], 'IV');
+          if(oldSalt && oldSalt.toLowerCase() !== bytesToHex(metaSalt)) conflict.push(en?'Salt':'Salt');
+          if(oldIv && oldIv.toLowerCase() !== bytesToHex(metaIv)) conflict.push(en?'IV':'IV');
+          document.getElementById('salt').value = bytesToHex(metaSalt);
+          document.getElementById('iv').value = bytesToHex(metaIv);
+          ciphertextStr = parts.slice(2).join(':');
         } else if(parts.length === 2){
-          if(!ivHex) document.getElementById('iv').value = parts[0];
+          var metaIv2 = parseMetaBytes(parts[0], 'IV');
+          if(oldIv && oldIv.toLowerCase() !== bytesToHex(metaIv2)) conflict.push(en?'IV':'IV');
+          document.getElementById('iv').value = bytesToHex(metaIv2);
           ciphertextStr = parts[1];
         }
-      } else {
-        // N88：ECB 无 IV，meta 为 salt:cipher；盐必须是 16 字节（hex 32 位 / Base64 24 位）才认作元数据，
-        // 避免把用户用 ':' 分组的十六进制密文误当「盐+密文」切开。
-        if(parts.length >= 2){
-          var metaSalt2 = parseSaltBytes(parts[0]);
-          if(metaSalt2.length === 16){
-            document.getElementById('salt').value = bytesToHex(metaSalt2);
-            ciphertextStr = parts.slice(1).join(':');
-          }
-        }
+      } else if(parts.length >= 2){
+        var metaSalt2 = parseMetaBytes(parts[0], 'Salt');
+        if(oldSalt && oldSalt.toLowerCase() !== bytesToHex(metaSalt2)) conflict.push(en?'Salt':'Salt');
+        document.getElementById('salt').value = bytesToHex(metaSalt2);
+        ciphertextStr = parts.slice(1).join(':');
       }
+    }
+    if(conflict.length){
+      noteParam((en?'Ciphertext metadata took precedence over manually entered ':'已采用密文元数据中的 ')+conflict.join('/')+(en?'.':'，覆盖了手填值。'));
     }
 
     var ciphertext;
@@ -964,22 +955,10 @@ async function decrypt(){
         : '密文长度无效：ECB/CBC 模式要求密文为 16 字节的整数倍（当前 ' + ciphertext.length + ' 字节）'), 'error');
     }
 
-    var result = await getKeyAndSalt();
+    var result = await getKeyAndSalt(false);
     var key = result.key;
 
-    var iv;
-    if(mode !== 'ECB'){
-      ivHex = document.getElementById('iv').value;
-      if(!ivHex) throw new Error('请输入 IV（初始化向量）');
-      iv = hexToBytes(ivHex);
-      if(iv.length < 16){
-        var padded = new Uint8Array(16);
-        padded.set(iv);
-        iv = padded;
-      } else {
-        iv = iv.slice(0, 16);
-      }
-    }
+    var iv = getIV(mode, false);
 
     var plaintext;
     switch(mode){
@@ -993,9 +972,7 @@ async function decrypt(){
 
     var needsPadding = (mode === 'ECB' || mode === 'CBC');
     if(needsPadding && usePadding){
-      try{
-        plaintext = pkcs7Unpad(plaintext);
-      } catch(e){}
+      plaintext = pkcs7Unpad(plaintext);
     }
 
     var decoder = new TextDecoder('utf-8', {fatal: false});
@@ -1010,7 +987,10 @@ async function decrypt(){
     showFileDownload();
     ToolBox.showToast(i18nText('toast.msg586'));
   } catch(e){
-    __aes_encryptorLastBytes=0; ToolBox.showToast('解密失败：' + e.message, 'error');
+    __aes_encryptorLastBytes=0;
+    document.getElementById('output').value = '';
+    noteParam('⚠ ' + e.message);
+    ToolBox.showToast('解密失败：' + e.message, 'error');
   }
 }
 
@@ -1227,9 +1207,11 @@ function __aes_encryptorExtras(force){
     var keys=Object.keys(snap);
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
-    var res=__aes_encryptorResText();
-    if(!res) return;
+    var rawRes=__aes_encryptorResText();
+    if(!rawRes) return;
     var en=TBKit.util.isEn();
+    // 解密结果就是明文、加密结果就是密文，均不得写入历史/导出 CSV；只记录长度。
+    var res=(en?'Result length ':'结果长度 ')+rawRes.length+(en?' chars (content not stored)':' 字符（未存原文）');
     var rk=en?'Result':'结果';
     var now=Date.now();
     if(now-__aes_encryptor_last<1000 && !force) return;
@@ -1284,7 +1266,7 @@ var __aes_encryptor_d0=(typeof decrypt==='function')?decrypt:null;
 if(__aes_encryptor_d0){
     decrypt=function(){ var __r=__aes_encryptor_d0.apply(null,arguments); var __x=function(){ try{ __aes_encryptorExtras(true); }catch(e){} }; if(__r&&typeof __r.then==='function'){ __r.then(__x,__x); } else { __x(); } return __r; };
 }
-function __aes_encryptorBoot(){ try{ __aes_encryptorPresets(); }catch(e){} }
+function __aes_encryptorBoot(){ try{ __aes_encryptorPresets(); }catch(e){} try{ if(typeof TBKit!=='undefined'&&TBKit.history&&localStorage.getItem('aesHistPurgedV1')!=='1'){ TBKit.history.clear(); localStorage.setItem('aesHistPurgedV1','1'); } }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __aes_encryptorBoot();
 else document.addEventListener('DOMContentLoaded', __aes_encryptorBoot);
 </script>
@@ -1308,7 +1290,7 @@ else document.addEventListener('DOMContentLoaded', __aes_encryptorBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -1316,7 +1298,7 @@ else document.addEventListener('DOMContentLoaded', __aes_encryptorBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

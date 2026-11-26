@@ -476,6 +476,10 @@ const ENTITIES = [
   {symbol:'¦', name:'&brvbar;', decimal:'&#166;', hex:'&#xA6;', desc:'断竖线', cat:'特殊字符'},
 ];
 
+const NAMED_MAP = Object.create(null);
+ENTITIES.forEach(function(e){ var n=e.name.slice(1,-1); if(n) NAMED_MAP[n]=e.symbol; });
+const LEGACY_NO_SEMI = /^(?:amp|lt|gt|quot|apos|nbsp|copy|reg)$/;
+
 let currentCategory = '全部';
 let searchQuery = '';
 
@@ -565,16 +569,16 @@ function encodeAll(){
 
 function decodeText(){
   const input = document.getElementById('encoderInput').value;
-  const named = {amp:'&', lt:'<', gt:'>', quot:'"', apos:"'", nbsp:'\u00a0'};
-  const output = input.replace(/&(#(?:[xX][0-9a-fA-F]+|[0-9]+)|amp|lt|gt|quot|apos|nbsp);/g, function(m, body){
-    if(body.charAt(0) === '#'){
-      const cp = body.charAt(1) === 'x' || body.charAt(1) === 'X'
-        ? parseInt(body.slice(2), 16)
-        : parseInt(body.slice(1), 10);
+  const output = input.replace(/&(?:#(\d+)|#[xX]([0-9a-fA-F]+)|([A-Za-z][A-Za-z0-9]*))(;?)/g, function(m, decNum, hexNum, name, semi){
+    if(decNum !== undefined || hexNum !== undefined){
+      const cp = decNum !== undefined ? parseInt(decNum, 10) : parseInt(hexNum, 16);
       if(!isFinite(cp) || cp < 0 || cp > 0x10ffff || (cp >= 0xd800 && cp <= 0xdfff)) return m;
       return String.fromCodePoint(cp);
     }
-    return named[body];
+    const hit = NAMED_MAP[name];
+    if(hit === undefined) return m;
+    if(!semi && !LEGACY_NO_SEMI.test(name)) return m;
+    return hit;
   });
   document.getElementById('encoderOutput').textContent = output;
 }
@@ -752,7 +756,7 @@ else document.addEventListener('DOMContentLoaded', __html_entitiesBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -760,7 +764,7 @@ else document.addEventListener('DOMContentLoaded', __html_entitiesBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

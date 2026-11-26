@@ -155,6 +155,7 @@
       <div><label for="n">抽样数 n（≤N）</label><input type="number" id="n" value="5" min="0" step="1" placeholder="如 5"></div>
       <div><label for="k">成功次数 k</label><input type="number" id="k" value="2" min="0" step="1" placeholder="如 2"></div>
     </div>
+    <div style="font-size:12px;color:var(--text-light);margin:-4px 0 8px;">N、K、n、k 均为十进制整数（不接受小数、负号和科学计数法）；N 上限 10000，K 与 n 取 0~N，k 取 0~min(n,K)。</div>
     <div class="toolbar">
       <div id="hypergeometric_distributionPresets"></div><button type="button" class="btn primary" onclick="calculate()">计算</button><button class="btn" type="button" onclick="__hypergeometric_distributionExport()">导出明细 CSV</button>
     </div>
@@ -287,16 +288,38 @@ function cdf(N,K,n,k){
   for(let i=0;i<=k;i++) s+=pmf(N,K,n,i);
   return s;
 }
+function hyperEn(){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/i.test(location.search);}
+function HL(zh,en){return hyperEn()?en:zh;}
+// 计数类参数一律先校验原始字符串：只收十进制整数，拒绝小数、负号、科学计数法与空值，
+// 避免 parseInt 把 52.9 静默截成 52 后继续算出「看起来有效」的概率。
+function readCount(id,labelZh,labelEn,min){
+  const raw=String(document.getElementById(id).value).trim();
+  if(raw==='') return {ok:false,msg:HL(labelZh+' 不能为空',labelEn+' is required')};
+  if(!/^\d+$/.test(raw)) return {ok:false,msg:HL(labelZh+' 必须是十进制整数（不接受小数、负数和科学计数法）',labelEn+' must be a decimal integer (no decimals, negatives or scientific notation)')};
+  const v=Number(raw);
+  if(!Number.isSafeInteger(v)) return {ok:false,msg:HL(labelZh+' 超出安全整数范围',labelEn+' is outside the safe integer range')};
+  if(v<min) return {ok:false,msg:HL(labelZh+' 必须 ≥ '+min,labelEn+' must be ≥ '+min)};
+  return {ok:true,value:v};
+}
+function hyperError(out,msg){out.innerHTML='<p style="color:var(--danger)">✗ '+msg+'</p>';}
 function calculate(){
   const out=document.getElementById('output');
-  const N=parseInt(document.getElementById('N').value);
-  const K=parseInt(document.getElementById('K').value);
-  const n=parseInt(document.getElementById('n').value);
-  const k=parseInt(document.getElementById('k').value);
-  if(isNaN(N)||N<1){const __h0='<p style="color:var(--danger)" data-zh="N 必须 ≥ 1">N must be ≥ 1.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
-  if(isNaN(K)||K<0||K>N){const __h1='<p style="color:var(--danger)">K 必须在 0~N 之间</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
-  if(isNaN(n)||n<0||n>N){const __h2='<p style="color:var(--danger)">n 必须在 0~N 之间</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;return;}
-  if(isNaN(k)||k<0||k>Math.min(n,K)){const __h3='<p style="color:var(--danger)">k 必须在 0~min(n,K) 之间</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;return;}
+  const rN=readCount('N','总体大小 N','Population size N',1);
+  if(!rN.ok) return hyperError(out,rN.msg);
+  const N=rN.value;
+  if(N>10000) return hyperError(out,HL('总体大小 N 最多 10000（更大的组合数会让浏览器实时计算明显卡顿）','Population size N is capped at 10000 to keep the calculation responsive in the browser'));
+  const rK=readCount('K','成功数 K','Success count K',0);
+  if(!rK.ok) return hyperError(out,rK.msg);
+  const K=rK.value;
+  if(K>N) return hyperError(out,HL('成功数 K 必须在 0~N 之间','Success count K must be between 0 and N'));
+  const rn=readCount('n','抽样数 n','Sample size n',0);
+  if(!rn.ok) return hyperError(out,rn.msg);
+  const n=rn.value;
+  if(n>N) return hyperError(out,HL('抽样数 n 必须在 0~N 之间','Sample size n must be between 0 and N'));
+  const rk=readCount('k','成功次数 k','Observed successes k',0);
+  if(!rk.ok) return hyperError(out,rk.msg);
+  const k=rk.value;
+  if(k>Math.min(n,K)) return hyperError(out,HL('成功次数 k 必须在 0~min(n,K) 之间','Observed successes k must be between 0 and min(n, K)'));
   const pEq=pmf(N,K,n,k);
   const pLe=cdf(N,K,n,k);
   const pLt=cdf(N,K,n,k-1);
@@ -498,7 +521,7 @@ else document.addEventListener('DOMContentLoaded', __hypergeometric_distribution
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -506,7 +529,7 @@ else document.addEventListener('DOMContentLoaded', __hypergeometric_distribution
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

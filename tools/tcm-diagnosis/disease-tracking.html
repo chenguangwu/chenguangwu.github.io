@@ -115,7 +115,28 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "评分标准？", "acceptedAnswer": {"@type": "Answer", "text": "每症状 0 无、1 轻、2 中、3 重，总分跨记录比较看升降。"}}, {"@type": "Question", "name": "存哪？", "acceptedAnswer": {"@type": "Answer", "text": "浏览器本地（localStorage），可删记录、不联网。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "评分标准？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "每症状 0 无、1 轻、2 中、3 重，总分跨记录比较看升降。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "存哪？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "浏览器本地（localStorage），可删记录、不联网。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
@@ -533,18 +554,33 @@ function renderSummary() {
   var lastSymptoms = (last.symptoms || []).map(function(sym){ return sym.name; }).sort().join('|');
   var comparable = firstSymptoms !== '' && lastSymptoms !== '' && firstSymptoms === lastSymptoms;
 
-  var html = '<h4>📋 病情变化分析</h4>';
+  var html = '<h4>📋 记录症状变化（非病情结论）</h4>';
   html += '<p><strong>首次记录：</strong>' + ToolBox.escHtml(first.date) + '，症状总分 ' + first.totalScore + '</p>';
   html += '<p><strong>最近记录：</strong>' + ToolBox.escHtml(last.date) + '，症状总分 ' + last.totalScore + '</p>';
 
   if(!comparable) {
-    html += '<p><strong>趋势判断：</strong><span style="color:var(--warning);font-weight:600;">症状项目不一致，总分不可直接比较</span>（请结合下方各症状趋势逐项对照）</p>';
+    html += '<p><strong>总分变化：</strong><span style="color:var(--warning);font-weight:600;">症状项目不一致，总分不可直接比较</span>（请结合下方各症状趋势逐项对照）</p>';
   } else if(scoreDiff < 0) {
-    html += '<p><strong>趋势判断：</strong><span style="color:var(--success);font-weight:600;">病情好转</span>（症状总分下降 ' + Math.abs(scoreDiff) + ' 分）</p>';
+    html += '<p><strong>记录的症状总分变化：</strong><span style="color:var(--success);font-weight:600;">下降 ' + Math.abs(scoreDiff) + ' 分</span>（仅反映所录症状评分，不等于病情好转）</p>';
   } else if(scoreDiff > 0) {
-    html += '<p><strong>趋势判断：</strong><span style="color:var(--danger);font-weight:600;">病情加重</span>（症状总分上升 ' + scoreDiff + ' 分）</p>';
+    html += '<p><strong>记录的症状总分变化：</strong><span style="color:var(--danger);font-weight:600;">上升 ' + scoreDiff + ' 分</span>（仅反映所录症状评分，不等于病情加重）</p>';
   } else {
-    html += '<p><strong>趋势判断：</strong><span style="color:var(--warning);font-weight:600;">病情平稳</span>（症状总分无变化）</p>';
+    html += '<p><strong>记录的症状总分变化：</strong><span style="color:var(--warning);font-weight:600;">无变化</span>（仅表示所录症状评分合计相同，不等于病情平稳）</p>';
+  }
+
+  if(comparable){
+    var firstMap={}, lastMap={};
+    (first.symptoms||[]).forEach(function(x){firstMap[x.name]=x.score;});
+    (last.symptoms||[]).forEach(function(x){lastMap[x.name]=x.score;});
+    html += '<p style="margin-top:8px;"><strong>各症状评分变化（首次→最近）：</strong></p><ul style="margin:4px 0 8px 18px;font-size:13px;">';
+    firstSymptoms.split('|').forEach(function(name){
+      if(!name) return;
+      var a=Number(firstMap[name]||0), b=Number(lastMap[name]||0);
+      var d=b-a;
+      var arrow=d<0?'下降 '+Math.abs(d):d>0?'上升 '+d:'无变化';
+      html += '<li>'+ToolBox.escHtml(name)+'：'+a+' → '+b+'（'+arrow+'）</li>';
+    });
+    html += '</ul><p style="font-size:12px;color:var(--text-muted);">不同症状可能此消彼长，总分下降/上升不能单独代表病情好转/加重；请结合舌象、脉象、其他检查与医师判断。</p>';
   }
 
   // 舌象变化
@@ -601,7 +637,7 @@ render();
     </a>
     <a href="constitution-test.html" class="related-tool-card">
       <span class="rt-icon">🌿</span>
-      <span class="rt-info"><span class="rt-name">中医体质自测器</span><span class="rt-desc">根据《中医体质分类与判定》（ZYYXH/T157-2009）标准，辨识九种基本体质类型</span></span>
+      <span class="rt-info"><span class="rt-name">中医体质自测器</span><span class="rt-desc">参考九类体质框架展示转化分与相对倾向；非标准量表，不作体质判定</span></span>
     </a>
   </div>
 </div>

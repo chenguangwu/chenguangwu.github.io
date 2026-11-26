@@ -343,12 +343,15 @@ function selectCase(id) {
 
 function calc() {
     var __ig=__tbInputGuard(['length', 'load', 'E', 'I', 'limit'],["梁长 L (m)", "均布载荷 q (kN/m)", "弹性模量 E (GPa)", "截面惯性矩 I (cm⁴)", "许用挠度 (L/x)"]);if(__ig){document.getElementById('beamViz').innerHTML='';const __g2=__ig;ToolBox.setResult("result",(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));return;}
-const L = +document.getElementById('length').value || 0;
-  const q = +document.getElementById('load').value || 0;
-  const E = +document.getElementById('E').value || 200;  // GPa
-  const I = +document.getElementById('I').value || 0;    // cm^4
-  const limit = +document.getElementById('limit').value || 250;
-  if (L <= 0) { document.getElementById('beamViz').innerHTML=''; document.getElementById('result').innerHTML=''; ToolBox.showToast(i18nText('toast.msg832'), 'error'); return; }
+function rv(id){var el=document.getElementById(id);var v=el?String(el.value==null?'':el.value).trim():'';return v===''?NaN:parseFloat(v);}
+  const L = rv('length'), q = rv('load'), E = rv('E'), I = rv('I'), limit = rv('limit');
+  var errs=[];
+  if(!isFinite(L)||L<=0)errs.push('梁长 L 须为正数（m）');
+  if(!isFinite(q))errs.push('均布载荷 q 须为有效数值（kN/m，负值表示向上）');
+  if(!isFinite(E)||E<=0)errs.push('弹性模量 E 须为正数（GPa）');
+  if(!isFinite(I)||I<=0)errs.push('截面惯性矩 I 须为正数（cm⁴）');
+  if(!isFinite(limit)||limit<=0)errs.push('许用挠度分母须为正数（L/x）');
+  if(errs.length){document.getElementById('beamViz').innerHTML='';ToolBox.setResult('result','<p style="color:var(--danger);font-weight:600;">⚠ '+errs.join('；')+'。</p>');return;}
 
   // E: GPa → N/mm² (× 1000)
   // I: cm⁴ → mm⁴ (× 10⁴)
@@ -371,10 +374,11 @@ const L = +document.getElementById('length').value || 0;
     delta_mm = P_N * Math.pow(L_mm, 3) / (3 * E_Nmm * I_mm4);
   }
 
-  const delta = delta_mm / 1000;  // m
+  const deltaSigned = delta_mm / 1000;  // m，负号代表与假设方向相反
+  const delta = Math.abs(deltaSigned);
   const allowed = L / limit;
   const ratio = delta / allowed;
-  const safe = ratio < 1;
+  const safe = ratio <= 1;
 
   // 绘制简化梁
   const beamW = 240;
@@ -408,7 +412,7 @@ const L = +document.getElementById('length').value || 0;
 
     <div class="result-block">
       <div class="result-label">最大挠度 δ</div>
-      <div class="result-value">${(delta*1000).toFixed(2)} mm</div>
+      <div class="result-value">${(delta*1000).toFixed(2)} mm${deltaSigned<0?'（与设定方向相反）':''}</div>
     </div>
     <div class="result-block">
       <div class="result-label">许用挠度 [L/${limit}]</div>
@@ -416,7 +420,7 @@ const L = +document.getElementById('length').value || 0;
     </div>
     <div class="result-block">
       <div class="result-label">挠度比 δ/[L]</div>
-      <div class="result-value" style="font-size:14px;">1/${(1/ratio).toFixed(0)}</div>
+      <div class="result-value" style="font-size:14px;">${delta===0?'0（无挠度）':'1/'+(1/ratio).toFixed(0)}</div>
     </div>
     <div class="result-block" style="background:${safe ? 'rgba(16,185,129,0.1)' : 'rgba(220,38,38,0.1)'};">
       <div class="result-label">验算结果</div>

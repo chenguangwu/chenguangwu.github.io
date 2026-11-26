@@ -26,7 +26,8 @@
 <script src="../../js/common.js" defer></script>
 <style>
 .clay-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0;}
-.clay-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all 0.2s;text-align:center;}
+.clay-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all 0.2s;text-align:center;font:inherit;color:inherit;width:100%;}
+.clay-card:focus-visible{outline:3px solid var(--primary);outline-offset:2px;}
 .clay-card:hover{border-color:var(--primary);transform:translateY(-2px);}
 .clay-card.active{border-color:var(--primary);background:rgba(255,107,53,0.06);}
 .clay-card .icon{font-size:24px;margin-bottom:4px;}
@@ -288,15 +289,16 @@ let selectedClay = 'stoneware';
 function renderClays(){
   const grid = document.getElementById('clayGrid');
   const __h0=CLAYS.map(c => `
-    <div class="clay-card ${c.id === selectedClay ? 'active' : ''}" onclick="selectClay('${c.id}')">
-      <div class="icon">${c.icon}</div>
+    <button type="button" class="clay-card ${c.id === selectedClay ? 'active' : ''}" aria-pressed="${c.id === selectedClay}" onclick="selectClay('${c.id}')">
+      <div class="icon" aria-hidden="true">${c.icon}</div>
       <div class="name">${c.name}</div>
       <div class="temp">最高 ${c.maxTemp}°C</div>
-    </div>
+    </button>
   `).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h0;
 }
 
 function selectClay(id){
+  if(!CLAYS.some(function(c){return c.id===id;})) return;
   selectedClay = id;
   renderClays();
   renderCurve();
@@ -304,6 +306,7 @@ function selectClay(id){
 
 function renderCurve(){
   const clay = CLAYS.find(c => c.id === selectedClay);
+  if(!clay) return;
   const fireType = document.getElementById('fireType').value;
   const isGlaze = fireType === 'glaze';
 
@@ -334,20 +337,39 @@ function renderCurve(){
     ];
   }
 
-  const totalTime = stages.reduce((sum, s) => {
-    const m = s.time.match(/约([\d.]+)h/);
-    return sum + (m ? parseFloat(m[1]) : 0);
-  }, 0);
+  stages.forEach(s => { s.kind = (s.name === '保温') ? 'hold' : (s.name === '降温' ? 'cool' : 'heat'); });
+  const parseDur = (t) => {
+    const range = t.match(/约\s*([\d.]+)\s*[-–]\s*([\d.]+)\s*(h|min)/i);
+    if (range) { const div = range[3].toLowerCase() === 'min' ? 60 : 1; return [parseFloat(range[1])/div, parseFloat(range[2])/div]; }
+    const one = t.match(/约\s*([\d.]+)\s*(h|min)/i);
+    if (one) { const v = parseFloat(one[1]) / (one[2].toLowerCase() === 'min' ? 60 : 1); return [v, v]; }
+    return [0, 0];
+  };
+  const sumKind = (kind) => stages.filter(s => s.kind === kind).reduce((a, s) => { const d = parseDur(s.time); return [a[0] + d[0], a[1] + d[1]]; }, [0, 0]);
+  const heat = sumKind('heat'), hold = sumKind('hold'), cool = sumKind('cool');
+  const totalTime = [heat[0] + hold[0] + cool[0], heat[1] + hold[1] + cool[1]];
+  const fmtH = (n) => (Math.round(n * 10) / 10).toFixed(1);
+  const totalText = Math.abs(totalTime[0] - totalTime[1]) < 1e-9 ? '约' + fmtH(totalTime[0]) + '小时' : '约' + fmtH(totalTime[0]) + '–' + fmtH(totalTime[1]) + '小时';
 
   const __h1=`
     <p style="font-size:14px;">陶土：<strong>${clay.icon} ${clay.name}</strong> · 烧制：<strong>${isGlaze ? '釉烧' : '素烧'}</strong></p>
-    <p style="font-size:13px;margin-top:6px;">峰值温度：<strong style="color:var(--primary);">${peakTemp}°C</strong> · 预计总时长：<strong style="color:var(--primary);">约${totalTime.toFixed(1)}小时</strong></p>
+    <p style="font-size:13px;margin-top:6px;">峰值温度：<strong style="color:var(--primary);">${peakTemp}°C</strong> · 完整周期：<strong style="color:var(--primary);">${totalText}</strong></p>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">分段合计：升温 ${fmtH(heat[0])}–${fmtH(heat[1])} h + 保温 ${fmtH(hold[0])}–${fmtH(hold[1])} h + 冷却 ${fmtH(cool[0])}–${fmtH(cool[1])} h；冷却段按方案估算到 200°C，实际受窑型、装窑量与环境影响。</p>
     <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">${clay.desc}</p>
   `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('summaryBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('summaryBox').innerHTML=__h1;
 
   const list = document.getElementById('curveStages');
+  const tempRange = (txt) => {
+    const nums = (String(txt).match(/\d+(?:\.\d+)?/g) || []).map(Number);
+    if(!nums.length) return [0, 0];
+    if(nums.length === 1) return /常温|室温|起始/.test(String(txt)) ? [0, nums[0]] : [nums[0], nums[0]];
+    return [nums[0], nums[nums.length - 1]];
+  };
   const __h2=stages.map(s => {
-    const tempPct = Math.min(100, (parseInt(s.temp.match(/\d+/)?.[0] || peakTemp) / clay.maxTemp) * 100);
+    const [start, end] = tempRange(s.temp);
+    const lo = Math.min(start, end), hi = Math.max(start, end);
+    const leftPct = Math.min(100, lo / clay.maxTemp * 100);
+    const spanPct = Math.max(0.6, (hi - lo) / clay.maxTemp * 100);
     return `
       <div class="stage-item">
         <div class="stage-head">
@@ -355,7 +377,8 @@ function renderCurve(){
           <span class="stage-temp">${s.temp}</span>
         </div>
         <div class="stage-rate">升温速率：${s.rate} · ${s.time}</div>
-        <div class="temp-bar"><div class="temp-bar-fill" style="width:${tempPct}%;"></div></div>
+        <div class="temp-bar" aria-label="${s.name}温度区间 ${start} 至 ${end} 摄氏度"><div class="temp-bar-fill" style="margin-left:${leftPct}%;width:${spanPct}%;"></div></div>
+        <div class="stage-range" style="font-size:11px;color:var(--text-muted);margin-top:4px;">图示区间：${start}→${end}°C（按阶段起止温度绘制，终点 ${end}°C）</div>
         <div class="stage-desc">${s.desc}</div>
       </div>
     `;
@@ -367,7 +390,8 @@ function copyResult(){
   const fireType = document.getElementById('fireType').value;
   const isGlaze = fireType === 'glaze';
   const peakTemp = isGlaze ? clay.maxTemp - 80 : clay.maxTemp;
-  const text = `${clay.name} ${isGlaze?'釉烧':'素烧'}方案\n峰值温度：${peakTemp}°C\n陶土说明：${clay.desc}`;
+  const summary = document.querySelector('#summaryBox');
+  const text = `${clay.name} ${isGlaze?'釉烧':'素烧'}方案\n峰值温度：${peakTemp}°C\n${summary ? summary.textContent.trim() : ''}\n陶土说明：${clay.desc}`;
   ToolBox.copyText(text, i18nText('msg501'));
 }
 
@@ -450,6 +474,7 @@ function __ceramic_firingSnap(){
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
+    out.__clay=selectedClay;
     return out;
 }
 function __ceramic_firingResText(){
@@ -473,6 +498,7 @@ function __ceramic_firingTime(t){
 function __ceramic_firingRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
+        keys=keys.filter(function(k){return k!=='__clay';});
         var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__ceramic_firingTime(it.t)];
@@ -487,6 +513,14 @@ function __ceramic_firingRender(keys,rk,en){
         TBKit.history.mount('#ceramic_firingHist',function(rec){
             __ceramic_firing_skip=true;
             try{
+                if(rec.__clay && CLAYS.some(function(c){return c.id===rec.__clay;})){
+                    selectedClay=rec.__clay;
+                    renderClays();
+                }else if(rec.__clay===undefined){
+                    ToolBox.showToast('该历史记录未保存泥料选择，已按当前泥料重绘','warn');
+                }else{
+                    ToolBox.showToast('该历史记录的泥料无法识别，已按当前泥料重绘','warn');
+                }
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
@@ -513,7 +547,7 @@ function __ceramic_firingExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__ceramic_firing_skip) return;
     var snap=__ceramic_firingSnap();
-    var keys=Object.keys(snap);
+    var keys=Object.keys(snap).filter(function(k){return k!=='__clay';});
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__ceramic_firingResText();
@@ -529,29 +563,62 @@ function __ceramic_firingExtras(){
         for(var i=0;i<keys.length;i++){
             if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
         }
-        if(same&&String(last[rk])===String(res)) return;
+        if(same&&String(last.__clay||'')===String(snap.__clay||'')&&String(last[rk])===String(res)) return;
     }
     __ceramic_firing_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec.__clay=snap.__clay;
     rec[rk]=res;
     rec.__tbScore=__ceramic_firingScore(res);
     TBKit.history.record(rec);
     __ceramic_firingRender(keys,rk,en);
 }
-function __ceramic_firingExport(){
-    if (typeof TBKit === 'undefined') return;
+function __exportCurrentDetail(sel){
     try{
-        var box=document.querySelector('#ceramic_firingTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__ceramic_firingSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __ceramic_firingRender(keys,en?'Result':'结果',en);
+        var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
+        var box=document.querySelector(sel);
+        var txt=box?(box.textContent||'').replace(/\s+/g,' ').trim():'';
+        if(!txt||/⚠|错误|无效|失败|Invalid|Failed|must be|Please enter|请输入/.test(txt)){
+            if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast(en?'Current result is empty or invalid; nothing exported':'当前结果为空或无效，未导出','warning');
+            return;
         }
-    }catch(e){}
-    try { TBKit.util.exportTable('#ceramic_firingTable','ceramic-firing.csv'); } catch(e){}
+        var rows=[[en?'Input':'输入参数',en?'Field':'字段',en?'Value':'值']];
+        var els=document.querySelectorAll('.container input,.container select,.container textarea');
+        for(var i=0;i<els.length;i++){
+            var e=els[i],t=(e.type||'').toLowerCase();
+            if(t==='button'||t==='submit'||t==='hidden'||t==='reset'||!e.id) continue;
+            var v=(t==='checkbox'||t==='radio')?(e.checked?'是':'否'):(e.value||'').trim();
+            if(v==='') continue;
+            rows.push([en?'Parameter':'参数',e.id||('field'+(i+1)),v]);
+        }
+        rows.push([]); rows.push([en?'Result':'计算结果',en?'Item':'项目',en?'Value':'值']);
+        rows.push([en?'Summary':'结果摘要','result',txt]);
+        if(box){
+            var __blocks=box.querySelectorAll('p,li,tr,.stat-card,.result-item,.metric');
+            for(var b2=0;b2<__blocks.length;b2++){
+                var __t=(__blocks[b2].textContent||'').replace(/\s+/g,' ').trim();
+                if(!__t||__t===txt||__t.length>500) continue;
+                rows.push([en?'Detail':'逐项数据','item'+(b2+1),__t]);
+            }
+            var tbs=box.querySelectorAll('table');
+            for(var q=0;q<tbs.length;q++){
+                var trs=tbs[q].querySelectorAll('tr');
+                for(var r=0;r<trs.length;r++){
+                    var cs=trs[r].querySelectorAll('th,td'); if(!cs.length) continue;
+                    var line=[]; for(var c=0;c<cs.length;c++) line.push((cs[c].textContent||'').replace(/\s+/g,' ').trim());
+                    rows.push([en?'Table':'数据表','row'+(r+1),line.join(' | ')]);
+                }
+            }
+        }
+        function esc(v){ v=String(v==null?'':v); return '"'+v.replace(/"/g,'""')+'"'; }
+        var csv=[rows[0].map(esc).join(',')];
+        rows.slice(1).forEach(function(rw){ csv.push(rw.map(esc).join(',')); });
+        var blob=new Blob(['\ufeff'+csv.join('\r\n')],{type:'text/csv;charset=utf-8'});
+        var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='ceramic-firing.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+    }catch(e){ if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast('导出失败，请重试','error'); }
 }
+function __ceramic_firingExport(){ if(typeof TBKit==='undefined')return; __exportCurrentDetail('#summaryBox'); }
 function __ceramicLoadScene(){
   try{
     var s=(document.getElementById('fireScene')||{}).value||'bisque_slow';

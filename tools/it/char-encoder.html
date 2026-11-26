@@ -312,8 +312,22 @@ function convert(){
       return s + '"';
     })()],
     [(EN?'Punycode (domain)':'Punycode（域名）'), (() => {
-      // IT-N206b：把输入当域名走 URL 解析，由浏览器 IDNA 转成 xn-- 形式；非法域名给 —。
-      try { return new URL('https://' + String(text).trim()).hostname || '—'; } catch (e) { return '—'; }
+      // 只接受裸域名：URL 解析会把路径/用户信息静默丢弃，必须提前拒绝并说明原因。
+      var raw = String(text).trim();
+      if(!raw) return '—';
+      var why = '';
+      if(/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) why = EN?'protocol':'协议';
+      else if(/@/.test(raw)) why = EN?'user info':'用户信息';
+      else if(/[\/?#]/.test(raw)) why = EN?'path/query/fragment':'路径/查询/片段';
+      else if(/:\d/.test(raw)) why = EN?'port':'端口';
+      else if(/\s/.test(raw)) why = EN?'whitespace':'空白';
+      else if(/^\.|\.$/.test(raw)) why = EN?'leading/trailing dot':'首尾点号';
+      if(why) return EN ? '— (bare domain only; contains '+why+')' : '—（仅接受裸域名；含'+why+'）';
+      try {
+        var host = new URL('https://' + raw).hostname;
+        if(!host) return '—';
+        return host;
+      } catch (e) { return EN?'— (invalid domain)':'—（域名无效）'; }
     })()],
     [(EN?'Characters':'字符数'), text.length + ' (UTF-16 code units)'],
     [(EN?'Code points':'码点数'), codePoints.length],
@@ -549,7 +563,7 @@ else document.addEventListener('DOMContentLoaded', __char_encoderBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -557,7 +571,7 @@ else document.addEventListener('DOMContentLoaded', __char_encoderBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

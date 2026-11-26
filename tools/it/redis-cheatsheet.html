@@ -120,7 +120,7 @@
       "name": "为什么线上不能用 KEYS？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "因为 KEYS 会一次性遍历整个键空间，时间复杂度 O(N)，在百万级键的实例上会阻塞主线程数十毫秒到数秒，导致所有请求排队。应改用 SCAN 渐进式遍历（游标分批、不阻塞），并用 count 参数控制单次扫描量。生产环境建议直接禁用 KEYS。"
+        "text": "因为 KEYS 会一次性遍历整个键空间，时间复杂度 O(N)，在百万级键的实例上会阻塞主线程数十毫秒到数秒，导致所有请求排队。应改用 SCAN 游标渐进遍历：它把一次大遍历拆成多次小调用，能降低单次阻塞时长与内存压力，但并不保证完全不阻塞——每次调用仍会占用主线程/事件循环时间，COUNT 越大占用越久。COUNT 只是给 Redis 的工作量提示，不是严格返回条数上限；同一游标下结果可能为空、也可能重复，游标返回 0 才表示遍历结束。生产环境应禁用 KEYS，并对 SCAN 限速、去重、观察实例延迟，优先用已知前缀或索引结构缩小扫描范围。"
       }
     }
   ]
@@ -154,7 +154,7 @@
     <li><b>类型</b>：String、Hash、List、Set、Sorted Set、Stream、Bitmap。</li>
     <li><b>常用</b>：SET/GET、HSET/HGETALL、LPUSH/RPOP、SADD/SMEMBERS、ZADD/ZRANGE。</li>
     <li><b>过期</b>：EXPIRE、TTL、PERSIST；持久化方式为 RDB 快照与 AOF 日志。</li>
-    <li><b>注意</b>：生产环境禁用 <code>KEYS *</code>（会阻塞主线程），改用 SCAN 游标迭代。</li>
+    <li><b>注意</b>：生产环境禁用 <code>KEYS *</code>（O(N) 一次性阻塞），改用 SCAN 游标迭代；SCAN 只降低单次压力，不保证零阻塞，需限速与去重。</li>
   </ul>
 </div>
 
@@ -199,13 +199,13 @@
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>查阅 string/hash/list/zset 命令。</li>
-<li>排查缓存问题：用 TTL 查键的剩余有效期、用 SCAN 安全遍历（避免 KEYS 阻塞主线程），确认缓存是否按预期失效。</li>
+<li>排查缓存问题：用 TTL 查键的剩余有效期、用 SCAN 渐进遍历（避免 KEYS 的 O(N) 阻塞；SCAN 仍可能占用执行时间，需限速并处理重复结果），确认缓存是否按预期失效。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">查 zset</div><div class="dd-ex-body">`ZADD leader 100 tom` 加分；`ZREVRANGE leader 0 9` 取前 10。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>Redis 持久化？</dt><dd>RDB 快照 + AOF 日志。</dd>
-<dt>为什么线上不能用 KEYS？</dt><dd>因为 KEYS 会一次性遍历整个键空间，时间复杂度 O(N)，在百万级键的实例上会阻塞主线程数十毫秒到数秒，导致所有请求排队。应改用 SCAN 渐进式遍历（游标分批、不阻塞），并用 count 参数控制单次扫描量。生产环境建议直接禁用 KEYS。</dd>
+<dt>为什么线上不能用 KEYS？</dt><dd>因为 KEYS 会一次性遍历整个键空间，时间复杂度 O(N)，在百万级键的实例上会阻塞主线程数十毫秒到数秒，导致所有请求排队。应改用 SCAN 游标渐进遍历：它把一次大遍历拆成多次小调用，能降低单次阻塞时长与内存压力，但并不保证完全不阻塞——每次调用仍会占用主线程/事件循环时间，COUNT 越大占用越久。COUNT 只是给 Redis 的工作量提示，不是严格返回条数上限；同一游标下结果可能为空、也可能重复，游标返回 0 才表示遍历结束。生产环境应禁用 KEYS，并对 SCAN 限速、去重、观察实例延迟，优先用已知前缀或索引结构缩小扫描范围。</dd>
 </dl>
 </div>
 </section>
@@ -329,9 +329,9 @@ const COMMANDS = [
   {
     "cmd": "SCAN",
     "cat": "键",
-    "desc": "增量扫描 key",
+    "desc": "游标渐进遍历 key（降低单次阻塞，不保证零阻塞）",
     "syntax": "SCAN cursor [MATCH p] [COUNT n] [TYPE t]",
-    "params": "",
+    "params": "游标返回 0 才结束；COUNT 是工作量提示而非严格上限；结果可能为空或重复",
     "example": "SCAN 0 MATCH user:* COUNT 100"
   },
   {
@@ -1022,7 +1022,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -1030,7 +1030,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

@@ -291,7 +291,8 @@
 var KEY = 'kids_mul_stats';
 var stats = { total:0, right:0, bestStreak:0, cleared:[] };
 var game = {
-  mode:'asc', level:2, idx:0, // asc: level 从2递增到9
+  mode:'asc', level:2, idx:0, pos:1,
+  en:/[?&]lang=en-US/.test(location.search), // asc: level 从2递增到9
   a:2, b:3, answer:6,
   streak:0, timerId:null, timeLimit:8, remaining:8,
   done:false, nextId:null
@@ -307,10 +308,10 @@ function saveStats(){
 function renderStats(){
   var acc = stats.total > 0 ? Math.round(stats.right / stats.total * 100) : 0;
   var html = '';
-  html += '<div class="stat-card"><div class="val">' + stats.right + '</div><div class="lbl">答对题数</div></div>';
-  html += '<div class="stat-card"><div class="val">' + stats.total + '</div><div class="lbl">答题总数</div></div>';
-  html += '<div class="stat-card"><div class="val">' + acc + '%</div><div class="lbl">正确率</div></div>';
-  html += '<div class="stat-card"><div class="val">' + stats.bestStreak + '</div><div class="lbl">最长连击</div></div>';
+  html += '<div class="stat-card"><div class="val">' + stats.right + '</div><div class="lbl">' + (game.en?'Correct':'答对题数') + '</div></div>';
+  html += '<div class="stat-card"><div class="val">' + stats.total + '</div><div class="lbl">' + (game.en?'Total answered':'答题总数') + '</div></div>';
+  html += '<div class="stat-card"><div class="val">' + acc + '%</div><div class="lbl">' + (game.en?'Accuracy':'正确率') + '</div></div>';
+  html += '<div class="stat-card"><div class="val">' + stats.bestStreak + '</div><div class="lbl">' + (game.en?'Best streak':'最长连击') + '</div></div>';
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('statGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('statGrid').innerHTML=__h0;
 }
 
@@ -339,15 +340,16 @@ function makeQuestion(){
   game.done = false;
   if(game.mode === 'asc'){
     game.a = game.level;
-    game.b = (game.idx % 9) + 1; // 1..9
+    game.b = game.pos; // 顺序出题位置 1..9，答对/跳过/超时都推进
   } else if(game.mode === 'single'){
     game.a = parseInt(document.getElementById('singleSel').value);
-    game.b = (game.idx % 9) + 1;
+    game.b = game.pos;
   } else { // mixed
     game.a = 2 + Math.floor(Math.random() * 8); // 2..9
     game.b = 1 + Math.floor(Math.random() * 9); // 1..9
   }
   game.answer = game.a * game.b;
+  game.pos = (game.pos % 9) + 1;
   const __h3=game.a + ' <span class="eq">×</span> ' + game.b + ' <span class="eq">=</span> ?';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('question').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('question').innerHTML=__h3;
   var inp = document.getElementById('answer');
   inp.value = '';
@@ -384,7 +386,13 @@ function checkAnswer(){
   var inp = document.getElementById('answer');
   var val = inp.value.trim();
   if(val === '') return;
-  if(parseInt(val) === game.answer){
+  if(!/^\d+$/.test(val)){
+    inp.classList.add('wrong');
+    document.getElementById('hint').innerHTML='<span style="color:var(--danger);">'+(/[?&]lang=en-US/.test(location.search)?'Enter a whole-number answer with no decimal point, minus sign, or other characters.':'请输入完整整数答案，不能带小数点、负号或其他字符。')+'</span>';
+    setTimeout(function(){ inp.classList.remove('wrong'); }, 300);
+    return;
+  }
+  if(Number(val) === game.answer){
     inp.classList.add('correct');
     inp.disabled = true;
     stopCountdown();
@@ -443,7 +451,7 @@ function handleWrong(timeout){
 
 function nextQuestion(skip){
   if(game.nextId){ clearTimeout(game.nextId); game.nextId = null; }
-  if(skip && !game.done){ stats.total++; game.streak = 0; saveStats(); renderStats(); }
+  if(skip && !game.done){ stats.total++; game.streak = 0; saveStats(); renderStats(); ToolBox.showToast('已跳过本题，记入已练题数', 'info'); }
   makeQuestion();
 }
 
@@ -457,6 +465,7 @@ function resetGame(){
   game.mode = document.getElementById('modeSel').value;
   game.level = 2;
   game.idx = 0;
+  game.pos = 1;
   game.streak = 0;
   if(game.mode === 'single'){
     game.level = parseInt(document.getElementById('singleSel').value);

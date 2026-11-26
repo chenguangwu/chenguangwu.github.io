@@ -133,7 +133,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🔤 十六进制编解码">🔤 Hex Encode</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">把文本按 UTF-8 编码为字节序列，逐字节转 16 进制并在前面补 0 到两位（开启大写时转大写），用所选分隔符依次连接；开启前缀选项时逐字节加 0x（如 0x48 0x69）；解码先剥分隔符、再全局去掉每字节 0x，按严格 UTF-8（fatal:true, ignoreBOM:true）解码，非法字节报错并给出 Latin-1 对照与原始字节</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">把文本按 UTF-8 编码为字节序列，逐字节转 16 进制并在前面补 0 到两位（开启大写时转大写），用所选分隔符依次连接；开启前缀选项时逐字节加 0x（如 0x48 0x69）；解码先按完整字节语法校验（0x 只能位于字节开头），再规范化，按严格 UTF-8（fatal:true, ignoreBOM:true）解码，非法字节报错并给出 Latin-1 对照与原始字节</div>
   <div class="formula-desc">本编解码工具基于对应编码标准(RFC/规范)，纯前端本地处理，数据不上传。 工具名称：十六进制编解码 - 免费编码解码工具，在线十六进制编解码，免费使用。</div>
 </div>
 
@@ -289,13 +289,22 @@ function dec(){
   __hex_encode_reset();
   let text = document.getElementById('input').value.trim();
   if(!text){ __hex_encode_state='empty'; return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter hexadecimal string to decode":"请输入要解码的十六进制字符串")); }
-  // IT-N261：先剥分隔符、再全局去 0x，多行/每字节前缀的 hexdump 不再残留 x
-  text = text.replace(/[\s:,;_-]/g,'').replace(/0x/gi,'');
   const en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn());
-  if(!/^[0-9a-fA-F]*$/.test(text)) return alert(en?"Invalid hexadecimal character":"非法十六进制字符");
-  if(text.length % 2 !== 0) return alert(en?"Hex length must be even":"十六进制长度必须为偶数");
-  const bytes = new Uint8Array(text.length / 2);
-  for(let i = 0; i < bytes.length; i++) bytes[i] = parseInt(text.substr(i*2,2),16);
+  // 第747批：先判断语法，再规范化。0x 只能出现在每个字节开头（0x41 0x42 / 0x410x42），
+  // 不允许混在字节内部（40x1），也不允许整串只有前缀/分隔符。
+  const compact = text.replace(/[\s:,;_-]+/g,'');
+  if(!compact) return alert(en?"No complete hexadecimal byte found":"未检测到完整十六进制字节");
+  let body=compact;
+  if(/^0x/i.test(compact)){
+    if(!/^(?:0x[0-9a-fA-F]{2})+$/.test(compact)) return alert(en?"0x prefix must start each byte and be followed by exactly two hex digits":"0x 前缀必须位于每个字节开头，且后跟两位十六进制");
+    body=compact.replace(/0x/gi,'');
+  }else if(/0x/i.test(compact)){
+    return alert(en?"0x prefix appears inside a byte; only whole-byte prefixes are allowed":"0x 前缀出现在字节内部；只允许按完整字节加前缀");
+  }
+  if(!/^[0-9a-fA-F]+$/.test(body)) return alert(en?"Invalid hexadecimal character":"非法十六进制字符");
+  if(body.length % 2 !== 0) return alert(en?"Hex length must be even":"十六进制长度必须为偶数");
+  const bytes = new Uint8Array(body.length / 2);
+  for(let i = 0; i < bytes.length; i++) bytes[i] = parseInt(body.substr(i*2,2),16);
   // IT-N263：严格 UTF-8，非法字节不再静默替换成 U+FFFD，给 Latin-1 对照 + 原始字节
   let out;
   try {
@@ -509,7 +518,7 @@ else document.addEventListener('DOMContentLoaded', __hex_encodeBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -517,7 +526,7 @@ else document.addEventListener('DOMContentLoaded', __hex_encodeBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

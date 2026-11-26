@@ -233,51 +233,79 @@ var MATS=[
 ];
 function renderMats(){
   var list=document.getElementById('matList');
-  var html='';
+  list.innerHTML='';
   MATS.forEach(function(m,idx){
-    html+='<div class="mat-row" data-idx="'+idx+'">';
-    html+='<input type="text" value="'+m.name+'" onchange="updateMat('+idx+','+"'name'"+',this.value)">';
-    html+='<input type="number" value="'+m.pct+'" min="0" max="100" step="0.5" onchange="updateMat('+idx+','+"'pct'"+',this.value)" placeholder="如 '+m.pct+'（0–100）" aria-label="原料百分比（%）">';
-    html+='<input type="text" id="w_'+idx+'" value="-" readonly style="background:var(--result-bg);">';
-    html+='<button type="button" class="btn" style="padding:8px;" onclick="delMat('+idx+')">删</button>';
-    html+='</div>';
+    var row=document.createElement('div');
+    row.className='mat-row'; row.setAttribute('data-idx',String(idx));
+    var name=document.createElement('input');
+    name.type='text'; name.value=m.name; name.setAttribute('aria-label','原料名称');
+    name.onchange=function(){ updateMat(idx,'name',this.value); };
+    var pct=document.createElement('input');
+    pct.type='number'; pct.value=m.pct; pct.min='0'; pct.max='100'; pct.step='0.5';
+    pct.placeholder='如 '+m.pct+'（0–100）'; pct.setAttribute('aria-label','原料百分比（%）');
+    pct.onchange=function(){ updateMat(idx,'pct',this.value); };
+    var w=document.createElement('input');
+    w.type='text'; w.id='w_'+idx; w.value='-'; w.readOnly=true; w.style.background='var(--result-bg)';
+    var del=document.createElement('button');
+    del.type='button'; del.className='btn'; del.style.padding='8px'; del.textContent='删';
+    del.onclick=function(){ delMat(idx); };
+    row.appendChild(name); row.appendChild(pct); row.appendChild(w); row.appendChild(del);
+    list.appendChild(row);
   });
-  const __g1=html;list.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function updateMat(idx,field,val){
   if(field==='name')MATS[idx].name=val;
-  else MATS[idx].pct=parseFloat(val)||0;
+  else MATS[idx].pct=val;
   calc();
 }
 function addMat(){MATS.push({name:'新原料',pct:0});renderMats();calc();}
 function delMat(idx){MATS.splice(idx,1);renderMats();calc();}
+function escMat(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function calc(){
   var total=parseFloat(document.getElementById('totalW').value);
   var ratio=parseFloat(document.getElementById('method').value);
   var out=document.getElementById('result');
-  if(isNaN(total)||total<=0){out.innerHTML='<p style="color:var(--danger)">请输入有效干釉料总重</p>';return;}
-  var sum=0,items=[];
-  MATS.forEach(function(m){
-    var w=total*m.pct/100;
-    sum+=m.pct;
-    items.push({name:m.name,pct:m.pct,w:w});
-    var wEl=document.getElementById('w_'+MATS.indexOf(m));
-    if(wEl)wEl.value=w.toFixed(1)+' g';
+  if(isNaN(total)||total<=0){
+    MATS.forEach(function(m,idx){var wEl=document.getElementById('w_'+idx);if(wEl)wEl.value='—';});
+    out.innerHTML='<p style="color:var(--danger)">请输入有效干釉料总重</p>';return;
+  }
+  var sum=0,items=[],errs=[];
+  MATS.forEach(function(m,idx){
+    var raw=String(m.pct==null?'':m.pct).trim();
+    if(raw===''){errs.push('第 '+(idx+1)+' 项「'+m.name+'」比例为必填');return;}
+    var pct=Number(raw);
+    if(!isFinite(pct)||pct<0||pct>100){errs.push('第 '+(idx+1)+' 项「'+m.name+'」比例须为 0–100 的有限数（当前 '+raw+'）');return;}
+    sum+=pct; items.push({name:m.name,pct:pct,w:total*pct/100});
   });
+  if(errs.length){
+    MATS.forEach(function(m,idx){var wEl=document.getElementById('w_'+idx);if(wEl)wEl.value='—';});
+    out.innerHTML='<p style="color:var(--danger)">⚠ 请先修正以下比例，未生成称量表：</p><ul style="color:var(--danger);font-size:13px;line-height:1.8;margin-left:18px;">'+errs.map(function(e){return '<li>'+escMat(e)+'</li>';}).join('')+'</ul>';
+    return;
+  }
+  if(Math.abs(sum-100)>0.5){
+    MATS.forEach(function(m,idx){var wEl=document.getElementById('w_'+idx);if(wEl)wEl.value='—';});
+    var rows=items.map(function(it){return '<tr><td>'+escMat(it.name)+'</td><td>'+it.pct+'</td></tr>';}).join('');
+    out.innerHTML='<p style="color:var(--danger);font-weight:600;">⚠ 配方百分比合计 '+sum.toFixed(1)+'%，'+(sum<100?'低于':'高于')+' 100%（允许 ±0.5% 舍入）。</p>'+
+      '<p style="color:var(--danger);">请先'+(sum<100?'补足':'扣减')+' '+(Math.abs(100-sum)).toFixed(1)+' 个百分点后再计算。合计不为 100% 时，各原料称量实际干重不等于输入总重，本页不再用输入总重估算加水与釉浆量。</p>'+
+      '<table><thead><tr><th>原料</th><th>当前百分比(%)</th></tr></thead><tbody>'+rows+'</tbody></table>';
+    return;
+  }
+  items.forEach(function(it,idx){var wEl=document.getElementById('w_'+idx);if(wEl)wEl.value=it.w.toFixed(1)+' g';});
   var water=total*ratio;
   var slipVol=(total+water)/1.55; // 估算釉浆体积 mL (浸釉比重~1.55)
   var sumGrade=Math.abs(sum-100)<0.5?'grade-excellent':'grade-pass';
+  var sumMsg=Math.abs(sum-100)<0.5?'配方百分比合计为 100%，比例正确（允许 ±0.5% 舍入）':(sum<100?'配方百分比合计 '+sum.toFixed(1)+'%，低于 100%，请补足':'配方百分比合计 '+sum.toFixed(1)+'%，高于 100%，请扣减');
   var html='<div class="big-result">干釉料总重 '+total.toFixed(0)+' g（配方合计 '+sum.toFixed(1)+'%）</div>';
   html+='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val">'+sum.toFixed(1)+'%</div><div class="lbl">配方合计</div></div>';
   html+='<div class="stat-card"><div class="val">'+water.toFixed(0)+' g</div><div class="lbl">需加水量</div></div>';
   html+='<div class="stat-card"><div class="val">'+(total+water).toFixed(0)+' g</div><div class="lbl">釉浆总重</div></div>';
   html+='</div>';
-  html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--result-bg);border-radius:10px;margin:6px 0;border-left:4px solid '+(Math.abs(sum-100)<0.5?'var(--success)':'var(--warning)')+';"><div style="flex:1;font-size:13px;">'+(Math.abs(sum-100)<0.5?'配方百分比合计为 100%，比例正确':'配方百分比合计 '+sum.toFixed(1)+'%，未达 100%，请调整')+'</div><span class="grade-tag '+sumGrade+'">'+(Math.abs(sum-100)<0.5?'合格':'待校')+'</span></div>';
+  html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--result-bg);border-radius:10px;margin:6px 0;border-left:4px solid '+(Math.abs(sum-100)<0.5?'var(--success)':'var(--warning)')+';"><div style="flex:1;font-size:13px;">'+(Math.abs(sum-100)<0.5?'配方百分比合计为 100%，比例正确（允许 ±0.5% 舍入）':(sum<100?'配方百分比合计 '+sum.toFixed(1)+'%，低于 100%，请补足':'配方百分比合计 '+sum.toFixed(1)+'%，高于 100%，请扣减'))+'</div><span class="grade-tag '+sumGrade+'">'+(Math.abs(sum-100)<0.5?'合格':'待校')+'</span></div>';
   html+='<h3 style="margin-top:14px;">原料称量表</h3>';
   html+='<table><thead><tr><th>原料</th><th>百分比(%)</th><th>称量(g)</th><th>称量(kg)</th></tr></thead><tbody>';
   items.forEach(function(it){
-    html+='<tr><td>'+it.name+'</td><td>'+it.pct+'</td><td><strong>'+it.w.toFixed(1)+'</strong></td><td>'+(it.w/1000).toFixed(3)+'</td></tr>';
+    html+='<tr><td>'+escMat(it.name)+'</td><td>'+it.pct+'</td><td><strong>'+it.w.toFixed(1)+'</strong></td><td>'+(it.w/1000).toFixed(3)+'</td></tr>';
   });
   html+='</tbody></table>';
   html+='<h3 style="margin-top:14px;">分步计算</h3>';
@@ -289,7 +317,8 @@ function calc(){
 }
 function copyResult(){
   var r=document.querySelector('#result .big-result');
-  ToolBox.copyText(r?r.textContent:'釉料配比结果', i18nText('tool.copy_ok'));
+  if(!r){ToolBox.showToast('当前没有有效称量结果，请先修正输入','warn');return;}
+  ToolBox.copyText(r.textContent, i18nText('tool.copy_ok'));
 }
 renderMats();
 calc();
@@ -305,29 +334,25 @@ calc();
 <div class="related-tools" data-related-tools="1">
   <h3 class="related-tools-title">🔗 相关工具</h3>
   <div class="related-tools-grid">
-    <a href="../biz/presentation-timer.html" class="related-tool-card">
-      <span class="rt-icon">⏱️</span>
-      <span class="rt-info"><span class="rt-name">演讲计时器</span><span class="rt-desc">为 PPT 每页分配时间并进度提醒、支持全屏，辅助演讲节奏把控</span></span>
+    <a href="clay-shrinkage.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">泥料收缩率计算</span><span class="rt-desc">已知目标成品尺寸与总收缩率反算湿坯制作尺寸，辅助陶瓷成型与烧成尺寸控制</span></span>
     </a>
-    <a href="../biz/markdown-quote.html" class="related-tool-card">
-      <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 引用转换器</span><span class="rt-desc">将粘贴的多行文本批量转换为 Markdown 引用块（每行前加 &gt;），便于在文档中引用他人内容或做批…</span></span>
+    <a href="wheel-speed.html" class="related-tool-card">
+      <span class="rt-icon">🔩</span>
+      <span class="rt-info"><span class="rt-name">拉坯转速计算</span><span class="rt-desc">根据坯体直径与阶段（开盘、提拉、收口）建议合适的拉坯机转速，避免离心变形，辅助陶艺新手掌握不同工序的…</span></span>
     </a>
-    <a href="../biz/markdown.html" class="related-tool-card">
-      <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 实时预览</span><span class="rt-desc">在左侧编辑区输入 Markdown，右侧实时渲染标题、列表、代码块等效果，支持即时对照，便于写作与格…</span></span>
+    <a href="kiln-firing.html" class="related-tool-card">
+      <span class="rt-icon">🏺</span>
+      <span class="rt-info"><span class="rt-name">窑炉烧成曲线</span><span class="rt-desc">按坯体/釉料类型查看推荐的烧成温度曲线，包含升温速率、保温温度与时间，估算总烧成时长</span></span>
     </a>
-    <a href="../biz/unicode-normalize.html" class="related-tool-card">
-      <span class="rt-icon">🏋️</span>
-      <span class="rt-info"><span class="rt-name">Unicode 规范化</span><span class="rt-desc">将文本按 NFC/NFD/NFKC/NFKD 等范式进行 Unicode 规范化，统一异体字与组合字…</span></span>
+    <a href="ceramic-firing.html" class="related-tool-card">
+      <span class="rt-icon">🌡️</span>
+      <span class="rt-info"><span class="rt-name">陶艺烧制温度曲线</span><span class="rt-desc">提供低温陶土、高温陶土、瓷土、乐烧土等不同陶土的素烧与釉烧温度曲线参考。</span></span>
     </a>
-    <a href="../biz/zalgo-text.html" class="related-tool-card">
-      <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">Zalgo 文字</span><span class="rt-desc">为文字叠加大量组合字符生成 Zalgo 乱码风格效果，可调节紊乱强度，用于恶搞表情、标题装饰与渲染测…</span></span>
-    </a>
-    <a href="../biz/superscript-text.html" class="related-tool-card">
-      <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">上标文字</span><span class="rt-desc">将选中文字转为上标格式并生成可复制的 Unicode 或 HTML 上标代码，适合化学式、数学指数与…</span></span>
+    <a href="glaze-temp.html" class="related-tool-card">
+      <span class="rt-icon">🌡️</span>
+      <span class="rt-info"><span class="rt-name">釉料温度对照</span><span class="rt-desc">查询测温锥（Orton/Seger 锥）对应温度与釉料熔融温度分类，选择匹配坯体的釉料烧成温度</span></span>
     </a>
   </div>
 </div>
@@ -379,6 +404,7 @@ function __glaze_ratioSnap(){
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
+    out.__mats=JSON.stringify(MATS.map(function(m){return {name:String(m.name),pct:String(m.pct)};}));
     return out;
 }
 function __glaze_ratioResText(){
@@ -402,6 +428,7 @@ function __glaze_ratioTime(t){
 function __glaze_ratioRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
+        keys=keys.filter(function(k){return k!=='__mats';});
         var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__glaze_ratioTime(it.t)];
@@ -416,6 +443,13 @@ function __glaze_ratioRender(keys,rk,en){
         TBKit.history.mount('#glaze_ratioHist',function(rec){
             __glaze_ratio_skip=true;
             try{
+                if(rec.__mats){
+                    var restored=JSON.parse(rec.__mats);
+                    if(Array.isArray(restored)&&restored.length){
+                        MATS=restored.map(function(m){return {name:String(m.name==null?'':m.name),pct:m.pct==null?'':String(m.pct)};});
+                        renderMats();
+                    }
+                }
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
@@ -442,7 +476,7 @@ function __glaze_ratioExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__glaze_ratio_skip) return;
     var snap=__glaze_ratioSnap();
-    var keys=Object.keys(snap);
+    var keys=Object.keys(snap).filter(function(k){return k!=='__mats';});
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__glaze_ratioResText();
@@ -458,29 +492,62 @@ function __glaze_ratioExtras(){
         for(var i=0;i<keys.length;i++){
             if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
         }
-        if(same&&String(last[rk])===String(res)) return;
+        if(same&&String(last.__mats||'')===String(snap.__mats||'')&&String(last[rk])===String(res)) return;
     }
     __glaze_ratio_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec.__mats=snap.__mats;
     rec[rk]=res;
     rec.__tbScore=__glaze_ratioScore(res);
     TBKit.history.record(rec);
     __glaze_ratioRender(keys,rk,en);
 }
-function __glaze_ratioExport(){
-    if (typeof TBKit === 'undefined') return;
+function __exportCurrentDetail(sel){
     try{
-        var box=document.querySelector('#glaze_ratioTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__glaze_ratioSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __glaze_ratioRender(keys,en?'Result':'结果',en);
+        var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
+        var box=document.querySelector(sel);
+        var txt=box?(box.textContent||'').replace(/\s+/g,' ').trim():'';
+        if(!txt||/⚠|错误|无效|失败|Invalid|Failed|must be|Please enter|请输入/.test(txt)){
+            if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast(en?'Current result is empty or invalid; nothing exported':'当前结果为空或无效，未导出','warning');
+            return;
         }
-    }catch(e){}
-    try { TBKit.util.exportTable('#glaze_ratioTable','glaze-ratio.csv'); } catch(e){}
+        var rows=[[en?'Input':'输入参数',en?'Field':'字段',en?'Value':'值']];
+        var els=document.querySelectorAll('.container input,.container select,.container textarea');
+        for(var i=0;i<els.length;i++){
+            var e=els[i],t=(e.type||'').toLowerCase();
+            if(t==='button'||t==='submit'||t==='hidden'||t==='reset'||!e.id) continue;
+            var v=(t==='checkbox'||t==='radio')?(e.checked?'是':'否'):(e.value||'').trim();
+            if(v==='') continue;
+            rows.push([en?'Parameter':'参数',e.id||('field'+(i+1)),v]);
+        }
+        rows.push([]); rows.push([en?'Result':'计算结果',en?'Item':'项目',en?'Value':'值']);
+        rows.push([en?'Summary':'结果摘要','result',txt]);
+        if(box){
+            var __blocks=box.querySelectorAll('p,li,tr,.stat-card,.result-item,.metric');
+            for(var b2=0;b2<__blocks.length;b2++){
+                var __t=(__blocks[b2].textContent||'').replace(/\s+/g,' ').trim();
+                if(!__t||__t===txt||__t.length>500) continue;
+                rows.push([en?'Detail':'逐项数据','item'+(b2+1),__t]);
+            }
+            var tbs=box.querySelectorAll('table');
+            for(var q=0;q<tbs.length;q++){
+                var trs=tbs[q].querySelectorAll('tr');
+                for(var r=0;r<trs.length;r++){
+                    var cs=trs[r].querySelectorAll('th,td'); if(!cs.length) continue;
+                    var line=[]; for(var c=0;c<cs.length;c++) line.push((cs[c].textContent||'').replace(/\s+/g,' ').trim());
+                    rows.push([en?'Table':'数据表','row'+(r+1),line.join(' | ')]);
+                }
+            }
+        }
+        function esc(v){ v=String(v==null?'':v); return '"'+v.replace(/"/g,'""')+'"'; }
+        var csv=[rows[0].map(esc).join(',')];
+        rows.slice(1).forEach(function(rw){ csv.push(rw.map(esc).join(',')); });
+        var blob=new Blob(['\ufeff'+csv.join('\r\n')],{type:'text/csv;charset=utf-8'});
+        var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='glaze-ratio.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+    }catch(e){ if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast('导出失败，请重试','error'); }
 }
+function __glaze_ratioExport(){ if(typeof TBKit==='undefined')return; __exportCurrentDetail('#result'); }
 function __glaze_ratioPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#glaze_ratioPresets',[{label:'默认参数',labelEn:'Default',values:{'totalW':'1000', 'method':'0.8'}},{"label":"小规模","labelEn":"Small scale","values":{"totalW":"500"}},{"label":"大规模","labelEn":"Large scale","values":{"totalW":"1500"}},{"label":"极端工况","labelEn":"Extreme case","values":{"totalW":"2000"}}],function(){ calc(); });

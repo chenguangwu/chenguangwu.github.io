@@ -164,7 +164,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="勾选家中的电器并设置数量，计算待机总功耗和关闭待机可节省的电费">Sum the standby consumption of appliances, power multiplied by hours, to reveal the yearly cost of always-on devices.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">待机功耗与电费（本页代码口径，电器表勾选累加）：总待机功率=Σ(勾选电器功率×数量)（W）；日耗电=总功率×日待机时长÷1000（kWh）；月耗电=日耗电×30、年耗电=日耗电×365；年电费=年耗电×电价（元），明细行按同口径逐项列出年费。校验：无勾选项提示「请勾选待机中的电器进行计算」；数量≤0 或未勾选不计入；电价、时长空值按默认（0.58 元/kWh、20 小时）兜底。判据：无固定分级，节省金额按全部关闭待机的年电费展示。</div>
+      <div class="formula-eq">待机功耗与电费（本页代码口径，电器表勾选累加）：总待机功率=Σ(勾选电器功率×数量)（W）；日耗电=总功率×日待机时长÷1000（kWh）；月耗电=日耗电×30、年耗电=日耗电×365；年电费=年耗电×电价（元），明细行按同口径逐项列出年费。校验：无勾选项提示「请勾选待机中的电器进行计算」；数量≤0 或未勾选不计入；电价必填（可为 0），空值提示补填，不再套用 0.58 元/kWh。判据：无固定分级，节省金额按全部关闭待机的年电费展示。</div>
       <p class="formula-desc">勾选家中的电器并设置数量，计算待机总功耗和关闭待机可节省的电费</p>
     </div>
 
@@ -376,7 +376,13 @@ function selectAll(state) {
 }
 
 function calc() {
-  const price = parseFloat(document.getElementById('elecPrice').value) || 0.58;
+  var __spEn=false;try{__spEn=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}catch(e){}
+  var __spPriceRaw=String(document.getElementById('elecPrice').value).trim();
+  function __spBad(msg){document.getElementById('wasteAmount').textContent='—';document.getElementById('saveAmount').textContent='—';['standby_power_calculatorTable','standby_power_calculatorDiff','standby_power_calculatorChart'].forEach(function(id){var b=document.getElementById(id);if(b)b.innerHTML='';});document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';}
+  if(__spPriceRaw===''){__spBad(__spEn?'Electricity price is required; enter 0 for free electricity':'请填写电价；零电价请显式填 0');return;}
+  var __spPrice=Number(__spPriceRaw);
+  if(!Number.isFinite(__spPrice)||__spPrice<0||__spPrice>2){__spBad(__spEn?'Electricity price must be between 0 and 2 CNY/kWh':'电价须在 0–2 元/kWh 之间');return;}
+  const price = __spPrice;
   const hours = parseFloat(document.getElementById('standbyHours').value) || 20;
 
   let totalPower = 0;

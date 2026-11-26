@@ -255,15 +255,16 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   var supplementDLI = lightPPFD * lightHours * 3600 / 1000000;
   var totalDLI = naturalDLI + supplementDLI;
 
-  var grade = totalDLI>=crop.max?'grade-excellent':totalDLI>=crop.min?'grade-good':totalDLI>=crop.min*0.7?'grade-pass':'grade-fail';
-  var gradeText = totalDLI>=crop.max?'光照充足':totalDLI>=crop.min?'光照达标':totalDLI>=crop.min*0.7?'光照偏弱':'光照严重不足';
-  var tipType = totalDLI>=crop.max?'tip-success':totalDLI>=crop.min?'tip-info':'tip-warn';
+  var overMax = totalDLI>crop.max;
+  var grade = overMax?'grade-pass':totalDLI>=crop.max?'grade-excellent':totalDLI>=crop.min?'grade-good':totalDLI>=crop.min*0.7?'grade-pass':'grade-fail';
+  var gradeText = overMax?'高于参考上限':totalDLI>=crop.max?'处于参考上限':totalDLI>=crop.min?'光照达标':totalDLI>=crop.min*0.7?'光照偏弱':'光照严重不足';
+  var tipType = overMax?'tip-warn':totalDLI>=crop.max?'tip-success':totalDLI>=crop.min?'tip-info':'tip-warn';
 
   var deficit = crop.min - totalDLI;
   var needLightHours = deficit>0 && lightPPFD>0 ? (deficit * 1000000 / (lightPPFD * 3600)) : 0;
   var needPPFD = deficit>0 && hours>0 ? (deficit * 1000000 / (hours * 3600)) : 0;
 
-  var tipContent = totalDLI>=crop.max?'DLI充足，作物光合作用充分，无需补光。':totalDLI>=crop.min?'DLI达标，当前光照满足作物需求。':'DLI不足！';
+  var tipContent = overMax?'总DLI 高于'+crop.name+'参考上限（'+crop.max+' mol/m²/d），不代表越高越好；可能存在光照过强、热负荷或光抑制风险，请结合温度、通风与品种/生育期复核，必要时遮阳。':totalDLI>=crop.max?'总DLI 位于参考区间上沿，当前光照满足作物需求，无需补光。':totalDLI>=crop.min?'DLI达标，当前光照满足作物需求。':'DLI不足！';
   if(deficit>0){
     tipContent += ' 当前缺口'+deficit.toFixed(1)+' mol/m²/d。';
     if(lightPPFD>0) tipContent += '建议补光灯再开'+needLightHours.toFixed(1)+'小时。';
@@ -279,7 +280,7 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
 
   html += '<p style="margin:10px 0;">光照评价：<span class="grade-tag '+grade+'">'+gradeText+'</span></p>';
   html += '<div class="progress-bar"><div class="progress-fill" style="width:'+Math.min(totalDLI/crop.max*100,100)+'%;"></div></div>';
-  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+crop.name+' DLI需求：'+crop.min+'~'+crop.max+' mol/m²/d（代表：'+crop.crops+'）</p>';
+  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+crop.name+' DLI需求：'+crop.min+'~'+crop.max+' mol/m²/d（代表：'+crop.crops+'）。参考区间为品种/生育期经验范围，实际需结合温度、CO₂与光周期调整。</p>';
 
   html += '<div class="tip-box '+tipType+'" style="margin-top:12px;">'+tipContent+'</div>';
 
@@ -295,8 +296,10 @@ function copyResult(){
   var hours=+document.getElementById('hours').value||0;
   var lightPPFD=+document.getElementById('lightPPFD').value||0;
   var lightHours=+document.getElementById('lightHours').value||0;
+  var crop=CROP_DLI[document.getElementById('cropType').value];
   var totalDLI=(ppfd*hours+lightPPFD*lightHours)*3600/1000000;
-  ToolBox.copyText('光照累积量DLI：\n自然光DLI：'+(ppfd*hours*3600/1000000).toFixed(1)+' mol/m²/d\n补光DLI：'+(lightPPFD*lightHours*3600/1000000).toFixed(1)+' mol/m²/d\n总DLI：'+totalDLI.toFixed(1)+' mol/m²/d', i18nText('toast.msg544'));
+  var note=totalDLI>crop.max?'\n提示：高于'+crop.name+'参考上限'+crop.max+' mol/m²/d，不代表越高越好，请复核光强、热负荷与品种/生育期。':'';
+  ToolBox.copyText('光照累积量DLI：\n自然光DLI：'+(ppfd*hours*3600/1000000).toFixed(1)+' mol/m²/d\n补光DLI：'+(lightPPFD*lightHours*3600/1000000).toFixed(1)+' mol/m²/d\n总DLI：'+totalDLI.toFixed(1)+' mol/m²/d'+note, i18nText('toast.msg544'));
 }
 calc();
 </script>
@@ -320,10 +323,7 @@ calc();
       <span class="rt-icon">🔄</span>
       <span class="rt-info"><span class="rt-name">农产品干物质含量换算器</span><span class="rt-desc">农产品干物质换算器，输入鲜重、干重或含水率快速互转并支持标准含水率折算，用于粮食收购与饲草计量</span></span>
     </a>
-    <a href="dry-matter-conversion.html" class="related-tool-card">
-      <span class="rt-icon">🔄</span>
-      <span class="rt-info"><span class="rt-name">农产品干物质含量换算器</span><span class="rt-desc">农产品干物质换算器，输入鲜重、干重或含水率快速互转并支持标准含水率折算，用于粮食收购与饲草计量</span></span>
-    </a>
+    
     
     <a href="temp-time-2.html" class="related-tool-card">
       <span class="rt-icon">🌡️</span>
@@ -497,19 +497,51 @@ function __dli_calculatorExtras(){
     TBKit.history.record(rec);
     __dli_calculatorRender(keys,rk,en);
 }
-function __dli_calculatorExport(){
-    if (typeof TBKit === 'undefined') return;
+function __exportCurrentDetail(sel){
     try{
-        var box=document.querySelector('#dli_calculatorTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__dli_calculatorSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __dli_calculatorRender(keys,en?'Result':'结果',en);
+        var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
+        var box=document.querySelector(sel);
+        var txt=box?(box.textContent||'').replace(/\s+/g,' ').trim():'';
+        if(!txt||/⚠|错误|无效|失败|Invalid|Failed|must be|Please enter|请输入/.test(txt)){
+            if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast(en?'Current result is empty or invalid; nothing exported':'当前结果为空或无效，未导出','warning');
+            return;
         }
-    }catch(e){}
-    try { TBKit.util.exportTable('#dli_calculatorTable','dli-calculator.csv'); } catch(e){}
+        var rows=[[en?'Input':'输入参数',en?'Field':'字段',en?'Value':'值']];
+        var els=document.querySelectorAll('.container input,.container select,.container textarea');
+        for(var i=0;i<els.length;i++){
+            var e=els[i],t=(e.type||'').toLowerCase();
+            if(t==='button'||t==='submit'||t==='hidden'||t==='reset'||!e.id) continue;
+            var v=(t==='checkbox'||t==='radio')?(e.checked?'是':'否'):(e.value||'').trim();
+            if(v==='') continue;
+            rows.push([en?'Parameter':'参数',e.id||('field'+(i+1)),v]);
+        }
+        rows.push([]); rows.push([en?'Result':'计算结果',en?'Item':'项目',en?'Value':'值']);
+        rows.push([en?'Summary':'结果摘要','result',txt]);
+        if(box){
+            var __blocks=box.querySelectorAll('p,li,tr,.stat-card,.result-item,.metric');
+            for(var b2=0;b2<__blocks.length;b2++){
+                var __t=(__blocks[b2].textContent||'').replace(/\s+/g,' ').trim();
+                if(!__t||__t===txt||__t.length>500) continue;
+                rows.push([en?'Detail':'逐项数据','item'+(b2+1),__t]);
+            }
+            var tbs=box.querySelectorAll('table');
+            for(var q=0;q<tbs.length;q++){
+                var trs=tbs[q].querySelectorAll('tr');
+                for(var r=0;r<trs.length;r++){
+                    var cs=trs[r].querySelectorAll('th,td'); if(!cs.length) continue;
+                    var line=[]; for(var c=0;c<cs.length;c++) line.push((cs[c].textContent||'').replace(/\s+/g,' ').trim());
+                    rows.push([en?'Table':'数据表','row'+(r+1),line.join(' | ')]);
+                }
+            }
+        }
+        function esc(v){ v=String(v==null?'':v); return '"'+v.replace(/"/g,'""')+'"'; }
+        var csv=[rows[0].map(esc).join(',')];
+        rows.slice(1).forEach(function(rw){ csv.push(rw.map(esc).join(',')); });
+        var blob=new Blob(['\ufeff'+csv.join('\r\n')],{type:'text/csv;charset=utf-8'});
+        var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='dli-calculator.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+    }catch(e){ if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast('导出失败，请重试','error'); }
 }
+function __dli_calculatorExport(){ if(typeof TBKit==='undefined')return; __exportCurrentDetail('#result'); }
 function __dli_calculatorPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#dli_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{ppfd:'400', hours:'12', lightPPFD:'0', lightHours:'0', cropType:'low'}},

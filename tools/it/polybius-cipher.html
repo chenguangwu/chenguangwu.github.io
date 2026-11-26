@@ -261,8 +261,30 @@
 </div>
 
 <script>
+function polyIsEn(){return (typeof TBKit!=='undefined'&&TBKit.util.isEn());}
+function polyShowNote(msg, danger){
+  const gb=document.getElementById('gridBox');
+  if(!gb || typeof gb.innerHTML!=='string') return;
+  let html=String(gb.innerHTML).replace(/<p id="__polyNote"[\s\S]*?<\/p>/g,'');
+  if(msg){
+    html+='<p id="__polyNote" style="margin:6px 0 0;color:'+(danger?'var(--danger)':'var(--text-muted)')+';font-size:13px;">'+msg+'</p>';
+  }
+  gb.innerHTML=html;
+}
+function polyError(msg){
+  document.getElementById('output').value='';
+  polyShowNote('⚠ '+polyEscape(msg), true);
+}
+function polyEscape(t){return String(t).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
 function getGrid(){
-  const key = document.getElementById('key').value.toUpperCase().replace(/[^A-Z]/g,'');
+  // 第802批：密钥与明文统一 I/J 合并规则；只接受 ASCII 字母，非 ASCII 不参与方阵并给出提示
+  const raw = document.getElementById('key').value;
+  let key = '', dropped = [];
+  for(const ch of raw){
+    if(/[A-Za-z]/.test(ch)) key += (ch==='j'||ch==='J') ? 'I' : ch.toUpperCase();
+    else if(!/\s/.test(ch)) dropped.push(ch);
+  }
+  polyRenderKeyNote(dropped);
   let letters = '';
   const seen = new Set();
   if(key){
@@ -283,6 +305,17 @@ function getGrid(){
   return letters;
 }
 
+function polyRenderKeyNote(dropped){
+  if(dropped.length){
+    const uniq=dropped.filter(function(c,i){return dropped.indexOf(c)===i;});
+    const en=polyIsEn();
+    polyShowNote(en
+      ? 'Key ignored '+dropped.length+' non-letter character(s): '+polyEscape(uniq.join(' '))+'; J is merged into I.'
+      : '密钥已忽略 '+dropped.length+' 个非字母字符：'+polyEscape(uniq.join(' '))+'；J 已按 I 合并。');
+  } else {
+    polyShowNote('');
+  }
+}
 function findInGrid(grid, ch){
   ch = ch.toUpperCase();
   if(ch === 'J') ch = 'I';
@@ -329,33 +362,42 @@ function enc(){
 }
 
 function dec(){
-  const text = document.getElementById('input').value.trim();
-  if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter Polybius square to decode":"请输入要解码的 Polybius 码"));
+  const text = document.getElementById('input').value;
+  const en=polyIsEn();
+  if(!text.trim()) return polyError(en?"Enter Polybius square to decode":"请输入要解码的 Polybius 码");
   const fmt = document.getElementById('fmt').value;
   const grid = getGrid();
   let s = text.replace(/[\s,\-;]+/g,'');
+  if(!s) return polyError(en?"No coordinates found after removing separators":"去除分隔符后没有可解码的坐标");
   if(fmt === 'letters'){
     s = s.toUpperCase();
+    const bad=[];
+    for(let i=0;i<s.length;i++){ if(s[i]<'A'||s[i]>'E') bad.push({ch:s[i],pos:i+1}); }
+    if(bad.length) return polyError(en?'Invalid letter coordinate "'+bad[0].ch+'" at position '+bad[0].pos+'. Letter mode accepts A-E only.':'字母坐标第 '+bad[0].pos+' 个字符「'+bad[0].ch+'」无效，字母模式只接受 A-E。');
+    if(s.length % 2 !== 0) return polyError(en?"Letter coordinate count must be even":"字母坐标数量必须为偶数");
     let out = '';
-    for(let i = 0; i + 1 < s.length; i += 2){
+    for(let i = 0; i < s.length; i += 2){
       const r = s.charCodeAt(i) - 64;
       const c = s.charCodeAt(i+1) - 64;
-      const idx = (r - 1) * 5 + (c - 1);
-      out += grid[idx] || '?';
+      out += grid[(r - 1) * 5 + (c - 1)];
     }
     document.getElementById('output').value = out;
+    polyShowNote('');
     return;
   }
-  if(s.length % 2 !== 0) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Digit length must be even":"数字长度必须为偶数"));
+  const bad=[];
+  for(let i=0;i<s.length;i++){ if(s[i]<'1'||s[i]>'5') bad.push({ch:s[i],pos:i+1}); }
+  if(bad.length) return polyError(en?'Invalid digit "'+bad[0].ch+'" at position '+bad[0].pos+'; each coordinate must be 1-5.':'数字坐标第 '+bad[0].pos+' 位「'+bad[0].ch+'」无效，每一位必须在 1–5。');
+  if(s.length % 2 !== 0) return polyError(en?"Digit length must be even":"数字长度必须为偶数");
   let out = '';
   for(let i = 0; i < s.length; i += 2){
     let r = parseInt(s[i], 10);
     let c = parseInt(s[i+1], 10);
     if(fmt === 'colrow'){ const t = r; r = c; c = t; }
-    const idx = (r - 1) * 5 + (c - 1);
-    out += grid[idx] || '?';
+    out += grid[(r - 1) * 5 + (c - 1)];
   }
   document.getElementById('output').value = out;
+  polyShowNote('');
 }
 
 function renderGrid(){
@@ -551,7 +593,7 @@ else document.addEventListener('DOMContentLoaded', __polybius_cipherBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -559,7 +601,7 @@ else document.addEventListener('DOMContentLoaded', __polybius_cipherBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

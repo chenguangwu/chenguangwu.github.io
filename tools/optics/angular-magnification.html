@@ -111,7 +111,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入明视距离 N 与放大镜焦距 f，求角放大率。">Compute angular magnification from the near-point distance N (about 25 cm) and the focal length f of a simple magnifier. For estimating the magnifying power of loupes and magnifier arrays.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">角放大率 M = 明视距离 N ÷ 焦距 f（N 常取 250mm）；另输出 f÷N、N÷(2f) 与 M²。校验：明视距离与焦距两项必填（f 非零）。判据：焦距越短放大率越高；M² 可用于估算两级放大的组合倍率。</div>
+      <div class="formula-eq">角放大率 M = 明视距离 N ÷ 焦距 f（N 常取 250mm）；另输出 f÷N、N÷(2f) 与 M²。校验：明视距离 N 与焦距 f 均须大于 0；负值或 0 提示，不用 Math.max 改写分母。判据：焦距越短放大率越高；M² 可用于估算两级放大的组合倍率。</div>
       <p class="formula-desc">输入明视距离 N 与放大镜焦距 f，求角放大率。</p>
     </div>
 
@@ -258,16 +258,18 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __optLabel(s){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()){var m={'角放大率 M':'Angular magnification M','焦距与明视距离之比':'Ratio f/N','明视距离与两倍焦距之比':'Ratio N/(2f)','放大率平方':'Magnification squared','项目':'Item','数值':'Value'};if(m[s])return m[s];}}catch(e){}return s;}
+function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){r[1]=__optLabel(String(r[1]));h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
               var __ig=__tbInputGuard(['N', 'f'],["明视距离 N (毫米)", "焦距 f (毫米)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const N=num('N'),f=num('f');
+const N=Number(num('N')),f=Number(num('f'));
+            if(!isFinite(N)||N<=0||!isFinite(f)||f<=0){ToolBox.setResult('result','<p style="color:var(--danger)">明视距离 N 与焦距 f 均须大于 0；负值或 0 不适用于本放大镜模型。</p>');return;}
             const M=N/f;
             const __g2=dataGrid([
-                [M.toFixed(2),'角放大率 M'],
-                [(f/Math.max(N,1e-9)).toFixed(6), '焦距与明视距离之比'],
-                [(N/(2*Math.max(f,1e-9))).toFixed(4), '明视距离与两倍焦距之比'],
-                [(M*M).toFixed(2), '放大率平方']
+                [M.toFixed(2),__optLabel('角放大率 M')],
+                [(f/N).toFixed(6), __optLabel('焦距与明视距离之比')],
+                [(N/(2*f)).toFixed(4), __optLabel('明视距离与两倍焦距之比')],
+                [(M*M).toFixed(2), __optLabel('放大率平方')]
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('N').value = '250';
@@ -279,17 +281,18 @@ function __angular_magnificationNum(id){var e=document.getElementById(id);var v=
 function __angular_magnificationExtras(){
     function __angular_magnificationRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var N=num('N'),f=num('f');
+    if (__angular_magnificationRaw('N').trim()==='' || __angular_magnificationRaw('f').trim()==='') return;
+    var N=Number(__angular_magnificationRaw('N')),f=Number(__angular_magnificationRaw('f'));
+    if (!isFinite(N)||N<=0||!isFinite(f)||f<=0) return;
     var M=N/f;
-    if (!isFinite(__angular_magnificationNum('N')) || !isFinite(__angular_magnificationNum('f'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#angular_magnificationTable',{
-        head: en?['Item','Value']:['项目','数值'],
+        head: en?['Item','Value']:[__optLabel('项目'),__optLabel('数值')],
         rows: [
-            ['角放大率 M', M.toFixed(2)],
-            ['焦距与明视距离之比', (f/Math.max(N,1e-9)).toFixed(6)],
-            ['明视距离与两倍焦距之比', (N/(2*Math.max(f,1e-9))).toFixed(4)],
-            ['放大率平方', (M*M).toFixed(2)],
+            [__optLabel('角放大率 M'), M.toFixed(2)],
+            [__optLabel('焦距与明视距离之比'), (f/N).toFixed(6)],
+            [__optLabel('明视距离与两倍焦距之比'), (N/(2*f)).toFixed(4)],
+            [__optLabel('放大率平方'), (M*M).toFixed(2)],
         ]
     });
     TBKit.history.record({N:__angular_magnificationRaw('N'), f:__angular_magnificationRaw('f'), M:M});

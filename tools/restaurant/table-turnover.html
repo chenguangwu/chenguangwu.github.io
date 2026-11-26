@@ -229,12 +229,20 @@ window._resultText='';
 // NUMCLR：全部输入留空时不得输出 0/0.00 的假评估结果
 var __numReq=['hours','tables','avgTime','occupancy','perTable','avgSpend'];
 if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
-  const hours=+document.getElementById('hours').value||1;
-  const tables=+document.getElementById('tables').value||1;
-  const avgTime=+document.getElementById('avgTime').value||30;
-  const occupancy=(+document.getElementById('occupancy').value||100)/100;
-  const perTable=+document.getElementById('perTable').value||1;
-  const avgSpend=+document.getElementById('avgSpend').value||0;
+  function rv(id){var el=document.getElementById(id);var v=el?String(el.value==null?'':el.value).trim():'';return v===''?NaN:parseFloat(v);}
+  const hours=rv('hours'), tables=rv('tables'), avgTime=rv('avgTime'), occPct=rv('occupancy'), perTable=rv('perTable'), avgSpend=rv('avgSpend');
+  const invalid=[];
+  if(!isFinite(hours)||hours<=0)invalid.push('营业时长须大于 0 小时');
+  if(!isFinite(tables)||tables<=0)invalid.push('桌数须大于 0');
+  if(!isFinite(avgTime)||avgTime<=0)invalid.push('平均用餐时间须大于 0 分钟');
+  if(!isFinite(occPct)||occPct<0||occPct>100)invalid.push('上座率须在 0–100% 之间（0% 为合法空座）');
+  if(!isFinite(perTable)||perTable<=0)invalid.push('每桌人数须大于 0');
+  if(!isFinite(avgSpend)||avgSpend<0)invalid.push('人均消费须为 ≥0 的数值');
+  if(invalid.length){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);font-weight:600;">⚠ 输入有误，未计算：</p><ul style="color:var(--danger);font-size:13px;line-height:1.8;">'+invalid.map(x=>'<li>'+x+'</li>').join('')+'</ul>';
+    return;
+  }
+  const occupancy=occPct/100;
 
   const totalMin=hours*60;
   // 理论最大翻台率 = 营业时长(分钟) / 平均用餐时间(分钟)

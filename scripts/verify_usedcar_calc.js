@@ -174,7 +174,7 @@ const CASES = [
     "salvage": "5"
   },
   "expect": [
-    "折旧年限需在 1–30 年之间"
+    "当前折旧方法需要折旧年限（1–30 年）"
   ],
   "ref": "负折旧年限回归：直线法 life=-10 时旧版 annualDep=(120000−6000)/−10=−11400、dep=−45600 ⇒ 残值 ¥165,600.00（高于新车价）、折旧率 −38.00%。修复后 calc 在方法分支前置校验 life∈[1,30]，直接输出「折旧年限需在 1–30 年之间」且不出残值。输入 price/year/life 均非页面默认（150000/3/10），默认态无该提示 ⇒ 判别有效；同时 years 校验 0–30、rate 统一由 (1−residual/price)×100 计算，保证年限越残值越低且折旧率与残值一致"
 },
@@ -250,8 +250,8 @@ const CASES = [
 {
   "slug": "usedcar/car-residual",
   "inputs": { "life": "-10", "salvage": "5", "price": "120000", "years": "3" },
-  "expect": ["折旧年限需在 1–30 年之间"],
-  "ref": "12-L2：rule 模式原先把折旧年限校验放在 straight/double 分支内，life=-10 仍照算 54321 折旧 ¥44,400、残值 ¥75,600；现在所有方法统一校验。默认 life=10 合法不出现该文案。"
+  "expect": ["累计折旧率： 37.00%", "¥75,600.00"],
+  "ref": "阶梯法（rule）不读取 life/salvage 这两个隐藏字段：life=-10 不应阻断计算，也不应出现折旧年限提示。120000×0.37 折旧 44,400 ⇒ 残值 75,600、折旧率 37.00%。默认 price=150000/years=3 为 ¥94,500，本值可判别。"
 },
 {
   "slug": "usedcar/usedcar-valuation",
@@ -273,7 +273,32 @@ const CASES = [
 },
 { slug:"usedcar/checker-3", inputs:{"carAge":"","mileage":""}, expect:["请填写车龄与行驶里程"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" },
 { slug:"usedcar/rater-37", inputs:{"mileage":""}, expect:["请填写行驶里程"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" },
-{ slug:"usedcar/tester-12", inputs:{"batteryV":"","chargingV":""}, expect:["请填写蓄电池与充电电压"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" }
+{ slug:"usedcar/tester-12", inputs:{"batteryV":"","chargingV":""}, expect:["请填写蓄电池与充电电压"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" },
+{
+  "slug": "usedcar/calc-73",
+  "clicks": ["document.getElementById('age').value='-1';calc()"],
+  "expect": ["请填写新车购置价（>0）、已使用年限（≥0）"],
+  "ref": "车龄负值守卫：旧版 parseFloat||0 后负车龄参与成新率；现年使用年限<0 直接停止并清空预测，默认 age=3 无提示。"
+},
+{
+  "slug": "usedcar/wear",
+  "clicks": ["document.getElementById('odo').value='-1000';calc()"],
+  "expect": ["请填写里程（≥0）"],
+  "ref": "里程负值守卫：旧版负里程参与偏差/磨损金额；现直接停止并清空旧结果，默认 odo=60000 无提示。"
+},
+{
+  "slug": "usedcar/checker-3",
+  "dynDom": true,
+  "clicks": ["document.getElementById('ck_frame').value='4';calc()"],
+  "expect": ["初步·优秀", "1/11"],
+  "ref": "未检查覆盖率：仅大梁一项设为正常，其余 10 项保持「未检查」⇒ 评级加「初步·」前缀、显示已检查 1/11，不再宣称所有项正常。默认全未检查 ⇒ 无评级卡。"
+},
+{
+  "slug": "usedcar/recorder-maintenance",
+  "clicks": ["document.getElementById('curKm').value='40000';document.getElementById('rKm').value='10000';document.getElementById('rItem').value='机油+机滤';addRecord()"],
+  "expect": ["已逾期项目：机油+机滤"],
+  "ref": "周期覆盖：40000km 时机油应于 40000km 保养，最近记录 10000km 已逾期 ⇒ 单次旧记录不再永久覆盖本周期，结果区列出逾期项；默认无记录不显示该提示。"
+}
 ];
 
 async function main() {

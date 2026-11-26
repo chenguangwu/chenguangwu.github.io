@@ -120,6 +120,26 @@ const CASES = [
     inputs: { T: "30" },
     expect: ["97.06"],
     ref: "v=331.4+0.6×30=349.40；km/h=349.40/3.6=97.06（默认 T=20→343.40，避开）" },
+  { slug: "acoustics/critical-distance",
+    inputs: { V: "200", rt: "0", Q: "1" },
+    expect: ["不能为 0"],
+    ref: "rt=0 会让 Q·V/rt 除零；须拒绝并说明三个参数均须为正，而不是输出 Infinity。" },
+  { slug: "acoustics/acoustic-impedance",
+    inputs: { rho: "1.2", c: "0" },
+    expect: ["密度和声速都必须大于 0"],
+    ref: "c=0 时 1/c 无定义；旧实现用 c||1 伪造 1 s/m，须拒绝。" },
+  { slug: "acoustics/sound-speed-air",
+    inputs: { T: "100" },
+    expect: ["超出 −40～50 ℃ 线性近似适用范围"],
+    ref: "线性近似越界：100℃ 时 331.4+0.6T 明显偏离真实干空气声速，须提示而非静默给值。" },
+  { slug: "acoustics/doppler-acoustic",
+    inputs: { f: "500", v: "340", vs: "340" },
+    expect: ["声源速度须低于声速（亚声速）"],
+    ref: "vs=v 时分母为零，vs>v 公式失效；须拒绝并说明亚声速条件。" },
+  { slug: "acoustics/wavelength-from-freq",
+    inputs: { f: "0", c: "343" },
+    expect: ["不能为 0"],
+    ref: "零频率会得到 0 波长与 0 空间频率，须拒绝而非输出无意义值。" },
 
   { slug: "acoustics/spring-natural-freq",
     inputs: { k: "800", m: "2" },
@@ -170,9 +190,9 @@ const CASES = [
       "f2": "42"
     },
     "expect": [
-      "at (s) 0.000"
+      "拍频为 0，拍周期无有限值"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"f1\":\"42\",\"f2\":\"42\"}，输出区含「at (s) 0.000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "等频 f1=f2=42：拍频 0、平均 42.00；拍周期 1/0 无有限值，页面显示「—」并明确说明，不再输出 Infinity/0。默认 440/444 不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "acoustics/combine-two-spl",
@@ -222,14 +242,14 @@ const CASES = [
   {
     "slug": "acoustics/doppler-acoustic",
     "inputs": {
-      "f": "42",
+      "f": "84",
       "v": "42",
-      "vs": "42"
+      "vs": "21"
     },
     "expect": [
-      "率偏移 (Hz) 1.0"
+      "84.00 频率偏移 (Hz)"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"f\":\"42\",\"v\":\"42\",\"vs\":\"42\"}，输出区含「率偏移 (Hz) 1.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{f=84,v=42,vs=21}，f′=84×42/(42−21)=168.00，偏移 84.00；默认态 440/343/34.3 不含该串 ⇒ 强判别、零逃生。vs 必须低于声速，42/42 会被亚声速守卫拒绝，故改用 21。"
   },
   {
     "slug": "acoustics/freq-to-note",

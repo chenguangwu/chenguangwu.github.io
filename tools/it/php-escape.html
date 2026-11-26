@@ -301,11 +301,29 @@ function unesc(){
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter PHP string to unescape":"请输入要反转义的 PHP 字符串"));
   text = text.trim();
   const mode = text.startsWith("'") ? 'single' : 'double';
+  const open = text[0], close = text[text.length - 1];
+  if((open === "'" || open === '"') && close !== open){
+    __phpUnescErr(text.slice(0, 12) + (text.length > 12 ? '…' : ''));
+    return;
+  }
   if((text.startsWith("'") && text.endsWith("'")) || (text.startsWith('"') && text.endsWith('"'))){
     text = text.slice(1, -1);
   }
   if(mode === 'single'){
-    document.getElementById('output').value = text.replace(/\\(.)/g, '$1');
+    // 第804批：PHP 单引号只解析 \\ 与 \'，其它反斜杠序列保留反斜杠
+    let single = '';
+    let j = 0;
+    while(j < text.length){
+      const ch = text[j];
+      if(ch === '\\' && j + 1 < text.length){
+        const nx = text[j+1];
+        if(nx === '\\' || nx === "'"){ single += nx; j += 2; }
+        else { single += '\\'; j += 1; }
+      } else {
+        single += ch; j++;
+      }
+    }
+    document.getElementById('output').value = single;
     return;
   }
   let out = '';
@@ -543,7 +561,7 @@ else document.addEventListener('DOMContentLoaded', __php_escapeBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -551,7 +569,7 @@ else document.addEventListener('DOMContentLoaded', __php_escapeBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

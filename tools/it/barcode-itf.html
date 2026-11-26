@@ -143,8 +143,10 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
   <div class="formula-desc">ITF（Interleaved 2 of 5）是纯数字、高密度条码：把数字两两配对，第一位决定 5 个条（宽窄）的位置，第二位决定 5 个空，二者交织在同一段宽度内，因此同样长度下比 Code 39 短得多。每个字符 5 个元素中 2 个为宽（宽窄比通常 2:1 或 3:1）。ITF 只能表示偶数位数字，常用于瓦楞纸箱外箱的 ITF-14（承载 GTIN-14）。因无自校验且易发生「短读」，通常加黑色护边框（Bearer Bar）防止斜扫描时漏读。</div>
 </div>
 
-    <label for="data">数字（偶数位，推荐 14 位）</label>
-    <input type="text" id="data" value="12345678901234" maxlength="14" style="margin-bottom:12px;">
+    <label for="data">数字（ITF-14 为 14 位；通用 ITF 为偶数位）</label>
+    <label for="itfMode">编码模式</label>
+    <select id="itfMode" style="width:100%;margin-bottom:10px;"><option value="itf14">ITF-14（14 位 GTIN，校验位必须正确）</option><option value="general">通用 ITF（偶数位，不加 GTIN 校验）</option></select>
+    <input type="text" id="data" value="12345678901231" style="margin-bottom:12px;">
     <div class="toolbar">
       <div id="barcode_itfPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="downloadBarcodePNG()">下载 PNG</button><button class="btn" type="button" onclick="__barcode_itfExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制</button>
@@ -281,13 +283,31 @@ function downloadBarcodePNG(){
   if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast('PNG 已下载','success');
 }
 var __itfLastNormalized='';
+function itfCheck13(s13){s13=String(s13==null?'':s13);if(!/^[0-9]{13}$/.test(s13))return 0;let sum=0;for(let i=0;i<13;i++)sum+=parseInt(s13[i],10)*(i%2?1:3);return (10-sum%10)%10;}
+function __itfEn(){return typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn();}
 function generate(){
-  const normalized=normalizeITF(document.getElementById('data').value);
+  const out=document.getElementById('output');
+  const en=__itfEn();
+  const raw=String(document.getElementById('data').value||'').trim();
+  const mode=document.getElementById('itfMode').value;
+  function err(msg){out.innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';}
+  if(!raw){err(en?'Please enter digits; empty input cannot be encoded.':'请输入数字；空输入无法编码。');return;}
+  if(/[^0-9]/.test(raw)){err(en?'Invalid input: ITF encodes digits 0-9 only; remove non-digit characters.':'输入含非数字字符：ITF 仅支持 0–9，请删除后重试，不会静默丢弃字符。');return;}
+  let normalized=raw, appended=false;
+  if(mode==='itf14'){
+    if(raw.length===13){normalized=raw+itfCheck13(raw);appended=true;}
+    else if(raw.length===14){
+      const expect=itfCheck13(raw.slice(0,13));
+      if(parseInt(raw[13],10)!==expect){err(en?'GTIN-14 check digit is wrong; the 14th digit should be '+expect+'.':'GTIN-14 校验位错误：第 14 位应为 '+expect+'。');return;}
+    }else{err(en?'ITF-14 requires exactly 14 digits (or 13 digits so the check digit can be computed).':'ITF-14 需要恰好 14 位数字（或输入前 13 位，由工具计算校验位）。');return;}
+  }else if(normalized.length%2){err(en?'General ITF requires an even number of digits; add one leading 0 yourself instead of silent padding.':'通用 ITF 需要偶数位数字；请自行补一个前导 0，本工具不会静默补位。');return;}
   __itfLastNormalized=normalized;
   const bits=buildITF(normalized);
   const canvas=drawBarcode(bits,normalized);
-  const out=document.getElementById('output');
-  const __h0='<div class="bar-wrap"></div><div class="bar-text">'+escapeHtml(normalized)+'</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;
+  let note='';
+  if(appended) note='<p class="muted">'+(en?'Check digit computed from the first 13 digits: '+normalized[13]+'.':'已按 GTIN-14 规则由前 13 位计算校验位：'+normalized[13]+'。')+'</p>';
+  if(mode==='itf14') note+='<p class="muted">'+(en?'ITF-14/GTIN-14; keep the quiet zone and print with at least 0.25 mm narrow bars.':'ITF-14/GTIN-14；打印时保留左右静区与护边，窄条建议不小于 0.25 mm。')+'</p>';
+  const __h0='<div class="bar-wrap"></div><div class="bar-text">'+escapeHtml(normalized)+'</div>'+note;out.innerHTML=__h0;
   out.querySelector('.bar-wrap').appendChild(canvas);
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -476,7 +496,7 @@ else document.addEventListener('DOMContentLoaded', __barcode_itfBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -484,7 +504,7 @@ else document.addEventListener('DOMContentLoaded', __barcode_itfBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

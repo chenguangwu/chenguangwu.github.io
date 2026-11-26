@@ -210,6 +210,7 @@
     <div class="result-box" id="summary"></div> <div id="memory_palaceTable"></div> <div id="memory_palaceDiff"></div> <div id="memory_palaceChart"></div> <div id="memory_palaceHist"></div>
 
     <div class="palace" id="palace"></div>
+    <div class="toolbar" id="pageBar" style="justify-content:center;align-items:center;gap:10px;"><button type="button" class="btn" onclick="changePage(-1)">上一页</button><span id="pageInfo" style="font-size:13px;color:var(--text-muted);"></span><button type="button" class="btn" onclick="changePage(1)">下一页</button></div>
 
     <div class="ref-card" style="margin-top:16px;">
       <h4>📋 编码对照表</h4>
@@ -345,11 +346,23 @@ function emojiFor(name){
   return m[name] || '🔹';
 }
 
+var MEM_EN = /[?&]lang=en-US/.test(location.search);
+function memL(en, zh){ return MEM_EN ? en : zh; }
+var palacePage = 0;
+var palaceHiding = false;
+
 function generate(){
 // NUMCLR2：全部数值/日期输入为空时不输出 0 与结论
 var __ni=Array.prototype.slice.call(document.querySelectorAll('input[type=number],input[type=date]'));
 if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){document.getElementById('summary').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
-  var text = document.getElementById('srcInput').value.trim() || '3.1415926';
+  var text = document.getElementById('srcInput').value.trim();
+  if(!text){
+    palace=[];palacePage=0;
+    document.getElementById('palace').innerHTML='';
+    document.getElementById('pageInfo').textContent='';
+    document.getElementById('summary').innerHTML='<p style="color:var(--danger)">⚠ '+memL('Enter the content to memorize first; this tool will not substitute sample digits.','请先输入要记忆的内容，工具不会用示例数字替代。')+'</p>';
+    return;
+  }
   var count = parseInt(document.getElementById('cellCount').value, 10);
   if(!Number.isFinite(count) || count < 1){ count = 16; }
   var mode = document.getElementById('modeSel').value;
@@ -369,11 +382,25 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
     d2.forEach(function(d){ segments.push(d); });
   }
 
-  if(segments.length === 0){ segments = ['3','1','4']; }
+  if(segments.length === 0){
+    palace=[];palacePage=0;
+    document.getElementById('palace').innerHTML='';
+    document.getElementById('pageInfo').textContent='';
+    document.getElementById('summary').innerHTML='<p style="color:var(--danger)">⚠ '+(mode==='shape'?memL('Shape mode only encodes digits and the input contains none. Switch to character mode or enter digits.','当前“谐音象形”模式只编码数字，输入中没有数字；请切换到“逐字编码”或输入数字。'):memL('No encodable content in the current mode. Check your input.','当前模式没有可编码的内容，请检查输入。'))+'</p>';
+    return;
+  }
 
+  // 分页保留全部内容：最后一页不足 count 时保留空位，不再循环重复或静默丢弃。
+  palacePage = 0;
+  var totalPages = Math.max(1, Math.ceil(segments.length / count));
+  var totalCells = totalPages * count;
   palace = [];
-  for(var i = 0; i < count; i++){
-    var seg = segments[i % segments.length];
+  for(var i = 0; i < totalCells; i++){
+    if(i >= segments.length){
+      palace.push({ pos:i + 1, empty:true, raw:'', encode:memL('Free slot','空闲格'), emoji:'▫️' });
+      continue;
+    }
+    var seg = segments[i];
     var enc = mode === 'shape' ? (SHAPE_MAP[seg] || seg) : seg;
     palace.push({
       pos: i + 1,
@@ -389,29 +416,60 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
 }
 
 function renderPalace(hide){
-  var count = palace.length;
-  var cols = Math.ceil(Math.sqrt(count));
-  if(count === 12) cols = 4;
-  if(count === 20) cols = 5;
+  palaceHiding = !!hide;
+  var perPage = parseInt(document.getElementById('cellCount').value, 10) || 16;
+  var totalPages = Math.max(1, Math.ceil(palace.length / perPage));
+  if(palacePage >= totalPages) palacePage = totalPages - 1;
+  var start = palacePage * perPage;
+  var pageItems = palace.slice(start, start + perPage);
+  var cols = Math.ceil(Math.sqrt(perPage));
+  if(perPage === 12) cols = 4;
+  if(perPage === 20) cols = 5;
   var grid = document.getElementById('palace');
   grid.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
   var html = '';
-  palace.forEach(function(c, i){
-    html += '<div class="cell' + (hide ? ' hide' : '') + '" onclick="revealCell(' + i + ', ' + hide + ')">';
+  pageItems.forEach(function(c, i){
+    html += '<div class="cell' + (hide ? ' hide' : '') + '" onclick="revealCell(' + (start + i) + ', ' + hide + ')">';
     html += '<span class="pos">' + c.pos + '</span>';
-    html += '<span class="num">' + ToolBox.escHtml(c.raw) + '</span>';
-    html += '<span class="item">' + c.emoji + '</span>';
+    html += '<span class="num">' + (c.empty ? '' : ToolBox.escHtml(c.raw)) + '</span>';
+    html += '<span class="item">' + (c.empty ? '' : c.emoji) + '</span>';
     html += '<span class="label">' + ToolBox.escHtml(c.encode) + '</span>';
     html += '</div>';
   });
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h0;
+  document.getElementById('pageInfo').textContent = memL('Page ' + (palacePage + 1) + ' / ' + totalPages, '第 ' + (palacePage + 1) + ' / ' + totalPages + ' 页') + (palaceHiding ? memL(' (recall mode)','（回忆模式）') : '');
+}
+
+function changePage(delta){
+  if(palace.length === 0) return;
+  var perPage = parseInt(document.getElementById('cellCount').value, 10) || 16;
+  var totalPages = Math.max(1, Math.ceil(palace.length / perPage));
+  palacePage = Math.max(0, Math.min(totalPages - 1, palacePage + delta));
+  renderPalace(palaceHiding);
 }
 
 function renderSummary(){
   var digits = getDigits(document.getElementById('srcInput').value).length;
-  var html = '<p>共生成 <strong>' + palace.length + '</strong> 个记忆格子，';
-  html += '待记数字 <strong>' + digits + '</strong> 位。</p>';
-  html += '<p style="font-size:12px;color:var(--text-muted);">提示：把每个格子想象成房间里的一个固定位置（门口、桌子、床…），把内容"放"进去。</p>';
+  var used = palace.filter(function(c){ return !c.empty; }).length;
+  var empty = palace.length - used;
+  var perPage = parseInt(document.getElementById('cellCount').value, 10) || 16;
+  var pages = Math.max(1, Math.ceil(palace.length / perPage));
+  var html;
+  if(MEM_EN){
+    html = '<p>Encoded <strong>' + used + '</strong> items into <strong>' + palace.length + '</strong> cells (' + pages + ' page(s), ' + perPage + ' per page)';
+    if(empty) html += ', with <strong>' + empty + '</strong> empty slots on the last page';
+    html += '.';
+    if(digits) html += ' Digits to remember: <strong>' + digits + '</strong>.';
+    html += '</p>';
+    html += '<p style="font-size:12px;color:var(--text-muted);">All content is kept across pages; recall and export cover every page, and empty slots are never filled with repeated content. Tip: imagine each cell as a fixed location in a room (door, table, bed…).</p>';
+  } else {
+    html = '<p>已编码 <strong>' + used + '</strong> 条内容，占用 <strong>' + palace.length + '</strong> 个格子（' + pages + ' 页，每页 ' + perPage + ' 格）';
+    if(empty) html += '，末页保留 <strong>' + empty + '</strong> 个空位';
+    html += '。';
+    if(digits) html += '待记数字 <strong>' + digits + '</strong> 位。';
+    html += '</p>';
+    html += '<p style="font-size:12px;color:var(--text-muted);">全部内容已分页保留，回忆和导出均覆盖所有页；空位不会被重复内容填充。提示：把每个格子想象成房间里的一个固定位置（门口、桌子、床…），把内容"放"进去。</p>';
+  }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('summary').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('summary').innerHTML=__h1;
 }
 
@@ -430,7 +488,9 @@ function renderEncodeList(){
 function revealCell(i, hidden){
   if(!hidden) return;
   var grid = document.getElementById('palace');
-  var cell = grid.children[i];
+  var perPage = parseInt(document.getElementById('cellCount').value, 10) || 16;
+  var local = i - palacePage * perPage;
+  var cell = grid.children[local];
   if(!cell) return;
   if(cell.classList.contains('hide')){
     cell.classList.remove('hide');
@@ -462,9 +522,11 @@ function showAll(){
 
 function exportCode(){
   if(palace.length === 0){ toolToast(toolText('toast.msg656', '请先生成记忆宫殿'), 'error'); return; }
-  var lines = ['记忆宫殿编码表', '位置\t内容\t联想'];
-  palace.forEach(function(c){
-    lines.push(c.pos + '\t' + c.raw + '\t' + c.encode);
+  var perPage = parseInt(document.getElementById('cellCount').value, 10) || 16;
+  var lines = [memL('Memory Palace Code Table','记忆宫殿编码表'), memL('Page\tPosition\tContent\tAssociation','页码\t位置\t内容\t联想')];
+  palace.forEach(function(c, i){
+    var page = Math.floor(i / perPage) + 1;
+    lines.push(page + '\t' + c.pos + '\t' + (c.empty ? memL('(empty)','（空位）') : c.raw) + '\t' + c.encode);
   });
   if(typeof ToolBox !== 'undefined' && typeof ToolBox.copyText === 'function'){
     ToolBox.copyText(lines.join('\n'), toolText('msg559', '编码表已复制'));
@@ -665,7 +727,7 @@ function __memory_palacePresets(){
     TBKit.preset.bar('#memory_palacePresets',[{label:'默认参数',labelEn:'Default',values:{'srcInput':'圆周率 3.1415926', 'cellCount':'16', 'modeSel':'number'}},
   {"label":"圆周率 · 数字分位 16 格","labelEn":"Pi Digits · 16 Cells","values":{"srcInput":"圆周率 3.14159265358979","cellCount":"16","modeSel":"number"}},
   {"label":"化学元素 · 逐字编码 9 格","labelEn":"Elements · Character Mode 9 Cells","values":{"srcInput":"氢氦锂铍硼碳氮氧","cellCount":"9","modeSel":"char"}},
-  {"label":"古诗 · 谐音象形 25 格","labelEn":"Poem · Shape Mode 25 Cells","values":{"srcInput":"床前明月光疑是地上霜","cellCount":"25","modeSel":"shape"}}],function(){ generate(); });
+  {"label":"古诗 · 逐字编码 25 格","labelEn":"Poem · Character Mode 25 Cells","values":{"srcInput":"床前明月光疑是地上霜","cellCount":"25","modeSel":"char"}}],function(){ generate(); });
 }
 var __memory_palace_f0=(typeof generate==='function')?generate:null;
 if(__memory_palace_f0){

@@ -257,22 +257,37 @@ print(area(2))</textarea>
 <script>
 const SAMPLE = 'def fibonacci(n):\n    """Generate Fibonacci sequence."""\n    a, b = 0, 1\n    result = []\n    for i in range(n):\n        result.append(a)\n        a, b = b, a + b\n    return result\n\nclass Calculator:\n    def __init__(self):\n        self.history = []\n\n    def add(self, x, y):\n        return x + y\n\nif __name__ == "__main__":\n    calc = Calculator()\n    print(calc.add(1, 2))\n    print(fibonacci(10))';
 const IND = () => { const v = document.getElementById('indent').value; return v === 'tab' ? '\t' : ' '.repeat(parseInt(v)); };
-function stripCommentAndString(line){
-  let inStr = false, strCh = '';
-  let result = '';
-  for(let i = 0; i < line.length; i++){
-    const c = line[i];
-    if(inStr){
-      result += c;
-      if(c === '\\'){ if(line[i+1]){ result += line[i+1]; i++; } continue; }
-      if(c === strCh) inStr = false;
-    } else {
-      if(c === '#') break;
-      if(c === '"' || c === '\''){ inStr = true; strCh = c; result += c; }
-      else result += c;
+function pythonScanLine(line, state){
+  // 返回 {code: 可参与括号/块判断的代码, state:{inTriple,tripleCh}}
+  let i=0, code='', inTriple=state.inTriple, tripleCh=state.tripleCh;
+  const n=line.length;
+  while(i<n){
+    if(inTriple){
+      const p=line.indexOf(tripleCh,i);
+      if(p<0){ return {code:code,state:{inTriple:true,tripleCh:tripleCh}}; }
+      i=p+tripleCh.length; inTriple=false;
+      continue;
     }
+    const c=line.charAt(i);
+    if(c==='#') break;
+    if(c==="'"||c==='"'){
+      if(line.substr(i,3)===c+c+c){
+        tripleCh=c+c+c; inTriple=true; i+=3;
+        const p=line.indexOf(tripleCh,i);
+        if(p<0) return {code:code,state:{inTriple:true,tripleCh:tripleCh}};
+        i=p+3; inTriple=false; continue;
+      }
+      const q=c; i++;
+      while(i<n){
+        if(line.charAt(i)==='\\'){ i+=2; continue; }
+        if(line.charAt(i)===q){ i++; break; }
+        i++;
+      }
+      continue;
+    }
+    code+=c; i++;
   }
-  return result;
+  return {code:code,state:{inTriple:inTriple,tripleCh:tripleCh}};
 }
 function formatPython(){
   setErr('');
@@ -341,30 +356,28 @@ function doValidate(){
     const src = document.getElementById('input').value;
     const lines = src.split('\n');
     const issues = [];
-    let inTriple = false, tripleCh = '';
-    let bracket = 0;
+    let state={inTriple:false,tripleCh:''};
+    const bracketStack=[];
     let pendingBlockLine = 0, pendingBlockIndent = 0;
     const indStack = [0];
     let allowIndent = false;
     const expand = s => s.replace(/\t/g, ' ');
+    const pairs={'(':')','[':']','{':'}'};
     for(let i = 0; i < lines.length; i++){
       const raw = lines[i];
-      if(inTriple){
-        if(raw.includes(tripleCh)) inTriple = false;
-        continue;
-      }
-      const tm = raw.match(/('''|""")/);
-      if(tm && raw.split(tm[1]).length < 3){ tripleCh = tm[1]; inTriple = true; }
+      const scanned = pythonScanLine(raw, state);
+      state = scanned.state;
       if(raw.trim() === '') continue;
+      // 纯注释行不参与块缩进判断，也不消耗上一行冒号开启的缩进许可
+      if(raw.trim().charAt(0)==='#') continue;
       const indent = expand(raw).match(/^ */)[0].length;
       if(pendingBlockLine){
         if(indent <= pendingBlockIndent) issues.push('第 ' + pendingBlockLine + ' 行以冒号结尾，但第 ' + (i + 1) + ' 行未缩进');
         pendingBlockLine = 0;
       }
-      const codeOnly = stripCommentAndString(raw);
-      // 缩进栈校验：退格必须回到某个已有的外层层级；加深只能出现在上一行以冒号开启代码块之后。
+      const codeOnly = scanned.code;
       // 括号内的续行缩进不受块结构约束，跳过。
-      if(bracket === 0){
+      if(bracketStack.length === 0){
         const prevTop = indStack[indStack.length - 1];
         if(indent < prevTop){
           while(indStack.length > 1 && indent < indStack[indStack.length - 1]) indStack.pop();
@@ -376,19 +389,26 @@ function doValidate(){
           else issues.push('第 ' + (i + 1) + ' 行缩进 ' + indent + ' 个空格，但上一行未以冒号开启代码块');
         }
       }
-      for(const ch of codeOnly){ if(ch === '(' || ch === '[' || ch === '{') bracket++; else if(ch === ')' || ch === ']' || ch === '}') bracket--; }
-      allowIndent = bracket === 0 && /:\s*$/.test(codeOnly.trim());
+      for(const ch of codeOnly){
+        if(pairs[ch]) bracketStack.push({ch:ch,line:i+1});
+        else if(ch===')'||ch===']'||ch==='}'){
+          const top=bracketStack.pop();
+          if(!top) issues.push('第 ' + (i + 1) + ' 行出现多余的右括号 ' + ch);
+          else if(pairs[top.ch]!==ch) issues.push('第 ' + (i + 1) + ' 行括号类型不匹配：第 ' + top.line + ' 行 ' + top.ch + ' 与 ' + ch);
+        }
+      }
+      allowIndent = bracketStack.length === 0 && /:\s*$/.test(codeOnly.trim());
       if(allowIndent){ pendingBlockLine = i + 1; pendingBlockIndent = indent; }
     }
-    if(inTriple) issues.push('三引号字符串未闭合');
-    if(bracket !== 0) issues.push('括号不平衡（差值 ' + bracket + '）');
+    if(state.inTriple) issues.push('三引号字符串未闭合');
+    if(bracketStack.length) issues.push('括号未闭合：' + bracketStack.map(function(b){return '第 '+b.line+' 行 '+b.ch;}).join('、'));
     const stats = 'Python 代码分析\n' +
       '总行数: ' + lines.length + '\n' +
       'def 数量: ' + (src.match(/^\s*def\s/gm) || []).length + '\n' +
       'class 数量: ' + (src.match(/^\s*class\s/gm) || []).length + '\n' +
       'import 数量: ' + (src.match(/^\s*(import|from)\s/gm) || []).length;
     setOut(stats);
-    setErr(issues.length ? '❌ ' + issues.join('；') : '✅ 结构检查通过（缩进/括号/三引号）');
+    setErr(issues.length ? '❌ ' + issues.join('；') : '✅ 结构检查通过（缩进/括号/三引号；启发式检查，不能替代 Python 语法解析）');
   }catch(e){ setErr('❌ ' + e.message); }
 }
 function setOut(s){document.getElementById('output').textContent=s;}
@@ -555,7 +575,7 @@ else document.addEventListener('DOMContentLoaded', __python_formatterBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -563,7 +583,7 @@ else document.addEventListener('DOMContentLoaded', __python_formatterBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

@@ -48,7 +48,7 @@ const CASES = [
     ref: "排放=150×2.31=346.5→346.50 kg；等效里程=346.5/0.12=2887.5 km（默认 100→231.00/1925.0 避开）" },
   { slug: "eco/landfill-methane", inputs: { organic: "800", doc: "0.5", mcf: "0.9", frac: "0.6" },
     expect: ["288.0", "8064.0"],
-    ref: "CH₄=800×0.5×0.9×0.6×16/12=288.0 kg/年；CO₂e=288×28=8064.0（默认 500/0.4/0.8/0.5→106.7/2986.7 避开）" },
+    ref: "CH₄ 产生潜力=800×0.5×0.9×0.6×16/12=288.0 kg（非年度排放）；CO₂e=288×28=8064.0（默认 500/0.4/0.8/0.5→106.7/2986.7 避开）" },
   { slug: "eco/methane-equivalent", inputs: { ch4: "150", gwp: "25", years: "50" },
     expect: ["3750.0", "75.0"],
     ref: "当量=150×25=3750.0 kgCO₂e；年均=3750/50=75.0（默认 100/28/100→2800.0/28.0 避开）" },
@@ -174,9 +174,9 @@ const CASES = [
       "pollutant": "pm10"
     },
     "expect": [
-      "³ AQI 指数 42 健康建议： 各类人群可正常活动，空气质量优良。 相同AQI(42"
+      "IAQI 分指数 42 健康建议： 各类人群可正常活动，空气质量优良。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputValue\":\"42\",\"mode\":\"a2c\",\"pollutant\":\"pm10\"}，输出区含「³ AQI 指数 42 健康建议： 各类人群可正常活动，空气质量优良。 相同AQ…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputValue\":\"42\",\"mode\":\"a2c\",\"pollutant\":\"pm10\"}，输出区含 IAQI 分指数与健康建议；旧标签误写整体 AQI，现已改为「污染物分指数 IAQI（非整体 AQI）」。默认态 75/100 不含该串。"
   },
   {
     "slug": "eco/carbon-offset",
@@ -432,15 +432,15 @@ const CASES = [
   {
     "slug": "eco/landfill-methane",
     "inputs": {
-      "organic": "42",
-      "doc": "42",
-      "mcf": "42",
-      "frac": "42"
+      "organic": "420",
+      "doc": "0.42",
+      "mcf": "0.42",
+      "frac": "0.42"
     },
     "expect": [
-      "42\n42\n42\n42\nCH₄ 产量： 4148928.0"
+      "CH₄ 产生潜力： 41.5"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"organic\":\"42\",\"doc\":\"42\",\"mcf\":\"42\",\"frac\":\"42\"}，输出区含「42\n42\n42\n42\nCH₄ 产量： 4148928.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "B类非默认用例：420×0.42×0.42×0.42×16/12=41.489→41.5 kg；比例均在 0–1 合法。默认 500/0.4/0.8/0.5→106.7，不命中。"
   },
   {
     "slug": "eco/rainwater-harvest",
@@ -607,8 +607,13 @@ const CASES = [
 
 async function main() {
   const only = process.argv.slice(2);
+  let pass = 0; const extraCases = [{ slug:"eco/landfill-methane", inputs:{"organic":"1000","doc":"1.2","mcf":"0.8","frac":"0.5"}, expect:["比例超出范围不计算"], ref:"DOC>1 物理上不可能，旧实现照算虚增；新实现拒绝 0–1 外比例。默认 0.4 不出现提示。" },
+{ slug:"eco/aqi-converter", inputs:{"mode":"a2c","pollutant":"pm25","inputValue":"150"}, expect:["不能仅凭整体 AQI 与该污染物唯一反推浓度"], ref:"反向模式必须声明整体 AQI 取最大、不能唯一反推；旧页面直接称整体 AQI 并给出浓度，误导。正查默认态不出现。" },
+];
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
-  let pass = 0; const fails = [];
+  extraCases.forEach(function(x){ if(!only.length || only.some((o)=>x.slug.endsWith("/"+o)||x.slug===o)) cases.push(x); });
+  const fails = [];
+
   for (const c of cases) {
     try {
       const r = await runCase(c);

@@ -132,12 +132,19 @@
   <ul class="formula-list">
     <li><b>连接符</b>：非末级子项用 <code>├──</code>，同层最后一项用 <code>└──</code>，用 <code>│</code> 延续父级竖线。</li>
     <li><b>规则</b>：某节点是其父的最后一项时，其子树前缀补空格而非 <code>│</code>，保证视觉闭合。</li>
-    <li><b>输入</b>：两种模式——路径列表（按 <code>/</code> 切分）或缩进文本（含 <code>├──/└──/│</code> 树形前缀，按前导空白宽度推断层级，一级取最小非零缩进）；同一份输入请勿混用。</li>
+    <li><b>输入</b>：显式选择「路径列表」「缩进树」或「自动识别」。路径列表按行去除首尾空白、按 <code>/</code> 切分，单行偶然带前导空格不会改变整份输入的解析方式；缩进树保留行首空白，按 <code>├──/└──/│</code> 前缀与最小非零缩进推断层级。</li>
     <li><b>输出</b>：纯文本，可直接粘贴进 README、接口文档或终端说明。</li>
   </ul>
 </div>
 
     <div class="input-row">
+      <div><label for="inputMode">输入格式</label>
+        <select id="inputMode" onchange="build()">
+          <option value="auto" selected>自动识别（含树形前缀或整份缩进→缩进树，否则路径列表）</option>
+          <option value="path">路径列表（每行一条，忽略首尾空白）</option>
+          <option value="indent">缩进树（保留行首空白与 ├──/└──/│）</option>
+        </select>
+      </div>
       <textarea id="paths" placeholder="每行一个路径，如：&#10;src/index.js&#10;src/components/Button.js&#10;src/utils/format.js&#10;README.md" style="min-height:180px" oninput="build()" aria-label="目录路径列表">src/index.js
 src/components/Button.js
 src/utils/format.js
@@ -284,28 +291,37 @@ function build(){
   var lines=rawLines.filter(function(s){return String(s).trim();});
   var out=document.getElementById('result');
   if(!lines.length){document.getElementById('output').value='';const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
-  var tree={};
-  // 行首有空白或树形竖线/连接符 ⇒ 按缩进层级解析；否则按 / 路径列表解析
-  var indentMode=lines.some(function(l){return /^[ \t│|├└]/.test(l);});
+  var tree=Object.create(null);
+  var modeEl=document.getElementById('inputMode');
+  var mode=modeEl?modeEl.value:'auto';
+  var hasGlyph=lines.some(function(l){return /^[ \t]*[│|├└`]/.test(l);});
+  var anyIndent=lines.some(function(l){return /^[ \t]/.test(l);});
+  var anySlash=lines.some(function(l){return l.trim().indexOf('/')!==-1;});
+  // 自动识别：树形前缀优先；整份输入都有缩进且不含 / 才按缩进树。单行前导空格不会改变路径列表的解析方式。
+  var indentMode = mode==='indent' || (mode==='auto' && (hasGlyph || (anyIndent && !anySlash)));
   if(indentMode){
     var parsed=lines.map(function(l){
       var t=String(l).replace(/\t/g,'    ').replace(/\s+$/,'');
       // 把树形前缀「│   」/「|   」折算成 4 空格，与普通缩进统一计量
       while(/^[│|]\s{3}/.test(t)) t='    '+t.slice(4);
       var lead=t.length-t.replace(/^\s+/,'').length;
-      var name=t.slice(lead).replace(/^(?:├──|└──|\+--|`--|--)\s*/,'').trim();
-      return {lead:lead,name:name};
+      var after=t.slice(lead);
+      var name=after.replace(/^(?:├──|└──|\+--|`--|--)\s*/,'').trim();
+      return {lead:lead,leadText:after,name:name};
     });
     var steps=parsed.map(function(x){return x.lead;}).filter(function(v){return v>0;});
     var unit=steps.length?Math.min.apply(null,steps):2;   // 最小非零缩进 = 一级
     var stack=[];
     parsed.forEach(function(it){
-      var depth=it.lead?Math.max(1,Math.round(it.lead/unit)):0;
+      // 标准 tree 输出（src/ 后接 ├── a.js）连接符在行首、缩进为 0；
+      // 连接符本身代表一级父子关系，必须计入层级，否则子项被误判为根节点。
+      var connector=/^(?:├──|└──|\+--|`--|--)\s*/.test(it.leadText || '');
+      var depth=(it.lead?Math.max(1,Math.round(it.lead/unit)):0)+(connector?1:0);
       while(stack.length&&stack[stack.length-1].depth>=depth)stack.pop();
       var parent=stack.length?stack[stack.length-1].children:tree;
       var isDir=/\/$/.test(it.name), nm=it.name.replace(/\/$/,'');
       if(!nm)return;
-      if(!parent[nm])parent[nm]={_file:!isDir,_children:{}};
+      if(!Object.prototype.hasOwnProperty.call(parent,nm))parent[nm]={_file:!isDir,_children:Object.create(null)};
       else parent[nm]._file=false;
       stack.push({depth:depth,children:parent[nm]._children});
     });
@@ -316,7 +332,7 @@ function build(){
       parts.forEach(function(p,idx){
         if(!p)return;
         var isFile=idx===parts.length-1;
-        if(!node[p])node[p]={_file:isFile,_children:{}};
+        if(!Object.prototype.hasOwnProperty.call(node,p))node[p]={_file:isFile,_children:Object.create(null)};
         else if(!isFile)node[p]._file=false;   // N505：同一节点先被当文件、后又出现子路径 ⇒ 改判目录
         if(!isFile)node=node[p]._children;
       });
@@ -340,7 +356,7 @@ function build(){
   }
   render(tree,'',true);
   document.getElementById('output').value=outLines.join('\n');
-  const __h1='<p>✅ 已生成 <strong>'+outLines.length+'</strong> 行目录树（'+lines.length+(indentMode?' 行输入':' 个路径')+'）</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
+  const __h1='<p>✅ 已生成 <strong>'+outLines.length+'</strong> 行目录树（'+lines.length+(indentMode?' 行缩进树输入':' 个路径')+'）</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
 }
 
 var __ascii_tree_generator_last=0,__ascii_tree_generator_skip=false;

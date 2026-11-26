@@ -178,7 +178,8 @@
     <textarea id="input" placeholder="输入要加密/解密的内容...">Hello, XOR!</textarea>
 
     <label style="margin-top:16px;" for="output">输出结果</label>
-    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea> <div id="xor_cipherTable"></div> <div id="xor_cipherDiff"></div> <div id="xor_cipherChart"></div> <div id="xor_cipherHist"></div>
+    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea>
+    <div id="xorInfo" style="font-size:12px;color:var(--text-muted);margin-top:6px;word-break:break-all;"></div> <div id="xor_cipherTable"></div> <div id="xor_cipherDiff"></div> <div id="xor_cipherChart"></div> <div id="xor_cipherHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -277,8 +278,14 @@ function parseInput(text, fmt){
   }
 }
 
+function hexPreview(bytes, max){
+  const n = Math.min(bytes.length, max || 96);
+  let out = '';
+  for(let i = 0; i < n; i++) out += bytes[i].toString(16).padStart(2,'0').toUpperCase() + (i + 1 === n ? '' : ' ');
+  return out + (bytes.length > n ? ' …' : '');
+}
 function formatOutput(bytes, fmt){
-  if(fmt === 'text') return new TextDecoder().decode(bytes);
+  if(fmt === 'text') return new TextDecoder('utf-8',{fatal:true}).decode(bytes);
   if(fmt === 'hex') return Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join('');
   if(fmt === 'base64'){
     let s = '';
@@ -301,9 +308,22 @@ function process(){
     for(let i = 0; i < data.length; i++){
       result[i] = data[i] ^ keyBytes[i % keyBytes.length];
     }
-    document.getElementById('output').value = formatOutput(result, outFmt);
+    const info = document.getElementById('xorInfo');
+    if(outFmt === 'text'){
+      try{
+        document.getElementById('output').value = formatOutput(result, 'text');
+        if(info) info.textContent = 'UTF-8 文本输出 · ' + result.length + ' 字节 · 十六进制预览：' + hexPreview(result, 48);
+      }catch(err){
+        document.getElementById('output').value = hexPreview(result, 256);
+        if(info) info.textContent = '⚠ 异或结果含非法 UTF-8 字节，文本模式无法无损显示；已改为十六进制预览（' + result.length + ' 字节）。需要完整字节请把输出格式切换为十六进制或 Base64。';
+      }
+    }else{
+      document.getElementById('output').value = formatOutput(result, outFmt);
+      if(info) info.textContent = '输出格式：' + outFmt + ' · ' + result.length + ' 字节 · 十六进制预览：' + hexPreview(result, 48);
+    }
   }catch(e){
     document.getElementById('output').value = '处理失败：' + e.message;
+    const info = document.getElementById('xorInfo'); if(info) info.textContent = '';
   }
 }
 
@@ -503,7 +523,7 @@ else document.addEventListener('DOMContentLoaded', __xor_cipherBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -511,7 +531,7 @@ else document.addEventListener('DOMContentLoaded', __xor_cipherBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

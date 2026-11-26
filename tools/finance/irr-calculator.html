@@ -504,6 +504,15 @@ function npvAt(series, rate) {
   return npv;
 }
 
+// NPV 对 r 的导数：Σ −t·CF_t/(1+r)^(t+1)。导数零点可识别 NPV 曲线与零轴相切的重根。
+function npvDerivativeAt(series, rate) {
+  let d = 0;
+  for (let i = 0; i < series.length; i++) {
+    d += -series[i].period * series[i].amount / Math.pow(1 + rate, series[i].period + 1);
+  }
+  return d;
+}
+
 function countSignChanges(series) {
   let cnt = 0, prev = 0;
   for (let i = 0; i < series.length; i++) {
@@ -528,24 +537,42 @@ function solveIRR(series) {
   const steps = 4000;
   const tMin = Math.log(1 + LOW), tMax = Math.log(1 + HIGH);
   const roots = [];
-  let prevR = null, prevF = null;
+  const candidate = [];
+  let prevR = null, prevF = null, prevD = null;
+
+  function bisectBy(signFn, flo, lo, hi) {
+    for (let it = 0; it < 200; it++) {
+      const mid = (lo + hi) / 2;
+      const fm = signFn(mid);
+      if (!isFinite(fm) || Math.abs(hi - lo) < 1e-14) return mid;
+      if ((flo > 0) === (fm > 0)) { lo = mid; flo = fm; } else { hi = mid; }
+    }
+    return (lo + hi) / 2;
+  }
 
   for (let i = 0; i <= steps; i++) {
     const r = Math.exp(tMin + (tMax - tMin) * i / steps) - 1;
     const f = npvAt(series, r);
-    if (!isFinite(f)) { prevR = null; prevF = null; continue; }
+    const d = npvDerivativeAt(series, r);
+    if (!isFinite(f) || !isFinite(d)) { prevR = null; prevF = null; prevD = null; continue; }
+    if (f === 0) candidate.push(r);
     if (prevF !== null && prevF * f < 0) {
-      let lo = prevR, hi = r, flo = prevF;
-      for (let it = 0; it < 200; it++) {
-        const mid = (lo + hi) / 2;
-        const fm = npvAt(series, mid);
-        if (fm === 0 || Math.abs(hi - lo) < 1e-14) { lo = mid; hi = mid; break; }
-        if ((flo > 0) === (fm > 0)) { lo = mid; flo = fm; } else { hi = mid; }
-      }
-      roots.push((lo + hi) / 2);
+      candidate.push(bisectBy(function (x) { return npvAt(series, x); }, prevF, prevR, r));
     }
-    prevR = r; prevF = f;
+    // 导数变号处是 NPV 的局部极值；若极值本身贴近 0，即为相切重根。
+    if (prevD !== null && prevD * d < 0) {
+      candidate.push(bisectBy(function (x) { return npvDerivativeAt(series, x); }, prevD, prevR, r));
+    }
+    prevR = r; prevF = f; prevD = d;
   }
+
+  const tol = scale * 1e-8;
+  candidate.forEach(function (r) {
+    if (!isFinite(r) || r < LOW || r > HIGH) return;
+    if (Math.abs(npvAt(series, r)) > tol) return;
+    if (!roots.some(function (x) { return Math.abs(x - r) <= 1e-7; })) roots.push(r);
+  });
+  roots.sort(function (a, b) { return a - b; });
 
   const verified = roots.length ? roots.every(r => Math.abs(npvAt(series, r)) <= scale * 1e-8) : false;
   const reason = roots.length ? (roots.length > 1 ? 'multiple' : 'ok') : 'no-root';

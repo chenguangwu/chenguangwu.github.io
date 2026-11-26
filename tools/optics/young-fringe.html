@@ -132,7 +132,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入波长 λ（纳米）、屏距 L（米）与缝距 d（毫米），求条纹间距。">Compute the spacing between adjacent bright (or dark) fringes from wavelength λ in nanometres, screen distance L in metres and slit separation d in millimetres. For physics labs.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">杨氏双缝条纹间距（本页代码口径，波长 nm、缝距 mm 先化 SI 再代入）：Δy=λ×L÷d（页面输出 ×1000 化 mm，λ×10⁻⁹ m、d×10⁻³ m）；联动量：角条纹间距=λ÷d（rad，科学计数法）、视场条纹数=(L×1000)÷Δy(mm)。校验：三字段经输入守卫必填且须为合法数值，否则提示并中止。判据：无固定分级，条纹间距与波长、屏距成正比、与缝距成反比。</div>
+      <div class="formula-eq">杨氏双缝条纹间距（本页代码口径，波长 nm、缝距 mm 先化 SI 再代入）：Δy=λ×L÷d（页面输出 ×1000 化 mm，λ×10⁻⁹ m、d×10⁻³ m）；联动量：角条纹间距=λ÷d（rad，科学计数法）、条纹密度=1÷Δy（1/mm，不做“视场条纹数”推断，因为未输入视场宽度）。校验：三字段经输入守卫必填且须为合法数值，否则提示并中止。判据：无固定分级，条纹间距与波长、屏距成正比、与缝距成反比。</div>
       <p class="formula-desc">输入波长 λ（纳米）、屏距 L（米）与缝距 d（毫米），求条纹间距。</p>
     </div>
 
@@ -282,7 +282,8 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __optLabel(s){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()){var m={'条纹间距 Δy (mm)':'Fringe spacing Δy (mm)','角条纹间距 (rad)':'Angular fringe spacing (rad)','条纹密度 (1/mm)':'Fringe density (1/mm)','项目':'Item','数值':'Value'};if(m[s])return m[s];}}catch(e){}return s;}
+function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){r[1]=__optLabel(String(r[1]));h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
               var __ig=__tbInputGuard(['lam', 'L', 'd'],["波长 λ (纳米)", "屏距 L (米)", "缝距 d (毫米)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const lamRaw=num('lam'), LRaw=num('L'), dRaw=num('d');
@@ -290,9 +291,9 @@ const lamRaw=num('lam'), LRaw=num('L'), dRaw=num('d');
             const lam=lamRaw*1e-9, L=LRaw, d=dRaw*1e-3;
             const dy=lam*L/d*1000;
             const __g2=dataGrid([
-                [dy.toFixed(3),'条纹间距 Δy (mm)'],
-                [(lam/d).toExponential(4), '角条纹间距 (rad)'],
-                [(L*1000/dy).toFixed(2), '视场条纹数']
+                [dy.toFixed(3),__optLabel('条纹间距 Δy (mm)')],
+                [(lam/d).toExponential(4), __optLabel('角条纹间距 (rad)')],
+                [(1/dy).toFixed(4), __optLabel('条纹密度 (1/mm)')]
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('lam').value = '550';
@@ -310,11 +311,11 @@ function __young_fringeExtras(){
     if (!isFinite(__young_fringeNum('lam')) || !isFinite(__young_fringeNum('L')) || !isFinite(__young_fringeNum('d'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#young_fringeTable',{
-        head: en?['Item','Value']:['项目','数值'],
+        head: en?['Item','Value']:[__optLabel('项目'),__optLabel('数值')],
         rows: [
-            ['条纹间距 Δy (mm)', dy.toFixed(3)],
-            ['角条纹间距 (rad)', (lam/d).toExponential(4)],
-            ['视场条纹数', (L*1000/dy).toFixed(2)],
+            [__optLabel('条纹间距 Δy (mm)'), dy.toFixed(3)],
+            [__optLabel('角条纹间距 (rad)'), (lam/d).toExponential(4)],
+            [__optLabel('条纹密度 (1/mm)'), (1/dy).toFixed(4)],
         ]
     });
     TBKit.history.record({lam:__young_fringeRaw('lam'), L:__young_fringeRaw('L'), d:__young_fringeRaw('d'), dy:dy});
@@ -398,7 +399,7 @@ function __ygfChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var s=__ygfSweep(); if(!s)return;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-  TBKit.chart.line('#ygfChart',{title:en?'Young Fringe Spacing vs Slit Separation (inverse Δy=λL/d)':'杨氏条纹间距随缝距反比下降（Δy=λL/d）',labels:s.labels,series:[{name:en?'Fringe spacing Δy (mm)':'条纹间距 Δy (mm)',data:s.dY},{name:en?'Fringes per mm (1/mm)':'每毫米条纹数 (1/mm)',data:s.dN}]});
+  TBKit.chart.line('#ygfChart',{title:en?'Young Fringe Spacing vs Slit Separation (inverse Δy=λL/d)':'杨氏条纹间距随缝距反比下降（Δy=λL/d）',labels:s.labels,series:[{name:en?'Fringe spacing Δy (mm)':__optLabel('条纹间距 Δy (mm)'),data:s.dY},{name:en?'Fringes per mm (1/mm)':'每毫米条纹数 (1/mm)',data:s.dN}]});
 }
 
 function __ygfShow(which){

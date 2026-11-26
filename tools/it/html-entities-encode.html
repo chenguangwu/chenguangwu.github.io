@@ -147,24 +147,24 @@
     <div class="toolbar">
       <div id="html_entities_encodePresets"></div><button type="button" class="btn primary" onclick="enc()">编码 ↑</button><button class="btn" type="button" onclick="__html_entities_encodeExport()">导出明细 CSV</button>
       <button type="button" class="btn primary" onclick="dec()">解码 ↓</button>
-      <button type="button" class="btn success" onclick="copyResult(event)">复制结果</button>
+      <button type="button" class="btn success" id="copyResultBtn" onclick="copyResult(event)" disabled>复制结果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
       <div style="flex:1;"></div>
       <label style="margin:0;font-size:13px;">
         模式
-        <select id="mode" style="padding:6px 10px;font-size:13px;">
+        <select id="mode" onchange="invalidateResult()" style="padding:6px 10px;font-size:13px;">
           <option value="named">命名实体 (&amp;)</option>
           <option value="decimal">十进制 (&#60;)</option>
           <option value="hex">十六进制 (&#x3c;)</option>
         </select>
       </label>
       <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;">
-        <input type="checkbox" id="all"> 全部字符
+        <input type="checkbox" id="all" onchange="invalidateResult()"> 全部字符
       </label>
     </div>
 
     <label for="input">输入</label>
-    <textarea id="input" placeholder="输入要编码的文本或要解码的 HTML 实体...">Tom & Jerry © 你好</textarea>
+    <textarea id="input" oninput="invalidateResult()" placeholder="输入要编码的文本或要解码的 HTML 实体...">Tom & Jerry © 你好</textarea>
 
     <label style="margin-top:16px;" for="output">输出结果</label>
     <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea> <div id="html_entities_encodeTable"></div> <div id="html_entities_encodeDiff"></div> <div id="html_entities_encodeChart"></div> <div id="html_entities_encodeHist"></div>
@@ -271,9 +271,20 @@ for(const nm in HTML5){
   if(Array.from(ch).length===1 && !NAMED[ch]) NAMED[ch] = '&'+nm;
 }
 
+function setActions(enabled){
+  const btn = document.getElementById('copyResultBtn');
+  if(btn) btn.disabled = !enabled;
+}
+
+function invalidateResult(){
+  const out = document.getElementById('output');
+  if(out) out.value = '';
+  setActions(false);
+}
+
 function enc(){
   const text = document.getElementById('input').value;
-  if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter text to encode":"请输入要编码的文本"));
+  if(!text){ invalidateResult(); return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter text to encode":"请输入要编码的文本")); }
   const mode = document.getElementById('mode').value;
   const all = document.getElementById('all').checked;
   let out = '';
@@ -294,6 +305,7 @@ function enc(){
     }
   }
   document.getElementById('output').value = out;
+  setActions(out.length > 0);
 }
 
 // IT-N198：HTML5 legacy 中允许省略分号的常用命名实体（本工具实体表内的子集）。
@@ -301,13 +313,13 @@ function enc(){
 const LEGACY_NO_SEMI = /^(?:amp|lt|gt|quot|nbsp|copy|reg)$/;
 function dec(){
   const text = document.getElementById('input').value;
-  if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter HTML entity to decode":"请输入要解码的 HTML 实体"));
+  if(!text){ invalidateResult(); return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter HTML entity to decode":"请输入要解码的 HTML 实体")); }
   // IT-N196/N197/N198：纯文本「单次扫描」解码。
   // ① 不建 DOM、不把输入交给 innerHTML / DOMParser ⇒ 不会触发外部资源请求；
   // ② 码点越界（>0x10FFFF）或落在代理区 0xD800–0xDFFF 时原样保留，不抛 RangeError；
   // ③ 单次 replace 保证带分号与无分号写法走同一出口，且不会把解出的 & 二次解码。
   const fromCp = (cp, raw) => (cp >= 0 && cp <= 0x10FFFF && !(cp >= 0xD800 && cp <= 0xDFFF)) ? String.fromCodePoint(cp) : raw;
-  let result = text.replace(/&(?:#(\d+)|#x([0-9a-fA-F]+)|([a-zA-Z]+))(;?)/g,
+  let result = text.replace(/&(?:#(\d+)|#[xX]([0-9a-fA-F]+)|([a-zA-Z][a-zA-Z0-9]*))(;?)/g,
     function(m, decNum, hexNum, name, semi){
       if(decNum !== undefined) return fromCp(parseInt(decNum, 10), m);
       if(hexNum !== undefined) return fromCp(parseInt(hexNum, 16), m);
@@ -319,6 +331,7 @@ function dec(){
       return hit;
     });
   document.getElementById('output').value = result;
+  setActions(result.length > 0);
 }
 
 function copyResult(ev){
@@ -332,8 +345,17 @@ function copyResult(ev){
 
 function clearAll(){
   document.getElementById('input').value = '';
-  document.getElementById('output').value = '';
+  invalidateResult();
 }
+
+(function bindInvalidation(){
+  ['input','mode','all'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('input', invalidateResult);
+    el.addEventListener('change', invalidateResult);
+  });
+})();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
@@ -515,7 +537,7 @@ else document.addEventListener('DOMContentLoaded', __html_entities_encodeBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -523,7 +545,7 @@ else document.addEventListener('DOMContentLoaded', __html_entities_encodeBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

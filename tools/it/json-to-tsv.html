@@ -503,7 +503,7 @@ function jsonToTsv(opts) {
     
     const options = { nullValue, newline };
     const lines = [];
-    if (hasHeader) lines.push(keys.join('\t'));
+    if (hasHeader) lines.push(keys.map(k => escapeTsvValue(k, {nullValue: '', newline: 'space'})).join('\t'));
     
     data.forEach(item => {
       const row = keys.map(k => {
@@ -534,6 +534,60 @@ function jsonToTsv(opts) {
   }
 }
 
+function buildTsvRows(lines, hasHeader, trim){
+  // 第807批：表头去重/空名补名、额外列补名、行宽不一致显式提示；所有列都保留到 JSON 对象
+  var warnings=[];
+  var keys, startIdx=0;
+  if(hasHeader){
+    keys=lines[0].split('\t').map(function(k){return trim?k.trim():k;});
+    startIdx=1;
+  } else {
+    var firstCols=lines[0].split('\t').length;
+    keys=Array.from({length:firstCols},function(_,i){return 'col'+(i+1);});
+  }
+  var used=Object.create(null);
+  keys=keys.map(function(k,i){
+    var name=String(k);
+    if(name===''){ name='column'+(i+1); warnings.push('第 '+(i+1)+' 列表头为空，已命名为 '+name); }
+    if(Object.prototype.hasOwnProperty.call(used,name)){
+      var base=name, n=2;
+      while(Object.prototype.hasOwnProperty.call(used,base+' ('+n+')')) n++;
+      var uniq=base+' ('+n+')';
+      warnings.push('第 '+(i+1)+' 列表头重复「'+name+'」，已改为「'+uniq+'」');
+      name=uniq;
+    }
+    used[name]=true;
+    return name;
+  });
+  var rows=[], maxCols=keys.length;
+  var width=Object.create(null);
+  for(var i=startIdx;i<lines.length;i++){
+    var cols=lines[i].split('\t');
+    if(cols.length>maxCols){
+      for(var c=maxCols;c<cols.length;c++){
+        var nk='column'+(c+1), j=2; while(Object.prototype.hasOwnProperty.call(used,nk)){ nk='column'+(c+1)+' ('+j+')'; j++; }
+        used[nk]=true; keys.push(nk); warnings.push('第 '+(i+1)+' 行有 '+cols.length+' 列，超出表头；已补列名 '+nk);
+      }
+      maxCols=cols.length;
+    }
+    width[cols.length]=(width[cols.length]||0)+1;
+    rows.push({line:i+1, cols:cols});
+  }
+  var widths=Object.keys(width);
+  if(widths.length>1||(widths.length===1&&Number(widths[0])<keys.length)){
+    warnings.push('各行宽度不一致（'+widths.map(function(w){return w+' 列';}).join('、')+'），缺失单元格按空串补齐');
+  }
+  var data=rows.map(function(r){
+    var row=Object.create(null);
+    keys.forEach(function(k,idx){
+      var val=r.cols[idx]!==undefined?r.cols[idx]:'';
+      if(trim) val=val.trim();
+      row[k]=val;
+    });
+    return row;
+  });
+  return {keys:keys,data:data,warnings:warnings};
+}
 function tsvToJson() {
   const input = document.getElementById('tsvInput').value;
   if (!input.trim()) {
@@ -553,38 +607,20 @@ function tsvToJson() {
     const lines = input.replace(/\r/g, '').split('\n').filter(l => l.length > 0);
     if (lines.length === 0) throw new Error('TSV 数据为空');
     
-    let keys;
-    let startIdx = 0;
-    
-    if (hasHeader) {
-      keys = lines[0].split('\t').map(k => trim ? k.trim() : k);
-      startIdx = 1;
-    } else {
-      const firstLineCols = lines[0].split('\t').length;
-      keys = Array.from({length: firstLineCols}, (_, i) => 'col' + (i + 1));
-    }
-    
-    const data = [];
-    for (let i = startIdx; i < lines.length; i++) {
-      const cols = lines[i].split('\t');
-      const row = {};
-      keys.forEach((k, idx) => {
-        let val = cols[idx] !== undefined ? cols[idx] : '';
-        if (trim) val = val.trim();
-        
-        // IT-N343：只有「无前导零、无千分位、且转数字后能原样打印回来」的串才转数值。
-        // 旧逻辑 parseFloat 一律转：12345678901234567890 → 12345678901234567000、
-        // 00123 → 123，订单号/身份证/带前导零编码被静默改坏且不可逆。
-        if (autoNumber && val !== '' && /^-?(0|[1-9]\d*)(\.\d+)?$/.test(val) && String(Number(val)) === val) {
-          val = Number(val);
+    const built = buildTsvRows(lines, hasHeader, trim);
+    const keys = built.keys;
+    const data = built.data;
+    const warnings = built.warnings;
+    data.forEach(row => {
+      keys.forEach(k => {
+        let val = row[k];
+        if (autoNumber && typeof val === 'string' && val !== '' && /^-?(0|[1-9]\d*)(\.\d+)?$/.test(val) && String(Number(val)) === val) {
+          row[k] = Number(val);
         } else if (autoBoolean && (val === 'true' || val === 'false')) {
-          val = val === 'true';
+          row[k] = val === 'true';
         }
-        
-        row[k] = val;
       });
-      data.push(row);
-    }
+    });
     
     const output = pretty ? JSON.stringify(data, null, indent) : JSON.stringify(data);
     document.getElementById('jsonOutput').value = output;
@@ -593,6 +629,7 @@ function tsvToJson() {
     
     const stats = document.getElementById('t2jStats');
     const __h1=`
+      ${warnings.length ? '<div class="stat-item" style="color:var(--warning,#b45309);flex:1 1 100%;">⚠ ' + warnings.join('；') + '</div>' : ''}
       <div class="stat-item">${((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Rows: ':'行数：')}<strong>${data.length}</strong></div>
       <div class="stat-item">${((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Columns: ':'列数：')}<strong>${keys.length}</strong></div>
       <div class="stat-item">字符数：<strong>${output.length}</strong></div>
@@ -624,30 +661,8 @@ function parseTsvData() {
     
     const lines = input.replace(/\r/g, '').split('\n').filter(l => l.length > 0);
     if (lines.length === 0) return null;
-    
     const hasHeader = document.getElementById('t2jHeader').value === 'true';
-    let keys;
-    let startIdx = 0;
-    
-    if (hasHeader) {
-      keys = lines[0].split('\t').map(k => k.trim());
-      startIdx = 1;
-    } else {
-      const firstLineCols = lines[0].split('\t').length;
-      keys = Array.from({length: firstLineCols}, (_, i) => 'col' + (i + 1));
-    }
-    
-    const data = [];
-    for (let i = startIdx; i < lines.length; i++) {
-      const cols = lines[i].split('\t');
-      const row = {};
-      keys.forEach((k, idx) => {
-        row[k] = cols[idx] !== undefined ? cols[idx].trim() : '';
-      });
-      data.push(row);
-    }
-    
-    return data;
+    return buildTsvRows(lines, hasHeader, true).data;
   } catch(e) {
     return null;
   }
@@ -871,7 +886,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -879,7 +894,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

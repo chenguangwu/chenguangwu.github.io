@@ -242,10 +242,16 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function getV(prefix){
-  const v=[];
-  for(let i=0;i<3;i++){ const x=parseFloat(document.getElementById(prefix+i).value); v.push(isNaN(x)?0:x); }
-  return v;
+function readV(prefix){
+  const ids=['x','y','z'], vals=[], missing=[], invalid=[];
+  for(let i=0;i<3;i++){
+    const el=document.getElementById(prefix+i), raw=String(el&&el.value!=null?el.value:'').trim();
+    if(raw===''){ missing.push((prefix==='a'?'A.':'B.')+ids[i]); continue; }
+    const x=Number(raw);
+    if(!isFinite(x)){ invalid.push((prefix==='a'?'A.':'B.')+ids[i]); vals.push(NaN); }
+    else vals.push(x);
+  }
+  return {vals:vals,missing:missing,invalid:invalid};
 }
 // IT-N471 复核重做：显示精度不等于数值是否为零。真实 0 才显示 0；微小非零量
 // （如 1e-7 输入、1e-14 叉积）改用科学计数法，避免把整个小尺度算例压成零向量。
@@ -282,9 +288,15 @@ function fmtScaled(c,mA,mB){
 function vecStr(v){ return Array.isArray(v)?'('+v.map(fmt).join(', ')+')':'()'; }
 function __vcpL(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh;}
 function calculate(){
-  const ids=['a0','a1','a2','b0','b1','b2'];
-  if(ids.every(id=>document.getElementById(id).value.trim()==='')){document.getElementById('output').innerHTML='<p class="muted">'+__vcpL('请输入向量 A 与 B 的 x/y/z 分量','Enter the x/y/z components of vectors A and B')+'</p>';return;}
-  const A=getV('a'), B=getV('b');
+  const ra=readV('a'), rb=readV('b');
+  if(ra.missing.length||rb.missing.length||ra.invalid.length||rb.invalid.length){
+    let msg='';
+    if(ra.missing.length||rb.missing.length) msg+=__vcpL('请填写所有分量；缺少：','Fill in every component; missing: ')+(ra.missing.concat(rb.missing).join(', '))+'。\n';
+    if(ra.invalid.length||rb.invalid.length) msg+=__vcpL('这些分量必须是有限数字：','These components must be finite numbers: ')+(ra.invalid.concat(rb.invalid).join(', '))+'。';
+    document.getElementById('output').innerHTML='<p style="color:var(--danger)">'+msg.replace(/\n/g,'<br>')+'</p>';
+    return;
+  }
+  const A=ra.vals, B=rb.vals;
   if(A.concat(B).some(x=>!isFinite(x))){
     document.getElementById('output').innerHTML='<p style="color:var(--danger)">'+__vcpL('⚠ 向量分量必须为有限数值。','⚠ All vector components must be finite numbers.')+'</p>';
     return;
@@ -498,7 +510,7 @@ else document.addEventListener('DOMContentLoaded', __vector_cross_productBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -506,7 +518,7 @@ else document.addEventListener('DOMContentLoaded', __vector_cross_productBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

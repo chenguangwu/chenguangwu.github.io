@@ -126,7 +126,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#0284C7;">
     <h2 data-zh="🦷 蓝牙版本速查">🦷 Bluetooth Version Reference</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按版本查表取出速率、有效距离与核心特性做并排对比（所有可选版本均有独立数据，未匹配时明确提示未知版本）。场景建议：音频场景版本 ≥ 5.2 判支持 LE Audio（LC3）、否则仅经典音频（SBC/AAC）；IoT 场景版本 ≥ 5.0 判广播容量大且 mesh 稳定、否则仅 BLE 基础功能；外设场景版本 ≥ 5.0 判速率与距离更优、否则够用。总体建议按数值比较：主版本号 ≥ 对比版本号判较新特性更全，否则判旧版兼容性更广</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq" data-zh="按版本查表取出速率、有效距离与核心特性做并排对比（所有可选版本均有独立数据，未匹配时明确提示未知版本）。场景建议：音频场景仅说明 5.2 起规范引入 LE Audio（LC3），具体设备是否支持、两端能否互通须查规格与配置文件，版本号不能单独证明音频能力；IoT 场景版本 ≥ 5.0 判广播容量大且 mesh 稳定、否则仅 BLE 基础功能；外设场景版本 ≥ 5.0 判速率与距离更优、否则够用。总体建议按数值比较：主版本号 ≥ 对比版本号判较新特性更全，否则判旧版兼容性更广">Look up data rate, range and core features by version and compare them side by side (every selectable version has its own row; unknown versions are reported explicitly). For audio, version 5.2 only introduces the LE Audio specification — check device specifications and profile support for actual LE Audio/LC3 or classic SBC/AAC capability, because a version number alone cannot prove audio support or interoperability. For IoT, version ≥ 5.0 indicates larger broadcast capacity and more stable mesh; otherwise BLE basics only. For peripherals, version ≥ 5.0 indicates better rate/range; otherwise adequate. Overall, a numerically newer main version has more features, while an older version has broader backward compatibility.</div>
   <div class="formula-desc">蓝牙各代标准的速率、距离与特性速查表。</div>
   <ul class="formula-list">
     <li><b>演进</b>：1.x → 2.0+EDR（3 Mbps）→ 3.0+HS → 4.0 起引入 BLE 低功耗 → 5.0/5.1/5.2/5.3/5.4。</li>
@@ -277,7 +277,7 @@
         <li>经典蓝牙速率：1.x 1M / 2.x EDR 3M / 3.x HS 24Mbps</li>
         <li>BLE：4.x 1Mbps、5.x 2Mbps</li>
         <li>5.0：速率/距离/广播容量 2 倍以上</li>
-        <li>5.2 起支持 LE Audio（LC3 编码）</li>
+        <li data-zh="5.2 引入 LE Audio 规范（LC3 编码；设备支持需确认）">5.2 introduces the LE Audio specification (LC3 codec; device support must be confirmed)</li>
   </ul>
 </div>
 <!-- /注意事项区块 -->
@@ -326,7 +326,7 @@ const BT_INFO={
   '4.2':['1 Mbps（BLE）','约 10-100m','低功耗改进、IP 支持','BLE 普及'],
   '5.0':['2 Mbps','约 10-100m（LE 240m）','2倍速率、4倍距离、8倍广播容量','BLE 大升级'],
   '5.1':['2 Mbps','约 10-100m','方向定位（AoA/AoD）','室内定位'],
-  '5.2':['2 Mbps','约 10-100m','LE 音频（LC3 编码）','音频新标准'],
+  '5.2':['2 Mbps','约 10-100m','LE Audio 规范引入（设备支持需确认）','音频规范新代际'],
   '5.3':['2 Mbps','约 10-100m','连接子评级、周期广播改进','稳定省电'],
   '5.4':['2 Mbps','约 10-100m','广播加密、PAwR 广告响应','工业 IoT']
 };
@@ -340,7 +340,7 @@ function calcTool(){const v=document.getElementById('v').value||'5.3';
    const info=BT_INFO;
    if(!info[v]||!info[v2]){ToolBox.setResult('result','<p style="color:var(--danger)">未知蓝牙版本，请重新选择。</p>');return;}
    const row=info[v], row2=info[v2];
-   const sceneAdv={audio:v>='5.2'?'支持 LE Audio（LC3）':'仅经典音频（SBC/AAC）',iot:v>='5.0'?'广播容量大、mesh 稳定':'BLE 基础功能',peripheral:v>='5.0'?'速率/距离更优':'够用'}[scene]||'';
+   const sceneAdv={audio:(parseFloat(v)>=5.2?'版本 5.2 引入 LE Audio 规范；设备是否支持 LE Audio/LC3 需查规格，不能仅凭版本断定':'版本低于 LE Audio 引入版本；可能仍走经典音频 SBC/AAC，具体编码需查设备规格'),iot:v>='5.0'?'广播容量大、mesh 稳定':'BLE 基础功能',peripheral:v>='5.0'?'速率/距离更优':'够用'}[scene]||'';
    const adv=parseFloat(v)>=parseFloat(v2)?'较新，特性更全':'旧版，兼容性更广';
    let html=dataGrid([
      ['Bluetooth '+v+' vs '+v2,'版本对比'],
@@ -359,11 +359,15 @@ function calcTool(){const v=document.getElementById('v').value||'5.3';
      '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">3.x</td><td style="border:1px solid #d1d5db;padding:5px 8px;">24 Mbps</td><td style="border:1px solid #d1d5db;padding:5px 8px;">HS 高速（WiFi 辅助）</td></tr>'+
      '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">4.0-4.2</td><td style="border:1px solid #d1d5db;padding:5px 8px;">1 Mbps（BLE）</td><td style="border:1px solid #d1d5db;padding:5px 8px;">低功耗 BLE 引入</td></tr>'+
      '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">5.0</td><td style="border:1px solid #d1d5db;padding:5px 8px;">2 Mbps（BLE）</td><td style="border:1px solid #d1d5db;padding:5px 8px;">速率/距离/广播翻倍</td></tr>'+
-     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">5.2</td><td style="border:1px solid #d1d5db;padding:5px 8px;">2 Mbps（BLE）</td><td style="border:1px solid #d1d5db;padding:5px 8px;">LE Audio 音频</td></tr>'+
+     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">5.2</td><td style="border:1px solid #d1d5db;padding:5px 8px;">2 Mbps（BLE）</td><td style="border:1px solid #d1d5db;padding:5px 8px;">LE Audio 规范引入（设备支持需确认）</td></tr>'+
      '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">5.3/5.4</td><td style="border:1px solid #d1d5db;padding:5px 8px;">2 Mbps（BLE）</td><td style="border:1px solid #d1d5db;padding:5px 8px;">连接改进/广播加密</td></tr>'+
      '</table>';
+   if(scene==='audio'){
+     html += '<div style="margin-top:10px;font-size:13px;border:1px solid var(--border,#E5E7EB);border-radius:10px;padding:10px 12px;background:var(--bg,#FFFAF7);">'+
+       '<b>音频兼容检查清单</b><br>① 两端是否都支持 LE Audio 与 LC3；② 是否都支持经典音频 SBC/AAC；③ 需要的配置文件（A2DP/HFP/AVCTP 等）；④ 实测配对、双向通话与延迟。版本号只代表规范代际，不代表设备实现了这些能力，也不能证明两端互通。</div>';
+   }
    html += '<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+
-     '蓝牙版本向下兼容；实际距离受环境与功率影响，LE 远距模式可达 240m。选购设备看 BLE 版本即可。</div>';
+     '蓝牙版本向下兼容；实际距离受环境与功率影响，LE 远距模式可达 240m。版本号只代表规范代际，不代表具体设备的音频能力；选购需查两端支持的 LE Audio/LC3、经典音频编码、配置文件并实测互通。</div>';
    const __g2=html;ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));}
 function resetForm(){document.getElementById('v').value='5.3';
       document.getElementById('v2').value='5.0';
@@ -381,7 +385,7 @@ function __bluetooth_versionExtras(){
     var info=BT_INFO;
     if(!info[v]||!info[v2])return;
     var row=info[v], row2=info[v2];
-    var sceneAdv={audio:v>='5.2'?'支持 LE Audio（LC3）':'仅经典音频（SBC/AAC）',iot:v>='5.0'?'广播容量大、mesh 稳定':'BLE 基础功能',peripheral:v>='5.0'?'速率/距离更优':'够用'}[scene]||'';
+    var sceneAdv={audio:(parseFloat(v)>=5.2?'版本 5.2 引入 LE Audio 规范；设备是否支持 LE Audio/LC3 需查规格，不能仅凭版本断定':'版本低于 LE Audio 引入版本；可能仍走经典音频 SBC/AAC，具体编码需查设备规格'),iot:v>='5.0'?'广播容量大、mesh 稳定':'BLE 基础功能',peripheral:v>='5.0'?'速率/距离更优':'够用'}[scene]||'';
     var adv=parseFloat(v)>=parseFloat(v2)?'较新，特性更全':'旧版，兼容性更广';
     if (!__bluetooth_versionRaw('v') || !__bluetooth_versionRaw('v2') || !__bluetooth_versionRaw('scene')) return;
     var en=TBKit.util.isEn();

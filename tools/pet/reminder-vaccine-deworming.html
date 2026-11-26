@@ -130,6 +130,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🐾 疫苗/驱虫到期提醒系统">Reminder Vaccine Deworming</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="管理宠物档案，自动计算疫苗与驱虫到期日，颜色预警提醒，到期不漏接。">Reminder Vaccine Deworming</p>
+    <div id="storageAlert" role="alert" style="display:none;margin:10px 0;padding:10px 12px;border:1px solid #f5c2c2;background:#fff2f2;border-radius:8px;color:#9b1c1c;font-size:13px;line-height:1.7;"></div>
 
     <!-- 统计概览 -->
     <div class="stat-grid" id="dashStats"></div>
@@ -334,7 +335,25 @@ var STORE_KEY = 'tb_pet_vax';
 var pets = [];
 try { pets = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e){ pets = []; }
 
-function save(){ try { localStorage.setItem(STORE_KEY, JSON.stringify(pets)); } catch(e){} }
+function save(){
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(pets)); return true; }
+  catch(e){ return false; }
+}
+function showStorageAlert(action){
+  var box=document.getElementById('storageAlert'); if(!box) return;
+  box.style.display='block';
+  box.innerHTML='⚠ 当前修改只保留在本页面，尚未写入浏览器存储' + (action?'（'+esc(action)+'）':'') + '，刷新后可能丢失。请先导出 CSV 备份，或检查浏览器隐私模式/存储权限后重试。' +
+    '<div style="margin-top:8px;display:flex;gap:8px;"><button type="button" class="btn" onclick="retrySave()">重试保存</button><button type="button" class="btn" onclick="exportLog()">导出备份</button></div>';
+}
+function clearStorageAlert(){ var box=document.getElementById('storageAlert'); if(box){box.style.display='none';box.innerHTML='';} }
+function saveOrWarn(action){
+  if(save()){ clearStorageAlert(); return true; }
+  showStorageAlert(action); return false;
+}
+window.retrySave=function(){
+  if(save()){ clearStorageAlert(); ToolBox.showToast('已成功保存到本机浏览器','success'); }
+  else { showStorageAlert('重试仍失败'); ToolBox.showToast('仍未保存，请先导出备份','error'); }
+};
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function esc(s){ return ToolBox.escHtml(s == null ? '' : String(s)); }
 function parseDate(s){ if(!s) return null; var d = new Date(s + 'T00:00:00'); return isNaN(d) ? null : d; }
@@ -467,17 +486,19 @@ function addPet(){
   if(!birth){ ToolBox.showToast(i18nText(), 'error'); return; }
   if(parseDate(birth) > today()){ ToolBox.showToast(i18nText('出生日期不能晚于今天'), 'error'); return; }
   pets.push({ id:uid(), name:name, species:species, birthDate:birth, weight:weight, records:[] });
-  save();
+  var okSave=saveOrWarn('添加宠物 '+name);
   document.getElementById('petName').value=''; document.getElementById('petWeight').value='0'; document.getElementById('petBirth').value='';
   render();
-  ToolBox.showToast('已添加宠物：'+name);
+  if(okSave) ToolBox.showToast('已添加宠物：'+name);
+  else ToolBox.showToast('已添加到当前页面，但尚未保存到浏览器存储','error');
 }
 window.addPet = addPet;
 
 function delPet(id){
   if(!confirm('确定删除该宠物及其所有记录？')) return;
   pets = pets.filter(function(p){ return p.id !== id; });
-  save(); render(); ToolBox.showToast(i18nText());
+  var okDel=saveOrWarn('删除宠物'); render();
+  ToolBox.showToast(okDel?i18nText():'已从当前页面删除，但尚未写入浏览器存储','info');
 }
 window.delPet = delPet;
 
@@ -492,8 +513,9 @@ function markDone(petId, type, key){
     name = DEWORM[key].name;
   }
   pet.records.push({ id:uid(), type:type, key:key, name:name, date:fmtDate(today()), notes:'标记完成' });
-  save(); render();
-  ToolBox.showToast('已记录：'+name);
+  var okMark=saveOrWarn('标记完成 '+name); render();
+  if(okMark) ToolBox.showToast('已记录：'+name);
+  else ToolBox.showToast('已标记完成，但尚未保存到浏览器存储','error');
 }
 window.markDone = markDone;
 
@@ -516,8 +538,8 @@ function addCustomRecord(petId){
     name = sched ? sched.name : (key==='booster' ? BOOSTER.name : '疫苗');
   }
   pet.records.push({ id:uid(), type:type, key:key, name:name, date:date, notes:notes });
-  save(); render();
-  ToolBox.showToast(i18nText());
+  var okCustom=saveOrWarn('添加记录'); render();
+  ToolBox.showToast(okCustom?i18nText():'已添加记录，但尚未保存到浏览器存储',okCustom?'success':'error');
 }
 window.addCustomRecord = addCustomRecord;
 
@@ -525,13 +547,15 @@ function delRecord(petId, recId){
   var pet = pets.find(function(p){ return p.id === petId; });
   if(!pet) return;
   pet.records = pet.records.filter(function(r){ return r.id !== recId; });
-  save(); render(); ToolBox.showToast(i18nText());
+  var okRec=saveOrWarn('删除记录'); render();
+  ToolBox.showToast(okRec?i18nText():'已从当前页面删除记录，但尚未写入存储','info');
 }
 window.delRecord = delRecord;
 
 function clearAll(){
   if(!confirm('确定清空所有宠物与记录数据？此操作不可撤销！')) return;
-  pets = []; save(); render(); ToolBox.showToast(i18nText());
+  pets = []; var okClear=saveOrWarn('清空全部数据'); render();
+  ToolBox.showToast(okClear?i18nText():'已清空当前页面，但尚未写入浏览器存储','info');
 }
 window.clearAll = clearAll;
 

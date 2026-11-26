@@ -115,7 +115,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="净利率 = 净利润 / 营业收入。">Compute the net profit margin from net income and revenue to assess final profitability and earnings quality.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">净利率（本页代码口径）：净利率=净利润÷营业收入×100（%）；联动量：年化净利率=净利率×12、成本费用合计=营业收入−净利润、净利率小数=净利润÷(营业收入||1)。校验：两字段经输入守卫必填且须为合法数值，否则提示并中止。判据：无固定分级，净利率与净利润成正比、与营业收入成反比，主结果保留 2 位小数。</div>
+      <div class="formula-eq">净利率（本页代码口径）：净利率=净利润÷营业收入×100（%）；联动量：净利率小数=净利润÷营业收入、收入减净利润的差额。校验：净利润与营业收入必填且为有限数，收入为 0 时比率显示“不适用”。判据：不做年化，净利润与收入须为同一期间；收入减净利润包含营业外损益与所得税，不能等同成本费用合计。</div>
       <p class="formula-desc">净利率 = 净利润 / 营业收入。</p>
     </div>
 
@@ -264,15 +264,19 @@ function __tbInputGuardCore(_ids,_labels){
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['np', 'rev'],["净利润 (元)", "营业收入 (元)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const np=num('np'),rev=num('rev');
-            const __g2=dataGrid([
-                [(np/rev*100).toFixed(2),'净利率 (%)'],
-                [(np/rev*100*12).toFixed(2),'年化 (%)'],
-                [(rev-np).toFixed(2), '成本费用合计 (元)'],
-                [(np/(rev||1)).toFixed(6), '净利率（小数）']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
-        }
+  const __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/.test(location.search);
+  const __raw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+  if(__raw('np')===''||__raw('rev')===''){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'Fill in net profit and revenue for the same period. Blank is not 0.':'请填写同一期间的净利润与营业收入；空白不等于 0。')+'</p>');return;}
+  const np=Number(__raw('np')),rev=Number(__raw('rev'));
+  if(!Number.isFinite(np)||!Number.isFinite(rev)){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'Both fields must be finite numbers.':'两个字段均须为有限数。')+'</p>');return;}
+  const __g2=dataGrid([
+    [rev===0?(__en?'Not applicable (revenue = 0)':'不适用（收入为 0）'):(np/rev*100).toFixed(2),__en?'Net profit margin (%)':'净利率 (%)'],
+    [rev===0?'—':(np/rev).toFixed(6),__en?'Net profit margin (decimal)':'净利率（小数）'],
+    [(rev-np).toFixed(2),__en?'Revenue − net profit (CNY)':'收入减净利润的差额 (元)'],
+    [rev===0?'—':(rev/rev*100).toFixed(0)+'%',__en?'Revenue base (%)':'收入基数 (%)']
+  ])+'<p style="margin-top:8px;font-size:13px;color:var(--text-muted);">'+(__en?'Net profit and revenue must cover the same period; this page does not annualize the ratio. Revenue − net profit includes other gains/losses and income tax, so it is not the same as total costs and expenses.':'净利润与营业收入须为同一期间；本页不做年化。收入减净利润的差额包含营业外损益与所得税等，不能直接等同成本费用合计。')+'</p>';
+  ToolBox.setResult('result',__g2);
+}
 function resetForm(){document.getElementById('np').value = '150000';
       document.getElementById('rev').value = '1000000';
       calcTool();}
@@ -303,18 +307,49 @@ calcTool();
 <ul class="dd-list">
 <li>衡量企业最终盈利水平，反映收入转化为净利润的效率。</li>
 <li>对比同行业，评估经营效率与费用控制能力。</li>
-<li>投资者用净利率趋势判断企业盈利能力的变化方向。</li>
+<li>净利润与营业收入须为同一期间；本页不做年化，收入为 0 时比率不适用。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">计算净利率</div><div class="dd-ex-body">某公司净利润 150 万元、营业收入 1000 万元，净利率=150/1000=15%，即每 1 元收入最终留下 0.15 元净利润。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>净利率受哪些因素影响最大？</dt><dd><a class="term-link" href="/tools/accounting/gross-margin.html">毛利率</a>决定空间，期间<a class="term-link" href="/tools/insurance/expense-ratio.html">费用率</a>（销售/管理/研发）、利息与税负决定侵蚀程度；降本增效与合理税务安排都能提升净利率。</dd>
 <dt>净利率忽高忽低正常吗？</dt><dd>一次性损益（资产处置、政府补助、减值）会让净利率波动；看扣非净利率更能反映主业持续盈利能力。</dd>
+<dt>为什么不能把净利率乘以 12 当年化？</dt><dd>净利率是同一期间的净利润÷营业收入，比率本身与期间长度无关；没有输入周期时直接×12 会把月度 10% 误显示成 120%，因此本页不做年化。</dd>
 </dl>
 </div>
 </section>
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "净利率受哪些因素影响最大？", "acceptedAnswer": {"@type": "Answer", "text": "毛利率决定空间，期间费用率（销售/管理/研发）、利息与税负决定侵蚀程度；降本增效与合理税务安排都能提升净利率。"}}, {"@type": "Question", "name": "净利率忽高忽低正常吗？", "acceptedAnswer": {"@type": "Answer", "text": "一次性损益（资产处置、政府补助、减值）会让净利率波动；看扣非净利率更能反映主业持续盈利能力。"}}]}</script>
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "净利率受哪些因素影响最大？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "毛利率决定空间，期间费用率（销售/管理/研发）、利息与税负决定侵蚀程度；降本增效与合理税务安排都能提升净利率。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "净利率忽高忽低正常吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "一次性损益（资产处置、政府补助、减值）会让净利率波动；看扣非净利率更能反映主业持续盈利能力。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么不能把净利率乘以 12 当年化？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "净利率是同一期间的净利润÷营业收入，比率本身与期间长度无关；没有输入周期时直接×12 会把月度 10% 误显示成 120%，因此本页不做年化。"
+      }
+    }
+  ]
+}
+</script>
 <script>
 function __net_profit_marginNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __net_profit_marginExtras(){
@@ -326,10 +361,9 @@ function __net_profit_marginExtras(){
     TBKit.matrix.table('#net_profit_marginTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['净利率 (%)', (np/rev*100).toFixed(2)],
-            ['年化 (%)', (np/rev*100*12).toFixed(2)],
-            ['成本费用合计 (元)', (rev-np).toFixed(2)],
-            ['净利率（小数）', (np/(rev||1)).toFixed(6)],
+            [en?'Net profit margin (%)':'净利率 (%)', rev===0?(en?'Not applicable (revenue = 0)':'不适用（收入为 0）'):(np/rev*100).toFixed(2)],
+            [en?'Net profit margin (decimal)':'净利率（小数）', rev===0?'—':(np/rev).toFixed(6)],
+            [en?'Revenue − net profit (CNY)':'收入减净利润的差额 (元)', (rev-np).toFixed(2)],
         ]
     });
     TBKit.history.record({np:__net_profit_marginRaw('np'), rev:__net_profit_marginRaw('rev'), result: np/rev*100});
@@ -359,7 +393,7 @@ function __npmChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
   var np=num('np'),rev=num('rev');
   if(!isFinite(np)||!isFinite(rev)||rev<=0)return;
-  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/.test(location.search);
   TBKit.chart.bar('#net_profit_marginChart',{title:en?'Revenue vs Net Profit':'收入与净利润',labels:[en?'Revenue':'收入',en?'Net Profit':'净利润'],series:[{name:en?'Amount (元)':'金额 (元)',data:[Math.round(rev),Math.round(np)]}]});
 }
 var __npmFn=calcTool;calcTool=function(){try{__npmFn();}catch(e){}try{__npmChart();}catch(e){}};

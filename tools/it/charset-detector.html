@@ -333,6 +333,8 @@ function detectBytes(bytes){
   }
 
   const ok = results.filter(r => r.text !== null).sort((a, b) => b.score - a.score);
+  window.__charsetCandidates = ok.map(function(r){ return {label:r.label, text:r.text}; });
+  window.__charsetCopyText = ok.length ? ok[0].text : '';
   let html = '<p>输入按十六进制字节串处理：共 ' + data.length + ' 字节' + (bom ? '（识别到 ' + bom + '）' : '') + '。</p>';
   if (!ok.length){
     return html + '<p style="color:var(--danger)">❌ 所有候选编码都无法严格解码，字节序列可能已损坏或不是完整文本。</p>';
@@ -354,9 +356,19 @@ function detectBytes(bytes){
   } else {
     html += '<p>结论：最可能为 <b>' + escOut(top.label) + '</b>（可读性分 ' + top.score + '）；仍属概率判断，请结合来源确认。</p>';
   }
+  var options = window.__charsetCandidates.map(function(r,i){ return '<option value="'+i+'">'+escOut(r.label)+'（'+r.text.length+' 字符）</option>'; }).join('');
+  html += '<p style="margin-top:8px;">复制完整解码结果：<select id="byteCandidate" onchange="__charsetSelectCandidate(this.value)">'+options+'</select> <span id="charsetCopyState" style="font-size:12px;color:var(--text-muted);">当前：'+escOut(window.__charsetCandidates[0].label)+'（完整文本）</span></p>';
   return html;
 }
 
+function __charsetSelectCandidate(idx){
+  var arr=window.__charsetCandidates||[];
+  var it=arr[Number(idx)];
+  if(!it) return;
+  window.__charsetCopyText=it.text;
+  var st=document.getElementById('charsetCopyState');
+  if(st) st.textContent='当前：'+it.label+'（完整文本 '+it.text.length+' 字符）';
+}
 function detect() {
   const t = document.getElementById('txt').value || '';
   const bytes = looksLikeBytes(t);
@@ -365,6 +377,8 @@ function detect() {
     return;
   }
   const fixed = fixMojibake(t);
+  window.__charsetCandidates = [];
+  window.__charsetCopyText = fixed === null ? t : fixed;
   let extra;
   if (fixed !== null) extra = '疑似 UTF-8 字节被按 Latin-1/Windows-1252 解读，已按字节还原。';
   else if (t.indexOf('\uFFFD') >= 0) extra = '文本含 U+FFFD 替换符：原始解码已失败，信息不可还原，请回到原始字节重新解码。';
@@ -380,7 +394,7 @@ function detect() {
 }
 
 function copyResult() {
-  const text = document.getElementById('out').innerText || '';
+  const text = (typeof window.__charsetCopyText === 'string') ? window.__charsetCopyText : '';
   if (!text.trim()) {
     ToolBox.showToast(i18nText('toast.msg678'), 'warning');
     return;

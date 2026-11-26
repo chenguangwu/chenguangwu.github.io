@@ -159,7 +159,7 @@
       <div><label for="eventName">事件名称（可选）</label><input type="text" id="eventName" placeholder="如：项目截止"></div>
       <button class="btn primary" onclick="setTarget()">开始倒计时</button>
     </div>
-    <div class="toolbar" style="margin-top:8px;"><span style="font-size:13px;color:var(--text-muted);">📌 常用倒计时预设：</span><button type="button" class="btn" onclick="applyCountdownPreset('newyear')">元旦</button><button type="button" class="btn" onclick="applyCountdownPreset('national')">国庆节</button><button type="button" class="btn" onclick="applyCountdownPreset('weekend')">本周六</button><button type="button" class="btn" onclick="applyCountdownPreset('monthend')">下月初</button></div>
+    <div class="toolbar" style="margin-top:8px;"><span style="font-size:13px;color:var(--text-muted);">📌 常用倒计时预设：</span><button type="button" class="btn" onclick="applyCountdownPreset('newyear')">元旦</button><button type="button" class="btn" onclick="applyCountdownPreset('national')">国庆节</button><button type="button" class="btn" onclick="applyCountdownPreset('weekend')">下个周末开始</button><button type="button" class="btn" onclick="applyCountdownPreset('monthend')">下月初</button></div>
 
     <div id="resultArea" style="display:none;">
       <div class="cd-target" id="targetText"></div>
@@ -179,6 +179,13 @@
         <button type="button" class="btn" onclick="__cdExport()">⬇️ 导出倒计时明细 CSV</button>
         <span style="font-size:12px;color:var(--text-muted);">导出目标时间、剩余天/时/分/秒与进度明细</span>
       </div>
+      <div class="toolbar" style="margin-top:10px;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="btn" onclick="__cdTestSound()">🔔 测试提示音</button>
+        <span id="soundStatus" style="font-size:12px;color:var(--text-muted);" data-zh="提示音需由本页播放，受浏览器音频策略和静音影响">提示音需由本页播放，受浏览器音频策略和静音影响</span>
+        <button type="button" class="btn" onclick="__cdEnableNotify()">🔕 开启浏览器通知</button>
+        <span id="notifyStatus" style="font-size:12px;color:var(--text-muted);">通知权限未开启，仅页内提示</span>
+      </div>
+      <p id="cdLimitNote" style="font-size:12px;color:var(--text-muted);margin-top:8px;" data-zh="提醒依赖本页面保持打开且未被浏览器冻结；页面关闭、标签页后台休眠或音频被拦截时可能延迟或无声，返回页面会立即补报已到期状态。">提醒依赖本页面保持打开且未被浏览器冻结；页面关闭、标签页后台休眠或音频被拦截时可能延迟或无声，返回页面会立即补报已到期状态。</p>
       <div id="cdChart" style="margin-top:10px;"></div>
       <table id="cdTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
         <thead></thead><tbody></tbody>
@@ -190,7 +197,7 @@
     </div>
 
     <div id="placeholder" class="tip-box tip-info">
-      <strong>提示：</strong>请选择目标日期与时间，点击"开始倒计时"。目标会自动保存，刷新页面继续倒计时。
+      <strong>提示：</strong>请选择目标日期与时间，点击"开始倒计时"。目标会自动保存并回填表单；刷新后继续倒计时，修改表单再次开始会以当前时间重置进度起点。
     </div>
   </div>
 </div>
@@ -203,7 +210,16 @@ var timer=null;
 function load(){
   try{
     var s=JSON.parse(localStorage.getItem(KEY));
-    if(s&&s.target){state=s;showResult();}
+    if(s&&s.target){
+      state=s;
+      var d=new Date(s.target);
+      var p2=function(n){return String(n).padStart(2,'0');};
+      var de=document.getElementById('targetDate'), te=document.getElementById('targetTime'), ne=document.getElementById('eventName');
+      if(de) de.value=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+      if(te) te.value=p2(d.getHours())+':'+p2(d.getMinutes());
+      if(ne) ne.value=s.name||'';
+      showResult();
+    }
   }catch(e){}
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
@@ -220,7 +236,7 @@ function applyCountdownPreset(kind){
   }else if(kind === 'weekend'){
     d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
     var add = (6 - d.getDay() + 7) % 7; if(add === 0) add = 7;
-    d.setDate(d.getDate() + add); name = '周末';
+    d.setDate(d.getDate() + add); name = '下个周末开始';
   }else if(kind === 'monthend'){
     d = new Date(now.getFullYear(), now.getMonth()+1, 1, 0, 0, 0); name = '下月初';
   }
@@ -240,6 +256,7 @@ function setTarget(){
   state.target=dt.getTime();
   state.start=Date.now();
   state.name=document.getElementById('eventName').value.trim();
+  state.alerted=false;
   save();showResult();
   ToolBox.showToast(i18nText('toast.msg060'));
 }
@@ -314,12 +331,16 @@ function showResult(){
   document.getElementById('placeholder').style.display='none';
   document.getElementById('resultArea').style.display='block';
   var dt=new Date(state.target);
-  var w=['日','一','二','三','四','五','六'];
-  var str=dt.getFullYear()+'年'+(dt.getMonth()+1)+'月'+dt.getDate()+'日 '+pad(dt.getHours())+':'+pad(dt.getMinutes())+' 周'+w[dt.getDay()];
-  const __h0=(state.name?'<strong>'+ToolBox.escHtml(state.name)+'</strong> · ':'')+'目标时间：'+str;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('targetText').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('targetText').innerHTML=__h0;
+  var en=__cdIsEn();
+  var w= en ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] : ['日','一','二','三','四','五','六'];
+  var str= en
+    ? (dt.getMonth()+1)+'/'+dt.getDate()+'/'+dt.getFullYear()+' '+pad(dt.getHours())+':'+pad(dt.getMinutes())+' '+w[dt.getDay()]
+    : dt.getFullYear()+'年'+(dt.getMonth()+1)+'月'+dt.getDate()+'日 '+pad(dt.getHours())+':'+pad(dt.getMinutes())+' 周'+w[dt.getDay()];
+  const __h0=(state.name?'<strong>'+ToolBox.escHtml(state.name)+'</strong> · ':'')+(en?'Target: ':'目标时间：')+str;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('targetText').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('targetText').innerHTML=__h0;
   if(timer)clearInterval(timer);
+  timer=null;
   tick();
-  timer=setInterval(tick,1000);
+  if(state.target-Date.now()>0) timer=setInterval(tick,1000);
 }
 function tick(){
   var now=Date.now();
@@ -333,8 +354,12 @@ function tick(){
     document.getElementById('progressPct').textContent='100%';
     document.getElementById('doneBox').style.display='block';
     if(timer){clearInterval(timer);timer=null;}
-    ToolBox.showToast(i18nText('toast.msg171'),'success');
-    beep();
+    if(!state.alerted){
+      state.alerted=true;save();
+      ToolBox.showToast(i18nText('toast.msg171'),'success');
+      beep();
+      __cdNotify();
+    }
     return;
   }
   var days=Math.floor(diff/86400000);
@@ -373,7 +398,10 @@ function copyResult(){
   var hours=Math.floor((diff%86400000)/3600000);
   var mins=Math.floor((diff%3600000)/60000);
   var secs=Math.floor((diff%60000)/1000);
-  var txt=(state.name?state.name+'：':'')+'距离目标还有 '+days+'天 '+hours+'时 '+mins+'分 '+secs+'秒';
+  var en=__cdIsEn();
+  var txt= en
+    ? (state.name?state.name+': ':'')+'Time remaining: '+days+'d '+hours+'h '+mins+'m '+secs+'s'
+    : (state.name?state.name+'：':'')+'距离目标还有 '+days+'天 '+hours+'时 '+mins+'分 '+secs+'秒';
   ToolBox.copyText(txt);
 }
 function beep(){
@@ -387,8 +415,39 @@ function beep(){
     osc.start();osc.stop(ctx.currentTime+1.0);
   }catch(e){}
 }
+function __cdTestSound(){
+  beep();
+  var el=document.getElementById('soundStatus');
+  if(el) el.textContent=(__cdIsEn()?'Test sound played; if silent, unmute the tab or allow audio for this site.':'已播放测试音；若无声，请取消标签页静音或允许本站播放声音。');
+}
+function __cdNotify(){
+  try{
+    if(typeof Notification==='undefined' || Notification.permission!=='granted') return;
+    new Notification(state.name||'倒计时', {body:(__cdIsEn()?'Target time reached':'已到达目标时间')+': '+new Date(state.target).toLocaleString()});
+  }catch(e){}
+}
+function __cdEnableNotify(){
+  var el=document.getElementById('notifyStatus');
+  if(typeof Notification==='undefined'){
+    if(el) el.textContent=(__cdIsEn()?'This browser does not support notifications; page alerts only.':'当前浏览器不支持通知，仅使用页内提示。');
+    return;
+  }
+  if(Notification.permission==='granted'){
+    if(el) el.textContent=(__cdIsEn()?'Browser notifications enabled.':'浏览器通知已开启。');
+    return;
+  }
+  if(Notification.permission==='denied'){
+    if(el) el.textContent=(__cdIsEn()?'Notification permission denied; use in-page alerts.':'通知权限已被拒绝，仅使用页内提示。');
+    return;
+  }
+  Notification.requestPermission().then(function(p){
+    if(el) el.textContent=p==='granted'?(__cdIsEn()?'Browser notifications enabled.':'浏览器通知已开启。'):(__cdIsEn()?'Notification permission not granted; page alerts only.':'未获得通知权限，仅使用页内提示。');
+  }).catch(function(){
+    if(el) el.textContent=(__cdIsEn()?'Notification permission request failed; page alerts only.':'通知权限申请失败，仅使用页内提示。');
+  });
+}
 document.addEventListener('visibilitychange', function(){
-  if(!document.hidden && state.target && timer){ tick(); }
+  if(!document.hidden && state.target){ tick(); }
 });
 var __cd0 = showResult; showResult = function(){ __cd0(); try{ __cdExtras(); }catch(e){} };
 load();
@@ -449,7 +508,7 @@ document.addEventListener('DOMContentLoaded', function(){ try{ __cdExtras(); }ca
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="单目标计时">Single target</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="同一时刻只跟踪一个目标事件，按目标时刻与当前时间差实时刷新">tracks one target event at a time and recomputes from the target instant</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Arithmetic practice">Arithmetic practice</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="算术惯例">Arithmetic practice</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="后台校正">Background correction</td>
@@ -459,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function(){ try{ __cdExtras(); }ca
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="到期处理">Expiry handling</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="到期后停止计时并给出明确状态，避免显示负倒计时">stop at zero and show an explicit state instead of negatives</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Interaction practice">Interaction practice</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="交互惯例">Interaction practice</td>
         </tr>
       </tbody>
     </table>
@@ -537,7 +596,7 @@ document.addEventListener('DOMContentLoaded',function(){
   var EN=['Rat','Ox','Tiger','Rabbit','Dragon','Snake','Horse','Goat','Monkey','Rooster','Dog','Pig'];
   function zodiac(y){ return ZH[((y-4)%12+12)%12]; }
   function zodiacE(y){ return EN[((y-4)%12+12)%12]; }
-  // 星座：[起月,起日,止月,止日,中文,英文]（按公历日期，含跨年摩羯）
+  // constellation data kept for other uses (not displayed here)
   var CONS=[[12,22,1,19,'摩羯','Capricorn'],[1,20,2,18,'水瓶','Aquarius'],[2,19,3,20,'双鱼','Pisces'],
     [3,21,4,19,'白羊','Aries'],[4,20,5,20,'金牛','Taurus'],[5,21,6,21,'双子','Gemini'],
     [6,22,7,22,'巨蟹','Cancer'],[7,23,8,22,'狮子','Leo'],[8,23,9,22,'处女','Virgo'],
@@ -567,8 +626,6 @@ document.addEventListener('DOMContentLoaded',function(){
     var s=season(m); rows.push((en?'Season (N. Hem.): ':'季节（北半球）：')+(en?s[1]:s[0]));
     rows.push((en?'Leap year: ':'闰年：')+(isLeap(y)?(en?'Yes':'是'):(en?'No':'否')));
     if(MODE==='birth'){
-      rows.push((en?'Chinese zodiac: ':'生肖：')+(en?zodiacE(y):zodiac(y)));
-      var con=constellation(m,d); rows.push((en?'Constellation: ':'星座：')+(en?con[5]:con[4]));
       rows.push((en?'Days to next birthday: ':'距下次生日：')+nextBirthday(y,m,d)+(en?' days':' 天'));
     }
     return {label:label, rows:rows};
@@ -588,7 +645,7 @@ document.addEventListener('DOMContentLoaded',function(){
       out+='</ul></div>';
     }
     if(!any){ box.innerHTML=''; return; }
-    out+='<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+(en?"Zodiac uses a simplified Gregorian-year rule (consistent with this site’s age calculator; may differ ~1 day around the lunar new year). Constellation by Gregorian date; season is for the Northern Hemisphere.":"生肖按简化格里历年份推算（与本站“精确年龄计算器”口径一致，农历新年前后可能有约 1 天偏差）；星座按公历日期；季节为北半球。")+'</p>';
+    out+='<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+(en?"Season is for the Northern Hemisphere; this page does not infer zodiac or constellation.":"季节按北半球划分；本页不推算生肖或星座。")+'</p>';
     out+='</div>';
     box.innerHTML=out;
   }

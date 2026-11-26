@@ -528,8 +528,11 @@ function exportCSV(){
   const life = isFinite(lifeRaw) ? Math.floor(lifeRaw) : 0;
   const totalUnits = parseFloat(document.getElementById('totalUnits').value) || 0;
   const yearUnits = parseYearUnits(document.getElementById('yearUnits').value, life);
-  // 与页面计算同口径：年限非正整数时拒绝导出，避免导出与屏幕结果不一致
-  if(cost <= 0 || !isFinite(lifeRaw) || lifeRaw !== life || life <= 0) return;
+  // 与页面计算同口径：原值/残值/年限任一非法即拒绝导出，避免导出带负折旧或错误净值。
+  if(cost <= 0 || !isFinite(lifeRaw) || lifeRaw !== life || life <= 0 || salvage < 0 || salvage >= cost){
+    ToolBox.showToast('导出已阻止：请确保原值 > 残值 ≥ 0，使用年限为正整数（折旧按整年计提）', 'error');
+    return;
+  }
 
   const straight = calcStraight(cost, salvage, life);
   const ddb = calcDDB(cost, salvage, life);

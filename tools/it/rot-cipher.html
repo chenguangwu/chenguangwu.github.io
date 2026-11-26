@@ -160,8 +160,9 @@
         </select>
       </label>
       <label id="shiftLabel" style="margin:0;font-size:13px;">移位 =
-        <input type="number" id="shift" value="13" min="1" max="25" style="display:inline-block;width:80px;padding:6px 10px;font-size:13px;" oninput="enc()" placeholder="如 13（1–25）">
+        <input type="number" id="shift" value="13" min="1" max="25" step="1" style="display:inline-block;width:80px;padding:6px 10px;font-size:13px;" oninput="enc()" placeholder="如 13（1–25）">
       </label>
+      <div id="shiftError" role="alert" style="display:none;margin-top:6px;font-size:13px;color:var(--danger);"></div>
     </div>
 
     <label for="input">输入</label>
@@ -267,8 +268,29 @@ function toggleShift(){
 
 function enc(){
   const text = document.getElementById('input').value;
-  if(!text){ document.getElementById('output').value = ''; return; }
   const mode = document.getElementById('mode').value;
+  const errBox = document.getElementById('shiftError');
+  errBox.style.display = 'none';
+  errBox.textContent = '';
+  if(!text){ document.getElementById('output').value = ''; return; }
+  if(mode === 'custom'){
+    // 第802批：自定义移位必须是 1–25 的整数；空值、小数、0、负数、26 及超大值不再静默按 0 或截断处理
+    const raw = document.getElementById('shift').value.trim();
+    const en = (typeof TBKit!=='undefined' && TBKit.util.isEn());
+    let msg = '';
+    if(raw === '') msg = en ? 'Enter a shift from 1 to 25.' : '请输入 1–25 之间的移位数。';
+    else if(!/^[0-9]+$/.test(raw)) msg = en ? 'Shift must be a whole number from 1 to 25.' : '移位数必须是 1–25 之间的整数。';
+    else {
+      const n = Number(raw);
+      if(!Number.isSafeInteger(n) || n < 1 || n > 25) msg = en ? 'Shift must be between 1 and 25.' : '移位数必须在 1–25 之间。';
+    }
+    if(msg){
+      document.getElementById('output').value = '';
+      errBox.textContent = '⚠ ' + msg;
+      errBox.style.display = 'block';
+      return;
+    }
+  }
   let out = '';
   switch(mode){
     case 'rot13':
@@ -297,11 +319,10 @@ function enc(){
       });
       break;
     case 'custom':
-      const shift = parseInt(document.getElementById('shift').value,10) || 0;
-      const norm = ((shift % 26) + 26) % 26;  // 负数位移也归一到 0–25，避免 a 位移 -1 得到 `
+      const shift = Number(document.getElementById('shift').value.trim());
       out = text.replace(/[a-zA-Z]/g, c => {
         const base = c <= 'Z' ? 65 : 97;
-        return String.fromCharCode((c.charCodeAt(0) - base + norm) % 26 + base);
+        return String.fromCharCode((c.charCodeAt(0) - base + shift) % 26 + base);
       });
       break;
   }
@@ -483,7 +504,7 @@ else document.addEventListener('DOMContentLoaded', __rot_cipherBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -491,7 +512,7 @@ else document.addEventListener('DOMContentLoaded', __rot_cipherBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

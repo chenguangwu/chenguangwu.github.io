@@ -292,12 +292,14 @@
 
 <script>
 var KEY = 'kids_focus_stats';
+var FOCUS_EN = /[?&]lang=en-US/.test(location.search);
+function ft(en, zh){ return FOCUS_EN ? en : zh; }
 var stats = { today: '', done: 0, total: 0 };
 var presets = [
-  { name:'幼儿', focus:10, rest:3 },
-  { name:'低年级', focus:15, rest:5 },
-  { name:'高年级', focus:25, rest:5 },
-  { name:'自定义', custom:true }
+  { name:'幼儿', nameEn:'Toddler', focus:10, rest:3 },
+  { name:'低年级', nameEn:'Lower grades', focus:15, rest:5 },
+  { name:'高年级', nameEn:'Upper grades', focus:25, rest:5 },
+  { name:'自定义', nameEn:'Custom', custom:true }
 ];
 
 var state = {
@@ -306,13 +308,16 @@ var state = {
   remaining: 15 * 60,
   phase: 'idle', // idle, focus, rest, done
   timerId: null,
+  paused: false,
+  endAt: 0,
   presetIdx: 1,
+  goal: 4,
   circumference: 2 * Math.PI * 88
 };
 
 function todayStr(){
   var d = new Date();
-  return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
 function loadStats(){
@@ -331,19 +336,30 @@ function saveStats(){
   try{ localStorage.setItem(KEY, JSON.stringify(stats)); }catch(e){}
 }
 
+function readFocusInt(id,min,max){
+  var raw=String(document.getElementById(id).value).trim();
+  if(!/^\d+$/.test(raw)) return null;
+  var n=+raw;
+  return (n>=min&&n<=max)?n:null;
+}
+function focusError(msg){ ToolBox.showToast(msg,'error'); }
+
 function renderStats(){
-  var goal = parseInt(document.getElementById('goalCount').value) || 4;
+  var goal = readFocusInt('goalCount',1,12);
+  if(goal===null){ focusError(ft('Goal must be an integer from 1 to 12.','目标番茄数必须为 1–12 的整数。')); return; }
+  state.goal = goal;
   var html = '';
-  html += '<div class="stat-card"><div class="val">' + stats.done + '</div><div class="lbl">今日番茄</div></div>';
-  html += '<div class="stat-card"><div class="val">' + goal + '</div><div class="lbl">今日目标</div></div>';
-  html += '<div class="stat-card"><div class="val">' + stats.total + '</div><div class="lbl">累计番茄</div></div>';
+  html += '<div class="stat-card"><div class="val">' + stats.done + '</div><div class="lbl">' + ft('Sessions today','今日番茄') + '</div></div>';
+  html += '<div class="stat-card"><div class="val">' + goal + '</div><div class="lbl">' + ft('Goal today','今日目标') + '</div></div>';
+  html += '<div class="stat-card"><div class="val">' + stats.total + '</div><div class="lbl">' + ft('Total sessions','累计番茄') + '</div></div>';
   var pct = goal > 0 ? Math.min(100, Math.round(stats.done / goal * 100)) : 0;
-  html += '<div class="stat-card"><div class="val">' + pct + '%</div><div class="lbl">今日完成度</div></div>';
+  html += '<div class="stat-card"><div class="val">' + pct + '%</div><div class="lbl">' + ft('Today completion','今日完成度') + '</div></div>';
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('statGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('statGrid').innerHTML=__h0;
   renderTomatos(goal);
 }
 
 function renderTomatos(goal){
+  goal=Math.max(1,Math.min(12,goal||state.goal||4));
   var html = '';
   for(var i = 0; i < goal; i++){
     html += '<span class="t' + (i < stats.done ? ' done' : '') + '">🍅</span>';
@@ -354,7 +370,7 @@ function renderTomatos(goal){
 function renderPresets(){
   var html = '';
   presets.forEach(function(p, i){
-    var label = p.custom ? '自定义' : (p.name + ' ' + p.focus + '/' + p.rest);
+    var label = p.custom ? ft('Custom','自定义') : ((FOCUS_EN ? p.nameEn : p.name) + ' ' + p.focus + '/' + p.rest);
     html += '<button type="button" class="pbtn' + (i === state.presetIdx ? ' active' : '') + '" onclick="selectPreset(' + i + ')">' + label + '</button>';
   });
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('presetRow').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('presetRow').innerHTML=__h2;
@@ -367,19 +383,25 @@ function selectPreset(i){
     document.getElementById('focusMin').value = p.focus;
     document.getElementById('restMin').value = p.rest;
   }
-  applyCustom();
+  applyCustom(true);
   renderPresets();
 }
 
-function applyCustom(){
-  state.presetIdx = 3;
-  state.focusSec = (parseInt(document.getElementById('focusMin').value) || 15) * 60;
-  state.restSec = (parseInt(document.getElementById('restMin').value) || 5) * 60;
+function applyCustom(keepPreset){
+  var focus=readFocusInt('focusMin',5,45), rest=readFocusInt('restMin',1,20), goal=readFocusInt('goalCount',1,12);
+  if(focus===null){ focusError(ft('Focus length must be an integer from 5 to 45 minutes.','专注时长必须为 5–45 的整数分钟。')); return false; }
+  if(rest===null){ focusError(ft('Break length must be an integer from 1 to 20 minutes.','休息时长必须为 1–20 的整数分钟。')); return false; }
+  if(goal===null){ focusError(ft('Goal must be an integer from 1 to 12.','目标番茄数必须为 1–12 的整数。')); return false; }
+  if(!keepPreset) state.presetIdx = 3;
+  state.focusSec = focus * 60;
+  state.restSec = rest * 60;
+  state.goal = goal;
   if(state.phase === 'idle' || state.phase === 'done'){
     state.remaining = state.focusSec;
     updateDisplay();
   }
   renderPresets();
+  return true;
 }
 
 function updateDisplay(){
@@ -395,20 +417,24 @@ function updateDisplay(){
   document.getElementById('fgCircle').style.strokeDashoffset = offset;
 
   var phaseLabel = {
-    idle:'准备专注', focus:'专注中…', rest:'休息一下', done:'本轮完成！'
+    idle:ft('Ready to focus','准备专注'), focus:ft('Focusing…','专注中…'), rest:ft('Break time','休息一下'), done:ft('Round complete!','本轮完成！')
   };
   document.getElementById('phaseText').textContent = phaseLabel[state.phase] || '';
 
   var startBtn = document.getElementById('startBtn');
-  if(state.phase === 'idle' || state.phase === 'done'){
-    startBtn.textContent = '开始专注';
+  if(state.paused && (state.phase === 'focus' || state.phase === 'rest')){
+    startBtn.textContent = ft('Resume','继续');
+  } else if(state.phase === 'idle' || state.phase === 'done'){
+    startBtn.textContent = ft('Start focus','开始专注');
   } else {
-    startBtn.textContent = '暂停';
+    startBtn.textContent = ft('Pause','暂停');
   }
 }
 
 function toggleStart(){
-  if(state.phase === 'focus' || state.phase === 'rest'){
+  if(state.paused && (state.phase === 'focus' || state.phase === 'rest')){
+    resume();
+  } else if(state.phase === 'focus' || state.phase === 'rest'){
     pause();
   } else {
     start();
@@ -416,25 +442,43 @@ function toggleStart(){
 }
 
 function start(){
+  if(!applyCustom(true)) return;
   if(state.phase === 'idle' || state.phase === 'done'){
     state.phase = 'focus';
     state.remaining = state.focusSec;
   }
-  tick();
-  state.timerId = setInterval(tick, 1000);
+  state.paused = false;
+  state.endAt = Date.now() + state.remaining * 1000;
+  if(state.timerId) clearInterval(state.timerId);
+  state.timerId = setInterval(tick, 500);
+  updateDisplay();
+}
+
+function resume(){
+  if(!state.paused) return;
+  state.paused = false;
+  state.endAt = Date.now() + state.remaining * 1000;
+  if(state.timerId) clearInterval(state.timerId);
+  state.timerId = setInterval(tick, 500);
   updateDisplay();
 }
 
 function pause(){
   if(state.timerId){ clearInterval(state.timerId); state.timerId = null; }
+  state.endAt = 0;
+  state.paused = (state.phase === 'focus' || state.phase === 'rest');
+  updateDisplay();
   ToolBox.showToast(i18nText('toast.msg246'), 'info');
 }
 
 function tick(){
-  if(state.phase !== 'focus' && state.phase !== 'rest') return;
-  state.remaining--;
+  if(state.paused || (state.phase !== 'focus' && state.phase !== 'rest')) return;
+  if(!state.endAt) state.endAt = Date.now() + state.remaining * 1000;
+  state.remaining = Math.max(0, Math.ceil((state.endAt - Date.now()) / 1000));
   if(state.remaining <= 0){
     if(state.phase === 'focus'){
+      var today = todayStr();
+      if(stats.today !== today){ stats.today = today; stats.done = 0; }
       stats.done++;
       stats.total++;
       saveStats();
@@ -447,6 +491,7 @@ function tick(){
       state.phase = 'focus';
       state.remaining = state.focusSec;
     }
+    state.endAt = Date.now() + state.remaining * 1000;
   }
   updateDisplay();
 }
@@ -463,13 +508,14 @@ function skipPhase(){
   } else {
     return;
   }
-  if(state.timerId){ clearInterval(state.timerId); state.timerId = null; }
-  start();
+  if(state.timerId){ state.endAt = Date.now() + state.remaining * 1000; state.paused = false; }
   updateDisplay();
 }
 
 function resetTimer(){
   if(state.timerId){ clearInterval(state.timerId); state.timerId = null; }
+  state.paused = false;
+  state.endAt = 0;
   state.phase = 'idle';
   state.remaining = state.focusSec;
   updateDisplay();
@@ -478,10 +524,12 @@ function resetTimer(){
 
 loadStats();
 renderPresets();
-applyCustom();
+applyCustom(true);
 renderStats();
 updateDisplay();
 
+document.addEventListener('visibilitychange', function(){ if(!document.hidden && !state.paused && (state.phase==='focus'||state.phase==='rest')) tick(); });
+window.addEventListener('focus', function(){ if(!state.paused && (state.phase==='focus'||state.phase==='rest')) tick(); });
 window.__focusExport = function(){
   if(typeof TBKit==='undefined') return;
   var en=TBKit.util.isEn();

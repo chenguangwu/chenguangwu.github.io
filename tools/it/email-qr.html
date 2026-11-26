@@ -138,7 +138,7 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="✉️ 邮件二维码">✉️ Email QR Code</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">载荷串：mailto:&lt;收件人&gt;?subject=&lt;主题&gt;&amp;body=&lt;正文&gt; —— 收件人、主题、正文三段各自经 encodeURIComponent 编码后拼接</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">载荷串：mailto:&lt;收件人&gt;?subject=&lt;主题&gt;&amp;body=&lt;正文&gt; —— 收件人、主题、正文三段各自经 encodeURIComponent 编码后拼接；非空收件人须通过邮箱格式校验（多个用逗号/分号分隔），留空则生成空白邮件草稿</div>
   <div class="formula-desc">生成扫码即可发送邮件的二维码。</div>
   <ul class="formula-list">
     <li><b>URI</b>：内容为 <code>mailto:地址?subject=主题&amp;body=正文</code>，可带 cc、bcc。</li>
@@ -156,7 +156,7 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
     <textarea id="body" style="margin-bottom:12px;">This is a test email.</textarea>
     <div class="toolbar">
       <div id="email_qrPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__email_qrExport()">导出明细 CSV</button>
-      <button type="button" class="btn success" onclick="copyResult()">复制</button>
+      <button type="button" class="btn success" id="emailCopyBtn" onclick="copyResult()">复制</button>
     </div>
     <div class="result-box" id="output"></div> <div id="email_qrTable"></div> <div id="email_qrDiff"></div> <div id="email_qrChart"></div> <div id="email_qrHist"></div>
   </div>
@@ -239,10 +239,19 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 <script src="../../js/qrcode.js"></script>
 <script>
 function buildMailto(){
-  const to=encodeURIComponent(document.getElementById('to').value);
+  const rawTo=document.getElementById('to').value.trim();
+  const recipients=rawTo ? rawTo.split(/[,;，；]/).map(function(x){return x.trim();}).filter(Boolean) : [];
+  for(const addr of recipients){ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr)) throw new Error('收件地址格式无效：'+addr+'（多个地址用逗号或分号分隔）'); }
+  const to=recipients.map(encodeURIComponent).join(',');
   const sub=encodeURIComponent(document.getElementById('subject').value);
   const body=encodeURIComponent(document.getElementById('body').value);
-  return 'mailto:'+to+'?subject='+sub+'&body='+body;
+  return {text:'mailto:'+to+'?subject='+sub+'&body='+body, recipients:recipients, subject:document.getElementById('subject').value, body:document.getElementById('body').value};
+}
+function mailPreview(built){
+  return '<div class="mail-preview" style="font-size:12.5px;line-height:1.7;margin:4px 0 10px;color:var(--text-muted);">'+
+    '<div>收件人：'+(built.recipients.length?escapeHtml(built.recipients.join(', ')):'（留空，扫码后打开空白邮件草稿，需手动填写收件人）')+'</div>'+
+    '<div>主题：'+(built.subject?escapeHtml(built.subject):'（空）')+'</div>'+
+    '<div>正文：'+(built.body?escapeHtml(built.body.slice(0,80))+(built.body.length>80?'…':''):'（空）')+'</div></div>';
 }
 function drawQR(text){
   if(qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];
@@ -253,21 +262,24 @@ function drawQR(text){
   for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))ctx.fillRect((c+margin)*cell,(r+margin)*cell,cell,cell);
   return canvas;
 }
+let __email_qrUri='';
 function generate(){
-  const text=buildMailto();const out=document.getElementById('output');
+  const out=document.getElementById('output'), btn=document.getElementById('emailCopyBtn');
+  let built;
+  try{ built=buildMailto(); }catch(e){ __email_qrUri=''; if(btn)btn.disabled=true; out.innerHTML='<p style="color:var(--danger)">⚠ '+escapeHtml(e.message)+'</p>'; return; }
+  __email_qrUri=built.text; if(btn)btn.disabled=false;
   try{
-    const canvas=drawQR(text);
-    const __h0='<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(text)+'</div>';
-    out.innerHTML=__h0;
+    const canvas=drawQR(built.text);
+    out.innerHTML=mailPreview(built)+'<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(built.text)+'</div>';
     out.querySelector('.qr-wrap').appendChild(canvas);
   }catch(e){
-    out.innerHTML='<div class="qr-text">'+escapeHtml(text)+'</div><p style="color:var(--danger)">⚠ 无法生成二维码图形：'+escapeHtml(e.message)+'</p>';
+    out.innerHTML=mailPreview(built)+'<div class="qr-text">'+escapeHtml(built.text)+'</div><p style="color:var(--danger)">⚠ 无法生成二维码图形：'+escapeHtml(e.message)+'</p><p style="font-size:12px;color:var(--text-muted);">URI 仍有效，可直接复制。</p>';
   }
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
-  const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
+  if(!__email_qrUri){ alert('请先输入有效收件地址并生成二维码'); return; }
+  navigator.clipboard.writeText(__email_qrUri).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制"))).catch(()=>alert('复制失败，请手动复制 URI'));
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
@@ -449,7 +461,7 @@ else document.addEventListener('DOMContentLoaded', __email_qrBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -457,7 +469,7 @@ else document.addEventListener('DOMContentLoaded', __email_qrBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

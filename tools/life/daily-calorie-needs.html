@@ -42,14 +42,14 @@
 .bmi-pointer{position:absolute;top:-4px;width:20px;height:20px;background:#fff;border:3px solid var(--primary);border-radius:50%;transform:translateX(-50%);transition:left 0.3s;}
 .bmi-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:4px;}
 .activity-list{display:grid;gap:8px;margin-top:8px;}
-.activity-item{padding:12px;background:var(--result-bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.15s;display:flex;justify-content:space-between;align-items:center;}
+.activity-item{padding:12px;font:inherit;text-align:left;width:100%;background:var(--result-bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.15s;display:flex;justify-content:space-between;align-items:center;}
 .activity-item:hover{border-color:var(--primary);}
 .activity-item.active{border-color:var(--primary);background:rgba(102,126,234,0.1);}
 .activity-item .name{font-size:13px;font-weight:500;}
 .activity-item .desc{font-size:11px;color:var(--text-muted);margin-top:2px;}
 .activity-item .factor{font-size:13px;color:var(--primary);font-weight:600;}
 .goal-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:8px;}
-.goal-item{padding:12px;background:var(--result-bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.15s;text-align:center;}
+.goal-item{padding:12px;font:inherit;width:100%;background:var(--result-bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.15s;text-align:center;}
 .goal-item:hover{border-color:var(--primary);}
 .goal-item.active{border-color:var(--primary);background:rgba(102,126,234,0.1);}
 .goal-item .name{font-size:13px;font-weight:500;}
@@ -58,7 +58,8 @@
 .food-table th, .food-table td{padding:8px;text-align:left;}
 .history-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;}
 .history-item:last-child{border-bottom:none;}
-.history-item .del{color:var(--danger);cursor:pointer;font-size:14px;}
+.history-item .del{color:var(--danger);cursor:pointer;font-size:14px;background:none;border:0;padding:4px 6px;font:inherit;line-height:1;}
+.activity-item:focus-visible,.goal-item:focus-visible,.history-item .del:focus-visible{outline:3px solid var(--primary);outline-offset:2px;}
 </style>
 
 <meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
@@ -193,7 +194,7 @@
         </div>
         <div>
           <label for="bmiAge">年龄</label>
-          <input type="number" id="bmiAge" value="25" min="1" max="120" placeholder="如 25（1–120）">
+          <input type="number" id="bmiAge" value="25" min="18" max="120" placeholder="如 25（18–120）">
         </div>
         <div>
           <label for="bmiHeight">身高 (cm)</label>
@@ -226,6 +227,7 @@
       </div>
 
       <div class="stat-grid" id="bmiStats"></div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;" data-zh="“理想体重”按 BMI 18.5–23.9 折算，是人群参考区间，不是个人目标；区间内不显示增减差值。">Enter sex, age, height, weight and activity level to estimate daily calorie needs from basal metabolism and activity factors.</p>
     </div>
 
     <div id="panel-bmr" style="display:none;">
@@ -239,7 +241,7 @@
         </div>
         <div>
           <label for="bmrAge">年龄</label>
-          <input type="number" id="bmrAge" value="25" min="1" max="120" placeholder="如 25（1–120）">
+          <input type="number" id="bmrAge" value="25" min="18" max="120" placeholder="如 25（18–120）">
         </div>
         <div>
           <label for="bmrHeight">身高 (cm)</label>
@@ -282,7 +284,7 @@
         </div>
         <div>
           <label for="tdeeAge">年龄</label>
-          <input type="number" id="tdeeAge" value="25" min="1" max="120" placeholder="如 25（1–120）">
+          <input type="number" id="tdeeAge" value="25" min="18" max="120" placeholder="如 25（18–120）">
         </div>
         <div>
           <label for="tdeeHeight">身高 (cm)</label>
@@ -528,12 +530,23 @@ let selectedActivity = 'moderate';
 let selectedGoal = 'maintain';
 let history = [];
 
-const RANGE_MSG = '请输入有效数据：年龄 1–120、身高 50–250、体重 10–300';
+const RANGE_MSG = '请输入有效数据：年龄 18–120（仅成人）、身高 50–250、体重 10–300';
 function fieldInRange(id, min, max){
   const val = parseFloat(document.getElementById(id).value);
   const ok = isFinite(val) && val >= min && val <= max;
   document.getElementById(id).classList.toggle('input-error', !ok);
   return { ok, val };
+}
+
+function markPanelStale(type){
+  const main = document.getElementById(type+'Value');
+  if(!main || main.textContent.trim() === '--') return;
+  main.textContent = '--';
+  const desc = document.getElementById(type === 'bmi' ? 'bmiStatus' : type+'Desc');
+  if(desc) desc.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn()) ? 'Inputs changed. Recalculate before reading or saving.' : '参数已变更，请重新计算后再查看或保存结果。');
+  var ptr=document.getElementById('bmiPointer'); if(type==='bmi'&&ptr) ptr.style.display='none';
+  const stats = document.getElementById(type+'Stats');
+  if(stats) stats.innerHTML = '';
 }
 
 function switchTab(tab){
@@ -547,15 +560,22 @@ function switchTab(tab){
 function calcBMI(){
   const height = parseFloat(document.getElementById('bmiHeight').value);
   const weight = parseFloat(document.getElementById('bmiWeight').value);
+  const age = parseFloat(document.getElementById('bmiAge').value);
   const hOk = isFinite(height) && height >= 50 && height <= 250;
   const wOk = isFinite(weight) && weight >= 10 && weight <= 300;
+  const ageOk = isFinite(age) && age >= 18 && age <= 120;
   document.getElementById('bmiHeight').classList.toggle('input-error', !hOk);
   document.getElementById('bmiWeight').classList.toggle('input-error', !wOk);
+  document.getElementById('bmiAge').classList.toggle('input-error', !ageOk);
 
-  if(!hOk || !wOk){
+  if(!hOk || !wOk || !ageOk){
     document.getElementById('bmiValue').textContent = '--';
-    document.getElementById('bmiStatus').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter valid data":"请输入有效数据");
+    document.getElementById('bmiStatus').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())
+      ? (ageOk?"Enter valid data":"Adult BMI only: age 18–120")
+      : (ageOk?"请输入有效数据":"成人 BMI 仅适用于 18–120 岁"));
     document.getElementById('bmiStats').innerHTML = '';
+    document.getElementById('bmiPointer').style.display = 'none';
+    document.getElementById('bmiValue').style.color = '';
     return;
   }
   
@@ -569,6 +589,7 @@ function calcBMI(){
   else if(bmi < 30){ status = '肥胖'; color = '#92400E'; }
   else { status = '重度肥胖'; color = '#f44336'; }
   
+  document.getElementById('bmiPointer').style.display = '';
   document.getElementById('bmiValue').textContent = bmi.toFixed(1);
   document.getElementById('bmiValue').style.color = color;
   document.getElementById('bmiStatus').textContent = status;
@@ -582,25 +603,19 @@ function calcBMI(){
   const idealMax = 23.9 * ((height / 100) ** 2);
 
   // 体脂率改用 Deurenberg 公式（与 BMR 面板 Katch-McArdle 同源），并限定 2%–60%
-  const age = parseFloat(document.getElementById('bmiAge').value);
   const gender = document.getElementById('bmiGender').value;
-  const ageOk = isFinite(age) && age >= 1 && age <= 120;
-  document.getElementById('bmiAge').classList.toggle('input-error', !ageOk);
-  let bodyFatText = '--';
-  if(ageOk){
-    const bodyFat = gender === 'male'
-      ? 1.20 * bmi + 0.23 * age - 16.2
-      : 1.20 * bmi + 0.23 * age - 5.4;
-    bodyFatText = (bodyFat >= 2 && bodyFat <= 60) ? bodyFat.toFixed(1) + '%' : '超出估算范围';
-  }
+  const bodyFat = gender === 'male'
+    ? 1.20 * bmi + 0.23 * age - 16.2
+    : 1.20 * bmi + 0.23 * age - 5.4;
+  const bodyFatText = (bodyFat >= 2 && bodyFat <= 60) ? bodyFat.toFixed(1) + '%' : '超出估算范围';
 
   let __h0=`
     <div class="stat-card"><div class="v">${idealMin.toFixed(1)}-${idealMax.toFixed(1)}</div><div class="l">理想体重(kg)</div></div>
-    <div class="stat-card"><div class="v">${(weight - idealMax > 0 ? '+' : '')}${(weight - idealMax).toFixed(1)}</div><div class="l">与理想体重差(kg)</div></div>
+    <div class="stat-card"><div class="v">${weight < idealMin ? '低于下限 ' + (weight - idealMin).toFixed(1) : weight > idealMax ? '高于上限 +' + (weight - idealMax).toFixed(1) : '处于区间内'}</div><div class="l">相对理想区间（仅参考）</div></div>
     <div class="stat-card"><div class="v">${(height - 105).toFixed(1)}</div><div class="l">简单标准体重(kg)</div></div>
     <div class="stat-card"><div class="v">${bodyFatText}</div><div class="l">体脂率估算</div></div>
   `;
-  if(!ageOk) __h0+=`<p style="font-size:12px;color:var(--danger);margin-top:8px;">⚠ 年龄需在 1–120 之间才能估算体脂率，当前未计入。</p>`;
+  __h0 += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">适用人群：18 岁及以上非孕期成人。儿童青少年、孕期/哺乳期、运动员及疾病患者不适用成人 BMI 分类与固定热量目标，请咨询专业人士；体脂率为公式估算，存在个体差异。</p>';
   if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('bmiStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('bmiStats').innerHTML=__h0;
 }
 
@@ -614,7 +629,7 @@ function setBmrFormula(formula){
 
 function calcBMR(){
   const gender = document.getElementById('bmrGender').value;
-  const ageChk = fieldInRange('bmrAge', 1, 120);
+  const ageChk = fieldInRange('bmrAge', 18, 120);
   const heightChk = fieldInRange('bmrHeight', 50, 250);
   const weightChk = fieldInRange('bmrWeight', 10, 300);
   
@@ -644,6 +659,13 @@ function calcBMR(){
   } else {
     const bmi = weight / ((height / 100) ** 2);
     const bodyFat = gender === 'male' ? (1.20 * bmi + 0.23 * age - 16.2) : (1.20 * bmi + 0.23 * age - 5.4);
+    if(!(bodyFat >= 2 && bodyFat <= 60)){
+      const en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+      document.getElementById('bmrValue').textContent = '--';
+      document.getElementById('bmrDesc').textContent = en ? 'Katch-McArdle needs an estimated body-fat value within 2%–60%. Adjust height, weight or age, or use another formula.' : 'Katch-McArdle 需要估算体脂率在 2%–60% 内；当前组合超出范围，请调整身高/体重/年龄或改用其他公式。';
+      document.getElementById('bmrStats').innerHTML = '';
+      return;
+    }
     const leanMass = weight * (1 - bodyFat / 100);
     bmr = 370 + 21.6 * leanMass;
   }
@@ -662,45 +684,45 @@ function calcBMR(){
 function initActivityList(){
   const list = document.getElementById('activityList');
   const __h3=ACTIVITY_LEVELS.map(a => `
-    <div class="activity-item ${a.id === selectedActivity ? 'active' : ''}" onclick="selectActivity('${a.id}')">
+    <button type="button" class="activity-item ${a.id === selectedActivity ? 'active' : ''}" data-id="${a.id}" aria-pressed="${a.id === selectedActivity}" onclick="selectActivity('${a.id}')">
       <div>
         <div class="name">${a.name}</div>
         <div class="desc">${a.desc}</div>
       </div>
       <div class="factor">×${a.factor}</div>
-    </div>
+    </button>
   `).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h3;
 }
 
 function selectActivity(id){
   selectedActivity = id;
-  document.querySelectorAll('.activity-item').forEach(el => el.classList.remove('active'));
-  const active = document.querySelector('.activity-item[onclick="selectActivity(\'' + id + '\')"]');
-  if(active) active.classList.add('active');
+  document.querySelectorAll('.activity-item').forEach(el => { el.classList.remove('active'); el.setAttribute('aria-pressed','false'); });
+  const active = document.querySelector('.activity-item[data-id="' + id + '"]');
+  if(active){ active.classList.add('active'); active.setAttribute('aria-pressed','true'); }
   calcTDEE();
 }
 
 function initGoalList(){
   const list = document.getElementById('goalList');
   const __h4=GOALS.map(g => `
-    <div class="goal-item ${g.id === selectedGoal ? 'active' : ''}" onclick="selectGoal('${g.id}')">
+    <button type="button" class="goal-item ${g.id === selectedGoal ? 'active' : ''}" data-id="${g.id}" aria-pressed="${g.id === selectedGoal}" onclick="selectGoal('${g.id}')">
       <div class="name">${g.name}</div>
       <div class="cal">${g.cal > 0 ? '+' : ''}${g.cal} 千卡</div>
-    </div>
+    </button>
   `).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h4;
 }
 
 function selectGoal(id){
   selectedGoal = id;
-  document.querySelectorAll('.goal-item').forEach(el => el.classList.remove('active'));
-  const active = document.querySelector('.goal-item[onclick="selectGoal(\'' + id + '\')"]');
-  if(active) active.classList.add('active');
+  document.querySelectorAll('.goal-item').forEach(el => { el.classList.remove('active'); el.setAttribute('aria-pressed','false'); });
+  const active = document.querySelector('.goal-item[data-id="' + id + '"]');
+  if(active){ active.classList.add('active'); active.setAttribute('aria-pressed','true'); }
   calcTDEE();
 }
 
 function calcTDEE(){
   const gender = document.getElementById('tdeeGender').value;
-  const ageChk = fieldInRange('tdeeAge', 1, 120);
+  const ageChk = fieldInRange('tdeeAge', 18, 120);
   const heightChk = fieldInRange('tdeeHeight', 50, 250);
   const weightChk = fieldInRange('tdeeWeight', 10, 300);
   
@@ -728,15 +750,19 @@ function calcTDEE(){
   const target = tdee + goal.cal;
   
   document.getElementById('tdeeValue').textContent = Math.round(tdee) + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" kcal":" 千卡");
+  const belowBmr = target < bmr;
   document.getElementById('tdeeDesc').textContent = 
-    `目标：${goal.name}（${goal.cal > 0 ? '+' : ''}${goal.cal} 千卡） → 每日约 ${Math.round(target)} 千卡`;
+    `目标：${goal.name}（${goal.cal > 0 ? '+' : ''}${goal.cal} 千卡） → 每日约 ${Math.round(target)} 千卡`
+    + (belowBmr ? '；目标低于基础代谢，不建议长期执行' : '')
+    + '（仅 18 岁以上成人估算）';
   
-  const __h6=`
+  let __h6=`
     <div class="stat-card"><div class="v">${Math.round(bmr)}</div><div class="l">基础代谢</div></div>
     <div class="stat-card"><div class="v">${Math.round(target)}</div><div class="l">目标摄入</div></div>
     <div class="stat-card"><div class="v">${Math.round(tdee * 7)}</div><div class="l">每周消耗</div></div>
-    <div class="stat-card"><div class="v">${(goal.cal / 7700 * 7).toFixed(2)}kg</div><div class="l">每周体重变化</div></div>
-  `;if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('tdeeStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('tdeeStats').innerHTML=__h6;
+    <div class="stat-card"><div class="v">${(goal.cal / 7700 * 7).toFixed(2)}kg</div><div class="l">理论周变化（估算）</div></div>
+  `;
+  __h6 += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">体重变化按每 7700 千卡约 1 kg 的固定换算，仅用于理解热量差；实际受代谢适应、水分、活动量与依从性影响，个体差异很大，不应作为医疗或减重处方。</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('tdeeStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('tdeeStats').innerHTML=__h6;
 }
 
 function initFoodTables(){
@@ -760,39 +786,55 @@ function initFoodTables(){
 }
 
 function saveToHistory(type){
+  // 保存前必须复用对应面板的同一套范围校验，避免清空/越界后仍写入 NaN 或零值记录
+  let valid = false;
+  if(type === 'bmi'){
+    const h = parseFloat(document.getElementById('bmiHeight').value);
+    const w = parseFloat(document.getElementById('bmiWeight').value);
+    const a = parseFloat(document.getElementById('bmiAge').value);
+    valid = isFinite(h) && h >= 50 && h <= 250 && isFinite(w) && w >= 10 && w <= 300 && isFinite(a) && a >= 18 && a <= 120;
+  } else if(type === 'bmr'){
+    valid = fieldInRange('bmrAge', 18, 120).ok && fieldInRange('bmrHeight', 50, 250).ok && fieldInRange('bmrWeight', 10, 300).ok;
+  } else if(type === 'tdee'){
+    valid = fieldInRange('tdeeAge', 18, 120).ok && fieldInRange('tdeeHeight', 50, 250).ok && fieldInRange('tdeeWeight', 10, 300).ok;
+  }
+  if(!valid){
+    ToolBox.showToast('请输入有效数据后再保存');
+    return;
+  }
   let item = { id: Date.now(), type, time: new Date().toLocaleString('zh-CN') };
   
   if(type === 'bmi'){
+    calcBMI();
     const height = document.getElementById('bmiHeight').value;
     const weight = document.getElementById('bmiWeight').value;
     const bmi = (weight / ((height / 100) ** 2)).toFixed(1);
     item.label = `BMI: ${bmi}（身高${height}cm, 体重${weight}kg）`;
   } else if(type === 'bmr'){
+    calcBMR();
     const weight = document.getElementById('bmrWeight').value;
     const height = document.getElementById('bmrHeight').value;
     const age = document.getElementById('bmrAge').value;
     const gender = document.getElementById('bmrGender').value === 'male' ? '男' : '女';
-    let bmr;
-    if(gender === '男'){
-      bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-    } else {
-      bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+    const formulaName = {mifflin:'Mifflin-St Jeor', harris:'Harris-Benedict', katch:'Katch-McArdle'}[bmrFormula] || bmrFormula;
+    const shown = parseFloat(document.getElementById('bmrValue').textContent);
+    const bmr = isFinite(shown) ? shown : Math.round(document.getElementById('bmrValue').textContent);
+    if(!isFinite(bmr)){
+      ToolBox.showToast('基础代谢结果尚未生成，请先修正输入');
+      return;
     }
-    item.label = `BMR: ${Math.round(bmr)} 千卡（${gender}, ${age}岁, ${height}cm, ${weight}kg）`;
+    item.formula = formulaName;
+    item.label = `BMR: ${Math.round(bmr)} 千卡（${formulaName}；${gender}, ${age}岁, ${height}cm, ${weight}kg）`;
   } else if(type === 'tdee'){
-    const weight = document.getElementById('tdeeWeight').value;
-    const height = document.getElementById('tdeeHeight').value;
-    const age = document.getElementById('tdeeAge').value;
+    calcTDEE();
     const gender = document.getElementById('tdeeGender').value === 'male' ? '男' : '女';
     const activity = ACTIVITY_LEVELS.find(a => a.id === selectedActivity).name;
-    let bmr;
-    if(gender === '男'){
-      bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-    } else {
-      bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+    const shown = parseFloat(document.getElementById('tdeeValue').textContent);
+    if(!isFinite(shown)){
+      ToolBox.showToast('每日消耗结果尚未生成，请先修正输入');
+      return;
     }
-    const tdee = bmr * ACTIVITY_LEVELS.find(a => a.id === selectedActivity).factor;
-    item.label = `TDEE: ${Math.round(tdee)} 千卡（${activity}）`;
+    item.label = `TDEE: ${Math.round(shown)} 千卡（${activity}；当前输入快照）`;
   }
   
   history.unshift(item);
@@ -840,10 +882,20 @@ function renderHistory(){
         <div><strong>${ToolBox.escHtml(h.label)}</strong></div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${ToolBox.escHtml(h.time)}</div>
       </div>
-      <span class="del" onclick="deleteHistory(${h.id})">✕</span>
+      <button type="button" class="del" aria-label="删除 ${ToolBox.escHtml(h.label)} 这条记录" onclick="deleteHistory(${h.id})">✕</button>
     </div>
   `).join('');if((typeof __h10==='number'&&!isFinite(__h10))||/Infinity/.test(String(__h10))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h10)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h10;
 }
+
+['bmi','bmr','tdee'].forEach(function(panel){
+  var el=document.getElementById('panel-'+panel);
+  if(!el) return;
+  ['input','change'].forEach(function(evt){
+    el.addEventListener(evt,function(e){
+      if(e.target && e.target.matches && e.target.matches('input,select')) markPanelStale(panel);
+    });
+  });
+});
 
 initActivityList();
 initGoalList();

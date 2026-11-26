@@ -159,6 +159,21 @@
           <option value="hex">Hex (十六进制)</option>
         </select>
       </div>
+      <div>
+        <label for="inputFormat">解密输入格式</label>
+        <select id="inputFormat">
+          <option value="auto" selected>自动识别（歧义时报错）</option>
+          <option value="hex">Hex (十六进制)</option>
+          <option value="base64">Base64</option>
+        </select>
+      </div>
+      <div>
+        <label for="keyMode">长密钥处理</label>
+        <select id="keyMode">
+          <option value="fold" selected>页面折叠派生（兼容旧密文）</option>
+          <option value="first16">只取前 16 字节（常见实现）</option>
+        </select>
+      </div>
     </div>
 
     <div class="input-row">
@@ -167,6 +182,7 @@
         <input type="text" id="key" value="myxxteakey" placeholder="输入加密密钥（任意长度）">
       </div>
     </div>
+    <p id="keyInfo" style="font-size:12px;color:var(--text-muted);margin:4px 0 10px;"></p>
 
     <label for="input">输入文本</label>
     <textarea id="input" placeholder="加密输入明文，解密输入密文..." rows="5">Hello, XXTEA encryption!</textarea>
@@ -338,19 +354,29 @@ function bytesToHex(b){return Array.from(b).map(function(x){return x.toString(16
 function hexToBytes(h){h=h.replace(/\s/g,'');var b=new Uint8Array(h.length/2);for(var i=0;i<b.length;i++)b[i]=parseInt(h.substr(i*2,2),16);return b;}
 function bytesToBase64(b){var s='';for(var i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s);}
 function base64ToBytes(b64){var s=atob(b64);var b=new Uint8Array(s.length);for(var i=0;i<s.length;i++)b[i]=s.charCodeAt(i);return b;}
-function keyToLongs(keyStr){
+function keyToLongs(keyStr, mode){
   var b = new TextEncoder().encode(keyStr);
-  // 前 16 字节按原逻辑组成 4 个 32 位字（≤16 字节密钥行为保持不变）。
+  // 前 16 字节组成 4 个 32 位字（≤16 字节密钥行为保持不变）。
   var k = bytesToLong(b.slice(0, 16), false);
   if (k.length < 4) { var t = new Uint32Array(4); t.set(k); k = t; }
+  if (mode === 'first16' || b.length <= 16) return k;
   // IT-N559：XXTEA 只索引 k[0..3]，第 17 字节起若直接丢弃，
   // 「前 16 字节相同、后面不同」的两组密钥会产生完全相同的密文。
-  // 这里把超长部分逐字节折叠混入，保证每一个字节都参与密钥派生。
+  // fold 模式把超长部分逐字节折叠混入，保证每一个字节都参与密钥派生；
+  // 该规则是页面自定义，交给外部工具解密时请选 first16 或自行实现同一规则。
   for (var i = 16; i < b.length; i++) {
     var j = i & 3;
     k[j] = (Math.imul(k[j] ^ b[i], 16777619) + ((i - 15) << 3)) >>> 0;
   }
   return k;
+}
+function keyModeInfo(){
+  var info=document.getElementById('keyInfo'); if(!info) return;
+  var mode=(document.getElementById('keyMode')||{}).value||'fold';
+  var len=new TextEncoder().encode(document.getElementById('key').value).length;
+  if(len<=16){ info.textContent='密钥 '+len+' 字节：直接组成 4 个 32 位字，与常见 XXTEA 实现一致。'; }
+  else if(mode==='first16'){ info.textContent='密钥 '+len+' 字节：当前只取前 16 字节，第 17 字节起被忽略；前 16 字节相同的密钥会得到相同密文。'; }
+  else { info.textContent='密钥 '+len+' 字节：当前使用页面折叠派生，第 17 字节起逐字节混入；该规则非 XXTEA 标准，外部工具解密需相同规则，或改用 first16 互通模式。'; }
 }
 
 function encrypt(){
@@ -361,7 +387,9 @@ function encrypt(){
   if(!text){ToolBox.showToast(i18nText('toast.msg788'),'error');return;}
   try{
     var v=toUint32Array(text);
-    var k=keyToLongs(key);
+    var mode=(document.getElementById('keyMode')||{}).value||'fold';
+    keyModeInfo();
+    var k=keyToLongs(key,mode);
     var enc=xxteaEncrypt(v,k);
     var out=longToBytes(enc,false);
     document.getElementById('output').value=fmt==='hex'?bytesToHex(out):bytesToBase64(out);
@@ -374,20 +402,39 @@ function decrypt(){
   var text=document.getElementById('input').value.trim();
   if(!key){ToolBox.showToast(i18nText('toast.msg790'),'error');return;}
   if(!text){ToolBox.showToast(i18nText('toast.msg788'),'error');return;}
+  var outEl=document.getElementById('output');
   try{
-    var data;
-    if(/^[0-9a-fA-F\s]+$/.test(text.replace(/\s/g,''))&&text.replace(/\s/g,'').length%2===0){
-      data=hexToBytes(text);
-    }else{
-      data=base64ToBytes(text);
+    var fmt=(document.getElementById('inputFormat')||{}).value||'auto';
+    var compact=text.replace(/\s/g,'');
+    var isHex=/^[0-9a-fA-F]+$/.test(compact)&&compact.length%2===0;
+    var isB64=/^[A-Za-z0-9+/]+={0,2}$/.test(compact)&&compact.length%4===0;
+    if(fmt==='auto'){
+      if(isHex&&isB64) throw new Error(xxQ('输入同时符合 Hex 与 Base64，无法安全自动识别；请在上方“解密输入格式”中显式选择','input is valid as both Hex and Base64; choose an explicit input format'));
+      if(!isHex&&!isB64) throw new Error(xxQ('既不是合法 Hex 也不是合法 Base64','not valid Hex or Base64'));
+      fmt=isHex?'hex':'base64';
     }
+    var data;
+    if(fmt==='hex'){
+      if(!isHex) throw new Error(xxQ('不是合法 Hex（需偶数位 0-9a-fA-F）','not valid Hex (even number of 0-9a-fA-F)'));
+      data=hexToBytes(compact);
+    }else{
+      if(!isB64) throw new Error(xxQ('不是合法 Base64','not valid Base64'));
+      data=base64ToBytes(compact);
+    }
+    if(data.length%4!==0) throw new Error(xxQ('密文长度必须是 4 字节的整数倍（当前 '+data.length+' 字节）','ciphertext length must be a multiple of 4 (got '+data.length+' bytes)'));
     var v=bytesToLong(data,false);
-    var k=keyToLongs(key);
+    var mode=(document.getElementById('keyMode')||{}).value||'fold';
+    keyModeInfo();
+    var k=keyToLongs(key,mode);
     var dec=xxteaDecrypt(v,k);
     var out=longToBytes(dec,true);
-    document.getElementById('output').value=new TextDecoder('utf-8',{fatal:false}).decode(out);
+    outEl.value=new TextDecoder('utf-8',{fatal:true}).decode(out);
     ToolBox.showToast(i18nText('toast.msg586'));
-  }catch(e){ToolBox.showToast(xxQ('解密失败: ','Decrypt failed: ')+e.message,'error');}
+  }catch(e){
+    var old=outEl.value;
+    outEl.value= old ? ('⚠ 解密失败：'+e.message+'（以下为上一次旧结果，已失效，请勿继续使用）\n'+old) : '';
+    ToolBox.showToast(xxQ('解密失败: ','Decrypt failed: ')+e.message,'error');
+  }
 }
 
 function swapText(){var o=document.getElementById('output').value;document.getElementById('input').value=o;document.getElementById('output').value='';}
@@ -395,6 +442,9 @@ function copyResult(){var r=document.getElementById('output').value;if(r){ToolBo
 function clearAll(){document.getElementById('input').value='';document.getElementById('output').value='';}
 </script><script>
 // tool-intro折叠交互
+document.getElementById('key').addEventListener('input',keyModeInfo);
+document.getElementById('keyMode').addEventListener('change',keyModeInfo);
+keyModeInfo();
 document.addEventListener('DOMContentLoaded',function(){
   var headers=document.querySelectorAll('.tool-intro-header');
   headers.forEach(function(h){
@@ -556,7 +606,7 @@ else document.addEventListener('DOMContentLoaded', __xxteaBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -564,7 +614,7 @@ else document.addEventListener('DOMContentLoaded', __xxteaBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

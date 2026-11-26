@@ -123,7 +123,7 @@
       <input type="file" id="file" style="display:none" onchange="fileToBase64(this.files[0])" aria-label="选择文件">
       <label style="flex:0 0 auto;align-self:center;font-size:13px;"><input type="checkbox" id="opt_datauri" checked> 带 data URI 前缀</label>
     </div>
-    <div class="result-box" id="result"></div> <div id="base64_fileTable"></div> <div id="base64_fileDiff"></div> <div id="base64_fileChart"></div> <div id="base64_fileHist"></div>
+    <div class="result-box" id="result"></div> <div class="formula-desc" style="color:var(--text-muted);font-size:.86rem;">历史仅保留类型 / 大小 / 状态摘要，不保存文件名、文件内容、Base64 或解码文本；点击历史项不会自动下载。</div> <div id="base64_fileTable"></div> <div id="base64_fileDiff"></div> <div id="base64_fileChart"></div> <div id="base64_fileHist"></div>
     <textarea id="b64Out" readonly style="min-height:120px" placeholder="文件的 Base64 字符串将显示在这里..." aria-label="文件的 Base64 字符串将显示在这里..."></textarea>
     <div class="toolbar">
       <button class="btn" onclick="copyB64()">复制 Base64</button>
@@ -138,6 +138,8 @@
       <button class="btn primary" onclick="b64ToFile()">还原为文件</button>
       <button class="btn" onclick="b64ToText()">尝试以文本解码</button>
     </div>
+    <label for="b64TextOut" style="margin-top:12px;">文本解码结果</label>
+    <textarea id="b64TextOut" readonly placeholder="仅在字节可严格按 UTF-8 解码时显示文本" aria-label="文本解码结果"></textarea>
     <p style="font-size:12px;color:var(--muted,#9CA3AF);margin-top:10px;">🔒 所有转换均在浏览器本地完成，文件绝不上传。大文件（>50MB）建议直接使用文件系统工具。</p>
   </div>
 </div>
@@ -266,7 +268,7 @@
 </div>
 <script>
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-var lastFile=null,lastB64='';
+var lastFile=null,lastB64='',lastB64File=null,fileReadSeq=0;
 // MIME → 文件扩展名：子类型并不等于扩展名（text/plain→txt、image/svg+xml→svg、
 // application/vnd.openxmlformats-*.document→docx），直接 split('/')[1] 会得到
 // .plain / .svg+xml / .wordprocessingml.document 这类打不开的文件名。
@@ -301,14 +303,31 @@ function extFromMime(mime){
 }
 function fileToBase64(f){
   var out=document.getElementById('result');
-  if(!f){const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
-  lastFile=f;
+  var seq=++fileReadSeq;
+  if(!f){
+    lastFile=null;lastB64='';lastB64File=null;
+    document.getElementById('b64Out').value='';
+    out.innerHTML='';return;
+  }
+  // 新选择立即让旧结果失效：读取完成前不得复制/下载上一个文件的 Base64。
+  lastFile=f;lastB64='';lastB64File=null;
+  document.getElementById('b64Out').value='';
+  out.innerHTML='<p style="color:var(--text-muted);">⏳ 正在读取：<strong>'+escH(f.name)+'</strong>（'+fmtSize(f.size)+'）</p>';
   var reader=new FileReader();
   reader.onload=function(e){
+    // 只接收最近一次选择的结果；A 慢、B 快时 A 的迟到回调直接丢弃。
+    if(seq!==fileReadSeq) return;
     var full=e.target.result;
     lastB64=document.getElementById('opt_datauri').checked?full:full.split(',')[1]||'';
+    lastB64File=f;
     document.getElementById('b64Out').value=lastB64;
-    const __h1='<p>✅ 已转换：<strong>'+escH(f.name)+'</strong>（'+fmtSize(f.size)+'）→ Base64 <strong>'+fmtSize(lastB64.length)+'</strong></p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
+    out.innerHTML='<p>✅ 已转换：<strong>'+escH(f.name)+'</strong>（'+fmtSize(f.size)+'）→ Base64 <strong>'+fmtSize(lastB64.length)+'</strong></p>';
+  };
+  reader.onerror=function(){
+    if(seq!==fileReadSeq) return;
+    lastFile=null;lastB64='';lastB64File=null;
+    document.getElementById('b64Out').value='';
+    out.innerHTML='<p style="color:var(--danger)">'+__b64FileL('Read failed: the file is no longer accessible. Choose it again.','读取失败：文件无法访问，请重新选择。')+'</p>';
   };
   reader.readAsDataURL(f);
 }
@@ -327,7 +346,7 @@ function downloadB64(){
     var blob=new Blob([arr],{type:mime});
     var a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
-    a.download=lastFile?('b64-'+lastFile.name):('file.'+extFromMime(mime));
+    a.download=lastB64File?('b64-'+lastB64File.name):('file.'+extFromMime(mime));
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
     if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg149'));
@@ -357,6 +376,8 @@ function b64ToFile(){
 function b64ToText(){
   var v=document.getElementById('b64In').value.trim();
   var out=document.getElementById('result');
+  var textOut=document.getElementById('b64TextOut');
+  if(textOut) textOut.value='';
   if(!v){const __h5='';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h5;return;}
   var parts=v.split(',');
   var data=parts.length>1?parts.slice(1).join(','):v;
@@ -364,32 +385,48 @@ function b64ToText(){
     var bin=atob(data);
     var bytes=new Uint8Array(bin.length);
     for(var i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
-    var text=new TextDecoder('utf-8').decode(bytes);
-    document.getElementById('b64In').value=text;
+    var text;
+    try{
+      text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+    }catch(err){
+      var hex=[];for(var hi=0;hi<Math.min(bytes.length,4096);hi++)hex.push(bytes[hi].toString(16).padStart(2,'0'));
+      if(bytes.length>4096)hex.push('…（仅显示前 4096 字节，共 '+bytes.length+' 字节）');
+      const __hBad='<p style="color:var(--danger)">'+__b64FileL('Not valid UTF-8 text; original input was kept. Bytes (hex):','不是有效 UTF-8 文本；原始输入未被覆盖。字节（十六进制）：')+' '+escH(hex.join(' '))+'</p>';
+      out.innerHTML=__hBad;return;
+    }
+    document.getElementById('b64TextOut').value=text;
     const __h6='<p style="color:var(--success)">✅ 已解码为文本（'+fmtSize(bytes.length)+'）</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h6;
   }catch(e){const __h7='<p style="color:var(--danger)">解码失败（可能不是文本内容）：'+escH((e.message)||e)+'</p>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h7;}
 }
 
 var __base64_file_last=0,__base64_file_skip=false;
-function __base64_fileSnap(){
-    var out={};
-    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
-    for(var i=0;i<els.length;i++){
-        var e=els[i];
-        var t=(e.type||'').toLowerCase();
-        if(t==='button'||t==='submit'||t==='hidden') continue;
-        var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
-    }
-    return out;
+function __b64FileL(en,zh){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh; }
+function __base64_filePurgeHistory(){
+    // 旧版本历史会保存 b64Out/b64In/file 明文；首次读到含这些键的旧记录即剔除，避免残留。
+    try{
+        var key='tbk_hist_'+(location.pathname||'p');
+        var raw=localStorage.getItem(key);
+        if(!raw) return;
+        var arr=JSON.parse(raw);
+        if(!Array.isArray(arr)) return;
+        var kept=arr.filter(function(rec){ return rec && rec.b64Out==null && rec.b64In==null && rec.file==null; });
+        if(kept.length!==arr.length) localStorage.setItem(key,JSON.stringify(kept));
+    }catch(e){}
 }
-function __base64_fileResText(){
-    var r=document.getElementById('result');
-    if(!r) return '';
-    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
-    if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
-    return t.slice(0,80);
+function __base64_fileSnap(){
+    // 隐私：历史只留非敏感摘要，绝不落盘文件名、文件内容、Base64 或解码文本。
+    var out={};
+    var cb=document.getElementById('opt_datauri');
+    if(cb) out.opt_datauri=cb.checked?'1':'0';
+    if(lastFile){
+        var mime=String(lastFile.type||'').toLowerCase();
+        out.fileType=mime||('.'+(String(lastFile.name||'').split('.').pop()||'bin').toLowerCase());
+        out.fileSize=fmtSize(lastFile.size);
+    }else{
+        out.fileType='-';out.fileSize='-';
+    }
+    out.status=lastB64?__b64FileL('Converted','已转换'):__b64FileL('Not read','未读取');
+    return out;
 }
 function __base64_fileScore(t){
     var s=String(t||'');
@@ -404,6 +441,23 @@ function __base64_fileTime(t){
 function __base64_fileRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
+        // 历史区先渲染且独立隔离：后续表格/图表异常不得让历史列表整体消失。
+        try{
+            TBKit.history.mount('#base64_fileHist',function(rec){
+                __base64_file_skip=true;
+                try{
+                    // 历史只有摘要：只恢复带 data URI 前缀这一项可见选项。
+                    // 文件内容无法从摘要还原，绝不对 file 控件赋值，也不自动触发下载。
+                    if(rec && rec.opt_datauri!=null){
+                        var cb=document.getElementById('opt_datauri');
+                        if(cb) cb.checked=(rec.opt_datauri==='1'||rec.opt_datauri===true||rec.opt_datauri===1);
+                    }
+                    if(ToolBox.showToast) ToolBox.showToast(__b64FileL('History stores summary only; choose the file again','历史仅保留摘要，请重新选择文件'));
+                }catch(e2){}
+                __base64_file_skip=false;
+            });
+        }catch(eh){}
+
         var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__base64_fileTime(it.t)];
@@ -415,27 +469,6 @@ function __base64_fileRender(keys,rk,en){
         });
         TBKit.matrix.table('#base64_fileTable',{head:head,rows:rows});
         TBKit.util.diffBox('#base64_fileDiff');
-        TBKit.history.mount('#base64_fileHist',function(rec){
-            __base64_file_skip=true;
-            try{
-                // 恢复前先清空未记录的勾选：旧记录是稀疏的（只存勾选中的项），
-                // 不清理会把当前多勾的权限带过来（600→777→恢复 600 仍显示 777）。
-                var __cbs=document.querySelectorAll('input[type=checkbox],input[type=radio]');
-                for(var __ci=0;__ci<__cbs.length;__ci++){
-                    if(!Object.prototype.hasOwnProperty.call(rec,__cbs[__ci].id)) __cbs[__ci].checked=false;
-                }
-                for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
-                    var e=document.getElementById(k);
-                    if(!e) continue;
-                    var t=(e.type||'').toLowerCase();
-                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
-                    else{e.value=rec[k];}
-                }
-                downloadB64();
-            }catch(e2){}
-            __base64_file_skip=false;
-        });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
             var v=parseFloat(arr[j].d.__tbScore);
@@ -453,7 +486,8 @@ function __base64_fileExtras(){
     var keys=Object.keys(snap);
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
-    var res=__base64_fileResText();
+    // 历史结论用稳定状态，不用含文件名的实时结果文案。
+    var res=snap.status;
     if(!res) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
@@ -496,7 +530,7 @@ var __base64_file_f0=(typeof downloadB64==='function')?downloadB64:null;
 if(__base64_file_f0){
     downloadB64=function(){ var __r=__base64_file_f0.apply(null,arguments); try{ __base64_fileExtras(); }catch(e){} return __r; };
 }
-function __base64_fileBoot(){ try{ __base64_filePresets(); }catch(e){} }
+function __base64_fileBoot(){ try{ __base64_filePurgeHistory(); }catch(e){} try{ __base64_filePresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __base64_fileBoot();
 else document.addEventListener('DOMContentLoaded', __base64_fileBoot);
 </script>

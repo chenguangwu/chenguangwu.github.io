@@ -261,18 +261,22 @@ function applyCostPreset(i){
   calc();
 }
 function calc(){
-// NUMCLR：全部输入留空时不得输出 0/0.00 的假结果
-var __numReq=['qty','price'];
-if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
-
-  var lines=document.getElementById("data").value.split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);
+  var rawLines=document.getElementById("data").value.split("\n");
+  var lines=rawLines.map(function(s,idx){return {text:s.trim(),no:idx+1};}).filter(function(x){return x.text;});
   var rows=[],total=0,fix=0,vr=0,un=0;
+  var numRe=/^(?:\d+(?:\.\d*)?|\.\d+)$/;
   for(var i=0;i<lines.length;i++){
-    var p=lines[i].split(/[,，\t]/);
-    var name=(p[0]||"").trim(), v=parseFloat((p[1]||"").trim());
-    if(!name||isNaN(v))continue;
-    if(v<0){document.getElementById("res").innerHTML='<p style="color:var(--danger)">第 '+(i+1)+' 行金额需为非负数：'+name+'</p>';return;}
-    var t=costType(p[2]);
+    var p=lines[i].text.split(/[,，\t]/);
+    var lineNo=lines[i].no;
+    var name=(p[0]||"").trim(), rawV=(p[1]||"").trim();
+    if(p.length<2||p.length>3||!name||!numRe.test(rawV)){
+      document.getElementById("res").innerHTML='<p style="color:var(--danger)">第 '+lineNo+' 行格式无效：需填「成本项,金额[,固定/变动]」，金额不得带单位或尾随字符。</p>';return;
+    }
+    var v=Number(rawV);
+    if(!isFinite(v)||v<0){document.getElementById("res").innerHTML='<p style="color:var(--danger)">第 '+lineNo+' 行金额需为非负数：'+esc(name)+'</p>';return;}
+    var typeRaw=(p[2]||"").trim();
+    if(typeRaw&&!costType(typeRaw)){document.getElementById("res").innerHTML='<p style="color:var(--danger)">第 '+lineNo+' 行成本类型仅支持“固定/变动”或留空。</p>';return;}
+    var t=costType(typeRaw);
     rows.push({name:name,v:v,t:t}); total+=v;
     if(t==='fix')fix+=v; else if(t==='var')vr+=v; else un+=v;
   }
@@ -293,12 +297,16 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   if(priceRaw!==''&&(!isFinite(price)||price<=0)){document.getElementById("res").innerHTML='<p style="color:var(--danger)">⚠ 单价需为大于 0 的数值，已停止计算。</p>';return;}
   if(isFinite(qty)&&qty>0){
     html+='<p>单位成本（合计 ÷ 产量 '+qty+'）：<strong>'+(total/qty).toFixed(4)+'</strong>'+(isFinite(price)&&price>0?'　单位变动成本：<strong>'+(vr/qty).toFixed(4)+'</strong>':'')+'</p>';
-    if(isFinite(price)&&price>0&&vr>0){
-      var uvc=vr/qty, cm=price-uvc;
-      if(cm>0){
-        html+='<p>盈亏平衡产量：<strong>'+(fix/cm).toFixed(1)+'</strong>（固定 '+fix.toFixed(2)+' ÷ 边际贡献 '+cm.toFixed(4)+'）；当前产量 '+(qty>=fix/cm?'高于平衡点':'低于平衡点')+'</p>';
-      }else{
-        html+='<p style="color:var(--danger)">⚠ 单价 '+price+' 不高于单位变动成本 '+uvc.toFixed(4)+'，边际贡献 ≤ 0，任何产量都无法覆盖固定成本。</p>';
+    if(isFinite(price)&&price>0){
+      if(un>0){
+        html+='<p style="color:var(--danger)">⚠ 尚有未分类成本 '+un.toFixed(2)+'，无法给出完整盈亏平衡产量；请先把全部成本标为固定或变动。</p>';
+      }else if(vr>0){
+        var uvc=vr/qty, cm=price-uvc;
+        if(cm>0){
+          html+='<p>盈亏平衡产量：<strong>'+(fix/cm).toFixed(1)+'</strong>（固定 '+fix.toFixed(2)+' ÷ 边际贡献 '+cm.toFixed(4)+'）；当前产量 '+(qty>=fix/cm?'高于平衡点':'低于平衡点')+'。假设固定成本与单位变动成本在当期产量范围内不变。</p>';
+        }else{
+          html+='<p style="color:var(--danger)">⚠ 单价 '+price+' 不高于单位变动成本 '+uvc.toFixed(4)+'，边际贡献 ≤ 0，任何产量都无法覆盖固定成本。</p>';
+        }
       }
     }
   }
@@ -338,7 +346,7 @@ function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
   <div class="related-tools-grid">
     <a href="stats-13.html" class="related-tool-card">
       <span class="rt-icon">📊</span>
-      <span class="rt-info"><span class="rt-name">预售（发布/接龙/统计）工具</span><span class="rt-desc">汇总预售、接龙或报名数据，统计人数、占比与分档结果，辅助活动预售与团购统计</span></span>
+      <span class="rt-info"><span class="rt-name">预售（发布/接龙/统计）工具</span><span class="rt-desc">汇总预售、接龙或报名名单，保留每行的箱、斤、份等单位并按同一单位统计；</span></span>
     </a>
     <a href="analysis-74.html" class="related-tool-card">
       <span class="rt-icon">⚖️</span>
@@ -346,7 +354,7 @@ function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
     </a>
     <a href="recommender-8.html" class="related-tool-card">
       <span class="rt-icon">🛡️</span>
-      <span class="rt-info"><span class="rt-name">保险（责任/意外/雇主）推荐</span><span class="rt-desc">按责任、意外、雇主等保险类别生成投保建议文本样例，辅助保险方案梳理与销售沟通，内容仅供参考</span></span>
+      <span class="rt-info"><span class="rt-name">保险保障需求清单与条款比对</span><span class="rt-desc">列出保障需求清单和条款核对项，覆盖家庭财产、个人意外、雇主责任、公众责任、旅行出行；</span></span>
     </a>
     <a href="generator-price.html" class="related-tool-card">
       <span class="rt-icon">⚖️</span>

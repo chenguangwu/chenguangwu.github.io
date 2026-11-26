@@ -157,7 +157,7 @@
 <!-- TOOLBOX-POLISH -->
 
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">视频倍速转换与时间码计算<br>总时长(ms) = (时×3600 + 分×60 + 秒) × 1000 + 毫秒<br>倍速后时长 = 总时长 ÷ 播放倍速<br>时长变化比例 = (原时长 − 新时长) ÷ 原时长 × 100%（正数为节省，负数为增加）<br>总帧数 = 总秒数 × 帧率（fps）；帧时长 = 1000 ÷ fps ms<br>SMPTE 时间码 HH:MM:SS:FF，帧字段 = 毫秒 ÷ 1000 × fps 取整<br>输出 0.75x~4x 九档倍速对照（时长 + 节省或增加量）<br>倍速区间：0.75、1、1.25、1.5、1.75、2、2.5、3、4<br>输入项：时/分/秒/毫秒、帧率、播放速度、目标时长</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">视频倍速转换与时间码计算<br>总时长(ms) = (时×3600 + 分×60 + 秒) × 1000 + 毫秒<br>倍速后时长 = 总时长 ÷ 播放倍速<br>时长变化比例 = (原时长 − 新时长) ÷ 原时长 × 100%（正数为节省，负数为增加）<br>总帧数 = 总秒数 × 帧率（fps）；帧时长 = 1000 ÷ fps ms<br>SMPTE 时间码 HH:MM:SS:FF：先算总帧数（总秒数 × fps）四舍五入，再按 fps 进位拆分（0.999s@30fps → 00:00:01:00）<br>输出 0.75x~4x 九档倍速对照（时长 + 节省或增加量）<br>倍速区间：0.75、1、1.25、1.5、1.75、2、2.5、3、4<br>输入项：时/分/秒/毫秒、帧率、播放速度、目标时长</div>
   <p class="formula-desc">倍速播放时长 <b>= 原时长 ÷ 倍速</b>（如 60 分钟 ×1.5 倍速 ≈ 40 分钟）。时间码 HH:MM:SS:FF（FF 为帧）与秒可互转；剪辑片段时长 = 出点 − 入点。</p>
   <ul class="formula-list">
     <li>帧率常见 24/25/30 fps，影响时间码与帧精度。</li>
@@ -474,7 +474,22 @@ const h=+document.getElementById('h').value||0;
   const savePct=((totalSec-newSec)/totalSec*100).toFixed(0);
   const totalFrames=Math.round(totalSec*fps);
 
-  const tcStr=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+':'+String(Math.round(ms/1000*fps)).padStart(2,'0');
+  const isIntFps=Math.abs(fps-Math.round(fps))<1e-9;
+  let tcStr, tcNote;
+  if(isIntFps){
+    const fi=Math.round(fps);
+    let tf=Math.round(totalSec*fi);
+    const ff=tf%fi; tf=Math.floor(tf/fi);
+    const ss=tf%60, mm=Math.floor(tf/60)%60, hh=Math.floor(tf/3600);
+    tcStr=String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0')+':'+String(ff).padStart(2,'0');
+    tcNote='整数帧率：先四舍五入总帧数，再按 fps 进位拆分时分秒帧，帧号永不超出 0–'+(fi-1)+'（0.999s@30fps → 00:00:01:00）。';
+  }else{
+    const whole=Math.floor(totalSec);
+    const ff=Math.min(Math.floor((totalSec-whole)*fps+1e-9),Math.ceil(fps)-1);
+    const ss=whole%60, mm=Math.floor(whole/60)%60, hh=Math.floor(whole/3600);
+    tcStr=String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0')+':'+String(ff).padStart(2,'0');
+    tcNote='非整数帧率（如 29.97）：此处按秒内实际帧序号显示，未做 SMPTE 丢帧（DF）换算；交片给电视台等需要 DF 的场合请用专用工具另行核对。';
+  }
   document.getElementById('timecode').value=tcStr;
 
   let html=`<div class="time-display"><div class="time-big">${fmtTime(newMs)}</div><div class="time-label">${sp}x 倍速播放时长</div></div>`;
@@ -492,7 +507,7 @@ const h=+document.getElementById('h').value||0;
   });
   html+=`</div>`;
   const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-  const __g4=`<div class="result-box" style="margin-top:12px;"><p style="font-size:13px;">原视频 ${fmtTimeShort(totalSec)} @ ${fps}fps = <strong>${totalFrames.toLocaleString()}</strong> 帧</p><p style="font-size:13px;margin-top:8px;">SMPTE时间码：<strong style="font-family:monospace;">${tcStr}</strong></p><p style="font-size:13px;margin-top:8px;">1帧 = ${(1/fps).toFixed(4)}秒 = ${(1000/fps).toFixed(2)}毫秒</p></div>`;document.getElementById('tcResult').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  const __g4=`<div class="result-box" style="margin-top:12px;"><p style="font-size:13px;">原视频 ${fmtTimeShort(totalSec)} @ ${fps}fps = <strong>${totalFrames.toLocaleString()}</strong> 帧</p><p style="font-size:13px;margin-top:8px;">SMPTE时间码：<strong style="font-family:monospace;">${tcStr}</strong></p><p style="font-size:13px;margin-top:8px;">1帧 = ${(1/fps).toFixed(4)}秒 = ${(1000/fps).toFixed(2)}毫秒</p><p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${tcNote}</p></div>`;document.getElementById('tcResult').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   _lastCalc={orig:fmtTimeShort(totalSec),origFull:fmtTime(totalMs),speed:sp+'x',newTime:fmtTime(newMs),save:Math.abs(savePct)+'%',fps:fps,totalFrames:totalFrames,direction:saveSec<0?'增加':'节省'};
 }
 function saveRecord(){

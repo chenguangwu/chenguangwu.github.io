@@ -8,7 +8,9 @@ latest names, descriptions, icons, and i18n metadata from json/tools.json.
 """
 import json
 import os
+import re
 import sys
+import html as html_mod
 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -119,15 +121,49 @@ def _has_cjk(value):
     return any('\u4e00' <= ch <= '\u9fff' for ch in str(value))
 
 
+def _load_i18n(industry, cache={}):
+    if industry not in cache:
+        path = os.path.join(ROOT, 'i18n', 'tools', industry + '.json')
+        try:
+            cache[industry] = json.load(open(path, encoding='utf-8'))
+        except (OSError, json.JSONDecodeError):
+            cache[industry] = {}
+    return cache[industry]
+
+
+def _page_meta(tool):
+    path = os.path.join(ROOT, tool.get('url', ''))
+    try:
+        text = open(path, encoding='utf-8', errors='replace').read()
+    except OSError:
+        return '', ''
+    zh = re.search(r'<meta\s+name="description"\s+content="([^"]*)"', text, re.I)
+    en = re.search(r'<meta\s+name="desc-en"\s+content="([^"]*)"', text, re.I)
+    return (html_mod.unescape(zh.group(1)) if zh else '',
+            html_mod.unescape(en.group(1)) if en else '')
+
+
+def _full_desc(tool):
+    """取完整中英文描述：i18n intro/desc → 页面 meta → tools.json。"""
+    slug = os.path.basename(tool.get('url', '')).replace('.html', '')
+    entry = (_load_i18n(tool.get('industry', '')).get(slug, {}) or {})
+    zh = entry.get('zh-CN') or {}
+    en = entry.get('en-US') or {}
+    meta_zh, meta_en = _page_meta(tool)
+    d = zh.get('intro') or zh.get('desc') or meta_zh or tool.get('d') or tool.get('desc') or tool.get('name', '')
+    ed = en.get('intro') or en.get('desc') or meta_en or tool.get('ed') or tool.get('desc') or d
+    return d, ed
+
+
 def hot_card(tool):
     """Keep the public payload compact and stable for js/app.js."""
     name = tool.get('name', '')
-    desc = tool.get('d') or tool.get('desc') or name
+    desc, desc_en = _full_desc(tool)
     card = {
         'n': name,
         'en': tool.get('en') or name,
         'd': desc,
-        'ed': tool.get('ed') or desc,
+        'ed': desc_en,
         'i': tool.get('industry', ''),
         'c': tool.get('cat', ''),
         'u': tool.get('url', ''),
@@ -138,7 +174,7 @@ def hot_card(tool):
     if fix:
         if _has_cjk(card['en']):
             card['en'] = fix['en']
-        if _has_cjk(card['ed']):
+        if _has_cjk(card['ed']) or str(card['ed']).rstrip().endswith('…'):
             card['ed'] = fix['ed']
     return card
 
@@ -163,6 +199,9 @@ def main():
         raise SystemExit(1)
 
     cards = [hot_card(by_url[url]) for url in HOT_TOOL_URLS]
+    truncated = [c['u'] for c in cards if str(c.get('d','')).rstrip().endswith('…') or str(c.get('ed','')).rstrip().endswith('…')]
+    if truncated:
+        raise SystemExit('Truncated hot-tool descriptions: ' + ', '.join(truncated))
     with open(OUTPUT_PATH, 'w', encoding='utf-8') as output:
         json.dump(cards, output, ensure_ascii=False, indent=2)
         output.write('\n')

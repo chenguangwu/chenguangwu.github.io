@@ -31,7 +31,7 @@ const CASES = [
       "area": "200"
     },
     "expect": [
-      "385.0 kg"
+      "350.0 kg"
     ],
     "ref": "花源充足(>3倍需求)加成1.1"
   },
@@ -65,8 +65,45 @@ const CASES = [
     "inputs": { "n": "5", "vol": "4", "ratio": "2", "price": "5", "daily": "0.5", "days": "10" },
     "expect": ["20.0 L", "17.9 kg", "8.9 kg", "26.8 kg", "89 元", "8.0 天", "3.6 kg"],
     "ref": "越冬糖浆独立复算：总糖浆=5×4=20 L；2:1 糖质量分数=2/3，实测密度 1.34 kg/L ⇒ 总重 26.8 kg、糖 17.9 kg、水 8.9 kg；成本按单价 5 元=89 元；饲喂天数=4/0.5=8.0；每群糖量 3.6 kg。"
+  },  {
+    "slug": "beekeeping/honey-estimator",
+    "clicks": ["document.getElementById('hives').value='1.5';calc();var c=0;var old=ToolBox.copyText;ToolBox.copyText=function(){c++;};copyResult();ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='TB828H '+((String(document.getElementById('honeyResult').textContent).trim()==='--'&&c===0)?'OK':'BAD');"],
+    "expect": ["TB828H OK"],
+    "ref": "第828批：1.5 群旧实现仍可计算，无效时复制又把 parseFloat 空值兜成 0、复制 0 kg。现在蜂箱须正整数，无效结果置 -- 且复制前检查 __honeyLast；探针替换 copyText 计数，要求零调用。"
+  },
+  {
+    "slug": "beekeeping/winter-feed-syrup",
+    "clicks": ["var c=0;var old=clearChart;clearChart=function(){c++;};document.getElementById('n').value='';calcTool();clearChart=old;document.getElementById('__tbProbe').textContent='TB828W '+((c>0&&document.getElementById('result').innerHTML.indexOf('请完整填写')>=0)?'OK':'BAD');"],
+    "expect": ["TB828W OK"],
+    "ref": "第828批：无效输入时旧实现只替换结果文字，上一次的成功柱状图仍留在 canvas。现在无效分支调用 clearChart() 清空画布；探针包裹 clearRect 计数并要求提示同时出现。"
+  }
+  ,{
+    "slug": "beekeeping/honey-estimator",
+    "inputs": {"hives":"10","area":"120"},
+    "expect": ["350.0 kg"],
+    "ref": "第829批：10 群需求 40 亩，120 亩恰为 3 倍。旧实现面积 >3 倍才加成、刚超阈值即 +10%，现达到需求后固定 1.0，10×35=350.0 kg；与 200 亩同值，证明无阈值跳变。"
+  },
+  {
+    "slug": "beekeeping/winter-feed-syrup",
+    "inputs": { "n":"5","vol":"4","ratio":"2","price":"5","daily":"0.5","days":"10" },
+    "expect": ["缺口 1.0 L/群","合计 5.0 L","计划与备料不匹配"],
+    "ref": "第829批：计划 10 天×0.5 L/群=5 L/群，实备 4 L/群 ⇒ 缺口 1.0 L/群、合计 5.0 L。旧实现只显示「按计划10天」与消耗15天，不比较两者。"
+  },
+  {
+    "slug": "beekeeping/winter-feed-syrup",
+    "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/beekeeping/winter-feed-syrup.html','utf8');var ok=h.indexOf('../agriculture/cycle-honey.html')>=0&&h.indexOf('../agriculture/detector-13.html')>=0&&h.indexOf('../agriculture/estimate-area-yield.html')>=0&&h.indexOf('../it/gitignore-generator.html')<0&&h.indexOf('../it/ast-viewer.html')<0;document.getElementById('__tbProbe').textContent='TB852R '+(ok?'OK':'BAD');})();"],
+    "expect": ["TB852R OK"],
+    "ref": "第852批：越冬补饲的 5 个开发工具推荐（.gitignore / properties / API 签名 / ASCII 树 / AST）全部替换为养蜂与农业相关页，保留养蜂采蜜量估算；探针断言旧 /it/ 链接已消失。"
+  }
+,
+{
+    "slug": "beekeeping/winter-feed-syrup",
+    "inputs": { "n":"1","vol":"0.001","ratio":"2","price":"5","daily":"0.05","days":"30" },
+    "expect": ["1.00 mL","1.34 kg","894 mg","447 mg","0.004 元"],
+    "ref": "第865批：每群仅 0.001 L 时固定 toFixed(1) 会显示 0.0 L/0.0 kg；日耗按页面下限 0.05 L 不影响糖量；现按量级自适应为 mL/mg，糖 894 mg、水 447 mg、总重 1.34 kg、成本 0.004 元。"
   }
 ];
+
 
 async function main() {
   const only = process.argv.slice(2);

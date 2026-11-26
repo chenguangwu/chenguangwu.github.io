@@ -252,16 +252,19 @@ function secureCrypto(){return (typeof crypto!=='undefined'&&crypto&&crypto.getR
 function secureInt(max){const c=secureCrypto();if(!c)throw new Error('NO_CRYPTO');const limit=Math.floor(4294967296/max)*max;const a=new Uint32Array(1);do{c.getRandomValues(a);}while(a[0]>=limit);return a[0]%max;}
 function calcTool(){
 if(!secureCrypto()){ document.getElementById('result').innerHTML='<p class="muted" style="color:var(--danger)">当前浏览器不支持 Web Crypto 安全随机数，无法生成不可预测的随机字符串；请升级浏览器后重试。</p>'; return; }
+function rsIsEn(){ return RS_EN || !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()); }
+function rsMsg(zh,en){ return rsIsEn()?en:zh; }
+function rsErr(msg){ document.getElementById('result').innerHTML='<p class="muted" style="color:var(--danger)">'+msg+'</p>'; }
 var lenRaw=document.getElementById('len').value.trim();
-var len=lenRaw===''?16:parseInt(lenRaw,10);
-if(isNaN(len))len=16;
-if(len<1){ document.getElementById('result').innerHTML='<p class="muted">长度至少为 1 位</p>'; return; }
-if(len>128)len=128;
+if(lenRaw===''){ rsErr(rsMsg('请输入长度（1–128 的整数）。','Enter a length (integer from 1 to 128).')); return; }
+if(!/^\d+$/.test(lenRaw)){ rsErr(rsMsg('长度必须为整数，不能是小数或含其他字符。','Length must be an integer — no decimals or other characters.')); return; }
+var len=Number(lenRaw);
+if(len<1||len>128){ rsErr(rsMsg('长度需在 1–128 之间，当前为 '+lenRaw+'。','Length must be between 1 and 128; got '+lenRaw+'.')); return; }
 var cntRaw=document.getElementById('cnt').value.trim();
-var cnt=cntRaw===''?5:parseInt(cntRaw,10);
-if(isNaN(cnt))cnt=5;
-if(cnt<1){ document.getElementById('result').innerHTML='<p class="muted">生成数量至少为 1 个</p>'; return; }
-if(cnt>50)cnt=50;
+if(cntRaw===''){ rsErr(rsMsg('请输入生成数量（1–50 的整数）。','Enter a count (integer from 1 to 50).')); return; }
+if(!/^\d+$/.test(cntRaw)){ rsErr(rsMsg('生成数量必须为整数，不能是小数或含其他字符。','Count must be an integer — no decimals or other characters.')); return; }
+var cnt=Number(cntRaw);
+if(cnt<1||cnt>50){ rsErr(rsMsg('生成数量需在 1–50 之间，当前为 '+cntRaw+'。','Count must be between 1 and 50; got '+cntRaw+'.')); return; }
 var set='';
 if(document.getElementById('top_upper').checked) set+='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 if(document.getElementById('top_lower').checked) set+='abcdefghijklmnopqrstuvwxyz';
@@ -274,7 +277,7 @@ for(var n=0;n<cnt;n++){
   for(var i=0;i<len;i++){ s+=set[secureInt(set.length)]; }
   out.push(s);
 }
-var html='<div class="result-title">'+(RS_EN?('Generated '+cnt+' random strings (click to copy)'):('生成 '+cnt+' 个随机字符串（点击复制）'))+'</div>';
+var html='<div class="result-title">'+(rsIsEn()?('Generated '+cnt+' random strings, '+len+' characters each (click to copy)'):('已生成 '+cnt+' 个随机字符串，每条 '+len+' 位（点击复制）'))+'</div>';
 html+='<div class="code-list">';
 for(var k=0;k<out.length;k++){ html+='<div class="code-row"><code>'+escH(out[k])+'</code><button class="copy-btn" onclick="copyRand(this)">'+(RS_EN?'Copy':((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copy":"复制"))+'</button></div>'; }
 html+='</div>';

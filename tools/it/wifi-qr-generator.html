@@ -152,6 +152,8 @@
     <div class="toolbar">
       <div id="wifi_qr_generatorPresets"></div><button class="btn primary" onclick="calcTool()">计算</button><button class="btn" type="button" onclick="__wifi_qr_generatorExport()">导出明细 CSV</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn success" onclick="copyWifi()">复制配网串</button>
+      <button class="btn" onclick="downloadWifiQR()">下载二维码 PNG</button>
     </div>
     <div class="result-box" id="result"></div> <div id="wifi_qr_generatorTable"></div> <div id="wifi_qr_generatorDiff"></div> <div id="wifi_qr_generatorChart"></div> <div id="wifi_qr_generatorHist"></div>
   </div>
@@ -239,11 +241,26 @@
     </a>
   </div>
 </div>
+<script src="../../js/qrcode.js"></script>
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
+function escH(s){var d=document.createElement('div');if(typeof s==='number'){d.textContent=isFinite(s)?String(s):'—';}else{d.textContent=s==null?'':String(s);}return d.innerHTML;}
 function escWifi(s){return String(s).replace(/([\\;,:"])/g,'\\$1');}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+var lastWifiStr='', lastWifiCanvas=null;
+function wifiQR(text){
+  try{
+    if(qrcode.stringToBytesFuncs&&qrcode.stringToBytesFuncs['UTF-8'])qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];
+    var qr=qrcode(0,'M'); qr.addData(text,'Byte'); qr.make();
+    var N=qr.getModuleCount(), cell=8, quiet=4, size=(N+quiet*2)*cell;
+    var canvas=document.createElement('canvas'); canvas.width=size; canvas.height=size;
+    var ctx=canvas.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,size,size); ctx.fillStyle='#000';
+    for(var r=0;r<N;r++)for(var c=0;c<N;c++){ if(qr.isDark(r,c)) ctx.fillRect((c+quiet)*cell,(r+quiet)*cell,cell,cell); }
+    return canvas;
+  }catch(e){ return null; }
+}
+function copyWifi(){ if(!lastWifiStr){alert('请先生成配网二维码');return;} navigator.clipboard.writeText(lastWifiStr).then(function(){alert('已复制配网字符串');}); }
+function downloadWifiQR(){ if(!lastWifiCanvas){alert('请先生成配网二维码');return;} var a=document.createElement('a'); a.href=lastWifiCanvas.toDataURL('image/png'); a.download='wifi-qr.png'; document.body.appendChild(a); a.click(); a.remove(); }
 function calcTool(){var ssid=document.getElementById('ssid').value;
 var pass=document.getElementById('pass').value;
 var enc=document.getElementById('enc').value;
@@ -256,13 +273,20 @@ if(hidden==='true') parts.push('H:true');
 str='WIFI:'+parts.join(';')+';;';
 var html='<div class="result-title">配网字符串（WIFI:）</div>';
 html+='<pre class="code-box" style="white-space:pre-wrap;word-break:break-all;font-size:13px;">'+escH(str)+'</pre>';
-html+='<p class="muted">将此字符串交给任意二维码生成工具（如本站的二维码工具）即可生成可扫描的连网二维码。</p>';
+html+='<div class="qr-wrap" id="wifiQrWrap" style="margin:12px 0;"></div>';
+html+='<p class="muted">上方二维码由本页用 QR 编码器直接生成，扫码即可连接；也可复制原始配网串交给其他工具。</p>';
 html+='<div class="data-grid">';
 html+='<div class="data-card"><div class="num" style="font-size:13px;">'+escH(ssid)+'</div><div class="label">SSID</div></div>';
 html+='<div class="data-card"><div class="num" style="font-size:13px;">'+escH(enc==='nopass'?'无密码':pass)+'</div><div class="label">密码/方式</div></div>';
 html+='<div class="data-card"><div class="num" style="font-size:13px;">'+(hidden==='true'?'隐藏':'可见')+'</div><div class="label">网络可见性</div></div>';
 html+='</div>';
-const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
+document.getElementById('result').innerHTML=html;
+var qc=wifiQR(str);
+lastWifiCanvas=qc; lastWifiStr=qc?str:'';
+var wrap=document.getElementById('wifiQrWrap');
+if(qc && wrap){ wrap.appendChild(qc); }
+else if(wrap){ wrap.innerHTML='<p style="color:var(--danger)">二维码生成失败：内容过长或编码异常。</p>'; }
+}
 function resetForm(){document.getElementById('ssid').value='MyHomeAP';
       document.getElementById('pass').value='secret123';
       document.getElementById('enc').selectedIndex=0;

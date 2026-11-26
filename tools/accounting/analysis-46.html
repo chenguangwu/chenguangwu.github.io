@@ -107,7 +107,7 @@
     <h2 data-zh="🔮 财务（分析/决策/预测）模型">🔮 Financial Analysis, Decision and Forecasting Model</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="分析/决策/预测">Least-squares trend fit with next-period forecast and growth rate.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">最小二乘趋势 y = a + b·x（x 为期次序号）；R² = 1 − 残差平方和 ÷ 总偏差平方和；CAGR = (末期值 ÷ 首期值)^(1 ÷ (n−1)) − 1</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">最小二乘趋势 y = a + b·x（x 为期次序号）；R² = 1 − 残差平方和 ÷ 总偏差平方和，序列为常量时显示“不适用”；CAGR = (末期值 ÷ 首期值)^(1 ÷ (n−1)) − 1，首期≤0 时显示“不适用”；斜率为 0 时判“平稳趋势”。每行须为「数值」或「期间,数值」，非法行逐行报错，期间名按文本转义。</div>
   <p>按最小二乘拟合线性趋势 y = a + b·x（x 为期次序号），斜率 b 表示每期的平均增减量。</p>
   <p>下期预测值 = a + b·(n+1)；拟合优度 R² 越接近 1，说明线性趋势越明显。</p>
   <p>复合增长率 CAGR =（末期值 ÷ 首期值）^(1/(n−1)) − 1，与移动平均一起用于交叉判断趋势。</p>
@@ -196,50 +196,46 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
+function __esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function calc(){
-var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
-var arr=[];
-lines.forEach(function(ln){
-var p=ln.split(/[,，\t ]+/);
-var v=parseFloat(p.length>1?p[p.length-1]:p[0]);
-if(isNaN(v))return;
-var nm=p.length>1?p[0]:("第"+arr.length+1+"期");
+var __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/.test(location.search);
+var raw=document.getElementById("data").value.split("\n");
+var lines=raw.map(function(s,i){return {t:s.trim(),i:i+1};}).filter(function(o){return o.t.length>0;});
+var arr=[],bad=[];
+lines.forEach(function(o){
+var p=o.t.split(/[,，	 ]+/).filter(function(x){return x!=='';});
+var last=p.length>1?p[p.length-1]:p[0];
+var v=parseFloat(last);
+if(p.length>2||!isFinite(v)){bad.push((__en?'Line ':'第 ')+o.i+(__en?': “':' 行「')+__esc(o.t.slice(0,40))+(__en?'” cannot be parsed':'」无法解析'));return;}
+var nm=p.length>1?p[0]:("第"+(arr.length+1)+"期");
 arr.push({name:nm,v:v});
 });
-if(arr.length<3){document.getElementById("res").innerHTML='<p>请至少输入 3 期历史数据（每行一个值，或「期间,数值」）</p>';return;}
+if(bad.length){document.getElementById("res").innerHTML='<p style="color:var(--danger)">'+(__en?'⚠ Invalid data; fix each line:':'⚠ 数据格式有误，请逐行修正：')+'</p><ul><li>'+bad.join('</li><li>')+'</li></ul><p>'+(__en?'Each line must be “value” or “period,value”; blank lines are ignored.':'每行应为「数值」或「期间,数值」；空行已忽略。')+'</p>';return;}
+if(arr.length<3){document.getElementById("res").innerHTML='<p>'+(__en?'Enter at least 3 historical periods (one value per line, or “period,value”).':'请至少输入 3 期历史数据（每行一个值，或「期间,数值」）')+'</p>';return;}
 var n=arr.length,sx=0,sy=0,sxy=0,sxx=0;
-arr.forEach(function(o,i){
-var x=i+1;
-sx+=x;sy+=o.v;sxy+=x*o.v;sxx+=x*x;
-});
+arr.forEach(function(o,i){var x=i+1;sx+=x;sy+=o.v;sxy+=x*o.v;sxx+=x*x;});
 var den=n*sxx-sx*sx;
 var b=den!==0?(n*sxy-sx*sy)/den:0;
 var a=(sy-b*sx)/n;
 var next=a+b*(n+1);
 var ybar=sy/n,sstot=0,ssres=0;
-arr.forEach(function(o,i){
-var x=i+1;
-sstot+=(o.v-ybar)*(o.v-ybar);
-ssres+=(o.v-(a+b*x))*(o.v-(a+b*x));
-});
-var r2=sstot!==0?1-ssres/sstot:0;
+arr.forEach(function(o,i){var x=i+1;sstot+=(o.v-ybar)*(o.v-ybar);ssres+=(o.v-(a+b*x))*(o.v-(a+b*x));});
+var r2=sstot!==0?1-ssres/sstot:null;
 var m=Math.min(3,n),ma=0;
 for(var i=n-m;i<n;i++)ma+=arr[i].v;
 ma=ma/m;
-var cagr=(arr[0].v>0&&n>1)?(Math.pow(arr[n-1].v/arr[0].v,1/(n-1))-1)*100:0;
-var trend=(b>0?'上升趋势':'下降趋势')+'（斜率 '+b.toFixed(2)+'/期）';
+var cagr=(arr[0].v>0&&n>1)?(Math.pow(arr[n-1].v/arr[0].v,1/(n-1))-1)*100:null;
+var trend=__en?(b>0?'rising trend':(b<0?'falling trend':'flat trend (slope 0, no clear rise or fall)')):(b>0?'上升趋势':(b<0?'下降趋势':'平稳趋势（斜率 0，无明显上升或下降）'));
 var rows='';
-arr.forEach(function(o,i){
-var x=i+1,fit=a+b*x;
-rows+='<tr><td>'+o.name+'</td><td>'+o.v.toFixed(2)+'</td><td>'+fit.toFixed(2)+'</td><td>'+(o.v-fit).toFixed(2)+'</td></tr>';
-});
-const __g2='<p>期数：<strong>'+n+'</strong>　合计：<strong>'+sy.toFixed(2)+'</strong>　均值：<strong>'+ybar.toFixed(2)+'</strong></p>'+
-'<p>线性趋势斜率：<strong style="color:var(--primary);">'+b.toFixed(2)+'</strong>　截距：<strong>'+a.toFixed(2)+'</strong></p>'+
-'<p>下期预测值：<strong>'+next.toFixed(2)+'</strong>　拟合优度 R²：<strong>'+r2.toFixed(4)+'</strong></p>'+
-'<p>末期移动平均（'+m+'期）：<strong>'+ma.toFixed(2)+'</strong>　复合增长率：<strong>'+cagr.toFixed(2)+'%</strong></p>'+
-'<p>趋势判断：<strong>'+trend+'</strong></p>'+
-'<p style="font-size:13px;color:var(--text-muted);">按最小二乘拟合 y = a + b·x（x 为期次序号）；R² 越接近 1 说明线性趋势越明显，外推预测仅供参考。</p>'+
-'<table><thead><tr><th>期间</th><th>实际值</th><th>拟合值</th><th>残差</th></tr></thead><tbody>'+rows+'</tbody></table>';document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+arr.forEach(function(o,i){var x=i+1,fit=a+b*x;rows+='<tr><td>'+__esc(o.name)+'</td><td>'+o.v.toFixed(2)+'</td><td>'+fit.toFixed(2)+'</td><td>'+(o.v-fit).toFixed(2)+'</td></tr>';});
+const __g2='<p>'+(__en?'Periods: ':'期数：')+'<strong>'+n+'</strong>'+(__en?'　Total: ':'　合计：')+'<strong>'+sy.toFixed(2)+'</strong>'+(__en?'　Mean: ':'　均值：')+'<strong>'+ybar.toFixed(2)+'</strong></p>'+
+'<p>'+(__en?'Linear slope: ':'线性趋势斜率：')+'<strong style="color:var(--primary);">'+b.toFixed(2)+'</strong>'+(__en?'　Intercept: ':'　截距：')+'<strong>'+a.toFixed(2)+'</strong></p>'+
+'<p>'+(__en?'Next forecast: ':'下期预测值：')+'<strong>'+next.toFixed(2)+'</strong>'+(__en?'　R²: ':'　拟合优度 R²：')+'<strong>'+(r2===null?(__en?'Not applicable (constant series)':'不适用（序列为常量）'):r2.toFixed(4))+'</strong></p>'+
+'<p>'+(__en?'Trailing moving average ('+m+' periods): ':'末期移动平均（'+m+'期）：')+'<strong>'+ma.toFixed(2)+'</strong>'+(__en?'　CAGR: ':'　复合增长率：')+'<strong>'+(cagr===null?(__en?'Not applicable (starting value ≤0 or too few periods)':'不适用（首期≤0 或期数不足）'):cagr.toFixed(2)+'%')+'</strong></p>'+
+'<p>'+(__en?'Trend: ':'趋势判断：')+'<strong>'+trend+(__en?' (slope '+b.toFixed(2)+' per period)':'（斜率 '+b.toFixed(2)+'/期）')+'</strong></p>'+
+'<p style="font-size:13px;color:var(--text-muted);">'+(__en?'Least-squares fit y = a + b·x (x is the period index); R² closer to 1 means a clearer linear trend. Extrapolation reflects only the linear continuation of the historical sample, not a guarantee of the future.':'按最小二乘拟合 y = a + b·x（x 为期次序号）；R² 越接近 1 说明线性趋势越明显。外推预测只反映历史样本的线性延续，不代表未来必然发生。')+'</p>'+
+'<table><thead><tr><th>'+(__en?'Period':'期间')+'</th><th>'+(__en?'Actual':'实际值')+'</th><th>'+(__en?'Fitted':'拟合值')+'</th><th>'+(__en?'Residual':'残差')+'</th></tr></thead><tbody>'+rows+'</tbody></table>';
+document.getElementById("res").innerHTML=__g2;
 }
 calc();
 function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}

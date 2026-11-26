@@ -139,7 +139,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入两端断面面积 A₁、A₂ 与间距 L，求体积。">Compute earthwork volume between two cross-sections from their end areas and spacing.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">平均断面法土方量（本页代码口径）：V=(A₁+A₂)÷2×L（m³，A₁/A₂ 两端断面面积 m²、L 断面间距 m）；联动量：平均断面面积=(A₁+A₂)÷2（m²）、两端面积差=|A₁−A₂|（m²）。校验：无强校验，空值按 0 兜底。判据：无固定分级，两端面积差越大该法误差越明显，宜加密断面。</div>
+      <div class="formula-eq">平均断面法：V_avg=(A₁+A₂)÷2×L；棱柱法（含中截面）：V_pr=L÷6×(A₁+4A_m+A₂)，A_m 为两端之间的中间断面面积。校验：A₁、A₂ ≥ 0，L &gt; 0，A_m 可选（填则须 ≥ 0）；任一必填项留空即提示，不再按 0 兜底。判据：等断面时两法体积相同；两端面积差越大，平均断面法误差越明显，宜用棱柱法或加密断面。</div>
       <p class="formula-desc">输入两端断面面积 A₁、A₂ 与间距 L，求体积。</p>
     </div>
 
@@ -155,6 +155,10 @@
       <div>
         <label for="L">间距 L (米)</label>
         <input type="number" id="L" value="50" step="5" placeholder="如 50">
+      </div>
+      <div>
+        <label for="Am">中间断面面积 A_m (米²，棱柱法可选)</label>
+        <input type="number" id="Am" value="15" step="1" placeholder="如 15；留空则不算棱柱法">
       </div>
     </div>
 
@@ -190,12 +194,12 @@
             </tr>
             <tr>
               <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="棱台（拟柱体）公式">Prismoidal formula</td>
-              <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="V = L / 3 · ( A₁ + A₂ + sqrt(A₁ · A₂) )">V = L/3 · ( A1 + A2 + sqrt(A1 · A2) )</td>
+              <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="V = L / 6 · ( A₁ + 4A_m + A₂ )">V = L/6 · ( A1 + 4·Am + A2 )</td>
               <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="GB 50026-2020 工程测量规范（土方量计算）">GB 50026-2020, Code for engineering surveying (earthwork volume)</td>
             </tr>
             <tr>
               <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="两法的差异">Difference between the two</td>
-              <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="断面面积变化越大，平均断面法误差越大，宜用棱台公式">The average end-area method errs more as end areas differ; prefer the prismoidal formula then</td>
+              <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="断面面积变化越大，平均断面法误差越大，宜用棱柱法（需实测中间断面面积）">The average end-area method errs more as end areas differ; prefer the prismoidal formula then</td>
               <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="GB 50026-2020 工程测量规范">GB 50026-2020, Code for engineering surveying</td>
             </tr>
             <tr>
@@ -253,17 +257,33 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const A1=num('A1'),A2=num('A2'),L=num('L');
+            const A1=num('A1'),A2=num('A2'),L=num('L'),Am=num('Am');
+            var __a1r=String(document.getElementById('A1').value).trim(),__a2r=String(document.getElementById('A2').value).trim(),__lr=String(document.getElementById('L').value).trim(),__amr=String(document.getElementById('Am').value).trim();
+            if(__a1r===''||__a2r===''||__lr===''){ToolBox.setResult('result','<p style="color:var(--danger)">断面 A₁、A₂ 与间距 L 均必填；0 面积合法，留空不等于 0。</p>');return;}
+            if(!(A1>=0)||!(A2>=0)||!(L>0)||!isFinite(A1)||!isFinite(A2)||!isFinite(L)){ToolBox.setResult('result','<p style="color:var(--danger)">A₁、A₂ 须 ≥ 0，L 须 &gt; 0 的有限值；负面积/负间距不计算。</p>');return;}
             const V=(A1+A2)/2*L;
-            const __g1=dataGrid([
-                [V.toFixed(2),'土方体积 V (米³)'],
+            var rows=[
+                [V.toFixed(2),'平均断面法 V_avg (米³)'],
                 [((A1+A2)/2).toFixed(3), '平均断面面积 (m2)'],
                 [(Math.abs(A1-A2)).toFixed(3), '两端面积差 (m2)']
-            ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+            ];
+            var prNote='';
+            if(__amr!==''){
+              if(!(Am>=0)||!isFinite(Am)){ToolBox.setResult('result','<p style="color:var(--danger)">中间断面面积 A_m 若填写必须为 ≥ 0 的有限值；留空则不计算棱柱法。</p>');return;}
+              var pr=L/6*(A1+4*Am+A2);
+              rows.push([pr.toFixed(2),'棱柱法 V_pr (米³)']);
+              rows.push([(pr-V).toFixed(2),'棱柱法−平均断面法 (米³)']);
+              prNote='<div class="tip-box" style="margin-top:8px;">棱柱法已使用中间断面 A_m='+Am+' ㎡；等断面 A₁=A₂=A_m=10、L=50 ⇒ 两法均为 500 m³。</div>';
+            } else {
+              rows.push(['—','棱柱法 V_pr（需填中间断面 A_m）']);
+              prNote='<div class="tip-box tip-warn" style="margin-top:8px;">未填中间断面面积，仅输出平均断面法；不能用 √(A₁A₂) 冒充中截面，那不保证等于棱柱法。</div>';
+            }
+            const __g1=dataGrid(rows);ToolBox.setResult('result',String(__g1).replace(/Infinity|NaN/g,'—')+prNote);
         }
 function resetForm(){document.getElementById('A1').value = '10';
       document.getElementById('A2').value = '20';
       document.getElementById('L').value = '50';
+      document.getElementById('Am').value = '15';
       calcTool();}
 calcTool();
 
@@ -280,14 +300,18 @@ function __evExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.expo
 function __evExtras(){
     if(typeof TBKit==='undefined')return;
     try{
-        var A1=__evN('A1'), A2=__evN('A2'), L=__evN('L');
-        if(!(L>0&&A1>=0&&A2>=0))return;
+        var A1=__evN('A1'), A2=__evN('A2'), L=__evN('L'), Am=__evN('Am');
+        var hasAm=String(document.getElementById('Am').value).trim()!=='';
+        if(!(L>0&&A1>=0&&A2>=0)||(hasAm&&!(Am>=0)))return;
         var V=(A1+A2)/2*L, avg=(A1+A2)/2;
-        var pris=(A1>=0&&A2>=0)?(A1+A2+Math.sqrt(A1*A2))/6*L:V;
-        TBKit.chart.bar('#evChart',{labels:[__evL('Average-end area','平均断面法'),__evL('Prismoidal (corrected)','棱柱法（修正）')],series:[{name:__evL('volume (m³)','体积 (m³)'),data:[V,pris]}],height:220,title:__evL('Average-end vs prismoidal formula','平均断面法 vs 棱柱法')});
-        var rows=__evL(
-            [['area A1 (m²)',A1.toFixed(3)],['area A2 (m²)',A2.toFixed(3)],['length L (m)',L.toFixed(2)],['average area (m²)',avg.toFixed(3)],['volume avg-end (m³)',V.toFixed(2)],['volume prismoidal (m³)',pris.toFixed(2)],['correction (m³)',(pris-V).toFixed(2)],['area difference',Math.abs(A1-A2).toFixed(3)]],
-            [['断面 A1 (m²)',A1.toFixed(3)],['断面 A2 (m²)',A2.toFixed(3)],['长度 L (m)',L.toFixed(2)],['平均断面面积 (m²)',avg.toFixed(3)],['平均断面法体积 (m³)',V.toFixed(2)],['棱柱法体积 (m³)',pris.toFixed(2)],['修正量 (m³)',(pris-V).toFixed(2)],['面积差',Math.abs(A1-A2).toFixed(3)]]);
+        var pris=hasAm?(L/6*(A1+4*Am+A2)):null;
+        var labels=__evL('Average-end area','平均断面法');
+        var series={name:__evL('volume (m³)','体积 (m³)'),data:pris==null?[V]:[V,pris]};
+        TBKit.chart.bar('#evChart',{labels:pris==null?[labels]:[labels,__evL('Prismoidal (with Am)','棱柱法（含 A_m）')],series:[series],height:220,title:__evL('Average-end vs prismoidal formula','平均断面法 vs 棱柱法')});
+        var zr=[['断面 A1 (m²)',A1.toFixed(3)],['断面 A2 (m²)',A2.toFixed(3)],['长度 L (m)',L.toFixed(2)],['平均断面面积 (m²)',avg.toFixed(3)],['平均断面法体积 (m³)',V.toFixed(2)],['面积差',Math.abs(A1-A2).toFixed(3)]];
+        var er=[['area A1 (m²)',A1.toFixed(3)],['area A2 (m²)',A2.toFixed(3)],['length L (m)',L.toFixed(2)],['average area (m²)',avg.toFixed(3)],['volume avg-end (m³)',V.toFixed(2)],['area difference',Math.abs(A1-A2).toFixed(3)]];
+        if(pris!=null){zr.push(['中间断面面积 A_m (m²)',Am.toFixed(3)],['棱柱法体积 V_pr (m³)',pris.toFixed(2)],['棱柱法−平均断面法 (m³)',(pris-V).toFixed(2)]);er.push(['mid area Am (m²)',Am.toFixed(3)],['volume prismoidal (m³)',pris.toFixed(2)],['prismoidal minus avg-end (m³)',(pris-V).toFixed(2)]);}
+        var rows=__evL(er,zr);
         TBKit.matrix.table('#evTable',{head:__evL(['Metric','Value'],['指标','数值']),rows:rows});
         TBKit.history.record({V:Number(V.toFixed(2)),A1:A1,A2:A2,L:L});
         TBKit.util.diffBox('#evDiff',['V']);

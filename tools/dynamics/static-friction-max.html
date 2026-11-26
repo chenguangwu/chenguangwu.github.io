@@ -147,7 +147,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="物体即将滑动时的静摩擦力上限。">Determine the maximum static friction force that can act before an object begins to slide, from the coefficient of static friction and the normal force.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">最大静摩擦力：f_s,max = μ_s × 正压力 N（N，静摩擦力在 0 至该上限间自适应外力）；联动量：kgf 口径 = f ÷ 9.80665、N ÷ max(μ_s,10⁻⁹)、μ_s²×100。校验：无强校验，空值按 0 兜底。判据：无固定分级，外力超过 f_s,max 即由静摩擦转入滑动摩擦（静摩擦系数通常 &gt; 动摩擦系数）。</div>
+      <div class="formula-eq">最大静摩擦：f_s,max = μ_s × N（N）。校验：静摩擦系数 μ_s 与正压力 N 均为必填，须非负且有限；空值会提示并中止，不按 0 兜底，μ_s=0 时比值显示无定义。判据：外力超过 f_s,max 后物体由静摩擦转入滑动摩擦；静摩擦系数通常大于动摩擦系数。</div>
       <p class="formula-desc">物体即将滑动时的静摩擦力上限。</p>
     </div>
 
@@ -268,19 +268,35 @@
     </a>
     <a href="work-energy-theorem.html" class="related-tool-card">
       <span class="rt-icon">⚡</span>
-      <span class="rt-info"><span class="rt-name">动能定理计算器</span><span class="rt-desc">输入质量与初末速度按 W=½m(v₂²−v₁²) 求动能变化(合外力功)，用于功与能分析</span></span>
+      <span class="rt-info"><span class="rt-name">动能定理计算器</span><span class="rt-desc">输入质量与初末速度，按 W=½m(v₂²−v₁²) 求动能变化（合外力功）；</span></span>
     </a>
   </div>
 </div>
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __dynEn(){try{if(/[?&]lang=en-US/.test(location.search))return true;}catch(e){}try{return !!(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}catch(e){return false;}}
+function __dynMsg(zh,en){return __dynEn()?en:zh;}
+function __sfClear(){['static_friction_maxTable','static_friction_maxRef','static_friction_maxRefChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});}
 function calcTool(){
+            window.__sfValid=false;
             const mu = num('mu'), N = num('N');
+            const __muRaw=document.getElementById('mu').value, __nRaw=document.getElementById('N').value;
+            if(String(__muRaw).trim()===''||String(__nRaw).trim()===''||!isFinite(parseFloat(__muRaw))||!isFinite(parseFloat(__nRaw))){
+              __sfClear();
+              const __gBlank='<p style="color:var(--danger)">⚠ '+__dynMsg('请填写静摩擦系数 μ_s 与正压力 N 后再计算。','Fill in the static friction coefficient μ_s and normal force N before calculating.')+'</p>';
+              ToolBox.setResult('result',__gBlank);return;
+            }
+            if(mu<0||N<0){
+              __sfClear();
+              const __gBad='<p style="color:var(--danger)">⚠ '+__dynMsg('静摩擦系数 μ_s 与正压力 N 必须为非负有限数值；空值不等于 0。','The static friction coefficient μ_s and normal force N must be non-negative finite values; blank is not treated as 0.')+'</p>';
+              ToolBox.setResult('result',__gBad);return;
+            }
+            window.__sfValid=true;
             const __g1=dataGrid([
                 [(mu * N).toFixed(2), '最大静摩擦 (N)'],
                 [(mu*N/9.80665).toFixed(4), '最大静摩擦 (kgf 千克力)'],
-                [(N/Math.max(mu,1e-9)).toFixed(4), '正压力与摩擦系数之比'],
+                [mu>0 ? (N/mu).toFixed(4) : __dynMsg('无定义（μs=0）','undefined (μs=0)'), '正压力与摩擦系数之比'],
                 [(mu*mu*100).toFixed(4), '摩擦系数平方的百分数']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
@@ -293,6 +309,7 @@ function __static_friction_maxNum(id){var e=document.getElementById(id);var v=e?
 function __static_friction_maxExtras(){
     function __static_friction_maxRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
+    if (window.__sfValid !== true) { __sfClear(); return; }
     var mu = num('mu'), N = num('N');
     if (!isFinite(__static_friction_maxNum('mu')) || !isFinite(__static_friction_maxNum('N'))) return;
     var en=TBKit.util.isEn();
@@ -301,7 +318,7 @@ function __static_friction_maxExtras(){
         rows: [
             ['最大静摩擦 (N)', (mu * N).toFixed(2)],
             ['最大静摩擦 (kgf 千克力)', (mu*N/9.80665).toFixed(4)],
-            ['正压力与摩擦系数之比', (N/Math.max(mu,1e-9)).toFixed(4)],
+            ['正压力与摩擦系数之比', mu>0 ? (N/mu).toFixed(4) : (en?'undefined (μs=0)':'无定义（μs=0）')],
             ['摩擦系数平方的百分数', (mu*mu*100).toFixed(4)],
         ]
     });

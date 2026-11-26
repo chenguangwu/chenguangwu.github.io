@@ -257,6 +257,23 @@ function inlineMark(mark, node, depth) {
   return core ? lead + mark + core + mark + trail : raw;
 }
 
+function longestBacktickRun(s) {
+  var best = 0;
+  String(s == null ? '' : s).replace(/`+/g, function(m){ if(m.length > best) best = m.length; return m; });
+  return best;
+}
+function inlineCode(text) {
+  var raw = String(text == null ? '' : text);
+  var delim = '`'.repeat(longestBacktickRun(raw) + 1);
+  var pad = (/^`/.test(raw) || /`$/.test(raw) || /^ /.test(raw) || / $/.test(raw)) ? ' ' : '';
+  return delim + pad + raw + pad + delim;
+}
+function fencedCode(text) {
+  var raw = String(text == null ? '' : text).replace(/\r/g, '').replace(/\n+$/, '');
+  var fence = '`'.repeat(Math.max(3, longestBacktickRun(raw) + 1));
+  return '\n' + fence + '\n' + raw + '\n' + fence + '\n\n';
+}
+
 function nodeToMarkdown(node, depth) {
   depth = depth || 0;
   if (!node) return '';
@@ -308,13 +325,13 @@ function nodeToMarkdown(node, depth) {
 
   if (n === 'CODE') {
     if (node.parentElement && node.parentElement.nodeName === 'PRE') {
-      return '\n```\n' + node.textContent + '\n```\n';
+      return fencedCode(node.textContent);
     }
-    return '`' + node.textContent + '`';
+    return inlineCode(node.textContent);
   }
 
   if (n === 'PRE') {
-    return '\n```\n' + node.textContent.replace(/\n+$/, '') + '\n```\n\n';
+    return fencedCode(node.textContent);
   }
 
   if (n === 'BLOCKQUOTE') {

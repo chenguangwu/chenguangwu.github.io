@@ -138,7 +138,7 @@ label{margin-top:10px;}
   <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="• 向量点积">• Vector Dot Product</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">向量点积（数量积）<br>A · B = Σᵢ aᵢ × bᵢ = a₁b₁ + a₂b₂ + … + aₙbₙ（结果为标量）<br>夹角公式：cos θ = (A·B) ÷ (|A|·|B|)，θ = arccos(…)×180/π<br>投影长度：|proj_B A| = (A·B) ÷ |B|<br>几何判读：A·B = 0 正交（垂直）｜&gt;0 锐角｜&lt;0 钝角</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">向量点积（数量积）<br>A · B = Σᵢ aᵢ × bᵢ = a₁b₁ + a₂b₂ + … + aₙbₙ（结果为标量）<br>夹角公式：cos θ = (A·B) ÷ (|A|·|B|)，θ = arccos(…)×180/π<br>投影：标量投影（带符号）= (A·B) ÷ |B|；投影长度 = |(A·B) ÷ |B||（非负）；投影向量 proj_B A = ((A·B) ÷ |B|²) × B<br>几何判读：A·B = 0 正交（垂直）｜&gt;0 锐角｜&lt;0 钝角；零向量时投影未定义</div>
   <div class="formula-desc">计算两个向量的点积（内积）。</div>
   <div class="formula-desc">点积按 1e-10 精度显示；绝对值小于 1e-12 的浮点残差按 0 显示（正交相消残差属数值噪声，不代表真实小量）。</div>
   <ul class="formula-list">
@@ -249,15 +249,33 @@ function build(){
   html+='</div>';
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('inputArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('inputArea').innerHTML=__h0;
 }
-function getV(prefix,d){
-  const v=[]; for(let i=0;i<d;i++){ const x=parseFloat(document.getElementById(prefix+i).value); v.push(isNaN(x)?0:x); } return v;
+function getV(prefix,d,label){
+  const v=[], missing=[], bad=[], labels=['x','y','z','w','v'];
+  for(let i=0;i<d;i++){
+    const raw=String(document.getElementById(prefix+i).value).trim();
+    if(raw===''){ missing.push(label+' 第 '+(i+1)+' 个分量（'+labels[i]+'）'); continue; }
+    if(!/^[+\-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+\-]?\d+)?$/.test(raw)||!isFinite(Number(raw))){ bad.push(label+' 第 '+(i+1)+' 个分量（'+labels[i]+'）'); continue; }
+    v.push(Number(raw));
+  }
+  return {v:v, missing:missing, bad:bad};
 }
 function fmt(x){ if(Math.abs(x)<1e-12) return '0'; return (Math.round(x*1e10)/1e10).toLocaleString(); }
 function mag(v){ return Math.sqrt(v.reduce((s,x)=>s+x*x,0)); }
 function vecStr(v){ return '('+v.map(fmt).join(', ')+')'; }
 function calculate(){
+  const out=document.getElementById('output');
   const d=+document.getElementById('dim').value;
-  const A=getV('a',d), B=getV('b',d);
+  const ra=getV('a',d,'向量 A');
+  const rb=getV('b',d,'向量 B');
+  if(ra.missing.length||ra.bad.length||rb.missing.length||rb.bad.length){
+    if(ra.missing.length||rb.missing.length){
+      out.innerHTML='<p style="color:var(--danger)">✗ 请填写向量 A 与 B 的每个坐标分量，不能留空：'+ra.missing.concat(rb.missing).join('、')+'</p>';
+      return;
+    }
+    out.innerHTML='<p style="color:var(--danger)">✗ 以下分量必须是有限数值（不接受字母、无穷大等）：'+ra.bad.concat(rb.bad).join('、')+'</p>';
+    return;
+  }
+  const A=ra.v, B=rb.v;
   const dp=A.reduce((s,x,i)=>s+x*B[i],0);
   const mA=mag(A), mB=mag(B);
   let html='<p><strong>A = </strong>'+vecStr(A)+'</p><p><strong>B = </strong>'+vecStr(B)+'</p>';
@@ -278,8 +296,25 @@ function calculate(){
     if(Math.abs(dp)<1e-12) html+='<div class="step-line" style="color:var(--success);">A · B = 0，A 与 B 正交（垂直）</div>';
     else if(dp>0) html+='<div class="step-line" style="color:var(--text-light);">A · B &gt; 0，夹角为锐角</div>';
     else html+='<div class="step-line" style="color:var(--text-light);">A · B &lt; 0，夹角为钝角</div>';
+  }else{
+    html+='<div class="step-line" style="color:var(--danger);">零向量没有确定方向：夹角、标量投影与投影向量均未定义。</div>';
   }
-  html+='<div class="step-line">投影 |proj<sub>B</sub>A| = (A·B)/|B| = '+(mB<1e-12?'未定义':fmt(dp/mB))+'</div>';
+  html+='<p style="margin-top:10px;"><strong>投影：</strong></p>';
+  if(mB<1e-12){
+    html+='<div class="step-line">标量投影（带符号） = (A·B)/|B| = 未定义（B 是零向量）</div>';
+    html+='<div class="step-line">投影长度 = |(A·B)/|B|| = 未定义</div>';
+    html+='<div class="step-line">投影向量 proj<sub>B</sub>A = 未定义</div>';
+  }else{
+    const scalar=dp/mB;
+    const len=Math.abs(scalar);
+    const coeff=dp/(mB*mB);
+    const proj=B.map(x=>x*coeff);
+    html+='<div class="step-line">标量投影（带符号） = (A·B)/|B| = '+fmt(dp)+' / '+fmt(mB)+' = '+fmt(scalar)+'</div>';
+    html+='<div class="step-line">投影长度（非负） = |(A·B)/|B|| = '+fmt(len)+'</div>';
+    html+='<div class="step-line">投影向量 proj<sub>B</sub>A = ((A·B)/|B|²) × B = '+fmt(coeff)+' × B = '+vecStr(proj)+'</div>';
+    if(scalar<0) html+='<div class="step-line" style="color:var(--text-light);">标量投影为负：A 在 B 方向上的分量与 B 反向；长度仍取绝对值 '+fmt(len)+'。</div>';
+    if(Math.abs(scalar)<1e-12) html+='<div class="step-line" style="color:var(--success);">A ⊥ B，投影为零向量，投影长度为 0。</div>';
+  }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
 }
 function toggleToolTheme(){
@@ -453,7 +488,7 @@ else document.addEventListener('DOMContentLoaded', __vector_dot_productBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -461,7 +496,7 @@ else document.addEventListener('DOMContentLoaded', __vector_dot_productBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

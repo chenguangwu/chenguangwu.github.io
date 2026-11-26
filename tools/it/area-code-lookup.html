@@ -363,11 +363,24 @@ function validate(){
     out.innerHTML=h;
   };
   if(!raw){ put(L('等待输入...','Waiting for input...')); return; }
-  let digits=raw.replace(/\D/g,'');
+  // IT-：只支持明确格式字符；字母/中文等一律提示，不再静默剔除成另一个号码。
+  let mainRaw=raw, ext='';
+  const extMatch=raw.match(/\s*(?:ext\.?|extension|x|分机|转)\s*[:.]?\s*(\d{1,6})\s*$/i);
+  if(extMatch){ ext=extMatch[1]; mainRaw=raw.slice(0,extMatch.index).trim(); }
+  if(!/^[0-9\s()+.-]+$/.test(mainRaw)){
+    put(`<p style="color:var(--danger)">${L('❌ 主号码含不支持的字符：只接受数字、空格、+、-、(、)、.；分机请用 ext / x / 分机 表示','❌ Unsupported characters in the main number: only digits, spaces, +, -, (, ), . are accepted; write an extension as ext / x / 分机')}</p>`);
+    return;
+  }
+  if(mainRaw.indexOf('+')>0 || (mainRaw.split('+').length-1)>1){
+    put(`<p style="color:var(--danger)">${L('❌ 加号只能出现在号码开头（如 +1 212…）','❌ A plus sign may only appear at the start (e.g. +1 212…)')}</p>`);
+    return;
+  }
+  let digits=mainRaw.replace(/\D/g,'');
   // IT-N419：11 位且首位 1 ⇒ 必为 NANP 国家码（本地号首位为 2–9），剥离后按 10 位解析
   let stripped=false;
   if(digits.length===11&&digits.charAt(0)==='1'){ digits=digits.substring(1); stripped=true; }
   let html=`<p data-zh="输入：${esc(raw)}"><strong>Input:</strong>${esc(raw)}</p>`;
+  if(ext) html+=`<p><strong>${L('分机：','Extension: ')}</strong>${esc(ext)} ${L('（已单独解析，不参与主号码结构判断）','(parsed separately; excluded from main-number structure checks)')}</p>`;
   if(stripped){
     html+=`<p><strong>${L('国家码：','Country code: ')}</strong>+1 ${L('（已剥离，按 10 位 NANP 号码解析）','(stripped; parsed as a 10-digit NANP number)')}</p>`;
   }
@@ -395,7 +408,7 @@ function validate(){
       } else if(!hit||reserved){
         html+=`<p style="color:var(--warning);">${L('⚠️ NANP 结构合法，但区号 '+areaCode+' 未收录或为保留码，不判为标准有效号码','⚠️ Structurally valid NANP number, but area code '+areaCode+' is uncatalogued or reserved — not confirmed as standard valid')}</p>`;
       } else {
-        html+=`<p style="color:var(--success);">${L('✅ 标准 10 位 NANP 号码','✅ Standard 10-digit NANP number')}</p>`;
+        html+=`<p style="color:var(--success);">${L('✅ 结构符合所检查的 NANP 规则（未核验号码是否已分配或可接通）','✅ Structure matches the NANP rules checked here (allocation and reachability are not verified)')}</p>`;
       }
     } else {
       html+=`<p style="color:var(--warning);">${L('⚠️ NANP 号码通常为 10 位','⚠️ NANP numbers are usually 10 digits')}</p>`;
@@ -408,7 +421,7 @@ function validate(){
     // IT-N420：表内标 Reserved / 非地理码不算有效地理区号
     html+=`<p style="color:var(--danger);">${L('❌ 保留区号：'+areaCode+' 未分配为地理区号','❌ Reserved area code: '+areaCode+' is not assigned as a geographic area code')}</p>`;
   } else if(hit){
-    html+=`<p style="color:var(--success);">${L('✅ 区号有效','✅ Valid area code')}</p>`;
+    html+=`<p style="color:var(--success);">${L('✅ 区号结构有效（未核验该区号下号码是否已分配或可接通）','✅ Area code is structurally valid (allocation and reachability under this area code are not verified)')}</p>`;
   } else {
     html+=`<p style="color:var(--danger);">${L('❌ 未知区号','❌ Unknown area code')}</p>`;
   }
@@ -590,7 +603,7 @@ else document.addEventListener('DOMContentLoaded', __area_code_lookupBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -598,7 +611,7 @@ else document.addEventListener('DOMContentLoaded', __area_code_lookupBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

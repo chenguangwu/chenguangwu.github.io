@@ -54,6 +54,11 @@
   display:flex;justify-content:space-between;align-items:center;font-size:13px;}
 .city-option:hover{background:var(--hover);}
 .city-option .zone{font-size:11px;color:var(--text-muted);}
+button.city-option,button.add-clock{width:100%;font:inherit;text-align:left;background:transparent;color:inherit;}
+button.add-clock{justify-content:center;text-align:center;}
+button.round-btn{font:inherit;background:var(--card-bg);color:var(--text-light);border:1px solid var(--border);border-radius:20px;padding:6px 12px;cursor:pointer;}
+button.round-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+button.remove-btn{background:transparent;border:none;font:inherit;}
 .tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:12px;}
 .tab-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-light);cursor:pointer;font-size:13px;transition:all 0.15s;}
 .tab-btn:hover{border-color:var(--primary);color:var(--primary);}
@@ -140,7 +145,7 @@
       "name": "夏令时自动？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "依时区规则，部分需手动。"
+        "text": "页面依浏览器时区数据库自动处理，没有手动夏令时开关；历史或临时调整规则可能滞后，重要会议请二次确认。"
       }
     },
     {
@@ -148,7 +153,15 @@
       "name": "会上夏令时吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "以浏览器时区数据库自动处理夏令时，但个别国家临时调整规则时可能滞后，重要会议建议二次确认。"
+        "text": "会上。时钟、时差与会议功能都按所选日期查询浏览器时区数据；数据库未及时更新的临时规则可能滞后，重要会议请与当地日历二次确认。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "时差负数怎么看？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "主值带正负号：目标城市比参考城市慢显示 −N 小时，快则 +N 小时；半小时与 45 分钟偏移会进位到分钟，零时差显示“时差为 0”。"
       }
     }
   ]
@@ -212,18 +225,24 @@
         <div class="diff-label" id="diffLabel">时差</div>
       </div>
       <div style="margin-top:12px;">
-        <label for="diffTime">选择时间</label>
+        <label for="diffDate">参考日期（留空按今天）</label>
+        <input type="date" id="diffDate" onchange="calcDiff()">
+        <label for="diffTime" style="display:block;margin-top:8px;">选择时间</label>
         <input type="time" id="diffTime" value="09:00" oninput="calcDiff()">
         <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">
-          城市 A 时间 → 城市 B 对应时间
+          城市 A 的日期与时间 → 城市 B 对应日期与时间；跨夏令时日期会按该日偏移换算。
         </p>
       </div>
     </div>
 
     <div id="panel-meeting" style="display:none;">
       <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
-        选择多个城市，找出大家的共同工作时间（9:00-18:00）
+        选择多个城市，按各城市可调整的工作时段找出共同时间（默认 9:00-18:00；结束早于开始按跨日班次处理）
       </p>
+      <div class="input-row" style="margin-bottom:10px;">
+        <div><label for="meetingDate">共同日期（可选）</label><input type="date" id="meetingDate" onchange="updateMeetingGrid()"></div>
+      </div>
+      <div id="meetingHoursConfig" style="margin-bottom:10px;"></div>
       <div id="meetingCitySelect" style="margin-bottom:12px;">
         <label>选择城市（可多选）</label>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;" id="meetingCityList"></div>
@@ -274,11 +293,12 @@
 <li>多时区当前时间同屏。</li>
 <li>跨国协作时对照多个城市当前时间，挑大家都在线的时段开会。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">查看</div><div class="dd-ex-body">北京 12:00 时，东京 13:00、伦敦 04:00、纽约 前日 23:00。</div></div>
+<div class="dd-example"><div class="dd-ex-title">查看</div><div class="dd-ex-body">以 2026-01-15（冬令时）为例，北京 12:00 对应东京 13:00、伦敦 04:00、纽约前日 23:00；夏令时期间对应时间会不同，页面按所选日期自动换算。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>夏令时自动？</dt><dd>依时区规则，部分需手动。</dd>
-<dt>会上夏令时吗？</dt><dd>以浏览器时区数据库自动处理夏令时，但个别国家临时调整规则时可能滞后，重要会议建议二次确认。</dd>
+<dt>夏令时自动？</dt><dd>页面依浏览器时区数据库自动处理，没有手动夏令时开关；历史或临时调整规则可能滞后，重要会议请二次确认。</dd>
+<dt>会上夏令时吗？</dt><dd>会上。时钟、时差与会议功能都按所选日期查询浏览器时区数据；数据库未及时更新的临时规则可能滞后，重要会议请与当地日历二次确认。</dd>
+<dt>时差负数怎么看？</dt><dd>主值带正负号：目标城市比参考城市慢显示 −N 小时，快则 +N 小时；半小时与 45 分钟偏移会进位到分钟，零时差显示“时差为 0”。</dd>
 </dl>
 </div>
 </section>
@@ -303,7 +323,7 @@
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="时区数据库">Time zone database</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="夏令时与历史变更由时区数据库维护，须定期更新">daylight rules and historical changes live in the time zone database</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="IANA time zone database">IANA time zone database</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="IANA 时区数据库">IANA time zone database</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="跨日显示">Date rollover</td>
@@ -325,11 +345,11 @@
 <!-- /注意事项区块 -->
 </div>
 
-<div id="addClockModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;padding:20px;">
+<div id="addClockModal" role="dialog" aria-modal="true" aria-labelledby="addClockTitle" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--card-bg);border-radius:12px;max-width:400px;width:100%;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;">
     <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-      <h3 style="margin:0;font-size:16px;">添加城市</h3>
-      <span style="cursor:pointer;font-size:20px;color:var(--text-muted);" onclick="closeAddModal()">✕</span>
+      <h3 id="addClockTitle" style="margin:0;font-size:16px;">添加城市</h3>
+      <button type="button" style="cursor:pointer;font-size:20px;color:var(--text-muted);background:none;border:none;" onclick="closeAddModal()" aria-label="关闭添加城市对话框">✕</button>
     </div>
     <div style="padding:12px;border-bottom:1px solid var(--border);">
       <input type="text" id="citySearch" placeholder="搜索城市..." style="width:100%;" oninput="filterCities()" aria-label="搜索城市...">
@@ -340,11 +360,11 @@
 
 <script>
 const ALL_CITIES = [
-  {id:'Asia/Shanghai', city:'北京', country:'中国', offset:8},
-  {id:'Asia/Hong_Kong', city:'香港', country:'中国', offset:8},
-  {id:'Asia/Taipei', city:'台北', country:'中国', offset:8},
-  {id:'Asia/Tokyo', city:'东京', country:'日本', offset:9},
-  {id:'Asia/Seoul', city:'首尔', country:'韩国', offset:9},
+  {id:'Asia/Shanghai', city:'北京', country:'中国', offset:8, aliases:['上海','Shanghai','深圳','Shenzhen','广州','Guangzhou','沪']},
+  {id:'Asia/Hong_Kong', city:'香港', country:'中国', offset:8, aliases:['Hong Kong','HK','港']},
+  {id:'Asia/Taipei', city:'台北', country:'中国', offset:8, aliases:['Taipei','臺北']},
+  {id:'Asia/Tokyo', city:'东京', country:'日本', offset:9, aliases:['Tokyo','東京']},
+  {id:'Asia/Seoul', city:'首尔', country:'韩国', offset:9, aliases:['Seoul','首爾']},
   {id:'Asia/Singapore', city:'新加坡', country:'新加坡', offset:8},
   {id:'Asia/Kuala_Lumpur', city:'吉隆坡', country:'马来西亚', offset:8},
   {id:'Asia/Bangkok', city:'曼谷', country:'泰国', offset:7},
@@ -353,7 +373,7 @@ const ALL_CITIES = [
   {id:'Asia/Manila', city:'马尼拉', country:'菲律宾', offset:8},
   {id:'Asia/Dubai', city:'迪拜', country:'阿联酋', offset:4},
   {id:'Asia/Qatar', city:'多哈', country:'卡塔尔', offset:3},
-  {id:'Asia/Kolkata', city:'孟买', country:'印度', offset:5.5},
+  {id:'Asia/Kolkata', city:'孟买', country:'印度', offset:5.5, aliases:['新德里','New Delhi','Delhi','德里','Mumbai','孟買']},
   {id:'Asia/Karachi', city:'卡拉奇', country:'巴基斯坦', offset:5},
   {id:'Asia/Kabul', city:'喀布尔', country:'阿富汗', offset:4.5},
   {id:'Asia/Tehran', city:'德黑兰', country:'伊朗', offset:3.5},
@@ -414,10 +434,67 @@ const ALL_CITIES = [
   {id:'Pacific/Guam', city:'关岛', country:'美国', offset:10},
   {id:'Pacific/Tahiti', city:'塔希提', country:'法属', offset:-10}
 ];
+var CITY_EN = {
+  'Asia/Shanghai':['Beijing','China'], 'Asia/Hong_Kong':['Hong Kong','China'], 'Asia/Taipei':['Taipei','China'],
+  'Asia/Tokyo':['Tokyo','Japan'], 'Asia/Seoul':['Seoul','South Korea'], 'Asia/Singapore':['Singapore','Singapore'],
+  'Asia/Kuala_Lumpur':['Kuala Lumpur','Malaysia'], 'Asia/Bangkok':['Bangkok','Thailand'], 'Asia/Ho_Chi_Minh':['Ho Chi Minh City','Vietnam'],
+  'Asia/Jakarta':['Jakarta','Indonesia'], 'Asia/Manila':['Manila','Philippines'], 'Asia/Dubai':['Dubai','United Arab Emirates'],
+  'Asia/Qatar':['Doha','Qatar'], 'Asia/Kolkata':['Mumbai','India'], 'Asia/Karachi':['Karachi','Pakistan'],
+  'Asia/Kabul':['Kabul','Afghanistan'], 'Asia/Tehran':['Tehran','Iran'], 'Asia/Jerusalem':['Jerusalem','Israel'],
+  'Asia/Istanbul':['Istanbul','Turkey'], 'Asia/Almaty':['Almaty','Kazakhstan'], 'Asia/Ulaanbaatar':['Ulaanbaatar','Mongolia'],
+  'Asia/Yangon':['Yangon','Myanmar'], 'Asia/Kathmandu':['Kathmandu','Nepal'], 'Asia/Colombo':['Colombo','Sri Lanka'],
+  'Europe/London':['London','United Kingdom'], 'Europe/Paris':['Paris','France'], 'Europe/Berlin':['Berlin','Germany'],
+  'Europe/Madrid':['Madrid','Spain'], 'Europe/Rome':['Rome','Italy'], 'Europe/Amsterdam':['Amsterdam','Netherlands'],
+  'Europe/Brussels':['Brussels','Belgium'], 'Europe/Vienna':['Vienna','Austria'], 'Europe/Zurich':['Zurich','Switzerland'],
+  'Europe/Stockholm':['Stockholm','Sweden'], 'Europe/Oslo':['Oslo','Norway'], 'Europe/Copenhagen':['Copenhagen','Denmark'],
+  'Europe/Helsinki':['Helsinki','Finland'], 'Europe/Athens':['Athens','Greece'], 'Europe/Moscow':['Moscow','Russia'],
+  'Europe/Warsaw':['Warsaw','Poland'], 'Europe/Prague':['Prague','Czechia'], 'Europe/Budapest':['Budapest','Hungary'],
+  'Europe/Dublin':['Dublin','Ireland'], 'Europe/Lisbon':['Lisbon','Portugal'], 'Africa/Cairo':['Cairo','Egypt'],
+  'Africa/Lagos':['Lagos','Nigeria'], 'Africa/Johannesburg':['Johannesburg','South Africa'], 'Africa/Nairobi':['Nairobi','Kenya'],
+  'Africa/Casablanca':['Casablanca','Morocco'], 'America/New_York':['New York','United States'], 'America/Chicago':['Chicago','United States'],
+  'America/Denver':['Denver','United States'], 'America/Los_Angeles':['Los Angeles','United States'], 'America/Anchorage':['Anchorage','United States'],
+  'America/Toronto':['Toronto','Canada'], 'America/Vancouver':['Vancouver','Canada'], 'America/Mexico_City':['Mexico City','Mexico'],
+  'America/Sao_Paulo':['São Paulo','Brazil'], 'America/Buenos_Aires':['Buenos Aires','Argentina'], 'America/Santiago':['Santiago','Chile'],
+  'America/Lima':['Lima','Peru'], 'America/Bogota':['Bogotá','Colombia'], 'America/Caracas':['Caracas','Venezuela'],
+  'Australia/Sydney':['Sydney','Australia'], 'Australia/Melbourne':['Melbourne','Australia'], 'Australia/Brisbane':['Brisbane','Australia'],
+  'Australia/Perth':['Perth','Australia'], 'Australia/Adelaide':['Adelaide','Australia'], 'Pacific/Auckland':['Auckland','New Zealand'],
+  'Pacific/Fiji':['Suva','Fiji'], 'Pacific/Honolulu':['Honolulu','United States'], 'Pacific/Guam':['Guam','United States'],
+  'Pacific/Tahiti':['Tahiti','French Polynesia']
+};
+ALL_CITIES.forEach(function(c){
+  var m = CITY_EN[c.id];
+  if(m){ c.en = m[0]; c.enCountry = m[1]; c.aliases = (c.aliases || []).concat([m[0]]); }
+});
+function __wcIsEn(){ return !!(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __wcCity(c, en){ return c ? (en && c.en ? c.en : c.city) : ''; }
+function __wcCountry(c, en){ return c ? (en && c.enCountry ? c.enCountry : c.country) : ''; }
+function __wcCityText(c, en){ return c ? (__wcCity(c,en) + (en ? ', ' : '，') + __wcCountry(c,en)) : ''; }
+
 
 let currentTab = 'clocks';
 let selectedCities = [];
 let meetingCities = new Set(['Asia/Shanghai', 'America/New_York', 'Europe/London']);
+// 每个城市可单独设置工作时段；未设置时使用 09:00-18:00 默认值。
+let meetingWork = {};
+let lastMeetingCandidates = [];
+function __parseClockMin(v){
+  const m=String(v||'').match(/^(\d{1,2}):(\d{2})$/);
+  if(!m) return null;
+  const h=+m[1], min=+m[2];
+  if(h<0||h>23||min<0||min>59) return null;
+  return h*60+min;
+}
+function __meetingWorkFor(id){
+  const w=meetingWork[id]||{start:'09:00',end:'18:00'};
+  const start=__parseClockMin(w.start), end=__parseClockMin(w.end);
+  if(start==null||end==null||start===end) return null;
+  return {start:start,end:end,duration:(end-start+1440)%1440};
+}
+function setMeetingWork(id, field, value){
+  if(!meetingWork[id]) meetingWork[id]={start:'09:00',end:'18:00'};
+  meetingWork[id][field]=value;
+  updateMeetingGrid();
+}
 
 function getDefaultCities(){
   try{
@@ -441,30 +518,41 @@ function saveCities(){
   }catch(e){}
 }
 
-function getOffset(cityId){
+function getOffsetMinutes(cityId, dateStr){
   try{
-    const now = new Date();
-    const fmt = new Intl.DateTimeFormat('en-US', {
-      timeZone: cityId,
-      timeZoneName: 'shortOffset'
-    });
-    const parts = fmt.formatToParts(now);
-    const tzPart = parts.find(p => p.type === 'timeZoneName');
-    if(tzPart){
-      const match = tzPart.value.match(/GMT([+-]?)(\d+)(?::(\d+))?/);
-      if(match){
-        const sign = match[1] === '-' ? -1 : 1;
-        const hours = parseInt(match[2]);
-        const mins = match[3] ? parseInt(match[3]) : 0;
-        return sign * (hours + mins / 60);
+    const at = dateStr ? new Date(dateStr + 'T12:00:00Z') : new Date();
+    // 优先 shortOffset（若浏览器支持）；失败则用同一时刻墙上时间与 UTC 求差。
+    try{
+      const offFmt = new Intl.DateTimeFormat('en-US', { timeZone: cityId, timeZoneName: 'shortOffset' });
+      const offPart = offFmt.formatToParts(at).find(function(p){ return p.type === 'timeZoneName'; });
+      if(offPart){
+        const m = offPart.value.match(/GMT([+-]?)(\d+)(?::(\d+))?/);
+        if(m) return (m[1] === '-' ? -1 : 1) * (parseInt(m[2],10) * 60 + (m[3] ? parseInt(m[3],10) : 0));
       }
-    }
-  }catch(e){}
-  const city = ALL_CITIES.find(c => c.id === cityId);
-  return city ? city.offset : 0;
+    }catch(e){}
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: cityId, hour12: false,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    const parts = fmt.formatToParts(at).reduce(function(o,p){ o[p.type]=p.value; return o; }, {});
+    let hour = parseInt(parts.hour, 10);
+    if(hour === 24) hour = 0;
+    const asUTC = Date.UTC(parseInt(parts.year,10), parseInt(parts.month,10)-1, parseInt(parts.day,10), hour, parseInt(parts.minute,10), parseInt(parts.second||'0',10));
+    if(!isFinite(asUTC)) return null;
+    const diffMin = Math.round((asUTC - Math.floor(at.getTime()/1000)*1000) / 60000);
+    if(Math.abs(diffMin) > 16*60) return null;
+    return diffMin;
+  }catch(e){ return null; }
+}
+function getOffset(cityId, dateStr){
+  const mins = getOffsetMinutes(cityId, dateStr);
+  return mins == null ? null : mins / 60;
 }
 
 function formatOffset(offset){
+  var en = !!(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  if(offset == null || !isFinite(offset)) return en?'offset unknown':'偏移未知';
   const sign = offset >= 0 ? '+' : '-';
   const abs = Math.abs(offset);
   const hours = Math.floor(abs);
@@ -485,28 +573,38 @@ function switchTab(tab){
 
 function buildClockGrid(){
   const grid = document.getElementById('clockGrid');
+  const en = __wcIsEn();
   let html = selectedCities.map((c, i) => `
     <div class="clock-item">
-      <span class="remove-btn" onclick="removeCity(${i})">✕</span>
-      <div class="clock-city">${c.city}</div>
-      <div class="clock-zone">${c.country} · ${formatOffset(getOffset(c.id))}</div>
+      <button type="button" class="remove-btn" onclick="removeCity(${i})" aria-label="${en?'Remove ':'删除 '}${__wcCity(c,en)}">✕</button>
+      <div class="clock-city">${__wcCity(c,en)}</div>
+      <div class="clock-zone" id="zone-${c.id.replace(/\//g, '-')}">${__wcCountry(c,en)} · ${formatOffset(getOffset(c.id))}</div>
       <div class="clock-time" id="time-${c.id.replace(/\//g, '-')}">--:--:--</div>
       <div class="clock-date" id="date-${c.id.replace(/\//g, '-')}">--</div>
     </div>
   `).join('');
-  html += `<div class="add-clock" onclick="openAddModal()">+ 添加城市</div>`;
+  html += `<button type="button" class="add-clock" onclick="openAddModal()">+ ${en?'Add city':'添加城市'}</button>`;
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h0;
 }
 
+var __clockOffsetCache={};
 function updateClocks(){
   const now = new Date();
+  const en = __wcIsEn();
+  let offsetChanged=false;
   selectedCities.forEach(c => {
     const safeId = c.id.replace(/\//g, '-');
     try{
-      const time = new Intl.DateTimeFormat('zh-CN', {
+      const off=getOffset(c.id);
+      if(__clockOffsetCache[c.id]!==off){
+        __clockOffsetCache[c.id]=off;offsetChanged=true;
+        const zEl=document.getElementById('zone-'+safeId);
+        if(zEl) zEl.textContent=__wcCountry(c,en)+' · '+(off==null?(en?'offset unknown (real-time calculation failed)':'偏移未知（实时计算失败）'):formatOffset(off));
+      }
+      const time = new Intl.DateTimeFormat(en?'en-US':'zh-CN', {
         timeZone:c.id, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
       }).format(now);
-      const date = new Intl.DateTimeFormat('zh-CN', {
+      const date = new Intl.DateTimeFormat(en?'en-US':'zh-CN', {
         timeZone:c.id, year:'numeric', month:'2-digit', day:'2-digit', weekday:'short'
       }).format(now);
       const tEl = document.getElementById('time-' + safeId);
@@ -515,33 +613,53 @@ function updateClocks(){
       if(dEl) dEl.textContent = date;
     }catch(e){}
   });
+  if(offsetChanged&&currentTab==='meeting'){try{renderMeetingCities();}catch(e){}}
 }
 
+var __clockModalReturnFocus = null;
 function openAddModal(){
+  __clockModalReturnFocus = document.activeElement;
   const modal = document.getElementById('addClockModal');
   modal.style.display = 'flex';
   document.getElementById('citySearch').value = '';
   filterCities();
+  document.getElementById('citySearch').focus();
 }
 
 function closeAddModal(){
   document.getElementById('addClockModal').style.display = 'none';
+  if(__clockModalReturnFocus && __clockModalReturnFocus.focus) __clockModalReturnFocus.focus();
 }
 
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && document.getElementById('addClockModal').style.display === 'flex') closeAddModal();
+});
+
 function filterCities(){
-  const q = document.getElementById('citySearch').value.toLowerCase();
+  const q = document.getElementById('citySearch').value.trim().toLowerCase();
   const list = document.getElementById('citySelectList');
-  const filtered = ALL_CITIES.filter(c => 
-    c.city.toLowerCase().includes(q) || 
+  const en = __wcIsEn();
+  const filtered = ALL_CITIES.filter(c =>
+    c.city.toLowerCase().includes(q) ||
     c.country.toLowerCase().includes(q) ||
-    c.id.toLowerCase().includes(q)
+    (c.en && c.en.toLowerCase().includes(q)) ||
+    (c.enCountry && c.enCountry.toLowerCase().includes(q)) ||
+    c.id.toLowerCase().includes(q) ||
+    (c.aliases && c.aliases.some(a => a.toLowerCase().includes(q)))
   );
-  const __h1=filtered.map(c => `
-    <div class="city-option" onclick="addCity('${c.id}')">
-      <span>${c.city}, ${c.country}</span>
+  if(!filtered.length){
+    list.innerHTML='<p style="color:var(--text-muted);padding:8px 0;">'+(en?'No matching city. Try a city name, alias or IANA time zone ID.':'没有匹配城市，可输入城市名、同区城市别名或时区 ID（如 Asia/Shanghai）。')+'</p>';
+    return;
+  }
+  const __h1=filtered.map(c => {
+    const matchedAlias = q && c.aliases && c.aliases.find(a => a.toLowerCase().includes(q) && a.toLowerCase() !== __wcCity(c,en).toLowerCase());
+    return `
+    <button type="button" class="city-option" onclick="addCity('${c.id}')">
+      <span>${__wcCityText(c,en)}${matchedAlias?(en?' · Same zone: ':' · 同区城市：')+matchedAlias:''}</span>
       <span class="zone">${formatOffset(getOffset(c.id))}</span>
-    </div>
-  `).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
+    </button>
+  `;}).join('');
+  if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
 }
 
 function addCity(cityId){
@@ -556,7 +674,7 @@ function addCity(cityId){
     buildClockGrid();
     updateClocks();
     closeAddModal();
-    ToolBox.showToast('已添加 ' + city.city);
+    ToolBox.showToast((__wcIsEn()?'Added ':'已添加 ') + __wcCity(city,__wcIsEn()));
   }
 }
 
@@ -566,7 +684,7 @@ function removeCity(index){
   saveCities();
   buildClockGrid();
   updateClocks();
-  ToolBox.showToast('已移除 ' + city.city);
+  ToolBox.showToast((__wcIsEn()?'Removed ':'已移除 ') + __wcCity(city,__wcIsEn()));
 }
 
 function initDiffSelects(){
@@ -575,8 +693,9 @@ function initDiffSelects(){
   
   if(selA.options.length > 0) return;
   
+  const en = __wcIsEn();
   const options = ALL_CITIES.map(c => 
-    `<option value="${c.id}">${c.city}（${c.country}）</option>`
+    `<option value="${c.id}">${__wcCity(c,en)}${en?' (': '（'}${__wcCountry(c,en)}${en?')':'）'}</option>`
   ).join('');
   
   const __h2=options;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){selA.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}selA.innerHTML=__h2;
@@ -592,22 +711,30 @@ function calcDiff(){
   const cityA = document.getElementById('diffCityA').value;
   const cityB = document.getElementById('diffCityB').value;
   const timeInput = document.getElementById('diffTime').value;
+  const dateInput = document.getElementById('diffDate') ? document.getElementById('diffDate').value : '';
   
-  const offsetA = getOffset(cityA);
-  const offsetB = getOffset(cityB);
+  const offsetA = getOffset(cityA, dateInput);
+  const offsetB = getOffset(cityB, dateInput);
+  const __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  if(offsetA == null || offsetB == null){
+    document.getElementById('diffResult').textContent = '--';
+    document.getElementById('diffLabel').innerHTML = '<p style="color:var(--danger)">'+(__en?'Unable to obtain a reliable time-zone offset in this browser; the fixed city-table value is not shown as accurate.':'当前浏览器无法可靠获取时区偏移，未使用城市表固定值冒充实时结果。')+'</p>';
+    return;
+  }
   const diff = offsetB - offsetA;
+  const sign = diff > 0 ? '+' : (diff < 0 ? '-' : '');
+  const abs = Math.abs(diff);
+  let hours = Math.floor(abs);
+  let mins = Math.round((abs - hours) * 60);
+  if(mins >= 60){hours += 1; mins = 0;}
+  const diffStr = `${sign}${hours}${mins ? (__en?' h ':' 小时 ') + mins + (__en?' min':' 分钟') : (__en?' h':' 小时')}`;
   
-  const sign = diff >= 0 ? '+' : '';
-  const hours = Math.floor(Math.abs(diff));
-  const mins = Math.round((Math.abs(diff) - hours) * 60);
-  const diffStr = `${sign}${hours}${mins ? ' 小时 ' + mins + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" min":" 分钟") : ' 小时'}`;
-  
-  const cityAName = ALL_CITIES.find(c => c.id === cityA)?.city || cityA;
-  const cityBName = ALL_CITIES.find(c => c.id === cityB)?.city || cityB;
+  const cityAName = __wcCity(ALL_CITIES.find(c => c.id === cityA), __en) || cityA;
+  const cityBName = __wcCity(ALL_CITIES.find(c => c.id === cityB), __en) || cityB;
   
   document.getElementById('diffResult').textContent = diffStr;
   document.getElementById('diffLabel').textContent = 
-    `${cityBName} 比 ${cityAName} ${diff >= 0 ? '快' : '慢'} ${Math.abs(diff)} 小时`;
+    (__en?`${cityBName} is ${diff >= 0 ? 'ahead of' : 'behind'} ${cityAName} by ${hours} h ${mins} min`:`${cityBName} 比 ${cityAName} ${diff >= 0 ? '快' : '慢'} ${hours} 小时 ${mins} 分钟`);
   
   if(timeInput){
     const [h, m] = timeInput.split(':').map(Number);
@@ -618,19 +745,46 @@ function calcDiff(){
     const newH = Math.floor(totalMin / 60);
     const newM = Math.round(totalMin % 60);
     const dayStr = dayDiff > 0 ? `（+${dayDiff}天）` : dayDiff < 0 ? `（${dayDiff}天）` : '';
-    const __h4=`${cityAName} ${timeInput} → ${cityBName} <strong>${newH.toString().padStart(2,'0')}:${newM.toString().padStart(2,'0')}</strong> ${dayStr}`;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('diffLabel').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('diffLabel').innerHTML=__h4;
+    let bDate = '';
+    if(dateInput){
+      const base = new Date(dateInput + 'T00:00:00Z');
+      base.setUTCDate(base.getUTCDate() + dayDiff);
+      bDate = base.toISOString().slice(0,10);
+    }
+    let dstNote = '';
+    if(dateInput && (getOffset(cityA, dateInput) !== getOffset(cityA) || getOffset(cityB, dateInput) !== getOffset(cityB))){
+      dstNote = __en ? ' Offsets differ from today; the selected date is used, including DST.' : ' 所选日期的时区偏移与今天不同，已按该日换算（含夏令时）。';
+    }
+    const cmp=(diff===0?(__en?`${cityBName} has the same offset as ${cityAName}`:`${cityBName} 与 ${cityAName} 时差为 0`):(__en?`${cityBName} is ${diff>0?'ahead of':'behind'} ${cityAName} by ${hours} h ${mins} min`:`${cityBName} 比 ${cityAName} ${diff>0?'快':'慢'} ${hours} 小时 ${mins} 分钟`));
+    const __h4=`${cityAName} ${dateInput ? dateInput + ' ' : ''}${timeInput} → ${cityBName}${bDate ? ' ' + bDate : ''} <strong>${newH.toString().padStart(2,'0')}:${newM.toString().padStart(2,'0')}</strong> ${dayStr} · ${cmp}${dstNote}`;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('diffLabel').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('diffLabel').innerHTML=__h4;
   }
+}
+
+function renderMeetingHours(){
+  const box=document.getElementById('meetingHoursConfig');
+  if(!box) return;
+  const en=__wcIsEn();
+  const cities=Array.from(meetingCities).map(id=>ALL_CITIES.find(c=>c.id===id)).filter(Boolean);
+  box.innerHTML='<p style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">'+(en?'Working hours by city':'各城市工作时段（当地钟表时间）')+'</p>'+cities.map(function(c){
+    const w=meetingWork[c.id]||{start:'09:00',end:'18:00'};
+    return '<div class="meeting-hours-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:4px 0;">'
+      +'<span style="min-width:120px;font-size:13px;">'+ToolBox.escHtml(__wcCity(c,en))+'</span>'
+      +'<input type="time" value="'+w.start+'" aria-label="'+(en?'Start time ':'开始时间 ')+ToolBox.escHtml(__wcCity(c,en))+'" onchange="setMeetingWork(\''+c.id+'\',\'start\',this.value)">'
+      +'<span>—</span>'
+      +'<input type="time" value="'+w.end+'" aria-label="'+(en?'End time ':'结束时间 ')+ToolBox.escHtml(__wcCity(c,en))+'" onchange="setMeetingWork(\''+c.id+'\',\'end\',this.value)">'
+      +'</div>';
+  }).join('');
 }
 
 function renderMeetingCities(){
   const list = document.getElementById('meetingCityList');
   const __h5=ALL_CITIES.map(c => {
     const active = meetingCities.has(c.id);
-    return `<div class="round-btn ${active ? 'active' : ''}" onclick="toggleMeetingCity('${c.id}')">
-      ${c.city}
-    </div>`;
+    return `<button type="button" class="round-btn ${active ? 'active' : ''}" aria-pressed="${active}" onclick="toggleMeetingCity('${c.id}')">
+      ${__wcCity(c, __wcIsEn())}
+    </button>`;
   }).join('');if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h5;
-  
+  renderMeetingHours();
   updateMeetingGrid();
 }
 
@@ -647,53 +801,124 @@ function toggleMeetingCity(cityId){
   renderMeetingCities();
 }
 
+function __modMin(n){ n = n % 1440; return n < 0 ? n + 1440 : n; }
+function __splitWorkRange(start, second, third){
+  // 兼容旧调用 (start, end, duration)：优先用第三参数作为时长；新调用只传 (start, duration)。
+  const duration = arguments.length > 2 ? third : second;
+  start = __modMin(start);
+  if(duration >= 1440) return [[0, 1440]];
+  const end = start + duration;
+  if(end <= 1440) return [[start, end]];
+  return [[start, 1440], [0, end - 1440]];
+}
+function __intersectRanges(a, b){
+  if(!Array.isArray(a) || !Array.isArray(b)) return [];
+  const out = [];
+  a.forEach(function(x){
+    b.forEach(function(y){
+      const s = Math.max(x[0], y[0]), e = Math.min(x[1], y[1]);
+      if(e > s) out.push([s, e]);
+    });
+  });
+  return out;
+}
+function __mergeRanges(a){
+  if(!Array.isArray(a)) return [];
+  const arr = a.slice().sort(function(x,y){ return x[0]-y[0]; });
+  const out = [];
+  arr.forEach(function(r){
+    const last = out[out.length-1];
+    if(last && r[0] <= last[1] + 1) last[1] = Math.max(last[1], r[1]);
+    else out.push([r[0], r[1]]);
+  });
+  return out;
+}
+function __fmtMin(n){
+  if(!isFinite(n)) return '--:--';
+  n = Math.round(__modMin(n));
+  return String(Math.floor(n/60)).padStart(2,'0') + ':' + String(n%60).padStart(2,'0');
+}
 function updateMeetingGrid(){
   const cities = Array.from(meetingCities).map(id => ALL_CITIES.find(c => c.id === id)).filter(Boolean);
   if(cities.length < 2) return;
-  
+  const en = !!(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
   const refCity = cities[0];
-  const refOffset = getOffset(refCity.id);
-  
+  const dateStr = (document.getElementById('meetingDate')||{}).value || '';
+  const refOffMin = getOffsetMinutes(refCity.id, dateStr);
+  if(refOffMin == null){
+    document.getElementById('meetingTimeGrid').innerHTML = '<p style="color:var(--danger)">'+(en?'Unable to obtain a reliable time-zone offset; meeting overlap cannot be computed.':'无法可靠获取时区偏移，会议共同时间不可计算。')+'</p>';
+    document.getElementById('meetingSlots').innerHTML = '';
+    return;
+  }
+  const diffs = {};
+  let bad = null;
+  cities.forEach(function(city){
+    const offMin = getOffsetMinutes(city.id, dateStr);
+    if(offMin == null){ bad = city; return; }
+    diffs[city.id] = offMin - refOffMin;
+  });
+  if(bad){
+    document.getElementById('meetingTimeGrid').innerHTML = '<p style="color:var(--danger)">'+ToolBox.escHtml(__wcCity(bad,en))+(en?' has no reliable offset; meeting overlap cannot be computed.':' 的时区偏移无法可靠获取，会议共同时间不可计算。')+'</p>';
+    document.getElementById('meetingSlots').innerHTML = '';
+    return;
+  }
+  let common = [[0, 1440]];
   let gridHtml = '';
-  let overlapHours = new Set();
-  for(let h = 0; h < 24; h++) overlapHours.add(h);
-  
-  cities.forEach(city => {
-    const offset = getOffset(city.id);
-    const diff = offset - refOffset;
-    
-    const workHours = [];
-    for(let h = 9; h < 18; h++){
-      let localH = h + diff;
-      while(localH < 0) localH += 24;
-      while(localH >= 24) localH -= 24;
-      workHours.push(Math.floor(localH));
+  let hasInvalidWork = false;
+  cities.forEach(function(city){
+    const diff = diffs[city.id];
+    const work = __meetingWorkFor(city.id);
+    if(!work){
+      hasInvalidWork = true;
+      gridHtml += '<p style="color:var(--danger)">'+ToolBox.escHtml(__wcCity(city,en))+(en?' has identical start/end; set a valid working range.':' 的开始与结束时间相同，请设置有效工作时段。')+'</p>';
+      return;
     }
-    
-    const cityOverlap = new Set(workHours);
-    overlapHours = new Set([...overlapHours].filter(h => cityOverlap.has(h)));
-    
-    let rowHtml = `<div class="time-row"><div class="label">${city.city}（${formatOffset(offset)}）</div><div class="time-grid">`;
+    const ranges = __splitWorkRange(work.start - diff, work.duration);
+    common = __intersectRanges(common, ranges);
+    let rowHtml = `<div class="time-row"><div class="label">${__wcCity(city,en)}${en?' (':'（'}${formatOffset((refOffMin + diff) / 60)}${en?')':'）'} ${__fmtMin(work.start)}-${__fmtMin(work.end)}</div><div class="time-grid">`;
     for(let h = 0; h < 24; h++){
-      let localH = h + diff;
-      while(localH < 0) localH += 24;
-      while(localH >= 24) localH -= 24;
-      const isWork = localH >= 9 && localH < 18;
-      const isOverlap = isWork && overlapHours.has(h);
-      rowHtml += `<div class="time-cell ${isOverlap ? 'overlap' : isWork ? 'work' : ''}">${h}</div>`;
+      const refStart = __modMin(h * 60 - diff);
+      const refEnd = refStart + 60;
+      const covered = common.some(function(r){
+        const s = Math.max(refStart, r[0]), e = Math.min(refEnd, r[1]);
+        return e - s >= 30;
+      });
+      const localMin = __modMin(h * 60);
+      const isWork = __modMin(localMin - work.start) < work.duration;
+      rowHtml += `<div class="time-cell ${covered ? 'overlap' : isWork ? 'work' : ''}">${h}</div>`;
     }
     rowHtml += '</div></div>';
     gridHtml += rowHtml;
   });
-  
-  const __h6=gridHtml;if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('meetingTimeGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('meetingTimeGrid').innerHTML=__h6;
-  
-  const slots = Array.from(overlapHours).sort((a, b) => a - b);
-  const slotHtml = slots.length > 0
-    ? slots.map(h => `<span class="meeting-slot">${h.toString().padStart(2,'0')}:00 - ${(h+1).toString().padStart(2,'0')}:00</span>`).join('')
-    : '<span style="color:var(--text-muted);font-size:12px;">没有共同工作时间，建议调整工作时间或错开会议</span>';
-  
-  const __h7=slotHtml;if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){document.getElementById('meetingSlots').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('meetingSlots').innerHTML=__h7;
+  document.getElementById('meetingTimeGrid').innerHTML = gridHtml || '<p style="color:var(--text-muted)">—</p>';
+  if(hasInvalidWork){
+    lastMeetingCandidates=[];
+    document.getElementById('meetingSlots').innerHTML='<span style="color:var(--text-muted);font-size:12px;">'+(en?'Fix the highlighted working hours to compute common time.':'请先修正高亮城市的工作时段，再计算共同时间。')+'</span>';
+    return;
+  }
+  common = __mergeRanges(common);
+  lastMeetingCandidates = common.map(function(r){ return __fmtMin(r[0])+' - '+__fmtMin(r[1]); });
+  const slots = common.length
+    ? '<p style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">'+(en?'Common time (reference city: ':'共同时间（参考城市：')+ToolBox.escHtml(__wcCity(refCity,en))+(en?' local time)':' 本地时间）')+(dateStr?' · '+dateStr:'')+'</p>' + common.map(function(r){
+        return '<span class="meeting-slot">'+__fmtMin(r[0])+' - '+__fmtMin(r[1])+'</span>';
+      }).join('')
+      +'<p style="margin:8px 0 0;"><button type="button" class="btn" onclick="copyMeetingCandidates()">'+(en?'Copy candidate times (date + time zone)':'复制候选时间（含日期与时区）')+'</button></p>'
+    : '<span style="color:var(--text-muted);font-size:12px;">'+(en?'No common working time; adjust work hours or stagger the meeting.':'没有共同工作时间，建议调整工作时间或错开会议')+'</span>';
+  document.getElementById('meetingSlots').innerHTML = slots;
+}
+
+function copyMeetingCandidates(){
+  const en=__wcIsEn();
+  const refCity=Array.from(meetingCities).map(id=>ALL_CITIES.find(c=>c.id===id)).filter(Boolean)[0];
+  const dateStr=(document.getElementById('meetingDate')||{}).value||'';
+  if(!lastMeetingCandidates.length || !refCity){
+    ToolBox.showToast(en?'No candidate time to copy':'暂时没有可复制的候选时间','warning');
+    return;
+  }
+  const head=(en?'Common meeting time (reference city: ':'会议共同时间（参考城市：')+__wcCity(refCity,en)+(dateStr?', '+dateStr:'')+(en?' local time)':' 本地时间）');
+  const body=lastMeetingCandidates.map(function(t){return '- '+t;}).join('\n');
+  const zoneNote=(en?'Time zone: ':'时区：')+__wcCity(refCity,en)+' '+formatOffset(getOffset(refCity.id,dateStr))+(en?' (DST applied for the selected date)':'（已按所选日期处理夏令时）');
+  ToolBox.copyText(head+'\n'+body+'\n'+zoneNote);
 }
 
 document.getElementById('addClockModal').addEventListener('click', function(e){
@@ -702,6 +927,25 @@ document.getElementById('addClockModal').addEventListener('click', function(e){
 
 selectedCities = getDefaultCities();
 try{ initDiffSelects(); }catch(e){}
+function refreshWorldClockLanguage(){
+  var en = __wcIsEn();
+  ['diffCityA','diffCityB'].forEach(function(id){
+    var sel=document.getElementById(id);
+    if(!sel) return;
+    for(var i=0;i<sel.options.length;i++){
+      var c=ALL_CITIES.find(function(x){return x.id===sel.options[i].value;});
+      if(c) sel.options[i].textContent=__wcCity(c,en)+(en?' (':'（')+__wcCountry(c,en)+(en?')':'）');
+    }
+  });
+  buildClockGrid();
+  renderMeetingHours();
+  renderMeetingCities();
+  if(currentTab==='diff') calcDiff();
+  updateClocks();
+}
+document.addEventListener('toolbox:langchange', refreshWorldClockLanguage);
+// i18n.js 为 defer，内联脚本执行时语言尚未就绪；DOMContentLoaded 后再按真实语言重建一次
+document.addEventListener('DOMContentLoaded', function(){ setTimeout(refreshWorldClockLanguage, 0); });
 buildClockGrid();
 updateClocks();
 setInterval(updateClocks, 1000);
@@ -729,17 +973,52 @@ function __world_clockSnap(){
     }
     return out;
 }
-function __world_clockResText(){
-    var r=document.querySelector('.result-box');
-    if(!r) return '';
-    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
-    if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
-    return t.slice(0,80);
+function __world_clockCityName(id, en){
+    var c=ALL_CITIES.find(function(x){return x.id===id;});
+    return c?(__wcCity(c,en)+' ('+id+')'):id;
+}
+function __world_clockViewRecord(en){
+    if(currentTab==='diff'){
+        var resEl=document.getElementById('diffResult');
+        var res=resEl?resEl.textContent.trim():'';
+        if(!res||res==='--') return null;
+        var labelEl=document.getElementById('diffLabel');
+        var label=labelEl?labelEl.textContent.replace(/\s+/g,' ').trim():'';
+        if(!label||/无法可靠|不可计算|Unable to obtain|cannot be computed/i.test(label)) return null;
+        var dateEl=document.getElementById('diffDate');
+        var timeEl=document.getElementById('diffTime');
+        return {
+            view: en?'Time difference':'时差计算',
+            cityA: __world_clockCityName(document.getElementById('diffCityA').value, en),
+            cityB: __world_clockCityName(document.getElementById('diffCityB').value, en),
+            date: (dateEl&&dateEl.value)||new Date().toISOString().slice(0,10),
+            time: (timeEl&&timeEl.value)||'',
+            result: label
+        };
+    }
+    if(currentTab==='meeting'){
+        var slotsEl=document.getElementById('meetingSlots');
+        var slots=slotsEl?slotsEl.textContent.replace(/\s+/g,' ').trim():'';
+        if(!slots) return null;
+        var names=Array.from(meetingCities).map(function(id){return __world_clockCityName(id, en);}).join(' / ');
+        return {view: en?'Meeting overlap':'会议共同时间', cities:names, workHours:'09:00–18:00 local', result:slots};
+    }
+    var items=[];
+    var cards=document.querySelectorAll('.clock-item');
+    for(var i=0;i<cards.length;i++){
+        var city=cards[i].querySelector('.clock-city');
+        var time=cards[i].querySelector('.clock-time');
+        var date=cards[i].querySelector('.clock-date');
+        if(city&&time&&date&&time.textContent.indexOf('--')<0){
+            items.push(city.textContent.trim()+' '+date.textContent.trim()+' '+time.textContent.trim());
+        }
+    }
+    if(!items.length) return null;
+    return {view: en?'World clock':'世界时钟', cities: String(selectedCities.length)+' cities', result: items.join('; ')};
 }
 function __world_clockScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting|没有共同|No common working time/i.test(s)) return 0;
     return 1;
 }
 function __world_clockTime(t){
@@ -750,7 +1029,8 @@ function __world_clockTime(t){
 function __world_clockRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
+        var labels=en?{view:'View',cities:'Cities',cityA:'City A',cityB:'City B',date:'Date',time:'Time',workHours:'Working hours'}:{view:'视图',cities:'城市',cityA:'城市 A',cityB:'城市 B',date:'日期',time:'时间',workHours:'工作时段'};
+        var head=[en?'Time':'时间'].concat(keys.map(function(k){return labels[k]||k;})).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__world_clockTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
@@ -789,14 +1069,12 @@ function __world_clockRender(keys,rk,en){
 function __world_clockExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__world_clock_skip) return;
-    var snap=__world_clockSnap();
-    var keys=Object.keys(snap);
-    if(!keys.length) return;
-    if(keys.length>12) keys=keys.slice(0,12);
-    var res=__world_clockResText();
-    if(!res) return;
     var en=TBKit.util.isEn();
+    var rec=__world_clockViewRecord(en);
+    if(!rec) return;
     var rk=en?'Result':'结果';
+    var keys=Object.keys(rec).filter(function(k){return k!=='result';});
+    if(keys.length>12) keys=keys.slice(0,12);
     var now=Date.now();
     if(now-__world_clock_last<1000) return;
     var last=null;
@@ -804,28 +1082,30 @@ function __world_clockExtras(){
     if(last){
         var same=true;
         for(var i=0;i<keys.length;i++){
-            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+            if(String(last[keys[i]])!==String(rec[keys[i]])){same=false;break;}
         }
-        if(same&&String(last[rk])===String(res)) return;
+        if(same&&String(last[rk])===String(rec.result)) return;
     }
     __world_clock_last=now;
-    var rec={};
-    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
-    rec[rk]=res;
-    rec.__tbScore=__world_clockScore(res);
-    TBKit.history.record(rec);
+    var out={};
+    for(var j=0;j<keys.length;j++) out[keys[j]]=rec[keys[j]];
+    out[rk]=rec.result;
+    out.__tbScore=__world_clockScore(rec.result);
+    TBKit.history.record(out);
     __world_clockRender(keys,rk,en);
 }
 function __world_clockExport(){
     if (typeof TBKit === 'undefined') return;
+    try{ __world_clockExtras(); }catch(e){}
     try{
-        var box=document.querySelector('#world_clockTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__world_clockSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __world_clockRender(keys,en?'Result':'结果',en);
+        var rec=__world_clockViewRecord((TBKit.util&&TBKit.util.isEn())?true:false);
+        if(!rec){
+            ToolBox.showToast(((TBKit.util&&TBKit.util.isEn())?'No calculated result to export. Switch to time difference or meeting view first.':'当前视图没有可导出的计算结果，请先切换到“时差计算”或“会议时间”并完成计算。'),'info');
+            return;
         }
+        var keys=Object.keys(rec).filter(function(k){return k!=='result';});
+        if(keys.length>12) keys=keys.slice(0,12);
+        __world_clockRender(keys,(TBKit.util&&TBKit.util.isEn())?'Result':'结果',(TBKit.util&&TBKit.util.isEn())?true:false);
     }catch(e){}
     try { TBKit.util.exportTable('#world_clockTable','world-clock.csv'); } catch(e){}
 }
@@ -839,6 +1119,14 @@ function __world_clockPresets(){
 var __world_clock_f0=(typeof calcDiff==='function')?calcDiff:null;
 if(__world_clock_f0){
     calcDiff=function(){ var __r=__world_clock_f0.apply(null,arguments); try{ __world_clockExtras(); }catch(e){} return __r; };
+}
+var __world_clock_m0=(typeof updateMeetingGrid==='function')?updateMeetingGrid:null;
+if(__world_clock_m0){
+    updateMeetingGrid=function(){ var __r=__world_clock_m0.apply(null,arguments); try{ __world_clockExtras(); }catch(e){} return __r; };
+}
+var __world_clock_s0=(typeof switchTab==='function')?switchTab:null;
+if(__world_clock_s0){
+    switchTab=function(){ var __r=__world_clock_s0.apply(null,arguments); try{ __world_clockExtras(); }catch(e){} return __r; };
 }
 function __world_clockBoot(){ try{ __world_clockPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __world_clockBoot();

@@ -145,7 +145,7 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 </div>
 
     <label for="url">网址</label>
-    <input type="text" id="url" value="https://github.com" style="margin-bottom:12px;">
+    <input type="text" id="url" value="https://github.com" style="margin-bottom:12px;" oninput="invalidateQR()">
     <label for="ecl">纠错等级（L 7% / M 15% / Q 25% / H 30%）</label>
     <select id="ecl" onchange="generate()" style="margin-bottom:12px;">
       <option value="L">L（约 7% 恢复能力，容量最大）</option>
@@ -162,7 +162,9 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
     </select>
     <div class="toolbar">
       <div id="url_qrPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__url_qrExport()">导出明细 CSV</button>
-      <button type="button" class="btn success" onclick="copyResult()">复制</button>
+      <button type="button" class="btn success" id="copyLinkBtn" onclick="copyResult()" disabled>复制链接</button>
+      <button type="button" class="btn" id="copyImageBtn" onclick="copyQrImage()" disabled>复制图片</button>
+      <button type="button" class="btn" id="downloadQrBtn" onclick="downloadQrImage()" disabled>下载图片</button>
     </div>
     <div class="result-box" id="output"></div> <div id="url_qrTable"></div> <div id="url_qrDiff"></div> <div id="url_qrChart"></div> <div id="url_qrHist"></div>
   </div>
@@ -246,6 +248,7 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 <script>
 /* 二维码矩阵由本地 js/qrcode.js（ISO/IEC 18004 编码器，含 Reed-Solomon 纠错）生成，
    下方仅负责版本估算、绘制与结果展示。 */
+var QR_MAX_BYTE = {L:2953,M:2331,Q:1663,H:1273};
 var QR_BYTE_CAP = {
   L: [17,32,53,78,106,134,154,192,230,271],
   M: [14,26,42,62,84,106,122,152,180,213],
@@ -271,12 +274,12 @@ function qrPlan(text, level){
   return {bytes:bytes, level:level, version:version, modules:version?17+4*version:0};
 }
 function renderQR(text, level){
-  if(typeof qrcode!=='function') return null;
+  if(typeof qrcode!=='function') return {error:'lib'};
   try{
     if(qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];
     var qr=qrcode(0, level); qr.addData(text); qr.make();
     return {qr:qr, n:qr.getModuleCount()};
-  }catch(e){ return null; }
+  }catch(e){ return {error:'encode', message:String(e&&e.message||e)}; }
 }
 function drawQR(qr, px){
   const n=qr.getModuleCount(),margin=4,total=n+margin*2;
@@ -291,40 +294,111 @@ function __qrIsEn(){
   try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) return !!TBKit.util.isEn(); }catch(e){}
   return /^en/i.test((document.documentElement&&document.documentElement.lang)||'');
 }
+var lastQR = null;
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function __qrT(zh,en){return __qrIsEn()?en:zh;}
+function __qrToast(msg,type){try{if(typeof ToolBox!=='undefined'&&ToolBox.showToast){ToolBox.showToast(msg,type||'info');return;}}catch(e){}alert(msg);}
+function setQrActions(on){
+  ['copyLinkBtn','copyImageBtn','downloadQrBtn'].forEach(function(id){
+    var b=document.getElementById(id); if(b)b.disabled=!on;
+  });
+}
+function clearQrResult(){
+  lastQR=null; setQrActions(false);
+}
+function invalidateQR(){
+  clearQrResult();
+  var out=document.getElementById('output');
+  var raw=document.getElementById('url').value.trim();
+  if(out) out.innerHTML=raw?'<p style="color:var(--text-muted)">'+__qrT('输入已变化，请点击「生成」更新二维码。','The input changed; click Generate to refresh the QR code.')+'</p>':'';
+}
+function normalizeQrUrl(raw){
+  var s=String(raw||'').trim();
+  if(!/^https?:\/\//i.test(s)) s='https://'+s;
+  var u=new URL(s);
+  if(!/^https?:$/.test(u.protocol)) throw new Error('protocol');
+  if(!u.hostname) throw new Error('host');
+  return u.href;
+}
 function generate(){
-  let url=document.getElementById('url').value.trim();
-  if(!url){// ITGCLR：输入为空时必须清掉上一批生成结果
-    document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ '+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Please enter a URL.':'请输入 URL')+'</p>';return;}
-  if(!/^https?:\/\//i.test(url))url='https://'+url;
-  const eclEl=document.getElementById('ecl');
-  const level=eclEl?eclEl.value:'M';
-  const sizeEl=document.getElementById('qrSize');
-  const px=sizeEl?(parseInt(sizeEl.value,10)||256):256;
-  const plan=qrPlan(url,level);
-  const en=__qrIsEn();
-  const pxText=en?(' · '+px+'×'+px+' px'):(' · 输出 '+px+'×'+px+' 像素');
-  const info=en
+  var raw=document.getElementById('url').value.trim();
+  var out=document.getElementById('output');
+  if(!raw){
+    clearQrResult();
+    out.innerHTML='<p style="color:var(--danger)">⚠ '+__qrT('请输入 URL','Please enter a URL')+'</p>';
+    return;
+  }
+  var url;
+  try{ url=normalizeQrUrl(raw); }
+  catch(e){
+    clearQrResult();
+    out.innerHTML='<p style="color:var(--danger)">⚠ '+__qrT('请输入合法的 http/https 网址（含有效主机名）','Enter a valid http/https URL with a hostname')+'</p>';
+    return;
+  }
+  var eclEl=document.getElementById('ecl');
+  var level=eclEl?eclEl.value:'M';
+  var sizeEl=document.getElementById('qrSize');
+  var px=sizeEl?(parseInt(sizeEl.value,10)||256):256;
+  var plan=qrPlan(url,level);
+  var max=QR_MAX_BYTE[level]||QR_MAX_BYTE.M;
+  if(plan.bytes>max){
+    clearQrResult();
+    out.innerHTML='<p style="color:var(--danger)">⚠ '+__qrT('内容超出纠错等级 '+level+' 的最大容量（'+max+' 字节），请缩短链接或降低纠错等级','Content exceeds the '+level+' maximum ('+max+' bytes); shorten the URL or lower the EC level')+'</p>';
+    return;
+  }
+  var en=__qrIsEn();
+  var pxText=en?(' · '+px+'×'+px+' px'):(' · 输出 '+px+'×'+px+' 像素');
+  var info=en
     ? '<div class="qr-info">'+plan.bytes+' bytes · EC level '+plan.level
       +(plan.version?(' · minimum version V'+plan.version+' ('+plan.modules+'×'+plan.modules+' modules)'):' · beyond V10, full encoder picks a larger version')+pxText+'</div>'
     : '<div class="qr-info">内容 '+plan.bytes+' 字节 · 纠错等级 '+plan.level
       +(plan.version?(' · 最小版本 V'+plan.version+'（'+plan.modules+'×'+plan.modules+' 模块）'):' · 超出 V10 容量，按完整编码器自动选版')+pxText+'</div>';
-  const out=document.getElementById('output');
   out.innerHTML='<div class="qr-wrap"></div>'+info+'<div class="qr-text">'+escapeHtml(url)+'</div>';
-  const real=renderQR(url,level);
-  if(real) out.querySelector('.qr-wrap').appendChild(drawQR(real.qr, px));
-  else out.querySelector('.qr-wrap').innerHTML='<p style="color:var(--danger)">'+(en?'QR encoder not loaded; cannot render the matrix.':'二维码编码库未加载，无法绘制矩阵。')+'</p>';
-}
-function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function copyResult(ev){
-  const out=document.getElementById('output');
-  const text=(out&&out.textContent)||'';
-  if(!text){alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Generate the QR code first":"请先生成二维码"));return;}
-  if(navigator.clipboard&&typeof navigator.clipboard.writeText==='function'){
-    let p=null;
-    try{ p=navigator.clipboard.writeText(text); }catch(e){ p=null; }
-    if(p&&typeof p.then==='function'){ p.then(()=>alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")),()=>alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copy failed, please select the text manually":"复制失败，请手动选择文本"))); return; }
+  var real=renderQR(url,level);
+  if(real&&real.qr){
+    var canvas=drawQR(real.qr, px);
+    out.querySelector('.qr-wrap').appendChild(canvas);
+    lastQR={url:url, level:level, px:px, canvas:canvas};
+    setQrActions(true);
+    return;
   }
-  alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制"));
+  clearQrResult();
+  var msg;
+  if(real&&real.error==='lib') msg=__qrT('二维码编码库未加载，请刷新页面重试','The QR encoder failed to load; refresh the page and try again');
+  else msg=__qrT('编码失败（内容可能超出容量或包含不受支持的字符）：','Encoding failed (the content may exceed capacity or contain unsupported characters): ')+escapeHtml(real&&real.message||'');
+  out.querySelector('.qr-wrap').innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';
+}
+function copyResult(){
+  if(!lastQR||!lastQR.url){__qrToast(__qrT('请先生成有效的二维码','Generate a valid QR code first'),'warning');return;}
+  var text=lastQR.url;
+  if(navigator.clipboard&&typeof navigator.clipboard.writeText==='function'){
+    try{
+      navigator.clipboard.writeText(text).then(function(){__qrToast(__qrT('链接已复制','Link copied'),'success');},function(){__qrToast(__qrT('复制失败，请手动选择链接','Copy failed; select the link manually'),'error');});
+      return;
+    }catch(e){}
+  }
+  __qrToast(__qrT('当前浏览器不支持剪贴板，请手动选择链接','Clipboard is unavailable; select the link manually'),'warning');
+}
+function copyQrImage(){
+  if(!lastQR||!lastQR.canvas){__qrToast(__qrT('请先生成有效的二维码','Generate a valid QR code first'),'warning');return;}
+  if(!navigator.clipboard||typeof ClipboardItem==='undefined'||typeof lastQR.canvas.toBlob!=='function'){
+    __qrToast(__qrT('当前浏览器不支持复制图片，请使用「下载图片」','This browser cannot copy images; use Download instead'),'warning');return;
+  }
+  lastQR.canvas.toBlob(function(blob){
+    if(!blob){__qrToast(__qrT('图片生成失败，请使用下载','Could not create the image; use Download'),'error');return;}
+    try{
+      navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(function(){__qrToast(__qrT('二维码图片已复制','QR image copied'),'success');},function(){__qrToast(__qrT('复制图片失败，请使用下载','Image copy failed; use Download'),'error');});
+    }catch(e){__qrToast(__qrT('复制图片失败，请使用下载','Image copy failed; use Download'),'error');}
+  },'image/png');
+}
+function downloadQrImage(){
+  if(!lastQR||!lastQR.canvas){__qrToast(__qrT('请先生成有效的二维码','Generate a valid QR code first'),'warning');return;}
+  try{
+    var a=document.createElement('a');
+    a.href=lastQR.canvas.toDataURL('image/png');
+    a.download='url-qr-'+lastQR.px+'.png';
+    document.body.appendChild(a);a.click();a.remove();
+  }catch(e){__qrToast(__qrT('下载失败，请重试','Download failed; please retry'),'error');}
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
@@ -520,7 +594,7 @@ else document.addEventListener('DOMContentLoaded', __url_qrBoot);
     </a>
     <a href="css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/格式化/美化工具</span><span class="rt-desc">在线 CSS 压缩与美化工具，去除注释空白压缩体积或重新格式化缩进，保留语义便于维护，适合前端构建与…</span></span>
     </a>
     <a href="css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -528,7 +602,7 @@ else document.addEventListener('DOMContentLoaded', __url_qrBoot);
     </a>
     <a href="cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器</span><span class="rt-desc">可视化生成/解析 5 段 Unix cron，默认按 Vixie cron 校验；</span></span>
     </a>
     <a href="graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

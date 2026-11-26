@@ -141,7 +141,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="计算两日期间的工作日数 / 自然日数">Count the working days between two dates, excluding weekends and any custom holidays you specify.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">工作日数 = 区间总天数 − 周末天数 − 法定节假日天数 + 调休上班日天数（按选项决定是否排除周六、周日）；总天数 =（结束日期 − 开始日期）÷ 86400000 + 1（含首尾两天）；逐日遍历统计，调休上班日优先计为工作日，用于工期与考勤估算。</div>
+      <div class="formula-eq">工作日数 = 区间总天数 − 周末天数 − 法定节假日天数 + 调休上班日天数（按选项决定是否排除周六、周日）；总天数 =（结束日期 − 开始日期）÷ 86400000 + 1（含首尾两天）；按整周算术统计周末，再对假期与调休日期去重，调休上班日优先计为工作日，用于工期与考勤估算。</div>
   
 </div>
 
@@ -157,18 +157,18 @@
     </div>
 
     <div class="checkbox-row">
-      <label><input type="checkbox" id="skipSat" checked> 排除周六</label>
-      <label><input type="checkbox" id="skipSun" checked> 排除周日</label>
+      <label><input type="checkbox" id="skipSat" checked onchange="calc()"> 排除周六</label>
+      <label><input type="checkbox" id="skipSun" checked onchange="calc()"> 排除周日</label>
     </div>
 
     <label for="holidays">法定节假日（每行一个日期，格式 YYYY-MM-DD）</label>
-    <textarea id="holidays" placeholder="如：2026-01-01&#10;2026-02-10"></textarea>
+    <textarea id="holidays" oninput="calc()" placeholder="如：2026-01-01&#10;2026-02-10"></textarea>
 
     <label for="workdays">调休上班日（周末补班，每行一个日期，格式 YYYY-MM-DD）</label>
-    <textarea id="workdays" placeholder="如：2026-02-14"></textarea>
+    <textarea id="workdays" oninput="calc()" placeholder="如：2026-02-14"></textarea>
 
     <div class="toolbar">
-      <div id="workday_calculatorPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__workday_calculatorExport()">导出明细 CSV</button>
+      <div id="workday_calculatorPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" id="exportDetailBtn" onclick="__workday_calculatorExport()" disabled>导出当前明细 CSV</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
 
@@ -180,10 +180,10 @@
     <div class="result-box">
       <p>默认排除周六、周日</p>
       <p>法定节假日：列出放假日（如国庆、春节假期），逐日扣减</p>
-      <p>调休上班日：填入周末补班日期，即使为周六/周日也强制计为工作日</p>
+      <p>调休上班日：填入周末补班日期，即使为周六/周日也强制计为工作日；若与法定节假日重复会提示冲突，普通工作日填入会提示核实</p>
       <p>含起始日与结束日（如周一到周五 = 5 个工作日；同一天 = 1 个自然日）</p>
-      <p>2026 年中国法定节假日参考：</p>
-      <p style="font-size:12px;color:var(--text-muted);">1/1 元旦，2/15-2/22 春节假期，4/4-4/6 清明，5/1-5/5 劳动节，6/19-6/21 端午，9/25-9/27 中秋+国庆</p>
+      <p>2026 年中国法定节假日参考（调休以国务院当年通知为准，本页不自动加载，请手动填写）：</p>
+      <p style="font-size:12px;color:var(--text-muted);">1/1 元旦，2/15-2/23 春节，4/4-4/6 清明，5/1-5/5 劳动节，6/19-6/21 端午，9/25-9/27 中秋，10/1-10/7 国庆</p>
     </div>
   </div>
 
@@ -236,17 +236,17 @@
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="工作日定义">Working day definition</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="工作日 = 区间总天数 - 周末天数 - 法定节假日，加调休上班日">working days subtract weekends and holidays then add make-up days</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="State Council holiday arrangements">State Council holiday arrangements</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="国务院办公厅节假日安排">State Council holiday arrangements</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="区间计数">Interval counting</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="宜按日期序列逐日判定，避免按周数乘算导致边界误差">iterate the date series rather than multiplying week counts</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Arithmetic practice">Arithmetic practice</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按日期逐日判定（区间计数实务）">Arithmetic practice</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="调休影响">Make-up workdays</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="调休安排逐年调整，跨年计算须分别取当年公告">make-up days change yearly, so use each year's own notice</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="State Council holiday arrangements">State Council holiday arrangements</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="国务院办公厅节假日安排">State Council holiday arrangements</td>
         </tr>
       </tbody>
     </table>
@@ -287,54 +287,137 @@ function parseLocalDate(s){
   calc();
 })();
 
-function parseDateSet(id){
+function parseDateSet(id, label){
   const el = document.getElementById(id);
   const txt = (el && el.value) || '';
-  const set = new Set();
-  txt.split(/\s+/).forEach(s => {
-    s = s.trim();
-    if(/^\d{4}-\d{2}-\d{2}$/.test(s)) set.add(s);
+  const set = new Set(), errors = [], duplicates = [];
+  txt.split(/\r?\n/).forEach((raw, i) => {
+    const s = String(raw || '').trim();
+    if(!s) return;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(s)){
+      errors.push('第 ' + (i + 1) + ' 行「' + s + '」格式应为 YYYY-MM-DD');
+      return;
+    }
+    if(isNaN(parseLocalDate(s).getTime())){
+      errors.push('第 ' + (i + 1) + ' 行「' + s + '」不是真实存在的日期');
+      return;
+    }
+    if(set.has(s)){ duplicates.push(s); return; }
+    set.add(s);
   });
-  return set;
+  return { set, errors, duplicates, label };
 }
 
+var __workdayCurrentDetail=null;
 function calc(){
   const startStr = document.getElementById('startDate').value;
   const endStr = document.getElementById('endDate').value;
+  __workdayCurrentDetail=null;
   if(!startStr || !endStr){
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请选择日期</p>';
     return;
   }
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(startStr) || !/^\d{4}-\d{2}-\d{2}$/.test(endStr)){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">日期仅支持公元 1–9999 年的四位年份格式（YYYY-MM-DD），请重新选择；已清空旧结果。</p>';
+    return;
+  }
   const start = parseLocalDate(startStr);
   const end = parseLocalDate(endStr);
+  if(!(start instanceof Date) || !(end instanceof Date) || isNaN(start.getTime()) || isNaN(end.getTime())){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">日期格式无效或超出支持范围（公元 1–9999 年），已清空旧结果，请重新选择开始与结束日期。</p>';
+    return;
+  }
   if(start > end){
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">结束日期需晚于开始日期</p>';
     return;
   }
   const skipSat = document.getElementById('skipSat').checked;
   const skipSun = document.getElementById('skipSun').checked;
-  const holidays = parseDateSet('holidays');
-  const makeupDays = parseDateSet('workdays');
-  let totalDays = 0, workDays = 0, weekends = 0, holidayCount = 0, makeupCount = 0;
-  const d = new Date(start);
-  while(d <= end){
-    totalDays++;
-    const dow = d.getDay();
-    const isSat = dow === 6;
-    const isSun = dow === 0;
-    const dateStr = fmtLocalDate(d);
-    if(makeupDays.has(dateStr)){
-      makeupCount++;
-      workDays++;
-    } else if(holidays.has(dateStr)){
-      holidayCount++;
-    } else if((skipSat && isSat) || (skipSun && isSun)){
-      weekends++;
-    } else {
-      workDays++;
-    }
-    d.setDate(d.getDate() + 1);
+  const holidayParsed = parseDateSet('holidays', '法定节假日');
+  const makeupParsed = parseDateSet('workdays', '调休上班日');
+  const badInputs = [].concat(holidayParsed.errors, makeupParsed.errors);
+  if(badInputs.length){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请修正节假日/调休日期后再计算：</p><p style="color:var(--danger);">'+badInputs.slice(0,8).join('；')+(badInputs.length>8?' 等 '+badInputs.length+' 项':'')+'</p><p class="muted">日期须为真实存在的 YYYY-MM-DD（如 2026-02-17，不能写 2026-2-17 或 2026-02-30）。</p>';
+    return;
   }
+  const holidays = holidayParsed.set;
+  const makeupDays = makeupParsed.set;
+  const duplicateNotes = holidayParsed.duplicates.concat(makeupParsed.duplicates);
+  const conflicts = [];
+  holidays.forEach(function(key){ if(makeupDays.has(key)) conflicts.push(key); });
+  if(conflicts.length){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">以下日期同时出现在法定节假日和调休上班日，请先修正：<strong>'+conflicts.slice(0,8).join('、')+'</strong>'+(conflicts.length>8?' 等 '+conflicts.length+' 天':'')+'。</p>';
+    return;
+  }
+  // 整周算术统计周末，再只遍历用户填写的假期/调休集合；避免超大跨度逐日循环阻塞页面。
+  const totalDays = Math.round((end - start) / 86400000) + 1;
+  function countDow(dow){
+    const diff = Math.round((end - start) / 86400000);
+    const first = (dow - start.getDay() + 7) % 7;
+    return first > diff ? 0 : Math.floor((diff - first) / 7) + 1;
+  }
+  const allSat = countDow(6), allSun = countDow(0);
+  let weekends = (skipSat ? allSat : 0) + (skipSun ? allSun : 0);
+  let holidayCount = 0, makeupCount = 0;
+  const startKey = fmtLocalDate(start), endKey = fmtLocalDate(end);
+  function inRange(key){ return key >= startKey && key <= endKey; }
+  let weekdayMakeupCount = 0;
+  makeupDays.forEach(function(key){
+    if(!inRange(key)) return;
+    const dow = parseLocalDate(key).getDay();
+    if((skipSat && dow === 6) || (skipSun && dow === 0)) makeupCount++;
+    else if(dow !== 6 && dow !== 0) weekdayMakeupCount++; // 普通工作日填进「调休」不会增加工作日，仅提示核实
+  });
+  holidays.forEach(function(key){
+    if(!inRange(key) || makeupDays.has(key)) return;
+    holidayCount++;
+    const dow = parseLocalDate(key).getDay();
+    if((skipSat && dow === 6) || (skipSun && dow === 0)) weekends--;
+  });
+  makeupDays.forEach(function(key){
+    const dow = parseLocalDate(key).getDay();
+    if((skipSat && dow === 6) || (skipSun && dow === 0)) weekends--;
+  });
+  const workDays = totalDays - weekends - holidayCount;
+  const en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+  __workdayCurrentDetail = null;
+  if(totalDays <= 3660){
+    const rows=[];
+    for(let d=0;d<totalDays;d++){
+      const cur=new Date(start.getFullYear(),start.getMonth(),start.getDate()+d);
+      const key=fmtLocalDate(cur),dow=cur.getDay();
+      const wk=en?['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dow]:['周日','周一','周二','周三','周四','周五','周六'][dow];
+      let type;
+      if(makeupDays.has(key)) type=en?'Make-up workday':'调休上班日';
+      else if(holidays.has(key)) type=en?'Public holiday':'法定节假日';
+      else if((skipSat&&dow===6)||(skipSun&&dow===0)) type=en?'Weekend (excluded)':'周末（已排除）';
+      else type=en?'Workday':'工作日';
+      rows.push([key,wk,type]);
+    }
+    __workdayCurrentDetail={rows:rows,start:startKey,end:endKey};
+  }
+  const exportBtn=document.getElementById('exportDetailBtn');
+  if(exportBtn){
+    exportBtn.disabled=!__workdayCurrentDetail;
+    exportBtn.textContent=__workdayCurrentDetail?(en?'Export current daily detail CSV':'导出当前明细 CSV'):(en?'Span too large: daily export unavailable':'范围过大，暂不可导出逐日明细');
+  }
+  let completeDate=null, counted=0;
+  if(workDays>0){
+    for(let d=0;d<totalDays;d++){
+      const cur=new Date(start.getFullYear(),start.getMonth(),start.getDate()+d);
+      const key=fmtLocalDate(cur),dow=cur.getDay();
+      let isWork;
+      if(makeupDays.has(key)) isWork=true;
+      else if(holidays.has(key)) isWork=false;
+      else isWork=!((skipSat&&dow===6)||(skipSun&&dow===0));
+      if(isWork){counted++;if(counted===workDays){completeDate=cur;break;}}
+    }
+  }
+  const completeText=completeDate
+    ? (en?'<p style="margin-top:8px;font-size:12px;color:var(--text-muted);">Estimated completion date under the current weekend/holiday/make-up rules: <strong>'+(completeDate.getMonth()+1)+'/'+completeDate.getDate()+'/'+completeDate.getFullYear()+'</strong> ('+Math.ceil(workDays/5)+' calendar weeks)</p>'
+      :'<p style="margin-top:8px;font-size:12px;color:var(--text-muted);">按当前周末/假期/调休规则折算，预计完成日期为 <strong>'+completeDate.getFullYear()+'年'+(completeDate.getMonth()+1)+'月'+completeDate.getDate()+'日</strong>（自然跨度 '+totalDays+' 天，约 '+Math.ceil(workDays/5)+' 个自然周）</p>')
+    : (en?'<p style="margin-top:8px;font-size:12px;color:var(--warning);">The selected range contains no workday after exclusions, so no completion date can be estimated.</p>'
+      :'<p style="margin-top:8px;font-size:12px;color:var(--warning);">按当前排除规则，所选区间内没有工作日，无法折算预计完成日期。</p>');
   const __g3=`
     <p>开始日期：<strong>${start.toLocaleDateString('zh-CN')}</strong></p>
     <p>结束日期：<strong>${end.toLocaleDateString('zh-CN')}</strong></p>
@@ -343,12 +426,16 @@ function calc(){
     <p>工作日数：<strong style="color:var(--success);">${workDays}</strong> 天</p>
     <p>周末（已排除）：<strong>${weekends}</strong> 天</p>
     <p>法定节假日：<strong>${holidayCount}</strong> 天</p>
-    <p>调休上班日（计入工作日）：<strong>${makeupCount}</strong> 天</p>
-    <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">预计完成时间：约 ${Math.ceil(workDays / 5)} 周</p>
+    <p>调休上班日（周末补班、计入工作日）：<strong>${makeupCount}</strong> 天</p>
+    ${duplicateNotes.length ? '<p style="font-size:12px;color:var(--text-muted);">重复日期已自动去重：'+duplicateNotes.slice(0,8).join('、')+(duplicateNotes.length>8?' 等 '+duplicateNotes.length+' 项':'')+'</p>' : ''}
+    ${weekdayMakeupCount ? '<p style="color:var(--warning);">另有 '+weekdayMakeupCount+' 个普通工作日被填入「调休上班日」，它们本来就是工作日，不会额外增加工作日数，请核实是否填错。</p>' : ''}
+    ${completeText}
   `;document.getElementById('resultBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 
 function clearAll(){
+  __workdayCurrentDetail=null;
+  var exportBtn=document.getElementById('exportDetailBtn');if(exportBtn){exportBtn.disabled=true;exportBtn.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Export current daily detail CSV':'导出当前明细 CSV');}
   document.getElementById('startDate').value = '';
   document.getElementById('endDate').value = '';
   document.getElementById('holidays').value = '';
@@ -474,16 +561,21 @@ function __workday_calculatorExtras(){
 }
 function __workday_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!__workdayCurrentDetail){
+        if(TBKit.showToast)TBKit.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'No valid current range; calculate first or narrow the span.':'当前没有可导出的有效明细，请先计算或缩小日期范围。','warning');
+        return;
+    }
+    var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+    var head=[en?'Date':'日期',en?'Weekday':'星期',en?'Type':'类型'];
+    var rows=[head].concat(__workdayCurrentDetail.rows);
     try{
-        var box=document.querySelector('#workday_calculatorTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__workday_calculatorSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __workday_calculatorRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#workday_calculatorTable','workday-calculator.csv'); } catch(e){}
+        if(TBKit.export&&TBKit.export.csv){TBKit.export.csv('workday-detail.csv',rows);return;}
+        var csv=rows.map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+        var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+        var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='workday-detail.csv';a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+    }catch(e){
+        if(TBKit.showToast)TBKit.showToast(en?'CSV export failed':'CSV 导出失败','error');
+    }
 }
 function __workday_calculatorPresets(){
     if (typeof TBKit === 'undefined') return;

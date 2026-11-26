@@ -138,7 +138,7 @@
     <h2 data-zh="🔩 压力换算器">🔩 Pressure Converter</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">以帕斯卡为基准换算：1 kPa = 1000 Pa、1 MPa = 10⁶ Pa、1 bar = 100000 Pa、1 psi ≈ 6894.757 Pa、1 atm = 101325 Pa、1 mmHg ≈ 133.322 Pa；结果 = 输入值 × 目标系数 ÷ 源系数，1 bar ≈ 14.5038 psi ≈ 0.9869 atm。</div>
+      <div class="formula-eq">以帕斯卡为基准换算：1 kPa = 1000 Pa、1 MPa = 10⁶ Pa、1 bar = 100000 Pa、1 psi ≈ 6894.757 Pa、1 atm = 101325 Pa、1 mmHg ≈ 133.322 Pa；结果 = 输入值 × 源系数 ÷ 目标系数，1 bar ≈ 14.5038 psi ≈ 0.9869 atm。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 Pa / kPa / MPa / bar / psi / atm / mmHg">Convert pressure units such as pascal, bar, psi, atmosphere and millimetre of mercury.</p>
 
@@ -146,6 +146,14 @@
       <div>
         <label for="inputVal">输入数值</label>
         <input type="number" id="inputVal" value="1" oninput="convert()" placeholder="如 1">
+      </div>
+      <div>
+        <label for="pressureBasis">压力基准</label>
+        <select id="pressureBasis" onchange="convert()">
+          <option value="absolute" selected>绝压（相对真空）</option>
+          <option value="gauge">表压（相对大气）</option>
+          <option value="differential">压差</option>
+        </select>
       </div>
       <div>
         <label for="fromUnit">源单位</label>
@@ -167,7 +175,8 @@
     </div>
 
     <div class="result-box" id="resultBox">请输入数值进行换算</div> <div id="pressure_converterTable"></div> <div id="pressure_converterDiff"></div> <div id="pressure_converterChart"></div> <div id="pressure_converterHist"></div>
-  </div>
+
+    <p data-zh="本工具只换算同一压力基准下的单位（Pa、psi、atm 等）；atm 是单位，不代表当地实测大气压。车辆胎压等常见读数通常是表压，不能直接当作绝压使用；如需表压/绝压换算，请另输入参考环境压力并注明基准。" style="font-size:12px;color:var(--text-muted);margin-top:8px;">This converter only changes units at the same pressure reference (Pa, psi, atm and so on); atm is a unit, not the local measured atmospheric pressure. Tyre pressure and similar readings are usually gauge pressure and should not be treated as absolute without stating the reference.</p>  </div>
 
   <div class="card">
     <h3>📐 公式说明</h3>
@@ -299,7 +308,9 @@ function convert(){
 
 function clearAll(){
   document.getElementById('inputVal').value = '';
+  if(typeof window.__charRefRender==='function') window.__charRefRender();
   const __h2=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a value to convert":"请输入数值进行换算");if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
+  if(typeof convert==='function') convert();
 }
 convert();
 </script><script>
@@ -530,7 +541,7 @@ else document.addEventListener('DOMContentLoaded', __pressure_converterBoot);
 <script>
 (function(){
   var F = {"Pa": 1, "kPa": 1000, "MPa": 1000000, "bar": 100000, "psi": 6894.757293, "atm": 101325, "mmHg": 101325/760};
-  var REFS = [{"v": 15999, "zh": "正常收缩压（120 mmHg）", "en": "normal systolic BP (120 mmHg)", "d": "1.6×10^4"}, {"v": 100000.0, "zh": "10 米水深额外水压", "en": "+10 m water depth", "d": "1×10^5"}, {"v": 240000.0, "zh": "汽车轮胎胎压", "en": "car tyre pressure", "d": "2.4×10^5"}, {"v": 300000.0, "zh": "碳酸饮料瓶内压", "en": "fizzy-drink bottle", "d": "3×10^5"}, {"v": 101325, "zh": "1 个标准大气压", "en": "1 atmosphere", "d": "1.01×10^5"}, {"v": 1000000.0, "zh": "深海 100 米水压", "en": "100 m ocean depth", "d": "1×10^6"}, {"v": 20000000.0, "zh": "液压系统", "en": "hydraulic system", "d": "2×10^7"}, {"v": 250000000.0, "zh": "钢铁抗压强度", "en": "steel compressive strength", "d": "2.5×10^8"}, {"v": 100000000000.0, "zh": "金刚石压砧", "en": "diamond anvil", "d": "1×10^11"}, {"v": 360000000000.0, "zh": "地心压力", "en": "Earth core pressure", "d": "3.6×10^11"}];
+  var REFS = [{"v": 15999, "zh": "正常收缩压（120 mmHg）", "en": "normal systolic BP (120 mmHg)", "d": "1.6×10^4", "b": "gauge"}, {"v": 100000.0, "zh": "10 米水深额外水压", "en": "+10 m water depth", "d": "1×10^5", "b": "gauge"}, {"v": 240000.0, "zh": "汽车轮胎胎压（表压）", "en": "car tyre pressure (gauge)", "d": "2.4×10^5", "b": "gauge"}, {"v": 300000.0, "zh": "碳酸饮料瓶内压（表压）", "en": "fizzy-drink bottle (gauge)", "d": "3×10^5", "b": "gauge"}, {"v": 101325, "zh": "1 个标准大气压", "en": "1 atmosphere", "d": "1.01×10^5", "b": "absolute"}, {"v": 1000000.0, "zh": "深海 100 米水压（表压）", "en": "100 m ocean depth (gauge)", "d": "1×10^6", "b": "gauge"}, {"v": 20000000.0, "zh": "液压系统（表压）", "en": "hydraulic system (gauge)", "d": "2×10^7", "b": "gauge"}, {"v": 250000000.0, "zh": "钢铁抗压强度", "en": "steel compressive strength", "d": "2.5×10^8", "b": "absolute"}, {"v": 100000000000.0, "zh": "金刚石压砧", "en": "diamond anvil", "d": "1×10^11", "b": "absolute"}, {"v": 360000000000.0, "zh": "地心压力", "en": "Earth core pressure", "d": "3.6×10^11", "b": "absolute"}];
   var BASE = ["帕", "Pa"];
   var FACTS = ["1 标准大气压 ≈ 101325 帕 = 1.013 巴；水银柱每升高 1 毫米 ≈ 133.3 帕；水下每深 10 米约增 1 个大气压。", "1 atm ≈ 101325 Pa = 1.013 bar; each 1 mm of mercury ≈ 133.3 Pa; every 10 m of water adds ~1 atm."];
   function isEn(){
@@ -551,32 +562,43 @@ else document.addEventListener('DOMContentLoaded', __pressure_converterBoot);
     var from=sel.value;
     if(!isFinite(v)||!F[from]){ box.innerHTML=''; return; }
     var base=v*F[from];
+    var basisEl=document.getElementById('pressureBasis');
+    var basis=basisEl?basisEl.value:'absolute';
     var best=null, bd=1e18;
     for(var i=0;i<REFS.length;i++){
       var rv=REFS[i].v;
-      if(!(rv>0)) continue;
+      if(!(rv>0)||REFS[i].b!==basis) continue;
       var d=Math.abs(Math.log10(Math.abs(base)+1e-30)-Math.log10(rv));
       if(d<bd){ bd=d; best=REFS[i]; }
     }
     var en=isEn();
     var bname=en?BASE[1]:BASE[0];
+    var basisName=en?{absolute:'absolute',gauge:'gauge',differential:'differential'}[basis]:{absolute:'绝压',gauge:'表压',differential:'压差'}[basis];
     var html='';
     html+='<div class="card" style="margin-top:0;">';
     html+='<h3>'+(en?'Scale sense: how big is it really?':'📐 尺度感知：这到底有多大')+'</h3>';
-    html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
-    if(best){
-      html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+    html+='<p>'+(en?'Your input ('+basisName+') ≈ ':'你的输入（'+basisName+'）≈ ')+fmt(base)+' '+bname+'</p>';
+    if(!(base>0)){
+      html+='<p style="color:var(--text-muted);">'+(en?'Zero or negative values are not matched to positive real-world references.':'零值或负值不套用正压实物参照，避免把 0 Pa 说成“正常血压”。')+'</p>';
+    }else if(best && bd<=1){
+      html+='<p style="font-weight:600;color:var(--primary);">💡 '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+    }else if(best){
+      var ratio=Math.pow(10,bd);
+      html+='<p style="color:var(--text-muted);">'+(en?'No suitable '+basisName+' reference; nearest is about '+ratio.toFixed(1)+'× different.':'没有合适的'+basisName+'参照；最近参照相差约 '+ratio.toFixed(1)+' 倍，不建议用“≈”直接类比。')+'</p>';
+    }else{
+      html+='<p style="color:var(--text-muted);">'+(en?'No real-world reference for this basis.':'该基准下暂无可对照的实物参照。')+'</p>';
     }
     html+='<details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--primary);">'+(en?'Typical real-world references':'常见实物参照')+'</summary><ul style="font-size:13px;line-height:1.8;margin:6px 0 0;padding-left:18px;">';
     for(var j=0;j<REFS.length;j++){
       var r=REFS[j];
-      html+='<li>'+r[en?'en':'zh']+(en?': ':'：')+r.d+' '+bname+'</li>';
+      html+='<li>'+r[en?'en':'zh']+'（'+(en?({absolute:'absolute',gauge:'gauge',differential:'differential'}[r.b]||'reference'):({absolute:'绝压',gauge:'表压',differential:'压差'}[r.b]||'参考'))+'）'+(en?': ':'：')+r.d+' '+bname+'</li>';
     }
     html+='</ul></details>';
     html+='<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+(en?FACTS[1]:FACTS[0])+'</p>';
     html+='</div>';
     box.innerHTML=html;
   }
+  window.__charRefRender=render;
   var f0=(typeof convert==='function')?convert:null;
   if(f0){ convert=function(){ var r=f0.apply(null,arguments); try{ render(); }catch(e){} return r; }; }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', render);

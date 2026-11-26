@@ -241,8 +241,15 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const F=num('F')*1000, A=num('A'), E=num('E')*1e9, L=num('L');
-            if(A<=0||E<=0||L<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的材料与几何参数。</p>');return;}
+            function rv(id){var el=document.getElementById(id);var v=el?String(el.value==null?'':el.value).trim():'';return {raw:v,val:v===''?NaN:parseFloat(v)};}
+            var Fr=rv('F'), Ar=rv('A'), Er=rv('E'), Lr=rv('L');
+            var errs=[];
+            if(Fr.raw===''||!isFinite(Fr.val))errs.push('轴向力 F 须为有效数值（kN，可为 0 或负值表示受压）');
+            if(!isFinite(Ar.val)||Ar.val<=0)errs.push('截面积 A 须为正数（mm²）');
+            if(!isFinite(Er.val)||Er.val<=0)errs.push('弹性模量 E 须为正数（GPa）');
+            if(!isFinite(Lr.val)||Lr.val<=0)errs.push('原长 L 须为正数（m）');
+            if(errs.length){ToolBox.setResult('result','<p class="tip-error">⚠ '+errs.join('；')+'。</p>');return;}
+            const F=Fr.val*1000, A=Ar.val, E=Er.val*1e9, L=Lr.val;
             const sigma=F/A;            // N/mm² = MPa (F in N, A in mm²)
             const eps=sigma*1e6/E;      // MPa -> Pa, 除以 E(Pa) 得应变
             const dL=eps*L*1000;        // mm
