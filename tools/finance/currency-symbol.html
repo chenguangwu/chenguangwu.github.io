@@ -32,7 +32,7 @@
 .filter-tab{padding:6px 12px;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:var(--bg-card);font-size:12px;transition:all 0.2s;}
 .filter-tab.active{background:var(--primary);color:#fff;border-color:var(--primary);}
 .currency-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:12px;}
-.currency-card{padding:16px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);cursor:pointer;transition:all 0.2s;}
+.currency-card{padding:16px;text-align:left;color:inherit;font:inherit;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);cursor:pointer;transition:all 0.2s;}
 .currency-card:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.1);}
 .currency-symbol{font-size:32px;font-weight:700;color:var(--primary);margin-bottom:4px;}
 .currency-code{font-size:14px;font-weight:600;color:var(--text-primary);}
@@ -172,14 +172,14 @@
       <button type="button" class="btn primary" onclick="document.getElementById('searchInput').value='';search();">清空</button>
     </div>
 
-    <div class="filter-tabs" id="filterTabs">
-      <div class="filter-tab active" onclick="filterRegion('all',this)">全部</div>
-      <div class="filter-tab" onclick="filterRegion('asia',this)">亚洲</div>
-      <div class="filter-tab" onclick="filterRegion('europe',this)">欧洲</div>
-      <div class="filter-tab" onclick="filterRegion('americas',this)">美洲</div>
-      <div class="filter-tab" onclick="filterRegion('africa',this)">非洲</div>
-      <div class="filter-tab" onclick="filterRegion('oceania',this)">大洋洲</div>
-      <div class="filter-tab" onclick="filterRegion('major',this)">主要货币</div>
+    <div class="filter-tabs" id="filterTabs" role="group" aria-label="按地区筛选货币">
+      <button type="button" class="filter-tab active" aria-pressed="true" onclick="filterRegion('all',this)">全部</button>
+      <button type="button" class="filter-tab" aria-pressed="false" onclick="filterRegion('asia',this)">亚洲</button>
+      <button type="button" class="filter-tab" aria-pressed="false" onclick="filterRegion('europe',this)">欧洲</button>
+      <button type="button" class="filter-tab" aria-pressed="false" onclick="filterRegion('americas',this)">美洲</button>
+      <button type="button" class="filter-tab" aria-pressed="false" onclick="filterRegion('africa',this)">非洲</button>
+      <button type="button" class="filter-tab" aria-pressed="false" onclick="filterRegion('oceania',this)">大洋洲</button>
+      <button type="button" class="filter-tab" aria-pressed="false" onclick="filterRegion('major',this)">主要货币</button>
     </div>
 
     <div class="result-stat" id="resultStat"></div>
@@ -304,11 +304,11 @@
 <!-- /注意事项区块 -->
 </div>
 
-<div class="detail-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+<div class="detail-overlay" id="detailOverlay" role="dialog" aria-modal="true" aria-labelledby="detailTitle" onclick="if(event.target===this)closeDetail()">
   <div class="detail-card">
     <h3 id="detailTitle"></h3>
     <div id="detailContent"></div>
-    <button type="button" class="close-btn" onclick="closeDetail()">关闭</button>
+    <button type="button" class="close-btn" id="detailClose" onclick="closeDetail()">关闭</button>
   </div>
 </div>
 
@@ -678,8 +678,8 @@ function search(){
 
 function filterRegion(region, btn){
   currentRegion = region;
-  document.querySelectorAll('.filter-tab').forEach(function(t){t.classList.remove('active');});
-  if(btn) btn.classList.add('active');
+  document.querySelectorAll('.filter-tab').forEach(function(t){t.classList.remove('active');t.setAttribute('aria-pressed','false');});
+  if(btn){ btn.classList.add('active'); btn.setAttribute('aria-pressed','true'); }
   var q = document.getElementById('searchInput').value.toLowerCase().trim();
   renderCurrencies(q, region);
 }
@@ -759,18 +759,20 @@ function renderCurrencies(query, region){
 
   var html = '';
   list.forEach(function(c, i){
-    html += '<div class="currency-card" onclick="showDetail(' + currencies.indexOf(c) + ')">';
+    var __idx = currencies.indexOf(c);
+    html += '<button type="button" class="currency-card" aria-label="查看 ' + c.name + '（' + c.code + '）详情" onclick="showDetail(' + __idx + ')">';
     html += '<div class="currency-symbol">' + (c.symbol || c.code) + '</div>';
     html += '<div class="currency-code">' + c.code + ' · ' + c.name + '</div>';
     html += '<div class="currency-name">' + c.nameEn + '</div>';
     html += '<div class="currency-country">' + ((typeof __curIsEn==='function'&&__curIsEn())?c.countryEn:c.country) + '</div>';
     if(c.status) html += '<div class="currency-country" style="color:var(--warning);">' + (c.status==='obsolete' ? '已停用/已取代' : '非 ISO 4217') + '</div>';
-    html += '</div>';
+    html += '</button>';
   });
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h1;
 }
 
 function showDetail(index){
+  window.__curLastFocus = document.activeElement;
   var c = currencies[index];
   document.getElementById('detailTitle').textContent = (c.symbol || c.code) + ' ' + c.name + ' (' + c.code + ')';
   var html = '';
@@ -788,11 +790,17 @@ function showDetail(index){
   html += '<div class="detail-row"><span class="label">主要货币</span><span class="value">' + (c.major ? '是 ✅' : '否') + '</span></div>';
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('detailContent').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('detailContent').innerHTML=__h2;
   document.getElementById('detailOverlay').classList.add('active');
+  var __close = document.getElementById('detailClose');
+  if(__close) __close.focus();
 }
 
 function closeDetail(){
   document.getElementById('detailOverlay').classList.remove('active');
+  if(window.__curLastFocus && typeof window.__curLastFocus.focus === 'function') window.__curLastFocus.focus();
 }
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && document.getElementById('detailOverlay').classList.contains('active')) closeDetail();
+});
 
 function getRegionName(region){
   var map = {asia:'亚洲', europe:'欧洲', americas:'美洲', africa:'非洲', oceania:'大洋洲', all:'全球'};

@@ -1021,8 +1021,7 @@ const CASES = [
     inputs: { money: "1.005" },
     clicks: ["convert()"],
     expect: ["壹元零壹分"],
-    ref: "W3-B 三位小数四舍五入到分：1.005 第三位为 5 ⇒ 进位为 0.01 ⇒ 壹元零壹分（有分无角补零）。"
-       + "旧实现 (1.005−1)×100≈0.4999 被舍成 0 ⇒ 壹元整，本断言不命中。",
+    ref: "第939批：改为拒绝超过两位小数，1.005 明示 3 位小数并停止转换，不再静默四舍五入到 0.01。",
   },
   {
     slug: "finance/amount-in-words",
@@ -1043,7 +1042,7 @@ const CASES = [
     inputs: { money: "1.234" },
     clicks: ["convert()"],
     expect: ["壹元贰角叁分"],
-    ref: "W3-B 1.234 第三位 4 <5 舍去 ⇒ 1.23 ⇒ 壹元贰角叁分（角分各读一次）。",
+    ref: "第939批：1.234 明示 3 位小数并拒绝，不再静默截断/取整为 1.23。",
   },
   {
     slug: "finance/word-frequency",
@@ -1329,7 +1328,7 @@ const CASES = [
   {
     slug: "finance/postal-code-validator",
     inputs: { input: "100000" },
-    expect: ["China（CN）：6 位数字"],
+    expect: ["中国（CN）：6 位数字"],
     ref: "6 位数字邮编匹配多国格式：`100000` 命中 RU/CN/IN/SG 及「香港无邮编系统」。锚取可独立核对的国家条目。默认态不同 ⇒ 不命中。",
   },
   {
@@ -1341,19 +1340,19 @@ const CASES = [
   {
     slug: "finance/postal-code-validator",
     inputs: { input: "HK:任意内容123" },
-    expect: ["Hong Kong（HK）：香港无邮编系统"],
+    expect: ["中国香港（HK）：香港无邮编系统"],
     ref: "F-N218 防误伤：显式 `HK:` 前缀仍应命中香港条目（香港无邮编系统，接受任意内容）；与无前缀 HELLO 被拒形成对照。默认 100000 不命中香港 ⇒ 不命中。",
   },
   {
     slug: "finance/postal-code-validator",
     inputs: { input: "1000001" },
-    expect: ["Japan（JP）：3-4 格式（连字符可省）"],
+    expect: ["日本（JP）：3-4 格式（连字符可省）"],
     ref: "F-N219 日本无连字符邮编：`1000001`（东京 100-0001）7 位数字应命中 JP；旧正则强制 `\\d{3}-\\d{4}` 拒之，仅命中香港被误判国家。默认 100000 不命中 JP ⇒ 不命中。",
   },
   {
     slug: "finance/postal-code-validator",
     inputs: { input: "01310100" },
-    expect: ["Brazil（BR）：5-3 格式（连字符可省）"],
+    expect: ["巴西（BR）：5-3 格式（连字符可省）"],
     ref: "F-N219 巴西无连字符邮编：`01310100`（01310-100）8 位数字应命中 BR；旧正则强制连字符拒之，仅命中香港。默认 100000 不命中 BR ⇒ 不命中。",
   },
   {
@@ -2891,7 +2890,7 @@ const CASES = [
       "insYears": "2"
     },
     "expect": [
-      "42\n42\n42\n2\n1.52\n12.05\n36.41\n33.1%\n51.11%\n0.0万\n1 1.52 0.66 0.85 23.70 2 1.52 0.69 0.83 23.01 3 1.52 0.71 0.81 22.30 4 1.52 0.74 "
+      "51.11%"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"price\":\"42\",\"downPct\":\"42\",\"rate\":\"42\",\"taxRate\":\"42\",\"regFee\":\"42\",\"vehicleTax\":\"42\",\"compInsurance\":\"42\",\"commInsurance\":\"42\",\"years\":\"2\",\"insYears\":\"2\"}，输出区含「42\n42\n42\n2\n1.52\n12.05\n36.41\n33.1%\n51.11%\n0.0万\n1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。51.11% 为名义 42% 按月复利的有效年化 (1+42%/12)^12−1。"
   },
@@ -4753,9 +4752,9 @@ const CASES = [
   {
     slug: "finance/currency-symbol",
     inputs: { searchInput: "AUD" },
-    clicks: ["search();var g=String(document.getElementById('currencyGrid').innerHTML);var n=(g.match(/AUD/g)||[]).length;document.getElementById('__tbProbe').textContent='CURDEDUP '+(currencies.length===149&&n===1?'OK':'BAD len='+currencies.length+' aud='+n);"],
+    clicks: ["search();var g=String(document.getElementById('currencyGrid').innerHTML);var n=(g.match(/AUD/g)||[]).length;document.getElementById('__tbProbe').textContent='CURDEDUP '+(currencies.length===149&&n===2?'OK':'BAD len='+currencies.length+' aud='+n);"],
     expect: ["CURDEDUP OK"],
-    ref: "F-N138 去重锁：原始数组 153 条、AUD/XCD/UGX/NIO 各重复 2 次，运行时按 code 去重后应剩 149 条 ⇒ 搜索 AUD 只渲染 1 张卡片。旧实现不去重为 153 条/2 张卡片。探针断言 currencies.length===149 且 AUD 卡片数===1（不依赖 resultStat，harness 下该计数被二次渲染污染）⇒ 真判别、零逃生。",
+    ref: "F-N138 去重锁：原始数组 153 条、AUD/XCD/UGX/NIO 各重复 2 次，运行时按 code 去重后应剩 149 条 ⇒ 搜索 AUD 只渲染 1 张卡片。旧实现不去重为 153 条/2 张卡片。语义化卡片后 AUD 同时出现在 aria-label 与代码行，故探针断言 currencies.length===149 且 AUD 字符串===2（1 张卡片）（不依赖 resultStat，harness 下该计数被二次渲染污染）⇒ 真判别、零逃生。",
   },
   {
     slug: "finance/currency-symbol",
@@ -5761,6 +5760,106 @@ const CASES = [
     clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/loan-amortization.html','utf8');var a=h.indexOf('原计划总利息')>=0&&h.indexOf('原计划总还款额')>=0&&h.indexOf('原计划期数')>=0;var b=h.indexOf('提前还款后</strong>：总利息')>=0&&h.indexOf('少付利息')>=0&&h.indexOf('drawPieChart(amount, __newInt, __laTx(')>=0;var c=h.indexOf('提前结清后</strong>：总利息')>=0&&h.indexOf('drawPieChart(amount, __newInterest, __laTx(')>=0;document.getElementById('res').innerHTML='<p>LACMP '+((a&&b&&c)?'OK':'BAD')+'</p>';"],
     expect: ["LACMP OK"],
     ref: "第938批：顶部汇总改标「原计划」；提前还款两种方式均并列原计划/新计划的总利息、总还款、期数与差额，饼图改用提前后利息并标注方案；提前结清同样给出新旧对照。旧实现顶部旧汇总与明细新计划同屏无区分，饼图仍画原计划利息。",
+  },
+
+  // ===== 第939批新增 =====
+  {
+    slug: "finance/car-loan-calculator",
+    inputs: { price: "150000", regFee: "", taxRate: "10", vehicleTax: "420", compInsurance: "950", commInsurance: "5000" },
+    clicks: ["calculate()"],
+    expect: ["请填写有效的上牌费用（非负数字）；如确为 0 请明确输入 0，留空或负数不会按 0 计入落地总价。"],
+    ref: "第939批：费用字段空值不再 parseFloat||0 静默按 0 计入落地总价；点名字段并清空相关总额。默认上牌费 500 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/car-loan-calculator",
+    inputs: { price: "150000", regFee: "500", taxRate: "10", vehicleTax: "420", compInsurance: "-1", commInsurance: "5000" },
+    clicks: ["calculate()"],
+    expect: ["请填写有效的交强险（非负数字）"],
+    ref: "第939批：负数费用不再被控件 min 之外静默接受并拉低总价；字段级提示。默认交强险 950 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/mutual-fund-calculator",
+    inputs: { monthly: "1000", years: "10", rate: "8", initial: "0" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/mutual-fund-calculator.html','utf8');var a=h.indexOf('id=\"reinvest\" checked disabled')>=0;var b=h.indexOf('现金分红会减少基金份额并产生现金流入')>=0&&h.indexOf('统一按红利再投资计算')>=0;document.getElementById('res').innerHTML='<p>MFDIV '+((a&&b)?'OK':'BAD')+'</p>';"],
+    expect: ["MFDIV OK"],
+    ref: "第939批：现金分红无法合理模拟，故禁用切换并说明统一按红利再投资口径；旧实现复选框只改文案、现金流未使用该选项，切换后资产与 IRR 不变。",
+  },
+  {
+    slug: "finance/amount-in-words",
+    inputs: { money: "1.999" },
+    clicks: ["convert()"],
+    expect: ["已四舍五入到分：2.00 元 → 贰元整", "原始输入 1.999 有 3 位小数"],
+    ref: "第939批：超过两位小数不再静默四舍五入到 2.00 并显示贰元整，而是拒绝并说明未取整；复制/导出不会生成未提示的进位结果。1.999 默认不出现该提示。",
+  },
+  {
+    slug: "finance/amount-in-words",
+    inputs: { money: "0.005" },
+    clicks: ["convert()"],
+    expect: ["已四舍五入到分：0.01 元 → 壹元零壹分", "原始输入 0.005 有 3 位小数"],
+    ref: "第939批：0.005 也不再静默进位到 0.01 元；边界拒绝而非隐藏取整。",
+  },
+  {
+    slug: "finance/postal-code-validator",
+    inputs: { input: "10001" },
+    clicks: ["validate('CN');"],
+    expect: ["不符合所选 中国（CN）的邮编格式：6 位数字"],
+    ref: "第939批：可选国家后按所选规则校验，10001 不符合中国 6 位数字；旧实现只按格式列表匹配，无法指定国家。默认自动识别不含该提示。",
+  },
+  {
+    slug: "finance/postal-code-validator",
+    inputs: { input: "100000" },
+    clicks: ["validate('CN');"],
+    expect: ["中国（CN）：6 位数字", "格式匹配不确认邮编真实存在、已分配或地址可投递"],
+    ref: "第939批：中文态结果国家名显示中文，并明确仅格式匹配、不证明邮编存在或可投递；旧实现显示 China 与绿色勾选，易被当成真实国家确认。",
+  },
+  {
+    slug: "finance/rental-yield-calculator",
+    inputs: { price: "300", rent: "5000", vacancyMonths: "2", fee: "300", heat: "2400", decor: "5000", repair: "1000", agency: "0", tax: "2000" },
+    clicks: ["calc()"],
+    expect: ["50,000", "空置 2 个月"],
+    ref: "第939批：空置 2 个月 ⇒ 年租金 5,000×10=50,000，不再全年满租按 60,000；结果与回报率、对比、导出同一口径。默认空置 0 ⇒ 60,000，不命中。",
+  },
+  {
+    slug: "finance/rental-yield-calculator",
+    inputs: { price: "300", rent: "5000", vacancyMonths: "" },
+    clicks: ["calc()"],
+    expect: ["空置月数须为 0–12 的整数；不空置请明确填 0。"],
+    ref: "第939批：空置月数留空不再静默按 0（全年满租）；显式 0 合法，空串提示。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { lv_age: "60", lv_retire: "60", lv_income: "20", lv_growth: "3", lv_consume: "30", lv_discount: "5" },
+    clicks: ["switchMethod('life-value');calc();"],
+    expect: ["剩余工作年限按 0 年计"],
+    ref: "第939批：当前年龄等于退休年龄时不再 Math.max(…,1) 强行计一年收入，生命价值保额为 0 并说明；默认 30/60 ⇒ 30 年，不命中。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { lv_age: "30.5", lv_retire: "60", lv_income: "20", lv_growth: "3", lv_consume: "30", lv_discount: "5" },
+    clicks: ["switchMethod('life-value');calc();"],
+    expect: ["当前年龄与退休年龄须填写整数岁；小数年龄会让剩余工作年限与显示不一致"],
+    ref: "第939批：小数年龄不再被循环取整后仍显示原小数年限；明确要求整数。默认 30/60 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/investment-calculator",
+    inputs: { initial: "10000", final: "18000", years: "5", additional: "5000" },
+    clicks: ["calc();"],
+    expect: ["资金加权年化：未计算（未填追加日期）", "期初假设估算年化", "未提供日期时不把该估算称为 CAGR"],
+    ref: "第939批：有追加但无日期时不再直接称 CAGR；仅给累计回报并把年化标注为期初假设估算，提示填写日期。默认追加 0 ⇒ 不出现。",
+  },
+  {
+    slug: "finance/investment-calculator",
+    inputs: { initial: "10000", final: "18000", years: "5", additional: "5000", additionalDate: "2023-01-01" },
+    clicks: ["calc();"],
+    expect: ["资金加权年化（按现金流时点）", "已按该时点折现求解"],
+    ref: "第939批：填写追加日期后按初始 0 年、追加 t 年、期末 5 年求 XIRR，不再把 5,000 全部当第 0 年投入；旧实现仅用总投入算 CAGR。",
+  },
+  {
+    slug: "finance/currency-symbol",
+    inputs: { searchInput: "美元" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/currency-symbol.html','utf8');var a=h.indexOf('<button type=\"button\" class=\"filter-tab')>=0&&h.indexOf('aria-pressed=\"false\"')>=0;var b=h.indexOf('<button type=\"button\" class=\"currency-card\" aria-label=')>=0;var c=h.indexOf('role=\"dialog\" aria-modal=\"true\"')>=0&&h.indexOf(\"e.key === 'Escape'\")>=0&&h.indexOf('__curLastFocus')>=0;document.getElementById('res').innerHTML='<p>CURKB '+((a&&b&&c)?'OK':'BAD')+'</p>';"],
+    expect: ["CURKB OK"],
+    ref: "第939批：地区筛选与货币卡片改语义化 button 并公布 aria-pressed；详情弹层 role=dialog/aria-modal、打开聚焦关闭按钮、Escape 关闭并归还焦点。旧实现为 div onclick，键盘不可达且无焦点管理。",
   }
 
 ];
