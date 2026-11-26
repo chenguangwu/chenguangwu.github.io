@@ -355,10 +355,24 @@ function switchTab(tab) {
 }
 
 function initPersons() {
-  const n = parseInt(document.getElementById('person-count').value) || 1;
+  const input = document.getElementById('person-count');
+  const raw = String(input.value == null ? '' : input.value).trim();
+  const n = Number(raw);
+  const en = (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn) ? TBKit.util.isEn() : false;
+  if (raw === '' || !Number.isInteger(n) || n < 1 || n > 100) {
+    input.classList.add('input-error');
+    return;
+  }
+  input.classList.remove('input-error');
   const defaultNames = ['张三','李四','王五','赵六','钱七','孙八','周九','吴十','郑十一','王十二','冯十三','陈十四'];
-  persons = [];
-  for(let i=0;i<n;i++) persons.push({name:defaultNames[i]||`人员${i+1}`,share:1});
+  if (n < persons.length) {
+    const removed = persons.slice(n).map(function(p){return p.name;}).join('、');
+    const ok = (typeof confirm==='function') ? confirm(en ? ('Reduce to '+n+' people and remove: '+removed+'?') : ('减少到 '+n+' 人，将移除：'+removed+'，确定吗？')) : true;
+    if (!ok) { input.value = persons.length; return; }
+    persons = persons.slice(0,n);
+  } else {
+    for (let i=persons.length;i<n;i++) persons.push({name: defaultNames[i] || ('人员'+(i+1)), share: 1});
+  }
   renderPersons();
   calcSimple();
 }

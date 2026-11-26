@@ -4014,6 +4014,62 @@ const CASES = [
     expect: ["BRAREG OK"],
     ref: "第916批：E 杯不再直接把 EU 字母套到美/英码，US 显示 DD、UK 显示 DD，并提示大杯命名差异。"
   }
+,
+  {
+    slug: "life/music-practice-timer",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/music-practice-timer.html','utf8');document.getElementById('segments').textContent='MPABS '+((src.indexOf('function timerTick()')>=0&&src.indexOf('endTs += (segments[currentSeg]')>=0&&src.indexOf('finishPlan()')>=0)?'OK':'BAD');"],
+    expect: ["MPABS OK"],
+    ref: "第917批：阶段截止时间改为连续绝对推进，后台恢复一次跨过已结束阶段。"
+  },
+  {
+    slug: "life/music-practice-timer",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/music-practice-timer.html','utf8');document.getElementById('segments').textContent='MPEVT '+((src.indexOf(\"setTemplate(\'warmup\', this)\")>=0&&src.indexOf('event.target')<0)?'OK':'BAD');"],
+    expect: ["MPEVT OK"],
+    ref: "第917批：预设按钮显式传入 this，不读取非标准全局 event。"
+  },
+  {
+    slug: "life/music-practice-timer",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/music-practice-timer.html','utf8');document.getElementById('segments').textContent='MPSW '+((src.indexOf('if(running){')>=0&&src.indexOf('clearInterval(interval);running=false;')>=0&&src.indexOf('recordPractice();')>=0)?'OK':'BAD');"],
+    expect: ["MPSW OK"],
+    ref: "第917批：运行中切换模板先暂停、结算已练时间并等待重新开始，避免沿用旧 endTs。"
+  },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["persons=[{name:'甲',share:2},{name:'乙',share:3}];document.getElementById('person-count').value='4';initPersons();document.getElementById('simple-result').textContent='BPRES '+((persons.length===4&&persons[0].name==='甲'&&persons[0].share===2&&persons[1].name==='乙')?'OK':'BAD');"],
+    expect: ["BPRES OK"],
+    ref: "第917批：增加人数保留已有姓名与份额，仅追加默认人员。"
+  },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["persons=[{name:'甲',share:2},{name:'乙',share:3}];var el=document.getElementById('person-count');el.value='';initPersons();document.getElementById('simple-result').textContent='BPINV '+((persons.length===2&&persons[0].name==='甲'&&el.classList.contains('input-error'))?'OK':'BAD');"],
+    expect: ["BPINV OK"],
+    ref: "第917批：人数空值/非法值不重建列表，保留原人员并标红输入。"
+  },
+  {
+    slug: "life/data-unit-converter",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/data-unit-converter.html','utf8');document.getElementById('single-preview').textContent='DUEB '+((src.indexOf('TB、PB、EB')>=0&&src.indexOf('bit to EB')>=0&&src.indexOf('from bit to TB')<0)?'OK':'BAD');"],
+    expect: ["DUEB OK"],
+    ref: "第917批：中英文简介与实际选项一致，写明 bit 至 EB。"
+  },
+  {
+    slug: "life/drinking-water-plan",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/drinking-water-plan.html','utf8');document.getElementById('result').textContent='DWEX '+((src.indexOf('70 kg × 30 mL = 2.1 L/日')>=0&&src.indexOf('70 kg × 35 mL')<0)?'OK':'BAD');"],
+    expect: ["DWEX OK"],
+    ref: "第917批：深挖算例改用页面 30ml/kg 纯饮水口径，不再用 35ml/kg 并声称含食物水。"
+  },
+  {
+    slug: "life/color-name-finder",
+    clicks: ["var bad=parseColor('rgb(1,2,3)garbage');var good=parseColor('rgb(1,2,3)');document.getElementById('single-preview').textContent='CNRGB '+((bad===false&&good==='#010203')?'OK':'BAD');"],
+    expect: ["CNRGB OK"],
+    ref: "第917批：RGB 正则整串锚定，尾部多余字符判非法，合法 rgb(1,2,3) 仍正常解析。"
+  },
+  {
+    slug: "life/generator-price",
+    inputs: { unitPrice: "10.49", qty: "1", taxRate: "0", discountRate: "0", cnt: "1" },
+    clicks: ["gen()"],
+    expect: ["合同总额：¥10.49", "壹拾元肆角玖分"],
+    ref: "第917批：合同总额不再按元取整，保留到分，人民币大写输出角分。"
+  }
 
 ];
 

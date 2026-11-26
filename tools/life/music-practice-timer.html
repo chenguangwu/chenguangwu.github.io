@@ -251,6 +251,12 @@ full:[{name:'热身',sec:300},{name:'音阶练习',sec:600},{name:'休息',sec:1
 };
 let segments=[],currentSeg=0,running=false,remaining=0,interval=null,rounds=1,currentRound=1,finished=false;
 function loadTemplate(name, btn){
+  if(!templates[name])return;
+  if(running){
+    clearInterval(interval);running=false;
+    remaining=Math.max(0,Math.ceil((endTs-Date.now())/1000));endTs=0;recordPractice();
+    var sb=document.getElementById('startBtn');if(sb)sb.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'▶️ Start':'▶️ 开始');
+  }
   segments=JSON.parse(JSON.stringify(templates[name]));
   currentSeg=0;currentRound=1;finished=false;remaining=segments[0]?.sec||0;
   document.querySelectorAll('.preset-btn').forEach(function(b){
@@ -303,32 +309,42 @@ function render(){
 }
 var endTs=0,segStartTs=0,practiceSec=0;
 function toggle(){
-  if(running){clearInterval(interval);running=false;endTs=0;recordPractice();document.getElementById('startBtn').textContent='▶️ 继续';}
+  if(running){clearInterval(interval);remaining=Math.max(0,Math.ceil((endTs-Date.now())/1000));running=false;endTs=0;recordPractice();document.getElementById('startBtn').textContent='▶️ 继续';}
   else{
     const n=getRounds();if(n===null)return;rounds=n;
     if(finished){finished=false;currentRound=1;currentSeg=0;}
     if(remaining<=0&&currentSeg<segments.length)remaining=segments[currentSeg].sec;
     running=true;segStartTs=Date.now();document.getElementById('startBtn').textContent='⏸️ 暂停';render();
     endTs=Date.now()+remaining*1000;
-    interval=setInterval(()=>{
-      // 用墙钟重算剩余秒数：后台标签页被节流时不会按回调次数走慢
-      remaining=Math.max(0,Math.ceil((endTs-Date.now())/1000));render();
-      if(remaining<=0){
-        currentSeg++;
-        if(currentSeg>=segments.length){
-          if(currentRound<rounds){currentRound++;currentSeg=0;}
-          else{
-            clearInterval(interval);running=false;endTs=0;finished=true;recordPractice();
-            alert('🎉 练习完成！已完成 '+rounds+' 轮');
-            document.getElementById('startBtn').textContent='▶️ 开始';currentSeg=0;remaining=segments[0]?.sec||0;render();return;
-          }
-        }
-        remaining=segments[currentSeg].sec;
-        endTs=Date.now()+remaining*1000;
-        try{const ac=new AudioContext();[523,659,784].forEach((f,i)=>setTimeout(()=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;o.connect(g);g.connect(ac.destination);g.gain.setValueAtTime(0.3,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.01,ac.currentTime+0.3);o.start();o.stop(ac.currentTime+0.3);},i*150));}catch(e){}
-      }
-    },1000);
+    interval=setInterval(timerTick,1000);
   }
+}
+function beep(){
+  try{const ac=new AudioContext();[523,659,784].forEach((f,i)=>setTimeout(()=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;o.connect(g);g.connect(ac.destination);g.gain.setValueAtTime(0.3,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.01,ac.currentTime+0.3);o.start();o.stop(ac.currentTime+0.3);},i*150));}catch(e){}
+}
+function finishPlan(){
+  clearInterval(interval);running=false;endTs=0;finished=true;recordPractice();
+  alert('🎉 练习完成！已完成 '+rounds+' 轮');
+  document.getElementById('startBtn').textContent='▶️ 开始';currentSeg=0;remaining=segments[0]?.sec||0;render();
+}
+function timerTick(){
+  if(!running||!endTs)return;
+  const now=Date.now();
+  remaining=Math.max(0,Math.ceil((endTs-now)/1000));
+  let crossed=0;
+  while(remaining<=0){
+    currentSeg++;
+    if(currentSeg>=segments.length){
+      if(currentRound<rounds){currentRound++;currentSeg=0;}
+      else{finishPlan();return;}
+    }
+    endTs += (segments[currentSeg]?.sec||0)*1000;
+    remaining=Math.max(0,Math.ceil((endTs-now)/1000));
+    crossed++;
+    if(crossed>1000)break;
+  }
+  render();
+  if(crossed)beep();
 }
 function reset(){clearInterval(interval);running=false;currentSeg=0;currentRound=1;finished=false;practiceSec=0;segStartTs=0;window.__musicPracticeDirty=false;loadTemplate('warmup');document.getElementById('startBtn').textContent='▶️ 开始';render();}
 loadTemplate('warmup');
