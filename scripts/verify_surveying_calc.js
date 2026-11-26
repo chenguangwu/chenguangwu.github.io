@@ -904,8 +904,14 @@ const CASES = [
       "闭合差判定： 合格"
     ],
     "ref": "显式 0 合法：单测段高差 0 m（水平测段）、测站数 6>0、起终点同为 100 m ⇒ Σh=0、fh=0、容许闭合差 4√6=9.8 mm ⇒ 判「合格」。证明判空只看空字符串、不把数值 0 当缺失。"
+  },
+  {
+    "slug": "surveying/calc-angle-2",
+    "inputs": {},
+    "clicks": ["(function(){var a=toDMS(12.999999),b=toDMS(-0.000001),c=toSrv(12.999999);var ok=a.indexOf('60')<0&&a.indexOf('13°00')===0&&b.indexOf('-0°00')===0&&c==='13.0000';document.getElementById('__tbProbe').textContent='DMSROLL '+(ok?'OK':'BAD '+a+' / '+b+' / '+c);})()"],
+    "expect": ["DMSROLL OK"],
+    "ref": "测量格式与度分秒先舍入再分解：12.999999° 的 59.999964″ 会四舍五入成整秒/十分秒，旧版直接 toFixed 可能得 60.0″ 却不进位；现得 13°00'00.0″、13.0000，负零保留 -0°00'00.0″。"
   }
-
 ];
 
 async function main() {
@@ -927,7 +933,6 @@ async function main() {
       console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
     }
   }
-
   console.log("==== surveying calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }

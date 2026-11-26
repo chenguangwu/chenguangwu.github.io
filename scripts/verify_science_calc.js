@@ -1546,7 +1546,7 @@ const CASES = [
       "lon2": "42"
     },
     "expect": [
-      "0° 初始方位角 北 方位（北向） 42.00000 中点纬度 42.00000 中点经度 0.0"
+      "—（两点重合） 初始方位角 重合 方位 42.00000 中点纬度 42.00000 中点经度 0.0"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"lat1\":\"42\",\"lon1\":\"42\",\"lat2\":\"42\",\"lon2\":\"42\"}，输出区含「0° 初始方位角 北 方位（北向） 42.00000 中点纬度 42.00000…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1761,9 +1761,9 @@ const CASES = [
       "lon2": "42"
     },
     "expect": [
-      "伦敦 东京 巴黎\n42\n42\n42\n42\n0.00\n0.00\n0.00\n0.00°\n正北 (N"
+      "42\n42\n42\n42\n0.00\n0.00\n0.00\n—\n两点重合：方位无唯一解"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"lat1\":\"42\",\"lon1\":\"42\",\"lat2\":\"42\",\"lon2\":\"42\"}，输出区含「伦敦 东京 巴黎\n42\n42\n42\n42\n0.00\n0.00\n0.00\n0.00…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lat1\":\"42\",\"lon1\":\"42\",\"lat2\":\"42\",\"lon2\":\"42\"}，输出区含「42\n42\n42\n42\n0.00\n0.00\n0.00\n—\n两点重合：方位无唯一解」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "science/heat-transfer-calculator",
@@ -2862,6 +2862,36 @@ const CASES = [
     expect: ["CHIXSS OK"],
     ref: "卡方观察频数含标签时，观察/期望频数错误均经 __escHtml 输出；旧版两处 error 直接拼 innerHTML。",
   },
+  {
+    slug: "science/latlon-utm-converter",
+    inputs: {},
+    clicks: ["document.getElementById('utmZone').value='31';document.getElementById('utmHemisphere').value='N';document.getElementById('utmEasting').value='174541.329';document.getElementById('utmNorthing').value='1439053.593';convertUTM2LL()"],
+    expect: ["13°00'00.00"],
+    ref: "UTM 反算 DMS 进位：上述坐标反算纬度 12.999999°，秒数 59.999964″ 四舍五入后必须进为 13°00'00.00″，不得出现 60.00″。",
+  },
+  {
+    slug: "science/latlon-utm-converter",
+    inputs: {},
+    clicks: ["document.getElementById('utmZone').value='31';document.getElementById('utmHemisphere').value='N';document.getElementById('utmEasting').value='500000';document.getElementById('utmNorthing').value='9430000';convertUTM2LL()"],
+    expect: ["超出 UTM 标准投影范围"],
+    ref: "UTM 反算适用范围：该坐标反算纬度约 84.91°，虽在 ±90° 合法经纬度内，但已超出 UTM 标准投影 -80°~84°；旧版只查 ±90° 会输出不可用坐标，现拒绝并提示改用 UPS。",
+  },
+  {
+    slug: "science/astronomy-toolkit",
+    inputs: {},
+    clicks: ["document.getElementById('utmZone').value='31';document.getElementById('utmHemisphere').value='N';document.getElementById('utmEasting').value='500000';document.getElementById('utmNorthing').value='9430000';convertUTMToLatLon()"],
+    expect: ["超出 UTM 标准投影范围"],
+    ref: "天文工具箱 UTM 反算同样须检查 -80°~84°：84.91° 虽未超 ±90° 也不应返回 UTM 坐标，现提示极区改用 UPS。",
+  },
+
+  {
+    slug: "science/geo-distance-calculator",
+    inputs: { lat1: "0", lon1: "0", lat2: "0", lon2: "180" },
+    clicks: ["calculate()"],
+    expect: ["20015.09", "对跖点：方位无唯一解"],
+    ref: "对跖点浮点边界：Haversine 的 a 可能因浮点误差略大于 1，旧版 sqrt(1−a)=NaN 使公里/英里/海里全变 NaN；现 clamp a∈[0,1] 后仍得 6371×π=20015.09 km。对跖点初始方位无唯一解，显示 — 并注明原因，不再误报正东 90°。默认北京→上海不命中。",
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
