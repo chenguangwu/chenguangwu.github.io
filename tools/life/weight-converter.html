@@ -299,6 +299,14 @@ function convert(){
   }
   if(v<0){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">'+'重量'+'需为非负数值。</p>';return;}
   const base = v * factors[from];
+  const __targets = Object.keys(factors).filter(k => k !== from);
+  const __overflow = !isFinite(base) || __targets.some(k => !isFinite(base / factors[k]));
+  if(__overflow){
+    const __ovMsg = (typeof TBKit!=='undefined'&&TBKit.util.isEn()) ? 'The value is outside the representable range; reduce it or use a smaller source unit.' : '输入的数值超出可表示范围，请减小数值或改用更小的源单位。';
+    document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger);">⚠ ' + __ovMsg + '</p>';
+    const __refBox = document.getElementById('__charRefBox'); if(__refBox) __refBox.innerHTML = '';
+    return;
+  }
   let html = `<p>基准：<strong>${fmt(v)} ${names[from]}</strong> = <strong>${fmt(base)} 克</strong></p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
   Object.keys(factors).forEach(k => {
@@ -568,6 +576,7 @@ else document.addEventListener('DOMContentLoaded', __weight_converterBoot);
     var from=sel.value;
     if(!isFinite(v)||!F[from]){ box.innerHTML=''; return; }
     var base=v*F[from];
+    if(!isFinite(base)){ box.innerHTML=''; return; }
     var best=null, bd=1e18;
     if(base>0){
       for(var i=0;i<REFS.length;i++){
