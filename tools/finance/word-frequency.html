@@ -156,8 +156,8 @@
         <input type="number" id="topN" value="20" min="1" max="500" oninput="analyze()" placeholder="如 20（1–500）">
       </div>
       <div>
-        <label for="minLen">最小词长（中文）</label>
-        <input type="number" id="minLen" value="2" min="1" max="10" oninput="analyze()" placeholder="如 2（1–10）">
+        <label for="minLen">最小词长（中/英）</label>
+        <input type="number" id="minLen" value="2" min="1" max="10" oninput="analyze()" placeholder="如 2（1–10，中英文同口径）">
       </div>
       <div>
         <label for="ignoreCase">忽略大小写</label>
@@ -320,7 +320,7 @@ function analyze(){
     enWords.forEach(w => {
       const key = ignoreCase ? w.toLowerCase() : w;
       if(filterStop && stopWords.has(key.toLowerCase())) return;
-      if(key.length < 1) return;
+      if(key.length < minLen) return;
       map.set(key, (map.get(key) || 0) + 1);
     });
   }
@@ -373,10 +373,10 @@ function analyze(){
     + statCard(longWords, '长词数（≥5 字符）')
     + '</div>';
   let html = `<p style="margin-bottom:10px;" data-zh="共 ${map.size} 个不同词，显示前 ${sorted.length} 个（合计出现 ${total} 次）">Found ${map.size} distinct words, showing top ${sorted.length} (total ${total} occurrences)</p>`;
-  html = statHtml + html;
+  html = statHtml + html + '<p style="font-size:12px;color:var(--text-muted);">词条百分比统一以过滤后全部词次（' + totalAll + '）为分母；条形长度仅表示相对最高频词。</p>';
   html += sorted.map(([word, count]) => {
     const pct = maxCount > 0 ? (count / maxCount * 100) : 0;
-    const freq = (count / total * 100).toFixed(2);
+    const freq = (totalAll > 0 ? count / totalAll * 100 : 0).toFixed(2);
     return `<div class="word-bar">
       <div class="word-text" title="${escapeHtml(word)}">${escapeHtml(word)}</div>
       <div class="word-bar-wrap"><div class="word-bar-fill" style="width:${pct}%"></div></div>
