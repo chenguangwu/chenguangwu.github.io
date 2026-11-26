@@ -607,13 +607,19 @@ function calcRegular(){
     case 'weekly': n = period * 52; ratePer = annualRate / 100 / 52; periodsPerYear = 52; break;
     case 'yearly': n = period; ratePer = annualRate / 100; periodsPerYear = 1; break;
   }
+  if(n < 1){
+    document.getElementById('regularStats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">定投期限不足 1 期（按'+ (freq==='monthly'?'月':freq==='weekly'?'周':'年') +'折算仅 '+ n.toFixed(2) +' 期），无法形成完整定投；请增加期限后再计算。</div></div>';
+    const c=document.getElementById('regularChart'); if(c){const cx=c.getContext('2d'); cx.clearRect(0,0,c.width,c.height);}
+    return;
+  }
+  // 期数只按整期投入与计息：不足整期的零头不计入累计投入，也不参与终值，避免图表与结果两套口径。
   const nInt = Math.max(1, Math.round(n));
   const totalInvest = pmt * nInt;
   let fv;
   if(ratePer === 0){
     fv = totalInvest;
   } else {
-    fv = pmt * ((Math.pow(1 + ratePer, n) - 1) / ratePer) * (1 + ratePer);
+    fv = pmt * ((Math.pow(1 + ratePer, nInt) - 1) / ratePer) * (1 + ratePer);
   }
   const profit = fv - totalInvest;
   const roi = totalInvest > 0 ? profit / totalInvest : 0;
@@ -666,10 +672,12 @@ function drawRegularChart(){
   ctx.scale(dpr,dpr);
   const padL=50,padR=20,padT=20,padB=30;
   const cw = w-padL-padR, ch = h-padT-padB;
-  const points = Math.min(60, Math.round(n));
+  if(n < 1){ const cx=canvas.getContext('2d'); cx.clearRect(0,0,canvas.width,canvas.height); return; }
+  const nInt = Math.max(1, Math.round(n));
+  const points = Math.min(60, nInt);
   const investData = [], totalData = [];
   for(let i=0;i<=points;i++){
-    const t = Math.round((i/points)*n);
+    const t = Math.round((i/points)*nInt);
     const invested = pmt * t;
     let fv;
     if(ratePer === 0) fv = invested;

@@ -207,7 +207,7 @@
     <div class="input-row">
       <div>
         <label for="prepayMonth">提前还款期数（第N期后）</label>
-        <input type="number" id="prepayMonth" value="24" min="1" oninput="calcPrepay()" placeholder="如 24">
+        <input type="number" id="prepayMonth" value="24" min="1" step="1" oninput="calcPrepay()" placeholder="如 24">
       </div>
       <div>
         <label for="prepayAmount">提前还款金额（元）</label>
@@ -837,8 +837,16 @@ function calcPrepay() {
   // 始终从主计算的不可变原始计划重算，避免第二次提前还款叠加在已改写的计划上
   var base = originalScheduleData.length ? originalScheduleData : scheduleData;
 
+  if (!base.length) {
+    document.getElementById('prepayResult').innerHTML='<p style="color:var(--danger);">请先完成主贷款计算，再模拟提前还款。</p>';
+    return;
+  }
   if (prepayRaw === '') {
     document.getElementById('prepayResult').innerHTML='<p style="color:var(--danger);">请输入提前还款期数（第 N 期后），留空不会默认按第 1 期计算</p>';
+    return;
+  }
+  if (!/^\d+$/.test(prepayRaw)) {
+    document.getElementById('prepayResult').innerHTML='<p style="color:var(--danger);">提前还款期数须为整数，不支持小数（当前「' + prepayRaw + '」）。</p>';
     return;
   }
   if (!isFinite(prepayMonth) || prepayMonth < 1 || prepayMonth >= base.length) {

@@ -6105,6 +6105,63 @@ const CASES = [
     expect: ["CNREAD OK"],
     ref: "范围说明须与实际拒绝阈值一致，并明确本工具输出普通读数而非票据大写；旧文案「最大 ±1万亿」「适合票据」⇒ BAD。",
   },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { prepayMonth: "2.5" },
+    clicks: ["calcPrepay()"],
+    expect: ["提前还款期数须为整数"],
+    ref: "小数期数不得进入 base[0.5] 造成逐期表错位，应提示须为整数；旧实现只判范围 ⇒ BAD。",
+  },
+  {
+    slug: "finance/position-size-calculator",
+    inputs: { "r-capital": "10000", "r-riskpct": "50", "r-price": "10", "r-stop": "9.5" },
+    clicks: ["calc()"],
+    expect: ["资金上限", "未使用风险预算", "1000"],
+    ref: "风险预算理论股数 10,000 股，但可用资金仅能买 1,000 股；结果须按资金上限截断并提示未用完风险预算，不得输出 10,000 股。",
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { monthly: "100", period: "0.01", freq: "monthly" },
+    clicks: ["calcRegular()"],
+    expect: ["定投期限不足 1 期"],
+    ref: "月频 0.01 年仅 0.12 期，不足 1 期应明确拒绝，不得用近似期数输出终值。",
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { monthly: "100", period: "0.1", freq: "yearly" },
+    clicks: ["calcRegular()"],
+    expect: ["定投期限不足 1 期"],
+    ref: "年频 0.1 年不足 1 期同判；历史问题为图表 0 点而结果仍出值。",
+  },
+  {
+    slug: "finance/break-even-calculator",
+    inputs: { chartMaxQty: "-1" },
+    clicks: ["drawChart()"],
+    expect: ["必须为正数"],
+    ref: "负最大销量会使 q+=step 永不终止；必须在绘图前拒绝非正数并清空画布。",
+  },
+  {
+    slug: "finance/amount-in-words",
+    inputs: { money: "abc" },
+    clicks: ["convert();document.getElementById('__tbProbe').textContent='AW-VALID '+(__amountInWordsValid===false?'OK':'BAD');"],
+    expect: ["请输入有效金额", "AW-VALID OK"],
+    ref: "无效输入只显示错误，复制/导出/历史不得把错误提示当作结果；旧实现复制按钮可复制报错文本 ⇒ BAD。",
+  },
+  {
+    slug: "finance/credit-card-grace-period",
+    inputs: {},
+    clicks: ["var c=__ccCycle(__ccDate(2026,11,6),5,25,1);document.getElementById('__tbProbe').textContent='CC '+(__ccLabel(c.stmt)+'|'+__ccLabel(c.due)+'|'+c.grace);"],
+    expect: ["CC 1月5日|1月25日|50"],
+    ref: "账单日次日入账应落到下一期账单 1月5日、还款 1月25日，免息 50 天；旧对照表写「入账次月账单/顺延」不落具体日期 ⇒ BAD。",
+  },
+  {
+    slug: "finance/car-loan-calculator",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/car-loan-calculator.html','utf8');var ok=h.indexOf('Number.isInteger(years)')>=0&&h.indexOf(\"priceRaw === ''\")>=0&&h.indexOf('downPct > 100')>=0;document.getElementById('__tbProbe').textContent='CAREXP '+(ok?'OK':'BAD');"],
+    expect: ["CAREXP OK"],
+    ref: "导出须重新校验原始输入（空值、负利率、首付>100%、年限非整数），不能只靠旧计划与价格/年限两项。",
+  },
+
 ];
 
 // ---------------------------------------------------------------- main

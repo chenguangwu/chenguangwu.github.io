@@ -301,6 +301,13 @@ function __ccDueFor(stmt,b,d){
   if(d<=b) m+=1;
   return __ccDateAt(y,m,d);
 }
+function __ccCycle(purchase,b,d,delay){
+  var posting=__ccAddDays(purchase,delay);
+  var stmt=__ccBillOnOrAfter(posting,b);
+  var due=__ccDueFor(stmt,b,d);
+  return {posting:posting,stmt:stmt,due:due,grace:Math.round((due-purchase)/86400000)};
+}
+function __ccCycleLabel(c){ return __ccLabel(c.stmt)+'账单 → '+__ccLabel(c.due)+'还款'; }
 function __ccGraceOne(purchase,b,d,delay){
   var posting=__ccAddDays(purchase,delay);
   var stmt=__ccBillOnOrAfter(posting,b);
@@ -318,14 +325,18 @@ function ccGrace(billRaw,dueRaw,delayRaw){
   var best=null, worst=null;
   for(var dt=start; dt<end; dt=__ccAddDays(dt,1)){
     var g=__ccGraceOne(dt,b,d,delay);
-    if(best===null||g>best.g) best={g:g,label:__ccLabel(dt)};
-    if(worst===null||g<worst.g) worst={g:g,label:__ccLabel(dt)};
+    if(best===null||g>best.g) best={g:g,label:__ccLabel(dt),dt:dt};
+    if(worst===null||g<worst.g) worst={g:g,label:__ccLabel(dt),dt:dt};
   }
   var curBill=__ccBillOnOrAfter(start,b);
   var billDay=__ccGraceOne(curBill,b,d,delay);
   var prevDay=__ccGraceOne(__ccAddDays(curBill,-1),b,d,delay);
   var dueDay=__ccGraceOne(__ccDateAt(curBill.getFullYear(),curBill.getMonth()+(d<=b?1:0),d),b,d,delay);
+  var billCycle=__ccCycle(curBill,b,d,delay);
+  var nextCycle=__ccCycle(__ccAddDays(curBill,1),b,d,delay);
   return {bill:b,due:d,delay:delay,maxGrace:best.g,minGrace:worst.g,bestLabel:best.label,minLabel:worst.label,
+    bestCycle:__ccCycle(best.dt,b,d,delay),worstCycle:__ccCycle(worst.dt,b,d,delay),
+    billCycle:billCycle,nextCycle:nextCycle,
     graceForBillDay:billDay, prevDayGrace:prevDay, dueDayGrace:dueDay, adjusted:false};
 }
 function calcTool(){
@@ -360,10 +371,10 @@ function calcTool(){
      '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">入账账单</th>'+
      '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">最迟还款日</th>'+
      '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">免息期约</th></tr>'+
-     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+g.bestLabel+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">入账次月账单</td><td style="border:1px solid #d1d5db;padding:5px 8px;">按账单 '+g.bill+' 日、还款 '+g.due+' 日顺延</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+maxGrace+' 天</td></tr>'+
-     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+g.minLabel+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">最近一期账单</td><td style="border:1px solid #d1d5db;padding:5px 8px;">按账单 '+g.bill+' 日、还款 '+g.due+' 日</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+minGrace+' 天</td></tr>'+
-     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">账单日 '+g.bill+' 日</td><td style="border:1px solid #d1d5db;padding:5px 8px;">入账延迟 '+g.delay+' 天</td><td style="border:1px solid #d1d5db;padding:5px 8px;">按账单 '+g.bill+' 日、还款 '+g.due+' 日</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+billDay+' 天</td></tr>'+
-     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">还款日 '+g.due+' 日</td><td style="border:1px solid #d1d5db;padding:5px 8px;">入账延迟 '+g.delay+' 天</td><td style="border:1px solid #d1d5db;padding:5px 8px;">顺延到后续账单</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+dueDay+' 天</td></tr>'+
+     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+g.bestLabel+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+__ccCycleLabel(g.bestCycle)+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+__ccLabel(g.bestCycle.due)+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+maxGrace+' 天</td></tr>'+
+     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+g.minLabel+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+__ccCycleLabel(g.worstCycle)+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+__ccLabel(g.worstCycle.due)+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+minGrace+' 天</td></tr>'+
+     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">账单日 '+__ccLabel(g.billCycle.stmt)+' 消费</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+__ccCycleLabel(g.billCycle)+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+__ccLabel(g.billCycle.due)+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+billDay+' 天</td></tr>'+
+     '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">账单日次日 '+__ccLabel(g.nextCycle.posting)+' 入账</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+__ccCycleLabel(g.nextCycle)+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+__ccLabel(g.nextCycle.due)+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+g.nextCycle.grace+' 天</td></tr>'+
      '</table>';
    html += '<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+
      '最长免息期通常出现在账单日当天或次日（取决于入账延迟与银行截止时点）；最短免息期出现在账单日前一天消费（次日入账后赶上当期账单）。取现与分期无免息期。'+

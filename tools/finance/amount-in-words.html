@@ -182,7 +182,7 @@
   <div class="related-tools-grid">
     <a href="number-to-words-chinese.html" class="related-tool-card">
       <span class="rt-icon">💰</span>
-      <span class="rt-info"><span class="rt-name">数字转中文读法</span><span class="rt-desc">输入整数、小数或负数，工具按现代汉语读数规则转为中文大写读法（正确处理零与单位），适合票据与财务书写</span></span>
+      <span class="rt-info"><span class="rt-name">数字转中文读法</span><span class="rt-desc">输入整数、小数或负数，按现代汉语读数规则输出普通中文读法（正确处理零与单位）；</span></span>
     </a>
     <a href="number-to-words.html" class="related-tool-card">
       <span class="rt-icon">📖</span>
@@ -194,7 +194,7 @@
     </a>
     <a href="tax-calculator.html" class="related-tool-card">
       <span class="rt-icon">🧾</span>
-      <span class="rt-info"><span class="rt-name">个税计算器</span><span class="rt-desc">个人所得税计算器。输入月度或年度收入、五险一金与专项附加扣除，按累进税率计算应纳税额与税后收入，支持…</span></span>
+      <span class="rt-info"><span class="rt-name">个税计算器</span><span class="rt-desc">个人所得税计算器。输入月度或年度收入、五险一金与专项附加扣除，按累进税率计算应纳税额与税后收入；</span></span>
     </a>
     <a href="salary-calculator.html" class="related-tool-card">
       <span class="rt-icon">🧾</span>
@@ -202,7 +202,7 @@
     </a>
     <a href="calc-4.html" class="related-tool-card">
       <span class="rt-icon">🏠</span>
-      <span class="rt-info"><span class="rt-name">贷款月供计算</span><span class="rt-desc">输入贷款本金、年利率与还款年限，计算等额本息/等额本金的月供、总利息与完整还款计划；</span></span>
+      <span class="rt-info"><span class="rt-name">贷款月供计算</span><span class="rt-desc">输入正的贷款本金、0–100% 的年利率与还款年限，计算等额本息/等额本金的月供、总利息与完整还款计…</span></span>
     </a>
   </div>
 </div>
@@ -258,9 +258,11 @@ function incDecimal(s) {
   return arr.join('').replace(/^0+/, '') || '0';
 }
 
+var __amountInWordsValid = false;
 function convert() {
   const raw = String(document.getElementById('money').value || '').trim();
   const fail = (msg) => {
+    __amountInWordsValid = false;
     document.getElementById('out').innerHTML = '<p style="color:var(--danger)">' + msg + '</p>';
   };
   if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw)) {
@@ -304,12 +306,16 @@ function convert() {
     const __rounded = intStr + '.' + String(cents).padStart(2, '0');
     __note = '<p style="color:var(--warning,#b45309);font-size:13px;">⚠ 原始输入 ' + raw + ' 有 ' + decStr.length + ' 位小数，已四舍五入到分：' + __rounded + ' 元 → ' + out + '。票据/合同使用前请确认该进位；复制与导出均为取整后结果。</p>';
   }
-  const __h1=__note+`<p>中文大写：<strong>${out}</strong></p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h1;
+  const __h1=__note+`<p>中文大写：<strong>${out}</strong></p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';__amountInWordsValid=false;return;}document.getElementById('out').innerHTML=__h1;__amountInWordsValid=true;
 }
 
 function copyPlainResult() {
+  if(!__amountInWordsValid){
+    ToolBox.showToast('当前输入无效，请先修正金额并完成转换后再复制。', 'warning');
+    return;
+  }
   const el = document.querySelector('#out strong');
-  const text = (el ? el.textContent : (document.getElementById('out').innerText || '')).trim();
+  const text = (el ? el.textContent : '').trim();
   if(!text){
     ToolBox.showToast(i18nText('toast.msg680'), 'warning');
     return;
@@ -318,7 +324,12 @@ function copyPlainResult() {
 }
 
 function copyResult() {
-  const text = document.getElementById('out').innerText || '';
+  if(!__amountInWordsValid){
+    ToolBox.showToast('当前输入无效，请先修正金额并完成转换后再复制。', 'warning');
+    return;
+  }
+  const strong = document.querySelector('#out strong');
+  const text = strong ? ('中文大写：' + strong.textContent.trim()) : '';
   if (!text.trim()) {
     ToolBox.showToast(i18nText('toast.msg680'), 'warning');
     return;
@@ -342,6 +353,7 @@ function __amount_in_wordsSnap(){
     return out;
 }
 function __amount_in_wordsResText(){
+    if(!__amountInWordsValid) return '';
     var r=document.querySelector('.result-box');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
@@ -436,6 +448,10 @@ function __amount_in_wordsExtras(force){
     __amount_in_wordsRender(keys,rk,en);
 }
 function __amount_in_wordsExport(){
+    if(!__amountInWordsValid){
+        ToolBox.showToast('当前输入无效，请先修正金额并完成转换后再导出。', 'warning');
+        return;
+    }
     if (typeof TBKit === 'undefined') return;
     __amount_in_wordsExtras(true);
     try{

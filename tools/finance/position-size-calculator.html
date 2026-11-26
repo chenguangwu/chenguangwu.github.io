@@ -524,11 +524,19 @@ function calc(){
     if(stop>=price){ __psFail('止损价须低于买入价；本工具仅支持做多，止损价等于或高于买入价时每股风险不为正。'); return; }
     var riskAmount = capital * riskPct;
     var riskPerShare = price - stop;
-    var shares = riskPerShare > 0 ? Math.floor(riskAmount / riskPerShare / 100) * 100 : 0;
+    var desiredShares = riskPerShare > 0 ? Math.floor(riskAmount / riskPerShare / 100) * 100 : 0;
+    // 风险预算不能突破可用资金：按整手向下取整，并记录因资金上限未用完的风险预算。
+    var maxShares = price > 0 ? Math.floor(capital / price / 100) * 100 : 0;
+    var shares = Math.max(0, Math.min(desiredShares, maxShares));
+    var cappedByCash = desiredShares > maxShares;
     var position = shares * price;
     var actualRisk = shares * riskPerShare;
     var positionPct = capital > 0 ? (position / capital * 100) : 0;
     result.capital = capital;
+    result.cappedByCash = cappedByCash;
+    result.desiredShares = desiredShares;
+    result.maxShares = maxShares;
+    result.unusedRisk = Math.max(0, riskAmount - actualRisk);
     result.riskPct = riskPct;
     result.price = price;
     result.stop = stop;
@@ -668,6 +676,9 @@ function renderResult(r){
     html += '<p>建议持股数量：<strong style="color:var(--primary);font-size:18px;">' + ToolBox.formatNumber(r.shares, 0) + ' 股</strong></p>';
     html += '<p>建议仓位金额：<strong style="color:var(--primary);font-size:18px;">¥' + ToolBox.formatNumber(r.position, 2) + '</strong>（占总资产 ' + r.positionPct.toFixed(2) + '%）</p>';
     html += '<p>实际风险：<strong style="color:var(--danger);">¥' + ToolBox.formatNumber(r.actualRisk, 2) + '</strong></p>';
+    if(r.cappedByCash){
+      html += '<div class="tip-box tip-warn">风险预算对应的理论股数为 ' + ToolBox.formatNumber(r.desiredShares, 0) + ' 股，但可用资金最多只能买 ' + ToolBox.formatNumber(r.maxShares, 0) + ' 股；已按资金上限与整手向下取整，未使用风险预算 ¥' + ToolBox.formatNumber(r.unusedRisk, 2) + '，未引入杠杆。</div>';
+    }
   }
   else if(currentMethod === 'martingale'){
     html += '<h3 style="margin-bottom:10px;font-size:15px;">📋 加仓计划</h3>';
