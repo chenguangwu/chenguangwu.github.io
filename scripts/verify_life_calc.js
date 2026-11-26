@@ -4407,6 +4407,66 @@ const CASES = [
     inputs: { romanInput: "IIII" },
     expect: ["无效组合", "标准写法：IV"],
     ref: "第922批：IIII 不是标准写法，返回无效组合与标准写法 IV；不再错写成只能包含 MDCLXVI。"
+  },
+  {
+    slug: "life/assessor-target",
+    inputs: { traffic: "10000", competitors: "0", population: "50000", rent: "260", shopArea: "80", visibility: "8" },
+    clicks: ["calc();"],
+    expect: ["租金评分：40(13%)", "综合评分：89.6/100"],
+    ref: "第923批：260 元/m² 属 200–300 档计 40 分；六项完整参数实算综合 89.6，示例总分可复现。"
+  },
+  {
+    slug: "life/assessor-target",
+    inputs: { traffic: "10000", competitors: "0", population: "50000", rent: "260", shopArea: "0", visibility: "8" },
+    clicks: ["calc();"],
+    expect: ["店铺面积须大于 0"],
+    ref: "第923批：0 ㎡ 不再按 areaScore=40 进入推荐，直接判无效并提示修正。"
+  },
+  {
+    slug: "life/report-profit",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/report-profit.html','utf8');document.getElementById('__tbProbe').textContent='PROFIT '+((src.indexOf('Enter revenue, cost of goods, payroll')>=0&&src.indexOf('Paste profit and cash-flow figures')<0)?'OK':'BAD');"],
+    expect: ["PROFIT OK"],
+    ref: "第923批：英文简介改为实际收入/成本/费用/回款/期初现金模型，删除不存在的粘贴统计、均值与波动承诺。"
+  },
+  {
+    slug: "life/countdown",
+    clicks: ["localStorage.setItem(KEY,JSON.stringify({target:Date.now()+3600000,start:Date.now(),name:'测试目标',alerted:false}));load();document.getElementById('__tbProbe').textContent='CDLOAD '+document.getElementById('eventName').value+' '+document.getElementById('targetTime').value;"],
+    expect: ["CDLOAD 测试目标 "],
+    ref: "第923批：load 恢复目标时回填事件名与时间，刷新后可直接修改再开始。"
+  },
+  {
+    slug: "life/unit-converter",
+    inputs: { fromValue: "-300", presetCategory: "temperature", presetFrom: "celsius", presetTo: "kelvin" },
+    clicks: ["switchCategory('temperature');document.getElementById('fromUnit').value='celsius';document.getElementById('toUnit').value='kelvin';convertFrom('from');"],
+    expect: ["温度低于绝对零度"],
+    ref: "第923批：−300 ℃ 换算为 K 时拒绝，不再输出 −26.85 K。"
+  },
+  {
+    slug: "life/unit-converter",
+    inputs: { fromValue: "-273.15", presetCategory: "temperature", presetFrom: "celsius", presetTo: "kelvin" },
+    clicks: ["switchCategory('temperature');document.getElementById('fromUnit').value='celsius';document.getElementById('toUnit').value='kelvin';convertFrom('from');"],
+    expect: ["0"],
+    ref: "第923批：绝对零度边界 −273.15 ℃ 精确允许，结果 0 K，不误拦。"
+  },
+  {
+    slug: "life/holiday-calendar",
+    clicks: ["navigateToDate('2030-06-01');document.getElementById('__tbProbe').textContent='HOL '+document.getElementById('monthLabel').textContent;"],
+    expect: ["HOL 2030年6月（该年节假日/农历/节气数据未提供）","数据未提供"],
+    ref: "第923批：2030 超出 2024–2027 覆盖，统计显示数据未提供而非合计 0 天。"
+  },
+  {
+    slug: "life/stats-13",
+    inputs: { roster: "constructor 2\n__proto__ 3\ntoString 4", price: "10" },
+    clicks: ["calc();"],
+    expect: ["已识别购买人： 3 人", "合计份数： 9 份", "预售金额： 90.00 元"],
+    ref: "第923批：constructor/__proto__/toString 等特殊姓名可正常聚合，不再被原型属性吞掉。"
+  },
+  {
+    slug: "life/stats-13",
+    inputs: { roster: "张三 2..5\n李四 3", price: "10" },
+    clicks: ["calc();"],
+    expect: ["数量格式无效", "第 1 行"],
+    ref: "第923批：2..5 不再被 parseFloat 静默读成 2，逐行提示无效且不生成金额。"
   }
 ];
 
