@@ -385,21 +385,33 @@ else document.addEventListener('DOMContentLoaded', __spring_oscillation_periodBo
 </div>
 </section>
 <script>
+function __sospAxis(v){
+  if(!isFinite(v))return '—';
+  if(v===0)return '0';
+  var a=Math.abs(v);
+  if(a>=0.01&&a<1000)return String(Math.round(v*1000)/1000);
+  return Number(v.toPrecision(4)).toString();
+}
 function __sospSweep(){
   var m=num('m'), k0=num('k');
   if(!isFinite(m)||!isFinite(k0)||m<=0||k0<=0)return null;
   var labels=[], dT=[], dW=[];
   for(var k=0;k<=10;k++){
     var kk=k0*(0.2+0.16*k);
-    labels.push((Math.round(kk*100)/100)+'');
-    dT.push(Math.round(2*Math.PI*Math.sqrt(m/kk)*10000)/10000);
-    dW.push(Math.round(Math.sqrt(kk/m)*10000)/10000);
+    labels.push(__sospAxis(kk));
+    dT.push(2*Math.PI*Math.sqrt(m/kk)); // 保留完整计算精度，避免微小非零值被四舍五入成 0
+    dW.push(Math.sqrt(kk/m));
   }
   return {labels:labels,dT:dT,dW:dW};
 }
 function __sospChart(){
+  var c=document.getElementById('sospChart');
+  var s=__sospSweep();
+  if(!s){
+    if(c){var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());c.innerHTML='<p style="padding:12px;color:var(--text-muted);">'+(en?'Enter positive values before plotting the curve.':'请输入有效参数后再绘制曲线。')+'</p>';}
+    return;
+  }
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var s=__sospSweep(); if(!s)return;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   TBKit.chart.line('#sospChart',{title:en?'Spring period decays as inverse square root of stiffness while angular frequency rises as square root':'弹簧振子周期随刚度按反比平方根衰减，角频率按平方根上升（镜像对照）',labels:s.labels,series:[{name:en?'Period T (s)':'周期 T (s)',data:s.dT},{name:en?'Angular frequency (rad/s)':'角频率 ω (rad/s)',data:s.dW}]});
 }

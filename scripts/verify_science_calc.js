@@ -2892,6 +2892,35 @@ const CASES = [
     ref: "对跖点浮点边界：Haversine 的 a 可能因浮点误差略大于 1，旧版 sqrt(1−a)=NaN 使公里/英里/海里全变 NaN；现 clamp a∈[0,1] 后仍得 6371×π=20015.09 km。对跖点初始方位无唯一解，显示 — 并注明原因，不再误报正东 90°。默认北京→上海不命中。",
   },
 
+  {
+    slug: "science/pendulum-period",
+    inputs: {},
+    clicks: ["document.getElementById('L').value='0.0001';document.getElementById('g').value='9.80665';calcTool();var sw=__pdprSweep();var u=sw.labels.every(function(v,i){return i===0||v!==sw.labels[i-1]});var ok=sw&&u&&sw.dT.every(function(v){return isFinite(v)&&v>0;});document.getElementById('__tbProbe').textContent='PDSMALL '+(ok?'OK':'BAD '+sw.labels.join(','));"],
+    expect: ["PDSMALL OK"],
+    ref: "小尺度摆长 L=0.0001 m：采样标签须随量级保留有效数字（0.00002/0.000036/…，旧版统一 round 到 0.001 会全部变 0），曲线数据须保留完整精度（T≈0.009 s，不能舍入成 0）。默认 L=1 m 不命中。",
+  },
+  {
+    slug: "science/pendulum-period",
+    inputs: {},
+    clicks: ["document.getElementById('L').value='1';calcTool();document.getElementById('L').value='0';calcTool();var c=document.getElementById('pdprChart');document.getElementById('__tbProbe').textContent='PDE '+(String(c.innerHTML||c.textContent||c.innerText||'').indexOf('请输入有效参数后再绘制曲线')>=0?'OK':'BAD '+String(c.innerHTML||c.textContent||c.innerText||'').slice(0,40));"],
+    expect: ["PDE OK"],
+    ref: "先以 L=1 画出曲线，再把 L 改为 0：旧版 __pdprChart 在 __pdprSweep 返回 null 时直接 return，旧曲线继续显示；现清空图表容器并提示「请输入有效参数后再绘制曲线」。",
+  },
+  {
+    slug: "science/spring-oscillation-period",
+    inputs: {},
+    clicks: ["document.getElementById('m').value='0.0001';document.getElementById('k').value='0.0001';calcTool();var sw=__sospSweep();var u=sw.labels.every(function(v,i){return i===0||v!==sw.labels[i-1]});var ok=sw&&u&&sw.dT.every(function(v){return isFinite(v)&&v>0;});document.getElementById('__tbProbe').textContent='SOSMALL '+(ok?'OK':'BAD '+sw.labels.join(','));"],
+    expect: ["SOSMALL OK"],
+    ref: "小尺度刚度 k=0.0001 N/m：采样标签须为 0.00002/0.000036/…（旧版 round 到 0.01 会全部变 0），周期数据保留完整精度（T≈14.05 s），不得被固定四位小数截断。",
+  },
+  {
+    slug: "science/spring-oscillation-period",
+    inputs: {},
+    clicks: ["document.getElementById('m').value='1';calcTool();document.getElementById('m').value='0';calcTool();var c=document.getElementById('sospChart');document.getElementById('__tbProbe').textContent='SOSE '+(String(c.innerHTML||c.textContent||c.innerText||'').indexOf('请输入有效参数后再绘制曲线')>=0?'OK':'BAD '+String(c.innerHTML||c.textContent||c.innerText||'').slice(0,40));"],
+    expect: ["SOSE OK"],
+    ref: "质量由 1 改为 0：旧版曲线生成提前 return，旧曲线残留；现清空图表容器并提示。",
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
