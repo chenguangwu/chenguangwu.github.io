@@ -239,6 +239,7 @@
     </div>
 
     <div class="sel-info">
+      <span class="seg" style="font-size:11px;color:var(--text-light);">波形为全声道幅度峰值</span>
       <span class="seg">起点：<b id="selStartTxt">0:00.000</b></span>
       <span class="seg">终点：<b id="selEndTxt">0:00.000</b></span>
       <span class="seg dur">片段时长：<b id="selDurTxt">0:00.000</b></span>
@@ -268,6 +269,8 @@
     </div>
 
     <div class="toolbar" style="margin-top:14px;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;" for="fadeMs"><input type="checkbox" id="fadeEnable" checked style="width:auto;"> 首尾淡变</label>
+      <input type="number" id="fadeMs" min="0" max="50" step="1" value="5" style="width:70px;" title="淡变时长（毫秒）"> <span style="font-size:12px;color:var(--text-muted);">ms</span>
       <button type="button" class="btn primary" id="btnPreview" onclick="togglePreview()" disabled><span class="ico">▶</span> 试听片段</button>
       <button type="button" class="btn" id="btnStop" onclick="stopPreview()" disabled><span class="ico">⏹</span> 停止</button>
       <button type="button" class="btn success" id="btnExport" onclick="exportSelection()" disabled><span class="ico">⬇</span> 导出 WAV</button>
@@ -431,7 +434,10 @@ var fileName = '';
 var duration = 0;             // 总时长（秒）
 var selStart = 0;             // 选区起点（秒）
 var selEnd = 0;               // 选区终点（秒）
-var MIN_GAP = 0.02;           // 最小选区长度（秒）
+var MIN_GAP = 0.02;           // 兜底最小选区长度（秒），实际按采样率/时长计算
+var loadSeq = 0;
+var timeInputValid = true;
+var exportBusy = false;
 
 // 波形数据
 var peaksMin = null;          // 每列最小值
@@ -440,6 +446,7 @@ var waveWidth = 0;            // 当前峰值列数（= canvas CSS 宽度）
 
 // 播放/试听
 var previewSource = null;
+var previewGain = null;
 var isPreviewing = false;
 var previewStartCtxTime = 0;  // audioCtx.currentTime 起点时刻
 var previewOffset = 0;        // 试听片段在源音频中的偏移
@@ -520,16 +527,30 @@ function ensureCtx() {
   return audioCtx;
 }
 
+function getMinGap() {
+  if (!audioBuffer) return MIN_GAP;
+  var byRate = 1 / audioBuffer.sampleRate;
+  return Math.max(byRate, Math.min(0.02, audioBuffer.duration / 2));
+}
+function getFadeSeconds(dur) {
+  var on = document.getElementById('fadeEnable');
+  if (!on || !on.checked) return 0;
+  var ms = parseFloat(document.getElementById('fadeMs').value);
+  if (!isFinite(ms)) ms = 5;
+  ms = clamp(ms, 0, 50);
+  return Math.min(ms / 1000, Math.max(0, dur) / 2);
+}
+
 // ===== 文件处理 =====
 function handleFileSelect(e) {
-  var f = e.target.files[0];
+  var f = e && e.target && e.target.files && e.target.files[0];
   if (f) loadAudioFile(f);
-  e.target.value = ''; // 允许重复选择同一文件
+  if (e && e.target) e.target.value = ''; // 允许重复选择同一文件
 }
 
 function loadAudioFile(file) {
   stopPreview();
-  fileName = file.name;
+  var seq = ++loadSeq;
   ToolBox.showToast(i18nText('toast.msg464'), 'info');
 
   var reader = new FileReader();
@@ -537,22 +558,32 @@ function loadAudioFile(file) {
     ensureCtx();
     audioCtx.decodeAudioData(
       e.target.result,
-      function(buf) { onDecoded(buf, file); },
+      function(buf) { if (seq === loadSeq) onDecoded(buf, file); },
       function(err) {
+        if (seq !== loadSeq) return;
         console.error('解码失败', err);
-        ToolBox.showToast(i18nText('toast.msg991'), 'error');
+        ToolBox.showToast(__cutLabel('解码失败，已保留当前音频', 'Decode failed; current audio kept'), 'error');
       }
     );
   };
-  reader.onerror = function() { ToolBox.showToast('toast.import_failed', 'error'); };
+  reader.onerror = function() {
+    if (seq !== loadSeq) return;
+    ToolBox.showToast('toast.import_failed', 'error');
+  };
   reader.readAsArrayBuffer(file);
+}
+
+function __cutLabel(zh, en) {
+  return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh;
 }
 
 function onDecoded(buf, file) {
   audioBuffer = buf;
+  fileName = file.name;
   duration = buf.duration;
   selStart = 0;
   selEnd = duration;
+  timeInputValid = true;
 
   // 文件信息
   document.getElementById('fileInfo').classList.add('show');
@@ -581,6 +612,7 @@ function onDecoded(buf, file) {
   updateSelInfo(true);
   setResult('已加载 <strong>' + escHtml(fileName) + '</strong>，时长 ' + formatTime(duration) + '。可在波形上拖选剪切区域。');
   ToolBox.showToast('tool.audio_load_ok', 'success');
+  if (typeof __audio_cutExtras === 'function') __audio_cutExtras();
 }
 
 // ===== 峰值计算 =====
@@ -591,8 +623,8 @@ function computePeaks() {
   peaksMin = new Float32Array(waveWidth);
   peaksMax = new Float32Array(waveWidth);
 
-  var ch0 = audioBuffer.getChannelData(0);
-  var total = ch0.length;
+  var total = audioBuffer.length;
+  var channels = audioBuffer.numberOfChannels;
   var samplesPerCol = total / waveWidth;
 
   for (var c = 0; c < waveWidth; c++) {
@@ -600,11 +632,13 @@ function computePeaks() {
     var endIdx = Math.floor((c + 1) * samplesPerCol);
     if (endIdx <= startIdx) endIdx = startIdx + 1;
     var mn = 1.0, mx = -1.0;
-    for (var i = startIdx; i < endIdx && i < total; i++) {
-      var v = ch0[i];
-      // 多声道取最大绝对值近似（用第一声道渲染，足够代表波形）
-      if (v < mn) mn = v;
-      if (v > mx) mx = v;
+    for (var ch = 0; ch < channels; ch++) {
+      var data = audioBuffer.getChannelData(ch);
+      for (var i = startIdx; i < endIdx && i < data.length; i++) {
+        var v = data[i];
+        if (v < mn) mn = v;
+        if (v > mx) mx = v;
+      }
     }
     peaksMin[c] = mn;
     peaksMax[c] = mx;
@@ -764,14 +798,15 @@ function onPointerMove(e) {
   var t = xToTime(x, cssW);
 
   if (dragMode === 'start') {
-    selStart = clamp(t, 0, selEnd - MIN_GAP);
+    selStart = clamp(t, 0, selEnd - getMinGap());
   } else if (dragMode === 'end') {
-    selEnd = clamp(t, selStart + MIN_GAP, duration);
+    selEnd = clamp(t, selStart + getMinGap(), duration);
   } else { // new
     var a = dragAnchor;
+    var gap = getMinGap();
     selStart = clamp(Math.min(a, t), 0, duration);
-    selEnd = clamp(Math.max(a, t), MIN_GAP, duration);
-    if (selEnd - selStart < MIN_GAP) selEnd = Math.min(duration, selStart + MIN_GAP);
+    selEnd = clamp(Math.max(a, t), gap, duration);
+    if (selEnd - selStart < gap) selEnd = Math.min(duration, selStart + gap);
   }
   drawWaveform();
   updateSelInfo(true);
@@ -781,7 +816,11 @@ function onPointerUp(e) {
   if (!dragMode) return;
   dragMode = null;
   if (selStart > selEnd) { var t = selStart; selStart = selEnd; selEnd = t; }
-  if (selEnd - selStart < MIN_GAP) selEnd = Math.min(duration, selStart + MIN_GAP);
+  var gap = getMinGap();
+  if (selEnd - selStart < gap) {
+    selStart = Math.max(0, Math.min(selStart, duration - gap));
+    selEnd = Math.min(duration, selStart + gap);
+  }
   updateSelInfo(true);
   drawWaveform();
 }
@@ -789,16 +828,30 @@ function onPointerUp(e) {
 // ===== 时间输入联动 =====
 function onTimeInput(which, val) {
   if (!audioBuffer) return;
-  var v = parseFloat(val);
-  if (isNaN(v)) return;
-  v = clamp(v, 0, duration);
-  if (which === 'start') {
-    selStart = clamp(v, 0, selEnd - MIN_GAP);
-  } else {
-    selEnd = clamp(v, selStart + MIN_GAP, duration);
+  var text = String(val == null ? '' : val).trim();
+  var v = parseFloat(text);
+  if (text === '' || !isFinite(v)) {
+    timeInputValid = false;
+    document.getElementById('btnExport').disabled = true;
+    stopPreview();
+    setResult(__cutLabel('请输入有效的起止时间', 'Enter valid start and end times'));
+    return;
   }
+  var gap = getMinGap();
+  if (which === 'start') {
+    if (v > selEnd - gap) {
+      ToolBox.showToast(__cutLabel('起点已限制为终点前至少 ' + (gap * 1000).toFixed(0) + ' ms', 'Start clamped to at least ' + (gap * 1000).toFixed(0) + ' ms before end'), 'warning');
+    }
+    selStart = clamp(v, 0, selEnd - gap);
+  } else {
+    if (v < selStart + gap) {
+      ToolBox.showToast(__cutLabel('终点已限制为起点后至少 ' + (gap * 1000).toFixed(0) + ' ms', 'End clamped to at least ' + (gap * 1000).toFixed(0) + ' ms after start'), 'warning');
+    }
+    selEnd = clamp(v, selStart + gap, duration);
+  }
+  timeInputValid = true;
   drawWaveform();
-  updateSelInfo(false);
+  updateSelInfo(true); // 回填被钳制后的实际选区
 }
 
 function selectAll() {
@@ -811,8 +864,14 @@ function selectAll() {
 function resetSelection() {
   if (!audioBuffer) return;
   stopPreview();
-  selStart = Math.max(0, duration * 0.1);
-  selEnd = Math.min(duration, duration * 0.9);
+  var gap = getMinGap();
+  if (duration <= gap * 2) {
+    selStart = 0; selEnd = duration;
+  } else {
+    selStart = Math.min(duration * 0.1, duration - gap);
+    selEnd = Math.min(duration, Math.max(selStart + gap, duration * 0.9));
+  }
+  timeInputValid = true;
   drawWaveform();
   updateSelInfo(true);
   ToolBox.showToast(i18nText('toast.msg327'), 'info');
@@ -821,6 +880,7 @@ function resetSelection() {
 // ===== 选区信息更新 =====
 // updateInputs: 是否同步更新两个 number 输入框（手动输入时传 false 以免光标跳动）
 function updateSelInfo(updateInputs) {
+  if (isPreviewing) stopPreview();
   document.getElementById('selStartTxt').textContent = formatTime(selStart);
   document.getElementById('selEndTxt').textContent = formatTime(selEnd);
   document.getElementById('selDurTxt').textContent = formatTime(selEnd - selStart);
@@ -840,20 +900,30 @@ function togglePreview() {
 function startPreview() {
   ensureCtx();
   stopPreview();
-  if (selEnd - selStart < MIN_GAP) { ToolBox.showToast(i18nText('toast.msg977'), 'warning'); return; }
+  if (!timeInputValid || selEnd - selStart < getMinGap()) { ToolBox.showToast(i18nText('toast.msg977'), 'warning'); return; }
 
   previewSource = audioCtx.createBufferSource();
   previewSource.buffer = audioBuffer;
-  previewSource.connect(audioCtx.destination);
+  previewGain = audioCtx.createGain();
+  previewSource.connect(previewGain);
+  previewGain.connect(audioCtx.destination);
   previewOffset = selStart;
   previewDuration = selEnd - selStart;
-  previewSource.start(0, previewOffset, previewDuration);
+  var fade = getFadeSeconds(previewDuration);
+  var t0 = audioCtx.currentTime;
+  previewGain.gain.setValueAtTime(fade > 0 ? 0 : 1, t0);
+  if (fade > 0) {
+    previewGain.gain.linearRampToValueAtTime(1, t0 + fade);
+    previewGain.gain.setValueAtTime(1, t0 + previewDuration - fade);
+    previewGain.gain.linearRampToValueAtTime(0, t0 + previewDuration);
+  }
+  previewSource.start(t0, previewOffset, previewDuration);
   previewSource.onended = function() {
     if (isPreviewing) endPreview();
   };
 
   isPreviewing = true;
-  previewStartCtxTime = audioCtx.currentTime;
+  previewStartCtxTime = t0;
   const __h0='<span class="ico">⏸</span> 停止试听';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('btnPreview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('btnPreview').innerHTML=__h0;
   document.getElementById('btnStop').disabled = false;
   document.getElementById('previewBar').classList.add('show');
@@ -878,6 +948,7 @@ function animatePreview() {
 function endPreview() {
   isPreviewing = false;
   previewSource = null;
+  if (previewGain) { try{ previewGain.disconnect(); }catch(e){} previewGain = null; }
   if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
   const __h1='<span class="ico">▶</span> 试听片段';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('btnPreview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('btnPreview').innerHTML=__h1;
   document.getElementById('btnStop').disabled = true;
@@ -890,24 +961,33 @@ function stopPreview() {
   if (previewSource) {
     try { previewSource.onended = null; previewSource.stop(); } catch (e) {}
   }
+  if (previewGain) { try{ previewGain.disconnect(); }catch(e){} previewGain = null; }
   if (isPreviewing) endPreview();
 }
 
 // ===== 导出 WAV（OfflineAudioContext）=====
 function exportSelection() {
-  if (!audioBuffer) return;
+  if (!audioBuffer || exportBusy) return;
   stopPreview();
-  if (selEnd - selStart < MIN_GAP) { ToolBox.showToast(i18nText('toast.msg976'), 'warning'); return; }
+  if (!timeInputValid || selEnd - selStart < getMinGap()) { ToolBox.showToast(i18nText('toast.msg976'), 'warning'); return; }
 
-  var sr = audioBuffer.sampleRate;
-  var nch = audioBuffer.numberOfChannels;
-  var startSample = Math.floor(selStart * sr);
-  var endSample = Math.floor(selEnd * sr);
+  // 快照：文件名、选区、淡变设置与音频源
+  var snapBuffer = audioBuffer;
+  var snapName = fileName;
+  var snapStart = selStart;
+  var snapEnd = selEnd;
+  var snapDur = snapEnd - snapStart;
+  var snapFade = getFadeSeconds(snapDur);
+  var sr = snapBuffer.sampleRate;
+  var nch = snapBuffer.numberOfChannels;
+  var startSample = Math.floor(snapStart * sr);
+  var endSample = Math.floor(snapEnd * sr);
   var length = endSample - startSample;
   if (length <= 0) { ToolBox.showToast(i18nText('toast.msg975'), 'error'); return; }
 
   ToolBox.showToast(i18nText('toast.msg461'), 'info');
   document.getElementById('btnExport').disabled = true;
+  exportBusy = true;
 
   var offline;
   try {
@@ -915,38 +995,42 @@ function exportSelection() {
   } catch (err) {
     ToolBox.showToast(i18nText('toast.msg348'), 'error');
     document.getElementById('btnExport').disabled = false;
+    exportBusy = false;
     return;
   }
 
   var src = offline.createBufferSource();
-  src.buffer = audioBuffer;
+  src.buffer = snapBuffer;
   var fadeGain = offline.createGain();
-  var dur = selEnd - selStart;
-  var fade = Math.min(0.01, dur / 4);
-  fadeGain.gain.setValueAtTime(0, 0);
-  fadeGain.gain.linearRampToValueAtTime(1, fade);
-  fadeGain.gain.setValueAtTime(1, Math.max(fade, dur - fade));
-  fadeGain.gain.linearRampToValueAtTime(0, dur);
+  fadeGain.gain.setValueAtTime(snapFade > 0 ? 0 : 1, 0);
+  if (snapFade > 0) {
+    fadeGain.gain.linearRampToValueAtTime(1, snapFade);
+    fadeGain.gain.setValueAtTime(1, Math.max(snapFade, snapDur - snapFade));
+    fadeGain.gain.linearRampToValueAtTime(0, snapDur);
+  }
   src.connect(fadeGain);
   fadeGain.connect(offline.destination);
-  src.start(0, selStart, dur);
+  src.start(0, snapStart, snapDur);
 
   offline.startRendering().then(function(rendered) {
     var blob = audioBufferToWav(rendered);
-    downloadBlob(blob, makeExportName());
+    downloadBlob(blob, makeExportName(snapName, snapStart, snapEnd));
     document.getElementById('btnExport').disabled = false;
-    setResult('导出成功！片段 <strong>' + formatTime(selStart) + ' ~ ' + formatTime(selEnd) + '</strong>（' + formatTime(selEnd - selStart) + '），WAV 文件大小 ' + formatSize(blob.size) + '。');
+    exportBusy = false;
+    setResult('导出成功！片段 <strong>' + escHtml(snapName) + '</strong> ' + formatTime(snapStart) + ' ~ ' + formatTime(snapEnd) + '（' + formatTime(snapDur) + '，淡变 ' + (snapFade * 1000).toFixed(0) + 'ms），WAV 文件大小 ' + formatSize(blob.size) + '。');
     ToolBox.showToast(i18nText('toast.msg021'), 'success');
+    if (typeof __audio_cutExtras === 'function') __audio_cutExtras();
   }).catch(function(err) {
     console.error(err);
     document.getElementById('btnExport').disabled = false;
+    exportBusy = false;
     ToolBox.showToast(i18nText('toast.msg138'), 'error');
   });
 }
 
-function makeExportName() {
-  var base = (fileName || 'audio').replace(/\.[^.]+$/, '');
-  return base + '_cut_' + selStart.toFixed(1) + '-' + selEnd.toFixed(1) + '.wav';
+function makeExportName(name, start, end) {
+  var base = (name || 'audio').replace(/\.[^.]+$/, '');
+  return base + '_cut_' + start.toFixed(3) + '-' + end.toFixed(3) + '.wav';
 }
 
 // WAV 编码（16bit PCM）
@@ -1086,15 +1170,29 @@ function __audio_cutRender(keys,rk,en){
         TBKit.history.mount('#audio_cutHist',function(rec){
             __audio_cut_skip=true;
             try{
-                for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
-                    var e=document.getElementById(k);
-                    if(!e) continue;
-                    var t=(e.type||'').toLowerCase();
-                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
-                    else{e.value=rec[k];}
+                var data=(rec&&rec.d)?rec.d:rec;
+                var wantFile=data.__file||'';
+                var wantDur=parseFloat(data.__dur);
+                if(!audioBuffer){
+                    setResult(__cutLabel('该历史记录属于 ' + escHtml(wantFile || '音频文件') + '，请重新选择同一文件后再应用选区。', 'This history entry belongs to ' + escHtml(wantFile || 'an audio file') + '. Re-select the same file before applying the selection.'));
+                    ToolBox.showToast(__cutLabel('请重新选择音频文件', 'Please re-select the audio file'), 'warning');
+                    return;
                 }
-                handleFileSelect();
+                if(wantFile && (fileName !== wantFile || (isFinite(wantDur) && Math.abs(duration - wantDur) > 0.05))){
+                    setResult(__cutLabel('历史记录来自 ' + escHtml(wantFile) + '，与当前文件 ' + escHtml(fileName) + ' 不一致；仅恢复选区，不加载旧音频。', 'History belongs to ' + escHtml(wantFile) + ', not the current ' + escHtml(fileName) + '. Only the selection is restored.'));
+                    ToolBox.showToast(__cutLabel('文件不一致，请确认选区', 'File differs; verify the selection'), 'warning');
+                }
+                if(data.startInput!=null && data.endInput!=null){
+                    var s0=parseFloat(data.startInput), e0=parseFloat(data.endInput);
+                    if(isFinite(s0)&&isFinite(e0)){
+                        var gap=getMinGap();
+                        selStart=clamp(s0,0,duration);
+                        selEnd=clamp(e0,selStart+gap,duration);
+                        timeInputValid=true;
+                        drawWaveform();
+                        updateSelInfo(true);
+                    }
+                }
             }catch(e2){}
             __audio_cut_skip=false;
         });
@@ -1134,6 +1232,8 @@ function __audio_cutExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__file=fileName;
+    rec.__dur=duration.toFixed(3);
     rec.__tbScore=__audio_cutScore(res);
     TBKit.history.record(rec);
     __audio_cutRender(keys,rk,en);
@@ -1157,10 +1257,6 @@ function __audio_cutPresets(){
   {"label":"短视频前 15 秒","labelEn":"First 15 seconds","values":{"startInput":0,"endInput":15}},
   {"label":"播客 30-90 秒片段","labelEn":"Podcast 30-90 s clip","values":{"startInput":30,"endInput":90}},
   {"label":"铃声 12.5-42.5 秒","labelEn":"Ringtone 12.5-42.5 s","values":{"startInput":12.5,"endInput":42.5}}],function(){ updateSelInfo(); });
-}
-var __audio_cut_f0=(typeof handleFileSelect==='function')?handleFileSelect:null;
-if(__audio_cut_f0){
-    handleFileSelect=function(){ var __r=__audio_cut_f0.apply(null,arguments); try{ __audio_cutExtras(); }catch(e){} return __r; };
 }
 function __audio_cutBoot(){ try{ __audio_cutPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __audio_cutBoot();

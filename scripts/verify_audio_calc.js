@@ -65,6 +65,12 @@ const CASES = [
   clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/audio/audio-recorder.html','utf8');var ok=src.indexOf('isStarting')>=0&&src.indexOf('micReqSeq')>=0&&src.indexOf('function finishRecording')>=0&&src.indexOf('function cleanupRecording')>=0&&src.indexOf('recSeq++')>=0&&src.indexOf('function stopListAudio')>=0&&src.indexOf('loadedObjectUrl')>=0&&src.indexOf('releaseLoadedObjectUrl')>=0&&src.indexOf('function audioExtForBlob')>=0&&src.indexOf('snapBlob')>=0&&src.indexOf('clipped = 0')>=0&&src.indexOf('normalized')>=0&&src.indexOf('preservesPitch = false')>=0&&src.indexOf('AR_LASTKEY')>=0&&src.indexOf('__arCommitBaseline')>=0&&src.indexOf('recordings.length + 1')<0;document.getElementById('__tbProbe').textContent='AUDIOREC ALL '+(ok?'OK':'BAD');"],
   expect: ["AUDIOREC ALL OK"],
   ref: "第1021批（15 任务）：录音请求守卫与清理、列表单实例播放、对象地址释放、原扩展名映射、导出快照与削波归一化、试听保调开关统一、设置基线独立保存。"
+},
+{
+  slug: "audio/audio-cut",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/audio/audio-cut.html','utf8');var ok=src.indexOf('function getMinGap')>=0&&src.indexOf('function getFadeSeconds')>=0&&src.indexOf('fadeEnable')>=0&&src.indexOf('for (var ch = 0; ch < channels; ch++)')>=0&&src.indexOf('updateSelInfo(true); // 回填')>=0&&src.indexOf('snapStart')>=0&&src.indexOf('makeExportName(snapName')>=0&&src.indexOf('loadSeq')>=0&&src.indexOf('rec.__file')>=0&&src.indexOf('handleFileSelect();')<0;document.getElementById('__tbProbe').textContent='AUDIOCUT '+(ok?'OK':'BAD');"],
+  expect: ["AUDIOCUT OK"],
+  ref: "第1022批（9 任务）：全声道峰值聚合；动态 getMinGap 支持短于 20ms 文件；时间输入越界回填；导出文件名/选区/淡变快照；getFadeSeconds 试听与导出一致且可关闭；loadSeq 防解码竞态、失败保留旧音频；历史在解码后记录、恢复不调用文件选择。"
 }
 ];
 async function main() {
