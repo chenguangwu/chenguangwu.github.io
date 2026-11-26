@@ -527,6 +527,20 @@ const CASES = [
   },
   {
     slug: "design/card-generator",
+    inputs: { radius: "" },
+    clicks: ["generate()"],
+    expect: ["圆角不能为空，请输入 0–50 之间的数值"],
+    ref: "第956批：清空圆角曾经 Number('') 变成 0 并静默生成 0px 圆角；现区分空值与合法 0，空值停止生成并在 #cssOutput 提示，输入框值保留。默认 12 合法不命中。"
+  },
+  {
+    slug: "design/card-generator",
+    inputs: { shX: "80" },
+    clicks: ["generate()"],
+    expect: ["阴影 X须在 -50–50 之间，当前为 80"],
+    ref: "第956批：阴影 X 80 旧实现被 Math.min 静默截成 50 并照常出 CSS；现越界停止生成并提示当前值，不写回输入。默认 0 不命中。"
+  },
+  {
+    slug: "design/card-generator",
     inputs: { radius: "16", pad: "24", borderW: "2", shX: "4", shY: "8", shBlur: "12", borderColor: "#334155", bgColor: "#f8fafc" },
     expect: [".card { background: #f8fafc; border-radius: 16px;"],
     ref: "独立复算：CSS 由模板拼成 `.card { background: ${bgColor}; border-radius: ${radius}px; padding: ${pad}px; border: ${borderW}px solid ${borderColor}; …` ⇒ 注入 bgColor=#f8fafc / radius=16 / pad=24 / borderW=2 / borderColor=#334155 得该连排。默认态各值均为页面 `value` 默认值 ⇒ 不命中。shX/shY/shBlur 一并换非默认（默认 0/4/12），防止退化成『只有颜色参与计算』的假通过。"
@@ -538,6 +552,20 @@ const CASES = [
     expect: ["background-size: 24px 24px, 24px 24px, 120px 120px, 120px 120px;"],
     ref: "独立复算：`background-size` 四项按 `${minor}px ${minor}px` ×2 + `${major}px ${major}px` ×2 拼成 ⇒ minorSize=24 / majorSize=120 得该串。默认态分别为 20 / 100 ⇒ 不命中。"
        + "⚠ 首版注入 `20 / 100` 时默认态也 PASS（**默认值撞注入 ⇒ 逃生项**），改为 24 / 120 后才真正依赖被测点；同族 `checkerboard-generator` 的 `background-position: 0 0, Npx Npx;`（N = size）同理。",
+  },
+  {
+    slug: "design/button-generator",
+    inputs: { padY: "40" },
+    clicks: ["generate()"],
+    expect: ["垂直内边距须在 0–30 之间，当前为 40"],
+    ref: "第956批：输入框标注上限 30，旧生成逻辑却允许到 50，40 被静默接受；现计算与控件约束统一为 0–30 并明确拒绝。默认 10 不命中。"
+  },
+  {
+    slug: "design/button-generator",
+    inputs: { fontSize: "" },
+    clicks: ["generate()"],
+    expect: ["字号不能为空，请输入 8–32 之间的数值"],
+    ref: "第956批：清空字号旧实现回退默认 14 且不提示；现空值停止生成并提示有效区间，输入值保留。默认 14 不命中。"
   },
   {
     slug: "design/button-generator",
@@ -1420,24 +1448,23 @@ const CASES = [
   {
     "slug": "design/button-generator",
     "inputs": {
-      "bgColor": "abc123测试",
-      "textColor": "abc123测试",
+      "bgColor": "#112233",
+      "textColor": "#ffffff",
       "radius": "42",
       "padX": "42",
-      "padY": "42",
-      "borderColor": "abc123测试",
-      "borderW": "42",
-      "btnText": "abc123测试",
-      "fontSize": "42",
+      "padY": "25",
+      "borderColor": "#445566",
+      "borderW": "3",
+      "btnText": "Buy now",
+      "fontSize": "30",
       "shX": "42",
       "shY": "42",
-      "shBlur": "42",
-      "cssOutput": "1\n2\n3"
+      "shBlur": "42"
     },
     "expect": [
-      "abc123测试\nabc123测试\n42\n42\n42\nabc123测试\n5\nabc123测试\n42\n42\n42\n42\nabc123测试"
+      "padding: 25px 42px; background: #112233; color: #ffffff; border: 3px solid #445566; border-radius: 42px; font-size: 30px; cursor: pointer; box-shadow: 42px 42px 42px rgba(17,34,51,0.4);"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"textColor\":\"abc123测试\",\"radius\":\"42\",\"padX\":\"42\",\"padY\":\"42\",\"borderColor\":\"abc123测试\",\"borderW\":\"42\",\"btnText\":\"abc123测试\",\"fontSize\":\"42\",\"shX\":\"42\",\"shY\":\"42\",\"shBlur\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「abc123测试\nabc123测试\n42\n42\n42\nabc123测试\n42\na…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第956批改为有效非默认值：垂直内边距 25（旧实现允许 40 而控件上限 30）、边框 3、字号 30 全部在范围内，整条 CSS 锁死 padY/padX 顺序、字号与 rgba；默认 10/20/0/14 不命中。原用例用 42 越界值靠静默钳位取 5/32，属把缺陷当预期的逃生项，已替换。"
   },
   {
     "slug": "design/breakpoint-queries",
@@ -1452,22 +1479,21 @@ const CASES = [
   {
     "slug": "design/card-generator",
     "inputs": {
-      "bgColor": "abc123测试",
+      "bgColor": "#ffffff",
       "radius": "42",
       "shX": "42",
       "shY": "42",
       "shBlur": "42",
       "pad": "42",
-      "borderColor": "abc123测试",
-      "borderW": "42",
-      "shadowColor": "abc123测试",
-      "shadowOp": "42",
-      "cssOutput": "1\n2\n3"
+      "borderColor": "#334455",
+      "borderW": "3",
+      "shadowColor": "#112233",
+      "shadowOp": "0.4"
     },
     "expect": [
-      "abc123测试\n42\n42\n42\n42\n42\nabc123测试\n5\nabc123测试\n1"
+      "background: #ffffff; border-radius: 42px; padding: 42px; border: 3px solid #334455; box-shadow: 42px 42px 42px rgba(17,34,51,0.4);"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"radius\":\"42\",\"shX\":\"42\",\"shY\":\"42\",\"shBlur\":\"42\",\"pad\":\"42\",\"borderColor\":\"abc123测试\",\"borderW\":\"42\",\"shadowColor\":\"abc123测试\",\"shadowOp\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「abc123测试\n42\n42\n42\n42\n42\nabc123测试\n42\nabc1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第956批改为有效非默认值：阴影不透明度 0.4（旧实现把 42 静默截成 1）、边框 3；整条 CSS 锁死圆角/内边距/边框与 rgba；默认 12/0/4/20/20/1/0.08 不命中。原用例用 42 越界值靠静默钳位取 5/1，属把缺陷当预期的逃生项，已替换。"
   },
   {
     "slug": "design/checker",
@@ -3061,14 +3087,14 @@ const CASES = [
 {
   slug: "design/card-generator",
   inputs: { borderW: "-1" },
-  expect: ["border: 0px"],
-  ref: "D-N50：负边框宽旧实现原样输出 border: -1px；修复后 clamp 到 0..5 并回写输入框 ⇒ border: 0px。默认 borderW=1 不含 ⇒ 强判别。",
+  expect: ["边框粗细须在 0–5 之间，当前为 -1"],
+  ref: "第956批：负边框宽不再静默 clamp 到 0 并照常生成；现明确拒绝并提示当前值，输入框保留 -1。默认 borderW=1 不含该错误串 ⇒ 强判别。",
 },
 {
   slug: "design/button-generator",
   inputs: { radius: "-5" },
-  expect: ["border-radius: 0px"],
-  ref: "D-N52：负圆角旧实现输出 border-radius: -5px；修复后 clamp 到 0..50 并回写 ⇒ border-radius: 0px。默认 radius=8 不含 ⇒ 强判别。",
+  expect: ["圆角须在 0–50 之间，当前为 -5"],
+  ref: "第956批：负圆角不再静默 clamp 到 0 并照常生成；现明确拒绝并提示当前值，输入框保留 -5。默认 radius=8 不含该错误串 ⇒ 强判别。",
 },
 {
   slug: "design/css-animation-generator",
