@@ -4,14 +4,16 @@ const { runCase } = require("./verify_it_calc.js");
 const fs=require("fs"), path=require("path");
 function musicStaticChecks(){
   const read=(p)=>fs.readFileSync(path.join(__dirname,"..","tools","music",p),"utf8");
-  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html");
+  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html");
   return [
     {name:"和弦进行降E映射、悲怆四级与大调高频",ok:/'Eb':3/.test(cp)&&!/'Eb':2/.test(cp)&&/qualities:\s*\['',\s*'m',\s*'',\s*'m'\]/.test(cp)&&/48 \+ chordRoot/.test(cp)&&/spellChordNote\(rootName/.test(cp)},
     {name:"和弦进行停止清理全部高亮定时器",ok:/highlightTimeouts/.test(cp)&&/highlightTimeouts\.forEach/.test(cp)&&/if \(isPlaying\) highlightChord/.test(cp)},
     {name:"和弦音符按音级拼写并修正A大三示例",ok:/spellFromRoot/.test(cn)&&/A C♯ E/.test(cn)&&!/A、A\+4\(半音\)=C、/.test(cn)},
     {name:"乐理小调与复音程按音级拼写",ok:/SCALE_STEPS/.test(mt)&&/stepOverride/.test(mt)&&/intervalName\(iv\)/.test(mt)&&/14:'9'/.test(mt)},
     {name:"吉他小调音阶与降号拼写",ok:/minor': \[0,2,3,5,7,8,10\]/.test(gt)&&/spellChordNote|calcScaleNotes/.test(gt)&&/NOTE_NAMES_FLAT/.test(gt)},
-    {name:"调音器错误区分与目标随参考音刷新",ok:/PermissionDeniedError/.test(wt)&&/DevicesNotFoundError|NotFoundError/.test(wt)&&/targetBaseFreq \* refA4 \/ 440/.test(wt)&&/Microphone permission denied/.test(wt)&&/No microphone detected/.test(wt)&&!/global\.ToolBox/.test(wt)}
+    {name:"调音器错误区分与目标随参考音刷新",ok:/PermissionDeniedError/.test(wt)&&/DevicesNotFoundError|NotFoundError/.test(wt)&&/targetBaseFreq \* refA4 \/ 440/.test(wt)&&/Microphone permission denied/.test(wt)&&/No microphone detected/.test(wt)&&!/global\.ToolBox/.test(wt)},
+    {name:"节拍细分严格BPM、7/8分组与整小节格数",ok:/function readBpm/.test(bs)&&/readBpm\('bpm', 1, 999\)/.test(bs)&&/getMeterGroups/.test(bs)&&/group7/.test(bs)&&/共 \$\{cells\} 个细分格子/.test(bs)},
+    {name:"节拍器播放中实时读取参数",ok:/function metroSettings/.test(bs)&&/readBpm\('metroBpm', 20, 300\)/.test(bs)&&/st\.interval/.test(bs)&&/setTimeout\(metroTick/.test(bs)&&!/setInterval\(\s*\(\) => \{\s*scheduleClick/.test(bs)}
   ];
 }
 const CASES = [
@@ -48,8 +50,16 @@ const CASES = [
     "bpmA": "100",
     "bpmB": "140"
   },
-  "expect": ["180\n4/4\n180 BPM — Presto（急板） | 拍号 4/4 | 小节时长 1.33s\n180 BPM 333.3 四分音符(ms) 1.33s 小节时长 4 每小节拍数\n音符类型 符号 时长(ms) 时长(s) 每拍数量 每小节数量 全音符 𝅝 1333.33 1.333 4 1 附点全音符 𝅝. 2000.00 2.000 8/3 2/3 全音符三连音 𝅝³ 888.89 0.889 6 3/2 二分音符 𝅗𝅥 666.67 0.667 2 2 附点二分音符 𝅗𝅥. 1000.00 1.000 4/3 4/3 二分音符三连音 𝅗𝅥³ 444.44 0.444 3 3 四分音符 ♩ 333.33 0.333 1 4 附点四分音符 ♩. 500.00 0.500 2/3 8/3 四分音符三连音 ♩³ 222.22 0.222 3/2 6 八分音符 ♪ 166.67 0.167 2 8 附点八分音符 ♪. 250.00 0.250 4/3 16/3 八分音符三连音 ♪³ 111.11 0.111 3 12 十六分音符 𝅘𝅥𝅯 83.33 0.083 4 16 附点十六分音符 𝅘𝅥𝅯. 125.00 0.125 8/3 32/3 十六分音符三连音 𝅘𝅥𝅯³ 55.56 0.056 6 24 三十二分音符 𝅘𝅥𝅰 41.67 0.042 8 32 附点三十二分音符 𝅘𝅥𝅰. 62.50 0.063 16/3 64/3 三十二分音符三连音 𝅘𝅥𝅰³ 27.78 0.028 12 48\nquarter\n拍1 拍2 拍3 拍4 共 4 个细分 | 每格 333.33ms\n♩ 四分音符 ♪ 八分音符 𝅘𝅥𝅯 十六分音符 ♩³ 四分三连音 ♪³ 八分三连音 ♩. 附点四分 ♪. 附点八分\n100\n140\n音符类型 符号 BPM 100 时长(ms) BPM 140 时长(ms) 差值(ms) 差异比例 全音符 𝅝 2400.00 1714.29 +685.71 +28.6% 附点全音符 𝅝. 3600.00 2571.43 +1028.57 +28.6% 二分音符 𝅗𝅥 1200.00 857.14 +342.86 +28.6% 附点二分音符 𝅗𝅥. 1800.00 1285.71 +514.29 +28.6% 四分音符 ♩ 600.00 428.57 +171.43 +28.6% 附点四分音符 ♩. 900.00 642.86 +257.14 +28.6% 八分音符 ♪ 300.00 214.29 +85.71 +28.6% 附点八分音符 ♪. 450.00 321.43 +128.57 +28.6% 十六分音符 𝅘𝅥𝅯 150.00 107.14 +42.86 +28.6% 附点十六分音符 𝅘𝅥𝅯. 225.00 160.71 +64.29 +28.6% 三十二分音符 𝅘𝅥𝅰 75.00 53.57 +21.43 +28.6% 附点三十二分音符 𝅘𝅥𝅰. 112.50 80.36 +32.14 +28.6%\n120\n120 BPM\n80\nundefined%\n50\nundefined%\n▶"],
-  "ref": "auto-restore"
+  "expect": [
+    "180 BPM — Presto（急板） | 拍号 4/4 | 小节时长 1.33s",
+    "180 BPM",
+    "333.3",
+    "1333.33",
+    "共 4 个细分格子",
+    "拍号 4/4，每格 333.33ms",
+    "BPM 100 时长(ms)"
+  ],
+  "ref": "默认参数整页回归：180 BPM 四分音符 333.33ms、全音符 1333.33ms、4/4 共 4 格；对比表含 BPM 100/140。可视化改为整小节格子后锚「共 4 个细分格子」，不再使用旧「拍1 拍2…」逐拍串。"
 },
 {
   "slug": "music/bpm-converter",
@@ -438,7 +448,7 @@ const CASES = [
     slug: "music/beat-subdivision",
     inputs: { bpm: "75", timeSig: "6/8" },
     clicks: ["calculate()"],
-    expect: ["拍号 6/8 | 小节时长 2.40s"],
+    expect: ["拍号 6/8（分组 3+3 八分） | 小节时长 2.40s"],
     ref: '75BPM/6/8 小节时长2.40s'
   },
   {
@@ -516,6 +526,70 @@ const CASES = [
   "clicks": ["try{copyTunerReading();document.getElementById('centsText').textContent='COPY OK';}catch(e){document.getElementById('centsText').textContent='COPY ERR:'+e.name;}"],
   "expect": ["COPY OK"],
   "ref": "无有效读数时 copyTunerReading 必须安全返回并提示，不得因访问浏览器不存在的 global 抛 ReferenceError。默认 noteName 为「--」即进入空读数分支。"
+}
+,
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "" },
+  "clicks": ["calculate()"],
+  "expect": ["请输入 1–999 之间的有效 BPM", "BPM 无效，已清除计算结果"],
+  "ref": "清空 BPM 必须报错并清空结果，不得静默回退 120 BPM；默认 120 不出现该提示，旧实现 `parseFloat||120` 会继续输出 500ms 结果。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "0" },
+  "clicks": ["calculate()"],
+  "expect": ["请输入 1–999 之间的有效 BPM"],
+  "ref": "BPM=0 属越界，不得被当作未填写回退默认 120；页面标注范围 1–999。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "-20" },
+  "clicks": ["calculate()"],
+  "expect": ["请输入 1–999 之间的有效 BPM"],
+  "ref": "负数 BPM 必须拒绝，旧实现会输出负时长。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "120", "timeSig": "7/8" },
+  "clicks": ["document.getElementById('group7').value='2+2+3';calculate();"],
+  "expect": ["拍号 7/8（分组 2+2+3 八分）", "每小节组数", "共 7 个细分格子"],
+  "ref": "7/8 不能再按 7/3=2.333 拍处理；2+2+3 分组应显示 3 组、7 个八分格，且每格 125ms（120BPM 八分音符 250ms？7/8 小节 7×250ms=1750ms，7 格）。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "120", "timeSig": "7/8" },
+  "clicks": ["document.getElementById('group7').value='3+2+2';calculate();"],
+  "expect": ["拍号 7/8（分组 3+2+2 八分）", "组1（3八分）", "组2（2八分）"],
+  "ref": "切换 7/8 分组后标签与重音分组必须同步为 3+2+2，不能仍显示固定 2+2+3。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "120", "timeSig": "4/4" },
+  "clicks": ["document.getElementById('vizDivision').value='whole';calculate();"],
+  "expect": ["共 1 个细分格子", "每格 2000.00ms"],
+  "ref": "4/4 全音符跨 4 拍，整小节应只有 1 格（2000ms）；旧实现按每拍系数渲染出 4 个空格子。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "120", "timeSig": "6/8" },
+  "clicks": ["document.getElementById('vizDivision').value='quarter';calculate();"],
+  "expect": ["共 3 个细分格子", "每格 500.00ms"],
+  "ref": "6/8 小节 1500ms，四分音符 500ms → 3 格；旧实现按 2 拍×1 渲染 2 格且时长口径不一致。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "120", "timeSig": "6/8", "metroBpm": "120" },
+  "clicks": ["selectNoteType('eighth');document.getElementById('vizDivision').value='eighth';calculate();var a=__bsMetroInfo();document.getElementById('metroBpm').value='240';var b=__bsMetroInfo();document.getElementById('bpm').value='240';document.getElementById('metroBpm').value='240';document.getElementById('timeSig').value='4/4';var c=__bsMetroInfo();document.getElementById('tempoLabel').textContent='M|'+a+'|'+b+'|'+c;"],
+  "expect": ["M|120|6|250.00|0.0,750.0", "|240|6|125.00|"],
+  "ref": "6/8 八分细分每小节 6 格，120BPM 间隔 250ms；把节拍器 BPM 改为 240 后同一函数立即返回 125ms，证明参数在播放中实时读取而非启动时捕获；切到 4/4 后组边界变为 0/250/500/750。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpmA": "", "bpmB": "140" },
+  "clicks": ["compareBPM()"],
+  "expect": ["BPM A 与 BPM B 都需填写 1–999 之间的有效数字"],
+  "ref": "BPM 对比清空任一侧必须报错，不得用 100/140 默认值继续输出对比表。"
 }
 
 ];

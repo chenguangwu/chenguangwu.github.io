@@ -232,6 +232,14 @@
           <option value="12/8">12/8</option>
         </select>
       </div>
+      <div style="flex:1;min-width:120px;display:none;" id="group7Wrap">
+        <label for="group7">7/8 分组</label>
+        <select id="group7" onchange="calculate()">
+          <option value="2+2+3" selected>2+2+3</option>
+          <option value="3+2+2">3+2+2</option>
+          <option value="2+3+2">2+3+2</option>
+        </select>
+      </div>
     </div>
 
     <div class="toolbar">
@@ -494,6 +502,9 @@ let audioCtx = null;
 let metroTimer = null;
 let isPlaying = false;
 let metroBeatIndex = 0;
+let metroStartAt = 0;
+let metroNextAt = 0;
+let metroSigKey = '';
 let selectedNoteType = 'quarter';
 
 /* 音符类型定义 */
@@ -519,15 +530,45 @@ const METRO_TYPES = [
 
 /* ========== 核心计算 ========== */
 
+function readBpm(id, min, max) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  const raw = String(el.value == null ? '' : el.value).trim();
+  if (raw === '') return null;
+  const n = Number(raw);
+  if (!isFinite(n) || n < (min == null ? 1 : min) || n > (max == null ? 999 : max)) return null;
+  return n;
+}
+
 function getQuarterMs() {
-  const bpm = parseFloat(document.getElementById('bpm').value) || 120;
-  return 60000 / bpm;
+  const bpm = readBpm('bpm', 1, 999);
+  return bpm == null ? NaN : 60000 / bpm;
 }
 
 function parseTimeSig() {
   const sig = document.getElementById('timeSig').value;
   const [beats, unit] = sig.split('/').map(Number);
   return { beats, unit, text: sig };
+}
+
+/* 小节分组：x/4 按四分拍；x/8 按八分单位，返回各组合的八分音符数 */
+function getMeterGroups() {
+  const { beats, unit } = parseTimeSig();
+  if (unit === 4) return Array.from({ length: beats }, () => 1);
+  if (beats === 7) {
+    const g = (document.getElementById('group7') && document.getElementById('group7').value) || '2+2+3';
+    const parts = g.split('+').map(Number).filter(n => n > 0);
+    if (parts.length && parts.reduce((a, b) => a + b, 0) === 7) return parts;
+    return [2, 2, 3];
+  }
+  if (beats % 3 === 0) return Array.from({ length: beats / 3 }, () => 3);
+  return [beats];
+}
+
+function updateGroupVisibility() {
+  const { beats, unit } = parseTimeSig();
+  const wrap = document.getElementById('group7Wrap');
+  if (wrap) wrap.style.display = (unit === 8 && beats === 7) ? '' : 'none';
 }
 
 /* 八分音符基准拍（用于 6/8 等） */
@@ -546,12 +587,7 @@ function getMeasureMs() {
 
 /* 根据拍号返回"每小节多少拍"的合理拍数 */
 function getBeatsPerMeasure() {
-  const { beats, unit } = parseTimeSig();
-  if (unit === 8) {
-    // 6/8 -> 2拍（每拍3个八分），9/8 -> 3拍，12/8 -> 4拍
-    return beats / 3;
-  }
-  return beats;
+  return getMeterGroups().length;
 }
 
 /* ========== 速度术语 ========== */
@@ -572,21 +608,30 @@ function getTempoName(bpm) {
 
 /* ========== 主计算 ========== */
 function calculate() {
+  updateGroupVisibility();
+  const bpm = readBpm('bpm', 1, 999);
+  if (bpm == null) {
+    document.getElementById('tempoLabel').innerHTML = '<span style="color:var(--danger)">请输入 1–999 之间的有效 BPM</span>';
+    document.getElementById('statGrid').innerHTML = '';
+    document.getElementById('tableContainer').innerHTML = '<div class="tip-box tip-warn">BPM 无效，已清除计算结果。请输入 1–999 之间的数字。</div>';
+    document.getElementById('vizContainer').innerHTML = '';
+    if (typeof TBKit !== 'undefined' && TBKit.chart) { try { TBKit.chart.bar('#bsChart', { labels: [], series: [{ name: 'ms', data: [] }] }); } catch (e) {} }
+    return;
+  }
   const qMs = getQuarterMs();
-  const bpm = parseFloat(document.getElementById('bpm').value) || 120;
   const { beats, unit, text } = parseTimeSig();
   const measureMs = getMeasureMs();
   const beatsPerMeasure = getBeatsPerMeasure();
 
   // 速度标签
-  const __h0=`${bpm} BPM — <span class="tempo-name">${getTempoName(bpm)}</span> | 拍号 ${text} | 小节时长 ${(measureMs / 1000).toFixed(2)}s`;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('tempoLabel').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('tempoLabel').innerHTML=__h0;
+  const __h0=`${bpm} BPM — <span class="tempo-name">${getTempoName(bpm)}</span> | 拍号 ${text}${unit === 8 ? '（分组 ' + getMeterGroups().join('+') + ' 八分）' : ''} | 小节时长 ${(measureMs / 1000).toFixed(2)}s`;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('tempoLabel').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('tempoLabel').innerHTML=__h0;
 
   // 统计概览
   const __h1=`
     <div class="stat-card"><div class="val">${bpm}</div><div class="lbl">BPM</div></div>
     <div class="stat-card"><div class="val">${qMs.toFixed(1)}</div><div class="lbl">四分音符(ms)</div></div>
     <div class="stat-card"><div class="val">${(measureMs/1000).toFixed(2)}s</div><div class="lbl">小节时长</div></div>
-    <div class="stat-card"><div class="val">${beatsPerMeasure}</div><div class="lbl">每小节拍数</div></div>
+    <div class="stat-card"><div class="val">${beatsPerMeasure}</div><div class="lbl">${unit === 8 ? '每小节组数' : '每小节拍数'}</div></div>
   `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('statGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('statGrid').innerHTML=__h1;
 
   renderTable();
@@ -703,62 +748,58 @@ function renderVisualization() {
   const div = document.getElementById('vizDivision').value;
   const { beats, unit, text } = parseTimeSig();
   const qMs = getQuarterMs();
-  const measureMs = getMeasureMs();
-  const beatsPerMeasure = getBeatsPerMeasure();
-
-  // 计算每拍细分数和每小节总细分数
-  let subdivisionsPerBeat, totalSubs;
-  const colorBase = [255, 107, 53]; // primary
-  const colorEnd = [124, 58, 237];   // secondary
-
-  switch (div) {
-    case 'whole':
-      subdivisionsPerBeat = 0.25; totalSubs = Math.round(beatsPerMeasure * 0.25); break;
-    case 'half':
-      subdivisionsPerBeat = 0.5; totalSubs = Math.round(beatsPerMeasure * 0.5); break;
-    case 'quarter':
-      subdivisionsPerBeat = 1; totalSubs = Math.round(beatsPerMeasure); break;
-    case 'eighth':
-      subdivisionsPerBeat = 2; totalSubs = Math.round(beatsPerMeasure * 2); break;
-    case 'sixteenth':
-      subdivisionsPerBeat = 4; totalSubs = Math.round(beatsPerMeasure * 4); break;
-    case 'triplet-quarter':
-      subdivisionsPerBeat = 3; totalSubs = Math.round(beatsPerMeasure * 3); break;
-    case 'triplet-eighth':
-      subdivisionsPerBeat = 6; totalSubs = Math.round(beatsPerMeasure * 6); break;
-    case 'triplet-sixteenth':
-      subdivisionsPerBeat = 12; totalSubs = Math.round(beatsPerMeasure * 12); break;
-    default:
-      subdivisionsPerBeat = 1; totalSubs = beatsPerMeasure;
+  if (!isFinite(qMs) || qMs <= 0) {
+    document.getElementById('vizContainer').innerHTML = '<div class="tip-box tip-warn">请先输入有效 BPM。</div>';
+    return;
   }
+  const measureMs = getMeasureMs();
+  const eighthMs = qMs / 2;
+  const groups = getMeterGroups();
 
-  // 限制最大显示数量
-  if (totalSubs > 96) {
-    const __h3='<div class="tip-box tip-warn">该细分精度下小节包含 ' + totalSubs + ' 个格子，数量过多无法显示。请选择更大的音符类型。</div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('vizContainer').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('vizContainer').innerHTML=__h3;
+  const DIV_MS = {
+    whole: qMs * 4, half: qMs * 2, quarter: qMs, eighth: qMs / 2,
+    sixteenth: qMs / 4, 'triplet-quarter': qMs * 2 / 3,
+    'triplet-eighth': qMs / 3, 'triplet-sixteenth': qMs / 6
+  };
+  const cellNoteMs = DIV_MS[div] || qMs;
+  const irregular8 = unit === 8 && beats === 7;
+  let cells = irregular8 ? beats : Math.round(measureMs / cellNoteMs);
+  if (!isFinite(cells) || cells < 1) cells = 1;
+  if (cells > 96) {
+    document.getElementById('vizContainer').innerHTML = '<div class="tip-box tip-warn">该细分精度下小节包含 ' + cells + ' 个格子，数量过多无法显示。请选择更大的音符类型。</div>';
     return;
   }
 
-  let html = '';
-  for (let beat = 0; beat < beatsPerMeasure; beat++) {
-    html += '<div style="flex:1;min-width:40px;">';
-    html += '<div class="viz-beat">';
-    for (let sub = 0; sub < subdivisionsPerBeat; sub++) {
-      const globalIdx = beat * subdivisionsPerBeat + sub;
-      const ratio = totalSubs > 1 ? globalIdx / (totalSubs - 1) : 0;
-      const r = Math.round(colorBase[0] + (colorEnd[0] - colorBase[0]) * ratio);
-      const g = Math.round(colorBase[1] + (colorEnd[1] - colorBase[1]) * ratio);
-      const b = Math.round(colorBase[2] + (colorEnd[2] - colorBase[2]) * ratio);
-      const bgColor = `rgb(${r},${g},${b})`;
-      const subMs = measureMs / totalSubs;
-      html += `<div class="viz-cell" style="background:${bgColor};" data-ms="${subMs.toFixed(2)}" onclick="playClick(this)" title="${subMs.toFixed(1)}ms"></div>`;
-    }
-    html += '</div>';
-    html += `<div class="viz-beat-label">拍${beat + 1}</div>`;
-    html += '</div>';
-  }
+  const cellMs = irregular8 ? eighthMs : measureMs / cells;
+  const groupUnitMs = unit === 8 ? eighthMs : qMs;
+  let cumulative = 0;
+  const boundaryIdx = new Set([0]);
+  groups.forEach((g) => { cumulative += g; boundaryIdx.add(Math.min(cells - 1, Math.round(cumulative * groupUnitMs / cellMs))); });
 
-  const __h4=`<div class="viz-bar" id="vizBar">${html}</div>` +
-    `<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">共 ${totalSubs} 个细分 | 每格 ${(measureMs / totalSubs).toFixed(2)}ms</div>`;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('vizContainer').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('vizContainer').innerHTML=__h4;
+  const colorBase = [255, 107, 53], colorEnd = [124, 58, 237];
+  let cellsHtml = '', labelsHtml = '';
+  for (let i = 0; i < cells; i++) {
+    const ratio = cells > 1 ? i / (cells - 1) : 0;
+    const r = Math.round(colorBase[0] + (colorEnd[0] - colorBase[0]) * ratio);
+    const g = Math.round(colorBase[1] + (colorEnd[1] - colorBase[1]) * ratio);
+    const b = Math.round(colorBase[2] + (colorEnd[2] - colorBase[2]) * ratio);
+    const sep = boundaryIdx.has(i) && i > 0 ? 'border-left:3px solid var(--card-bg,#fff);' : '';
+    cellsHtml += `<div class="viz-cell" style="background:rgb(${r},${g},${b});${sep}" data-ms="${cellMs.toFixed(2)}" onclick="playClick(this)" title="${cellMs.toFixed(1)}ms"></div>`;
+  }
+  if (cells < groups.length) {
+    labelsHtml = `<span style="flex:1;text-align:center;">整小节（${beats}${unit === 8 ? '八分' : '拍'}）</span>`;
+  } else if (unit === 4) {
+    for (let i = 0; i < groups.length; i++) labelsHtml += `<span style="flex:1;text-align:center;">拍${i + 1}</span>`;
+  } else {
+    for (let i = 0; i < groups.length; i++) labelsHtml += `<span style="flex:${groups[i]};text-align:center;">组${i + 1}（${groups[i]}八分）</span>`;
+  }
+  const note = unit === 8
+    ? `拍号 ${text} 按 ${groups.join('+')} 分组，红/紫渐变每格 ${cellMs.toFixed(2)}ms${irregular8 ? '（7/8 固定以八分音符为格）' : ''}`
+    : `拍号 ${text}，每格 ${cellMs.toFixed(2)}ms`;
+  document.getElementById('vizContainer').innerHTML =
+    `<div class="viz-bar" id="vizBar">${cellsHtml}</div>` +
+    `<div class="viz-beat-labels" style="display:flex;gap:2px;padding:0 12px;margin-top:6px;font-size:11px;color:var(--text-muted);">${labelsHtml}</div>` +
+    `<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">共 ${cells} 个细分格子 · ${note}</div>`;
 }
 
 /* ========== 节拍器 ========== */
@@ -846,53 +887,75 @@ function toggleMetronome() {
   }
 }
 
-function startMetronome() {
-  const bpm = parseInt(document.getElementById('metroBpm').value) || 120;
+function metroSettings() {
+  const bpm = readBpm('metroBpm', 20, 300);
+  if (bpm == null) return null;
   const metroType = METRO_TYPES.find(m => m.key === selectedNoteType);
-  if (!metroType) return;
+  if (!metroType) return null;
+  const { beats, unit, text } = parseTimeSig();
+  const groups = getMeterGroups();
+  const qMs = 60000 / bpm;
+  const measureMs = unit === 8 ? beats * (qMs / 2) : beats * qMs;
+  const baseInterval = qMs / metroType.perBeat;
+  const totalClicks = Math.max(1, Math.round(measureMs / baseInterval));
+  const interval = measureMs / totalClicks;
+  const unitMs = unit === 8 ? qMs / 2 : qMs;
+  const boundaries = [];
+  let cum = 0;
+  groups.forEach(g => { boundaries.push(cum * unitMs); cum += g; });
+  return { bpm, metroType, unit, text, qMs, measureMs, totalClicks, interval, boundaries, sigKey: text + '|' + groups.join('+') + '|' + metroType.key };
+}
 
-  const { beats, unit } = parseTimeSig();
-  const beatsPerMeasure = getBeatsPerMeasure();
-  const accVol = parseInt(document.getElementById('metroAccVol').value) / 100;
-  const beatVol = parseInt(document.getElementById('metroBeatVol').value) / 100;
+window.__bsMetroInfo = function() {
+  const st = metroSettings();
+  if (!st) return 'INVALID';
+  return st.bpm + '|' + st.totalClicks + '|' + st.interval.toFixed(2) + '|' + st.boundaries.map(b => b.toFixed(1)).join(',');
+};
 
-  // 每个细分的间隔(ms)
-  const subdivisionInterval = 60000 / bpm / metroType.perBeat;
-  // 每小节总细分数
-  const subsPerMeasure = beatsPerMeasure * metroType.perBeat;
-
+function startMetronome() {
+  const st = metroSettings();
+  if (!st) {
+    if (window.ToolBox && ToolBox.showToast) ToolBox.showToast('节拍器 BPM 需在 20–300 之间', 'warning');
+    return;
+  }
   isPlaying = true;
   metroBeatIndex = 0;
+  metroStartAt = performance.now();
+  metroNextAt = metroStartAt;
+  metroSigKey = st.sigKey;
   const btn = document.getElementById('metroBtn');
   btn.textContent = '⏸';
   btn.classList.add('playing');
-
-  // 立即播放第一拍
-  scheduleClick(metroBeatIndex, subsPerMeasure, accVol, beatVol, subdivisionInterval);
-  metroBeatIndex++;
-
-  metroTimer = setInterval(() => {
-    scheduleClick(metroBeatIndex, subsPerMeasure, accVol, beatVol, subdivisionInterval);
-    metroBeatIndex = (metroBeatIndex + 1) % subsPerMeasure;
-  }, subdivisionInterval);
+  metroTick();
 }
 
-function scheduleClick(idx, subsPerMeasure, accVol, beatVol, subdivisionInterval) {
-  const metroType = METRO_TYPES.find(m => m.key === selectedNoteType);
-  const isAccent = idx % metroType.perBeat === 0;
-  const beatDuration = subdivisionInterval;
-
-  if (isAccent) {
-    playAccentBeep(Math.min(beatDuration * 0.3, 100), accVol);
-  } else {
-    playBeep(Math.min(beatDuration * 0.3, 80), beatVol);
+function metroTick() {
+  if (!isPlaying) return;
+  const st = metroSettings();
+  if (!st) { stopMetronome(); return; }
+  if (st.sigKey !== metroSigKey) {
+    metroSigKey = st.sigKey;
+    metroStartAt = performance.now();
+    metroNextAt = metroStartAt;
+    metroBeatIndex = 0;
   }
+  const now = performance.now();
+  if (now - metroNextAt > st.interval * 2) metroNextAt = now;
+  const pos = ((metroNextAt - metroStartAt) % st.measureMs + st.measureMs) % st.measureMs;
+  const isAccent = st.boundaries.some(b => Math.abs(pos - b) < st.interval / 2) || metroBeatIndex % st.totalClicks === 0;
+  const accVol = parseFloat(document.getElementById('metroAccVol').value) / 100;
+  const beatVol = parseFloat(document.getElementById('metroBeatVol').value) / 100;
+  if (isAccent) playAccentBeep(Math.min(st.interval * 0.3, 100), isFinite(accVol) ? accVol : 0.8);
+  else playBeep(Math.min(st.interval * 0.3, 80), isFinite(beatVol) ? beatVol : 0.5);
+  metroBeatIndex = (metroBeatIndex + 1) % st.totalClicks;
+  metroNextAt += st.interval;
+  metroTimer = setTimeout(metroTick, Math.max(0, metroNextAt - performance.now()));
 }
 
 function stopMetronome() {
   isPlaying = false;
   if (metroTimer) {
-    clearInterval(metroTimer);
+    clearTimeout(metroTimer);
     metroTimer = null;
   }
   const btn = document.getElementById('metroBtn');
@@ -902,8 +965,12 @@ function stopMetronome() {
 
 /* ========== BPM 对比 ========== */
 function compareBPM() {
-  const a = parseFloat(document.getElementById('bpmA').value) || 100;
-  const b = parseFloat(document.getElementById('bpmB').value) || 140;
+  const a = readBpm('bpmA', 1, 999);
+  const b = readBpm('bpmB', 1, 999);
+  if (a == null || b == null) {
+    document.getElementById('compareContainer').innerHTML = '<div class="tip-box tip-warn">BPM A 与 BPM B 都需填写 1–999 之间的有效数字。</div>';
+    return;
+  }
   const qMsA = 60000 / a;
   const qMsB = 60000 / b;
 
@@ -957,7 +1024,8 @@ function switchTab(name) {
 
 /* ========== 导出文本 ========== */
 function generateTextReport() {
-  const bpm = parseFloat(document.getElementById('bpm').value) || 120;
+  const bpm = readBpm('bpm', 1, 999);
+  if (bpm == null) return 'BPM 无效：请输入 1–999 之间的数字。';
   const { text } = parseTimeSig();
   const qMs = getQuarterMs();
   const measureMs = getMeasureMs();
@@ -1002,6 +1070,7 @@ function bsExportCsv(){
   if(typeof TBKit==='undefined'){return;}
   var en=TBKit.util.isEn();
   var qMs=getQuarterMs();
+  if(!isFinite(qMs)||qMs<=0){if(TBKit.util.toast)TBKit.util.toast('请先输入有效 BPM');return;}
   var measureMs=getMeasureMs();
   var ENNAME={whole:'Whole Note',half:'Half Note',quarter:'Quarter Note',eighth:'Eighth Note',sixteenth:'Sixteenth Note',thirtysecond:'Thirty-second Note'};
   var tbody=document.querySelector('#bsHidden tbody'); if(!tbody){return;}
