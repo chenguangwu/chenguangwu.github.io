@@ -2921,6 +2921,21 @@ const CASES = [
     ref: "质量由 1 改为 0：旧版曲线生成提前 return，旧曲线残留；现清空图表容器并提示。",
   },
 
+  {
+    slug: "science/matrix-calculator",
+    inputs: {},
+    clicks: ["var a=fmt(0.001234567),b=fmt(999999.9999),c=fmt(1e-4);var ok=a==='0.001234567'&&b==='999999.9999'&&c==='1.000000e-4';document.getElementById('__tbProbe').textContent='MATFMT '+(ok?'OK':'BAD '+a+' / '+b+' / '+c);"],
+    expect: ["MATFMT OK"],
+    ref: "普通量级数值显示精度：旧版 round 到 1e-10 后调用无参 toLocaleString，默认最多 3 位小数 ⇒ 0.001234567 显示成 0.001、999999.9999 也丢尾部精度。现按 10 位有效数字取最短十进制：0.001234567 / 999999.9999；小于 1e-3 仍走 6 位科学计数 1.000000e-4。",
+  },
+  {
+    slug: "science/physics-calculator",
+    inputs: {},
+    clicks: ["var a=fmt(0.001234567),b=fmt(999999.9999),c=fmt(1e-4);var ok=a==='0.001234567'&&b==='999999.9999'&&c==='1.000000e-4';document.getElementById('__tbProbe').textContent='PHYFMT '+(ok?'OK':'BAD '+a+' / '+b+' / '+c);"],
+    expect: ["PHYFMT OK"],
+    ref: "物理计算结果同口径：0.001234567 保留 10 位有效数字，不再被 toLocaleString 默认 3 位小数压成 0.001；999999.9999 不丢尾数；1e-4 仍用科学计数。",
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
