@@ -445,10 +445,15 @@ function syncTimingOptions(){
 }
 
 function calc(){
-  var pv = getVal('pv');
-  var downPct = getVal('downPct');
-  var annualRate = getVal('rate');
-  var n = Math.min(Math.max(1, Math.floor(getVal('months'))), 12000);
+  var pvRaw = String(document.getElementById('pv').value == null ? '' : document.getElementById('pv').value).trim();
+  var downRaw = String(document.getElementById('downPct').value == null ? '' : document.getElementById('downPct').value).trim();
+  var rateRaw = String(document.getElementById('rate').value == null ? '' : document.getElementById('rate').value).trim();
+  var monthsRaw = String(document.getElementById('months').value == null ? '' : document.getElementById('months').value).trim();
+  var pv = parseFloat(pvRaw);
+  var downPct = parseFloat(downRaw);
+  var annualRate = parseFloat(rateRaw);
+  // 期数不取整、不夹取：空值/0/负数/小数/超范围都必须显式拒绝，不能悄悄改成 1 期或 12000 期。
+  var n = Number(monthsRaw);
   var fv = getVal('fv');
   var type = document.getElementById('type').value;
   var timing = document.getElementById('timing').value;
@@ -459,13 +464,17 @@ function calc(){
   var r = annualRate / 100 / 12;
 
   var __err = '';
-  if(!isFinite(pv) || pv <= 0) __err = '租赁物价值必须大于 0。';
-  else if(downPct < 0 || downPct > 100) __err = '首付比例须在 0–100% 之间。';
+  if(pvRaw === '') __err = '租赁物价值尚未填写；如确为 0 请明确输入 0（但价值须大于 0 才能计算）。';
+  else if(!isFinite(pv) || pv <= 0) __err = '租赁物价值必须大于 0。';
+  else if(downRaw === '') __err = '首付比例尚未填写；无首付请明确输入 0。';
+  else if(!isFinite(downPct) || downPct < 0 || downPct > 100) __err = '首付比例须在 0–100% 之间。';
+  else if(rateRaw === '') __err = '年利率尚未填写；如确为 0% 请明确输入 0。';
   else if(!isFinite(annualRate) || annualRate < 0 || annualRate > 100) __err = '年利率须在 0–100% 之间（负值或极端值会产生无经济意义的幂运算）。';
+  else if(monthsRaw === '') __err = '租期尚未填写；请输入 1–360 的整数月。';
+  else if(!isFinite(n) || !Number.isInteger(n) || n < 1 || n > 360) __err = '租期须为 1–360 的整数月（不接受小数、0 或负数）。';
   else if(fee < 0) __err = '手续费不能为负。';
   else if(fv < 0) __err = '残值不能为负。';
   else if(fv >= principal) __err = '残值须小于融资本金（否则融资额无效）。';
-  else if(!isFinite(n) || n < 1) __err = '期数须在 1–12000 之间。';
   if(timing==='begin' && type!=='equal') __err='期初还款仅支持等额本息；等额本金与先息后本请选择期末还款。';
   if(__err){
     schedule = [];

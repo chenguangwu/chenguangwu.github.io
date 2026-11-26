@@ -250,10 +250,25 @@ function analyze(plan,actual,th){
   return {dv:dv,rate:rate,cpi:cpi,lvl:lvl,tip:tip};
 }
 function fmt(v,d){return (v===null||!isFinite(v))?"—":v.toFixed(d==null?2:d);}
+function __anParseFull(s){
+  var raw=String(s==null?'':s).trim();
+  if(raw==='') return NaN;
+  raw=raw.replace(/,/g,'');
+  // 必须整串都是数字：parseFloat('100元abc') 会接受 100，掩盖录入错误。
+  if(!/^-?\d+(?:\.\d+)?$/.test(raw)) return NaN;
+  var v=Number(raw);
+  return isFinite(v)?v:NaN;
+}
 function calc(){
-  var plan=parseFloat(document.getElementById("plan").value),actual=parseFloat(document.getElementById("actual").value);
+  var planRaw=String(document.getElementById("plan").value==null?'':document.getElementById("plan").value).trim();
+  var actualRaw=String(document.getElementById("actual").value==null?'':document.getElementById("actual").value).trim();
+  var plan=__anParseFull(planRaw),actual=__anParseFull(actualRaw);
   var el=document.getElementById("res");
-  if(!isFinite(plan)||!isFinite(actual)||plan<=0){el.innerHTML='<p>请输入有效的计划（&gt;0）与实际投资</p>';return;}
+  if(planRaw===''){el.innerHTML='<p>请填写计划投资（须大于 0）。</p>';return;}
+  if(!isFinite(plan)||plan<=0){el.innerHTML='<p>计划投资须为大于 0 的有效数字。</p>';return;}
+  if(actualRaw===''){el.innerHTML='<p>请填写实际投资；实际支出为 0 请明确输入 0。</p>';return;}
+  if(!isFinite(actual)){el.innerHTML='<p>实际投资须为有效数字（不支持「100元」或混合字符）。</p>';return;}
+  if(actual<0){el.innerHTML='<p style="color:var(--danger)">⚠ 实际投资不能为负数。若为退款冲减，请单独记录冲减金额，不要直接填负支出。</p>';return;}
   var th=__anTh(); if(!th.ok){el.innerHTML='<p style="color:var(--danger)">⚠ '+th.msg+'</p>';return;}
   var r=analyze(plan,actual,th);
   var color=r.rate>th.alert?"var(--danger)":(r.rate>th.warn?"#d97706":(r.rate<-th.warn?"#16a34a":"var(--text)"));
@@ -269,7 +284,7 @@ function calc(){
   var totalPlan=plan+nplan, totalActual=actual+nact, tr=analyze(totalPlan,totalActual,th);
   sr.innerHTML='<p>后续情景合计：计划 '+fmt(totalPlan)+' 元，实际 '+fmt(totalActual)+' 元；合计偏差 '+fmt(tr.dv)+' 元（'+fmt(tr.rate)+'%），判定：<strong>'+tr.lvl+'</strong>。</p><p style="font-size:12px;color:var(--text-muted);">用于判断后续预算能否吸收当前偏差；后续实际为 0 时请明确填写 0。</p>';
 }
-function calcBatch(){var lines=document.getElementById("items").value.split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);var rows="";var skipped=0;var th=__anTh();lines.forEach(function(ln){var p=ln.split(/[,\t]+/);var name=(p[0]||"").trim();var pl=parseFloat(p[1]),ac=parseFloat(p[2]);if(!name||!isFinite(pl)||!isFinite(ac)||pl<=0){skipped++;return;}var r=analyze(pl,ac,th);var color=r.rate>(th.ok?th.alert:10)?"var(--danger)":(r.rate>(th.ok?th.warn:5)?"#d97706":(r.rate<-(th.ok?th.warn:5)?"#16a34a":"var(--text)"));rows+='<tr><td>'+name.replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];})+'</td><td>'+fmt(pl)+'</td><td>'+fmt(ac)+'</td><td style="color:'+color+';">'+fmt(r.dv)+'</td><td style="color:'+color+';">'+fmt(r.rate)+'%</td><td>'+r.lvl+'</td></tr>';});var el=document.getElementById("batchRes");const __g3=(rows?('<table class="ref-table"><thead><tr><th>项目</th><th>计划</th><th>实际</th><th>偏差额</th><th>偏差率</th><th>判定</th></tr></thead><tbody>'+rows+'</tbody></table>'):'<p>请输入每行「项目,计划,实际」</p>')+(skipped?('<p style="color:var(--danger);">已跳过 '+skipped+' 行：计划投资需大于 0 或数据无效</p>'):'');el.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
+function calcBatch(){var lines=document.getElementById("items").value.split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);var rows="";var errs=[];var th=__anTh();lines.forEach(function(ln,idx){var p=ln.split(/[,\t]+/);var name=(p[0]||"").trim();var pl=__anParseFull(p[1]),ac=__anParseFull(p[2]);if(!name){errs.push('第 '+(idx+1)+' 行：缺少项目名称');return;}if(!isFinite(pl)||pl<=0){errs.push('第 '+(idx+1)+' 行「'+name+'」：计划投资须为大于 0 的完整数字');return;}if(!isFinite(ac)){errs.push('第 '+(idx+1)+' 行「'+name+'」：实际投资不是完整数字');return;}if(ac<0){errs.push('第 '+(idx+1)+' 行「'+name+'」：实际投资为负；退款冲减请单独记录');return;}var r=analyze(pl,ac,th);var color=r.rate>(th.ok?th.alert:10)?"var(--danger)":(r.rate>(th.ok?th.warn:5)?"#d97706":(r.rate<-(th.ok?th.warn:5)?"#16a34a":"var(--text)"));rows+='<tr><td>'+name.replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];})+'</td><td>'+fmt(pl)+'</td><td>'+fmt(ac)+'</td><td style="color:'+color+';">'+fmt(r.dv)+'</td><td style="color:'+color+';">'+fmt(r.rate)+'%</td><td>'+r.lvl+'</td></tr>';});var el=document.getElementById("batchRes");var errHtml=errs.length?('<p style="color:var(--danger);">已跳过 '+errs.length+' 行：</p><ul style="font-size:12px;color:var(--danger);margin:4px 0 0 18px;">'+errs.map(function(e){return '<li>'+e.replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];})+'</li>';}).join('')+'</ul>'):'';const __g3=(rows?('<table class="ref-table"><thead><tr><th>项目</th><th>计划</th><th>实际</th><th>偏差额</th><th>偏差率</th><th>判定</th></tr></thead><tbody>'+rows+'</tbody></table>'):'<p>请输入每行「项目,计划,实际」</p>')+errHtml;el.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
 function copyRes(){ToolBox.copyText((document.getElementById("res").innerText+"\n"+document.getElementById("batchRes").innerText).trim());}
 calc();calcBatch();
 </script>
