@@ -573,23 +573,49 @@ function applyQuick(idx){
   }
 }
 
-function saveHistory(type){
-  const item = { id: Date.now(), ts: Date.now(), type };
+function buildHistorySnapshot(type){
+  const item = { type };
   if(type === 'isWhat'){
     item.x = numVal('isWhatX'); item.y = numVal('isWhatY');
+    if(!isFinite(item.x) || !isFinite(item.y) || item.y === 0) return null;
+    const r = (item.x / item.y) * 100;
+    if(!isFinite(r)) return null;
+    item.resultLabel = say(`${fmt(item.x)} 是 ${fmt(item.y)} 的 ${fmt(r)}%`, `${fmt(item.x)} is ${fmt(r)}% of ${fmt(item.y)}`);
   } else if(type === 'ofWhat'){
     item.pct = numVal('ofWhatPct'); item.y = numVal('ofWhatY');
-  } else if(type === 'increase'){
-    item.x = numVal('incX'); item.pct = numVal('incPct');
-  } else if(type === 'decrease'){
-    item.x = numVal('decX'); item.pct = numVal('decPct');
+    if(!isFinite(item.pct) || !isFinite(item.y)) return null;
+    const r = (item.pct / 100) * item.y;
+    if(!isFinite(r)) return null;
+    item.resultLabel = `${fmt(item.pct)}% × ${fmt(item.y)} = ${fmt(r)}`;
+  } else if(type === 'increase' || type === 'decrease'){
+    const xId = type === 'increase' ? 'incX' : 'decX';
+    const pId = type === 'increase' ? 'incPct' : 'decPct';
+    item.x = numVal(xId); item.pct = numVal(pId);
+    if(!isFinite(item.x) || !isFinite(item.pct)) return null;
+    const r = item.x * (1 + (type === 'increase' ? 1 : -1) * item.pct / 100);
+    if(!isFinite(r)) return null;
+    item.resultLabel = type === 'increase'
+      ? say(`${fmt(item.x)} 增加 ${fmt(item.pct)}% = ${fmt(r)}`, `${fmt(item.x)} increased by ${fmt(item.pct)}% = ${fmt(r)}`)
+      : say(`${fmt(item.x)} 减少 ${fmt(item.pct)}% = ${fmt(r)}`, `${fmt(item.x)} decreased by ${fmt(item.pct)}% = ${fmt(r)}`);
   } else if(type === 'change'){
     item.oldVal = numVal('chgOld'); item.newVal = numVal('chgNew');
+    if(!isFinite(item.oldVal) || !isFinite(item.newVal) || item.oldVal === 0) return null;
+    const r = ((item.newVal - item.oldVal) / item.oldVal) * 100;
+    if(!isFinite(r)) return null;
+    item.resultLabel = say(`从 ${fmt(item.oldVal)} 到 ${fmt(item.newVal)}，${r >= 0 ? '增加' : '减少'} ${fmt(Math.abs(r))}%`, `From ${fmt(item.oldVal)} to ${fmt(item.newVal)}, ${r >= 0 ? 'increased' : 'decreased'} by ${fmt(Math.abs(r))}%`);
+  } else {
+    return null;
   }
-  if(Object.keys(item).some(k => k !== 'id' && k !== 'ts' && k !== 'type' && !isFinite(item[k]))){
-    ToolBox.showToast(i18nText());
+  return item;
+}
+
+function saveHistory(type){
+  const item = buildHistorySnapshot(type);
+  if(!item){
+    ToolBox.showToast(say('请先输入有效数值；分母/旧值不能为 0，无法计算时不会保存历史。', 'Enter valid numbers first; a zero denominator/old value cannot be saved as a result.'), 'error');
     return;
   }
+  item.id = Date.now(); item.ts = Date.now();
   history.unshift(item);
   if(history.length > 50) history = history.slice(0, 50);
   saveHistoryStorage();
@@ -614,6 +640,7 @@ function legacyItem(label){
 
 function historyLabel(h){
   if(!h) return '';
+  if(h.resultLabel) return h.resultLabel;
   if(!h.type){
     const parsed=legacyItem(h.label);
     if(parsed) return historyLabel(parsed);
