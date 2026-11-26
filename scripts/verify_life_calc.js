@@ -4934,6 +4934,50 @@ const CASES = [
     expect: ["WCA OK"],
     ref: "第882批：纽约 2026-11-01 01:30 在秋季回拨出现两次。现按较早（EDT）一次换算东京 14:30，并提示较晚一次对应 15:30；旧实现只取单一偏移且常取错。"
   }
+,
+{
+  slug: "life/angle-converter",
+  inputs: { inputVal: "0.06", fromUnit: "deg" },
+  expect: ["约为参照的 1/100（即参照约为输入的 100 倍）"],
+  ref: "第962批：0.06° 对 6° 应表达为输入的 1/100、参照是输入的 100 倍；旧码统一写「约为其 100 倍」把方向说反。默认输入不含该串 ⇒ 强判别。"
+},
+{
+  slug: "life/angle-converter",
+  inputs: { inputVal: "-0.06", fromUnit: "deg" },
+  expect: ["负号表示与参照方向相反"],
+  ref: "第962批：负角度按量值比较并明确说明符号表示反向；旧码只在近似命中时附带方向，数量级比较时缺失。默认正输入不含该串 ⇒ 强判别。"
+},
+{
+  slug: "life/power-converter",
+  inputs: { inputVal: "0.5", fromUnit: "W" },
+  expect: ["约为参照的 1/100（即参照约为输入的 100 倍）"],
+  ref: "第962批：0.5 W 对最近参照 50 W 应是输入的 1/100，参照为输入的 100 倍；旧码方向写反。默认输入不含该串 ⇒ 强判别。"
+},
+{
+  slug: "life/power-converter",
+  inputs: { inputVal: "0", fromUnit: "W" },
+  expect: ["0 W 表示没有功率，不匹配实物参照。"],
+  ref: "第962批：零功率不再匹配最近参照，明确表示没有功率。默认输入合法非零不含 ⇒ 强判别。"
+},
+{
+  slug: "life/data-rate-converter",
+  inputs: { inputVal: "560", fromUnit: "bps" },
+  expect: ["约为参照的 1/100（即参照约为输入的 100 倍）"],
+  ref: "第962批：560 bps 对 56 kbps 应是输入的 1/100、参照为输入的 100 倍；旧码方向写反。默认 100 kbps 不含该串 ⇒ 强判别。"
+}
+,
+{
+  slug: "life/weight-converter",
+  inputs: { inputVal: "1e308", fromUnit: "t" },
+  expect: ["输入的数值超出可表示范围，请减小数值或改用更小的源单位。"],
+  ref: "第962批：1e308 吨换算为克即溢出为 Infinity；现明确提示范围并清空参照，不再显示 -- 仍给结论。默认输入不含该提示 ⇒ 强判别。"
+},
+{
+  slug: "life/length-converter",
+  inputs: { inputVal: "1e308", fromUnit: "km" },
+  expect: ["输入的数值超出可表示范围，请减小数值或改用更小的源单位。"],
+  ref: "第962批：1e308 千米转纳米溢出；现按目标单位逐一检查有限性并明确提示。默认输入不含该提示 ⇒ 强判别。"
+}
 ];
 // ---------------------------------------------------------------- main
 async function main() {

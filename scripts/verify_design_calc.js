@@ -231,6 +231,21 @@ function copyFeedbackStaticChecks() {
   ];
 }
 
+function favoriteAndLayerChecks() {
+  const fav = ["glassmorphism-generator", "neomorphism-generator"].map((slug) => fs.readFileSync(path.join(__dirname, "..", "tools", "design", slug + ".html"), "utf8"));
+  const shadow = ["css-box-shadow-generator", "css-text-shadow"].map((slug) => fs.readFileSync(path.join(__dirname, "..", "tools", "design", slug + ".html"), "utf8"));
+  return [
+    { name: "拟态收藏写入失败不提示成功且保持原收藏", ok: fav.every((s) => /function saveFavorites\([\s\S]*?return false;/.test(s) && /if\(!saveFavorites\(favs\)\)\{ __favSaveFail\(\); return; \}/.test(s) && /toast\.fav_removed/.test(s)) },
+    { name: "阴影删除前层后活动索引随层身份回退", ok: shadow.every((s) => /const wasActive = i === activeLayer;/.test(s) && /else if\(i < activeLayer\) activeLayer -= 1;/.test(s)) },
+    { name: "布局生成器提供 CSS/HTML 复制按钮且 gap 不再静默钳到 80", ok: (() => {
+        const flex = fs.readFileSync(path.join(__dirname, "..", "tools", "design", "flexbox-generator.html"), "utf8");
+        const grid = fs.readFileSync(path.join(__dirname, "..", "tools", "design", "css-grid-generator.html"), "utf8");
+        return /copyFlexCss\(\)/.test(flex) && /ToolBox\.copyText\(__flexCss/.test(flex) && !/Math\.min\(80/.test(flex)
+          && /copyGridCss\(\)/.test(grid) && /copyGridHtml\(\)/.test(grid) && /ToolBox\.copyText\(__gridCss/.test(grid) && /ToolBox\.copyText\(__gridHtml/.test(grid) && !/Math\.min\(80/.test(grid);
+      })() },
+  ];
+}
+
 const CASES = [
   { slug: "design/contrast-checker", inputs: { fgHex: "F#FF", bgHex: "000000" },
     expect: ["颜色需为有效的 3 或 6 位 HEX 值"],
@@ -1652,9 +1667,9 @@ const CASES = [
       "containerW": "42"
     },
     "expect": [
-      "42\n42\nfr\n42\n列数需在 1-12 之间。"
+      "列数需在 1-12 之间。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cols\":\"42\",\"gap\":\"42\",\"containerW\":\"42\"}，输出区含「42\n42\n42\n列数需在 1-12 之间。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第961批：列数校验先于成功渲染，cols=42 只输出明确错误，不再把 42 列等脏统计一并显示；默认 3 列合法不含该错误 ⇒ 强判别。"
   },
   {
     "slug": "design/css-box-shadow-generator",
@@ -3071,8 +3086,20 @@ const CASES = [
 {
   slug: "design/css-grid-generator",
   inputs: { cols: "3", gap: "-10", containerW: "960" },
-  expect: ["gap: 0px;"],
-  ref: "D-N29：旧实现负 gap 原样拼出 gap: -10px 与负 padding；修复后 clamp 到 0..80 并回写 ⇒ gap: 0px。默认 gap=16 不含该串 ⇒ 强判别。",
+  expect: ["间距需为 0 或更大的数字，请检查输入。"],
+  ref: "第961批：负 gap 不再静默钳成 0 后继续生成，改为明确拒绝并保留用户输入；默认 gap=16 合法不含该错误 ⇒ 强判别。",
+},
+{
+  slug: "design/css-grid-generator",
+  inputs: { cols: "3", gap: "100", containerW: "960" },
+  expect: ["gap: 100px;"],
+  ref: "第961批：取消 80px 静默上限，100px 原样进入 CSS 与预览；默认 16 不含 ⇒ 强判别。",
+},
+{
+  slug: "design/css-grid-generator",
+  inputs: { cols: "3", gap: "", containerW: "960" },
+  expect: ["间距需为 0 或更大的数字，请检查输入。"],
+  ref: "第961批：空间距明确报错，不再按 0 静默生成；默认 16 合法不含该错误 ⇒ 强判别。",
 },
 {
   slug: "design/color-picker",
@@ -3104,8 +3131,20 @@ const CASES = [
 {
   slug: "design/flexbox-generator",
   inputs: { gap: "-10" },
-  expect: ["gap: 0px;"],
-  ref: "D-N29 同族：旧实现把负 gap 原样拼进 gap: -10px；修复后 clamp 到 0..80 并回写输入框 ⇒ gap: 0px。默认 gap=12 不含该串 ⇒ 强判别。",
+  expect: ["间距需为 0 或更大的数字，请检查输入。"],
+  ref: "第961批：负 gap 改为明确拒绝，不再静默钳成 0 并回写；默认 gap=12 合法不含该错误 ⇒ 强判别。",
+},
+{
+  slug: "design/flexbox-generator",
+  inputs: { gap: "100" },
+  expect: ["gap: 100px;"],
+  ref: "第961批：取消 80px 静默上限，100px 原样进入 CSS；默认 12 不含 ⇒ 强判别。",
+},
+{
+  slug: "design/flexbox-generator",
+  inputs: { gap: "" },
+  expect: ["间距需为 0 或更大的数字，请检查输入。"],
+  ref: "第961批：空间距明确报错，不再按 0 静默生成；默认 12 合法不含该错误 ⇒ 强判别。",
 },
 // ── 第315批：边界钳制与 XSS 转义强锁 ─────────────────────────────
 {
@@ -3775,7 +3814,7 @@ async function main() {
     }
   }
 
-  const stat = designRework648StaticChecks().concat(batch202StaticChecks(), metronomeStaticChecks(), asciiHistoryGuardChecks(), dotPatternEventBindingChecks(), copyFeedbackStaticChecks(), colorDeepDiveContrastFaqChecks(), fontPairingCjkStackChecks(), fontPreviewPlatformChecks());
+  const stat = designRework648StaticChecks().concat(batch202StaticChecks(), metronomeStaticChecks(), asciiHistoryGuardChecks(), dotPatternEventBindingChecks(), copyFeedbackStaticChecks(), favoriteAndLayerChecks(), colorDeepDiveContrastFaqChecks(), fontPairingCjkStackChecks(), fontPreviewPlatformChecks());
   const staticFails = stat.filter((s) => !s.ok);
   for (const s of staticFails) console.log("❌ [static] " + s.name);
 

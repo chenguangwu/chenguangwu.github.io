@@ -438,7 +438,7 @@ function getFavorites(){
 }
 
 function saveFavorites(favs){
-  try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch(e){}
+  try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); return !!(localStorage.getItem(FAV_KEY)); } catch(e){ return false; }
 }
 
 function getCurrentConfig(){
@@ -458,18 +458,16 @@ function isFav(){
   return getFavorites().some(f => JSON.stringify(f.config) === JSON.stringify(config));
 }
 
+function __favSaveFail(){
+  ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Could not save favorite: browser storage is unavailable or full.":"收藏保存失败：浏览器存储不可用或空间已满，当前参数仍可复制 CSS。"), 'error');
+}
 function toggleFavorite(){
-  let favs = getFavorites();
+  var favs = getFavorites();
   const config = getCurrentConfig();
   const idx = favs.findIndex(f => JSON.stringify(f.config) === JSON.stringify(config));
-  if(idx >= 0){
-    favs.splice(idx, 1);
-    ToolBox.showToast(i18nText());
-  } else {
-    favs.unshift({config, name: '我的玻璃'});
-    ToolBox.showToast(i18nText('toast.fav_added'));
-  }
-  saveFavorites(favs);
+  if(idx >= 0) favs.splice(idx, 1); else favs.unshift({config, name: '我的玻璃'});
+  if(!saveFavorites(favs)){ __favSaveFail(); return; }
+  ToolBox.showToast(i18nText(idx >= 0 ? 'toast.fav_removed' : 'toast.fav_added'));
   renderFavorites();
   updateFavBtn();
 }
@@ -550,13 +548,14 @@ function renderFavorites(){
 }
 
 function removeFav(i){
-  let favs = getFavorites();
+  var favs = getFavorites();
+  if(i < 0 || i >= favs.length) return;
   favs.splice(i, 1);
-  saveFavorites(favs);
+  if(!saveFavorites(favs)){ __favSaveFail(); return; }
   renderFavorites();
   buildPresetGrid();
   updateFavBtn();
-  ToolBox.showToast(i18nText());
+  ToolBox.showToast(i18nText('toast.fav_removed'));
 }
 
 function switchTab(tab){
