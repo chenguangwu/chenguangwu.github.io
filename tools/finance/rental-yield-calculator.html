@@ -197,6 +197,9 @@
         <div>
           <label id="rentLabel" for="rent">月租金 (元)</label>
           <input type="number" id="rent" value="5000" step="any" min="0" oninput="calc()" placeholder="如 5000">
+          <label for="vacancyMonths">全年空置月数（0–12）</label>
+          <input type="number" id="vacancyMonths" value="0" step="1" min="0" max="12" oninput="calc()" placeholder="如 1（全年满租填 0）">
+          <p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">空置期间不收租，但物业费等固定支出仍计入；空置月数直接减少年租金收入。</p>
         </div>
       </div>
 
@@ -429,6 +432,18 @@ function rawNum(id){
   return raw === '' ? NaN : parseFloat(raw);
 }
 
+function __rentalVacancy(){
+  var raw = String(document.getElementById('vacancyMonths').value || '').trim();
+  var v = Number(raw);
+  if(raw === '' || !Number.isFinite(v) || v < 0 || v > 12 || !Number.isInteger(v)){
+    throw new Error('空置月数须为 0–12 的整数；不空置请明确填 0。');
+  }
+  return v;
+}
+function __rentalAnnualRent(monthlyRent){
+  return monthlyRent * (12 - __rentalVacancy());
+}
+
 function calc(){
   var grid = document.getElementById('resultGrid');
   function fail(msg){
@@ -443,11 +458,14 @@ function calc(){
   var rentMode = document.getElementById('rentMode').value;
   var rent = rawNum('rent');
   if(!isFinite(rent) || rent < 0){ fail('请输入 ≥0 的租金。'); return; }
+  var vacancy;
+  try { vacancy = __rentalVacancy(); }
+  catch(e){ fail(e.message); return; }
 
   const __g0=rentMode === 'month' ? '月租金 (元)' : '年租金 (元)';document.getElementById('rentLabel').textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
 
   var monthlyRent = rentMode === 'month' ? rent : rent / 12;
-  var yearlyRent = monthlyRent * 12;
+  var yearlyRent = __rentalAnnualRent(monthlyRent);
 
   var feeInputs = ['fee','heat','decor','repair','agency','tax'];
   var feeNames = ['物业费','取暖费','装修折旧','维修基金','中介费','税费及其他'];
@@ -463,7 +481,7 @@ function calc(){
   var yearlyExpense = monthlyFee * 12 + heat + decor + repair + agency + tax;
   var monthlyExpense = yearlyExpense / 12;
   var netYearlyIncome = yearlyRent - yearlyExpense;
-  var netMonthlyIncome = monthlyRent - monthlyExpense;
+  var netMonthlyIncome = netYearlyIncome / 12;
 
   var grossYield = yearlyRent / price * 100;
   var netYield = netYearlyIncome / price * 100;
@@ -473,6 +491,8 @@ function calc(){
   var totalInterest = 0;
   var loanAmount = 0;
   var cashFlow = netMonthlyIncome;
+  var firstPayment = 0, lastPayment = 0, avgPayment = 0, paymentStep = 0;
+  var firstCashFlow = netMonthlyIncome, lastCashFlow = netMonthlyIncome;
 
   if(loanEnabled){
     var loanRatio = rawNum('loanRatio');
@@ -492,27 +512,38 @@ function calc(){
     if(months < 1){ fail('贷款年限按整月换算后不足 1 个月，请至少填写约 0.08 年（1 个月）。'); return; }
 
     if(loanAmount <= 0){
-      monthlyPayment = 0;
-      totalInterest = 0;
+      monthlyPayment = 0; totalInterest = 0;
+      firstPayment = lastPayment = avgPayment = paymentStep = 0;
     } else if(monthlyRate === 0){
       // 0% 利率：等额本息与等额本金月供相同，均为本金均摊、无利息
       monthlyPayment = loanAmount / months;
-      totalInterest = 0;
+      firstPayment = lastPayment = avgPayment = monthlyPayment;
+      paymentStep = 0; totalInterest = 0;
     } else if(loanType === 'equal'){
       monthlyPayment = loanAmount * monthlyRate * Math.pow(1 + monthlyRate, months) / (Math.pow(1 + monthlyRate, months) - 1);
+      firstPayment = lastPayment = avgPayment = monthlyPayment;
+      paymentStep = 0;
       totalInterest = monthlyPayment * months - loanAmount;
     } else {
-      monthlyPayment = loanAmount / months + loanAmount * monthlyRate;
+      // 等额本金：每月本金固定，利息随剩余本金递减 ⇒ 月供逐月下降。
+      var principalPart = loanAmount / months;
+      firstPayment = principalPart + loanAmount * monthlyRate;
+      lastPayment = principalPart + principalPart * monthlyRate;
+      paymentStep = loanAmount * monthlyRate / months;
+      avgPayment = (firstPayment + lastPayment) / 2;
+      monthlyPayment = firstPayment;
       totalInterest = (months + 1) * loanAmount * monthlyRate / 2;
     }
     cashFlow = netMonthlyIncome - monthlyPayment;
+    firstCashFlow = netMonthlyIncome - firstPayment;
+    lastCashFlow = netMonthlyIncome - lastPayment;
   }
 
   var yieldLevel = getYieldLevel(netYield);
   var yieldColor = yieldLevel.color;
 
   var html = '';
-  html += '<div class="result-item"><div class="label">年租金收入</div><div class="value">' + ToolBox.formatNumber(yearlyRent, 0) + '</div><div class="sub">' + ToolBox.formatNumber(monthlyRent, 0) + ' 元/月</div></div>';
+  html += '<div class="result-item"><div class="label">年租金收入</div><div class="value">' + ToolBox.formatNumber(yearlyRent, 0) + '</div><div class="sub">' + ToolBox.formatNumber(monthlyRent, 0) + ' 元/月 × ' + (12 - vacancy) + ' 个月（空置 ' + vacancy + ' 个月）</div></div>';
   html += '<div class="result-item"><div class="label">年总支出</div><div class="value" style="color:var(--danger);">' + ToolBox.formatNumber(yearlyExpense, 0) + '</div><div class="sub">' + ToolBox.formatNumber(monthlyExpense, 0) + ' 元/月</div></div>';
   html += '<div class="result-item"><div class="label">年净收入</div><div class="value" style="color:' + (netYearlyIncome >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + ToolBox.formatNumber(netYearlyIncome, 0) + '</div><div class="sub">' + ToolBox.formatNumber(netMonthlyIncome, 0) + ' 元/月</div></div>';
   html += '<div class="result-item"><div class="label">毛回报率</div><div class="value">' + grossYield.toFixed(2) + '%</div><div class="sub">年租金/总价</div></div>';
@@ -520,8 +551,22 @@ function calc(){
   html += '<div class="result-item"><div class="label">投资回收期</div><div class="value" style="font-size:18px;">' + (isFinite(paybackYears) ? paybackYears.toFixed(1) + ' 年' : '∞') + '</div><div class="sub">按净收入计算</div></div>';
 
   if(loanEnabled){
-    html += '<div class="result-item"><div class="label">月供</div><div class="value" style="font-size:18px;">' + ToolBox.formatNumber(monthlyPayment, 0) + '</div><div class="sub">贷款' + ToolBox.formatNumber(loanAmount/10000, 0) + '万</div></div>';
-    html += '<div class="result-item"><div class="label">月供后现金流</div><div class="value" style="color:' + (cashFlow >= 0 ? 'var(--success)' : 'var(--danger)') + ';font-size:18px;">' + ToolBox.formatNumber(cashFlow, 0) + '</div><div class="sub">元/月</div></div>';
+    var isPrincipal = loanType === 'principal' && loanAmount > 0 && monthlyRate > 0;
+    var payLabel = isPrincipal ? '首月月供' : (loanType === 'principal' ? '月供（等额本金 / 零利率）' : '月供（等额本息）');
+    var paySub = isPrincipal
+      ? '末月 ' + ToolBox.formatNumber(lastPayment, 0) + ' 元；月均 ' + ToolBox.formatNumber(avgPayment, 0) + ' 元；每月递减 ' + ToolBox.formatNumber(paymentStep, 0) + ' 元'
+      : '贷款 ' + ToolBox.formatNumber(loanAmount/10000, 0) + ' 万；各月相同';
+    html += '<div class="result-item"><div class="label">' + payLabel + '</div><div class="value" style="font-size:18px;">' + ToolBox.formatNumber(firstPayment, 0) + '</div><div class="sub">' + paySub + '</div></div>';
+    var cfLabel = isPrincipal ? '首月月供后现金流' : '月供后现金流';
+    var cfSub = isPrincipal
+      ? '末月 ' + ToolBox.formatNumber(lastCashFlow, 0) + ' 元；平均 ' + ToolBox.formatNumber(netMonthlyIncome - avgPayment, 0) + ' 元/月'
+      : '元/月';
+    html += '<div class="result-item"><div class="label">' + cfLabel + '</div><div class="value" style="color:' + (firstCashFlow >= 0 ? 'var(--success)' : 'var(--danger)') + ';font-size:18px;">' + ToolBox.formatNumber(firstCashFlow, 0) + '</div><div class="sub">' + cfSub + '</div></div>';
+    if(isPrincipal){
+      html += '<div class="tip-box tip-warn" style="grid-column:1/-1;font-size:13px;line-height:1.75;">等额本金按“固定本金 + 剩余本金利息”还款：首月最高、之后每月减少约 ' + ToolBox.formatNumber(paymentStep, 0) + ' 元，末月最低；因此“首月月供后现金流”也是全期最低，随后逐月改善。以上按租金与成本各月不变、利率不变、无提前还款计算。</div>';
+    }else{
+      html += '<div class="tip-box tip-warn" style="grid-column:1/-1;font-size:13px;line-height:1.75;">等额本息月供各月相同；假设租金与各项成本按月固定、利率不变、无提前还款。固定租金与固定成本的假设会掩盖空置期、涨租和一次性大修。</div>';
+    }
   }
 
   const __g1=html;document.getElementById('resultGrid').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
@@ -581,7 +626,7 @@ function renderHistory(){
   } else {
     history.forEach(function(h, i){
       var price = h.price * 10000;
-      var yearlyRent = h.rentMode === 'month' ? h.rent * 12 : h.rent;
+      var yearlyRent = h.rentMode === 'month' ? __rentalAnnualRent(h.rent) : h.rent;
       var yearlyExpense = (h.fee || 0) * 12 + (h.heat || 0) + (h.decor || 0) + (h.repair || 0) + (h.agency || 0) + (h.tax || 0);
       var netYield = price ? ((yearlyRent - yearlyExpense) / price * 100) : 0;
       var level = getYieldLevel(netYield);
@@ -638,7 +683,7 @@ function copyResult(){
   var rentMode = document.getElementById('rentMode').value;
   var rent = parseFloat(document.getElementById('rent').value) || 0;
   var monthlyRent = rentMode === 'month' ? rent : rent / 12;
-  var yearlyRent = monthlyRent * 12;
+  var yearlyRent = __rentalAnnualRent(monthlyRent);
   var yearlyExpense = (parseFloat(document.getElementById('fee').value) || 0) * 12
     + (parseFloat(document.getElementById('heat').value) || 0)
     + (parseFloat(document.getElementById('decor').value) || 0)
@@ -653,6 +698,7 @@ function copyResult(){
   var text = '租金回报率计算结果\n';
   text += '房产总价：' + ToolBox.formatNumber(price/10000, 0) + ' 万元\n';
   text += '月租金：' + ToolBox.formatNumber(monthlyRent, 0) + ' 元\n';
+  text += '全年空置：' + __rentalVacancy() + ' 个月\n';
   text += '年租金收入：' + ToolBox.formatNumber(yearlyRent, 0) + ' 元\n';
   text += '年总支出：' + ToolBox.formatNumber(yearlyExpense, 0) + ' 元\n';
   text += '年净收入：' + ToolBox.formatNumber(netYearlyIncome, 0) + ' 元\n';
@@ -738,7 +784,7 @@ function renderCompare(){
     compareData.forEach(function(d, i){
       var price = d.price * 10000;
       var monthlyRent = d.rentMode === 'year' ? d.rent / 12 : d.rent;
-      var yearlyRent = monthlyRent * 12;
+      var yearlyRent = __rentalAnnualRent(monthlyRent);
       var yearlyExpense = (d.fee || 0) * 12 + (d.heat || 0) + (d.decor || 0) + (d.repair || 0) + (d.agency || 0) + (d.tax || 0);
       var netIncome = yearlyRent - yearlyExpense;
       var grossYield = price ? (yearlyRent / price * 100) : 0;
@@ -787,7 +833,7 @@ function __ryExport(){
   var rentMode=document.getElementById('rentMode').value;
   var rent=parseFloat(document.getElementById('rent').value)||0;
   var monthlyRent=rentMode==='month'?rent:rent/12;
-  var yearlyRent=monthlyRent*12;
+  var yearlyRent=__rentalAnnualRent(monthlyRent);
   var monthlyFee=parseFloat(document.getElementById('fee').value)||0;
   var heat=parseFloat(document.getElementById('heat').value)||0;
   var decor=parseFloat(document.getElementById('decor').value)||0;
@@ -836,7 +882,7 @@ function __ryExtras(){
   var rentMode=document.getElementById('rentMode').value;
   var rent=parseFloat(document.getElementById('rent').value)||0;
   var monthlyRent=rentMode==='month'?rent:rent/12;
-  var yearlyRent=monthlyRent*12;
+  var yearlyRent=__rentalAnnualRent(monthlyRent);
   var monthlyFee=parseFloat(document.getElementById('fee').value)||0;
   var heat=parseFloat(document.getElementById('heat').value)||0;
   var decor=parseFloat(document.getElementById('decor').value)||0;

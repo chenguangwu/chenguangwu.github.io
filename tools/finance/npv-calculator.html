@@ -264,7 +264,7 @@ const templates = [
   {icon:'🍔',name:'餐饮加盟',desc:'投资40万，快速回本',rate:18,init:400000,flows:[150000,200000,250000,200000]},
 ];
 
-let cashFlows = [3000, 3000, 3000, 3000];
+let cashFlows = ['3000', '3000', '3000', '3000'];
 
 function fmt(n){
   if(!isFinite(n)) return '--';
@@ -300,7 +300,7 @@ function applyTemplate(i){
   const t = templates[i];
   document.getElementById('rate').value = t.rate;
   document.getElementById('init').value = t.init;
-  cashFlows = [...t.flows];
+  cashFlows = t.flows.map(String);
   renderCashFlows();
   switchTab('calc');
   calc();
@@ -321,12 +321,12 @@ function renderCashFlows(){
 }
 
 function updateCF(i, val){
-  cashFlows[i] = parseFloat(val) || 0;
+  cashFlows[i] = String(val == null ? '' : val).trim();
   calc();
 }
 
 function addCashFlow(){
-  cashFlows.push(0);
+  cashFlows.push('');
   renderCashFlows();
   calc();
 }
@@ -435,7 +435,14 @@ function calc(){
 var __ni=Array.prototype.slice.call(document.querySelectorAll('input[type=number],input[type=date]'));
 if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){document.getElementById('detail').innerHTML='<p style="color:var(--text-muted)">请输入参数后查看计算结果。</p>';return;}
 
-  const r = (+document.getElementById('rate').value||0) / 100;
+  const __rateRaw = String(document.getElementById('rate').value == null ? '' : document.getElementById('rate').value).trim();
+  if(__rateRaw === ''){
+    document.getElementById('stats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请填写折现率（如确为 0，请输入 0）</div></div>';
+    document.getElementById('detail').innerHTML='<p style="color:var(--danger);">折现率未填写，已清除结果；如确为 0%，请明确输入 0。</p>';
+    const cv0=document.getElementById('chart'); if(cv0){ const c0=cv0.getContext('2d'); c0.clearRect(0,0,cv0.width,cv0.height); }
+    return;
+  }
+  const r = (+__rateRaw) / 100;
   const init = +document.getElementById('init').value || 0;
   // 折现率必须 > -100%：1+r 为负时幂运算符号交替，会给出数学上无意义的 NPV/PI
   if(!(r > -1)){
@@ -452,7 +459,20 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
     if(cv){ const c2=cv.getContext('2d'); c2.clearRect(0,0,cv.width,cv.height); }
     return;
   }
-  const flows = cashFlows.map(v=>+v||0);
+  const __blankCf = cashFlows.findIndex(function(v){return String(v==null?'':v).trim()==='';});
+  if(__blankCf >= 0){
+    document.getElementById('stats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">第 '+(__blankCf+1)+' 期现金流未填写（如确为 0，请明确输入 0）</div></div>';
+    document.getElementById('detail').innerHTML='<p style="color:var(--danger);">现金流存在未填写项，已清除结果；0 现金流请明确输入 0。</p>';
+    const cv1=document.getElementById('chart'); if(cv1){ const c1=cv1.getContext('2d'); c1.clearRect(0,0,cv1.width,cv1.height); }
+    return;
+  }
+  const __badCf = cashFlows.findIndex(function(v){return !isFinite(parseFloat(String(v).trim()));});
+  if(__badCf >= 0){
+    document.getElementById('stats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">第 '+(__badCf+1)+' 期现金流不是有效数字</div></div>';
+    document.getElementById('detail').innerHTML='';
+    return;
+  }
+  const flows = cashFlows.map(v=>parseFloat(String(v).trim()));
   let npv = -init;
   let pvSum = 0;
   let cumulative = -init;
@@ -527,7 +547,7 @@ function drawChart(){
   const canvas = document.getElementById('chart');
   if(!canvas) return;
   const init = +document.getElementById('init').value || 0;
-  const flows = cashFlows.map(v=>+v||0);
+  const flows = cashFlows.map(v=>parseFloat(String(v).trim())||0);
   const r = (+document.getElementById('rate').value||0) / 100;
   if(init <= 0 || !(r > -1)) return;
 
@@ -627,16 +647,22 @@ function drawChart(){
 }
 
 function exportCSV(){
-  const init = +document.getElementById('init').value || 0;
-  const rate = +document.getElementById('rate').value || 0;
+  const initRaw = String(document.getElementById('init').value == null ? '' : document.getElementById('init').value).trim();
+  const rateRaw = String(document.getElementById('rate').value == null ? '' : document.getElementById('rate').value).trim();
+  const init = +initRaw || 0;
+  const rate = +rateRaw || 0;
   // 该分支无自动化用例，原因：verify harness 的下载 API 为 no-op，无法断言导出被拦截。
   if(!(init > 0)){
     ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a valid initial investment before exporting":"请先输入有效的初始投资再导出"));
     return;
   }
+  if(rateRaw === '' || cashFlows.some(function(v){return String(v==null?'':v).trim()===''||!isFinite(parseFloat(String(v).trim()));})){
+    ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Complete the discount rate and every cash flow before exporting":"请先填写折现率和每一期现金流（0 请明确输入 0）再导出"));
+    return;
+  }
   let csv = '期数,现金流\n';
   csv += `0,-${init}\n`;
-  cashFlows.forEach((v,i) => csv += `${i+1},${v}\n`);
+  cashFlows.forEach((v,i) => csv += `${i+1},${String(v).trim()}\n`);
   csv += `\n折现率,${rate}%\n`;
   ToolBox.downloadText('npv_cashflows.csv', csv, 'text/csv');
   ToolBox.showToast(i18nText());
@@ -665,13 +691,13 @@ function handleCSV(event){
           if(period === 0 || parts[0].trim() === '0'){
             initVal = Math.abs(val);
           } else if(!isNaN(period) && period > 0){
-            newFlows.push(val);
+            newFlows.push(String(val));
           }
         }
       }
     });
     if(initVal !== null) document.getElementById('init').value = initVal;
-    if(newFlows.length > 0) cashFlows = newFlows;
+    if(newFlows.length > 0) cashFlows = newFlows.map(String);
     renderCashFlows();
     calc();
     ToolBox.showToast('已导入 ' + newFlows.length + ' 期现金流');
@@ -753,11 +779,11 @@ function __npv_calculatorRender(keys,rk,en){
             try{
                 // 先按快照重建完整期数与金额；旧记录无快照时按 cf_ 最大下标重建，兼容期数增减。
                 if(typeof rec.npvFlowSnapshot==='string' && rec.npvFlowSnapshot.trim()!==''){
-                    cashFlows=rec.npvFlowSnapshot.split('|').map(function(v){return parseFloat(v)||0;});
+                    cashFlows=rec.npvFlowSnapshot.split('|');
                 } else {
                     var maxCf=-1;
                     for(var k0 in rec){ if(k0.indexOf('cf_')===0){ var ix=parseInt(k0.slice(3),10); if(isFinite(ix)&&ix>maxCf) maxCf=ix; } }
-                    if(maxCf>=0){ cashFlows=new Array(maxCf+1).fill(0); }
+                    if(maxCf>=0){ cashFlows=new Array(maxCf+1).fill(''); }
                 }
                 for(var k in rec){
                     if(k===rk||k==='__tbScore'||k==='npvFlowSnapshot') continue;
@@ -766,7 +792,7 @@ function __npv_calculatorRender(keys,rk,en){
                     var t=(e.type||'').toLowerCase();
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
-                    if(k.indexOf('cf_')===0){cashFlows[parseInt(k.slice(3),10)]=parseFloat(rec[k])||0;}
+                    if(k.indexOf('cf_')===0){cashFlows[parseInt(k.slice(3),10)]=String(rec[k]==null?'':rec[k]).trim();}
                 }
                 renderCashFlows();
                 calc();

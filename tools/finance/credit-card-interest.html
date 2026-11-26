@@ -328,25 +328,38 @@ function calc() {
 
   var billEl = document.getElementById('billAmount');
   var bill = +billEl.value || 0;
-  var dailyRate = +document.getElementById('dailyRate').value / 100 || 0;
+  var dailyRaw = String(document.getElementById('dailyRate').value).trim();
+  if (dailyRaw === '') {
+    document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger)">日利率不能为空；如确为 0，请明确输入 0。</p>';
+    document.getElementById('scheduleCard').style.display = 'none';
+    return;
+  }
+  var dailyNum = Number(dailyRaw);
+  if (!isFinite(dailyNum) || dailyNum < 0) {
+    document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger)">日利率须为 ≥0 的有效数字（当前 ' + dailyRaw + '%）。</p>';
+    document.getElementById('scheduleCard').style.display = 'none';
+    return;
+  }
+  var dailyRate = dailyNum / 100;
   var billDay = +document.getElementById('billDay').value;
   var dueDay = +document.getElementById('dueDay').value;
   var minRatioEl = document.getElementById('minRatio');
   var minRatioRaw = +minRatioEl.value;
   var minRatio = minRatioRaw / 100 || 0;
   var instMonths = +document.getElementById('installmentMonths').value || 12;
-  var instFee = +document.getElementById('installmentFee').value / 100 || 0;
-
-  if (dailyRate < 0) {
-    document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger);">日利率不能为负，请填写 ≥0 的数值</p>';
+  var instFeeRaw = String(document.getElementById('installmentFee').value).trim();
+  var instFeeNum = Number(instFeeRaw);
+  if (type === 'installment' && instFeeRaw === '') {
+    document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger)">分期手续费率不能为空；如确为 0，请明确输入 0。</p>';
     document.getElementById('scheduleCard').style.display = 'none';
     return;
   }
-  if (type === 'installment' && instFee < 0) {
-    document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger);">分期手续费率不能为负，请填写 ≥0 的数值</p>';
+  if (type === 'installment' && (!isFinite(instFeeNum) || instFeeNum < 0)) {
+    document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger)">分期手续费率须为 ≥0 的有效数字（当前 ' + instFeeRaw + '%）。</p>';
     document.getElementById('scheduleCard').style.display = 'none';
     return;
   }
+  var instFee = isFinite(instFeeNum) ? instFeeNum / 100 : 0;
 
   billEl.classList.toggle('input-error', !(bill > 0));
   minRatioEl.classList.toggle('input-error', type === 'minimum' && !(minRatioRaw >= 1 && minRatioRaw <= 100));
@@ -494,18 +507,31 @@ function renderSchedule(schedule) {
 
 function showCompare() {
   var bill = +document.getElementById('billAmount').value || 0;
-  var dailyRate = +document.getElementById('dailyRate').value / 100 || 0;
-  var minRatioRaw = +document.getElementById('minRatio').value;
-  var minRatio = minRatioRaw / 100 || 0;
-  var instMonths = +document.getElementById('installmentMonths').value || 12;
-  var instFee = +document.getElementById('installmentFee').value / 100 || 0;
-
   if (bill <= 0) {
     document.getElementById('compareCard').style.display = 'none';
     return;
   }
-  if (dailyRate < 0 || instFee < 0) {
-    var message = dailyRate < 0 ? '日利率不能为负，请填写 ≥0 的数值' : '分期手续费率不能为负，请填写 ≥0 的数值';
+  var dailyRaw = String(document.getElementById('dailyRate').value).trim();
+  var feeRaw = String(document.getElementById('installmentFee').value).trim();
+  var dailyRate = null, instFee = null, message = '';
+  if (dailyRaw === '') message = '日利率不能为空；如确为 0，请明确输入 0。';
+  else {
+    var d = Number(dailyRaw);
+    if (!isFinite(d) || d < 0) message = '日利率须为 ≥0 的有效数字（当前 ' + dailyRaw + '%）。';
+    else dailyRate = d / 100;
+  }
+  if (!message) {
+    if (feeRaw === '') message = '分期手续费率不能为空；如确为 0，请明确输入 0。';
+    else {
+      var f = Number(feeRaw);
+      if (!isFinite(f) || f < 0) message = '分期手续费率须为 ≥0 的有效数字（当前 ' + feeRaw + '%）。';
+      else instFee = f / 100;
+    }
+  }
+  var minRatioRaw = +document.getElementById('minRatio').value;
+  var minRatio = minRatioRaw / 100 || 0;
+  var instMonths = +document.getElementById('installmentMonths').value || 12;
+  if (message) {
     document.getElementById('compareContent').innerHTML = '<p style="color:var(--danger);">' + message + '</p>';
     document.getElementById('compareCard').style.display = 'block';
     return;
@@ -528,6 +554,7 @@ function showCompare() {
   var instMonthly = bill / instMonths + bill * instFee;
 
   var diff = minTotal - instTotal;
+  var equalCost = Math.abs(diff) < 0.01;
   var better = diff > 0 ? '分期还款' : '最低还款';
   var savings = Math.abs(diff);
 
@@ -542,8 +569,13 @@ function showCompare() {
     html += '<p style="color:var(--danger);">⚠️ 最低还款 120 期内未还清，剩余本金 ' + fmt(sim.balance) + ' 元，后续利息未知，无法比较最终总支出。</p>';
   } else {
     html += '<div style="margin-top:16px;padding:12px;background:var(--result-bg);border-radius:8px;">';
-    html += '<p><strong>结论：</strong><span style="color:var(--success);font-size:16px;">' + better + '更省钱</span></p>';
-    html += '<p>可节省约 <strong style="color:var(--primary);">' + fmt(savings) + '</strong> 元</p>';
+    if (equalCost) {
+      html += '<p><strong>结论：</strong><span style="color:var(--success);font-size:16px;">两种方案总支出相同</span></p>';
+      html += '<p>差额不足 0.01 元，按当前展示精度视为费用相同；请结合实际手续费、期限与还款压力选择。</p>';
+    } else {
+      html += '<p><strong>结论：</strong><span style="color:var(--success);font-size:16px;">' + better + '更省钱</span></p>';
+      html += '<p>可节省约 <strong style="color:var(--primary);">' + fmt(savings) + '</strong> 元</p>';
+    }
     html += '</div>';
   }
 

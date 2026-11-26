@@ -398,7 +398,18 @@ function calc() {
     return;
   }
   const P = parseFloat(__pRaw);
-  const r = parseFloat(document.getElementById('rate').value) || 0;
+  const __rRaw = String(document.getElementById('rate').value==null?'':document.getElementById('rate').value).trim();
+  if(__rRaw===''){
+    resetDisplay();
+    document.getElementById('calcNotice').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Enter the annual rate (enter 0 explicitly if it is 0%)':'请输入年化利率（如确为 0%，请明确输入 0）');
+    return;
+  }
+  const r = parseFloat(__rRaw);
+  if(!isFinite(r)){
+    resetDisplay();
+    document.getElementById('calcNotice').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'The annual rate must be a valid number':'年化利率须为有效数字');
+    return;
+  }
   const YEARS_CAP = 1000;
   const yearsInput = parseFloat(document.getElementById('years').value) || 0;
   const capped = yearsInput > YEARS_CAP;
@@ -434,6 +445,7 @@ function calc() {
 
   if (P < 0 || r < 0 || t <= 0) {
     resetDisplay();
+    document.getElementById('calcNotice').textContent = (P < 0 ? '本金不能为负。' : r < 0 ? '年化利率不能为负。' : '年限须大于 0。');
     return;
   }
 
@@ -490,6 +502,7 @@ function calc() {
   const returnRate = totalInvested > 0 ? (totalInt / totalInvested * 100) : 0;
   // 并列单利口径：本金按单利计息、每年定投不计息（仅用于与复利结果对照）
   const simpleFV = P * (1 + r / 100 * t) + annual * t;
+  window.__ciLast = {P:P, r:r, t:t, n:n, annual:annual, investTime:investTime, totalFV:totalFV, totalInvested:totalInvested, simpleFV:simpleFV};
 
   const __g1=fmtShort(totalFV);document.getElementById('totalFV').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=fmtShort(totalInvested);document.getElementById('totalInvested').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
@@ -646,6 +659,7 @@ function exportCSV() {
 }
 
 function resetDisplay() {
+  window.__ciLast = null;
   ['totalFV', 'totalInvested', 'totalInterest', 'totalReturn', 'simpleFV'].forEach(id => {
     document.getElementById(id).textContent = '--';
   });
@@ -934,6 +948,13 @@ else document.addEventListener('DOMContentLoaded', __compound_interestBoot);
       annual: __finNum('annual') || 0
     };
   }
+  function __ciState(d){
+    var st = window.__ciLast;
+    if (st && isFinite(st.totalFV) && isFinite(st.simpleFV) && st.t > 0) {
+      return {P:st.P, r:st.r, t:st.t, annual:st.annual, n:st.n, investTime:st.investTime, totalFV:st.totalFV, simpleFV:st.simpleFV};
+    }
+    return null;
+  }
 
   function __finUpdate(){ 
     var d = __ciRead();
@@ -948,21 +969,20 @@ else document.addEventListener('DOMContentLoaded', __compound_interestBoot);
       return;
     }
     var rr = d.r / 100;
-    // 72 法则：翻倍年数
+    var st = __ciState(d);
+    // 解读复用主结果（含所选计息频率、定投与期初期末设置）；单利对照为同投入时点、定投不计息的并列口径。
+    var A = st ? st.totalFV : d.P * Math.pow(1 + rr, d.t) + d.annual * d.t;
+    var Asimple = st ? st.simpleFV : d.P * (1 + rr * d.t) + d.annual * d.t;
+    var tUsed = st ? st.t : d.t;
+    var nUsed = st ? st.n : 1;
+    var extra = A - Asimple;
+    var extraRatio = Asimple > 0 ? extra / Asimple : 0;
     var rule72 = 72 / d.r;
-    // 复利终值（仅本金，不计追加）：A = P(1+r)^t
-    var A = d.P * Math.pow(1 + rr, d.t);
-    // 单利终值
-    var Asimple = d.P * (1 + rr * d.t);
-    var extra = A - Asimple;                       // 复利比单利多出的部分
-    var extraRatio = extra / Asimple;               // 多出的相对比例
-    // 频率极限：连续复利因子 e^(rt) 与逐年比较的"额外增益"
-    var cont = d.P * Math.exp(rr * d.t);
-    var freqGain = cont - A;                        // 从年复利到连续复利的额外量（频率极限效应）
-    var badgeTxt = en ? 'Compound interest' : '复利';
+    var badgeTxt = en ? (st ? 'Current plan' : 'Independent example') : (st ? '按当前方案' : '独立示例');
     var valTxt = en
-      ? 'After ' + d.t + ' years: ¥' + A.toFixed(0) + ' (compound), vs ¥' + Asimple.toFixed(0) + ' (simple)'
-      : d.t + ' 年后：¥' + A.toFixed(0) + '（复利），若单利仅 ¥' + Asimple.toFixed(0);
+      ? 'After ' + tUsed + ' years: ¥' + A.toFixed(0) + ' (current plan), vs ¥' + Asimple.toFixed(0) + ' (same-timing simple, contributions earn no interest)'
+      : tUsed + ' 年后：¥' + A.toFixed(0) + '（当前方案），同投入时点单利对照 ¥' + Asimple.toFixed(0);
+    box.textContent = valTxt;
     var html = '';
     html += __finRow(
       en ? 'Doubling time (Rule of 72)' : '翻倍年数（72 法则）',
@@ -975,9 +995,9 @@ else document.addEventListener('DOMContentLoaded', __compound_interestBoot);
          : '¥' + extra.toFixed(0) + '（多 ' + (extraRatio * 100).toFixed(1) + '%）'
     );
     html += __finRow(
-      en ? 'Going from annual to continuous compounding' : '从年复利到连续复利的极限',
-      en ? 'only +¥' + freqGain.toFixed(0) + ' more — diminishing returns of compounding frequency'
-         : '仅再多 ¥' + freqGain.toFixed(0) + ' — 计息频率的边际收益递减'
+      en ? 'Compounding frequency used' : '本次计息频率',
+      en ? nUsed + ' times/year; result includes contributions and the chosen start/end timing'
+         : nUsed + ' 次/年；终值已含定投与所选期初/期末投入时点'
     );
     rows.innerHTML = html;
     // 进度条：复利终值相对单利的超额占比（封顶 100%）
@@ -988,8 +1008,8 @@ else document.addEventListener('DOMContentLoaded', __compound_interestBoot);
   function __finInit(){
     var en = __finIsEn();
     document.getElementById('__charCiTitle').textContent = en ? '📈 What your compound interest really means' : '📈 这笔复利到底意味着什么';
-    document.getElementById('__charCiDesc').textContent = en ? 'The headline number hides three things: how fast it doubles, how much extra compounding adds over simple interest, and why chasing more frequent compounding has vanishing returns.' : '表面数字藏着三件事：多久翻倍、复利比单利多赚多少、以及为什么计息频率越密边际收益越小。';
-    document.getElementById('__charCiNote').textContent = en ? 'Rule of 72 is most accurate for rates between 6% and 10%. Compounding frequency (annual→monthly→daily→continuous) barely changes the result once you are already compounding — the big jump is from simple to compound.' : '72 法则在 6%~10% 区间最准。计息频率从年→月→日→连续，差别已经很小——真正的大头是从单利到复利那一跳。';
+    document.getElementById('__charCiDesc').textContent = en ? 'This panel reuses the current main result, including compounding frequency, contributions and start/end timing. The simple-interest comparison uses the same contribution timing but assumes contributions earn no interest.' : '本解读直接复用主计算结果，包含计息频率、定投和期初/期末设置；单利对照采用同投入时点、定投不计息的口径。';
+    document.getElementById('__charCiNote').textContent = en ? 'Rule of 72 is an annual-compounding approximation, most accurate for rates around 6%–10%. The main result remains authoritative for the selected frequency and contributions.' : '72 法则是年复利近似，在 6%~10% 区间较准；当前方案的终值以主结果为准，已按所选频率和定投计算。';
     __finUpdate();
     var IDS = ['principal', 'rate', 'years', 'annual'];
     IDS.forEach(function(id){

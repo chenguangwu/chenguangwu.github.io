@@ -257,10 +257,28 @@
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function fx(x,d){return isFinite(x)?x.toFixed(d):'—';}
 function calc(){
-  var d=parseInt(document.getElementById('dec').value,10);
-  if(!(d>=0&&d<=4))d=2;
-  var s=num('s'),v=num('v'),f=num('f'),i=num('i'),t=num('t'),n=num('n');
-  if(t<0||t>100)t=Math.min(100,Math.max(0,t));
+  function __raw(id){return String(document.getElementById(id).value==null?'':document.getElementById(id).value).trim();}
+  function __fail(msg){
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('res').innerHTML='<p class="tip-error">'+msg+'</p>';
+    return;
+  }
+  var ids=['s','v','f','i','t','n'];
+  var names={s:'营业收入',v:'变动成本',f:'固定成本',i:'利息费用',t:'所得税税率',n:'普通股股数'};
+  for(var __k=0;__k<ids.length;__k++){
+    var __id=ids[__k];
+    if(__raw(__id)==='') return __fail(names[__id]+'未填写，已停止计算；如确为 0，请明确输入 0。');
+  }
+  var d=parseInt(__raw('dec'),10);
+  if(!(d>=0&&d<=4)) return __fail('小数位数须为 0–4 的整数。');
+  var s=Number(__raw('s')),v=Number(__raw('v')),f=Number(__raw('f')),i=Number(__raw('i')),t=Number(__raw('t')),n=Number(__raw('n'));
+  var pairs=[[s,'营业收入'],[v,'变动成本'],[f,'固定成本'],[i,'利息费用'],[t,'所得税税率'],[n,'普通股股数']];
+  for(var __j=0;__j<pairs.length;__j++){
+    if(!isFinite(pairs[__j][0])) return __fail(pairs[__j][1]+'须为有效数字。');
+  }
+  if(s<0||v<0||f<0||i<0) return __fail('营业收入、变动成本、固定成本与利息费用不能为负数。');
+  if(t<0||t>100) return __fail('所得税税率须在 0%–100% 之间（当前 '+t+'%），已停止计算且不自动截断。');
+  if(n<1||!Number.isInteger(n)) return __fail('普通股股数须为大于 0 的整数（当前 '+n+'）。');
   var tr=t/100;
   var cm=s-v;
   var ebit=cm-f;

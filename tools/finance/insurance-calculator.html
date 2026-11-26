@@ -514,13 +514,22 @@ function calc(){
     ];
   }
   else if(currentMethod === 'life-value'){
-    var age = getVal('lv_age');
-    var retire = getVal('lv_retire');
+    var ageRaw = String(document.getElementById('lv_age').value || '').trim();
+    var retireRaw = String(document.getElementById('lv_retire').value || '').trim();
+    var age = Number(ageRaw), retire = Number(retireRaw);
+    if(ageRaw === '' || retireRaw === '' || !Number.isFinite(age) || !Number.isFinite(retire) || !Number.isInteger(age) || !Number.isInteger(retire)){
+      document.getElementById('res').innerHTML = '<p style="color:var(--danger)">当前年龄与退休年龄须填写整数岁；小数年龄会让剩余工作年限与显示不一致，本页不做四舍五入。</p>';
+      return;
+    }
+    if(age < 18 || age > 80 || retire < 40 || retire > 80){
+      document.getElementById('res').innerHTML = '<p style="color:var(--danger)">当前年龄须为 18–80 岁整数，退休年龄须为 40–80 岁整数。</p>';
+      return;
+    }
     var income = getVal('lv_income');
     var growth = getVal('lv_growth') / 100;
     var consume = getVal('lv_consume') / 100;
     var discount = getVal('lv_discount') / 100;
-    var years = Math.max(retire - age, 1);
+    var years = retire > age ? retire - age : 0;
 
     var lifeValue = 0;
     var netIncome = income * (1 - consume);
@@ -546,7 +555,7 @@ function calc(){
     details = [
       {label:'工作年限', value: years + '年', desc: '当前年龄到退休年龄'},
       {label:'年净贡献', value: (income * (1-consume)).toFixed(1) + '万', desc: '扣除个人消费'},
-      {label:'生命价值', value: lifeInsurance + '万', desc: '未来收入现值'},
+      {label:'生命价值', value: lifeInsurance + '万', desc: years > 0 ? ('未来净收入折现 ' + years + ' 年（' + age + '→' + retire + ' 岁）') : '当前年龄已达到/超过退休年龄，剩余工作年限按 0 年计；如仍有家庭责任，请改用需求分析法并填写退休后收支假设'},
       {label:'建议寿险保额', value: lifeInsurance + '万', desc: '覆盖家庭经济损失'}
     ];
   }

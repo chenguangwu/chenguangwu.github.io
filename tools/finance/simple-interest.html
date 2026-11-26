@@ -276,8 +276,19 @@ function calc(){
     return;
   }
   const P = parseFloat(__pRaw);
-  const r = parseFloat(document.getElementById('rate').value) || 0;
-  const t = parseFloat(document.getElementById('years').value) || 0;
+  const __rateRaw = String(document.getElementById('rate').value == null ? '' : document.getElementById('rate').value).trim();
+  const __yearsRaw = String(document.getElementById('years').value == null ? '' : document.getElementById('years').value).trim();
+  const __enSi = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  if(__rateRaw === '' || __yearsRaw === ''){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">'+(__enSi?'Enter both the annual rate and the term (enter 0 explicitly if applicable); results cleared.':'请填写年利率和期限（如确为 0，请明确输入 0），已清除结果。')+'</p>';
+    return;
+  }
+  const r = parseFloat(__rateRaw);
+  const t = parseFloat(__yearsRaw);
+  if(!isFinite(r) || !isFinite(t)){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">'+(__enSi?'Annual rate and term must be valid numbers.':'年利率和期限须为有效数字。')+'</p>';
+    return;
+  }
   const mode = document.getElementById('mode').value;
   if(P < 0 || r < 0 || t < 0){
     document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">请输入合理的非负数</p>';
@@ -286,6 +297,14 @@ function calc(){
   const interest = P * (r / 100) * t;
   const fv = P + interest;
   const annualInterest = P * (r / 100);
+  // 复利对照：按「(1+年利率)^年数」折算。t<1 时复利本利和可能低于单利，
+  // 旧文案固定写「比单利多」并配负差额，属明显措辞错误。
+  const compoundFV = P * Math.pow(1 + r / 100, t);
+  const compoundDiff = compoundFV - fv;
+  const compoundRel = Math.abs(compoundDiff) < 0.005 ? '相同' : (compoundDiff > 0 ? '多' : '少');
+  const compoundExplain = t < 1
+    ? '不足一年按 (1+年利率)^年数 比例折算，并非真实付息日复利'
+    : '按每年复利 1 次';
   let html = `
     <p>本金：<strong>${fmt(P)}</strong> 元</p>
     <p>年利率：<strong>${r}%</strong></p>
@@ -294,7 +313,7 @@ function calc(){
     <p>每年利息：<strong>${fmt(annualInterest)}</strong> 元</p>
     <p>累计利息：<strong style="color:var(--success);">${fmt(interest)}</strong> 元</p>
     <p style="font-size:18px;color:var(--primary);margin-top:8px;">本利和：<strong>${fmt(fv)}</strong> 元</p>
-    <p><span>同条件复利本利和</span>：<strong>${fmt(P * Math.pow(1 + r / 100, t))}</strong> 元（<span>按每年复利 1 次，比单利多</span> <strong>${fmt(P * Math.pow(1 + r / 100, t) - fv)}</strong> 元；<span>本页采用单利</span>）</p>
+    <p><span>同条件复利本利和</span>：<strong>${fmt(compoundFV)}</strong> 元（<span>${compoundExplain}，比单利${compoundRel}</span> <strong>${fmt(Math.abs(compoundDiff))}</strong> 元；<span>本页采用单利</span>）</p>
   `;
   // 计算各年利息明细
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;"><p>各年明细：</p>';

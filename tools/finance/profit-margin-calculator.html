@@ -589,26 +589,44 @@ function calcReverse(){
   calcBatch();
 }
 
+var PROFIT_BATCH_ROW_LIMIT = 500;
+function readProfitBatch(){
+  var triples=[['batchStart','成本起始值'],['batchEnd','成本结束值'],['batchStep','步长']];
+  var v={};
+  for(var i=0;i<triples.length;i++){
+    var id=triples[i][0], label=triples[i][1], raw=String(document.getElementById(id).value).trim();
+    if(raw==='') return {error:label+'不能为空；0 是有效值，请明确输入 0。'};
+    var n=Number(raw);
+    if(!isFinite(n)) return {error:label+'不是有效数字：'+raw};
+    v[id]=n;
+  }
+  if(v.batchStart<0||v.batchEnd<0) return {error:'成本不能为负（当前起点 '+v.batchStart+'、终点 '+v.batchEnd+'）。'};
+  if(v.batchStep<=0) return {error:'步长必须大于 0（当前 '+v.batchStep+'）。'};
+  if(v.batchEnd<v.batchStart) return {error:'成本结束值须不小于起始值（当前 '+v.batchStart+' → '+v.batchEnd+'）。'};
+  var count=Math.floor((v.batchEnd-v.batchStart)/v.batchStep)+1;
+  if(count>PROFIT_BATCH_ROW_LIMIT) return {error:'当前范围将生成 '+count+' 行，超过 '+PROFIT_BATCH_ROW_LIMIT+' 行上限；请缩小范围或增大步长（当前 '+v.batchStart+'–'+v.batchEnd+'，步长 '+v.batchStep+'）。'};
+  var margins=[];
+  for(var j=1;j<=4;j++){
+    var mid='batchM'+j, mraw=String(document.getElementById(mid).value).trim();
+    if(mraw==='') return {error:'毛利率'+j+'不能为空；0% 是有效值，请明确输入 0。'};
+    var m=Number(mraw);
+    if(!isFinite(m)) return {error:'毛利率'+j+'不是有效数字：'+mraw};
+    if(m<0||m>100) return {error:'毛利率'+j+'须在 0%–100% 之间（当前 '+mraw+'%）。'};
+    margins.push(m);
+  }
+  return {start:v.batchStart,end:v.batchEnd,step:v.batchStep,count:count,margins:margins};
+}
 function calcBatch(){
-  var start = +document.getElementById('batchStart').value || 10;
-  var end = +document.getElementById('batchEnd').value || 100;
-  var step = +document.getElementById('batchStep').value || 10;
-  if(step <= 0) step = 10;
-  if(end <= start) end = start + step * 10;
+  var bp=readProfitBatch();
+  if(bp.error){document.getElementById('batchTable').innerHTML='<p style="color:var(--danger)">'+bp.error+'</p>';return;}
   
-  var margins = [
-    +document.getElementById('batchM1').value || 20,
-    +document.getElementById('batchM2').value || 30,
-    +document.getElementById('batchM3').value || 40,
-    +document.getElementById('batchM4').value || 50
-  ];
-  
-  var headers = ['成本\\毛利率'].concat(margins.map(function(m){ return m + '%'; }));
+  var headers = ['成本\\毛利率'].concat(bp.margins.map(function(m){ return m + '%'; }));
   var rows = [];
-  for(var c = start; c <= end; c += step){
+  for(var qi=0; qi<bp.count; qi++){
+    var c=bp.start+qi*bp.step;
     var row = [ToolBox.formatNumber(c, 2)];
-    margins.forEach(function(m){
-      if(!isFinite(m) || m < 0 || m >= 100){ row.push('不可达'); return; }
+    bp.margins.forEach(function(m){
+      if(m >= 100){ row.push('不可达'); return; }
       var price = c / (1 - m / 100);
       row.push(ToolBox.formatNumber(price, 2));
     });
@@ -819,28 +837,49 @@ function drawWaterfallChart(){
 }
 
 function calcDupont(){
-  var ni = +document.getElementById('dupontNI').value || 0;
-  var rev = +document.getElementById('dupontRev').value || 0;
-  var assets = +document.getElementById('dupontAssets').value || 0;
-  var equity = +document.getElementById('dupontEquity').value || 0;
-  
-  var npm = rev > 0 ? ni / rev * 100 : 0;
-  var at = assets > 0 ? rev / assets : 0;
-  var em = equity > 0 ? assets / equity : 0;
-  var roe = npm / 100 * at * em * 100;
-  var roa = assets > 0 ? ni / assets * 100 : 0;
+  var ids=['dupontNI','dupontRev','dupontAssets','dupontEquity'];
+  var names={dupontNI:'净利润',dupontRev:'营业收入',dupontAssets:'平均总资产',dupontEquity:'平均净资产'};
+  var raw={},vals={},__en=/^en/i.test(document.documentElement.lang||'');
+  for(var i=0;i<ids.length;i++){
+    var el=document.getElementById(ids[i]);
+    raw[ids[i]]=String(el.value==null?'':el.value).trim();
+    if(raw[ids[i]]===''){
+      document.getElementById('dupontChart').innerHTML='';
+      document.getElementById('dupontRes').innerHTML='<p class="tip-error">'+(__en?'Enter net profit, revenue, average assets and average equity; enter 0 explicitly if applicable.':'请填写净利润、营业收入、平均总资产、平均净资产（如确为 0，请明确输入 0）。')+'</p>';
+      return;
+    }
+    vals[ids[i]]=Number(raw[ids[i]]);
+    if(!isFinite(vals[ids[i]])){
+      document.getElementById('dupontChart').innerHTML='';
+      document.getElementById('dupontRes').innerHTML='<p class="tip-error">'+names[ids[i]]+'须为有效数字（当前 '+raw[ids[i]]+'）。</p>';
+      return;
+    }
+  }
+  var ni=vals.dupontNI,rev=vals.dupontRev,assets=vals.dupontAssets,equity=vals.dupontEquity;
+  if(rev<0 || assets<0){ document.getElementById('dupontChart').innerHTML=''; document.getElementById('dupontRes').innerHTML='<p class="tip-error">营业收入与平均总资产不能为负数。</p>'; return; }
+  var reasonNpm = rev<=0 ? '营业收入为 0（或未大于 0），销售净利率未定义' : '';
+  var reasonAt = assets<=0 ? '平均总资产为 0，总资产周转率未定义' : '';
+  var reasonEm = equity<=0 ? (equity===0?'平均净资产为 0，权益乘数与 ROE 未定义':'平均净资产为负，权益乘数与 ROE 不具备解释意义') : '';
+  var npm = rev>0 ? ni/rev*100 : null;
+  var at = assets>0 ? rev/assets : null;
+  var em = equity>0 ? assets/equity : null;
+  var roe = equity>0 ? ni/equity*100 : null;
+  var roa = assets>0 ? ni/assets*100 : null;
+  var debt = assets>0 ? (assets-equity)/assets*100 : null;
+  function pct(v){return v===null?'未定义':v.toFixed(2)+'%';}
+  function num(v,d){return v===null?'未定义':v.toFixed(d);}
   
   var html = '';
   html += '<div class="dupont-layer">';
-  html += '<div class="dupont-box top"><div class="label">净资产收益率 ROE</div><div class="value">' + roe.toFixed(2) + '%</div></div>';
+  html += '<div class="dupont-box top"><div class="label">净资产收益率 ROE</div><div class="value">' + pct(roe) + '</div></div>';
   html += '</div>';
   html += '<div class="dupont-line"></div>';
   html += '<div class="dupont-layer">';
-  html += '<div class="dupont-box"><div class="label">销售净利率</div><div class="value">' + npm.toFixed(2) + '%</div></div>';
+  html += '<div class="dupont-box"><div class="label">销售净利率</div><div class="value">' + pct(npm) + '</div></div>';
   html += '<span class="dupont-arrow">×</span>';
-  html += '<div class="dupont-box"><div class="label">总资产周转率</div><div class="value">' + at.toFixed(3) + '</div></div>';
+  html += '<div class="dupont-box"><div class="label">总资产周转率</div><div class="value">' + num(at,3) + '</div></div>';
   html += '<span class="dupont-arrow">×</span>';
-  html += '<div class="dupont-box"><div class="label">权益乘数</div><div class="value">' + em.toFixed(2) + '</div></div>';
+  html += '<div class="dupont-box"><div class="label">权益乘数</div><div class="value">' + num(em,2) + '</div></div>';
   html += '</div>';
   html += '<div class="dupont-line" style="margin-left:10%;"></div>';
   html += '<div class="dupont-layer">';
@@ -854,26 +893,25 @@ function calcDupont(){
   
   var resHtml = '';
   resHtml += '<p><strong>杜邦分析结果：</strong></p>';
-  resHtml += '<p>净资产收益率（ROE）：<strong style="color:var(--primary);font-size:16px;">' + roe.toFixed(2) + '%</strong></p>';
-  resHtml += '<p>总资产收益率（ROA）：<strong>' + roa.toFixed(2) + '%</strong></p>';
-  resHtml += '<p>销售净利率：' + npm.toFixed(2) + '%</p>';
-  resHtml += '<p>总资产周转率：' + at.toFixed(3) + ' 次</p>';
-  resHtml += '<p>权益乘数：' + em.toFixed(2) + ' 倍</p>';
-  resHtml += '<p>资产负债率：<strong>' + (equity > 0 ? (1 - 1 / em) * 100 : 0).toFixed(2) + '%</strong></p>';
+  resHtml += '<p>净资产收益率（ROE）：<strong style="color:var(--primary);font-size:16px;">' + pct(roe) + '</strong>' + (reasonEm ? '<span style="color:var(--text-muted);">（' + reasonEm + '）</span>' : '') + '</p>';
+  resHtml += '<p>总资产收益率（ROA）：<strong>' + pct(roa) + '</strong>' + (assets<=0 ? '<span style="color:var(--text-muted);">（平均总资产为 0，未定义）</span>' : '') + '</p>';
+  resHtml += '<p>销售净利率：' + pct(npm) + (reasonNpm ? '<span style="color:var(--text-muted);">（' + reasonNpm + '）</span>' : '') + '</p>';
+  resHtml += '<p>总资产周转率：' + num(at,3) + (at===null ? '' : ' 次') + (reasonAt ? '<span style="color:var(--text-muted);">（' + reasonAt + '）</span>' : '') + '</p>';
+  resHtml += '<p>权益乘数：' + num(em,2) + (em===null ? '' : ' 倍') + (reasonEm ? '<span style="color:var(--text-muted);">（' + reasonEm + '）</span>' : '') + '</p>';
+  resHtml += '<p>资产负债率：<strong>' + pct(debt) + '</strong>' + (debt===null ? '<span style="color:var(--text-muted);">（平均总资产为 0，未定义）</span>' : (debt>100?'<span style="color:var(--danger);">（净资产为负，负债超过资产）</span>':'')) + '</p>';
   resHtml += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
   resHtml += '<p><strong>分析说明：</strong></p>';
-  if(roe >= 15){
-    resHtml += '<p style="color:var(--success);">✅ ROE 较高（≥15%），盈利能力较强</p>';
-  } else if(roe >= 8){
-    resHtml += '<p style="color:var(--warning);">⚠️ ROE 一般（8%-15%），处于中等水平</p>';
+  if(roe === null){
+    resHtml += '<p style="color:var(--text-muted);">ROE 未定义（' + (reasonEm || '所需分母无效') + '），不输出盈利能力或杠杆高低结论。</p>';
   } else {
-    resHtml += '<p style="color:var(--danger);">❌ ROE 较低（<8%），盈利能力有待提升</p>';
+    if(roe >= 15) resHtml += '<p style="color:var(--success);">✅ ROE 较高（≥15%），盈利能力较强</p>';
+    else if(roe >= 8) resHtml += '<p style="color:var(--warning);">⚠️ ROE 一般（8%-15%），处于中等水平</p>';
+    else resHtml += '<p style="color:var(--danger);">❌ ROE 较低（<8%），盈利能力有待提升</p>';
+    if(em !== null && em > 3) resHtml += '<p style="color:var(--danger);">⚠️ 权益乘数较高，财务杠杆较大，需注意风险</p>';
+    else if(em !== null && em < 1.5) resHtml += '<p style="color:var(--warning);">💡 权益乘数较低，财务杠杆利用不足</p>';
   }
-  if(em > 3){
-    resHtml += '<p style="color:var(--danger);">⚠️ 权益乘数较高，财务杠杆较大，需注意风险</p>';
-  } else if(em < 1.5){
-    resHtml += '<p style="color:var(--warning);">💡 权益乘数较低，财务杠杆利用不足</p>';
-  }
+  if(reasonNpm) resHtml += '<p style="color:var(--text-muted);">' + reasonNpm + '，不能用 0% 代替。</p>';
+  if(reasonAt) resHtml += '<p style="color:var(--text-muted);">' + reasonAt + '，不能按 0 次处理。</p>';
   
   const __g9=resHtml;document.getElementById('dupontRes').innerHTML=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
 }

@@ -223,6 +223,7 @@ function validate(){
   const raw = document.getElementById('input').value.trim();
   const digits = raw.replace(/\D/g,'');
   const out = document.getElementById('output');
+  const __irdEn = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
   // 第113批：非空但含非法字符（如纯字母 abc）属「失败」，不得剥离成空再当等待输入而不记录历史。
   // 判据与 __ird_validatorScore 的 /[^0-9\s-]/ 对齐；固定文案，用户输入不进 innerHTML。
@@ -250,9 +251,9 @@ function validate(){
   html += `<p><strong>校验算法：</strong>加权模 11（primary 3,2,7,6,5,4,3,2；得 10 改用 secondary 7,4,3,2,5,2,7,6）</p>`;
   html += `<p><strong>校验和：</strong> ${valid?'✅ 通过':'❌ 未通过'}</p>`;
   if(valid){
-    html += `<p style="color:var(--success);">✅ IRD 号码有效</p>`;
+    html += `<p style="color:var(--success);">${__irdEn?'✅ Length and checksum check passed. This tool cannot confirm whether the number is registered, still active, or belongs to a person; verify with Inland Revenue.':'✅ 长度与校验和检查通过；本地无法确认该号码是否已登记、仍有效或归属某人，请以新西兰 IRD 官方渠道为准。'}</p>`;
   } else {
-    html += `<p style="color:var(--danger);">❌ 校验和失败，IRD 无效</p>`;
+    html += `<p style="color:var(--danger);">${__irdEn?'❌ Checksum failed: the number does not follow the IRD check rule. This does not imply other numbers are unregistered.':'❌ 校验和未通过，该号码不符合 IRD 校验规则；这不代表其他号码未登记。'}</p>`;
   }
   const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;
 }
@@ -289,6 +290,15 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 var __ird_validator_last=0,__ird_validator_skip=false,__ird_validator_timer=null;
+function __ird_validatorMask(v){
+    var raw=String(v==null?'':v).trim();
+    var d=raw.replace(/\D/g,'');
+    if(d.length<4) return d ? '****' : '';
+    return d.slice(0,2)+'*'.repeat(Math.max(0,d.length-4))+d.slice(-2);
+}
+function __ird_validatorMaskText(t){
+    return String(t==null?'':t).replace(/\b\d{8,9}\b/g,function(d){return __ird_validatorMask(d);});
+}
 function __ird_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -297,7 +307,7 @@ function __ird_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=e.id==='input'?__ird_validatorMask(v):v;
     }
     return out;
 }
@@ -333,7 +343,7 @@ function __ird_validatorTime(t){
 function __ird_validatorRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Checksum':'校验和',rk]);
         var rows=arr.map(function(it){
             var row=[__ird_validatorTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
@@ -347,15 +357,21 @@ function __ird_validatorRender(keys,rk,en){
         TBKit.history.mount('#ird_validatorHist',function(rec){
             __ird_validator_skip=true;clearTimeout(__ird_validator_timer);__ird_validator_timer=null;
             try{
+                var __masked=false;
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
+                    if(k==='input'&&/\*/.test(String(rec[k]))){__masked=true;continue;}
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                validate();
+                if(__masked){
+                    document.getElementById('output').textContent='历史记录仅保留脱敏税号，未保存完整号码；请在输入框重新填写后校验。';
+                } else {
+                    validate();
+                }
             }catch(e2){}
             __ird_validator_skip=false;
         });
@@ -365,9 +381,29 @@ function __ird_validatorRender(keys,rk,en){
             if(isFinite(v)){nums.push(v);labels.push(__ird_validatorTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#ird_validatorChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
+            TBKit.chart.line('#ird_validatorChart',{labels:labels,series:[{name:en?'Checksum pass trend':'校验通过趋势',data:nums}]});
         }
     }catch(e3){}
+}
+function __ird_validatorMigrateLegacy(){
+    if(typeof TBKit==='undefined'||!TBKit.history) return;
+    try{
+        var arr=TBKit.history.list();
+        var need=false;
+        for(var i=0;i<arr.length;i++){
+            var d=arr[i].d||{};
+            if(d.input&&!/\*/.test(String(d.input))){need=true;break;}
+            for(var k in d){ if(k!=='__tbScore'&&k!=='__tbEmpty'&&k!=='__tbScore'&&/\b\d{8,9}\b/.test(String(d[k]))){need=true;break;} }
+        }
+        if(!need) return;
+        for(var i=0;i<arr.length;i++){
+            var d2=arr[i].d||{};
+            if(d2.input) d2.input=__ird_validatorMask(d2.input);
+            for(var k2 in d2){ if(k2!=='__tbScore'&&k2!=='__tbEmpty') d2[k2]=__ird_validatorMaskText(d2[k2]); }
+        }
+        TBKit.history.clear();
+        for(var j=arr.length-1;j>=0;j--) TBKit.history.record(arr[j].d);
+    }catch(e){}
 }
 function __ird_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
@@ -398,12 +434,14 @@ function __ird_validatorExtras(force){
     }
     __ird_validator_last=now;
     var rec={};
-    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
-    rec[rk]=res;
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=__ird_validatorMaskText(snap[keys[i]]);
+    rec[rk]=__ird_validatorMaskText(res);
     rec.__tbScore=__ird_validatorScore(__ird_validatorFullResText());
     TBKit.history.record(rec);
     __ird_validatorRender(keys,rk,en);
 }
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){setTimeout(__ird_validatorMigrateLegacy,0);});
+else setTimeout(__ird_validatorMigrateLegacy,0);
 function __ird_validatorExport(){
     if (typeof TBKit === 'undefined') return;
     __ird_validatorExtras(true);

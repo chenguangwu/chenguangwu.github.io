@@ -7,11 +7,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=finance,industry=finance,icon=🏠,bg=#fff8e1">
-<meta name="description" content="贷款月供计算是一款免费的在线金融财务工具，输入贷款本金、年利率与还款年限，工具按等额本息公式算每月还款额与总利息，也可切换等额本金查看月供变化">
-<title>贷款月供计算 - 免费在线金融财务工具</title>
+<meta name="description" content="输入正的贷款本金、0–100% 的年利率与还款年限，计算等额本息/等额本金的月供、总利息与完整还款计划；空值不会被当作 0，负值会被拒绝，明细表标注省略期数并可导出 CSV">
+<title>贷款月供计算 - 等额本息/等额本金的月</title>
 <link rel="canonical" href="https://chenguangwu.github.io/tools/finance/calc-4.html">
-<meta property="og:title" content="贷款月供计算 - 免费在线金融财务工具">
-<meta property="og:description" content="贷款月供计算是一款免费的在线金融财务工具，输入贷款本金、年利率与还款年限，工具按等额本息公式算每月还款额与总利息，也可切换等额本金查看月供变化">
+<meta property="og:title" content="贷款月供计算 - 等额本息/等额本金的月">
+<meta property="og:description" content="输入正的贷款本金、0–100% 的年利率与还款年限，计算等额本息/等额本金的月供、总利息与完整还款计划；空值不会被当作 0，负值会被拒绝，明细表标注省略期数并可导出 CSV">
 <meta property="og:url" content="https://chenguangwu.github.io/tools/finance/calc-4.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../../css/common.css">
@@ -31,11 +31,11 @@
 <meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
-    <meta name="twitter:title" content="贷款月供计算 - 免费在线金融财务工具">
-    <meta name="twitter:description" content="贷款月供计算是一款免费的在线金融财务工具，输入贷款本金、年利率与还款年限，工具按等额本息公式算每月还款额与总利息，也可切换等额本金查看月供变化">
+    <meta name="twitter:title" content="贷款月供计算 - 等额本息/等额本金的月">
+    <meta name="twitter:description" content="输入正的贷款本金、0–100% 的年利率与还款年限，计算等额本息/等额本金的月供、总利息与完整还款计划；空值不会被当作 0，负值会被拒绝，明细表标注省略期数并可导出 CSV">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"贷款月供计算","url":"https://chenguangwu.github.io/tools/finance/calc-4.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"贷款月供计算是一款免费的在线金融财务工具，输入贷款本金、年利率与还款年限，工具按等额本息公式算每月还款额与总利息，也可切换等额本金查看月供变化","image":"https://chenguangwu.github.io/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"贷款月供计算","url":"https://chenguangwu.github.io/tools/finance/calc-4.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"输入正的贷款本金、0–100% 的年利率与还款年限，计算等额本息/等额本金的月供、总利息与完整还款计划；空值不会被当作 0，负值会被拒绝，明细表标注省略期数并可导出 CSV","image":"https://chenguangwu.github.io/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -160,13 +160,15 @@
   </div>
 
   <div class="card">
-    <h3>📅 还款计划表（前 12 期与最后 1 期）</h3>
+    <h3>📅 还款计划表（前 12 期 + 中间省略 + 末期；完整计划见 CSV）</h3>
     <div style="overflow-x:auto;">
       <table class="loan-table" id="schedule">
         <thead><tr><th scope="col">期数</th><th scope="col">月供</th><th scope="col">本金</th><th scope="col">利息</th><th scope="col">剩余本金</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
+    <div style="display:none;" aria-hidden="true"><table class="loan-table" id="scheduleFull"><thead><tr><th scope="col">期数</th><th scope="col">月供</th><th scope="col">本金</th><th scope="col">利息</th><th scope="col">剩余本金</th></tr></thead><tbody></tbody></table></div>
+    <p id="scheduleNote" style="font-size:12px;color:var(--text-muted);margin:8px 0 0;"></p>
   </div>
 
   <!-- Formula & Standard References -->
@@ -236,10 +238,25 @@ function $(id){ return document.getElementById(id); }
 function save(){ try{ const data={a:$('amount').value,r:$('rate').value,y:$('years').value,t:$('type').value}; localStorage.setItem(STORE_KEY,JSON.stringify(data)); }catch(e){} }
 function load(){ try{ const data=JSON.parse(localStorage.getItem(STORE_KEY)||'{}'); if(data.a!=null) $('amount').value=data.a; if(data.r!=null) $('rate').value=data.r; if(data.y!=null) $('years').value=data.y; if(data.t!=null) $('type').value=data.t; }catch(e){} }
 function fmt(n,d){ return ToolBox.formatNumber(n,d); }
+function __calc4Stop(msg){
+  const __en=(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  $('summary').innerHTML='';
+  const __tb=$('schedule') && $('schedule').querySelector('tbody'); if(__tb) __tb.innerHTML='';
+  const __full=$('scheduleFull') && $('scheduleFull').querySelector('tbody'); if(__full) __full.innerHTML='';
+  const __note=$('scheduleNote'); if(__note) __note.textContent='';
+  $('res').innerHTML='<p style="color:var(--danger);">⚠ '+(__en?'Invalid loan input; calculation stopped. Fill in a positive principal, an annual rate from 0% to 100%, and a valid term.':msg)+'</p>';
+  return false;
+}
 function calc(){
-  save();
-  const P = parseFloat($('amount').value)||0;
-  const rAnnual = (parseFloat($('rate').value)||0)/100;
+  const __amountRaw = String($('amount').value == null ? '' : $('amount').value).trim();
+  const __rateRaw = String($('rate').value == null ? '' : $('rate').value).trim();
+  const P = Number(__amountRaw);
+  const ratePct = Number(__rateRaw);
+  if(__amountRaw===''){ return __calc4Stop('请填写贷款金额；留空不会按 0 计算。'); }
+  if(!isFinite(P) || P<=0){ return __calc4Stop('贷款金额须为正数（当前输入 '+__amountRaw+' 元），负数与 0 均不支持。'); }
+  if(__rateRaw===''){ return __calc4Stop('请填写年利率；留空不会按 0% 计算。若确为零利率，请明确输入 0。'); }
+  if(!isFinite(ratePct) || ratePct<0 || ratePct>100){ return __calc4Stop('年利率须为 0%（含）至 100%（含）之间的数值（当前输入 '+__rateRaw+'%），负数不支持。'); }
+  const rAnnual = ratePct/100;
   const __yRaw = String($('years').value == null ? '' : $('years').value).trim();
   const years = parseFloat(__yRaw);
   const monthlyRate = rAnnual / 12;
@@ -267,6 +284,7 @@ function calc(){
       : '<p style="color:var(--danger);">⚠ 贷款期限过短，舍入后为 0 期；请至少输入半个月（约 0.042 年）以上。计算已停止。</p>';
     return;
   }
+  save();
   const type = $('type').value;
   let totalPayment=0, totalInterest=0, firstMonth=0, lastMonth=0;
   let schedule=[];
@@ -280,7 +298,7 @@ function calc(){
       balance -= principal;
       if(balance<0) balance=0;
       totalPayment += M; totalInterest += interest;
-      if(i<=12 || i===n) schedule.push({i,monthly:M,principal,interest,balance});
+      schedule.push({i,monthly:M,principal,interest,balance});
     }
   } else {
     const principalPerMonth = P / n;
@@ -293,7 +311,7 @@ function calc(){
       totalPayment += monthly; totalInterest += interest;
       if(i===1) firstMonth=monthly;
       if(i===n) lastMonth=monthly;
-      if(i<=12 || i===n) schedule.push({i,monthly,principal:principalPerMonth,interest,balance});
+      schedule.push({i,monthly,principal:principalPerMonth,interest,balance});
     }
   }
   const summary=[
@@ -306,7 +324,22 @@ function calc(){
   const __g1=summary.map(s=>`<div class="data-card"><div class="num">${s.num}</div><div class="label">${s.label}</div></div>`).join('');$('summary').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=`<p>首月还款：<strong>${fmt(firstMonth,2)} 元</strong>${type==='equal-principal'?`，末月还款 <strong>${fmt(lastMonth,2)} 元</strong>`:''}</p><p>还款总额：<strong>${fmt(totalPayment,2)} 元</strong>（利息 ${fmt(totalInterest,2)} 元）</p><p>贷款本金：<strong>${fmt(P,2)} 元</strong></p>`;$('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   const tbody = $('schedule').querySelector('tbody');
-  const __g3=schedule.map(r=>`<tr><td>第 ${r.i} 期</td><td>${fmt(r.monthly,2)}</td><td>${fmt(r.principal,2)}</td><td>${fmt(r.interest,2)}</td><td>${fmt(r.balance,2)}</td></tr>`).join('');tbody.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  const shown = schedule.length>13 ? schedule.filter(r=>r.i<=12||r.i===schedule.length) : schedule;
+  let rows = shown.map(r=>`<tr><td>第 ${r.i} 期</td><td>${fmt(r.monthly,2)}</td><td>${fmt(r.principal,2)}</td><td>${fmt(r.interest,2)}</td><td>${fmt(r.balance,2)}</td></tr>`);
+  if(schedule.length>13){
+    const omittedStart=13, omittedEnd=schedule.length-1;
+    rows.splice(12,0,`<tr class="omitted-row" style="background:var(--bg-soft,#f6f6f6);color:var(--text-muted);"><td colspan="5">第 ${omittedStart}–${omittedEnd} 期已省略（共 ${omittedEnd-omittedStart+1} 期）；完整逐期本金、利息与余额请点击「导出明细 CSV」。</td></tr>`);
+  }
+  const __g3=rows.join('');tbody.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  const fullBody=$('scheduleFull') && $('scheduleFull').querySelector('tbody');
+  if(fullBody){
+    const __g4=schedule.map(r=>`<tr><td>${r.i}</td><td>${fmt(r.monthly,2)}</td><td>${fmt(r.principal,2)}</td><td>${fmt(r.interest,2)}</td><td>${fmt(r.balance,2)}</td></tr>`).join('');
+    fullBody.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  }
+  const note=$('scheduleNote');
+  if(note) note.textContent = schedule.length>13
+    ? `表格仅展示前 12 期与第 ${schedule.length} 期，中间 ${schedule.length-13} 期已在表内标注省略；CSV 导出包含全部 ${schedule.length} 期，各期本金、利息、月供与汇总使用同一份计算数据。`
+    : `当前共 ${schedule.length} 期，表格已完整展示全部期数。`;
 }
 function copyRes(){ ToolBox.copyText($('res').innerText.replace(/\n+/g,'；'),'已复制结果'); }
 function resetAll(){ $('amount').value=1000000; $('rate').value=4.2; $('years').value=30; $('type').value='equal-interest'; calc(); }
@@ -440,7 +473,7 @@ function __calc_4Export(){
             __calc_4Render(keys,en?'Result':'结果',en);
         }
     }catch(e){}
-    try { TBKit.util.exportTable('#calc_4Table','calc-4.csv'); } catch(e){}
+    try { TBKit.util.exportTable('#scheduleFull','loan-schedule.csv'); } catch(e){}
 }
 function __calc_4Presets(){
     if (typeof TBKit === 'undefined') return;

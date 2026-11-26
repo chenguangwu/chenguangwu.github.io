@@ -96,6 +96,8 @@ var LANG_REGISTRY = [
       'cat.suffix_tools': 'Tools',
       'btn.allInd': 'View all industries →',
       'search.placeholder': 'Search tools, categories or features...',
+      'currency.list': 'Currency list',
+      'currency.search': 'Search currencies...',
   'colorConverter.inputPlaceholder': 'Enter a color (HEX, RGB, HSL, HSV, CMYK)',
       'search.mobile': 'Search tools...',
       'search.cmdk': 'Search 5000+ tools, categories or features...',

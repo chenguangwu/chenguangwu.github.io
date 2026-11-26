@@ -184,6 +184,9 @@
       <div>
         <label for="additional">期间追加投入（元）</label>
         <input type="number" id="additional" value="0" oninput="calc()" step="any" placeholder="如 0">
+        <label for="additionalDate">追加投入日期（可选；用于资金加权年化）</label>
+        <input type="date" id="additionalDate" oninput="calc()" aria-describedby="addDateHint">
+        <p id="addDateHint" style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">填写日期后按「初始投入在持有期起点、追加在该日、期末为今天」求资金加权年化；不填则只给累计回报，年化仅作期初假设估算。</p>
       </div>
     </div>
 
@@ -307,6 +310,37 @@ function calc(){
   const totalInv = init + add;
   const profit = fin - totalInv;
   const totalReturn = totalInv > 0 ? (profit / totalInv) * 100 : 0;
+  const addDateRaw = String((document.getElementById('additionalDate') || {}).value || '').trim();
+  let tAdd = 0, weightedRate = null;
+  if(add > 0 && addDateRaw){
+    const addDate = new Date(addDateRaw + 'T00:00:00');
+    const today = new Date(); today.setHours(0,0,0,0);
+    if(!isFinite(addDate.getTime()) || addDate > today){
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">追加投入日期无效或晚于今天，请重新选择。</p>';
+      return;
+    }
+    const elapsed = (today - addDate) / (365.25 * 86400000);
+    tAdd = yrs - elapsed;
+    if(tAdd < 0 || tAdd > yrs){
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">追加投入日期须落在持有的 ' + yrs + ' 年区间内（期初至今天），当前折算位置为 ' + tAdd.toFixed(2) + ' 年。</p>';
+      return;
+    }
+    function __npv(r){
+      return -init - (tAdd > 0 ? add / Math.pow(1 + r, tAdd) : add) + fin / Math.pow(1 + r, yrs);
+    }
+    let lo = -0.9999, hi = 1;
+    for(let k = 0; k < 80 && __npv(hi) > 0; k++) hi *= 2;
+    if(!isFinite(__npv(lo)) || !isFinite(__npv(hi)) || __npv(lo) * __npv(hi) > 0){
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">按该现金流无法求得有限资金加权年化（可能期末价值过低或期限异常）。请核对金额与日期。</p>';
+      return;
+    }
+    for(let k = 0; k < 120; k++){
+      const mid = (lo + hi) / 2, v = __npv(mid);
+      if(Math.abs(v) < 1e-10) break;
+      if(v > 0) lo = mid; else hi = mid;
+    }
+    weightedRate = ((lo + hi) / 2) * 100;
+  }
   // 用 log1p/expm1 计算 CAGR：极短年限配合高回报时先判断结果有限，避免 Infinity 仍被当有效结果。
   let cagr = 0;
   if(totalInv > 0){
@@ -330,15 +364,22 @@ function calc(){
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
     <p>累计盈亏：<strong style="color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'};">${profit >= 0 ? '+' : ''}${fmt(profit)}</strong> 元</p>
     <p>累计回报率：<strong style="color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'};">${totalReturn.toFixed(2)}%</strong></p>
-    <p style="font-size:18px;color:var(--primary);margin-top:8px;">年化收益率 CAGR：<strong>${cagr.toFixed(2)}%</strong></p>
+    ${weightedRate !== null
+      ? `<p style="font-size:18px;color:var(--primary);margin-top:8px;">资金加权年化（按现金流时点）：<strong>${weightedRate.toFixed(2)}%</strong></p>
+         <p style="font-size:12px;color:var(--text-muted);">追加 ${fmt(add)} 元发生在期初后 ${tAdd.toFixed(2)} 年；已按该时点折现求解，不再把追加全部视作期初。</p>`
+      : (add > 0
+        ? `<p style="font-size:16px;color:var(--primary);margin-top:8px;">资金加权年化：未计算（未填追加日期）</p>
+           <p>期初假设估算年化（把追加全部视作第 0 年投入，仅供对照）：<strong>${cagr.toFixed(2)}%</strong></p>
+           <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">未提供日期时不把该估算称为 CAGR；如需真实资金加权年化，请填写追加投入日期。</p>`
+        : `<p style="font-size:18px;color:var(--primary);margin-top:8px;">年化收益率 CAGR：<strong>${cagr.toFixed(2)}%</strong></p>
+           <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">无期间追加，初始投入与期末价值可视为完整区间，CAGR 即资金加权年化。</p>`)}
     <p>简单年化（不计复利）：${simpleAnnual.toFixed(2)}%</p>
-    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：追加投入未做时点修正，结果为近似值</p>
   `;document.getElementById('resultBox').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
 function clearAll(){
   investmentResultValid = false;
-  ['initial','final','years','additional'].forEach(id => document.getElementById(id).value = '');
+  ['initial','final','years','additional','additionalDate'].forEach(id => { var e=document.getElementById(id); if(e) e.value=''; });
   document.getElementById('resultBox').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter data":"请输入数据");
 }
 calc();

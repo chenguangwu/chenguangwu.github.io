@@ -336,6 +336,7 @@
     <h3>📈 到期损益图</h3>
     <div class="chart-wrap">
       <canvas id="chart"></canvas>
+      <p id="chartNote" style="font-size:12px;color:var(--text-muted);margin:6px 0 0;"></p>
     </div>
     <div class="legend">
       <div class="legend-item"><span class="legend-dot" style="background:#4338CA;"></span>损益曲线</div>
@@ -587,9 +588,16 @@ function drawChart(K, p, bep, currentS){
   var cw = w - pad.left - pad.right;
   var ch = h - pad.top - pad.bottom;
 
-  var range = Math.max(K * 0.4, p * 4);
-  var minS = Math.max(0, K - range);
-  var maxS = K + range;
+  // 横轴必须同时覆盖行权价、盈亏平衡点与当前到期价，避免深度实值/虚值时当前情景标记消失。
+  var anchors = [K, currentS];
+  if(isFinite(bep) && bep >= 0) anchors.push(bep);
+  var span = Math.max.apply(null, anchors) - Math.min.apply(null, anchors);
+  var padRange = Math.max(span * 0.2, K * 0.4, p * 4, 1);
+  var minS = Math.max(0, Math.min.apply(null, anchors) - padRange);
+  var maxS = Math.max.apply(null, anchors) + padRange;
+  if(maxS <= minS) maxS = minS + 1;
+  var note = document.getElementById('chartNote');
+  if(note) note.textContent = (en?'X-axis: ':'横轴：') + minS.toFixed(0) + '–' + maxS.toFixed(0) + (en?'; current expiry price S=':'；当前到期价 S=') + currentS.toFixed(0) + (en?', break-even ':'，盈亏平衡 ') + (isFinite(bep)?bep.toFixed(2):'—') + (en?' are included.': ' 均已纳入展示范围。');
 
   var points = 200;
   var data = [];

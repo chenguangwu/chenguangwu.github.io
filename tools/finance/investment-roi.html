@@ -192,6 +192,10 @@
       <label for="discount">折现率（% / 年，用于NPV）</label>
       <input type="number" id="discount" value="5" oninput="calcSimple()" step="any" placeholder="如 5">
 
+      <label for="annualCash">年均现金回流（元，可选；仅用于静态回收期）</label>
+      <input type="number" id="annualCash" value="" oninput="calcSimple()" step="any" min="0" placeholder="留空则不计算回收期，如 5000">
+      <p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">只有各年现金回流近似相等时，才能用「初始投资 ÷ 年均现金回流」估算静态回收期；仅填期末终值不代表期间现金流，留空时不输出确定回收期。</p>
+
       <div class="stat-grid" id="simpleStats" style="margin-top:16px;"></div>
       <div class="chart-card"><canvas id="simpleChart"></canvas></div>
     </div>
@@ -255,7 +259,7 @@
       <p><strong>年化 ROI（复利）</strong> = (1 + ROI)^(1/年数) - 1</p>
       <p><strong>持有期回报 HPR</strong> = (期末价值 + 期间现金流) / 期初价值 - 1</p>
       <p><strong>定投终值</strong> = FV = PMT × [(1+r)^n - 1] / r × (1+r)</p>
-      <p><strong>投资回收期</strong> = 初始投资 / 年现金流（静态）</p>
+      <p><strong>静态回收期</strong> = 初始投资 / 年均现金回流（仅各年现金流近似相等时适用；未填年均回流则不计算）</p>
       <p><strong>NPV</strong> = Σ 各期现金流 / (1+r)^t - 初始投资</p>
     </div> <div id="investment_roiTable"></div> <div id="investment_roiDiff"></div> <div id="investment_roiChart"></div> <div id="investment_roiHist"></div>
   </div>
@@ -438,7 +442,13 @@ function calcSimple(){
   const simpleAnnual = years > 0 ? roi / years : 0;
   const npv = ret / Math.pow(1 + discount / 100, years) - cost;
   const pi = cost > 0 ? (ret / Math.pow(1 + discount / 100, years)) / cost : 0;
-  const payback = profit > 0 ? cost / (profit / years) : Infinity;
+  const annualCashRaw = String(document.getElementById('annualCash').value || '').trim();
+  const annualCash = annualCashRaw === '' ? null : Number(annualCashRaw);
+  if(annualCash !== null && (!isFinite(annualCash) || annualCash < 0)){
+    document.getElementById('simpleStats').innerHTML = '<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">年均现金回流须为 ≥0 的有效数字（当前 ' + annualCashRaw + '）。</div></div>';
+    return;
+  }
+  const payback = (annualCash !== null && annualCash > 0) ? cost / annualCash : null;
 
   const __h2=`
     <div class="stat-card"><div class="val" style="color:${profit>=0?'var(--success)':'var(--danger)'};">${profit>=0?'+':''}${fmt(profit)}</div><div class="lbl">净利润（元）</div></div>
@@ -447,7 +457,7 @@ function calcSimple(){
     <div class="stat-card"><div class="val">${fmtPct(simpleAnnual)}</div><div class="lbl">简单年化</div></div>
     <div class="stat-card"><div class="val" style="color:${npv>=0?'var(--success)':'var(--danger)'};">${fmt(npv)}</div><div class="lbl">NPV 净现值</div></div>
     <div class="stat-card"><div class="val">${pi.toFixed(2)}</div><div class="lbl">获利指数 PI</div></div>
-    <div class="stat-card"><div class="val">${isFinite(payback)?payback.toFixed(2)+'年':'--'}</div><div class="lbl">投资回收期</div></div>
+    <div class="stat-card"><div class="val">${payback!==null?payback.toFixed(2)+'年':'--'}</div><div class="lbl">${payback!==null?'静态回收期（按年均现金回流）':'静态回收期（未提供年均现金回流）'}</div></div>
     <div class="stat-card"><div class="val">${years.toFixed(2)}年</div><div class="lbl">持有期</div></div>
   `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('simpleStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('simpleStats').innerHTML=__h2;
   drawSimpleChart();
@@ -584,6 +594,11 @@ function calcRegular(){
   const period = Number(periodRaw);
   if(!isFinite(pmt) || !isFinite(annualRate) || !isFinite(period) || pmt <= 0 || period <= 0){
     const __h3='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请输入合理的正数</div></div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('regularStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('regularStats').innerHTML=__h3;
+    return;
+  }
+  // 期限上限：50 年（周投最多 2,600 期），避免无界期数构造现金流数组 + IRR 多次遍历阻塞主线程。
+  if(period > 50){
+    document.getElementById('regularStats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">定投期限上限为 50 年（当前 ' + period + ' 年，约 ' + Math.round(period * (freq === 'weekly' ? 52 : freq === 'monthly' ? 12 : 1)) + ' 期）；请缩短期限后重试，页面未执行高期数 IRR 求解。</div></div>';
     return;
   }
   let n, ratePer, periodsPerYear;
@@ -723,13 +738,17 @@ function roiFutureValue(p, t, r){
   var base = 1 + r;
   var v = p.cost * Math.pow(base, t);
   if(p.add > 0 && t > 0){
-    // expm1/log1p 避免 r→0 时 ((1+r)^t−1)/r 的灾难性抵消：
-    // 旧写法在 r≈1e-13 时分子被浮点吃掉，0% 方案反解 IRR 会假报「无法确定」。
-    var q = Math.expm1(Math.log1p(r));      // ≈ r，小 r 下比 (1+r)−1 精确
-    var g = Math.expm1(t * Math.log1p(r));  // ≈ (1+r)^t − 1
-    v += Math.abs(r) < 1e-12 ? p.add * t : p.add * (g / q) * base;
+    // 每年期初追加是离散事件：投入时点为 t=0,1,…,ceil(年限)−1。
+    // 0.5 年只在 t=0 追加一次；1.5 年在 t=0、1 各一次；不按小数年限按比例折算。
+    var terms = Math.ceil(t - 1e-12);
+    for(var k=0;k<terms;k++){
+      v += p.add * Math.pow(base, t - k);
+    }
   }
   return v;
+}
+function __roiContributionCount(years){
+  return isFinite(years) && years>0 ? Math.ceil(years - 1e-12) : 0;
 }
 // F-N34：资金加权年化（IRR）。按「初始投入 t=0、每年期初追加、期末一次收回终值」
 // 的现金流口径反解年化利率；与 roiFutureValue 同源，期限含小数时仍自洽。
@@ -786,6 +805,10 @@ function calcCompare(){
     __roiReject('初始投资与投资期限须为有效正数（成本 > 0、期限 > 0）。','Initial cost and investment horizon must be positive numbers.');
     return;
   }
+  if(a.years > 50 || b.years > 50){
+    __roiReject('投资期限上限为 50 年；请缩短方案 A/B 的期限后重试。','Investment horizon is capped at 50 years; shorten plan A/B and retry.');
+    return;
+  }
   // 负追加会被当成 0 静默丢弃并放大投入基数，直接按字段错误处理
   if(a.add < 0 || b.add < 0){
     __roiReject('每年追加须 ≥ 0；如需从本金中取出，请按真实现金流另行计算。','Yearly top-up must be ≥ 0. To withdraw from principal, model the real cash flows instead.');
@@ -795,8 +818,9 @@ function calcCompare(){
   // F-N33：0% 是合法输入，统一走 roiFutureValue（r=0 走加性分支）
   function calcFV(p){ return roiFutureValue(p, p.years, p.rate/100); }
   const aFV = calcFV(a), bFV = calcFV(b);
-  const aInvest = a.cost + a.add * a.years;
-  const bInvest = b.cost + b.add * b.years;
+  const aCount = __roiContributionCount(a.years), bCount = __roiContributionCount(b.years);
+  const aInvest = a.cost + a.add * aCount;
+  const bInvest = b.cost + b.add * bCount;
   const aProfit = aFV - aInvest, bProfit = bFV - bInvest;
   const aRoi = aInvest > 0 ? aProfit/aInvest : 0;
   const bRoi = bInvest > 0 ? bProfit/bInvest : 0;
@@ -821,7 +845,7 @@ function calcCompare(){
     <div class="stat-card"><div class="val">${aAnnualTxt}</div><div class="lbl">${__roiTx('A 资金加权年化（IRR）','Plan A money-weighted IRR')}</div></div>
     <div class="stat-card"><div class="val">${bAnnualTxt}</div><div class="lbl">${__roiTx('B 资金加权年化（IRR）','Plan B money-weighted IRR')}</div></div>
     <div class="stat-card" style="grid-column:1/-1;text-align:left;"><div class="lbl" style="line-height:1.6;">${__roiTx(
-      '口径：资金加权年化（IRR）按「初始投入 t=0、每年期初追加、期末收回终值」反解，与定投 IRR 同口径；累计投入只用于展示成本，终值差额不代表收益率高低。A ' + aAnnualTxt + ' / B ' + bAnnualTxt + '。',
+      '口径：资金加权年化（IRR）按「初始投入 t=0、每年期初追加、期末收回终值」的真实离散现金流反解。每年期初追加只在完整年度起点发生：A 共 ' + aCount + ' 次、B 共 ' + bCount + ' 次，累计投入按实际次数计，不按小数年限按比例折半。A ' + aAnnualTxt + ' / B ' + bAnnualTxt + '。',
       'Basis: the money-weighted annualized return (IRR) is solved from cash flows (initial outlay at t=0, yearly top-ups at the start of each year, final value at maturity), same basis as the DCA IRR. Total outlay is cost only; a larger final value does not mean a higher return. A ' + aAnnualTxt + ' / B ' + bAnnualTxt + '.'
     )}</div></div>
   `;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('compareStats').innerHTML='<p style="color:var(--danger)">⚠ ' + __roiTx('计算结果含无效值，请检查输入是否为有效正数。','The result contains invalid values. Check the inputs.') + '</p>';try{var __cv=document.getElementById('compareChart');if(__cv&&__cv.getContext){var __cx=__cv.getContext('2d');if(__cx&&__cx.clearRect)__cx.clearRect(0,0,__cv.width,__cv.height);}}catch(e){}return;}document.getElementById('compareStats').innerHTML=__h5;

@@ -158,6 +158,10 @@
         <label for="r2">资产2收益 (%)</label>
         <input type="number" id="r2" value="8" step="0.5" placeholder="如 8">
       </div>
+      <div style="display:flex;align-items:center;gap:6px;padding-top:24px;">
+        <input type="checkbox" id="normalizeWeights" style="width:auto;" onchange="calcTool()">
+        <label for="normalizeWeights" style="margin:0;">权重合计≠100% 时按比例归一化</label>
+      </div>
     </div>
 
     <div id="portfolio_returnPresets"></div>
@@ -241,14 +245,19 @@ function calcTool(){
             if(miss.length){ToolBox.setResult('result','<p class="tip-error">请填写：'+miss.join('、')+'。</p>');return;}
             const w1v=num('w1'),w2v=num('w2'),r1=num('r1'),r2=num('r2');
             if(w1v<0||w2v<0){ToolBox.setResult('result','<div style="color:var(--danger);">权重不能为负数，请核对输入。</div>');return;}
-            if(w1v+w2v<=0){ToolBox.setResult('result','<p class="tip-error">权重合计为 0，请至少给一项资产填写非零权重。</p>');return;}
-            const w1=w1v/100,w2=w2v/100;
-            const rp=w1*r1+w2*r2;
             const wSum=w1v+w2v;
+            if(wSum<=0){ToolBox.setResult('result','<p class="tip-error">权重合计为 0，请至少给一项资产填写非零权重。</p>');return;}
+            const normalize=!!(document.getElementById('normalizeWeights')&&document.getElementById('normalizeWeights').checked);
+            if(Math.abs(wSum-100)>0.01&&!normalize){
+                ToolBox.setResult('result','<p class="tip-error">权重合计为 '+wSum.toFixed(2)+'%，不是 100%。剩余 '+(100-wSum).toFixed(2)+'% 对应的资产与收益未定义，不能当作完整组合收益；请补足权重，或勾选「按比例归一化」并明确该假设。</p>');return;
+            }
+            const denom=normalize?wSum:100;
+            const w1=w1v/denom,w2=w2v/denom;
+            const rp=w1*r1+w2*r2;
             const __g1=dataGrid([
-                [rp.toFixed(2),'组合预期收益 (%)'],
+                [rp.toFixed(2),(normalize?'归一化组合预期收益 (%)':'组合预期收益 (%)')],
                 [wSum.toFixed(2)+'%','权重合计（应=100%）'],
-                [Math.abs(wSum-100)<0.01?'✓ 正常':'⚠️ 偏差 '+(wSum-100).toFixed(2)+'%','权重校验']
+                [Math.abs(wSum-100)<0.01?'✓ 正常':(normalize?'已按比例归一化（原合计 '+wSum.toFixed(2)+'%）':'⚠️ 偏差 '+(wSum-100).toFixed(2)+'%'),'权重校验']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('w1').value = '60';
@@ -264,16 +273,20 @@ function __portfolio_returnExtras(){
     if (typeof TBKit === 'undefined') return;
     var w1v=num('w1'),w2v=num('w2'),r1=num('r1'),r2=num('r2');
     if (w1v<0 || w2v<0 || !isFinite(__portfolio_returnNum('w1')) || !isFinite(__portfolio_returnNum('w2')) || !isFinite(__portfolio_returnNum('r1')) || !isFinite(__portfolio_returnNum('r2'))) return;
-    var w1=w1v/100,w2=w2v/100;
-    var rp=w1*r1+w2*r2;
     var wSum=w1v+w2v;
+    if(wSum<=0) return;
+    var normalize=!!(document.getElementById('normalizeWeights')&&document.getElementById('normalizeWeights').checked);
+    if(Math.abs(wSum-100)>0.01&&!normalize) return;
+    var denom=normalize?wSum:100;
+    var w1=w1v/denom,w2=w2v/denom;
+    var rp=w1*r1+w2*r2;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#portfolio_returnTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['组合预期收益 (%)', rp.toFixed(2)],
+            [normalize?(en?'Normalized portfolio return (%)':'归一化组合预期收益 (%)'):'组合预期收益 (%)', rp.toFixed(2)],
             ['权重合计（应=100%）', wSum.toFixed(2)+'%'],
-            ['权重校验', Math.abs(wSum-100)<0.01?'✓ 正常':'⚠️ 偏差 '+(wSum-100).toFixed(2)+'%'],
+            ['权重校验', Math.abs(wSum-100)<0.01?'✓ 正常':(normalize?'已按比例归一化（原合计 '+wSum.toFixed(2)+'%）':'⚠️ 偏差 '+(wSum-100).toFixed(2)+'%')],
         ]
     });
     TBKit.history.record({w1:__portfolio_returnRaw('w1'), w2:__portfolio_returnRaw('w2'), r1:__portfolio_returnRaw('r1'), r2:__portfolio_returnRaw('r2'), rp:rp});

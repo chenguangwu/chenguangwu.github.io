@@ -306,26 +306,30 @@ function calcTool(){
    const pmt=P/n+fee;             // 每期还款额
    // IRR 月利率：二分法求解 P = pmt * (1-(1+i)^-n)/i；求解区间 [0, 1] 即月利率 0~100%
    const IRR_MAX=1.0;
-   function pvAt(i){ return i<=0 ? pmt*n : pmt*(1-Math.pow(1+i,-n))/i; }
-   let irrMonthly;
-   if(fee===0){
-     irrMonthly=0;
-   }else{
+   // 统一求根：主结果与期数对比复用同一套二分、残差与边界判定。
+   function solveMonthlyIrr(payment, terms, principal, feeTotal){
+     if(feeTotal===0) return {status:'ok', rate:0, residual:0, tol:Math.max(0.01,Math.abs(principal)*1e-6)};
+     function pv(i){ return i<=0 ? payment*terms : payment*(1-Math.pow(1+i,-terms))/i; }
      let lo=0, hi=IRR_MAX;
      for(let it=0;it<80;it++){
        const mid=(lo+hi)/2;
-       const pv=pvAt(mid);
-       if(pv>P) lo=mid; else hi=mid;
+       if(pv(mid)>principal) lo=mid; else hi=mid;
      }
-     irrMonthly=(lo+hi)/2;
+     const rate=(lo+hi)/2;
+     const residual=Math.abs(pv(rate)-principal);
+     const tol=Math.max(0.01,Math.abs(principal)*1e-6);
+     const beyond=pv(IRR_MAX)>principal+tol;
+     const atEdge=rate>=IRR_MAX-1e-9;
+     const status=beyond?'beyond':(atEdge?'edge':(residual>tol?'no-converge':'ok'));
+     return {status:status, rate:rate, residual:residual, tol:tol};
    }
-   // 求解后校验：|PV−P| 残差 + 真实根是否触及/超出区间边界
-   const pv=pvAt(irrMonthly);
-   const residual=Math.abs(pv-P);
-   const tol=Math.max(0.01, Math.abs(P)*1e-6);
-   const beyond=fee>0 && pvAt(IRR_MAX)>P+tol;   // PV 单调递减 ⇒ 真实根超出上限
-   const atEdge=irrMonthly>=IRR_MAX-1e-9;
-   const converged=residual<=tol && !beyond;
+   const sol=solveMonthlyIrr(pmt,n,P,fee);
+   const irrMonthly=sol.rate;
+   const residual=sol.residual;
+   const tol=sol.tol;
+   const beyond=sol.status==='beyond';
+   const atEdge=sol.status==='edge';
+   const converged=sol.status==='ok';
    const irrAnnual=irrMonthly*12*100;      // 近似年化（单利乘期）
    const ear=Math.pow(1+irrMonthly,12)-1;   // 有效年利率 EAR
    const totalFee=fee*n;
@@ -355,17 +359,7 @@ function calcTool(){
    html += '<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+
      '名义费率年化 '+(nominal).toFixed(2)+'%　→　实际年化（有效，按月复利）'+(ear*100).toFixed(2)+'%　（放大 '+(ear*100/Math.max(nominal,0.0001)).toFixed(2)+' 倍）；单利近似 ×12 = '+irrAnnual.toFixed(2)+'%（仅供对照）</div>';
    // 多期数并排（同一本金、同一每期费率）
-   function irrForTerm(m){
-     var pm=P/m+fee;
-     if(fee===0) return 0;
-     var lo=0, hi=1.0;
-     for(var it=0; it<80; it++){
-       var mid=(lo+hi)/2;
-       var pv=pm*(1-Math.pow(1+mid,-m))/mid;
-       if(pv>P) lo=mid; else hi=mid;
-     }
-     return (lo+hi)/2;
-   }
+   function irrForTerm(m){ return solveMonthlyIrr(P/m+fee,m,P,fee); }
    html += '<div style="margin-top:12px;font-size:13px;"><b>不同期数对比（本金与每期费率相同）</b></div>'+
      '<table class="csv-prev" style="margin-top:6px;border-collapse:collapse;width:100%;font-size:12.5px;">'+
      '<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">期数</th>'+
@@ -373,13 +367,16 @@ function calcTool(){
      '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">总手续费</th>'+
      '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">有效年化</th></tr>';
    [6,12,24,36].forEach(function(m){
-     var im=irrForTerm(m), ea=(Math.pow(1+im,12)-1)*100;
+     var sv=irrForTerm(m);
+     var ea = sv.status==='ok' ? (Math.pow(1+sv.rate,12)-1)*100 : null;
+     var eaText = sv.status==='ok' ? ea.toFixed(2)+'%' : (sv.status==='edge' ? '边界解（月 IRR 100%，年化可能更高）' : '未求解（月 IRR 超出 100% 上限，仅为下界以外）');
      html += '<tr><td style="border:1px solid #d1d5db;padding:5px 8px;">'+m+(m===n?'（当前）':'')+'</td>'+
        '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+fmtMoney(P/m+fee)+'</td>'+
        '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+fmtMoney(fee*m)+'</td>'+
-       '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+ea.toFixed(2)+'%</td></tr>';
+       '<td style="border:1px solid #d1d5db;padding:5px 8px;">'+eaText+'</td></tr>';
    });
    html += '</table>';
+   html += '<div class="tip-mini" style="margin-top:6px;font-size:12px;color:var(--text-muted);">对比表与主结果使用同一求根区间 [0, 100%] 月利率与同一残差容差；显示“未求解”表示真实根可能超出该区间，不展示截断值。</div>';
 
    // 前 12 期还款明细表
    const showN=Math.min(n,12);

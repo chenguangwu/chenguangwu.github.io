@@ -258,6 +258,26 @@ function luhnCheck(digits){
   return sum % 10 === 0;
 }
 let __creditCardTypeValid = false;
+function __creditCardTypeMask(v){
+  var d=String(v==null?'':v).replace(/[^0-9]/g,'');
+  if(!d) return '';
+  if(d.length<=4) return '••••';
+  if(d.length<=10) return '•••• '+d.slice(-4);
+  return d.slice(0,6)+' •••• •••• '+d.slice(-4);
+}
+(function(){
+  try{
+    var keys=Object.keys(localStorage), dirty=false;
+    for(var i=0;i<keys.length;i++){
+      if(keys[i].indexOf('credit-card-type')<0) continue;
+      var raw=String(localStorage.getItem(keys[i])||'');
+      if(/\d[\d\s-]{11,24}/.test(raw)) dirty=true;
+    }
+    if(dirty){
+      for(var j=keys.length-1;j>=0;j--){ if(keys[j].indexOf('credit-card-type')>=0) localStorage.removeItem(keys[j]); }
+    }
+  }catch(e){}
+})();
 function validate(){
   __creditCardTypeValid = false;
   const raw = document.getElementById('input').value.trim();
@@ -266,7 +286,7 @@ function validate(){
   if(/[^\d\s-]/.test(raw)){ out.textContent='只能包含数字、空格或连字符'; return; }
   if(!digits){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
   const brand = detect(digits);
-  let html = `<p><strong>输入数字：</strong>${digits}</p>`;
+  let html = `<p><strong>输入数字（已脱敏）：</strong>${__creditCardTypeMask(digits)}</p>`;
   html += `<p><strong>长度：</strong>${digits.length} 位</p>`;
   html += `<p><strong>卡片类型（前缀初步判断）：</strong> <span class="brand-tag ${brand.cls}">${brand.name}</span></p>`;
   if(brand.lengths.length){
@@ -336,6 +356,7 @@ function __credit_card_typeSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(e.id==='input') v=__creditCardTypeMask(v);
         if(v!==''&&v!=null) out[e.id]=v;
     }
     return out;
@@ -376,6 +397,7 @@ function __credit_card_typeRender(keys,rk,en){
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
+                    if(k==='input' && String(rec[k]).indexOf('•')>=0) continue;
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
