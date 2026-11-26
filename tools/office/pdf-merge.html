@@ -472,6 +472,7 @@ function __pdfMsg(zh,en){try{return (typeof TBKit!=='undefined'&&TBKit.util&&TBK
 let files = [];          // { id, file, name, size, pages, status:'loading'|'ok'|'error' }
 let dragSrcId = null;
 let isMerging = false;
+let lastMergeSnapshot = null;
 
 /* ---------- 工具函数 ---------- */
 function genId(){
@@ -493,6 +494,10 @@ function addMore(){
   document.getElementById('fileInput').click();
 }
 async function addFiles(fileList){
+  if(isMerging){
+    ToolBox.showToast(__pdfMsg('正在合并，请等待完成后再添加文件','Merge in progress; wait before adding files.'), 'warning');
+    return;
+  }
   const selected = Array.from(fileList);
   const isPdf = function(f){ return f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'); };
   const arr = selected.filter(isPdf);
@@ -593,6 +598,7 @@ function invalidateResult(){
   if(isMerging) return;
   window.__lastBlob = null;
   window.__lastName = null;
+  lastMergeSnapshot = null;
   const result = document.getElementById('result');
   if(result) result.innerHTML = '';
   hideProgress();
@@ -603,6 +609,7 @@ function renderList(){
   const list = document.getElementById('fileList');
   const bar = document.getElementById('actionBar');
   const summary = document.getElementById('statSummary');
+  const en = typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn();
 
   if(files.length === 0){
     const __h0='';list.innerHTML=__h0;
@@ -617,11 +624,11 @@ function renderList(){
   const __h1=files.map((f, i) => {
     let metaBadge;
     if(f.status === 'loading'){
-      metaBadge = '<span class="badge loading">读取中...</span>';
+      metaBadge = '<span class="badge loading">' + (en ? 'Reading…' : '读取中...') + '</span>';
     }else if(f.status === 'error'){
-      metaBadge = '<span class="badge error">无法解析</span>';
+      metaBadge = '<span class="badge error">' + (en ? 'Unreadable' : '无法解析') + '</span>';
     }else{
-      metaBadge = '<span class="badge pages">' + (f.pages != null ? f.pages + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" pages":" 页") : '?') + '</span>';
+      metaBadge = '<span class="badge pages">' + (f.pages != null ? f.pages + (en ? (f.pages === 1 ? ' page' : ' pages') : ' 页') : '?') + '</span>';
     }
     return `
       <div class="file-item" draggable="true" data-id="${f.id}"
@@ -630,22 +637,22 @@ function renderList(){
            ondragleave="onDragLeave(event,'${f.id}')"
            ondrop="onDrop(event,'${f.id}')"
            ondragend="onDragEnd(event)">
-        <span class="drag-handle" title="拖拽排序">⠿</span>
+        <span class="drag-handle" title="${en ? 'Drag to reorder' : '拖拽排序'}">⠿</span>
         <span class="file-idx">${i + 1}</span>
         <span class="file-icon">📄</span>
         <div class="file-info">
           <div class="file-name" title="${esc(f.name)}">${esc(f.name)}</div>
           <div class="file-meta">
             ${metaBadge}
-            ${f.features && f.features.forms ? '<span class="badge">' + (typeof TBKit!=='undefined'&&TBKit.util.isEn()?f.features.forms+' form'+(f.features.forms>1?'s':''):f.features.forms+' 表单') + '</span>' : ''}
-            ${f.features && f.features.outlines ? '<span class="badge">' + (typeof TBKit!=='undefined'&&TBKit.util.isEn()?f.features.outlines+' bookmark'+(f.features.outlines>1?'s':''):f.features.outlines+' 书签') + '</span>' : ''}
+            ${f.features && f.features.forms ? '<span class="badge">' + (en ? f.features.forms+' form'+(f.features.forms>1?'s':'') : f.features.forms+' 表单') + '</span>' : ''}
+            ${f.features && f.features.outlines ? '<span class="badge">' + (en ? f.features.outlines+' bookmark'+(f.features.outlines>1?'s':'') : f.features.outlines+' 书签') + '</span>' : ''}
             <span class="badge">${formatSize(f.size)}</span>
           </div>
         </div>
         <div class="file-actions">
-          <button class="icon-btn" title="上移" onclick="moveItem('${f.id}',-1)" ${i === 0 ? 'disabled' : ''} aria-label="上移">↑</button>
-          <button class="icon-btn" title="下移" onclick="moveItem('${f.id}',1)" ${i === files.length - 1 ? 'disabled' : ''} aria-label="下移">↓</button>
-          <button class="icon-btn danger" title="删除" onclick="removeItem('${f.id}')" aria-label="删除">✕</button>
+          <button class="icon-btn" title="${en ? 'Move up' : '上移'}" onclick="moveItem('${f.id}',-1)" ${i === 0 ? 'disabled' : ''} aria-label="${en ? 'Move up' : '上移'}">↑</button>
+          <button class="icon-btn" title="${en ? 'Move down' : '下移'}" onclick="moveItem('${f.id}',1)" ${i === files.length - 1 ? 'disabled' : ''} aria-label="${en ? 'Move down' : '下移'}">↓</button>
+          <button class="icon-btn danger" title="${en ? 'Remove' : '删除'}" onclick="removeItem('${f.id}')" aria-label="${en ? 'Remove' : '删除'}">✕</button>
         </div>
       </div>`;
   }).join('');list.innerHTML=__h1;
@@ -657,10 +664,10 @@ function renderList(){
   const errCount = files.filter(f => f.status === 'error').length;
   summary.style.display = 'flex';
   const __h2=`
-    <div class="ss-item"><div class="ss-val">${files.length}</div><div class="ss-lbl">文件总数</div></div>
-    <div class="ss-item"><div class="ss-val">${totalPages}</div><div class="ss-lbl">合计页数</div></div>
-    <div class="ss-item"><div class="ss-val">${formatSize(totalSize)}</div><div class="ss-lbl">总大小</div></div>
-    ${errCount > 0 ? '<div class="ss-item"><div class="ss-val" style="color:var(--danger);">' + errCount + '</div><div class="ss-lbl">无法解析</div></div>' : ''}
+    <div class="ss-item"><div class="ss-val">${files.length}</div><div class="ss-lbl">${en ? 'Files' : '文件总数'}</div></div>
+    <div class="ss-item"><div class="ss-val">${totalPages}</div><div class="ss-lbl">${en ? 'Total pages' : '合计页数'}</div></div>
+    <div class="ss-item"><div class="ss-val">${formatSize(totalSize)}</div><div class="ss-lbl">${en ? 'Total size' : '总大小'}</div></div>
+    ${errCount > 0 ? '<div class="ss-item"><div class="ss-val" style="color:var(--danger);">' + errCount + '</div><div class="ss-lbl">' + (en ? 'Unreadable' : '无法解析') + '</div></div>' : ''}
   `;summary.innerHTML=__h2;
 
   updateStructureNotice(okItems);
@@ -684,6 +691,10 @@ function renderList(){
 
 /* ---------- 排序操作 ---------- */
 function moveItem(id, dir){
+  if(isMerging){
+    ToolBox.showToast(__pdfMsg('正在合并，请等待完成后再排序','Merge in progress; wait before reordering.'), 'warning');
+    return;
+  }
   const idx = files.findIndex(f => f.id === id);
   if(idx < 0) return;
   const target = idx + dir;
@@ -693,6 +704,10 @@ function moveItem(id, dir){
   renderList();
 }
 function removeItem(id){
+  if(isMerging){
+    ToolBox.showToast(__pdfMsg('正在合并，请等待完成后再删除文件','Merge in progress; wait before removing files.'), 'warning');
+    return;
+  }
   invalidateResult();
   files = files.filter(f => f.id !== id);
   renderList();
@@ -700,6 +715,10 @@ function removeItem(id){
 }
 function clearAll(){
   if(files.length === 0) return;
+  if(isMerging){
+    ToolBox.showToast(__pdfMsg('正在合并，请等待完成后再清空','Merge in progress; wait before clearing.'), 'warning');
+    return;
+  }
   if(!confirm(__pdfMsg('确定要清空全部 ' + files.length + ' 个文件吗？', 'Clear all ' + files.length + ' file(s)?'))) return;
   invalidateResult();
   files = [];
@@ -790,7 +809,8 @@ async function mergePDFs(){
   document.getElementById('mergeBtn').disabled = true;
   const __h4='';document.getElementById('result').innerHTML=__h4;
   const total = okItems.length;
-  const merged = await PDFDocument.create();
+  const en = typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn();
+  let merged = null;
   const flattenForms = !!(document.getElementById('flattenForms') && document.getElementById('flattenForms').checked);
   let outlineStats = { items: 0, dropped: 0 };
   let linkStats = { fixed: 0, dropped: 0, unsupported: 0 };
@@ -799,9 +819,10 @@ async function mergePDFs(){
   const failedNames = [];
 
   try{
+    merged = await PDFDocument.create();
     for(let i = 0; i < okItems.length; i++){
       const item = okItems[i];
-      showProgress(i, total, `正在处理 (${i + 1}/${total})`, '读取：' + item.name);
+      showProgress(i, total, __pdfMsg('正在处理 (' + (i + 1) + '/' + total + ')', 'Processing (' + (i + 1) + '/' + total + ')'), __pdfMsg('读取：' + item.name, 'Reading: ' + item.name));
       try{
         const buf = await item.file.arrayBuffer();
         const src = await PDFDocument.load(buf, { ignoreEncryption: true });
@@ -846,7 +867,7 @@ async function mergePDFs(){
       ToolBox.showToast((document.documentElement.lang||'').toLowerCase().startsWith('en') ? 'No readable pages to merge' : '没有可合并的页面，请检查文件是否加密或损坏', 'warning');
       return;
     }
-    showProgress(total, total, '正在生成 PDF 文件...', '');
+    showProgress(total, total, __pdfMsg('正在生成 PDF 文件...','Building PDF...'), '');
     const outBytes = await merged.save();
 
     // 下载
@@ -862,7 +883,6 @@ async function mergePDFs(){
 
     const totalPages = merged.getPageCount();
     const sizeKb = (outBytes.byteLength / 1024).toFixed(1);
-    const en = typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn();
     let structLine = '';
     if(outlineStats.items || outlineStats.dropped || linkStats.fixed || linkStats.dropped || flattenFailed || formsSkipped){
       structLine = '<p style="font-size:12px;line-height:1.7;">' +
@@ -882,6 +902,16 @@ async function mergePDFs(){
     const sizeText = (sizeKb >= 1024 ? (sizeKb/1024).toFixed(2) + ' MB' : sizeKb + ' KB');
     const failedCount = okItems.length - mergedFiles;
     const incomplete = failedCount > 0;
+    lastMergeSnapshot = {
+      time: new Date().toISOString(),
+      files: okItems.map(function(item, idx){
+        return { index: idx + 1, name: item.name, pages: item.pages, status: item.status, error: item.error || '' };
+      }),
+      mergedFiles: mergedFiles,
+      totalFiles: okItems.length,
+      totalPages: totalPages,
+      incomplete: incomplete
+    };
     const __h5=(en
       ? (incomplete
           ? '<p style="color:var(--danger);">⚠ Merge incomplete: <strong>' + mergedFiles + '</strong> of <strong>' + okItems.length + '</strong> file(s) merged, <strong>' + totalPages + '</strong> page(s).</p>' +
@@ -904,18 +934,23 @@ async function mergePDFs(){
     window.__lastName = fname;
     if(!incomplete){
       a.click();
-      showProgress(total, total, '合并完成 ✓', '共 ' + totalPages + ' 页，文件已下载');
+      showProgress(total, total, __pdfMsg('合并完成 ✓','Merge complete ✓'), __pdfMsg('共 ' + totalPages + ' 页，文件已下载', totalPages + ' page(s) downloaded'));
       ToolBox.showToast(__pdfMsg('合并完成，文件已开始下载','Merge complete. Download started.'), 'success');
     }else{
-      showProgress(total, total, '合并不完整', mergedFiles + '/' + okItems.length + ' 个文件成功');
+      showProgress(total, total, __pdfMsg('合并不完整','Merge incomplete'), __pdfMsg(mergedFiles + '/' + okItems.length + ' 个文件成功', mergedFiles + '/' + okItems.length + ' file(s) merged'));
       ToolBox.showToast(__pdfMsg('有文件处理失败，结果未自动下载','Some files failed; incomplete result was not downloaded.'), 'warning');
     }
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
   }catch(err){
     console.error(err);
-    const __h6='<p style="color:var(--danger);">❌ 合并失败：' + esc(String(err && err.message ? err.message : err)) + '</p>' +
-      '<p style="color:var(--text-muted);font-size:12px;">请检查文件是否损坏或加密后重试。</p>';document.getElementById('result').innerHTML=__h6;
-    showProgress(0, total, '合并失败', String(err && err.message ? err.message : err));
+    const errText = String(err && err.message ? err.message : err);
+    const __h6 = en
+      ? '<p style="color:var(--danger);">❌ Merge failed: ' + esc(errText) + '</p>' +
+        '<p style="color:var(--text-muted);font-size:12px;">Check for damaged or encrypted files, then retry.</p>'
+      : '<p style="color:var(--danger);">❌ 合并失败：' + esc(errText) + '</p>' +
+        '<p style="color:var(--text-muted);font-size:12px;">请检查文件是否损坏或加密后重试。</p>';
+    document.getElementById('result').innerHTML=__h6;
+    showProgress(0, total, __pdfMsg('合并失败','Merge failed'), errText);
     ToolBox.showToast(__pdfMsg('合并失败，请检查文件是否损坏或加密','Merge failed. Check for damaged or encrypted files.'), 'error');
   }finally{
     isMerging = false;
@@ -1051,18 +1086,38 @@ function __pdf_mergeExtras(){
     TBKit.history.record(rec);
     __pdf_mergeRender(keys,rk,en);
 }
+function __pdfMergeCsvCell(value){
+    var str = String(value == null ? '' : value);
+    if(/^[=+\-@]/.test(str)) str = "'" + str;
+    if(/[",\n\r]/.test(str)) str = '"' + str.replace(/"/g, '""') + '"';
+    return str;
+}
 function __pdf_mergeExport(){
-    if (typeof TBKit === 'undefined') return;
+    if(!lastMergeSnapshot || !lastMergeSnapshot.files || !lastMergeSnapshot.files.length){
+        ToolBox.showToast(__pdfMsg('请先完成一次合并再导出明细','Complete a merge before exporting details.'), 'warning');
+        return;
+    }
+    var en = typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn();
+    var head = en ? ['No.','File name','Pages','Status','Failure reason','Merged pages in this run']
+                  : ['序号','文件名','页数','状态','失败原因','本次合并总页数'];
+    var rows = [head];
+    lastMergeSnapshot.files.forEach(function(f){
+        var status = f.status === 'error'
+            ? (en ? 'Failed' : '失败')
+            : (en ? 'Success' : '成功');
+        var reason = '';
+        if(f.error === 'encrypted') reason = en ? 'Encrypted / password protected' : '加密或需要密码';
+        else if(f.error === 'unreadable') reason = en ? 'Unreadable or damaged' : '无法解析或文件损坏';
+        else if(f.error) reason = f.error;
+        rows.push([f.index, f.name, f.pages == null ? '' : f.pages, status, reason, lastMergeSnapshot.totalPages]);
+    });
+    var csv = rows.map(function(row){ return row.map(__pdfMergeCsvCell).join(','); }).join('\r\n');
     try{
-        var box=document.querySelector('#pdf_mergeTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__pdf_mergeSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __pdf_mergeRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#pdf_mergeTable','pdf-merge.csv'); } catch(e){}
+        ToolBox.downloadText('pdf-merge-details.csv', '\ufeff' + csv, 'text/csv;charset=utf-8');
+        ToolBox.showToast(__pdfMsg('已导出合并明细 CSV','Merge details CSV exported.'), 'success');
+    }catch(err){
+        ToolBox.showToast(__pdfMsg('导出失败：' + err.message, 'Export failed: ' + err.message), 'error');
+    }
 }
 function __pdf_mergePresets(){
     if (typeof TBKit === 'undefined') return;
