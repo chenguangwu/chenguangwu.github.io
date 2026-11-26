@@ -154,7 +154,7 @@
         <label for="formula">化学式</label>
         <input type="text" id="formula" placeholder="如 H2O / C6H12O6 / Fe2(SO4)3" value="H2O" oninput="calc()">
       </div>
-      <div id="calc_cyclePresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__calc_cycleExport()">导出明细 CSV</button>
+      <div id="calc_cyclePresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__calc_cycleExport()">导出元素组成 CSV</button><button class="btn" type="button" onclick="__calc_cycleExportHistory()">导出历史记录 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
@@ -525,16 +525,27 @@ function __calc_cycleExtras(){
 }
 function __calc_cycleExport(){
     if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#calc_cycleTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__calc_cycleSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __calc_cycleRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#calc_cycleTable','calc-cycle.csv'); } catch(e){}
+    calc();
+    var formula=document.getElementById('formula').value.trim();
+    var res=formula?parseFormula(formula):null;
+    if(!res||res.error) return;
+    var counts=res.counts||{},keys=Object.keys(counts);
+    if(!keys.length) return;
+    var total=0,bad=false;
+    keys.forEach(function(k){if(!E[k]){bad=true;return;}total+=E[k][0]*counts[k];});
+    if(bad||!(total>0)) return;
+    var en=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?true:false;
+    var rows=[[en?'Chemical formula':'化学式',en?'Molar mass (g/mol)':'总摩尔质量 (g/mol)',en?'Element':'元素',en?'Atom count':'原子个数',en?'Atomic weight (g/mol)':'原子量 (g/mol)',en?'Element mass (g/mol)':'分项质量 (g/mol)',en?'Mass fraction (%)':'质量占比 (%)']];
+    rows.push([formula,total.toFixed(2),en?'Total':'合计','','',total.toFixed(3),'100.00']);
+    keys.sort().forEach(function(k){
+        var mass=E[k][0],m=mass*counts[k];
+        rows.push([formula,total.toFixed(2),k,String(counts[k]),String(mass),m.toFixed(3),(m/total*100).toFixed(2)]);
+    });
+    TBKit.util.exportCsv('calc-cycle.csv',rows);
+}
+function __calc_cycleExportHistory(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calc_cycleTable','calc-cycle-history.csv'); } catch(e){}
 }
 function __calc_cyclePresets(){
     if (typeof TBKit === 'undefined') return;

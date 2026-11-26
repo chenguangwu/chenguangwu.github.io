@@ -18,6 +18,73 @@ const { runCase } = require("./verify_it_calc.js");
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
+  {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "H2O" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/science/molar-mass-calculator.html','utf8');var i=h.indexOf('function __molar_mass_calculatorExport(){');var j=h.indexOf('function __molar_mass_calculatorExportHistory(){');var seg=h.slice(i,j),hist=h.slice(j,j+260);var ok=i>=0&&j>i&&seg.indexOf('exportCsv(')>=0&&seg.indexOf('exportTable(')<0&&seg.indexOf('Chemical formula')>=0&&seg.indexOf('Mass fraction (%)')>=0&&seg.indexOf('rows.push([f,total.toFixed(3)')>=0&&hist.indexOf('molar-mass-calculator-history.csv')>=0;document.getElementById('formula').value='MOLEXP '+(ok?'OK':'BAD');"],
+    expect: ["MOLEXP OK"],
+    ref: "摩尔质量明细导出：旧按钮调用 exportTable 导出历史表（结果只截前 80 字）。现主按钮 exportCsv 当前元素明细，列含 Chemical formula / Mass fraction；历史导出独立函数与 molar-mass-calculator-history.csv。真机已核 C6H12O6/H2O/CuSO4·5H2O/空/错误五态。"
+  },
+  {
+    "slug": "science/calc-cycle",
+    "inputs": { "formula": "H2O" },
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/science/calc-cycle.html','utf8');var i=h.indexOf('function __calc_cycleExport(){');var j=h.indexOf('function __calc_cycleExportHistory(){');var seg=h.slice(i,j),hist=h.slice(j,j+220);var ok=i>=0&&j>i&&seg.indexOf('exportCsv(')>=0&&seg.indexOf('exportTable(')<0&&seg.indexOf('Chemical formula')>=0&&seg.indexOf('Mass fraction (%)')>=0&&hist.indexOf('calc-cycle-history.csv')>=0;document.getElementById('formula').value='MOLEXP '+(ok?'OK':'BAD');"],
+    "expect": ["MOLEXP OK"],
+    "ref": "calc-cycle 明细导出：旧按钮调用 exportTable 导出历史表。现主按钮 exportCsv 当前元素明细（化学式/总摩尔质量/元素/计数/原子量/分项质量/占比），历史单独 calc-cycle-history.csv。真机已核 C6H12O6/水合物/空/错误四态。"
+  },
+  {
+    slug: "science/molar-mass-calculator",
+    // 原 all_default 弱用例（formula=H2O 恰等于页面默认）
+    inputs: { formula: "C6H12O6" },
+    expect: ["180.156 元素组成", "72.066", "40.00%"],
+    ref: "改为 C6H12O6：M = 12.011×6 + 1.008×12 + 15.999×6 = 180.156（toFixed(3)）；C 行质量 12.011×6 = 72.066、占比 72.066/180.156 = 40.00%。**同批修复页面真缺陷**：元素组成「占比」列原写成 (m/total×100)，而 total 是循环内累加中的前缀和 ⇒ 首行恒 100.00%：H2O 显示 100.00%+88.81% = 188.81%、C6H12O6 显示 100.00%+14.37%+53.29% = 167.66%（占比合计 >100% 物理不可能）。已改为先累加求 total、再第二趟算占比：C6H12O6 → 40.00%/6.71%/53.29%（合计 100.00%）、H2O → 11.19%/88.81%。默认态 18.016、无「72.066」与「40.00%」",
+  },
+  {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "Ca(OH)2" },
+    expect: ["74.092", "54.09%"],
+    ref: "新增回归：括号结构 Ca(OH)2 → 40.078+2×(15.999+1.008)=74.092；旧正则解析丢掉括号，会把 O2H2 误拆成 O2 + H2 且 Ca 后系数错位，得 57.09 一类错误值",
+  },
+  {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "Ca(OH]2" },
+    expect: ["化学式格式有误"],
+    ref: "SMS-9 清账（括号类型）：原括号扫描只累计深度、不区分配对类型，Ca(OH]2 的 '(' 遇 ']' 也 depth-- 归零被接受。现改栈匹配，闭合符须与栈顶开启符对应；交叉括号报错。旧版接受并算出质量 ⇒ 变红，零逃生。"
+  },
+  {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "NaCl·2H2O·3H2O" },
+    expect: ["摩尔质量 M 148.515", "H 10 1.008 10.080", "O 5 15.999 79.995"],
+    ref: "SMS-9 清账（多水合段）：原 addComp 递归时把前段系数累乘到后段，NaCl·2H2O·3H2O 得 H=16/O=8/M=202.560。现按 · 在顶层分段、各段系数独立（NaCl+2H2O+3H2O）：H=2+3=5×2=10、O=2+3=5、M=148.515。三条锚均为旧版不成立，零逃生。"
+  },
+  {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "H0" },
+    expect: ["化学式格式有误"],
+    ref: "SMS-9 清账（零下标）：原括号/元素下标只按数字串解析，H0 产生 H=0 并以 M=0.000、占比 NaN/Infinity 参与展示。现元素与括号计数统一要求正整数，0 下标判格式错误；旧版不报「化学式格式有误」⇒ 变红，零逃生。"
+  },
+  {
+    "slug": "science/molar-mass-calculator",
+    "inputs": {
+      "formula": "abc123测试"
+    },
+    "expect": [
+      "化学式格式有误：括号不配对或含无法识别字符"
+    ],
+    "ref": "非法化学式 abc123测试 现由 parseFormula 校验并给出格式错误提示（原自动补强用例期望「摩尔质量 M 0.000」，是旧版静默返回 0 的行为，且把输入回显拼进期望串；已按现行为更正，默认 H2O 不出现该提示）。"
+  },
+  {
+    "slug": "science/calc-cycle",
+    "inputs": { "formula": "H2O)" },
+    "expect": ["括号不匹配：多余的右括号"],
+    "ref": "SMS-75：parseSegment 原在 ')' 分支直接 stack.pop()，多余右括号（H2O)/)H2O）无对应左括号时 top=undefined，随后 for(var k in top){cur[k]=…} 抛未捕获 TypeError、结果停留旧值。修复为 pop 前判断 stack.length<=1 直接返回错误。默认 formula=H2O 合法 ⇒ 不含该错误串（页面原生静态说明只有泛化「括号不匹配」，无此精确串）。"
+  },
+  {
+    "slug": "science/calc-cycle",
+    "inputs": { "formula": "CuSO4.5H2O" },
+    "expect": ["249.68 g/mol", "共 21 个原子"],
+    "ref": "SMS-76：文档示范水合物 CuSO4.5H2O，但旧 parseSegment 把段首系数 5 当非法字符报「无法识别的字符：\\\"5\\\"」。修复后 parseFormula 分段剥离段首系数乘算：Cu 63.546+S 32.06+O4 63.996+5×(H2 2.016+O 15.999)=63.546+32.06+63.996+90.075=249.677→249.68 g/mol；原子数 1+1+4+5×3=21。默认 H2O=18.02 ⇒ 不含该串。"
+  },
   // ── 经典力学 ─────────────────────────────────────────────────
   { slug: "science/newtons-second",
     inputs: { m: "10", a: "" },
@@ -75,37 +142,6 @@ const CASES = [
   },
 
   // ── 化学（摩尔质量 / pH）────────────────────────────────────
-  {
-    slug: "science/molar-mass-calculator",
-    // 原 all_default 弱用例（formula=H2O 恰等于页面默认）
-    inputs: { formula: "C6H12O6" },
-    expect: ["180.156 元素组成", "72.066", "40.00%"],
-    ref: "改为 C6H12O6：M = 12.011×6 + 1.008×12 + 15.999×6 = 180.156（toFixed(3)）；C 行质量 12.011×6 = 72.066、占比 72.066/180.156 = 40.00%。**同批修复页面真缺陷**：元素组成「占比」列原写成 (m/total×100)，而 total 是循环内累加中的前缀和 ⇒ 首行恒 100.00%：H2O 显示 100.00%+88.81% = 188.81%、C6H12O6 显示 100.00%+14.37%+53.29% = 167.66%（占比合计 >100% 物理不可能）。已改为先累加求 total、再第二趟算占比：C6H12O6 → 40.00%/6.71%/53.29%（合计 100.00%）、H2O → 11.19%/88.81%。默认态 18.016、无「72.066」与「40.00%」",
-  },
-  {
-    slug: "science/molar-mass-calculator",
-    inputs: { formula: "Ca(OH)2" },
-    expect: ["74.092", "54.09%"],
-    ref: "新增回归：括号结构 Ca(OH)2 → 40.078+2×(15.999+1.008)=74.092；旧正则解析丢掉括号，会把 O2H2 误拆成 O2 + H2 且 Ca 后系数错位，得 57.09 一类错误值",
-  },
-  {
-    slug: "science/molar-mass-calculator",
-    inputs: { formula: "Ca(OH]2" },
-    expect: ["化学式格式有误"],
-    ref: "SMS-9 清账（括号类型）：原括号扫描只累计深度、不区分配对类型，Ca(OH]2 的 '(' 遇 ']' 也 depth-- 归零被接受。现改栈匹配，闭合符须与栈顶开启符对应；交叉括号报错。旧版接受并算出质量 ⇒ 变红，零逃生。"
-  },
-  {
-    slug: "science/molar-mass-calculator",
-    inputs: { formula: "NaCl·2H2O·3H2O" },
-    expect: ["摩尔质量 M 148.515", "H 10 1.008 10.080", "O 5 15.999 79.995"],
-    ref: "SMS-9 清账（多水合段）：原 addComp 递归时把前段系数累乘到后段，NaCl·2H2O·3H2O 得 H=16/O=8/M=202.560。现按 · 在顶层分段、各段系数独立（NaCl+2H2O+3H2O）：H=2+3=5×2=10、O=2+3=5、M=148.515。三条锚均为旧版不成立，零逃生。"
-  },
-  {
-    slug: "science/molar-mass-calculator",
-    inputs: { formula: "H0" },
-    expect: ["化学式格式有误"],
-    ref: "SMS-9 清账（零下标）：原括号/元素下标只按数字串解析，H0 产生 H=0 并以 M=0.000、占比 NaN/Infinity 参与展示。现元素与括号计数统一要求正整数，0 下标判格式错误；旧版不报「化学式格式有误」⇒ 变红，零逃生。"
-  },
   {
     slug: "science/ph-calculator",
     // ⚠ 默认页签是「H⁺→pH」，读的是 id="H"（默认 0.001）；id="ph" 属于另两个页签，
@@ -1922,16 +1958,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"meteorDiameter\":\"42\",\"meteorVelocity\":\"42\",\"impactAngle\":\"42\",\"targetDensity\":\"42\",\"meteorDensity\":\"7800\",\"targetType\":\"crystalline\"}，输出区含「 撞击点 撞击坑 4.68 km 火球区 5.61 km 烧伤区 23.91 k…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "science/molar-mass-calculator",
-    "inputs": {
-      "formula": "abc123测试"
-    },
-    "expect": [
-      "化学式格式有误：括号不配对或含无法识别字符"
-    ],
-    "ref": "非法化学式 abc123测试 现由 parseFormula 校验并给出格式错误提示（原自动补强用例期望「摩尔质量 M 0.000」，是旧版静默返回 0 的行为，且把输入回显拼进期望串；已按现行为更正，默认 H2O 不出现该提示）。"
-  },
-  {
     "slug": "science/mode-calculator",
     "inputs": {
       "data": "1\n2\n3"
@@ -2631,18 +2657,6 @@ const CASES = [
     "clicks": ["(function(){globalThis.TBKit={util:{isEn:function(){return true;}}};try{showFormulas();}catch(e){}var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='MATEN '+((h.indexOf('Matrix formula reference')>=0&&h.indexOf('Addition:')>=0&&!/[\\u4e00-\\u9fff]/.test(h))?'OK':'BAD '+h.slice(0,100));})()"],
     "expect": ["MATEN OK"],
     "ref": "632 复核失败重做：showFormulas() 原无条件写入中文标题与多行中文说明，英文态（?lang=en-US）点击「公式说明」仍全中文。修复后按 __matIsEn() 分流整套英文文案。探针 mock TBKit.util.isEn=true 后调用，断言含 Matrix formula reference / Addition: 且无 CJK；默认态不执行 clicks ⇒ 零逃生。"
-  },
-  {
-    "slug": "science/calc-cycle",
-    "inputs": { "formula": "H2O)" },
-    "expect": ["括号不匹配：多余的右括号"],
-    "ref": "SMS-75：parseSegment 原在 ')' 分支直接 stack.pop()，多余右括号（H2O)/)H2O）无对应左括号时 top=undefined，随后 for(var k in top){cur[k]=…} 抛未捕获 TypeError、结果停留旧值。修复为 pop 前判断 stack.length<=1 直接返回错误。默认 formula=H2O 合法 ⇒ 不含该错误串（页面原生静态说明只有泛化「括号不匹配」，无此精确串）。"
-  },
-  {
-    "slug": "science/calc-cycle",
-    "inputs": { "formula": "CuSO4.5H2O" },
-    "expect": ["249.68 g/mol", "共 21 个原子"],
-    "ref": "SMS-76：文档示范水合物 CuSO4.5H2O，但旧 parseSegment 把段首系数 5 当非法字符报「无法识别的字符：\\\"5\\\"」。修复后 parseFormula 分段剥离段首系数乘算：Cu 63.546+S 32.06+O4 63.996+5×(H2 2.016+O 15.999)=63.546+32.06+63.996+90.075=249.677→249.68 g/mol；原子数 1+1+4+5×3=21。默认 H2O=18.02 ⇒ 不含该串。"
   },
   {
     "slug": "science/astro-geo-calculator",

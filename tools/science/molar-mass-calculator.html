@@ -141,7 +141,7 @@
 <div class="input-group"><div data-tb="preset" data-tb-presets='[{"label":"化学式H2O","labelEn":"formula=H2O","values":{"formula":"H2O"}}]'></div>
 <label for="formula">化学式</label><input type="text" id="formula" value="H2O" placeholder="如: H2O, NaCl, C6H12O6" oninput="calc()" style="font-family:monospace;font-size:18px;text-align:center;"></div>
 <div class="checkbox-row" style="flex-wrap:wrap;"><span style="font-size:12px;color:var(--text-muted);">快速输入：</span><button onclick="add('H2O')" style="padding:4px 10px;font-size:12px;">H₂O</button><button onclick="add('NaCl')" style="padding:4px 10px;font-size:12px;">NaCl</button><button onclick="add('CO2')" style="padding:4px 10px;font-size:12px;">CO₂</button><button onclick="add('C6H12O6')" style="padding:4px 10px;font-size:12px;">葡萄糖</button><button onclick="add('H2SO4')" style="padding:4px 10px;font-size:12px;">H₂SO₄</button><button onclick="add('CaCO3')" style="padding:4px 10px;font-size:12px;">CaCO₃</button><button onclick="add('NaOH')" style="padding:4px 10px;font-size:12px;">NaOH</button><button onclick="add('CH3COOH')" style="padding:4px 10px;font-size:12px;">醋酸</button></div>
-<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__molar_mass_calculatorExport()">导出明细 CSV</button></div><div class="result-box" id="result"></div> <div id="molar_mass_calculatorTable"></div> <div id="molar_mass_calculatorDiff"></div> <div id="molar_mass_calculatorChart"></div> <div id="molar_mass_calculatorHist"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__molar_mass_calculatorExport()">导出元素组成 CSV</button><button class="btn" type="button" onclick="__molar_mass_calculatorExportHistory()">导出历史记录 CSV</button></div><div class="result-box" id="result"></div> <div id="molar_mass_calculatorTable"></div> <div id="molar_mass_calculatorDiff"></div> <div id="molar_mass_calculatorChart"></div> <div id="molar_mass_calculatorHist"></div>
 <div style="margin-top:16px;"><h4>常见元素原子量</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px;margin-top:8px;font-size:12px;" id="elist"></div></div>
 </div>
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -413,16 +413,28 @@ function __molar_mass_calculatorExtras(){
 }
 function __molar_mass_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#molar_mass_calculatorTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__molar_mass_calculatorSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __molar_mass_calculatorRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#molar_mass_calculatorTable','molar-mass-calculator.csv'); } catch(e){}
+    calc();
+    var f=document.getElementById('formula').value.trim();
+    var comp=f?parseFormula(f):null;
+    if(!comp) return;
+    var total=0;
+    for(var el in comp){
+        if(!masses[el]){return;}
+        total+=masses[el]*comp[el];
+    }
+    if(!(total>0)) return;
+    var en=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?true:false;
+    var rows=[[en?'Chemical formula':'化学式',en?'Molar mass (g/mol)':'总摩尔质量 (g/mol)',en?'Element':'元素',en?'Atom count':'原子个数',en?'Atomic weight (g/mol)':'原子量 (g/mol)',en?'Element mass (g/mol)':'分项质量 (g/mol)',en?'Mass fraction (%)':'质量占比 (%)']];
+    rows.push([f,total.toFixed(3),en?'Total':'合计','','',total.toFixed(3),'100.00']);
+    for(var el in comp){
+        var m=masses[el]*comp[el];
+        rows.push([f,total.toFixed(3),el,String(comp[el]),String(masses[el]),m.toFixed(3),(m/total*100).toFixed(2)]);
+    }
+    TBKit.util.exportCsv('molar-mass-calculator.csv',rows);
+}
+function __molar_mass_calculatorExportHistory(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#molar_mass_calculatorTable','molar-mass-calculator-history.csv'); } catch(e){}
 }
 function __molar_mass_calculatorPresets(){
     if (typeof TBKit === 'undefined') return;
