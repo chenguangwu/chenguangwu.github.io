@@ -266,11 +266,13 @@ function threeDigitsToWord(n){
   return res;
 }
 
-function numberToWords(n, rawDec, rawNeg){
+function numberToWords(n, rawDec, rawNeg, rawInt){
   if(n === 0 && !rawDec) return 'zero';
   let neg = !!rawNeg || n < 0;
   if(n < 0){ n = -n; }
-  const intPart = Math.floor(n);
+  // 整数部分优先用输入原文 parseInt：parseFloat 在大数带长小数时会先舍入到 1e12，
+  // 导致整数读法进位（如 999999999998.99999 被读成 …nine hundred ninety-nine）。
+  const intPart = rawInt != null ? parseInt(rawInt, 10) : Math.floor(n);
   const decPart = n - intPart;
   let words = '';
   if(intPart === 0){
@@ -315,13 +317,18 @@ function convert(){
     const __h1='<p style="color:var(--danger);">请输入有效数字</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
     return;
   }
-  const n = parseFloat(v);
-  if(Math.abs(n) >= 1e12){
+  const negSign = /^-/.test(v);
+  const absText = negSign ? v.slice(1) : v;
+  const dotAtAbs = absText.indexOf('.');
+  const intRaw = (dotAtAbs >= 0 ? absText.slice(0, dotAtAbs) : absText).replace(/^0+/, '') || '0';
+  // 范围按「输入原文的整数部分」判断，不先转浮点：上限为 12 位 9。
+  if(intRaw.length > 12 || (intRaw.length === 12 && intRaw > '999999999999')){
     const __h2='<p style="color:var(--danger);">超出范围（最大 ±999,999,999,999）</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
     return;
   }
+  const n = parseFloat(v);
   const dotAt = v.indexOf('.');
-  const word = numberToWords(n, dotAt >= 0 ? v.slice(dotAt + 1) : null, /^-/.test(v));
+  const word = numberToWords(n, dotAt >= 0 ? v.slice(dotAt + 1) : null, negSign, intRaw);
   let moneyHtml = '';
   const curSel = document.getElementById('currencyMode');
   const cur = curSel ? curSel.value : '';

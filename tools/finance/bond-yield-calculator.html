@@ -606,19 +606,30 @@ function __bondValidateCurrent(){
     if(!isFinite(Number(el.value))) return req[i][1]+'须为有效数字。';
   }
   function numVal(id){ return Number(document.getElementById(id).value); }
+  var couponId=mode==='ytm'?'y-coupon':mode==='current'?'c-coupon':mode==='holding'?'h-coupon':'p-coupon';
+  var couponVal=numVal(couponId);
+  if(!(couponVal>=0) || couponVal>100) return '票面利率须在 0–100% 之间（零息债券请明确填 0）。';
   if(!(numVal(mode==='ytm'?'y-face':mode==='current'?'c-face':mode==='holding'?'h-face':'p-face')>0)) return '面值须大于 0。';
   if(mode==='ytm' && !(numVal('y-price')>0)) return '当前价格须大于 0。';
   if(mode==='current' && !(numVal('c-price')>0)) return '当前价格须大于 0。';
   if(mode==='holding' && !(numVal('h-buy')>0)) return '买入价格须大于 0。';
   if(mode==='holding' && numVal('h-sell')<0) return '卖出价格须为非负数。';
   if(mode==='price' && numVal('p-rate')<0) return '市场利率须为非负数。';
+  if(mode==='price' && numVal('p-rate')>100) return '市场利率须在 0–100% 之间。';
   var yearsId=mode==='ytm'?'y-years':mode==='holding'?'h-years':mode==='price'?'p-years':'';
   if(yearsId && !(numVal(yearsId)>0)) return '期限须大于 0。';
   return '';
 }
 function calc(){
   var err=__bondValidateCurrent();
-  if(err){ ToolBox.setResult('res', '<p style="color:var(--danger);">⚠ '+err+'</p>'); return; }
+  if(err){
+    currentResult=null;
+    var sg=document.getElementById('statGrid'); if(sg) sg.innerHTML='';
+    var cv=document.getElementById('chart');
+    if(cv && cv.getContext){try{cv.getContext('2d').clearRect(0,0,cv.width,cv.height);}catch(e){}}
+    ToolBox.setResult('res', '<p style="color:var(--danger);">⚠ '+err+'</p>');
+    return;
+  }
   var result = {method: currentMethod, timestamp: Date.now()};
   
   if(currentMethod === 'ytm'){

@@ -410,7 +410,24 @@ var yinfo = readInflationYears();
     return;
   }
 var years = yinfo.value;
+var rateRaw = String(document.getElementById('rate').value == null ? '' : document.getElementById('rate').value).trim();
+var rateVal = parseFloat(rateRaw);
+if(!isFinite(rateVal) || rateVal <= -100){
+  document.getElementById('statGrid').innerHTML='';
+  document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 年通胀率须大于 -100%（-100% 会使价格因子为 0，无法折现）；负值表示通缩。</p>';
+  var __rt=document.getElementById('inflation_calculatorTable'); if(__rt) __rt.innerHTML='';
+  var __rv=document.getElementById('chart'); if(__rv && __rv.getContext) __rv.getContext('2d').clearRect(0,0,__rv.width,__rv.height);
+  return;
+}
 var data = getYearData(years);
+  var badData = data.some(function(d){ return !isFinite(d.purchasingPower) || !isFinite(d.neededAmount); });
+  if(badData){
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 数值溢出：通胀率与年限组合超出可计算范围，已停止计算并清空年表/图表。请调整通胀率或缩短年限。</p>';
+    var __bt=document.getElementById('inflation_calculatorTable'); if(__bt) __bt.innerHTML='';
+    var __bv=document.getElementById('chart'); if(__bv && __bv.getContext) __bv.getContext('2d').clearRect(0,0,__bv.width,__bv.height);
+    return;
+  }
   var last = data[data.length - 1];
   var amt = +document.getElementById('amt').value || 0;
 
@@ -435,7 +452,7 @@ var data = getYearData(years);
       + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(last.neededAmount, 0) + '</div><div class="lbl">所需金额</div></div>';
   } else {
     statHtml = '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(last.purchasingPower, 0) + '</div><div class="lbl">现在等值</div></div>'
-      + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(amt - last.purchasingPower, 0) + '</div><div class="lbl">通胀侵蚀额</div></div>';
+      + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(amt - last.purchasingPower, 0) + '</div><div class="lbl">现值差额（正=缩水）</div></div>';
   }
   const __g4=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 
@@ -446,15 +463,24 @@ var data = getYearData(years);
     resHtml += '<strong>' + years + '</strong> 年后的购买力相当于现在的：';
     resHtml += '</p><p style="font-size:24px;color:var(--primary);margin:8px 0;">¥<strong>' + ToolBox.formatNumber(last.purchasingPower, 2) + '</strong></p>';
     resHtml += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-    resHtml += '<p>若要保持现在的购买力，' + years + '年后需要：<strong style="color:var(--danger);">¥' + ToolBox.formatNumber(last.neededAmount, 0) + '</strong> 元</p>';
-    resHtml += '<p>购买力缩水：<strong style="color:var(--danger);">' + Math.abs(changePct).toFixed(2) + '%</strong></p>';
+    resHtml += '<p>若要保持现在的购买力，' + years + '年后需要：<strong>¥' + ToolBox.formatNumber(last.neededAmount, 0) + '</strong> 元</p>';
+    if(changePct >= 0){
+      resHtml += '<p>购买力增加：<strong style="color:#16a34a;">' + changePct.toFixed(2) + '%</strong>（通缩使同样金额能买到更多）</p>';
+    } else {
+      resHtml += '<p>购买力缩水：<strong style="color:var(--danger);">' + Math.abs(changePct).toFixed(2) + '%</strong></p>';
+    }
   } else {
     resHtml += '<strong>' + years + '</strong> 年后的 <strong>¥' + ToolBox.formatNumber(amt, 0) + '</strong> 元，';
     resHtml += '按年通胀 <strong>' + (+document.getElementById('rate').value).toFixed(2) + '%</strong> 折现到现在，价值：';
     resHtml += '</p><p style="font-size:24px;color:var(--primary);margin:8px 0;">¥<strong>' + ToolBox.formatNumber(last.purchasingPower, 2) + '</strong></p>';
     resHtml += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-    resHtml += '<p>相当于现在的：<strong>' + ((last.purchasingPower/amt)*100).toFixed(2) + '%</strong></p>';
-    resHtml += '<p>贬值幅度：<strong style="color:var(--danger);">' + ((1 - last.purchasingPower/amt)*100).toFixed(2) + '%</strong></p>';
+    var presentRatio = last.purchasingPower/amt;
+    resHtml += '<p>相当于现在的：<strong>' + (presentRatio*100).toFixed(2) + '%</strong></p>';
+    if(presentRatio > 1){
+      resHtml += '<p>增值幅度：<strong style="color:#16a34a;">' + ((presentRatio - 1)*100).toFixed(2) + '%</strong>（通缩下未来同额钱的现值更高）</p>';
+    } else {
+      resHtml += '<p>贬值幅度：<strong style="color:var(--danger);">' + ((1 - presentRatio)*100).toFixed(2) + '%</strong></p>';
+    }
   }
   const __g5=resHtml;document.getElementById('res').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 

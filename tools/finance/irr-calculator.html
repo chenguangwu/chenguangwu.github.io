@@ -425,7 +425,7 @@ function removePeriod(idx) {
 }
 
 function updateAmount(idx, value) {
-  cashFlows[idx].amount = parseFloat(value) || 0;
+  cashFlows[idx].amount = String(value).trim() === '' ? null : parseFloat(value);
   // F-N8：金额变化必须同步快照，否则 calc() 会把旧快照误判成「历史恢复」而覆盖新输入
   __irrWriteFlowSnapshot();
   saveFlows();
@@ -477,7 +477,7 @@ function renderFlows() {
     <div class="cf-row">
       <div class="period">T${cf.period}</div>
       <input type="text" value="${cf.label || ''}" placeholder="说明" style="flex:0.4;" oninput="updateLabel(${idx}, this.value)" aria-label="说明">
-      <input type="number" value="${cf.amount}" placeholder="金额（负=投入，正=收入）" oninput="updateAmount(${idx}, this.value)" aria-label="金额（负=投入，正=收入）">
+      <input type="number" value="${cf.amount==null?'':cf.amount}" placeholder="金额（负=投入，正=收入）" oninput="updateAmount(${idx}, this.value)" aria-label="金额（负=投入，正=收入）">
       <button class="remove" onclick="removePeriod(${idx})" aria-label="删除">✕</button>
     </div>
   `).join('');container.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
@@ -583,7 +583,33 @@ function solveIRR(series) {
   return { roots, verified, signChanges, reason };
 }
 
+function __irrClearChart(){
+  var box = document.getElementById('irr_calculatorChart');
+  if (box) box.innerHTML = '';
+  var cv = document.getElementById('chart');
+  if (cv && cv.getContext) { try { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); } catch(e){} }
+}
 function calc() {
+  var missingIdx = cashFlows.map(function(f,i){ return f.amount == null ? i : -1; }).filter(function(i){ return i >= 0; });
+  if (missingIdx.length) {
+    resetDisplay();
+    renderDetail([]);
+    __irrClearChart();
+    var w = document.getElementById('irrWarn');
+    w.textContent = '⚠ 第 ' + missingIdx.map(function(i){ return cashFlows[i].period; }).join('、') + ' 期金额尚未填写；留空不按 0 计算，如确为 0 请明确输入 0。';
+    w.style.display = 'block';
+    return;
+  }
+  var drRaw = String(document.getElementById('discountRate').value == null ? '' : document.getElementById('discountRate').value).trim();
+  if (drRaw === '') {
+    resetDisplay();
+    renderDetail([]);
+    __irrClearChart();
+    var w2 = document.getElementById('irrWarn');
+    w2.textContent = '⚠ 折现率尚未填写；如确为 0% 请明确输入 0。';
+    w2.style.display = 'block';
+    return;
+  }
   if (cashFlows.length < 2) {
     resetDisplay();
     renderDetail([]);
@@ -591,7 +617,7 @@ function calc() {
   }
 
   const series = buildSeries(cashFlows);
-  const discountRate = parseFloat(document.getElementById('discountRate').value) / 100 || 0;
+  const discountRate = parseFloat(drRaw) / 100;
   const unit = document.getElementById('periodUnit').value;
   saveFlows();
 

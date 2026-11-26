@@ -487,6 +487,13 @@ function calc() {
       balance += annual;
       totalInvested += annual;
     }
+
+    // 先判有限性再入表：年表、CSV 与图表都从这里取数，溢出时不能留下 Infinity/NaN。
+    if (!isFinite(balance) || !isFinite(yearInterest) || !isFinite(totalInvested)) {
+      resetDisplay();
+      document.getElementById('calcNotice').textContent = '⚠ 数值溢出：当前利率与年限组合超出可计算范围，已停止计算并清空年表/图表。请降低年化利率或缩短年限后重试。';
+      return;
+    }
     
     yearData.push({
       year: y,
@@ -504,6 +511,11 @@ function calc() {
   const returnRate = totalInvested > 0 ? (totalInt / totalInvested * 100) : 0;
   // 并列单利口径：本金按单利计息、每年定投不计息（仅用于与复利结果对照）
   const simpleFV = P * (1 + r / 100 * t) + annual * t;
+  if (!isFinite(totalFV) || !isFinite(totalInt) || !isFinite(returnRate) || !isFinite(simpleFV)) {
+    resetDisplay();
+    document.getElementById('calcNotice').textContent = '⚠ 数值溢出：结果含非有限数值，已停止计算并清空年表/图表。请降低年化利率或缩短年限后重试。';
+    return;
+  }
   window.__ciLast = {P:P, r:r, t:t, n:n, annual:annual, investTime:investTime, totalFV:totalFV, totalInvested:totalInvested, simpleFV:simpleFV};
 
   const __g1=fmtShort(totalFV);document.getElementById('totalFV').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
