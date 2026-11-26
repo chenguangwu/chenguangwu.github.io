@@ -1,6 +1,17 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs=require("fs"), path=require("path");
+function musicStaticChecks(){
+  const read=(p)=>fs.readFileSync(path.join(__dirname,"..","tools","music",p),"utf8");
+  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html");
+  return [
+    {name:"和弦进行降E映射、悲怆四级与大调高频",ok:/'Eb':3/.test(cp)&&!/'Eb':2/.test(cp)&&/qualities:\s*\['',\s*'m',\s*'',\s*'m'\]/.test(cp)&&/48 \+ chordRoot/.test(cp)&&/spellChordNote\(rootName/.test(cp)},
+    {name:"和弦进行停止清理全部高亮定时器",ok:/highlightTimeouts/.test(cp)&&/highlightTimeouts\.forEach/.test(cp)&&/if \(isPlaying\) highlightChord/.test(cp)},
+    {name:"和弦音符按音级拼写并修正A大三示例",ok:/spellFromRoot/.test(cn)&&/A C♯ E/.test(cn)&&!/A、A\+4\(半音\)=C、/.test(cn)},
+    {name:"乐理小调与复音程按音级拼写",ok:/SCALE_STEPS/.test(mt)&&/stepOverride/.test(mt)&&/intervalName\(iv\)/.test(mt)&&/14:'9'/.test(mt)}
+  ];
+}
 const CASES = [
 {
     "slug": "music/ear-trainer",
@@ -452,7 +463,34 @@ const CASES = [
     clicks: ["var e=document.getElementById('a4Input');e.value='';finishA4Edit();document.getElementById('freq2note').textContent='A4EDIT '+(+e.value===440?'OK':'BAD');"],
     expect: ["A4EDIT OK"],
     ref: "第1065批：A4 自定义输入清空/越界时，失焦必须恢复标准 440 Hz，不能输入框空白而内部仍沿用旧参考频率。空值触发 finishA4Edit 后 a4Input 回填 440；默认态输入框本就是 440、探针串不存在 ⇒ 锚不逃生。"
-  }
+  },
+
+
+{
+  "slug": "music/chord-notes",
+  "clicks": ["document.getElementById('chordInput').value='Bb';analyzeChord();document.getElementById('__tbProbe').textContent=document.getElementById('notesDisplay').innerText;"],
+  "expect": ["Bb", "D", "F"],
+  "ref": "Bb 大三和弦应为 Bb-D-F；旧实现把根音转成 A# 并显示 A# D F。"
+},
+{
+  "slug": "music/chord-notes",
+  "clicks": ["document.getElementById('chordInput').value='Cdim';analyzeChord();document.getElementById('__tbProbe').textContent=document.getElementById('notesDisplay').innerText;"],
+  "expect": ["C", "E♭", "G♭"],
+  "ref": "C 减三和弦应按音级拼成 C-E♭-G♭，不得写成 C-D#-F#。"
+},
+{
+  "slug": "music/music-theory",
+  "clicks": ["setRoot(0);document.getElementById('scale-type').value='minor';renderScale();document.getElementById('__tbProbe').textContent=document.getElementById('scale-display').innerText;"],
+  "expect": ["C - D - Eb - F - G - Ab - Bb"],
+  "ref": "C 自然小调必须按音级拼写 C-D-E♭-F-G-A♭-B♭；旧实现固定升号，显示 D#/G#/A#。"
+},
+{
+  "slug": "music/music-theory",
+  "clicks": ["setRoot(0);document.getElementById('chord-type').value='add9';renderChord();document.getElementById('__tbProbe').textContent=document.getElementById('chord-display').innerText;"],
+  "expect": ["Cadd9", "D", "9"],
+  "ref": "Cadd9 的九音应拼作 D 且音程标注 9，不得把 +14 半音标成 2。"
+}
+
 ];
 async function main() {
   const only = process.argv.slice(2);
@@ -474,7 +512,10 @@ async function main() {
     }
   }
 
+  const stat=musicStaticChecks();
+  const sf=stat.filter(x=>!x.ok);
+  for(const x of sf) console.log("❌ [static] "+x.name);
   console.log("==== music calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (fails.length||sf.length) process.exit(1);
 }
 if (require.main === module) main();
