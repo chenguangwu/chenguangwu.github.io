@@ -4705,6 +4705,67 @@ const CASES = [
     expect: ["PCTINTRO OK"],
     ref: "第926批：简介/场景按五种算法说明占比、求值、增减、变化率，并交代百分点、零分母、负基数与精度限制。"
   }
+  ,{
+    slug: "life/analysis-80",
+    inputs: { data: "进货,5,100,200" },
+    expect: ["第 1 行格式无效"],
+    ref: "第927批：多余列不再被静默忽略，原始行号与“环节,损耗量,应售量”格式一起提示。"
+  },
+  {
+    slug: "life/world-clock",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/world-clock.html','utf8');document.getElementById('__tbProbe').textContent='WCMEET '+((src.indexOf('meetingHoursConfig')>=0&&src.indexOf('function __meetingWorkFor')>=0&&src.indexOf('setMeetingWork')>=0)?'OK':'BAD');"],
+    expect: ["WCMEET OK"],
+    ref: "第927批：会议页可按城市改工作起止时间、选共同日期、支持跨日班次，并可复制带日期/时区的候选时段。"
+  },
+  {
+    slug: "life/recommender-8",
+    inputs: { cnt: "1" },
+    expect: ["条款核对清单，不构成投保建议", "可核对险种：", "本页不测算保额、不生成保费"],
+    ref: "第927批：输出改为条款核对清单，不再用下标生成“建议保额/年保费参考”。"
+  },
+  {
+    slug: "life/recommender-8",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/recommender-8.html','utf8');document.getElementById('__tbProbe').textContent='INSOK '+((src.indexOf('建议保额')<0&&src.indexOf('年保费参考')<0&&src.indexOf('条款核对清单')>=0)?'OK':'BAD');"],
+    expect: ["INSOK OK"],
+    ref: "第927批：页面源码不再出现无依据的“建议保额/年保费参考”，改为条款核对项。"
+  },
+  {
+    slug: "life/timestamp",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/timestamp.html','utf8');document.getElementById('__tbProbe').textContent='TSSTRICT '+((src.indexOf('function clearResult')>=0&&src.indexOf('Number(raw)')>=0&&src.indexOf('parseFloat(raw)')<0&&src.indexOf('parseTimestamp(ts)')>=0)?'OK':'BAD');"],
+    expect: ["TSSTRICT OK"],
+    ref: "第927批：单条输入对完整字符串严格校验，尾随 abc 被拒绝并清空旧结果，不再 parseFloat 截断；批量复用同一校验。"
+  },
+  {
+    slug: "life/timestamp",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/timestamp.html','utf8');document.getElementById('__tbProbe').textContent='TSYEAR '+((src.indexOf('setUTCFullYear(year')>=0&&src.indexOf('function makeLocalDate')>=0&&src.indexOf('d.setFullYear(year')>=0&&src.indexOf('String(y).padStart(4')>=0)?'OK':'BAD');"],
+    expect: ["TSYEAR OK"],
+    ref: "第927批：公元 1 年用 setFullYear/setUTCFullYear 构造，避免 new Date(1,...) 被当成 1901 年。"
+  },
+  {
+    slug: "life/analysis-cost-9",
+    inputs: { data: "研发,80\n营销,50\n生产,120\n管理,30", qty: "", price: "" },
+    expect: ["成本合计： 280.00", "最大项： 生产"],
+    ref: "第927批：产量与单价都留空时，成本合计/占比等基础统计仍应输出；附加单位成本与盈亏平衡才需要这两个字段。"
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "甲,,10,20,30" },
+    expect: ["字段数为 5", "应为 4 列"],
+    ref: "第927批：连续分隔符保留空字段，原价格为空的行以 5 列报错，不再折叠后错位计算。"
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "甲,10,,20" },
+    expect: ["份额“”格式无效"],
+    ref: "第927批：空份额字段不被跳过，按原始列位指出空值。"
+  },
+  {
+    slug: "life/event-countdown",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/event-countdown.html','utf8');document.getElementById('__tbProbe').textContent='EVECAL '+((src.indexOf('new Date(s.getFullYear(), s.getMonth(), s.getDate() - 1)')>=0&&src.indexOf('function calendarDayDiff')>=0&&src.indexOf('s.getTime() - 86400000')<0)?'OK':'BAD');"],
+    expect: ["EVECAL OK"],
+    ref: "第927批：除夕按年月日减一天，倒计时用 UTC 日历日差，避免午夜夏令时切换导致偏日。"
+  }
+
 
 ];
 

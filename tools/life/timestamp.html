@@ -376,7 +376,7 @@ function formatDate(date) {
   const min = String(minute).padStart(2, '0');
   const s = String(second).padStart(2, '0');
   const ms = String(millisecond).padStart(3, '0');
-  return `${y}-${m}-${d} ${h}:${min}:${s}.${ms}`;
+  return `${String(y).padStart(4,'0')}-${m}-${d} ${h}:${min}:${s}.${ms}`;
 }
 
 function formatUtc(date) {
@@ -406,19 +406,43 @@ function switchMode(mode) {
   document.getElementById('tabBtnDate').classList.toggle('active', mode === 'date2ts');
 }
 
-function parseTimestamp(ts) {
-  const format = document.getElementById('formatSelect').value;
+function parseTimestamp(ts, formatOverride) {
+  const format = formatOverride || document.getElementById('formatSelect').value;
   const raw = String(ts).trim()
     .replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 65248))
     .replace(/[，,]/g, '')
     .replace(/[　\s]/g, '');
-  const val = parseFloat(raw);
-  if (isNaN(val)) return NaN;
+  // 完整字符串校验：拒绝 abc 后缀、1e3、空串等 parseFloat 会截断/猜测的写法。
+  if (!/^-?(?:\d+(?:\.\d+)?|\.\d+)$/.test(raw)) return NaN;
+  if (format === 'ms' && !/^-?\d+$/.test(raw)) return NaN;
+  const val = Number(raw);
+  if (!isFinite(val)) return NaN;
   if (format === 's') return Math.round(val * 1000);
   if (format === 'ms') return Math.round(val);
-  // auto：按数量级判断（秒级 < 1e11，约公元 5138 年），负号/小数位不参与比较；
-  // 旧实现按字符串长度判断，"-1000000000" 长 11 位会被当成毫秒。
+  // auto：按数量级判断（秒级 < 1e11，约公元 5138 年），负号/小数位不参与比较。
   return Math.abs(val) < 1e11 ? Math.round(val * 1000) : Math.round(val);
+}
+
+function clearResult() {
+  ['dateResult','msResult','sResult','utcResult'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.textContent='--';
+  });
+  lastResultDate = null;
+}
+
+function makeLocalDate(year, month, day, hour, minute) {
+  // new Date(1,0,1) 会把 1 年当 1901 年；先取 1970 再 setFullYear 才能保留公元 1–99 年。
+  const d = new Date(0);
+  d.setFullYear(year, month - 1, day);
+  d.setHours(hour, minute, 0, 0);
+  return d;
+}
+
+function makeUtcDate(year, month, day, hour, minute) {
+  const d = new Date(0);
+  d.setUTCFullYear(year, month - 1, day);
+  d.setUTCHours(hour, minute, 0, 0);
+  return d;
 }
 
 function convertTimestamp() {
@@ -426,7 +450,7 @@ function convertTimestamp() {
   if (!ts) { ToolBox.showToast(i18nText('toast.msg807'), 'warning'); return; }
   const ms = parseTimestamp(ts);
   const date = new Date(ms);
-  if (isNaN(date.getTime())) { ToolBox.showToast(i18nText('toast.msg401'), 'error'); return; }
+  if (isNaN(date.getTime())) { clearResult(); ToolBox.showToast(i18nText('toast.msg401'), 'error'); return; }
   showResult(date);
 }
 
@@ -438,12 +462,12 @@ function convertDate() {
   const [hour, minute] = t.split(':').map(Number);
   const zone = selectedZone();
   let date;
-  if (zone === 'local') date = new Date(year, month - 1, day, hour, minute, 0);
+  if (zone === 'local') date = makeLocalDate(year, month, day, hour, minute);
   else {
     const offset = zone === 'UTC' ? 0 : Number(zone);
-    date = new Date(Date.UTC(year, month - 1, day, hour, minute, 0) - offset * 60000);
+    date = new Date(makeUtcDate(year, month, day, hour, minute).getTime() - offset * 60000);
   }
-  if (isNaN(date.getTime())) { ToolBox.showToast(i18nText('toast.msg412'), 'error'); return; }
+  if (isNaN(date.getTime())) { clearResult(); ToolBox.showToast(i18nText('toast.msg412'), 'error'); return; }
   showResult(date);
 }
 
@@ -497,11 +521,8 @@ function copyText(text) {
 }
 
 function parseTimestampAuto(ts) {
-  const raw = String(ts).trim();
-  if (!/^-?\d+$/.test(raw)) return NaN;
-  const n = Number(raw);
-  if (!isFinite(n)) return NaN;
-  return Math.abs(n) >= 1e11 ? n : n * 1000;
+  // 批量入口固定自动识别单位（13 位按毫秒、10 位按秒），但复用单条的归一化与完整字符串校验。
+  return parseTimestamp(ts, 'auto');
 }
 
 function convertBatch() {

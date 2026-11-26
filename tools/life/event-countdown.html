@@ -314,12 +314,20 @@ const events = [
   {name:'圣诞节', getNext: y => new Date(y, 11, 25)},
   {name:'除夕（春节前一天）', getNext: y => {
     const s = getLunarEvent(y, 'spring');
-    return s ? new Date(s.getTime() - 86400000) : null;
+    // 按年月日做日历减一天，不用“减 24 小时”：午夜夏令时切换日不足 24 小时会退到前天。
+    return s ? new Date(s.getFullYear(), s.getMonth(), s.getDate() - 1) : null;
   }}
 ];
 
 function fmtDate(d){
   return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+}
+
+function calendarDayDiff(d, base){
+  // 用 UTC 年月日字段计算日历日差，避免本地日长（23/25 小时）影响“剩余天数”。
+  const a = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  const b = Date.UTC(base.getFullYear(), base.getMonth(), base.getDate());
+  return Math.round((a - b) / 86400000);
 }
 
 function render(){
@@ -328,7 +336,7 @@ function render(){
   const list = events.map(e => {
     const d = getNextEvent(e.getNext);
     if(!d) return {name:e.name, unavailable:true};
-    const diff = Math.round((d - now) / 86400000);
+    const diff = calendarDayDiff(d, now);
     return {name:e.name, date:d, diff};
   }).sort((a, b) => (a.unavailable?1:0)-(b.unavailable?1:0) || (a.diff||0)-(b.diff||0));
 
@@ -499,7 +507,7 @@ function __tbCdList(){
   for (var i = 0; i < events.length; i++) {
     var d = getNextEvent(events[i].getNext);
     if (!d) continue;
-    rows.push([events[i].name, fmtDate(d), WEEK[d.getDay()], String(Math.round((d - now) / 86400000))]);
+    rows.push([events[i].name, fmtDate(d), WEEK[d.getDay()], String(calendarDayDiff(d, now))]);
   }
   rows.sort(function(a,b){ return (+a[3]) - (+b[3]); });
   return rows;
