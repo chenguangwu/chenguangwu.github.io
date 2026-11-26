@@ -1038,37 +1038,37 @@ const CASES = [
   },
   {
     slug: "life/flow-rate-converter",
-    inputs: { inputVal: "2" },
+    inputs: { inputVal: "2", density: "1" },
     expect: ["2\nLmin\n基准： 2 L/min = 0.03333333333 L/s 升每秒： 0.03333333333 L/s 立方米每时： 0.12 m³/h 立方米每秒： 0.00003333333333 m³/s 美加仑每分： 0.5283441047 gpm 立方英尺每分： 0.07062933347 cfm", "质量流量： 0.03333333333 kg/s"],
     ref: 'from=L/s, v=2, L/min=2/(1/60)=120'
   },
   {
     slug: "life/flow-rate-converter",
-    inputs: { inputVal: "2" },
+    inputs: { inputVal: "2", density: "1" },
     expect: ["2\nLmin\n基准： 2 L/min = 0.03333333333 L/s 升每秒： 0.03333333333 L/s 立方米每时： 0.12 m³/h 立方米每秒： 0.00003333333333 m³/s 美加仑每分： 0.5283441047 gpm 立方英尺每分： 0.07062933347 cfm", "质量流量： 0.03333333333 kg/s"],
     ref: 'from=L/s, v=2, m³/h=2/(1000/3600)=7.2'
   },
   {
     slug: "life/flow-rate-converter",
-    inputs: { inputVal: "2" },
+    inputs: { inputVal: "2", density: "1" },
     expect: ["2\nLmin\n基准： 2 L/min = 0.03333333333 L/s 升每秒： 0.03333333333 L/s 立方米每时： 0.12 m³/h 立方米每秒： 0.00003333333333 m³/s 美加仑每分： 0.5283441047 gpm 立方英尺每分： 0.07062933347 cfm", "质量流量： 0.03333333333 kg/s"],
     ref: 'from=L/s, v=2, gpm=2/0.0630901964'
   },
   {
     slug: "life/flow-rate-converter",
-    inputs: { inputVal: "2" },
+    inputs: { inputVal: "2", density: "1" },
     expect: ["2\nLmin\n基准： 2 L/min = 0.03333333333 L/s 升每秒： 0.03333333333 L/s 立方米每时： 0.12 m³/h 立方米每秒： 0.00003333333333 m³/s 美加仑每分： 0.5283441047 gpm 立方英尺每分： 0.07062933347 cfm", "质量流量： 0.03333333333 kg/s"],
     ref: 'from=L/s, v=2, cfm=2/0.471947443'
   },
   {
     slug: "life/flow-rate-converter",
-    inputs: { inputVal: "3" },
+    inputs: { inputVal: "3", density: "1" },
     expect: ["3\nLmin\n基准： 3 L/min = 0.05 L/s 升每秒： 0.05 L/s 立方米每时： 0.18 m³/h 立方米每秒： 0.00005 m³/s 美加仑每分： 0.7925161571 gpm 立方英尺每分： 0.1059440002 cfm", "质量流量： 0.05 kg/s"],
     ref: 'from=L/s, v=3, L/min=3/(1/60)=180'
   },
   {
     slug: "life/flow-rate-converter",
-    inputs: { inputVal: "3" },
+    inputs: { inputVal: "3", density: "1" },
     expect: ["3\nLmin\n基准： 3 L/min = 0.05 L/s 升每秒： 0.05 L/s 立方米每时： 0.18 m³/h 立方米每秒： 0.00005 m³/s 美加仑每分： 0.7925161571 gpm 立方英尺每分： 0.1059440002 cfm", "质量流量： 0.05 kg/s"],
     ref: 'from=L/s, v=3, m³/h=3/(1000/3600)=10.8'
   },
@@ -1122,9 +1122,9 @@ const CASES = [
   },
   {
     slug: "life/flow-rate-converter",
-    inputs: { inputVal: "1e308", fromUnit: "m3s" },
+    inputs: { inputVal: "1e308", fromUnit: "m3s", density: "1" },
     expect: ["数值超出可计算范围"],
-    ref: "极大输入溢出：1e308 m³/s × 1000 = 1e311 L/s 超出 IEEE 双精度，旧实现 fmt 显示 -- 却仍列正常结果；修复后在格式化前拦截。"
+    ref: "极大输入溢出：1e308 m³/s × 1000 = 1e311 L/s 超出 IEEE 双精度，旧实现 fmt 显示 -- 却仍列正常结果；修复后在格式化前拦截。", density: "1"
   },
   {
     slug: "life/density-converter",
@@ -4649,6 +4649,61 @@ const CASES = [
     clicks: ["toggleDensity();convert();"],
     expect: ["体积比不能直接换算", "mg/L、g/L 或 mol/L"],
     ref: "第925批：体积比口径拒绝从 mg/L 换算，避免无溶质密度时硬套系数。"
+  }
+
+  ,{
+    slug: "life/world-clock",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/world-clock.html','utf8');document.getElementById('__tbProbe').textContent='WCEN '+((src.indexOf(\"'Asia/Shanghai':['Beijing','China']\")>=0&&src.indexOf('function __wcCityText')>=0&&src.indexOf(\"en?'en-US':'zh-CN'\")>=0&&src.indexOf('Same zone')>=0)?'OK':'BAD');"],
+    expect: ["WCEN OK"],
+    ref: "第926批：世界时钟城市/国家有英文名与英文时区格式化，搜索命中显示 Same zone。"
+  },
+  {
+    slug: "life/holiday-calendar",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/holiday-calendar.html','utf8');document.getElementById('__tbProbe').textContent='HDLUN '+((src.indexOf('Object.keys(lunarInfo).forEach')>=0&&src.indexOf('prevInfo[prevInfo.length - 1]')<0)?'OK':'BAD');"],
+    expect: ["HDLUN OK"],
+    ref: "第926批：农历月初跨年全局取不晚于查询日的最近记录，不再取上一年数组最后一项（可能是未来日期）。"
+  },
+  {
+    slug: "life/holiday-calendar",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/holiday-calendar.html','utf8');document.getElementById('__tbProbe').textContent='HDMAKE '+((src.indexOf('makeupWorkdays[key]')>=0&&src.indexOf('cal-work-badge')>=0&&src.indexOf('调休上班（补班）')>=0)?'OK':'BAD');"],
+    expect: ["HDMAKE OK"],
+    ref: "第926批：补班周末在日历格显示“班”标记与补班提示，和月度工作日统计一致。"
+  },
+  {
+    slug: "life/holiday-calendar",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/holiday-calendar.html','utf8');document.getElementById('__tbProbe').textContent='HDSRC '+((src.indexOf('yearMeta')>=0&&src.indexOf(\"2027:{status:'pending'\")>=0&&src.indexOf('renderHolidaySource')>=0&&src.indexOf('预测占位')>=0)?'OK':'BAD');"],
+    expect: ["HDSRC OK"],
+    ref: "第926批：逐年登记来源/发布状态；2027 未公布，明确标为预测占位而不是正式安排。"
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "1", fromUnit: "Ls" },
+    expect: ["未填写有效密度，仅显示体积流量"],
+    ref: "第926批：密度默认留空；体积流量仍换算，质量流量提示需要主动填写密度。"
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "1", fromUnit: "Ls", density: "0.74" },
+    expect: ["0.74 kg/s", "密度 0.74 kg/L"],
+    ref: "第926批：用户主动填写 0.74 kg/L（汽油示例）后，质量流量按实际密度计算。"
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "100", fromUnit: "Mbps" },
+    expect: ["理论下载速率（不含协议开销）", "12.5 MB/s", "实际下载会因"],
+    ref: "第926批：下载速度标注为理论换算上限，并说明协议开销、拥塞和服务器限速会降低实际速度。"
+  },
+  {
+    slug: "life/daily-calorie-needs",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/daily-calorie-needs.html','utf8');document.getElementById('__tbProbe').textContent='CALST '+((src.indexOf('function markPanelStale')>=0&&src.indexOf(\"'input','change'\")>=0&&src.indexOf('calcBMI();')>=0&&src.indexOf('const height = document.getElementById')>=0&&src.indexOf('当前输入快照')>=0)?'OK':'BAD');"],
+    expect: ["CALST OK"],
+    ref: "第926批：三面板输入变化后清空旧结果并提示重算；保存历史前按当前输入重算，记录使用页面同一快照。"
+  },
+  {
+    slug: "life/percentage-calculator",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/percentage-calculator.html','utf8');document.getElementById('__tbProbe').textContent='PCTINTRO '+((src.indexOf('支持五种常用百分比算法')>=0&&src.indexOf('百分点与变化率')>=0&&src.indexOf('负基数')>=0&&src.indexOf('分母或旧值为 0')>=0)?'OK':'BAD');"],
+    expect: ["PCTINTRO OK"],
+    ref: "第926批：简介/场景按五种算法说明占比、求值、增减、变化率，并交代百分点、零分母、负基数与精度限制。"
   }
 
 ];

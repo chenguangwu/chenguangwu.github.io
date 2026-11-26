@@ -430,6 +430,42 @@ const ALL_CITIES = [
   {id:'Pacific/Guam', city:'关岛', country:'美国', offset:10},
   {id:'Pacific/Tahiti', city:'塔希提', country:'法属', offset:-10}
 ];
+var CITY_EN = {
+  'Asia/Shanghai':['Beijing','China'], 'Asia/Hong_Kong':['Hong Kong','China'], 'Asia/Taipei':['Taipei','China'],
+  'Asia/Tokyo':['Tokyo','Japan'], 'Asia/Seoul':['Seoul','South Korea'], 'Asia/Singapore':['Singapore','Singapore'],
+  'Asia/Kuala_Lumpur':['Kuala Lumpur','Malaysia'], 'Asia/Bangkok':['Bangkok','Thailand'], 'Asia/Ho_Chi_Minh':['Ho Chi Minh City','Vietnam'],
+  'Asia/Jakarta':['Jakarta','Indonesia'], 'Asia/Manila':['Manila','Philippines'], 'Asia/Dubai':['Dubai','United Arab Emirates'],
+  'Asia/Qatar':['Doha','Qatar'], 'Asia/Kolkata':['Mumbai','India'], 'Asia/Karachi':['Karachi','Pakistan'],
+  'Asia/Kabul':['Kabul','Afghanistan'], 'Asia/Tehran':['Tehran','Iran'], 'Asia/Jerusalem':['Jerusalem','Israel'],
+  'Asia/Istanbul':['Istanbul','Turkey'], 'Asia/Almaty':['Almaty','Kazakhstan'], 'Asia/Ulaanbaatar':['Ulaanbaatar','Mongolia'],
+  'Asia/Yangon':['Yangon','Myanmar'], 'Asia/Kathmandu':['Kathmandu','Nepal'], 'Asia/Colombo':['Colombo','Sri Lanka'],
+  'Europe/London':['London','United Kingdom'], 'Europe/Paris':['Paris','France'], 'Europe/Berlin':['Berlin','Germany'],
+  'Europe/Madrid':['Madrid','Spain'], 'Europe/Rome':['Rome','Italy'], 'Europe/Amsterdam':['Amsterdam','Netherlands'],
+  'Europe/Brussels':['Brussels','Belgium'], 'Europe/Vienna':['Vienna','Austria'], 'Europe/Zurich':['Zurich','Switzerland'],
+  'Europe/Stockholm':['Stockholm','Sweden'], 'Europe/Oslo':['Oslo','Norway'], 'Europe/Copenhagen':['Copenhagen','Denmark'],
+  'Europe/Helsinki':['Helsinki','Finland'], 'Europe/Athens':['Athens','Greece'], 'Europe/Moscow':['Moscow','Russia'],
+  'Europe/Warsaw':['Warsaw','Poland'], 'Europe/Prague':['Prague','Czechia'], 'Europe/Budapest':['Budapest','Hungary'],
+  'Europe/Dublin':['Dublin','Ireland'], 'Europe/Lisbon':['Lisbon','Portugal'], 'Africa/Cairo':['Cairo','Egypt'],
+  'Africa/Lagos':['Lagos','Nigeria'], 'Africa/Johannesburg':['Johannesburg','South Africa'], 'Africa/Nairobi':['Nairobi','Kenya'],
+  'Africa/Casablanca':['Casablanca','Morocco'], 'America/New_York':['New York','United States'], 'America/Chicago':['Chicago','United States'],
+  'America/Denver':['Denver','United States'], 'America/Los_Angeles':['Los Angeles','United States'], 'America/Anchorage':['Anchorage','United States'],
+  'America/Toronto':['Toronto','Canada'], 'America/Vancouver':['Vancouver','Canada'], 'America/Mexico_City':['Mexico City','Mexico'],
+  'America/Sao_Paulo':['São Paulo','Brazil'], 'America/Buenos_Aires':['Buenos Aires','Argentina'], 'America/Santiago':['Santiago','Chile'],
+  'America/Lima':['Lima','Peru'], 'America/Bogota':['Bogotá','Colombia'], 'America/Caracas':['Caracas','Venezuela'],
+  'Australia/Sydney':['Sydney','Australia'], 'Australia/Melbourne':['Melbourne','Australia'], 'Australia/Brisbane':['Brisbane','Australia'],
+  'Australia/Perth':['Perth','Australia'], 'Australia/Adelaide':['Adelaide','Australia'], 'Pacific/Auckland':['Auckland','New Zealand'],
+  'Pacific/Fiji':['Suva','Fiji'], 'Pacific/Honolulu':['Honolulu','United States'], 'Pacific/Guam':['Guam','United States'],
+  'Pacific/Tahiti':['Tahiti','French Polynesia']
+};
+ALL_CITIES.forEach(function(c){
+  var m = CITY_EN[c.id];
+  if(m){ c.en = m[0]; c.enCountry = m[1]; c.aliases = (c.aliases || []).concat([m[0]]); }
+});
+function __wcIsEn(){ return !!(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __wcCity(c, en){ return c ? (en && c.en ? c.en : c.city) : ''; }
+function __wcCountry(c, en){ return c ? (en && c.enCountry ? c.enCountry : c.country) : ''; }
+function __wcCityText(c, en){ return c ? (__wcCity(c,en) + (en ? ', ' : '，') + __wcCountry(c,en)) : ''; }
+
 
 let currentTab = 'clocks';
 let selectedCities = [];
@@ -512,22 +548,24 @@ function switchTab(tab){
 
 function buildClockGrid(){
   const grid = document.getElementById('clockGrid');
+  const en = __wcIsEn();
   let html = selectedCities.map((c, i) => `
     <div class="clock-item">
-      <button type="button" class="remove-btn" onclick="removeCity(${i})" aria-label="删除 ${c.city}">✕</button>
-      <div class="clock-city">${c.city}</div>
-      <div class="clock-zone" id="zone-${c.id.replace(/\//g, '-')}">${c.country} · ${formatOffset(getOffset(c.id))}</div>
+      <button type="button" class="remove-btn" onclick="removeCity(${i})" aria-label="${en?'Remove ':'删除 '}${__wcCity(c,en)}">✕</button>
+      <div class="clock-city">${__wcCity(c,en)}</div>
+      <div class="clock-zone" id="zone-${c.id.replace(/\//g, '-')}">${__wcCountry(c,en)} · ${formatOffset(getOffset(c.id))}</div>
       <div class="clock-time" id="time-${c.id.replace(/\//g, '-')}">--:--:--</div>
       <div class="clock-date" id="date-${c.id.replace(/\//g, '-')}">--</div>
     </div>
   `).join('');
-  html += `<button type="button" class="add-clock" onclick="openAddModal()">+ 添加城市</button>`;
+  html += `<button type="button" class="add-clock" onclick="openAddModal()">+ ${en?'Add city':'添加城市'}</button>`;
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h0;
 }
 
 var __clockOffsetCache={};
 function updateClocks(){
   const now = new Date();
+  const en = __wcIsEn();
   let offsetChanged=false;
   selectedCities.forEach(c => {
     const safeId = c.id.replace(/\//g, '-');
@@ -536,12 +574,12 @@ function updateClocks(){
       if(__clockOffsetCache[c.id]!==off){
         __clockOffsetCache[c.id]=off;offsetChanged=true;
         const zEl=document.getElementById('zone-'+safeId);
-        if(zEl) zEl.textContent=c.country+' · '+(off==null?((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'offset unknown (real-time calculation failed)':'偏移未知（实时计算失败）'):formatOffset(off));
+        if(zEl) zEl.textContent=__wcCountry(c,en)+' · '+(off==null?(en?'offset unknown (real-time calculation failed)':'偏移未知（实时计算失败）'):formatOffset(off));
       }
-      const time = new Intl.DateTimeFormat('zh-CN', {
+      const time = new Intl.DateTimeFormat(en?'en-US':'zh-CN', {
         timeZone:c.id, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
       }).format(now);
-      const date = new Intl.DateTimeFormat('zh-CN', {
+      const date = new Intl.DateTimeFormat(en?'en-US':'zh-CN', {
         timeZone:c.id, year:'numeric', month:'2-digit', day:'2-digit', weekday:'short'
       }).format(now);
       const tEl = document.getElementById('time-' + safeId);
@@ -575,22 +613,24 @@ document.addEventListener('keydown', function(e){
 function filterCities(){
   const q = document.getElementById('citySearch').value.trim().toLowerCase();
   const list = document.getElementById('citySelectList');
+  const en = __wcIsEn();
   const filtered = ALL_CITIES.filter(c =>
     c.city.toLowerCase().includes(q) ||
     c.country.toLowerCase().includes(q) ||
+    (c.en && c.en.toLowerCase().includes(q)) ||
+    (c.enCountry && c.enCountry.toLowerCase().includes(q)) ||
     c.id.toLowerCase().includes(q) ||
     (c.aliases && c.aliases.some(a => a.toLowerCase().includes(q)))
   );
   if(!filtered.length){
-    const isEn=typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn();
-    list.innerHTML='<p style="color:var(--text-muted);padding:8px 0;">'+(isEn?'No matching city. Try a city name, alias or IANA time zone ID.':'没有匹配城市，可输入城市名、同区城市别名或时区 ID（如 Asia/Shanghai）。')+'</p>';
+    list.innerHTML='<p style="color:var(--text-muted);padding:8px 0;">'+(en?'No matching city. Try a city name, alias or IANA time zone ID.':'没有匹配城市，可输入城市名、同区城市别名或时区 ID（如 Asia/Shanghai）。')+'</p>';
     return;
   }
   const __h1=filtered.map(c => {
-    const matchedAlias = q && c.aliases && c.aliases.find(a => a.toLowerCase().includes(q));
+    const matchedAlias = q && c.aliases && c.aliases.find(a => a.toLowerCase().includes(q) && a.toLowerCase() !== __wcCity(c,en).toLowerCase());
     return `
     <button type="button" class="city-option" onclick="addCity('${c.id}')">
-      <span>${c.city}, ${c.country}${matchedAlias?' · 同区城市：'+matchedAlias:''}</span>
+      <span>${__wcCityText(c,en)}${matchedAlias?(en?' · Same zone: ':' · 同区城市：')+matchedAlias:''}</span>
       <span class="zone">${formatOffset(getOffset(c.id))}</span>
     </button>
   `;}).join('');
@@ -609,7 +649,7 @@ function addCity(cityId){
     buildClockGrid();
     updateClocks();
     closeAddModal();
-    ToolBox.showToast('已添加 ' + city.city);
+    ToolBox.showToast((__wcIsEn()?'Added ':'已添加 ') + __wcCity(city,__wcIsEn()));
   }
 }
 
@@ -619,7 +659,7 @@ function removeCity(index){
   saveCities();
   buildClockGrid();
   updateClocks();
-  ToolBox.showToast('已移除 ' + city.city);
+  ToolBox.showToast((__wcIsEn()?'Removed ':'已移除 ') + __wcCity(city,__wcIsEn()));
 }
 
 function initDiffSelects(){
@@ -628,8 +668,9 @@ function initDiffSelects(){
   
   if(selA.options.length > 0) return;
   
+  const en = __wcIsEn();
   const options = ALL_CITIES.map(c => 
-    `<option value="${c.id}">${c.city}（${c.country}）</option>`
+    `<option value="${c.id}">${__wcCity(c,en)}${en?' (': '（'}${__wcCountry(c,en)}${en?')':'）'}</option>`
   ).join('');
   
   const __h2=options;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){selA.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}selA.innerHTML=__h2;
@@ -663,8 +704,8 @@ function calcDiff(){
   if(mins >= 60){hours += 1; mins = 0;}
   const diffStr = `${sign}${hours}${mins ? (__en?' h ':' 小时 ') + mins + (__en?' min':' 分钟') : (__en?' h':' 小时')}`;
   
-  const cityAName = ALL_CITIES.find(c => c.id === cityA)?.city || cityA;
-  const cityBName = ALL_CITIES.find(c => c.id === cityB)?.city || cityB;
+  const cityAName = __wcCity(ALL_CITIES.find(c => c.id === cityA), __en) || cityA;
+  const cityBName = __wcCity(ALL_CITIES.find(c => c.id === cityB), __en) || cityB;
   
   document.getElementById('diffResult').textContent = diffStr;
   document.getElementById('diffLabel').textContent = 
@@ -699,7 +740,7 @@ function renderMeetingCities(){
   const __h5=ALL_CITIES.map(c => {
     const active = meetingCities.has(c.id);
     return `<button type="button" class="round-btn ${active ? 'active' : ''}" aria-pressed="${active}" onclick="toggleMeetingCity('${c.id}')">
-      ${c.city}
+      ${__wcCity(c, __wcIsEn())}
     </button>`;
   }).join('');if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h5;
   
@@ -772,7 +813,7 @@ function updateMeetingGrid(){
     diffs[city.id] = offMin - refOffMin;
   });
   if(bad){
-    document.getElementById('meetingTimeGrid').innerHTML = '<p style="color:var(--danger)">'+ToolBox.escHtml(bad.city)+(en?' has no reliable offset; meeting overlap cannot be computed.':' 的时区偏移无法可靠获取，会议共同时间不可计算。')+'</p>';
+    document.getElementById('meetingTimeGrid').innerHTML = '<p style="color:var(--danger)">'+ToolBox.escHtml(__wcCity(bad,en))+(en?' has no reliable offset; meeting overlap cannot be computed.':' 的时区偏移无法可靠获取，会议共同时间不可计算。')+'</p>';
     document.getElementById('meetingSlots').innerHTML = '';
     return;
   }
@@ -782,7 +823,7 @@ function updateMeetingGrid(){
     const diff = diffs[city.id];
     const ranges = __splitWorkRange(540 - diff, 1080 - diff, 540);
     common = __intersectRanges(common, ranges);
-    let rowHtml = `<div class="time-row"><div class="label">${city.city}（${formatOffset((refOffMin + diff) / 60)}）</div><div class="time-grid">`;
+    let rowHtml = `<div class="time-row"><div class="label">${__wcCity(city,en)}${en?' (':'（'}${formatOffset((refOffMin + diff) / 60)}${en?')':'）'}</div><div class="time-grid">`;
     for(let h = 0; h < 24; h++){
       const refStart = __modMin(h * 60 - diff);
       const refEnd = refStart + 60;
@@ -799,7 +840,7 @@ function updateMeetingGrid(){
   document.getElementById('meetingTimeGrid').innerHTML = gridHtml || '<p style="color:var(--text-muted)">—</p>';
   common = __mergeRanges(common);
   const slots = common.length
-    ? '<p style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">'+(en?'Common time (reference city: ':'共同时间（参考城市：')+ToolBox.escHtml(refCity.city)+(en?' local time)':' 本地时间）')+'</p>' + common.map(function(r){
+    ? '<p style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">'+(en?'Common time (reference city: ':'共同时间（参考城市：')+ToolBox.escHtml(__wcCity(refCity,en))+(en?' local time)':' 本地时间）')+'</p>' + common.map(function(r){
         return '<span class="meeting-slot">'+__fmtMin(r[0])+' - '+__fmtMin(r[1])+'</span>';
       }).join('')
     : '<span style="color:var(--text-muted);font-size:12px;">'+(en?'No common working time; adjust work hours or stagger the meeting.':'没有共同工作时间，建议调整工作时间或错开会议')+'</span>';
@@ -812,6 +853,24 @@ document.getElementById('addClockModal').addEventListener('click', function(e){
 
 selectedCities = getDefaultCities();
 try{ initDiffSelects(); }catch(e){}
+function refreshWorldClockLanguage(){
+  var en = __wcIsEn();
+  ['diffCityA','diffCityB'].forEach(function(id){
+    var sel=document.getElementById(id);
+    if(!sel) return;
+    for(var i=0;i<sel.options.length;i++){
+      var c=ALL_CITIES.find(function(x){return x.id===sel.options[i].value;});
+      if(c) sel.options[i].textContent=__wcCity(c,en)+(en?' (':'（')+__wcCountry(c,en)+(en?')':'）');
+    }
+  });
+  buildClockGrid();
+  renderMeetingCities();
+  if(currentTab==='diff') calcDiff();
+  updateClocks();
+}
+document.addEventListener('toolbox:langchange', refreshWorldClockLanguage);
+// i18n.js 为 defer，内联脚本执行时语言尚未就绪；DOMContentLoaded 后再按真实语言重建一次
+document.addEventListener('DOMContentLoaded', function(){ setTimeout(refreshWorldClockLanguage, 0); });
 buildClockGrid();
 updateClocks();
 setInterval(updateClocks, 1000);
@@ -839,9 +898,9 @@ function __world_clockSnap(){
     }
     return out;
 }
-function __world_clockCityName(id){
+function __world_clockCityName(id, en){
     var c=ALL_CITIES.find(function(x){return x.id===id;});
-    return c?(c.city+' ('+id+')'):id;
+    return c?(__wcCity(c,en)+' ('+id+')'):id;
 }
 function __world_clockViewRecord(en){
     if(currentTab==='diff'){
@@ -855,8 +914,8 @@ function __world_clockViewRecord(en){
         var timeEl=document.getElementById('diffTime');
         return {
             view: en?'Time difference':'时差计算',
-            cityA: __world_clockCityName(document.getElementById('diffCityA').value),
-            cityB: __world_clockCityName(document.getElementById('diffCityB').value),
+            cityA: __world_clockCityName(document.getElementById('diffCityA').value, en),
+            cityB: __world_clockCityName(document.getElementById('diffCityB').value, en),
             date: (dateEl&&dateEl.value)||new Date().toISOString().slice(0,10),
             time: (timeEl&&timeEl.value)||'',
             result: label
@@ -866,7 +925,7 @@ function __world_clockViewRecord(en){
         var slotsEl=document.getElementById('meetingSlots');
         var slots=slotsEl?slotsEl.textContent.replace(/\s+/g,' ').trim():'';
         if(!slots) return null;
-        var names=Array.from(meetingCities).map(function(id){return __world_clockCityName(id);}).join(' / ');
+        var names=Array.from(meetingCities).map(function(id){return __world_clockCityName(id, en);}).join(' / ');
         return {view: en?'Meeting overlap':'会议共同时间', cities:names, workHours:'09:00–18:00 local', result:slots};
     }
     var items=[];

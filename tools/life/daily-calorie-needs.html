@@ -538,6 +538,16 @@ function fieldInRange(id, min, max){
   return { ok, val };
 }
 
+function markPanelStale(type){
+  const main = document.getElementById(type+'Value');
+  if(!main || main.textContent.trim() === '--') return;
+  main.textContent = '--';
+  const desc = document.getElementById(type === 'bmi' ? 'bmiStatus' : type+'Desc');
+  if(desc) desc.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn()) ? 'Inputs changed. Recalculate before reading or saving.' : '参数已变更，请重新计算后再查看或保存结果。');
+  const stats = document.getElementById(type+'Stats');
+  if(stats) stats.innerHTML = '';
+}
+
 function switchTab(tab){
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
@@ -784,11 +794,13 @@ function saveToHistory(type){
   let item = { id: Date.now(), type, time: new Date().toLocaleString('zh-CN') };
   
   if(type === 'bmi'){
+    calcBMI();
     const height = document.getElementById('bmiHeight').value;
     const weight = document.getElementById('bmiWeight').value;
     const bmi = (weight / ((height / 100) ** 2)).toFixed(1);
     item.label = `BMI: ${bmi}（身高${height}cm, 体重${weight}kg）`;
   } else if(type === 'bmr'){
+    calcBMR();
     const weight = document.getElementById('bmrWeight').value;
     const height = document.getElementById('bmrHeight').value;
     const age = document.getElementById('bmrAge').value;
@@ -803,19 +815,15 @@ function saveToHistory(type){
     item.formula = formulaName;
     item.label = `BMR: ${Math.round(bmr)} 千卡（${formulaName}；${gender}, ${age}岁, ${height}cm, ${weight}kg）`;
   } else if(type === 'tdee'){
-    const weight = document.getElementById('tdeeWeight').value;
-    const height = document.getElementById('tdeeHeight').value;
-    const age = document.getElementById('tdeeAge').value;
+    calcTDEE();
     const gender = document.getElementById('tdeeGender').value === 'male' ? '男' : '女';
     const activity = ACTIVITY_LEVELS.find(a => a.id === selectedActivity).name;
-    let bmr;
-    if(gender === '男'){
-      bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-    } else {
-      bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+    const shown = parseFloat(document.getElementById('tdeeValue').textContent);
+    if(!isFinite(shown)){
+      ToolBox.showToast('每日消耗结果尚未生成，请先修正输入');
+      return;
     }
-    const tdee = bmr * ACTIVITY_LEVELS.find(a => a.id === selectedActivity).factor;
-    item.label = `TDEE: ${Math.round(tdee)} 千卡（${activity}）`;
+    item.label = `TDEE: ${Math.round(shown)} 千卡（${activity}；当前输入快照）`;
   }
   
   history.unshift(item);
@@ -867,6 +875,16 @@ function renderHistory(){
     </div>
   `).join('');if((typeof __h10==='number'&&!isFinite(__h10))||/Infinity/.test(String(__h10))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h10)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h10;
 }
+
+['bmi','bmr','tdee'].forEach(function(panel){
+  var el=document.getElementById('panel-'+panel);
+  if(!el) return;
+  ['input','change'].forEach(function(evt){
+    el.addEventListener(evt,function(e){
+      if(e.target && e.target.matches && e.target.matches('input,select')) markPanelStale(panel);
+    });
+  });
+});
 
 initActivityList();
 initGoalList();
