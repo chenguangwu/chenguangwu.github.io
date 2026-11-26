@@ -26,6 +26,7 @@
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <script src="/vendor/pdf-lib/1.17.1/pdf-lib.min.js" integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous"></script>
+<script src="/js/tools/pdf-structure.js"></script>
 <script type="module">
 // pdf.js 4.2.67（CVE-2024-4367 修复版）改为自托管 ESM：4.x 官方只发布 .mjs，
 // 无法挂 integrity 到 import 语句，故把文件纳入本站 vendor（同源、无第三方供应链环节）。
@@ -371,6 +372,7 @@ window.pdfjsLib = pdfjsLib;
       </div>
       <div class="file-change" onclick="resetTool()">更换文件</div>
     </div>
+    <div class="info-box" id="pdfStructNotice" role="note" style="display:none;font-size:12px;line-height:1.7;"></div>
 
     <!-- 选择方式标签 -->
     <div class="tabs">
@@ -413,7 +415,11 @@ window.pdfjsLib = pdfjsLib;
     <!-- 操作按钮 -->
     <div class="toolbar" style="margin-top:20px;">
       <button type="button" class="btn primary" id="extractBtn" onclick="doExtract()">提取页面</button>
-      <div class="info-box" role="note" style="margin-top:10px;font-size:12px;line-height:1.6;">仅保留页面内容：书签、交互表单、批注、内部链接、附件与数字签名可能不保留；签名文档重写后将失效。Splitting preserves page content only; outlines, forms, comments, links, attachments and signatures may not survive, and digital signatures become invalid.</div>
+      <label id="pdfFlattenWrap" style="display:none;align-items:center;gap:8px;font-size:13px;">
+        <input type="checkbox" id="flattenForms" checked>
+        <span class="tb-bi"><span class="t-zh">检测到交互表单：提取前展平字段（保留外观，输出不再可编辑）</span><span class="t-en">Form fields detected: flatten before extracting (keep appearance, output is no longer editable)</span></span>
+      </label>
+      <div class="info-box" role="note" style="margin-top:10px;font-size:12px;line-height:1.6;">书签与所选页范围内的内部跳转会尝试重建；交互表单默认展平保留外观（可取消勾选）；批注、附件与数字签名仍不保留，签名文档重写后将失效。Outlines and internal links inside the selected pages are rebuilt when possible; form fields are flattened by default to keep their appearance; comments, attachments and signatures are not preserved, and signed documents become invalid after rewriting.</div>
       <button type="button" class="btn" onclick="resetTool()">重新选择文件</button>
     </div>
 
@@ -588,6 +594,7 @@ let currentMode = 'range';   // 当前选择模式
 let thumbsRendered = false;  // 缩略图是否已渲染
 let extractedBytes = null;    // 提取后的 PDF 字节数组
 let extractedFileName = '';  // 提取后的文件名
+let pdfFeatures = null;      // 表单/书签/链接检测结果
 
 // 初始化事件
 (function init() {
@@ -677,6 +684,15 @@ async function handleFile(file) {
     pdfjsDoc = await loadingTask.promise;
     totalPages = pdfjsDoc.numPages;
 
+    // 检测结构（pdf-lib 读独立副本，不影响后续提取）
+    pdfFeatures = null;
+    try{
+      if(typeof PDFStructure !== 'undefined' && typeof PDFLib !== 'undefined'){
+        const probe = await PDFLib.PDFDocument.load(buf.slice(0), { ignoreEncryption: true });
+        pdfFeatures = PDFStructure.detect(probe);
+      }
+    }catch(featureErr){ console.warn('PDF structure detect failed:', featureErr); }
+
     // 保存文件信息
     pdfFile = file;
     thumbsRendered = false;
@@ -686,6 +702,7 @@ async function handleFile(file) {
     document.getElementById('fileName').textContent = file.name;
     document.getElementById('fileMeta').textContent =
       '共 ' + totalPages + ' 页 · ' + formatFileSize(file.size);
+    renderPdfFeatureNotice();
 
     // 显示主操作卡片
     document.getElementById('uploadZone').style.display = 'none';
@@ -724,6 +741,32 @@ async function handleFile(file) {
     pdfArrayBuffer = null;
     pdfjsDoc = null;
   }
+}
+
+// 结构检测提示
+function renderPdfFeatureNotice(){
+  const box = document.getElementById('pdfStructNotice');
+  const wrap = document.getElementById('pdfFlattenWrap');
+  if(!box || !wrap) return;
+  const en = typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn();
+  if(!pdfFeatures){
+    box.style.display = 'none';
+    wrap.style.display = 'none';
+    return;
+  }
+  const f = pdfFeatures;
+  if(f.forms || f.outlines || f.internalLinks){
+    const parts = [];
+    if(f.forms) parts.push(en ? f.forms + ' form field(s)' : f.forms + ' 个表单字段');
+    if(f.outlines) parts.push(en ? f.outlines + ' bookmark(s)' : f.outlines + ' 个书签');
+    if(f.internalLinks) parts.push(en ? f.internalLinks + ' internal page link(s)' : f.internalLinks + ' 个内部页内跳转');
+    box.textContent = (en ? 'Detected: ' : '已检测：') + parts.join(' · ') +
+      (en ? '. Outlines and links inside the selected pages are rebuilt; out-of-range targets are removed. Form fields can be flattened below.' : '。所选页范围内的书签与内部跳转会重建，目标页不在结果中的会移除；表单可在下方选择展平。');
+  } else {
+    box.textContent = en ? 'No forms, bookmarks or internal page links detected.' : '未检测到表单、书签或内部页内跳转。';
+  }
+  box.style.display = 'block';
+  wrap.style.display = f.forms > 0 ? 'flex' : 'none';
 }
 
 // 渲染缩略图
@@ -1007,19 +1050,57 @@ async function doExtract() {
     updateProgress(10, '正在加载 PDF 文档...');
 
     const { PDFDocument } = PDFLib;
-    const sourceDoc = await PDFDocument.load(pdfArrayBuffer);
+    const sourceDoc = await PDFDocument.load(pdfArrayBuffer, { ignoreEncryption: true });
+    const features = (typeof PDFStructure !== 'undefined') ? PDFStructure.detect(sourceDoc) : (pdfFeatures || {});
+    const flattenForms = !!(document.getElementById('flattenForms') && document.getElementById('flattenForms').checked);
+    let flattenFailed = false;
+    if(flattenForms && features.forms > 0){
+      try{
+        sourceDoc.getForm().flatten();
+      }catch(flatErr){
+        flattenFailed = true;
+        console.warn('Form flatten failed:', flatErr);
+      }
+    }
 
     updateProgress(30, '正在提取 ' + pages.length + ' 个页面...');
 
     const newDoc = await PDFDocument.create();
     const indices = pages.map(function(p) { return p - 1; }); // 转为 0 索引
     const copiedPages = await newDoc.copyPages(sourceDoc, indices);
+    const pairs = [];
 
     updateProgress(60, '正在组装新文档...');
 
-    copiedPages.forEach(function(page) {
+    copiedPages.forEach(function(page, idx) {
       newDoc.addPage(page);
+      pairs.push([indices[idx], newDoc.getPageCount() - 1]);
     });
+
+    let structText = '';
+    if(typeof PDFStructure !== 'undefined'){
+      const linkStats = PDFStructure.relinkPages(sourceDoc, newDoc, pairs);
+      const pageMap = new Map();
+      pairs.forEach(function(pair){
+        pageMap.set(sourceDoc.getPage(pair[0]).ref.toString(), newDoc.getPage(pair[1]).ref);
+      });
+      const outlineStats = PDFStructure.appendOutlines(sourceDoc, newDoc, pageMap);
+      const en = typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn();
+      const formsSkipped = features.forms > 0 && !flattenForms;
+      if(outlineStats.items || outlineStats.dropped || linkStats.fixed || linkStats.dropped || flattenFailed || formsSkipped){
+        structText = en
+          ? ' · Bookmarks kept ' + outlineStats.items + (outlineStats.dropped ? ' (dropped ' + outlineStats.dropped + ')' : '') +
+            ' · Internal links fixed ' + linkStats.fixed + (linkStats.dropped ? ' (dropped ' + linkStats.dropped + ')' : '') +
+            (features.forms && flattenForms && !flattenFailed ? ' · forms flattened' : '') +
+            (formsSkipped ? ' · forms not flattened; fields may be lost' : '') +
+            (flattenFailed ? ' · form flattening failed; fields may be lost' : '')
+          : ' · 书签保留 ' + outlineStats.items + (outlineStats.dropped ? '（丢弃 ' + outlineStats.dropped + '）' : '') +
+            ' · 内部跳转修正 ' + linkStats.fixed + (linkStats.dropped ? '（移除 ' + linkStats.dropped + '）' : '') +
+            (features.forms && flattenForms && !flattenFailed ? ' · 表单已展平' : '') +
+            (formsSkipped ? ' · 表单未展平，字段可能丢失' : '') +
+            (flattenFailed ? ' · 表单展平失败，字段可能丢失' : '');
+      }
+    }
 
     updateProgress(80, '正在生成 PDF 文件...');
 
@@ -1037,7 +1118,8 @@ async function doExtract() {
     // 显示结果
     resultArea.style.display = '';
     document.getElementById('resultMsg').textContent =
-      '✅ 提取完成！共 ' + pages.length + ' 页，文件大小 ' + sizeStr;
+      __pdfMsg('✅ 提取完成！共 ' + pages.length + ' 页，文件大小 ' + sizeStr,
+               '✅ Extraction complete! ' + pages.length + ' page' + (pages.length > 1 ? 's' : '') + ', ' + sizeStr) + structText;
 
     ToolBox.showToast(__pdfMsg('提取完成，文件已开始下载','Extraction complete. Download started.'), 'success');
 
@@ -1090,6 +1172,7 @@ function resetTool() {
   thumbsRendered = false;
   extractedBytes = null;
   extractedFileName = '';
+  pdfFeatures = null;
 
   document.getElementById('fileInput').value = '';
   document.getElementById('uploadZone').style.display = '';

@@ -25,6 +25,7 @@
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <script src="/vendor/pdf-lib/1.17.1/pdf-lib.min.js" integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous"></script>
+<script src="/js/tools/pdf-structure.js"></script>
 <script>
 /* 依赖兜底：pdf-lib 加载失败时给出可见提示，避免页面静默失效 */
 (function(){
@@ -298,10 +299,16 @@
     <!-- 统计 -->
     <div class="stat-summary" id="statSummary" style="display:none;"></div>
 
+    <div class="info-box" id="pdfStructNotice" role="note" style="display:none;margin-top:12px;font-size:12px;line-height:1.7;"></div>
+    <label id="pdfFlattenWrap" style="display:none;align-items:center;gap:8px;margin-top:8px;font-size:13px;">
+      <input type="checkbox" id="flattenForms" checked>
+      <span class="tb-bi"><span class="t-zh">检测到交互表单：合并前展平字段（保留外观，输出不再可编辑）</span><span class="t-en">Form fields detected: flatten before merging (keep appearance, output is no longer editable)</span></span>
+    </label>
+
     <!-- 操作工具栏 -->
     <div class="toolbar" id="actionBar" style="margin-top:16px;display:none;">
       <button type="button" class="btn primary" id="mergeBtn" onclick="mergePDFs()" disabled>🔀 合并所有 PDF</button>
-      <div class="info-box" role="note" style="margin-top:10px;font-size:12px;line-height:1.6;">仅保留页面内容：书签、交互表单、批注、内部链接、附件与数字签名可能不保留；签名文档重写后将失效。Merge/split preserves page content only; outlines, forms, comments, links, attachments and signatures may not survive, and digital signatures become invalid.</div>
+      <div class="info-box" role="note" style="margin-top:10px;font-size:12px;line-height:1.6;">书签与内部页内跳转会尝试重建；交互表单默认展平保留外观（可取消勾选）；批注、附件与数字签名仍不保留，签名文档重写后将失效。Outlines and internal page links are rebuilt when possible; form fields are flattened by default to keep their appearance; comments, attachments and signatures are not preserved, and signed documents become invalid after rewriting.</div>
       <button type="button" class="btn" onclick="clearAll()">🗑️ 清空列表</button>
       <button type="button" class="btn" onclick="addMore()">+ 继续添加</button>
     </div>
@@ -524,12 +531,48 @@ async function loadPageCount(item){
     // pdf-lib 的 ignoreEncryption 只是跳过密码检查，copyPages 并不能解密；显式标错并跳过。
     if(doc.isEncrypted) throw new Error('encrypted');
     item.pages = doc.getPageCount();
+    item.features = (typeof PDFStructure !== 'undefined') ? PDFStructure.detect(doc) : null;
     item.status = 'ok';
   }catch(err){
     item.pages = null;
     item.status = 'error';
   }
   renderList();
+}
+
+/* ---------- 结构提示 ---------- */
+function updateStructureNotice(okItems){
+  const box = document.getElementById('pdfStructNotice');
+  const wrap = document.getElementById('pdfFlattenWrap');
+  if(!box || !wrap) return;
+  if(!okItems || okItems.length === 0){
+    box.style.display = 'none';
+    wrap.style.display = 'none';
+    return;
+  }
+  let forms = 0, outlines = 0, internalLinks = 0;
+  okItems.forEach(function(f){
+    const ft = f.features || {};
+    forms += ft.forms || 0;
+    outlines += ft.outlines || 0;
+    internalLinks += ft.internalLinks || 0;
+  });
+  const en = typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn();
+  let text = '';
+  if(forms || outlines || internalLinks){
+    text = (en ? 'Detected: ' : '已检测：') +
+      (forms ? (en ? forms + ' form field(s)' : forms + ' 个表单字段') : '') +
+      (forms && (outlines || internalLinks) ? ' · ' : '') +
+      (outlines ? (en ? outlines + ' bookmark(s)' : outlines + ' 个书签') : '') +
+      (outlines && internalLinks ? ' · ' : '') +
+      (internalLinks ? (en ? internalLinks + ' internal page link(s)' : internalLinks + ' 个内部页内跳转') : '') +
+      (en ? '. Outlines and page links are rebuilt; form fields can be flattened below.' : '。书签与页内跳转会在合并时重建；表单可在下方选择展平。');
+  } else {
+    text = en ? 'No forms, bookmarks or internal page links detected.' : '未检测到表单、书签或内部页内跳转。';
+  }
+  box.textContent = text;
+  box.style.display = 'block';
+  wrap.style.display = forms > 0 ? 'flex' : 'none';
 }
 
 /* ---------- 列表渲染 ---------- */
@@ -571,6 +614,8 @@ function renderList(){
           <div class="file-name" title="${esc(f.name)}">${esc(f.name)}</div>
           <div class="file-meta">
             ${metaBadge}
+            ${f.features && f.features.forms ? '<span class="badge">' + (typeof TBKit!=='undefined'&&TBKit.util.isEn()?f.features.forms+' form'+(f.features.forms>1?'s':''):f.features.forms+' 表单') + '</span>' : ''}
+            ${f.features && f.features.outlines ? '<span class="badge">' + (typeof TBKit!=='undefined'&&TBKit.util.isEn()?f.features.outlines+' bookmark'+(f.features.outlines>1?'s':''):f.features.outlines+' 书签') + '</span>' : ''}
             <span class="badge">${formatSize(f.size)}</span>
           </div>
         </div>
@@ -594,6 +639,8 @@ function renderList(){
     <div class="ss-item"><div class="ss-val">${formatSize(totalSize)}</div><div class="ss-lbl">总大小</div></div>
     ${errCount > 0 ? '<div class="ss-item"><div class="ss-val" style="color:var(--danger);">' + errCount + '</div><div class="ss-lbl">无法解析</div></div>' : ''}
   `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){summary.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}summary.innerHTML=__h2;
+
+  updateStructureNotice(okItems);
 
   // 合并按钮可用性：至少 2 个可解析文件
   const mergeable = okItems.length >= 2 && !isMerging;
@@ -707,6 +754,10 @@ async function mergePDFs(){
   const __h4='';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h4;
   const total = okItems.length;
   const merged = await PDFDocument.create();
+  const flattenForms = !!(document.getElementById('flattenForms') && document.getElementById('flattenForms').checked);
+  let outlineStats = { items: 0, dropped: 0 };
+  let linkStats = { fixed: 0, dropped: 0, unsupported: 0 };
+  let flattenedFiles = 0, flattenFailed = 0, formsSkipped = 0;
 
   try{
     for(let i = 0; i < okItems.length; i++){
@@ -716,9 +767,32 @@ async function mergePDFs(){
         const buf = await item.file.arrayBuffer();
         const src = await PDFDocument.load(buf, { ignoreEncryption: true });
         if(src.isEncrypted) throw new Error('encrypted');
+        const features = (typeof PDFStructure !== 'undefined') ? PDFStructure.detect(src) : (item.features || {});
+        if(flattenForms && features.forms > 0){
+          try{
+            src.getForm().flatten();
+            flattenedFiles++;
+          }catch(flatErr){
+            flattenFailed++;
+          }
+        } else if(!flattenForms && features.forms > 0){
+          formsSkipped++;
+        }
         const indices = src.getPageIndices();
         const copied = await merged.copyPages(src, indices);
-        copied.forEach(p => merged.addPage(p));
+        const pairs = [];
+        copied.forEach((p, j) => {
+          merged.addPage(p);
+          pairs.push([j, merged.getPageCount() - 1]);
+        });
+        if(typeof PDFStructure !== 'undefined'){
+          const ls = PDFStructure.relinkPages(src, merged, pairs);
+          linkStats.fixed += ls.fixed; linkStats.dropped += ls.dropped; linkStats.unsupported += ls.unsupported;
+          const pageMap = new Map();
+          src.getPages().forEach((sp, j) => { if(copied[j]) pageMap.set(sp.ref.toString(), copied[j].ref); });
+          const os = PDFStructure.appendOutlines(src, merged, pageMap);
+          outlineStats.items += os.items; outlineStats.dropped += os.dropped;
+        }
       }catch(err){
         // 单个文件失败只标记该文件，继续合并其余文件（与页面承诺一致）。
         item.status = 'error';
@@ -749,9 +823,30 @@ async function mergePDFs(){
 
     const totalPages = merged.getPageCount();
     const sizeKb = (outBytes.byteLength / 1024).toFixed(1);
-    const __h5='<p>✅ 合并成功！已合并 <strong>' + okItems.length + '</strong> 个文件，共 <strong>' + totalPages + '</strong> 页。</p>' +
-      '<p>文件大小：<strong>' + (sizeKb >= 1024 ? (sizeKb/1024).toFixed(2) + ' MB' : sizeKb + ' KB') + '</strong></p>' +
-      '<p style="color:var(--text-muted);font-size:12px;">文件已开始下载，如未自动下载请点击下方按钮。</p>' +
+    const en = typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn();
+    let structLine = '';
+    if(outlineStats.items || outlineStats.dropped || linkStats.fixed || linkStats.dropped || flattenFailed || formsSkipped){
+      structLine = '<p style="font-size:12px;line-height:1.7;">' +
+        (en
+          ? 'Bookmarks kept: <strong>' + outlineStats.items + '</strong>' + (outlineStats.dropped ? ' · dropped: ' + outlineStats.dropped : '') +
+            ' · Internal links fixed: <strong>' + linkStats.fixed + '</strong>' + (linkStats.dropped ? ' · dropped: ' + linkStats.dropped : '') +
+            (flattenedFiles ? ' · Forms flattened in ' + flattenedFiles + ' file(s)' : '') +
+            (formsSkipped ? ' · Forms left interactive in ' + formsSkipped + ' file(s); fields may be lost' : '') +
+            (flattenFailed ? ' · Form flattening failed in ' + flattenFailed + ' file(s); fields may be lost' : '')
+          : '书签保留：<strong>' + outlineStats.items + '</strong>' + (outlineStats.dropped ? ' · 目标页不在结果中而丢弃：' + outlineStats.dropped : '') +
+            ' · 内部页内跳转修正：<strong>' + linkStats.fixed + '</strong>' + (linkStats.dropped ? ' · 目标页不在结果中而移除：' + linkStats.dropped : '') +
+            (flattenedFiles ? ' · 已展平表单：' + flattenedFiles + ' 个文件' : '') +
+            (formsSkipped ? ' · 表单未展平：' + formsSkipped + ' 个文件，字段可能丢失' : '') +
+            (flattenFailed ? ' · 表单展平失败：' + flattenFailed + ' 个文件，字段可能丢失' : '')) +
+        '</p>';
+    }
+    const sizeText = (sizeKb >= 1024 ? (sizeKb/1024).toFixed(2) + ' MB' : sizeKb + ' KB');
+    const __h5=(en
+      ? '<p>✅ Merge complete! Merged <strong>' + okItems.length + '</strong> file(s), <strong>' + totalPages + '</strong> page(s).</p>' +
+        '<p>File size: <strong>' + sizeText + '</strong></p>'
+      : '<p>✅ 合并成功！已合并 <strong>' + okItems.length + '</strong> 个文件，共 <strong>' + totalPages + '</strong> 页。</p>' +
+        '<p>文件大小：<strong>' + sizeText + '</strong></p>') + structLine +
+      '<p style="color:var(--text-muted);font-size:12px;">' + (en ? 'Download started. If it did not start, use the button below.' : '文件已开始下载，如未自动下载请点击下方按钮。') + '</p>' +
       '<div class="toolbar" style="margin-top:8px;"><button class="btn primary" onclick="redownload()">⬇️ 重新下载</button></div>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h5;
 
     // 缓存最后一次结果供重新下载
