@@ -71,6 +71,12 @@ const CASES = [
   clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/audio/audio-cut.html','utf8');var ok=src.indexOf('function getMinGap')>=0&&src.indexOf('function getFadeSeconds')>=0&&src.indexOf('fadeEnable')>=0&&src.indexOf('for (var ch = 0; ch < channels; ch++)')>=0&&src.indexOf('updateSelInfo(true); // 回填')>=0&&src.indexOf('snapStart')>=0&&src.indexOf('makeExportName(snapName')>=0&&src.indexOf('loadSeq')>=0&&src.indexOf('rec.__file')>=0&&src.indexOf('handleFileSelect();')<0;document.getElementById('__tbProbe').textContent='AUDIOCUT '+(ok?'OK':'BAD');"],
   expect: ["AUDIOCUT OK"],
   ref: "第1022批（9 任务）：全声道峰值聚合；动态 getMinGap 支持短于 20ms 文件；时间输入越界回填；导出文件名/选区/淡变快照；getFadeSeconds 试听与导出一致且可关闭；loadSeq 防解码竞态、失败保留旧音频；历史在解码后记录、恢复不调用文件选择。"
+},
+{
+  slug: "audio/audio-echo",
+  clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/audio/audio-echo.html','utf8');var ok=src.indexOf('Math.floor(x * total / buckets)')>=0&&src.indexOf('for(var ch=0; ch<channels; ch++)')>=0&&src.indexOf('function applyCompressorRouting')>=0&&src.indexOf('compEnabled')>=0&&src.indexOf('wetOn ? Math.min(60, tailNeeded) : 0')>=0&&src.indexOf('function downmixForExport')>=0&&src.indexOf('srcCh > 2 ? downmixForExport')>=0&&src.indexOf('function flushEffectTail')>=0&&src.indexOf('forcedRate')>=0&&src.indexOf('seed = (seed * 1664525')>=0&&src.indexOf('__audioLoadSeq')>=0&&src.indexOf('（保留）')>=0&&src.indexOf('snap.name.replace')>=0;document.getElementById('__tbProbe').textContent='AUDIOECHO '+(ok?'OK':'BAD');"],
+  expect: ["AUDIOECHO OK"],
+  ref: "第1023批（10 任务）：波形按比例桶覆盖全声道全部采样；压缩器可显式旁路；纯干声不追加尾长；暂停/停止重建效果链清尾音；多声道下混立体声导出；固定种子脉冲使试听/导出/重复导出一致；解码请求序号与失败保留旧音频；导出快照音频/文件名/参数。"
 }
 ];
 async function main() {
