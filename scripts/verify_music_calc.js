@@ -4,7 +4,7 @@ const { runCase } = require("./verify_it_calc.js");
 const fs=require("fs"), path=require("path");
 function musicStaticChecks(){
   const read=(p)=>fs.readFileSync(path.join(__dirname,"..","tools","music",p),"utf8");
-  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html");
+  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html"), fq=read("freq-note-converter.html"), sp=read("convert-speed.html"), dt=read("detector.html");
   return [
     {name:"和弦进行降E映射、悲怆四级与大调高频",ok:/'Eb':3/.test(cp)&&!/'Eb':2/.test(cp)&&/qualities:\s*\['',\s*'m',\s*'',\s*'m'\]/.test(cp)&&/48 \+ chordRoot/.test(cp)&&/spellChordNote\(rootName/.test(cp)},
     {name:"和弦进行停止清理全部高亮定时器",ok:/highlightTimeouts/.test(cp)&&/highlightTimeouts\.forEach/.test(cp)&&/if \(isPlaying\) highlightChord/.test(cp)},
@@ -13,7 +13,10 @@ function musicStaticChecks(){
     {name:"吉他小调音阶与降号拼写",ok:/minor': \[0,2,3,5,7,8,10\]/.test(gt)&&/spellChordNote|calcScaleNotes/.test(gt)&&/NOTE_NAMES_FLAT/.test(gt)},
     {name:"调音器错误区分与目标随参考音刷新",ok:/PermissionDeniedError/.test(wt)&&/DevicesNotFoundError|NotFoundError/.test(wt)&&/targetBaseFreq \* refA4 \/ 440/.test(wt)&&/Microphone permission denied/.test(wt)&&/No microphone detected/.test(wt)&&!/global\.ToolBox/.test(wt)},
     {name:"节拍细分严格BPM、7/8分组与整小节格数",ok:/function readBpm/.test(bs)&&/readBpm\('bpm', 1, 999\)/.test(bs)&&/getMeterGroups/.test(bs)&&/group7/.test(bs)&&/共 \$\{cells\} 个细分格子/.test(bs)},
-    {name:"节拍器播放中实时读取参数",ok:/function metroSettings/.test(bs)&&/readBpm\('metroBpm', 20, 300\)/.test(bs)&&/st\.interval/.test(bs)&&/setTimeout\(metroTick/.test(bs)&&!/setInterval\(\s*\(\) => \{\s*scheduleClick/.test(bs)}
+    {name:"节拍器播放中实时读取参数",ok:/function metroSettings/.test(bs)&&/readBpm\('metroBpm', 20, 300\)/.test(bs)&&/st\.interval/.test(bs)&&/setTimeout\(metroTick/.test(bs)&&!/setInterval\(\s*\(\) => \{\s*scheduleClick/.test(bs)},
+    {name:"音符转频率八度整数与试听范围",ok:/octaveValid/.test(fq)&&/Math\.floor\(octave\) === octave/.test(fq)&&/canAudition/.test(fq)&&/AUDIBLE_MIN/.test(fq)&&!/Math\.max\(20, Math\.min\(freq, 20000\)/.test(fq)},
+    {name:"变速比例与相对变化分开标注",ok:/目标速度占原速比例/.test(sp)&&/相对变化/.test(sp)&&/__ratio/.test(sp)},
+    {name:"节拍检测新一轮清空旧结果",ok:/function clearResult/.test(dt)&&/updateDisplay[\s\S]{0,200}clearResult\(\)/.test(dt)&&/resetBPM[\s\S]{0,300}clearResult\(\)/.test(dt)}
   ];
 }
 const CASES = [
@@ -590,6 +593,42 @@ const CASES = [
   "clicks": ["compareBPM()"],
   "expect": ["BPM A 与 BPM B 都需填写 1–999 之间的有效数字"],
   "ref": "BPM 对比清空任一侧必须报错，不得用 100/140 默认值继续输出对比表。"
+}
+,
+{
+  "slug": "music/freq-note-converter",
+  "inputs": { "octaveInput": "4.9" },
+  "clicks": ["calcNote2Freq()"],
+  "expect": ["八度需为 0–8 的整数", "小数或越界输入不会参与计算"],
+  "ref": "八度 4.9 必须拒绝并提示，不得 parseInt 成 4 后继续输出 C4；默认 4 不出现提示，旧实现会显示 C4。"
+},
+{
+  "slug": "music/freq-note-converter",
+  "inputs": { "freqInput": "30000" },
+  "clicks": ["window.__fncAuditionAttempts=0;playFreq();document.getElementById('freq2note').textContent='PLAY '+window.__fncAuditionAttempts;"],
+  "expect": ["PLAY 0"],
+  "ref": "试听只支持 20–20000 Hz；30000 Hz 超范围应直接提示且不调用播放，不再静默钳制成 20000 Hz。playTone 尝试计数为 0 可区分「未播放」与「播放了钳制值」。"
+},
+{
+  "slug": "music/freq-note-converter",
+  "inputs": { "freqInput": "1" },
+  "clicks": ["window.__fncAuditionAttempts=0;playFreq();window.__fncAuditionAttempts=window.__fncAuditionAttempts||0;document.getElementById('freq2note').textContent='PLAY '+window.__fncAuditionAttempts;"],
+  "expect": ["PLAY 0"],
+  "ref": "1 Hz 低于试听下限 20 Hz，必须提示不播放；旧实现会静默播放 20 Hz，与计算结果 1 Hz 不一致。"
+},
+{
+  "slug": "music/convert-speed",
+  "inputs": { "dur": "180", "ob": "120", "nb": "140" },
+  "clicks": ["calc()"],
+  "expect": ["提速 16.7%｜目标速度=原速的 116.7%"],
+  "ref": "120→140：目标速度占原速 116.7%，相对原速变化 +16.7%；两个口径必须同时标出，不能把 116.7% 当提速幅度。"
+},
+{
+  "slug": "music/detector",
+  "inputs": {},
+  "clicks": ["try{tapTimes=[1000,2000];updateDisplay();var r=document.getElementById('res');var had=r.style.display;tapTimes=[3000];updateDisplay();document.getElementById('bpmNum').textContent='DET '+had+'|'+r.style.display+'|'+r.innerHTML.length;}catch(e){document.getElementById('bpmNum').textContent='DETERR '+e.message;}"],
+  "expect": ["DET block|none|0"],
+  "ref": "新一轮只有 1 次点击时必须隐藏并清空上一轮 BPM 结果；旧实现只把 bpmNum 改「—」，res 仍 display:block 且保留旧 BPM。"
 }
 
 ];
