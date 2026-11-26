@@ -261,17 +261,35 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __wlfEn(){try{return !!(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}catch(e){return (document.documentElement.lang||'').indexOf('en')>=0;}}
+function __wlfFmt(x,d){if(!isFinite(x))return '—';if(x===0)return (0).toFixed(d);var s=x.toFixed(d);if(parseFloat(s)===0)return x.toExponential(4);return s;}
+function __wlfValidate(){
+  var fe=document.getElementById('f'), ce=document.getElementById('c');
+  var f=fe?parseFloat(fe.value):NaN, c=ce?parseFloat(ce.value):NaN;
+  var isEn=__wlfEn(), msg='';
+  if(!fe||String(fe.value).trim()===''||!ce||String(ce.value).trim()==='') msg=isEn?'Enter both frequency and sound speed.':'请输入频率和声速。';
+  else if(!isFinite(f)||!isFinite(c)||f<=0||c<=0) msg=isEn?'Frequency and sound speed must be finite values greater than 0 (zero or negative values are not allowed).':'频率和声速必须为大于 0 的有限数值（不能为 0 或负数）。';
+  if(fe)fe.classList.toggle('input-error',!!msg);
+  if(ce)ce.classList.toggle('input-error',!!msg);
+  return msg;
+}
+function __wlfSetError(msg){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+msg+'</p>');}
+function __wlfClearAux(){['wavelength_from_freqTable','wavelength_from_freqBand','wavelength_from_freqChart','wavelength_from_freqDiff'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});}
 function calcTool(){
-              var __ig=__tbInputGuard(['f', 'c'],["频率 f (Hz)", "声速 c (m/s)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const f=num('f'),c=num('c');
-            const __g2=dataGrid([
-                [(c/f).toFixed(4),'波长 λ (m)'],
-                [((c/f)*100).toFixed(2),'波长 (cm)'],
-                [(1000/f).toFixed(4), '周期 (ms)'],
-                [(c/f*1000).toFixed(3), '波长 (mm)'],
-                [(f/c).toFixed(4), '空间频率 f/c (cycles/m)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
-        }
+  var err=__wlfValidate();
+  if(err){__wlfSetError(err);__wlfClearAux();return;}
+  var f=parseFloat(document.getElementById('f').value), c=parseFloat(document.getElementById('c').value), en=__wlfEn();
+  var lam=c/f;
+  if(!isFinite(lam)){__wlfSetError(en?'The resulting wavelength is not representable; check the inputs.':'波长超出可表示范围，请检查输入。');__wlfClearAux();return;}
+  var __g2=dataGrid([
+    [__wlfFmt(lam,4), en?'Wavelength λ (m)':'波长 λ (m)'],
+    [__wlfFmt(lam*100,2), en?'Wavelength (cm)':'波长 (cm)'],
+    [__wlfFmt(1000/f,4), en?'Period (ms)':'周期 (ms)'],
+    [__wlfFmt(lam*1000,3), en?'Wavelength (mm)':'波长 (mm)'],
+    [__wlfFmt(f/c,4), en?'Spatial frequency f/c (cycles/m)':'空间频率 f/c (cycles/m)']
+  ]);
+  ToolBox.setResult('result',__g2);
+}
 function resetForm(){document.getElementById('f').value = '1000';
       document.getElementById('c').value = '343';
       calcTool();}
@@ -318,17 +336,18 @@ function __wavelength_from_freqNum(id){var e=document.getElementById(id);var v=e
 function __wavelength_from_freqExtras(){
     function __wavelength_from_freqRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var f=num('f'),c=num('c');
-    if (!isFinite(__wavelength_from_freqNum('f')) || !isFinite(__wavelength_from_freqNum('c'))) return;
+    var err=__wlfValidate();if(err){__wlfClearAux();return;}
+    var f=parseFloat(document.getElementById('f').value),c=parseFloat(document.getElementById('c').value);
+    if (!isFinite(c/f)) { __wlfClearAux(); return; }
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#wavelength_from_freqTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['波长 λ (m)', (c/f).toFixed(4)],
-            ['波长 (cm)', ((c/f)*100).toFixed(2)],
-            ['周期 (ms)', (1000/f).toFixed(4)],
-            ['波长 (mm)', (c/f*1000).toFixed(3)],
-            ['空间频率 f/c (cycles/m)', (f/c).toFixed(4)],
+            [en?'Wavelength λ (m)':'波长 λ (m)', __wlfFmt(c/f,4)],
+            [en?'Wavelength (cm)':'波长 (cm)', __wlfFmt(c/f*100,2)],
+            [en?'Period (ms)':'周期 (ms)', __wlfFmt(1000/f,4)],
+            [en?'Wavelength (mm)':'波长 (mm)', __wlfFmt(c/f*1000,3)],
+            [en?'Spatial frequency f/c (cycles/m)':'空间频率 f/c (cycles/m)', __wlfFmt(f/c,4)],
         ]
     });
     // 倍频程中心频率对照（ISO 优选倍频程）
@@ -337,7 +356,7 @@ function __wavelength_from_freqExtras(){
     var __wfRows=__wfBands.map(function(b){
         var lam=c/b[0];
         var near=(Math.abs(Math.log(f/b[0]))<=Math.log(Math.pow(2,0.25)))?(en?' ◀ nearest':' ◀ 最近'):'';
-        return [ b[1]+' Hz'+near, lam.toFixed(3), (lam/2).toFixed(3), (lam/4).toFixed(3) ];
+        return [ b[1]+' Hz'+near, __wlfFmt(lam,3), __wlfFmt(lam/2,3), __wlfFmt(lam/4,3) ];
     });
     TBKit.matrix.table('#wavelength_from_freqBand',{
         head: en?['Center frequency','Wavelength (m)','λ/2 (m)','λ/4 (m)']:['倍频程中心频率','波长 λ (m)','半波 λ/2 (m)','四分之一波长 λ/4 (m)'],
@@ -347,7 +366,7 @@ function __wavelength_from_freqExtras(){
         title: en?'Wavelength vs octave-band center frequency':'波长随倍频程中心频率变化',
         labels: __wfBands.map(function(b){return __wfLabel(b[0]);}),
         series: [
-            {name: en?'Wavelength (m)':'波长 (m)', data: __wfBands.map(function(b){return +(c/b[0]).toFixed(3);})}
+            {name: en?'Wavelength (m)':'波长 (m)', data: __wfBands.map(function(b){return c/b[0];})}
         ]
     });
     TBKit.history.record({f:__wavelength_from_freqRaw('f'), c:__wavelength_from_freqRaw('c'), result: c/f});
@@ -365,9 +384,9 @@ function __wavelength_from_freqExportBand(){
 function __wavelength_from_freqPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#wavelength_from_freqPresets',[
-        {label:'默认',labelEn:'Default',values:{f:'1000', c:'343'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{f:'2000', c:'686'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'500', c:'171.5'}},
+        {label:'空气 1 kHz',labelEn:'Air 1 kHz',values:{f:'1000', c:'343'}},
+        {label:'水中 100 kHz',labelEn:'Water 100 kHz',values:{f:'100000', c:'1480'}},
+        {label:'钢中 1 MHz',labelEn:'Steel 1 MHz',values:{f:'1000000', c:'5000'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;

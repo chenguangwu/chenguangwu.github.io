@@ -19138,6 +19138,14 @@ const CASES = [
   ref: "第963批：JS 压缩结果中的代码字面量 Infinity/NaN 不得被显示层替换为破折号。"
 }
 
+,
+{
+  slug: "it/regex-common",
+  inputs: { cat: "username", limit: "8", txt: "Infinity NaN normal" },
+  clicks: ["calcTool()"],
+  expect: ["Infinity、NaN", "Infinity", "NaN"],
+  ref: "第964批：用户文本中的 Infinity/NaN 作为用户名命中时原样展示并高亮；旧实现把整段结果替换成破折号，命中内容和高亮失真。默认样例不含这两个词 ⇒ 强判别。"
+}
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
