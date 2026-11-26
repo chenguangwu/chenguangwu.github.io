@@ -6576,11 +6576,25 @@ const CASES = [
     ref: "第949批：残值等于原值时拒绝计算，同时清空图例与表格，避免残留上一方案曲线；旧版只清表格。",
   },
   {
-    slug: "finance/mirror-text",
-    inputs: { input: "你好AB" },
-    clicks: ["convert()"],
-    expect: ["个字符没有 Unicode 镜像字形", "复制结果会保留这些字符的原方向", "下载镜像图片 PNG"],
-    ref: "第949批：中文无 Unicode 镜像映射时明确提示复制结果与视觉镜像不同，并提供 PNG 导出函数；旧版只做近似字符替换。",
+    slug: "finance/mortgage-calculator",
+    inputs: { loanAmount: "0.000001", rate: "0", years: "30", downPayment: "0" },
+    clicks: ["calculate()"],
+    expect: ["按分舍入后月供为 0.00 元", "不能生成正常还款计划"],
+    ref: "第940批：本金 0.01 元、0% 利率、30 年，月供 0.0000278 元按分舍入为 0；旧实现把全部余额塞进首期并显示已结清，现明确拒绝并提示无法生成正常计划。默认 100 万/4.2% 不命中。"
+  },
+  {
+    slug: "finance/mortgage-calculator",
+    inputs: { loanAmount: "0.000012", rate: "100", years: "30", downPayment: "0" },
+    clicks: ["calculate()"],
+    expect: ["按分舍入后月供为 0.01 元", "不足以覆盖当期利息"],
+    ref: "第940批：本金 0.12 元、100% 利率、30 年，月供与首期利息均按分舍入为 0.01 元，月供不高于利息；旧实现首期本金为 0 后直接结清，现拒绝。"
+  },
+  {
+    slug: "finance/register-depreciation",
+    inputs: {},
+    clicks: ["assets=[{id:'OLD',name:'超龄设备',cat:'其他',date:'2025-01-01',cost:10000,salvage:0,life:101,method:'straight'},{id:'NEW',name:'正常设备',cat:'其他',date:'2025-01-01',cost:10000,salvage:0,life:5,method:'straight'}];renderSummary();renderList();document.getElementById('aName').value='新购资产';document.getElementById('aCost').value='2000';document.getElementById('aSalvage').value='0';document.getElementById('aLife').value='5';addAsset();var raw=JSON.parse(localStorage.getItem('tb_assets'));var listHtml=String(document.getElementById('assetList').innerHTML);var sumHtml=String(document.getElementById('summaryGrid').innerHTML);document.getElementById('__tbProbe').textContent='RD3 '+((raw.length===3&&raw.filter(function(a){return a.life===101;}).length===1&&listHtml.indexOf('待修正旧记录')>=0&&sumHtml.indexOf('待修正旧记录')>=0)?'OK':'BAD')+' '+raw.length;"],
+    expect: ["RD3 OK 3"],
+    ref: "第946批：加载含 101 年旧记录的台账后新增一条资产，save 必须保留全部 3 条（旧记录 1 条 life=101 不丢失），并在列表与汇总区展示「待修正旧记录」；旧实现加载即 filter，新增后 localStorage 只剩 2 条。"
   },
 
 ];

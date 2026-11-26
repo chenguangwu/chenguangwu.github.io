@@ -274,8 +274,22 @@ var assets = [];
 var editingId = null;
 try { assets = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { assets = []; }
 if (!Array.isArray(assets)) assets = [];
-// 旧版本地数据可能含小数年限或超大年限：加载时按同一规则清洗，避免刷新后再次触发长循环。
-assets = assets.filter(function(a){ return isValidAsset(a); });
+// 旧版本地数据可能含小数年限或超大年限：保留原记录不静默删除，但隔离展示、停止折旧循环；备份 JSON 仍包含全部记录。
+function __regEn(){ return (document.documentElement.lang==='en-US') || /lang=en-US/i.test(location.search) || !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()); }
+function validAssets() { return assets.filter(function(a){ return isValidAsset(a); }); }
+function invalidAssets() { return assets.filter(function(a){ return !isValidAsset(a); }); }
+function assetInvalidReason(a) {
+  var en=__regEn();
+  if (!a || typeof a !== 'object') return en?'Record is not an object':'记录不是对象';
+  if (!a.name || !String(a.name).trim()) return en?'Missing asset name':'缺少资产名称';
+  if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(a.date || ''))) return en?'Invalid purchase date format':'购入日期格式无效';
+  var cost = Number(a.cost), salvage = Number(a.salvage), life = Number(a.life);
+  if (!isFinite(cost) || cost <= 0) return en?'Cost must be positive':'原值须为正数';
+  if (!isFinite(salvage) || salvage < 0 || salvage >= cost) return en?'Salvage must be ≥0 and below cost':'残值须 ≥0 且小于原值';
+  if (!isFinite(life) || !Number.isInteger(life) || life < 1 || life > MAX_LIFE) return en?('Useful life must be an integer 1–'+MAX_LIFE+' years (current '+(isFinite(life)?life:'—')+')'):('使用年限须为 1–' + MAX_LIFE + ' 的整数年（当前 ' + (isFinite(life) ? life : '—') + '）');
+  if (['straight','ddb','syd'].indexOf(a.method) < 0) return en?'Invalid depreciation method':'折旧方法无效';
+  return en?'Does not meet current validation rules':'不符合当前校验规则';
+}
 
 function save() { try { localStorage.setItem(KEY, JSON.stringify(assets)); } catch(e) {} }
 
@@ -430,7 +444,7 @@ function cancelEdit() {
 
 function backupAssets() {
   if (!assets.length) { ToolBox.showToast(i18nText('toast.empty_export'), 'info'); return; }
-  var payload = {version: 1, exportedAt: new Date().toISOString(), count: assets.length, assets: assets};
+  var payload = {version: 1, exportedAt: new Date().toISOString(), count: assets.length, validCount: validAssets().length, invalidCount: invalidAssets().length, assets: assets};
   var d = new Date();
   var p = function(n){ return (n < 10 ? '0' : '') + n; };
   ToolBox.downloadText('固定资产台账备份-' + d.getFullYear() + p(d.getMonth()+1) + p(d.getDate()) + '.json', JSON.stringify(payload, null, 2), 'application/json;charset=utf-8');
@@ -508,19 +522,22 @@ function clearAssets() {
 }
 
 function exportAssets() {
-  if (!assets.length) { ToolBox.showToast(i18nText('toast.empty_export'), 'info'); return; }
+  var list = validAssets();
+  if (!list.length) { ToolBox.showToast(i18nText('toast.empty_export'), 'info'); return; }
   var lines = ['资产名称,类别,购入日期,原值,残值,使用年限,折旧方法,累计折旧,当前账面价值'];
-  assets.forEach(function(a) {
+  list.forEach(function(a) {
     var bv = getCurrentBookValue(a);
     lines.push([ToolBox.csvCell(a.name), ToolBox.csvCell(a.cat), a.date, a.cost, a.salvage, a.life, ToolBox.csvCell(methodLabel(a.method)), bv.accDep.toFixed(2), bv.bookVal.toFixed(2)].join(','));
   });
   ToolBox.downloadText('固定资产清单.csv', '\uFEFF' + lines.join('\n'), 'text/csv;charset=utf-8');
-  ToolBox.showToast(i18nText('toast.saved'));
+  var skipped = assets.length - list.length;
+  ToolBox.showToast(i18nText('toast.saved') + (skipped ? (__regEn()?(' ('+skipped+' record(s) needing correction skipped; keep them via "Backup JSON")'):('（' + skipped + ' 条待修正旧记录未导出，请用“备份 JSON”保留）')) : ''));
 }
 
 function showDetail(id) {
   var asset = assets.find(function(a) { return a.id === id; });
   if (!asset) return;
+  if (!isValidAsset(asset)) { ToolBox.showToast(__regEn()?'This legacy record does not meet current validation rules; depreciation is paused. Correct it or export a backup first.':'该旧记录不符合当前校验规则，已暂停折旧计算；请先修正或备份导出。', 'error'); return; }
   var bv = getCurrentBookValue(asset);
   document.getElementById('detailCard').style.display = '';
   document.getElementById('detailTitle').textContent = asset.name + ' — 折旧明细';
@@ -532,7 +549,7 @@ function showDetail(id) {
 
   html += '<div class="data-grid">';
   html += '<div class="data-card"><div class="num">¥' + fmt(bv.bookVal) + '</div><div class="label">当前账面价值</div></div>';
-  html += '<div class="data-card"><div class="num">¥' + fmt(bv.accDep) + '</div><div class="label">累计折旧</div></div>';
+  html += '<div class="data-card"><div class="num">¥' + fmt(bv.accDep) + '</div><div class="label">'+(__regEn()?'Accumulated depreciation':'累计折旧')+'</div></div>';
   html += '<div class="data-card"><div class="num">' + bv.completedYears + '/' + asset.life + '</div><div class="label">当前年度</div></div>';
   html += '<div class="data-card"><div class="num">' + ((bv.accDep / asset.cost) * 100).toFixed(1) + '%</div><div class="label">折旧进度</div></div>';
   html += '</div>';
@@ -561,38 +578,54 @@ function closeDetail() {
 
 function renderSummary() {
   if (!assets.length) { const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('summaryGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('summaryGrid').innerHTML=__h1; return; }
+  var list = validAssets();
   var totalCost = 0, totalAccDep = 0, totalBookVal = 0;
-  assets.forEach(function(a) {
+  list.forEach(function(a) {
     var bv = getCurrentBookValue(a);
     totalCost += a.cost;
     totalAccDep += bv.accDep;
     totalBookVal += bv.bookVal;
   });
   var html = '';
-  html += '<div class="data-card"><div class="num">' + assets.length + '</div><div class="label">资产总数</div></div>';
-  html += '<div class="data-card"><div class="num">¥' + fmt(totalCost) + '</div><div class="label">原值合计</div></div>';
-  html += '<div class="data-card"><div class="num">¥' + fmt(totalAccDep) + '</div><div class="label">累计折旧</div></div>';
-  html += '<div class="data-card"><div class="num">¥' + fmt(totalBookVal) + '</div><div class="label">账面净值合计</div></div>';
+  html += '<div class="data-card"><div class="num">' + list.length + '</div><div class="label">'+(__regEn()?'Assets':'资产总数')+'</div></div>';
+  html += '<div class="data-card"><div class="num">¥' + fmt(totalCost) + '</div><div class="label">'+(__regEn()?'Total cost':'原值合计')+'</div></div>';
+  html += '<div class="data-card"><div class="num">¥' + fmt(totalAccDep) + '</div><div class="label">'+(__regEn()?'Accumulated depreciation':'累计折旧')+'</div></div>';
+  html += '<div class="data-card"><div class="num">¥' + fmt(totalBookVal) + '</div><div class="label">'+(__regEn()?'Net book value':'账面净值合计')+'</div></div>';
+  if (invalidAssets().length) html += '<div class="data-card"><div class="num" style="color:var(--warning,#B45309)">' + invalidAssets().length + '</div><div class="label">'+(__regEn()?'Needs correction':'待修正旧记录')+'</div></div>';
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('summaryGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('summaryGrid').innerHTML=__h2;
 }
 
 function renderList() {
   var filterCat = document.getElementById('filterCat').value;
   var kw = document.getElementById('searchKw').value.trim().toLowerCase();
-  var filtered = assets.filter(function(a) {
+  var list = validAssets();
+  var filtered = list.filter(function(a) {
     if (filterCat !== 'all' && a.cat !== filterCat) return false;
     if (kw && a.name.toLowerCase().indexOf(kw) === -1) return false;
     return true;
   });
 
+  var html = '';
+  var bad = invalidAssets();
+  if (bad.length) {
+    html += '<div class="card" style="border-left:4px solid var(--warning,#B45309);margin-bottom:12px;">';
+    html += '<h3 style="margin:0 0 6px;">'+(__regEn()?('⚠ Records needing correction ('+bad.length+')'):('⚠ 待修正旧记录（' + bad.length + ' 条）'))+'</h3>';
+    html += '<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">'+(__regEn()?'These records do not meet current validation rules. Depreciation is paused, but they remain in the local ledger and JSON backup; adding, editing or deleting other assets will not discard them. Export the backup JSON, correct them, then import again.':'这些记录不符合当前校验规则，已暂停折旧计算，但仍完整保留在本地台账与 JSON 备份中；新增、编辑、删除其他资产不会丢弃它们。请用备份 JSON 导出后修正再导入。')+'</p><ul style="margin:0 0 8px;padding-left:18px;font-size:12px;">';
+    bad.forEach(function(a) {
+      var nm = (a && a.name) ? ToolBox.escHtml(String(a.name)) : '（无名称记录）';
+      html += '<li>' + nm + ' — ' + ToolBox.escHtml(assetInvalidReason(a)) + '</li>';
+    });
+    html += '</ul><button class="mini-btn" onclick="backupAssets()">'+(__regEn()?'⬇️ Backup JSON (all records)':'⬇️ 备份 JSON（含全部记录）')+'</button></div>';
+  }
+
   if (!filtered.length) {
-    const __h3='<div class="empty-state">暂无资产记录，请在上方登记</div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('assetList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('assetList').innerHTML=__h3;
+    html += '<div class="empty-state">' + (assets.length ? (__regEn()?'No valid assets match the filters; adjust them.':'没有符合筛选条件的有效资产，请调整筛选') : (__regEn()?'No asset records yet; add one above.':'暂无资产记录，请在上方登记')) + '</div>';
+    document.getElementById('assetList').innerHTML = html;
     return;
   }
 
   filtered.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
 
-  var html = '';
   filtered.forEach(function(a) {
     var bv = getCurrentBookValue(a);
     html += '<div class="asset-list-item">';
