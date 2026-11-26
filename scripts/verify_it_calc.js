@@ -4194,6 +4194,27 @@ const CASES = [
   },
   {
     slug: "it/csv-to-json",
+    // 合法 CSV：双引号转义与引号内换行必须正常保留。
+    clicks: ["var nl=String.fromCharCode(10),q=String.fromCharCode(34);var p=parseCSV('a,b'+nl+q+'x'+q+q+'y'+q+','+q+'m'+nl+'n'+q,',',q,true,true,true);document.getElementById('__tbProbe').textContent='CSVOK '+((p.rows[0][0]==='x'+q+'y'&&p.rows[0][1]==='m'+nl+'n')?'OK':'FAIL');"],
+    expect: ["CSVOK OK"],
+    ref: "合法双引号：`\"x\"\"y\"` 应解出字面 `x\"y`；引号内换行必须留在同一字段。修复前转义与换行都正常，本用例锁住不被新校验误伤。"
+  },
+  {
+    slug: "it/csv-to-json",
+    // 闭合引号后出现多余字符必须指出行列。
+    clicks: ["var nl=String.fromCharCode(10),q=String.fromCharCode(34);var msg='';try{parseCSV('a,b'+nl+q+'x'+q+'y,1',',',q,true,true,true)}catch(e){msg=e.message}document.getElementById('__tbProbe').textContent='CSVCLOSE '+((msg.indexOf('第 2 行第 4 列')>=0&&msg.indexOf('引号闭合后')>=0)?'OK':'FAIL:'+msg);"],
+    expect: ["CSVCLOSE OK"],
+    ref: "闭合引号后多余字符：`\"x\"y,1` 旧实现静默拼成 `xy`，现必须拒绝并指出第 2 行第 4 列。输入不含提示文案，探针判别明确。"
+  },
+  {
+    slug: "it/csv-to-json",
+    // 未引用字段内部的引号必须拒绝，不能当普通字符。
+    clicks: ["var nl=String.fromCharCode(10),q=String.fromCharCode(34);var msg='';try{parseCSV('a,b'+nl+'x'+q+'y,1',',',q,true,true,true)}catch(e){msg=e.message}document.getElementById('__tbProbe').textContent='CSVQUOTE '+((msg.indexOf('第 2 行第 2 列')>=0&&msg.indexOf('未加引号')>=0)?'OK':'FAIL:'+msg);"],
+    expect: ["CSVQUOTE OK"],
+    ref: "未引用字段内引号：`x\"y` 旧实现原样保留为 `x\"y`，现必须拒绝并指出第 2 行第 2 列；合法写法是整体加引号并把字面引号写成两个。"
+  },
+  {
+    slug: "it/csv-to-json",
     // 引号“无”必须真正关闭引号包裹，输入中的双引号应保留为字段内容。
     clicks: ["var nl=String.fromCharCode(10),q=String.fromCharCode(34),el=document.getElementById('csvInput');el.value='a,b'+nl+'1,'+q+'x'+q;document.getElementById('hasHeader').checked=true;document.getElementById('csvQuote').selectedIndex=2;document.getElementById('csvQuote').value='';csvToJson();var o=JSON.parse(document.getElementById('jsonOutput').value);document.getElementById('__tbProbe').textContent='NOQ '+((o[0]&&o[0].b===q+'x'+q)?'OK':'FAIL');"],
     expect: ["NOQ OK"],
@@ -5399,6 +5420,24 @@ const CASES = [
     clicks: ["dec()"],
     expect: ["a=b"],
     ref: "Quoted-Printable 解码：把 =3d 还原为 = ⇒ a=b。与本页编码用例成对，双向均依赖被测点。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["var q=String.fromCharCode(34);var r=parseCsvLine(q+'x'+q+q+'y'+q+',1',2,false);document.getElementById('__tbProbe').textContent='MDOK '+((r.cells[0].value==='x'+q+'y'&&r.cells[1].value==='1'&&!r.error)?'OK':'FAIL');"],
+    expect: ["MDOK OK"],
+    ref: "Markdown CSV 合法双引号：`\"x\"\"y\",1` 应解出字面 `x\"y` 与 `1`，无错误。"
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["var q=String.fromCharCode(34);var r=parseCsvLine(q+'x'+q+'y,1',2,false);document.getElementById('__tbProbe').textContent='MDCLOSE '+((r.error&&r.error.indexOf('第 2 行第 4 列')>=0)?'OK':'FAIL:'+r.error);"],
+    expect: ["MDCLOSE OK"],
+    ref: "Markdown 闭合引号后多余字符：旧实现静默拼成 `xy`，现返回「第 2 行第 4 列：引号闭合后只能接逗号或行尾」。"
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["var q=String.fromCharCode(34);var r=parseCsvLine('x'+q+'y,1',2,false);document.getElementById('__tbProbe').textContent='MDQUOTE '+((r.error&&r.error.indexOf('第 2 行第 2 列')>=0)?'OK':'FAIL:'+r.error);"],
+    expect: ["MDQUOTE OK"],
+    ref: "Markdown 未引用字段内引号：`x\"y` 旧实现原样保留，现返回「第 2 行第 2 列：未加引号的字段中不能出现引号」。"
   },
   {
     slug: "it/markdown-table-generator",

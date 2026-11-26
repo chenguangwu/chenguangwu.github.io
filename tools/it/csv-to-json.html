@@ -436,43 +436,60 @@ function parseCSV(text, delimiter, quoteChar, hasHeader, trim, keepEmptyRows) {
   let currentRow = [];
   let currentField = '';
   let inQuotes = false;
+  let fieldClosed = false;
   let i = 0;
   let line = 1;
+  let column = 1;
   let quoteStartLine = 0;
+  let quoteStartColumn = 0;
   
   while (i < text.length) {
     const ch = text[i];
     
     if (inQuotes) {
-      if (ch === '\n') { line++; currentField += ch; i++; continue; }
+      if (ch === '\n') { line++; column = 1; currentField += ch; i++; continue; }
       if (ch === quoteChar) {
         if (text[i + 1] === quoteChar) {
           currentField += quoteChar;
-          i += 2;
+          i += 2; column += 2;
           continue;
         } else {
           inQuotes = false;
-          i++;
+          fieldClosed = true;
+          i++; column++;
           continue;
         }
       } else {
         currentField += ch;
-        i++;
+        i++; column++;
         continue;
       }
     }
-    
-    if (ch === quoteChar && quoteChar && currentField === '') {
-      inQuotes = true;
-      quoteStartLine = line;
-      i++;
-      continue;
+
+    if (fieldClosed && !((delimiter && text.substr(i, delimiter.length) === delimiter) || ch === '\n' || ch === '\r')) {
+      throw new Error(__csvLangEn()
+        ? `Line ${line}, column ${column}: a closing quote must be followed by the delimiter or a line break`
+        : `第 ${line} 行第 ${column} 列：引号闭合后只能接分隔符或换行，不能有其他字符`);
+    }
+
+    if (ch === quoteChar && quoteChar) {
+      if (currentField === '' && !fieldClosed) {
+        inQuotes = true;
+        quoteStartLine = line;
+        quoteStartColumn = column;
+        i++; column++;
+        continue;
+      }
+      throw new Error(__csvLangEn()
+        ? `Line ${line}, column ${column}: a quote appeared inside an unquoted field; wrap the whole field in quotes and double any literal quote`
+        : `第 ${line} 行第 ${column} 列：未加引号的字段中不能出现引号；如需包含引号，请用引号包裹整个字段并把字面引号写成两个引号`);
     }
     
     if (delimiter && text.substr(i, delimiter.length) === delimiter) {
       currentRow.push(trim ? currentField.trim() : currentField);
       currentField = '';
-      i += delimiter.length;
+      fieldClosed = false;
+      i += delimiter.length; column += delimiter.length;
       continue;
     }
     
@@ -481,7 +498,8 @@ function parseCSV(text, delimiter, quoteChar, hasHeader, trim, keepEmptyRows) {
       rows.push(currentRow);
       currentRow = [];
       currentField = '';
-      line++;
+      fieldClosed = false;
+      line++; column = 1;
       i++;
       continue;
     }
@@ -492,17 +510,18 @@ function parseCSV(text, delimiter, quoteChar, hasHeader, trim, keepEmptyRows) {
       rows.push(currentRow);
       currentRow = [];
       currentField = '';
-      line++;
+      fieldClosed = false;
+      line++; column = 1;
       i++;
       continue;
     }
     
     currentField += ch;
-    i++;
+    i++; column++;
   }
   
   if (inQuotes) {
-    throw new Error(__csvLangEn() ? `Unclosed quote starting at line ${quoteStartLine}; check that the quoted field closes with a matching quote` : `第 ${quoteStartLine} 行有未闭合的引号；请检查该字段的引号是否成对`);
+    throw new Error(__csvLangEn() ? `Unclosed quote starting at line ${quoteStartLine}, column ${quoteStartColumn}; check that the quoted field closes with a matching quote` : `第 ${quoteStartLine} 行第 ${quoteStartColumn} 列有未闭合的引号；请检查该字段的引号是否成对`);
   }
   if (currentField !== '' || currentRow.length > 0) {
     currentRow.push(trim ? currentField.trim() : currentField);
