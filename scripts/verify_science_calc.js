@@ -745,6 +745,13 @@ const CASES = [
   },
   {
     slug: "science/correlation-calculator",
+    inputs: { xData: "1, 2", yData: "3, 4" },
+    clicks: ["calculate()"],
+    expect: ["样本量过小：n = 2", "不能据此推断总体相关强度或统计显著性"],
+    ref: "n=2 小样本：只要 X/Y 都有差异，Pearson r 必然为 ±1；页面必须保留 r 但明确说明不能推断总体相关或显著性。默认 5 组数据不出现该提示 ⇒ 非逃生。"
+  },
+  {
+    slug: "science/correlation-calculator",
     inputs: { xData: "1, 2, 3, 4, 5", yData: "2, 4, 6, 8, 10" },
     clicks: ["calculate()"],
     expect: ["r = 20 / √(10 × 40) = 20 / 20 = 1", "Σ(xᵢ−x̄)² = 10；Σ(yᵢ−ȳ)² = 40"],
