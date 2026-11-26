@@ -19081,7 +19081,62 @@ const CASES = [
     clicks: ["var N=String.fromCharCode(10);var s='text: >'+N+'  first'+N+N+'    indented'+N+'  last';document.getElementById('source').value=s;calcTool();var t=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='YFOLD '+(t.indexOf('first'+N+N+'  indented'+N+'last')>=0?'OK':'BAD:'+JSON.stringify(t));"],
     expect: ["YFOLD OK"],
     ref: "复核失败重做·折叠块标量：> 的空行保留为段落、更缩进行保留缩进并各占一行，普通行折叠为空格。"
-  }
+  },
+{
+  slug: "it/yaml-to-json",
+  inputs: { source: 'Infinity: 1\nname: Infinity\nnote: NaN' },
+  clicks: ["calcTool()"],
+  expect: ['"Infinity": 1', '"name": "Infinity"', '"note": "NaN"'],
+  ref: "第963批：用户文本中的 Infinity/NaN 不再被显示层替换为破折号；键名和值原样保留，只做 HTML 转义。"
+},
+{
+  slug: "it/toml-to-json",
+  inputs: { source: 'name = "Infinity"\nnote = "NaN"' },
+  clicks: ["calcTool()"],
+  expect: ['"name": "Infinity"', '"note": "NaN"'],
+  ref: "第963批：TOML 字符串值中的 Infinity/NaN 原样进入 JSON；显示层不再全局替换。"
+},
+{
+  slug: "it/toml-to-yaml",
+  inputs: { source: 'name = "Infinity"\nnote = "NaN"' },
+  clicks: ["calcTool()"],
+  expect: ["name: Infinity", "note: NaN"],
+  ref: "第963批：TOML→YAML 输出保留字符串值 Infinity/NaN。"
+},
+{
+  slug: "it/toml-to-xml",
+  inputs: { source: 'name = "Infinity"\nnote = "NaN"' },
+  clicks: ["calcTool()"],
+  expect: ["<name>Infinity</name>", "<note>NaN</note>"],
+  ref: "第963批：TOML→XML 输出保留元素文本 Infinity/NaN。"
+},
+{
+  slug: "it/xml-to-yaml",
+  clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/xml-to-yaml.html','utf8');document.getElementById('__tbProbe').textContent='X2Y '+((h.indexOf(String.fromCharCode(46)+'replace(/Infinity|NaN/g')<0&&h.indexOf('d.textContent=')>=0)?'OK':'BAD');"],
+  expect: ["X2Y OK"],
+  ref: "第963批：XML→YAML 显示层已无 Infinity/NaN 全局替换，文本走 escH 的 textContent 转义；桩环境缺 DOMParser，故做源码断言，真机另行验证。"
+},
+{
+  slug: "it/csv-to-yaml",
+  inputs: { csv: 'name,note\nInfinity,NaN' },
+  clicks: ["calcTool()"],
+  expect: ['name: "Infinity"', 'note: "NaN"'],
+  ref: "第963批：CSV→YAML 字段文本中的 Infinity/NaN 原样保留。"
+},
+{
+  slug: "it/csv-to-html-table",
+  inputs: { csvInput: 'name,note\nInfinity,NaN' },
+  clicks: ["calcTool()"],
+  expect: ["<td>Infinity</td>", "<td>NaN</td>"],
+  ref: "第963批：CSV→HTML 表格单元格保留 Infinity/NaN 文本。"
+},
+{
+  slug: "it/js-minify",
+  inputs: { src: 'var a = Infinity; var b = NaN; function f(){ return a + b; }' },
+  clicks: ["calcTool()"],
+  expect: ["Infinity", "NaN"],
+  ref: "第963批：JS 压缩结果中的代码字面量 Infinity/NaN 不得被显示层替换为破折号。"
+}
 
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
