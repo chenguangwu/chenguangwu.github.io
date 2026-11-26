@@ -1073,9 +1073,16 @@
       }
     }
 
+    // 未匹配任何目标音符的敲击：休止处误击或重复敲击，计入评分分母
+    const extraTapIndices = [];
+    for (let j = 0; j < userTaps.length; j++) {
+      if (!usedTapIndices.has(j)) extraTapIndices.push(j);
+    }
+    const extraCount = extraTapIndices.length;
+
     // Calculate accuracy
     const hitResults = results.filter(r => r.hit);
-    const hitRate = results.length > 0 ? hitResults.length / results.length : 0;
+    const scoredUnits = results.length + extraCount;
 
     // Score based on deviation
     let avgDeviation = 0;
@@ -1099,7 +1106,7 @@
       }
     }
 
-    const accuracy = results.length > 0 ? Math.round(totalScore / results.length) : 0;
+    const accuracy = scoredUnits > 0 ? Math.round(totalScore / scoredUnits) : 0;
 
     if (hitResults.length > 0) {
       avgDeviation = Math.round(hitResults.reduce((sum, r) => sum + r.absDeviation, 0) / hitResults.length);
@@ -1137,6 +1144,7 @@
       '<div class="stat-card"><div class="num">' + userTaps.length + '</div><div class="lbl">敲击次数</div></div>' +
       '<div class="stat-card"><div class="num" style="color:var(--success);">' + perfect + '</div><div class="lbl">完美命中</div></div>' +
       '<div class="stat-card"><div class="num" style="color:var(--danger);">' + missed + '</div><div class="lbl">漏击</div></div>' +
+      '<div class="stat-card"><div class="num" style="color:var(--danger);">' + extraCount + '</div><div class="lbl">' + __tbL('Extra taps', '额外点击') + '</div></div>' +
       '<div class="stat-card"><div class="num">' + avgDeviation + '<small style="font-size:12px;color:var(--text-muted);">ms</small></div><div class="lbl">平均偏差</div></div>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){document.getElementById('scoreStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('scoreStats').innerHTML=__h7;
 
     // Hit list
@@ -1166,6 +1174,13 @@
         '<span class="hit-index ' + cls + '">' + (i + 1) + '</span>' +
         '<span class="hit-time">第' + measureNum + '小节 第' + beatInMeasure + '拍</span>' +
         '<span class="hit-deviation ' + cls + '">' + devText + '</span>' +
+        '</div>';
+    }
+    if (extraCount > 0) {
+      listHtml += '<div class="hit-item">' +
+        '<span class="hit-index bad">+' + extraCount + '</span>' +
+        '<span class="hit-time">' + __tbL('Extra taps (rests or repeats)', '额外点击（休止处误击或重复敲击）') + '</span>' +
+        '<span class="hit-deviation bad">' + __tbL('not scored', '不计分') + '</span>' +
         '</div>';
     }
     const __h8=listHtml;if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){hitList.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}hitList.innerHTML=__h8;
