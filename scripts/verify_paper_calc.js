@@ -35,10 +35,12 @@ function strengthStaticChecks() {
   const conc = fs.readFileSync(path.join(__dirname, "..", "tools", "paper", "calc-concentration-1.html"), "utf8");
   const moist = fs.readFileSync(path.join(__dirname, "..", "tools", "paper", "moisture-calc.html"), "utf8");
   const naipo = fs.readFileSync(path.join(__dirname, "..", "tools", "paper", "naipo-dingpo-zhishu.html"), "utf8");
+  const det = fs.readFileSync(path.join(__dirname, "..", "tools", "paper", "detector-17.html"), "utf8");
   return [
     { name: "纸浆浓度校验绝干率/体积/目标并声明纤维守恒", ok: /__concValid/.test(conc) && /dryPct>100/.test(conc) && /vol<=0/.test(conc) && /target<=0\|\|target>100/.test(conc) && /绝干纤维守恒/.test(conc) },
     { name: "水分阈值改为参考区间且复制复用校验", ok: /__moistureValid/.test(moist) && /文化用纸常见参考区间/.test(moist) && /不是所有纸种的标准限值/.test(moist) && /validateMoisture\(\)/.test(moist.slice(moist.indexOf('function copyResult'), moist.indexOf('var refData'))) },
     { name: "耐破移除跨量纲互换并统一标签与校验", ok: !/swapValues|互换 A\/B|评分 A|评分 B/.test(naipo) && /__naipoValid/.test(naipo) && /耐破度须大于 0/.test(naipo) && /纸样定量须大于 0/.test(naipo) && /不是标准限值/.test(naipo) },
+    { name: "纸病改为参考阈值、严格校验并禁止无效复制", ok: !/GB\/T|15442|不合格品|合格品/.test(det) && /__detValid/.test(det) && /__dNum/.test(det) && /单项超出参考阈值/.test(det) && /不能为负/.test(det) && /area<=0/.test(det) && /非国家标准合格判定/.test(det) && /__detValid\)\{ToolBox\.showToast/.test(det) },
     { name: "撕裂页移除跨量纲互换与固定1.5倍结论", ok: !/1\.5|swapValues|互换 A\/B/.test(s9) && /撕裂力（实测，mN）/.test(s9) && /纸样定量（g\/m²）/.test(s9) },
     { name: "纸箱抗压区分计算与堆码有效性并保存ECT模式", ok: /baseValid/.test(s1) && /stackValid/.test(s1) && /ectMode/.test(s1) && /ectDirect/.test(s1) && /未保存 ECT 输入模式/.test(s1) },
   ];
@@ -70,8 +72,8 @@ const CASES = [
     "defPerSqm": "8",
     "area": "10"
   },
-  "expect": [ "15442 最大缺陷尺寸：5.5" ],
-  "ref": "auto-restore"
+  "expect": [ "参考阈值" ],
+  "ref": "纸病结果改为参考阈值口径"
 },
 {
   "slug": "paper/moisture-calc",
@@ -219,7 +221,7 @@ const CASES = [
   "expect": ["无法形成有效缠绕层数"],
   "ref": "外径与纸芯差 0.5 mm、纸厚 1 mm ⇒ 层数 round(0.25)=0，旧实现再算 lengthM/layers 得 Infinity（显示破折号）；现在层数 <1 时直接拒绝。"
 },
-{ slug:"paper/detector-17", inputs:{"defSize":"","defPerSqm":"","area":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"paper/detector-17", inputs:{"defSize":"","defPerSqm":"","area":""}, expect:["请完整填写最大缺陷尺寸"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
 {
   "slug": "paper/roll-length",
   "clicks": ["document.getElementById('outerDia').value='200';document.getElementById('coreDia').value='';document.getElementById('paperThk').value='0.1';calcLen();document.getElementById('__tbProbe').textContent=document.getElementById('lenResult').innerText;"],
@@ -303,8 +305,24 @@ const CASES = [
   "inputs": {"v0":"250","v1":"0"},
   "expect": ["分母，不能为 0"],
   "ref": "定量 0 不得触发除零（通用分母守卫）。"
-}
+},
+
+
+{
+  "slug": "paper/detector-17",
+  "inputs": {"defSize":"2.5","defPerSqm":"8","area":"10"},
+  "expect": ["两项均超出参考阈值"],
+  "ref": "尺寸与密度均超阈值时提示两项均超出，不再写不合格品。"
+},
+{
+  "slug": "paper/detector-17",
+  "inputs": {"defSize":"5","defPerSqm":"3","area":"10"},
+  "expect": ["单项超出参考阈值"],
+  "ref": "仅尺寸超阈值时不得判为参考优等/参考一等。"
+},
+
 ];
+
 async function main() {
   const only = process.argv.slice(2);
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
