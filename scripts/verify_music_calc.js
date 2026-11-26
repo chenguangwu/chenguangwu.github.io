@@ -4,7 +4,7 @@ const { runCase } = require("./verify_it_calc.js");
 const fs=require("fs"), path=require("path");
 function musicStaticChecks(){
   const read=(p)=>fs.readFileSync(path.join(__dirname,"..","tools","music",p),"utf8");
-  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html"), fq=read("freq-note-converter.html"), sp=read("convert-speed.html"), dt=read("detector.html"), ac=read("audio-converter.html"), ma=read("music-analysis.html"), mp=read("music-player.html");
+  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html"), fq=read("freq-note-converter.html"), sp=read("convert-speed.html"), dt=read("detector.html"), ac=read("audio-converter.html"), ma=read("music-analysis.html"), mp=read("music-player.html"), et=read("ear-trainer.html");
   return [
     {name:"和弦进行降E映射、悲怆四级与大调高频",ok:/'Eb':3/.test(cp)&&!/'Eb':2/.test(cp)&&/qualities:\s*\['',\s*'m',\s*'',\s*'m'\]/.test(cp)&&/48 \+ chordRoot/.test(cp)&&/spellChordNote\(rootName/.test(cp)},
     {name:"和弦进行停止清理全部高亮定时器",ok:/highlightTimeouts/.test(cp)&&/highlightTimeouts\.forEach/.test(cp)&&/if \(isPlaying\) highlightChord/.test(cp)},
@@ -20,7 +20,10 @@ function musicStaticChecks(){
     {name:"音频格式十进制容量与英文免责",ok:/totalBytes \/ 1e6/.test(ac)&&/320 \* 1000 \* dur \/ 8 \/ 1e6/.test(ac)&&/no upload or transcoding/.test(ac)&&!/Convert audio files between common formats/.test(ac)},
     {name:"音频分析容量十进制与统计清空",ok:/totalBytes \/ 1e6/.test(ma)&&/function clearStats/.test(ma)&&/clearStats\(\)/.test(ma)&&/bytesPerSec \/ 1000/.test(ma)},
     {name:"播放器按实际加入数反馈并跳过非音频",ok:/function isAudioFile/.test(mp)&&/const added = \[\]/.test(mp)&&/skipped\+\+/.test(mp)&&/已添加 \$\{added\.length\} 首，跳过 \$\{skipped\}/.test(mp)&&!/已添加 \$\{files\.length\} 首歌曲/.test(mp)},
-    {name:"播放器 Promise/事件同步状态并修正历史索引",ok:/function attemptPlay/.test(mp)&&/p\.then\(\(\) => \{ updatePlayUI\(true\)/.test(mp)&&/showPlayError\(\); return false;/.test(mp)&&/audio\.addEventListener\('error'/.test(mp)&&/__tbHistSave\(\{时间:__tbTime\(\),曲目:t\.name/.test(mp)&&!/var t=playlist\[i\]/.test(mp)}
+    {name:"播放器 Promise/事件同步状态并修正历史索引",ok:/function attemptPlay/.test(mp)&&/p\.then\(\(\) => \{ updatePlayUI\(true\)/.test(mp)&&/showPlayError\(\); return false;/.test(mp)&&/audio\.addEventListener\('error'/.test(mp)&&/__tbHistSave\(\{时间:__tbTime\(\),曲目:t\.name/.test(mp)&&!/var t=playlist\[i\]/.test(mp)},
+    {name:"听力训练播放方式用 data-style 选中",ok:/data-style="simultaneous"/.test(et)&&/data-style="arpeggio"/.test(et)&&/getAttribute\('data-style'\) === style/.test(et)&&!/textContent\.indexOf\(style/.test(et)},
+    {name:"听力训练动态文案按语言生成",ok:/function intervalName/.test(et)&&/function chordName/.test(et)&&/L\('Easy \(4 intervals\)'/.test(et)&&/L\('Correct answer: '/.test(et)&&/L\('Correct!/.test(et)&&/L\('Wrong answer'/.test(et)&&/refreshLanguageUI/.test(et)},
+    {name:"听力训练切题停止旧振荡器与定时器",ok:/function stopCurrentSound/.test(et)&&/activeOscs\.forEach/.test(et)&&/playTimers\.forEach/.test(et)&&/function generateQuestion\(\) \{\n    stopCurrentSound\(\)/.test(et)&&/if \(token === playToken\)/.test(et)}
   ];
 }
 const CASES = [

@@ -406,8 +406,8 @@
 
     <!-- 播放方式（仅音程模式） -->
     <div class="play-style-group" id="playStyleGroup">
-      <button type="button" class="play-style-btn active" onclick="setPlayStyle('simultaneous')">同时发声</button>
-      <button type="button" class="play-style-btn" onclick="setPlayStyle('arpeggio')">先后发声（琶音）</button>
+      <button type="button" class="play-style-btn active" data-style="simultaneous" onclick="setPlayStyle('simultaneous')">同时发声</button>
+      <button type="button" class="play-style-btn" data-style="arpeggio" onclick="setPlayStyle('arpeggio')">先后发声（琶音）</button>
     </div>
 
     <!-- 播放按钮 -->
@@ -624,6 +624,18 @@
     return 440 * Math.pow(2, (midi - 69) / 12);
   }
 
+  let activeOscs = [], playTimers = [], activeMaster = null, playToken = 0;
+  function stopCurrentSound() {
+    playToken++;
+    activeOscs.forEach(function(osc) { try { osc.stop(); } catch (e) {} });
+    activeOscs = [];
+    playTimers.forEach(function(t) { clearTimeout(t); });
+    playTimers = [];
+    if (activeMaster) { try { activeMaster.disconnect(); } catch (e) {} activeMaster = null; }
+    const btn = $('playBtn');
+    if (btn) btn.classList.remove('playing');
+  }
+
   // 播放单个音符
   function playNote(freq, startTime, duration, ctx, gainNode) {
     const osc = ctx.createOscillator();
@@ -640,7 +652,30 @@
     noteGain.connect(gainNode);
     osc.start(startTime);
     osc.stop(startTime + duration + 0.01);
+    activeOscs.push(osc);
+    osc.onended = function() {
+      const at = activeOscs.indexOf(osc);
+      if (at >= 0) activeOscs.splice(at, 1);
+      try { noteGain.disconnect(); } catch (e) {}
+    };
   }
+
+  /* ========== 语言与文案 ========== */
+  function isEn() {
+    try { return TBKit.util.isEn(); } catch (e) {}
+    return /^en/i.test(document.documentElement.lang || '');
+  }
+  function L(en, zh) { return isEn() ? en : zh; }
+  const INTERVAL_EN = {
+    minor2: 'Minor 2nd', major2: 'Major 2nd', minor3: 'Minor 3rd', major3: 'Major 3rd',
+    perfect4: 'Perfect 4th', tritone: 'Tritone (aug4/dim5)', perfect5: 'Perfect 5th',
+    minor6: 'Minor 6th', major6: 'Major 6th', minor7: 'Minor 7th', major7: 'Major 7th', octave: 'Octave'
+  };
+  const CHORD_EN = {
+    major: 'Major Triad', minor: 'Minor Triad', aug: 'Augmented Triad', dim: 'Diminished Triad'
+  };
+  function intervalName(iv) { return iv ? L(INTERVAL_EN[iv.id] || iv.name, iv.name) : ''; }
+  function chordName(ch) { return ch ? L(CHORD_EN[ch.id] || ch.name, ch.name) : ''; }
 
   /* ========== 音程定义 ========== */
   const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -712,9 +747,9 @@
     if (state.mode === 'interval') {
       playStyleGroup.style.display = 'flex';
       const diffs = [
-        { id: 'easy', name: '简单（4种音程）' },
-        { id: 'medium', name: '中等（6种音程）' },
-        { id: 'hard', name: '困难（全部12种）' }
+        { id: 'easy', name: L('Easy (4 intervals)', '简单（4种音程）') },
+        { id: 'medium', name: L('Medium (6 intervals)', '中等（6种音程）') },
+        { id: 'hard', name: L('Hard (all 12)', '困难（全部12种）') }
       ];
       const __h0=diffs.map(function(d) {
         const cls = d.id === state.difficulty ? 'diff-btn active' : 'diff-btn';
@@ -723,8 +758,8 @@
     } else {
       playStyleGroup.style.display = 'none';
       const diffs = [
-        { id: 'easy', name: '简单（大小三和弦）' },
-        { id: 'hard', name: '困难（全部4种）' }
+        { id: 'easy', name: L('Easy (major/minor)', '简单（大小三和弦）') },
+        { id: 'hard', name: L('Hard (all 4)', '困难（全部4种）') }
       ];
       const __h1=diffs.map(function(d) {
         const cls = d.id === state.difficulty ? 'diff-btn active' : 'diff-btn';
@@ -746,7 +781,7 @@
         const btn = document.createElement('button');
         btn.className = 'option-btn';
         btn.setAttribute('data-id', id);
-        const __h3=interval.name + '<span class="option-short">' + interval.short + '</span>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){btn.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}btn.innerHTML=__h3;
+        const __h3=intervalName(interval) + '<span class="option-short">' + interval.short + '</span>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){btn.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}btn.innerHTML=__h3;
         btn.onclick = function() { EarTrainer.selectAnswer(id); };
         grid.appendChild(btn);
       });
@@ -760,7 +795,7 @@
         const btn = document.createElement('button');
         btn.className = 'option-btn';
         btn.setAttribute('data-id', id);
-        const __h4=chord.name + '<span class="option-short">' + chord.short + '</span>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){btn.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}btn.innerHTML=__h4;
+        const __h4=chordName(chord) + '<span class="option-short">' + chord.short + '</span>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){btn.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}btn.innerHTML=__h4;
         btn.onclick = function() { EarTrainer.selectAnswer(id); };
         grid.appendChild(btn);
       });
@@ -770,22 +805,22 @@
   function renderRefTable() {
     const el = $('refContent');
     if (state.mode === 'interval') {
-      let html = '<table><thead><tr><th>音程</th><th>简称</th><th>半音数</th><th>示例（C为根音）</th></tr></thead><tbody>';
+      let html = '<table><thead><tr><th>' + L('Interval','音程') + '</th><th>' + L('Short','简称') + '</th><th>' + L('Semitones','半音数') + '</th><th>' + L('Example (root C)','示例（C为根音）') + '</th></tr></thead><tbody>';
       INTERVALS.forEach(function(iv) {
         const topNote = iv.semitones;
         const topName = DEGREE_SPELL[topNote];
-        html += '<tr><td><strong>' + iv.name + '</strong></td><td>' + iv.short + '</td><td>' + iv.semitones + '</td><td>C → ' + topName + '</td></tr>';
+        html += '<tr><td><strong>' + intervalName(iv) + '</strong></td><td>' + iv.short + '</td><td>' + iv.semitones + '</td><td>C → ' + topName + '</td></tr>';
       });
       html += '</tbody></table>';
       const __h5=html;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h5;
       $('refCard').style.display = '';
     } else {
-      let html = '<table><thead><tr><th>和弦</th><th>英文</th><th>结构</th><th>示例（C为根音）</th></tr></thead><tbody>';
+      let html = '<table><thead><tr><th>' + L('Chord','和弦') + '</th><th>' + L('English','英文') + '</th><th>' + L('Structure','结构') + '</th><th>' + L('Example (root C)','示例（C为根音）') + '</th></tr></thead><tbody>';
       CHORDS.forEach(function(ch) {
         // FE-N39：和弦示例按音级拼写（ch.spell），不再共用音程的半音映射 DEGREE_SPELL。
         // 结构列仍展示半音数（4+8 / 3+6），CSV 直接读取本表 ⇒ 同步修正。
         var __spell = ch.spell || ch.intervals.map(function(s) { return DEGREE_SPELL[s]; });
-        html += '<tr><td><strong>' + ch.name + '</strong></td><td>' + ch.short + '</td><td>根音 + ' + ch.intervals.join('+') + ' 半音</td><td>C ' + __spell.slice(1).join('-') + '</td></tr>';
+        html += '<tr><td><strong>' + chordName(ch) + '</strong></td><td>' + ch.short + '</td><td>' + L('Root + ','根音 + ') + ch.intervals.join('+') + L(' semitones',' 半音') + '</td><td>C ' + __spell.slice(1).join('-') + '</td></tr>';
       });
       html += '</tbody></table>';
       const __h6=html;if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h6;
@@ -837,8 +872,10 @@ function updateStats() {
   /* ========== 音频播放 ========== */
 
   function playSound() {
+    stopCurrentSound();
     const ctx = getAudioCtx();
     const masterGain = ctx.createGain();
+    activeMaster = masterGain;
     masterGain.gain.setValueAtTime(1, ctx.currentTime);
     masterGain.connect(ctx.destination);
 
@@ -870,14 +907,16 @@ function updateStats() {
       playNote(topFreq, ctx.currentTime, noteDuration, ctx, masterGain);
     }
 
-    setTimeout(function() {
-      playBtn.classList.remove('playing');
-    }, (state.mode === 'interval' && state.playStyle === 'arpeggio') ? 2000 : 1800);
+    const token = playToken;
+    playTimers.push(setTimeout(function() {
+      if (token === playToken) playBtn.classList.remove('playing');
+    }, (state.mode === 'interval' && state.playStyle === 'arpeggio') ? 2000 : 1800));
   }
 
   /* ========== 出题逻辑 ========== */
 
   function generateQuestion() {
+    stopCurrentSound();
     state.answered = false;
     hideFeedback();
     enableOptions();
@@ -909,7 +948,7 @@ function updateStats() {
       ];
     }
 
-    $('playHint').textContent = '点击播放，听后选择答案';
+    $('playHint').textContent = L('Click play, then choose your answer', '点击播放，听后选择答案');
     renderOptions();
   }
 
@@ -927,21 +966,21 @@ function updateStats() {
       if (state.streak > state.bestStreak) state.bestStreak = state.streak;
       highlightOption(selectedId, 'correct');
       showFeedback(true, '');
-      ToolBox.showToast(state.streak >= 3 ? '连击 x' + state.streak + ' !' : '正确!', 'success');
+      ToolBox.showToast(state.streak >= 3 ? L('Streak x' + state.streak + ' !', '连击 x' + state.streak + ' !') : L('Correct!', '正确!'), 'success');
     } else {
       state.streak = 0;
       highlightOption(selectedId, 'wrong');
       highlightOption(state.currentAnswer, 'reveal');
       const correctName = state.mode === 'interval'
-        ? (INTERVALS.find(function(i) { return i.id === state.currentAnswer; }) || {}).name
-        : (CHORDS.find(function(c) { return c.id === state.currentAnswer; }) || {}).name;
-      showFeedback(false, '正确答案: ' + correctName + ' | 音符: ' + state.currentNoteNames.join(' - '));
-      ToolBox.showToast(i18nText(), 'error');
+        ? intervalName(INTERVALS.find(function(i) { return i.id === state.currentAnswer; }))
+        : chordName(CHORDS.find(function(c) { return c.id === state.currentAnswer; }));
+      showFeedback(false, L('Correct answer: ', '正确答案: ') + correctName + L(' | Notes: ', ' | 音符: ') + state.currentNoteNames.join(' - '));
+      ToolBox.showToast(L('Wrong answer', '回答错误'), 'error');
     }
 
     disableOptions();
     updateStats();
-    $('playHint').textContent = '选择答案后，点击"下一题"继续';
+    $('playHint').textContent = L('Answer chosen — click Next to continue', '选择答案后，点击"下一题"继续');
   }
 
   function highlightOption(id, className) {
@@ -957,10 +996,10 @@ function updateStats() {
     const el = $('feedback');
     el.className = 'feedback show ' + (isCorrect ? 'correct-fb' : 'wrong-fb');
     if (isCorrect) {
-      let streakHtml = state.streak >= 3 ? '<br><span class="streak-pop" style="font-size:20px;">🔥 连击 x' + state.streak + '</span>' : '';
-      const __h7='✅ 回答正确!' + streakHtml;if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h7;
+      let streakHtml = state.streak >= 3 ? '<br><span class="streak-pop" style="font-size:20px;">' + L('🔥 Streak x', '🔥 连击 x') + state.streak + '</span>' : '';
+      const __h7=L('✅ Correct!', '✅ 回答正确!') + streakHtml;if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h7;
     } else {
-      const __h8='❌ 回答错误<div class="note-info">' + detail + '</div>';if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h8;
+      const __h8=L('❌ Wrong answer', '❌ 回答错误') + '<div class="note-info">' + detail + '</div>';if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h8;
     }
   }
 
@@ -1016,14 +1055,10 @@ function updateStats() {
     },
 
     setPlayStyle: function(style) {
+      stopCurrentSound();
       state.playStyle = style;
       document.querySelectorAll('.play-style-btn').forEach(function(btn) {
-        btn.classList.remove('active');
-      });
-      document.querySelectorAll('.play-style-btn').forEach(function(btn) {
-        if (btn.textContent.indexOf(style === 'simultaneous' ? '同时' : '先后') >= 0) {
-          btn.classList.add('active');
-        }
+        btn.classList.toggle('active', btn.getAttribute('data-style') === style);
       });
     },
 
@@ -1035,7 +1070,7 @@ function updateStats() {
       state.streak = 0;
       state.bestStreak = 0;
       updateStats();
-      ToolBox.showToast(i18nText(), 'info');
+      ToolBox.showToast(L('Stats reset', '统计已重置'), 'info');
     }
   };
 
@@ -1064,6 +1099,18 @@ function updateStats() {
   renderRefTable();
   generateQuestion();
   updateStats();
+
+  // i18n.js 以 defer 加载：首屏生成时语言可能尚未就绪，DOMContentLoaded 后按当前语言重绘动态文案
+  function refreshLanguageUI() {
+    renderDifficulty();
+    renderRefTable();
+    generateQuestion();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(refreshLanguageUI, 0); });
+  } else {
+    setTimeout(refreshLanguageUI, 0);
+  }
 
 })();
 </script>
