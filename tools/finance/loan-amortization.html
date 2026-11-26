@@ -799,14 +799,19 @@ function calcPrepay() {
   var annualRate = +document.getElementById('annualRate').value || 0;
   var years = +document.getElementById('loanYears').value || 0;
   var method = document.getElementById('repayMethod').value;
-  var prepayMonth = +document.getElementById('prepayMonth').value || 1;
+  var prepayRaw = String(document.getElementById('prepayMonth').value || '').trim();
+  var prepayMonth = /^\d+$/.test(prepayRaw) ? parseInt(prepayRaw, 10) : NaN;
   var prepayAmount = +document.getElementById('prepayAmount').value || 0;
   var prepayType = document.querySelector('input[name="prepayType"]:checked').value;
   // 始终从主计算的不可变原始计划重算，避免第二次提前还款叠加在已改写的计划上
   var base = originalScheduleData.length ? originalScheduleData : scheduleData;
 
-  if (!base.length || prepayMonth < 1 || prepayMonth >= base.length) {
-    document.getElementById('prepayResult').innerHTML='<p style="color:var(--danger);">提前还款期数无效</p>';
+  if (prepayRaw === '') {
+    document.getElementById('prepayResult').innerHTML='<p style="color:var(--danger);">请输入提前还款期数（第 N 期后），留空不会默认按第 1 期计算</p>';
+    return;
+  }
+  if (!isFinite(prepayMonth) || prepayMonth < 1 || prepayMonth >= base.length) {
+    document.getElementById('prepayResult').innerHTML='<p style="color:var(--danger);">提前还款期数须为 1 至最后一期之前的整数（当前共 ' + base.length + ' 期）</p>';
     return;
   }
   if (!(prepayAmount > 0)) {

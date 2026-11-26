@@ -196,8 +196,8 @@
 
     <div class="input-row">
       <div>
-        <label for="rate">贷款年利率（%）</label>
-        <input type="number" id="rate" value="5.5" step="0.01" min="0" oninput="calculate()" placeholder="如 5.5">
+        <label for="rate">贷款年利率（%，0–50）</label>
+        <input type="number" id="rate" value="5.5" step="0.01" min="0" max="50" oninput="calculate()" placeholder="如 5.5">
       </div>
       <div>
         <label for="years">贷款期限（年）</label>
@@ -491,10 +491,15 @@ function calculate(){
   const years = Number(yearsRaw);
 
   __car_loan_calculator_valid=false;
+  if(rateRaw !== '' && Number.isFinite(annualRate) && annualRate > 50){
+    resetDisplay();
+    document.getElementById('scheduleBody').innerHTML='<p style="color:var(--danger);">贷款年利率须在 0%–50% 之间（当前 '+annualRate+'%），超出范围不生成还款表。</p>';
+    return;
+  }
   if(priceRaw === '' || downRaw === '' || rateRaw === '' || yearsRaw === '' ||
      !Number.isFinite(price) || !Number.isFinite(downPct) ||
      !Number.isFinite(annualRate) || !Number.isFinite(years) ||
-     price <= 0 || downPct < 0 || downPct > 100 || annualRate < 0 || years <= 0){
+     price <= 0 || downPct < 0 || downPct > 100 || annualRate < 0 || annualRate > 50 || years <= 0){
     resetDisplay();
     return;
   }
@@ -508,13 +513,21 @@ function calculate(){
   const totalPayment = principal + totalInterest;
   const monthlyPayment = schedule[0] ? schedule[0].payment : 0;
   const interestRatio = totalPayment > 0 ? (totalInterest / totalPayment * 100) : 0;
+  const effectiveRate = (Math.pow(1 + monthlyRate, 12) - 1) * 100;
+  const finiteSchedule = Array.isArray(schedule) && schedule.length > 0 && schedule.every(function(s){
+    return Number.isFinite(s.payment) && Number.isFinite(s.principal) && Number.isFinite(s.interest) && Number.isFinite(s.balance);
+  });
+  if(!finiteSchedule || !Number.isFinite(monthlyPayment) || !Number.isFinite(totalInterest) || !Number.isFinite(totalPayment) || !Number.isFinite(effectiveRate)){
+    resetDisplay();
+    return;
+  }
 
   document.getElementById('monthlyPay').textContent = fmt(monthlyPayment);
   document.getElementById('totalInterest').textContent = fmt(totalInterest);
   document.getElementById('totalPayment').textContent = fmt(totalPayment);
   document.getElementById('interestRatio').textContent = interestRatio.toFixed(1) + '%';
   // 名义年利率按月计息 ⇒ 有效年化 = (1+名义/12)^12 − 1，避免把名义值当有效值
-  document.getElementById('effectiveRate').textContent = ((Math.pow(1 + monthlyRate, 12) - 1) * 100).toFixed(2) + '%';
+  document.getElementById('effectiveRate').textContent = effectiveRate.toFixed(2) + '%';
 
   const principalPct = totalPayment > 0 ? (principal / totalPayment * 100) : 0;
   const pie = document.getElementById('pieChart');
@@ -595,6 +608,10 @@ function resetAll(){
 }
 
 function exportCSV(){
+  if(!__car_loan_calculator_valid){
+    ToolBox.showToast(i18nText('toast.invalid_input'), 'warning');
+    return;
+  }
   const price = parseFloat(document.getElementById('price').value) || 0;
   const downPct = parseFloat(document.getElementById('downPct').value) || 0;
   const annualRate = parseFloat(document.getElementById('rate').value) || 0;

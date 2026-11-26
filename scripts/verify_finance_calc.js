@@ -426,13 +426,13 @@ const CASES = [
   {
     slug: "finance/aba-validator",
     inputs: { input: "011000015" },
-    expect: ["美联储分区： 01 - Boston"],
+    expect: ["前缀分类： 01 - 美联储第 1 区（Boston）"],
     ref: "ABA 3-7-1 权重：Σ = 3×0+7×1+1×1+3×0+7×0+1×0+3×0+7×1+1×5 = 20，mod 10 == 0；expect 取页面回显「美联储分区： 01 - Boston」（含分区城市 ⇒ 默认预填 021000021 输出「02 - New York」不命中，消除「✅ 有效」通用串导致的逃生）",
   },
   {
     slug: "finance/aba-validator",
     inputs: { input: "000000000" },
-    expect: ["美联储分区前缀 00 未分配/非法，ABA 号码无效"],
+    expect: ["前缀分类： 00 - 美国政府/财政部"],
     ref: "F-N212 前缀白名单：全零 000000000 校验和 0 通过但前缀 00 非法；旧实现仅报「00 - 未知/特殊用途」仍判 ✅，修复后直接 ❌。默认预填前缀 02 ⇒ 不命中，强判别。",
   },
   {
@@ -810,13 +810,13 @@ const CASES = [
   {
     slug: "finance/routing-number-validator",
     inputs: { input: "011000015" },
-    expect: ["美联储分区： 01 - Boston"],
+    expect: ["前缀分类： 01 - 美联储第 1 区（Boston）"],
     ref: "ABA 路由号 9 位，按 3-7-1 权重加总 ⇒ 校验通过；前两位 01 对应波士顿联邦储备区。默认态不同 ⇒ 不命中。",
   },
   {
     slug: "finance/routing-number-validator",
     inputs: { input: "990000000" },
-    expect: ["美联储分区前缀 99 未分配/非法，路由号码无效"],
+    expect: ["前缀 99 不在公开分配范围，无法判断该号码是否已分配"],
     ref: "F-N216 前缀白名单：前缀 99 校验和通过但未分配；旧实现仅报「99 - 未知/特殊用途」仍判 ✅，修复后直接 ❌。默认预填前缀 02 ⇒ 不命中，强判别。",
   },
   {
@@ -2398,7 +2398,7 @@ const CASES = [
   {
     slug: "finance/analysis-cost-1",
     inputs: { total: "250000", dec: "3" },
-    expect: ["综合单位成本 = 250,000.000 ÷ 5,000.000 = 50.000 元 / 件", "250.000分摊率（元 / 单位基数）", "50.000综合单位成本（元 / 件）"],
+    expect: ["本成本池合计单位分摊额 = 250,000.000 ÷ 5,000.000 = 50.000 元 / 件", "250.000分摊率（元 / 单位基数）", "50.000本成本池合计单位分摊额（元 / 件）"],
     ref: "注入非默认(默认 total=120000/dec=2)：作业成本分配法 分摊额 = 250,000；分摊率 = 250,000 ÷ Σ基数 1,000 = 250.000 元/单位基数；综合单位成本 = 50.000 元/件。默认态 24.00（120,000 ÷ 5,000），三条均不命中。",
   },
   {
@@ -2624,7 +2624,7 @@ const CASES = [
       "baseName": "工时"
     },
     "expect": [
-      "分摊额 单位成本 对象 1 1.00 16.67% 7.00 — 对象 2 2.00 33.33% 14.00 — 对象 3 3"
+      "分摊额 本成本池单位分摊额 对象 1 1.00 16.67% 7.00 — 对象 2 2.00 33.33% 14.00 — 对象 3 3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"total\":\"42\",\"outQty\":\"abc123测试\",\"dec\":\"42\",\"rows\":\"1\\n2\\n3\",\"baseName\":\"工时\"}，输出区含「分摊额 单位成本 对象 1 1.00 16.67% 7.00 — 对象 2 2.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -5297,6 +5297,57 @@ const CASES = [
     clicks: ["var t=__msisdn_validatorMaskText('输入 +86 13800138000 归一化 8613800138000',['+86 13800138000']);document.getElementById('__tbProbe').textContent='MSMASK '+((t.indexOf('13800138000')<0&&t.indexOf('8613800138000')<0&&t.indexOf('86****8000')>=0)?'OK':'BAD')+' '+t;"],
     expect: ["MSMASK OK"],
     ref: "第931批：显式勾选后历史只存脱敏值 13****8000，完整号码 13800138000 与归一化 8613800138000 均不得出现在历史序列化结果里，输入字段为 86****8000。"
+  }
+
+,
+  {
+    slug: "finance/futures-pnl-calculator",
+    inputs: {},
+    clicks: ["var __st={};globalThis.localStorage={getItem:function(k){return __st[k]||null},setItem:function(k,v){__st[k]=String(v)},removeItem:function(k){delete __st[k]}};globalThis.ToolBox={formatNumber:function(v,d){return Number(v).toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g,',')},showToast:function(){},toggleToolTheme:function(){}};localStorage.setItem('futures_trades',JSON.stringify([{code:'IF',contract:'沪深300股指期货',direction:1,openPrice:3000,closePrice:3010,lots:2,multiplier:100,marginRate:12,openFee:20,closeFee:20}]));loadTrade(0);var g=String(document.getElementById('resultGrid').innerHTML),c=String(document.getElementById('contractName').textContent);document.getElementById('__tbProbe').textContent='FUTMULT '+(currentContract.multiplier===100&&c.indexOf('历史乘数 100')>=0&&g.indexOf('1,920.00')>=0?'OK':'BAD')+' m='+currentContract.multiplier;"],
+    expect: ["FUTMULT OK"],
+    ref: "第932批：历史交易保存的合约乘数为 100，内置 IF 当前乘数为 300；恢复历史必须用保存值 100。开平仓 3000→3010、2 手、双边手续费各 20 ⇒ 盈亏 10×100×2−80=1,920.00。旧实现按当前 300 算得 5,920.00，必 BAD。"
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { prepayMonth: "", prepayAmount: "100000" },
+    clicks: ["document.getElementById('prepayCard').style.display='block';calcPrepay();var a=String(document.getElementById('prepayResult').innerHTML);document.getElementById('prepayMonth').value='0';calcPrepay();var b=String(document.getElementById('prepayResult').innerHTML);document.getElementById('__tbProbe').textContent='LAPM '+(a.indexOf('请输入提前还款期数')>=0&&a.indexOf('不会默认按第 1 期')>=0&&b.indexOf('1 至最后一期之前的整数')>=0?'OK':'BAD');"],
+    expect: ["LAPM OK"],
+    ref: "第932批：提前还款期数留空/填 0 不得被 `||1` 静默当首期；空串给「不会默认按第 1 期」提示，0 给范围提示。旧实现两者都按第 1 期直接生成方案，两个提示均不出现 ⇒ BAD。"
+  },
+  {
+    slug: "finance/compound-interest",
+    inputs: { principal: "10000", rate: "6", years: "10", annual: "0" },
+    clicks: ["document.getElementById('freq').value='12';calc();var fv=window.__ciLast.totalFV;var box=String(document.getElementById('__charCiVal').textContent);document.getElementById('__tbProbe').textContent='CIDEEP '+((box.indexOf('¥'+Math.round(fv))>=0&&String(document.getElementById('__charCiRows').innerHTML).indexOf('12 次/年')>=0)?'OK':'BAD')+' fv='+fv;"],
+    expect: ["CIDEEP OK"],
+    ref: "第932批：解读模块必须复用主结果——月复利、定投 0 时，解读终值应与主结果 totalFV 一致并标出 12 次/年。旧 __finUpdate 自行按年复利 P(1+r)^t 计算（10,000×1.06^10≈17,908），主结果月复利≈18,194，必 BAD。"
+  },
+  {
+    slug: "finance/car-loan-calculator",
+    inputs: { price: "200000", downPct: "20", rate: "60", years: "5" },
+    clicks: ["calculate();var a=String(document.getElementById('monthlyPay').textContent);var v=__car_loan_calculator_valid;document.getElementById('__tbProbe').textContent='CARMAX '+((a==='--'&&v===false)?'OK':'BAD')+' pay='+a+' valid='+v;"],
+    expect: ["CARMAX OK"],
+    ref: "第932批：年利率 60% 超出 0–50% 合理输入范围，必须清空结果、valid=false，导出入口也不得放行。旧实现只校验 >=0，60% 仍算出月供并允许导出 ⇒ BAD。"
+  },
+  {
+    slug: "finance/routing-number-validator",
+    inputs: { input: "310000004" },
+    clicks: ["validate();var o=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='RT31 '+(o.indexOf('储蓄机构前缀（对应美联储第 11 区）')>=0&&o.indexOf('只说明 9 位数字结构自洽')>=0?'OK':'BAD');"],
+    expect: ["RT31 OK"],
+    ref: "第932批：前缀 21–32 属储蓄机构号段，31 对应美联储第 11 区（21→1…31→11），不能写成 Michigan/Ohio 等州名；校验通过只声明 3-7-1 加权模 10 结构自洽，不判机构有效。旧映射把 31 写成 New York (Thrift)、结论「路由号码有效」⇒ BAD。"
+  },
+  {
+    slug: "finance/routing-number-validator",
+    inputs: { input: "610000005" },
+    clicks: ["validate();var o=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='RT61 '+(o.indexOf('电子交易标识（对应美联储第 1 区）')>=0&&o.indexOf('Paris')<0?'OK':'BAD');"],
+    expect: ["RT61 OK"],
+    ref: "第932批：前缀 61–72 是电子交易标识号段（61→第 1 区），不是 Paris/FR；旧映射把 61 写成 Paris (FR) 属明显错误。"
+  },
+  {
+    slug: "finance/routing-number-validator",
+    inputs: { input: "990000000" },
+    clicks: ["validate();var o=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='RTUNK '+((o.indexOf('不在公开分配范围')>=0&&o.indexOf('无法判断该号码是否已分配')>=0&&o.indexOf('不能确认号码已分配')<0)?'OK':'BAD');"],
+    expect: ["RTUNK OK"],
+    ref: "第932批：未知前缀 99 校验和虽通过，也只能说「不在公开范围、无法判断是否已分配」，不得直接判无效、也不得判有效；旧实现输出「未分配/非法，路由号码无效」⇒ BAD。"
   }
 
 ];

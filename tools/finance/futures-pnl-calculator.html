@@ -574,10 +574,23 @@ function loadTrade(i){
   if(!t) return;
   switchTab('calc');
   var idx = CONTRACTS.findIndex(function(c){ return c.code === t.code; });
-  if(idx >= 0){
-    currentContract = CONTRACTS[idx];
-    const __g5=currentContract.name + ' ' + currentContract.code;document.getElementById('contractName').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  var found = idx >= 0 ? CONTRACTS[idx] : null;
+  var savedMult = Number(t.multiplier);
+  var hasSaved = isFinite(savedMult) && savedMult > 0;
+  var base = found || {name:t.contract || t.code, code:t.code, margin:Number(t.marginRate) || 0};
+  // 历史恢复必须使用保存时的乘数，不能按当前内置规格重算；合约已下架时建临时快照，绝不沿用上一份合约。
+  currentContract = {
+    name: base.name, code: base.code, exchange: base.exchange || '历史快照',
+    multiplier: hasSaved ? savedMult : Number(base.multiplier),
+    margin: Number(t.marginRate) || base.margin || 0, category: base.category || '历史'
+  };
+  var label = currentContract.name + ' ' + currentContract.code;
+  if(!found || !hasSaved || Number(found.multiplier) !== currentContract.multiplier){
+    label += ' · 历史乘数 ' + (hasSaved ? savedMult : '未记录');
   }
+  const __g5=label;document.getElementById('contractName').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  var tip = !found ? '该历史合约不在当前内置列表，已按保存的合约参数恢复，不沿用其他合约。' : (!hasSaved ? '旧记录未保存合约乘数，按当前合约规格恢复，盈亏可能与当时不同。' : (Number(found.multiplier)!==currentContract.multiplier ? '当前合约乘数为 ' + found.multiplier + '，已按历史保存的 ' + currentContract.multiplier + ' 恢复。' : ''));
+  if(tip) ToolBox.showToast(tip, 'warning');
   direction = t.direction;
   document.getElementById('dirLong').classList.toggle('active', direction === 1);
   document.getElementById('dirShort').classList.toggle('active', direction === -1);
