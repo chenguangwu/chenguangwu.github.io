@@ -211,7 +211,7 @@
       "name": "帧号从 0 还是 1 开始？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "从 0 开始。第 1 帧序号是 0，第 N 帧序号是 N−1，选帧时注意错位。"
+        "text": "界面和下载清单从 1 开始，第 5 帧就是第 5 张；若看内部数组索引，第 5 帧对应索引 4。"
       }
     },
     {
@@ -273,19 +273,20 @@
 <div class="container" role="main">
   <div class="card">
     <h2 data-zh="🖼️ GIF分解工具">Gif Split</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="上传 GIF 动画，自动提取每一帧并显示，可单独下载 PNG 或批量打包 ZIP，纯前端处理文件不上传。">Gif Split - online utility on ToolBox.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="上传 GIF 动画，自动提取每一帧并显示，可单独下载 PNG 或批量打包 ZIP；支持帧范围与帧号跳转，纯前端处理文件不上传。">Upload a GIF animation, extract and display every frame, download individual PNGs or a ZIP, and jump to a frame or select a range—all locally with no upload.</p>
 
-    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+    <div class="drop-zone" id="dropZone" role="button" tabindex="0" aria-label="选择 GIF 文件，或拖放到此处" aria-describedby="gsDropHint">
       <span class="dz-icon">🎞️</span>
       <div class="dz-main">点击或拖拽 GIF 文件到这里</div>
-      <div class="dz-sub">仅支持 .gif 格式，文件不会上传到服务器</div>
-      <input type="file" id="fileInput" accept="image/gif" style="display:none;" onchange="handleFile(this.files[0])" aria-label="选择图片文件">
+      <div class="dz-sub" id="gsDropHint">仅支持 .gif 格式，文件不会上传到服务器</div>
+      <input type="file" id="fileInput" accept="image/gif" style="display:none;" onchange="handleFile(this.files[0])" aria-label="选择 GIF 文件">
       <div id="gsRefTbl" style="margin-top:12px;"></div>
     </div>
 
-    <div class="loading-mask" id="loadingMask">
+    <div class="loading-mask" id="loadingMask" role="status" aria-live="polite">
       <div class="spinner"></div>
       <div id="loadingText">正在解析 GIF，请稍候...</div>
+      <div id="loadingDetail" style="font-size:12px;color:var(--text-muted);margin-top:6px;"></div>
     </div>
 
     <div id="resultArea" style="display:none;">
@@ -300,9 +301,24 @@
       </div>
       <div class="progress-bar" id="zipProgress" style="display:none;"><div class="progress-fill" id="zipProgressFill"></div></div>
 
+      <div class="range-toolbar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0;font-size:12.5px;color:var(--text-secondary);">
+        <label for="gsStart">帧范围</label>
+        <input id="gsStart" type="number" min="1" step="1" style="width:72px;" placeholder="1">
+        <span>–</span>
+        <input id="gsEnd" type="number" min="1" step="1" style="width:72px;" placeholder="末帧" aria-label="末帧">
+        <button class="btn" type="button" onclick="applyFrameRange()">应用范围</button>
+        <button class="btn" type="button" onclick="clearFrameRange()">全部帧</button>
+        <label for="gsJump" style="margin-left:8px;">跳到帧号</label>
+        <input id="gsJump" type="number" min="1" step="1" style="width:72px;" placeholder="1">
+        <button class="btn" type="button" onclick="jumpToFrame()">跳转</button>
+        <span id="frameRangeInfo"></span>
+      </div>
+      <div id="memoryNotice" class="info-box" style="display:none;margin:8px 0;"></div>
+
       <!-- 帧网格 -->
       <h3 style="margin-top:8px;">帧列表（点击缩略图放大预览）</h3>
       <div class="frame-grid" id="frameGrid"></div>
+      <div id="framePager" style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:var(--text-muted);"></div>
     </div>
 
     <div class="info-box">
@@ -350,9 +366,9 @@
 </div>
 
 <!-- 预览模态框 -->
-<div class="modal-overlay" id="modal" onclick="if(event.target===this)closePreview()">
-  <div class="modal-content">
-    <button class="modal-close" onclick="closePreview()" aria-label="关闭">✕</button>
+<div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-label="GIF 帧预览" onclick="if(event.target===this)closePreview()">
+  <div class="modal-content" id="modalContent" tabindex="-1">
+    <button class="modal-close" type="button" onclick="closePreview()" aria-label="关闭帧预览">✕</button>
     <div class="modal-img-wrap checker">
       <canvas id="modalCanvas"></canvas>
     </div>
@@ -396,13 +412,13 @@
 <li>想把动图里的某一帧单独存成图片做表情包或封面。</li>
 <li>分析动图节奏，逐帧检查每帧的画面变化。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">12 帧 GIF 拆 12 张</div><div class="dd-ex-body">上传一秒 12 帧的 GIF，工具按帧序号 0–11 拆出 12 张 PNG，每帧 480×270，单帧约 40KB。</div></div>
-<div class="dd-example"><div class="dd-ex-title">只取第 5 帧</div><div class="dd-ex-body">总帧数 24，直接指定帧号 5，导出第 5 张静态图（索引从 0 计，实际为第 6 帧）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">12 帧 GIF 拆 12 张</div><div class="dd-ex-body">上传一秒 12 帧的 GIF，界面按 1 起始帧号拆出 12 张 PNG（1–12），每帧 480×270，单帧约 40KB。</div></div>
+<div class="dd-example"><div class="dd-ex-title">只取第 5 帧</div><div class="dd-ex-body">总帧数 24，指定界面帧号 5，导出第 5 张静态图（内部索引为 4）；界面与清单统一使用 1 起始帧号。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例一：12 帧 / 每帧延时 8</div><div class="dd-ex-body">每帧 8×10 = 80ms，总时长 12×80 = 960ms，平均帧率 12÷0.96 = 12.5 fps。若按「延时值 8」直接读成 8ms，会算出 125 fps 这种明显失真的结果。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例二：24 帧 / 每帧延时 5</div><div class="dd-ex-body">每帧 5×10 = 50ms，总时长 24×50 = 1200ms，帧率 24÷1.2 = 20 fps。480×270 的帧单帧 129,600 px，12 帧 RGBA 合计 480×270×4×12 = 6,220,800 字节 ≈ 5.93 MiB。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>帧号从 0 还是 1 开始？</dt><dd>从 0 开始。第 1 帧序号是 0，第 N 帧序号是 N−1，选帧时注意错位。</dd>
+<dt>帧号从 0 还是 1 开始？</dt><dd>界面和下载清单从 1 开始，第 5 帧就是第 5 张；若看内部数组索引，第 5 帧对应索引 4。</dd>
 <dt>拆解后格式能选吗？</dt><dd>逐帧默认导出 PNG 保真；若原帧本身透明，PNG 可保留透明通道。</dd>
 <dt>延时为 0 的帧怎么算？</dt><dd>本站按字段原值显示 0ms；部分播放器会把 0 兜底成 100ms。用 0 计算总时长与帧率会偏高，判断节奏请以播放器实际效果为准。</dd>
 <dt>帧延时等于帧间隔吗？</dt><dd>不等于。它是「本帧停留多久」，不是两帧之间的空档；改延时不会改变帧数，只改变播放节奏。</dd>
@@ -472,35 +488,47 @@
 
 // 解析 GIF 结构，提取元数据与帧数据（不做 LZW 解码）
 function parseGifStructure(bytes){
-  var pos = 6; // 跳过 "GIF87a/89a" 签名
+  if(!bytes || bytes.length < 13) throw new Error(__gsT('GIF 文件头不完整','GIF header is incomplete'));
+  var sig = String.fromCharCode(bytes[0],bytes[1],bytes[2],bytes[3],bytes[4],bytes[5]);
+  if(sig !== 'GIF87a' && sig !== 'GIF89a') throw new Error(__gsT('不是有效的 GIF87a/GIF89a 文件','Not a valid GIF87a/GIF89a file'));
+
+  var pos = 6;
   var width  = bytes[pos] | (bytes[pos+1] << 8);
   var height = bytes[pos+2] | (bytes[pos+3] << 8);
   var packed = bytes[pos+4];
+  var bgIndex = bytes[pos+5];
   pos += 7;
+  if(width < 1 || height < 1) throw new Error(__gsT('GIF 逻辑屏幕尺寸无效','Invalid GIF logical screen size'));
 
   var gctFlag = (packed & 0x80) !== 0;
   var gctSize = packed & 0x07;
   var gct = null;
   if(gctFlag){
     var len = 3 * (1 << (gctSize + 1));
+    if(pos + len > bytes.length) throw new Error(__gsT('全局颜色表被截断','Global color table is truncated'));
     gct = bytes.subarray(pos, pos + len);
     pos += len;
   }
 
-  var loopCount = 1; // 默认循环 1 次（无 NETSCAPE 标记）
+  var loopPresent = false;
+  var loopCount = 1; // 无 NETSCAPE 扩展时的默认播放次数，界面会标注“未指定扩展”
   var frameMetas = [];
   var gce = null;
+  var complete = false;
+  var warnings = [];
 
   while(pos < bytes.length){
     var block = bytes[pos++];
 
     if(block === 0x2C){ // 图像描述符 Image Descriptor
+      if(pos + 9 > bytes.length) throw new Error(__gsT('图像描述符被截断','Image descriptor is truncated'));
       var left = bytes[pos]   | (bytes[pos+1] << 8);
       var top  = bytes[pos+2] | (bytes[pos+3] << 8);
       var w    = bytes[pos+4] | (bytes[pos+5] << 8);
       var h    = bytes[pos+6] | (bytes[pos+7] << 8);
       var ip   = bytes[pos+8];
       pos += 9;
+      if(w < 1 || h < 1) throw new Error(__gsT('GIF 帧尺寸无效','Invalid GIF frame size'));
 
       var lctFlag = (ip & 0x80) !== 0;
       var interlace = (ip & 0x40) !== 0;
@@ -509,18 +537,24 @@ function parseGifStructure(bytes){
       var colorTable = gct;
       if(lctFlag){
         var tlen = 3 * (1 << (lctSize + 1));
+        if(pos + tlen > bytes.length) throw new Error(__gsT('局部颜色表被截断','Local color table is truncated'));
         colorTable = bytes.subarray(pos, pos + tlen);
         pos += tlen;
       }
-
+      if(pos >= bytes.length) throw new Error(__gsT('缺少图像数据','Missing image data'));
       var lzwMinCodeSize = bytes[pos++];
+      if(lzwMinCodeSize < 2 || lzwMinCodeSize > 8) throw new Error(__gsT('LZW 最小码长无效','Invalid LZW minimum code size'));
+
       var lzwData = [];
+      var subBlockEnd = false;
       while(pos < bytes.length){
         var sz = bytes[pos++];
-        if(sz === 0) break;
+        if(sz === 0){ subBlockEnd = true; break; }
+        if(pos + sz > bytes.length) throw new Error(__gsT('图像数据子块被截断','Image data sub-block is truncated'));
         for(var i=0;i<sz;i++) lzwData.push(bytes[pos+i]);
         pos += sz;
       }
+      if(!subBlockEnd) throw new Error(__gsT('图像数据缺少终止子块','Image data is missing its terminator'));
 
       frameMetas.push({
         left:left, top:top, w:w, h:h,
@@ -536,14 +570,17 @@ function parseGifStructure(bytes){
       gce = null;
 
     } else if(block === 0x21){ // 扩展块 Extension
+      if(pos >= bytes.length) throw new Error(__gsT('扩展块被截断','Extension block is truncated'));
       var label = bytes[pos++];
       if(label === 0xF9){ // 图形控制扩展 Graphic Control Extension
-        pos++; // 块大小(4)
+        if(pos + 6 > bytes.length) throw new Error(__gsT('图形控制扩展被截断','Graphic control extension is truncated'));
+        var bsz = bytes[pos++];
+        if(bsz !== 4 || pos + 4 > bytes.length) throw new Error(__gsT('图形控制扩展长度无效','Invalid graphic control extension length'));
         var gp = bytes[pos];
         var delay = bytes[pos+1] | (bytes[pos+2] << 8);
         var tidx = bytes[pos+3];
         pos += 4;
-        pos++; // 终止符
+        if(bytes[pos++] !== 0) throw new Error(__gsT('图形控制扩展终止符无效','Invalid graphic control extension terminator'));
         gce = {
           delay:delay,
           disposal:(gp >> 2) & 0x07,
@@ -551,35 +588,63 @@ function parseGifStructure(bytes){
           transparentIndex:tidx
         };
       } else if(label === 0xFF){ // 应用扩展 Application Extension
-        var bsz = bytes[pos++];
+        if(pos >= bytes.length) throw new Error(__gsT('应用扩展被截断','Application extension is truncated'));
+        var bsz2 = bytes[pos++];
+        if(pos + bsz2 > bytes.length) throw new Error(__gsT('应用标识被截断','Application identifier is truncated'));
         var appId = '';
-        for(var k=0;k<bsz;k++) appId += String.fromCharCode(bytes[pos+k]);
-        pos += bsz;
+        for(var k=0;k<bsz2;k++) appId += String.fromCharCode(bytes[pos+k]);
+        pos += bsz2;
         var sub = [];
+        var appEnd = false;
         while(pos < bytes.length){
           var s = bytes[pos++];
-          if(s === 0) break;
+          if(s === 0){ appEnd = true; break; }
+          if(pos + s > bytes.length) throw new Error(__gsT('应用扩展子块被截断','Application extension sub-block is truncated'));
           for(var j=0;j<s;j++) sub.push(bytes[pos+j]);
           pos += s;
         }
+        if(!appEnd) throw new Error(__gsT('应用扩展缺少终止子块','Application extension is missing its terminator'));
         if(appId.indexOf('NETSCAPE') !== -1 && sub.length >= 3 && sub[0] === 1){
+          loopPresent = true;
           loopCount = sub[1] | (sub[2] << 8);
         }
-      } else { // 注释 / 纯文本等，跳过子块
+      } else { // 注释 / 纯文本等，严格跳过子块
+        var skipEnd = false;
         while(pos < bytes.length){
           var ss = bytes[pos++];
-          if(ss === 0) break;
+          if(ss === 0){ skipEnd = true; break; }
+          if(pos + ss > bytes.length) throw new Error(__gsT('扩展子块被截断','Extension sub-block is truncated'));
           pos += ss;
         }
+        if(!skipEnd) throw new Error(__gsT('扩展块缺少终止子块','Extension is missing its terminator'));
       }
     } else if(block === 0x3B){ // 结束符 Trailer
+      complete = true;
       break;
     } else {
-      break; // 未知块，停止
+      throw new Error(__gsT('未知数据块 0x' + block.toString(16), 'Unknown GIF data block 0x' + block.toString(16)));
     }
   }
 
-  return { width:width, height:height, loopCount:loopCount, frameMetas:frameMetas };
+  if(!complete){
+    warnings.push(__gsT('文件缺少 GIF 结束标记（0x3B），可能被截断；已提取的帧可能不完整。',
+      'The GIF trailer (0x3B) is missing; the file may be truncated and extracted frames may be incomplete.'));
+  }
+
+  var bgColor = null;
+  if(gct && bgIndex * 3 + 2 < gct.length){
+    bgColor = { r:gct[bgIndex*3], g:gct[bgIndex*3+1], b:gct[bgIndex*3+2] };
+  }
+  var bgTransparent = false;
+  for(var t=0;t<frameMetas.length;t++){
+    if(frameMetas[t].transparentFlag && frameMetas[t].transparentIndex === bgIndex){ bgTransparent = true; break; }
+  }
+
+  return {
+    width:width, height:height, loopCount:loopCount, loopPresent:loopPresent,
+    frameMetas:frameMetas, complete:complete, warnings:warnings,
+    bgIndex:bgIndex, bgColor:bgColor, bgTransparent:bgTransparent
+  };
 }
 
 // LZW 解码
@@ -661,12 +726,25 @@ function deinterlace(indices, w, h){
   return out;
 }
 
+function __gsBgCss(meta){
+  if(!meta || !meta.bgColor || meta.bgTransparent) return null;
+  return 'rgb(' + meta.bgColor.r + ',' + meta.bgColor.g + ',' + meta.bgColor.b + ')';
+}
+function __gsRestoreArea(ctx, meta, fm){
+  var bg = __gsBgCss(meta);
+  if(bg){ ctx.fillStyle = bg; ctx.fillRect(fm.left, fm.top, fm.w, fm.h); }
+  else { ctx.clearRect(fm.left, fm.top, fm.w, fm.h); }
+}
+
 // 手动渲染所有帧（含 disposal 合成）
-function renderManually(meta){
+function renderManually(meta, onProgress, keepStart, keepEnd){
   var width = meta.width, height = meta.height, fms = meta.frameMetas;
   var work = document.createElement('canvas');
   work.width = width; work.height = height;
   var wctx = work.getContext('2d');
+  if(!wctx) throw new Error(__gsT('浏览器画布不可用','Canvas is unavailable'));
+  var bg = __gsBgCss(meta);
+  if(bg){ wctx.fillStyle = bg; wctx.fillRect(0, 0, width, height); }
 
   var prevCanvas = null;
   var rendered = [];
@@ -677,53 +755,67 @@ function renderManually(meta){
     if(fm.disposal === 3){
       prevCanvas = document.createElement('canvas');
       prevCanvas.width = width; prevCanvas.height = height;
-      prevCanvas.getContext('2d').drawImage(work, 0, 0);
+      var pc = prevCanvas.getContext('2d');
+      if(!pc) throw new Error(__gsT('浏览器画布不可用','Canvas is unavailable'));
+      pc.drawImage(work, 0, 0);
     }
 
     var indices = lzwDecode(fm.lzwMinCodeSize, fm.lzwData);
     if(fm.interlace) indices = deinterlace(indices, fm.w, fm.h);
+    if(!indices || indices.length < fm.w * fm.h) throw new Error(__gsT('第 ' + (i+1) + ' 帧像素数据不完整','Frame ' + (i+1) + ' has incomplete pixel data'));
 
     var tmp = document.createElement('canvas');
     tmp.width = Math.max(1, fm.w); tmp.height = Math.max(1, fm.h);
     var tctx = tmp.getContext('2d');
+    if(!tctx) throw new Error(__gsT('浏览器画布不可用','Canvas is unavailable'));
     var imgData = tctx.createImageData(tmp.width, tmp.height);
     var ct = fm.colorTable;
+    if(!ct) throw new Error(__gsT('第 ' + (i+1) + ' 帧缺少颜色表','Frame ' + (i+1) + ' has no color table'));
     var tf = fm.transparentFlag, ti = fm.transparentIndex;
     for(var p=0;p<indices.length;p++){
       var ci = indices[p];
       var o = p*4;
       if(tf && ci === ti){
         imgData.data[o+3] = 0;
-      } else if(ct && ci*3+2 < ct.length){
+      } else if(ci*3+2 < ct.length){
         imgData.data[o]   = ct[ci*3];
         imgData.data[o+1] = ct[ci*3+1];
         imgData.data[o+2] = ct[ci*3+2];
         imgData.data[o+3] = 255;
       } else {
-        imgData.data[o+3] = 0;
+        throw new Error(__gsT('第 ' + (i+1) + ' 帧颜色索引越界','Frame ' + (i+1) + ' color index is out of range'));
       }
     }
     tctx.putImageData(imgData, 0, 0);
 
-    wctx.drawImage(tmp, fm.left, fm.top);
+    try { wctx.drawImage(tmp, fm.left, fm.top); }
+    catch(e){ throw new Error(__gsT('第 ' + (i+1) + ' 帧绘制失败：','Frame ' + (i+1) + ' draw failed: ') + (e.message || e.name)); }
 
-    var cap = document.createElement('canvas');
-    cap.width = width; cap.height = height;
-    cap.getContext('2d').drawImage(work, 0, 0);
-    rendered.push({ canvas:cap, delay:fm.delay });
+    var kept = (keepStart == null || (i >= keepStart && i <= keepEnd));
+    if(kept){
+      var cap = document.createElement('canvas');
+      cap.width = width; cap.height = height;
+      var capCtx = cap.getContext('2d');
+      if(!capCtx) throw new Error(__gsT('浏览器画布不可用','Canvas is unavailable'));
+      capCtx.drawImage(work, 0, 0);
+      rendered.push({ canvas:cap, delay:fm.delay, delayMs:fm.delay*10, delaySource:'gce' });
+    } else {
+      rendered.push({ canvas:null, delay:fm.delay, delayMs:fm.delay*10, delaySource:'gce' });
+    }
 
     if(fm.disposal === 2){
-      wctx.clearRect(fm.left, fm.top, fm.w, fm.h);
+      __gsRestoreArea(wctx, meta, fm);
     } else if(fm.disposal === 3 && prevCanvas){
       wctx.clearRect(0, 0, width, height);
       wctx.drawImage(prevCanvas, 0, 0);
     }
+    if(onProgress) onProgress(i+1, fms.length);
   }
   return rendered;
 }
 
 // 使用 ImageDecoder API 渲染（若可用），含 disposal 合成
-function decodeWithImageDecoder(bytes, meta){
+function decodeWithImageDecoder(bytes, meta, onProgress, keepStart, keepEnd){
   return new Promise(function(resolve, reject){
     if(typeof ImageDecoder === 'undefined'){ reject(new Error('no ImageDecoder')); return; }
     var decoder;
@@ -736,65 +828,92 @@ function decodeWithImageDecoder(bytes, meta){
     } catch(e){ reject(e); return; }
 
     var width = meta.width, height = meta.height, fms = meta.frameMetas;
+    var settled = false;
+    function fail(err){
+      if(settled) return;
+      settled = true;
+      try { decoder.close(); } catch(e){}
+      reject(err);
+    }
     decoder.tracks.ready.then(function(){
       var track = decoder.tracks.selectedTrack;
       var count = track ? track.frameCount : 0;
-      if(!count || count !== fms.length){ reject(new Error('frame count mismatch')); decoder.close(); return; }
+      if(!count || count !== fms.length){ fail(new Error('frame count mismatch')); return; }
 
       var work = document.createElement('canvas');
       work.width = width; work.height = height;
       var wctx = work.getContext('2d');
+      if(!wctx){ fail(new Error('canvas unavailable')); return; }
       var prevCanvas = null;
       var rendered = [];
 
       var i = 0;
       function next(){
         if(i >= count){
+          settled = true;
           try { decoder.close(); } catch(e){}
           resolve(rendered);
           return;
         }
         var idx = i;
         decoder.decode({ frameIndex: idx }).then(function(fr){
+          if(settled) { try{ fr.image.close(); }catch(e){} return; }
           var vf = fr.image;
           var fm = fms[idx];
-          if(fm.disposal === 3){
-            prevCanvas = document.createElement('canvas');
-            prevCanvas.width = width; prevCanvas.height = height;
-            prevCanvas.getContext('2d').drawImage(work, 0, 0);
+          try {
+            if(fm.disposal === 3){
+              prevCanvas = document.createElement('canvas');
+              prevCanvas.width = width; prevCanvas.height = height;
+              var pc = prevCanvas.getContext('2d');
+              if(!pc) throw new Error('canvas unavailable');
+              pc.drawImage(work, 0, 0);
+            }
+
+            var dw = vf.displayWidth || vf.codedWidth;
+            var dh = vf.displayHeight || vf.codedHeight;
+            var tmp = document.createElement('canvas');
+            tmp.width = Math.max(1, fm.w); tmp.height = Math.max(1, fm.h);
+            var tctx = tmp.getContext('2d');
+            if(!tctx) throw new Error('canvas unavailable');
+            try { tctx.drawImage(vf, 0, 0, dw, dh, 0, 0, tmp.width, tmp.height); }
+            catch(e){ throw new Error(__gsT('第 ' + (idx+1) + ' 帧绘制失败：','Frame ' + (idx+1) + ' draw failed: ') + (e.message || e.name)); }
+
+            try { wctx.drawImage(tmp, fm.left, fm.top); }
+            catch(e){ throw new Error(__gsT('第 ' + (idx+1) + ' 帧合成失败：','Frame ' + (idx+1) + ' compose failed: ') + (e.message || e.name)); }
+
+            var playerMs = vf.duration ? Math.round(vf.duration / 1000) : fm.delay * 10;
+            var delayMs = fm.delay ? fm.delay * 10 : playerMs;
+            var kept = (keepStart == null || (idx >= keepStart && idx <= keepEnd));
+            if(kept){
+              var cap = document.createElement('canvas');
+              cap.width = width; cap.height = height;
+              var capCtx = cap.getContext('2d');
+              if(!capCtx) throw new Error('canvas unavailable');
+              capCtx.drawImage(work, 0, 0);
+              rendered.push({ canvas:cap, delay:fm.delay, delayMs:delayMs, delaySource:fm.delay ? 'gce' : (playerMs ? 'player' : 'none') });
+            } else {
+              rendered.push({ canvas:null, delay:fm.delay, delayMs:delayMs, delaySource:fm.delay ? 'gce' : (playerMs ? 'player' : 'none') });
+            }
+
+            if(fm.disposal === 2){
+              __gsRestoreArea(wctx, meta, fm);
+            } else if(fm.disposal === 3 && prevCanvas){
+              wctx.clearRect(0, 0, width, height);
+              wctx.drawImage(prevCanvas, 0, 0);
+            }
+            if(onProgress) onProgress(idx+1, count);
+          } catch(e) {
+            try { vf.close(); } catch(ce){}
+            fail(e);
+            return;
           }
-
-          var dw = vf.displayWidth || vf.codedWidth;
-          var dh = vf.displayHeight || vf.codedHeight;
-          var tmp = document.createElement('canvas');
-          tmp.width = Math.max(1, fm.w); tmp.height = Math.max(1, fm.h);
-          try { tmp.getContext('2d').drawImage(vf, 0, 0, dw, dh, 0, 0, tmp.width, tmp.height); }
-          catch(e){ /* 忽略单帧绘制异常 */ }
-
-          wctx.drawImage(tmp, fm.left, fm.top);
-
-          var cap = document.createElement('canvas');
-          cap.width = width; cap.height = height;
-          cap.getContext('2d').drawImage(work, 0, 0);
-          var delayMs = vf.duration ? Math.round(vf.duration / 1000) : (fm.delay * 10);
-          // 优先用 GCE 延迟
-          rendered.push({ canvas:cap, delay: fm.delay ? fm.delay : Math.round(delayMs/10) });
-
           try { vf.close(); } catch(e){}
-
-          if(fm.disposal === 2){
-            wctx.clearRect(fm.left, fm.top, fm.w, fm.h);
-          } else if(fm.disposal === 3 && prevCanvas){
-            wctx.clearRect(0, 0, width, height);
-            wctx.drawImage(prevCanvas, 0, 0);
-          }
-
           i++;
           next();
-        }).catch(function(err){ try{decoder.close();}catch(e){} reject(err); });
+        }).catch(function(err){ fail(err); });
       }
       next();
-    }).catch(function(err){ try{decoder.close();}catch(e){} reject(err); });
+    }).catch(function(err){ fail(err); });
   });
 }
 
@@ -808,10 +927,22 @@ function __gsIsEn(){
 }
 function __gsT(zh, en){ return __gsIsEn() ? en : zh; }
 
-var gifData = null;     // { width,height,loopCount,frames,fileName,fileSize }
+var gifData = null;     // { width,height,loopCount,loopPresent,frames,fileName,fileSize,viewStart,viewEnd }
 var currentPreview = 0; // 当前预览帧索引
+var loadSeq = 0;        // 每次加载的版本号，旧请求不得更新 UI
+var zipSeq = 0;         // ZIP 任务版本号，换图/重置时取消旧任务
+var framePage = 0;
+var FRAME_PAGE_SIZE = 60;
+var lastPreviewTrigger = null;
 
 var $ = function(id){ return document.getElementById(id); };
+
+function __gsFail(seq, msg){
+  if(seq !== loadSeq) return;
+  $('loadingMask').classList.remove('show');
+  $('loadingDetail').textContent = '';
+  ToolBox.showToast(msg, 'error');
+}
 
 function handleFile(file){
   if(!file){ return; }
@@ -820,109 +951,292 @@ function handleFile(file){
     ToolBox.showToast(i18nText('toast.msg927'), 'warning');
     return;
   }
+  var seq = ++loadSeq;
+  zipSeq++;
+  framePage = 0;
+  lastPreviewTrigger = null;
+  gifData = null;
   $('loadingMask').classList.add('show');
   $('loadingText').textContent = __gsT('正在解析 GIF，请稍候...', 'Parsing GIF, please wait...');
+  $('loadingDetail').textContent = '';
   $('resultArea').style.display = 'none';
+  $('memoryNotice').style.display = 'none';
+  $('memoryNotice').textContent = '';
+  $('zipProgress').style.display = 'none';
+  $('zipStatus').textContent = '';
+  $('zipProgressFill').style.width = '0%';
+  var btn = $('zipBtn'); if(btn) btn.disabled = true;
+
+  function progress(done, total){
+    if(seq !== loadSeq) return;
+    $('loadingText').textContent = __gsT('正在解码帧...', 'Decoding frames...');
+    $('loadingDetail').textContent = __gsT(done + ' / ' + total + ' 帧', done + ' / ' + total + ' frames');
+  }
 
   file.arrayBuffer().then(function(buffer){
+    if(seq !== loadSeq) return;
     var bytes = new Uint8Array(buffer);
-    // 基本校验
     if(bytes.length < 13 || bytes[0] !== 0x47 || bytes[1] !== 0x49 || bytes[2] !== 0x46){
-      $('loadingMask').classList.remove('show');
-      ToolBox.showToast(i18nText('toast.msg044'), 'error');
+      __gsFail(seq, i18nText('toast.msg044'));
       return;
     }
     var meta;
     try { meta = parseGifStructure(bytes); }
     catch(e){
-      $('loadingMask').classList.remove('show');
-      ToolBox.showToast(__gsT('GIF 解析失败：', 'GIF parsing failed: ') + e.message, 'error');
+      __gsFail(seq, __gsT('GIF 解析失败：', 'GIF parsing failed: ') + (e.message || e.name));
       return;
     }
     if(!meta.frameMetas.length){
-      $('loadingMask').classList.remove('show');
-      ToolBox.showToast(i18nText('toast.msg440'), 'error');
+      __gsFail(seq, i18nText('toast.msg440'));
       return;
     }
 
-    // 优先使用 ImageDecoder，失败回退手动解析
-    decodeWithImageDecoder(bytes, meta).then(function(frames){
-      finishLoad(meta, frames, file);
-    }).catch(function(){
-      // 回退手动渲染
+    var estimate = meta.width * meta.height * meta.frameMetas.length;
+    if(estimate > 40000000){
+      $('memoryNotice').style.display = '';
+      $('memoryNotice').textContent = __gsT(
+        '资源提示：' + meta.frameMetas.length + ' 帧 × ' + meta.width + '×' + meta.height + ' ≈ ' + Math.round(estimate/1e6) + ' 百万像素。长动画会占用较多内存，可先用下方帧范围只查看/导出需要的片段。',
+        'Resource notice: ' + meta.frameMetas.length + ' frames × ' + meta.width + '×' + meta.height + ' ≈ ' + Math.round(estimate/1e6) + ' million pixels. Long animations use more memory; use the frame range below to view/export only what you need.'
+      );
+    }
+
+    var totalFrames = meta.frameMetas.length;
+    var longAnimation = totalFrames > FRAME_PAGE_SIZE || estimate > 20000000;
+    var keepEnd = longAnimation ? Math.min(FRAME_PAGE_SIZE - 1, totalFrames - 1) : null;
+
+    function manual(){
       var frames;
-      try { frames = renderManually(meta); }
+      try { frames = renderManually(meta, progress, longAnimation ? 0 : null, keepEnd); }
       catch(e){
-        $('loadingMask').classList.remove('show');
-        ToolBox.showToast(__gsT('GIF 帧渲染失败：', 'GIF frame rendering failed: ') + e.message, 'error');
+        __gsFail(seq, __gsT('GIF 帧渲染失败：', 'GIF frame rendering failed: ') + (e.message || e.name));
         return;
       }
-      finishLoad(meta, frames, file);
+      finishLoad(meta, frames, file, seq, null);
+    }
+
+    // 含透明色或 disposal 2/3 的 GIF 用本地逐帧合成，避免不同解码器对透明/背景处置的差异。
+    // 长动画也走本地路径，只保留当前批次画布，其余帧保留延迟/元数据供按需再渲染。
+    var needsManual = longAnimation || meta.frameMetas.some(function(f){ return f.transparentFlag || f.disposal === 2 || f.disposal === 3; });
+    if(needsManual){ manual(); return; }
+
+    decodeWithImageDecoder(bytes, meta, progress, null, null).then(function(frames){
+      if(seq !== loadSeq) return;
+      finishLoad(meta, frames, file, seq, null);
+    }).catch(function(){
+      if(seq !== loadSeq) return;
+      manual();
     });
   }).catch(function(){
-    $('loadingMask').classList.remove('show');
-    ToolBox.showToast(i18nText('toast.msg393'), 'error');
+    __gsFail(seq, i18nText('toast.msg393'));
   });
 }
 
-function finishLoad(meta, frames, file){
+function finishLoad(meta, frames, file, seq, initialEnd){
+  if(seq !== loadSeq) return;
+  // 保留扩展是否存在，以及原始循环数值；界面不把“未指定”误解成明确 1 次。
   gifData = {
     width: meta.width,
     height: meta.height,
     loopCount: meta.loopCount,
+    loopPresent: meta.loopPresent,
     frames: frames,
     fileName: file.name || 'animation.gif',
-    fileSize: file.size
+    fileSize: file.size,
+    complete: meta.complete,
+    warnings: meta.warnings || [],
+    bgColor: meta.bgColor,
+    bgTransparent: meta.bgTransparent,
+    meta: meta,
+    viewStart: 0,
+    viewEnd: initialEnd == null ? frames.length - 1 : initialEnd
   };
+  framePage = 0;
   $('loadingMask').classList.remove('show');
+  $('loadingDetail').textContent = '';
   $('resultArea').style.display = '';
+  $('zipBtn').disabled = false;
+  $('memoryNotice').style.display = '';
+  var notices = (meta.warnings || []).slice();
+  if(!notices.length) $('memoryNotice').style.display = 'none';
+  else $('memoryNotice').textContent = notices.join(' ');
   renderStats();
   renderFrameGrid();
   ToolBox.showToast(__gsT('成功提取 ' + frames.length + ' 帧', 'Extracted ' + frames.length + ' frames'), 'success');
 }
 
 function renderStats(){
-  var loopText = gifData.loopCount === 0
-    ? __gsT('无限循环', 'Infinite loop')
-    : __gsT('循环 ' + gifData.loopCount + ' 次', 'Loops ' + gifData.loopCount + '×');
-  const __h0=statCard(gifData.frames.length, __gsT('总帧数', 'Total frames')) +
+  if(!gifData) return;
+  var loopText;
+  if(!gifData.loopPresent){
+    loopText = __gsT('未指定循环扩展（默认播放 1 次）', 'No loop extension (plays once by default)');
+  } else if(gifData.loopCount === 0){
+    loopText = __gsT('无限循环', 'Infinite loop');
+  } else {
+    loopText = __gsT('重复 ' + gifData.loopCount + ' 次（共 ' + (gifData.loopCount + 1) + ' 次播放）', 'Repeat ' + gifData.loopCount + '× (plays ' + (gifData.loopCount + 1) + '× total)');
+  }
+  var grid = $('statGrid');
+  grid.innerHTML = statCard(gifData.frames.length, __gsT('总帧数', 'Total frames')) +
     statCard(gifData.width + '×' + gifData.height, __gsT('尺寸 px', 'Size px')) +
-    statCard(loopText, __gsT('循环次数', 'Loop count')) +
-    statCard(formatSize(gifData.fileSize), __gsT('文件大小', 'File size'));if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){$('statGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('statGrid').innerHTML=__h0;
+    statCard(loopText, __gsT('循环信息', 'Loop info')) +
+    statCard(formatSize(gifData.fileSize), __gsT('文件大小', 'File size'));
+  updateRangeInfo();
 }
 
 function statCard(val, lbl){
-  return '<div class="stat-card"><div class="val">' + ToolBox.escHtml(String(val)) + '</div><div class="lbl">' + ToolBox.escHtml(lbl) + '</div></div>';
+  return '<div class="stat-card"><div class="val">' + ToolBox.escHtml(String(val)) + '</div><div class="lbl">' + ToolBox.escHtml(String(lbl)) + '</div></div>';
+}
+
+function __gsVisibleRange(){
+  if(!gifData || !gifData.frames.length) return {start:0,end:-1,count:0};
+  var start = Math.max(0, Math.min(gifData.frames.length - 1, gifData.viewStart || 0));
+  var end = Math.max(start, Math.min(gifData.frames.length - 1, gifData.viewEnd == null ? gifData.frames.length - 1 : gifData.viewEnd));
+  return {start:start, end:end, count:end-start+1};
+}
+
+function __gsEnsureRange(start, end){
+  if(!gifData || !gifData.frames.length) return false;
+  var missing = false;
+  for(var i=start;i<=end;i++){
+    if(!gifData.frames[i] || !gifData.frames[i].canvas){ missing = true; break; }
+  }
+  if(!missing) return true;
+  if(!gifData.meta){
+    ToolBox.showToast(__gsT('缺少帧元数据，无法按需重建；请重新上传 GIF', 'Frame metadata is missing; please re-upload the GIF'), 'error');
+    return false;
+  }
+  var frames;
+  try { frames = renderManually(gifData.meta, null, start, end); }
+  catch(e){
+    ToolBox.showToast(__gsT('按需解码失败：' + (e.message || e.name), 'On-demand decode failed: ' + (e.message || e.name)), 'error');
+    return false;
+  }
+  gifData.frames = frames;
+  return true;
+}
+
+function updateRangeInfo(){
+  if(!gifData){ if($('frameRangeInfo')) $('frameRangeInfo').textContent=''; return; }
+  var v = __gsVisibleRange();
+  if($('frameRangeInfo')) $('frameRangeInfo').textContent = __gsT('显示第 ' + (v.start+1) + '–' + (v.end+1) + ' 帧 / 共 ' + gifData.frames.length + ' 帧', 'Showing frames ' + (v.start+1) + '–' + (v.end+1) + ' of ' + gifData.frames.length);
+  if($('gsStart')) $('gsStart').value = v.start + 1;
+  if($('gsEnd')) $('gsEnd').value = v.end + 1;
+}
+
+function applyFrameRange(){
+  if(!gifData || !gifData.frames.length) return;
+  var rawStart = String($('gsStart').value).trim();
+  var rawEnd = String($('gsEnd').value).trim();
+  if(rawStart === '' || rawEnd === ''){ ToolBox.showToast(__gsT('请输入起止帧号', 'Enter start and end frame numbers'), 'warning'); return; }
+  var start = Number(rawStart), end = Number(rawEnd);
+  if(!isFinite(start) || !isFinite(end) || Math.floor(start)!==start || Math.floor(end)!==end || start<1 || end<1 || start>gifData.frames.length || end>gifData.frames.length || start>end){
+    ToolBox.showToast(__gsT('帧范围无效：请输入 1–' + gifData.frames.length + ' 且起始不大于结束', 'Invalid frame range: enter 1–' + gifData.frames.length + ' with start ≤ end'), 'error');
+    return;
+  }
+  if(!__gsEnsureRange(start - 1, end - 1)) return;
+  gifData.viewStart = start - 1;
+  gifData.viewEnd = end - 1;
+  framePage = 0;
+  renderFrameGrid();
+  updateRangeInfo();
+}
+
+function clearFrameRange(){
+  if(!gifData) return;
+  if(!__gsEnsureRange(0, gifData.frames.length - 1)) return;
+  gifData.viewStart = 0;
+  gifData.viewEnd = gifData.frames.length - 1;
+  framePage = 0;
+  renderFrameGrid();
+  updateRangeInfo();
+}
+
+function changeFramePage(delta){
+  if(!gifData) return;
+  var v = __gsVisibleRange();
+  var pages = Math.max(1, Math.ceil(v.count / FRAME_PAGE_SIZE));
+  framePage = Math.max(0, Math.min(pages-1, framePage + delta));
+  var pageStart = v.start + framePage * FRAME_PAGE_SIZE;
+  var pageEnd = Math.min(v.end, pageStart + FRAME_PAGE_SIZE - 1);
+  if(!__gsEnsureRange(pageStart, pageEnd)) return;
+  renderFrameGrid();
+}
+
+function jumpToFrame(){
+  if(!gifData || !gifData.frames.length) return;
+  var raw = String($('gsJump').value).trim();
+  var n = Number(raw);
+  if(raw === '' || !isFinite(n) || Math.floor(n)!==n || n<1 || n>gifData.frames.length){
+    ToolBox.showToast(__gsT('请输入 1–' + gifData.frames.length + ' 的帧号', 'Enter a frame number from 1 to ' + gifData.frames.length), 'error');
+    return;
+  }
+  var idx = n - 1;
+  var pageStart = Math.floor(idx / FRAME_PAGE_SIZE) * FRAME_PAGE_SIZE;
+  var pageEnd = Math.min(gifData.frames.length - 1, pageStart + FRAME_PAGE_SIZE - 1);
+  if(!__gsEnsureRange(pageStart, pageEnd)) return;
+  gifData.viewStart = pageStart;
+  gifData.viewEnd = pageEnd;
+  framePage = 0;
+  renderFrameGrid();
+  updateRangeInfo();
+  openPreview(idx);
 }
 
 function renderFrameGrid(){
   var grid = $('frameGrid');
-  const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h1;
-  gifData.frames.forEach(function(fr, i){
+  var pager = $('framePager');
+  if(!gifData){ grid.innerHTML=''; pager.innerHTML=''; return; }
+  var v = __gsVisibleRange();
+  var pages = Math.max(1, Math.ceil(v.count / FRAME_PAGE_SIZE));
+  if(framePage >= pages) framePage = pages - 1;
+  if(framePage < 0) framePage = 0;
+  var pageStart = v.start + framePage * FRAME_PAGE_SIZE;
+  var pageEnd = Math.min(v.end, pageStart + FRAME_PAGE_SIZE - 1);
+  grid.innerHTML = '';
+  for(var i=pageStart; i<=pageEnd; i++){
+    var fr = gifData.frames[i];
     var thumb = makeThumb(fr.canvas, 200);
     var card = document.createElement('div');
     card.className = 'frame-card';
-    const __h2='<div class="frame-thumb checker" data-idx="' + i + '" role="button" tabindex="0" aria-label="' + __gsT('预览第', 'Preview frame ') + (i+1) + __gsT('帧', '') + '">' +
+    card.innerHTML =
+      '<div class="frame-thumb checker" data-idx="' + i + '" role="button" tabindex="0" aria-label="' + __gsT('预览第', 'Preview frame ') + (i+1) + __gsT('帧', '') + '">' +
         '<img src="' + thumb + '" alt="' + __gsT('第', 'Frame ') + (i+1) + __gsT('帧', '') + '">' +
         '<div class="zoom-hint">' + __gsT('🔍 点击预览', '🔍 Click to preview') + '</div>' +
       '</div>' +
       '<div class="frame-meta">' +
         '<span class="frame-no">#' + (i+1) + '</span>' +
-        '<span class="frame-delay">' + formatDelay(fr.delay) + '</span>' +
+        '<span class="frame-delay">' + formatFrameDelay(fr) + '</span>' +
       '</div>' +
-      '<button class="btn frame-dl" data-idx="' + i + '">' + __gsT('⬇ 下载 PNG', '⬇ Download PNG') + '</button>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){card.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}card.innerHTML=__h2;
+      '<button class="btn frame-dl" data-idx="' + i + '">' + __gsT('⬇ 下载 PNG', '⬇ Download PNG') + '</button>';
     grid.appendChild(card);
-  });
-
+  }
+  pager.innerHTML = '';
+  if(pages > 1){
+    var prev = document.createElement('button'); prev.className='btn'; prev.type='button'; prev.textContent=__gsT('‹ 上一页','‹ Previous');
+    var next = document.createElement('button'); next.className='btn'; next.type='button'; next.textContent=__gsT('下一页 ›','Next ›');
+    var info = document.createElement('span'); info.textContent=__gsT('第 ' + (framePage+1) + ' / ' + pages + ' 页','Page ' + (framePage+1) + ' / ' + pages);
+    prev.disabled = framePage <= 0; next.disabled = framePage >= pages-1;
+    prev.addEventListener('click', function(){ changeFramePage(-1); });
+    next.addEventListener('click', function(){ changeFramePage(1); });
+    pager.appendChild(prev); pager.appendChild(info); pager.appendChild(next);
+  }
   Array.prototype.forEach.call(grid.querySelectorAll('.frame-thumb'), function(el){
-    el.addEventListener('click', function(){ openPreview(+el.dataset.idx); });
+    el.addEventListener('click', function(){ openPreview(+el.dataset.idx, el); });
     el.addEventListener('keydown', function(e){
-      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openPreview(+el.dataset.idx); }
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openPreview(+el.dataset.idx, el); }
     });
   });
   Array.prototype.forEach.call(grid.querySelectorAll('.frame-dl'), function(el){
     el.addEventListener('click', function(e){ e.stopPropagation(); downloadFrame(+el.dataset.idx); });
   });
+  updateRangeInfo();
+}
+
+function formatFrameDelay(fr){
+  if(!fr) return '0ms';
+  if(fr.delaySource === 'player' && fr.delay === 0 && fr.delayMs){
+    return __gsT('0ms（GIF 原始） / ~' + fr.delayMs + 'ms（播放器）', '0ms (GIF) / ~' + fr.delayMs + 'ms (player)');
+  }
+  return formatDelay(fr.delay);
 }
 
 function makeThumb(canvas, maxW){
@@ -965,6 +1279,7 @@ function canvasToBlob(canvas){
 
 function downloadFrame(i){
   if(!gifData || !gifData.frames[i]) return;
+  if(!gifData.frames[i].canvas && !__gsEnsureRange(i, i)) return;
   var fr = gifData.frames[i];
   var base = gifData.fileName.replace(/\.gif$/i, '');
   canvasToBlob(fr.canvas).then(function(blob){
@@ -1079,52 +1394,103 @@ function __gsMakeZip(entries){
 
 function downloadAllZip(){
   if(!gifData || !gifData.frames.length) return;
+  var v = __gsVisibleRange();
+  if(v.count < 1) return;
+  if(!__gsEnsureRange(v.start, v.end)) return;
   var btn = $('zipBtn');
-  var base = gifData.fileName.replace(/\.gif$/i, '') || 'gif-frame';
-  var total = gifData.frames.length;
+  var job = ++zipSeq;
+  // 打包开始时冻结文件名、尺寸、循环信息和帧列表；后台期间换图/重置会取消本任务。
+  var snap = {
+    fileName: gifData.fileName,
+    width: gifData.width,
+    height: gifData.height,
+    loopCount: gifData.loopCount,
+    loopPresent: gifData.loopPresent,
+    complete: gifData.complete,
+    startIndex: v.start,
+    frames: gifData.frames.slice(v.start, v.end + 1).map(function(fr){
+      return { canvas:fr.canvas, delay:fr.delay, delayMs:fr.delayMs, delaySource:fr.delaySource };
+    })
+  };
+  var base = (snap.fileName || 'gif-frame').replace(/\.gif$/i, '') || 'gif-frame';
+  var total = snap.frames.length;
+  var entries = [];
+  var failures = [];
   btn.disabled = true;
   $('zipProgress').style.display = '';
   $('zipProgressFill').style.width = '0%';
   $('zipStatus').textContent = __gsT('正在打包 ' + total + ' 帧（本地生成，无需联网）...', 'Packing ' + total + ' frames locally (no network needed)...');
 
+  function current(){ return job === zipSeq; }
+  function cancelled(){ var e = new Error('cancelled'); e.cancelled = true; throw e; }
+  function update(done){
+    if(!current()) cancelled();
+    $('zipProgressFill').style.width = Math.round(done/total*70) + '%';
+    $('zipStatus').textContent = __gsT('正在打包 ' + done + ' / ' + total + ' 帧...', 'Packing ' + done + ' / ' + total + ' frames...');
+  }
+
   var done = 0;
-  var entries = [];
   var seq = Promise.resolve();
-  gifData.frames.forEach(function(fr, i){
+  snap.frames.forEach(function(fr, i){
     seq = seq.then(function(){
+      if(!current()) cancelled();
       return canvasToBlob(fr.canvas).then(function(blob){
-        if(!blob) return;
+        if(!current()) cancelled();
         return blob.arrayBuffer().then(function(buf){
-          entries.push({ name: base + '_frame_' + String(i+1).padStart(3,'0') + '.png', bytes: new Uint8Array(buf) });
+          if(!current()) cancelled();
+          entries.push({ name: base + '_frame_' + String(snap.startIndex+i+1).padStart(3,'0') + '.png', bytes: new Uint8Array(buf) });
           done++;
-          $('zipProgressFill').style.width = Math.round(done/total*70) + '%';
+          update(done);
         });
+      }).catch(function(err){
+        if(err && err.cancelled) throw err;
+        failures.push({ index: snap.startIndex+i+1, error: err && (err.message || err.name) || 'blob null' });
+        done++;
+        update(done);
       });
     });
   });
 
   seq.then(function(){
+    if(!current()) cancelled();
+    if(failures.length){
+      btn.disabled = false;
+      $('zipProgress').style.display = 'none';
+      $('zipProgressFill').style.width = '0%';
+      var failMsg = __gsT('有 ' + failures.length + ' 帧编码失败（第 ' + failures.map(function(f){return f.index;}).join('、') + ' 帧），已停止生成不完整 ZIP。请重试或逐帧下载。',
+        failures.length + ' frame(s) failed to encode (frames ' + failures.map(function(f){return f.index;}).join(', ') + '); an incomplete ZIP was not created. Retry or download frames individually.');
+      $('zipStatus').textContent = failMsg;
+      ToolBox.showToast(failMsg, 'error');
+      return;
+    }
     $('zipStatus').textContent = __gsT('正在生成 ZIP（含 frames.json）...', 'Building ZIP (with frames.json)...');
     var manifest = {
-      source: gifData.fileName,
-      width: gifData.width,
-      height: gifData.height,
-      loopCount: gifData.loopCount,
-      frameCount: gifData.frames.length,
-      note: 'delay 为 GIF 百分之一秒（centiseconds），delayMs 为毫秒；index 从 1 开始。',
-      frames: gifData.frames.map(function(fr, i){
+      source: snap.fileName,
+      width: snap.width,
+      height: snap.height,
+      loopCount: snap.loopCount,
+      loopPresent: snap.loopPresent,
+      complete: snap.complete,
+      frameCount: total,
+      rangeStart: snap.startIndex + 1,
+      rangeEnd: snap.startIndex + total,
+      note: 'delay 为 GIF 原始百分之一秒（centiseconds）；delayMs 为毫秒；delaySource 标注 gce/player/none；index 从 1 开始。',
+      frames: snap.frames.map(function(fr, i){
+        var abs = snap.startIndex + i + 1;
         return {
-          index: i + 1,
-          file: base + '_frame_' + String(i+1).padStart(3,'0') + '.png',
+          index: abs,
+          file: base + '_frame_' + String(abs).padStart(3,'0') + '.png',
           delay: fr.delay,
-          delayMs: Math.round((fr.delay || 0) * 10),
-          width: gifData.width,
-          height: gifData.height
+          delayMs: fr.delayMs == null ? Math.round((fr.delay || 0) * 10) : fr.delayMs,
+          delaySource: fr.delaySource || 'gce',
+          width: snap.width,
+          height: snap.height
         };
       })
     };
     entries.push({ name: 'frames.json', bytes: new TextEncoder().encode(JSON.stringify(manifest, null, 2)) });
     var content = __gsMakeZip(entries);
+    if(!current()) cancelled();
     $('zipProgressFill').style.width = '100%';
     var url = URL.createObjectURL(content);
     var a = document.createElement('a');
@@ -1138,6 +1504,7 @@ function downloadAllZip(){
     btn.disabled = false;
     ToolBox.showToast(__gsT('已下载 ' + total + ' 帧（ZIP）', 'Downloaded ' + total + ' frames (ZIP)'), 'success');
   }).catch(function(err){
+    if(err && err.cancelled) return;
     $('zipProgress').style.display = 'none';
     $('zipStatus').textContent = '';
     $('zipProgressFill').style.width = '0%';
@@ -1151,12 +1518,24 @@ function downloadAllZip(){
 
 /* ----- 预览模态框 ----- */
 
-function openPreview(i){
+function openPreview(i, trigger){
+  if(!gifData || !gifData.frames[i]) return;
+  if(!gifData.frames[i].canvas && !__gsEnsureRange(i, i)) return;
+  lastPreviewTrigger = trigger || (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('frame-thumb') ? document.activeElement : null);
   currentPreview = i;
   renderPreview();
   $('modal').classList.add('show');
+  var content = $('modalContent');
+  if(content) content.focus();
 }
-function closePreview(){ $('modal').classList.remove('show'); }
+function closePreview(){
+  var wasOpen = $('modal').classList.contains('show');
+  $('modal').classList.remove('show');
+  if(wasOpen && lastPreviewTrigger && lastPreviewTrigger.isConnected){
+    try { lastPreviewTrigger.focus(); } catch(e){}
+  }
+  lastPreviewTrigger = null;
+}
 function prevPreview(){
   if(!gifData) return;
   currentPreview = (currentPreview - 1 + gifData.frames.length) % gifData.frames.length;
@@ -1170,14 +1549,15 @@ function nextPreview(){
 function renderPreview(){
   if(!gifData) return;
   var fr = gifData.frames[currentPreview];
+  if(!fr) return;
   var c = $('modalCanvas');
   c.width = gifData.width;
   c.height = gifData.height;
   c.getContext('2d').clearRect(0,0,gifData.width,gifData.height);
   c.getContext('2d').drawImage(fr.canvas, 0, 0);
   $('modalInfo').textContent = __gsT(
-    '第 ' + (currentPreview+1) + ' / ' + gifData.frames.length + ' 帧  ·  延迟 ' + formatDelay(fr.delay) + '  ·  尺寸 ' + gifData.width + '×' + gifData.height,
-    'Frame ' + (currentPreview+1) + ' / ' + gifData.frames.length + '  ·  delay ' + formatDelay(fr.delay) + '  ·  size ' + gifData.width + '×' + gifData.height
+    '第 ' + (currentPreview+1) + ' / ' + gifData.frames.length + ' 帧  ·  延迟 ' + formatFrameDelay(fr) + '  ·  尺寸 ' + gifData.width + '×' + gifData.height,
+    'Frame ' + (currentPreview+1) + ' / ' + gifData.frames.length + '  ·  delay ' + formatFrameDelay(fr) + '  ·  size ' + gifData.width + '×' + gifData.height
   );
 }
 
@@ -1186,21 +1566,54 @@ document.addEventListener('keydown', function(e){
   if(e.key === 'Escape') closePreview();
   else if(e.key === 'ArrowLeft') prevPreview();
   else if(e.key === 'ArrowRight') nextPreview();
+  else if(e.key === 'Tab'){
+    // 对话框内简单焦点闭环，避免 Tab 跑到背景页面。
+    var focusable = $('modalContent') ? Array.prototype.slice.call($('modalContent').querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter(function(el){ return !el.disabled && el.offsetParent !== null; }) : [];
+    if(!focusable.length) return;
+    var first = focusable[0], last = focusable[focusable.length-1];
+    var contentEl = $('modalContent');
+    if(e.shiftKey && (document.activeElement === first || document.activeElement === contentEl)){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  }
 });
 
 /* ----- 重置 ----- */
 
 function resetTool(){
+  loadSeq++;
+  zipSeq++;
   gifData = null;
+  framePage = 0;
+  lastPreviewTrigger = null;
+  closePreview();
   $('resultArea').style.display = 'none';
   $('fileInput').value = '';
-  const __h3='';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){$('frameGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('frameGrid').innerHTML=__h3;
-  const __h4='';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){$('statGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('statGrid').innerHTML=__h4;
+  $('loadingMask').classList.remove('show');
+  $('loadingDetail').textContent = '';
+  $('zipProgress').style.display = 'none';
+  $('zipStatus').textContent = '';
+  $('zipBtn').disabled = false;
+  if($('frameGrid')) $('frameGrid').innerHTML = '';
+  if($('framePager')) $('framePager').innerHTML = '';
+  if($('statGrid')) $('statGrid').innerHTML = '';
+  if($('memoryNotice')){ $('memoryNotice').style.display = 'none'; $('memoryNotice').textContent = ''; }
 }
 
 /* ----- 拖拽交互 ----- */
 
 var dz = $('dropZone');
+dz.addEventListener('click', function(e){
+  var input = $('fileInput');
+  if(!input || e.target === input) return;
+  input.click();
+});
+dz.addEventListener('keydown', function(e){
+  if(e.key === 'Enter' || e.key === ' '){
+    e.preventDefault();
+    var input = $('fileInput');
+    if(input) input.click();
+  }
+});
 dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('dragover'); });
 dz.addEventListener('dragleave', function(){ dz.classList.remove('dragover'); });
 dz.addEventListener('drop', function(e){
