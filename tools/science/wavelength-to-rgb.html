@@ -35,6 +35,9 @@
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
 .history-item{padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;}
 .history-item:hover{border-color:var(--primary);background:var(--result-bg);}
+.history-item{display:block;width:100%;text-align:left;font:inherit;color:inherit;}
+.history-item .h-time,.history-item .h-value,.history-item .h-detail{display:block;}
+.history-item:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
 .history-item .h-time{font-size:11px;color:var(--text-muted);margin-bottom:4px;}
 .history-item .h-value{font-size:15px;font-weight:600;}
 .history-item .h-detail{font-size:12px;color:var(--text-light);margin-top:4px;}
@@ -502,9 +505,10 @@ function saveHistory(){
   history.unshift(item);
   if(history.length>MAX_HISTORY)history=history.slice(0,MAX_HISTORY);
   const payload=JSON.stringify(history);
-  localStorage.setItem(HISTORY_KEY,payload);
-  if(localStorage.getItem(HISTORY_KEY)===payload)ToolBox.toast('已保存到历史记录');
-  else ToolBox.toast('未保存（本次计算不受影响）');
+  let saved=false;
+  try{localStorage.setItem(HISTORY_KEY,payload);saved=localStorage.getItem(HISTORY_KEY)===payload;}catch(e){saved=false;}
+  if(saved)ToolBox.toast('已保存到历史记录');
+  else ToolBox.toast('历史未保存（存储不可用或空间不足），本次计算结果不受影响','error');
 }
 
 function renderHistory(){
@@ -516,11 +520,11 @@ function renderHistory(){
   }
   const __g9=history.map((item,i)=>{
     const time=new Date(item.time).toLocaleString('zh-CN');
-    return `<div class="history-item" onclick="loadHistory(${i})">
-      <div class="h-time">${time}</div>
-      <div class="h-value" style="color:${item.hex};">${item.wl} nm - ${item.colorName} (${item.hex})</div>
-      <div class="h-detail">RGB(${item.r}, ${item.g}, ${item.b}) | ${item.freq} THz | ${item.ev} eV</div>
-    </div>`;
+    return `<button type="button" class="history-item" onclick="loadHistory(${i})">
+      <span class="h-time">${time}</span>
+      <span class="h-value" style="color:${item.hex};">${item.wl} nm - ${item.colorName} (${item.hex})</span>
+      <span class="h-detail">RGB(${item.r}, ${item.g}, ${item.b}) | ${item.freq} THz | ${item.ev} eV</span>
+    </button>`;
   }).join('');list.innerHTML=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -531,7 +535,7 @@ function loadHistory(index){
   document.getElementById('wl').value=item.wl;
   document.getElementById('wlNum').value=item.wl;
   calc();
-  document.querySelector('.tab-btn').click();
+  document.querySelector('.tab-btn').click(); setTimeout(function(){document.getElementById('wl').focus();},0); if(window.ToolBox&&ToolBox.toast)ToolBox.toast('已恢复历史记录');
 }
 
 function clearHistory(){

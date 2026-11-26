@@ -2833,7 +2833,35 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/science/calculator.html\',\'utf8\');var i=h.indexOf(\'function setMode(\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+600):\'\';var ok=seg.indexOf(\'calculate();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'CALCM0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['CALCM0 OK'],
   "ref": "第1340批·模式切换残留旧结果修复源码形态强锚：旧版 setMode 只切显示不重算，共用结果区保留上一模式结论；修复后切换即按新口径重算。旧版无 ⇒ BAD。"
-}
+},
+  {
+    slug: "science/percentile-calculator",
+    inputs: {},
+    clicks: ["(function(){document.getElementById('data').value='<img src=x onerror=window.__xss=1>';calculate();var o=document.getElementById('output'),im=document.querySelector('#output img'),hasImg=im&&String(im.tagName).toUpperCase()==='IMG',ok=!hasImg&&!window.__xss&&o.innerHTML.indexOf('&lt;img')>=0&&o.innerHTML.indexOf('<img src')<0;document.getElementById('__tbProbe').textContent='PCTXSS '+(ok?'OK':'BAD');})()"],
+    expect: ["PCTXSS OK"],
+    ref: "非法数据项含 HTML 标签时，旧版把原始 token 直接拼进 innerHTML；现统一 __escHtml 转义，只显示纯文本、不生成 img 节点、不执行事件属性。默认无探针串 ⇒ 零逃生。",
+  },
+  {
+    slug: "science/anova-calculator",
+    inputs: {},
+    clicks: ["(function(){document.getElementById('groups').value='<img src=x onerror=window.__xss=1>\\n5,6';calculate();var o=document.getElementById('output'),im=document.querySelector('#output img'),hasImg=im&&String(im.tagName).toUpperCase()==='IMG',ok=!hasImg&&!window.__xss&&o.innerHTML.indexOf('&lt;img')>=0&&o.innerHTML.indexOf('<img src')<0;document.getElementById('__tbProbe').textContent='ANOVAXSS '+(ok?'OK':'BAD');})()"],
+    expect: ["ANOVAXSS OK"],
+    ref: "方差分析组数据含标签时，解析错误整段经 __escHtml 输出；旧版 bad.error 直接入 innerHTML 会解析 img 并触发 onerror。",
+  },
+  {
+    slug: "science/correlation-calculator",
+    inputs: {},
+    clicks: ["(function(){document.getElementById('xData').value='<img src=x onerror=window.__xss=1>';calculate();var o=document.getElementById('output'),im=document.querySelector('#output img'),hasImg=im&&String(im.tagName).toUpperCase()==='IMG',ok=!hasImg&&!window.__xss&&o.innerHTML.indexOf('&lt;img')>=0&&o.innerHTML.indexOf('<img src')<0;document.getElementById('__tbProbe').textContent='CORRXSS '+(ok?'OK':'BAD');})()"],
+    expect: ["CORRXSS OK"],
+    ref: "相关系数 X 数据含标签时，X/Y 解析错误合并后的 err 整段转义；旧版拼接 err 直接写 innerHTML。",
+  },
+  {
+    slug: "science/chi-square-calculator",
+    inputs: {},
+    clicks: ["(function(){document.getElementById('obs').value='<img src=x onerror=window.__xss=1>';document.getElementById('exp').value='';calculate();var o=document.getElementById('output'),im=document.querySelector('#output img'),hasImg=im&&String(im.tagName).toUpperCase()==='IMG',ok=!hasImg&&!window.__xss&&o.innerHTML.indexOf('&lt;img')>=0&&o.innerHTML.indexOf('<img src')<0;document.getElementById('__tbProbe').textContent='CHIXSS '+(ok?'OK':'BAD');})()"],
+    expect: ["CHIXSS OK"],
+    ref: "卡方观察频数含标签时，观察/期望频数错误均经 __escHtml 输出；旧版两处 error 直接拼 innerHTML。",
+  },
 ];
 
 // ---------------------------------------------------------------- main

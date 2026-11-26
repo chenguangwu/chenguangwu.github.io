@@ -35,6 +35,9 @@
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
 .history-item{padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;}
 .history-item:hover{border-color:var(--primary);background:var(--result-bg);}
+.history-item{display:block;width:100%;text-align:left;font:inherit;color:inherit;}
+.history-item .h-time,.history-item .h-value,.history-item .h-detail{display:block;}
+.history-item:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
 .history-item .h-time{font-size:11px;color:var(--text-muted);margin-bottom:4px;}
 .history-item .h-value{font-size:15px;font-weight:600;color:var(--primary);}
 .history-item .h-detail{font-size:12px;color:var(--text-light);margin-top:4px;}
@@ -416,7 +419,7 @@ function convert(){
     html+=`<div class="conv-item ${isActive?'active':''}">
       <div class="conv-val">${val.toExponential(6).replace(/\.?0+e/,'e')}</div>
       <div class="conv-name">${units[k].n}</div>
-    </div>`;
+    </button>`;
   });
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h1;
   lastResult={value:v,from,baseNm};
@@ -430,9 +433,10 @@ function saveHistory(){
   history.unshift(item);
   if(history.length>MAX_HISTORY)history=history.slice(0,MAX_HISTORY);
   const payload=JSON.stringify(history);
-  localStorage.setItem(HISTORY_KEY,payload);
-  if(localStorage.getItem(HISTORY_KEY)===payload)ToolBox.toast('已保存到历史记录');
-  else ToolBox.toast('未保存（本次计算不受影响）');
+  let saved=false;
+  try{localStorage.setItem(HISTORY_KEY,payload);saved=localStorage.getItem(HISTORY_KEY)===payload;}catch(e){saved=false;}
+  if(saved)ToolBox.toast('已保存到历史记录');
+  else ToolBox.toast('历史未保存（存储不可用或空间不足），本次计算结果不受影响','error');
 }
 
 function renderHistory(){
@@ -445,11 +449,11 @@ function renderHistory(){
   const __h3=history.map((item,i)=>{
     const time=new Date(item.time).toLocaleString('zh-CN');
     const fromName=units[item.from]?units[item.from].n:item.from;
-    return `<div class="history-item" onclick="loadHistory(${i})">
-      <div class="h-time">${time}</div>
-      <div class="h-value">${item.value} ${fromName}</div>
-      <div class="h-detail">= ${item.baseNm.toFixed(4)} N·m</div>
-    </div>`;
+    return `<button type="button" class="history-item" onclick="loadHistory(${i})">
+      <span class="h-time">${time}</span>
+      <span class="h-value">${item.value} ${fromName}</span>
+      <span class="h-detail">= ${item.baseNm.toFixed(4)} N·m</span>
+    </button>`;
   }).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h3;
 }
 
@@ -460,7 +464,7 @@ function loadHistory(index){
   document.getElementById('val').value=item.value;
   document.getElementById('from').value=item.from;
   convert();
-  document.querySelector('.tab-btn').click();
+  document.querySelector('.tab-btn').click(); setTimeout(function(){document.getElementById('val').focus();},0); if(window.ToolBox&&ToolBox.toast)ToolBox.toast('已恢复历史记录');
 }
 
 function clearHistory(){
