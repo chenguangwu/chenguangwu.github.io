@@ -1582,6 +1582,12 @@ const CASES = [
   },
   {
     slug: "it/caesar-cipher",
+    clicks: ["localStorage.removeItem('caesar_history');var cbEl=document.getElementById('saveHistoryOptIn');cbEl.checked=false;window.__cb=null;var st=window.setTimeout,ct=window.clearTimeout;window.setTimeout=function(fn){window.__cb=fn;return 1;};window.clearTimeout=function(){window.__cb=null;};__caesar_cipherScheduleHistory('SEC','SEC',3,'encrypt');var off=(window.__cb===null);cbEl.checked=true;__caesar_cipherScheduleHistory('SEC','SEC',3,'encrypt');var cb=window.__cb;window.setTimeout=st;window.clearTimeout=ct;if(cb)cb();var h=getHistory();localStorage.removeItem('caesar_history');document.getElementById('input').value='PRIVACY '+((off&&h.length===1&&h[0].input==='SEC')?'OK':'BAD');"],
+    expect: ["PRIVACY OK"],
+    ref: "Caesar 默认不写历史：未勾选时排程器不得设置定时器，勾选后才记录；旧实现无条件自动保存明文/密文。"
+  },
+  {
+    slug: "it/caesar-cipher",
     inputs: { input: "abc", shift: "1" },
     expect: ["bcd"],
     ref: "凯撒位移 1：a→b、b→c、c→d",
@@ -18345,6 +18351,12 @@ const CASES = [
     clicks: ["var a='A'.repeat(250);var b='A'.repeat(249)+'B';saveHistory(a,'Z'.repeat(250),'encrypt');saveHistory(b,'Y'.repeat(250),'encrypt');var h=getHistory().filter(function(x){return x.input&&x.input.length===250;});document.getElementById('input').value='HIST '+((h.length===2&&h[0].input!==h[1].input)?'OK':'BAD');"],
     expect: ["HIST OK"],
     ref: "第764批：历史必须保存完整输入/输出，不再截断到 200 字符；两条前 249 字符相同的长文本是不同记录。旧实现都截成前 200 字符，后一条被当作重复而覆盖。",
+  },
+  {
+    slug: "it/atbash-cipher",
+    clicks: ["localStorage.removeItem('atbash_history');var cbEl=document.getElementById('saveHistoryOptIn');cbEl.checked=false;window.__cb=null;var st=window.setTimeout,ct=window.clearTimeout;window.setTimeout=function(fn){window.__cb=fn;return 1;};window.clearTimeout=function(){window.__cb=null;};__atbash_cipherScheduleHistory('SEC','SEC','encrypt');var off=(window.__cb===null);cbEl.checked=true;__atbash_cipherScheduleHistory('SEC','SEC','encrypt');var cb=window.__cb;window.setTimeout=st;window.clearTimeout=ct;if(cb)cb();var h=getHistory();localStorage.removeItem('atbash_history');document.getElementById('input').value='PRIVACY '+((off&&h.length===1&&h[0].input==='SEC')?'OK':'BAD');"],
+    expect: ["PRIVACY OK"],
+    ref: "古典密码默认不写历史：未勾选“在本机保留历史”时排程器不得设置 500ms 定时器；勾选后才写。旧实现无条件 saveHistory ⇒ off 为 false、历史多出 SEC，探针 BAD。"
   },
   {
     slug: "it/atbash-cipher",
