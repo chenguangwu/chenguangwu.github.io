@@ -242,48 +242,55 @@ function calc(){
   var f=FLUTE[flute];
   var rctFace=num('rctFace'),rctLiner=num('rctLiner'),rctMed=num('rctMed');
   var dMm=num('d'),eff=num('eff');
-  var ectDirect=document.getElementById('ectDirect').value;
+  var ectDirectRaw=String(document.getElementById('ectDirect').value||'').trim();
   var L=num('L'),W=num('W'),Hm=num('H');
   var sf=num('sf'),boxWt=num('boxWt');
-  if(eff<=0)eff=0.5;
+  var ectMode=ectDirectRaw!==''?'direct':'estimate';
+  var ectDirect=ectDirectRaw!==''?parseFloat(ectDirectRaw):NaN;
+  var directInvalid=ectDirectRaw!==''&&(!isFinite(ectDirect)||ectDirect<=0);
 
   var ectEst=(rctFace+rctLiner+rctMed*f.takeup)*eff;   // N/m
-  var ect = ectDirect!==''&&!isNaN(parseFloat(ectDirect)) ? parseFloat(ectDirect) : ectEst;
+  var ect = ectMode==='direct'?ectDirect:ectEst;
 
   var Pm=2*(L+W)/1000;                  // 周长 m
   var dM=Math.max(dMm,0)/1000;          // 厚度 m
   var bct=5.87*ect*Math.sqrt(Pm*dM);    // N
   var bctKgf=bct/9.81;
-  var safeLoad=sf>0?bct/sf:0;           // N
-  var perTier=boxWt*9.81;               // N
-  var maxTiers = (safeLoad>=perTier&&perTier>0) ? Math.floor(safeLoad/perTier)+1 : 1;
-  var stackH = maxTiers*Hm/1000;        // m
-
-  var valid = L>0&&W>0&&dM>0&&ect>0;
+  var baseValid = L>0&&W>0&&dMm>0&&eff>0&&ect>0&&isFinite(ect)&&rctFace>=0&&rctLiner>=0&&rctMed>=0&&!directInvalid;
+  var stackValid = baseValid&&sf>0&&boxWt>0&&Hm>0;
+  var safeLoad=stackValid?bct/sf:0;     // N
+  var perTier=stackValid?boxWt*9.81:0;  // N
+  var maxTiers = stackValid ? Math.floor(safeLoad/perTier)+1 : null;
+  var stackH = stackValid ? maxTiers*Hm/1000 : null; // m
+  var valid = baseValid;
   var html='<div class="data-grid">'+
     '<div class="data-card"><div class="num">'+(valid?ect.toFixed(0):'-')+'</div><div class="label">ECT 边压强度 (N/m)</div></div>'+
     '<div class="data-card"><div class="num">'+(valid?bct.toFixed(0):'-')+'</div><div class="label">BCT 抗压 (N)</div></div>'+
     '<div class="data-card"><div class="num">'+(valid?bctKgf.toFixed(0):'-')+'</div><div class="label">BCT 抗压 (kgf)</div></div>'+
-    '<div class="data-card"><div class="num">'+(valid?safeLoad.toFixed(0):'-')+'</div><div class="label">安全载荷 (N)</div></div>'+
+    '<div class="data-card"><div class="num">'+(stackValid?safeLoad.toFixed(0):'-')+'</div><div class="label">安全载荷 (N)</div></div>'+
     '</div>'+
     '<div class="data-grid" style="margin-top:8px;">'+
-    '<div class="data-card"><div class="num">'+(valid?(safeLoad/9.81).toFixed(0):'-')+'</div><div class="label">安全载荷 (kgf)</div></div>'+
-    '<div class="data-card"><div class="num">'+(valid?maxTiers:'-')+'</div><div class="label">最大堆码层数</div></div>'+
-    '<div class="data-card"><div class="num">'+(valid?stackH.toFixed(2):'-')+'</div><div class="label">堆码高度 (m)</div></div>'+
+    '<div class="data-card"><div class="num">'+(stackValid?(safeLoad/9.81).toFixed(0):'-')+'</div><div class="label">安全载荷 (kgf)</div></div>'+
+    '<div class="data-card"><div class="num">'+(stackValid?maxTiers:'-')+'</div><div class="label">最大堆码层数</div></div>'+
+    '<div class="data-card"><div class="num">'+(stackValid?stackH.toFixed(2):'-')+'</div><div class="label">堆码高度 (m)</div></div>'+
     '<div class="data-card"><div class="num">'+flute+' 楞</div><div class="label">瓦楞率 '+f.takeup+'</div></div>'+
     '</div>';
   if(valid){
-    html+='<div class="step-line">ECT ≈ ('+rctFace+' + '+rctLiner+' + '+rctMed+'×'+f.takeup+') × '+eff+' = '+ectEst.toFixed(0)+' N/m'+(ectDirect!==''?'（已用直接输入覆盖）':'')+'</div>';
+    html+='<div class="step-line">ECT ≈ ('+rctFace+' + '+rctLiner+' + '+rctMed+'×'+f.takeup+') × '+eff+' = '+ectEst.toFixed(0)+' N/m'+(ectMode==='direct'?'（已用直接输入覆盖）':'')+'</div>';
     html+='<div class="step-line">周长 P = 2×('+L+'+'+W+')/1000 = '+Pm.toFixed(3)+' m；BCT = 5.87 × '+ect.toFixed(0)+' × √('+Pm.toFixed(3)+'×'+dM.toFixed(4)+') = '+bct.toFixed(0)+' N</div>';
-    html+='<div class="step-line">安全载荷 = '+bct.toFixed(0)+' ÷ '+sf+' = '+safeLoad.toFixed(0)+' N；每层 '+perTier.toFixed(1)+' N → 可堆 '+maxTiers+' 层 ≈ '+stackH.toFixed(2)+' m</div>';
+    if(stackValid){
+      html+='<div class="step-line">安全载荷 = '+bct.toFixed(0)+' ÷ '+sf+' = '+safeLoad.toFixed(0)+' N；每层 '+perTier.toFixed(1)+' N → 可堆 '+maxTiers+' 层 ≈ '+stackH.toFixed(2)+' m</div>';
+    }else{
+      html+='<div class="tip-box tip-warn">堆码参数不完整：安全系数、单箱重量和箱高均须大于 0，暂不给出安全载荷、堆码层数与堆码高度。</div>';
+    }
   } else {
-    html='<div class="tip-box tip-warn">请输入有效的箱长、箱宽、厚度与环压强度（均需 >0）。</div>';
+    html='<div class="tip-box tip-warn">请输入有效的箱长、箱宽、厚度与 ECT（均需 >0）；直接输入的 ECT 若填写则须为 >0 的有限数值。</div>';
   }
   const __g1=html;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
   // curve: max tiers vs SF
   var chtml='<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">安全系数 SF 与最大堆码层数（每层 '+boxWt+' kg）</div>';
-  if(valid&&perTier>0){
+  if(stackValid&&perTier>0){
     [1.5,2,2.5,3,3.5,4,5].forEach(function(s){
       var sl=bct/s;
       var t=Math.floor(sl/perTier)+1;
@@ -295,7 +302,7 @@ function calc(){
   }
   const __g2=chtml;document.getElementById('curve').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
-  if(valid) saveHistory({flute:flute,rctFace:rctFace,rctLiner:rctLiner,rctMed:rctMed,d:dMm,eff:eff,L:L,W:W,H:Hm,sf:sf,boxWt:boxWt,ect:ect,bct:bct,maxTiers:maxTiers});
+  if(stackValid) saveHistory({flute:flute,rctFace:rctFace,rctLiner:rctLiner,rctMed:rctMed,d:dMm,eff:eff,L:L,W:W,H:Hm,sf:sf,boxWt:boxWt,ect:ect,bct:bct,maxTiers:maxTiers,ectMode:ectMode,ectDirect:ectDirectRaw});
 }
 function copyRes(){
   var text=document.getElementById('res').innerText;
@@ -352,7 +359,12 @@ function restoreHistory(i){
     document.getElementById('rctMed').value=h.rctMed;
     document.getElementById('d').value=h.d;
     document.getElementById('eff').value=h.eff;
-    document.getElementById('ectDirect').value='';
+    if(h.ectMode==='direct'&&h.ectDirect!=null&&String(h.ectDirect).trim()!==''){
+      document.getElementById('ectDirect').value=h.ectDirect;
+    }else{
+      document.getElementById('ectDirect').value='';
+      if(!h.ectMode){ToolBox.showToast('该历史记录未保存 ECT 输入模式，已按环压估算恢复；结果可能与原记录不同', 'warning');}
+    }
     document.getElementById('L').value=h.L;
     document.getElementById('W').value=h.W;
     document.getElementById('H').value=h.H;

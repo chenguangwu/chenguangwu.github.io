@@ -29,6 +29,14 @@ function rollLengthStaticChecks() {
 }
 
 const GRADE_PATH = path.join(__dirname, "..", "tools", "paper", "paper-grade.html");
+function strengthStaticChecks() {
+  const s9 = fs.readFileSync(path.join(__dirname, "..", "tools", "paper", "strength-9.html"), "utf8");
+  const s1 = fs.readFileSync(path.join(__dirname, "..", "tools", "paper", "strength-1.html"), "utf8");
+  return [
+    { name: "撕裂页移除跨量纲互换与固定1.5倍结论", ok: !/1\.5|swapValues|互换 A\/B/.test(s9) && /撕裂力（实测，mN）/.test(s9) && /纸样定量（g\/m²）/.test(s9) },
+    { name: "纸箱抗压区分计算与堆码有效性并保存ECT模式", ok: /baseValid/.test(s1) && /stackValid/.test(s1) && /ectMode/.test(s1) && /ectDirect/.test(s1) && /未保存 ECT 输入模式/.test(s1) },
+  ];
+}
 function paperGradeStaticChecks() {
   const src = fs.readFileSync(GRADE_PATH, "utf8");
   const filter = src.slice(src.indexOf("function filterTable()"), src.indexOf("</script>", src.indexOf("function filterTable()")));
@@ -236,6 +244,24 @@ const CASES = [
   "expect": ["29.09 g/m²"],
   "ref": "787×1092mm、500 张/令，12.5kg 反算 12.5×1000/(0.787×1.092×500)=29.09 g/m²。"
 },
+{
+  "slug": "paper/strength-9",
+  "clicks": ["document.getElementById('v0').value='-5';document.getElementById('v1').value='60';calc();document.getElementById('__tbProbe').textContent=document.getElementById('res').innerText;"],
+  "expect": ["撕裂力不能为负"],
+  "ref": "负撕裂力不得得到负指数；旧实现仍可计算。"
+},
+{
+  "slug": "paper/strength-1",
+  "inputs": {"sf":"0"},
+  "expect": ["堆码参数不完整", "最大堆码层数"],
+  "ref": "安全系数为 0 时仍可给出 ECT/BCT，但不得给出安全载荷与堆码结论，也不得保存历史。"
+},
+{
+  "slug": "paper/strength-1",
+  "inputs": {"boxWt":"0"},
+  "expect": ["堆码参数不完整"],
+  "ref": "箱重为 0 时不得显示最大堆码层数 1 的假安全结论。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);
@@ -257,7 +283,7 @@ async function main() {
     }
   }
 
-  const stat = rollLengthStaticChecks().concat(paperGradeStaticChecks());
+  const stat = rollLengthStaticChecks().concat(paperGradeStaticChecks()).concat(strengthStaticChecks());
   const staticFails = stat.filter((s) => !s.ok);
   for (const s of staticFails) console.log("❌ [static] " + s.name);
 
