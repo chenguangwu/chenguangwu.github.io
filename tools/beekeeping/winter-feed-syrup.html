@@ -121,7 +121,7 @@
 
     <div class="input-row">
       <div><label for="n">蜂群数量 (群)</label><input type="number" id="n" value="10" step="1" min="0"></div>
-      <div><label for="vol">每群补饲糖浆 (L)</label><input type="number" id="vol" value="6" step="0.5" min="0"></div>
+      <div><label for="vol">每群补饲糖浆 (L)</label><input type="number" min="0.001" max="100" id="vol" value="6" step="0.5"></div>
       <div><label for="ratio">糖水重量比 (糖:水)</label><input type="number" id="ratio" value="2" step="0.1" min="0.5" max="3"></div>
     </div>
     <div class="input-row">
@@ -218,12 +218,13 @@ function calcData(){
   var raw={};['n','vol','ratio','price','daily','days'].forEach(function(id){raw[id]=document.getElementById(id).value.trim();});
   if(Object.keys(raw).some(function(id){return raw[id]==='';})) return {valid:false,msg:'请完整填写蜂群数量、每群补饲量、糖水比、白糖单价、每日消耗与计划天数'};
   const n=num('n'),vol=num('vol'),ratio=num('ratio'),price=num('price'),daily=num('daily'),days=num('days');
-  if(![n,vol,ratio,price,daily,days].every(isFinite)||!Number.isInteger(n)||n<=0||vol<=0||ratio<0.5||ratio>3||price<0||daily<0.05||!Number.isInteger(days)||days<1||days>30){
-    return {valid:false,msg:'参数无效：蜂群数量须为正整数，每群补饲量>0，糖水比 0.5–3，白糖单价≥0，每日消耗≥0.05 L，计划天数须为 1–30 的整数'};
+  if(![n,vol,ratio,price,daily,days].every(isFinite)||!Number.isInteger(n)||n<=0||vol<0.001||ratio<0.5||ratio>3||price<0||daily<0.05||!Number.isInteger(days)||days<1||days>30){
+    return {valid:false,msg:'参数无效：蜂群数量须为正整数，每群补饲量 0.001–100 L，糖水比 0.5–3，白糖单价≥0，每日消耗≥0.05 L，计划天数须为 1–30 的整数'};
   }
   const f=ratio/(ratio+1),rho=densityFor(f),totalL=n*vol,totalKg=totalL*rho,sugar=totalKg*f,water=totalKg-sugar,cost=sugar*price;
   const feedDays=vol/daily,perColonySugar=vol*rho*f,perDaySugar=sugar/days;
-  return {valid:true,n,vol,ratio,price,daily,days,f,rho,totalL,totalKg,sugar,water,cost,feedDays,perColonySugar,perDaySugar};
+  const planNeed=daily*days, gapPer=planNeed-vol, gapTotal=gapPer*n;
+  return {valid:true,n,vol,ratio,price,daily,days,f,rho,totalL,totalKg,sugar,water,cost,feedDays,perColonySugar,perDaySugar,planNeed,gapPer,gapTotal};
 }
 function fillRatioTable(){
   const t=document.getElementById('ratioTable');if(!t)return;const rs=[1,1.5,2,2.5];t.innerHTML=rs.map(r=>{const f=r/(r+1),rho=densityFor(f),kg=10*rho,s=kg*f,w=kg-s;return '<tr><td>'+r.toFixed(1)+':1</td><td>'+(f*100).toFixed(1)+'%</td><td>'+s.toFixed(1)+'</td><td>'+w.toFixed(1)+'</td><td>'+(r<=1?'奖励/弱群':'越冬')+'</td></tr>';}).join('');
@@ -241,7 +242,7 @@ function clearChart(){
   const cv=document.getElementById('fitChart');if(!cv)return;const ctx=cv.getContext('2d');if(!ctx)return;
   ctx.clearRect(0,0,cv.width,cv.height);
 }
-function exportCSV(){const d=calcData();if(!d.valid){alert(d.msg);return;}__wsCsvDownload('winter-feed-syrup.csv',[['项目','数值','单位'],['蜂群数量',d.n,'群'],['每群补饲',fmtL(d.vol),''],['糖水比',d.ratio+':1',''],['糖质量分数',(d.f*100).toFixed(1),'%'],['糖浆密度',d.rho.toFixed(2),'kg/L'],['总糖浆体积',fmtL(d.totalL),''],['总糖浆重量',fmtKg(d.totalKg),''],['白糖',fmtKg(d.sugar),''],['加水',fmtKg(d.water),''],['成本',fmtMoney(d.cost),''],['预计饲喂天数',d.feedDays.toFixed(1),'天']]);}
+function exportCSV(){const d=calcData();if(!d.valid){alert(d.msg);return;}const gapLabel=d.gapPer>0?'计划期缺口':(d.gapPer<0?'计划期剩余':'计划期差额（持平）');const gapPerText=d.gapPer>0?'-'+fmtL(d.gapPer):(d.gapPer<0?'+'+fmtL(Math.abs(d.gapPer)):fmtL(0));const gapTotalText=d.gapPer>0?'-'+fmtL(d.gapTotal):(d.gapPer<0?'+'+fmtL(Math.abs(d.gapTotal)):fmtL(0));__wsCsvDownload('winter-feed-syrup.csv',[['项目','数值','单位'],['蜂群数量',d.n,'群'],['每群补饲',fmtL(d.vol),''],['每日消耗',d.daily.toFixed(2),'L/群/天'],['计划天数',d.days,'天'],['计划期需糖浆',d.planNeed.toFixed(1),'L/群'],['糖水比',d.ratio+':1',''],['糖质量分数',(d.f*100).toFixed(1),'%'],['糖浆密度',d.rho.toFixed(2),'kg/L'],['总糖浆体积',fmtL(d.totalL),''],['总糖浆重量',fmtKg(d.totalKg),''],['白糖',fmtKg(d.sugar),''],['加水',fmtKg(d.water),''],['成本',fmtMoney(d.cost),''],['预计饲喂天数',d.feedDays.toFixed(1),'天'],[gapLabel+'（每群）',gapPerText,''],[gapLabel+'（合计）',gapTotalText,'']]);}
 function calcTool(){
   const d=calcData();
   if(!d.valid){document.getElementById('result').innerHTML='<div class="result-placeholder">'+d.msg+'</div>';clearChart();return;}
@@ -249,8 +250,8 @@ function calcTool(){
   let html=__wsDataGrid(rows);
   if(d.ratio>2.5)html+='<div class="info-box" style="margin-top:12px;">⚠️ 糖水比 '+d.ratio+':1 偏浓，冷却后易结晶，建议控制在 2.5:1 以内并分次饲喂。</div>';
   if(d.ratio<1)html+='<div class="info-box" style="margin-top:8px;">糖水比低于 1:1，水分偏高，越冬期易发酵；弱群短期奖励饲喂可用，但不宜作为主要越冬饲料。</div>';
-  var gapPer=d.daily*d.days-d.vol; // 计划期需糖浆 − 实备糖浆（L/群）
-  var gapTotal=gapPer*d.n;
+  var gapPer=d.gapPer; // 计划期需糖浆 − 实备糖浆（L/群）
+  var gapTotal=d.gapTotal;
   if(gapPer>0){
     html+='<div class="tip-box tip-warn" style="margin-top:8px;"><strong>计划与备料不匹配：</strong>计划 '+d.days+' 天按每日 '+d.daily+' L/群需糖浆 '+(d.daily*d.days).toFixed(1)+' L/群，当前仅备 '+fmtL(d.vol)+'/群，缺口 <strong>'+fmtL(gapPer)+'/群</strong>（合计 '+fmtL(gapTotal)+'）。请增加补饲量、延长备料或缩短计划天数。</div>';
   } else if(gapPer<0){

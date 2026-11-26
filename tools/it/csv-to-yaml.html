@@ -291,15 +291,26 @@ if(nohead){
     if(Object.prototype.hasOwnProperty.call(used,h)){
       if(!dedupeHeader) throw yamlShapeError('Duplicate header “'+h+'” at columns '+(used[h]+1)+' and '+(c+1)+'; enable “Auto-suffix duplicate/empty headers”','表头第 '+(used[h]+1)+' 列与第 '+(c+1)+' 列重复：'+h+'；请勾选「重复/空表头自动加后缀」');
       var n=2,nn=h; while(Object.prototype.hasOwnProperty.call(used,nn+'_'+n)) n++; nn=nn+'_'+n; h=nn;
-    } else { used[h]=c; }
+    }
+    used[h]=c;
     seen.push(h);
+  }
+  var usedNames={};
+  for(var ui=0;ui<seen.length;ui++) usedNames[seen[ui]]=1;
+  var maxLen=head.length;
+  for(var mr=1;mr<rows.length;mr++) if(rows[mr].length>maxLen) maxLen=rows[mr].length;
+  var extraKeys=[];
+  for(var ex=head.length; ex<maxLen; ex++){
+    var baseExtra='extra'+(ex-head.length+1), nameExtra=baseExtra, ne=2;
+    while(Object.prototype.hasOwnProperty.call(usedNames,nameExtra)){ nameExtra=baseExtra+'_'+(ne++); }
+    usedNames[nameExtra]=1; extraKeys.push(nameExtra);
   }
   for(var r=1;r<rows.length;r++){
     var line=rows.lines&&rows.lines[r]?rows.lines[r]:(r+1);
     if(rows[r].length>head.length&&!keepExtra) throw yamlShapeError('Row at line '+line+' has '+rows[r].length+' fields but the header has '+head.length+'; enable “Keep extra fields as extra1…” to retain them','第 '+line+' 行有 '+rows[r].length+' 个字段，超过表头的 '+head.length+' 个；请勾选「多余字段保留为 extra1…」以免丢值');
     var keys=seen.slice();
     if(rows[r].length>head.length){
-      for(var x=head.length;x<rows[r].length;x++) keys.push('extra'+(x-head.length+1));
+      for(var x=head.length;x<rows[r].length;x++) keys.push(extraKeys[x-head.length]);
     }
     yaml+='- '+keys.map(function(k,c){return yamlKey(k)+': '+JSON.stringify(rows[r][c]==null?'':rows[r][c]);}).join('\n  ')+'\n';
   }

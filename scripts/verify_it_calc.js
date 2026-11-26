@@ -19025,6 +19025,64 @@ const CASES = [
     expect: ["NGCTXEN OK"],
     ref: "第813批：英文态必须显示 Context: 与英文上下文说明，不能回退中文「上下文：」。强制 isEn=true 后搜索 limit_req，断言列表含 Context: 与 limit_req_zone: http 且无中文标签；旧实现无上下文行 ⇒ BAD。",
   },
+,
+  {
+    slug: "it/cron",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/cron.html','utf8');var a=h.indexOf('L must stand alone in the day-of-month field')>=0&&h.indexOf('L 只能单独用于日期字段')>=0;document.getElementById('description').textContent='CRONL '+(a?'OK':'BAD');"],
+    expect: ["CRONL OK"],
+    ref: "复核失败重做·L 语义统一：日期字段列表里的 L（L,15）与带步长的 L（L/2）都无法被 matchField 执行，现校验明确拒绝；单独的 L 仍表示月末并放行。旧实现三条全通过。"
+  },
+  {
+    slug: "it/csv-to-yaml",
+    inputs: { csv: "a,a,a\n1,2,3" },
+    clicks: ["document.getElementById('dedupeHeader').checked=true;document.getElementById('keepExtra').checked=false;calcTool();var t=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='CSVDUP '+(t.indexOf('a_2:')>=0&&t.indexOf('a_3:')>=0?'OK':'BAD:'+t);"],
+    expect: ["CSVDUP OK"],
+    ref: "复核失败重做·重复表头连续后缀：a,a,a 必须生成 a / a_2 / a_3 三个唯一键；旧实现生成的 a_2 未登记 used，第三列又生成 a_2。"
+  },
+  {
+    slug: "it/csv-to-yaml",
+    inputs: { csv: "extra1,a\nx,y,z" },
+    clicks: ["document.getElementById('dedupeHeader').checked=false;document.getElementById('keepExtra').checked=true;calcTool();var t=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='CSVEXTRA '+(t.indexOf('extra1_2:')>=0&&t.indexOf('extra1: \"x\"')>=0?'OK':'BAD:'+t);"],
+    expect: ["CSVEXTRA OK"],
+    ref: "复核失败重做·额外字段避让：原表头已有 extra1 时，第 3 列的额外字段必须改名为 extra1_2，不能覆盖原 extra1 的值。旧实现固定 extra1 ⇒ YAML 重复键。"
+  },
+  {
+    slug: "it/json-formatter",
+    clicks: ["var N=String.fromCharCode(10);document.getElementById('input').value='{'+N+' \"a\": 1e-400,'+N+' \"b\": 9e-324,'+N+' \"c\": 9007199254740993e0'+N+'}';formatJSON();var v=document.getElementById('input').value;document.getElementById('__tbProbe').textContent='FMTRISK '+(v.indexOf('1e-400')>=0&&v.indexOf('9e-324')>=0&&v.indexOf('9007199254740993e0')>=0?'OK':'BAD:'+v);"],
+    expect: ["FMTRISK OK"],
+    ref: "复核失败重做·指数下溢与次正规数：1e-400、9e-324 和 9007199254740993e0 都必须按原字面量保留；旧 __isRiskyNumber 不识别下溢，Number() 后分别变成 0、5e-324 与丢位整数。"
+  },
+  {
+    slug: "it/json-diff",
+    clicks: ["var a=jdParse('{\"n\":9007199254740993e0}','left').value,b=jdParse('{\"n\":9007199254740992e0}','right').value,d=deepDiff(a,b,'',false,''),e=jdParse('{\"n\":1e-400}','left').value;document.getElementById('__tbProbe').textContent='DIFFRISK '+d.length+' '+jdNumRaw(d[0].from)+' '+jdNumRaw(e.n);"],
+    expect: ["DIFFRISK 1 9007199254740993e0 1e-400"],
+    ref: "复核失败重做·指数精度：9007199254740993e0 与 9007199254740992e0 必须判为不同并保留原文；1e-400 不得下溢成 0。旧 jdParse 只处理无指数整数与小数，指数写法全部落回 Number。"
+  },
+  {
+    slug: "it/yaml-formatter",
+    clicks: ["var N=String.fromCharCode(10);document.getElementById('input').value='a: .inf'+N+'b: .nan';minifyYaml();var o=document.getElementById('output').textContent;document.getElementById('__tbProbe').textContent='YMININF '+((o.indexOf('.inf')>=0&&o.indexOf('.nan')>=0&&o.indexOf('null')<0)?'OK':'BAD:'+o);"],
+    expect: ["YMININF OK"],
+    ref: "复核失败重做·压缩保留非有限数：压缩输出必须写 .inf/.nan，不能经 JSON.stringify 变成 null。"
+  },
+  {
+    slug: "it/yaml-formatter",
+    clicks: ["var N=String.fromCharCode(10);document.getElementById('yaml-input').value='a: .inf'+N+'b: .nan';yamlToJson();var o=document.getElementById('json-output').textContent;document.getElementById('__tbProbe').textContent='Y2JINF '+(o.indexOf('无法无损转换为 JSON')>=0&&o.indexOf('root.a')>=0?'OK':'BAD:'+o);"],
+    expect: ["Y2JINF OK"],
+    ref: "复核失败重做·JSON 不静默降级：YAML→JSON 遇 .inf/.nan 必须明确拒绝并指出路径；旧实现 JSON.stringify 把两者都写成 null。"
+  },
+  {
+    slug: "it/yaml-to-xml",
+    clicks: ["var N=String.fromCharCode(10);var s='text: |'+N+'  first'+N+N+'    indented'+N+'  last';document.getElementById('source').value=s;calcTool();var t=document.getElementById('result').innerHTML;var s2='text: |+'+N+'  first'+N+N+N;document.getElementById('source').value=s2;calcTool();var t2=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='YBLOCK '+((t.indexOf('first'+N+N+'  indented'+N+'last')>=0)?'OK':'BAD')+' '+((t2.indexOf('first'+N+N+N)>=0)?'OK':'BAD');"],
+    expect: ["YBLOCK OK OK"],
+    ref: "复核失败重做·块标量保真：| 必须保留空行与额外两格缩进；|+ 必须保留全部尾随空行。旧解析器先 trim 并丢弃空行，缩进与 + 语义全部丢失。"
+  },
+  {
+    slug: "it/yaml-to-xml",
+    clicks: ["var N=String.fromCharCode(10);var s='text: >'+N+'  first'+N+N+'    indented'+N+'  last';document.getElementById('source').value=s;calcTool();var t=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='YFOLD '+(t.indexOf('first'+N+N+'  indented'+N+'last')>=0?'OK':'BAD:'+JSON.stringify(t));"],
+    expect: ["YFOLD OK"],
+    ref: "复核失败重做·折叠块标量：> 的空行保留为段落、更缩进行保留缩进并各占一行，普通行折叠为空格。"
+  }
+
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
