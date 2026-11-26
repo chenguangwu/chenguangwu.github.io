@@ -381,7 +381,7 @@ const CASES = [
   },
   {
     slug: "finance/imei-validator",
-    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 IMEI 无效。\";__imei_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNIMEI score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 IMEI 无效。\";document.getElementById('__histOptIn').checked=true;__imei_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNIMEI score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
     expect: ["FNIMEI score=0"],
     ref: "复核失败重做·F-N189 第一批 IMEI：校验失败结论位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中「校验失败/无效」⇒ 0。历史展示仍为摘要，不影响。默认态无探针串 ⇒ 零逃生。"
   },
@@ -393,7 +393,7 @@ const CASES = [
   },
   {
     slug: "finance/iccid-validator",
-    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 ICCID 无效。\";__iccid_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNICCID score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 ICCID 无效。\";document.getElementById('__histOptIn').checked=true;__iccid_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNICCID score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
     expect: ["FNICCID score=0"],
     ref: "复核失败重做·F-N189 第一批 ICCID：同 IMEI，失败结论在截断摘要之后。修复后 FullResText 判定 ⇒ 0（旧 1）。"
   },
@@ -1807,7 +1807,7 @@ const CASES = [
     ["revenue", "-1", "年营业收入不能为负数"],
     ["overdue", "-1", "逾期次数不能为负数"],
     ["creditHistory", "-1", "信用历史不能为负数"],
-    ["debtRatio", "101", "资产负债率须在 0–100% 之间"],
+    ["debtRatio", "101", "资不抵债：负债超过资产"],
     ["overdue", "1.5", "逾期次数须为非负整数"],
   ].map(([field, value, message]) => ({
     slug: "finance/assessor-manager",
@@ -4717,7 +4717,7 @@ const CASES = [
     slug: "finance/ein-validator",
     inputs: { input: "00-0000000" },
     clicks: ["validate()"],
-    expect: ["前缀 00 未在 IRS 分配范围，EIN 无效"],
+    expect: ["前缀 00 属已知保留/未分配段，按格式规则判无效"],
     ref: "F-N157 前缀判据锁：00 是 IRS 保留/未分配前缀，should 判无效。旧实现 IRS_PREFIX 查表只用于展示、无条件 ✅；修复后 EIN_INVALID_PREFIX 黑名单参与判据。默认 01-1234567 有效前缀不命中。",
   },
   {
@@ -5214,6 +5214,90 @@ const CASES = [
     expect: ["BONDTAB OK"],
     ref: "公式标签不依赖当前计算模式输入；隐藏的 y-price 留空也不能阻断 tab 切换。",
   },
+  {
+    slug: "finance/word-wrap",
+    inputs: { input: "😀中A", width: "1" },
+    clicks: ["document.getElementById('countBytes').checked=false;wrap();"],
+    expect: ["😀", "中", "A"],
+    ref: "第931批：字符模式按字素簇/码点切分，宽度 1 时单个 emoji 保持完整，不再把代理对拆成两行。"
+  },
+  {
+    slug: "finance/shebeizulinfeilvjisuan",
+    inputs: { price: "100", months: "12", depYears: "1", maintRate: "12", profitRate: "0", salvageRate: "0" },
+    clicks: ["calc()"],
+    expect: ["维护费用合计 (元)", "净收益 (元，已扣维护)", "¥0.00"],
+    ref: "第931批：净收益按租金 + 残值 − 购置 − 租期内维护支出计算；原值100、租12月、维护12%、零利润时净收益为0，不再误报12。"
+  },
+  {
+    slug: "finance/shebeizulinfeilvjisuan",
+    clicks: ["document.getElementById('price').value='0';document.getElementById('months').value='12';document.getElementById('depYears').value='1';calc();saveHistory();var k=historyKey();var n=JSON.parse(localStorage.getItem(k)||'[]').length;document.getElementById('__tbProbe').textContent='RENTBAD '+n;"],
+    expect: ["RENTBAD 0"],
+    ref: "第931批：历史保存复用完整计算校验；原值为 0 时计算已拒绝，不再把无效方案写入历史。"
+  },
+  {
+    slug: "finance/word-frequency",
+    inputs: { input: "a a b", topN: "1", minLen: "1" },
+    clicks: ["document.getElementById('enOnly').checked=true;document.getElementById('zhOnly').checked=false;document.getElementById('filterStopwords').checked=false;analyze();"],
+    expect: ["(66.67%)", "全部词次（3）为分母"],
+    ref: "第931批：词条百分比以过滤后全部词次为分母；Top N=1 时 a 出现 2/3 仍显示 66.67%，不因只展示 1 条变成 100%。"
+  },
+  {
+    slug: "finance/word-frequency",
+    inputs: { input: "a cat dog", topN: "5", minLen: "3" },
+    clicks: ["document.getElementById('enOnly').checked=true;document.getElementById('zhOnly').checked=false;analyze();"],
+    expect: ["cat", "dog", "总词次"],
+    ref: "第931批：英文分词同样应用最小词长；minLen=3 时 a 被过滤，只统计 cat/dog。"
+  }
+,
+  {
+    slug: "finance/word-search",
+    inputs: { level: "easy", theme: "colors", customWords: "" },
+    clicks: ["start();var g=document.getElementById('grid'),w=document.getElementById('words');document.getElementById('__tbProbe').textContent='WS10 '+((SIZE===10&&WORDS_PER_GAME===6&&words.length===6)?'OK':'BAD')+' size='+SIZE+' words='+words.length;"],
+    expect: ["WS10 OK"],
+    ref: "第931批：难度选择驱动网格与词数；easy=10×10/6 词，颜色主题词库。旧实现固定 12×12、8 词且无难度控件，必 BAD。"
+  },
+  {
+    slug: "finance/word-search",
+    inputs: { level: "medium", theme: "colors", customWords: "ab\n1\n_x" },
+    clicks: ["start();var g=document.getElementById('grid');document.getElementById('__tbProbe').textContent='WSBAD '+((document.getElementById('output').textContent.indexOf('没有有效英文单词')>=0&&(g.children?g.children.length:0)===0)?'OK':'BAD');"],
+    expect: ["WSBAD OK"],
+    ref: "第931批：自定义词表过滤掉少于 3 个字母或非英文的项；全无效时不生成矩阵并给出明确提示，不静默回退主题词库。"
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "+86 13800138000" },
+    clicks: ["var src=String(__msisdn_validatorExtras);var oi=src.indexOf('__histOptIn'),ck=src.indexOf('!opt.checked'),rr=src.indexOf('history.record'),mk=src.indexOf('MaskText(res');document.getElementById('__tbProbe').textContent='MSNOHIST '+((oi>=0&&ck>oi&&rr>ck&&mk>=0)?'OK':'BAD')+' g='+oi+','+ck+','+rr+','+mk;"],
+    expect: ["MSNOHIST OK"],
+    ref: "第931批：通信标识默认不持久化；未勾选保存选项时验证后历史必须为 0 条。旧实现 validate 后自动 record，必 BAD。"
+  },
+  {
+    slug: "finance/imsi-validator",
+    inputs: {},
+    clicks: ["var src=String(__imsi_validatorExtras);var oi=src.indexOf('__histOptIn'),ck=src.indexOf('!opt.checked'),rr=src.indexOf('history.record'),mk=src.indexOf('MaskText(res');document.getElementById('__tbProbe').textContent='IMSINOHIST '+((oi>=0&&ck>oi&&rr>ck&&mk>=0)?'OK':'BAD')+' g='+oi+','+ck+','+rr+','+mk;"],
+    expect: ["IMSINOHIST OK"],
+    ref: "第931批：IMSI 页面默认不写历史；未勾选时长度 0。"
+  },
+  {
+    slug: "finance/iccid-validator",
+    inputs: {},
+    clicks: ["var src=String(__iccid_validatorExtras);var oi=src.indexOf('__histOptIn'),ck=src.indexOf('!opt.checked'),rr=src.indexOf('history.record'),mk=src.indexOf('MaskText(res');document.getElementById('__tbProbe').textContent='ICCIDNOHIST '+((oi>=0&&ck>oi&&rr>ck&&mk>=0)?'OK':'BAD')+' g='+oi+','+ck+','+rr+','+mk;"],
+    expect: ["ICCIDNOHIST OK"],
+    ref: "第931批：ICCID 页面默认不写历史；未勾选时长度 0。"
+  },
+  {
+    slug: "finance/imei-validator",
+    inputs: {},
+    clicks: ["var src=String(__imei_validatorExtras);var oi=src.indexOf('__histOptIn'),ck=src.indexOf('!opt.checked'),rr=src.indexOf('history.record'),mk=src.indexOf('MaskText(res');document.getElementById('__tbProbe').textContent='IMEINOHIST '+((oi>=0&&ck>oi&&rr>ck&&mk>=0)?'OK':'BAD')+' g='+oi+','+ck+','+rr+','+mk;"],
+    expect: ["IMEINOHIST OK"],
+    ref: "第931批：IMEI 页面默认不写历史；未勾选时长度 0。"
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "+86 13800138000" },
+    clicks: ["var t=__msisdn_validatorMaskText('输入 +86 13800138000 归一化 8613800138000',['+86 13800138000']);document.getElementById('__tbProbe').textContent='MSMASK '+((t.indexOf('13800138000')<0&&t.indexOf('8613800138000')<0&&t.indexOf('86****8000')>=0)?'OK':'BAD')+' '+t;"],
+    expect: ["MSMASK OK"],
+    ref: "第931批：显式勾选后历史只存脱敏值 13****8000，完整号码 13800138000 与归一化 8613800138000 均不得出现在历史序列化结果里，输入字段为 86****8000。"
+  }
 
 ];
 

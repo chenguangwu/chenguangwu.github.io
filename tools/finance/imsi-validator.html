@@ -151,7 +151,8 @@
 
     <label for="input">输入（IMSI，15 位数字）</label>
     <input type="text" id="input" oninput="validate()" placeholder="如：460001234567890" value="460001234567890">
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__imsi_validatorExport()">导出明细 CSV</button></div><div class="result-box" id="output">等待输入...</div> <div id="imsi_validatorTable"></div> <div id="imsi_validatorDiff"></div> <div id="imsi_validatorChart"></div> <div id="imsi_validatorHist"></div>
+    <div class="toolbar" style="margin:8px 0;flex-wrap:wrap;gap:8px;align-items:center;"><label style="font-size:13px;display:inline-flex;align-items:center;gap:6px;"><input type="checkbox" id="__histOptIn"> 在本机保存脱敏历史（默认关闭）</label><button class="btn" type="button" onclick="__imsi_validatorClearHistory()">清除本机历史</button><span style="font-size:12px;color:var(--text-muted)">仅在勾选后写入；数值保留前 2 位与后 4 位。</span></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__imsi_validatorExport()">导出明细 CSV</button></div><div class="result-box" id="output">等待输入...</div> <div id="imsi_validatorTable"></div> <div id="imsi_validatorDiff"></div> <div id="imsi_validatorChart"></div> <div id="imsi_validatorHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -214,7 +215,8 @@
 
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
-      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>默认不保存输入；只有勾选“在本机保存脱敏历史”后才把前 2 位、后 4 位的脱敏值写入本机 localStorage，可随时“清除本机历史”</li>
+      <li>本工具纯前端运行，输入与校验结果不会上传到服务器</li>
       <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
       <li>计算结果仅供参考，请以实际应用场景为准</li>
   </ul>
@@ -323,6 +325,25 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 var __imsi_validator_last=0,__imsi_validator_skip=false,__imsi_validator_timer=null;
+function __imsi_validatorMask(v){
+    var raw=String(v==null?'':v).replace(/[\s+()-]/g,'');
+    if(!raw) return '';
+    if(raw.length<=6) return '***';
+    return raw.slice(0,2)+'****'+raw.slice(-4);
+}
+function __imsi_validatorMaskText(t,vals){
+    var out=String(t||'');
+    vals=vals||[];
+    for(var i=0;i<vals.length;i++){
+        var raw=String(vals[i]==null?'':vals[i]).trim();
+        if(raw.length>=6 && out.indexOf(raw)>=0) out=out.split(raw).join(__imsi_validatorMask(raw));
+    }
+    out=out.replace(/\d{7,}/g,function(m){return __imsi_validatorMask(m);});
+    return out;
+}
+function __imsi_validatorClearHistory(){
+    try{ TBKit.history.clear(); document.getElementById('imsi_validatorHist').innerHTML=''; document.getElementById('imsi_validatorTable').innerHTML=''; }catch(e){}
+}
 function __imsi_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -330,6 +351,7 @@ function __imsi_validatorSnap(){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
+        if(e.id.indexOf('__hist')===0) continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!=null) out[e.id]=v;
     }
@@ -414,6 +436,8 @@ function __imsi_validatorExtras(force){
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__imsi_validatorResText();
     if(!res) return;
+    var opt=document.getElementById('__histOptIn');
+    if(!opt||!opt.checked) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
@@ -426,14 +450,18 @@ function __imsi_validatorExtras(force){
     if(last){
         var same=true;
         for(var i=0;i<keys.length;i++){
-            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+            if(String(last[keys[i]])!==String(__imsi_validatorMask(snap[keys[i]]))){same=false;break;}
         }
-        if(same&&String(last[rk])===String(res)) return;
+        if(same&&String(last[rk])===String(__imsi_validatorMaskText(res,keys.map(function(k){return snap[k];})))) return;
     }
     __imsi_validator_last=now;
     var rec={};
-    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
-    rec[rk]=res;
+    var rawVals=[];
+    for(var i=0;i<keys.length;i++){
+        rawVals.push(snap[keys[i]]);
+        rec[keys[i]]=__imsi_validatorMask(snap[keys[i]]);
+    }
+    rec[rk]=__imsi_validatorMaskText(res,rawVals);
     rec.__tbScore=__imsi_validatorScore(__imsi_validatorFullResText());
     TBKit.history.record(rec);
     __imsi_validatorRender(keys,rk,en);

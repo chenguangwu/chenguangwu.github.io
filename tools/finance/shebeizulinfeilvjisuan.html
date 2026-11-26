@@ -155,7 +155,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__shebeizulinfeilvjisuanExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="shebeizulinfeilvjisuanTable"></div> <div id="shebeizulinfeilvjisuanDiff"></div> <div id="shebeizulinfeilvjisuanChart"></div> <div id="shebeizulinfeilvjisuanHist"></div>
-    <div class="info-box">💡 公式：月折旧额 D = P×(1−s) / (Y×12)；月维护费 = P×r/(12×100)；月租金 R = D + 维护费 + P×m/(12×100)；投资回报率 ROI = (R×T + P×s/100 − P) / P × 100%（残值为期末回收，租期短于折旧年限时可为负）。</div>
+    <div class="info-box">💡 公式：月折旧额 D = P×(1−s) / (Y×12)；月维护费 = P×r/(12×100)；月租金 R = D + 维护费 + P×m/(12×100)；投资回报率 ROI = (R×T + P×s/100 − P − 维护费×T) / P × 100%（残值期末回收，维护费按租期累计，租期短于折旧年限时可为负）。</div>
     <div class="tool-notes" style="--tool-accent:#1D4ED8;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
@@ -212,6 +212,7 @@ function readInputs(){
   return o;
 }
 function calc(){
+  __lastCalcOk=false;
   var iv=readInputs();
   var P=iv.price,T=iv.months,Y=iv.depYears,r=iv.maintRate,m=iv.profitRate,s=iv.salvageRate;
   if(!iv.valid){
@@ -229,7 +230,8 @@ function calc(){
   var monthlyProfit=P*m/(12*100); // 月利润
   var monthlyRent=monthlyDep+monthlyMaint+monthlyProfit; // 月租金
   var totalRent=monthlyRent*T; // 总租金收入
-  var netIncome=totalRent+salvage-P; // 净收益(含残值回收)
+  var totalMaint=monthlyMaint*T; // 租期内维护支出合计
+  var netIncome=totalRent+salvage-P-totalMaint; // 净收益 = 租金 + 残值 − 购置 − 维护
   var roi=P>0?(netIncome/P*100):0; // 投资回报率
   var dayRent=monthlyRent/30; // 日租金
   var yearRent=monthlyRent*12; // 年租金
@@ -251,9 +253,11 @@ function calc(){
     '<div class="data-grid" style="margin-top:8px;">'+
     '<div class="data-card"><div class="num">¥'+dayRent.toFixed(2)+'</div><div class="label">日租金 (元)</div></div>'+
     '<div class="data-card"><div class="num">¥'+yearRent.toFixed(2)+'</div><div class="label">年租金 (元)</div></div>'+
-    '<div class="data-card"><div class="num">¥'+netIncome.toFixed(2)+'</div><div class="label">净收益 (元)</div></div>'+
+    '<div class="data-card"><div class="num">¥'+totalMaint.toFixed(2)+'</div><div class="label">维护费用合计 (元)</div></div>'+
+    '<div class="data-card"><div class="num">¥'+netIncome.toFixed(2)+'</div><div class="label">净收益 (元，已扣维护)</div></div>'+
     '<div class="data-card"><div class="num" style="font-size:16px;"><span class="grade-tag '+gradeCls+'">'+grade+'</span></div><div class="label">回报评级</div></div>'+
     '</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  __lastCalcOk=true;
 }
 function copyRes(){
   var text=document.getElementById('res').innerText;
@@ -273,7 +277,8 @@ function resetAll(){
 }
 function historyKey(){try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_rental';}}
 function saveHistory(){
-  if(!readInputs().valid)return;
+  var __iv=readInputs();
+  if(!__iv.valid || __iv.price<=0 || __iv.months<=0 || __iv.depYears<=0 || !__lastCalcOk)return;
   try{
     var key=historyKey();
     var list=JSON.parse(localStorage.getItem(key)||'[]');
@@ -502,8 +507,8 @@ else document.addEventListener('DOMContentLoaded', __shebeizulinfeilvjisuanBoot)
 <li>收益评估：算租期内总租金、净收益与<a class="term-link" href="/tools/finance/investment-roi.html">投资回报率</a></li>
 <li>方案比选：调整租期、<a class="term-link" href="/tools/finance/profit-margin-calculator.html">利润率</a>后对比回报水平</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：残值 = 原值×残值率%；应计折旧总额 = 原值 − 残值；月折旧 = 应计折旧/(折旧年限×12)；月维护费 = 原值×维护费率/(12×100)；月利润 = 原值×利润率/(12×100)；月租金 = 月折旧 + 月维护费 + 月利润；总租金收入 = 月租金×租期月数；净收益 = 总租金 + 残值 − 原值；<a class="term-link" href="/tools/marketing/marketing-roi.html">ROI</a> = 净收益/原值×100%。另给出日租金、年租金与月租费率。评级：ROI&lt;0 亏损、&lt;10% 低回报、&lt;30% 合理回报、否则高回报。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：原值 50 万元、租期 24 个月、折旧 8 年、维护费率 3%、利润率 8%、残值率 5% → 残值 25000 元、月折旧 4947.92 元、月维护 1250.00 元、月利润 3333.33 元，月租金 9531.25 元（月租费率 1.906%、日租金 317.71 元），总租金 228750 元，净收益 −246250 元、ROI −49.25%，评级「亏损」——因为只租 2 年却按 8 年折旧计租，尚未收回折旧。若租期拉长到 96 个月（8 年）→ 总租金 915000 元、净收益 440000 元、ROI 88.00%，评级「高回报」。另例：20 万元、36 个月、折旧 5 年、维护 2.5%、利润 10%、残值 8% → 月租金 5150.00 元、总租金 185400 元、净收益 1400 元、ROI 0.70%，评级「低回报」。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：残值 = 原值×残值率%；应计折旧总额 = 原值 − 残值；月折旧 = 应计折旧/(折旧年限×12)；月维护费 = 原值×维护费率/(12×100)；月利润 = 原值×利润率/(12×100)；月租金 = 月折旧 + 月维护费 + 月利润；总租金收入 = 月租金×租期月数；净收益 = 总租金 + 残值 − 原值 − 租期内维护支出；<a class="term-link" href="/tools/marketing/marketing-roi.html">ROI</a> = 净收益/原值×100%。另给出日租金、年租金与月租费率。评级：ROI&lt;0 亏损、&lt;10% 低回报、&lt;30% 合理回报、否则高回报。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：原值 50 万元、租期 24 个月、折旧 8 年、维护费率 3%、利润率 8%、残值率 5% → 残值 25000 元、月折旧 4947.92 元、月维护 1250.00 元、月利润 3333.33 元，月租金 9531.25 元（月租费率 1.906%、日租金 317.71 元），总租金 228750 元，维护支出合计 30000 元，净收益 −276250 元、ROI −55.25%，评级「亏损」——因为只租 2 年却按 8 年折旧计租，尚未收回折旧。若租期拉长到 96 个月（8 年）→ 总租金 915000 元、维护支出 120000 元、净收益 320000 元、ROI 64.00%，评级「高回报」。另例：20 万元、36 个月、折旧 5 年、维护 2.5%、利润 10%、残值 8% → 月租金 5150.00 元、总租金 185400 元，维护支出 15000 元、净收益 −13600 元、ROI −6.80%，评级「亏损」。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>为什么短期租约算出来是亏损？</dt><dd>本工具的 ROI 只统计租期内的租金收入，而月折旧按整个折旧年限分摊。租期短于折旧年限时，累计租金不足以覆盖未折旧完的账面价值，属正常现象；评价长期收益应把后续租约或转售残值一并计入。</dd>
@@ -552,7 +557,7 @@ else document.addEventListener('DOMContentLoaded', __shebeizulinfeilvjisuanBoot)
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>月租金构成分解（折旧+维护+利润）</li>
-      <li>总租金收入与净收益计算</li>
+      <li>总租金收入、租期内维护支出与净收益计算</li>
       <li>投资回报率 ROI 评级</li>
       <li>日租金、年租金、月租费率输出</li>
       <li>历史记录本地保存</li>
