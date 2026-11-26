@@ -25,6 +25,23 @@ function mindmapStaticChecks() {
         && !/__mmSaved\s*&&\s*__mmSaved\.trim\(\)/.test(src)
         && !/saved\s*&&\s*saved\.trim\(\)/.test(src),
     },
+    {
+      // 清空/加载示例必须先确认，并保留「恢复上一版」快照。
+      name: "思维导图清空/示例覆盖前确认并可恢复上一版",
+      ok: /mmConfirmOverwrite\(/.test(src) && /mmTakeSnapshot\(/.test(src) && /mmRestoreSnapshot\(/.test(src),
+    },
+    {
+      // PNG 无法嵌入 foreignObject 图片，必须导出前列出并以占位文本显示。
+      name: "思维导图 PNG 导出前列出图片并以占位文本显示",
+      ok: /confirmPngImages\(/.test(src) && /Markdown 图片/.test(src)
+        && /\[.*mmMsg\("图片", "Image"\)/.test(src),
+    },
+    {
+      // 单光标 Shift+Tab 必须按当前行缩进处理，而不是继续插入两个空格。
+      name: "思维导图单光标 Shift+Tab 减少当前行缩进",
+      ok: /var lead = lineText\.match\(\/\^ \{1,2\}\/\)/.test(src)
+        && /mmReplaceRange\("", lineStart, lineStart \+ remove/.test(src),
+    },
   ];
 }
 function flowchartStaticChecks() {
