@@ -113,17 +113,17 @@
     <h2 data-zh="📡 频谱参数与频率定位计算器">📡 Spectrum Parameter & Bin Frequency Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="由采样率与 FFT 长度计算频率分辨率、奈奎斯特频率与目标 bin 对应频率。">Compute frequency resolution, Nyquist frequency and the frequency of a target FFT bin from the sample rate and FFT length.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">频率分辨率 Δf = 采样率 fs ÷ FFT 长度 N；奈奎斯特频率 = fs ÷ 2；第 k 个 bin 对应频率 = k × Δf；汉宁窗主瓣展宽 ≈ 2 × Δf；采样率默认 44100 Hz、FFT 长度默认 4096，两者均须大于 0</div>
-  <p class="formula-desc">频率分辨率 Δf = 采样率 fs ÷ FFT 长度 N；奈奎斯特频率 = fs ÷ 2；第 k 个 bin 对应频率 = k×Δf。本页不采集音频、不执行 FFT、不绘制频谱图，只按上述公式换算参数，辅助你读取外部频谱分析工具的结果。全部在浏览器本地计算，数据不上传服务器。</p>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">频率分辨率 Δf = 采样率 fs ÷ FFT 长度 N；奈奎斯特频率 = fs ÷ 2；第 k 个 bin 对应频率 = k × Δf；汉宁窗主瓣单侧至首个零点 ≈ 2 × Δf、零点间全宽 ≈ 4 × Δf；采样率默认 44100 Hz、FFT 长度默认 4096（正整数，常用 2 的幂）</div>
+  <p class="formula-desc">频率分辨率 Δf = 采样率 fs ÷ FFT 长度 N；奈奎斯特频率 = fs ÷ 2；第 k 个 bin 对应频率 = k×Δf；汉宁窗主瓣零点间全宽约为 4×Δf（单侧至首个零点约 2×Δf）。本页接受任意正整数 N（不强制 2 的幂），不采集音频、不执行 FFT、不绘制频谱图，只按上述公式换算参数，辅助你读取外部频谱分析工具的结果。全部在浏览器本地计算，数据不上传服务器。</p>
 </div>
 
 <label for="fs">采样率 fs（Hz）</label>
 <input id="fs" type="number" value="44100" oninput="calc()" placeholder="如 44100">
-<label for="N">FFT 长度 N（点数，2 的幂）</label>
+<label for="N">FFT 长度 N（正整数点数，常用 2 的幂）</label>
 <input id="N" type="number" value="4096" oninput="calc()" placeholder="如 4096">
 <label for="bin">目标频率 bin 序号（0 ～ N/2）</label>
 <input id="bin" type="number" value="200" oninput="calc()" placeholder="如 200">
-<div class="toolbar"><div id="analysis_1Presets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__analysis_1Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
+<div class="toolbar"><div id="analysis_1Presets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__analysis_1Export()">导出明细 CSV</button><button type="button" class="btn" id="copyBtn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="analysis_1Table"></div> <div id="analysis_1Diff"></div> <div id="analysis_1Chart"></div> <div id="analysis_1Hist"></div>
   </div>
 
@@ -150,12 +150,12 @@
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>音频/振动频谱分析：输入采样率、FFT 长度与目标 bin，算频率分辨率、奈奎斯特频率与 bin 对应频率，定位峰值所属频率。</li>
-<li>窗函数选型：了解汉宁窗主瓣展宽（约 2 个 bin），避免相邻频率被主瓣掩盖而误判。</li>
+<li>窗函数选型：了解汉宁窗主瓣零点间全宽约 4 个 bin（单侧至首个零点约 2 个 bin），避免相邻频率被主瓣掩盖而误判。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例（fs=8000Hz，N=1024，bin=10）</div><div class="dd-ex-body">频率分辨率 Δf=fs/N=8000/1024=7.8125 Hz；奈奎斯特频率=fs/2=4000 Hz；目标 bin10 对应频率=10×7.8125=78.125 Hz；汉宁窗主瓣展宽=2×Δf=15.625 Hz。工具按公式直接计算，辅助频谱读数定位。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（fs=8000Hz，N=1024，bin=10）</div><div class="dd-ex-body">频率分辨率 Δf=fs/N=8000/1024=7.8125 Hz；奈奎斯特频率=fs/2=4000 Hz；目标 bin10 对应频率=10×7.8125=78.125 Hz；汉宁窗主瓣单侧至首个零点=2×Δf=15.625 Hz，零点间全宽=4×Δf=31.25 Hz。工具按公式直接计算，辅助频谱读数定位。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>频率分辨率太低怎么办？</dt><dd>提高 FFT 长度 N 或降低采样率（需仍满足奈奎斯特）可提高 Δf 的细度；但 N 过大增加计算量，且需注意窗函数主瓣展宽随之变化。</dd>
+<dt>频率分辨率太低怎么办？</dt><dd>增加实际观测长度 N（采集更多样本）或降低采样率（仍需满足奈奎斯特）会减小 Δf。以 Hz 计，汉宁窗主瓣零点间全宽约 4Δf，因此随观测长度增加而变窄，不会因 N 变大而变宽；仅补零到更大的 N 只增加频点插值密度，不提高真实分辨率。N 过大也会增加计算量。</dd>
 <dt>怎样避免频谱混叠？</dt><dd>采样率必须高于目标最高频率的两倍（奈奎斯特），否则高频成分会折叠到低频造成混叠；必要时先抗混叠滤波再采样。</dd>
 </dl>
 </div>
@@ -169,23 +169,23 @@
       <thead><tr>
         <th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目" scope="col">Item</th>
         <th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式说明" scope="col">Formula / Description</th>
-        <th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="出处标准" scope="col">Source / Standard</th>
+        <th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="相关原理" scope="col">Related principle</th>
       </tr></thead>
       <tbody>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="频诊分析">Spectrum</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="频谱分析">Spectrum analysis</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="FFT 频率分辨率 = fs / N">FFT freq resolution = fs / N</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Fourier Transform (FFT)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">DFT definition (discrete Fourier transform)</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="能量分布">Energy</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="各频率成分能量结构">per-frequency energy distribution</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Spectral Analysis</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Parseval theorem (spectral energy)</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="采样">Sampling</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="根据 Nyquist 采样≥ 2×fmax">per Nyquist fs ≥ 2×fmax</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Shannon-Nyquist Theorem</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Nyquist–Shannon sampling theorem</td>
         </tr>
       </tbody>
     </table>
@@ -202,25 +202,48 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
+var __analysis_1Valid=false;
+function __analysis_1CopyState(){
+  var b=document.getElementById('copyBtn');
+  if(b) b.disabled=!__analysis_1Valid;
+}
+function __analysis_1Fmt(v, digits){
+  if(v===0) return '0';
+  if(Math.abs(v)<0.001 || Math.abs(v)>=1e6) return v.toExponential(4);
+  return v.toFixed(digits);
+}
 function calc(){
-  if(!document.getElementById("fs").value.trim()||!document.getElementById("N").value.trim()){document.getElementById("res").innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter a valid sample rate and FFT length</p>":"<p>请输入有效采样率与 FFT 长度</p>");return;}
+  __analysis_1Valid=false; __analysis_1CopyState();
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  if(!document.getElementById("fs").value.trim()||!document.getElementById("N").value.trim()){document.getElementById("res").innerHTML=(en?"<p>Enter a valid sample rate and FFT length</p>":"<p>请输入有效采样率与 FFT 长度</p>");return;}
   const fs=parseFloat(document.getElementById("fs").value);
   const N=parseFloat(document.getElementById("N").value);
   const bin=parseFloat(document.getElementById("bin").value);
-  const en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
-  if(!(fs>0)||!(N>0)||!(bin>=0)||!Number.isInteger(bin)||bin>N/2){document.getElementById("res").innerHTML=(en?"<p>Enter a sample rate &gt; 0, FFT length &gt; 0 and an integer bin between 0 and N/2</p>":"<p>请输入大于 0 的采样率与 FFT 长度，且 bin 为 0 到 N/2 之间的整数</p>");return;}
+  if(!Number.isFinite(fs)||!(fs>0)||!Number.isInteger(N)||!(N>0)||!Number.isInteger(bin)||!(bin>=0)||bin>N/2){
+    document.getElementById("res").innerHTML=(en?"<p>Enter a finite sample rate &gt; 0, an integer FFT length &gt; 0, and an integer bin between 0 and N/2</p>":"<p>请输入大于 0 的采样率、正整数 FFT 长度，且 bin 为 0 到 N/2 之间的整数</p>");
+    return;
+  }
   const df=fs/N;
   const nyq=fs/2;
   const fbin=bin*df;
-  const lobe=2*df;
-  let html='<p>频率分辨率 Δf = fs/N：<strong style="color:var(--primary);">'+df.toFixed(4)+'</strong> Hz</p>';
-  html+='<p>奈奎斯特频率：<strong>'+nyq.toFixed(2)+'</strong> Hz</p>';
-  html+='<p>目标 bin '+bin+' 对应频率：<strong>'+fbin.toFixed(3)+'</strong> Hz</p>';
-  html+='<p>汉宁窗主瓣展宽：<strong>'+lobe.toFixed(4)+'</strong> Hz</p>';
+  const lobeSide=2*df, lobeFull=4*df;
+  let html='<p>频率分辨率 Δf = fs/N：<strong style="color:var(--primary);">'+__analysis_1Fmt(df,4)+'</strong> Hz</p>';
+  html+='<p>奈奎斯特频率：<strong>'+__analysis_1Fmt(nyq,2)+'</strong> Hz</p>';
+  html+='<p>目标 bin '+bin+' 对应频率：<strong>'+__analysis_1Fmt(fbin,3)+'</strong> Hz</p>';
+  html+='<p>汉宁窗主瓣：单侧至首个零点 ≈ 2Δf = <strong>'+__analysis_1Fmt(lobeSide,4)+'</strong> Hz；零点间全宽 ≈ 4Δf = <strong>'+__analysis_1Fmt(lobeFull,4)+'</strong> Hz</p>';
+  html+='<p style="font-size:12px;color:var(--text-muted);">N 接受任意正整数；若 FFT 实现会补零到 2 的幂，补零只增加频点插值密度，不提高真实分辨率。</p>';
   const __g2=html;document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  __analysis_1Valid=true; __analysis_1CopyState();
 }
 calc();
-function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
+function copyResult(){
+  if(!__analysis_1Valid){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    ToolBox.showToast(en?'Fix the inputs before copying; error messages are not results.':'请先修正输入，错误提示不会被复制为结果。','warning');
+    return;
+  }
+  ToolBox.copyText(document.getElementById("res").innerText);
+}
 </script>
 
 <!-- SEO 介绍区块 -->
@@ -432,7 +455,7 @@ else document.addEventListener('DOMContentLoaded', __analysis_1Boot);
       "name": "频率分辨率太低怎么办？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "提高 FFT 长度 N 或降低采样率（需仍满足奈奎斯特）可提高 Δf 的细度；但 N 过大增加计算量，且需注意窗函数主瓣展宽随之变化。"
+        "text": "增加实际观测长度 N（采集更多样本）或降低采样率（仍需满足奈奎斯特）会减小 Δf。以 Hz 计，汉宁窗主瓣零点间全宽约 4Δf，因此随观测长度增加而变窄，不会因 N 变大而变宽；仅补零到更大的 N 只增加频点插值密度，不提高真实分辨率。N 过大也会增加计算量。"
       }
     },
     {

@@ -46,6 +46,24 @@ const CASES = [
   "expect": ["请输入有效采样率与 FFT 长度"],
   "ref": "空态回归：fs/N 为空时旧实现 `parseFloat(...)||44100 / ||4096` 静默代入默认值并输出分辨率/奈奎斯特频率；现要求提示。默认态 10.7666/22050.00 不含该提示 ⇒ 强判别。"
 },
+{
+  "slug": "audio/analysis-1",
+  "inputs": { "fs": "1", "N": "131072", "bin": "1" },
+  "expect": ["7.6294e-6"],
+  "ref": "第1024批：极低频率不再固定 4/3 位小数被显示为 0；Δf=1/131072=7.6293945e-6，按 4 位有效数字输出 7.6294e-6，目标 bin 同样科学计数。"
+},
+{
+  "slug": "audio/analysis-1",
+  "inputs": { "fs": "44100", "N": "1024.5", "bin": "100" },
+  "expect": ["正整数 FFT 长度"],
+  "ref": "第1024批：FFT 长度必须是正整数；1024.5 不得继续产出分辨率/bin 频率。默认 4096 不含该提示 ⇒ 强判别。"
+},
+{
+  "slug": "audio/analysis-1",
+  "clicks": ["document.getElementById('fs').value='';calc();document.getElementById('__tbProbe').textContent='ACOPY '+((document.getElementById('copyBtn').disabled)?'OK':'BAD');"],
+  "expect": ["ACOPY OK"],
+  "ref": "第1024批：输入无效时复制按钮禁用，避免把“请输入…”错误提示当结果复制；恢复有效输入后 calc 重新启用。"
+},
 
   // 第883批
   {
