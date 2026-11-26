@@ -733,13 +733,17 @@ function roiFutureValue(p, t, r){
   var base = 1 + r;
   var v = p.cost * Math.pow(base, t);
   if(p.add > 0 && t > 0){
-    // expm1/log1p 避免 r→0 时 ((1+r)^t−1)/r 的灾难性抵消：
-    // 旧写法在 r≈1e-13 时分子被浮点吃掉，0% 方案反解 IRR 会假报「无法确定」。
-    var q = Math.expm1(Math.log1p(r));      // ≈ r，小 r 下比 (1+r)−1 精确
-    var g = Math.expm1(t * Math.log1p(r));  // ≈ (1+r)^t − 1
-    v += Math.abs(r) < 1e-12 ? p.add * t : p.add * (g / q) * base;
+    // 每年期初追加是离散事件：投入时点为 t=0,1,…,ceil(年限)−1。
+    // 0.5 年只在 t=0 追加一次；1.5 年在 t=0、1 各一次；不按小数年限按比例折算。
+    var terms = Math.ceil(t - 1e-12);
+    for(var k=0;k<terms;k++){
+      v += p.add * Math.pow(base, t - k);
+    }
   }
   return v;
+}
+function __roiContributionCount(years){
+  return isFinite(years) && years>0 ? Math.ceil(years - 1e-12) : 0;
 }
 // F-N34：资金加权年化（IRR）。按「初始投入 t=0、每年期初追加、期末一次收回终值」
 // 的现金流口径反解年化利率；与 roiFutureValue 同源，期限含小数时仍自洽。
@@ -805,8 +809,9 @@ function calcCompare(){
   // F-N33：0% 是合法输入，统一走 roiFutureValue（r=0 走加性分支）
   function calcFV(p){ return roiFutureValue(p, p.years, p.rate/100); }
   const aFV = calcFV(a), bFV = calcFV(b);
-  const aInvest = a.cost + a.add * a.years;
-  const bInvest = b.cost + b.add * b.years;
+  const aCount = __roiContributionCount(a.years), bCount = __roiContributionCount(b.years);
+  const aInvest = a.cost + a.add * aCount;
+  const bInvest = b.cost + b.add * bCount;
   const aProfit = aFV - aInvest, bProfit = bFV - bInvest;
   const aRoi = aInvest > 0 ? aProfit/aInvest : 0;
   const bRoi = bInvest > 0 ? bProfit/bInvest : 0;
@@ -831,7 +836,7 @@ function calcCompare(){
     <div class="stat-card"><div class="val">${aAnnualTxt}</div><div class="lbl">${__roiTx('A 资金加权年化（IRR）','Plan A money-weighted IRR')}</div></div>
     <div class="stat-card"><div class="val">${bAnnualTxt}</div><div class="lbl">${__roiTx('B 资金加权年化（IRR）','Plan B money-weighted IRR')}</div></div>
     <div class="stat-card" style="grid-column:1/-1;text-align:left;"><div class="lbl" style="line-height:1.6;">${__roiTx(
-      '口径：资金加权年化（IRR）按「初始投入 t=0、每年期初追加、期末收回终值」反解，与定投 IRR 同口径；累计投入只用于展示成本，终值差额不代表收益率高低。A ' + aAnnualTxt + ' / B ' + bAnnualTxt + '。',
+      '口径：资金加权年化（IRR）按「初始投入 t=0、每年期初追加、期末收回终值」的真实离散现金流反解。每年期初追加只在完整年度起点发生：A 共 ' + aCount + ' 次、B 共 ' + bCount + ' 次，累计投入按实际次数计，不按小数年限按比例折半。A ' + aAnnualTxt + ' / B ' + bAnnualTxt + '。',
       'Basis: the money-weighted annualized return (IRR) is solved from cash flows (initial outlay at t=0, yearly top-ups at the start of each year, final value at maturity), same basis as the DCA IRR. Total outlay is cost only; a larger final value does not mean a higher return. A ' + aAnnualTxt + ' / B ' + bAnnualTxt + '.'
     )}</div></div>
   `;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('compareStats').innerHTML='<p style="color:var(--danger)">⚠ ' + __roiTx('计算结果含无效值，请检查输入是否为有效正数。','The result contains invalid values. Check the inputs.') + '</p>';try{var __cv=document.getElementById('compareChart');if(__cv&&__cv.getContext){var __cx=__cv.getContext('2d');if(__cx&&__cx.clearRect)__cx.clearRect(0,0,__cv.width,__cv.height);}}catch(e){}return;}document.getElementById('compareStats').innerHTML=__h5;

@@ -153,7 +153,7 @@
       <div class="input-row">
         <div><label for="fv">残值(元)</label><input type="number" id="fv" value="0" step="any" min="0" oninput="calc()" placeholder="如 0"></div>
         <div><label for="type">还款方式</label>
-          <select id="type" onchange="calc()">
+          <select id="type" onchange="syncTimingOptions();calc()">
             <option value="equal" selected>等额本息</option>
             <option value="principal">等额本金</option>
             <option value="interest">先息后本</option>
@@ -169,6 +169,7 @@
         </div>
         <div><label for="fee">手续费(元)</label><input type="number" id="fee" value="0" step="any" min="0" oninput="calc()" placeholder="如 0"></div>
       </div>
+      <p id="timingNote" style="font-size:12px;color:var(--text-muted);margin:4px 0 2px;">期初还款仅支持等额本息；等额本金与先息后本按期末还款计算。</p>
 
       <div style="margin-bottom:8px;">
         <label style="font-size:13px;color:var(--text-light);">📊 常见利率快速选择</label>
@@ -426,6 +427,23 @@ function getVal(id){
   return el ? (+el.value || 0) : 0;
 }
 
+function syncTimingOptions(){
+  var typeEl=document.getElementById('type');
+  var timingEl=document.getElementById('timing');
+  var note=document.getElementById('timingNote');
+  if(!typeEl||!timingEl) return;
+  var beginOpt=timingEl.querySelector('option[value="begin"]');
+  var unsupported=typeEl.value!=='equal';
+  if(beginOpt) beginOpt.disabled=unsupported;
+  if(unsupported && timingEl.value==='begin') timingEl.value='end';
+  if(note){
+    var en=/^en/i.test(document.documentElement.lang||'');
+    note.textContent=en
+      ? (unsupported?'Beginning-of-period payments are only supported for equal payment; equal principal and interest-only use end-of-period.':'Beginning-of-period payments apply to equal payment; the schedule and IRR use the same shifted cash flows.')
+      : (unsupported?'期初还款仅支持等额本息；等额本金与先息后本按期末还款计算。':'期初还款按等额本息把每期付款提前到 t=0…n−1，明细、汇总与 IRR 使用同一现金流。');
+  }
+}
+
 function calc(){
   var pv = getVal('pv');
   var downPct = getVal('downPct');
@@ -447,6 +465,7 @@ function calc(){
   else if(fv < 0) __err = '残值不能为负。';
   else if(fv >= principal) __err = '残值须小于融资本金（否则融资额无效）。';
   else if(!isFinite(n) || n < 1) __err = '期数须在 1–12000 之间。';
+  if(timing==='begin' && type!=='equal') __err='期初还款仅支持等额本息；等额本金与先息后本请选择期末还款。';
   if(__err){
     schedule = [];
     currentResult = null;
@@ -914,6 +933,7 @@ function resetInputs(){
 }
 
 initRateChips();
+syncTimingOptions();
 calc();
 
 var resizeTimer;

@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=finance,industry=finance,icon=🧮,bg=#e8eaf6">
-<meta name="description" content="折扣计算器是一款免费的在线金融财务工具，输入商品原价与折扣率（如 8.5 折），工具算出折后价格与节省金额，并可一键回填到含税反向计算，方便促销核价">
+<meta name="description" content="折扣计算器是一款免费的在线金融财务工具，输入商品原价与折扣率（如 8.5 折），算出折后价格与节省金额，并可将折后价转入含税计算；支持税前加税与税后拆税，方便促销核价">
 <meta name="keywords" content="折扣计算器,折扣计算器在线,在线折扣计算器,数学计算,金融财务,在线工具,免费工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://chenguangwu.github.io/tools/finance/discount-calculator.html">
 <meta property="og:title" content="折扣计算器 - 免费在线金融财务工具">
-<meta property="og:description" content="折扣计算器是一款免费的在线金融财务工具，输入商品原价与折扣率（如 8.5 折），工具算出折后价格与节省金额，并可一键回填到含税反向计算，方便促销核价">
+<meta property="og:description" content="折扣计算器是一款免费的在线金融财务工具，输入商品原价与折扣率（如 8.5 折），算出折后价格与节省金额，并可将折后价转入含税计算；支持税前加税与税后拆税，方便促销核价">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://chenguangwu.github.io/tools/finance/discount-calculator.html">
 <meta name="twitter:card" content="summary">
@@ -67,10 +67,10 @@
 <meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta name="twitter:title" content="折扣计算器 - 免费在线金融财务工具">
-    <meta name="twitter:description" content="折扣计算器是一款免费的在线金融财务工具，输入商品原价与折扣率（如 8.5 折），工具算出折后价格与节省金额，并可一键回填到含税反向计算，方便促销核价">
+    <meta name="twitter:description" content="折扣计算器是一款免费的在线金融财务工具，输入商品原价与折扣率（如 8.5 折），算出折后价格与节省金额，并可将折后价转入含税计算；支持税前加税与税后拆税，方便促销核价">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"折扣计算器","url":"https://chenguangwu.github.io/tools/finance/discount-calculator.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"折扣计算器是一款免费的在线金融财务工具，输入商品原价与折扣率（如 8.5 折），工具算出折后价格与节省金额，并可一键回填到含税反向计算，方便促销核价","image":"https://chenguangwu.github.io/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"折扣计算器","url":"https://chenguangwu.github.io/tools/finance/discount-calculator.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"折扣计算器是一款免费的在线金融财务工具，输入商品原价与折扣率（如 8.5 折），算出折后价格与节省金额，并可将折后价转入含税计算；支持税前加税与税后拆税，方便促销核价","image":"https://chenguangwu.github.io/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -92,7 +92,7 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 <meta name="title-en" content="Discount Calculator">
-<meta name="desc-en" content="Apply a discount rate to a list price to get the sale price and savings, with a reverse tax-inclusive mode">
+<meta name="desc-en" content="Apply a discount rate to a list price to get the sale price and savings, then transfer the sale price to tax-inclusive or tax-exclusive calculation">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/finance/discount-calculator.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/finance/discount-calculator.html">
@@ -356,6 +356,18 @@ function useQuick(d){
   calc();
 }
 
+var __discountFinalPrice=null;
+
+function toTaxFromDiscount(){
+  if(!(__discountFinalPrice>=0)) return;
+  setMode(2);
+  var amt=document.getElementById('amount');
+  if(amt) amt.value=(Math.round(__discountFinalPrice*100)/100).toFixed(2);
+  var add=document.querySelector('input[name="taxDir"][value="add"]');
+  if(add) add.checked=true;
+  calc();
+}
+
 function calc(){
 // S1-FIN：空输入首屏给提示（不留空白结果区）
 var __ni=Array.prototype.slice.call(document.querySelectorAll('input[type=number],input[type=date]'));
@@ -367,10 +379,11 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
   if(currentMode === 0){
     const p = parseFloat(document.getElementById('price').value);
     if(isNaN(p) || p < 0){ big.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter original price":"请输入原价"); detail.innerHTML=''; return; }
-    if(discounts.some(d => !isFinite(d) || d < 0 || d > 1)){ big.textContent = '折扣须在 0–10 折之间'; detail.innerHTML=''; return; }
+    if(discounts.some(d => !isFinite(d) || d <= 0 || d > 1)){ big.textContent = '折扣须为大于 0 且不超过 10 折；0 折时原价无法唯一反推'; detail.innerHTML=''; return; }
     const totalRate = discounts.reduce((a, b) => a * b, 1);
     const finalPrice = p * totalRate;
     const saved = p - finalPrice;
+    __discountFinalPrice = finalPrice;
     const offPct = (1 - totalRate) * 100;
     const __g4=`¥ ${fmt(finalPrice)}`;big.textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
     const __h3=`
@@ -382,6 +395,7 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
         <div class="result-item"><div class="v">¥ ${fmt(saved)}</div><div class="l">节省金额</div></div>
       </div>
       ${discounts.length > 1 ? `<div class="info-box" style="margin-top:10px;">叠加折扣计算：${discounts.map(d => d).join(' × ')} = ${totalRate.toFixed(4)}</div>` : ''}
+      <button type="button" class="btn" onclick="toTaxFromDiscount()" style="margin-top:10px;">将折后价转入含税计算（按税前加税）</button>
     `;const __g5=`
       <div class="save-box">节省 ¥ ${fmt(saved)}（${offPct.toFixed(1)}% OFF）</div>
       <div class="result-grid">
@@ -391,12 +405,13 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
         <div class="result-item"><div class="v">¥ ${fmt(saved)}</div><div class="l">节省金额</div></div>
       </div>
       ${discounts.length > 1 ? `<div class="info-box" style="margin-top:10px;">叠加折扣计算：${discounts.map(d => fmtDiscount(d) + ' 折').join(' × ')} = 综合 ${(totalRate * 10).toFixed(2)} 折（各折扣按输入值参与计算，结果保留两位小数）</div>` : ''}
+      <button type="button" class="btn" onclick="toTaxFromDiscount()" style="margin-top:10px;">将折后价转入含税计算（按税前加税）</button>
     `;detail.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   } else if(currentMode === 1){
     const fp = parseFloat(document.getElementById('finalPrice').value);
     const dr = parseFloat(document.getElementById('discountRate').value);
     const fpErr = (!isNaN(fp) && isFinite(fp) && fp >= 0) ? '' : '折后价格须为非负数。';
-    const drErr = (!isNaN(dr) && isFinite(dr) && dr > 0 && dr <= 10) ? '' : '折扣须在 0–10 折之间（如 8 表示 8 折）。';
+    const drErr = (!isNaN(dr) && isFinite(dr) && dr > 0 && dr <= 10) ? '' : '折扣须为大于 0 且不超过 10 折（如 8 表示 8 折）；0 折时原价无法唯一确定。';
     setFieldError('finalPriceError', fpErr);
     setFieldError('discountRateError', drErr);
     if(fpErr || drErr){ big.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a valid number":"请输入有效数值"); detail.innerHTML=''; return; }

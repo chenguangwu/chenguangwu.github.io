@@ -441,20 +441,30 @@ function getVal(id){
   return el ? (+el.value || 0) : 0;
 }
 
+function __psFail(msg){
+  currentResult = null;
+  document.getElementById('statGrid').innerHTML = '';
+  document.getElementById('res').innerHTML = '<p class="tip-error">❌ ' + msg + '</p>';
+  try{ var cv=document.getElementById('chart'); if(cv&&cv.getContext) cv.getContext('2d').clearRect(0,0,cv.width,cv.height); }catch(e){}
+}
+
 function calc(){
   var result = {method: currentMethod, timestamp: Date.now()};
   
   if(currentMethod === 'kelly'){
-    var capital = getVal('k-capital');
-    var winRate = getVal('k-winrate') / 100;
-    var ratio = getVal('k-ratio');
-    var fraction = getVal('k-fraction');
-    var loseRate = 1 - winRate;
-    if (!(ratio > 0)) {
-      document.getElementById('statGrid').innerHTML='';
-      document.getElementById('res').innerHTML = '<p class="tip-error">盈亏比须大于 0，否则凯利公式无定义（分母为 0）。</p>';
-      return;
+    var __rawK={}; ['k-capital','k-winrate','k-ratio','k-fraction'].forEach(function(id){var e=document.getElementById(id);__rawK[id]=String(e&&e.value!=null?e.value:'').trim();});
+    if(__rawK['k-capital']===''||__rawK['k-winrate']===''||__rawK['k-ratio']===''||__rawK['k-fraction']===''){
+      __psFail('请填写账户资金、胜率、盈亏比与凯利分数（如确为 0，请明确输入 0）。'); return;
     }
+    var capital = Number(__rawK['k-capital']);
+    var winRate = Number(__rawK['k-winrate']) / 100;
+    var ratio = Number(__rawK['k-ratio']);
+    var fraction = Number(__rawK['k-fraction']);
+    var loseRate = 1 - winRate;
+    if(!isFinite(capital)||capital<=0){ __psFail('账户资金须大于 0。'); return; }
+    if(!isFinite(winRate)||winRate<0||winRate>1){ __psFail('胜率须在 0%–100% 之间。'); return; }
+    if(!isFinite(ratio)||ratio<=0){ __psFail('盈亏比须大于 0，否则凯利公式无定义（分母为 0）。'); return; }
+    if(!isFinite(fraction)||fraction<0||fraction>1){ __psFail('凯利分数须在 0%–100% 之间。'); return; }
     var kellyPct = (winRate * ratio - loseRate) / ratio;
     kellyPct = Math.max(0, kellyPct);
     var actualPct = kellyPct * fraction;
@@ -470,10 +480,19 @@ function calc(){
     result.fraction = fraction;
   }
   else if(currentMethod === 'fixed'){
-    var capital = getVal('f-capital');
-    var pct = getVal('f-percent') / 100;
-    var price = getVal('f-price');
-    var stop = getVal('f-stop');
+    var __rawF={}; ['f-capital','f-percent','f-price','f-stop'].forEach(function(id){var e=document.getElementById(id);__rawF[id]=String(e&&e.value!=null?e.value:'').trim();});
+    if(__rawF['f-capital']===''||__rawF['f-percent']===''||__rawF['f-price']===''||__rawF['f-stop']===''){
+      __psFail('请填写账户资金、仓位比例、买入价与止损价（如确为 0，请明确输入 0）。'); return;
+    }
+    var capital = Number(__rawF['f-capital']);
+    var pct = Number(__rawF['f-percent']) / 100;
+    var price = Number(__rawF['f-price']);
+    var stop = Number(__rawF['f-stop']);
+    if(!isFinite(capital)||capital<=0){ __psFail('账户资金须大于 0。'); return; }
+    if(!isFinite(pct)||pct<0||pct>1){ __psFail('仓位比例须在 0%–100% 之间。'); return; }
+    if(!isFinite(price)||price<=0){ __psFail('买入价须大于 0。'); return; }
+    if(!isFinite(stop)||stop<=0){ __psFail('止损价须大于 0。'); return; }
+    if(stop>=price){ __psFail('止损价须低于买入价；本工具仅支持做多，止损价等于或高于买入价时每股风险不为正。'); return; }
     var position = capital * pct;
     var shares = price > 0 ? Math.floor(position / price / 100) * 100 : 0;
     var actualPosition = shares * price;
@@ -490,10 +509,19 @@ function calc(){
     result.riskPct = riskPct;
   }
   else if(currentMethod === 'risk'){
-    var capital = getVal('r-capital');
-    var riskPct = getVal('r-riskpct') / 100;
-    var price = getVal('r-price');
-    var stop = getVal('r-stop');
+    var __rawR={}; ['r-capital','r-riskpct','r-price','r-stop'].forEach(function(id){var e=document.getElementById(id);__rawR[id]=String(e&&e.value!=null?e.value:'').trim();});
+    if(__rawR['r-capital']===''||__rawR['r-riskpct']===''||__rawR['r-price']===''||__rawR['r-stop']===''){
+      __psFail('请填写账户资金、风险比例、买入价与止损价（如确为 0，请明确输入 0）。'); return;
+    }
+    var capital = Number(__rawR['r-capital']);
+    var riskPct = Number(__rawR['r-riskpct']) / 100;
+    var price = Number(__rawR['r-price']);
+    var stop = Number(__rawR['r-stop']);
+    if(!isFinite(capital)||capital<=0){ __psFail('账户资金须大于 0。'); return; }
+    if(!isFinite(riskPct)||riskPct<0||riskPct>1){ __psFail('风险比例须在 0%–100% 之间。'); return; }
+    if(!isFinite(price)||price<=0){ __psFail('买入价须大于 0。'); return; }
+    if(!isFinite(stop)||stop<=0){ __psFail('止损价须大于 0。'); return; }
+    if(stop>=price){ __psFail('止损价须低于买入价；本工具仅支持做多，止损价等于或高于买入价时每股风险不为正。'); return; }
     var riskAmount = capital * riskPct;
     var riskPerShare = price - stop;
     var shares = riskPerShare > 0 ? Math.floor(riskAmount / riskPerShare / 100) * 100 : 0;

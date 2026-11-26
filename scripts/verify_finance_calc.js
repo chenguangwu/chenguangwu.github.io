@@ -1377,7 +1377,7 @@ const CASES = [
   {
     slug: "finance/voter-id-validator",
     inputs: { input: "ABC1234567" },
-    expect: ["州代码： ABC（仅格式校验，未核对是否为有效州码）"],
+    expect: ["三字母前缀： ABC（仅格式字段，不推断邦/州或签发机构）", "不核验该号码是否已登记"],
     ref: "印度 EPIC 选民 ID：3 字母 + 7 位序号，仅格式校验。F-N213 州码行加「未核对有效性」标注，避免任意 3 字母被误当合法州码；expect 带输入州码 ABC（默认 XYZ 不命中）⇒ 强判别，静态标注串单列会逃生故不单列。",
   },
   {
@@ -3487,7 +3487,7 @@ const CASES = [
       "timing": "begin"
     },
     "expect": [
-      "⚠ 残值须小于融资本金（否则融资额无效）。"
+      "⚠ 期初还款仅支持等额本息；等额本金与先息后本请选择期末还款。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"pv\":\"42\",\"downPct\":\"42\",\"rate\":\"42\",\"months\":\"42\",\"fv\":\"42\",\"fee\":\"42\",\"type\":\"principal\",\"timing\":\"begin\"}，输出区含「余本金 第1期 ¥0.45 ¥-0.42 ¥0.87 ¥24.78 第2期 ¥0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -4249,14 +4249,14 @@ const CASES = [
     slug: "finance/discount-calculator",
     inputs: { finalPrice: "80", discountRate: "12" },
     clicks: ["setMode(1)"],
-    expect: ["折扣须在 0–10 折之间（如 8 表示 8 折）。"],
+    expect: ["折扣须为大于 0 且不超过 10 折（如 8 表示 8 折）；0 折时原价无法唯一确定。"],
     ref: "F-N48：反向模式折扣率 12 超出「几折」口径 0–10 ⇒ 旧实现得原价 66.67、节省 −13.33；修复后字段级拒绝。默认折扣率 8 ⇒ 不命中。",
   },
   {
     slug: "finance/discount-calculator",
     inputs: { finalPrice: "80", discountRate: "-8" },
     clicks: ["setMode(1)"],
-    expect: ["折扣须在 0–10 折之间（如 8 表示 8 折）。"],
+    expect: ["折扣须为大于 0 且不超过 10 折（如 8 表示 8 折）；0 折时原价无法唯一确定。"],
     ref: "F-N48：折扣率 −8 ⇒ 旧实现直接除得负原价 −100.00、节省 −180.00；修复后拒绝负折扣。默认 8 ⇒ 不命中。",
   },
   {
@@ -5118,7 +5118,7 @@ const CASES = [
   },
   {
     slug: "finance/position-size-calculator",
-    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/position-size-calculator.html','utf8');var i=h.indexOf('if (!(ratio > 0))');var s=i>=0?h.slice(i,i+220):'';var ok=s.indexOf(\"('statGrid').innerHTML=''\")>=0&&s.indexOf('盈亏比须大于 0')>=0;document.getElementById('__tbProbe').textContent='POSSTAT '+(ok?'OK':'BAD');"],
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/position-size-calculator.html','utf8');var i=h.indexOf('if(!isFinite(ratio)||ratio<=0)');var s=i>=0?h.slice(i,i+180):'';var ok=s.indexOf('__psFail')>=0&&h.indexOf('currentResult = null;')>=0;document.getElementById('__tbProbe').textContent='POSSTAT '+(ok?'OK':'BAD');"],
     expect: ["POSSTAT OK"],
     ref: "第1344批 分支残留：凯利模式 ratio<=0 早退分支原只写 #res 就 return，#statGrid 保留上次合法计算的统计卡（martingale 分支有清，口径不一）；改为早退同步清空 statGrid。",
   },
@@ -5581,6 +5581,63 @@ const CASES = [
     clicks: ["document.getElementById('loanType').value='principal';loanEnabled=true;calc()"],
     expect: ["首月月供", "首月月供后现金流", "末月"],
     ref: "第935批：等额本金月供逐月递减，卡片改标首月月供、末月与平均值；旧实现把首月值当通用月供与现金流。",
+  },
+  // ===== 第936批新增 =====
+  {
+    slug: "finance/lease-payment-calculator",
+    inputs: { pv: "100000", downPct: "20", rate: "6", months: "36", fv: "0", fee: "0", type: "principal", timing: "begin" },
+    clicks: ["calc()"],
+    expect: ["期初还款仅支持等额本息；等额本金与先息后本请选择期末还款。"],
+    ref: "第936批：期初模式不再对等额本金/先息后本生成与 IRR 口径不一致的明细；不支持组合明确拒绝并清空结果。等额本息期初仍由既有 10.03% 用例覆盖。",
+  },
+  {
+    slug: "finance/profit-margin-calculator",
+    inputs: { dupontNI: "150000", dupontRev: "0", dupontAssets: "2000000", dupontEquity: "800000" },
+    clicks: ["calcDupont()"],
+    expect: ["销售净利率： 未定义", "营业收入为 0", "不能用 0% 代替"],
+    ref: "第936批：营业收入 0 时销售净利率未定义，不再显示 0.00%；ROE 仍按净利润/净资产独立计算，不把无关分母的 0 传播成结论。",
+  },
+  {
+    slug: "finance/profit-margin-calculator",
+    inputs: { dupontNI: "150000", dupontRev: "1000000", dupontAssets: "2000000", dupontEquity: "0" },
+    clicks: ["calcDupont()"],
+    expect: ["净资产收益率（ROE）： 未定义", "平均净资产为 0，权益乘数与 ROE 未定义", "不输出盈利能力或杠杆高低结论"],
+    ref: "第936批：零净资产时 ROE/权益乘数未定义，停止盈利能力与杠杆结论；资产负债率仍按 (资产−负债)/资产 显示 100%。",
+  },
+  {
+    slug: "finance/discount-calculator",
+    inputs: { price: "100" },
+    clicks: ["updateDiscount(0, 8);calc();toTaxFromDiscount();"],
+    expect: ["¥ 90.40 税后金额", "¥ 10.40 税额（13%）"],
+    ref: "第936批：折扣结果新增「转入含税计算」按钮；100 元 8 折=80 元，按税前加税 13% 得 90.40，兑现页面介绍的回填能力。旧实现 setMode(2) 只重建默认输入。",
+  },
+  {
+    slug: "finance/credit-card-type",
+    inputs: { input: "4111111111111111" },
+    clicks: ["validate()"],
+    expect: ["输入数字（已脱敏）： 411111 •••• •••• 1111"],
+    ref: "第936批：结果与历史快照不再回显完整卡号，只保留前 6 位 BIN 与后 4 位；旧实现输出 16 位原文并存入历史。",
+  },
+  {
+    slug: "finance/calc-4",
+    inputs: { amount: "1000000", rate: "4.2", years: "30" },
+    clicks: ["calc()"],
+    expect: ["已省略", "全部 360 期", "第 360 期"],
+    ref: "第936批：明细表明确标注第 13–359 期省略并提示完整 CSV；内部与隐藏导出表保存全部 360 期，汇总与明细同源。旧表只存前 12+末期且无省略说明。",
+  },
+  {
+    slug: "finance/position-size-calculator",
+    inputs: { "f-capital": "100000", "f-percent": "10", "f-price": "50", "f-stop": "60" },
+    clicks: ["switchMethod('fixed');calc();"],
+    expect: ["止损价须低于买入价；本工具仅支持做多", "❌ 止损价须低于买入价"],
+    ref: "第936批：固定比例模式校验买入/止损关系，止损价高于买入价时拒绝并清空 currentResult/统计/图表，保存按钮随即失效；旧实现显示负风险。",
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { aCost: "1000", aRate: "0", aYears: "0.5", aAdd: "100", bCost: "1000", bRate: "0", bYears: "1.5", bAdd: "100" },
+    clicks: ["switchTab('compare');calcCompare();"],
+    expect: ["A 共 1 次、B 共 2 次", "方案A终值 ¥ 1,100.00", "方案B终值 ¥ 1,200.00"],
+    ref: "第936批：每年期初追加按真实离散日期发生：0.5 年仅 t=0 一次（A 投入 1100），1.5 年在 t=0、1 两次（B 投入 1200）；旧实现按 0.5/1.5 比例折算成 50/150 元。零利率下终值等于累计投入，可直观验证次数。",
   }
 
 ];
