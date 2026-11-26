@@ -289,19 +289,22 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
+function readNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
 function calc(){
-    var __ig=__tbInputGuard(['mean1', 'sd1', 'mean2', 'sd2'],["A 均值", "A 标准差", "B 均值", "B 标准差"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const mean1 = +document.getElementById('mean1').value || 0;
-  const sd1 = +document.getElementById('sd1').value || 0;
-  const mean2 = +document.getElementById('mean2').value || 0;
-  const sd2 = +document.getElementById('sd2').value || 0;
+const mean1 = readNum('mean1');
+  const sd1 = readNum('sd1');
+  const mean2 = readNum('mean2');
+  const sd2 = readNum('sd2');
+  if(isNaN(mean1)||isNaN(mean2)||isNaN(sd1)||isNaN(sd2)){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 均值和标准差都必须是有限数值，不能含文字。</p>');return;}
+  if(sd1<0||sd2<0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 标准差不能为负值；负标准差会让变异系数方向反转。</p>');return;}
+  if(mean1===0||mean2===0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 均值为 0 时变异系数 CV=SD/|均值| 无定义，不能比较两组离散程度。</p>');return;}
   let html = '';
   const __v0 = (sd1/Math.abs(mean1)*100);
   html += `<p>A 变异系数 CV：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(2)}</strong> %</p>`;
   const __v1 = (sd2/Math.abs(mean2)*100);
   html += `<p>B 变异系数 CV：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(2)}</strong> %</p>`;
-  const __v2 = (sd1/Math.abs(mean1) > sd2/Math.abs(mean2) ? 1 : 2);
-  html += `<p>更离散：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(0)}</strong> 组</p>`;
+  const __v2 = Math.abs(__v0-__v1)<1e-9?'两组相同':(__v0>__v1?'A 组':'B 组');
+  html += `<p>更离散：<strong style="font-size:18px;color:var(--primary);">${__v2}</strong></p>`;
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {
@@ -315,7 +318,7 @@ function copyResult() {
 calc();
 
 function __cvL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
-function __cvNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cvNum(id){return readNum(id);}
 function __cvPhi(z){var sg=z<0?-1:1;var u=Math.abs(z)/Math.SQRT2;var t=1/(1+0.3275911*u);var y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-u*u);return 0.5*(1+sg*y);}
 function __cvVerdict(html){var b=document.getElementById('cvVerdict');if(!b)return;b.innerHTML='<div class="tbk-history"><div class="tbk-history-hd"><span style="line-height:1.7">'+html+'</span></div></div>';}
 
@@ -324,17 +327,17 @@ function __cvExtras(){
     if(typeof TBKit==='undefined')return;
     try{
         var m1=__cvNum('mean1'),s1=__cvNum('sd1'),m2=__cvNum('mean2'),s2=__cvNum('sd2');
-        if(!isFinite(m1)||!isFinite(s1)||!isFinite(m2)||!isFinite(s2)||s1<0||s2<0)return;
+        if(!isFinite(m1)||!isFinite(s1)||!isFinite(m2)||!isFinite(s2)||s1<0||s2<0||m1===0||m2===0){var __t=document.getElementById('cvTable');if(__t)__t.innerHTML='';return;}
         var c1=m1!==0?s1/Math.abs(m1)*100:NaN, c2=m2!==0?s2/Math.abs(m2)*100:NaN;
         if(!isFinite(c1)||!isFinite(c2))return;
         TBKit.chart.rangeBar('#cvChart',{groups:[
             {label:__cvL('Group A','A \u7ec4'),mean:m1,spread:s1},
             {label:__cvL('Group B','B \u7ec4'),mean:m2,spread:s2}
         ],height:200,title:__cvL('Mean \u00b1 SD \u2014 overlap shows how much the two groups mix','\u5747\u503c \u00b1 \u6807\u51c6\u5dee\uff1a\u91cd\u53e0\u8d8a\u591a\u8bf4\u660e\u4e24\u7ec4\u8d8a\u96be\u5206\u5f00')});
-        var win=c1<c2?'A':'B', ratio=(c2>0?c1/c2:0);
+        var equal=Math.abs(c1-c2)<1e-9; var win=equal?'同':(c1<c2?'A':'B'), ratio=(c2>0?c1/c2:0);
         var lvl=function(c){return c<10?__cvL('very stable','\u975e\u5e38\u7a33\u5b9a'):(c<20?__cvL('acceptable','\u53ef\u63a5\u53d7'):(c<30?__cvL('unstable','\u4e0d\u591f\u7a33\u5b9a'):__cvL('highly volatile','\u6ce2\u52a8\u5f88\u5927')));};
         __cvVerdict('CV(A) = '+c1.toFixed(2)+'% \u00b7 CV(B) = '+c2.toFixed(2)+'% \u2192 '+
-            __cvL('group '+win+' is more stable','\u7b2c '+win+' \u7ec4\u66f4\u7a33\u5b9a')+'\uff08'+
+            equal?__cvL('both groups are equally stable','\u4e24\u7ec4\u79bb\u6563\u7a0b\u5ea6\u76f8\u540c'):__cvL('group '+win+' is more stable','\u7b2c '+win+' \u7ec4\u66f4\u7a33\u5b9a')+'\uff08'+
             __cvL('its CV is ','\u5176 CV \u662f\u5bf9\u65b9\u7684 ')+ratio.toFixed(2)+__cvL('\u00d7',' \u500d')+'\uff09\u3002'+
             __cvL(' Rule of thumb: below 10% is tight, above 30% means the mean hardly represents the data.','\u7ecf\u9a8c\u503c\uff1a\u4f4e\u4e8e 10% \u5c5e\u4e8e\u96c6\u4e2d\uff0c\u8d85\u8fc7 30% \u65f6\u5747\u503c\u5df2\u96be\u4ee3\u8868\u6574\u7ec4\u6570\u636e\u3002'));
         var rows=[

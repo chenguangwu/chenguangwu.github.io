@@ -136,9 +136,10 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入一组数据，快速计算均值、中位数、众数、极差和总和。">Enter up to seven values to quickly compute the arithmetic mean, median, mode and range and the total, a fast way to describe central tendency and spread of a data set.</p>
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">均值 = (Σ dᵢ)/7；中位数 = 升序后第 4 个值；极差 = max − min；总和 = Σ dᵢ</div>
-      <div class="formula-desc">对固定 7 个数值快速给出集中趋势与离散程度：均值为总和除以 7；中位数取升序排列后的第 4 个（中间位置）；极差为最大值减最小值；另附全部数据之和。适合课堂或日常快速描述一组数据。</div>
+      <div class="formula-eq">均值 = (Σ dᵢ)/n；中位数 = n 为奇数取中间值、偶数取中间两数平均；众数 = 出现次数最多的值（可多个或无众数）；极差 = max − min</div>
+      <div class="formula-desc">最多可填 7 个数据，实际只使用已填写的 2–7 个，空白项自动忽略；均值 = 总和 / 实际样本数；中位数按实际样本数取中间位置；众数为出现次数最多的值，可能没有众数或有多个众数；极差 = 最大值 − 最小值。适合课堂或日常快速描述一组数据。</div>
     </div>
+<p style="font-size:12px;color:var(--text-muted);">可只填 2–7 个，空白项忽略；输入非法值会阻止计算并定位到对应输入框。</p>
 <div class="input-row"><label for="n1">数据1</label><input type="number" id="n1" value="12" step="any" oninput="calc()" placeholder="如 12"></div>
     <div class="input-row"><label for="n2">数据2</label><input type="number" id="n2" value="15" step="any" oninput="calc()" placeholder="如 15"></div>
     <div class="input-row"><label for="n3">数据3</label><input type="number" id="n3" value="18" step="any" oninput="calc()" placeholder="如 18"></div>
@@ -234,29 +235,44 @@
   </div>
 </div>
 <script>
-function calc(){
-  if(!isFinite(__mmN('n1')) || !isFinite(__mmN('n2')) || !isFinite(__mmN('n3')) || !isFinite(__mmN('n4')) || !isFinite(__mmN('n5')) || !isFinite(__mmN('n6')) || !isFinite(__mmN('n7'))){
-    document.getElementById('result').innerHTML = '<p style="color:var(--text-muted);">请填写 7 个数据后再计算。</p>';
-    var __t=document.getElementById('mmTable'); if(__t) __t.innerHTML='';
-    return;
+function __mmParse(){
+  var vals=[], bad=[];
+  for(var i=1;i<=7;i++){
+    var e=document.getElementById('n'+i); var raw=e?String(e.value==null?'':e.value).trim():'';
+    if(raw==='') continue;
+    if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw)){bad.push('第 '+i+' 个「'+raw+'」不是有效数值');continue;}
+    var v=Number(raw); if(!isFinite(v)){bad.push('第 '+i+' 个「'+raw+'」不是有限数值');continue;}
+    vals.push(v);
   }
-  const n1 = +document.getElementById('n1').value || 0;
-  const n2 = +document.getElementById('n2').value || 0;
-  const n3 = +document.getElementById('n3').value || 0;
-  const n4 = +document.getElementById('n4').value || 0;
-  const n5 = +document.getElementById('n5').value || 0;
-  const n6 = +document.getElementById('n6').value || 0;
-  const n7 = +document.getElementById('n7').value || 0;
-  let html = '';
-  const __v0 = ((()=>{const arr=[n1,n2,n3,n4,n5,n6,n7];return arr.reduce((a,b)=>a+b,0)/7;})());
-  html += `<p>均值：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(4)}</strong> </p>`;
-  const __v1 = ((()=>{const arr=[n1,n2,n3,n4,n5,n6,n7].sort((a,b)=>a-b);return arr[3];})());
-  html += `<p>中位数：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(4)}</strong> </p>`;
-  const __v2 = ((()=>{const arr=[n1,n2,n3,n4,n5,n6,n7].sort((a,b)=>a-b);return arr[6]-arr[0];})());
-  html += `<p>极差：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(4)}</strong> </p>`;
-  const __v3 = (n1+n2+n3+n4+n5+n6+n7);
-  html += `<p>总和：<strong style="font-size:18px;color:var(--primary);">${__v3.toFixed(4)}</strong> </p>`;
-  const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  if(bad.length) return {error:bad[0]};
+  if(vals.length<2) return {error:'请至少填写 2 个数据（最多 7 个），否则中位数与极差没有意义。'};
+  return {vals:vals};
+}
+function __mmMode(arr){
+  arr=arr||[];
+  var counts={}; arr.forEach(function(v){counts[v]=(counts[v]||0)+1;});
+  var max=0; Object.keys(counts).forEach(function(k){if(counts[k]>max)max=counts[k];});
+  if(max<=1) return {text:'无众数（各值出现次数相同）',vals:[]};
+  var modes=Object.keys(counts).filter(function(k){return counts[k]===max;}).map(Number).sort(function(a,b){return a-b;});
+  return {text:modes.join('、')+'（各出现 '+max+' 次）',vals:modes,max:max};
+}
+function calc(){
+  var __p=__mmParse();
+  if(__p.error){document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">'+__p.error+'</p>';var __t=document.getElementById('mmTable');if(__t)__t.innerHTML='';return;}
+  var arr=__p.vals, n=arr.length;
+  var sum=arr.reduce(function(a,b){return a+b;},0), mean=sum/n;
+  var sorted=arr.slice().sort(function(a,b){return a-b;});
+  var median=n%2? sorted[(n-1)/2] : (sorted[n/2-1]+sorted[n/2])/2;
+  var range=sorted[n-1]-sorted[0];
+  var mode=__mmMode(arr);
+  var html='';
+  html+='<p>样本数 n：<strong style="font-size:18px;color:var(--primary);">'+n+'</strong></p>';
+  html+='<p>均值：<strong style="font-size:18px;color:var(--primary);">'+mean.toFixed(4)+'</strong></p>';
+  html+='<p>中位数：<strong style="font-size:18px;color:var(--primary);">'+median.toFixed(4)+'</strong></p>';
+  html+='<p>众数：<strong style="font-size:18px;color:var(--primary);">'+mode.text+'</strong></p>';
+  html+='<p>极差：<strong style="font-size:18px;color:var(--primary);">'+range.toFixed(4)+'</strong></p>';
+  html+='<p>总和：<strong style="font-size:18px;color:var(--primary);">'+sum.toFixed(4)+'</strong></p>';
+  document.getElementById('result').innerHTML=html;
 }
 function copyResult() {
   const txt = document.getElementById('result').innerText;
@@ -268,7 +284,7 @@ function copyResult() {
 }
 calc();
 
-function __mmN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mmN(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(raw==='')return NaN;if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
 function __mmList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
 function __mmL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
 
@@ -277,15 +293,16 @@ function __mmExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.expo
 function __mmExtras(){
     if(typeof TBKit==='undefined')return;
     try{
-        var arr=[1,2,3,4,5,6,7].map(function(i){return __mmN('n'+i);});
-        if(arr.some(function(x){return !isFinite(x);}))return;
-        var n=7, mean=arr.reduce(function(a,b){return a+b;},0)/n;
+        var __p=__mmParse(); if(__p.error)return;
+        var arr=__p.vals, n=arr.length, mean=arr.reduce(function(a,b){return a+b;},0)/n;
         var s=arr.slice().sort(function(a,b){return a-b;});
-        var med=s[3], rg=s[6]-s[0], sum=arr.reduce(function(a,b){return a+b;},0);
-        TBKit.chart.bar('#mmChart',{labels:['1','2','3','4','5','6','7'],series:[{name:__mmL('value','数值'),data:arr.slice()}],height:230,title:__mmL('Seven values','七个数值')});
+        var med=n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2, rg=s[n-1]-s[0], sum=arr.reduce(function(a,b){return a+b;},0);
+        var mode=__mmMode(arr);
+        var labels=arr.map(function(_,i){return String(i+1);});
+        TBKit.chart.bar('#mmChart',{labels:labels,series:[{name:__mmL('value','数值'),data:arr.slice()}],height:230,title:__mmL('Data values','数据数值')});
         var rows=__mmL(
-            [['Mean',mean.toFixed(4)],['Median',med.toFixed(4)],['Range',rg.toFixed(4)],['Sum',sum.toFixed(4)]],
-            [['均值',mean.toFixed(4)],['中位数',med.toFixed(4)],['极差',rg.toFixed(4)],['总和',sum.toFixed(4)]]);
+            [['n',String(n)],['Mean',mean.toFixed(4)],['Median',med.toFixed(4)],['Mode',mode.text],['Range',rg.toFixed(4)],['Sum',sum.toFixed(4)]],
+            [['样本数 n',String(n)],['均值',mean.toFixed(4)],['中位数',med.toFixed(4)],['众数',mode.text],['极差',rg.toFixed(4)],['总和',sum.toFixed(4)]]);
         TBKit.matrix.table('#mmTable',{head:__mmL(['Metric','Value'],['指标',((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Value":"数值")]),rows:rows});
         TBKit.history.record({mean:Number(mean.toFixed(4)),median:Number(med.toFixed(4)),range:Number(rg.toFixed(4)),n1:arr[0],n2:arr[1],n3:arr[2],n4:arr[3],n5:arr[4],n6:arr[5],n7:arr[6]});
         TBKit.util.diffBox('#mmDiff',['mean']);

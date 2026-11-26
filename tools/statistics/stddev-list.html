@@ -244,10 +244,14 @@
   </div>
 </div>
 <script>
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function readNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
+function num(id){const v=readNum(id);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const raw=document.getElementById('xs').value.split(/[ ,]+/).filter(Boolean).map(parseFloat);
+            const __p=__sdParse(document.getElementById('xs').value);
+            if(__p.error){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+__p.error+'</p>');return;}
+            const raw=__p.vals;
+            if(raw.length<2){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 样本标准差需要至少 2 个有效数值（分母 n−1）</p>');return;}
             const mean=raw.reduce((a,b)=>a+b,0)/raw.length;
             let ss=0; for(const x of raw){ ss+=Math.pow(x-mean,2); }
             const s=Math.sqrt(ss/(raw.length-1));
@@ -259,14 +263,26 @@ function resetForm(){document.getElementById('xs').value = '2, 4, 4, 4, 5, 5, 7,
       calcTool();}
 calcTool();
 
+function __sdParse(str){
+  var toks=String(str||'').split(/[,\s;，；、]+/).filter(function(x){return x!=='';});
+  var vals=[];
+  for(var i=0;i<toks.length;i++){
+    if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(toks[i])) return {error:'第 '+(i+1)+' 项「'+toks[i]+'」不是有效数值'};
+    var v=Number(toks[i]);
+    if(!isFinite(v)) return {error:'第 '+(i+1)+' 项「'+toks[i]+'」不是有限数值'};
+    vals.push(v);
+  }
+  if(!vals.length) return {error:'请至少输入 2 个有效数值'};
+  return {vals:vals};
+}
 function __sdNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
-function __sdList(id){var e=document.getElementById(id);return e?TBKit.util.parseList(e.value):[];}
+function __sdList(id){var e=document.getElementById(id);var p=e?__sdParse(e.value):{vals:[]};return p.vals||[];}
 
 function __sdExtras(){
     if (typeof TBKit === 'undefined') return;
     var raw=document.getElementById('xs').value;
-    var arr=TBKit.util.parseList(raw);
-    var n=arr.length; if(n<2) return;
+    var __p=__sdParse(raw); if(__p.error||__p.vals.length<2){var __t=document.getElementById('sdTable');if(__t)__t.innerHTML='';return;} var arr=__p.vals;
+    var n=arr.length;
     var en=TBKit.util.isEn();
     var mean=arr.reduce(function(a,b){return a+b;},0)/n;
     var ss=arr.reduce(function(a,b){return a+(b-mean)*(b-mean);},0);

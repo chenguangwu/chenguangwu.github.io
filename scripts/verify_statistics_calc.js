@@ -209,7 +209,7 @@ const CASES = [
   {
     slug: "statistics/statistics-12",
     inputs: { n1: "5", n2: "8", n3: "12", n4: "15", n5: "18", n6: "22", n7: "25" },
-    expect: ["15.0000 中位数：" ],
+    expect: ["中位数： 15.0000"],
     ref: "均值 = 105/7 = 15.0000；升序第4个 = 15.0000；极差 = 25−5 = 20.0000；总和 = 105.0000",
   },
   // ── 标准差/方差/CV（固定 7 个数据，样本分母 n−1）────────────────
@@ -842,7 +842,7 @@ const CASES = [
       "data": "42"
     },
     "expect": [
-      "请至少输入 2 个有效数值（无法解析的项不计入 n）"
+      "请至少输入 2 个有效数值"
     ],
     "ref": "SMS-45 升级：原补强用例锁着 n=1 时主结果显示「00 均值 x̄ — 样本方差 s² — 样本标准差 s」这一旧错误行为。修复后 n<2 时停算提示并清空四面板；注入 data=42 得该提示，默认 8 值不含 ⇒ 强判别、零逃生。"
   },
@@ -945,7 +945,7 @@ const CASES = [
       "n7": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42\n42\n均值： 42.0000 中位数： 42"
+      "众数： 42（各出现 7 次）"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"n1\":\"42\",\"n2\":\"42\",\"n3\":\"42\",\"n4\":\"42\",\"n5\":\"42\",\"n6\":\"42\",\"n7\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n均值： 42.0000 中位数： 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1050,7 +1050,7 @@ const CASES = [
       "xs": "42"
     },
     "expect": [
-      "42\n— 样本标准差 s"
+      "样本标准差需要至少 2 个有效数值"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"xs\":\"42\"}，输出区含「42\n— 样本标准差 s」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1283,13 +1283,13 @@ const CASES = [
   {
     slug: "statistics/sample-variance",
     inputs: { data: "2,4,bad,6" },
-    expect: ["4.0000 样本方差 s²"],
-    ref: "SMS-45：非法项 bad 经严格解析不计入 n，剩 2/4/6 ⇒ 均值 4、s²=(4+0+4)/2=4.0000。 parseFloat 会把 '2abc' 读成 2 的旧宽松口径不再适用；默认态不含该串 ⇒ 零逃生。"
+    expect: ["第 3 项「bad」不是有效数值"],
+    ref: "SMS-45 升级：非法项不再被静默过滤后按 2/4/6 计算；现按原位置报错并阻止输出。默认合法样本不含该串 ⇒ 零逃生。"
   },
   {
     slug: "statistics/sample-variance",
     inputs: { data: "2,4,6,8" },
-    clicks: ["var ok=typeof __svClear==='function'&&String(__svExtras).indexOf('__svClear();return')>=0&&String(__tb_sv0).indexOf('__svList(')>=0;document.getElementById('__tbProbe').textContent='SVCLR '+(ok?'OK':'BAD');"],
+    clicks: ["var ok=typeof __svClear==='function'&&String(__svExtras).indexOf('__svClear();return')>=0&&String(__tb_sv0).indexOf('__svParse(')>=0;document.getElementById('__tbProbe').textContent='SVCLR '+(ok?'OK':'BAD');"],
     expect: ["SVCLR OK"],
     ref: "SMS-45：旧输入守卫只清 svTable，图表/差异/历史保留上次结果；修复后 __svClear() 统一清四面板，且原函数 __tb_sv0（包装器保存的 calcTool）改用 __svList()。源码形态探针只在修复态命中，默认态不执行 clicks ⇒ 零逃生。"
   },
@@ -1556,6 +1556,60 @@ const CASES = [
     inputs: { s1: "0", s2: "0", s3: "0" },
     expect: ["组内平方和 SSW=0"],
     ref: "三组组内方差全为 0 时 F 分母为 0，不能输出 Infinity/NaN。",
+  },
+  {
+    slug: "statistics/geometric-mean",
+    inputs: { data: "1,-2,4" },
+    expect: ["第 2 项「-2」必须大于 0"],
+    ref: "几何平均数只接受正数；负值不能被 filter 静默丢弃后按 1,4 计算。",
+  },
+  {
+    slug: "statistics/harmonic-mean",
+    inputs: { data: "60,0,30" },
+    expect: ["第 2 项「0」必须大于 0"],
+    ref: "调和平均数要求全部正数；0 会导致 1/0 无限大，现按位置阻止。",
+  },
+  {
+    slug: "statistics/population-variance",
+    inputs: { data: "1,2abc,3" },
+    expect: ["第 2 项「2abc」不是有效数值"],
+    ref: "总体方差旧实现 parseFloat 把 2abc 读成 2；现严格解析并按位置报错。",
+  },
+  {
+    slug: "statistics/sample-variance",
+    inputs: { data: "2,4,abc" },
+    expect: ["第 3 项「abc」不是有效数值"],
+    ref: "样本方差旧实现静默过滤非法项；现按位置报错，不计算。",
+  },
+  {
+    slug: "statistics/stddev-list",
+    inputs: { xs: "1,abc,3" },
+    expect: ["第 2 项「abc」不是有效数值"],
+    ref: "样本标准差旧实现 parseFloat+filter 静默丢弃 abc；现按位置报错。",
+  },
+  {
+    slug: "statistics/statistics-12",
+    inputs: { n1: "3", n2: "7", n3: "7", n4: "", n5: "", n6: "", n7: "" },
+    expect: ["样本数 n： 3", "众数： 7（各出现 2 次）", "中位数： 7.0000"],
+    ref: "只填 3 个值时按实际 n 计算，不再强制 7 个；众数 7 出现 2 次，中位数 7。",
+  },
+  {
+    slug: "statistics/statistics-12",
+    inputs: { n1: "1", n2: "2", n3: "3", n4: "4", n5: "", n6: "", n7: "" },
+    expect: ["中位数： 2.5000", "无众数"],
+    ref: "偶数个样本取中间两数平均；四个值各出现一次，显示无众数。",
+  },
+  {
+    slug: "statistics/statistics-10",
+    inputs: { mean1: "100", sd1: "10", mean2: "50", sd2: "5" },
+    expect: ["两组相同"],
+    ref: "两组 CV 均为 10%，不能固定判定 B 组更离散；相等时显示两组相同。",
+  },
+  {
+    slug: "statistics/statistics-10",
+    inputs: { mean1: "0", sd1: "3", mean2: "8", sd2: "2" },
+    expect: ["均值为 0 时变异系数"],
+    ref: "均值为 0 时 CV 无定义，不能输出 Infinity/NaN 或继续比较。",
   },
 
 ];

@@ -303,12 +303,13 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function readNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
+function num(id){const v=readNum(id);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['data'],["数据（逗号分隔）"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const arr = document.getElementById('data').value.split(',').map(s => parseFloat(s.trim())).filter(v => !isNaN(v));
-            const n = arr.length, mean = arr.reduce((a, b) => a + b, 0) / n;
+const __p=__qvParse(document.getElementById('data').value);
+            if(__p.error){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+__p.error+'</p>');return;}
+            const arr=__p.vals, n=arr.length, mean = arr.reduce((a, b) => a + b, 0) / n;
             const ss = arr.reduce((a, b) => a + (b - mean) * (b - mean), 0);
             const __g2=dataGrid([
                 [mean.toFixed(4), '均值 μ'],
@@ -320,12 +321,24 @@ function resetForm(){document.getElementById('data').value = '2,4,4,4,5,5,7,9';
       calcTool();}
 calcTool();
 
+function __qvParse(str){
+  var toks=String(str||'').split(/[,\s;，；、]+/).filter(function(x){return x!=='';});
+  var vals=[];
+  for(var i=0;i<toks.length;i++){
+    if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(toks[i])) return {error:'第 '+(i+1)+' 项「'+toks[i]+'」不是有效数值'};
+    var v=Number(toks[i]);
+    if(!isFinite(v)) return {error:'第 '+(i+1)+' 项「'+toks[i]+'」不是有限数值'};
+    vals.push(v);
+  }
+  if(!vals.length) return {error:'请至少输入 1 个数值'};
+  return {vals:vals};
+}
 function __qvNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 
 function __qvExtras(){
     if (typeof TBKit === 'undefined') return;
-    var arr=TBKit.util.parseList(document.getElementById('data').value);
-    var n=arr.length; if(n<2) return;
+    var __p=__qvParse(document.getElementById('data').value); if(__p.error){var __t=document.getElementById('qvTable');if(__t)__t.innerHTML='';return;} var arr=__p.vals;
+    var n=arr.length; if(n<2){var __t=document.getElementById('qvTable');if(__t)__t.innerHTML='';return;}
     var en=TBKit.util.isEn();
     var mean=arr.reduce(function(a,b){return a+b;},0)/n;
     var ss=arr.reduce(function(a,b){return a+(b-mean)*(b-mean);},0);
