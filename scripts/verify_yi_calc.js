@@ -59,6 +59,19 @@ const CASES = [
     ],
     "ref": "覆盖三枚硬币四态：random=0.9 ⇒ 每爻 9 老阳（阳爻+动），0.1 ⇒ 每爻 6 老阴（阴爻+动）；混合序列断言 7/8 静爻与 9 动爻同时出现，锁定原不可达的动爻分支。"
   }
+,
+{
+  "slug": "yi/gua-interpretation",
+  "clicks": ["var src=__tbFs.readFileSync(process.cwd()+'/js/tools/yi-hexagrams.js','utf8');var d=new Function(src+';return {H:YI_HEXAGRAMS,T:YI_TRIGRAMS};')();var bad=[];if(Object.keys(d.H).length!==64)bad.push('keys='+Object.keys(d.H).length);Object.keys(d.H).forEach(function(k){if(!/^[01]{6}$/.test(k)){bad.push('key');return;}var lo=d.T[k.slice(0,3)],up=d.T[k.slice(3)],n=d.H[k].name;if(!lo||!up||(!n.endsWith('为'+up.nature)&&!(n[0]===up.nature&&n[1]===lo.nature)))bad.push(k+':'+n);});var known={'111000':'地天泰','000111':'天地否','011001':'山风蛊','001011':'风山渐'};Object.keys(known).forEach(function(k){if(d.H[k].name!==known[k])bad.push(k+':'+d.H[k].name);});document.getElementById('__tbProbe').textContent='YI64 '+(bad.length?'BAD '+bad.slice(0,3).join(','):'OK');"],
+  "expect": ["YI64 OK"],
+  "ref": "第988批：共享数据源必须 64 个唯一六爻键、每个键上下卦与卦名自洽，并锁定泰/否/蛊/渐的关键映射（111000 地天泰、000111 天地否、011001 山风蛊、001011 风山渐）。旧页只有 55 键、9 个缺项 ⇒ 失败。"
+},
+{
+  "slug": "yi/yi-divination",
+  "clicks": ["var src=__tbFs.readFileSync(process.cwd()+'/js/tools/yi-hexagrams.js','utf8');var d=new Function(src+';return {H:YI_HEXAGRAMS};')();var p1=__tbFs.readFileSync(process.cwd()+'/tools/yi/gua-interpretation.html','utf8'),p2=__tbFs.readFileSync(process.cwd()+'/tools/yi/yi-divination.html','utf8');var ok=Object.keys(d.H).length===64&&p1.indexOf('/js/tools/yi-hexagrams.js')>=0&&p2.indexOf('/js/tools/yi-hexagrams.js')>=0&&p1.indexOf('GUA_JUDGE = typeof YI_HEXAGRAMS')>=0&&p2.indexOf('GUA_INTERPRET = typeof YI_HEXAGRAMS')>=0;document.getElementById('__tbProbe').textContent='YID64 '+(ok?'OK':'BAD');"],
+  "expect": ["YID64 OK"],
+  "ref": "第988批：两页必须引用同一共享数据源，禁止再各维护一份字面映射；共享表 64 键齐全且脚本引用存在，防止后续单页漂移。"
+}
 
 ];
 async function main() {
