@@ -709,7 +709,13 @@ function parseBatchInput(){
   return {lines:lines,rows:rows,errors:errors};
 }
 function calc(){
-  var amt = parseMoneyStrict(document.getElementById('fromAmount').value);
+  var __fromRaw = String(document.getElementById('fromAmount').value == null ? '' : document.getElementById('fromAmount').value).trim();
+  if(__fromRaw === ''){
+    document.getElementById('toAmount').value='';
+    document.getElementById('resultDisplay').innerHTML='<div class="empty-history">' + (__ccIsEn()?'Enter an amount to convert. A blank field is not treated as zero.':'请输入要换算的金额；留空不等同于 0，如确为 0 请明确输入 0。') + '</div>';
+    return;
+  }
+  var amt = parseMoneyStrict(__fromRaw);
   if(amt===null){
     document.getElementById('toAmount').value='';
     document.getElementById('resultDisplay').innerHTML='<div class="empty-history" style="color:var(--danger)">金额不是有效数字：请输入十进制金额（可含规范千分位，如 1,234.56；不支持字母或科学计数法）</div>';
@@ -732,7 +738,13 @@ function calc(){
 }
 
 function calcReverse(){
-  var amt = parseMoneyStrict(document.getElementById('toAmount').value);
+  var __toRaw = String(document.getElementById('toAmount').value == null ? '' : document.getElementById('toAmount').value).trim();
+  if(__toRaw === ''){
+    document.getElementById('fromAmount').value='';
+    document.getElementById('resultDisplay').innerHTML='<div class="empty-history">' + (__ccIsEn()?'Enter the target amount. A blank field is not treated as zero.':'请输入目标金额；留空不等同于 0，如确为 0 请明确输入 0。') + '</div>';
+    return;
+  }
+  var amt = parseMoneyStrict(__toRaw);
   if(amt===null){
     document.getElementById('fromAmount').value='';
     document.getElementById('resultDisplay').innerHTML='<div class="empty-history" style="color:var(--danger)">金额不是有效数字：请输入十进制金额（可含规范千分位，如 1,234.56；不支持字母或科学计数法）</div>';
@@ -903,6 +915,16 @@ function resetCalc(){
   updateSelectBtn('from', 'CNY');
   updateSelectBtn('to', 'USD');
   document.getElementById('fromAmount').value = 100;
+  document.getElementById('toAmount').value = '';
+  // 重置必须同时恢复汇率模式与手动汇率，否则上一币种对的手动汇率会被套用到 CNY→USD，
+  // 产生「币种已重置、汇率仍是旧币对」的错配。
+  var __mode = document.getElementById('rateMode');
+  if(__mode) __mode.value = 'builtin';
+  var __manual = document.getElementById('manualRate');
+  if(__manual) __manual.value = '7.25';
+  __ccToggleManual();
+  var __res = document.getElementById('resultDisplay');
+  if(__res) __res.innerHTML = '';
   calc();
 }
 

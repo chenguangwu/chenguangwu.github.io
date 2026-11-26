@@ -142,6 +142,10 @@
 <input type="number" id="plan" step="0.01" value="1000000" oninput="calc()" placeholder="如 1000000">
 <label for="actual">实际投资（元）</label>
 <input type="number" id="actual" step="0.01" value="1080000" oninput="calc()" placeholder="如 1080000">
+<label for="warnPct">预警阈值（%，示例值，可按项目调整）</label>
+<input type="number" id="warnPct" step="0.1" min="0.1" value="5" oninput="calc();calcBatch()" placeholder="默认 5">
+<label for="alertPct">严重阈值（%，须大于预警阈值）</label>
+<input type="number" id="alertPct" step="0.1" min="0.1" value="10" oninput="calc();calcBatch()" placeholder="默认 10">
 <label for="items">多项目批量（每行「项目,计划,实际」）</label>
 <textarea id="items" rows="4" oninput="calcBatch()" placeholder="例如: 主体工程,500000,530000">主体工程,500000,530000
 设备采购,300000,282000
@@ -149,6 +153,11 @@
 <div class="toolbar"><div id="analysis_44Presets"></div><button type="button" class="btn primary" onclick="calc()">分析偏差</button><button class="btn" type="button" onclick="__analysis_44Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制结果</button></div>
 <div class="result-box" id="res"></div> <div id="analysis_44Table"></div> <div id="analysis_44Diff"></div> <div id="analysis_44Chart"></div> <div id="analysis_44Hist"></div>
 <div class="result-box" id="batchRes"></div>
+<label for="nextPlan">后续预算情景·后续计划投资（元，可留空）</label>
+<input type="number" id="nextPlan" step="0.01" min="0" oninput="calc()" placeholder="如 200000">
+<label for="nextActual">后续预算情景·后续实际投资（元，可留空）</label>
+<input type="number" id="nextActual" step="0.01" min="0" oninput="calc()" placeholder="如 215000">
+<div class="result-box" id="scenarioRes"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -220,10 +229,47 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function analyze(plan,actual){var dv=actual-plan;var rate=plan>0?((dv/plan)*100):NaN;var cpi=(actual>0&&plan>0)?(plan/actual):NaN;var lvl,tip;if(!isFinite(rate)){lvl="—";tip="计划投资需大于 0";}else if(rate>10){lvl="严重超支";tip="触发专项纠偏：重新评估范围与现金流，必要时调整投资计划";}else if(rate>5){lvl="轻度超支";tip="复核明细并收紧后续预算";}else if(rate<-5){lvl="明显节约";tip="核实是否有未完成项，避免成本转移至后期";}else{lvl="正常波动";tip="偏差在 ±5% 内，按计划推进";}return {dv:dv,rate:rate,cpi:cpi,lvl:lvl,tip:tip};}
+function __anTh(){
+  var warn = Number((document.getElementById('warnPct')||{}).value);
+  var alert = Number((document.getElementById('alertPct')||{}).value);
+  if(!isFinite(warn) || warn <= 0 || !isFinite(alert) || alert <= warn){
+    return {ok:false, warn:5, alert:10, msg:'阈值须为有效数字且「严重阈值」大于「预警阈值」（当前按示例值 5% / 10% 展示仍不生效）。'};
+  }
+  return {ok:true, warn:warn, alert:alert, msg:''};
+}
+function analyze(plan,actual,th){
+  th = th || __anTh();
+  var warn = th.ok ? th.warn : 5, alert = th.ok ? th.alert : 10;
+  var dv=actual-plan; var rate=plan>0?((dv/plan)*100):NaN; var cpi=(actual>0&&plan>0)?(plan/actual):NaN;
+  var lvl,tip;
+  if(!isFinite(rate)){lvl="—";tip="计划投资需大于 0";}
+  else if(rate>alert){lvl="严重超支";tip="触发专项纠偏：重新评估范围与现金流，必要时调整投资计划";}
+  else if(rate>warn){lvl="轻度超支";tip="复核明细并收紧后续预算";}
+  else if(rate<-warn){lvl="明显节约";tip="核实是否有未完成项，避免成本转移至后期";}
+  else{lvl="正常波动";tip="偏差在 ±"+warn+"% 内，按计划推进";}
+  return {dv:dv,rate:rate,cpi:cpi,lvl:lvl,tip:tip};
+}
 function fmt(v,d){return (v===null||!isFinite(v))?"—":v.toFixed(d==null?2:d);}
-function calc(){var plan=parseFloat(document.getElementById("plan").value),actual=parseFloat(document.getElementById("actual").value);var el=document.getElementById("res");if(!isFinite(plan)||!isFinite(actual)||plan<=0){el.innerHTML='<p>请输入有效的计划（&gt;0）与实际投资</p>';return;}var r=analyze(plan,actual);var color=r.rate>5?"var(--danger)":(r.rate<-5?"#16a34a":"var(--text)");const __g2='<p>偏差额：<strong style="color:'+color+';">'+fmt(r.dv)+' 元</strong></p><p>偏差率：<strong style="color:'+color+';">'+fmt(r.rate)+'%</strong></p><p>成本绩效指数 CPI：<strong>'+fmt(r.cpi,4)+'</strong></p><p>判定：<strong>'+r.lvl+'</strong>　建议：'+r.tip+'</p>';el.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}
-function calcBatch(){var lines=document.getElementById("items").value.split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);var rows="";var skipped=0;lines.forEach(function(ln){var p=ln.split(/[,\t]+/);var name=(p[0]||"").trim();var pl=parseFloat(p[1]),ac=parseFloat(p[2]);if(!name||!isFinite(pl)||!isFinite(ac)||pl<=0){skipped++;return;}var r=analyze(pl,ac);var color=r.rate>5?"var(--danger)":(r.rate<-5?"#16a34a":"var(--text)");rows+='<tr><td>'+name.replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];})+'</td><td>'+fmt(pl)+'</td><td>'+fmt(ac)+'</td><td style="color:'+color+';">'+fmt(r.dv)+'</td><td style="color:'+color+';">'+fmt(r.rate)+'%</td><td>'+r.lvl+'</td></tr>';});var el=document.getElementById("batchRes");const __g3=(rows?('<table class="ref-table"><thead><tr><th>项目</th><th>计划</th><th>实际</th><th>偏差额</th><th>偏差率</th><th>判定</th></tr></thead><tbody>'+rows+'</tbody></table>'):'<p>请输入每行「项目,计划,实际」</p>')+(skipped?('<p style="color:var(--danger);">已跳过 '+skipped+' 行：计划投资需大于 0 或数据无效</p>'):'');el.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
+function calc(){
+  var plan=parseFloat(document.getElementById("plan").value),actual=parseFloat(document.getElementById("actual").value);
+  var el=document.getElementById("res");
+  if(!isFinite(plan)||!isFinite(actual)||plan<=0){el.innerHTML='<p>请输入有效的计划（&gt;0）与实际投资</p>';return;}
+  var th=__anTh(); if(!th.ok){el.innerHTML='<p style="color:var(--danger)">⚠ '+th.msg+'</p>';return;}
+  var r=analyze(plan,actual,th);
+  var color=r.rate>th.alert?"var(--danger)":(r.rate>th.warn?"#d97706":(r.rate<-th.warn?"#16a34a":"var(--text)"));
+  var prefix=r.dv>0?'超支':(r.dv<0?'节约':'无偏差');
+  var rel=r.rate>th.alert?'超过严重阈值':(r.rate>th.warn?'超过预警阈值':(r.rate<-th.warn?'节约超过预警阈值':'未超过本地阈值'));
+  var __g2='<p>偏差额：<strong style="color:'+color+';">'+fmt(r.dv)+' 元</strong>（'+prefix+'）</p><p>偏差率：<strong style="color:'+color+';">'+fmt(r.rate)+'%</strong></p><p>双重预警：<strong style="color:'+color+';">'+rel+'</strong>（金额 '+fmt(Math.abs(r.dv))+' 元 / 比例 '+fmt(Math.abs(r.rate))+'%；当前阈值 ±'+th.warn+'% / '+th.alert+'%）</p><p>成本绩效指数 CPI：<strong>'+fmt(r.cpi,4)+'</strong></p><p>判定：<strong>'+r.lvl+'</strong>　建议：'+r.tip+'</p>';
+  el.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  var np=String(document.getElementById('nextPlan').value||'').trim(), na=String(document.getElementById('nextActual').value||'').trim();
+  var sr=document.getElementById('scenarioRes');
+  if(np===''&&na===''){sr.innerHTML='';return;}
+  var nplan=Number(np), nact=Number(na);
+  if(!isFinite(nplan)||!isFinite(nact)||nplan<0||nact<0){sr.innerHTML='<p style="color:var(--danger)">后续情景须填写有效的非负计划/实际投资（如无后续投入请明确填 0）。</p>';return;}
+  var totalPlan=plan+nplan, totalActual=actual+nact, tr=analyze(totalPlan,totalActual,th);
+  sr.innerHTML='<p>后续情景合计：计划 '+fmt(totalPlan)+' 元，实际 '+fmt(totalActual)+' 元；合计偏差 '+fmt(tr.dv)+' 元（'+fmt(tr.rate)+'%），判定：<strong>'+tr.lvl+'</strong>。</p><p style="font-size:12px;color:var(--text-muted);">用于判断后续预算能否吸收当前偏差；后续实际为 0 时请明确填写 0。</p>';
+}
+function calcBatch(){var lines=document.getElementById("items").value.split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);var rows="";var skipped=0;var th=__anTh();lines.forEach(function(ln){var p=ln.split(/[,\t]+/);var name=(p[0]||"").trim();var pl=parseFloat(p[1]),ac=parseFloat(p[2]);if(!name||!isFinite(pl)||!isFinite(ac)||pl<=0){skipped++;return;}var r=analyze(pl,ac,th);var color=r.rate>(th.ok?th.alert:10)?"var(--danger)":(r.rate>(th.ok?th.warn:5)?"#d97706":(r.rate<-(th.ok?th.warn:5)?"#16a34a":"var(--text)"));rows+='<tr><td>'+name.replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];})+'</td><td>'+fmt(pl)+'</td><td>'+fmt(ac)+'</td><td style="color:'+color+';">'+fmt(r.dv)+'</td><td style="color:'+color+';">'+fmt(r.rate)+'%</td><td>'+r.lvl+'</td></tr>';});var el=document.getElementById("batchRes");const __g3=(rows?('<table class="ref-table"><thead><tr><th>项目</th><th>计划</th><th>实际</th><th>偏差额</th><th>偏差率</th><th>判定</th></tr></thead><tbody>'+rows+'</tbody></table>'):'<p>请输入每行「项目,计划,实际」</p>')+(skipped?('<p style="color:var(--danger);">已跳过 '+skipped+' 行：计划投资需大于 0 或数据无效</p>'):'');el.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
 function copyRes(){ToolBox.copyText((document.getElementById("res").innerText+"\n"+document.getElementById("batchRes").innerText).trim());}
 calc();calcBatch();
 </script>

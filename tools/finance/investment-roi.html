@@ -596,6 +596,11 @@ function calcRegular(){
     const __h3='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">请输入合理的正数</div></div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('regularStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('regularStats').innerHTML=__h3;
     return;
   }
+  // 期限上限：50 年（周投最多 2,600 期），避免无界期数构造现金流数组 + IRR 多次遍历阻塞主线程。
+  if(period > 50){
+    document.getElementById('regularStats').innerHTML='<div class="stat-card"><div class="val" style="font-size:14px;color:var(--danger);">定投期限上限为 50 年（当前 ' + period + ' 年，约 ' + Math.round(period * (freq === 'weekly' ? 52 : freq === 'monthly' ? 12 : 1)) + ' 期）；请缩短期限后重试，页面未执行高期数 IRR 求解。</div></div>';
+    return;
+  }
   let n, ratePer, periodsPerYear;
   switch(freq){
     case 'monthly': n = period * 12; ratePer = annualRate / 100 / 12; periodsPerYear = 12; break;
@@ -798,6 +803,10 @@ function calcCompare(){
   // 历史却按新输入判 0（同屏自相矛盾且可导出旧报价）。改为字段级拒绝 + 清残留。
   if(a.cost <= 0 || b.cost <= 0 || a.years <= 0 || b.years <= 0){
     __roiReject('初始投资与投资期限须为有效正数（成本 > 0、期限 > 0）。','Initial cost and investment horizon must be positive numbers.');
+    return;
+  }
+  if(a.years > 50 || b.years > 50){
+    __roiReject('投资期限上限为 50 年；请缩短方案 A/B 的期限后重试。','Investment horizon is capped at 50 years; shorten plan A/B and retry.');
     return;
   }
   // 负追加会被当成 0 静默丢弃并放大投入基数，直接按字段错误处理

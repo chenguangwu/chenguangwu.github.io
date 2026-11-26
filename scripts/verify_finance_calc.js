@@ -3907,9 +3907,9 @@ const CASES = [
       "income": "42"
     },
     "expect": [
-      " 元 应缴税款： 1.26 元 税后余额（应纳税所得额 − 个税，未扣五险一金与专项附加）： 40.74 元 实际税率： 3.00"
+      "应缴税款： 1.26 元 应纳税所得额减本次估算税额： 40.74 元 这不是到手工资：应纳税所得额已由收入减去扣除得出，本页也未再扣五险一金与专项附加；需要税后工资请到「个税计算器」填写完整收入与扣除，避免重复扣减。 实际税率： 3.00"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"income\":\"42\"}，输出区含「 元 应缴税款： 1.26 元 税后余额（应纳税所得额 − 个税，未扣五险一金与专项附加）： 40.74 元 实际税率： 3.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。标签由「税后所得」改为「税后余额」，避免把应纳税所得额的税后余额误当到手工资。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"income\":\"42\"}，输出区含「 元 应缴税款： 1.26 元 应纳税所得额减本次估算税额： 40.74 元 实际税率： 3.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。标签由「税后所得」改为「税后余额」，避免把应纳税所得额的税后余额误当到手工资。"
   },
   {
     "slug": "finance/tax-calculator",
@@ -4615,7 +4615,7 @@ const CASES = [
     slug: "finance/loan-amortization",
     inputs: { loanAmount: "120000", annualRate: "6", loanYears: "10", balloonMonths: "", balloonRatio: "", prepayMonth: "", prepayAmount: "" },
     clicks: ["calc()"],
-    expect: ["1,332.25 首月月供 39,869.52 总利息"],
+    expect: ["1,332.25 首月月供 39,869.52 原计划总利息"],
     ref: "F-N226：等额本息下清空「期末尾款比例 / 气球期数 / 提前还款期数 / 提前还款金额」四个隐藏字段，旧 `__tbInputGuard` 把 7 字段全列必填 ⇒ 直接报「请填写…后再计算」；现仅校验当前模式参与计算的字段，120000/6%/10 年正常输出月供 1,332.25、总利息 39,869.52（独立复算 M=P·i(1+i)^n/((1+i)^n−1)）。默认态 500000/4.9%/30 年不命中。",
   },
   {
@@ -4931,7 +4931,7 @@ const CASES = [
     slug: "finance/tax-bracket",
     inputs: { income: "200000" },
     clicks: ["calc()"],
-    expect: ["税后余额（应纳税所得额 − 个税，未扣五险一金与专项附加）： 176,920 元"],
+    expect: ["应纳税所得额减本次估算税额： 176,920 元"],
     ref: "F-N105 口径防回退：应税所得 200,000 → 税 200,000×20%−16,920=23,080，税后应税余额 176,920。旧文案「税后所得」不含该口径说明 ⇒ 不命中；默认 100,000（92,520）亦不命中 ⇒ 零逃生。",
   },
 
@@ -5696,6 +5696,71 @@ const CASES = [
     clicks: ["var m=__ird_validatorMask('490918507');var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/ird-validator.html','utf8');var a=h.indexOf(\"out[e.id]=e.id==='input'?__ird_validatorMask(v):v\")>=0,b=h.indexOf('__ird_validatorMigrateLegacy')>=0;document.getElementById('__tbProbe').textContent='IRDPRIV '+((m==='49*****07'&&a&&b)?'OK':'BAD')+' m='+m;"],
     expect: ["IRDPRIV OK"],
     ref: "第937批：历史与结果快照只保存脱敏税号（前 2 后 2），完整 8–9 位号码不落 localStorage；历史回放遇到掩码明确提示重新输入，并迁移清理旧的全号记录。",
+  },
+
+  // ===== 第938批新增 =====
+  {
+    slug: "finance/currency-converter",
+    inputs: { fromAmount: "100" },
+    clicks: ["document.getElementById('rateMode').value='manual';__ccToggleManual();document.getElementById('manualRate').value='0.9';resetCalc();"],
+    expect: ["100.00 🇨🇳 人民币 13.7931", "builtin"],
+    ref: "第938批：重置不再保留旧手动汇率/模式，恢复 CNY→USD、金额 100、rateMode=builtin、manualRate=7.25 并隐藏手动输入；旧实现只改币种与金额，其他币对的手动汇率会套到重置后的币对。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: { fromAmount: "" },
+    clicks: ["calc();"],
+    expect: ["请输入要换算的金额；留空不等同于 0，如确为 0 请明确输入 0"],
+    ref: "第938批：空输入不再当 0 输出换算结论，点名留空与显式 0 的区别；旧实现 parseFloat('')||0 会静默按零换算。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: { fromAmount: "0" },
+    clicks: ["calc();"],
+    expect: ["0.00 🇺🇸 USD 美元 0.0000"],
+    ref: "第938批：显式 0 合法，两侧都按 0 展示（源 0.00、目标 0.0000），与空输入的提示态区分。",
+  },
+  {
+    slug: "finance/tax-bracket",
+    inputs: { income: "300000" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/tax-bracket.html','utf8');var i=JSON.parse(globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/finance.json','utf8'))['tax-bracket'];var a=h.indexOf('中国居民个人综合所得税率表（年度）')>=0&&h.indexOf('这不是到手工资')>=0&&h.indexOf('中国 2024')<0;var b=i['zh-CN'].intro.indexOf('不适用于经营所得')>=0&&i['en-US'].intro.indexOf('verified Nov 2026')>=0;document.getElementById('res').innerHTML='<p>TBDESC '+((a&&b)?'OK':'BAD')+'</p>';"],
+    expect: ["TBDESC OK"],
+    ref: "第938批：税率表描述限定为中国居民个人综合所得年度表，补规则来源/施行日/核验日期/不适用范围；结果改称「应纳税所得额减本次估算税额」并非到手工资。旧文案「支持常见税表」「中国 2024」与实际单一表不符。",
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "20000", insurance: "2000", special: "1000", threshold: "", bonus: "30000" },
+    clicks: ["calculate()"],
+    expect: ["请填写起征点；如确为 0 请明确输入 0，留空不会按 0 计税。"],
+    ref: "第938批：起征点留空不再 parseFloat||0 当 0 计税，点名字段并清空结果/导出；显式 0 合法。默认 5000 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "20000", insurance: "2000", special: "1000", threshold: "5000", bonus: "-1" },
+    clicks: ["calculate()"],
+    expect: ["全年一次性奖金不能为负数。"],
+    ref: "第938批：负奖金不再落入 renderBonus 的 <=0 分支被当作未填写；字段级提示并停止结果与导出。默认奖金 30000 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { monthly: "500", annualRate: "10", period: "60", freq: "weekly" },
+    clicks: ["calcRegular()"],
+    expect: ["定投期限上限为 50 年", "约 3120 期"],
+    ref: "第938批：60 年周投约 3,120 期，超 50 年上限直接拒绝，不构造现金流数组、不跑 IRR；上限附近 50 年周投 2600 期仍可计算。",
+  },
+  {
+    slug: "finance/analysis-44",
+    inputs: { plan: "100000", actual: "108000", warnPct: "2", alertPct: "4", nextPlan: "100000", nextActual: "110000" },
+    clicks: ["calc()"],
+    expect: ["双重预警", "超过严重阈值", "当前阈值 ±2% / 4%", "后续情景合计"],
+    ref: "第938批：阈值本地可调，8% 在 4% 严重阈值下判严重超支；金额 8,000 与比例 8% 双重预警；后续 100k/110k 合计 200k/218k=9% 继续超阈值。旧实现固定 5/10 且仅比例判定。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "1000000" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/loan-amortization.html','utf8');var a=h.indexOf('原计划总利息')>=0&&h.indexOf('原计划总还款额')>=0&&h.indexOf('原计划期数')>=0;var b=h.indexOf('提前还款后</strong>：总利息')>=0&&h.indexOf('少付利息')>=0&&h.indexOf('drawPieChart(amount, __newInt, __laTx(')>=0;var c=h.indexOf('提前结清后</strong>：总利息')>=0&&h.indexOf('drawPieChart(amount, __newInterest, __laTx(')>=0;document.getElementById('res').innerHTML='<p>LACMP '+((a&&b&&c)?'OK':'BAD')+'</p>';"],
+    expect: ["LACMP OK"],
+    ref: "第938批：顶部汇总改标「原计划」；提前还款两种方式均并列原计划/新计划的总利息、总还款、期数与差额，饼图改用提前后利息并标注方案；提前结清同样给出新旧对照。旧实现顶部旧汇总与明细新计划同屏无区分，饼图仍画原计划利息。",
   }
 
 ];

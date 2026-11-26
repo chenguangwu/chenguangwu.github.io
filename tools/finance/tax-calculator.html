@@ -554,6 +554,21 @@ function __taxCheck(){
     var v = el ? (parseFloat(el.value) || 0) : 0;
     if (v < 0) return {ok:false, msg: en ? names[ids[i]] + ' must not be negative; enter a value >= 0.' : names[ids[i]] + '不能为负数，请填写 ≥ 0 的数值。'};
   }
+  // 起征点与年终奖区分「未填写」「无效」「显式 0」：空串不再被 parseFloat||0 当成 0 参与计税。
+  ['threshold','bonus'].forEach(function(id){
+    var el = document.getElementById(id);
+    var raw = el ? String(el.value == null ? '' : el.value).trim() : '';
+    var label = id === 'threshold' ? (en ? 'Threshold' : '起征点') : (en ? 'Year-end bonus' : '全年一次性奖金');
+    if (raw === '') {
+      var msg = id === 'threshold'
+        ? (en ? 'Enter the threshold; enter 0 explicitly if you really mean no threshold.' : '请填写起征点；如确为 0 请明确输入 0，留空不会按 0 计税。')
+        : (en ? 'Enter the year-end bonus; enter 0 explicitly if there is no bonus.' : '请填写全年一次性奖金；没有奖金请明确输入 0，留空不会按 0 处理。');
+      throw {__taxMsg: msg};
+    }
+    var num = Number(raw);
+    if (!isFinite(num)) throw {__taxMsg: (en ? label + ' must be a valid number.' : label + '须为有效数字。')};
+    if (num < 0) throw {__taxMsg: (en ? label + ' must not be negative.' : label + '不能为负数。')};
+  });
   return {ok:true};
 }
 function __taxBlock(msg){
@@ -572,7 +587,9 @@ function calculate(){
 var __ni=Array.prototype.slice.call(document.querySelectorAll('input[type=number],input[type=date]'));
 if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){document.getElementById('taxResultTable').innerHTML='<p style="color:var(--text-muted)">请输入参数后查看计算结果。</p>';return;}
 
-  var __chk = __taxCheck();
+  var __chk;
+  try { __chk = __taxCheck(); }
+  catch(e){ if(e && e.__taxMsg){ __taxBlock(e.__taxMsg); return; } throw e; }
   if (!__chk.ok) { __taxBlock(__chk.msg); return; }
   // F-N18：税前月薪为空（未填写）时清空结果并提示，而不是把空值当 0 算出「¥0.00 税额」等结论；显式填 0 仍按 0 计算（合法）
   var __salaryEl = document.getElementById('salary');
@@ -656,7 +673,12 @@ function __taxExport(){
     return;
   }
   if(typeof TBKit==='undefined') return;
-  var __chk = __taxCheck();
+  var __chk;
+  try { __chk = __taxCheck(); }
+  catch(e){
+    if(e && e.__taxMsg){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.showToast) ToolBox.showToast(e.__taxMsg,'error'); }catch(e2){} return; }
+    throw e;
+  }
   if(!__chk.ok){
     try{ if(typeof ToolBox!=='undefined'&&ToolBox.showToast) ToolBox.showToast(__chk.msg,'error'); }catch(e){}
     return;
