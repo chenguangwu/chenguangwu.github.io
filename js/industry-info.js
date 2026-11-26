@@ -161,7 +161,7 @@ window.INDUSTRY_INFO = {
   'manufacturing'        : { name: '制造业', icon: '🏭', hot: 65237 },
   'dance'                : { name: '舞蹈艺术', icon: '💃', hot: 62073 },
   'rubber'               : { name: '橡胶制品', icon: '🧴', hot: 60929 },
-  'research'             : { name: '科研学术', icon: '🎓', hot: 60402 },
+  'research'             : { name: '科研学术', icon: '🎓', hot: 60409 },
   'funeral'              : { name: '殡葬服务', icon: '⚱️', hot: 60330 },
   'jewelry'              : { name: '珠宝首饰', icon: '💎', hot: 57848 },
   'stage'                : { name: '舞台演出', icon: '🎭', hot: 57231 },
