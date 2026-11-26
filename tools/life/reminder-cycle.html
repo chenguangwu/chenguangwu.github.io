@@ -203,7 +203,8 @@
     <div id="applList"><div class="empty">暂无家电，请先添加</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;">
       <button type="button" class="btn" onclick="__applExport()">⬇️ 导出清洁计划 CSV</button>
-      <span style="font-size:12px;color:var(--text-muted);">导出各家电的类型、周期、上次/下次清洁日期与剩余天数</span>
+      <button type="button" class="btn" onclick="__applExportICS()">📅 导出日历 ICS</button>
+      <span style="font-size:12px;color:var(--text-muted);">导出各家电的类型、周期、上次/下次清洁日期与剩余天数；ICS 可导入本机日历。本页不会在关闭后自动弹通知，也不申请系统通知权限。</span>
     </div>
     <table id="applTable" class="result-table" style="width:100%;margin-top:10px;">
       <thead></thead><tbody></tbody>
@@ -514,6 +515,47 @@ function __applExport(){
                i.appl.lastClean, fmtDate(i.next), String(i.days), __applStatusLabel(i.urgency)]);
   });
   try{ TBKit.util.exportCsv('appliance-clean-plan.csv', rows); }catch(e){}
+}
+
+function __icsDate(d){
+  var p=function(n){ return String(n).padStart(2,'0'); };
+  return ''+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate());
+}
+function __icsEsc(v){
+  return String(v).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+}
+function __applExportICS(){
+  var en=__applIsEn();
+  var lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//ToolBox//Appliance Clean Reminder//ZH','CALSCALE:GREGORIAN'];
+  var stamp=__icsDate(new Date())+'T000000Z';
+  __applSorted().forEach(function(i,idx){
+    var next=__icsDate(i.next);
+    var dayAfter=new Date(i.next.getFullYear(),i.next.getMonth(),i.next.getDate()+1);
+    var end=__icsDate(dayAfter);
+    var title=(en?'Clean ':'清洁 ')+i.appl.name;
+    var desc=(en?'Type: ':'类型：')+(en?(APPL_TYPE_EN[i.type.id]||i.type.name):i.type.name)+(en?'; cycle ':'；周期 ')+i.type.cycle+(en?' days':' 天');
+    lines.push('BEGIN:VEVENT');
+    lines.push('UID:appl-'+i.appl.id+'-'+next+'@chenguangwu.github.io');
+    lines.push('DTSTAMP:'+stamp);
+    lines.push('DTSTART;VALUE=DATE:'+next);
+    lines.push('DTEND;VALUE=DATE:'+end);
+    lines.push('SUMMARY:'+__icsEsc(title));
+    lines.push('DESCRIPTION:'+__icsEsc(desc));
+    lines.push('BEGIN:VALARM');
+    lines.push('TRIGGER:-PT9H');
+    lines.push('ACTION:DISPLAY');
+    lines.push('DESCRIPTION:'+__icsEsc(title));
+    lines.push('END:VALARM');
+    lines.push('END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  var blob=new Blob([lines.join('\r\n')+ '\r\n'],{type:'text/calendar;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='appliance-clean-plan.ics';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); },1000);
+  if(typeof ToolBox!=='undefined'&&ToolBox.showToast) ToolBox.showToast(en?'Calendar file generated: appliance-clean-plan.ics':'已生成日历文件：appliance-clean-plan.ics');
 }
 
 var __applRender=render;

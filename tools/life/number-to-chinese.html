@@ -326,6 +326,8 @@ const UNITS_LOWER = ['','十','百','千'];
 const UNITS_UPPER = ['','拾','佰','仟'];
 const BIG_UNITS_LOWER = ['','万','亿','万亿'];
 const BIG_UNITS_UPPER = ['','万','亿','万亿'];
+const UNITS_TRAD = ['','拾','佰','仟'];
+const BIG_UNITS_TRAD = ['','萬','億','萬億'];
 
 function convert(){
   const input = document.getElementById('numInput').value.trim();
@@ -354,8 +356,10 @@ function convert(){
   }
 
   const digits = mode === 'lower' ? DIGITS_LOWER : mode === 'upper' ? DIGITS_UPPER : DIGITS_TRAD;
-  const units = mode === 'lower' ? UNITS_LOWER : UNITS_UPPER;
-  const bigUnits = mode === 'lower' ? BIG_UNITS_LOWER : BIG_UNITS_UPPER;
+  const units = mode === 'lower' ? UNITS_LOWER : (mode === 'trad' ? UNITS_TRAD : UNITS_UPPER);
+  const bigUnits = mode === 'lower' ? BIG_UNITS_LOWER : (mode === 'trad' ? BIG_UNITS_TRAD : BIG_UNITS_UPPER);
+  const negWord = mode === 'trad' ? '負' : '负';
+  const decWord = mode === 'trad' ? '點' : '点';
 
   // 整数部分转中文
   let intChinese = convertInt(intPart, digits, units, bigUnits);
@@ -363,28 +367,30 @@ function convert(){
   // 小数部分
   let decChinese = '';
   if(decPart){
-    decChinese = (mode === 'lower' ? '点' : '点');
+    decChinese = decWord;
     for(const c of decPart){
       decChinese += digits[parseInt(c)];
     }
   }
 
   let result = '';
-  if(isNeg) result += '负';
+  if(isNeg) result += negWord;
   result += intChinese + decChinese;
 
   document.getElementById('chineseResult').textContent = result;
 
   // 逐位读法
-  let digitStr = isNeg ? '负' : '';
+  let digitStr = isNeg ? negWord : '';
   for(const c of intPart + (decPart ? '.' + decPart : '')){
-    if(c === '.') digitStr += '点';
+    if(c === '.') digitStr += decWord;
     else digitStr += digits[parseInt(c)];
   }
   document.getElementById('digitByDigit').textContent = digitStr;
 
   // 大写金额：固定用财务大写字符，避免简体小写模式把「十二元三角四分」也标成大写金额
-  document.getElementById('moneyUpper').textContent = convertMoney(numStr, DIGITS_UPPER, UNITS_UPPER, BIG_UNITS_UPPER, isNeg, 'upper', decPart);
+  document.getElementById('moneyUpper').textContent = mode === 'trad'
+    ? convertMoney(numStr, DIGITS_TRAD, UNITS_TRAD, BIG_UNITS_TRAD, isNeg, 'trad', decPart)
+    : convertMoney(numStr, DIGITS_UPPER, UNITS_UPPER, BIG_UNITS_UPPER, isNeg, 'upper', decPart);
 
   // 进制
   // 小数部分必须逐字判断：9999999999999999.1 经 parseFloat 会被舍入成整数，
@@ -482,7 +488,7 @@ function convertMoney(numStr, digits, units, bigUnits, isNeg, mode, rawDec){
   let intChinese = convertInt(intPart, digits, units, bigUnits);
   if(intChinese === digits[0]) intChinese = digits[0]; // 零元
 
-  let result = (isNeg ? '负' : '') + intChinese + (mode === 'lower' ? '元' : '圆');
+  let result = (isNeg ? (mode === 'trad' ? '負' : '负') : '') + intChinese + (mode === 'lower' ? '元' : (mode === 'trad' ? '圓' : '圆'));
 
   // 角分
   if(decPart){

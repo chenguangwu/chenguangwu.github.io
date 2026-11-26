@@ -470,7 +470,9 @@ function calcSimple() {
   const cents = exactCents.map(x => Math.floor(x + 1e-7));
   let rem = totalCents - cents.reduce((a, b) => a + b, 0);
   if (rem < 0) rem = 0;
-  for (let k = 0; k < rem; k++) cents[k % cents.length] += 1;
+  // 最大余数法：把余下的分给小数部分最大的人，而不是无条件下标靠前的人。
+  const fracOrder = exactCents.map((x,i)=>({i:i, f:x-Math.floor(x)})).sort((a,b)=>b.f-a.f||a.i-b.i);
+  for (let k = 0; k < rem; k++) cents[fracOrder[k % fracOrder.length].i] += 1;
 
   let html = `<p><strong>总金额：</strong>¥${total.toFixed(2)} + ${tip}%小费 = ¥${totalWithTip.toFixed(2)}</p>`;
   html += `<p><strong>总份数：</strong>${totalShare}份</p>`;
@@ -635,12 +637,15 @@ function calcAdvanced() {
     rule: '逐项按参与人员分摊，按最大余数配平',
     rows: advPersons.map((name, idx) => ({ name: String(name), share: '', cents: Math.round(amounts[idx] * 100) })),
   };
-  if(total>0) addToHistory(total, advPersons.length);
+  const sig = JSON.stringify({items:items.map(it=>({name:it.name,amount:it.amount,involved:it.involved})), tip:tip, persons:advPersons});
+  if(total>0) addToHistory(total, advPersons.length, sig);
 }
 
-function addToHistory(total, n) {
+function addToHistory(total, n, sig) {
   const h = (function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
-  h.unshift({time:new Date().toLocaleString(),total,n});
+  // 同一账单状态重复计算（含简单/高级来回切换）不重复写历史；改过金额、参与人或小费才新增。
+  if(sig && h[0] && h[0].sig === sig) return;
+  h.unshift({time:new Date().toLocaleString(),total,n,sig:sig||''});
   localStorage.setItem(HISTORY_KEY,JSON.stringify(h.slice(0,30)));
   renderHistory();
 }
@@ -811,7 +816,7 @@ function __bill_splitterPresets(){
       {label:'默认参数',labelEn:'Default',values:{'total-amount':'1000', 'person-count':'4', 'tip-percent':'0', 'adv-tip':'0'}},
       {label:'四人聚餐·380元·无服务费',labelEn:'Dinner for 4 · 380 · no service charge',values:{'total-amount':'380', 'person-count':'4', 'tip-percent':'0', 'adv-tip':'0'}},
       {label:'十人团建·2880元·含10%服务费',labelEn:'Team of 10 · 2880 · 10% service',values:{'total-amount':'2880', 'person-count':'10', 'tip-percent':'10', 'adv-tip':'0'}},
-      {label:'两人·268元·预付50元',labelEn:'Couple · 268 · 50 prepaid',values:{'total-amount':'268', 'person-count':'2', 'tip-percent':'0', 'adv-tip':'50'}}
+      {label:'两人·268元·无服务费',labelEn:'Couple · 268 · no service charge',values:{'total-amount':'268', 'person-count':'2', 'tip-percent':'0', 'adv-tip':'0'}}
     ],function(){ calcSimple(); });
 }
 var __bill_splitter_f0=(typeof calcSimple==='function')?calcSimple:null;

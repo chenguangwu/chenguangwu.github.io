@@ -71,7 +71,7 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 <meta name="title-en" content="Event Countdown">
-<meta name="desc-en" content="Count down to holidays and special events in days, hours and minutes with a clear display">
+<meta name="desc-en" content="Count down to holidays and special events in calendar days, with a clear list of dates and weekdays">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/life/event-countdown.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/life/event-countdown.html">
@@ -147,7 +147,7 @@
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#1D4ED8;">
     <h2 data-zh="🎉 节日倒计时">🎉 Holiday &amp; Event Countdown</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="查看下一个节日的剩余天数">Count down to holidays and special events in days, hours and minutes with a clear display.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="查看下一个节日的剩余天数">Count down to holidays and special events in calendar days, with a clear list of dates and weekdays.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
       <div class="formula-eq">倒计时天数 = 目标节日日期 − 当前日期（按当地零时计算并向上取整）；公历固定节日（元旦 1 月 1 日、劳动节 5 月 1 日、国庆 10 月 1 日）逐年取，农历节日（春节、中秋）按当年农历换算的公历日期取；目标日期已过则取下一年的同名节日。</div>
@@ -319,7 +319,29 @@ const events = [
   }}
 ];
 
-function fmtDate(d){
+const WEEK_CN = ['周日','周一','周二','周三','周四','周五','周六'];
+const WEEK_EN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const EVENT_EN = {
+  '元旦':'New Year\'s Day',
+  '春节（农历新年）':'Spring Festival (Lunar New Year)',
+  '元宵节':'Lantern Festival',
+  '清明节':'Qingming Festival',
+  '劳动节':'Labour Day',
+  '端午节':'Dragon Boat Festival',
+  '七夕节':'Qixi Festival',
+  '中秋节':'Mid-Autumn Festival',
+  '教师节':'Teachers\' Day',
+  '国庆节':'National Day',
+  '重阳节':'Double Ninth Festival',
+  '圣诞节':'Christmas',
+  '除夕（春节前一天）':'Lunar New Year\'s Eve'
+};
+function __cdEn(){
+  try{ return !!(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }catch(e){ return /lang=en-US/i.test(location.search); }
+}
+function eventLabel(name, en){ return en ? (EVENT_EN[name] || name) : name; }
+function fmtDate(d, en){
+  if(en){ const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
   return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
 }
 
@@ -332,6 +354,7 @@ function calendarDayDiff(d, base){
 
 function render(){
   const now = new Date();
+  const en = __cdEn();
   now.setHours(0,0,0,0);
   const list = events.map(e => {
     const d = getNextEvent(e.getNext);
@@ -343,12 +366,14 @@ function render(){
   let html = '';
   const unavailable = list.filter(it => it.unavailable).length;
   if(unavailable){
-    html += `<p style="font-size:12px;color:var(--text-muted);">农历/节气日期表仅覆盖 2023–2030 年；表外节日保留条目但不输出确定日期，请手动核对。法定放假安排与节日日期并不相同。</p>`;
+    html += en
+      ? `<p style="font-size:12px;color:var(--text-muted);">Lunar and solar-term dates are covered only for 2023–2030. Out-of-range events stay listed without a confirmed date; check them manually. Public holidays are not the same as festival dates.</p>`
+      : `<p style="font-size:12px;color:var(--text-muted);">农历/节气日期表仅覆盖 2023–2030 年；表外节日保留条目但不输出确定日期，请手动核对。法定放假安排与节日日期并不相同。</p>`;
   }
   list.forEach(it => {
     if(it.unavailable){
       html += `<div class="event-item" style="opacity:.75;">
-        <div><div class="event-name">${it.name}</div><div class="event-date">日期表暂未覆盖，暂不可计算</div></div>
+        <div><div class="event-name">${eventLabel(it.name,en)}</div><div class="event-date">${en?'Date table not covered yet; cannot calculate':'日期表暂未覆盖，暂不可计算'}</div></div>
         <div class="event-count">—<span class="unit"></span></div>
       </div>`;
       return;
@@ -356,10 +381,10 @@ function render(){
     const past = it.diff < 0;
     html += `<div class="event-item ${past ? 'event-past' : ''}">
       <div>
-        <div class="event-name">${it.name}</div>
-        <div class="event-date">${fmtDate(it.date)} · ${['周日','周一','周二','周三','周四','周五','周六'][it.date.getDay()]}</div>
+        <div class="event-name">${eventLabel(it.name,en)}</div>
+        <div class="event-date">${fmtDate(it.date,en)} · ${(en?WEEK_EN:WEEK_CN)[it.date.getDay()]}</div>
       </div>
-      <div class="event-count">${past ? '已过去 ' + (-it.diff) : it.diff}<span class="unit">天</span></div>
+      <div class="event-count">${past ? (en?'Past ':'已过去 ') + (-it.diff) : it.diff}<span class="unit">${en?'days':'天'}</span></div>
     </div>`;
   });
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
@@ -507,7 +532,7 @@ function __tbCdList(){
   for (var i = 0; i < events.length; i++) {
     var d = getNextEvent(events[i].getNext);
     if (!d) continue;
-    rows.push([events[i].name, fmtDate(d), WEEK[d.getDay()], String(calendarDayDiff(d, now))]);
+    rows.push([eventLabel(events[i].name, __cdEn()), fmtDate(d, __cdEn()), (__cdEn()?WEEK_EN:WEEK_CN)[d.getDay()], String(calendarDayDiff(d, now))]);
   }
   rows.sort(function(a,b){ return (+a[3]) - (+b[3]); });
   return rows;
