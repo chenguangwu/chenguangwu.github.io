@@ -1741,7 +1741,7 @@ const CASES = [
   },
   {
     slug: "finance/analysis-risk",
-    inputs: { f: "100000", dec: "10", n: "5" },
+    inputs: { s: "1000000", v: "600000", f: "100000", i: "50000", t: "25", n: "100000", dec: "2" },
     clicks: ["calc()"],
     expect: ["DCL = 1.33 × 1.20 = 1.60"],
     ref: "经营杠杆 DOL = 贡献边际 400,000 ÷ EBIT 300,000 = 1.33；财务杠杆 DFL = EBIT 300,000 ÷ (EBIT−利息 50,000) = 1.20；总杠杆 DCL = 1.33 × 1.20 = 1.60。默认态不同 ⇒ 不命中。",
@@ -1814,7 +1814,7 @@ const CASES = [
       creditHistory: "1",
     },
     clicks: ["calc()"],
-    expect: ["信用评分： 75 /100"],
+    expect: ["示例合计： 75 /100"],
     ref: "该页把利润率/负债率按「百分数字符串」显示（注入 0.15 显示成 `净利润率：0.15%`），属既有百分比口径缺陷；本例只锚评分侧的 `75 /100` 结论。默认态不同 ⇒ 不命中。",
   },
   {
@@ -1841,7 +1841,7 @@ const CASES = [
     slug: "finance/assessor-manager",
     inputs: { debtRatio: "55", currentRatio: "1.8", revenue: "5000", profitMargin: "-5", overdue: "1", creditHistory: "5" },
     clicks: ["calc()"],
-    expect: ["净利润率：-5%", "信用评分： 64 /100"],
+    expect: ["净利润率 -5%", "示例合计： 64 /100"],
     ref: "亏损企业的负净利润率应按原分档得零分，而非拒绝评分。",
   },
   {
@@ -1880,7 +1880,7 @@ const CASES = [
   {
     slug: "finance/npv-calculator",
     inputs: { rate: "10", init: "10000" },
-    clicks: ["addCashFlow()"],
+    clicks: ["addCashFlow()", "document.getElementById('cf_4').value='0';updateCF(4,'0')"],
     expect: ["-490.4 NPV 净现值"],
     ref: "初始 10,000 / 折现 10% / 年年末 +3,000 ⇒ NPV = −10,000 + 2,727.27 + 2,479.34 + 2,253.94 + 2,049.04 ≈ −490.4，页内同场给 IRR 7.71%、PI 0.951、回收期 3.33 期。默认态不同 ⇒ 不命中。",
   },
@@ -2679,9 +2679,9 @@ const CASES = [
       "dec": "42"
     },
     "expect": [
-      ".00% +5% 44.10 -42.00 0.00% -1.16 0.00% +10% 46.20 -42.00 0.00% -1.16 0.00% EBIT（-42.00）不足以覆盖利息（42.00），利息保障倍数 ≤ 1，财务风险极"
+      "小数位数须为 0–4 的整数。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"s\":\"42\",\"v\":\"42\",\"f\":\"42\",\"i\":\"42\",\"t\":\"42\",\"n\":\"42\",\"dec\":\"42\"}，输出区含「.00% +5% 44.10 -39.90 5.00% -1.13 2.50% …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第935批：dec=42 越界不再静默回退 2，而是明确提示 0–4 整数并停止计算；旧实现会照常输出敏感性表。"
   },
   {
     "slug": "finance/assessor-manager",
@@ -2694,9 +2694,9 @@ const CASES = [
       "creditHistory": "42"
     },
     "expect": [
-      "报告 资产负债率：42% | 流动比率：42 | 收入：42万 | 净利润率：42% 逾期：42次 | 信用历史：42年 信用评分： 72"
+      "教学示例，不是真实信用评估。", "示例合计： 72 /100"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"debtRatio\":\"42\",\"currentRatio\":\"42\",\"revenue\":\"42\",\"profitMargin\":\"42\",\"overdue\":\"42\",\"creditHistory\":\"42\"}，输出区含「报告 资产负债率：42% | 流动比率：42 | 收入：42万 | 净利润率：4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第935批：六项 42 分档得分 25+15+2+20+0+10=72，输出改为教学示例与分项表；旧自动用例锚定的「信用评估报告/催收策略」结构已移除。"
   },
   {
     "slug": "finance/analysis-cost-1",
@@ -3468,8 +3468,9 @@ const CASES = [
       "rate": "42",
       "init": "42"
     },
+    "clicks": ["cashFlows=['3000','3000','3000','3000'];renderCashFlows();calc()"],
     "expect": [
-      "第4期 +0 0 +8,958 折现率： 42.00% NPV ≥ 0： ✓ 可行 IRR ≥ 折现率： ✓ 可行 PI ≥ 1： ✓ 可行"
+      "折现率： 42.00%"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"rate\":\"42\",\"init\":\"42\"}，输出区含「第4期 +0 0 +8,958 折现率： 42.00% NPV ≥ 0： ✓ 可…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -4544,8 +4545,9 @@ const CASES = [
   },
   {
     slug: "finance/analysis-risk",
-    inputs: { s: "1000", v: "0", f: "0", i: "1000", t: "0", n: "1", dec: "2" },
-    expect: ["(1000.00 − 1000.00) = —"],
+    inputs: {},
+    clicks: ["var map={s:'1000',v:'0',f:'0',i:'1000',t:'0',n:'1',dec:'2'};for(var k in map){document.getElementById(k).value=map[k];}calc();document.getElementById('__tbProbe').textContent='DFLZERO '+(document.getElementById('res').innerHTML.indexOf('(1000.00 − 1000.00) = —')>=0?'OK':'BAD');"],
+    expect: ["DFL = 1000.00 ÷ (1000.00 − 1000.00) = —"],
     ref: "边界负例：DFL = EBIT ÷ (EBIT−利息)，利息恰好等于 EBIT 时 EBT=0，旧实现把 0 校验写在分子 ebit!==0 上 ⇒ 输出 Infinity；现分母 ebt===0 返回 —。默认态 EBIT 300,000 / 利息 50,000 不命中。",
   },
   {
@@ -5501,6 +5503,84 @@ const CASES = [
     clicks: ["validate();var o=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='RTUNK '+((o.indexOf('不在公开分配范围')>=0&&o.indexOf('无法判断该号码是否已分配')>=0&&o.indexOf('不能确认号码已分配')<0)?'OK':'BAD');"],
     expect: ["RTUNK OK"],
     ref: "第932批：未知前缀 99 校验和虽通过，也只能说「不在公开范围、无法判断是否已分配」，不得直接判无效、也不得判有效；旧实现输出「未分配/非法，路由号码无效」⇒ BAD。"
+  },
+
+  // ===== 第935批新增 =====
+  {
+    slug: "finance/npv-calculator",
+    inputs: { rate: "", init: "10000" },
+    clicks: ["calc()"],
+    expect: ["请填写折现率（如确为 0，请输入 0）"],
+    ref: "第935批：折现率留空不再按 0% 计算，明确提示补全并清除结果；显式 0 仍合法。默认 8% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/npv-calculator",
+    inputs: { rate: "8", init: "10000" },
+    clicks: ["updateCF(0, '')"],
+    expect: ["第 1 期现金流未填写（如确为 0，请明确输入 0）"],
+    ref: "第935批：现金流留空不再保存为 0；提示具体期数。已有用例 updateCF(3,0) 覆盖显式 0 合法。",
+  },
+  {
+    slug: "finance/simple-interest",
+    inputs: { principal: "10000", rate: "", years: "3" },
+    clicks: ["calc()"],
+    expect: ["请填写年利率和期限（如确为 0，请明确输入 0）"],
+    ref: "第935批：利率留空不再按 0 计算，提示补全并清除旧结论；显式 0 利率仍走正常计算。",
+  },
+  {
+    slug: "finance/currency-symbol",
+    inputs: {},
+    clicks: ["var i=-1;for(var k=0;k<currencies.length;k++){if(currencies[k].code==='CLF'){i=k;break;}}showDetail(i);"],
+    expect: ["暂无数据（无辅单位）", "不适用（无辅单位换算关系）"],
+    ref: "第935批：CLF 无辅单位时详情显示暂无数据，换算比例显示不适用，不再输出「1 Unidad de Fomento = 1」空单位等式。",
+  },
+  {
+    slug: "finance/assessor-manager",
+    inputs: { debtRatio: "55", currentRatio: "1.8", revenue: "5000", profitMargin: "12", overdue: "1", creditHistory: "5" },
+    clicks: ["calc()"],
+    expect: ["教学示例，不是真实信用评估。", "示例输入与分项得分", "示例授信算术", "本页不输出催收阶段"],
+    ref: "第935批：固定分档累加改为教学示例，展示六项得分与假设；删除授信审批与催收动作结论。",
+  },
+  {
+    slug: "finance/text-reverse-words",
+    inputs: { input: "hello, world!", mode: "space" },
+    clicks: ["document.getElementById('keepPunc').checked=true;reverse();"],
+    expect: ["world, hello!"],
+    ref: "第935批：保留标点时单词、空白、标点分开识别；hello, world! 反转后标点原位，为 world, hello!（旧实现标点跟随词移动）。",
+  },
+  {
+    slug: "finance/text-reverse-words",
+    inputs: { input: "a👨‍👩‍👧‍👦b", mode: "allchar" },
+    expect: ["b👨‍👩‍👧‍👦a"],
+    ref: "第935批：所有字符反转按 Unicode 字素簇处理，家庭 emoji 的 ZWJ 序列不被拆成代理项乱码；旧 split('') 会破坏该 emoji。",
+  },
+  {
+    slug: "finance/installment-real-rate",
+    inputs: { P: "1000", n: "6", r: "100" },
+    clicks: ["calcTool()"],
+    expect: ["未求解（月 IRR 超出 100% 上限"],
+    ref: "第935批：期数对比复用主结果求根与残差校验；本金 1000、6 期、每期费率 100% 时真实月 IRR 超出 100% 区间，对比表不再展示截断年化。",
+  },
+  {
+    slug: "finance/analysis-risk",
+    inputs: { s: "1000000", v: "600000", f: "100000", i: "50000", t: "101", n: "100000", dec: "2" },
+    clicks: ["calc()"],
+    expect: ["所得税税率须在 0%–100% 之间（当前 101%），已停止计算且不自动截断。"],
+    ref: "第935批：税率 101% 不再静默截到 100%，提示越界并停止；输入框仍保留 101，结果区不再给杠杆结论。",
+  },
+  {
+    slug: "finance/analysis-risk",
+    inputs: { s: "1000000", v: "600000", f: "100000", i: "50000", t: "", n: "100000", dec: "2" },
+    clicks: ["calc()"],
+    expect: ["所得税税率未填写，已停止计算；如确为 0，请明确输入 0。"],
+    ref: "第935批：税率留空与显式 0 分开处理；空值提示具体字段并停止，0% 仍可正常计算。",
+  },
+  {
+    slug: "finance/rental-yield-calculator",
+    inputs: { price: "300", area: "80", rent: "5000", fee: "300", heat: "2400", decor: "5000", repair: "1000", agency: "0", tax: "2000", loanRatio: "70", loanRate: "4.2", loanYears: "30" },
+    clicks: ["document.getElementById('loanType').value='principal';loanEnabled=true;calc()"],
+    expect: ["首月月供", "首月月供后现金流", "末月"],
+    ref: "第935批：等额本金月供逐月递减，卡片改标首月月供、末月与平均值；旧实现把首月值当通用月供与现金流。",
   }
 
 ];

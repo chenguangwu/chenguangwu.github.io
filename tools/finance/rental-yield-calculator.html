@@ -473,6 +473,8 @@ function calc(){
   var totalInterest = 0;
   var loanAmount = 0;
   var cashFlow = netMonthlyIncome;
+  var firstPayment = 0, lastPayment = 0, avgPayment = 0, paymentStep = 0;
+  var firstCashFlow = netMonthlyIncome, lastCashFlow = netMonthlyIncome;
 
   if(loanEnabled){
     var loanRatio = rawNum('loanRatio');
@@ -492,20 +494,31 @@ function calc(){
     if(months < 1){ fail('贷款年限按整月换算后不足 1 个月，请至少填写约 0.08 年（1 个月）。'); return; }
 
     if(loanAmount <= 0){
-      monthlyPayment = 0;
-      totalInterest = 0;
+      monthlyPayment = 0; totalInterest = 0;
+      firstPayment = lastPayment = avgPayment = paymentStep = 0;
     } else if(monthlyRate === 0){
       // 0% 利率：等额本息与等额本金月供相同，均为本金均摊、无利息
       monthlyPayment = loanAmount / months;
-      totalInterest = 0;
+      firstPayment = lastPayment = avgPayment = monthlyPayment;
+      paymentStep = 0; totalInterest = 0;
     } else if(loanType === 'equal'){
       monthlyPayment = loanAmount * monthlyRate * Math.pow(1 + monthlyRate, months) / (Math.pow(1 + monthlyRate, months) - 1);
+      firstPayment = lastPayment = avgPayment = monthlyPayment;
+      paymentStep = 0;
       totalInterest = monthlyPayment * months - loanAmount;
     } else {
-      monthlyPayment = loanAmount / months + loanAmount * monthlyRate;
+      // 等额本金：每月本金固定，利息随剩余本金递减 ⇒ 月供逐月下降。
+      var principalPart = loanAmount / months;
+      firstPayment = principalPart + loanAmount * monthlyRate;
+      lastPayment = principalPart + principalPart * monthlyRate;
+      paymentStep = loanAmount * monthlyRate / months;
+      avgPayment = (firstPayment + lastPayment) / 2;
+      monthlyPayment = firstPayment;
       totalInterest = (months + 1) * loanAmount * monthlyRate / 2;
     }
     cashFlow = netMonthlyIncome - monthlyPayment;
+    firstCashFlow = netMonthlyIncome - firstPayment;
+    lastCashFlow = netMonthlyIncome - lastPayment;
   }
 
   var yieldLevel = getYieldLevel(netYield);
@@ -520,8 +533,22 @@ function calc(){
   html += '<div class="result-item"><div class="label">投资回收期</div><div class="value" style="font-size:18px;">' + (isFinite(paybackYears) ? paybackYears.toFixed(1) + ' 年' : '∞') + '</div><div class="sub">按净收入计算</div></div>';
 
   if(loanEnabled){
-    html += '<div class="result-item"><div class="label">月供</div><div class="value" style="font-size:18px;">' + ToolBox.formatNumber(monthlyPayment, 0) + '</div><div class="sub">贷款' + ToolBox.formatNumber(loanAmount/10000, 0) + '万</div></div>';
-    html += '<div class="result-item"><div class="label">月供后现金流</div><div class="value" style="color:' + (cashFlow >= 0 ? 'var(--success)' : 'var(--danger)') + ';font-size:18px;">' + ToolBox.formatNumber(cashFlow, 0) + '</div><div class="sub">元/月</div></div>';
+    var isPrincipal = loanType === 'principal' && loanAmount > 0 && monthlyRate > 0;
+    var payLabel = isPrincipal ? '首月月供' : (loanType === 'principal' ? '月供（等额本金 / 零利率）' : '月供（等额本息）');
+    var paySub = isPrincipal
+      ? '末月 ' + ToolBox.formatNumber(lastPayment, 0) + ' 元；月均 ' + ToolBox.formatNumber(avgPayment, 0) + ' 元；每月递减 ' + ToolBox.formatNumber(paymentStep, 0) + ' 元'
+      : '贷款 ' + ToolBox.formatNumber(loanAmount/10000, 0) + ' 万；各月相同';
+    html += '<div class="result-item"><div class="label">' + payLabel + '</div><div class="value" style="font-size:18px;">' + ToolBox.formatNumber(firstPayment, 0) + '</div><div class="sub">' + paySub + '</div></div>';
+    var cfLabel = isPrincipal ? '首月月供后现金流' : '月供后现金流';
+    var cfSub = isPrincipal
+      ? '末月 ' + ToolBox.formatNumber(lastCashFlow, 0) + ' 元；平均 ' + ToolBox.formatNumber(netMonthlyIncome - avgPayment, 0) + ' 元/月'
+      : '元/月';
+    html += '<div class="result-item"><div class="label">' + cfLabel + '</div><div class="value" style="color:' + (firstCashFlow >= 0 ? 'var(--success)' : 'var(--danger)') + ';font-size:18px;">' + ToolBox.formatNumber(firstCashFlow, 0) + '</div><div class="sub">' + cfSub + '</div></div>';
+    if(isPrincipal){
+      html += '<div class="tip-box tip-warn" style="grid-column:1/-1;font-size:13px;line-height:1.75;">等额本金按“固定本金 + 剩余本金利息”还款：首月最高、之后每月减少约 ' + ToolBox.formatNumber(paymentStep, 0) + ' 元，末月最低；因此“首月月供后现金流”也是全期最低，随后逐月改善。以上按租金与成本各月不变、利率不变、无提前还款计算。</div>';
+    }else{
+      html += '<div class="tip-box tip-warn" style="grid-column:1/-1;font-size:13px;line-height:1.75;">等额本息月供各月相同；假设租金与各项成本按月固定、利率不变、无提前还款。固定租金与固定成本的假设会掩盖空置期、涨租和一次性大修。</div>';
+    }
   }
 
   const __g1=html;document.getElementById('resultGrid').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));

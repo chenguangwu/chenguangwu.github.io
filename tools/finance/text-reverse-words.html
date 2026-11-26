@@ -138,10 +138,10 @@
      <h2 data-zh="🔄 单词顺序反转">🔄 Word Order Reverser</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">单词逆序规则（本页代码口径，按模式分三种）：space 模式按空白切分并保留分隔符整组反转；zhchar 模式逐 token（单个汉字/连续字母数字/空白/其他字符）提取后反转；allchar 模式全字符反转。勾选保留标点时标点与空白 token 固定原位、其余 token 逆序回填。校验：无强校验，空行输出为空。判据：模式与「保留标点」复选共同决定输出形态。</div>
+      <div class="formula-eq">单词逆序规则（本页代码口径，按模式分三种）：space 模式把单词、空白与标点分开识别：勾选保留标点时标点与空白固定原位、仅单词逆序；未勾选时标点附着在前一个词上随词移动。zhchar 模式汉字逐字、拉丁词成词、标点成组；allchar 模式按 Unicode 字素簇反转，emoji、组合附加符与 ZWJ 序列不会被拆开（旧浏览器用码点回退）。校验：无强校验，空行输出为空。判据：模式与「保留标点」复选共同决定输出形态。</div>
   <div class="formula-desc">基于单词切分与逆序算法，对英文句子做词序反转；用于文案倒置与文本处理练习，纯前端即时处理。</div>
 </div>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="将英文句子中的单词顺序整体反转，保留标点位置可选，用于密码学练习、文案倒置与文本处理，纯前端即时处理。">Reverse the order of words in an English sentence, optionally keeping punctuation in place.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="将英文句子中的单词顺序整体反转，保留标点位置可选，用于密码学练习、文案倒置与文本处理，纯前端即时处理。">Reverse word order in an English sentence, optionally pinning punctuation and whitespace in place.</p>
 
     <label for="input">输入文本</label>
     <textarea id="input" placeholder="输入文本..." oninput="reverse()">Hello World ToolBox
@@ -151,7 +151,7 @@
     <label for="mode">分词方式</label>
     <select id="mode" onchange="reverse()">
       <option value="space">按空格分词（保留空格）</option>
-      <option value="zhchar">中文按单字、英文按单词</option>
+      <option value="zhchar">汉字逐字、英文按单词</option>
       <option value="allchar">所有字符反转</option>
     </select>
     <div class="checkbox-row" style="margin-top:12px;">
@@ -268,29 +268,59 @@ function toggleToolTheme(){
   }
 })();
 
+function __trwGraphemes(s){
+  try{
+    if(typeof Intl!=='undefined' && Intl.Segmenter){
+      const seg=new Intl.Segmenter(undefined,{granularity:'grapheme'});
+      return Array.from(seg.segment(s), x=>x.segment);
+    }
+  }catch(e){}
+  // 兼容回退：按码点分组组合附加符、变体选择符、ZWJ 序列与区域指示符，避免拆开 emoji/组合字符。
+  const cps=Array.from(s);
+  const out=[];
+  for(let i=0;i<cps.length;i++){
+    let ch=cps[i];
+    if(/^\p{Regional_Indicator}$/u.test(ch) && i+1<cps.length && /^\p{Regional_Indicator}$/u.test(cps[i+1])){
+      out.push(ch+cps[i+1]); i++; continue;
+    }
+    let g=ch;
+    while(i+1<cps.length && /^[\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\ufe00-\ufe0f\u200d\u20d0-\u20ff]$/u.test(cps[i+1])){
+      g+=cps[i+1]; i++;
+      if(g.slice(-1)==='\u200d' && i+1<cps.length){ g+=cps[i+1]; i++; }
+    }
+    out.push(g);
+  }
+  return out;
+}
+function __trwTokens(line, mode){
+  if(mode==='allchar') return __trwGraphemes(line);
+  if(mode==='zhchar'){
+    // 汉字逐字；拉丁字母/数字按词；标点成组；空白成组；emoji 等符号按字素簇成组。
+    return line.match(/\p{Script=Han}|[\p{L}\p{M}\p{N}]+(?:['’\-][\p{L}\p{M}\p{N}]+)*|\s+|\p{P}+|[\p{S}\u200d\ufe0f]+|./gu) || [];
+  }
+  // space：单词（含内部撇号/连字符）、空白和标点分开识别；emoji 不拆散。
+  return line.match(/[\p{L}\p{M}\p{N}]+(?:['’\-][\p{L}\p{M}\p{N}]+)*|\s+|\p{P}+|[\p{S}\u200d\ufe0f]+|./gu) || [];
+}
 function reverseWords(line){
   const mode = document.getElementById('mode').value;
   const keepPunc = document.getElementById('keepPunc').checked;
-  let words = [];
-  if(mode === 'space'){
-    // 用捕获组保留分隔符
-    words = line.split(/(\s+)/);
-  }else if(mode === 'zhchar'){
-    // 中文按单字，英文按单词
-    words = line.match(/[\u4e00-\u9fff]|[a-zA-Z0-9]+|\s+|./g) || [];
-  }else if(mode === 'allchar'){
-    words = line.split('');
-  }
+  if(mode === 'allchar') return __trwGraphemes(line).reverse().join('');
+  const words = __trwTokens(line, mode);
 
   if(keepPunc){
-    // F-N179：用 Unicode 标点类 \p{P} 覆盖中文引号/破折号/省略号等，空白亦固定原位
-    const positions = words.map(w => ({w, isPunc: /^\p{P}+$/u.test(w) || /^\s+$/.test(w)}));
-    const toRev = positions.filter(p => !p.isPunc).map(p => p.w).reverse();
+    const positions = words.map(w => ({w, fixed: /^\p{P}+$/u.test(w) || /^\s+$/.test(w)}));
+    const toRev = positions.filter(p => !p.fixed).map(p => p.w).reverse();
     let idx = 0;
-    return positions.map(p => p.isPunc ? p.w : toRev[idx++]).join('');
-  }else{
-    return words.reverse().join('');
+    return positions.map(p => p.fixed ? p.w : toRev[idx++]).join('');
   }
+  // 未勾选「保留标点」：标点附着在前一个词/字上随其移动，空白仍作分隔，避免标点被单独打散。
+  const grouped=[];
+  words.forEach(function(w){
+    if(/^\p{P}+$/u.test(w) && grouped.length && !/^\s+$/.test(grouped[grouped.length-1])){
+      grouped[grouped.length-1]+=w;
+    }else{ grouped.push(w); }
+  });
+  return grouped.reverse().join('');
 }
 
 function reverse(){
