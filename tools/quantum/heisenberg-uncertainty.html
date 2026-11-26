@@ -251,11 +251,13 @@
   </div>
 </div>
 <script>function __tbInputGuard(_ids,_labels){
+  _ids=_ids||[]; _labels=_labels||[];
   var __r=__tbInputGuardCore(_ids,_labels);
   if(__r){var __t=document.getElementById('heisenberg_uncertaintyTable');if(__t)__t.innerHTML='';}
   return __r;
 }
 function __tbInputGuardCore(_ids,_labels){
+  _ids=_ids||[]; _labels=_labels||[];
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
@@ -310,18 +312,30 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function dataGrid(rows){rows=rows||[];let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+
+function __huEn(){try{return !!(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}catch(e){return (document.documentElement.lang||'').indexOf('en')>=0;}}
+function __huValidate(){
+  var de=document.getElementById('dx'); var dx=de?parseFloat(de.value):NaN; var en=__huEn(), msg='';
+  if(!de||String(de.value).trim()==='') msg=en?'Enter the position uncertainty.':'请输入位置不确定度。';
+  else if(!isFinite(dx)||dx<=0) msg=en?'Position uncertainty must be a finite value greater than 0 m (zero or negative values are not allowed).':'位置不确定度必须为大于 0 m 的有限数值（不能为 0 或负数）。';
+  if(de)de.classList.toggle('input-error',!!msg); return msg;
+}
+function __huError(msg){if(msg==null||msg==='')return;ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+msg+'</p>');}
+function __huClearAux(){['heisenberg_uncertaintyTable','heisenberg_uncertaintyDiff','huChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});}
+
 function calcTool(){
-              var __ig=__tbInputGuard(['dx'],["位置不确定度 Δx (m)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const H=6.62607015e-34,C=299792458,ME=9.1093837015e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
-            const dx = num('dx');
-            const hbar = H / (2 * Math.PI);
-            const dp = hbar / (2 * dx);
-            const __g2=dataGrid([
-                [dp.toExponential(3), '动量不确定度 Δp (kg·m/s)'],
-                [(dp / ME).toExponential(3), '等效速度不确定 (m/s)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
-        }
+  var err=__huValidate(); if(err){__huError(err);__huClearAux();return;}
+  var H=6.62607015e-34, ME=9.1093837015e-31, en=__huEn();
+  var dx=parseFloat(document.getElementById('dx').value), hbar=H/(2*Math.PI), dp=hbar/(2*dx), v=dp/ME;
+  if(!isFinite(dp)||!isFinite(v)){__huError(en?'The momentum lower bound is outside the representable range; check the position uncertainty.':'动量下界超出可表示范围，请检查位置不确定度。');__huClearAux();return;}
+  var note='<p style="margin-top:10px;font-size:12px;color:var(--text-muted);">'+(en?'Under Δx·Δp ≥ ℏ/2, this is the lower bound for momentum spread. The equivalent speed is converted using the electron mass mₑ=9.109×10⁻³¹ kg; it is not the actual speed of an arbitrary particle, and the non-relativistic approximation fails when Δp approaches mₑc.':'在 Δx·Δp ≥ ℏ/2 的约定下，这里给出的是动量不确定度的**下界**。等效速度按电子质量 mₑ=9.109×10⁻³¹ kg 换算，并非任意粒子的真实速度；当 Δp 接近 mₑc 时非相对论近似失效。')+'</p>';
+  var __g2=dataGrid([
+    [dp.toExponential(3), en?'Momentum lower bound Δp ≥ ℏ/(2Δx) (kg·m/s)':'动量不确定度下界 Δp ≥ ℏ/(2Δx) (kg·m/s)'],
+    [v.toExponential(3), en?'Equivalent speed lower bound (electron mass, m/s)':'按电子质量换算的等效速度下界 (m/s)']
+  ])+note;
+  ToolBox.setResult('result',__g2);
+}
 function resetForm(){document.getElementById('dx').value = '1e-10';
       calcTool();}
 calcTool();
@@ -331,16 +345,17 @@ function __heisenberg_uncertaintyExtras(){
     function __heisenberg_uncertaintyRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var H=6.62607015e-34,C=299792458,ME=9.1093837015e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
-    var dx = num('dx');
+    var err=__huValidate(); if(err){__huClearAux();return;}
+    var dx = parseFloat(document.getElementById('dx').value);
     var hbar = H / (2 * Math.PI);
     var dp = hbar / (2 * dx);
-    if (!isFinite(__heisenberg_uncertaintyNum('dx'))) return;
+    if(!isFinite(dp))return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#heisenberg_uncertaintyTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['动量不确定度 Δp (kg·m/s)', dp.toExponential(3)],
-            ['等效速度不确定 (m/s)', (dp / ME).toExponential(3)],
+            [en?'Momentum lower bound Δp ≥ ℏ/(2Δx) (kg·m/s)':'动量不确定度下界 Δp ≥ ℏ/(2Δx) (kg·m/s)', dp.toExponential(3)],
+            [en?'Equivalent speed lower bound (electron mass, m/s)':'按电子质量换算的等效速度下界 (m/s)', (dp / ME).toExponential(3)],
         ]
     });
     TBKit.history.record({dx:__heisenberg_uncertaintyRaw('dx'), H:H});
@@ -409,7 +424,7 @@ else document.addEventListener('DOMContentLoaded', __heisenberg_uncertaintyBoot)
 <script>
 function __huSweep(){
   var dx0=num('dx');
-  if(!isFinite(dx0)||dx0<=0)return null;
+  if(!isFinite(dx0)||dx0<=0){var _e=document.getElementById('huChart');if(_e)_e.innerHTML='';return null;}
   var H=6.62607015e-34, ME=9.1093837015e-31;
   var hbar=H/(2*Math.PI);
   var labels=[],dPm=[],dV=[],rows=[];
