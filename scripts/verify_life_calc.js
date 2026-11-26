@@ -2401,7 +2401,7 @@ const CASES = [
       "holidays": "1\n2\n3"
     },
     "expect": [
-      "日期格式无效，请重新选择开始与结束日期。"
+      "日期仅支持公元 1–9999 年的四位年份格式"
     ],
     "ref": "自动补强（B类零用例）：非法日期直接提示，不再输出 Invalid Date 与 0 天；默认合法日期不含该提示 ⇒ 强判别。"
   },
@@ -3999,7 +3999,7 @@ const CASES = [
   {
     slug: "life/music-practice-timer",
     clicks: ["segments=[{name:'Infinity Etude',sec:300},{name:'NaN Study',sec:600}];render()"],
-    expect: ["1. Infinity Etude", "2. NaN Study"],
+    expect: ["1. 🎵 Infinity Etude", "2. 🎵 NaN Study"],
     ref: "第916批：阶段名不再参与 Infinity/NaN 字符串守卫，含 Infinity/NaN 的名称正常显示。"
   },
   {
@@ -4224,6 +4224,92 @@ const CASES = [
     clicks: ["convert();"],
     expect: ["超出当前尺码表覆盖范围"],
     ref: "第919批：围度远超表格覆盖范围时不提供近似结果。"
+  }
+,
+  {
+    slug: "life/daily-calorie-needs",
+    clicks: ["TBKit={util:{isEn:function(){return false;}}};setBmrFormula('harris');calcBMR();saveToHistory('bmr');document.getElementById('bmrValue').textContent='CAL '+((history[0]&&history[0].formula==='Harris-Benedict'&&history[0].label.indexOf('Harris-Benedict')>=0)?'OK':'BAD');"],
+    expect: ["CAL OK"],
+    ref: "第920批：BMR 历史保存当前结果快照并记录所选 Harris 公式，不再固定按 Mifflin 重算。"
+  },
+  {
+    slug: "life/countdown",
+    clicks: ["state={target:Date.now()-1000,start:Date.now()-2000,name:'test',alerted:false};tick();document.getElementById('doneBox').textContent='CD2 '+((document.getElementById('doneBox').style.display==='block'&&state.alerted===true)?'OK':'BAD');"],
+    expect: ["CD2 OK"],
+    ref: "第920批：已过期目标只提醒一次并标记 alerted，返回页面补报但不重复弹提示。"
+  },
+  {
+    slug: "life/countdown",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown.html','utf8');document.getElementById('doneBox').textContent='CDNOTE '+((src.indexOf('__cdEnableNotify')>=0&&src.indexOf('visibilitychange')>=0&&src.indexOf('提醒依赖本页面保持打开')>=0&&src.indexOf('Notification')>=0)?'OK':'BAD');"],
+    expect: ["CDNOTE OK"],
+    ref: "第920批：明确页面存活与音频限制，提供声音测试、通知开关和返回页面补报。"
+  },
+  {
+    slug: "life/chinese-number",
+    inputs: { inputVal: "壹元贰角叁分" },
+    clicks: ["convert();"],
+    expect: ["人民币金额： 1.23 元"],
+    ref: "第920批：元角分按单位解析，壹元贰角叁分=1.23。"
+  },
+  {
+    slug: "life/chinese-number",
+    inputs: { inputVal: "壹元伍角" },
+    clicks: ["convert();"],
+    expect: ["人民币金额： 1.50 元"],
+    ref: "第920批：只有角无分时正确补零为 1.50。"
+  },
+  {
+    slug: "life/chinese-number",
+    inputs: { inputVal: "负壹元零叁分" },
+    clicks: ["convert();"],
+    expect: ["人民币金额： -1.03 元"],
+    ref: "第920批：负数金额与零角补位可解析为 -1.03。"
+  },
+  {
+    slug: "life/chinese-number",
+    inputs: { inputVal: "壹元贰分叁角" },
+    clicks: ["convert();"],
+    expect: ["人民币金额写法无效"],
+    ref: "第920批：元角分顺序固定，先分后角判非法而非给确定值。"
+  },
+  {
+    slug: "life/unit-converter",
+    clicks: ["switchCategory('weight');var s=__unit_converterSnap();document.getElementById('fromValue').value='UH '+((s.__tbUnitCategory==='weight')?'OK':'BAD');"],
+    expect: ["UH OK"],
+    ref: "第920批：自动历史快照写入分类字段，恢复时先切分类。"
+  },
+  {
+    slug: "life/unit-converter",
+    clicks: ["document.getElementById('precision').value='10';document.getElementById('fromValue').value='PREC '+formatNumber(1.23456789e-7);"],
+    expect: ["PREC 1.23456789e-7"],
+    ref: "第920批：小于 10^-6 的结果也按所选 10 位有效数字，不再骤降到 7 位。"
+  },
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "10000-01-01", endDate: "2026-01-05", holidays: "", workdays: "" },
+    clicks: ["calc();"],
+    expect: ["四位年份"],
+    ref: "第920批：五位年份直接提示四位年份范围并清空旧结果，不显示零工作日。"
+  },
+  {
+    slug: "life/music-practice-timer",
+    clicks: ["segments=[{name:'练',sec:300,kind:'practice'},{name:'休',sec:300,kind:'rest'}];currentSeg=0;practiceSec=0;restSec=0;segStartTs=1000;segBudgetSec=300;accrueCurrent(301000);currentSeg=1;segStartTs=301000;segBudgetSec=300;accrueCurrent(601000);document.getElementById('practiceTotals').textContent='MUS '+((practiceSec===300&&restSec===300)?'OK':'BAD '+practiceSec+'/'+restSec);"],
+    expect: ["MUS OK"],
+    ref: "第920批：练习与休息按阶段属性分别累计，休息不再计入有效练习。"
+  },
+  {
+    slug: "life/phone-lookup",
+    inputs: { input: "15900138000" },
+    clicks: ["validate();"],
+    expect: ["移动", "2024-01 静态号段表"],
+    ref: "第920批：159 号段纠正为移动，并显示数据版本与来源。"
+  },
+  {
+    slug: "life/phone-lookup",
+    inputs: { input: "16212345678" },
+    clicks: ["validate();"],
+    expect: ["未知", "未收录显示未知"],
+    ref: "第920批：未收录号段明确显示未知，不再猜测运营商。"
   }
 ];
 

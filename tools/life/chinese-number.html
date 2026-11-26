@@ -359,6 +359,23 @@ const chMap = {
 const unitMap = {'十':10,'拾':10,'百':100,'佰':100,'千':1000,'仟':1000};
 const bigUnitMap = {'万':10000,'亿':100000000,'兆':1000000000000};
 
+// 人民币金额独立语法：按元/角/分单位顺序解析，不能删掉单位后当普通中文整数读。
+function parseRMB(str){
+  if(typeof str!=='string') return NaN;
+  let neg=false;
+  if(str.charAt(0)==='负'){neg=true;str=str.slice(1);}
+  if(!/[元角分]/.test(str)) return NaN;
+  const D='[〇零一二壹贰两三叁四肆五伍六陆七柒八捌九玖]';
+  const m=str.match(new RegExp('^(?:([^元角分整]+)元)?(?:整)?(?:零)?(?:('+D+')角)?(?:零)?(?:('+D+')分)?(?:整)?$'));
+  if(!m) return NaN;
+  let yuan=0,jiao=0,fen=0;
+  if(m[1]!==undefined){yuan=chineseToNumber(m[1]);if(isNaN(yuan))return NaN;}
+  if(m[2]!==undefined) jiao=chMap[m[2]];
+  if(m[3]!==undefined) fen=chMap[m[3]];
+  const total=yuan+jiao/10+fen/100;
+  return neg?-total:total;
+}
+
 function chineseToNumber(str){
   if(!str) return NaN;
   // 移除元整、角、分等；「万亿」等价于「兆」
@@ -455,6 +472,14 @@ function convert(){
     html += `<p>人民币大写：<strong>${rmb}</strong></p>`;
     if(decStr.length > 2) html += `<p style="font-size:12px;color:var(--text-muted);">人民币金额按「分」四舍五入，厘位及以下不计。</p>`;
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
+  } else if(/[元角分]/.test(v)){
+    const n = parseRMB(v);
+    if(isNaN(n)){
+      inputEl.classList.add('input-error');
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">人民币金额写法无效：请按「元 → 角 → 分」顺序书写，如「壹元贰角叁分」「壹元零伍角」「叁分」；不支持重复单位或缺失单位。</p>';
+      return;
+    }
+    document.getElementById('resultBox').innerHTML=`<p>人民币金额：<strong>${n.toFixed(2)} 元</strong></p><p style="font-size:12px;color:var(--text-muted);">元 ${Math.floor(Math.abs(n))} · 角 ${Math.floor(Math.abs(n)*10)%10} · 分 ${Math.round(Math.abs(n)*100)%10}</p>`;
   } else if(/^[负〇零一二壹贰两三叁四肆五伍六陆七柒八捌九玖十拾百佰千仟万亿元兆整角分点]+$/i.test(v)){
     const n = chineseToNumber(v);
     if(isNaN(n) || n === 0 && v.indexOf('〇') < 0 && v.indexOf('零') < 0){

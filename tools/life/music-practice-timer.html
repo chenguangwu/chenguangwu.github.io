@@ -160,6 +160,7 @@
     </div>
     <div id="roundStatus" style="text-align:center;font-size:13px;color:var(--text-muted);margin-bottom:10px;">第 1 / 1 轮</div>
     <div id="segments"></div>
+    <p id="practiceTotals" style="font-size:13px;color:var(--text-muted);text-align:center;margin:8px 0;" data-zh="有效练习与休息分别累计；旧记录仅含总时长时按有效练习展示">有效练习与休息分别累计；旧记录仅含总时长时按有效练习展示</p>
 <div id="__tbnExtras" style="margin-top:12px"></div>
 
     <div class="toolbar"><button type="button" class="btn" onclick="addSegment()">➕ 添加阶段</button></div>
@@ -244,10 +245,10 @@
 </div>
 <script>
 const templates={
-warmup:[{name:'热身/基础练习',sec:300},{name:'休息',sec:300}],
-scales:[{name:'音阶/琶音',sec:600},{name:'休息',sec:120},{name:'技巧练习',sec:600}],
-pieces:[{name:'曲目慢练',sec:600},{name:'休息',sec:180},{name:'曲目提速',sec:600}],
-full:[{name:'热身',sec:300},{name:'音阶练习',sec:600},{name:'休息',sec:120},{name:'练习曲',sec:900},{name:'休息',sec:300},{name:'曲目',sec:1200}]
+warmup:[{name:'热身/基础练习',sec:300,kind:'practice'},{name:'休息',sec:300,kind:'rest'}],
+scales:[{name:'音阶/琶音',sec:600,kind:'practice'},{name:'休息',sec:120,kind:'rest'},{name:'技巧练习',sec:600,kind:'practice'}],
+pieces:[{name:'曲目慢练',sec:600,kind:'practice'},{name:'休息',sec:180,kind:'rest'},{name:'曲目提速',sec:600,kind:'practice'}],
+full:[{name:'热身',sec:300,kind:'practice'},{name:'音阶练习',sec:600,kind:'practice'},{name:'休息',sec:120,kind:'rest'},{name:'练习曲',sec:900,kind:'practice'},{name:'休息',sec:300,kind:'rest'},{name:'曲目',sec:1200,kind:'practice'}]
 };
 let segments=[],currentSeg=0,running=false,remaining=0,interval=null,rounds=1,currentRound=1,finished=false;
 function loadTemplate(name, btn){
@@ -284,37 +285,44 @@ function setTemplate(name, btn){
 }
 function addSegment(){
   const name=prompt('阶段名称：')||'练习';
+  const kindRaw=prompt('阶段类型：输入「练习」或「休息」','练习');
+  if(kindRaw===null) return;
+  const kind=(kindRaw.trim()==='休息')?'rest':'practice';
+  if(kindRaw.trim()!=='休息'&&kindRaw.trim()!=='练习'){alert('阶段类型只能是「练习」或「休息」');return;}
   const mins=Number(prompt('时长(分钟)：','5'));
   if(!Number.isInteger(mins)||mins<=0){alert('时长须为正整数分钟');return;}
-  segments.push({name,sec:mins*60});
+  segments.push({name,sec:mins*60,kind});
   document.querySelectorAll('.preset-btn').forEach(function(b){b.classList.remove('active');b.setAttribute('aria-pressed','false');});
   render();
 }
 function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 function render(){
   let html='', invalid=0;
+  const en=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?true:false);
   segments.forEach((seg,i)=>{
     const cls=i===currentSeg && running?'style="background:var(--primary);color:#fff;"':'';
     const ok=isFinite(seg.sec)&&seg.sec>=0;
     if(!ok) invalid++;
     const name=(typeof ToolBox!=='undefined'&&ToolBox.escHtml)?ToolBox.escHtml(seg.name):String(seg.name).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    html+=`<div class="segment" ${cls}><span>${i+1}. ${name}</span><span>${ok?fmt(seg.sec):'--'}</span></div>`;
+    const kindIcon=seg.kind==='rest'?'☕':'🎵';
+    html+=`<div class="segment" ${cls}><span>${i+1}. ${kindIcon} ${name}</span><span>${ok?fmt(seg.sec):'--'}</span></div>`;
   });
   if(invalid) html='<p style="color:var(--danger)">⚠ 有 '+invalid+' 个阶段时长无效，请改为非负整数分钟。</p>'+html;
   document.getElementById('segments').innerHTML=html;
   document.getElementById('display').textContent=fmt(remaining||(segments[0]?.sec||0));
+  const tot=document.getElementById('practiceTotals');
+  if(tot) tot.textContent=en?('🎵 Effective practice '+fmt(practiceSec)+' · ☕ Rest '+fmt(restSec)+' · Total '+fmt(practiceSec+restSec)):('🎵 有效练习 '+fmt(practiceSec)+' · ☕ 休息 '+fmt(restSec)+' · 总计 '+fmt(practiceSec+restSec));
   const rs=document.getElementById('roundStatus');
-  const en=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?true:false);
   if(rs) rs.textContent=en?(finished?('Completed '+rounds+' rounds'):('Round '+currentRound+' / '+rounds)):(finished?('已完成 '+rounds+' 轮'):('第 '+currentRound+' / '+rounds+' 轮'));
 }
-var endTs=0,segStartTs=0,practiceSec=0;
+var endTs=0,segStartTs=0,practiceSec=0,restSec=0,segBudgetSec=0;
 function toggle(){
   if(running){clearInterval(interval);remaining=Math.max(0,Math.ceil((endTs-Date.now())/1000));running=false;endTs=0;recordPractice();document.getElementById('startBtn').textContent='▶️ 继续';}
   else{
     const n=getRounds();if(n===null)return;rounds=n;
     if(finished){finished=false;currentRound=1;currentSeg=0;}
     if(remaining<=0&&currentSeg<segments.length)remaining=segments[currentSeg].sec;
-    running=true;segStartTs=Date.now();document.getElementById('startBtn').textContent='⏸️ 暂停';render();
+    running=true;segStartTs=Date.now();segBudgetSec=remaining;document.getElementById('startBtn').textContent='⏸️ 暂停';render();
     endTs=Date.now()+remaining*1000;
     interval=setInterval(timerTick,1000);
   }
@@ -327,17 +335,30 @@ function finishPlan(){
   alert('🎉 练习完成！已完成 '+rounds+' 轮');
   document.getElementById('startBtn').textContent='▶️ 开始';currentSeg=0;remaining=segments[0]?.sec||0;render();
 }
+function accrueCurrent(untilTs){
+  if(!segStartTs) return;
+  const ms=Math.max(0,untilTs-segStartTs);
+  const sec=Math.min(segBudgetSec||0,ms/1000);
+  const seg=segments[currentSeg];
+  if(seg&&seg.kind==='rest') restSec+=sec; else practiceSec+=sec;
+  segStartTs=untilTs;
+  segBudgetSec=Math.max(0,(segBudgetSec||0)-sec);
+}
 function timerTick(){
   if(!running||!endTs)return;
   const now=Date.now();
   remaining=Math.max(0,Math.ceil((endTs-now)/1000));
   let crossed=0;
   while(remaining<=0){
+    const boundary=endTs;
+    accrueCurrent(boundary);
     currentSeg++;
     if(currentSeg>=segments.length){
       if(currentRound<rounds){currentRound++;currentSeg=0;}
-      else{finishPlan();return;}
+      else{segBudgetSec=0;segStartTs=0;finishPlan();return;}
     }
+    segStartTs=boundary;
+    segBudgetSec=segments[currentSeg]?.sec||0;
     endTs += (segments[currentSeg]?.sec||0)*1000;
     remaining=Math.max(0,Math.ceil((endTs-now)/1000));
     crossed++;
@@ -346,12 +367,11 @@ function timerTick(){
   render();
   if(crossed)beep();
 }
-function reset(){clearInterval(interval);running=false;currentSeg=0;currentRound=1;finished=false;practiceSec=0;segStartTs=0;window.__musicPracticeDirty=false;loadTemplate('warmup');document.getElementById('startBtn').textContent='▶️ 开始';render();}
+function reset(){clearInterval(interval);running=false;currentSeg=0;currentRound=1;finished=false;practiceSec=0;restSec=0;segStartTs=0;segBudgetSec=0;window.__musicPracticeDirty=false;loadTemplate('warmup');document.getElementById('startBtn').textContent='▶️ 开始';render();}
 loadTemplate('warmup');
 function recordPractice(){
   if(!segStartTs) return;
-  practiceSec += Math.max(0, Math.round((Date.now()-segStartTs)/1000));
-  segStartTs = Date.now();
+  accrueCurrent(Date.now());
   window.__musicPracticeDirty = true;
   __tbn();
 }
@@ -360,25 +380,28 @@ var __tbn=function(){
   var acc=practiceSec;
   if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
   var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
-  var LBL=EN?'Actual practice time (s)':'实际练习时长(秒)';
+  var LBL=EN?'Effective practice (s)':'有效练习(秒)';
+  var RESTLBL=EN?'Rest (s)':'休息(秒)';
+  var TOTLBL=EN?'Total (s)':'总时长(秒)';
   var T=EN?{hist:'History',sc:'Score',no:'#',time:'Time',exp:'Export CSV',file:'history.csv'}
           :{hist:'历史记录',sc:'记录值',no:'序号',time:'时间',exp:'导出 CSV',file:'history.csv'};
   var KEY='__tbn_practice_timer';
   var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
   if(!Array.isArray(hist))hist=[];
   var last=hist[hist.length-1];
-  if(!last||last.v!==acc){hist.push({t:Date.now(),v:acc});}
+  var rec={t:Date.now(),v:acc,rest:restSec};
+  if(!last||last.v!==acc||(last.rest||0)!==restSec){hist.push(rec);}
   if(hist.length>30)hist=hist.slice(-30);
   try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
-  var __rec={};__rec[LBL]=acc;if(window.__musicPracticeDirty&&TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);
+  var __rec={};__rec[LBL]=acc;__rec[RESTLBL]=restSec;__rec[TOTLBL]=acc+restSec;if(window.__musicPracticeDirty&&TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);
   var host=document.getElementById('__tbnExtras');
   if(!host)return;
   if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+(EN?'Records appear after 2+ sessions.':'练习 2 次以上后显示成绩趋势图。')+'</p>';return;}
   host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'（'+LBL+'）</h3><div id="__tbnChart"></div><div id="__tbnTable"></div><div id="__tbnDiff"></div>';
   var labels=hist.map(function(h,i){return '#'+(i+1);});
   if(TBKit.chart&&TBKit.chart.line){try{TBKit.chart.line('#__tbnChart',{labels:labels,series:[{name:LBL,data:hist.map(function(h){return h.v;})}]});}catch(e){}}
-  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.v];});
-  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbnTable',{head:[T.no,T.time,T.sc],rows:rows,search:false});}catch(e){}}
+  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.v,(h.rest||0),(h.v||0)+(h.rest||0)];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbnTable',{head:[T.no,T.time,T.sc,RESTLBL,TOTLBL],rows:rows,search:false});}catch(e){}}
   if(TBKit.util&&TBKit.util.diffBox)TBKit.util.diffBox('#__tbnDiff',[LBL]);
   var btn=document.createElement('button');
   btn.type='button';btn.className='btn';btn.textContent=T.exp;

@@ -191,6 +191,16 @@
     <div id="convertMsg" style="color:var(--danger);font-size:13px;margin-top:8px;"></div>
     <p id="unitNote" style="color:var(--text-muted);font-size:12px;margin-top:6px;"></p>
 
+    <div class="toolbar" style="gap:8px;flex-wrap:wrap;">
+      <label for="precision" style="font-size:13px;color:var(--text-muted);">结果有效位数</label>
+      <select id="precision" onchange="convertFrom(lastEditedSide)" style="max-width:120px;">
+        <option value="6">6 位</option>
+        <option value="10" selected>10 位</option>
+        <option value="12">12 位</option>
+        <option value="15">15 位</option>
+      </select>
+      <span style="font-size:12px;color:var(--text-muted);">显示为近似值；内部按完整浮点计算，交换/继续换算不回读已四舍五入的显示文本。</span>
+    </div>
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="saveHistory()">保存到历史</button>
       <button type="button" class="btn" onclick="clearHistory()">清空历史</button>
@@ -706,6 +716,7 @@ let currentCategory = 'length';
 let history = [];
 let lastEditedSide = 'from';
 let lastEditedRaw = '1';
+let __unitRaw = {from:'1', to:''};
 
 function initTabs(){
   const tabs = document.getElementById('categoryTabs');
@@ -812,6 +823,7 @@ function handleUnitChange(side){
 
 function convertFrom(source){
   const cat = CATEGORIES[currentCategory];
+  if(!source) source = lastEditedSide || 'from';
   const fromUnit = document.getElementById('fromUnit').value;
   const toUnit = document.getElementById('toUnit').value;
   if(!cat.units[fromUnit] || !cat.units[toUnit]){
@@ -845,6 +857,8 @@ function convertFrom(source){
       return;
     }
     document.getElementById('convertMsg').textContent = '';
+    __unitRaw.from = String(val);
+    __unitRaw.to = String(result);
     document.getElementById('toValue').value = formatNumber(result);
   } else {
     const val = parseFloat(document.getElementById('toValue').value);
@@ -871,30 +885,31 @@ function convertFrom(source){
       return;
     }
     document.getElementById('convertMsg').textContent = '';
+    __unitRaw.from = String(result);
+    __unitRaw.to = String(val);
     document.getElementById('fromValue').value = formatNumber(result);
   }
 }
 
 function formatNumber(n){
   if(!isFinite(n)) return '';
-  if(Math.abs(n) >= 1e10 || (Math.abs(n) < 1e-6 && n !== 0)){
-    return n.toExponential(6);
-  }
-  const str = parseFloat(n.toPrecision(10)).toString();
-  return str;
+  const el=document.getElementById('precision');
+  const sig=Math.min(15,Math.max(6,parseInt(el&&el.value,10)||10));
+  return parseFloat(n.toPrecision(sig)).toString();
 }
 
 function swapUnits(){
   const fromUnit = document.getElementById('fromUnit').value;
   const toUnit = document.getElementById('toUnit').value;
-  const fromValue = document.getElementById('fromValue').value;
-  const toValue = document.getElementById('toValue').value;
+  const rawFrom = __unitRaw.from || document.getElementById('fromValue').value;
+  const rawTo = __unitRaw.to || document.getElementById('toValue').value;
   document.getElementById('fromUnit').value = toUnit;
   document.getElementById('toUnit').value = fromUnit;
-  document.getElementById('fromValue').value = toValue;
-  document.getElementById('toValue').value = fromValue;
+  document.getElementById('fromValue').value = rawTo;
+  document.getElementById('toValue').value = rawFrom;
   lastEditedSide = 'from';
-  lastEditedRaw = toValue;
+  lastEditedRaw = rawTo;
+  convertFrom('from');
 }
 
 function saveHistory(){
@@ -990,6 +1005,7 @@ document.addEventListener('DOMContentLoaded',function(){
 var __unit_converter_last=0,__unit_converter_skip=false;
 function __unit_converterSnap(){
     var out={};
+    if(typeof currentCategory!=='undefined') out.__tbUnitCategory=currentCategory;
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
     for(var i=0;i<els.length;i++){
         var e=els[i];
@@ -1028,6 +1044,7 @@ function __unit_converterTime(t){
 }
 function __unit_converterRender(keys,rk,en){
     try{
+        keys=keys.filter(function(k){return k!=='__tbUnitCategory';});
         var arr=TBKit.history.list().slice(0,10);
         var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
@@ -1043,7 +1060,13 @@ function __unit_converterRender(keys,rk,en){
         TBKit.history.mount('#unit_converterHist',function(rec){
             __unit_converter_skip=true;
             try{
+                if(rec.__tbUnitCategory && CATEGORIES[rec.__tbUnitCategory] && rec.__tbUnitCategory!==currentCategory){
+                    switchCategory(rec.__tbUnitCategory);
+                }else if(!rec.__tbUnitCategory){
+                    document.getElementById('convertMsg').textContent='该历史记录缺少分类信息，已按当前分类尽量恢复；若单位不存在请重新选择。';
+                }
                 for(var k in rec){
+                    if(k==='__tbUnitCategory') continue;
                     if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
@@ -1051,7 +1074,7 @@ function __unit_converterRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                convertFrom();
+                convertFrom('from');
             }catch(e2){}
             __unit_converter_skip=false;
         });

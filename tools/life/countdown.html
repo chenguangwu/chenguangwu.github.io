@@ -179,6 +179,13 @@
         <button type="button" class="btn" onclick="__cdExport()">⬇️ 导出倒计时明细 CSV</button>
         <span style="font-size:12px;color:var(--text-muted);">导出目标时间、剩余天/时/分/秒与进度明细</span>
       </div>
+      <div class="toolbar" style="margin-top:10px;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="btn" onclick="__cdTestSound()">🔔 测试提示音</button>
+        <span id="soundStatus" style="font-size:12px;color:var(--text-muted);" data-zh="提示音需由本页播放，受浏览器音频策略和静音影响">提示音需由本页播放，受浏览器音频策略和静音影响</span>
+        <button type="button" class="btn" onclick="__cdEnableNotify()">🔕 开启浏览器通知</button>
+        <span id="notifyStatus" style="font-size:12px;color:var(--text-muted);">通知权限未开启，仅页内提示</span>
+      </div>
+      <p id="cdLimitNote" style="font-size:12px;color:var(--text-muted);margin-top:8px;" data-zh="提醒依赖本页面保持打开且未被浏览器冻结；页面关闭、标签页后台休眠或音频被拦截时可能延迟或无声，返回页面会立即补报已到期状态。">提醒依赖本页面保持打开且未被浏览器冻结；页面关闭、标签页后台休眠或音频被拦截时可能延迟或无声，返回页面会立即补报已到期状态。</p>
       <div id="cdChart" style="margin-top:10px;"></div>
       <table id="cdTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
         <thead></thead><tbody></tbody>
@@ -240,6 +247,7 @@ function setTarget(){
   state.target=dt.getTime();
   state.start=Date.now();
   state.name=document.getElementById('eventName').value.trim();
+  state.alerted=false;
   save();showResult();
   ToolBox.showToast(i18nText('toast.msg060'));
 }
@@ -334,8 +342,12 @@ function tick(){
     document.getElementById('progressPct').textContent='100%';
     document.getElementById('doneBox').style.display='block';
     if(timer){clearInterval(timer);timer=null;}
-    ToolBox.showToast(i18nText('toast.msg171'),'success');
-    beep();
+    if(!state.alerted){
+      state.alerted=true;save();
+      ToolBox.showToast(i18nText('toast.msg171'),'success');
+      beep();
+      __cdNotify();
+    }
     return;
   }
   var days=Math.floor(diff/86400000);
@@ -388,8 +400,39 @@ function beep(){
     osc.start();osc.stop(ctx.currentTime+1.0);
   }catch(e){}
 }
+function __cdTestSound(){
+  beep();
+  var el=document.getElementById('soundStatus');
+  if(el) el.textContent=(__cdIsEn()?'Test sound played; if silent, unmute the tab or allow audio for this site.':'已播放测试音；若无声，请取消标签页静音或允许本站播放声音。');
+}
+function __cdNotify(){
+  try{
+    if(typeof Notification==='undefined' || Notification.permission!=='granted') return;
+    new Notification(state.name||'倒计时', {body:(__cdIsEn()?'Target time reached':'已到达目标时间')+': '+new Date(state.target).toLocaleString()});
+  }catch(e){}
+}
+function __cdEnableNotify(){
+  var el=document.getElementById('notifyStatus');
+  if(typeof Notification==='undefined'){
+    if(el) el.textContent=(__cdIsEn()?'This browser does not support notifications; page alerts only.':'当前浏览器不支持通知，仅使用页内提示。');
+    return;
+  }
+  if(Notification.permission==='granted'){
+    if(el) el.textContent=(__cdIsEn()?'Browser notifications enabled.':'浏览器通知已开启。');
+    return;
+  }
+  if(Notification.permission==='denied'){
+    if(el) el.textContent=(__cdIsEn()?'Notification permission denied; use in-page alerts.':'通知权限已被拒绝，仅使用页内提示。');
+    return;
+  }
+  Notification.requestPermission().then(function(p){
+    if(el) el.textContent=p==='granted'?(__cdIsEn()?'Browser notifications enabled.':'浏览器通知已开启。'):(__cdIsEn()?'Notification permission not granted; page alerts only.':'未获得通知权限，仅使用页内提示。');
+  }).catch(function(){
+    if(el) el.textContent=(__cdIsEn()?'Notification permission request failed; page alerts only.':'通知权限申请失败，仅使用页内提示。');
+  });
+}
 document.addEventListener('visibilitychange', function(){
-  if(!document.hidden && state.target && timer){ tick(); }
+  if(!document.hidden && state.target){ tick(); }
 });
 var __cd0 = showResult; showResult = function(){ __cd0(); try{ __cdExtras(); }catch(e){} };
 load();
