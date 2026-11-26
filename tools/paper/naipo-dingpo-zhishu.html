@@ -142,9 +142,8 @@
       <p class="formula-desc">耐破指数由耐破度除以定量得到，可跨定量比较纸与纸板的顶破强度；同时换算 kgf/cm² 并给出相对 3.0 kPa·m²/g 基准的偏差。</p>
     </div>
     <div class="input-row">
-      <div><label for="v0">耐破度 (kPa)</label><input type="number" id="v0" value="250" step="any" oninput="calc()" enterkeyhint="done" aria-label="评分 A" placeholder="如 250"></div>
-      <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label for="v1">纸样定量 (g/m²)</label><input type="number" id="v1" value="60" step="any" oninput="calc()" enterkeyhint="done" aria-label="评分 B" placeholder="如 60"></div>
+      <div><label for="v0">耐破度 (kPa)</label><input type="number" id="v0" value="250" step="any" min="0" oninput="calc()" enterkeyhint="done" aria-label="耐破度 (kPa)" placeholder="如 250"></div>
+      <div><label for="v1">纸样定量 (g/m²)</label><input type="number" id="v1" value="60" step="any" min="0" oninput="calc()" enterkeyhint="done" aria-label="纸样定量 (g/m²)" placeholder="如 60"></div>
     </div>
     <div class="toolbar">
       <div id="naipo_dingpo_zhishuPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__naipo_dingpo_zhishuExport()">导出明细 CSV</button>
@@ -315,13 +314,15 @@ function setInvalid(el,invalid){
   else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}
 }
 function readInputs(){
-  var a=getV0(),b=getV1();
+  var a=readNum('v0'),b=readNum('v1');
   var elA=document.getElementById('v0'),elB=document.getElementById('v1');
-  setInvalid(elA,isNaN(a));
-  setInvalid(elB,isNaN(b));
-  return {a:isNaN(a)?0:a,b:isNaN(b)?0:b,valid:!isNaN(a)&&!isNaN(b)};
+  var valid=!isNaN(a)&&!isNaN(b)&&a>0&&b>0;
+  setInvalid(elA,!valid);
+  setInvalid(elB,!valid);
+  return {a:a,b:b,valid:valid};
 }
 function copyRes(){
+  if(!__naipoValid){ToolBox.showToast(__nEn('请先填写有效的耐破度与纸样定量，暂无可复制结果','Enter valid bursting strength and grammage first'), 'warning');return;}
   var text=document.getElementById('res').innerText;
   if(!text||text.trim()===''){ToolBox.showToast(i18nText(), 'warning');return;}
   ToolBox.copyText(text);
@@ -333,13 +334,6 @@ function resetAll(){
   setInvalid(document.getElementById('v1'),false);
   calc();
   ToolBox.showToast(i18nText(), 'info');
-}
-function swapValues(){
-  var a=document.getElementById('v0').value;
-  var b=document.getElementById('v1').value;
-  document.getElementById('v0').value=b;
-  document.getElementById('v1').value=a;
-  calc();
 }
 function historyKey(){
   try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_'+(document.title||'calc');}
@@ -395,21 +389,25 @@ document.addEventListener('DOMContentLoaded',function(){
 </script>
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+var __naipoValid=false;
+function __nEn(zh,en){try{return document.documentElement.lang==='en-US'?en:zh;}catch(e){return zh;}}
+function readNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(raw==='')return NaN;if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
 function calc(){
-    var __ig=__tbInputGuard(['v0', 'v1'],["耐破度 (kPa)", "纸样定量 (g/m²)"]);if(__ig){const __g6=__ig;ToolBox.setResult("res",(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—')));return;}
-var e0=document.getElementById('v0'),e1=document.getElementById('v1');
-  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+    var __ig=__tbInputGuard(['v0', 'v1'],["耐破度 (kPa)", "纸样定量 (g/m²)"]);if(__ig){__naipoValid=false;const __g6=__ig;ToolBox.setResult("res",(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—')));return;}
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=readNum('v0'),B=readNum('v1');
   var box=document.getElementById('res');
   if(!box)return;
-  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(isNaN(A)||isNaN(B)||A<=0||B<=0){__naipoValid=false;box.innerHTML='<div class="tip-box tip-warn">'+__nEn('耐破度须大于 0，纸样定量须大于 0；请填写有效数值。','Bursting strength and sample grammage must both be greater than 0.')+'</div>';return;}
   var items=[];
-  items.push([(A/B).toFixed(3), "耐破指数（kPa·m²/g）"]);
-  items.push([(A*0.0102).toFixed(2), "耐破度（kgf/cm²）"]);
-  items.push([((A/B-3)/3*100).toFixed(2)+"%", "相对 3.0 基准偏差"]);
-  items.push([(B/1000).toFixed(3), "每 m² 纸样重量（kg/m²，即定量 g/m²÷1000）"]);
+  items.push([(A/B).toFixed(3), __nEn("耐破指数（kPa·m²/g）","Burst index (kPa·m²/g)")]);
+  items.push([(A*0.0102).toFixed(2), __nEn("耐破度（kgf/cm²）","Bursting strength (kgf/cm²)")]);
+  items.push([((A/B-3)/3*100).toFixed(2)+"%", __nEn("相对 3.0 参考基准偏差","Deviation from 3.0 reference")]);
+  items.push([(B/1000).toFixed(3), __nEn("每 m² 纸样重量（kg/m²，即定量 g/m²÷1000）","Basis weight per m² (kg/m², grammage ÷ 1000)")]);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 耐破指数 = 耐破度 ÷ 定量（kPa·m²/g）；1 kPa ≈ 0.0102 kgf/cm²；常用基准约 3.0 kPa·m²/g。';
+  html+='💡 '+__nEn('耐破指数 = 耐破度 ÷ 定量（kPa·m²/g）；1 kPa ≈ 0.0102 kgf/cm²；3.0 kPa·m²/g 仅为常用对照基准，不是标准限值。','Burst index = bursting strength ÷ grammage (kPa·m²/g); 1 kPa ≈ 0.0102 kgf/cm²; 3.0 kPa·m²/g is only a common reference, not a standard limit.');
+  __naipoValid=true;
   const __g8=html;box.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }
@@ -489,6 +487,7 @@ function __naipo_dingpo_zhishuRender(keys,rk,en){
         }
     }catch(e3){}
 }
+document.addEventListener('DOMContentLoaded',function(){try{calc();}catch(e){}});
 function __naipo_dingpo_zhishuExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__naipo_dingpo_zhishu_skip) return;

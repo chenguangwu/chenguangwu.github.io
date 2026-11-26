@@ -32,7 +32,13 @@ const GRADE_PATH = path.join(__dirname, "..", "tools", "paper", "paper-grade.htm
 function strengthStaticChecks() {
   const s9 = fs.readFileSync(path.join(__dirname, "..", "tools", "paper", "strength-9.html"), "utf8");
   const s1 = fs.readFileSync(path.join(__dirname, "..", "tools", "paper", "strength-1.html"), "utf8");
+  const conc = fs.readFileSync(path.join(__dirname, "..", "tools", "paper", "calc-concentration-1.html"), "utf8");
+  const moist = fs.readFileSync(path.join(__dirname, "..", "tools", "paper", "moisture-calc.html"), "utf8");
+  const naipo = fs.readFileSync(path.join(__dirname, "..", "tools", "paper", "naipo-dingpo-zhishu.html"), "utf8");
   return [
+    { name: "纸浆浓度校验绝干率/体积/目标并声明纤维守恒", ok: /__concValid/.test(conc) && /dryPct>100/.test(conc) && /vol<=0/.test(conc) && /target<=0\|\|target>100/.test(conc) && /绝干纤维守恒/.test(conc) },
+    { name: "水分阈值改为参考区间且复制复用校验", ok: /__moistureValid/.test(moist) && /文化用纸常见参考区间/.test(moist) && /不是所有纸种的标准限值/.test(moist) && /validateMoisture\(\)/.test(moist.slice(moist.indexOf('function copyResult'), moist.indexOf('var refData'))) },
+    { name: "耐破移除跨量纲互换并统一标签与校验", ok: !/swapValues|互换 A\/B|评分 A|评分 B/.test(naipo) && /__naipoValid/.test(naipo) && /耐破度须大于 0/.test(naipo) && /纸样定量须大于 0/.test(naipo) && /不是标准限值/.test(naipo) },
     { name: "撕裂页移除跨量纲互换与固定1.5倍结论", ok: !/1\.5|swapValues|互换 A\/B/.test(s9) && /撕裂力（实测，mN）/.test(s9) && /纸样定量（g\/m²）/.test(s9) },
     { name: "纸箱抗压区分计算与堆码有效性并保存ECT模式", ok: /baseValid/.test(s1) && /stackValid/.test(s1) && /ectMode/.test(s1) && /ectDirect/.test(s1) && /未保存 ECT 输入模式/.test(s1) },
   ];
@@ -261,6 +267,42 @@ const CASES = [
   "inputs": {"boxWt":"0"},
   "expect": ["堆码参数不完整"],
   "ref": "箱重为 0 时不得显示最大堆码层数 1 的假安全结论。"
+},
+{
+  "slug": "paper/calc-concentration-1",
+  "inputs": {"dry":"120"},
+  "expect": ["0–100%"],
+  "ref": "绝干率超过 100% 必须拒绝，不得算出比湿浆还重的绝干纤维。"
+},
+{
+  "slug": "paper/calc-concentration-1",
+  "inputs": {"vol":"0"},
+  "expect": ["体积若填写须>0"],
+  "ref": "体积填 0 不得静默按 0 跳过体积浓度。"
+},
+{
+  "slug": "paper/moisture-calc",
+  "inputs": {"wetWeight":"","dryWeight":"92"},
+  "expect": ["请填写有效的湿重与绝干重"],
+  "ref": "湿重留空不得按 0 计算。"
+},
+{
+  "slug": "paper/moisture-calc",
+  "inputs": {"wetWeight":"90","dryWeight":"95"},
+  "expect": ["干重不应大于湿重"],
+  "ref": "干重大于湿重时不得输出负含水率。"
+},
+{
+  "slug": "paper/naipo-dingpo-zhishu",
+  "inputs": {"v0":"0","v1":"60"},
+  "expect": ["耐破度须大于 0"],
+  "ref": "耐破度 0 不得得到 0 指数与 -100% 偏差的伪结果。"
+},
+{
+  "slug": "paper/naipo-dingpo-zhishu",
+  "inputs": {"v0":"250","v1":"0"},
+  "expect": ["分母，不能为 0"],
+  "ref": "定量 0 不得触发除零（通用分母守卫）。"
 }
 ];
 async function main() {
