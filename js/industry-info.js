@@ -133,7 +133,7 @@ window.INDUSTRY_INFO = {
   'mining'               : { name: '矿业冶金', icon: '⛏️', hot: 111277 },
   'forensic-medicine'    : { name: '法医学', icon: '⚖️', hot: 108131 },
   'usedcar'              : { name: '二手车', icon: '🚙', hot: 107158 },
-  'paper'                : { name: '造纸印刷', icon: '📄', hot: 106765 },
+  'paper'                : { name: '造纸印刷', icon: '📄', hot: 106766 },
   'sales'                : { name: '销售管理', icon: '📈', hot: 102469 },
   'fire'                 : { name: '消防安全', icon: '🚒', hot: 96736 },
   'startup'              : { name: '创业孵化', icon: '🚀', hot: 95773 },

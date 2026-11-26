@@ -28,6 +28,17 @@ function rollLengthStaticChecks() {
   ];
 }
 
+const GRADE_PATH = path.join(__dirname, "..", "tools", "paper", "paper-grade.html");
+function paperGradeStaticChecks() {
+  const src = fs.readFileSync(GRADE_PATH, "utf8");
+  const filter = src.slice(src.indexOf("function filterTable()"), src.indexOf("</script>", src.indexOf("function filterTable()")));
+  const exp = src.slice(src.indexOf("window.__pgExport=function()"), src.indexOf("function __pgFillTabs", src.indexOf("window.__pgExport=function()")));
+  return [
+    { name: "纸种搜索纳入分类标题并处理空态", ok: /catMatch/.test(filter) && /g\.name/.test(filter) && /pgEmpty/.test(filter) && /cat\.style\.display/.test(filter) },
+    { name: "导出改为带指标名和单位的长表", ok: /Paper type/.test(exp) && /Metric/.test(exp) && /Unit/.test(exp) && /Coating deviation/.test(exp) && /Cross-direction fold/.test(exp) && /Bursting strength/.test(exp) },
+  ];
+}
+
 const CASES = [
 {
   "slug": "paper/basis-weight",
@@ -173,7 +184,7 @@ const CASES = [
 {
   "slug": "paper/roll-length",
   "inputs": { "targetLen": "500", "coreDia2": "-76", "paperThk2": "0.1" },
-  "expect": ["纸芯内径需为 ≥0 的数值"],
+  "expect": ["纸芯内径不能留空，且需为 ≥0 的数值"],
   "ref": "12-K6：负纸芯内径旧实现仍算 D=263.5 mm、壁厚 169.8 mm、层数 1698；现在拒绝。默认纸芯 76 合法不出现该文案。"
 },
 {
@@ -194,15 +205,37 @@ const CASES = [
   "expect": ["无法形成有效缠绕层数"],
   "ref": "外径与纸芯差 0.5 mm、纸厚 1 mm ⇒ 层数 round(0.25)=0，旧实现再算 lengthM/layers 得 Infinity（显示破折号）；现在层数 <1 时直接拒绝。"
 },
+{ slug:"paper/detector-17", inputs:{"defSize":"","defPerSqm":"","area":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
 {
-  "slug": "paper/paper-grade",
-  "clicks": [
-    "var seen=[],orig=document.querySelectorAll;document.querySelectorAll=function(sel){seen.push(String(sel));return [];};filterTable();document.querySelectorAll=orig;document.getElementById('__tbProbe').textContent='PGF='+((seen.join('|').indexOf('#table1 tbody tr')>=0&&seen.join('|').indexOf('#table4 tbody tr')>=0)?'OK':'BAD');"
-  ],
-  "expect": ["PGF=OK"],
-  "ref": "修复前 filterTable 用全局 'tbody tr'，会把不属于等级表的白度明细行一起隐藏；现只遍历 #table1~#table4 的等级表 tbody。用 querySelectorAll 捕获实际选择器，默认态无该探针串。"
+  "slug": "paper/roll-length",
+  "clicks": ["document.getElementById('outerDia').value='200';document.getElementById('coreDia').value='';document.getElementById('paperThk').value='0.1';calcLen();document.getElementById('__tbProbe').textContent=document.getElementById('lenResult').innerText;"],
+  "expect": ["纸芯内径不能留空"],
+  "ref": "清空纸芯不得按 0 计算；必须明确输入 0 才允许无缝纸芯。"
 },
-{ slug:"paper/detector-17", inputs:{"defSize":"","defPerSqm":"","area":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{
+  "slug": "paper/pulp-yield",
+  "clicks": ["document.getElementById('rawInput').value='1000';document.getElementById('pulpInput').value='';calc();document.getElementById('__tbProbe').textContent=document.getElementById('result').innerText;"],
+  "expect": ["必须是有限数值"],
+  "ref": "纸浆重量留空不得按 0 输出 0% 得率。"
+},
+{
+  "slug": "paper/pulp-yield",
+  "clicks": ["document.getElementById('rawInput').value='1000';document.getElementById('pulpInput').value='-50';calc();document.getElementById('__tbProbe').textContent=document.getElementById('result').innerText;"],
+  "expect": ["纸浆重量不能为负"],
+  "ref": "负纸浆重量不得得到负得率。"
+},
+{
+  "slug": "paper/pulp-yield",
+  "clicks": ["document.getElementById('rawInput').value='1000';document.getElementById('pulpInput').value='480';calc();document.getElementById('__tbProbe').textContent=document.getElementById('result').innerText;"],
+  "expect": ["中低得率区间（40–60%）","不能单独判定浆种"],
+  "ref": "48% 只给得率区间，不再宣称是化学浆。"
+},
+{
+  "slug": "paper/basis-weight",
+  "clicks": ["document.getElementById('knownReamKg').value='12.5';calcReverseGsm();document.getElementById('__tbProbe').textContent=document.getElementById('reverseResult').innerText;"],
+  "expect": ["29.09 g/m²"],
+  "ref": "787×1092mm、500 张/令，12.5kg 反算 12.5×1000/(0.787×1.092×500)=29.09 g/m²。"
+},
 ];
 async function main() {
   const only = process.argv.slice(2);
@@ -224,7 +257,7 @@ async function main() {
     }
   }
 
-  const stat = rollLengthStaticChecks();
+  const stat = rollLengthStaticChecks().concat(paperGradeStaticChecks());
   const staticFails = stat.filter((s) => !s.ok);
   for (const s of staticFails) console.log("❌ [static] " + s.name);
 
