@@ -203,7 +203,7 @@ window.INDUSTRY_INFO = {
   'project'              : { name: '项目管理', icon: '📊', hot: 31095 },
   'bonding'              : { name: '粘接密封', icon: '🧷', hot: 31086 },
   'stats'                : { name: '统计分析', icon: '📈', hot: 28590 },
-  'yi'                   : { name: '周易八卦', icon: '📐', hot: 27565 },
+  'yi'                   : { name: '周易八卦', icon: '📐', hot: 27567 },
   'express'              : { name: '快递物流', icon: '📦', hot: 25505 },
   'beekeeping'           : { name: '蜜蜂养殖', icon: '🐝', hot: 23096 },
   'daily-goods'          : { name: '日用百货', icon: '🛒', hot: 23092 },

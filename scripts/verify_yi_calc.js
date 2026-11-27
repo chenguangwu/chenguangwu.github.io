@@ -71,6 +71,33 @@ const CASES = [
   "clicks": ["var src=__tbFs.readFileSync(process.cwd()+'/js/tools/yi-hexagrams.js','utf8');var d=new Function(src+';return {H:YI_HEXAGRAMS};')();var p1=__tbFs.readFileSync(process.cwd()+'/tools/yi/gua-interpretation.html','utf8'),p2=__tbFs.readFileSync(process.cwd()+'/tools/yi/yi-divination.html','utf8');var ok=Object.keys(d.H).length===64&&p1.indexOf('/js/tools/yi-hexagrams.js')>=0&&p2.indexOf('/js/tools/yi-hexagrams.js')>=0&&p1.indexOf('GUA_JUDGE = typeof YI_HEXAGRAMS')>=0&&p2.indexOf('GUA_INTERPRET = typeof YI_HEXAGRAMS')>=0;document.getElementById('__tbProbe').textContent='YID64 '+(ok?'OK':'BAD');"],
   "expect": ["YID64 OK"],
   "ref": "第988批：两页必须引用同一共享数据源，禁止再各维护一份字面映射；共享表 64 键齐全且脚本引用存在，防止后续单页漂移。"
+},
+{
+  "slug": "yi/yi-yao",
+  "inputs": {},
+  "clicks": [
+    "selectGua(2);"
+  ],
+  "expect": ["履霜，坚冰至。"],
+  "ref": "第1096批：选择第2卦坤，必须显示坤卦初六原文，不能再用乾卦初九替代；默认态为乾卦初九「潜龙，勿用」，双态互斥。"
+},
+{
+  "slug": "yi/yi-yao",
+  "inputs": {},
+  "clicks": [
+    "selectGua(64);selectYao(6);"
+  ],
+  "expect": ["濡其首，有孚失是。","火水未济 · 上九"],
+  "ref": "第1096批：选择第64卦未济并选上爻，必须显示未济上九原文与卦名，锁定 64 卦选择与逐爻渲染贯通。"
+},
+{
+  "slug": "yi/yi-yao",
+  "inputs": {},
+  "clicks": [
+    "var bad=[];var texts=[];for(var i=1;i<=64;i++){var g=GUA_TEXT[i];if(!g||!g.l||g.l.length!==6){bad.push(i+':len');continue;}for(var p=1;p<=6;p++){var t=g.l[p-1];texts.push(t);var n=t.split('|')[0];if((p===1&&n.charAt(0)!=='初')||(p===2&&n.charAt(1)!=='二')||(p===3&&n.charAt(1)!=='三')||(p===4&&n.charAt(1)!=='四')||(p===5&&n.charAt(1)!=='五')||(p===6&&n.charAt(0)!=='上'))bad.push(i+':'+p+':'+n);}}if(texts.length!==384||new Set(texts).size!==384)bad.push('total='+texts.length+',uniq='+new Set(texts).size);document.getElementById('__tbProbe').textContent='YI384 '+(bad.length?'BAD '+bad.slice(0,3).join(','):'OK');"
+  ],
+  "expect": ["YI384 OK"],
+  "ref": "第1096批：静态数据完整性检查 64 卦各 6 爻共 384 条、爻题位置字与自下而上顺序一致、文本无重复；防止只补选择器而数据仍为乾卦示例。"
 }
 
 ];
