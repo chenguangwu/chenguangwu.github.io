@@ -154,7 +154,7 @@ window.INDUSTRY_INFO = {
   'parenting'            : { name: '育儿亲子', icon: '👶', hot: 69252 },
   'wedding'              : { name: '婚礼策划', icon: '💒', hot: 69213 },
   'road'                 : { name: '道路工程', icon: '🛣️', hot: 68884 },
-  'rental'               : { name: '租赁管理', icon: '🔑', hot: 67780 },
+  'rental'               : { name: '租赁管理', icon: '🔑', hot: 67778 },
   'packaging'            : { name: '包装工程', icon: '📦', hot: 67267 },
   'petrochem'            : { name: '石油化工', icon: '🛢️', hot: 66239 },
   'printing'             : { name: '印刷技术', icon: '🖨️', hot: 65259 },

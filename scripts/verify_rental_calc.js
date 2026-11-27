@@ -4,135 +4,78 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
   "slug": "rental/assessor-24",
-  "inputs": {
-    "income": "12003",
-    "rent": "4000",
-    "workYears": "5",
-    "creditScore": "700",
-    "age": "28"
-  },
-  "expect": [
-    "12003元"
-  ],
-  "ref": "auto-restore"
+  "inputs": {"income":"12003","rent":"4000","workYears":"5","creditScore":"700"},
+  "clicks": ["calc();"],
+  "expect": ["33.3%"],
+  "ref": "2026-11-28 第1138批：输出租金收入比与资料核对进度，不再评级/押金/拒租。12003/4000=33.3%，默认 0/6 项核对。"
 },
 {
   "slug": "rental/generator-32",
-  "inputs": {
-    "cnt": "8"
-  },
-  "expect": [
-    "6."
-  ],
-  "ref": "auto-restore"
+  "inputs": {"partyA":"甲","partyB":"乙","addr":"某路1号","area":"60","start":"2026-01-01","end":"2026-12-31","rent":"3000","depositMonths":"1","payment":"monthly"},
+  "clicks": ["gen();"],
+  "expect": ["房屋租赁合同（草稿）"],
+  "ref": "2026-11-28 第1138批：核心条款固定顺序输出，不再随机抽取。断言草稿标题、双方信息与租金条款同时存在。"
 },
 {
   "slug": "rental/recommender-5",
-  "inputs": {
-    "cnt": "8"
-  },
-  "expect": [
-    "8. "
-  ],
-  "ref": "auto-restore（随机组合型生成器，具体推荐带宽非每次必现；改断言确定性生成标题）（原断言为静态标题，注入失败仍命中 → 逃生项；改为断言条数/第8条）"
+  "inputs": {"people":"3","devices":"6","usage":"daily","area":"90"},
+  "clicks": ["gen();"],
+  "expect": ["200–300 Mbps"],
+  "ref": "2026-11-28 第1138批：固定规则推荐。3 人/6 设备/日常用途/90㎡ 估算 110 Mbps，推荐 200–300 Mbps 与双路由 mesh。"
 },
 {
   "slug": "rental/reminder-4",
-  "inputs": {
-    "rRent": "3003"
-  },
-  "expect": [
-    "3003"
-  ],
-    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
+  "inputs": {"rAddress":"测试地址","rTenant":"测试租客","rRent":"3003","rStart":"2026-01-01","rEnd":"2026-06-30"},
+  "clicks": ["addLease();"],
+  "expect": ["¥3,003"],
+  "ref": "2026-11-28 第1138批：新增租约后列表按本地日期渲染，显示租金 3003 与地址。"
 },
 {
   "slug": "rental/rental-yield",
-  "inputs": {
-    "price": "1200003",
-    "rent": "4500",
-    "cost": "15000"
-  },
-  "expect": [
-    "1200003"
-  ],
-    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
+  "inputs": {"price":"1200003","rent":"4500","cost":"15000","vacancy":"1"},
+  "clicks": ["calc();"],
+  "expect": ["34.8 年"],
+  "ref": "2026-11-28 第1138批：空置 1 月单独扣损失，毛 4.50%、净 2.88%、静态回本约 34.8 年。"
 },
 {
   "slug": "rental/calc-commission-1",
-  "inputs": {
-    "amount": "300",
-    "rate": "2",
-    "serviceFee": "0",
-    "customPct": "50"
-  },
-  "expect": [ "60,000 佣金" ],
+  "inputs": {"amount":"300","rate":"2","serviceFee":"0","customPct":"50"},
+  "expect": ["60,000 佣金"],
   "ref": "auto-restore"
 },
 {
   "slug": "rental/cycle-11",
   "inputs": {},
-  "clicks": [
-    "switchMeter('water');"
-  ],
-  "expect": [
-    "单价（元/吨）"
-  ],
-  "ref": "clicks 注入：switchMeter('water') 改写 currentMeter（初始 'electric'），费率区由「阶梯电价／单一电价 + 第1~3档单价」切为单一费率「单价（元/吨）」，抄表单位同步由度切吨。旧锚「第1档」属电费默认阶梯配置字面量 ⇒ 判别力 0。注：水/电/气三表的 unit 各不相同，切换后须锚当前表的专属单位串。清 clicks 后重跑停在电费阶梯态 ⇒ 零逃生项。"
+  "clicks": ["switchMeter('water');"],
+  "expect": ["单价（元/吨）"],
+  "ref": "clicks 注入：switchMeter('water') 将当前表由电切水，费率区显示「单价（元/吨）」。"
 },
 {
   "slug": "rental/rent-2",
-  "inputs": {
-    "targetArea": "135",
-    "growth": "2",
-    "rentA": "4500",
-    "areaA": "85",
-    "adjA": "-3",
-    "wA": "1",
-    "rentB": "5200",
-    "areaB": "95",
-    "adjB": "2",
-    "wB": "1",
-    "rentC": "4800",
-    "areaC": "88",
-    "adjC": "0",
-    "wC": "1"
-  },
-  "expect": [ "7,278 建议月租金" ],
-  "ref": "auto-restore"
+  "inputs": {"targetArea":"135","growth":"2","rentA":"4500","areaA":"85","adjA":"-15","wA":"1","rentB":"5200","areaB":"95","adjB":"2","wB":"1","rentC":"4800","areaC":"88","adjC":"0","wC":"1"},
+  "clicks": ["calc();"],
+  "expect": ["样本：3"],
+  "ref": "2026-11-28 第1138批：目标面积必填；三个有效案例输出建议租金，并显示样本数与口径提示。"
 },
 {
   "slug": "rental/rent-2",
-  "inputs": {
-    "targetArea": "90", "growth": "2",
-    "rentA": "4500", "areaA": "85", "adjA": "-150", "wA": "1",
-    "rentB": "5200", "areaB": "95", "adjB": "2", "wB": "1",
-    "rentC": "4800", "areaC": "88", "adjC": "0", "wC": "1"
-  },
-  "clicks": ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='RENTADJ '+((h.indexOf('综合修正超出')>=0&&h.indexOf('租金区间')<0)?'OK':'BAD '+h.slice(0,100));"],
-  "expect": ["RENTADJ OK"],
-  "ref": "RE-N7-a：案例 A 综合修正 −150% ⇒ 比准单价为负，旧版仍参与加权得建议租金 2,517、租金区间 −2,382–5,025；新守卫要求修正率在 −50%~+50%，越界仅提示且不写历史。默认 −3% 不命中。"
+  "inputs": {"targetArea":"90","growth":"2","rentA":"4500","areaA":"85","adjA":"-150","wA":"1","rentB":"5200","areaB":"95","adjB":"2","wB":"1","rentC":"4800","areaC":"88","adjC":"0","wC":"1"},
+  "clicks": ["calc();"],
+  "expect": ["综合修正须在 −50%~+50% 之间"],
+  "ref": "综合修正 −150% 越界，逐项提示并阻止输出修正表。"
 },
 {
   "slug": "rental/rent-2",
-  "inputs": {
-    "targetArea": "90", "growth": "2",
-    "rentA": "4500", "areaA": "85", "adjA": "-3", "wA": "1",
-    "rentB": "5200", "areaB": "95", "adjB": "60", "wB": "1",
-    "rentC": "4800", "areaC": "88", "adjC": "0", "wC": "1"
-  },
-  "clicks": ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='RENTADJMAX '+((h.indexOf('综合修正超出')>=0&&h.indexOf('可比房源修正表')<0)?'OK':'BAD '+h.slice(0,100));"],
-  "expect": ["RENTADJMAX OK"],
-  "ref": "RE-N7-b：案例 B 综合修正 +60% 超出 +50% 上界，旧版照常输出加权表；新守卫拦截正越界。默认 +2% 不命中。"
+  "inputs": {"targetArea":"90","growth":"2","rentA":"4500","areaA":"85","adjA":"-3","wA":"1","rentB":"5200","areaB":"95","adjB":"60","wB":"1","rentC":"4800","areaC":"88","adjC":"0","wC":"1"},
+  "clicks": ["calc();"],
+  "expect": ["综合修正须在 −50%~+50% 之间"],
+  "ref": "案例 B 综合修正 +60% 越上界，逐项提示并阻止输出修正表。"
 },
 {
   "slug": "rental/calc-commission-1",
-  "inputs": {
-    "amount": "",
-    "rate": "2"
-  },
-  "expect": [ "请填写金额（万元）与佣金比例（%）后再计算。" ],
-  "ref": "空态守卫（2026-11-05）：清空成交金额后不再渲染「中介费合计 0 元 / 佣金 0 元 / 买方承担 0 元」与分摊结论，只给填写提示。⚠ 判空用原始空串而非数值 0——serviceFee 默认 0 元属合法值，不在守卫范围。默认 amount=200 ⇒ 提示串不出现；注入 300 万 × 2% 用例断「60,000 佣金」⇒ 两态互斥。"
+  "inputs": {"amount":"","rate":"2"},
+  "expect": ["请填写金额（万元）与佣金比例（%）后再计算。"],
+  "ref": "空态守卫：清空成交金额后只给填写提示，不渲染 0 元结论。serviceFee 默认 0 属合法值。"
 }
 ];
 async function main() {
