@@ -107,7 +107,7 @@
       "name": "零食超标了一定要减颗数吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "优先减颗数或换低热量零食；若已超标较多（>20%），还应相应扣减主粮份量（本例需从主粮减约 12 kcal）。兽医通用原则是零食热量不超过每日总热量 10%。"
+        "text": "先看全天总摄入：主粮实际量 + 零食热量 与目标比较，超出多少就优先扣减主粮多少；零食占比 ≤10% 也只是“占比不高”，不代表可以额外无限给予。兽医目标优先于模型估算。"
       }
     }
   ]
@@ -144,9 +144,9 @@
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#1D4ED8;">
     <h2 data-zh="⚡ 宠物零食热量计算器">Treat Calorie Calculator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="计算零食热量占每日总摄入的比例，确保零食不超过每日热量的10%">Treat Calories</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="粗算零食占每日热量参考的比例，并结合兽医目标与实际主粮量判断">Treat Calories</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">宠物零食热量占比计算<br>静息能量 RER：犬 = 70 × 体重^0.75；猫 = 40 × 体重 + 20<br>日需能量 DER = RER × 活动系数<br>犬活动系数：低活动 已绝育 1.2 / 未绝育 1.4；高活动 1.6 / 1.8；中等 1.4 / 1.6<br>猫活动系数：已绝育 1.0 / 未绝育 1.2<br>零食总热量 = 单颗热量 × 颗数<br>零食占比 = 零食总热量 ÷ DER × 100%<br>零食上限 = DER × 10%；每日最多颗数 = ⌊上限 ÷ 单颗热量⌋<br>判定：占比 ≤10% 安全｜≤20% 偏高｜其他 超标<br>超标时须减少颗数并同步扣减主粮份量<br>条形图对比当前占比与 10% 建议上限</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">宠物零食热量占比计算<br>静息能量 RER：犬 = 70 × 体重^0.75；猫 = 40 × 体重 + 20<br><p data-zh="日需能量 DER = RER × 活动系数；若填兽医目标则以兽医目标为准" style="margin:0">DER = RER × activity factor; vet target overrides if provided</p><br>犬活动系数：低活动 已绝育 1.2 / 未绝育 1.4；高活动 1.6 / 1.8；中等 1.4 / 1.6<br>猫活动系数：已绝育 1.0 / 未绝育 1.2<br>零食总热量 = 单颗热量 × 颗数<br>零食占比 = 零食总热量 ÷ DER × 100%<br>零食上限 = DER × 10%；每日最多颗数 = ⌊上限 ÷ 单颗热量⌋<br><p data-zh="判定：占比 ≤10% 参考线内｜≤20% 偏高｜其他 超标；均须计入全天总能量" style="margin:0">≤10% within reference; ≤20% high; above 20% over; all count toward daily energy</p><br><p data-zh="填主粮实际量时：全天摄入 = 主粮 + 零食，超出目标的部分优先扣减主粮" style="margin:0">With actual staple intake: total = staple + treats; reduce staple by any excess over target</p><br>条形图对比当前占比与 10% 建议上限</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：Math.floor(maxTreatCal÷treatCal)；totalTreatCal÷der×100；min(pct,100)">Key formulas: Math.floor(maxTreatCal÷treatCal); totalTreatCal÷der×100; min(pct,100)</p>
     </div>
     <div class="input-row">
@@ -189,6 +189,28 @@
           <option value="yes">已绝育</option>
         </select>
       </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="lifeStage">生命阶段/健康</label>
+        <select id="lifeStage" onchange="calc()">
+          <option value="adult" selected>成年健康</option>
+          <option value="young">幼龄（<1岁）</option>
+          <option value="senior">老年（>7岁）</option>
+          <option value="medical">疾病或体重管理</option>
+        </select>
+      </div>
+      <div>
+        <label for="vetTarget">兽医建议每日目标 (kcal，可空)</label>
+        <input type="number" id="vetTarget" value="0" min="0" step="any" oninput="calc()" placeholder="0 = use model estimate above">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="stapleCal">当前主粮每日实际喂食量 (kcal，可空)</label>
+        <input type="number" id="stapleCal" value="0" min="0" step="any" oninput="calc()" placeholder="0 = do not reconcile staple">
+      </div>
+      <div><small style="color:var(--text-muted);">零食也计入每日总能量；填主粮实际量后，会按总摄入与目标差额给出主粮调整量。</small></div>
     </div>
 
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__treat_caloriesExport()">导出明细 CSV</button></div><div class="cal-main" id="result"></div> <div id="treat_caloriesTable"></div> <div id="treat_caloriesDiff"></div> <div id="treat_caloriesChart"></div> <div id="treat_caloriesHist"></div>
@@ -235,15 +257,15 @@
 <h2>📚 深度解析：宠物零食热量计算器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>训练期高频给零食，用 RER/DER 模型算出每日总热量，确保零食不超 10% 安全线，预防肥胖。</li>
-<li>对比狗狗与猫咪的基础代谢公式差异（犬 70×体重^0.75、猫 40×体重+20），分别控制喂食量。</li>
-<li>按活动量与绝育状态调整 DER 系数，已绝育/低活动宠物代谢更低，零食额度应同步收紧。</li>
+<li>训练期高频给零食时，用 RER/DER 粗算热量参考，并填入兽医目标与实际主粮量，按全天总摄入调整。</li>
+<li>对比犬猫基础代谢公式差异，分别核算；所有结果都是估算，不是个体营养处方。</li>
+<li>老年、幼龄、疾病或体重管理场景应使用兽医给出的目标，不直接套用模型系数。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">10kg 犬 · 15kcal/颗 · 每日 5 颗 · 正常活动 · 未绝育</div><div class="dd-ex-body">静息能量 RER = 70 × 10^0.75 ≈ 393.6 kcal；每日需求 DER = 393.6 × 1.6（正常·未绝育）= 629.8 kcal。零食总热量 = 15 × 5 = 75 kcal，占每日 11.9%，已超出 10% 安全上限（≈63 kcal）。建议减至每日最多 4 颗，或换用 2–5 kcal 的训练小零食。对比 4kg 猫同样 5kcal/颗×3 颗仅占 6.94%，尚在安全范围内。</div></div>
+<div class="dd-example"><div class="dd-ex-title">10kg 犬 · 15kcal/颗 · 每日 5 颗 · 正常活动 · 未绝育</div><div class="dd-ex-body">10kg 犬、15 kcal/颗 × 5 颗、正常活动、未绝育：RER ≈ 393.6 kcal，DER ≈ 629.8 kcal（粗略估算）。零食 75 kcal 占 11.9%，高于 10% 参考线；若兽医目标为 600 kcal，则占 12.5%。若当前主粮实际 600 kcal，全天摄入 675 kcal，超目标 75 kcal——即使零食占比接近线，也应优先把主粮减少约 75 kcal，而不是只看零食上限。幼龄、疾病或体重管理请咨询兽医。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>为什么狗狗和猫咪的算法不一样？</dt><dd>犬用 Kleiber 幂律 RER=70×体重^0.75（更适合跨体型缩放），猫用线性 RER=40×体重+20（小型猫科经验式）；两者 DER 再乘活动/绝育/年龄系数。混用公式会系统性高估或低估热量。</dd>
-<dt>零食超标了一定要减颗数吗？</dt><dd>优先减颗数或换低热量零食；若已超标较多（&gt;20%），还应相应扣减主粮份量（本例需从主粮减约 12 kcal）。兽医通用原则是零食热量不超过每日总热量 10%。</dd>
+<dt>零食超标了一定要减颗数吗？</dt><dd>先看全天总摄入：主粮实际量 + 零食热量 与目标比较，超出多少就优先扣减主粮多少；零食占比 ≤10% 也只是“占比不高”，不代表可以额外无限给予。兽医目标优先于模型估算。</dd>
 </dl>
 </div>
 </section>
@@ -299,14 +321,19 @@ function calc(){
   var treatCount=parseFloat(document.getElementById('treatCount').value);
   var activity=document.getElementById('activity').value;
   var neutered=document.getElementById('neutered').value;
+  var vetTarget=parseFloat(document.getElementById('vetTarget').value)||0;
+  var stapleCal=parseFloat(document.getElementById('stapleCal').value)||0;
+  var lifeStage=document.getElementById('lifeStage').value;
   var weightBad=!(isFinite(weight)&&weight>0);
   var calBad=!(isFinite(treatCal)&&treatCal>0);
   var countBad=!(isFinite(treatCount)&&treatCount>=0&&Math.floor(treatCount)===treatCount);
+  var targetBad=!(isFinite(vetTarget)&&vetTarget>=0);
+  var stapleBad=!(isFinite(stapleCal)&&stapleCal>=0);
   document.getElementById('weight').classList.toggle('input-error',weightBad);
   document.getElementById('treatCal').classList.toggle('input-error',calBad);
   document.getElementById('treatCount').classList.toggle('input-error',countBad);
-  if(weightBad||calBad||countBad){
-    document.getElementById('result').innerHTML='<div class="cal-val">--</div><div class="cal-sub">请输入有效数值：体重与单颗热量须为正数，颗数须为非负整数。</div>';
+  if(weightBad||calBad||countBad||targetBad||stapleBad){
+    document.getElementById('result').innerHTML='<div class="cal-val">--</div><div class="cal-sub">请输入有效数值：体重与单颗热量须为正数，颗数、兽医目标与主粮量须为非负有限数。</div>';
     document.getElementById('dailyGrid').innerHTML='';
     document.getElementById('advice').innerHTML='';
     return;
@@ -324,29 +351,42 @@ function calc(){
     factor=neutered==='yes'?1.0:1.2;
   }
   var der=rer*factor;
+  var target=vetTarget>0?vetTarget:der;
+  var usedVet=vetTarget>0;
   var totalTreatCal=treatCal*treatCount;
-  var pct=totalTreatCal/der*100;
-  var maxTreatCal=der*0.1;
+  var pct=totalTreatCal/target*100;
+  var maxTreatCal=target*0.1;
   var maxTreats=Math.floor(maxTreatCal/treatCal);
   var mainVal=fmtLocal(pct,1)+'%';
-  var mainSub='零食 '+fmtLocal(totalTreatCal,0)+' kcal / 每日总需 '+fmtLocal(der,0)+' kcal';
+  var mainSub='零食 '+fmtLocal(totalTreatCal,0)+' kcal / '+(usedVet?'兽医目标 ':'模型估算 ')+fmtLocal(target,0)+' kcal';
   const __g4='<div class="cal-val">'+mainVal+'</div><div class="cal-sub">'+mainSub+'</div>';document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
-  const __g5='<div class="daily-card"><div class="v">'+fmtLocal(der,0)+'</div><div class="l">每日总热量 (kcal)</div></div>'+
+  const __g5='<div class="daily-card"><div class="v">'+fmtLocal(target,0)+'</div><div class="l">每日热量参考 (kcal)</div></div>'+
     '<div class="daily-card"><div class="v">'+fmtLocal(totalTreatCal,0)+'</div><div class="l">零食总热量 (kcal)</div></div>'+
-    '<div class="daily-card"><div class="v">'+fmtLocal(maxTreatCal,0)+'</div><div class="l">零食上限 (kcal)</div></div>'+
+    '<div class="daily-card"><div class="v">'+fmtLocal(maxTreatCal,0)+'</div><div class="l">零食参考上限 (kcal)</div></div>'+
     '<div class="daily-card"><div class="v">'+maxTreats+'</div><div class="l">每日最多颗数</div></div>';document.getElementById('dailyGrid').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   var barPct=Math.min(pct,100);
   var barColor=pct<=10?'var(--success)':(pct<=20?'var(--warning)':'var(--danger)');
   var advice='';
   advice+='<div class="bar-row"><span class="bar-lbl">零食占比</span><div class="bar-bg"><div class="bar-fill" style="width:'+barPct+'%;background:'+barColor+';">'+fmtLocal(pct,1)+'%</div></div></div>';
   advice+='<div class="bar-row"><span class="bar-lbl">建议上限</span><div class="bar-bg"><div class="bar-fill" style="width:10%;background:var(--success);">10%</div></div></div>';
-  if(pct<=10){
-    advice+='<div class="tip-box tip-success">✅ 零食热量在安全范围内（≤10%），可放心给予。剩余'+fmtLocal(100-pct,1)+'%热量来自主粮。</div>';
-  }else if(pct<=20){
-    advice+='<div class="tip-box tip-warn">⚠️ 零食热量偏高（'+fmtLocal(pct,1)+'%），建议减少至'+maxTreats+'颗，或换用低热量训练零食。</div>';
+  var totalIntake=stapleCal+totalTreatCal;
+  var excess=stapleCal>0?totalIntake-target:0;
+  if(stapleCal>0){
+    advice+='<div class="bar-row"><span class="bar-lbl">全天总摄入</span><div class="bar-bg"><div class="bar-fill" style="width:'+Math.min(totalIntake/target*100,100)+'%;background:'+(excess>0?'var(--danger)':'var(--success)')+';">'+fmtLocal(totalIntake,0)+' kcal</div></div></div>';
+    advice+='<p>主粮 '+fmtLocal(stapleCal,0)+' kcal + 零食 '+fmtLocal(totalTreatCal,0)+' kcal = 全天 '+fmtLocal(totalIntake,0)+' kcal；目标 '+fmtLocal(target,0)+' kcal。</p>';
+    advice+=excess>0?'<div class="tip-box tip-error">❌ 全天总摄入超出目标约 '+fmtLocal(excess,0)+' kcal；即使零食占比未超线，也应优先把主粮减少约 '+fmtLocal(excess,0)+' kcal，或减少零食。零食已计入全天总能量。</div>':'<div class="tip-box tip-success">✅ 全天总摄入未超目标，主粮尚有余量约 '+fmtLocal(target-totalIntake,0)+' kcal。零食仍在 10% 参考线内时也只是“占比不高”，不是可无限给予。</div>';
   }else{
-    advice+='<div class="tip-box tip-error">❌ 零食热量超标（'+fmtLocal(pct,1)+'%），建议减少至'+maxTreats+'颗，并减少主粮份量'+fmtLocal(totalTreatCal-maxTreatCal,0)+'kcal。</div>';
+    advice+='<div class="tip-box tip-info">ℹ️ 主粮剩余参考：目标 '+fmtLocal(target,0)+' kcal，扣除零食后约 '+fmtLocal(Math.max(target-totalTreatCal,0),0)+' kcal 可留给主粮。零食也计入每日总能量。</div>';
   }
+  if(pct<=10){
+    advice+='<div class="tip-box tip-success">✅ 零食占参考目标 '+fmtLocal(pct,1)+'%（≤10% 参考线）。这不等于“可放心给予”，仍须计入全天总量。</div>';
+  }else if(pct<=20){
+    advice+='<div class="tip-box tip-warn">⚠️ 零食占参考目标 '+fmtLocal(pct,1)+'%，偏高；建议减至约 '+maxTreats+' 颗/日或换低热量零食。</div>';
+  }else{
+    advice+='<div class="tip-box tip-error">❌ 零食占参考目标 '+fmtLocal(pct,1)+'%，已超 20%；建议减至约 '+maxTreats+' 颗/日，并核查全天总摄入。</div>';
+  }
+  advice+='<p style="color:var(--text-muted);font-size:13px;">热量为'+(usedVet?'按兽医目标核算':'按体重、活动与绝育状态粗略估算，未计年龄、体况评分与疾病，不是个体处方')+'；幼龄、疾病、体重管理或异常体重变化请先咨询兽医。</p>';
+  if(lifeStage!=='adult'){ advice+='<div class="tip-box tip-warn">⚠️ 当前为'+({young:'幼龄',senior:'老年',medical:'疾病或体重管理'}[lifeStage]||'特殊')+'场景，模型系数不适用个体处方，请以兽医营养评估为准。</div>'; }
   const __g6=advice;document.getElementById('advice').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
 }
 

@@ -226,7 +226,7 @@
 <ul class="dd-list">
 <li>正式训练前用绿点游戏热身，把“行为出现瞬间按下响片”的手指反应练到 300ms 以内。</li>
 <li>不同难度档（间隔 0.5–4 秒）渐进练习，缩短行为出现到点击的延迟，提升标记精准度。</li>
-<li>记录每次反应时间与命中率，定位自己常在“太早”还是“错过”上失误，针对性改进。</li>
+<li>用「导出明细 CSV」复盘每次命中/错过的反应时间、行为时长与难度；行为持续时长须在 200–3000 ms，全部错过时平均/最佳显示无数据。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">一次 280ms 的反应意味着什么</div><div class="dd-ex-body">绿点亮起=行为出现，红点=行为消失。点击延迟 280ms 落在 &lt;350ms 的“优秀”档（&lt;200ms 完美、&lt;500ms 良好、&lt;800ms 一般）。训练目标为平均反应 &lt;300ms，此时响片能精准标记行为发生的瞬间，宠物才建立正确关联；超过 1 秒的延迟可能标记到错误行为。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
@@ -283,7 +283,9 @@ var totalClicks=0;
 var hitClicks=0;
 var reactionTimes=[];
 var moveHistory=[];
+var practiceLog=[];
 var currentDifficulty='normal';
+var practiceDuration=800;
 
 var DIFFICULTY={
   easy:{min:2000,max:4000},
@@ -291,15 +293,25 @@ var DIFFICULTY={
   hard:{min:500,max:2000}
 };
 
+function readDuration(){
+  var raw=String(document.getElementById('duration').value||'').trim();
+  var v=Number(raw);
+  var ok=raw!=='' && isFinite(v) && Math.round(v)===v && v>=200 && v<=3000;
+  var el=document.getElementById('duration');
+  if(el){ el.classList.toggle('input-error',!ok); el.setAttribute('aria-invalid',ok?'false':'true'); }
+  return ok?v:null;
+}
 function updateSettings(){
   currentDifficulty=document.getElementById('difficulty').value;
+  var dur=readDuration();
+  if(dur!==null) practiceDuration=dur;
   // 待机时把当前训练设置显式反馈出来（游戏中由 scheduleNext 覆盖状态文案）
   if(isPlaying) return;
   try{
     var cfg=DIFFICULTY[currentDifficulty]||DIFFICULTY.normal;
-    var dur=parseInt(document.getElementById('duration').value,10)||800;
     var st=document.getElementById('status');
     if(!st) return;
+    if(dur===null){ st.textContent='行为持续时间需为 200–3000 的整数，请修正后再开始练习。'; return; }
     var isEn=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
     var dName=(isEn?{easy:'Easy',normal:'Normal',hard:'Hard'}:{easy:'简单',normal:'普通',hard:'困难'})[currentDifficulty]||currentDifficulty;
     st.textContent=isEn
@@ -313,6 +325,12 @@ function startGame(){
     stopGame();
     return;
   }
+  var dur=readDuration();
+  if(dur===null){
+    document.getElementById('status').textContent='行为持续时间需为 200–3000 的整数，请修正后再开始练习。';
+    return;
+  }
+  practiceDuration=dur;
   isPlaying=true;
   document.getElementById('startBtn').textContent='⏹ 停止';
   document.getElementById('status').textContent='准备...行为即将出现';
@@ -344,7 +362,7 @@ function scheduleNext(){
   if(nextTimer)clearTimeout(nextTimer);
   nextTimer=setTimeout(function(){
     if(!isPlaying)return;
-    var duration=parseInt(document.getElementById('duration').value)||800;
+    var duration=practiceDuration;
     behaviorStart=performance.now();
     dot.classList.remove('inactive');
     dot.classList.add('active');
@@ -407,7 +425,10 @@ function getGrade(ms){
 }
 
 function recordAttempt(rt){
-  moveHistory.unshift({rt:rt,grade:rt?getGrade(rt):'错过'});
+  var hit=rt!==null&&isFinite(rt);
+  var cfg=DIFFICULTY[currentDifficulty]||DIFFICULTY.normal;
+  practiceLog.push({seq:practiceLog.length+1,hit:hit,rt:hit?rt:null,grade:hit?getGrade(rt):'错过',duration:practiceDuration,difficulty:currentDifficulty,intervalMin:cfg.min,intervalMax:cfg.max});
+  moveHistory.unshift({rt:hit?rt:null,grade:hit?getGrade(rt):'错过'});
   if(moveHistory.length>10)moveHistory.pop();
   renderHistory();
 }
@@ -428,16 +449,15 @@ function renderHistory(){
 
 function updateStats(){
   var hitRate=totalClicks>0?Math.round(hitClicks/totalClicks*100):0;
-  var avg=0,best=0;
+  var avg=null,best=Infinity;
   if(reactionTimes.length>0){
     var sum=0;
-    best=Infinity;
     reactionTimes.forEach(function(rt){sum+=rt;if(rt<best)best=rt;});
     avg=sum/reactionTimes.length;
   }
   const __h2='<div class="item"><div class="v">'+totalClicks+'</div><div class="l">总次数</div></div>'+
     '<div class="item"><div class="v">'+hitRate+'%</div><div class="l">命中率</div></div>'+
-    '<div class="item"><div class="v">'+(avg?parseInt(avg):'--')+'</div><div class="l">平均(ms)</div></div>'+
+    '<div class="item"><div class="v">'+(avg!==null?parseInt(avg):'--')+'</div><div class="l">平均(ms)</div></div>'+
     '<div class="item"><div class="v">'+(best!==Infinity?parseInt(best):'--')+'</div><div class="l">最佳(ms)</div></div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('statsGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('statsGrid').innerHTML=__h2;
 }
 
@@ -446,6 +466,7 @@ function resetStats(){
   hitClicks=0;
   reactionTimes=[];
   moveHistory=[];
+  practiceLog=[];
   updateStats();
   renderHistory();
   document.getElementById('reactionTime').textContent='--';
@@ -629,15 +650,25 @@ function __clicker_timingExtras(){
 }
 function __clicker_timingExport(){
     if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#clicker_timingTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__clicker_timingSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __clicker_timingRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
+    var en=(TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
+    if(practiceLog.length===0){
+        document.getElementById('status').textContent=en?'No practice records to export yet.':'暂无练习记录可导出，请先完成至少一次练习。';
+        if(ToolBox&&ToolBox.showToast)ToolBox.showToast(en?'No practice records':'暂无练习记录','warning');
+        return;
+    }
+    var hits=practiceLog.filter(function(x){return x.hit;});
+    var avg=hits.length?Math.round(hits.reduce(function(a,x){return a+x.rt;},0)/hits.length):'--';
+    var best=hits.length?Math.round(Math.min.apply(null,hits.map(function(x){return x.rt;}))):'--';
+    var rows=[];
+    var head=en?['Seq','Result','Reaction (ms)','Duration (ms)','Difficulty','Interval min (ms)','Interval max (ms)']:['序号','结果','反应时间(ms)','行为时长(ms)','难度','间隔下限(ms)','间隔上限(ms)'];
+    practiceLog.forEach(function(x){
+        rows.push([x.seq,x.hit?(en?'Hit':'命中'):(en?'Miss':'错过'),x.hit?Math.round(x.rt):'',x.duration,x.difficulty,x.intervalMin,x.intervalMax]);
+    });
+    var note=en
+      ? '<p>Session: '+practiceLog.length+' attempts, '+hits.length+' hits, '+(practiceLog.length-hits.length)+' misses; average '+avg+' ms, best '+best+' ms.</p>'
+      : '<p>本次练习：共 '+practiceLog.length+' 次，命中 '+hits.length+' 次，错过 '+(practiceLog.length-hits.length)+' 次；平均 '+avg+' ms，最佳 '+best+' ms。</p>';
+    var html=note+ToolBox.createTable(head,rows);
+    document.getElementById('clicker_timingTable').innerHTML=html;
     try { TBKit.util.exportTable('#clicker_timingTable','clicker-timing.csv'); } catch(e){}
 }
 function __clicker_timingPresets(){

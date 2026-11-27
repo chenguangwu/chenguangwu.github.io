@@ -108,7 +108,7 @@ canvas{width:100%;max-width:100%;}
       "name": "保留率低于多少必须复习？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "工具以 40% 为警戒线：≥80% 可延长间隔，50–80% 近期复习，30–50% 尽快复习，<30% 需重新训练。实际训练建议保留率跌破 40% 前就安排下一次复习。"
+        "text": "模型阈值只是示例，不应作为“必须复习/必须重训”的医学判断。请以本地记录的成功率为准：≥80% 可小幅提高难度或延长间隔，50–80% 保持难度，<50% 降低难度并拆分步骤；记录少于 3 次时波动大，仅作观察。"
       }
     }
   ]
@@ -145,7 +145,7 @@ canvas{width:100%;max-width:100%;}
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#1D4ED8;">
     <h2 data-zh="🔑 口令记忆曲线">Command Repetition</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="基于遗忘曲线，计算口令训练的最佳重复间隔，规划科学的训练时间表">Command Repetition</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="以遗忘曲线示例估算复习间隔，并用本地实测成功率调整训练难度">Command Repetition</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">记忆保持率 = exp(−衰减系数 × 已过小时数 ÷ √重复次数)，衰减系数 = 难度系数 × 年龄因子（幼宠 ×1.3、老龄 ×1.4），上限截断 0.95</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：Math.exp(-s×hoursAgo÷(reps)^0.5)；max(0,min(1,retention))；retention×100">Key formulas: Math.exp(-s×hoursAgo÷(reps)^0.5); max(0,min(1,retention)); retention×100</p>
@@ -177,6 +177,18 @@ canvas{width:100%;max-width:100%;}
     </div>
 
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__command_repetitionExport()">导出明细 CSV</button></div><div class="retention-main" id="result"></div> <div id="command_repetitionTable"></div> <div id="command_repetitionDiff"></div> <div id="command_repetitionChart"></div> <div id="command_repetitionHist"></div>
+    <h3 style="margin-top:18px;">实测训练记录（仅保存在本机浏览器）</h3>
+    <p style="font-size:13px;color:var(--text-muted);">记录实际训练日期、环境和成功次数，用真实表现判断是否提高难度；上方曲线仅为教学示例，不代表该犬实测记忆状态。</p>
+    <div class="input-row">
+      <div><label for="cmdLogDate">训练日期</label><input type="date" id="cmdLogDate"></div>
+      <div><label for="cmdLogEnv">训练环境</label><input type="text" id="cmdLogEnv" placeholder="Living room / outdoor / park"></div>
+    </div>
+    <div class="input-row">
+      <div><label for="cmdLogSuccess">成功次数</label><input type="number" id="cmdLogSuccess" value="0" min="0" step="1"></div>
+      <div><label for="cmdLogTotal">总尝试次数</label><input type="number" id="cmdLogTotal" value="0" min="0" step="1"></div>
+    </div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="addCmdLog()">记录本次训练</button><button class="btn" type="button" onclick="clearCmdLog()">清空记录</button></div>
+    <div id="cmdLogStats"></div><div id="cmdLogList"></div>
     <div class="schedule-grid" id="scheduleGrid"></div>
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn" onclick="copyResult()">复制训练计划</button>
@@ -224,15 +236,15 @@ canvas{width:100%;max-width:100%;}
 <h2>📚 深度解析：口令记忆曲线</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>训练新口令时，按遗忘曲线规划 8 级间隔复习表，避免一次练太久却很快遗忘。</li>
-<li>对比幼犬与成年犬的年龄因子差异，调整复习密度——幼犬遗忘慢但学得慢，需更密巩固。</li>
-<li>不同难度口令（坐下/装死）分别建模，复杂动作系数更高、衰减更快，应优先排进近期复习。</li>
+<li>用遗忘曲线教学示例估算复习间隔，并记录训练日期、环境与成功次数，以实测成功率决定是否提高难度。</li>
+<li>记录不足时只把曲线当示例，不据此判定“记忆衰退/必须重新训练”；记录达到 3 次后按成功率给出调整建议。</li>
+<li>不同口令分别记录、分别调整难度，避免用模型系数替代真实训练表现。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">口令“趴下”已练 5 次 · 中等难度 · 距上次 4 小时</div><div class="dd-ex-body">遗忘系数 s = 难度系数 0.5 × 年龄因子（6月龄=1.0）= 0.5。当前保留率 = e^(−0.5×4/√5) ≈ e^(−0.894) ≈ 40.9%，处于“记忆开始衰退，建议尽快复习”。8 级间隔表前段：第 5→6 次约 1 小时后（保留≈80%）、第 6→7 次约 4 小时后（≈44%）、第 7→8 次约 12 小时后（≈10%）、第 8→9 次约 1 天后（≈1%）。可见超过 12 小时未复习基本遗忘，应在当日安排多次短训。</div></div>
+<div class="dd-example"><div class="dd-ex-title">口令“趴下”已练 5 次 · 中等难度 · 距上次 4 小时</div><div class="dd-ex-body">已练 5 次、中等难度、距上次 4 小时、6 月龄时，模型估算保留率约 40.9%——这只是教学示例，不代表该犬实测记忆。页面本地记录训练日期、环境与成功次数；例如近 3 次 18/20 成功（90%），可小幅提高难度或延长间隔；若仅 10/20（50%），保持难度并稳定复习；低于 50% 则降低难度或拆分步骤。依据是本地实测成功率，而非上方固定曲线。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>为什么幼犬反而要更密复习？</dt><dd>年龄因子对幼犬（&lt;6月）取 1.3、成年（&gt;36月）取 1.4，会把 s 放大使曲线更陡、衰减更快；但幼犬单次学得慢，所以需要“短时多次”（每次 5–10 分钟、每天 2–3 次）来抵消快速遗忘。</dd>
-<dt>保留率低于多少必须复习？</dt><dd>工具以 40% 为警戒线：≥80% 可延长间隔，50–80% 近期复习，30–50% 尽快复习，&lt;30% 需重新训练。实际训练建议保留率跌破 40% 前就安排下一次复习。</dd>
+<dt>保留率低于多少必须复习？</dt><dd>模型阈值只是示例，不应作为“必须复习/必须重训”的医学判断。请以本地记录的成功率为准：≥80% 可小幅提高难度或延长间隔，50–80% 保持难度，&lt;50% 降低难度并拆分步骤；记录少于 3 次时波动大，仅作观察。</dd>
 </dl>
 </div>
 </section>
@@ -312,16 +324,16 @@ function calc(){
   var mainVal=fmtLocal(pct,0)+'%';
   var mainSub;
   if(pct>=80){
-    mainSub='记忆保持优秀，可适当延长下次复习间隔';
+    mainSub='模型估算保持较高；可参考延长间隔，但仍需以实测成功率确认';
   }else if(pct>=50){
-    mainSub='记忆保持良好，建议近期安排复习';
+    mainSub='模型估算中等；建议近期复习，并用实测成功率校正';
   }else if(pct>=30){
-    mainSub='记忆开始衰退，建议尽快复习';
+    mainSub='模型估算偏低；仅为示例，请按实测成功率安排复习';
   }else{
-    mainSub='记忆严重衰退，需立即重新训练';
+    mainSub='模型估算很低；不代表实测状态，请记录真实成功率后再决定是否降难度';
   }
   const __g3='<div class="retention-val">'+mainVal+'</div><div class="retention-sub">'+mainSub+'</div>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-  window.__crMain='口令记忆：'+mainVal+' - '+mainSub;
+  window.__crMain='模型估算保留率：'+mainVal+' - '+mainSub;
   renderSchedule(reps,s);
   drawCurve(reps,s,hoursAgo);
 }
@@ -447,6 +459,45 @@ function drawCurve(reps,s,hoursAgo){
   }
 }
 
+var CMD_LOG_KEY='tb.command-repetition.log';
+function loadCmdLog(){ try{ var a=JSON.parse(localStorage.getItem(CMD_LOG_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function saveCmdLog(a){ try{ localStorage.setItem(CMD_LOG_KEY,JSON.stringify(a.slice(0,50))); }catch(e){} }
+function cmdLogStatsText(a){
+  if(!a.length) return '<p style="color:var(--text-muted);">暂无实测记录；先记录几次训练，才能用真实成功率判断难度。</p>';
+  var sum=a.reduce(function(x,y){return x+(y.success||0);},0);
+  var tot=a.reduce(function(x,y){return x+(y.total||0);},0);
+  var rate=tot?Math.round(sum/tot*100):0;
+  var advice=rate>=80?'实测成功率较高，可小幅提高难度或延长间隔（每次只改一项）。':(rate>=50?'实测成功率中等，保持当前难度并稳定复习。':'实测成功率偏低，建议降低难度、拆分步骤或缩短单次训练。');
+  return '<p><strong>近期实测成功率：'+rate+'%</strong>（'+sum+' / '+tot+' 次，共 '+a.length+' 条记录）</p><p>'+advice+'</p><p style="color:var(--text-muted);font-size:13px;">依据：以上成功率来自本机记录，不是上方模型曲线；记录越少波动越大，请结合训练环境与犬只状态判断。</p>';
+}
+function renderCmdLog(){
+  var a=loadCmdLog();
+  var st=document.getElementById('cmdLogStats'); if(st) st.innerHTML=cmdLogStatsText(a);
+  var box=document.getElementById('cmdLogList'); if(!box) return;
+  if(!a.length){ box.innerHTML=''; return; }
+  var head=['日期','环境','成功/总次数','成功率','记录时间'];
+  var rows=a.slice(0,10).map(function(x){ var r=x.total?Math.round(x.success/x.total*100):0; return [x.date||'--',x.env||'--',(x.success||0)+' / '+(x.total||0),r+'%',(x.ts||'').replace('T',' ').slice(0,16)]; });
+  box.innerHTML=ToolBox.createTable(head,rows);
+}
+function addCmdLog(){
+  var d=document.getElementById('cmdLogDate').value;
+  var env=document.getElementById('cmdLogEnv').value.trim();
+  var sc=Number(document.getElementById('cmdLogSuccess').value);
+  var tot=Number(document.getElementById('cmdLogTotal').value);
+  if(!d){ document.getElementById('cmdLogStats').innerHTML='<p style="color:var(--warning);">请选择训练日期。</p>'; return; }
+  if(!isFinite(sc)||!isFinite(tot)||Math.floor(sc)!==sc||Math.floor(tot)!==tot||sc<0||tot<=0||sc>tot){
+    document.getElementById('cmdLogStats').innerHTML='<p style="color:var(--warning);">成功次数与总次数须为非负整数，总次数须大于 0，且成功次数不得超过总次数。</p>';
+    return;
+  }
+  var a=loadCmdLog();
+  a.unshift({date:d,env:env,success:sc,total:tot,ts:new Date().toISOString()});
+  saveCmdLog(a); renderCmdLog();
+}
+function clearCmdLog(){
+  if(!confirm('确定清空本机保存的全部实测训练记录？')) return;
+  try{ localStorage.removeItem(CMD_LOG_KEY); }catch(e){}
+  renderCmdLog();
+}
 function copyResult(){
   var head=window.__crMain||'';
   if(!head){
@@ -460,6 +511,7 @@ function copyResult(){
 }
 
 calc();
+renderCmdLog();
 </script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){

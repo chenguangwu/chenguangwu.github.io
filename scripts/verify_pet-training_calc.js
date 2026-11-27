@@ -19,7 +19,7 @@ const CASES = [
     "hoursAgo": "24",
     "age": "6"
   },
-  "expect": ["12\n24\nnormal\n6\n3% 记忆严重衰退，需立即重新训练\n第—→—次 1小时后 保留—% 第—→—次 4小时后 保留—% 第—→—次 12小时后 保留—% 第—→—次 1天后 保留—% 第—→—次 3天后 保留—% 第—→—次 7天后 保留—% 第—→—次 14天后 保留—% 第—→—次 30天后 保留—%"],
+  "expect": ["6\n3% 模型估算很低"],
   "ref": "s=0.35(easy)×1.0(age6)=0.35；retention=exp(−0.35×24/√12)=exp(−2.4249)=0.0885→9%（原断言“5%”会被默认输出的“15%/5%”子串命中 → 逃生项）"
 },
 {
@@ -37,7 +37,7 @@ const CASES = [
 {
   "slug": "pet-training/elimination-predict",
   "clicks": [
-    "document.getElementById('age').value='3';document.getElementById('afterDrink').value='30';document.getElementById('petType').value='cat';calc();var a=document.getElementById('result').innerHTML.indexOf('立即带去定点')>=0;document.getElementById('afterDrink').value='5';calc();var b=document.getElementById('result').innerHTML.indexOf('10 分钟后')>=0;document.getElementById('afterDrink').value='';calc();var c=document.getElementById('result').innerHTML.indexOf('请输入饮水后已过分钟数')>=0&&document.getElementById('timeline').innerHTML==='';document.getElementById('__tbProbe').textContent='ELIM '+a+' '+b+' '+c;"
+    "document.getElementById('age').value='3';document.getElementById('afterDrink').value='30';document.getElementById('petType').value='cat';calc();var a=document.getElementById('result').innerHTML.indexOf('已进入排尿参考窗口')>=0;document.getElementById('afterDrink').value='5';calc();var b=document.getElementById('result').innerHTML.indexOf('15 分钟后')>=0;document.getElementById('afterDrink').value='';calc();var c=document.getElementById('result').innerHTML.indexOf('请输入饮水后已过分钟数')>=0&&document.getElementById('timeline').innerHTML==='';document.getElementById('__tbProbe').textContent='ELIM '+a+' '+b+' '+c;"
   ],
   "expect": ["ELIM true true true"],
   "ref": "修复前 `postDrinkTime=isPuppy?15-30:20-40` 是减法（幼宠 −15、成宠 −20），任何饮水后时间都判「立即带去」；现幼宠窗口 15–30 分钟，饮水后 30 分钟才提示立即、5 分钟显示「10 分钟后」，空值提示补录并清空时间线。默认 age3/afterDrink15 不走这三支。"
@@ -57,7 +57,7 @@ const CASES = [
     "weight": "15"
   },
   "expect": [
-    "当前绳长(4.5m)超过城市街道建议上限(1.8m)"
+    "当前绳长(4.5m)超过城市街道参考上限(1.8m)"
   ],
   "ref": "auto-restore"
 },
@@ -92,7 +92,7 @@ const CASES = [
     "treatCal": "15",
     "treatCount": "5"
   },
-  "expect": ["dog\n15\n15\n5\nnormal\nno\n8.8% 零食 75 kcal / 每日总需 854 kcal\n854 每日总热量 (kcal) 75 零食总热量 (kcal) 85 零食上限 (kcal) 5 每日最多颗数\n零食占比 8.8% 建议上限 10% ✅ 零食热量在安全范围内（≤10%），可放心给予。剩余91.2%热量来自主粮。"],
+  "expect": ["dog\n15\n15\n5\nnormal\nno\n0\n0\nadult\n8.8% 零食 75 kcal / 模型估算 854 kcal\n854 每日热量参考 (kcal) 75 零食总热量 (kcal) 85 零食参考上限 (kcal) 5 每日最多颗数\n零食占比 8.8% 建议上限 10% ℹ️ 主粮剩余参考"],
   "ref": "auto-restore"
 }
 ];
